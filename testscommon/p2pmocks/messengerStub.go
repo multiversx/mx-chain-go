@@ -40,6 +40,8 @@ type MessengerStub struct {
 	UnjoinAllTopicsCalled                  func() error
 	PortCalled                             func() int
 	WaitForConnectionsCalled               func(maxWaitingTime time.Duration, minNumOfPeers uint32)
+	SignCalled                             func(payload []byte) ([]byte, error)
+	VerifyCalled                           func(payload []byte, pid core.PeerID, signature []byte) error
 }
 
 // ConnectedFullHistoryPeersOnTopic -
@@ -313,6 +315,24 @@ func (ms *MessengerStub) WaitForConnections(maxWaitingTime time.Duration, minNum
 	if ms.WaitForConnectionsCalled != nil {
 		ms.WaitForConnectionsCalled(maxWaitingTime, minNumOfPeers)
 	}
+}
+
+// Sign -
+func (ms *MessengerStub) Sign(payload []byte) ([]byte, error) {
+	if ms.SignCalled != nil {
+		return ms.SignCalled(payload)
+	}
+
+	return make([]byte, 0), nil
+}
+
+// Verify -
+func (ms *MessengerStub) Verify(payload []byte, pid core.PeerID, signature []byte) error {
+	if ms.VerifyCalled != nil {
+		return ms.VerifyCalled(payload, pid, signature)
+	}
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

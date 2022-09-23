@@ -6,9 +6,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	mock2 "github.com/ElrondNetwork/elrond-go/heartbeat/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
@@ -27,8 +30,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var stepDelay = time.Second / 10
 var log = logger.GetOrCreate("integrationtests/node")
+
+var handlers []vmcommon.EpochSubscriberHandler
+
+const (
+	stepDelay                 = time.Second / 10
+	durationBetweenHeartbeats = time.Second * 5
+	providedEpoch             = uint32(11)
+)
 
 // TestHeartbeatMonitorWillUpdateAnInactivePeer test what happen if a peer out of 2 stops being responsive on heartbeat status
 // The active monitor should change it's active flag to false when a new heartbeat message has arrived.
@@ -37,10 +47,13 @@ func TestHeartbeatMonitorWillUpdateAnInactivePeer(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	maxUnresposiveTime := time.Second * 10
+	interactingNodes := 3
+	nodes := make([]p2p.Messenger, interactingNodes)
 
+	maxUnresposiveTime := time.Second * 10
 	monitor := createMonitor(maxUnresposiveTime)
-	nodes, senders, pks := prepareNodes(monitor, 3, "nodeName")
+
+	senders, pks := prepareNodes(nodes, monitor, interactingNodes, "nodeName")
 
 	defer func() {
 		for _, n := range nodes {
@@ -80,8 +93,6 @@ func TestHeartbeatMonitorWillNotUpdateTooLongHeartbeatMessages(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	maxUnresposiveTime := time.Second * 10
-
 	length := 129
 	buff := make([]byte, length)
 
@@ -90,8 +101,13 @@ func TestHeartbeatMonitorWillNotUpdateTooLongHeartbeatMessages(t *testing.T) {
 	}
 	bigNodeName := string(buff)
 
+	interactingNodes := 3
+	nodes := make([]p2p.Messenger, interactingNodes)
+
+	maxUnresposiveTime := time.Second * 10
 	monitor := createMonitor(maxUnresposiveTime)
-	nodes, senders, pks := prepareNodes(monitor, 3, bigNodeName)
+
+	senders, pks := prepareNodes(nodes, monitor, interactingNodes, bigNodeName)
 
 	defer func() {
 		for _, n := range nodes {
@@ -116,20 +132,123 @@ func TestHeartbeatMonitorWillNotUpdateTooLongHeartbeatMessages(t *testing.T) {
 	assert.True(t, isMessageCorrectLen(pkHeartBeats, secondPK, expectedLen))
 }
 
+func TestHeartbeatV2_DeactivationOfHeartbeat(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	interactingNodes := 3
+	nodes := make([]*integrationTests.TestHeartbeatNode, interactingNodes)
+	p2pConfig := integrationTests.CreateP2PConfigWithNoDiscovery()
+	for i := 0; i < interactingNodes; i++ {
+		nodes[i] = integrationTests.NewTestHeartbeatNode(t, 3, 0, interactingNodes, p2pConfig, 60)
+	}
+	assert.Equal(t, interactingNodes, len(nodes))
+
+	messengers := make([]p2p.Messenger, interactingNodes)
+	for i := 0; i < interactingNodes; i++ {
+		messengers[i] = nodes[i].Messenger
+	}
+
+	maxUnresposiveTime := time.Second * 10
+	monitor := createMonitor(maxUnresposiveTime)
+	senders, _ := prepareNodes(messengers, monitor, interactingNodes, "nodeName")
+
+	// Start sending heartbeats
+	timer := time.NewTimer(durationBetweenHeartbeats)
+	defer timer.Stop()
+	go startSendingHeartbeats(t, senders, timer)
+
+	// Wait for first messages
+	time.Sleep(time.Second * 6)
+
+	heartbeats := monitor.GetHeartbeats()
+	assert.False(t, heartbeats[0].IsActive) // first one is the monitor which is inactive
+
+	for _, hb := range heartbeats[1:] {
+		assert.True(t, hb.IsActive)
+	}
+
+	// Stop sending heartbeats
+	for _, handler := range handlers {
+		handler.EpochConfirmed(providedEpoch+1, 0)
+	}
+
+	// Wait enough time to make sure some heartbeats should have been sent
+	time.Sleep(time.Second * 15)
+
+	// Check sent messages
+	maxHbV2DurationAllowed := time.Second * 5
+	checkMessages(t, nodes, monitor, maxHbV2DurationAllowed)
+}
+
+func startSendingHeartbeats(t *testing.T, senders []*process.Sender, timer *time.Timer) {
+	for {
+		timer.Reset(durationBetweenHeartbeats)
+
+		<-timer.C
+		for _, sender := range senders {
+			err := sender.SendHeartbeat()
+			assert.Nil(t, err)
+		}
+	}
+}
+
+func checkMessages(t *testing.T, nodes []*integrationTests.TestHeartbeatNode, monitor *process.Monitor, maxHbV2DurationAllowed time.Duration) {
+	heartbeats := monitor.GetHeartbeats()
+	for _, hb := range heartbeats {
+		assert.False(t, hb.IsActive)
+	}
+
+	numOfNodes := len(nodes)
+	for i := 0; i < numOfNodes; i++ {
+		paCache := nodes[i].DataPool.PeerAuthentications()
+		hbCache := nodes[i].DataPool.Heartbeats()
+
+		assert.Equal(t, numOfNodes, paCache.Len())
+		assert.Equal(t, numOfNodes, hbCache.Len())
+
+		// Check this node received messages from all peers
+		for _, node := range nodes {
+			pkBytes, err := node.NodeKeys.Pk.ToByteArray()
+			assert.Nil(t, err)
+
+			assert.True(t, paCache.Has(pkBytes))
+			assert.True(t, hbCache.Has(node.Messenger.ID().Bytes()))
+
+			// Also check message age
+			value, _ := paCache.Get(pkBytes)
+			msg := value.(*heartbeat.PeerAuthentication)
+
+			marshaller := integrationTests.TestMarshaller
+			payload := &heartbeat.Payload{}
+			err = marshaller.Unmarshal(payload, msg.Payload)
+			assert.Nil(t, err)
+
+			currentTimestamp := time.Now().Unix()
+			messageAge := time.Duration(currentTimestamp - payload.Timestamp)
+			assert.True(t, messageAge < maxHbV2DurationAllowed)
+		}
+	}
+}
+
 func prepareNodes(
+	nodes []p2p.Messenger,
 	monitor *process.Monitor,
 	interactingNodes int,
 	defaultNodeName string,
-) ([]p2p.Messenger, []*process.Sender, []crypto.PublicKey) {
+) ([]*process.Sender, []crypto.PublicKey) {
 
 	senderIdxs := []int{0, 1}
-	nodes := make([]p2p.Messenger, interactingNodes)
 	topicHeartbeat := "topic"
 	senders := make([]*process.Sender, 0)
 	pks := make([]crypto.PublicKey, 0)
+	handlers = make([]vmcommon.EpochSubscriberHandler, 0)
 
 	for i := 0; i < interactingNodes; i++ {
-		nodes[i] = integrationTests.CreateMessengerWithNoDiscovery()
+		if nodes[i] == nil {
+			nodes[i] = integrationTests.CreateMessengerWithNoDiscovery()
+		}
 		_ = nodes[i].CreateTopic(topicHeartbeat, true)
 
 		isSender := integrationTests.IsIntInSlice(i, senderIdxs)
@@ -148,7 +267,7 @@ func prepareNodes(
 		}
 	}
 
-	return nodes, senders, pks
+	return senders, pks
 }
 
 func checkReceivedMessages(t *testing.T, monitor *process.Monitor, pks []crypto.PublicKey, activeIdxs []int) {
@@ -221,9 +340,15 @@ func createSenderWithName(messenger p2p.Messenger, topic string, nodeName string
 		StatusHandler:        &statusHandlerMock.AppStatusHandlerStub{},
 		VersionNumber:        version,
 		NodeDisplayName:      nodeName,
-		HardforkTrigger:      &mock.HardforkTriggerStub{},
+		HardforkTrigger:      &testscommon.HardforkTriggerStub{},
 		CurrentBlockProvider: &testscommon.ChainHandlerStub{},
 		RedundancyHandler:    &mock.RedundancyHandlerStub{},
+		EpochNotifier: &epochNotifier.EpochNotifierStub{
+			RegisterNotifyHandlerCalled: func(handler vmcommon.EpochSubscriberHandler) {
+				handlers = append(handlers, handler)
+			},
+		},
+		HeartbeatDisableEpoch: providedEpoch,
 	}
 
 	sender, _ := process.NewSender(argSender)
@@ -272,11 +397,13 @@ func createMonitor(maxDurationPeerUnresponsive time.Duration) *process.Monitor {
 				return nil
 			},
 		},
-		HardforkTrigger:                    &mock.HardforkTriggerStub{},
+		HardforkTrigger:                    &testscommon.HardforkTriggerStub{},
 		ValidatorPubkeyConverter:           integrationTests.TestValidatorPubkeyConverter,
 		HeartbeatRefreshIntervalInSec:      1,
 		HideInactiveValidatorIntervalInSec: 600,
 		AppStatusHandler:                   &statusHandlerMock.AppStatusHandlerStub{},
+		EpochNotifier:                      &epochNotifier.EpochNotifierStub{},
+		HeartbeatDisableEpoch:              providedEpoch,
 	}
 
 	monitor, _ := process.NewMonitor(argMonitor)

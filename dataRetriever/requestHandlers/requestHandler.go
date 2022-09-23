@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -731,4 +732,41 @@ func (rrh *resolverRequestHandler) GetNumPeersToQuery(key string) (int, int, err
 
 	intra, cross := resolver.NumPeersToQuery()
 	return intra, cross, nil
+}
+
+// RequestPeerAuthenticationsByHashes asks for peer authentication messages from specific peers hashes
+func (rrh *resolverRequestHandler) RequestPeerAuthenticationsByHashes(destShardID uint32, hashes [][]byte) {
+	log.Debug("requesting peer authentication messages from network",
+		"topic", common.PeerAuthenticationTopic,
+		"shard", destShardID,
+		"num hashes", len(hashes),
+		"epoch", rrh.epoch,
+	)
+
+	resolver, err := rrh.resolversFinder.MetaChainResolver(common.PeerAuthenticationTopic)
+	if err != nil {
+		log.Error("RequestPeerAuthenticationsByHashes.MetaChainResolver",
+			"error", err.Error(),
+			"topic", common.PeerAuthenticationTopic,
+			"shard", destShardID,
+			"epoch", rrh.epoch,
+		)
+		return
+	}
+
+	peerAuthResolver, ok := resolver.(dataRetriever.PeerAuthenticationResolver)
+	if !ok {
+		log.Warn("wrong assertion type when creating peer authentication resolver")
+		return
+	}
+
+	err = peerAuthResolver.RequestDataFromHashArray(hashes, rrh.epoch)
+	if err != nil {
+		log.Debug("RequestPeerAuthenticationsByHashes.RequestDataFromHashArray",
+			"error", err.Error(),
+			"topic", common.PeerAuthenticationTopic,
+			"shard", destShardID,
+			"epoch", rrh.epoch,
+		)
+	}
 }

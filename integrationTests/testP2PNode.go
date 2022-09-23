@@ -81,14 +81,12 @@ func NewTestP2PNode(
 	pidPk, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
 	pkShardId, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
 	pidShardId, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
-	startInEpoch := uint32(0)
 	arg := networksharding.ArgPeerShardMapper{
 		PeerIdPkCache:         pidPk,
 		FallbackPkShardCache:  pkShardId,
 		FallbackPidShardCache: pidShardId,
 		NodesCoordinator:      coordinator,
 		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
-		StartEpoch:            startInEpoch,
 	}
 	tP2pNode.NetworkShardingUpdater, err = networksharding.NewPeerShardMapper(arg)
 	if err != nil {
@@ -180,6 +178,7 @@ func (tP2pNode *TestP2PNode) initNode() {
 	processComponents.EpochNotifier = epochStartNotifier
 	processComponents.EpochTrigger = &mock.EpochStartTriggerStub{}
 	processComponents.PeerMapper = tP2pNode.NetworkShardingUpdater
+	processComponents.HardforkTriggerField = hardforkTrigger
 
 	networkComponents := GetDefaultNetworkComponents()
 	networkComponents.Messenger = tP2pNode.Messenger
@@ -199,7 +198,6 @@ func (tP2pNode *TestP2PNode) initNode() {
 		node.WithNetworkComponents(networkComponents),
 		node.WithDataComponents(dataComponents),
 		node.WithInitialNodesPubKeys(pubkeys),
-		node.WithHardforkTrigger(hardforkTrigger),
 		node.WithPeerDenialEvaluator(&mock.PeerDenialEvaluatorStub{}),
 	)
 	log.LogIfError(err)
@@ -216,16 +214,16 @@ func (tP2pNode *TestP2PNode) initNode() {
 		Config: config.Config{
 			Heartbeat: hbConfig,
 		},
-		Prefs:             config.Preferences{},
-		AppVersion:        "test",
-		GenesisTime:       time.Time{},
-		HardforkTrigger:   hardforkTrigger,
-		RedundancyHandler: redundancyHandler,
-		CoreComponents:    coreComponents,
-		DataComponents:    dataComponents,
-		NetworkComponents: networkComponents,
-		CryptoComponents:  cryptoComponents,
-		ProcessComponents: processComponents,
+		HeartbeatDisableEpoch: 10,
+		Prefs:                 config.Preferences{},
+		AppVersion:            "test",
+		GenesisTime:           time.Time{},
+		RedundancyHandler:     redundancyHandler,
+		CoreComponents:        coreComponents,
+		DataComponents:        dataComponents,
+		NetworkComponents:     networkComponents,
+		CryptoComponents:      cryptoComponents,
+		ProcessComponents:     processComponents,
 	}
 	heartbeatComponentsFactory, _ := factory.NewHeartbeatComponentsFactory(hbCompArgs)
 	managedHBComponents, err := factory.NewManagedHeartbeatComponents(heartbeatComponentsFactory)

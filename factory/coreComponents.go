@@ -103,6 +103,7 @@ type coreComponents struct {
 	encodedAddressLen             uint32
 	arwenChangeLocker             common.Locker
 	processStatusHandler          common.ProcessStatusHandler
+	hardforkTriggerPubKey         []byte
 }
 
 // NewCoreComponentsFactory initializes the factory which is responsible to creating core components
@@ -332,6 +333,12 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	// set as observer at first - it will be updated when creating the nodes coordinator
 	nodeTypeProvider := nodetype.NewNodeTypeProvider(core.NodeTypeObserver)
 
+	pubKeyStr := ccf.config.Hardfork.PublicKeyToListenFrom
+	pubKeyBytes, err := validatorPubkeyConverter.Decode(pubKeyStr)
+	if err != nil {
+		return nil, err
+	}
+
 	return &coreComponents{
 		hasher:                        hasher,
 		txSignHasher:                  txSignHasher,
@@ -365,6 +372,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		nodeTypeProvider:              nodeTypeProvider,
 		arwenChangeLocker:             arwenChangeLocker,
 		processStatusHandler:          statusHandler.NewProcessStatusHandler(),
+		hardforkTriggerPubKey:         pubKeyBytes,
 	}, nil
 }
 

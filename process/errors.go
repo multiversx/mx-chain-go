@@ -1077,11 +1077,68 @@ var ErrNilDoubleTransactionsDetector = errors.New("nil double transactions detec
 // ErrNoTxToProcess signals that no transaction were sent for processing
 var ErrNoTxToProcess = errors.New("no transaction to process")
 
+// ErrPropertyTooLong signals that a heartbeat property was too long
+var ErrPropertyTooLong = errors.New("property too long")
+
+// ErrPropertyTooShort signals that a heartbeat property was too short
+var ErrPropertyTooShort = errors.New("property too short")
+
+// ErrInvalidPeerSubType signals that an invalid peer subtype was provided
+var ErrInvalidPeerSubType = errors.New("invalid peer subtype")
+
+// ErrNilSignaturesHandler signals that a nil signatures handler was provided
+var ErrNilSignaturesHandler = errors.New("nil signatures handler")
+
+// ErrMessageExpired signals that a received message is expired
+var ErrMessageExpired = errors.New("message expired")
+
+// ErrInvalidExpiryTimespan signals that an invalid expiry timespan was provided
+var ErrInvalidExpiryTimespan = errors.New("invalid expiry timespan")
+
+// ErrNilPeerSignatureHandler signals that a nil peer signature handler was provided
+var ErrNilPeerSignatureHandler = errors.New("nil peer signature handler")
+
+// ErrNilPeerAuthenticationCacher signals that a nil peer authentication cacher was provided
+var ErrNilPeerAuthenticationCacher = errors.New("nil peer authentication cacher")
+
+// ErrNilHeartbeatCacher signals that a nil heartbeat cacher was provided
+var ErrNilHeartbeatCacher = errors.New("nil heartbeat cacher")
+
 // ErrInvalidProcessWaitTime signals that an invalid process wait time was provided
 var ErrInvalidProcessWaitTime = errors.New("invalid process wait time")
 
 // ErrMetaHeaderEpochOutOfRange signals that the given header is out of accepted range
 var ErrMetaHeaderEpochOutOfRange = errors.New("epoch out of range for meta block header")
 
+// ErrNilHardforkTrigger signals that a nil hardfork trigger has been provided
+var ErrNilHardforkTrigger = errors.New("nil hardfork trigger")
+
+// ErrMissingMiniBlockHeader signals that mini block header is missing
+var ErrMissingMiniBlockHeader = errors.New("missing mini block header")
+
+// ErrMissingMiniBlock signals that mini block is missing
+var ErrMissingMiniBlock = errors.New("missing mini block")
+
+// ErrIndexIsOutOfBound signals that the given index is out of bound
+var ErrIndexIsOutOfBound = errors.New("index is out of bound")
+
+// ErrIndexDoesNotMatchWithPartialExecutedMiniBlock signals that the given index does not match with a partial executed mini block
+var ErrIndexDoesNotMatchWithPartialExecutedMiniBlock = errors.New("index does not match with a partial executed mini block")
+
+// ErrIndexDoesNotMatchWithFullyExecutedMiniBlock signals that the given index does not match with a fully executed mini block
+var ErrIndexDoesNotMatchWithFullyExecutedMiniBlock = errors.New("index does not match with a fully executed mini block")
+
+// ErrNilProcessedMiniBlocksTracker signals that a nil processed mini blocks tracker has been provided
+var ErrNilProcessedMiniBlocksTracker = errors.New("nil processed mini blocks tracker")
+
+// ErrNilReceiptsRepository signals that a nil receipts repository has been provided
+var ErrNilReceiptsRepository = errors.New("nil receipts repository")
+
 // ErrNilESDTGlobalSettingsHandler signals that nil global settings handler was provided
 var ErrNilESDTGlobalSettingsHandler = errors.New("nil esdt global settings handler")
+
+// ErrNilCrawlerAllowedAddress signals that no crawler allowed address was found
+var ErrNilCrawlerAllowedAddress = errors.New("nil crawler allowed address")
+
+// ErrNilPayloadValidator signals that a nil payload validator was provided
+var ErrNilPayloadValidator = errors.New("nil payload validator")

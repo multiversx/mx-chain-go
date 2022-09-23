@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const maxGasLimitPerBlock = uint64(1500000000)
@@ -448,21 +449,24 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsAddAndRevert(t 
 	txs = append(txs, &smartContractResult.SmartContractResult{RcvAddr: []byte("rcv"), SndAddr: []byte("snd"), Value: big.NewInt(0), PrevTxHash: txHash, Nonce: 3})
 	txs = append(txs, &smartContractResult.SmartContractResult{RcvAddr: []byte("rcv"), SndAddr: []byte("snd"), Value: big.NewInt(0), PrevTxHash: txHash, Nonce: 4})
 
+	key := []byte("key")
+	irp.InitProcessedResults(key)
+
 	err = irp.AddIntermediateTransactions(txs)
 	assert.Nil(t, err)
 	irp.mutInterResultsForBlock.Lock()
-	assert.Equal(t, len(irp.mapProcessedResult), len(txs))
+	assert.Equal(t, len(irp.mapProcessedResult[string(key)]), len(txs))
 	irp.mutInterResultsForBlock.Unlock()
 
-	irp.RemoveProcessedResults()
+	irp.RemoveProcessedResults(key)
 	irp.mutInterResultsForBlock.Lock()
 	assert.Equal(t, len(irp.interResultsForBlock), 0)
-	assert.Equal(t, len(irp.mapProcessedResult), len(txs))
+	assert.Equal(t, len(irp.mapProcessedResult[string(key)]), len(txs))
 	irp.mutInterResultsForBlock.Unlock()
 
-	irp.InitProcessedResults()
+	irp.InitProcessedResults(key)
 	irp.mutInterResultsForBlock.Lock()
-	assert.Equal(t, len(irp.mapProcessedResult), 0)
+	assert.Equal(t, len(irp.mapProcessedResult[string(key)]), 0)
 	irp.mutInterResultsForBlock.Unlock()
 }
 
@@ -1074,4 +1078,42 @@ func TestIntermediateResultsProcessor_SplitMiniBlocksIfNeededShouldWork(t *testi
 	gasLimit = 199
 	splitMiniBlocks = irp.splitMiniBlocksIfNeeded(miniBlocks)
 	assert.Equal(t, 5, len(splitMiniBlocks))
+}
+
+func TestIntermediateResultsProcessor_addIntermediateTxToResultsForBlock(t *testing.T) {
+	t.Parallel()
+
+	irp, _ := NewIntermediateResultsProcessor(
+		&hashingMocks.HasherMock{},
+		&mock.MarshalizerMock{},
+		mock.NewMultiShardsCoordinatorMock(5),
+		createMockPubkeyConverter(),
+		&mock.ChainStorerMock{},
+		block.TxBlock,
+		&mock.TxForCurrentBlockStub{},
+		&mock.FeeHandlerStub{},
+	)
+
+	key := []byte("key")
+	irp.InitProcessedResults(key)
+
+	tx := &transaction.Transaction{}
+	txHash := []byte("txHash")
+	sndShardID := uint32(1)
+	rcvShardID := uint32(2)
+	irp.addIntermediateTxToResultsForBlock(tx, txHash, sndShardID, rcvShardID)
+
+	require.Equal(t, 1, len(irp.interResultsForBlock))
+	require.Equal(t, 1, len(irp.mapProcessedResult))
+
+	scrInfo, ok := irp.interResultsForBlock[string(txHash)]
+	require.True(t, ok)
+	assert.Equal(t, tx, scrInfo.tx)
+	assert.Equal(t, sndShardID, scrInfo.senderShardID)
+	assert.Equal(t, rcvShardID, scrInfo.receiverShardID)
+
+	intermediateResultsHashes, ok := irp.mapProcessedResult[string(key)]
+	require.True(t, ok)
+	require.Equal(t, 1, len(intermediateResultsHashes))
+	assert.Equal(t, txHash, intermediateResultsHashes[0])
 }

@@ -1,7 +1,6 @@
 package heartbeat
 
 import (
-	"io"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -10,22 +9,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	heartbeatData "github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 )
 
 // P2PMessenger defines a subset of the p2p.Messenger interface
 type P2PMessenger interface {
-	io.Closer
-	Bootstrap() error
 	Broadcast(topic string, buff []byte)
-	BroadcastOnChannel(channel string, topic string, buff []byte)
-	BroadcastOnChannelBlocking(channel string, topic string, buff []byte) error
-	CreateTopic(name string, createChannelForTopic bool) error
-	HasTopic(name string) bool
-	RegisterMessageProcessor(topic string, identifier string, handler p2p.MessageProcessor) error
-	PeerAddresses(pid core.PeerID) []string
-	IsConnectedToTheNetwork() bool
 	ID() core.PeerID
+	Sign(payload []byte) ([]byte, error)
 	IsInterfaceNil() bool
 }
 
@@ -42,7 +34,7 @@ type EligibleListProvider interface {
 	IsInterfaceNil() bool
 }
 
-//Timer defines an interface for tracking time
+// Timer defines an interface for tracking time
 type Timer interface {
 	Now() time.Time
 	IsInterfaceNil() bool
@@ -63,7 +55,7 @@ type HeartbeatStorageHandler interface {
 // The interface assures that the collected data will be used by the p2p network sharding components
 type NetworkShardingCollector interface {
 	UpdatePeerIDInfo(pid core.PeerID, pk []byte, shardID uint32)
-	UpdatePeerIdSubType(pid core.PeerID, peerSubType core.P2PPeerSubType)
+	PutPeerIdSubType(pid core.PeerID, peerSubType core.P2PPeerSubType)
 	IsInterfaceNil() bool
 }
 
@@ -87,7 +79,8 @@ type PeerTypeProviderHandler interface {
 type HardforkTrigger interface {
 	TriggerReceived(payload []byte, data []byte, pkBytes []byte) (bool, error)
 	RecordedTriggerMessage() ([]byte, bool)
-	NotifyTriggerReceived() <-chan struct{}
+	NotifyTriggerReceived() <-chan struct{} // TODO: remove it with heartbeat v1 cleanup
+	NotifyTriggerReceivedV2() <-chan struct{}
 	CreateData() []byte
 	IsInterfaceNil() bool
 }
@@ -118,5 +111,13 @@ type NodeRedundancyHandler interface {
 	IsRedundancyNode() bool
 	IsMainMachineActive() bool
 	ObserverPrivateKey() crypto.PrivateKey
+	IsInterfaceNil() bool
+}
+
+// NodesCoordinator defines the behavior of a struct able to do validator selection
+type NodesCoordinator interface {
+	GetAllEligibleValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
+	GetAllWaitingValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
+	GetValidatorWithPublicKey(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error)
 	IsInterfaceNil() bool
 }

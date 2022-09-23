@@ -55,16 +55,19 @@ func TestGasProvided_ShouldWork(t *testing.T) {
 		0,
 	)
 
+	key := []byte("key")
+	gc.Reset(key)
+
 	gc.SetGasProvided(2, []byte("hash1"))
 	assert.Equal(t, uint64(2), gc.GasProvided([]byte("hash1")))
-	require.Equal(t, 1, len(gc.GetTxHashesWithGasProvidedSinceLastReset()))
-	assert.Equal(t, []byte("hash1"), gc.GetTxHashesWithGasProvidedSinceLastReset()[0])
+	require.Equal(t, 1, len(gc.GetTxHashesWithGasProvidedSinceLastReset(key)))
+	assert.Equal(t, []byte("hash1"), gc.GetTxHashesWithGasProvidedSinceLastReset(key)[0])
 
 	gc.SetGasProvided(3, []byte("hash2"))
 	assert.Equal(t, uint64(3), gc.GasProvided([]byte("hash2")))
-	require.Equal(t, 2, len(gc.GetTxHashesWithGasProvidedSinceLastReset()))
-	assert.Equal(t, []byte("hash1"), gc.GetTxHashesWithGasProvidedSinceLastReset()[0])
-	assert.Equal(t, []byte("hash2"), gc.GetTxHashesWithGasProvidedSinceLastReset()[1])
+	require.Equal(t, 2, len(gc.GetTxHashesWithGasProvidedSinceLastReset(key)))
+	assert.Equal(t, []byte("hash1"), gc.GetTxHashesWithGasProvidedSinceLastReset(key)[0])
+	assert.Equal(t, []byte("hash2"), gc.GetTxHashesWithGasProvidedSinceLastReset(key)[1])
 
 	assert.Equal(t, uint64(5), gc.TotalGasProvided())
 
@@ -85,16 +88,19 @@ func TestGasRefunded_ShouldWork(t *testing.T) {
 		0,
 	)
 
+	key := []byte("key")
+	gc.Reset(key)
+
 	gc.SetGasRefunded(2, []byte("hash1"))
 	assert.Equal(t, uint64(2), gc.GasRefunded([]byte("hash1")))
-	require.Equal(t, 1, len(gc.GetTxHashesWithGasRefundedSinceLastReset()))
-	assert.Equal(t, []byte("hash1"), gc.GetTxHashesWithGasRefundedSinceLastReset()[0])
+	require.Equal(t, 1, len(gc.GetTxHashesWithGasRefundedSinceLastReset(key)))
+	assert.Equal(t, []byte("hash1"), gc.GetTxHashesWithGasRefundedSinceLastReset(key)[0])
 
 	gc.SetGasRefunded(3, []byte("hash2"))
 	assert.Equal(t, uint64(3), gc.GasRefunded([]byte("hash2")))
-	require.Equal(t, 2, len(gc.GetTxHashesWithGasRefundedSinceLastReset()))
-	assert.Equal(t, []byte("hash1"), gc.GetTxHashesWithGasRefundedSinceLastReset()[0])
-	assert.Equal(t, []byte("hash2"), gc.GetTxHashesWithGasRefundedSinceLastReset()[1])
+	require.Equal(t, 2, len(gc.GetTxHashesWithGasRefundedSinceLastReset(key)))
+	assert.Equal(t, []byte("hash1"), gc.GetTxHashesWithGasRefundedSinceLastReset(key)[0])
+	assert.Equal(t, []byte("hash2"), gc.GetTxHashesWithGasRefundedSinceLastReset(key)[1])
 
 	assert.Equal(t, uint64(5), gc.TotalGasRefunded())
 
@@ -115,16 +121,19 @@ func TestGasPenalized_ShouldWork(t *testing.T) {
 		0,
 	)
 
+	key := []byte("key")
+	gc.Reset(key)
+
 	gc.SetGasPenalized(2, []byte("hash1"))
 	assert.Equal(t, uint64(2), gc.GasPenalized([]byte("hash1")))
-	require.Equal(t, 1, len(gc.GetTxHashesWithGasPenalizedSinceLastReset()))
-	assert.Equal(t, []byte("hash1"), gc.GetTxHashesWithGasPenalizedSinceLastReset()[0])
+	require.Equal(t, 1, len(gc.GetTxHashesWithGasPenalizedSinceLastReset(key)))
+	assert.Equal(t, []byte("hash1"), gc.GetTxHashesWithGasPenalizedSinceLastReset(key)[0])
 
 	gc.SetGasPenalized(3, []byte("hash2"))
 	assert.Equal(t, uint64(3), gc.GasPenalized([]byte("hash2")))
-	require.Equal(t, 2, len(gc.GetTxHashesWithGasPenalizedSinceLastReset()))
-	assert.Equal(t, []byte("hash1"), gc.GetTxHashesWithGasPenalizedSinceLastReset()[0])
-	assert.Equal(t, []byte("hash2"), gc.GetTxHashesWithGasPenalizedSinceLastReset()[1])
+	require.Equal(t, 2, len(gc.GetTxHashesWithGasPenalizedSinceLastReset(key)))
+	assert.Equal(t, []byte("hash1"), gc.GetTxHashesWithGasPenalizedSinceLastReset(key)[0])
+	assert.Equal(t, []byte("hash2"), gc.GetTxHashesWithGasPenalizedSinceLastReset(key)[1])
 
 	assert.Equal(t, uint64(5), gc.TotalGasPenalized())
 
@@ -538,29 +547,32 @@ func TestReset_ShouldWork(t *testing.T) {
 		0,
 	)
 
+	key := []byte("key")
+	gc.Reset(key)
+
 	gc.SetGasProvided(5, []byte("hash1"))
 	gc.SetGasProvidedAsScheduled(7, []byte("hash2"))
 	gc.SetGasRefunded(2, []byte("hash1"))
 	gc.SetGasPenalized(1, []byte("hash2"))
 
-	require.Equal(t, 1, len(gc.GetTxHashesWithGasProvidedSinceLastReset()))
-	assert.Equal(t, []byte("hash1"), gc.GetTxHashesWithGasProvidedSinceLastReset()[0])
+	require.Equal(t, 1, len(gc.GetTxHashesWithGasProvidedSinceLastReset(key)))
+	assert.Equal(t, []byte("hash1"), gc.GetTxHashesWithGasProvidedSinceLastReset(key)[0])
 
-	require.Equal(t, 1, len(gc.GetTxHashesWithGasProvidedAsScheduledSinceLastReset()))
-	assert.Equal(t, []byte("hash2"), gc.GetTxHashesWithGasProvidedAsScheduledSinceLastReset()[0])
+	require.Equal(t, 1, len(gc.GetTxHashesWithGasProvidedAsScheduledSinceLastReset(key)))
+	assert.Equal(t, []byte("hash2"), gc.GetTxHashesWithGasProvidedAsScheduledSinceLastReset(key)[0])
 
-	require.Equal(t, 1, len(gc.GetTxHashesWithGasRefundedSinceLastReset()))
-	assert.Equal(t, []byte("hash1"), gc.GetTxHashesWithGasRefundedSinceLastReset()[0])
+	require.Equal(t, 1, len(gc.GetTxHashesWithGasRefundedSinceLastReset(key)))
+	assert.Equal(t, []byte("hash1"), gc.GetTxHashesWithGasRefundedSinceLastReset(key)[0])
 
-	require.Equal(t, 1, len(gc.GetTxHashesWithGasPenalizedSinceLastReset()))
-	assert.Equal(t, []byte("hash2"), gc.GetTxHashesWithGasPenalizedSinceLastReset()[0])
+	require.Equal(t, 1, len(gc.GetTxHashesWithGasPenalizedSinceLastReset(key)))
+	assert.Equal(t, []byte("hash2"), gc.GetTxHashesWithGasPenalizedSinceLastReset(key)[0])
 
-	gc.Reset()
+	gc.Reset(key)
 
-	require.Equal(t, 0, len(gc.GetTxHashesWithGasProvidedSinceLastReset()))
-	require.Equal(t, 0, len(gc.GetTxHashesWithGasProvidedAsScheduledSinceLastReset()))
-	require.Equal(t, 0, len(gc.GetTxHashesWithGasRefundedSinceLastReset()))
-	require.Equal(t, 0, len(gc.GetTxHashesWithGasPenalizedSinceLastReset()))
+	require.Equal(t, 0, len(gc.GetTxHashesWithGasProvidedSinceLastReset(key)))
+	require.Equal(t, 0, len(gc.GetTxHashesWithGasProvidedAsScheduledSinceLastReset(key)))
+	require.Equal(t, 0, len(gc.GetTxHashesWithGasRefundedSinceLastReset(key)))
+	require.Equal(t, 0, len(gc.GetTxHashesWithGasPenalizedSinceLastReset(key)))
 }
 
 func TestRestoreGasSinceLastReset_ShouldWork(t *testing.T) {
@@ -583,7 +595,7 @@ func TestRestoreGasSinceLastReset_ShouldWork(t *testing.T) {
 	assert.Equal(t, uint64(2), gc.TotalGasRefunded())
 	assert.Equal(t, uint64(1), gc.TotalGasPenalized())
 
-	gc.Reset()
+	gc.Reset([]byte("key"))
 
 	gc.SetGasProvided(5, []byte("hash3"))
 	gc.SetGasProvidedAsScheduled(7, []byte("hash4"))
@@ -595,7 +607,7 @@ func TestRestoreGasSinceLastReset_ShouldWork(t *testing.T) {
 	assert.Equal(t, uint64(4), gc.TotalGasRefunded())
 	assert.Equal(t, uint64(2), gc.TotalGasPenalized())
 
-	gc.RestoreGasSinceLastReset()
+	gc.RestoreGasSinceLastReset([]byte("key"))
 
 	assert.Equal(t, uint64(5), gc.TotalGasProvided())
 	assert.Equal(t, uint64(7), gc.TotalGasProvidedAsScheduled())

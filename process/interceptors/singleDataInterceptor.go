@@ -75,9 +75,6 @@ func NewSingleDataInterceptor(arg ArgSingleDataInterceptor) (*SingleDataIntercep
 // ProcessReceivedMessage is the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to)
 func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
-	sdi.mutDebugHandler.RLock()
-	defer sdi.mutDebugHandler.RUnlock()
-
 	err := sdi.preProcessMesage(message, fromConnectedPeer)
 	if err != nil {
 		return err
@@ -87,7 +84,7 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 	if err != nil {
 		sdi.throttler.EndProcessing()
 
-		//this situation is so severe that we need to black list the peers
+		// this situation is so severe that we need to black list the peers
 		reason := "can not create object from received bytes, topic " + sdi.topic + ", error " + err.Error()
 		sdi.antifloodHandler.BlacklistPeer(message.Peer(), reason, common.InvalidMessageBlacklistDuration)
 		sdi.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, common.InvalidMessageBlacklistDuration)
@@ -104,7 +101,7 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 
 		isWrongVersion := err == process.ErrInvalidTransactionVersion || err == process.ErrInvalidChainID
 		if isWrongVersion {
-			//this situation is so severe that we need to black list de peers
+			// this situation is so severe that we need to black list de peers
 			reason := "wrong version of received intercepted data, topic " + sdi.topic + ", error " + err.Error()
 			sdi.antifloodHandler.BlacklistPeer(message.Peer(), reason, common.InvalidMessageBlacklistDuration)
 			sdi.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, common.InvalidMessageBlacklistDuration)

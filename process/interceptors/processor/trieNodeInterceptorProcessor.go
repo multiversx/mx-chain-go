@@ -9,10 +9,6 @@ import (
 
 var _ process.InterceptorProcessor = (*TrieNodeInterceptorProcessor)(nil)
 
-type interceptedTrieNodeHandler interface {
-	SizeInBytes() int
-}
-
 // TrieNodeInterceptorProcessor is the processor used when intercepting trie nodes
 type TrieNodeInterceptorProcessor struct {
 	interceptedNodes storage.Cacher
@@ -36,7 +32,7 @@ func (tnip *TrieNodeInterceptorProcessor) Validate(_ process.InterceptedData, _ 
 
 // Save saves the intercepted trie node in the intercepted nodes cacher
 func (tnip *TrieNodeInterceptorProcessor) Save(data process.InterceptedData, _ core.PeerID, _ string) error {
-	nodeData, ok := data.(interceptedTrieNodeHandler)
+	nodeData, ok := data.(interceptedDataSizeHandler)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}

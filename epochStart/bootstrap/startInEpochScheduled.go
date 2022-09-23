@@ -262,7 +262,7 @@ func (ses *startInEpochWithScheduledDataSyncer) prepareScheduledIntermediateTxs(
 			GasPenalized:    additionalData.GetScheduledGasPenalized(),
 			GasRefunded:     additionalData.GetScheduledGasRefunded(),
 		}
-		scheduledMiniBlocks := getScheduledMiniBlocks(header, miniBlocks, scheduledTxHashes)
+		scheduledMiniBlocks := getScheduledMiniBlocks(header, miniBlocks)
 		scheduledInfo := &process.ScheduledInfo{
 			RootHash:        additionalData.GetScheduledRootHash(),
 			IntermediateTxs: scheduledIntermediateTxsMap,
@@ -366,23 +366,22 @@ func getBlockTypeOfTx(txHash []byte, miniBlocks map[string]*block.MiniBlock) blo
 func getScheduledMiniBlocks(
 	header data.HeaderHandler,
 	miniBlocks map[string]*block.MiniBlock,
-	scheduledTxHashes map[string]uint32,
 ) block.MiniBlockSlice {
 
 	scheduledMiniBlocks := make(block.MiniBlockSlice, 0)
 	mbHeaders := header.GetMiniBlockHeaderHandlers()
 	for _, mbHeader := range mbHeaders {
-		miniBlock := miniBlocks[string(mbHeader.GetHash())]
-		if miniBlock == nil || miniBlock.Type == block.InvalidBlock {
+		if mbHeader.GetProcessingType() != int32(block.Processed) {
 			continue
 		}
 
-		if len(miniBlock.TxHashes) > 0 {
-			_, isScheduledTx := scheduledTxHashes[string(miniBlock.TxHashes[0])]
-			if isScheduledTx {
-				scheduledMiniBlocks = append(scheduledMiniBlocks, miniBlock)
-			}
+		miniBlock, ok := miniBlocks[string(mbHeader.GetHash())]
+		if !ok {
+			log.Warn("getScheduledMiniBlocks: mini block was not found", "mb hash", mbHeader.GetHash())
+			continue
 		}
+
+		scheduledMiniBlocks = append(scheduledMiniBlocks, miniBlock)
 	}
 
 	return scheduledMiniBlocks
@@ -438,15 +437,69 @@ func (ses *startInEpochWithScheduledDataSyncer) getScheduledTransactionHashes(he
 		return nil, err
 	}
 
-	scheduledTxs := make(map[string]uint32)
-	for _, mb := range miniBlocks {
-		for _, txHash := range mb.TxHashes {
-			scheduledTxs[string(txHash)] = mb.GetReceiverShardID()
-			log.Debug("startInEpochWithScheduledDataSyncer.getScheduledTransactionHashes", "hash", txHash)
+	scheduledTxsForShard := make(map[string]uint32)
+	for _, miniBlockHeader := range miniBlockHeaders {
+		pi, miniBlock, miniBlockHash, shouldSkip := getMiniBlockAndProcessedIndexes(miniBlockHeader, miniBlocks)
+		if shouldSkip {
+			continue
 		}
+
+		createScheduledTxsForShardMap(pi, miniBlock, miniBlockHash, scheduledTxsForShard)
 	}
 
-	return scheduledTxs, nil
+	return scheduledTxsForShard, nil
+}
+
+func getMiniBlockAndProcessedIndexes(
+	miniBlockHeader data.MiniBlockHeaderHandler,
+	miniBlocks map[string]*block.MiniBlock,
+) (*processedIndexes, *block.MiniBlock, []byte, bool) {
+
+	pi := &processedIndexes{}
+
+	miniBlockHash := miniBlockHeader.GetHash()
+	miniBlock, ok := miniBlocks[string(miniBlockHash)]
+	if !ok {
+		log.Warn("startInEpochWithScheduledDataSyncer.getMiniBlockAndProcessedIndexes: mini block was not found", "mb hash", miniBlockHash)
+		return nil, nil, nil, true
+	}
+
+	pi.firstIndex = miniBlockHeader.GetIndexOfFirstTxProcessed()
+	pi.lastIndex = miniBlockHeader.GetIndexOfLastTxProcessed()
+
+	if pi.firstIndex > pi.lastIndex {
+		log.Warn("startInEpochWithScheduledDataSyncer.getMiniBlockAndProcessedIndexes: wrong first/last index",
+			"mb hash", miniBlockHash,
+			"index of first tx processed", pi.firstIndex,
+			"index of last tx processed", pi.lastIndex,
+			"num txs", len(miniBlock.TxHashes),
+		)
+		return nil, nil, nil, true
+	}
+
+	return pi, miniBlock, miniBlockHash, false
+}
+
+func createScheduledTxsForShardMap(
+	pi *processedIndexes,
+	miniBlock *block.MiniBlock,
+	miniBlockHash []byte,
+	scheduledTxsForShard map[string]uint32,
+) {
+	for index := pi.firstIndex; index <= pi.lastIndex; index++ {
+		if index >= int32(len(miniBlock.TxHashes)) {
+			log.Warn("startInEpochWithScheduledDataSyncer.createScheduledTxsForShardMap: index out of bound",
+				"mb hash", miniBlockHash,
+				"index", index,
+				"num txs", len(miniBlock.TxHashes),
+			)
+			break
+		}
+
+		txHash := miniBlock.TxHashes[index]
+		scheduledTxsForShard[string(txHash)] = miniBlock.GetReceiverShardID()
+		log.Debug("startInEpochWithScheduledDataSyncer.createScheduledTxsForShardMap", "hash", txHash)
+	}
 }
 
 func getNumScheduledIntermediateTxs(mapScheduledIntermediateTxs map[block.Type][]data.TransactionHandler) int {

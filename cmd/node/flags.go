@@ -327,6 +327,16 @@ var (
 		Name:  "force-start-from-network",
 		Usage: "Flag that will force the start from network bootstrap process",
 	}
+	// disableConsensusWatchdog defines a flag that will disable the consensus watchdog
+	disableConsensusWatchdog = cli.BoolFlag{
+		Name:  "disable-consensus-watchdog",
+		Usage: "Flag that will disable the consensus watchdog",
+	}
+	// serializeSnapshots defines a flag that will serialize `state snapshotting` and `processing`
+	serializeSnapshots = cli.BoolFlag{
+		Name:  "serialize-snapshots",
+		Usage: "Flag that will serialize `state snapshotting` and `processing`",
+	}
 )
 
 func getFlags() []cli.Flag {
@@ -377,6 +387,8 @@ func getFlags() []cli.Flag {
 		memBallast,
 		memoryUsageToCreateProfiles,
 		forceStartFromNetwork,
+		disableConsensusWatchdog,
+		serializeSnapshots,
 	}
 }
 
@@ -400,6 +412,8 @@ func getFlagsConfig(ctx *cli.Context, log logger.Logger) *config.ContextFlagsCon
 	flagsConfig.UseLogView = ctx.GlobalBool(useLogView.Name)
 	flagsConfig.ValidatorKeyIndex = ctx.GlobalInt(validatorKeyIndex.Name)
 	flagsConfig.ForceStartFromNetwork = ctx.GlobalBool(forceStartFromNetwork.Name)
+	flagsConfig.DisableConsensusWatchdog = ctx.GlobalBool(disableConsensusWatchdog.Name)
+	flagsConfig.SerializeSnapshots = ctx.GlobalBool(serializeSnapshots.Name)
 	return flagsConfig
 }
 
@@ -511,7 +525,8 @@ func processConfigImportDBMode(log logger.Logger, configs *config.Configs) error
 		generalConfigs.GeneralSettings.StartInEpochEnabled = false
 	}
 
-	generalConfigs.StoragePruning.NumActivePersisters = generalConfigs.StoragePruning.NumEpochsToKeep
+	// We need to increment "NumActivePersisters" in order to make the storage resolvers work (since they open 2 epochs in advance)
+	generalConfigs.StoragePruning.NumActivePersisters++
 	generalConfigs.StateTriesConfig.CheckpointsEnabled = false
 	generalConfigs.StateTriesConfig.CheckpointRoundsModulus = 100000000
 	p2pConfigs.Node.ThresholdMinConnectedPeers = 0
@@ -523,7 +538,8 @@ func processConfigImportDBMode(log logger.Logger, configs *config.Configs) error
 		"GeneralSettings.StartInEpochEnabled", generalConfigs.GeneralSettings.StartInEpochEnabled,
 		"StateTriesConfig.CheckpointsEnabled", generalConfigs.StateTriesConfig.CheckpointsEnabled,
 		"StateTriesConfig.CheckpointRoundsModulus", generalConfigs.StateTriesConfig.CheckpointRoundsModulus,
-		"StoragePruning.NumActivePersisters", generalConfigs.StoragePruning.NumEpochsToKeep,
+		"StoragePruning.NumEpochsToKeep", generalConfigs.StoragePruning.NumEpochsToKeep,
+		"StoragePruning.NumActivePersisters", generalConfigs.StoragePruning.NumActivePersisters,
 		"p2p.ThresholdMinConnectedPeers", p2pConfigs.Node.ThresholdMinConnectedPeers,
 		"no sig check", importDbFlags.ImportDbNoSigCheckFlag,
 		"import save trie epoch root hash", importDbFlags.ImportDbSaveTrieEpochRootHash,

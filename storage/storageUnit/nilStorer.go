@@ -1,6 +1,9 @@
 package storageUnit
 
-import "github.com/ElrondNetwork/elrond-go/storage"
+import (
+	storageCore "github.com/ElrondNetwork/elrond-go-core/storage"
+	"github.com/ElrondNetwork/elrond-go/storage"
+)
 
 // NilStorer resembles a disabled implementation of the Storer interface
 type NilStorer struct {
@@ -17,7 +20,7 @@ func (ns *NilStorer) GetFromEpoch(_ []byte, _ uint32) ([]byte, error) {
 }
 
 // GetBulkFromEpoch will do nothing
-func (ns *NilStorer) GetBulkFromEpoch(_ [][]byte, _ uint32) (map[string][]byte, error) {
+func (ns *NilStorer) GetBulkFromEpoch(_ [][]byte, _ uint32) ([]storageCore.KeyValuePair, error) {
 	return nil, nil
 }
 

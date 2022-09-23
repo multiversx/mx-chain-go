@@ -22,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
+	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	heartbeatData "github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/ntp"
@@ -72,7 +73,8 @@ type P2PAntifloodHandler interface {
 
 // PreferredPeersHolderHandler defines the behavior of a component able to handle preferred peers operations
 type PreferredPeersHolderHandler interface {
-	Put(publicKey []byte, peerID core.PeerID, shardID uint32)
+	PutConnectionAddress(peerID core.PeerID, address string)
+	PutShardID(peerID core.PeerID, shardID uint32)
 	Get() map[uint32][]core.PeerID
 	Contains(peerID core.PeerID) bool
 	Remove(peerID core.PeerID)
@@ -129,6 +131,7 @@ type CoreComponentsHolder interface {
 	NodeTypeProvider() core.NodeTypeProviderHandler
 	ArwenChangeLocker() common.Locker
 	ProcessStatusHandler() common.ProcessStatusHandler
+	HardforkTriggerPubKey() []byte
 	IsInterfaceNil() bool
 }
 
@@ -265,6 +268,10 @@ type ProcessComponentsHolder interface {
 	CurrentEpochProvider() process.CurrentNetworkEpochProviderHandler
 	ScheduledTxsExecutionHandler() process.ScheduledTxsExecutionHandler
 	TxsSenderHandler() process.TxsSenderHandler
+	HardforkTrigger() HardforkTrigger
+	ProcessedMiniBlocksTracker() process.ProcessedMiniBlocksTracker
+	AccountsParser() genesis.AccountsParser
+	ReceiptsRepository() ReceiptsRepository
 	IsInterfaceNil() bool
 }
 
@@ -285,6 +292,7 @@ type StateComponentsHolder interface {
 	PeerAccounts() state.AccountsAdapter
 	AccountsAdapter() state.AccountsAdapter
 	AccountsAdapterAPI() state.AccountsAdapter
+	AccountsRepository() state.AccountsRepository
 	TriesContainer() common.TriesHolder
 	TrieStorageManagers() map[string]common.StorageManager
 	IsInterfaceNil() bool
@@ -345,6 +353,24 @@ type HeartbeatComponentsHandler interface {
 	HeartbeatComponentsHolder
 }
 
+// HeartbeatV2Monitor monitors the cache of heartbeatV2 messages
+type HeartbeatV2Monitor interface {
+	GetHeartbeats() []heartbeatData.PubKeyHeartbeat
+	IsInterfaceNil() bool
+}
+
+// HeartbeatV2ComponentsHolder holds the heartbeatV2 components
+type HeartbeatV2ComponentsHolder interface {
+	Monitor() HeartbeatV2Monitor
+	IsInterfaceNil() bool
+}
+
+// HeartbeatV2ComponentsHandler defines the heartbeatV2 components handler actions
+type HeartbeatV2ComponentsHandler interface {
+	ComponentHandler
+	HeartbeatV2ComponentsHolder
+}
+
 // ConsensusWorker is the consensus worker handle for the exported functionality
 type ConsensusWorker interface {
 	Close() error
@@ -375,12 +401,14 @@ type ConsensusWorker interface {
 
 // HardforkTrigger defines the hard-fork trigger functionality
 type HardforkTrigger interface {
+	SetExportFactoryHandler(exportFactoryHandler update.ExportFactoryHandler) error
 	TriggerReceived(payload []byte, data []byte, pkBytes []byte) (bool, error)
 	RecordedTriggerMessage() ([]byte, bool)
 	Trigger(epoch uint32, withEarlyEndOfEpoch bool) error
 	CreateData() []byte
 	AddCloser(closer update.Closer) error
 	NotifyTriggerReceived() <-chan struct{}
+	NotifyTriggerReceivedV2() <-chan struct{}
 	IsSelfTrigger() bool
 	IsInterfaceNil() bool
 }
@@ -391,7 +419,6 @@ type ConsensusComponentsHolder interface {
 	ConsensusWorker() ConsensusWorker
 	BroadcastMessenger() consensus.BroadcastMessenger
 	ConsensusGroupSize() (int, error)
-	HardforkTrigger() HardforkTrigger
 	Bootstrapper() process.Bootstrapper
 	IsInterfaceNil() bool
 }
@@ -462,5 +489,19 @@ type EconomicsHandler interface {
 	GasPerDataByte() uint64
 	GasPriceModifier() float64
 	ComputeFeeForProcessing(tx data.TransactionWithFeeHandler, gasToUse uint64) *big.Int
+	IsInterfaceNil() bool
+}
+
+// LogsFacade defines the interface of a logs facade
+type LogsFacade interface {
+	GetLog(logKey []byte, epoch uint32) (*transaction.ApiLogs, error)
+	IncludeLogsInTransactions(txs []*transaction.ApiTransactionResult, logsKeys [][]byte, epoch uint32) error
+	IsInterfaceNil() bool
+}
+
+// ReceiptsRepository defines the interface of a receiptsRepository
+type ReceiptsRepository interface {
+	SaveReceipts(holder common.ReceiptsHolder, header data.HeaderHandler, headerHash []byte) error
+	LoadReceipts(header data.HeaderHandler, headerHash []byte) (common.ReceiptsHolder, error)
 	IsInterfaceNil() bool
 }

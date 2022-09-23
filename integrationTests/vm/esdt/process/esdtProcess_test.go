@@ -45,6 +45,8 @@ func TestESDTIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 		GlobalMintBurnDisableEpoch:                  10,
 		BuiltInFunctionOnMetaEnableEpoch:            10,
 		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: 10,
+		ScheduledMiniBlocksEnableEpoch:              10,
+		MiniBlockPartialExecutionEnableEpoch:        10,
 	}
 	nodes := integrationTests.CreateNodesWithEnableEpochs(
 		numOfShards,
@@ -362,10 +364,12 @@ func TestESDTIssueFromASmartContractSimulated(t *testing.T) {
 	interimProc, _ := metaNode.InterimProcContainer.Get(block.SmartContractResultBlock)
 	mapCreatedSCRs := interimProc.GetAllCurrentFinishedTxs()
 
-	require.Equal(t, len(mapCreatedSCRs), 1)
+	require.Equal(t, len(mapCreatedSCRs), 2)
+	foundTransfer := false
 	for _, addedSCR := range mapCreatedSCRs {
-		strings.Contains(string(addedSCR.GetData()), core.BuiltInFunctionESDTTransfer)
+		foundTransfer = foundTransfer || strings.Contains(string(addedSCR.GetData()), core.BuiltInFunctionESDTTransfer)
 	}
+	require.True(t, foundTransfer)
 }
 
 func TestScSendsEsdtToUserWithMessage(t *testing.T) {

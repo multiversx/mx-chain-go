@@ -1,6 +1,9 @@
 package integrationTests
 
 import (
+	"bytes"
+
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -23,7 +26,18 @@ func (bf *TestBuiltinFunction) IsActive() bool {
 	return true
 }
 
-// IsInterfaceNil --
+// IsInterfaceNil -
 func (bf *TestBuiltinFunction) IsInterfaceNil() bool {
 	return bf == nil
+}
+
+// GenerateOneAddressPerShard -
+func GenerateOneAddressPerShard(shardCoordinator sharding.Coordinator) [][]byte {
+	addresses := make([][]byte, shardCoordinator.NumberOfShards())
+	for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
+		generatedAddress := bytes.Repeat([]byte{1}, 32)
+		generatedAddress[len(generatedAddress)-1] = byte(i)
+		addresses[i] = generatedAddress
+	}
+	return addresses
 }

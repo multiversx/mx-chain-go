@@ -17,10 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
-
-const epochZero = uint32(0)
 
 // ------- NewPeerShardMapper
 
@@ -31,7 +28,6 @@ func createMockArgumentForPeerShardMapper() networksharding.ArgPeerShardMapper {
 		FallbackPidShardCache: testscommon.NewCacherMock(),
 		NodesCoordinator:      &shardingMocks.NodesCoordinatorMock{},
 		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
-		StartEpoch:            epochZero,
 	}
 }
 
@@ -98,14 +94,11 @@ func TestNewPeerShardMapper_NilPreferredShouldErr(t *testing.T) {
 func TestNewPeerShardMapper_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	epoch := uint32(8843)
 	arg := createMockArgumentForPeerShardMapper()
-	arg.StartEpoch = epoch
 	psm, err := networksharding.NewPeerShardMapper(arg)
 
 	assert.False(t, check.IfNil(psm))
 	assert.Nil(t, err)
-	assert.Equal(t, epoch, psm.Epoch())
 }
 
 // ------- UpdatePeerIdPublicKey
@@ -137,28 +130,6 @@ func TestPeerShardMapper_UpdatePeerIDInfoShouldWork(t *testing.T) {
 			PkBytes:  pk,
 		},
 		peerInfo)
-}
-
-func TestPeerShardMapper_UpdatePeerIDInfoShouldAddInPreferredPeers(t *testing.T) {
-	t.Parallel()
-
-	expectedPid := core.PeerID("dummy peer ID")
-	expectedPk := []byte("dummy pk")
-	expectedShardID := uint32(3737)
-	putWasCalled := false
-	arg := createMockArgumentForPeerShardMapper()
-	arg.PreferredPeersHolder = &p2pmocks.PeersHolderStub{
-		PutCalled: func(publicKey []byte, peerID core.PeerID, shardID uint32) {
-			putWasCalled = true
-			require.Equal(t, expectedPid, peerID)
-			require.Equal(t, expectedPk, publicKey)
-			require.Equal(t, expectedShardID, shardID)
-		},
-	}
-	psm, _ := networksharding.NewPeerShardMapper(arg)
-
-	psm.UpdatePeerIDInfo(expectedPid, expectedPk, expectedShardID)
-	require.True(t, putWasCalled)
 }
 
 func TestPeerShardMapper_UpdatePeerIDInfoMorePidsThanAllowedShouldTrim(t *testing.T) {
@@ -248,6 +219,24 @@ func TestPeerShardMapper_UpdatePeerIDInfoShouldWorkConcurrently(t *testing.T) {
 
 	shardidRecovered := psm.GetShardIdFromPkShardId(pk)
 	assert.Equal(t, shardId, shardidRecovered)
+}
+
+// ------- UpdatePeerIDPublicKeyPair
+
+func TestPeerShardMapper_UpdatePeerIDPublicKeyPairShouldWork(t *testing.T) {
+	t.Parallel()
+
+	psm := createPeerShardMapper()
+	pid := core.PeerID("dummy peer ID")
+	pk := []byte("dummy pk")
+
+	psm.UpdatePeerIDPublicKeyPair(pid, pk)
+
+	pkRecovered := psm.GetPkFromPidPk(pid)
+	assert.Equal(t, pk, pkRecovered)
+
+	pidRecovered := psm.GetFromPkPeerId(pk)
+	assert.Equal(t, []core.PeerID{pid}, pidRecovered)
 }
 
 // ------- GetPeerInfo
@@ -486,55 +475,6 @@ func TestPeerShardMapper_NotifyOrder(t *testing.T) {
 	assert.Equal(t, uint32(common.NetworkShardingOrder), psm.NotifyOrder())
 }
 
-func TestPeerShardMapper_EpochStartPrepareShouldNotPanic(t *testing.T) {
-	t.Parallel()
-
-	defer func() {
-		r := recover()
-		if r != nil {
-			assert.Fail(t, "should not have panicked", r)
-		}
-	}()
-
-	psm := createPeerShardMapper()
-	psm.EpochStartPrepare(nil, nil)
-	psm.EpochStartPrepare(
-		&testscommon.HeaderHandlerStub{
-			EpochField: 0,
-		},
-		nil,
-	)
-}
-
-func TestPeerShardMapper_EpochStartActionWithnilHeaderShouldNotPanic(t *testing.T) {
-	t.Parallel()
-
-	defer func() {
-		r := recover()
-		if r != nil {
-			assert.Fail(t, "should not have panicked", r)
-		}
-	}()
-
-	psm := createPeerShardMapper()
-	psm.EpochStartAction(nil)
-}
-
-func TestPeerShardMapper_EpochStartActionShouldWork(t *testing.T) {
-	t.Parallel()
-
-	psm := createPeerShardMapper()
-
-	epoch := uint32(676)
-	psm.EpochStartAction(
-		&testscommon.HeaderHandlerStub{
-			EpochField: epoch,
-		},
-	)
-
-	assert.Equal(t, epoch, psm.Epoch())
-}
-
 func TestPeerShardMapper_UpdatePeerIDPublicKey(t *testing.T) {
 	t.Parallel()
 
@@ -581,4 +521,25 @@ func TestPeerShardMapper_UpdatePeerIDPublicKey(t *testing.T) {
 		assert.False(t, psm.UpdatePeerIDPublicKey(pid1, pk1))
 		assert.False(t, psm.UpdatePeerIDPublicKey(pid2, pk1))
 	})
+}
+
+func TestPeerShardMapper_PutPeerIdShardId(t *testing.T) {
+	t.Parallel()
+
+	providedPid := core.PeerID("provided pid")
+	providedShardID := uint32(123)
+	wasCalled := false
+	args := createMockArgumentForPeerShardMapper()
+	args.PreferredPeersHolder = &p2pmocks.PeersHolderStub{
+		PutShardIDCalled: func(peerID core.PeerID, shardID uint32) {
+			wasCalled = true
+			assert.Equal(t, providedPid, peerID)
+			assert.Equal(t, providedShardID, shardID)
+		},
+	}
+	psm, _ := networksharding.NewPeerShardMapper(args)
+	assert.False(t, check.IfNil(psm))
+
+	psm.PutPeerIdShardId(providedPid, providedShardID)
+	assert.True(t, wasCalled)
 }

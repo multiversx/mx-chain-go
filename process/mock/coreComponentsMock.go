@@ -36,6 +36,7 @@ type CoreComponentsMock struct {
 	NodeTypeProviderField       core.NodeTypeProviderHandler
 	EconomicsDataField          process.EconomicsDataHandler
 	ProcessStatusHandlerField   common.ProcessStatusHandler
+	HardforkTriggerPubKeyField  []byte
 }
 
 // ChanStopNodeProcess -
@@ -154,6 +155,11 @@ func (ccm *CoreComponentsMock) EconomicsData() process.EconomicsDataHandler {
 // ProcessStatusHandler -
 func (ccm *CoreComponentsMock) ProcessStatusHandler() common.ProcessStatusHandler {
 	return ccm.ProcessStatusHandlerField
+}
+
+// HardforkTriggerPubKey -
+func (ccm *CoreComponentsMock) HardforkTriggerPubKey() []byte {
+	return ccm.HardforkTriggerPubKeyField
 }
 
 // IsInterfaceNil -

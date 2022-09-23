@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	processMocks "github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
@@ -67,8 +68,9 @@ func createMockComponentHolders() (*mock.CoreComponentsMock, *mock.CryptoCompone
 		ChainIdCalled: func() string {
 			return "chainID"
 		},
-		TxVersionCheckField: versioning.NewTxVersionChecker(1),
-		EpochNotifierField:  &epochNotifier.EpochNotifierStub{},
+		TxVersionCheckField:        versioning.NewTxVersionChecker(1),
+		EpochNotifierField:         &epochNotifier.EpochNotifierStub{},
+		HardforkTriggerPubKeyField: []byte("provided hardfork pub key"),
 	}
 	cryptoComponents := &mock.CryptoComponentsMock{
 		BlockSig: createMockSigner(),
@@ -86,17 +88,21 @@ func createMockArgument(
 	cryptoComponents *mock.CryptoComponentsMock,
 ) *ArgInterceptedDataFactory {
 	return &ArgInterceptedDataFactory{
-		CoreComponents:          coreComponents,
-		CryptoComponents:        cryptoComponents,
-		ShardCoordinator:        mock.NewOneShardCoordinatorMock(),
-		NodesCoordinator:        shardingMocks.NewNodesCoordinatorMock(),
-		FeeHandler:              createMockFeeHandler(),
-		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
-		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
-		ValidityAttester:        &mock.ValidityAttesterStub{},
-		EpochStartTrigger:       &mock.EpochStartTriggerStub{},
-		WhiteListerVerifiedTxs:  &testscommon.WhiteListHandlerStub{},
-		ArgsParser:              &mock.ArgumentParserMock{},
+		CoreComponents:               coreComponents,
+		CryptoComponents:             cryptoComponents,
+		ShardCoordinator:             mock.NewOneShardCoordinatorMock(),
+		NodesCoordinator:             shardingMocks.NewNodesCoordinatorMock(),
+		FeeHandler:                   createMockFeeHandler(),
+		WhiteListerVerifiedTxs:       &testscommon.WhiteListHandlerStub{},
+		HeaderSigVerifier:            &mock.HeaderSigVerifierStub{},
+		ValidityAttester:             &mock.ValidityAttesterStub{},
+		HeaderIntegrityVerifier:      &mock.HeaderIntegrityVerifierStub{},
+		EpochStartTrigger:            &mock.EpochStartTriggerStub{},
+		ArgsParser:                   &mock.ArgumentParserMock{},
+		PeerSignatureHandler:         &processMocks.PeerSignatureHandlerStub{},
+		SignaturesHandler:            &processMocks.SignaturesHandlerStub{},
+		HeartbeatExpiryTimespanInSec: 30,
+		PeerID:                       "pid",
 	}
 }
 

@@ -1014,7 +1014,21 @@ func TestWorker_ProcessReceivedMessageWithABadOriginatorShouldErr(t *testing.T) 
 
 func TestWorker_ProcessReceivedMessageOkValsShouldWork(t *testing.T) {
 	t.Parallel()
-	wrk := *initWorker(&statusHandlerMock.AppStatusHandlerStub{})
+
+	workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
+	expectedShardID := workerArgs.ShardCoordinator.SelfId()
+	expectedPK := []byte(workerArgs.ConsensusState.ConsensusGroup()[0])
+	wasUpdatePeerIDInfoCalled := false
+	workerArgs.NetworkShardingCollector = &p2pmocks.NetworkShardingCollectorStub{
+		UpdatePeerIDInfoCalled: func(pid core.PeerID, pk []byte, shardID uint32) {
+			assert.Equal(t, currentPid, pid)
+			assert.Equal(t, expectedPK, pk)
+			assert.Equal(t, expectedShardID, shardID)
+			wasUpdatePeerIDInfoCalled = true
+		},
+	}
+	wrk, _ := spos.NewWorker(workerArgs)
+
 	wrk.SetBlockProcessor(
 		&mock.BlockProcessorMock{
 			DecodeBlockHeaderCalled: func(dta []byte) data.HeaderHandler {
@@ -1063,6 +1077,7 @@ func TestWorker_ProcessReceivedMessageOkValsShouldWork(t *testing.T) {
 
 	assert.Equal(t, 1, len(wrk.ReceivedMessages()[bls.MtBlockHeader]))
 	assert.Nil(t, err)
+	assert.True(t, wasUpdatePeerIDInfoCalled)
 }
 
 func TestWorker_CheckSelfStateShouldErrMessageFromItself(t *testing.T) {

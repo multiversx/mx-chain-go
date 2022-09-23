@@ -53,6 +53,8 @@ func TestCrossTxCache_Get(t *testing.T) {
 	xTx, ok = cache.Peek([]byte("x"))
 	require.False(t, ok)
 	require.Nil(t, xTx)
+
+	require.Equal(t, make([]*WrappedTransaction, 0), cache.GetTransactionsPoolForSender(""))
 }
 
 func newCrossTxCacheToTest(numChunks uint32, maxNumItems uint32, numMaxBytes uint32) *CrossTxCache {

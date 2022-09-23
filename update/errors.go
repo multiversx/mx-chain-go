@@ -176,6 +176,9 @@ var ErrNilImportHandler = errors.New("nil import handler")
 // ErrNilTxCoordinator signals that nil tx coordinator has been provided
 var ErrNilTxCoordinator = errors.New("nil tx coordinator")
 
+// ErrNilReceiptsRepository signals that nil receipts repository has been provided
+var ErrNilReceiptsRepository = errors.New("nil receipts repository")
+
 // ErrNilPendingTxProcessor signals that nil pending tx processor has been provided
 var ErrNilPendingTxProcessor = errors.New("nil pending tx processor")
 

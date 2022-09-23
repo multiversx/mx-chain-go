@@ -11,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
@@ -258,8 +257,8 @@ func TestTrieStorageManager_PutInEpoch(t *testing.T) {
 	putInEpochCalled := false
 	args := getNewTrieStorageManagerArgs()
 	args.MainStorer = &trieMock.SnapshotPruningStorerStub{
-		DB: memorydb.New(),
-		PutInEpochWithoutCacheCalled: func(key []byte, data []byte, epoch uint32) error {
+		MemDbMock: testscommon.NewMemDbMock(),
+		PutInEpochCalled: func(key []byte, data []byte, epoch uint32) error {
 			putInEpochCalled = true
 			return nil
 		},
@@ -290,7 +289,7 @@ func TestTrieStorageManager_GetLatestStorageEpoch(t *testing.T) {
 	getLatestSorageCalled := false
 	args := getNewTrieStorageManagerArgs()
 	args.MainStorer = &trieMock.SnapshotPruningStorerStub{
-		DB: memorydb.New(),
+		MemDbMock: testscommon.NewMemDbMock(),
 		GetLatestStorageEpochCalled: func() (uint32, error) {
 			getLatestSorageCalled = true
 			return 4, nil
@@ -386,7 +385,7 @@ func TestNewSnapshotTrieStorageManager_GetFromCurrentEpoch(t *testing.T) {
 	getFromCurrentEpochCalled := false
 	args := getNewTrieStorageManagerArgs()
 	args.MainStorer = &trieMock.SnapshotPruningStorerStub{
-		DB: memorydb.New(),
+		MemDbMock: testscommon.NewMemDbMock(),
 		GetFromCurrentEpochCalled: func(_ []byte) ([]byte, error) {
 			getFromCurrentEpochCalled = true
 			return nil, nil

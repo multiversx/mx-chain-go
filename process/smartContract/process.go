@@ -85,6 +85,8 @@ type scProcessor struct {
 	fixCodeMetadataOnUpgradeContract            uint32
 	scrSizeInvariantOnBuiltInResultEnableEpoch  uint32
 	deleteWrongArgAsyncAfterBuiltInEnableEpoch  uint32
+	fixAsyncCallBackArgParserEnableEpoch        uint32
+	fixAsyncCallBackArgsListEnableEpoch         uint32
 	flagStakingV2                               atomic.Flag
 	flagDeploy                                  atomic.Flag
 	flagBuiltin                                 atomic.Flag
@@ -106,6 +108,8 @@ type scProcessor struct {
 	flagFixCodeMetadataOnUpgradeContract        atomic.Flag
 	flagSCRSizeInvariantOnBuiltInResult         atomic.Flag
 	flagDeleteWrongArgAsyncAfterBuiltIn         atomic.Flag
+	flagFixAsyncCallBackArgumentsParser         atomic.Flag
+	flagFixAsyncCallBackArgumentsList           atomic.Flag
 
 	badTxForwarder process.IntermediateTransactionHandler
 	scrForwarder   process.IntermediateTransactionHandler
@@ -257,6 +261,8 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		fixCodeMetadataOnUpgradeContract:            args.EnableEpochs.IsPayableBySCEnableEpoch,
 		scrSizeInvariantOnBuiltInResultEnableEpoch:  args.EnableEpochs.SCRSizeInvariantOnBuiltInResultEnableEpoch,
 		deleteWrongArgAsyncAfterBuiltInEnableEpoch:  args.EnableEpochs.ManagedCryptoAPIsEnableEpoch,
+		fixAsyncCallBackArgParserEnableEpoch:        args.EnableEpochs.ESDTMetadataContinuousCleanupEnableEpoch,
+		fixAsyncCallBackArgsListEnableEpoch:         args.EnableEpochs.FixAsyncCallBackArgsListEnableEpoch,
 	}
 
 	var err error
@@ -282,6 +288,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 	log.Debug("smartContract/process: enable epoch for fix code metadata on upgrade contract", "epoch", sc.fixCodeMetadataOnUpgradeContract)
 	log.Debug("smartContract/process: enable epoch for scr size invariant on built in", "epoch", sc.scrSizeInvariantOnBuiltInResultEnableEpoch)
 	log.Debug("smartContract/process: enable epoch for delete wrong arg on async callback after built in", "epoch", sc.deleteWrongArgAsyncAfterBuiltInEnableEpoch)
+	log.Debug("smartContract/process: enable epoch for async callback argument parser", "epoch", sc.fixAsyncCallBackArgParserEnableEpoch)
 
 	args.EpochNotifier.RegisterNotifyHandler(sc)
 	args.GasSchedule.RegisterNotifyHandler(sc)
@@ -300,6 +307,9 @@ func (sc *scProcessor) GasScheduleChange(gasSchedule map[string]map[string]uint6
 	}
 
 	sc.builtInGasCosts = builtInFuncCost
+	if sc.flagFixAsyncCallBackArgumentsParser.IsSet() {
+		sc.builtInGasCosts[core.BuiltInFunctionMultiESDTNFTTransfer] = builtInFuncCost["ESDTNFTMultiTransfer"]
+	}
 	sc.storePerByte = gasSchedule[common.BaseOperationCost]["StorePerByte"]
 	sc.persistPerByte = gasSchedule[common.BaseOperationCost]["PersistPerByte"]
 }
@@ -528,15 +538,15 @@ func (sc *scProcessor) finishSCExecution(
 	resultWithoutMeta := sc.deleteSCRsWithValueZeroGoingToMeta(results)
 	finalResults, logsFromSCRs := sc.cleanInformativeOnlySCRs(resultWithoutMeta)
 
-	err := sc.scrForwarder.AddIntermediateTransactions(finalResults)
+	err := sc.updateDeveloperRewardsProxy(tx, vmOutput, builtInFuncGasUsed)
 	if err != nil {
-		log.Error("AddIntermediateTransactions error", "error", err.Error())
+		log.Error("updateDeveloperRewardsProxy", "error", err.Error())
 		return 0, err
 	}
 
-	err = sc.updateDeveloperRewardsProxy(tx, vmOutput, builtInFuncGasUsed)
+	err = sc.scrForwarder.AddIntermediateTransactions(finalResults)
 	if err != nil {
-		log.Error("updateDeveloperRewardsProxy", "error", err.Error())
+		log.Error("AddIntermediateTransactions error", "error", err.Error())
 		return 0, err
 	}
 
@@ -881,9 +891,14 @@ func (sc *scProcessor) computeBuiltInFuncGasUsed(
 	function string,
 	gasProvided uint64,
 	gasRemaining uint64,
+	isCrossShard bool,
 ) (uint64, error) {
 	if txTypeOnDst != process.SCInvoking {
 		return core.SafeSubUint64(gasProvided, gasRemaining)
+	}
+
+	if sc.flagFixAsyncCallBackArgumentsParser.IsSet() && isCrossShard {
+		return 0, nil
 	}
 
 	sc.mutGasLock.RLock()
@@ -944,7 +959,7 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 	}
 
 	_, txTypeOnDst := sc.txTypeHandler.ComputeTransactionType(tx)
-	builtInFuncGasUsed, err := sc.computeBuiltInFuncGasUsed(txTypeOnDst, vmInput.Function, vmInput.GasProvided, vmOutput.GasRemaining)
+	builtInFuncGasUsed, err := sc.computeBuiltInFuncGasUsed(txTypeOnDst, vmInput.Function, vmInput.GasProvided, vmOutput.GasRemaining, check.IfNil(acntSnd))
 	log.LogIfError(err, "function", "ExecuteBuiltInFunction.computeBuiltInFuncGasUsed")
 
 	if txTypeOnDst != process.SCInvoking {
@@ -1234,13 +1249,20 @@ func (sc *scProcessor) createVMInputWithAsyncCallBackAfterBuiltIn(
 		}
 
 		gasLimit = outAcc.OutputTransfers[0].GasLimit
-		function, args, err := sc.argsParser.ParseCallData(string(outAcc.OutputTransfers[0].Data))
-		log.LogIfError(err, "function", "createVMInputWithAsyncCallBackAfterBuiltIn.ParseCallData")
-		if len(function) > 0 {
-			arguments = append(arguments, []byte(function))
-		}
 
-		arguments = append(arguments, args...)
+		if sc.flagFixAsyncCallBackArgumentsParser.IsSet() {
+			args, err := sc.argsParser.ParseArguments(string(outAcc.OutputTransfers[0].Data))
+			log.LogIfError(err, "function", "createVMInputWithAsyncCallBackAfterBuiltIn.ParseArguments")
+			arguments = append(arguments, args...)
+		} else {
+			function, args, err := sc.argsParser.ParseCallData(string(outAcc.OutputTransfers[0].Data))
+			log.LogIfError(err, "function", "createVMInputWithAsyncCallBackAfterBuiltIn.ParseCallData")
+			if len(function) > 0 {
+				arguments = append(arguments, []byte(function))
+			}
+
+			arguments = append(arguments, args...)
+		}
 	}
 
 	newVMInput := &vmcommon.ContractCallInput{
@@ -1755,15 +1777,15 @@ func (sc *scProcessor) doDeploySmartContract(
 	finalResults, logsFromSCRs := sc.cleanInformativeOnlySCRs(results)
 
 	vmOutput.Logs = append(vmOutput.Logs, logsFromSCRs...)
-	err = sc.scrForwarder.AddIntermediateTransactions(finalResults)
-	if err != nil {
-		log.Debug("AddIntermediate Transaction error", "error", err.Error())
-		return 0, err
-	}
-
 	err = sc.updateDeveloperRewardsProxy(tx, vmOutput, 0)
 	if err != nil {
 		log.Debug("updateDeveloperRewardsProxy", "error", err.Error())
+		return 0, err
+	}
+
+	err = sc.scrForwarder.AddIntermediateTransactions(finalResults)
+	if err != nil {
+		log.Debug("AddIntermediate Transaction error", "error", err.Error())
 		return 0, err
 	}
 
@@ -2332,6 +2354,10 @@ func (sc *scProcessor) useLastTransferAsAsyncCallBackWhenNeeded(
 
 	if !sc.isTransferWithNoAdditionalData(outputTransfer.SenderAddress, outAcc.Address, outputTransfer.Data) {
 		return false
+	}
+
+	if sc.flagFixAsyncCallBackArgumentsList.IsSet() {
+		result.Data = append(result.Data, []byte("@"+core.ConvertToEvenHex(int(vmOutput.ReturnCode)))...)
 	}
 
 	addReturnDataToSCR(vmOutput, result)
@@ -2926,6 +2952,12 @@ func (sc *scProcessor) EpochConfirmed(epoch uint32, _ uint64) {
 
 	sc.flagDeleteWrongArgAsyncAfterBuiltIn.SetValue(epoch >= sc.deleteWrongArgAsyncAfterBuiltInEnableEpoch)
 	log.Debug("scProcessor: delete wrong argument on async callback after builtin", "enabled", sc.flagDeleteWrongArgAsyncAfterBuiltIn.IsSet())
+
+	sc.flagFixAsyncCallBackArgumentsParser.SetValue(epoch >= sc.fixAsyncCallBackArgParserEnableEpoch)
+	log.Debug("scProcessor: fix async callback arguments parser", "enabled", sc.flagFixAsyncCallBackArgumentsParser.IsSet())
+
+	sc.flagFixAsyncCallBackArgumentsList.SetValue(epoch >= sc.fixAsyncCallBackArgsListEnableEpoch)
+	log.Debug("scProcessor: fix async callback arguments list", "enabled", sc.flagFixAsyncCallBackArgumentsList.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -23,11 +23,8 @@ var fromConnectedPeer = core.PeerID("from connected peer")
 
 func createMockArgTrieNodeResolver() resolvers.ArgTrieNodeResolver {
 	return resolvers.ArgTrieNodeResolver{
-		SenderResolver:   &mock.TopicResolverSenderStub{},
-		TrieDataGetter:   &trieMock.TrieStub{},
-		Marshalizer:      &mock.MarshalizerMock{},
-		AntifloodHandler: &mock.P2PAntifloodHandlerStub{},
-		Throttler:        &mock.ThrottlerStub{},
+		ArgBaseResolver: createMockArgBaseResolver(),
+		TrieDataGetter:  &trieMock.TrieStub{},
 	}
 }
 
@@ -57,7 +54,7 @@ func TestNewTrieNodeResolver_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArgTrieNodeResolver()
-	arg.Marshalizer = nil
+	arg.Marshaller = nil
 	tnRes, err := resolvers.NewTrieNodeResolver(arg)
 
 	assert.Equal(t, dataRetriever.ErrNilMarshalizer, err)
@@ -222,7 +219,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageShouldGetFromTrieAndMarshalizerF
 	}
 
 	arg := createMockArgTrieNodeResolver()
-	arg.Marshalizer = marshalizerStub
+	arg.Marshaller = marshalizerStub
 	tnRes, _ := resolvers.NewTrieNodeResolver(arg)
 
 	data, _ := marshalizerMock.Marshal(&dataRetriever.RequestData{Type: dataRetriever.HashType, Value: []byte("node1")})
@@ -246,7 +243,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageTrieErrorsShouldErr(t *testing.T
 	}
 	tnRes, _ := resolvers.NewTrieNodeResolver(arg)
 
-	data, _ := arg.Marshalizer.Marshal(&dataRetriever.RequestData{Type: dataRetriever.HashType, Value: []byte("node1")})
+	data, _ := arg.Marshaller.Marshal(&dataRetriever.RequestData{Type: dataRetriever.HashType, Value: []byte("node1")})
 	msg := &mock.P2PMessageMock{DataField: data}
 
 	err := tnRes.ProcessReceivedMessage(msg, fromConnectedPeer)
@@ -276,9 +273,9 @@ func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesGetSerializedNodeE
 	b := &batch.Batch{
 		Data: [][]byte{[]byte("hash1")},
 	}
-	buffBatch, _ := arg.Marshalizer.Marshal(b)
+	buffBatch, _ := arg.Marshaller.Marshal(b)
 
-	data, _ := arg.Marshalizer.Marshal(
+	data, _ := arg.Marshaller.Marshal(
 		&dataRetriever.RequestData{
 			Type:  dataRetriever.HashArrayType,
 			Value: buffBatch,
@@ -304,7 +301,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesGetSerializedNodes
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
 		SendCalled: func(buff []byte, peer core.PeerID) error {
 			b := &batch.Batch{}
-			err := arg.Marshalizer.Unmarshal(b, buff)
+			err := arg.Marshaller.Unmarshal(b, buff)
 			require.Nil(t, err)
 			receivedNodes = b.Data
 
@@ -330,9 +327,9 @@ func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesGetSerializedNodes
 	b := &batch.Batch{
 		Data: [][]byte{[]byte("hash1")},
 	}
-	buffBatch, _ := arg.Marshalizer.Marshal(b)
+	buffBatch, _ := arg.Marshaller.Marshal(b)
 
-	data, _ := arg.Marshalizer.Marshal(
+	data, _ := arg.Marshaller.Marshal(
 		&dataRetriever.RequestData{
 			Type:  dataRetriever.HashArrayType,
 			Value: buffBatch,
@@ -360,7 +357,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesNotEnoughSpaceShou
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
 		SendCalled: func(buff []byte, peer core.PeerID) error {
 			b := &batch.Batch{}
-			err := arg.Marshalizer.Unmarshal(b, buff)
+			err := arg.Marshaller.Unmarshal(b, buff)
 			require.Nil(t, err)
 			receivedNodes = b.Data
 
@@ -387,9 +384,9 @@ func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesNotEnoughSpaceShou
 	b := &batch.Batch{
 		Data: [][]byte{[]byte("hash1")},
 	}
-	buffBatch, _ := arg.Marshalizer.Marshal(b)
+	buffBatch, _ := arg.Marshaller.Marshal(b)
 
-	data, _ := arg.Marshalizer.Marshal(
+	data, _ := arg.Marshaller.Marshal(
 		&dataRetriever.RequestData{
 			Type:  dataRetriever.HashArrayType,
 			Value: buffBatch,
@@ -417,7 +414,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesShouldWorkWithSubt
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
 		SendCalled: func(buff []byte, peer core.PeerID) error {
 			b := &batch.Batch{}
-			err := arg.Marshalizer.Unmarshal(b, buff)
+			err := arg.Marshaller.Unmarshal(b, buff)
 			require.Nil(t, err)
 			receivedNodes = b.Data
 
@@ -448,9 +445,9 @@ func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesShouldWorkWithSubt
 	b := &batch.Batch{
 		Data: [][]byte{[]byte("hash1"), []byte("hash2")},
 	}
-	buffBatch, _ := arg.Marshalizer.Marshal(b)
+	buffBatch, _ := arg.Marshaller.Marshal(b)
 
-	data, _ := arg.Marshalizer.Marshal(
+	data, _ := arg.Marshaller.Marshal(
 		&dataRetriever.RequestData{
 			Type:  dataRetriever.HashArrayType,
 			Value: buffBatch,
@@ -487,7 +484,7 @@ func testTrieNodeResolverProcessReceivedMessageLargeTrieNode(
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
 		SendCalled: func(buff []byte, peer core.PeerID) error {
 			b := &batch.Batch{}
-			err := arg.Marshalizer.Unmarshal(b, buff)
+			err := arg.Marshaller.Unmarshal(b, buff)
 			require.Nil(t, err)
 			sendWasCalled = true
 			assert.Equal(t, maxComputedChunks, b.MaxChunks)
@@ -515,7 +512,7 @@ func testTrieNodeResolverProcessReceivedMessageLargeTrieNode(
 	}
 	tnRes, _ := resolvers.NewTrieNodeResolver(arg)
 
-	data, _ := arg.Marshalizer.Marshal(
+	data, _ := arg.Marshaller.Marshal(
 		&dataRetriever.RequestData{
 			Type:       dataRetriever.HashType,
 			Value:      []byte("hash1"),
@@ -656,7 +653,7 @@ func TestTrieNodeResolver_RequestDataFromHashArray(t *testing.T) {
 			assert.Equal(t, dataRetriever.HashArrayType, rd.Type)
 
 			b := &batch.Batch{}
-			err := arg.Marshalizer.Unmarshal(b, rd.Value)
+			err := arg.Marshaller.Unmarshal(b, rd.Value)
 			require.Nil(t, err)
 			assert.Equal(t, [][]byte{hash1, hash2}, b.Data)
 			assert.Equal(t, uint32(0), b.ChunkIndex) //mandatory to be 0

@@ -839,7 +839,7 @@ func TestAccountsDB_RecreateTrieMalfunctionTrieShouldErr(t *testing.T) {
 			return &testscommon.StorageManagerStub{}
 		},
 	}
-	trieStub.RecreateCalled = func(root []byte) (tree common.Trie, e error) {
+	trieStub.RecreateFromEpochCalled = func(_ common.RootHashHolder) (tree common.Trie, e error) {
 		wasCalled = true
 		return nil, errExpected
 	}
@@ -861,7 +861,7 @@ func TestAccountsDB_RecreateTrieOutputsNilTrieShouldErr(t *testing.T) {
 			return &testscommon.StorageManagerStub{}
 		},
 	}
-	trieStub.RecreateCalled = func(root []byte) (tree common.Trie, e error) {
+	trieStub.RecreateFromEpochCalled = func(_ common.RootHashHolder) (tree common.Trie, e error) {
 		wasCalled = true
 		return nil, nil
 	}
@@ -883,7 +883,7 @@ func TestAccountsDB_RecreateTrieOkValsShouldWork(t *testing.T) {
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &testscommon.StorageManagerStub{}
 		},
-		RecreateCalled: func(root []byte) (common.Trie, error) {
+		RecreateFromEpochCalled: func(_ common.RootHashHolder) (common.Trie, error) {
 			wasCalled = true
 			return &trieMock.TrieStub{}, nil
 		},
@@ -894,7 +894,6 @@ func TestAccountsDB_RecreateTrieOkValsShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.True(t, wasCalled)
-
 }
 
 func TestAccountsDB_SnapshotState(t *testing.T) {
@@ -2360,6 +2359,101 @@ func TestAccountsDB_GetAccountFromBytesShouldLoadDataTrie(t *testing.T) {
 	assert.Equal(t, dataTrie, account.DataTrie())
 }
 
+func TestAccountsDB_NewAccountsDbShouldSetActiveDB(t *testing.T) {
+	t.Parallel()
+
+	rootHash := []byte("rootHash")
+	expectedErr := errors.New("expected error")
+	t.Run("epoch 0", func(t *testing.T) {
+		putCalled := false
+		trieStub := &trieMock.TrieStub{
+			RootCalled: func() ([]byte, error) {
+				return rootHash, nil
+			},
+			GetStorageManagerCalled: func() common.StorageManager {
+				return &testscommon.StorageManagerStub{
+					ShouldTakeSnapshotCalled: func() bool {
+						return true
+					},
+					GetLatestStorageEpochCalled: func() (uint32, error) {
+						return 0, nil
+					},
+					PutCalled: func(key []byte, val []byte) error {
+						assert.Equal(t, []byte(common.ActiveDBKey), key)
+						assert.Equal(t, []byte(common.ActiveDBVal), val)
+
+						putCalled = true
+
+						return nil
+					},
+				}
+			},
+		}
+
+		_ = generateAccountDBFromTrie(trieStub)
+
+		assert.True(t, putCalled)
+	})
+	t.Run("epoch 0, GetLatestStorageEpoch errors should not put", func(t *testing.T) {
+		trieStub := &trieMock.TrieStub{
+			RootCalled: func() ([]byte, error) {
+				return rootHash, nil
+			},
+			GetStorageManagerCalled: func() common.StorageManager {
+				return &testscommon.StorageManagerStub{
+					ShouldTakeSnapshotCalled: func() bool {
+						return true
+					},
+					GetLatestStorageEpochCalled: func() (uint32, error) {
+						return 0, expectedErr
+					},
+					PutCalled: func(key []byte, val []byte) error {
+						assert.Fail(t, "should have not called put")
+
+						return nil
+					},
+				}
+			},
+		}
+
+		_ = generateAccountDBFromTrie(trieStub)
+	})
+	t.Run("in import DB mode", func(t *testing.T) {
+		putCalled := false
+		trieStub := &trieMock.TrieStub{
+			RootCalled: func() ([]byte, error) {
+				return rootHash, nil
+			},
+			GetStorageManagerCalled: func() common.StorageManager {
+				return &testscommon.StorageManagerStub{
+					ShouldTakeSnapshotCalled: func() bool {
+						return true
+					},
+					GetLatestStorageEpochCalled: func() (uint32, error) {
+						return 1, nil
+					},
+					PutCalled: func(key []byte, val []byte) error {
+						assert.Equal(t, []byte(common.ActiveDBKey), key)
+						assert.Equal(t, []byte(common.ActiveDBVal), val)
+
+						putCalled = true
+
+						return nil
+					},
+				}
+			},
+		}
+
+		args := createMockAccountsDBArgs()
+		args.ProcessingMode = common.ImportDb
+		args.Trie = trieStub
+
+		_, _ = state.NewAccountsDB(args)
+
+		assert.True(t, putCalled)
+	})
+}
+
 func TestAccountsDB_NewAccountsDbStartsSnapshotAfterRestart(t *testing.T) {
 	t.Parallel()
 
@@ -2382,6 +2476,9 @@ func TestAccountsDB_NewAccountsDbStartsSnapshotAfterRestart(t *testing.T) {
 				},
 				TakeSnapshotCalled: func(_ []byte, _ []byte, _ chan core.KeyValueHolder, _ chan error, _ common.SnapshotStatisticsHandler, _ uint32) {
 					takeSnapshotCalled.SetValue(true)
+				},
+				GetLatestStorageEpochCalled: func() (uint32, error) {
+					return 1, nil
 				},
 			}
 		},
@@ -2444,7 +2541,7 @@ func BenchmarkAccountsDb_GetCodeEntry(b *testing.B) {
 	}
 }
 
-func TestAccountsDB_waitForCompletionIfRunningInImportDB(t *testing.T) {
+func TestAccountsDB_waitForCompletionIfAppropriate(t *testing.T) {
 	t.Parallel()
 
 	t.Run("not in import db", func(t *testing.T) {
@@ -2458,7 +2555,7 @@ func TestAccountsDB_waitForCompletionIfRunningInImportDB(t *testing.T) {
 			},
 		}
 		adb, _ := state.NewAccountsDB(argsAccountsDB)
-		adb.WaitForCompletionIfRunningInImportDB(&trieMock.MockStatistics{})
+		adb.WaitForCompletionIfAppropriate(&trieMock.MockStatistics{})
 	})
 	t.Run("in import db", func(t *testing.T) {
 		t.Parallel()
@@ -2478,7 +2575,7 @@ func TestAccountsDB_waitForCompletionIfRunningInImportDB(t *testing.T) {
 			waitForSnapshotsToFinishCalled = true
 		}
 		adb, _ := state.NewAccountsDB(argsAccountsDB)
-		adb.WaitForCompletionIfRunningInImportDB(stats)
+		adb.WaitForCompletionIfAppropriate(stats)
 		assert.True(t, idleWasSet)
 		assert.True(t, waitForSnapshotsToFinishCalled)
 	})

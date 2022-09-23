@@ -31,6 +31,8 @@ const (
 	delegatedInfoPath      = "/delegated-info"
 	ratingsPath            = "/ratings"
 	genesisNodesConfigPath = "/genesis-nodes"
+	genesisBalances        = "/genesis-balances"
+	gasConfigPath          = "/gas-configs"
 )
 
 // networkFacadeHandler defines the methods to be implemented by a facade for handling network requests
@@ -42,6 +44,8 @@ type networkFacadeHandler interface {
 	GetAllIssuedESDTs(tokenType string) ([]string, error)
 	GetTokenSupply(token string) (*api.ESDTSupply, error)
 	GetGenesisNodesPubKeys() (map[uint32][]string, map[uint32][]string, error)
+	GetGenesisBalances() ([]*common.InitialAccountAPI, error)
+	GetGasConfigs() (map[string]map[string]uint64, error)
 	IsInterfaceNil() bool
 }
 
@@ -49,6 +53,12 @@ type networkFacadeHandler interface {
 type GenesisNodesConfig struct {
 	Eligible map[uint32][]string `json:"eligible"`
 	Waiting  map[uint32][]string `json:"waiting"`
+}
+
+// GasConfig defines the gas config sections to be exposed
+type GasConfig struct {
+	BuiltInCost            map[string]uint64 `json:"builtInCost"`
+	MetaChainSystemSCsCost map[string]uint64 `json:"metaSystemSCCost"`
 }
 
 type networkGroup struct {
@@ -133,6 +143,16 @@ func NewNetworkGroup(facade networkFacadeHandler) (*networkGroup, error) {
 			Path:    genesisNodesConfigPath,
 			Method:  http.MethodGet,
 			Handler: ng.getGenesisNodesConfig,
+		},
+		{
+			Path:    genesisBalances,
+			Method:  http.MethodGet,
+			Handler: ng.getGenesisBalances,
+		},
+		{
+			Path:    gasConfigPath,
+			Method:  http.MethodGet,
+			Handler: ng.getGasConfig,
 		},
 	}
 	ng.endpoints = endpoints
@@ -335,9 +355,7 @@ func (ng *networkGroup) delegatedInfo(c *gin.Context) {
 func (ng *networkGroup) getESDTTokenSupply(c *gin.Context) {
 	token := c.Param("token")
 	if token == "" {
-		shared.RespondWithValidationError(
-			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrValidationEmptyToken.Error()),
-		)
+		shared.RespondWithValidationError(c, errors.ErrValidation, errors.ErrBadUrlParams)
 		return
 	}
 
@@ -393,7 +411,7 @@ func (ng *networkGroup) getRatingsConfig(c *gin.Context) {
 func (ng *networkGroup) getGenesisNodesConfig(c *gin.Context) {
 	start := time.Now()
 	eligibleNodesConfig, waitingNodesConfig, err := ng.getFacade().GetGenesisNodesPubKeys()
-	logging.LogAPIActionDurationIfNeeded(start, "GetGenesisNodesPubKeys")
+	logging.LogAPIActionDurationIfNeeded(start, "API call: GetGenesisNodesPubKeys")
 
 	if err != nil {
 		c.JSON(
@@ -413,6 +431,50 @@ func (ng *networkGroup) getGenesisNodesConfig(c *gin.Context) {
 	}
 
 	shared.RespondWith(c, http.StatusOK, gin.H{"nodes": nc}, "", shared.ReturnCodeSuccess)
+}
+
+// getGenesisBalances return genesis balances configuration
+func (ng *networkGroup) getGenesisBalances(c *gin.Context) {
+	start := time.Now()
+	genesisBalances, err := ng.getFacade().GetGenesisBalances()
+	log.Debug("API call: GetGenesisBalances", "duration", time.Since(start))
+
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrGetGenesisBalances.Error(), err.Error()),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	shared.RespondWith(c, http.StatusOK, gin.H{"balances": genesisBalances}, "", shared.ReturnCodeSuccess)
+}
+
+// getGasConfig returns currently used gas configs configuration
+func (ng *networkGroup) getGasConfig(c *gin.Context) {
+	gasConfigMap, err := ng.getFacade().GetGasConfigs()
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrGetGasConfigs.Error(), err.Error()),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	gc := GasConfig{
+		BuiltInCost:            gasConfigMap[common.BuiltInCost],
+		MetaChainSystemSCsCost: gasConfigMap[common.MetaChainSystemSCsCost],
+	}
+
+	shared.RespondWith(c, http.StatusOK, gin.H{"gasConfigs": gc}, "", shared.ReturnCodeSuccess)
 }
 
 func (ng *networkGroup) getFacade() networkFacadeHandler {

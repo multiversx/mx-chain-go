@@ -16,17 +16,17 @@ var _ process.GasHandler = (*gasComputation)(nil)
 type gasComputation struct {
 	economicsFee  process.FeeHandler
 	txTypeHandler process.TxTypeHandler
-	//TODO: Refactor these mutexes and maps in separated structures that handle the locking and unlocking for each operation required
+	// TODO: Refactor these mutexes and maps in separated structures that handle the locking and unlocking for each operation required
 	gasProvided                                      map[string]uint64
-	txHashesWithGasProvidedSinceLastReset            [][]byte
+	txHashesWithGasProvidedSinceLastReset            map[string][][]byte
 	gasProvidedAsScheduled                           map[string]uint64
-	txHashesWithGasProvidedAsScheduledSinceLastReset [][]byte
+	txHashesWithGasProvidedAsScheduledSinceLastReset map[string][][]byte
 	mutGasProvided                                   sync.RWMutex
 	gasRefunded                                      map[string]uint64
-	txHashesWithGasRefundedSinceLastReset            [][]byte
+	txHashesWithGasRefundedSinceLastReset            map[string][][]byte
 	mutGasRefunded                                   sync.RWMutex
 	gasPenalized                                     map[string]uint64
-	txHashesWithGasPenalizedSinceLastReset           [][]byte
+	txHashesWithGasPenalizedSinceLastReset           map[string][][]byte
 	mutGasPenalized                                  sync.RWMutex
 
 	flagGasComputeV2        atomic.Flag
@@ -54,13 +54,13 @@ func NewGasComputation(
 		txTypeHandler:                         txTypeHandler,
 		economicsFee:                          economicsFee,
 		gasProvided:                           make(map[string]uint64),
-		txHashesWithGasProvidedSinceLastReset: make([][]byte, 0),
+		txHashesWithGasProvidedSinceLastReset: make(map[string][][]byte),
 		gasProvidedAsScheduled:                make(map[string]uint64),
-		txHashesWithGasProvidedAsScheduledSinceLastReset: make([][]byte, 0),
+		txHashesWithGasProvidedAsScheduledSinceLastReset: make(map[string][][]byte),
 		gasRefunded:                            make(map[string]uint64),
-		txHashesWithGasRefundedSinceLastReset:  make([][]byte, 0),
+		txHashesWithGasRefundedSinceLastReset:  make(map[string][][]byte),
 		gasPenalized:                           make(map[string]uint64),
-		txHashesWithGasPenalizedSinceLastReset: make([][]byte, 0),
+		txHashesWithGasPenalizedSinceLastReset: make(map[string][][]byte),
 		gasComputeV2EnableEpoch:                gasComputeV2EnableEpoch,
 	}
 	log.Debug("gasComputation: enable epoch for sc deploy", "epoch", g.gasComputeV2EnableEpoch)
@@ -74,35 +74,35 @@ func NewGasComputation(
 func (gc *gasComputation) Init() {
 	gc.mutGasProvided.Lock()
 	gc.gasProvided = make(map[string]uint64)
-	gc.txHashesWithGasProvidedSinceLastReset = make([][]byte, 0)
+	gc.txHashesWithGasProvidedSinceLastReset = make(map[string][][]byte)
 	gc.gasProvidedAsScheduled = make(map[string]uint64)
-	gc.txHashesWithGasProvidedAsScheduledSinceLastReset = make([][]byte, 0)
+	gc.txHashesWithGasProvidedAsScheduledSinceLastReset = make(map[string][][]byte)
 	gc.mutGasProvided.Unlock()
 
 	gc.mutGasRefunded.Lock()
 	gc.gasRefunded = make(map[string]uint64)
-	gc.txHashesWithGasRefundedSinceLastReset = make([][]byte, 0)
+	gc.txHashesWithGasRefundedSinceLastReset = make(map[string][][]byte)
 	gc.mutGasRefunded.Unlock()
 
 	gc.mutGasPenalized.Lock()
 	gc.gasPenalized = make(map[string]uint64)
-	gc.txHashesWithGasPenalizedSinceLastReset = make([][]byte, 0)
+	gc.txHashesWithGasPenalizedSinceLastReset = make(map[string][][]byte)
 	gc.mutGasPenalized.Unlock()
 }
 
 // Reset method resets tx hashes with gas provided, refunded and penalized since last reset
-func (gc *gasComputation) Reset() {
+func (gc *gasComputation) Reset(key []byte) {
 	gc.mutGasProvided.Lock()
-	gc.txHashesWithGasProvidedSinceLastReset = make([][]byte, 0)
-	gc.txHashesWithGasProvidedAsScheduledSinceLastReset = make([][]byte, 0)
+	gc.txHashesWithGasProvidedSinceLastReset[string(key)] = make([][]byte, 0)
+	gc.txHashesWithGasProvidedAsScheduledSinceLastReset[string(key)] = make([][]byte, 0)
 	gc.mutGasProvided.Unlock()
 
 	gc.mutGasRefunded.Lock()
-	gc.txHashesWithGasRefundedSinceLastReset = make([][]byte, 0)
+	gc.txHashesWithGasRefundedSinceLastReset[string(key)] = make([][]byte, 0)
 	gc.mutGasRefunded.Unlock()
 
 	gc.mutGasPenalized.Lock()
-	gc.txHashesWithGasPenalizedSinceLastReset = make([][]byte, 0)
+	gc.txHashesWithGasPenalizedSinceLastReset[string(key)] = make([][]byte, 0)
 	gc.mutGasPenalized.Unlock()
 }
 
@@ -110,7 +110,9 @@ func (gc *gasComputation) Reset() {
 func (gc *gasComputation) SetGasProvided(gasProvided uint64, hash []byte) {
 	gc.mutGasProvided.Lock()
 	gc.gasProvided[string(hash)] = gasProvided
-	gc.txHashesWithGasProvidedSinceLastReset = append(gc.txHashesWithGasProvidedSinceLastReset, hash)
+	for key := range gc.txHashesWithGasProvidedSinceLastReset {
+		gc.txHashesWithGasProvidedSinceLastReset[key] = append(gc.txHashesWithGasProvidedSinceLastReset[key], hash)
+	}
 	gc.mutGasProvided.Unlock()
 }
 
@@ -118,7 +120,9 @@ func (gc *gasComputation) SetGasProvided(gasProvided uint64, hash []byte) {
 func (gc *gasComputation) SetGasProvidedAsScheduled(gasProvided uint64, hash []byte) {
 	gc.mutGasProvided.Lock()
 	gc.gasProvidedAsScheduled[string(hash)] = gasProvided
-	gc.txHashesWithGasProvidedAsScheduledSinceLastReset = append(gc.txHashesWithGasProvidedAsScheduledSinceLastReset, hash)
+	for key := range gc.txHashesWithGasProvidedAsScheduledSinceLastReset {
+		gc.txHashesWithGasProvidedAsScheduledSinceLastReset[key] = append(gc.txHashesWithGasProvidedAsScheduledSinceLastReset[key], hash)
+	}
 	gc.mutGasProvided.Unlock()
 }
 
@@ -126,7 +130,9 @@ func (gc *gasComputation) SetGasProvidedAsScheduled(gasProvided uint64, hash []b
 func (gc *gasComputation) SetGasRefunded(gasRefunded uint64, hash []byte) {
 	gc.mutGasRefunded.Lock()
 	gc.gasRefunded[string(hash)] = gasRefunded
-	gc.txHashesWithGasRefundedSinceLastReset = append(gc.txHashesWithGasRefundedSinceLastReset, hash)
+	for key := range gc.txHashesWithGasRefundedSinceLastReset {
+		gc.txHashesWithGasRefundedSinceLastReset[key] = append(gc.txHashesWithGasRefundedSinceLastReset[key], hash)
+	}
 	gc.mutGasRefunded.Unlock()
 
 	log.Trace("gasComputation.SetGasRefunded", "tx hash", hash, "gas refunded", gasRefunded)
@@ -136,7 +142,9 @@ func (gc *gasComputation) SetGasRefunded(gasRefunded uint64, hash []byte) {
 func (gc *gasComputation) SetGasPenalized(gasPenalized uint64, hash []byte) {
 	gc.mutGasPenalized.Lock()
 	gc.gasPenalized[string(hash)] = gasPenalized
-	gc.txHashesWithGasPenalizedSinceLastReset = append(gc.txHashesWithGasPenalizedSinceLastReset, hash)
+	for key := range gc.txHashesWithGasPenalizedSinceLastReset {
+		gc.txHashesWithGasPenalizedSinceLastReset[key] = append(gc.txHashesWithGasPenalizedSinceLastReset[key], hash)
+	}
 	gc.mutGasPenalized.Unlock()
 
 	log.Trace("gasComputation.SetGasPenalized", "tx hash", hash, "gas penalized", gasPenalized)
@@ -275,35 +283,35 @@ func (gc *gasComputation) RemoveGasPenalized(hashes [][]byte) {
 }
 
 // RestoreGasSinceLastReset method restores gas provided, refunded and penalized since last reset
-func (gc *gasComputation) RestoreGasSinceLastReset() {
-	gc.RemoveGasProvided(gc.getTxHashesWithGasProvidedSinceLastReset())
-	gc.RemoveGasProvidedAsScheduled(gc.getTxHashesWithGasProvidedAsScheduledSinceLastReset())
-	gc.RemoveGasRefunded(gc.getTxHashesWithGasRefundedSinceLastReset())
-	gc.RemoveGasPenalized(gc.getTxHashesWithGasPenalizedSinceLastReset())
+func (gc *gasComputation) RestoreGasSinceLastReset(key []byte) {
+	gc.RemoveGasProvided(gc.getTxHashesWithGasProvidedSinceLastReset(key))
+	gc.RemoveGasProvidedAsScheduled(gc.getTxHashesWithGasProvidedAsScheduledSinceLastReset(key))
+	gc.RemoveGasRefunded(gc.getTxHashesWithGasRefundedSinceLastReset(key))
+	gc.RemoveGasPenalized(gc.getTxHashesWithGasPenalizedSinceLastReset(key))
 }
 
-func (gc *gasComputation) getTxHashesWithGasProvidedSinceLastReset() [][]byte {
+func (gc *gasComputation) getTxHashesWithGasProvidedSinceLastReset(key []byte) [][]byte {
 	gc.mutGasProvided.RLock()
 	defer gc.mutGasProvided.RUnlock()
-	return gc.txHashesWithGasProvidedSinceLastReset
+	return gc.txHashesWithGasProvidedSinceLastReset[string(key)]
 }
 
-func (gc *gasComputation) getTxHashesWithGasProvidedAsScheduledSinceLastReset() [][]byte {
+func (gc *gasComputation) getTxHashesWithGasProvidedAsScheduledSinceLastReset(key []byte) [][]byte {
 	gc.mutGasProvided.RLock()
 	defer gc.mutGasProvided.RUnlock()
-	return gc.txHashesWithGasProvidedAsScheduledSinceLastReset
+	return gc.txHashesWithGasProvidedAsScheduledSinceLastReset[string(key)]
 }
 
-func (gc *gasComputation) getTxHashesWithGasRefundedSinceLastReset() [][]byte {
+func (gc *gasComputation) getTxHashesWithGasRefundedSinceLastReset(key []byte) [][]byte {
 	gc.mutGasRefunded.RLock()
 	defer gc.mutGasRefunded.RUnlock()
-	return gc.txHashesWithGasRefundedSinceLastReset
+	return gc.txHashesWithGasRefundedSinceLastReset[string(key)]
 }
 
-func (gc *gasComputation) getTxHashesWithGasPenalizedSinceLastReset() [][]byte {
+func (gc *gasComputation) getTxHashesWithGasPenalizedSinceLastReset(key []byte) [][]byte {
 	gc.mutGasPenalized.RLock()
 	defer gc.mutGasPenalized.RUnlock()
-	return gc.txHashesWithGasPenalizedSinceLastReset
+	return gc.txHashesWithGasPenalizedSinceLastReset[string(key)]
 }
 
 // ComputeGasProvidedByMiniBlock computes gas provided by the given miniblock in sender and receiver shard

@@ -70,6 +70,26 @@ func TestNewTrigger_ShouldWork(t *testing.T) {
 	assert.False(t, check.IfNil(trig))
 }
 
+//------- SetExportFactoryHandler
+
+func TestSetExportFactoryHandler_NilArgShouldErr(t *testing.T) {
+	t.Parallel()
+
+	trig, _ := trigger.NewTrigger(createMockArgHardforkTrigger())
+
+	err := trig.SetExportFactoryHandler(nil)
+	assert.Equal(t, update.ErrNilExportFactoryHandler, err)
+}
+
+func TestSetExportFactoryHandler_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	trig, _ := trigger.NewTrigger(createMockArgHardforkTrigger())
+
+	err := trig.SetExportFactoryHandler(&mock.ExportFactoryHandlerStub{})
+	assert.Nil(t, err)
+}
+
 //------- Trigger
 
 func TestTrigger_TriggerNotEnabledShouldErr(t *testing.T) {

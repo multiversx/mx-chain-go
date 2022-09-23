@@ -29,6 +29,15 @@ const NormalOperation NodeOperation = "normal operation"
 // FullArchiveMode defines the node operation as a full archive mode
 const FullArchiveMode NodeOperation = "full archive mode"
 
+const (
+	// ConnectionWatcherTypePrint - new connection found will be printed in the log file
+	ConnectionWatcherTypePrint = "print"
+	// ConnectionWatcherTypeDisabled - no connection watching should be made
+	ConnectionWatcherTypeDisabled = "disabled"
+	// ConnectionWatcherTypeEmpty - not set, no connection watching should be made
+	ConnectionWatcherTypeEmpty = ""
+)
+
 // MessageProcessor is the interface used to describe what a receive message processor should do
 // All implementations that will be called from Messenger implementation will need to satisfy this interface
 // If the function returns a non nil value, the received message will not be propagated to its connected peers
@@ -154,6 +163,8 @@ type Messenger interface {
 	UnjoinAllTopics() error
 	Port() int
 	WaitForConnections(maxWaitingTime time.Duration, minNumOfPeers uint32)
+	Sign(payload []byte) ([]byte, error)
+	Verify(payload []byte, pid core.PeerID, signature []byte) error
 
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
@@ -270,7 +281,8 @@ type Marshalizer interface {
 
 // PreferredPeersHolderHandler defines the behavior of a component able to handle preferred peers operations
 type PreferredPeersHolderHandler interface {
-	Put(publicKey []byte, peerID core.PeerID, shardID uint32)
+	PutConnectionAddress(peerID core.PeerID, address string)
+	PutShardID(peerID core.PeerID, shardID uint32)
 	Get() map[uint32][]core.PeerID
 	Contains(peerID core.PeerID) bool
 	Remove(peerID core.PeerID)

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 	"path"
+	"reflect"
 	"sync"
 	"time"
 
@@ -89,6 +90,8 @@ type BlockChainHookImpl struct {
 	flagDoNotReturnOldBlock           atomic.Flag
 	filterCodeMetadataEnableEpoch     uint32
 	flagFilterCodeMetadataEnableEpoch atomic.Flag
+
+	mapActivationEpochs map[uint32]struct{}
 }
 
 // NewBlockChainHookImpl creates a new BlockChainHookImpl instance
@@ -133,10 +136,26 @@ func NewBlockChainHookImpl(
 
 	blockChainHookImpl.ClearCompiledCodes()
 	blockChainHookImpl.currentHdr = &block.Header{}
+	blockChainHookImpl.mapActivationEpochs = createMapActivationEpochs(&args.EnableEpochs)
 
 	args.EpochNotifier.RegisterNotifyHandler(blockChainHookImpl)
 
 	return blockChainHookImpl, nil
+}
+
+func createMapActivationEpochs(enableEpochs *config.EnableEpochs) map[uint32]struct{} {
+	mapActivationEpoch := make(map[uint32]struct{})
+
+	reflectVal := reflect.ValueOf(enableEpochs).Elem()
+	for i := 0; i < reflectVal.NumField(); i++ {
+		f := reflectVal.Field(i)
+		epoch, ok := f.Interface().(uint32)
+		if !ok {
+			continue
+		}
+		mapActivationEpoch[epoch] = struct{}{}
+	}
+	return mapActivationEpoch
 }
 
 func checkForNil(args ArgBlockChainHook) error {
@@ -759,6 +778,11 @@ func (bh *BlockChainHookImpl) EpochConfirmed(epoch uint32, _ uint64) {
 
 	bh.flagFilterCodeMetadataEnableEpoch.SetValue(epoch >= bh.filterCodeMetadataEnableEpoch)
 	log.Debug("blockchainHookImpl: filter code metadata", "enabled", bh.flagFilterCodeMetadataEnableEpoch.IsSet())
+
+	_, ok := bh.mapActivationEpochs[epoch]
+	if ok {
+		bh.ClearCompiledCodes()
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

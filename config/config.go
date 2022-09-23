@@ -103,6 +103,27 @@ type SoftwareVersionConfig struct {
 	PollingIntervalInMinutes int
 }
 
+// HeartbeatV2Config will hold the configuration for heartbeat v2
+type HeartbeatV2Config struct {
+	PeerAuthenticationTimeBetweenSendsInSec          int64
+	PeerAuthenticationTimeBetweenSendsWhenErrorInSec int64
+	PeerAuthenticationThresholdBetweenSends          float64
+	HeartbeatTimeBetweenSendsInSec                   int64
+	HeartbeatTimeBetweenSendsWhenErrorInSec          int64
+	HeartbeatThresholdBetweenSends                   float64
+	HeartbeatExpiryTimespanInSec                     int64
+	MinPeersThreshold                                float32
+	DelayBetweenRequestsInSec                        int64
+	MaxTimeoutInSec                                  int64
+	DelayBetweenConnectionNotificationsInSec         int64
+	MaxMissingKeysInRequest                          uint32
+	MaxDurationPeerUnresponsiveInSec                 int64
+	HideInactiveValidatorIntervalInSec               int64
+	HeartbeatPool                                    CacheConfig
+	HardforkTimeBetweenSendsInSec                    int64
+	TimeBetweenConnectionsMetricsUpdateInSec         int64
+}
+
 // Config will hold the entire application configuration parameters
 type Config struct {
 	MiniBlocksStorage               StorageConfig
@@ -162,6 +183,7 @@ type Config struct {
 	Antiflood           AntifloodConfig
 	ResourceStats       ResourceStatsConfig
 	Heartbeat           HeartbeatConfig
+	HeartbeatV2         HeartbeatV2Config
 	ValidatorStatistics ValidatorStatisticsConfig
 	GeneralSettings     GeneralSettingsConfig
 	Consensus           ConsensusConfig
@@ -172,6 +194,7 @@ type Config struct {
 	HeadersPoolConfig       HeadersPoolConfig
 	BlockSizeThrottleConfig BlockSizeThrottleConfig
 	VirtualMachine          VirtualMachineServicesConfig
+	BuiltInFunctions        BuiltInFunctionsConfig
 
 	Hardfork HardforkConfig
 	Debug    DebugConfig
@@ -263,6 +286,7 @@ type FacadeConfig struct {
 type StateTriesConfig struct {
 	CheckpointRoundsModulus     uint
 	CheckpointsEnabled          bool
+	SnapshotsEnabled            bool
 	AccountsStatePruningEnabled bool
 	PeerStatePruningEnabled     bool
 	MaxStateTrieLevelInMemory   uint
@@ -386,6 +410,12 @@ type QueryVirtualMachineConfig struct {
 type VirtualMachineGasConfig struct {
 	ShardMaxGasPerVmQuery uint64
 	MetaMaxGasPerVmQuery  uint64
+}
+
+// BuiltInFunctionsConfig holds the configuration for the built in functions
+type BuiltInFunctionsConfig struct {
+	AutomaticCrawlerAddresses     []string
+	MaxNumAddressesInTransferRole uint32
 }
 
 // HardforkConfig holds the configuration for the hardfork trigger
@@ -553,11 +583,12 @@ type TrieSyncConfig struct {
 	NumConcurrentTrieSyncers  int
 	MaxHardCapForMissingNodes int
 	TrieSyncerVersion         int
+	CheckNodesOnDisk          bool
 }
 
 // ResolverConfig represents the config options to be used when setting up the resolver instances
 type ResolverConfig struct {
 	NumCrossShardPeers  uint32
-	NumIntraShardPeers  uint32
+	NumTotalPeers       uint32
 	NumFullHistoryPeers uint32
 }

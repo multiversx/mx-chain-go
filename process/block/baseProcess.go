@@ -22,12 +22,16 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	nodeFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/common/holders"
+	"github.com/ElrondNetwork/elrond-go/common/logging"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
+	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -99,6 +103,8 @@ type baseProcessor struct {
 	flagScheduledMiniBlocks        atomic.Flag
 	lastRestartNonce               uint64
 	pruningDelay                   uint32
+	processedMiniBlocksTracker     process.ProcessedMiniBlocksTracker
+	receiptsRepository             receiptsRepository
 }
 
 type bootStorerDataArgs struct {
@@ -506,6 +512,12 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.BootstrapComponents.VersionedHeaderFactory()) {
 		return process.ErrNilVersionedHeaderFactory
 	}
+	if check.IfNil(arguments.ProcessedMiniBlocksTracker) {
+		return process.ErrNilProcessedMiniBlocksTracker
+	}
+	if check.IfNil(arguments.ReceiptsRepository) {
+		return process.ErrNilReceiptsRepository
+	}
 
 	return nil
 }
@@ -590,7 +602,10 @@ func (bp *baseProcessor) sortHeaderHashesForCurrentBlockByNonce(usedInBlock bool
 	return hdrsHashesForCurrentBlock
 }
 
-func (bp *baseProcessor) createMiniBlockHeaderHandlers(body *block.Body) (int, []data.MiniBlockHeaderHandler, error) {
+func (bp *baseProcessor) createMiniBlockHeaderHandlers(
+	body *block.Body,
+	processedMiniBlocksDestMeInfo map[string]*processedMb.ProcessedMiniBlockInfo,
+) (int, []data.MiniBlockHeaderHandler, error) {
 	if len(body.MiniBlocks) == 0 {
 		return 0, nil, nil
 	}
@@ -615,7 +630,7 @@ func (bp *baseProcessor) createMiniBlockHeaderHandlers(body *block.Body) (int, [
 			Type:            body.MiniBlocks[i].Type,
 		}
 
-		err = bp.setMiniBlockHeaderReservedField(body.MiniBlocks[i], miniBlockHash, miniBlockHeaderHandlers[i])
+		err = bp.setMiniBlockHeaderReservedField(body.MiniBlocks[i], miniBlockHeaderHandlers[i], processedMiniBlocksDestMeInfo)
 		if err != nil {
 			return 0, nil, err
 		}
@@ -626,24 +641,52 @@ func (bp *baseProcessor) createMiniBlockHeaderHandlers(body *block.Body) (int, [
 
 func (bp *baseProcessor) setMiniBlockHeaderReservedField(
 	miniBlock *block.MiniBlock,
-	miniBlockHash []byte,
 	miniBlockHeaderHandler data.MiniBlockHeaderHandler,
+	processedMiniBlocksDestMeInfo map[string]*processedMb.ProcessedMiniBlockInfo,
 ) error {
 	if !bp.flagScheduledMiniBlocks.IsSet() {
 		return nil
 	}
 
+	err := bp.setIndexOfFirstTxProcessed(miniBlockHeaderHandler)
+	if err != nil {
+		return err
+	}
+
+	err = bp.setIndexOfLastTxProcessed(miniBlockHeaderHandler, processedMiniBlocksDestMeInfo)
+	if err != nil {
+		return err
+	}
+
 	notEmpty := len(miniBlock.TxHashes) > 0
 	isScheduledMiniBlock := notEmpty && bp.scheduledTxsExecutionHandler.IsScheduledTx(miniBlock.TxHashes[0])
 	if isScheduledMiniBlock {
-		return bp.setProcessingTypeAndConstructionStateForScheduledMb(miniBlockHeaderHandler)
+		return bp.setProcessingTypeAndConstructionStateForScheduledMb(miniBlockHeaderHandler, processedMiniBlocksDestMeInfo)
 	}
 
-	return bp.setProcessingTypeAndConstructionStateForNormalMb(miniBlockHeaderHandler, miniBlockHash)
+	return bp.setProcessingTypeAndConstructionStateForNormalMb(miniBlockHeaderHandler, processedMiniBlocksDestMeInfo)
+}
+
+func (bp *baseProcessor) setIndexOfFirstTxProcessed(miniBlockHeaderHandler data.MiniBlockHeaderHandler) error {
+	processedMiniBlockInfo, _ := bp.processedMiniBlocksTracker.GetProcessedMiniBlockInfo(miniBlockHeaderHandler.GetHash())
+	return miniBlockHeaderHandler.SetIndexOfFirstTxProcessed(processedMiniBlockInfo.IndexOfLastTxProcessed + 1)
+}
+
+func (bp *baseProcessor) setIndexOfLastTxProcessed(
+	miniBlockHeaderHandler data.MiniBlockHeaderHandler,
+	processedMiniBlocksDestMeInfo map[string]*processedMb.ProcessedMiniBlockInfo,
+) error {
+	processedMiniBlockInfo := processedMiniBlocksDestMeInfo[string(miniBlockHeaderHandler.GetHash())]
+	if processedMiniBlockInfo != nil {
+		return miniBlockHeaderHandler.SetIndexOfLastTxProcessed(processedMiniBlockInfo.IndexOfLastTxProcessed)
+	}
+
+	return miniBlockHeaderHandler.SetIndexOfLastTxProcessed(int32(miniBlockHeaderHandler.GetTxCount()) - 1)
 }
 
 func (bp *baseProcessor) setProcessingTypeAndConstructionStateForScheduledMb(
 	miniBlockHeaderHandler data.MiniBlockHeaderHandler,
+	processedMiniBlocksDestMeInfo map[string]*processedMb.ProcessedMiniBlockInfo,
 ) error {
 	err := miniBlockHeaderHandler.SetProcessingType(int32(block.Scheduled))
 	if err != nil {
@@ -656,7 +699,8 @@ func (bp *baseProcessor) setProcessingTypeAndConstructionStateForScheduledMb(
 			return err
 		}
 	} else {
-		err = miniBlockHeaderHandler.SetConstructionState(int32(block.Final))
+		constructionState := getConstructionState(miniBlockHeaderHandler, processedMiniBlocksDestMeInfo)
+		err = miniBlockHeaderHandler.SetConstructionState(constructionState)
 		if err != nil {
 			return err
 		}
@@ -666,9 +710,9 @@ func (bp *baseProcessor) setProcessingTypeAndConstructionStateForScheduledMb(
 
 func (bp *baseProcessor) setProcessingTypeAndConstructionStateForNormalMb(
 	miniBlockHeaderHandler data.MiniBlockHeaderHandler,
-	miniBlockHash []byte,
+	processedMiniBlocksDestMeInfo map[string]*processedMb.ProcessedMiniBlockInfo,
 ) error {
-	if bp.scheduledTxsExecutionHandler.IsMiniBlockExecuted(miniBlockHash) {
+	if bp.scheduledTxsExecutionHandler.IsMiniBlockExecuted(miniBlockHeaderHandler.GetHash()) {
 		err := miniBlockHeaderHandler.SetProcessingType(int32(block.Processed))
 		if err != nil {
 			return err
@@ -680,12 +724,34 @@ func (bp *baseProcessor) setProcessingTypeAndConstructionStateForNormalMb(
 		}
 	}
 
-	err := miniBlockHeaderHandler.SetConstructionState(int32(block.Final))
+	constructionState := getConstructionState(miniBlockHeaderHandler, processedMiniBlocksDestMeInfo)
+	err := miniBlockHeaderHandler.SetConstructionState(constructionState)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func getConstructionState(
+	miniBlockHeaderHandler data.MiniBlockHeaderHandler,
+	processedMiniBlocksDestMeInfo map[string]*processedMb.ProcessedMiniBlockInfo,
+) int32 {
+	constructionState := int32(block.Final)
+	if isPartiallyExecuted(miniBlockHeaderHandler, processedMiniBlocksDestMeInfo) {
+		constructionState = int32(block.PartialExecuted)
+	}
+
+	return constructionState
+}
+
+func isPartiallyExecuted(
+	miniBlockHeaderHandler data.MiniBlockHeaderHandler,
+	processedMiniBlocksDestMeInfo map[string]*processedMb.ProcessedMiniBlockInfo,
+) bool {
+	processedMiniBlockInfo := processedMiniBlocksDestMeInfo[string(miniBlockHeaderHandler.GetHash())]
+	return processedMiniBlockInfo != nil && !processedMiniBlockInfo.FullyProcessed
+
 }
 
 // check if header has the same miniblocks as presented in body
@@ -726,6 +792,28 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.Mini
 		if mbHdr.GetSenderShardID() != miniBlock.SenderShardID {
 			return process.ErrHeaderBodyMismatch
 		}
+
+		err = process.CheckIfIndexesAreOutOfBound(mbHdr.GetIndexOfFirstTxProcessed(), mbHdr.GetIndexOfLastTxProcessed(), miniBlock)
+		if err != nil {
+			return err
+		}
+
+		err = checkConstructionStateAndIndexesCorrectness(mbHdr)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func checkConstructionStateAndIndexesCorrectness(mbh data.MiniBlockHeaderHandler) error {
+	if mbh.GetConstructionState() == int32(block.PartialExecuted) && mbh.GetIndexOfLastTxProcessed() == int32(mbh.GetTxCount())-1 {
+		return process.ErrIndexDoesNotMatchWithPartialExecutedMiniBlock
+
+	}
+	if mbh.GetConstructionState() != int32(block.PartialExecuted) && mbh.GetIndexOfLastTxProcessed() != int32(mbh.GetTxCount())-1 {
+		return process.ErrIndexDoesNotMatchWithFullyExecutedMiniBlock
 	}
 
 	return nil
@@ -1022,8 +1110,9 @@ func (bp *baseProcessor) prepareDataForBootStorer(args bootStorerDataArgs) {
 
 	err := bp.bootStorer.Put(int64(args.round), bootData)
 	if err != nil {
-		log.Warn("cannot save boot data in storage",
-			"error", err.Error())
+		logging.LogErrAsWarnExceptAsDebugIfClosingError(log, err,
+			"cannot save boot data in storage",
+			"err", err)
 	}
 
 	elapsedTime := time.Since(startTime)
@@ -1184,21 +1273,19 @@ func (bp *baseProcessor) saveBody(body *block.Body, header data.HeaderHandler, h
 		miniBlockHash := bp.hasher.Compute(string(marshalizedMiniBlock))
 		errNotCritical = bp.store.Put(dataRetriever.MiniBlockUnit, miniBlockHash, marshalizedMiniBlock)
 		if errNotCritical != nil {
-			log.Warn("saveBody.Put -> MiniBlockUnit", "error", errNotCritical.Error())
+			logging.LogErrAsWarnExceptAsDebugIfClosingError(log, errNotCritical,
+				"saveBody.Put -> MiniBlockUnit",
+				"err", errNotCritical)
 		}
-		log.Trace("saveBody.Put -> MiniBlockUnit", "time", time.Since(startTime))
+		log.Trace("saveBody.Put -> MiniBlockUnit", "time", time.Since(startTime), "hash", miniBlockHash)
 	}
 
-	marshalizedReceipts, errNotCritical := bp.txCoordinator.CreateMarshalizedReceipts()
+	receiptsHolder := holders.NewReceiptsHolder(bp.txCoordinator.GetCreatedInShardMiniBlocks())
+	errNotCritical = bp.receiptsRepository.SaveReceipts(receiptsHolder, header, headerHash)
 	if errNotCritical != nil {
-		log.Warn("saveBody.CreateMarshalizedReceipts", "error", errNotCritical.Error())
-	} else {
-		if len(marshalizedReceipts) > 0 {
-			errNotCritical = bp.store.Put(dataRetriever.ReceiptsUnit, header.GetReceiptsHash(), marshalizedReceipts)
-			if errNotCritical != nil {
-				log.Warn("saveBody.Put -> ReceiptsUnit", "error", errNotCritical.Error())
-			}
-		}
+		logging.LogErrAsWarnExceptAsDebugIfClosingError(log, errNotCritical,
+			"saveBody(), error on receiptsRepository.SaveReceipts()",
+			"err", errNotCritical)
 	}
 
 	bp.scheduledTxsExecutionHandler.SaveStateIfNeeded(headerHash)
@@ -1217,14 +1304,16 @@ func (bp *baseProcessor) saveShardHeader(header data.HeaderHandler, headerHash [
 
 	errNotCritical := bp.store.Put(hdrNonceHashDataUnit, nonceToByteSlice, headerHash)
 	if errNotCritical != nil {
-		log.Warn(fmt.Sprintf("saveHeader.Put -> ShardHdrNonceHashDataUnit_%d", header.GetShardID()),
-			"error", errNotCritical.Error(),
-		)
+		logging.LogErrAsWarnExceptAsDebugIfClosingError(log, errNotCritical,
+			fmt.Sprintf("saveHeader.Put -> ShardHdrNonceHashDataUnit_%d", header.GetShardID()),
+			"err", errNotCritical)
 	}
 
 	errNotCritical = bp.store.Put(dataRetriever.BlockHeaderUnit, headerHash, marshalizedHeader)
 	if errNotCritical != nil {
-		log.Warn("saveHeader.Put -> BlockHeaderUnit", "error", errNotCritical.Error())
+		logging.LogErrAsWarnExceptAsDebugIfClosingError(log, errNotCritical,
+			"saveHeader.Put -> BlockHeaderUnit",
+			"err", errNotCritical)
 	}
 
 	elapsedTime := time.Since(startTime)
@@ -1240,12 +1329,16 @@ func (bp *baseProcessor) saveMetaHeader(header data.HeaderHandler, headerHash []
 
 	errNotCritical := bp.store.Put(dataRetriever.MetaHdrNonceHashDataUnit, nonceToByteSlice, headerHash)
 	if errNotCritical != nil {
-		log.Warn("saveMetaHeader.Put -> MetaHdrNonceHashDataUnit", "error", errNotCritical.Error())
+		logging.LogErrAsWarnExceptAsDebugIfClosingError(log, errNotCritical,
+			"saveMetaHeader.Put -> MetaHdrNonceHashDataUnit",
+			"err", errNotCritical)
 	}
 
 	errNotCritical = bp.store.Put(dataRetriever.MetaBlockUnit, headerHash, marshalizedHeader)
 	if errNotCritical != nil {
-		log.Warn("saveMetaHeader.Put -> MetaBlockUnit", "error", errNotCritical.Error())
+		logging.LogErrAsWarnExceptAsDebugIfClosingError(log, errNotCritical,
+			"saveMetaHeader.Put -> MetaBlockUnit",
+			"err", errNotCritical)
 	}
 
 	elapsedTime := time.Since(startTime)
@@ -1576,10 +1669,15 @@ func (bp *baseProcessor) recordBlockInHistory(blockHeaderHash []byte, blockHeade
 	scrResultsFromPool := bp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)
 	receiptsFromPool := bp.txCoordinator.GetAllCurrentUsedTxs(block.ReceiptBlock)
 	logs := bp.txCoordinator.GetAllCurrentLogs()
+	intraMiniBlocks := bp.txCoordinator.GetCreatedInShardMiniBlocks()
 
-	err := bp.historyRepo.RecordBlock(blockHeaderHash, blockHeader, blockBody, scrResultsFromPool, receiptsFromPool, logs)
+	err := bp.historyRepo.RecordBlock(blockHeaderHash, blockHeader, blockBody, scrResultsFromPool, receiptsFromPool, intraMiniBlocks, logs)
 	if err != nil {
-		log.Error("historyRepo.RecordBlock()", "blockHeaderHash", blockHeaderHash, "error", err.Error())
+		logLevel := logger.LogError
+		if errors.IsClosingError(err) {
+			logLevel = logger.LogDebug
+		}
+		log.Log(logLevel, "historyRepo.RecordBlock()", "blockHeaderHash", blockHeaderHash, "error", err.Error())
 	}
 }
 

@@ -35,7 +35,7 @@ func NewInterceptedHeader(arg *ArgInterceptedBlockHeader) (*InterceptedHeader, e
 		return nil, err
 	}
 
-	hdr, err := process.CreateShardHeader(arg.Marshalizer, arg.HdrBuff)
+	hdr, err := process.UnmarshalShardHeader(arg.Marshalizer, arg.HdrBuff)
 	if err != nil {
 		return nil, err
 	}
@@ -138,7 +138,7 @@ func (inHdr *InterceptedHeader) integrity() error {
 		return err
 	}
 
-	err = checkMiniblocks(inHdr.hdr.GetMiniBlockHeaderHandlers(), inHdr.shardCoordinator)
+	err = checkMiniBlocksHeaders(inHdr.hdr.GetMiniBlockHeaderHandlers(), inHdr.shardCoordinator)
 	if err != nil {
 		return err
 	}

@@ -63,6 +63,15 @@ const GenesisTxSignatureString = "GENESISGENESISGENESISGENESISGENESISGENESISGENE
 // HeartbeatTopic is the topic used for heartbeat signaling
 const HeartbeatTopic = "heartbeat"
 
+// HeartbeatV2Topic is the topic used for heartbeatV2 signaling
+const HeartbeatV2Topic = "heartbeatV2"
+
+// PeerAuthenticationTopic is the topic used for peer authentication signaling
+const PeerAuthenticationTopic = "peerAuthentication"
+
+// ConnectionTopic represents the topic used when sending the new connection message data
+const ConnectionTopic = "connection"
+
 // PathShardPlaceholder represents the placeholder for the shard ID in paths
 const PathShardPlaceholder = "[S]"
 
@@ -117,11 +126,14 @@ const MetricCountAcceptedBlocks = "erd_count_accepted_blocks"
 // MetricNodeType is the metric for monitoring the type of the node
 const MetricNodeType = "erd_node_type"
 
-// MetricLiveValidatorNodes is the metric for monitoring live validators on the network
+// MetricLiveValidatorNodes is the metric for the number of live validators on the network
 const MetricLiveValidatorNodes = "erd_live_validator_nodes"
 
 // MetricConnectedNodes is the metric for monitoring total connected nodes on the network
 const MetricConnectedNodes = "erd_connected_nodes"
+
+// MetricNumIntraShardValidatorNodes is the metric for the number of intra-shard validators
+const MetricNumIntraShardValidatorNodes = "erd_intra_shard_validator_nodes"
 
 // MetricCpuLoadPercent is the metric for monitoring CPU load [%]
 const MetricCpuLoadPercent = "erd_cpu_load_percent"
@@ -213,7 +225,7 @@ const MetricNumShardHeadersFromPool = "erd_num_shard_headers_from_pool"
 // MetricNumShardHeadersProcessed is the metric that stores number of shard header processed
 const MetricNumShardHeadersProcessed = "erd_num_shard_headers_processed"
 
-// MetricNumTimesInForkChoice is the metric that counts how many time a node was in fork choice
+// MetricNumTimesInForkChoice is the metric that counts how many times a node was in fork choice
 const MetricNumTimesInForkChoice = "erd_fork_choice_count"
 
 // MetricHighestFinalBlock is the metric for the nonce of the highest final block
@@ -224,9 +236,6 @@ const MetricLatestTagSoftwareVersion = "erd_latest_tag_software_version"
 
 // MetricCountConsensusAcceptedBlocks is the metric for monitoring number of blocks accepted when the node was in consensus group
 const MetricCountConsensusAcceptedBlocks = "erd_count_consensus_accepted_blocks"
-
-// MetricRewardsValue is the metric that stores rewards value
-const MetricRewardsValue = "erd_rewards_value"
 
 // MetricNodeDisplayName is the metric that stores the name of the node
 const MetricNodeDisplayName = "erd_node_display_name"
@@ -289,7 +298,7 @@ const MetricCreatedProposedBlock = "erd_consensus_created_proposed_block"
 // MetricRedundancyLevel is the metric that specifies the redundancy level of the current node
 const MetricRedundancyLevel = "erd_redundancy_level"
 
-// MetricRedundancyMainActive is the metrics that specifies data about the redundancy main machine
+// MetricRedundancyIsMainActive is the metrics that specifies data about the redundancy main machine
 const MetricRedundancyIsMainActive = "erd_redundancy_is_main_active"
 
 // MetricValueNA represents the value to be used when a metric is not available/applicable
@@ -484,6 +493,9 @@ const (
 
 	// MetricWaitingListFixEnableEpoch represents the epoch when the waiting list fix is enabled
 	MetricWaitingListFixEnableEpoch = "erd_waiting_list_fix_enable_epoch"
+
+	// MetricHeartbeatDisableEpoch represents the epoch when heartbeat v1 messages stop being sent and processed
+	MetricHeartbeatDisableEpoch = "erd_heartbeat_disable_epoch"
 
 	// MetricMaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
 	MetricMaxNodesChangeEnableEpoch = "erd_max_nodes_change_enable_epoch"
@@ -823,3 +835,6 @@ const (
 	// ApiOutputFormatProto outport format returns the bytes of the proto object
 	ApiOutputFormatProto ApiOutputFormat = 1
 )
+
+// MaxIndexOfTxInMiniBlock defines the maximum index of a tx inside one mini block
+const MaxIndexOfTxInMiniBlock = int32(29999)

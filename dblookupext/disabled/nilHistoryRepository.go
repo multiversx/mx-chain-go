@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/dblookupext/esdtSupply"
 )
@@ -19,7 +20,7 @@ func NewNilHistoryRepository() (*nilHistoryRepository, error) {
 }
 
 // RecordBlock returns a not implemented error
-func (nhr *nilHistoryRepository) RecordBlock(_ []byte, _ data.HeaderHandler, _ data.BodyHandler, _, _ map[string]data.TransactionHandler, _ []*data.LogData) error {
+func (nhr *nilHistoryRepository) RecordBlock(_ []byte, _ data.HeaderHandler, _ data.BodyHandler, _, _ map[string]data.TransactionHandler, _ []*block.MiniBlock, _ []*data.LogData) error {
 	return nil
 }
 

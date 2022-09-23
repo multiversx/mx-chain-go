@@ -24,6 +24,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var providedHardforkPubKey = []byte("provided hardfork pub key")
+
 func createShardStubTopicHandler(matchStrToErrOnCreate string, matchStrToErrOnRegister string) process.TopicHandler {
 	return &mock.TopicHandlerStub{
 		CreateTopicCalled: func(name string, createChannelForTopic bool) error {
@@ -92,7 +94,7 @@ func createShardStore() *mock.ChainStorerMock {
 	}
 }
 
-//------- NewInterceptorsContainerFactory
+// ------- NewInterceptorsContainerFactory
 func TestNewShardInterceptorsContainerFactory_NilAccountsAdapter(t *testing.T) {
 	t.Parallel()
 
@@ -375,6 +377,30 @@ func TestNewShardInterceptorsContainerFactory_EmptyEpochStartTriggerShouldErr(t 
 	assert.Equal(t, process.ErrNilEpochStartTrigger, err)
 }
 
+func TestNewShardInterceptorsContainerFactory_NilPeerShardMapperShouldErr(t *testing.T) {
+	t.Parallel()
+
+	coreComp, cryptoComp := createMockComponentHolders()
+	args := getArgumentsShard(coreComp, cryptoComp)
+	args.PeerShardMapper = nil
+	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
+
+	assert.Nil(t, icf)
+	assert.Equal(t, process.ErrNilPeerShardMapper, err)
+}
+
+func TestNewShardInterceptorsContainerFactory_NilHardforkTriggerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	coreComp, cryptoComp := createMockComponentHolders()
+	args := getArgumentsShard(coreComp, cryptoComp)
+	args.HardforkTrigger = nil
+	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
+
+	assert.Nil(t, icf)
+	assert.Equal(t, process.ErrNilHardforkTrigger, err)
+}
+
 func TestNewShardInterceptorsContainerFactory_ShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -399,7 +425,7 @@ func TestNewShardInterceptorsContainerFactory_ShouldWorkWithSizeCheck(t *testing
 	assert.Nil(t, err)
 }
 
-//------- Create
+// ------- Create
 
 func TestShardInterceptorsContainerFactory_CreateTopicCreationTxFailsShouldErr(t *testing.T) {
 	t.Parallel()
@@ -527,6 +553,42 @@ func TestShardInterceptorsContainerFactory_CreateRegisterTrieNodesShouldErr(t *t
 	assert.Equal(t, errExpected, err)
 }
 
+func TestShardInterceptorsContainerFactory_NilSignaturesHandler(t *testing.T) {
+	t.Parallel()
+
+	coreComp, cryptoComp := createMockComponentHolders()
+	args := getArgumentsShard(coreComp, cryptoComp)
+	args.SignaturesHandler = nil
+	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
+
+	assert.Nil(t, icf)
+	assert.Equal(t, process.ErrNilSignaturesHandler, err)
+}
+
+func TestShardInterceptorsContainerFactory_NilPeerSignatureHandler(t *testing.T) {
+	t.Parallel()
+
+	coreComp, cryptoComp := createMockComponentHolders()
+	args := getArgumentsShard(coreComp, cryptoComp)
+	args.PeerSignatureHandler = nil
+	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
+
+	assert.Nil(t, icf)
+	assert.Equal(t, process.ErrNilPeerSignatureHandler, err)
+}
+
+func TestShardInterceptorsContainerFactory_InvalidExpiryTimespan(t *testing.T) {
+	t.Parallel()
+
+	coreComp, cryptoComp := createMockComponentHolders()
+	args := getArgumentsShard(coreComp, cryptoComp)
+	args.HeartbeatExpiryTimespanInSec = 0
+	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
+
+	assert.Nil(t, icf)
+	assert.Equal(t, process.ErrInvalidExpiryTimespan, err)
+}
+
 func TestShardInterceptorsContainerFactory_CreateShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -594,8 +656,12 @@ func TestShardInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	numInterceptorMiniBlocks := noOfShards + 2
 	numInterceptorMetachainHeaders := 1
 	numInterceptorTrieNodes := 1
+	numInterceptorPeerAuth := 1
+	numInterceptorHeartbeat := 1
+	numInterceptorsShardValidatorInfo := 1
 	totalInterceptors := numInterceptorTxs + numInterceptorsUnsignedTxs + numInterceptorsRewardTxs +
-		numInterceptorHeaders + numInterceptorMiniBlocks + numInterceptorMetachainHeaders + numInterceptorTrieNodes
+		numInterceptorHeaders + numInterceptorMiniBlocks + numInterceptorMetachainHeaders + numInterceptorTrieNodes +
+		numInterceptorPeerAuth + numInterceptorHeartbeat + numInterceptorsShardValidatorInfo
 
 	assert.Nil(t, err)
 	assert.Equal(t, totalInterceptors, container.Len())
@@ -615,8 +681,9 @@ func createMockComponentHolders() (*mock.CoreComponentsMock, *mock.CryptoCompone
 		MinTransactionVersionCalled: func() uint32 {
 			return 1
 		},
-		EpochNotifierField:  &epochNotifier.EpochNotifierStub{},
-		TxVersionCheckField: versioning.NewTxVersionChecker(1),
+		EpochNotifierField:         &epochNotifier.EpochNotifierStub{},
+		TxVersionCheckField:        versioning.NewTxVersionChecker(1),
+		HardforkTriggerPubKeyField: providedHardforkPubKey,
 	}
 	cryptoComponents := &mock.CryptoComponentsMock{
 		BlockSig: &mock.SignerMock{},
@@ -634,27 +701,32 @@ func getArgumentsShard(
 	cryptoComp *mock.CryptoComponentsMock,
 ) interceptorscontainer.CommonInterceptorsContainerFactoryArgs {
 	return interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
-		CoreComponents:          coreComp,
-		CryptoComponents:        cryptoComp,
-		Accounts:                &stateMock.AccountsStub{},
-		ShardCoordinator:        mock.NewOneShardCoordinatorMock(),
-		NodesCoordinator:        shardingMocks.NewNodesCoordinatorMock(),
-		Messenger:               &mock.TopicHandlerStub{},
-		Store:                   createShardStore(),
-		DataPool:                createShardDataPools(),
-		MaxTxNonceDeltaAllowed:  maxTxNonceDeltaAllowed,
-		TxFeeHandler:            &mock.FeeHandlerStub{},
-		BlockBlackList:          &mock.BlackListHandlerStub{},
-		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
-		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
-		SizeCheckDelta:          0,
-		ValidityAttester:        &mock.ValidityAttesterStub{},
-		EpochStartTrigger:       &mock.EpochStartTriggerStub{},
-		AntifloodHandler:        &mock.P2PAntifloodHandlerStub{},
-		WhiteListHandler:        &testscommon.WhiteListHandlerStub{},
-		WhiteListerVerifiedTxs:  &testscommon.WhiteListHandlerStub{},
-		ArgumentsParser:         &mock.ArgumentParserMock{},
-		PreferredPeersHolder:    &p2pmocks.PeersHolderStub{},
-		RequestHandler:          &testscommon.RequestHandlerStub{},
+		CoreComponents:               coreComp,
+		CryptoComponents:             cryptoComp,
+		Accounts:                     &stateMock.AccountsStub{},
+		ShardCoordinator:             mock.NewOneShardCoordinatorMock(),
+		NodesCoordinator:             shardingMocks.NewNodesCoordinatorMock(),
+		Messenger:                    &mock.TopicHandlerStub{},
+		Store:                        createShardStore(),
+		DataPool:                     createShardDataPools(),
+		MaxTxNonceDeltaAllowed:       maxTxNonceDeltaAllowed,
+		TxFeeHandler:                 &mock.FeeHandlerStub{},
+		BlockBlackList:               &testscommon.TimeCacheStub{},
+		HeaderSigVerifier:            &mock.HeaderSigVerifierStub{},
+		HeaderIntegrityVerifier:      &mock.HeaderIntegrityVerifierStub{},
+		SizeCheckDelta:               0,
+		ValidityAttester:             &mock.ValidityAttesterStub{},
+		EpochStartTrigger:            &mock.EpochStartTriggerStub{},
+		AntifloodHandler:             &mock.P2PAntifloodHandlerStub{},
+		WhiteListHandler:             &testscommon.WhiteListHandlerStub{},
+		WhiteListerVerifiedTxs:       &testscommon.WhiteListHandlerStub{},
+		ArgumentsParser:              &mock.ArgumentParserMock{},
+		PreferredPeersHolder:         &p2pmocks.PeersHolderStub{},
+		RequestHandler:               &testscommon.RequestHandlerStub{},
+		PeerSignatureHandler:         &mock.PeerSignatureHandlerStub{},
+		SignaturesHandler:            &mock.SignaturesHandlerStub{},
+		HeartbeatExpiryTimespanInSec: 30,
+		PeerShardMapper:              &p2pmocks.NetworkShardingCollectorStub{},
+		HardforkTrigger:              &testscommon.HardforkTriggerStub{},
 	}
 }

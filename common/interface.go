@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 )
 
 // NumNodesDTO represents the DTO structure that will hold the number of nodes split by category and other
@@ -25,6 +26,7 @@ type Trie interface {
 	RootHash() ([]byte, error)
 	Commit() error
 	Recreate(root []byte) (Trie, error)
+	RecreateFromEpoch(options RootHashHolder) (Trie, error)
 	String() string
 	GetObsoleteHashes() [][]byte
 	GetDirtyHashes() (ModifiedHashes, error)
@@ -37,6 +39,7 @@ type Trie interface {
 	GetProof(key []byte) ([][]byte, []byte, error)
 	VerifyProof(rootHash []byte, key []byte, proof [][]byte) (bool, error)
 	GetStorageManager() StorageManager
+	MarkStorerAsSyncedAndActive()
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -45,7 +48,9 @@ type Trie interface {
 type StorageManager interface {
 	Get(key []byte) ([]byte, error)
 	GetFromCurrentEpoch(key []byte) ([]byte, error)
+	Put(key []byte, val []byte) error
 	PutInEpoch(key []byte, val []byte, epoch uint32) error
+	PutInEpochWithoutCache(key []byte, val []byte, epoch uint32) error
 	TakeSnapshot(rootHash []byte, mainTrieRootHash []byte, leavesChan chan core.KeyValueHolder, errChan chan error, stats SnapshotStatisticsHandler, epoch uint32)
 	SetCheckpoint(rootHash []byte, mainTrieRootHash []byte, leavesChan chan core.KeyValueHolder, errChan chan error, stats SnapshotStatisticsHandler)
 	GetLatestStorageEpoch() (uint32, error)
@@ -57,13 +62,10 @@ type StorageManager interface {
 	Remove(hash []byte) error
 	SetEpochForPutOperation(uint32)
 	ShouldTakeSnapshot() bool
+	GetBaseTrieStorageManager() StorageManager
 	IsClosed() bool
 	Close() error
 	IsInterfaceNil() bool
-
-	// TODO remove Put() when removing increaseNumCheckpoints()
-
-	Put(key []byte, val []byte) error
 }
 
 // DBWriteCacher is used to cache changes made to the trie, and only write to the database when it's needed
@@ -136,5 +138,47 @@ type ProcessStatusHandler interface {
 	SetBusy(reason string)
 	SetIdle()
 	IsIdle() bool
+	IsInterfaceNil() bool
+}
+
+// BlockInfo provides a block information such as nonce, hash, roothash and so on
+type BlockInfo interface {
+	GetNonce() uint64
+	GetHash() []byte
+	GetRootHash() []byte
+	Equal(blockInfo BlockInfo) bool
+	IsInterfaceNil() bool
+}
+
+// ReceiptsHolder holds receipts content (e.g. miniblocks)
+type ReceiptsHolder interface {
+	GetMiniblocks() []*block.MiniBlock
+	IsInterfaceNil() bool
+}
+
+// RootHashHolder holds a rootHash and the corresponding epoch
+type RootHashHolder interface {
+	GetRootHash() []byte
+	GetEpoch() core.OptionalUint32
+	String() string
+	IsInterfaceNil() bool
+}
+
+// GasScheduleNotifierAPI defines the behavior of the gas schedule notifier components that is used for api
+type GasScheduleNotifierAPI interface {
+	core.GasScheduleNotifier
+	LatestGasScheduleCopy() map[string]map[string]uint64
+}
+
+// PidQueueHandler defines the behavior of a queue of pids
+type PidQueueHandler interface {
+	Push(pid core.PeerID)
+	Pop() core.PeerID
+	IndexOf(pid core.PeerID) int
+	Promote(idx int)
+	Remove(pid core.PeerID)
+	DataSizeInBytes() int
+	Get(idx int) core.PeerID
+	Len() int
 	IsInterfaceNil() bool
 }

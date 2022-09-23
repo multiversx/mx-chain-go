@@ -40,6 +40,8 @@ func NewShardStorageBootstrapper(arguments ArgsShardStorageBootstrapper) (*shard
 		scheduledTxsExecutionHandler: arguments.ScheduledTxsExecutionHandler,
 		miniBlocksProvider:           arguments.MiniblocksProvider,
 		epochNotifier:                arguments.EpochNotifier,
+		processedMiniBlocksTracker:   arguments.ProcessedMiniBlocksTracker,
+		appStatusHandler:             arguments.AppStatusHandler,
 	}
 
 	boot := shardStorageBootstrapper{

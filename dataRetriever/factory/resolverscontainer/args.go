@@ -29,4 +29,5 @@ type FactoryArgs struct {
 	PeersRatingHandler          dataRetriever.PeersRatingHandler
 	SizeCheckDelta              uint32
 	IsFullHistoryNode           bool
+	PayloadValidator            dataRetriever.PeerAuthenticationPayloadValidator
 }

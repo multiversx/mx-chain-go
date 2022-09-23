@@ -2,6 +2,9 @@ package transactionAPI
 
 import (
 	"encoding/hex"
+	"errors"
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
@@ -9,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/node/filters"
+	datafield "github.com/ElrondNetwork/elrond-vm-common/parsers/dataField"
 )
 
 type apiTransactionResultsProcessor struct {
@@ -17,7 +21,10 @@ type apiTransactionResultsProcessor struct {
 	historyRepository      dblookupext.HistoryRepository
 	storageService         dataRetriever.StorageService
 	marshalizer            marshal.Marshalizer
+	dataFieldParser        DataFieldParser
 	selfShardID            uint32
+	refundDetector         *refundDetector
+	logsFacade             LogsFacade
 }
 
 func newAPITransactionResultProcessor(
@@ -26,8 +33,12 @@ func newAPITransactionResultProcessor(
 	storageService dataRetriever.StorageService,
 	marshalizer marshal.Marshalizer,
 	txUnmarshaller *txUnmarshaller,
+	logsFacade LogsFacade,
 	selfShardID uint32,
+	dataFieldParser DataFieldParser,
 ) *apiTransactionResultsProcessor {
+	refundDetector := newRefundDetector()
+
 	return &apiTransactionResultsProcessor{
 		txUnmarshaller:         txUnmarshaller,
 		addressPubKeyConverter: addressPubKeyConverter,
@@ -35,35 +46,41 @@ func newAPITransactionResultProcessor(
 		storageService:         storageService,
 		marshalizer:            marshalizer,
 		selfShardID:            selfShardID,
+		refundDetector:         refundDetector,
+		logsFacade:             logsFacade,
+		dataFieldParser:        dataFieldParser,
 	}
 }
 
-func (arp *apiTransactionResultsProcessor) putResultsInTransaction(hash []byte, tx *transaction.ApiTransactionResult, epoch uint32) {
-	arp.putLogsInTransaction(hash, tx, epoch)
+func (arp *apiTransactionResultsProcessor) putResultsInTransaction(hash []byte, tx *transaction.ApiTransactionResult, epoch uint32) error {
+	// TODO: Note that the following call produces an effect even if the function "putResultsInTransaction" results in an error.
+	// TODO: Refactor this package to use less functions with side-effects.
+	arp.loadLogsIntoTransaction(hash, tx, epoch)
 
 	resultsHashes, err := arp.historyRepository.GetResultsHashesByTxHash(hash, epoch)
 	if err != nil {
-		return
+		// It's perfectly normal to have transactions without SCRs.
+		if errors.Is(err, dblookupext.ErrNotFoundInStorage) {
+			return nil
+		}
+		return err
 	}
 
 	if len(resultsHashes.ReceiptsHash) > 0 {
-		arp.putReceiptInTransaction(tx, resultsHashes.ReceiptsHash, epoch)
-		return
+		return arp.putReceiptInTransaction(tx, resultsHashes.ReceiptsHash, epoch)
 	}
 
-	arp.putSmartContractResultsInTransaction(tx, resultsHashes.ScResultsHashesAndEpoch)
+	return arp.putSmartContractResultsInTransaction(tx, resultsHashes.ScResultsHashesAndEpoch)
 }
 
-func (arp *apiTransactionResultsProcessor) putReceiptInTransaction(tx *transaction.ApiTransactionResult, receiptHash []byte, epoch uint32) {
+func (arp *apiTransactionResultsProcessor) putReceiptInTransaction(tx *transaction.ApiTransactionResult, receiptHash []byte, epoch uint32) error {
 	rec, err := arp.getReceiptFromStorage(receiptHash, epoch)
 	if err != nil {
-		log.Warn("nodeTransactionEvents.putReceiptInTransaction() cannot get receipt from storage",
-			"hash", receiptHash,
-			"error", err.Error())
-		return
+		return fmt.Errorf("%w: %v, hash = %s", errCannotLoadReceipts, err, hex.EncodeToString(receiptHash))
 	}
 
 	tx.Receipt = rec
+	return nil
 }
 
 func (arp *apiTransactionResultsProcessor) getReceiptFromStorage(hash []byte, epoch uint32) (*transaction.ApiReceipt, error) {
@@ -79,50 +96,51 @@ func (arp *apiTransactionResultsProcessor) getReceiptFromStorage(hash []byte, ep
 func (arp *apiTransactionResultsProcessor) putSmartContractResultsInTransaction(
 	tx *transaction.ApiTransactionResult,
 	scrHashesEpoch []*dblookupext.ScResultsHashesAndEpoch,
-) {
+) error {
 	for _, scrHashesE := range scrHashesEpoch {
-		arp.putSmartContractResultsInTransactionByHashesAndEpoch(tx, scrHashesE.ScResultsHashes, scrHashesE.Epoch)
+		err := arp.putSmartContractResultsInTransactionByHashesAndEpoch(tx, scrHashesE.ScResultsHashes, scrHashesE.Epoch)
+		if err != nil {
+			return err
+		}
 	}
 
 	statusFilters := filters.NewStatusFilters(arp.selfShardID)
 	statusFilters.SetStatusIfIsFailedESDTTransfer(tx)
+	return nil
 }
 
-func (arp *apiTransactionResultsProcessor) putSmartContractResultsInTransactionByHashesAndEpoch(tx *transaction.ApiTransactionResult, scrsHashes [][]byte, epoch uint32) {
+func (arp *apiTransactionResultsProcessor) putSmartContractResultsInTransactionByHashesAndEpoch(tx *transaction.ApiTransactionResult, scrsHashes [][]byte, epoch uint32) error {
 	for _, scrHash := range scrsHashes {
 		scr, err := arp.getScrFromStorage(scrHash, epoch)
 		if err != nil {
-			log.Warn("putSmartContractResultsInTransaction cannot get result from storage",
-				"hash", scrHash,
-				"error", err.Error())
-			continue
+			return fmt.Errorf("%w: %v, hash = %s", errCannotLoadContractResults, err, hex.EncodeToString(scrHash))
 		}
 
 		scrAPI := arp.adaptSmartContractResult(scrHash, scr)
-		arp.putLogsInSCR(scrHash, epoch, scrAPI)
+		arp.loadLogsIntoContractResults(scrHash, epoch, scrAPI)
 
 		tx.SmartContractResults = append(tx.SmartContractResults, scrAPI)
 	}
+
+	return nil
 }
 
-func (arp *apiTransactionResultsProcessor) putLogsInTransaction(hash []byte, tx *transaction.ApiTransactionResult, epoch uint32) {
-	logsAndEvents, err := arp.getLogsAndEvents(hash, epoch)
-	if err != nil || logsAndEvents == nil {
-		return
-	}
+func (arp *apiTransactionResultsProcessor) loadLogsIntoTransaction(hash []byte, tx *transaction.ApiTransactionResult, epoch uint32) {
+	var err error
 
-	logsAPI := arp.prepareLogsAndEvents(logsAndEvents)
-	tx.Logs = logsAPI
-}
-
-func (arp *apiTransactionResultsProcessor) putLogsInSCR(scrHash []byte, epoch uint32, scr *transaction.ApiSmartContractResult) {
-	logsAndEvents, err := arp.getLogsAndEvents(scrHash, epoch)
+	tx.Logs, err = arp.logsFacade.GetLog(hash, epoch)
 	if err != nil {
-		return
+		log.Trace("loadLogsIntoTransaction()", "hash", hash, "epoch", epoch, "err", err)
 	}
+}
 
-	logsAPI := arp.prepareLogsAndEvents(logsAndEvents)
-	scr.Logs = logsAPI
+func (arp *apiTransactionResultsProcessor) loadLogsIntoContractResults(scrHash []byte, epoch uint32, scr *transaction.ApiSmartContractResult) {
+	var err error
+
+	scr.Logs, err = arp.logsFacade.GetLog(scrHash, epoch)
+	if err != nil {
+		log.Trace("loadLogsIntoContractResults()", "hash", scrHash, "epoch", epoch, "err", err)
+	}
 }
 
 func (arp *apiTransactionResultsProcessor) getScrFromStorage(hash []byte, epoch uint32) (*smartContractResult.SmartContractResult, error) {
@@ -142,6 +160,13 @@ func (arp *apiTransactionResultsProcessor) getScrFromStorage(hash []byte, epoch 
 }
 
 func (arp *apiTransactionResultsProcessor) adaptSmartContractResult(scrHash []byte, scr *smartContractResult.SmartContractResult) *transaction.ApiSmartContractResult {
+	isRefund := arp.refundDetector.isRefund(refundDetectorInput{
+		Value:         scr.Value.String(),
+		Data:          scr.Data,
+		ReturnMessage: string(scr.ReturnMessage),
+		GasLimit:      scr.GasLimit,
+	})
+
 	apiSCR := &transaction.ApiSmartContractResult{
 		Hash:           hex.EncodeToString(scrHash),
 		Nonce:          scr.Nonce,
@@ -156,6 +181,7 @@ func (arp *apiTransactionResultsProcessor) adaptSmartContractResult(scrHash []by
 		CallType:       scr.CallType,
 		CodeMetadata:   string(scr.CodeMetadata),
 		ReturnMessage:  string(scr.ReturnMessage),
+		IsRefund:       isRefund,
 	}
 
 	if len(scr.SndAddr) == arp.addressPubKeyConverter.Len() {
@@ -174,41 +200,14 @@ func (arp *apiTransactionResultsProcessor) adaptSmartContractResult(scrHash []by
 		apiSCR.OriginalSender = arp.addressPubKeyConverter.Encode(scr.OriginalSender)
 	}
 
+	res := arp.dataFieldParser.Parse(scr.Data, scr.GetSndAddr(), scr.GetRcvAddr())
+	apiSCR.Operation = res.Operation
+	apiSCR.Function = res.Function
+	apiSCR.ESDTValues = res.ESDTValues
+	apiSCR.Tokens = res.Tokens
+	apiSCR.Receivers = datafield.EncodeBytesSlice(arp.addressPubKeyConverter.Encode, res.Receivers)
+	apiSCR.ReceiversShardIDs = res.ReceiversShardID
+	apiSCR.IsRelayed = res.IsRelayed
+
 	return apiSCR
-}
-
-func (arp *apiTransactionResultsProcessor) prepareLogsAndEvents(logsAndEvents *transaction.Log) *transaction.ApiLogs {
-	addrEncoded := arp.addressPubKeyConverter.Encode(logsAndEvents.Address)
-
-	logsAPI := &transaction.ApiLogs{
-		Address: addrEncoded,
-		Events:  make([]*transaction.Events, 0, len(logsAndEvents.Events)),
-	}
-
-	for _, event := range logsAndEvents.Events {
-		logsAPI.Events = append(logsAPI.Events, &transaction.Events{
-			Address:    arp.addressPubKeyConverter.Encode(event.Address),
-			Identifier: string(event.Identifier),
-			Topics:     event.Topics,
-			Data:       event.Data,
-		})
-	}
-
-	return logsAPI
-}
-
-func (arp *apiTransactionResultsProcessor) getLogsAndEvents(hash []byte, epoch uint32) (*transaction.Log, error) {
-	logsAndEventsStorer := arp.storageService.GetStorer(dataRetriever.TxLogsUnit)
-	logsAndEventsBytes, err := logsAndEventsStorer.GetFromEpoch(hash, epoch)
-	if err != nil {
-		return nil, err
-	}
-
-	txLog := &transaction.Log{}
-	err = arp.marshalizer.Unmarshal(txLog, logsAndEventsBytes)
-	if err != nil {
-		return nil, err
-	}
-
-	return txLog, nil
 }

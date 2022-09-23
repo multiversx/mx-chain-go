@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/mock"
 	"github.com/ElrondNetwork/elrond-go/storage/pruning"
@@ -104,7 +105,7 @@ func TestTriePruningStorer_GetFromOldEpochsWithoutCacheAllPersistersClosed(t *te
 			if !exists {
 				persister = &mock.PersisterStub{
 					GetCalled: func(key []byte) ([]byte, error) {
-						return nil, storage.ErrDBIsClosed
+						return nil, errors.ErrDBIsClosed
 					},
 				}
 				persistersMap[path] = persister
@@ -123,7 +124,7 @@ func TestTriePruningStorer_GetFromOldEpochsWithoutCacheAllPersistersClosed(t *te
 
 	val, err := ps.GetFromOldEpochsWithoutAddingToCache([]byte("key"))
 	assert.Nil(t, val)
-	assert.Equal(t, storage.ErrDBIsClosed, err)
+	assert.Equal(t, errors.ErrDBIsClosed, err)
 }
 
 func TestTriePruningStorer_GetFromOldEpochsWithoutCacheDoesNotSearchInCurrentStorer(t *testing.T) {
@@ -279,6 +280,8 @@ func TestTriePruningStorer_KeepMoreDbsOpenIfNecessary(t *testing.T) {
 	t.Parallel()
 
 	args := getDefaultArgs()
+	args.NumOfActivePersisters = 3
+	args.NumOfEpochsToKeep = 3
 	tps, _ := pruning.NewTriePruningStorer(args)
 
 	assert.Equal(t, 1, tps.GetNumActivePersisters())
@@ -301,7 +304,12 @@ func TestTriePruningStorer_KeepMoreDbsOpenIfNecessary(t *testing.T) {
 	assert.Nil(t, err)
 
 	_ = tps.ChangeEpochSimple(5)
-	assert.Equal(t, 6, tps.GetNumActivePersisters())
+	tps.SetEpochForPutOperation(5)
+	err = tps.Put([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal))
+	assert.Nil(t, err)
+
+	_ = tps.ChangeEpochSimple(6)
+	assert.Equal(t, 3, tps.GetNumActivePersisters())
 
 	err = tps.Close()
 	assert.Nil(t, err)

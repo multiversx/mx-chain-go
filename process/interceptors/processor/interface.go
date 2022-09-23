@@ -21,3 +21,19 @@ type InterceptedTransactionHandler interface {
 type ShardedPool interface {
 	AddData(key []byte, data interface{}, sizeInBytes int, cacheID string)
 }
+
+type interceptedDataSizeHandler interface {
+	SizeInBytes() int
+}
+
+type interceptedHeartbeatMessageHandler interface {
+	interceptedDataSizeHandler
+	Message() interface{}
+}
+
+type interceptedPeerAuthenticationMessageHandler interface {
+	interceptedDataSizeHandler
+	Message() interface{}
+	Payload() []byte
+	Pubkey() []byte
+}

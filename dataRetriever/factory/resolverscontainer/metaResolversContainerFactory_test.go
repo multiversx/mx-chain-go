@@ -1,6 +1,7 @@
 package resolverscontainer_test
 
 import (
+	"errors"
 	"strings"
 	"testing"
 
@@ -88,7 +89,7 @@ func createTriesHolderForMeta() common.TriesHolder {
 	return triesHolder
 }
 
-//------- NewResolversContainerFactory
+// ------- NewResolversContainerFactory
 
 func TestNewMetaResolversContainerFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
@@ -212,6 +213,82 @@ func TestNewMetaResolversContainerFactory_NilTrieDataGetterShouldErr(t *testing.
 	assert.Equal(t, dataRetriever.ErrNilTrieDataGetter, err)
 }
 
+func TestNewMetaResolversContainerFactory_NilInputAntifloodHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getArgumentsMeta()
+	args.InputAntifloodHandler = nil
+	rcf, err := resolverscontainer.NewMetaResolversContainerFactory(args)
+
+	assert.Nil(t, rcf)
+	assert.True(t, errors.Is(err, dataRetriever.ErrNilAntifloodHandler))
+}
+
+func TestNewMetaResolversContainerFactory_NilOutputAntifloodHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getArgumentsMeta()
+	args.OutputAntifloodHandler = nil
+	rcf, err := resolverscontainer.NewMetaResolversContainerFactory(args)
+
+	assert.Nil(t, rcf)
+	assert.True(t, errors.Is(err, dataRetriever.ErrNilAntifloodHandler))
+}
+
+func TestNewMetaResolversContainerFactory_NilCurrentNetworkEpochProviderShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getArgumentsMeta()
+	args.CurrentNetworkEpochProvider = nil
+	rcf, err := resolverscontainer.NewMetaResolversContainerFactory(args)
+
+	assert.Nil(t, rcf)
+	assert.Equal(t, dataRetriever.ErrNilCurrentNetworkEpochProvider, err)
+}
+
+func TestNewMetaResolversContainerFactory_InvalidNumCrossShardPeersShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getArgumentsMeta()
+	args.ResolverConfig.NumCrossShardPeers = 0
+	rcf, err := resolverscontainer.NewMetaResolversContainerFactory(args)
+
+	assert.Nil(t, rcf)
+	assert.True(t, errors.Is(err, dataRetriever.ErrInvalidValue))
+}
+
+func TestNewMetaResolversContainerFactory_InvalidNumTotalPeersShouldErr(t *testing.T) {
+	t.Parallel()
+
+	t.Run("NumTotalPeers is lower than NumCrossShardPeers", func(t *testing.T) {
+		args := getArgumentsMeta()
+		args.ResolverConfig.NumTotalPeers = 0
+		rcf, err := resolverscontainer.NewMetaResolversContainerFactory(args)
+
+		assert.Nil(t, rcf)
+		assert.True(t, errors.Is(err, dataRetriever.ErrInvalidValue))
+	})
+	t.Run("NumTotalPeers is equal to NumCrossShardPeers", func(t *testing.T) {
+		args := getArgumentsMeta()
+		args.ResolverConfig.NumTotalPeers = args.ResolverConfig.NumCrossShardPeers
+		rcf, err := resolverscontainer.NewMetaResolversContainerFactory(args)
+
+		assert.Nil(t, rcf)
+		assert.True(t, errors.Is(err, dataRetriever.ErrInvalidValue))
+	})
+}
+
+func TestNewMetaResolversContainerFactory_InvalidNumFullHistoryPeersShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getArgumentsMeta()
+	args.ResolverConfig.NumFullHistoryPeers = 0
+	rcf, err := resolverscontainer.NewMetaResolversContainerFactory(args)
+
+	assert.Nil(t, rcf)
+	assert.True(t, errors.Is(err, dataRetriever.ErrInvalidValue))
+}
+
 func TestNewMetaResolversContainerFactory_ShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -220,12 +297,12 @@ func TestNewMetaResolversContainerFactory_ShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(rcf))
-	assert.Equal(t, int(args.ResolverConfig.NumIntraShardPeers), rcf.NumIntraShardPeers())
+	assert.Equal(t, int(args.ResolverConfig.NumTotalPeers), rcf.NumTotalPeers())
 	assert.Equal(t, int(args.ResolverConfig.NumCrossShardPeers), rcf.NumCrossShardPeers())
 	assert.Equal(t, int(args.ResolverConfig.NumFullHistoryPeers), rcf.NumFullHistoryPeers())
 }
 
-//------- Create
+// ------- Create
 
 func TestMetaResolversContainerFactory_CreateRegisterShardHeadersForMetachainFailsShouldErr(t *testing.T) {
 	t.Parallel()
@@ -272,8 +349,9 @@ func TestMetaResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	numResolversRewards := noOfShards
 	numResolversTxs := noOfShards + 1
 	numResolversTrieNodes := 2
+	numResolversPeerAuth := 1
 	totalResolvers := numResolversShardHeadersForMetachain + numResolverMetablocks + numResolversMiniBlocks +
-		numResolversUnsigned + numResolversTxs + numResolversTrieNodes + numResolversRewards
+		numResolversUnsigned + numResolversTxs + numResolversTrieNodes + numResolversRewards + numResolversPeerAuth
 
 	assert.Equal(t, totalResolvers, container.Len())
 
@@ -300,9 +378,10 @@ func getArgumentsMeta() resolverscontainer.FactoryArgs {
 		PreferredPeersHolder:        &p2pmocks.PeersHolderStub{},
 		ResolverConfig: config.ResolverConfig{
 			NumCrossShardPeers:  1,
-			NumIntraShardPeers:  2,
+			NumTotalPeers:       3,
 			NumFullHistoryPeers: 3,
 		},
 		PeersRatingHandler: &p2pmocks.PeersRatingHandlerStub{},
+		PayloadValidator:   &testscommon.PeerAuthenticationPayloadValidatorStub{},
 	}
 }

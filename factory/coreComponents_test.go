@@ -366,6 +366,12 @@ func getCoreArgs() factory.CoreComponentsFactoryArgs {
 				TopRatedCacheCapacity: 1000,
 				BadRatedCacheCapacity: 1000,
 			},
+			Hardfork: config.HardforkConfig{
+				PublicKeyToListenFrom: dummyPk,
+			},
+			HeartbeatV2: config.HeartbeatV2Config{
+				HeartbeatExpiryTimespanInSec: 10,
+			},
 		},
 		ConfigPathsHolder: config.ConfigurationPathsHolder{
 			GasScheduleDirectoryName: "../cmd/node/config/gasSchedules",
