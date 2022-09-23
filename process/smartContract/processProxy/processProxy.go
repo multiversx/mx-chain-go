@@ -38,7 +38,30 @@ type SCProcessorProxy struct {
 // NewSmartContractProcessorProxy creates a smart contract processor proxy
 func NewSmartContractProcessorProxy(args scrCommon.ArgsNewSmartContractProcessor, epochNotifier vmcommon.EpochNotifier) (*SCProcessorProxy, error) {
 	scProcessorProxy := &SCProcessorProxy{
-		args: args,
+		args: scrCommon.ArgsNewSmartContractProcessor{
+			VmContainer:         args.VmContainer,
+			ArgsParser:          args.ArgsParser,
+			Hasher:              args.Hasher,
+			Marshalizer:         args.Marshalizer,
+			AccountsDB:          args.AccountsDB,
+			BlockChainHook:      args.BlockChainHook,
+			BuiltInFunctions:    args.BuiltInFunctions,
+			PubkeyConv:          args.PubkeyConv,
+			ShardCoordinator:    args.ShardCoordinator,
+			ScrForwarder:        args.ScrForwarder,
+			TxFeeHandler:        args.TxFeeHandler,
+			EconomicsFee:        args.EconomicsFee,
+			TxTypeHandler:       args.TxTypeHandler,
+			GasHandler:          args.GasHandler,
+			GasSchedule:         args.GasSchedule,
+			TxLogsProcessor:     args.TxLogsProcessor,
+			BadTxForwarder:      args.BadTxForwarder,
+			EnableEpochsHandler: args.EnableEpochsHandler,
+			EnableEpochs:        args.EnableEpochs,
+			VMOutputCacher:      args.VMOutputCacher,
+			ArwenChangeLocker:   args.ArwenChangeLocker,
+			IsGenesisProcessing: args.IsGenesisProcessing,
+		},
 	}
 
 	scProcessorProxy.processorsCache = make(map[configuredProcessor]process.SmartContractProcessorFull)
@@ -89,26 +112,32 @@ func (scPProxy *SCProcessorProxy) setActiveProcessor(version configuredProcessor
 	scPProxy.testScProcessor = scPProxy.testProcessorsCache[version]
 }
 
+// ExecuteSmartContractTransaction delegates to selected processor
 func (scPProxy *SCProcessorProxy) ExecuteSmartContractTransaction(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) (vmcommon.ReturnCode, error) {
 	return scPProxy.processor.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
 }
 
+// ExecuteBuiltInFunction delegates to selected processor
 func (scPProxy *SCProcessorProxy) ExecuteBuiltInFunction(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) (vmcommon.ReturnCode, error) {
 	return scPProxy.processor.ExecuteBuiltInFunction(tx, acntSrc, acntDst)
 }
 
+// DeploySmartContract delegates to selected processor
 func (scPProxy *SCProcessorProxy) DeploySmartContract(tx data.TransactionHandler, acntSrc state.UserAccountHandler) (vmcommon.ReturnCode, error) {
 	return scPProxy.processor.DeploySmartContract(tx, acntSrc)
 }
 
+// ProcessIfError delegates to selected processor
 func (scPProxy *SCProcessorProxy) ProcessIfError(acntSnd state.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string, returnMessage []byte, snapshot int, gasLocked uint64) error {
 	return scPProxy.processor.ProcessIfError(acntSnd, txHash, tx, returnCode, returnMessage, snapshot, gasLocked)
 }
 
+// IsPayable delegates to selected processor
 func (scPProxy *SCProcessorProxy) IsPayable(sndAddress []byte, recvAddress []byte) (bool, error) {
 	return scPProxy.processor.IsPayable(sndAddress, recvAddress)
 }
 
+// ProcessSmartContractResult delegates to selected processor
 func (scPProxy *SCProcessorProxy) ProcessSmartContractResult(scr *smartContractResult.SmartContractResult) (vmcommon.ReturnCode, error) {
 	return scPProxy.processor.ProcessSmartContractResult(scr)
 }
@@ -131,22 +160,22 @@ func (scPProxy *SCProcessorProxy) EpochConfirmed(epoch uint32, _ uint64) {
 	scPProxy.setActiveProcessorV1()
 }
 
-// GetCompositeTestError -
+// GetCompositeTestError delegates to the selected testScProcessor
 func (scPProxy *SCProcessorProxy) GetCompositeTestError() error {
 	return scPProxy.testScProcessor.GetCompositeTestError()
 }
 
-// GetGasRemaining -
+// GetGasRemaining delegates to the selected testScProcessor
 func (scPProxy *SCProcessorProxy) GetGasRemaining() uint64 {
 	return scPProxy.testScProcessor.GetGasRemaining()
 }
 
-// GetAllSCRs -
+// GetAllSCRs delegates to the selected testScProcessor
 func (scPProxy *SCProcessorProxy) GetAllSCRs() []data.TransactionHandler {
 	return scPProxy.testScProcessor.GetAllSCRs()
 }
 
-// CleanGasRefunded -
+// CleanGasRefunded delegates to the selected testScProcessor
 func (scPProxy *SCProcessorProxy) CleanGasRefunded() {
 	scPProxy.testScProcessor.CleanGasRefunded()
 }

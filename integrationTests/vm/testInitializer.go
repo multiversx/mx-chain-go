@@ -962,7 +962,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 
 	return &ResultsCreateTxProcessor{
 		TxProc:             txProcessor,
-		SCProc:             proxyProcessor,
+		SCProc:             scProcessor,
 		IntermediateTxProc: intermediateTxHandler,
 		EconomicsHandler:   economicsData,
 		CostHandler:        txCostEstimator,
