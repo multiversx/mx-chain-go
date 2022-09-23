@@ -13,8 +13,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/blake2b"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
+	mclMultiSig "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/multisig"
+	"github.com/ElrondNetwork/elrond-go-crypto/signing/multisig"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
+	consensusSigning "github.com/ElrondNetwork/elrond-go/consensus/signing"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
@@ -63,6 +66,7 @@ type TestConsensusNode struct {
 	ResolverFinder   dataRetriever.ResolversFinder
 	AccountsDB       *state.AccountsDB
 	NodeKeys         TestKeyPair
+	MultiSigner      crypto.MultiSigner
 }
 
 // NewTestConsensusNode returns a new TestConsensusNode
@@ -74,6 +78,7 @@ func NewTestConsensusNode(
 	eligibleMap map[uint32][]nodesCoordinator.Validator,
 	waitingMap map[uint32][]nodesCoordinator.Validator,
 	keyGen crypto.KeyGenerator,
+	multiSigner crypto.MultiSigner,
 ) *TestConsensusNode {
 
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
@@ -81,6 +86,7 @@ func NewTestConsensusNode(
 	tcn := &TestConsensusNode{
 		NodeKeys:         nodeKeys,
 		ShardCoordinator: shardCoordinator,
+		MultiSigner:      multiSigner,
 	}
 	tcn.initNode(consensusSize, roundTime, consensusType, eligibleMap, waitingMap, keyGen)
 
@@ -104,6 +110,10 @@ func CreateNodesWithTestConsensusNode(
 	waitingMap := make(map[uint32][]nodesCoordinator.Validator)
 	connectableNodes := make([]Connectable, 0)
 
+	testHasher := createHasher(consensusType)
+	multiSigner, _ := multisig.NewBLSMultisig(&mclMultiSig.BlsMultiSigner{Hasher: testHasher}, cp.KeyGen)
+	//multiSigner := cryptoMocks.NewMultiSigner()
+
 	for _, keysPair := range cp.Keys[0] {
 		tcn := NewTestConsensusNode(
 			consensusSize,
@@ -112,7 +122,9 @@ func CreateNodesWithTestConsensusNode(
 			*keysPair,
 			eligibleMap,
 			waitingMap,
-			cp.KeyGen)
+			cp.KeyGen,
+			multiSigner,
+		)
 		nodes[nodeShardId] = append(nodes[nodeShardId], tcn)
 		connectableNodes = append(connectableNodes, tcn)
 	}
@@ -180,10 +192,12 @@ func (tcn *TestConsensusNode) initNode(
 
 	tcn.initResolverFinder()
 
-	testMultiSig := cryptoMocks.NewMultiSigner()
-
 	peerSigCache, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000})
 	peerSigHandler, _ := peerSignatureHandler.NewPeerSignatureHandler(peerSigCache, TestSingleBlsSigner, keyGen)
+
+	multiSigContainer := cryptoMocks.NewMultiSignerContainerMock(tcn.MultiSigner)
+	privKey := tcn.NodeKeys.Sk
+	pubKey := tcn.NodeKeys.Sk.GeneratePublic()
 
 	tcn.initAccountsDB()
 
@@ -206,14 +220,26 @@ func (tcn *TestConsensusNode) initNode(
 		},
 	}
 
+	pubKeyBytes, _ := pubKey.ToByteArray()
+	pubKeyString := coreComponents.ValidatorPubKeyConverterField.Encode(pubKeyBytes)
+	privKeyBytes, _ := privKey.ToByteArray()
+	signatureHolderArgs := consensusSigning.ArgsSignatureHolder{
+		PubKeys:              []string{pubKeyString},
+		PrivKeyBytes:         privKeyBytes,
+		MultiSignerContainer: multiSigContainer,
+		KeyGenerator:         keyGen,
+	}
+	consensusSigHandler, _ := consensusSigning.NewSignatureHolder(signatureHolderArgs)
+
 	cryptoComponents := GetDefaultCryptoComponents()
-	cryptoComponents.PrivKey = tcn.NodeKeys.Sk
-	cryptoComponents.PubKey = tcn.NodeKeys.Sk.GeneratePublic()
+	cryptoComponents.PrivKey = privKey
+	cryptoComponents.PubKey = pubKey
 	cryptoComponents.BlockSig = TestSingleBlsSigner
 	cryptoComponents.TxSig = TestSingleSigner
-	cryptoComponents.MultiSigContainer = cryptoMocks.NewMultiSignerContainerMock(testMultiSig)
+	cryptoComponents.MultiSigContainer = multiSigContainer
 	cryptoComponents.BlKeyGen = keyGen
 	cryptoComponents.PeerSignHandler = peerSigHandler
+	cryptoComponents.SigHandler = consensusSigHandler
 
 	processComponents := GetDefaultProcessComponents()
 	processComponents.ForkDetect = forkDetector
@@ -388,7 +414,7 @@ func (tcn *TestConsensusNode) initAccountsDB() {
 
 func createHasher(consensusType string) hashing.Hasher {
 	if consensusType == blsConsensusType {
-		hasher, _ := blake2b.NewBlake2bWithSize(32)
+		hasher, _ := blake2b.NewBlake2bWithSize(mclMultiSig.HasherOutputSize)
 		return hasher
 	}
 	return blake2b.NewBlake2b()

@@ -9,7 +9,8 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	consensusComp "github.com/ElrondNetwork/elrond-go/factory/consensus"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
@@ -48,6 +49,8 @@ func initNodesAndTest(
 	roundTime uint64,
 	consensusType string,
 ) []*integrationTests.TestConsensusNode {
+
+	_ = logger.SetLogLevel("*:INFO,*:DEBUG")
 
 	fmt.Println("Step 1. Setup nodes...")
 
