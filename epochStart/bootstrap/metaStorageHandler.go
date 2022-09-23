@@ -47,6 +47,7 @@ func NewMetaStorageHandler(
 		nodeTypeProvider,
 		currentEpoch,
 		false,
+		factory.BootstrapStorageService,
 	)
 	if err != nil {
 		return nil, err
@@ -79,7 +80,10 @@ func (msh *metaStorageHandler) CloseStorageService() {
 
 // SaveDataToStorage will save the fetched data to storage so it will be used by the storage bootstrap component
 func (msh *metaStorageHandler) SaveDataToStorage(components *ComponentsNeededForBootstrap) error {
-	bootStorer := msh.storageService.GetStorer(dataRetriever.BootstrapUnit)
+	bootStorer, err := msh.storageService.GetStorer(dataRetriever.BootstrapUnit)
+	if err != nil {
+		return err
+	}
 
 	lastHeader, err := msh.saveLastHeader(components.EpochStartMetaBlock)
 	if err != nil {
@@ -231,7 +235,11 @@ func (msh *metaStorageHandler) saveTriggerRegistry(components *ComponentsNeededF
 		return nil, err
 	}
 
-	bootstrapStorageUnit := msh.storageService.GetStorer(dataRetriever.BootstrapUnit)
+	bootstrapStorageUnit, err := msh.storageService.GetStorer(dataRetriever.BootstrapUnit)
+	if err != nil {
+		return nil, err
+	}
+
 	errPut := bootstrapStorageUnit.Put(trigInternalKey, triggerRegBytes)
 	if errPut != nil {
 		return nil, errPut

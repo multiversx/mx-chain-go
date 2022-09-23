@@ -66,7 +66,7 @@ func NewShardedTxPool(args ArgShardedTxPool) (*shardedTxPool, error) {
 		NumChunks:                   args.Config.Shards,
 		MaxNumBytes:                 uint32(halfOfSizeInBytes) / numCrossTxCaches,
 		MaxNumItems:                 halfOfCapacity / numCrossTxCaches,
-		NumItemsToPreemptivelyEvict: dataRetriever.TxPoolNumTxsToPreemptivelyEvict,
+		NumItemsToPreemptivelyEvict: storage.TxPoolNumTxsToPreemptivelyEvict,
 	}
 
 	shardedTxPoolObject := &shardedTxPool{

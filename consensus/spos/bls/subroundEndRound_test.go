@@ -177,7 +177,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilConsensusStateShouldFail(t *test
 	assert.Equal(t, spos.ErrNilConsensusState, err)
 }
 
-func TestSubroundEndRound_NewSubroundEndRoundNilMultisignerShouldFail(t *testing.T) {
+func TestSubroundEndRound_NewSubroundEndRoundNilMultiSignerContainerShouldFail(t *testing.T) {
 	t.Parallel()
 
 	container := mock.InitConsensusCore()
@@ -199,7 +199,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilMultisignerShouldFail(t *testing
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 	)
-	container.SetMultiSigner(nil)
+	container.SetMultiSignerContainer(nil)
 	srEndRound, err := bls.NewSubroundEndRound(
 		sr,
 		extend,
@@ -209,7 +209,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilMultisignerShouldFail(t *testing
 	)
 
 	assert.Nil(t, srEndRound)
-	assert.Equal(t, spos.ErrNilMultiSigner, err)
+	assert.Equal(t, spos.ErrNilMultiSignerContainer, err)
 }
 
 func TestSubroundEndRound_NewSubroundEndRoundNilRoundHandlerShouldFail(t *testing.T) {
@@ -321,12 +321,14 @@ func TestSubroundEndRound_DoEndRoundJobErrAggregatingSigShouldFail(t *testing.T)
 	t.Parallel()
 	container := mock.InitConsensusCore()
 	sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
-	multiSignerMock := mock.InitMultiSignerMock()
-	multiSignerMock.AggregateSigsCalled = func(bitmap []byte) ([]byte, error) {
-		return nil, crypto.ErrNilHasher
-	}
 
-	container.SetMultiSigner(multiSignerMock)
+	signatureHandler := &mock.SignatureHandlerStub{
+		AggregateSigsCalled: func(bitmap []byte, epoch uint32) ([]byte, error) {
+			return nil, crypto.ErrNilHasher
+		},
+	}
+	container.SetSignatureHandler(signatureHandler)
+
 	sr.Header = &block.Header{}
 
 	sr.SetSelfPubKey("A")
@@ -946,15 +948,17 @@ func TestVerifyNodesOnAggSigVerificationFail(t *testing.T) {
 
 		container := mock.InitConsensusCore()
 		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
-		multiSignerMock := mock.InitMultiSignerMock()
 
 		expectedErr := errors.New("exptected error")
-		multiSignerMock.SignatureShareCalled = func(index uint16) ([]byte, error) {
-			return nil, expectedErr
+		signatureHandler := &mock.SignatureHandlerStub{
+			SignatureShareCalled: func(index uint16) ([]byte, error) {
+				return nil, expectedErr
+			},
 		}
 
-		container.SetMultiSigner(multiSignerMock)
+		container.SetSignatureHandler(signatureHandler)
 
+		sr.Header = &block.Header{}
 		_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
 
 		err := sr.VerifyNodesOnAggSigVerificationFail()
@@ -966,18 +970,20 @@ func TestVerifyNodesOnAggSigVerificationFail(t *testing.T) {
 
 		container := mock.InitConsensusCore()
 		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
-		multiSignerMock := mock.InitMultiSignerMock()
 
 		expectedErr := errors.New("exptected error")
-		multiSignerMock.SignatureShareCalled = func(index uint16) ([]byte, error) {
-			return nil, nil
-		}
-		multiSignerMock.VerifySignatureShareCalled = func(index uint16, sig, msg, bitmap []byte) error {
-			return expectedErr
+		signatureHandler := &mock.SignatureHandlerStub{
+			SignatureShareCalled: func(index uint16) ([]byte, error) {
+				return nil, nil
+			},
+			VerifySignatureShareCalled: func(index uint16, sig, msg []byte, epoch uint32) error {
+				return expectedErr
+			},
 		}
 
+		sr.Header = &block.Header{}
 		_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
-		container.SetMultiSigner(multiSignerMock)
+		container.SetSignatureHandler(signatureHandler)
 
 		err := sr.VerifyNodesOnAggSigVerificationFail()
 		require.Nil(t, err)
@@ -992,18 +998,20 @@ func TestVerifyNodesOnAggSigVerificationFail(t *testing.T) {
 
 		container := mock.InitConsensusCore()
 		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
-		multiSignerMock := mock.InitMultiSignerMock()
-		multiSignerMock.SignatureShareCalled = func(index uint16) ([]byte, error) {
-			return nil, nil
+		signatureHandler := &mock.SignatureHandlerStub{
+			SignatureShareCalled: func(index uint16) ([]byte, error) {
+				return nil, nil
+			},
+			VerifySignatureShareCalled: func(index uint16, sig, msg []byte, epoch uint32) error {
+				return nil
+			},
+			VerifyCalled: func(msg, bitmap []byte, epoch uint32) error {
+				return nil
+			},
 		}
-		multiSignerMock.VerifySignatureShareCalled = func(index uint16, sig, msg, bitmap []byte) error {
-			return nil
-		}
-		multiSignerMock.VerifyCalled = func(msg, bitmap []byte) error {
-			return nil
-		}
-		container.SetMultiSigner(multiSignerMock)
+		container.SetSignatureHandler(signatureHandler)
 
+		sr.Header = &block.Header{}
 		_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
 		_ = sr.SetJobDone(sr.ConsensusGroup()[1], bls.SrSignature, true)
 
@@ -1020,6 +1028,7 @@ func TestComputeAddSigOnValidNodes(t *testing.T) {
 
 		container := mock.InitConsensusCore()
 		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
+		sr.Header = &block.Header{}
 		sr.SetThreshold(bls.SrEndRound, 2)
 
 		_, _, err := sr.ComputeAggSigOnValidNodes()
@@ -1031,14 +1040,16 @@ func TestComputeAddSigOnValidNodes(t *testing.T) {
 
 		container := mock.InitConsensusCore()
 		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
-		multiSignerMock := mock.InitMultiSignerMock()
 
 		expectedErr := errors.New("exptected error")
-		multiSignerMock.AggregateSigsCalled = func(bitmap []byte) ([]byte, error) {
-			return nil, expectedErr
+		signatureHandler := &mock.SignatureHandlerStub{
+			AggregateSigsCalled: func(bitmap []byte, epoch uint32) ([]byte, error) {
+				return nil, expectedErr
+			},
 		}
-		container.SetMultiSigner(multiSignerMock)
+		container.SetSignatureHandler(signatureHandler)
 
+		sr.Header = &block.Header{}
 		_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
 
 		_, _, err := sr.ComputeAggSigOnValidNodes()
@@ -1050,13 +1061,15 @@ func TestComputeAddSigOnValidNodes(t *testing.T) {
 
 		container := mock.InitConsensusCore()
 		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
-		multiSignerMock := mock.InitMultiSignerMock()
 
 		expectedErr := errors.New("exptected error")
-		multiSignerMock.SetAggregatedSigCalled = func(aggSig []byte) error {
-			return expectedErr
+		signatureHandler := &mock.SignatureHandlerStub{
+			SetAggregatedSigCalled: func(_ []byte) error {
+				return expectedErr
+			},
 		}
-		container.SetMultiSigner(multiSignerMock)
+		container.SetSignatureHandler(signatureHandler)
+		sr.Header = &block.Header{}
 		_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
 
 		_, _, err := sr.ComputeAggSigOnValidNodes()
@@ -1068,6 +1081,7 @@ func TestComputeAddSigOnValidNodes(t *testing.T) {
 
 		container := mock.InitConsensusCore()
 		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
+		sr.Header = &block.Header{}
 		_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
 
 		bitmap, sig, err := sr.ComputeAggSigOnValidNodes()
@@ -1085,33 +1099,33 @@ func TestSubroundEndRound_DoEndRoundJobByLeaderVerificationFail(t *testing.T) {
 
 		container := mock.InitConsensusCore()
 		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
-		multiSignerMock := mock.InitMultiSignerMock()
-		multiSignerMock.SignatureShareCalled = func(index uint16) ([]byte, error) {
-			return nil, nil
-		}
 
 		verifySigShareNumCalls := 0
-		multiSignerMock.VerifySignatureShareCalled = func(index uint16, sig, msg, bitmap []byte) error {
-			if verifySigShareNumCalls == 0 {
-				verifySigShareNumCalls++
-				return errors.New("expected error")
-			}
-
-			verifySigShareNumCalls++
-			return nil
-		}
-
 		verifyFirstCall := true
-		multiSignerMock.VerifyCalled = func(msg, bitmap []byte) error {
-			if verifyFirstCall {
-				verifyFirstCall = false
-				return errors.New("expected error")
-			}
+		signatureHandler := &mock.SignatureHandlerStub{
+			SignatureShareCalled: func(index uint16) ([]byte, error) {
+				return nil, nil
+			},
+			VerifySignatureShareCalled: func(index uint16, sig, msg []byte, epoch uint32) error {
+				if verifySigShareNumCalls == 0 {
+					verifySigShareNumCalls++
+					return errors.New("expected error")
+				}
 
-			return nil
+				verifySigShareNumCalls++
+				return nil
+			},
+			VerifyCalled: func(msg, bitmap []byte, epoch uint32) error {
+				if verifyFirstCall {
+					verifyFirstCall = false
+					return errors.New("expected error")
+				}
+
+				return nil
+			},
 		}
 
-		container.SetMultiSigner(multiSignerMock)
+		container.SetSignatureHandler(signatureHandler)
 
 		sr.SetThreshold(bls.SrEndRound, 2)
 
@@ -1132,33 +1146,33 @@ func TestSubroundEndRound_DoEndRoundJobByLeaderVerificationFail(t *testing.T) {
 
 		container := mock.InitConsensusCore()
 		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
-		multiSignerMock := mock.InitMultiSignerMock()
-		multiSignerMock.SignatureShareCalled = func(index uint16) ([]byte, error) {
-			return nil, nil
-		}
 
 		verifySigShareNumCalls := 0
-		multiSignerMock.VerifySignatureShareCalled = func(index uint16, sig, msg, bitmap []byte) error {
-			if verifySigShareNumCalls == 0 {
-				verifySigShareNumCalls++
-				return errors.New("expected error")
-			}
-
-			verifySigShareNumCalls++
-			return nil
-		}
-
 		verifyFirstCall := true
-		multiSignerMock.VerifyCalled = func(msg, bitmap []byte) error {
-			if verifyFirstCall {
-				verifyFirstCall = false
-				return errors.New("expected error")
-			}
+		signatureHandler := &mock.SignatureHandlerStub{
+			SignatureShareCalled: func(index uint16) ([]byte, error) {
+				return nil, nil
+			},
+			VerifySignatureShareCalled: func(index uint16, sig, msg []byte, epoch uint32) error {
+				if verifySigShareNumCalls == 0 {
+					verifySigShareNumCalls++
+					return errors.New("expected error")
+				}
 
-			return nil
+				verifySigShareNumCalls++
+				return nil
+			},
+			VerifyCalled: func(msg, bitmap []byte, epoch uint32) error {
+				if verifyFirstCall {
+					verifyFirstCall = false
+					return errors.New("expected error")
+				}
+
+				return nil
+			},
 		}
 
-		container.SetMultiSigner(multiSignerMock)
+		container.SetSignatureHandler(signatureHandler)
 
 		sr.SetThreshold(bls.SrEndRound, 2)
 

@@ -6,13 +6,11 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 const minDuration = time.Second
@@ -26,8 +24,7 @@ type ArgsMetricsUpdater struct {
 	HeartbeatSenderInfoProvider         HeartbeatSenderInfoProvider
 	AppStatusHandler                    core.AppStatusHandler
 	TimeBetweenConnectionsMetricsUpdate time.Duration
-	EpochNotifier                       vmcommon.EpochNotifier
-	HeartbeatV1DisableEpoch             uint32
+	EnableEpochsHandler                 common.EnableEpochsHandler
 }
 
 type metricsUpdater struct {
@@ -37,8 +34,7 @@ type metricsUpdater struct {
 	appStatusHandler                    core.AppStatusHandler
 	timeBetweenConnectionsMetricsUpdate time.Duration
 	cancelFunc                          func()
-	flagHeartbeatV1DisableEpoch         atomic.Flag
-	heartbeatV1DisableEpoch             uint32
+	enableEpochsHandler                 common.EnableEpochsHandler
 }
 
 // NewMetricsUpdater creates a new instance of type metricsUpdater
@@ -54,10 +50,9 @@ func NewMetricsUpdater(args ArgsMetricsUpdater) (*metricsUpdater, error) {
 		heartbeatSenderInfoProvider:         args.HeartbeatSenderInfoProvider,
 		appStatusHandler:                    args.AppStatusHandler,
 		timeBetweenConnectionsMetricsUpdate: args.TimeBetweenConnectionsMetricsUpdate,
-		heartbeatV1DisableEpoch:             args.HeartbeatV1DisableEpoch,
+		enableEpochsHandler:                 args.EnableEpochsHandler,
 	}
 
-	args.EpochNotifier.RegisterNotifyHandler(updater)
 	args.PeerAuthenticationCacher.RegisterHandler(updater.onAddedPeerAuthenticationMessage, "metricsUpdater")
 
 	var ctx context.Context
@@ -84,8 +79,8 @@ func checkArgs(args ArgsMetricsUpdater) error {
 		return fmt.Errorf("%w on TimeBetweenConnectionsMetricsUpdate, provided %d, min expected %d",
 			heartbeat.ErrInvalidTimeDuration, args.TimeBetweenConnectionsMetricsUpdate, minDuration)
 	}
-	if check.IfNil(args.EpochNotifier) {
-		return heartbeat.ErrNilEpochNotifier
+	if check.IfNil(args.EnableEpochsHandler) {
+		return heartbeat.ErrNilEnableEpochsHandler
 	}
 
 	return nil
@@ -166,12 +161,6 @@ func (updater *metricsUpdater) Close() error {
 	return nil
 }
 
-// EpochConfirmed is called whenever an epoch is confirmed
-func (updater *metricsUpdater) EpochConfirmed(epoch uint32, _ uint64) {
-	updater.flagHeartbeatV1DisableEpoch.SetValue(epoch >= updater.heartbeatV1DisableEpoch)
-	log.Debug("heartbeat v1 subsystem", "enabled", !updater.flagHeartbeatV1DisableEpoch.IsSet())
-}
-
 func (updater *metricsUpdater) onAddedPeerAuthenticationMessage(_ []byte, _ interface{}) {
 	if updater.shouldSkipUpdateMetrics() {
 		return
@@ -181,8 +170,7 @@ func (updater *metricsUpdater) onAddedPeerAuthenticationMessage(_ []byte, _ inte
 }
 
 func (updater *metricsUpdater) shouldSkipUpdateMetrics() bool {
-	heartbeatV1IsStillActive := !updater.flagHeartbeatV1DisableEpoch.IsSet()
-	return heartbeatV1IsStillActive
+	return !updater.enableEpochsHandler.IsHeartbeatDisableFlagEnabled()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

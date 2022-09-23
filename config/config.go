@@ -163,6 +163,7 @@ type Config struct {
 	WhiteListPool               CacheConfig
 	WhiteListerVerifiedTxs      CacheConfig
 	SmartContractDataPool       CacheConfig
+	ValidatorInfoPool           CacheConfig
 	TrieSyncStorage             TrieSyncStorageConfig
 	EpochStartConfig            EpochStartConfig
 	AddressPubkeyConverter      PubkeyConfig
@@ -208,7 +209,8 @@ type Config struct {
 	Resolvers             ResolverConfig
 	VMOutputCacher        CacheConfig
 
-	PeersRatingConfig PeersRatingConfig
+	PeersRatingConfig   PeersRatingConfig
+	PoolsCleanersConfig PoolsCleanersConfig
 }
 
 // PeersRatingConfig will hold settings related to peers rating
@@ -261,6 +263,12 @@ type MaxNodesChangeConfig struct {
 	EpochEnable            uint32
 	MaxNumNodes            uint32
 	NodesToShufflePerShard uint32
+}
+
+// MultiSignerConfig defines a config tuple for a BLS multi-signer that activates in a certain epoch
+type MultiSignerConfig struct {
+	EnableEpoch uint32
+	Type        string
 }
 
 // GeneralSettingsConfig will hold the general settings for a node
@@ -463,6 +471,7 @@ type DebugConfig struct {
 	Antiflood           AntifloodDebugConfig
 	ShuffleOut          ShuffleOutDebugConfig
 	EpochStart          EpochStartDebugConfig
+	Process             ProcessDebugConfig
 }
 
 // HealthServiceConfig will hold health service (monitoring) configuration
@@ -504,6 +513,14 @@ type ShuffleOutDebugConfig struct {
 type EpochStartDebugConfig struct {
 	GoRoutineAnalyserEnabled     bool
 	ProcessDataTrieOnCommitEpoch bool
+}
+
+// ProcessDebugConfig will hold the process debug configuration
+type ProcessDebugConfig struct {
+	Enabled              bool
+	GoRoutinesDump       bool
+	DebuggingLogLevel    string
+	PollingTimeInSeconds int
 }
 
 // ApiRoutesConfig holds the configuration related to Rest API routes
@@ -591,4 +608,10 @@ type ResolverConfig struct {
 	NumCrossShardPeers  uint32
 	NumTotalPeers       uint32
 	NumFullHistoryPeers uint32
+}
+
+// PoolsCleanersConfig represents the config options to be used by the pools cleaners
+type PoolsCleanersConfig struct {
+	MaxRoundsToKeepUnprocessedMiniBlocks   int64
+	MaxRoundsToKeepUnprocessedTransactions int64
 }

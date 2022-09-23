@@ -39,37 +39,63 @@ func (bpm *BlockProcessorMock) RestoreLastNotarizedHrdsToGenesis() {
 
 // ProcessBlock mocks processing a block
 func (bpm *BlockProcessorMock) ProcessBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
-	return bpm.ProcessBlockCalled(header, body, haveTime)
+	if bpm.ProcessBlockCalled != nil {
+		return bpm.ProcessBlockCalled(header, body, haveTime)
+	}
+
+	return nil
 }
 
 // ProcessScheduledBlock mocks processing a scheduled block
 func (bpm *BlockProcessorMock) ProcessScheduledBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
-	return bpm.ProcessScheduledBlockCalled(header, body, haveTime)
+	if bpm.ProcessScheduledBlockCalled != nil {
+		return bpm.ProcessScheduledBlockCalled(header, body, haveTime)
+	}
+
+	return nil
 }
 
 // CommitBlock mocks the commit of a block
 func (bpm *BlockProcessorMock) CommitBlock(header data.HeaderHandler, body data.BodyHandler) error {
-	return bpm.CommitBlockCalled(header, body)
+	if bpm.CommitBlockCalled != nil {
+		return bpm.CommitBlockCalled(header, body)
+	}
+
+	return nil
 }
 
 // RevertCurrentBlock mocks revert of the current block
 func (bpm *BlockProcessorMock) RevertCurrentBlock() {
-	bpm.RevertCurrentBlockCalled()
+	if bpm.RevertCurrentBlockCalled != nil {
+		bpm.RevertCurrentBlockCalled()
+	}
 }
 
 // CreateNewHeader -
 func (bpm *BlockProcessorMock) CreateNewHeader(round uint64, nonce uint64) (data.HeaderHandler, error) {
-	return bpm.CreateNewHeaderCalled(round, nonce)
+	if bpm.CreateNewHeaderCalled != nil {
+		return bpm.CreateNewHeaderCalled(round, nonce)
+	}
+
+	return nil, nil
 }
 
 // CreateBlock -
 func (bpm *BlockProcessorMock) CreateBlock(initialHdrData data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
-	return bpm.CreateBlockCalled(initialHdrData, haveTime)
+	if bpm.CreateBlockCalled != nil {
+		return bpm.CreateBlockCalled(initialHdrData, haveTime)
+	}
+
+	return nil, nil, nil
 }
 
 // RestoreBlockIntoPools -
 func (bpm *BlockProcessorMock) RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error {
-	return bpm.RestoreBlockIntoPoolsCalled(header, body)
+	if bpm.RestoreBlockIntoPoolsCalled != nil {
+		return bpm.RestoreBlockIntoPoolsCalled(header, body)
+	}
+
+	return nil
 }
 
 // RestoreBlockBodyIntoPools -

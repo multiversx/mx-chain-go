@@ -26,8 +26,8 @@ func TestNode_GetBlockHeaderByHash(t *testing.T) {
 	// Setup storage
 	headersStorer := &storageMocks.StorerStub{}
 	dataComponents.Store = &storageMocks.ChainStorerStub{
-		GetStorerCalled: func(_ dataRetriever.UnitType) storage.Storer {
-			return headersStorer
+		GetStorerCalled: func(_ dataRetriever.UnitType) (storage.Storer, error) {
+			return headersStorer, nil
 		},
 	}
 

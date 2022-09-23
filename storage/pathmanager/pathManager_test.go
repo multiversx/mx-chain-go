@@ -3,7 +3,6 @@ package pathmanager_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
 	"github.com/stretchr/testify/assert"
 )
@@ -13,7 +12,7 @@ func TestNewPathManager_EmptyPruningPathTemplateShouldErr(t *testing.T) {
 
 	pm, err := pathmanager.NewPathManager("", "shard_[S]/[I]", "db")
 	assert.Nil(t, pm)
-	assert.Equal(t, storage.ErrEmptyPruningPathTemplate, err)
+	assert.Equal(t, pathmanager.ErrEmptyPruningPathTemplate, err)
 }
 
 func TestNewPathManager_EmptyStaticPathTemplateShouldErr(t *testing.T) {
@@ -21,7 +20,7 @@ func TestNewPathManager_EmptyStaticPathTemplateShouldErr(t *testing.T) {
 
 	pm, err := pathmanager.NewPathManager("epoch_[E]/shard_[S]/[I]", "", "db")
 	assert.Nil(t, pm)
-	assert.Equal(t, storage.ErrEmptyStaticPathTemplate, err)
+	assert.Equal(t, pathmanager.ErrEmptyStaticPathTemplate, err)
 }
 
 func TestNewPathManager_InvalidPruningPathTemplate_NoShardPlaceholder_ShouldErr(t *testing.T) {
@@ -29,7 +28,7 @@ func TestNewPathManager_InvalidPruningPathTemplate_NoShardPlaceholder_ShouldErr(
 
 	pm, err := pathmanager.NewPathManager("epoch_[E]/shard/[I]", "shard_[S]/[I]", "db")
 	assert.Nil(t, pm)
-	assert.Equal(t, storage.ErrInvalidPruningPathTemplate, err)
+	assert.Equal(t, pathmanager.ErrInvalidPruningPathTemplate, err)
 }
 
 func TestNewPathManager_InvalidPruningPathTemplate_NoEpochPlaceholder_ShouldErr(t *testing.T) {
@@ -37,7 +36,7 @@ func TestNewPathManager_InvalidPruningPathTemplate_NoEpochPlaceholder_ShouldErr(
 
 	pm, err := pathmanager.NewPathManager("epoch/shard_[S]/[I]", "shard_[S]/[I]", "db")
 	assert.Nil(t, pm)
-	assert.Equal(t, storage.ErrInvalidPruningPathTemplate, err)
+	assert.Equal(t, pathmanager.ErrInvalidPruningPathTemplate, err)
 }
 
 func TestNewPathManager_InvalidPathPruningTemplate_NoIdentifierPlaceholder_ShouldErr(t *testing.T) {
@@ -45,7 +44,7 @@ func TestNewPathManager_InvalidPathPruningTemplate_NoIdentifierPlaceholder_Shoul
 
 	pm, err := pathmanager.NewPathManager("epoch_[E]/shard_[S]", "shard_[S]/[I]", "db")
 	assert.Nil(t, pm)
-	assert.Equal(t, storage.ErrInvalidPruningPathTemplate, err)
+	assert.Equal(t, pathmanager.ErrInvalidPruningPathTemplate, err)
 }
 
 func TestNewPathManager_InvalidStaticPathTemplate_NoShardPlaceholder_ShouldErr(t *testing.T) {
@@ -53,7 +52,7 @@ func TestNewPathManager_InvalidStaticPathTemplate_NoShardPlaceholder_ShouldErr(t
 
 	pm, err := pathmanager.NewPathManager("epoch_[E]/shard_[S]/[I]", "shard/[I]", "db")
 	assert.Nil(t, pm)
-	assert.Equal(t, storage.ErrInvalidStaticPathTemplate, err)
+	assert.Equal(t, pathmanager.ErrInvalidStaticPathTemplate, err)
 }
 
 func TestNewPathManager_InvalidStaticPathTemplate_NoIdentifierPlaceholder_ShouldErr(t *testing.T) {
@@ -61,7 +60,7 @@ func TestNewPathManager_InvalidStaticPathTemplate_NoIdentifierPlaceholder_Should
 
 	pm, err := pathmanager.NewPathManager("epoch_[E]/shard_[S]/[I]", "shard_[S]", "db")
 	assert.Nil(t, pm)
-	assert.Equal(t, storage.ErrInvalidStaticPathTemplate, err)
+	assert.Equal(t, pathmanager.ErrInvalidStaticPathTemplate, err)
 }
 
 func TestNewPathManager_OkValsShouldWork(t *testing.T) {

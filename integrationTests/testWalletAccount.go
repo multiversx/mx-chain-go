@@ -6,11 +6,10 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-crypto"
-	ed25519SingleSig "github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519/singlesig"
 	"github.com/ElrondNetwork/elrond-go/factory/peerSignatureHandler"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 )
 
 // TestWalletAccount creates and account with balance and crypto necessary to sign transactions
@@ -53,7 +52,7 @@ func CreateTestWalletAccountWithKeygenAndSingleSigner(
 
 // initCrypto initializes the crypto for the account
 func (twa *TestWalletAccount) initCrypto(coordinator sharding.Coordinator, shardId uint32) {
-	twa.SingleSigner = &ed25519SingleSig.Ed25519Signer{}
+	twa.SingleSigner = TestSingleSigner
 	twa.BlockSingleSigner = &mock.SignerMock{
 		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
 			return nil
@@ -71,7 +70,7 @@ func (twa *TestWalletAccount) initCrypto(coordinator sharding.Coordinator, shard
 	twa.KeygenBlockSign = &mock.KeyGenMock{}
 	twa.Address = twa.PkTxSignBytes
 
-	peerSigCache, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
+	peerSigCache, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000})
 	twa.PeerSigHandler, _ = peerSignatureHandler.NewPeerSignatureHandler(peerSigCache, twa.SingleSigner, keyGen)
 }
 

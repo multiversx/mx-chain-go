@@ -86,10 +86,10 @@ func createShardDataPools() dataRetriever.PoolsHolder {
 	return pools
 }
 
-func createShardStore() *mock.ChainStorerMock {
-	return &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &storageStubs.StorerStub{}
+func createShardStore() *storageStubs.ChainStorerStub {
+	return &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return &storageStubs.StorerStub{}, nil
 		},
 	}
 }
@@ -269,7 +269,7 @@ func TestNewShardInterceptorsContainerFactory_NilMultiSignerShouldErr(t *testing
 	t.Parallel()
 
 	coreComp, cryptoComp := createMockComponentHolders()
-	cryptoComp.MultiSig = nil
+	cryptoComp.MultiSigContainer = cryptoMocks.NewMultiSignerContainerMock(nil)
 	args := getArgumentsShard(coreComp, cryptoComp)
 	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
 
@@ -659,9 +659,10 @@ func TestShardInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	numInterceptorPeerAuth := 1
 	numInterceptorHeartbeat := 1
 	numInterceptorsShardValidatorInfo := 1
+	numInterceptorValidatorInfo := 1
 	totalInterceptors := numInterceptorTxs + numInterceptorsUnsignedTxs + numInterceptorsRewardTxs +
 		numInterceptorHeaders + numInterceptorMiniBlocks + numInterceptorMetachainHeaders + numInterceptorTrieNodes +
-		numInterceptorPeerAuth + numInterceptorHeartbeat + numInterceptorsShardValidatorInfo
+		numInterceptorPeerAuth + numInterceptorHeartbeat + numInterceptorsShardValidatorInfo + numInterceptorValidatorInfo
 
 	assert.Nil(t, err)
 	assert.Equal(t, totalInterceptors, container.Len())
@@ -684,13 +685,15 @@ func createMockComponentHolders() (*mock.CoreComponentsMock, *mock.CryptoCompone
 		EpochNotifierField:         &epochNotifier.EpochNotifierStub{},
 		TxVersionCheckField:        versioning.NewTxVersionChecker(1),
 		HardforkTriggerPubKeyField: providedHardforkPubKey,
+		EnableEpochsHandlerField:   &testscommon.EnableEpochsHandlerStub{},
 	}
+	multiSigner := cryptoMocks.NewMultiSigner()
 	cryptoComponents := &mock.CryptoComponentsMock{
-		BlockSig: &mock.SignerMock{},
-		TxSig:    &mock.SignerMock{},
-		MultiSig: cryptoMocks.NewMultiSigner(21),
-		BlKeyGen: &mock.SingleSignKeyGenMock{},
-		TxKeyGen: &mock.SingleSignKeyGenMock{},
+		BlockSig:          &mock.SignerMock{},
+		TxSig:             &mock.SignerMock{},
+		MultiSigContainer: cryptoMocks.NewMultiSignerContainerMock(multiSigner),
+		BlKeyGen:          &mock.SingleSignKeyGenMock{},
+		TxKeyGen:          &mock.SingleSignKeyGenMock{},
 	}
 
 	return coreComponents, cryptoComponents
