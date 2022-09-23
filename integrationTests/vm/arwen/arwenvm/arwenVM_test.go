@@ -161,7 +161,6 @@ func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
 		ownerBalance,
 		config.EnableEpochs{
 			PenalizedTooMuchGasEnableEpoch: integrationTests.UnreachableEpoch,
-			SCProcessorV2EnableEpoch:       integrationTests.UnreachableEpoch,
 		},
 	)
 	require.Nil(t, err)
@@ -215,7 +214,7 @@ func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
 		testContext.Accounts,
 		ownerAddressBytes,
 		ownerNonce+2,
-		big.NewInt(99999100))
+		big.NewInt(99899949))
 
 	vm.TestAccount(
 		t,
@@ -253,7 +252,6 @@ func TestWASMMetering(t *testing.T) {
 		ownerBalance,
 		config.EnableEpochs{
 			PenalizedTooMuchGasEnableEpoch: integrationTests.UnreachableEpoch,
-			SCProcessorV2EnableEpoch:       integrationTests.UnreachableEpoch,
 		},
 	)
 	require.Nil(t, err)
@@ -292,7 +290,7 @@ func TestWASMMetering(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, returnCode, vmcommon.Ok)
 
-	expectedBalance := big.NewInt(2998080)
+	expectedBalance := big.NewInt(2499985)
 	expectedNonce := uint64(1)
 
 	actualBalanceBigInt := vm.TestAccount(
@@ -306,7 +304,7 @@ func TestWASMMetering(t *testing.T) {
 
 	consumedGasValue := aliceInitialBalance - actualBalance - testingValue
 
-	require.Equal(t, 1905, int(consumedGasValue))
+	require.Equal(t, 500000, int(consumedGasValue))
 }
 
 func TestMultipleTimesERC20BigIntInBatches(t *testing.T) {

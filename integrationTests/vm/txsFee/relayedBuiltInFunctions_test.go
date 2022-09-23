@@ -25,7 +25,6 @@ func TestRelayedBuildInFunctionChangeOwnerCallShouldWork(t *testing.T) {
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(
 		config.EnableEpochs{
 			PenalizedTooMuchGasEnableEpoch: integrationTests.UnreachableEpoch,
-			SCProcessorV2EnableEpoch:       integrationTests.UnreachableEpoch,
 		})
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -57,7 +56,7 @@ func TestRelayedBuildInFunctionChangeOwnerCallShouldWork(t *testing.T) {
 
 	utils.CheckOwnerAddr(t, testContext, scAddress, newOwner)
 
-	expectedBalanceRelayer := big.NewInt(25760)
+	expectedBalanceRelayer := big.NewInt(16610)
 	vm.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedBalanceRelayer)
 
 	expectedBalance := big.NewInt(89030)
@@ -65,18 +64,18 @@ func TestRelayedBuildInFunctionChangeOwnerCallShouldWork(t *testing.T) {
 
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(4240), accumulatedFees)
+	require.Equal(t, big.NewInt(13390), accumulatedFees)
 
 	developerFees := testContext.TxFeeHandler.GetDeveloperFees()
-	require.Equal(t, big.NewInt(0), developerFees)
+	require.Equal(t, big.NewInt(915), developerFees)
 
 	intermediateTxs := testContext.GetIntermediateTransactions(t)
 	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, true, testContext.TxsLogsProcessor)
 	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, uint64(424), indexerTx.GasUsed)
-	require.Equal(t, "4240", indexerTx.Fee)
+	require.Equal(t, uint64(1339), indexerTx.GasUsed)
+	require.Equal(t, "13390", indexerTx.Fee)
 }
 
 func TestRelayedBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(t *testing.T) {

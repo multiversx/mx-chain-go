@@ -43,7 +43,6 @@ func TestBuiltInFunctionExecuteOnSourceAndDestinationShouldWork(t *testing.T) {
 		0,
 		config.EnableEpochs{
 			PenalizedTooMuchGasEnableEpoch: integrationTests.UnreachableEpoch,
-			SCProcessorV2EnableEpoch:       integrationTests.UnreachableEpoch,
 		})
 	require.Nil(t, err)
 	defer testContextSource.Close()
@@ -52,7 +51,6 @@ func TestBuiltInFunctionExecuteOnSourceAndDestinationShouldWork(t *testing.T) {
 		1,
 		config.EnableEpochs{
 			PenalizedTooMuchGasEnableEpoch: integrationTests.UnreachableEpoch,
-			SCProcessorV2EnableEpoch:       integrationTests.UnreachableEpoch,
 		})
 	require.Nil(t, err)
 	defer testContextDst.Close()
@@ -83,14 +81,14 @@ func TestBuiltInFunctionExecuteOnSourceAndDestinationShouldWork(t *testing.T) {
 	utils.CheckOwnerAddr(t, testContextDst, scAddr, newOwner)
 
 	accumulatedFees := testContextDst.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(850), accumulatedFees)
+	require.Equal(t, big.NewInt(10000), accumulatedFees)
 
 	testIndexer := vm.CreateTestIndexer(t, testContextDst.ShardCoordinator, testContextDst.EconomicsData, false, testContextDst.TxsLogsProcessor)
 	testIndexer.SaveTransaction(tx, block.TxBlock, nil)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, uint64(84), indexerTx.GasUsed)
-	require.Equal(t, "840", indexerTx.Fee)
+	require.Equal(t, uint64(1000), indexerTx.GasUsed)
+	require.Equal(t, "10000", indexerTx.Fee)
 	require.Equal(t, transaction.TxStatusSuccess.String(), indexerTx.Status)
 
 	utils.CleanAccumulatedIntermediateTransactions(t, testContextDst)
@@ -119,10 +117,10 @@ func TestBuiltInFunctionExecuteOnSourceAndDestinationShouldWork(t *testing.T) {
 	vm.TestAccount(t, testContextDst.Accounts, sndAddr, 1, expectedBalance)
 
 	accumulatedFees = testContextDst.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(4720), accumulatedFees)
+	require.Equal(t, big.NewInt(13870), accumulatedFees)
 
 	developerFees := testContextDst.TxFeeHandler.GetDeveloperFees()
-	require.Equal(t, big.NewInt(377), developerFees)
+	require.Equal(t, big.NewInt(1292), developerFees)
 
 	intermediateTxs := testContextDst.GetIntermediateTransactions(t)
 	testIndexer = vm.CreateTestIndexer(t, testContextDst.ShardCoordinator, testContextDst.EconomicsData, true, testContextDst.TxsLogsProcessor)
@@ -144,22 +142,22 @@ func TestBuiltInFunctionExecuteOnSourceAndDestinationShouldWork(t *testing.T) {
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
 
-	expectedBalance = big.NewInt(9770)
+	expectedBalance = big.NewInt(5000)
 	utils.TestAccount(t, testContextSource.Accounts, newOwner, 1, expectedBalance)
 
 	accumulatedFees = testContextSource.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(230), accumulatedFees)
+	require.Equal(t, big.NewInt(5000), accumulatedFees)
 
 	developerFees = testContextSource.TxFeeHandler.GetDeveloperFees()
-	require.Equal(t, big.NewInt(0), developerFees)
+	require.Equal(t, big.NewInt(477), developerFees)
 
 	intermediateTxs = testContextSource.GetIntermediateTransactions(t)
 	testIndexer = vm.CreateTestIndexer(t, testContextSource.ShardCoordinator, testContextSource.EconomicsData, true, testContextDst.TxsLogsProcessor)
 	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, uint64(23), indexerTx.GasUsed)
-	require.Equal(t, "230", indexerTx.Fee)
+	require.Equal(t, uint64(22), indexerTx.GasUsed)
+	require.Equal(t, "220", indexerTx.Fee)
 	require.Equal(t, transaction.TxStatusPending.String(), indexerTx.Status)
 
 	utils.CleanAccumulatedIntermediateTransactions(t, testContextDst)
@@ -182,7 +180,7 @@ func TestBuiltInFunctionExecuteOnSourceAndDestinationShouldWork(t *testing.T) {
 
 	utils.ProcessSCRResult(t, testContextSource, scr, vmcommon.Ok, nil)
 
-	expectedBalance = big.NewInt(9771 + 376 + currentSCDevBalance.Int64())
+	expectedBalance = big.NewInt(5001 + 376 + currentSCDevBalance.Int64())
 	utils.TestAccount(t, testContextSource.Accounts, newOwner, 1, expectedBalance)
 
 }

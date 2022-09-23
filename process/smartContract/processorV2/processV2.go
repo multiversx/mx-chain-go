@@ -920,6 +920,7 @@ func (sc *scProcessor) createAsyncCallBackSCR(
 	tx data.TransactionHandler,
 	txHash []byte,
 	scrForSender *smartContractResult.SmartContractResult,
+	scrForRelayer *smartContractResult.SmartContractResult,
 	scrResults []data.TransactionHandler,
 ) ([]data.TransactionHandler, error) {
 	if vmInput.CallType == vmData.AsynchronousCall {
@@ -933,6 +934,11 @@ func (sc *scProcessor) createAsyncCallBackSCR(
 	} else {
 		scrResults = append(scrResults, scrForSender)
 	}
+
+	if !check.IfNil(scrForRelayer) {
+		scrResults = append(scrResults, scrForRelayer)
+	}
+
 	return scrResults, nil
 }
 
@@ -1749,13 +1755,13 @@ func (sc *scProcessor) completeOutputProcessingAndCreateCallback(
 
 	sc.penalizeUserIfNeeded(tx, txHash, vmInput.CallType, vmInput.GasProvided, vmOutput)
 
-	scrTxs, scrForSender, err := sc.createSCRForSenderAndRelayerAndRefundGas(vmInput, vmOutput, txHash, tx, scrTxs, createdAsyncCallback)
+	scrTxs, scrForSender, scrForRelayer, err := sc.createSCRForSenderAndRelayerAndRefundGas(vmInput, vmOutput, txHash, tx, scrTxs, createdAsyncCallback)
 	if err != nil {
 		return scrTxs, 0, err
 	}
 
 	if !createdAsyncCallback {
-		scrTxs, err = sc.createAsyncCallBackSCR(vmInput, vmOutput, tx, txHash, scrForSender, scrTxs)
+		scrTxs, err = sc.createAsyncCallBackSCR(vmInput, vmOutput, tx, txHash, scrForSender, scrForRelayer, scrTxs)
 		if err != nil {
 			return scrTxs, 0, err
 		}
@@ -1775,7 +1781,7 @@ func (sc *scProcessor) createSCRForSenderAndRelayerAndRefundGas(vmInput *vmcommo
 	tx data.TransactionHandler,
 	scrTxs []data.TransactionHandler,
 	createdAsyncCallback bool,
-) ([]data.TransactionHandler, *smartContractResult.SmartContractResult, error) {
+) ([]data.TransactionHandler, *smartContractResult.SmartContractResult, *smartContractResult.SmartContractResult, error) {
 	scrForSender, scrForRelayer := sc.createSCRForSenderAndRelayer(
 		vmOutput,
 		tx,
@@ -1788,18 +1794,18 @@ func (sc *scProcessor) createSCRForSenderAndRelayerAndRefundGas(vmInput *vmcommo
 		scrTxs = append(scrTxs, scrForRelayer)
 		err = sc.addGasRefundIfInShard(scrForRelayer.RcvAddr, scrForRelayer.Value)
 		if err != nil {
-			return scrTxs, scrForSender, err
+			return scrTxs, scrForSender, scrForRelayer, err
 		}
 	}
 
 	if !createdAsyncCallback {
 		err = sc.addGasRefundIfInShard(scrForSender.RcvAddr, scrForSender.Value)
 		if err != nil {
-			return scrTxs, scrForSender, err
+			return scrTxs, scrForSender, scrForRelayer, err
 		}
 	}
 
-	return scrTxs, scrForSender, nil
+	return scrTxs, scrForSender, scrForRelayer, nil
 }
 
 func (sc *scProcessor) checkSCRSizeInvariant(scrTxs []data.TransactionHandler) error {
