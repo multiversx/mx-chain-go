@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/node/external"
@@ -16,13 +17,14 @@ import (
 )
 
 const (
-	pidQueryParam       = "pid"
-	debugPath           = "/debug"
-	heartbeatStatusPath = "/heartbeatstatus"
-	metricsPath         = "/metrics"
-	p2pStatusPath       = "/p2pstatus"
-	peerInfoPath        = "/peerinfo"
-	statusPath          = "/status"
+	pidQueryParam          = "pid"
+	debugPath              = "/debug"
+	heartbeatStatusPath    = "/heartbeatstatus"
+	metricsPath            = "/metrics"
+	p2pStatusPath          = "/p2pstatus"
+	peerInfoPath           = "/peerinfo"
+	statusPath             = "/status"
+	epochStartDataForEpoch = "/epoch-start/:epoch"
 )
 
 // nodeFacadeHandler defines the methods to be implemented by a facade for node requests
@@ -30,6 +32,7 @@ type nodeFacadeHandler interface {
 	GetHeartbeats() ([]data.PubKeyHeartbeat, error)
 	StatusMetrics() external.StatusMetricsHandler
 	GetQueryHandler(name string) (debug.QueryHandler, error)
+	GetEpochStartDataForEpoch(epoch uint32) (*common.EpochStartDataAPI, error)
 	GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error)
 	IsInterfaceNil() bool
 }
@@ -87,6 +90,11 @@ func NewNodeGroup(facade nodeFacadeHandler) (*nodeGroup, error) {
 			Path:    peerInfoPath,
 			Method:  http.MethodGet,
 			Handler: ng.peerInfo,
+		},
+		{
+			Path:    epochStartDataForEpoch,
+			Method:  http.MethodGet,
+			Handler: ng.epochStartDataForEpoch,
 		},
 	}
 	ng.endpoints = endpoints
@@ -235,6 +243,37 @@ func (ng *nodeGroup) peerInfo(c *gin.Context) {
 		http.StatusOK,
 		shared.GenericAPIResponse{
 			Data:  gin.H{"info": info},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
+}
+
+// peerInfo returns the information of a provided p2p peer ID
+func (ng *nodeGroup) epochStartDataForEpoch(c *gin.Context) {
+	epoch, err := getQueryParamEpoch(c)
+	if err != nil {
+		shared.RespondWithValidationError(c, errors.ErrValidation, errors.ErrBadUrlParams)
+		return
+	}
+
+	epochStartData, err := ng.getFacade().GetEpochStartDataForEpoch(epoch)
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrGetEpochStartData.Error(), err.Error()),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"epochStart": epochStartData},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},

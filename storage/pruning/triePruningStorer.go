@@ -218,3 +218,9 @@ func (ps *triePruningStorer) GetLatestStorageEpoch() (uint32, error) {
 
 	return ps.activePersisters[currentEpochIndex].epoch, nil
 }
+
+//
+//// IsInterfaceNil returns true if the underlying interface is nil
+//func (ps *triePruningStorer) IsInterfaceNil() bool {
+//	return ps == nil
+//}

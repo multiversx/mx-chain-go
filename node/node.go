@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
@@ -951,6 +952,77 @@ func (n *Node) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
 	}
 
 	return peerInfoSlice, nil
+}
+
+// GetEpochStartDataForEpoch returns epoch start data of a given epoch
+func (n *Node) GetEpochStartDataForEpoch(epoch uint32) (*common.EpochStartDataAPI, error) {
+	if epoch == 0 {
+		// for the first epoch, epoch start identifier isn't committed. Therefore, return the genesis info
+		genesisHeader := n.dataComponents.Blockchain().GetGenesisHeader()
+		return &common.EpochStartDataAPI{
+			Nonce:     genesisHeader.GetNonce(),
+			Round:     genesisHeader.GetRound(),
+			ShardID:   genesisHeader.GetShardID(),
+			Timestamp: int64(time.Duration(genesisHeader.GetTimeStamp())),
+		}, nil
+	}
+
+	if n.bootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
+		return n.getMetaFirstNonceOfEpoch(epoch)
+	}
+
+	return n.getShardFirstNonceOfEpoch(epoch)
+}
+
+func (n *Node) getShardFirstNonceOfEpoch(epoch uint32) (*common.EpochStartDataAPI, error) {
+	storer := n.dataComponents.StorageService().GetStorer(dataRetriever.BlockHeaderUnit)
+	if check.IfNil(storer) {
+		return nil, fmt.Errorf("%w for identifier BlockHeaderUnit", ErrNilStorer)
+	}
+
+	identifier := core.EpochStartIdentifier(epoch)
+	headerBytes, err := storer.GetFromEpoch([]byte(identifier), epoch)
+	if err != nil {
+		return nil, fmt.Errorf("cannot load epoch start block for epoch %d (%w)", epoch, err)
+	}
+
+	header, err := process.UnmarshalShardHeader(n.coreComponents.InternalMarshalizer(), headerBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return &common.EpochStartDataAPI{
+		Nonce:     header.GetNonce(),
+		Round:     header.GetRound(),
+		ShardID:   header.GetShardID(),
+		Timestamp: int64(time.Duration(header.GetTimeStamp())),
+	}, nil
+}
+
+func (n *Node) getMetaFirstNonceOfEpoch(epoch uint32) (*common.EpochStartDataAPI, error) {
+	storer := n.dataComponents.StorageService().GetStorer(dataRetriever.MetaBlockUnit)
+	if check.IfNil(storer) {
+		return nil, fmt.Errorf("%w for identifier MetaBlockUnit", ErrNilStorer)
+	}
+
+	identifier := core.EpochStartIdentifier(epoch)
+	result, err := storer.GetFromEpoch([]byte(identifier), epoch)
+	if err != nil {
+		return nil, fmt.Errorf("cannot load epoch start block for epoch %d (%w)", epoch, err)
+	}
+
+	var metaBlock block.MetaBlock
+	err = n.coreComponents.InternalMarshalizer().Unmarshal(&metaBlock, result)
+	if err != nil {
+		return nil, err
+	}
+
+	return &common.EpochStartDataAPI{
+		Nonce:     metaBlock.GetNonce(),
+		Round:     metaBlock.GetRound(),
+		ShardID:   core.MetachainShardId,
+		Timestamp: int64(time.Duration(metaBlock.GetTimeStamp())),
+	}, nil
 }
 
 // GetCoreComponents returns the core components

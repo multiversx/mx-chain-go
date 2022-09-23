@@ -29,6 +29,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/pruning"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -83,6 +84,7 @@ func getDefaultArgs() *pruning.StorerArgs {
 		Notifier:               &mock.EpochStartNotifierStub{},
 		OldDataCleanerProvider: &testscommon.OldDataCleanerProviderStub{},
 		CustomDatabaseRemover:  &testscommon.CustomDatabaseRemoverStub{},
+		StatusHandler:          &statusHandler.AppStatusHandlerStub{},
 		MaxBatchSize:           10,
 	}
 }
@@ -111,6 +113,7 @@ func getDefaultArgsSerialDB() *pruning.StorerArgs {
 		Notifier:               &mock.EpochStartNotifierStub{},
 		OldDataCleanerProvider: &testscommon.OldDataCleanerProviderStub{},
 		CustomDatabaseRemover:  &testscommon.CustomDatabaseRemoverStub{},
+		StatusHandler:          &statusHandler.AppStatusHandlerStub{},
 		MaxBatchSize:           20,
 	}
 }

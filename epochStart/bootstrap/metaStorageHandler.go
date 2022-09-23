@@ -36,17 +36,21 @@ func NewMetaStorageHandler(
 	currentEpoch uint32,
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 	nodeTypeProvider NodeTypeProviderHandler,
+	statusHandler core.AppStatusHandler,
 ) (*metaStorageHandler, error) {
 	epochStartNotifier := &disabled.EpochStartNotifier{}
 	storageFactory, err := factory.NewStorageServiceFactory(
-		&generalConfig,
-		&prefsConfig,
-		shardCoordinator,
-		pathManagerHandler,
-		epochStartNotifier,
-		nodeTypeProvider,
-		currentEpoch,
-		false,
+		factory.StorageServiceFactoryArgs{
+			Config:                        &generalConfig,
+			PrefsConfig:                   &prefsConfig,
+			ShardCoordinator:              shardCoordinator,
+			PathManager:                   pathManagerHandler,
+			EpochStartNotifier:            epochStartNotifier,
+			NodeTypeProvider:              nodeTypeProvider,
+			CurrentEpoch:                  currentEpoch,
+			StatusHandler:                 statusHandler,
+			CreateTrieEpochRootHashStorer: false,
+		},
 	)
 	if err != nil {
 		return nil, err

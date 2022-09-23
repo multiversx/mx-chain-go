@@ -52,3 +52,12 @@ type InitialAccountAPI struct {
 	StakingValue string            `json:"stakingvalue"`
 	Delegation   DelegationDataAPI `json:"delegation"`
 }
+
+// TODO: extend this structure to include more fields
+// EpochStartDataAPI holds fields from the first block in a given epoch
+type EpochStartDataAPI struct {
+	Nonce     uint64 `json:"nonce"`
+	Round     uint64 `json:"round"`
+	ShardID   uint32 `json:"shardID"`
+	Timestamp int64  `json:"timestamp"`
+}

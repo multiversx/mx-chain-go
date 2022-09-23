@@ -1,6 +1,7 @@
 package pruning
 
 import (
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/clean"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -17,6 +18,7 @@ type StorerArgs struct {
 	Notifier                  EpochStartNotifier
 	OldDataCleanerProvider    clean.OldDataCleanerProvider
 	CustomDatabaseRemover     storage.CustomDatabaseRemoverHandler
+	StatusHandler             core.AppStatusHandler
 	MaxBatchSize              int
 	NumOfEpochsToKeep         uint32
 	NumOfActivePersisters     uint32

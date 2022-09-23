@@ -1203,14 +1203,17 @@ func (pcf *processComponentsFactory) newStorageResolver() (dataRetriever.Resolve
 	}()
 
 	storageServiceCreator, err := storageFactory.NewStorageServiceFactory(
-		&pcf.config,
-		&pcf.prefConfigs,
-		pcf.bootstrapComponents.ShardCoordinator(),
-		pathManager,
-		manualEpochStartNotifier,
-		pcf.coreData.NodeTypeProvider(),
-		pcf.bootstrapComponents.EpochBootstrapParams().Epoch(),
-		false,
+		storageFactory.StorageServiceFactoryArgs{
+			Config:                        &pcf.config,
+			PrefsConfig:                   &pcf.prefConfigs,
+			ShardCoordinator:              pcf.bootstrapComponents.ShardCoordinator(),
+			PathManager:                   pathManager,
+			EpochStartNotifier:            manualEpochStartNotifier,
+			NodeTypeProvider:              pcf.coreData.NodeTypeProvider(),
+			CurrentEpoch:                  pcf.bootstrapComponents.EpochBootstrapParams().Epoch(),
+			StatusHandler:                 pcf.coreData.StatusHandler(),
+			CreateTrieEpochRootHashStorer: false,
+		},
 	)
 	if err != nil {
 		return nil, err

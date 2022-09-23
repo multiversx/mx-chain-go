@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -46,6 +47,12 @@ func TestTriePruningStorer_GetFromOldEpochsWithoutCacheSearchesOnlyOldEpochs(t *
 	assert.Nil(t, res)
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), "not found"))
+}
+
+func TestTriePruningStorerWithNilPruningStorer(t *testing.T) {
+	triePruningStorer, err := pruning.NewTriePruningStorer(&pruning.StorerArgs{})
+	require.Error(t, err)
+	require.True(t, check.IfNil(triePruningStorer))
 }
 
 func TestTriePruningStorer_GetFromOldEpochsWithoutCacheLessActivePersisters(t *testing.T) {
