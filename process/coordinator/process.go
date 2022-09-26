@@ -419,6 +419,14 @@ func (tc *transactionCoordinator) RemoveTxsFromPool(body *block.Body) error {
 	return errFound
 }
 
+func (tc *transactionCoordinator) ProcessTransactionsCreateBlock(
+	header data.HeaderHandler,
+	body *block.Body,
+	timeRemaining func() time.Duration,
+) error {
+
+}
+
 // ProcessBlockTransaction processes transactions and updates state tries
 func (tc *transactionCoordinator) ProcessBlockTransaction(
 	header data.HeaderHandler,

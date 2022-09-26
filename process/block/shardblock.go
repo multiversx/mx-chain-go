@@ -341,7 +341,7 @@ func (sp *shardProcessor) ProcessBlock(headerHandler data.HeaderHandler, bodyHan
 		return nil, nil, err
 	}
 
-	return nil, nil, nil
+	return header, body, nil
 }
 
 func (sp *shardProcessor) requestEpochStartInfo(header data.ShardHeaderHandler, haveTime func() time.Duration) error {

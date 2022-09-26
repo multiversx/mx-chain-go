@@ -392,7 +392,7 @@ func (mp *metaProcessor) ProcessBlock(headerHandler data.HeaderHandler, bodyHand
 		return nil, nil, err
 	}
 
-	return nil, nil, nil
+	return header, body, nil
 }
 
 func (mp *metaProcessor) processEpochStartMetaBlock(

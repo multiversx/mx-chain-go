@@ -157,6 +157,13 @@ func (s *sovereignBlockProcessor) ProcessBlock(headerHandler data.HeaderHandler,
 		return nil, nil, err
 	}
 
+	postProcessMBs := s.txCoordinator.CreatePostProcessMiniBlocks()
+
+	receiptsHash, err := s.txCoordinator.CreateReceiptsHash()
+	if err != nil {
+		return nil, nil, err
+	}
+
 	s.prepareBlockHeaderInternalMapForValidatorProcessor()
 	_, err = s.validatorStatisticsProcessor.UpdatePeerState(headerHandler, makeCommonHeaderHandlerHashMap(s.hdrsForCurrBlock.getHdrHashMap()))
 	if err != nil {
@@ -178,7 +185,7 @@ func (s *sovereignBlockProcessor) ProcessBlock(headerHandler data.HeaderHandler,
 		return nil, nil, err
 	}
 
-	return nil, nil, nil
+	return headerHandler, bodyHandler, nil
 }
 
 // applyBodyToHeader creates a miniblock header list given a block body
