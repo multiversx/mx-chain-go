@@ -1027,7 +1027,7 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(genesisBlocks map[uint32
 	log.Info("indexGenesisBlocks(): historyRepo.RecordBlock", "shardID", currentShardId, "hash", genesisBlockHash)
 	err = pcf.historyRepo.RecordBlock(
 		genesisBlockHash,
-		genesisBlockHeader,
+		originalGenesisBlockHeader,
 		genesisBody,
 		txsPoolPerShard[currentShardId].Scrs,
 		txsPoolPerShard[currentShardId].Receipts,
