@@ -974,6 +974,18 @@ func getGenesisBlockForShard(miniBlocks []*dataBlock.MiniBlock, shardId uint32) 
 	return genesisMiniBlocks
 }
 
+func getGenesisIntraShardMiniblocks(miniBlocks []*dataBlock.MiniBlock) []*dataBlock.MiniBlock {
+	intraShardMiniBlocks := make([]*dataBlock.MiniBlock, 0)
+
+	for _, miniBlock := range miniBlocks {
+		if miniBlock.GetReceiverShardID() == miniBlock.GetSenderShardID() {
+			intraShardMiniBlocks = append(intraShardMiniBlocks, miniBlock)
+		}
+	}
+
+	return intraShardMiniBlocks
+}
+
 func (pcf *processComponentsFactory) indexGenesisBlocks(genesisBlocks map[uint32]data.HeaderHandler, initialIndexingData map[uint32]*genesis.IndexingData) error {
 	currentShardId := pcf.bootstrapComponents.ShardCoordinator().SelfId()
 	originalGenesisBlockHeader := genesisBlocks[currentShardId]
@@ -984,17 +996,18 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(genesisBlocks map[uint32
 		return err
 	}
 
+	miniBlocks, txsPoolPerShard, errGenerate := pcf.accountsParser.GenerateInitialTransactions(pcf.bootstrapComponents.ShardCoordinator(), initialIndexingData)
+	if errGenerate != nil {
+		return errGenerate
+	}
+
+	intraShardMiniBlocks := getGenesisIntraShardMiniblocks(miniBlocks)
+	genesisBody := getGenesisBlockForShard(miniBlocks, currentShardId)
+
 	if pcf.statusComponents.OutportHandler().HasDrivers() {
 		log.Info("indexGenesisBlocks(): indexer.SaveBlock", "hash", genesisBlockHash)
 
-		miniBlocks, txsPoolPerShard, errGenerate := pcf.accountsParser.GenerateInitialTransactions(pcf.bootstrapComponents.ShardCoordinator(), initialIndexingData)
-		if errGenerate != nil {
-			return errGenerate
-		}
-
 		_ = genesisBlockHeader.SetTxCount(uint32(len(txsPoolPerShard[currentShardId].Txs)))
-
-		genesisBody := getGenesisBlockForShard(miniBlocks, currentShardId)
 
 		arg := &indexer.ArgsSaveBlockData{
 			HeaderHash: genesisBlockHash,
@@ -1012,8 +1025,14 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(genesisBlocks map[uint32
 	}
 
 	log.Info("indexGenesisBlocks(): historyRepo.RecordBlock", "shardID", currentShardId, "hash", genesisBlockHash)
-	// TODO: save also genesis body transactions into node storage
-	err = pcf.historyRepo.RecordBlock(genesisBlockHash, genesisBlockHeader, &dataBlock.Body{}, nil, nil, nil, nil)
+	err = pcf.historyRepo.RecordBlock(
+		genesisBlockHash,
+		genesisBlockHeader,
+		genesisBody,
+		txsPoolPerShard[currentShardId].Scrs,
+		txsPoolPerShard[currentShardId].Receipts,
+		intraShardMiniBlocks,
+		txsPoolPerShard[currentShardId].Logs)
 	if err != nil {
 		return err
 	}
