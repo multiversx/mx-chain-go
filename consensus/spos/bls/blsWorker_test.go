@@ -381,15 +381,15 @@ func TestWorker_GetMaxMessageTypeAccepted(t *testing.T) {
 	t.Run("message type signature", func(t *testing.T) {
 		t.Parallel()
 
-		assert.Equal(t, uint32(2), service.GetMaxMessageTypeAccepted(bls.MtSignature))
+		assert.Equal(t, bls.MtSignatureMaxNumOfMessageTypeAccepted, service.GetMaxMessageTypeAccepted(bls.MtSignature))
 	})
 	t.Run("other message types", func(t *testing.T) {
 		t.Parallel()
 
-		assert.Equal(t, uint32(1), service.GetMaxMessageTypeAccepted(bls.MtUnknown))
-		assert.Equal(t, uint32(1), service.GetMaxMessageTypeAccepted(bls.MtBlockBody))
-		assert.Equal(t, uint32(1), service.GetMaxMessageTypeAccepted(bls.MtBlockHeader))
-		assert.Equal(t, uint32(1), service.GetMaxMessageTypeAccepted(bls.MtBlockBodyAndHeader))
-		assert.Equal(t, uint32(1), service.GetMaxMessageTypeAccepted(bls.MtBlockHeaderFinalInfo))
+		assert.Equal(t, bls.DefaultMaxNumOfMessageTypeAccepted, service.GetMaxMessageTypeAccepted(bls.MtUnknown))
+		assert.Equal(t, bls.DefaultMaxNumOfMessageTypeAccepted, service.GetMaxMessageTypeAccepted(bls.MtBlockBody))
+		assert.Equal(t, bls.DefaultMaxNumOfMessageTypeAccepted, service.GetMaxMessageTypeAccepted(bls.MtBlockHeader))
+		assert.Equal(t, bls.DefaultMaxNumOfMessageTypeAccepted, service.GetMaxMessageTypeAccepted(bls.MtBlockBodyAndHeader))
+		assert.Equal(t, bls.DefaultMaxNumOfMessageTypeAccepted, service.GetMaxMessageTypeAccepted(bls.MtBlockHeaderFinalInfo))
 	})
 }

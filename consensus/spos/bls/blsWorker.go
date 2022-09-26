@@ -19,11 +19,11 @@ const peerMaxMessagesPerSec = uint32(6)
 
 // defaultMaxNumOfMessageTypeAccepted represents the maximum number of the same message type accepted in one round to be
 // received from the same public key for the default message types
-const defaultMaxNumOfMessageTypeAccepted = 1
+const defaultMaxNumOfMessageTypeAccepted = uint32(1)
 
 // mtSignatureMaxNumOfMessageTypeAccepted represents the maximum number of the signature message type accepted in one round to be
 // received from the same public key
-const mtSignatureMaxNumOfMessageTypeAccepted = 2
+const mtSignatureMaxNumOfMessageTypeAccepted = uint32(2)
 
 // worker defines the data needed by spos to communicate between nodes which are in the validators group
 type worker struct {
