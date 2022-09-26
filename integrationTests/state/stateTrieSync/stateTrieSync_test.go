@@ -362,7 +362,7 @@ func addValuesToDataTrie(t *testing.T, adb state.AccountsAdapter, acc state.User
 	for i := 0; i < numVals; i++ {
 		keyRandBytes := integrationTests.CreateRandomBytes(32)
 		valRandBytes := integrationTests.CreateRandomBytes(valSize)
-		_ = acc.DataTrieTracker().SaveKeyValue(keyRandBytes, valRandBytes)
+		_ = acc.SaveKeyValue(keyRandBytes, valRandBytes)
 	}
 
 	err := adb.SaveAccount(acc)

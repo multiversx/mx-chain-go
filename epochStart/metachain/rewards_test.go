@@ -767,7 +767,7 @@ func TestRewardsCreator_ValidatorInfoWithMetaAddressAddedToProtocolSustainabilit
 
 	acc, _ := args.UserAccountsDB.LoadAccount(vm.FirstDelegationSCAddress)
 	userAcc, _ := acc.(state.UserAccountHandler)
-	_ = userAcc.DataTrieTracker().SaveKeyValue([]byte(core.DelegationSystemSCKey), []byte(core.DelegationSystemSCKey))
+	_ = userAcc.SaveKeyValue([]byte(core.DelegationSystemSCKey), []byte(core.DelegationSystemSCKey))
 	_ = args.UserAccountsDB.SaveAccount(userAcc)
 
 	miniBlocks, err := rwdc.CreateRewardsMiniBlocks(metaBlk, valInfo, &metaBlk.EpochStart.Economics)

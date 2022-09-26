@@ -17,6 +17,7 @@ import (
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/testscommon/storage"
+	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 )
 
@@ -84,7 +85,7 @@ func GetDefaultStateComponents() *testscommon.StateComponentsMock {
 	return &testscommon.StateComponentsMock{
 		PeersAcc: &stateMock.AccountsStub{},
 		Accounts: &stateMock.AccountsStub{},
-		Tries:    &mock.TriesHolderStub{},
+		Tries:    &trieMock.TriesHolderStub{},
 		StorageManagers: map[string]common.StorageManager{
 			"0":                         &testscommon.StorageManagerStub{},
 			trieFactory.UserAccountTrie: &testscommon.StorageManagerStub{},
