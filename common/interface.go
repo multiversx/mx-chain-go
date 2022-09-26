@@ -50,6 +50,13 @@ type KeyBuilder interface {
 	Clone() KeyBuilder
 }
 
+// DataTrieHandler is an interface that declares the methods used for dataTries
+type DataTrieHandler interface {
+	RootHash() ([]byte, error)
+	GetAllLeavesOnChannel(leavesChannel chan core.KeyValueHolder, ctx context.Context, rootHash []byte, keyBuilder KeyBuilder) error
+	IsInterfaceNil() bool
+}
+
 // StorageManager manages all trie storage operations
 type StorageManager interface {
 	Get(key []byte) ([]byte, error)

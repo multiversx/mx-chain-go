@@ -21,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	storageManager "github.com/ElrondNetwork/elrond-go/testscommon/storage"
+	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -136,7 +137,11 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 			return accounts
 		},
 		TriesContainerCalled: func() common.TriesHolder {
-			return &mock.TriesHolderStub{}
+			return &trieMock.TriesHolderStub{
+				GetCalled: func(bytes []byte) common.Trie {
+					return &trieMock.TrieStub{}
+				},
+			}
 		},
 		TrieStorageManagersCalled: func() map[string]common.StorageManager {
 			return trieStorageManagers

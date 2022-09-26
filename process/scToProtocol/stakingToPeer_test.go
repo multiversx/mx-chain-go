@@ -316,7 +316,7 @@ func TestStakingToPeer_UpdateProtocolCannotSetRewardAddressShouldErr(t *testing.
 		return userAcc, nil
 	}
 	retData, _ := json.Marshal(&stakingData)
-	_ = userAcc.DataTrieTracker().SaveKeyValue(offset, retData)
+	_ = userAcc.SaveKeyValue(offset, retData)
 
 	arguments.BaseState = baseState
 	arguments.ArgParser = argParser
@@ -371,7 +371,7 @@ func TestStakingToPeer_UpdateProtocolEmptyDataShouldNotAddToTrie(t *testing.T) {
 	baseState.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		return userAcc, nil
 	}
-	_ = userAcc.DataTrieTracker().SaveKeyValue(offset, nil)
+	_ = userAcc.SaveKeyValue(offset, nil)
 
 	arguments.BaseState = baseState
 	arguments.ArgParser = argParser
@@ -439,7 +439,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountShouldErr(t *testing.T) {
 		return userAcc, nil
 	}
 	retData, _ := json.Marshal(&stakingData)
-	_ = userAcc.DataTrieTracker().SaveKeyValue(offset, retData)
+	_ = userAcc.SaveKeyValue(offset, retData)
 
 	arguments.BaseState = baseState
 	arguments.ArgParser = argParser
@@ -502,7 +502,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountNonceShouldErr(t *testing.
 		return userAcc, nil
 	}
 	retData, _ := json.Marshal(&stakingData)
-	_ = userAcc.DataTrieTracker().SaveKeyValue(offset, retData)
+	_ = userAcc.SaveKeyValue(offset, retData)
 
 	arguments.BaseState = baseState
 	arguments.ArgParser = argParser
@@ -568,7 +568,7 @@ func TestStakingToPeer_UpdateProtocol(t *testing.T) {
 		return userAcc, nil
 	}
 	retData, _ := json.Marshal(&stakingData)
-	_ = userAcc.DataTrieTracker().SaveKeyValue(offset, retData)
+	_ = userAcc.SaveKeyValue(offset, retData)
 
 	arguments.BaseState = baseState
 	stp, _ := NewStakingToPeer(arguments)
@@ -627,7 +627,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveUnStakedNonceShouldErr(t *testing
 		return userAcc, nil
 	}
 	retData, _ := json.Marshal(&stakingData)
-	_ = userAcc.DataTrieTracker().SaveKeyValue(offset, retData)
+	_ = userAcc.SaveKeyValue(offset, retData)
 
 	arguments.BaseState = baseState
 	arguments.ArgParser = argParser
