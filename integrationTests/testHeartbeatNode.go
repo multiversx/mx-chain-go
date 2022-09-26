@@ -443,7 +443,7 @@ func (thn *TestHeartbeatNode) initResolvers() {
 		DataPools:                thn.DataPool,
 		Uint64ByteSliceConverter: TestUint64Converter,
 		DataPacker:               dataPacker,
-		TriesContainer: &mock.TriesHolderStub{
+		TriesContainer: &trieMock.TriesHolderStub{
 			GetCalled: func(bytes []byte) common.Trie {
 				return &trieMock.TrieStub{}
 			},

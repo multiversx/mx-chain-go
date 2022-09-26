@@ -855,15 +855,12 @@ func TestBaseRewardsCreator_isSystemDelegationSCTrue(t *testing.T) {
 	args.UserAccountsDB = &stateMock.AccountsStub{
 		GetExistingAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 			return &stateMock.UserAccountStub{
-				DataTrieTrackerCalled: func() state.DataTrieTracker {
-					return &mock.DataTrieTrackerStub{
-						RetrieveValueCalled: func(key []byte) ([]byte, error) {
-							if bytes.Equal(key, []byte("delegation")) {
-								return []byte("value"), nil
-							}
-							return nil, fmt.Errorf("error")
-						},
+				RetrieveValueCalled: func(key []byte) ([]byte, error) {
+					if bytes.Equal(key, []byte("delegation")) {
+						return []byte("value"), nil
 					}
+
+					return nil, fmt.Errorf("error")
 				},
 			}, nil
 		},
