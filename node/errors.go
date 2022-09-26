@@ -61,9 +61,6 @@ var ErrInvalidReceiverUsernameLength = errors.New("invalid receiver username len
 // ErrDataFieldTooBig signals that the data field is too big
 var ErrDataFieldTooBig = errors.New("data field is too big")
 
-// ErrNilHardforkTrigger signals that a nil hardfork trigger has been provided
-var ErrNilHardforkTrigger = errors.New("nil hardfork trigger")
-
 // ErrNilNodeStopChannel signals that a nil channel for node process stop has been provided
 var ErrNilNodeStopChannel = errors.New("nil node stop channel")
 
@@ -133,8 +130,5 @@ var ErrCannotCastUserAccountHandlerToVmCommonUserAccountHandler = errors.New("ca
 // ErrTrieOperationsTimeout signals that a trie operation took too long
 var ErrTrieOperationsTimeout = errors.New("trie operations timeout")
 
-// ErrNotImplemented signals that a feature is not yet implemented
-var ErrNotImplemented = errors.New("feature not implemented")
-
-// ErrNotSupported signals that an operation is not supported
-var ErrNotSupported = errors.New("operation not supported")
+// ErrNilStorer signals the using of a nil storer
+var ErrNilStorer = errors.New("nil storer")
