@@ -152,7 +152,6 @@ func (dcf *dataComponentsFactory) createDataStoreFromConfig() (dataRetriever.Sto
 			EpochStartNotifier:            dcf.epochStartNotifier,
 			NodeTypeProvider:              dcf.core.NodeTypeProvider(),
 			CurrentEpoch:                  dcf.currentEpoch,
-			StatusHandler:                 dcf.core.StatusHandler(),
 			CreateTrieEpochRootHashStorer: dcf.createTrieEpochRootHashStorer,
 		},
 	)

@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/pruning"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 )
 
 // CreateTestingTriePruningStorer creates a new trie pruning storer that is used for testing
@@ -47,7 +46,6 @@ func CreateTestingTriePruningStorer(coordinator sharding.Coordinator, notifier p
 		Notifier:               notifier,
 		OldDataCleanerProvider: &testscommon.OldDataCleanerProviderStub{},
 		CustomDatabaseRemover:  &testscommon.CustomDatabaseRemoverStub{},
-		StatusHandler:          &statusHandler.AppStatusHandlerMock{},
 		MaxBatchSize:           10,
 	}
 

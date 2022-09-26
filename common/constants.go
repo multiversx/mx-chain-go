@@ -363,9 +363,6 @@ const MetricTotalFees = "erd_total_fees"
 // MetricEpochForEconomicsData holds the epoch for which economics data are computed
 const MetricEpochForEconomicsData = "erd_epoch_for_economics_data"
 
-// MetricOldestKeptEpoch holds the earliest epoch that exists in the node's configuration
-const MetricOldestKeptEpoch = "erd_oldest_kept_epoch"
-
 // MetachainShardId will be used to identify a shard ID as metachain
 const MetachainShardId = uint32(0xFFFFFFFF)
 

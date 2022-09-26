@@ -188,9 +188,6 @@ func checkArgs(args *StorerArgs) error {
 	if check.IfNil(args.OldDataCleanerProvider) {
 		return storage.ErrNilOldDataCleanerProvider
 	}
-	if check.IfNil(args.StatusHandler) {
-		return storage.ErrNilStatusHandler
-	}
 	if args.MaxBatchSize > int(args.CacheConf.Capacity) {
 		return storage.ErrCacheSizeIsLowerThanBatchSize
 	}
@@ -211,7 +208,6 @@ func initPersistersInEpoch(
 	}
 
 	oldestEpochActive, oldestEpochKeep := computeOldestEpochActiveAndToKeep(args)
-	args.StatusHandler.SetUInt64Value(common.MetricOldestKeptEpoch, uint64(oldestEpochKeep))
 
 	var persisters []*persisterData
 	persistersMapByEpoch := make(map[uint32]*persisterData)

@@ -1211,7 +1211,6 @@ func (pcf *processComponentsFactory) newStorageResolver() (dataRetriever.Resolve
 			EpochStartNotifier:            manualEpochStartNotifier,
 			NodeTypeProvider:              pcf.coreData.NodeTypeProvider(),
 			CurrentEpoch:                  pcf.bootstrapComponents.EpochBootstrapParams().Epoch(),
-			StatusHandler:                 pcf.coreData.StatusHandler(),
 			CreateTrieEpochRootHashStorer: false,
 		},
 	)

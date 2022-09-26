@@ -33,7 +33,6 @@ type StorageServiceFactory struct {
 	pathManager                   storage.PathManagerHandler
 	epochStartNotifier            storage.EpochStartNotifier
 	oldDataCleanerProvider        clean.OldDataCleanerProvider
-	statusHandler                 core.AppStatusHandler
 	createTrieEpochRootHashStorer bool
 	currentEpoch                  uint32
 }
@@ -47,7 +46,6 @@ type StorageServiceFactoryArgs struct {
 	EpochStartNotifier            storage.EpochStartNotifier
 	NodeTypeProvider              NodeTypeProviderHandler
 	CurrentEpoch                  uint32
-	StatusHandler                 core.AppStatusHandler
 	CreateTrieEpochRootHashStorer bool
 }
 
@@ -78,7 +76,6 @@ func NewStorageServiceFactory(args StorageServiceFactoryArgs) (*StorageServiceFa
 		currentEpoch:                  args.CurrentEpoch,
 		createTrieEpochRootHashStorer: args.CreateTrieEpochRootHashStorer,
 		oldDataCleanerProvider:        oldDataCleanProvider,
-		statusHandler:                 args.StatusHandler,
 	}, nil
 }
 
@@ -94,9 +91,6 @@ func checkArgs(args StorageServiceFactoryArgs) error {
 	}
 	if check.IfNil(args.EpochStartNotifier) {
 		return storage.ErrNilEpochStartNotifier
-	}
-	if check.IfNil(args.StatusHandler) {
-		return storage.ErrNilStatusHandler
 	}
 
 	return nil
@@ -622,7 +616,6 @@ func (psf *StorageServiceFactory) createPruningStorerArgs(
 		Notifier:                  psf.epochStartNotifier,
 		MaxBatchSize:              storageConfig.DB.MaxBatchSize,
 		EnabledDbLookupExtensions: psf.generalConfig.DbLookupExtensions.Enabled,
-		StatusHandler:             psf.statusHandler,
 	}
 
 	return args
