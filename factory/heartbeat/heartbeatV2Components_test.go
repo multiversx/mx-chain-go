@@ -1,10 +1,12 @@
 package heartbeat_test
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/config"
+	errErd "github.com/ElrondNetwork/elrond-go/errors"
 	bootstrapComp "github.com/ElrondNetwork/elrond-go/factory/bootstrap"
 	heartbeatComp "github.com/ElrondNetwork/elrond-go/factory/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
@@ -72,25 +74,42 @@ func createMockHeartbeatV2ComponentsFactoryArgs() heartbeatComp.ArgHeartbeatV2Co
 	}
 }
 
-func Test_heartbeatV2Components_Create_ShouldWork(t *testing.T) {
+func Test_heartbeatV2Components_Create(t *testing.T) {
 	t.Parallel()
 
-	defer func() {
-		r := recover()
-		if r != nil {
-			assert.Fail(t, "should not panic")
-		}
-	}()
+	t.Run("invalid config should error", func(t *testing.T) {
+		t.Parallel()
 
-	args := createMockHeartbeatV2ComponentsFactoryArgs()
-	hcf, err := heartbeatComp.NewHeartbeatV2ComponentsFactory(args)
-	assert.False(t, check.IfNil(hcf))
-	assert.Nil(t, err)
+		args := createMockHeartbeatV2ComponentsFactoryArgs()
+		args.Config.HeartbeatV2.HeartbeatExpiryTimespanInSec = args.Config.HeartbeatV2.PeerAuthenticationTimeBetweenSendsInSec
+		hcf, err := heartbeatComp.NewHeartbeatV2ComponentsFactory(args)
+		assert.False(t, check.IfNil(hcf))
+		assert.Nil(t, err)
 
-	hc, err := hcf.Create()
-	assert.NotNil(t, hc)
-	assert.Nil(t, err)
+		hc, err := hcf.Create()
+		assert.Nil(t, hc)
+		assert.True(t, errors.Is(err, errErd.ErrInvalidHeartbeatV2Config))
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
 
-	err = hc.Close()
-	assert.Nil(t, err)
+		defer func() {
+			r := recover()
+			if r != nil {
+				assert.Fail(t, "should not panic")
+			}
+		}()
+
+		args := createMockHeartbeatV2ComponentsFactoryArgs()
+		hcf, err := heartbeatComp.NewHeartbeatV2ComponentsFactory(args)
+		assert.False(t, check.IfNil(hcf))
+		assert.Nil(t, err)
+
+		hc, err := hcf.Create()
+		assert.NotNil(t, hc)
+		assert.Nil(t, err)
+
+		err = hc.Close()
+		assert.Nil(t, err)
+	})
 }
