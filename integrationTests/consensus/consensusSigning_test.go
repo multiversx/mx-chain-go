@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// TODO: refactor to use nodes from multiple shards
 func initNodesWithTestSigner(
 	numNodes,
 	consensusSize,
@@ -73,6 +74,7 @@ func TestConsensusWithInvalidSigners(t *testing.T) {
 	fmt.Println("Start consensus...")
 	time.Sleep(time.Second)
 
+	// TODO: use nonces for round map for each shard separately
 	nonceForRoundMap := make(map[uint64]uint64)
 	totalCalled := 0
 	err := startNodesWithCommitBlock(nodes, mutex, nonceForRoundMap, &totalCalled)
