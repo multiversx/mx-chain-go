@@ -1,4 +1,4 @@
-package signing_test
+package crypto_test
 
 import (
 	"errors"

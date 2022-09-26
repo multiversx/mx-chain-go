@@ -18,7 +18,6 @@ import (
 	cryptoCommon "github.com/ElrondNetwork/elrond-go/common/crypto"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	consensusSigning "github.com/ElrondNetwork/elrond-go/consensus/signing"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/peerSignatureHandler"
@@ -166,13 +165,13 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 		return nil, err
 	}
 
-	signatureHolderArgs := consensusSigning.ArgsSignatureHolder{
+	signatureHolderArgs := ArgsSignatureHolder{
 		PubKeys:              []string{cp.publicKeyString},
 		PrivKeyBytes:         cp.privateKeyBytes,
 		MultiSignerContainer: multiSigner,
 		KeyGenerator:         blockSignKeyGen,
 	}
-	consensusSigHandler, err := consensusSigning.NewSignatureHolder(signatureHolderArgs)
+	consensusSigHandler, err := NewSignatureHolder(signatureHolderArgs)
 	if err != nil {
 		return nil, err
 	}

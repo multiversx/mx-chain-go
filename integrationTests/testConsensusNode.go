@@ -17,10 +17,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/multisig"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
-	consensusSigning "github.com/ElrondNetwork/elrond-go/consensus/signing"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
+	cryptoFactory "github.com/ElrondNetwork/elrond-go/factory/crypto"
 	"github.com/ElrondNetwork/elrond-go/factory/peerSignatureHandler"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/node"
@@ -241,13 +241,13 @@ func (tcn *TestConsensusNode) initNode(
 	pubKeyBytes, _ := pubKey.ToByteArray()
 	pubKeyString := coreComponents.ValidatorPubKeyConverterField.Encode(pubKeyBytes)
 	privKeyBytes, _ := privKey.ToByteArray()
-	signatureHolderArgs := consensusSigning.ArgsSignatureHolder{
+	signatureHolderArgs := cryptoFactory.ArgsSignatureHolder{
 		PubKeys:              []string{pubKeyString},
 		PrivKeyBytes:         privKeyBytes,
 		MultiSignerContainer: multiSigContainer,
 		KeyGenerator:         keyGen,
 	}
-	consensusSigHandler, _ := consensusSigning.NewSignatureHolder(signatureHolderArgs)
+	sigHandler, _ := cryptoFactory.NewSignatureHolder(signatureHolderArgs)
 
 	cryptoComponents := GetDefaultCryptoComponents()
 	cryptoComponents.PrivKey = privKey
@@ -257,7 +257,7 @@ func (tcn *TestConsensusNode) initNode(
 	cryptoComponents.MultiSigContainer = multiSigContainer
 	cryptoComponents.BlKeyGen = keyGen
 	cryptoComponents.PeerSignHandler = peerSigHandler
-	cryptoComponents.SigHandler = consensusSigHandler
+	cryptoComponents.SigHandler = sigHandler
 
 	processComponents := GetDefaultProcessComponents()
 	processComponents.ForkDetect = forkDetector
