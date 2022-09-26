@@ -533,8 +533,15 @@ func TestCheckConsensusMessageValidity_ErrMessageTypeLimitReached(t *testing.T) 
 		ChainID: chainID, MsgType: int64(bls.MtBlockBodyAndHeader),
 		Header: headerBytes, BlockHeaderHash: headerHash, PubKey: pubKey, Signature: sig, RoundIndex: 10,
 	}
-	err := cmv.CheckConsensusMessageValidity(cnsMsg, "")
-	assert.True(t, errors.Is(err, spos.ErrMessageTypeLimitReached))
+	t.Run("second time the message is received should still accept", func(t *testing.T) {
+		err := cmv.CheckConsensusMessageValidity(cnsMsg, "")
+		assert.Nil(t, err)
+	})
+	t.Run("third time should error", func(t *testing.T) {
+		cmv.AddMessageTypeToPublicKey(pubKey, 10, bls.MtBlockBodyAndHeader)
+		err := cmv.CheckConsensusMessageValidity(cnsMsg, "")
+		assert.True(t, errors.Is(err, spos.ErrMessageTypeLimitReached))
+	})
 }
 
 func TestCheckConsensusMessageValidity_InvalidSignature(t *testing.T) {
@@ -604,6 +611,9 @@ func TestIsMessageTypeLimitReached_ShouldWork(t *testing.T) {
 	cmv.AddMessageTypeToPublicKey([]byte("pk1"), 1, bls.MtBlockHeader)
 
 	assert.False(t, cmv.IsMessageTypeLimitReached([]byte("pk1"), 1, bls.MtBlockBody))
+	assert.False(t, cmv.IsMessageTypeLimitReached([]byte("pk1"), 1, bls.MtBlockHeader))
+
+	cmv.AddMessageTypeToPublicKey([]byte("pk1"), 1, bls.MtBlockHeader)
 	assert.True(t, cmv.IsMessageTypeLimitReached([]byte("pk1"), 1, bls.MtBlockHeader))
 	assert.False(t, cmv.IsMessageTypeLimitReached([]byte("pk1"), 2, bls.MtBlockHeader))
 }

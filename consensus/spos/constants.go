@@ -23,4 +23,4 @@ const ValidatorPeerHonestyDecreaseFactor = -2
 
 // MaxNumOfMessageTypeAccepted represents the maximum number of the same message type accepted in one round to be
 // received from the same public key
-const MaxNumOfMessageTypeAccepted = 1
+const MaxNumOfMessageTypeAccepted = 2
