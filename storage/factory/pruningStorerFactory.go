@@ -516,7 +516,7 @@ func (psf *StorageServiceFactory) createTriePruningStorer(
 
 func (psf *StorageServiceFactory) createTrieUnit(
 	storageConfig config.StorageConfig,
-	pruningStorageArgs *pruning.StorerArgs,
+	pruningStorageArgs pruning.StorerArgs,
 ) (storage.Storer, error) {
 	if !psf.generalConfig.StateTriesConfig.SnapshotsEnabled {
 		return psf.createTriePersister(storageConfig)
@@ -627,7 +627,7 @@ func (psf *StorageServiceFactory) setupDbLookupExtensions(chainStorer *dataRetri
 func (psf *StorageServiceFactory) createPruningStorerArgs(
 	storageConfig config.StorageConfig,
 	customDatabaseRemover storage.CustomDatabaseRemoverHandler,
-) *pruning.StorerArgs {
+) pruning.StorerArgs {
 	numOfEpochsToKeep := uint32(psf.generalConfig.StoragePruning.NumEpochsToKeep)
 	numOfActivePersisters := uint32(psf.generalConfig.StoragePruning.NumActivePersisters)
 	pruningEnabled := psf.generalConfig.StoragePruning.Enabled
@@ -638,7 +638,7 @@ func (psf *StorageServiceFactory) createPruningStorerArgs(
 		NumOfEpochsToKeep:     numOfEpochsToKeep,
 		NumOfActivePersisters: numOfActivePersisters,
 	}
-	args := &pruning.StorerArgs{
+	args := pruning.StorerArgs{
 		Identifier:                storageConfig.DB.FilePath,
 		PruningEnabled:            pruningEnabled,
 		OldDataCleanerProvider:    psf.oldDataCleanerProvider,
@@ -694,7 +694,7 @@ func (psf *StorageServiceFactory) createTriePersister(
 	return trieUnit, nil
 }
 
-func (psf *StorageServiceFactory) createTriePruningPersister(arg *pruning.StorerArgs) (storage.Storer, error) {
+func (psf *StorageServiceFactory) createTriePruningPersister(arg pruning.StorerArgs) (storage.Storer, error) {
 	isFullArchive := psf.prefsConfig.FullArchive
 	isDBLookupExtension := psf.generalConfig.DbLookupExtensions.Enabled
 	if !isFullArchive && !isDBLookupExtension {
@@ -702,7 +702,7 @@ func (psf *StorageServiceFactory) createTriePruningPersister(arg *pruning.Storer
 	}
 
 	numOldActivePersisters := psf.getNumActivePersistersForFullHistoryStorer(isFullArchive, isDBLookupExtension)
-	historyArgs := &pruning.FullHistoryStorerArgs{
+	historyArgs := pruning.FullHistoryStorerArgs{
 		StorerArgs:               arg,
 		NumOfOldActivePersisters: numOldActivePersisters,
 	}
@@ -710,7 +710,7 @@ func (psf *StorageServiceFactory) createTriePruningPersister(arg *pruning.Storer
 	return pruning.NewFullHistoryTriePruningStorer(historyArgs)
 }
 
-func (psf *StorageServiceFactory) createPruningPersister(arg *pruning.StorerArgs) (storage.Storer, error) {
+func (psf *StorageServiceFactory) createPruningPersister(arg pruning.StorerArgs) (storage.Storer, error) {
 	isFullArchive := psf.prefsConfig.FullArchive
 	isDBLookupExtension := psf.generalConfig.DbLookupExtensions.Enabled
 	if !isFullArchive && !isDBLookupExtension {
@@ -718,7 +718,7 @@ func (psf *StorageServiceFactory) createPruningPersister(arg *pruning.StorerArgs
 	}
 
 	numOldActivePersisters := psf.getNumActivePersistersForFullHistoryStorer(isFullArchive, isDBLookupExtension)
-	historyArgs := &pruning.FullHistoryStorerArgs{
+	historyArgs := pruning.FullHistoryStorerArgs{
 		StorerArgs:               arg,
 		NumOfOldActivePersisters: numOldActivePersisters,
 	}

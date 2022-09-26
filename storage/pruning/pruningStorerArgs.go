@@ -33,6 +33,6 @@ type EpochArgs struct {
 
 // FullHistoryStorerArgs will hold the arguments needed for full history PruningStorer
 type FullHistoryStorerArgs struct {
-	*StorerArgs
+	StorerArgs
 	NumOfOldActivePersisters uint32
 }

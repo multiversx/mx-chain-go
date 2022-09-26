@@ -37,7 +37,7 @@ func CreateTestingTriePruningStorer(coordinator sharding.Coordinator, notifier p
 		NumOfEpochsToKeep:     4,
 		NumOfActivePersisters: 4,
 	}
-	args := &pruning.StorerArgs{
+	args := pruning.StorerArgs{
 		PruningEnabled:         true,
 		Identifier:             "id",
 		ShardCoordinator:       coordinator,

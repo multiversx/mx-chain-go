@@ -50,7 +50,7 @@ func getDummyConfig() (storageunit.CacheConfig, storageunit.DBConfig) {
 	return cacheConf, dbConf
 }
 
-func getDefaultArgs() *pruning.StorerArgs {
+func getDefaultArgs() pruning.StorerArgs {
 	cacheConf, dbConf := getDummyConfig()
 
 	lockPersisterMap := sync.Mutex{}
@@ -74,7 +74,7 @@ func getDefaultArgs() *pruning.StorerArgs {
 		NumOfEpochsToKeep:     2,
 		NumOfActivePersisters: 2,
 	}
-	return &pruning.StorerArgs{
+	return pruning.StorerArgs{
 		PruningEnabled:         true,
 		Identifier:             "id",
 		ShardCoordinator:       mock.NewShardCoordinatorMock(0, 2),
@@ -91,7 +91,7 @@ func getDefaultArgs() *pruning.StorerArgs {
 	}
 }
 
-func getDefaultArgsSerialDB() *pruning.StorerArgs {
+func getDefaultArgsSerialDB() pruning.StorerArgs {
 	cacheConf, dbConf := getDummyConfig()
 	cacheConf.Capacity = 40
 	persisterFactory := &mock.PersisterFactoryStub{
@@ -106,7 +106,7 @@ func getDefaultArgsSerialDB() *pruning.StorerArgs {
 		NumOfEpochsToKeep:     3,
 		NumOfActivePersisters: 2,
 	}
-	return &pruning.StorerArgs{
+	return pruning.StorerArgs{
 		PruningEnabled:         true,
 		Identifier:             "id",
 		ShardCoordinator:       mock.NewShardCoordinatorMock(0, 2),

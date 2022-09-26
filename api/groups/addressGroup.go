@@ -106,7 +106,7 @@ func NewAddressGroup(facade addressFacadeHandler) (*addressGroup, error) {
 			Handler: ag.getUsername,
 		},
 		{
-			Path: 	 getCodeHashPath,
+			Path:    getCodeHashPath,
 			Method:  http.MethodGet,
 			Handler: ag.getCodeHash,
 		},

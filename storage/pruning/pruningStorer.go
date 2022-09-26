@@ -102,7 +102,7 @@ type PruningStorer struct {
 }
 
 // NewPruningStorer will return a new instance of PruningStorer without sharded directories' naming scheme
-func NewPruningStorer(args *StorerArgs) (*PruningStorer, error) {
+func NewPruningStorer(args StorerArgs) (*PruningStorer, error) {
 	err := checkArgs(args)
 	if err != nil {
 		return nil, err
@@ -125,7 +125,7 @@ func NewPruningStorer(args *StorerArgs) (*PruningStorer, error) {
 
 // initPruningStorer will create a PruningStorer with or without sharded directories' naming scheme
 func initPruningStorer(
-	args *StorerArgs,
+	args StorerArgs,
 	shardIDStr string,
 	activePersisters []*persisterData,
 	persistersMapByEpoch map[uint32]*persisterData,
@@ -162,7 +162,7 @@ func initPruningStorer(
 	return pdb, nil
 }
 
-func checkArgs(args *StorerArgs) error {
+func checkArgs(args StorerArgs) error {
 	if args.EpochsData.NumOfActivePersisters < 1 {
 		return storage.ErrInvalidNumberOfPersisters
 	}
@@ -206,7 +206,7 @@ func (ps *PruningStorer) lastEpochNeeded() uint32 {
 }
 
 func initPersistersInEpoch(
-	args *StorerArgs,
+	args StorerArgs,
 	shardIDStr string,
 ) ([]*persisterData, map[uint32]*persisterData, error) {
 	if !args.PruningEnabled {
@@ -251,7 +251,7 @@ func initPersistersInEpoch(
 }
 
 func createPersisterIfPruningDisabled(
-	args *StorerArgs,
+	args StorerArgs,
 	shardIDStr string,
 ) ([]*persisterData, map[uint32]*persisterData, error) {
 	var persisters []*persisterData
@@ -1035,7 +1035,7 @@ func (ps *PruningStorer) IsInterfaceNil() bool {
 	return ps == nil
 }
 
-func createPersisterPathForEpoch(args *StorerArgs, epoch uint32, shard string) string {
+func createPersisterPathForEpoch(args StorerArgs, epoch uint32, shard string) string {
 	filePath := args.PathManager.PathForEpoch(core.GetShardIDString(args.ShardCoordinator.SelfId()), epoch, args.Identifier)
 	if len(shard) > 0 {
 		filePath += shard
@@ -1044,7 +1044,7 @@ func createPersisterPathForEpoch(args *StorerArgs, epoch uint32, shard string) s
 	return filePath
 }
 
-func createPersisterDataForEpoch(args *StorerArgs, epoch uint32, shard string) (*persisterData, error) {
+func createPersisterDataForEpoch(args StorerArgs, epoch uint32, shard string) (*persisterData, error) {
 	// TODO: if booting from storage in an epoch > 0, shardId needs to be taken from somewhere else
 	// e.g. determined from directories in persister path or taken from boot storer
 	filePath := createPersisterPathForEpoch(args, epoch, shard)

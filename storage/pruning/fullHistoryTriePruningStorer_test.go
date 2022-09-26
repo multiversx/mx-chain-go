@@ -13,7 +13,7 @@ func TestNewFullHistoryTriePruningStorer(t *testing.T) {
 	t.Parallel()
 
 	args := getDefaultArgs()
-	fhArgs := &pruning.FullHistoryStorerArgs{
+	fhArgs := pruning.FullHistoryStorerArgs{
 		StorerArgs:               args,
 		NumOfOldActivePersisters: 10,
 	}
@@ -29,7 +29,7 @@ func TestFullHistoryTriePruningStorer_CallsMethodsFromUndelyingFHPS(t *testing.T
 		t.Parallel()
 
 		args := getDefaultArgs()
-		fhArgs := &pruning.FullHistoryStorerArgs{
+		fhArgs := pruning.FullHistoryStorerArgs{
 			StorerArgs:               args,
 			NumOfOldActivePersisters: 10,
 		}
@@ -52,7 +52,7 @@ func TestFullHistoryTriePruningStorer_CallsMethodsFromUndelyingFHPS(t *testing.T
 		t.Parallel()
 
 		args := getDefaultArgs()
-		fhArgs := &pruning.FullHistoryStorerArgs{
+		fhArgs := pruning.FullHistoryStorerArgs{
 			StorerArgs:               args,
 			NumOfOldActivePersisters: 10,
 		}
@@ -75,7 +75,7 @@ func TestFullHistoryTriePruningStorer_CallsMethodsFromUndelyingFHPS(t *testing.T
 		t.Parallel()
 
 		args := getDefaultArgs()
-		fhArgs := &pruning.FullHistoryStorerArgs{
+		fhArgs := pruning.FullHistoryStorerArgs{
 			StorerArgs:               args,
 			NumOfOldActivePersisters: 10,
 		}
@@ -98,7 +98,7 @@ func TestFullHistoryTriePruningStorer_CallsMethodsFromUndelyingFHPS(t *testing.T
 		t.Parallel()
 
 		args := getDefaultArgs()
-		fhArgs := &pruning.FullHistoryStorerArgs{
+		fhArgs := pruning.FullHistoryStorerArgs{
 			StorerArgs:               args,
 			NumOfOldActivePersisters: 10,
 		}
