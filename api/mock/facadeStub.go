@@ -350,7 +350,7 @@ func (f *FacadeStub) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
 
 // GetEpochStartDataAPI -
 func (f *FacadeStub) GetEpochStartDataAPI(epoch uint32) (*common.EpochStartDataAPI, error) {
-	return f.GetEpochStartDataAPI(epoch)
+	return f.GetEpochStartDataAPICalled(epoch)
 }
 
 // GetBlockByNonce -
