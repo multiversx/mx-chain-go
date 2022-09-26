@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/trie/keyBuilder"
 )
 
@@ -254,4 +255,14 @@ func shouldStopIfContextDone(ctx context.Context, idleProvider IdleNodeProvider)
 		case <-time.After(pollingIdleNode):
 		}
 	}
+}
+
+func treatCommitSnapshotError(err error, hash []byte, missingNodesChan chan []byte) {
+	if errors.IsClosingError(err) {
+		log.Debug("context closing", "hash", hash)
+		return
+	}
+
+	log.Error("err", err.Error(), "hash", hash)
+	missingNodesChan <- hash
 }
