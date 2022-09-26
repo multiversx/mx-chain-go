@@ -818,12 +818,12 @@ func TestWorker_ProcessReceivedMessageTypeLimitReachedShouldErr(t *testing.T) {
 
 	err = wrk.ProcessReceivedMessage(msg, fromConnectedPeerId)
 	time.Sleep(time.Second)
-	assert.Equal(t, 2, len(wrk.ReceivedMessages()[bls.MtBlockBody]))
-	assert.False(t, errors.Is(err, spos.ErrMessageTypeLimitReached))
+	assert.Equal(t, 1, len(wrk.ReceivedMessages()[bls.MtBlockBody]))
+	assert.True(t, errors.Is(err, spos.ErrMessageTypeLimitReached))
 
 	err = wrk.ProcessReceivedMessage(msg, fromConnectedPeerId)
 	time.Sleep(time.Second)
-	assert.Equal(t, 2, len(wrk.ReceivedMessages()[bls.MtBlockBody]))
+	assert.Equal(t, 1, len(wrk.ReceivedMessages()[bls.MtBlockBody]))
 	assert.True(t, errors.Is(err, spos.ErrMessageTypeLimitReached))
 }
 

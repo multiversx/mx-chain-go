@@ -100,6 +100,8 @@ type ConsensusService interface {
 	IsSubroundStartRound(int) bool
 	// GetMaxMessagesInARoundPerPeer returns the maximum number of messages a peer can send per round
 	GetMaxMessagesInARoundPerPeer() uint32
+	// GetMaxMessageTypeAccepted returns the maximum number of accepted consensus message types per round, per public key
+	GetMaxMessageTypeAccepted(msgType consensus.MessageType) uint32
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
@@ -133,7 +135,7 @@ type WorkerHandler interface {
 	DisplayStatistics()
 	// ReceivedHeader method is a wired method through which worker will receive headers from network
 	ReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte)
-	//  ResetConsensusMessages resets at the start of each round all the previous consensus messages received
+	// ResetConsensusMessages resets at the start of each round all the previous consensus messages received
 	ResetConsensusMessages()
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
