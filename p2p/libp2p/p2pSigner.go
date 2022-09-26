@@ -10,7 +10,7 @@ import (
 )
 
 type p2pSigner struct {
-	privateKey *libp2pCrypto.Secp256k1PrivateKey
+	privateKey libp2pCrypto.PrivKey
 }
 
 // Sign will sign a payload with the internal private key
