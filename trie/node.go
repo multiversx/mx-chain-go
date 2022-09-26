@@ -263,6 +263,6 @@ func treatCommitSnapshotError(err error, hash []byte, missingNodesChan chan []by
 		return
 	}
 
-	log.Error("err", err.Error(), "hash", hash)
+	log.Error("error during trie snapshot", "err", err.Error(), "hash", hash)
 	missingNodesChan <- hash
 }
