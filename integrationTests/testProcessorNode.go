@@ -107,6 +107,7 @@ import (
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
+	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/trie/keyBuilder"
 	"github.com/ElrondNetwork/elrond-go/update"
@@ -1847,7 +1848,7 @@ func (tpn *TestProcessorNode) processSCOutputAccounts(vmOutput *vmcommon.VMOutpu
 
 		storageUpdates := process.GetSortedStorageUpdates(outAcc)
 		for _, storeUpdate := range storageUpdates {
-			err = acc.DataTrieTracker().SaveKeyValue(storeUpdate.Offset, storeUpdate.Data)
+			err = acc.SaveKeyValue(storeUpdate.Offset, storeUpdate.Data)
 			if err != nil {
 				return err
 			}
@@ -3084,7 +3085,7 @@ func GetDefaultStateComponents() *testscommon.StateComponentsMock {
 		PeersAcc:     &stateMock.AccountsStub{},
 		Accounts:     &stateMock.AccountsStub{},
 		AccountsRepo: &stateMock.AccountsRepositoryStub{},
-		Tries:        &mock.TriesHolderStub{},
+		Tries:        &trieMock.TriesHolderStub{},
 		StorageManagers: map[string]common.StorageManager{
 			"0":                         &testscommon.StorageManagerStub{},
 			trieFactory.UserAccountTrie: &testscommon.StorageManagerStub{},
@@ -3125,7 +3126,7 @@ func getDefaultBootstrapComponents(shardCoordinator sharding.Coordinator) *mainF
 
 	return &mainFactoryMocks.BootstrapComponentsStub{
 		Bootstrapper: &bootstrapMocks.EpochStartBootstrapperStub{
-			TrieHolder:      &mock.TriesHolderStub{},
+			TrieHolder:      &trieMock.TriesHolderStub{},
 			StorageManagers: map[string]common.StorageManager{"0": &testscommon.StorageManagerStub{}},
 			BootstrapCalled: nil,
 		},

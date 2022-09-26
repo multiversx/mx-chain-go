@@ -1,4 +1,4 @@
-package fee
+package memoryFootprint
 
 import (
 	"fmt"
@@ -7,10 +7,12 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/node/external/timemachine/fee"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/require"
 )
 
+// keep this test in a separate package as to not be influenced by other the tests from the same package
 func TestFeeComputer_MemoryFootprint(t *testing.T) {
 	numEpochs := 10000
 	maxFootprintNumBytes := 30_000_000
@@ -18,10 +20,11 @@ func TestFeeComputer_MemoryFootprint(t *testing.T) {
 	journal := &memoryFootprintJournal{}
 	journal.before = getMemStats()
 
-	computer, _ := NewFeeComputer(ArgsNewFeeComputer{
+	feeComputer, _ := fee.NewFeeComputer(fee.ArgsNewFeeComputer{
 		BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
 		EconomicsConfig:             testscommon.GetEconomicsConfig(),
 	})
+	computer := fee.NewTestFeeComputer(feeComputer)
 
 	tx := &transaction.Transaction{
 		GasLimit: 50000,
@@ -43,7 +46,7 @@ func TestFeeComputer_MemoryFootprint(t *testing.T) {
 	_ = computer.ComputeTransactionFee(&transaction.ApiTransactionResult{Epoch: uint32(0), Tx: tx})
 
 	journal.display()
-	require.Len(t, computer.economicsInstances, numEpochs)
+	require.Equal(t, numEpochs, computer.LenEconomicsInstances())
 	require.Less(t, journal.footprint(), uint64(maxFootprintNumBytes))
 }
 
