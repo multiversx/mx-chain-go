@@ -39,6 +39,26 @@ type AccountsStub struct {
 	GetAccountWithBlockInfoCalled func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error)
 	GetCodeWithBlockInfoCalled    func(codeHash []byte, options common.RootHashHolder) ([]byte, common.BlockInfo, error)
 	CloseCalled                   func() error
+	SetSyncerCalled               func(syncer state.AccountsDBSyncer) error
+	StartSnapshotIfNeededCalled   func() error
+}
+
+// SetSyncer -
+func (as *AccountsStub) SetSyncer(syncer state.AccountsDBSyncer) error {
+	if as.SetSyncerCalled != nil {
+		return as.SetSyncerCalled(syncer)
+	}
+
+	return nil
+}
+
+// StartSnapshotIfNeeded -
+func (as *AccountsStub) StartSnapshotIfNeeded() error {
+	if as.StartSnapshotIfNeededCalled != nil {
+		return as.StartSnapshotIfNeededCalled()
+	}
+	
+	return nil
 }
 
 // GetTrie -

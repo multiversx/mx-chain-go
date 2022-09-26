@@ -10,7 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/timecache"
+	"github.com/ElrondNetwork/elrond-go/storage/cache"
 )
 
 const minTimeToLive = time.Second
@@ -33,7 +33,7 @@ func NewPrintConnectionsWatcher(timeToLive time.Duration) (*printConnectionsWatc
 
 	pcw := &printConnectionsWatcher{
 		timeToLive:   timeToLive,
-		timeCacher:   timecache.NewTimeCache(timeToLive),
+		timeCacher:   cache.NewTimeCache(timeToLive),
 		printHandler: logPrintHandler,
 	}
 

@@ -82,47 +82,53 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		pruningDelay = defaultPruningDelay
 	}
 
+	processDebugger, err := createDisabledProcessDebugger()
+	if err != nil {
+		return nil, err
+	}
+
 	base := &baseProcessor{
-		accountsDB:                     arguments.AccountsDB,
-		blockSizeThrottler:             arguments.BlockSizeThrottler,
-		forkDetector:                   arguments.ForkDetector,
-		hasher:                         arguments.CoreComponents.Hasher(),
-		marshalizer:                    arguments.CoreComponents.InternalMarshalizer(),
-		store:                          arguments.DataComponents.StorageService(),
-		shardCoordinator:               arguments.BootstrapComponents.ShardCoordinator(),
-		nodesCoordinator:               arguments.NodesCoordinator,
-		uint64Converter:                arguments.CoreComponents.Uint64ByteSliceConverter(),
-		requestHandler:                 arguments.RequestHandler,
-		appStatusHandler:               arguments.CoreComponents.StatusHandler(),
-		blockChainHook:                 arguments.BlockChainHook,
-		txCoordinator:                  arguments.TxCoordinator,
-		roundHandler:                   arguments.CoreComponents.RoundHandler(),
-		epochStartTrigger:              arguments.EpochStartTrigger,
-		headerValidator:                arguments.HeaderValidator,
-		bootStorer:                     arguments.BootStorer,
-		blockTracker:                   arguments.BlockTracker,
-		dataPool:                       arguments.DataComponents.Datapool(),
-		stateCheckpointModulus:         arguments.Config.StateTriesConfig.CheckpointRoundsModulus,
-		blockChain:                     arguments.DataComponents.Blockchain(),
-		feeHandler:                     arguments.FeeHandler,
-		outportHandler:                 arguments.StatusComponents.OutportHandler(),
-		genesisNonce:                   genesisHdr.GetNonce(),
-		versionedHeaderFactory:         arguments.BootstrapComponents.VersionedHeaderFactory(),
-		headerIntegrityVerifier:        arguments.BootstrapComponents.HeaderIntegrityVerifier(),
-		historyRepo:                    arguments.HistoryRepository,
+		accountsDB:                    arguments.AccountsDB,
+		blockSizeThrottler:            arguments.BlockSizeThrottler,
+		forkDetector:                  arguments.ForkDetector,
+		hasher:                        arguments.CoreComponents.Hasher(),
+		marshalizer:                   arguments.CoreComponents.InternalMarshalizer(),
+		store:                         arguments.DataComponents.StorageService(),
+		shardCoordinator:              arguments.BootstrapComponents.ShardCoordinator(),
+		nodesCoordinator:              arguments.NodesCoordinator,
+		uint64Converter:               arguments.CoreComponents.Uint64ByteSliceConverter(),
+		requestHandler:                arguments.RequestHandler,
+		appStatusHandler:              arguments.CoreComponents.StatusHandler(),
+		blockChainHook:                arguments.BlockChainHook,
+		txCoordinator:                 arguments.TxCoordinator,
+		roundHandler:                  arguments.CoreComponents.RoundHandler(),
+		epochStartTrigger:             arguments.EpochStartTrigger,
+		headerValidator:               arguments.HeaderValidator,
+		bootStorer:                    arguments.BootStorer,
+		blockTracker:                  arguments.BlockTracker,
+		dataPool:                      arguments.DataComponents.Datapool(),
+		stateCheckpointModulus:        arguments.Config.StateTriesConfig.CheckpointRoundsModulus,
+		blockChain:                    arguments.DataComponents.Blockchain(),
+		feeHandler:                    arguments.FeeHandler,
+		outportHandler:                arguments.StatusComponents.OutportHandler(),
+		genesisNonce:                  genesisHdr.GetNonce(),
+		versionedHeaderFactory:        arguments.BootstrapComponents.VersionedHeaderFactory(),
+		headerIntegrityVerifier:       arguments.BootstrapComponents.HeaderIntegrityVerifier(),
+		historyRepo:                   arguments.HistoryRepository,
 		epochNotifier:                 arguments.CoreComponents.EpochNotifier(),
 		enableEpochsHandler:           arguments.CoreComponents.EnableEpochsHandler(),
 		enableRoundsHandler:           arguments.EnableRoundsHandler,
-		vmContainerFactory:             arguments.VMContainersFactory,
-		vmContainer:                    arguments.VmContainer,
-		processDataTriesOnCommitEpoch:  arguments.Config.Debug.EpochStart.ProcessDataTrieOnCommitEpoch,
-		gasConsumedProvider:            arguments.GasHandler,
-		economicsData:                  arguments.CoreComponents.EconomicsData(),
-		scheduledTxsExecutionHandler:   arguments.ScheduledTxsExecutionHandler,
-		pruningDelay:                   pruningDelay,
-		processedMiniBlocksTracker:     arguments.ProcessedMiniBlocksTracker,
-		receiptsRepository:             arguments.ReceiptsRepository,
-		outportDataProvider:            arguments.OutportDataProvider,
+		vmContainerFactory:            arguments.VMContainersFactory,
+		vmContainer:                   arguments.VmContainer,
+		processDataTriesOnCommitEpoch: arguments.Config.Debug.EpochStart.ProcessDataTrieOnCommitEpoch,
+		gasConsumedProvider:           arguments.GasHandler,
+		economicsData:                 arguments.CoreComponents.EconomicsData(),
+		scheduledTxsExecutionHandler:  arguments.ScheduledTxsExecutionHandler,
+		pruningDelay:                  pruningDelay,
+		processedMiniBlocksTracker:    arguments.ProcessedMiniBlocksTracker,
+		receiptsRepository:            arguments.ReceiptsRepository,
+		processDebugger:               processDebugger,
+		outportDataProvider:           arguments.OutportDataProvider,
 	}
 
 	sp := shardProcessor{
@@ -956,6 +962,8 @@ func (sp *shardProcessor) CommitBlock(
 		"nonce", header.GetNonce(),
 		"hash", headerHash,
 	)
+
+	sp.updateLastCommittedInDebugger(headerHandler.GetRound())
 
 	errNotCritical := sp.updateCrossShardInfo(processedMetaHdrs)
 	if errNotCritical != nil {

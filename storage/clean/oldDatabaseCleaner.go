@@ -15,7 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/factory/directoryhandler"
+	"github.com/ElrondNetwork/elrond-go/storage/directoryhandler"
 )
 
 var log = logger.GetOrCreate("storage/clean")

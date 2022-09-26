@@ -405,6 +405,7 @@ func testMetaWithMissingStorer(missingUnit dataRetriever.UnitType) func(t *testi
 
 		bs, err := sync.NewMetaBootstrap(args)
 		assert.Nil(t, bs)
+		require.NotNil(t, err)
 		require.True(t, strings.Contains(err.Error(), storage.ErrKeyNotFound.Error()))
 	}
 }

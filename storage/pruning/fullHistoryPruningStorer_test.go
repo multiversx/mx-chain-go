@@ -15,8 +15,8 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/database"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
-	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
 	"github.com/ElrondNetwork/elrond-go/storage/pruning"
 	"github.com/stretchr/testify/assert"
@@ -115,11 +115,11 @@ func TestNewFullHistoryPruningStorer_GetAfterEvictShouldWork(t *testing.T) {
 	t.Parallel()
 
 	persistersByPath := make(map[string]storage.Persister)
-	persistersByPath["Epoch_0"] = memorydb.New()
+	persistersByPath["Epoch_0"] = database.NewMemDB()
 	args := getDefaultArgs()
 	args.DbPath = "Epoch_0"
-	args.NumOfActivePersisters = 1
-	args.NumOfEpochsToKeep = 2
+	args.EpochsData.NumOfActivePersisters = 1
+	args.EpochsData.NumOfEpochsToKeep = 2
 
 	fhArgs := &pruning.FullHistoryStorerArgs{
 		StorerArgs:               args,

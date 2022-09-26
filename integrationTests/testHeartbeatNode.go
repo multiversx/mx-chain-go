@@ -30,6 +30,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/heartbeat/validator"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	interceptorFactory "github.com/ElrondNetwork/elrond-go/process/interceptors/factory"
 	interceptorsProcessor "github.com/ElrondNetwork/elrond-go/process/interceptors/processor"
@@ -37,8 +38,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/networksharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	"github.com/ElrondNetwork/elrond-go/storage/timecache"
+	"github.com/ElrondNetwork/elrond-go/storage/cache"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
@@ -59,7 +60,6 @@ const (
 	thresholdBetweenSends     = 0.2
 	timeBetweenHardforks      = 2 * time.Second
 
-	messagesInChunk         = 10
 	minPeersThreshold       = 1.0
 	delayBetweenRequests    = time.Second
 	maxTimeout              = time.Minute
@@ -80,26 +80,27 @@ var TestThrottler = &processMock.InterceptorThrottlerStub{
 // TestHeartbeatNode represents a container type of class used in integration tests
 // with all its fields exported
 type TestHeartbeatNode struct {
-	ShardCoordinator           sharding.Coordinator
-	NodesCoordinator           nodesCoordinator.NodesCoordinator
-	PeerShardMapper            process.NetworkShardingCollector
-	Messenger                  p2p.Messenger
-	NodeKeys                   TestKeyPair
-	DataPool                   dataRetriever.PoolsHolder
-	Sender                     update.Closer
-	PeerAuthInterceptor        *interceptors.MultiDataInterceptor
-	HeartbeatInterceptor       *interceptors.SingleDataInterceptor
-	ValidatorInfoInterceptor   *interceptors.SingleDataInterceptor
-	PeerSigHandler             crypto.PeerSignatureHandler
-	WhiteListHandler           process.WhiteListHandler
-	Storage                    dataRetriever.StorageService
-	ResolversContainer         dataRetriever.ResolversContainer
-	ResolverFinder             dataRetriever.ResolversFinder
-	RequestHandler             process.RequestHandler
-	RequestedItemsHandler      dataRetriever.RequestedItemsHandler
-	RequestsProcessor          update.Closer
-	DirectConnectionsProcessor update.Closer
-	Interceptor                *CountInterceptor
+	ShardCoordinator             sharding.Coordinator
+	NodesCoordinator             nodesCoordinator.NodesCoordinator
+	PeerShardMapper              process.NetworkShardingCollector
+	Messenger                    p2p.Messenger
+	NodeKeys                     TestKeyPair
+	DataPool                     dataRetriever.PoolsHolder
+	Sender                       update.Closer
+	PeerAuthInterceptor          *interceptors.MultiDataInterceptor
+	HeartbeatInterceptor         *interceptors.SingleDataInterceptor
+	ValidatorInfoInterceptor     *interceptors.SingleDataInterceptor
+	PeerSigHandler               crypto.PeerSignatureHandler
+	WhiteListHandler             process.WhiteListHandler
+	Storage                      dataRetriever.StorageService
+	ResolversContainer           dataRetriever.ResolversContainer
+	ResolverFinder               dataRetriever.ResolversFinder
+	RequestHandler               process.RequestHandler
+	RequestedItemsHandler        dataRetriever.RequestedItemsHandler
+	RequestsProcessor            update.Closer
+	DirectConnectionsProcessor   update.Closer
+	Interceptor                  *CountInterceptor
+	heartbeatExpiryTimespanInSec int64
 }
 
 // NewTestHeartbeatNode returns a new TestHeartbeatNode instance with a libp2p messenger
@@ -109,6 +110,7 @@ func NewTestHeartbeatNode(
 	nodeShardId uint32,
 	minPeersWaiting int,
 	p2pConfig config.P2PConfig,
+	heartbeatExpiryTimespanInSec int64,
 ) *TestHeartbeatNode {
 	keygen := signing.NewKeyGenerator(mcl.NewSuiteBLS12())
 	sk, pk := keygen.GeneratePair()
@@ -129,8 +131,8 @@ func NewTestHeartbeatNode(
 			return keys, nil
 		},
 		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (nodesCoordinator.Validator, uint32, error) {
-			validator, _ := nodesCoordinator.NewValidator(publicKey, defaultChancesSelection, 1)
-			return validator, 0, nil
+			validatorInstance, _ := nodesCoordinator.NewValidator(publicKey, defaultChancesSelection, 1)
+			return validatorInstance, 0, nil
 		},
 	}
 	singleSigner := singlesig.NewBlsSigner()
@@ -151,9 +153,9 @@ func NewTestHeartbeatNode(
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
 
 	messenger := CreateMessengerFromConfig(p2pConfig)
-	pidPk, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
-	pkShardId, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
-	pidShardId, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
+	pidPk, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000})
+	pkShardId, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000})
+	pidShardId, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000})
 	arg := networksharding.ArgPeerShardMapper{
 		PeerIdPkCache:         pidPk,
 		FallbackPkShardCache:  pkShardId,
@@ -171,11 +173,12 @@ func NewTestHeartbeatNode(
 	}
 
 	thn := &TestHeartbeatNode{
-		ShardCoordinator: shardCoordinator,
-		NodesCoordinator: nodesCoordinatorInstance,
-		Messenger:        messenger,
-		PeerSigHandler:   peerSigHandler,
-		PeerShardMapper:  peerShardMapper,
+		ShardCoordinator:             shardCoordinator,
+		NodesCoordinator:             nodesCoordinatorInstance,
+		Messenger:                    messenger,
+		PeerSigHandler:               peerSigHandler,
+		PeerShardMapper:              peerShardMapper,
+		heartbeatExpiryTimespanInSec: heartbeatExpiryTimespanInSec,
 	}
 
 	localId := thn.Messenger.ID()
@@ -221,9 +224,9 @@ func NewTestHeartbeatNodeWithCoordinator(
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
 
 	messenger := CreateMessengerFromConfig(p2pConfig)
-	pidPk, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
-	pkShardId, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
-	pidShardId, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
+	pidPk, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000})
+	pkShardId, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000})
+	pidShardId, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000})
 	arg := networksharding.ArgPeerShardMapper{
 		PeerIdPkCache:         pidPk,
 		FallbackPkShardCache:  pkShardId,
@@ -241,12 +244,13 @@ func NewTestHeartbeatNodeWithCoordinator(
 	}
 
 	thn := &TestHeartbeatNode{
-		ShardCoordinator: shardCoordinator,
-		NodesCoordinator: coordinator,
-		Messenger:        messenger,
-		PeerSigHandler:   peerSigHandler,
-		PeerShardMapper:  peerShardMapper,
-		Interceptor:      NewCountInterceptor(),
+		ShardCoordinator:             shardCoordinator,
+		NodesCoordinator:             coordinator,
+		Messenger:                    messenger,
+		PeerSigHandler:               peerSigHandler,
+		PeerShardMapper:              peerShardMapper,
+		Interceptor:                  NewCountInterceptor(),
+		heartbeatExpiryTimespanInSec: 30,
 	}
 
 	localId := thn.Messenger.ID()
@@ -274,8 +278,8 @@ func CreateNodesWithTestHeartbeatNode(
 	validatorsMap := GenValidatorsFromPubKeys(pubKeys, uint32(numShards))
 	validatorsForNodesCoordinator, _ := nodesCoordinator.NodesInfoToValidators(validatorsMap)
 	nodesMap := make(map[uint32][]*TestHeartbeatNode)
-	cacherCfg := storageUnit.CacheConfig{Capacity: 10000, Type: storageUnit.LRUCache, Shards: 1}
-	cache, _ := storageUnit.NewCache(cacherCfg)
+	cacherCfg := storageunit.CacheConfig{Capacity: 10000, Type: storageunit.LRUCache, Shards: 1}
+	suCache, _ := storageunit.NewCache(cacherCfg)
 	for shardId, validatorList := range validatorsMap {
 		argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
 			ShardConsensusGroupSize: shardConsensusGroupSize,
@@ -286,7 +290,7 @@ func CreateNodesWithTestHeartbeatNode(
 			NbShards:                uint32(numShards),
 			EligibleNodes:           validatorsForNodesCoordinator,
 			SelfPublicKey:           []byte(strconv.Itoa(int(shardId))),
-			ConsensusGroupCache:     cache,
+			ConsensusGroupCache:     suCache,
 			Shuffler:                &shardingMocks.NodeShufflerMock{},
 			BootStorer:              CreateMemUnit(),
 			WaitingNodes:            make(map[uint32][]nodesCoordinator.Validator),
@@ -332,7 +336,7 @@ func CreateNodesWithTestHeartbeatNode(
 				NbShards:                uint32(numShards),
 				EligibleNodes:           validatorsForNodesCoordinator,
 				SelfPublicKey:           []byte(strconv.Itoa(int(shardId))),
-				ConsensusGroupCache:     cache,
+				ConsensusGroupCache:     suCache,
 				Shuffler:                &shardingMocks.NodeShufflerMock{},
 				BootStorer:              CreateMemUnit(),
 				WaitingNodes:            make(map[uint32][]nodesCoordinator.Validator),
@@ -383,9 +387,9 @@ func (thn *TestHeartbeatNode) InitTestHeartbeatNode(tb testing.TB, minPeersWaiti
 func (thn *TestHeartbeatNode) initDataPools() {
 	thn.DataPool = dataRetrieverMock.CreatePoolsHolder(1, thn.ShardCoordinator.SelfId())
 
-	cacherCfg := storageUnit.CacheConfig{Capacity: 10000, Type: storageUnit.LRUCache, Shards: 1}
-	cache, _ := storageUnit.NewCache(cacherCfg)
-	thn.WhiteListHandler, _ = interceptors.NewWhiteListDataVerifier(cache)
+	cacherCfg := storageunit.CacheConfig{Capacity: 10000, Type: storageunit.LRUCache, Shards: 1}
+	suCache, _ := storageunit.NewCache(cacherCfg)
+	thn.WhiteListHandler, _ = interceptors.NewWhiteListDataVerifier(suCache)
 }
 
 func (thn *TestHeartbeatNode) initStorage() {
@@ -410,6 +414,7 @@ func (thn *TestHeartbeatNode) initSender() {
 		NodesCoordinator:        thn.NodesCoordinator,
 		HardforkTrigger:         &testscommon.HardforkTriggerStub{},
 		HardforkTriggerPubKey:   []byte(providedHardforkPubKey),
+		PeerTypeProvider:        &mock.PeerTypeProviderStub{},
 
 		PeerAuthenticationTimeBetweenSends:          timeBetweenPeerAuths,
 		PeerAuthenticationTimeBetweenSendsWhenError: timeBetweenSendsWhenError,
@@ -428,6 +433,7 @@ func (thn *TestHeartbeatNode) initResolvers() {
 
 	_ = thn.Messenger.CreateTopic(common.ConsensusTopic+thn.ShardCoordinator.CommunicationIdentifier(thn.ShardCoordinator.SelfId()), true)
 
+	payloadValidator, _ := validator.NewPeerAuthenticationPayloadValidator(thn.heartbeatExpiryTimespanInSec)
 	resolverContainerFactory := resolverscontainer.FactoryArgs{
 		ShardCoordinator:         thn.ShardCoordinator,
 		Messenger:                thn.Messenger,
@@ -436,7 +442,7 @@ func (thn *TestHeartbeatNode) initResolvers() {
 		DataPools:                thn.DataPool,
 		Uint64ByteSliceConverter: TestUint64Converter,
 		DataPacker:               dataPacker,
-		TriesContainer: &mock.TriesHolderStub{
+		TriesContainer: &trieMock.TriesHolderStub{
 			GetCalled: func(bytes []byte) common.Trie {
 				return &trieMock.TrieStub{}
 			},
@@ -452,10 +458,8 @@ func (thn *TestHeartbeatNode) initResolvers() {
 			NumTotalPeers:       3,
 			NumFullHistoryPeers: 3,
 		},
-		NodesCoordinator:                     thn.NodesCoordinator,
-		MaxNumOfPeerAuthenticationInResponse: 5,
-		PeerShardMapper:                      thn.PeerShardMapper,
-		PeersRatingHandler:                   &p2pmocks.PeersRatingHandlerStub{},
+		PeersRatingHandler: &p2pmocks.PeersRatingHandlerStub{},
+		PayloadValidator:   payloadValidator,
 	}
 
 	if thn.ShardCoordinator.SelfId() == core.MetachainShardId {
@@ -498,7 +502,7 @@ func (thn *TestHeartbeatNode) createRequestHandler() {
 }
 
 func (thn *TestHeartbeatNode) initRequestedItemsHandler() {
-	thn.RequestedItemsHandler = timecache.NewTimeCache(roundDuration)
+	thn.RequestedItemsHandler = cache.NewTimeCache(roundDuration)
 }
 
 func (thn *TestHeartbeatNode) initInterceptors() {
@@ -511,7 +515,7 @@ func (thn *TestHeartbeatNode) initInterceptors() {
 		NodesCoordinator:             thn.NodesCoordinator,
 		PeerSignatureHandler:         thn.PeerSigHandler,
 		SignaturesHandler:            &processMock.SignaturesHandlerStub{},
-		HeartbeatExpiryTimespanInSec: 60,
+		HeartbeatExpiryTimespanInSec: thn.heartbeatExpiryTimespanInSec,
 		PeerID:                       thn.Messenger.ID(),
 	}
 
@@ -607,7 +611,6 @@ func (thn *TestHeartbeatNode) initRequestsProcessor() {
 		PeerAuthenticationPool:  thn.DataPool.PeerAuthentications(),
 		ShardId:                 thn.ShardCoordinator.SelfId(),
 		Epoch:                   0,
-		MessagesInChunk:         messagesInChunk,
 		MinPeersThreshold:       minPeersThreshold,
 		DelayBetweenRequests:    delayBetweenRequests,
 		MaxTimeout:              maxTimeout,

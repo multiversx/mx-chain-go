@@ -258,7 +258,8 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	duration := sw.GetMeasurement("execute")
 
 	if duration > executeDurationAlarmThreshold {
-		log.Debug(fmt.Sprintf("scProcessor.ExecuteSmartContractTransaction(): execution took > %s", executeDurationAlarmThreshold), "sc", tx.GetRcvAddr(), "duration", duration, "returnCode", returnCode, "err", err, "data", string(tx.GetData()))
+		txHash := sc.computeTxHashUnsafe(tx)
+		log.Debug(fmt.Sprintf("scProcessor.ExecuteSmartContractTransaction(): execution took > %s", executeDurationAlarmThreshold), "tx hash", txHash, "sc", tx.GetRcvAddr(), "duration", duration, "returnCode", returnCode, "err", err, "data", string(tx.GetData()))
 	} else {
 		log.Trace("scProcessor.ExecuteSmartContractTransaction()", "sc", tx.GetRcvAddr(), "duration", duration, "returnCode", returnCode, "err", err, "data", string(tx.GetData()))
 	}
@@ -831,7 +832,8 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 	duration := sw.GetMeasurement("executeBuiltIn")
 
 	if duration > executeDurationAlarmThreshold {
-		log.Debug(fmt.Sprintf("scProcessor.ExecuteBuiltInFunction(): execution took > %s", executeDurationAlarmThreshold), "sc", tx.GetRcvAddr(), "duration", duration, "returnCode", returnCode, "err", err, "data", string(tx.GetData()))
+		txHash := sc.computeTxHashUnsafe(tx)
+		log.Debug(fmt.Sprintf("scProcessor.ExecuteBuiltInFunction(): execution took > %s", executeDurationAlarmThreshold), "tx hash", txHash, "sc", tx.GetRcvAddr(), "duration", duration, "returnCode", returnCode, "err", err, "data", string(tx.GetData()))
 	} else {
 		log.Trace("scProcessor.ExecuteBuiltInFunction()", "sc", tx.GetRcvAddr(), "duration", duration, "returnCode", returnCode, "err", err, "data", string(tx.GetData()))
 	}
@@ -1596,7 +1598,8 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 	duration := sw.GetMeasurement("deploy")
 
 	if duration > executeDurationAlarmThreshold {
-		log.Debug(fmt.Sprintf("scProcessor.DeploySmartContract(): execution took > %s", executeDurationAlarmThreshold), "sc", tx.GetRcvAddr(), "duration", duration, "returnCode", returnCode, "err", err, "data", string(tx.GetData()))
+		txHash := sc.computeTxHashUnsafe(tx)
+		log.Debug(fmt.Sprintf("scProcessor.DeploySmartContract(): execution took > %s", executeDurationAlarmThreshold), "tx hash", txHash, "sc", tx.GetRcvAddr(), "duration", duration, "returnCode", returnCode, "err", err, "data", string(tx.GetData()))
 	} else {
 		log.Trace("scProcessor.DeploySmartContract()", "sc", tx.GetRcvAddr(), "duration", duration, "returnCode", returnCode, "err", err, "data", string(tx.GetData()))
 	}
@@ -2272,6 +2275,10 @@ func (sc *scProcessor) useLastTransferAsAsyncCallBackWhenNeeded(
 		return false
 	}
 
+	if sc.enableEpochsHandler.IsFixAsyncCallBackArgsListFlagEnabled() {
+		result.Data = append(result.Data, []byte("@"+core.ConvertToEvenHex(int(vmOutput.ReturnCode)))...)
+	}
+
 	addReturnDataToSCR(vmOutput, result)
 	result.CallType = vmData.AsynchronousCallBack
 	result.GasLimit, _ = core.SafeAddUint64(result.GasLimit, vmOutput.GasRemaining)
@@ -2443,7 +2450,7 @@ func (sc *scProcessor) processSCOutputAccounts(
 				continue
 			}
 
-			err = acc.DataTrieTracker().SaveKeyValue(storeUpdate.Offset, storeUpdate.Data)
+			err = acc.SaveKeyValue(storeUpdate.Offset, storeUpdate.Data)
 			if err != nil {
 				log.Warn("saveKeyValue", "error", err)
 				return false, nil, err
@@ -2798,6 +2805,13 @@ func isReturnOKTxHandler(
 	resultTx data.TransactionHandler,
 ) bool {
 	return bytes.HasPrefix(resultTx.GetData(), []byte(returnOkData))
+}
+
+// this function should only be called for logging reasons, since it does not perform sanity checks
+func (sc *scProcessor) computeTxHashUnsafe(tx data.TransactionHandler) []byte {
+	txHash, _ := core.CalculateHash(sc.marshalizer, sc.hasher, tx)
+
+	return txHash
 }
 
 // IsPayable returns if address is payable, smart contract ca set to false

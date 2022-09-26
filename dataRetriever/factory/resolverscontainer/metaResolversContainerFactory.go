@@ -37,30 +37,28 @@ func NewMetaResolversContainerFactory(
 	numIntraShardPeers := args.ResolverConfig.NumTotalPeers - args.ResolverConfig.NumCrossShardPeers
 	container := containers.NewResolversContainer()
 	base := &baseResolversContainerFactory{
-		container:                            container,
-		shardCoordinator:                     args.ShardCoordinator,
-		messenger:                            args.Messenger,
-		store:                                args.Store,
-		marshalizer:                          args.Marshalizer,
-		dataPools:                            args.DataPools,
-		uint64ByteSliceConverter:             args.Uint64ByteSliceConverter,
-		intRandomizer:                        &random.ConcurrentSafeIntRandomizer{},
-		dataPacker:                           args.DataPacker,
-		triesContainer:                       args.TriesContainer,
-		inputAntifloodHandler:                args.InputAntifloodHandler,
-		outputAntifloodHandler:               args.OutputAntifloodHandler,
-		throttler:                            thr,
-		isFullHistoryNode:                    args.IsFullHistoryNode,
-		currentNetworkEpochProvider:          args.CurrentNetworkEpochProvider,
-		preferredPeersHolder:                 args.PreferredPeersHolder,
-		peersRatingHandler:                   args.PeersRatingHandler,
-		numCrossShardPeers:                   int(args.ResolverConfig.NumCrossShardPeers),
-		numIntraShardPeers:                   int(numIntraShardPeers),
-		numTotalPeers:                        int(args.ResolverConfig.NumTotalPeers),
-		numFullHistoryPeers:                  int(args.ResolverConfig.NumFullHistoryPeers),
-		nodesCoordinator:                     args.NodesCoordinator,
-		maxNumOfPeerAuthenticationInResponse: args.MaxNumOfPeerAuthenticationInResponse,
-		peerShardMapper:                      args.PeerShardMapper,
+		container:                   container,
+		shardCoordinator:            args.ShardCoordinator,
+		messenger:                   args.Messenger,
+		store:                       args.Store,
+		marshalizer:                 args.Marshalizer,
+		dataPools:                   args.DataPools,
+		uint64ByteSliceConverter:    args.Uint64ByteSliceConverter,
+		intRandomizer:               &random.ConcurrentSafeIntRandomizer{},
+		dataPacker:                  args.DataPacker,
+		triesContainer:              args.TriesContainer,
+		inputAntifloodHandler:       args.InputAntifloodHandler,
+		outputAntifloodHandler:      args.OutputAntifloodHandler,
+		throttler:                   thr,
+		isFullHistoryNode:           args.IsFullHistoryNode,
+		currentNetworkEpochProvider: args.CurrentNetworkEpochProvider,
+		preferredPeersHolder:        args.PreferredPeersHolder,
+		peersRatingHandler:          args.PeersRatingHandler,
+		numCrossShardPeers:          int(args.ResolverConfig.NumCrossShardPeers),
+		numIntraShardPeers:          int(numIntraShardPeers),
+		numTotalPeers:               int(args.ResolverConfig.NumTotalPeers),
+		numFullHistoryPeers:         int(args.ResolverConfig.NumFullHistoryPeers),
+		payloadValidator:            args.PayloadValidator,
 	}
 
 	err = base.checkParams()
@@ -169,7 +167,7 @@ func (mrcf *metaResolversContainerFactory) AddShardTrieNodeResolvers(container d
 	return container.AddMultiple(keys, resolversSlice)
 }
 
-//------- Shard header resolvers
+// ------- Shard header resolvers
 
 func (mrcf *metaResolversContainerFactory) generateShardHeaderResolvers() error {
 	shardC := mrcf.shardCoordinator
@@ -211,7 +209,7 @@ func (mrcf *metaResolversContainerFactory) createShardHeaderResolver(
 		return nil, err
 	}
 
-	//TODO change this data unit creation method through a factory or func
+	// TODO change this data unit creation method through a factory or func
 	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardID)
 	hdrNonceStore, err := mrcf.store.GetStorer(hdrNonceHashDataUnit)
 	if err != nil {
@@ -245,7 +243,7 @@ func (mrcf *metaResolversContainerFactory) createShardHeaderResolver(
 	return resolver, nil
 }
 
-//------- Meta header resolvers
+// ------- Meta header resolvers
 
 func (mrcf *metaResolversContainerFactory) generateMetaChainHeaderResolvers() error {
 	identifierHeader := factory.MetachainBlocksTopic

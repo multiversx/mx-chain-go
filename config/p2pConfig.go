@@ -10,7 +10,7 @@ type P2PConfig struct {
 // NodeConfig will hold basic p2p settings
 type NodeConfig struct {
 	Port                            string
-	Seed                            string
+	PemFileName                     string
 	MaximumExpectedPeerCount        uint64
 	ThresholdMinConnectedPeers      uint32
 	MinNumPeersToWaitForOnBootstrap uint32

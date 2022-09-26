@@ -100,7 +100,11 @@ func checkBaseParams(
 	if coreComponents.MinTransactionVersion() == 0 {
 		return process.ErrInvalidTransactionVersion
 	}
-	if check.IfNil(cryptoComponents.MultiSigner()) {
+	multiSigner, err := cryptoComponents.GetMultiSigner(0)
+	if err != nil {
+		return err
+	}
+	if check.IfNil(multiSigner) {
 		return process.ErrNilMultiSigVerifier
 	}
 	if check.IfNil(cryptoComponents.BlockSignKeyGen()) {

@@ -7,7 +7,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/state"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -106,7 +105,7 @@ func TestReadOnlyAccountsDB_WriteOperationsShouldNotCalled(t *testing.T) {
 func TestReadOnlyAccountsDB_ReadOperationsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	expectedAcc := &mock.AccountWrapMock{}
+	expectedAcc := &stateMock.AccountWrapMock{}
 	expectedJournalLen := 37
 	expectedRootHash := []byte("root")
 
