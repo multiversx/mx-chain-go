@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -38,11 +39,10 @@ type vmContainerFactory struct {
 	hasher                 hashing.Hasher
 	marshalizer            marshal.Marshalizer
 	systemSCConfig         *config.SystemSmartContractsConfig
-	epochNotifier          process.EpochNotifier
 	addressPubKeyConverter core.PubkeyConverter
 	scFactory              vm.SystemSCContainerFactory
-	epochConfig            *config.EpochConfig
 	shardCoordinator       sharding.Coordinator
+	enableEpochsHandler    common.EnableEpochsHandler
 }
 
 // ArgsNewVMContainerFactory defines the arguments needed to create a new VM container factory
@@ -56,11 +56,10 @@ type ArgsNewVMContainerFactory struct {
 	SystemSCConfig      *config.SystemSmartContractsConfig
 	ValidatorAccountsDB state.AccountsAdapter
 	ChanceComputer      nodesCoordinator.ChanceComputer
-	EpochNotifier       process.EpochNotifier
-	EpochConfig         *config.EpochConfig
 	ShardCoordinator    sharding.Coordinator
 	PubkeyConv          core.PubkeyConverter
 	BlockChainHook      process.BlockChainHookHandler
+	EnableEpochsHandler common.EnableEpochsHandler
 }
 
 // NewVMContainerFactory is responsible for creating a new virtual machine factory object
@@ -101,6 +100,9 @@ func NewVMContainerFactory(args ArgsNewVMContainerFactory) (*vmContainerFactory,
 	if check.IfNil(args.BlockChainHook) {
 		return nil, process.ErrNilBlockChainHook
 	}
+	if check.IfNil(args.EnableEpochsHandler) {
+		return nil, vm.ErrNilEnableEpochsHandler
+	}
 
 	cryptoHook := hooks.NewVMCryptoHook()
 
@@ -116,10 +118,9 @@ func NewVMContainerFactory(args ArgsNewVMContainerFactory) (*vmContainerFactory,
 		systemSCConfig:         args.SystemSCConfig,
 		validatorAccountsDB:    args.ValidatorAccountsDB,
 		chanceComputer:         args.ChanceComputer,
-		epochNotifier:          args.EpochNotifier,
 		addressPubKeyConverter: args.PubkeyConv,
-		epochConfig:            args.EpochConfig,
 		shardCoordinator:       args.ShardCoordinator,
+		enableEpochsHandler:    args.EnableEpochsHandler,
 	}, nil
 }
 
@@ -167,13 +168,15 @@ func (vmf *vmContainerFactory) CreateForGenesis() (process.VirtualMachinesContai
 
 func (vmf *vmContainerFactory) createSystemVMFactoryAndEEI() (vm.SystemSCContainerFactory, vm.ContextHandler, error) {
 	atArgumentParser := parsers.NewCallArgsParser()
-	systemEI, err := systemSmartContracts.NewVMContext(
-		vmf.blockChainHook,
-		vmf.cryptoHook,
-		atArgumentParser,
-		vmf.validatorAccountsDB,
-		vmf.chanceComputer,
-	)
+	vmContextArgs := systemSmartContracts.VMContextArgs{
+		BlockChainHook:      vmf.blockChainHook,
+		CryptoHook:          vmf.cryptoHook,
+		InputParser:         atArgumentParser,
+		ValidatorAccountsDB: vmf.validatorAccountsDB,
+		ChanceComputer:      vmf.chanceComputer,
+		EnableEpochsHandler: vmf.enableEpochsHandler,
+	}
+	systemEI, err := systemSmartContracts.NewVMContext(vmContextArgs)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -187,10 +190,9 @@ func (vmf *vmContainerFactory) createSystemVMFactoryAndEEI() (vm.SystemSCContain
 		Marshalizer:            vmf.marshalizer,
 		SystemSCConfig:         vmf.systemSCConfig,
 		Economics:              vmf.economics,
-		EpochNotifier:          vmf.epochNotifier,
 		AddressPubKeyConverter: vmf.addressPubKeyConverter,
-		EpochConfig:            vmf.epochConfig,
 		ShardCoordinator:       vmf.shardCoordinator,
+		EnableEpochsHandler:    vmf.enableEpochsHandler,
 	}
 	scFactory, err := systemVMFactory.NewSystemSCFactory(argsNewSystemScFactory)
 	if err != nil {

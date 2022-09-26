@@ -361,13 +361,13 @@ func TestEconomics_ComputeEndOfEpochEconomics(t *testing.T) {
 			return leaderPercentage
 		},
 	}
-	args.Store = &mock.ChainStorerStub{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	args.Store = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{GetCalled: func(key []byte) ([]byte, error) {
 				hdr := mbPrevStartEpoch
 				hdrBytes, _ := json.Marshal(hdr)
 				return hdrBytes, nil
-			}}
+			}}, nil
 		},
 	}
 	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
@@ -445,13 +445,13 @@ func TestEconomics_VerifyRewardsPerBlock_DifferentHitRates(t *testing.T) {
 			},
 		},
 	}
-	args.Store = &mock.ChainStorerStub{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	args.Store = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			// this will be the previous epoch meta block. It has initial 0 values so it can be considered at genesis
 			return &storageStubs.StorerStub{GetCalled: func(key []byte) ([]byte, error) {
 				hdrBytes, _ := json.Marshal(hdrPrevEpochStart)
 				return hdrBytes, nil
-			}}
+			}}, nil
 		},
 	}
 	args.GenesisTotalSupply = totalSupply
@@ -563,13 +563,13 @@ func TestEconomics_VerifyRewardsPerBlock_DifferentFees(t *testing.T) {
 			},
 		},
 	}
-	args.Store = &mock.ChainStorerStub{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	args.Store = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			// this will be the previous epoch meta block. It has initial 0 values so it can be considered at genesis
 			return &storageStubs.StorerStub{GetCalled: func(key []byte) ([]byte, error) {
 				hdrBytes, _ := json.Marshal(hdrPrevEpochStart)
 				return hdrBytes, nil
-			}}
+			}}, nil
 		},
 	}
 	args.GenesisTotalSupply = totalSupply
@@ -780,13 +780,13 @@ func TestEconomics_VerifyRewardsPerBlock_MoreFeesThanInflation(t *testing.T) {
 			},
 		},
 	}
-	args.Store = &mock.ChainStorerStub{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	args.Store = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			// this will be the previous epoch meta block. It has initial 0 values so it can be considered at genesis
 			return &storageStubs.StorerStub{GetCalled: func(key []byte) ([]byte, error) {
 				hdrBytes, _ := json.Marshal(hdrPrevEpochStart)
 				return hdrBytes, nil
-			}}
+			}}, nil
 		},
 	}
 	args.GenesisTotalSupply = totalSupply
@@ -978,13 +978,13 @@ func TestEconomics_VerifyRewardsPerBlock_InflationZero(t *testing.T) {
 			},
 		},
 	}
-	args.Store = &mock.ChainStorerStub{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	args.Store = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			// this will be the previous epoch meta block. It has initial 0 values so it can be considered at genesis
 			return &storageStubs.StorerStub{GetCalled: func(key []byte) ([]byte, error) {
 				hdrBytes, _ := json.Marshal(hdrPrevEpochStart)
 				return hdrBytes, nil
-			}}
+			}}, nil
 		},
 	}
 	args.GenesisTotalSupply = totalSupply
@@ -1625,13 +1625,13 @@ func createArgsForComputeEndOfEpochEconomics(
 			},
 		},
 	}
-	args.Store = &mock.ChainStorerStub{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	args.Store = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			// this will be the previous epoch meta block. It has initial 0 values so it can be considered at genesis
 			return &storageStubs.StorerStub{GetCalled: func(key []byte) ([]byte, error) {
 				hdrBytes, _ := json.Marshal(hdrPrevEpochStart)
 				return hdrBytes, nil
-			}}
+			}}, nil
 		},
 	}
 	args.GenesisTotalSupply = totalSupply
@@ -1717,7 +1717,7 @@ func getArguments() ArgsNewEpochEconomics {
 	return ArgsNewEpochEconomics{
 		Marshalizer:           &mock.MarshalizerMock{},
 		Hasher:                &hashingMocks.HasherMock{},
-		Store:                 &mock.ChainStorerStub{},
+		Store:                 &storageStubs.ChainStorerStub{},
 		ShardCoordinator:      mock.NewMultipleShardsCoordinatorMock(),
 		RewardsHandler:        &mock.RewardsHandlerStub{},
 		RoundTime:             &mock.RoundTimeDurationHandler{},

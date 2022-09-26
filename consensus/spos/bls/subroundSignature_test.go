@@ -4,12 +4,12 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -129,7 +129,7 @@ func TestSubroundSignature_NewSubroundSignatureNilHasherShouldFail(t *testing.T)
 	assert.Equal(t, spos.ErrNilHasher, err)
 }
 
-func TestSubroundSignature_NewSubroundSignatureNilMultisignerShouldFail(t *testing.T) {
+func TestSubroundSignature_NewSubroundSignatureNilMultiSignerContainerShouldFail(t *testing.T) {
 	t.Parallel()
 
 	container := mock.InitConsensusCore()
@@ -151,7 +151,7 @@ func TestSubroundSignature_NewSubroundSignatureNilMultisignerShouldFail(t *testi
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 	)
-	container.SetMultiSigner(nil)
+	container.SetMultiSignerContainer(nil)
 	srSignature, err := bls.NewSubroundSignature(
 		sr,
 		extend,
@@ -159,7 +159,7 @@ func TestSubroundSignature_NewSubroundSignatureNilMultisignerShouldFail(t *testi
 	)
 
 	assert.Nil(t, srSignature)
-	assert.Equal(t, spos.ErrNilMultiSigner, err)
+	assert.Equal(t, spos.ErrNilMultiSignerContainer, err)
 }
 
 func TestSubroundSignature_NewSubroundSignatureNilRoundHandlerShouldFail(t *testing.T) {
@@ -268,30 +268,30 @@ func TestSubroundSignature_DoSignatureJob(t *testing.T) {
 	container := mock.InitConsensusCore()
 	sr := *initSubroundSignatureWithContainer(container)
 
+	sr.Header = &block.Header{}
 	sr.Data = nil
 	r := sr.DoSignatureJob()
 	assert.False(t, r)
 
 	sr.Data = []byte("X")
 
-	multiSignerMock := mock.InitMultiSignerMock()
-
 	err := errors.New("create signature share error")
-	multiSignerMock.CreateSignatureShareCalled = func(msg []byte, bitmap []byte) ([]byte, error) {
-		return nil, err
+	signatureHandler := &mock.SignatureHandlerStub{
+		CreateSignatureShareCalled: func(msg []byte, index uint16, epoch uint32) ([]byte, error) {
+			return nil, err
+		},
 	}
-
-	container.SetMultiSigner(multiSignerMock)
+	container.SetSignatureHandler(signatureHandler)
 
 	r = sr.DoSignatureJob()
 	assert.False(t, r)
 
-	multiSignerMock = mock.InitMultiSignerMock()
-
-	multiSignerMock.CreateSignatureShareCalled = func(msg []byte, bitmap []byte) ([]byte, error) {
-		return []byte("SIG"), nil
+	signatureHandler = &mock.SignatureHandlerStub{
+		CreateSignatureShareCalled: func(msg []byte, index uint16, epoch uint32) ([]byte, error) {
+			return []byte("SIG"), nil
+		},
 	}
-	container.SetMultiSigner(multiSignerMock)
+	container.SetSignatureHandler(signatureHandler)
 
 	r = sr.DoSignatureJob()
 	assert.True(t, r)
@@ -326,6 +326,7 @@ func TestSubroundSignature_ReceivedSignature(t *testing.T) {
 		nil,
 	)
 
+	sr.Header = &block.Header{}
 	sr.Data = nil
 	r := sr.ReceivedSignature(cnsMsg)
 	assert.False(t, r)
@@ -364,15 +365,21 @@ func TestSubroundSignature_ReceivedSignatureStoreShareFailed(t *testing.T) {
 	t.Parallel()
 
 	errStore := errors.New("signature share store failed")
-	multiSigner := cryptoMocks.NewMultiSigner(21)
 	storeSigShareCalled := false
-	multiSigner.StoreSignatureShareCalled = func(index uint16, sig []byte) error {
-		storeSigShareCalled = true
-		return errStore
+	signatureHandler := &mock.SignatureHandlerStub{
+		VerifySignatureShareCalled: func(index uint16, sig, msg []byte, epoch uint32) error {
+			return nil
+		},
+		StoreSignatureShareCalled: func(index uint16, sig []byte) error {
+			storeSigShareCalled = true
+			return errStore
+		},
 	}
 
-	container := mock.InitConsensusCoreWithMultiSigner(multiSigner)
+	container := mock.InitConsensusCore()
+	container.SetSignatureHandler(signatureHandler)
 	sr := *initSubroundSignatureWithContainer(container)
+	sr.Header = &block.Header{}
 
 	signature := []byte("signature")
 	cnsMsg := consensus.NewConsensusMessage(

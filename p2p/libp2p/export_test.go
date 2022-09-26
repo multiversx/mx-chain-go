@@ -15,6 +15,7 @@ var MaxSendBuffSize = maxSendBuffSize
 var BroadcastGoRoutines = broadcastGoRoutines
 var PubsubTimeCacheDuration = pubsubTimeCacheDuration
 var AcceptMessagesInAdvanceDuration = acceptMessagesInAdvanceDuration
+var SequenceNumberSize = sequenceNumberSize
 
 const CurrentTopicMessageVersion = currentTopicMessageVersion
 const PollWaitForConnectionsInterval = pollWaitForConnectionsInterval
@@ -91,4 +92,9 @@ func (ds *directSender) Counter() uint64 {
 // Mutexes -
 func (mh *MutexHolder) Mutexes() storage.Cacher {
 	return mh.mutexes
+}
+
+// SetSignerInDirectSender sets the signer in the direct sender
+func (netMes *networkMessenger) SetSignerInDirectSender(signer p2p.SignerVerifier) {
+	netMes.ds.(*directSender).signer = signer
 }

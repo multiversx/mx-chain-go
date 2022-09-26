@@ -22,8 +22,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/storage/cache"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
-	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/trie/factory"
 )
 
@@ -206,7 +206,7 @@ func (sesb *storageEpochStartBootstrap) createStorageRequestHandler() error {
 		return err
 	}
 
-	requestedItemsHandler := timecache.NewTimeCache(timeBetweenRequests)
+	requestedItemsHandler := cache.NewTimeCache(timeBetweenRequests)
 	sesb.requestHandler, err = requestHandlers.NewResolverRequestHandler(
 		finder,
 		requestedItemsHandler,
@@ -399,18 +399,19 @@ func (sesb *storageEpochStartBootstrap) processNodesConfig(pubKey []byte) error 
 		shardId = sesb.genesisShardCoordinator.SelfId()
 	}
 	argsNewValidatorStatusSyncers := ArgsNewSyncValidatorStatus{
-		DataPool:           sesb.dataPool,
-		Marshalizer:        sesb.coreComponentsHolder.InternalMarshalizer(),
-		RequestHandler:     sesb.requestHandler,
-		ChanceComputer:     sesb.rater,
-		GenesisNodesConfig: sesb.genesisNodesConfig,
-		NodeShuffler:       sesb.nodeShuffler,
-		Hasher:             sesb.coreComponentsHolder.Hasher(),
-		PubKey:             pubKey,
-		ShardIdAsObserver:  shardId,
-		ChanNodeStop:       sesb.coreComponentsHolder.ChanStopNodeProcess(),
-		NodeTypeProvider:   sesb.coreComponentsHolder.NodeTypeProvider(),
-		IsFullArchive:      sesb.prefsConfig.FullArchive,
+		DataPool:            sesb.dataPool,
+		Marshalizer:         sesb.coreComponentsHolder.InternalMarshalizer(),
+		RequestHandler:      sesb.requestHandler,
+		ChanceComputer:      sesb.rater,
+		GenesisNodesConfig:  sesb.genesisNodesConfig,
+		NodeShuffler:        sesb.nodeShuffler,
+		Hasher:              sesb.coreComponentsHolder.Hasher(),
+		PubKey:              pubKey,
+		ShardIdAsObserver:   shardId,
+		ChanNodeStop:        sesb.coreComponentsHolder.ChanStopNodeProcess(),
+		NodeTypeProvider:    sesb.coreComponentsHolder.NodeTypeProvider(),
+		IsFullArchive:       sesb.prefsConfig.FullArchive,
+		EnableEpochsHandler: sesb.coreComponentsHolder.EnableEpochsHandler(),
 	}
 	sesb.nodesConfigHandler, err = NewSyncValidatorStatus(argsNewValidatorStatusSyncers)
 	if err != nil {
