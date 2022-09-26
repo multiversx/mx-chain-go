@@ -12,9 +12,9 @@ var _ state.UserAccountHandler = (*UserAccountStub)(nil)
 
 // UserAccountStub -
 type UserAccountStub struct {
-	Balance               *big.Int
-	AddToBalanceCalled    func(value *big.Int) error
-	DataTrieTrackerCalled func() state.DataTrieTracker
+	Balance             *big.Int
+	AddToBalanceCalled  func(value *big.Int) error
+	RetrieveValueCalled func(_ []byte) ([]byte, error)
 }
 
 // HasNewCode -
@@ -133,21 +133,27 @@ func (u *UserAccountStub) SetDataTrie(_ common.Trie) {
 }
 
 // DataTrie -
-func (u *UserAccountStub) DataTrie() common.Trie {
+func (u *UserAccountStub) DataTrie() common.DataTrieHandler {
 	return nil
 }
 
-// RetrieveValueFromDataTrieTracker -
-func (u *UserAccountStub) RetrieveValueFromDataTrieTracker(_ []byte) ([]byte, error) {
+// RetrieveValue -
+func (u *UserAccountStub) RetrieveValue(key []byte) ([]byte, error) {
+	if u.RetrieveValueCalled != nil {
+		return u.RetrieveValueCalled(key)
+	}
+
 	return nil, nil
 }
 
-// DataTrieTracker -
-func (u *UserAccountStub) DataTrieTracker() state.DataTrieTracker {
-	if u.DataTrieTrackerCalled != nil {
-		return u.DataTrieTrackerCalled()
-	}
+// SaveKeyValue -
+func (u *UserAccountStub) SaveKeyValue(_ []byte, _ []byte) error {
 	return nil
+}
+
+// SaveDirtyData -
+func (u *UserAccountStub) SaveDirtyData(_ common.Trie) (map[string][]byte, error) {
+	return nil, nil
 }
 
 // IsInterfaceNil -
