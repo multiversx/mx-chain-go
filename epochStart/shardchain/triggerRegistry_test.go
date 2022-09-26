@@ -8,9 +8,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -48,9 +48,13 @@ func cloneTrigger(t *trigger) *trigger {
 	rt.peerMiniBlocksSyncer = t.peerMiniBlocksSyncer
 	rt.appStatusHandler = t.appStatusHandler
 	rt.miniBlocksPool = t.miniBlocksPool
-	rt.mapMissingMiniblocks = t.mapMissingMiniblocks
+	rt.currentEpochValidatorInfoPool = t.currentEpochValidatorInfoPool
+	rt.validatorInfoPool = t.validatorInfoPool
+	rt.mapMissingValidatorsInfo = t.mapMissingValidatorsInfo
+	rt.mapMissingMiniBlocks = t.mapMissingMiniBlocks
 	rt.mapFinalizedEpochs = t.mapFinalizedEpochs
 	rt.roundHandler = t.roundHandler
+	rt.enableEpochsHandler = t.enableEpochsHandler
 	return rt
 }
 
@@ -80,9 +84,9 @@ func TestTrigger_LoadHeaderV1StateAfterSave(t *testing.T) {
 	arguments.Epoch = epoch
 	bootStorer := genericMocks.NewStorerMock()
 
-	arguments.Storage = &mock.ChainStorerStub{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return bootStorer
+	arguments.Storage = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return bootStorer, nil
 		},
 	}
 	key := []byte("key")
@@ -104,9 +108,9 @@ func TestTrigger_LoadHeaderV2StateAfterSave(t *testing.T) {
 	arguments.Epoch = epoch
 	bootStorer := genericMocks.NewStorerMock()
 
-	arguments.Storage = &mock.ChainStorerStub{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return bootStorer
+	arguments.Storage = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return bootStorer, nil
 		},
 	}
 
@@ -132,9 +136,9 @@ func TestTrigger_LoadStateBackwardsCompatibility(t *testing.T) {
 	arguments.Epoch = epoch
 	bootStorer := genericMocks.NewStorerMock()
 
-	arguments.Storage = &mock.ChainStorerStub{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return bootStorer
+	arguments.Storage = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return bootStorer, nil
 		},
 	}
 

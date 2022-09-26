@@ -51,7 +51,12 @@ func getTotalTxsAndHdrs(metrics map[string]uint64) (uint64, uint64) {
 func loadMetricsFromDb(store dataRetriever.StorageService, uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter, marshalizer marshal.Marshalizer, nonce uint64,
 ) (map[string]uint64, map[string]string) {
 	nonceBytes := uint64ByteSliceConverter.ToByteSlice(nonce)
-	storer := store.GetStorer(dataRetriever.StatusMetricsUnit)
+	storer, err := store.GetStorer(dataRetriever.StatusMetricsUnit)
+	if err != nil {
+		log.Debug("cannot get storer for persistent metrics", "error", err)
+		return nil, nil
+	}
+
 	statusMetricsDbBytes, err := storer.Get(nonceBytes)
 	if err != nil {
 		log.Debug("cannot load persistent metrics from storage", "error", err)

@@ -19,6 +19,7 @@ import (
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus"
+	errorsErd "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -334,6 +335,9 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 	if message.Data() == nil {
 		return ErrNilDataToProcess
 	}
+	if len(message.Signature()) == 0 {
+		return ErrNilSignatureOnP2PMessage
+	}
 
 	topic := GetConsensusTopicID(wrk.shardCoordinator)
 	err := wrk.antifloodHandler.CanProcessMessagesOnTopic(message.Peer(), topic, 1, uint64(len(message.Data())), message.SeqNo())
@@ -420,8 +424,8 @@ func (wrk *Worker) shouldBlacklistPeer(err error) bool {
 		errors.Is(err, ErrMessageForPastRound) ||
 		errors.Is(err, ErrMessageForFutureRound) ||
 		errors.Is(err, ErrNodeIsNotInEligibleList) ||
-		errors.Is(err, crypto.ErrPIDMismatch) ||
-		errors.Is(err, crypto.ErrSignatureMismatch) ||
+		errors.Is(err, errorsErd.ErrPIDMismatch) ||
+		errors.Is(err, errorsErd.ErrSignatureMismatch) ||
 		errors.Is(err, nodesCoordinator.ErrEpochNodesConfigDoesNotExist) ||
 		errors.Is(err, ErrMessageTypeLimitReached) {
 		return false

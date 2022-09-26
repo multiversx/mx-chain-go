@@ -35,3 +35,8 @@ func (stub *P2PSignerStub) SignUsingPrivateKey(skBytes []byte, payload []byte) (
 
 	return []byte{}, nil
 }
+
+// IsInterfaceNil -
+func (stub *P2PSignerStub) IsInterfaceNil() bool {
+	return stub == nil
+}

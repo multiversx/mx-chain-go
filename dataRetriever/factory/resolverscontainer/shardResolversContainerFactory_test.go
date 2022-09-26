@@ -81,9 +81,9 @@ func createDataPoolsForShard() dataRetriever.PoolsHolder {
 }
 
 func createStoreForShard() dataRetriever.StorageService {
-	return &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &storageStubs.StorerStub{}
+	return &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return &storageStubs.StorerStub{}, nil
 		},
 	}
 }
@@ -415,8 +415,9 @@ func TestShardResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	numResolverMetaBlockHeaders := 1
 	numResolverTrieNodes := 1
 	numResolverPeerAuth := 1
+	numResolverValidatorInfo := 1
 	totalResolvers := numResolverTxs + numResolverHeaders + numResolverMiniBlocks + numResolverMetaBlockHeaders +
-		numResolverSCRs + numResolverRewardTxs + numResolverTrieNodes + numResolverPeerAuth
+		numResolverSCRs + numResolverRewardTxs + numResolverTrieNodes + numResolverPeerAuth + numResolverValidatorInfo
 
 	assert.Equal(t, totalResolvers, container.Len())
 }

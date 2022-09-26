@@ -19,7 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dblookupext/esdtSupply"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
+	"github.com/ElrondNetwork/elrond-go/storage/cache"
 )
 
 var log = logger.GetOrCreate("dblookupext")
@@ -99,7 +99,7 @@ func NewHistoryRepository(arguments HistoryRepositoryArguments) (*historyReposit
 	}
 
 	hashToEpochIndex := newHashToEpochIndex(arguments.EpochByHashStorer, arguments.Marshalizer)
-	deduplicationCacheForInsertMiniblockMetadata, _ := lrucache.NewCache(sizeOfDeduplicationCache)
+	deduplicationCacheForInsertMiniblockMetadata, _ := cache.NewLRUCache(sizeOfDeduplicationCache)
 
 	eventsHashesToTxHashIndex := newEventsHashesByTxHash(arguments.EventsHashesByTxHashStorer, arguments.Marshalizer)
 

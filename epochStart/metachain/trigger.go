@@ -46,6 +46,7 @@ type ArgsNewMetaEpochStartTrigger struct {
 	Hasher             hashing.Hasher
 	Storage            dataRetriever.StorageService
 	AppStatusHandler   core.AppStatusHandler
+	DataPool           dataRetriever.PoolsHolder
 }
 
 type trigger struct {
@@ -69,6 +70,7 @@ type trigger struct {
 	marshaller                  marshal.Marshalizer
 	hasher                      hashing.Hasher
 	appStatusHandler            core.AppStatusHandler
+	validatorInfoPool           epochStart.ValidatorInfoCacher
 }
 
 // NewEpochStartTrigger creates a trigger for start of epoch
@@ -103,15 +105,21 @@ func NewEpochStartTrigger(args *ArgsNewMetaEpochStartTrigger) (*trigger, error) 
 	if check.IfNil(args.AppStatusHandler) {
 		return nil, epochStart.ErrNilStatusHandler
 	}
-
-	triggerStorage := args.Storage.GetStorer(dataRetriever.BootstrapUnit)
-	if check.IfNil(triggerStorage) {
-		return nil, epochStart.ErrNilTriggerStorage
+	if check.IfNil(args.DataPool) {
+		return nil, epochStart.ErrNilDataPoolsHolder
+	}
+	if check.IfNil(args.DataPool.CurrentEpochValidatorInfo()) {
+		return nil, epochStart.ErrNilCurrentEpochValidatorsInfoPool
 	}
 
-	metaBlockStorage := args.Storage.GetStorer(dataRetriever.MetaBlockUnit)
-	if check.IfNil(triggerStorage) {
-		return nil, epochStart.ErrNilMetaBlockStorage
+	triggerStorage, err := args.Storage.GetStorer(dataRetriever.BootstrapUnit)
+	if err != nil {
+		return nil, err
+	}
+
+	metaBlockStorage, err := args.Storage.GetStorer(dataRetriever.MetaBlockUnit)
+	if err != nil {
+		return nil, err
 	}
 
 	trigggerStateKey := common.TriggerRegistryInitialKeyPrefix + fmt.Sprintf("%d", args.Epoch)
@@ -133,9 +141,10 @@ func NewEpochStartTrigger(args *ArgsNewMetaEpochStartTrigger) (*trigger, error) 
 		epochStartMeta:              &block.MetaBlock{},
 		appStatusHandler:            args.AppStatusHandler,
 		nextEpochStartRound:         disabledRoundForForceEpochStart,
+		validatorInfoPool:           args.DataPool.CurrentEpochValidatorInfo(),
 	}
 
-	err := trig.saveState(trig.triggerStateKey)
+	err = trig.saveState(trig.triggerStateKey)
 	if err != nil {
 		return nil, err
 	}

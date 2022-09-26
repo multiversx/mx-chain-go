@@ -5,7 +5,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"reflect"
+	"strings"
 	goSync "sync"
 	"testing"
 	"time"
@@ -21,8 +23,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/storage/database"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
@@ -31,6 +33,7 @@ import (
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // waitTime defines the time in milliseconds until node waits the requested info from the network
@@ -61,9 +64,9 @@ func createMockPools() *dataRetrieverMock.PoolsHolderStub {
 	return pools
 }
 
-func createStore() *mock.ChainStorerMock {
-	return &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+func createStore() *storageStubs.ChainStorerStub {
+	return &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) ([]byte, error) {
 					return nil, process.ErrMissingHeader
@@ -71,20 +74,20 @@ func createStore() *mock.ChainStorerMock {
 				RemoveCalled: func(key []byte) error {
 					return nil
 				},
-			}
+			}, nil
 		},
 	}
 }
 
 func generateTestCache() storage.Cacher {
-	cache, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000, Shards: 1, SizeInBytes: 0})
+	cache, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000, Shards: 1, SizeInBytes: 0})
 	return cache
 }
 
 func generateTestUnit() storage.Storer {
-	storer, _ := storageUnit.NewStorageUnit(
+	storer, _ := storageunit.NewStorageUnit(
 		generateTestCache(),
-		memorydb.New(),
+		database.NewMemDB(),
 	)
 
 	return storer
@@ -433,6 +436,35 @@ func TestNewShardBootstrap_InvalidProcessTimeShouldErr(t *testing.T) {
 	assert.True(t, errors.Is(err, process.ErrInvalidProcessWaitTime))
 }
 
+func TestNewShardBootstrap_MissingStorer(t *testing.T) {
+	t.Parallel()
+
+	t.Run("missing BlockHeaderUnit", testShardWithMissingStorer(dataRetriever.BlockHeaderUnit))
+	t.Run("missing ShardHdrNonceHashDataUnit", testShardWithMissingStorer(dataRetriever.ShardHdrNonceHashDataUnit))
+}
+
+func testShardWithMissingStorer(missingUnit dataRetriever.UnitType) func(t *testing.T) {
+	return func(t *testing.T) {
+		t.Parallel()
+
+		args := CreateShardBootstrapMockArguments()
+		args.Store = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				if unitType == missingUnit ||
+					strings.Contains(unitType.String(), missingUnit.String()) {
+					return nil, fmt.Errorf("%w for %s", storage.ErrKeyNotFound, missingUnit.String())
+				}
+				return &storageStubs.StorerStub{}, nil
+			},
+		}
+
+		bs, err := sync.NewShardBootstrap(args)
+		assert.Nil(t, bs)
+		require.NotNil(t, err)
+		require.True(t, strings.Contains(err.Error(), storage.ErrKeyNotFound.Error()))
+	}
+}
+
 func TestNewShardBootstrap_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -480,57 +512,6 @@ func TestNewShardBootstrap_OkValsShouldWork(t *testing.T) {
 }
 
 // ------- processing
-
-func TestBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
-	t.Parallel()
-
-	args := CreateShardBootstrapMockArguments()
-
-	hdr := block.Header{Nonce: 1, PubKeysBitmap: []byte("X")}
-	blockBodyUnit := &storageStubs.StorerStub{
-		GetCalled: func(key []byte) (i []byte, e error) {
-			return nil, nil
-		},
-	}
-
-	store := dataRetriever.NewChainStorer()
-	store.AddStorer(dataRetriever.MiniBlockUnit, blockBodyUnit)
-	args.Store = store
-
-	blkc, _ := blockchain.NewBlockChain(&statusHandlerMock.AppStatusHandlerStub{
-		SetUInt64ValueHandler: func(key string, value uint64) {},
-	})
-
-	_ = blkc.SetGenesisHeader(&block.Header{})
-	_ = blkc.SetCurrentBlockHeaderAndRootHash(&hdr, hdr.GetRootHash())
-	args.ChainHandler = blkc
-
-	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.CheckForkCalled = func() *process.ForkInfo {
-		return &process.ForkInfo{
-			IsDetected: true,
-			Nonce:      90,
-			Round:      90,
-			Hash:       []byte("hash"),
-		}
-	}
-	forkDetector.RemoveHeaderCalled = func(nonce uint64, hash []byte) {
-	}
-	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
-		return hdr.Nonce
-	}
-	forkDetector.ProbableHighestNonceCalled = func() uint64 {
-		return 100
-	}
-	args.ForkDetector = forkDetector
-	args.RoundHandler = initRoundHandler()
-	args.BlockProcessor = createBlockProcessor(args.ChainHandler)
-
-	bs, _ := sync.NewShardBootstrap(args)
-	r := bs.SyncBlock(context.Background())
-
-	assert.Equal(t, process.ErrNilHeadersStorage, r)
-}
 
 func TestBootstrap_ShouldReturnTimeIsOutWhenMissingHeader(t *testing.T) {
 	t.Parallel()
@@ -1481,8 +1462,8 @@ func TestBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *testin
 		hdrHash = i
 	}
 	args.ChainHandler = blkc
-	args.Store = &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	args.Store = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) ([]byte, error) {
 					return prevHdrBytes, nil
@@ -1491,7 +1472,7 @@ func TestBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *testin
 					remFlags.flagHdrRemovedFromStorage = true
 					return nil
 				},
-			}
+			}, nil
 		},
 	}
 	args.BlockProcessor = &mock.BlockProcessorMock{
@@ -1624,8 +1605,8 @@ func TestBootstrap_RollbackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t *tes
 		hdrHash = nil
 	}
 	args.ChainHandler = blkc
-	args.Store = &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	args.Store = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) ([]byte, error) {
 					return prevHdrBytes, nil
@@ -1634,7 +1615,7 @@ func TestBootstrap_RollbackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t *tes
 					remFlags.flagHdrRemovedFromStorage = true
 					return nil
 				},
-			}
+			}, nil
 		},
 	}
 	args.BlockProcessor = &mock.BlockProcessorMock{

@@ -47,7 +47,6 @@ func CreateNode(
 	heartbeatComponents factory.HeartbeatComponentsHandler,
 	heartbeatV2Components factory.HeartbeatV2ComponentsHandler,
 	consensusComponents factory.ConsensusComponentsHandler,
-	epochConfig config.EpochConfig,
 	bootstrapRoundIndex uint64,
 	isInImportMode bool,
 ) (*Node, error) {
@@ -75,12 +74,11 @@ func CreateNode(
 	}
 
 	esdtNftStorage, err := builtInFunctions.NewESDTDataStorage(builtInFunctions.ArgsNewESDTDataStorage{
-		Accounts:                stateComponents.AccountsAdapterAPI(),
-		GlobalSettingsHandler:   nodeDisabled.NewDisabledGlobalSettingHandler(),
-		Marshalizer:             coreComponents.InternalMarshalizer(),
-		SaveToSystemEnableEpoch: epochConfig.EnableEpochs.OptimizeNFTStoreEnableEpoch,
-		EpochNotifier:           coreComponents.EpochNotifier(),
-		ShardCoordinator:        processComponents.ShardCoordinator(),
+		Accounts:              stateComponents.AccountsAdapterAPI(),
+		GlobalSettingsHandler: nodeDisabled.NewDisabledGlobalSettingHandler(),
+		Marshalizer:           coreComponents.InternalMarshalizer(),
+		EnableEpochsHandler:   coreComponents.EnableEpochsHandler(),
+		ShardCoordinator:      processComponents.ShardCoordinator(),
 	})
 	if err != nil {
 		return nil, err
