@@ -77,11 +77,11 @@ func (ppm *PreProcessorMock) SaveTxsToStorage(body *block.Body) error {
 }
 
 // ProcessBlockTransactions -
-func (ppm *PreProcessorMock) ProcessBlockTransactions(header data.HeaderHandler, body *block.Body, haveTime func() bool) error {
+func (ppm *PreProcessorMock) ProcessBlockTransactions(header data.HeaderHandler, body *block.Body, haveTime func() bool) (block.MiniBlockSlice, error) {
 	if ppm.ProcessBlockTransactionsCalled == nil {
-		return nil
+		return nil, nil
 	}
-	return ppm.ProcessBlockTransactionsCalled(header, body, haveTime)
+	return nil, ppm.ProcessBlockTransactionsCalled(header, body, haveTime)
 }
 
 // RequestBlockTransactions -

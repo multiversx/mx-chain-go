@@ -117,12 +117,12 @@ func (tcm *TransactionCoordinatorMock) RemoveTxsFromPool(body *block.Body) error
 }
 
 // ProcessBlockTransaction -
-func (tcm *TransactionCoordinatorMock) ProcessBlockTransaction(header data.HeaderHandler, body *block.Body, haveTime func() time.Duration) error {
+func (tcm *TransactionCoordinatorMock) ProcessBlockTransaction(header data.HeaderHandler, body *block.Body, haveTime func() time.Duration) (block.MiniBlockSlice, error) {
 	if tcm.ProcessBlockTransactionCalled == nil {
-		return nil
+		return nil, nil
 	}
 
-	return tcm.ProcessBlockTransactionCalled(header, body, haveTime)
+	return nil, tcm.ProcessBlockTransactionCalled(header, body, haveTime)
 }
 
 // CreateBlockStarted -

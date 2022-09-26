@@ -148,7 +148,7 @@ func (s *sovereignBlockProcessor) ProcessBlock(headerHandler data.HeaderHandler,
 	}()
 
 	startTime := time.Now()
-	err = s.txCoordinator.ProcessBlockTransaction(headerHandler, blockBody, haveTime)
+	miniblocks, err := s.txCoordinator.ProcessBlockTransaction(headerHandler, blockBody, haveTime)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to process block transaction",
 		"time [s]", elapsedTime,
@@ -164,28 +164,25 @@ func (s *sovereignBlockProcessor) ProcessBlock(headerHandler data.HeaderHandler,
 		return nil, nil, err
 	}
 
+	err = headerHandler.SetReceiptsHash(receiptsHash)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	s.prepareBlockHeaderInternalMapForValidatorProcessor()
 	_, err = s.validatorStatisticsProcessor.UpdatePeerState(headerHandler, makeCommonHeaderHandlerHashMap(s.hdrsForCurrBlock.getHdrHashMap()))
 	if err != nil {
 		return nil, nil, err
 	}
 
-	blockBody, err = s.applyBodyToHeader(headerHandler, blockBody)
+	createdBlockBody := &block.Body{MiniBlocks: miniblocks}
+	createdBlockBody.MiniBlocks = append(createdBlockBody.MiniBlocks, postProcessMBs...)
+	newBody, err := s.applyBodyToHeader(headerHandler, createdBlockBody)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	listMiniBlockHandlers := make([]data.MiniBlockHandler, len(blockBody.MiniBlocks))
-	for i, mb := range blockBody.MiniBlocks {
-		listMiniBlockHandlers[i] = mb
-	}
-
-	err = bodyHandler.SetMiniBlocks(listMiniBlockHandlers)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return headerHandler, bodyHandler, nil
+	return headerHandler, newBody, nil
 }
 
 // applyBodyToHeader creates a miniblock header list given a block body
