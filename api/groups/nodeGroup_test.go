@@ -400,7 +400,7 @@ func TestEpochStartData_FacadeErrorsShouldErr(t *testing.T) {
 
 	expectedErr := errors.New("expected error")
 	facade := mock.FacadeStub{
-		GetEpochStartDataForEpochCalled: func(epoch uint32) (*common.EpochStartDataAPI, error) {
+		GetEpochStartDataAPICalled: func(epoch uint32) (*common.EpochStartDataAPI, error) {
 			return nil, expectedErr
 		},
 	}
@@ -427,12 +427,12 @@ func TestEpochStartData_ShouldWork(t *testing.T) {
 	expectedEpochStartData := &common.EpochStartDataAPI{
 		Nonce:     1,
 		Round:     2,
-		ShardID:   3,
+		Shard:     3,
 		Timestamp: 4,
 	}
 
 	facade := mock.FacadeStub{
-		GetEpochStartDataForEpochCalled: func(epoch uint32) (*common.EpochStartDataAPI, error) {
+		GetEpochStartDataAPICalled: func(epoch uint32) (*common.EpochStartDataAPI, error) {
 			return expectedEpochStartData, nil
 		},
 	}

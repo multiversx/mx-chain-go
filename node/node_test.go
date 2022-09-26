@@ -3797,10 +3797,12 @@ func TestNode_GetHeartbeats(t *testing.T) {
 	})
 }
 
-func TestNode_GetEpochStartDataForEpoch(t *testing.T) {
+func TestNode_GetEpochStartDataAPI(t *testing.T) {
 	t.Parallel()
 
 	t.Run("epoch 0 - should return genesis", func(t *testing.T) {
+		t.Parallel()
+
 		n, _ := node.NewNode(
 			node.WithDataComponents(&integrationTestsMock.DataComponentsStub{
 				BlockChain: &testscommon.ChainHandlerStub{
@@ -3816,17 +3818,19 @@ func TestNode_GetEpochStartDataForEpoch(t *testing.T) {
 			}),
 		)
 
-		result, err := n.GetEpochStartDataForEpoch(0)
+		result, err := n.GetEpochStartDataAPI(0)
 		require.NoError(t, err)
 		require.Equal(t, &common.EpochStartDataAPI{
 			Nonce:     1,
 			Round:     2,
-			ShardID:   3,
+			Shard:     3,
 			Timestamp: 4,
 		}, result)
 	})
 
 	t.Run("should work for shard", func(t *testing.T) {
+		t.Parallel()
+
 		shardHeader := &block.Header{
 			Nonce:     1,
 			Round:     2,
@@ -3854,17 +3858,19 @@ func TestNode_GetEpochStartDataForEpoch(t *testing.T) {
 			}),
 		)
 
-		result, err := n.GetEpochStartDataForEpoch(5)
+		result, err := n.GetEpochStartDataAPI(5)
 		require.NoError(t, err)
 		require.Equal(t, &common.EpochStartDataAPI{
 			Nonce:     1,
 			Round:     2,
-			ShardID:   3,
+			Shard:     3,
 			Timestamp: 4,
 		}, result)
 	})
 
 	t.Run("should work for meta", func(t *testing.T) {
+		t.Parallel()
+
 		metaBlock := &block.MetaBlock{
 			Nonce:     1,
 			Round:     2,
@@ -3891,12 +3897,12 @@ func TestNode_GetEpochStartDataForEpoch(t *testing.T) {
 			}),
 		)
 
-		result, err := n.GetEpochStartDataForEpoch(5)
+		result, err := n.GetEpochStartDataAPI(5)
 		require.NoError(t, err)
 		require.Equal(t, &common.EpochStartDataAPI{
 			Nonce:     1,
 			Round:     2,
-			ShardID:   core.MetachainShardId,
+			Shard:     core.MetachainShardId,
 			Timestamp: 4,
 		}, result)
 	})

@@ -32,7 +32,7 @@ type nodeFacadeHandler interface {
 	GetHeartbeats() ([]data.PubKeyHeartbeat, error)
 	StatusMetrics() external.StatusMetricsHandler
 	GetQueryHandler(name string) (debug.QueryHandler, error)
-	GetEpochStartDataForEpoch(epoch uint32) (*common.EpochStartDataAPI, error)
+	GetEpochStartDataAPI(epoch uint32) (*common.EpochStartDataAPI, error)
 	GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error)
 	IsInterfaceNil() bool
 }
@@ -249,7 +249,7 @@ func (ng *nodeGroup) peerInfo(c *gin.Context) {
 	)
 }
 
-// peerInfo returns the information of a provided p2p peer ID
+// epochStartDataForEpoch returns epoch start data for the provided epoch
 func (ng *nodeGroup) epochStartDataForEpoch(c *gin.Context) {
 	epoch, err := getQueryParamEpoch(c)
 	if err != nil {
@@ -257,27 +257,13 @@ func (ng *nodeGroup) epochStartDataForEpoch(c *gin.Context) {
 		return
 	}
 
-	epochStartData, err := ng.getFacade().GetEpochStartDataForEpoch(epoch)
+	epochStartData, err := ng.getFacade().GetEpochStartDataAPI(epoch)
 	if err != nil {
-		c.JSON(
-			http.StatusInternalServerError,
-			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: fmt.Sprintf("%s: %s", errors.ErrGetEpochStartData.Error(), err.Error()),
-				Code:  shared.ReturnCodeInternalError,
-			},
-		)
+		shared.RespondWithInternalError(c, errors.ErrGetEpochStartData, err)
 		return
 	}
 
-	c.JSON(
-		http.StatusOK,
-		shared.GenericAPIResponse{
-			Data:  gin.H{"epochStart": epochStartData},
-			Error: "",
-			Code:  shared.ReturnCodeSuccess,
-		},
-	)
+	shared.RespondWithSuccess(c, gin.H{"epochStart": epochStartData})
 }
 
 // prometheusMetrics is the endpoint which will return the data in the way that prometheus expects them

@@ -1083,8 +1083,8 @@ func (e *epochStartBootstrap) createStorageService(
 ) (dataRetriever.StorageService, error) {
 	storageServiceCreator, err := storageFactory.NewStorageServiceFactory(
 		storageFactory.StorageServiceFactoryArgs{
-			Config:                        &e.generalConfig,
-			PrefsConfig:                   &e.prefsConfig,
+			Config:                        e.generalConfig,
+			PrefsConfig:                   e.prefsConfig,
 			ShardCoordinator:              shardCoordinator,
 			PathManager:                   pathManager,
 			EpochStartNotifier:            epochStartNotifier,

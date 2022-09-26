@@ -14,6 +14,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
@@ -954,17 +955,12 @@ func (n *Node) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
 	return peerInfoSlice, nil
 }
 
-// GetEpochStartDataForEpoch returns epoch start data of a given epoch
-func (n *Node) GetEpochStartDataForEpoch(epoch uint32) (*common.EpochStartDataAPI, error) {
+// GetEpochStartDataAPI returns epoch start data of a given epoch
+func (n *Node) GetEpochStartDataAPI(epoch uint32) (*common.EpochStartDataAPI, error) {
 	if epoch == 0 {
 		// for the first epoch, epoch start identifier isn't committed. Therefore, return the genesis info
 		genesisHeader := n.dataComponents.Blockchain().GetGenesisHeader()
-		return &common.EpochStartDataAPI{
-			Nonce:     genesisHeader.GetNonce(),
-			Round:     genesisHeader.GetRound(),
-			ShardID:   genesisHeader.GetShardID(),
-			Timestamp: int64(time.Duration(genesisHeader.GetTimeStamp())),
-		}, nil
+		return prepareEpochStartDataResponse(genesisHeader), nil
 	}
 
 	if n.bootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
@@ -976,6 +972,7 @@ func (n *Node) GetEpochStartDataForEpoch(epoch uint32) (*common.EpochStartDataAP
 
 func (n *Node) getShardFirstNonceOfEpoch(epoch uint32) (*common.EpochStartDataAPI, error) {
 	storer := n.dataComponents.StorageService().GetStorer(dataRetriever.BlockHeaderUnit)
+	// TODO: remove this check when integrating the changes into rcv1.4.0, since GetStorer will return an error as well
 	if check.IfNil(storer) {
 		return nil, fmt.Errorf("%w for identifier BlockHeaderUnit", ErrNilStorer)
 	}
@@ -991,16 +988,12 @@ func (n *Node) getShardFirstNonceOfEpoch(epoch uint32) (*common.EpochStartDataAP
 		return nil, err
 	}
 
-	return &common.EpochStartDataAPI{
-		Nonce:     header.GetNonce(),
-		Round:     header.GetRound(),
-		ShardID:   header.GetShardID(),
-		Timestamp: int64(time.Duration(header.GetTimeStamp())),
-	}, nil
+	return prepareEpochStartDataResponse(header), nil
 }
 
 func (n *Node) getMetaFirstNonceOfEpoch(epoch uint32) (*common.EpochStartDataAPI, error) {
 	storer := n.dataComponents.StorageService().GetStorer(dataRetriever.MetaBlockUnit)
+	// TODO: remove this check when integrating the changes into rcv1.4.0, since GetStorer will return an error as well
 	if check.IfNil(storer) {
 		return nil, fmt.Errorf("%w for identifier MetaBlockUnit", ErrNilStorer)
 	}
@@ -1017,12 +1010,31 @@ func (n *Node) getMetaFirstNonceOfEpoch(epoch uint32) (*common.EpochStartDataAPI
 		return nil, err
 	}
 
-	return &common.EpochStartDataAPI{
-		Nonce:     metaBlock.GetNonce(),
-		Round:     metaBlock.GetRound(),
-		ShardID:   core.MetachainShardId,
-		Timestamp: int64(time.Duration(metaBlock.GetTimeStamp())),
-	}, nil
+	return prepareEpochStartDataResponse(&metaBlock), nil
+}
+
+func prepareEpochStartDataResponse(header data.HeaderHandler) *common.EpochStartDataAPI {
+	response := &common.EpochStartDataAPI{
+		Nonce:         header.GetNonce(),
+		Round:         header.GetRound(),
+		Shard:         header.GetShardID(),
+		Timestamp:     int64(time.Duration(header.GetTimeStamp())),
+		Epoch:         header.GetEpoch(),
+		PrevBlockHash: hex.EncodeToString(header.GetPrevHash()),
+		StateRootHash: hex.EncodeToString(header.GetRootHash()),
+	}
+
+	if header.GetAdditionalData() != nil {
+		response.ScheduledRootHash = hex.EncodeToString(header.GetAdditionalData().GetScheduledRootHash())
+	}
+	if header.GetAccumulatedFees() != nil {
+		response.AccumulatedFees = header.GetAccumulatedFees().String()
+	}
+	if header.GetDeveloperFees() != nil {
+		response.DeveloperFees = header.GetDeveloperFees().String()
+	}
+
+	return response
 }
 
 // GetCoreComponents returns the core components

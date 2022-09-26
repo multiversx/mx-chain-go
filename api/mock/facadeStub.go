@@ -40,7 +40,7 @@ type FacadeStub struct {
 	GetQueryHandlerCalled                       func(name string) (debug.QueryHandler, error)
 	GetValueForKeyCalled                        func(address string, key string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
 	GetPeerInfoCalled                           func(pid string) ([]core.QueryP2PPeerInfo, error)
-	GetEpochStartDataForEpochCalled             func(epoch uint32) (*common.EpochStartDataAPI, error)
+	GetEpochStartDataAPICalled                  func(epoch uint32) (*common.EpochStartDataAPI, error)
 	GetThrottlerForEndpointCalled               func(endpoint string) (core.Throttler, bool)
 	GetUsernameCalled                           func(address string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
 	GetKeyValuePairsCalled                      func(address string, options api.AccountQueryOptions) (map[string]string, api.BlockInfo, error)
@@ -348,9 +348,9 @@ func (f *FacadeStub) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
 	return f.GetPeerInfoCalled(pid)
 }
 
-// GetEpochStartDataForEpoch -
-func (f *FacadeStub) GetEpochStartDataForEpoch(epoch uint32) (*common.EpochStartDataAPI, error) {
-	return f.GetEpochStartDataForEpochCalled(epoch)
+// GetEpochStartDataAPI -
+func (f *FacadeStub) GetEpochStartDataAPI(epoch uint32) (*common.EpochStartDataAPI, error) {
+	return f.GetEpochStartDataAPI(epoch)
 }
 
 // GetBlockByNonce -

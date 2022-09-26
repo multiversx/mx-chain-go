@@ -1204,8 +1204,8 @@ func (pcf *processComponentsFactory) newStorageResolver() (dataRetriever.Resolve
 
 	storageServiceCreator, err := storageFactory.NewStorageServiceFactory(
 		storageFactory.StorageServiceFactoryArgs{
-			Config:                        &pcf.config,
-			PrefsConfig:                   &pcf.prefConfigs,
+			Config:                        pcf.config,
+			PrefsConfig:                   pcf.prefConfigs,
 			ShardCoordinator:              pcf.bootstrapComponents.ShardCoordinator(),
 			PathManager:                   pathManager,
 			EpochStartNotifier:            manualEpochStartNotifier,

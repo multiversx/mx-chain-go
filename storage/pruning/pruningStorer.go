@@ -95,7 +95,6 @@ type PruningStorer struct {
 	epochPrepareHdr        data.HeaderHandler
 	oldDataCleanerProvider clean.OldDataCleanerProvider
 	customDatabaseRemover  storage.CustomDatabaseRemoverHandler
-	statusHandler          core.AppStatusHandler
 	identifier             string
 	numOfEpochsToKeep      uint32
 	numOfActivePersisters  uint32

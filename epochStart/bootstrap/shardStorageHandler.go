@@ -45,8 +45,8 @@ func NewShardStorageHandler(
 	epochStartNotifier := &disabled.EpochStartNotifier{}
 	storageFactory, err := factory.NewStorageServiceFactory(
 		factory.StorageServiceFactoryArgs{
-			Config:                        &generalConfig,
-			PrefsConfig:                   &prefsConfig,
+			Config:                        generalConfig,
+			PrefsConfig:                   prefsConfig,
 			ShardCoordinator:              shardCoordinator,
 			PathManager:                   pathManagerHandler,
 			EpochStartNotifier:            epochStartNotifier,

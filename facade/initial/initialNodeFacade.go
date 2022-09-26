@@ -231,8 +231,8 @@ func (inf *initialNodeFacade) GetPeerInfo(_ string) ([]core.QueryP2PPeerInfo, er
 	return nil, errNodeStarting
 }
 
-// GetEpochStartDataForEpoch returns nil and error
-func (inf *initialNodeFacade) GetEpochStartDataForEpoch(_ uint32) (*common.EpochStartDataAPI, error) {
+// GetEpochStartDataAPI returns nil and error
+func (inf *initialNodeFacade) GetEpochStartDataAPI(_ uint32) (*common.EpochStartDataAPI, error) {
 	return nil, errNodeStarting
 }
 

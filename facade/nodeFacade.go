@@ -411,9 +411,9 @@ func (nf *nodeFacade) GetQueryHandler(name string) (debug.QueryHandler, error) {
 	return nf.node.GetQueryHandler(name)
 }
 
-// GetEpochStartDataForEpoch returns the first committed nonce of the provided epoch
-func (nf *nodeFacade) GetEpochStartDataForEpoch(epoch uint32) (*common.EpochStartDataAPI, error) {
-	return nf.node.GetEpochStartDataForEpoch(epoch)
+// GetEpochStartDataAPI returns epoch start data of the provided epoch
+func (nf *nodeFacade) GetEpochStartDataAPI(epoch uint32) (*common.EpochStartDataAPI, error) {
+	return nf.node.GetEpochStartDataAPI(epoch)
 }
 
 // GetPeerInfo returns the peer info of a provided pid

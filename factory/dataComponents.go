@@ -145,8 +145,8 @@ func (dcf *dataComponentsFactory) createBlockChainFromConfig() (data.ChainHandle
 func (dcf *dataComponentsFactory) createDataStoreFromConfig() (dataRetriever.StorageService, error) {
 	storageServiceFactory, err := factory.NewStorageServiceFactory(
 		factory.StorageServiceFactoryArgs{
-			Config:                        &dcf.config,
-			PrefsConfig:                   &dcf.prefsConfig,
+			Config:                        dcf.config,
+			PrefsConfig:                   dcf.prefsConfig,
 			ShardCoordinator:              dcf.shardCoordinator,
 			PathManager:                   dcf.core.PathHandler(),
 			EpochStartNotifier:            dcf.epochStartNotifier,

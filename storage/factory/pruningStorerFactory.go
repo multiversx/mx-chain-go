@@ -27,8 +27,8 @@ const (
 
 // StorageServiceFactory handles the creation of storage services for both meta and shards
 type StorageServiceFactory struct {
-	generalConfig                 *config.Config
-	prefsConfig                   *config.PreferencesConfig
+	generalConfig                 config.Config
+	prefsConfig                   config.PreferencesConfig
 	shardCoordinator              storage.ShardCoordinator
 	pathManager                   storage.PathManagerHandler
 	epochStartNotifier            storage.EpochStartNotifier
@@ -40,8 +40,8 @@ type StorageServiceFactory struct {
 
 // StorageServiceFactoryArgs holds the arguments needed for creating a new storage service factory
 type StorageServiceFactoryArgs struct {
-	Config                        *config.Config
-	PrefsConfig                   *config.PreferencesConfig
+	Config                        config.Config
+	PrefsConfig                   config.PreferencesConfig
 	ShardCoordinator              storage.ShardCoordinator
 	PathManager                   storage.PathManagerHandler
 	EpochStartNotifier            storage.EpochStartNotifier
@@ -83,12 +83,6 @@ func NewStorageServiceFactory(args StorageServiceFactoryArgs) (*StorageServiceFa
 }
 
 func checkArgs(args StorageServiceFactoryArgs) error {
-	if args.Config == nil {
-		return fmt.Errorf("%w for config.Config", storage.ErrNilConfig)
-	}
-	if args.PrefsConfig == nil {
-		return fmt.Errorf("%w for config.PreferencesConfig", storage.ErrNilConfig)
-	}
 	if args.Config.StoragePruning.NumActivePersisters < minimumNumberOfActivePersisters {
 		return storage.ErrInvalidNumberOfActivePersisters
 	}

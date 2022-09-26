@@ -260,8 +260,8 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 
 	storageFactory, err := factory.NewStorageServiceFactory(
 		factory.StorageServiceFactoryArgs{
-			Config:                        &generalConfig,
-			PrefsConfig:                   &prefsConfig,
+			Config:                        generalConfig,
+			PrefsConfig:                   prefsConfig,
 			ShardCoordinator:              shardC,
 			PathManager:                   &testscommon.PathManagerStub{},
 			EpochStartNotifier:            notifier.NewEpochStartSubscriptionHandler(),
