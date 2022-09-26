@@ -6,9 +6,7 @@ import (
 	"testing"
 	"time"
 
-	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -39,13 +37,11 @@ func initNodesWithTestSigner(
 	if numInvalid < numNodes {
 		for i := uint32(0); i < numInvalid; i++ {
 			iCopy := i
-			nodes[0][i].MultiSigner = &cryptoMocks.MultiSignerStub{
-				CreateSignatureShareCalled: func(privateKeyBytes, message []byte) ([]byte, error) {
-					fmt.Println("invalid sig share from ",
-						getPkEncoded(nodes[0][iCopy].NodeKeys.Pk),
-					)
-					return []byte("invalid sig share"), nil
-				},
+			nodes[0][i].MultiSigner.CreateSignatureShareCalled = func(privateKeyBytes, message []byte) ([]byte, error) {
+				fmt.Println("invalid sig share from ",
+					getPkEncoded(nodes[0][iCopy].NodeKeys.Pk),
+				)
+				return []byte("invalid sig share"), nil
 			}
 		}
 	}
@@ -57,8 +53,6 @@ func TestConsensusWithInvalidSigners(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
-
-	_ = logger.SetLogLevel("*:INFO,*:DEBUG")
 
 	numNodes := uint32(4)
 	consensusSize := uint32(4)

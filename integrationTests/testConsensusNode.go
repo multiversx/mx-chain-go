@@ -66,7 +66,7 @@ type TestConsensusNode struct {
 	ResolverFinder   dataRetriever.ResolversFinder
 	AccountsDB       *state.AccountsDB
 	NodeKeys         TestKeyPair
-	MultiSigner      crypto.MultiSigner
+	MultiSigner      *cryptoMocks.MultisignerMock
 }
 
 // NewTestConsensusNode returns a new TestConsensusNode
@@ -86,7 +86,7 @@ func NewTestConsensusNode(
 	tcn := &TestConsensusNode{
 		NodeKeys:         nodeKeys,
 		ShardCoordinator: shardCoordinator,
-		MultiSigner:      multiSigner,
+		MultiSigner:      &cryptoMocks.MultisignerMock{},
 	}
 	tcn.initNode(consensusSize, roundTime, consensusType, eligibleMap, waitingMap, keyGen)
 
@@ -112,7 +112,7 @@ func CreateNodesWithTestConsensusNode(
 
 	testHasher := createHasher(consensusType)
 	multiSigner, _ := multisig.NewBLSMultisig(&mclMultiSig.BlsMultiSigner{Hasher: testHasher}, cp.KeyGen)
-	//multiSigner := cryptoMocks.NewMultiSigner()
+	multiSignerMock := createCustomMultiSignerMock(multiSigner)
 
 	for _, keysPair := range cp.Keys[0] {
 		tcn := NewTestConsensusNode(
@@ -123,7 +123,7 @@ func CreateNodesWithTestConsensusNode(
 			eligibleMap,
 			waitingMap,
 			cp.KeyGen,
-			multiSigner,
+			multiSignerMock,
 		)
 		nodes[nodeShardId] = append(nodes[nodeShardId], tcn)
 		connectableNodes = append(connectableNodes, tcn)
@@ -132,6 +132,24 @@ func CreateNodesWithTestConsensusNode(
 	ConnectNodes(connectableNodes)
 
 	return nodes
+}
+
+func createCustomMultiSignerMock(multiSigner crypto.MultiSigner) crypto.MultiSigner {
+	multiSignerMock := &cryptoMocks.MultisignerMock{}
+	multiSignerMock.CreateSignatureShareCalled = func(privateKeyBytes, message []byte) ([]byte, error) {
+		return multiSigner.CreateSignatureShare(privateKeyBytes, message)
+	}
+	multiSignerMock.VerifySignatureShareCalled = func(publicKey, message, sig []byte) error {
+		return multiSigner.VerifySignatureShare(publicKey, message, sig)
+	}
+	multiSignerMock.AggregateSigsCalled = func(pubKeysSigners, signatures [][]byte) ([]byte, error) {
+		return multiSigner.AggregateSigs(pubKeysSigners, signatures)
+	}
+	multiSignerMock.VerifyAggregatedSigCalled = func(pubKeysSigners [][]byte, message, aggSig []byte) error {
+		return multiSigner.VerifyAggregatedSig(pubKeysSigners, message, aggSig)
+	}
+
+	return multiSignerMock
 }
 
 func (tcn *TestConsensusNode) initNode(
