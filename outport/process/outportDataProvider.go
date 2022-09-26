@@ -36,6 +36,7 @@ type ArgPrepareOutportSaveBlockData struct {
 
 type outportDataProvider struct {
 	shardID                  uint32
+	numOfShards              uint32
 	alteredAccountsProvider  AlteredAccountsProviderHandler
 	transactionsFeeProcessor TransactionsFeeHandler
 	txCoordinator            process.TransactionCoordinator
@@ -48,6 +49,7 @@ type outportDataProvider struct {
 func NewOutportDataProvider(arg ArgOutportDataProvider) (*outportDataProvider, error) {
 	return &outportDataProvider{
 		shardID:                  arg.ShardCoordinator.SelfId(),
+		numOfShards:              arg.ShardCoordinator.NumberOfShards(),
 		alteredAccountsProvider:  arg.AlteredAccountsProvider,
 		transactionsFeeProcessor: arg.TransactionsFeeProcessor,
 		txCoordinator:            arg.TxCoordinator,
@@ -96,6 +98,7 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 		NotarizedHeadersHashes: arg.NotarizedHeadersHashes,
 		TransactionsPool:       pool,
 		AlteredAccounts:        alteredAccounts,
+		NumberOfShards:         odp.numOfShards,
 	}, nil
 }
 
