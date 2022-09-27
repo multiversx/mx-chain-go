@@ -30,6 +30,7 @@ const maxKeysToDisplay = 200
 var log = logger.GetOrCreate("debug/resolver")
 
 type event struct {
+	mutEvent     sync.RWMutex
 	eventType    string
 	hash         []byte
 	topic        string
@@ -44,6 +45,9 @@ type event struct {
 
 // Size returns the number of bytes taken by an event line
 func (ev *event) Size() int {
+	ev.mutEvent.Lock()
+	defer ev.mutEvent.Unlock()
+
 	size := len(ev.eventType) + len(ev.hash) + len(ev.topic) + numIntsInEventStruct*intSize
 	if ev.lastErr != nil {
 		size += len(ev.lastErr.Error())
@@ -53,6 +57,9 @@ func (ev *event) Size() int {
 }
 
 func (ev *event) String() string {
+	ev.mutEvent.Lock()
+	defer ev.mutEvent.Unlock()
+
 	strErr := ""
 	if ev.lastErr != nil {
 		strErr = ev.lastErr.Error()
@@ -170,9 +177,6 @@ func (ir *interceptorResolver) printEvent(data string) {
 }
 
 func (ir *interceptorResolver) incrementNumOfPrints() {
-	ir.mutCriticalArea.Lock()
-	defer ir.mutCriticalArea.Unlock()
-
 	keys := ir.cache.Keys()
 	for _, key := range keys {
 		obj, ok := ir.cache.Get(key)
@@ -185,7 +189,9 @@ func (ir *interceptorResolver) incrementNumOfPrints() {
 			continue
 		}
 
+		ev.mutEvent.Lock()
 		ev.numPrints++
+		ev.mutEvent.Unlock()
 		ir.cache.Put(key, ev, ev.Size())
 	}
 }
@@ -194,6 +200,9 @@ func (ir *interceptorResolver) incrementNumOfPrints() {
 // with a query string so it will be more extensible
 func (ir *interceptorResolver) getStringEvents(maxNumPrints int) []string {
 	acceptEvent := func(ev *event) bool {
+		ev.mutEvent.Lock()
+		defer ev.mutEvent.Unlock()
+
 		shouldAcceptRequested := ev.eventType == requestEvent && ev.numReqCross+ev.numReqIntra >= ir.requestsThreshold
 		shouldAcceptResolved := ev.eventType == resolveEvent && ev.numReceived >= ir.resolveFailThreshold
 
@@ -212,9 +221,6 @@ func (ir *interceptorResolver) LogRequestedData(topic string, hashes [][]byte, n
 
 func (ir *interceptorResolver) logRequestedData(topic string, hash []byte, numReqIntra int, numReqCross int) {
 	identifier := ir.computeIdentifier(requestEvent, topic, hash)
-
-	ir.mutCriticalArea.Lock()
-	defer ir.mutCriticalArea.Unlock()
 
 	obj, ok := ir.cache.Get(identifier)
 	if !ok {
@@ -239,9 +245,11 @@ func (ir *interceptorResolver) logRequestedData(topic string, hash []byte, numRe
 		return
 	}
 
+	req.mutEvent.Lock()
 	req.numReqCross += numReqCross
 	req.numReqIntra += numReqIntra
 	req.timestamp = ir.timestampHandler()
+	req.mutEvent.Unlock()
 	ir.cache.Put(identifier, req, req.Size())
 }
 
@@ -255,9 +263,6 @@ func (ir *interceptorResolver) LogReceivedHashes(topic string, hashes [][]byte) 
 func (ir *interceptorResolver) logReceivedHash(topic string, hash []byte) {
 	identifier := ir.computeIdentifier(requestEvent, topic, hash)
 
-	ir.mutCriticalArea.Lock()
-	defer ir.mutCriticalArea.Unlock()
-
 	obj, ok := ir.cache.Get(identifier)
 	if !ok {
 		return
@@ -268,8 +273,10 @@ func (ir *interceptorResolver) logReceivedHash(topic string, hash []byte) {
 		return
 	}
 
+	req.mutEvent.Lock()
 	req.numReceived++
 	req.timestamp = ir.timestampHandler()
+	req.mutEvent.Unlock()
 	ir.cache.Put(identifier, req, req.Size())
 }
 
@@ -283,9 +290,6 @@ func (ir *interceptorResolver) LogProcessedHashes(topic string, hashes [][]byte,
 func (ir *interceptorResolver) logProcessedHash(topic string, hash []byte, err error) {
 	identifier := ir.computeIdentifier(requestEvent, topic, hash)
 
-	ir.mutCriticalArea.Lock()
-	defer ir.mutCriticalArea.Unlock()
-
 	obj, ok := ir.cache.Get(identifier)
 	if !ok {
 		return
@@ -297,9 +301,11 @@ func (ir *interceptorResolver) logProcessedHash(topic string, hash []byte, err e
 	}
 
 	if err != nil {
+		req.mutEvent.Lock()
 		req.numProcessed++
 		req.timestamp = ir.timestampHandler()
 		req.lastErr = err
+		req.mutEvent.Unlock()
 		ir.cache.Put(identifier, req, req.Size())
 
 		return
@@ -318,6 +324,8 @@ func (ir *interceptorResolver) Query(search string) []string {
 	acceptEvent := func(ev *event) bool {
 		//TODO replace this rudimentary search pattern with something like
 		// github.com/oleksandr/conditions
+		ev.mutEvent.Lock()
+		defer ev.mutEvent.Unlock()
 		return search == "*" || search == ev.topic
 	}
 
@@ -326,9 +334,6 @@ func (ir *interceptorResolver) Query(search string) []string {
 }
 
 func (ir *interceptorResolver) query(acceptEvent func(ev *event) bool, maxNumPrints int) []string {
-	ir.mutCriticalArea.RLock()
-	defer ir.mutCriticalArea.RUnlock()
-
 	keys := ir.cache.Keys()
 
 	events := make([]string, 0, len(keys))
@@ -374,9 +379,6 @@ func (ir *interceptorResolver) query(acceptEvent func(ev *event) bool, maxNumPri
 func (ir *interceptorResolver) LogFailedToResolveData(topic string, hash []byte, err error) {
 	identifier := ir.computeIdentifier(resolveEvent, topic, hash)
 
-	ir.mutCriticalArea.Lock()
-	defer ir.mutCriticalArea.Unlock()
-
 	obj, ok := ir.cache.Get(identifier)
 	if !ok {
 		req := &event{
@@ -400,18 +402,17 @@ func (ir *interceptorResolver) LogFailedToResolveData(topic string, hash []byte,
 		return
 	}
 
+	ev.mutEvent.Lock()
 	ev.numReceived++
 	ev.timestamp = ir.timestampHandler()
 	ev.lastErr = err
+	ev.mutEvent.Unlock()
 	ir.cache.Put(identifier, ev, ev.Size())
 }
 
 // LogSucceededToResolveData removes the recording that the resolver did not resolved a hash in the past
 func (ir *interceptorResolver) LogSucceededToResolveData(topic string, hash []byte) {
 	identifier := ir.computeIdentifier(resolveEvent, topic, hash)
-
-	ir.mutCriticalArea.Lock()
-	defer ir.mutCriticalArea.Unlock()
 
 	ir.cache.Remove(identifier)
 }
