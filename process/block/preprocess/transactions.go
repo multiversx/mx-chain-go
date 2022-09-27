@@ -315,11 +315,7 @@ func (txs *transactions) computeCacheIdentifier(miniBlockStrCache string, tx *tr
 }
 
 // ProcessBlockTransactions processes all the transaction from the block.Body, updates the state
-func (txs *transactions) ProcessBlockTransactions(
-	header data.HeaderHandler,
-	body *block.Body,
-	haveTime func() bool,
-) error {
+func (txs *transactions) ProcessBlockTransactions(header data.HeaderHandler, body *block.Body, haveTime func() bool) (block.MiniBlockSlice, error) {
 	if txs.isBodyToMe(body) {
 		return txs.processTxsToMe(header, body, haveTime)
 	}
@@ -328,7 +324,7 @@ func (txs *transactions) ProcessBlockTransactions(
 		return txs.processTxsFromMeAndCreateScheduled(body, haveTime, header.GetPrevRandSeed())
 	}
 
-	return process.ErrInvalidBody
+	return nil, process.ErrInvalidBody
 }
 
 func (txs *transactions) computeTxsToMe(
@@ -483,16 +479,12 @@ func (txs *transactions) getShardFromAddress(address []byte) uint32 {
 	return txs.shardCoordinator.ComputeId(address)
 }
 
-func (txs *transactions) processTxsToMe(
-	header data.HeaderHandler,
-	body *block.Body,
-	haveTime func() bool,
-) error {
+func (txs *transactions) processTxsToMe(header data.HeaderHandler, body *block.Body, haveTime func() bool) (block.MiniBlockSlice, error) {
 	if check.IfNil(body) {
-		return process.ErrNilBlockBody
+		return nil, process.ErrNilBlockBody
 	}
 	if check.IfNil(header) {
-		return process.ErrNilHeaderHandler
+		return nil, process.ErrNilHeaderHandler
 	}
 
 	var err error
@@ -500,13 +492,13 @@ func (txs *transactions) processTxsToMe(
 	if txs.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
 		scheduledMode, err = process.IsScheduledMode(header, body, txs.hasher, txs.marshalizer)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
 	txsToMe, err := txs.computeTxsToMe(header, body)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	var totalGasConsumed uint64
@@ -552,12 +544,12 @@ func (txs *transactions) processTxsToMe(
 
 	for index := range txsToMe {
 		if !haveTime() {
-			return process.ErrTimeIsOut
+			return nil, process.ErrTimeIsOut
 		}
 
 		tx, ok := txsToMe[index].Tx.(*transaction.Transaction)
 		if !ok {
-			return process.ErrWrongTypeAssertion
+			return nil, process.ErrWrongTypeAssertion
 		}
 
 		txHash := txsToMe[index].TxHash
@@ -572,7 +564,7 @@ func (txs *transactions) processTxsToMe(
 			&gasInfo)
 
 		if errComputeGas != nil {
-			return errComputeGas
+			return nil, errComputeGas
 		}
 
 		if scheduledMode {
@@ -592,7 +584,7 @@ func (txs *transactions) processTxsToMe(
 				senderShardID,
 				receiverShardID)
 			if err != nil {
-				return err
+				return nil, err
 			}
 
 			txs.updateGasConsumedWithGasRefundedAndGasPenalized(txHash, &gasInfo)
@@ -601,7 +593,7 @@ func (txs *transactions) processTxsToMe(
 		numTXsProcessed++
 	}
 
-	return nil
+	return body.MiniBlocks, nil
 }
 
 func (txs *transactions) processTxsFromMe(body *block.Body,
@@ -643,14 +635,10 @@ func (txs *transactions) processTxsFromMe(body *block.Body,
 	return calculatedMiniBlocks, mapSCTxs, nil
 }
 
-func (txs *transactions) processTxsFromMeAndCreateScheduled(
-	body *block.Body,
-	haveTime func() bool,
-	randomness []byte,
-) error {
+func (txs *transactions) processTxsFromMeAndCreateScheduled(body *block.Body, haveTime func() bool, randomness []byte) (block.MiniBlockSlice, error) {
 	calculatedMiniBlocks, mapSCTxs, err := txs.processTxsFromMe(body, haveTime, randomness)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	scheduledMiniBlocks, err := txs.createScheduledMiniBlocksFromMeAsValidator(
@@ -663,7 +651,7 @@ func (txs *transactions) processTxsFromMeAndCreateScheduled(
 		randomness,
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	calculatedMiniBlocks = append(calculatedMiniBlocks, scheduledMiniBlocks...)
@@ -679,12 +667,12 @@ func (txs *transactions) processTxsFromMeAndCreateScheduled(
 
 	receivedBodyHash, err := core.CalculateHash(txs.marshalizer, txs.hasher, &block.Body{MiniBlocks: receivedMiniBlocks})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	calculatedBodyHash, err := core.CalculateHash(txs.marshalizer, txs.hasher, &block.Body{MiniBlocks: calculatedMiniBlocks})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if !bytes.Equal(receivedBodyHash, calculatedBodyHash) {
@@ -699,10 +687,10 @@ func (txs *transactions) processTxsFromMeAndCreateScheduled(
 		log.Debug("block body missmatch",
 			"received body hash", receivedBodyHash,
 			"calculated body hash", calculatedBodyHash)
-		return process.ErrBlockBodyHashMismatch
+		return nil, process.ErrBlockBodyHashMismatch
 	}
 
-	return nil
+	return calculatedMiniBlocks, nil
 }
 
 func (txs *transactions) createScheduledMiniBlocksFromMeAsValidator(

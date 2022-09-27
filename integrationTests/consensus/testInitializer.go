@@ -277,9 +277,9 @@ func createConsensusOnlyNode(
 
 	blockChain := createTestBlockChain()
 	blockProcessor := &mock.BlockProcessorMock{
-		ProcessBlockCalled: func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
+		ProcessBlockCalled: func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) (data.HeaderHandler, data.BodyHandler, error) {
 			_ = blockChain.SetCurrentBlockHeaderAndRootHash(header, header.GetRootHash())
-			return nil
+			return header, body, nil
 		},
 		RevertCurrentBlockCalled: func() {
 		},
