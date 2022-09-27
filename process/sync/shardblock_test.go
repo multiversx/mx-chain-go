@@ -23,8 +23,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/storage/database"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
@@ -81,14 +81,14 @@ func createStore() *storageStubs.ChainStorerStub {
 }
 
 func generateTestCache() storage.Cacher {
-	cache, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000, Shards: 1, SizeInBytes: 0})
+	cache, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000, Shards: 1, SizeInBytes: 0})
 	return cache
 }
 
 func generateTestUnit() storage.Storer {
-	storer, _ := storageUnit.NewStorageUnit(
+	storer, _ := storageunit.NewStorageUnit(
 		generateTestCache(),
-		memorydb.New(),
+		database.NewMemDB(),
 	)
 
 	return storer
@@ -461,6 +461,7 @@ func testShardWithMissingStorer(missingUnit dataRetriever.UnitType) func(t *test
 
 		bs, err := sync.NewShardBootstrap(args)
 		assert.Nil(t, bs)
+		require.NotNil(t, err)
 		require.True(t, strings.Contains(err.Error(), storage.ErrKeyNotFound.Error()))
 	}
 }

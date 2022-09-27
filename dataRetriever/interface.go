@@ -53,7 +53,6 @@ type MiniBlocksResolver interface {
 // PeerAuthenticationResolver defines what a peer authentication resolver should do
 type PeerAuthenticationResolver interface {
 	Resolver
-	RequestDataFromChunk(chunkIndex uint32, epoch uint32) error
 	RequestDataFromHashArray(hashes [][]byte, epoch uint32) error
 }
 
@@ -269,7 +268,7 @@ type StorageService interface {
 	GetAllStorers() map[UnitType]storage.Storer
 	// Destroy removes the underlying files/resources used by the storage service
 	Destroy() error
-	//CloseAll will close all the units
+	// CloseAll will close all the units
 	CloseAll() error
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
@@ -352,5 +351,12 @@ type SelfShardIDProvider interface {
 // NodesCoordinator provides Validator methods needed for the peer processing
 type NodesCoordinator interface {
 	GetAllEligibleValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
+	IsInterfaceNil() bool
+}
+
+// PeerAuthenticationPayloadValidator defines the operations supported by an entity able to validate timestamps
+// found in peer authentication messages
+type PeerAuthenticationPayloadValidator interface {
+	ValidateTimestamp(payloadTimestamp int64) error
 	IsInterfaceNil() bool
 }

@@ -34,6 +34,7 @@ import (
 	procTx "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/trie"
+	"github.com/ElrondNetwork/elrond-go/trie/keyBuilder"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -216,7 +217,7 @@ func (n *Node) GetAllIssuedESDTs(tokenType string, ctx context.Context) ([]strin
 	}
 
 	chLeaves := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
-	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash)
+	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash, keyBuilder.NewKeyBuilder())
 	if err != nil {
 		return nil, err
 	}
@@ -284,7 +285,7 @@ func (n *Node) GetKeyValuePairs(address string, options api.AccountQueryOptions,
 	}
 
 	chLeaves := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
-	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash)
+	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash, keyBuilder.NewKeyBuilder())
 	if err != nil {
 		return nil, api.BlockInfo{}, err
 	}
@@ -320,7 +321,7 @@ func (n *Node) GetValueForKey(address string, key string, options api.AccountQue
 		return "", api.BlockInfo{}, err
 	}
 
-	valueBytes, err := userAccount.DataTrieTracker().RetrieveValue(keyBytes)
+	valueBytes, err := userAccount.RetrieveValue(keyBytes)
 	if err != nil {
 		return "", api.BlockInfo{}, fmt.Errorf("fetching value error: %w", err)
 	}
@@ -378,7 +379,7 @@ func (n *Node) getTokensIDsWithFilter(
 	}
 
 	chLeaves := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
-	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash)
+	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash, keyBuilder.NewKeyBuilder())
 	if err != nil {
 		return nil, api.BlockInfo{}, err
 	}
@@ -500,7 +501,7 @@ func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions,
 	}
 
 	chLeaves := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
-	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash)
+	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash, keyBuilder.NewKeyBuilder())
 	if err != nil {
 		return nil, api.BlockInfo{}, err
 	}
@@ -1171,7 +1172,7 @@ func (n *Node) getAccountRootHashAndVal(address []byte, accBytes []byte, key []b
 		return nil, nil, fmt.Errorf("empty dataTrie rootHash")
 	}
 
-	retrievedVal, err := userAccount.RetrieveValueFromDataTrieTracker(key)
+	retrievedVal, err := userAccount.RetrieveValue(key)
 	if err != nil {
 		return nil, nil, err
 	}

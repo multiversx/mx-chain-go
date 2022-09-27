@@ -13,7 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
+	"github.com/ElrondNetwork/elrond-go/storage/cache"
 )
 
 const maxNumPidsPerPk = 3
@@ -75,12 +75,12 @@ func NewPeerShardMapper(arg ArgPeerShardMapper) (*PeerShardMapper, error) {
 		return nil, p2p.ErrNilPreferredPeersHolder
 	}
 
-	pkPeerId, err := lrucache.NewCache(arg.PeerIdPkCache.MaxSize())
+	pkPeerId, err := cache.NewLRUCache(arg.PeerIdPkCache.MaxSize())
 	if err != nil {
 		return nil, err
 	}
 
-	peerIdSubTypeCache, err := lrucache.NewCache(arg.PeerIdPkCache.MaxSize())
+	peerIdSubTypeCache, err := cache.NewLRUCache(arg.PeerIdPkCache.MaxSize())
 	if err != nil {
 		return nil, err
 	}
@@ -226,28 +226,6 @@ func (psm *PeerShardMapper) getPeerInfoSearchingPidInFallbackCache(pid core.Peer
 		PeerSubType: psm.getPeerSubType(pid),
 		ShardID:     shard,
 	}
-}
-
-// GetLastKnownPeerID returns the newest updated peer id for the given public key
-func (psm *PeerShardMapper) GetLastKnownPeerID(pk []byte) (core.PeerID, bool) {
-	objPidsQueue, found := psm.pkPeerIdCache.Get(pk)
-	if !found {
-		return "", false
-	}
-
-	pq, ok := objPidsQueue.(common.PidQueueHandler)
-	if !ok {
-		log.Warn("PeerShardMapper.GetLastKnownPeerID: the contained element should have been of type pidQueue")
-		return "", false
-	}
-
-	if pq.Len() == 0 {
-		log.Warn("PeerShardMapper.GetLastKnownPeerID: empty pidQueue element")
-		return "", false
-	}
-
-	latestPeerId := pq.Get(pq.Len() - 1)
-	return latestPeerId, true
 }
 
 // UpdatePeerIDPublicKeyPair updates the public key - peer ID pair in the corresponding maps

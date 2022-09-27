@@ -5,7 +5,6 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/state"
 )
 
 // ErrNegativeValue -
@@ -47,7 +46,7 @@ func (uam *UserAccountMock) SetCodeHash(bytes []byte) {
 }
 
 // GetCodeHash -
-func (uam UserAccountMock) GetCodeHash() []byte {
+func (uam *UserAccountMock) GetCodeHash() []byte {
 	return uam.codeHash
 }
 
@@ -66,17 +65,17 @@ func (uam *UserAccountMock) SetDataTrie(_ common.Trie) {
 }
 
 // DataTrie -
-func (uam *UserAccountMock) DataTrie() common.Trie {
+func (uam *UserAccountMock) DataTrie() common.DataTrieHandler {
 	return nil
 }
 
-// RetrieveValueFromDataTrieTracker -
-func (uam *UserAccountMock) RetrieveValueFromDataTrieTracker(_ []byte) ([]byte, error) {
+// RetrieveValue -
+func (uam *UserAccountMock) RetrieveValue(_ []byte) ([]byte, error) {
 	return nil, nil
 }
 
-// DataTrieTracker -
-func (uam *UserAccountMock) DataTrieTracker() state.DataTrieTracker {
+// SaveKeyValue -
+func (uam *UserAccountMock) SaveKeyValue(_ []byte, _ []byte) error {
 	return nil
 }
 
@@ -138,4 +137,9 @@ func (uam *UserAccountMock) SetUserName(_ []byte) {
 // GetUserName -
 func (uam *UserAccountMock) GetUserName() []byte {
 	return nil
+}
+
+// SaveDirtyData -
+func (uam *UserAccountMock) SaveDirtyData(_ common.Trie) (map[string][]byte, error) {
+	return nil, nil
 }

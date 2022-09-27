@@ -223,6 +223,7 @@ func testMetaWithMissingStorer(missingUnit dataRetriever.UnitType, atCallNumber 
 		}
 
 		err := mtStrHandler.SaveDataToStorage(components)
+		require.NotNil(t, err)
 		require.True(t, strings.Contains(err.Error(), storage.ErrKeyNotFound.Error()))
 		require.True(t, strings.Contains(err.Error(), missingUnit.String()))
 	}

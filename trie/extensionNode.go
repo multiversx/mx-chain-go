@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"strings"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -244,6 +245,7 @@ func (en *extensionNode) commitCheckpoint(
 func (en *extensionNode) commitSnapshot(
 	db common.DBWriteCacher,
 	leavesChan chan core.KeyValueHolder,
+	missingNodesChan chan []byte,
 	ctx context.Context,
 	stats common.SnapshotStatisticsHandler,
 	idleProvider IdleNodeProvider,
@@ -258,13 +260,22 @@ func (en *extensionNode) commitSnapshot(
 	}
 
 	err = resolveIfCollapsed(en, 0, db)
+	isMissingNodeErr := false
 	if err != nil {
-		return err
+		isMissingNodeErr = strings.Contains(err.Error(), common.GetNodeFromDBErrorString)
+		if !isMissingNodeErr {
+			return err
+		}
 	}
 
-	err = en.child.commitSnapshot(db, leavesChan, ctx, stats, idleProvider)
-	if err != nil {
-		return err
+	if isMissingNodeErr {
+		log.Error(err.Error())
+		missingNodesChan <- en.EncodedChild
+	} else {
+		err = en.child.commitSnapshot(db, leavesChan, missingNodesChan, ctx, stats, idleProvider)
+		if err != nil {
+			return err
+		}
 	}
 
 	return en.saveToStorage(db, stats)
@@ -639,7 +650,8 @@ func (en *extensionNode) loadChildren(getNode func([]byte) (node, error)) ([][]b
 
 func (en *extensionNode) getAllLeavesOnChannel(
 	leavesChannel chan core.KeyValueHolder,
-	key []byte, db common.DBWriteCacher,
+	keyBuilder common.KeyBuilder,
+	db common.DBWriteCacher,
 	marshalizer marshal.Marshalizer,
 	chanClose chan struct{},
 	ctx context.Context,
@@ -662,8 +674,8 @@ func (en *extensionNode) getAllLeavesOnChannel(
 			return err
 		}
 
-		childKey := append(key, en.Key...)
-		err = en.child.getAllLeavesOnChannel(leavesChannel, childKey, db, marshalizer, chanClose, ctx)
+		keyBuilder.BuildKey(en.Key)
+		err = en.child.getAllLeavesOnChannel(leavesChannel, keyBuilder.Clone(), db, marshalizer, chanClose, ctx)
 		if err != nil {
 			return err
 		}

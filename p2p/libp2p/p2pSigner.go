@@ -10,7 +10,7 @@ import (
 )
 
 type p2pSigner struct {
-	privateKey *libp2pCrypto.Secp256k1PrivateKey
+	privateKey libp2pCrypto.PrivKey
 }
 
 // Sign will sign a payload with the internal private key
@@ -35,7 +35,7 @@ func (signer *p2pSigner) Verify(payload []byte, pid core.PeerID, signature []byt
 		return err
 	}
 	if !sigOk {
-		return crypto.ErrInvalidSignature
+		return crypto.ErrSigNotValid
 	}
 
 	return nil

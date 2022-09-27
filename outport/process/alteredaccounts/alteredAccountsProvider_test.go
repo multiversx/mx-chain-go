@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
 )
@@ -358,7 +359,7 @@ func testExtractAlteredAccountsFromPoolShouldReturnErrorWhenCastingToVmCommonUse
 	}
 	args.AccountsDB = &state.AccountsStub{
 		LoadAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
-			return &state.AccountWrapMock{}, nil
+			return &state.UserAccountStub{}, nil
 		},
 	}
 	aap, _ := NewAlteredAccountsProvider(args)
@@ -407,7 +408,7 @@ func testExtractAlteredAccountsFromPoolShouldIncludeESDT(t *testing.T) {
 	}
 	args.AccountsDB = &state.AccountsStub{
 		LoadAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
-			return &state.UserAccountStub{}, nil
+			return &state.AccountWrapMock{}, nil
 		},
 	}
 	aap, _ := NewAlteredAccountsProvider(args)
@@ -469,7 +470,7 @@ func testExtractAlteredAccountsFromPoolShouldIncludeNFT(t *testing.T) {
 	}
 	args.AccountsDB = &state.AccountsStub{
 		LoadAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
-			return &state.UserAccountStub{}, nil
+			return &state.AccountWrapMock{}, nil
 		},
 	}
 	aap, _ := NewAlteredAccountsProvider(args)
@@ -522,7 +523,7 @@ func testExtractAlteredAccountsFromPoolShouldNotIncludeReceiverAddressIfNftCreat
 	}
 	args.AccountsDB = &state.AccountsStub{
 		LoadAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
-			return &state.UserAccountStub{}, nil
+			return &state.AccountWrapMock{}, nil
 		},
 	}
 	aap, _ := NewAlteredAccountsProvider(args)
@@ -574,7 +575,7 @@ func testExtractAlteredAccountsFromPoolShouldIncludeDestinationFromTokensLogsTop
 	}
 	args.AccountsDB = &state.AccountsStub{
 		LoadAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
-			return &state.UserAccountStub{}, nil
+			return &state.AccountWrapMock{}, nil
 		},
 	}
 	aap, _ := NewAlteredAccountsProvider(args)
@@ -633,7 +634,7 @@ func testExtractAlteredAccountsFromPoolAddressHasBalanceChangeEsdtAndfNft(t *tes
 	}
 	args.AccountsDB = &state.AccountsStub{
 		LoadAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
-			return &state.UserAccountStub{}, nil
+			return &state.AccountWrapMock{}, nil
 		},
 	}
 	aap, _ := NewAlteredAccountsProvider(args)
@@ -716,8 +717,8 @@ func testExtractAlteredAccountsFromPoolAddressHasMultipleNfts(t *testing.T) {
 	marshaller := testscommon.MarshalizerMock{}
 	args.AccountsDB = &state.AccountsStub{
 		LoadAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
-			return &state.UserAccountStub{
-				RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
+			trieMock := trie.DataTrieTrackerStub{
+				RetrieveValueCalled: func(key []byte) ([]byte, error) {
 					if strings.Contains(string(key), "esdttoken") {
 						tokenBytes, _ := marshaller.Marshal(expectedToken0)
 						return tokenBytes, nil
@@ -737,7 +738,11 @@ func testExtractAlteredAccountsFromPoolAddressHasMultipleNfts(t *testing.T) {
 
 					return nil, nil
 				},
-			}, nil
+			}
+			wrappedAccountMock := &state.AccountWrapMock{}
+			wrappedAccountMock.SetTrackableDataTrie(&trieMock)
+
+			return wrappedAccountMock, nil
 		},
 	}
 	aap, _ := NewAlteredAccountsProvider(args)

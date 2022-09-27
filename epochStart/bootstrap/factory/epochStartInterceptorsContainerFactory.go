@@ -16,7 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory/interceptorscontainer"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/storage/timecache"
+	"github.com/ElrondNetwork/elrond-go/storage/cache"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
@@ -56,7 +56,7 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 	}
 
 	cryptoComponents := args.CryptoComponents.Clone().(process.CryptoComponentsHolder)
-	err := cryptoComponents.SetMultiSigner(disabled.NewMultiSigner())
+	err := cryptoComponents.SetMultiSignerContainer(disabled.NewMultiSignerContainer())
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +65,7 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 	storer := disabled.NewChainStorer()
 	antiFloodHandler := disabled.NewAntiFloodHandler()
 	accountsAdapter := disabled.NewAccountsAdapter()
-	blackListHandler := timecache.NewTimeCache(timeSpanForBadHeaders)
+	blackListHandler := cache.NewTimeCache(timeSpanForBadHeaders)
 	feeHandler := &disabledGenesis.FeeHandler{}
 	headerSigVerifier := disabled.NewHeaderSigVerifier()
 	sizeCheckDelta := 0

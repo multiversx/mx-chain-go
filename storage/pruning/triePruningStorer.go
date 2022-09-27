@@ -5,8 +5,9 @@ import (
 	"encoding/hex"
 	"fmt"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/common"
-	elrondErrors "github.com/ElrondNetwork/elrond-go/errors"
+	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 const (
@@ -27,7 +28,7 @@ func NewTriePruningStorer(args *StorerArgs) (*triePruningStorer, error) {
 		return nil, err
 	}
 
-	activePersisters, persistersMapByEpoch, err := initTriePersisterInEpoch(args, "")
+	activePersisters, persistersMapByEpoch, err := initPersistersInEpoch(args, "")
 	if err != nil {
 		return nil, err
 	}
@@ -38,19 +39,17 @@ func NewTriePruningStorer(args *StorerArgs) (*triePruningStorer, error) {
 	}
 
 	tps := &triePruningStorer{ps}
-	ps.extendPersisterLifeHandler = tps.extendPersisterLife
+	ps.lastEpochNeededHandler = tps.lastEpochNeeded
 	tps.registerHandler(args.Notifier)
 
 	return tps, nil
 }
 
-func (ps *triePruningStorer) extendPersisterLife() bool {
+func (ps *triePruningStorer) lastEpochNeeded() uint32 {
 	numActiveDBs := 0
-	for i := 0; i < int(ps.numOfActivePersisters); i++ {
-		if i >= len(ps.activePersisters) {
-			continue
-		}
-
+	lastEpochNeeded := uint32(0)
+	for i := 0; i < len(ps.activePersisters); i++ {
+		lastEpochNeeded = ps.activePersisters[i].epoch
 		val, err := ps.activePersisters[i].persister.Get([]byte(common.ActiveDBKey))
 		if err != nil {
 			continue
@@ -59,71 +58,13 @@ func (ps *triePruningStorer) extendPersisterLife() bool {
 		if bytes.Equal(val, []byte(common.ActiveDBVal)) {
 			numActiveDBs++
 		}
-	}
 
-	if numActiveDBs < minNumOfActiveDBsNecessary {
-		log.Debug("extendPersisterLife", "path", ps.dbPath)
-		return true
-	}
-
-	return false
-}
-
-func initTriePersisterInEpoch(
-	args *StorerArgs,
-	shardIDStr string,
-) ([]*persisterData, map[uint32]*persisterData, error) {
-	if !args.PruningEnabled {
-		return createPersisterIfPruningDisabled(args, shardIDStr)
-	}
-
-	if args.NumOfEpochsToKeep < args.NumOfActivePersisters {
-		return nil, nil, fmt.Errorf("invalid epochs configuration")
-	}
-
-	oldestEpochActive, oldestEpochKeep := computeOldestEpochActiveAndToKeep(args)
-	var persisters []*persisterData
-	persistersMapByEpoch := make(map[uint32]*persisterData)
-
-	closeOldPersisters := false
-	for epoch := int64(args.StartingEpoch); epoch >= oldestEpochKeep; epoch-- {
-		log.Debug("initTriePersisterInEpoch(): createPersisterDataForEpoch", "identifier", args.Identifier, "epoch", epoch, "shardID", shardIDStr)
-		p, err := createPersisterDataForEpoch(args, uint32(epoch), shardIDStr)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		persistersMapByEpoch[uint32(epoch)] = p
-
-		if epoch < oldestEpochActive && closeOldPersisters {
-			err = p.Close()
-			if err != nil {
-				log.Debug("persister.Close()", "identifier", args.Identifier, "error", err.Error())
-			}
-		} else {
-			persisters = append(persisters, p)
-			log.Debug("appended a pruning active persister", "epoch", epoch, "identifier", args.Identifier)
-		}
-
-		if !closeOldPersisters {
-			closeOldPersisters = shouldCloseOldPersisters(p)
+		if numActiveDBs == minNumOfActiveDBsNecessary {
+			break
 		}
 	}
 
-	return persisters, persistersMapByEpoch, nil
-}
-
-func shouldCloseOldPersisters(pd *persisterData) bool {
-	val, err := pd.persister.Get([]byte(common.ActiveDBKey))
-	if err != nil {
-		return false
-	}
-
-	if bytes.Equal(val, []byte(common.ActiveDBVal)) {
-		return true
-	}
-
-	return false
+	return lastEpochNeeded
 }
 
 // PutInEpochWithoutCache adds data to persistence medium related to the specified epoch
@@ -150,10 +91,10 @@ func (ps *triePruningStorer) PutInEpochWithoutCache(key []byte, data []byte, epo
 }
 
 // GetFromOldEpochsWithoutAddingToCache searches the old epochs for the given key without adding to the cache
-func (ps *triePruningStorer) GetFromOldEpochsWithoutAddingToCache(key []byte) ([]byte, error) {
+func (ps *triePruningStorer) GetFromOldEpochsWithoutAddingToCache(key []byte) ([]byte, core.OptionalUint32, error) {
 	v, ok := ps.cacher.Get(key)
 	if ok && !bytes.Equal([]byte(common.ActiveDBKey), key) {
-		return v.([]byte), nil
+		return v.([]byte), core.OptionalUint32{}, nil
 	}
 
 	ps.lock.RLock()
@@ -163,21 +104,25 @@ func (ps *triePruningStorer) GetFromOldEpochsWithoutAddingToCache(key []byte) ([
 	for idx := 1; idx < len(ps.activePersisters); idx++ {
 		val, err := ps.activePersisters[idx].persister.Get(key)
 		if err != nil {
-			if err == elrondErrors.ErrDBIsClosed {
+			if err == storage.ErrDBIsClosed {
 				numClosedDbs++
 			}
 
 			continue
 		}
 
-		return val, nil
+		epoch := core.OptionalUint32{
+			Value:    ps.activePersisters[idx].epoch,
+			HasValue: true,
+		}
+		return val, epoch, nil
 	}
 
 	if numClosedDbs+1 == len(ps.activePersisters) && len(ps.activePersisters) > 1 {
-		return nil, elrondErrors.ErrDBIsClosed
+		return nil, core.OptionalUint32{}, storage.ErrDBIsClosed
 	}
 
-	return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
+	return nil, core.OptionalUint32{}, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
 }
 
 // GetFromLastEpoch searches only the last epoch storer for the given key
