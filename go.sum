@@ -67,8 +67,8 @@ github.com/ElrondNetwork/elrond-go-core v1.1.20-0.20220922073629-04049b54c374/go
 github.com/ElrondNetwork/elrond-go-core v1.1.20-0.20220926115353-9b48b26bdf59 h1:zU09YhIf2a5zg0ftOU+TWtcm1bUJWq5cH+nu7HSubvk=
 github.com/ElrondNetwork/elrond-go-core v1.1.20-0.20220926115353-9b48b26bdf59/go.mod h1:UcZAiUqKBv3M3U6pJkYqIAx4OKubLYIc0QBVN+bY29g=
 github.com/ElrondNetwork/elrond-go-crypto v1.0.0/go.mod h1:DGiR7/j1xv729Xg8SsjYaUzWXL5svMd44REXjWS/gAc=
-github.com/ElrondNetwork/elrond-go-crypto v1.0.1 h1:xJUUshIZQ7h+rG7Art/9QHVyaPRV1wEjrxXYBdpmRlM=
-github.com/ElrondNetwork/elrond-go-crypto v1.0.1/go.mod h1:uunsvweBrrhVojL8uiQSaTPsl3YIQ9iBqtYGM6xs4s0=
+github.com/ElrondNetwork/elrond-go-crypto v1.2.1 h1:5wWCBEZp5SMFO2+Nal8UaJNJcG9G9J4PHNNZvQpEeUE=
+github.com/ElrondNetwork/elrond-go-crypto v1.2.1/go.mod h1:UNmpDaJjLTKxfzUcwua2R7Mh9bicw/L3ICJt5V7zqMo=
 github.com/ElrondNetwork/elrond-go-logger v1.0.4/go.mod h1:e5D+c97lKUfFdAzFX7rrI2Igl/z4Y0RkKYKWyzprTGk=
 github.com/ElrondNetwork/elrond-go-logger v1.0.5/go.mod h1:cBfgx0ST/CJx8jrxJSC5aiSrvkGzcnF7sK06RD8mFxQ=
 github.com/ElrondNetwork/elrond-go-logger v1.0.7/go.mod h1:cBfgx0ST/CJx8jrxJSC5aiSrvkGzcnF7sK06RD8mFxQ=
