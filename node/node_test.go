@@ -282,9 +282,9 @@ func TestNode_GetKeyValuePairs(t *testing.T) {
 	k2, v2 := []byte("key2"), []byte("value2")
 
 	accDB := &stateMock.AccountsStub{}
-	acc.DataTrieTracker().SetDataTrie(
+	acc.SetDataTrie(
 		&trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
+			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
 				go func() {
 					suffix := append(k1, acc.AddressBytes()...)
 					trieLeaf := keyValStorage.NewKeyValStorage(k1, append(v1, suffix...))
@@ -344,9 +344,9 @@ func TestNode_GetKeyValuePairsContextShouldTimeout(t *testing.T) {
 	acc, _ := state.NewUserAccount([]byte("newaddress"))
 
 	accDB := &stateMock.AccountsStub{}
-	acc.DataTrieTracker().SetDataTrie(
+	acc.SetDataTrie(
 		&trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
+			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
 				go func() {
 					time.Sleep(time.Second)
 					close(ch)
@@ -398,7 +398,7 @@ func TestNode_GetValueForKey(t *testing.T) {
 	acc, _ := state.NewUserAccount([]byte("newaddress"))
 
 	k1, v1 := []byte("key1"), []byte("value1")
-	_ = acc.DataTrieTracker().SaveKeyValue(k1, v1)
+	_ = acc.SaveKeyValue(k1, v1)
 
 	accDB := &stateMock.AccountsStub{
 		GetAccountWithBlockInfoCalled: func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
@@ -537,9 +537,9 @@ func TestNode_GetAllESDTTokens(t *testing.T) {
 		},
 	}
 
-	acc.DataTrieTracker().SetDataTrie(
+	acc.SetDataTrie(
 		&trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
+			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
 				go func() {
 					trieLeaf := keyValStorage.NewKeyValStorage(esdtKey, nil)
 					ch <- trieLeaf
@@ -592,9 +592,9 @@ func TestNode_GetAllESDTTokens(t *testing.T) {
 func TestNode_GetAllESDTTokensContextShouldTimeout(t *testing.T) {
 	acc, _ := state.NewUserAccount(testscommon.TestPubKeyAlice)
 
-	acc.DataTrieTracker().SetDataTrie(
+	acc.SetDataTrie(
 		&trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
+			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
 				go func() {
 					time.Sleep(time.Second)
 					close(ch)
@@ -676,9 +676,9 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 			}
 		},
 	}
-	acc.DataTrieTracker().SetDataTrie(
+	acc.SetDataTrie(
 		&trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
+			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
 				wg := &sync.WaitGroup{}
 				wg.Add(1)
 				go func() {
@@ -745,23 +745,23 @@ func TestNode_GetAllIssuedESDTs(t *testing.T) {
 
 	esdtData := &systemSmartContracts.ESDTDataV2{TokenName: []byte("fungible"), TokenType: []byte(core.FungibleESDT)}
 	marshalledData, _ := getMarshalizer().Marshal(esdtData)
-	_ = acc.DataTrieTracker().SaveKeyValue(esdtToken, marshalledData)
+	_ = acc.SaveKeyValue(esdtToken, marshalledData)
 
 	sftData := &systemSmartContracts.ESDTDataV2{TokenName: []byte("semi fungible"), TokenType: []byte(core.SemiFungibleESDT)}
 	sftMarshalledData, _ := getMarshalizer().Marshal(sftData)
-	_ = acc.DataTrieTracker().SaveKeyValue(sftToken, sftMarshalledData)
+	_ = acc.SaveKeyValue(sftToken, sftMarshalledData)
 
 	nftData := &systemSmartContracts.ESDTDataV2{TokenName: []byte("non fungible"), TokenType: []byte(core.NonFungibleESDT)}
 	nftMarshalledData, _ := getMarshalizer().Marshal(nftData)
-	_ = acc.DataTrieTracker().SaveKeyValue(nftToken, nftMarshalledData)
+	_ = acc.SaveKeyValue(nftToken, nftMarshalledData)
 
 	esdtSuffix := append(esdtToken, acc.AddressBytes()...)
 	nftSuffix := append(nftToken, acc.AddressBytes()...)
 	sftSuffix := append(sftToken, acc.AddressBytes()...)
 
-	acc.DataTrieTracker().SetDataTrie(
+	acc.SetDataTrie(
 		&trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
+			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
 				go func() {
 					trieLeaf := keyValStorage.NewKeyValStorage(esdtToken, append(marshalledData, esdtSuffix...))
 					ch <- trieLeaf
@@ -844,13 +844,13 @@ func TestNode_GetESDTsWithRole(t *testing.T) {
 
 	esdtData := &systemSmartContracts.ESDTDataV2{TokenName: []byte("fungible"), TokenType: []byte(core.FungibleESDT), SpecialRoles: specialRoles}
 	marshalledData, _ := getMarshalizer().Marshal(esdtData)
-	_ = acc.DataTrieTracker().SaveKeyValue(esdtToken, marshalledData)
+	_ = acc.SaveKeyValue(esdtToken, marshalledData)
 
 	esdtSuffix := append(esdtToken, acc.AddressBytes()...)
 
-	acc.DataTrieTracker().SetDataTrie(
+	acc.SetDataTrie(
 		&trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
+			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
 				go func() {
 					trieLeaf := keyValStorage.NewKeyValStorage(esdtToken, append(marshalledData, esdtSuffix...))
 					ch <- trieLeaf
@@ -921,13 +921,13 @@ func TestNode_GetESDTsRoles(t *testing.T) {
 
 	esdtData := &systemSmartContracts.ESDTDataV2{TokenName: []byte("fungible"), TokenType: []byte(core.FungibleESDT), SpecialRoles: specialRoles}
 	marshalledData, _ := getMarshalizer().Marshal(esdtData)
-	_ = acc.DataTrieTracker().SaveKeyValue(esdtToken, marshalledData)
+	_ = acc.SaveKeyValue(esdtToken, marshalledData)
 
 	esdtSuffix := append(esdtToken, acc.AddressBytes()...)
 
-	acc.DataTrieTracker().SetDataTrie(
+	acc.SetDataTrie(
 		&trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
+			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
 				go func() {
 					trieLeaf := keyValStorage.NewKeyValStorage(esdtToken, append(marshalledData, esdtSuffix...))
 					ch <- trieLeaf
@@ -983,13 +983,13 @@ func TestNode_GetNFTTokenIDsRegisteredByAddress(t *testing.T) {
 
 	esdtData := &systemSmartContracts.ESDTDataV2{TokenName: []byte("fungible"), TokenType: []byte(core.SemiFungibleESDT), OwnerAddress: addrBytes}
 	marshalledData, _ := getMarshalizer().Marshal(esdtData)
-	_ = acc.DataTrieTracker().SaveKeyValue(esdtToken, marshalledData)
+	_ = acc.SaveKeyValue(esdtToken, marshalledData)
 
 	esdtSuffix := append(esdtToken, acc.AddressBytes()...)
 
-	acc.DataTrieTracker().SetDataTrie(
+	acc.SetDataTrie(
 		&trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
+			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
 				go func() {
 					trieLeaf := keyValStorage.NewKeyValStorage(esdtToken, append(marshalledData, esdtSuffix...))
 					ch <- trieLeaf
@@ -1042,9 +1042,9 @@ func TestNode_GetNFTTokenIDsRegisteredByAddressContextShouldTimeout(t *testing.T
 	addrBytes := testscommon.TestPubKeyAlice
 	acc, _ := state.NewUserAccount(addrBytes)
 
-	acc.DataTrieTracker().SetDataTrie(
+	acc.SetDataTrie(
 		&trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
+			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
 				go func() {
 					time.Sleep(time.Second)
 					close(ch)
@@ -3506,7 +3506,7 @@ func TestNode_GetProofDataTrieShouldWork(t *testing.T) {
 			}, nil
 		},
 		GetAccountFromBytesCalled: func(address []byte, accountBytes []byte) (vmcommon.AccountHandler, error) {
-			acc := &mock.AccountWrapMock{}
+			acc := &stateMock.AccountWrapMock{}
 			acc.SetTrackableDataTrie(&trieMock.DataTrieTrackerStub{
 				RetrieveValueCalled: func(key []byte) ([]byte, error) {
 					assert.Equal(t, dataTrieKey, hex.EncodeToString(key))
@@ -3990,7 +3990,7 @@ func getDefaultDataComponents() *nodeMockFactory.DataComponentsMock {
 func getDefaultBootstrapComponents() *mainFactoryMocks.BootstrapComponentsStub {
 	return &mainFactoryMocks.BootstrapComponentsStub{
 		Bootstrapper: &bootstrapMocks.EpochStartBootstrapperStub{
-			TrieHolder:      &mock.TriesHolderStub{},
+			TrieHolder:      &trieMock.TriesHolderStub{},
 			StorageManagers: map[string]common.StorageManager{"0": &testscommon.StorageManagerStub{}},
 			BootstrapCalled: nil,
 		},

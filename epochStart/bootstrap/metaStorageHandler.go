@@ -47,6 +47,7 @@ func NewMetaStorageHandler(
 		nodeTypeProvider,
 		currentEpoch,
 		false,
+		factory.BootstrapStorageService,
 	)
 	if err != nil {
 		return nil, err

@@ -125,6 +125,7 @@ func TestCreateOutport_SubscribeNotifierDriver(t *testing.T) {
 	args.EventNotifierFactoryArgs.Marshaller = &mock.MarshalizerMock{}
 	args.EventNotifierFactoryArgs.Hasher = &hashingMocks.HasherMock{}
 	args.EventNotifierFactoryArgs.PubKeyConverter = &mock.PubkeyConverterMock{}
+	args.EventNotifierFactoryArgs.RequestTimeoutSec = 1
 	outPort, err := factory.CreateOutport(args)
 	require.Nil(t, err)
 

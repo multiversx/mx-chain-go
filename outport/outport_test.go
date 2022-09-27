@@ -3,16 +3,21 @@ package outport
 import (
 	"errors"
 	"sync"
+	atomicGo "sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/outport/mock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+const counterPositionInLogMessage = 5
 
 func TestNewOutport(t *testing.T) {
 	t.Parallel()
@@ -54,13 +59,27 @@ func TestOutport_SaveAccounts(t *testing.T) {
 		},
 	}
 	outportHandler, _ := NewOutport(minimumRetrialInterval)
-	outportHandler.SaveAccounts(0, map[string]*outportcore.AlteredAccount{}, 0)
+	numLogDebugCalled := uint32(0)
+	outportHandler.logHandler = func(logLevel logger.LogLevel, message string, args ...interface{}) {
+		if logLevel == logger.LogError {
+			assert.Fail(t, "should have not called log error")
+		}
+		if logLevel == logger.LogDebug {
+			atomicGo.AddUint32(&numLogDebugCalled, 1)
+		}
+	}
+
+	outportHandler.SaveAccounts(0, map[string]*outportcore.AlteredAccount{},0)
+	time.Sleep(time.Second)
 	_ = outportHandler.SubscribeDriver(driver1)
 	_ = outportHandler.SubscribeDriver(driver2)
 
-	outportHandler.SaveAccounts(0, map[string]*outportcore.AlteredAccount{}, 0)
+	outportHandler.SaveAccounts(0, map[string]*outportcore.AlteredAccount{},0)
+	time.Sleep(time.Second)
+
 	assert.Equal(t, 10, numCalled1)
 	assert.Equal(t, 1, numCalled2)
+	assert.Equal(t, uint32(4), atomicGo.LoadUint32(&numLogDebugCalled))
 }
 
 func TestOutport_SaveBlock(t *testing.T) {
@@ -86,13 +105,26 @@ func TestOutport_SaveBlock(t *testing.T) {
 		},
 	}
 	outportHandler, _ := NewOutport(minimumRetrialInterval)
+	numLogDebugCalled := uint32(0)
+	outportHandler.logHandler = func(logLevel logger.LogLevel, message string, args ...interface{}) {
+		if logLevel == logger.LogError {
+			assert.Fail(t, "should have not called log error")
+		}
+		if logLevel == logger.LogDebug {
+			atomicGo.AddUint32(&numLogDebugCalled, 1)
+		}
+	}
+
 	outportHandler.SaveBlock(nil)
 	_ = outportHandler.SubscribeDriver(driver1)
 	_ = outportHandler.SubscribeDriver(driver2)
 
 	outportHandler.SaveBlock(nil)
+	time.Sleep(time.Second)
+
 	assert.Equal(t, 10, numCalled1)
 	assert.Equal(t, 1, numCalled2)
+	assert.Equal(t, uint32(4), atomicGo.LoadUint32(&numLogDebugCalled))
 }
 
 func TestOutport_SaveRoundsInfo(t *testing.T) {
@@ -118,13 +150,26 @@ func TestOutport_SaveRoundsInfo(t *testing.T) {
 		},
 	}
 	outportHandler, _ := NewOutport(minimumRetrialInterval)
+	numLogDebugCalled := uint32(0)
+	outportHandler.logHandler = func(logLevel logger.LogLevel, message string, args ...interface{}) {
+		if logLevel == logger.LogError {
+			assert.Fail(t, "should have not called log error")
+		}
+		if logLevel == logger.LogDebug {
+			atomicGo.AddUint32(&numLogDebugCalled, 1)
+		}
+	}
+
 	outportHandler.SaveRoundsInfo(nil)
 	_ = outportHandler.SubscribeDriver(driver1)
 	_ = outportHandler.SubscribeDriver(driver2)
 
 	outportHandler.SaveRoundsInfo(nil)
+
+	time.Sleep(time.Second)
 	assert.Equal(t, 10, numCalled1)
 	assert.Equal(t, 1, numCalled2)
+	assert.Equal(t, uint32(4), atomicGo.LoadUint32(&numLogDebugCalled))
 }
 
 func TestOutport_SaveValidatorsPubKeys(t *testing.T) {
@@ -150,13 +195,28 @@ func TestOutport_SaveValidatorsPubKeys(t *testing.T) {
 		},
 	}
 	outportHandler, _ := NewOutport(minimumRetrialInterval)
+	numLogDebugCalled := uint32(0)
+	outportHandler.logHandler = func(logLevel logger.LogLevel, message string, args ...interface{}) {
+		if logLevel == logger.LogError {
+			assert.Fail(t, "should have not called log error")
+		}
+		if logLevel == logger.LogDebug {
+			atomicGo.AddUint32(&numLogDebugCalled, 1)
+		}
+	}
+
 	outportHandler.SaveValidatorsPubKeys(nil, 0)
+	time.Sleep(time.Second)
+
 	_ = outportHandler.SubscribeDriver(driver1)
 	_ = outportHandler.SubscribeDriver(driver2)
 
 	outportHandler.SaveValidatorsPubKeys(nil, 0)
+	time.Sleep(time.Second)
+
 	assert.Equal(t, 10, numCalled1)
 	assert.Equal(t, 1, numCalled2)
+	assert.Equal(t, uint32(4), atomicGo.LoadUint32(&numLogDebugCalled))
 }
 
 func TestOutport_SaveValidatorsRating(t *testing.T) {
@@ -182,13 +242,28 @@ func TestOutport_SaveValidatorsRating(t *testing.T) {
 		},
 	}
 	outportHandler, _ := NewOutport(minimumRetrialInterval)
+	numLogDebugCalled := uint32(0)
+	outportHandler.logHandler = func(logLevel logger.LogLevel, message string, args ...interface{}) {
+		if logLevel == logger.LogError {
+			assert.Fail(t, "should have not called log error")
+		}
+		if logLevel == logger.LogDebug {
+			atomicGo.AddUint32(&numLogDebugCalled, 1)
+		}
+	}
+
 	outportHandler.SaveValidatorsRating("", nil)
+	time.Sleep(time.Second)
+
 	_ = outportHandler.SubscribeDriver(driver1)
 	_ = outportHandler.SubscribeDriver(driver2)
 
 	outportHandler.SaveValidatorsRating("", nil)
+	time.Sleep(time.Second)
+
 	assert.Equal(t, 10, numCalled1)
 	assert.Equal(t, 1, numCalled2)
+	assert.Equal(t, uint32(4), atomicGo.LoadUint32(&numLogDebugCalled))
 }
 
 func TestOutport_RevertIndexedBlock(t *testing.T) {
@@ -214,13 +289,28 @@ func TestOutport_RevertIndexedBlock(t *testing.T) {
 		},
 	}
 	outportHandler, _ := NewOutport(minimumRetrialInterval)
+	numLogDebugCalled := uint32(0)
+	outportHandler.logHandler = func(logLevel logger.LogLevel, message string, args ...interface{}) {
+		if logLevel == logger.LogError {
+			assert.Fail(t, "should have not called log error")
+		}
+		if logLevel == logger.LogDebug {
+			atomicGo.AddUint32(&numLogDebugCalled, 1)
+		}
+	}
+
 	outportHandler.RevertIndexedBlock(nil, nil)
+	time.Sleep(time.Second)
+
 	_ = outportHandler.SubscribeDriver(driver1)
 	_ = outportHandler.SubscribeDriver(driver2)
 
 	outportHandler.RevertIndexedBlock(nil, nil)
+	time.Sleep(time.Second)
+
 	assert.Equal(t, 10, numCalled1)
 	assert.Equal(t, 1, numCalled2)
+	assert.Equal(t, uint32(4), atomicGo.LoadUint32(&numLogDebugCalled))
 }
 
 func TestOutport_FinalizedBlock(t *testing.T) {
@@ -246,13 +336,28 @@ func TestOutport_FinalizedBlock(t *testing.T) {
 		},
 	}
 	outportHandler, _ := NewOutport(minimumRetrialInterval)
+	numLogDebugCalled := uint32(0)
+	outportHandler.logHandler = func(logLevel logger.LogLevel, message string, args ...interface{}) {
+		if logLevel == logger.LogError {
+			assert.Fail(t, "should have not called log error")
+		}
+		if logLevel == logger.LogDebug {
+			atomicGo.AddUint32(&numLogDebugCalled, 1)
+		}
+	}
+
 	outportHandler.FinalizedBlock(nil)
+	time.Sleep(time.Second)
+
 	_ = outportHandler.SubscribeDriver(driver1)
 	_ = outportHandler.SubscribeDriver(driver2)
 
 	outportHandler.FinalizedBlock(nil)
+	time.Sleep(time.Second)
+
 	assert.Equal(t, 10, numCalled1)
 	assert.Equal(t, 1, numCalled2)
+	assert.Equal(t, uint32(4), atomicGo.LoadUint32(&numLogDebugCalled))
 }
 
 func TestOutport_SubscribeDriver(t *testing.T) {
@@ -387,4 +492,76 @@ func TestOutport_CloseWhileDriverIsStuckInContinuousErrors(t *testing.T) {
 	case <-time.After(time.Second):
 		require.Fail(t, "unable to close all drivers because of a stuck driver")
 	}
+}
+
+func TestOutport_SaveBlockDriverStuck(t *testing.T) {
+	t.Parallel()
+
+	currentCounter := uint64(778)
+	outportHandler, _ := NewOutport(minimumRetrialInterval)
+	outportHandler.messageCounter = currentCounter
+	outportHandler.timeForDriverCall = time.Second
+	logErrorCalled := atomic.Flag{}
+	numLogDebugCalled := uint32(0)
+	outportHandler.logHandler = func(logLevel logger.LogLevel, message string, args ...interface{}) {
+		if logLevel == logger.LogWarning {
+			logErrorCalled.SetValue(true)
+			assert.Equal(t, "outport.monitorCompletionOnDriver took too long", message)
+			assert.Equal(t, currentCounter+1, args[counterPositionInLogMessage])
+		}
+		if logLevel == logger.LogDebug {
+			atomicGo.AddUint32(&numLogDebugCalled, 1)
+			assert.Equal(t, currentCounter+1, args[counterPositionInLogMessage])
+		}
+	}
+
+	_ = outportHandler.SubscribeDriver(&mock.DriverStub{
+		SaveBlockCalled: func(args *outportcore.ArgsSaveBlockData) error {
+			time.Sleep(time.Second * 5)
+			return nil
+		},
+	})
+
+	outportHandler.SaveBlock(nil)
+
+	assert.True(t, logErrorCalled.IsSet())
+	assert.Equal(t, uint32(1), atomicGo.LoadUint32(&numLogDebugCalled))
+}
+
+func TestOutport_SaveBlockDriverIsNotStuck(t *testing.T) {
+	t.Parallel()
+
+	currentCounter := uint64(778)
+	outportHandler, _ := NewOutport(minimumRetrialInterval)
+	outportHandler.messageCounter = currentCounter
+	outportHandler.timeForDriverCall = time.Second
+	numLogDebugCalled := uint32(0)
+	outportHandler.logHandler = func(logLevel logger.LogLevel, message string, args ...interface{}) {
+		if logLevel == logger.LogError {
+			assert.Fail(t, "should have not called log error")
+		}
+		if logLevel == logger.LogDebug {
+			if atomicGo.LoadUint32(&numLogDebugCalled) == 0 {
+				assert.Equal(t, "outport.monitorCompletionOnDriver starting", message)
+				assert.Equal(t, currentCounter+1, args[counterPositionInLogMessage])
+			}
+			if atomicGo.LoadUint32(&numLogDebugCalled) == 1 {
+				assert.Equal(t, "outport.monitorCompletionOnDriver ended", message)
+				assert.Equal(t, currentCounter+1, args[counterPositionInLogMessage])
+			}
+
+			atomicGo.AddUint32(&numLogDebugCalled, 1)
+		}
+	}
+
+	_ = outportHandler.SubscribeDriver(&mock.DriverStub{
+		SaveBlockCalled: func(args *outportcore.ArgsSaveBlockData) error {
+			return nil
+		},
+	})
+
+	outportHandler.SaveBlock(nil)
+	time.Sleep(time.Second)
+
+	assert.Equal(t, uint32(2), atomicGo.LoadUint32(&numLogDebugCalled))
 }

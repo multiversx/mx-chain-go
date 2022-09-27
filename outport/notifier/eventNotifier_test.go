@@ -20,7 +20,7 @@ import (
 func createMockEventNotifierArgs() notifier.ArgsEventNotifier {
 	return notifier.ArgsEventNotifier{
 		HttpClient:      &mock.HTTPClientStub{},
-		Marshalizer:     &testscommon.MarshalizerMock{},
+		Marshaller:      &testscommon.MarshalizerMock{},
 		Hasher:          &hashingMocks.HasherMock{},
 		PubKeyConverter: &testscommon.PubkeyConverterMock{},
 	}
@@ -29,9 +29,57 @@ func createMockEventNotifierArgs() notifier.ArgsEventNotifier {
 func TestNewEventNotifier(t *testing.T) {
 	t.Parallel()
 
-	en, err := notifier.NewEventNotifier(createMockEventNotifierArgs())
-	require.Nil(t, err)
-	require.NotNil(t, en)
+	t.Run("nil http client", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockEventNotifierArgs()
+		args.HttpClient = nil
+
+		en, err := notifier.NewEventNotifier(args)
+		require.Nil(t, en)
+		require.Equal(t, notifier.ErrNilHTTPClientWrapper, err)
+	})
+
+	t.Run("nil marshaller", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockEventNotifierArgs()
+		args.Marshaller = nil
+
+		en, err := notifier.NewEventNotifier(args)
+		require.Nil(t, en)
+		require.Equal(t, notifier.ErrNilMarshaller, err)
+	})
+
+	t.Run("nil hasher", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockEventNotifierArgs()
+		args.Hasher = nil
+
+		en, err := notifier.NewEventNotifier(args)
+		require.Nil(t, en)
+		require.Equal(t, notifier.ErrNilHasher, err)
+	})
+
+	t.Run("nil pub key converter", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockEventNotifierArgs()
+		args.PubKeyConverter = nil
+
+		en, err := notifier.NewEventNotifier(args)
+		require.Nil(t, en)
+		require.Equal(t, notifier.ErrNilPubKeyConverter, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		en, err := notifier.NewEventNotifier(createMockEventNotifierArgs())
+		require.Nil(t, err)
+		require.NotNil(t, en)
+	})
 }
 
 func TestSaveBlock(t *testing.T) {
@@ -41,7 +89,7 @@ func TestSaveBlock(t *testing.T) {
 
 	wasCalled := false
 	args.HttpClient = &mock.HTTPClientStub{
-		PostCalled: func(route string, payload, response interface{}) error {
+		PostCalled: func(route string, payload interface{}) error {
 			wasCalled = true
 			return nil
 		},
@@ -75,7 +123,7 @@ func TestRevertIndexedBlock(t *testing.T) {
 
 	wasCalled := false
 	args.HttpClient = &mock.HTTPClientStub{
-		PostCalled: func(route string, payload, response interface{}) error {
+		PostCalled: func(route string, payload interface{}) error {
 			wasCalled = true
 			return nil
 		},
@@ -101,7 +149,7 @@ func TestFinalizedBlock(t *testing.T) {
 
 	wasCalled := false
 	args.HttpClient = &mock.HTTPClientStub{
-		PostCalled: func(route string, payload, response interface{}) error {
+		PostCalled: func(route string, payload interface{}) error {
 			wasCalled = true
 			return nil
 		},

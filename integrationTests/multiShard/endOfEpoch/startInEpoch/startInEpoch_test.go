@@ -27,7 +27,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	epochNotifierMock "github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
@@ -279,6 +279,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		&nodeTypeProviderMock.NodeTypeProviderStub{},
 		0,
 		false,
+		factory.ProcessStorageService,
 	)
 	assert.NoError(t, err)
 	storageServiceShard, err := storageFactory.CreateForMeta()
@@ -351,14 +352,14 @@ func getBootstrapper(shardID uint32, baseArgs storageBootstrap.ArgsBaseStorageBo
 
 func getGeneralConfig() config.Config {
 	generalConfig := testscommon.GetGeneralConfig()
-	generalConfig.MiniBlocksStorage.DB.Type = string(storageUnit.LvlDBSerial)
-	generalConfig.ShardHdrNonceHashStorage.DB.Type = string(storageUnit.LvlDBSerial)
-	generalConfig.MetaBlockStorage.DB.Type = string(storageUnit.LvlDBSerial)
-	generalConfig.MetaHdrNonceHashStorage.DB.Type = string(storageUnit.LvlDBSerial)
-	generalConfig.BlockHeaderStorage.DB.Type = string(storageUnit.LvlDBSerial)
-	generalConfig.BootstrapStorage.DB.Type = string(storageUnit.LvlDBSerial)
-	generalConfig.ReceiptsStorage.DB.Type = string(storageUnit.LvlDBSerial)
-	generalConfig.ScheduledSCRsStorage.DB.Type = string(storageUnit.LvlDBSerial)
+	generalConfig.MiniBlocksStorage.DB.Type = string(storageunit.LvlDBSerial)
+	generalConfig.ShardHdrNonceHashStorage.DB.Type = string(storageunit.LvlDBSerial)
+	generalConfig.MetaBlockStorage.DB.Type = string(storageunit.LvlDBSerial)
+	generalConfig.MetaHdrNonceHashStorage.DB.Type = string(storageunit.LvlDBSerial)
+	generalConfig.BlockHeaderStorage.DB.Type = string(storageunit.LvlDBSerial)
+	generalConfig.BootstrapStorage.DB.Type = string(storageunit.LvlDBSerial)
+	generalConfig.ReceiptsStorage.DB.Type = string(storageunit.LvlDBSerial)
+	generalConfig.ScheduledSCRsStorage.DB.Type = string(storageunit.LvlDBSerial)
 
 	return generalConfig
 }

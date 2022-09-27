@@ -34,6 +34,9 @@
     # Password is used to authorize an observer to push event data
     Password = ""
 
+    # RequestTimeoutSec defines the timeout in seconds for the http client
+    RequestTimeoutSec = 60
+
 # CovalentConnector defines settings related to covalent indexer
 [CovalentConnector]
     # This flag shall only be used for observer nodes

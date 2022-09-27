@@ -1,7 +1,9 @@
 package common
 
 import (
+	"encoding/hex"
 	"fmt"
+	"os"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -133,4 +135,30 @@ func LoadRoundConfig(filePath string) (*config.RoundConfig, error) {
 	}
 
 	return cfg, nil
+}
+
+// GetSkBytesFromP2pKey will read key file based on provided path. If no valid filename
+// it will return an empty byte array, otherwise it will try to fetch the private key and
+// return the decoded byte array.
+func GetSkBytesFromP2pKey(p2pKeyFilename string) ([]byte, error) {
+	if len(p2pKeyFilename) == 0 {
+		return []byte{}, nil
+	}
+
+	skIndex := 0
+	encodedSk, _, err := core.LoadSkPkFromPemFile(p2pKeyFilename, skIndex)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return []byte{}, nil
+		}
+
+		return nil, err
+	}
+
+	skBytes, err := hex.DecodeString(string(encodedSk))
+	if err != nil {
+		return nil, fmt.Errorf("%w for encoded secret key", err)
+	}
+
+	return skBytes, nil
 }

@@ -17,6 +17,16 @@ func NewAccountsAdapter() *accountsAdapter {
 	return &accountsAdapter{}
 }
 
+// SetSyncer -
+func (a *accountsAdapter) SetSyncer(_ state.AccountsDBSyncer) error {
+	return nil
+}
+
+// StartSnapshotIfNeeded -
+func (a *accountsAdapter) StartSnapshotIfNeeded() error {
+	return nil
+}
+
 // GetTrie -
 func (a *accountsAdapter) GetTrie(_ []byte) (common.Trie, error) {
 	return nil, nil

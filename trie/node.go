@@ -10,13 +10,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/trie/keyBuilder"
 )
 
 const (
 	nrOfChildren         = 17
 	firstByte            = 0
 	hexTerminator        = 16
-	nibbleSize           = 4
 	nibbleMask           = 0x0f
 	pointerSizeInBytes   = 8
 	numNodeInnerPointers = 2 // each trie node contains a marshalizer and a hasher
@@ -211,31 +211,12 @@ func keyBytesToHex(str []byte) []byte {
 	nibbles[hexLength-1] = hexTerminator
 
 	for i := hexLength - 2; i > 0; i -= 2 {
-		nibbles[i] = str[hexSliceIndex] >> nibbleSize
+		nibbles[i] = str[hexSliceIndex] >> keyBuilder.NibbleSize
 		nibbles[i-1] = str[hexSliceIndex] & nibbleMask
 		hexSliceIndex++
 	}
 
 	return nibbles
-}
-
-// hexToKeyBytes transforms hex nibbles into key bytes. The hex terminator is removed from the end of the hex slice,
-// and then the hex slice is reversed when forming the key bytes.
-func hexToKeyBytes(hex []byte) ([]byte, error) {
-	hex = hex[:len(hex)-1]
-	length := len(hex)
-	if length%2 != 0 {
-		return nil, ErrInvalidLength
-	}
-
-	key := make([]byte, length/2)
-	hexSliceIndex := 0
-	for i := len(key) - 1; i >= 0; i-- {
-		key[i] = hex[hexSliceIndex+1]<<nibbleSize | hex[hexSliceIndex]
-		hexSliceIndex += 2
-	}
-
-	return key, nil
 }
 
 // prefixLen returns the length of the common prefix of a and b.

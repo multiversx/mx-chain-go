@@ -3,6 +3,7 @@ package outport
 import (
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -13,13 +14,17 @@ import (
 
 var log = logger.GetOrCreate("outport")
 
+const maxTimeForDriverCall = time.Second * 30
 const minimumRetrialInterval = time.Millisecond * 10
 
 type outport struct {
-	mutex           sync.RWMutex
-	drivers         []Driver
-	retrialInterval time.Duration
-	chanClose       chan struct{}
+	mutex             sync.RWMutex
+	drivers           []Driver
+	retrialInterval   time.Duration
+	chanClose         chan struct{}
+	logHandler        func(logLevel logger.LogLevel, message string, args ...interface{})
+	timeForDriverCall time.Duration
+	messageCounter    uint64
 }
 
 // NewOutport will create a new instance of proxy
@@ -29,10 +34,12 @@ func NewOutport(retrialInterval time.Duration) (*outport, error) {
 	}
 
 	return &outport{
-		drivers:         make([]Driver, 0),
-		mutex:           sync.RWMutex{},
-		retrialInterval: retrialInterval,
-		chanClose:       make(chan struct{}),
+		drivers:           make([]Driver, 0),
+		mutex:             sync.RWMutex{},
+		retrialInterval:   retrialInterval,
+		chanClose:         make(chan struct{}),
+		logHandler:        log.Log,
+		timeForDriverCall: maxTimeForDriverCall,
 	}, nil
 }
 
@@ -46,7 +53,34 @@ func (o *outport) SaveBlock(args *outportcore.ArgsSaveBlockData) {
 	}
 }
 
+func (o *outport) monitorCompletionOnDriver(function string, driver Driver) chan struct{} {
+	counter := atomic.AddUint64(&o.messageCounter, 1)
+
+	o.logHandler(logger.LogDebug, "outport.monitorCompletionOnDriver starting",
+		"function", function, "driver", driverString(driver), "message counter", counter)
+	ch := make(chan struct{})
+	go func() {
+		timer := time.NewTimer(o.timeForDriverCall)
+
+		select {
+		case <-ch:
+			o.logHandler(logger.LogDebug, "outport.monitorCompletionOnDriver ended",
+				"function", function, "driver", driverString(driver), "message counter", counter)
+		case <-timer.C:
+			o.logHandler(logger.LogWarning, "outport.monitorCompletionOnDriver took too long",
+				"function", function, "driver", driverString(driver), "message counter", counter, "time", o.timeForDriverCall)
+		}
+
+		timer.Stop()
+	}()
+
+	return ch
+}
+
 func (o *outport) saveBlockBlocking(args *outportcore.ArgsSaveBlockData, driver Driver) {
+	ch := o.monitorCompletionOnDriver("saveBlockBlocking", driver)
+	defer close(ch)
+
 	for {
 		err := driver.SaveBlock(args)
 		if err == nil {
@@ -84,6 +118,9 @@ func (o *outport) RevertIndexedBlock(header data.HeaderHandler, body data.BodyHa
 }
 
 func (o *outport) revertIndexedBlockBlocking(header data.HeaderHandler, body data.BodyHandler, driver Driver) {
+	ch := o.monitorCompletionOnDriver("revertIndexedBlockBlocking", driver)
+	defer close(ch)
+
 	for {
 		err := driver.RevertIndexedBlock(header, body)
 		if err == nil {
@@ -112,6 +149,9 @@ func (o *outport) SaveRoundsInfo(roundsInfo []*outportcore.RoundInfo) {
 }
 
 func (o *outport) saveRoundsInfoBlocking(roundsInfo []*outportcore.RoundInfo, driver Driver) {
+	ch := o.monitorCompletionOnDriver("saveRoundsInfoBlocking", driver)
+	defer close(ch)
+
 	for {
 		err := driver.SaveRoundsInfo(roundsInfo)
 		if err == nil {
@@ -140,6 +180,9 @@ func (o *outport) SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]byte, e
 }
 
 func (o *outport) saveValidatorsPubKeysBlocking(validatorsPubKeys map[uint32][][]byte, epoch uint32, driver Driver) {
+	ch := o.monitorCompletionOnDriver("saveValidatorsPubKeysBlocking", driver)
+	defer close(ch)
+
 	for {
 		err := driver.SaveValidatorsPubKeys(validatorsPubKeys, epoch)
 		if err == nil {
@@ -168,6 +211,9 @@ func (o *outport) SaveValidatorsRating(indexID string, infoRating []*outportcore
 }
 
 func (o *outport) saveValidatorsRatingBlocking(indexID string, infoRating []*outportcore.ValidatorRatingInfo, driver Driver) {
+	ch := o.monitorCompletionOnDriver("saveValidatorsRatingBlocking", driver)
+	defer close(ch)
+
 	for {
 		err := driver.SaveValidatorsRating(indexID, infoRating)
 		if err == nil {
@@ -196,6 +242,9 @@ func (o *outport) SaveAccounts(blockTimestamp uint64, acc map[string]*outportcor
 }
 
 func (o *outport) saveAccountsBlocking(blockTimestamp uint64, acc map[string]*outportcore.AlteredAccount, shardID uint32, driver Driver) {
+	ch := o.monitorCompletionOnDriver("saveAccountsBlocking", driver)
+	defer close(ch)
+
 	for {
 		err := driver.SaveAccounts(blockTimestamp, acc, shardID)
 		if err == nil {
@@ -224,6 +273,9 @@ func (o *outport) FinalizedBlock(headerHash []byte) {
 }
 
 func (o *outport) finalizedBlockBlocking(headerHash []byte, driver Driver) {
+	ch := o.monitorCompletionOnDriver("finalizedBlockBlocking", driver)
+	defer close(ch)
+
 	for {
 		err := driver.FinalizedBlock(headerHash)
 		if err == nil {
