@@ -18,7 +18,7 @@ type StorerArgs struct {
 	OldDataCleanerProvider    clean.OldDataCleanerProvider
 	CustomDatabaseRemover     storage.CustomDatabaseRemoverHandler
 	MaxBatchSize              int
-	EpochsData                *EpochArgs
+	EpochsData                EpochArgs
 	PruningEnabled            bool
 	EnabledDbLookupExtensions bool
 	PersistersTracker         PersistersTracker

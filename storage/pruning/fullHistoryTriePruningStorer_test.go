@@ -3,6 +3,7 @@ package pruning_test
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	storageCore "github.com/ElrondNetwork/elrond-go-core/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/pruning"
 	"github.com/ElrondNetwork/elrond-go/testscommon/storage"
@@ -19,7 +20,7 @@ func TestNewFullHistoryTriePruningStorer(t *testing.T) {
 	}
 	fhps, err := pruning.NewFullHistoryTriePruningStorer(fhArgs)
 	assert.Nil(t, err)
-	assert.NotNil(t, fhps)
+	assert.False(t, check.IfNil(fhps))
 }
 
 func TestFullHistoryTriePruningStorer_CallsMethodsFromUndelyingFHPS(t *testing.T) {

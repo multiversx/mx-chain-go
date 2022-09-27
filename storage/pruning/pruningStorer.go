@@ -266,7 +266,7 @@ func createPersisterIfPruningDisabled(
 	return persisters, persistersMapByEpoch, nil
 }
 
-func computeOldestEpochActiveAndToKeep(args *EpochArgs) (int64, int64) {
+func computeOldestEpochActiveAndToKeep(args EpochArgs) (int64, int64) {
 	oldestEpochKeep := int64(args.StartingEpoch) - int64(args.NumOfEpochsToKeep) + 1
 	if oldestEpochKeep < 0 {
 		oldestEpochKeep = 0

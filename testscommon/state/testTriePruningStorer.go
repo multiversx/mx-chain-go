@@ -33,7 +33,7 @@ func CreateTestingTriePruningStorer(coordinator sharding.Coordinator, notifier p
 			return persistersMap.GetPersister(path), nil
 		},
 	}
-	epochsData := &pruning.EpochArgs{
+	epochsData := pruning.EpochArgs{
 		NumOfEpochsToKeep:     4,
 		NumOfActivePersisters: 4,
 	}

@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/random"
 	storageCore "github.com/ElrondNetwork/elrond-go-core/storage"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -33,9 +34,8 @@ func TestNewFullHistoryPruningStorer_OkValsShouldWork(t *testing.T) {
 	}
 	fhps, err := pruning.NewFullHistoryPruningStorer(fhArgs)
 
-	assert.NotNil(t, fhps)
+	assert.False(t, check.IfNil(fhps))
 	assert.Nil(t, err)
-	assert.False(t, fhps.IsInterfaceNil())
 }
 
 func TestNewFullHistoryPruningStorer_InvalidNumberOfActivePersistersShouldErr(t *testing.T) {
