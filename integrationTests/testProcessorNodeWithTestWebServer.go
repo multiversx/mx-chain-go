@@ -201,9 +201,8 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 	receiptsRepository := &testscommon.ReceiptsRepositoryStub{}
 
 	argsDataFieldParser := &datafield.ArgsOperationDataFieldParser{
-		AddressLength:    TestAddressPubkeyConverter.Len(),
-		Marshalizer:      TestMarshalizer,
-		ShardCoordinator: tpn.ShardCoordinator,
+		AddressLength: TestAddressPubkeyConverter.Len(),
+		Marshalizer:   TestMarshalizer,
 	}
 	dataFieldParser, err := datafield.NewOperationDataFieldParser(argsDataFieldParser)
 	log.LogIfError(err)
