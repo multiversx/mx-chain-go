@@ -43,6 +43,14 @@ type event struct {
 	timestamp    int64
 }
 
+// NumPrints returns the current number of prints
+func (ev *event) NumPrints() int {
+	ev.mutEvent.Lock()
+	defer ev.mutEvent.Unlock()
+
+	return ev.numPrints
+}
+
 // Size returns the number of bytes taken by an event line
 func (ev *event) Size() int {
 	ev.mutEvent.Lock()
@@ -192,7 +200,6 @@ func (ir *interceptorResolver) incrementNumOfPrints() {
 		ev.mutEvent.Lock()
 		ev.numPrints++
 		ev.mutEvent.Unlock()
-		ir.cache.Put(key, ev, ev.Size())
 	}
 }
 
@@ -250,7 +257,6 @@ func (ir *interceptorResolver) logRequestedData(topic string, hash []byte, numRe
 	req.numReqIntra += numReqIntra
 	req.timestamp = ir.timestampHandler()
 	req.mutEvent.Unlock()
-	ir.cache.Put(identifier, req, req.Size())
 }
 
 // LogReceivedHashes is called whenever request hashes have been received
@@ -277,7 +283,6 @@ func (ir *interceptorResolver) logReceivedHash(topic string, hash []byte) {
 	req.numReceived++
 	req.timestamp = ir.timestampHandler()
 	req.mutEvent.Unlock()
-	ir.cache.Put(identifier, req, req.Size())
 }
 
 // LogProcessedHashes is called whenever request hashes have been processed
@@ -306,7 +311,6 @@ func (ir *interceptorResolver) logProcessedHash(topic string, hash []byte, err e
 		req.timestamp = ir.timestampHandler()
 		req.lastErr = err
 		req.mutEvent.Unlock()
-		ir.cache.Put(identifier, req, req.Size())
 
 		return
 	}
@@ -349,7 +353,7 @@ func (ir *interceptorResolver) query(acceptEvent func(ev *event) bool, maxNumPri
 			continue
 		}
 
-		if ev.numPrints > maxNumPrints {
+		if ev.NumPrints() > maxNumPrints {
 			continue
 		}
 
@@ -407,7 +411,6 @@ func (ir *interceptorResolver) LogFailedToResolveData(topic string, hash []byte,
 	ev.timestamp = ir.timestampHandler()
 	ev.lastErr = err
 	ev.mutEvent.Unlock()
-	ir.cache.Put(identifier, ev, ev.Size())
 }
 
 // LogSucceededToResolveData removes the recording that the resolver did not resolved a hash in the past
