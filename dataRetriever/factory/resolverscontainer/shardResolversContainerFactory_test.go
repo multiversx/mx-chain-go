@@ -17,7 +17,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	triesFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
@@ -96,7 +95,7 @@ func createTriesHolderForShard() common.TriesHolder {
 	return triesHolder
 }
 
-//------- NewResolversContainerFactory
+// ------- NewResolversContainerFactory
 
 func TestNewShardResolversContainerFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
@@ -267,28 +266,6 @@ func TestNewShardResolversContainerFactory_InvalidNumFullHistoryPeersShouldErr(t
 	assert.True(t, errors.Is(err, dataRetriever.ErrInvalidValue))
 }
 
-func TestNewShardResolversContainerFactory_NilNodesCoordinatorShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getArgumentsShard()
-	args.NodesCoordinator = nil
-	rcf, err := resolverscontainer.NewShardResolversContainerFactory(args)
-
-	assert.Nil(t, rcf)
-	assert.Equal(t, dataRetriever.ErrNilNodesCoordinator, err)
-}
-
-func TestNewShardResolversContainerFactory_InvalidMaxNumOfPeerAuthenticationInResponseShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getArgumentsShard()
-	args.MaxNumOfPeerAuthenticationInResponse = 0
-	rcf, err := resolverscontainer.NewShardResolversContainerFactory(args)
-
-	assert.Nil(t, rcf)
-	assert.True(t, strings.Contains(err.Error(), dataRetriever.ErrInvalidValue.Error()))
-}
-
 func TestNewShardResolversContainerFactory_NilInputAntifloodHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -322,17 +299,6 @@ func TestNewShardResolversContainerFactory_NilCurrentNetworkEpochProviderShouldE
 	assert.Equal(t, dataRetriever.ErrNilCurrentNetworkEpochProvider, err)
 }
 
-func TestNewShardResolversContainerFactory_NilPeerShardMapperShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getArgumentsShard()
-	args.PeerShardMapper = nil
-	rcf, err := resolverscontainer.NewShardResolversContainerFactory(args)
-
-	assert.Nil(t, rcf)
-	assert.Equal(t, dataRetriever.ErrNilPeerShardMapper, err)
-}
-
 func TestNewShardResolversContainerFactory_ShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -347,7 +313,7 @@ func TestNewShardResolversContainerFactory_ShouldWork(t *testing.T) {
 	assert.Equal(t, int(args.ResolverConfig.NumFullHistoryPeers), rcf.NumFullHistoryPeers())
 }
 
-//------- Create
+// ------- Create
 
 func TestShardResolversContainerFactory_CreateRegisterTxFailsShouldErr(t *testing.T) {
 	t.Parallel()
@@ -477,9 +443,7 @@ func getArgumentsShard() resolverscontainer.FactoryArgs {
 			NumTotalPeers:       3,
 			NumFullHistoryPeers: 3,
 		},
-		NodesCoordinator:                     &shardingMocks.NodesCoordinatorStub{},
-		MaxNumOfPeerAuthenticationInResponse: 5,
-		PeerShardMapper:                      &p2pmocks.NetworkShardingCollectorStub{},
-		PeersRatingHandler:                   &p2pmocks.PeersRatingHandlerStub{},
+		PeersRatingHandler: &p2pmocks.PeersRatingHandlerStub{},
+		PayloadValidator:   &testscommon.PeerAuthenticationPayloadValidatorStub{},
 	}
 }

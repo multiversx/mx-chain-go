@@ -1134,8 +1134,14 @@ var ErrNilESDTGlobalSettingsHandler = errors.New("nil esdt global settings handl
 // ErrNilEnableEpochsHandler signals that a nil enable epochs handler has been provided
 var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
 
+// ErrNilMultiSignerContainer signals that the given multisigner container is nil
+var ErrNilMultiSignerContainer = errors.New("nil multiSigner container")
+
 // ErrNilCrawlerAllowedAddress signals that no crawler allowed address was found
 var ErrNilCrawlerAllowedAddress = errors.New("nil crawler allowed address")
+
+// ErrNilPayloadValidator signals that a nil payload validator was provided
+var ErrNilPayloadValidator = errors.New("nil payload validator")
 
 // ErrNilValidatorInfoPool signals that a nil validator info pool has been provided
 var ErrNilValidatorInfoPool = errors.New("nil validator info pool")
@@ -1145,3 +1151,6 @@ var ErrPropertyTooLong = errors.New("property too long")
 
 // ErrPropertyTooShort signals that a heartbeat property was too short
 var ErrPropertyTooShort = errors.New("property too short")
+
+// ErrNilProcessDebugger signals that a nil process debugger was provided
+var ErrNilProcessDebugger = errors.New("nil process debugger")

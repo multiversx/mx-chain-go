@@ -13,7 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
+	"github.com/ElrondNetwork/elrond-go/storage/cache"
 )
 
 const requestEvent = "request"
@@ -91,13 +91,13 @@ type interceptorResolver struct {
 
 // NewInterceptorResolver creates a new interceptorResolver able to hold requested-intercepted information
 func NewInterceptorResolver(config config.InterceptorResolverDebugConfig) (*interceptorResolver, error) {
-	cache, err := lrucache.NewCache(config.CacheSize)
+	lruCache, err := cache.NewLRUCache(config.CacheSize)
 	if err != nil {
 		return nil, fmt.Errorf("%w when creating NewInterceptorResolver", err)
 	}
 
 	ir := &interceptorResolver{
-		cache:            cache,
+		cache:            lruCache,
 		timestampHandler: getCurrentTimeStamp,
 	}
 

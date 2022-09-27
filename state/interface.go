@@ -72,9 +72,9 @@ type UserAccountHandler interface {
 	SetRootHash([]byte)
 	GetRootHash() []byte
 	SetDataTrie(trie common.Trie)
-	DataTrie() common.Trie
-	DataTrieTracker() DataTrieTracker
-	RetrieveValueFromDataTrieTracker(key []byte) ([]byte, error)
+	DataTrie() common.DataTrieHandler
+	RetrieveValue(key []byte) ([]byte, error)
+	SaveKeyValue(key []byte, value []byte) error
 	AddToBalance(value *big.Int) error
 	SubFromBalance(value *big.Int) error
 	GetBalance() *big.Int
@@ -91,12 +91,11 @@ type UserAccountHandler interface {
 
 // DataTrieTracker models what how to manipulate data held by a SC account
 type DataTrieTracker interface {
-	ClearDataCaches()
-	DirtyData() map[string][]byte
 	RetrieveValue(key []byte) ([]byte, error)
 	SaveKeyValue(key []byte, value []byte) error
 	SetDataTrie(tr common.Trie)
-	DataTrie() common.Trie
+	DataTrie() common.DataTrieHandler
+	SaveDirtyData(common.Trie) (map[string][]byte, error)
 	IsInterfaceNil() bool
 }
 
@@ -125,7 +124,15 @@ type AccountsAdapter interface {
 	RecreateAllTries(rootHash []byte) (map[string]common.Trie, error)
 	GetTrie(rootHash []byte) (common.Trie, error)
 	GetStackDebugFirstEntry() []byte
+	SetSyncer(syncer AccountsDBSyncer) error
+	StartSnapshotIfNeeded() error
 	Close() error
+	IsInterfaceNil() bool
+}
+
+// AccountsDBSyncer defines the methods for the accounts db syncer
+type AccountsDBSyncer interface {
+	SyncAccounts(rootHash []byte) error
 	IsInterfaceNil() bool
 }
 
@@ -157,8 +164,8 @@ type baseAccountHandler interface {
 	SetRootHash([]byte)
 	GetRootHash() []byte
 	SetDataTrie(trie common.Trie)
-	DataTrie() common.Trie
-	DataTrieTracker() DataTrieTracker
+	DataTrie() common.DataTrieHandler
+	SaveDirtyData(trie common.Trie) (map[string][]byte, error)
 	IsInterfaceNil() bool
 }
 

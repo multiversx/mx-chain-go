@@ -16,6 +16,7 @@ import (
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/common"
+	cryptoCommon "github.com/ElrondNetwork/elrond-go/common/crypto"
 	"github.com/ElrondNetwork/elrond-go/common/statistics"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -157,9 +158,10 @@ type CryptoComponentsHolder interface {
 	CryptoParamsHolder
 	TxSingleSigner() crypto.SingleSigner
 	BlockSigner() crypto.SingleSigner
-	MultiSigner() crypto.MultiSigner
+	SetMultiSignerContainer(container cryptoCommon.MultiSignerContainer) error
+	MultiSignerContainer() cryptoCommon.MultiSignerContainer
+	GetMultiSigner(epoch uint32) (crypto.MultiSigner, error)
 	PeerSignatureHandler() crypto.PeerSignatureHandler
-	SetMultiSigner(ms crypto.MultiSigner) error
 	BlockSignKeyGen() crypto.KeyGenerator
 	TxSignKeyGen() crypto.KeyGenerator
 	MessageSignVerifier() vm.MessageSignVerifier
@@ -506,4 +508,9 @@ type ReceiptsRepository interface {
 	SaveReceipts(holder common.ReceiptsHolder, header data.HeaderHandler, headerHash []byte) error
 	LoadReceipts(header data.HeaderHandler, headerHash []byte) (common.ReceiptsHolder, error)
 	IsInterfaceNil() bool
+}
+
+// ProcessDebuggerSetter allows setting a debugger on the process component
+type ProcessDebuggerSetter interface {
+	SetProcessDebugger(debugger process.Debugger) error
 }

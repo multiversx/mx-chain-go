@@ -27,7 +27,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 )
@@ -726,13 +726,13 @@ func (bh *BlockChainHookImpl) ClearCompiledCodes() {
 
 func (bh *BlockChainHookImpl) makeCompiledSCStorage() error {
 	if bh.nilCompiledSCStore {
-		bh.compiledScStorage = storageUnit.NewNilStorer()
+		bh.compiledScStorage = storageunit.NewNilStorer()
 		return nil
 	}
 
 	dbConfig := factory.GetDBFromConfig(bh.configSCStorage.DB)
 	dbConfig.FilePath = path.Join(bh.workingDir, defaultCompiledSCPath, bh.configSCStorage.DB.FilePath)
-	store, err := storageUnit.NewStorageUnitFromConf(
+	store, err := storageunit.NewStorageUnitFromConf(
 		factory.GetCacherFromConfig(bh.configSCStorage.Cache),
 		dbConfig,
 	)

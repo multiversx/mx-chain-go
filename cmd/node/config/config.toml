@@ -815,6 +815,11 @@
     [Debug.EpochStart]
         GoRoutineAnalyserEnabled = true
         ProcessDataTrieOnCommitEpoch = true
+    [Debug.Process]
+        Enabled = true
+        DebuggingLogLevel = "*:DEBUG,p2p:TRACE,debug:DEBUG,process:TRACE,intercept:TRACE"
+        GoRoutinesDump = true
+        PollingTimeInSeconds = 240 # 4 minutes
 
 [Health]
     IntervalVerifyMemoryInSeconds = 30
@@ -929,7 +934,6 @@
     HeartbeatTimeBetweenSendsInSec                   = 60   # 1min
     HeartbeatTimeBetweenSendsWhenErrorInSec          = 60   # 1min
     HeartbeatThresholdBetweenSends                   = 0.1  # 10%
-    MaxNumOfPeerAuthenticationInResponse             = 10
     HeartbeatExpiryTimespanInSec                     = 3600 # 1h
     MinPeersThreshold                                = 0.8  # 80%
     DelayBetweenRequestsInSec                        = 10   # 10sec
@@ -939,9 +943,7 @@
     MaxDurationPeerUnresponsiveInSec                 = 900  # 15min
     HideInactiveValidatorIntervalInSec               = 3600 # 1h
     HardforkTimeBetweenSendsInSec                    = 60   # 1min
-    [HeartbeatV2.PeerAuthenticationPool]
-        DefaultSpanInSec = 3600 # 1h
-        CacheExpiryInSec = 3600 # 1h
+    TimeBetweenConnectionsMetricsUpdateInSec         = 30   # 30sec
     [HeartbeatV2.HeartbeatPool]
         Name = "HeartbeatPool"
         Capacity = 1000

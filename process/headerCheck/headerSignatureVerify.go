@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	cryptoCommon "github.com/ElrondNetwork/elrond-go/common/crypto"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 )
@@ -23,7 +24,7 @@ type ArgsHeaderSigVerifier struct {
 	Marshalizer             marshal.Marshalizer
 	Hasher                  hashing.Hasher
 	NodesCoordinator        nodesCoordinator.NodesCoordinator
-	MultiSigVerifier        crypto.MultiSigVerifier
+	MultiSigContainer       cryptoCommon.MultiSignerContainer
 	SingleSigVerifier       crypto.SingleSigner
 	KeyGen                  crypto.KeyGenerator
 	FallbackHeaderValidator process.FallbackHeaderValidator
@@ -34,7 +35,7 @@ type HeaderSigVerifier struct {
 	marshalizer             marshal.Marshalizer
 	hasher                  hashing.Hasher
 	nodesCoordinator        nodesCoordinator.NodesCoordinator
-	multiSigVerifier        crypto.MultiSigVerifier
+	multiSigContainer       cryptoCommon.MultiSignerContainer
 	singleSigVerifier       crypto.SingleSigner
 	keyGen                  crypto.KeyGenerator
 	fallbackHeaderValidator process.FallbackHeaderValidator
@@ -51,7 +52,7 @@ func NewHeaderSigVerifier(arguments *ArgsHeaderSigVerifier) (*HeaderSigVerifier,
 		marshalizer:             arguments.Marshalizer,
 		hasher:                  arguments.Hasher,
 		nodesCoordinator:        arguments.NodesCoordinator,
-		multiSigVerifier:        arguments.MultiSigVerifier,
+		multiSigContainer:       arguments.MultiSigContainer,
 		singleSigVerifier:       arguments.SingleSigVerifier,
 		keyGen:                  arguments.KeyGen,
 		fallbackHeaderValidator: arguments.FallbackHeaderValidator,
@@ -71,7 +72,14 @@ func checkArgsHeaderSigVerifier(arguments *ArgsHeaderSigVerifier) error {
 	if check.IfNil(arguments.Marshalizer) {
 		return process.ErrNilMarshalizer
 	}
-	if check.IfNil(arguments.MultiSigVerifier) {
+	if check.IfNil(arguments.MultiSigContainer) {
+		return process.ErrNilMultiSignerContainer
+	}
+	multiSigner, err := arguments.MultiSigContainer.GetMultiSigner(0)
+	if err != nil {
+		return err
+	}
+	if check.IfNil(multiSigner) {
 		return process.ErrNilMultiSigVerifier
 	}
 	if check.IfNil(arguments.NodesCoordinator) {
@@ -87,50 +95,70 @@ func checkArgsHeaderSigVerifier(arguments *ArgsHeaderSigVerifier) error {
 	return nil
 }
 
-// VerifySignature will check if signature is correct
-func (hsv *HeaderSigVerifier) VerifySignature(header data.HeaderHandler) error {
+func isIndexInBitmap(index uint16, bitmap []byte) error {
+	indexOutOfBounds := index >= uint16(len(bitmap)*8)
+	if indexOutOfBounds {
+		return ErrIndexOutOfBounds
+	}
+
+	indexNotInBitmap := bitmap[index/8]&(1<<uint8(index%8)) == 0
+	if indexNotInBitmap {
+		return ErrIndexNotSelected
+	}
+
+	return nil
+}
+
+func (hsv *HeaderSigVerifier) getConsensusSigners(header data.HeaderHandler) ([][]byte, error) {
 	randSeed := header.GetPrevRandSeed()
 	bitmap := header.GetPubKeysBitmap()
 	if len(bitmap) == 0 {
-		return process.ErrNilPubKeysBitmap
+		return nil, process.ErrNilPubKeysBitmap
 	}
 	if bitmap[0]&1 == 0 {
-		return process.ErrBlockProposerSignatureMissing
+		return nil, process.ErrBlockProposerSignatureMissing
 	}
 
-	// TODO: remove if start of epoch block needs to be validated by the new epoch nodes
-	epoch := header.GetEpoch()
-	if header.IsStartOfEpochBlock() && epoch > 0 {
-		epoch = epoch - 1
+	// TODO: remove if start of epochForConsensus block needs to be validated by the new epochForConsensus nodes
+	epochForConsensus := header.GetEpoch()
+	if header.IsStartOfEpochBlock() && epochForConsensus > 0 {
+		epochForConsensus = epochForConsensus - 1
 	}
 
 	consensusPubKeys, err := hsv.nodesCoordinator.GetConsensusValidatorsPublicKeys(
 		randSeed,
 		header.GetRound(),
 		header.GetShardID(),
-		epoch,
+		epochForConsensus,
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	err = hsv.verifyConsensusSize(consensusPubKeys, header)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	verifier, err := hsv.multiSigVerifier.Create(consensusPubKeys, 0)
+	pubKeysSigners := make([][]byte, 0, len(consensusPubKeys))
+	for i := range consensusPubKeys {
+		err = isIndexInBitmap(uint16(i), bitmap)
+		if err != nil {
+			continue
+		}
+		pubKeysSigners = append(pubKeysSigners, []byte(consensusPubKeys[i]))
+	}
+
+	return pubKeysSigners, nil
+}
+
+// VerifySignature will check if signature is correct
+func (hsv *HeaderSigVerifier) VerifySignature(header data.HeaderHandler) error {
+	multiSigVerifier, err := hsv.multiSigContainer.GetMultiSigner(header.GetEpoch())
 	if err != nil {
 		return err
 	}
 
-	err = verifier.SetAggregatedSig(header.GetSignature())
-	if err != nil {
-		return err
-	}
-
-	// get marshalled block header without signature and bitmap
-	// as this is the message that was signed
 	headerCopy, err := hsv.copyHeaderWithoutSig(header)
 	if err != nil {
 		return err
@@ -141,7 +169,12 @@ func (hsv *HeaderSigVerifier) VerifySignature(header data.HeaderHandler) error {
 		return err
 	}
 
-	return verifier.Verify(hash, bitmap)
+	pubKeysSigners, err := hsv.getConsensusSigners(header)
+	if err != nil {
+		return err
+	}
+
+	return multiSigVerifier.VerifyAggregatedSig(pubKeysSigners, hash, header.GetSignature())
 }
 
 func (hsv *HeaderSigVerifier) verifyConsensusSize(consensusPubKeys []string, header data.HeaderHandler) error {

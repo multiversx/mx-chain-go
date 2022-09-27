@@ -22,7 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
@@ -42,7 +42,7 @@ func createMockBlockChainHookArgs() hooks.ArgBlockChainHook {
 	arguments := hooks.ArgBlockChainHook{
 		Accounts: &stateMock.AccountsStub{
 			GetExistingAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
-				return &mock.AccountWrapMock{}, nil
+				return &stateMock.AccountWrapMock{}, nil
 			},
 		},
 		PubkeyConv:            mock.NewPubkeyConverterMock(32),
@@ -356,7 +356,7 @@ func TestBlockChainHookImpl_GetStorageDataCannotRetrieveAccountValueExpectError(
 			return nil, expectedErr
 		},
 	}
-	account := &mock.AccountWrapMock{
+	account := &stateMock.AccountWrapMock{
 		AccountDataHandlerCalled: func() vmcommon.AccountDataHandler {
 			return dataTrieStub
 		},
@@ -398,8 +398,8 @@ func TestBlockChainHookImpl_GetStorageDataShouldWork(t *testing.T) {
 
 	variableIdentifier := []byte("variable")
 	variableValue := []byte("value")
-	accnt := mock.NewAccountWrapMock(nil)
-	_ = accnt.DataTrieTracker().SaveKeyValue(variableIdentifier, variableValue)
+	accnt := stateMock.NewAccountWrapMock(nil)
+	_ = accnt.SaveKeyValue(variableIdentifier, variableValue)
 
 	args := createMockBlockChainHookArgs()
 	args.Accounts = &stateMock.AccountsStub{
@@ -889,7 +889,7 @@ func TestBlockChainHookImpl_IsPayableSCNonPayable(t *testing.T) {
 	args := createMockBlockChainHookArgs()
 	args.Accounts = &stateMock.AccountsStub{
 		GetExistingAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
-			acc := &mock.AccountWrapMock{}
+			acc := &stateMock.AccountWrapMock{}
 			acc.SetCodeMetadata([]byte{0, 0})
 			return acc, nil
 		},
@@ -906,7 +906,7 @@ func TestBlockChainHookImpl_IsPayablePayable(t *testing.T) {
 	args := createMockBlockChainHookArgs()
 	args.Accounts = &stateMock.AccountsStub{
 		GetExistingAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
-			acc := &mock.AccountWrapMock{}
+			acc := &stateMock.AccountWrapMock{}
 			acc.SetCodeMetadata([]byte{0, vmcommon.MetadataPayable})
 			return acc, nil
 		},
@@ -928,7 +928,7 @@ func TestBlockChainHookImpl_IsPayablePayableBySC(t *testing.T) {
 	args := createMockBlockChainHookArgs()
 	args.Accounts = &stateMock.AccountsStub{
 		GetExistingAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
-			acc := &mock.AccountWrapMock{}
+			acc := &stateMock.AccountWrapMock{}
 			acc.SetCodeMetadata([]byte{0, vmcommon.MetadataPayableBySC})
 			return acc, nil
 		},
@@ -1100,11 +1100,11 @@ func TestBlockChainHookImpl_SaveCompiledCode(t *testing.T) {
 		args.ConfigSCStorage = config.StorageConfig{
 			Cache: config.CacheConfig{
 				Capacity: 10,
-				Type:     string(storageUnit.LRUCache),
+				Type:     string(storageunit.LRUCache),
 			},
 			DB: config.DBConfig{
 				FilePath:     "test1",
-				Type:         string(storageUnit.MemoryDB),
+				Type:         string(storageunit.MemoryDB),
 				MaxBatchSize: 1,
 				MaxOpenFiles: 10,
 			},
@@ -1137,11 +1137,11 @@ func TestBlockChainHookImpl_SaveCompiledCode(t *testing.T) {
 		args.ConfigSCStorage = config.StorageConfig{
 			Cache: config.CacheConfig{
 				Capacity: 10,
-				Type:     string(storageUnit.LRUCache),
+				Type:     string(storageunit.LRUCache),
 			},
 			DB: config.DBConfig{
 				FilePath:     "test2",
-				Type:         string(storageUnit.MemoryDB),
+				Type:         string(storageunit.MemoryDB),
 				MaxBatchSize: 1,
 				MaxOpenFiles: 10,
 			},
@@ -1284,7 +1284,7 @@ func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 		args.Accounts = &stateMock.AccountsStub{
 			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 				require.Equal(t, addrSender, addressContainer)
-				return mock.NewAccountWrapMock(addrSender), nil
+				return stateMock.NewAccountWrapMock(addrSender), nil
 			},
 
 			LoadAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
@@ -1308,7 +1308,7 @@ func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 		args.Accounts = &stateMock.AccountsStub{
 			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 				require.Equal(t, addrSender, addressContainer)
-				return mock.NewAccountWrapMock(addrSender), nil
+				return stateMock.NewAccountWrapMock(addrSender), nil
 			},
 
 			LoadAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
@@ -1348,12 +1348,12 @@ func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 		args.Accounts = &stateMock.AccountsStub{
 			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 				require.Equal(t, addrSender, addressContainer)
-				return mock.NewAccountWrapMock(addrSender), nil
+				return stateMock.NewAccountWrapMock(addrSender), nil
 			},
 
 			LoadAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 				require.Equal(t, addrReceiver, addressContainer)
-				return mock.NewAccountWrapMock(addrReceiver), nil
+				return stateMock.NewAccountWrapMock(addrReceiver), nil
 			},
 		}
 
@@ -1419,12 +1419,12 @@ func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 		args.Accounts = &stateMock.AccountsStub{
 			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 				require.Equal(t, addrSender, addressContainer)
-				return mock.NewAccountWrapMock(addrSender), nil
+				return stateMock.NewAccountWrapMock(addrSender), nil
 			},
 
 			LoadAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 				require.Equal(t, addrReceiver, addressContainer)
-				return mock.NewAccountWrapMock(addrReceiver), nil
+				return stateMock.NewAccountWrapMock(addrReceiver), nil
 			},
 			SaveAccountCalled: func(account vmcommon.AccountHandler) error {
 				isSender := bytes.Equal(addrSender, account.AddressBytes())
@@ -1453,7 +1453,7 @@ func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 		args.Accounts = &stateMock.AccountsStub{
 			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 				require.Equal(t, addrSender, addressContainer)
-				return mock.NewAccountWrapMock(addrSender), nil
+				return stateMock.NewAccountWrapMock(addrSender), nil
 			},
 
 			LoadAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
@@ -1485,7 +1485,7 @@ func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 		args.Accounts = &stateMock.AccountsStub{
 			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 				require.Equal(t, addrSender, addressContainer)
-				return mock.NewAccountWrapMock(addrSender), nil
+				return stateMock.NewAccountWrapMock(addrSender), nil
 			},
 			SaveAccountCalled: func(account vmcommon.AccountHandler) error {
 				require.Equal(t, addrSender, account.AddressBytes())
@@ -1509,12 +1509,12 @@ func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 		args.Accounts = &stateMock.AccountsStub{
 			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 				require.Equal(t, addrSender, addressContainer)
-				return mock.NewAccountWrapMock(addrSender), nil
+				return stateMock.NewAccountWrapMock(addrSender), nil
 			},
 
 			LoadAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 				require.Equal(t, addrReceiver, addressContainer)
-				return mock.NewAccountWrapMock(addrReceiver), nil
+				return stateMock.NewAccountWrapMock(addrReceiver), nil
 			},
 			SaveAccountCalled: func(account vmcommon.AccountHandler) error {
 				isSender := bytes.Equal(addrSender, account.AddressBytes())
@@ -1587,8 +1587,8 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 		args.Accounts = &stateMock.AccountsStub{
 			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 				require.Equal(t, address, addressContainer)
-				account := mock.NewAccountWrapMock(address)
-				_ = account.DataTrieTracker().SaveKeyValue(completeEsdtTokenKey, invalidUnmarshalledData)
+				account := stateMock.NewAccountWrapMock(address)
+				_ = account.SaveKeyValue(completeEsdtTokenKey, invalidUnmarshalledData)
 
 				return account, nil
 			},
@@ -1634,7 +1634,7 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 		args := createMockBlockChainHookArgs()
 		args.Accounts = &stateMock.AccountsStub{
 			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
-				addressHandler := mock.NewAccountWrapMock(address)
+				addressHandler := stateMock.NewAccountWrapMock(address)
 				addressHandler.SetDataTrie(nil)
 
 				return addressHandler, nil
@@ -1658,7 +1658,7 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 		args := createMockBlockChainHookArgs()
 		args.Accounts = &stateMock.AccountsStub{
 			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
-				addressHandler := mock.NewAccountWrapMock(address)
+				addressHandler := stateMock.NewAccountWrapMock(address)
 				addressHandler.SetDataTrie(&trie.TrieStub{
 					GetCalled: func(key []byte) ([]byte, error) {
 						return make([]byte, 0), nil
@@ -1687,10 +1687,10 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 		args := createMockBlockChainHookArgs()
 		args.Accounts = &stateMock.AccountsStub{
 			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
-				addressHandler := mock.NewAccountWrapMock(address)
+				addressHandler := stateMock.NewAccountWrapMock(address)
 				buffToken, _ := args.Marshalizer.Marshal(testESDTData)
 				key := append(completeEsdtTokenKey, big.NewInt(0).SetUint64(nftNonce).Bytes()...)
-				_ = addressHandler.DataTrieTracker().SaveKeyValue(key, buffToken)
+				_ = addressHandler.SaveKeyValue(key, buffToken)
 
 				return addressHandler, nil
 			},
@@ -1713,9 +1713,9 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 		args := createMockBlockChainHookArgs()
 		args.Accounts = &stateMock.AccountsStub{
 			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
-				addressHandler := mock.NewAccountWrapMock(address)
+				addressHandler := stateMock.NewAccountWrapMock(address)
 				buffToken, _ := args.Marshalizer.Marshal(testESDTData)
-				_ = addressHandler.DataTrieTracker().SaveKeyValue(completeEsdtTokenKey, buffToken)
+				_ = addressHandler.SaveKeyValue(completeEsdtTokenKey, buffToken)
 
 				return addressHandler, nil
 			},
@@ -1739,7 +1739,7 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 		args := createMockBlockChainHookArgs()
 		args.Accounts = &stateMock.AccountsStub{
 			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
-				return mock.NewAccountWrapMock(address), nil
+				return stateMock.NewAccountWrapMock(address), nil
 			},
 		}
 		args.NFTStorageHandler = &testscommon.SimpleNFTStorageHandlerStub{
@@ -1767,7 +1767,7 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 		args := createMockBlockChainHookArgs()
 		args.Accounts = &stateMock.AccountsStub{
 			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
-				return mock.NewAccountWrapMock(address), nil
+				return stateMock.NewAccountWrapMock(address), nil
 			},
 		}
 		args.NFTStorageHandler = &testscommon.SimpleNFTStorageHandlerStub{

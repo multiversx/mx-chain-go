@@ -248,8 +248,11 @@ var InvalidChunkIndex = errors.New("invalid chunk index")
 // ErrInvalidNumOfPeerAuthentication signals that an invalid number of peer authentication was provided
 var ErrInvalidNumOfPeerAuthentication = errors.New("invalid num of peer authentication")
 
-// ErrNilPeerShardMapper signals that a nil peer shard mapper has been provided
-var ErrNilPeerShardMapper = errors.New("nil peer shard mapper")
+// ErrNilPayloadValidator signals that a nil payload validator was provided
+var ErrNilPayloadValidator = errors.New("nil payload validator")
+
+// ErrWrongTypeAssertion signals that an type assertion failed
+var ErrWrongTypeAssertion = errors.New("wrong type assertion")
 
 // ErrStorerNotFound signals that the storer was not found
 var ErrStorerNotFound = errors.New("storer not found")

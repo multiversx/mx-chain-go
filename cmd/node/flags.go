@@ -327,12 +327,29 @@ var (
 		Name:  "force-start-from-network",
 		Usage: "Flag that will force the start from network bootstrap process",
 	}
+	// disableConsensusWatchdog defines a flag that will disable the consensus watchdog
+	disableConsensusWatchdog = cli.BoolFlag{
+		Name:  "disable-consensus-watchdog",
+		Usage: "Flag that will disable the consensus watchdog",
+	}
+	// serializeSnapshots defines a flag that will serialize `state snapshotting` and `processing`
+	serializeSnapshots = cli.BoolFlag{
+		Name:  "serialize-snapshots",
+		Usage: "Flag that will serialize `state snapshotting` and `processing`",
+	}
 
 	// noKey defines a flag that, if set, will generate every time when node starts a new signing key
 	noKey = cli.BoolFlag{
 		Name: "no-key",
 		Usage: "Boolean flag for enabling the node to generate a signing key when it starts (if the validatorKey.pem" +
 			" file is present, setting this flag to true will overwrite the BLS key used by the node)",
+	}
+
+	// p2pKeyPemFile defines the flag for the path to the key pem file used for p2p signing
+	p2pKeyPemFile = cli.StringFlag{
+		Name:  "p2p-key-pem-file",
+		Usage: "The `filepath` for the PEM file which contains the secret keys for the p2p key. If this is not specified a new key will be generated (internally) by default.",
+		Value: "./config/p2pKey.pem",
 	}
 )
 
@@ -384,7 +401,10 @@ func getFlags() []cli.Flag {
 		memBallast,
 		memoryUsageToCreateProfiles,
 		forceStartFromNetwork,
+		disableConsensusWatchdog,
+		serializeSnapshots,
 		noKey,
+		p2pKeyPemFile,
 	}
 }
 
@@ -408,6 +428,8 @@ func getFlagsConfig(ctx *cli.Context, log logger.Logger) *config.ContextFlagsCon
 	flagsConfig.UseLogView = ctx.GlobalBool(useLogView.Name)
 	flagsConfig.ValidatorKeyIndex = ctx.GlobalInt(validatorKeyIndex.Name)
 	flagsConfig.ForceStartFromNetwork = ctx.GlobalBool(forceStartFromNetwork.Name)
+	flagsConfig.DisableConsensusWatchdog = ctx.GlobalBool(disableConsensusWatchdog.Name)
+	flagsConfig.SerializeSnapshots = ctx.GlobalBool(serializeSnapshots.Name)
 	flagsConfig.NoKeyProvided = ctx.GlobalBool(noKey.Name)
 
 	return flagsConfig
@@ -420,6 +442,7 @@ func applyFlags(ctx *cli.Context, cfgs *config.Configs, flagsConfig *config.Cont
 	cfgs.ConfigurationPathsHolder.GasScheduleDirectoryName = ctx.GlobalString(gasScheduleConfigurationDirectory.Name)
 	cfgs.ConfigurationPathsHolder.SmartContracts = ctx.GlobalString(smartContractsFile.Name)
 	cfgs.ConfigurationPathsHolder.ValidatorKey = ctx.GlobalString(validatorKeyPemFile.Name)
+	cfgs.ConfigurationPathsHolder.P2pKey = ctx.GlobalString(p2pKeyPemFile.Name)
 
 	if ctx.IsSet(startInEpoch.Name) {
 		log.Debug("start in epoch is enabled")

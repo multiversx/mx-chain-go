@@ -35,30 +35,28 @@ func NewShardResolversContainerFactory(
 	numIntraShardPeers := args.ResolverConfig.NumTotalPeers - args.ResolverConfig.NumCrossShardPeers
 	container := containers.NewResolversContainer()
 	base := &baseResolversContainerFactory{
-		container:                            container,
-		shardCoordinator:                     args.ShardCoordinator,
-		messenger:                            args.Messenger,
-		store:                                args.Store,
-		marshalizer:                          args.Marshalizer,
-		dataPools:                            args.DataPools,
-		uint64ByteSliceConverter:             args.Uint64ByteSliceConverter,
-		intRandomizer:                        &random.ConcurrentSafeIntRandomizer{},
-		dataPacker:                           args.DataPacker,
-		triesContainer:                       args.TriesContainer,
-		inputAntifloodHandler:                args.InputAntifloodHandler,
-		outputAntifloodHandler:               args.OutputAntifloodHandler,
-		throttler:                            thr,
-		isFullHistoryNode:                    args.IsFullHistoryNode,
-		currentNetworkEpochProvider:          args.CurrentNetworkEpochProvider,
-		preferredPeersHolder:                 args.PreferredPeersHolder,
-		peersRatingHandler:                   args.PeersRatingHandler,
-		numCrossShardPeers:                   int(args.ResolverConfig.NumCrossShardPeers),
-		numIntraShardPeers:                   int(numIntraShardPeers),
-		numTotalPeers:                        int(args.ResolverConfig.NumTotalPeers),
-		numFullHistoryPeers:                  int(args.ResolverConfig.NumFullHistoryPeers),
-		nodesCoordinator:                     args.NodesCoordinator,
-		maxNumOfPeerAuthenticationInResponse: args.MaxNumOfPeerAuthenticationInResponse,
-		peerShardMapper:                      args.PeerShardMapper,
+		container:                   container,
+		shardCoordinator:            args.ShardCoordinator,
+		messenger:                   args.Messenger,
+		store:                       args.Store,
+		marshalizer:                 args.Marshalizer,
+		dataPools:                   args.DataPools,
+		uint64ByteSliceConverter:    args.Uint64ByteSliceConverter,
+		intRandomizer:               &random.ConcurrentSafeIntRandomizer{},
+		dataPacker:                  args.DataPacker,
+		triesContainer:              args.TriesContainer,
+		inputAntifloodHandler:       args.InputAntifloodHandler,
+		outputAntifloodHandler:      args.OutputAntifloodHandler,
+		throttler:                   thr,
+		isFullHistoryNode:           args.IsFullHistoryNode,
+		currentNetworkEpochProvider: args.CurrentNetworkEpochProvider,
+		preferredPeersHolder:        args.PreferredPeersHolder,
+		peersRatingHandler:          args.PeersRatingHandler,
+		numCrossShardPeers:          int(args.ResolverConfig.NumCrossShardPeers),
+		numIntraShardPeers:          int(numIntraShardPeers),
+		numTotalPeers:               int(args.ResolverConfig.NumTotalPeers),
+		numFullHistoryPeers:         int(args.ResolverConfig.NumFullHistoryPeers),
+		payloadValidator:            args.PayloadValidator,
 	}
 
 	err = base.checkParams()
@@ -136,7 +134,7 @@ func (srcf *shardResolversContainerFactory) Create() (dataRetriever.ResolversCon
 	return srcf.container, nil
 }
 
-//------- Hdr resolver
+// ------- Hdr resolver
 
 func (srcf *shardResolversContainerFactory) generateHeaderResolvers() error {
 	shardC := srcf.shardCoordinator
@@ -186,7 +184,7 @@ func (srcf *shardResolversContainerFactory) generateHeaderResolvers() error {
 	return srcf.container.Add(identifierHdr, resolver)
 }
 
-//------- MetaBlockHeaderResolvers
+// ------- MetaBlockHeaderResolvers
 
 func (srcf *shardResolversContainerFactory) generateMetablockHeaderResolvers() error {
 	// only one metachain header block topic
