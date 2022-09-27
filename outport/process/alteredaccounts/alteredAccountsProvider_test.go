@@ -717,7 +717,7 @@ func testExtractAlteredAccountsFromPoolAddressHasMultipleNfts(t *testing.T) {
 	args.AccountsDB = &state.AccountsStub{
 		LoadAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
 			return &state.UserAccountStub{
-				RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
+				RetrieveValueCalled: func(key []byte) ([]byte, error) {
 					if strings.Contains(string(key), "esdttoken") {
 						tokenBytes, _ := marshaller.Marshal(expectedToken0)
 						return tokenBytes, nil

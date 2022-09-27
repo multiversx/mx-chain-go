@@ -516,7 +516,7 @@ func TestOutport_SaveBlockDriverStuck(t *testing.T) {
 	}
 
 	_ = outportHandler.SubscribeDriver(&mock.DriverStub{
-		SaveBlockCalled: func(args *outportCore.ArgsSaveBlockData) error {
+		SaveBlockCalled: func(args *outportcore.ArgsSaveBlockData) error {
 			time.Sleep(time.Second * 5)
 			return nil
 		},
@@ -555,7 +555,7 @@ func TestOutport_SaveBlockDriverIsNotStuck(t *testing.T) {
 	}
 
 	_ = outportHandler.SubscribeDriver(&mock.DriverStub{
-		SaveBlockCalled: func(args *indexer.ArgsSaveBlockData) error {
+		SaveBlockCalled: func(args *outportcore.ArgsSaveBlockData) error {
 			return nil
 		},
 	})
