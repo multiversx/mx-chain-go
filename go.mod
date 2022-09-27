@@ -6,13 +6,12 @@ require (
 	github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.42-0.20220729115258-b9f2fb2f6568
 	github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.42-0.20220729115131-85ecca868e90
 	github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.59-0.20220729115431-a6c93119bdda
-	github.com/ElrondNetwork/concurrent-map v0.1.3
 	github.com/ElrondNetwork/covalent-indexer-go v1.0.7-0.20220922092743-7f3a26b4001a
 	github.com/ElrondNetwork/elastic-indexer-go v1.2.40-0.20220922074555-961c00b8bfce
 	github.com/ElrondNetwork/elrond-go-core v1.1.20-0.20220926115353-9b48b26bdf59
 	github.com/ElrondNetwork/elrond-go-crypto v1.0.1
-	github.com/ElrondNetwork/elrond-go-storage v1.0.1
 	github.com/ElrondNetwork/elrond-go-logger v1.0.8-0.20220901113442-d5ad00505a23
+	github.com/ElrondNetwork/elrond-go-storage v1.0.1
 	github.com/ElrondNetwork/elrond-vm-common v1.3.18-0.20220921081708-baae086376d6
 	github.com/ElrondNetwork/go-libp2p-pubsub v0.6.1-rc1
 	github.com/beevik/ntp v0.3.0
