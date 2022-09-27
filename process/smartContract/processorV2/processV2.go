@@ -1341,6 +1341,7 @@ func (sc *scProcessor) processIfErrorWithAddedLogs(acntSnd state.UserAccountHand
 	return nil
 }
 
+// TODO delete this function and actually resolve the issue in the built in function of saveKeyValue
 func (sc *scProcessor) setEmptyRoothashOnErrorIfSaveKeyValue(tx data.TransactionHandler, account state.UserAccountHandler) {
 	if sc.shardCoordinator.SelfId() == core.MetachainShardId {
 		return
