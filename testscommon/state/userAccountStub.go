@@ -6,7 +6,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/state"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var _ state.UserAccountHandler = (*UserAccountStub)(nil)
@@ -149,11 +148,6 @@ func (u *UserAccountStub) RetrieveValue(key []byte) ([]byte, error) {
 
 // SaveKeyValue -
 func (u *UserAccountStub) SaveKeyValue(_ []byte, _ []byte) error {
-	return nil
-}
-
-// AccountDataHandler -
-func (u *UserAccountStub) AccountDataHandler() vmcommon.AccountDataHandler {
 	return nil
 }
 
