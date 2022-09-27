@@ -100,8 +100,8 @@ type ConsensusService interface {
 	IsSubroundStartRound(int) bool
 	// GetMaxMessagesInARoundPerPeer returns the maximum number of messages a peer can send per round
 	GetMaxMessagesInARoundPerPeer() uint32
-	// GetMaxMessageTypeAccepted returns the maximum number of accepted consensus message types per round, per public key
-	GetMaxMessageTypeAccepted(msgType consensus.MessageType) uint32
+	// GetMaxNumOfMessageTypeAccepted returns the maximum number of accepted consensus message types per round, per public key
+	GetMaxNumOfMessageTypeAccepted(msgType consensus.MessageType) uint32
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }

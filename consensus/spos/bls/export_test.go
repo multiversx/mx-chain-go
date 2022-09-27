@@ -20,7 +20,7 @@ import (
 
 const ProcessingThresholdPercent = processingThresholdPercent
 const DefaultMaxNumOfMessageTypeAccepted = defaultMaxNumOfMessageTypeAccepted
-const MtSignatureMaxNumOfMessageTypeAccepted = mtSignatureMaxNumOfMessageTypeAccepted
+const MaxNumOfMessageTypeSignatureAccepted = maxNumOfMessageTypeSignatureAccepted
 
 // factory
 

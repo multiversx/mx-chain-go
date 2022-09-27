@@ -409,7 +409,7 @@ func (cmv *consensusMessageValidator) isMessageTypeLimitReached(pk []byte, round
 		return false
 	}
 
-	return numMsgType >= cmv.consensusService.GetMaxMessageTypeAccepted(msgType)
+	return numMsgType >= cmv.consensusService.GetMaxNumOfMessageTypeAccepted(msgType)
 }
 
 func (cmv *consensusMessageValidator) addMessageTypeToPublicKey(pk []byte, round int64, msgType consensus.MessageType) {

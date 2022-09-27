@@ -21,9 +21,9 @@ const peerMaxMessagesPerSec = uint32(6)
 // received from the same public key for the default message types
 const defaultMaxNumOfMessageTypeAccepted = uint32(1)
 
-// mtSignatureMaxNumOfMessageTypeAccepted represents the maximum number of the signature message type accepted in one round to be
+// maxNumOfMessageTypeSignatureAccepted represents the maximum number of the signature message type accepted in one round to be
 // received from the same public key
-const mtSignatureMaxNumOfMessageTypeAccepted = uint32(2)
+const maxNumOfMessageTypeSignatureAccepted = uint32(2)
 
 // worker defines the data needed by spos to communicate between nodes which are in the validators group
 type worker struct {
@@ -138,10 +138,10 @@ func (wrk *worker) CanProceed(consensusState *spos.ConsensusState, msgType conse
 	return false
 }
 
-// GetMaxMessageTypeAccepted returns the maximum number of accepted consensus message types per round, per public key
-func (wrk *worker) GetMaxMessageTypeAccepted(msgType consensus.MessageType) uint32 {
+// GetMaxNumOfMessageTypeAccepted returns the maximum number of accepted consensus message types per round, per public key
+func (wrk *worker) GetMaxNumOfMessageTypeAccepted(msgType consensus.MessageType) uint32 {
 	if msgType == MtSignature {
-		return mtSignatureMaxNumOfMessageTypeAccepted
+		return maxNumOfMessageTypeSignatureAccepted
 	}
 
 	return defaultMaxNumOfMessageTypeAccepted
