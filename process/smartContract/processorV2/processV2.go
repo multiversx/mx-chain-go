@@ -2633,10 +2633,12 @@ func (sc *scProcessor) IsInterfaceNil() bool {
 	return sc == nil
 }
 
+// GetTxLogsProcessor is a getter for txLogsProcessor
 func (sc *scProcessor) GetTxLogsProcessor() process.TransactionLogProcessor {
 	return sc.txLogsProcessor
 }
 
+// GetScrForwarder is a getter for scrForwarder
 func (sc *scProcessor) GetScrForwarder() process.IntermediateTransactionHandler {
 	return sc.scrForwarder
 }

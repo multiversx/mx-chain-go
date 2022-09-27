@@ -14,6 +14,7 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
+// TestSmartContractProcessor is a SmartContractProcessor used in integration tests
 type TestSmartContractProcessor interface {
 	process.SmartContractProcessorFull
 	GetCompositeTestError() error
