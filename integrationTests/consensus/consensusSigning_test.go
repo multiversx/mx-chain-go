@@ -12,12 +12,13 @@ import (
 
 // TODO: refactor to use nodes from multiple shards
 func initNodesWithTestSigner(
+	numMetaNodes,
 	numNodes,
 	consensusSize,
 	numInvalid uint32,
 	roundTime uint64,
 	consensusType string,
-) []*integrationTests.TestConsensusNode {
+) map[uint32][]*integrationTests.TestConsensusNode {
 
 	fmt.Println("Step 1. Setup nodes...")
 
@@ -35,19 +36,21 @@ func initNodesWithTestSigner(
 
 	time.Sleep(p2pBootstrapDelay)
 
-	if numInvalid < numNodes {
-		for i := uint32(0); i < numInvalid; i++ {
-			iCopy := i
-			nodes[0][i].MultiSigner.CreateSignatureShareCalled = func(privateKeyBytes, message []byte) ([]byte, error) {
-				fmt.Println("invalid sig share from ",
-					getPkEncoded(nodes[0][iCopy].NodeKeys.Pk),
-				)
-				return []byte("invalid sig share"), nil
+	for shardID := range nodes {
+		if numInvalid < numNodes {
+			for i := uint32(0); i < numInvalid; i++ {
+				iCopy := i
+				nodes[shardID][i].MultiSigner.CreateSignatureShareCalled = func(privateKeyBytes, message []byte) ([]byte, error) {
+					fmt.Println("invalid sig share from ",
+						getPkEncoded(nodes[shardID][iCopy].NodeKeys.Pk),
+					)
+					return []byte("invalid sig share"), nil
+				}
 			}
 		}
 	}
 
-	return nodes[0]
+	return nodes
 }
 
 func TestConsensusWithInvalidSigners(t *testing.T) {
@@ -55,18 +58,21 @@ func TestConsensusWithInvalidSigners(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
+	numMetaNodes := uint32(4)
 	numNodes := uint32(4)
 	consensusSize := uint32(4)
 	numInvalid := uint32(1)
 	roundTime := uint64(1000)
 	numCommBlock := uint64(8)
 
-	nodes := initNodesWithTestSigner(numNodes, consensusSize, numInvalid, roundTime, blsConsensusType)
+	nodes := initNodesWithTestSigner(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, blsConsensusType)
 
 	mutex := &sync.Mutex{}
 	defer func() {
-		for _, n := range nodes {
-			_ = n.Messenger.Close()
+		for shardID := range nodes {
+			for _, n := range nodes[shardID] {
+				_ = n.Messenger.Close()
+			}
 		}
 	}()
 

@@ -42,12 +42,13 @@ func getPkEncoded(pubKey crypto.PublicKey) string {
 }
 
 func initNodesAndTest(
+	numMetaNodes,
 	numNodes,
 	consensusSize,
 	numInvalid uint32,
 	roundTime uint64,
 	consensusType string,
-) []*integrationTests.TestConsensusNode {
+) map[uint32][]*integrationTests.TestConsensusNode {
 
 	fmt.Println("Step 1. Setup nodes...")
 
@@ -65,96 +66,100 @@ func initNodesAndTest(
 
 	time.Sleep(p2pBootstrapDelay)
 
-	if numInvalid < numNodes {
-		for i := uint32(0); i < numInvalid; i++ {
-			iCopy := i
-			nodes[0][i].BlockProcessor.ProcessBlockCalled = func(
-				header data.HeaderHandler,
-				body data.BodyHandler,
-				haveTime func() time.Duration,
-			) error {
-				fmt.Println(
-					"process block invalid ",
-					header.GetRound(),
-					header.GetNonce(),
-					getPkEncoded(nodes[0][iCopy].NodeKeys.Pk),
-				)
-				return process.ErrBlockHashDoesNotMatch
-			}
-			nodes[0][i].BlockProcessor.CreateBlockCalled = func(
-				header data.HeaderHandler,
-				haveTime func() bool,
-			) (data.HeaderHandler, data.BodyHandler, error) {
-				return nil, nil, process.ErrWrongTypeAssertion
+	for shardID := range nodes {
+		if numInvalid < numNodes {
+			for i := uint32(0); i < numInvalid; i++ {
+				iCopy := i
+				nodes[shardID][i].BlockProcessor.ProcessBlockCalled = func(
+					header data.HeaderHandler,
+					body data.BodyHandler,
+					haveTime func() time.Duration,
+				) error {
+					fmt.Println(
+						"process block invalid ",
+						header.GetRound(),
+						header.GetNonce(),
+						getPkEncoded(nodes[shardID][iCopy].NodeKeys.Pk),
+					)
+					return process.ErrBlockHashDoesNotMatch
+				}
+				nodes[shardID][i].BlockProcessor.CreateBlockCalled = func(
+					header data.HeaderHandler,
+					haveTime func() bool,
+				) (data.HeaderHandler, data.BodyHandler, error) {
+					return nil, nil, process.ErrWrongTypeAssertion
+				}
 			}
 		}
 	}
 
-	return nodes[0]
+	return nodes
 }
 
-func startNodesWithCommitBlock(nodes []*integrationTests.TestConsensusNode, mutex *sync.Mutex, nonceForRoundMap map[uint64]uint64, totalCalled *int) error {
-	for _, n := range nodes {
-		nCopy := n
-		n.BlockProcessor.CommitBlockCalled = func(header data.HeaderHandler, body data.BodyHandler) error {
-			nCopy.BlockProcessor.NrCommitBlockCalled++
-			_ = nCopy.ChainHandler.SetCurrentBlockHeaderAndRootHash(header, header.GetRootHash())
+func startNodesWithCommitBlock(nodes map[uint32][]*integrationTests.TestConsensusNode, mutex *sync.Mutex, nonceForRoundMap map[uint64]uint64, totalCalled *int) error {
+	for shardID := range nodes {
+		for _, n := range nodes[shardID] {
+			nCopy := n
+			n.BlockProcessor.CommitBlockCalled = func(header data.HeaderHandler, body data.BodyHandler) error {
+				nCopy.BlockProcessor.NrCommitBlockCalled++
+				_ = nCopy.ChainHandler.SetCurrentBlockHeaderAndRootHash(header, header.GetRootHash())
 
-			mutex.Lock()
-			nonceForRoundMap[header.GetRound()] = header.GetNonce()
-			*totalCalled += 1
-			mutex.Unlock()
+				mutex.Lock()
+				nonceForRoundMap[header.GetRound()] = header.GetNonce()
+				*totalCalled += 1
+				mutex.Unlock()
 
-			return nil
-		}
+				return nil
+			}
 
-		statusComponents := integrationTests.GetDefaultStatusComponents()
+			statusComponents := integrationTests.GetDefaultStatusComponents()
 
-		consensusArgs := consensusComp.ConsensusComponentsFactoryArgs{
-			Config: config.Config{
-				Consensus: config.ConsensusConfig{
-					Type: blsConsensusType,
+			consensusArgs := consensusComp.ConsensusComponentsFactoryArgs{
+				Config: config.Config{
+					Consensus: config.ConsensusConfig{
+						Type: blsConsensusType,
+					},
+					ValidatorPubkeyConverter: config.PubkeyConfig{
+						Length:          96,
+						Type:            "bls",
+						SignatureLength: 48,
+					},
+					TrieSync: config.TrieSyncConfig{
+						NumConcurrentTrieSyncers:  5,
+						MaxHardCapForMissingNodes: 5,
+						TrieSyncerVersion:         2,
+						CheckNodesOnDisk:          false,
+					},
+					GeneralSettings: config.GeneralSettingsConfig{
+						SyncProcessTimeInMillis: 6000,
+					},
 				},
-				ValidatorPubkeyConverter: config.PubkeyConfig{
-					Length:          96,
-					Type:            "bls",
-					SignatureLength: 48,
-				},
-				TrieSync: config.TrieSyncConfig{
-					NumConcurrentTrieSyncers:  5,
-					MaxHardCapForMissingNodes: 5,
-					TrieSyncerVersion:         2,
-					CheckNodesOnDisk:          false,
-				},
-				GeneralSettings: config.GeneralSettingsConfig{
-					SyncProcessTimeInMillis: 6000,
-				},
-			},
-			BootstrapRoundIndex: 0,
-			CoreComponents:      n.Node.GetCoreComponents(),
-			NetworkComponents:   n.Node.GetNetworkComponents(),
-			CryptoComponents:    n.Node.GetCryptoComponents(),
-			DataComponents:      n.Node.GetDataComponents(),
-			ProcessComponents:   n.Node.GetProcessComponents(),
-			StateComponents:     n.Node.GetStateComponents(),
-			StatusComponents:    statusComponents,
-			ScheduledProcessor:  &consensusMocks.ScheduledProcessorStub{},
-			IsInImportMode:      n.Node.IsInImportMode(),
-		}
+				BootstrapRoundIndex: 0,
+				CoreComponents:      n.Node.GetCoreComponents(),
+				NetworkComponents:   n.Node.GetNetworkComponents(),
+				CryptoComponents:    n.Node.GetCryptoComponents(),
+				DataComponents:      n.Node.GetDataComponents(),
+				ProcessComponents:   n.Node.GetProcessComponents(),
+				StateComponents:     n.Node.GetStateComponents(),
+				StatusComponents:    statusComponents,
+				ScheduledProcessor:  &consensusMocks.ScheduledProcessorStub{},
+				IsInImportMode:      n.Node.IsInImportMode(),
+			}
 
-		consensusFactory, err := consensusComp.NewConsensusComponentsFactory(consensusArgs)
-		if err != nil {
-			return fmt.Errorf("NewConsensusComponentsFactory failed: %w", err)
-		}
+			consensusFactory, err := consensusComp.NewConsensusComponentsFactory(consensusArgs)
+			if err != nil {
+				return fmt.Errorf("NewConsensusComponentsFactory failed: %w", err)
+			}
 
-		managedConsensusComponents, err := consensusComp.NewManagedConsensusComponents(consensusFactory)
-		if err != nil {
-			return err
-		}
+			managedConsensusComponents, err := consensusComp.NewManagedConsensusComponents(consensusFactory)
+			if err != nil {
+				return err
+			}
 
-		err = managedConsensusComponents.Create()
-		if err != nil {
-			return err
+			err = managedConsensusComponents.Create()
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -198,18 +203,21 @@ func checkBlockProposedEveryRound(numCommBlock uint64, nonceForRoundMap map[uint
 }
 
 func runFullConsensusTest(t *testing.T, consensusType string) {
+	numMetaNodes := uint32(4)
 	numNodes := uint32(4)
 	consensusSize := uint32(4)
 	numInvalid := uint32(0)
 	roundTime := uint64(1000)
 	numCommBlock := uint64(8)
 
-	nodes := initNodesAndTest(numNodes, consensusSize, numInvalid, roundTime, consensusType)
+	nodes := initNodesAndTest(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, consensusType)
 
 	mutex := &sync.Mutex{}
 	defer func() {
-		for _, n := range nodes {
-			_ = n.Messenger.Close()
+		for shardID := range nodes {
+			for _, n := range nodes[shardID] {
+				_ = n.Messenger.Close()
+			}
 		}
 	}()
 
@@ -247,16 +255,19 @@ func TestConsensusBLSFullTest(t *testing.T) {
 }
 
 func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string) {
+	numMetaNodes := uint32(4)
 	numNodes := uint32(4)
 	consensusSize := uint32(4)
 	numInvalid := uint32(2)
 	roundTime := uint64(1000)
-	nodes := initNodesAndTest(numNodes, consensusSize, numInvalid, roundTime, consensusType)
+	nodes := initNodesAndTest(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, consensusType)
 
 	mutex := &sync.Mutex{}
 	defer func() {
-		for _, n := range nodes {
-			_ = n.Messenger.Close()
+		for shardID := range nodes {
+			for _, n := range nodes[shardID] {
+				_ = n.Messenger.Close()
+			}
 		}
 	}()
 

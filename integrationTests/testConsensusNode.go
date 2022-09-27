@@ -114,19 +114,21 @@ func CreateNodesWithTestConsensusNode(
 	multiSigner, _ := multisig.NewBLSMultisig(&mclMultiSig.BlsMultiSigner{Hasher: testHasher}, cp.KeyGen)
 	multiSignerMock := createCustomMultiSignerMock(multiSigner)
 
-	for _, keysPair := range cp.Keys[0] {
-		tcn := NewTestConsensusNode(
-			consensusSize,
-			roundTime,
-			consensusType,
-			*keysPair,
-			eligibleMap,
-			waitingMap,
-			cp.KeyGen,
-			multiSignerMock,
-		)
-		nodes[nodeShardId] = append(nodes[nodeShardId], tcn)
-		connectableNodes = append(connectableNodes, tcn)
+	for shardID := range cp.Keys {
+		for _, keysPair := range cp.Keys[shardID] {
+			tcn := NewTestConsensusNode(
+				consensusSize,
+				roundTime,
+				consensusType,
+				*keysPair,
+				eligibleMap,
+				waitingMap,
+				cp.KeyGen,
+				multiSignerMock,
+			)
+			nodes[shardID] = append(nodes[shardID], tcn)
+			connectableNodes = append(connectableNodes, tcn)
+		}
 	}
 
 	ConnectNodes(connectableNodes)
