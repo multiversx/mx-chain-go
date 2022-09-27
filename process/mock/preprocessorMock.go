@@ -17,7 +17,7 @@ type PreProcessorMock struct {
 	RemoveTxsFromPoolsCalled              func(body *block.Body) error
 	RestoreBlockDataIntoPoolsCalled       func(body *block.Body, miniBlockPool storage.Cacher) (int, error)
 	SaveTxsToStorageCalled                func(body *block.Body) error
-	ProcessBlockTransactionsCalled        func(header data.HeaderHandler, body *block.Body, haveTime func() bool) error
+	ProcessBlockTransactionsCalled        func(header data.HeaderHandler, body *block.Body, haveTime func() bool) (block.MiniBlockSlice, error)
 	RequestBlockTransactionsCalled        func(body *block.Body) int
 	CreateMarshalledDataCalled            func(txHashes [][]byte) ([][]byte, error)
 	RequestTransactionsForMiniBlockCalled func(miniBlock *block.MiniBlock) int
@@ -81,7 +81,7 @@ func (ppm *PreProcessorMock) ProcessBlockTransactions(header data.HeaderHandler,
 	if ppm.ProcessBlockTransactionsCalled == nil {
 		return nil, nil
 	}
-	return nil, ppm.ProcessBlockTransactionsCalled(header, body, haveTime)
+	return ppm.ProcessBlockTransactionsCalled(header, body, haveTime)
 }
 
 // RequestBlockTransactions -
