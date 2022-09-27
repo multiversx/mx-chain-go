@@ -93,7 +93,6 @@ func displayTime(timestamp int64) string {
 }
 
 type interceptorResolver struct {
-	mutCriticalArea      sync.RWMutex
 	cache                storage.Cacher
 	intervalAutoPrint    time.Duration
 	requestsThreshold    int
