@@ -352,7 +352,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 
 	startEpochNum := pcf.bootstrapComponents.EpochBootstrapParams().Epoch()
 	if startEpochNum == 0 {
-		err = pcf.indexGenesisBlocks(genesisBlocks, initialTxs)
+		err = pcf.indexGenesisBlocks(genesisBlocks, initialTxs, genesisAccounts)
 		if err != nil {
 			return nil, err
 		}

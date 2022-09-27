@@ -6,7 +6,7 @@ require (
 	github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.42-0.20220729115258-b9f2fb2f6568
 	github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.42-0.20220729115131-85ecca868e90
 	github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.59-0.20220729115431-a6c93119bdda
-github.com/ElrondNetwork/covalent-indexer-go v1.0.7-0.20220729091107-1f75a52be6e9
+	github.com/ElrondNetwork/covalent-indexer-go v1.0.7-0.20220729091107-1f75a52be6e9
 	github.com/ElrondNetwork/elastic-indexer-go v1.2.35-partial-execution.0.20220729082923-f6dd4fb19165
 	github.com/ElrondNetwork/elrond-go-core v1.1.20-0.20220831091042-a8722ecd7fba
 	github.com/ElrondNetwork/elrond-go-crypto v1.2.1
