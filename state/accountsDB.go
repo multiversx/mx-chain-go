@@ -83,7 +83,7 @@ type AccountsDB struct {
 	lastRootHash         []byte
 	dataTries            common.TriesHolder
 	entries              []JournalEntry
-	// TODO use mutOp only for critical sections, and refactor to parallelize as much as possible
+
 	mutOp                    sync.RWMutex
 	processingMode           common.NodeProcessingMode
 	shouldSerializeSnapshots bool
@@ -255,7 +255,7 @@ func (adb *AccountsDB) GetCode(codeHash []byte) []byte {
 		adb.loadCodeMeasurements.addMeasurement(len(codeEntry.Code), duration)
 	}()
 
-	val, err := adb.mainTrie.Get(codeHash)
+	val, err := adb.getMainTrie().Get(codeHash)
 	if err != nil {
 		return nil
 	}
@@ -270,26 +270,31 @@ func (adb *AccountsDB) GetCode(codeHash []byte) []byte {
 
 // ImportAccount saves the account in the trie. It does not modify
 func (adb *AccountsDB) ImportAccount(account vmcommon.AccountHandler) error {
-	adb.mutOp.Lock()
-	defer adb.mutOp.Unlock()
-
 	if check.IfNil(account) {
 		return fmt.Errorf("%w in accountsDB ImportAccount", ErrNilAccountHandler)
 	}
 
-	return adb.saveAccountToTrie(account)
+	mainTrie := adb.getMainTrie()
+	return adb.saveAccountToTrie(account, mainTrie)
+}
+
+func (adb *AccountsDB) getMainTrie() common.Trie {
+	adb.mutOp.RLock()
+	defer adb.mutOp.RUnlock()
+
+	return adb.mainTrie
 }
 
 // SaveAccount saves in the trie all changes made to the account.
 func (adb *AccountsDB) SaveAccount(account vmcommon.AccountHandler) error {
-	adb.mutOp.Lock()
-	defer adb.mutOp.Unlock()
-
 	if check.IfNil(account) {
 		return fmt.Errorf("%w in accountsDB SaveAccount", ErrNilAccountHandler)
 	}
 
-	oldAccount, err := adb.getAccount(account.AddressBytes())
+	adb.mutOp.Lock()
+	defer adb.mutOp.Unlock()
+
+	oldAccount, err := adb.getAccount(account.AddressBytes(), adb.mainTrie)
 	if err != nil {
 		return err
 	}
@@ -314,7 +319,7 @@ func (adb *AccountsDB) SaveAccount(account vmcommon.AccountHandler) error {
 		return err
 	}
 
-	return adb.saveAccountToTrie(account)
+	return adb.saveAccountToTrie(account, adb.mainTrie)
 }
 
 func (adb *AccountsDB) saveCodeAndDataTrie(oldAcc, newAcc vmcommon.AccountHandler) error {
@@ -474,7 +479,7 @@ func saveCodeEntry(codeHash []byte, entry *CodeEntry, trie Updater, marshalizer 
 
 // LoadDataTrie retrieves and saves the SC data inside accountHandler object.
 // Errors if something went wrong
-func (adb *AccountsDB) loadDataTrie(accountHandler baseAccountHandler) error {
+func (adb *AccountsDB) loadDataTrie(accountHandler baseAccountHandler, mainTrie common.Trie) error {
 	if len(accountHandler.GetRootHash()) == 0 {
 		return nil
 	}
@@ -485,7 +490,7 @@ func (adb *AccountsDB) loadDataTrie(accountHandler baseAccountHandler) error {
 		return nil
 	}
 
-	dataTrie, err := adb.mainTrie.Recreate(accountHandler.GetRootHash())
+	dataTrie, err := mainTrie.Recreate(accountHandler.GetRootHash())
 	if err != nil {
 		return NewErrMissingTrie(accountHandler.GetRootHash())
 	}
@@ -531,7 +536,7 @@ func (adb *AccountsDB) saveDataTrie(accountHandler baseAccountHandler) error {
 	return nil
 }
 
-func (adb *AccountsDB) saveAccountToTrie(accountHandler vmcommon.AccountHandler) error {
+func (adb *AccountsDB) saveAccountToTrie(accountHandler vmcommon.AccountHandler, mainTrie common.Trie) error {
 	log.Trace("accountsDB.saveAccountToTrie",
 		"address", hex.EncodeToString(accountHandler.AddressBytes()),
 	)
@@ -542,20 +547,20 @@ func (adb *AccountsDB) saveAccountToTrie(accountHandler vmcommon.AccountHandler)
 		return err
 	}
 
-	return adb.mainTrie.Update(accountHandler.AddressBytes(), buff)
+	return mainTrie.Update(accountHandler.AddressBytes(), buff)
 }
 
 // RemoveAccount removes the account data from underlying trie.
 // It basically calls Update with empty slice
 func (adb *AccountsDB) RemoveAccount(address []byte) error {
-	adb.mutOp.Lock()
-	defer adb.mutOp.Unlock()
-
 	if len(address) == 0 {
 		return fmt.Errorf("%w in RemoveAccount", ErrNilAddress)
 	}
 
-	acnt, err := adb.getAccount(address)
+	adb.mutOp.Lock()
+	defer adb.mutOp.Unlock()
+
+	acnt, err := adb.getAccount(address, adb.mainTrie)
 	if err != nil {
 		return err
 	}
@@ -645,9 +650,6 @@ func (adb *AccountsDB) removeCode(baseAcc baseAccountHandler) error {
 
 // LoadAccount fetches the account based on the address. Creates an empty account if the account is missing.
 func (adb *AccountsDB) LoadAccount(address []byte) (vmcommon.AccountHandler, error) {
-	adb.mutOp.Lock()
-	defer adb.mutOp.Unlock()
-
 	if len(address) == 0 {
 		return nil, fmt.Errorf("%w in LoadAccount", ErrNilAddress)
 	}
@@ -656,7 +658,8 @@ func (adb *AccountsDB) LoadAccount(address []byte) (vmcommon.AccountHandler, err
 		"address", hex.EncodeToString(address),
 	)
 
-	acnt, err := adb.getAccount(address)
+	mainTrie := adb.getMainTrie()
+	acnt, err := adb.getAccount(address, mainTrie)
 	if err != nil {
 		return nil, err
 	}
@@ -666,7 +669,7 @@ func (adb *AccountsDB) LoadAccount(address []byte) (vmcommon.AccountHandler, err
 
 	baseAcc, ok := acnt.(baseAccountHandler)
 	if ok {
-		err = adb.loadDataTrie(baseAcc)
+		err = adb.loadDataTrie(baseAcc, mainTrie)
 		if err != nil {
 			return nil, err
 		}
@@ -675,8 +678,8 @@ func (adb *AccountsDB) LoadAccount(address []byte) (vmcommon.AccountHandler, err
 	return acnt, nil
 }
 
-func (adb *AccountsDB) getAccount(address []byte) (vmcommon.AccountHandler, error) {
-	val, err := adb.mainTrie.Get(address)
+func (adb *AccountsDB) getAccount(address []byte, mainTrie common.Trie) (vmcommon.AccountHandler, error) {
+	val, err := mainTrie.Get(address)
 	if err != nil {
 		return nil, err
 	}
@@ -699,9 +702,6 @@ func (adb *AccountsDB) getAccount(address []byte) (vmcommon.AccountHandler, erro
 
 // GetExistingAccount returns an existing account if exists or nil if missing
 func (adb *AccountsDB) GetExistingAccount(address []byte) (vmcommon.AccountHandler, error) {
-	adb.mutOp.Lock()
-	defer adb.mutOp.Unlock()
-
 	if len(address) == 0 {
 		return nil, fmt.Errorf("%w in GetExistingAccount", ErrNilAddress)
 	}
@@ -710,7 +710,8 @@ func (adb *AccountsDB) GetExistingAccount(address []byte) (vmcommon.AccountHandl
 		"address", hex.EncodeToString(address),
 	)
 
-	acnt, err := adb.getAccount(address)
+	mainTrie := adb.getMainTrie()
+	acnt, err := adb.getAccount(address, mainTrie)
 	if err != nil {
 		return nil, err
 	}
@@ -720,7 +721,7 @@ func (adb *AccountsDB) GetExistingAccount(address []byte) (vmcommon.AccountHandl
 
 	baseAcc, ok := acnt.(baseAccountHandler)
 	if ok {
-		err = adb.loadDataTrie(baseAcc)
+		err = adb.loadDataTrie(baseAcc, mainTrie)
 		if err != nil {
 			return nil, err
 		}
@@ -731,9 +732,6 @@ func (adb *AccountsDB) GetExistingAccount(address []byte) (vmcommon.AccountHandl
 
 // GetAccountFromBytes returns an account from the given bytes
 func (adb *AccountsDB) GetAccountFromBytes(address []byte, accountBytes []byte) (vmcommon.AccountHandler, error) {
-	adb.mutOp.Lock()
-	defer adb.mutOp.Unlock()
-
 	if len(address) == 0 {
 		return nil, fmt.Errorf("%w in GetAccountFromBytes", ErrNilAddress)
 	}
@@ -753,7 +751,7 @@ func (adb *AccountsDB) GetAccountFromBytes(address []byte, accountBytes []byte) 
 		return acnt, nil
 	}
 
-	err = adb.loadDataTrie(baseAcc)
+	err = adb.loadDataTrie(baseAcc, adb.getMainTrie())
 	if err != nil {
 		return nil, err
 	}
@@ -812,7 +810,7 @@ func (adb *AccountsDB) RevertToSnapshot(snapshot int) error {
 		}
 
 		if !check.IfNil(account) {
-			err = adb.saveAccountToTrie(account)
+			err = adb.saveAccountToTrie(account, adb.mainTrie)
 			if err != nil {
 				return err
 			}
@@ -952,10 +950,7 @@ func (adb *AccountsDB) commitTrie(tr common.Trie, oldHashes common.ModifiedHashe
 
 // RootHash returns the main trie's root hash
 func (adb *AccountsDB) RootHash() ([]byte, error) {
-	adb.mutOp.Lock()
-	defer adb.mutOp.Unlock()
-
-	rootHash, err := adb.mainTrie.RootHash()
+	rootHash, err := adb.getMainTrie().RootHash()
 	log.Trace("accountsDB.RootHash",
 		"root hash", rootHash,
 		"err", err,
@@ -1052,10 +1047,7 @@ func (adb *AccountsDB) recreateMainTrie(rootHash []byte) (map[string]common.Trie
 
 // GetTrie returns the trie that has the given rootHash
 func (adb *AccountsDB) GetTrie(rootHash []byte) (common.Trie, error) {
-	adb.mutOp.Lock()
-	defer adb.mutOp.Unlock()
-
-	return adb.mainTrie.Recreate(rootHash)
+	return adb.getMainTrie().Recreate(rootHash)
 }
 
 // Journalize adds a new object to entries list.
@@ -1082,22 +1074,16 @@ func (adb *AccountsDB) GetStackDebugFirstEntry() []byte {
 
 // PruneTrie removes old values from the trie database
 func (adb *AccountsDB) PruneTrie(rootHash []byte, identifier TriePruningIdentifier, handler PruningHandler) {
-	adb.mutOp.Lock()
-	defer adb.mutOp.Unlock()
-
 	log.Trace("accountsDB.PruneTrie", "root hash", rootHash)
 
-	adb.storagePruningManager.PruneTrie(rootHash, identifier, adb.mainTrie.GetStorageManager(), handler)
+	adb.storagePruningManager.PruneTrie(rootHash, identifier, adb.getMainTrie().GetStorageManager(), handler)
 }
 
 // CancelPrune clears the trie's evictionWaitingList
 func (adb *AccountsDB) CancelPrune(rootHash []byte, identifier TriePruningIdentifier) {
-	adb.mutOp.Lock()
-	defer adb.mutOp.Unlock()
-
 	log.Trace("accountsDB.CancelPrune", "root hash", rootHash)
 
-	adb.storagePruningManager.CancelPrune(rootHash, identifier, adb.mainTrie.GetStorageManager())
+	adb.storagePruningManager.CancelPrune(rootHash, identifier, adb.getMainTrie().GetStorageManager())
 }
 
 // SnapshotState triggers the snapshotting process of the state trie
@@ -1337,10 +1323,7 @@ func (adb *AccountsDB) IsPruningEnabled() bool {
 
 // GetAllLeaves returns all the leaves from a given rootHash
 func (adb *AccountsDB) GetAllLeaves(leavesChannel chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
-	adb.mutOp.Lock()
-	defer adb.mutOp.Unlock()
-
-	return adb.mainTrie.GetAllLeavesOnChannel(leavesChannel, ctx, rootHash, keyBuilder.NewKeyBuilder())
+	return adb.getMainTrie().GetAllLeavesOnChannel(leavesChannel, ctx, rootHash, keyBuilder.NewKeyBuilder())
 }
 
 // Close will handle the closing of the underlying components
