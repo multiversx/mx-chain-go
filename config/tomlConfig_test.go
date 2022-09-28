@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"testing"
 
+	p2pConfig "github.com/ElrondNetwork/elrond-go/p2p/config"
 	"github.com/pelletier/go-toml"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -434,14 +435,12 @@ func TestP2pConfig(t *testing.T) {
 	initialPeersList := "/ip4/127.0.0.1/tcp/9999/p2p/16Uiu2HAkw5SNNtSvH1zJiQ6Gc3WoGNSxiyNueRKe6fuAuh57G3Bk"
 	protocolID := "test protocol id"
 	shardingType := "ListSharder"
-	seed := "test seed"
 	port := "37373-38383"
 
 	testString := `
 #P2P config file
 [Node]
     Port = "` + port + `"
-    Seed = "` + seed + `"
     ThresholdMinConnectedPeers = 0
 
 [KadDhtPeerDiscovery]
@@ -469,20 +468,19 @@ func TestP2pConfig(t *testing.T) {
     [AdditionalConnections]
         MaxFullHistoryObservers = 0`
 
-	expectedCfg := P2PConfig{
-		Node: NodeConfig{
+	expectedCfg := p2pConfig.P2PConfig{
+		Node: p2pConfig.NodeConfig{
 			Port: port,
-			Seed: seed,
 		},
-		KadDhtPeerDiscovery: KadDhtPeerDiscoveryConfig{
+		KadDhtPeerDiscovery: p2pConfig.KadDhtPeerDiscoveryConfig{
 			ProtocolID:      protocolID,
 			InitialPeerList: []string{initialPeersList},
 		},
-		Sharding: ShardingConfig{
+		Sharding: p2pConfig.ShardingConfig{
 			Type: shardingType,
 		},
 	}
-	cfg := P2PConfig{}
+	cfg := p2pConfig.P2PConfig{}
 
 	err := toml.Unmarshal([]byte(testString), &cfg)
 
@@ -665,14 +663,22 @@ func TestEnableEpochConfig(t *testing.T) {
 	# ESDTMetadataContinuousCleanupEnableEpoch represents the epoch when esdt metadata is automatically deleted according to inshard liquidity
 	ESDTMetadataContinuousCleanupEnableEpoch = 56
 
+    # FixAsyncCallBackArgsListEnableEpoch represents the epoch when the async callback arguments lists fix will be enabled
+    FixAsyncCallBackArgsListEnableEpoch = 57
+
 	# SetSenderInEeiOutputTransferEnableEpoch represents the epoch when setting the sender in eei output transfers will be enabled
-    SetSenderInEeiOutputTransferEnableEpoch = 57
+    SetSenderInEeiOutputTransferEnableEpoch = 58
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
         { EpochEnable = 45, MaxNumNodes = 3200, NodesToShufflePerShard = 80 }
     ]
+
+	BLSMultiSignerEnableEpoch = [
+		{EnableEpoch = 0, Type = "no-KOSK"},
+		{EnableEpoch = 3, Type = "KOSK"}
+	]
 
 [GasSchedule]
     GasScheduleByEpochs = [
@@ -751,8 +757,20 @@ func TestEnableEpochConfig(t *testing.T) {
 			ManagedCryptoAPIsEnableEpoch:                54,
 			HeartbeatDisableEpoch:                       55,
 			ESDTMetadataContinuousCleanupEnableEpoch:    56,
-			SetSenderInEeiOutputTransferEnableEpoch:     57,
+			FixAsyncCallBackArgsListEnableEpoch:         57,
+			SetSenderInEeiOutputTransferEnableEpoch:     58,
+			BLSMultiSignerEnableEpoch: []MultiSignerConfig{
+				{
+					EnableEpoch: 0,
+					Type:        "no-KOSK",
+				},
+				{
+					EnableEpoch: 3,
+					Type:        "KOSK",
+				},
+			},
 		},
+
 		GasSchedule: GasScheduleConfig{
 			GasScheduleByEpochs: []GasScheduleByEpochs{
 				{

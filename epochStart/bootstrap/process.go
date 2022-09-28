@@ -37,10 +37,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/state/syncer"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/cache"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	"github.com/ElrondNetwork/elrond-go/storage/timecache"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/trie/factory"
+	"github.com/ElrondNetwork/elrond-go/trie/storageMarker"
 	"github.com/ElrondNetwork/elrond-go/update"
 	updateSync "github.com/ElrondNetwork/elrond-go/update/sync"
 )
@@ -213,7 +214,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		shardCoordinator:           args.GenesisShardCoordinator,
 	}
 
-	whiteListCache, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(epochStartProvider.generalConfig.WhiteListPool))
+	whiteListCache, err := storageunit.NewCache(storageFactory.GetCacherFromConfig(epochStartProvider.generalConfig.WhiteListPool))
 	if err != nil {
 		return nil, err
 	}
@@ -1044,6 +1045,7 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 			MaxHardCapForMissingNodes: e.maxHardCapForMissingNodes,
 			TrieSyncerVersion:         e.trieSyncerVersion,
 			CheckNodesOnDisk:          e.checkNodesOnDisk,
+			StorageMarker:             storageMarker.NewTrieStorageMarker(),
 		},
 		ShardId:                e.shardCoordinator.SelfId(),
 		Throttler:              thr,
@@ -1065,7 +1067,7 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 func (e *epochStartBootstrap) createStorageService(
 	shardCoordinator sharding.Coordinator,
 	pathManager storage.PathManagerHandler,
-	epochStartNotifier storage.EpochStartNotifier,
+	epochStartNotifier epochStart.EpochStartNotifier,
 	startEpoch uint32,
 	createTrieEpochRootHashStorer bool,
 	targetShardId uint32,
@@ -1109,6 +1111,7 @@ func (e *epochStartBootstrap) syncValidatorAccountsState(rootHash []byte) error 
 			MaxHardCapForMissingNodes: e.maxHardCapForMissingNodes,
 			TrieSyncerVersion:         e.trieSyncerVersion,
 			CheckNodesOnDisk:          e.checkNodesOnDisk,
+			StorageMarker:             storageMarker.NewTrieStorageMarker(),
 		},
 	}
 	accountsDBSyncer, err := syncer.NewValidatorAccountsSyncer(argsValidatorAccountsSyncer)
@@ -1179,7 +1182,7 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 		return err
 	}
 
-	requestedItemsHandler := timecache.NewTimeCache(timeBetweenRequests)
+	requestedItemsHandler := cache.NewTimeCache(timeBetweenRequests)
 	e.requestHandler, err = requestHandlers.NewResolverRequestHandler(
 		finder,
 		requestedItemsHandler,

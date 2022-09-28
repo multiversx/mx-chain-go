@@ -22,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
 	vmFactory "github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genesisMocks"
 	"github.com/ElrondNetwork/elrond-go/update/factory"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
@@ -564,7 +565,7 @@ func createHardForkExporter(
 		cryptoComponents := integrationTests.GetDefaultCryptoComponents()
 		cryptoComponents.BlockSig = node.OwnAccount.BlockSingleSigner
 		cryptoComponents.TxSig = node.OwnAccount.SingleSigner
-		cryptoComponents.MultiSig = node.MultiSigner
+		cryptoComponents.MultiSigContainer = cryptoMocks.NewMultiSignerContainerMock(node.MultiSigner)
 		cryptoComponents.BlKeyGen = node.OwnAccount.KeygenBlockSign
 		cryptoComponents.TxKeyGen = node.OwnAccount.KeygenTxSign
 

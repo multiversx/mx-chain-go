@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -187,8 +188,13 @@ func NewJournalEntryDataTrieUpdates(trieUpdates map[string][]byte, account baseA
 
 // Revert applies undo operation
 func (jedtu *journalEntryDataTrieUpdates) Revert() (vmcommon.AccountHandler, error) {
+	trie, ok := jedtu.account.DataTrie().(common.Trie)
+	if !ok {
+		return nil, fmt.Errorf("invalid trie, type is %T", jedtu.account.DataTrie())
+	}
+
 	for key := range jedtu.trieUpdates {
-		err := jedtu.account.DataTrie().Update([]byte(key), jedtu.trieUpdates[key])
+		err := trie.Update([]byte(key), jedtu.trieUpdates[key])
 		if err != nil {
 			return nil, err
 		}
@@ -196,7 +202,7 @@ func (jedtu *journalEntryDataTrieUpdates) Revert() (vmcommon.AccountHandler, err
 		log.Trace("revert data trie update", "key", []byte(key), "val", jedtu.trieUpdates[key])
 	}
 
-	rootHash, err := jedtu.account.DataTrie().RootHash()
+	rootHash, err := trie.RootHash()
 	if err != nil {
 		return nil, err
 	}

@@ -68,11 +68,21 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 	if !sr.CanDoSubroundJob(sr.Current()) {
 		return false
 	}
+	if check.IfNil(sr.Header) {
+		log.Error("doSignatureJob", "error", spos.ErrNilHeader)
+		return false
+	}
 
 	isSelfLeader := sr.IsSelfLeaderInCurrentRound()
 
 	if isSelfLeader || sr.IsNodeInConsensusGroup(sr.SelfPubKey()) {
-		signatureShare, err := sr.MultiSigner().CreateSignatureShare(sr.GetData(), nil)
+		selfIndex, err := sr.SelfConsensusGroupIndex()
+		if err != nil {
+			log.Debug("doSignatureJob.SelfConsensusGroupIndex: not in consensus group")
+			return false
+		}
+
+		signatureShare, err := sr.SignatureHandler().CreateSignatureShare(sr.GetData(), uint16(selfIndex), sr.Header.GetEpoch())
 		if err != nil {
 			log.Debug("doSignatureJob.CreateSignatureShare", "error", err.Error())
 			return false
@@ -183,8 +193,12 @@ func (sr *subroundSignature) receivedSignature(_ context.Context, cnsDta *consen
 		return false
 	}
 
-	currentMultiSigner := sr.MultiSigner()
-	err = currentMultiSigner.VerifySignatureShare(uint16(index), cnsDta.SignatureShare, sr.GetData(), nil)
+	if check.IfNil(sr.Header) {
+		log.Error("receivedSignature", "error", spos.ErrNilHeader)
+		return false
+	}
+
+	err = sr.SignatureHandler().VerifySignatureShare(uint16(index), cnsDta.SignatureShare, sr.GetData(), sr.Header.GetEpoch())
 	if err != nil {
 		log.Debug("receivedSignature.VerifySignatureShare",
 			"node", pkForLogs,
@@ -193,7 +207,7 @@ func (sr *subroundSignature) receivedSignature(_ context.Context, cnsDta *consen
 		return false
 	}
 
-	err = currentMultiSigner.StoreSignatureShare(uint16(index), cnsDta.SignatureShare)
+	err = sr.SignatureHandler().StoreSignatureShare(uint16(index), cnsDta.SignatureShare)
 	if err != nil {
 		log.Debug("receivedSignature.StoreSignatureShare",
 			"node", pkForLogs,
@@ -349,7 +363,20 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
 		}
 
 		managedPrivateKey := sr.GetMessageSigningPrivateKey(pkBytes)
-		signatureShare, err := sr.MultiSigner().CreateAndAddSignatureShareForKey(sr.GetData(), managedPrivateKey, pkBytes)
+		selfIndex, err := sr.ConsensusGroupIndex(pk)
+		if err != nil {
+			log.Warn("doSignatureJobForManagedKeys: index not found", "pk", pkBytes)
+			continue
+		}
+
+		// TODO EN-13215 merge SignatureHandler with KeysHandler
+		managedPrivateKeyBytes, err := managedPrivateKey.ToByteArray()
+		if err != nil {
+			log.Warn("doSignatureJobForManagedKeys: can not recover the private key bytes", "pk", pkBytes)
+			continue
+		}
+
+		signatureShare, err := sr.SignatureHandler().CreateSignatureShareWithPrivateKey(sr.GetData(), uint16(selfIndex), sr.Header.GetEpoch(), managedPrivateKeyBytes)
 		if err != nil {
 			log.Debug("doSignatureJobForManagedKeys.CreateAndAddSignatureShareForKey", "error", err.Error())
 			return false

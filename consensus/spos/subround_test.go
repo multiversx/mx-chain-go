@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
@@ -360,13 +361,13 @@ func TestSubround_NilContainerMarshalizerShouldFail(t *testing.T) {
 	assert.Equal(t, spos.ErrNilMarshalizer, err)
 }
 
-func TestSubround_NilContainerMultisignerShouldFail(t *testing.T) {
+func TestSubround_NilContainerMultiSignerShouldFail(t *testing.T) {
 	t.Parallel()
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 	container := mock.InitConsensusCore()
-	container.SetMultiSigner(nil)
+	container.SetMultiSignerContainer(cryptoMocks.NewMultiSignerContainerMock(nil))
 
 	sr, err := spos.NewSubround(
 		-1,

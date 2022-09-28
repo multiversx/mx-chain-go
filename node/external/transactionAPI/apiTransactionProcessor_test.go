@@ -374,6 +374,7 @@ func testWithMissingStorer(missingUnit dataRetriever.UnitType) func(t *testing.T
 
 		apiTransactionProc, _ := NewAPITransactionProcessor(args)
 		_, err := apiTransactionProc.getTransactionFromStorage([]byte("txHash"))
+		require.NotNil(t, err)
 		require.True(t, strings.Contains(err.Error(), ErrTransactionNotFound.Error()))
 	}
 }

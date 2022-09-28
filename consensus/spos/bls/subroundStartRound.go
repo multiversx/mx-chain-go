@@ -174,7 +174,7 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 
 	sr.indexRoundIfNeeded(pubKeys)
 
-	selfIndex, err := sr.SelfConsensusGroupIndex()
+	_, err = sr.SelfConsensusGroupIndex()
 	if err != nil {
 		if numMultiKeysInConsensusGroup == 0 {
 			log.Debug("not in consensus group")
@@ -187,7 +187,7 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 		sr.AppStatusHandler().SetStringValue(common.MetricConsensusState, "participant")
 	}
 
-	err = sr.MultiSigner().Reset(pubKeys, uint16(selfIndex))
+	err = sr.SignatureHandler().Reset(pubKeys)
 	if err != nil {
 		log.Debug("initCurrentRound.Reset", "error", err.Error())
 

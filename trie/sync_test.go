@@ -214,7 +214,7 @@ func TestTrieSync_FoundInStorageShouldNotRequest(t *testing.T) {
 		},
 	}
 
-	err = bn.commitSnapshot(db, nil, context.Background(), &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{})
+	err = bn.commitSnapshot(db, nil, nil, context.Background(), &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{})
 	require.Nil(t, err)
 
 	arg := createMockArgument(timeout)
