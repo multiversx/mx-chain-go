@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/common"
+	cryptoCommon "github.com/ElrondNetwork/elrond-go/common/crypto"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -1136,8 +1137,9 @@ type CryptoComponentsHolder interface {
 	BlockSignKeyGen() crypto.KeyGenerator
 	TxSingleSigner() crypto.SingleSigner
 	BlockSigner() crypto.SingleSigner
-	MultiSigner() crypto.MultiSigner
-	SetMultiSigner(ms crypto.MultiSigner) error
+	GetMultiSigner(epoch uint32) (crypto.MultiSigner, error)
+	MultiSignerContainer() cryptoCommon.MultiSignerContainer
+	SetMultiSignerContainer(ms cryptoCommon.MultiSignerContainer) error
 	PeerSignatureHandler() crypto.PeerSignatureHandler
 	PublicKey() crypto.PublicKey
 	Clone() interface{}
@@ -1240,5 +1242,12 @@ type ProcessedMiniBlocksTracker interface {
 // found in peer authentication messages
 type PeerAuthenticationPayloadValidator interface {
 	ValidateTimestamp(payloadTimestamp int64) error
+	IsInterfaceNil() bool
+}
+
+// Debugger defines what a process debugger implementation should do
+type Debugger interface {
+	SetLastCommittedBlockRound(round uint64)
+	Close() error
 	IsInterfaceNil() bool
 }

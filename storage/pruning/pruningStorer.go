@@ -16,10 +16,9 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
-	elrondErrors "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/clean"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 )
 
 var _ storage.Storer = (*PruningStorer)(nil)
@@ -133,7 +132,7 @@ func initPruningStorer(
 ) (*PruningStorer, error) {
 	pdb := &PruningStorer{}
 
-	cache, err := storageUnit.NewCache(args.CacheConf)
+	suCache, err := storageunit.NewCache(args.CacheConf)
 	if err != nil {
 		return nil, err
 	}
@@ -147,7 +146,7 @@ func initPruningStorer(
 	pdb.identifier = identifier
 	pdb.persisterFactory = args.PersisterFactory
 	pdb.shardCoordinator = args.ShardCoordinator
-	pdb.cacher = cache
+	pdb.cacher = suCache
 	pdb.epochPrepareHdr = &block.MetaBlock{Epoch: epochForDefaultEpochPrepareHdr}
 	pdb.epochForPutOperation = args.EpochsData.StartingEpoch
 	pdb.pathManager = args.PathManager
@@ -336,13 +335,17 @@ func (ps *PruningStorer) getPersisterToUse() *persisterData {
 		returningPath := "<nil persisterToUse>"
 		if persisterToUse != nil {
 			returningPath = persisterToUse.path
+			log.Debug("active persister not found",
+				"epoch", ps.epochForPutOperation,
+				"used", persisterToUse.epoch,
+				"path", ps.dbPath,
+				"returning persister", returningPath)
+		} else {
+			log.Debug("active persister not found",
+				"epoch", ps.epochForPutOperation,
+				"path", ps.dbPath,
+				"returning persister", returningPath)
 		}
-
-		log.Debug("active persister not found",
-			"epoch", ps.epochForPutOperation,
-			"used", persisterToUse.epoch,
-			"path", ps.dbPath,
-			"returning persister", returningPath)
 	}
 
 	return persisterToUse
@@ -436,7 +439,7 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 	for idx := 0; idx < len(ps.activePersisters); idx++ {
 		val, err := ps.activePersisters[idx].persister.Get(key)
 		if err != nil {
-			if err == elrondErrors.ErrDBIsClosed {
+			if err == storage.ErrDBIsClosed {
 				numClosedDbs++
 			}
 
@@ -449,7 +452,7 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 	}
 
 	if numClosedDbs == len(ps.activePersisters) && len(ps.activePersisters) > 0 {
-		return nil, elrondErrors.ErrDBIsClosed
+		return nil, storage.ErrDBIsClosed
 	}
 
 	return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)

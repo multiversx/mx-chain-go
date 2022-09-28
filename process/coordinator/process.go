@@ -24,7 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/timecache"
+	"github.com/ElrondNetwork/elrond-go/storage/cache"
 )
 
 var _ process.TransactionCoordinator = (*transactionCoordinator)(nil)
@@ -155,7 +155,7 @@ func NewTransactionCoordinator(args ArgTransactionCoordinator) (*transactionCoor
 		tc.interimProcessors[value] = interProc
 	}
 
-	tc.requestedItemsHandler = timecache.NewTimeCache(common.MaxWaitingTimeToReceiveRequestedItem)
+	tc.requestedItemsHandler = cache.NewTimeCache(common.MaxWaitingTimeToReceiveRequestedItem)
 	tc.miniBlockPool.RegisterHandler(tc.receivedMiniBlock, core.UniqueIdentifier())
 
 	return tc, nil

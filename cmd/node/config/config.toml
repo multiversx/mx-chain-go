@@ -815,6 +815,11 @@
     [Debug.EpochStart]
         GoRoutineAnalyserEnabled = true
         ProcessDataTrieOnCommitEpoch = true
+    [Debug.Process]
+        Enabled = true
+        DebuggingLogLevel = "*:DEBUG,p2p:TRACE,debug:DEBUG,process:TRACE,intercept:TRACE"
+        GoRoutinesDump = true
+        PollingTimeInSeconds = 240 # 4 minutes
 
 [Health]
     IntervalVerifyMemoryInSeconds = 30

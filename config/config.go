@@ -1,5 +1,7 @@
 package config
 
+import p2pConfig "github.com/ElrondNetwork/elrond-go/p2p/config"
+
 // CacheConfig will map the cache configuration
 type CacheConfig struct {
 	Name                 string
@@ -266,6 +268,12 @@ type MaxNodesChangeConfig struct {
 	NodesToShufflePerShard uint32
 }
 
+// MultiSignerConfig defines a config tuple for a BLS multi-signer that activates in a certain epoch
+type MultiSignerConfig struct {
+	EnableEpoch uint32
+	Type        string
+}
+
 // GeneralSettingsConfig will hold the general settings for a node
 type GeneralSettingsConfig struct {
 	StatusPollingIntervalSec             int
@@ -466,6 +474,7 @@ type DebugConfig struct {
 	Antiflood           AntifloodDebugConfig
 	ShuffleOut          ShuffleOutDebugConfig
 	EpochStart          EpochStartDebugConfig
+	Process             ProcessDebugConfig
 }
 
 // HealthServiceConfig will hold health service (monitoring) configuration
@@ -507,6 +516,14 @@ type ShuffleOutDebugConfig struct {
 type EpochStartDebugConfig struct {
 	GoRoutineAnalyserEnabled     bool
 	ProcessDataTrieOnCommitEpoch bool
+}
+
+// ProcessDebugConfig will hold the process debug configuration
+type ProcessDebugConfig struct {
+	Enabled              bool
+	GoRoutinesDump       bool
+	DebuggingLogLevel    string
+	PollingTimeInSeconds int
 }
 
 // ApiRoutesConfig holds the configuration related to Rest API routes
@@ -554,7 +571,7 @@ type Configs struct {
 	RatingsConfig            *RatingsConfig
 	PreferencesConfig        *Preferences
 	ExternalConfig           *ExternalConfig
-	P2pConfig                *P2PConfig
+	P2pConfig                *p2pConfig.P2PConfig
 	FlagsConfig              *ContextFlagsConfig
 	ImportDbConfig           *ImportDbConfig
 	ConfigurationPathsHolder *ConfigurationPathsHolder
@@ -579,6 +596,7 @@ type ConfigurationPathsHolder struct {
 	ValidatorKey             string
 	Epoch                    string
 	RoundActivation          string
+	P2pKey                   string
 }
 
 // TrieSyncConfig represents the trie synchronization configuration area

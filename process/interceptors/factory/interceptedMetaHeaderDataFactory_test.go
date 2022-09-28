@@ -74,11 +74,11 @@ func createMockComponentHolders() (*mock.CoreComponentsMock, *mock.CryptoCompone
 		EnableEpochsHandlerField:   &testscommon.EnableEpochsHandlerStub{},
 	}
 	cryptoComponents := &mock.CryptoComponentsMock{
-		BlockSig: createMockSigner(),
-		TxSig:    createMockSigner(),
-		MultiSig: cryptoMocks.NewMultiSigner(21),
-		BlKeyGen: createMockKeyGen(),
-		TxKeyGen: createMockKeyGen(),
+		BlockSig:          createMockSigner(),
+		TxSig:             createMockSigner(),
+		MultiSigContainer: cryptoMocks.NewMultiSignerContainerMock(cryptoMocks.NewMultiSigner()),
+		BlKeyGen:          createMockKeyGen(),
+		TxKeyGen:          createMockKeyGen(),
 	}
 
 	return coreComponents, cryptoComponents

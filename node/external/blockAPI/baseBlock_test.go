@@ -115,13 +115,13 @@ func TestBaseBlockGetIntraMiniblocksReceipts(t *testing.T) {
 		TxHashes: [][]byte{receiptHash},
 	}
 
-	receipt := &receipt.Receipt{
+	receiptObj := &receipt.Receipt{
 		Value:   big.NewInt(1000),
 		SndAddr: []byte("sndAddr"),
 		Data:    []byte("refund"),
 		TxHash:  []byte("hash"),
 	}
-	receiptBytes, _ := baseAPIBlockProc.marshalizer.Marshal(receipt)
+	receiptBytes, _ := baseAPIBlockProc.marshalizer.Marshal(receiptObj)
 
 	baseAPIBlockProc.store = genericMocks.NewChainStorerMock(0)
 	storer, _ := baseAPIBlockProc.store.GetStorer(dataRetriever.UnsignedTransactionUnit)
@@ -136,10 +136,10 @@ func TestBaseBlockGetIntraMiniblocksReceipts(t *testing.T) {
 	baseAPIBlockProc.apiTransactionHandler = &mock.TransactionAPIHandlerStub{
 		UnmarshalReceiptCalled: func(receiptBytes []byte) (*transaction.ApiReceipt, error) {
 			return &transaction.ApiReceipt{
-				Value:   receipt.Value,
-				SndAddr: baseAPIBlockProc.addressPubKeyConverter.Encode(receipt.SndAddr),
-				Data:    string(receipt.Data),
-				TxHash:  hex.EncodeToString(receipt.TxHash),
+				Value:   receiptObj.Value,
+				SndAddr: baseAPIBlockProc.addressPubKeyConverter.Encode(receiptObj.SndAddr),
+				Data:    string(receiptObj.Data),
+				TxHash:  hex.EncodeToString(receiptObj.TxHash),
 			}, nil
 		},
 	}

@@ -19,6 +19,9 @@ var ErrNilSignature = errors.New("signature is nil")
 // ErrNilMultiSigner is raised when a valid multiSigner is expected but nil used
 var ErrNilMultiSigner = errors.New("multiSigner is nil")
 
+// ErrNilMultiSignerContainer is raised when a valid multiSigner container is expected, but nil used
+var ErrNilMultiSignerContainer = errors.New("multiSigner container is nil")
+
 // ErrNilConsensusState is raised when a valid consensus is expected but nil used
 var ErrNilConsensusState = errors.New("consensus state is nil")
 
@@ -216,6 +219,9 @@ var ErrNilNodeRedundancyHandler = errors.New("nil node redundancy handler")
 
 // ErrNilScheduledProcessor signals that the provided scheduled processor is nil
 var ErrNilScheduledProcessor = errors.New("nil scheduled processor")
+
+// ErrNilSignatureHandler signals that provided signature handler is nil
+var ErrNilSignatureHandler = errors.New("nil signature handler")
 
 // ErrNilKeysHandler signals that a nil keys handler was provided
 var ErrNilKeysHandler = errors.New("nil keys handler")

@@ -1,11 +1,11 @@
 package mock
 
 import (
+	"errors"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/heartbeat"
+	cryptoCommon "github.com/ElrondNetwork/elrond-go/common/crypto"
 	"github.com/ElrondNetwork/elrond-go/vm"
 )
 
@@ -18,7 +18,7 @@ type CryptoComponentsStub struct {
 	PubKeyBytes             []byte
 	BlockSig                crypto.SingleSigner
 	TxSig                   crypto.SingleSigner
-	MultiSig                crypto.MultiSigner
+	MultiSigContainer cryptoCommon.MultiSignerContainer
 	PeerSignHandler         crypto.PeerSignatureHandler
 	BlKeyGen                crypto.KeyGenerator
 	TxKeyGen                crypto.KeyGenerator
@@ -78,14 +78,6 @@ func (ccs *CryptoComponentsStub) TxSingleSigner() crypto.SingleSigner {
 	return ccs.TxSig
 }
 
-// MultiSigner -
-func (ccs *CryptoComponentsStub) MultiSigner() crypto.MultiSigner {
-	ccs.mutMultiSig.RLock()
-	defer ccs.mutMultiSig.RUnlock()
-
-	return ccs.MultiSig
-}
-
 // PeerSignatureHandler -
 func (ccs *CryptoComponentsStub) PeerSignatureHandler() crypto.PeerSignatureHandler {
 	ccs.mutMultiSig.RLock()
@@ -94,13 +86,33 @@ func (ccs *CryptoComponentsStub) PeerSignatureHandler() crypto.PeerSignatureHand
 	return ccs.PeerSignHandler
 }
 
-// SetMultiSigner -
-func (ccs *CryptoComponentsStub) SetMultiSigner(ms crypto.MultiSigner) error {
+// MultiSignerContainer -
+func (ccs *CryptoComponentsStub) MultiSignerContainer() cryptoCommon.MultiSignerContainer {
+	ccs.mutMultiSig.RLock()
+	defer ccs.mutMultiSig.RUnlock()
+
+	return ccs.MultiSigContainer
+}
+
+// SetMultiSignerContainer -
+func (ccs *CryptoComponentsStub) SetMultiSignerContainer(ms cryptoCommon.MultiSignerContainer) error {
 	ccs.mutMultiSig.Lock()
-	ccs.MultiSig = ms
+	ccs.MultiSigContainer = ms
 	ccs.mutMultiSig.Unlock()
 
 	return nil
+}
+
+// GetMultiSigner -
+func (ccs *CryptoComponentsStub) GetMultiSigner(epoch uint32) (crypto.MultiSigner, error) {
+	ccs.mutMultiSig.RLock()
+	defer ccs.mutMultiSig.RUnlock()
+
+	if ccs.MultiSigContainer == nil {
+		return nil, errors.New("nil multi sig container")
+	}
+
+	return ccs.MultiSigContainer.GetMultiSigner(epoch)
 }
 
 // BlockSignKeyGen -
@@ -138,7 +150,7 @@ func (ccs *CryptoComponentsStub) Clone() interface{} {
 		PubKeyBytes:             ccs.PubKeyBytes,
 		BlockSig:                ccs.BlockSig,
 		TxSig:                   ccs.TxSig,
-		MultiSig:                ccs.MultiSig,
+		MultiSigContainer:                ccs.MultiSigContainer,
 		PeerSignHandler:         ccs.PeerSignHandler,
 		BlKeyGen:                ccs.BlKeyGen,
 		TxKeyGen:                ccs.TxKeyGen,
