@@ -70,6 +70,9 @@ var ErrNilOldDataCleanerProvider = errors.New("nil old data cleaner provider")
 // ErrKeyNotFound is raised when a key is not found
 var ErrKeyNotFound = storageErrors.ErrKeyNotFound
 
+// ErrInvalidConfig signals an invalid config
+var ErrInvalidConfig = storageErrors.ErrInvalidConfig
+
 // ErrCacheSizeInvalid signals that size of cache is less than 1
 var ErrCacheSizeInvalid = storageErrors.ErrCacheSizeInvalid
 

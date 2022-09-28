@@ -129,6 +129,3 @@ var ErrCannotCastUserAccountHandlerToVmCommonUserAccountHandler = errors.New("ca
 
 // ErrTrieOperationsTimeout signals that a trie operation took too long
 var ErrTrieOperationsTimeout = errors.New("trie operations timeout")
-
-// ErrNilStorer signals the using of a nil storer
-var ErrNilStorer = errors.New("nil storer")
