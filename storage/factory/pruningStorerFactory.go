@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/clean"
 	"github.com/ElrondNetwork/elrond-go/storage/databaseremover"
 	"github.com/ElrondNetwork/elrond-go/storage/databaseremover/disabled"
+	"github.com/ElrondNetwork/elrond-go/storage/databaseremover/factory"
 	storageDisabled "github.com/ElrondNetwork/elrond-go/storage/disabled"
 	"github.com/ElrondNetwork/elrond-go/storage/pruning"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -118,7 +119,7 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	// in case of a failure while creating (not opening).
 
 	disabledCustomDatabaseRemover := disabled.NewDisabledCustomDatabaseRemover()
-	customDatabaseRemover, err := databaseremover.NewCustomDatabaseRemover(psf.generalConfig.StoragePruning)
+	customDatabaseRemover, err := factory.CreateCustomDatabaseRemover(psf.generalConfig.StoragePruning)
 	if err != nil {
 		return nil, err
 	}
