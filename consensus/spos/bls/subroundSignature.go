@@ -369,6 +369,7 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
 			continue
 		}
 
+		// TODO EN-13215 merge SignatureHandler with KeysHandler
 		managedPrivateKeyBytes, err := managedPrivateKey.ToByteArray()
 		if err != nil {
 			log.Warn("doSignatureJobForManagedKeys: can not recover the private key bytes", "pk", pkBytes)
