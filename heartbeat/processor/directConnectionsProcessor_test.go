@@ -14,7 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
-	"github.com/ElrondNetwork/elrond-go/p2p"
+	p2pFactory "github.com/ElrondNetwork/elrond-go/p2p/factory"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -111,7 +111,7 @@ func TestNewDirectConnectionsProcessor(t *testing.T) {
 				mutNotifiedPeers.Lock()
 				defer mutNotifiedPeers.Unlock()
 
-				shardValidatorInfo := &p2p.DirectConnectionInfo{}
+				shardValidatorInfo := &p2pFactory.DirectConnectionInfo{}
 				err := args.Marshaller.Unmarshal(shardValidatorInfo, buff)
 				assert.Nil(t, err)
 				assert.Equal(t, expectedShard, shardValidatorInfo.ShardId)
@@ -261,7 +261,7 @@ func Test_directConnectionsProcessor_notifyNewPeers(t *testing.T) {
 		expectedShard := fmt.Sprintf("%d", args.ShardCoordinator.SelfId())
 		args.Messenger = &p2pmocks.MessengerStub{
 			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
-				shardValidatorInfo := &p2p.DirectConnectionInfo{}
+				shardValidatorInfo := &p2pFactory.DirectConnectionInfo{}
 				err := args.Marshaller.Unmarshal(shardValidatorInfo, buff)
 				assert.Nil(t, err)
 				assert.Equal(t, expectedShard, shardValidatorInfo.ShardId)

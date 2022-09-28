@@ -7,7 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/p2p"
+	p2pFactory "github.com/ElrondNetwork/elrond-go/p2p/factory"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
@@ -22,7 +22,7 @@ type ArgInterceptedDirectConnectionInfo struct {
 
 // interceptedDirectConnectionInfo is a wrapper over DirectConnectionInfo
 type interceptedDirectConnectionInfo struct {
-	directConnectionInfo p2p.DirectConnectionInfo
+	directConnectionInfo p2pFactory.DirectConnectionInfo
 	numOfShards          uint32
 }
 
@@ -58,8 +58,8 @@ func checkArgs(args ArgInterceptedDirectConnectionInfo) error {
 	return nil
 }
 
-func createDirectConnectionInfo(marshaller marshal.Marshalizer, buff []byte) (*p2p.DirectConnectionInfo, error) {
-	directConnectionInfo := &p2p.DirectConnectionInfo{}
+func createDirectConnectionInfo(marshaller marshal.Marshalizer, buff []byte) (*p2pFactory.DirectConnectionInfo, error) {
+	directConnectionInfo := &p2pFactory.DirectConnectionInfo{}
 	err := marshaller.Unmarshal(directConnectionInfo, buff)
 	if err != nil {
 		return nil, err
