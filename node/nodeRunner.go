@@ -1212,11 +1212,6 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 func (nr *nodeRunner) CreateManagedNetworkComponents(
 	coreComponents mainFactory.CoreComponentsHolder,
 ) (mainFactory.NetworkComponentsHandler, error) {
-	decodedPreferredPeers, err := decodePreferredPeers(*nr.configs.PreferencesConfig, coreComponents.ValidatorPubKeyConverter())
-	if err != nil {
-		return nil, err
-	}
-
 	networkComponentsFactoryArgs := mainFactory.NetworkComponentsFactoryArgs{
 		P2pConfig:             *nr.configs.P2pConfig,
 		MainConfig:            *nr.configs.GeneralConfig,
@@ -1224,7 +1219,7 @@ func (nr *nodeRunner) CreateManagedNetworkComponents(
 		StatusHandler:         coreComponents.StatusHandler(),
 		Marshalizer:           coreComponents.InternalMarshalizer(),
 		Syncer:                coreComponents.SyncTimer(),
-		PreferredPeersSlices:  decodedPreferredPeers,
+		PreferredPeersSlices:  nr.configs.PreferencesConfig.Preferences.PreferredConnections,
 		BootstrapWaitTime:     common.TimeToWaitForP2PBootstrap,
 		NodeOperationMode:     p2p.NormalOperation,
 		ConnectionWatcherType: nr.configs.PreferencesConfig.Preferences.ConnectionWatcherType,
@@ -1490,20 +1485,6 @@ func enableGopsIfNeeded(gopsEnabled bool) {
 	}
 
 	log.Trace("gops", "enabled", gopsEnabled)
-}
-
-func decodePreferredPeers(prefConfig config.Preferences, validatorPubKeyConverter core.PubkeyConverter) ([]string, error) {
-	decodedPeers := make([]string, 0)
-	for _, connectionSlice := range prefConfig.Preferences.PreferredConnections {
-		peerBytes, err := validatorPubKeyConverter.Decode(connectionSlice)
-		if err != nil {
-			return nil, fmt.Errorf("cannot decode preferred peer(%s) : %w", connectionSlice, err)
-		}
-
-		decodedPeers = append(decodedPeers, string(peerBytes))
-	}
-
-	return decodedPeers, nil
 }
 
 func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteListHandler, error) {
