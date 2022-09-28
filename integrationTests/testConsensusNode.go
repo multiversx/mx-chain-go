@@ -206,6 +206,11 @@ func (tcn *TestConsensusNode) initNode(
 		},
 	}
 
+	networkComponents := GetDefaultNetworkComponents()
+	networkComponents.Messenger = tcn.Messenger
+	networkComponents.InputAntiFlood = &mock.NilAntifloodHandler{}
+	networkComponents.PeerHonesty = &mock.PeerHonestyHandlerStub{}
+
 	cryptoComponents := GetDefaultCryptoComponents()
 	cryptoComponents.PrivKey = tcn.NodeKeys.Sk
 	cryptoComponents.PubKey = tcn.NodeKeys.Sk.GeneratePublic()
@@ -214,6 +219,14 @@ func (tcn *TestConsensusNode) initNode(
 	cryptoComponents.MultiSigContainer = cryptoMocks.NewMultiSignerContainerMock(testMultiSig)
 	cryptoComponents.BlKeyGen = keyGen
 	cryptoComponents.PeerSignHandler = peerSigHandler
+	cryptoComponents.KeysHandlerField = &testscommon.KeysHandlerStub{
+		GetHandledPrivateKeyCalled: func(pkBytes []byte) crypto.PrivateKey {
+			return tcn.NodeKeys.Sk
+		},
+		GetAssociatedPidCalled: func(pkBytes []byte) core.PeerID {
+			return tcn.Messenger.ID()
+		},
+	}
 
 	processComponents := GetDefaultProcessComponents()
 	processComponents.ForkDetect = forkDetector
@@ -241,11 +254,6 @@ func (tcn *TestConsensusNode) initNode(
 	stateComponents := GetDefaultStateComponents()
 	stateComponents.Accounts = tcn.AccountsDB
 	stateComponents.AccountsAPI = tcn.AccountsDB
-
-	networkComponents := GetDefaultNetworkComponents()
-	networkComponents.Messenger = tcn.Messenger
-	networkComponents.InputAntiFlood = &mock.NilAntifloodHandler{}
-	networkComponents.PeerHonesty = &mock.PeerHonestyHandlerStub{}
 
 	var err error
 	tcn.Node, err = node.NewNode(

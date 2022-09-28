@@ -2,14 +2,15 @@ package mock
 
 // SignatureHandlerStub implements SignatureHandler interface
 type SignatureHandlerStub struct {
-	ResetCalled                func(pubKeys []string) error
-	CreateSignatureShareCalled func(msg []byte, index uint16, epoch uint32) ([]byte, error)
-	StoreSignatureShareCalled  func(index uint16, sig []byte) error
-	SignatureShareCalled       func(index uint16) ([]byte, error)
-	VerifySignatureShareCalled func(index uint16, sig []byte, msg []byte, epoch uint32) error
-	AggregateSigsCalled        func(bitmap []byte, epoch uint32) ([]byte, error)
-	SetAggregatedSigCalled     func(_ []byte) error
-	VerifyCalled               func(msg []byte, bitmap []byte, epoch uint32) error
+	ResetCalled                              func(pubKeys []string) error
+	CreateSignatureShareCalled               func(msg []byte, index uint16, epoch uint32) ([]byte, error)
+	CreateSignatureShareWithPrivateKeyCalled func(message []byte, index uint16, epoch uint32, privateKeyBytes []byte) ([]byte, error)
+	StoreSignatureShareCalled                func(index uint16, sig []byte) error
+	SignatureShareCalled                     func(index uint16) ([]byte, error)
+	VerifySignatureShareCalled               func(index uint16, sig []byte, msg []byte, epoch uint32) error
+	AggregateSigsCalled                      func(bitmap []byte, epoch uint32) ([]byte, error)
+	SetAggregatedSigCalled                   func(_ []byte) error
+	VerifyCalled                             func(msg []byte, bitmap []byte, epoch uint32) error
 }
 
 // Reset -
@@ -28,6 +29,15 @@ func (stub *SignatureHandlerStub) CreateSignatureShare(msg []byte, index uint16,
 	}
 
 	return []byte("sigShare"), nil
+}
+
+// CreateSignatureShareWithPrivateKey -
+func (stub *SignatureHandlerStub) CreateSignatureShareWithPrivateKey(message []byte, index uint16, epoch uint32, privateKeyBytes []byte) ([]byte, error) {
+	if stub.CreateSignatureShareWithPrivateKeyCalled != nil {
+		return stub.CreateSignatureShareWithPrivateKeyCalled(message, index, epoch, privateKeyBytes)
+	}
+
+	return make([]byte, 0), nil
 }
 
 // StoreSignatureShare -

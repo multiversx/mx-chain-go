@@ -7,8 +7,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	cryptoCommon "github.com/ElrondNetwork/elrond-go/common/crypto"
+	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
+	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/vm"
 )
 
@@ -317,8 +319,8 @@ func (mcc *managedCryptoComponents) Clone() interface{} {
 			blockSignKeyGen:      mcc.BlockSignKeyGen(),
 			txSignKeyGen:         mcc.TxSignKeyGen(),
 			messageSignVerifier:  mcc.MessageSignVerifier(),
-			managedPeersHolder:  mcc.ManagedPeersHolder(),
-			keysHandler:         mcc.KeysHandler(),
+			managedPeersHolder:   mcc.ManagedPeersHolder(),
+			keysHandler:          mcc.KeysHandler(),
 			cryptoParams:         mcc.cryptoParams,
 		}
 	}

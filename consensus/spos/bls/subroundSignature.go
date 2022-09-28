@@ -73,21 +73,16 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 		return false
 	}
 
-	selfIndex, err := sr.SelfConsensusGroupIndex()
-	if err != nil {
-		log.Debug("doSignatureJob.SelfConsensusGroupIndex: not in consensus group")
-		return false
-	}
-
-	signatureShare, err := sr.SignatureHandler().CreateSignatureShare(sr.GetData(), uint16(selfIndex), sr.Header.GetEpoch())
-	if err != nil {
-		log.Debug("doSignatureJob.CreateSignatureShare", "error", err.Error())
-		return false
-	}
 	isSelfLeader := sr.IsSelfLeaderInCurrentRound()
 
 	if isSelfLeader || sr.IsNodeInConsensusGroup(sr.SelfPubKey()) {
-		signatureShare, err := sr.MultiSigner().CreateSignatureShare(sr.GetData(), nil)
+		selfIndex, err := sr.SelfConsensusGroupIndex()
+		if err != nil {
+			log.Debug("doSignatureJob.SelfConsensusGroupIndex: not in consensus group")
+			return false
+		}
+
+		signatureShare, err := sr.SignatureHandler().CreateSignatureShare(sr.GetData(), uint16(selfIndex), sr.Header.GetEpoch())
 		if err != nil {
 			log.Debug("doSignatureJob.CreateSignatureShare", "error", err.Error())
 			return false
@@ -368,7 +363,19 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
 		}
 
 		managedPrivateKey := sr.GetMessageSigningPrivateKey(pkBytes)
-		signatureShare, err := sr.MultiSigner().CreateAndAddSignatureShareForKey(sr.GetData(), managedPrivateKey, pkBytes)
+		selfIndex, err := sr.ConsensusGroupIndex(pk)
+		if err != nil {
+			log.Warn("doSignatureJobForManagedKeys: index not found", "pk", pkBytes)
+			continue
+		}
+
+		managedPrivateKeyBytes, err := managedPrivateKey.ToByteArray()
+		if err != nil {
+			log.Warn("doSignatureJobForManagedKeys: can not recover the private key bytes", "pk", pkBytes)
+			continue
+		}
+
+		signatureShare, err := sr.SignatureHandler().CreateSignatureShareWithPrivateKey(sr.GetData(), uint16(selfIndex), sr.Header.GetEpoch(), managedPrivateKeyBytes)
 		if err != nil {
 			log.Debug("doSignatureJobForManagedKeys.CreateAndAddSignatureShareForKey", "error", err.Error())
 			return false

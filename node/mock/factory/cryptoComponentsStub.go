@@ -6,6 +6,8 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-crypto"
 	cryptoCommon "github.com/ElrondNetwork/elrond-go/common/crypto"
+	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/vm"
 )
 
@@ -18,7 +20,7 @@ type CryptoComponentsMock struct {
 	PubKeyBytes             []byte
 	BlockSig                crypto.SingleSigner
 	TxSig                   crypto.SingleSigner
-	MultiSigContainer cryptoCommon.MultiSignerContainer
+	MultiSigContainer       cryptoCommon.MultiSignerContainer
 	PeerSignHandler         crypto.PeerSignatureHandler
 	BlKeyGen                crypto.KeyGenerator
 	TxKeyGen                crypto.KeyGenerator
@@ -150,7 +152,7 @@ func (ccm *CryptoComponentsMock) Clone() interface{} {
 		PubKeyBytes:             ccm.PubKeyBytes,
 		BlockSig:                ccm.BlockSig,
 		TxSig:                   ccm.TxSig,
-		MultiSigContainer:                ccm.MultiSigContainer,
+		MultiSigContainer:       ccm.MultiSigContainer,
 		PeerSignHandler:         ccm.PeerSignHandler,
 		BlKeyGen:                ccm.BlKeyGen,
 		TxKeyGen:                ccm.TxKeyGen,

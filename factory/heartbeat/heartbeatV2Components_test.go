@@ -48,6 +48,7 @@ func createMockHeartbeatV2ComponentsFactoryArgs() heartbeatComp.ArgHeartbeatV2Co
 				HideInactiveValidatorIntervalInSec:               60,
 				HardforkTimeBetweenSendsInSec:                    5,
 				TimeBetweenConnectionsMetricsUpdateInSec:         10,
+				PeerAuthenticationTimeBetweenChecksInSec:         6,
 				HeartbeatPool: config.CacheConfig{
 					Type:     "LRU",
 					Capacity: 1000,
@@ -64,6 +65,7 @@ func createMockHeartbeatV2ComponentsFactoryArgs() heartbeatComp.ArgHeartbeatV2Co
 				Identity:        "identity",
 			},
 		},
+		BaseVersion:        "test-base",
 		AppVersion:         "test",
 		BoostrapComponents: bootstrapC,
 		CoreComponents:     coreC,

@@ -122,6 +122,15 @@ func (sh *signatureHolder) Reset(pubKeys []string) error {
 
 // CreateSignatureShare returns a signature over a message
 func (sh *signatureHolder) CreateSignatureShare(message []byte, selfIndex uint16, epoch uint32) ([]byte, error) {
+	sh.mutSigningData.RLock()
+	privateKeyBytes := sh.data.privKey
+	sh.mutSigningData.RUnlock()
+
+	return sh.CreateSignatureShareWithPrivateKey(message, selfIndex, epoch, privateKeyBytes)
+}
+
+// CreateSignatureShareWithPrivateKey returns a signature over a message providing the private key bytes
+func (sh *signatureHolder) CreateSignatureShareWithPrivateKey(message []byte, index uint16, epoch uint32, privateKeyBytes []byte) ([]byte, error) {
 	if message == nil {
 		return nil, ErrNilMessage
 	}
@@ -134,12 +143,12 @@ func (sh *signatureHolder) CreateSignatureShare(message []byte, selfIndex uint16
 		return nil, err
 	}
 
-	sigShareBytes, err := multiSigner.CreateSignatureShare(sh.data.privKey, message)
+	sigShareBytes, err := multiSigner.CreateSignatureShare(privateKeyBytes, message)
 	if err != nil {
 		return nil, err
 	}
 
-	sh.data.sigShares[selfIndex] = sigShareBytes
+	sh.data.sigShares[index] = sigShareBytes
 
 	return sigShareBytes, nil
 }

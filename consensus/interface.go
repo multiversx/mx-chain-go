@@ -153,6 +153,7 @@ type ScheduledProcessor interface {
 type SignatureHandler interface {
 	Reset(pubKeys []string) error
 	CreateSignatureShare(msg []byte, index uint16, epoch uint32) ([]byte, error)
+	CreateSignatureShareWithPrivateKey(message []byte, index uint16, epoch uint32, privateKeyBytes []byte) ([]byte, error)
 	StoreSignatureShare(index uint16, sig []byte) error
 	SignatureShare(index uint16) ([]byte, error)
 	VerifySignatureShare(index uint16, sig []byte, msg []byte, epoch uint32) error

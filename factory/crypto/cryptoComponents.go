@@ -24,7 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/keysManagement"
-	p2pCrypto "github.com/ElrondNetwork/elrond-go/p2p/crypto"
+	"github.com/ElrondNetwork/elrond-go/p2p"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -43,8 +43,8 @@ type CryptoComponentsFactoryArgs struct {
 	Config                               config.Config
 	EnableEpochs                         config.EnableEpochs
 	PrefsConfig                          config.Preferences
-	CoreComponentsHolder                 CoreComponentsHolder
-	KeyLoader                            KeyLoaderHandler
+	CoreComponentsHolder                 factory.CoreComponentsHolder
+	KeyLoader                            factory.KeyLoaderHandler
 	ActivateBLSPubKeyMessageVerification bool
 	IsInImportMode                       bool
 	ImportModeNoSigCheck                 bool
@@ -58,7 +58,7 @@ type cryptoComponentsFactory struct {
 	config                               config.Config
 	enableEpochs                         config.EnableEpochs
 	prefsConfig                          config.Preferences
-	coreComponentsHolder                 CoreComponentsHolder
+	coreComponentsHolder                 factory.CoreComponentsHolder
 	activateBLSPubKeyMessageVerification bool
 	keyLoader                            factory.KeyLoaderHandler
 	isInImportMode                       bool
@@ -84,8 +84,8 @@ type cryptoComponents struct {
 	blockSignKeyGen      crypto.KeyGenerator
 	txSignKeyGen         crypto.KeyGenerator
 	messageSignVerifier  vm.MessageSignVerifier
-	managedPeersHolder  heartbeat.ManagedPeersHolder
-	keysHandler         consensus.KeysHandler
+	managedPeersHolder   heartbeat.ManagedPeersHolder
+	keysHandler          consensus.KeysHandler
 	cryptoParams
 }
 
@@ -180,7 +180,7 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 	isMainMachine := redundancyLevel == mainMachineRedundancyLevel
 	argsManagedPeersHolder := keysManagement.ArgsManagedPeersHolder{
 		KeyGenerator:                     blockSignKeyGen,
-		P2PIdentityGenerator:             p2pCrypto.NewIdentityGenerator(),
+		P2PIdentityGenerator:             p2p.NewRandomP2PIdentityGenerator(),
 		IsMainMachine:                    isMainMachine,
 		MaxRoundsWithoutReceivedMessages: redundancyLevel,
 		PrefsConfig:                      ccf.prefsConfig,
@@ -200,8 +200,8 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 		blockSignKeyGen:      blockSignKeyGen,
 		txSignKeyGen:         txSignKeyGen,
 		messageSignVerifier:  messageSignVerifier,
-		managedPeersHolder:  managedPeersHolder,
-		keysHandler:         keysManagement.NewKeysHandler(),
+		managedPeersHolder:   managedPeersHolder,
+		keysHandler:          keysManagement.NewKeysHandler(),
 		cryptoParams:         *cp,
 	}, nil
 }

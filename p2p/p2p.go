@@ -3,6 +3,7 @@ package p2p
 import (
 	p2p "github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/ElrondNetwork/elrond-go-p2p/libp2p"
+	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/crypto"
 	"github.com/ElrondNetwork/elrond-go-p2p/message"
 	"github.com/ElrondNetwork/elrond-go-p2p/peersHolder"
 	"github.com/ElrondNetwork/elrond-go-p2p/rating"
@@ -36,4 +37,9 @@ func NewPeersRatingHandler(args ArgPeersRatingHandler) (p2p.PeersRatingHandler, 
 // NewPeersHolder returns a new instance of peersHolder
 func NewPeersHolder(preferredConnectionAddresses []string) (p2p.PreferredPeersHolderHandler, error) {
 	return peersHolder.NewPeersHolder(preferredConnectionAddresses)
+}
+
+// NewRandomP2PIdentityGenerator creates a new identity generator
+func NewRandomP2PIdentityGenerator() RandomP2PIdentityGenerator {
+	return crypto.NewIdentityGenerator()
 }

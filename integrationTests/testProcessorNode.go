@@ -3080,12 +3080,13 @@ func GetDefaultCryptoComponents() *mock.CryptoComponentsStub {
 		PubKeyBytes:             []byte("pubKey"),
 		BlockSig:                &mock.SignerMock{},
 		TxSig:                   &mock.SignerMock{},
-		MultiSigContainer: cryptoMocks.NewMultiSignerContainerMock(                TestMultiSig),
+		MultiSigContainer:       cryptoMocks.NewMultiSignerContainerMock(TestMultiSig),
 		PeerSignHandler:         &mock.PeerSignatureHandler{},
 		BlKeyGen:                &mock.KeyGenMock{},
 		TxKeyGen:                &mock.KeyGenMock{},
 		MsgSigVerifier:          &testscommon.MessageSignVerifierMock{},
 		ManagedPeersHolderField: &testscommon.ManagedPeersHolderStub{},
+		KeysHandlerField:        &testscommon.KeysHandlerStub{},
 	}
 }
 

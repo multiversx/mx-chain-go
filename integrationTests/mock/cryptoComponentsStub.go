@@ -6,6 +6,8 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-crypto"
 	cryptoCommon "github.com/ElrondNetwork/elrond-go/common/crypto"
+	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/vm"
 )
 
@@ -18,7 +20,7 @@ type CryptoComponentsStub struct {
 	PubKeyBytes             []byte
 	BlockSig                crypto.SingleSigner
 	TxSig                   crypto.SingleSigner
-	MultiSigContainer cryptoCommon.MultiSignerContainer
+	MultiSigContainer       cryptoCommon.MultiSignerContainer
 	PeerSignHandler         crypto.PeerSignatureHandler
 	BlKeyGen                crypto.KeyGenerator
 	TxKeyGen                crypto.KeyGenerator
@@ -150,7 +152,7 @@ func (ccs *CryptoComponentsStub) Clone() interface{} {
 		PubKeyBytes:             ccs.PubKeyBytes,
 		BlockSig:                ccs.BlockSig,
 		TxSig:                   ccs.TxSig,
-		MultiSigContainer:                ccs.MultiSigContainer,
+		MultiSigContainer:       ccs.MultiSigContainer,
 		PeerSignHandler:         ccs.PeerSignHandler,
 		BlKeyGen:                ccs.BlKeyGen,
 		TxKeyGen:                ccs.TxKeyGen,

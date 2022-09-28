@@ -95,3 +95,9 @@ type PeersRatingHandler interface {
 	GetTopRatedPeersFromList(peers []core.PeerID, minNumOfPeersExpected int) []core.PeerID
 	IsInterfaceNil() bool
 }
+
+// RandomP2PIdentityGenerator defines an entity that is able to generate a random p2p identity
+type RandomP2PIdentityGenerator interface {
+	CreateRandomP2PIdentity() ([]byte, core.PeerID, error)
+	IsInterfaceNil() bool
+}
