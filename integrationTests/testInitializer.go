@@ -830,7 +830,7 @@ func CreateRandomAddress() []byte {
 	return CreateRandomBytes(32)
 }
 
-// MintAddress will create an account (if it does not exists), update the balance with required value,
+// MintAddress will create an account (if it does not exist), update the balance with required value,
 // save the account and commit the trie.
 func MintAddress(accnts state.AccountsAdapter, addressBytes []byte, value *big.Int) {
 	accnt, _ := accnts.LoadAccount(addressBytes)
