@@ -30,6 +30,7 @@ const uniqueMiniblockSuffix = "mb"
 const uniqueHeadersSuffix = "hdr"
 const uniqueMetaHeadersSuffix = "mhdr"
 const uniqueTrieNodesSuffix = "tn"
+const uniqueValidatorInfoSuffix = "vi"
 
 // TODO move the keys definitions that are whitelisted in core and use them in InterceptedData implementations, Identifiers() function
 
@@ -552,6 +553,91 @@ func (rrh *resolverRequestHandler) RequestMetaHeaderByNonce(nonce uint64) {
 	rrh.addRequestedItems([][]byte{key}, uniqueMetaHeadersSuffix)
 }
 
+// RequestValidatorInfo asks for the validator info associated with a specific hash from connected peers
+func (rrh *resolverRequestHandler) RequestValidatorInfo(hash []byte) {
+	if !rrh.testIfRequestIsNeeded(hash, uniqueValidatorInfoSuffix) {
+		return
+	}
+
+	log.Debug("requesting validator info messages from network",
+		"topic", common.ValidatorInfoTopic,
+		"hash", hash,
+		"epoch", rrh.epoch,
+	)
+
+	resolver, err := rrh.resolversFinder.MetaChainResolver(common.ValidatorInfoTopic)
+	if err != nil {
+		log.Error("RequestValidatorInfo.MetaChainResolver",
+			"error", err.Error(),
+			"topic", common.ValidatorInfoTopic,
+			"hash", hash,
+			"epoch", rrh.epoch,
+		)
+		return
+	}
+
+	rrh.whiteList.Add([][]byte{hash})
+
+	err = resolver.RequestDataFromHash(hash, rrh.epoch)
+	if err != nil {
+		log.Debug("RequestValidatorInfo.RequestDataFromHash",
+			"error", err.Error(),
+			"topic", common.ValidatorInfoTopic,
+			"hash", hash,
+			"epoch", rrh.epoch,
+		)
+		return
+	}
+
+	rrh.addRequestedItems([][]byte{hash}, uniqueValidatorInfoSuffix)
+}
+
+// RequestValidatorsInfo asks for the validators` info associated with the specified hashes from connected peers
+func (rrh *resolverRequestHandler) RequestValidatorsInfo(hashes [][]byte) {
+	unrequestedHashes := rrh.getUnrequestedHashes(hashes, uniqueValidatorInfoSuffix)
+	if len(unrequestedHashes) == 0 {
+		return
+	}
+
+	log.Debug("requesting validator info messages from network",
+		"topic", common.ValidatorInfoTopic,
+		"num hashes", len(unrequestedHashes),
+		"epoch", rrh.epoch,
+	)
+
+	resolver, err := rrh.resolversFinder.MetaChainResolver(common.ValidatorInfoTopic)
+	if err != nil {
+		log.Error("RequestValidatorInfo.MetaChainResolver",
+			"error", err.Error(),
+			"topic", common.ValidatorInfoTopic,
+			"num hashes", len(unrequestedHashes),
+			"epoch", rrh.epoch,
+		)
+		return
+	}
+
+	validatorInfoResolver, ok := resolver.(HashSliceResolver)
+	if !ok {
+		log.Warn("wrong assertion type when creating a validator info resolver")
+		return
+	}
+
+	rrh.whiteList.Add(unrequestedHashes)
+
+	err = validatorInfoResolver.RequestDataFromHashArray(unrequestedHashes, rrh.epoch)
+	if err != nil {
+		log.Debug("RequestValidatorInfo.RequestDataFromHash",
+			"error", err.Error(),
+			"topic", common.ValidatorInfoTopic,
+			"num hashes", len(unrequestedHashes),
+			"epoch", rrh.epoch,
+		)
+		return
+	}
+
+	rrh.addRequestedItems(unrequestedHashes, uniqueValidatorInfoSuffix)
+}
+
 func (rrh *resolverRequestHandler) testIfRequestIsNeeded(key []byte, suffix string) bool {
 	rrh.sweepIfNeeded()
 
@@ -734,50 +820,13 @@ func (rrh *resolverRequestHandler) GetNumPeersToQuery(key string) (int, int, err
 	return intra, cross, nil
 }
 
-// RequestPeerAuthenticationsChunk asks for a chunk of peer authentication messages from connected peers
-func (rrh *resolverRequestHandler) RequestPeerAuthenticationsChunk(destShardID uint32, chunkIndex uint32) {
-	log.Debug("requesting peer authentication messages from network",
-		"topic", common.PeerAuthenticationTopic,
-		"shard", destShardID,
-		"chunk", chunkIndex,
-		"epoch", rrh.epoch,
-	)
-
-	resolver, err := rrh.resolversFinder.MetaChainResolver(common.PeerAuthenticationTopic)
-	if err != nil {
-		log.Error("RequestPeerAuthenticationsChunk.MetaChainResolver",
-			"error", err.Error(),
-			"topic", common.PeerAuthenticationTopic,
-			"shard", destShardID,
-			"chunk", chunkIndex,
-			"epoch", rrh.epoch,
-		)
-		return
-	}
-
-	peerAuthResolver, ok := resolver.(dataRetriever.PeerAuthenticationResolver)
-	if !ok {
-		log.Warn("wrong assertion type when creating peer authentication resolver")
-		return
-	}
-
-	err = peerAuthResolver.RequestDataFromChunk(chunkIndex, rrh.epoch)
-	if err != nil {
-		log.Debug("RequestPeerAuthenticationsChunk.RequestDataFromChunk",
-			"error", err.Error(),
-			"topic", common.PeerAuthenticationTopic,
-			"shard", destShardID,
-			"chunk", chunkIndex,
-			"epoch", rrh.epoch,
-		)
-	}
-}
-
 // RequestPeerAuthenticationsByHashes asks for peer authentication messages from specific peers hashes
 func (rrh *resolverRequestHandler) RequestPeerAuthenticationsByHashes(destShardID uint32, hashes [][]byte) {
 	log.Debug("requesting peer authentication messages from network",
 		"topic", common.PeerAuthenticationTopic,
 		"shard", destShardID,
+		"num hashes", len(hashes),
+		"epoch", rrh.epoch,
 	)
 
 	resolver, err := rrh.resolversFinder.MetaChainResolver(common.PeerAuthenticationTopic)
@@ -786,6 +835,7 @@ func (rrh *resolverRequestHandler) RequestPeerAuthenticationsByHashes(destShardI
 			"error", err.Error(),
 			"topic", common.PeerAuthenticationTopic,
 			"shard", destShardID,
+			"epoch", rrh.epoch,
 		)
 		return
 	}
@@ -802,6 +852,7 @@ func (rrh *resolverRequestHandler) RequestPeerAuthenticationsByHashes(destShardI
 			"error", err.Error(),
 			"topic", common.PeerAuthenticationTopic,
 			"shard", destShardID,
+			"epoch", rrh.epoch,
 		)
 	}
 }

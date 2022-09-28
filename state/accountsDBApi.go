@@ -75,6 +75,16 @@ func (accountsDB *accountsDBApi) doRecreateTrieWithBlockInfo(newBlockInfo common
 	return newBlockInfo, nil
 }
 
+// SetSyncer returns nil for this implementation
+func (accountsDB *accountsDBApi) SetSyncer(_ AccountsDBSyncer) error {
+	return nil
+}
+
+// StartSnapshotIfNeeded  returns nil for this implementation
+func (accountsDB *accountsDBApi) StartSnapshotIfNeeded() error {
+	return nil
+}
+
 // GetExistingAccount will call the inner accountsAdapter method after trying to recreate the trie
 func (accountsDB *accountsDBApi) GetExistingAccount(address []byte) (vmcommon.AccountHandler, error) {
 	account, _, err := accountsDB.GetAccountWithBlockInfo(address, holders.NewRootHashHolderAsEmpty())

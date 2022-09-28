@@ -12,25 +12,27 @@ import (
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
-	mclsig "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/singlesig"
+	"github.com/ElrondNetwork/elrond-go/common/enablers"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
-	"github.com/ElrondNetwork/elrond-go/factory"
+	heartbeatComp "github.com/ElrondNetwork/elrond-go/factory/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/factory/peerSignatureHandler"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	p2pConfig "github.com/ElrondNetwork/elrond-go/p2p/config"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/networksharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
+	vic "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
 )
 
@@ -60,7 +62,7 @@ type TestP2PNode struct {
 func NewTestP2PNode(
 	maxShards uint32,
 	nodeShardId uint32,
-	p2pConfig config.P2PConfig,
+	p2pConfig p2pConfig.P2PConfig,
 	coordinator nodesCoordinator.NodesCoordinator,
 	keys TestKeyPair,
 ) *TestP2PNode {
@@ -78,9 +80,9 @@ func NewTestP2PNode(
 
 	tP2pNode.ShardCoordinator = shardCoordinator
 
-	pidPk, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
-	pkShardId, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
-	pidShardId, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
+	pidPk, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000})
+	pkShardId, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000})
+	pidShardId, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000})
 	arg := networksharding.ArgPeerShardMapper{
 		PeerIdPkCache:         pidPk,
 		FallbackPkShardCache:  pkShardId,
@@ -114,7 +116,7 @@ func (tP2pNode *TestP2PNode) initStorage() {
 }
 
 func (tP2pNode *TestP2PNode) initCrypto() {
-	tP2pNode.SingleSigner = &mclsig.BlsSingleSigner{}
+	tP2pNode.SingleSigner = TestSingleBlsSigner
 	suite := mcl.NewSuiteBLS12()
 	tP2pNode.KeyGen = signing.NewKeyGenerator(suite)
 }
@@ -156,6 +158,10 @@ func (tP2pNode *TestP2PNode) initNode() {
 	coreComponents.InternalMarshalizerField = TestMarshalizer
 	coreComponents.HasherField = TestHasher
 	coreComponents.ValidatorPubKeyConverterField = TestValidatorPubkeyConverter
+	cfg := config.EnableEpochs{
+		HeartbeatDisableEpoch: UnreachableEpoch,
+	}
+	coreComponents.EnableEpochsHandlerField, _ = enablers.NewEnableEpochsHandler(cfg, coreComponents.EpochNotifierField)
 
 	cryptoComponents := GetDefaultCryptoComponents()
 	cryptoComponents.BlKeyGen = tP2pNode.KeyGen
@@ -210,23 +216,22 @@ func (tP2pNode *TestP2PNode) initNode() {
 		HideInactiveValidatorIntervalInSec:  600,
 	}
 
-	hbCompArgs := factory.HeartbeatComponentsFactoryArgs{
+	hbCompArgs := heartbeatComp.HeartbeatComponentsFactoryArgs{
 		Config: config.Config{
 			Heartbeat: hbConfig,
 		},
-		HeartbeatDisableEpoch: 10,
-		Prefs:                 config.Preferences{},
-		AppVersion:            "test",
-		GenesisTime:           time.Time{},
-		RedundancyHandler:     redundancyHandler,
-		CoreComponents:        coreComponents,
-		DataComponents:        dataComponents,
-		NetworkComponents:     networkComponents,
-		CryptoComponents:      cryptoComponents,
-		ProcessComponents:     processComponents,
+		Prefs:             config.Preferences{},
+		AppVersion:        "test",
+		GenesisTime:       time.Time{},
+		RedundancyHandler: redundancyHandler,
+		CoreComponents:    coreComponents,
+		DataComponents:    dataComponents,
+		NetworkComponents: networkComponents,
+		CryptoComponents:  cryptoComponents,
+		ProcessComponents: processComponents,
 	}
-	heartbeatComponentsFactory, _ := factory.NewHeartbeatComponentsFactory(hbCompArgs)
-	managedHBComponents, err := factory.NewManagedHeartbeatComponents(heartbeatComponentsFactory)
+	heartbeatComponentsFactory, _ := heartbeatComp.NewHeartbeatComponentsFactory(hbCompArgs)
+	managedHBComponents, err := heartbeatComp.NewManagedHeartbeatComponents(heartbeatComponentsFactory)
 	log.LogIfError(err)
 
 	err = managedHBComponents.Create()
@@ -317,7 +322,7 @@ func CreateNodesWithTestP2PNodes(
 	shardConsensusGroupSize int,
 	metaConsensusGroupSize int,
 	numObserversOnShard int,
-	p2pConfig config.P2PConfig,
+	p2pConfig p2pConfig.P2PConfig,
 ) map[uint32][]*TestP2PNode {
 
 	cp := CreateCryptoParams(nodesPerShard, numMetaNodes, uint32(numShards))
@@ -325,29 +330,30 @@ func CreateNodesWithTestP2PNodes(
 	validatorsMap := GenValidatorsFromPubKeys(pubKeys, uint32(numShards))
 	validatorsForNodesCoordinator, _ := nodesCoordinator.NodesInfoToValidators(validatorsMap)
 	nodesMap := make(map[uint32][]*TestP2PNode)
-	cacherCfg := storageUnit.CacheConfig{Capacity: 10000, Type: storageUnit.LRUCache, Shards: 1}
-	cache, _ := storageUnit.NewCache(cacherCfg)
+	cacherCfg := storageunit.CacheConfig{Capacity: 10000, Type: storageunit.LRUCache, Shards: 1}
+	cache, _ := storageunit.NewCache(cacherCfg)
 	for shardId, validatorList := range validatorsMap {
 		argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-			ShardConsensusGroupSize:    shardConsensusGroupSize,
-			MetaConsensusGroupSize:     metaConsensusGroupSize,
-			Marshalizer:                TestMarshalizer,
-			Hasher:                     TestHasher,
-			ShardIDAsObserver:          shardId,
-			NbShards:                   uint32(numShards),
-			EligibleNodes:              validatorsForNodesCoordinator,
-			SelfPublicKey:              []byte(strconv.Itoa(int(shardId))),
-			ConsensusGroupCache:        cache,
-			Shuffler:                   &shardingMocks.NodeShufflerMock{},
-			BootStorer:                 CreateMemUnit(),
-			WaitingNodes:               make(map[uint32][]nodesCoordinator.Validator),
-			Epoch:                      0,
-			EpochStartNotifier:         notifier.NewEpochStartSubscriptionHandler(),
-			ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
-			WaitingListFixEnabledEpoch: 0,
-			ChanStopNode:               endProcess.GetDummyEndProcessChannel(),
-			NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
-			IsFullArchive:              false,
+			ShardConsensusGroupSize: shardConsensusGroupSize,
+			MetaConsensusGroupSize:  metaConsensusGroupSize,
+			Marshalizer:             TestMarshalizer,
+			Hasher:                  TestHasher,
+			ShardIDAsObserver:       shardId,
+			NbShards:                uint32(numShards),
+			EligibleNodes:           validatorsForNodesCoordinator,
+			SelfPublicKey:           []byte(strconv.Itoa(int(shardId))),
+			ConsensusGroupCache:     cache,
+			Shuffler:                &shardingMocks.NodeShufflerMock{},
+			BootStorer:              CreateMemUnit(),
+			WaitingNodes:            make(map[uint32][]nodesCoordinator.Validator),
+			Epoch:                   0,
+			EpochStartNotifier:      notifier.NewEpochStartSubscriptionHandler(),
+			ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
+			ChanStopNode:            endProcess.GetDummyEndProcessChannel(),
+			NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
+			IsFullArchive:           false,
+			EnableEpochsHandler:     &testscommon.EnableEpochsHandlerStub{},
+			ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 		}
 		nodesCoord, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 		log.LogIfError(err)
@@ -374,25 +380,26 @@ func CreateNodesWithTestP2PNodes(
 			}
 
 			argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-				ShardConsensusGroupSize:    shardConsensusGroupSize,
-				MetaConsensusGroupSize:     metaConsensusGroupSize,
-				Marshalizer:                TestMarshalizer,
-				Hasher:                     TestHasher,
-				ShardIDAsObserver:          shardId,
-				NbShards:                   uint32(numShards),
-				EligibleNodes:              validatorsForNodesCoordinator,
-				SelfPublicKey:              []byte(strconv.Itoa(int(shardId))),
-				ConsensusGroupCache:        cache,
-				Shuffler:                   &shardingMocks.NodeShufflerMock{},
-				BootStorer:                 CreateMemUnit(),
-				WaitingNodes:               make(map[uint32][]nodesCoordinator.Validator),
-				Epoch:                      0,
-				EpochStartNotifier:         notifier.NewEpochStartSubscriptionHandler(),
-				ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
-				WaitingListFixEnabledEpoch: 0,
-				ChanStopNode:               endProcess.GetDummyEndProcessChannel(),
-				NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
-				IsFullArchive:              false,
+				ShardConsensusGroupSize: shardConsensusGroupSize,
+				MetaConsensusGroupSize:  metaConsensusGroupSize,
+				Marshalizer:             TestMarshalizer,
+				Hasher:                  TestHasher,
+				ShardIDAsObserver:       shardId,
+				NbShards:                uint32(numShards),
+				EligibleNodes:           validatorsForNodesCoordinator,
+				SelfPublicKey:           []byte(strconv.Itoa(int(shardId))),
+				ConsensusGroupCache:     cache,
+				Shuffler:                &shardingMocks.NodeShufflerMock{},
+				BootStorer:              CreateMemUnit(),
+				WaitingNodes:            make(map[uint32][]nodesCoordinator.Validator),
+				Epoch:                   0,
+				EpochStartNotifier:      notifier.NewEpochStartSubscriptionHandler(),
+				ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
+				ChanStopNode:            endProcess.GetDummyEndProcessChannel(),
+				NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
+				IsFullArchive:           false,
+				EnableEpochsHandler:     &testscommon.EnableEpochsHandlerStub{},
+				ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 			}
 			nodesCoord, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 			log.LogIfError(err)

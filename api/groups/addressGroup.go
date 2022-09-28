@@ -20,6 +20,7 @@ const (
 	getAccountPath            = "/:address"
 	getBalancePath            = "/:address/balance"
 	getUsernamePath           = "/:address/username"
+	getCodeHashPath           = "/:address/code-hash"
 	getKeysPath               = "/:address/keys"
 	getKeyPath                = "/:address/key/:key"
 	getESDTTokensPath         = "/:address/esdt"
@@ -40,6 +41,7 @@ const (
 type addressFacadeHandler interface {
 	GetBalance(address string, options api.AccountQueryOptions) (*big.Int, api.BlockInfo, error)
 	GetUsername(address string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
+	GetCodeHash(address string, options api.AccountQueryOptions) ([]byte, api.BlockInfo, error)
 	GetValueForKey(address string, key string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
 	GetAccount(address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error)
 	GetESDTData(address string, key string, nonce uint64, options api.AccountQueryOptions) (*esdt.ESDigitalToken, api.BlockInfo, error)
@@ -102,6 +104,11 @@ func NewAddressGroup(facade addressFacadeHandler) (*addressGroup, error) {
 			Path:    getUsernamePath,
 			Method:  http.MethodGet,
 			Handler: ag.getUsername,
+		},
+		{
+			Path:    getCodeHashPath,
+			Method:  http.MethodGet,
+			Handler: ag.getCodeHash,
 		},
 		{
 			Path:    getKeyPath,
@@ -217,6 +224,29 @@ func (ag *addressGroup) getUsername(c *gin.Context) {
 	}
 
 	shared.RespondWithSuccess(c, gin.H{"username": userName, "blockInfo": blockInfo})
+}
+
+// getCodeHash returns the code hash for the address parameter
+func (ag *addressGroup) getCodeHash(c *gin.Context) {
+	addr := c.Param("address")
+	if addr == "" {
+		shared.RespondWithValidationError(c, errors.ErrGetCodeHash, errors.ErrEmptyAddress)
+		return
+	}
+
+	options, err := parseAccountQueryOptions(c)
+	if err != nil {
+		shared.RespondWithValidationError(c, errors.ErrGetCodeHash, errors.ErrBadUrlParams)
+		return
+	}
+
+	codeHash, blockInfo, err := ag.getFacade().GetCodeHash(addr, options)
+	if err != nil {
+		shared.RespondWithInternalError(c, errors.ErrGetCodeHash, err)
+		return
+	}
+
+	shared.RespondWithSuccess(c, gin.H{"codeHash": codeHash, "blockInfo": blockInfo})
 }
 
 // getValueForKey returns the value for the given address and key

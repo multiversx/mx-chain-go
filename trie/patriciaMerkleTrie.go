@@ -451,6 +451,7 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(
 	leavesChannel chan core.KeyValueHolder,
 	ctx context.Context,
 	rootHash []byte,
+	keyBuilder common.KeyBuilder,
 ) error {
 	tr.mutOperation.RLock()
 	newTrie, err := tr.recreate(rootHash, tr.trieStorage)
@@ -472,7 +473,7 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(
 	go func() {
 		err = newTrie.root.getAllLeavesOnChannel(
 			leavesChannel,
-			[]byte{},
+			keyBuilder,
 			tr.trieStorage,
 			tr.marshalizer,
 			tr.chanClose,
@@ -639,29 +640,6 @@ func (tr *patriciaMerkleTrie) Close() error {
 	}
 
 	return nil
-}
-
-// MarkStorerAsSyncedAndActive marks the storage as synced and active
-func (tr *patriciaMerkleTrie) MarkStorerAsSyncedAndActive() {
-	epoch, err := tr.trieStorage.GetLatestStorageEpoch()
-	if err != nil {
-		log.Error("getLatestStorageEpoch error", "error", err)
-	}
-
-	err = tr.trieStorage.Put([]byte(common.TrieSyncedKey), []byte(common.TrieSyncedVal))
-	if err != nil {
-		log.Error("error while putting trieSynced value into main storer after sync", "error", err)
-	}
-
-	lastEpoch := epoch - 1
-	if epoch == 0 {
-		lastEpoch = 0
-	}
-
-	err = tr.trieStorage.PutInEpochWithoutCache([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), lastEpoch)
-	if err != nil {
-		log.Error("error while putting activeDB value into main storer after sync", "error", err)
-	}
 }
 
 func isChannelClosed(ch chan struct{}) bool {

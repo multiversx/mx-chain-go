@@ -107,7 +107,7 @@ func TestHeartbeatV2_PeerAuthenticationMessageExpiration(t *testing.T) {
 	for i := 1; i < len(nodes)-1; i++ {
 		_ = nodes[i].Sender.Close()
 	}
-	time.Sleep(time.Second)
+	time.Sleep(time.Second * 2)
 	nodes[0].DataPool.PeerAuthentications().Clear()
 
 	log.Info("first node requests the peer authentication messages from other peer(s)")

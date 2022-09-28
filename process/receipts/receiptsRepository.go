@@ -39,7 +39,10 @@ func NewReceiptsRepository(args ArgsNewReceiptsRepository) (*receiptsRepository,
 		return nil, fmt.Errorf("%w: %v", errCannotCreateReceiptsRepository, err)
 	}
 
-	storer := args.Store.GetStorer(dataRetriever.ReceiptsUnit)
+	storer, err := args.Store.GetStorer(dataRetriever.ReceiptsUnit)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", errCannotCreateReceiptsRepository, err)
+	}
 
 	return &receiptsRepository{
 		marshaller:        args.Marshaller,

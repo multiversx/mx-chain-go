@@ -17,7 +17,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	triesFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
@@ -82,9 +81,9 @@ func createDataPoolsForShard() dataRetriever.PoolsHolder {
 }
 
 func createStoreForShard() dataRetriever.StorageService {
-	return &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &storageStubs.StorerStub{}
+	return &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return &storageStubs.StorerStub{}, nil
 		},
 	}
 }
@@ -267,28 +266,6 @@ func TestNewShardResolversContainerFactory_InvalidNumFullHistoryPeersShouldErr(t
 	assert.True(t, errors.Is(err, dataRetriever.ErrInvalidValue))
 }
 
-func TestNewShardResolversContainerFactory_NilNodesCoordinatorShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getArgumentsShard()
-	args.NodesCoordinator = nil
-	rcf, err := resolverscontainer.NewShardResolversContainerFactory(args)
-
-	assert.Nil(t, rcf)
-	assert.Equal(t, dataRetriever.ErrNilNodesCoordinator, err)
-}
-
-func TestNewShardResolversContainerFactory_InvalidMaxNumOfPeerAuthenticationInResponseShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getArgumentsShard()
-	args.MaxNumOfPeerAuthenticationInResponse = 0
-	rcf, err := resolverscontainer.NewShardResolversContainerFactory(args)
-
-	assert.Nil(t, rcf)
-	assert.True(t, strings.Contains(err.Error(), dataRetriever.ErrInvalidValue.Error()))
-}
-
 func TestNewShardResolversContainerFactory_NilInputAntifloodHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -438,8 +415,9 @@ func TestShardResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	numResolverMetaBlockHeaders := 1
 	numResolverTrieNodes := 1
 	numResolverPeerAuth := 1
+	numResolverValidatorInfo := 1
 	totalResolvers := numResolverTxs + numResolverHeaders + numResolverMiniBlocks + numResolverMetaBlockHeaders +
-		numResolverSCRs + numResolverRewardTxs + numResolverTrieNodes + numResolverPeerAuth
+		numResolverSCRs + numResolverRewardTxs + numResolverTrieNodes + numResolverPeerAuth + numResolverValidatorInfo
 
 	assert.Equal(t, totalResolvers, container.Len())
 }
@@ -465,9 +443,7 @@ func getArgumentsShard() resolverscontainer.FactoryArgs {
 			NumTotalPeers:       3,
 			NumFullHistoryPeers: 3,
 		},
-		NodesCoordinator:                     &shardingMocks.NodesCoordinatorStub{},
-		MaxNumOfPeerAuthenticationInResponse: 5,
-		PeersRatingHandler:                   &p2pmocks.PeersRatingHandlerStub{},
-		PayloadValidator:                     &testscommon.PeerAuthenticationPayloadValidatorStub{},
+		PeersRatingHandler: &p2pmocks.PeersRatingHandlerStub{},
+		PayloadValidator:   &testscommon.PeerAuthenticationPayloadValidatorStub{},
 	}
 }

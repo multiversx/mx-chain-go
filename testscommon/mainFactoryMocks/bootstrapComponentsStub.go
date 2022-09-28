@@ -4,20 +4,18 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	nodeFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/factory"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 // BootstrapComponentsStub -
 type BootstrapComponentsStub struct {
-	Bootstrapper                factory.EpochStartBootstrapper
-	BootstrapParams             factory.BootstrapParamsHolder
-	NodeRole                    core.NodeType
-	ShCoordinator               sharding.Coordinator
-	HdrVersionHandler           nodeFactory.HeaderVersionHandler
-	VersionedHdrFactory         nodeFactory.VersionedHeaderFactory
-	HdrIntegrityVerifier        nodeFactory.HeaderIntegrityVerifierHandler
-	RoundActivationHandlerField process.RoundActivationHandler
+	Bootstrapper         factory.EpochStartBootstrapper
+	BootstrapParams      factory.BootstrapParamsHolder
+	NodeRole             core.NodeType
+	ShCoordinator        sharding.Coordinator
+	HdrVersionHandler    nodeFactory.HeaderVersionHandler
+	VersionedHdrFactory  nodeFactory.VersionedHeaderFactory
+	HdrIntegrityVerifier nodeFactory.HeaderIntegrityVerifierHandler
 }
 
 // Create -
@@ -61,8 +59,8 @@ func (bcs *BootstrapComponentsStub) HeaderVersionHandler() nodeFactory.HeaderVer
 }
 
 // VersionedHeaderFactory -
-func (bc *BootstrapComponentsStub) VersionedHeaderFactory() nodeFactory.VersionedHeaderFactory {
-	return bc.VersionedHdrFactory
+func (bcs *BootstrapComponentsStub) VersionedHeaderFactory() nodeFactory.VersionedHeaderFactory {
+	return bcs.VersionedHdrFactory
 }
 
 // HeaderIntegrityVerifier -
@@ -70,9 +68,10 @@ func (bcs *BootstrapComponentsStub) HeaderIntegrityVerifier() nodeFactory.Header
 	return bcs.HdrIntegrityVerifier
 }
 
-// RoundActivationHandler -
-func (bcs *BootstrapComponentsStub) RoundActivationHandler() process.RoundActivationHandler {
-	return bcs.RoundActivationHandlerField
+// SetShardCoordinator -
+func (bcs *BootstrapComponentsStub) SetShardCoordinator(shardCoordinator sharding.Coordinator) error {
+	bcs.ShCoordinator = shardCoordinator
+	return nil
 }
 
 // String -

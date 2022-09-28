@@ -14,7 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/testscommon/txcachemocks"
 	"github.com/stretchr/testify/require"
 )
@@ -33,10 +33,10 @@ func TestShardedTxPool_MemoryFootprint(t *testing.T) {
 
 	// Scenarios where source == me
 
-	journals = append(journals, runScenario(t, newScenario(200, 1, core.MegabyteSize, "0"), memoryAssertion{200, 200}, memoryAssertion{0, 1}))
-	journals = append(journals, runScenario(t, newScenario(10, 1000, 20480, "0"), memoryAssertion{190, 205}, memoryAssertion{1, 4}))
+	journals = append(journals, runScenario(t, newScenario(200, 1, core.MegabyteSize, "0"), memoryAssertion{200, 205}, memoryAssertion{0, 1}))
+	journals = append(journals, runScenario(t, newScenario(10, 1000, 20480, "0"), memoryAssertion{190, 215}, memoryAssertion{1, 4}))
 	journals = append(journals, runScenario(t, newScenario(10000, 1, 1024, "0"), memoryAssertion{10, 16}, memoryAssertion{4, 10}))
-	journals = append(journals, runScenario(t, newScenario(1, 60000, 256, "0"), memoryAssertion{30, 32}, memoryAssertion{10, 16}))
+	journals = append(journals, runScenario(t, newScenario(1, 60000, 256, "0"), memoryAssertion{30, 36}, memoryAssertion{10, 16}))
 	journals = append(journals, runScenario(t, newScenario(10, 10000, 100, "0"), memoryAssertion{36, 40}, memoryAssertion{16, 24}))
 	journals = append(journals, runScenario(t, newScenario(100000, 1, 1024, "0"), memoryAssertion{120, 128}, memoryAssertion{56, 60}))
 
@@ -101,7 +101,7 @@ type memoryAssertion struct {
 }
 
 func newPool() dataRetriever.ShardedDataCacherNotifier {
-	config := storageUnit.CacheConfig{
+	config := storageunit.CacheConfig{
 		Capacity:             600000,
 		SizePerSender:        60000,
 		SizeInBytes:          400 * core.MegabyteSize,
@@ -229,7 +229,9 @@ func pprofHeap(scenario *scenario, step string) {
 
 	defer func() {
 		errClose := file.Close()
-		panic(fmt.Sprintf("cannot close file: %s", errClose.Error()))
+		if errClose != nil {
+			panic(fmt.Sprintf("cannot close file: %s", errClose.Error()))
+		}
 	}()
 
 	err = pprof.WriteHeapProfile(file)

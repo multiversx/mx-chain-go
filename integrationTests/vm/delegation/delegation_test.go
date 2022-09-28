@@ -1,3 +1,4 @@
+//go:build !race
 // +build !race
 
 package delegation
@@ -58,6 +59,12 @@ func TestDelegationSystemSCWithValidatorStatisticsAndStakingPhase3p5(t *testing.
 		node.EpochStartTrigger.SetRoundsPerEpoch(roundsPerEpoch)
 	}
 
+	round := uint64(0)
+	nonce := uint64(0)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+	round, nonce = processBlocks(t, round, nonce, roundsPerEpoch, nodesMap)
+
 	defer func() {
 		for _, n := range nodes {
 			n.Close()
@@ -73,11 +80,6 @@ func TestDelegationSystemSCWithValidatorStatisticsAndStakingPhase3p5(t *testing.
 
 	nodeIndexForDelegationOwner := 0
 	delegationAddress := createNewDelegationSystemSC(nodes[nodeIndexForDelegationOwner], nodes)
-
-	round := uint64(0)
-	nonce := uint64(0)
-	round = integrationTests.IncrementAndPrintRound(round)
-	nonce++
 
 	round, nonce = processBlocks(t, round, nonce, 1, nodesMap)
 
@@ -96,7 +98,8 @@ func TestDelegationSystemSCWithValidatorStatisticsAndStakingPhase3p5(t *testing.
 
 	round, nonce = processBlocks(t, round, nonce, nbBlocksToProduce, nodesMap)
 
-	checkRewardsUpdatedInDelegationSC(t, nodes, delegationAddress, epochs)
+	lastEpoch := round / (roundsPerEpoch + 1)
+	checkRewardsUpdatedInDelegationSC(t, nodes, delegationAddress, uint32(lastEpoch))
 
 	balancesBeforeClaimRewards := getNodesBalances(nodes)
 	balanceToConsumeForGas := core.SafeMul(integrationTests.MinTxGasPrice, core.MinMetaTxExtraGasCost)
@@ -222,7 +225,7 @@ func checkRewardsUpdatedInDelegationSC(t *testing.T, nodes []*integrationTests.T
 	node := getNodeWithShardID(nodes, core.MetachainShardId)
 
 	systemVM, _ := node.VMContainer.Get(factory.SystemVirtualMachine)
-	for i := uint32(1); i <= lastEpoch; i++ {
+	for i := uint32(2); i <= lastEpoch; i++ {
 		vmInput := &vmcommon.ContractCallInput{
 			VMInput: vmcommon.VMInput{
 				CallerAddr:  vm.EndOfEpochAddress,
@@ -238,7 +241,7 @@ func checkRewardsUpdatedInDelegationSC(t *testing.T, nodes []*integrationTests.T
 		assert.Nil(t, err)
 		assert.NotNil(t, vmOutput)
 
-		require.Equal(t, len(vmOutput.ReturnData), 3)
+		require.Equal(t, 3, len(vmOutput.ReturnData))
 		rwdInBigInt := big.NewInt(0).SetBytes(vmOutput.ReturnData[0])
 		assert.True(t, rwdInBigInt.Cmp(big.NewInt(0)) > 0)
 	}

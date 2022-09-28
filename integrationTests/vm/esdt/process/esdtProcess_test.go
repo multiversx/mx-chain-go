@@ -42,11 +42,11 @@ func TestESDTIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 	numMetachainNodes := 2
 
 	enableEpochs := config.EnableEpochs{
-		GlobalMintBurnDisableEpoch:                  10,
-		BuiltInFunctionOnMetaEnableEpoch:            10,
-		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: 10,
-		ScheduledMiniBlocksEnableEpoch:              10,
-		MiniBlockPartialExecutionEnableEpoch:        10,
+		GlobalMintBurnDisableEpoch:                  integrationTests.UnreachableEpoch,
+		BuiltInFunctionOnMetaEnableEpoch:            integrationTests.UnreachableEpoch,
+		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: integrationTests.UnreachableEpoch,
+		ScheduledMiniBlocksEnableEpoch:              integrationTests.UnreachableEpoch,
+		MiniBlockPartialExecutionEnableEpoch:        integrationTests.UnreachableEpoch,
 	}
 	nodes := integrationTests.CreateNodesWithEnableEpochs(
 		numOfShards,
@@ -144,11 +144,11 @@ func TestESDTIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 
 	wipedAcc := esdtCommon.GetUserAccountWithAddress(t, nodes[2].OwnAccount.Address, nodes)
 	tokenKey := []byte(core.ElrondProtectedKeyPrefix + "esdt" + tokenIdentifier)
-	retrievedData, _ := wipedAcc.DataTrieTracker().RetrieveValue(tokenKey)
+	retrievedData, _ := wipedAcc.RetrieveValue(tokenKey)
 	require.Equal(t, 0, len(retrievedData))
 
 	systemSCAcc := esdtCommon.GetUserAccountWithAddress(t, core.SystemAccountAddress, nodes)
-	retrievedData, _ = systemSCAcc.DataTrieTracker().RetrieveValue(tokenKey)
+	retrievedData, _ = systemSCAcc.RetrieveValue(tokenKey)
 	esdtGlobalMetaData := vmcommonBuiltInFunctions.ESDTGlobalMetadataFromBytes(retrievedData)
 	require.True(t, esdtGlobalMetaData.Paused)
 
@@ -156,7 +156,7 @@ func TestESDTIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 	esdtCommon.CheckAddressHasTokens(t, tokenIssuer.OwnAccount.Address, nodes, []byte(tokenIdentifier), 0, finalSupply)
 
 	esdtSCAcc := esdtCommon.GetUserAccountWithAddress(t, vm.ESDTSCAddress, nodes)
-	retrievedData, _ = esdtSCAcc.DataTrieTracker().RetrieveValue([]byte(tokenIdentifier))
+	retrievedData, _ = esdtSCAcc.RetrieveValue([]byte(tokenIdentifier))
 	tokenInSystemSC := &systemSmartContracts.ESDTDataV2{}
 	_ = integrationTests.TestMarshalizer.Unmarshal(tokenInSystemSC, retrievedData)
 	require.Zero(t, tokenInSystemSC.MintedValue.Cmp(big.NewInt(initialSupply+mintValue)))
@@ -174,7 +174,11 @@ func TestESDTCallBurnOnANonBurnableToken(t *testing.T) {
 	numMetachainNodes := 2
 
 	enableEpochs := config.EnableEpochs{
-		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: 10,
+		GlobalMintBurnDisableEpoch:                  integrationTests.UnreachableEpoch,
+		BuiltInFunctionOnMetaEnableEpoch:            integrationTests.UnreachableEpoch,
+		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: integrationTests.UnreachableEpoch,
+		ScheduledMiniBlocksEnableEpoch:              integrationTests.UnreachableEpoch,
+		MiniBlockPartialExecutionEnableEpoch:        integrationTests.UnreachableEpoch,
 	}
 
 	nodes := integrationTests.CreateNodesWithEnableEpochs(
@@ -254,7 +258,7 @@ func TestESDTCallBurnOnANonBurnableToken(t *testing.T) {
 	time.Sleep(time.Second)
 
 	esdtSCAcc := esdtCommon.GetUserAccountWithAddress(t, vm.ESDTSCAddress, nodes)
-	retrievedData, _ := esdtSCAcc.DataTrieTracker().RetrieveValue([]byte(tokenIdentifier))
+	retrievedData, _ := esdtSCAcc.RetrieveValue([]byte(tokenIdentifier))
 	tokenInSystemSC := &systemSmartContracts.ESDTDataV2{}
 	_ = integrationTests.TestMarshalizer.Unmarshal(tokenInSystemSC, retrievedData)
 	require.Equal(t, initialSupply, tokenInSystemSC.MintedValue.Int64())
@@ -329,7 +333,12 @@ func TestESDTIssueAndSelfTransferShouldNotChangeBalance(t *testing.T) {
 }
 
 func TestESDTIssueFromASmartContractSimulated(t *testing.T) {
-	metaNode := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0)
+	metaNode := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+		MaxShards:            1,
+		NodeShardId:          core.MetachainShardId,
+		TxSignPrivKeyShardId: 0,
+	})
+
 	defer func() {
 		metaNode.Close()
 	}()
@@ -2059,8 +2068,8 @@ func TestIssueAndBurnESDT_MaxGasPerBlockExceeded(t *testing.T) {
 	numMetachainNodes := 1
 
 	enableEpochs := config.EnableEpochs{
-		GlobalMintBurnDisableEpoch:       10,
-		BuiltInFunctionOnMetaEnableEpoch: 10,
+		GlobalMintBurnDisableEpoch:       integrationTests.UnreachableEpoch,
+		BuiltInFunctionOnMetaEnableEpoch: integrationTests.UnreachableEpoch,
 	}
 	nodes := integrationTests.CreateNodesWithEnableEpochs(
 		numOfShards,
@@ -2441,11 +2450,17 @@ func TestESDTIssueUnderProtectedKeyWillReturnTokensBack(t *testing.T) {
 	nodesPerShard := 2
 	numMetachainNodes := 2
 
+	enableEpochs := config.EnableEpochs{
+		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: integrationTests.UnreachableEpoch,
+		ScheduledMiniBlocksEnableEpoch:              integrationTests.UnreachableEpoch,
+		MiniBlockPartialExecutionEnableEpoch:        integrationTests.UnreachableEpoch,
+	}
+
 	nodes := integrationTests.CreateNodesWithEnableEpochs(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
-		config.EnableEpochs{},
+		enableEpochs,
 	)
 
 	idxProposers := make([]int, numOfShards+1)

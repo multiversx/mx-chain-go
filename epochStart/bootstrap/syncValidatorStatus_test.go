@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -18,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
+	vic "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -248,6 +250,9 @@ func getSyncValidatorStatusArgs() ArgsNewSyncValidatorStatus {
 			MiniBlocksCalled: func() storage.Cacher {
 				return testscommon.NewCacherStub()
 			},
+			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
+				return &vic.ValidatorInfoCacherStub{}
+			},
 		},
 		Marshalizer:    &mock.MarshalizerMock{},
 		Hasher:         &hashingMocks.HasherMock{},
@@ -295,11 +300,12 @@ func getSyncValidatorStatusArgs() ArgsNewSyncValidatorStatus {
 				return 2
 			},
 		},
-		NodeShuffler:      &shardingMocks.NodeShufflerMock{},
-		PubKey:            []byte("public key"),
-		ShardIdAsObserver: 0,
-		ChanNodeStop:      endProcess.GetDummyEndProcessChannel(),
-		NodeTypeProvider:  &nodeTypeProviderMock.NodeTypeProviderStub{},
-		IsFullArchive:     false,
+		NodeShuffler:        &shardingMocks.NodeShufflerMock{},
+		PubKey:              []byte("public key"),
+		ShardIdAsObserver:   0,
+		ChanNodeStop:        endProcess.GetDummyEndProcessChannel(),
+		NodeTypeProvider:    &nodeTypeProviderMock.NodeTypeProviderStub{},
+		IsFullArchive:       false,
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
 	}
 }

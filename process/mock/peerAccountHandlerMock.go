@@ -274,11 +274,6 @@ func (p *PeerAccountHandlerMock) DataTrie() common.Trie {
 	return nil
 }
 
-// DataTrieTracker -
-func (p *PeerAccountHandlerMock) DataTrieTracker() state.DataTrieTracker {
-	return nil
-}
-
 // GetConsecutiveProposerMisses -
 func (p *PeerAccountHandlerMock) GetConsecutiveProposerMisses() uint32 {
 	if p.GetConsecutiveProposerMissesCalled != nil {

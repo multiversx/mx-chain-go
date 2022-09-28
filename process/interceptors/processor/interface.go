@@ -4,6 +4,7 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go/state"
 )
 
 // InterceptedTransactionHandler defines an intercepted data wrapper over transaction handler that has
@@ -36,4 +37,9 @@ type interceptedPeerAuthenticationMessageHandler interface {
 	Message() interface{}
 	Payload() []byte
 	Pubkey() []byte
+}
+
+type interceptedValidatorInfo interface {
+	Hash() []byte
+	ValidatorInfo() *state.ShardValidatorInfo
 }

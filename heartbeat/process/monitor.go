@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -19,8 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/storage/timecache"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-go/storage/cache"
 )
 
 var log = logger.GetOrCreate("heartbeat/process")
@@ -41,8 +39,7 @@ type ArgHeartbeatMonitor struct {
 	HeartbeatRefreshIntervalInSec      uint32
 	HideInactiveValidatorIntervalInSec uint32
 	AppStatusHandler                   core.AppStatusHandler
-	EpochNotifier                      vmcommon.EpochNotifier
-	HeartbeatDisableEpoch              uint32
+	EnableEpochsHandler                common.EnableEpochsHandler
 }
 
 // Monitor represents the heartbeat component that processes received heartbeat messages
@@ -66,8 +63,7 @@ type Monitor struct {
 	validatorPubkeyConverter           core.PubkeyConverter
 	heartbeatRefreshIntervalInSec      uint32
 	hideInactiveValidatorIntervalInSec uint32
-	flagHeartbeatDisableEpoch          atomic.Flag
-	heartbeatDisableEpoch              uint32
+	enableEpochsHandler                common.EnableEpochsHandler
 	cancelFunc                         context.CancelFunc
 }
 
@@ -109,8 +105,8 @@ func NewMonitor(arg ArgHeartbeatMonitor) (*Monitor, error) {
 	if arg.HideInactiveValidatorIntervalInSec == 0 {
 		return nil, heartbeat.ErrZeroHideInactiveValidatorIntervalInSec
 	}
-	if check.IfNil(arg.EpochNotifier) {
-		return nil, heartbeat.ErrNilEpochNotifier
+	if check.IfNil(arg.EnableEpochsHandler) {
+		return nil, heartbeat.ErrNilEnableEpochsHandler
 	}
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
@@ -131,7 +127,7 @@ func NewMonitor(arg ArgHeartbeatMonitor) (*Monitor, error) {
 		heartbeatRefreshIntervalInSec:      arg.HeartbeatRefreshIntervalInSec,
 		hideInactiveValidatorIntervalInSec: arg.HideInactiveValidatorIntervalInSec,
 		doubleSignerPeers:                  make(map[string]process.TimeCacher),
-		heartbeatDisableEpoch:              arg.HeartbeatDisableEpoch,
+		enableEpochsHandler:                arg.EnableEpochsHandler,
 		cancelFunc:                         cancelFunc,
 	}
 
@@ -149,8 +145,6 @@ func NewMonitor(arg ArgHeartbeatMonitor) (*Monitor, error) {
 	if err != nil {
 		log.Debug("heartbeat can't load public keys from storage", "error", err.Error())
 	}
-
-	arg.EpochNotifier.RegisterNotifyHandler(mon)
 
 	mon.startValidatorProcessing(ctx)
 
@@ -254,7 +248,7 @@ func (m *Monitor) loadHeartbeatsFromStorer(pubKey string) (*heartbeatMessageInfo
 // ProcessReceivedMessage satisfies the p2p.MessageProcessor interface so it can be called
 // by the p2p subsystem each time a new heartbeat message arrives
 func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
-	if m.flagHeartbeatDisableEpoch.IsSet() {
+	if m.enableEpochsHandler.IsHeartbeatDisableFlagEnabled() {
 		return nil
 	}
 
@@ -310,12 +304,6 @@ func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPe
 	go m.computeAllHeartbeatMessages()
 
 	return nil
-}
-
-// EpochConfirmed is called whenever an epoch is confirmed
-func (m *Monitor) EpochConfirmed(epoch uint32, _ uint64) {
-	m.flagHeartbeatDisableEpoch.SetValue(epoch >= m.heartbeatDisableEpoch)
-	log.Debug("heartbeat v1 monitor", "enabled", !m.flagHeartbeatDisableEpoch.IsSet())
 }
 
 func (m *Monitor) addHeartbeatMessageToMap(hb *data.Heartbeat) {
@@ -469,6 +457,9 @@ func (m *Monitor) computeInactiveHeartbeatMessages() {
 // GetHeartbeats returns the heartbeat status
 func (m *Monitor) GetHeartbeats() []data.PubKeyHeartbeat {
 	m.Cleanup()
+	if m.enableEpochsHandler.IsHeartbeatDisableFlagEnabled() {
+		return make([]data.PubKeyHeartbeat, 0)
+	}
 
 	m.mutHeartbeatMessages.Lock()
 	status := make([]data.PubKeyHeartbeat, 0, len(m.heartbeatMessages))
@@ -592,6 +583,11 @@ func (m *Monitor) startValidatorProcessing(ctx context.Context) {
 }
 
 func (m *Monitor) refreshHeartbeatMessageInfo() {
+	if m.enableEpochsHandler.IsHeartbeatDisableFlagEnabled() {
+		m.cancelFunc()
+		return
+	}
+
 	m.computeAllHeartbeatMessages()
 	m.computeInactiveHeartbeatMessages()
 }
@@ -600,7 +596,7 @@ func (m *Monitor) addDoubleSignerPeers(hb *data.Heartbeat) {
 	pubKeyStr := string(hb.Pubkey)
 	tc, ok := m.doubleSignerPeers[pubKeyStr]
 	if !ok {
-		tc = timecache.NewTimeCache(m.maxDurationPeerUnresponsive)
+		tc = cache.NewTimeCache(m.maxDurationPeerUnresponsive)
 		err := tc.Add(string(hb.Pid))
 		if err != nil {
 			log.Warn("cannot add heartbeat in cache", "peer id", hb.Pid, "error", err)

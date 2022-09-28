@@ -121,9 +121,19 @@ func CreateTriesComponentsForShardId(
 		return nil, nil, err
 	}
 
+	mainStorer, err := storageService.GetStorer(dataRetriever.UserAccountsUnit)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	checkpointsStorer, err := storageService.GetStorer(dataRetriever.UserAccountsCheckpointsUnit)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	args := TrieCreateArgs{
-		MainStorer:         storageService.GetStorer(dataRetriever.UserAccountsUnit),
-		CheckpointsStorer:  storageService.GetStorer(dataRetriever.UserAccountsCheckpointsUnit),
+		MainStorer:         mainStorer,
+		CheckpointsStorer:  checkpointsStorer,
 		PruningEnabled:     generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
 		CheckpointsEnabled: generalConfig.StateTriesConfig.CheckpointsEnabled,
 		MaxTrieLevelInMem:  generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
@@ -141,9 +151,19 @@ func CreateTriesComponentsForShardId(
 	trieContainer.Put([]byte(UserAccountTrie), userAccountTrie)
 	trieStorageManagers[UserAccountTrie] = userStorageManager
 
+	mainStorer, err = storageService.GetStorer(dataRetriever.PeerAccountsUnit)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	checkpointsStorer, err = storageService.GetStorer(dataRetriever.PeerAccountsCheckpointsUnit)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	args = TrieCreateArgs{
-		MainStorer:         storageService.GetStorer(dataRetriever.PeerAccountsUnit),
-		CheckpointsStorer:  storageService.GetStorer(dataRetriever.PeerAccountsCheckpointsUnit),
+		MainStorer:         mainStorer,
+		CheckpointsStorer:  checkpointsStorer,
 		PruningEnabled:     generalConfig.StateTriesConfig.PeerStatePruningEnabled,
 		CheckpointsEnabled: generalConfig.StateTriesConfig.CheckpointsEnabled,
 		MaxTrieLevelInMem:  generalConfig.StateTriesConfig.MaxPeerTrieLevelInMemory,
