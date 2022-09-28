@@ -152,8 +152,8 @@ func (dcf *dataComponentsFactory) createBlockChainFromConfig() (data.ChainHandle
 }
 
 func (dcf *dataComponentsFactory) createDataStoreFromConfig() (dataRetriever.StorageService, error) {
-	storageServiceFactory, err := factory.NewStorageServiceFactory(
-		factory.StorageServiceFactoryArgs{
+	storageServiceFactory, err := storageFactory.NewStorageServiceFactory(
+		storageFactory.StorageServiceFactoryArgs{
 			Config:                        dcf.config,
 			PrefsConfig:                   dcf.prefsConfig,
 			ShardCoordinator:              dcf.shardCoordinator,
@@ -161,19 +161,9 @@ func (dcf *dataComponentsFactory) createDataStoreFromConfig() (dataRetriever.Sto
 			EpochStartNotifier:            dcf.epochStartNotifier,
 			NodeTypeProvider:              dcf.core.NodeTypeProvider(),
 			CurrentEpoch:                  dcf.currentEpoch,
+			StorageType:                   storageFactory.ProcessStorageService,
 			CreateTrieEpochRootHashStorer: dcf.createTrieEpochRootHashStorer,
-		},
-	storageServiceFactory, err := storageFactory.NewStorageServiceFactory(
-		&dcf.config,
-		&dcf.prefsConfig,
-		dcf.shardCoordinator,
-		dcf.core.PathHandler(),
-		dcf.epochStartNotifier,
-		dcf.core.NodeTypeProvider(),
-		dcf.currentEpoch,
-		dcf.createTrieEpochRootHashStorer,
-		storageFactory.ProcessStorageService,
-	)
+		})
 	if err != nil {
 		return nil, err
 	}

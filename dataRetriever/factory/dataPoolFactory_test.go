@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-storage/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool/headersCache"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
@@ -62,14 +63,14 @@ func TestNewDataPoolFromConfig_BadConfigShouldErr(t *testing.T) {
 	args.Config.UnsignedTransactionDataPool.Capacity = 0
 	holder, err = NewDataPoolFromConfig(args)
 	require.Nil(t, holder)
-	require.True(t, errors.Is(err, storage.ErrInvalidConfig))
+	require.True(t, errors.Is(err, common.ErrInvalidConfig))
 	require.True(t, strings.Contains(err.Error(), "the cache for the unsigned transactions"))
 
 	args = getGoodArgs()
 	args.Config.RewardTransactionDataPool.Capacity = 0
 	holder, err = NewDataPoolFromConfig(args)
 	require.Nil(t, holder)
-	require.True(t, errors.Is(err, storage.ErrInvalidConfig))
+	require.True(t, errors.Is(err, common.ErrInvalidConfig))
 	require.True(t, strings.Contains(err.Error(), "the cache for the rewards"))
 
 	args = getGoodArgs()
@@ -141,7 +142,7 @@ func TestNewDataPoolFromConfig_BadConfigShouldErr(t *testing.T) {
 	args.Config.ValidatorInfoPool.Capacity = 0
 	holder, err = NewDataPoolFromConfig(args)
 	require.Nil(t, holder)
-	require.True(t, errors.Is(err, storage.ErrInvalidConfig))
+	require.True(t, errors.Is(err, common.ErrInvalidConfig))
 	require.True(t, strings.Contains(err.Error(), "the cache for the validator info results"))
 }
 

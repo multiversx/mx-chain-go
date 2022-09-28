@@ -3878,12 +3878,12 @@ func TestNode_GetEpochStartDataAPI(t *testing.T) {
 			}),
 			node.WithDataComponents(&integrationTestsMock.DataComponentsStub{
 				Store: &storage.ChainStorerStub{
-					GetStorerCalled: func(unitType dataRetriever.UnitType) storagePackage.Storer {
+					GetStorerCalled: func(unitType dataRetriever.UnitType) (storagePackage.Storer, error) {
 						return &storage.StorerStub{
 							GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 								return shardHeaderBytes, nil
 							},
-						}
+						}, nil
 					},
 				},
 			}),
@@ -3917,12 +3917,12 @@ func TestNode_GetEpochStartDataAPI(t *testing.T) {
 			}),
 			node.WithDataComponents(&integrationTestsMock.DataComponentsStub{
 				Store: &storage.ChainStorerStub{
-					GetStorerCalled: func(unitType dataRetriever.UnitType) storagePackage.Storer {
+					GetStorerCalled: func(unitType dataRetriever.UnitType) (storagePackage.Storer, error) {
 						return &storage.StorerStub{
 							GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 								return metaBlockBytes, nil
 							},
-						}
+						}, nil
 					},
 				},
 			}),

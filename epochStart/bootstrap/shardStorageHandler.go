@@ -51,6 +51,7 @@ func NewShardStorageHandler(
 			EpochStartNotifier:            epochStartNotifier,
 			NodeTypeProvider:              nodeTypeProvider,
 			CurrentEpoch:                  currentEpoch,
+			StorageType:                   factory.BootstrapStorageService,
 			CreateTrieEpochRootHashStorer: false,
 		},
 	)

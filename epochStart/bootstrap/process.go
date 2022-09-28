@@ -1081,6 +1081,7 @@ func (e *epochStartBootstrap) createStorageService(
 			EpochStartNotifier:            epochStartNotifier,
 			NodeTypeProvider:              e.coreComponentsHolder.NodeTypeProvider(),
 			CurrentEpoch:                  startEpoch,
+			StorageType:                   storageFactory.BootstrapStorageService,
 			CreateTrieEpochRootHashStorer: createTrieEpochRootHashStorer,
 		})
 	if err != nil {

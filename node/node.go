@@ -983,10 +983,9 @@ func (n *Node) GetEpochStartDataAPI(epoch uint32) (*common.EpochStartDataAPI, er
 }
 
 func (n *Node) getShardFirstNonceOfEpoch(epoch uint32) (*common.EpochStartDataAPI, error) {
-	storer := n.dataComponents.StorageService().GetStorer(dataRetriever.BlockHeaderUnit)
-	// TODO: remove this check when integrating the changes into rcv1.4.0, since GetStorer will return an error as well
-	if check.IfNil(storer) {
-		return nil, fmt.Errorf("%w for identifier BlockHeaderUnit", ErrNilStorer)
+	storer, err := n.dataComponents.StorageService().GetStorer(dataRetriever.BlockHeaderUnit)
+	if err != nil {
+		return nil, fmt.Errorf("%w for identifier BlockHeaderUnit", err)
 	}
 
 	identifier := core.EpochStartIdentifier(epoch)
@@ -1004,10 +1003,9 @@ func (n *Node) getShardFirstNonceOfEpoch(epoch uint32) (*common.EpochStartDataAP
 }
 
 func (n *Node) getMetaFirstNonceOfEpoch(epoch uint32) (*common.EpochStartDataAPI, error) {
-	storer := n.dataComponents.StorageService().GetStorer(dataRetriever.MetaBlockUnit)
-	// TODO: remove this check when integrating the changes into rcv1.4.0, since GetStorer will return an error as well
-	if check.IfNil(storer) {
-		return nil, fmt.Errorf("%w for identifier MetaBlockUnit", ErrNilStorer)
+	storer, err := n.dataComponents.StorageService().GetStorer(dataRetriever.MetaBlockUnit)
+	if err != nil {
+		return nil, fmt.Errorf("%w for identifier MetaBlockUnit", err)
 	}
 
 	identifier := core.EpochStartIdentifier(epoch)

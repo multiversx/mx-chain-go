@@ -57,8 +57,9 @@ type StorageServiceFactoryArgs struct {
 	PrefsConfig                   config.PreferencesConfig
 	ShardCoordinator              storage.ShardCoordinator
 	PathManager                   storage.PathManagerHandler
-	EpochStartNotifier            storage.EpochStartNotifier
+	EpochStartNotifier            epochStart.EpochStartNotifier
 	NodeTypeProvider              NodeTypeProviderHandler
+	StorageType                   StorageServiceType
 	CurrentEpoch                  uint32
 	CreateTrieEpochRootHashStorer bool
 }
@@ -90,7 +91,7 @@ func NewStorageServiceFactory(args StorageServiceFactoryArgs) (*StorageServiceFa
 		currentEpoch:                  args.CurrentEpoch,
 		createTrieEpochRootHashStorer: args.CreateTrieEpochRootHashStorer,
 		oldDataCleanerProvider:        oldDataCleanProvider,
-		storageType:                   storageType,
+		storageType:                   args.StorageType,
 	}, nil
 }
 
