@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -232,7 +233,7 @@ func TestNewShardBootstrap_NilPoolsHolderShouldErr(t *testing.T) {
 
 	bs, err := sync.NewShardBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilPoolsHolder, err)
 }
 
@@ -244,7 +245,7 @@ func TestNewShardBootstrap_NilAccountsDBSyncerShouldErr(t *testing.T) {
 
 	bs, err := sync.NewShardBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilAccountsDBSyncer, err)
 }
 
@@ -260,7 +261,7 @@ func TestNewShardBootstrap_PoolsHolderRetNilOnHeadersShouldErr(t *testing.T) {
 
 	bs, err := sync.NewShardBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilHeadersDataPool, err)
 }
 
@@ -276,7 +277,7 @@ func TestNewShardBootstrap_PoolsHolderRetNilOnTxBlockBodyShouldErr(t *testing.T)
 
 	bs, err := sync.NewShardBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilTxBlockBody, err)
 }
 
@@ -288,7 +289,7 @@ func TestNewShardBootstrap_NilStoreShouldErr(t *testing.T) {
 
 	bs, err := sync.NewShardBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilStore, err)
 }
 
@@ -300,7 +301,7 @@ func TestNewShardBootstrap_NilAppStatusHandlerShouldErr(t *testing.T) {
 
 	bs, err := sync.NewShardBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilAppStatusHandler, err)
 }
 
@@ -312,7 +313,7 @@ func TestNewShardBootstrap_NilBlockchainShouldErr(t *testing.T) {
 
 	bs, err := sync.NewShardBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilBlockChain, err)
 }
 
@@ -324,7 +325,7 @@ func TestNewShardBootstrap_NilRoundHandlerShouldErr(t *testing.T) {
 
 	bs, err := sync.NewShardBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilRoundHandler, err)
 }
 
@@ -336,7 +337,7 @@ func TestNewShardBootstrap_NilBlockProcessorShouldErr(t *testing.T) {
 
 	bs, err := sync.NewShardBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilBlockProcessor, err)
 }
 
@@ -348,7 +349,7 @@ func TestNewShardBootstrap_NilHasherShouldErr(t *testing.T) {
 
 	bs, err := sync.NewShardBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilHasher, err)
 }
 
@@ -360,7 +361,7 @@ func TestNewShardBootstrap_NilMarshalizerShouldErr(t *testing.T) {
 
 	bs, err := sync.NewShardBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilMarshalizer, err)
 }
 
@@ -372,7 +373,7 @@ func TestNewShardBootstrap_NilForkDetectorShouldErr(t *testing.T) {
 
 	bs, err := sync.NewShardBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilForkDetector, err)
 }
 
@@ -384,7 +385,7 @@ func TestNewShardBootstrap_NilRequestHandlerShouldErr(t *testing.T) {
 
 	bs, err := sync.NewShardBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilRequestHandler, err)
 }
 
@@ -396,7 +397,7 @@ func TestNewShardBootstrap_NilShardCoordinatorShouldErr(t *testing.T) {
 
 	bs, err := sync.NewShardBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
 }
 
@@ -408,7 +409,7 @@ func TestNewShardBootstrap_NilAccountsAdapterShouldErr(t *testing.T) {
 
 	bs, err := sync.NewShardBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilAccountsAdapter, err)
 }
 
@@ -420,7 +421,7 @@ func TestNewShardBootstrap_NilBlackListHandlerShouldErr(t *testing.T) {
 
 	bs, err := sync.NewShardBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilBlackListCacher, err)
 }
 
@@ -432,7 +433,7 @@ func TestNewShardBootstrap_InvalidProcessTimeShouldErr(t *testing.T) {
 
 	bs, err := sync.NewShardBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.True(t, errors.Is(err, process.ErrInvalidProcessWaitTime))
 }
 
@@ -459,7 +460,7 @@ func testShardWithMissingStorer(missingUnit dataRetriever.UnitType) func(t *test
 		}
 
 		bs, err := sync.NewShardBootstrap(args)
-		assert.Nil(t, bs)
+		assert.True(t, check.IfNil(bs))
 		require.NotNil(t, err)
 		require.True(t, strings.Contains(err.Error(), storage.ErrKeyNotFound.Error()))
 	}
@@ -496,7 +497,7 @@ func TestNewShardBootstrap_OkValsShouldWork(t *testing.T) {
 	args.IsInImportMode = true
 	bs, err := sync.NewShardBootstrap(args)
 
-	assert.NotNil(t, bs)
+	assert.False(t, check.IfNil(bs))
 	assert.Nil(t, err)
 	assert.Equal(t, 2, wasCalled)
 	assert.False(t, bs.IsInterfaceNil())
@@ -505,7 +506,7 @@ func TestNewShardBootstrap_OkValsShouldWork(t *testing.T) {
 	args.IsInImportMode = false
 	bs, err = sync.NewShardBootstrap(args)
 
-	assert.NotNil(t, bs)
+	assert.False(t, check.IfNil(bs))
 	assert.Nil(t, err)
 	assert.False(t, bs.IsInImportMode())
 	assert.Equal(t, testProcessWaitTime, bs.ProcessWaitTime())
@@ -1210,7 +1211,7 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnNil(t *testing.T) {
 	bs, _ := sync.NewShardBootstrap(args)
 	hdr, _, _ := process.GetShardHeaderFromPoolWithNonce(0, 0, args.PoolsHolder.Headers())
 
-	assert.NotNil(t, bs)
+	assert.False(t, check.IfNil(bs))
 	assert.Nil(t, hdr)
 }
 
@@ -1244,7 +1245,7 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 	bs, _ := sync.NewShardBootstrap(args)
 	hdr2, _, _ := process.GetShardHeaderFromPoolWithNonce(0, 0, pools.Headers())
 
-	assert.NotNil(t, bs)
+	assert.False(t, check.IfNil(bs))
 	assert.True(t, hdr == hdr2)
 }
 

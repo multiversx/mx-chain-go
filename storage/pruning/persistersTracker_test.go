@@ -3,11 +3,12 @@ package pruning
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/stretchr/testify/assert"
 )
 
-func getArgs() *EpochArgs {
-	return &EpochArgs{
+func getArgs() EpochArgs {
+	return EpochArgs{
 		StartingEpoch:         10,
 		NumOfEpochsToKeep:     4,
 		NumOfActivePersisters: 3,
@@ -18,7 +19,7 @@ func TestNewPersistersTracker(t *testing.T) {
 	t.Parallel()
 
 	pt := NewPersistersTracker(getArgs())
-	assert.NotNil(t, pt)
+	assert.False(t, check.IfNil(pt))
 	assert.Equal(t, int64(7), pt.oldestEpochKeep)
 	assert.Equal(t, int64(8), pt.oldestEpochActive)
 }
