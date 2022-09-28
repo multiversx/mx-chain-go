@@ -291,6 +291,7 @@ func (adb *AccountsDB) SaveAccount(account vmcommon.AccountHandler) error {
 		return fmt.Errorf("%w in accountsDB SaveAccount", ErrNilAccountHandler)
 	}
 
+	// this is a critical section, do not remove the mutex
 	adb.mutOp.Lock()
 	defer adb.mutOp.Unlock()
 
@@ -557,6 +558,7 @@ func (adb *AccountsDB) RemoveAccount(address []byte) error {
 		return fmt.Errorf("%w in RemoveAccount", ErrNilAddress)
 	}
 
+	// this is a critical section, do not remove the mutex
 	adb.mutOp.Lock()
 	defer adb.mutOp.Unlock()
 
