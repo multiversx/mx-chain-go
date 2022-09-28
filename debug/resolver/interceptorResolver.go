@@ -45,16 +45,16 @@ type event struct {
 
 // NumPrints returns the current number of prints
 func (ev *event) NumPrints() int {
-	ev.mutEvent.Lock()
-	defer ev.mutEvent.Unlock()
+	ev.mutEvent.RLock()
+	defer ev.mutEvent.RUnlock()
 
 	return ev.numPrints
 }
 
 // Size returns the number of bytes taken by an event line
 func (ev *event) Size() int {
-	ev.mutEvent.Lock()
-	defer ev.mutEvent.Unlock()
+	ev.mutEvent.RLock()
+	defer ev.mutEvent.RUnlock()
 
 	size := len(ev.eventType) + len(ev.hash) + len(ev.topic) + numIntsInEventStruct*intSize
 	if ev.lastErr != nil {
@@ -65,8 +65,8 @@ func (ev *event) Size() int {
 }
 
 func (ev *event) String() string {
-	ev.mutEvent.Lock()
-	defer ev.mutEvent.Unlock()
+	ev.mutEvent.RLock()
+	defer ev.mutEvent.RUnlock()
 
 	strErr := ""
 	if ev.lastErr != nil {
@@ -206,8 +206,8 @@ func (ir *interceptorResolver) incrementNumOfPrints() {
 // with a query string so it will be more extensible
 func (ir *interceptorResolver) getStringEvents(maxNumPrints int) []string {
 	acceptEvent := func(ev *event) bool {
-		ev.mutEvent.Lock()
-		defer ev.mutEvent.Unlock()
+		ev.mutEvent.RLock()
+		defer ev.mutEvent.RUnlock()
 
 		shouldAcceptRequested := ev.eventType == requestEvent && ev.numReqCross+ev.numReqIntra >= ir.requestsThreshold
 		shouldAcceptResolved := ev.eventType == resolveEvent && ev.numReceived >= ir.resolveFailThreshold
@@ -327,8 +327,8 @@ func (ir *interceptorResolver) Query(search string) []string {
 	acceptEvent := func(ev *event) bool {
 		//TODO replace this rudimentary search pattern with something like
 		// github.com/oleksandr/conditions
-		ev.mutEvent.Lock()
-		defer ev.mutEvent.Unlock()
+		ev.mutEvent.RLock()
+		defer ev.mutEvent.RUnlock()
 		return search == "*" || search == ev.topic
 	}
 
