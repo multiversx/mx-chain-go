@@ -23,7 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
+	p2pConfig "github.com/ElrondNetwork/elrond-go/p2p/config"
 	"github.com/urfave/cli"
 )
 
@@ -177,7 +177,7 @@ func startNode(ctx *cli.Context) error {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
-	p2pConfig, err := common.LoadP2PConfig(p2pConfigurationFile)
+	p2pCfg, err := common.LoadP2PConfig(p2pConfigurationFile)
 	if err != nil {
 		return err
 	}
@@ -185,10 +185,10 @@ func startNode(ctx *cli.Context) error {
 		"filename", p2pConfigurationFile,
 	)
 	if ctx.IsSet(port.Name) {
-		p2pConfig.Node.Port = ctx.GlobalString(port.Name)
+		p2pCfg.Node.Port = ctx.GlobalString(port.Name)
 	}
 
-	err = checkExpectedPeerCount(*p2pConfig)
+	err = checkExpectedPeerCount(*p2pCfg)
 	if err != nil {
 		return err
 	}
@@ -199,7 +199,7 @@ func startNode(ctx *cli.Context) error {
 		return err
 	}
 
-	messenger, err := createNode(*p2pConfig, internalMarshalizer, p2pKeyBytes)
+	messenger, err := createNode(*p2pCfg, internalMarshalizer, p2pKeyBytes)
 	if err != nil {
 		return err
 	}
@@ -244,20 +244,20 @@ func loadMainConfig(filepath string) (*config.Config, error) {
 	return cfg, nil
 }
 
-func createNode(p2pConfig config.P2PConfig, marshalizer marshal.Marshalizer, p2pKeyBytes []byte) (p2p.Messenger, error) {
-	arg := libp2p.ArgsNetworkMessenger{
+func createNode(p2pConfig p2pConfig.P2PConfig, marshalizer marshal.Marshalizer, p2pKeyBytes []byte) (p2p.Messenger, error) {
+	arg := p2p.ArgsNetworkMessenger{
 		Marshalizer:           marshalizer,
-		ListenAddress:         libp2p.ListenAddrWithIp4AndTcp,
+		ListenAddress:         p2p.ListenAddrWithIp4AndTcp,
 		P2pConfig:             p2pConfig,
-		SyncTimer:             &libp2p.LocalSyncTimer{},
+		SyncTimer:             &p2p.LocalSyncTimer{},
 		PreferredPeersHolder:  disabled.NewPreferredPeersHolder(),
 		NodeOperationMode:     p2p.NormalOperation,
 		PeersRatingHandler:    disabled.NewDisabledPeersRatingHandler(),
 		ConnectionWatcherType: "disabled",
-		P2pPrivKeyBytes:       p2pKeyBytes,
+		P2pPrivateKeyBytes:    p2pKeyBytes,
 	}
 
-	return libp2p.NewNetworkMessenger(arg)
+	return p2p.NewNetworkMessenger(arg)
 }
 
 func displayMessengerInfo(messenger p2p.Messenger) {
@@ -300,7 +300,7 @@ func getWorkingDir(log logger.Logger) string {
 	return workingDir
 }
 
-func checkExpectedPeerCount(p2pConfig config.P2PConfig) error {
+func checkExpectedPeerCount(p2pConfig p2pConfig.P2PConfig) error {
 	maxExpectedPeerCount := p2pConfig.Node.MaximumExpectedPeerCount
 
 	var rLimit syscall.Rlimit

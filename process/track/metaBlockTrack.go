@@ -166,3 +166,8 @@ func (mbt *metaBlockTrack) ComputeLongestSelfChain() (data.HeaderHandler, []byte
 // ComputeCrossInfo computes cross info from a given slice of headers
 func (mbt *metaBlockTrack) ComputeCrossInfo(_ []data.HeaderHandler) {
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (mbt *metaBlockTrack) IsInterfaceNil() bool {
+	return mbt == nil
+}
