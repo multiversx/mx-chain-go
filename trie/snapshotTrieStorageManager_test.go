@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/stretchr/testify/assert"
@@ -16,7 +17,7 @@ func TestNewSnapshotTrieStorageManagerInvalidStorerType(t *testing.T) {
 	_, trieStorage := newEmptyTrie()
 
 	stsm, err := newSnapshotTrieStorageManager(trieStorage, 0)
-	assert.Nil(t, stsm)
+	assert.True(t, check.IfNil(stsm))
 	assert.True(t, strings.Contains(err.Error(), "invalid storer, type is"))
 }
 
@@ -27,7 +28,7 @@ func TestNewSnapshotTrieStorageManager(t *testing.T) {
 	trieStorage.mainStorer = &trie.SnapshotPruningStorerStub{}
 	stsm, err := newSnapshotTrieStorageManager(trieStorage, 0)
 	assert.Nil(t, err)
-	assert.NotNil(t, stsm)
+	assert.False(t, check.IfNil(stsm))
 }
 
 func TestNewSnapshotTrieStorageManager_GetFromOldEpochsWithoutCache(t *testing.T) {

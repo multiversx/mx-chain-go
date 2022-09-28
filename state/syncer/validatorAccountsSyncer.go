@@ -83,3 +83,8 @@ func (v *validatorAccountsSyncer) SyncAccounts(rootHash []byte) error {
 
 	return nil
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (v *validatorAccountsSyncer) IsInterfaceNil() bool {
+	return v == nil
+}

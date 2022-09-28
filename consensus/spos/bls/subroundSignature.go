@@ -404,3 +404,8 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
 
 	return true
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (sr *subroundSignature) IsInterfaceNil() bool {
+	return sr == nil
+}

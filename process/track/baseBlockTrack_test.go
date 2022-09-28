@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -222,7 +223,7 @@ func TestNewBlockTrack_ShouldErrCheckTrackerNilParameters(t *testing.T) {
 	mbt, err := track.NewMetaBlockTrack(metaArguments)
 
 	assert.NotNil(t, err)
-	assert.Nil(t, mbt)
+	assert.True(t, check.IfNil(mbt))
 }
 
 func TestNewBlockTrack_ShouldErrNilPoolsHolder(t *testing.T) {
@@ -240,7 +241,7 @@ func TestNewBlockTrack_ShouldErrNilPoolsHolder(t *testing.T) {
 	mbt, err := track.NewMetaBlockTrack(metaArguments)
 
 	assert.Equal(t, process.ErrNilPoolsHolder, err)
-	assert.Nil(t, mbt)
+	assert.True(t, check.IfNil(mbt))
 }
 
 func TestNewBlockTrack_ShouldErrNilHeadersDataPool(t *testing.T) {
@@ -266,7 +267,7 @@ func TestNewBlockTrack_ShouldErrNilHeadersDataPool(t *testing.T) {
 	mbt, err := track.NewShardBlockTrack(metaArguments)
 
 	assert.Equal(t, process.ErrNilHeadersDataPool, err)
-	assert.Nil(t, mbt)
+	assert.True(t, check.IfNil(mbt))
 }
 
 func TestNewBlockTrack_ShouldErrNilEconomicsData(t *testing.T) {
@@ -284,7 +285,7 @@ func TestNewBlockTrack_ShouldErrNilEconomicsData(t *testing.T) {
 	mbt, err := track.NewShardBlockTrack(metaArguments)
 
 	assert.Equal(t, process.ErrNilEconomicsData, err)
-	assert.Nil(t, mbt)
+	assert.True(t, check.IfNil(mbt))
 }
 
 func TestNewBlockTrack_ShouldErrNotarizedHeadersSliceIsNil(t *testing.T) {
@@ -302,7 +303,7 @@ func TestNewBlockTrack_ShouldErrNotarizedHeadersSliceIsNil(t *testing.T) {
 	mbt, err := track.NewMetaBlockTrack(metaArguments)
 
 	assert.Equal(t, process.ErrNotarizedHeadersSliceIsNil, err)
-	assert.Nil(t, mbt)
+	assert.True(t, check.IfNil(mbt))
 }
 
 func TestNewBlockTrack_ShouldWork(t *testing.T) {
@@ -318,7 +319,7 @@ func TestNewBlockTrack_ShouldWork(t *testing.T) {
 	mbt, err := track.NewShardBlockTrack(metaArguments)
 
 	assert.Nil(t, err)
-	assert.NotNil(t, mbt)
+	assert.False(t, check.IfNil(mbt))
 }
 
 func TestGetSelfHeaders_ShouldReturnEmptySliceWhenErrWrongTypeAssertion(t *testing.T) {
