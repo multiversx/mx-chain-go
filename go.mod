@@ -8,7 +8,7 @@ require (
 	github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.59-0.20220729115431-a6c93119bdda
 	github.com/ElrondNetwork/covalent-indexer-go v1.0.7-0.20220922092743-7f3a26b4001a
 	github.com/ElrondNetwork/elastic-indexer-go v1.2.40-0.20220922074555-961c00b8bfce
-	github.com/ElrondNetwork/elrond-go-core v1.1.21-0.20220927113554-34ccab6be8c3
+	github.com/ElrondNetwork/elrond-go-core v1.1.21-0.20220928110648-e602417daa59
 	github.com/ElrondNetwork/elrond-go-crypto v1.2.1
 	github.com/ElrondNetwork/elrond-go-logger v1.0.8-0.20220901113442-d5ad00505a23
 	github.com/ElrondNetwork/elrond-go-storage v1.0.1
