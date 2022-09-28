@@ -3,6 +3,7 @@ package bls_test
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/consensus"
@@ -58,7 +59,7 @@ func TestSubroundSignature_NewSubroundSignatureNilSubroundShouldFail(t *testing.
 		&statusHandler.AppStatusHandlerStub{},
 	)
 
-	assert.Nil(t, srSignature)
+	assert.True(t, check.IfNil(srSignature))
 	assert.Equal(t, spos.ErrNilSubround, err)
 }
 
@@ -92,7 +93,7 @@ func TestSubroundSignature_NewSubroundSignatureNilConsensusStateShouldFail(t *te
 		&statusHandler.AppStatusHandlerStub{},
 	)
 
-	assert.Nil(t, srSignature)
+	assert.True(t, check.IfNil(srSignature))
 	assert.Equal(t, spos.ErrNilConsensusState, err)
 }
 
@@ -125,7 +126,7 @@ func TestSubroundSignature_NewSubroundSignatureNilHasherShouldFail(t *testing.T)
 		&statusHandler.AppStatusHandlerStub{},
 	)
 
-	assert.Nil(t, srSignature)
+	assert.True(t, check.IfNil(srSignature))
 	assert.Equal(t, spos.ErrNilHasher, err)
 }
 
@@ -158,7 +159,7 @@ func TestSubroundSignature_NewSubroundSignatureNilMultiSignerContainerShouldFail
 		&statusHandler.AppStatusHandlerStub{},
 	)
 
-	assert.Nil(t, srSignature)
+	assert.True(t, check.IfNil(srSignature))
 	assert.Equal(t, spos.ErrNilMultiSignerContainer, err)
 }
 
@@ -192,7 +193,7 @@ func TestSubroundSignature_NewSubroundSignatureNilRoundHandlerShouldFail(t *test
 		&statusHandler.AppStatusHandlerStub{},
 	)
 
-	assert.Nil(t, srSignature)
+	assert.True(t, check.IfNil(srSignature))
 	assert.Equal(t, spos.ErrNilRoundHandler, err)
 }
 
@@ -225,7 +226,7 @@ func TestSubroundSignature_NewSubroundSignatureNilSyncTimerShouldFail(t *testing
 		&statusHandler.AppStatusHandlerStub{},
 	)
 
-	assert.Nil(t, srSignature)
+	assert.True(t, check.IfNil(srSignature))
 	assert.Equal(t, spos.ErrNilSyncTimer, err)
 }
 
@@ -258,7 +259,7 @@ func TestSubroundSignature_NewSubroundSignatureShouldWork(t *testing.T) {
 		&statusHandler.AppStatusHandlerStub{},
 	)
 
-	assert.NotNil(t, srSignature)
+	assert.False(t, check.IfNil(srSignature))
 	assert.Nil(t, err)
 }
 

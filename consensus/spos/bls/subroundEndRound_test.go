@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
@@ -69,7 +70,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilSubroundShouldFail(t *testing.T)
 		&statusHandler.AppStatusHandlerStub{},
 	)
 
-	assert.Nil(t, srEndRound)
+	assert.True(t, check.IfNil(srEndRound))
 	assert.Equal(t, spos.ErrNilSubround, err)
 }
 
@@ -104,7 +105,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockChainShouldFail(t *testing.
 		&statusHandler.AppStatusHandlerStub{},
 	)
 
-	assert.Nil(t, srEndRound)
+	assert.True(t, check.IfNil(srEndRound))
 	assert.Equal(t, spos.ErrNilBlockChain, err)
 }
 
@@ -139,7 +140,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockProcessorShouldFail(t *test
 		&statusHandler.AppStatusHandlerStub{},
 	)
 
-	assert.Nil(t, srEndRound)
+	assert.True(t, check.IfNil(srEndRound))
 	assert.Equal(t, spos.ErrNilBlockProcessor, err)
 }
 
@@ -175,7 +176,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilConsensusStateShouldFail(t *test
 		&statusHandler.AppStatusHandlerStub{},
 	)
 
-	assert.Nil(t, srEndRound)
+	assert.True(t, check.IfNil(srEndRound))
 	assert.Equal(t, spos.ErrNilConsensusState, err)
 }
 
@@ -210,7 +211,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilMultiSignerContainerShouldFail(t
 		&statusHandler.AppStatusHandlerStub{},
 	)
 
-	assert.Nil(t, srEndRound)
+	assert.True(t, check.IfNil(srEndRound))
 	assert.Equal(t, spos.ErrNilMultiSignerContainer, err)
 }
 
@@ -245,7 +246,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilRoundHandlerShouldFail(t *testin
 		&statusHandler.AppStatusHandlerStub{},
 	)
 
-	assert.Nil(t, srEndRound)
+	assert.True(t, check.IfNil(srEndRound))
 	assert.Equal(t, spos.ErrNilRoundHandler, err)
 }
 
@@ -280,7 +281,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilSyncTimerShouldFail(t *testing.T
 		&statusHandler.AppStatusHandlerStub{},
 	)
 
-	assert.Nil(t, srEndRound)
+	assert.True(t, check.IfNil(srEndRound))
 	assert.Equal(t, spos.ErrNilSyncTimer, err)
 }
 
@@ -315,7 +316,7 @@ func TestSubroundEndRound_NewSubroundEndRoundShouldWork(t *testing.T) {
 		&statusHandler.AppStatusHandlerStub{},
 	)
 
-	assert.NotNil(t, srEndRound)
+	assert.False(t, check.IfNil(srEndRound))
 	assert.Nil(t, err)
 }
 
