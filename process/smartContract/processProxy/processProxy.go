@@ -150,12 +150,11 @@ func (scPProxy *SCProcessorProxy) IsInterfaceNil() bool {
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed
-func (scPProxy *SCProcessorProxy) EpochConfirmed(epoch uint32, _ uint64) {
+func (scPProxy *SCProcessorProxy) EpochConfirmed(_ uint32, _ uint64) {
 	scPProxy.mutRc.Lock()
 	defer scPProxy.mutRc.Unlock()
 
-	// TODO: change this in next PR
-	if scPProxy.args.EnableEpochsHandler.IsFixAsyncCallbackCheckFlagEnabled() {
+	if scPProxy.args.EnableEpochsHandler.IsSCProcessorV2FlagEnabled() {
 		scPProxy.setActiveProcessorV2()
 		return
 	}
