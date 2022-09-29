@@ -7,7 +7,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	errErd "github.com/ElrondNetwork/elrond-go/errors"
 	networkComp "github.com/ElrondNetwork/elrond-go/factory/network"
-	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
+	"github.com/ElrondNetwork/elrond-go/p2p"
+	p2pConfig "github.com/ElrondNetwork/elrond-go/p2p/config"
 	componentsMock "github.com/ElrondNetwork/elrond-go/testscommon/components"
 	"github.com/stretchr/testify/require"
 )
@@ -58,7 +59,7 @@ func TestNetworkComponentsFactory_CreateShouldErrDueToBadConfig(t *testing.T) {
 
 	args := componentsMock.GetNetworkFactoryArgs()
 	args.MainConfig = config.Config{}
-	args.P2pConfig = config.P2PConfig{}
+	args.P2pConfig = p2pConfig.P2PConfig{}
 
 	ncf, _ := networkComp.NewNetworkComponentsFactory(args)
 
@@ -75,7 +76,7 @@ func TestNetworkComponentsFactory_CreateShouldWork(t *testing.T) {
 
 	args := componentsMock.GetNetworkFactoryArgs()
 	ncf, _ := networkComp.NewNetworkComponentsFactory(args)
-	ncf.SetListenAddress(libp2p.ListenLocalhostAddrWithIp4AndTcp)
+	ncf.SetListenAddress(p2p.ListenLocalhostAddrWithIp4AndTcp)
 
 	nc, err := ncf.Create()
 	require.NoError(t, err)

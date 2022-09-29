@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/mock"
@@ -12,6 +13,32 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestNewTriePruningStorer(t *testing.T) {
+	t.Parallel()
+
+	t.Run("empty args struct, should not panic", func(t *testing.T) {
+		t.Parallel()
+
+		defer func() {
+			r := recover()
+			require.Nil(t, r)
+		}()
+		emptyAndInvalidConfig := pruning.StorerArgs{}
+		tps, err := pruning.NewTriePruningStorer(emptyAndInvalidConfig)
+		require.Error(t, err)
+		require.True(t, check.IfNil(tps))
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		args := getDefaultArgs()
+		ps, err := pruning.NewTriePruningStorer(args)
+		require.NoError(t, err)
+		require.False(t, check.IfNil(ps))
+	})
+}
 
 func TestTriePruningStorer_GetFromOldEpochsWithoutCacheSearchesOnlyOldEpochsAndReturnsEpoch(t *testing.T) {
 	t.Parallel()

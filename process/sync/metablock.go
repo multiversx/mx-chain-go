@@ -391,3 +391,8 @@ func (boot *MetaBootstrap) isForkTriggeredByMeta() bool {
 func (boot *MetaBootstrap) requestHeaderByNonce(nonce uint64) {
 	boot.requestHandler.RequestMetaHeaderByNonce(nonce)
 }
+
+// IsInterfaceNil returns true if there no value under the interface
+func (boot *MetaBootstrap) IsInterfaceNil() bool {
+	return boot == nil
+}

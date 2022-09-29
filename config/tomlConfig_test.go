@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"testing"
 
+	p2pConfig "github.com/ElrondNetwork/elrond-go/p2p/config"
 	"github.com/pelletier/go-toml"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -467,19 +468,19 @@ func TestP2pConfig(t *testing.T) {
     [AdditionalConnections]
         MaxFullHistoryObservers = 0`
 
-	expectedCfg := P2PConfig{
-		Node: NodeConfig{
+	expectedCfg := p2pConfig.P2PConfig{
+		Node: p2pConfig.NodeConfig{
 			Port: port,
 		},
-		KadDhtPeerDiscovery: KadDhtPeerDiscoveryConfig{
+		KadDhtPeerDiscovery: p2pConfig.KadDhtPeerDiscoveryConfig{
 			ProtocolID:      protocolID,
 			InitialPeerList: []string{initialPeersList},
 		},
-		Sharding: ShardingConfig{
+		Sharding: p2pConfig.ShardingConfig{
 			Type: shardingType,
 		},
 	}
-	cfg := P2PConfig{}
+	cfg := p2pConfig.P2PConfig{}
 
 	err := toml.Unmarshal([]byte(testString), &cfg)
 

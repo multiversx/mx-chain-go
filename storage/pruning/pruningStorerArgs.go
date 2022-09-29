@@ -18,7 +18,7 @@ type StorerArgs struct {
 	OldDataCleanerProvider    clean.OldDataCleanerProvider
 	CustomDatabaseRemover     storage.CustomDatabaseRemoverHandler
 	MaxBatchSize              int
-	EpochsData                *EpochArgs
+	EpochsData                EpochArgs
 	PruningEnabled            bool
 	EnabledDbLookupExtensions bool
 	PersistersTracker         PersistersTracker
@@ -33,6 +33,6 @@ type EpochArgs struct {
 
 // FullHistoryStorerArgs will hold the arguments needed for full history PruningStorer
 type FullHistoryStorerArgs struct {
-	*StorerArgs
+	StorerArgs
 	NumOfOldActivePersisters uint32
 }
