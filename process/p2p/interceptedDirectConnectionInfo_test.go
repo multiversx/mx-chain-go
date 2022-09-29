@@ -8,7 +8,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/p2p"
+	p2pFactory "github.com/ElrondNetwork/elrond-go/p2p/factory"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/stretchr/testify/assert"
 )
@@ -17,7 +17,7 @@ const providedShard = "5"
 
 func createMockArgInterceptedDirectConnectionInfo() ArgInterceptedDirectConnectionInfo {
 	marshaller := &marshal.GogoProtoMarshalizer{}
-	msg := &p2p.DirectConnectionInfo{
+	msg := &p2pFactory.DirectConnectionInfo{
 		ShardId: providedShard,
 	}
 	msgBuff, _ := marshaller.Marshal(msg)
@@ -87,7 +87,7 @@ func Test_interceptedDirectConnectionInfo_CheckValidity(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgInterceptedDirectConnectionInfo()
-		msg := &p2p.DirectConnectionInfo{
+		msg := &p2pFactory.DirectConnectionInfo{
 			ShardId: "invalid shard",
 		}
 		msgBuff, _ := args.Marshaller.Marshal(msg)

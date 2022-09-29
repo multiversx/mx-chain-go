@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/random"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go-p2p/message"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	resolverDebug "github.com/ElrondNetwork/elrond-go/debug/resolver"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -281,7 +282,7 @@ func (trs *topicResolverSender) Send(buff []byte, peer core.PeerID) error {
 }
 
 func (trs *topicResolverSender) sendToConnectedPeer(topic string, buff []byte, peer core.PeerID) error {
-	msg := &p2p.Message{
+	msg := &message.Message{
 		DataField:  buff,
 		PeerField:  peer,
 		TopicField: topic,
