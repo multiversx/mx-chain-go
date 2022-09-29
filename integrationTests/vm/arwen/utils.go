@@ -355,7 +355,7 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 		VMOutputCacher:      txcache.NewDisabledCache(),
 	}
 
-	context.ScProcessor, _ = processProxy.NewSmartContractProcessorProxy(argsNewSCProcessor, context.EpochNotifier)
+	context.ScProcessor, _ = processProxy.NewTestSmartContractProcessorProxy(argsNewSCProcessor, context.EpochNotifier)
 	require.Nil(context.T, err)
 
 	argsNewTxProcessor := processTransaction.ArgsNewTxProcessor{
