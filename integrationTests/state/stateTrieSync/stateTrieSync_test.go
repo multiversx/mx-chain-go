@@ -120,7 +120,7 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 		MaxHardCapForMissingNodes: 10000,
 		CheckNodesOnDisk:          false,
 	}
-	trieSyncer, _ := trie.NewDoubleListTrieSyncer(arg)
+	trieSyncer, _ := trie.NewDeepFirstTrieSyncer(arg)
 
 	ctxPrint, cancel := context.WithCancel(context.Background())
 	go printStatistics(ctxPrint, tss)
@@ -251,7 +251,7 @@ func TestNode_RequestInterceptTrieNodesWithMessengerNotSyncingShouldErr(t *testi
 		MaxHardCapForMissingNodes: 10000,
 		CheckNodesOnDisk:          false,
 	}
-	trieSyncer, _ := trie.NewDoubleListTrieSyncer(arg)
+	trieSyncer, _ := trie.NewDeepFirstTrieSyncer(arg)
 
 	ctxPrint, cancel := context.WithCancel(context.Background())
 	go printStatistics(ctxPrint, tss)

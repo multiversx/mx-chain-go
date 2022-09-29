@@ -9,6 +9,7 @@ import (
 const (
 	initialVersion = 1
 	secondVersion  = 2
+	thirdVersion   = 3
 )
 
 // TrieSyncer synchronizes the trie, asking on the network for the missing nodes
@@ -29,6 +30,8 @@ func CreateTrieSyncer(arg ArgTrieSyncer, trieSyncerVersion int) (TrieSyncer, err
 		return NewTrieSyncer(arg)
 	case secondVersion:
 		return NewDoubleListTrieSyncer(arg)
+	case thirdVersion:
+		return NewDeepFirstTrieSyncer(arg)
 	default:
 		return nil, fmt.Errorf("%w, unknown value %d", ErrInvalidTrieSyncerVersion, trieSyncerVersion)
 	}
@@ -36,7 +39,7 @@ func CreateTrieSyncer(arg ArgTrieSyncer, trieSyncerVersion int) (TrieSyncer, err
 
 // CheckTrieSyncerVersion can check if the syncer version has a correct value
 func CheckTrieSyncerVersion(trieSyncerVersion int) error {
-	isCorrectVersion := trieSyncerVersion >= initialVersion && trieSyncerVersion <= secondVersion
+	isCorrectVersion := trieSyncerVersion >= initialVersion && trieSyncerVersion <= thirdVersion
 	if isCorrectVersion {
 		return nil
 	}

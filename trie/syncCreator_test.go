@@ -24,7 +24,7 @@ func TestNewTrieSync_FirstVariantImplementation(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArgument(time.Minute)
-	syncer, err := CreateTrieSyncer(arg, 1)
+	syncer, err := CreateTrieSyncer(arg, initialVersion)
 
 	require.False(t, check.IfNil(syncer))
 	require.Nil(t, err)
@@ -36,11 +36,23 @@ func TestNewTrieSync_SecondVariantImplementation(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArgument(time.Minute)
-	syncer, err := CreateTrieSyncer(arg, 2)
+	syncer, err := CreateTrieSyncer(arg, secondVersion)
 
 	require.False(t, check.IfNil(syncer))
 	require.Nil(t, err)
 	_, isInstanceOk := syncer.(*doubleListTrieSyncer)
+	assert.True(t, isInstanceOk)
+}
+
+func TestNewTrieSync_ThirdVariantImplementation(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgument(time.Minute)
+	syncer, err := CreateTrieSyncer(arg, thirdVersion)
+
+	require.False(t, check.IfNil(syncer))
+	require.Nil(t, err)
+	_, isInstanceOk := syncer.(*deepFirstTrieSyncer)
 	assert.True(t, isInstanceOk)
 }
 
@@ -56,6 +68,9 @@ func TestCheckTrieSyncerVersion(t *testing.T) {
 	err = CheckTrieSyncerVersion(secondVersion)
 	assert.Nil(t, err)
 
-	err = CheckTrieSyncerVersion(3)
+	err = CheckTrieSyncerVersion(thirdVersion)
+	assert.Nil(t, err)
+
+	err = CheckTrieSyncerVersion(4)
 	assert.True(t, errors.Is(err, ErrInvalidTrieSyncerVersion))
 }

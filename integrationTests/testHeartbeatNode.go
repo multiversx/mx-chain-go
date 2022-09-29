@@ -494,7 +494,7 @@ func (thn *TestHeartbeatNode) createRequestHandler() {
 		thn.WhiteListHandler,
 		100,
 		thn.ShardCoordinator.SelfId(),
-		time.Second,
+		common.TimeBetweenRequests,
 	)
 }
 

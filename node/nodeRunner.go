@@ -1037,9 +1037,9 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		return nil, err
 	}
 
-	log.Trace("creating time cache for requested items components")
-	requestedItemsHandler := timecache.NewTimeCache(
-		time.Duration(uint64(time.Millisecond) * coreComponents.GenesisNodesSetup().GetRoundDuration()))
+	intervalForRequestedItemsHandler := common.TimeBetweenRequests
+	log.Trace("creating time cache for requested items components", "set interval", intervalForRequestedItemsHandler)
+	requestedItemsHandler := timecache.NewTimeCache(intervalForRequestedItemsHandler)
 
 	processArgs := mainFactory.ProcessComponentsFactoryArgs{
 		Config:                 *configs.GeneralConfig,

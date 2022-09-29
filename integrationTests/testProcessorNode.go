@@ -1420,7 +1420,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 			tpn.WhiteListHandler,
 			100,
 			tpn.ShardCoordinator.SelfId(),
-			time.Second,
+			common.TimeBetweenRequests,
 		)
 	} else {
 		resolversContainerFactory, _ := resolverscontainer.NewShardResolversContainerFactory(resolverContainerFactory)
@@ -1435,7 +1435,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 			tpn.WhiteListHandler,
 			100,
 			tpn.ShardCoordinator.SelfId(),
-			time.Second,
+			common.TimeBetweenRequests,
 		)
 	}
 }
@@ -2847,7 +2847,7 @@ func (tpn *TestProcessorNode) initRoundHandler() {
 }
 
 func (tpn *TestProcessorNode) initRequestedItemsHandler() {
-	tpn.RequestedItemsHandler = timecache.NewTimeCache(roundDuration)
+	tpn.RequestedItemsHandler = timecache.NewTimeCache(common.TimeBetweenRequests)
 }
 
 func (tpn *TestProcessorNode) initBlockTracker() {

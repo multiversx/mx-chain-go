@@ -49,7 +49,6 @@ var log = logger.GetOrCreate("epochStart/bootstrap")
 
 // DefaultTimeToWaitForRequestedData represents the default timespan until requested data needs to be received from the connected peers
 const DefaultTimeToWaitForRequestedData = time.Minute
-const timeBetweenRequests = 100 * time.Millisecond
 const maxToRequest = 100
 const gracePeriodInPercentage = float64(0.25)
 const roundGracePeriod = 25
@@ -1187,14 +1186,14 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 		return err
 	}
 
-	requestedItemsHandler := timecache.NewTimeCache(timeBetweenRequests)
+	requestedItemsHandler := timecache.NewTimeCache(common.TimeBetweenRequests)
 	e.requestHandler, err = requestHandlers.NewResolverRequestHandler(
 		finder,
 		requestedItemsHandler,
 		e.whiteListHandler,
 		maxToRequest,
 		core.MetachainShardId,
-		timeBetweenRequests,
+		common.TimeBetweenRequests,
 	)
 	return err
 }
