@@ -3,7 +3,6 @@ package process
 import (
 	"errors"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/scrCommon"
 	"math"
 	"math/big"
 	"sync"
@@ -29,6 +28,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/scrCommon"
 	syncDisabled "github.com/ElrondNetwork/elrond-go/process/sync/disabled"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/state"

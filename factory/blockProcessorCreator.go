@@ -3,7 +3,6 @@ package factory
 import (
 	"errors"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/scrCommon"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	dataBlock "github.com/ElrondNetwork/elrond-go-core/data/block"
@@ -29,6 +28,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/scrCommon"
 	"github.com/ElrondNetwork/elrond-go/process/throttle"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/process/txsimulator"

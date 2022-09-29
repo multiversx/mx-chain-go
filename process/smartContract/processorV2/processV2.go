@@ -1876,14 +1876,10 @@ func (sc *scProcessor) penalizeUserIfNeeded(
 		"return message", vmOutput.ReturnMessage,
 	)
 	vmOutput.ReturnMessage += "@"
-	if !isSmartContractResult(tx) {
-		gasUsed += sc.economicsFee.ComputeGasLimit(tx)
-	}
-
 	sc.gasHandler.SetGasPenalized(vmOutput.GasRemaining, txHash)
 
 	vmOutput.ReturnMessage += fmt.Sprintf("%s for processing: gas provided = %d, gas used = %d",
-		TooMuchGasProvidedMessage, gasProvidedForProcessing, gasProvidedForProcessing-vmOutput.GasRemaining)
+		TooMuchGasProvidedMessage, gasProvidedForProcessing, gasUsed)
 	vmOutput.GasRemaining = 0
 }
 

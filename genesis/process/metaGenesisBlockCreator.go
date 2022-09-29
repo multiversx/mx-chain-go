@@ -3,7 +3,6 @@ package process
 import (
 	"bytes"
 	"encoding/hex"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/scrCommon"
 	"math"
 	"math/big"
 	"sort"
@@ -31,6 +30,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/receipts"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/scrCommon"
 	syncDisabled "github.com/ElrondNetwork/elrond-go/process/sync/disabled"
 	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
