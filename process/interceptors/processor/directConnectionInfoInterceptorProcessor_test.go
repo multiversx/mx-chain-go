@@ -7,7 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	heartbeatMessages "github.com/ElrondNetwork/elrond-go/heartbeat"
-	"github.com/ElrondNetwork/elrond-go/p2p"
+	p2pFactory "github.com/ElrondNetwork/elrond-go/p2p/factory"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -87,7 +87,7 @@ func TestDirectConnectionInfoInterceptorProcessor_Save(t *testing.T) {
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(processor))
 
-		msg := &p2p.DirectConnectionInfo{
+		msg := &p2pFactory.DirectConnectionInfo{
 			ShardId: "invalid shard",
 		}
 		marshaller := marshal.GogoProtoMarshalizer{}
@@ -118,7 +118,7 @@ func TestDirectConnectionInfoInterceptorProcessor_Save(t *testing.T) {
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(processor))
 
-		msg := &p2p.DirectConnectionInfo{
+		msg := &p2pFactory.DirectConnectionInfo{
 			ShardId: "5",
 		}
 		marshaller := marshal.GogoProtoMarshalizer{}
