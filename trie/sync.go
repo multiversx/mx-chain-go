@@ -349,10 +349,6 @@ func trieNode(
 		return nil, ErrWrongTypeAssertion
 	}
 
-	if n.node != nil {
-		return n.node, nil
-	}
-
 	decodedNode, err := decodeNode(n.GetSerialized(), marshalizer, hasher)
 	if err != nil {
 		return nil, err
