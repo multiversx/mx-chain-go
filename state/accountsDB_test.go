@@ -2724,13 +2724,8 @@ func testAccountMethodsConcurrency(
 	}
 	accountBytes, err := marshaller.Marshal(accounts[0])
 	assert.Nil(t, err)
-	counter := atomicFlag.Counter{}
 	for i := 0; i < numOperations; i++ {
 		go func(idx int) {
-			defer func() {
-				counter.Increment()
-				wg.Done()
-			}()
 			switch idx % 23 {
 			case 0:
 				_, _ = adb.GetExistingAccount(addresses[idx])
@@ -2779,11 +2774,11 @@ func testAccountMethodsConcurrency(
 			case 22:
 				_ = adb.SetSyncer(&mock.AccountsDBSyncerStub{})
 			}
+			wg.Done()
 		}(i)
 	}
 
 	wg.Wait()
-	assert.Equal(t, int64(numOperations), counter.Get())
 }
 
 func BenchmarkAccountsDB_GetMethodsInParallel(b *testing.B) {
