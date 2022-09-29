@@ -83,6 +83,8 @@ type scProcessor struct {
 	txLogsProcessor     process.TransactionLogProcessor
 	vmOutputCacher      storage.Cacher
 	isGenesisProcessing bool
+
+	enableEpochsHandler common.EnableEpochsHandler
 }
 
 // NewSmartContractProcessorV2 creates a smart contract processor that creates and interprets VM data
@@ -168,6 +170,7 @@ func NewSmartContractProcessorV2(args scrCommon.ArgsNewSmartContractProcessor) (
 		isGenesisProcessing: args.IsGenesisProcessing,
 		arwenChangeLocker:   args.ArwenChangeLocker,
 		vmOutputCacher:      args.VMOutputCacher,
+		enableEpochsHandler: args.EnableEpochsHandler,
 		storePerByte:        baseOperationCost["StorePerByte"],
 		persistPerByte:      baseOperationCost["PersistPerByte"],
 	}
@@ -233,7 +236,8 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	duration := sw.GetMeasurement("execute")
 
 	if duration > executeDurationAlarmThreshold {
-		log.Debug(fmt.Sprintf("scProcessor.ExecuteSmartContractTransaction(): execution took > %s", executeDurationAlarmThreshold), "sc", tx.GetRcvAddr(), "duration", duration, "returnCode", returnCode, "err", err, "data", string(tx.GetData()))
+		txHash := sc.computeTxHashUnsafe(tx)
+		log.Debug(fmt.Sprintf("scProcessor.ExecuteSmartContractTransaction(): execution took > %s", executeDurationAlarmThreshold), "tx hash", txHash, "sc", tx.GetRcvAddr(), "duration", duration, "returnCode", returnCode, "err", err, "data", string(tx.GetData()))
 	} else {
 		log.Trace("scProcessor.ExecuteSmartContractTransaction()", "sc", tx.GetRcvAddr(), "duration", duration, "returnCode", returnCode, "err", err, "data", string(tx.GetData()))
 	}
@@ -792,7 +796,8 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 	duration := sw.GetMeasurement("executeBuiltIn")
 
 	if duration > executeDurationAlarmThreshold {
-		log.Debug(fmt.Sprintf("scProcessor.ExecuteBuiltInFunction(): execution took > %s", executeDurationAlarmThreshold), "sc", tx.GetRcvAddr(), "duration", duration, "returnCode", returnCode, "err", err, "data", string(tx.GetData()))
+		txHash := sc.computeTxHashUnsafe(tx)
+		log.Debug(fmt.Sprintf("scProcessor.ExecuteBuiltInFunction(): execution took > %s", executeDurationAlarmThreshold), "tx hash", txHash, "sc", tx.GetRcvAddr(), "duration", duration, "returnCode", returnCode, "err", err, "data", string(tx.GetData()))
 	} else {
 		log.Trace("scProcessor.ExecuteBuiltInFunction()", "sc", tx.GetRcvAddr(), "duration", duration, "returnCode", returnCode, "err", err, "data", string(tx.GetData()))
 	}
@@ -1552,7 +1557,8 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 	duration := sw.GetMeasurement("deploy")
 
 	if duration > executeDurationAlarmThreshold {
-		log.Debug(fmt.Sprintf("scProcessor.DeploySmartContract(): execution took > %s", executeDurationAlarmThreshold), "sc", tx.GetRcvAddr(), "duration", duration, "returnCode", returnCode, "err", err, "data", string(tx.GetData()))
+		txHash := sc.computeTxHashUnsafe(tx)
+		log.Debug(fmt.Sprintf("scProcessor.DeploySmartContract(): execution took > %s", executeDurationAlarmThreshold), "tx hash", txHash, "sc", tx.GetRcvAddr(), "duration", duration, "returnCode", returnCode, "err", err, "data", string(tx.GetData()))
 	} else {
 		log.Trace("scProcessor.DeploySmartContract()", "sc", tx.GetRcvAddr(), "duration", duration, "returnCode", returnCode, "err", err, "data", string(tx.GetData()))
 	}
@@ -1758,7 +1764,7 @@ func (sc *scProcessor) completeOutputProcessingAndCreateCallback(
 
 	scrTxs, scrForSender, scrForRelayer, err := sc.createSCRForSenderAndRelayerAndRefundGas(vmInput, vmOutput, txHash, tx, scrTxs, createdAsyncCallback)
 	if err != nil {
-		return scrTxs, 0, err
+		return scrTxs, vmcommon.ExecutionFailed, err
 	}
 
 	if !createdAsyncCallback {
@@ -2296,10 +2302,8 @@ func (sc *scProcessor) createSCRForSenderAndRelayer(
 	txHash []byte,
 	callType vmData.CallType,
 ) (*smartContractResult.SmartContractResult, *smartContractResult.SmartContractResult) {
-	if vmOutput.GasRefund == nil {
-		// TODO: compute gas refund with reduced gasPrice if we need to activate this
-		vmOutput.GasRefund = big.NewInt(0)
-	}
+	// TODO: compute gas refund with reduced gasPrice if we need to activate this
+	vmOutput.GasRefund = big.NewInt(0)
 
 	gasRefund := sc.economicsFee.ComputeFeeForProcessing(tx, vmOutput.GasRemaining)
 	gasRemaining := uint64(0)
@@ -2493,6 +2497,10 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 		returnCode, err = sc.ExecuteSmartContractTransaction(scr, sndAcc, dstAcc)
 		return returnCode, err
 	case process.BuiltInFunctionCall:
+		if sc.shardCoordinator.SelfId() == core.MetachainShardId && !sc.enableEpochsHandler.IsBuiltInFunctionOnMetaFlagEnabled() {
+			returnCode, err = sc.ExecuteSmartContractTransaction(scr, sndAcc, dstAcc)
+			return returnCode, err
+		}
 		returnCode, err = sc.ExecuteBuiltInFunction(scr, sndAcc, dstAcc)
 		return returnCode, err
 	}
@@ -2510,7 +2518,7 @@ func (sc *scProcessor) getGasLockedFromSCR(scr *smartContractResult.SmartContrac
 	if err != nil {
 		return 0
 	}
-	_, gasLocked := sc.getAsyncCallGasLockFromTxData(scr.CallType, arguments)
+	_, gasLocked := getAsyncCallGasLockFromTxData(scr.CallType, arguments)
 	return gasLocked
 }
 
@@ -2620,13 +2628,20 @@ func isReturnOKTxHandler(
 	return bytes.HasPrefix(resultTx.GetData(), []byte(returnOkData))
 }
 
+// this function should only be called for logging reasons, since it does not perform sanity checks
+func (sc *scProcessor) computeTxHashUnsafe(tx data.TransactionHandler) []byte {
+	txHash, _ := core.CalculateHash(sc.marshalizer, sc.hasher, tx)
+
+	return txHash
+}
+
 // IsPayable returns if address is payable, smart contract ca set to false
 func (sc *scProcessor) IsPayable(sndAddress []byte, recvAddress []byte) (bool, error) {
 	return sc.blockChainHook.IsPayable(sndAddress, recvAddress)
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed
-func (sc *scProcessor) EpochConfirmed(epoch uint32, _ uint64) {
+func (sc *scProcessor) EpochConfirmed(_ uint32, _ uint64) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

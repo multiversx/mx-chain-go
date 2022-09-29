@@ -56,8 +56,8 @@ type SmartContractResultProcessor interface {
 	IsInterfaceNil() bool
 }
 
-// SmartContractProcessorFull is the main interface for smart contract result execution engine
-type SmartContractProcessorFull interface {
+// SmartContractProcessorFacade is the main interface for smart contract result execution engine
+type SmartContractProcessorFacade interface {
 	SmartContractProcessor
 	SmartContractResultProcessor
 }

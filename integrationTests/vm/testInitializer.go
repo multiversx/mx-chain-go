@@ -846,7 +846,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		VMOutputCacher:      txcache.NewDisabledCache(),
 	}
 
-	scProcessor, _ := processProxy.NewSmartContractProcessorProxy(argsNewSCProcessor, epochNotifierInstance)
+	scProcessorProxy, _ := processProxy.NewSmartContractProcessorProxy(argsNewSCProcessor, epochNotifierInstance)
 
 	argsNewTxProcessor := transaction.ArgsNewTxProcessor{
 		Accounts:            accnts,
@@ -855,7 +855,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		Marshalizer:         testMarshalizer,
 		SignMarshalizer:     testMarshalizer,
 		ShardCoordinator:    shardCoordinator,
-		ScProcessor:         scProcessor,
+		ScProcessor:         scProcessorProxy,
 		TxFeeHandler:        feeAccumulator,
 		TxTypeHandler:       txTypeHandler,
 		EconomicsFee:        economicsData,
@@ -962,7 +962,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 
 	return &ResultsCreateTxProcessor{
 		TxProc:             txProcessor,
-		SCProc:             scProcessor,
+		SCProc:             scProcessorProxy,
 		IntermediateTxProc: intermediateTxHandler,
 		EconomicsHandler:   economicsData,
 		CostHandler:        txCostEstimator,

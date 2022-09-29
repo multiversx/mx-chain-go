@@ -24,6 +24,54 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TODO remove this while processor V1 is deprecated
+func TestBuildInFunctionChangeOwnerCallShouldWorkV1(t *testing.T) {
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(
+		config.EnableEpochs{
+			PenalizedTooMuchGasEnableEpoch: integrationTests.UnreachableEpoch,
+			SCProcessorV2EnableEpoch:       integrationTests.UnreachableEpoch,
+		})
+	require.Nil(t, err)
+	defer testContext.Close()
+
+	scAddress, owner := utils.DoDeploy(t, testContext, "../arwen/testdata/counter/output/counter.wasm")
+	testContext.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
+	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
+
+	newOwner := []byte("12345678901234567890123456789112")
+	gasPrice := uint64(10)
+	gasLimit := uint64(1000)
+
+	txData := []byte(core.BuiltInFunctionChangeOwnerAddress + "@" + hex.EncodeToString(newOwner))
+	tx := vm.CreateTransaction(1, big.NewInt(0), owner, scAddress, gasPrice, gasLimit, txData)
+	returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
+	require.Nil(t, err)
+	require.Equal(t, vmcommon.Ok, returnCode)
+
+	_, err = testContext.Accounts.Commit()
+	require.Nil(t, err)
+
+	utils.CheckOwnerAddr(t, testContext, scAddress, newOwner)
+
+	expectedBalance := big.NewInt(88180)
+	vm.TestAccount(t, testContext.Accounts, owner, 2, expectedBalance)
+
+	// check accumulated fees
+	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
+	require.Equal(t, big.NewInt(850), accumulatedFees)
+
+	developerFees := testContext.TxFeeHandler.GetDeveloperFees()
+	require.Equal(t, big.NewInt(0), developerFees)
+
+	intermediateTxs := testContext.GetIntermediateTransactions(t)
+	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, true, testContext.TxsLogsProcessor)
+	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
+
+	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
+	require.Equal(t, uint64(85), indexerTx.GasUsed)
+	require.Equal(t, "850", indexerTx.Fee)
+}
+
 func TestBuildInFunctionChangeOwnerCallShouldWork(t *testing.T) {
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(
 		config.EnableEpochs{

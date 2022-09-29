@@ -16,7 +16,7 @@ import (
 
 // TestSmartContractProcessor is a SmartContractProcessor used in integration tests
 type TestSmartContractProcessor interface {
-	process.SmartContractProcessorFull
+	process.SmartContractProcessorFacade
 	GetCompositeTestError() error
 	GetGasRemaining() uint64
 	GetAllSCRs() []data.TransactionHandler

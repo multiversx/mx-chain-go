@@ -240,7 +240,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		ArwenChangeLocker:   arwenChangeLocker,
 	}
 
-	scProcessor, err := processProxy.NewSmartContractProcessorProxy(argsNewScProcessor, pcf.epochNotifier)
+	scProcessorProxy, err := processProxy.NewSmartContractProcessorProxy(argsNewScProcessor, pcf.epochNotifier)
 	if err != nil {
 		return nil, err
 	}
@@ -261,7 +261,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		Marshalizer:         pcf.coreData.InternalMarshalizer(),
 		SignMarshalizer:     pcf.coreData.TxMarshalizer(),
 		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
-		ScProcessor:         scProcessor,
+		ScProcessor:         scProcessorProxy,
 		TxFeeHandler:        txFeeHandler,
 		TxTypeHandler:       txTypeHandler,
 		EconomicsFee:        pcf.coreData.EconomicsData(),
@@ -315,8 +315,8 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		pcf.state.AccountsAdapter(),
 		requestHandler,
 		transactionProcessor,
-		scProcessor,
-		scProcessor,
+		scProcessorProxy,
+		scProcessorProxy,
 		rewardsTxProcessor,
 		pcf.coreData.EconomicsData(),
 		gasHandler,
@@ -553,7 +553,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		ArwenChangeLocker:   arwenChangeLocker,
 	}
 
-	scProcessor, err := processProxy.NewSmartContractProcessorProxy(argsNewScProcessor, pcf.epochNotifier)
+	scProcessorProxy, err := processProxy.NewSmartContractProcessorProxy(argsNewScProcessor, pcf.epochNotifier)
 	if err != nil {
 		return nil, err
 	}
@@ -564,7 +564,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		Accounts:            pcf.state.AccountsAdapter(),
 		PubkeyConv:          pcf.coreData.AddressPubKeyConverter(),
 		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
-		ScProcessor:         scProcessor,
+		ScProcessor:         scProcessorProxy,
 		TxTypeHandler:       txTypeHandler,
 		EconomicsFee:        pcf.coreData.EconomicsData(),
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
@@ -610,7 +610,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		pcf.state.AccountsAdapter(),
 		requestHandler,
 		transactionProcessor,
-		scProcessor,
+		scProcessorProxy,
 		pcf.coreData.EconomicsData(),
 		gasHandler,
 		blockTracker,
@@ -972,11 +972,11 @@ func (pcf *processComponentsFactory) createShardTxSimulatorProcessor(
 
 	scProcArgs.AccountsDB = readOnlyAccountsDB
 	scProcArgs.VMOutputCacher = txSimulatorProcessorArgs.VMOutputCacher
-	scProcessor, err := processProxy.NewSmartContractProcessorProxy(scProcArgs, pcf.epochNotifier)
+	scProcessorProxy, err := processProxy.NewSmartContractProcessorProxy(scProcArgs, pcf.epochNotifier)
 	if err != nil {
 		return nil, err
 	}
-	txProcArgs.ScProcessor = scProcessor
+	txProcArgs.ScProcessor = scProcessorProxy
 
 	txProcArgs.Accounts = readOnlyAccountsDB
 
@@ -1059,7 +1059,7 @@ func (pcf *processComponentsFactory) createMetaTxSimulatorProcessor(
 	scProcArgs.VmContainer = vmContainer
 	scProcArgs.BlockChainHook = vmFactory.BlockChainHookImpl()
 
-	scProcessor, err := processProxy.NewSmartContractProcessorProxy(scProcArgs, pcf.epochNotifier)
+	scProcessorProxy, err := processProxy.NewSmartContractProcessorProxy(scProcArgs, pcf.epochNotifier)
 	if err != nil {
 		return nil, err
 	}
@@ -1070,7 +1070,7 @@ func (pcf *processComponentsFactory) createMetaTxSimulatorProcessor(
 		Accounts:            readOnlyAccountsDB,
 		PubkeyConv:          pcf.coreData.AddressPubKeyConverter(),
 		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
-		ScProcessor:         scProcessor,
+		ScProcessor:         scProcessorProxy,
 		TxTypeHandler:       txTypeHandler,
 		EconomicsFee:        &processDisabled.FeeHandler{},
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
