@@ -251,6 +251,12 @@ type BlockProcessor interface {
 	Close() error
 }
 
+// SmartContractProcessorFull is the main interface for smart contract result execution engine
+type SmartContractProcessorFull interface {
+	SmartContractProcessor
+	SmartContractResultProcessor
+}
+
 // ScheduledBlockProcessor is the interface for the scheduled miniBlocks execution part of the block processor
 type ScheduledBlockProcessor interface {
 	ProcessScheduledBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
