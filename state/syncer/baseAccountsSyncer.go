@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/common/statistics"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/trie"
@@ -147,6 +148,7 @@ func (b *baseAccountsSyncer) printStatistics(ssh common.SizeSyncStatisticsHandle
 				"peak processing speed", peakSpeed,
 				"average processing speed", averageSpeed,
 			)
+			log.Debug("trie sync node statistics", statistics.GetRuntimeStatistics()...)
 			return
 		case <-time.After(timeBetweenStatisticsPrints):
 			bytesReceivedDelta := ssh.NumBytesReceived() - lastDataReceived
@@ -174,6 +176,7 @@ func (b *baseAccountsSyncer) printStatistics(ssh common.SizeSyncStatisticsHandle
 				"iterations", ssh.NumIterations(),
 				"CPU time", ssh.ProcessingTime(),
 				"processing speed", speed)
+			log.Debug("trie sync node statistics", statistics.GetRuntimeStatistics()...)
 		}
 	}
 }
