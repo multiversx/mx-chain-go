@@ -427,7 +427,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		VMOutputCacher:      txcache.NewDisabledCache(),
 	}
 
-	scProcessor, err := processProxy.NewSmartContractProcessorProxy(argsNewSCProcessor, epochNotifier)
+	scProcessorProxy, err := processProxy.NewSmartContractProcessorProxy(argsNewSCProcessor, epochNotifier)
 	if err != nil {
 		return nil, err
 	}
@@ -438,7 +438,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		Accounts:            arg.Accounts,
 		PubkeyConv:          arg.Core.AddressPubKeyConverter(),
 		ShardCoordinator:    arg.ShardCoordinator,
-		ScProcessor:         scProcessor,
+		ScProcessor:         scProcessorProxy,
 		TxTypeHandler:       txTypeHandler,
 		EconomicsFee:        genesisFeeHandler,
 		EnableEpochsHandler: enableEpochsHandler,
@@ -464,7 +464,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		arg.Accounts,
 		disabledRequestHandler,
 		txProcessor,
-		scProcessor,
+		scProcessorProxy,
 		arg.Economics,
 		gasHandler,
 		disabledBlockTracker,
@@ -540,8 +540,8 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		systemSCs:      virtualMachineFactory.SystemSmartContractContainer(),
 		blockchainHook: virtualMachineFactory.BlockChainHookImpl(),
 		txProcessor:    txProcessor,
-		scProcessor:    scProcessor,
-		scrProcessor:   scProcessor,
+		scProcessor:    scProcessorProxy,
+		scrProcessor:   scProcessorProxy,
 		rwdProcessor:   nil,
 		queryService:   queryService,
 		vmContainer:    vmContainer,

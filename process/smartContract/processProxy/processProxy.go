@@ -28,8 +28,8 @@ const (
 type SCProcessorProxy struct {
 	configuredProcessor configuredProcessor
 	args                scrCommon.ArgsNewSmartContractProcessor
-	processor           process.SmartContractProcessorFull
-	processorsCache     map[configuredProcessor]process.SmartContractProcessorFull
+	processor           process.SmartContractProcessorFacade
+	processorsCache     map[configuredProcessor]process.SmartContractProcessorFacade
 	testScProcessor     scrCommon.TestSmartContractProcessor
 	testProcessorsCache map[configuredProcessor]scrCommon.TestSmartContractProcessor
 	mutRc               sync.Mutex
@@ -64,7 +64,7 @@ func NewSmartContractProcessorProxy(args scrCommon.ArgsNewSmartContractProcessor
 		},
 	}
 
-	scProcessorProxy.processorsCache = make(map[configuredProcessor]process.SmartContractProcessorFull)
+	scProcessorProxy.processorsCache = make(map[configuredProcessor]process.SmartContractProcessorFacade)
 	scProcessorProxy.testProcessorsCache = make(map[configuredProcessor]scrCommon.TestSmartContractProcessor)
 
 	var err error
@@ -106,6 +106,8 @@ func (scPProxy *SCProcessorProxy) setActiveProcessorV2() {
 }
 
 func (scPProxy *SCProcessorProxy) setActiveProcessor(version configuredProcessor) {
+	scPProxy.mutRc.Lock()
+	defer scPProxy.mutRc.Unlock()
 	log.Info("processorProxy", "configured", version)
 	scPProxy.configuredProcessor = version
 	scPProxy.processor = scPProxy.processorsCache[version]

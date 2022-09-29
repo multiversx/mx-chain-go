@@ -225,7 +225,7 @@
     RefactorPeersMiniBlocksEnableEpoch = 5
 
     # SCV2EnableEpoch represents the epoch when SC processor V2 will be used
-    SCV2EnableEpoch = 9000000
+    SCV2EnableEpoch = 6
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [

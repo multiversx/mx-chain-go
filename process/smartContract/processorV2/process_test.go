@@ -3049,6 +3049,11 @@ func TestScProcessor_ProcessSmartContractResultExecuteSCIfMetaAndBuiltIn(t *test
 			return process.BuiltInFunctionCall, process.BuiltInFunctionCall
 		},
 	}
+	enableEpochsHandlerStub := &testscommon.EnableEpochsHandlerStub{
+		IsSCDeployFlagEnabledField: true,
+	}
+	arguments.EnableEpochsHandler = enableEpochsHandlerStub
+
 	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
@@ -3059,8 +3064,13 @@ func TestScProcessor_ProcessSmartContractResultExecuteSCIfMetaAndBuiltIn(t *test
 		Data:    []byte("code@06"),
 		Value:   big.NewInt(15),
 	}
+	_, err = sc.ProcessSmartContractResult(&scr)
+	require.Nil(t, err)
+	require.True(t, executeCalled)
 
 	executeCalled = false
+	enableEpochsHandlerStub.IsBuiltInFunctionOnMetaFlagEnabledField = true
+	enableEpochsHandlerStub.IsBuiltInFunctionsFlagEnabledField = true
 	_, err = sc.ProcessSmartContractResult(&scr)
 	require.Nil(t, err)
 	require.True(t, executeCalled)
@@ -3337,7 +3347,7 @@ func TestGasLockedInSmartContractProcessor(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, 1, len(args))
 
-	finalArguments, gasLocked := sc.getAsyncCallGasLockFromTxData(scr.CallType, args)
+	finalArguments, gasLocked := getAsyncCallGasLockFromTxData(scr.CallType, args)
 	require.Equal(t, 0, len(finalArguments))
 	require.Equal(t, gasLocked, outTransfer.GasLocked)
 

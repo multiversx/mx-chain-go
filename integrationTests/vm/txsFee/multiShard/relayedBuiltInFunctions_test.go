@@ -94,17 +94,6 @@ func TestRelayedBuiltInFunctionExecuteOnRelayerAndDstShardShouldWork(t *testing.
 	accumulatedFees = testContextInner.TxFeeHandler.GetAccumulatedFees()
 	require.Equal(t, expectedFees, accumulatedFees)
 
-	/*
-		 in V2
-		 	penalizeUserIfNeeded() is called,
-			GasRemaining is set to 0,
-			shouldRefundGasToRelayerSCR is false
-			refundGasToRelayerSCR is no longer created
-	*/
-	// txs := testContextInner.GetIntermediateTransactions(t)
-	// scr := txs[0]
-	// utils.ProcessSCRResult(t, testContextRelayer, scr, vmcommon.Ok, nil)
-
 	expectedRelayerBalance = big.NewInt(4610)
 	utils.TestAccount(t, testContextRelayer.Accounts, relayerAddr, 1, expectedRelayerBalance)
 

@@ -85,7 +85,7 @@ func (sc *scProcessor) createVMCallInput(
 		return nil, err
 	}
 
-	finalArguments, gasLocked := sc.getAsyncCallGasLockFromTxData(callType, arguments)
+	finalArguments, gasLocked := getAsyncCallGasLockFromTxData(callType, arguments)
 
 	asyncArguments, callArguments := separateAsyncArguments(callType, finalArguments)
 
@@ -127,7 +127,7 @@ func (sc *scProcessor) createVMCallInput(
 	return vmCallInput, nil
 }
 
-func (sc *scProcessor) getAsyncCallGasLockFromTxData(callType vm.CallType, arguments [][]byte) ([][]byte, uint64) {
+func getAsyncCallGasLockFromTxData(callType vm.CallType, arguments [][]byte) ([][]byte, uint64) {
 	if callType != vm.AsynchronousCall {
 		return arguments, 0
 	}

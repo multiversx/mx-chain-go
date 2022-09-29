@@ -527,7 +527,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		ArwenChangeLocker:   genesisArwenLocker,
 	}
 
-	scProcessor, err := processProxy.NewSmartContractProcessorProxy(argsNewScProcessor, epochNotifier)
+	scProcessorProxy, err := processProxy.NewSmartContractProcessorProxy(argsNewScProcessor, epochNotifier)
 	if err != nil {
 		return nil, err
 	}
@@ -548,7 +548,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		Marshalizer:         arg.Core.InternalMarshalizer(),
 		SignMarshalizer:     arg.Core.TxMarshalizer(),
 		ShardCoordinator:    arg.ShardCoordinator,
-		ScProcessor:         scProcessor,
+		ScProcessor:         scProcessorProxy,
 		TxFeeHandler:        genesisFeeHandler,
 		TxTypeHandler:       txTypeHandler,
 		EconomicsFee:        genesisFeeHandler,
@@ -580,8 +580,8 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		arg.Accounts,
 		disabledRequestHandler,
 		transactionProcessor,
-		scProcessor,
-		scProcessor,
+		scProcessorProxy,
+		scProcessorProxy,
 		rewardsTxProcessor,
 		arg.Economics,
 		gasHandler,
@@ -656,8 +656,8 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		txCoordinator:       txCoordinator,
 		systemSCs:           nil,
 		txProcessor:         transactionProcessor,
-		scProcessor:         scProcessor,
-		scrProcessor:        scProcessor,
+		scProcessor:         scProcessorProxy,
+		scrProcessor:        scProcessorProxy,
 		rwdProcessor:        rewardsTxProcessor,
 		blockchainHook:      vmFactoryImpl.BlockChainHookImpl(),
 		queryService:        queryService,

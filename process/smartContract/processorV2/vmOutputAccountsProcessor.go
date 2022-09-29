@@ -267,7 +267,7 @@ func (oap *VMOutputAccountsProcessor) updateAccountBalanceStep(
 		return sumOfAllDiff, nil
 	}
 
-	sumOfAllDiff = sumOfAllDiff.Add(sumOfAllDiff, outAcc.BalanceDelta)
+	sumOfAllDiff = big.NewInt(0).Add(sumOfAllDiff, outAcc.BalanceDelta)
 
 	err := acc.AddToBalance(outAcc.BalanceDelta)
 	if err != nil {

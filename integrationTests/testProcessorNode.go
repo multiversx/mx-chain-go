@@ -305,7 +305,7 @@ type TestProcessorNode struct {
 	BlockchainHook         *hooks.BlockChainHookImpl
 	VMContainer            process.VirtualMachinesContainer
 	ArgsParser             process.ArgumentsParser
-	ScProcessor            process.SmartContractProcessorFull
+	ScProcessor            process.SmartContractProcessorFacade
 	RewardsProcessor       process.RewardTransactionProcessor
 	PreProcessorsContainer process.PreProcessorsContainer
 	GasHandler             process.GasHandler
