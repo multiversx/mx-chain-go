@@ -1463,7 +1463,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		ArwenChangeLocker:   tpn.ArwenChangeLocker,
 	}
 
-	tpn.ScProcessor, _ = processProxy.NewSmartContractProcessorProxy(argsNewScProcessor, tpn.EpochNotifier)
+	tpn.ScProcessor, _ = processProxy.NewTestSmartContractProcessorProxy(argsNewScProcessor, tpn.EpochNotifier)
 
 	receiptsHandler, _ := tpn.InterimProcContainer.Get(dataBlock.ReceiptBlock)
 	argsNewTxProcessor := transaction.ArgsNewTxProcessor{
@@ -1709,7 +1709,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		ArwenChangeLocker:   tpn.ArwenChangeLocker,
 	}
 
-	tpn.ScProcessor, _ = processProxy.NewSmartContractProcessorProxy(argsNewScProcessor, tpn.EpochNotifier)
+	tpn.ScProcessor, _ = processProxy.NewTestSmartContractProcessorProxy(argsNewScProcessor, tpn.EpochNotifier)
 
 	argsNewMetaTxProc := transaction.ArgsNewMetaTxProcessor{
 		Hasher:              TestHasher,

@@ -494,7 +494,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		ArwenChangeLocker:   arwenChangeLocker,
 	}
 
-	scProcessor, _ := processProxy.NewSmartContractProcessorProxy(argsNewSCProcessor, genericEpochNotifier)
+	scProcessor, _ := processProxy.NewTestSmartContractProcessorProxy(argsNewSCProcessor, genericEpochNotifier)
 
 	argsNewTxProcessor := transaction.ArgsNewTxProcessor{
 		Accounts:            accnts,
@@ -846,7 +846,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		VMOutputCacher:      txcache.NewDisabledCache(),
 	}
 
-	scProcessorProxy, _ := processProxy.NewSmartContractProcessorProxy(argsNewSCProcessor, epochNotifierInstance)
+	scProcessorProxy, _ := processProxy.NewTestSmartContractProcessorProxy(argsNewSCProcessor, epochNotifierInstance)
 
 	argsNewTxProcessor := transaction.ArgsNewTxProcessor{
 		Accounts:            accnts,
@@ -932,7 +932,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	}
 
 	argsNewSCProcessor.VMOutputCacher = txSimulatorProcessorArgs.VMOutputCacher
-	proxyProcessor, _ := processProxy.NewSmartContractProcessorProxy(argsNewSCProcessor, epochNotifierInstance)
+	proxyProcessor, _ := processProxy.NewTestSmartContractProcessorProxy(argsNewSCProcessor, epochNotifierInstance)
 	argsNewTxProcessor.ScProcessor = proxyProcessor
 	argsNewTxProcessor.Accounts = readOnlyAccountsDB
 
