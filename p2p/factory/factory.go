@@ -1,11 +1,11 @@
-package p2p
+package factory
 
 import (
-	p2p "github.com/ElrondNetwork/elrond-go-p2p"
 	"github.com/ElrondNetwork/elrond-go-p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go-p2p/message"
 	"github.com/ElrondNetwork/elrond-go-p2p/peersHolder"
 	"github.com/ElrondNetwork/elrond-go-p2p/rating"
+	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
 // ArgsNetworkMessenger defines the options used to create a p2p wrapper
