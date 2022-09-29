@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/scrCommon"
 	"io/ioutil"
 	"math"
 	"math/big"
@@ -328,7 +329,7 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 	argsLogProcessor := transactionLog.ArgTxLogProcessor{Marshalizer: marshalizer}
 	logsProcessor, _ := transactionLog.NewTxLogProcessor(argsLogProcessor)
 	context.SCRForwarder = &mock.IntermediateTransactionHandlerMock{}
-	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
+	argsNewSCProcessor := scrCommon.ArgsNewSmartContractProcessor{
 		VmContainer:      context.VMContainer,
 		ArgsParser:       smartContract.NewArgumentParser(),
 		Hasher:           hasher,

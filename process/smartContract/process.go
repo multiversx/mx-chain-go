@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/scrCommon"
 	"math/big"
 	"strings"
 	"sync"
@@ -85,33 +86,8 @@ type scProcessor struct {
 	isGenesisProcessing bool
 }
 
-// ArgsNewSmartContractProcessor defines the arguments needed for new smart contract processor
-type ArgsNewSmartContractProcessor struct {
-	VmContainer         process.VirtualMachinesContainer
-	ArgsParser          process.ArgumentsParser
-	Hasher              hashing.Hasher
-	Marshalizer         marshal.Marshalizer
-	AccountsDB          state.AccountsAdapter
-	BlockChainHook      process.BlockChainHookHandler
-	BuiltInFunctions    vmcommon.BuiltInFunctionContainer
-	PubkeyConv          core.PubkeyConverter
-	ShardCoordinator    sharding.Coordinator
-	ScrForwarder        process.IntermediateTransactionHandler
-	TxFeeHandler        process.TransactionFeeHandler
-	EconomicsFee        process.FeeHandler
-	TxTypeHandler       process.TxTypeHandler
-	GasHandler          process.GasHandler
-	GasSchedule         core.GasScheduleNotifier
-	TxLogsProcessor     process.TransactionLogProcessor
-	EnableEpochsHandler common.EnableEpochsHandler
-	BadTxForwarder      process.IntermediateTransactionHandler
-	VMOutputCacher      storage.Cacher
-	ArwenChangeLocker   common.Locker
-	IsGenesisProcessing bool
-}
-
 // NewSmartContractProcessor creates a smart contract processor that creates and interprets VM data
-func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor, error) {
+func NewSmartContractProcessor(args scrCommon.ArgsNewSmartContractProcessor) (*scProcessor, error) {
 	if check.IfNil(args.VmContainer) {
 		return nil, process.ErrNoVM
 	}

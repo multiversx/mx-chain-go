@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/scrCommon"
 	"math/big"
 	"sync"
 	"testing"
@@ -60,7 +61,7 @@ func createAccounts(tx data.TransactionHandler) (state.UserAccountHandler, state
 	return acntSrc, acntDst
 }
 
-func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
+func createMockSmartContractProcessorArguments() scrCommon.ArgsNewSmartContractProcessor {
 	gasSchedule := make(map[string]map[string]uint64)
 	gasSchedule[common.ElrondAPICost] = make(map[string]uint64)
 	gasSchedule[common.ElrondAPICost][common.AsyncCallStepField] = 1000
@@ -68,7 +69,7 @@ func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
 	gasSchedule[common.BuiltInCost] = make(map[string]uint64)
 	gasSchedule[common.BuiltInCost][core.BuiltInFunctionESDTTransfer] = 2000
 
-	return ArgsNewSmartContractProcessor{
+	return scrCommon.ArgsNewSmartContractProcessor{
 		VmContainer: &mock.VMContainerMock{},
 		ArgsParser:  &mock.ArgumentParserMock{},
 		Hasher:      &hashingMocks.HasherMock{},
@@ -101,7 +102,7 @@ func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
 		GasHandler: &testscommon.GasHandlerStub{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
-		GasSchedule:       testscommon.NewGasScheduleNotifierMock(gasSchedule),
+		GasSchedule: testscommon.NewGasScheduleNotifierMock(gasSchedule),
 		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
 			IsSCDeployFlagEnabledField: true,
 		},

@@ -152,7 +152,8 @@ func (scPProxy *SCProcessorProxy) EpochConfirmed(epoch uint32, _ uint64) {
 	scPProxy.mutRc.Lock()
 	defer scPProxy.mutRc.Unlock()
 
-	if scPProxy.args.EnableEpochsHandler.IsSCProcessorV2FlagEnabled() {
+	// TODO: change this in next PR
+	if scPProxy.args.EnableEpochsHandler.IsFixAsyncCallbackCheckFlagEnabled() {
 		scPProxy.setActiveProcessorV2()
 		return
 	}

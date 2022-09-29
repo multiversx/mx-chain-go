@@ -3,6 +3,7 @@ package process
 import (
 	"bytes"
 	"encoding/hex"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/scrCommon"
 	"math"
 	"math/big"
 	"sort"
@@ -401,7 +402,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 	}
 
 	argsParser := smartContract.NewArgumentParser()
-	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
+	argsNewSCProcessor := scrCommon.ArgsNewSmartContractProcessor{
 		VmContainer:         vmContainer,
 		ArgsParser:          argsParser,
 		Hasher:              arg.Core.Hasher(),
