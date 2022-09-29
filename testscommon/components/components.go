@@ -33,6 +33,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/genesis/data"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	p2pConfig "github.com/ElrondNetwork/elrond-go/p2p/config"
+	p2pFactory "github.com/ElrondNetwork/elrond-go/p2p/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -430,7 +431,7 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 				UnitValue:                    1.0,
 			},
 		},
-		Syncer:            &p2p.LocalSyncTimer{},
+		Syncer:            &p2pFactory.LocalSyncTimer{},
 		NodeOperationMode: p2p.NormalOperation,
 	}
 }

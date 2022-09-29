@@ -39,6 +39,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	p2pConfig "github.com/ElrondNetwork/elrond-go/p2p/config"
+	p2pFactory "github.com/ElrondNetwork/elrond-go/p2p/factory"
 	"github.com/ElrondNetwork/elrond-go/process"
 	procFactory "github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
@@ -147,18 +148,18 @@ func CreateMessengerWithKadDht(initialAddr string) p2p.Messenger {
 	if len(initialAddr) > 0 {
 		initialAddresses = append(initialAddresses, initialAddr)
 	}
-	arg := p2p.ArgsNetworkMessenger{
+	arg := p2pFactory.ArgsNetworkMessenger{
 		Marshalizer:           TestMarshalizer,
 		ListenAddress:         p2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig:             createP2PConfig(initialAddresses),
-		SyncTimer:             &p2p.LocalSyncTimer{},
+		SyncTimer:             &p2pFactory.LocalSyncTimer{},
 		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
 		NodeOperationMode:     p2p.NormalOperation,
 		PeersRatingHandler:    &p2pmocks.PeersRatingHandlerStub{},
 		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 	}
 
-	libP2PMes, err := p2p.NewNetworkMessenger(arg)
+	libP2PMes, err := p2pFactory.NewNetworkMessenger(arg)
 	log.LogIfError(err)
 
 	return libP2PMes
@@ -166,11 +167,11 @@ func CreateMessengerWithKadDht(initialAddr string) p2p.Messenger {
 
 // CreateMessengerFromConfig creates a new libp2p messenger with provided configuration
 func CreateMessengerFromConfig(p2pConfig p2pConfig.P2PConfig) p2p.Messenger {
-	arg := p2p.ArgsNetworkMessenger{
+	arg := p2pFactory.ArgsNetworkMessenger{
 		Marshalizer:           TestMarshalizer,
 		ListenAddress:         p2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig:             p2pConfig,
-		SyncTimer:             &p2p.LocalSyncTimer{},
+		SyncTimer:             &p2pFactory.LocalSyncTimer{},
 		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
 		NodeOperationMode:     p2p.NormalOperation,
 		PeersRatingHandler:    &p2pmocks.PeersRatingHandlerStub{},
@@ -182,7 +183,7 @@ func CreateMessengerFromConfig(p2pConfig p2pConfig.P2PConfig) p2p.Messenger {
 		arg.NodeOperationMode = p2p.FullArchiveMode
 	}
 
-	libP2PMes, err := p2p.NewNetworkMessenger(arg)
+	libP2PMes, err := p2pFactory.NewNetworkMessenger(arg)
 	log.LogIfError(err)
 
 	return libP2PMes
@@ -190,11 +191,11 @@ func CreateMessengerFromConfig(p2pConfig p2pConfig.P2PConfig) p2p.Messenger {
 
 // CreateMessengerFromConfigWithPeersRatingHandler creates a new libp2p messenger with provided configuration
 func CreateMessengerFromConfigWithPeersRatingHandler(p2pConfig p2pConfig.P2PConfig, peersRatingHandler p2p.PeersRatingHandler) p2p.Messenger {
-	arg := p2p.ArgsNetworkMessenger{
+	arg := p2pFactory.ArgsNetworkMessenger{
 		Marshalizer:           TestMarshalizer,
 		ListenAddress:         p2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig:             p2pConfig,
-		SyncTimer:             &p2p.LocalSyncTimer{},
+		SyncTimer:             &p2pFactory.LocalSyncTimer{},
 		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
 		NodeOperationMode:     p2p.NormalOperation,
 		PeersRatingHandler:    peersRatingHandler,
@@ -206,7 +207,7 @@ func CreateMessengerFromConfigWithPeersRatingHandler(p2pConfig p2pConfig.P2PConf
 		arg.NodeOperationMode = p2p.FullArchiveMode
 	}
 
-	libP2PMes, err := p2p.NewNetworkMessenger(arg)
+	libP2PMes, err := p2pFactory.NewNetworkMessenger(arg)
 	log.LogIfError(err)
 
 	return libP2PMes
