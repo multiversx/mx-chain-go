@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/stretchr/testify/assert"
 )
@@ -23,15 +24,15 @@ func initNodesWithTestSigner(
 	fmt.Println("Step 1. Setup nodes...")
 
 	nodes := integrationTests.CreateNodesWithTestConsensusNode(
-		1,
+		int(numMetaNodes),
 		int(numNodes),
 		int(consensusSize),
 		roundTime,
 		consensusType,
 	)
 
-	for _, nodesList := range nodes {
-		displayAndStartNodes(nodesList)
+	for shardID, nodesList := range nodes {
+		displayAndStartNodes(shardID, nodesList)
 	}
 
 	time.Sleep(p2pBootstrapDelay)
@@ -58,16 +59,17 @@ func TestConsensusWithInvalidSigners(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
+	_ = logger.SetLogLevel("*:DEBUG")
+
 	numMetaNodes := uint32(4)
 	numNodes := uint32(4)
 	consensusSize := uint32(4)
-	numInvalid := uint32(1)
+	numInvalid := uint32(0)
 	roundTime := uint64(1000)
 	numCommBlock := uint64(8)
 
 	nodes := initNodesWithTestSigner(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, blsConsensusType)
 
-	mutex := &sync.Mutex{}
 	defer func() {
 		for shardID := range nodes {
 			for _, n := range nodes[shardID] {
@@ -80,24 +82,27 @@ func TestConsensusWithInvalidSigners(t *testing.T) {
 	fmt.Println("Start consensus...")
 	time.Sleep(time.Second)
 
-	// TODO: use nonces for round map for each shard separately
-	nonceForRoundMap := make(map[uint64]uint64)
-	totalCalled := 0
-	err := startNodesWithCommitBlock(nodes, mutex, nonceForRoundMap, &totalCalled)
-	assert.Nil(t, err)
+	for shardID := range nodes {
+		mutex := &sync.Mutex{}
+		nonceForRoundMap := make(map[uint64]uint64)
+		totalCalled := 0
 
-	chDone := make(chan bool)
-	go checkBlockProposedEveryRound(numCommBlock, nonceForRoundMap, mutex, chDone, t)
+		err := startNodesWithCommitBlock(nodes[shardID], mutex, nonceForRoundMap, &totalCalled)
+		assert.Nil(t, err)
 
-	extraTime := uint64(2)
-	endTime := time.Duration(roundTime) * time.Duration(numCommBlock+extraTime) * time.Millisecond
-	select {
-	case <-chDone:
-	case <-time.After(endTime):
-		mutex.Lock()
-		fmt.Println("currently saved nonces for rounds: \n", nonceForRoundMap)
-		assert.Fail(t, "consensus too slow, not working.")
-		mutex.Unlock()
-		return
+		chDone := make(chan bool)
+		go checkBlockProposedEveryRound(numCommBlock, nonceForRoundMap, mutex, chDone, t)
+
+		extraTime := uint64(2)
+		endTime := time.Duration(roundTime) * time.Duration(numCommBlock+extraTime) * time.Millisecond
+		select {
+		case <-chDone:
+		case <-time.After(endTime):
+			mutex.Lock()
+			fmt.Println("currently saved nonces for rounds: \n", nonceForRoundMap)
+			assert.Fail(t, "consensus too slow, not working.")
+			mutex.Unlock()
+			return
+		}
 	}
 }

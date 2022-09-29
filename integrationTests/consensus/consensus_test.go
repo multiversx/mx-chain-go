@@ -53,15 +53,15 @@ func initNodesAndTest(
 	fmt.Println("Step 1. Setup nodes...")
 
 	nodes := integrationTests.CreateNodesWithTestConsensusNode(
-		1,
+		int(numMetaNodes),
 		int(numNodes),
 		int(consensusSize),
 		roundTime,
 		consensusType,
 	)
 
-	for _, nodesList := range nodes {
-		displayAndStartNodes(nodesList)
+	for shardID, nodesList := range nodes {
+		displayAndStartNodes(shardID, nodesList)
 	}
 
 	time.Sleep(p2pBootstrapDelay)
@@ -96,72 +96,71 @@ func initNodesAndTest(
 	return nodes
 }
 
-func startNodesWithCommitBlock(nodes map[uint32][]*integrationTests.TestConsensusNode, mutex *sync.Mutex, nonceForRoundMap map[uint64]uint64, totalCalled *int) error {
-	for shardID := range nodes {
-		for _, n := range nodes[shardID] {
-			nCopy := n
-			n.BlockProcessor.CommitBlockCalled = func(header data.HeaderHandler, body data.BodyHandler) error {
-				nCopy.BlockProcessor.NrCommitBlockCalled++
-				_ = nCopy.ChainHandler.SetCurrentBlockHeaderAndRootHash(header, header.GetRootHash())
+func startNodesWithCommitBlock(nodes []*integrationTests.TestConsensusNode, mutex *sync.Mutex, nonceForRoundMap map[uint64]uint64, totalCalled *int) error {
+	for _, n := range nodes {
+		nCopy := n
+		n.BlockProcessor.CommitBlockCalled = func(header data.HeaderHandler, body data.BodyHandler) error {
+			nCopy.BlockProcessor.NrCommitBlockCalled++
+			_ = nCopy.ChainHandler.SetCurrentBlockHeaderAndRootHash(header, header.GetRootHash())
 
-				mutex.Lock()
-				nonceForRoundMap[header.GetRound()] = header.GetNonce()
-				*totalCalled += 1
-				mutex.Unlock()
+			mutex.Lock()
+			nonceForRoundMap[header.GetRound()] = header.GetNonce()
+			*totalCalled += 1
+			mutex.Unlock()
 
-				return nil
-			}
+			return nil
+		}
 
-			statusComponents := integrationTests.GetDefaultStatusComponents()
+		statusComponents := integrationTests.GetDefaultStatusComponents()
 
-			consensusArgs := consensusComp.ConsensusComponentsFactoryArgs{
-				Config: config.Config{
-					Consensus: config.ConsensusConfig{
-						Type: blsConsensusType,
-					},
-					ValidatorPubkeyConverter: config.PubkeyConfig{
-						Length:          96,
-						Type:            "bls",
-						SignatureLength: 48,
-					},
-					TrieSync: config.TrieSyncConfig{
-						NumConcurrentTrieSyncers:  5,
-						MaxHardCapForMissingNodes: 5,
-						TrieSyncerVersion:         2,
-						CheckNodesOnDisk:          false,
-					},
-					GeneralSettings: config.GeneralSettingsConfig{
-						SyncProcessTimeInMillis: 6000,
-					},
+		consensusArgs := consensusComp.ConsensusComponentsFactoryArgs{
+			Config: config.Config{
+				Consensus: config.ConsensusConfig{
+					Type: blsConsensusType,
 				},
-				BootstrapRoundIndex: 0,
-				CoreComponents:      n.Node.GetCoreComponents(),
-				NetworkComponents:   n.Node.GetNetworkComponents(),
-				CryptoComponents:    n.Node.GetCryptoComponents(),
-				DataComponents:      n.Node.GetDataComponents(),
-				ProcessComponents:   n.Node.GetProcessComponents(),
-				StateComponents:     n.Node.GetStateComponents(),
-				StatusComponents:    statusComponents,
-				ScheduledProcessor:  &consensusMocks.ScheduledProcessorStub{},
-				IsInImportMode:      n.Node.IsInImportMode(),
-			}
+				ValidatorPubkeyConverter: config.PubkeyConfig{
+					Length:          96,
+					Type:            "bls",
+					SignatureLength: 48,
+				},
+				TrieSync: config.TrieSyncConfig{
+					NumConcurrentTrieSyncers:  5,
+					MaxHardCapForMissingNodes: 5,
+					TrieSyncerVersion:         2,
+					CheckNodesOnDisk:          false,
+				},
+				GeneralSettings: config.GeneralSettingsConfig{
+					SyncProcessTimeInMillis: 6000,
+				},
+			},
+			BootstrapRoundIndex: 0,
+			CoreComponents:      n.Node.GetCoreComponents(),
+			NetworkComponents:   n.Node.GetNetworkComponents(),
+			CryptoComponents:    n.Node.GetCryptoComponents(),
+			DataComponents:      n.Node.GetDataComponents(),
+			ProcessComponents:   n.Node.GetProcessComponents(),
+			StateComponents:     n.Node.GetStateComponents(),
+			StatusComponents:    statusComponents,
+			ScheduledProcessor:  &consensusMocks.ScheduledProcessorStub{},
+			IsInImportMode:      n.Node.IsInImportMode(),
+		}
 
-			consensusFactory, err := consensusComp.NewConsensusComponentsFactory(consensusArgs)
-			if err != nil {
-				return fmt.Errorf("NewConsensusComponentsFactory failed: %w", err)
-			}
+		consensusFactory, err := consensusComp.NewConsensusComponentsFactory(consensusArgs)
+		if err != nil {
+			return fmt.Errorf("NewConsensusComponentsFactory failed: %w", err)
+		}
 
-			managedConsensusComponents, err := consensusComp.NewManagedConsensusComponents(consensusFactory)
-			if err != nil {
-				return err
-			}
+		managedConsensusComponents, err := consensusComp.NewManagedConsensusComponents(consensusFactory)
+		if err != nil {
+			return err
+		}
 
-			err = managedConsensusComponents.Create()
-			if err != nil {
-				return err
-			}
+		err = managedConsensusComponents.Create()
+		if err != nil {
+			return err
 		}
 	}
+
 	return nil
 }
 
@@ -212,7 +211,6 @@ func runFullConsensusTest(t *testing.T, consensusType string) {
 
 	nodes := initNodesAndTest(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, consensusType)
 
-	mutex := &sync.Mutex{}
 	defer func() {
 		for shardID := range nodes {
 			for _, n := range nodes[shardID] {
@@ -223,26 +221,30 @@ func runFullConsensusTest(t *testing.T, consensusType string) {
 
 	// delay for bootstrapping and topic announcement
 	fmt.Println("Start consensus...")
-	time.Sleep(time.Second)
+	time.Sleep(time.Second * 2)
 
-	nonceForRoundMap := make(map[uint64]uint64)
-	totalCalled := 0
-	err := startNodesWithCommitBlock(nodes, mutex, nonceForRoundMap, &totalCalled)
-	assert.Nil(t, err)
+	for shardID := range nodes {
+		mutex := &sync.Mutex{}
+		nonceForRoundMap := make(map[uint64]uint64)
+		totalCalled := 0
 
-	chDone := make(chan bool)
-	go checkBlockProposedEveryRound(numCommBlock, nonceForRoundMap, mutex, chDone, t)
+		err := startNodesWithCommitBlock(nodes[shardID], mutex, nonceForRoundMap, &totalCalled)
+		assert.Nil(t, err)
 
-	extraTime := uint64(2)
-	endTime := time.Duration(roundTime) * time.Duration(numCommBlock+extraTime) * time.Millisecond
-	select {
-	case <-chDone:
-	case <-time.After(endTime):
-		mutex.Lock()
-		fmt.Println("currently saved nonces for rounds: \n", nonceForRoundMap)
-		assert.Fail(t, "consensus too slow, not working.")
-		mutex.Unlock()
-		return
+		chDone := make(chan bool)
+		go checkBlockProposedEveryRound(numCommBlock, nonceForRoundMap, mutex, chDone, t)
+
+		extraTime := uint64(2)
+		endTime := time.Duration(roundTime) * time.Duration(numCommBlock+extraTime) * time.Millisecond
+		select {
+		case <-chDone:
+		case <-time.After(endTime):
+			mutex.Lock()
+			fmt.Println("currently saved nonces for rounds: \n", nonceForRoundMap)
+			assert.Fail(t, "consensus too slow, not working.")
+			mutex.Unlock()
+			return
+		}
 	}
 }
 
@@ -262,7 +264,6 @@ func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string) {
 	roundTime := uint64(1000)
 	nodes := initNodesAndTest(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, consensusType)
 
-	mutex := &sync.Mutex{}
 	defer func() {
 		for shardID := range nodes {
 			for _, n := range nodes[shardID] {
@@ -275,18 +276,22 @@ func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string) {
 	fmt.Println("Start consensus...")
 	time.Sleep(time.Second)
 
-	nonceForRoundMap := make(map[uint64]uint64)
-	totalCalled := 0
-	err := startNodesWithCommitBlock(nodes, mutex, nonceForRoundMap, &totalCalled)
-	assert.Nil(t, err)
+	for shardID := range nodes {
+		totalCalled := 0
+		mutex := &sync.Mutex{}
+		nonceForRoundMap := make(map[uint64]uint64)
 
-	waitTime := time.Second * 30
-	fmt.Println("Run for 30 seconds...")
-	time.Sleep(waitTime)
+		err := startNodesWithCommitBlock(nodes[shardID], mutex, nonceForRoundMap, &totalCalled)
+		assert.Nil(t, err)
 
-	mutex.Lock()
-	assert.Equal(t, 0, totalCalled)
-	mutex.Unlock()
+		waitTime := time.Second * 30
+		fmt.Println("Run for 30 seconds...")
+		time.Sleep(waitTime)
+
+		mutex.Lock()
+		assert.Equal(t, 0, totalCalled)
+		mutex.Unlock()
+	}
 }
 
 func TestConsensusBLSNotEnoughValidators(t *testing.T) {
@@ -297,13 +302,13 @@ func TestConsensusBLSNotEnoughValidators(t *testing.T) {
 	runConsensusWithNotEnoughValidators(t, blsConsensusType)
 }
 
-func displayAndStartNodes(nodes []*integrationTests.TestConsensusNode) {
+func displayAndStartNodes(shardID uint32, nodes []*integrationTests.TestConsensusNode) {
 	for _, n := range nodes {
 		skBuff, _ := n.NodeKeys.Sk.ToByteArray()
 		pkBuff, _ := n.NodeKeys.Pk.ToByteArray()
 
 		fmt.Printf("Shard ID: %v, sk: %s, pk: %s\n",
-			n.ShardCoordinator.SelfId(),
+			shardID,
 			hex.EncodeToString(skBuff),
 			testPubkeyConverter.Encode(pkBuff),
 		)

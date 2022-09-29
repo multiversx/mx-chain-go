@@ -71,6 +71,7 @@ type TestConsensusNode struct {
 
 // NewTestConsensusNode returns a new TestConsensusNode
 func NewTestConsensusNode(
+	shardID uint32,
 	consensusSize int,
 	roundTime uint64,
 	consensusType string,
@@ -78,15 +79,15 @@ func NewTestConsensusNode(
 	eligibleMap map[uint32][]nodesCoordinator.Validator,
 	waitingMap map[uint32][]nodesCoordinator.Validator,
 	keyGen crypto.KeyGenerator,
-	multiSigner crypto.MultiSigner,
+	multiSigner *cryptoMocks.MultisignerMock,
 ) *TestConsensusNode {
 
-	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
+	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, shardID)
 
 	tcn := &TestConsensusNode{
 		NodeKeys:         nodeKeys,
 		ShardCoordinator: shardCoordinator,
-		MultiSigner:      &cryptoMocks.MultisignerMock{},
+		MultiSigner:      multiSigner,
 	}
 	tcn.initNode(consensusSize, roundTime, consensusType, eligibleMap, waitingMap, keyGen)
 
@@ -108,7 +109,7 @@ func CreateNodesWithTestConsensusNode(
 	validatorsMap := GenValidatorsFromPubKeys(keysMap, maxShards)
 	eligibleMap, _ := nodesCoordinator.NodesInfoToValidators(validatorsMap)
 	waitingMap := make(map[uint32][]nodesCoordinator.Validator)
-	connectableNodes := make([]Connectable, 0)
+	connectableNodes := make(map[uint32][]Connectable, 0)
 
 	testHasher := createHasher(consensusType)
 	multiSigner, _ := multisig.NewBLSMultisig(&mclMultiSig.BlsMultiSigner{Hasher: testHasher}, cp.KeyGen)
@@ -117,6 +118,7 @@ func CreateNodesWithTestConsensusNode(
 	for shardID := range cp.Keys {
 		for _, keysPair := range cp.Keys[shardID] {
 			tcn := NewTestConsensusNode(
+				shardID,
 				consensusSize,
 				roundTime,
 				consensusType,
@@ -127,16 +129,18 @@ func CreateNodesWithTestConsensusNode(
 				multiSignerMock,
 			)
 			nodes[shardID] = append(nodes[shardID], tcn)
-			connectableNodes = append(connectableNodes, tcn)
+			connectableNodes[shardID] = append(connectableNodes[shardID], tcn)
 		}
 	}
 
-	ConnectNodes(connectableNodes)
+	for shardID := range nodes {
+		ConnectNodes(connectableNodes[shardID])
+	}
 
 	return nodes
 }
 
-func createCustomMultiSignerMock(multiSigner crypto.MultiSigner) crypto.MultiSigner {
+func createCustomMultiSignerMock(multiSigner crypto.MultiSigner) *cryptoMocks.MultisignerMock {
 	multiSignerMock := &cryptoMocks.MultisignerMock{}
 	multiSignerMock.CreateSignatureShareCalled = func(privateKeyBytes, message []byte) ([]byte, error) {
 		return multiSigner.CreateSignatureShare(privateKeyBytes, message)
@@ -325,7 +329,7 @@ func (tcn *TestConsensusNode) initNodesCoordinator(
 ) {
 	argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
 		ShardConsensusGroupSize: consensusSize,
-		MetaConsensusGroupSize:  1,
+		MetaConsensusGroupSize:  consensusSize,
 		Marshalizer:             TestMarshalizer,
 		Hasher:                  hasher,
 		Shuffler:                &shardingMocks.NodeShufflerMock{},
@@ -367,7 +371,19 @@ func (tcn *TestConsensusNode) initBlockChain(hasher hashing.Hasher) {
 		RandSeed:      rootHash,
 	}
 
-	_ = tcn.ChainHandler.SetGenesisHeader(header)
+	metaHeader := &dataBlock.MetaBlock{
+		Nonce:        0,
+		Signature:    rootHash,
+		RootHash:     rootHash,
+		PrevRandSeed: rootHash,
+		RandSeed:     rootHash,
+	}
+
+	if tcn.ShardCoordinator.SelfId() == core.MetachainShardId {
+		_ = tcn.ChainHandler.SetGenesisHeader(metaHeader)
+	} else {
+		_ = tcn.ChainHandler.SetGenesisHeader(header)
+	}
 	hdrMarshalized, _ := TestMarshalizer.Marshal(header)
 	tcn.ChainHandler.SetGenesisHeaderHash(hasher.Compute(string(hdrMarshalized)))
 }
@@ -452,6 +468,7 @@ func createTestStore() dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.ReceiptsUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.ScheduledSCRsUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, CreateMemUnit())
 
 	return store
 }
