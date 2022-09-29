@@ -1880,12 +1880,10 @@ func (sc *scProcessor) penalizeUserIfNeeded(
 	)
 
 	vmOutput.ReturnMessage += "@"
-
 	sc.gasHandler.SetGasPenalized(vmOutput.GasRemaining, txHash)
 
 	vmOutput.ReturnMessage += fmt.Sprintf("%s for processing: gas provided = %d, gas used = %d",
-		TooMuchGasProvidedMessage, gasProvidedForProcessing, gasProvidedForProcessing-vmOutput.GasRemaining)
-
+		TooMuchGasProvidedMessage, gasProvidedForProcessing, gasUsed)
 	vmOutput.GasRemaining = 0
 }
 

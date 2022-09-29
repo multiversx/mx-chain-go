@@ -2019,18 +2019,18 @@ func (sc *scProcessor) createSCRsWhenError(
 		ReturnMessage: returnMessage,
 	}
 
-	data := tx.GetData()
+	txData := tx.GetData()
 	var asyncArgs *vmcommon.AsyncArguments
 	if callType == vmData.AsynchronousCall {
 		var err error
-		asyncArgs, data, err = sc.extractAsyncCallParamsFromTxData(string(data))
+		asyncArgs, txData, err = sc.extractAsyncCallParamsFromTxData(string(txData))
 		if err != nil {
 			return nil, nil
 		}
 	}
 
 	accumulatedSCRData := ""
-	esdtReturnData, isCrossShardESDTCall := sc.isCrossShardESDTTransfer(tx.GetSndAddr(), tx.GetRcvAddr(), data)
+	esdtReturnData, isCrossShardESDTCall := sc.isCrossShardESDTTransfer(tx.GetSndAddr(), tx.GetRcvAddr(), txData)
 	if callType != vmData.AsynchronousCallBack && isCrossShardESDTCall {
 		accumulatedSCRData += esdtReturnData
 	}
