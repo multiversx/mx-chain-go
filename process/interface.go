@@ -56,12 +56,6 @@ type SmartContractResultProcessor interface {
 	IsInterfaceNil() bool
 }
 
-// SmartContractProcessorFull is the main interface for smart contract result execution engine
-type SmartContractProcessorFull interface {
-	SmartContractProcessor
-	SmartContractResultProcessor
-}
-
 // TxTypeHandler is an interface to calculate the transaction type
 type TxTypeHandler interface {
 	ComputeTransactionType(tx data.TransactionHandler) (TransactionType, TransactionType)
