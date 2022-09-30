@@ -52,7 +52,7 @@ func TestNewTrieSync_ThirdVariantImplementation(t *testing.T) {
 
 	require.False(t, check.IfNil(syncer))
 	require.Nil(t, err)
-	_, isInstanceOk := syncer.(*deepFirstTrieSyncer)
+	_, isInstanceOk := syncer.(*depthFirstTrieSyncer)
 	assert.True(t, isInstanceOk)
 }
 
