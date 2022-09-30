@@ -14,8 +14,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-const deltaReRequestForDepthFirst = int64(time.Second)
-
 // TODO print the size of these maps/array by including the values in the trieSyncStatistics
 type depthFirstTrieSyncer struct {
 	baseSyncTrie
@@ -161,7 +159,7 @@ func (d *depthFirstTrieSyncer) requestMissingNodes() {
 			}
 		} else {
 			delta := time.Now().UnixNano() - r.timestamp
-			if delta > deltaReRequestForDepthFirst {
+			if delta > deltaReRequest {
 				marginSlice = append(marginSlice, []byte(hash))
 				r.timestamp = time.Now().UnixNano()
 			}
