@@ -512,7 +512,7 @@ func (sc *scProcessor) updateDeveloperRewards(
 		}
 
 		if outAcc.GasUsed > 0 && sc.isSelfShard(outAcc.Address) {
-			err = sc.addToDevRewardsV2(outAcc.Address, outAcc.GasUsed, tx)
+			err = sc.addToDevRewards(outAcc.Address, outAcc.GasUsed, tx)
 			if err != nil {
 				return err
 			}
@@ -527,7 +527,7 @@ func (sc *scProcessor) updateDeveloperRewards(
 		}
 	}
 
-	err = sc.addToDevRewardsV2(tx.GetRcvAddr(), usedGasByMainSC, tx)
+	err = sc.addToDevRewards(tx.GetRcvAddr(), usedGasByMainSC, tx)
 	if err != nil {
 		return err
 	}
@@ -535,7 +535,7 @@ func (sc *scProcessor) updateDeveloperRewards(
 	return nil
 }
 
-func (sc *scProcessor) addToDevRewardsV2(address []byte, gasUsed uint64, tx data.TransactionHandler) error {
+func (sc *scProcessor) addToDevRewards(address []byte, gasUsed uint64, tx data.TransactionHandler) error {
 	if core.IsEmptyAddress(address) || !core.IsSmartContractAddress(address) {
 		return nil
 	}
