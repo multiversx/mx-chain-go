@@ -28,7 +28,7 @@ func newLogsRepository(storageService dataRetriever.StorageService, marshaller m
 // It searches for logs both in epoch N and epoch N-1, in order to overcome epoch-changing edge-cases.
 func (repository *logsRepository) getLog(logKey []byte, epoch uint32) (*transaction.Log, error) {
 	txLog, err := repository.doGetLog(logKey, epoch)
-	if err != nil {
+	if err != nil && epoch > 0 {
 		txLog, errPreviousEpoch := repository.doGetLog(logKey, epoch-1)
 		if errPreviousEpoch == nil {
 			return txLog, nil
@@ -63,13 +63,15 @@ func (repository *logsRepository) getLogs(logsKeys [][]byte, epoch uint32) (map[
 		return nil, err
 	}
 
-	logsMapPreviousEpoch, err := repository.doGetLogs(logsKeys, epoch-1)
-	if err != nil {
-		return nil, err
-	}
+	if epoch > 0 {
+		logsMapPreviousEpoch, err := repository.doGetLogs(logsKeys, epoch-1)
+		if err != nil {
+			return nil, err
+		}
 
-	for key, value := range logsMapPreviousEpoch {
-		logsMap[key] = value
+		for key, value := range logsMapPreviousEpoch {
+			logsMap[key] = value
+		}
 	}
 
 	return logsMap, nil
