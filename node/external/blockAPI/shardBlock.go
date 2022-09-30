@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/node/filters"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -43,6 +44,11 @@ func (sbp *shardAPIBlockProcessor) GetBlockByNonce(nonce uint64, options api.Blo
 	storerUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(sbp.selfShardID)
 
 	nonceToByteSlice := sbp.uint64ByteSliceConverter.ToByteSlice(nonce)
+	if nonce == 0 {
+		nonceToByteSlice = append(nonceToByteSlice, []byte(common.GenesisStorageSuffix)...)
+		log.Info("GetBlockByNonce: using altered genesis header")
+	}
+
 	headerHash, err := sbp.store.Get(storerUnit, nonceToByteSlice)
 	if err != nil {
 		return nil, err
@@ -61,6 +67,18 @@ func (sbp *shardAPIBlockProcessor) GetBlockByHash(hash []byte, options api.Block
 	blockBytes, err := sbp.getFromStorer(dataRetriever.BlockHeaderUnit, hash)
 	if err != nil {
 		return nil, err
+	}
+
+	blockHeader, err := process.UnmarshalShardHeader(sbp.marshalizer, blockBytes)
+	if err != nil {
+		return nil, err
+	}
+	if blockHeader.GetRound() == 0 {
+		hash = append(hash, []byte("_genesis")...)
+		blockBytes, err = sbp.getFromStorer(dataRetriever.BlockHeaderUnit, hash)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	blockAPI, err := sbp.convertShardBlockBytesToAPIBlock(hash, blockBytes, options)
@@ -93,6 +111,9 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 
 	numOfTxs := uint32(0)
 	miniblocks := make([]*api.MiniBlock, 0)
+
+	log.Info("shardAPIBlockProcessor: num miniblocks handlers", "num", len(blockHeader.GetMiniBlockHeaderHandlers()))
+
 	for _, mb := range blockHeader.GetMiniBlockHeaderHandlers() {
 		if block.Type(mb.GetTypeInt32()) == block.PeerBlock {
 			continue
