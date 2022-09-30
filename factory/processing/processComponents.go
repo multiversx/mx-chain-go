@@ -986,35 +986,6 @@ func getGenesisIntraShardMiniblocks(miniBlocks []*dataBlock.MiniBlock) []*dataBl
 	return intraShardMiniBlocks
 }
 
-func (pcf *processComponentsFactory) createGenesisMiniBlockHandlers(miniBlocks []*dataBlock.MiniBlock) ([]data.MiniBlockHeaderHandler, error) {
-	miniBlockHeaderHandlers := make([]data.MiniBlockHeaderHandler, len(miniBlocks))
-	for i := 0; i < len(miniBlocks); i++ {
-		txCount := len(miniBlocks[i].TxHashes)
-
-		miniBlockHash, err := core.CalculateHash(pcf.coreData.InternalMarshalizer(), pcf.coreData.Hasher(), miniBlocks[i])
-		if err != nil {
-			return nil, err
-		}
-
-		miniBlockHeader := &dataBlock.MiniBlockHeader{
-			Hash:            miniBlockHash,
-			SenderShardID:   miniBlocks[i].SenderShardID,
-			ReceiverShardID: miniBlocks[i].ReceiverShardID,
-			TxCount:         uint32(txCount),
-			Type:            miniBlocks[i].Type,
-		}
-
-		miniBlockHeader.SetIndexOfFirstTxProcessed(int32(0))
-		miniBlockHeader.SetIndexOfLastTxProcessed(int32(txCount - 1))
-		miniBlockHeader.SetProcessingType(int32(dataBlock.Normal))
-		miniBlockHeader.SetConstructionState(int32(dataBlock.Final))
-
-		miniBlockHeaderHandlers[i] = miniBlockHeader
-	}
-
-	return miniBlockHeaderHandlers, nil
-}
-
 func (pcf *processComponentsFactory) indexGenesisBlocks(genesisBlocks map[uint32]data.HeaderHandler, initialIndexingData map[uint32]*genesis.IndexingData) error {
 	currentShardId := pcf.bootstrapComponents.ShardCoordinator().SelfId()
 	originalGenesisBlockHeader := genesisBlocks[currentShardId]
@@ -1053,25 +1024,10 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(genesisBlocks map[uint32
 		pcf.statusComponents.OutportHandler().SaveBlock(arg)
 	}
 
-	genesisMiniBlockHeaderHandlers, err := pcf.createGenesisMiniBlockHandlers(miniBlocks)
-	if err != nil {
-		return err
-	}
-
-	err = genesisBlockHeader.SetMiniBlockHeaderHandlers(genesisMiniBlockHeaderHandlers)
-	if err != nil {
-		return err
-	}
-
-	genesisBlockHash, err = core.CalculateHash(pcf.coreData.InternalMarshalizer(), pcf.coreData.Hasher(), genesisBlockHeader)
-	if err != nil {
-		return err
-	}
-
 	log.Info("indexGenesisBlocks(): historyRepo.RecordBlock", "shardID", currentShardId, "hash", genesisBlockHash)
 	err = pcf.historyRepo.RecordBlock(
 		genesisBlockHash,
-		genesisBlockHeader,
+		originalGenesisBlockHeader,
 		genesisBody,
 		txsPoolPerShard[currentShardId].Scrs,
 		txsPoolPerShard[currentShardId].Receipts,
