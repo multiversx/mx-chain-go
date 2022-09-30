@@ -16,20 +16,19 @@ import (
 
 const deltaReRequestForDepthFirst = int64(time.Second)
 
+// TODO print the size of these maps/array by including the values in the trieSyncStatistics
 type depthFirstTrieSyncer struct {
 	baseSyncTrie
-	rootFound                 bool
 	shardId                   uint32
 	topic                     string
 	rootHash                  []byte
 	waitTimeBetweenChecks     time.Duration
-	marshalizer               marshal.Marshalizer
+	marshaller                marshal.Marshalizer
 	hasher                    hashing.Hasher
 	db                        common.DBWriteCacher
 	requestHandler            RequestHandler
 	interceptedNodesCacher    storage.Cacher
 	mutOperation              sync.RWMutex
-	handlerID                 string
 	trieSyncStatistics        common.SizeSyncStatisticsHandler
 	timeoutHandler            TimeoutHandler
 	maxHardCapForMissingNodes int
@@ -54,12 +53,11 @@ func NewDepthFirstTrieSyncer(arg ArgTrieSyncer) (*depthFirstTrieSyncer, error) {
 		requestHandler:            arg.RequestHandler,
 		interceptedNodesCacher:    arg.InterceptedNodes,
 		db:                        stsm,
-		marshalizer:               arg.Marshalizer,
+		marshaller:                arg.Marshalizer,
 		hasher:                    arg.Hasher,
 		topic:                     arg.Topic,
 		shardId:                   arg.ShardId,
 		waitTimeBetweenChecks:     time.Millisecond * 100,
-		handlerID:                 core.UniqueIdentifier(),
 		trieSyncStatistics:        arg.TrieSyncStatistics,
 		timeoutHandler:            arg.TimeoutHandler,
 		maxHardCapForMissingNodes: arg.MaxHardCapForMissingNodes,
@@ -85,7 +83,6 @@ func (d *depthFirstTrieSyncer) StartSyncing(rootHash []byte, ctx context.Context
 
 	d.nodes = newTrieNodesHandler()
 
-	d.rootFound = false
 	d.rootHash = rootHash
 
 	d.nodes.addInitialRootHash(string(rootHash))
@@ -137,14 +134,13 @@ func (d *depthFirstTrieSyncer) checkIsSyncedWhileProcessingMissingAndExisting() 
 }
 
 func (d *depthFirstTrieSyncer) requestMissingNodes() {
-	if len(d.nodes.missingHashes) == 0 {
+	if d.nodes.noMissingHashes() {
 		return
 	}
 
 	marginSlice := make([][]byte, 0, maxNumRequestedNodesPerBatch)
 	for _, hash := range d.nodes.hashesOrder {
-		_, isMissing := d.nodes.missingHashes[hash]
-		if !isMissing {
+		if !d.nodes.hashIsMissing(hash) {
 			continue
 		}
 
@@ -201,8 +197,7 @@ func (d *depthFirstTrieSyncer) processMissingAndExisting() error {
 
 func (d *depthFirstTrieSyncer) processMissingHashes() {
 	for _, hash := range d.nodes.hashesOrder {
-		_, isMissing := d.nodes.missingHashes[hash]
-		if !isMissing {
+		if !d.nodes.hashIsMissing(hash) {
 			continue
 		}
 
@@ -218,7 +213,7 @@ func (d *depthFirstTrieSyncer) processMissingHashes() {
 
 func (d *depthFirstTrieSyncer) processFirstExistingNode() (bool, error) {
 	for index, hash := range d.nodes.hashesOrder {
-		element, isExisting := d.nodes.existingNodes[hash]
+		element, isExisting := d.nodes.getExistingNode(hash)
 		if !isExisting {
 			continue
 		}
@@ -287,7 +282,7 @@ func (d *depthFirstTrieSyncer) getNode(hash []byte) (node, error) {
 			hash,
 			d.interceptedNodesCacher,
 			d.db,
-			d.marshalizer,
+			d.marshaller,
 			d.hasher,
 		)
 	}
@@ -298,7 +293,7 @@ func (d *depthFirstTrieSyncer) getNodeFromCache(hash []byte) (node, error) {
 	return getNodeFromCache(
 		hash,
 		d.interceptedNodesCacher,
-		d.marshalizer,
+		d.marshaller,
 		d.hasher,
 	)
 }

@@ -25,8 +25,7 @@ func TestTrieNodesHandler_addInitialRootHash(t *testing.T) {
 	roothash := "roothash"
 	handler := newTrieNodesHandler()
 	handler.addInitialRootHash(roothash)
-	_, exists := handler.missingHashes[roothash]
-	assert.True(t, exists)
+	assert.True(t, handler.hashIsMissing(roothash))
 	assert.Equal(t, []string{roothash}, handler.hashesOrder)
 }
 
@@ -42,7 +41,7 @@ func TestTrieNodesHandler_processMissingHashWasFound(t *testing.T) {
 	_, exists := handler.missingHashes[roothash]
 	assert.False(t, exists)
 
-	recoveredNode, exists := handler.existingNodes[roothash]
+	recoveredNode, exists := handler.getExistingNode(roothash)
 	assert.True(t, exists)
 	assert.True(t, n == recoveredNode) // pointer testing
 }
@@ -91,23 +90,21 @@ func TestTrieNodesHandler_replaceParentWithChildren(t *testing.T) {
 	handler.replaceParentWithChildren(0, roothash, []node{node1, node2}, [][]byte{[]byte(hash3)})
 
 	t.Run("test the initial roothash is deleted", func(t *testing.T) {
-		_, exists := handler.missingHashes[roothash]
-		assert.False(t, exists)
+		assert.False(t, handler.hashIsMissing(roothash))
 	})
 	t.Run("test that the 2 existing nodes are added", func(t *testing.T) {
-		recoveredNode, exists := handler.existingNodes[hash1]
+		recoveredNode, exists := handler.getExistingNode(hash1)
 		assert.True(t, exists)
 		assert.True(t, recoveredNode == node1) // pointer testing
 
-		recoveredNode, exists = handler.existingNodes[hash2]
+		recoveredNode, exists = handler.getExistingNode(hash2)
 		assert.True(t, exists)
 		assert.True(t, recoveredNode == node2) // pointer testing
 
 		assert.Equal(t, 2, len(handler.existingNodes))
 	})
 	t.Run("test that the missing node is added", func(t *testing.T) {
-		_, exists := handler.missingHashes[hash3]
-		assert.True(t, exists)
+		assert.True(t, handler.hashIsMissing(hash3))
 
 		assert.Equal(t, 1, len(handler.missingHashes))
 	})
@@ -120,11 +117,8 @@ func TestTrieNodesHandler_replaceParentWithChildren(t *testing.T) {
 func TestReplaceHashesAtPosition(t *testing.T) {
 	t.Parallel()
 
-	newData := []string{"aaa", "bbb"}
-	initialContainingOne := []string{"one"}
-	initialContainingTwo := []string{"one", "two"}
-	initialContainingThree := []string{"one", "two", "three"}
 	empty := make([]string, 0)
+	newData := []string{"aaa", "bbb"}
 
 	t.Run("empty initial", func(t *testing.T) {
 		result := replaceHashesAtPosition(0, make([]string, 0), make([]string, 0))
@@ -140,71 +134,99 @@ func TestReplaceHashesAtPosition(t *testing.T) {
 	})
 
 	t.Run("1 existing and replace on first position", func(t *testing.T) {
-		result := replaceHashesAtPosition(0, initialContainingOne, newData)
+		initial := []string{"one"}
+
+		result := replaceHashesAtPosition(0, initial, newData)
 		expected := []string{"aaa", "bbb"}
 		assert.Equal(t, expected, result)
 	})
 	t.Run("1 existing and replace on an out of bound position", func(t *testing.T) {
-		result := replaceHashesAtPosition(1, initialContainingOne, newData)
+		initial := []string{"one"}
+
+		result := replaceHashesAtPosition(1, initial, newData)
 		expected := []string{"one"}
 		assert.Equal(t, expected, result)
 	})
 	t.Run("1 existing and replace with empty", func(t *testing.T) {
-		result := replaceHashesAtPosition(0, initialContainingOne, empty)
+		initial := []string{"one"}
+
+		result := replaceHashesAtPosition(0, initial, empty)
 		assert.Empty(t, result)
 	})
 	t.Run("2 existing and replace on first position", func(t *testing.T) {
+		initialContainingTwo := []string{"one", "two"}
+
 		result := replaceHashesAtPosition(0, initialContainingTwo, newData)
 		expected := []string{"aaa", "bbb", "two"}
 		assert.Equal(t, expected, result)
 	})
 	t.Run("2 existing and replace on second position", func(t *testing.T) {
-		result := replaceHashesAtPosition(1, initialContainingTwo, newData)
+		initial := []string{"one", "two"}
+
+		result := replaceHashesAtPosition(1, initial, newData)
 		expected := []string{"one", "aaa", "bbb"}
 		assert.Equal(t, expected, result)
 	})
 	t.Run("2 existing and replace on an out of bound position", func(t *testing.T) {
-		result := replaceHashesAtPosition(2, initialContainingTwo, newData)
+		initial := []string{"one", "two"}
+
+		result := replaceHashesAtPosition(2, initial, newData)
 		expected := []string{"one", "two"}
 		assert.Equal(t, expected, result)
 	})
 	t.Run("2 existing and replace with empty", func(t *testing.T) {
-		result := replaceHashesAtPosition(0, initialContainingTwo, empty)
+		initial := []string{"one", "two"}
+
+		result := replaceHashesAtPosition(0, initial, empty)
 		expected := []string{"two"}
 		assert.Equal(t, expected, result)
 	})
 	t.Run("3 existing and replace on first position", func(t *testing.T) {
-		result := replaceHashesAtPosition(0, initialContainingThree, newData)
+		initial := []string{"one", "two", "three"}
+
+		result := replaceHashesAtPosition(0, initial, newData)
 		expected := []string{"aaa", "bbb", "two", "three"}
 		assert.Equal(t, expected, result)
 	})
 	t.Run("3 existing and replace on second position", func(t *testing.T) {
-		result := replaceHashesAtPosition(1, initialContainingThree, newData)
+		initial := []string{"one", "two", "three"}
+
+		result := replaceHashesAtPosition(1, initial, newData)
 		expected := []string{"one", "aaa", "bbb", "three"}
 		assert.Equal(t, expected, result)
 	})
 	t.Run("3 existing and replace on third position", func(t *testing.T) {
-		result := replaceHashesAtPosition(2, initialContainingThree, newData)
+		initial := []string{"one", "two", "three"}
+
+		result := replaceHashesAtPosition(2, initial, newData)
 		expected := []string{"one", "two", "aaa", "bbb"}
 		assert.Equal(t, expected, result)
 	})
 	t.Run("3 existing and replace on an out of bound position", func(t *testing.T) {
-		result := replaceHashesAtPosition(3, initialContainingThree, newData)
+		initial := []string{"one", "two", "three"}
+
+		result := replaceHashesAtPosition(3, initial, newData)
 		expected := []string{"one", "two", "three"}
 		assert.Equal(t, expected, result)
 	})
 	t.Run("3 existing and replace with empty", func(t *testing.T) {
-		result := replaceHashesAtPosition(0, initialContainingThree, empty)
+		initial := []string{"one", "two", "three"}
+
+		result := replaceHashesAtPosition(0, initial, empty)
 		expected := []string{"two", "three"}
 		assert.Equal(t, expected, result)
 	})
 	t.Run("3 existing and replace with empty on second position", func(t *testing.T) {
-		result := replaceHashesAtPosition(1, initialContainingThree, empty)
+		initial := []string{"one", "two", "three"}
+
+		result := replaceHashesAtPosition(1, initial, empty)
 		expected := []string{"one", "three"}
 		assert.Equal(t, expected, result)
 	})
 	t.Run("3 existing and replace with empty on third position", func(t *testing.T) {
-		result := replaceHashesAtPosition(2, initialContainingThree, empty)
+		initial := []string{"one", "two", "three"}
+
+		result := replaceHashesAtPosition(2, initial, empty)
 		expected := []string{"one", "two"}
 		assert.Equal(t, expected, result)
 	})

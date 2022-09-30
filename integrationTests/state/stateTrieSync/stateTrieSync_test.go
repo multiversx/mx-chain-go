@@ -47,6 +47,15 @@ func createTestProcessorNodeAndTrieStorage(
 }
 
 func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
+	t.Run("test with double lists version", func(t *testing.T) {
+		testNodeRequestInterceptTrieNodesWithMessenger(t, 2)
+	})
+	t.Run("test with depth version", func(t *testing.T) {
+		testNodeRequestInterceptTrieNodesWithMessenger(t, 3)
+	})
+}
+
+func testNodeRequestInterceptTrieNodesWithMessenger(t *testing.T, version int) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -120,7 +129,7 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 		MaxHardCapForMissingNodes: 10000,
 		CheckNodesOnDisk:          false,
 	}
-	trieSyncer, _ := trie.NewDepthFirstTrieSyncer(arg)
+	trieSyncer, _ := trie.CreateTrieSyncer(arg, version)
 
 	ctxPrint, cancel := context.WithCancel(context.Background())
 	go printStatistics(ctxPrint, tss)
@@ -179,6 +188,15 @@ func printStatistics(ctx context.Context, stats common.SizeSyncStatisticsHandler
 }
 
 func TestNode_RequestInterceptTrieNodesWithMessengerNotSyncingShouldErr(t *testing.T) {
+	t.Run("test with double lists version", func(t *testing.T) {
+		testNodeRequestInterceptTrieNodesWithMessengerNotSyncingShouldErr(t, 2)
+	})
+	t.Run("test with depth version", func(t *testing.T) {
+		testNodeRequestInterceptTrieNodesWithMessengerNotSyncingShouldErr(t, 3)
+	})
+}
+
+func testNodeRequestInterceptTrieNodesWithMessengerNotSyncingShouldErr(t *testing.T, version int) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -251,7 +269,7 @@ func TestNode_RequestInterceptTrieNodesWithMessengerNotSyncingShouldErr(t *testi
 		MaxHardCapForMissingNodes: 10000,
 		CheckNodesOnDisk:          false,
 	}
-	trieSyncer, _ := trie.NewDepthFirstTrieSyncer(arg)
+	trieSyncer, _ := trie.CreateTrieSyncer(arg, version)
 
 	ctxPrint, cancel := context.WithCancel(context.Background())
 	go printStatistics(ctxPrint, tss)
@@ -280,7 +298,12 @@ func TestMultipleDataTriesSyncSmallValues(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	testMultipleDataTriesSync(t, 1000, 50, 32)
+	t.Run("test with double lists version", func(t *testing.T) {
+		testMultipleDataTriesSync(t, 1000, 50, 32, 2)
+	})
+	t.Run("test with depth version", func(t *testing.T) {
+		testMultipleDataTriesSync(t, 1000, 50, 32, 3)
+	})
 }
 
 func TestMultipleDataTriesSyncLargeValues(t *testing.T) {
@@ -288,10 +311,15 @@ func TestMultipleDataTriesSyncLargeValues(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	testMultipleDataTriesSync(t, 3, 3, 1<<21)
+	t.Run("test with double lists version", func(t *testing.T) {
+		testMultipleDataTriesSync(t, 3, 3, 1<<21, 2)
+	})
+	t.Run("test with depth version", func(t *testing.T) {
+		testMultipleDataTriesSync(t, 3, 3, 1<<21, 3)
+	})
 }
 
-func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves int, valSize int) {
+func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves int, valSize int, version int) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -354,7 +382,7 @@ func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves 
 			Cacher:                    nRequester.DataPool.TrieNodes(),
 			MaxTrieLevelInMemory:      200,
 			MaxHardCapForMissingNodes: 5000,
-			TrieSyncerVersion:         2,
+			TrieSyncerVersion:         version,
 			CheckNodesOnDisk:          false,
 		},
 		ShardId:                shardID,

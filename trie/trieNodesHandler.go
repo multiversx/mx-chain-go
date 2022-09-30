@@ -28,6 +28,20 @@ func (handler *trieNodesHandler) jobDone() bool {
 	return len(handler.hashesOrder) == 0
 }
 
+func (handler *trieNodesHandler) noMissingHashes() bool {
+	return len(handler.missingHashes) == 0
+}
+
+func (handler *trieNodesHandler) hashIsMissing(hash string) bool {
+	_, isMissing := handler.missingHashes[hash]
+	return isMissing
+}
+
+func (handler *trieNodesHandler) getExistingNode(hash string) (node, bool) {
+	element, exists := handler.existingNodes[hash]
+	return element, exists
+}
+
 func (handler *trieNodesHandler) replaceParentWithChildren(index int, parentHash string, children []node, missingChildrenHashes [][]byte) {
 	delete(handler.existingNodes, parentHash)
 
@@ -47,17 +61,20 @@ func (handler *trieNodesHandler) replaceParentWithChildren(index int, parentHash
 }
 
 func replaceHashesAtPosition(index int, initial []string, newData []string) []string {
-	if index >= len(initial) {
+	if index >= len(initial) || index < 0 {
 		return initial
 	}
 
-	before := initial[:index]
 	after := initial[index+1:]
+	if len(newData) == 0 {
+		copy(initial[index:], after)
+		initial = initial[:len(initial)-1]
+		return initial
+	}
 
-	result := make([]string, 0, len(before)+len(after)+len(newData))
-	result = append(result, before...)
-	result = append(result, newData...)
-	result = append(result, after...)
-
-	return result
+	//add some space
+	initial = append(initial, newData[:len(newData)-1]...)
+	copy(initial[index+len(newData):], after)
+	copy(initial[index:], newData)
+	return initial
 }
