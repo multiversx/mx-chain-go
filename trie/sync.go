@@ -22,6 +22,7 @@ type trieNodeInfo struct {
 	received bool
 }
 
+// TODO consider removing this implementation
 type trieSyncer struct {
 	baseSyncTrie
 	rootFound                 bool

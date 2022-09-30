@@ -51,10 +51,6 @@ const MaxBulkTransactionSize = 1 << 18 // 256KB bulks
 // MaxTxsToRequest specifies the maximum number of txs to request
 const MaxTxsToRequest = 1000
 
-// TimeBetweenRequests this is the time allowed when trying to request the same data
-// This is a general setting affecting all requests done by the node (during bootstrapping, normal processing or testing)
-const TimeBetweenRequests = 100 * time.Millisecond
-
 // NodesSetupJsonFileName specifies the name of the json file which contains the setup of the nodes
 const NodesSetupJsonFileName = "nodesSetup.json"
 

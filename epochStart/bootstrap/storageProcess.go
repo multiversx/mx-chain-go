@@ -206,14 +206,14 @@ func (sesb *storageEpochStartBootstrap) createStorageRequestHandler() error {
 		return err
 	}
 
-	requestedItemsHandler := timecache.NewTimeCache(common.TimeBetweenRequests)
+	requestedItemsHandler := timecache.NewTimeCache(timeBetweenRequests)
 	sesb.requestHandler, err = requestHandlers.NewResolverRequestHandler(
 		finder,
 		requestedItemsHandler,
 		sesb.whiteListHandler,
 		maxToRequest,
 		core.MetachainShardId,
-		common.TimeBetweenRequests,
+		timeBetweenRequests,
 	)
 	return err
 }

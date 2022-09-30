@@ -21,6 +21,7 @@ type request struct {
 	timestamp int64
 }
 
+// TODO consider removing this implementation
 type doubleListTrieSyncer struct {
 	baseSyncTrie
 	rootFound                 bool

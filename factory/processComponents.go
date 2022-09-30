@@ -281,7 +281,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		pcf.whiteListHandler,
 		common.MaxTxsToRequest,
 		pcf.bootstrapComponents.ShardCoordinator().SelfId(),
-		common.TimeBetweenRequests,
+		time.Second,
 	)
 	if err != nil {
 		return nil, err

@@ -31,7 +31,7 @@ func CreateTrieSyncer(arg ArgTrieSyncer, trieSyncerVersion int) (TrieSyncer, err
 	case secondVersion:
 		return NewDoubleListTrieSyncer(arg)
 	case thirdVersion:
-		return NewDeepFirstTrieSyncer(arg)
+		return NewDepthFirstTrieSyncer(arg)
 	default:
 		return nil, fmt.Errorf("%w, unknown value %d", ErrInvalidTrieSyncerVersion, trieSyncerVersion)
 	}

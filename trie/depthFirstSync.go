@@ -14,7 +14,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-type deepFirstTrieSyncer struct {
+const deltaReRequestForDepthFirst = int64(time.Second)
+
+type depthFirstTrieSyncer struct {
 	baseSyncTrie
 	rootFound                 bool
 	shardId                   uint32
@@ -36,8 +38,8 @@ type deepFirstTrieSyncer struct {
 	requestedHashes           map[string]*request
 }
 
-// NewDeepFirstTrieSyncer creates a new instance of trieSyncer that uses the deep first algorithm
-func NewDeepFirstTrieSyncer(arg ArgTrieSyncer) (*deepFirstTrieSyncer, error) {
+// NewDepthFirstTrieSyncer creates a new instance of trieSyncer that uses the depth-first algorithm
+func NewDepthFirstTrieSyncer(arg ArgTrieSyncer) (*depthFirstTrieSyncer, error) {
 	err := checkArguments(arg)
 	if err != nil {
 		return nil, err
@@ -48,7 +50,7 @@ func NewDeepFirstTrieSyncer(arg ArgTrieSyncer) (*deepFirstTrieSyncer, error) {
 		return nil, err
 	}
 
-	d := &deepFirstTrieSyncer{
+	d := &depthFirstTrieSyncer{
 		requestHandler:            arg.RequestHandler,
 		interceptedNodesCacher:    arg.InterceptedNodes,
 		db:                        stsm,
@@ -70,7 +72,7 @@ func NewDeepFirstTrieSyncer(arg ArgTrieSyncer) (*deepFirstTrieSyncer, error) {
 // StartSyncing completes the trie, asking for missing trie nodes on the network. All concurrent calls will be serialized
 // so this function is treated as a large critical section. This was done so the inner processing can be done without using
 // other mutexes.
-func (d *deepFirstTrieSyncer) StartSyncing(rootHash []byte, ctx context.Context) error {
+func (d *depthFirstTrieSyncer) StartSyncing(rootHash []byte, ctx context.Context) error {
 	if len(rootHash) == 0 || bytes.Equal(rootHash, EmptyTrieHash) {
 		return nil
 	}
@@ -113,7 +115,7 @@ func (d *deepFirstTrieSyncer) StartSyncing(rootHash []byte, ctx context.Context)
 	}
 }
 
-func (d *deepFirstTrieSyncer) checkIsSyncedWhileProcessingMissingAndExisting() (bool, error) {
+func (d *depthFirstTrieSyncer) checkIsSyncedWhileProcessingMissingAndExisting() (bool, error) {
 	if d.timeoutHandler.IsTimeout() {
 		return false, ErrTrieSyncTimeout
 	}
@@ -129,50 +131,56 @@ func (d *deepFirstTrieSyncer) checkIsSyncedWhileProcessingMissingAndExisting() (
 		return false, err
 	}
 
-	if len(d.nodes.missingHashes) > 0 {
-		marginSlice := make([][]byte, 0, maxNumRequestedNodesPerBatch)
-		for _, hash := range d.nodes.hashesOrder {
-			_, isMissing := d.nodes.missingHashes[hash]
-			if !isMissing {
-				continue
-			}
-
-			n, errGet := d.getNodeFromCache([]byte(hash))
-			if errGet == nil {
-				d.nodes.processMissingHashWasFound(n, hash)
-				delete(d.requestedHashes, hash)
-
-				continue
-			}
-
-			r, ok := d.requestedHashes[hash]
-			if !ok {
-				marginSlice = append(marginSlice, []byte(hash))
-				d.requestedHashes[hash] = &request{
-					timestamp: time.Now().UnixNano(),
-				}
-			} else {
-				delta := time.Now().UnixNano() - r.timestamp
-				if delta > deltaReRequest {
-					marginSlice = append(marginSlice, []byte(hash))
-					r.timestamp = time.Now().UnixNano()
-				}
-			}
-		}
-
-		d.request(marginSlice)
-		return false, nil
-	}
+	d.requestMissingNodes()
 
 	return d.nodes.jobDone(), nil
 }
 
-func (d *deepFirstTrieSyncer) request(hashes [][]byte) {
+func (d *depthFirstTrieSyncer) requestMissingNodes() {
+	if len(d.nodes.missingHashes) == 0 {
+		return
+	}
+
+	marginSlice := make([][]byte, 0, maxNumRequestedNodesPerBatch)
+	for _, hash := range d.nodes.hashesOrder {
+		_, isMissing := d.nodes.missingHashes[hash]
+		if !isMissing {
+			continue
+		}
+
+		n, errGet := d.getNodeFromCache([]byte(hash))
+		if errGet == nil {
+			d.nodes.processMissingHashWasFound(n, hash)
+			delete(d.requestedHashes, hash)
+
+			continue
+		}
+
+		// TODO remove this and instead use the mechanism provided by the request handler
+		r, ok := d.requestedHashes[hash]
+		if !ok {
+			marginSlice = append(marginSlice, []byte(hash))
+			d.requestedHashes[hash] = &request{
+				timestamp: time.Now().UnixNano(),
+			}
+		} else {
+			delta := time.Now().UnixNano() - r.timestamp
+			if delta > deltaReRequestForDepthFirst {
+				marginSlice = append(marginSlice, []byte(hash))
+				r.timestamp = time.Now().UnixNano()
+			}
+		}
+	}
+
+	d.request(marginSlice)
+}
+
+func (d *depthFirstTrieSyncer) request(hashes [][]byte) {
 	d.requestHandler.RequestTrieNodes(d.shardId, hashes, d.topic)
 	d.trieSyncStatistics.SetNumMissing(d.rootHash, len(d.nodes.missingHashes))
 }
 
-func (d *deepFirstTrieSyncer) processMissingAndExisting() error {
+func (d *depthFirstTrieSyncer) processMissingAndExisting() error {
 	d.processMissingHashes()
 
 	for {
@@ -180,11 +188,10 @@ func (d *deepFirstTrieSyncer) processMissingAndExisting() error {
 		if err != nil {
 			return err
 		}
-
-		if len(d.nodes.missingHashes) > d.maxHardCapForMissingNodes {
+		if !processed {
 			break
 		}
-		if !processed {
+		if len(d.nodes.missingHashes) > d.maxHardCapForMissingNodes {
 			break
 		}
 	}
@@ -192,7 +199,7 @@ func (d *deepFirstTrieSyncer) processMissingAndExisting() error {
 	return nil
 }
 
-func (d *deepFirstTrieSyncer) processMissingHashes() {
+func (d *depthFirstTrieSyncer) processMissingHashes() {
 	for _, hash := range d.nodes.hashesOrder {
 		_, isMissing := d.nodes.missingHashes[hash]
 		if !isMissing {
@@ -209,7 +216,7 @@ func (d *deepFirstTrieSyncer) processMissingHashes() {
 	}
 }
 
-func (d *deepFirstTrieSyncer) processFirstExistingNode() (bool, error) {
+func (d *depthFirstTrieSyncer) processFirstExistingNode() (bool, error) {
 	for index, hash := range d.nodes.hashesOrder {
 		element, isExisting := d.nodes.existingNodes[hash]
 		if !isExisting {
@@ -239,7 +246,7 @@ func (d *deepFirstTrieSyncer) processFirstExistingNode() (bool, error) {
 	return false, nil
 }
 
-func (d *deepFirstTrieSyncer) storeTrieNode(element node) error {
+func (d *depthFirstTrieSyncer) storeTrieNode(element node) error {
 	numBytes, err := encodeNodeAndCommitToDB(element, d.db)
 	if err != nil {
 		return err
@@ -256,7 +263,7 @@ func (d *deepFirstTrieSyncer) storeTrieNode(element node) error {
 	return nil
 }
 
-func (d *deepFirstTrieSyncer) storeLeaves(children []node) ([]node, error) {
+func (d *depthFirstTrieSyncer) storeLeaves(children []node) ([]node, error) {
 	childrenNotLeaves := make([]node, 0, len(children))
 	for _, element := range children {
 		_, isLeaf := element.(*leafNode)
@@ -274,7 +281,7 @@ func (d *deepFirstTrieSyncer) storeLeaves(children []node) ([]node, error) {
 	return childrenNotLeaves, nil
 }
 
-func (d *deepFirstTrieSyncer) getNode(hash []byte) (node, error) {
+func (d *depthFirstTrieSyncer) getNode(hash []byte) (node, error) {
 	if d.checkNodesOnDisk {
 		return getNodeFromCacheOrStorage(
 			hash,
@@ -287,7 +294,7 @@ func (d *deepFirstTrieSyncer) getNode(hash []byte) (node, error) {
 	return d.getNodeFromCache(hash)
 }
 
-func (d *deepFirstTrieSyncer) getNodeFromCache(hash []byte) (node, error) {
+func (d *depthFirstTrieSyncer) getNodeFromCache(hash []byte) (node, error) {
 	return getNodeFromCache(
 		hash,
 		d.interceptedNodesCacher,
@@ -297,6 +304,6 @@ func (d *deepFirstTrieSyncer) getNodeFromCache(hash []byte) (node, error) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (d *deepFirstTrieSyncer) IsInterfaceNil() bool {
+func (d *depthFirstTrieSyncer) IsInterfaceNil() bool {
 	return d == nil
 }
