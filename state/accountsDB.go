@@ -1234,7 +1234,10 @@ func (adb *AccountsDB) syncMissingNodes(missingNodesChan chan []byte, stats *sna
 	for missingNode := range missingNodesChan {
 		err := adb.trieSyncer.SyncAccounts(missingNode)
 		if err != nil {
-			log.Error("could not sync missing node", "error", err)
+			log.Error("could not sync missing node",
+				"missing node hash", missingNode,
+				"error", err,
+			)
 		}
 	}
 }
