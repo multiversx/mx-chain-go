@@ -6,6 +6,117 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestNewTrieNodesHandler(t *testing.T) {
+	t.Parallel()
+
+	handler := newTrieNodesHandler()
+	assert.NotNil(t, handler)
+	assert.NotNil(t, handler.existingNodes)
+	assert.NotNil(t, handler.missingHashes)
+	assert.NotNil(t, handler.hashesOrder)
+	assert.Empty(t, handler.existingNodes)
+	assert.Empty(t, handler.missingHashes)
+	assert.Empty(t, handler.hashesOrder)
+}
+
+func TestTrieNodesHandler_addInitialRootHash(t *testing.T) {
+	t.Parallel()
+
+	roothash := "roothash"
+	handler := newTrieNodesHandler()
+	handler.addInitialRootHash(roothash)
+	_, exists := handler.missingHashes[roothash]
+	assert.True(t, exists)
+	assert.Equal(t, []string{roothash}, handler.hashesOrder)
+}
+
+func TestTrieNodesHandler_processMissingHashWasFound(t *testing.T) {
+	t.Parallel()
+
+	roothash := "roothash"
+	handler := newTrieNodesHandler()
+	handler.addInitialRootHash(roothash)
+
+	n := &leafNode{}
+	handler.processMissingHashWasFound(n, roothash)
+	_, exists := handler.missingHashes[roothash]
+	assert.False(t, exists)
+
+	recoveredNode, exists := handler.existingNodes[roothash]
+	assert.True(t, exists)
+	assert.True(t, n == recoveredNode) // pointer testing
+}
+
+func TestTrieNodesHandler_jobDone(t *testing.T) {
+	t.Parallel()
+
+	roothash := "roothash"
+	handler := newTrieNodesHandler()
+	assert.True(t, handler.jobDone())
+
+	handler.addInitialRootHash(roothash)
+	assert.False(t, handler.jobDone())
+
+	handler.processMissingHashWasFound(&leafNode{}, roothash)
+	assert.False(t, handler.jobDone())
+
+	handler.replaceParentWithChildren(0, roothash, make([]node, 0), make([][]byte, 0))
+	assert.True(t, handler.jobDone())
+}
+
+func TestTrieNodesHandler_replaceParentWithChildren(t *testing.T) {
+	t.Parallel()
+
+	roothash := "roothash"
+	hash1 := "hash1"
+	node1 := &leafNode{
+		baseNode: &baseNode{},
+	}
+	node1.setGivenHash([]byte(hash1))
+
+	hash2 := "hash2"
+	node2 := &leafNode{
+		baseNode: &baseNode{},
+	}
+	node2.setGivenHash([]byte(hash2))
+
+	hash3 := "hash3"
+
+	handler := newTrieNodesHandler()
+	assert.True(t, handler.jobDone())
+
+	handler.addInitialRootHash(roothash)
+	handler.processMissingHashWasFound(&leafNode{}, roothash)
+
+	handler.replaceParentWithChildren(0, roothash, []node{node1, node2}, [][]byte{[]byte(hash3)})
+
+	t.Run("test the initial roothash is deleted", func(t *testing.T) {
+		_, exists := handler.missingHashes[roothash]
+		assert.False(t, exists)
+	})
+	t.Run("test that the 2 existing nodes are added", func(t *testing.T) {
+		recoveredNode, exists := handler.existingNodes[hash1]
+		assert.True(t, exists)
+		assert.True(t, recoveredNode == node1) // pointer testing
+
+		recoveredNode, exists = handler.existingNodes[hash2]
+		assert.True(t, exists)
+		assert.True(t, recoveredNode == node2) // pointer testing
+
+		assert.Equal(t, 2, len(handler.existingNodes))
+	})
+	t.Run("test that the missing node is added", func(t *testing.T) {
+		_, exists := handler.missingHashes[hash3]
+		assert.True(t, exists)
+
+		assert.Equal(t, 1, len(handler.missingHashes))
+	})
+	t.Run("test the order position", func(t *testing.T) {
+		expectedOrder := []string{hash1, hash2, hash3}
+		assert.Equal(t, expectedOrder, handler.hashesOrder)
+	})
+}
+
 func TestReplaceHashesAtPosition(t *testing.T) {
 	t.Parallel()
 
