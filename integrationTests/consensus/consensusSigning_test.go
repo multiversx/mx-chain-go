@@ -6,12 +6,10 @@ import (
 	"testing"
 	"time"
 
-	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/stretchr/testify/assert"
 )
 
-// TODO: refactor to use nodes from multiple shards
 func initNodesWithTestSigner(
 	numMetaNodes,
 	numNodes,
@@ -58,8 +56,6 @@ func TestConsensusWithInvalidSigners(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
-
-	_ = logger.SetLogLevel("*:DEBUG")
 
 	numMetaNodes := uint32(4)
 	numNodes := uint32(4)
