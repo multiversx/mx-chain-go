@@ -140,8 +140,6 @@ func (bap *baseAPIBlockProcessor) getAndAttachTxsToMbByEpoch(
 ) error {
 	var err error
 
-	log.Info("baseAPIBlockProcessor: miniBlock", "type", miniBlock.Type)
-
 	switch miniBlock.Type {
 	case block.TxBlock:
 		apiMiniblock.Transactions, err = bap.getTxsFromMiniblock(miniBlock, miniblockHash, epoch, transaction.TxTypeNormal, dataRetriever.TransactionUnit, firstProcessedTxIndex, lastProcessedTxIndex)
@@ -298,7 +296,6 @@ func (bap *baseAPIBlockProcessor) computeStatusAndPutInBlock(blockAPI *api.Block
 
 func (bap *baseAPIBlockProcessor) getBlockHeaderHashAndBytesByRound(round uint64, blockUnitType dataRetriever.UnitType) (headerHash []byte, blockBytes []byte, err error) {
 	roundToByteSlice := bap.uint64ByteSliceConverter.ToByteSlice(round)
-
 	headerHash, err = bap.store.Get(dataRetriever.RoundHdrHashDataUnit, roundToByteSlice)
 	if err != nil {
 		return nil, nil, err
