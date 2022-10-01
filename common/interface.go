@@ -2,6 +2,7 @@ package common
 
 import (
 	"context"
+	"github.com/ElrondNetwork/elrond-go/trie/statistics"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -64,7 +65,7 @@ type StorageManager interface {
 	Put(key []byte, val []byte) error
 	PutInEpoch(key []byte, val []byte, epoch uint32) error
 	PutInEpochWithoutCache(key []byte, val []byte, epoch uint32) error
-	TakeSnapshot(rootHash []byte, mainTrieRootHash []byte, leavesChan chan core.KeyValueHolder, missingNodesChan chan []byte, errChan chan error, stats SnapshotStatisticsHandler, epoch uint32)
+	TakeSnapshot(address []byte, rootHash []byte, mainTrieRootHash []byte, leavesChan chan core.KeyValueHolder, missingNodesChan chan []byte, errChan chan error, stats SnapshotStatisticsHandler, epoch uint32)
 	SetCheckpoint(rootHash []byte, mainTrieRootHash []byte, leavesChan chan core.KeyValueHolder, missingNodesChan chan []byte, errChan chan error, stats SnapshotStatisticsHandler)
 	GetLatestStorageEpoch() (uint32, error)
 	IsPruningEnabled() bool
@@ -143,6 +144,15 @@ type SnapshotStatisticsHandler interface {
 	NewSnapshotStarted()
 	NewDataTrie()
 	WaitForSnapshotsToFinish()
+	AddTrieStats(TrieStatisticsHandler)
+}
+
+type TrieStatisticsHandler interface {
+	AddBranchNode(level int, size uint64)
+	AddExtensionNode(level int, size uint64)
+	AddLeafNode(level int, size uint64)
+	AddAccountInfo(address []byte, rootHash []byte)
+	GetTrieStats() *statistics.TrieStatsDTO
 }
 
 // ProcessStatusHandler defines the behavior of a component able to hold the current status of the node and

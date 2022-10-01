@@ -134,8 +134,9 @@ func (ln *leafNode) commitCheckpoint(
 	checkpointHashes CheckpointHashesHolder,
 	leavesChan chan core.KeyValueHolder,
 	ctx context.Context,
-	stats common.SnapshotStatisticsHandler,
+	stats common.TrieStatisticsHandler,
 	idleProvider IdleNodeProvider,
+	depthLevel int,
 ) error {
 	if shouldStopIfContextDone(ctx, idleProvider) {
 		return errors.ErrContextClosing
@@ -168,7 +169,7 @@ func (ln *leafNode) commitCheckpoint(
 		return err
 	}
 
-	stats.AddSize(uint64(nodeSize))
+	stats.AddLeafNode(depthLevel, uint64(nodeSize))
 
 	return nil
 }
@@ -178,8 +179,9 @@ func (ln *leafNode) commitSnapshot(
 	leavesChan chan core.KeyValueHolder,
 	_ chan []byte,
 	ctx context.Context,
-	stats common.SnapshotStatisticsHandler,
+	stats common.TrieStatisticsHandler,
 	idleProvider IdleNodeProvider,
+	depthLevel int,
 ) error {
 	if shouldStopIfContextDone(ctx, idleProvider) {
 		return errors.ErrContextClosing
@@ -200,7 +202,7 @@ func (ln *leafNode) commitSnapshot(
 		return err
 	}
 
-	stats.AddSize(uint64(nodeSize))
+	stats.AddLeafNode(depthLevel, uint64(nodeSize))
 
 	return nil
 }

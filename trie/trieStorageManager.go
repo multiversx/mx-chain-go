@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/trie/statistics"
 	"strings"
 	"sync"
 	"time"
@@ -35,6 +36,7 @@ type trieStorageManager struct {
 }
 
 type snapshotsQueueEntry struct {
+	address          []byte
 	rootHash         []byte
 	mainTrieRootHash []byte
 	leavesChan       chan core.KeyValueHolder
@@ -319,6 +321,7 @@ func (tsm *trieStorageManager) GetLatestStorageEpoch() (uint32, error) {
 // TakeSnapshot creates a new snapshot, or if there is another snapshot or checkpoint in progress,
 // it adds this snapshot in the queue.
 func (tsm *trieStorageManager) TakeSnapshot(
+	address []byte,
 	rootHash []byte,
 	mainTrieRootHash []byte,
 	leavesChan chan core.KeyValueHolder,
@@ -350,6 +353,7 @@ func (tsm *trieStorageManager) TakeSnapshot(
 	tsm.checkpointHashesHolder.RemoveCommitted(rootHash)
 
 	snapshotEntry := &snapshotsQueueEntry{
+		address:          address,
 		rootHash:         rootHash,
 		mainTrieRootHash: mainTrieRootHash,
 		errChan:          errChan,
@@ -458,7 +462,9 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 		return
 	}
 
-	err = newRoot.commitSnapshot(stsm, snapshotEntry.leavesChan, snapshotEntry.missingNodesChan, ctx, snapshotEntry.stats, tsm.idleProvider)
+	stats := statistics.NewTrieStatistics()
+	rootDepthLevel := 0
+	err = newRoot.commitSnapshot(stsm, snapshotEntry.leavesChan, snapshotEntry.missingNodesChan, ctx, stats, tsm.idleProvider, rootDepthLevel)
 	if err != nil {
 		writeInChanNonBlocking(snapshotEntry.errChan, err)
 		treatSnapshotError(err,
@@ -468,6 +474,9 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 		)
 		return
 	}
+
+	stats.AddAccountInfo(snapshotEntry.address, snapshotEntry.rootHash)
+	snapshotEntry.stats.AddTrieStats(stats)
 }
 
 func writeInChanNonBlocking(errChan chan error, err error) {
@@ -496,7 +505,9 @@ func (tsm *trieStorageManager) takeCheckpoint(checkpointEntry *snapshotsQueueEnt
 		return
 	}
 
-	err = newRoot.commitCheckpoint(tsm, tsm.checkpointsStorer, tsm.checkpointHashesHolder, checkpointEntry.leavesChan, ctx, checkpointEntry.stats, tsm.idleProvider)
+	stats := statistics.NewTrieStatistics()
+	rootDepthLevel := 0
+	err = newRoot.commitCheckpoint(tsm, tsm.checkpointsStorer, tsm.checkpointHashesHolder, checkpointEntry.leavesChan, ctx, stats, tsm.idleProvider, rootDepthLevel)
 	if err != nil {
 		writeInChanNonBlocking(checkpointEntry.errChan, err)
 		treatSnapshotError(err,
@@ -506,6 +517,9 @@ func (tsm *trieStorageManager) takeCheckpoint(checkpointEntry *snapshotsQueueEnt
 		)
 		return
 	}
+
+	stats.AddAccountInfo(checkpointEntry.address, checkpointEntry.rootHash)
+	checkpointEntry.stats.AddTrieStats(stats)
 }
 
 func treatSnapshotError(err error, message string, rootHash []byte, mainTrieRootHash []byte) {
@@ -527,6 +541,7 @@ func newSnapshotNode(
 	newRoot, err := getNodeFromDBAndDecode(rootHash, db, msh, hsh)
 	if err != nil {
 		if strings.Contains(err.Error(), common.GetNodeFromDBErrorString) {
+			//TODO treat snapshot error properly
 			missingNodesCh <- rootHash
 		}
 		return nil, err

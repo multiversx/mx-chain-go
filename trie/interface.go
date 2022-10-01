@@ -46,8 +46,8 @@ type node interface {
 	getValue() []byte
 
 	commitDirty(level byte, maxTrieLevelInMemory uint, originDb common.DBWriteCacher, targetDb common.DBWriteCacher) error
-	commitCheckpoint(originDb common.DBWriteCacher, targetDb common.DBWriteCacher, checkpointHashes CheckpointHashesHolder, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.SnapshotStatisticsHandler, idleProvider IdleNodeProvider) error
-	commitSnapshot(originDb common.DBWriteCacher, leavesChan chan core.KeyValueHolder, missingNodesChan chan []byte, ctx context.Context, stats common.SnapshotStatisticsHandler, idleProvider IdleNodeProvider) error
+	commitCheckpoint(originDb common.DBWriteCacher, targetDb common.DBWriteCacher, checkpointHashes CheckpointHashesHolder, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.TrieStatisticsHandler, idleProvider IdleNodeProvider, depthLevel int) error
+	commitSnapshot(originDb common.DBWriteCacher, leavesChan chan core.KeyValueHolder, missingNodesChan chan []byte, ctx context.Context, stats common.TrieStatisticsHandler, idleProvider IdleNodeProvider, depthLevel int) error
 
 	getMarshalizer() marshal.Marshalizer
 	setMarshalizer(marshal.Marshalizer)
@@ -63,8 +63,8 @@ type dbWithGetFromEpoch interface {
 }
 
 type snapshotNode interface {
-	commitCheckpoint(originDb common.DBWriteCacher, targetDb common.DBWriteCacher, checkpointHashes CheckpointHashesHolder, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.SnapshotStatisticsHandler, idleProvider IdleNodeProvider) error
-	commitSnapshot(originDb common.DBWriteCacher, leavesChan chan core.KeyValueHolder, missingNodesChan chan []byte, ctx context.Context, stats common.SnapshotStatisticsHandler, idleProvider IdleNodeProvider) error
+	commitCheckpoint(originDb common.DBWriteCacher, targetDb common.DBWriteCacher, checkpointHashes CheckpointHashesHolder, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.TrieStatisticsHandler, idleProvider IdleNodeProvider, depthLevel int) error
+	commitSnapshot(originDb common.DBWriteCacher, leavesChan chan core.KeyValueHolder, missingNodesChan chan []byte, ctx context.Context, stats common.TrieStatisticsHandler, idleProvider IdleNodeProvider, depthLevel int) error
 }
 
 // RequestHandler defines the methods through which request to data can be made

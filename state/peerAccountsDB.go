@@ -55,7 +55,7 @@ func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
 	errChan := make(chan error, 1)
 	stats := newSnapshotStatistics(0, 1)
 	stats.NewSnapshotStarted()
-	trieStorageManager.TakeSnapshot(rootHash, rootHash, nil, missingNodesChannel, errChan, stats, epoch)
+	trieStorageManager.TakeSnapshot(nil, rootHash, rootHash, nil, missingNodesChannel, errChan, stats, epoch)
 
 	go adb.syncMissingNodes(missingNodesChannel, stats)
 

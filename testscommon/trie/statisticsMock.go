@@ -1,5 +1,7 @@
 package trie
 
+import "github.com/ElrondNetwork/elrond-go/common"
+
 // MockStatistics -
 type MockStatistics struct {
 	size                           uint64
@@ -32,4 +34,8 @@ func (m *MockStatistics) WaitForSnapshotsToFinish() {
 	if m.WaitForSnapshotsToFinishCalled != nil {
 		m.WaitForSnapshotsToFinishCalled()
 	}
+}
+
+// AddTrieStats -
+func (m *MockStatistics) AddTrieStats(_ common.TrieStatisticsHandler) {
 }

@@ -1117,7 +1117,7 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 	go func() {
 		leavesChannel := make(chan core.KeyValueHolder, leavesChannelSize)
 		stats.NewSnapshotStarted()
-		trieStorageManager.TakeSnapshot(rootHash, rootHash, leavesChannel, missingNodesChannel, errChan, stats, epoch)
+		trieStorageManager.TakeSnapshot(nil, rootHash, rootHash, leavesChannel, missingNodesChannel, errChan, stats, epoch)
 		adb.snapshotUserAccountDataTrie(true, rootHash, leavesChannel, missingNodesChannel, errChan, stats, epoch)
 
 		stats.SnapshotFinished()
@@ -1276,7 +1276,7 @@ func (adb *AccountsDB) snapshotUserAccountDataTrie(
 		stats.NewDataTrie()
 
 		if isSnapshot {
-			adb.mainTrie.GetStorageManager().TakeSnapshot(account.RootHash, mainTrieRootHash, nil, missingNodesChannel, errChan, stats, epoch)
+			adb.mainTrie.GetStorageManager().TakeSnapshot(account.Address, account.RootHash, mainTrieRootHash, nil, missingNodesChannel, errChan, stats, epoch)
 			continue
 		}
 

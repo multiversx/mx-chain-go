@@ -379,6 +379,7 @@ func TestSyncMissingSnapshotNodes(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
+	logger.SetLogLevel("*:DEBUG")
 	numSystemAccounts := 1
 	numAccounts := 1000
 	numDataTrieLeaves := 50

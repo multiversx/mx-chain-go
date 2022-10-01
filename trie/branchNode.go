@@ -294,8 +294,9 @@ func (bn *branchNode) commitCheckpoint(
 	checkpointHashes CheckpointHashesHolder,
 	leavesChan chan core.KeyValueHolder,
 	ctx context.Context,
-	stats common.SnapshotStatisticsHandler,
+	stats common.TrieStatisticsHandler,
 	idleProvider IdleNodeProvider,
+	depthLevel int,
 ) error {
 	if shouldStopIfContextDone(ctx, idleProvider) {
 		return errors.ErrContextClosing
@@ -326,14 +327,14 @@ func (bn *branchNode) commitCheckpoint(
 			continue
 		}
 
-		err = bn.children[i].commitCheckpoint(originDb, targetDb, checkpointHashes, leavesChan, ctx, stats, idleProvider)
+		err = bn.children[i].commitCheckpoint(originDb, targetDb, checkpointHashes, leavesChan, ctx, stats, idleProvider, depthLevel+1)
 		if err != nil {
 			return err
 		}
 	}
 
 	checkpointHashes.Remove(hash)
-	return bn.saveToStorage(targetDb, stats)
+	return bn.saveToStorage(targetDb, stats, depthLevel)
 }
 
 func (bn *branchNode) commitSnapshot(
@@ -341,8 +342,9 @@ func (bn *branchNode) commitSnapshot(
 	leavesChan chan core.KeyValueHolder,
 	missingNodesChan chan []byte,
 	ctx context.Context,
-	stats common.SnapshotStatisticsHandler,
+	stats common.TrieStatisticsHandler,
 	idleProvider IdleNodeProvider,
+	depthLevel int,
 ) error {
 	if shouldStopIfContextDone(ctx, idleProvider) {
 		return errors.ErrContextClosing
@@ -368,22 +370,22 @@ func (bn *branchNode) commitSnapshot(
 			continue
 		}
 
-		err = bn.children[i].commitSnapshot(db, leavesChan, missingNodesChan, ctx, stats, idleProvider)
+		err = bn.children[i].commitSnapshot(db, leavesChan, missingNodesChan, ctx, stats, idleProvider, depthLevel+1)
 		if err != nil {
 			return err
 		}
 	}
 
-	return bn.saveToStorage(db, stats)
+	return bn.saveToStorage(db, stats, depthLevel)
 }
 
-func (bn *branchNode) saveToStorage(targetDb common.DBWriteCacher, stats common.SnapshotStatisticsHandler) error {
+func (bn *branchNode) saveToStorage(targetDb common.DBWriteCacher, stats common.TrieStatisticsHandler, depthLevel int) error {
 	nodeSize, err := encodeNodeAndCommitToDB(bn, targetDb)
 	if err != nil {
 		return err
 	}
 
-	stats.AddSize(uint64(nodeSize))
+	stats.AddBranchNode(depthLevel, uint64(nodeSize))
 
 	bn.removeChildrenPointers()
 	return nil
