@@ -298,10 +298,6 @@ func (bap *baseAPIBlockProcessor) computeStatusAndPutInBlock(blockAPI *api.Block
 
 func (bap *baseAPIBlockProcessor) getBlockHeaderHashAndBytesByRound(round uint64, blockUnitType dataRetriever.UnitType) (headerHash []byte, blockBytes []byte, err error) {
 	roundToByteSlice := bap.uint64ByteSliceConverter.ToByteSlice(round)
-	if round == 0 {
-		roundToByteSlice = append(roundToByteSlice, []byte("_genesis")...)
-		log.Info("getBlockHeaderHashAndBytesByRound: using altered genesis header")
-	}
 
 	headerHash, err = bap.store.Get(dataRetriever.RoundHdrHashDataUnit, roundToByteSlice)
 	if err != nil {

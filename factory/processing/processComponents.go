@@ -928,25 +928,6 @@ func (pcf *processComponentsFactory) prepareGenesisBlock(
 		return err
 	}
 
-	// save genesis altered block
-	genesisBlockAltered := genesisBlock.ShallowClone()
-	nonceToByteSlice = append(nonceToByteSlice, []byte(common.GenesisStorageSuffix)...)
-
-	err = genesisBlockAltered.SetMiniBlockHeaderHandlers(genesisMiniBlockHeaderHandlers)
-	if err != nil {
-		return err
-	}
-
-	genesisBlockAlteredHash, err := core.CalculateHash(pcf.coreData.InternalMarshalizer(), pcf.coreData.Hasher(), genesisBlockAltered)
-	if err != nil {
-		return err
-	}
-
-	err = pcf.saveGenesisHeaderToStorage(genesisBlockAltered, genesisBlockAlteredHash, nonceToByteSlice)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -1100,7 +1081,7 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(
 	log.Info("indexGenesisBlocks(): historyRepo.RecordBlock", "shardID", currentShardId, "hash", genesisBlockHash)
 	err = pcf.historyRepo.RecordBlock(
 		genesisBlockHash,
-		genesisBlockHeader,
+		originalGenesisBlockHeader,
 		genesisBody,
 		txsPoolPerShard[currentShardId].Scrs,
 		txsPoolPerShard[currentShardId].Receipts,
@@ -1117,12 +1098,37 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(
 		return nil, err
 	}
 
+	nonceAsBytes = append(nonceAsBytes, []byte(common.GenesisStorageSuffix)...)
+
+	err = genesisBlockHeader.SetMiniBlockHeaderHandlers(genesisMiniBlockHeaderHandlers)
+	if err != nil {
+		return nil, err
+	}
+
+	genesisBlockHash = append(genesisBlockHash, []byte(common.GenesisStorageSuffix)...)
+	err = pcf.saveGenesisHeaderToStorage(genesisBlockHeader, genesisBlockHash, nonceAsBytes)
+	if err != nil {
+		return nil, err
+	}
+
 	err = pcf.saveGenesisMiniBlocksToStorage(miniBlocks)
 	if err != nil {
 		return nil, err
 	}
 
 	err = pcf.saveGenesisTxsToStorage(txsPoolPerShard[currentShardId].Txs)
+	if err != nil {
+		return nil, err
+	}
+
+	err = pcf.historyRepo.RecordBlock(
+		genesisBlockHash,
+		genesisBlockHeader,
+		genesisBody,
+		txsPoolPerShard[currentShardId].Scrs,
+		txsPoolPerShard[currentShardId].Receipts,
+		intraShardMiniBlocks,
+		txsPoolPerShard[currentShardId].Logs)
 	if err != nil {
 		return nil, err
 	}

@@ -44,17 +44,22 @@ func (sbp *shardAPIBlockProcessor) GetBlockByNonce(nonce uint64, options api.Blo
 	storerUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(sbp.selfShardID)
 
 	nonceToByteSlice := sbp.uint64ByteSliceConverter.ToByteSlice(nonce)
-	if nonce == 0 {
-		nonceToByteSlice = append(nonceToByteSlice, []byte(common.GenesisStorageSuffix)...)
-		log.Info("GetBlockByNonce: using altered genesis header")
-	}
-
 	headerHash, err := sbp.store.Get(storerUnit, nonceToByteSlice)
 	if err != nil {
 		return nil, err
 	}
 
-	blockBytes, err := sbp.getFromStorer(dataRetriever.BlockHeaderUnit, headerHash)
+	// if genesis block, get the nonce key corresponding to the altered block
+	if nonce == 0 {
+		nonceToByteSlice = append(nonceToByteSlice, []byte(common.GenesisStorageSuffix)...)
+	}
+
+	alteredHeaderHash, err := sbp.store.Get(storerUnit, nonceToByteSlice)
+	if err != nil {
+		return nil, err
+	}
+
+	blockBytes, err := sbp.getFromStorer(dataRetriever.BlockHeaderUnit, alteredHeaderHash)
 	if err != nil {
 		return nil, err
 	}
@@ -73,9 +78,13 @@ func (sbp *shardAPIBlockProcessor) GetBlockByHash(hash []byte, options api.Block
 	if err != nil {
 		return nil, err
 	}
+
+	// if genesis block, get the altered block bytes
 	if blockHeader.GetRound() == 0 {
-		hash = append(hash, []byte("_genesis")...)
-		blockBytes, err = sbp.getFromStorer(dataRetriever.BlockHeaderUnit, hash)
+		alteredHash := make([]byte, 0)
+		alteredHash = append(alteredHash, hash...)
+		alteredHash = append(alteredHash, []byte(common.GenesisStorageSuffix)...)
+		blockBytes, err = sbp.getFromStorer(dataRetriever.BlockHeaderUnit, alteredHash)
 		if err != nil {
 			return nil, err
 		}
