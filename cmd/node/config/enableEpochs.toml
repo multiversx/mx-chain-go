@@ -210,16 +210,16 @@
     CheckExecuteOnReadOnlyEnableEpoch = 1
 
     # ESDTMetadataContinuousCleanupEnableEpoch represents the epoch when esdt metadata is automatically deleted according to inshard liquidity
-    ESDTMetadataContinuousCleanupEnableEpoch = 1
+    ESDTMetadataContinuousCleanupEnableEpoch = 999999
 
     # HeartbeatDisableEpoch represents the epoch when heartbeat v1 messages stop being sent and processed
-    HeartbeatDisableEpoch = 1
+    HeartbeatDisableEpoch = 999999
 
     # MiniBlockPartialExecutionEnableEpoch represents the epoch when mini block partial execution will be enabled
-    MiniBlockPartialExecutionEnableEpoch = 1
+    MiniBlockPartialExecutionEnableEpoch = 999999
 
     # FixAsyncCallBackArgsListEnableEpoch represents the epoch when the async callback arguments lists fix will be enabled
-    FixAsyncCallBackArgsListEnableEpoch = 1
+    FixAsyncCallBackArgsListEnableEpoch = 999999
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
