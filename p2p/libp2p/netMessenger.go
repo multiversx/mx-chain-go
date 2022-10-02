@@ -879,24 +879,8 @@ func (netMes *networkMessenger) HasTopic(name string) bool {
 
 // BroadcastOnChannelBlocking tries to send a byte buffer onto a topic using provided channel
 // It is a blocking method. It needs to be launched on a go routine
-func (netMes *networkMessenger) BroadcastOnChannelBlocking(channel string, topic string, buff []byte) error {
-	err := netMes.checkSendableData(buff)
-	if err != nil {
-		return err
-	}
-
-	if !netMes.goRoutinesThrottler.CanProcess() {
-		return p2p.ErrTooManyGoroutines
-	}
-
-	netMes.goRoutinesThrottler.StartProcessing()
-
-	sendable := &p2p.SendableData{
-		Buff:  buff,
-		Topic: topic,
-	}
-	netMes.outgoingPLB.GetChannelOrDefault(channel) <- sendable
-	netMes.goRoutinesThrottler.EndProcessing()
+func (netMes *networkMessenger) BroadcastOnChannelBlocking(_ string, _ string, _ []byte) error {
+	// BroadcastOnChannelBlocking will not work
 	return nil
 }
 
@@ -912,18 +896,13 @@ func (netMes *networkMessenger) checkSendableData(buff []byte) error {
 }
 
 // BroadcastOnChannel tries to send a byte buffer onto a topic using provided channel
-func (netMes *networkMessenger) BroadcastOnChannel(channel string, topic string, buff []byte) {
-	go func() {
-		err := netMes.BroadcastOnChannelBlocking(channel, topic, buff)
-		if err != nil {
-			log.Warn("p2p broadcast", "error", err.Error())
-		}
-	}()
+func (netMes *networkMessenger) BroadcastOnChannel(_ string, _ string, _ []byte) {
+	// BroadcastOnChannel will not work
 }
 
 // Broadcast tries to send a byte buffer onto a topic using the topic name as channel
-func (netMes *networkMessenger) Broadcast(topic string, buff []byte) {
-	netMes.BroadcastOnChannel(topic, topic, buff)
+func (netMes *networkMessenger) Broadcast(_ string, _ []byte) {
+	// Broadcast will not work
 }
 
 // RegisterMessageProcessor registers a message process on a topic. The function allows registering multiple handlers

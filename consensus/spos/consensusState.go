@@ -112,15 +112,8 @@ func (cns *ConsensusState) IsSelfLeaderInCurrentRound() bool {
 
 // GetLeader method gets the leader of the current round
 func (cns *ConsensusState) GetLeader() (string, error) {
-	if cns.consensusGroup == nil {
-		return "", ErrNilConsensusGroup
-	}
-
-	if len(cns.consensusGroup) == 0 {
-		return "", ErrEmptyConsensusGroup
-	}
-
-	return cns.consensusGroup[0], nil
+	// I am the leader, always. Final.
+	return cns.selfPubKey, nil
 }
 
 // GetNextConsensusGroup gets the new consensus group for the current round based on current eligible list and a random

@@ -306,23 +306,13 @@ func (boot *baseBootstrap) computeNodeState() {
 			"boot.hasLastBlock", boot.hasLastBlock)
 	}
 
-	isNodeConnectedToTheNetwork := boot.networkWatcher.IsConnectedToTheNetwork()
-	isNodeSynchronized := !boot.forkInfo.IsDetected && boot.hasLastBlock && isNodeConnectedToTheNetwork
-	if isNodeSynchronized != boot.isNodeSynchronized {
-		log.Debug("node has changed its synchronized state",
-			"state", isNodeSynchronized,
-		)
-	}
-
-	boot.isNodeSynchronized = isNodeSynchronized
+	// node is always synchronized, so it will try to propose blocks on each round
+	boot.isNodeSynchronized = true
 	boot.isNodeStateCalculated = true
 	boot.roundIndex = boot.roundHandler.Index()
-	boot.notifySyncStateListeners(isNodeSynchronized)
+	boot.notifySyncStateListeners(true)
 
-	result := uint64(1)
-	if isNodeSynchronized {
-		result = uint64(0)
-	}
+	result := uint64(0)
 
 	boot.statusHandler.SetUInt64Value(common.MetricIsSyncing, result)
 	log.Debug("computeNodeState",
