@@ -532,12 +532,12 @@ func TestLeafNode_setDirty(t *testing.T) {
 func TestLeafNode_loadChildren(t *testing.T) {
 	t.Parallel()
 
-	marsh, hasher := getTestMarshalizerAndHasher()
+	_, hasher := getTestMarshalizerAndHasher()
 	tr := initTrie()
 	nodes, hashes := getEncodedTrieNodesAndHashes(tr)
 	nodesCacher, _ := lrucache.NewCache(100)
 	for i := range nodes {
-		n, _ := NewInterceptedTrieNode(nodes[i], marsh, hasher)
+		n, _ := NewInterceptedTrieNode(nodes[i], hasher)
 		nodesCacher.Put(n.hash, n, len(n.GetSerialized()))
 	}
 
