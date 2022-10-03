@@ -14,6 +14,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
+// this value of 5 seconds yield better results in terms of network bandwidth & sync times
+// whenever we need to change this, we should run comparative benchmarks
 const deltaReRequest = 5 * int64(time.Second)
 const maxNumRequestedNodesPerBatch = 1000
 
@@ -21,6 +23,7 @@ type request struct {
 	timestamp int64
 }
 
+// TODO consider removing this implementation
 type doubleListTrieSyncer struct {
 	baseSyncTrie
 	rootFound                 bool

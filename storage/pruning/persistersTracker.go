@@ -9,7 +9,7 @@ type normalPersistersTracker struct {
 
 // NewPersistersTracker creates a new instance of normalPersistersTracker.
 // It is not safe to use in a concurrent manner
-func NewPersistersTracker(args *EpochArgs) *normalPersistersTracker {
+func NewPersistersTracker(args EpochArgs) *normalPersistersTracker {
 	oldestEpochActive, oldestEpochKeep := computeOldestEpochActiveAndToKeep(args)
 
 	return &normalPersistersTracker{

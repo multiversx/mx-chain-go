@@ -32,7 +32,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/data"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
+	p2pConfig "github.com/ElrondNetwork/elrond-go/p2p/config"
+	p2pFactory "github.com/ElrondNetwork/elrond-go/p2p/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -360,11 +361,11 @@ func GetHeartbeatFactoryArgs(shardCoordinator sharding.Coordinator) heartbeatCom
 
 // GetNetworkFactoryArgs -
 func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
-	p2pConfig := config.P2PConfig{
-		Node: config.NodeConfig{
+	p2pCfg := p2pConfig.P2PConfig{
+		Node: p2pConfig.NodeConfig{
 			Port: "0",
 		},
-		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
+		KadDhtPeerDiscovery: p2pConfig.KadDhtPeerDiscoveryConfig{
 			Enabled:                          false,
 			Type:                             "optimized",
 			RefreshIntervalInSec:             10,
@@ -373,7 +374,7 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 			BucketSize:                       10,
 			RoutingTableRefreshIntervalInSec: 5,
 		},
-		Sharding: config.ShardingConfig{
+		Sharding: p2pConfig.ShardingConfig{
 			TargetPeerCount:         10,
 			MaxIntraShardValidators: 10,
 			MaxCrossShardValidators: 10,
@@ -381,7 +382,7 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 			MaxCrossShardObservers:  10,
 			MaxSeeders:              2,
 			Type:                    "NilListSharder",
-			AdditionalConnections: config.AdditionalConnectionsConfig{
+			AdditionalConnections: p2pConfig.AdditionalConnectionsConfig{
 				MaxFullHistoryObservers: 10,
 			},
 		},
@@ -413,7 +414,7 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 	appStatusHandler := statusHandlerMock.NewAppStatusHandlerMock()
 
 	return networkComp.NetworkComponentsFactoryArgs{
-		P2pConfig:     p2pConfig,
+		P2pConfig:     p2pCfg,
 		MainConfig:    mainConfig,
 		StatusHandler: appStatusHandler,
 		Marshalizer:   &mock.MarshalizerMock{},
@@ -430,7 +431,7 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 				UnitValue:                    1.0,
 			},
 		},
-		Syncer:            &libp2p.LocalSyncTimer{},
+		Syncer:            &p2pFactory.LocalSyncTimer{},
 		NodeOperationMode: p2p.NormalOperation,
 	}
 }
