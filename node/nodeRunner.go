@@ -1203,6 +1203,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 	}
 
 	log.Trace("creating time cache for requested items components")
+	// TODO consider lowering this (perhaps to 1 second) and use a common const
 	requestedItemsHandler := cache.NewTimeCache(
 		time.Duration(uint64(time.Millisecond) * coreComponents.GenesisNodesSetup().GetRoundDuration()))
 
