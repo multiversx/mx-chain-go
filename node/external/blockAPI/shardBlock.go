@@ -80,10 +80,8 @@ func (sbp *shardAPIBlockProcessor) GetBlockByHash(hash []byte, options api.Block
 	}
 
 	// if genesis block, get the altered block bytes
-	if blockHeader.GetRound() == 0 {
-		alteredHash := make([]byte, 0)
-		alteredHash = append(alteredHash, hash...)
-		alteredHash = append(alteredHash, []byte(common.GenesisStorageSuffix)...)
+	if blockHeader.GetNonce() == 0 {
+		alteredHash := createAlteredBlockHash(hash)
 		blockBytes, err = sbp.getFromStorer(dataRetriever.BlockHeaderUnit, alteredHash)
 		if err != nil {
 			return nil, err

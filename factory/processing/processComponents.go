@@ -1084,11 +1084,6 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(
 		pcf.statusComponents.OutportHandler().SaveBlock(arg)
 	}
 
-	genesisMiniBlockHeaderHandlers, err := pcf.createGenesisMiniBlockHandlers(miniBlocks)
-	if err != nil {
-		return err
-	}
-
 	log.Info("indexGenesisBlocks(): historyRepo.RecordBlock", "shardID", currentShardId, "hash", genesisBlockHash)
 	if txsPoolPerShard[currentShardId] != nil {
 		err = pcf.historyRepo.RecordBlock(
@@ -1123,7 +1118,36 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(
 		return err
 	}
 
-	// save altered genesis block into storage
+	err = pcf.saveAlteredGenesisHeaderToStorage(
+		genesisBlockHeader,
+		genesisBlockHash,
+		miniBlocks,
+		genesisBody,
+		intraShardMiniBlocks,
+		txsPoolPerShard)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (pcf *processComponentsFactory) saveAlteredGenesisHeaderToStorage(
+	genesisBlockHeader data.HeaderHandler,
+	genesisBlockHash []byte,
+	miniBlocks []*dataBlock.MiniBlock,
+	genesisBody *dataBlock.Body,
+	intraShardMiniBlocks []*dataBlock.MiniBlock,
+	txsPoolPerShard map[uint32]*indexer.Pool,
+) error {
+	currentShardId := pcf.bootstrapComponents.ShardCoordinator().SelfId()
+
+	genesisMiniBlockHeaderHandlers, err := pcf.createGenesisMiniBlockHandlers(miniBlocks)
+	if err != nil {
+		return err
+	}
+
+	nonceAsBytes := pcf.coreData.Uint64ByteSliceConverter().ToByteSlice(genesisBlockHeader.GetNonce())
 	nonceAsBytes = append(nonceAsBytes, []byte(common.GenesisStorageSuffix)...)
 	err = genesisBlockHeader.SetMiniBlockHeaderHandlers(genesisMiniBlockHeaderHandlers)
 	if err != nil {
