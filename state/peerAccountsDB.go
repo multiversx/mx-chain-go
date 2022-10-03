@@ -25,12 +25,12 @@ func NewPeerAccountsDB(args ArgsAccountsDB) (*PeerAccountsDB, error) {
 
 // StartSnapshotIfNeeded starts the snapshot if the previous snapshot process was not fully completed
 func (adb *PeerAccountsDB) StartSnapshotIfNeeded() error {
-	return startSnapshotIfNeeded(adb, adb.trieSyncer, adb.mainTrie.GetStorageManager(), adb.processingMode)
+	return startSnapshotIfNeeded(adb, adb.getTrieSyncer(), adb.getMainTrie().GetStorageManager(), adb.processingMode)
 }
 
 // MarkSnapshotDone will mark that the snapshot process has been completed
 func (adb *PeerAccountsDB) MarkSnapshotDone() {
-	trieStorageManager, epoch, err := adb.getTrieStorageManagerAndLatestEpoch()
+	trieStorageManager, epoch, err := adb.getTrieStorageManagerAndLatestEpoch(adb.getMainTrie())
 	if err != nil {
 		log.Error("MarkSnapshotDone error", "err", err.Error())
 		return
@@ -57,15 +57,18 @@ func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
 	stats.NewSnapshotStarted()
 	trieStorageManager.TakeSnapshot(nil, rootHash, rootHash, nil, missingNodesChannel, errChan, stats, epoch)
 
-	go adb.syncMissingNodes(missingNodesChannel, stats)
+	go adb.syncMissingNodes(missingNodesChannel, stats, adb.trieSyncer)
 
-	go adb.processSnapshotCompletion(stats, missingNodesChannel, errChan, rootHash, "snapshotState peer trie", epoch)
+	go adb.processSnapshotCompletion(stats, trieStorageManager, missingNodesChannel, errChan, rootHash, "snapshotState peer trie", epoch)
 
 	adb.waitForCompletionIfAppropriate(stats)
 }
 
 // SetStateCheckpoint triggers the checkpointing process of the state trie
 func (adb *PeerAccountsDB) SetStateCheckpoint(rootHash []byte) {
+	adb.mutOp.Lock()
+	defer adb.mutOp.Unlock()
+
 	log.Trace("peerAccountsDB.SetStateCheckpoint", "root hash", rootHash)
 	trieStorageManager := adb.mainTrie.GetStorageManager()
 
@@ -77,11 +80,11 @@ func (adb *PeerAccountsDB) SetStateCheckpoint(rootHash []byte) {
 	errChan := make(chan error, 1)
 	trieStorageManager.SetCheckpoint(rootHash, rootHash, nil, missingNodesChannel, errChan, stats)
 
-	go adb.syncMissingNodes(missingNodesChannel, stats)
+	go adb.syncMissingNodes(missingNodesChannel, stats, adb.trieSyncer)
 
 	// TODO decide if we need to take some actions whenever we hit an error that occurred in the checkpoint process
 	//  that will be present in the errChan var
-	go adb.finishSnapshotOperation(rootHash, stats, missingNodesChannel, "setStateCheckpoint peer trie")
+	go adb.finishSnapshotOperation(rootHash, stats, missingNodesChannel, "setStateCheckpoint peer trie", trieStorageManager)
 
 	adb.waitForCompletionIfAppropriate(stats)
 }

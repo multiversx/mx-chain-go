@@ -640,3 +640,8 @@ func (sr *subroundBlock) getRoundInLastCommittedBlock() int64 {
 
 	return roundInLastCommittedBlock
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (sr *subroundBlock) IsInterfaceNil() bool {
+	return sr == nil
+}
