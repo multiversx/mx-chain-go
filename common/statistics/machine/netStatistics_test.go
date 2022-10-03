@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/shirou/gopsutil/net"
 	"github.com/stretchr/testify/assert"
 )
@@ -22,9 +24,9 @@ func TestNewNetStatistics_ShouldWorkAndNotPanic(t *testing.T) {
 	}()
 
 	ns := NewNetStatistics()
-	assert.NotNil(t, ns)
+	assert.False(t, check.IfNil(ns))
 
-	ns.ComputeStatistics()
+	ns.computeStatistics()
 }
 
 func TestNetStatistics_ComputeStatisticsGetStatisticsErrorsFirstTime(t *testing.T) {
@@ -32,24 +34,26 @@ func TestNetStatistics_ComputeStatisticsGetStatisticsErrorsFirstTime(t *testing.
 
 	numCalls := 0
 	expectedErr := errors.New("expected error")
-	ns := &netStatistics{
-		getStatisticsHandler: func() ([]net.IOCountersStat, error) {
-			numCalls++
-			if numCalls == 1 {
-				return nil, expectedErr
-			}
+	testGetStats := func() ([]net.IOCountersStat, error) {
+		numCalls++
+		if numCalls == 1 {
+			return nil, expectedErr
+		}
 
-			return []net.IOCountersStat{
-				{
-					BytesSent: 1,
-					BytesRecv: 2,
-				},
-			}, nil
-		},
+		return []net.IOCountersStat{
+			{
+				BytesSent: 1,
+				BytesRecv: 2,
+			},
+		}, nil
 	}
+
+	ns := newNetStatistics(testGetStats)
+
 	populateFields(ns)
 
-	ns.ComputeStatistics()
+	ns.computeStatistics()
+
 	checkResetFieldsAreZero(t, ns)
 }
 
@@ -57,24 +61,24 @@ func TestNetStatistics_ComputeStatisticsGetStatisticsReturnsEmptyFirstTime(t *te
 	t.Parallel()
 
 	numCalls := 0
-	ns := &netStatistics{
-		getStatisticsHandler: func() ([]net.IOCountersStat, error) {
-			numCalls++
-			if numCalls == 1 {
-				return make([]net.IOCountersStat, 0), nil
-			}
+	testGetStats := func() ([]net.IOCountersStat, error) {
+		numCalls++
+		if numCalls == 1 {
+			return make([]net.IOCountersStat, 0), nil
+		}
 
-			return []net.IOCountersStat{
-				{
-					BytesSent: 1,
-					BytesRecv: 2,
-				},
-			}, nil
-		},
+		return []net.IOCountersStat{
+			{
+				BytesSent: 1,
+				BytesRecv: 2,
+			},
+		}, nil
 	}
+
+	ns := newNetStatistics(testGetStats)
 	populateFields(ns)
 
-	ns.ComputeStatistics()
+	ns.computeStatistics()
 	checkResetFieldsAreZero(t, ns)
 }
 
@@ -83,24 +87,24 @@ func TestNetStatistics_ComputeStatisticsGetStatisticsErrorsSecondTime(t *testing
 
 	numCalls := 0
 	expectedErr := errors.New("expected error")
-	ns := &netStatistics{
-		getStatisticsHandler: func() ([]net.IOCountersStat, error) {
-			numCalls++
-			if numCalls == 2 {
-				return nil, expectedErr
-			}
+	testGetStats := func() ([]net.IOCountersStat, error) {
+		numCalls++
+		if numCalls == 2 {
+			return nil, expectedErr
+		}
 
-			return []net.IOCountersStat{
-				{
-					BytesSent: 1,
-					BytesRecv: 2,
-				},
-			}, nil
-		},
+		return []net.IOCountersStat{
+			{
+				BytesSent: 1,
+				BytesRecv: 2,
+			},
+		}, nil
 	}
+
+	ns := newNetStatistics(testGetStats)
 	populateFields(ns)
 
-	ns.ComputeStatistics()
+	ns.computeStatistics()
 	checkResetFieldsAreZero(t, ns)
 }
 
@@ -108,24 +112,24 @@ func TestNetStatistics_ComputeStatisticsGetStatisticsReturnsEmptySecondTime(t *t
 	t.Parallel()
 
 	numCalls := 0
-	ns := &netStatistics{
-		getStatisticsHandler: func() ([]net.IOCountersStat, error) {
-			numCalls++
-			if numCalls == 2 {
-				return make([]net.IOCountersStat, 0), nil
-			}
+	testGetStats := func() ([]net.IOCountersStat, error) {
+		numCalls++
+		if numCalls == 2 {
+			return make([]net.IOCountersStat, 0), nil
+		}
 
-			return []net.IOCountersStat{
-				{
-					BytesSent: 1,
-					BytesRecv: 2,
-				},
-			}, nil
-		},
+		return []net.IOCountersStat{
+			{
+				BytesSent: 1,
+				BytesRecv: 2,
+			},
+		}, nil
 	}
+
+	ns := newNetStatistics(testGetStats)
 	populateFields(ns)
 
-	ns.ComputeStatistics()
+	ns.computeStatistics()
 	checkResetFieldsAreZero(t, ns)
 }
 
@@ -154,7 +158,20 @@ func checkResetFieldsAreZero(tb testing.TB, ns *netStatistics) {
 func TestNetStatistics_ResetShouldWork(t *testing.T) {
 	t.Parallel()
 
-	ns := NewNetStatistics()
+	numBytes := uint64(0)
+	testGetStats := func() ([]net.IOCountersStat, error) {
+		atomic.AddUint64(&numBytes, 1)
+
+		return []net.IOCountersStat{
+			{
+				BytesSent: numBytes,
+				BytesRecv: numBytes * 2,
+			},
+		}, nil
+	}
+
+	ns := newNetStatistics(testGetStats)
+	ns.computeStatistics()
 
 	ns.setZeroStatsAndWait()
 
@@ -167,8 +184,8 @@ func TestNetStatistics_ResetShouldWork(t *testing.T) {
 
 	assert.Equal(t, uint64(0), bpsRecv)
 	assert.Equal(t, uint64(0), bpsSent)
-	assert.Equal(t, uint64(0), bpsRecvPeak)
-	assert.Equal(t, uint64(0), bpsSentPeak)
+	assert.Equal(t, uint64(2), bpsRecvPeak) // these do not reset
+	assert.Equal(t, uint64(1), bpsSentPeak) // these do not reset
 	assert.Equal(t, uint64(0), bpsRecvPercent)
 	assert.Equal(t, uint64(0), bpsSentPercent)
 
@@ -178,7 +195,12 @@ func TestNetStatistics_ResetShouldWork(t *testing.T) {
 }
 
 func TestNetStatistics_processStatistics(t *testing.T) {
-	ns := NewNetStatistics()
+	t.Parallel()
+
+	testGetStats := func() ([]net.IOCountersStat, error) {
+		return make([]net.IOCountersStat, 0), nil
+	}
+	ns := newNetStatistics(testGetStats)
 
 	start := net.IOCountersStat{
 		BytesRecv: 1000,
@@ -200,7 +222,12 @@ func TestNetStatistics_processStatistics(t *testing.T) {
 }
 
 func TestNetStatistics_processStatisticsInvalidEndVsStart(t *testing.T) {
-	ns := NewNetStatistics()
+	t.Parallel()
+
+	testGetStats := func() ([]net.IOCountersStat, error) {
+		return make([]net.IOCountersStat, 0), nil
+	}
+	ns := newNetStatistics(testGetStats)
 
 	start := net.IOCountersStat{
 		BytesRecv: 1000,
@@ -221,13 +248,43 @@ func TestNetStatistics_processStatisticsInvalidEndVsStart(t *testing.T) {
 	assert.Equal(t, uint64(0), atomic.LoadUint64(&ns.percentSent))
 }
 
-func TestNetStatistics_EpochStartEventHandler(t *testing.T) {
-	ns := NewNetStatistics()
+func TestNetStatistics_EpochConfirmed(t *testing.T) {
+	t.Parallel()
+
+	testGetStats := func() ([]net.IOCountersStat, error) {
+		return make([]net.IOCountersStat, 0), nil
+	}
+	ns := newNetStatistics(testGetStats)
+
 	populateFields(ns)
 
-	handler := ns.EpochStartEventHandler()
-	handler.EpochStartAction(nil)
+	ns.EpochConfirmed(0, 0)
 
 	assert.Equal(t, uint64(0), ns.TotalBytesSentInCurrentEpoch())
 	assert.Equal(t, uint64(0), ns.TotalBytesReceivedInCurrentEpoch())
+	assert.Equal(t, uint64(0), ns.BpsRecvPeak())
+	assert.Equal(t, uint64(0), ns.BpsSentPeak())
+}
+
+func TestNetStatistics_Close(t *testing.T) {
+	t.Parallel()
+
+	numCalls := uint64(0)
+	testGetStats := func() ([]net.IOCountersStat, error) {
+		atomic.AddUint64(&numCalls, 1)
+		return make([]net.IOCountersStat, 0), nil
+	}
+	ns := newNetStatistics(testGetStats)
+	ns.startProcessLoop(ns.processLoop)
+
+	time.Sleep(time.Second*3 + time.Millisecond*500)
+	assert.True(t, atomic.LoadUint64(&numCalls) > 0) // go routine is running
+
+	err := ns.Close()
+	assert.Nil(t, err)
+	time.Sleep(time.Second) // wait for the go routine finish
+	atomic.StoreUint64(&numCalls, 0)
+
+	time.Sleep(time.Second * 3)
+	assert.Zero(t, atomic.LoadUint64(&numCalls))
 }

@@ -61,9 +61,6 @@ var ErrInvalidReceiverUsernameLength = errors.New("invalid receiver username len
 // ErrDataFieldTooBig signals that the data field is too big
 var ErrDataFieldTooBig = errors.New("data field is too big")
 
-// ErrNilHardforkTrigger signals that a nil hardfork trigger has been provided
-var ErrNilHardforkTrigger = errors.New("nil hardfork trigger")
-
 // ErrNilNodeStopChannel signals that a nil channel for node process stop has been provided
 var ErrNilNodeStopChannel = errors.New("nil node stop channel")
 
@@ -90,6 +87,9 @@ var ErrNilBootstrapComponents = errors.New("nil bootstrap componennts")
 
 // ErrNilCoreComponents signals that a nil core components instance has been provided
 var ErrNilCoreComponents = errors.New("nil core components")
+
+// ErrNilStatusCoreComponents signals that a nil status core components has been provided
+var ErrNilStatusCoreComponents = errors.New("nil status core components")
 
 // ErrNilCryptoComponents signals that a nil crypto components instance has been provided
 var ErrNilCryptoComponents = errors.New("nil crypto components")
@@ -132,9 +132,3 @@ var ErrCannotCastUserAccountHandlerToVmCommonUserAccountHandler = errors.New("ca
 
 // ErrTrieOperationsTimeout signals that a trie operation took too long
 var ErrTrieOperationsTimeout = errors.New("trie operations timeout")
-
-// ErrNotImplemented signals that a feature is not yet implemented
-var ErrNotImplemented = errors.New("feature not implemented")
-
-// ErrNotSupported signals that an operation is not supported
-var ErrNotSupported = errors.New("operation not supported")

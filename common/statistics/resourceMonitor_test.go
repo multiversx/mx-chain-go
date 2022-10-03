@@ -1,40 +1,54 @@
 package statistics_test
 
 import (
+	errorsGo "errors"
 	"fmt"
 	"testing"
 
 	stats "github.com/ElrondNetwork/elrond-go/common/statistics"
+	"github.com/ElrondNetwork/elrond-go/common/statistics/disabled"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewResourceMonitor_NilConfigShouldErr(t *testing.T) {
-	t.Parallel()
-
-	resourceMonitor, err := stats.NewResourceMonitor(nil, &testscommon.PathManagerStub{}, "")
-
-	assert.Equal(t, stats.ErrNilConfig, err)
-	assert.Nil(t, resourceMonitor)
+func generateMockConfig() config.Config {
+	return config.Config{
+		ResourceStats: config.ResourceStatsConfig{
+			RefreshIntervalInSec: 1,
+		},
+	}
 }
 
-func TestNewResourceMonitor_NilPathManagerShouldErr(t *testing.T) {
+func TestNewResourceMonitor_NilNetStatisticsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	resourceMonitor, err := stats.NewResourceMonitor(
-		&config.Config{AccountsTrieStorage: config.StorageConfig{DB: config.DBConfig{}}},
-		nil,
-		"")
+		generateMockConfig(),
+		nil)
 
-	assert.Equal(t, stats.ErrNilPathHandler, err)
+	assert.Equal(t, stats.ErrNilNetworkStatistics, err)
 	assert.Nil(t, resourceMonitor)
 }
 
-func TestResourceMonitor_NewResourceMonitorShouldPass(t *testing.T) {
+func TestNewResourceMonitor_InvalidRefreshValueShouldErr(t *testing.T) {
 	t.Parallel()
 
-	resourceMonitor, err := stats.NewResourceMonitor(&config.Config{AccountsTrieStorage: config.StorageConfig{DB: config.DBConfig{}}}, &testscommon.PathManagerStub{}, "")
+	resourceMonitor, err := stats.NewResourceMonitor(
+		config.Config{
+			ResourceStats: config.ResourceStatsConfig{
+				RefreshIntervalInSec: 0,
+			},
+		},
+		disabled.NewDisabledNetStatistics())
+
+	assert.True(t, errorsGo.Is(err, stats.ErrInvalidRefreshIntervalValue))
+	assert.Nil(t, resourceMonitor)
+}
+
+func TestResourceMonitor_NewResourceMonitorShouldWork(t *testing.T) {
+	t.Parallel()
+
+	resourceMonitor, err := stats.NewResourceMonitor(generateMockConfig(), disabled.NewDisabledNetStatistics())
 
 	assert.Nil(t, err)
 	assert.NotNil(t, resourceMonitor)
@@ -43,7 +57,7 @@ func TestResourceMonitor_NewResourceMonitorShouldPass(t *testing.T) {
 func TestResourceMonitor_GenerateStatisticsShouldPass(t *testing.T) {
 	t.Parallel()
 
-	resourceMonitor, err := stats.NewResourceMonitor(&config.Config{AccountsTrieStorage: config.StorageConfig{DB: config.DBConfig{}}}, &testscommon.PathManagerStub{}, "")
+	resourceMonitor, err := stats.NewResourceMonitor(generateMockConfig(), disabled.NewDisabledNetStatistics())
 
 	assert.Nil(t, err)
 	statistics := resourceMonitor.GenerateStatistics()
@@ -61,7 +75,7 @@ func TestResourceMonitor_SaveStatisticsShouldNotPanic(t *testing.T) {
 		}
 	}()
 
-	resourceMonitor, err := stats.NewResourceMonitor(&config.Config{AccountsTrieStorage: config.StorageConfig{DB: config.DBConfig{}}}, &testscommon.PathManagerStub{}, "")
+	resourceMonitor, err := stats.NewResourceMonitor(generateMockConfig(), disabled.NewDisabledNetStatistics())
 
 	assert.Nil(t, err)
 	resourceMonitor.SaveStatistics()

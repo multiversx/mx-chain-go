@@ -1,13 +1,11 @@
 package machine
 
 import (
+	"context"
 	"sync/atomic"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/shirou/gopsutil/net"
 )
 
@@ -22,18 +20,47 @@ type netStatistics struct {
 	totalBytesSentInEpoch     uint64
 	totalBytesReceivedInEpoch uint64
 	getStatisticsHandler      func() ([]net.IOCountersStat, error)
+	cancel                    func()
 }
 
 // NewNetStatistics returns a new instance of the netStatistics
 func NewNetStatistics() *netStatistics {
-	return &netStatistics{
-		getStatisticsHandler: getStatistics,
+	stats := newNetStatistics(getStatistics)
+	stats.startProcessLoop(stats.processLoop)
+
+	return stats
+}
+
+func newNetStatistics(getStatisticsHandler func() ([]net.IOCountersStat, error)) *netStatistics {
+	stats := &netStatistics{
+		getStatisticsHandler: getStatisticsHandler,
+	}
+
+	return stats
+}
+
+func (ns *netStatistics) startProcessLoop(handler func(ctx context.Context)) {
+	var ctx context.Context
+	ctx, ns.cancel = context.WithCancel(context.Background())
+
+	go handler(ctx)
+}
+
+func (ns *netStatistics) processLoop(ctx context.Context) {
+	for {
+		select {
+		case <-ctx.Done():
+			log.Debug("netStatistics.processLoop go routine is stopping...")
+			return
+		default:
+		}
+
+		ns.computeStatistics()
 	}
 }
 
-// ComputeStatistics computes the current network statistics usage.
-// It should be called on a go routine as it is a blocking call for a bounded time (1 second)
-func (ns *netStatistics) ComputeStatistics() {
+// computeStatistics computes the current network statistics usage.
+func (ns *netStatistics) computeStatistics() {
 	nStart, err := ns.getStatisticsHandler()
 	if err != nil {
 		ns.setZeroStatsAndWait()
@@ -107,14 +134,12 @@ func (ns *netStatistics) processStatistics(nStart []net.IOCountersStat, nEnd []n
 	time.Sleep(durationSecond)
 }
 
-// EpochStartEventHandler -
-func (ns *netStatistics) EpochStartEventHandler() epochStart.ActionHandler {
-	subscribeHandler := notifier.NewHandlerForEpochStart(func(hdr data.HeaderHandler) {
-		atomic.StoreUint64(&ns.totalBytesSentInEpoch, 0)
-		atomic.StoreUint64(&ns.totalBytesReceivedInEpoch, 0)
-	}, func(_ data.HeaderHandler) {}, common.NetStatisticsOrder)
-
-	return subscribeHandler
+// EpochConfirmed is called whenever a new epoch is starting
+func (ns *netStatistics) EpochConfirmed(_ uint32, _ uint64) {
+	atomic.StoreUint64(&ns.totalBytesSentInEpoch, 0)
+	atomic.StoreUint64(&ns.totalBytesReceivedInEpoch, 0)
+	atomic.StoreUint64(&ns.bpsSentPeak, 0)
+	atomic.StoreUint64(&ns.bpsRecvPeak, 0)
 }
 
 func (ns *netStatistics) setZeroStatsAndWait() {
@@ -163,4 +188,26 @@ func (ns *netStatistics) TotalBytesSentInCurrentEpoch() uint64 {
 // TotalBytesReceivedInCurrentEpoch returns the number of bytes received in current epoch
 func (ns *netStatistics) TotalBytesReceivedInCurrentEpoch() uint64 {
 	return atomic.LoadUint64(&ns.totalBytesReceivedInEpoch)
+}
+
+// TotalSentInCurrentEpoch will convert the TotalBytesSentInCurrentEpoch using byte multipliers
+func (ns *netStatistics) TotalSentInCurrentEpoch() string {
+	return core.ConvertBytes(ns.TotalBytesSentInCurrentEpoch())
+}
+
+// TotalReceivedInCurrentEpoch will convert the TotalBytesReceivedInCurrentEpoch using byte multipliers
+func (ns *netStatistics) TotalReceivedInCurrentEpoch() string {
+	return core.ConvertBytes(ns.TotalBytesReceivedInCurrentEpoch())
+}
+
+// Close stops the associated go routine to this struct
+func (ns *netStatistics) Close() error {
+	ns.cancel()
+
+	return nil
+}
+
+// IsInterfaceNil returns true if underlying object is nil
+func (ns *netStatistics) IsInterfaceNil() bool {
+	return ns == nil
 }
