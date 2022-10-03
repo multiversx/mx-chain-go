@@ -315,3 +315,8 @@ func (u *userAccountsSyncer) checkGoRoutinesThrottler(ctx context.Context) error
 func (u *userAccountsSyncer) resetTimeoutHandlerWatchdog() {
 	u.timeoutHandler.ResetWatchdog()
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (u *userAccountsSyncer) IsInterfaceNil() bool {
+	return u == nil
+}
