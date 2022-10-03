@@ -354,8 +354,7 @@ func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves 
 	requesterTrie := nRequester.TrieContainer.Get([]byte(trieFactory.UserAccountTrie))
 	nilRootHash, _ := requesterTrie.RootHash()
 
-	syncerArgs := getUserAccountSyncerArgs(nRequester)
-	// TODO inject version
+	syncerArgs := getUserAccountSyncerArgs(nRequester, version)
 
 	userAccSyncer, err := syncer.NewUserAccountsSyncer(syncerArgs)
 	assert.Nil(t, err)
@@ -404,6 +403,19 @@ func addValuesToDataTrie(t *testing.T, adb state.AccountsAdapter, acc state.User
 }
 
 func TestSyncMissingSnapshotNodes(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	t.Run("test with double lists version", func(t *testing.T) {
+		testSyncMissingSnapshotNodes(t, 2)
+	})
+	t.Run("test with depth version", func(t *testing.T) {
+		testSyncMissingSnapshotNodes(t, 3)
+	})
+}
+
+func testSyncMissingSnapshotNodes(t *testing.T, version int) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -473,7 +485,7 @@ func TestSyncMissingSnapshotNodes(t *testing.T) {
 
 	copyPartialState(t, nResolver, nRequester, dataTrieRootHashes)
 
-	syncerArgs := getUserAccountSyncerArgs(nRequester)
+	syncerArgs := getUserAccountSyncerArgs(nRequester, version)
 	userAccSyncer, err := syncer.NewUserAccountsSyncer(syncerArgs)
 	assert.Nil(t, err)
 
@@ -565,7 +577,7 @@ func getNumLeaves(t *testing.T, tr common.Trie, rootHash []byte) int {
 	return numLeaves
 }
 
-func getUserAccountSyncerArgs(node *integrationTests.TestProcessorNode) syncer.ArgsNewUserAccountsSyncer {
+func getUserAccountSyncerArgs(node *integrationTests.TestProcessorNode, version int) syncer.ArgsNewUserAccountsSyncer {
 	thr, _ := throttler.NewNumGoRoutinesThrottler(50)
 	syncerArgs := syncer.ArgsNewUserAccountsSyncer{
 		ArgsNewBaseAccountsSyncer: syncer.ArgsNewBaseAccountsSyncer{
@@ -577,7 +589,7 @@ func getUserAccountSyncerArgs(node *integrationTests.TestProcessorNode) syncer.A
 			Cacher:                    node.DataPool.TrieNodes(),
 			MaxTrieLevelInMemory:      200,
 			MaxHardCapForMissingNodes: 5000,
-			TrieSyncerVersion:         2,
+			TrieSyncerVersion:         version,
 			StorageMarker:             storageMarker.NewTrieStorageMarker(),
 		},
 		ShardId:                0,
