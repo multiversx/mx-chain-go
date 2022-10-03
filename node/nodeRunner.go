@@ -26,7 +26,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/common/statistics"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	dbLookupFactory "github.com/ElrondNetwork/elrond-go/dblookupext/factory"
@@ -446,19 +445,6 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
-	managedHeartbeatComponents, err := nr.CreateManagedHeartbeatComponents(
-		managedCoreComponents,
-		managedNetworkComponents,
-		managedCryptoComponents,
-		managedDataComponents,
-		managedProcessComponents,
-		managedProcessComponents.NodeRedundancyHandler(),
-	)
-
-	if err != nil {
-		return true, err
-	}
-
 	managedHeartbeatV2Components, err := nr.CreateManagedHeartbeatV2Components(
 		managedBootstrapComponents,
 		managedCoreComponents,
@@ -483,7 +469,6 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedProcessComponents,
 		managedStateComponents,
 		managedStatusComponents,
-		managedHeartbeatComponents,
 		managedHeartbeatV2Components,
 		managedConsensusComponents,
 		flagsConfig.BootstrapRoundIndex,
@@ -860,47 +845,6 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 		return nil, err
 	}
 	return managedConsensusComponents, nil
-}
-
-// CreateManagedHeartbeatComponents is the managed heartbeat components factory
-func (nr *nodeRunner) CreateManagedHeartbeatComponents(
-	coreComponents mainFactory.CoreComponentsHolder,
-	networkComponents mainFactory.NetworkComponentsHolder,
-	cryptoComponents mainFactory.CryptoComponentsHolder,
-	dataComponents mainFactory.DataComponentsHolder,
-	processComponents mainFactory.ProcessComponentsHolder,
-	redundancyHandler consensus.NodeRedundancyHandler,
-) (mainFactory.HeartbeatComponentsHandler, error) {
-	genesisTime := time.Unix(coreComponents.GenesisNodesSetup().GetStartTime(), 0)
-
-	heartbeatArgs := heartbeatComp.HeartbeatComponentsFactoryArgs{
-		Config:            *nr.configs.GeneralConfig,
-		Prefs:             *nr.configs.PreferencesConfig,
-		AppVersion:        nr.configs.FlagsConfig.Version,
-		GenesisTime:       genesisTime,
-		RedundancyHandler: redundancyHandler,
-		CoreComponents:    coreComponents,
-		DataComponents:    dataComponents,
-		NetworkComponents: networkComponents,
-		CryptoComponents:  cryptoComponents,
-		ProcessComponents: processComponents,
-	}
-
-	heartbeatComponentsFactory, err := heartbeatComp.NewHeartbeatComponentsFactory(heartbeatArgs)
-	if err != nil {
-		return nil, fmt.Errorf("NewHeartbeatComponentsFactory failed: %w", err)
-	}
-
-	managedHeartbeatComponents, err := heartbeatComp.NewManagedHeartbeatComponents(heartbeatComponentsFactory)
-	if err != nil {
-		return nil, err
-	}
-
-	err = managedHeartbeatComponents.Create()
-	if err != nil {
-		return nil, err
-	}
-	return managedHeartbeatComponents, nil
 }
 
 // CreateManagedHeartbeatV2Components is the managed heartbeatV2 components factory

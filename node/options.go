@@ -143,22 +143,6 @@ func WithStatusComponents(statusComponents factory.StatusComponentsHandler) Opti
 	}
 }
 
-// WithHeartbeatComponents sets up the Node heartbeat components
-func WithHeartbeatComponents(heartbeatComponents factory.HeartbeatComponentsHandler) Option {
-	return func(n *Node) error {
-		if check.IfNil(heartbeatComponents) {
-			return ErrNilStatusComponents
-		}
-		err := heartbeatComponents.CheckSubcomponents()
-		if err != nil {
-			return err
-		}
-		n.heartbeatComponents = heartbeatComponents
-		n.closableComponents = append(n.closableComponents, heartbeatComponents)
-		return nil
-	}
-}
-
 // WithHeartbeatV2Components sets up the Node heartbeatV2 components
 func WithHeartbeatV2Components(heartbeatV2Components factory.HeartbeatV2ComponentsHandler) Option {
 	return func(n *Node) error {

@@ -60,9 +60,6 @@ const ConsensusTopic = "consensus"
 // GenesisTxSignatureString is the string used to generate genesis transaction signature as 128 hex characters
 const GenesisTxSignatureString = "GENESISGENESISGENESISGENESISGENESISGENESISGENESISGENESISGENESISG"
 
-// HeartbeatTopic is the topic used for heartbeat signaling
-const HeartbeatTopic = "heartbeat"
-
 // HeartbeatV2Topic is the topic used for heartbeatV2 signaling
 const HeartbeatV2Topic = "heartbeatV2"
 
@@ -720,10 +717,6 @@ const InvalidMessageBlacklistDuration = time.Second * 3600
 // PublicKeyBlacklistDuration represents the time to keep a public key in the black list if it will degrade its
 // rating to a minimum threshold due to improper messages
 const PublicKeyBlacklistDuration = time.Second * 7200
-
-// WrongP2PMessageBlacklistDuration represents the time to keep a peer id in the blacklist if it sends a message that
-// do not follow this protocol
-const WrongP2PMessageBlacklistDuration = time.Second * 7200
 
 // MaxWaitingTimeToReceiveRequestedItem represents the maximum waiting time in seconds needed to receive the requested items
 const MaxWaitingTimeToReceiveRequestedItem = 5 * time.Second

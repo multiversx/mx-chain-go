@@ -221,19 +221,8 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 		return nil, err
 	}
 
-	heartbeatDbConfig := GetDBFromConfig(psf.generalConfig.Heartbeat.HeartbeatStorage.DB)
-	shardId := core.GetShardIDString(psf.shardCoordinator.SelfId())
-	dbPath = psf.pathManager.PathForStatic(shardId, psf.generalConfig.Heartbeat.HeartbeatStorage.DB.FilePath)
-	heartbeatDbConfig.FilePath = dbPath
-	heartbeatStorageUnit, err := storageunit.NewStorageUnitFromConf(
-		GetCacherFromConfig(psf.generalConfig.Heartbeat.HeartbeatStorage.Cache),
-		heartbeatDbConfig)
-	if err != nil {
-		return nil, err
-	}
-
 	statusMetricsDbConfig := GetDBFromConfig(psf.generalConfig.StatusMetricsStorage.DB)
-	shardId = core.GetShardIDString(psf.shardCoordinator.SelfId())
+	shardId := core.GetShardIDString(psf.shardCoordinator.SelfId())
 	dbPath = psf.pathManager.PathForStatic(shardId, psf.generalConfig.StatusMetricsStorage.DB.FilePath)
 	statusMetricsDbConfig.FilePath = dbPath
 	statusMetricsStorageUnit, err := storageunit.NewStorageUnitFromConf(
@@ -277,7 +266,6 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, metaHdrHashNonceUnit)
 	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(psf.shardCoordinator.SelfId())
 	store.AddStorer(hdrNonceHashDataUnit, shardHdrHashNonceUnit)
-	store.AddStorer(dataRetriever.HeartbeatUnit, heartbeatStorageUnit)
 	store.AddStorer(dataRetriever.BootstrapUnit, bootstrapUnit)
 	store.AddStorer(dataRetriever.StatusMetricsUnit, statusMetricsStorageUnit)
 	store.AddStorer(dataRetriever.ReceiptsUnit, receiptsUnit)
@@ -392,19 +380,8 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 		}
 	}
 
-	shardId := core.GetShardIDString(psf.shardCoordinator.SelfId())
-	heartbeatDbConfig := GetDBFromConfig(psf.generalConfig.Heartbeat.HeartbeatStorage.DB)
-	dbPath = psf.pathManager.PathForStatic(shardId, psf.generalConfig.Heartbeat.HeartbeatStorage.DB.FilePath)
-	heartbeatDbConfig.FilePath = dbPath
-	heartbeatStorageUnit, err := storageunit.NewStorageUnitFromConf(
-		GetCacherFromConfig(psf.generalConfig.Heartbeat.HeartbeatStorage.Cache),
-		heartbeatDbConfig)
-	if err != nil {
-		return nil, err
-	}
-
 	statusMetricsDbConfig := GetDBFromConfig(psf.generalConfig.StatusMetricsStorage.DB)
-	shardId = core.GetShardIDString(psf.shardCoordinator.SelfId())
+	shardId := core.GetShardIDString(psf.shardCoordinator.SelfId())
 	dbPath = psf.pathManager.PathForStatic(shardId, psf.generalConfig.StatusMetricsStorage.DB.FilePath)
 	statusMetricsDbConfig.FilePath = dbPath
 	statusMetricsStorageUnit, err := storageunit.NewStorageUnitFromConf(
@@ -473,7 +450,6 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(i)
 		store.AddStorer(hdrNonceHashDataUnit, shardHdrHashNonceUnits[i])
 	}
-	store.AddStorer(dataRetriever.HeartbeatUnit, heartbeatStorageUnit)
 	store.AddStorer(dataRetriever.BootstrapUnit, bootstrapUnit)
 	store.AddStorer(dataRetriever.StatusMetricsUnit, statusMetricsStorageUnit)
 	store.AddStorer(dataRetriever.ReceiptsUnit, receiptsUnit)
