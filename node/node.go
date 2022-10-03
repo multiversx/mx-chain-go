@@ -844,12 +844,7 @@ func (n *Node) GetHeartbeats() []heartbeatData.PubKeyHeartbeat {
 		return make([]heartbeatData.PubKeyHeartbeat, 0)
 	}
 
-	heartbeats := monitor.GetHeartbeats()
-	sort.Slice(heartbeats, func(i, j int) bool {
-		return strings.Compare(heartbeats[i].PublicKey, heartbeats[j].PublicKey) < 0
-	})
-
-	return heartbeats
+	return monitor.GetHeartbeats()
 }
 
 // ValidatorStatisticsApi will return the statistics for all the validators from the initial nodes pub keys
