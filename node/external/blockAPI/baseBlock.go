@@ -364,11 +364,9 @@ func alteredAccountsMapToAPIResponse(alteredAccounts map[string]*outport.Altered
 			Balance: altAccount.Balance,
 		}
 
-		if len(tokensFilter) == 0 {
-			continue
+		if len(tokensFilter) > 0 {
+			attachTokensToAlteredAccount(apiAlteredAccount, altAccount, tokensFilter, withMetadata)
 		}
-
-		attachTokensToAlteredAccount(apiAlteredAccount, altAccount, tokensFilter, withMetadata)
 
 		response.Accounts = append(response.Accounts, apiAlteredAccount)
 	}
@@ -423,7 +421,8 @@ func (bap *baseAPIBlockProcessor) apiBlockToTxsPool(apiBlock *api.Block) *outpor
 			bap.addLogsToPool(tx, pool)
 		}
 	}
-	return nil
+
+	return pool
 }
 
 func (bap *baseAPIBlockProcessor) addLogsToPool(tx *transaction.ApiTransactionResult, pool *outport.Pool) {

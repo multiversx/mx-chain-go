@@ -68,6 +68,11 @@ func (aap *alteredAccountsProvider) ExtractAlteredAccountsFromPool(txPool *outpo
 	aap.mutExtractAccounts.Lock()
 	defer aap.mutExtractAccounts.Unlock()
 
+	if txPool == nil {
+		log.Warn("alteredAccountsProvider: ExtractAlteredAccountsFromPool", "txPool is nil", "will return")
+		return map[string]*outportcore.AlteredAccount{}, nil
+	}
+
 	markedAccounts := make(map[string]*markedAlteredAccount)
 	aap.extractAddressesWithBalanceChange(txPool, markedAccounts)
 	err := aap.tokensProc.extractESDTAccounts(txPool, markedAccounts)

@@ -11,6 +11,7 @@ import (
 	apiErrors "github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/groups"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -234,6 +235,8 @@ func getBlockRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/by-nonce/:nonce", Open: true},
 					{Name: "/by-hash/:hash", Open: true},
 					{Name: "/by-round/:round", Open: true},
+					{Name: "/altered-accounts/by-nonce/:nonce", Open: true},
+					{Name: "/altered-accounts/by-hash/:hash", Open: true},
 				},
 			},
 		},
@@ -424,6 +427,36 @@ func TestGetBlockByRound_WithBlockQueryOptionsShouldWork(t *testing.T) {
 	require.NotNil(t, response)
 	require.Equal(t, uint64(38), calledWithRound)
 	require.Equal(t, api.BlockQueryOptions{WithTransactions: true, WithLogs: true}, calledWithOptions)
+}
+
+func TestGetAlteredAccountsByNonce_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	expectedResponse := &common.AlteredAccountsForBlockAPIResponse{
+		Accounts: []*common.AlteredAccountAPIResponse{
+			{
+				Address: "alice",
+				Balance: "100000",
+			},
+		},
+	}
+	facade := mock.FacadeStub{
+		GetAlteredAccountsForBlockCalled: func(options api.GetAlteredAccountsForBlockOptions) (*common.AlteredAccountsForBlockAPIResponse, error) {
+			require.Equal(t, api.BlockFetchTypeByNonce, options.RequestType)
+			require.Equal(t, uint64(37), options.Nonce)
+
+			return expectedResponse, nil
+		},
+	}
+
+	blockGroup, err := groups.NewBlockGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(blockGroup, "block", getBlockRoutesConfig())
+
+	response, code := httpGetBlock(ws, "/block/altered-accounts/by-nonce/37")
+	require.Equal(t, http.StatusOK, code)
+	require.NotNil(t, response)
 }
 
 func httpGetBlock(ws *gin.Engine, url string) (blockResponse, int) {
