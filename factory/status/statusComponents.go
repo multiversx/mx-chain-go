@@ -213,7 +213,7 @@ func (pc *statusComponents) Close() error {
 // createOutportDriver creates a new outport.OutportHandler which is used to register outport drivers
 // once a driver is subscribed it will receive data through the implemented outport.Driver methods
 func (scf *statusComponentsFactory) createOutportDriver() (outport.OutportHandler, error) {
-	webSocketSenderDriverFactoryArgs, err := scf.makeWebSocketsDriverArgs()
+	webSocketSenderDriverFactoryArgs, err := scf.makeWebSocketDriverArgs()
 	if err != nil {
 		return nil, err
 	}
@@ -279,7 +279,7 @@ func (scf *statusComponentsFactory) makeCovalentIndexerArgs() *covalentFactory.A
 	}
 }
 
-func (scf *statusComponentsFactory) makeWebSocketsDriverArgs() (wsDriverFactory.OutportDriverWebSocketSenderFactoryArgs, error) {
+func (scf *statusComponentsFactory) makeWebSocketDriverArgs() (wsDriverFactory.OutportDriverWebSocketSenderFactoryArgs, error) {
 	if !scf.externalConfig.WebSocketConnector.Enabled {
 		return wsDriverFactory.OutportDriverWebSocketSenderFactoryArgs{}, nil
 	}
