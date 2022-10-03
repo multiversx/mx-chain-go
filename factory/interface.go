@@ -316,15 +316,6 @@ type StatusComponentsHandler interface {
 	StartPolling() error
 }
 
-// HeartbeatMonitor monitors the received heartbeat messages
-type HeartbeatMonitor interface {
-	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
-	GetHeartbeats() []heartbeatData.PubKeyHeartbeat
-	IsInterfaceNil() bool
-	Cleanup()
-	Close() error
-}
-
 // HeartbeatV2Monitor monitors the cache of heartbeatV2 messages
 type HeartbeatV2Monitor interface {
 	GetHeartbeats() []heartbeatData.PubKeyHeartbeat
