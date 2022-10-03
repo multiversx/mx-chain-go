@@ -6,6 +6,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/data/mock"
 	"github.com/ElrondNetwork/elrond-go/common"
 	elrondErrors "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/storage/cache"
@@ -808,7 +809,7 @@ func TestExtensionNode_loadChildren(t *testing.T) {
 	nodes, _ := getEncodedTrieNodesAndHashes(tr)
 	nodesCacher, _ := cache.NewLRUCache(100)
 	for i := range nodes {
-		n, _ := NewInterceptedTrieNode(nodes[i], marsh, hasher)
+		n, _ := NewInterceptedTrieNode(nodes[i], hasher)
 		nodesCacher.Put(n.hash, n, len(n.GetSerialized()))
 	}
 
@@ -1034,4 +1035,19 @@ func TestExtensionNode_getValueReturnsEmptyByteSlice(t *testing.T) {
 
 	en, _ := getEnAndCollapsedEn()
 	assert.Equal(t, []byte{}, en.getValue())
+}
+
+func TestExtensionNode_commitSnapshotDbIsClosing(t *testing.T) {
+	t.Parallel()
+
+	db := &mock.StorerStub{
+		GetCalled: func(key []byte) ([]byte, error) {
+			return nil, elrondErrors.ErrContextClosing
+		},
+	}
+	_, collapsedEn := getEnAndCollapsedEn()
+	missingNodesChan := make(chan []byte, 10)
+	err := collapsedEn.commitSnapshot(db, nil, missingNodesChan, context.Background(), &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{})
+	assert.Nil(t, err)
+	assert.Equal(t, 0, len(missingNodesChan))
 }

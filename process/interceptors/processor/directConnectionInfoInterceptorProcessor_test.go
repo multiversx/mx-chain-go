@@ -7,11 +7,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	heartbeatMessages "github.com/ElrondNetwork/elrond-go/heartbeat"
-	"github.com/ElrondNetwork/elrond-go/p2p/message"
+	p2pFactory "github.com/ElrondNetwork/elrond-go/p2p/factory"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/process/p2p"
+	processP2P "github.com/ElrondNetwork/elrond-go/process/p2p"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -87,17 +87,17 @@ func TestDirectConnectionInfoInterceptorProcessor_Save(t *testing.T) {
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(processor))
 
-		msg := &message.DirectConnectionInfo{
+		msg := &p2pFactory.DirectConnectionInfo{
 			ShardId: "invalid shard",
 		}
 		marshaller := marshal.GogoProtoMarshalizer{}
 		dataBuff, _ := marshaller.Marshal(msg)
-		arg := p2p.ArgInterceptedDirectConnectionInfo{
+		arg := processP2P.ArgInterceptedDirectConnectionInfo{
 			Marshaller:  &marshaller,
 			DataBuff:    dataBuff,
 			NumOfShards: 10,
 		}
-		data, _ := p2p.NewInterceptedDirectConnectionInfo(arg)
+		data, _ := processP2P.NewInterceptedDirectConnectionInfo(arg)
 
 		err = processor.Save(data, "", "")
 		assert.NotNil(t, err)
@@ -118,17 +118,17 @@ func TestDirectConnectionInfoInterceptorProcessor_Save(t *testing.T) {
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(processor))
 
-		msg := &message.DirectConnectionInfo{
+		msg := &p2pFactory.DirectConnectionInfo{
 			ShardId: "5",
 		}
 		marshaller := marshal.GogoProtoMarshalizer{}
 		dataBuff, _ := marshaller.Marshal(msg)
-		arg := p2p.ArgInterceptedDirectConnectionInfo{
+		arg := processP2P.ArgInterceptedDirectConnectionInfo{
 			Marshaller:  &marshaller,
 			DataBuff:    dataBuff,
 			NumOfShards: 10,
 		}
-		data, _ := p2p.NewInterceptedDirectConnectionInfo(arg)
+		data, _ := processP2P.NewInterceptedDirectConnectionInfo(arg)
 
 		err = processor.Save(data, "", "")
 		assert.Nil(t, err)

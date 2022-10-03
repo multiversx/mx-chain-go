@@ -11,6 +11,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
+const initialAllocation = 1000
+
 var _ process.GasHandler = (*gasComputation)(nil)
 
 type gasComputation struct {
@@ -85,18 +87,19 @@ func (gc *gasComputation) Init() {
 }
 
 // Reset method resets tx hashes with gas provided, refunded and penalized since last reset
+// TODO remove this call from basePreProcess.handleProcessTransactionInit
 func (gc *gasComputation) Reset(key []byte) {
 	gc.mutGasProvided.Lock()
-	gc.txHashesWithGasProvidedSinceLastReset[string(key)] = make([][]byte, 0)
-	gc.txHashesWithGasProvidedAsScheduledSinceLastReset[string(key)] = make([][]byte, 0)
+	gc.txHashesWithGasProvidedSinceLastReset[string(key)] = make([][]byte, 0, initialAllocation)
+	gc.txHashesWithGasProvidedAsScheduledSinceLastReset[string(key)] = make([][]byte, 0, initialAllocation)
 	gc.mutGasProvided.Unlock()
 
 	gc.mutGasRefunded.Lock()
-	gc.txHashesWithGasRefundedSinceLastReset[string(key)] = make([][]byte, 0)
+	gc.txHashesWithGasRefundedSinceLastReset[string(key)] = make([][]byte, 0, initialAllocation)
 	gc.mutGasRefunded.Unlock()
 
 	gc.mutGasPenalized.Lock()
-	gc.txHashesWithGasPenalizedSinceLastReset[string(key)] = make([][]byte, 0)
+	gc.txHashesWithGasPenalizedSinceLastReset[string(key)] = make([][]byte, 0, initialAllocation)
 	gc.mutGasPenalized.Unlock()
 }
 

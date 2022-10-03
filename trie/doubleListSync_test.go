@@ -100,7 +100,7 @@ func createRequesterResolver(completeTrie common.Trie, interceptedNodes storage.
 				}
 
 				var n *InterceptedTrieNode
-				n, err = NewInterceptedTrieNode(buff, marshalizer, hasherMock)
+				n, err = NewInterceptedTrieNode(buff, hasherMock)
 				if err != nil {
 					continue
 				}

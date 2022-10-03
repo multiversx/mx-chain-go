@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -110,7 +111,7 @@ func TestNewMetaBootstrap_NilPoolsHolderShouldErr(t *testing.T) {
 
 	bs, err := sync.NewMetaBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilPoolsHolder, err)
 }
 
@@ -122,7 +123,7 @@ func TestNewMetaBootstrap_NilValidatorDBShouldErr(t *testing.T) {
 
 	bs, err := sync.NewMetaBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilPeerAccountsAdapter, err)
 }
 
@@ -134,7 +135,7 @@ func TestNewMetaBootstrap_NilValidatorDBSyncerShouldErr(t *testing.T) {
 
 	bs, err := sync.NewMetaBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilAccountsDBSyncer, err)
 }
 
@@ -146,7 +147,7 @@ func TestNewMetaBootstrap_NilUserDBSyncerShouldErr(t *testing.T) {
 
 	bs, err := sync.NewMetaBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilAccountsDBSyncer, err)
 }
 
@@ -162,7 +163,7 @@ func TestNewMetaBootstrap_PoolsHolderRetNilOnHeadersShouldErr(t *testing.T) {
 
 	bs, err := sync.NewMetaBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilMetaBlocksPool, err)
 }
 
@@ -174,7 +175,7 @@ func TestNewMetaBootstrap_NilStoreShouldErr(t *testing.T) {
 
 	bs, err := sync.NewMetaBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilStore, err)
 }
 
@@ -186,7 +187,7 @@ func TestNewMetaBootstrap_NilAppStatusHandlerShouldErr(t *testing.T) {
 
 	bs, err := sync.NewMetaBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilAppStatusHandler, err)
 }
 
@@ -198,7 +199,7 @@ func TestNewMetaBootstrap_NilBlockchainShouldErr(t *testing.T) {
 
 	bs, err := sync.NewMetaBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilBlockChain, err)
 }
 
@@ -210,7 +211,7 @@ func TestNewMetaBootstrap_NilRoundHandlerShouldErr(t *testing.T) {
 
 	bs, err := sync.NewMetaBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilRoundHandler, err)
 }
 
@@ -222,7 +223,7 @@ func TestNewMetaBootstrap_NilBlockProcessorShouldErr(t *testing.T) {
 
 	bs, err := sync.NewMetaBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilBlockProcessor, err)
 }
 
@@ -234,7 +235,7 @@ func TestNewMetaBootstrap_NilHasherShouldErr(t *testing.T) {
 
 	bs, err := sync.NewMetaBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilHasher, err)
 }
 
@@ -246,7 +247,7 @@ func TestNewMetaBootstrap_NilMarshalizerShouldErr(t *testing.T) {
 
 	bs, err := sync.NewMetaBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilMarshalizer, err)
 }
 
@@ -258,7 +259,7 @@ func TestNewMetaBootstrap_NilForkDetectorShouldErr(t *testing.T) {
 
 	bs, err := sync.NewMetaBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilForkDetector, err)
 }
 
@@ -270,7 +271,7 @@ func TestNewMetaBootstrap_NilRequestHandlerShouldErr(t *testing.T) {
 
 	bs, err := sync.NewMetaBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilRequestHandler, err)
 }
 
@@ -282,7 +283,7 @@ func TestNewMetaBootstrap_NilShardCoordinatorShouldErr(t *testing.T) {
 
 	bs, err := sync.NewMetaBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
 }
 
@@ -294,7 +295,7 @@ func TestNewMetaBootstrap_NilAccountsAdapterShouldErr(t *testing.T) {
 
 	bs, err := sync.NewMetaBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilAccountsAdapter, err)
 }
 
@@ -306,7 +307,7 @@ func TestNewMetaBootstrap_NilBlackListHandlerShouldErr(t *testing.T) {
 
 	bs, err := sync.NewMetaBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilBlackListCacher, err)
 }
 
@@ -318,7 +319,7 @@ func TestNewMetaBootstrap_NilNetworkWatcherShouldErr(t *testing.T) {
 
 	bs, err := sync.NewMetaBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilNetworkWatcher, err)
 }
 
@@ -330,7 +331,7 @@ func TestNewMetaBootstrap_NilBootStorerShouldErr(t *testing.T) {
 
 	bs, err := sync.NewMetaBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilBootStorer, err)
 }
 
@@ -342,7 +343,7 @@ func TestNewMetaBootstrap_NilMiniblocksProviderShouldErr(t *testing.T) {
 
 	bs, err := sync.NewMetaBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilMiniBlocksProvider, err)
 }
 
@@ -354,7 +355,7 @@ func TestNewMetaBootstrap_NilOutportProviderShouldErr(t *testing.T) {
 
 	bs, err := sync.NewMetaBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilOutportHandler, err)
 }
 
@@ -366,7 +367,7 @@ func TestNewMetaBootstrap_NilCurrentEpochProviderShouldErr(t *testing.T) {
 
 	bs, err := sync.NewMetaBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilCurrentNetworkEpochProvider, err)
 }
 
@@ -378,7 +379,7 @@ func TestNewMetaBootstrap_InvalidProcessTimeShouldErr(t *testing.T) {
 
 	bs, err := sync.NewMetaBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.True(t, errors.Is(err, process.ErrInvalidProcessWaitTime))
 }
 
@@ -404,7 +405,7 @@ func testMetaWithMissingStorer(missingUnit dataRetriever.UnitType) func(t *testi
 		}
 
 		bs, err := sync.NewMetaBootstrap(args)
-		assert.Nil(t, bs)
+		assert.True(t, check.IfNil(bs))
 		require.NotNil(t, err)
 		require.True(t, strings.Contains(err.Error(), storage.ErrKeyNotFound.Error()))
 	}
@@ -433,7 +434,7 @@ func TestNewMetaBootstrap_OkValsShouldWork(t *testing.T) {
 	args.IsInImportMode = true
 	bs, err := sync.NewMetaBootstrap(args)
 
-	assert.NotNil(t, bs)
+	assert.False(t, check.IfNil(bs))
 	assert.Nil(t, err)
 	assert.Equal(t, 1, wasCalled)
 	assert.False(t, bs.IsInterfaceNil())
@@ -441,7 +442,7 @@ func TestNewMetaBootstrap_OkValsShouldWork(t *testing.T) {
 
 	args.IsInImportMode = false
 	bs, err = sync.NewMetaBootstrap(args)
-	assert.NotNil(t, bs)
+	assert.False(t, check.IfNil(bs))
 	assert.Nil(t, err)
 	assert.False(t, bs.IsInImportMode())
 	assert.Equal(t, testProcessWaitTime, bs.ProcessWaitTime())
@@ -1026,7 +1027,7 @@ func TestMetaBootstrap_GetHeaderFromPoolShouldReturnNil(t *testing.T) {
 	hdr, _, _ := process.GetMetaHeaderFromPoolWithNonce(0, pools.HeadersCalled())
 	time.Sleep(500 * time.Millisecond)
 
-	assert.NotNil(t, bs)
+	assert.False(t, check.IfNil(bs))
 	assert.Nil(t, hdr)
 }
 
@@ -1065,7 +1066,7 @@ func TestMetaBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 	bs, _ := sync.NewMetaBootstrap(args)
 	hdr2, _, _ := process.GetMetaHeaderFromPoolWithNonce(0, pools.HeadersCalled())
 
-	assert.NotNil(t, bs)
+	assert.False(t, check.IfNil(bs))
 	assert.True(t, hdr == hdr2)
 }
 

@@ -103,3 +103,8 @@ func (stsm *snapshotTrieStorageManager) GetFromLastEpoch(key []byte) ([]byte, er
 
 	return stsm.mainSnapshotStorer.GetFromLastEpoch(key)
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (stsm *snapshotTrieStorageManager) IsInterfaceNil() bool {
+	return stsm == nil
+}

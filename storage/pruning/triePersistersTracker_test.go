@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/storage/mock"
 	"github.com/stretchr/testify/assert"
@@ -13,7 +14,7 @@ func TestNewTriePersistersTracker(t *testing.T) {
 	t.Parallel()
 
 	pt := NewTriePersisterTracker(getArgs())
-	assert.NotNil(t, pt)
+	assert.False(t, check.IfNil(pt))
 	assert.Equal(t, int64(7), pt.oldestEpochKeep)
 	assert.Equal(t, int64(8), pt.oldestEpochActive)
 	assert.Equal(t, 0, pt.numDbsMarkedAsActive)

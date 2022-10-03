@@ -38,7 +38,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
+	p2pConfig "github.com/ElrondNetwork/elrond-go/p2p/config"
+	p2pFactory "github.com/ElrondNetwork/elrond-go/p2p/factory"
 	"github.com/ElrondNetwork/elrond-go/process"
 	procFactory "github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
@@ -121,12 +122,12 @@ func GetConnectableAddress(mes p2p.Messenger) string {
 	return ""
 }
 
-func createP2PConfig(initialPeerList []string) config.P2PConfig {
-	return config.P2PConfig{
-		Node: config.NodeConfig{
+func createP2PConfig(initialPeerList []string) p2pConfig.P2PConfig {
+	return p2pConfig.P2PConfig{
+		Node: p2pConfig.NodeConfig{
 			Port: "0",
 		},
-		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
+		KadDhtPeerDiscovery: p2pConfig.KadDhtPeerDiscoveryConfig{
 			Enabled:                          true,
 			Type:                             "optimized",
 			RefreshIntervalInSec:             2,
@@ -135,7 +136,7 @@ func createP2PConfig(initialPeerList []string) config.P2PConfig {
 			BucketSize:                       100,
 			RoutingTableRefreshIntervalInSec: 100,
 		},
-		Sharding: config.ShardingConfig{
+		Sharding: p2pConfig.ShardingConfig{
 			Type: p2p.NilListSharder,
 		},
 	}
@@ -147,55 +148,30 @@ func CreateMessengerWithKadDht(initialAddr string) p2p.Messenger {
 	if len(initialAddr) > 0 {
 		initialAddresses = append(initialAddresses, initialAddr)
 	}
-	arg := libp2p.ArgsNetworkMessenger{
+	arg := p2pFactory.ArgsNetworkMessenger{
 		Marshalizer:           TestMarshalizer,
-		ListenAddress:         libp2p.ListenLocalhostAddrWithIp4AndTcp,
+		ListenAddress:         p2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig:             createP2PConfig(initialAddresses),
-		SyncTimer:             &libp2p.LocalSyncTimer{},
+		SyncTimer:             &p2pFactory.LocalSyncTimer{},
 		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
 		NodeOperationMode:     p2p.NormalOperation,
 		PeersRatingHandler:    &p2pmocks.PeersRatingHandlerStub{},
 		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 	}
 
-	libP2PMes, err := libp2p.NewNetworkMessenger(arg)
-	log.LogIfError(err)
-
-	return libP2PMes
-}
-
-// CreateMessengerWithKadDhtAndProtocolID creates a new libp2p messenger with kad-dht peer discovery and peer ID
-func CreateMessengerWithKadDhtAndProtocolID(initialAddr string, protocolID string) p2p.Messenger {
-	initialAddresses := make([]string, 0)
-	if len(initialAddr) > 0 {
-		initialAddresses = append(initialAddresses, initialAddr)
-	}
-	p2pConfig := createP2PConfig(initialAddresses)
-	p2pConfig.KadDhtPeerDiscovery.ProtocolID = protocolID
-	arg := libp2p.ArgsNetworkMessenger{
-		Marshalizer:           TestMarshalizer,
-		ListenAddress:         libp2p.ListenLocalhostAddrWithIp4AndTcp,
-		P2pConfig:             p2pConfig,
-		SyncTimer:             &libp2p.LocalSyncTimer{},
-		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
-		NodeOperationMode:     p2p.NormalOperation,
-		PeersRatingHandler:    &p2pmocks.PeersRatingHandlerStub{},
-		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
-	}
-
-	libP2PMes, err := libp2p.NewNetworkMessenger(arg)
+	libP2PMes, err := p2pFactory.NewNetworkMessenger(arg)
 	log.LogIfError(err)
 
 	return libP2PMes
 }
 
 // CreateMessengerFromConfig creates a new libp2p messenger with provided configuration
-func CreateMessengerFromConfig(p2pConfig config.P2PConfig) p2p.Messenger {
-	arg := libp2p.ArgsNetworkMessenger{
+func CreateMessengerFromConfig(p2pConfig p2pConfig.P2PConfig) p2p.Messenger {
+	arg := p2pFactory.ArgsNetworkMessenger{
 		Marshalizer:           TestMarshalizer,
-		ListenAddress:         libp2p.ListenLocalhostAddrWithIp4AndTcp,
+		ListenAddress:         p2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig:             p2pConfig,
-		SyncTimer:             &libp2p.LocalSyncTimer{},
+		SyncTimer:             &p2pFactory.LocalSyncTimer{},
 		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
 		NodeOperationMode:     p2p.NormalOperation,
 		PeersRatingHandler:    &p2pmocks.PeersRatingHandlerStub{},
@@ -207,19 +183,19 @@ func CreateMessengerFromConfig(p2pConfig config.P2PConfig) p2p.Messenger {
 		arg.NodeOperationMode = p2p.FullArchiveMode
 	}
 
-	libP2PMes, err := libp2p.NewNetworkMessenger(arg)
+	libP2PMes, err := p2pFactory.NewNetworkMessenger(arg)
 	log.LogIfError(err)
 
 	return libP2PMes
 }
 
 // CreateMessengerFromConfigWithPeersRatingHandler creates a new libp2p messenger with provided configuration
-func CreateMessengerFromConfigWithPeersRatingHandler(p2pConfig config.P2PConfig, peersRatingHandler p2p.PeersRatingHandler) p2p.Messenger {
-	arg := libp2p.ArgsNetworkMessenger{
+func CreateMessengerFromConfigWithPeersRatingHandler(p2pConfig p2pConfig.P2PConfig, peersRatingHandler p2p.PeersRatingHandler) p2p.Messenger {
+	arg := p2pFactory.ArgsNetworkMessenger{
 		Marshalizer:           TestMarshalizer,
-		ListenAddress:         libp2p.ListenLocalhostAddrWithIp4AndTcp,
+		ListenAddress:         p2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig:             p2pConfig,
-		SyncTimer:             &libp2p.LocalSyncTimer{},
+		SyncTimer:             &p2pFactory.LocalSyncTimer{},
 		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
 		NodeOperationMode:     p2p.NormalOperation,
 		PeersRatingHandler:    peersRatingHandler,
@@ -231,22 +207,22 @@ func CreateMessengerFromConfigWithPeersRatingHandler(p2pConfig config.P2PConfig,
 		arg.NodeOperationMode = p2p.FullArchiveMode
 	}
 
-	libP2PMes, err := libp2p.NewNetworkMessenger(arg)
+	libP2PMes, err := p2pFactory.NewNetworkMessenger(arg)
 	log.LogIfError(err)
 
 	return libP2PMes
 }
 
 // CreateP2PConfigWithNoDiscovery creates a new libp2p messenger with no peer discovery
-func CreateP2PConfigWithNoDiscovery() config.P2PConfig {
-	return config.P2PConfig{
-		Node: config.NodeConfig{
+func CreateP2PConfigWithNoDiscovery() p2pConfig.P2PConfig {
+	return p2pConfig.P2PConfig{
+		Node: p2pConfig.NodeConfig{
 			Port: "0",
 		},
-		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
+		KadDhtPeerDiscovery: p2pConfig.KadDhtPeerDiscoveryConfig{
 			Enabled: false,
 		},
-		Sharding: config.ShardingConfig{
+		Sharding: p2pConfig.ShardingConfig{
 			Type: p2p.NilListSharder,
 		},
 	}
@@ -254,26 +230,26 @@ func CreateP2PConfigWithNoDiscovery() config.P2PConfig {
 
 // CreateMessengerWithNoDiscovery creates a new libp2p messenger with no peer discovery
 func CreateMessengerWithNoDiscovery() p2p.Messenger {
-	p2pConfig := CreateP2PConfigWithNoDiscovery()
+	p2pCfg := CreateP2PConfigWithNoDiscovery()
 
-	return CreateMessengerFromConfig(p2pConfig)
+	return CreateMessengerFromConfig(p2pCfg)
 }
 
 // CreateMessengerWithNoDiscoveryAndPeersRatingHandler creates a new libp2p messenger with no peer discovery
 func CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHanlder p2p.PeersRatingHandler) p2p.Messenger {
-	p2pConfig := config.P2PConfig{
-		Node: config.NodeConfig{
+	p2pCfg := p2pConfig.P2PConfig{
+		Node: p2pConfig.NodeConfig{
 			Port: "0",
 		},
-		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
+		KadDhtPeerDiscovery: p2pConfig.KadDhtPeerDiscoveryConfig{
 			Enabled: false,
 		},
-		Sharding: config.ShardingConfig{
+		Sharding: p2pConfig.ShardingConfig{
 			Type: p2p.NilListSharder,
 		},
 	}
 
-	return CreateMessengerFromConfigWithPeersRatingHandler(p2pConfig, peersRatingHanlder)
+	return CreateMessengerFromConfigWithPeersRatingHandler(p2pCfg, peersRatingHanlder)
 }
 
 // CreateFixedNetworkOf8Peers assembles a network as following:
@@ -2181,20 +2157,6 @@ func ProposeAndSyncOneBlock(
 	nonce++
 
 	return round, nonce
-}
-
-// WaitForBootstrapAndShowConnected will delay a given duration in order to wait for bootstraping  and print the
-// number of peers that each node is connected to
-func WaitForBootstrapAndShowConnected(peers []p2p.Messenger, durationBootstrapingTime time.Duration) {
-	log.Info("Waiting for peer discovery...", "time", durationBootstrapingTime)
-	time.Sleep(durationBootstrapingTime)
-
-	strs := []string{"Connected peers:"}
-	for _, peer := range peers {
-		strs = append(strs, fmt.Sprintf("Peer %s is connected to %d peers", peer.ID().Pretty(), len(peer.ConnectedPeers())))
-	}
-
-	log.Info(strings.Join(strs, "\n"))
 }
 
 // PubKeysMapFromKeysMap returns a map of public keys per shard from the key pairs per shard map.
