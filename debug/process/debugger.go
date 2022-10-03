@@ -29,6 +29,7 @@ type processDebugger struct {
 	pollingTime             time.Duration
 	debuggingLogLevel       string
 	dumpGoRoutines          bool
+	revertTimeInSeconds     int
 }
 
 // NewProcessDebugger creates a new debugger instance used to monitor the block process flow
@@ -42,9 +43,10 @@ func NewProcessDebugger(config config.ProcessDebugConfig) (*processDebugger, err
 	d := &processDebugger{
 		timer: time.NewTimer(pollingTime),
 
-		pollingTime:       pollingTime,
-		debuggingLogLevel: config.DebuggingLogLevel,
-		dumpGoRoutines:    config.GoRoutinesDump,
+		pollingTime:         pollingTime,
+		debuggingLogLevel:   config.DebuggingLogLevel,
+		dumpGoRoutines:      config.GoRoutinesDump,
+		revertTimeInSeconds: config.RevertLogLevelTimeInSeconds,
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -158,10 +160,30 @@ func dumpGoRoutines() {
 }
 
 func (debugger *processDebugger) changeLog() {
+	oldLogLevel := logger.GetLogLevelPattern()
+
 	errSetLogLevel := logger.SetLogLevel(debugger.debuggingLogLevel)
 	if errSetLogLevel != nil {
 		log.Error("debugger.changeLog: cannot change log level", "error", errSetLogLevel)
 	}
+
+	if debugger.revertTimeInSeconds > 0 {
+		go debugger.revertLogLevel(oldLogLevel)
+	}
+}
+
+func (debugger *processDebugger) revertLogLevel(oldLogLevel string) {
+	timeToWait := time.Second * time.Duration(debugger.revertTimeInSeconds)
+	log.Debug("debugger.revertLogLevel", "original log level", oldLogLevel, "will revert in", timeToWait)
+
+	time.Sleep(timeToWait)
+
+	errSetLogLevel := logger.SetLogLevel(debugger.debuggingLogLevel)
+	if errSetLogLevel != nil {
+		log.Error("debugger.changeLog: cannot change log level", "error", errSetLogLevel)
+	}
+	log.Debug("debugger.revertLogLevel", "reverted log level", oldLogLevel)
+	debugger.cancel()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

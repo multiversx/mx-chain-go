@@ -519,10 +519,11 @@ type EpochStartDebugConfig struct {
 
 // ProcessDebugConfig will hold the process debug configuration
 type ProcessDebugConfig struct {
-	Enabled              bool
-	GoRoutinesDump       bool
-	DebuggingLogLevel    string
-	PollingTimeInSeconds int
+	Enabled                     bool
+	GoRoutinesDump              bool
+	DebuggingLogLevel           string
+	PollingTimeInSeconds        int
+	RevertLogLevelTimeInSeconds int
 }
 
 // ApiRoutesConfig holds the configuration related to Rest API routes
