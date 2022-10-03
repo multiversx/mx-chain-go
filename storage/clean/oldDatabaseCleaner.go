@@ -192,9 +192,11 @@ func (odc *oldDatabaseCleaner) cleanOldEpochs(currentEpoch uint32) error {
 		return nil
 	}
 
-	wasCleaned := false
+	if len(sortedEpochs) == 0 {
+		return nil
+	}
+
 	for idx, epoch := range sortedEpochs {
-		wasCleaned = true
 		if epoch >= epochToDeleteTo {
 			break
 		}
@@ -207,10 +209,7 @@ func (odc *oldDatabaseCleaner) cleanOldEpochs(currentEpoch uint32) error {
 		}
 	}
 
-	if wasCleaned {
-		// clean the map only if the directories were removed
-		odc.cleanMap(currentEpoch)
-	}
+	odc.cleanMap(currentEpoch)
 
 	return nil
 }
