@@ -101,7 +101,7 @@ func (odc *oldDatabaseCleaner) handleEpochChangeAction(epoch uint32) error {
 	odc.Unlock()
 
 	shouldClean := odc.shouldCleanOldData(epoch, newOldestEpoch)
-	log.Debug("old database cleaner", "epoch", epoch, "should clean", shouldClean, "inner map", odc.oldestEpochsToKeep)
+	log.Debug("old database cleaner", "epoch", epoch, "should clean", shouldClean, "oldest epoch", newOldestEpoch, "inner map", odc.oldestEpochsToKeep)
 	if !shouldClean {
 		return nil
 	}
@@ -192,7 +192,9 @@ func (odc *oldDatabaseCleaner) cleanOldEpochs(currentEpoch uint32) error {
 		return nil
 	}
 
+	wasCleaned := false
 	for idx, epoch := range sortedEpochs {
+		wasCleaned = true
 		if epoch >= epochToDeleteTo {
 			break
 		}
@@ -205,7 +207,10 @@ func (odc *oldDatabaseCleaner) cleanOldEpochs(currentEpoch uint32) error {
 		}
 	}
 
-	odc.cleanMap(currentEpoch)
+	if wasCleaned {
+		// clean the map only if the directories were removed
+		odc.cleanMap(currentEpoch)
+	}
 
 	return nil
 }
