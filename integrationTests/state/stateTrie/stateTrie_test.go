@@ -33,8 +33,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager"
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/storage/database"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/trie"
@@ -70,8 +70,8 @@ func TestAccountsDB_RetrieveDataWithSomeValuesShouldWork(t *testing.T) {
 	val2 := []byte("456")
 	_, account, adb := integrationTests.GenerateAddressJournalAccountAccountsDB()
 
-	_ = account.DataTrieTracker().SaveKeyValue(key1, val1)
-	_ = account.DataTrieTracker().SaveKeyValue(key2, val2)
+	_ = account.SaveKeyValue(key1, val1)
+	_ = account.SaveKeyValue(key2, val2)
 
 	err := adb.SaveAccount(account)
 	require.Nil(t, err)
@@ -84,11 +84,11 @@ func TestAccountsDB_RetrieveDataWithSomeValuesShouldWork(t *testing.T) {
 	recoveredAccount := acc.(state.UserAccountHandler)
 
 	// verify data
-	dataRecovered, err := recoveredAccount.DataTrieTracker().RetrieveValue(key1)
+	dataRecovered, err := recoveredAccount.RetrieveValue(key1)
 	require.Nil(t, err)
 	require.Equal(t, val1, dataRecovered)
 
-	dataRecovered, err = recoveredAccount.DataTrieTracker().RetrieveValue(key2)
+	dataRecovered, err = recoveredAccount.RetrieveValue(key2)
 	require.Nil(t, err)
 	require.Equal(t, val2, dataRecovered)
 }
@@ -230,7 +230,7 @@ func TestAccountsDB_CommitTwoOkAccountsShouldWork(t *testing.T) {
 
 	key := []byte("ABC")
 	val := []byte("123")
-	_ = stateMock.DataTrieTracker().SaveKeyValue(key, val)
+	_ = stateMock.SaveKeyValue(key, val)
 
 	_ = adb.SaveAccount(state1)
 	_ = adb.SaveAccount(stateMock)
@@ -261,7 +261,7 @@ func TestAccountsDB_CommitTwoOkAccountsShouldWork(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, balance2, newState2.(state.UserAccountHandler).GetBalance())
 	require.NotNil(t, newState2.(state.UserAccountHandler).GetRootHash())
-	valRecovered, err := newState2.(state.UserAccountHandler).DataTrieTracker().RetrieveValue(key)
+	valRecovered, err := newState2.(state.UserAccountHandler).RetrieveValue(key)
 	require.Nil(t, err)
 	require.Equal(t, val, valRecovered)
 }
@@ -319,7 +319,7 @@ func TestAccountsDB_CommitTwoOkAccountsWithRecreationFromStorageShouldWork(t *te
 
 	key := []byte("ABC")
 	val := []byte("123")
-	_ = stateMock.DataTrieTracker().SaveKeyValue(key, val)
+	_ = stateMock.SaveKeyValue(key, val)
 
 	_ = adb.SaveAccount(state1)
 	_ = adb.SaveAccount(stateMock)
@@ -349,7 +349,7 @@ func TestAccountsDB_CommitTwoOkAccountsWithRecreationFromStorageShouldWork(t *te
 	newState2 := acc2.(state.UserAccountHandler)
 	require.Equal(t, balance2, newState2.GetBalance())
 	require.NotNil(t, newState2.GetRootHash())
-	valRecovered, err := newState2.DataTrieTracker().RetrieveValue(key)
+	valRecovered, err := newState2.RetrieveValue(key)
 	require.Nil(t, err)
 	require.Equal(t, val, valRecovered)
 }
@@ -674,7 +674,7 @@ func TestAccountsDB_RevertDataStepByStepAccountDataShouldWork(t *testing.T) {
 	// Step 2. create 2 new accounts
 	state1, err := adb.LoadAccount(adr1)
 	require.Nil(t, err)
-	_ = state1.(state.UserAccountHandler).DataTrieTracker().SaveKeyValue(key, val)
+	_ = state1.(state.UserAccountHandler).SaveKeyValue(key, val)
 	err = adb.SaveAccount(state1)
 	require.Nil(t, err)
 	snapshotCreated1 := adb.JournalLen()
@@ -690,7 +690,7 @@ func TestAccountsDB_RevertDataStepByStepAccountDataShouldWork(t *testing.T) {
 
 	stateMock, err := adb.LoadAccount(adr2)
 	require.Nil(t, err)
-	_ = stateMock.(state.UserAccountHandler).DataTrieTracker().SaveKeyValue(key, val)
+	_ = stateMock.(state.UserAccountHandler).SaveKeyValue(key, val)
 	err = adb.SaveAccount(stateMock)
 	require.Nil(t, err)
 	snapshotCreated2 := adb.JournalLen()
@@ -753,7 +753,7 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 	// Step 2. create 2 new accounts
 	state1, err := adb.LoadAccount(adr1)
 	require.Nil(t, err)
-	_ = state1.(state.UserAccountHandler).DataTrieTracker().SaveKeyValue(key, val)
+	_ = state1.(state.UserAccountHandler).SaveKeyValue(key, val)
 	err = adb.SaveAccount(state1)
 	require.Nil(t, err)
 	snapshotCreated1 := adb.JournalLen()
@@ -769,7 +769,7 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 
 	stateMock, err := adb.LoadAccount(adr2)
 	require.Nil(t, err)
-	_ = stateMock.(state.UserAccountHandler).DataTrieTracker().SaveKeyValue(key, val)
+	_ = stateMock.(state.UserAccountHandler).SaveKeyValue(key, val)
 	err = adb.SaveAccount(stateMock)
 	require.Nil(t, err)
 	snapshotCreated2 := adb.JournalLen()
@@ -800,7 +800,7 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 
 	stateMock, err = adb.LoadAccount(adr2)
 	require.Nil(t, err)
-	_ = stateMock.(state.UserAccountHandler).DataTrieTracker().SaveKeyValue(key, newVal)
+	_ = stateMock.(state.UserAccountHandler).SaveKeyValue(key, newVal)
 	err = adb.SaveAccount(stateMock)
 	require.Nil(t, err)
 	rootHash, err = adb.RootHash()
@@ -1045,11 +1045,11 @@ func createAccounts(
 	balance int,
 	persist storage.Persister,
 ) (*state.AccountsDB, [][]byte, common.Trie) {
-	cache, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 10, Shards: 1, SizeInBytes: 0})
-	store, _ := storageUnit.NewStorageUnit(cache, persist)
+	cache, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 10, Shards: 1, SizeInBytes: 0})
+	store, _ := storageunit.NewStorageUnit(cache, persist)
 	evictionWaitListSize := uint(100)
 
-	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
+	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, database.NewMemDB(), integrationTests.TestMarshalizer)
 	args := getNewTrieStorageManagerArgs()
 	args.MainStorer = store
 	trieStorage, _ := trie.NewTrieStorageManager(args)
@@ -1181,22 +1181,22 @@ func TestAccountsDB_RecreateTrieInvalidatesDataTriesCache(t *testing.T) {
 
 	acc1, _ := adb.LoadAccount(address1)
 	state1 := acc1.(state.UserAccountHandler)
-	_ = state1.DataTrieTracker().SaveKeyValue(key1, value1)
-	_ = state1.DataTrieTracker().SaveKeyValue(key2, value1)
+	_ = state1.SaveKeyValue(key1, value1)
+	_ = state1.SaveKeyValue(key2, value1)
 	_ = adb.SaveAccount(state1)
 	rootHash, err := adb.Commit()
 	require.Nil(t, err)
 
 	acc1, _ = adb.LoadAccount(address1)
 	state1 = acc1.(state.UserAccountHandler)
-	_ = state1.DataTrieTracker().SaveKeyValue(key1, value2)
+	_ = state1.SaveKeyValue(key1, value2)
 	_ = adb.SaveAccount(state1)
 	_, err = adb.Commit()
 	require.Nil(t, err)
 
 	acc1, _ = adb.LoadAccount(address1)
 	state1 = acc1.(state.UserAccountHandler)
-	_ = state1.DataTrieTracker().SaveKeyValue(key2, value2)
+	_ = state1.SaveKeyValue(key2, value2)
 	_ = adb.SaveAccount(state1)
 	err = adb.RevertToSnapshot(0)
 	require.Nil(t, err)
@@ -1206,7 +1206,7 @@ func TestAccountsDB_RecreateTrieInvalidatesDataTriesCache(t *testing.T) {
 	acc1, _ = adb.LoadAccount(address1)
 	state1 = acc1.(state.UserAccountHandler)
 
-	retrievedVal, _ := state1.DataTrieTracker().RetrieveValue(key1)
+	retrievedVal, _ := state1.RetrieveValue(key1)
 	require.Equal(t, value1, retrievedVal)
 }
 
@@ -1226,21 +1226,21 @@ func TestTrieDbPruning_GetDataTrieTrackerAfterPruning(t *testing.T) {
 
 	acc1, _ := adb.LoadAccount(address1)
 	state1 := acc1.(state.UserAccountHandler)
-	_ = state1.DataTrieTracker().SaveKeyValue(key1, value1)
-	_ = state1.DataTrieTracker().SaveKeyValue(key2, value1)
+	_ = state1.SaveKeyValue(key1, value1)
+	_ = state1.SaveKeyValue(key2, value1)
 	_ = adb.SaveAccount(state1)
 
 	acc2, _ := adb.LoadAccount(address2)
 	stateMock := acc2.(state.UserAccountHandler)
-	_ = stateMock.DataTrieTracker().SaveKeyValue(key1, value1)
-	_ = stateMock.DataTrieTracker().SaveKeyValue(key2, value1)
+	_ = stateMock.SaveKeyValue(key1, value1)
+	_ = stateMock.SaveKeyValue(key2, value1)
 	_ = adb.SaveAccount(stateMock)
 
 	oldRootHash, _ := adb.Commit()
 
 	acc2, _ = adb.LoadAccount(address2)
 	stateMock = acc2.(state.UserAccountHandler)
-	_ = stateMock.DataTrieTracker().SaveKeyValue(key1, value2)
+	_ = stateMock.SaveKeyValue(key1, value2)
 	_ = adb.SaveAccount(stateMock)
 
 	newRootHash, _ := adb.Commit()
@@ -1255,22 +1255,22 @@ func TestTrieDbPruning_GetDataTrieTrackerAfterPruning(t *testing.T) {
 	collapseTrie(state1, t)
 	collapseTrie(stateMock, t)
 
-	val, err := state1.DataTrieTracker().RetrieveValue(key1)
+	val, err := state1.RetrieveValue(key1)
 	require.Nil(t, err)
 	require.Equal(t, value1, val)
 
-	val, err = stateMock.DataTrieTracker().RetrieveValue(key2)
+	val, err = stateMock.RetrieveValue(key2)
 	require.Nil(t, err)
 	require.Equal(t, value1, val)
 }
 
 func collapseTrie(state state.UserAccountHandler, t *testing.T) {
 	stateRootHash := state.GetRootHash()
-	stateTrie := state.DataTrieTracker().DataTrie()
+	stateTrie := state.DataTrie().(common.Trie)
 	stateNewTrie, _ := stateTrie.Recreate(stateRootHash)
 	require.NotNil(t, stateNewTrie)
 
-	state.DataTrieTracker().SetDataTrie(stateNewTrie)
+	state.SetDataTrie(stateNewTrie)
 }
 
 func TestRollbackBlockAndCheckThatPruningIsCancelledOnAccountsTrie(t *testing.T) {
@@ -2063,7 +2063,7 @@ func generateAccounts(
 		codeMap[string(code)]++
 
 		for j := 0; j < dataTrieSize; j++ {
-			_ = account.(state.UserAccountHandler).DataTrieTracker().SaveKeyValue(getDataTrieEntry())
+			_ = account.(state.UserAccountHandler).SaveKeyValue(getDataTrieEntry())
 		}
 
 		_ = shardNode.AccntState.SaveAccount(account)
@@ -2131,7 +2131,7 @@ func TestProofAndVerifyProofDataTrie(t *testing.T) {
 		key := []byte("key" + index)
 		value := []byte("value" + index)
 
-		err := account.(state.UserAccountHandler).DataTrieTracker().SaveKeyValue(key, value)
+		err := account.(state.UserAccountHandler).SaveKeyValue(key, value)
 		assert.Nil(t, err)
 	}
 
@@ -2329,7 +2329,7 @@ func addValuesInAccountDataTrie(index uint32, numKeys uint32, adb *state.Account
 	accState := acc.(state.UserAccountHandler)
 	for i := 0; i < int(numKeys); i++ {
 		k, v := createDummyKeyValue(i)
-		_ = accState.DataTrieTracker().SaveKeyValue(k, v)
+		_ = accState.SaveKeyValue(k, v)
 	}
 	_ = adb.SaveAccount(accState)
 }
@@ -2339,7 +2339,7 @@ func removeValuesFromAccountDataTrie(index uint32, numKeys uint32, adb *state.Ac
 	accState := acc.(state.UserAccountHandler)
 	for i := 0; i < int(numKeys); i++ {
 		k, _ := createDummyKeyValue(i)
-		_ = accState.DataTrieTracker().SaveKeyValue(k, nil)
+		_ = accState.SaveKeyValue(k, nil)
 	}
 	_ = adb.SaveAccount(accState)
 }
@@ -2358,7 +2358,7 @@ func checkAccountsDataTrie(t *testing.T, index uint32, startingKey uint32, adb *
 	accState := acc.(state.UserAccountHandler)
 	for i := int(startingKey); i < numKeys; i++ {
 		k, v := createDummyKeyValue(i)
-		actualValue, errKey := accState.RetrieveValueFromDataTrieTracker(k)
+		actualValue, errKey := accState.RetrieveValue(k)
 		require.Nil(t, errKey)
 		require.Equal(t, v, actualValue)
 	}
@@ -2392,7 +2392,7 @@ func createAccountsDBTestSetup() *state.AccountsDB {
 		SnapshotsGoroutineNum: 1,
 	}
 	evictionWaitListSize := uint(100)
-	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
+	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, database.NewMemDB(), integrationTests.TestMarshalizer)
 	args := getNewTrieStorageManagerArgs()
 	args.GeneralConfig = generalCfg
 	trieStorage, _ := trie.NewTrieStorageManager(args)

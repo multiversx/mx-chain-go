@@ -18,7 +18,6 @@ import (
 var log = logger.GetOrCreate("heartbeat/processor")
 
 const (
-	minMessagesInChunk      = 1
 	minDelayBetweenRequests = time.Second
 	minTimeout              = time.Second
 	minMessagesThreshold    = 0.5
@@ -33,7 +32,6 @@ type ArgPeerAuthenticationRequestsProcessor struct {
 	PeerAuthenticationPool  storage.Cacher
 	ShardId                 uint32
 	Epoch                   uint32
-	MessagesInChunk         uint32
 	MinPeersThreshold       float32
 	DelayBetweenRequests    time.Duration
 	MaxTimeout              time.Duration
@@ -48,10 +46,8 @@ type peerAuthenticationRequestsProcessor struct {
 	peerAuthenticationPool  storage.Cacher
 	shardId                 uint32
 	epoch                   uint32
-	messagesInChunk         uint32
 	minPeersThreshold       float32
 	delayBetweenRequests    time.Duration
-	maxTimeout              time.Duration
 	maxMissingKeysInRequest uint32
 	randomizer              dataRetriever.IntRandomizer
 	cancel                  func()
@@ -70,10 +66,8 @@ func NewPeerAuthenticationRequestsProcessor(args ArgPeerAuthenticationRequestsPr
 		peerAuthenticationPool:  args.PeerAuthenticationPool,
 		shardId:                 args.ShardId,
 		epoch:                   args.Epoch,
-		messagesInChunk:         args.MessagesInChunk,
 		minPeersThreshold:       args.MinPeersThreshold,
 		delayBetweenRequests:    args.DelayBetweenRequests,
-		maxTimeout:              args.MaxTimeout,
 		maxMissingKeysInRequest: args.MaxMissingKeysInRequest,
 		randomizer:              args.Randomizer,
 	}
@@ -95,10 +89,6 @@ func checkArgs(args ArgPeerAuthenticationRequestsProcessor) error {
 	}
 	if check.IfNil(args.PeerAuthenticationPool) {
 		return heartbeat.ErrNilPeerAuthenticationPool
-	}
-	if args.MessagesInChunk < minMessagesInChunk {
-		return fmt.Errorf("%w for MessagesInChunk, provided %d, min expected %d",
-			heartbeat.ErrInvalidValue, args.MessagesInChunk, minMessagesInChunk)
 	}
 	if args.MinPeersThreshold < minMessagesThreshold || args.MinPeersThreshold > maxMessagesThreshold {
 		return fmt.Errorf("%w for MinPeersThreshold, provided %f, expected min %f, max %f",
@@ -131,14 +121,13 @@ func (processor *peerAuthenticationRequestsProcessor) startRequestingMessages(ct
 		return
 	}
 
-	// first request messages by chunks
-	processor.requestKeysChunks(sortedValidatorsKeys)
-
 	// start endless loop until enough messages received or timeout reached
 	requestsTimer := time.NewTimer(processor.delayBetweenRequests)
 	for {
 		if processor.isThresholdReached(sortedValidatorsKeys) {
-			log.Debug("received enough messages, closing peerAuthenticationRequestsProcessor go routine")
+			log.Debug("received enough messages, closing peerAuthenticationRequestsProcessor go routine",
+				"received", processor.peerAuthenticationPool.Len(),
+				"validators", len(sortedValidatorsKeys))
 			return
 		}
 
@@ -153,23 +142,22 @@ func (processor *peerAuthenticationRequestsProcessor) startRequestingMessages(ct
 	}
 }
 
-func (processor *peerAuthenticationRequestsProcessor) requestKeysChunks(keys [][]byte) {
-	maxChunks := processor.getMaxChunks(keys)
-	for chunkIndex := uint32(0); chunkIndex < maxChunks; chunkIndex++ {
-		processor.requestHandler.RequestPeerAuthenticationsChunk(processor.shardId, chunkIndex)
-
-		time.Sleep(processor.delayBetweenRequests)
-	}
-}
-
 func (processor *peerAuthenticationRequestsProcessor) getSortedValidatorsKeys() ([][]byte, error) {
-	validatorsPKsMap, err := processor.nodesCoordinator.GetAllEligibleValidatorsPublicKeys(processor.epoch)
+	eligiblePKsMap, err := processor.nodesCoordinator.GetAllEligibleValidatorsPublicKeys(processor.epoch)
+	if err != nil {
+		return nil, err
+	}
+
+	waitingPKsMap, err := processor.nodesCoordinator.GetAllWaitingValidatorsPublicKeys(processor.epoch)
 	if err != nil {
 		return nil, err
 	}
 
 	validatorsPKs := make([][]byte, 0)
-	for _, shardValidators := range validatorsPKsMap {
+	for _, shardValidators := range eligiblePKsMap {
+		validatorsPKs = append(validatorsPKs, shardValidators...)
+	}
+	for _, shardValidators := range waitingPKsMap {
 		validatorsPKs = append(validatorsPKs, shardValidators...)
 	}
 
@@ -178,15 +166,6 @@ func (processor *peerAuthenticationRequestsProcessor) getSortedValidatorsKeys() 
 	})
 
 	return validatorsPKs, nil
-}
-
-func (processor *peerAuthenticationRequestsProcessor) getMaxChunks(dataBuff [][]byte) uint32 {
-	maxChunks := len(dataBuff) / int(processor.messagesInChunk)
-	if len(dataBuff)%int(processor.messagesInChunk) != 0 {
-		maxChunks++
-	}
-
-	return uint32(maxChunks)
 }
 
 func (processor *peerAuthenticationRequestsProcessor) isThresholdReached(sortedValidatorsKeys [][]byte) bool {

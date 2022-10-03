@@ -81,6 +81,11 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		pruningDelay = defaultPruningDelay
 	}
 
+	processDebugger, err := createDisabledProcessDebugger()
+	if err != nil {
+		return nil, err
+	}
+
 	base := &baseProcessor{
 		accountsDB:                    arguments.AccountsDB,
 		blockSizeThrottler:            arguments.BlockSizeThrottler,
@@ -121,6 +126,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		pruningDelay:                  pruningDelay,
 		processedMiniBlocksTracker:    arguments.ProcessedMiniBlocksTracker,
 		receiptsRepository:            arguments.ReceiptsRepository,
+		processDebugger:               processDebugger,
 	}
 
 	sp := shardProcessor{
@@ -1026,6 +1032,8 @@ func (sp *shardProcessor) CommitBlock(
 		"nonce", header.GetNonce(),
 		"hash", headerHash,
 	)
+
+	sp.updateLastCommittedInDebugger(headerHandler.GetRound())
 
 	errNotCritical := sp.updateCrossShardInfo(processedMetaHdrs)
 	if errNotCritical != nil {

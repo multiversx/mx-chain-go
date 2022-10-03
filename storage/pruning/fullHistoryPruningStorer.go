@@ -7,33 +7,33 @@ import (
 
 	storageCore "github.com/ElrondNetwork/elrond-go-core/storage"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
+	"github.com/ElrondNetwork/elrond-go/storage/cache"
 )
 
 // FullHistoryPruningStorer represents a storer for full history nodes
 // which creates a new persister for each epoch and removes older activePersisters
 type FullHistoryPruningStorer struct {
 	*PruningStorer
-	args                           *StorerArgs
+	args                           StorerArgs
 	shardId                        string
 	oldEpochsActivePersistersCache storage.Cacher
 }
 
 // NewFullHistoryPruningStorer will return a new instance of PruningStorer without sharded directories' naming scheme
-func NewFullHistoryPruningStorer(args *FullHistoryStorerArgs) (*FullHistoryPruningStorer, error) {
+func NewFullHistoryPruningStorer(args FullHistoryStorerArgs) (*FullHistoryPruningStorer, error) {
 	return initFullHistoryPruningStorer(args, "")
 }
 
 // NewShardedFullHistoryPruningStorer will return a new instance of PruningStorer with sharded directories' naming scheme
 func NewShardedFullHistoryPruningStorer(
-	args *FullHistoryStorerArgs,
+	args FullHistoryStorerArgs,
 	shardID uint32,
 ) (*FullHistoryPruningStorer, error) {
 	shardStr := fmt.Sprintf("%d", shardID)
 	return initFullHistoryPruningStorer(args, shardStr)
 }
 
-func initFullHistoryPruningStorer(args *FullHistoryStorerArgs, shardId string) (*FullHistoryPruningStorer, error) {
+func initFullHistoryPruningStorer(args FullHistoryStorerArgs, shardId string) (*FullHistoryPruningStorer, error) {
 	err := checkArgs(args.StorerArgs)
 	if err != nil {
 		return nil, err
@@ -60,7 +60,7 @@ func initFullHistoryPruningStorer(args *FullHistoryStorerArgs, shardId string) (
 		args:          args.StorerArgs,
 		shardId:       shardId,
 	}
-	fhps.oldEpochsActivePersistersCache, err = lrucache.NewCacheWithEviction(int(args.NumOfOldActivePersisters), fhps.onEvicted)
+	fhps.oldEpochsActivePersistersCache, err = cache.NewLRUCacheWithEviction(int(args.NumOfOldActivePersisters), fhps.onEvicted)
 	if err != nil {
 		return nil, err
 	}
@@ -221,4 +221,9 @@ func (fhps *FullHistoryPruningStorer) Close() error {
 	fhps.oldEpochsActivePersistersCache.Clear()
 
 	return fhps.PruningStorer.Close()
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (fhps *FullHistoryPruningStorer) IsInterfaceNil() bool {
+	return fhps == nil
 }

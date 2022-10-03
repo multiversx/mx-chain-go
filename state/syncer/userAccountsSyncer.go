@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/trie"
+	"github.com/ElrondNetwork/elrond-go/trie/keyBuilder"
 	"github.com/ElrondNetwork/elrond-go/trie/statistics"
 )
 
@@ -88,6 +89,7 @@ func NewUserAccountsSyncer(args ArgsNewUserAccountsSyncer) (*userAccountsSyncer,
 		maxHardCapForMissingNodes: args.MaxHardCapForMissingNodes,
 		trieSyncerVersion:         args.TrieSyncerVersion,
 		checkNodesOnDisk:          args.CheckNodesOnDisk,
+		storageMarker:             args.StorageMarker,
 	}
 
 	u := &userAccountsSyncer{
@@ -132,7 +134,7 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 		return err
 	}
 
-	mainTrie.MarkStorerAsSyncedAndActive()
+	u.storageMarker.MarkStorerAsSyncedAndActive(mainTrie.GetStorageManager())
 
 	return nil
 }
@@ -211,7 +213,7 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 	}
 
 	leavesChannel := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
-	err = mainTrie.GetAllLeavesOnChannel(leavesChannel, context.Background(), mainRootHash)
+	err = mainTrie.GetAllLeavesOnChannel(leavesChannel, context.Background(), mainRootHash, keyBuilder.NewDisabledKeyBuilder())
 	if err != nil {
 		return err
 	}
@@ -312,4 +314,9 @@ func (u *userAccountsSyncer) checkGoRoutinesThrottler(ctx context.Context) error
 // requesting trie nodes as to prevent the sync process being terminated prematurely.
 func (u *userAccountsSyncer) resetTimeoutHandlerWatchdog() {
 	u.timeoutHandler.ResetWatchdog()
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (u *userAccountsSyncer) IsInterfaceNil() bool {
+	return u == nil
 }
