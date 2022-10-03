@@ -1213,6 +1213,7 @@ func (pcf *processComponentsFactory) createBuiltInFunctionContainer(
 		CheckCorrectTokenIDEnableEpoch:           pcf.epochConfig.EnableEpochs.CheckCorrectTokenIDForTransferRoleEnableEpoch,
 		CheckFunctionArgumentEnableEpoch:         pcf.epochConfig.EnableEpochs.CheckFunctionArgumentEnableEpoch,
 		ESDTMetadataContinuousCleanupEnableEpoch: pcf.epochConfig.EnableEpochs.ESDTMetadataContinuousCleanupEnableEpoch,
+		FixOldTokenLiquidityEnableEpoch:          pcf.epochConfig.EnableEpochs.FixOldTokenLiquidityEnableEpoch,
 		AutomaticCrawlerAddresses:                convertedAddresses,
 		MaxNumNodesInTransferRole:                pcf.config.BuiltInFunctions.MaxNumAddressesInTransferRole,
 	}
