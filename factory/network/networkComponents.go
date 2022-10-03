@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	p2pConfig "github.com/ElrondNetwork/elrond-go/p2p/config"
+	p2pFactory "github.com/ElrondNetwork/elrond-go/p2p/factory"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/rating/peerHonesty"
 	antifloodFactory "github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/factory"
@@ -105,7 +106,7 @@ func NewNetworkComponentsFactory(
 
 // Create creates and returns the network components
 func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
-	ph, err := p2p.NewPeersHolder(ncf.preferredPeersSlices)
+	ph, err := p2pFactory.NewPeersHolder(ncf.preferredPeersSlices)
 	if err != nil {
 		return nil, err
 	}
@@ -118,11 +119,11 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 	if err != nil {
 		return nil, err
 	}
-	argsPeersRatingHandler := p2p.ArgPeersRatingHandler{
+	argsPeersRatingHandler := p2pFactory.ArgPeersRatingHandler{
 		TopRatedCache: topRatedCache,
 		BadRatedCache: badRatedCache,
 	}
-	peersRatingHandler, err := p2p.NewPeersRatingHandler(argsPeersRatingHandler)
+	peersRatingHandler, err := p2pFactory.NewPeersRatingHandler(argsPeersRatingHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -132,7 +133,7 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		return nil, err
 	}
 
-	arg := p2p.ArgsNetworkMessenger{
+	arg := p2pFactory.ArgsNetworkMessenger{
 		Marshalizer:           ncf.marshalizer,
 		ListenAddress:         ncf.listenAddress,
 		P2pConfig:             ncf.p2pConfig,
@@ -143,7 +144,7 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		ConnectionWatcherType: ncf.connectionWatcherType,
 		P2pPrivateKeyBytes:    p2pPrivateKeyBytes,
 	}
-	netMessenger, err := p2p.NewNetworkMessenger(arg)
+	netMessenger, err := p2pFactory.NewNetworkMessenger(arg)
 	if err != nil {
 		return nil, err
 	}

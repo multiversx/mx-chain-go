@@ -15,7 +15,7 @@ import (
 // keep this test in a separate package as to not be influenced by other the tests from the same package
 func TestFeeComputer_MemoryFootprint(t *testing.T) {
 	numEpochs := 10000
-	maxFootprintNumBytes := 30_000_000
+	maxFootprintNumBytes := 20_000_000
 
 	journal := &memoryFootprintJournal{}
 	journal.before = getMemStats()
