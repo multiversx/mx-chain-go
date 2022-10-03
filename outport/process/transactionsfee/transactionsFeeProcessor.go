@@ -121,21 +121,20 @@ func (tep *transactionsFeeProcessor) prepareTxWithResultsBasedOnLogs(
 	}
 
 	for _, event := range txWithResults.log.GetLogEvents() {
-		switch {
-		case core.WriteLogIdentifier == string(event.GetIdentifier()) && !hasRefund:
-			{
-				gasUsed, fee := tep.txFeeCalculator.ComputeGasUsedAndFeeBasedOnRefundValue(txWithResults, big.NewInt(0))
-				txWithResults.SetGasUsed(gasUsed)
-				txWithResults.SetFee(fee)
-			}
-		case core.SignalErrorOperation == string(event.GetIdentifier()):
-			{
-				fee := tep.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(txWithResults, txWithResults.GetGasLimit())
-				txWithResults.SetGasUsed(txWithResults.GetGasLimit())
-				txWithResults.SetFee(fee)
-			}
+		if core.WriteLogIdentifier == string(event.GetIdentifier()) && !hasRefund {
+			gasUsed, fee := tep.txFeeCalculator.ComputeGasUsedAndFeeBasedOnRefundValue(txWithResults, big.NewInt(0))
+			txWithResults.SetGasUsed(gasUsed)
+			txWithResults.SetFee(fee)
+
+			continue
+		}
+		if core.SignalErrorOperation == string(event.GetIdentifier()) {
+			fee := tep.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(txWithResults, txWithResults.GetGasLimit())
+			txWithResults.SetGasUsed(txWithResults.GetGasLimit())
+			txWithResults.SetFee(fee)
 		}
 	}
+
 }
 
 func (tep *transactionsFeeProcessor) prepareScrsNoTx(transactionsAndScrs *transactionsAndScrsHolder) error {

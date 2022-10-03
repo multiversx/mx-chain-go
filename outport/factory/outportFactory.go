@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/outport"
 )
 
+// WrappedOutportDriverWebSocketSenderFactoryArgs extends the wsDriverFactory.OutportDriverWebSocketSenderFactoryArgs structure with the Enabled field
 type WrappedOutportDriverWebSocketSenderFactoryArgs struct {
 	Enabled bool
 	wsDriverFactory.OutportDriverWebSocketSenderFactoryArgs
