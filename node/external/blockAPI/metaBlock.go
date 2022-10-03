@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 )
 
@@ -33,6 +34,7 @@ func newMetaApiBlockProcessor(arg *ArgAPIBlockProcessor, emptyReceiptsHash []byt
 			emptyReceiptsHash:        emptyReceiptsHash,
 			logsFacade:               arg.LogsFacade,
 			receiptsRepository:       arg.ReceiptsRepository,
+			alteredAccountsProvider:  arg.AlteredAccountsProvider,
 		},
 	}
 }
@@ -78,6 +80,13 @@ func (mbp *metaAPIBlockProcessor) GetBlockByRound(round uint64, options api.Bloc
 	}
 
 	return mbp.convertMetaBlockBytesToAPIBlock(headerHash, blockBytes, options)
+}
+
+// GetAlteredAccountsForBlock returns the altered accounts for the desired meta block
+func (mbp *metaAPIBlockProcessor) GetAlteredAccountsForBlock(options api.GetAlteredAccountsForBlockOptions) (*common.AlteredAccountsForBlockAPIResponse, error) {
+	// TODO: implement me
+
+	return nil, nil
 }
 
 func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, blockBytes []byte, options api.BlockQueryOptions) (*api.Block, error) {

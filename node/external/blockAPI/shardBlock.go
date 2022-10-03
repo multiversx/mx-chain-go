@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/node/filters"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -34,6 +35,7 @@ func newShardApiBlockProcessor(arg *ArgAPIBlockProcessor, emptyReceiptsHash []by
 			emptyReceiptsHash:        emptyReceiptsHash,
 			logsFacade:               arg.LogsFacade,
 			receiptsRepository:       arg.ReceiptsRepository,
+			alteredAccountsProvider:  arg.AlteredAccountsProvider,
 		},
 	}
 }
@@ -81,6 +83,52 @@ func (sbp *shardAPIBlockProcessor) GetBlockByRound(round uint64, options api.Blo
 	}
 
 	return sbp.convertShardBlockBytesToAPIBlock(headerHash, blockBytes, options)
+}
+
+// GetAlteredAccountsForBlock will return the altered accounts for the desired shard block
+func (sbp *shardAPIBlockProcessor) GetAlteredAccountsForBlock(options api.GetAlteredAccountsForBlockOptions) (*common.AlteredAccountsForBlockAPIResponse, error) {
+	headerHash, blockBytes, err := sbp.getHashAndBlockBytesFromStorer(options.GetBlockParameters)
+	if err != nil {
+		return nil, err
+	}
+
+	apiBlock, err := sbp.convertShardBlockBytesToAPIBlock(headerHash, blockBytes, api.BlockQueryOptions{WithTransactions: true, WithLogs: true})
+	if err != nil {
+		return nil, err
+	}
+
+	txPool := sbp.apiBlockToTxsPool(apiBlock)
+
+	alteredAccounts, err := sbp.alteredAccountsProvider.ExtractAlteredAccountsFromPool(txPool)
+	if err != nil {
+		return nil, err
+	}
+
+	alteredAccountsAPI := alteredAccountsMapToAPIResponse(alteredAccounts, options.TokensFilter, options.WithMetadata)
+	return alteredAccountsAPI, nil
+}
+
+func (sbp *shardAPIBlockProcessor) getHashAndBlockBytesFromStorer(params api.GetBlockParameters) ([]byte, []byte, error) {
+	if params.RequestType == api.BlockFetchTypeByHash {
+		hashBytes, err := hex.DecodeString(params.Hash)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		headerBytes, err := sbp.getFromStorer(dataRetriever.BlockHeaderUnit, hashBytes)
+		return hashBytes, headerBytes, err
+	}
+
+	storerUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(sbp.selfShardID)
+
+	nonceToByteSlice := sbp.uint64ByteSliceConverter.ToByteSlice(params.Nonce)
+	headerHash, err := sbp.store.Get(storerUnit, nonceToByteSlice)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	headerBytes, err := sbp.getFromStorer(dataRetriever.BlockHeaderUnit, headerHash)
+	return headerHash, headerBytes, err
 }
 
 func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte, blockBytes []byte, options api.BlockQueryOptions) (*api.Block, error) {

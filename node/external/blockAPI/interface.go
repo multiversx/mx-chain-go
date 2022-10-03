@@ -20,6 +20,7 @@ type APIBlockHandler interface {
 	GetBlockByNonce(nonce uint64, options api.BlockQueryOptions) (*api.Block, error)
 	GetBlockByHash(hash []byte, options api.BlockQueryOptions) (*api.Block, error)
 	GetBlockByRound(round uint64, options api.BlockQueryOptions) (*api.Block, error)
+	GetAlteredAccountsForBlock(options api.GetAlteredAccountsForBlockOptions) (*common.AlteredAccountsForBlockAPIResponse, error)
 	IsInterfaceNil() bool
 }
 

@@ -28,9 +28,6 @@ var ErrGetValueForKey = errors.New("get value for key error")
 // ErrGetKeyValuePairs signals an error in getting the key-value pairs of a key for an account
 var ErrGetKeyValuePairs = errors.New("get key-value pairs error")
 
-// ErrGetESDTTokens signals an error in getting esdt tokens for a given address
-var ErrGetESDTTokens = errors.New("get esdt tokens for account error")
-
 // ErrGetESDTBalance signals an error in getting esdt balance for given address
 var ErrGetESDTBalance = errors.New("get esdt balance for account error")
 
@@ -76,14 +73,17 @@ var ErrInvalidEpoch = errors.New("invalid epoch parameter")
 // ErrValidationEmptyBlockHash signals an empty block hash was provided
 var ErrValidationEmptyBlockHash = errors.New("block hash is empty")
 
-// ErrValidationEmptyToken signals that an empty token was provided
-var ErrValidationEmptyToken = errors.New("token is empty")
-
 // ErrGetTransaction signals an error happening when trying to fetch a transaction
 var ErrGetTransaction = errors.New("getting transaction failed")
 
 // ErrGetBlock signals an error happening when trying to fetch a block
 var ErrGetBlock = errors.New("getting block failed")
+
+// ErrGetAlteredAccountsForBlock signals an error happening when trying to fetch the altered accounts for a block
+var ErrGetAlteredAccountsForBlock = errors.New("getting altered accounts for block failed")
+
+// ErrIncompatibleWithMetadataParam signals a request error, because withMetadata should only be used with the tokens param
+var ErrIncompatibleWithMetadataParam = errors.New("withMetadata param should only be used with the tokens param")
 
 // ErrQueryError signals a general query error
 var ErrQueryError = errors.New("query error")

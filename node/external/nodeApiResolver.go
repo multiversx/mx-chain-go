@@ -191,6 +191,11 @@ func (nar *nodeApiResolver) GetBlockByRound(round uint64, options api.BlockQuery
 	return nar.apiBlockHandler.GetBlockByRound(round, options)
 }
 
+// GetAlteredAccountsForBlock will return the altered accounts for the desired block
+func (nar *nodeApiResolver) GetAlteredAccountsForBlock(options api.GetAlteredAccountsForBlockOptions) (*common.AlteredAccountsForBlockAPIResponse, error) {
+	return nar.apiBlockHandler.GetAlteredAccountsForBlock(options)
+}
+
 // GetInternalMetaBlockByHash will return a meta block by hash
 func (nar *nodeApiResolver) GetInternalMetaBlockByHash(format common.ApiOutputFormat, hash string) (interface{}, error) {
 	decodedHash, err := hex.DecodeString(hash)

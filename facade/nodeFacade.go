@@ -444,6 +444,11 @@ func (nf *nodeFacade) GetBlockByRound(round uint64, options apiData.BlockQueryOp
 	return nf.apiResolver.GetBlockByRound(round, options)
 }
 
+// GetAlteredAccountsForBlock returns the altered accounts for a given block
+func (nf *nodeFacade) GetAlteredAccountsForBlock(options apiData.GetAlteredAccountsForBlockOptions) (*common.AlteredAccountsForBlockAPIResponse, error) {
+	return nf.apiResolver.GetAlteredAccountsForBlock(options)
+}
+
 // GetInternalMetaBlockByHash return the meta block for a given hash
 func (nf *nodeFacade) GetInternalMetaBlockByHash(format common.ApiOutputFormat, hash string) (interface{}, error) {
 	return nf.apiResolver.GetInternalMetaBlockByHash(format, hash)

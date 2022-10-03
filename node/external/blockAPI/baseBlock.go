@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"strings"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -11,14 +12,19 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/outport"
+	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
+	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/api/shared/logging"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/outport/process"
 )
 
 // BlockStatus is the status of a block
@@ -45,6 +51,7 @@ type baseAPIBlockProcessor struct {
 	apiTransactionHandler    APITransactionHandler
 	logsFacade               logsFacade
 	receiptsRepository       receiptsRepository
+	alteredAccountsProvider  process.AlteredAccountsProviderHandler
 }
 
 var log = logger.GetOrCreate("node/blockAPI")
@@ -344,4 +351,166 @@ func bigIntToStr(value *big.Int) string {
 	}
 
 	return value.String()
+}
+
+func alteredAccountsMapToAPIResponse(alteredAccounts map[string]*outport.AlteredAccount, tokensFilter string, withMetadata bool) *common.AlteredAccountsForBlockAPIResponse {
+	response := &common.AlteredAccountsForBlockAPIResponse{
+		Accounts: make([]*common.AlteredAccountAPIResponse, 0),
+	}
+
+	for address, altAccount := range alteredAccounts {
+		apiAlteredAccount := &common.AlteredAccountAPIResponse{
+			Address: address,
+			Balance: altAccount.Balance,
+		}
+
+		if len(tokensFilter) == 0 {
+			continue
+		}
+
+		attachTokensToAlteredAccount(apiAlteredAccount, altAccount, tokensFilter, withMetadata)
+
+		response.Accounts = append(response.Accounts, apiAlteredAccount)
+	}
+
+	return response
+}
+
+func attachTokensToAlteredAccount(apiAlteredAccount *common.AlteredAccountAPIResponse, altAccount *outport.AlteredAccount, tokensFilter string, withMetadata bool) {
+	for _, token := range altAccount.Tokens {
+		if !shouldAddTokenToResult(token.Identifier, tokensFilter) {
+			continue
+		}
+		if withMetadata {
+			apiAlteredAccount.Tokens = append(apiAlteredAccount.Tokens, token)
+			continue
+		}
+
+		apiAlteredAccount.Tokens = append(apiAlteredAccount.Tokens, &outport.AccountTokenData{
+			Identifier: token.Identifier,
+			Balance:    token.Balance,
+			Nonce:      token.Nonce,
+			Properties: token.Properties,
+			MetaData:   nil,
+		})
+	}
+}
+
+func shouldAddTokenToResult(tokenIdentifier string, tokensFilter string) bool {
+	if shouldIncludeAllTokens(tokensFilter) {
+		return true
+	}
+
+	return strings.Contains(tokensFilter, tokenIdentifier)
+}
+
+func shouldIncludeAllTokens(tokensFilter string) bool {
+	return tokensFilter == "*" || tokensFilter == "all"
+}
+
+func (bap *baseAPIBlockProcessor) apiBlockToTxsPool(apiBlock *api.Block) *outport.Pool {
+	pool := &outport.Pool{
+		Txs:     make(map[string]data.TransactionHandlerWithGasUsedAndFee),
+		Scrs:    make(map[string]data.TransactionHandlerWithGasUsedAndFee),
+		Invalid: make(map[string]data.TransactionHandlerWithGasUsedAndFee),
+		Rewards: make(map[string]data.TransactionHandlerWithGasUsedAndFee),
+		Logs:    make([]*data.LogData, 0),
+	}
+
+	for _, miniBlock := range apiBlock.MiniBlocks {
+		for _, tx := range miniBlock.Transactions {
+			bap.addTxToPool(tx, pool)
+			bap.addLogsToPool(tx, pool)
+		}
+	}
+	return nil
+}
+
+func (bap *baseAPIBlockProcessor) addLogsToPool(tx *transaction.ApiTransactionResult, pool *outport.Pool) {
+	if tx.Logs == nil {
+		return
+	}
+
+	logAddressBytes, err := bap.addressPubKeyConverter.Decode(tx.Logs.Address)
+	if err != nil {
+		log.Warn("altered accounts API: cannot decode log's address", "address", tx.Logs.Address, "error", err)
+		return
+	}
+
+	logsEvents := make([]*transaction.Event, 0)
+	for _, logEvent := range tx.Logs.Events {
+		eventAddressBytes, err := bap.addressPubKeyConverter.Decode(logEvent.Address)
+		if err != nil {
+			log.Warn("altered accounts API: cannot decode event's address", "address", tx.Logs.Address, "error", err)
+			continue
+		}
+
+		logsEvents = append(logsEvents, &transaction.Event{
+			Address:    eventAddressBytes,
+			Identifier: []byte(logEvent.Identifier),
+			Topics:     logEvent.Topics,
+			Data:       logEvent.Data,
+		})
+	}
+
+	pool.Logs = append(pool.Logs, &data.LogData{
+		LogHandler: &transaction.Log{
+			Address: logAddressBytes,
+			Events:  logsEvents,
+		},
+		TxHash: tx.Hash,
+	})
+}
+
+func (bap *baseAPIBlockProcessor) addTxToPool(tx *transaction.ApiTransactionResult, pool *outport.Pool) {
+	senderBytes, err := bap.addressPubKeyConverter.Decode(tx.Sender)
+	if err != nil {
+		log.Warn("altered account API: cannot decode sender address", "address", tx.Sender, "error", err)
+		return
+	}
+	receiverBytes, err := bap.addressPubKeyConverter.Decode(tx.Receiver)
+	if err != nil {
+		log.Warn("altered account API: cannot decode receiver address", "address", tx.Receiver, "error", err)
+		return
+	}
+
+	zeroBigInt := big.NewInt(0)
+
+	switch tx.Type {
+	case string(transaction.TxTypeNormal):
+		pool.Txs[tx.Hash] = outport.NewTransactionHandlerWithGasAndFee(
+			&transaction.Transaction{
+				SndAddr: senderBytes,
+				RcvAddr: receiverBytes,
+			},
+			0,
+			zeroBigInt,
+		)
+	case string(transaction.TxTypeUnsigned):
+		pool.Scrs[tx.Hash] = outport.NewTransactionHandlerWithGasAndFee(
+			&smartContractResult.SmartContractResult{
+				SndAddr: senderBytes,
+				RcvAddr: receiverBytes,
+			},
+			0,
+			zeroBigInt,
+		)
+	case string(transaction.TxTypeInvalid):
+		pool.Invalid[tx.Hash] = outport.NewTransactionHandlerWithGasAndFee(
+			&transaction.Transaction{
+				SndAddr: senderBytes,
+				RcvAddr: receiverBytes,
+			},
+			0,
+			zeroBigInt,
+		)
+	case string(transaction.TxTypeReward):
+		pool.Rewards[tx.Hash] = outport.NewTransactionHandlerWithGasAndFee(
+			&rewardTx.RewardTx{
+				RcvAddr: receiverBytes,
+			},
+			0,
+			zeroBigInt,
+		)
+	}
 }

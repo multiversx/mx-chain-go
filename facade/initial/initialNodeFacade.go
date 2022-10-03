@@ -256,6 +256,11 @@ func (inf *initialNodeFacade) GetBlockByRound(_ uint64, _ api.BlockQueryOptions)
 	return nil, errNodeStarting
 }
 
+// GetAlteredAccountsForBlock returns nil and error
+func (inf *initialNodeFacade) GetAlteredAccountsForBlock(_ api.GetAlteredAccountsForBlockOptions) (*common.AlteredAccountsForBlockAPIResponse, error) {
+	return nil, errNodeStarting
+}
+
 // GetInternalMetaBlockByHash return nil and error
 func (inf *initialNodeFacade) GetInternalMetaBlockByHash(_ common.ApiOutputFormat, _ string) (interface{}, error) {
 	return nil, errNodeStarting

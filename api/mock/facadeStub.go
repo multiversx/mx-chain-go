@@ -52,6 +52,7 @@ type FacadeStub struct {
 	GetNFTTokenIDsRegisteredByAddressCalled     func(address string, options api.AccountQueryOptions) ([]string, api.BlockInfo, error)
 	GetBlockByHashCalled                        func(hash string, options api.BlockQueryOptions) (*api.Block, error)
 	GetBlockByNonceCalled                       func(nonce uint64, options api.BlockQueryOptions) (*api.Block, error)
+	GetAlteredAccountsForBlockCalled            func(options api.GetAlteredAccountsForBlockOptions) (*common.AlteredAccountsForBlockAPIResponse, error)
 	GetBlockByRoundCalled                       func(round uint64, options api.BlockQueryOptions) (*api.Block, error)
 	GetInternalShardBlockByNonceCalled          func(format common.ApiOutputFormat, nonce uint64) (interface{}, error)
 	GetInternalShardBlockByHashCalled           func(format common.ApiOutputFormat, hash string) (interface{}, error)
@@ -371,6 +372,14 @@ func (f *FacadeStub) GetBlockByHash(hash string, options api.BlockQueryOptions) 
 func (f *FacadeStub) GetBlockByRound(round uint64, options api.BlockQueryOptions) (*api.Block, error) {
 	if f.GetBlockByRoundCalled != nil {
 		return f.GetBlockByRoundCalled(round, options)
+	}
+	return nil, nil
+}
+
+// GetAlteredAccountsForBlock -
+func (f *FacadeStub) GetAlteredAccountsForBlock(options api.GetAlteredAccountsForBlockOptions) (*common.AlteredAccountsForBlockAPIResponse, error) {
+	if f.GetAlteredAccountsForBlockCalled != nil {
+		return f.GetAlteredAccountsForBlockCalled(options)
 	}
 	return nil, nil
 }
