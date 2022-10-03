@@ -541,8 +541,7 @@ func newSnapshotNode(
 	newRoot, err := getNodeFromDBAndDecode(rootHash, db, msh, hsh)
 	if err != nil {
 		if strings.Contains(err.Error(), common.GetNodeFromDBErrorString) {
-			//TODO treat snapshot error properly
-			missingNodesCh <- rootHash
+			treatCommitSnapshotError(err, rootHash, missingNodesCh)
 		}
 		return nil, err
 	}

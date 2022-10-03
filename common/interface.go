@@ -2,12 +2,12 @@ package common
 
 import (
 	"context"
-	"github.com/ElrondNetwork/elrond-go/trie/statistics"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/trie/statistics"
 )
 
 // NumNodesDTO represents the DTO structure that will hold the number of nodes split by category and other
