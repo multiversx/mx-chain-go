@@ -192,10 +192,6 @@ func (odc *oldDatabaseCleaner) cleanOldEpochs(currentEpoch uint32) error {
 		return nil
 	}
 
-	if len(sortedEpochs) == 0 {
-		return nil
-	}
-
 	for idx, epoch := range sortedEpochs {
 		if epoch >= epochToDeleteTo {
 			break
