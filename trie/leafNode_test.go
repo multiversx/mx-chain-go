@@ -12,7 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/cache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
+	"github.com/ElrondNetwork/elrond-go/trie/statistics"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -728,10 +728,10 @@ func TestLeafNode_commitContextDone(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	err := ln.commitCheckpoint(db, db, nil, nil, ctx, &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{})
+	err := ln.commitCheckpoint(db, db, nil, nil, ctx, statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
 	assert.Equal(t, elrondErrors.ErrContextClosing, err)
 
-	err = ln.commitSnapshot(db, nil, nil, ctx, &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{})
+	err = ln.commitSnapshot(db, nil, nil, ctx, statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
 	assert.Equal(t, elrondErrors.ErrContextClosing, err)
 }
 

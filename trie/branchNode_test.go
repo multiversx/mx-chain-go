@@ -16,8 +16,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/cache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
+	"github.com/ElrondNetwork/elrond-go/trie/statistics"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -1034,7 +1034,7 @@ func TestBranchNode_getChildrenCollapsedBn(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
-	_ = bn.commitSnapshot(db, nil, nil, context.Background(), &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{})
+	_ = bn.commitSnapshot(db, nil, nil, context.Background(), statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
 
 	children, err := collapsedBn.getChildren(db)
 	assert.Nil(t, err)
@@ -1234,8 +1234,8 @@ func TestBranchNode_printShouldNotPanicEvenIfNodeIsCollapsed(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
-	_ = bn.commitSnapshot(db, nil, nil, context.Background(), &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{})
-	_ = collapsedBn.commitSnapshot(db, nil, nil, context.Background(), &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{})
+	_ = bn.commitSnapshot(db, nil, nil, context.Background(), statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
+	_ = collapsedBn.commitSnapshot(db, nil, nil, context.Background(), statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
 
 	bn.print(bnWriter, 0, db)
 	collapsedBn.print(collapsedBnWriter, 0, db)
@@ -1272,7 +1272,7 @@ func TestBranchNode_getAllHashesResolvesCollapsed(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
-	_ = bn.commitSnapshot(db, nil, nil, context.Background(), &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{})
+	_ = bn.commitSnapshot(db, nil, nil, context.Background(), statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
 
 	hashes, err := collapsedBn.getAllHashes(db)
 	assert.Nil(t, err)
@@ -1353,10 +1353,10 @@ func TestBranchNode_commitContextDone(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	err := bn.commitCheckpoint(db, db, nil, nil, ctx, &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{})
+	err := bn.commitCheckpoint(db, db, nil, nil, ctx, statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
 	assert.Equal(t, elrondErrors.ErrContextClosing, err)
 
-	err = bn.commitSnapshot(db, nil, nil, ctx, &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{})
+	err = bn.commitSnapshot(db, nil, nil, ctx, statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
 	assert.Equal(t, elrondErrors.ErrContextClosing, err)
 }
 
@@ -1370,7 +1370,7 @@ func TestBranchNode_commitSnapshotDbIsClosing(t *testing.T) {
 	}
 	_, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 	missingNodesChan := make(chan []byte, 10)
-	err := collapsedBn.commitSnapshot(db, nil, missingNodesChan, context.Background(), &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{})
+	err := collapsedBn.commitSnapshot(db, nil, missingNodesChan, context.Background(), statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(missingNodesChan))
 }
