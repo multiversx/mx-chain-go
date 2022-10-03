@@ -304,7 +304,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateGetAccountReturnsInvalid(t
 
 	peerAdapter := &stateMock.AccountsStub{
 		LoadAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
-			return &mock.AccountWrapMock{}, nil
+			return &stateMock.AccountWrapMock{}, nil
 		},
 	}
 
@@ -487,7 +487,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetExistingAccountInvalidTy
 
 	adapter := getAccountsMock()
 	adapter.LoadAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
-		return &mock.AccountWrapMock{}, nil
+		return &stateMock.AccountWrapMock{}, nil
 	}
 
 	arguments := createMockArguments()

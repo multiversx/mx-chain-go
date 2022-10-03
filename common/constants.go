@@ -75,15 +75,6 @@ const ConnectionTopic = "connection"
 // ValidatorInfoTopic is the topic used for validatorInfo signaling
 const ValidatorInfoTopic = "validatorInfo"
 
-// PathShardPlaceholder represents the placeholder for the shard ID in paths
-const PathShardPlaceholder = "[S]"
-
-// PathEpochPlaceholder represents the placeholder for the epoch number in paths
-const PathEpochPlaceholder = "[E]"
-
-// PathIdentifierPlaceholder represents the placeholder for the identifier in paths
-const PathIdentifierPlaceholder = "[I]"
-
 // MetricCurrentRound is the metric for monitoring the current round of a node
 const MetricCurrentRound = "erd_current_round"
 
@@ -129,11 +120,14 @@ const MetricCountAcceptedBlocks = "erd_count_accepted_blocks"
 // MetricNodeType is the metric for monitoring the type of the node
 const MetricNodeType = "erd_node_type"
 
-// MetricLiveValidatorNodes is the metric for monitoring live validators on the network
+// MetricLiveValidatorNodes is the metric for the number of live validators on the network
 const MetricLiveValidatorNodes = "erd_live_validator_nodes"
 
 // MetricConnectedNodes is the metric for monitoring total connected nodes on the network
 const MetricConnectedNodes = "erd_connected_nodes"
+
+// MetricNumIntraShardValidatorNodes is the metric for the number of intra-shard validators
+const MetricNumIntraShardValidatorNodes = "erd_intra_shard_validator_nodes"
 
 // MetricCpuLoadPercent is the metric for monitoring CPU load [%]
 const MetricCpuLoadPercent = "erd_cpu_load_percent"
@@ -225,7 +219,7 @@ const MetricNumShardHeadersFromPool = "erd_num_shard_headers_from_pool"
 // MetricNumShardHeadersProcessed is the metric that stores number of shard header processed
 const MetricNumShardHeadersProcessed = "erd_num_shard_headers_processed"
 
-// MetricNumTimesInForkChoice is the metric that counts how many time a node was in fork choice
+// MetricNumTimesInForkChoice is the metric that counts how many times a node was in fork choice
 const MetricNumTimesInForkChoice = "erd_fork_choice_count"
 
 // MetricHighestFinalBlock is the metric for the nonce of the highest final block
@@ -236,9 +230,6 @@ const MetricLatestTagSoftwareVersion = "erd_latest_tag_software_version"
 
 // MetricCountConsensusAcceptedBlocks is the metric for monitoring number of blocks accepted when the node was in consensus group
 const MetricCountConsensusAcceptedBlocks = "erd_count_consensus_accepted_blocks"
-
-// MetricRewardsValue is the metric that stores rewards value
-const MetricRewardsValue = "erd_rewards_value"
 
 // MetricNodeDisplayName is the metric that stores the name of the node
 const MetricNodeDisplayName = "erd_node_display_name"
@@ -301,7 +292,7 @@ const MetricCreatedProposedBlock = "erd_consensus_created_proposed_block"
 // MetricRedundancyLevel is the metric that specifies the redundancy level of the current node
 const MetricRedundancyLevel = "erd_redundancy_level"
 
-// MetricRedundancyMainActive is the metrics that specifies data about the redundancy main machine
+// MetricRedundancyIsMainActive is the metric that specifies data about the redundancy main machine
 const MetricRedundancyIsMainActive = "erd_redundancy_is_main_active"
 
 // MetricValueNA represents the value to be used when a metric is not available/applicable
@@ -683,26 +674,11 @@ const WrongConfiguration = "wrongConfiguration"
 // ImportComplete signals that a node restart will be done because the import did complete
 const ImportComplete = "importComplete"
 
-// MaxRetriesToCreateDB represents the maximum number of times to try to create DB if it failed
-const MaxRetriesToCreateDB = 10
-
-// SleepTimeBetweenCreateDBRetries represents the number of seconds to sleep between DB creates
-const SleepTimeBetweenCreateDBRetries = 5 * time.Second
-
 // DefaultStatsPath is the default path where the node stats are logged
 const DefaultStatsPath = "stats"
 
 // DefaultDBPath is the default path for nodes databases
 const DefaultDBPath = "db"
-
-// DefaultEpochString is the default folder root name for node per epoch databases
-const DefaultEpochString = "Epoch"
-
-// DefaultStaticDbString is the default name for the static databases (not changing with epoch)
-const DefaultStaticDbString = "Static"
-
-// DefaultShardString is the default folder root name for per shard databases
-const DefaultShardString = "Shard"
 
 // MetachainShardName is the string identifier of the metachain shard
 const MetachainShardName = "metachain"

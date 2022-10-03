@@ -18,7 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/storage/timecache"
+	"github.com/ElrondNetwork/elrond-go/storage/cache"
 )
 
 var log = logger.GetOrCreate("heartbeat/process")
@@ -457,6 +457,9 @@ func (m *Monitor) computeInactiveHeartbeatMessages() {
 // GetHeartbeats returns the heartbeat status
 func (m *Monitor) GetHeartbeats() []data.PubKeyHeartbeat {
 	m.Cleanup()
+	if m.enableEpochsHandler.IsHeartbeatDisableFlagEnabled() {
+		return make([]data.PubKeyHeartbeat, 0)
+	}
 
 	m.mutHeartbeatMessages.Lock()
 	status := make([]data.PubKeyHeartbeat, 0, len(m.heartbeatMessages))
@@ -580,6 +583,11 @@ func (m *Monitor) startValidatorProcessing(ctx context.Context) {
 }
 
 func (m *Monitor) refreshHeartbeatMessageInfo() {
+	if m.enableEpochsHandler.IsHeartbeatDisableFlagEnabled() {
+		m.cancelFunc()
+		return
+	}
+
 	m.computeAllHeartbeatMessages()
 	m.computeInactiveHeartbeatMessages()
 }
@@ -588,7 +596,7 @@ func (m *Monitor) addDoubleSignerPeers(hb *data.Heartbeat) {
 	pubKeyStr := string(hb.Pubkey)
 	tc, ok := m.doubleSignerPeers[pubKeyStr]
 	if !ok {
-		tc = timecache.NewTimeCache(m.maxDurationPeerUnresponsive)
+		tc = cache.NewTimeCache(m.maxDurationPeerUnresponsive)
 		err := tc.Add(string(hb.Pid))
 		if err != nil {
 			log.Warn("cannot add heartbeat in cache", "peer id", hb.Pid, "error", err)

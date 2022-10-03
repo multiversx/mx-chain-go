@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-crypto"
+	errorsErd "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory/peerSignatureHandler"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
@@ -23,7 +24,7 @@ func TestNewPeerSignatureHandler_NilCacherShouldErr(t *testing.T) {
 	)
 
 	assert.True(t, check.IfNil(peerSigHandler))
-	assert.Equal(t, crypto.ErrNilCacher, err)
+	assert.Equal(t, errorsErd.ErrNilCacher, err)
 }
 
 func TestNewPeerSignatureHandler_NilSingleSignerShouldErr(t *testing.T) {
@@ -36,7 +37,7 @@ func TestNewPeerSignatureHandler_NilSingleSignerShouldErr(t *testing.T) {
 	)
 
 	assert.True(t, check.IfNil(peerSigHandler))
-	assert.Equal(t, crypto.ErrNilSingleSigner, err)
+	assert.Equal(t, errorsErd.ErrNilSingleSigner, err)
 }
 
 func TestNewPeerSignatureHandler_NilKeyGenShouldErr(t *testing.T) {
@@ -88,7 +89,7 @@ func TestPeerSignatureHandler_VerifyPeerSignatureInvalidPID(t *testing.T) {
 	)
 
 	err := peerSigHandler.VerifyPeerSignature([]byte("public key"), "", []byte("signature"))
-	assert.Equal(t, crypto.ErrInvalidPID, err)
+	assert.Equal(t, errorsErd.ErrInvalidPID, err)
 }
 
 func TestPeerSignatureHandler_VerifyPeerSignatureInvalidSignature(t *testing.T) {
@@ -101,7 +102,7 @@ func TestPeerSignatureHandler_VerifyPeerSignatureInvalidSignature(t *testing.T) 
 	)
 
 	err := peerSigHandler.VerifyPeerSignature([]byte("public key"), "dummy peer", nil)
-	assert.Equal(t, crypto.ErrInvalidSignature, err)
+	assert.Equal(t, errorsErd.ErrInvalidSignature, err)
 }
 
 func TestPeerSignatureHandler_VerifyPeerSignatureCantGetPubKeyBytes(t *testing.T) {
@@ -303,7 +304,7 @@ func TestPeerSignatureHandler_VerifyPeerSignatureDifferentPid(t *testing.T) {
 	cache.Put(pk, cacheEntry, len(pid)+len(sig))
 
 	err := peerSigHandler.VerifyPeerSignature(pk, newPid, sig)
-	assert.Equal(t, crypto.ErrPIDMismatch, err)
+	assert.Equal(t, errorsErd.ErrPIDMismatch, err)
 	assert.False(t, verifyCalled)
 }
 
@@ -343,7 +344,7 @@ func TestPeerSignatureHandler_VerifyPeerSignatureDifferentSig(t *testing.T) {
 	cache.Put(pk, cacheEntry, len(pid)+len(sig))
 
 	err := peerSigHandler.VerifyPeerSignature(pk, pid, newSig)
-	assert.Equal(t, crypto.ErrSignatureMismatch, err)
+	assert.Equal(t, errorsErd.ErrSignatureMismatch, err)
 	assert.False(t, verifyCalled)
 }
 

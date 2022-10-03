@@ -140,6 +140,7 @@ func testShardWithMissingStorer(missingUnit dataRetriever.UnitType, atCallNumber
 		}
 
 		err := shardStorage.SaveDataToStorage(components, components.ShardHeader, false)
+		require.NotNil(t, err)
 		require.True(t, strings.Contains(err.Error(), storage.ErrKeyNotFound.Error()))
 		require.True(t, strings.Contains(err.Error(), missingUnit.String()))
 	}
@@ -1144,7 +1145,7 @@ func createPendingAndProcessedMiniBlocksScenario() scenarioData {
 	expectedPendingMbsWithScheduled := []bootstrapStorage.PendingMiniBlocksInfo{
 		{ShardID: 0, MiniBlocksHashes: [][]byte{crossMbHeaders[1].Hash, crossMbHeaders[2].Hash, crossMbHeaders[3].Hash, crossMbHeaders[4].Hash, crossMbHeaders[0].Hash}},
 	}
-	expectedProcessedMbsWithScheduled := []bootstrapStorage.MiniBlocksInMeta{}
+	expectedProcessedMbsWithScheduled := make([]bootstrapStorage.MiniBlocksInMeta, 0)
 
 	headers := map[string]data.HeaderHandler{
 		lastFinishedMetaBlockHash: &block.MetaBlock{

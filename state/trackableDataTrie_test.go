@@ -33,29 +33,6 @@ func TestTrackableDataTrie_RetrieveValueNilDataTrieShouldErr(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestTrackableDataTrie_RetrieveValueFoundInDirtyShouldWork(t *testing.T) {
-	t.Parallel()
-
-	stringKey := "ABC"
-	identifier := []byte("identifier")
-	trie := &trieMock.TrieStub{}
-	tdaw := state.NewTrackableDataTrie(identifier, trie)
-	assert.NotNil(t, tdaw)
-
-	tdaw.SetDataTrie(&trieMock.TrieStub{})
-	key := []byte(stringKey)
-	val := []byte("123")
-
-	trieVal := append(val, key...)
-	trieVal = append(trieVal, identifier...)
-
-	tdaw.DirtyData()[stringKey] = trieVal
-
-	retrievedVal, err := tdaw.RetrieveValue(key)
-	assert.Nil(t, err)
-	assert.Equal(t, val, retrievedVal)
-}
-
 func TestTrackableDataTrie_RetrieveValueFoundInTrieShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -141,9 +118,6 @@ func TestTrackableDataTrie_SaveKeyValueShouldSaveOnlyInDirty(t *testing.T) {
 	keyExpected := []byte("key")
 	value := []byte("value")
 
-	expectedVal := append(value, keyExpected...)
-	expectedVal = append(expectedVal, identifier...)
-
 	trie := &trieMock.TrieStub{
 		UpdateCalled: func(key, value []byte) error {
 			return nil
@@ -159,27 +133,9 @@ func TestTrackableDataTrie_SaveKeyValueShouldSaveOnlyInDirty(t *testing.T) {
 	_ = mdaw.SaveKeyValue(keyExpected, value)
 
 	// test in dirty
-	assert.Equal(t, expectedVal, mdaw.DirtyData()[string(keyExpected)])
-}
-
-func TestTrackableDataTrie_ClearDataCachesValidDataShouldWork(t *testing.T) {
-	t.Parallel()
-
-	trie := &trieMock.TrieStub{}
-	mdaw := state.NewTrackableDataTrie([]byte("identifier"), trie)
-	assert.NotNil(t, mdaw)
-
-	mdaw.SetDataTrie(&trieMock.TrieStub{})
-
-	assert.Equal(t, 0, len(mdaw.DirtyData()))
-
-	// add something
-	_ = mdaw.SaveKeyValue([]byte("ABC"), []byte("123"))
-	assert.Equal(t, 1, len(mdaw.DirtyData()))
-
-	// clear
-	mdaw.ClearDataCaches()
-	assert.Equal(t, 0, len(mdaw.DirtyData()))
+	retrievedVal, err := mdaw.RetrieveValue(keyExpected)
+	assert.Nil(t, err)
+	assert.Equal(t, value, retrievedVal)
 }
 
 func TestTrackableDataTrie_SetAndGetDataTrie(t *testing.T) {

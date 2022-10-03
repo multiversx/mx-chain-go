@@ -5,6 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
+	cryptoCommon "github.com/ElrondNetwork/elrond-go/common/crypto"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/ntp"
@@ -25,7 +26,7 @@ type ConsensusCoreMock struct {
 	marshalizer             marshal.Marshalizer
 	blsPrivateKey           crypto.PrivateKey
 	blsSingleSigner         crypto.SingleSigner
-	multiSigner             crypto.MultiSigner
+	multiSignerContainer    cryptoCommon.MultiSignerContainer
 	roundHandler            consensus.RoundHandler
 	shardCoordinator        sharding.Coordinator
 	syncTimer               ntp.SyncTimer
@@ -37,6 +38,7 @@ type ConsensusCoreMock struct {
 	fallbackHeaderValidator consensus.FallbackHeaderValidator
 	nodeRedundancyHandler   consensus.NodeRedundancyHandler
 	scheduledProcessor      consensus.ScheduledProcessor
+	signatureHandler        consensus.SignatureHandler
 }
 
 // GetAntiFloodHandler -
@@ -84,9 +86,9 @@ func (ccm *ConsensusCoreMock) Marshalizer() marshal.Marshalizer {
 	return ccm.marshalizer
 }
 
-// MultiSigner -
-func (ccm *ConsensusCoreMock) MultiSigner() crypto.MultiSigner {
-	return ccm.multiSigner
+// MultiSignerContainer -
+func (ccm *ConsensusCoreMock) MultiSignerContainer() cryptoCommon.MultiSignerContainer {
+	return ccm.multiSignerContainer
 }
 
 // RoundHandler -
@@ -154,9 +156,9 @@ func (ccm *ConsensusCoreMock) SetMarshalizer(marshalizer marshal.Marshalizer) {
 	ccm.marshalizer = marshalizer
 }
 
-// SetMultiSigner -
-func (ccm *ConsensusCoreMock) SetMultiSigner(multiSigner crypto.MultiSigner) {
-	ccm.multiSigner = multiSigner
+// SetMultiSignerContainer -
+func (ccm *ConsensusCoreMock) SetMultiSignerContainer(multiSignerContainer cryptoCommon.MultiSignerContainer) {
+	ccm.multiSignerContainer = multiSignerContainer
 }
 
 // SetRoundHandler -
@@ -227,6 +229,16 @@ func (ccm *ConsensusCoreMock) ScheduledProcessor() consensus.ScheduledProcessor 
 // SetNodeRedundancyHandler -
 func (ccm *ConsensusCoreMock) SetNodeRedundancyHandler(nodeRedundancyHandler consensus.NodeRedundancyHandler) {
 	ccm.nodeRedundancyHandler = nodeRedundancyHandler
+}
+
+// SignatureHandler -
+func (ccm *ConsensusCoreMock) SignatureHandler() consensus.SignatureHandler {
+	return ccm.signatureHandler
+}
+
+// SetSignatureHandler -
+func (ccm *ConsensusCoreMock) SetSignatureHandler(signatureHandler consensus.SignatureHandler) {
+	ccm.signatureHandler = signatureHandler
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

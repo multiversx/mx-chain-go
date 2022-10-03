@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/state"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var _ state.UserAccountHandler = (*AccountWrapMock)(nil)
@@ -13,7 +14,6 @@ var _ state.UserAccountHandler = (*AccountWrapMock)(nil)
 // AccountWrapMock -
 type AccountWrapMock struct {
 	AccountWrapMockData
-	dataTrie          common.Trie
 	nonce             uint64
 	code              []byte
 	CodeHash          []byte
@@ -22,9 +22,23 @@ type AccountWrapMock struct {
 	address           []byte
 	trackableDataTrie state.DataTrieTracker
 
-	SetNonceWithJournalCalled    func(nonce uint64) error    `json:"-"`
-	SetCodeHashWithJournalCalled func(codeHash []byte) error `json:"-"`
-	SetCodeWithJournalCalled     func([]byte) error          `json:"-"`
+	SetNonceWithJournalCalled    func(nonce uint64) error           `json:"-"`
+	SetCodeHashWithJournalCalled func(codeHash []byte) error        `json:"-"`
+	SetCodeWithJournalCalled     func([]byte) error                 `json:"-"`
+	AccountDataHandlerCalled     func() vmcommon.AccountDataHandler `json:"-"`
+}
+
+// NewAccountWrapMock -
+func NewAccountWrapMock(adr []byte) *AccountWrapMock {
+	return &AccountWrapMock{
+		address:           adr,
+		trackableDataTrie: state.NewTrackableDataTrie([]byte("identifier"), nil),
+	}
+}
+
+// SetTrackableDataTrie -
+func (awm *AccountWrapMock) SetTrackableDataTrie(tdt state.DataTrieTracker) {
+	awm.trackableDataTrie = tdt
 }
 
 // SetUserName -
@@ -81,14 +95,6 @@ func (awm *AccountWrapMock) GetOwnerAddress() []byte {
 	return nil
 }
 
-// NewAccountWrapMock -
-func NewAccountWrapMock(adr []byte) *AccountWrapMock {
-	return &AccountWrapMock{
-		address:           adr,
-		trackableDataTrie: state.NewTrackableDataTrie([]byte("identifier"), nil),
-	}
-}
-
 // IsInterfaceNil -
 func (awm *AccountWrapMock) IsInterfaceNil() bool {
 	return awm == nil
@@ -109,9 +115,14 @@ func (awm *AccountWrapMock) SetCode(code []byte) {
 	awm.code = code
 }
 
-// RetrieveValueFromDataTrieTracker -
-func (awm *AccountWrapMock) RetrieveValueFromDataTrieTracker(key []byte) ([]byte, error) {
+// RetrieveValue -
+func (awm *AccountWrapMock) RetrieveValue(key []byte) ([]byte, error) {
 	return awm.trackableDataTrie.RetrieveValue(key)
+}
+
+// SaveKeyValue -
+func (awm *AccountWrapMock) SaveKeyValue(key []byte, value []byte) error {
+	return awm.trackableDataTrie.SaveKeyValue(key, value)
 }
 
 // HasNewCode -
@@ -145,24 +156,31 @@ func (awm *AccountWrapMock) AddressBytes() []byte {
 }
 
 // DataTrie -
-func (awm *AccountWrapMock) DataTrie() common.Trie {
-	return awm.dataTrie
+func (awm *AccountWrapMock) DataTrie() common.DataTrieHandler {
+	return awm.trackableDataTrie.DataTrie()
+}
+
+// SaveDirtyData -
+func (awm *AccountWrapMock) SaveDirtyData(trie common.Trie) (map[string][]byte, error) {
+	return awm.trackableDataTrie.SaveDirtyData(trie)
 }
 
 // SetDataTrie -
 func (awm *AccountWrapMock) SetDataTrie(trie common.Trie) {
-	awm.dataTrie = trie
 	awm.trackableDataTrie.SetDataTrie(trie)
-}
-
-// DataTrieTracker -
-func (awm *AccountWrapMock) DataTrieTracker() state.DataTrieTracker {
-	return awm.trackableDataTrie
 }
 
 //IncreaseNonce adds the given value to the current nonce
 func (awm *AccountWrapMock) IncreaseNonce(val uint64) {
 	awm.nonce = awm.nonce + val
+}
+
+// AccountDataHandler -
+func (awm *AccountWrapMock) AccountDataHandler() vmcommon.AccountDataHandler {
+	if awm.AccountDataHandlerCalled != nil {
+		return awm.AccountDataHandlerCalled()
+	}
+	return awm.trackableDataTrie
 }
 
 // GetNonce gets the nonce of the account
