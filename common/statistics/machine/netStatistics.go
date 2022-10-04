@@ -26,7 +26,11 @@ type netStatistics struct {
 // NewNetStatistics returns a new instance of the netStatistics
 func NewNetStatistics() *netStatistics {
 	stats := newNetStatistics(getStatistics)
-	stats.startProcessLoop(stats.processLoop)
+
+	var ctx context.Context
+	ctx, stats.cancel = context.WithCancel(context.Background())
+
+	go stats.processLoop(ctx)
 
 	return stats
 }
@@ -37,13 +41,6 @@ func newNetStatistics(getStatisticsHandler func() ([]net.IOCountersStat, error))
 	}
 
 	return stats
-}
-
-func (ns *netStatistics) startProcessLoop(handler func(ctx context.Context)) {
-	var ctx context.Context
-	ctx, ns.cancel = context.WithCancel(context.Background())
-
-	go handler(ctx)
 }
 
 func (ns *netStatistics) processLoop(ctx context.Context) {

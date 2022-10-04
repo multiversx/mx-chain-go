@@ -19,14 +19,14 @@ func generateMockConfig() config.Config {
 	}
 }
 
-func TestNewResourceMonitor_NilNetStatisticsShouldErr(t *testing.T) {
+func TestNewResourceMonitor_NilNetStatisticsProviderShouldErr(t *testing.T) {
 	t.Parallel()
 
 	resourceMonitor, err := stats.NewResourceMonitor(
 		generateMockConfig(),
 		nil)
 
-	assert.Equal(t, stats.ErrNilNetworkStatistics, err)
+	assert.Equal(t, stats.ErrNilNetworkStatisticsProvider, err)
 	assert.Nil(t, resourceMonitor)
 }
 
@@ -78,5 +78,5 @@ func TestResourceMonitor_SaveStatisticsShouldNotPanic(t *testing.T) {
 	resourceMonitor, err := stats.NewResourceMonitor(generateMockConfig(), disabled.NewDisabledNetStatistics())
 
 	assert.Nil(t, err)
-	resourceMonitor.SaveStatistics()
+	resourceMonitor.LogStatistics()
 }

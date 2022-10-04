@@ -10,7 +10,6 @@ type SoftwareVersionChecker interface {
 // ResourceMonitorHandler defines the resource monitor supported actions
 type ResourceMonitorHandler interface {
 	GenerateStatistics() []interface{}
-	SaveStatistics()
 	StartMonitoring()
 	Close() error
 	IsInterfaceNil() bool

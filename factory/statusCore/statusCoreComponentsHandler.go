@@ -67,8 +67,8 @@ func (mscc *managedStatusCoreComponents) Close() error {
 
 // CheckSubcomponents verifies all subcomponents
 func (mscc *managedStatusCoreComponents) CheckSubcomponents() error {
-	mscc.mutCoreComponents.Lock()
-	defer mscc.mutCoreComponents.Unlock()
+	mscc.mutCoreComponents.RLock()
+	defer mscc.mutCoreComponents.RUnlock()
 
 	if mscc.statusCoreComponents == nil {
 		return errors.ErrNilStatusCoreComponents

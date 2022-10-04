@@ -87,8 +87,8 @@ func (msc *managedStatusComponents) Close() error {
 
 // CheckSubcomponents verifies all subcomponents
 func (msc *managedStatusComponents) CheckSubcomponents() error {
-	msc.mutStatusComponents.Lock()
-	defer msc.mutStatusComponents.Unlock()
+	msc.mutStatusComponents.RLock()
+	defer msc.mutStatusComponents.RUnlock()
 
 	if msc.statusComponents == nil {
 		return errors.ErrNilStatusComponents

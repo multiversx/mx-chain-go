@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// ------------ Test ManagedStatusCoreComponents --------------------
 func TestManagedStatusCoreComponents_CreateWithInvalidArgsShouldErr(t *testing.T) {
 	t.Parallel()
 	if testing.Short() {

@@ -274,8 +274,7 @@ func TestNetStatistics_Close(t *testing.T) {
 		atomic.AddUint64(&numCalls, 1)
 		return make([]net.IOCountersStat, 0), nil
 	}
-	ns := newNetStatistics(testGetStats)
-	ns.startProcessLoop(ns.processLoop)
+	ns := NewNetTestStatistics(testGetStats)
 
 	time.Sleep(time.Second*3 + time.Millisecond*500)
 	assert.True(t, atomic.LoadUint64(&numCalls) > 0) // go routine is running

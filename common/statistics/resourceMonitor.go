@@ -33,7 +33,7 @@ type resourceMonitor struct {
 // NewResourceMonitor creates a new ResourceMonitor instance
 func NewResourceMonitor(config config.Config, netStats NetworkStatisticsProvider) (*resourceMonitor, error) {
 	if check.IfNil(netStats) {
-		return nil, ErrNilNetworkStatistics
+		return nil, ErrNilNetworkStatisticsProvider
 	}
 	if config.ResourceStats.RefreshIntervalInSec < minRefreshTimeInSec {
 		return nil, fmt.Errorf("%w, minimum: %d, provided: %d", ErrInvalidRefreshIntervalValue, minRefreshTimeInSec, config.ResourceStats.RefreshIntervalInSec)
@@ -158,8 +158,8 @@ func GetRuntimeStatistics() []interface{} {
 	}
 }
 
-// SaveStatistics generates and saves statistic data on the disk
-func (rm *resourceMonitor) SaveStatistics() {
+// LogStatistics generates and saves the statistic data in the logs
+func (rm *resourceMonitor) LogStatistics() {
 	stats := rm.GenerateStatistics()
 	log.Debug("node statistics", stats...)
 }
@@ -175,7 +175,7 @@ func (rm *resourceMonitor) StartMonitoring() {
 
 	go func() {
 		for {
-			rm.SaveStatistics()
+			rm.LogStatistics()
 			timer.Reset(refreshTime)
 
 			select {
