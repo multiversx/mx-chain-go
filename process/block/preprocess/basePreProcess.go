@@ -491,7 +491,6 @@ func (bpp *basePreProcess) updateGasConsumedWithGasRefundedAndGasPenalized(
 func (bpp *basePreProcess) handleProcessTransactionInit(preProcessorExecutionInfoHandler process.PreProcessorExecutionInfoHandler, txHash []byte) int {
 	snapshot := bpp.accounts.JournalLen()
 	preProcessorExecutionInfoHandler.InitProcessedTxsResults(txHash)
-	bpp.gasHandler.Reset(txHash)
 	return snapshot
 }
 
