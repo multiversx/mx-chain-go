@@ -384,6 +384,14 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
+	selfId := managedBootstrapComponents.ShardCoordinator().SelfId()
+	if selfId == core.MetachainShardId {
+		managedStateComponents.PeerAccounts().StartSnapshotIfNeeded()
+		managedStateComponents.AccountsAdapter().StartSnapshotIfNeeded()
+	} else {
+		managedStateComponents.AccountsAdapter().StartSnapshotIfNeeded()
+	}
+
 	hardforkTrigger := managedProcessComponents.HardforkTrigger()
 	err = hardforkTrigger.AddCloser(nodesShufflerOut)
 	if err != nil {

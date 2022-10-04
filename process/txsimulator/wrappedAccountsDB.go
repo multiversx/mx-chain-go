@@ -24,6 +24,10 @@ func NewReadOnlyAccountsDB(accountsDB state.AccountsAdapter) (*readOnlyAccountsD
 	return &readOnlyAccountsDB{originalAccounts: accountsDB}, nil
 }
 
+// StartSnapshotIfNeeded does nothing for this implementation
+func (r *readOnlyAccountsDB) StartSnapshotIfNeeded() {
+}
+
 // GetCode returns the code for the given account
 func (r *readOnlyAccountsDB) GetCode(codeHash []byte) []byte {
 	return r.originalAccounts.GetCode(codeHash)

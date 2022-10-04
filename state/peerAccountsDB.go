@@ -1,7 +1,6 @@
 package state
 
 import (
-	"bytes"
 	"fmt"
 	"sync"
 
@@ -39,13 +38,12 @@ func NewPeerAccountsDB(args ArgsAccountsDB) (*PeerAccountsDB, error) {
 		},
 	}
 
-	trieStorageManager := adb.mainTrie.GetStorageManager()
-	val, err := trieStorageManager.GetFromCurrentEpoch([]byte(common.ActiveDBKey))
-	if err != nil || !bytes.Equal(val, []byte(common.ActiveDBVal)) {
-		startSnapshotAfterRestart(adb, args)
-	}
-
 	return adb, nil
+}
+
+// StartSnapshotIfNeeded starts the snapshot if the previous snapshot process was not fully completed
+func (adb *PeerAccountsDB) StartSnapshotIfNeeded() {
+	startSnapshotIfNeeded(adb, adb.mainTrie.GetStorageManager(), adb.processingMode)
 }
 
 // MarkSnapshotDone will mark that the snapshot process has been completed
