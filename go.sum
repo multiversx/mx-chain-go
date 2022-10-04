@@ -79,8 +79,8 @@ github.com/ElrondNetwork/go-libp2p-pubsub v0.6.1-rc1 h1:Nu/uwYQg/QbfoQ0uD6GahYTw
 github.com/ElrondNetwork/go-libp2p-pubsub v0.6.1-rc1/go.mod h1:pJfaShe+i5aWZx8NhSkQjvOYQYLoqPztmFUlKjToOzM=
 github.com/ElrondNetwork/protobuf v1.3.2 h1:qoCSYiO+8GtXBEZWEjw0WPcZfM3g7QuuJrwpN+y6Mvg=
 github.com/ElrondNetwork/protobuf v1.3.2/go.mod h1:SlYgWuQ5SjCEi6WLHjHCa1yvBfUnHcTbrrZtXPKa29o=
-github.com/ElrondNetwork/wasm-vm v1.4.59 h1:7TO0R+kpkCU375Pwtw0jBlkcSoakmGSyh2U6+Aob9L0=
-github.com/ElrondNetwork/wasm-vm v1.4.59/go.mod h1:NopwtkceMs1N5esbLzhMU49487XdEMAqaRnVIlQ72QY=
+github.com/ElrondNetwork/wasm-vm v1.4.61-0.20221004112404-71feea058430 h1:7HajGOWw0lqYttYoLGnLuh0y19kDhiNInG3KuXXkh3M=
+github.com/ElrondNetwork/wasm-vm v1.4.61-0.20221004112404-71feea058430/go.mod h1:NopwtkceMs1N5esbLzhMU49487XdEMAqaRnVIlQ72QY=
 github.com/ElrondNetwork/wasm-vm-v1_2 v1.2.42 h1:szZcuaxPElmLvYRezR4YayPDqRxDMCWspknhtSHJQyo=
 github.com/ElrondNetwork/wasm-vm-v1_2 v1.2.42/go.mod h1:d1Pirw0GnD4Eh5lhBvX9Bn+N1AHb/FzRVKZSHwWwJLg=
 github.com/ElrondNetwork/wasm-vm-v1_3 v1.3.42 h1:EhLjiR/MnWSuLW3xtWh69oBZ4zAsym/QrhGKsVWwJjw=
