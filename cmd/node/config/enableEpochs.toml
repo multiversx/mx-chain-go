@@ -146,7 +146,7 @@
     RemoveNonUpdatedStorageEnableEpoch = 1
 
     # OptimizeNFTStoreEnableEpoch represents the epoch when optimizations on NFT metadata store and send are enabled
-    OptimizeNFTStoreEnableEpoch = 1
+    OptimizeNFTStoreEnableEpoch = 3
 
     # CreateNFTThroughExecByCallerEnableEpoch represents the epoch when nft creation through execution on destination by caller is enabled
     CreateNFTThroughExecByCallerEnableEpoch = 1
@@ -210,7 +210,7 @@
     CheckExecuteOnReadOnlyEnableEpoch = 1
 
     # ESDTMetadataContinuousCleanupEnableEpoch represents the epoch when esdt metadata is automatically deleted according to inshard liquidity
-    ESDTMetadataContinuousCleanupEnableEpoch = 1
+    ESDTMetadataContinuousCleanupEnableEpoch = 3
 
     # HeartbeatDisableEpoch represents the epoch when heartbeat v1 messages stop being sent and processed
     HeartbeatDisableEpoch = 1
@@ -222,7 +222,7 @@
     FixAsyncCallBackArgsListEnableEpoch = 1
 
     # FixOldTokenLiquidityEnableEpoch represents the epoch when the fix for old token liquidity is enabled
-    FixOldTokenLiquidityEnableEpoch = 2
+    FixOldTokenLiquidityEnableEpoch = 5
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
