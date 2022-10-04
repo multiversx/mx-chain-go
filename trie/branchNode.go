@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"strings"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -338,6 +339,7 @@ func (bn *branchNode) commitCheckpoint(
 func (bn *branchNode) commitSnapshot(
 	db common.DBWriteCacher,
 	leavesChan chan core.KeyValueHolder,
+	missingNodesChan chan []byte,
 	ctx context.Context,
 	stats common.SnapshotStatisticsHandler,
 	idleProvider IdleNodeProvider,
@@ -354,6 +356,10 @@ func (bn *branchNode) commitSnapshot(
 	for i := range bn.children {
 		err = resolveIfCollapsed(bn, byte(i), db)
 		if err != nil {
+			if strings.Contains(err.Error(), common.GetNodeFromDBErrorString) {
+				treatCommitSnapshotError(err, bn.EncodedChildren[i], missingNodesChan)
+				continue
+			}
 			return err
 		}
 
@@ -361,7 +367,7 @@ func (bn *branchNode) commitSnapshot(
 			continue
 		}
 
-		err = bn.children[i].commitSnapshot(db, leavesChan, ctx, stats, idleProvider)
+		err = bn.children[i].commitSnapshot(db, leavesChan, missingNodesChan, ctx, stats, idleProvider)
 		if err != nil {
 			return err
 		}
@@ -773,7 +779,8 @@ func (bn *branchNode) loadChildren(getNode func([]byte) (node, error)) ([][]byte
 
 func (bn *branchNode) getAllLeavesOnChannel(
 	leavesChannel chan core.KeyValueHolder,
-	key []byte, db common.DBWriteCacher,
+	keyBuilder common.KeyBuilder,
+	db common.DBWriteCacher,
 	marshalizer marshal.Marshalizer,
 	chanClose chan struct{},
 	ctx context.Context,
@@ -801,8 +808,9 @@ func (bn *branchNode) getAllLeavesOnChannel(
 				continue
 			}
 
-			childKey := append(key, byte(i))
-			err = bn.children[i].getAllLeavesOnChannel(leavesChannel, childKey, db, marshalizer, chanClose, ctx)
+			clonedKeyBuilder := keyBuilder.Clone()
+			clonedKeyBuilder.BuildKey([]byte{byte(i)})
+			err = bn.children[i].getAllLeavesOnChannel(leavesChannel, clonedKeyBuilder, db, marshalizer, chanClose, ctx)
 			if err != nil {
 				return err
 			}

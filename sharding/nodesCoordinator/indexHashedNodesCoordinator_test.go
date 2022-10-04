@@ -25,7 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/sharding/mock"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
+	"github.com/ElrondNetwork/elrond-go/storage/cache"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
@@ -444,7 +444,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup400of400For10locksNoM
 	getCounter := int32(0)
 	putCounter := int32(0)
 
-	cache := &mock.NodesCoordinatorCacheMock{
+	lruCache := &mock.NodesCoordinatorCacheMock{
 		PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
 			atomic.AddInt32(&putCounter, 1)
 			return false
@@ -467,7 +467,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup400of400For10locksNoM
 		EligibleNodes:           eligibleMap,
 		WaitingNodes:            waitingMap,
 		SelfPublicKey:           []byte("key"),
-		ConsensusGroupCache:     cache,
+		ConsensusGroupCache:     lruCache,
 		ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
 		ChanStopNode:            make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
@@ -523,7 +523,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup400of400For10BlocksMe
 
 	//consensusGroup := list[0:21]
 	cacheMap := make(map[string]interface{})
-	cache := &mock.NodesCoordinatorCacheMock{
+	lruCache := &mock.NodesCoordinatorCacheMock{
 		PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
 			mut.Lock()
 			defer mut.Unlock()
@@ -555,7 +555,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup400of400For10BlocksMe
 		EligibleNodes:           eligibleMap,
 		WaitingNodes:            waitingMap,
 		SelfPublicKey:           []byte("key"),
-		ConsensusGroupCache:     cache,
+		ConsensusGroupCache:     lruCache,
 		ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
 		ChanStopNode:            make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
@@ -586,7 +586,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup400of400For10BlocksMe
 
 func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup63of400TestEqualSameParams(t *testing.T) {
 	t.Skip("testing consistency - to be run manually")
-	cache := &mock.NodesCoordinatorCacheMock{
+	lruCache := &mock.NodesCoordinatorCacheMock{
 		GetCalled: func(key []byte) (value interface{}, ok bool) {
 			return nil, false
 		},
@@ -627,7 +627,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup63of400TestEqualSameP
 		EligibleNodes:           eligibleMap,
 		WaitingNodes:            waitingMap,
 		SelfPublicKey:           []byte("key"),
-		ConsensusGroupCache:     cache,
+		ConsensusGroupCache:     lruCache,
 		ChanStopNode:            make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
@@ -844,9 +844,9 @@ func BenchmarkIndexHashedNodesCoordinator_ComputeValidatorsGroup63of400Recompute
 	nodesPerShard := uint32(400)
 	eligibleMap := createDummyNodesMap(nodesPerShard, 1, "eligible")
 
-	consensusGroupCache, _ := lrucache.NewCache(1)
+	consensusGroupCache, _ := cache.NewLRUCache(1)
 	computeMemoryRequirements(consensusGroupCache, consensusGroupSize, eligibleMap, b)
-	consensusGroupCache, _ = lrucache.NewCache(1)
+	consensusGroupCache, _ = cache.NewLRUCache(1)
 	runBenchmark(consensusGroupCache, consensusGroupSize, eligibleMap, b)
 }
 
@@ -855,9 +855,9 @@ func BenchmarkIndexHashedNodesCoordinator_ComputeValidatorsGroup400of400Recomput
 	nodesPerShard := uint32(400)
 	eligibleMap := createDummyNodesMap(nodesPerShard, 1, "eligible")
 
-	consensusGroupCache, _ := lrucache.NewCache(1)
+	consensusGroupCache, _ := cache.NewLRUCache(1)
 	computeMemoryRequirements(consensusGroupCache, consensusGroupSize, eligibleMap, b)
-	consensusGroupCache, _ = lrucache.NewCache(1)
+	consensusGroupCache, _ = cache.NewLRUCache(1)
 	runBenchmark(consensusGroupCache, consensusGroupSize, eligibleMap, b)
 }
 
@@ -866,9 +866,9 @@ func BenchmarkIndexHashedNodesCoordinator_ComputeValidatorsGroup63of400Memoizati
 	nodesPerShard := uint32(400)
 	eligibleMap := createDummyNodesMap(nodesPerShard, 1, "eligible")
 
-	consensusGroupCache, _ := lrucache.NewCache(10000)
+	consensusGroupCache, _ := cache.NewLRUCache(10000)
 	computeMemoryRequirements(consensusGroupCache, consensusGroupSize, eligibleMap, b)
-	consensusGroupCache, _ = lrucache.NewCache(10000)
+	consensusGroupCache, _ = cache.NewLRUCache(10000)
 	runBenchmark(consensusGroupCache, consensusGroupSize, eligibleMap, b)
 }
 
@@ -877,9 +877,9 @@ func BenchmarkIndexHashedNodesCoordinator_ComputeValidatorsGroup400of400Memoizat
 	nodesPerShard := uint32(400)
 	eligibleMap := createDummyNodesMap(nodesPerShard, 1, "eligible")
 
-	consensusGroupCache, _ := lrucache.NewCache(1000)
+	consensusGroupCache, _ := cache.NewLRUCache(1000)
 	computeMemoryRequirements(consensusGroupCache, consensusGroupSize, eligibleMap, b)
-	consensusGroupCache, _ = lrucache.NewCache(1000)
+	consensusGroupCache, _ = cache.NewLRUCache(1000)
 	runBenchmark(consensusGroupCache, consensusGroupSize, eligibleMap, b)
 }
 

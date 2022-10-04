@@ -33,7 +33,7 @@ func CreateAccountsFromMandosAccs(tc *vm.VMTestContext, mandosUserAccounts []*mg
 
 		mandosAccStorage := mandosAcc.GetStorage()
 		for key, value := range mandosAccStorage {
-			err = account.DataTrieTracker().SaveKeyValue([]byte(key), value)
+			err = account.SaveKeyValue([]byte(key), value)
 			if err != nil {
 				return err
 			}

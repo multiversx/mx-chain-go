@@ -4,46 +4,9 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/storage"
+	"github.com/ElrondNetwork/elrond-go-storage/types"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
 )
-
-// Persister provides storage of data services in a database like construct
-type Persister interface {
-	// Put add the value to the (key, val) persistence medium
-	Put(key, val []byte) error
-	// Get gets the value associated to the key
-	Get(key []byte) ([]byte, error)
-	// Has returns true if the given key is present in the persistence medium
-	Has(key []byte) error
-	// Close closes the files/resources associated to the persistence medium
-	Close() error
-	// Remove removes the data associated to the given key
-	Remove(key []byte) error
-	// Destroy removes the persistence medium stored data
-	Destroy() error
-	// DestroyClosed removes the already closed persistence medium stored data
-	DestroyClosed() error
-	RangeKeys(handler func(key []byte, val []byte) bool)
-	// IsInterfaceNil returns true if there is no value under the interface
-	IsInterfaceNil() bool
-}
-
-// Batcher allows to batch the data first then write the batch to the persister in one go
-type Batcher interface {
-	// Put inserts one entry - key, value pair - into the batch
-	Put(key []byte, val []byte) error
-	// Get returns the value from the batch
-	Get(key []byte) []byte
-	// Delete deletes the batch
-	Delete(key []byte) error
-	// Reset clears the contents of the batch
-	Reset()
-	// IsRemoved returns true if the provided key is marked for deletion
-	IsRemoved(key []byte) bool
-	// IsInterfaceNil returns true if there is no value under the interface
-	IsInterfaceNil() bool
-}
 
 // Cacher provides caching services
 type Cacher interface {
@@ -83,6 +46,43 @@ type Cacher interface {
 	IsInterfaceNil() bool
 }
 
+// Persister provides storage of data services in a database like construct
+type Persister interface {
+	// Put add the value to the (key, val) persistence medium
+	Put(key, val []byte) error
+	// Get gets the value associated to the key
+	Get(key []byte) ([]byte, error)
+	// Has returns true if the given key is present in the persistence medium
+	Has(key []byte) error
+	// Close closes the files/resources associated to the persistence medium
+	Close() error
+	// Remove removes the data associated to the given key
+	Remove(key []byte) error
+	// Destroy removes the persistence medium stored data
+	Destroy() error
+	// DestroyClosed removes the already closed persistence medium stored data
+	DestroyClosed() error
+	RangeKeys(handler func(key []byte, val []byte) bool)
+	// IsInterfaceNil returns true if there is no value under the interface
+	IsInterfaceNil() bool
+}
+
+// Batcher allows to batch the data first then write the batch to the persister in one go
+type Batcher interface {
+	// Put inserts one entry - key, value pair - into the batch
+	Put(key []byte, val []byte) error
+	// Get returns the value from the batch
+	Get(key []byte) []byte
+	// Delete deletes the batch
+	Delete(key []byte) error
+	// Reset clears the contents of the batch
+	Reset()
+	// IsRemoved returns true if the provided key is marked for deletion
+	IsRemoved(key []byte) bool
+	// IsInterfaceNil returns true if there is no value under the interface
+	IsInterfaceNil() bool
+}
+
 // Storer provides storage services in a two layered storage construct, where the first layer is
 // represented by a cache and second layer by a persitent storage (DB-like)
 type Storer interface {
@@ -107,12 +107,6 @@ type Storer interface {
 type StorerWithPutInEpoch interface {
 	Storer
 	SetEpochForPutOperation(epoch uint32)
-}
-
-// EpochStartNotifier defines which actions should be done for handling new epoch's events
-type EpochStartNotifier interface {
-	RegisterHandler(handler epochStart.ActionHandler)
-	IsInterfaceNil() bool
 }
 
 // PathManagerHandler defines which actions should be done for generating paths for databases directories
@@ -154,12 +148,7 @@ type LatestStorageDataProviderHandler interface {
 }
 
 // LatestDataFromStorage represents the DTO structure to return from storage
-type LatestDataFromStorage struct {
-	Epoch           uint32
-	ShardID         uint32
-	LastRound       int64
-	EpochStartRound uint64
-}
+type LatestDataFromStorage = types.LatestDataFromStorage
 
 // ShardCoordinator defines what a shard state coordinator should hold
 type ShardCoordinator interface {
@@ -171,20 +160,25 @@ type ShardCoordinator interface {
 	IsInterfaceNil() bool
 }
 
-// ForEachItem is an iterator callback
-type ForEachItem func(key []byte, value interface{})
+// TimeCacher defines the cache that can keep a record for a bounded time
+type TimeCacher interface {
+	Add(key string) error
+	Upsert(key string, span time.Duration) error
+	Has(key string) bool
+	Sweep()
+	IsInterfaceNil() bool
+}
 
-// LRUCacheHandler is the interface for LRU cache.
-type LRUCacheHandler interface {
-	Add(key, value interface{}) bool
-	Get(key interface{}) (value interface{}, ok bool)
-	Contains(key interface{}) (ok bool)
-	ContainsOrAdd(key, value interface{}) (ok, evicted bool)
-	Peek(key interface{}) (value interface{}, ok bool)
-	Remove(key interface{}) bool
-	Keys() []interface{}
-	Len() int
-	Purge()
+// StoredDataFactory creates empty objects of the stored data type
+type StoredDataFactory interface {
+	CreateEmpty() interface{}
+	IsInterfaceNil() bool
+}
+
+// CustomDatabaseRemoverHandler defines the behaviour of a component that should tell if a database is removable or not
+type CustomDatabaseRemoverHandler interface {
+	ShouldRemove(dbIdentifier string, epoch uint32) bool
+	IsInterfaceNil() bool
 }
 
 // SizedLRUCacheHandler is the interface for size capable LRU cache.
@@ -201,36 +195,9 @@ type SizedLRUCacheHandler interface {
 	Purge()
 }
 
-// TimeCacher defines the cache that can keep a record for a bounded time
-type TimeCacher interface {
-	Add(key string) error
-	Upsert(key string, span time.Duration) error
-	Has(key string) bool
-	Sweep()
-	IsInterfaceNil() bool
-}
-
 // AdaptedSizedLRUCache defines a cache that returns the evicted value
 type AdaptedSizedLRUCache interface {
 	SizedLRUCacheHandler
 	AddSizedAndReturnEvicted(key, value interface{}, sizeInBytes int64) map[interface{}]interface{}
-	IsInterfaceNil() bool
-}
-
-// StoredDataFactory creates empty objects of the stored data type
-type StoredDataFactory interface {
-	CreateEmpty() interface{}
-	IsInterfaceNil() bool
-}
-
-// SerializedStoredData defines a data type that has the serialized data as a field
-type SerializedStoredData interface {
-	GetSerialized() []byte
-	SetSerialized([]byte)
-}
-
-// CustomDatabaseRemoverHandler defines the behaviour of a component that should tell if a database is removable or not
-type CustomDatabaseRemoverHandler interface {
-	ShouldRemove(dbIdentifier string, epoch uint32) bool
 	IsInterfaceNil() bool
 }

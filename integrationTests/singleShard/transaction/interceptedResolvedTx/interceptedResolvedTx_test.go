@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	ed25519SingleSig "github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519/singlesig"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -73,7 +72,7 @@ func TestNode_RequestInterceptTransactionWithMessengerAndWhitelist(t *testing.T)
 	}
 
 	txBuff, _ := tx.GetDataForSigning(integrationTests.TestAddressPubkeyConverter, integrationTests.TestTxSignMarshalizer)
-	signer := &ed25519SingleSig.Ed25519Signer{}
+	signer := integrationTests.TestSingleSigner
 	tx.Signature, _ = signer.Sign(nRequester.OwnAccount.SkTxSign, txBuff)
 	signedTxBuff, _ := integrationTests.TestMarshalizer.Marshal(&tx)
 

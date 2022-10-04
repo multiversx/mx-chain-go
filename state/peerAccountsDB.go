@@ -1,8 +1,6 @@
 package state
 
 import (
-	"bytes"
-
 	"github.com/ElrondNetwork/elrond-go/common"
 )
 
@@ -22,18 +20,17 @@ func NewPeerAccountsDB(args ArgsAccountsDB) (*PeerAccountsDB, error) {
 		AccountsDB: createAccountsDb(args),
 	}
 
-	trieStorageManager := adb.mainTrie.GetStorageManager()
-	val, err := trieStorageManager.GetFromCurrentEpoch([]byte(common.ActiveDBKey))
-	if err != nil || !bytes.Equal(val, []byte(common.ActiveDBVal)) {
-		startSnapshotAfterRestart(adb, args)
-	}
-
 	return adb, nil
+}
+
+// StartSnapshotIfNeeded starts the snapshot if the previous snapshot process was not fully completed
+func (adb *PeerAccountsDB) StartSnapshotIfNeeded() error {
+	return startSnapshotIfNeeded(adb, adb.getTrieSyncer(), adb.getMainTrie().GetStorageManager(), adb.processingMode)
 }
 
 // MarkSnapshotDone will mark that the snapshot process has been completed
 func (adb *PeerAccountsDB) MarkSnapshotDone() {
-	trieStorageManager, epoch, err := adb.getTrieStorageManagerAndLatestEpoch()
+	trieStorageManager, epoch, err := adb.getTrieStorageManagerAndLatestEpoch(adb.getMainTrie())
 	if err != nil {
 		log.Error("MarkSnapshotDone error", "err", err.Error())
 		return
@@ -54,33 +51,40 @@ func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
 	}
 
 	log.Info("starting snapshot peer trie", "rootHash", rootHash, "epoch", epoch)
+	missingNodesChannel := make(chan []byte, missingNodesChannelSize)
 	errChan := make(chan error, 1)
-	stats := newSnapshotStatistics(0)
+	stats := newSnapshotStatistics(0, 1)
 	stats.NewSnapshotStarted()
-	trieStorageManager.TakeSnapshot(rootHash, rootHash, nil, errChan, stats, epoch)
-	trieStorageManager.ExitPruningBufferingMode()
+	trieStorageManager.TakeSnapshot(rootHash, rootHash, nil, missingNodesChannel, errChan, stats, epoch)
 
-	go adb.processSnapshotCompletion(stats, errChan, rootHash, "snapshotState peer trie", epoch)
+	go adb.syncMissingNodes(missingNodesChannel, stats, adb.trieSyncer)
+
+	go adb.processSnapshotCompletion(stats, trieStorageManager, missingNodesChannel, errChan, rootHash, "snapshotState peer trie", epoch)
 
 	adb.waitForCompletionIfAppropriate(stats)
 }
 
 // SetStateCheckpoint triggers the checkpointing process of the state trie
 func (adb *PeerAccountsDB) SetStateCheckpoint(rootHash []byte) {
+	adb.mutOp.Lock()
+	defer adb.mutOp.Unlock()
+
 	log.Trace("peerAccountsDB.SetStateCheckpoint", "root hash", rootHash)
 	trieStorageManager := adb.mainTrie.GetStorageManager()
 
-	stats := newSnapshotStatistics(0)
+	missingNodesChannel := make(chan []byte, missingNodesChannelSize)
+	stats := newSnapshotStatistics(0, 1)
 
 	trieStorageManager.EnterPruningBufferingMode()
 	stats.NewSnapshotStarted()
 	errChan := make(chan error, 1)
-	trieStorageManager.SetCheckpoint(rootHash, rootHash, nil, errChan, stats)
-	trieStorageManager.ExitPruningBufferingMode()
+	trieStorageManager.SetCheckpoint(rootHash, rootHash, nil, missingNodesChannel, errChan, stats)
+
+	go adb.syncMissingNodes(missingNodesChannel, stats, adb.trieSyncer)
 
 	// TODO decide if we need to take some actions whenever we hit an error that occurred in the checkpoint process
 	//  that will be present in the errChan var
-	go stats.PrintStats("setStateCheckpoint peer trie", rootHash)
+	go adb.finishSnapshotOperation(rootHash, stats, missingNodesChannel, "setStateCheckpoint peer trie", trieStorageManager)
 
 	adb.waitForCompletionIfAppropriate(stats)
 }

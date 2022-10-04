@@ -16,7 +16,7 @@ type triePersistersTracker struct {
 
 // NewTriePersisterTracker creates a new instance of triePersistersTracker.
 // It is not safe to use in a concurrent manner
-func NewTriePersisterTracker(args *EpochArgs) *triePersistersTracker {
+func NewTriePersisterTracker(args EpochArgs) *triePersistersTracker {
 	oldestEpochActive, oldestEpochKeep := computeOldestEpochActiveAndToKeep(args)
 
 	return &triePersistersTracker{

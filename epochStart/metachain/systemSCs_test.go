@@ -41,7 +41,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager"
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
@@ -66,7 +66,7 @@ type testKeyPair struct {
 }
 
 func createPhysicalUnit(t *testing.T) (storage.Storer, string) {
-	cacheConfig := storageUnit.CacheConfig{
+	cacheConfig := storageunit.CacheConfig{
 		Name:                 "test",
 		Type:                 "SizeLRU",
 		SizeInBytes:          314572800,
@@ -76,7 +76,7 @@ func createPhysicalUnit(t *testing.T) (storage.Storer, string) {
 		Shards:               0,
 	}
 	dir := t.TempDir()
-	persisterConfig := storageUnit.ArgDB{
+	persisterConfig := storageunit.ArgDB{
 		Path:              dir,
 		DBType:            "LvlDBSerial",
 		BatchDelaySeconds: 2,
@@ -84,9 +84,9 @@ func createPhysicalUnit(t *testing.T) (storage.Storer, string) {
 		MaxOpenFiles:      10,
 	}
 
-	cache, _ := storageUnit.NewCache(cacheConfig)
-	persist, _ := storageUnit.NewDB(persisterConfig)
-	unit, _ := storageUnit.NewStorageUnit(cache, persist)
+	cache, _ := storageunit.NewCache(cacheConfig)
+	persist, _ := storageunit.NewDB(persisterConfig)
+	unit, _ := storageunit.NewStorageUnit(cache, persist)
 
 	return unit, dir
 }
@@ -265,7 +265,7 @@ func checkNodesStatusInSystemSCDataTrie(t *testing.T, nodes []*state.ValidatorIn
 	systemScAccount, ok := account.(state.UserAccountHandler)
 	require.True(t, ok)
 	for _, nodeInfo := range nodes {
-		buff, err = systemScAccount.DataTrieTracker().RetrieveValue(nodeInfo.PublicKey)
+		buff, err = systemScAccount.RetrieveValue(nodeInfo.PublicKey)
 		require.Nil(t, err)
 		require.True(t, len(buff) > 0)
 
@@ -547,7 +547,7 @@ func createEligibleNodes(numNodes int, stakingSCAcc state.UserAccountHandler, ma
 			StakeValue:    big.NewInt(100),
 		}
 		marshaledData, _ := marshalizer.Marshal(stakedData)
-		_ = stakingSCAcc.DataTrieTracker().SaveKeyValue([]byte(fmt.Sprintf("waiting_%d", i)), marshaledData)
+		_ = stakingSCAcc.SaveKeyValue([]byte(fmt.Sprintf("waiting_%d", i)), marshaledData)
 	}
 }
 
@@ -562,7 +562,7 @@ func createJailedNodes(numNodes int, stakingSCAcc state.UserAccountHandler, user
 			OwnerAddress:  []byte("ownerForAll"),
 		}
 		marshaledData, _ := marshalizer.Marshal(stakedData)
-		_ = stakingSCAcc.DataTrieTracker().SaveKeyValue([]byte(fmt.Sprintf("jailed__%d", i)), marshaledData)
+		_ = stakingSCAcc.SaveKeyValue([]byte(fmt.Sprintf("jailed__%d", i)), marshaledData)
 
 		_ = userAccounts.SaveAccount(stakingSCAcc)
 
@@ -629,11 +629,11 @@ func addValidatorDataWithUnStakedKey(
 			OwnerAddress:  ownerKey,
 		}
 		marshaledData, _ := marshalizer.Marshal(stakingData)
-		_ = stakingAccount.DataTrieTracker().SaveKeyValue(bls, marshaledData)
+		_ = stakingAccount.SaveKeyValue(bls, marshaledData)
 	}
 
 	marshaledData, _ := marshalizer.Marshal(validatorData)
-	_ = validatorAccount.DataTrieTracker().SaveKeyValue(ownerKey, marshaledData)
+	_ = validatorAccount.SaveKeyValue(ownerKey, marshaledData)
 
 	_ = accountsDB.SaveAccount(validatorAccount)
 	_ = accountsDB.SaveAccount(stakingAccount)
@@ -650,7 +650,7 @@ func createWaitingNodes(numNodes int, stakingSCAcc state.UserAccountHandler, use
 			StakeValue:    big.NewInt(100),
 		}
 		marshaledData, _ := marshalizer.Marshal(stakedData)
-		_ = stakingSCAcc.DataTrieTracker().SaveKeyValue([]byte(fmt.Sprintf("waiting_%d", i)), marshaledData)
+		_ = stakingSCAcc.SaveKeyValue([]byte(fmt.Sprintf("waiting_%d", i)), marshaledData)
 		previousKey := string(waitingKeyInList)
 		waitingKeyInList = []byte("w_" + fmt.Sprintf("waiting_%d", i))
 		waitingListHead := &systemSmartContracts.WaitingList{
@@ -659,7 +659,7 @@ func createWaitingNodes(numNodes int, stakingSCAcc state.UserAccountHandler, use
 			Length:   uint32(numNodes),
 		}
 		marshaledData, _ = marshalizer.Marshal(waitingListHead)
-		_ = stakingSCAcc.DataTrieTracker().SaveKeyValue([]byte("waitingList"), marshaledData)
+		_ = stakingSCAcc.SaveKeyValue([]byte("waitingList"), marshaledData)
 
 		waitingListElement := &systemSmartContracts.ElementInList{
 			BLSPublicKey: []byte(fmt.Sprintf("waiting_%d", i)),
@@ -674,7 +674,7 @@ func createWaitingNodes(numNodes int, stakingSCAcc state.UserAccountHandler, use
 		}
 
 		marshaledData, _ = marshalizer.Marshal(waitingListElement)
-		_ = stakingSCAcc.DataTrieTracker().SaveKeyValue(waitingKeyInList, marshaledData)
+		_ = stakingSCAcc.SaveKeyValue(waitingKeyInList, marshaledData)
 
 		vInfo := &state.ValidatorInfo{
 			PublicKey:       []byte(fmt.Sprintf("waiting_%d", i)),
@@ -713,7 +713,7 @@ func addValidatorData(
 	}
 
 	marshaledData, _ := marshalizer.Marshal(validatorData)
-	_ = validatorSC.DataTrieTracker().SaveKeyValue(ownerKey, marshaledData)
+	_ = validatorSC.SaveKeyValue(ownerKey, marshaledData)
 
 	_ = accountsDB.SaveAccount(validatorSC)
 }
@@ -732,7 +732,7 @@ func addStakedData(
 		StakeValue:    big.NewInt(0),
 	}
 	marshaledData, _ := marshalizer.Marshal(stakedData)
-	_ = stakingSCAcc.DataTrieTracker().SaveKeyValue(stakedKey, marshaledData)
+	_ = stakingSCAcc.SaveKeyValue(stakedKey, marshaledData)
 
 	_ = accountsDB.SaveAccount(stakingSCAcc)
 }
@@ -754,7 +754,7 @@ func prepareStakingContractWithData(
 		StakeValue:    big.NewInt(100),
 	}
 	marshaledData, _ := marshalizer.Marshal(stakedData)
-	_ = stakingSCAcc.DataTrieTracker().SaveKeyValue(stakedKey, marshaledData)
+	_ = stakingSCAcc.SaveKeyValue(stakedKey, marshaledData)
 	_ = accountsDB.SaveAccount(stakingSCAcc)
 
 	saveOneKeyToWaitingList(accountsDB, waitingKey, marshalizer, rewardAddress, ownerAddress)
@@ -772,7 +772,7 @@ func prepareStakingContractWithData(
 	}
 
 	marshaledData, _ = marshalizer.Marshal(validatorData)
-	_ = validatorSC.DataTrieTracker().SaveKeyValue(rewardAddress, marshaledData)
+	_ = validatorSC.SaveKeyValue(rewardAddress, marshaledData)
 
 	_ = accountsDB.SaveAccount(validatorSC)
 	_, err := accountsDB.Commit()
@@ -794,7 +794,7 @@ func saveOneKeyToWaitingList(
 		StakeValue:    big.NewInt(100),
 	}
 	marshaledData, _ := marshalizer.Marshal(stakedData)
-	_ = stakingSCAcc.DataTrieTracker().SaveKeyValue(waitingKey, marshaledData)
+	_ = stakingSCAcc.SaveKeyValue(waitingKey, marshaledData)
 
 	waitingKeyInList := []byte("w_" + string(waitingKey))
 	waitingListHead := &systemSmartContracts.WaitingList{
@@ -803,7 +803,7 @@ func saveOneKeyToWaitingList(
 		Length:   1,
 	}
 	marshaledData, _ = marshalizer.Marshal(waitingListHead)
-	_ = stakingSCAcc.DataTrieTracker().SaveKeyValue([]byte("waitingList"), marshaledData)
+	_ = stakingSCAcc.SaveKeyValue([]byte("waitingList"), marshaledData)
 
 	waitingListElement := &systemSmartContracts.ElementInList{
 		BLSPublicKey: waitingKey,
@@ -811,7 +811,7 @@ func saveOneKeyToWaitingList(
 		NextKey:      make([]byte, 0),
 	}
 	marshaledData, _ = marshalizer.Marshal(waitingListElement)
-	_ = stakingSCAcc.DataTrieTracker().SaveKeyValue(waitingKeyInList, marshaledData)
+	_ = stakingSCAcc.SaveKeyValue(waitingKeyInList, marshaledData)
 
 	_ = accountsDB.SaveAccount(stakingSCAcc)
 }
@@ -833,10 +833,10 @@ func addKeysToWaitingList(
 			StakeValue:    big.NewInt(100),
 		}
 		marshaledData, _ := marshalizer.Marshal(stakedData)
-		_ = stakingSCAcc.DataTrieTracker().SaveKeyValue(waitingKey, marshaledData)
+		_ = stakingSCAcc.SaveKeyValue(waitingKey, marshaledData)
 	}
 
-	marshaledData, _ := stakingSCAcc.DataTrieTracker().RetrieveValue([]byte("waitingList"))
+	marshaledData, _ := stakingSCAcc.RetrieveValue([]byte("waitingList"))
 	waitingListHead := &systemSmartContracts.WaitingList{}
 	_ = marshalizer.Unmarshal(waitingListHead, marshaledData)
 	waitingListHead.Length += uint32(len(waitingKeys))
@@ -844,7 +844,7 @@ func addKeysToWaitingList(
 	waitingListHead.LastKey = lastKeyInList
 
 	marshaledData, _ = marshalizer.Marshal(waitingListHead)
-	_ = stakingSCAcc.DataTrieTracker().SaveKeyValue([]byte("waitingList"), marshaledData)
+	_ = stakingSCAcc.SaveKeyValue([]byte("waitingList"), marshaledData)
 
 	numWaitingKeys := len(waitingKeys)
 	previousKey := waitingListHead.FirstKey
@@ -863,17 +863,17 @@ func addKeysToWaitingList(
 		}
 
 		marshaledData, _ = marshalizer.Marshal(waitingListElement)
-		_ = stakingSCAcc.DataTrieTracker().SaveKeyValue(waitingKeyInList, marshaledData)
+		_ = stakingSCAcc.SaveKeyValue(waitingKeyInList, marshaledData)
 
 		previousKey = waitingKeyInList
 	}
 
-	marshaledData, _ = stakingSCAcc.DataTrieTracker().RetrieveValue(waitingListHead.FirstKey)
+	marshaledData, _ = stakingSCAcc.RetrieveValue(waitingListHead.FirstKey)
 	waitingListElement := &systemSmartContracts.ElementInList{}
 	_ = marshalizer.Unmarshal(waitingListElement, marshaledData)
 	waitingListElement.NextKey = []byte("w_" + string(waitingKeys[0]))
 	marshaledData, _ = marshalizer.Marshal(waitingListElement)
-	_ = stakingSCAcc.DataTrieTracker().SaveKeyValue(waitingListHead.FirstKey, marshaledData)
+	_ = stakingSCAcc.SaveKeyValue(waitingListHead.FirstKey, marshaledData)
 
 	_ = accountsDB.SaveAccount(stakingSCAcc)
 }
@@ -1484,7 +1484,7 @@ func addDelegationData(
 	}
 
 	marshaledData, _ := marshalizer.Marshal(dStatus)
-	_ = delegatorSC.DataTrieTracker().SaveKeyValue([]byte("delegationStatus"), marshaledData)
+	_ = delegatorSC.SaveKeyValue([]byte("delegationStatus"), marshaledData)
 	_ = accountsDB.SaveAccount(delegatorSC)
 }
 
@@ -1563,7 +1563,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeFromDelegationContra
 	assert.Equal(t, 4, len(validatorInfos[0]))
 
 	delegationSC := loadSCAccount(args.UserAccountsDB, delegationAddr)
-	marshalledData, err := delegationSC.DataTrie().Get([]byte("delegationStatus"))
+	marshalledData, err := delegationSC.DataTrie().(common.Trie).Get([]byte("delegationStatus"))
 	assert.Nil(t, err)
 	dStatus := &systemSmartContracts.DelegationContractStatus{
 		StakedKeys:    make([]*systemSmartContracts.NodesData, 0),
@@ -1652,7 +1652,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractShouldUnStakeFromAdditional
 	}
 
 	delegationSC := loadSCAccount(args.UserAccountsDB, delegationAddr)
-	marshalledData, err := delegationSC.DataTrie().Get([]byte("delegationStatus"))
+	marshalledData, err := delegationSC.DataTrie().(common.Trie).Get([]byte("delegationStatus"))
 	assert.Nil(t, err)
 	dStatus := &systemSmartContracts.DelegationContractStatus{
 		StakedKeys:    make([]*systemSmartContracts.NodesData, 0),
@@ -1742,7 +1742,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeFromAdditionalQueue(
 	assert.Nil(t, err)
 
 	delegationSC := loadSCAccount(args.UserAccountsDB, delegationAddr2)
-	marshalledData, err := delegationSC.DataTrie().Get([]byte("delegationStatus"))
+	marshalledData, err := delegationSC.DataTrie().(common.Trie).Get([]byte("delegationStatus"))
 	assert.Nil(t, err)
 	dStatus := &systemSmartContracts.DelegationContractStatus{
 		StakedKeys:    make([]*systemSmartContracts.NodesData, 0),
@@ -1758,7 +1758,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeFromAdditionalQueue(
 	assert.Equal(t, []byte("waitingPubKe3"), dStatus.UnStakedKeys[1].BLSKey)
 
 	stakingSCAcc := loadSCAccount(args.UserAccountsDB, vm.StakingSCAddress)
-	marshaledData, _ := stakingSCAcc.DataTrieTracker().RetrieveValue([]byte("waitingList"))
+	marshaledData, _ := stakingSCAcc.RetrieveValue([]byte("waitingList"))
 	waitingListHead := &systemSmartContracts.WaitingList{}
 	_ = args.Marshalizer.Unmarshal(waitingListHead, marshaledData)
 	assert.Equal(t, uint32(3), waitingListHead.Length)
@@ -1827,14 +1827,14 @@ func TestSystemSCProcessor_TogglePauseUnPause(t *testing.T) {
 	assert.Nil(t, err)
 
 	validatorSC := loadSCAccount(s.userAccountsDB, vm.ValidatorSCAddress)
-	value, _ := validatorSC.DataTrie().Get([]byte("unStakeUnBondPause"))
+	value, _ := validatorSC.DataTrie().(common.Trie).Get([]byte("unStakeUnBondPause"))
 	assert.True(t, value[0] == 1)
 
 	err = s.ToggleUnStakeUnBond(false)
 	assert.Nil(t, err)
 
 	validatorSC = loadSCAccount(s.userAccountsDB, vm.ValidatorSCAddress)
-	value, _ = validatorSC.DataTrie().Get([]byte("unStakeUnBondPause"))
+	value, _ = validatorSC.DataTrie().(common.Trie).Get([]byte("unStakeUnBondPause"))
 	assert.True(t, value[0] == 0)
 }
 

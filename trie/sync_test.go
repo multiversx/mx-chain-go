@@ -163,7 +163,7 @@ func TestTrieSync_InterceptedNodeShouldNotBeAddedToNodesForTrieIfNodeReceived(t 
 	encodedNode, err := collapsedBn.getEncodedNode()
 	assert.Nil(t, err)
 
-	interceptedNode, err := NewInterceptedTrieNode(encodedNode, testMarshalizer, testHasher)
+	interceptedNode, err := NewInterceptedTrieNode(encodedNode, testHasher)
 	assert.Nil(t, err)
 
 	hash := "nodeHash"
@@ -214,7 +214,7 @@ func TestTrieSync_FoundInStorageShouldNotRequest(t *testing.T) {
 		},
 	}
 
-	err = bn.commitSnapshot(db, nil, context.Background(), &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{})
+	err = bn.commitSnapshot(db, nil, nil, context.Background(), &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{})
 	require.Nil(t, err)
 
 	arg := createMockArgument(timeout)

@@ -16,10 +16,9 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
-	elrondErrors "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/clean"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 )
 
 var _ storage.Storer = (*PruningStorer)(nil)
@@ -103,7 +102,7 @@ type PruningStorer struct {
 }
 
 // NewPruningStorer will return a new instance of PruningStorer without sharded directories' naming scheme
-func NewPruningStorer(args *StorerArgs) (*PruningStorer, error) {
+func NewPruningStorer(args StorerArgs) (*PruningStorer, error) {
 	err := checkArgs(args)
 	if err != nil {
 		return nil, err
@@ -126,14 +125,14 @@ func NewPruningStorer(args *StorerArgs) (*PruningStorer, error) {
 
 // initPruningStorer will create a PruningStorer with or without sharded directories' naming scheme
 func initPruningStorer(
-	args *StorerArgs,
+	args StorerArgs,
 	shardIDStr string,
 	activePersisters []*persisterData,
 	persistersMapByEpoch map[uint32]*persisterData,
 ) (*PruningStorer, error) {
 	pdb := &PruningStorer{}
 
-	cache, err := storageUnit.NewCache(args.CacheConf)
+	suCache, err := storageunit.NewCache(args.CacheConf)
 	if err != nil {
 		return nil, err
 	}
@@ -147,7 +146,7 @@ func initPruningStorer(
 	pdb.identifier = identifier
 	pdb.persisterFactory = args.PersisterFactory
 	pdb.shardCoordinator = args.ShardCoordinator
-	pdb.cacher = cache
+	pdb.cacher = suCache
 	pdb.epochPrepareHdr = &block.MetaBlock{Epoch: epochForDefaultEpochPrepareHdr}
 	pdb.epochForPutOperation = args.EpochsData.StartingEpoch
 	pdb.pathManager = args.PathManager
@@ -163,7 +162,7 @@ func initPruningStorer(
 	return pdb, nil
 }
 
-func checkArgs(args *StorerArgs) error {
+func checkArgs(args StorerArgs) error {
 	if args.EpochsData.NumOfActivePersisters < 1 {
 		return storage.ErrInvalidNumberOfPersisters
 	}
@@ -207,7 +206,7 @@ func (ps *PruningStorer) lastEpochNeeded() uint32 {
 }
 
 func initPersistersInEpoch(
-	args *StorerArgs,
+	args StorerArgs,
 	shardIDStr string,
 ) ([]*persisterData, map[uint32]*persisterData, error) {
 	if !args.PruningEnabled {
@@ -252,7 +251,7 @@ func initPersistersInEpoch(
 }
 
 func createPersisterIfPruningDisabled(
-	args *StorerArgs,
+	args StorerArgs,
 	shardIDStr string,
 ) ([]*persisterData, map[uint32]*persisterData, error) {
 	var persisters []*persisterData
@@ -267,7 +266,7 @@ func createPersisterIfPruningDisabled(
 	return persisters, persistersMapByEpoch, nil
 }
 
-func computeOldestEpochActiveAndToKeep(args *EpochArgs) (int64, int64) {
+func computeOldestEpochActiveAndToKeep(args EpochArgs) (int64, int64) {
 	oldestEpochKeep := int64(args.StartingEpoch) - int64(args.NumOfEpochsToKeep) + 1
 	if oldestEpochKeep < 0 {
 		oldestEpochKeep = 0
@@ -336,13 +335,17 @@ func (ps *PruningStorer) getPersisterToUse() *persisterData {
 		returningPath := "<nil persisterToUse>"
 		if persisterToUse != nil {
 			returningPath = persisterToUse.path
+			log.Debug("active persister not found",
+				"epoch", ps.epochForPutOperation,
+				"used", persisterToUse.epoch,
+				"path", ps.dbPath,
+				"returning persister", returningPath)
+		} else {
+			log.Debug("active persister not found",
+				"epoch", ps.epochForPutOperation,
+				"path", ps.dbPath,
+				"returning persister", returningPath)
 		}
-
-		log.Debug("active persister not found",
-			"epoch", ps.epochForPutOperation,
-			"used", persisterToUse.epoch,
-			"path", ps.dbPath,
-			"returning persister", returningPath)
 	}
 
 	return persisterToUse
@@ -436,7 +439,7 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 	for idx := 0; idx < len(ps.activePersisters); idx++ {
 		val, err := ps.activePersisters[idx].persister.Get(key)
 		if err != nil {
-			if err == elrondErrors.ErrDBIsClosed {
+			if err == storage.ErrDBIsClosed {
 				numClosedDbs++
 			}
 
@@ -449,7 +452,7 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 	}
 
 	if numClosedDbs == len(ps.activePersisters) && len(ps.activePersisters) > 0 {
-		return nil, elrondErrors.ErrDBIsClosed
+		return nil, storage.ErrDBIsClosed
 	}
 
 	return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
@@ -1032,7 +1035,7 @@ func (ps *PruningStorer) IsInterfaceNil() bool {
 	return ps == nil
 }
 
-func createPersisterPathForEpoch(args *StorerArgs, epoch uint32, shard string) string {
+func createPersisterPathForEpoch(args StorerArgs, epoch uint32, shard string) string {
 	filePath := args.PathManager.PathForEpoch(core.GetShardIDString(args.ShardCoordinator.SelfId()), epoch, args.Identifier)
 	if len(shard) > 0 {
 		filePath += shard
@@ -1041,7 +1044,7 @@ func createPersisterPathForEpoch(args *StorerArgs, epoch uint32, shard string) s
 	return filePath
 }
 
-func createPersisterDataForEpoch(args *StorerArgs, epoch uint32, shard string) (*persisterData, error) {
+func createPersisterDataForEpoch(args StorerArgs, epoch uint32, shard string) (*persisterData, error) {
 	// TODO: if booting from storage in an epoch > 0, shardId needs to be taken from somewhere else
 	// e.g. determined from directories in persister path or taken from boot storer
 	filePath := createPersisterPathForEpoch(args, epoch, shard)

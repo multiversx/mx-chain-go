@@ -166,3 +166,8 @@ func (sbt *shardBlockTrack) ComputeCrossInfo(headers []data.HeaderHandler) {
 			"global chain stuck", sbt.ShouldSkipMiniBlocksCreationFromSelf())
 	}
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (sbt *shardBlockTrack) IsInterfaceNil() bool {
+	return sbt == nil
+}
