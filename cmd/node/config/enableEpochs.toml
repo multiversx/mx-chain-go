@@ -210,7 +210,7 @@
     CheckExecuteOnReadOnlyEnableEpoch = 1
 
     # ESDTMetadataContinuousCleanupEnableEpoch represents the epoch when esdt metadata is automatically deleted according to inshard liquidity
-    ESDTMetadataContinuousCleanupEnableEpoch = 3
+    ESDTMetadataContinuousCleanupEnableEpoch = 4
 
     # HeartbeatDisableEpoch represents the epoch when heartbeat v1 messages stop being sent and processed
     HeartbeatDisableEpoch = 1
