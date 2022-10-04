@@ -29,6 +29,10 @@ func NewAccountsDBApiWithHistory(innerAccountsAdapter AccountsAdapter) (*account
 	}, nil
 }
 
+// StartSnapshotIfNeeded  is a not permitted operation in this implementation and thus, does nothing
+func (accountsDB *accountsDBApiWithHistory) StartSnapshotIfNeeded() {
+}
+
 // GetExistingAccount will return an error
 func (accountsDB *accountsDBApiWithHistory) GetExistingAccount(_ []byte) (vmcommon.AccountHandler, error) {
 	return nil, ErrFunctionalityNotImplemented
