@@ -149,80 +149,80 @@
     OptimizeNFTStoreEnableEpoch = 3
 
     # CreateNFTThroughExecByCallerEnableEpoch represents the epoch when nft creation through execution on destination by caller is enabled
-    CreateNFTThroughExecByCallerEnableEpoch = 1
+    CreateNFTThroughExecByCallerEnableEpoch = 3
 
     # StopDecreasingValidatorRatingWhenStuckEnableEpoch represents the epoch when we should stop decreasing validator's rating if, for instance, a shard gets stuck
-    StopDecreasingValidatorRatingWhenStuckEnableEpoch = 1
+    StopDecreasingValidatorRatingWhenStuckEnableEpoch = 3
 
     # FrontRunningProtectionEnableEpoch represents the epoch when the first version of protection against front running is enabled
-    FrontRunningProtectionEnableEpoch = 1
+    FrontRunningProtectionEnableEpoch = 3
 
     # IsPayableBySCEnableEpoch represents the epoch when a new flag isPayable by SC is enabled
-    IsPayableBySCEnableEpoch = 1
+    IsPayableBySCEnableEpoch = 3
 
     # CleanUpInformativeSCRsEnableEpoch represents the epoch when the informative-only scrs are cleaned from miniblocks and logs are created from them
-    CleanUpInformativeSCRsEnableEpoch = 1
+    CleanUpInformativeSCRsEnableEpoch = 3
 
     # StorageAPICostOptimizationEnableEpoch represents the epoch when new storage helper functions are enabled and cost is reduced in Arwen
-    StorageAPICostOptimizationEnableEpoch = 1
+    StorageAPICostOptimizationEnableEpoch = 3
 
     # TransformToMultiShardCreateEnableEpoch represents the epoch when the new function on esdt system sc is enabled to transfer create role into multishard
-    TransformToMultiShardCreateEnableEpoch = 1
+    TransformToMultiShardCreateEnableEpoch = 3
 
     # ESDTRegisterAndSetAllRolesEnableEpoch represents the epoch when new function to register tickerID and set all roles is enabled
-    ESDTRegisterAndSetAllRolesEnableEpoch = 1
+    ESDTRegisterAndSetAllRolesEnableEpoch = 3
 
     # ScheduledMiniBlocksEnableEpoch represents the epoch when scheduled mini blocks would be created if needed
-    ScheduledMiniBlocksEnableEpoch = 1
+    ScheduledMiniBlocksEnableEpoch = 3
 
     # CorrectJailedNotUnstakedEpoch represents the epoch when the jailed validators will also be unstaked if the queue is empty
-    CorrectJailedNotUnstakedEmptyQueueEpoch = 1
+    CorrectJailedNotUnstakedEmptyQueueEpoch = 3
 
     # DoNotReturnOldBlockInBlockchainHookEnableEpoch represents the epoch when the fetch old block operation is
     # disabled in the blockchain hook component
-    DoNotReturnOldBlockInBlockchainHookEnableEpoch = 1
+    DoNotReturnOldBlockInBlockchainHookEnableEpoch = 3
 
     # AddFailedRelayedTxToInvalidMBsDisableEpoch represents the epoch when adding the failed relayed txs to invalid miniblocks is disabled
-    AddFailedRelayedTxToInvalidMBsDisableEpoch = 1
+    AddFailedRelayedTxToInvalidMBsDisableEpoch = 3
 
     # SCRSizeInvariantOnBuiltInResultEnableEpoch represents the epoch when scr size invariant on built in result is enabled
-    SCRSizeInvariantOnBuiltInResultEnableEpoch = 1
+    SCRSizeInvariantOnBuiltInResultEnableEpoch = 3
 
     # CheckCorrectTokenIDForTransferRoleEnableEpoch represents the epoch when the correct token ID check is applied for transfer role verification
-    CheckCorrectTokenIDForTransferRoleEnableEpoch = 1
+    CheckCorrectTokenIDForTransferRoleEnableEpoch = 3
 
     # DisableExecByCallerEnableEpoch represents the epoch when the check on value is disabled on exec by caller
-    DisableExecByCallerEnableEpoch = 1
+    DisableExecByCallerEnableEpoch = 3
 
     # RefactorContextEnableEpoch represents the epoch when refactoring/simplifying is enabled in contexts
-    RefactorContextEnableEpoch = 1
+    RefactorContextEnableEpoch = 3
 
     # FailExecutionOnEveryAPIErrorEnableEpoch represent the epoch when new protection in VM is enabled to fail all wrong API calls
-    FailExecutionOnEveryAPIErrorEnableEpoch = 1
+    FailExecutionOnEveryAPIErrorEnableEpoch = 3
 
     # ManagedCryptoAPIsEnableEpoch represents the epoch when new managed crypto APIs are enabled in the wasm VM
-    ManagedCryptoAPIsEnableEpoch = 1
+    ManagedCryptoAPIsEnableEpoch = 3
 
     # CheckFunctionArgumentEnableEpoch represents the epoch when the extra argument check is enabled in vm-common
-    CheckFunctionArgumentEnableEpoch = 1
+    CheckFunctionArgumentEnableEpoch = 3
 
     # CheckExecuteOnReadOnlyEnableEpoch represents the epoch when the extra checks are enabled for execution on read only
-    CheckExecuteOnReadOnlyEnableEpoch = 1
+    CheckExecuteOnReadOnlyEnableEpoch = 3
 
     # ESDTMetadataContinuousCleanupEnableEpoch represents the epoch when esdt metadata is automatically deleted according to inshard liquidity
-    ESDTMetadataContinuousCleanupEnableEpoch = 4
+    ESDTMetadataContinuousCleanupEnableEpoch = 5
 
     # HeartbeatDisableEpoch represents the epoch when heartbeat v1 messages stop being sent and processed
-    HeartbeatDisableEpoch = 1
+    HeartbeatDisableEpoch = 5
 
     # MiniBlockPartialExecutionEnableEpoch represents the epoch when mini block partial execution will be enabled
-    MiniBlockPartialExecutionEnableEpoch = 1
+    MiniBlockPartialExecutionEnableEpoch = 5
 
     # FixAsyncCallBackArgsListEnableEpoch represents the epoch when the async callback arguments lists fix will be enabled
-    FixAsyncCallBackArgsListEnableEpoch = 1
+    FixAsyncCallBackArgsListEnableEpoch = 5
 
     # FixOldTokenLiquidityEnableEpoch represents the epoch when the fix for old token liquidity is enabled
-    FixOldTokenLiquidityEnableEpoch = 5
+    FixOldTokenLiquidityEnableEpoch = 7
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
