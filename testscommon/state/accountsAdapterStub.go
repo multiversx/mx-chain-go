@@ -39,6 +39,14 @@ type AccountsStub struct {
 	GetAccountWithBlockInfoCalled func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error)
 	GetCodeWithBlockInfoCalled    func(codeHash []byte, options common.RootHashHolder) ([]byte, common.BlockInfo, error)
 	CloseCalled                   func() error
+	StartSnapshotIfNeededCalled   func()
+}
+
+// StartSnapshotIfNeeded -
+func (as *AccountsStub) StartSnapshotIfNeeded() {
+	if as.StartSnapshotIfNeededCalled != nil {
+		as.StartSnapshotIfNeededCalled()
+	}
 }
 
 // GetTrie -
