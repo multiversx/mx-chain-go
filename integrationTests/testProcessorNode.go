@@ -2847,7 +2847,7 @@ func (tpn *TestProcessorNode) initRoundHandler() {
 }
 
 func (tpn *TestProcessorNode) initRequestedItemsHandler() {
-	tpn.RequestedItemsHandler = timecache.NewTimeCache(roundDuration)
+	tpn.RequestedItemsHandler = timecache.NewTimeCache(time.Second)
 }
 
 func (tpn *TestProcessorNode) initBlockTracker() {
