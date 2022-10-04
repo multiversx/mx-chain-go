@@ -703,6 +703,115 @@ func TestScProcessor_ExecuteBuiltInFunction(t *testing.T) {
 	require.Nil(t, err)
 }
 
+func TestScProcessor_ExecuteBuiltInESDTTransfer(t *testing.T) {
+	rcvAddr := bytes.Repeat([]byte{0}, core.NumInitCharactersForScAddress+1)
+
+	tx := &transaction.Transaction{}
+	funcName := core.BuiltInFunctionESDTTransfer
+	tx.Nonce = 0
+	tx.SndAddr = []byte("SRC")
+	tx.RcvAddr = rcvAddr
+	tx.Value = big.NewInt(45)
+	tx.GasLimit = 10
+	tx.Data = []byte(funcName + "@0500@0000@" + hex.EncodeToString([]byte("testFunc")))
+	testScProcessor_ExecuteBuiltInESDTTransfer(t, tx)
+}
+
+func TestScProcessor_ExecuteBuiltInESDTTransfer_InCallback(t *testing.T) {
+	funcName := core.BuiltInFunctionESDTTransfer
+	rcvAddr := bytes.Repeat([]byte{0}, core.NumInitCharactersForScAddress+1)
+
+	tx := &smartContractResult.SmartContractResult{}
+	tx.CallType = 2
+	tx.Nonce = 0
+	tx.SndAddr = []byte("SRC")
+	tx.RcvAddr = rcvAddr
+	tx.Value = big.NewInt(45)
+	tx.GasLimit = 10
+	tx.Data = []byte(funcName + "@00@00@00@00@0500@0000@" + hex.EncodeToString([]byte("testFunc")))
+	testScProcessor_ExecuteBuiltInESDTTransfer(t, tx)
+}
+
+func testScProcessor_ExecuteBuiltInESDTTransfer(t *testing.T, tx data.TransactionHandler) {
+	t.Parallel()
+
+	vmContainer := &mock.VMContainerMock{}
+	argParser := smartContract.NewArgumentParser()
+	arguments := createMockSmartContractProcessorArguments()
+	accountState := &stateMock.AccountsStub{
+		RevertToSnapshotCalled: func(snapshot int) error {
+			return nil
+		},
+	}
+	arguments.AccountsDB = accountState
+	arguments.VmContainer = vmContainer
+	arguments.ArgsParser = argParser
+	arguments.EnableEpochs.BuiltInFunctionsEnableEpoch = maxEpoch
+
+	rcvAddr := bytes.Repeat([]byte{0}, core.NumInitCharactersForScAddress+1)
+
+	outacc1 := &vmcommon.OutputAccount{}
+	outacc1.Address = rcvAddr
+	outacc1.Nonce = 0
+	outTransfer := vmcommon.OutputTransfer{
+		GasLimit: 5,
+		Value:    big.NewInt(5),
+	}
+	outacc1.OutputTransfers = append(outacc1.OutputTransfers, outTransfer)
+
+	arguments.BlockChainHook = &testscommon.BlockChainHookStub{
+		ProcessBuiltInFunctionCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+			return &vmcommon.VMOutput{
+				GasRemaining: 5,
+				OutputAccounts: map[string]*vmcommon.OutputAccount{
+					string(rcvAddr): outacc1,
+				},
+			}, nil
+		},
+	}
+
+	sc, err := NewSmartContractProcessorV2(arguments)
+	require.NotNil(t, sc)
+	require.Nil(t, err)
+
+	acntSrc, _ := createAccounts(tx)
+
+	vm := &mock.VMExecutionHandlerStub{
+		RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+			outacc1 := &vmcommon.OutputAccount{}
+			outacc1.Address = rcvAddr
+			outacc1.Nonce = 0
+			outacc1.BalanceDelta = big.NewInt(45)
+
+			addr2 := []byte("addr2")
+			outacc2 := &vmcommon.OutputAccount{}
+			outacc2.Address = addr2
+			outacc2.Nonce = 0
+			outacc2.GasUsed = 1
+			outTransfer := vmcommon.OutputTransfer{Value: big.NewInt(5)}
+			outacc2.OutputTransfers = append(outacc2.OutputTransfers, outTransfer)
+
+			return &vmcommon.VMOutput{
+				GasRemaining: 2,
+				OutputAccounts: map[string]*vmcommon.OutputAccount{
+					string(rcvAddr): outacc1,
+					string(addr2):   outacc2,
+				},
+			}, nil
+		},
+	}
+	vmContainer.GetCalled = func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
+		return vm, nil
+	}
+	accountState.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
+		return acntSrc, nil
+	}
+
+	retCode, err := sc.ExecuteBuiltInFunction(tx, acntSrc, nil)
+	require.Equal(t, vmcommon.Ok, retCode)
+	require.Nil(t, err)
+}
+
 func TestScProcessor_ExecuteBuiltInFunctionSCRTooBig(t *testing.T) {
 	t.Parallel()
 
