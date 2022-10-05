@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/node/filters"
+	"github.com/ElrondNetwork/elrond-go/outport/process/alteredaccounts"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
@@ -36,6 +37,7 @@ func newShardApiBlockProcessor(arg *ArgAPIBlockProcessor, emptyReceiptsHash []by
 			logsFacade:               arg.LogsFacade,
 			receiptsRepository:       arg.ReceiptsRepository,
 			alteredAccountsProvider:  arg.AlteredAccountsProvider,
+			accountsRepository:       arg.AccountsRepository,
 		},
 	}
 }
@@ -99,7 +101,21 @@ func (sbp *shardAPIBlockProcessor) GetAlteredAccountsForBlock(options api.GetAlt
 
 	txPool := sbp.apiBlockToTxsPool(apiBlock)
 
-	alteredAccounts, err := sbp.alteredAccountsProvider.ExtractAlteredAccountsFromPool(txPool)
+	rootHash, err := hex.DecodeString(apiBlock.StateRootHash)
+	if err != nil {
+		return nil, err
+	}
+
+	alteredAccountsOptions := alteredaccounts.Options{
+		WithCustomAccountsRepository: true,
+		AccountsRepository:           sbp.accountsRepository,
+		// TODO: AccountQueryOptions could be used like options.WithBlockRootHash(..) instead of thinking what to provide
+		AccountQueryOptions: api.AccountQueryOptions{
+			BlockRootHash: rootHash,
+		},
+	}
+
+	alteredAccounts, err := sbp.alteredAccountsProvider.ExtractAlteredAccountsFromPool(txPool, alteredAccountsOptions)
 	if err != nil {
 		return nil, err
 	}

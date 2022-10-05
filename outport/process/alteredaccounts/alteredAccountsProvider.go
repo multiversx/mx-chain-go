@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -20,6 +21,25 @@ var (
 	log        = logger.GetOrCreate("outport/process/alteredaccounts")
 	zeroBigInt = big.NewInt(0)
 )
+
+// Options holds some configurable parameters to be used for extracting the altered accounts
+type Options struct {
+	WithCustomAccountsRepository bool
+	AccountsRepository           state.AccountsRepository
+	AccountQueryOptions          api.AccountQueryOptions
+}
+
+func (o *Options) verify() error {
+	if !o.WithCustomAccountsRepository {
+		return nil
+	}
+
+	if check.IfNil(o.AccountsRepository) {
+		return errInvalidAlteredAccountsOptions
+	}
+
+	return nil
+}
 
 type markedAlteredAccountToken struct {
 	identifier string
@@ -64,7 +84,11 @@ func NewAlteredAccountsProvider(args ArgsAlteredAccountsProvider) (*alteredAccou
 }
 
 // ExtractAlteredAccountsFromPool will extract and return altered accounts from the pool
-func (aap *alteredAccountsProvider) ExtractAlteredAccountsFromPool(txPool *outportcore.Pool) (map[string]*outportcore.AlteredAccount, error) {
+func (aap *alteredAccountsProvider) ExtractAlteredAccountsFromPool(txPool *outportcore.Pool, options Options) (map[string]*outportcore.AlteredAccount, error) {
+	if err := options.verify(); err != nil {
+		return nil, err
+	}
+
 	aap.mutExtractAccounts.Lock()
 	defer aap.mutExtractAccounts.Unlock()
 
@@ -80,14 +104,14 @@ func (aap *alteredAccountsProvider) ExtractAlteredAccountsFromPool(txPool *outpo
 		return nil, err
 	}
 
-	return aap.fetchDataForMarkedAccounts(markedAccounts)
+	return aap.fetchDataForMarkedAccounts(markedAccounts, options)
 }
 
-func (aap *alteredAccountsProvider) fetchDataForMarkedAccounts(markedAccounts map[string]*markedAlteredAccount) (map[string]*outportcore.AlteredAccount, error) {
+func (aap *alteredAccountsProvider) fetchDataForMarkedAccounts(markedAccounts map[string]*markedAlteredAccount, options Options) (map[string]*outportcore.AlteredAccount, error) {
 	alteredAccounts := make(map[string]*outportcore.AlteredAccount)
 	var err error
 	for address, markedAccount := range markedAccounts {
-		err = aap.processMarkedAccountData(address, markedAccount.tokens, alteredAccounts)
+		err = aap.processMarkedAccountData(address, markedAccount.tokens, alteredAccounts, options)
 		if err != nil {
 			return nil, err
 		}
@@ -100,18 +124,14 @@ func (aap *alteredAccountsProvider) processMarkedAccountData(
 	addressStr string,
 	markedAccountTokens map[string]*markedAlteredAccountToken,
 	alteredAccounts map[string]*outportcore.AlteredAccount,
+	options Options,
 ) error {
 	addressBytes := []byte(addressStr)
 	encodedAddress := aap.addressConverter.Encode(addressBytes)
 
-	account, err := aap.accountsDB.LoadAccount(addressBytes)
+	userAccount, err := aap.loadUserAccount(addressBytes, options)
 	if err != nil {
 		return fmt.Errorf("%w while loading account when computing altered accounts. address: %s", err, encodedAddress)
-	}
-
-	userAccount, ok := account.(state.UserAccountHandler)
-	if !ok {
-		return fmt.Errorf("%w when computing altered accounts. address: %s", errCannotCastToUserAccountHandler, encodedAddress)
 	}
 
 	alteredAccounts[encodedAddress] = &outportcore.AlteredAccount{
@@ -128,6 +148,28 @@ func (aap *alteredAccountsProvider) processMarkedAccountData(
 	}
 
 	return nil
+}
+
+func (aap *alteredAccountsProvider) loadUserAccount(addressBytes []byte, options Options) (state.UserAccountHandler, error) {
+	var account vmcommon.AccountHandler
+	var err error
+
+	if !options.WithCustomAccountsRepository {
+		account, err = aap.accountsDB.LoadAccount(addressBytes)
+	} else {
+		account, _, err = options.AccountsRepository.GetAccountWithBlockInfo(addressBytes, options.AccountQueryOptions)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	userAccount, ok := account.(state.UserAccountHandler)
+	if !ok {
+		return nil, errCannotCastToUserAccountHandler
+	}
+
+	return userAccount, nil
 }
 
 func (aap *alteredAccountsProvider) addTokensDataForMarkedAccount(

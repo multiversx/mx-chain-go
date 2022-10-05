@@ -103,7 +103,7 @@ func testExtractAlteredAccountsFromPoolNoTransaction(t *testing.T) {
 	args := getMockArgs()
 	aap, _ := NewAlteredAccountsProvider(args)
 
-	res, err := aap.ExtractAlteredAccountsFromPool(&outportcore.Pool{})
+	res, err := aap.ExtractAlteredAccountsFromPool(&outportcore.Pool{}, Options{})
 	require.NoError(t, err)
 	require.Empty(t, res)
 }
@@ -138,7 +138,7 @@ func testExtractAlteredAccountsFromPoolSenderShard(t *testing.T) {
 				RcvAddr: []byte("receiver shard - tx1"),
 			}, 0, big.NewInt(0)),
 		},
-	})
+	}, Options{})
 	require.NoError(t, err)
 	require.Equal(t, 2, len(res))
 
@@ -178,7 +178,7 @@ func testExtractAlteredAccountsFromPoolReceiverShard(t *testing.T) {
 				RcvAddr: []byte("receiver shard - tx1"),
 			}, 0, big.NewInt(0)),
 		},
-	})
+	}, Options{})
 	require.NoError(t, err)
 	require.Equal(t, 2, len(res))
 
@@ -228,7 +228,7 @@ func testExtractAlteredAccountsFromPoolBothSenderAndReceiverShards(t *testing.T)
 				RcvAddr: []byte("shard2 addr - tx3  "),
 			}, 0, big.NewInt(0)),
 		},
-	})
+	}, Options{})
 	require.NoError(t, err)
 	require.Equal(t, 5, len(res))
 
@@ -278,7 +278,7 @@ func testExtractAlteredAccountsFromPoolTrieDataChecks(t *testing.T) {
 				RcvAddr: []byte(receiverInSelfShard),
 			}, 0, big.NewInt(0)),
 		},
-	})
+	}, Options{})
 	require.NoError(t, err)
 	require.Equal(t, 1, len(res))
 
@@ -339,7 +339,7 @@ func testExtractAlteredAccountsFromPoolScrsInvalidRewards(t *testing.T) {
 				RcvAddr: []byte("receiver in shard 0 - tx 3"), // receiver for invalid txs should not be included
 			}, 0, big.NewInt(0)),
 		},
-	})
+	}, Options{})
 	require.NoError(t, err)
 	require.Len(t, res, 5)
 }
@@ -388,7 +388,7 @@ func testExtractAlteredAccountsFromPoolShouldReturnErrorWhenCastingToVmCommonUse
 				},
 			},
 		},
-	})
+	}, Options{})
 	require.True(t, errors.Is(err, errCannotCastToVmCommonUserAccountHandler))
 	require.Nil(t, res)
 }
@@ -437,7 +437,7 @@ func testExtractAlteredAccountsFromPoolShouldIncludeESDT(t *testing.T) {
 				},
 			},
 		},
-	})
+	}, Options{})
 	require.NoError(t, err)
 
 	encodedAddr := args.AddressConverter.Encode([]byte("addr"))
@@ -493,7 +493,7 @@ func testExtractAlteredAccountsFromPoolShouldIncludeNFT(t *testing.T) {
 				},
 			},
 		},
-	})
+	}, Options{})
 	require.NoError(t, err)
 
 	encodedAddr := args.AddressConverter.Encode([]byte("addr"))
@@ -548,7 +548,7 @@ func testExtractAlteredAccountsFromPoolShouldNotIncludeReceiverAddressIfNftCreat
 				},
 			},
 		},
-	})
+	}, Options{})
 	require.NoError(t, err)
 
 	require.Len(t, res, 1)
@@ -600,7 +600,7 @@ func testExtractAlteredAccountsFromPoolShouldIncludeDestinationFromTokensLogsTop
 				},
 			},
 		},
-	})
+	}, Options{})
 	require.NoError(t, err)
 
 	require.Len(t, res, 2)
@@ -669,7 +669,7 @@ func testExtractAlteredAccountsFromPoolAddressHasBalanceChangeEsdtAndfNft(t *tes
 				},
 			},
 		},
-	})
+	}, Options{})
 	require.NoError(t, err)
 
 	encodedAddr := args.AddressConverter.Encode([]byte("addr"))
@@ -785,7 +785,7 @@ func testExtractAlteredAccountsFromPoolAddressHasMultipleNfts(t *testing.T) {
 				},
 			},
 		},
-	})
+	}, Options{})
 	require.NoError(t, err)
 
 	encodedAddr := args.AddressConverter.Encode([]byte("addr"))

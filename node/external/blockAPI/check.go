@@ -13,6 +13,7 @@ var (
 	errNilLogsFacade              = errors.New("nil logs facade")
 	errNilReceiptsRepository      = errors.New("nil receipts repository")
 	errNilAlteredAccountsProvider = errors.New("nil altered accounts provider")
+	errNilAccountsRepository      = errors.New("nil accounts repository")
 )
 
 func checkNilArg(arg *ArgAPIBlockProcessor) error {
@@ -48,6 +49,9 @@ func checkNilArg(arg *ArgAPIBlockProcessor) error {
 	}
 	if check.IfNil(arg.AlteredAccountsProvider) {
 		return errNilAlteredAccountsProvider
+	}
+	if check.IfNil(arg.AccountsRepository) {
+		return errNilAccountsRepository
 	}
 
 	return nil
