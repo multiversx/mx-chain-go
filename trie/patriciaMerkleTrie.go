@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/trie/statistics"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -628,6 +629,24 @@ func (tr *patriciaMerkleTrie) GetOldRoot() []byte {
 	defer tr.mutOperation.Unlock()
 
 	return tr.oldRoot
+}
+
+func (tr *patriciaMerkleTrie) GetTrieStats(rootHash []byte) (*statistics.TrieStatsDTO, error) {
+	tr.mutOperation.RLock()
+	newTrie, err := tr.recreate(rootHash, tr.trieStorage)
+	if err != nil {
+		tr.mutOperation.RUnlock()
+		return nil, err
+	}
+	tr.mutOperation.RUnlock()
+
+	ts := statistics.NewTrieStatistics()
+	err = newTrie.root.collectStats(ts, 0, newTrie.trieStorage)
+	if err != nil {
+		return nil, err
+	}
+
+	return ts.GetTrieStats(), nil
 }
 
 // Close stops all the active goroutines started by the trie

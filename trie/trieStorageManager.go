@@ -476,7 +476,7 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 	}
 
 	stats.AddAccountInfo(snapshotEntry.address, snapshotEntry.rootHash)
-	snapshotEntry.stats.AddTrieStats(stats)
+	snapshotEntry.stats.AddTrieStats(stats.GetTrieStats())
 }
 
 func writeInChanNonBlocking(errChan chan error, err error) {
@@ -519,7 +519,7 @@ func (tsm *trieStorageManager) takeCheckpoint(checkpointEntry *snapshotsQueueEnt
 	}
 
 	stats.AddAccountInfo(checkpointEntry.address, checkpointEntry.rootHash)
-	checkpointEntry.stats.AddTrieStats(stats)
+	checkpointEntry.stats.AddTrieStats(stats.GetTrieStats())
 }
 
 func treatSnapshotError(err error, message string, rootHash []byte, mainTrieRootHash []byte) {

@@ -5,6 +5,8 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/trie/statistics"
+	"math"
 	"runtime/debug"
 	"sync"
 	"time"
@@ -1280,7 +1282,6 @@ func (adb *AccountsDB) snapshotUserAccountDataTrie(
 		}
 
 		stats.NewSnapshotStarted()
-		stats.NewDataTrie()
 
 		if isSnapshot {
 			adb.mainTrie.GetStorageManager().TakeSnapshot(account.Address, account.RootHash, mainTrieRootHash, nil, missingNodesChannel, errChan, stats, epoch)
@@ -1354,6 +1355,58 @@ func (adb *AccountsDB) Close() error {
 
 	_ = adb.mainTrie.Close()
 	return adb.storagePruningManager.Close()
+}
+
+// PrintStatsForRootHash will print trie statistics for the given rootHash
+func (adb *AccountsDB) PrintStatsForRootHash(rootHash []byte, maxNumTries core.OptionalUint32) {
+	numTriesToPrint := maxNumTries.Value
+	if !maxNumTries.HasValue {
+		numTriesToPrint = math.MaxUint32
+	}
+
+	stats := statistics.NewTrieStatisticsCollector(int(numTriesToPrint))
+	mainTrie := adb.getMainTrie()
+
+	tr, ok := mainTrie.(common.TrieStats)
+	if !ok {
+		log.Error(fmt.Sprintf("invalid trie, type is %T", mainTrie))
+		return
+	}
+
+	collectStats(tr, stats, rootHash)
+
+	leavesChannel := make(chan core.KeyValueHolder, leavesChannelSize)
+	err := mainTrie.GetAllLeavesOnChannel(leavesChannel, context.Background(), rootHash, keyBuilder.NewDisabledKeyBuilder())
+	if err != nil {
+		log.Error(err.Error())
+		return
+	}
+
+	for leaf := range leavesChannel {
+		account := &userAccount{}
+		err = adb.marshaller.Unmarshal(account, leaf.Value())
+		if err != nil {
+			log.Trace("this must be a leaf with code", "err", err)
+			continue
+		}
+
+		if len(account.RootHash) == 0 {
+			continue
+		}
+
+		collectStats(tr, stats, account.RootHash)
+	}
+
+	stats.Print()
+}
+
+func collectStats(tr common.TrieStats, stats common.TriesStatisticsCollector, rootHash []byte) {
+	trieStats, err := tr.GetTrieStats(rootHash)
+	if err != nil {
+		log.Error(err.Error())
+		return
+	}
+	stats.Add(trieStats)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -44,6 +44,11 @@ type Trie interface {
 	IsInterfaceNil() bool
 }
 
+// TrieStats is used to collect the trie statistics for the given rootHash
+type TrieStats interface {
+	GetTrieStats(rootHash []byte) (*statistics.TrieStatsDTO, error)
+}
+
 // KeyBuilder is used for building trie keys as you traverse the trie
 type KeyBuilder interface {
 	BuildKey(keyPart []byte)
@@ -139,12 +144,10 @@ type SizeSyncStatisticsHandler interface {
 
 // SnapshotStatisticsHandler is used to measure different statistics for the trie snapshot
 type SnapshotStatisticsHandler interface {
-	AddSize(uint64)
 	SnapshotFinished()
 	NewSnapshotStarted()
-	NewDataTrie()
 	WaitForSnapshotsToFinish()
-	AddTrieStats(TrieStatisticsHandler)
+	AddTrieStats(*statistics.TrieStatsDTO)
 }
 
 type TrieStatisticsHandler interface {
@@ -153,6 +156,11 @@ type TrieStatisticsHandler interface {
 	AddLeafNode(level int, size uint64)
 	AddAccountInfo(address []byte, rootHash []byte)
 	GetTrieStats() *statistics.TrieStatsDTO
+}
+
+type TriesStatisticsCollector interface {
+	Add(trieStats *statistics.TrieStatsDTO)
+	Print()
 }
 
 // ProcessStatusHandler defines the behavior of a component able to hold the current status of the node and

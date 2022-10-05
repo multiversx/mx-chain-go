@@ -3,6 +3,7 @@ package statistics
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go-core/core"
 )
 
 type trieStatistics struct {
@@ -136,12 +137,12 @@ func (tsd *TrieStatsDTO) ToString() []string {
 	stats := make([]string, 0)
 	stats = append(stats, fmt.Sprintf("address %v,", hex.EncodeToString(tsd.Address)))
 	stats = append(stats, fmt.Sprintf("rootHash %v,", hex.EncodeToString(tsd.RootHash)))
-	stats = append(stats, fmt.Sprintf("total trie size = %v,", tsd.TotalNodesSize))
+	stats = append(stats, fmt.Sprintf("total trie size = %v,", core.ConvertBytes(tsd.TotalNodesSize)))
 	stats = append(stats, fmt.Sprintf("num trie nodes =  %v,", tsd.TotalNumNodes))
 	stats = append(stats, fmt.Sprintf("max trie depth = %v,", tsd.MaxTrieDepth))
-	stats = append(stats, fmt.Sprintf("branch nodes size %v,", tsd.BranchNodesSize))
-	stats = append(stats, fmt.Sprintf("extension nodes size %v,", tsd.ExtensionNodesSize))
-	stats = append(stats, fmt.Sprintf("leaf nodes size %v,", tsd.LeafNodesSize))
+	stats = append(stats, fmt.Sprintf("branch nodes size %v,", core.ConvertBytes(tsd.BranchNodesSize)))
+	stats = append(stats, fmt.Sprintf("extension nodes size %v,", core.ConvertBytes(tsd.ExtensionNodesSize)))
+	stats = append(stats, fmt.Sprintf("leaf nodes size %v,", core.ConvertBytes(tsd.LeafNodesSize)))
 	stats = append(stats, fmt.Sprintf("total nodes per level %v,", tsd.TotalNumNodesPerLevel))
 	stats = append(stats, fmt.Sprintf("num branches per level %v,", tsd.NumBranchesPerLevel))
 	stats = append(stats, fmt.Sprintf("num extensions per level %v,", tsd.NumExtensionsPerLevel))

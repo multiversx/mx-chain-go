@@ -735,6 +735,31 @@ func (en *extensionNode) getValue() []byte {
 	return []byte{}
 }
 
+func (en *extensionNode) collectStats(ts common.TrieStatisticsHandler, depthLevel int, db common.DBWriteCacher) error {
+	err := en.isEmptyOrNil()
+	if err != nil {
+		return fmt.Errorf("commit snapshot error %w", err)
+	}
+
+	err = resolveIfCollapsed(en, 0, db)
+	if err != nil {
+		return err
+	}
+
+	err = en.child.collectStats(ts, depthLevel+1, db)
+	if err != nil {
+		return err
+	}
+
+	val, err := collapseAndEncodeNode(en)
+	if err != nil {
+		return err
+	}
+
+	ts.AddExtensionNode(depthLevel, uint64(len(val)))
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (en *extensionNode) IsInterfaceNil() bool {
 	return en == nil

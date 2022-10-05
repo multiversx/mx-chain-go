@@ -502,6 +502,21 @@ func (ln *leafNode) getValue() []byte {
 	return ln.Value
 }
 
+func (ln *leafNode) collectStats(ts common.TrieStatisticsHandler, depthLevel int, _ common.DBWriteCacher) error {
+	err := ln.isEmptyOrNil()
+	if err != nil {
+		return fmt.Errorf("commit snapshot error %w", err)
+	}
+
+	val, err := collapseAndEncodeNode(ln)
+	if err != nil {
+		return err
+	}
+
+	ts.AddLeafNode(depthLevel, uint64(len(val)))
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (ln *leafNode) IsInterfaceNil() bool {
 	return ln == nil

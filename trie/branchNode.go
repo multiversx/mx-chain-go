@@ -913,6 +913,37 @@ func (bn *branchNode) getValue() []byte {
 	return []byte{}
 }
 
+func (bn *branchNode) collectStats(ts common.TrieStatisticsHandler, depthLevel int, db common.DBWriteCacher) error {
+	err := bn.isEmptyOrNil()
+	if err != nil {
+		return fmt.Errorf("collectStats error %w", err)
+	}
+
+	for i := range bn.children {
+		err = resolveIfCollapsed(bn, byte(i), db)
+		if err != nil {
+			return err
+		}
+
+		if bn.children[i] == nil {
+			continue
+		}
+
+		err = bn.children[i].collectStats(ts, depthLevel+1, db)
+		if err != nil {
+			return err
+		}
+	}
+
+	val, err := collapseAndEncodeNode(bn)
+	if err != nil {
+		return err
+	}
+
+	ts.AddBranchNode(depthLevel, uint64(len(val)))
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (bn *branchNode) IsInterfaceNil() bool {
 	return bn == nil
