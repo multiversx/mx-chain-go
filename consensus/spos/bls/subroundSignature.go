@@ -170,20 +170,6 @@ func (sr *subroundSignature) receivedSignature(_ context.Context, cnsDta *consen
 		return false
 	}
 
-	if check.IfNil(sr.Header) {
-		log.Error("receivedSignature", "error", spos.ErrNilHeader)
-		return false
-	}
-
-	err = sr.SignatureHandler().VerifySignatureShare(uint16(index), cnsDta.SignatureShare, sr.GetData(), sr.Header.GetEpoch())
-	if err != nil {
-		log.Debug("receivedSignature.VerifySignatureShare",
-			"node", pkForLogs,
-			"index", index,
-			"error", err.Error())
-		return false
-	}
-
 	err = sr.SignatureHandler().StoreSignatureShare(uint16(index), cnsDta.SignatureShare)
 	if err != nil {
 		log.Debug("receivedSignature.StoreSignatureShare",
