@@ -1,6 +1,7 @@
 package consensus
 
 import (
+	"encoding/hex"
 	"fmt"
 	"sync"
 	"testing"
@@ -10,44 +11,47 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TODO: refactor to use nodes from multiple shards
 func initNodesWithTestSigner(
+	numMetaNodes,
 	numNodes,
 	consensusSize,
 	numInvalid uint32,
 	roundTime uint64,
 	consensusType string,
-) []*integrationTests.TestConsensusNode {
+) map[uint32][]*integrationTests.TestConsensusNode {
 
 	fmt.Println("Step 1. Setup nodes...")
 
 	nodes := integrationTests.CreateNodesWithTestConsensusNode(
-		1,
+		int(numMetaNodes),
 		int(numNodes),
 		int(consensusSize),
 		roundTime,
 		consensusType,
 	)
 
-	for _, nodesList := range nodes {
-		displayAndStartNodes(nodesList)
+	for shardID, nodesList := range nodes {
+		displayAndStartNodes(shardID, nodesList)
 	}
 
 	time.Sleep(p2pBootstrapDelay)
 
-	if numInvalid < numNodes {
-		for i := uint32(0); i < numInvalid; i++ {
-			iCopy := i
-			nodes[0][i].MultiSigner.CreateSignatureShareCalled = func(privateKeyBytes, message []byte) ([]byte, error) {
-				fmt.Println("invalid sig share from ",
-					getPkEncoded(nodes[0][iCopy].NodeKeys.Pk),
-				)
-				return []byte("invalid sig share"), nil
+	for shardID := range nodes {
+		if numInvalid < numNodes {
+			for i := uint32(0); i < numInvalid; i++ {
+				iCopy := i
+				nodes[shardID][i].MultiSigner.CreateSignatureShareCalled = func(privateKeyBytes, message []byte) ([]byte, error) {
+					fmt.Println("invalid sig share from ",
+						getPkEncoded(nodes[shardID][iCopy].NodeKeys.Pk),
+					)
+					invalidSigShare, _ := hex.DecodeString("2ee350b9a821e20df97ba487a80b0d0ffffca7da663185cf6a562edc7c2c71e3ca46ed71b31bccaf53c626b87f2b6e08")
+					return invalidSigShare, nil
+				}
 			}
 		}
 	}
 
-	return nodes[0]
+	return nodes
 }
 
 func TestConsensusWithInvalidSigners(t *testing.T) {
@@ -55,18 +59,20 @@ func TestConsensusWithInvalidSigners(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
+	numMetaNodes := uint32(4)
 	numNodes := uint32(4)
 	consensusSize := uint32(4)
 	numInvalid := uint32(1)
 	roundTime := uint64(1000)
 	numCommBlock := uint64(8)
 
-	nodes := initNodesWithTestSigner(numNodes, consensusSize, numInvalid, roundTime, blsConsensusType)
+	nodes := initNodesWithTestSigner(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, blsConsensusType)
 
-	mutex := &sync.Mutex{}
 	defer func() {
-		for _, n := range nodes {
-			_ = n.Messenger.Close()
+		for shardID := range nodes {
+			for _, n := range nodes[shardID] {
+				_ = n.Messenger.Close()
+			}
 		}
 	}()
 
@@ -74,24 +80,27 @@ func TestConsensusWithInvalidSigners(t *testing.T) {
 	fmt.Println("Start consensus...")
 	time.Sleep(time.Second)
 
-	// TODO: use nonces for round map for each shard separately
-	nonceForRoundMap := make(map[uint64]uint64)
-	totalCalled := 0
-	err := startNodesWithCommitBlock(nodes, mutex, nonceForRoundMap, &totalCalled)
-	assert.Nil(t, err)
+	for shardID := range nodes {
+		mutex := &sync.Mutex{}
+		nonceForRoundMap := make(map[uint64]uint64)
+		totalCalled := 0
 
-	chDone := make(chan bool)
-	go checkBlockProposedEveryRound(numCommBlock, nonceForRoundMap, mutex, chDone, t)
+		err := startNodesWithCommitBlock(nodes[shardID], mutex, nonceForRoundMap, &totalCalled)
+		assert.Nil(t, err)
 
-	extraTime := uint64(2)
-	endTime := time.Duration(roundTime) * time.Duration(numCommBlock+extraTime) * time.Millisecond
-	select {
-	case <-chDone:
-	case <-time.After(endTime):
-		mutex.Lock()
-		fmt.Println("currently saved nonces for rounds: \n", nonceForRoundMap)
-		assert.Fail(t, "consensus too slow, not working.")
-		mutex.Unlock()
-		return
+		chDone := make(chan bool)
+		go checkBlockProposedEveryRound(numCommBlock, nonceForRoundMap, mutex, chDone, t)
+
+		extraTime := uint64(2)
+		endTime := time.Duration(roundTime) * time.Duration(numCommBlock+extraTime) * time.Millisecond
+		select {
+		case <-chDone:
+		case <-time.After(endTime):
+			mutex.Lock()
+			fmt.Println("currently saved nonces for rounds: \n", nonceForRoundMap)
+			assert.Fail(t, "consensus too slow, not working.")
+			mutex.Unlock()
+			return
+		}
 	}
 }
