@@ -903,8 +903,9 @@
 [TrieSync]
     NumConcurrentTrieSyncers  = 200
     MaxHardCapForMissingNodes = 5000
-    #available versions: 1 and 2. 1 is the initial version, 2 is updated, more efficient version
-    TrieSyncerVersion         = 2
+    #available versions: 1, 2 and 3. 1 is the initial version, 2 is updated, more efficient version employing 2 lists
+    #the 3-rd one uses depth-first algorithm which keeps the memory consumption low
+    TrieSyncerVersion         = 3
     CheckNodesOnDisk          = false
 
 [Resolvers]
