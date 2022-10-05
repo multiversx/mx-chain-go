@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/trie/statistics"
 	"strings"
 	"sync"
 	"time"
@@ -18,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/errors"
+	"github.com/ElrondNetwork/elrond-go/trie/statistics"
 )
 
 // trieStorageManager manages all the storage operations of the trie (commit, snapshot, checkpoint, pruning)

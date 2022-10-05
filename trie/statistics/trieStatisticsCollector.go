@@ -93,6 +93,8 @@ func insertInSortedArray(
 			insertIndex = i
 			continue
 		}
+
+		break
 	}
 
 	if insertIndex < numTriesToPrint {

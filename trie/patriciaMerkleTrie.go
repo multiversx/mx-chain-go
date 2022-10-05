@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/trie/statistics"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -16,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/errors"
+	"github.com/ElrondNetwork/elrond-go/trie/statistics"
 )
 
 var log = logger.GetOrCreate("trie")

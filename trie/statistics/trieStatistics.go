@@ -3,6 +3,7 @@ package statistics
 import (
 	"encoding/hex"
 	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go-core/core"
 )
 
