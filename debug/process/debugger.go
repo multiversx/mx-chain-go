@@ -165,6 +165,7 @@ func (debugger *processDebugger) changeLog() {
 	errSetLogLevel := logger.SetLogLevel(debugger.debuggingLogLevel)
 	if errSetLogLevel != nil {
 		log.Error("processDebugger: cannot change log level", "error", errSetLogLevel)
+		return
 	}
 
 	if debugger.revertTimeInSeconds > 0 {
@@ -182,8 +183,10 @@ func (debugger *processDebugger) revertLogLevel(oldLogLevel string) {
 
 	errSetLogLevel := logger.SetLogLevel(oldLogLevel)
 	if errSetLogLevel != nil {
-		log.Error("processDebugger changeLog: cannot change log level", "error", errSetLogLevel)
+		log.Error("processDebugger revertLogLevel: cannot change log level", "error", errSetLogLevel)
+		return
 	}
+
 	log.Debug("processDebugger revertLogLevel", "reverted log level", oldLogLevel)
 }
 
