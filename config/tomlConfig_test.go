@@ -668,6 +668,9 @@ func TestEnableEpochConfig(t *testing.T) {
     # FixAsyncCallBackArgsListEnableEpoch represents the epoch when the async callback arguments lists fix will be enabled
     FixAsyncCallBackArgsListEnableEpoch = 57
 
+	# FixOldTokenLiquidityEnableEpoch represents the epoch when the fix for old token liquidity is enabled
+	FixOldTokenLiquidityEnableEpoch = 58
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -752,6 +755,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			HeartbeatDisableEpoch:                       55,
 			ESDTMetadataContinuousCleanupEnableEpoch:    56,
 			FixAsyncCallBackArgsListEnableEpoch:         57,
+			FixOldTokenLiquidityEnableEpoch:             58,
 		},
 		GasSchedule: GasScheduleConfig{
 			GasScheduleByEpochs: []GasScheduleByEpochs{
