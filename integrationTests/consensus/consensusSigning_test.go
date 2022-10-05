@@ -1,6 +1,7 @@
 package consensus
 
 import (
+	"encoding/hex"
 	"fmt"
 	"sync"
 	"testing"
@@ -43,7 +44,8 @@ func initNodesWithTestSigner(
 					fmt.Println("invalid sig share from ",
 						getPkEncoded(nodes[shardID][iCopy].NodeKeys.Pk),
 					)
-					return []byte("invalid sig share"), nil
+					invalidSigShare, _ := hex.DecodeString("2ee350b9a821e20df97ba487a80b0d0ffffca7da663185cf6a562edc7c2c71e3ca46ed71b31bccaf53c626b87f2b6e08")
+					return invalidSigShare, nil
 				}
 			}
 		}
@@ -60,7 +62,7 @@ func TestConsensusWithInvalidSigners(t *testing.T) {
 	numMetaNodes := uint32(4)
 	numNodes := uint32(4)
 	consensusSize := uint32(4)
-	numInvalid := uint32(0)
+	numInvalid := uint32(1)
 	roundTime := uint64(1000)
 	numCommBlock := uint64(8)
 

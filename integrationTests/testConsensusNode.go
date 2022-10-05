@@ -66,7 +66,7 @@ type TestConsensusNode struct {
 	ResolverFinder   dataRetriever.ResolversFinder
 	AccountsDB       *state.AccountsDB
 	NodeKeys         TestKeyPair
-	MultiSigner      *cryptoMocks.MultisignerMock
+	MultiSigner      cryptoMocks.MultisignerMock
 }
 
 // NewTestConsensusNode returns a new TestConsensusNode
@@ -79,7 +79,7 @@ func NewTestConsensusNode(
 	eligibleMap map[uint32][]nodesCoordinator.Validator,
 	waitingMap map[uint32][]nodesCoordinator.Validator,
 	keyGen crypto.KeyGenerator,
-	multiSigner *cryptoMocks.MultisignerMock,
+	multiSigner cryptoMocks.MultisignerMock,
 ) *TestConsensusNode {
 
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, shardID)
@@ -140,8 +140,8 @@ func CreateNodesWithTestConsensusNode(
 	return nodes
 }
 
-func createCustomMultiSignerMock(multiSigner crypto.MultiSigner) *cryptoMocks.MultisignerMock {
-	multiSignerMock := &cryptoMocks.MultisignerMock{}
+func createCustomMultiSignerMock(multiSigner crypto.MultiSigner) cryptoMocks.MultisignerMock {
+	multiSignerMock := cryptoMocks.MultisignerMock{}
 	multiSignerMock.CreateSignatureShareCalled = func(privateKeyBytes, message []byte) ([]byte, error) {
 		return multiSigner.CreateSignatureShare(privateKeyBytes, message)
 	}
@@ -219,7 +219,7 @@ func (tcn *TestConsensusNode) initNode(
 	peerSigCache, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000})
 	peerSigHandler, _ := peerSignatureHandler.NewPeerSignatureHandler(peerSigCache, TestSingleBlsSigner, keyGen)
 
-	multiSigContainer := cryptoMocks.NewMultiSignerContainerMock(tcn.MultiSigner)
+	multiSigContainer := cryptoMocks.NewMultiSignerContainerMock(&tcn.MultiSigner)
 	privKey := tcn.NodeKeys.Sk
 	pubKey := tcn.NodeKeys.Sk.GeneratePublic()
 
