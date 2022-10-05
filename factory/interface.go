@@ -164,6 +164,7 @@ type CryptoComponentsHolder interface {
 	BlockSignKeyGen() crypto.KeyGenerator
 	TxSignKeyGen() crypto.KeyGenerator
 	MessageSignVerifier() vm.MessageSignVerifier
+	ConsensusSigHandler() consensus.SignatureHandler
 	Clone() interface{}
 	IsInterfaceNil() bool
 }

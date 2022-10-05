@@ -13,12 +13,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
-	"github.com/ElrondNetwork/elrond-go/consensus/signing"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	factory "github.com/ElrondNetwork/elrond-go/factory"
-	"github.com/ElrondNetwork/elrond-go/factory/disabled"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/process/sync/storageBootstrap"
@@ -227,11 +225,6 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		return nil, err
 	}
 
-	signatureHandler, err := ccf.createBlsSignatureHandler()
-	if err != nil {
-		return nil, err
-	}
-
 	consensusArgs := &spos.ConsensusCoreArgs{
 		BlockChain:                    ccf.dataComponents.Blockchain(),
 		BlockProcessor:                ccf.processComponents.BlockProcessor(),
@@ -255,8 +248,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		FallbackHeaderValidator:       ccf.processComponents.FallbackHeaderValidator(),
 		NodeRedundancyHandler:         ccf.processComponents.NodeRedundancyHandler(),
 		ScheduledProcessor:            ccf.scheduledProcessor,
-		MessageSigningHandler:         &disabled.MessageSigner{},
-		SignatureHandler:              signatureHandler,
+		SignatureHandler:              ccf.cryptoComponents.ConsensusSigHandler(),
 	}
 
 	consensusDataContainer, err := spos.NewConsensusCore(
@@ -647,22 +639,6 @@ func (ccf *consensusComponentsFactory) createConsensusTopic(cc *consensusCompone
 	}
 
 	return ccf.networkComponents.NetworkMessenger().RegisterMessageProcessor(cc.consensusTopic, common.DefaultInterceptorsIdentifier, cc.worker)
-}
-
-func (ccf *consensusComponentsFactory) createBlsSignatureHandler() (consensus.SignatureHandler, error) {
-	privKeyBytes, err := ccf.cryptoComponents.PrivateKey().ToByteArray()
-	if err != nil {
-		return nil, err
-	}
-
-	signatureHolderArgs := signing.ArgsSignatureHolder{
-		PubKeys:              []string{ccf.cryptoComponents.PublicKeyString()},
-		PrivKeyBytes:         privKeyBytes,
-		MultiSignerContainer: ccf.cryptoComponents.MultiSignerContainer(),
-		KeyGenerator:         ccf.cryptoComponents.BlockSignKeyGen(),
-	}
-
-	return signing.NewSignatureHolder(signatureHolderArgs)
 }
 
 func (ccf *consensusComponentsFactory) addCloserInstances(closers ...update.Closer) error {
