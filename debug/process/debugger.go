@@ -168,10 +168,10 @@ func (debugger *processDebugger) changeLog() {
 	}
 
 	if debugger.revertTimeInSeconds > 0 {
+		debugger.cancel()
+
 		go debugger.revertLogLevel(oldLogLevel)
 	}
-
-	debugger.cancel()
 }
 
 func (debugger *processDebugger) revertLogLevel(oldLogLevel string) {
