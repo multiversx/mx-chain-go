@@ -150,6 +150,7 @@ type SnapshotStatisticsHandler interface {
 	AddTrieStats(*statistics.TrieStatsDTO)
 }
 
+// TrieStatisticsHandler is used to collect different statistics about a single trie
 type TrieStatisticsHandler interface {
 	AddBranchNode(level int, size uint64)
 	AddExtensionNode(level int, size uint64)
@@ -158,6 +159,7 @@ type TrieStatisticsHandler interface {
 	GetTrieStats() *statistics.TrieStatsDTO
 }
 
+// TriesStatisticsCollector is used to merge the statistics for multiple tries
 type TriesStatisticsCollector interface {
 	Add(trieStats *statistics.TrieStatsDTO)
 	Print()

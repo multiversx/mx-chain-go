@@ -5,9 +5,8 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/trie/statistics"
-	"math"
 	"runtime/debug"
+	"strings"
 	"sync"
 	"time"
 
@@ -21,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common/holders"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/trie/keyBuilder"
+	"github.com/ElrondNetwork/elrond-go/trie/statistics"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -1358,13 +1358,8 @@ func (adb *AccountsDB) Close() error {
 }
 
 // PrintStatsForRootHash will print trie statistics for the given rootHash
-func (adb *AccountsDB) PrintStatsForRootHash(rootHash []byte, maxNumTries core.OptionalUint32) {
-	numTriesToPrint := maxNumTries.Value
-	if !maxNumTries.HasValue {
-		numTriesToPrint = math.MaxUint32
-	}
-
-	stats := statistics.NewTrieStatisticsCollector(int(numTriesToPrint))
+func (adb *AccountsDB) PrintStatsForRootHash(rootHash []byte) {
+	stats := statistics.NewTrieStatisticsCollector()
 	mainTrie := adb.getMainTrie()
 
 	tr, ok := mainTrie.(common.TrieStats)
@@ -1373,7 +1368,7 @@ func (adb *AccountsDB) PrintStatsForRootHash(rootHash []byte, maxNumTries core.O
 		return
 	}
 
-	collectStats(tr, stats, rootHash)
+	collectStats(tr, stats, rootHash, nil)
 
 	leavesChannel := make(chan core.KeyValueHolder, leavesChannelSize)
 	err := mainTrie.GetAllLeavesOnChannel(leavesChannel, context.Background(), rootHash, keyBuilder.NewDisabledKeyBuilder())
@@ -1394,19 +1389,23 @@ func (adb *AccountsDB) PrintStatsForRootHash(rootHash []byte, maxNumTries core.O
 			continue
 		}
 
-		collectStats(tr, stats, account.RootHash)
+		collectStats(tr, stats, account.RootHash, account.Address)
 	}
 
 	stats.Print()
 }
 
-func collectStats(tr common.TrieStats, stats common.TriesStatisticsCollector, rootHash []byte) {
+func collectStats(tr common.TrieStats, stats common.TriesStatisticsCollector, rootHash []byte, address []byte) {
 	trieStats, err := tr.GetTrieStats(rootHash)
 	if err != nil {
 		log.Error(err.Error())
 		return
 	}
+	trieStats.RootHash = rootHash
+	trieStats.Address = address
 	stats.Add(trieStats)
+
+	log.Debug(strings.Join(trieStats.ToString(), " "))
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

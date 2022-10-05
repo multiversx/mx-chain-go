@@ -11,8 +11,7 @@ import (
 func TestSnapshotStatistics_AddTrieStats(t *testing.T) {
 	t.Parallel()
 
-	numTriesToPrint := 5
-	tsc := NewTrieStatisticsCollector(numTriesToPrint)
+	tsc := NewTrieStatisticsCollector()
 
 	numInserts := 100
 	for i := 0; i < numInserts; i++ {

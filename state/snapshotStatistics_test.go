@@ -14,7 +14,7 @@ func TestSnapshotStatistics_Concurrency(t *testing.T) {
 	wg := &sync.WaitGroup{}
 	ss := &snapshotStatistics{
 		wgSnapshot:              wg,
-		trieStatisticsCollector: statistics.NewTrieStatisticsCollector(5),
+		trieStatisticsCollector: statistics.NewTrieStatisticsCollector(),
 	}
 
 	numRuns := 100

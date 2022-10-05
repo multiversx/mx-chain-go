@@ -10,24 +10,23 @@ import (
 
 var log = logger.GetOrCreate("trieStatistics")
 
+const numTriesToPrint = 10
+
 type trieStatisticsCollector struct {
 	numNodes     uint64
 	numDataTries uint64
 	triesSize    uint64
 	triesBySize  []*TrieStatsDTO
 	triesByDepth []*TrieStatsDTO
-
-	numTriesToPrint int
 }
 
-func NewTrieStatisticsCollector(numTriesToPrint int) *trieStatisticsCollector {
+func NewTrieStatisticsCollector() *trieStatisticsCollector {
 	return &trieStatisticsCollector{
-		numNodes:        0,
-		numDataTries:    0,
-		triesSize:       0,
-		triesBySize:     make([]*TrieStatsDTO, numTriesToPrint),
-		triesByDepth:    make([]*TrieStatsDTO, numTriesToPrint),
-		numTriesToPrint: numTriesToPrint,
+		numNodes:     0,
+		numDataTries: 0,
+		triesSize:    0,
+		triesBySize:  make([]*TrieStatsDTO, numTriesToPrint),
+		triesByDepth: make([]*TrieStatsDTO, numTriesToPrint),
 	}
 }
 
@@ -36,18 +35,18 @@ func (tsc *trieStatisticsCollector) Add(trieStats *TrieStatsDTO) {
 	tsc.triesSize += trieStats.TotalNodesSize
 	tsc.numDataTries++
 
-	insertInSortedArray(tsc.triesBySize, trieStats, isLessSize, tsc.numTriesToPrint)
-	insertInSortedArray(tsc.triesByDepth, trieStats, isLessDeep, tsc.numTriesToPrint)
+	insertInSortedArray(tsc.triesBySize, trieStats, isLessSize)
+	insertInSortedArray(tsc.triesByDepth, trieStats, isLessDeep)
 }
 
 func (tsc *trieStatisticsCollector) Print() {
-	triesBySize := " \n top " + strconv.Itoa(tsc.numTriesToPrint) + " tries by size"
-	triesByDepth := " \n top " + strconv.Itoa(tsc.numTriesToPrint) + " tries by depth"
+	triesBySize := " \n top " + strconv.Itoa(numTriesToPrint) + " tries by size \n"
+	triesByDepth := " \n top " + strconv.Itoa(numTriesToPrint) + " tries by depth \n"
 
 	log.Debug("tries statistics",
-		"num of nodes copied", tsc.numNodes,
-		"total size copied", core.ConvertBytes(tsc.triesSize),
-		"num data tries copied", tsc.numDataTries,
+		"num of nodes", tsc.numNodes,
+		"total size", core.ConvertBytes(tsc.triesSize),
+		"num tries", tsc.numDataTries,
 		triesBySize, getOrderedTries(tsc.triesBySize),
 		triesByDepth, getOrderedTries(tsc.triesByDepth),
 	)
@@ -77,7 +76,6 @@ func insertInSortedArray(
 	array []*TrieStatsDTO,
 	ts *TrieStatsDTO,
 	isLess func(*TrieStatsDTO, *TrieStatsDTO) bool,
-	numTriesToPrint int,
 ) {
 	insertIndex := numTriesToPrint
 	lastNilIndex := numTriesToPrint

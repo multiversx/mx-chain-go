@@ -8,8 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/trie/statistics"
 )
 
-const numTriesToPrint = 10
-
 type snapshotStatistics struct {
 	trieStatisticsCollector common.TriesStatisticsCollector
 
@@ -30,7 +28,7 @@ func newSnapshotStatistics(snapshotDelta int, syncDelta int) *snapshotStatistics
 		wgSnapshot:              wgSnapshot,
 		wgSync:                  wgSync,
 		startTime:               time.Now(),
-		trieStatisticsCollector: statistics.NewTrieStatisticsCollector(numTriesToPrint),
+		trieStatisticsCollector: statistics.NewTrieStatisticsCollector(),
 	}
 }
 

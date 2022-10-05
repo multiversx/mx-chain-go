@@ -6,7 +6,7 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/common/holders"
+	mathRand "math/rand"
 	"strings"
 	"sync"
 	"testing"
@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/common/holders"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -2692,6 +2693,30 @@ func TestEmptyErrChanReturningHadContained(t *testing.T) {
 			}
 		})
 	})
+}
+
+func TestAccountsDB_PrintStatsForRootHash(t *testing.T) {
+	t.Parallel()
+	_, adb := getDefaultTrieAndAccountsDb()
+
+	numAccounts := 1000
+	accountsAddresses := generateAccounts(t, numAccounts, adb)
+	addDataTries(accountsAddresses, adb)
+	rootHash, _ := adb.Commit()
+
+	adb.PrintStatsForRootHash(rootHash)
+}
+
+func addDataTries(accountsAddresses [][]byte, adb *state.AccountsDB) {
+	for i := range accountsAddresses {
+		numVals := mathRand.Intn(100)
+		acc, _ := adb.LoadAccount(accountsAddresses[i])
+		userAcc := acc.(state.UserAccountHandler)
+		for j := 0; j < numVals; j++ {
+			_ = userAcc.SaveKeyValue(generateRandomByteArray(32), generateRandomByteArray(32))
+		}
+		_ = adb.SaveAccount(acc)
+	}
 }
 
 func TestAccountsDb_Concurrent(t *testing.T) {
