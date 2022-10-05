@@ -69,7 +69,7 @@ func checkConfigs(config config.ProcessDebugConfig) error {
 }
 
 func (debugger *processDebugger) processLoop(ctx context.Context) {
-	log.Debug("processor debugger processLoop is starting...")
+	log.Debug("processDebugger processLoop is starting...")
 
 	defer debugger.timer.Stop()
 
@@ -78,7 +78,7 @@ func (debugger *processDebugger) processLoop(ctx context.Context) {
 
 		select {
 		case <-ctx.Done():
-			log.Debug("processor debugger processLoop is closing...")
+			log.Debug("processDebugger processLoop is closing...")
 			return
 		case <-debugger.timer.C:
 			debugger.checkRounds()
@@ -98,7 +98,7 @@ func (debugger *processDebugger) shouldTriggerUpdatingLastCheckedRound() bool {
 
 	isNodeStarting := debugger.lastCheckedBlockRound == 0 && debugger.lastCommittedBlockRound <= 0
 	if isNodeStarting {
-		log.Debug("processor debugger: node is starting")
+		log.Debug("processDebugger: node is starting")
 		return false
 	}
 
@@ -109,13 +109,13 @@ func (debugger *processDebugger) shouldTriggerUpdatingLastCheckedRound() bool {
 
 	isFirstCommit := debugger.lastCheckedBlockRound == 0 && debugger.lastCommittedBlockRound > 0
 	if isFirstCommit {
-		log.Debug("processor debugger: first committed block", "round", debugger.lastCommittedBlockRound)
+		log.Debug("processDebugger: first committed block", "round", debugger.lastCommittedBlockRound)
 		return false
 	}
 
 	isNodeRunning := debugger.lastCheckedBlockRound < debugger.lastCommittedBlockRound
 	if isNodeRunning {
-		log.Debug("processor debugger: node is running, nothing to do", "round", debugger.lastCommittedBlockRound)
+		log.Debug("processDebugger: node is running, nothing to do", "round", debugger.lastCommittedBlockRound)
 		return false
 	}
 
@@ -127,7 +127,7 @@ func (debugger *processDebugger) trigger() {
 	lastCommittedBlockRound := debugger.lastCommittedBlockRound
 	debugger.mut.RUnlock()
 
-	log.Warn("processor debugger: node is stuck",
+	log.Warn("processDebugger: node is stuck",
 		"last committed round", lastCommittedBlockRound)
 
 	debugger.logChangeHandler()
@@ -142,7 +142,7 @@ func (debugger *processDebugger) SetLastCommittedBlockRound(round uint64) {
 	debugger.mut.Lock()
 	defer debugger.mut.Unlock()
 
-	log.Debug("processor debugger: updated last committed block round", "round", round)
+	log.Debug("processDebugger: updated last committed block round", "round", round)
 	debugger.lastCommittedBlockRound = int64(round)
 }
 
@@ -164,26 +164,27 @@ func (debugger *processDebugger) changeLog() {
 
 	errSetLogLevel := logger.SetLogLevel(debugger.debuggingLogLevel)
 	if errSetLogLevel != nil {
-		log.Error("debugger.changeLog: cannot change log level", "error", errSetLogLevel)
+		log.Error("processDebugger: cannot change log level", "error", errSetLogLevel)
 	}
 
 	if debugger.revertTimeInSeconds > 0 {
 		go debugger.revertLogLevel(oldLogLevel)
 	}
+
+	debugger.cancel()
 }
 
 func (debugger *processDebugger) revertLogLevel(oldLogLevel string) {
 	timeToWait := time.Second * time.Duration(debugger.revertTimeInSeconds)
-	log.Debug("debugger.revertLogLevel", "original log level", oldLogLevel, "will revert in", timeToWait)
+	log.Debug("processDebugger revertLogLevel", "original log level", oldLogLevel, "will revert in", timeToWait)
 
 	time.Sleep(timeToWait)
 
-	errSetLogLevel := logger.SetLogLevel(debugger.debuggingLogLevel)
+	errSetLogLevel := logger.SetLogLevel(oldLogLevel)
 	if errSetLogLevel != nil {
-		log.Error("debugger.changeLog: cannot change log level", "error", errSetLogLevel)
+		log.Error("processDebugger changeLog: cannot change log level", "error", errSetLogLevel)
 	}
-	log.Debug("debugger.revertLogLevel", "reverted log level", oldLogLevel)
-	debugger.cancel()
+	log.Debug("processDebugger revertLogLevel", "reverted log level", oldLogLevel)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
