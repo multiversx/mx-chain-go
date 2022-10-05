@@ -163,7 +163,7 @@ func TestTrieSync_InterceptedNodeShouldNotBeAddedToNodesForTrieIfNodeReceived(t 
 	encodedNode, err := collapsedBn.getEncodedNode()
 	assert.Nil(t, err)
 
-	interceptedNode, err := NewInterceptedTrieNode(encodedNode, testMarshalizer, testHasher)
+	interceptedNode, err := NewInterceptedTrieNode(encodedNode, testHasher)
 	assert.Nil(t, err)
 
 	hash := "nodeHash"
