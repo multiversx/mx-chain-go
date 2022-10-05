@@ -809,7 +809,7 @@ func TestExtensionNode_loadChildren(t *testing.T) {
 	nodes, _ := getEncodedTrieNodesAndHashes(tr)
 	nodesCacher, _ := cache.NewLRUCache(100)
 	for i := range nodes {
-		n, _ := NewInterceptedTrieNode(nodes[i], marsh, hasher)
+		n, _ := NewInterceptedTrieNode(nodes[i], hasher)
 		nodesCacher.Put(n.hash, n, len(n.GetSerialized()))
 	}
 
