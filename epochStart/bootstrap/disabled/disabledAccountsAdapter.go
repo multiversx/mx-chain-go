@@ -17,6 +17,10 @@ func NewAccountsAdapter() *accountsAdapter {
 	return &accountsAdapter{}
 }
 
+// StartSnapshotIfNeeded -
+func (a *accountsAdapter) StartSnapshotIfNeeded() {
+}
+
 // GetTrie -
 func (a *accountsAdapter) GetTrie(_ []byte) (common.Trie, error) {
 	return nil, nil

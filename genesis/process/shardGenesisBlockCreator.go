@@ -122,6 +122,7 @@ func createGenesisConfig() config.EnableEpochs {
 		HeartbeatDisableEpoch:                             unreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch:              unreachableEpoch,
 		ESDTMetadataContinuousCleanupEnableEpoch:          unreachableEpoch,
+		FixOldTokenLiquidityEnableEpoch:                   unreachableEpoch,
 	}
 }
 
@@ -380,6 +381,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		OptimizeNFTStoreEnableEpoch:              enableEpochs.OptimizeNFTStoreEnableEpoch,
 		CheckCorrectTokenIDEnableEpoch:           enableEpochs.CheckCorrectTokenIDForTransferRoleEnableEpoch,
 		ESDTMetadataContinuousCleanupEnableEpoch: enableEpochs.ESDTMetadataContinuousCleanupEnableEpoch,
+		FixOldTokenLiquidityEnableEpoch:          enableEpochs.FixOldTokenLiquidityEnableEpoch,
 		AutomaticCrawlerAddresses:                [][]byte{make([]byte, 32)},
 		MaxNumNodesInTransferRole:                math.MaxUint32,
 	}

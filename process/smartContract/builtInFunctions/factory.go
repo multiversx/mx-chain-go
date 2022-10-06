@@ -32,6 +32,7 @@ type ArgsCreateBuiltInFunctionContainer struct {
 	CheckCorrectTokenIDEnableEpoch           uint32
 	CheckFunctionArgumentEnableEpoch         uint32
 	ESDTMetadataContinuousCleanupEnableEpoch uint32
+	FixOldTokenLiquidityEnableEpoch          uint32
 	MaxNumNodesInTransferRole                uint32
 	AutomaticCrawlerAddresses                [][]byte
 }
@@ -92,6 +93,7 @@ func CreateBuiltInFunctionsFactory(args ArgsCreateBuiltInFunctionContainer) (vmc
 		SendESDTMetadataAlwaysEnableEpoch:   args.ESDTMetadataContinuousCleanupEnableEpoch,
 		MaxNumOfAddressesForTransferRole:    args.MaxNumNodesInTransferRole,
 		FixAsyncCallbackCheckEnableEpoch:    args.ESDTMetadataContinuousCleanupEnableEpoch,
+		FixOldTokenLiquidityEnableEpoch:     args.FixOldTokenLiquidityEnableEpoch,
 		ConfigAddress:                       crawlerAllowedAddress,
 	}
 

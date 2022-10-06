@@ -125,6 +125,7 @@ type AccountsAdapter interface {
 	RecreateAllTries(rootHash []byte) (map[string]common.Trie, error)
 	GetTrie(rootHash []byte) (common.Trie, error)
 	GetStackDebugFirstEntry() []byte
+	StartSnapshotIfNeeded()
 	Close() error
 	IsInterfaceNil() bool
 }

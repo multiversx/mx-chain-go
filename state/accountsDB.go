@@ -128,12 +128,6 @@ func NewAccountsDB(args ArgsAccountsDB) (*AccountsDB, error) {
 		processStatusHandler:     args.ProcessStatusHandler,
 	}
 
-	trieStorageManager := adb.mainTrie.GetStorageManager()
-	val, err := trieStorageManager.GetFromCurrentEpoch([]byte(common.ActiveDBKey))
-	if err != nil || !bytes.Equal(val, []byte(common.ActiveDBVal)) {
-		startSnapshotAfterRestart(adb, args)
-	}
-
 	return adb, nil
 }
 
@@ -160,17 +154,16 @@ func checkArgsAccountsDB(args ArgsAccountsDB) error {
 	return nil
 }
 
-func startSnapshotAfterRestart(adb AccountsAdapter, args ArgsAccountsDB) {
-	tsm := args.Trie.GetStorageManager()
+func startSnapshotAfterRestart(adb AccountsAdapter, tsm common.StorageManager, processingMode common.NodeProcessingMode) {
 	epoch, err := tsm.GetLatestStorageEpoch()
 	if err != nil {
 		log.Error("could not get latest storage epoch")
 	}
 	putActiveDBMarker := epoch == 0 && err == nil
-	isInImportDBMode := args.ProcessingMode == common.ImportDb
+	isInImportDBMode := processingMode == common.ImportDb
 	putActiveDBMarker = putActiveDBMarker || isInImportDBMode
 	if putActiveDBMarker {
-		log.Debug("marking activeDB", "epoch", epoch, "error", err, "processing mode", args.ProcessingMode)
+		log.Debug("marking activeDB", "epoch", epoch, "error", err, "processing mode", processingMode)
 		err = tsm.Put([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal))
 		handleLoggingWhenError("error while putting active DB value into main storer", err)
 		return
@@ -202,6 +195,22 @@ func handleLoggingWhenError(message string, err error, extraArguments ...interfa
 
 	args := []interface{}{"error", err}
 	log.Warn(message, append(args, extraArguments...)...)
+}
+
+// StartSnapshotIfNeeded starts the snapshot if the previous snapshot process was not fully completed
+func (adb *AccountsDB) StartSnapshotIfNeeded() {
+	startSnapshotIfNeeded(adb, adb.mainTrie.GetStorageManager(), adb.processingMode)
+}
+
+func startSnapshotIfNeeded(
+	adb AccountsAdapter,
+	trieStorageManager common.StorageManager,
+	processingMode common.NodeProcessingMode,
+) {
+	val, err := trieStorageManager.GetFromCurrentEpoch([]byte(common.ActiveDBKey))
+	if err != nil || !bytes.Equal(val, []byte(common.ActiveDBVal)) {
+		startSnapshotAfterRestart(adb, trieStorageManager, processingMode)
+	}
 }
 
 // GetCode returns the code for the given account
