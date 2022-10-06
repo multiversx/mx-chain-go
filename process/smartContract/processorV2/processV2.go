@@ -863,7 +863,7 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 		return 0, err
 	}
 
-	isSCCallSelfShard, callType, parsedTransfer, scExecuteOutTransfer, err := sc.isSameShardSCExecutionAfterBuiltInFunc(tx, vmInput, vmOutput)
+	executionDataAfterBuiltIn := sc.isSameShardSCExecutionAfterBuiltInFunc(tx, vmInput, vmOutput)
 	if err != nil {
 		return 0, sc.ProcessIfError(acntSnd, vmInput.CurrentTxHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
 	}
@@ -872,9 +872,19 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 	newVMOutput := vmOutput
 
 	var errReturnCode vmcommon.ReturnCode
-	if isSCCallSelfShard {
+	if executionDataAfterBuiltIn.isSCCallSelfShard {
 		var newDestSC state.UserAccountHandler
-		newVMInput, newDestSC, err = sc.prepareExecutionAfterBuiltInFunc(callType, vmInput, vmOutput, parsedTransfer, scExecuteOutTransfer, tx, acntSnd, snapshot)
+		newVMInput, newDestSC, err = sc.prepareExecutionAfterBuiltInFunc(
+			&inputDataAfterBuiltInCall{
+				callType:             executionDataAfterBuiltIn.callType,
+				vmInput:              vmInput,
+				vmOutput:             vmOutput,
+				parsedTransfer:       executionDataAfterBuiltIn.parsedTransfer,
+				scExecuteOutTransfer: executionDataAfterBuiltIn.scExecuteOutTransfer,
+				tx:                   tx,
+				acntSnd:              acntSnd,
+				snapshot:             snapshot,
+			})
 		if err != nil {
 			return 0, err
 		}
@@ -889,12 +899,30 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 			return vmcommon.ExecutionFailed, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(err.Error()), snapshot, vmInput.GasLocked)
 		}
 
-		createdAsyncCallback, scrResults = mergeOutputResultsWithBuiltinResults(tmpCreatedAsyncCallback, createdAsyncCallback, newSCRTxs, scrResults, newVMOutput, vmOutput)
+		createdAsyncCallback, scrResults = mergeOutputResultsWithBuiltinResults(
+			&outputResultsToBeMerged{
+				tmpCreatedAsyncCallback: tmpCreatedAsyncCallback,
+				createdAsyncCallback:    createdAsyncCallback,
+				newSCRTxs:               newSCRTxs,
+				scrResults:              scrResults,
+				newVMOutput:             newVMOutput,
+				vmOutput:                vmOutput,
+			})
 	}
 
-	isSCCallCrossShard := !isSCCallSelfShard && txTypeOnDst == process.SCInvoking
+	isSCCallCrossShard := !executionDataAfterBuiltIn.isSCCallSelfShard && txTypeOnDst == process.SCInvoking
 	if !isSCCallCrossShard /* isSCCallSelfShard || txTypeOnDst != process.SCInvoking */ {
-		scrResults, errReturnCode, err = sc.completeOutputProcessingAndCreateCallback(&vmInput.VMInput, newVMOutput, txHash, tx, scrResults, acntSnd, snapshot, createdAsyncCallback)
+		scrResults, errReturnCode, err = sc.completeOutputProcessingAndCreateCallback(
+			&outputDataFromCall{
+				vmInput:              &vmInput.VMInput,
+				vmOutput:             newVMOutput,
+				txHash:               txHash,
+				tx:                   tx,
+				scrTxs:               scrResults,
+				acntSnd:              acntSnd,
+				snapshot:             snapshot,
+				createdAsyncCallback: createdAsyncCallback,
+			})
 		if errReturnCode != vmcommon.Ok || err != nil {
 			return errReturnCode, err
 		}
@@ -908,43 +936,58 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 	return sc.finishSCExecution(scrResults, txHash, tx, newVMOutput, builtInFuncGasUsed)
 }
 
-func mergeOutputResultsWithBuiltinResults(tmpCreatedAsyncCallback bool, createdAsyncCallback bool, newSCRTxs []data.TransactionHandler, scrResults []data.TransactionHandler, newVMOutput *vmcommon.VMOutput, vmOutput *vmcommon.VMOutput) (bool, []data.TransactionHandler) {
-	createdAsyncCallback = createdAsyncCallback || tmpCreatedAsyncCallback
-
-	if len(newSCRTxs) > 0 {
-		scrResults = append(scrResults, newSCRTxs...)
-	}
-
-	mergeVMOutputLogs(newVMOutput, vmOutput)
-	return createdAsyncCallback, scrResults
+type outputResultsToBeMerged struct {
+	tmpCreatedAsyncCallback bool
+	createdAsyncCallback    bool
+	newSCRTxs               []data.TransactionHandler
+	scrResults              []data.TransactionHandler
+	newVMOutput             *vmcommon.VMOutput
+	vmOutput                *vmcommon.VMOutput
 }
 
-func (sc *scProcessor) createAsyncCallBackSCR(
-	vmInput *vmcommon.VMInput,
-	vmOutput *vmcommon.VMOutput,
-	tx data.TransactionHandler,
-	txHash []byte,
-	scrForSender *smartContractResult.SmartContractResult,
-	scrForRelayer *smartContractResult.SmartContractResult,
-	scrResults []data.TransactionHandler,
-) ([]data.TransactionHandler, error) {
-	if vmInput.CallType == vmData.AsynchronousCall {
-		asyncCallBackSCR, err := sc.createAsyncCallBackSCRFromVMOutput(vmOutput, tx, txHash, vmInput.AsyncArguments)
+func mergeOutputResultsWithBuiltinResults(results *outputResultsToBeMerged) (bool, []data.TransactionHandler) {
+	results.createdAsyncCallback = results.createdAsyncCallback || results.tmpCreatedAsyncCallback
+
+	if len(results.newSCRTxs) > 0 {
+		results.scrResults = append(results.scrResults, results.newSCRTxs...)
+	}
+
+	mergeVMOutputLogs(results.newVMOutput, results.vmOutput)
+	return results.createdAsyncCallback, results.scrResults
+}
+
+type inputDataForCallbackSCR struct {
+	vmInput       *vmcommon.VMInput
+	vmOutput      *vmcommon.VMOutput
+	tx            data.TransactionHandler
+	txHash        []byte
+	scrForSender  *smartContractResult.SmartContractResult
+	scrForRelayer *smartContractResult.SmartContractResult
+	scrResults    []data.TransactionHandler
+}
+
+func (sc *scProcessor) createAsyncCallBackSCR(inputForCallback *inputDataForCallbackSCR) ([]data.TransactionHandler, error) {
+	if inputForCallback.vmInput.CallType == vmData.AsynchronousCall {
+		asyncCallBackSCR, err := sc.createAsyncCallBackSCRFromVMOutput(
+			inputForCallback.vmOutput,
+			inputForCallback.tx,
+			inputForCallback.txHash,
+			inputForCallback.vmInput.AsyncArguments)
 
 		if err != nil {
 			return nil, err
 		}
 
-		scrResults = append(scrResults, asyncCallBackSCR)
+		inputForCallback.scrResults = append(inputForCallback.scrResults, asyncCallBackSCR)
 	} else {
-		scrResults = append(scrResults, scrForSender)
+		inputForCallback.scrResults = append(inputForCallback.scrResults, inputForCallback.scrForSender)
 	}
 
-	if !check.IfNil(scrForRelayer) {
-		scrResults = append(scrResults, scrForRelayer)
+	if !check.IfNil(inputForCallback.scrForRelayer) {
+		inputForCallback.scrResults = append(inputForCallback.scrResults, inputForCallback.scrForRelayer)
 	}
 
-	return scrResults, nil
+	return inputForCallback.scrResults, nil
 }
 
 func (sc *scProcessor) extractAsyncCallParamsFromTxData(data string) (*vmcommon.AsyncArguments, []byte, error) {
@@ -1033,91 +1076,124 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 	return vmOutput, nil
 }
 
+type sameShardExecutionDataAfterBuiltIn struct {
+	isSCCallSelfShard    bool
+	callType             vmData.CallType
+	parsedTransfer       *vmcommon.ParsedESDTTransfers
+	scExecuteOutTransfer *vmcommon.OutputTransfer
+	err                  error
+}
+
 func (sc *scProcessor) isSameShardSCExecutionAfterBuiltInFunc(
 	tx data.TransactionHandler,
 	vmInput *vmcommon.ContractCallInput,
 	vmOutput *vmcommon.VMOutput,
-) (bool, vmData.CallType, *vmcommon.ParsedESDTTransfers, *vmcommon.OutputTransfer, error) {
+) *sameShardExecutionDataAfterBuiltIn {
+	noExecutionFound := sameShardExecutionDataAfterBuiltIn{
+		isSCCallSelfShard:    false,
+		callType:             0,
+		parsedTransfer:       nil,
+		scExecuteOutTransfer: nil,
+		err:                  nil,
+	}
+
 	if vmOutput.ReturnCode != vmcommon.Ok {
-		return false, 0, nil, nil, nil
+		return &noExecutionFound
 	}
 
 	parsedTransfer, err := sc.esdtTransferParser.ParseESDTTransfers(vmInput.CallerAddr, vmInput.RecipientAddr, vmInput.Function, vmInput.Arguments)
 	if err != nil {
-		return false, 0, nil, nil, nil
+		noExecutionFound.err = err
+		return &noExecutionFound
 	}
 	if !core.IsSmartContractAddress(parsedTransfer.RcvAddr) {
-		return false, 0, nil, nil, nil
+		return &noExecutionFound
 	}
 
 	if sc.shardCoordinator.ComputeId(parsedTransfer.RcvAddr) != sc.shardCoordinator.SelfId() {
-		return false, 0, nil, nil, nil
+		return &noExecutionFound
 	}
 
 	callType := determineCallType(tx)
 	if callType == vmData.AsynchronousCallBack {
-		return true, callType, parsedTransfer, nil, nil
+		return &sameShardExecutionDataAfterBuiltIn{
+			isSCCallSelfShard:    true,
+			callType:             callType,
+			parsedTransfer:       parsedTransfer,
+			scExecuteOutTransfer: nil,
+			err:                  nil,
+		}
 	}
 
 	if len(parsedTransfer.CallFunction) == 0 {
-		return false, 0, nil, nil, nil
+		return &noExecutionFound
 	}
 
 	outAcc, ok := vmOutput.OutputAccounts[string(parsedTransfer.RcvAddr)]
 	if !ok {
-		return false, 0, nil, nil, nil
+		return &noExecutionFound
 	}
 	if len(outAcc.OutputTransfers) != 1 {
-		return false, 0, nil, nil, nil
+		return &noExecutionFound
 	}
 
 	scExecuteOutTransfer := outAcc.OutputTransfers[0]
-	return true, callType, parsedTransfer, &scExecuteOutTransfer, nil
+	return &sameShardExecutionDataAfterBuiltIn{
+		isSCCallSelfShard:    true,
+		callType:             callType,
+		parsedTransfer:       parsedTransfer,
+		scExecuteOutTransfer: &scExecuteOutTransfer,
+		err:                  nil,
+	}
+}
+
+type inputDataAfterBuiltInCall struct {
+	callType             vmData.CallType
+	vmInput              *vmcommon.ContractCallInput
+	vmOutput             *vmcommon.VMOutput
+	parsedTransfer       *vmcommon.ParsedESDTTransfers
+	scExecuteOutTransfer *vmcommon.OutputTransfer
+	tx                   data.TransactionHandler
+	acntSnd              state.UserAccountHandler
+	snapshot             int
 }
 
 func (sc *scProcessor) prepareExecutionAfterBuiltInFunc(
-	callType vmData.CallType,
-	vmInput *vmcommon.ContractCallInput,
-	vmOutput *vmcommon.VMOutput,
-	parsedTransfer *vmcommon.ParsedESDTTransfers,
-	scExecuteOutTransfer *vmcommon.OutputTransfer,
-	tx data.TransactionHandler,
-	acntSnd state.UserAccountHandler,
-	snapshot int) (*vmcommon.ContractCallInput, state.UserAccountHandler, error) {
+	in *inputDataAfterBuiltInCall) (*vmcommon.ContractCallInput, state.UserAccountHandler, error) {
 
 	var newVMInput *vmcommon.ContractCallInput
-	if callType == vmData.AsynchronousCallBack {
-		newVMInput = sc.createVMInputWithAsyncCallBackAfterBuiltIn(vmInput, vmOutput, parsedTransfer)
+	if in.callType == vmData.AsynchronousCallBack {
+		newVMInput = sc.createVMInputWithAsyncCallBackAfterBuiltIn(in.vmInput, in.vmOutput, in.parsedTransfer)
 	} else {
 		newVMInput = &vmcommon.ContractCallInput{
 			VMInput: vmcommon.VMInput{
-				CallerAddr:           vmInput.CallerAddr,
-				AsyncArguments:       vmInput.AsyncArguments,
-				Arguments:            parsedTransfer.CallArgs,
+				CallerAddr:           in.vmInput.CallerAddr,
+				AsyncArguments:       in.vmInput.AsyncArguments,
+				Arguments:            in.parsedTransfer.CallArgs,
 				CallValue:            big.NewInt(0),
-				CallType:             callType,
-				GasPrice:             vmInput.GasPrice,
-				GasProvided:          scExecuteOutTransfer.GasLimit,
-				GasLocked:            vmInput.GasLocked,
-				OriginalTxHash:       vmInput.OriginalTxHash,
-				CurrentTxHash:        vmInput.CurrentTxHash,
-				ReturnCallAfterError: vmInput.ReturnCallAfterError,
+				CallType:             in.callType,
+				GasPrice:             in.vmInput.GasPrice,
+				GasProvided:          in.scExecuteOutTransfer.GasLimit,
+				GasLocked:            in.vmInput.GasLocked,
+				OriginalTxHash:       in.vmInput.OriginalTxHash,
+				CurrentTxHash:        in.vmInput.CurrentTxHash,
+				ReturnCallAfterError: in.vmInput.ReturnCallAfterError,
 			},
-			RecipientAddr:     parsedTransfer.RcvAddr,
-			Function:          parsedTransfer.CallFunction,
+			RecipientAddr:     in.parsedTransfer.RcvAddr,
+			Function:          in.parsedTransfer.CallFunction,
 			AllowInitFunction: false,
 		}
-		newVMInput.ESDTTransfers = parsedTransfer.ESDTTransfers
+		newVMInput.ESDTTransfers = in.parsedTransfer.ESDTTransfers
 	}
 
-	newDestSC, err := sc.getAccountFromAddress(vmInput.RecipientAddr)
+	newDestSC, err := sc.getAccountFromAddress(in.vmInput.RecipientAddr)
 	if err != nil {
-		return newVMInput, newDestSC, sc.ProcessIfError(acntSnd, vmInput.CurrentTxHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
+		return newVMInput, newDestSC, sc.ProcessIfError(in.acntSnd, in.vmInput.CurrentTxHash, in.tx, err.Error(), []byte(""), in.snapshot, in.vmInput.GasLocked)
 	}
 	err = sc.checkUpgradePermission(newDestSC, newVMInput)
 	if err != nil {
 		log.Debug("checkUpgradePermission", "error", err.Error())
-		return newVMInput, newDestSC, sc.ProcessIfError(acntSnd, vmInput.CurrentTxHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
+		return newVMInput, newDestSC, sc.ProcessIfError(in.acntSnd, in.vmInput.CurrentTxHash, in.tx, err.Error(), []byte(""), in.snapshot, in.vmInput.GasLocked)
 	}
 
 	return newVMInput, newDestSC, nil
@@ -1736,7 +1812,17 @@ func (sc *scProcessor) processVMOutput(
 		return nil, err
 	}
 
-	scrTxs, _, err = sc.completeOutputProcessingAndCreateCallback(vmInput, vmOutput, txHash, tx, scrTxs, acntSnd, snapshot, createdAsyncCallback)
+	scrTxs, _, err = sc.completeOutputProcessingAndCreateCallback(
+		&outputDataFromCall{
+			vmInput:              vmInput,
+			vmOutput:             vmOutput,
+			txHash:               txHash,
+			tx:                   tx,
+			scrTxs:               scrTxs,
+			acntSnd:              acntSnd,
+			snapshot:             snapshot,
+			createdAsyncCallback: createdAsyncCallback,
+		})
 	if err != nil {
 		return nil, err
 	}
@@ -1749,32 +1835,51 @@ func (sc *scProcessor) processVMOutput(
 	return scrTxs, nil
 }
 
+type outputDataFromCall struct {
+	vmInput              *vmcommon.VMInput
+	vmOutput             *vmcommon.VMOutput
+	txHash               []byte
+	tx                   data.TransactionHandler
+	scrTxs               []data.TransactionHandler
+	acntSnd              state.UserAccountHandler
+	snapshot             int
+	createdAsyncCallback bool
+}
+
 func (sc *scProcessor) completeOutputProcessingAndCreateCallback(
-	vmInput *vmcommon.VMInput,
-	vmOutput *vmcommon.VMOutput,
-	txHash []byte,
-	tx data.TransactionHandler,
-	scrTxs []data.TransactionHandler,
-	acntSnd state.UserAccountHandler,
-	snapshot int,
-	createdAsyncCallback bool,
+	outData *outputDataFromCall,
 ) ([]data.TransactionHandler, vmcommon.ReturnCode, error) {
 
-	sc.penalizeUserIfNeeded(tx, txHash, vmInput.CallType, vmInput.GasProvided, vmOutput)
+	sc.penalizeUserIfNeeded(outData.tx, outData.txHash, outData.vmInput.CallType, outData.vmInput.GasProvided, outData.vmOutput)
 
-	scrTxs, scrForSender, scrForRelayer, err := sc.createSCRForSenderAndRelayerAndRefundGas(vmInput, vmOutput, txHash, tx, scrTxs, createdAsyncCallback)
+	scrTxs, scrForSender, scrForRelayer, err := sc.createSCRForSenderAndRelayerAndRefundGas(
+		outData.vmInput,
+		outData.vmOutput,
+		outData.txHash,
+		outData.tx,
+		outData.scrTxs,
+		outData.createdAsyncCallback)
 	if err != nil {
 		return scrTxs, vmcommon.ExecutionFailed, err
 	}
 
-	if !createdAsyncCallback {
-		scrTxs, err = sc.createAsyncCallBackSCR(vmInput, vmOutput, tx, txHash, scrForSender, scrForRelayer, scrTxs)
+	if !outData.createdAsyncCallback {
+		scrTxs, err = sc.createAsyncCallBackSCR(
+			&inputDataForCallbackSCR{
+				vmInput:       outData.vmInput,
+				vmOutput:      outData.vmOutput,
+				tx:            outData.tx,
+				txHash:        outData.txHash,
+				scrForSender:  scrForSender,
+				scrForRelayer: scrForRelayer,
+				scrResults:    scrTxs,
+			})
 		if err != nil {
 			return scrTxs, 0, err
 		}
 	}
 
-	err = sc.deleteAccounts(vmOutput.DeletedAccounts)
+	err = sc.deleteAccounts(outData.vmOutput.DeletedAccounts)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -2300,8 +2405,10 @@ func (sc *scProcessor) createSCRForSenderAndRelayer(
 	txHash []byte,
 	callType vmData.CallType,
 ) (*smartContractResult.SmartContractResult, *smartContractResult.SmartContractResult) {
-	// TODO: compute gas refund with reduced gasPrice if we need to activate this
-	vmOutput.GasRefund = big.NewInt(0)
+	if vmOutput.GasRefund == nil {
+		// TODO: compute gas refund with reduced gasPrice if we need to activate this
+		vmOutput.GasRefund = big.NewInt(0)
+	}
 
 	gasRefund := sc.economicsFee.ComputeFeeForProcessing(tx, vmOutput.GasRemaining)
 	gasRemaining := uint64(0)
@@ -2636,10 +2743,6 @@ func (sc *scProcessor) computeTxHashUnsafe(tx data.TransactionHandler) []byte {
 // IsPayable returns if address is payable, smart contract ca set to false
 func (sc *scProcessor) IsPayable(sndAddress []byte, recvAddress []byte) (bool, error) {
 	return sc.blockChainHook.IsPayable(sndAddress, recvAddress)
-}
-
-// EpochConfirmed is called whenever a new epoch is confirmed
-func (sc *scProcessor) EpochConfirmed(_ uint32, _ uint64) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

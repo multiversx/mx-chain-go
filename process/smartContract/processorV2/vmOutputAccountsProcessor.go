@@ -12,6 +12,7 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
+// VMOutputAccountsProcessor will process the VMOutput from a regular of builtin function call
 type VMOutputAccountsProcessor struct {
 	sc       *scProcessor
 	vmInput  *vmcommon.VMInput
@@ -120,16 +121,16 @@ func (oap *VMOutputAccountsProcessor) computeSumOfAllDiffStep(
 	if !oap.processBalanceDelta {
 		return false, nil
 	}
-	if check.IfNil(acc) {
-		if outAcc.BalanceDelta != nil {
-			if outAcc.BalanceDelta.Cmp(zero) < 0 {
-				return false, process.ErrNegativeBalanceDeltaOnCrossShardAccount
-			}
-			sumOfAllDiff.Add(sumOfAllDiff, outAcc.BalanceDelta)
-		}
-		return true, nil
+	if !check.IfNil(acc) {
+		return false, nil
 	}
-	return false, nil
+	if outAcc.BalanceDelta != nil {
+		if outAcc.BalanceDelta.Cmp(zero) < 0 {
+			return false, process.ErrNegativeBalanceDeltaOnCrossShardAccount
+		}
+		sumOfAllDiff.Add(sumOfAllDiff, outAcc.BalanceDelta)
+	}
+	return true, nil
 }
 
 func (oap *VMOutputAccountsProcessor) processStorageUpdatesStep(

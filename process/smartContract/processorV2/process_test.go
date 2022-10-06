@@ -3597,9 +3597,6 @@ func TestSmartContractProcessor_computeTotalConsumedFeeAndDevRwdWithDifferentSCC
 	require.Nil(t, err)
 	require.NotNil(t, sc)
 
-	// activate staking V2
-	sc.EpochConfirmed(10, 0)
-
 	tx := &transaction.Transaction{
 		RcvAddr:  scAccountAddress,
 		GasPrice: 1000000000,
@@ -3685,9 +3682,6 @@ func TestSmartContractProcessor_finishSCExecutionV2(t *testing.T) {
 			sc, err := NewSmartContractProcessorV2(arguments)
 			require.Nil(t, err)
 			require.NotNil(t, sc)
-
-			// activate staking V2
-			sc.EpochConfirmed(10, 0)
 
 			expectedTotalFee, expectedDevFees := computeExpectedResults(args, test.tx, test.builtInGasUsed, test.vmOutput, true)
 
@@ -3864,8 +3858,6 @@ func TestProcessIfErrorCheckBackwardsCompatibilityProcessTransactionFeeCalledSho
 	}
 
 	sc, _ := NewSmartContractProcessorV2(arguments)
-
-	sc.EpochConfirmed(100, 0)
 
 	tx := &transaction.Transaction{
 		SndAddr: []byte("snd"),
