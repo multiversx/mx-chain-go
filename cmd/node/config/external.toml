@@ -47,3 +47,11 @@
     RouteSendData = "/block"
     # Route used to acknowledge sent blocks
     RouteAcknowledgeData = "/acknowledge"
+
+[WebSocketConnector]
+    # This flag shall only be used for observer nodes
+    Enabled = false
+    URL = "localhost:22111"
+    WithAcknowledge = true
+    # Currently, only "json" is supported. In the future, "gogo protobuf" could also be supported
+    MarshallerType = "json"

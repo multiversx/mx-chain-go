@@ -6,14 +6,14 @@ require (
 	github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.42-0.20220729115258-b9f2fb2f6568
 	github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.42-0.20220729115131-85ecca868e90
 	github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.59-0.20220729115431-a6c93119bdda
-	github.com/ElrondNetwork/covalent-indexer-go v1.0.7-0.20220729091107-1f75a52be6e9
-	github.com/ElrondNetwork/elastic-indexer-go v1.2.35-partial-execution.0.20220729082923-f6dd4fb19165
-	github.com/ElrondNetwork/elrond-go-core v1.1.20-0.20220831091042-a8722ecd7fba
+	github.com/ElrondNetwork/covalent-indexer-go v1.0.7-0.20220922092743-7f3a26b4001a
+	github.com/ElrondNetwork/elastic-indexer-go v1.2.44-0.20221006131929-a7c3dec53ba1
+	github.com/ElrondNetwork/elrond-go-core v1.1.21-0.20221006120212-5c0ba882cdd0
 	github.com/ElrondNetwork/elrond-go-crypto v1.2.1
-	github.com/ElrondNetwork/elrond-go-logger v1.0.7
+	github.com/ElrondNetwork/elrond-go-logger v1.0.8
 	github.com/ElrondNetwork/elrond-go-p2p v1.0.2
 	github.com/ElrondNetwork/elrond-go-storage v1.0.1
-	github.com/ElrondNetwork/elrond-vm-common v1.3.17
+	github.com/ElrondNetwork/elrond-vm-common v1.3.18-0.20220921081708-baae086376d6
 	github.com/beevik/ntp v0.3.0
 	github.com/davecgh/go-spew v1.1.1
 	github.com/elastic/go-elasticsearch/v7 v7.12.0

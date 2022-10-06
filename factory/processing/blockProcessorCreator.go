@@ -926,6 +926,7 @@ func (pcf *processComponentsFactory) createOutportDataProvider(
 		NodesCoordinator:       pcf.nodesCoordinator,
 		GasConsumedProvider:    gasConsumedProvider,
 		EconomicsData:          pcf.coreData.EconomicsData(),
+		IsImportDBMode:         pcf.importDBConfig.IsImportDBMode,
 	})
 }
 

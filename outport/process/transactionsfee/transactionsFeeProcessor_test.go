@@ -111,6 +111,7 @@ func TestPutFeeAndGasUsedTx1(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, big.NewInt(1673728170000000), initialTx.GetFee())
 	require.Equal(t, uint64(7982817), initialTx.GetGasUsed())
+	require.Equal(t, "1760000000000000", initialTx.GetInitialPaidFee().String())
 }
 
 func TestPutFeeAndGasUsedScrNoTx(t *testing.T) {

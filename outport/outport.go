@@ -232,21 +232,21 @@ func (o *outport) saveValidatorsRatingBlocking(indexID string, infoRating []*out
 }
 
 // SaveAccounts will save accounts  for every driver
-func (o *outport) SaveAccounts(blockTimestamp uint64, acc map[string]*outportcore.AlteredAccount) {
+func (o *outport) SaveAccounts(blockTimestamp uint64, acc map[string]*outportcore.AlteredAccount, shardID uint32) {
 	o.mutex.RLock()
 	defer o.mutex.RUnlock()
 
 	for _, driver := range o.drivers {
-		o.saveAccountsBlocking(blockTimestamp, acc, driver)
+		o.saveAccountsBlocking(blockTimestamp, acc, shardID, driver)
 	}
 }
 
-func (o *outport) saveAccountsBlocking(blockTimestamp uint64, acc map[string]*outportcore.AlteredAccount, driver Driver) {
+func (o *outport) saveAccountsBlocking(blockTimestamp uint64, acc map[string]*outportcore.AlteredAccount, shardID uint32, driver Driver) {
 	ch := o.monitorCompletionOnDriver("saveAccountsBlocking", driver)
 	defer close(ch)
 
 	for {
-		err := driver.SaveAccounts(blockTimestamp, acc)
+		err := driver.SaveAccounts(blockTimestamp, acc, shardID)
 		if err == nil {
 			return
 		}

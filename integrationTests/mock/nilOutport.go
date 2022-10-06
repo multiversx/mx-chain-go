@@ -34,7 +34,7 @@ func (n *nilOutport) SaveValidatorsRating(_ string, _ []*outportcore.ValidatorRa
 }
 
 // SaveAccounts -
-func (n *nilOutport) SaveAccounts(_ uint64, _ map[string]*outportcore.AlteredAccount) {
+func (n *nilOutport) SaveAccounts(_ uint64, _ map[string]*outportcore.AlteredAccount, _ uint32) {
 }
 
 // FinalizedBlock -

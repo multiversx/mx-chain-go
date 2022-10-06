@@ -54,7 +54,7 @@ func (as *OutportStub) RevertIndexedBlock(_ data.HeaderHandler, _ data.BodyHandl
 }
 
 // SaveAccounts -
-func (as *OutportStub) SaveAccounts(_ uint64, _ map[string]*outportcore.AlteredAccount) {
+func (as *OutportStub) SaveAccounts(_ uint64, _ map[string]*outportcore.AlteredAccount, _ uint32) {
 
 }
 

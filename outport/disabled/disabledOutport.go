@@ -34,7 +34,7 @@ func (n *disabledOutport) SaveValidatorsRating(_ string, _ []*outportcore.Valida
 }
 
 // SaveAccounts does nothing
-func (n *disabledOutport) SaveAccounts(_ uint64, _ map[string]*outportcore.AlteredAccount) {
+func (n *disabledOutport) SaveAccounts(_ uint64, _ map[string]*outportcore.AlteredAccount, _ uint32) {
 }
 
 // FinalizedBlock does nothing

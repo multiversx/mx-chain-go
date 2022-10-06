@@ -10,7 +10,6 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
@@ -70,11 +69,4 @@ func TestRelayedAsyncCallShouldWork(t *testing.T) {
 
 	require.Equal(t, big.NewInt(50001950), testContext.TxFeeHandler.GetAccumulatedFees())
 	require.Equal(t, big.NewInt(4999988), testContext.TxFeeHandler.GetDeveloperFees())
-
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, true, testContext.TxsLogsProcessor)
-	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
-
-	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, rtx.GasLimit, indexerTx.GasUsed)
-	require.Equal(t, "50001950", indexerTx.Fee)
 }

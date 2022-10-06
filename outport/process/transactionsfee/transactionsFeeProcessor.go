@@ -1,6 +1,8 @@
 package transactionsfee
 
 import (
+	"math/big"
+
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
@@ -70,6 +72,7 @@ func (tep *transactionsFeeProcessor) prepareInvalidTxs(pool *outportcore.Pool) {
 		fee := tep.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(invalidTx, invalidTx.GetGasLimit())
 		invalidTx.SetGasUsed(invalidTx.GetGasLimit())
 		invalidTx.SetFee(fee)
+		invalidTx.SetInitialPaidFee(fee)
 	}
 }
 
@@ -77,9 +80,11 @@ func (tep *transactionsFeeProcessor) prepareNormalTxs(transactionsAndScrs *trans
 	for txHash, txWithResult := range transactionsAndScrs.txsWithResults {
 		gasUsed := tep.txFeeCalculator.ComputeGasLimit(txWithResult)
 		fee := tep.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(txWithResult, gasUsed)
+		initialPaidFee := tep.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(txWithResult, txWithResult.GetGasLimit())
 
 		txWithResult.SetGasUsed(gasUsed)
 		txWithResult.SetFee(fee)
+		txWithResult.SetInitialPaidFee(initialPaidFee)
 
 		tep.prepareTxWithResults([]byte(txHash), txWithResult)
 	}
@@ -116,16 +121,20 @@ func (tep *transactionsFeeProcessor) prepareTxWithResultsBasedOnLogs(
 	}
 
 	for _, event := range txWithResults.log.GetLogEvents() {
-		identifier := string(event.GetIdentifier())
-		shouldIgnore := identifier != core.SignalErrorOperation && identifier != core.WriteLogIdentifier
-		if shouldIgnore || hasRefund {
+		if core.WriteLogIdentifier == string(event.GetIdentifier()) && !hasRefund {
+			gasUsed, fee := tep.txFeeCalculator.ComputeGasUsedAndFeeBasedOnRefundValue(txWithResults, big.NewInt(0))
+			txWithResults.SetGasUsed(gasUsed)
+			txWithResults.SetFee(fee)
+
 			continue
 		}
-
-		fee := tep.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(txWithResults, txWithResults.GetGasLimit())
-		txWithResults.SetGasUsed(txWithResults.GetGasLimit())
-		txWithResults.SetFee(fee)
+		if core.SignalErrorOperation == string(event.GetIdentifier()) {
+			fee := tep.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(txWithResults, txWithResults.GetGasLimit())
+			txWithResults.SetGasUsed(txWithResults.GetGasLimit())
+			txWithResults.SetFee(fee)
+		}
 	}
+
 }
 
 func (tep *transactionsFeeProcessor) prepareScrsNoTx(transactionsAndScrs *transactionsAndScrsHolder) error {

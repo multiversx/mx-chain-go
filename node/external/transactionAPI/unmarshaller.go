@@ -9,10 +9,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	datafield "github.com/ElrondNetwork/elrond-vm-common/parsers/dataField"
 )
 
 type txUnmarshaller struct {
+	shardCoordinator       sharding.Coordinator
 	addressPubKeyConverter core.PubkeyConverter
 	marshalizer            marshal.Marshalizer
 	dataFieldParser        DataFieldParser
@@ -22,11 +24,13 @@ func newTransactionUnmarshaller(
 	marshalizer marshal.Marshalizer,
 	addressPubKeyConverter core.PubkeyConverter,
 	dataFieldParser DataFieldParser,
+	shardCoordinator sharding.Coordinator,
 ) *txUnmarshaller {
 	return &txUnmarshaller{
 		marshalizer:            marshalizer,
 		addressPubKeyConverter: addressPubKeyConverter,
 		dataFieldParser:        dataFieldParser,
+		shardCoordinator:       shardCoordinator,
 	}
 }
 
@@ -84,7 +88,7 @@ func (tu *txUnmarshaller) unmarshalTransaction(txBytes []byte, txType transactio
 		return nil, err
 	}
 
-	res := tu.dataFieldParser.Parse(apiTx.Data, apiTx.Tx.GetSndAddr(), apiTx.Tx.GetRcvAddr())
+	res := tu.dataFieldParser.Parse(apiTx.Data, apiTx.Tx.GetSndAddr(), apiTx.Tx.GetRcvAddr(), tu.shardCoordinator.NumberOfShards())
 	apiTx.Operation = res.Operation
 	apiTx.Function = res.Function
 	apiTx.ESDTValues = res.ESDTValues

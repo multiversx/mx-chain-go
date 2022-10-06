@@ -211,9 +211,8 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 	}
 
 	argsDataFieldParser := &datafield.ArgsOperationDataFieldParser{
-		AddressLength:    args.CoreComponents.AddressPubKeyConverter().Len(),
-		Marshalizer:      args.CoreComponents.InternalMarshalizer(),
-		ShardCoordinator: args.ProcessComponents.ShardCoordinator(),
+		AddressLength: args.CoreComponents.AddressPubKeyConverter().Len(),
+		Marshalizer:   args.CoreComponents.InternalMarshalizer(),
 	}
 	dataFieldParser, err := datafield.NewOperationDataFieldParser(argsDataFieldParser)
 	if err != nil {
@@ -476,7 +475,7 @@ func createBuiltinFuncs(
 		ShardCoordinator:          shardCoordinator,
 		EpochNotifier:             epochNotifier,
 		EnableEpochsHandler:       enableEpochsHandler,
-		AutomaticCrawlerAddresses:                automaticCrawlerAddresses,
+		AutomaticCrawlerAddresses: automaticCrawlerAddresses,
 		MaxNumNodesInTransferRole: maxNumAddressesInTransferRole,
 	}
 	return builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)

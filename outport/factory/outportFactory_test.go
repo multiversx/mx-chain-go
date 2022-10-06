@@ -6,7 +6,7 @@ import (
 	"time"
 
 	covalentFactory "github.com/ElrondNetwork/covalent-indexer-go/factory"
-	indexerFactory "github.com/ElrondNetwork/elastic-indexer-go/factory"
+	indexerFactory "github.com/ElrondNetwork/elastic-indexer-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/outport/factory"
 	notifierFactory "github.com/ElrondNetwork/elrond-go/outport/factory"
@@ -16,7 +16,7 @@ import (
 )
 
 func createMockArgsOutportHandler(indexerEnabled, notifierEnabled, covalentEnabled bool) *factory.OutportFactoryArgs {
-	mockElasticArgs := &indexerFactory.ArgsIndexerFactory{
+	mockElasticArgs := indexerFactory.ArgsIndexerFactory{
 		Enabled: indexerEnabled,
 	}
 	mockNotifierArgs := &notifierFactory.EventNotifierFactoryArgs{
