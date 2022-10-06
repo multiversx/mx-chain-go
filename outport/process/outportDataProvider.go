@@ -17,6 +17,7 @@ import (
 
 // ArgOutportDataProvider  holds the arguments needed for creating a new instance of outportDataProvider
 type ArgOutportDataProvider struct {
+	IsImportDBMode           bool
 	ShardCoordinator         sharding.Coordinator
 	AlteredAccountsProvider  AlteredAccountsProviderHandler
 	TransactionsFeeProcessor TransactionsFeeHandler
@@ -36,6 +37,7 @@ type ArgPrepareOutportSaveBlockData struct {
 }
 
 type outportDataProvider struct {
+	isImportDBMode           bool
 	shardID                  uint32
 	numOfShards              uint32
 	alteredAccountsProvider  AlteredAccountsProviderHandler
@@ -100,6 +102,7 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 		TransactionsPool:       pool,
 		AlteredAccounts:        alteredAccounts,
 		NumberOfShards:         odp.numOfShards,
+		IsImportDB:             odp.isImportDBMode,
 	}, nil
 }
 

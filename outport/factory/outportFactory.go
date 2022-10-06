@@ -18,7 +18,7 @@ type WrappedOutportDriverWebSocketSenderFactoryArgs struct {
 // OutportFactoryArgs holds the factory arguments of different outport drivers
 type OutportFactoryArgs struct {
 	RetrialInterval                  time.Duration
-	ElasticIndexerFactoryArgs        *indexerFactory.ArgsIndexerFactory
+	ElasticIndexerFactoryArgs        indexerFactory.ArgsIndexerFactory
 	EventNotifierFactoryArgs         *EventNotifierFactoryArgs
 	CovalentIndexerFactoryArgs       *covalentFactory.ArgsCovalentIndexerFactory
 	WebSocketSenderDriverFactoryArgs WrappedOutportDriverWebSocketSenderFactoryArgs
@@ -81,7 +81,7 @@ func createAndSubscribeCovalentDriverIfNeeded(
 
 func createAndSubscribeElasticDriverIfNeeded(
 	outport outport.OutportHandler,
-	args *indexerFactory.ArgsIndexerFactory,
+	args indexerFactory.ArgsIndexerFactory,
 ) error {
 	if !args.Enabled {
 		return nil
