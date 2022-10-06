@@ -125,7 +125,6 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		args.BootstrapComponents.ShardCoordinator(),
 		args.CoreComponents.EpochNotifier(),
 		args.CoreComponents.EnableEpochsHandler(),
-		args.Configs.EpochConfig.EnableEpochs.FixOldTokenLiquidityEnableEpoch,
 		convertedAddresses,
 		args.Configs.GeneralConfig.BuiltInFunctions.MaxNumAddressesInTransferRole,
 	)
@@ -336,7 +335,6 @@ func createScQueryElement(
 		args.processComponents.ShardCoordinator(),
 		args.coreComponents.EpochNotifier(),
 		args.coreComponents.EnableEpochsHandler(),
-		args.epochConfig.EnableEpochs.FixOldTokenLiquidityEnableEpoch,
 		convertedAddresses,
 		args.generalConfig.BuiltInFunctions.MaxNumAddressesInTransferRole,
 	)
@@ -467,7 +465,6 @@ func createBuiltinFuncs(
 	shardCoordinator sharding.Coordinator,
 	epochNotifier vmcommon.EpochNotifier,
 	enableEpochsHandler vmcommon.EnableEpochsHandler,
-	fixOldTokenLiquidityEnableEpoch uint32,
 	automaticCrawlerAddresses [][]byte,
 	maxNumAddressesInTransferRole uint32,
 ) (vmcommon.BuiltInFunctionFactory, error) {
@@ -479,8 +476,7 @@ func createBuiltinFuncs(
 		ShardCoordinator:          shardCoordinator,
 		EpochNotifier:             epochNotifier,
 		EnableEpochsHandler:       enableEpochsHandler,
-		FixOldTokenLiquidityEnableEpoch:          fixOldTokenLiquidityEnableEpoch,
-		AutomaticCrawlerAddresses:                automaticCrawlerAddresses,
+		AutomaticCrawlerAddresses: automaticCrawlerAddresses,
 		MaxNumNodesInTransferRole: maxNumAddressesInTransferRole,
 	}
 	return builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
