@@ -14,6 +14,7 @@ import (
 
 const millisecondsInSecond = 1000
 const initUint = uint64(0)
+const initInt = int64(0)
 const initString = ""
 const initZeroString = "0"
 
@@ -50,6 +51,8 @@ func InitBaseMetrics(statusHandlerUtils StatusHandlersUtils) error {
 	appStatusHandler.SetUInt64Value(common.MetricNoncesPassedInCurrentEpoch, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricNumConnectedPeers, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricEpochForEconomicsData, initUint)
+
+	appStatusHandler.SetInt64Value(common.MetricTrieSnapshotStartTime, initInt)
 
 	appStatusHandler.SetStringValue(common.MetricConsensusState, initString)
 	appStatusHandler.SetStringValue(common.MetricConsensusRoundState, initString)

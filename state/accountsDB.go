@@ -1119,6 +1119,7 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 	missingNodesChannel := make(chan []byte, missingNodesChannelSize)
 	errChan := make(chan error, 1)
 	stats := newSnapshotStatistics(1, 1)
+	adb.appStatusHandler.SetInt64Value(common.MetricTrieSnapshotStartTime, stats.GetUnixStartTime())
 	go func() {
 		leavesChannel := make(chan core.KeyValueHolder, leavesChannelSize)
 		stats.NewSnapshotStarted()
@@ -1217,6 +1218,7 @@ func (adb *AccountsDB) processSnapshotCompletion(
 	defer func() {
 		adb.isSnapshotInProgress.Reset()
 		adb.appStatusHandler.SetStringValue(common.MetricTrieSnapshotIsProgress, strconv.FormatBool(adb.isSnapshotInProgress.IsSet()))
+		adb.appStatusHandler.SetInt64Value(common.MetricTrieSnapshotStartTime, 0)
 	}()
 
 	containsErrorDuringSnapshot := emptyErrChanReturningHadContained(errChan)

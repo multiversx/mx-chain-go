@@ -73,6 +73,11 @@ func (ss *snapshotStatistics) SyncFinished() {
 	ss.wgSync.Done()
 }
 
+// GetUnixStartTime will get the start time in unix format
+func (ss *snapshotStatistics) GetUnixStartTime() int64 {
+	return ss.startTime.Unix()
+}
+
 // PrintStats will print the stats after the snapshot has finished
 func (ss *snapshotStatistics) PrintStats(identifier string, rootHash []byte) {
 	ss.mutex.RLock()
