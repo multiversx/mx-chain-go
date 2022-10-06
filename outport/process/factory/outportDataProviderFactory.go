@@ -18,6 +18,7 @@ import (
 
 // ArgOutportDataProviderFactory holds the arguments needed for creating a new instance of outport.DataProviderOutport
 type ArgOutportDataProviderFactory struct {
+	IsImportDBMode         bool
 	HasDrivers             bool
 	AddressConverter       core.PubkeyConverter
 	AccountsDB             state.AccountsAdapter
@@ -63,6 +64,7 @@ func CreateOutportDataProvider(arg ArgOutportDataProviderFactory) (outport.DataP
 	}
 
 	return process.NewOutportDataProvider(process.ArgOutportDataProvider{
+		IsImportDBMode:           arg.IsImportDBMode,
 		ShardCoordinator:         arg.ShardCoordinator,
 		AlteredAccountsProvider:  alteredAccountsProvider,
 		TransactionsFeeProcessor: transactionsFeeProc,
