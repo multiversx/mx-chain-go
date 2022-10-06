@@ -1,0 +1,270 @@
+package processProxy
+
+import (
+	"fmt"
+	"math/big"
+	"sync"
+	"testing"
+	"time"
+
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
+	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/scrCommon"
+	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/storage/txcache"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
+	epochNotifierMock "github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
+	"github.com/stretchr/testify/assert"
+)
+
+func createMockSmartContractProcessorArguments() scrCommon.ArgsNewSmartContractProcessor {
+	gasSchedule := make(map[string]map[string]uint64)
+	gasSchedule[common.ElrondAPICost] = make(map[string]uint64)
+	gasSchedule[common.ElrondAPICost][common.AsyncCallStepField] = 1000
+	gasSchedule[common.ElrondAPICost][common.AsyncCallbackGasLockField] = 3000
+	gasSchedule[common.BuiltInCost] = make(map[string]uint64)
+	gasSchedule[common.BuiltInCost][core.BuiltInFunctionESDTTransfer] = 2000
+
+	return scrCommon.ArgsNewSmartContractProcessor{
+		VmContainer: &mock.VMContainerMock{},
+		ArgsParser:  &mock.ArgumentParserMock{},
+		Hasher:      &hashingMocks.HasherMock{},
+		Marshalizer: &mock.MarshalizerMock{},
+		AccountsDB: &stateMock.AccountsStub{
+			RevertToSnapshotCalled: func(snapshot int) error {
+				return nil
+			},
+		},
+		BlockChainHook:   &testscommon.BlockChainHookStub{},
+		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
+		PubkeyConv:       mock.NewPubkeyConverterMock(32),
+		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(5),
+		ScrForwarder:     &mock.IntermediateTransactionHandlerMock{},
+		BadTxForwarder:   &mock.IntermediateTransactionHandlerMock{},
+		TxFeeHandler:     &mock.FeeAccumulatorStub{},
+		TxLogsProcessor:  &mock.TxLogsProcessorStub{},
+		EconomicsFee: &mock.FeeHandlerStub{
+			DeveloperPercentageCalled: func() float64 {
+				return 0.0
+			},
+			ComputeTxFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
+				return core.SafeMul(tx.GetGasLimit(), tx.GetGasPrice())
+			},
+			ComputeFeeForProcessingCalled: func(tx data.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
+				return core.SafeMul(tx.GetGasPrice(), gasToUse)
+			},
+		},
+		TxTypeHandler: &testscommon.TxTypeHandlerMock{},
+		GasHandler: &testscommon.GasHandlerStub{
+			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
+		},
+		GasSchedule: testscommon.NewGasScheduleNotifierMock(gasSchedule),
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+			IsSCDeployFlagEnabledField: true,
+		},
+		ArwenChangeLocker: &sync.RWMutex{},
+		VMOutputCacher:    txcache.NewDisabledCache(),
+	}
+}
+
+func TestNewSmartContractProcessorProxy(t *testing.T) {
+	t.Parallel()
+
+	t.Run("missing component from arguments should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockSmartContractProcessorArguments()
+		args.ArgsParser = nil
+
+		proxy, err := NewSmartContractProcessorProxy(args, &epochNotifierMock.EpochNotifierStub{})
+		assert.True(t, check.IfNil(proxy))
+		assert.NotNil(t, err)
+		assert.Equal(t, "argument parser is nil", err.Error())
+	})
+	t.Run("nil epoch notifier should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockSmartContractProcessorArguments()
+
+		proxy, err := NewSmartContractProcessorProxy(args, nil)
+		assert.True(t, check.IfNil(proxy))
+		assert.Equal(t, process.ErrNilEpochNotifier, err)
+	})
+	t.Run("should work with sc processor v1", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockSmartContractProcessorArguments()
+
+		proxy, err := NewSmartContractProcessorProxy(args, &epochNotifierMock.EpochNotifierStub{})
+		assert.False(t, check.IfNil(proxy))
+		assert.Nil(t, err)
+		assert.Equal(t, "*smartContract.scProcessor", fmt.Sprintf("%T", proxy.processor))
+	})
+	t.Run("should work with sc processor v2", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockSmartContractProcessorArguments()
+		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+			IsSCProcessorV2FlagEnabledField: true,
+		}
+
+		proxy, err := NewSmartContractProcessorProxy(args, &epochNotifierMock.EpochNotifierStub{})
+		assert.False(t, check.IfNil(proxy))
+		assert.Nil(t, err)
+		assert.Equal(t, "*processorV2.scProcessor", fmt.Sprintf("%T", proxy.processor))
+	})
+}
+
+func TestSCProcessorProxy_ExecuteSmartContractTransaction(t *testing.T) {
+	t.Parallel()
+
+	methodWasCalled := false
+	args := createMockSmartContractProcessorArguments()
+	proxy, _ := NewSmartContractProcessorProxy(args, &epochNotifierMock.EpochNotifierStub{})
+	proxy.processor = &testscommon.SCProcessorMock{
+		ExecuteSmartContractTransactionCalled: func(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) (vmcommon.ReturnCode, error) {
+			methodWasCalled = true
+			return 0, nil
+		},
+	}
+
+	code, err := proxy.ExecuteSmartContractTransaction(nil, nil, nil)
+	assert.Equal(t, 0, int(code))
+	assert.Nil(t, err)
+	assert.True(t, methodWasCalled)
+}
+
+func TestSCProcessorProxy_ExecuteBuiltInFunction(t *testing.T) {
+	t.Parallel()
+
+	methodWasCalled := false
+	args := createMockSmartContractProcessorArguments()
+	proxy, _ := NewSmartContractProcessorProxy(args, &epochNotifierMock.EpochNotifierStub{})
+	proxy.processor = &testscommon.SCProcessorMock{
+		ExecuteBuiltInFunctionCalled: func(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) (vmcommon.ReturnCode, error) {
+			methodWasCalled = true
+			return 0, nil
+		},
+	}
+
+	code, err := proxy.ExecuteBuiltInFunction(nil, nil, nil)
+	assert.Equal(t, 0, int(code))
+	assert.Nil(t, err)
+	assert.True(t, methodWasCalled)
+}
+
+func TestSCProcessorProxy_DeploySmartContract(t *testing.T) {
+	t.Parallel()
+
+	methodWasCalled := false
+	args := createMockSmartContractProcessorArguments()
+	proxy, _ := NewSmartContractProcessorProxy(args, &epochNotifierMock.EpochNotifierStub{})
+	proxy.processor = &testscommon.SCProcessorMock{
+		DeploySmartContractCalled: func(tx data.TransactionHandler, acntSrc state.UserAccountHandler) (vmcommon.ReturnCode, error) {
+			methodWasCalled = true
+			return 0, nil
+		},
+	}
+
+	code, err := proxy.DeploySmartContract(nil, nil)
+	assert.Equal(t, 0, int(code))
+	assert.Nil(t, err)
+	assert.True(t, methodWasCalled)
+}
+
+func TestSCProcessorProxy_ProcessIfError(t *testing.T) {
+	t.Parallel()
+
+	methodWasCalled := false
+	args := createMockSmartContractProcessorArguments()
+	proxy, _ := NewSmartContractProcessorProxy(args, &epochNotifierMock.EpochNotifierStub{})
+	proxy.processor = &testscommon.SCProcessorMock{
+		ProcessIfErrorCalled: func(acntSnd state.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string, returnMessage []byte, snapshot int, gasLocked uint64) error {
+			methodWasCalled = true
+			return nil
+		},
+	}
+
+	err := proxy.ProcessIfError(nil, nil, nil, "", nil, 0, 0)
+	assert.Nil(t, err)
+	assert.True(t, methodWasCalled)
+}
+
+func TestSCProcessorProxy_IsPayable(t *testing.T) {
+	t.Parallel()
+
+	methodWasCalled := false
+	args := createMockSmartContractProcessorArguments()
+	proxy, _ := NewSmartContractProcessorProxy(args, &epochNotifierMock.EpochNotifierStub{})
+	proxy.processor = &testscommon.SCProcessorMock{
+		IsPayableCalled: func(sndAddress, recvAddress []byte) (bool, error) {
+			methodWasCalled = true
+			return false, nil
+		},
+	}
+
+	result, err := proxy.IsPayable(nil, nil)
+	assert.False(t, result)
+	assert.Nil(t, err)
+	assert.True(t, methodWasCalled)
+}
+
+func TestSCProcessorProxy_ProcessSmartContractResult(t *testing.T) {
+	t.Parallel()
+
+	methodWasCalled := false
+	args := createMockSmartContractProcessorArguments()
+	proxy, _ := NewSmartContractProcessorProxy(args, &epochNotifierMock.EpochNotifierStub{})
+	proxy.processor = &testscommon.SCProcessorMock{
+		ProcessSmartContractResultCalled: func(scr *smartContractResult.SmartContractResult) (vmcommon.ReturnCode, error) {
+			methodWasCalled = true
+			return 0, nil
+		},
+	}
+
+	result, err := proxy.ProcessSmartContractResult(nil)
+	assert.Equal(t, 0, int(result))
+	assert.Nil(t, err)
+	assert.True(t, methodWasCalled)
+}
+
+func TestSCProcessorProxy_ParallelRunOnExportedMethods(t *testing.T) {
+	numGoRoutines := 1000
+
+	args := createMockSmartContractProcessorArguments()
+	proxy, _ := NewSmartContractProcessorProxy(args, &epochNotifierMock.EpochNotifierStub{})
+	for i := 0; i < numGoRoutines; i++ {
+		go func(idx int) {
+			time.Sleep(time.Millisecond * 10)
+
+			switch idx {
+			case 0:
+				proxy.EpochConfirmed(0, 0)
+			case 1:
+				_, _ = proxy.ExecuteSmartContractTransaction(nil, nil, nil)
+			case 2:
+				_, _ = proxy.ExecuteBuiltInFunction(nil, nil, nil)
+			case 3:
+				_, _ = proxy.DeploySmartContract(nil, nil)
+			case 4:
+				_ = proxy.ProcessIfError(nil, nil, nil, "", nil, 0, 0)
+			case 5:
+				_, _ = proxy.IsPayable(nil, nil)
+			case 6:
+				_, _ = proxy.ProcessSmartContractResult(nil)
+			default:
+				assert.Fail(t, fmt.Sprintf("error in test, got index %d", idx))
+			}
+		}(i % 7)
+	}
+
+}

@@ -3,6 +3,7 @@ package processProxy
 import (
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -32,9 +33,13 @@ type SCProcessorProxy struct {
 	processorsCache     map[configuredProcessor]process.SmartContractProcessorFacade
 	testScProcessor     scrCommon.TestSmartContractProcessor
 	testProcessorsCache map[configuredProcessor]scrCommon.TestSmartContractProcessor
-	mutRc               sync.Mutex
+	mutRc               sync.RWMutex
 	isTestVersion       bool
 }
+
+// TODO 1 -> consider removing these test processor and only use a common wrapper
+// TODO 2 -> remove the epochNotifier usage and instead extend EnableEpochsHandler
+//   that will notify a new epoch *** after *** all its epoch flags are set
 
 // NewSmartContractProcessorProxy creates a smart contract processor proxy
 func NewSmartContractProcessorProxy(args scrCommon.ArgsNewSmartContractProcessor, epochNotifier vmcommon.EpochNotifier) (*SCProcessorProxy, error) {
@@ -73,6 +78,9 @@ func newSmartContractProcessorProxy(args scrCommon.ArgsNewSmartContractProcessor
 			IsGenesisProcessing: args.IsGenesisProcessing,
 		},
 		isTestVersion: isTestVersion,
+	}
+	if check.IfNil(epochNotifier) {
+		return nil, process.ErrNilEpochNotifier
 	}
 
 	scProcessorProxy.processorsCache = make(map[configuredProcessor]process.SmartContractProcessorFacade)
@@ -132,8 +140,8 @@ func (scPProxy *SCProcessorProxy) setActiveProcessor(version configuredProcessor
 }
 
 func (scPProxy *SCProcessorProxy) getProcessor() process.SmartContractProcessorFacade {
-	scPProxy.mutRc.Lock()
-	defer scPProxy.mutRc.Unlock()
+	scPProxy.mutRc.RLock()
+	defer scPProxy.mutRc.RUnlock()
 	return scPProxy.processor
 }
 
