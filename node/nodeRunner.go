@@ -44,6 +44,7 @@ import (
 	processComp "github.com/ElrondNetwork/elrond-go/factory/processing"
 	stateComp "github.com/ElrondNetwork/elrond-go/factory/state"
 	statusComp "github.com/ElrondNetwork/elrond-go/factory/status"
+	"github.com/ElrondNetwork/elrond-go/factory/statusCore"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/parsing"
 	"github.com/ElrondNetwork/elrond-go/health"
@@ -268,6 +269,12 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	log.Debug("creating healthService")
 	healthService := nr.createHealthService(flagsConfig)
 
+	log.Debug("creating status core components")
+	managedStatusCoreComponents, err := nr.CreateManagedStatusCoreComponents()
+	if err != nil {
+		return true, err
+	}
+
 	log.Debug("creating core components")
 	managedCoreComponents, err := nr.CreateManagedCoreComponents(
 		chanStopNodeProcess,
@@ -368,6 +375,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 
 	log.Debug("starting status pooling components")
 	managedStatusComponents, err := nr.CreateManagedStatusComponents(
+		managedStatusCoreComponents,
 		managedCoreComponents,
 		managedNetworkComponents,
 		managedBootstrapComponents,
@@ -475,6 +483,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	log.Debug("creating node structure")
 	currentNode, err := CreateNode(
 		configs.GeneralConfig,
+		managedStatusCoreComponents,
 		managedBootstrapComponents,
 		managedCoreComponents,
 		managedCryptoComponents,
@@ -1048,6 +1057,7 @@ func (nr *nodeRunner) getNodesFileName() (string, error) {
 
 // CreateManagedStatusComponents is the managed status components factory
 func (nr *nodeRunner) CreateManagedStatusComponents(
+	managedStatusCoreComponents mainFactory.StatusCoreComponentsHolder,
 	managedCoreComponents mainFactory.CoreComponentsHolder,
 	managedNetworkComponents mainFactory.NetworkComponentsHolder,
 	managedBootstrapComponents mainFactory.BootstrapComponentsHolder,
@@ -1057,17 +1067,18 @@ func (nr *nodeRunner) CreateManagedStatusComponents(
 	isInImportMode bool,
 ) (mainFactory.StatusComponentsHandler, error) {
 	statArgs := statusComp.StatusComponentsFactoryArgs{
-		Config:             *nr.configs.GeneralConfig,
-		ExternalConfig:     *nr.configs.ExternalConfig,
-		EconomicsConfig:    *nr.configs.EconomicsConfig,
-		ShardCoordinator:   managedBootstrapComponents.ShardCoordinator(),
-		NodesCoordinator:   nodesCoordinator,
-		EpochStartNotifier: managedCoreComponents.EpochStartNotifierWithConfirm(),
-		CoreComponents:     managedCoreComponents,
-		DataComponents:     managedDataComponents,
-		NetworkComponents:  managedNetworkComponents,
-		StateComponents:    managedStateComponents,
-		IsInImportMode:     isInImportMode,
+		Config:               *nr.configs.GeneralConfig,
+		ExternalConfig:       *nr.configs.ExternalConfig,
+		EconomicsConfig:      *nr.configs.EconomicsConfig,
+		ShardCoordinator:     managedBootstrapComponents.ShardCoordinator(),
+		NodesCoordinator:     nodesCoordinator,
+		EpochStartNotifier:   managedCoreComponents.EpochStartNotifierWithConfirm(),
+		CoreComponents:       managedCoreComponents,
+		DataComponents:       managedDataComponents,
+		NetworkComponents:    managedNetworkComponents,
+		StateComponents:      managedStateComponents,
+		IsInImportMode:       isInImportMode,
+		StatusCoreComponents: managedStatusCoreComponents,
 	}
 
 	statusComponentsFactory, err := statusComp.NewStatusComponentsFactory(statArgs)
@@ -1458,6 +1469,26 @@ func (nr *nodeRunner) CreateManagedCoreComponents(
 	}
 
 	return managedCoreComponents, nil
+}
+
+// CreateManagedStatusCoreComponents is the managed status core components factory
+func (nr *nodeRunner) CreateManagedStatusCoreComponents() (mainFactory.StatusCoreComponentsHandler, error) {
+	args := statusCore.StatusCoreComponentsFactoryArgs{
+		Config: *nr.configs.GeneralConfig,
+	}
+
+	statusCoreComponentsFactory := statusCore.NewStatusCoreComponentsFactory(args)
+	managedStatusCoreComponents, err := statusCore.NewManagedStatusCoreComponents(statusCoreComponentsFactory)
+	if err != nil {
+		return nil, err
+	}
+
+	err = managedStatusCoreComponents.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	return managedStatusCoreComponents, nil
 }
 
 // CreateManagedCryptoComponents is the managed crypto components factory
