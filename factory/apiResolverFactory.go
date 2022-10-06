@@ -128,6 +128,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		args.Configs.EpochConfig.EnableEpochs.CheckCorrectTokenIDForTransferRoleEnableEpoch,
 		args.Configs.EpochConfig.EnableEpochs.CheckFunctionArgumentEnableEpoch,
 		args.Configs.EpochConfig.EnableEpochs.ESDTMetadataContinuousCleanupEnableEpoch,
+		args.Configs.EpochConfig.EnableEpochs.FixOldTokenLiquidityEnableEpoch,
 		convertedAddresses,
 		args.Configs.GeneralConfig.BuiltInFunctions.MaxNumAddressesInTransferRole,
 	)
@@ -348,6 +349,7 @@ func createScQueryElement(
 		args.epochConfig.EnableEpochs.CheckCorrectTokenIDForTransferRoleEnableEpoch,
 		args.epochConfig.EnableEpochs.CheckFunctionArgumentEnableEpoch,
 		args.epochConfig.EnableEpochs.ESDTMetadataContinuousCleanupEnableEpoch,
+		args.epochConfig.EnableEpochs.FixOldTokenLiquidityEnableEpoch,
 		convertedAddresses,
 		args.generalConfig.BuiltInFunctions.MaxNumAddressesInTransferRole,
 	)
@@ -486,6 +488,7 @@ func createBuiltinFuncs(
 	checkCorrectTokenIDEnableEpoch uint32,
 	checkFunctionArgumentEnableEpoch uint32,
 	esdtMetadataContinuousCleanupEnableEpoch uint32,
+	fixOldTokenLiquidityEnableEpoch uint32,
 	automaticCrawlerAddresses [][]byte,
 	maxNumAddressesInTransferRole uint32,
 ) (vmcommon.BuiltInFunctionFactory, error) {
@@ -504,6 +507,7 @@ func createBuiltinFuncs(
 		CheckCorrectTokenIDEnableEpoch:           checkCorrectTokenIDEnableEpoch,
 		CheckFunctionArgumentEnableEpoch:         checkFunctionArgumentEnableEpoch,
 		ESDTMetadataContinuousCleanupEnableEpoch: esdtMetadataContinuousCleanupEnableEpoch,
+		FixOldTokenLiquidityEnableEpoch:          fixOldTokenLiquidityEnableEpoch,
 		AutomaticCrawlerAddresses:                automaticCrawlerAddresses,
 		MaxNumNodesInTransferRole:                maxNumAddressesInTransferRole,
 	}
