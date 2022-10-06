@@ -459,6 +459,36 @@ func TestGetAlteredAccountsByNonce_ShouldWork(t *testing.T) {
 	require.NotNil(t, response)
 }
 
+func TestGetAlteredAccountsByHash_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	expectedResponse := &common.AlteredAccountsForBlockAPIResponse{
+		Accounts: []*common.AlteredAccountAPIResponse{
+			{
+				Address: "alice",
+				Balance: "100000",
+			},
+		},
+	}
+	facade := mock.FacadeStub{
+		GetAlteredAccountsForBlockCalled: func(options api.GetAlteredAccountsForBlockOptions) (*common.AlteredAccountsForBlockAPIResponse, error) {
+			require.Equal(t, api.BlockFetchTypeByHash, options.RequestType)
+			require.Equal(t, "hash", options.Hash)
+
+			return expectedResponse, nil
+		},
+	}
+
+	blockGroup, err := groups.NewBlockGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(blockGroup, "block", getBlockRoutesConfig())
+
+	response, code := httpGetBlock(ws, "/block/altered-accounts/by-hash/hash")
+	require.Equal(t, http.StatusOK, code)
+	require.NotNil(t, response)
+}
+
 func httpGetBlock(ws *gin.Engine, url string) (blockResponse, int) {
 	httpRequest, _ := http.NewRequest("GET", url, nil)
 	httpResponse := httptest.NewRecorder()

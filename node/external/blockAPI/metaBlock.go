@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/outport/process/alteredaccounts"
 )
 
 type metaAPIBlockProcessor struct {
@@ -35,6 +36,7 @@ func newMetaApiBlockProcessor(arg *ArgAPIBlockProcessor, emptyReceiptsHash []byt
 			logsFacade:               arg.LogsFacade,
 			receiptsRepository:       arg.ReceiptsRepository,
 			alteredAccountsProvider:  arg.AlteredAccountsProvider,
+			accountsRepository:       arg.AccountsRepository,
 		},
 	}
 }
@@ -84,9 +86,62 @@ func (mbp *metaAPIBlockProcessor) GetBlockByRound(round uint64, options api.Bloc
 
 // GetAlteredAccountsForBlock returns the altered accounts for the desired meta block
 func (mbp *metaAPIBlockProcessor) GetAlteredAccountsForBlock(options api.GetAlteredAccountsForBlockOptions) (*common.AlteredAccountsForBlockAPIResponse, error) {
-	// TODO: implement me
+	headerHash, blockBytes, err := mbp.getHashAndBlockBytesFromStorer(options.GetBlockParameters)
+	if err != nil {
+		return nil, err
+	}
 
-	return nil, nil
+	apiBlock, err := mbp.convertMetaBlockBytesToAPIBlock(headerHash, blockBytes, api.BlockQueryOptions{WithTransactions: true, WithLogs: true})
+	if err != nil {
+		return nil, err
+	}
+
+	txPool := mbp.apiBlockToTxsPool(apiBlock)
+
+	rootHash, err := hex.DecodeString(apiBlock.StateRootHash)
+	if err != nil {
+		return nil, err
+	}
+
+	alteredAccountsOptions := alteredaccounts.Options{
+		WithCustomAccountsRepository: true,
+		AccountsRepository:           mbp.accountsRepository,
+		// TODO: AccountQueryOptions could be used like options.WithBlockRootHash(..) instead of thinking what to provide
+		AccountQueryOptions: api.AccountQueryOptions{
+			BlockRootHash: rootHash,
+		},
+	}
+
+	alteredAccounts, err := mbp.alteredAccountsProvider.ExtractAlteredAccountsFromPool(txPool, alteredAccountsOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	alteredAccountsAPI := alteredAccountsMapToAPIResponse(alteredAccounts, options.TokensFilter, options.WithMetadata)
+	return alteredAccountsAPI, nil
+}
+
+func (mbp *metaAPIBlockProcessor) getHashAndBlockBytesFromStorer(params api.GetBlockParameters) ([]byte, []byte, error) {
+	if params.RequestType == api.BlockFetchTypeByHash {
+		hashBytes, err := hex.DecodeString(params.Hash)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		headerBytes, err := mbp.getFromStorer(dataRetriever.MetaBlockUnit, hashBytes)
+		return hashBytes, headerBytes, err
+	}
+
+	storerUnit := dataRetriever.MetaHdrNonceHashDataUnit
+
+	nonceToByteSlice := mbp.uint64ByteSliceConverter.ToByteSlice(params.Nonce)
+	headerHash, err := mbp.store.Get(storerUnit, nonceToByteSlice)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	headerBytes, err := mbp.getFromStorer(dataRetriever.MetaBlockUnit, headerHash)
+	return headerHash, headerBytes, err
 }
 
 func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, blockBytes []byte, options api.BlockQueryOptions) (*api.Block, error) {
