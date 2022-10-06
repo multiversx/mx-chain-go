@@ -714,7 +714,7 @@ func TestScProcessor_ExecuteBuiltInESDTTransfer(t *testing.T) {
 	tx.Value = big.NewInt(45)
 	tx.GasLimit = 10
 	tx.Data = []byte(funcName + "@0500@0000@" + hex.EncodeToString([]byte("testFunc")))
-	testScProcessor_ExecuteBuiltInESDTTransfer(t, tx)
+	executeBuiltInESDTTransfer(t, tx)
 }
 
 func TestScProcessor_ExecuteBuiltInESDTTransfer_InCallback(t *testing.T) {
@@ -729,10 +729,10 @@ func TestScProcessor_ExecuteBuiltInESDTTransfer_InCallback(t *testing.T) {
 	tx.Value = big.NewInt(45)
 	tx.GasLimit = 10
 	tx.Data = []byte(funcName + "@00@00@00@00@0500@0000@" + hex.EncodeToString([]byte("testFunc")))
-	testScProcessor_ExecuteBuiltInESDTTransfer(t, tx)
+	executeBuiltInESDTTransfer(t, tx)
 }
 
-func testScProcessor_ExecuteBuiltInESDTTransfer(t *testing.T, tx data.TransactionHandler) {
+func executeBuiltInESDTTransfer(t *testing.T, tx data.TransactionHandler) {
 	t.Parallel()
 
 	vmContainer := &mock.VMContainerMock{}
