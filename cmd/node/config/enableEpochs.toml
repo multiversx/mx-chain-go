@@ -146,89 +146,89 @@
     RemoveNonUpdatedStorageEnableEpoch = 1
 
     # OptimizeNFTStoreEnableEpoch represents the epoch when optimizations on NFT metadata store and send are enabled
-    OptimizeNFTStoreEnableEpoch = 1
+    OptimizeNFTStoreEnableEpoch = 2
 
     # CreateNFTThroughExecByCallerEnableEpoch represents the epoch when nft creation through execution on destination by caller is enabled
-    CreateNFTThroughExecByCallerEnableEpoch = 1
+    CreateNFTThroughExecByCallerEnableEpoch = 2
 
     # StopDecreasingValidatorRatingWhenStuckEnableEpoch represents the epoch when we should stop decreasing validator's rating if, for instance, a shard gets stuck
-    StopDecreasingValidatorRatingWhenStuckEnableEpoch = 1
+    StopDecreasingValidatorRatingWhenStuckEnableEpoch = 2
 
     # FrontRunningProtectionEnableEpoch represents the epoch when the first version of protection against front running is enabled
-    FrontRunningProtectionEnableEpoch = 1
+    FrontRunningProtectionEnableEpoch = 2
 
     # IsPayableBySCEnableEpoch represents the epoch when a new flag isPayable by SC is enabled
-    IsPayableBySCEnableEpoch = 1
+    IsPayableBySCEnableEpoch = 2
 
     # CleanUpInformativeSCRsEnableEpoch represents the epoch when the informative-only scrs are cleaned from miniblocks and logs are created from them
-    CleanUpInformativeSCRsEnableEpoch = 1
+    CleanUpInformativeSCRsEnableEpoch = 2
 
     # StorageAPICostOptimizationEnableEpoch represents the epoch when new storage helper functions are enabled and cost is reduced in Arwen
-    StorageAPICostOptimizationEnableEpoch = 1
+    StorageAPICostOptimizationEnableEpoch = 2
 
     # TransformToMultiShardCreateEnableEpoch represents the epoch when the new function on esdt system sc is enabled to transfer create role into multishard
-    TransformToMultiShardCreateEnableEpoch = 1
+    TransformToMultiShardCreateEnableEpoch = 2
 
     # ESDTRegisterAndSetAllRolesEnableEpoch represents the epoch when new function to register tickerID and set all roles is enabled
-    ESDTRegisterAndSetAllRolesEnableEpoch = 1
+    ESDTRegisterAndSetAllRolesEnableEpoch = 2
 
     # ScheduledMiniBlocksEnableEpoch represents the epoch when scheduled mini blocks would be created if needed
-    ScheduledMiniBlocksEnableEpoch = 1
+    ScheduledMiniBlocksEnableEpoch = 2
 
     # CorrectJailedNotUnstakedEpoch represents the epoch when the jailed validators will also be unstaked if the queue is empty
-    CorrectJailedNotUnstakedEmptyQueueEpoch = 1
+    CorrectJailedNotUnstakedEmptyQueueEpoch = 2
 
     # DoNotReturnOldBlockInBlockchainHookEnableEpoch represents the epoch when the fetch old block operation is
     # disabled in the blockchain hook component
-    DoNotReturnOldBlockInBlockchainHookEnableEpoch = 1
+    DoNotReturnOldBlockInBlockchainHookEnableEpoch = 2
 
     # AddFailedRelayedTxToInvalidMBsDisableEpoch represents the epoch when adding the failed relayed txs to invalid miniblocks is disabled
-    AddFailedRelayedTxToInvalidMBsDisableEpoch = 1
+    AddFailedRelayedTxToInvalidMBsDisableEpoch = 2
 
     # SCRSizeInvariantOnBuiltInResultEnableEpoch represents the epoch when scr size invariant on built in result is enabled
-    SCRSizeInvariantOnBuiltInResultEnableEpoch = 1
+    SCRSizeInvariantOnBuiltInResultEnableEpoch = 2
 
     # CheckCorrectTokenIDForTransferRoleEnableEpoch represents the epoch when the correct token ID check is applied for transfer role verification
-    CheckCorrectTokenIDForTransferRoleEnableEpoch = 1
+    CheckCorrectTokenIDForTransferRoleEnableEpoch = 2
 
     # DisableExecByCallerEnableEpoch represents the epoch when the check on value is disabled on exec by caller
-    DisableExecByCallerEnableEpoch = 1
+    DisableExecByCallerEnableEpoch = 2
 
     # RefactorContextEnableEpoch represents the epoch when refactoring/simplifying is enabled in contexts
-    RefactorContextEnableEpoch = 1
+    RefactorContextEnableEpoch = 2
 
     # FailExecutionOnEveryAPIErrorEnableEpoch represent the epoch when new protection in VM is enabled to fail all wrong API calls
-    FailExecutionOnEveryAPIErrorEnableEpoch = 1
+    FailExecutionOnEveryAPIErrorEnableEpoch = 2
 
     # ManagedCryptoAPIsEnableEpoch represents the epoch when new managed crypto APIs are enabled in the wasm VM
-    ManagedCryptoAPIsEnableEpoch = 1
+    ManagedCryptoAPIsEnableEpoch = 2
 
     # CheckFunctionArgumentEnableEpoch represents the epoch when the extra argument check is enabled in vm-common
-    CheckFunctionArgumentEnableEpoch = 1
+    CheckFunctionArgumentEnableEpoch = 2
 
     # CheckExecuteOnReadOnlyEnableEpoch represents the epoch when the extra checks are enabled for execution on read only
-    CheckExecuteOnReadOnlyEnableEpoch = 1
+    CheckExecuteOnReadOnlyEnableEpoch = 2
 
     # ESDTMetadataContinuousCleanupEnableEpoch represents the epoch when esdt metadata is automatically deleted according to inshard liquidity
-    ESDTMetadataContinuousCleanupEnableEpoch = 1
+    ESDTMetadataContinuousCleanupEnableEpoch = 3
 
     # HeartbeatDisableEpoch represents the epoch when heartbeat v1 messages stop being sent and processed
-    HeartbeatDisableEpoch = 1
+    HeartbeatDisableEpoch = 3
 
     # MiniBlockPartialExecutionEnableEpoch represents the epoch when mini block partial execution will be enabled
-    MiniBlockPartialExecutionEnableEpoch = 1
+    MiniBlockPartialExecutionEnableEpoch = 3
 
     # FixAsyncCallBackArgsListEnableEpoch represents the epoch when the async callback arguments lists fix will be enabled
-    FixAsyncCallBackArgsListEnableEpoch = 1
+    FixAsyncCallBackArgsListEnableEpoch = 3
 
     # FixOldTokenLiquidityEnableEpoch represents the epoch when the fix for old token liquidity is enabled
-    FixOldTokenLiquidityEnableEpoch = 2
+    FixOldTokenLiquidityEnableEpoch = 4
 
     # SetSenderInEeiOutputTransferEnableEpoch represents the epoch when setting the sender in eei output transfers will be enabled
-    SetSenderInEeiOutputTransferEnableEpoch = 4
+    SetSenderInEeiOutputTransferEnableEpoch = 999999
 
     # RefactorPeersMiniBlocksEnableEpoch represents the epoch when refactor of the peers mini blocks will be enabled
-    RefactorPeersMiniBlocksEnableEpoch = 5
+    RefactorPeersMiniBlocksEnableEpoch = 999999
 
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [
