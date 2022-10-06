@@ -232,9 +232,9 @@ func (scf *statusComponentsFactory) createOutportDriver() (outport.OutportHandle
 	return outportDriverFactory.CreateOutport(outportFactoryArgs)
 }
 
-func (scf *statusComponentsFactory) makeElasticIndexerArgs() *indexerFactory.ArgsIndexerFactory {
+func (scf *statusComponentsFactory) makeElasticIndexerArgs() indexerFactory.ArgsIndexerFactory {
 	elasticSearchConfig := scf.externalConfig.ElasticSearchConnector
-	return &indexerFactory.ArgsIndexerFactory{
+	return indexerFactory.ArgsIndexerFactory{
 		Enabled:                  elasticSearchConfig.Enabled,
 		IndexerCacheSize:         elasticSearchConfig.IndexerCacheSize,
 		BulkRequestMaxSize:       elasticSearchConfig.BulkRequestMaxSizeInBytes,
