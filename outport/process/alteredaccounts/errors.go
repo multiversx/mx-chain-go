@@ -19,6 +19,3 @@ var errCannotCastToUserAccountHandler = errors.New("cannot cast account handler 
 
 // errCannotCastToVmCommonUserAccountHandler signals an issue while casting to vm common user account handler
 var errCannotCastToVmCommonUserAccountHandler = errors.New("cannot cast user account handler to vm common user account handler")
-
-// errInvalidAlteredAccountsOptions signals that invalid options has been passed when extracting altered accounts
-var errInvalidAlteredAccountsOptions = errors.New("invalid altered accounts options")

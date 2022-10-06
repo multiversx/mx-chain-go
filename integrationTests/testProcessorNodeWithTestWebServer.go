@@ -25,6 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/txstatus"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genesisMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	datafield "github.com/ElrondNetwork/elrond-vm-common/parsers/dataField"
@@ -238,6 +239,8 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 		AddressPubkeyConverter:   TestAddressPubkeyConverter,
 		LogsFacade:               logsFacade,
 		ReceiptsRepository:       receiptsRepository,
+		AlteredAccountsProvider:  &testscommon.AlteredAccountsProviderStub{},
+		AccountsRepository:       &state.AccountsRepositoryStub{},
 	}
 	blockAPIHandler, err := blockAPI.CreateAPIBlockProcessor(argsBlockAPI)
 	log.LogIfError(err)

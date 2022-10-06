@@ -13,7 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
-	"github.com/ElrondNetwork/elrond-go/outport/process/alteredaccounts"
+	"github.com/ElrondNetwork/elrond-go/outport/process/alteredaccounts/shared"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
@@ -480,7 +480,7 @@ func TestShardAPIBlockProcessor_GetAlteredAccountsForBlock(t *testing.T) {
 			},
 		}
 		metaAPIBlockProc.alteredAccountsProvider = &testscommon.AlteredAccountsProviderStub{
-			ExtractAlteredAccountsFromPoolCalled: func(txPool *outportcore.Pool, options alteredaccounts.Options) (map[string]*outportcore.AlteredAccount, error) {
+			ExtractAlteredAccountsFromPoolCalled: func(txPool *outportcore.Pool, options shared.AlteredAccountsOptions) (map[string]*outportcore.AlteredAccount, error) {
 				retMap := map[string]*outportcore.AlteredAccount{}
 				for _, tx := range txPool.Txs {
 					retMap[string(tx.GetSndAddr())] = &outportcore.AlteredAccount{

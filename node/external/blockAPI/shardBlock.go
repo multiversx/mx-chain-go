@@ -9,7 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/node/filters"
-	"github.com/ElrondNetwork/elrond-go/outport/process/alteredaccounts"
+	"github.com/ElrondNetwork/elrond-go/outport/process/alteredaccounts/shared"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
@@ -106,7 +106,7 @@ func (sbp *shardAPIBlockProcessor) GetAlteredAccountsForBlock(options api.GetAlt
 		return nil, err
 	}
 
-	alteredAccountsOptions := alteredaccounts.Options{
+	alteredAccountsOptions := shared.AlteredAccountsOptions{
 		WithCustomAccountsRepository: true,
 		AccountsRepository:           sbp.accountsRepository,
 		// TODO: AccountQueryOptions could be used like options.WithBlockRootHash(..) instead of thinking what to provide
