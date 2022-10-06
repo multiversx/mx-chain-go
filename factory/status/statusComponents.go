@@ -213,7 +213,7 @@ func (pc *statusComponents) Close() error {
 // createOutportDriver creates a new outport.OutportHandler which is used to register outport drivers
 // once a driver is subscribed it will receive data through the implemented outport.Driver methods
 func (scf *statusComponentsFactory) createOutportDriver() (outport.OutportHandler, error) {
-	webSocketSenderDriverFactoryArgs, err := scf.makeWebSocketsDriverArgs()
+	webSocketSenderDriverFactoryArgs, err := scf.makeWebSocketDriverArgs()
 	if err != nil {
 		return nil, err
 	}
@@ -224,7 +224,7 @@ func (scf *statusComponentsFactory) createOutportDriver() (outport.OutportHandle
 		EventNotifierFactoryArgs:   scf.makeEventNotifierArgs(),
 		CovalentIndexerFactoryArgs: scf.makeCovalentIndexerArgs(),
 		WebSocketSenderDriverFactoryArgs: outportDriverFactory.WrappedOutportDriverWebSocketSenderFactoryArgs{
-			Enabled:                                 scf.externalConfig.WebSocketsConnector.Enabled,
+			Enabled:                                 scf.externalConfig.WebSocketConnector.Enabled,
 			OutportDriverWebSocketSenderFactoryArgs: webSocketSenderDriverFactoryArgs,
 		},
 	}
@@ -279,12 +279,12 @@ func (scf *statusComponentsFactory) makeCovalentIndexerArgs() *covalentFactory.A
 	}
 }
 
-func (scf *statusComponentsFactory) makeWebSocketsDriverArgs() (wsDriverFactory.OutportDriverWebSocketSenderFactoryArgs, error) {
-	if !scf.externalConfig.WebSocketsConnector.Enabled {
+func (scf *statusComponentsFactory) makeWebSocketDriverArgs() (wsDriverFactory.OutportDriverWebSocketSenderFactoryArgs, error) {
+	if !scf.externalConfig.WebSocketConnector.Enabled {
 		return wsDriverFactory.OutportDriverWebSocketSenderFactoryArgs{}, nil
 	}
 
-	marshaller, err := factoryMarshalizer.NewMarshalizer(scf.externalConfig.WebSocketsConnector.MarshallerType)
+	marshaller, err := factoryMarshalizer.NewMarshalizer(scf.externalConfig.WebSocketConnector.MarshallerType)
 	if err != nil {
 		return wsDriverFactory.OutportDriverWebSocketSenderFactoryArgs{}, err
 	}
@@ -292,12 +292,12 @@ func (scf *statusComponentsFactory) makeWebSocketsDriverArgs() (wsDriverFactory.
 	return wsDriverFactory.OutportDriverWebSocketSenderFactoryArgs{
 		Marshaller: marshaller,
 		WebSocketConfig: data.WebSocketConfig{
-			URL:             scf.externalConfig.WebSocketsConnector.URL,
-			WithAcknowledge: scf.externalConfig.WebSocketsConnector.WithAcknowledge,
+			URL:             scf.externalConfig.WebSocketConnector.URL,
+			WithAcknowledge: scf.externalConfig.WebSocketConnector.WithAcknowledge,
 		},
 		Uint64ByteSliceConverter: scf.coreComponents.Uint64ByteSliceConverter(),
 		Log:                      log,
-		WithAcknowledge:          scf.externalConfig.WebSocketsConnector.WithAcknowledge,
+		WithAcknowledge:          scf.externalConfig.WebSocketConnector.WithAcknowledge,
 	}, nil
 }
 

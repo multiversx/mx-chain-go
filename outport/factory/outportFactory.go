@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/outport"
 )
 
+// WrappedOutportDriverWebSocketSenderFactoryArgs extends the wsDriverFactory.OutportDriverWebSocketSenderFactoryArgs structure with the Enabled field
 type WrappedOutportDriverWebSocketSenderFactoryArgs struct {
 	Enabled bool
 	wsDriverFactory.OutportDriverWebSocketSenderFactoryArgs
@@ -59,7 +60,7 @@ func createAndSubscribeDrivers(outport outport.OutportHandler, args *OutportFact
 		return err
 	}
 
-	return createAndSubscribeWebSocketsDriver(outport, args.WebSocketSenderDriverFactoryArgs)
+	return createAndSubscribeWebSocketDriver(outport, args.WebSocketSenderDriverFactoryArgs)
 }
 
 func createAndSubscribeCovalentDriverIfNeeded(
@@ -118,7 +119,7 @@ func checkArguments(args *OutportFactoryArgs) error {
 	return nil
 }
 
-func createAndSubscribeWebSocketsDriver(
+func createAndSubscribeWebSocketDriver(
 	outport outport.OutportHandler,
 	args WrappedOutportDriverWebSocketSenderFactoryArgs,
 ) error {

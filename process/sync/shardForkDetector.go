@@ -207,3 +207,8 @@ func (sfd *shardForkDetector) getProcessedAndNotarizedIndexes(headersInfo []*hea
 
 	return indexBHProcessed, indexBHNotarized
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (sfd *shardForkDetector) IsInterfaceNil() bool {
+	return sfd == nil
+}

@@ -7,7 +7,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
@@ -17,7 +16,6 @@ var _ process.InterceptedData = (*InterceptedTrieNode)(nil)
 
 // InterceptedTrieNode implements intercepted data interface and is used when trie nodes are intercepted
 type InterceptedTrieNode struct {
-	node           node
 	serializedNode []byte
 	hash           []byte
 	mutex          sync.RWMutex
@@ -26,43 +24,26 @@ type InterceptedTrieNode struct {
 // NewInterceptedTrieNode creates a new instance of InterceptedTrieNode
 func NewInterceptedTrieNode(
 	buff []byte,
-	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 ) (*InterceptedTrieNode, error) {
 	if len(buff) == 0 {
 		return nil, ErrValueTooShort
 	}
-	if check.IfNil(marshalizer) {
-		return nil, ErrNilMarshalizer
-	}
 	if check.IfNil(hasher) {
 		return nil, ErrNilHasher
 	}
 
-	n, err := decodeNode(buff, marshalizer, hasher)
-	if err != nil {
-		return nil, err
-	}
-	n.setDirty(true)
-
-	err = n.setHash()
-	if err != nil {
-		return nil, err
-	}
-
-	return &InterceptedTrieNode{
-		node:           n,
+	inTn := &InterceptedTrieNode{
 		serializedNode: buff,
-		hash:           n.getHash(),
-	}, nil
+		hash:           hasher.Compute(string(buff)),
+	}
+
+	return inTn, nil
 }
 
 // CheckValidity checks if the intercepted data is valid
 func (inTn *InterceptedTrieNode) CheckValidity() error {
-	if inTn.node.isValid() {
-		return nil
-	}
-	return ErrInvalidNode
+	return nil
 }
 
 // IsForCurrentShard checks if the intercepted data is for the current shard
@@ -138,7 +119,7 @@ func (inTn *InterceptedTrieNode) SizeInBytes() int {
 	inTn.mutex.RLock()
 	defer inTn.mutex.RUnlock()
 
-	return len(inTn.hash) + len(inTn.serializedNode) + inTn.node.sizeInBytes()
+	return len(inTn.hash) + len(inTn.serializedNode)
 }
 
 // Identifiers returns the identifiers used in requests

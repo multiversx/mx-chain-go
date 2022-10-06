@@ -153,7 +153,6 @@ func GetRuntimeStatistics() []interface{} {
 	return []interface{}{
 		"timestamp", time.Now().Unix(),
 		"num go", runtime.NumGoroutine(),
-		"alloc", core.ConvertBytes(memStats.Alloc),
 		"heap alloc", core.ConvertBytes(memStats.HeapAlloc),
 		"heap idle", core.ConvertBytes(memStats.HeapIdle),
 		"heap inuse", core.ConvertBytes(memStats.HeapInuse),

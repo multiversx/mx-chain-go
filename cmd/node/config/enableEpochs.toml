@@ -210,16 +210,16 @@
     CheckExecuteOnReadOnlyEnableEpoch = 1
 
     # ESDTMetadataContinuousCleanupEnableEpoch represents the epoch when esdt metadata is automatically deleted according to inshard liquidity
-    ESDTMetadataContinuousCleanupEnableEpoch = 4
+    ESDTMetadataContinuousCleanupEnableEpoch = 1
 
     # HeartbeatDisableEpoch represents the epoch when heartbeat v1 messages stop being sent and processed
-    HeartbeatDisableEpoch = 2
+    HeartbeatDisableEpoch = 1
 
     # MiniBlockPartialExecutionEnableEpoch represents the epoch when mini block partial execution will be enabled
-    MiniBlockPartialExecutionEnableEpoch = 3
+    MiniBlockPartialExecutionEnableEpoch = 1
 
     # FixAsyncCallBackArgsListEnableEpoch represents the epoch when the async callback arguments lists fix will be enabled
-    FixAsyncCallBackArgsListEnableEpoch = 6
+    FixAsyncCallBackArgsListEnableEpoch = 1
 
     # SetSenderInEeiOutputTransferEnableEpoch represents the epoch when setting the sender in eei output transfers will be enabled
     SetSenderInEeiOutputTransferEnableEpoch = 4
