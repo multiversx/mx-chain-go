@@ -817,3 +817,6 @@ const (
 
 // MaxIndexOfTxInMiniBlock defines the maximum index of a tx inside one mini block
 const MaxIndexOfTxInMiniBlock = int32(29999)
+
+// MetricTrieSnapshotIsProgress is the metric that outputs the status of the trie snapshot, if it's in progress or not
+const MetricTrieSnapshotIsProgress = "erd_trie_snapshot_in_progress"
