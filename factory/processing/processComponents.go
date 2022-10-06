@@ -1020,14 +1020,6 @@ func (pcf *processComponentsFactory) createGenesisMiniBlockHandlers(miniBlocks [
 			Type:            miniBlocks[i].GetType(),
 		}
 
-		err = miniBlockHeader.SetIndexOfFirstTxProcessed(int32(0))
-		if err != nil {
-			return nil, err
-		}
-		err = miniBlockHeader.SetIndexOfLastTxProcessed(int32(txCount))
-		if err != nil {
-			return nil, err
-		}
 		err = miniBlockHeader.SetProcessingType(int32(dataBlock.Normal))
 		if err != nil {
 			return nil, err
@@ -1142,7 +1134,7 @@ func (pcf *processComponentsFactory) saveAlteredGenesisHeaderToStorage(
 ) error {
 	currentShardId := pcf.bootstrapComponents.ShardCoordinator().SelfId()
 
-	genesisMiniBlockHeaderHandlers, err := pcf.createGenesisMiniBlockHandlers(miniBlocks)
+	genesisMiniBlockHeaderHandlers, err := pcf.createGenesisMiniBlockHandlers(genesisBody.GetMiniBlocks())
 	if err != nil {
 		return err
 	}
