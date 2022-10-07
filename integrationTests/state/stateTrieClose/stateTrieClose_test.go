@@ -34,7 +34,7 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 	gc := goroutines.NewGoCounter(goroutines.TestsRelevantGoRoutines)
 	idxInitial, _ := gc.Snapshot()
 	rootHash, _ := tr.RootHash()
-	leavesChannel1 := common.AllLeavesChannels{
+	leavesChannel1 := common.TrieNodesChannels{
 		LeavesChannel: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 	}
 	_ = tr.GetAllLeavesOnChannel(leavesChannel1, context.Background(), rootHash, keyBuilder.NewDisabledKeyBuilder())
@@ -43,7 +43,7 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 	diff := gc.DiffGoRoutines(idxInitial, idx)
 	assert.True(t, len(diff) <= 1) // can be 0 on a fast running host
 
-	leavesChannel1 = common.AllLeavesChannels{
+	leavesChannel1 = common.TrieNodesChannels{
 		LeavesChannel: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 	}
 	_ = tr.GetAllLeavesOnChannel(leavesChannel1, context.Background(), rootHash, keyBuilder.NewDisabledKeyBuilder())
@@ -55,7 +55,7 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 	_ = tr.Commit()
 
 	rootHash, _ = tr.RootHash()
-	leavesChannel1 = common.AllLeavesChannels{
+	leavesChannel1 = common.TrieNodesChannels{
 		LeavesChannel: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 	}
 	_ = tr.GetAllLeavesOnChannel(leavesChannel1, context.Background(), rootHash, keyBuilder.NewDisabledKeyBuilder())
@@ -67,7 +67,7 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 	_ = tr.Commit()
 
 	rootHash, _ = tr.RootHash()
-	leavesChannel2 := common.AllLeavesChannels{
+	leavesChannel2 := common.TrieNodesChannels{
 		LeavesChannel: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 	}
 	_ = tr.GetAllLeavesOnChannel(leavesChannel2, context.Background(), rootHash, keyBuilder.NewDisabledKeyBuilder())
@@ -76,14 +76,14 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 	diff = gc.DiffGoRoutines(idxInitial, idx)
 	assert.True(t, len(diff) <= 4)
 
-	for range leavesChannel1.LeavesChannel {
+	for range leavesChannel1.LeavesChan {
 	}
 	time.Sleep(time.Second) // wait for go routine to finish
 	idx, _ = gc.Snapshot()
 	diff = gc.DiffGoRoutines(idxInitial, idx)
 	assert.True(t, len(diff) <= 3)
 
-	for range leavesChannel2.LeavesChannel {
+	for range leavesChannel2.LeavesChan {
 	}
 	time.Sleep(time.Second) // wait for go routine to finish
 	idx, _ = gc.Snapshot()

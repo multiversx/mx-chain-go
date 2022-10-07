@@ -84,7 +84,7 @@ func TestAccountsDBApiWithHistory_NotPermittedOrNotImplementedOperationsDoNotPan
 	accountsApi.SetStateCheckpoint(nil)
 
 	assert.Equal(t, false, accountsApi.IsPruningEnabled())
-	assert.Equal(t, state.ErrOperationNotPermitted, accountsApi.GetAllLeaves(common.AllLeavesChannels{}, nil, nil))
+	assert.Equal(t, state.ErrOperationNotPermitted, accountsApi.GetAllLeaves(common.TrieNodesChannels{}, nil, nil))
 
 	resultedMap, err := accountsApi.RecreateAllTries(nil)
 	assert.Nil(t, resultedMap)

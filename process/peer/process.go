@@ -424,7 +424,7 @@ func (vs *validatorStatistics) RootHash() ([]byte, error) {
 }
 
 func (vs *validatorStatistics) getValidatorDataFromLeaves(
-	leavesChannels common.AllLeavesChannels,
+	leavesChannels common.TrieNodesChannels,
 ) (map[uint32][]*state.ValidatorInfo, error) {
 
 	validators := make(map[uint32][]*state.ValidatorInfo, vs.shardCoordinator.NumberOfShards()+1)
@@ -433,7 +433,7 @@ func (vs *validatorStatistics) getValidatorDataFromLeaves(
 	}
 	validators[core.MetachainShardId] = make([]*state.ValidatorInfo, 0)
 
-	for pa := range leavesChannels.LeavesChannel {
+	for pa := range leavesChannels.LeavesChan {
 		peerAccount, err := vs.unmarshalPeer(pa.Value())
 		if err != nil {
 			return nil, err
@@ -552,8 +552,8 @@ func (vs *validatorStatistics) GetValidatorInfoForRootHash(rootHash []byte) (map
 		log.Debug("GetValidatorInfoForRootHash", sw.GetMeasurements()...)
 	}()
 
-	leavesChannels := common.AllLeavesChannels{
-		LeavesChannel: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+	leavesChannels := common.TrieNodesChannels{
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 	}
 	err := vs.peerAdapter.GetAllLeaves(leavesChannels, context.Background(), rootHash)
 	if err != nil {

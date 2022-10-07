@@ -192,9 +192,9 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_ContextShouldTimeout(t *t
 
 	acc, _ := state.NewUserAccount([]byte("newaddress"))
 	acc.SetDataTrie(&trieMock.TrieStub{
-		GetAllLeavesOnChannelCalled: func(leavesChannels common.AllLeavesChannels, _ context.Context, _ []byte, _ common.KeyBuilder) error {
+		GetAllLeavesOnChannelCalled: func(leavesChannels common.TrieNodesChannels, _ context.Context, _ []byte, _ common.KeyBuilder) error {
 			time.Sleep(time.Second)
-			close(leavesChannels.LeavesChannel)
+			close(leavesChannels.LeavesChan)
 			return nil
 		},
 		RootCalled: func() ([]byte, error) {
@@ -227,7 +227,7 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotGetAllLeaves(t *tes
 	expectedErr := errors.New("expected error")
 	acc, _ := state.NewUserAccount([]byte("newaddress"))
 	acc.SetDataTrie(&trieMock.TrieStub{
-		GetAllLeavesOnChannelCalled: func(_ common.AllLeavesChannels, _ context.Context, _ []byte, _ common.KeyBuilder) error {
+		GetAllLeavesOnChannelCalled: func(_ common.TrieNodesChannels, _ context.Context, _ []byte, _ common.KeyBuilder) error {
 			return expectedErr
 		},
 		RootCalled: func() ([]byte, error) {
@@ -275,27 +275,27 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue(t *testing.T) {
 		RootCalled: func() ([]byte, error) {
 			return rootHash, nil
 		},
-		GetAllLeavesOnChannelCalled: func(channels common.AllLeavesChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
+		GetAllLeavesOnChannelCalled: func(channels common.TrieNodesChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
 			go func() {
 				leaf1 := keyValStorage.NewKeyValStorage(rootHash, append(marshalledData, suffix...))
-				channels.LeavesChannel <- leaf1
+				channels.LeavesChan <- leaf1
 
 				leaf2 := keyValStorage.NewKeyValStorage([]byte(leafKey2), nil)
-				channels.LeavesChannel <- leaf2
+				channels.LeavesChan <- leaf2
 
 				leaf3 := keyValStorage.NewKeyValStorage([]byte(leafKey3), nil)
-				channels.LeavesChannel <- leaf3
+				channels.LeavesChan <- leaf3
 
 				leaf4 := keyValStorage.NewKeyValStorage([]byte(leafKey4), nil)
-				channels.LeavesChannel <- leaf4
+				channels.LeavesChan <- leaf4
 
 				leaf5 := keyValStorage.NewKeyValStorage([]byte(leafKey5), nil)
-				channels.LeavesChannel <- leaf5
+				channels.LeavesChan <- leaf5
 
 				leaf6 := keyValStorage.NewKeyValStorage([]byte(leafKey6), nil)
-				channels.LeavesChannel <- leaf6
+				channels.LeavesChan <- leaf6
 
-				close(channels.LeavesChannel)
+				close(channels.LeavesChan)
 			}()
 
 			return nil

@@ -301,14 +301,14 @@ func TestStateExport_ExportTrieShouldExportNodesSetupJson(t *testing.T) {
 		RootCalled: func() ([]byte, error) {
 			return []byte{}, nil
 		},
-		GetAllLeavesOnChannelCalled: func(channels common.AllLeavesChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder) error {
+		GetAllLeavesOnChannelCalled: func(channels common.TrieNodesChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder) error {
 			mm := &mock.MarshalizerMock{}
 			valInfo := &state.ValidatorInfo{List: string(common.EligibleList)}
 			pacB, _ := mm.Marshal(valInfo)
 
 			go func() {
-				channels.LeavesChannel <- keyValStorage.NewKeyValStorage([]byte("test"), pacB)
-				close(channels.LeavesChannel)
+				channels.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("test"), pacB)
+				close(channels.LeavesChan)
 			}()
 
 			return nil

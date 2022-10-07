@@ -1726,8 +1726,8 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 		return err
 	}
 
-	allLeavesChan := common.AllLeavesChannels{
-		LeavesChannel: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+	allLeavesChan := common.TrieNodesChannels{
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 	}
 	err = userAccountsDb.GetAllLeaves(allLeavesChan, context.Background(), rootHash)
 	if err != nil {
@@ -1742,7 +1742,7 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 	totalSizeAccounts := 0
 	totalSizeAccountsDataTries := 0
 	totalSizeCodeLeaves := 0
-	for leaf := range allLeavesChan.LeavesChannel {
+	for leaf := range allLeavesChan.LeavesChan {
 		userAccount, errUnmarshal := unmarshalUserAccount(leaf.Key(), leaf.Value(), bp.marshalizer)
 		if errUnmarshal != nil {
 			numCodeLeaves++
@@ -1754,7 +1754,7 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 		if processDataTries {
 			rh := userAccount.GetRootHash()
 			if len(rh) != 0 {
-				dataTrie := common.AllLeavesChannels{
+				dataTrie := common.TrieNodesChannels{
 					make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 				}
 				errDataTrieGet := userAccountsDb.GetAllLeaves(dataTrie, context.Background(), rh)
@@ -1763,7 +1763,7 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 				}
 
 				currentSize := 0
-				for lf := range dataTrie.LeavesChannel {
+				for lf := range dataTrie.LeavesChan {
 					currentSize += len(lf.Value())
 				}
 

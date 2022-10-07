@@ -545,14 +545,14 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannelEmptyTrie(t *testing.T) {
 
 	tr := emptyTrie()
 
-	leavesChannel := common.AllLeavesChannels{
+	leavesChannel := common.TrieNodesChannels{
 		LeavesChannel: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 	}
 	err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), []byte{}, keyBuilder.NewDisabledKeyBuilder())
 	assert.Nil(t, err)
 	assert.NotNil(t, leavesChannel)
 
-	_, ok := <-leavesChannel.LeavesChannel
+	_, ok := <-leavesChannel.LeavesChan
 	assert.False(t, ok)
 }
 
@@ -568,7 +568,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 	_ = tr.Commit()
 	rootHash, _ := tr.RootHash()
 
-	leavesChannel := common.AllLeavesChannels{
+	leavesChannel := common.TrieNodesChannels{
 		LeavesChannel: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 	}
 	err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), rootHash, keyBuilder.NewKeyBuilder())
@@ -576,7 +576,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 	assert.NotNil(t, leavesChannel)
 
 	recovered := make(map[string][]byte)
-	for leaf := range leavesChannel.LeavesChannel {
+	for leaf := range leavesChannel.LeavesChan {
 		recovered[string(leaf.Key())] = leaf.Value()
 	}
 	assert.Equal(t, leaves, recovered)

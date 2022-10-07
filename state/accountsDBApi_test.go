@@ -462,20 +462,20 @@ func TestAccountsDBApi_GetAllLeaves(t *testing.T) {
 			RecreateTrieCalled: func(rootHash []byte) error {
 				return expectedErr
 			},
-			GetAllLeavesCalled: func(_ common.AllLeavesChannels, _ context.Context, _ []byte) error {
+			GetAllLeavesCalled: func(_ common.TrieNodesChannels, _ context.Context, _ []byte) error {
 				require.Fail(t, "should have not called inner method")
 				return nil
 			},
 		}
 
 		accountsApi, _ := state.NewAccountsDBApi(accountsAdapter, createBlockInfoProviderStub(dummyRootHash))
-		err := accountsApi.GetAllLeaves(common.AllLeavesChannels{}, nil, []byte{})
+		err := accountsApi.GetAllLeaves(common.TrieNodesChannels{}, nil, []byte{})
 		assert.Equal(t, expectedErr, err)
 	})
 	t.Run("recreate trie works, should call inner method", func(t *testing.T) {
 		t.Parallel()
 
-		providedChan := common.AllLeavesChannels{LeavesChannel: make(chan core.KeyValueHolder)}
+		providedChan := common.TrieNodesChannels{LeavesChannel: make(chan core.KeyValueHolder)}
 		recreateTrieCalled := false
 		accountsAdapter := &mockState.AccountsStub{
 			RecreateTrieCalled: func(rootHash []byte) error {

@@ -153,15 +153,15 @@ func createValidatorScAccount(address []byte, leaves [][]byte, rootHash []byte, 
 		RootCalled: func() ([]byte, error) {
 			return rootHash, nil
 		},
-		GetAllLeavesOnChannelCalled: func(leavesChannels common.AllLeavesChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
+		GetAllLeavesOnChannelCalled: func(leavesChannels common.TrieNodesChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
 			go func() {
 				time.Sleep(timeSleep)
 				for _, leafBuff := range leaves {
 					leaf := keyValStorage.NewKeyValStorage(leafBuff, nil)
-					leavesChannels.LeavesChannel <- leaf
+					leavesChannels.LeavesChan <- leaf
 				}
 
-				close(leavesChannels.LeavesChannel)
+				close(leavesChannels.LeavesChan)
 			}()
 
 			return nil

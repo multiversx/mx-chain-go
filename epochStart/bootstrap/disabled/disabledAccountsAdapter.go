@@ -118,7 +118,7 @@ func (a *accountsAdapter) ClosePersister() error {
 }
 
 // GetAllLeaves -
-func (a *accountsAdapter) GetAllLeaves(_ common.AllLeavesChannels, _ context.Context, _ []byte) error {
+func (a *accountsAdapter) GetAllLeaves(_ common.TrieNodesChannels, _ context.Context, _ []byte) error {
 	return nil
 }
 

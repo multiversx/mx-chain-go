@@ -216,7 +216,7 @@ func (n *Node) GetAllIssuedESDTs(tokenType string, ctx context.Context) ([]strin
 		return nil, err
 	}
 
-	chLeaves := common.AllLeavesChannels{
+	chLeaves := common.TrieNodesChannels{
 		LeavesChannel: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 	}
 	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash, keyBuilder.NewKeyBuilder())
@@ -224,7 +224,7 @@ func (n *Node) GetAllIssuedESDTs(tokenType string, ctx context.Context) ([]strin
 		return nil, err
 	}
 
-	for leaf := range chLeaves.LeavesChannel {
+	for leaf := range chLeaves.LeavesChan {
 		tokenName := string(leaf.Key())
 		if !strings.Contains(tokenName, "-") {
 			continue
@@ -286,7 +286,7 @@ func (n *Node) GetKeyValuePairs(address string, options api.AccountQueryOptions,
 		return nil, api.BlockInfo{}, err
 	}
 
-	chLeaves := common.AllLeavesChannels{
+	chLeaves := common.TrieNodesChannels{
 		LeavesChannel: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 	}
 	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash, keyBuilder.NewKeyBuilder())
@@ -295,7 +295,7 @@ func (n *Node) GetKeyValuePairs(address string, options api.AccountQueryOptions,
 	}
 
 	mapToReturn := make(map[string]string)
-	for leaf := range chLeaves.LeavesChannel {
+	for leaf := range chLeaves.LeavesChan {
 		suffix := append(leaf.Key(), userAccount.AddressBytes()...)
 		value, errVal := leaf.ValueWithoutSuffix(suffix)
 		if errVal != nil {
@@ -382,7 +382,7 @@ func (n *Node) getTokensIDsWithFilter(
 		return nil, api.BlockInfo{}, err
 	}
 
-	chLeaves := common.AllLeavesChannels{
+	chLeaves := common.TrieNodesChannels{
 		LeavesChannel: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 	}
 	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash, keyBuilder.NewKeyBuilder())
@@ -390,7 +390,7 @@ func (n *Node) getTokensIDsWithFilter(
 		return nil, api.BlockInfo{}, err
 	}
 
-	for leaf := range chLeaves.LeavesChannel {
+	for leaf := range chLeaves.LeavesChan {
 		tokenIdentifier := string(leaf.Key())
 		if !strings.Contains(tokenIdentifier, "-") {
 			continue
@@ -506,7 +506,7 @@ func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions,
 		return nil, api.BlockInfo{}, err
 	}
 
-	chLeaves := common.AllLeavesChannels{
+	chLeaves := common.TrieNodesChannels{
 		LeavesChannel: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 	}
 	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash, keyBuilder.NewKeyBuilder())
@@ -514,7 +514,7 @@ func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions,
 		return nil, api.BlockInfo{}, err
 	}
 
-	for leaf := range chLeaves.LeavesChannel {
+	for leaf := range chLeaves.LeavesChan {
 		if !bytes.HasPrefix(leaf.Key(), esdtPrefix) {
 			continue
 		}

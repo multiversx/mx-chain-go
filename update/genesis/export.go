@@ -293,7 +293,7 @@ func (se *stateExport) exportTrie(key string, trie common.Trie) error {
 		return err
 	}
 
-	leavesChannels := common.AllLeavesChannels{
+	leavesChannels := common.TrieNodesChannels{
 		make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 	}
 	err = trie.GetAllLeavesOnChannel(leavesChannels, context.Background(), rootHash, keyBuilder.NewKeyBuilder())
@@ -343,12 +343,12 @@ func (se *stateExport) exportTrie(key string, trie common.Trie) error {
 }
 
 func (se *stateExport) exportDataTries(
-	leavesChannels common.AllLeavesChannels,
+	leavesChannels common.TrieNodesChannels,
 	accType Type,
 	shId uint32,
 	identifier string,
 ) error {
-	for leaf := range leavesChannels.LeavesChannel {
+	for leaf := range leavesChannels.LeavesChan {
 		keyToExport := CreateAccountKey(accType, shId, leaf.Key())
 		err := se.hardforkStorer.Write(identifier, []byte(keyToExport), leaf.Value())
 		if err != nil {
@@ -365,12 +365,12 @@ func (se *stateExport) exportDataTries(
 }
 
 func (se *stateExport) exportAccountLeaves(
-	leavesChannels common.AllLeavesChannels,
+	leavesChannels common.TrieNodesChannels,
 	accType Type,
 	shId uint32,
 	identifier string,
 ) error {
-	for leaf := range leavesChannels.LeavesChannel {
+	for leaf := range leavesChannels.LeavesChan {
 		keyToExport := CreateAccountKey(accType, shId, leaf.Key())
 		err := se.hardforkStorer.Write(identifier, []byte(keyToExport), leaf.Value())
 		if err != nil {

@@ -1010,8 +1010,9 @@ func (adb *AccountsDB) recreateTrie(options common.RootHashHolder) error {
 
 // RecreateAllTries recreates all the tries from the accounts DB
 func (adb *AccountsDB) RecreateAllTries(rootHash []byte) (map[string]common.Trie, error) {
-	leavesChannels := common.AllLeavesChannels{
-		LeavesChannel: make(chan core.KeyValueHolder, leavesChannelSize),
+	leavesChannels := common.TrieNodesChannels{
+		LeavesChan: make(chan core.KeyValueHolder, leavesChannelSize),
+		ErrChan:    make(chan error, 1),
 	}
 	mainTrie := adb.getMainTrie()
 	err := mainTrie.GetAllLeavesOnChannel(leavesChannels, context.Background(), rootHash, keyBuilder.NewDisabledKeyBuilder())
@@ -1024,7 +1025,7 @@ func (adb *AccountsDB) RecreateAllTries(rootHash []byte) (map[string]common.Trie
 		return nil, err
 	}
 
-	for leaf := range leavesChannels.LeavesChannel {
+	for leaf := range leavesChannels.LeavesChan {
 		account := &userAccount{}
 		err = adb.marshaller.Unmarshal(account, leaf.Value())
 		if err != nil {
@@ -1040,6 +1041,11 @@ func (adb *AccountsDB) RecreateAllTries(rootHash []byte) (map[string]common.Trie
 
 			allTries[string(account.RootHash)] = dataTrie
 		}
+	}
+
+	containsErrorDuringGettingLeaves := emptyErrChanReturningHadContained(leavesChannels.ErrChan)
+	if containsErrorDuringGettingLeaves {
+		log.Error("error on getting all leaves from trie")
 	}
 
 	return allTries, nil
@@ -1345,7 +1351,7 @@ func (adb *AccountsDB) IsPruningEnabled() bool {
 }
 
 // GetAllLeaves returns all the leaves from a given rootHash
-func (adb *AccountsDB) GetAllLeaves(leavesChannels common.AllLeavesChannels, ctx context.Context, rootHash []byte) error {
+func (adb *AccountsDB) GetAllLeaves(leavesChannels common.TrieNodesChannels, ctx context.Context, rootHash []byte) error {
 	return adb.getMainTrie().GetAllLeavesOnChannel(leavesChannels, ctx, rootHash, keyBuilder.NewKeyBuilder())
 }
 

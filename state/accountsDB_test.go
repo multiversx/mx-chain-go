@@ -1388,9 +1388,9 @@ func TestAccountsDB_GetAllLeaves(t *testing.T) {
 
 	getAllLeavesCalled := false
 	trieStub := &trieMock.TrieStub{
-		GetAllLeavesOnChannelCalled: func(channels common.AllLeavesChannels, ctx context.Context, rootHash []byte, builder common.KeyBuilder) error {
+		GetAllLeavesOnChannelCalled: func(channels common.TrieNodesChannels, ctx context.Context, rootHash []byte, builder common.KeyBuilder) error {
 			getAllLeavesCalled = true
-			close(channels.LeavesChannel)
+			close(channels.LeavesChan)
 
 			return nil
 		},
@@ -1401,7 +1401,7 @@ func TestAccountsDB_GetAllLeaves(t *testing.T) {
 
 	adb := generateAccountDBFromTrie(trieStub)
 
-	leavesChannel := common.AllLeavesChannels{
+	leavesChannel := common.TrieNodesChannels{
 		LeavesChannel: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 	}
 	err := adb.GetAllLeaves(leavesChannel, context.Background(), []byte("root hash"))
@@ -2767,7 +2767,7 @@ func testAccountMethodsConcurrency(
 			case 17:
 				_ = adb.IsPruningEnabled()
 			case 18:
-				_ = adb.GetAllLeaves(common.AllLeavesChannels{}, context.Background(), rootHash)
+				_ = adb.GetAllLeaves(common.TrieNodesChannels{}, context.Background(), rootHash)
 			case 19:
 				_, _ = adb.RecreateAllTries(rootHash)
 			case 20:

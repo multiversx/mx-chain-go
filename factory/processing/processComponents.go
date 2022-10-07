@@ -852,7 +852,7 @@ func (pcf *processComponentsFactory) indexGenesisAccounts() error {
 		return err
 	}
 
-	leavesChannels := common.AllLeavesChannels{
+	leavesChannels := common.TrieNodesChannels{
 		LeavesChannel: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 	}
 	err = pcf.state.AccountsAdapter().GetAllLeaves(leavesChannels, context.Background(), rootHash)
@@ -861,7 +861,7 @@ func (pcf *processComponentsFactory) indexGenesisAccounts() error {
 	}
 
 	genesisAccounts := make([]data.UserAccountHandler, 0)
-	for leaf := range leavesChannels.LeavesChannel {
+	for leaf := range leavesChannels.LeavesChan {
 		userAccount, errUnmarshal := pcf.unmarshalUserAccount(leaf.Key(), leaf.Value())
 		if errUnmarshal != nil {
 			log.Debug("cannot unmarshal genesis user account. it may be a code leaf", "error", errUnmarshal)

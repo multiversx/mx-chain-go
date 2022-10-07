@@ -447,7 +447,7 @@ func (tr *patriciaMerkleTrie) GetSerializedNodes(rootHash []byte, maxBuffToSend 
 
 // GetAllLeavesOnChannel adds all the trie leaves to the given channel
 func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(
-	leavesChannels common.AllLeavesChannels,
+	leavesChannels common.TrieNodesChannels,
 	ctx context.Context,
 	rootHash []byte,
 	keyBuilder common.KeyBuilder,
@@ -456,13 +456,13 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(
 	newTrie, err := tr.recreate(rootHash, tr.trieStorage)
 	if err != nil {
 		tr.mutOperation.RUnlock()
-		close(leavesChannels.LeavesChannel)
+		close(leavesChannels.LeavesChan)
 		return err
 	}
 
 	if check.IfNil(newTrie) || newTrie.root == nil {
 		tr.mutOperation.RUnlock()
-		close(leavesChannels.LeavesChannel)
+		close(leavesChannels.LeavesChan)
 		return nil
 	}
 
@@ -471,7 +471,7 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(
 
 	go func() {
 		err = newTrie.root.getAllLeavesOnChannel(
-			leavesChannels.LeavesChannel,
+			leavesChannels.LeavesChan,
 			keyBuilder,
 			tr.trieStorage,
 			tr.marshalizer,
@@ -479,6 +479,7 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(
 			ctx,
 		)
 		if err != nil {
+			writeInChanNonBlocking(leavesChannels.ErrChan, err)
 			log.Error("could not get all trie leaves: ", "error", err)
 		}
 
@@ -486,7 +487,7 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(
 		tr.trieStorage.ExitPruningBufferingMode()
 		tr.mutOperation.Unlock()
 
-		close(leavesChannels.LeavesChannel)
+		close(leavesChannels.LeavesChan)
 	}()
 
 	return nil
