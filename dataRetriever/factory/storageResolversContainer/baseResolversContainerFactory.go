@@ -240,3 +240,10 @@ func (brcf *baseResolversContainerFactory) generatePeerAuthenticationResolver() 
 
 	return brcf.container.Add(identifierPeerAuth, peerAuthResolver)
 }
+
+func (brcf *baseResolversContainerFactory) generateValidatorInfoResolver() error {
+	identifierValidatorInfo := common.ValidatorInfoTopic
+	validatorInfoResolver := disabledResolvers.NewDisabledValidatorInfoResolver()
+
+	return brcf.container.Add(identifierValidatorInfo, validatorInfoResolver)
+}
