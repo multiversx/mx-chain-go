@@ -188,7 +188,7 @@ func (bg *blockGroup) getAlteredAccountsByNonce(c *gin.Context) {
 		return
 	}
 
-	shared.RespondWith(c, http.StatusOK, gin.H{"accounts": alteredAccountsResponse}, "", shared.ReturnCodeSuccess)
+	shared.RespondWithSuccess(c, gin.H{"accounts": alteredAccountsResponse})
 }
 
 func (bg *blockGroup) getAlteredAccountsByHash(c *gin.Context) {
@@ -210,13 +210,13 @@ func (bg *blockGroup) getAlteredAccountsByHash(c *gin.Context) {
 
 	start := time.Now()
 	alteredAccountsResponse, err := bg.getFacade().GetAlteredAccountsForBlock(options)
-	logging.LogAPIActionDurationIfNeeded(start, "API call: GetAlteredAccountsForBlock by nonce")
+	logging.LogAPIActionDurationIfNeeded(start, "API call: GetAlteredAccountsForBlock by hash")
 	if err != nil {
 		shared.RespondWithInternalError(c, errors.ErrGetAlteredAccountsForBlock, err)
 		return
 	}
 
-	shared.RespondWith(c, http.StatusOK, gin.H{"accounts": alteredAccountsResponse}, "", shared.ReturnCodeSuccess)
+	shared.RespondWithSuccess(c, gin.H{"accounts": alteredAccountsResponse})
 }
 
 func parseBlockQueryOptions(c *gin.Context) (api.BlockQueryOptions, error) {

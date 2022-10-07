@@ -408,7 +408,7 @@ func shouldIncludeAllTokens(tokensFilter string) bool {
 	return tokensFilter == "*" || tokensFilter == "all"
 }
 
-func (bap *baseAPIBlockProcessor) apiBlockToTxsPool(apiBlock *api.Block) *outport.Pool {
+func (bap *baseAPIBlockProcessor) apiBlockToOutportPool(apiBlock *api.Block) *outport.Pool {
 	pool := &outport.Pool{
 		Txs:     make(map[string]data.TransactionHandlerWithGasUsedAndFee),
 		Scrs:    make(map[string]data.TransactionHandlerWithGasUsedAndFee),

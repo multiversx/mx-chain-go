@@ -99,7 +99,7 @@ func (sbp *shardAPIBlockProcessor) GetAlteredAccountsForBlock(options api.GetAlt
 		return nil, err
 	}
 
-	txPool := sbp.apiBlockToTxsPool(apiBlock)
+	outportPool := sbp.apiBlockToOutportPool(apiBlock)
 
 	rootHash, err := hex.DecodeString(apiBlock.StateRootHash)
 	if err != nil {
@@ -115,7 +115,7 @@ func (sbp *shardAPIBlockProcessor) GetAlteredAccountsForBlock(options api.GetAlt
 		},
 	}
 
-	alteredAccounts, err := sbp.alteredAccountsProvider.ExtractAlteredAccountsFromPool(txPool, alteredAccountsOptions)
+	alteredAccounts, err := sbp.alteredAccountsProvider.ExtractAlteredAccountsFromPool(outportPool, alteredAccountsOptions)
 	if err != nil {
 		return nil, err
 	}

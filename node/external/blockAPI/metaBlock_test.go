@@ -699,9 +699,9 @@ func TestMetaAPIBlockProcessor_GetAlteredAccountsForBlock(t *testing.T) {
 			},
 		}
 		metaAPIBlockProc.alteredAccountsProvider = &testscommon.AlteredAccountsProviderStub{
-			ExtractAlteredAccountsFromPoolCalled: func(txPool *outportcore.Pool, options shared.AlteredAccountsOptions) (map[string]*outportcore.AlteredAccount, error) {
+			ExtractAlteredAccountsFromPoolCalled: func(outportPool *outportcore.Pool, options shared.AlteredAccountsOptions) (map[string]*outportcore.AlteredAccount, error) {
 				retMap := map[string]*outportcore.AlteredAccount{}
-				for _, tx := range txPool.Txs {
+				for _, tx := range outportPool.Txs {
 					retMap[string(tx.GetSndAddr())] = &outportcore.AlteredAccount{
 						Address: string(tx.GetSndAddr()),
 						Balance: "10",

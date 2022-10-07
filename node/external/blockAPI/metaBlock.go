@@ -96,7 +96,7 @@ func (mbp *metaAPIBlockProcessor) GetAlteredAccountsForBlock(options api.GetAlte
 		return nil, err
 	}
 
-	txPool := mbp.apiBlockToTxsPool(apiBlock)
+	txPool := mbp.apiBlockToOutportPool(apiBlock)
 
 	rootHash, err := hex.DecodeString(apiBlock.StateRootHash)
 	if err != nil {

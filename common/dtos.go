@@ -55,17 +55,22 @@ type InitialAccountAPI struct {
 	Delegation   DelegationDataAPI `json:"delegation"`
 }
 
+// AlteredAccountTokenAPIResponse holds the properties of an altered account's token
 type AlteredAccountTokenAPIResponse struct {
 	Name  string `json:"name"`
 	Value string `json:"value"`
 }
 
+//TODO: outport.AlteredAccount can be used instead since it's the same struct, but also has the nonce
+
+// AlteredAccountAPIResponse holds the properties of an altered account response for API
 type AlteredAccountAPIResponse struct {
 	Address string                      `json:"address"`
 	Balance string                      `json:"balance"`
 	Tokens  []*outport.AccountTokenData `json:"tokens,omitempty"`
 }
 
+// AlteredAccountsForBlockAPIResponse holds the altered accounts for a certain block
 type AlteredAccountsForBlockAPIResponse struct {
 	Accounts []*AlteredAccountAPIResponse `json:"accounts"`
 }
