@@ -310,3 +310,47 @@ func TestDirectConnectionsProcessor_sendMessageToNewConnections(t *testing.T) {
 		}
 	})
 }
+
+func TestDirectConnectionsProcessor_DisconnectedShouldNotPanic(t *testing.T) {
+	t.Parallel()
+
+	defer func() {
+		r := recover()
+		if r != nil {
+			assert.Fail(t, "should have not panicked %v", r)
+		}
+	}()
+
+	args := createMockArgDirectConnectionsProcessor()
+	cp, _ := NewDirectConnectionsProcessorNoGoRoutine(args)
+	cp.Disconnected("")
+}
+
+func TestDirectConnectionsProcessor_ParallelExecution(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgDirectConnectionsProcessor()
+	cp, _ := NewDirectConnectionsProcessorNoGoRoutine(args)
+
+	numGoRoutines := 1000
+	wg := &sync.WaitGroup{}
+	wg.Add(numGoRoutines)
+	for i := 0; i < numGoRoutines; i++ {
+		go func(idx int) {
+			time.Sleep(time.Millisecond * 10)
+
+			switch idx {
+			case 0:
+				cp.Connected("pid", "")
+			case 1:
+				cp.Disconnected("pid")
+			case 2:
+				cp.sendMessageToNewConnections()
+			}
+
+			wg.Done()
+		}(i % 3)
+	}
+
+	wg.Wait()
+}

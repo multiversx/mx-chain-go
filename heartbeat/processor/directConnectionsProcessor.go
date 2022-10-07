@@ -163,9 +163,7 @@ func (dcp *directConnectionsProcessor) notifyNewPeers(newPeers []core.PeerID) {
 		errNotCritical := dcp.messenger.SendToConnectedPeer(common.ConnectionTopic, shardValidatorInfoBuff, newPeer)
 		if errNotCritical != nil {
 			log.Trace("directConnectionsProcessor.notifyNewPeers", "pid", newPeer.Pretty(), "error", errNotCritical)
-			continue
 		}
-
 	}
 }
 
