@@ -1,6 +1,7 @@
 package groups
 
 import (
+	"encoding/hex"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -166,18 +167,14 @@ func (bg *blockGroup) getAlteredAccountsByNonce(c *gin.Context) {
 		return
 	}
 
-	tokensFilter, withMetadata, err := parseAlteredAccountsForBlockQueryOptions(c)
+	options, err := parseAlteredAccountsForBlockQueryOptionsWithoutRequestType(c)
 	if err != nil {
 		shared.RespondWithValidationError(c, errors.ErrGetAlteredAccountsForBlock, err)
 	}
 
-	options := api.GetAlteredAccountsForBlockOptions{
-		GetBlockParameters: api.GetBlockParameters{
-			RequestType: api.BlockFetchTypeByNonce,
-			Nonce:       nonce,
-		},
-		TokensFilter: tokensFilter,
-		WithMetadata: withMetadata,
+	options.GetBlockParameters = api.GetBlockParameters{
+		RequestType: api.BlockFetchTypeByNonce,
+		Nonce:       nonce,
 	}
 
 	start := time.Now()
@@ -188,24 +185,25 @@ func (bg *blockGroup) getAlteredAccountsByNonce(c *gin.Context) {
 		return
 	}
 
-	shared.RespondWithSuccess(c, gin.H{"accounts": alteredAccountsResponse})
+	shared.RespondWithSuccess(c, gin.H{"accounts": alteredAccountsResponse.Accounts})
 }
 
 func (bg *blockGroup) getAlteredAccountsByHash(c *gin.Context) {
-	hash := c.Param("hash")
-
-	tokensFilter, withMetadata, err := parseAlteredAccountsForBlockQueryOptions(c)
+	hash, err := getQueryParamHash(c)
 	if err != nil {
 		shared.RespondWithValidationError(c, errors.ErrGetAlteredAccountsForBlock, err)
+		return
 	}
 
-	options := api.GetAlteredAccountsForBlockOptions{
-		GetBlockParameters: api.GetBlockParameters{
-			RequestType: api.BlockFetchTypeByHash,
-			Hash:        hash,
-		},
-		TokensFilter: tokensFilter,
-		WithMetadata: withMetadata,
+	options, err := parseAlteredAccountsForBlockQueryOptionsWithoutRequestType(c)
+	if err != nil {
+		shared.RespondWithValidationError(c, errors.ErrGetAlteredAccountsForBlock, err)
+		return
+	}
+
+	options.GetBlockParameters = api.GetBlockParameters{
+		RequestType: api.BlockFetchTypeByHash,
+		Hash:        hash,
 	}
 
 	start := time.Now()
@@ -216,7 +214,7 @@ func (bg *blockGroup) getAlteredAccountsByHash(c *gin.Context) {
 		return
 	}
 
-	shared.RespondWithSuccess(c, gin.H{"accounts": alteredAccountsResponse})
+	shared.RespondWithSuccess(c, gin.H{"accounts": alteredAccountsResponse.Accounts})
 }
 
 func parseBlockQueryOptions(c *gin.Context) (api.BlockQueryOptions, error) {
@@ -234,24 +232,33 @@ func parseBlockQueryOptions(c *gin.Context) (api.BlockQueryOptions, error) {
 	return options, nil
 }
 
-func parseAlteredAccountsForBlockQueryOptions(c *gin.Context) (string, bool, error) {
+func parseAlteredAccountsForBlockQueryOptionsWithoutRequestType(c *gin.Context) (api.GetAlteredAccountsForBlockOptions, error) {
 	tokensFilter := c.Request.URL.Query().Get(urlParamTokensFilter)
 
 	withMetadata, err := parseBoolUrlParam(c, urlParamWithMetadata)
 	if err != nil {
-		return "", false, err
+		return api.GetAlteredAccountsForBlockOptions{}, err
 	}
 
 	if withMetadata && len(tokensFilter) == 0 {
-		return "", false, errors.ErrIncompatibleWithMetadataParam
+		return api.GetAlteredAccountsForBlockOptions{}, errors.ErrIncompatibleWithMetadataParam
 	}
 
-	return tokensFilter, withMetadata, nil
+	return api.GetAlteredAccountsForBlockOptions{
+		TokensFilter: tokensFilter,
+		WithMetadata: withMetadata,
+	}, nil
 }
 
 func getQueryParamNonce(c *gin.Context) (uint64, error) {
 	nonceStr := c.Param("nonce")
 	return strconv.ParseUint(nonceStr, 10, 64)
+}
+
+func getQueryParamHash(c *gin.Context) ([]byte, error) {
+	hash := c.Param("hash")
+
+	return hex.DecodeString(hash)
 }
 
 func getQueryParamRound(c *gin.Context) (uint64, error) {

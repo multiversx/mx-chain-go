@@ -123,15 +123,18 @@ func (mbp *metaAPIBlockProcessor) GetAlteredAccountsForBlock(options api.GetAlte
 
 func (mbp *metaAPIBlockProcessor) getHashAndBlockBytesFromStorer(params api.GetBlockParameters) ([]byte, []byte, error) {
 	if params.RequestType == api.BlockFetchTypeByHash {
-		hashBytes, err := hex.DecodeString(params.Hash)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		headerBytes, err := mbp.getFromStorer(dataRetriever.MetaBlockUnit, hashBytes)
-		return hashBytes, headerBytes, err
+		return mbp.getHashAndBlockBytesFromStorerByHash(params)
 	}
 
+	return mbp.getHashAndBlockBytesFromStorerByNonce(params)
+}
+
+func (mbp *metaAPIBlockProcessor) getHashAndBlockBytesFromStorerByHash(params api.GetBlockParameters) ([]byte, []byte, error) {
+	headerBytes, err := mbp.getFromStorer(dataRetriever.MetaBlockUnit, params.Hash)
+	return params.Hash, headerBytes, err
+}
+
+func (mbp *metaAPIBlockProcessor) getHashAndBlockBytesFromStorerByNonce(params api.GetBlockParameters) ([]byte, []byte, error) {
 	storerUnit := dataRetriever.MetaHdrNonceHashDataUnit
 
 	nonceToByteSlice := mbp.uint64ByteSliceConverter.ToByteSlice(params.Nonce)

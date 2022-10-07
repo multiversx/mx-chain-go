@@ -126,13 +126,8 @@ func (sbp *shardAPIBlockProcessor) GetAlteredAccountsForBlock(options api.GetAlt
 
 func (sbp *shardAPIBlockProcessor) getHashAndBlockBytesFromStorer(params api.GetBlockParameters) ([]byte, []byte, error) {
 	if params.RequestType == api.BlockFetchTypeByHash {
-		hashBytes, err := hex.DecodeString(params.Hash)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		headerBytes, err := sbp.getFromStorer(dataRetriever.BlockHeaderUnit, hashBytes)
-		return hashBytes, headerBytes, err
+		headerBytes, err := sbp.getFromStorer(dataRetriever.BlockHeaderUnit, params.Hash)
+		return params.Hash, headerBytes, err
 	}
 
 	storerUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(sbp.selfShardID)

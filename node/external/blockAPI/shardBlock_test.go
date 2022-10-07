@@ -474,11 +474,7 @@ func TestShardAPIBlockProcessor_GetAlteredAccountsForBlock(t *testing.T) {
 		}
 		metaAPIBlockProc.txStatusComputer = &mock.StatusComputerStub{}
 
-		metaAPIBlockProc.logsFacade = &testscommon.LogsFacadeStub{
-			IncludeLogsInTransactionsCalled: func(_ []*transaction.ApiTransactionResult, _ [][]byte, _ uint32) error {
-				return nil
-			},
-		}
+		metaAPIBlockProc.logsFacade = &testscommon.LogsFacadeStub{}
 		metaAPIBlockProc.alteredAccountsProvider = &testscommon.AlteredAccountsProviderStub{
 			ExtractAlteredAccountsFromPoolCalled: func(txPool *outportcore.Pool, options shared.AlteredAccountsOptions) (map[string]*outportcore.AlteredAccount, error) {
 				retMap := map[string]*outportcore.AlteredAccount{}
@@ -496,7 +492,7 @@ func TestShardAPIBlockProcessor_GetAlteredAccountsForBlock(t *testing.T) {
 		res, err := metaAPIBlockProc.GetAlteredAccountsForBlock(api.GetAlteredAccountsForBlockOptions{
 			GetBlockParameters: api.GetBlockParameters{
 				RequestType: api.BlockFetchTypeByHash,
-				Hash:        hex.EncodeToString(headerHash),
+				Hash:        headerHash,
 			},
 		})
 		require.NoError(t, err)

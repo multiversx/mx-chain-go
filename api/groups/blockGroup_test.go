@@ -1,6 +1,7 @@
 package groups_test
 
 import (
+	"encoding/hex"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -32,6 +33,14 @@ func TestNewBlockGroup(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, hg)
 	})
+}
+
+type alteredAccountsForBlockResponse struct {
+	Data struct {
+		Accounts []*common.AlteredAccountAPIResponse `json:"accounts"`
+	} `json:"data"`
+	Error string `json:"error"`
+	Code  string `json:"code"`
 }
 
 type blockResponseData struct {
@@ -454,9 +463,9 @@ func TestGetAlteredAccountsByNonce_ShouldWork(t *testing.T) {
 
 	ws := startWebServer(blockGroup, "block", getBlockRoutesConfig())
 
-	response, code := httpGetBlock(ws, "/block/altered-accounts/by-nonce/37")
+	response, code := httpGetAlteredAccountsForBlockBlock(ws, "/block/altered-accounts/by-nonce/37")
 	require.Equal(t, http.StatusOK, code)
-	require.NotNil(t, response)
+	require.Equal(t, expectedResponse.Accounts, response.Data.Accounts)
 }
 
 func TestGetAlteredAccountsByHash_ShouldWork(t *testing.T) {
@@ -473,7 +482,7 @@ func TestGetAlteredAccountsByHash_ShouldWork(t *testing.T) {
 	facade := mock.FacadeStub{
 		GetAlteredAccountsForBlockCalled: func(options api.GetAlteredAccountsForBlockOptions) (*common.AlteredAccountsForBlockAPIResponse, error) {
 			require.Equal(t, api.BlockFetchTypeByHash, options.RequestType)
-			require.Equal(t, "hash", options.Hash)
+			require.Equal(t, "aabb", hex.EncodeToString(options.Hash))
 
 			return expectedResponse, nil
 		},
@@ -484,9 +493,9 @@ func TestGetAlteredAccountsByHash_ShouldWork(t *testing.T) {
 
 	ws := startWebServer(blockGroup, "block", getBlockRoutesConfig())
 
-	response, code := httpGetBlock(ws, "/block/altered-accounts/by-hash/hash")
+	response, code := httpGetAlteredAccountsForBlockBlock(ws, "/block/altered-accounts/by-hash/aabb")
 	require.Equal(t, http.StatusOK, code)
-	require.NotNil(t, response)
+	require.Equal(t, expectedResponse.Accounts, response.Data.Accounts)
 }
 
 func httpGetBlock(ws *gin.Engine, url string) (blockResponse, int) {
@@ -497,4 +506,14 @@ func httpGetBlock(ws *gin.Engine, url string) (blockResponse, int) {
 	blockResponse := blockResponse{}
 	loadResponse(httpResponse.Body, &blockResponse)
 	return blockResponse, httpResponse.Code
+}
+
+func httpGetAlteredAccountsForBlockBlock(ws *gin.Engine, url string) (alteredAccountsForBlockResponse, int) {
+	httpRequest, _ := http.NewRequest("GET", url, nil)
+	httpResponse := httptest.NewRecorder()
+	ws.ServeHTTP(httpResponse, httpRequest)
+
+	response := alteredAccountsForBlockResponse{}
+	loadResponse(httpResponse.Body, &response)
+	return response, httpResponse.Code
 }

@@ -357,7 +357,7 @@ func bigIntToStr(value *big.Int) string {
 
 func alteredAccountsMapToAPIResponse(alteredAccounts map[string]*outport.AlteredAccount, tokensFilter string, withMetadata bool) *common.AlteredAccountsForBlockAPIResponse {
 	response := &common.AlteredAccountsForBlockAPIResponse{
-		Accounts: make([]*common.AlteredAccountAPIResponse, 0),
+		Accounts: make([]*common.AlteredAccountAPIResponse, 0, len(alteredAccounts)),
 	}
 
 	for address, altAccount := range alteredAccounts {
