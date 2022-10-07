@@ -18,11 +18,11 @@ var log = logger.GetOrCreate("processProxy")
 
 var _ scrCommon.TestSmartContractProcessor = (*scProcessorProxy)(nil)
 
-type configuredProcessor string
+type configuredProcessor uint8
 
 const (
-	procV1 configuredProcessor = "processorV1"
-	procV2 configuredProcessor = "processorV2"
+	procV1 = iota
+	procV2
 )
 
 type scProcessorProxy struct {
@@ -85,16 +85,22 @@ func NewSmartContractProcessorProxy(args scrCommon.ArgsNewSmartContractProcessor
 
 func (proxy *scProcessorProxy) createProcessorV1() error {
 	processor, err := smartContract.NewSmartContractProcessor(proxy.args)
+	if err != nil {
+		return err
+	}
 	proxy.processorsCache[procV1] = processor
 	proxy.testProcessorsCache[procV1] = smartContract.NewTestScProcessor(processor)
-	return err
+	return nil
 }
 
 func (proxy *scProcessorProxy) createProcessorV2() error {
 	processor, err := processorV2.NewSmartContractProcessorV2(proxy.args)
+	if err != nil {
+		return err
+	}
 	proxy.processorsCache[procV2] = processor
 	proxy.testProcessorsCache[procV2] = processorV2.NewTestScProcessor(processor)
-	return err
+	return nil
 }
 
 func (proxy *scProcessorProxy) setActiveProcessorV1() {
