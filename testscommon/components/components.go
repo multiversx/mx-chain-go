@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
@@ -46,6 +45,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/trie"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
+	arwenConfig "github.com/ElrondNetwork/wasm-vm/config"
 	"github.com/stretchr/testify/require"
 )
 
