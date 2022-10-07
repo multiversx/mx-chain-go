@@ -88,6 +88,9 @@ var ErrNilBootstrapComponents = errors.New("nil bootstrap componennts")
 // ErrNilCoreComponents signals that a nil core components instance has been provided
 var ErrNilCoreComponents = errors.New("nil core components")
 
+// ErrNilStatusCoreComponents signals that a nil status core components has been provided
+var ErrNilStatusCoreComponents = errors.New("nil status core components")
+
 // ErrNilCryptoComponents signals that a nil crypto components instance has been provided
 var ErrNilCryptoComponents = errors.New("nil crypto components")
 

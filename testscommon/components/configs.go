@@ -9,13 +9,13 @@ func GetGeneralConfig() config.Config {
 	return config.Config{
 		AddressPubkeyConverter: config.PubkeyConfig{
 			Length:          32,
-			Type:            "hex",
+			Type:            "bech32",
 			SignatureLength: 0,
 		},
 		ValidatorPubkeyConverter: config.PubkeyConfig{
 			Length:          96,
 			Type:            "hex",
-			SignatureLength: 0,
+			SignatureLength: 48,
 		},
 		StateTriesConfig: config.StateTriesConfig{
 			CheckpointRoundsModulus:     5,
@@ -142,6 +142,75 @@ func GetGeneralConfig() config.Config {
 				"erd1najnxxweyw6plhg8efql330nttrj6l5cf87wqsuym85s9ha0hmdqnqgenp", //shard 2
 			},
 			MaxNumAddressesInTransferRole: 100,
+		},
+		EpochStartConfig: GetEpochStartConfig(),
+		PublicKeyPeerId: config.CacheConfig{
+			Type:     "LRU",
+			Capacity: 5000,
+			Shards:   16,
+		},
+		PublicKeyShardId: config.CacheConfig{
+			Type:     "LRU",
+			Capacity: 5000,
+			Shards:   16,
+		},
+		PeerIdShardId: config.CacheConfig{
+			Type:     "LRU",
+			Capacity: 5000,
+			Shards:   16,
+		},
+		PeerHonesty: config.CacheConfig{
+			Type:     "LRU",
+			Capacity: 5000,
+			Shards:   16,
+		},
+		GeneralSettings: config.GeneralSettingsConfig{
+			ChainID:                  "undefined",
+			MinTransactionVersion:    1,
+			GenesisMaxNumberOfShards: 3,
+		},
+		Marshalizer: config.MarshalizerConfig{
+			Type:           TestMarshalizer,
+			SizeCheckDelta: 0,
+		},
+		Hasher: config.TypeConfig{
+			Type: TestHasher,
+		},
+		VmMarshalizer: config.TypeConfig{
+			Type: TestMarshalizer,
+		},
+		TxSignMarshalizer: config.TypeConfig{
+			Type: TestMarshalizer,
+		},
+		TxSignHasher: config.TypeConfig{
+			Type: TestHasher,
+		},
+		Consensus: config.ConsensusConfig{
+			Type: "bls",
+		},
+		ValidatorStatistics: config.ValidatorStatisticsConfig{
+			CacheRefreshIntervalInSec: uint32(100),
+		},
+		SoftwareVersionConfig: config.SoftwareVersionConfig{
+			PollingIntervalInMinutes: 30,
+		},
+		Versions: config.VersionsConfig{
+			DefaultVersion:   "1",
+			VersionsByEpochs: nil,
+			Cache: config.CacheConfig{
+				Type:     "LRU",
+				Capacity: 1000,
+				Shards:   1,
+			},
+		},
+		Hardfork: config.HardforkConfig{
+			PublicKeyToListenFrom: DummyPk,
+		},
+		HeartbeatV2: config.HeartbeatV2Config{
+			HeartbeatExpiryTimespanInSec: 10,
+		},
+		ResourceStats: config.ResourceStatsConfig{
+			RefreshIntervalInSec: 1,
 		},
 	}
 }

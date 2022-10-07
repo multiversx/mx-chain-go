@@ -6,17 +6,17 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/common/holders"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	atomicFlag "github.com/ElrondNetwork/elrond-go-core/core/atomic"
+	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/common/holders"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -2512,7 +2512,7 @@ func TestAccountsDB_NewAccountsDbStartsSnapshotAfterRestart(t *testing.T) {
 	t.Parallel()
 
 	rootHash := []byte("rootHash")
-	takeSnapshotCalled := atomicFlag.Flag{}
+	takeSnapshotCalled := atomic.Flag{}
 	trieStub := &trieMock.TrieStub{
 		RootCalled: func() ([]byte, error) {
 			return rootHash, nil

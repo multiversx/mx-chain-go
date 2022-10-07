@@ -86,6 +86,7 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		CheckFunctionArgumentEnableEpoch:                  70,
 		CheckExecuteOnReadOnlyEnableEpoch:                 71,
 		FixAsyncCallBackArgsListEnableEpoch:               72,
+		FixOldTokenLiquidityEnableEpoch:                   73,
 	}
 }
 
@@ -124,7 +125,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		handler, _ := NewEnableEpochsHandler(cfg, &epochNotifier.EpochNotifierStub{})
 		require.False(t, check.IfNil(handler))
 
-		handler.EpochConfirmed(75, 0)
+		handler.EpochConfirmed(76, 0)
 
 		assert.Equal(t, cfg.BlockGasAndFeesReCheckEnableEpoch, handler.BlockGasAndFeesReCheckEnableEpoch())
 		assert.True(t, handler.IsSCDeployFlagEnabled())
@@ -204,6 +205,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsCheckFunctionArgumentFlagEnabled())
 		assert.True(t, handler.IsCheckExecuteOnReadOnlyFlagEnabled())
 		assert.True(t, handler.IsChangeDelegationOwnerFlagEnabled())
+		assert.True(t, handler.IsFixOldTokenLiquidityEnabled())
 	})
 	t.Run("flags with == condition should be set, along with all >=", func(t *testing.T) {
 		t.Parallel()
@@ -299,6 +301,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsCheckExecuteOnReadOnlyFlagEnabled())
 		assert.True(t, handler.IsChangeDelegationOwnerFlagEnabled())
 		assert.True(t, handler.IsFixAsyncCallBackArgsListFlagEnabled())
+		assert.True(t, handler.IsFixOldTokenLiquidityEnabled())
 	})
 	t.Run("flags with < should be set", func(t *testing.T) {
 		t.Parallel()
@@ -389,5 +392,6 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.False(t, handler.IsCheckExecuteOnReadOnlyFlagEnabled())
 		assert.False(t, handler.IsChangeDelegationOwnerFlagEnabled())
 		assert.False(t, handler.IsFixAsyncCallBackArgsListFlagEnabled())
+		assert.False(t, handler.IsFixOldTokenLiquidityEnabled())
 	})
 }
