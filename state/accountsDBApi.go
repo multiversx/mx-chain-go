@@ -80,7 +80,7 @@ func (accountsDB *accountsDBApi) SetSyncer(_ AccountsDBSyncer) error {
 	return nil
 }
 
-// StartSnapshotIfNeeded  returns nil for this implementation
+// StartSnapshotIfNeeded returns nil for this implementation
 func (accountsDB *accountsDBApi) StartSnapshotIfNeeded() error {
 	return nil
 }
