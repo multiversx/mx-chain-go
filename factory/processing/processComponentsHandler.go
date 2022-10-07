@@ -73,8 +73,8 @@ func (m *managedProcessComponents) Close() error {
 
 // CheckSubcomponents verifies all subcomponents
 func (m *managedProcessComponents) CheckSubcomponents() error {
-	m.mutProcessComponents.Lock()
-	defer m.mutProcessComponents.Unlock()
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
 
 	if m.processComponents == nil {
 		return errors.ErrNilProcessComponents
