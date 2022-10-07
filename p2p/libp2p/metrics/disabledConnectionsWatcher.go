@@ -9,8 +9,11 @@ func NewDisabledConnectionsWatcher() *disabledConnectionsWatcher {
 	return &disabledConnectionsWatcher{}
 }
 
-// NewKnownConnection does nothing
-func (dcw *disabledConnectionsWatcher) NewKnownConnection(_ core.PeerID, _ string) {}
+// Connected does nothing
+func (dcw *disabledConnectionsWatcher) Connected(_ core.PeerID, _ string) {}
+
+// Disconnected does nothing
+func (dcw *disabledConnectionsWatcher) Disconnected(_ core.PeerID) {}
 
 // Close does nothing and returns nil
 func (dcw *disabledConnectionsWatcher) Close() error {

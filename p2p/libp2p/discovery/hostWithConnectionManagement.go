@@ -49,7 +49,7 @@ func NewHostWithConnectionManagement(args ArgsHostWithConnectionManagement) (*ho
 // Connect tries to connect to the provided address info if the sharder allows it
 func (hwcm *hostWithConnectionManagement) Connect(ctx context.Context, pi peer.AddrInfo) error {
 	addresses := concatenateAddresses(pi.Addrs)
-	hwcm.connectionsWatcher.NewKnownConnection(core.PeerID(pi.ID), addresses)
+	hwcm.connectionsWatcher.Connected(core.PeerID(pi.ID), addresses)
 	err := hwcm.canConnectToPeer(pi.ID)
 	if err != nil {
 		return err

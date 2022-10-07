@@ -59,7 +59,7 @@ func TestPrintConnectionsWatcher_Close(t *testing.T) {
 
 }
 
-func TestPrintConnectionsWatcher_NewKnownConnection(t *testing.T) {
+func TestPrintConnectionsWatcher_Connected(t *testing.T) {
 	t.Parallel()
 
 	t.Run("invalid connection", func(t *testing.T) {
@@ -72,7 +72,7 @@ func TestPrintConnectionsWatcher_NewKnownConnection(t *testing.T) {
 		}
 		pcw, _ := NewPrintConnectionsWatcherWithHandler(time.Hour, handler)
 
-		pcw.NewKnownConnection(providedPid, connection)
+		pcw.Connected(providedPid, connection)
 		assert.Equal(t, 0, numCalled)
 	})
 	t.Run("valid connection", func(t *testing.T) {
@@ -87,11 +87,27 @@ func TestPrintConnectionsWatcher_NewKnownConnection(t *testing.T) {
 		}
 		pcw, _ := NewPrintConnectionsWatcherWithHandler(time.Hour, handler)
 
-		pcw.NewKnownConnection(providedPid, connection)
+		pcw.Connected(providedPid, connection)
 		assert.Equal(t, 1, numCalled)
-		pcw.NewKnownConnection(providedPid, connection)
+		pcw.Connected(providedPid, connection)
 		assert.Equal(t, 1, numCalled)
 	})
+}
+
+func TestPrintConnectionsWatcher_DisconnectedShouldNotPanic(t *testing.T) {
+	t.Parallel()
+
+	defer func() {
+		r := recover()
+		if r != nil {
+			assert.Fail(t, fmt.Sprintf("should have not panic: %v", r))
+		}
+	}()
+
+	pcw, _ := NewPrintConnectionsWatcher(time.Second)
+	pcw.Disconnected("")
+
+	_ = pcw.Close()
 }
 
 func TestLogPrintHandler_shouldNotPanic(t *testing.T) {

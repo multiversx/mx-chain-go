@@ -24,7 +24,7 @@ func createMockArgsConnectionMonitorSimple() ArgsConnectionMonitorSimple {
 		ThresholdMinConnectedPeers: 3,
 		Sharder:                    &mock.KadSharderStub{},
 		PreferredPeersHolder:       &p2pmocks.PeersHolderStub{},
-		ConnectionsWatcher:         &mock.ConnectionsWatcherStub{},
+		PeerEventsHandler:          &mock.PeerEventsHandlerStub{},
 	}
 }
 
@@ -61,14 +61,14 @@ func TestNewLibp2pConnectionMonitorSimple(t *testing.T) {
 		assert.Equal(t, p2p.ErrNilPreferredPeersHolder, err)
 		assert.True(t, check.IfNil(lcms))
 	})
-	t.Run("nil connections watcher should error", func(t *testing.T) {
+	t.Run("nil peer events handler should error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgsConnectionMonitorSimple()
-		args.ConnectionsWatcher = nil
+		args.PeerEventsHandler = nil
 		lcms, err := NewLibp2pConnectionMonitorSimple(args)
 
-		assert.Equal(t, p2p.ErrNilConnectionsWatcher, err)
+		assert.Equal(t, p2p.ErrNilPeerEventsHandler, err)
 		assert.True(t, check.IfNil(lcms))
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -126,10 +126,10 @@ func TestLibp2pConnectionMonitorSimple_ConnectedWithSharderShouldCallEvictAndClo
 			return evictedPid
 		},
 	}
-	knownConnectionCalled := false
-	args.ConnectionsWatcher = &mock.ConnectionsWatcherStub{
-		NewKnownConnectionCalled: func(pid core.PeerID, connection string) {
-			knownConnectionCalled = true
+	connectedCalled := false
+	args.PeerEventsHandler = &mock.PeerEventsHandlerStub{
+		ConnectedCalled: func(pid core.PeerID, connection string) {
+			connectedCalled = true
 		},
 	}
 	putConnectionAddressCalled := false
@@ -159,7 +159,7 @@ func TestLibp2pConnectionMonitorSimple_ConnectedWithSharderShouldCallEvictAndClo
 
 	assert.Equal(t, 1, numClosedWasCalled)
 	assert.Equal(t, 1, numComputeWasCalled)
-	assert.True(t, knownConnectionCalled)
+	assert.True(t, connectedCalled)
 	assert.True(t, putConnectionAddressCalled)
 }
 
@@ -185,7 +185,14 @@ func TestNewLibp2pConnectionMonitorSimple_DisconnectedShouldRemovePeerFromPrefer
 		},
 	}
 
+	disconnectedCalled := false
 	args := createMockArgsConnectionMonitorSimple()
+	args.PeerEventsHandler = &mock.PeerEventsHandlerStub{
+		DisconnectedCalled: func(pid core.PeerID) {
+			assert.Equal(t, core.PeerID(prefPeerID), pid)
+			disconnectedCalled = true
+		},
+	}
 	args.PreferredPeersHolder = prefPeersHolder
 	lcms, _ := NewLibp2pConnectionMonitorSimple(args)
 	lcms.Disconnected(&ns, &mock.ConnStub{
@@ -195,6 +202,7 @@ func TestNewLibp2pConnectionMonitorSimple_DisconnectedShouldRemovePeerFromPrefer
 	})
 
 	require.True(t, removeCalled)
+	assert.True(t, disconnectedCalled)
 	select {
 	case <-chRemoveCalled:
 	case <-time.After(durationTimeoutWaiting):

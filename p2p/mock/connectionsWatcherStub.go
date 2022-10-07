@@ -4,14 +4,22 @@ import "github.com/ElrondNetwork/elrond-go-core/core"
 
 // ConnectionsWatcherStub -
 type ConnectionsWatcherStub struct {
-	NewKnownConnectionCalled func(pid core.PeerID, connection string)
-	CloseCalled              func() error
+	ConnectedCalled    func(pid core.PeerID, connection string)
+	DisconnectedCalled func(pid core.PeerID)
+	CloseCalled        func() error
 }
 
-// NewKnownConnection -
-func (stub *ConnectionsWatcherStub) NewKnownConnection(pid core.PeerID, connection string) {
-	if stub.NewKnownConnectionCalled != nil {
-		stub.NewKnownConnectionCalled(pid, connection)
+// Connected -
+func (stub *ConnectionsWatcherStub) Connected(pid core.PeerID, connection string) {
+	if stub.ConnectedCalled != nil {
+		stub.ConnectedCalled(pid, connection)
+	}
+}
+
+// Disconnected -
+func (stub *ConnectionsWatcherStub) Disconnected(pid core.PeerID) {
+	if stub.DisconnectedCalled != nil {
+		stub.DisconnectedCalled(pid)
 	}
 }
 

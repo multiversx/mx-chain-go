@@ -3,6 +3,7 @@ package libp2p
 import (
 	"context"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/go-libp2p-pubsub"
@@ -18,6 +19,12 @@ var AcceptMessagesInAdvanceDuration = acceptMessagesInAdvanceDuration
 
 const CurrentTopicMessageVersion = currentTopicMessageVersion
 const PollWaitForConnectionsInterval = pollWaitForConnectionsInterval
+
+// TestMessenger should only be used in tests
+type TestMessenger interface {
+	p2p.Messenger
+	Disconnect(pid core.PeerID) error
+}
 
 // SetHost -
 func (netMes *networkMessenger) SetHost(newHost ConnectableHost) {
@@ -73,6 +80,11 @@ func (netMes *networkMessenger) HasProcessorForTopic(expectedTopic string) bool 
 	return found && processor != nil
 }
 
+// Disconnect -
+func (netMes *networkMessenger) Disconnect(pid core.PeerID) error {
+	return netMes.p2pHost.Network().ClosePeer(peer.ID(pid))
+}
+
 // ProcessReceivedDirectMessage -
 func (ds *directSender) ProcessReceivedDirectMessage(message *pb.Message, fromConnectedPeer peer.ID) error {
 	return ds.processReceivedDirectMessage(message, fromConnectedPeer)
@@ -91,4 +103,12 @@ func (ds *directSender) Counter() uint64 {
 // Mutexes -
 func (mh *MutexHolder) Mutexes() storage.Cacher {
 	return mh.mutexes
+}
+
+// GetHandlers -
+func (driver *peerEventsDriver) GetHandlers() []p2p.PeerEventsHandler {
+	driver.mutHandlers.RLock()
+	defer driver.mutHandlers.RUnlock()
+
+	return driver.handlers
 }

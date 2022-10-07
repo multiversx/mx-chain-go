@@ -36,6 +36,12 @@ func NewMockMessenger(
 		return nil, err
 	}
 
+	p2pNode.peerEventsDriver = NewPeerEventsDriver()
+	err = p2pNode.peerEventsDriver.AddHandler(p2pNode.printConnectionsWatcher)
+	if err != nil {
+		return nil, err
+	}
+
 	err = addComponentsToNode(args, p2pNode, withoutMessageSigning)
 	if err != nil {
 		return nil, err

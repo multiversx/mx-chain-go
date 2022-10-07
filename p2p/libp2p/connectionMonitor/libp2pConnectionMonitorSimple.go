@@ -24,7 +24,7 @@ type libp2pConnectionMonitorSimple struct {
 	sharder                    Sharder
 	preferredPeersHolder       p2p.PreferredPeersHolderHandler
 	cancelFunc                 context.CancelFunc
-	connectionsWatcher         p2p.ConnectionsWatcher
+	peerEventsHandler          p2p.PeerEventsHandler
 }
 
 // ArgsConnectionMonitorSimple is the DTO used in the NewLibp2pConnectionMonitorSimple constructor function
@@ -33,7 +33,7 @@ type ArgsConnectionMonitorSimple struct {
 	ThresholdMinConnectedPeers uint32
 	Sharder                    Sharder
 	PreferredPeersHolder       p2p.PreferredPeersHolderHandler
-	ConnectionsWatcher         p2p.ConnectionsWatcher
+	PeerEventsHandler          p2p.PeerEventsHandler
 }
 
 // NewLibp2pConnectionMonitorSimple creates a new connection monitor (version 2 that is more streamlined and does not care
@@ -48,8 +48,8 @@ func NewLibp2pConnectionMonitorSimple(args ArgsConnectionMonitorSimple) (*libp2p
 	if check.IfNil(args.PreferredPeersHolder) {
 		return nil, p2p.ErrNilPreferredPeersHolder
 	}
-	if check.IfNil(args.ConnectionsWatcher) {
-		return nil, p2p.ErrNilConnectionsWatcher
+	if check.IfNil(args.PeerEventsHandler) {
+		return nil, p2p.ErrNilPeerEventsHandler
 	}
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
@@ -61,7 +61,7 @@ func NewLibp2pConnectionMonitorSimple(args ArgsConnectionMonitorSimple) (*libp2p
 		sharder:                    args.Sharder,
 		cancelFunc:                 cancelFunc,
 		preferredPeersHolder:       args.PreferredPeersHolder,
-		connectionsWatcher:         args.ConnectionsWatcher,
+		peerEventsHandler:          args.PeerEventsHandler,
 	}
 
 	go cm.doReconnection(ctx)
@@ -89,7 +89,7 @@ func (lcms *libp2pConnectionMonitorSimple) Connected(netw network.Network, conn 
 
 	peerId := core.PeerID(conn.RemotePeer())
 	connectionStr := conn.RemoteMultiaddr().String()
-	lcms.connectionsWatcher.NewKnownConnection(peerId, connectionStr)
+	lcms.peerEventsHandler.Connected(peerId, connectionStr)
 	lcms.preferredPeersHolder.PutConnectionAddress(peerId, connectionStr)
 
 	evicted := lcms.sharder.ComputeEvictionList(allPeers)
@@ -102,6 +102,7 @@ func (lcms *libp2pConnectionMonitorSimple) Connected(netw network.Network, conn 
 func (lcms *libp2pConnectionMonitorSimple) Disconnected(netw network.Network, conn network.Conn) {
 	if conn != nil {
 		lcms.preferredPeersHolder.Remove(core.PeerID(conn.ID()))
+		lcms.peerEventsHandler.Disconnected(core.PeerID(conn.ID()))
 	}
 
 	lcms.doReconnectionIfNeeded(netw)

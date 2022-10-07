@@ -37,6 +37,7 @@ import (
 )
 
 var timeoutWaitResponses = time.Second * 2
+var log = logger.GetOrCreate("internal tests")
 
 func waitDoneWithTimeout(t *testing.T, chanDone chan bool, timeout time.Duration) {
 	select {
@@ -1697,7 +1698,6 @@ func TestNetworkMessenger_Bootstrap(t *testing.T) {
 	t.Parallel()
 
 	_ = logger.SetLogLevel("*:DEBUG")
-	log := logger.GetOrCreate("internal tests")
 
 	args := libp2p.ArgsNetworkMessenger{
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
@@ -1935,4 +1935,103 @@ func TestLibp2pMessenger_ConnectionTopic(t *testing.T) {
 
 		_ = netMes.Close()
 	})
+}
+
+func TestNetworkMessenger_PeerEvents(t *testing.T) {
+	t.Parallel()
+
+	t.Run("first connection and close should signal only once", func(t *testing.T) {
+		numConnectionsFromPeer1 := uint32(0)
+		numConnectionsFromPeer2 := uint32(0)
+		numDisconnectionsFromPeer1 := uint32(0)
+		numDisconnectionsFromPeer2 := uint32(0)
+		netMes1 := createMockMessengerWithPeerEvents(t, &numConnectionsFromPeer1, &numDisconnectionsFromPeer1)
+		netMes2 := createMockMessengerWithPeerEvents(t, &numConnectionsFromPeer2, &numDisconnectionsFromPeer2)
+
+		err := netMes1.ConnectToPeer(netMes2.Addresses()[0])
+		assert.Nil(t, err)
+
+		log.Info("netMes1 connected to netMes2, wait a bit")
+		time.Sleep(time.Second * 3)
+
+		assert.Equal(t, uint32(1), atomic.LoadUint32(&numConnectionsFromPeer1))
+		assert.Equal(t, uint32(1), atomic.LoadUint32(&numConnectionsFromPeer2))
+
+		log.Info("calling close...")
+		_ = netMes1.Close()
+		_ = netMes2.Close()
+
+		assert.Equal(t, uint32(1), atomic.LoadUint32(&numDisconnectionsFromPeer1))
+		assert.Equal(t, uint32(1), atomic.LoadUint32(&numDisconnectionsFromPeer1))
+
+		log.Info("waiting for go routines to finish...")
+		time.Sleep(time.Second * 1)
+
+		assert.Equal(t, uint32(1), atomic.LoadUint32(&numConnectionsFromPeer1))
+		assert.Equal(t, uint32(1), atomic.LoadUint32(&numConnectionsFromPeer2))
+	})
+	t.Run("double connections, one disconnection and close should signal twice", func(t *testing.T) {
+		numConnectionsFromPeer1 := uint32(0)
+		numConnectionsFromPeer2 := uint32(0)
+		numDisconnectionsFromPeer1 := uint32(0)
+		numDisconnectionsFromPeer2 := uint32(0)
+		netMes1 := createMockMessengerWithPeerEvents(t, &numConnectionsFromPeer1, &numDisconnectionsFromPeer1)
+		netMes2 := createMockMessengerWithPeerEvents(t, &numConnectionsFromPeer2, &numDisconnectionsFromPeer2)
+
+		err := netMes1.ConnectToPeer(netMes2.Addresses()[0])
+		assert.Nil(t, err)
+
+		log.Info("netMes1 connected to netMes2, wait a bit")
+		time.Sleep(time.Second * 3)
+
+		assert.Equal(t, uint32(1), atomic.LoadUint32(&numConnectionsFromPeer1))
+		assert.Equal(t, uint32(1), atomic.LoadUint32(&numConnectionsFromPeer2))
+
+		log.Info("netMes2 from netMes1 and wait a bit")
+		err = netMes2.(libp2p.TestMessenger).Disconnect(netMes1.ID())
+		assert.Nil(t, err)
+
+		time.Sleep(time.Second * 1)
+
+		assert.Equal(t, uint32(1), atomic.LoadUint32(&numDisconnectionsFromPeer1))
+		assert.Equal(t, uint32(1), atomic.LoadUint32(&numDisconnectionsFromPeer1))
+
+		err = netMes2.ConnectToPeer(netMes1.Addresses()[0])
+		assert.Nil(t, err)
+		log.Info("netMes2 connected to netMes1, wait a bit")
+
+		time.Sleep(time.Second * 3)
+
+		assert.Equal(t, uint32(2), atomic.LoadUint32(&numConnectionsFromPeer1))
+		assert.Equal(t, uint32(2), atomic.LoadUint32(&numConnectionsFromPeer2))
+
+		log.Info("calling close...")
+		_ = netMes1.Close()
+		_ = netMes2.Close()
+
+		assert.Equal(t, uint32(2), atomic.LoadUint32(&numDisconnectionsFromPeer1))
+		assert.Equal(t, uint32(2), atomic.LoadUint32(&numDisconnectionsFromPeer1))
+
+		log.Info("waiting for go routines to finish...")
+		time.Sleep(time.Second * 1)
+
+		assert.Equal(t, uint32(2), atomic.LoadUint32(&numConnectionsFromPeer1))
+		assert.Equal(t, uint32(2), atomic.LoadUint32(&numConnectionsFromPeer2))
+	})
+}
+
+func createMockMessengerWithPeerEvents(tb testing.TB, numConnected *uint32, numDisconnected *uint32) p2p.Messenger {
+	eventHandler := &mock.PeerEventsHandlerStub{
+		ConnectedCalled: func(pid core.PeerID, connection string) {
+			atomic.AddUint32(numConnected, 1)
+		},
+		DisconnectedCalled: func(pid core.PeerID) {
+			atomic.AddUint32(numDisconnected, 1)
+		},
+	}
+	netMes, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
+	err := netMes.AddPeerEventsHandler(eventHandler)
+	assert.Nil(tb, err)
+
+	return netMes
 }

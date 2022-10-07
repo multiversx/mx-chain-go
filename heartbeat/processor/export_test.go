@@ -16,9 +16,26 @@ func NewDirectConnectionsProcessorNoGoRoutine(args ArgDirectConnectionsProcessor
 		marshaller:                args.Marshaller,
 		shardCoordinator:          args.ShardCoordinator,
 		delayBetweenNotifications: args.DelayBetweenNotifications,
-		notifiedPeersMap:          make(map[core.PeerID]struct{}),
+		connectedPeersMap:         make(map[core.PeerID]struct{}),
 		nodesCoordinator:          args.NodesCoordinator,
 	}
 
+	err = args.Messenger.AddPeerEventsHandler(dcp)
+	if err != nil {
+		return nil, err
+	}
+
 	return dcp, nil
+}
+
+func (dcp *directConnectionsProcessor) getNewPeers() []core.PeerID {
+	dcp.mutConnectedPeersMap.Lock()
+	defer dcp.mutConnectedPeersMap.Unlock()
+
+	result := make([]core.PeerID, 0, len(dcp.connectedPeersMap))
+	for pid := range dcp.connectedPeersMap {
+		result = append(result, pid)
+	}
+
+	return result
 }

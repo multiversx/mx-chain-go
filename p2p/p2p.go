@@ -38,6 +38,13 @@ const (
 	ConnectionWatcherTypeEmpty = ""
 )
 
+// PeerEventsHandler is able to handle peer events such as connection and/or disconnection
+type PeerEventsHandler interface {
+	Connected(pid core.PeerID, connection string)
+	Disconnected(pid core.PeerID)
+	IsInterfaceNil() bool
+}
+
 // MessageProcessor is the interface used to describe what a receive message processor should do
 // All implementations that will be called from Messenger implementation will need to satisfy this interface
 // If the function returns a non nil value, the received message will not be propagated to its connected peers
@@ -165,6 +172,7 @@ type Messenger interface {
 	WaitForConnections(maxWaitingTime time.Duration, minNumOfPeers uint32)
 	Sign(payload []byte) ([]byte, error)
 	Verify(payload []byte, pid core.PeerID, signature []byte) error
+	AddPeerEventsHandler(handler PeerEventsHandler) error
 
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
@@ -339,9 +347,8 @@ type SyncTimer interface {
 
 // ConnectionsWatcher represent an entity able to watch new connections
 type ConnectionsWatcher interface {
-	NewKnownConnection(pid core.PeerID, connection string)
+	PeerEventsHandler
 	Close() error
-	IsInterfaceNil() bool
 }
 
 // PeersRatingHandler represent an entity able to handle peers ratings

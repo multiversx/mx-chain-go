@@ -20,7 +20,8 @@ func TestDisabledConnectionsWatcher_MethodsShouldNotPanic(t *testing.T) {
 
 	dcw := NewDisabledConnectionsWatcher()
 	assert.False(t, check.IfNil(dcw))
-	dcw.NewKnownConnection("", "")
+	dcw.Connected("", "")
+	dcw.Disconnected("")
 	err := dcw.Close()
 	assert.Nil(t, err)
 }

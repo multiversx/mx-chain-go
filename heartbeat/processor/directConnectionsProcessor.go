@@ -3,6 +3,7 @@ package processor
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -30,9 +31,22 @@ type directConnectionsProcessor struct {
 	marshaller                marshal.Marshalizer
 	shardCoordinator          sharding.Coordinator
 	delayBetweenNotifications time.Duration
-	notifiedPeersMap          map[core.PeerID]struct{}
 	cancel                    func()
 	nodesCoordinator          NodesCoordinator
+
+	mutConnectedPeersMap sync.Mutex
+	connectedPeersMap    map[core.PeerID]struct{}
+}
+
+// Connected is called whenever a new peer is connected
+func (dcp *directConnectionsProcessor) Connected(pid core.PeerID, _ string) {
+	dcp.mutConnectedPeersMap.Lock()
+	dcp.connectedPeersMap[pid] = struct{}{}
+	dcp.mutConnectedPeersMap.Unlock()
+}
+
+// Disconnected does nothing
+func (dcp *directConnectionsProcessor) Disconnected(_ core.PeerID) {
 }
 
 // NewDirectConnectionsProcessor creates a new instance of directConnectionsProcessor
@@ -47,8 +61,13 @@ func NewDirectConnectionsProcessor(args ArgDirectConnectionsProcessor) (*directC
 		marshaller:                args.Marshaller,
 		shardCoordinator:          args.ShardCoordinator,
 		delayBetweenNotifications: args.DelayBetweenNotifications,
-		notifiedPeersMap:          make(map[core.PeerID]struct{}),
+		connectedPeersMap:         make(map[core.PeerID]struct{}),
 		nodesCoordinator:          args.NodesCoordinator,
+	}
+
+	err = args.Messenger.AddPeerEventsHandler(dcp)
+	if err != nil {
+		return nil, err
 	}
 
 	var ctx context.Context
@@ -98,15 +117,13 @@ func (dcp *directConnectionsProcessor) startProcessLoop(ctx context.Context) {
 }
 
 func (dcp *directConnectionsProcessor) sendMessageToNewConnections() {
+	newPeers := dcp.getNewPeersEmptyingTheMap()
 	if dcp.isCurrentNodeValidator() {
 		log.Debug("directConnectionsProcessor.sendMessageToNewConnections current node is validator, will not send messages to connected peers")
 		return
 	}
 
-	connectedPeers := dcp.messenger.ConnectedPeers()
-	newPeers := dcp.computeNewPeers(connectedPeers)
 	dcp.notifyNewPeers(newPeers)
-	dcp.recreateNotifiedPeers(connectedPeers)
 }
 
 func (dcp *directConnectionsProcessor) isCurrentNodeValidator() bool {
@@ -116,17 +133,18 @@ func (dcp *directConnectionsProcessor) isCurrentNodeValidator() bool {
 	return err == nil
 }
 
-func (dcp *directConnectionsProcessor) computeNewPeers(connectedPeers []core.PeerID) []core.PeerID {
-	newPeers := make([]core.PeerID, 0)
+func (dcp *directConnectionsProcessor) getNewPeersEmptyingTheMap() []core.PeerID {
+	dcp.mutConnectedPeersMap.Lock()
+	defer dcp.mutConnectedPeersMap.Unlock()
 
-	for _, connectedPeer := range connectedPeers {
-		_, wasNotified := dcp.notifiedPeersMap[connectedPeer]
-		if !wasNotified {
-			newPeers = append(newPeers, connectedPeer)
-		}
+	result := make([]core.PeerID, 0, len(dcp.connectedPeersMap))
+	for pid := range dcp.connectedPeersMap {
+		result = append(result, pid)
 	}
 
-	return newPeers
+	dcp.connectedPeersMap = make(map[core.PeerID]struct{})
+
+	return result
 }
 
 func (dcp *directConnectionsProcessor) notifyNewPeers(newPeers []core.PeerID) {
@@ -148,15 +166,6 @@ func (dcp *directConnectionsProcessor) notifyNewPeers(newPeers []core.PeerID) {
 			continue
 		}
 
-		dcp.notifiedPeersMap[newPeer] = struct{}{}
-	}
-}
-
-func (dcp *directConnectionsProcessor) recreateNotifiedPeers(connectedPeers []core.PeerID) {
-	dcp.notifiedPeersMap = make(map[core.PeerID]struct{})
-
-	for _, peer := range connectedPeers {
-		dcp.notifiedPeersMap[peer] = struct{}{}
 	}
 }
 

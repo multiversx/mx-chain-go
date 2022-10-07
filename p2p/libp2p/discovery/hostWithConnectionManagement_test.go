@@ -98,10 +98,10 @@ func TestHostWithConnectionManagement_ConnectWithSharderNotEvictedShouldCallConn
 			return false
 		},
 	}
-	newKnownConnectionCalled := false
+	connectedCalled := false
 	args.ConnectionsWatcher = &mock.ConnectionsWatcherStub{
-		NewKnownConnectionCalled: func(pid core.PeerID, connection string) {
-			newKnownConnectionCalled = true
+		ConnectedCalled: func(pid core.PeerID, connection string) {
+			connectedCalled = true
 		},
 	}
 	hwcm, _ := discovery.NewHostWithConnectionManagement(args)
@@ -109,7 +109,7 @@ func TestHostWithConnectionManagement_ConnectWithSharderNotEvictedShouldCallConn
 	_ = hwcm.Connect(context.Background(), peer.AddrInfo{})
 
 	assert.True(t, connectCalled)
-	assert.True(t, newKnownConnectionCalled)
+	assert.True(t, connectedCalled)
 }
 
 func TestHostWithConnectionManagement_ConnectWithSharderEvictedShouldNotCallConnect(t *testing.T) {
@@ -134,10 +134,10 @@ func TestHostWithConnectionManagement_ConnectWithSharderEvictedShouldNotCallConn
 			return true
 		},
 	}
-	newKnownConnectionCalled := false
+	connectedCalled := false
 	args.ConnectionsWatcher = &mock.ConnectionsWatcherStub{
-		NewKnownConnectionCalled: func(pid core.PeerID, connection string) {
-			newKnownConnectionCalled = true
+		ConnectedCalled: func(pid core.PeerID, connection string) {
+			connectedCalled = true
 		},
 	}
 	hwcm, _ := discovery.NewHostWithConnectionManagement(args)
@@ -145,5 +145,5 @@ func TestHostWithConnectionManagement_ConnectWithSharderEvictedShouldNotCallConn
 	_ = hwcm.Connect(context.Background(), peer.AddrInfo{})
 
 	assert.False(t, connectCalled)
-	assert.True(t, newKnownConnectionCalled)
+	assert.True(t, connectedCalled)
 }

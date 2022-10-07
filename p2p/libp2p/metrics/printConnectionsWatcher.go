@@ -65,8 +65,8 @@ func (pcw *printConnectionsWatcher) doSweep(ctx context.Context) {
 	}
 }
 
-// NewKnownConnection will add the known connection to the cache, printing it as necessary
-func (pcw *printConnectionsWatcher) NewKnownConnection(pid core.PeerID, connection string) {
+// Connected will add the known connection to the cache, printing it as necessary
+func (pcw *printConnectionsWatcher) Connected(pid core.PeerID, connection string) {
 	conn := strings.Trim(connection, " ")
 	if len(conn) == 0 {
 		return
@@ -83,6 +83,10 @@ func (pcw *printConnectionsWatcher) NewKnownConnection(pid core.PeerID, connecti
 	}
 
 	pcw.printHandler(pid, conn)
+}
+
+// Disconnected does nothing
+func (pcw *printConnectionsWatcher) Disconnected(_ core.PeerID) {
 }
 
 // Close will close any go routines opened by this instance

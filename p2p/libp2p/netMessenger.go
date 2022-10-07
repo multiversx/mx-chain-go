@@ -119,6 +119,7 @@ type networkMessenger struct {
 	preferredPeersHolder    p2p.PreferredPeersHolderHandler
 	printConnectionsWatcher p2p.ConnectionsWatcher
 	peersRatingHandler      p2p.PeersRatingHandler
+	peerEventsDriver        *peerEventsDriver
 }
 
 // ArgsNetworkMessenger defines the options used to create a p2p wrapper
@@ -201,6 +202,12 @@ func constructNode(
 		libp2p.NATPortMap(),
 	}
 
+	peerEvents := NewPeerEventsDriver()
+	err = peerEvents.AddHandler(connWatcher)
+	if err != nil {
+		return nil, err
+	}
+
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	h, err := libp2p.New(opts...)
 	if err != nil {
@@ -218,6 +225,7 @@ func constructNode(
 		port:                    port,
 		printConnectionsWatcher: connWatcher,
 		peersRatingHandler:      args.PeersRatingHandler,
+		peerEventsDriver:        peerEvents,
 	}
 
 	return p2pNode, nil
@@ -450,7 +458,7 @@ func (netMes *networkMessenger) createConnectionMonitor(p2pConfig config.P2PConf
 		Sharder:                    sharder,
 		ThresholdMinConnectedPeers: p2pConfig.Node.ThresholdMinConnectedPeers,
 		PreferredPeersHolder:       netMes.preferredPeersHolder,
-		ConnectionsWatcher:         netMes.printConnectionsWatcher,
+		PeerEventsHandler:          netMes.peerEventsDriver,
 	}
 	var err error
 	netMes.connMonitor, err = connectionMonitor.NewLibp2pConnectionMonitorSimple(args)
@@ -1362,6 +1370,11 @@ func (netMes *networkMessenger) GetConnectedPeersInfo() *p2p.ConnectedPeersInfo 
 // Port returns the port that this network messenger is using
 func (netMes *networkMessenger) Port() int {
 	return netMes.port
+}
+
+// AddPeerEventsHandler tries to add the provided handler in the inner peer events driver instance
+func (netMes *networkMessenger) AddPeerEventsHandler(handler p2p.PeerEventsHandler) error {
+	return netMes.peerEventsDriver.AddHandler(handler)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -42,6 +42,7 @@ type MessengerStub struct {
 	WaitForConnectionsCalled               func(maxWaitingTime time.Duration, minNumOfPeers uint32)
 	SignCalled                             func(payload []byte) ([]byte, error)
 	VerifyCalled                           func(payload []byte, pid core.PeerID, signature []byte) error
+	AddPeerEventsHandlerCalled             func(handler p2p.PeerEventsHandler) error
 }
 
 // ConnectedFullHistoryPeersOnTopic -
@@ -330,6 +331,15 @@ func (ms *MessengerStub) Sign(payload []byte) ([]byte, error) {
 func (ms *MessengerStub) Verify(payload []byte, pid core.PeerID, signature []byte) error {
 	if ms.VerifyCalled != nil {
 		return ms.VerifyCalled(payload, pid, signature)
+	}
+
+	return nil
+}
+
+// AddPeerEventsHandler -
+func (ms *MessengerStub) AddPeerEventsHandler(handler p2p.PeerEventsHandler) error {
+	if ms.AddPeerEventsHandlerCalled != nil {
+		return ms.AddPeerEventsHandlerCalled(handler)
 	}
 
 	return nil
