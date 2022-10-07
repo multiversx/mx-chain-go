@@ -106,17 +106,18 @@ func TestNewStatusComponents_InvalidRoundDurationShouldErr(t *testing.T) {
 	stateComponents := componentsMock.GetStateComponents(coreComponents, shardCoordinator)
 
 	statusArgs := statusComp.StatusComponentsFactoryArgs{
-		Config:             testscommon.GetGeneralConfig(),
-		ExternalConfig:     config.ExternalConfig{},
-		ShardCoordinator:   shardCoordinator,
-		NodesCoordinator:   &shardingMocks.NodesCoordinatorMock{},
-		EpochStartNotifier: &mock.EpochStartNotifierStub{},
-		CoreComponents:     coreComponents,
-		DataComponents:     dataComponents,
-		NetworkComponents:  networkComponents,
-		StateComponents:    stateComponents,
-		IsInImportMode:     false,
-		EconomicsConfig:    config.EconomicsConfig{},
+		Config:               testscommon.GetGeneralConfig(),
+		ExternalConfig:       config.ExternalConfig{},
+		ShardCoordinator:     shardCoordinator,
+		NodesCoordinator:     &shardingMocks.NodesCoordinatorMock{},
+		EpochStartNotifier:   &mock.EpochStartNotifierStub{},
+		CoreComponents:       coreComponents,
+		DataComponents:       dataComponents,
+		NetworkComponents:    networkComponents,
+		StateComponents:      stateComponents,
+		IsInImportMode:       false,
+		EconomicsConfig:      config.EconomicsConfig{},
+		StatusCoreComponents: componentsMock.GetStatusCoreComponents(),
 	}
 	scf, err := statusComp.NewStatusComponentsFactory(statusArgs)
 	assert.Nil(t, err)

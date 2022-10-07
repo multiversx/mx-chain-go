@@ -12,10 +12,11 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	atomicFlag "github.com/ElrondNetwork/elrond-go-core/core/atomic"
+	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/common/holders"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -2153,7 +2154,7 @@ func TestAccountsDB_PruneRemovesDataFromCheckpointHashesHolder(t *testing.T) {
 	assert.True(t, removeCalled > 0)
 }
 
-func generateAccounts(t *testing.T, numAccounts int, adb state.AccountsAdapter) [][]byte {
+func generateAccounts(t testing.TB, numAccounts int, adb state.AccountsAdapter) [][]byte {
 	accountsAddresses := make([][]byte, numAccounts)
 	for i := 0; i < numAccounts; i++ {
 		addr := generateRandomByteArray(32)
@@ -2511,7 +2512,7 @@ func TestAccountsDB_NewAccountsDbStartsSnapshotAfterRestart(t *testing.T) {
 	t.Parallel()
 
 	rootHash := []byte("rootHash")
-	takeSnapshotCalled := atomicFlag.Flag{}
+	takeSnapshotCalled := atomic.Flag{}
 	trieStub := &trieMock.TrieStub{
 		RootCalled: func() ([]byte, error) {
 			return rootHash, nil
@@ -2691,4 +2692,133 @@ func TestEmptyErrChanReturningHadContained(t *testing.T) {
 			}
 		})
 	})
+}
+
+func TestAccountsDb_Concurrent(t *testing.T) {
+	_, adb := getDefaultTrieAndAccountsDb()
+
+	numAccounts := 100000
+	accountsAddresses := generateAccounts(t, numAccounts, adb)
+	rootHash, _ := adb.Commit()
+
+	testAccountMethodsConcurrency(t, adb, accountsAddresses, rootHash)
+}
+
+func testAccountMethodsConcurrency(
+	t *testing.T,
+	adb state.AccountsAdapter,
+	addresses [][]byte,
+	rootHash []byte,
+) {
+	numOperations := 100
+	marshaller := &testscommon.MarshalizerMock{}
+	wg := sync.WaitGroup{}
+	wg.Add(numOperations)
+
+	numAccToLoad := 10
+	accounts := make([]vmcommon.AccountHandler, numAccToLoad)
+	for i := 0; i < numAccToLoad; i++ {
+		acc, err := adb.GetExistingAccount(addresses[i])
+		assert.Nil(t, err)
+		accounts[i] = acc
+	}
+	accountBytes, err := marshaller.Marshal(accounts[0])
+	assert.Nil(t, err)
+	for i := 0; i < numOperations; i++ {
+		go func(idx int) {
+			switch idx % 23 {
+			case 0:
+				_, _ = adb.GetExistingAccount(addresses[idx])
+			case 1:
+				_, _ = adb.GetAccountFromBytes(accounts[0].AddressBytes(), accountBytes)
+			case 2:
+				_, _ = adb.LoadAccount(addresses[idx])
+			case 3:
+				_ = adb.SaveAccount(accounts[idx%numAccToLoad])
+			case 4:
+				_ = adb.RemoveAccount(rootHash)
+			case 5:
+				_, _ = adb.CommitInEpoch(0, 1)
+			case 6:
+				_, _ = adb.Commit()
+			case 7:
+				_ = adb.JournalLen()
+			case 8:
+				_ = adb.RevertToSnapshot(idx)
+			case 9:
+				_ = adb.GetCode(rootHash)
+			case 10:
+				_, _ = adb.RootHash()
+			case 11:
+				_ = adb.RecreateTrie(rootHash)
+			case 12:
+				_ = adb.RecreateTrieFromEpoch(holders.NewRootHashHolder(rootHash, core.OptionalUint32{}))
+			case 13:
+				adb.PruneTrie(rootHash, state.OldRoot, state.NewPruningHandler(state.DisableDataRemoval))
+			case 14:
+				adb.CancelPrune(rootHash, state.NewRoot)
+			case 15:
+				adb.SnapshotState(rootHash)
+			case 16:
+				adb.SetStateCheckpoint(rootHash)
+			case 17:
+				_ = adb.IsPruningEnabled()
+			case 18:
+				_ = adb.GetAllLeaves(nil, context.Background(), rootHash)
+			case 19:
+				_, _ = adb.RecreateAllTries(rootHash)
+			case 20:
+				_, _ = adb.GetTrie(rootHash)
+			case 21:
+				_ = adb.GetStackDebugFirstEntry()
+			case 22:
+				_ = adb.SetSyncer(&mock.AccountsDBSyncerStub{})
+			}
+			wg.Done()
+		}(i)
+	}
+
+	wg.Wait()
+}
+
+func BenchmarkAccountsDB_GetMethodsInParallel(b *testing.B) {
+	_, adb := getDefaultTrieAndAccountsDb()
+
+	numAccounts := 100000
+	accountsAddresses := generateAccounts(b, numAccounts, adb)
+	rootHash, _ := adb.Commit()
+
+	numOperations := 100000
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		testAccountLoadInParallel(adb, numOperations, accountsAddresses, rootHash)
+	}
+}
+
+func testAccountLoadInParallel(
+	adb state.AccountsAdapter,
+	numOperations int,
+	addresses [][]byte,
+	rootHash []byte,
+) {
+	wg := sync.WaitGroup{}
+	wg.Add(numOperations)
+
+	for i := 0; i < numOperations; i++ {
+		go func(idx int) {
+			defer func() {
+				wg.Done()
+			}()
+			switch idx % 3 {
+			case 0:
+				_, _ = adb.LoadAccount(addresses[idx])
+			case 1:
+				_, _ = adb.GetExistingAccount(addresses[idx])
+			case 2:
+				_ = adb.RecreateTrie(rootHash)
+			}
+		}(i)
+	}
+
+	wg.Wait()
 }

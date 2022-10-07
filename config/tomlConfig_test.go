@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"testing"
 
+	p2pConfig "github.com/ElrondNetwork/elrond-go/p2p/config"
 	"github.com/pelletier/go-toml"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -467,19 +468,19 @@ func TestP2pConfig(t *testing.T) {
     [AdditionalConnections]
         MaxFullHistoryObservers = 0`
 
-	expectedCfg := P2PConfig{
-		Node: NodeConfig{
+	expectedCfg := p2pConfig.P2PConfig{
+		Node: p2pConfig.NodeConfig{
 			Port: port,
 		},
-		KadDhtPeerDiscovery: KadDhtPeerDiscoveryConfig{
+		KadDhtPeerDiscovery: p2pConfig.KadDhtPeerDiscoveryConfig{
 			ProtocolID:      protocolID,
 			InitialPeerList: []string{initialPeersList},
 		},
-		Sharding: ShardingConfig{
+		Sharding: p2pConfig.ShardingConfig{
 			Type: shardingType,
 		},
 	}
-	cfg := P2PConfig{}
+	cfg := p2pConfig.P2PConfig{}
 
 	err := toml.Unmarshal([]byte(testString), &cfg)
 
@@ -665,8 +666,11 @@ func TestEnableEpochConfig(t *testing.T) {
     # FixAsyncCallBackArgsListEnableEpoch represents the epoch when the async callback arguments lists fix will be enabled
     FixAsyncCallBackArgsListEnableEpoch = 57
 
+	# FixOldTokenLiquidityEnableEpoch represents the epoch when the fix for old token liquidity is enabled
+	FixOldTokenLiquidityEnableEpoch = 58
+
 	# SetSenderInEeiOutputTransferEnableEpoch represents the epoch when setting the sender in eei output transfers will be enabled
-    SetSenderInEeiOutputTransferEnableEpoch = 58
+    SetSenderInEeiOutputTransferEnableEpoch = 59
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
@@ -757,7 +761,8 @@ func TestEnableEpochConfig(t *testing.T) {
 			HeartbeatDisableEpoch:                       55,
 			ESDTMetadataContinuousCleanupEnableEpoch:    56,
 			FixAsyncCallBackArgsListEnableEpoch:         57,
-			SetSenderInEeiOutputTransferEnableEpoch:     58,
+			FixOldTokenLiquidityEnableEpoch:             58,
+			SetSenderInEeiOutputTransferEnableEpoch:     59,
 			BLSMultiSignerEnableEpoch: []MultiSignerConfig{
 				{
 					EnableEpoch: 0,

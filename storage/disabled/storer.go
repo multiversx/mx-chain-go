@@ -2,6 +2,7 @@ package disabled
 
 import (
 	storageCore "github.com/ElrondNetwork/elrond-go-core/storage"
+	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 type storer struct{}
@@ -67,7 +68,7 @@ func (s *storer) GetBulkFromEpoch(_ [][]byte, _ uint32) ([]storageCore.KeyValueP
 
 // GetOldestEpoch returns 0
 func (s *storer) GetOldestEpoch() (uint32, error) {
-	return 0, nil
+	return 0, storage.ErrOldestEpochNotAvailable
 }
 
 // RangeKeys does nothing
