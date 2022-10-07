@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/keyValStorage"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -193,9 +192,9 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_ContextShouldTimeout(t *t
 
 	acc, _ := state.NewUserAccount([]byte("newaddress"))
 	acc.SetDataTrie(&trieMock.TrieStub{
-		GetAllLeavesOnChannelCalled: func(chLeaves chan core.KeyValueHolder, _ context.Context, _ []byte, _ common.KeyBuilder) error {
+		GetAllLeavesOnChannelCalled: func(leavesChannels common.AllLeavesChannels, _ context.Context, _ []byte, _ common.KeyBuilder) error {
 			time.Sleep(time.Second)
-			close(chLeaves)
+			close(leavesChannels.LeavesChannel)
 			return nil
 		},
 		RootCalled: func() ([]byte, error) {
@@ -228,7 +227,7 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotGetAllLeaves(t *tes
 	expectedErr := errors.New("expected error")
 	acc, _ := state.NewUserAccount([]byte("newaddress"))
 	acc.SetDataTrie(&trieMock.TrieStub{
-		GetAllLeavesOnChannelCalled: func(_ chan core.KeyValueHolder, _ context.Context, _ []byte, _ common.KeyBuilder) error {
+		GetAllLeavesOnChannelCalled: func(_ common.AllLeavesChannels, _ context.Context, _ []byte, _ common.KeyBuilder) error {
 			return expectedErr
 		},
 		RootCalled: func() ([]byte, error) {
@@ -276,27 +275,27 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue(t *testing.T) {
 		RootCalled: func() ([]byte, error) {
 			return rootHash, nil
 		},
-		GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
+		GetAllLeavesOnChannelCalled: func(channels common.AllLeavesChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
 			go func() {
 				leaf1 := keyValStorage.NewKeyValStorage(rootHash, append(marshalledData, suffix...))
-				ch <- leaf1
+				channels.LeavesChannel <- leaf1
 
 				leaf2 := keyValStorage.NewKeyValStorage([]byte(leafKey2), nil)
-				ch <- leaf2
+				channels.LeavesChannel <- leaf2
 
 				leaf3 := keyValStorage.NewKeyValStorage([]byte(leafKey3), nil)
-				ch <- leaf3
+				channels.LeavesChannel <- leaf3
 
 				leaf4 := keyValStorage.NewKeyValStorage([]byte(leafKey4), nil)
-				ch <- leaf4
+				channels.LeavesChannel <- leaf4
 
 				leaf5 := keyValStorage.NewKeyValStorage([]byte(leafKey5), nil)
-				ch <- leaf5
+				channels.LeavesChannel <- leaf5
 
 				leaf6 := keyValStorage.NewKeyValStorage([]byte(leafKey6), nil)
-				ch <- leaf6
+				channels.LeavesChannel <- leaf6
 
-				close(ch)
+				close(channels.LeavesChannel)
 			}()
 
 			return nil

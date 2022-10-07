@@ -18,6 +18,10 @@ type NumNodesDTO struct {
 	MaxLevel   int
 }
 
+type AllLeavesChannels struct {
+	LeavesChannel chan core.KeyValueHolder
+}
+
 // Trie is an interface for Merkle Trees implementations
 type Trie interface {
 	Get(key []byte) ([]byte, error)
@@ -34,7 +38,7 @@ type Trie interface {
 	GetSerializedNodes([]byte, uint64) ([][]byte, uint64, error)
 	GetSerializedNode([]byte) ([]byte, error)
 	GetNumNodes() NumNodesDTO
-	GetAllLeavesOnChannel(leavesChannel chan core.KeyValueHolder, ctx context.Context, rootHash []byte, keyBuilder KeyBuilder) error
+	GetAllLeavesOnChannel(allLeavesChan AllLeavesChannels, ctx context.Context, rootHash []byte, keyBuilder KeyBuilder) error
 	GetAllHashes() ([][]byte, error)
 	GetProof(key []byte) ([][]byte, []byte, error)
 	VerifyProof(rootHash []byte, key []byte, proof [][]byte) (bool, error)
@@ -53,7 +57,7 @@ type KeyBuilder interface {
 // DataTrieHandler is an interface that declares the methods used for dataTries
 type DataTrieHandler interface {
 	RootHash() ([]byte, error)
-	GetAllLeavesOnChannel(leavesChannel chan core.KeyValueHolder, ctx context.Context, rootHash []byte, keyBuilder KeyBuilder) error
+	GetAllLeavesOnChannel(leavesChannels AllLeavesChannels, ctx context.Context, rootHash []byte, keyBuilder KeyBuilder) error
 	IsInterfaceNil() bool
 }
 

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/common"
 )
 
@@ -23,7 +22,7 @@ type TrieStub struct {
 	AppendToOldHashesCalled     func([][]byte)
 	GetSerializedNodesCalled    func([]byte, uint64) ([][]byte, uint64, error)
 	GetAllHashesCalled          func() ([][]byte, error)
-	GetAllLeavesOnChannelCalled func(leavesChannel chan core.KeyValueHolder, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder) error
+	GetAllLeavesOnChannelCalled func(leavesChannels common.AllLeavesChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder) error
 	GetProofCalled              func(key []byte) ([][]byte, []byte, error)
 	VerifyProofCalled           func(rootHash []byte, key []byte, proof [][]byte) (bool, error)
 	GetStorageManagerCalled     func() common.StorageManager
@@ -61,9 +60,9 @@ func (ts *TrieStub) VerifyProof(rootHash []byte, key []byte, proof [][]byte) (bo
 }
 
 // GetAllLeavesOnChannel -
-func (ts *TrieStub) GetAllLeavesOnChannel(leavesChannel chan core.KeyValueHolder, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder) error {
+func (ts *TrieStub) GetAllLeavesOnChannel(leavesChannels common.AllLeavesChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder) error {
 	if ts.GetAllLeavesOnChannelCalled != nil {
-		return ts.GetAllLeavesOnChannelCalled(leavesChannel, ctx, rootHash, keyBuilder)
+		return ts.GetAllLeavesOnChannelCalled(leavesChannels, ctx, rootHash, keyBuilder)
 	}
 
 	return nil

@@ -516,12 +516,14 @@ func TestPatriciaMerkleTrie_GetAllLeavesCollapsedTrie(t *testing.T) {
 	}
 	tr.root = root
 
-	leavesChannel := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+	leavesChannel := common.AllLeavesChannels{
+		LeavesChannel: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+	}
 	err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), tr.root.getHash(), keyBuilder.NewKeyBuilder())
 	assert.Nil(t, err)
 	leaves := make(map[string][]byte)
 
-	for l := range leavesChannel {
+	for l := range leavesChannel.LeavesChannel {
 		leaves[string(l.Key())] = l.Value()
 	}
 

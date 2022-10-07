@@ -293,15 +293,17 @@ func (se *stateExport) exportTrie(key string, trie common.Trie) error {
 		return err
 	}
 
-	leavesChannel := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
-	err = trie.GetAllLeavesOnChannel(leavesChannel, context.Background(), rootHash, keyBuilder.NewKeyBuilder())
+	leavesChannels := common.AllLeavesChannels{
+		make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+	}
+	err = trie.GetAllLeavesOnChannel(leavesChannels, context.Background(), rootHash, keyBuilder.NewKeyBuilder())
 	if err != nil {
 		return err
 	}
 
 	if accType == ValidatorAccount {
 		var validatorData map[uint32][]*state.ValidatorInfo
-		validatorData, err = getValidatorDataFromLeaves(leavesChannel, se.shardCoordinator, se.marshalizer)
+		validatorData, err = getValidatorDataFromLeaves(leavesChannels, se.shardCoordinator, se.marshalizer)
 		if err != nil {
 			return err
 		}
@@ -329,7 +331,7 @@ func (se *stateExport) exportTrie(key string, trie common.Trie) error {
 	}
 
 	if accType == DataTrie {
-		return se.exportDataTries(leavesChannel, accType, shId, identifier)
+		return se.exportDataTries(leavesChannels, accType, shId, identifier)
 	}
 
 	log.Debug("exporting trie",
@@ -337,16 +339,16 @@ func (se *stateExport) exportTrie(key string, trie common.Trie) error {
 		"root hash", rootHash,
 	)
 
-	return se.exportAccountLeaves(leavesChannel, accType, shId, identifier)
+	return se.exportAccountLeaves(leavesChannels, accType, shId, identifier)
 }
 
 func (se *stateExport) exportDataTries(
-	leavesChannel chan core.KeyValueHolder,
+	leavesChannels common.AllLeavesChannels,
 	accType Type,
 	shId uint32,
 	identifier string,
 ) error {
-	for leaf := range leavesChannel {
+	for leaf := range leavesChannels.LeavesChannel {
 		keyToExport := CreateAccountKey(accType, shId, leaf.Key())
 		err := se.hardforkStorer.Write(identifier, []byte(keyToExport), leaf.Value())
 		if err != nil {
@@ -363,12 +365,12 @@ func (se *stateExport) exportDataTries(
 }
 
 func (se *stateExport) exportAccountLeaves(
-	leavesChannel chan core.KeyValueHolder,
+	leavesChannels common.AllLeavesChannels,
 	accType Type,
 	shId uint32,
 	identifier string,
 ) error {
-	for leaf := range leavesChannel {
+	for leaf := range leavesChannels.LeavesChannel {
 		keyToExport := CreateAccountKey(accType, shId, leaf.Key())
 		err := se.hardforkStorer.Write(identifier, []byte(keyToExport), leaf.Value())
 		if err != nil {

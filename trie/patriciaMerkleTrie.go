@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
@@ -448,7 +447,7 @@ func (tr *patriciaMerkleTrie) GetSerializedNodes(rootHash []byte, maxBuffToSend 
 
 // GetAllLeavesOnChannel adds all the trie leaves to the given channel
 func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(
-	leavesChannel chan core.KeyValueHolder,
+	leavesChannels common.AllLeavesChannels,
 	ctx context.Context,
 	rootHash []byte,
 	keyBuilder common.KeyBuilder,
@@ -457,13 +456,13 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(
 	newTrie, err := tr.recreate(rootHash, tr.trieStorage)
 	if err != nil {
 		tr.mutOperation.RUnlock()
-		close(leavesChannel)
+		close(leavesChannels.LeavesChannel)
 		return err
 	}
 
 	if check.IfNil(newTrie) || newTrie.root == nil {
 		tr.mutOperation.RUnlock()
-		close(leavesChannel)
+		close(leavesChannels.LeavesChannel)
 		return nil
 	}
 
@@ -472,7 +471,7 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(
 
 	go func() {
 		err = newTrie.root.getAllLeavesOnChannel(
-			leavesChannel,
+			leavesChannels.LeavesChannel,
 			keyBuilder,
 			tr.trieStorage,
 			tr.marshalizer,
@@ -487,7 +486,7 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(
 		tr.trieStorage.ExitPruningBufferingMode()
 		tr.mutOperation.Unlock()
 
-		close(leavesChannel)
+		close(leavesChannels.LeavesChannel)
 	}()
 
 	return nil

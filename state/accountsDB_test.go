@@ -6,11 +6,12 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/common/holders"
 	"strings"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/ElrondNetwork/elrond-go/common/holders"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	atomicFlag "github.com/ElrondNetwork/elrond-go-core/core/atomic"
@@ -1387,9 +1388,9 @@ func TestAccountsDB_GetAllLeaves(t *testing.T) {
 
 	getAllLeavesCalled := false
 	trieStub := &trieMock.TrieStub{
-		GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte, builder common.KeyBuilder) error {
+		GetAllLeavesOnChannelCalled: func(channels common.AllLeavesChannels, ctx context.Context, rootHash []byte, builder common.KeyBuilder) error {
 			getAllLeavesCalled = true
-			close(ch)
+			close(channels.LeavesChannel)
 
 			return nil
 		},
@@ -1400,7 +1401,9 @@ func TestAccountsDB_GetAllLeaves(t *testing.T) {
 
 	adb := generateAccountDBFromTrie(trieStub)
 
-	leavesChannel := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+	leavesChannel := common.AllLeavesChannels{
+		LeavesChannel: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+	}
 	err := adb.GetAllLeaves(leavesChannel, context.Background(), []byte("root hash"))
 	assert.Nil(t, err)
 	assert.True(t, getAllLeavesCalled)
@@ -2764,7 +2767,7 @@ func testAccountMethodsConcurrency(
 			case 17:
 				_ = adb.IsPruningEnabled()
 			case 18:
-				_ = adb.GetAllLeaves(nil, context.Background(), rootHash)
+				_ = adb.GetAllLeaves(common.AllLeavesChannels{}, context.Background(), rootHash)
 			case 19:
 				_, _ = adb.RecreateAllTries(rootHash)
 			case 20:

@@ -3,10 +3,9 @@ package disabled
 import (
 	"context"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 type accountsAdapter struct {
@@ -119,7 +118,7 @@ func (a *accountsAdapter) ClosePersister() error {
 }
 
 // GetAllLeaves -
-func (a *accountsAdapter) GetAllLeaves(_ chan core.KeyValueHolder, _ context.Context, _ []byte) error {
+func (a *accountsAdapter) GetAllLeaves(_ common.AllLeavesChannels, _ context.Context, _ []byte) error {
 	return nil
 }
 

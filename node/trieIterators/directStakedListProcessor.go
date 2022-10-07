@@ -54,14 +54,16 @@ func (dslp *directStakedListProcessor) getAllStakedAccounts(validatorAccount sta
 		return nil, err
 	}
 
-	chLeaves := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+	chLeaves := common.AllLeavesChannels{
+		LeavesChannel: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+	}
 	err = validatorAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash, keyBuilder.NewKeyBuilder())
 	if err != nil {
 		return nil, err
 	}
 
 	stakedAccounts := make([]*api.DirectStakedValue, 0)
-	for leaf := range chLeaves {
+	for leaf := range chLeaves.LeavesChannel {
 		leafKey := leaf.Key()
 		if len(leafKey) != dslp.publicKeyConverter.Len() {
 			continue

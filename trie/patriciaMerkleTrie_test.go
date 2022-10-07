@@ -4,11 +4,12 @@ import (
 	"context"
 	cryptoRand "crypto/rand"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/common/holders"
 	"math/rand"
 	"strconv"
 	"sync"
 	"testing"
+
+	"github.com/ElrondNetwork/elrond-go/common/holders"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
@@ -544,12 +545,14 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannelEmptyTrie(t *testing.T) {
 
 	tr := emptyTrie()
 
-	leavesChannel := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+	leavesChannel := common.AllLeavesChannels{
+		LeavesChannel: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+	}
 	err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), []byte{}, keyBuilder.NewDisabledKeyBuilder())
 	assert.Nil(t, err)
 	assert.NotNil(t, leavesChannel)
 
-	_, ok := <-leavesChannel
+	_, ok := <-leavesChannel.LeavesChannel
 	assert.False(t, ok)
 }
 
@@ -565,13 +568,15 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 	_ = tr.Commit()
 	rootHash, _ := tr.RootHash()
 
-	leavesChannel := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+	leavesChannel := common.AllLeavesChannels{
+		LeavesChannel: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+	}
 	err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), rootHash, keyBuilder.NewKeyBuilder())
 	assert.Nil(t, err)
 	assert.NotNil(t, leavesChannel)
 
 	recovered := make(map[string][]byte)
-	for leaf := range leavesChannel {
+	for leaf := range leavesChannel.LeavesChannel {
 		recovered[string(leaf.Key())] = leaf.Value()
 	}
 	assert.Equal(t, leaves, recovered)
