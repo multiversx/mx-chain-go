@@ -476,7 +476,7 @@ func createBuiltinFuncs(
 		ShardCoordinator:          shardCoordinator,
 		EpochNotifier:             epochNotifier,
 		EnableEpochsHandler:       enableEpochsHandler,
-		AutomaticCrawlerAddresses:                automaticCrawlerAddresses,
+		AutomaticCrawlerAddresses: automaticCrawlerAddresses,
 		MaxNumNodesInTransferRole: maxNumAddressesInTransferRole,
 	}
 	return builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)

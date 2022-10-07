@@ -305,6 +305,7 @@ type EnableEpochsHandler interface {
 	IsChangeDelegationOwnerFlagEnabled() bool
 	IsRefactorPeersMiniBlocksFlagEnabled() bool
 	IsFixAsyncCallBackArgsListFlagEnabled() bool
+	IsFixOldTokenLiquidityEnabled() bool
 
 	IsInterfaceNil() bool
 }
