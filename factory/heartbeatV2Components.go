@@ -45,11 +45,11 @@ type heartbeatV2ComponentsFactory struct {
 }
 
 type heartbeatV2Components struct {
-	sender                     update.Closer
-	peerAuthRequestsProcessor  update.Closer
-	directConnectionsProcessor update.Closer
-	monitor                    HeartbeatV2Monitor
-	statusHandler              update.Closer
+	sender                    update.Closer
+	peerAuthRequestsProcessor update.Closer
+	shardSender               update.Closer
+	monitor                   HeartbeatV2Monitor
+	statusHandler             update.Closer
 }
 
 // NewHeartbeatV2ComponentsFactory creates a new instance of heartbeatV2ComponentsFactory
@@ -183,14 +183,15 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		return nil, err
 	}
 
-	argsDirectConnectionsProcessor := processor.ArgDirectConnectionsProcessor{
-		Messenger:                 hcf.networkComponents.NetworkMessenger(),
-		Marshaller:                hcf.coreComponents.InternalMarshalizer(),
-		ShardCoordinator:          hcf.boostrapComponents.ShardCoordinator(),
-		DelayBetweenNotifications: time.Second * time.Duration(cfg.DelayBetweenConnectionNotificationsInSec),
-		NodesCoordinator:          hcf.processComponents.NodesCoordinator(),
+	argsPeerShardSender := sender.ArgPeerShardSender{
+		Messenger:             hcf.networkComponents.NetworkMessenger(),
+		Marshaller:            hcf.coreComponents.InternalMarshalizer(),
+		ShardCoordinator:      hcf.boostrapComponents.ShardCoordinator(),
+		TimeBetweenSends:      time.Second * time.Duration(cfg.PeerShardTimeBetweenSendsInSec),
+		ThresholdBetweenSends: cfg.PeerShardThresholdBetweenSends,
+		NodesCoordinator:      hcf.processComponents.NodesCoordinator(),
 	}
-	directConnectionsProcessor, err := processor.NewDirectConnectionsProcessor(argsDirectConnectionsProcessor)
+	shardSender, err := sender.NewPeerShardSender(argsPeerShardSender)
 	if err != nil {
 		return nil, err
 	}
@@ -225,11 +226,11 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 	}
 
 	return &heartbeatV2Components{
-		sender:                     heartbeatV2Sender,
-		peerAuthRequestsProcessor:  paRequestsProcessor,
-		directConnectionsProcessor: directConnectionsProcessor,
-		monitor:                    heartbeatsMonitor,
-		statusHandler:              statusHandler,
+		sender:                    heartbeatV2Sender,
+		peerAuthRequestsProcessor: paRequestsProcessor,
+		shardSender:               shardSender,
+		monitor:                   heartbeatsMonitor,
+		statusHandler:             statusHandler,
 	}, nil
 }
 
@@ -245,8 +246,8 @@ func (hc *heartbeatV2Components) Close() error {
 		log.LogIfError(hc.peerAuthRequestsProcessor.Close())
 	}
 
-	if !check.IfNil(hc.directConnectionsProcessor) {
-		log.LogIfError(hc.directConnectionsProcessor.Close())
+	if !check.IfNil(hc.shardSender) {
+		log.LogIfError(hc.shardSender.Close())
 	}
 
 	if !check.IfNil(hc.statusHandler) {

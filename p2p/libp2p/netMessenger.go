@@ -830,10 +830,6 @@ func (netMes *networkMessenger) CreateTopic(name string, createChannelForTopic b
 		return nil
 	}
 
-	if name == common.ConnectionTopic {
-		return nil
-	}
-
 	topic, err := netMes.pb.Join(name)
 	if err != nil {
 		return fmt.Errorf("%w for topic %s", err, name)
@@ -957,11 +953,6 @@ func (netMes *networkMessenger) RegisterMessageProcessor(topic string, identifie
 }
 
 func (netMes *networkMessenger) registerOnPubSub(topic string, topicProcs *topicProcessors) error {
-	if topic == common.ConnectionTopic {
-		// do not allow broadcasts on this connection topic
-		return nil
-	}
-
 	return netMes.pb.RegisterTopicValidator(topic, netMes.pubsubCallback(topicProcs, topic))
 }
 
@@ -1085,11 +1076,6 @@ func (netMes *networkMessenger) UnregisterAllMessageProcessors() error {
 	defer netMes.mutTopics.Unlock()
 
 	for topic := range netMes.processors {
-		if topic == common.ConnectionTopic {
-			delete(netMes.processors, topic)
-			continue
-		}
-
 		err := netMes.pb.UnregisterTopicValidator(topic)
 		if err != nil {
 			return err
@@ -1146,9 +1132,7 @@ func (netMes *networkMessenger) UnregisterMessageProcessor(topic string, identif
 	if len(identifiers) == 0 {
 		netMes.processors[topic] = nil
 
-		if topic != common.ConnectionTopic { // no validator registered for this topic
-			return netMes.pb.UnregisterTopicValidator(topic)
-		}
+		return netMes.pb.UnregisterTopicValidator(topic)
 	}
 
 	return nil

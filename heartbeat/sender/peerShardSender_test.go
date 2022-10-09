@@ -1,0 +1,152 @@
+package sender
+
+import (
+	"errors"
+	"fmt"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/heartbeat"
+	"github.com/ElrondNetwork/elrond-go/p2p/message"
+	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
+	"github.com/stretchr/testify/assert"
+)
+
+func createMockArgPeerShardSender() ArgPeerShardSender {
+	return ArgPeerShardSender{
+		Messenger:             &p2pmocks.MessengerStub{},
+		Marshaller:            &marshal.GogoProtoMarshalizer{},
+		ShardCoordinator:      &testscommon.ShardsCoordinatorMock{},
+		TimeBetweenSends:      time.Second,
+		ThresholdBetweenSends: 0.1,
+		NodesCoordinator: &shardingMocks.NodesCoordinatorStub{
+			GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error) {
+				return nil, 0, errors.New("the node is an observer")
+			},
+		},
+	}
+}
+
+func TestNewPeerShardSender(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil messenger should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgPeerShardSender()
+		args.Messenger = nil
+
+		pss, err := NewPeerShardSender(args)
+		assert.Equal(t, process.ErrNilMessenger, err)
+		assert.True(t, check.IfNil(pss))
+	})
+	t.Run("nil marshaller should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgPeerShardSender()
+		args.Marshaller = nil
+
+		pss, err := NewPeerShardSender(args)
+		assert.Equal(t, process.ErrNilMarshalizer, err)
+		assert.True(t, check.IfNil(pss))
+	})
+	t.Run("nil shard coordinator should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgPeerShardSender()
+		args.ShardCoordinator = nil
+
+		pss, err := NewPeerShardSender(args)
+		assert.Equal(t, process.ErrNilShardCoordinator, err)
+		assert.True(t, check.IfNil(pss))
+	})
+	t.Run("invalid time between sends should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgPeerShardSender()
+		args.TimeBetweenSends = time.Second - time.Nanosecond
+
+		pss, err := NewPeerShardSender(args)
+		assert.True(t, errors.Is(err, heartbeat.ErrInvalidTimeDuration))
+		assert.True(t, strings.Contains(err.Error(), "TimeBetweenSends"))
+		assert.True(t, check.IfNil(pss))
+	})
+	t.Run("invalid threshold between sends should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgPeerShardSender()
+		args.ThresholdBetweenSends = 0
+
+		pss, err := NewPeerShardSender(args)
+		assert.True(t, errors.Is(err, heartbeat.ErrInvalidThreshold))
+		assert.True(t, strings.Contains(err.Error(), "ThresholdBetweenSends"))
+		assert.True(t, check.IfNil(pss))
+	})
+	t.Run("nil nodes coordinator should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgPeerShardSender()
+		args.NodesCoordinator = nil
+
+		pss, err := NewPeerShardSender(args)
+		assert.True(t, errors.Is(err, heartbeat.ErrNilNodesCoordinator))
+		assert.True(t, check.IfNil(pss))
+	})
+	t.Run("should work and validator should not broadcast", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgPeerShardSender()
+		wasCalled := false
+		args.Messenger = &p2pmocks.MessengerStub{
+			BroadcastCalled: func(topic string, buff []byte) {
+				wasCalled = true
+			},
+		}
+		args.NodesCoordinator = &shardingMocks.NodesCoordinatorStub{
+			GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error) {
+				return nil, 0, nil
+			},
+		}
+		args.TimeBetweenSends = 2 * time.Second
+
+		pss, _ := NewPeerShardSender(args)
+		assert.False(t, check.IfNil(pss))
+
+		time.Sleep(3 * time.Second)
+		_ = pss.Close()
+		assert.False(t, wasCalled)
+	})
+	t.Run("should work and broadcast", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgPeerShardSender()
+		expectedShard := fmt.Sprintf("%d", args.ShardCoordinator.SelfId())
+		wasCalled := false
+		args.Messenger = &p2pmocks.MessengerStub{
+			BroadcastCalled: func(topic string, buff []byte) {
+				shardInfo := &message.PeerShard{}
+				err := args.Marshaller.Unmarshal(shardInfo, buff)
+				assert.Nil(t, err)
+				assert.Equal(t, expectedShard, shardInfo.ShardId)
+				assert.Equal(t, common.ConnectionTopic, topic)
+				wasCalled = true
+			},
+		}
+		args.TimeBetweenSends = 2 * time.Second
+
+		pss, _ := NewPeerShardSender(args)
+		assert.False(t, check.IfNil(pss))
+
+		time.Sleep(3 * time.Second)
+		_ = pss.Close()
+		assert.True(t, wasCalled)
+	})
+}
