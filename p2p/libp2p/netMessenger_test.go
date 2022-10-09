@@ -1856,8 +1856,8 @@ func TestLibp2pMessenger_ConnectionTopic(t *testing.T) {
 		topic := common.ConnectionTopic
 		err := netMes.CreateTopic(topic, true)
 		assert.Nil(t, err)
-		assert.False(t, netMes.HasTopic(topic))
-		assert.False(t, netMes.PubsubHasTopic(topic))
+		assert.True(t, netMes.HasTopic(topic))
+		assert.True(t, netMes.PubsubHasTopic(topic))
 
 		testTopic := "test topic"
 		err = netMes.CreateTopic(testTopic, true)

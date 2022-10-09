@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -129,7 +130,7 @@ func TestNewPeerShardSender(t *testing.T) {
 
 		args := createMockArgPeerShardSender()
 		expectedShard := fmt.Sprintf("%d", args.ShardCoordinator.SelfId())
-		wasCalled := false
+		numOfCalls := uint32(0)
 		args.Messenger = &p2pmocks.MessengerStub{
 			BroadcastCalled: func(topic string, buff []byte) {
 				shardInfo := &message.PeerShard{}
@@ -137,7 +138,7 @@ func TestNewPeerShardSender(t *testing.T) {
 				assert.Nil(t, err)
 				assert.Equal(t, expectedShard, shardInfo.ShardId)
 				assert.Equal(t, common.ConnectionTopic, topic)
-				wasCalled = true
+				atomic.AddUint32(&numOfCalls, 1)
 			},
 		}
 		args.TimeBetweenSends = 2 * time.Second
@@ -147,6 +148,6 @@ func TestNewPeerShardSender(t *testing.T) {
 
 		time.Sleep(3 * time.Second)
 		_ = pss.Close()
-		assert.True(t, wasCalled)
+		assert.Equal(t, uint32(1), atomic.LoadUint32(&numOfCalls))
 	})
 }
