@@ -365,7 +365,6 @@ func (sc *scProcessor) executeSmartContractCall(
 	vmOutput.GasRemaining += vmInput.GasLocked
 
 	if vmOutput.ReturnCode != vmcommon.Ok {
-		log.Error("error", "msg", vmOutput.ReturnMessage)
 		return userErrorVmOutput, sc.processIfErrorWithAddedLogs(acntSnd, txHash, tx, vmOutput.ReturnCode.String(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked, vmOutput.Logs)
 	}
 	acntSnd, err = sc.reloadLocalAccount(acntSnd) // nolint
