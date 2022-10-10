@@ -6,10 +6,9 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go-core/data/outport"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/node/filters"
-	"github.com/ElrondNetwork/elrond-go/outport/process/alteredaccounts/shared"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
@@ -88,7 +87,7 @@ func (sbp *shardAPIBlockProcessor) GetBlockByRound(round uint64, options api.Blo
 }
 
 // GetAlteredAccountsForBlock will return the altered accounts for the desired shard block
-func (sbp *shardAPIBlockProcessor) GetAlteredAccountsForBlock(options api.GetAlteredAccountsForBlockOptions) (*common.AlteredAccountsForBlockAPIResponse, error) {
+func (sbp *shardAPIBlockProcessor) GetAlteredAccountsForBlock(options api.GetAlteredAccountsForBlockOptions) ([]*outport.AlteredAccount, error) {
 	headerHash, blockBytes, err := sbp.getHashAndBlockBytesFromStorer(options.GetBlockParameters)
 	if err != nil {
 		return nil, err
@@ -99,29 +98,7 @@ func (sbp *shardAPIBlockProcessor) GetAlteredAccountsForBlock(options api.GetAlt
 		return nil, err
 	}
 
-	outportPool := sbp.apiBlockToOutportPool(apiBlock)
-
-	rootHash, err := hex.DecodeString(apiBlock.StateRootHash)
-	if err != nil {
-		return nil, err
-	}
-
-	alteredAccountsOptions := shared.AlteredAccountsOptions{
-		WithCustomAccountsRepository: true,
-		AccountsRepository:           sbp.accountsRepository,
-		// TODO: AccountQueryOptions could be used like options.WithBlockRootHash(..) instead of thinking what to provide
-		AccountQueryOptions: api.AccountQueryOptions{
-			BlockRootHash: rootHash,
-		},
-	}
-
-	alteredAccounts, err := sbp.alteredAccountsProvider.ExtractAlteredAccountsFromPool(outportPool, alteredAccountsOptions)
-	if err != nil {
-		return nil, err
-	}
-
-	alteredAccountsAPI := alteredAccountsMapToAPIResponse(alteredAccounts, options.TokensFilter, options.WithMetadata)
-	return alteredAccountsAPI, nil
+	return sbp.apiBlockToAlteredAccounts(apiBlock, options)
 }
 
 func (sbp *shardAPIBlockProcessor) getHashAndBlockBytesFromStorer(params api.GetBlockParameters) ([]byte, []byte, error) {

@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/outport/process/alteredaccounts/shared"
@@ -496,29 +495,28 @@ func TestShardAPIBlockProcessor_GetAlteredAccountsForBlock(t *testing.T) {
 			},
 		})
 		require.NoError(t, err)
-		require.True(t, areAlteredAccountsResponsesTheSame(&common.AlteredAccountsForBlockAPIResponse{
-			Accounts: []*common.AlteredAccountAPIResponse{
-				{
-					Address: "addr0",
-					Balance: "10",
-				},
-				{
-					Address: "addr2",
-					Balance: "10",
-				},
+		require.True(t, areAlteredAccountsResponsesTheSame([]*outportcore.AlteredAccount{
+			{
+				Address: "addr0",
+				Balance: "10",
 			},
-		}, res))
+			{
+				Address: "addr2",
+				Balance: "10",
+			},
+		},
+			res))
 	})
 }
 
-func areAlteredAccountsResponsesTheSame(first *common.AlteredAccountsForBlockAPIResponse, second *common.AlteredAccountsForBlockAPIResponse) bool {
-	if len(first.Accounts) != len(second.Accounts) {
+func areAlteredAccountsResponsesTheSame(first []*outportcore.AlteredAccount, second []*outportcore.AlteredAccount) bool {
+	if len(first) != len(second) {
 		return false
 	}
 
-	for _, firstAcc := range first.Accounts {
+	for _, firstAcc := range first {
 		found := false
-		for _, secondAcc := range second.Accounts {
+		for _, secondAcc := range second {
 			if firstAcc.Address == secondAcc.Address && firstAcc.Balance == secondAcc.Balance {
 				found = true
 				break

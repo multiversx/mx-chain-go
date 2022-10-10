@@ -9,10 +9,10 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
+	"github.com/ElrondNetwork/elrond-go-core/data/outport"
 	apiErrors "github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/groups"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
-	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -37,7 +37,7 @@ func TestNewBlockGroup(t *testing.T) {
 
 type alteredAccountsForBlockResponse struct {
 	Data struct {
-		Accounts []*common.AlteredAccountAPIResponse `json:"accounts"`
+		Accounts []*outport.AlteredAccount `json:"accounts"`
 	} `json:"data"`
 	Error string `json:"error"`
 	Code  string `json:"code"`
@@ -441,16 +441,15 @@ func TestGetBlockByRound_WithBlockQueryOptionsShouldWork(t *testing.T) {
 func TestGetAlteredAccountsByNonce_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	expectedResponse := &common.AlteredAccountsForBlockAPIResponse{
-		Accounts: []*common.AlteredAccountAPIResponse{
-			{
-				Address: "alice",
-				Balance: "100000",
-			},
+	expectedResponse := []*outport.AlteredAccount{
+		{
+			Address: "alice",
+			Balance: "100000",
 		},
 	}
+
 	facade := mock.FacadeStub{
-		GetAlteredAccountsForBlockCalled: func(options api.GetAlteredAccountsForBlockOptions) (*common.AlteredAccountsForBlockAPIResponse, error) {
+		GetAlteredAccountsForBlockCalled: func(options api.GetAlteredAccountsForBlockOptions) ([]*outport.AlteredAccount, error) {
 			require.Equal(t, api.BlockFetchTypeByNonce, options.RequestType)
 			require.Equal(t, uint64(37), options.Nonce)
 
@@ -465,22 +464,20 @@ func TestGetAlteredAccountsByNonce_ShouldWork(t *testing.T) {
 
 	response, code := httpGetAlteredAccountsForBlockBlock(ws, "/block/altered-accounts/by-nonce/37")
 	require.Equal(t, http.StatusOK, code)
-	require.Equal(t, expectedResponse.Accounts, response.Data.Accounts)
+	require.Equal(t, expectedResponse, response.Data.Accounts)
 }
 
 func TestGetAlteredAccountsByHash_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	expectedResponse := &common.AlteredAccountsForBlockAPIResponse{
-		Accounts: []*common.AlteredAccountAPIResponse{
-			{
-				Address: "alice",
-				Balance: "100000",
-			},
+	expectedResponse := []*outport.AlteredAccount{
+		{
+			Address: "alice",
+			Balance: "100000",
 		},
 	}
 	facade := mock.FacadeStub{
-		GetAlteredAccountsForBlockCalled: func(options api.GetAlteredAccountsForBlockOptions) (*common.AlteredAccountsForBlockAPIResponse, error) {
+		GetAlteredAccountsForBlockCalled: func(options api.GetAlteredAccountsForBlockOptions) ([]*outport.AlteredAccount, error) {
 			require.Equal(t, api.BlockFetchTypeByHash, options.RequestType)
 			require.Equal(t, "aabb", hex.EncodeToString(options.Hash))
 
@@ -495,7 +492,7 @@ func TestGetAlteredAccountsByHash_ShouldWork(t *testing.T) {
 
 	response, code := httpGetAlteredAccountsForBlockBlock(ws, "/block/altered-accounts/by-hash/aabb")
 	require.Equal(t, http.StatusOK, code)
-	require.Equal(t, expectedResponse.Accounts, response.Data.Accounts)
+	require.Equal(t, expectedResponse, response.Data.Accounts)
 }
 
 func httpGetBlock(ws *gin.Engine, url string) (blockResponse, int) {

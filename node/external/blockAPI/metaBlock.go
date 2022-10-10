@@ -7,9 +7,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go-core/data/outport"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/outport/process/alteredaccounts/shared"
 )
 
 type metaAPIBlockProcessor struct {
@@ -85,7 +84,7 @@ func (mbp *metaAPIBlockProcessor) GetBlockByRound(round uint64, options api.Bloc
 }
 
 // GetAlteredAccountsForBlock returns the altered accounts for the desired meta block
-func (mbp *metaAPIBlockProcessor) GetAlteredAccountsForBlock(options api.GetAlteredAccountsForBlockOptions) (*common.AlteredAccountsForBlockAPIResponse, error) {
+func (mbp *metaAPIBlockProcessor) GetAlteredAccountsForBlock(options api.GetAlteredAccountsForBlockOptions) ([]*outport.AlteredAccount, error) {
 	headerHash, blockBytes, err := mbp.getHashAndBlockBytesFromStorer(options.GetBlockParameters)
 	if err != nil {
 		return nil, err
@@ -96,29 +95,7 @@ func (mbp *metaAPIBlockProcessor) GetAlteredAccountsForBlock(options api.GetAlte
 		return nil, err
 	}
 
-	txPool := mbp.apiBlockToOutportPool(apiBlock)
-
-	rootHash, err := hex.DecodeString(apiBlock.StateRootHash)
-	if err != nil {
-		return nil, err
-	}
-
-	alteredAccountsOptions := shared.AlteredAccountsOptions{
-		WithCustomAccountsRepository: true,
-		AccountsRepository:           mbp.accountsRepository,
-		// TODO: AccountQueryOptions could be used like options.WithBlockRootHash(..) instead of thinking what to provide
-		AccountQueryOptions: api.AccountQueryOptions{
-			BlockRootHash: rootHash,
-		},
-	}
-
-	alteredAccounts, err := mbp.alteredAccountsProvider.ExtractAlteredAccountsFromPool(txPool, alteredAccountsOptions)
-	if err != nil {
-		return nil, err
-	}
-
-	alteredAccountsAPI := alteredAccountsMapToAPIResponse(alteredAccounts, options.TokensFilter, options.WithMetadata)
-	return alteredAccountsAPI, nil
+	return mbp.apiBlockToAlteredAccounts(apiBlock, options)
 }
 
 func (mbp *metaAPIBlockProcessor) getHashAndBlockBytesFromStorer(params api.GetBlockParameters) ([]byte, []byte, error) {

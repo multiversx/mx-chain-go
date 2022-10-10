@@ -12,7 +12,6 @@ import (
 	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/outport/process/alteredaccounts/shared"
@@ -715,17 +714,16 @@ func TestMetaAPIBlockProcessor_GetAlteredAccountsForBlock(t *testing.T) {
 			},
 		})
 		require.NoError(t, err)
-		require.True(t, areAlteredAccountsResponsesTheSame(&common.AlteredAccountsForBlockAPIResponse{
-			Accounts: []*common.AlteredAccountAPIResponse{
-				{
-					Address: "addr0",
-					Balance: "10",
-				},
-				{
-					Address: "addr2",
-					Balance: "10",
-				},
+		require.True(t, areAlteredAccountsResponsesTheSame([]*outportcore.AlteredAccount{
+			{
+				Address: "addr0",
+				Balance: "10",
 			},
-		}, res))
+			{
+				Address: "addr2",
+				Balance: "10",
+			},
+		},
+			res))
 	})
 }

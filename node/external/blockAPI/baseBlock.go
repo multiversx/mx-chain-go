@@ -21,10 +21,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/api/shared/logging"
-	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/outport/process"
+	"github.com/ElrondNetwork/elrond-go/outport/process/alteredaccounts/shared"
 	"github.com/ElrondNetwork/elrond-go/state"
 )
 
@@ -355,13 +355,11 @@ func bigIntToStr(value *big.Int) string {
 	return value.String()
 }
 
-func alteredAccountsMapToAPIResponse(alteredAccounts map[string]*outport.AlteredAccount, tokensFilter string, withMetadata bool) *common.AlteredAccountsForBlockAPIResponse {
-	response := &common.AlteredAccountsForBlockAPIResponse{
-		Accounts: make([]*common.AlteredAccountAPIResponse, 0, len(alteredAccounts)),
-	}
+func alteredAccountsMapToAPIResponse(alteredAccounts map[string]*outport.AlteredAccount, tokensFilter string, withMetadata bool) []*outport.AlteredAccount {
+	response := make([]*outport.AlteredAccount, 0)
 
 	for address, altAccount := range alteredAccounts {
-		apiAlteredAccount := &common.AlteredAccountAPIResponse{
+		apiAlteredAccount := &outport.AlteredAccount{
 			Address: address,
 			Balance: altAccount.Balance,
 		}
@@ -370,13 +368,13 @@ func alteredAccountsMapToAPIResponse(alteredAccounts map[string]*outport.Altered
 			attachTokensToAlteredAccount(apiAlteredAccount, altAccount, tokensFilter, withMetadata)
 		}
 
-		response.Accounts = append(response.Accounts, apiAlteredAccount)
+		response = append(response, apiAlteredAccount)
 	}
 
 	return response
 }
 
-func attachTokensToAlteredAccount(apiAlteredAccount *common.AlteredAccountAPIResponse, altAccount *outport.AlteredAccount, tokensFilter string, withMetadata bool) {
+func attachTokensToAlteredAccount(apiAlteredAccount *outport.AlteredAccount, altAccount *outport.AlteredAccount, tokensFilter string, withMetadata bool) {
 	for _, token := range altAccount.Tokens {
 		if !shouldAddTokenToResult(token.Identifier, tokensFilter) {
 			continue
@@ -406,6 +404,31 @@ func shouldAddTokenToResult(tokenIdentifier string, tokensFilter string) bool {
 
 func shouldIncludeAllTokens(tokensFilter string) bool {
 	return tokensFilter == "*" || tokensFilter == "all"
+}
+
+func (bap *baseAPIBlockProcessor) apiBlockToAlteredAccounts(apiBlock *api.Block, options api.GetAlteredAccountsForBlockOptions) ([]*outport.AlteredAccount, error) {
+	rootHash, err := hex.DecodeString(apiBlock.StateRootHash)
+	if err != nil {
+		return nil, err
+	}
+
+	alteredAccountsOptions := shared.AlteredAccountsOptions{
+		WithCustomAccountsRepository: true,
+		AccountsRepository:           bap.accountsRepository,
+		// TODO: AccountQueryOptions could be used like options.WithBlockRootHash(..) instead of thinking what to provide
+		AccountQueryOptions: api.AccountQueryOptions{
+			BlockRootHash: rootHash,
+		},
+	}
+
+	outportPool := bap.apiBlockToOutportPool(apiBlock)
+	alteredAccounts, err := bap.alteredAccountsProvider.ExtractAlteredAccountsFromPool(outportPool, alteredAccountsOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	alteredAccountsAPI := alteredAccountsMapToAPIResponse(alteredAccounts, options.TokensFilter, options.WithMetadata)
+	return alteredAccountsAPI, nil
 }
 
 func (bap *baseAPIBlockProcessor) apiBlockToOutportPool(apiBlock *api.Block) *outport.Pool {

@@ -10,10 +10,10 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
+	"github.com/ElrondNetwork/elrond-go-core/data/outport"
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/api/shared/logging"
-	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/gin-gonic/gin"
 )
 
@@ -34,7 +34,7 @@ type blockFacadeHandler interface {
 	GetBlockByHash(hash string, options api.BlockQueryOptions) (*api.Block, error)
 	GetBlockByNonce(nonce uint64, options api.BlockQueryOptions) (*api.Block, error)
 	GetBlockByRound(round uint64, options api.BlockQueryOptions) (*api.Block, error)
-	GetAlteredAccountsForBlock(options api.GetAlteredAccountsForBlockOptions) (*common.AlteredAccountsForBlockAPIResponse, error)
+	GetAlteredAccountsForBlock(options api.GetAlteredAccountsForBlockOptions) ([]*outport.AlteredAccount, error)
 	IsInterfaceNil() bool
 }
 
@@ -185,7 +185,7 @@ func (bg *blockGroup) getAlteredAccountsByNonce(c *gin.Context) {
 		return
 	}
 
-	shared.RespondWithSuccess(c, gin.H{"accounts": alteredAccountsResponse.Accounts})
+	shared.RespondWithSuccess(c, gin.H{"accounts": alteredAccountsResponse})
 }
 
 func (bg *blockGroup) getAlteredAccountsByHash(c *gin.Context) {
@@ -214,7 +214,7 @@ func (bg *blockGroup) getAlteredAccountsByHash(c *gin.Context) {
 		return
 	}
 
-	shared.RespondWithSuccess(c, gin.H{"accounts": alteredAccountsResponse.Accounts})
+	shared.RespondWithSuccess(c, gin.H{"accounts": alteredAccountsResponse})
 }
 
 func parseBlockQueryOptions(c *gin.Context) (api.BlockQueryOptions, error) {
