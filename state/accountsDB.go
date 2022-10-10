@@ -1043,12 +1043,9 @@ func (adb *AccountsDB) RecreateAllTries(rootHash []byte) (map[string]common.Trie
 		}
 	}
 
-	containsErrorDuringGettingLeaves := emptyErrChanReturningHadContained(leavesChannels.ErrChan)
-	if containsErrorDuringGettingLeaves {
-		log.Error("error on getting all leaves from trie")
-	}
+	err = common.ErrFromChan(leavesChannels.ErrChan)
 
-	return allTries, nil
+	return allTries, err
 }
 
 func (adb *AccountsDB) recreateMainTrie(rootHash []byte) (map[string]common.Trie, error) {

@@ -45,6 +45,7 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 
 	leavesChannel1 = common.TrieNodesChannels{
 		LeavesChannel: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:       make(chan error, 1),
 	}
 	_ = tr.GetAllLeavesOnChannel(leavesChannel1, context.Background(), rootHash, keyBuilder.NewDisabledKeyBuilder())
 	idx, _ = gc.Snapshot()
@@ -57,6 +58,7 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 	rootHash, _ = tr.RootHash()
 	leavesChannel1 = common.TrieNodesChannels{
 		LeavesChannel: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:       make(chan error, 1),
 	}
 	_ = tr.GetAllLeavesOnChannel(leavesChannel1, context.Background(), rootHash, keyBuilder.NewDisabledKeyBuilder())
 	idx, _ = gc.Snapshot()
@@ -69,6 +71,7 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 	rootHash, _ = tr.RootHash()
 	leavesChannel2 := common.TrieNodesChannels{
 		LeavesChannel: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:       make(chan error, 1),
 	}
 	_ = tr.GetAllLeavesOnChannel(leavesChannel2, context.Background(), rootHash, keyBuilder.NewDisabledKeyBuilder())
 	time.Sleep(time.Second) // allow the go routine to start

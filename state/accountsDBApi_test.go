@@ -475,7 +475,7 @@ func TestAccountsDBApi_GetAllLeaves(t *testing.T) {
 	t.Run("recreate trie works, should call inner method", func(t *testing.T) {
 		t.Parallel()
 
-		providedChan := common.TrieNodesChannels{LeavesChannel: make(chan core.KeyValueHolder)}
+		providedChan := common.TrieNodesChannels{LeavesChan: make(chan core.KeyValueHolder)}
 		recreateTrieCalled := false
 		accountsAdapter := &mockState.AccountsStub{
 			RecreateTrieCalled: func(rootHash []byte) error {

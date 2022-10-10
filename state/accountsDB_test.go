@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/keyValStorage"
 	"github.com/ElrondNetwork/elrond-go/common/holders"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -1402,7 +1403,7 @@ func TestAccountsDB_GetAllLeaves(t *testing.T) {
 	adb := generateAccountDBFromTrie(trieStub)
 
 	leavesChannel := common.TrieNodesChannels{
-		LeavesChannel: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 	}
 	err := adb.GetAllLeaves(leavesChannel, context.Background(), []byte("root hash"))
 	assert.Nil(t, err)
@@ -2272,27 +2273,62 @@ func TestAccountsDB_ImportAccount(t *testing.T) {
 func TestAccountsDB_RecreateAllTries(t *testing.T) {
 	t.Parallel()
 
-	_, adb := getDefaultTrieAndAccountsDb()
+	t.Run("error on getting all leaves", func(t *testing.T) {
+		t.Parallel()
 
-	addresses := generateAccounts(t, 2, adb)
-	_ = modifyDataTries(t, addresses, adb)
+		args := createMockAccountsDBArgs()
 
-	rootHash, _ := adb.Commit()
+		expectedErr := errors.New("expected error")
+		args.Trie = &trieMock.TrieStub{
+			GetAllLeavesOnChannelCalled: func(leavesChannels common.TrieNodesChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder) error {
+				go func() {
+					leavesChannels.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("key"), []byte("val"))
+					leavesChannels.ErrChan <- expectedErr
 
-	tries, err := adb.RecreateAllTries(rootHash)
-	assert.Nil(t, err)
-	assert.Equal(t, 3, len(tries))
+					close(leavesChannels.LeavesChan)
+					close(leavesChannels.ErrChan)
+				}()
 
-	_, ok := tries[string(rootHash)]
-	assert.True(t, ok)
+				return nil
+			},
+			RecreateCalled: func(root []byte) (common.Trie, error) {
+				return &trieMock.TrieStub{}, nil
+			},
+		}
 
-	for i := 0; i < len(addresses); i++ {
-		acc, _ := adb.LoadAccount(addresses[i])
-		rootHash = acc.(state.UserAccountHandler).GetRootHash()
+		adb, _ := state.NewAccountsDB(args)
 
-		_, ok = tries[string(rootHash)]
-		assert.True(t, ok)
-	}
+		tries, err := adb.RecreateAllTries([]byte{})
+		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, 1, len(tries))
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockAccountsDBArgs()
+
+		args.Trie = &trieMock.TrieStub{
+			GetAllLeavesOnChannelCalled: func(leavesChannels common.TrieNodesChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder) error {
+				go func() {
+					leavesChannels.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("key"), []byte("val"))
+
+					close(leavesChannels.LeavesChan)
+				}()
+
+				return nil
+			},
+			RecreateCalled: func(root []byte) (common.Trie, error) {
+				return &trieMock.TrieStub{}, nil
+			},
+		}
+
+		adb, _ := state.NewAccountsDB(args)
+
+		tries, err := adb.RecreateAllTries([]byte{})
+		assert.Nil(t, err)
+		assert.Equal(t, 1, len(tries))
+	})
 }
 
 func TestAccountsDB_GetTrie(t *testing.T) {

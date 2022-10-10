@@ -570,7 +570,8 @@ func addAccountsToState(t *testing.T, numAccounts int, numDataTrieLeaves int, ac
 
 func getNumLeaves(t *testing.T, tr common.Trie, rootHash []byte) int {
 	leavesChannel := common.TrieNodesChannels{
-		LeavesChannel: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    make(chan error, 1),
 	}
 	err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), rootHash, keyBuilder.NewDisabledKeyBuilder())
 	require.Nil(t, err)

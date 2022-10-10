@@ -294,7 +294,8 @@ func (se *stateExport) exportTrie(key string, trie common.Trie) error {
 	}
 
 	leavesChannels := common.TrieNodesChannels{
-		make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    make(chan error, 1),
 	}
 	err = trie.GetAllLeavesOnChannel(leavesChannels, context.Background(), rootHash, keyBuilder.NewKeyBuilder())
 	if err != nil {

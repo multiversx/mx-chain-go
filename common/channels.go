@@ -7,3 +7,15 @@ func GetClosedUnbufferedChannel() chan struct{} {
 
 	return ch
 }
+
+// ErrFromChan will get the error from channel
+func ErrFromChan(errChan chan error) error {
+	for {
+		select {
+		case err := <-errChan:
+			return err
+		default:
+			return nil
+		}
+	}
+}
