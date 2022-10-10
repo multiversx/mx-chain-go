@@ -1927,7 +1927,7 @@ func TestValidatorStatistics_RootHashWithErrShouldReturnNil(t *testing.T) {
 	arguments := createMockArguments()
 
 	peerAdapter := getAccountsMock()
-	peerAdapter.GetAllLeavesCalled = func(_ common.TrieNodesChannels, _ context.Context, _ []byte) error {
+	peerAdapter.GetAllLeavesCalled = func(_ common.TrieIteratorChannels, _ context.Context, _ []byte) error {
 		return expectedErr
 	}
 	arguments.PeerAdapter = peerAdapter
@@ -1952,7 +1952,7 @@ func TestValidatorStatistics_ResetValidatorStatisticsAtNewEpoch(t *testing.T) {
 	marshalizedPa0, _ := arguments.Marshalizer.Marshal(pa0)
 
 	peerAdapter := getAccountsMock()
-	peerAdapter.GetAllLeavesCalled = func(ch common.TrieNodesChannels, _ context.Context, rootHash []byte) error {
+	peerAdapter.GetAllLeavesCalled = func(ch common.TrieIteratorChannels, _ context.Context, rootHash []byte) error {
 		if bytes.Equal(rootHash, hash) {
 			go func() {
 				ch.LeavesChan <- keyValStorage.NewKeyValStorage(addrBytes0, marshalizedPa0)
@@ -2011,7 +2011,7 @@ func TestValidatorStatistics_Process(t *testing.T) {
 	marshalizedPaMeta, _ := arguments.Marshalizer.Marshal(paMeta)
 
 	peerAdapter := getAccountsMock()
-	peerAdapter.GetAllLeavesCalled = func(ch common.TrieNodesChannels, ctx context.Context, rootHash []byte) error {
+	peerAdapter.GetAllLeavesCalled = func(ch common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error {
 		if bytes.Equal(rootHash, hash) {
 			go func() {
 				ch.LeavesChan <- keyValStorage.NewKeyValStorage(addrBytes0, marshalizedPa0)
@@ -2059,7 +2059,7 @@ func TestValidatorStatistics_GetValidatorInfoForRootHash(t *testing.T) {
 	marshalizedPaMeta, _ := arguments.Marshalizer.Marshal(paMeta)
 
 	peerAdapter := getAccountsMock()
-	peerAdapter.GetAllLeavesCalled = func(ch common.TrieNodesChannels, ctx context.Context, rootHash []byte) error {
+	peerAdapter.GetAllLeavesCalled = func(ch common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error {
 		if bytes.Equal(rootHash, hash) {
 			go func() {
 				ch.LeavesChan <- keyValStorage.NewKeyValStorage(addrBytes0, marshalizedPa0)
@@ -2494,7 +2494,7 @@ func updateArgumentsWithNeeded(arguments peer.ArgValidatorStatisticsProcessor) {
 	marshalizedPaMeta, _ := arguments.Marshalizer.Marshal(paMeta)
 
 	peerAdapter := getAccountsMock()
-	peerAdapter.GetAllLeavesCalled = func(ch common.TrieNodesChannels, ctx context.Context, rootHash []byte) error {
+	peerAdapter.GetAllLeavesCalled = func(ch common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error {
 		go func() {
 			ch.LeavesChan <- keyValStorage.NewKeyValStorage(addrBytes0, marshalizedPa0)
 			ch.LeavesChan <- keyValStorage.NewKeyValStorage(addrBytesMeta, marshalizedPaMeta)

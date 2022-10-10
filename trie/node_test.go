@@ -516,7 +516,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesCollapsedTrie(t *testing.T) {
 	}
 	tr.root = root
 
-	leavesChannel := common.TrieNodesChannels{
+	leavesChannel := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 		ErrChan:    make(chan error, 1),
 	}
@@ -527,6 +527,9 @@ func TestPatriciaMerkleTrie_GetAllLeavesCollapsedTrie(t *testing.T) {
 	for l := range leavesChannel.LeavesChan {
 		leaves[string(l.Key())] = l.Value()
 	}
+
+	err = common.GetErrorFromChanNonBlocking(leavesChannel.ErrChan)
+	assert.Nil(t, err)
 
 	assert.Equal(t, 3, len(leaves))
 	assert.Equal(t, []byte("reindeer"), leaves["doe"])

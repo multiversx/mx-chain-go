@@ -447,22 +447,34 @@ func (tr *patriciaMerkleTrie) GetSerializedNodes(rootHash []byte, maxBuffToSend 
 
 // GetAllLeavesOnChannel adds all the trie leaves to the given channel
 func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(
-	leavesChannels common.TrieNodesChannels,
+	leavesChannels *common.TrieIteratorChannels,
 	ctx context.Context,
 	rootHash []byte,
 	keyBuilder common.KeyBuilder,
 ) error {
+	if leavesChannels == nil {
+		return ErrNilTrieIteratorChannels
+	}
+	if leavesChannels.LeavesChan == nil {
+		return ErrNilTrieIteratorChannel
+	}
+	if leavesChannels.ErrChan == nil {
+		return ErrNilTrieIteratorChannel
+	}
+
 	tr.mutOperation.RLock()
 	newTrie, err := tr.recreate(rootHash, tr.trieStorage)
 	if err != nil {
 		tr.mutOperation.RUnlock()
 		close(leavesChannels.LeavesChan)
+		close(leavesChannels.ErrChan)
 		return err
 	}
 
 	if check.IfNil(newTrie) || newTrie.root == nil {
 		tr.mutOperation.RUnlock()
 		close(leavesChannels.LeavesChan)
+		close(leavesChannels.ErrChan)
 		return nil
 	}
 
@@ -488,6 +500,7 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(
 		tr.mutOperation.Unlock()
 
 		close(leavesChannels.LeavesChan)
+		close(leavesChannels.ErrChan)
 	}()
 
 	return nil

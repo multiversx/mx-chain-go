@@ -127,8 +127,9 @@ func (dlp *delegatedListProcessor) getDelegatorsList(delegationSC []byte, ctx co
 		return nil, fmt.Errorf("%w for delegationSC %s", err, hex.EncodeToString(delegationSC))
 	}
 
-	chLeaves := common.TrieNodesChannels{
+	chLeaves := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    make(chan error, 1),
 	}
 	err = delegatorAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash, keyBuilder.NewKeyBuilder())
 	if err != nil {
@@ -143,6 +144,11 @@ func (dlp *delegatedListProcessor) getDelegatorsList(delegationSC []byte, ctx co
 		}
 
 		delegators = append(delegators, leafKey)
+	}
+
+	err = common.GetErrorFromChanNonBlocking(chLeaves.ErrChan)
+	if err != nil {
+		return nil, err
 	}
 
 	if common.IsContextDone(ctx) {

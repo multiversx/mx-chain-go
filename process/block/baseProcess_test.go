@@ -1868,7 +1868,7 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeededShouldWork(t *testing.T) {
 			RootHashCalled: func() ([]byte, error) {
 				return rootHash, nil
 			},
-			GetAllLeavesCalled: func(channels common.TrieNodesChannels, ctx context.Context, rootHash []byte) error {
+			GetAllLeavesCalled: func(channels common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error {
 				close(channels.LeavesChan)
 				return nil
 			},
@@ -1923,7 +1923,7 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeededShouldUseDataTrieIfNeededW
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		arguments.AccountsDB = map[state.AccountsDbIdentifier]state.AccountsAdapter{
 			state.UserAccountsState: &stateMock.AccountsStub{
-				GetAllLeavesCalled: func(channels common.TrieNodesChannels, ctx context.Context, rh []byte) error {
+				GetAllLeavesCalled: func(channels common.TrieIteratorChannels, ctx context.Context, rh []byte) error {
 					if bytes.Equal(rootHash, rh) {
 						calledWithUserAccountRootHash = true
 						close(channels.LeavesChan)

@@ -345,7 +345,7 @@ func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves 
 	dataTrieRootHashes := addAccountsToState(t, numAccounts, numDataTrieLeaves, accState, valSize)
 
 	rootHash, _ := accState.RootHash()
-	leavesChannel := common.TrieNodesChannels{
+	leavesChannel := common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 	}
 	err = accState.GetAllLeaves(leavesChannel, context.Background(), rootHash)
@@ -370,7 +370,7 @@ func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves 
 	assert.NotEqual(t, nilRootHash, newRootHash)
 	assert.Equal(t, rootHash, newRootHash)
 
-	leavesChannel = common.TrieNodesChannels{
+	leavesChannel = common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 	}
 	err = nRequester.AccntState.GetAllLeaves(leavesChannel, context.Background(), rootHash)
@@ -569,7 +569,7 @@ func addAccountsToState(t *testing.T, numAccounts int, numDataTrieLeaves int, ac
 }
 
 func getNumLeaves(t *testing.T, tr common.Trie, rootHash []byte) int {
-	leavesChannel := common.TrieNodesChannels{
+	leavesChannel := common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 		ErrChan:    make(chan error, 1),
 	}

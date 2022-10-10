@@ -18,8 +18,8 @@ type NumNodesDTO struct {
 	MaxLevel   int
 }
 
-// TrieNodesChannels defines the channels that are being used when integrating with trie nodes
-type TrieNodesChannels struct {
+// TrieIteratorChannels defines the channels that are being used when iterating the trie nodes
+type TrieIteratorChannels struct {
 	LeavesChan chan core.KeyValueHolder
 	ErrChan    chan error
 }
@@ -40,7 +40,7 @@ type Trie interface {
 	GetSerializedNodes([]byte, uint64) ([][]byte, uint64, error)
 	GetSerializedNode([]byte) ([]byte, error)
 	GetNumNodes() NumNodesDTO
-	GetAllLeavesOnChannel(allLeavesChan TrieNodesChannels, ctx context.Context, rootHash []byte, keyBuilder KeyBuilder) error
+	GetAllLeavesOnChannel(allLeavesChan *TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder KeyBuilder) error
 	GetAllHashes() ([][]byte, error)
 	GetProof(key []byte) ([][]byte, []byte, error)
 	VerifyProof(rootHash []byte, key []byte, proof [][]byte) (bool, error)
@@ -59,7 +59,7 @@ type KeyBuilder interface {
 // DataTrieHandler is an interface that declares the methods used for dataTries
 type DataTrieHandler interface {
 	RootHash() ([]byte, error)
-	GetAllLeavesOnChannel(leavesChannels TrieNodesChannels, ctx context.Context, rootHash []byte, keyBuilder KeyBuilder) error
+	GetAllLeavesOnChannel(leavesChannels *TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder KeyBuilder) error
 	IsInterfaceNil() bool
 }
 

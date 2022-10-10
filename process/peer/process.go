@@ -424,7 +424,7 @@ func (vs *validatorStatistics) RootHash() ([]byte, error) {
 }
 
 func (vs *validatorStatistics) getValidatorDataFromLeaves(
-	leavesChannels common.TrieNodesChannels,
+	leavesChannels *common.TrieIteratorChannels,
 ) (map[uint32][]*state.ValidatorInfo, error) {
 
 	validators := make(map[uint32][]*state.ValidatorInfo, vs.shardCoordinator.NumberOfShards()+1)
@@ -444,9 +444,9 @@ func (vs *validatorStatistics) getValidatorDataFromLeaves(
 		validators[currentShardId] = append(validators[currentShardId], validatorInfoData)
 	}
 
-	err := common.ErrFromChan(leavesChannels.ErrChan)
+	err := common.GetErrorFromChanNonBlocking(leavesChannels.ErrChan)
 	if err != nil {
-		log.Error("error on getting all leaves", "err", err)
+		return nil, err
 	}
 
 	return validators, nil
@@ -557,7 +557,7 @@ func (vs *validatorStatistics) GetValidatorInfoForRootHash(rootHash []byte) (map
 		log.Debug("GetValidatorInfoForRootHash", sw.GetMeasurements()...)
 	}()
 
-	leavesChannels := common.TrieNodesChannels{
+	leavesChannels := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 		ErrChan:    make(chan error, 1),
 	}

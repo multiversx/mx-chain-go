@@ -115,7 +115,7 @@ func (r *readOnlyAccountsDB) IsPruningEnabled() bool {
 }
 
 // GetAllLeaves will call the original accounts' function with the same name
-func (r *readOnlyAccountsDB) GetAllLeaves(leavesChannels common.TrieNodesChannels, ctx context.Context, rootHash []byte) error {
+func (r *readOnlyAccountsDB) GetAllLeaves(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error {
 	return r.originalAccounts.GetAllLeaves(leavesChannels, ctx, rootHash)
 }
 

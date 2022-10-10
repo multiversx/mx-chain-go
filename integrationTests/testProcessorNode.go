@@ -3156,7 +3156,7 @@ func GetTokenIdentifier(nodes []*TestProcessorNode, ticker []byte) []byte {
 		userAcc, _ := acc.(state.UserAccountHandler)
 
 		rootHash, _ := userAcc.DataTrie().RootHash()
-		chLeaves := common.TrieNodesChannels{
+		chLeaves := &common.TrieIteratorChannels{
 			LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 			ErrChan:    make(chan error, 1),
 		}
@@ -3167,6 +3167,11 @@ func GetTokenIdentifier(nodes []*TestProcessorNode, ticker []byte) []byte {
 			}
 
 			return leaf.Key()
+		}
+
+		err := common.GetErrorFromChanNonBlocking(chLeaves.ErrChan)
+		if err != nil {
+			log.Error("error getting all leaves from channel", "err", err)
 		}
 	}
 

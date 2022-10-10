@@ -223,7 +223,7 @@ func createDelegationScAccount(address []byte, leaves [][]byte, rootHash []byte,
 		RootCalled: func() ([]byte, error) {
 			return rootHash, nil
 		},
-		GetAllLeavesOnChannelCalled: func(leavesChannels common.TrieNodesChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
+		GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
 			go func() {
 				time.Sleep(timeSleep)
 				for _, leafBuff := range leaves {

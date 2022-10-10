@@ -12,7 +12,7 @@ import (
 
 // TODO: create a structure or use this function also in process/peer/process.go
 func getValidatorDataFromLeaves(
-	leavesChannels common.TrieNodesChannels,
+	leavesChannels *common.TrieIteratorChannels,
 	shardCoordinator sharding.Coordinator,
 	marshalizer marshal.Marshalizer,
 ) (map[uint32][]*state.ValidatorInfo, error) {
@@ -34,9 +34,9 @@ func getValidatorDataFromLeaves(
 		validators[currentShardId] = append(validators[currentShardId], validatorInfoData)
 	}
 
-	err := common.ErrFromChan(leavesChannels.ErrChan)
+	err := common.GetErrorFromChanNonBlocking(leavesChannels.ErrChan)
 	if err != nil {
-		log.Error("error on getting all leaves", "err", err)
+		return nil, err
 	}
 
 	return validators, nil

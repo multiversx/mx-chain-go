@@ -96,8 +96,9 @@ func (svp *stakedValuesProcessor) computeBaseStakedAndTopUp(ctx context.Context)
 	}
 
 	// TODO investigate if a call to GetAllLeavesKeysOnChannel (without values) might increase performance
-	chLeaves := common.TrieNodesChannels{
+	chLeaves := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    make(chan error, 1),
 	}
 	err = validatorAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash, keyBuilder.NewKeyBuilder())
 	if err != nil {
@@ -120,6 +121,11 @@ func (svp *stakedValuesProcessor) computeBaseStakedAndTopUp(ctx context.Context)
 
 		totalBaseStaked = totalBaseStaked.Add(totalBaseStaked, baseStaked)
 		totalTopUp = totalTopUp.Add(totalTopUp, info.topUpValue)
+	}
+
+	err = common.GetErrorFromChanNonBlocking(chLeaves.ErrChan)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	if common.IsContextDone(ctx) {

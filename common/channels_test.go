@@ -50,14 +50,14 @@ func TestErrFromChannel(t *testing.T) {
 			t.Parallel()
 
 			errChan := make(chan error)
-			assert.Nil(t, ErrFromChan(errChan))
+			assert.Nil(t, GetErrorFromChanNonBlocking(errChan))
 		})
 
 		t.Run("buffered chan", func(t *testing.T) {
 			t.Parallel()
 
 			errChan := make(chan error, 1)
-			assert.Nil(t, ErrFromChan(errChan))
+			assert.Nil(t, GetErrorFromChanNonBlocking(errChan))
 		})
 	})
 
@@ -75,7 +75,7 @@ func TestErrFromChannel(t *testing.T) {
 
 			time.Sleep(time.Second) // allow the go routine to start
 
-			assert.Equal(t, expectedErr, ErrFromChan(errChan))
+			assert.Equal(t, expectedErr, GetErrorFromChanNonBlocking(errChan))
 		})
 
 		t.Run("buffered chan", func(t *testing.T) {
@@ -88,7 +88,7 @@ func TestErrFromChannel(t *testing.T) {
 					errChan <- expectedErr
 				}
 
-				assert.Equal(t, expectedErr, ErrFromChan(errChan))
+				assert.Equal(t, expectedErr, GetErrorFromChanNonBlocking(errChan))
 			}
 		})
 	})

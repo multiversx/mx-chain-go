@@ -293,7 +293,7 @@ func (se *stateExport) exportTrie(key string, trie common.Trie) error {
 		return err
 	}
 
-	leavesChannels := common.TrieNodesChannels{
+	leavesChannels := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 		ErrChan:    make(chan error, 1),
 	}
@@ -344,7 +344,7 @@ func (se *stateExport) exportTrie(key string, trie common.Trie) error {
 }
 
 func (se *stateExport) exportDataTries(
-	leavesChannels common.TrieNodesChannels,
+	leavesChannels *common.TrieIteratorChannels,
 	accType Type,
 	shId uint32,
 	identifier string,
@@ -357,7 +357,12 @@ func (se *stateExport) exportDataTries(
 		}
 	}
 
-	err := se.hardforkStorer.FinishedIdentifier(identifier)
+	err := common.GetErrorFromChanNonBlocking(leavesChannels.ErrChan)
+	if err != nil {
+		return err
+	}
+
+	err = se.hardforkStorer.FinishedIdentifier(identifier)
 	if err != nil {
 		return err
 	}
@@ -366,7 +371,7 @@ func (se *stateExport) exportDataTries(
 }
 
 func (se *stateExport) exportAccountLeaves(
-	leavesChannels common.TrieNodesChannels,
+	leavesChannels *common.TrieIteratorChannels,
 	accType Type,
 	shId uint32,
 	identifier string,
@@ -379,7 +384,12 @@ func (se *stateExport) exportAccountLeaves(
 		}
 	}
 
-	err := se.hardforkStorer.FinishedIdentifier(identifier)
+	err := common.GetErrorFromChanNonBlocking(leavesChannels.ErrChan)
+	if err != nil {
+		return err
+	}
+
+	err = se.hardforkStorer.FinishedIdentifier(identifier)
 	if err != nil {
 		return err
 	}

@@ -212,7 +212,7 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 		return err
 	}
 
-	leavesChannels := common.TrieNodesChannels{
+	leavesChannels := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 		ErrChan:    make(chan error, 1),
 	}
@@ -266,9 +266,9 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 
 	wg.Wait()
 
-	err = common.ErrFromChan(leavesChannels.ErrChan)
+	err = common.GetErrorFromChanNonBlocking(leavesChannels.ErrChan)
 	if err != nil {
-		log.Error("error on getting all leaves", "err", err)
+		return err
 	}
 
 	return errFound

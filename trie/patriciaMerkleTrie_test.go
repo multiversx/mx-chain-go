@@ -9,13 +9,12 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/common/holders"
-
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/common/holders"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
@@ -540,48 +539,88 @@ func TestPatriciaMerkleTrie_GetAllHashesEmtyTrie(t *testing.T) {
 	assert.Equal(t, 0, len(hashes))
 }
 
-func TestPatriciaMerkleTrie_GetAllLeavesOnChannelEmptyTrie(t *testing.T) {
-	t.Parallel()
-
-	tr := emptyTrie()
-
-	leavesChannel := common.TrieNodesChannels{
-		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-		ErrChan:    make(chan error, 1),
-	}
-	err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), []byte{}, keyBuilder.NewDisabledKeyBuilder())
-	assert.Nil(t, err)
-	assert.NotNil(t, leavesChannel)
-
-	_, ok := <-leavesChannel.LeavesChan
-	assert.False(t, ok)
-}
-
 func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 	t.Parallel()
 
-	tr := initTrie()
-	leaves := map[string][]byte{
-		"doe":  []byte("reindeer"),
-		"dog":  []byte("puppy"),
-		"ddog": []byte("cat"),
-	}
-	_ = tr.Commit()
-	rootHash, _ := tr.RootHash()
+	t.Run("nil trie iterator channels", func(t *testing.T) {
+		t.Parallel()
 
-	leavesChannel := common.TrieNodesChannels{
-		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-		ErrChan:    make(chan error, 1),
-	}
-	err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), rootHash, keyBuilder.NewKeyBuilder())
-	assert.Nil(t, err)
-	assert.NotNil(t, leavesChannel)
+		tr := emptyTrie()
+		err := tr.GetAllLeavesOnChannel(nil, context.Background(), []byte{}, keyBuilder.NewDisabledKeyBuilder())
+		assert.Equal(t, trie.ErrNilTrieIteratorChannels, err)
+	})
 
-	recovered := make(map[string][]byte)
-	for leaf := range leavesChannel.LeavesChan {
-		recovered[string(leaf.Key())] = leaf.Value()
-	}
-	assert.Equal(t, leaves, recovered)
+	t.Run("nil leaves chan", func(t *testing.T) {
+		t.Parallel()
+
+		tr := emptyTrie()
+
+		iteratorChannels := &common.TrieIteratorChannels{
+			LeavesChan: nil,
+			ErrChan:    make(chan error, 1),
+		}
+		err := tr.GetAllLeavesOnChannel(iteratorChannels, context.Background(), []byte{}, keyBuilder.NewDisabledKeyBuilder())
+		assert.Equal(t, trie.ErrNilTrieIteratorChannel, err)
+	})
+
+	t.Run("nil err chan", func(t *testing.T) {
+		t.Parallel()
+
+		tr := emptyTrie()
+
+		iteratorChannels := &common.TrieIteratorChannels{
+			LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+			ErrChan:    nil,
+		}
+		err := tr.GetAllLeavesOnChannel(iteratorChannels, context.Background(), []byte{}, keyBuilder.NewDisabledKeyBuilder())
+		assert.Equal(t, trie.ErrNilTrieIteratorChannel, err)
+	})
+
+	t.Run("empty trie", func(t *testing.T) {
+		t.Parallel()
+
+		tr := emptyTrie()
+
+		leavesChannel := &common.TrieIteratorChannels{
+			LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+			ErrChan:    make(chan error, 1),
+		}
+		err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), []byte{}, keyBuilder.NewDisabledKeyBuilder())
+		assert.Nil(t, err)
+		assert.NotNil(t, leavesChannel)
+
+		_, ok := <-leavesChannel.LeavesChan
+		assert.False(t, ok)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		tr := initTrie()
+		leaves := map[string][]byte{
+			"doe":  []byte("reindeer"),
+			"dog":  []byte("puppy"),
+			"ddog": []byte("cat"),
+		}
+		_ = tr.Commit()
+		rootHash, _ := tr.RootHash()
+
+		leavesChannel := &common.TrieIteratorChannels{
+			LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+			ErrChan:    make(chan error, 1),
+		}
+		err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), rootHash, keyBuilder.NewKeyBuilder())
+		assert.Nil(t, err)
+		assert.NotNil(t, leavesChannel)
+
+		recovered := make(map[string][]byte)
+		for leaf := range leavesChannel.LeavesChan {
+			recovered[string(leaf.Key())] = leaf.Value()
+		}
+		err = common.GetErrorFromChanNonBlocking(leavesChannel.ErrChan)
+		assert.Nil(t, err)
+		assert.Equal(t, leaves, recovered)
+	})
 }
 
 func TestPatriciaMerkleTree_Prove(t *testing.T) {

@@ -852,7 +852,7 @@ func (pcf *processComponentsFactory) indexGenesisAccounts() error {
 		return err
 	}
 
-	leavesChannels := common.TrieNodesChannels{
+	leavesChannels := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 		ErrChan:    make(chan error, 1),
 	}
@@ -872,9 +872,9 @@ func (pcf *processComponentsFactory) indexGenesisAccounts() error {
 		genesisAccounts = append(genesisAccounts, userAccount)
 	}
 
-	err = common.ErrFromChan(leavesChannels.ErrChan)
+	err = common.GetErrorFromChanNonBlocking(leavesChannels.ErrChan)
 	if err != nil {
-		log.Error("error on getting all leaves", "err", err)
+		return err
 	}
 
 	pcf.statusComponents.OutportHandler().SaveAccounts(uint64(pcf.coreData.GenesisNodesSetup().GetStartTime()), genesisAccounts)

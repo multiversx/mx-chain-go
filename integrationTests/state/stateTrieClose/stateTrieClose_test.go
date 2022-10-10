@@ -34,7 +34,7 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 	gc := goroutines.NewGoCounter(goroutines.TestsRelevantGoRoutines)
 	idxInitial, _ := gc.Snapshot()
 	rootHash, _ := tr.RootHash()
-	leavesChannel1 := common.TrieNodesChannels{
+	leavesChannel1 := common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 	}
 	_ = tr.GetAllLeavesOnChannel(leavesChannel1, context.Background(), rootHash, keyBuilder.NewDisabledKeyBuilder())
@@ -43,7 +43,7 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 	diff := gc.DiffGoRoutines(idxInitial, idx)
 	assert.True(t, len(diff) <= 1) // can be 0 on a fast running host
 
-	leavesChannel1 = common.TrieNodesChannels{
+	leavesChannel1 = common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 		ErrChan:    make(chan error, 1),
 	}
@@ -56,7 +56,7 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 	_ = tr.Commit()
 
 	rootHash, _ = tr.RootHash()
-	leavesChannel1 = common.TrieNodesChannels{
+	leavesChannel1 = common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 		ErrChan:    make(chan error, 1),
 	}
@@ -69,7 +69,7 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 	_ = tr.Commit()
 
 	rootHash, _ = tr.RootHash()
-	leavesChannel2 := common.TrieNodesChannels{
+	leavesChannel2 := common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 		ErrChan:    make(chan error, 1),
 	}

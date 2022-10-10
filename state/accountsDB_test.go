@@ -11,14 +11,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/keyValStorage"
-	"github.com/ElrondNetwork/elrond-go/common/holders"
-
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	atomicFlag "github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/keyValStorage"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/common/holders"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -1389,7 +1388,7 @@ func TestAccountsDB_GetAllLeaves(t *testing.T) {
 
 	getAllLeavesCalled := false
 	trieStub := &trieMock.TrieStub{
-		GetAllLeavesOnChannelCalled: func(channels common.TrieNodesChannels, ctx context.Context, rootHash []byte, builder common.KeyBuilder) error {
+		GetAllLeavesOnChannelCalled: func(channels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, builder common.KeyBuilder) error {
 			getAllLeavesCalled = true
 			close(channels.LeavesChan)
 
@@ -1402,7 +1401,7 @@ func TestAccountsDB_GetAllLeaves(t *testing.T) {
 
 	adb := generateAccountDBFromTrie(trieStub)
 
-	leavesChannel := common.TrieNodesChannels{
+	leavesChannel := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 	}
 	err := adb.GetAllLeaves(leavesChannel, context.Background(), []byte("root hash"))
@@ -2280,7 +2279,7 @@ func TestAccountsDB_RecreateAllTries(t *testing.T) {
 
 		expectedErr := errors.New("expected error")
 		args.Trie = &trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(leavesChannels common.TrieNodesChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder) error {
+			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder) error {
 				go func() {
 					leavesChannels.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("key"), []byte("val"))
 					leavesChannels.ErrChan <- expectedErr
@@ -2309,7 +2308,7 @@ func TestAccountsDB_RecreateAllTries(t *testing.T) {
 		args := createMockAccountsDBArgs()
 
 		args.Trie = &trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(leavesChannels common.TrieNodesChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder) error {
+			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder) error {
 				go func() {
 					leavesChannels.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("key"), []byte("val"))
 
@@ -2803,7 +2802,7 @@ func testAccountMethodsConcurrency(
 			case 17:
 				_ = adb.IsPruningEnabled()
 			case 18:
-				_ = adb.GetAllLeaves(common.TrieNodesChannels{}, context.Background(), rootHash)
+				_ = adb.GetAllLeaves(&common.TrieIteratorChannels{}, context.Background(), rootHash)
 			case 19:
 				_, _ = adb.RecreateAllTries(rootHash)
 			case 20:

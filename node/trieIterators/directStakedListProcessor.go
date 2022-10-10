@@ -54,8 +54,9 @@ func (dslp *directStakedListProcessor) getAllStakedAccounts(validatorAccount sta
 		return nil, err
 	}
 
-	chLeaves := common.TrieNodesChannels{
+	chLeaves := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    make(chan error, 1),
 	}
 	err = validatorAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash, keyBuilder.NewKeyBuilder())
 	if err != nil {
@@ -87,6 +88,11 @@ func (dslp *directStakedListProcessor) getAllStakedAccounts(validatorAccount sta
 		}
 
 		stakedAccounts = append(stakedAccounts, val)
+	}
+
+	err = common.GetErrorFromChanNonBlocking(chLeaves.ErrChan)
+	if err != nil {
+		return nil, err
 	}
 
 	if common.IsContextDone(ctx) {

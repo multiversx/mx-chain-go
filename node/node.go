@@ -216,7 +216,7 @@ func (n *Node) GetAllIssuedESDTs(tokenType string, ctx context.Context) ([]strin
 		return nil, err
 	}
 
-	chLeaves := common.TrieNodesChannels{
+	chLeaves := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 		ErrChan:    make(chan error, 1),
 	}
@@ -246,9 +246,9 @@ func (n *Node) GetAllIssuedESDTs(tokenType string, ctx context.Context) ([]strin
 		}
 	}
 
-	err = common.ErrFromChan(chLeaves.ErrChan)
+	err = common.GetErrorFromChanNonBlocking(chLeaves.ErrChan)
 	if err != nil {
-		log.Error("error on getting all leaves", "err", err)
+		return nil, err
 	}
 
 	if common.IsContextDone(ctx) {
@@ -292,7 +292,7 @@ func (n *Node) GetKeyValuePairs(address string, options api.AccountQueryOptions,
 		return nil, api.BlockInfo{}, err
 	}
 
-	chLeaves := common.TrieNodesChannels{
+	chLeaves := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 		ErrChan:    make(chan error, 1),
 	}
@@ -313,7 +313,7 @@ func (n *Node) GetKeyValuePairs(address string, options api.AccountQueryOptions,
 		mapToReturn[hex.EncodeToString(leaf.Key())] = hex.EncodeToString(value)
 	}
 
-	err = common.ErrFromChan(chLeaves.ErrChan)
+	err = common.GetErrorFromChanNonBlocking(chLeaves.ErrChan)
 	if err != nil {
 		log.Error("error on getting all leaves", "err", err)
 	}
@@ -394,7 +394,7 @@ func (n *Node) getTokensIDsWithFilter(
 		return nil, api.BlockInfo{}, err
 	}
 
-	chLeaves := common.TrieNodesChannels{
+	chLeaves := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 		ErrChan:    make(chan error, 1),
 	}
@@ -419,9 +419,9 @@ func (n *Node) getTokensIDsWithFilter(
 		}
 	}
 
-	err = common.ErrFromChan(chLeaves.ErrChan)
+	err = common.GetErrorFromChanNonBlocking(chLeaves.ErrChan)
 	if err != nil {
-		log.Error("error on getting all leaves", "err", err)
+		return nil, api.BlockInfo{}, err
 	}
 
 	if common.IsContextDone(ctx) {
@@ -524,7 +524,7 @@ func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions,
 		return nil, api.BlockInfo{}, err
 	}
 
-	chLeaves := common.TrieNodesChannels{
+	chLeaves := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 		ErrChan:    make(chan error, 1),
 	}
@@ -564,9 +564,9 @@ func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions,
 		allESDTs[tokenName] = esdtToken
 	}
 
-	err = common.ErrFromChan(chLeaves.ErrChan)
+	err = common.GetErrorFromChanNonBlocking(chLeaves.ErrChan)
 	if err != nil {
-		log.Error("error on getting all leaves", "err", err)
+		return nil, api.BlockInfo{}, err
 	}
 
 	if common.IsContextDone(ctx) {
