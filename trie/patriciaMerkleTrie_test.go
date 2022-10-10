@@ -3,6 +3,7 @@ package trie_test
 import (
 	"context"
 	cryptoRand "crypto/rand"
+	"errors"
 	"fmt"
 	"math/rand"
 	"strconv"
@@ -21,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
 	"github.com/ElrondNetwork/elrond-go/trie/keyBuilder"
+	"github.com/ElrondNetwork/elrond-go/trie/mock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -591,6 +593,89 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 
 		_, ok := <-leavesChannel.LeavesChan
 		assert.False(t, ok)
+
+		err = common.GetErrorFromChanNonBlocking(leavesChannel.ErrChan)
+		assert.Nil(t, err)
+	})
+
+	t.Run("should fail on getting leaves", func(t *testing.T) {
+		t.Parallel()
+
+		tr := initTrie()
+		_ = tr.Commit()
+		rootHash, _ := tr.RootHash()
+
+		leavesChannel := &common.TrieIteratorChannels{
+			LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+			ErrChan:    make(chan error, 1),
+		}
+
+		expectedErr := errors.New("expected error")
+		keyBuilderStub := &mock.KeyBuilderStub{}
+		keyBuilderStub.GetKeyCalled = func() ([]byte, error) {
+			return nil, expectedErr
+		}
+		keyBuilderStub.CloneCalled = func() common.KeyBuilder {
+			return keyBuilderStub
+		}
+
+		err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), rootHash, keyBuilderStub)
+		assert.Nil(t, err)
+		assert.NotNil(t, leavesChannel)
+
+		recovered := make(map[string][]byte)
+		for leaf := range leavesChannel.LeavesChan {
+			recovered[string(leaf.Key())] = leaf.Value()
+		}
+		err = common.GetErrorFromChanNonBlocking(leavesChannel.ErrChan)
+		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, 0, len(recovered))
+	})
+
+	t.Run("should work for first leaf but fail at second one", func(t *testing.T) {
+		t.Parallel()
+
+		tr := emptyTrie()
+		_ = tr.Update([]byte("doe"), []byte("reindeer"))
+		_ = tr.Update([]byte("dog"), []byte("puppy"))
+		_ = tr.Commit()
+		rootHash, _ := tr.RootHash()
+
+		leavesChannel := &common.TrieIteratorChannels{
+			LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+			ErrChan:    make(chan error, 1),
+		}
+
+		expectedErr := errors.New("expected error")
+
+		keyBuilderStub := &mock.KeyBuilderStub{}
+		firstRun := true
+		keyBuilderStub.GetKeyCalled = func() ([]byte, error) {
+			if firstRun {
+				firstRun = false
+				return []byte("doe"), nil
+			}
+			return nil, expectedErr
+		}
+		keyBuilderStub.CloneCalled = func() common.KeyBuilder {
+			return keyBuilderStub
+		}
+
+		err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), rootHash, keyBuilderStub)
+		assert.Nil(t, err)
+		assert.NotNil(t, leavesChannel)
+
+		recovered := make(map[string][]byte)
+		for leaf := range leavesChannel.LeavesChan {
+			recovered[string(leaf.Key())] = leaf.Value()
+		}
+		err = common.GetErrorFromChanNonBlocking(leavesChannel.ErrChan)
+		assert.Equal(t, expectedErr, err)
+
+		expectedLeaves := map[string][]byte{
+			"doe": []byte("reindeer"),
+		}
+		assert.Equal(t, expectedLeaves, recovered)
 	})
 
 	t.Run("should work", func(t *testing.T) {
