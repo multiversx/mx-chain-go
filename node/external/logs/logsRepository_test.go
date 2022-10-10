@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	storageCore "github.com/ElrondNetwork/elrond-go-core/storage"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -85,9 +86,9 @@ func TestLogsRepository_GetLogShouldFallbackToPreviousEpoch(t *testing.T) {
 
 func TestLogsRepository_GetLogShouldNotFallbackToPreviousEpochIfZero(t *testing.T) {
 	marshaller := &marshal.GogoProtoMarshalizer{}
-	storageService := &testsCommonStorage.ChainStorerStub{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &testsCommonStorage.StorerStub{
+	storageService := &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return &storageStubs.StorerStub{
 				GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 					if epoch != 0 {
 						require.Fail(t, "unexpected")
@@ -95,7 +96,7 @@ func TestLogsRepository_GetLogShouldNotFallbackToPreviousEpochIfZero(t *testing.
 
 					return nil, errors.New("expected")
 				},
-			}
+			}, nil
 		},
 	}
 
@@ -123,9 +124,9 @@ func TestLogsRepository_GetLogsShouldFallbackToPreviousEpoch(t *testing.T) {
 
 func TestLogsRepository_GetLogsShouldNotFallbackToPreviousEpochIfZero(t *testing.T) {
 	marshaller := &marshal.GogoProtoMarshalizer{}
-	storageService := &testsCommonStorage.ChainStorerStub{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &testsCommonStorage.StorerStub{
+	storageService := &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return &storageStubs.StorerStub{
 				GetBulkFromEpochCalled: func(keys [][]byte, epoch uint32) ([]storageCore.KeyValuePair, error) {
 					if epoch != 0 {
 						require.Fail(t, "unexpected")
@@ -133,7 +134,7 @@ func TestLogsRepository_GetLogsShouldNotFallbackToPreviousEpochIfZero(t *testing
 
 					return nil, errors.New("expected")
 				},
-			}
+			}, nil
 		},
 	}
 
