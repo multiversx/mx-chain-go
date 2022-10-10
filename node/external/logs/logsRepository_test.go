@@ -68,6 +68,80 @@ func TestLogsRepository_GetLogsShouldWork(t *testing.T) {
 	require.Len(t, noLogsFetched, 0)
 }
 
+func TestLogsRepository_GetLogShouldFallbackToPreviousEpoch(t *testing.T) {
+	storageService := genericMocks.NewChainStorerMock(uint32(0))
+	marshaller := &marshal.GogoProtoMarshalizer{}
+	repository := newLogsRepository(storageService, marshaller)
+
+	logEntry := &transaction.Log{Events: []*transaction.Event{{Identifier: []byte("foo")}}}
+	logEntryBytes, _ := marshaller.Marshal(logEntry)
+	_ = storageService.Logs.PutInEpoch([]byte{0xaa}, logEntryBytes, 41)
+
+	// logEntry is missing in epoch 42 (edge-case), but is present in epoch 41
+	logEntryFetched, err := repository.getLog([]byte{0xaa}, 42)
+	require.Nil(t, err)
+	require.Equal(t, []byte("foo"), logEntryFetched.Events[0].Identifier)
+}
+
+func TestLogsRepository_GetLogShouldNotFallbackToPreviousEpochIfZero(t *testing.T) {
+	marshaller := &marshal.GogoProtoMarshalizer{}
+	storageService := &testsCommonStorage.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+			return &testsCommonStorage.StorerStub{
+				GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+					if epoch != 0 {
+						require.Fail(t, "unexpected")
+					}
+
+					return nil, errors.New("expected")
+				},
+			}
+		},
+	}
+
+	repository := newLogsRepository(storageService, marshaller)
+	_, err := repository.getLog([]byte{0xaa}, 0)
+	require.Error(t, err, "expected")
+}
+
+func TestLogsRepository_GetLogsShouldFallbackToPreviousEpoch(t *testing.T) {
+	storageService := genericMocks.NewChainStorerMock(uint32(0))
+	marshaller := &marshal.GogoProtoMarshalizer{}
+	repository := newLogsRepository(storageService, marshaller)
+
+	fooBytes, _ := marshaller.Marshal(&transaction.Log{Events: []*transaction.Event{{Identifier: []byte("foo")}}})
+	barBytes, _ := marshaller.Marshal(&transaction.Log{Events: []*transaction.Event{{Identifier: []byte("bar")}}})
+	_ = storageService.Logs.PutInEpoch([]byte{0xaa}, fooBytes, 41)
+	_ = storageService.Logs.PutInEpoch([]byte{0xbb}, barBytes, 41)
+
+	// entries are missing in epoch 42 (edge-case), but are present in epoch 41
+	logEntriesFetched, err := repository.getLogs([][]byte{{0xaa}, {0xbb}}, 42)
+	require.Nil(t, err)
+	require.Equal(t, []byte("foo"), logEntriesFetched[string([]byte{0xaa})].Events[0].Identifier)
+	require.Equal(t, []byte("bar"), logEntriesFetched[string([]byte{0xbb})].Events[0].Identifier)
+}
+
+func TestLogsRepository_GetLogsShouldNotFallbackToPreviousEpochIfZero(t *testing.T) {
+	marshaller := &marshal.GogoProtoMarshalizer{}
+	storageService := &testsCommonStorage.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+			return &testsCommonStorage.StorerStub{
+				GetBulkFromEpochCalled: func(keys [][]byte, epoch uint32) ([]storageCore.KeyValuePair, error) {
+					if epoch != 0 {
+						require.Fail(t, "unexpected")
+					}
+
+					return nil, errors.New("expected")
+				},
+			}
+		},
+	}
+
+	repository := newLogsRepository(storageService, marshaller)
+	_, err := repository.getLogs([][]byte{{0xaa}, {0xbb}}, 0)
+	require.Error(t, err, "expected")
+}
+
 func TestLogsRepository_GetLogsShouldErr(t *testing.T) {
 	epoch := uint32(7)
 
