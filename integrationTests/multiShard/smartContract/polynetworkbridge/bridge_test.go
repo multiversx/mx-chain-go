@@ -31,12 +31,16 @@ func TestBridgeSetupAndBurn(t *testing.T) {
 	enableEpochs := config.EnableEpochs{
 		GlobalMintBurnDisableEpoch:       integrationTests.UnreachableEpoch,
 		BuiltInFunctionOnMetaEnableEpoch: integrationTests.UnreachableEpoch,
+		SCProcessorV2EnableEpoch:         integrationTests.UnreachableEpoch,
 	}
-	nodes := integrationTests.CreateNodesWithEnableEpochs(
+	arwenVersion := config.ArwenVersionByEpoch{Version: "v1.4"}
+	vmConfig := &config.VirtualMachineConfig{ArwenVersions: []config.ArwenVersionByEpoch{arwenVersion}}
+	nodes := integrationTests.CreateNodesWithEnableEpochsAndVmConfig(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
 		enableEpochs,
+		vmConfig,
 	)
 
 	ownerNode := nodes[0]
