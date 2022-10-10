@@ -1034,7 +1034,14 @@ func (n *Node) Close() error {
 	}
 
 	var closeError error = nil
-	log.Debug("closing all managed components")
+
+	allComponents := make([]string, 0, len(n.closableComponents))
+	for i := len(n.closableComponents) - 1; i >= 0; i-- {
+		managedComponent := n.closableComponents[i]
+		allComponents = append(allComponents, fmt.Sprintf("%v", managedComponent))
+	}
+
+	log.Debug("closing all managed components", "all components", strings.Join(allComponents, ", "))
 	for i := len(n.closableComponents) - 1; i >= 0; i-- {
 		managedComponent := n.closableComponents[i]
 		componentName := n.getClosableComponentName(managedComponent, i)
@@ -1046,6 +1053,7 @@ func (n *Node) Close() error {
 			}
 			closeError = fmt.Errorf("%w, err: %s", closeError, err.Error())
 		}
+		log.Debug("closed", "managedComponent", componentName)
 	}
 
 	time.Sleep(time.Second * 5)
