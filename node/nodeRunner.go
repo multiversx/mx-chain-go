@@ -823,7 +823,12 @@ func waitForSignal(
 	case <-chanCloseComponents:
 		log.Debug("Closed all components gracefully")
 	case <-time.After(maxTimeToClose):
-		log.Warn("force closing the node", "error", "closeAllComponents did not finish on time")
+		buff := make([]byte, 100*1024*1024)
+		num := runtime.Stack(buff, true)
+		log.Warn("force closing the node",
+			"error", "closeAllComponents did not finish on time",
+			"stack", string("\n"+string(buff[:num])))
+
 		return fmt.Errorf("did NOT close all components gracefully")
 	}
 
