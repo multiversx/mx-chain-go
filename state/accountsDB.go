@@ -1357,15 +1357,14 @@ func (adb *AccountsDB) Close() error {
 	return adb.storagePruningManager.Close()
 }
 
-// PrintStatsForRootHash will print trie statistics for the given rootHash
-func (adb *AccountsDB) PrintStatsForRootHash(rootHash []byte) {
+// GetStatsForRootHash will get trie statistics for the given rootHash
+func (adb *AccountsDB) GetStatsForRootHash(rootHash []byte) (common.TriesStatisticsCollector, error) {
 	stats := statistics.NewTrieStatisticsCollector()
 	mainTrie := adb.getMainTrie()
 
 	tr, ok := mainTrie.(common.TrieStats)
 	if !ok {
-		log.Error(fmt.Sprintf("invalid trie, type is %T", mainTrie))
-		return
+		return nil, fmt.Errorf("invalid trie, type is %T", mainTrie)
 	}
 
 	collectStats(tr, stats, rootHash, nil)
@@ -1373,8 +1372,7 @@ func (adb *AccountsDB) PrintStatsForRootHash(rootHash []byte) {
 	leavesChannel := make(chan core.KeyValueHolder, leavesChannelSize)
 	err := mainTrie.GetAllLeavesOnChannel(leavesChannel, context.Background(), rootHash, keyBuilder.NewDisabledKeyBuilder())
 	if err != nil {
-		log.Error(err.Error())
-		return
+		return nil, err
 	}
 
 	for leaf := range leavesChannel {
@@ -1392,17 +1390,15 @@ func (adb *AccountsDB) PrintStatsForRootHash(rootHash []byte) {
 		collectStats(tr, stats, account.RootHash, account.Address)
 	}
 
-	stats.Print()
+	return stats, nil
 }
 
 func collectStats(tr common.TrieStats, stats common.TriesStatisticsCollector, rootHash []byte, address []byte) {
-	trieStats, err := tr.GetTrieStats(rootHash)
+	trieStats, err := tr.GetTrieStats(address, rootHash)
 	if err != nil {
 		log.Error(err.Error())
 		return
 	}
-	trieStats.RootHash = rootHash
-	trieStats.Address = address
 	stats.Add(trieStats)
 
 	log.Debug(strings.Join(trieStats.ToString(), " "))

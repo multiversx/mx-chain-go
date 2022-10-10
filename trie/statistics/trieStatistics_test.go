@@ -7,6 +7,8 @@ import (
 )
 
 func TestTrieStatistics_AddBranchNode(t *testing.T) {
+	t.Parallel()
+
 	ts := NewTrieStatistics()
 
 	level := 2
@@ -19,6 +21,8 @@ func TestTrieStatistics_AddBranchNode(t *testing.T) {
 }
 
 func TestTrieStatistics_AddExtensionNode(t *testing.T) {
+	t.Parallel()
+
 	ts := NewTrieStatistics()
 
 	level := 2
@@ -31,6 +35,8 @@ func TestTrieStatistics_AddExtensionNode(t *testing.T) {
 }
 
 func TestTrieStatistics_AddLeafNode(t *testing.T) {
+	t.Parallel()
+
 	ts := NewTrieStatistics()
 
 	level := 2
@@ -42,7 +48,22 @@ func TestTrieStatistics_AddLeafNode(t *testing.T) {
 	assert.Equal(t, 2*size, ts.leafNodes.nodesSize)
 }
 
+func TestTrieStatistics_AddAccountInfo(t *testing.T) {
+	t.Parallel()
+
+	address := []byte("address")
+	rootHash := []byte("rootHash")
+
+	ts := NewTrieStatistics()
+	ts.AddAccountInfo(address, rootHash)
+
+	assert.Equal(t, address, ts.address)
+	assert.Equal(t, rootHash, ts.rootHash)
+}
+
 func TestTrieStatistics_GetTrieStats(t *testing.T) {
+	t.Parallel()
+
 	ts := NewTrieStatistics()
 
 	branchSize := 30

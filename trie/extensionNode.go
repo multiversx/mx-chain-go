@@ -738,7 +738,7 @@ func (en *extensionNode) getValue() []byte {
 func (en *extensionNode) collectStats(ts common.TrieStatisticsHandler, depthLevel int, db common.DBWriteCacher) error {
 	err := en.isEmptyOrNil()
 	if err != nil {
-		return fmt.Errorf("commit snapshot error %w", err)
+		return fmt.Errorf("collectStats error %w", err)
 	}
 
 	err = resolveIfCollapsed(en, 0, db)

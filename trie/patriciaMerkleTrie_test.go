@@ -769,17 +769,21 @@ func TestPatriciaMerkleTrie_GetTrieStats(t *testing.T) {
 	_ = tr.Commit()
 
 	rootHash, _ := tr.RootHash()
+	address := []byte("address")
 
 	ts, ok := tr.(common.TrieStats)
 	assert.True(t, ok)
 
-	stats, err := ts.GetTrieStats(rootHash)
+	stats, err := ts.GetTrieStats(address, rootHash)
 	assert.Nil(t, err)
 
 	branchesPerLevel := []uint32{1, 0, 1}
 	extensionsPerLevel := []uint32{0, 1}
 	leavesPerLevel := []uint32{0, 1, 0, 2}
 	nodesPerLevel := []uint32{1, 2, 1, 2}
+
+	assert.Equal(t, rootHash, stats.RootHash)
+	assert.Equal(t, address, stats.Address)
 
 	assert.Equal(t, branchesPerLevel, stats.NumBranchesPerLevel)
 	assert.Equal(t, extensionsPerLevel, stats.NumExtensionsPerLevel)

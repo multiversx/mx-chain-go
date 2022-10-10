@@ -463,7 +463,6 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 	}
 
 	stats := statistics.NewTrieStatistics()
-	rootDepthLevel := 0
 	err = newRoot.commitSnapshot(stsm, snapshotEntry.leavesChan, snapshotEntry.missingNodesChan, ctx, stats, tsm.idleProvider, rootDepthLevel)
 	if err != nil {
 		writeInChanNonBlocking(snapshotEntry.errChan, err)
@@ -506,7 +505,6 @@ func (tsm *trieStorageManager) takeCheckpoint(checkpointEntry *snapshotsQueueEnt
 	}
 
 	stats := statistics.NewTrieStatistics()
-	rootDepthLevel := 0
 	err = newRoot.commitCheckpoint(tsm, tsm.checkpointsStorer, tsm.checkpointHashesHolder, checkpointEntry.leavesChan, ctx, stats, tsm.idleProvider, rootDepthLevel)
 	if err != nil {
 		writeInChanNonBlocking(checkpointEntry.errChan, err)

@@ -505,7 +505,7 @@ func (ln *leafNode) getValue() []byte {
 func (ln *leafNode) collectStats(ts common.TrieStatisticsHandler, depthLevel int, _ common.DBWriteCacher) error {
 	err := ln.isEmptyOrNil()
 	if err != nil {
-		return fmt.Errorf("commit snapshot error %w", err)
+		return fmt.Errorf("collectStats error %w", err)
 	}
 
 	val, err := collapseAndEncodeNode(ln)

@@ -21,6 +21,7 @@ type nodesStatistics struct {
 	nodesPerLevel []uint32
 }
 
+// NewTrieStatistics creates a new instance of trieStatistics
 func NewTrieStatistics() *trieStatistics {
 	return &trieStatistics{
 		address:  nil,
@@ -40,18 +41,22 @@ func NewTrieStatistics() *trieStatistics {
 	}
 }
 
+// AddBranchNode will add the given level and size to the branch nodes statistics
 func (ts *trieStatistics) AddBranchNode(level int, size uint64) {
 	collectNodeStatistics(level, size, ts.branchNodes)
 }
 
+// AddExtensionNode will add the given level and size to the extension nodes statistics
 func (ts *trieStatistics) AddExtensionNode(level int, size uint64) {
 	collectNodeStatistics(level, size, ts.extensionNodes)
 }
 
+// AddLeafNode will add the given level and size to the leaf nodes statistics
 func (ts *trieStatistics) AddLeafNode(level int, size uint64) {
 	collectNodeStatistics(level, size, ts.leafNodes)
 }
 
+// AddAccountInfo will add the address and rootHash to  the collected statistics
 func (ts *trieStatistics) AddAccountInfo(address []byte, rootHash []byte) {
 	ts.address = address
 	ts.rootHash = rootHash
@@ -67,6 +72,7 @@ func collectNodeStatistics(level int, size uint64, nodeStats *nodesStatistics) {
 	nodeStats.nodesSize += size
 }
 
+// GetTrieStats returns a DTO that contains all the collected info about the trie
 func (ts *trieStatistics) GetTrieStats() *TrieStatsDTO {
 	numLevelsWithBranches := len(ts.branchNodes.nodesPerLevel)
 	numLevelsWithExtensions := len(ts.extensionNodes.nodesPerLevel)
@@ -117,6 +123,7 @@ func (ts *trieStatistics) GetTrieStats() *TrieStatsDTO {
 	}
 }
 
+// TrieStatsDTO holds the statistics for the trie
 type TrieStatsDTO struct {
 	Address        []byte
 	RootHash       []byte
@@ -134,6 +141,7 @@ type TrieStatsDTO struct {
 	LeafNodesSize      uint64
 }
 
+// ToString returns the collected statistics as a string array
 func (tsd *TrieStatsDTO) ToString() []string {
 	stats := make([]string, 0)
 	stats = append(stats, fmt.Sprintf("address %v,", hex.EncodeToString(tsd.Address)))

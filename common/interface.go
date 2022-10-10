@@ -46,7 +46,7 @@ type Trie interface {
 
 // TrieStats is used to collect the trie statistics for the given rootHash
 type TrieStats interface {
-	GetTrieStats(rootHash []byte) (*statistics.TrieStatsDTO, error)
+	GetTrieStats(address []byte, rootHash []byte) (*statistics.TrieStatsDTO, error)
 }
 
 // KeyBuilder is used for building trie keys as you traverse the trie

@@ -28,6 +28,8 @@ const (
 	branch
 )
 
+const rootDepthLevel = 0
+
 // EmptyTrieHash returns the value with empty trie hash
 var EmptyTrieHash = make([]byte, 32)
 
@@ -631,7 +633,8 @@ func (tr *patriciaMerkleTrie) GetOldRoot() []byte {
 	return tr.oldRoot
 }
 
-func (tr *patriciaMerkleTrie) GetTrieStats(rootHash []byte) (*statistics.TrieStatsDTO, error) {
+// GetTrieStats will collect and return the statistics for the given rootHash
+func (tr *patriciaMerkleTrie) GetTrieStats(address []byte, rootHash []byte) (*statistics.TrieStatsDTO, error) {
 	tr.mutOperation.RLock()
 	newTrie, err := tr.recreate(rootHash, tr.trieStorage)
 	if err != nil {
@@ -641,10 +644,11 @@ func (tr *patriciaMerkleTrie) GetTrieStats(rootHash []byte) (*statistics.TrieSta
 	tr.mutOperation.RUnlock()
 
 	ts := statistics.NewTrieStatistics()
-	err = newTrie.root.collectStats(ts, 0, newTrie.trieStorage)
+	err = newTrie.root.collectStats(ts, rootDepthLevel, newTrie.trieStorage)
 	if err != nil {
 		return nil, err
 	}
+	ts.AddAccountInfo(address, rootHash)
 
 	return ts.GetTrieStats(), nil
 }

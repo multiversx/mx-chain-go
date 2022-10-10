@@ -20,6 +20,7 @@ type trieStatisticsCollector struct {
 	triesByDepth []*TrieStatsDTO
 }
 
+// NewTrieStatisticsCollector creates a new instance of trieStatisticsCollector
 func NewTrieStatisticsCollector() *trieStatisticsCollector {
 	return &trieStatisticsCollector{
 		numNodes:     0,
@@ -30,6 +31,7 @@ func NewTrieStatisticsCollector() *trieStatisticsCollector {
 	}
 }
 
+// Add adds the given trie statistics to the statistics collector
 func (tsc *trieStatisticsCollector) Add(trieStats *TrieStatsDTO) {
 	tsc.numNodes += trieStats.TotalNumNodes
 	tsc.triesSize += trieStats.TotalNodesSize
@@ -39,6 +41,7 @@ func (tsc *trieStatisticsCollector) Add(trieStats *TrieStatsDTO) {
 	insertInSortedArray(tsc.triesByDepth, trieStats, isLessDeep)
 }
 
+// Print will print all the collected statistics
 func (tsc *trieStatisticsCollector) Print() {
 	triesBySize := " \n top " + strconv.Itoa(numTriesToPrint) + " tries by size \n"
 	triesByDepth := " \n top " + strconv.Itoa(numTriesToPrint) + " tries by depth \n"
