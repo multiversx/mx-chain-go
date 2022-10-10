@@ -400,7 +400,12 @@ func TestShardAPIBlockProcessor_GetAlteredAccountsForBlock(t *testing.T) {
 			true,
 		)
 
-		res, err := metaAPIBlockProc.GetAlteredAccountsForBlock(api.GetAlteredAccountsForBlockOptions{})
+		res, err := metaAPIBlockProc.GetAlteredAccountsForBlock(api.GetAlteredAccountsForBlockOptions{
+			GetBlockParameters: api.GetBlockParameters{
+				RequestType: api.BlockFetchTypeByHash,
+				Hash:        headerHash,
+			},
+		})
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "not found")
 		require.Nil(t, res)

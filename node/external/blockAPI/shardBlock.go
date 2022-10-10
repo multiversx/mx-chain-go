@@ -102,11 +102,22 @@ func (sbp *shardAPIBlockProcessor) GetAlteredAccountsForBlock(options api.GetAlt
 }
 
 func (sbp *shardAPIBlockProcessor) getHashAndBlockBytesFromStorer(params api.GetBlockParameters) ([]byte, []byte, error) {
-	if params.RequestType == api.BlockFetchTypeByHash {
-		headerBytes, err := sbp.getFromStorer(dataRetriever.BlockHeaderUnit, params.Hash)
-		return params.Hash, headerBytes, err
+	switch params.RequestType {
+	case api.BlockFetchTypeByHash:
+		return sbp.getHashAndBlockBytesFromStorerByHash(params)
+	case api.BlockFetchTypeByNonce:
+		return sbp.getHashAndBlockBytesFromStorerByNonce(params)
+	default:
+		return nil, nil, errUnknownBlockRequestType
 	}
+}
 
+func (sbp *shardAPIBlockProcessor) getHashAndBlockBytesFromStorerByHash(params api.GetBlockParameters) ([]byte, []byte, error) {
+	headerBytes, err := sbp.getFromStorer(dataRetriever.BlockHeaderUnit, params.Hash)
+	return params.Hash, headerBytes, err
+}
+
+func (sbp *shardAPIBlockProcessor) getHashAndBlockBytesFromStorerByNonce(params api.GetBlockParameters) ([]byte, []byte, error) {
 	storerUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(sbp.selfShardID)
 
 	nonceToByteSlice := sbp.uint64ByteSliceConverter.ToByteSlice(params.Nonce)

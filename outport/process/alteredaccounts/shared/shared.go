@@ -2,6 +2,7 @@ package shared
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
@@ -25,7 +26,7 @@ func (o *AlteredAccountsOptions) Verify() error {
 	}
 
 	if check.IfNil(o.AccountsRepository) {
-		return errInvalidAlteredAccountsOptions
+		return fmt.Errorf("%w: nil accounts repository", errInvalidAlteredAccountsOptions)
 	}
 
 	return nil

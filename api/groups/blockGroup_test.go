@@ -13,6 +13,7 @@ import (
 	apiErrors "github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/groups"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
+	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -493,6 +494,8 @@ func TestGetAlteredAccountsByHash_ShouldWork(t *testing.T) {
 	response, code := httpGetAlteredAccountsForBlockBlock(ws, "/block/altered-accounts/by-hash/aabb")
 	require.Equal(t, http.StatusOK, code)
 	require.Equal(t, expectedResponse, response.Data.Accounts)
+	require.Empty(t, response.Error)
+	require.Equal(t, string(shared.ReturnCodeSuccess), response.Code)
 }
 
 func httpGetBlock(ws *gin.Engine, url string) (blockResponse, int) {

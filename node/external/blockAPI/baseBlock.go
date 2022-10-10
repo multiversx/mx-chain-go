@@ -356,7 +356,7 @@ func bigIntToStr(value *big.Int) string {
 }
 
 func alteredAccountsMapToAPIResponse(alteredAccounts map[string]*outport.AlteredAccount, tokensFilter string, withMetadata bool) []*outport.AlteredAccount {
-	response := make([]*outport.AlteredAccount, 0)
+	response := make([]*outport.AlteredAccount, 0, len(alteredAccounts))
 
 	for address, altAccount := range alteredAccounts {
 		apiAlteredAccount := &outport.AlteredAccount{
@@ -421,7 +421,11 @@ func (bap *baseAPIBlockProcessor) apiBlockToAlteredAccounts(apiBlock *api.Block,
 		},
 	}
 
-	outportPool := bap.apiBlockToOutportPool(apiBlock)
+	// TODO: might refactor, so altered accounts component could only need a slice of addresses instead of a tx pool
+	outportPool, err := bap.apiBlockToOutportPool(apiBlock)
+	if err != nil {
+		return nil, err
+	}
 	alteredAccounts, err := bap.alteredAccountsProvider.ExtractAlteredAccountsFromPool(outportPool, alteredAccountsOptions)
 	if err != nil {
 		return nil, err
@@ -431,7 +435,7 @@ func (bap *baseAPIBlockProcessor) apiBlockToAlteredAccounts(apiBlock *api.Block,
 	return alteredAccountsAPI, nil
 }
 
-func (bap *baseAPIBlockProcessor) apiBlockToOutportPool(apiBlock *api.Block) *outport.Pool {
+func (bap *baseAPIBlockProcessor) apiBlockToOutportPool(apiBlock *api.Block) (*outport.Pool, error) {
 	pool := &outport.Pool{
 		Txs:     make(map[string]data.TransactionHandlerWithGasUsedAndFee),
 		Scrs:    make(map[string]data.TransactionHandlerWithGasUsedAndFee),
@@ -440,33 +444,39 @@ func (bap *baseAPIBlockProcessor) apiBlockToOutportPool(apiBlock *api.Block) *ou
 		Logs:    make([]*data.LogData, 0),
 	}
 
+	var err error
 	for _, miniBlock := range apiBlock.MiniBlocks {
 		for _, tx := range miniBlock.Transactions {
-			bap.addTxToPool(tx, pool)
-			bap.addLogsToPool(tx, pool)
+			err = bap.addTxToPool(tx, pool)
+			if err != nil {
+				return nil, err
+			}
+
+			err = bap.addLogsToPool(tx, pool)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
-	return pool
+	return pool, nil
 }
 
-func (bap *baseAPIBlockProcessor) addLogsToPool(tx *transaction.ApiTransactionResult, pool *outport.Pool) {
+func (bap *baseAPIBlockProcessor) addLogsToPool(tx *transaction.ApiTransactionResult, pool *outport.Pool) error {
 	if tx.Logs == nil {
-		return
+		return nil
 	}
 
 	logAddressBytes, err := bap.addressPubKeyConverter.Decode(tx.Logs.Address)
 	if err != nil {
-		log.Warn("altered accounts API: cannot decode log's address", "address", tx.Logs.Address, "error", err)
-		return
+		return fmt.Errorf("error while decoding the log's address. address=%s, error=%s", tx.Logs.Address, err.Error())
 	}
 
 	logsEvents := make([]*transaction.Event, 0)
 	for _, logEvent := range tx.Logs.Events {
 		eventAddressBytes, err := bap.addressPubKeyConverter.Decode(logEvent.Address)
 		if err != nil {
-			log.Warn("altered accounts API: cannot decode event's address", "address", tx.Logs.Address, "error", err)
-			continue
+			return fmt.Errorf("error while decoding the event's address. address=%s, error=%s", logEvent.Address, err.Error())
 		}
 
 		logsEvents = append(logsEvents, &transaction.Event{
@@ -484,18 +494,18 @@ func (bap *baseAPIBlockProcessor) addLogsToPool(tx *transaction.ApiTransactionRe
 		},
 		TxHash: tx.Hash,
 	})
+
+	return nil
 }
 
-func (bap *baseAPIBlockProcessor) addTxToPool(tx *transaction.ApiTransactionResult, pool *outport.Pool) {
+func (bap *baseAPIBlockProcessor) addTxToPool(tx *transaction.ApiTransactionResult, pool *outport.Pool) error {
 	senderBytes, err := bap.addressPubKeyConverter.Decode(tx.Sender)
 	if err != nil {
-		log.Warn("altered account API: cannot decode sender address", "address", tx.Sender, "error", err)
-		return
+		return fmt.Errorf("error while decoding the sender address. address=%s, error=%s", tx.Sender, err.Error())
 	}
 	receiverBytes, err := bap.addressPubKeyConverter.Decode(tx.Receiver)
 	if err != nil {
-		log.Warn("altered account API: cannot decode receiver address", "address", tx.Receiver, "error", err)
-		return
+		return fmt.Errorf("error while decoding the receiver address. address=%s, error=%s", tx.Receiver, err.Error())
 	}
 
 	zeroBigInt := big.NewInt(0)
@@ -523,7 +533,7 @@ func (bap *baseAPIBlockProcessor) addTxToPool(tx *transaction.ApiTransactionResu
 		pool.Invalid[tx.Hash] = outport.NewTransactionHandlerWithGasAndFee(
 			&transaction.Transaction{
 				SndAddr: senderBytes,
-				RcvAddr: receiverBytes,
+				// do not set the receiver since the cost is only on sender's side in case of invalid txs
 			},
 			0,
 			zeroBigInt,
@@ -537,4 +547,6 @@ func (bap *baseAPIBlockProcessor) addTxToPool(tx *transaction.ApiTransactionResu
 			zeroBigInt,
 		)
 	}
+
+	return nil
 }

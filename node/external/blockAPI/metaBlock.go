@@ -99,11 +99,14 @@ func (mbp *metaAPIBlockProcessor) GetAlteredAccountsForBlock(options api.GetAlte
 }
 
 func (mbp *metaAPIBlockProcessor) getHashAndBlockBytesFromStorer(params api.GetBlockParameters) ([]byte, []byte, error) {
-	if params.RequestType == api.BlockFetchTypeByHash {
+	switch params.RequestType {
+	case api.BlockFetchTypeByHash:
 		return mbp.getHashAndBlockBytesFromStorerByHash(params)
+	case api.BlockFetchTypeByNonce:
+		return mbp.getHashAndBlockBytesFromStorerByNonce(params)
+	default:
+		return nil, nil, errUnknownBlockRequestType
 	}
-
-	return mbp.getHashAndBlockBytesFromStorerByNonce(params)
 }
 
 func (mbp *metaAPIBlockProcessor) getHashAndBlockBytesFromStorerByHash(params api.GetBlockParameters) ([]byte, []byte, error) {
