@@ -3,7 +3,6 @@ package api
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"testing"
@@ -59,13 +58,4 @@ func loadResponse(tb testing.TB, rsp io.Reader, destination interface{}) {
 	err := jsonParser.Decode(destination)
 
 	assert.Nil(tb, err)
-}
-
-func TestSliceAlloc(t *testing.T) {
-	sl := make([]int, 0, 4)
-	sl = append(sl, 5)
-	sl = append(sl, 6)
-	sl = append(sl, 7)
-	fmt.Println(sl)
-	fmt.Printf("len=%d, cap=%d\n", len(sl), cap(sl))
 }
