@@ -986,7 +986,7 @@ func TestPruningStorer_processPersistersToClose(t *testing.T) {
 }
 
 func TestPruningStorer_ConcurrentOperations(t *testing.T) {
-	t.Skip("this test should be run only when troubleshooting pruning storer concurrent operations")
+	numOperations := 100 // increase this to 5000 when troubleshooting pruning storer concurrent operations
 
 	startTime := time.Now()
 
@@ -1015,7 +1015,6 @@ func TestPruningStorer_ConcurrentOperations(t *testing.T) {
 	}()
 
 	rnd := random.ConcurrentSafeIntRandomizer{}
-	numOperations := 5000
 	wg := sync.WaitGroup{}
 	wg.Add(numOperations)
 
@@ -1049,15 +1048,16 @@ func TestPruningStorer_ConcurrentOperations(t *testing.T) {
 		}
 	}(ctx)
 
+	numTestedOperations := 7
 	for idx := 0; idx < numOperations; idx++ {
-		if idx%6 != 0 {
+		if idx%numTestedOperations != 0 {
 			chanChangeEpoch <- struct{}{}
 			continue
 		}
 
 		go func(index int) {
 			time.Sleep(time.Duration(index) * 1 * time.Millisecond)
-			switch index % 6 {
+			switch index % numTestedOperations {
 			case 1:
 				_, _ = ps.GetFromEpoch([]byte("key"), uint32(index-1))
 				log.Debug("called GetFromEpoch", "epoch", index-1)
@@ -1075,6 +1075,9 @@ func TestPruningStorer_ConcurrentOperations(t *testing.T) {
 				epoch := uint32(rnd.Intn(100))
 				_, _ = ps.GetBulkFromEpoch([][]byte{[]byte("key")}, epoch)
 				log.Debug("called GetBulkFromEpoch", "epoch", epoch)
+			case 6:
+				time.Sleep(time.Millisecond * 10)
+				_ = ps.Close()
 			}
 			wg.Done()
 		}(idx)

@@ -441,6 +441,8 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 // Close will close PruningStorer
 func (ps *PruningStorer) Close() error {
 	closedSuccessfully := true
+
+	ps.lock.RLock()
 	for _, pd := range ps.activePersisters {
 		err := pd.Close()
 
@@ -449,6 +451,7 @@ func (ps *PruningStorer) Close() error {
 			closedSuccessfully = false
 		}
 	}
+	ps.lock.RUnlock()
 
 	ps.cacher.Clear()
 
