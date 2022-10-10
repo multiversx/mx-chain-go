@@ -35,7 +35,9 @@ func getValidatorDataFromLeaves(
 	}
 
 	err := common.ErrFromChan(leavesChannels.ErrChan)
-	log.Error("error on getting all leaves", "err", err)
+	if err != nil {
+		log.Error("error on getting all leaves", "err", err)
+	}
 
 	return validators, nil
 }

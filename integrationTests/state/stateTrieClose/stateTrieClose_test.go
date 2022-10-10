@@ -35,7 +35,7 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 	idxInitial, _ := gc.Snapshot()
 	rootHash, _ := tr.RootHash()
 	leavesChannel1 := common.TrieNodesChannels{
-		LeavesChannel: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 	}
 	_ = tr.GetAllLeavesOnChannel(leavesChannel1, context.Background(), rootHash, keyBuilder.NewDisabledKeyBuilder())
 	time.Sleep(time.Second) // allow the go routine to start
@@ -44,8 +44,8 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 	assert.True(t, len(diff) <= 1) // can be 0 on a fast running host
 
 	leavesChannel1 = common.TrieNodesChannels{
-		LeavesChannel: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-		ErrChan:       make(chan error, 1),
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    make(chan error, 1),
 	}
 	_ = tr.GetAllLeavesOnChannel(leavesChannel1, context.Background(), rootHash, keyBuilder.NewDisabledKeyBuilder())
 	idx, _ = gc.Snapshot()
@@ -57,8 +57,8 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 
 	rootHash, _ = tr.RootHash()
 	leavesChannel1 = common.TrieNodesChannels{
-		LeavesChannel: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-		ErrChan:       make(chan error, 1),
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    make(chan error, 1),
 	}
 	_ = tr.GetAllLeavesOnChannel(leavesChannel1, context.Background(), rootHash, keyBuilder.NewDisabledKeyBuilder())
 	idx, _ = gc.Snapshot()
@@ -70,8 +70,8 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 
 	rootHash, _ = tr.RootHash()
 	leavesChannel2 := common.TrieNodesChannels{
-		LeavesChannel: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-		ErrChan:       make(chan error, 1),
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    make(chan error, 1),
 	}
 	_ = tr.GetAllLeavesOnChannel(leavesChannel2, context.Background(), rootHash, keyBuilder.NewDisabledKeyBuilder())
 	time.Sleep(time.Second) // allow the go routine to start
