@@ -38,6 +38,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/scrCommon"
 	"github.com/ElrondNetwork/elrond-go/process/sync/disabled"
 	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
@@ -328,7 +329,7 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 	argsLogProcessor := transactionLog.ArgTxLogProcessor{Marshalizer: marshalizer}
 	logsProcessor, _ := transactionLog.NewTxLogProcessor(argsLogProcessor)
 	context.SCRForwarder = &mock.IntermediateTransactionHandlerMock{}
-	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
+	argsNewSCProcessor := scrCommon.ArgsNewSmartContractProcessor{
 		VmContainer:      context.VMContainer,
 		ArgsParser:       smartContract.NewArgumentParser(),
 		Hasher:           hasher,

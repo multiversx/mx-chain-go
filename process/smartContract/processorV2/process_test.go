@@ -1,9 +1,10 @@
-package smartContract
+package processorV2
 
 import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"math"
 	"math/big"
 	"sync"
 	"testing"
@@ -14,13 +15,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	vmData "github.com/ElrondNetwork/elrond-go-core/data/vm"
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/common/enablers"
-	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/postprocess"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/scrCommon"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -38,6 +38,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+const maxEpoch = math.MaxUint32
 
 func generateEmptyByteSlice(size int) []byte {
 	buff := make([]byte, size)
@@ -102,10 +104,10 @@ func createMockSmartContractProcessorArguments() scrCommon.ArgsNewSmartContractP
 		GasHandler: &testscommon.GasHandlerStub{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
-		GasSchedule: testscommon.NewGasScheduleNotifierMock(gasSchedule),
 		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
 			IsSCDeployFlagEnabledField: true,
 		},
+		GasSchedule:       testscommon.NewGasScheduleNotifierMock(gasSchedule),
 		ArwenChangeLocker: &sync.RWMutex{},
 		VMOutputCacher:    txcache.NewDisabledCache(),
 	}
@@ -117,7 +119,7 @@ func TestNewSmartContractProcessorNilVM(t *testing.T) {
 
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = nil
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 
 	require.Nil(t, sc)
 	require.Nil(t, sc)
@@ -129,7 +131,7 @@ func TestNewSmartContractProcessorNilVMOutputCacher(t *testing.T) {
 
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VMOutputCacher = nil
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 
 	require.Nil(t, sc)
 	require.Nil(t, sc)
@@ -141,7 +143,7 @@ func TestNewSmartContractProcessorNilBuiltInFunctions(t *testing.T) {
 
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.BuiltInFunctions = nil
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 
 	require.Nil(t, sc)
 	require.Nil(t, sc)
@@ -153,7 +155,7 @@ func TestNewSmartContractProcessorNilArgsParser(t *testing.T) {
 
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.ArgsParser = nil
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 
 	require.Nil(t, sc)
 	require.Equal(t, process.ErrNilArgumentParser, err)
@@ -164,7 +166,7 @@ func TestNewSmartContractProcessorNilHasher(t *testing.T) {
 
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.Hasher = nil
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 
 	require.Nil(t, sc)
 	require.Equal(t, process.ErrNilHasher, err)
@@ -175,7 +177,7 @@ func TestNewSmartContractProcessorNilMarshalizer(t *testing.T) {
 
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.Marshalizer = nil
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 
 	require.Nil(t, sc)
 	require.Equal(t, process.ErrNilMarshalizer, err)
@@ -186,7 +188,7 @@ func TestNewSmartContractProcessorNilAccountsDB(t *testing.T) {
 
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = nil
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 
 	require.Nil(t, sc)
 	require.Equal(t, process.ErrNilAccountsAdapter, err)
@@ -197,7 +199,7 @@ func TestNewSmartContractProcessorNilAdrConv(t *testing.T) {
 
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.PubkeyConv = nil
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 
 	require.Nil(t, sc)
 	require.Equal(t, process.ErrNilPubkeyConverter, err)
@@ -208,7 +210,7 @@ func TestNewSmartContractProcessorNilShardCoordinator(t *testing.T) {
 
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.ShardCoordinator = nil
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 
 	require.Nil(t, sc)
 	require.Equal(t, process.ErrNilShardCoordinator, err)
@@ -219,7 +221,7 @@ func TestNewSmartContractProcessorNilFakeAccountsHandler(t *testing.T) {
 
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.BlockChainHook = nil
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 
 	require.Nil(t, sc)
 	require.Equal(t, process.ErrNilTemporaryAccountsHandler, err)
@@ -230,7 +232,7 @@ func TestNewSmartContractProcessor_NilIntermediateMock(t *testing.T) {
 
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.ScrForwarder = nil
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 
 	require.Nil(t, sc)
 	require.Equal(t, process.ErrNilIntermediateTransactionHandler, err)
@@ -241,7 +243,7 @@ func TestNewSmartContractProcessor_ErrNilUnsignedTxHandlerMock(t *testing.T) {
 
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.TxFeeHandler = nil
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 
 	require.Nil(t, sc)
 	require.Equal(t, process.ErrNilUnsignedTxHandler, err)
@@ -252,21 +254,10 @@ func TestNewSmartContractProcessor_ErrNilGasHandlerMock(t *testing.T) {
 
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.GasHandler = nil
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 
 	require.Nil(t, sc)
 	require.Equal(t, process.ErrNilGasHandler, err)
-}
-
-func TestNewSmartContractProcessor_NilEnableEpochsHandlerShouldErr(t *testing.T) {
-	t.Parallel()
-
-	arguments := createMockSmartContractProcessorArguments()
-	arguments.EnableEpochsHandler = nil
-	sc, err := NewSmartContractProcessor(arguments)
-
-	require.Nil(t, sc)
-	require.Equal(t, process.ErrNilEnableEpochsHandler, err)
 }
 
 func TestNewSmartContractProcessor_NilEconomicsFeeShouldErr(t *testing.T) {
@@ -274,7 +265,7 @@ func TestNewSmartContractProcessor_NilEconomicsFeeShouldErr(t *testing.T) {
 
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.EconomicsFee = nil
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 
 	require.Nil(t, sc)
 	require.Equal(t, process.ErrNilEconomicsFeeHandler, err)
@@ -285,7 +276,7 @@ func TestNewSmartContractProcessor_NilTxTypeHandlerShouldErr(t *testing.T) {
 
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.TxTypeHandler = nil
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 
 	require.Nil(t, sc)
 	require.Equal(t, process.ErrNilTxTypeHandler, err)
@@ -296,7 +287,7 @@ func TestNewSmartContractProcessor_NilGasScheduleShouldErr(t *testing.T) {
 
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.GasSchedule = nil
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 
 	require.Nil(t, sc)
 	require.Equal(t, process.ErrNilGasSchedule, err)
@@ -307,7 +298,7 @@ func TestNewSmartContractProcessor_NilLatestGasScheduleShouldErr(t *testing.T) {
 
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.GasSchedule = testscommon.NewGasScheduleNotifierMock(nil)
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 
 	require.Nil(t, sc)
 	require.Equal(t, process.ErrNilGasSchedule, err)
@@ -318,7 +309,7 @@ func TestNewSmartContractProcessor_NilTxLogsProcessorShouldErr(t *testing.T) {
 
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.TxLogsProcessor = nil
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 
 	require.Nil(t, sc)
 	require.Equal(t, process.ErrNilTxLogsProcessor, err)
@@ -329,7 +320,7 @@ func TestNewSmartContractProcessor_NilBadTxForwarderShouldErr(t *testing.T) {
 
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.BadTxForwarder = nil
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 
 	require.Nil(t, sc)
 	require.Equal(t, process.ErrNilBadTxHandler, err)
@@ -340,34 +331,17 @@ func TestNewSmartContractProcessor_NilLockerShouldErr(t *testing.T) {
 
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.ArwenChangeLocker = nil
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 
 	require.Nil(t, sc)
 	require.Equal(t, process.ErrNilLocker, err)
-}
-
-func TestNewSmartContractProcessor_ShouldRegisterNotifiers(t *testing.T) {
-	t.Parallel()
-
-	gasScheduleRegisterCalled := false
-
-	arguments := createMockSmartContractProcessorArguments()
-	gasSchedule := testscommon.NewGasScheduleNotifierMock(make(map[string]map[string]uint64))
-	gasSchedule.RegisterNotifyHandlerCalled = func(handler core.GasScheduleSubscribeHandler) {
-		gasScheduleRegisterCalled = true
-	}
-	arguments.GasSchedule = gasSchedule
-
-	_, _ = NewSmartContractProcessor(arguments)
-
-	require.True(t, gasScheduleRegisterCalled)
 }
 
 func TestNewSmartContractProcessor(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockSmartContractProcessorArguments()
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 
 	require.NotNil(t, sc)
 	require.Nil(t, err)
@@ -378,7 +352,8 @@ func TestNewSmartContractProcessorVerifyAllMembers(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockSmartContractProcessorArguments()
-	sc, _ := NewSmartContractProcessor(arguments)
+	arguments.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch = 10
+	sc, _ := NewSmartContractProcessorV2(arguments)
 
 	assert.Equal(t, arguments.VmContainer, sc.vmContainer)
 	assert.Equal(t, arguments.ArgsParser, sc.argsParser)
@@ -401,7 +376,7 @@ func TestGasScheduleChangeNoApiCostShouldNotChange(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockSmartContractProcessorArguments()
-	sc, _ := NewSmartContractProcessor(arguments)
+	sc, _ := NewSmartContractProcessorV2(arguments)
 
 	gasSchedule := make(map[string]map[string]uint64)
 	gasSchedule[common.BuiltInCost] = nil
@@ -419,7 +394,7 @@ func TestGasScheduleChangeShouldWork(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockSmartContractProcessorArguments()
-	sc, _ := NewSmartContractProcessor(arguments)
+	sc, _ := NewSmartContractProcessorV2(arguments)
 
 	gasSchedule := make(map[string]map[string]uint64)
 	gasSchedule[common.BuiltInCost] = make(map[string]uint64)
@@ -462,7 +437,7 @@ func TestScProcessor_DeploySmartContractBadParse(t *testing.T) {
 		},
 	}
 
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
@@ -482,14 +457,14 @@ func TestScProcessor_DeploySmartContractRunError(t *testing.T) {
 	t.Parallel()
 
 	vmContainer := &mock.VMContainerMock{}
-	argParser := NewArgumentParser()
+	argParser := smartContract.NewArgumentParser()
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = &stateMock.AccountsStub{RevertToSnapshotCalled: func(snapshot int) error {
 		return nil
 	}}
 	arguments.VmContainer = vmContainer
 	arguments.ArgsParser = argParser
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
@@ -519,87 +494,18 @@ func TestScProcessor_DeploySmartContractRunError(t *testing.T) {
 	require.Equal(t, expectedError, string(scrs[0].GetData()))
 }
 
-func TestScProcessor_DeploySmartContractDisabled(t *testing.T) {
-	t.Parallel()
-
-	vmContainer := &mock.VMContainerMock{}
-	argParser := NewArgumentParser()
-	arguments := createMockSmartContractProcessorArguments()
-	arguments.AccountsDB = &stateMock.AccountsStub{RevertToSnapshotCalled: func(snapshot int) error {
-		return nil
-	}}
-	arguments.VmContainer = vmContainer
-	arguments.ArgsParser = argParser
-	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-		IsBuiltInFunctionsFlagEnabledField: true,
-	}
-
-	sc, err := NewSmartContractProcessor(arguments)
-	require.NotNil(t, sc)
-	require.Nil(t, err)
-
-	tx := &transaction.Transaction{}
-	tx.Nonce = 0
-	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = generateEmptyByteSlice(createMockPubkeyConverter().Len())
-	tx.Data = []byte("abba@0500@0000")
-	tx.Value = big.NewInt(45)
-	acntSrc, _ := createAccounts(tx)
-
-	vm := &mock.VMExecutionHandlerStub{}
-	vmContainer.GetCalled = func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
-		return vm, nil
-	}
-
-	returnCode, err := sc.DeploySmartContract(tx, acntSrc)
-	require.Nil(t, err)
-	require.Equal(t, vmcommon.UserError, returnCode)
-}
-
-func TestScProcessor_BuiltInCallSmartContractDisabled(t *testing.T) {
-	t.Parallel()
-
-	vmContainer := &mock.VMContainerMock{}
-	argParser := NewArgumentParser()
-	arguments := createMockSmartContractProcessorArguments()
-	arguments.AccountsDB = &stateMock.AccountsStub{RevertToSnapshotCalled: func(snapshot int) error {
-		return nil
-	}}
-	arguments.VmContainer = vmContainer
-	arguments.ArgsParser = argParser
-	funcName := "builtIn"
-	sc, err := NewSmartContractProcessor(arguments)
-	require.NotNil(t, sc)
-	require.Nil(t, err)
-
-	tx := &transaction.Transaction{}
-	tx.Nonce = 0
-	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = []byte("DST")
-	tx.Data = []byte(funcName + "@0500@0000")
-	tx.Value = big.NewInt(45)
-	acntSrc, _ := createAccounts(tx)
-
-	vm := &mock.VMExecutionHandlerStub{}
-	vmContainer.GetCalled = func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
-		return vm, nil
-	}
-
-	_, err = sc.ExecuteBuiltInFunction(tx, acntSrc, nil)
-	require.Equal(t, process.ErrFailedTransaction, err)
-}
-
 func TestScProcessor_BuiltInCallSmartContractSenderFailed(t *testing.T) {
 	t.Parallel()
 
 	vmContainer := &mock.VMContainerMock{}
-	argParser := NewArgumentParser()
+	argParser := smartContract.NewArgumentParser()
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = &stateMock.AccountsStub{RevertToSnapshotCalled: func(snapshot int) error {
 		return nil
 	}}
 	arguments.VmContainer = vmContainer
 	arguments.ArgsParser = argParser
+	arguments.EnableEpochs.BuiltInFunctionsEnableEpoch = maxEpoch
 	funcName := "builtIn"
 	localError := errors.New("failed built in call")
 	arguments.BlockChainHook = &testscommon.BlockChainHookStub{
@@ -623,7 +529,7 @@ func TestScProcessor_BuiltInCallSmartContractSenderFailed(t *testing.T) {
 		},
 	}
 
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
@@ -653,7 +559,7 @@ func TestScProcessor_ExecuteBuiltInFunctionSCResultCallSelfShard(t *testing.T) {
 	t.Parallel()
 
 	vmContainer := &mock.VMContainerMock{}
-	argParser := NewArgumentParser()
+	argParser := smartContract.NewArgumentParser()
 	arguments := createMockSmartContractProcessorArguments()
 	accountState := &stateMock.AccountsStub{
 		RevertToSnapshotCalled: func(snapshot int) error {
@@ -663,10 +569,9 @@ func TestScProcessor_ExecuteBuiltInFunctionSCResultCallSelfShard(t *testing.T) {
 	arguments.AccountsDB = accountState
 	arguments.VmContainer = vmContainer
 	arguments.ArgsParser = argParser
-	enableEpochsHandlerStub := &testscommon.EnableEpochsHandlerStub{}
-	arguments.EnableEpochsHandler = enableEpochsHandlerStub
+	arguments.EnableEpochs.BuiltInFunctionsEnableEpoch = maxEpoch
 	funcName := "builtIn"
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
@@ -693,7 +598,6 @@ func TestScProcessor_ExecuteBuiltInFunctionSCResultCallSelfShard(t *testing.T) {
 		return nil, nil
 	}
 
-	enableEpochsHandlerStub.IsBuiltInFunctionsFlagEnabledField = true
 	retCode, err := sc.ExecuteBuiltInFunction(tx, acntSrc, actDst)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
@@ -703,7 +607,7 @@ func TestScProcessor_ExecuteBuiltInFunctionSCResultCallSelfShardCannotSaveLog(t 
 	t.Parallel()
 
 	vmContainer := &mock.VMContainerMock{}
-	argParser := NewArgumentParser()
+	argParser := smartContract.NewArgumentParser()
 	arguments := createMockSmartContractProcessorArguments()
 	accountState := &stateMock.AccountsStub{
 		RevertToSnapshotCalled: func(snapshot int) error {
@@ -723,10 +627,9 @@ func TestScProcessor_ExecuteBuiltInFunctionSCResultCallSelfShardCannotSaveLog(t 
 	arguments.AccountsDB = accountState
 	arguments.VmContainer = vmContainer
 	arguments.ArgsParser = argParser
-	enableEpochsHandlerStub := &testscommon.EnableEpochsHandlerStub{}
-	arguments.EnableEpochsHandler = enableEpochsHandlerStub
+	arguments.EnableEpochs.BuiltInFunctionsEnableEpoch = maxEpoch
 	funcName := "builtIn"
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
@@ -753,7 +656,6 @@ func TestScProcessor_ExecuteBuiltInFunctionSCResultCallSelfShardCannotSaveLog(t 
 		return nil, nil
 	}
 
-	enableEpochsHandlerStub.IsBuiltInFunctionsFlagEnabledField = true
 	retCode, err := sc.ExecuteBuiltInFunction(tx, acntSrc, actDst)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
@@ -764,7 +666,7 @@ func TestScProcessor_ExecuteBuiltInFunction(t *testing.T) {
 	t.Parallel()
 
 	vmContainer := &mock.VMContainerMock{}
-	argParser := NewArgumentParser()
+	argParser := smartContract.NewArgumentParser()
 	arguments := createMockSmartContractProcessorArguments()
 	accountState := &stateMock.AccountsStub{
 		RevertToSnapshotCalled: func(snapshot int) error {
@@ -774,10 +676,9 @@ func TestScProcessor_ExecuteBuiltInFunction(t *testing.T) {
 	arguments.AccountsDB = accountState
 	arguments.VmContainer = vmContainer
 	arguments.ArgsParser = argParser
-	enableEpochsHandlerStub := &testscommon.EnableEpochsHandlerStub{}
-	arguments.EnableEpochsHandler = enableEpochsHandlerStub
+	arguments.EnableEpochs.BuiltInFunctionsEnableEpoch = maxEpoch
 	funcName := "builtIn"
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
@@ -797,7 +698,6 @@ func TestScProcessor_ExecuteBuiltInFunction(t *testing.T) {
 		return acntSrc, nil
 	}
 
-	enableEpochsHandlerStub.IsBuiltInFunctionsFlagEnabledField = true
 	retCode, err := sc.ExecuteBuiltInFunction(tx, acntSrc, nil)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
@@ -807,7 +707,7 @@ func TestScProcessor_ExecuteBuiltInFunctionSCRTooBig(t *testing.T) {
 	t.Parallel()
 
 	vmContainer := &mock.VMContainerMock{}
-	argParser := NewArgumentParser()
+	argParser := smartContract.NewArgumentParser()
 	arguments := createMockSmartContractProcessorArguments()
 	accountState := &stateMock.AccountsStub{
 		RevertToSnapshotCalled: func(snapshot int) error {
@@ -817,10 +717,7 @@ func TestScProcessor_ExecuteBuiltInFunctionSCRTooBig(t *testing.T) {
 	arguments.AccountsDB = accountState
 	arguments.VmContainer = vmContainer
 	arguments.ArgsParser = argParser
-	enableEpochsHandlerStub := &testscommon.EnableEpochsHandlerStub{
-		IsBuiltInFunctionsFlagEnabledField: true,
-	}
-	arguments.EnableEpochsHandler = enableEpochsHandlerStub
+
 	funcName := "builtIn"
 	tx := &transaction.Transaction{}
 	tx.Nonce = 0
@@ -842,7 +739,7 @@ func TestScProcessor_ExecuteBuiltInFunctionSCRTooBig(t *testing.T) {
 			return builtInFunc.ProcessBuiltinFunction(userAcc, nil, input)
 		},
 	}
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
@@ -854,14 +751,8 @@ func TestScProcessor_ExecuteBuiltInFunctionSCRTooBig(t *testing.T) {
 		return acntSrc, nil
 	}
 
-	retCode, err := sc.ExecuteBuiltInFunction(tx, acntSrc, nil)
-	require.Equal(t, vmcommon.Ok, retCode)
-	require.Nil(t, err)
-
 	_ = acntSrc.AddToBalance(big.NewInt(100))
-	enableEpochsHandlerStub.IsSCRSizeInvariantOnBuiltInResultFlagEnabledField = true
-	enableEpochsHandlerStub.IsSCRSizeInvariantCheckFlagEnabledField = true
-	retCode, err = sc.ExecuteBuiltInFunction(tx, acntSrc, nil)
+	retCode, err := sc.ExecuteBuiltInFunction(tx, acntSrc, nil)
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.Nil(t, err)
 }
@@ -874,7 +765,7 @@ func TestScProcessor_DeploySmartContractWrongTx(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
-	sc, _ := NewSmartContractProcessor(arguments)
+	sc, _ := NewSmartContractProcessorV2(arguments)
 
 	tx := &transaction.Transaction{}
 	tx.Nonce = 0
@@ -896,7 +787,7 @@ func TestScProcessor_DeploySmartContractNilTx(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
-	sc, _ := NewSmartContractProcessor(arguments)
+	sc, _ := NewSmartContractProcessorV2(arguments)
 
 	tx := &transaction.Transaction{}
 	tx.Nonce = 0
@@ -919,7 +810,7 @@ func TestScProcessor_DeploySmartContractNotEmptyDestinationAddress(t *testing.T)
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
 	arguments.PubkeyConv = mock.NewPubkeyConverterMock(3)
-	sc, _ := NewSmartContractProcessor(arguments)
+	sc, _ := NewSmartContractProcessorV2(arguments)
 
 	tx := &transaction.Transaction{}
 	tx.Nonce = 0
@@ -946,7 +837,7 @@ func TestScProcessor_DeploySmartContractCalculateHashFails(t *testing.T) {
 		Fail: true,
 	}
 
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
@@ -980,7 +871,7 @@ func TestScProcessor_DeploySmartContractEconomicsFeeValidateFails(t *testing.T) 
 		},
 	}
 
-	sc, _ := NewSmartContractProcessor(arguments)
+	sc, _ := NewSmartContractProcessorV2(arguments)
 
 	tx := &transaction.Transaction{}
 	tx.Nonce = 0
@@ -1010,7 +901,7 @@ func TestScProcessor_DeploySmartContractEconomicsFeeSaveAccountsFails(t *testing
 		},
 	}
 
-	sc, _ := NewSmartContractProcessor(arguments)
+	sc, _ := NewSmartContractProcessorV2(arguments)
 
 	tx := &transaction.Transaction{}
 	tx.Nonce = 0
@@ -1028,12 +919,12 @@ func TestScProcessor_DeploySmartContractEconomicsWithFlagPenalizeTooMuchGasEnabl
 	t.Parallel()
 
 	vm := &mock.VMContainerMock{}
-	argParser := NewArgumentParser()
+	argParser := smartContract.NewArgumentParser()
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
 
-	sc, _ := NewSmartContractProcessor(arguments)
+	sc, _ := NewSmartContractProcessorV2(arguments)
 
 	tx := &transaction.Transaction{}
 	tx.Nonce = 0
@@ -1051,7 +942,7 @@ func TestScProcessor_DeploySmartContractVmContainerGetFails(t *testing.T) {
 	t.Parallel()
 
 	expectedError := errors.New("expected error")
-	argParser := NewArgumentParser()
+	argParser := smartContract.NewArgumentParser()
 	vm := &mock.VMContainerMock{}
 	vm.GetCalled = func(key []byte) (vmcommon.VMExecutionHandler, error) {
 		return nil, expectedError
@@ -1060,7 +951,7 @@ func TestScProcessor_DeploySmartContractVmContainerGetFails(t *testing.T) {
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
 
-	sc, _ := NewSmartContractProcessor(arguments)
+	sc, _ := NewSmartContractProcessorV2(arguments)
 
 	tx := &transaction.Transaction{}
 	tx.Nonce = 0
@@ -1080,7 +971,7 @@ func TestScProcessor_DeploySmartContractVmExecuteCreateSCFails(t *testing.T) {
 	t.Parallel()
 
 	expectedError := errors.New("expected error")
-	argParser := NewArgumentParser()
+	argParser := smartContract.NewArgumentParser()
 	vm := &mock.VMContainerMock{}
 	vmExecutor := &mock.VMExecutionHandlerStub{
 		RunSmartContractCreateCalled: func(input *vmcommon.ContractCreateInput) (*vmcommon.VMOutput, error) {
@@ -1094,7 +985,7 @@ func TestScProcessor_DeploySmartContractVmExecuteCreateSCFails(t *testing.T) {
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
 
-	sc, _ := NewSmartContractProcessor(arguments)
+	sc, _ := NewSmartContractProcessorV2(arguments)
 
 	tx := &transaction.Transaction{}
 	tx.Nonce = 0
@@ -1113,7 +1004,7 @@ func TestScProcessor_DeploySmartContractVmExecuteCreateSCFails(t *testing.T) {
 func TestScProcessor_DeploySmartContractVmExecuteCreateSCVMOutputNil(t *testing.T) {
 	t.Parallel()
 
-	argParser := NewArgumentParser()
+	argParser := smartContract.NewArgumentParser()
 	vm := &mock.VMContainerMock{}
 	vmExecutor := &mock.VMExecutionHandlerStub{
 		RunSmartContractCreateCalled: func(input *vmcommon.ContractCreateInput) (*vmcommon.VMOutput, error) {
@@ -1127,7 +1018,7 @@ func TestScProcessor_DeploySmartContractVmExecuteCreateSCVMOutputNil(t *testing.
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
 
-	sc, _ := NewSmartContractProcessor(arguments)
+	sc, _ := NewSmartContractProcessorV2(arguments)
 
 	tx := &transaction.Transaction{}
 	tx.Nonce = 0
@@ -1146,7 +1037,7 @@ func TestScProcessor_DeploySmartContractVmExecuteCreateSCVMOutputNil(t *testing.
 func TestScProcessor_DeploySmartContractVmOutputReturnCodeNotOk(t *testing.T) {
 	t.Parallel()
 
-	argParser := NewArgumentParser()
+	argParser := smartContract.NewArgumentParser()
 	vm := &mock.VMContainerMock{}
 	vmExecutor := &mock.VMExecutionHandlerStub{
 		RunSmartContractCreateCalled: func(input *vmcommon.ContractCreateInput) (*vmcommon.VMOutput, error) {
@@ -1160,7 +1051,7 @@ func TestScProcessor_DeploySmartContractVmOutputReturnCodeNotOk(t *testing.T) {
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
 
-	sc, _ := NewSmartContractProcessor(arguments)
+	sc, _ := NewSmartContractProcessorV2(arguments)
 
 	tx := &transaction.Transaction{}
 	tx.Nonce = 0
@@ -1182,7 +1073,7 @@ func TestScProcessor_DeploySmartContractUpdateDeveloperRewardsFails(t *testing.T
 	nrCalls := 0
 
 	vm := &mock.VMContainerMock{}
-	argParser := NewArgumentParser()
+	argParser := smartContract.NewArgumentParser()
 	accntState := &stateMock.AccountsStub{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
@@ -1208,7 +1099,7 @@ func TestScProcessor_DeploySmartContractUpdateDeveloperRewardsFails(t *testing.T
 		},
 	}
 	arguments.EconomicsFee = economicsFee
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
@@ -1236,7 +1127,7 @@ func TestScProcessor_DeploySmartContractVmOutputGasRemainingNotOk(t *testing.T) 
 	gasRemainingOnVmOutput := uint64(100)
 	gasLimit := uint64(50)
 
-	argParser := NewArgumentParser()
+	argParser := smartContract.NewArgumentParser()
 	vm := &mock.VMContainerMock{}
 	vmExecutor := &mock.VMExecutionHandlerStub{
 		RunSmartContractCreateCalled: func(input *vmcommon.ContractCreateInput) (*vmcommon.VMOutput, error) {
@@ -1252,7 +1143,7 @@ func TestScProcessor_DeploySmartContractVmOutputGasRemainingNotOk(t *testing.T) 
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
 
-	sc, _ := NewSmartContractProcessor(arguments)
+	sc, _ := NewSmartContractProcessorV2(arguments)
 
 	tx := &transaction.Transaction{}
 	tx.Nonce = 0
@@ -1271,7 +1162,7 @@ func TestScProcessor_DeploySmartContractVmOutputGasRemainingNotOk(t *testing.T) 
 func TestScProcessor_DeploySmartContractVmOutputProcessDeleteAccountsFails(t *testing.T) {
 	t.Parallel()
 
-	argParser := NewArgumentParser()
+	argParser := smartContract.NewArgumentParser()
 	vm := &mock.VMContainerMock{}
 	vmExecutor := &mock.VMExecutionHandlerStub{
 		RunSmartContractCreateCalled: func(input *vmcommon.ContractCreateInput) (*vmcommon.VMOutput, error) {
@@ -1297,7 +1188,7 @@ func TestScProcessor_DeploySmartContractVmOutputProcessDeleteAccountsFails(t *te
 	arguments.ArgsParser = argParser
 	arguments.AccountsDB = accountsDb
 
-	sc, _ := NewSmartContractProcessor(arguments)
+	sc, _ := NewSmartContractProcessorV2(arguments)
 
 	tx := &transaction.Transaction{}
 	tx.Nonce = 0
@@ -1322,13 +1213,13 @@ func TestScProcessor_DeploySmartContractReloadAccountFails(t *testing.T) {
 	calledNr := 0
 
 	vm := &mock.VMContainerMock{}
-	argParser := NewArgumentParser()
+	argParser := smartContract.NewArgumentParser()
 	accntState := &stateMock.AccountsStub{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
 	arguments.AccountsDB = accntState
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
@@ -1359,7 +1250,7 @@ func TestScProcessor_DeploySmartContractAddIntermediateTxFails(t *testing.T) {
 
 	expectedError := errors.New("expected error")
 
-	argParser := NewArgumentParser()
+	argParser := smartContract.NewArgumentParser()
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.ArgsParser = argParser
 	arguments.ScrForwarder = &mock.IntermediateTransactionHandlerMock{
@@ -1369,7 +1260,7 @@ func TestScProcessor_DeploySmartContractAddIntermediateTxFails(t *testing.T) {
 	}
 	accntState := &stateMock.AccountsStub{}
 	arguments.AccountsDB = accntState
-	sc, _ := NewSmartContractProcessor(arguments)
+	sc, _ := NewSmartContractProcessorV2(arguments)
 
 	tx := &transaction.Transaction{}
 	tx.Nonce = 0
@@ -1394,7 +1285,7 @@ func TestScProcessor_DeploySmartContractComputeRewardsFails(t *testing.T) {
 
 	expectedError := errors.New("expected error")
 
-	argParser := NewArgumentParser()
+	argParser := smartContract.NewArgumentParser()
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.ArgsParser = argParser
 	arguments.ScrForwarder = &mock.IntermediateTransactionHandlerMock{
@@ -1404,7 +1295,7 @@ func TestScProcessor_DeploySmartContractComputeRewardsFails(t *testing.T) {
 	}
 	accntState := &stateMock.AccountsStub{}
 	arguments.AccountsDB = accntState
-	sc, _ := NewSmartContractProcessor(arguments)
+	sc, _ := NewSmartContractProcessorV2(arguments)
 
 	tx := &transaction.Transaction{}
 	tx.Nonce = 0
@@ -1428,13 +1319,13 @@ func TestScProcessor_DeploySmartContract(t *testing.T) {
 	t.Parallel()
 
 	vm := &mock.VMContainerMock{}
-	argParser := NewArgumentParser()
+	argParser := smartContract.NewArgumentParser()
 	accntState := &stateMock.AccountsStub{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
 	arguments.AccountsDB = accntState
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
@@ -1463,7 +1354,7 @@ func TestScProcessor_ExecuteSmartContractTransactionNilTx(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
@@ -1487,7 +1378,7 @@ func TestScProcessor_ExecuteSmartContractTransactionNilAccount(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
@@ -1520,7 +1411,7 @@ func TestScProcessor_ExecuteSmartContractTransactionBadParser(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
@@ -1552,7 +1443,7 @@ func TestScProcessor_ExecuteSmartContractTransactionVMRunError(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vmContainer
 	arguments.ArgsParser = argParser
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
@@ -1586,7 +1477,7 @@ func TestScProcessor_ExecuteSmartContractTransactionGasConsumedChecksError(t *te
 
 	gasRemainingOnVmOutput := uint64(100)
 
-	argParser := NewArgumentParser()
+	argParser := smartContract.NewArgumentParser()
 	vm := &mock.VMContainerMock{}
 	vmExecutor := &mock.VMExecutionHandlerStub{
 		RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
@@ -1608,7 +1499,7 @@ func TestScProcessor_ExecuteSmartContractTransactionGasConsumedChecksError(t *te
 		Capacity: 10000,
 	})
 
-	sc, _ := NewSmartContractProcessor(arguments)
+	sc, _ := NewSmartContractProcessorV2(arguments)
 
 	tx := &transaction.Transaction{}
 	tx.Nonce = 0
@@ -1636,7 +1527,7 @@ func TestScProcessor_ExecuteSmartContractTransactionVmOutputError(t *testing.T) 
 
 	expectedError := errors.New("expected error")
 
-	argParser := NewArgumentParser()
+	argParser := smartContract.NewArgumentParser()
 	vm := &mock.VMContainerMock{}
 	vmExecutor := &mock.VMExecutionHandlerStub{
 		RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
@@ -1655,7 +1546,7 @@ func TestScProcessor_ExecuteSmartContractTransactionVmOutputError(t *testing.T) 
 	arguments.ArgsParser = argParser
 	arguments.AccountsDB = accntState
 
-	sc, _ := NewSmartContractProcessor(arguments)
+	sc, _ := NewSmartContractProcessorV2(arguments)
 
 	tx := &transaction.Transaction{}
 	tx.Nonce = 0
@@ -1691,7 +1582,7 @@ func TestScProcessor_ExecuteSmartContractTransaction(t *testing.T) {
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
 	arguments.AccountsDB = accntState
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
@@ -1730,7 +1621,7 @@ func TestScProcessor_ExecuteSmartContractTransactionSaveLogCalled(t *testing.T) 
 			return nil
 		},
 	}
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
@@ -1759,7 +1650,7 @@ func TestScProcessor_CreateVMCallInputWrongCode(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
@@ -1787,7 +1678,7 @@ func TestScProcessor_CreateVMCallInput(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
@@ -1811,7 +1702,7 @@ func TestScProcessor_CreateVMDeployBadCode(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
@@ -1838,7 +1729,7 @@ func TestScProcessor_CreateVMDeployInput(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
@@ -1873,11 +1764,11 @@ func TestScProcessor_CreateVMDeployInputNotEnoughArguments(t *testing.T) {
 	t.Parallel()
 
 	vm := &mock.VMContainerMock{}
-	argParser := NewArgumentParser()
+	argParser := smartContract.NewArgumentParser()
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
@@ -1902,7 +1793,7 @@ func TestScProcessor_CreateVMDeployInputWrongArgument(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
@@ -1936,7 +1827,7 @@ func TestScProcessor_InitializeVMInputFromTx_ShouldErrNotEnoughGas(t *testing.T)
 			return 1000
 		},
 	}
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
@@ -1961,7 +1852,7 @@ func TestScProcessor_InitializeVMInputFromTx(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
@@ -2001,7 +1892,7 @@ func TestScProcessor_processVMOutputNilSndAcc(t *testing.T) {
 	arguments.ShardCoordinator = &mock.CoordinatorStub{ComputeIdCalled: func(address []byte) uint32 {
 		return 5
 	}}
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
@@ -2029,7 +1920,7 @@ func TestScProcessor_processVMOutputNilDstAcc(t *testing.T) {
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
 	arguments.AccountsDB = accntState
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
@@ -2073,7 +1964,7 @@ func TestScProcessor_GetAccountFromAddressAccNotFound(t *testing.T) {
 	arguments.ArgsParser = argParser
 	arguments.AccountsDB = accountsDB
 	arguments.ShardCoordinator = shardCoordinator
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
@@ -2104,7 +1995,7 @@ func TestScProcessor_GetAccountFromAddrFailedGetExistingAccount(t *testing.T) {
 	arguments.ArgsParser = argParser
 	arguments.AccountsDB = accountsDB
 	arguments.ShardCoordinator = shardCoordinator
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
@@ -2136,7 +2027,7 @@ func TestScProcessor_GetAccountFromAddrAccNotInShard(t *testing.T) {
 	arguments.ArgsParser = argParser
 	arguments.AccountsDB = accountsDB
 	arguments.ShardCoordinator = shardCoordinator
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
@@ -2169,7 +2060,7 @@ func TestScProcessor_GetAccountFromAddr(t *testing.T) {
 	arguments.ArgsParser = argParser
 	arguments.AccountsDB = accountsDB
 	arguments.ShardCoordinator = shardCoordinator
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
@@ -2204,7 +2095,7 @@ func TestScProcessor_DeleteAccountsFailedAtRemove(t *testing.T) {
 	arguments.ArgsParser = argParser
 	arguments.AccountsDB = accountsDB
 	arguments.ShardCoordinator = shardCoordinator
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
@@ -2239,7 +2130,7 @@ func TestScProcessor_DeleteAccountsNotInShard(t *testing.T) {
 	arguments.ArgsParser = argParser
 	arguments.AccountsDB = accountsDB
 	arguments.ShardCoordinator = shardCoordinator
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
@@ -2279,7 +2170,7 @@ func TestScProcessor_DeleteAccountsInShard(t *testing.T) {
 	arguments.ArgsParser = argParser
 	arguments.AccountsDB = accountsDB
 	arguments.ShardCoordinator = shardCoordinator
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
@@ -2295,7 +2186,7 @@ func TestScProcessor_ProcessSCPaymentAccNotInShardShouldNotReturnError(t *testin
 	t.Parallel()
 
 	arguments := createMockSmartContractProcessorArguments()
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 
 	require.NotNil(t, sc)
 	require.Nil(t, err)
@@ -2321,7 +2212,7 @@ func TestScProcessor_ProcessSCPaymentNotEnoughBalance(t *testing.T) {
 		ComputeTxFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 			return core.SafeMul(tx.GetGasPrice(), tx.GetGasLimit())
 		}}
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 
 	require.NotNil(t, sc)
 	require.Nil(t, err)
@@ -2349,7 +2240,7 @@ func TestScProcessor_ProcessSCPayment(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockSmartContractProcessorArguments()
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 
 	require.NotNil(t, sc)
 	require.Nil(t, err)
@@ -2389,11 +2280,7 @@ func TestScProcessor_ProcessSCPaymentWithNewFlags(t *testing.T) {
 			return core.SafeMul(tx.GetGasPrice(), gasToUse)
 		},
 	}
-	enableEpochsHandlerStub := &testscommon.EnableEpochsHandlerStub{
-		IsPenalizedTooMuchGasFlagEnabledField: true,
-	}
-	arguments.EnableEpochsHandler = enableEpochsHandlerStub
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 
 	require.NotNil(t, sc)
 	require.Nil(t, err)
@@ -2413,53 +2300,13 @@ func TestScProcessor_ProcessSCPaymentWithNewFlags(t *testing.T) {
 	err = sc.processSCPayment(tx, acntSrc)
 	require.Nil(t, err)
 	require.Equal(t, modifiedBalance, acntSrc.GetBalance().Uint64())
-
-	acntSrc, _ = createAccounts(tx)
-	modifiedBalance = currBalance - tx.Value.Uint64() - tx.GasLimit*tx.GasLimit
-	enableEpochsHandlerStub.IsPenalizedTooMuchGasFlagEnabledField = false
-	err = sc.processSCPayment(tx, acntSrc)
-	require.Nil(t, err)
-	require.Equal(t, modifiedBalance, acntSrc.GetBalance().Uint64())
-}
-
-func TestScProcessor_RefundGasToSenderNilAndZeroRefund(t *testing.T) {
-	t.Parallel()
-
-	arguments := createMockSmartContractProcessorArguments()
-	sc, err := NewSmartContractProcessor(arguments)
-
-	require.NotNil(t, sc)
-	require.Nil(t, err)
-
-	tx := &transaction.Transaction{}
-	tx.Nonce = 1
-	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = []byte("DST")
-
-	tx.Value = big.NewInt(45)
-	tx.GasPrice = 10
-	tx.GasLimit = 10
-
-	txHash := []byte("txHash")
-
-	acntSrc, _ := createAccounts(tx)
-	currBalance := acntSrc.GetBalance().Uint64()
-	vmOutput := &vmcommon.VMOutput{GasRemaining: 0, GasRefund: big.NewInt(0)}
-	_, _ = sc.createSCRForSenderAndRelayer(
-		vmOutput,
-		tx,
-		txHash,
-		vmData.DirectCall,
-	)
-	require.Nil(t, err)
-	require.Equal(t, currBalance, acntSrc.GetBalance().Uint64())
 }
 
 func TestScProcessor_RefundGasToSenderAccNotInShard(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockSmartContractProcessorArguments()
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 
 	require.NotNil(t, sc)
 	require.Nil(t, err)
@@ -2494,85 +2341,6 @@ func TestScProcessor_RefundGasToSenderAccNotInShard(t *testing.T) {
 	require.NotNil(t, sctx)
 }
 
-func TestScProcessor_RefundGasToSender(t *testing.T) {
-	t.Parallel()
-
-	minGasPrice := uint64(10)
-	arguments := createMockSmartContractProcessorArguments()
-	arguments.EconomicsFee = &mock.FeeHandlerStub{MinGasPriceCalled: func() uint64 {
-		return minGasPrice
-	}}
-	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{}
-	sc, err := NewSmartContractProcessor(arguments)
-	require.NotNil(t, sc)
-	require.Nil(t, err)
-
-	tx := &transaction.Transaction{}
-	tx.Nonce = 1
-	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = []byte("DST")
-
-	tx.Value = big.NewInt(45)
-	tx.GasPrice = 15
-	tx.GasLimit = 15
-	txHash := []byte("txHash")
-	acntSrc, _ := createAccounts(tx)
-	currBalance := acntSrc.GetBalance().Uint64()
-
-	refundGas := big.NewInt(10)
-	vmOutput := &vmcommon.VMOutput{GasRemaining: 0, GasRefund: refundGas}
-	scr, _ := sc.createSCRForSenderAndRelayer(
-		vmOutput,
-		tx,
-		txHash,
-		vmData.DirectCall,
-	)
-	require.Nil(t, err)
-
-	finalValue := big.NewInt(0).Mul(refundGas, big.NewInt(0).SetUint64(sc.economicsFee.MinGasPrice()))
-	require.Equal(t, currBalance, acntSrc.GetBalance().Uint64())
-	require.Equal(t, scr.Value.Cmp(finalValue), 0)
-}
-
-func TestScProcessor_DoNotRefundGasToSenderForAsyncCall(t *testing.T) {
-	t.Parallel()
-
-	minGasPrice := uint64(10)
-	arguments := createMockSmartContractProcessorArguments()
-	arguments.EconomicsFee = &mock.FeeHandlerStub{MinGasPriceCalled: func() uint64 {
-		return minGasPrice
-	}}
-	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{}
-	sc, err := NewSmartContractProcessor(arguments)
-	require.NotNil(t, sc)
-	require.Nil(t, err)
-
-	tx := &smartContractResult.SmartContractResult{}
-	tx.Nonce = 1
-	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = []byte("DST")
-
-	tx.Value = big.NewInt(45)
-	tx.GasPrice = 15
-	tx.GasLimit = 15
-	txHash := []byte("txHash")
-
-	refundGas := big.NewInt(10)
-	vmOutput := &vmcommon.VMOutput{GasRemaining: 10, GasRefund: refundGas}
-	scr, _ := sc.createSCRForSenderAndRelayer(
-		vmOutput,
-		tx,
-		txHash,
-		vmData.AsynchronousCall,
-	)
-	require.Nil(t, err)
-
-	scrValue := big.NewInt(0).Mul(vmOutput.GasRefund, big.NewInt(0).SetUint64(sc.economicsFee.MinGasPrice()))
-	require.Equal(t, scr.Value.Cmp(scrValue), 0)
-	require.Equal(t, scr.GasLimit, vmOutput.GasRemaining)
-	require.Equal(t, scr.GasPrice, tx.GasPrice)
-}
-
 func TestScProcessor_processVMOutput(t *testing.T) {
 	t.Parallel()
 
@@ -2581,7 +2349,7 @@ func TestScProcessor_processVMOutput(t *testing.T) {
 	accntState := &stateMock.AccountsStub{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = accntState
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
@@ -2610,7 +2378,7 @@ func TestScProcessor_processSCOutputAccounts(t *testing.T) {
 
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = accountsDB
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
@@ -2674,7 +2442,7 @@ func TestScProcessor_processSCOutputAccountsNotInShard(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = accountsDB
 	arguments.ShardCoordinator = shardCoordinator
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
@@ -2721,7 +2489,7 @@ func TestScProcessor_CreateCrossShardTransactions(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = accountsDB
 	arguments.ShardCoordinator = shardCoordinator
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
@@ -2769,7 +2537,7 @@ func TestScProcessor_CreateCrossShardTransactionsWithAsyncCalls(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = accountsDB
 	arguments.ShardCoordinator = shardCoordinator
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
@@ -2851,10 +2619,7 @@ func TestScProcessor_CreateIntraShardTransactionsWithAsyncCalls(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = accountsDB
 	arguments.ShardCoordinator = shardCoordinator
-	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-		IsMultiESDTTransferFixOnCallBackFlagEnabledField: true,
-	}
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
@@ -2906,7 +2671,7 @@ func TestScProcessor_ProcessSmartContractResultNilScr(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = accountsDB
 	arguments.ShardCoordinator = shardCoordinator
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
@@ -2927,7 +2692,7 @@ func TestScProcessor_ProcessSmartContractResultErrGetAccount(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = accountsDB
 	arguments.ShardCoordinator = shardCoordinator
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
@@ -2944,7 +2709,7 @@ func TestScProcessor_ProcessSmartContractResultAccNotInShard(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = accountsDB
 	arguments.ShardCoordinator = shardCoordinator
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
@@ -2968,7 +2733,7 @@ func TestScProcessor_ProcessSmartContractResultBadAccType(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = accountsDB
 	arguments.ShardCoordinator = shardCoordinator
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
@@ -3005,7 +2770,7 @@ func TestScProcessor_ProcessSmartContractResultNotPayable(t *testing.T) {
 			return false, nil
 		},
 	}
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
@@ -3046,7 +2811,7 @@ func TestScProcessor_ProcessSmartContractResultOutputBalanceNil(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = accountsDB
 	arguments.ShardCoordinator = shardCoordinator
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
@@ -3079,7 +2844,7 @@ func TestScProcessor_ProcessSmartContractResultWithCode(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = accountsDB
 	arguments.ShardCoordinator = shardCoordinator
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
@@ -3114,7 +2879,7 @@ func TestScProcessor_ProcessSmartContractResultWithData(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = accountsDB
 	arguments.ShardCoordinator = shardCoordinator
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
@@ -3160,7 +2925,7 @@ func TestScProcessor_ProcessSmartContractResultDeploySCShouldError(t *testing.T)
 			return process.SCDeployment, process.SCDeployment
 		},
 	}
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
@@ -3221,7 +2986,7 @@ func TestScProcessor_ProcessSmartContractResultExecuteSC(t *testing.T) {
 			return process.SCInvoking, process.SCInvoking
 		},
 	}
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
@@ -3284,12 +3049,7 @@ func TestScProcessor_ProcessSmartContractResultExecuteSCIfMetaAndBuiltIn(t *test
 			return process.BuiltInFunctionCall, process.BuiltInFunctionCall
 		},
 	}
-	enableEpochsHandlerStub := &testscommon.EnableEpochsHandlerStub{
-		IsSCDeployFlagEnabledField: true,
-	}
-	arguments.EnableEpochsHandler = enableEpochsHandlerStub
-
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
@@ -3299,16 +3059,11 @@ func TestScProcessor_ProcessSmartContractResultExecuteSCIfMetaAndBuiltIn(t *test
 		Data:    []byte("code@06"),
 		Value:   big.NewInt(15),
 	}
+
+	executeCalled = false
 	_, err = sc.ProcessSmartContractResult(&scr)
 	require.Nil(t, err)
 	require.True(t, executeCalled)
-
-	executeCalled = false
-	enableEpochsHandlerStub.IsBuiltInFunctionOnMetaFlagEnabledField = true
-	enableEpochsHandlerStub.IsBuiltInFunctionsFlagEnabledField = true
-	_, err = sc.ProcessSmartContractResult(&scr)
-	require.Nil(t, err)
-	require.False(t, executeCalled)
 }
 
 func TestScProcessor_ProcessRelayedSCRValueBackToRelayer(t *testing.T) {
@@ -3367,7 +3122,7 @@ func TestScProcessor_ProcessRelayedSCRValueBackToRelayer(t *testing.T) {
 			return process.SCInvoking, process.SCInvoking
 		},
 	}
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
@@ -3395,7 +3150,7 @@ func TestScProcessor_checkUpgradePermission(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockSmartContractProcessorArguments()
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
@@ -3442,10 +3197,7 @@ func TestScProcessor_penalizeUserIfNeededShouldWork(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockSmartContractProcessorArguments()
-	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-		IsPenalizedTooMuchGasFlagEnabledField: true,
-	}
-	sc, _ := NewSmartContractProcessor(arguments)
+	sc, _ := NewSmartContractProcessorV2(arguments)
 
 	gasProvided := uint64(1000)
 	maxGasToRemain := gasProvided - (gasProvided / process.MaxGasFeeHigherFactorAccepted)
@@ -3491,44 +3243,9 @@ func TestScProcessor_isTooMuchGasProvidedShouldWork(t *testing.T) {
 	assert.True(t, isTooMuchGas)
 }
 
-func TestScProcessor_penalizeUserIfNeededShouldWorkOnFlagActivation(t *testing.T) {
-	arguments := createMockSmartContractProcessorArguments()
-	genericEpochNotifier := forking.NewGenericEpochNotifier()
-	cfg := config.EnableEpochs{
-		PenalizedTooMuchGasEnableEpoch: 1,
-	}
-	arguments.EnableEpochsHandler, _ = enablers.NewEnableEpochsHandler(cfg, genericEpochNotifier)
-	sc, _ := NewSmartContractProcessor(arguments)
-
-	gasProvided := uint64(1000)
-	maxGasToRemain := gasProvided - (gasProvided / process.MaxGasFeeHigherFactorAccepted)
-
-	callType := vmData.DirectCall
-	vmOutput := &vmcommon.VMOutput{
-		GasRemaining: maxGasToRemain + 1,
-	}
-
-	genericEpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
-		EpochField: 0,
-	})
-	sc.penalizeUserIfNeeded(&transaction.Transaction{}, []byte("txHash"), callType, gasProvided, vmOutput)
-	assert.Equal(t, maxGasToRemain+1, vmOutput.GasRemaining)
-
-	genericEpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
-		EpochField: 1,
-	})
-	sc.penalizeUserIfNeeded(&transaction.Transaction{}, []byte("txHash"), callType, gasProvided, vmOutput)
-	assert.Equal(t, uint64(0), vmOutput.GasRemaining)
-}
-
 func TestSCProcessor_createSCRWhenError(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
-	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-		IsSCDeployFlagEnabledField:            true,
-		IsPenalizedTooMuchGasFlagEnabledField: true,
-		IsRepairCallbackFlagEnabledField:      true,
-	}
-	sc, _ := NewSmartContractProcessor(arguments)
+	sc, _ := NewSmartContractProcessorV2(arguments)
 
 	acntSnd := &stateMock.UserAccountStub{}
 	scr, consumedFee := sc.createSCRsWhenError(nil, []byte("txHash"), &transaction.Transaction{}, "string", []byte("msg"), 0)
@@ -3580,16 +3297,13 @@ func TestSCProcessor_createSCRWhenError(t *testing.T) {
 
 func TestGasLockedInSmartContractProcessor(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
-	arguments.ArgsParser = NewArgumentParser()
+	arguments.ArgsParser = smartContract.NewArgumentParser()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	shardCoordinator.ComputeIdCalled = func(_ []byte) uint32 {
 		return shardCoordinator.SelfId() + 1
 	}
 	arguments.ShardCoordinator = shardCoordinator
-	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-		IsMultiESDTTransferFixOnCallBackFlagEnabledField: true,
-	}
-	sc, _ := NewSmartContractProcessor(arguments)
+	sc, _ := NewSmartContractProcessorV2(arguments)
 
 	outaddress := []byte("newsmartcontract")
 	outacc1 := &vmcommon.OutputAccount{}
@@ -3644,7 +3358,7 @@ func TestSmartContractProcessor_computeTotalConsumedFeeAndDevRwd(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockSmartContractProcessorArguments()
-	arguments.ArgsParser = NewArgumentParser()
+	arguments.ArgsParser = smartContract.NewArgumentParser()
 	shardCoordinator := &mock.CoordinatorStub{ComputeIdCalled: func(address []byte) uint32 {
 		return 0
 	}}
@@ -3661,7 +3375,7 @@ func TestSmartContractProcessor_computeTotalConsumedFeeAndDevRwd(t *testing.T) {
 	}
 	arguments.EconomicsFee = feeHandler
 	arguments.ShardCoordinator = shardCoordinator
-	sc, _ := NewSmartContractProcessor(arguments)
+	sc, _ := NewSmartContractProcessorV2(arguments)
 
 	totalFee, devFees := sc.computeTotalConsumedFeeAndDevRwd(&transaction.Transaction{GasPrice: 1}, &vmcommon.VMOutput{}, 0)
 	assert.Equal(t, totalFee.Int64(), int64(0))
@@ -3711,7 +3425,7 @@ func TestSmartContractProcessor_computeTotalConsumedFeeAndDevRwdWithDifferentSCC
 	require.NotNil(t, acc)
 
 	arguments := createMockSmartContractProcessorArguments()
-	arguments.ArgsParser = NewArgumentParser()
+	arguments.ArgsParser = smartContract.NewArgumentParser()
 	shardCoordinator := &mock.CoordinatorStub{ComputeIdCalled: func(address []byte) uint32 {
 		return 0
 	}}
@@ -3733,12 +3447,8 @@ func TestSmartContractProcessor_computeTotalConsumedFeeAndDevRwdWithDifferentSCC
 			return acc, nil
 		},
 	}
-	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-		IsSCDeployFlagEnabledField:                             true,
-		IsStakingV2FlagEnabledForActivationEpochCompletedField: true,
-	}
 
-	sc, err := NewSmartContractProcessor(arguments)
+	sc, err := NewSmartContractProcessorV2(arguments)
 	require.Nil(t, err)
 	require.NotNil(t, sc)
 
@@ -3801,7 +3511,7 @@ func TestSmartContractProcessor_finishSCExecutionV2(t *testing.T) {
 			require.NotNil(t, acc)
 
 			arguments := createMockSmartContractProcessorArguments()
-			arguments.ArgsParser = NewArgumentParser()
+			arguments.ArgsParser = smartContract.NewArgumentParser()
 			shardCoordinator := &mock.CoordinatorStub{ComputeIdCalled: func(address []byte) uint32 {
 				return 0
 			}}
@@ -3823,12 +3533,8 @@ func TestSmartContractProcessor_finishSCExecutionV2(t *testing.T) {
 					return acc, nil
 				},
 			}
-			arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-				IsSCDeployFlagEnabledField:                             true,
-				IsStakingV2FlagEnabledForActivationEpochCompletedField: true,
-			}
 
-			sc, err := NewSmartContractProcessor(arguments)
+			sc, err := NewSmartContractProcessorV2(arguments)
 			require.Nil(t, err)
 			require.NotNil(t, sc)
 
@@ -3867,7 +3573,7 @@ func TestScProcessor_CreateRefundForRelayerFromAnotherShard(t *testing.T) {
 	arguments.EconomicsFee = &mock.FeeHandlerStub{ComputeFeeForProcessingCalled: func(tx data.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
 		return big.NewInt(100)
 	}}
-	sc, _ := NewSmartContractProcessor(arguments)
+	sc, _ := NewSmartContractProcessorV2(arguments)
 
 	scrWithRelayed := &smartContractResult.SmartContractResult{
 		Nonce:          0,
@@ -3901,7 +3607,7 @@ func TestScProcessor_ProcessIfErrorRevertAccountFails(t *testing.T) {
 		},
 	}
 
-	sc, _ := NewSmartContractProcessor(arguments)
+	sc, _ := NewSmartContractProcessorV2(arguments)
 
 	sndAccount := &stateMock.UserAccountStub{}
 	err := sc.ProcessIfError(sndAccount, []byte("txHash"), nil, "0", []byte("message"), 1, 100)
@@ -3936,7 +3642,7 @@ func TestScProcessor_ProcessIfErrorAsyncCallBack(t *testing.T) {
 		},
 	}
 
-	sc, _ := NewSmartContractProcessor(arguments)
+	sc, _ := NewSmartContractProcessorV2(arguments)
 
 	err := sc.ProcessIfError(nil, []byte("txHash"), scr, "0", []byte("message"), 1, 100)
 	require.Nil(t, err)
@@ -3967,7 +3673,7 @@ func TestProcessIfErrorCheckBackwardsCompatibilityProcessTransactionFeeCalledSho
 		},
 	}
 
-	sc, _ := NewSmartContractProcessor(arguments)
+	sc, _ := NewSmartContractProcessorV2(arguments)
 
 	tx := &transaction.Transaction{
 		SndAddr: []byte("snd"),
@@ -4006,13 +3712,7 @@ func TestProcessIfErrorCheckBackwardsCompatibilityProcessTransactionFeeCalledSho
 		},
 	}
 
-	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-		IsSCDeployFlagEnabledField:                         true,
-		IsCleanUpInformativeSCRsFlagEnabledField:           true,
-		IsOptimizeGasUsedInCrossMiniBlocksFlagEnabledField: true,
-	}
-
-	sc, _ := NewSmartContractProcessor(arguments)
+	sc, _ := NewSmartContractProcessorV2(arguments)
 
 	tx := &transaction.Transaction{
 		SndAddr: []byte("snd"),
@@ -4029,19 +3729,13 @@ func TestProcessSCRSizeTooBig(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockSmartContractProcessorArguments()
-	enableEpochsHandlerStub := &testscommon.EnableEpochsHandlerStub{}
-	arguments.EnableEpochsHandler = enableEpochsHandlerStub
-	sc, _ := NewSmartContractProcessor(arguments)
+	sc, _ := NewSmartContractProcessorV2(arguments)
 
 	scrTooBig := &smartContractResult.SmartContractResult{Data: bytes.Repeat([]byte{1}, core.MegabyteSize)}
 	scrs := make([]data.TransactionHandler, 0)
 	scrs = append(scrs, scrTooBig)
 
 	err := sc.checkSCRSizeInvariant(scrs)
-	assert.Nil(t, err)
-
-	enableEpochsHandlerStub.IsSCRSizeInvariantCheckFlagEnabledField = true
-	err = sc.checkSCRSizeInvariant(scrs)
 	assert.Equal(t, err, process.ErrResultingSCRIsTooBig)
 }
 
@@ -4051,8 +3745,8 @@ func TestProcessIsInformativeSCR(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
 	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
 	arguments.BuiltInFunctions = builtInFuncs
-	arguments.ArgsParser = NewArgumentParser()
-	sc, _ := NewSmartContractProcessor(arguments)
+	arguments.ArgsParser = smartContract.NewArgumentParser()
+	sc, _ := NewSmartContractProcessorV2(arguments)
 
 	scr := &smartContractResult.SmartContractResult{Value: big.NewInt(1)}
 	assert.False(t, sc.isInformativeTxHandler(scr))
@@ -4082,21 +3776,14 @@ func TestCleanInformativeOnlySCRs(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
 	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
 	arguments.BuiltInFunctions = builtInFuncs
-	arguments.ArgsParser = NewArgumentParser()
-	enableEpochsHandlerStub := &testscommon.EnableEpochsHandlerStub{}
-	arguments.EnableEpochsHandler = enableEpochsHandlerStub
-	sc, _ := NewSmartContractProcessor(arguments)
+	arguments.ArgsParser = smartContract.NewArgumentParser()
+	sc, _ := NewSmartContractProcessorV2(arguments)
 
 	scrs := make([]data.TransactionHandler, 0)
 	scrs = append(scrs, &smartContractResult.SmartContractResult{Value: big.NewInt(1)})
 	scrs = append(scrs, &smartContractResult.SmartContractResult{Value: big.NewInt(0), Data: []byte("@6b6f")})
 
 	finalSCRs, logs := sc.cleanInformativeOnlySCRs(scrs)
-	assert.Equal(t, len(finalSCRs), len(scrs))
-	assert.Equal(t, 1, len(logs))
-
-	enableEpochsHandlerStub.IsCleanUpInformativeSCRsFlagEnabledField = true
-	finalSCRs, logs = sc.cleanInformativeOnlySCRs(scrs)
 	assert.Equal(t, 1, len(finalSCRs))
 	assert.Equal(t, 1, len(logs))
 }
@@ -4105,10 +3792,10 @@ func TestProcessGetOriginalTxHashForRelayedIntraShard(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockSmartContractProcessorArguments()
-	arguments.ArgsParser = NewArgumentParser()
+	arguments.ArgsParser = smartContract.NewArgumentParser()
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(2, 0)
 	arguments.ShardCoordinator = shardCoordinator
-	sc, _ := NewSmartContractProcessor(arguments)
+	sc, _ := NewSmartContractProcessorV2(arguments)
 
 	scr := &smartContractResult.SmartContractResult{Value: big.NewInt(1), SndAddr: bytes.Repeat([]byte{1}, 32)}
 	scrHash := []byte("hash")
@@ -4132,7 +3819,7 @@ func TestProcess_createCompletedTxEvent(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockSmartContractProcessorArguments()
-	arguments.ArgsParser = NewArgumentParser()
+	arguments.ArgsParser = smartContract.NewArgumentParser()
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(2, 0)
 	arguments.ShardCoordinator = shardCoordinator
 	completedLogSaved := false
@@ -4144,7 +3831,7 @@ func TestProcess_createCompletedTxEvent(t *testing.T) {
 		}
 		return nil
 	}}
-	sc, _ := NewSmartContractProcessor(arguments)
+	sc, _ := NewSmartContractProcessorV2(arguments)
 
 	scAddress := bytes.Repeat([]byte{0}, 32)
 	scAddress[31] = 2
@@ -4336,12 +4023,7 @@ func TestScProcessor_TooMuchGasProvidedMessage(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockSmartContractProcessorArguments()
-	enableEpochsHandlerStub := &testscommon.EnableEpochsHandlerStub{
-		IsSCDeployFlagEnabledField:            true,
-		IsPenalizedTooMuchGasFlagEnabledField: true,
-	}
-	arguments.EnableEpochsHandler = enableEpochsHandlerStub
-	sc, _ := NewSmartContractProcessor(arguments)
+	sc, _ := NewSmartContractProcessorV2(arguments)
 
 	tx := &transaction.Transaction{}
 	tx.Nonce = 0
@@ -4352,14 +4034,7 @@ func TestScProcessor_TooMuchGasProvidedMessage(t *testing.T) {
 
 	vmOutput := &vmcommon.VMOutput{GasRemaining: 10}
 	sc.penalizeUserIfNeeded(tx, []byte("txHash"), vmData.DirectCall, 11, vmOutput)
-	returnMessage := "@" + fmt.Sprintf("%s: gas needed = %d, gas remained = %d",
-		TooMuchGasProvidedMessage, 1, 10)
-	assert.Equal(t, vmOutput.ReturnMessage, returnMessage)
-
-	enableEpochsHandlerStub.IsCleanUpInformativeSCRsFlagEnabledField = true
-	vmOutput = &vmcommon.VMOutput{GasRemaining: 10}
-	sc.penalizeUserIfNeeded(tx, []byte("txHash"), vmData.DirectCall, 11, vmOutput)
-	returnMessage = "@" + fmt.Sprintf("%s for processing: gas provided = %d, gas used = %d",
+	returnMessage := "@" + fmt.Sprintf("%s for processing: gas provided = %d, gas used = %d",
 		TooMuchGasProvidedMessage, 11, 1)
 	assert.Equal(t, vmOutput.ReturnMessage, returnMessage)
 }

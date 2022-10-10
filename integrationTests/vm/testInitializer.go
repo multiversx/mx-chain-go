@@ -42,6 +42,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/scrCommon"
 	syncDisabled "github.com/ElrondNetwork/elrond-go/process/sync/disabled"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
@@ -467,7 +468,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		return nil, err
 	}
 
-	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
+	argsNewSCProcessor := scrCommon.ArgsNewSmartContractProcessor{
 		VmContainer:      vmContainer,
 		ArgsParser:       smartContract.NewArgumentParser(),
 		Hasher:           testHasher,
@@ -820,7 +821,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	})
 
 	intermediateTxHandler := &mock.IntermediateTransactionHandlerMock{}
-	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
+	argsNewSCProcessor := scrCommon.ArgsNewSmartContractProcessor{
 		VmContainer:         vmContainer,
 		ArgsParser:          smartContract.NewArgumentParser(),
 		Hasher:              testHasher,

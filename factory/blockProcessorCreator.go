@@ -28,6 +28,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/scrCommon"
 	"github.com/ElrondNetwork/elrond-go/process/throttle"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
@@ -214,7 +215,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
-	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
+	argsNewScProcessor := scrCommon.ArgsNewSmartContractProcessor{
 		VmContainer:         vmContainer,
 		ArgsParser:          argsParser,
 		Hasher:              pcf.coreData.Hasher(),
@@ -526,7 +527,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	}
 
 	enableEpochs := pcf.epochConfig.EnableEpochs
-	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
+	argsNewScProcessor := scrCommon.ArgsNewSmartContractProcessor{
 		VmContainer:         vmContainer,
 		ArgsParser:          argsParser,
 		Hasher:              pcf.coreData.Hasher(),
@@ -888,7 +889,7 @@ func (pcf *processComponentsFactory) attachProcessDebugger(
 
 func (pcf *processComponentsFactory) createShardTxSimulatorProcessor(
 	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
-	scProcArgs smartContract.ArgsNewSmartContractProcessor,
+	scProcArgs scrCommon.ArgsNewSmartContractProcessor,
 	txProcArgs transaction.ArgsNewTxProcessor,
 	esdtTransferParser vmcommon.ESDTTransferParser,
 	arwenChangeLocker common.Locker,
@@ -988,7 +989,7 @@ func (pcf *processComponentsFactory) createShardTxSimulatorProcessor(
 
 func (pcf *processComponentsFactory) createMetaTxSimulatorProcessor(
 	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
-	scProcArgs smartContract.ArgsNewSmartContractProcessor,
+	scProcArgs scrCommon.ArgsNewSmartContractProcessor,
 	txTypeHandler process.TxTypeHandler,
 ) (process.VirtualMachinesContainerFactory, error) {
 	interimProcFactory, err := shard.NewIntermediateProcessorsContainerFactory(
@@ -1201,7 +1202,7 @@ func (pcf *processComponentsFactory) createBuiltInFunctionContainer(
 		ShardCoordinator:          pcf.bootstrapComponents.ShardCoordinator(),
 		EpochNotifier:             pcf.coreData.EpochNotifier(),
 		EnableEpochsHandler:       pcf.coreData.EnableEpochsHandler(),
-		AutomaticCrawlerAddresses:                convertedAddresses,
+		AutomaticCrawlerAddresses: convertedAddresses,
 		MaxNumNodesInTransferRole: pcf.config.BuiltInFunctions.MaxNumAddressesInTransferRole,
 	}
 
