@@ -3969,8 +3969,8 @@ func TestProcess_createCompletedTxEvent(t *testing.T) {
 	arguments.ShardCoordinator = shardCoordinator
 	completedLogSaved := false
 	arguments.TxLogsProcessor = &mock.TxLogsProcessorStub{SaveLogCalled: func(txHash []byte, tx data.TransactionHandler, vmLogs []*vmcommon.LogEntry) error {
-		for _, log := range vmLogs {
-			if string(log.Identifier) == completedTxEvent {
+		for _, vmLog := range vmLogs {
+			if string(vmLog.Identifier) == completedTxEvent {
 				completedLogSaved = true
 			}
 		}
