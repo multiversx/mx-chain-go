@@ -73,9 +73,9 @@ func (ss *snapshotStatistics) SyncFinished() {
 	ss.wgSync.Done()
 }
 
-// GetUnixStartTime will get the start time in unix format
-func (ss *snapshotStatistics) GetUnixStartTime() int64 {
-	return ss.startTime.Unix()
+// GetSnapshotDuration will get the duration in seconds of the last snapshot
+func (ss *snapshotStatistics) GetSnapshotDuration() int64 {
+	return int64(time.Since(ss.startTime).Truncate(time.Second).Seconds())
 }
 
 // PrintStats will print the stats after the snapshot has finished
