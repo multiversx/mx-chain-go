@@ -122,7 +122,7 @@ type NodesCoordinator interface {
 	IsInterfaceNil() bool
 }
 
-// PeerShardMapper can return the public key of a provided peer ID
+// PeerShardMapper saves the shard for a peer ID
 type PeerShardMapper interface {
 	PutPeerIdShardId(pid core.PeerID, shardID uint32)
 	IsInterfaceNil() bool

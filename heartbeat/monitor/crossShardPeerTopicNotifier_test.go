@@ -112,7 +112,7 @@ func TestCrossShardPeerTopicNotifier_NewPeerFound(t *testing.T) {
 		}
 
 		notifier, _ := NewCrossShardPeerTopicNotifier(args)
-		topic := testTopic + "_NaN_0"
+		topic := testTopic + "_NaN_1"
 		notifier.NewPeerFound("pid", topic)
 	})
 	t.Run("second shard ID is a NaN should not notice", func(t *testing.T) {
@@ -126,7 +126,7 @@ func TestCrossShardPeerTopicNotifier_NewPeerFound(t *testing.T) {
 		}
 
 		notifier, _ := NewCrossShardPeerTopicNotifier(args)
-		topic := testTopic + "_0_NaN"
+		topic := testTopic + "_1_NaN"
 		notifier.NewPeerFound("pid", topic)
 	})
 	t.Run("second shard ID is a negative value should not notice", func(t *testing.T) {
@@ -140,7 +140,7 @@ func TestCrossShardPeerTopicNotifier_NewPeerFound(t *testing.T) {
 		}
 
 		notifier, _ := NewCrossShardPeerTopicNotifier(args)
-		topic := testTopic + "_0_-1"
+		topic := testTopic + "_1_-1"
 		notifier.NewPeerFound("pid", topic)
 	})
 	t.Run("second shard ID is an out of range value should not notice", func(t *testing.T) {
@@ -154,7 +154,7 @@ func TestCrossShardPeerTopicNotifier_NewPeerFound(t *testing.T) {
 		}
 
 		notifier, _ := NewCrossShardPeerTopicNotifier(args)
-		topic := testTopic + "_0_4"
+		topic := testTopic + "_1_4"
 		notifier.NewPeerFound("pid", topic)
 	})
 	t.Run("same shard IDs should not notice", func(t *testing.T) {
