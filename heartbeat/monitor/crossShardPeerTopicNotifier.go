@@ -71,22 +71,11 @@ func (notifier *crossShardPeerTopicNotifier) NewPeerFound(pid core.PeerID, topic
 	if shardID1 == shardID2 {
 		return
 	}
-	if shardID1 == notifier.shardCoordinator.SelfId() {
-		log.Trace("crossShardPeerTopicNotifier.NewPeerFound found a cross shard peer",
-			"topic", topic,
-			"pid", pid.Pretty(),
-			"shard", shardID2)
-		notifier.peerShardMapper.PutPeerIdShardId(pid, shardID2)
-	}
-	if shardID2 == notifier.shardCoordinator.SelfId() {
-		log.Trace("crossShardPeerTopicNotifier.NewPeerFound found a cross shard peer",
-			"topic", topic,
-			"pid", pid.Pretty(),
-			"shard", shardID1)
-		notifier.peerShardMapper.PutPeerIdShardId(pid, shardID1)
-	}
+	notifier.checkAndAddShardID(pid, shardID1, topic, shardID2)
+	notifier.checkAndAddShardID(pid, shardID2, topic, shardID1)
 }
 
+// TODO make a standalone component out of this
 func (notifier *crossShardPeerTopicNotifier) getShardID(data string) (uint32, error) {
 	if data == common.MetachainTopicIdentifier {
 		return common.MetachainShardId, nil
@@ -96,10 +85,22 @@ func (notifier *crossShardPeerTopicNotifier) getShardID(data string) (uint32, er
 		return 0, err
 	}
 	if uint32(val) >= notifier.shardCoordinator.NumberOfShards() || val < 0 {
-		return 0, fmt.Errorf("negative value in crossShardPeerTopicNotifier.getShardID %d", val)
+		return 0, fmt.Errorf("invalid value in crossShardPeerTopicNotifier.getShardID %d", val)
 	}
 
 	return uint32(val), nil
+}
+
+func (notifier *crossShardPeerTopicNotifier) checkAndAddShardID(pid core.PeerID, shardID1 uint32, topic string, shardID2 uint32) {
+	if shardID1 != notifier.shardCoordinator.SelfId() {
+		return
+	}
+
+	log.Trace("crossShardPeerTopicNotifier.NewPeerFound found a cross shard peer",
+		"topic", topic,
+		"pid", pid.Pretty(),
+		"shard", shardID2)
+	notifier.peerShardMapper.PutPeerIdShardId(pid, shardID2)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

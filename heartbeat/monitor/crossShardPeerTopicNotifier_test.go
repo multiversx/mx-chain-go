@@ -73,20 +73,7 @@ func TestCrossShardPeerTopicNotifier_NewPeerFound(t *testing.T) {
 		notifier, _ := NewCrossShardPeerTopicNotifier(args)
 		notifier.NewPeerFound("pid", "random topic")
 	})
-	t.Run("BaseCrossShardTopic is a global topic should not notice", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockArgsCrossShardPeerTopicNotifier()
-		args.PeerShardMapper = &mock.PeerShardMapperStub{
-			PutPeerIdShardIdCalled: func(pid core.PeerID, shardId uint32) {
-				assert.Fail(t, "should have not called PutPeerIdShardId")
-			},
-		}
-
-		notifier, _ := NewCrossShardPeerTopicNotifier(args)
-		notifier.NewPeerFound("pid", testTopic)
-	})
-	t.Run("BaseCrossShardTopic is an intra-shard topic should not notice", func(t *testing.T) {
+	t.Run("intra-shard topic should not notice", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgsCrossShardPeerTopicNotifier()
@@ -100,7 +87,7 @@ func TestCrossShardPeerTopicNotifier_NewPeerFound(t *testing.T) {
 		topic := testTopic + core.CommunicationIdentifierBetweenShards(0, 0)
 		notifier.NewPeerFound("pid", topic)
 	})
-	t.Run("BaseCrossShardTopic is an cross-shard topic but not relevant to current node should not notice", func(t *testing.T) {
+	t.Run("cross-shard topic but not relevant to current node should not notice", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgsCrossShardPeerTopicNotifier()
@@ -184,8 +171,7 @@ func TestCrossShardPeerTopicNotifier_NewPeerFound(t *testing.T) {
 		topic := testTopic + "_0_0"
 		notifier.NewPeerFound("pid", topic)
 	})
-
-	t.Run("BaseCrossShardTopic is an cross-shard between 0 and 1 should notice", func(t *testing.T) {
+	t.Run("cross-shard between 0 and 1 should notice", func(t *testing.T) {
 		t.Parallel()
 
 		expectedPid := core.PeerID("pid")
@@ -203,7 +189,7 @@ func TestCrossShardPeerTopicNotifier_NewPeerFound(t *testing.T) {
 		notifier.NewPeerFound("pid", topic)
 		assert.Equal(t, uint32(0), notifiedShardID)
 	})
-	t.Run("BaseCrossShardTopic is an cross-shard between 1 and 2 should notice", func(t *testing.T) {
+	t.Run("cross-shard between 1 and 2 should notice", func(t *testing.T) {
 		t.Parallel()
 
 		expectedPid := core.PeerID("pid")
@@ -221,7 +207,7 @@ func TestCrossShardPeerTopicNotifier_NewPeerFound(t *testing.T) {
 		notifier.NewPeerFound("pid", topic)
 		assert.Equal(t, uint32(2), notifiedShardID)
 	})
-	t.Run("BaseCrossShardTopic is an cross-shard between 1 and META should notice", func(t *testing.T) {
+	t.Run("cross-shard between 1 and META should notice", func(t *testing.T) {
 		t.Parallel()
 
 		expectedPid := core.PeerID("pid")
@@ -239,8 +225,7 @@ func TestCrossShardPeerTopicNotifier_NewPeerFound(t *testing.T) {
 		notifier.NewPeerFound("pid", topic)
 		assert.Equal(t, common.MetachainShardId, notifiedShardID)
 	})
-
-	t.Run("BaseCrossShardTopic is an cross-shard between META and 1 should notice", func(t *testing.T) {
+	t.Run("cross-shard between META and 1 should notice", func(t *testing.T) {
 		t.Parallel()
 
 		expectedPid := core.PeerID("pid")
@@ -262,4 +247,26 @@ func TestCrossShardPeerTopicNotifier_NewPeerFound(t *testing.T) {
 		notifier.NewPeerFound("pid", topic)
 		assert.Equal(t, uint32(1), notifiedShardID)
 	})
+}
+
+func BenchmarkCrossShardPeerTopicNotifier_NewPeerFound(b *testing.B) {
+	args := createMockArgsCrossShardPeerTopicNotifier()
+	notifier, _ := NewCrossShardPeerTopicNotifier(args)
+
+	for i := 0; i < b.N; i++ {
+		switch i % 6 {
+		case 0:
+			notifier.NewPeerFound("pid", "global")
+		case 2:
+			notifier.NewPeerFound("pid", "intrashard_1")
+		case 3:
+			notifier.NewPeerFound("pid", "crossshard_1_2")
+		case 4:
+			notifier.NewPeerFound("pid", "crossshard_1_META")
+		case 5:
+			notifier.NewPeerFound("pid", "crossshard_META_1")
+		case 6:
+			notifier.NewPeerFound("pid", "crossshard_2_META")
+		}
+	}
 }
