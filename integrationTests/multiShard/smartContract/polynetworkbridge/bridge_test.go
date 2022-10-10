@@ -139,7 +139,7 @@ func TestBridgeSetupAndBurn(t *testing.T) {
 		integrationTests.AdditionalGasLimit,
 	)
 
-	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, 6, nonce, round, idxProposers)
+	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, 12, nonce, round, idxProposers)
 
 	checkBurnedOnESDTContract(t, nodes, tokenIdentifier, valueToBurn)
 }
