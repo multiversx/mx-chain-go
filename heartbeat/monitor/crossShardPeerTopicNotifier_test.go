@@ -1,6 +1,7 @@
 package monitor
 
 import (
+	"math"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -175,7 +176,7 @@ func TestCrossShardPeerTopicNotifier_NewPeerFound(t *testing.T) {
 		t.Parallel()
 
 		expectedPid := core.PeerID("pid")
-		notifiedShardID := uint32(0)
+		notifiedShardID := uint32(math.MaxUint32)
 		args := createMockArgsCrossShardPeerTopicNotifier()
 		args.PeerShardMapper = &mock.PeerShardMapperStub{
 			PutPeerIdShardIdCalled: func(pid core.PeerID, shardId uint32) {
@@ -193,7 +194,7 @@ func TestCrossShardPeerTopicNotifier_NewPeerFound(t *testing.T) {
 		t.Parallel()
 
 		expectedPid := core.PeerID("pid")
-		notifiedShardID := uint32(0)
+		notifiedShardID := uint32(math.MaxUint32)
 		args := createMockArgsCrossShardPeerTopicNotifier()
 		args.PeerShardMapper = &mock.PeerShardMapperStub{
 			PutPeerIdShardIdCalled: func(pid core.PeerID, shardId uint32) {
@@ -211,7 +212,7 @@ func TestCrossShardPeerTopicNotifier_NewPeerFound(t *testing.T) {
 		t.Parallel()
 
 		expectedPid := core.PeerID("pid")
-		notifiedShardID := uint32(0)
+		notifiedShardID := uint32(math.MaxUint32)
 		args := createMockArgsCrossShardPeerTopicNotifier()
 		args.PeerShardMapper = &mock.PeerShardMapperStub{
 			PutPeerIdShardIdCalled: func(pid core.PeerID, shardId uint32) {
@@ -229,7 +230,7 @@ func TestCrossShardPeerTopicNotifier_NewPeerFound(t *testing.T) {
 		t.Parallel()
 
 		expectedPid := core.PeerID("pid")
-		notifiedShardID := uint32(0)
+		notifiedShardID := uint32(math.MaxUint32)
 		args := createMockArgsCrossShardPeerTopicNotifier()
 		args.ShardCoordinator = &testscommon.ShardsCoordinatorMock{
 			NoShards:     3,

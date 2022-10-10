@@ -1938,6 +1938,9 @@ func TestLibp2pMessenger_ConnectionTopic(t *testing.T) {
 }
 
 func TestNetworkMessenger_AddPeerTopicNotifier(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 	t.Parallel()
 
 	t.Run("nil topic notifier should error", func(t *testing.T) {

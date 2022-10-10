@@ -92,6 +92,7 @@ func (pss *peerShardSender) startSendingShard(ctx context.Context) {
 	timer := time.NewTimer(duration)
 	defer timer.Stop()
 
+	log.Debug("starting peer shard sender's goroutine")
 	for {
 		duration = pss.computeRandomDuration(pss.timeBetweenSends)
 		timer.Reset(duration)

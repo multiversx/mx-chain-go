@@ -334,15 +334,7 @@ func (netMes *networkMessenger) createPubSub(messageSigning messageSigningConfig
 		optsPS = append(optsPS, pubsub.WithMessageSignaturePolicy(noSignPolicy))
 	}
 
-	optsPS = append(optsPS, pubsub.WithPeerFilter(func(pid peer.ID, topic string) bool {
-		netMes.mutPeerTopicNotifiers.RLock()
-		for _, notifier := range netMes.peerTopicNotifiers {
-			notifier.NewPeerFound(core.PeerID(pid), topic)
-		}
-		netMes.mutPeerTopicNotifiers.RUnlock()
-
-		return true
-	}))
+	optsPS = append(optsPS, pubsub.WithPeerFilter(netMes.newPeerFound))
 
 	var err error
 	netMes.pb, err = pubsub.NewGossipSub(netMes.ctx, netMes.p2pHost, optsPS...)
@@ -398,6 +390,16 @@ func (netMes *networkMessenger) createPubSub(messageSigning messageSigningConfig
 	}(netMes.outgoingPLB)
 
 	return nil
+}
+
+func (netMes *networkMessenger) newPeerFound(pid peer.ID, topic string) bool {
+	netMes.mutPeerTopicNotifiers.RLock()
+	defer netMes.mutPeerTopicNotifiers.RUnlock()
+	for _, notifier := range netMes.peerTopicNotifiers {
+		notifier.NewPeerFound(core.PeerID(pid), topic)
+	}
+
+	return true
 }
 
 func (netMes *networkMessenger) createMessageBytes(buff []byte) []byte {

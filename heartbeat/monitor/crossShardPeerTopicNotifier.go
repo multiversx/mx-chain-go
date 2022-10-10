@@ -61,11 +61,13 @@ func (notifier *crossShardPeerTopicNotifier) NewPeerFound(pid core.PeerID, topic
 
 	shardID1, err := notifier.getShardID(splt[1])
 	if err != nil {
+		log.Error("failed to extract first shard for topic", "topic", topic, "error", err.Error())
 		return
 	}
 
 	shardID2, err := notifier.getShardID(splt[2])
 	if err != nil {
+		log.Error("failed to extract second shard for topic", "topic", topic, "error", err.Error())
 		return
 	}
 	if shardID1 == shardID2 {

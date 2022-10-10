@@ -13,7 +13,7 @@ import (
 
 const interceptedPeerShardType = "intercepted peer shard"
 
-// ArgInterceptedPeerShard is the argument used in the intercepted direct connection info constructor
+// ArgInterceptedPeerShard is the argument used in the intercepted peer shard constructor
 type ArgInterceptedPeerShard struct {
 	Marshaller  marshal.Marshalizer
 	DataBuff    []byte
@@ -68,7 +68,7 @@ func createPeerShardMessage(marshaller marshal.Marshalizer, buff []byte) (*messa
 	return peerShard, nil
 }
 
-// CheckValidity checks the validity of the received direct connection info
+// CheckValidity checks the validity of the received peer shard
 func (ips *interceptedPeerShard) CheckValidity() error {
 	shardId, err := strconv.ParseUint(ips.peerShardMessage.ShardId, 10, 32)
 	if err != nil {
