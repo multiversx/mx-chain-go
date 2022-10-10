@@ -130,7 +130,7 @@ func (pss *peerShardSender) broadcastShard() {
 		return
 	}
 
-	log.Trace("broadcast peer shard, shard: %s", peerShard.ShardId)
+	log.Debug("broadcast peer shard", "shard", peerShard.ShardId)
 	pss.messenger.Broadcast(common.ConnectionTopic, peerShardBuff)
 }
 
