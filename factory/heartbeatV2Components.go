@@ -225,6 +225,19 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		return nil, err
 	}
 
+	argsCrossShardPeerTopicNotifier := monitor.ArgsCrossShardPeerTopicNotifier{
+		ShardCoordinator: hcf.processComponents.ShardCoordinator(),
+		PeerShardMapper:  hcf.processComponents.PeerShardMapper(),
+	}
+	crossShardPeerTopicNotifier, err := monitor.NewCrossShardPeerTopicNotifier(argsCrossShardPeerTopicNotifier)
+	if err != nil {
+		return nil, err
+	}
+	err = hcf.networkComponents.NetworkMessenger().AddPeerTopicNotifier(crossShardPeerTopicNotifier)
+	if err != nil {
+		return nil, err
+	}
+
 	return &heartbeatV2Components{
 		sender:                    heartbeatV2Sender,
 		peerAuthRequestsProcessor: paRequestsProcessor,

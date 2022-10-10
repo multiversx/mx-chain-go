@@ -3,6 +3,7 @@ package libp2p
 import (
 	"context"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/go-libp2p-pubsub"
@@ -71,6 +72,11 @@ func (netMes *networkMessenger) HasProcessorForTopic(expectedTopic string) bool 
 	processor, found := netMes.processors[expectedTopic]
 
 	return found && processor != nil
+}
+
+// Disconnect -
+func (netMes *networkMessenger) Disconnect(pid core.PeerID) error {
+	return netMes.p2pHost.Network().ClosePeer(peer.ID(pid))
 }
 
 // ProcessReceivedDirectMessage -

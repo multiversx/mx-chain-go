@@ -121,3 +121,9 @@ type NodesCoordinator interface {
 	GetValidatorWithPublicKey(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error)
 	IsInterfaceNil() bool
 }
+
+// PeerShardMapper can return the public key of a provided peer ID
+type PeerShardMapper interface {
+	PutPeerIdShardId(pid core.PeerID, shardID uint32)
+	IsInterfaceNil() bool
+}

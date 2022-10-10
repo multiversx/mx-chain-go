@@ -37,6 +37,7 @@ import (
 )
 
 var timeoutWaitResponses = time.Second * 2
+var log = logger.GetOrCreate("p2p/libp2p/tests")
 
 func waitDoneWithTimeout(t *testing.T, chanDone chan bool, timeout time.Duration) {
 	select {
@@ -1697,7 +1698,6 @@ func TestNetworkMessenger_Bootstrap(t *testing.T) {
 	t.Parallel()
 
 	_ = logger.SetLogLevel("*:DEBUG")
-	log := logger.GetOrCreate("internal tests")
 
 	args := libp2p.ArgsNetworkMessenger{
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
@@ -1934,5 +1934,122 @@ func TestLibp2pMessenger_ConnectionTopic(t *testing.T) {
 		assert.False(t, netMes.HasProcessorForTopic(testTopic))
 
 		_ = netMes.Close()
+	})
+}
+
+func TestNetworkMessenger_AddPeerTopicNotifier(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil topic notifier should error", func(t *testing.T) {
+		t.Parallel()
+
+		netMes, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
+		err := netMes.AddPeerTopicNotifier(nil)
+		assert.Equal(t, p2p.ErrNilPeerTopicNotifier, err)
+
+		_ = netMes.Close()
+	})
+	t.Run("2 peers on different topics should not notify", func(t *testing.T) {
+		netMes1, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
+		netMes2, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
+
+		peerTopicNotifier := &mock.PeerTopicNotifierStub{
+			NewPeerFoundCalled: func(pid core.PeerID, topic string) {
+				assert.Fail(t, fmt.Sprintf("should have not notified: topic %s, pid %s", topic, pid.Pretty()))
+			},
+		}
+
+		err := netMes1.AddPeerTopicNotifier(peerTopicNotifier)
+		assert.Nil(t, err)
+		err = netMes2.AddPeerTopicNotifier(peerTopicNotifier)
+		assert.Nil(t, err)
+
+		_ = netMes1.ConnectToPeer(netMes2.Addresses()[0])
+		time.Sleep(time.Second * 2) // wait a bit for pubsub
+
+		_ = netMes1.CreateTopic("topic1", true)
+		_ = netMes1.CreateTopic("topic2", true)
+
+		time.Sleep(time.Second * 2) // wait a bit for pubsub
+
+		_ = netMes1.Close()
+		_ = netMes2.Close()
+	})
+	t.Run("2 peers on same topic should notify", func(t *testing.T) {
+		netMes1, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
+		netMes2, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
+
+		mut := sync.RWMutex{}
+		peersOnTopicsFound := make(map[core.PeerID]map[string]int)
+
+		peerTopicNotifier := &mock.PeerTopicNotifierStub{
+			NewPeerFoundCalled: func(pid core.PeerID, topic string) {
+				mut.Lock()
+				topics := peersOnTopicsFound[pid]
+				if topics == nil {
+					topics = make(map[string]int)
+					peersOnTopicsFound[pid] = topics
+				}
+
+				peersOnTopicsFound[pid][topic]++
+				mut.Unlock()
+			},
+		}
+
+		err := netMes1.AddPeerTopicNotifier(peerTopicNotifier)
+		assert.Nil(t, err)
+		err = netMes2.AddPeerTopicNotifier(peerTopicNotifier)
+		assert.Nil(t, err)
+
+		_ = netMes1.ConnectToPeer(netMes2.Addresses()[0])
+		log.Info("netMes1 connected to netMes2, waiting on pubsub")
+		time.Sleep(time.Second * 2)
+
+		mut.RLock()
+		assert.Equal(t, 0, len(peersOnTopicsFound))
+		mut.RUnlock()
+
+		log.Info("creating topic1 on netMes1 and netMes2 an then waiting on pubsub")
+		_ = netMes1.CreateTopic("topic1", true)
+		_ = netMes2.CreateTopic("topic1", true)
+		time.Sleep(time.Second * 2)
+
+		mut.RLock()
+		assert.Equal(t, 2, len(peersOnTopicsFound))
+		assert.Equal(t, 1, peersOnTopicsFound[netMes1.ID()]["topic1"])
+		assert.Equal(t, 1, peersOnTopicsFound[netMes2.ID()]["topic1"])
+		mut.RUnlock()
+
+		log.Info("creating topic2 on netMes1 and netMes2 an then waiting on pubsub")
+		_ = netMes1.CreateTopic("topic2", true)
+		_ = netMes2.CreateTopic("topic2", true)
+		time.Sleep(time.Second * 2)
+
+		mut.RLock()
+		assert.Equal(t, 2, len(peersOnTopicsFound))
+		assert.Equal(t, 1, peersOnTopicsFound[netMes1.ID()]["topic1"])
+		assert.Equal(t, 1, peersOnTopicsFound[netMes2.ID()]["topic1"])
+		assert.Equal(t, 1, peersOnTopicsFound[netMes1.ID()]["topic2"])
+		assert.Equal(t, 1, peersOnTopicsFound[netMes2.ID()]["topic2"])
+		mut.RUnlock()
+
+		log.Info("disconnecting netMes2 from netMes1...")
+		_ = netMes2.Disconnect(netMes1.ID())
+		time.Sleep(time.Second * 2)
+
+		log.Info("reconnecting netMes2 to netMes1...")
+		_ = netMes2.ConnectToPeer(netMes1.Addresses()[0])
+		time.Sleep(time.Second * 2)
+
+		mut.RLock()
+		assert.Equal(t, 2, len(peersOnTopicsFound))
+		assert.Equal(t, 2, peersOnTopicsFound[netMes1.ID()]["topic1"])
+		assert.Equal(t, 2, peersOnTopicsFound[netMes2.ID()]["topic1"])
+		assert.Equal(t, 2, peersOnTopicsFound[netMes1.ID()]["topic2"])
+		assert.Equal(t, 2, peersOnTopicsFound[netMes2.ID()]["topic2"])
+		mut.RUnlock()
+
+		_ = netMes1.Close()
+		_ = netMes2.Close()
 	})
 }
