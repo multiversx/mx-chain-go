@@ -345,12 +345,15 @@ func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves 
 	dataTrieRootHashes := addAccountsToState(t, numAccounts, numDataTrieLeaves, accState, valSize)
 
 	rootHash, _ := accState.RootHash()
-	leavesChannel := common.TrieIteratorChannels{
+	leavesChannel := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    make(chan error, 1),
 	}
 	err = accState.GetAllLeaves(leavesChannel, context.Background(), rootHash)
 	for range leavesChannel.LeavesChan {
 	}
+	require.Nil(t, err)
+	err = common.GetErrorFromChanNonBlocking(leavesChannel.ErrChan)
 	require.Nil(t, err)
 
 	requesterTrie := nRequester.TrieContainer.Get([]byte(trieFactory.UserAccountTrie))
@@ -370,8 +373,9 @@ func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves 
 	assert.NotEqual(t, nilRootHash, newRootHash)
 	assert.Equal(t, rootHash, newRootHash)
 
-	leavesChannel = common.TrieIteratorChannels{
+	leavesChannel = &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    make(chan error, 1),
 	}
 	err = nRequester.AccntState.GetAllLeaves(leavesChannel, context.Background(), rootHash)
 	assert.Nil(t, err)
@@ -379,6 +383,8 @@ func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves 
 	for range leavesChannel.LeavesChan {
 		numLeaves++
 	}
+	err = common.GetErrorFromChanNonBlocking(leavesChannel.ErrChan)
+	require.Nil(t, err)
 	assert.Equal(t, numAccounts, numLeaves)
 	checkAllDataTriesAreSynced(t, numDataTrieLeaves, requesterTrie, dataTrieRootHashes)
 }
@@ -569,7 +575,7 @@ func addAccountsToState(t *testing.T, numAccounts int, numDataTrieLeaves int, ac
 }
 
 func getNumLeaves(t *testing.T, tr common.Trie, rootHash []byte) int {
-	leavesChannel := common.TrieIteratorChannels{
+	leavesChannel := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 		ErrChan:    make(chan error, 1),
 	}
@@ -580,6 +586,9 @@ func getNumLeaves(t *testing.T, tr common.Trie, rootHash []byte) int {
 	for range leavesChannel.LeavesChan {
 		numLeaves++
 	}
+
+	err = common.GetErrorFromChanNonBlocking(leavesChannel.ErrChan)
+	require.Nil(t, err)
 
 	return numLeaves
 }

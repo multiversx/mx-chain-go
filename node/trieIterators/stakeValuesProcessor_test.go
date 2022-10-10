@@ -195,6 +195,7 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_ContextShouldTimeout(t *t
 		GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, _ context.Context, _ []byte, _ common.KeyBuilder) error {
 			time.Sleep(time.Second)
 			close(leavesChannels.LeavesChan)
+			close(leavesChannels.ErrChan)
 			return nil
 		},
 		RootCalled: func() ([]byte, error) {
@@ -296,6 +297,7 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue(t *testing.T) {
 				channels.LeavesChan <- leaf6
 
 				close(channels.LeavesChan)
+				close(channels.ErrChan)
 			}()
 
 			return nil

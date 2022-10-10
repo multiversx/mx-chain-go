@@ -284,7 +284,7 @@ func TestNode_GetKeyValuePairs(t *testing.T) {
 	accDB := &stateMock.AccountsStub{}
 	acc.SetDataTrie(
 		&trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(leavesChannels common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
+			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
 				go func() {
 					suffix := append(k1, acc.AddressBytes()...)
 					trieLeaf := keyValStorage.NewKeyValStorage(k1, append(v1, suffix...))
@@ -294,6 +294,7 @@ func TestNode_GetKeyValuePairs(t *testing.T) {
 					trieLeaf2 := keyValStorage.NewKeyValStorage(k2, append(v2, suffix...))
 					leavesChannels.LeavesChan <- trieLeaf2
 					close(leavesChannels.LeavesChan)
+					close(leavesChannels.ErrChan)
 				}()
 
 				return nil
@@ -346,10 +347,11 @@ func TestNode_GetKeyValuePairsContextShouldTimeout(t *testing.T) {
 	accDB := &stateMock.AccountsStub{}
 	acc.SetDataTrie(
 		&trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(leavesChannels common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
+			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
 				go func() {
 					time.Sleep(time.Second)
 					close(leavesChannels.LeavesChan)
+					close(leavesChannels.ErrChan)
 				}()
 
 				return nil
@@ -539,11 +541,12 @@ func TestNode_GetAllESDTTokens(t *testing.T) {
 
 	acc.SetDataTrie(
 		&trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(leavesChannels common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
+			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
 				go func() {
 					trieLeaf := keyValStorage.NewKeyValStorage(esdtKey, nil)
 					leavesChannels.LeavesChan <- trieLeaf
 					close(leavesChannels.LeavesChan)
+					close(leavesChannels.ErrChan)
 				}()
 
 				return nil
@@ -594,10 +597,11 @@ func TestNode_GetAllESDTTokensContextShouldTimeout(t *testing.T) {
 
 	acc.SetDataTrie(
 		&trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(leavesChannels common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
+			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
 				go func() {
 					time.Sleep(time.Second)
 					close(leavesChannels.LeavesChan)
+					close(leavesChannels.ErrChan)
 				}()
 
 				return nil
@@ -678,7 +682,7 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 	}
 	acc.SetDataTrie(
 		&trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(leavesChannels common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
+			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
 				wg := &sync.WaitGroup{}
 				wg.Add(1)
 				go func() {
@@ -689,6 +693,7 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 					leavesChannels.LeavesChan <- trieLeaf
 					wg.Done()
 					close(leavesChannels.LeavesChan)
+					close(leavesChannels.ErrChan)
 				}()
 
 				wg.Wait()
@@ -761,7 +766,7 @@ func TestNode_GetAllIssuedESDTs(t *testing.T) {
 
 	acc.SetDataTrie(
 		&trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(leavesChannels common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
+			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
 				go func() {
 					trieLeaf := keyValStorage.NewKeyValStorage(esdtToken, append(marshalledData, esdtSuffix...))
 					leavesChannels.LeavesChan <- trieLeaf
@@ -772,6 +777,7 @@ func TestNode_GetAllIssuedESDTs(t *testing.T) {
 					trieLeaf = keyValStorage.NewKeyValStorage(nftToken, append(nftMarshalledData, nftSuffix...))
 					leavesChannels.LeavesChan <- trieLeaf
 					close(leavesChannels.LeavesChan)
+					close(leavesChannels.ErrChan)
 				}()
 
 				return nil
@@ -850,11 +856,12 @@ func TestNode_GetESDTsWithRole(t *testing.T) {
 
 	acc.SetDataTrie(
 		&trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(leavesChannels common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
+			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
 				go func() {
 					trieLeaf := keyValStorage.NewKeyValStorage(esdtToken, append(marshalledData, esdtSuffix...))
 					leavesChannels.LeavesChan <- trieLeaf
 					close(leavesChannels.LeavesChan)
+					close(leavesChannels.ErrChan)
 				}()
 
 				return nil
@@ -927,11 +934,12 @@ func TestNode_GetESDTsRoles(t *testing.T) {
 
 	acc.SetDataTrie(
 		&trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(leavesChannels common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
+			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
 				go func() {
 					trieLeaf := keyValStorage.NewKeyValStorage(esdtToken, append(marshalledData, esdtSuffix...))
 					leavesChannels.LeavesChan <- trieLeaf
 					close(leavesChannels.LeavesChan)
+					close(leavesChannels.ErrChan)
 				}()
 
 				return nil
@@ -989,11 +997,12 @@ func TestNode_GetNFTTokenIDsRegisteredByAddress(t *testing.T) {
 
 	acc.SetDataTrie(
 		&trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(leavesChannels common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
+			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
 				go func() {
 					trieLeaf := keyValStorage.NewKeyValStorage(esdtToken, append(marshalledData, esdtSuffix...))
 					leavesChannels.LeavesChan <- trieLeaf
 					close(leavesChannels.LeavesChan)
+					close(leavesChannels.ErrChan)
 				}()
 
 				return nil
@@ -1044,10 +1053,11 @@ func TestNode_GetNFTTokenIDsRegisteredByAddressContextShouldTimeout(t *testing.T
 
 	acc.SetDataTrie(
 		&trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(leavesChannels common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
+			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
 				go func() {
 					time.Sleep(time.Second)
 					close(leavesChannels.LeavesChan)
+					close(leavesChannels.ErrChan)
 				}()
 
 				return nil

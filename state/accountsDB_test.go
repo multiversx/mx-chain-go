@@ -1391,6 +1391,7 @@ func TestAccountsDB_GetAllLeaves(t *testing.T) {
 		GetAllLeavesOnChannelCalled: func(channels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, builder common.KeyBuilder) error {
 			getAllLeavesCalled = true
 			close(channels.LeavesChan)
+			close(channels.ErrChan)
 
 			return nil
 		},
@@ -1403,10 +1404,14 @@ func TestAccountsDB_GetAllLeaves(t *testing.T) {
 
 	leavesChannel := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    make(chan error, 1),
 	}
 	err := adb.GetAllLeaves(leavesChannel, context.Background(), []byte("root hash"))
 	assert.Nil(t, err)
 	assert.True(t, getAllLeavesCalled)
+
+	err = common.GetErrorFromChanNonBlocking(leavesChannel.ErrChan)
+	assert.Nil(t, err)
 }
 
 func checkCodeEntry(
@@ -2299,7 +2304,7 @@ func TestAccountsDB_RecreateAllTries(t *testing.T) {
 
 		tries, err := adb.RecreateAllTries([]byte{})
 		assert.Equal(t, expectedErr, err)
-		assert.Equal(t, 1, len(tries))
+		assert.Equal(t, 0, len(tries))
 	})
 
 	t.Run("should work", func(t *testing.T) {
@@ -2313,6 +2318,7 @@ func TestAccountsDB_RecreateAllTries(t *testing.T) {
 					leavesChannels.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("key"), []byte("val"))
 
 					close(leavesChannels.LeavesChan)
+					close(leavesChannels.ErrChan)
 				}()
 
 				return nil

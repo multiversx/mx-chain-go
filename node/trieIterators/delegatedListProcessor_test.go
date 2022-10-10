@@ -232,6 +232,7 @@ func createDelegationScAccount(address []byte, leaves [][]byte, rootHash []byte,
 				}
 
 				close(leavesChannels.LeavesChan)
+				close(leavesChannels.ErrChan)
 			}()
 
 			return nil
