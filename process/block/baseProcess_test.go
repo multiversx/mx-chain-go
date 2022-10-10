@@ -25,6 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/blockchain"
@@ -1867,8 +1868,8 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeededShouldWork(t *testing.T) {
 			RootHashCalled: func() ([]byte, error) {
 				return rootHash, nil
 			},
-			GetAllLeavesCalled: func(channel chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
-				close(channel)
+			GetAllLeavesCalled: func(channels common.TrieNodesChannels, ctx context.Context, rootHash []byte) error {
+				close(channels.LeavesChan)
 				return nil
 			},
 		},
@@ -1922,16 +1923,16 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeededShouldUseDataTrieIfNeededW
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		arguments.AccountsDB = map[state.AccountsDbIdentifier]state.AccountsAdapter{
 			state.UserAccountsState: &stateMock.AccountsStub{
-				GetAllLeavesCalled: func(channel chan core.KeyValueHolder, ctx context.Context, rh []byte) error {
+				GetAllLeavesCalled: func(channels common.TrieNodesChannels, ctx context.Context, rh []byte) error {
 					if bytes.Equal(rootHash, rh) {
 						calledWithUserAccountRootHash = true
-						close(channel)
+						close(channels.LeavesChan)
 						return nil
 					}
 
 					go func() {
-						channel <- keyValStorage.NewKeyValStorage([]byte("address"), []byte("bytes"))
-						close(channel)
+						channels.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("address"), []byte("bytes"))
+						close(channels.LeavesChan)
 					}()
 
 					return nil

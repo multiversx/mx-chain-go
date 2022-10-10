@@ -1755,7 +1755,8 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 			rh := userAccount.GetRootHash()
 			if len(rh) != 0 {
 				dataTrie := common.TrieNodesChannels{
-					make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+					LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+					ErrChan:    make(chan error, 1),
 				}
 				errDataTrieGet := userAccountsDb.GetAllLeaves(dataTrie, context.Background(), rh)
 				if errDataTrieGet != nil {

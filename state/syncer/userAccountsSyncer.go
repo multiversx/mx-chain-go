@@ -267,7 +267,9 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 	wg.Wait()
 
 	err = common.ErrFromChan(leavesChannels.ErrChan)
-	log.Error("error on getting all leaves", "err", err)
+	if err != nil {
+		log.Error("error on getting all leaves", "err", err)
+	}
 
 	return errFound
 }

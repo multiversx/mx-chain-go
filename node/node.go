@@ -217,7 +217,8 @@ func (n *Node) GetAllIssuedESDTs(tokenType string, ctx context.Context) ([]strin
 	}
 
 	chLeaves := common.TrieNodesChannels{
-		LeavesChannel: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    make(chan error, 1),
 	}
 	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash, keyBuilder.NewKeyBuilder())
 	if err != nil {
@@ -243,6 +244,11 @@ func (n *Node) GetAllIssuedESDTs(tokenType string, ctx context.Context) ([]strin
 		if bytes.Equal(esdtToken.TokenType, []byte(tokenType)) {
 			tokens = append(tokens, tokenName)
 		}
+	}
+
+	err = common.ErrFromChan(chLeaves.ErrChan)
+	if err != nil {
+		log.Error("error on getting all leaves", "err", err)
 	}
 
 	if common.IsContextDone(ctx) {
@@ -287,7 +293,8 @@ func (n *Node) GetKeyValuePairs(address string, options api.AccountQueryOptions,
 	}
 
 	chLeaves := common.TrieNodesChannels{
-		LeavesChannel: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    make(chan error, 1),
 	}
 	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash, keyBuilder.NewKeyBuilder())
 	if err != nil {
@@ -304,6 +311,11 @@ func (n *Node) GetKeyValuePairs(address string, options api.AccountQueryOptions,
 		}
 
 		mapToReturn[hex.EncodeToString(leaf.Key())] = hex.EncodeToString(value)
+	}
+
+	err = common.ErrFromChan(chLeaves.ErrChan)
+	if err != nil {
+		log.Error("error on getting all leaves", "err", err)
 	}
 
 	if common.IsContextDone(ctx) {
@@ -383,7 +395,8 @@ func (n *Node) getTokensIDsWithFilter(
 	}
 
 	chLeaves := common.TrieNodesChannels{
-		LeavesChannel: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    make(chan error, 1),
 	}
 	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash, keyBuilder.NewKeyBuilder())
 	if err != nil {
@@ -404,6 +417,11 @@ func (n *Node) getTokensIDsWithFilter(
 		if f.filter(tokenIdentifier, esdtToken) {
 			tokens = append(tokens, tokenIdentifier)
 		}
+	}
+
+	err = common.ErrFromChan(chLeaves.ErrChan)
+	if err != nil {
+		log.Error("error on getting all leaves", "err", err)
 	}
 
 	if common.IsContextDone(ctx) {
@@ -507,7 +525,8 @@ func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions,
 	}
 
 	chLeaves := common.TrieNodesChannels{
-		LeavesChannel: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    make(chan error, 1),
 	}
 	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash, keyBuilder.NewKeyBuilder())
 	if err != nil {
@@ -543,6 +562,11 @@ func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions,
 		}
 
 		allESDTs[tokenName] = esdtToken
+	}
+
+	err = common.ErrFromChan(chLeaves.ErrChan)
+	if err != nil {
+		log.Error("error on getting all leaves", "err", err)
 	}
 
 	if common.IsContextDone(ctx) {

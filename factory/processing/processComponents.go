@@ -853,7 +853,8 @@ func (pcf *processComponentsFactory) indexGenesisAccounts() error {
 	}
 
 	leavesChannels := common.TrieNodesChannels{
-		LeavesChannel: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    make(chan error, 1),
 	}
 	err = pcf.state.AccountsAdapter().GetAllLeaves(leavesChannels, context.Background(), rootHash)
 	if err != nil {
@@ -869,6 +870,11 @@ func (pcf *processComponentsFactory) indexGenesisAccounts() error {
 		}
 
 		genesisAccounts = append(genesisAccounts, userAccount)
+	}
+
+	err = common.ErrFromChan(leavesChannels.ErrChan)
+	if err != nil {
+		log.Error("error on getting all leaves", "err", err)
 	}
 
 	pcf.statusComponents.OutportHandler().SaveAccounts(uint64(pcf.coreData.GenesisNodesSetup().GetStartTime()), genesisAccounts)

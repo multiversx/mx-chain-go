@@ -444,6 +444,11 @@ func (vs *validatorStatistics) getValidatorDataFromLeaves(
 		validators[currentShardId] = append(validators[currentShardId], validatorInfoData)
 	}
 
+	err := common.ErrFromChan(leavesChannels.ErrChan)
+	if err != nil {
+		log.Error("error on getting all leaves", "err", err)
+	}
+
 	return validators, nil
 }
 
@@ -554,6 +559,7 @@ func (vs *validatorStatistics) GetValidatorInfoForRootHash(rootHash []byte) (map
 
 	leavesChannels := common.TrieNodesChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    make(chan error, 1),
 	}
 	err := vs.peerAdapter.GetAllLeaves(leavesChannels, context.Background(), rootHash)
 	if err != nil {
