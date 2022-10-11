@@ -821,5 +821,5 @@ const MaxIndexOfTxInMiniBlock = int32(29999)
 // MetricTrieSnapshotIsProgress is the metric that outputs the status of the trie snapshot, if it's in progress or not
 const MetricTrieSnapshotIsProgress = "erd_trie_snapshot_in_progress"
 
-// MetricTrieSnapshotLastDurationSec is the metric that outputs the duration in seconds of the last snapshot, if snapshot is in progress it will be set to 0
-const MetricTrieSnapshotLastDurationSec = "erd_trie_snapshot_last_duration_in_seconds"
+// MetricLastTrieSnapshotDurationSec is the metric that outputs the duration in seconds of the last snapshot, if snapshot is in progress it will be set to 0
+const MetricLastTrieSnapshotDurationSec = "erd_trie_snapshot_last_duration_in_seconds"
