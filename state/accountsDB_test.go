@@ -6,10 +6,7 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
-<<<<<<< HEAD
-=======
 	mathRand "math/rand"
->>>>>>> rc/v1.4.0
 	"strings"
 	"sync"
 	"testing"
@@ -914,11 +911,7 @@ func TestAccountsDB_SnapshotState(t *testing.T) {
 	trieStub := &trieMock.TrieStub{
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &testscommon.StorageManagerStub{
-<<<<<<< HEAD
-				TakeSnapshotCalled: func(_ []byte, _ []byte, _ *common.TrieIteratorChannels, _ chan []byte, _ common.SnapshotStatisticsHandler, _ uint32) {
-=======
-				TakeSnapshotCalled: func(_ []byte, _ []byte, _ []byte, _ chan core.KeyValueHolder, _ chan []byte, _ chan error, _ common.SnapshotStatisticsHandler, _ uint32) {
->>>>>>> rc/v1.4.0
+				TakeSnapshotCalled: func(_ []byte, _ []byte, _ []byte, _ *common.TrieIteratorChannels, _ chan []byte, _ common.SnapshotStatisticsHandler, _ uint32) {
 					snapshotMut.Lock()
 					takeSnapshotWasCalled = true
 					snapshotMut.Unlock()
@@ -947,14 +940,9 @@ func TestAccountsDB_SnapshotStateOnAClosedStorageManagerShouldNotMarkActiveDB(t 
 				ShouldTakeSnapshotCalled: func() bool {
 					return true
 				},
-<<<<<<< HEAD
-				TakeSnapshotCalled: func(_ []byte, _ []byte, iteratorChannels *common.TrieIteratorChannels, _ chan []byte, stats common.SnapshotStatisticsHandler, _ uint32) {
+				TakeSnapshotCalled: func(_ []byte, _ []byte, _ []byte, iteratorChannels *common.TrieIteratorChannels, _ chan []byte, stats common.SnapshotStatisticsHandler, _ uint32) {
 					close(iteratorChannels.LeavesChan)
 					close(iteratorChannels.ErrChan)
-=======
-				TakeSnapshotCalled: func(_ []byte, _ []byte, _ []byte, ch chan core.KeyValueHolder, _ chan []byte, _ chan error, stats common.SnapshotStatisticsHandler, _ uint32) {
-					close(ch)
->>>>>>> rc/v1.4.0
 					stats.SnapshotFinished()
 				},
 				IsClosedCalled: func() bool {
@@ -1006,15 +994,9 @@ func TestAccountsDB_SnapshotStateWithErrorsShouldNotMarkActiveDB(t *testing.T) {
 				ShouldTakeSnapshotCalled: func() bool {
 					return true
 				},
-<<<<<<< HEAD
-				TakeSnapshotCalled: func(_ []byte, _ []byte, iteratorChannels *common.TrieIteratorChannels, _ chan []byte, stats common.SnapshotStatisticsHandler, _ uint32) {
+				TakeSnapshotCalled: func(_ []byte, _ []byte, _ []byte, iteratorChannels *common.TrieIteratorChannels, _ chan []byte, stats common.SnapshotStatisticsHandler, _ uint32) {
 					iteratorChannels.ErrChan <- expectedErr
 					close(iteratorChannels.LeavesChan)
-=======
-				TakeSnapshotCalled: func(_ []byte, _ []byte, _ []byte, ch chan core.KeyValueHolder, _ chan []byte, errChan chan error, stats common.SnapshotStatisticsHandler, _ uint32) {
-					errChan <- expectedErr
-					close(ch)
->>>>>>> rc/v1.4.0
 					stats.SnapshotFinished()
 				},
 				IsClosedCalled: func() bool {
@@ -1063,11 +1045,7 @@ func TestAccountsDB_SnapshotStateGetLatestStorageEpochErrDoesNotSnapshot(t *test
 				GetLatestStorageEpochCalled: func() (uint32, error) {
 					return 0, fmt.Errorf("new error")
 				},
-<<<<<<< HEAD
-				TakeSnapshotCalled: func(_ []byte, _ []byte, iteratorChannels *common.TrieIteratorChannels, _ chan []byte, _ common.SnapshotStatisticsHandler, _ uint32) {
-=======
-				TakeSnapshotCalled: func(_ []byte, _ []byte, _ []byte, _ chan core.KeyValueHolder, _ chan []byte, _ chan error, _ common.SnapshotStatisticsHandler, _ uint32) {
->>>>>>> rc/v1.4.0
+				TakeSnapshotCalled: func(_ []byte, _ []byte, _ []byte, iteratorChannels *common.TrieIteratorChannels, _ chan []byte, _ common.SnapshotStatisticsHandler, _ uint32) {
 					takeSnapshotCalled = true
 				},
 			}
@@ -1094,11 +1072,7 @@ func TestAccountsDB_SnapshotStateSnapshotSameRootHash(t *testing.T) {
 				GetLatestStorageEpochCalled: func() (uint32, error) {
 					return latestEpoch, nil
 				},
-<<<<<<< HEAD
-				TakeSnapshotCalled: func(_ []byte, _ []byte, iteratorChannels *common.TrieIteratorChannels, _ chan []byte, stats common.SnapshotStatisticsHandler, _ uint32) {
-=======
-				TakeSnapshotCalled: func(_ []byte, _ []byte, _ []byte, leavesChan chan core.KeyValueHolder, _ chan []byte, _ chan error, stats common.SnapshotStatisticsHandler, _ uint32) {
->>>>>>> rc/v1.4.0
+				TakeSnapshotCalled: func(_ []byte, _ []byte, _ []byte, iteratorChannels *common.TrieIteratorChannels, _ chan []byte, stats common.SnapshotStatisticsHandler, _ uint32) {
 					snapshotMutex.Lock()
 					takeSnapshotCalled++
 					close(iteratorChannels.LeavesChan)
@@ -1178,11 +1152,7 @@ func TestAccountsDB_SnapshotStateSkipSnapshotIfSnapshotInProgress(t *testing.T) 
 				GetLatestStorageEpochCalled: func() (uint32, error) {
 					return latestEpoch, nil
 				},
-<<<<<<< HEAD
-				TakeSnapshotCalled: func(_ []byte, _ []byte, iteratorChannels *common.TrieIteratorChannels, _ chan []byte, stats common.SnapshotStatisticsHandler, _ uint32) {
-=======
-				TakeSnapshotCalled: func(_ []byte, _ []byte, _ []byte, leavesChan chan core.KeyValueHolder, _ chan []byte, _ chan error, stats common.SnapshotStatisticsHandler, _ uint32) {
->>>>>>> rc/v1.4.0
+				TakeSnapshotCalled: func(_ []byte, _ []byte, _ []byte, iteratorChannels *common.TrieIteratorChannels, _ chan []byte, stats common.SnapshotStatisticsHandler, _ uint32) {
 					snapshotMutex.Lock()
 					takeSnapshotCalled++
 					close(iteratorChannels.LeavesChan)
@@ -2605,11 +2575,7 @@ func TestAccountsDB_NewAccountsDbStartsSnapshotAfterRestart(t *testing.T) {
 				ShouldTakeSnapshotCalled: func() bool {
 					return true
 				},
-<<<<<<< HEAD
-				TakeSnapshotCalled: func(_ []byte, _ []byte, _ *common.TrieIteratorChannels, _ chan []byte, _ common.SnapshotStatisticsHandler, _ uint32) {
-=======
-				TakeSnapshotCalled: func(_ []byte, _ []byte, _ []byte, _ chan core.KeyValueHolder, _ chan []byte, _ chan error, _ common.SnapshotStatisticsHandler, _ uint32) {
->>>>>>> rc/v1.4.0
+				TakeSnapshotCalled: func(_ []byte, _ []byte, _ []byte, _ *common.TrieIteratorChannels, _ chan []byte, _ common.SnapshotStatisticsHandler, _ uint32) {
 					takeSnapshotCalled.SetValue(true)
 				},
 				GetLatestStorageEpochCalled: func() (uint32, error) {

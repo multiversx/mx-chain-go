@@ -76,13 +76,8 @@ type StorageManager interface {
 	Put(key []byte, val []byte) error
 	PutInEpoch(key []byte, val []byte, epoch uint32) error
 	PutInEpochWithoutCache(key []byte, val []byte, epoch uint32) error
-<<<<<<< HEAD
-	TakeSnapshot(rootHash []byte, mainTrieRootHash []byte, iteratorChannels *TrieIteratorChannels, missingNodesChan chan []byte, stats SnapshotStatisticsHandler, epoch uint32)
+	TakeSnapshot(address []byte, rootHash []byte, mainTrieRootHash []byte, iteratorChannels *TrieIteratorChannels, missingNodesChan chan []byte, stats SnapshotStatisticsHandler, epoch uint32)
 	SetCheckpoint(rootHash []byte, mainTrieRootHash []byte, iteratorChannels *TrieIteratorChannels, missingNodesChan chan []byte, stats SnapshotStatisticsHandler)
-=======
-	TakeSnapshot(address []byte, rootHash []byte, mainTrieRootHash []byte, leavesChan chan core.KeyValueHolder, missingNodesChan chan []byte, errChan chan error, stats SnapshotStatisticsHandler, epoch uint32)
-	SetCheckpoint(rootHash []byte, mainTrieRootHash []byte, leavesChan chan core.KeyValueHolder, missingNodesChan chan []byte, errChan chan error, stats SnapshotStatisticsHandler)
->>>>>>> rc/v1.4.0
 	GetLatestStorageEpoch() (uint32, error)
 	IsPruningEnabled() bool
 	IsPruningBlocked() bool

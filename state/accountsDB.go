@@ -1125,13 +1125,8 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 	stats := newSnapshotStatistics(1, 1)
 	go func() {
 		stats.NewSnapshotStarted()
-<<<<<<< HEAD
-		trieStorageManager.TakeSnapshot(rootHash, rootHash, iteratorChannels, missingNodesChannel, stats, epoch)
+		trieStorageManager.TakeSnapshot(nil, rootHash, rootHash, iteratorChannels, missingNodesChannel, stats, epoch)
 		adb.snapshotUserAccountDataTrie(true, rootHash, iteratorChannels, missingNodesChannel, stats, epoch)
-=======
-		trieStorageManager.TakeSnapshot(nil, rootHash, rootHash, leavesChannel, missingNodesChannel, errChan, stats, epoch)
-		adb.snapshotUserAccountDataTrie(true, rootHash, leavesChannel, missingNodesChannel, errChan, stats, epoch)
->>>>>>> rc/v1.4.0
 
 		stats.SnapshotFinished()
 	}()
@@ -1300,11 +1295,7 @@ func (adb *AccountsDB) snapshotUserAccountDataTrie(
 		iteratorChannelsCopy := iteratorChannels
 		iteratorChannelsCopy.LeavesChan = nil
 		if isSnapshot {
-<<<<<<< HEAD
-			adb.mainTrie.GetStorageManager().TakeSnapshot(account.RootHash, mainTrieRootHash, iteratorChannelsCopy, missingNodesChannel, stats, epoch)
-=======
-			adb.mainTrie.GetStorageManager().TakeSnapshot(account.Address, account.RootHash, mainTrieRootHash, nil, missingNodesChannel, errChan, stats, epoch)
->>>>>>> rc/v1.4.0
+			adb.mainTrie.GetStorageManager().TakeSnapshot(account.Address, account.RootHash, mainTrieRootHash, iteratorChannelsCopy, missingNodesChannel, stats, epoch)
 			continue
 		}
 
@@ -1391,13 +1382,16 @@ func (adb *AccountsDB) GetStatsForRootHash(rootHash []byte) (common.TriesStatist
 
 	collectStats(tr, stats, rootHash, nil)
 
-	leavesChannel := make(chan core.KeyValueHolder, leavesChannelSize)
-	err := mainTrie.GetAllLeavesOnChannel(leavesChannel, context.Background(), rootHash, keyBuilder.NewDisabledKeyBuilder())
+	iteratorChannels := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder, leavesChannelSize),
+		ErrChan:    make(chan error, 1),
+	}
+	err := mainTrie.GetAllLeavesOnChannel(iteratorChannels, context.Background(), rootHash, keyBuilder.NewDisabledKeyBuilder())
 	if err != nil {
 		return nil, err
 	}
 
-	for leaf := range leavesChannel {
+	for leaf := range iteratorChannels.LeavesChan {
 		account := &userAccount{}
 		err = adb.marshaller.Unmarshal(account, leaf.Value())
 		if err != nil {
@@ -1410,6 +1404,11 @@ func (adb *AccountsDB) GetStatsForRootHash(rootHash []byte) (common.TriesStatist
 		}
 
 		collectStats(tr, stats, account.RootHash, account.Address)
+	}
+
+	err = common.GetErrorFromChanNonBlocking(iteratorChannels.ErrChan)
+	if err != nil {
+		return nil, err
 	}
 
 	return stats, nil

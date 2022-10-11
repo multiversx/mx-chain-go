@@ -11,13 +11,8 @@ type StorageManagerStub struct {
 	PutInEpochWithoutCacheCalled           func([]byte, []byte, uint32) error
 	GetCalled                              func([]byte) ([]byte, error)
 	GetFromCurrentEpochCalled              func([]byte) ([]byte, error)
-<<<<<<< HEAD
-	TakeSnapshotCalled                     func([]byte, []byte, *common.TrieIteratorChannels, chan []byte, common.SnapshotStatisticsHandler, uint32)
+	TakeSnapshotCalled                     func([]byte, []byte, []byte, *common.TrieIteratorChannels, chan []byte, common.SnapshotStatisticsHandler, uint32)
 	SetCheckpointCalled                    func([]byte, []byte, *common.TrieIteratorChannels, chan []byte, common.SnapshotStatisticsHandler)
-=======
-	TakeSnapshotCalled                     func([]byte, []byte, []byte, chan core.KeyValueHolder, chan []byte, chan error, common.SnapshotStatisticsHandler, uint32)
-	SetCheckpointCalled                    func([]byte, []byte, chan core.KeyValueHolder, chan []byte, chan error, common.SnapshotStatisticsHandler)
->>>>>>> rc/v1.4.0
 	GetDbThatContainsHashCalled            func([]byte) common.DBWriteCacher
 	IsPruningEnabledCalled                 func() bool
 	IsPruningBlockedCalled                 func() bool
@@ -91,11 +86,7 @@ func (sms *StorageManagerStub) TakeSnapshot(
 	epoch uint32,
 ) {
 	if sms.TakeSnapshotCalled != nil {
-<<<<<<< HEAD
-		sms.TakeSnapshotCalled(rootHash, mainTrieRootHash, iteratorChannels, missingNodesChan, stats, epoch)
-=======
-		sms.TakeSnapshotCalled(address, rootHash, mainTrieRootHash, leavesChan, missingNodesChan, errChan, stats, epoch)
->>>>>>> rc/v1.4.0
+		sms.TakeSnapshotCalled(address, rootHash, mainTrieRootHash, iteratorChannels, missingNodesChan, stats, epoch)
 	}
 }
 

@@ -36,13 +36,8 @@ func (tsm *trieStorageManagerWithoutSnapshot) PutInEpochWithoutCache(key []byte,
 }
 
 // TakeSnapshot does nothing, as snapshots are disabled for this implementation
-<<<<<<< HEAD
-func (tsm *trieStorageManagerWithoutSnapshot) TakeSnapshot(_ []byte, _ []byte, iteratorChannels *common.TrieIteratorChannels, _ chan []byte, stats common.SnapshotStatisticsHandler, _ uint32) {
+func (tsm *trieStorageManagerWithoutSnapshot) TakeSnapshot(_ []byte, _ []byte, _ []byte, iteratorChannels *common.TrieIteratorChannels, _ chan []byte, stats common.SnapshotStatisticsHandler, _ uint32) {
 	safelyCloseChan(iteratorChannels.LeavesChan)
-=======
-func (tsm *trieStorageManagerWithoutSnapshot) TakeSnapshot(_ []byte, _ []byte, _ []byte, leavesChan chan core.KeyValueHolder, _ chan []byte, _ chan error, stats common.SnapshotStatisticsHandler, _ uint32) {
-	safelyCloseChan(leavesChan)
->>>>>>> rc/v1.4.0
 	stats.SnapshotFinished()
 }
 
