@@ -858,7 +858,7 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 		return vmcommon.ExecutionFailed, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte("gas consumed exceeded"), snapshot, vmInput.GasLocked)
 	}
 
-	createdAsyncCallback, scrResults, err := sc.processSCOutputAccountsAfterBuiltinCall(&vmInput.VMInput, vmOutput, tx, txHash)
+	createdAsyncCallback, scrResults, err := sc.processSCOutputAccounts(&vmInput.VMInput, vmOutput, tx, txHash)
 	if err != nil {
 		return 0, err
 	}
@@ -2461,17 +2461,6 @@ func addReturnDataToSCR(vmOutput *vmcommon.VMOutput, scTx *smartContractResult.S
 	}
 }
 
-func (sc *scProcessor) processSCOutputAccountsAfterBuiltinCall(
-	vmInput *vmcommon.VMInput,
-	vmOutput *vmcommon.VMOutput,
-	tx data.TransactionHandler,
-	txHash []byte,
-) (bool, []data.TransactionHandler, error) {
-	return NewVMOutputAccountsProcessor(sc, vmInput, vmOutput, tx, txHash).
-		ProcessOutputTransfers().
-		Run()
-}
-
 // save account changes in state from vmOutput - protected by VM - every output can be treated as is.
 func (sc *scProcessor) processSCOutputAccounts(
 	vmInput *vmcommon.VMInput,
@@ -2480,11 +2469,6 @@ func (sc *scProcessor) processSCOutputAccounts(
 	txHash []byte,
 ) (bool, []data.TransactionHandler, error) {
 	return NewVMOutputAccountsProcessor(sc, vmInput, vmOutput, tx, txHash).
-		ProcessOutputTransfers().
-		ProcessStorageUpdates().
-		ProcessCode().
-		ProcessBalanceDelta().
-		ProcessNonce().
 		Run()
 }
 

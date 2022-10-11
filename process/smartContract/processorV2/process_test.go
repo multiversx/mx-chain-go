@@ -687,7 +687,7 @@ func TestScProcessor_ExecuteBuiltInFunction(t *testing.T) {
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
 	tx.Data = []byte(funcName + "@0500@0000")
-	tx.Value = big.NewInt(45)
+	tx.Value = big.NewInt(0)
 	acntSrc, _ := createAccounts(tx)
 
 	vm := &mock.VMExecutionHandlerStub{}
@@ -711,7 +711,7 @@ func TestScProcessor_ExecuteBuiltInESDTTransfer(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = rcvAddr
-	tx.Value = big.NewInt(45)
+	tx.Value = big.NewInt(0)
 	tx.GasLimit = 10
 	tx.Data = []byte(funcName + "@0500@0000@" + hex.EncodeToString([]byte("testFunc")))
 	executeBuiltInESDTTransfer(t, tx)
@@ -726,7 +726,7 @@ func TestScProcessor_ExecuteBuiltInESDTTransfer_InCallback(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = rcvAddr
-	tx.Value = big.NewInt(45)
+	tx.Value = big.NewInt(0)
 	tx.GasLimit = 10
 	tx.Data = []byte(funcName + "@00@00@00@00@0500@0000@" + hex.EncodeToString([]byte("testFunc")))
 	executeBuiltInESDTTransfer(t, tx)
@@ -833,7 +833,7 @@ func TestScProcessor_ExecuteBuiltInFunctionSCRTooBig(t *testing.T) {
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
 	tx.Data = []byte(funcName + "@0500@0000")
-	tx.Value = big.NewInt(45)
+	tx.Value = big.NewInt(0)
 	acntSrc, _ := createAccounts(tx)
 	userAcc, _ := acntSrc.(vmcommon.UserAccountHandler)
 

@@ -19,12 +19,6 @@ type VMOutputAccountsProcessor struct {
 	vmOutput *vmcommon.VMOutput
 	tx       data.TransactionHandler
 	txHash   []byte
-
-	processOutputTransfers bool
-	processStorageUpdates  bool
-	processCode            bool
-	processBalanceDelta    bool
-	processNonce           bool
 }
 
 // NewVMOutputAccountsProcessor creates a new VMOutputProcessor instance.
@@ -40,12 +34,6 @@ func NewVMOutputAccountsProcessor(
 		vmOutput: vmOutput,
 		tx:       tx,
 		txHash:   txHash,
-
-		processOutputTransfers: false,
-		processStorageUpdates:  false,
-		processCode:            false,
-		processBalanceDelta:    false,
-		processNonce:           false,
 	}
 }
 
@@ -95,7 +83,7 @@ func (oap *VMOutputAccountsProcessor) Run() (bool, []data.TransactionHandler, er
 		}
 	}
 
-	if oap.processBalanceDelta && sumOfAllDiff.Cmp(zero) != 0 {
+	if sumOfAllDiff.Cmp(zero) != 0 {
 		return false, nil, process.ErrOverallBalanceChangeFromSC
 	}
 
@@ -103,9 +91,6 @@ func (oap *VMOutputAccountsProcessor) Run() (bool, []data.TransactionHandler, er
 }
 
 func (oap *VMOutputAccountsProcessor) processOutputTransfersStep(outAcc *vmcommon.OutputAccount, createdAsyncCallback bool, scResults []data.TransactionHandler) (bool, []data.TransactionHandler) {
-	if !oap.processOutputTransfers {
-		return createdAsyncCallback, scResults
-	}
 	tmpCreatedAsyncCallback, newScrs := oap.sc.createSmartContractResults(oap.vmInput, oap.vmOutput, outAcc, oap.tx, oap.txHash)
 	createdAsyncCallback = createdAsyncCallback || tmpCreatedAsyncCallback
 	if len(newScrs) != 0 {
@@ -118,9 +103,6 @@ func (oap *VMOutputAccountsProcessor) computeSumOfAllDiffStep(
 	acc state.UserAccountHandler,
 	outAcc *vmcommon.OutputAccount,
 	sumOfAllDiff *big.Int) (bool, error) {
-	if !oap.processBalanceDelta {
-		return false, nil
-	}
 	if !check.IfNil(acc) {
 		return false, nil
 	}
@@ -136,9 +118,6 @@ func (oap *VMOutputAccountsProcessor) computeSumOfAllDiffStep(
 func (oap *VMOutputAccountsProcessor) processStorageUpdatesStep(
 	acc state.UserAccountHandler,
 	outAcc *vmcommon.OutputAccount) error {
-	if !oap.processStorageUpdates {
-		return nil
-	}
 	for _, storeUpdate := range outAcc.StorageUpdates {
 		if !process.IsAllowedToSaveUnderKey(storeUpdate.Offset) {
 			log.Trace("storeUpdate is not allowed", "acc", outAcc.Address, "key", storeUpdate.Offset, "data", storeUpdate.Data)
@@ -165,9 +144,6 @@ func (oap *VMOutputAccountsProcessor) updateSmartContractCodeStep(
 	stateAccount state.UserAccountHandler,
 	outputAccount *vmcommon.OutputAccount,
 ) error {
-	if !oap.processCode {
-		return nil
-	}
 	if len(outputAccount.Code) == 0 {
 		return nil
 	}
@@ -237,9 +213,6 @@ func (oap *VMOutputAccountsProcessor) updateSmartContractCodeStep(
 func (oap *VMOutputAccountsProcessor) updateAccountNonceIfThereIsAChange(
 	acc state.UserAccountHandler,
 	outAcc *vmcommon.OutputAccount) error {
-	if !oap.processNonce {
-		return nil
-	}
 	if outAcc.Nonce != acc.GetNonce() && outAcc.Nonce != 0 {
 		if outAcc.Nonce < acc.GetNonce() {
 			return process.ErrWrongNonceInVMOutput
@@ -255,9 +228,6 @@ func (oap *VMOutputAccountsProcessor) updateAccountBalanceStep(
 	acc state.UserAccountHandler,
 	outAcc *vmcommon.OutputAccount,
 	sumOfAllDiff *big.Int) (*big.Int, error) {
-	if !oap.processBalanceDelta {
-		return sumOfAllDiff, nil
-	}
 	// if no change then continue to next account
 	if outAcc.BalanceDelta == nil || outAcc.BalanceDelta.Cmp(zero) == 0 {
 		err := oap.sc.accounts.SaveAccount(acc)
@@ -281,34 +251,4 @@ func (oap *VMOutputAccountsProcessor) updateAccountBalanceStep(
 	}
 
 	return sumOfAllDiff, nil
-}
-
-// ProcessOutputTransfers enables process output transfers step
-func (oap *VMOutputAccountsProcessor) ProcessOutputTransfers() *VMOutputAccountsProcessor {
-	oap.processOutputTransfers = true
-	return oap
-}
-
-// ProcessStorageUpdates enables process storage updates step
-func (oap *VMOutputAccountsProcessor) ProcessStorageUpdates() *VMOutputAccountsProcessor {
-	oap.processStorageUpdates = true
-	return oap
-}
-
-// ProcessStorageUpdates enables process code step
-func (oap *VMOutputAccountsProcessor) ProcessCode() *VMOutputAccountsProcessor {
-	oap.processCode = true
-	return oap
-}
-
-// ProcessStorageUpdates enables process balance delta step
-func (oap *VMOutputAccountsProcessor) ProcessBalanceDelta() *VMOutputAccountsProcessor {
-	oap.processBalanceDelta = true
-	return oap
-}
-
-// ProcessStorageUpdates enables process nonce step
-func (oap *VMOutputAccountsProcessor) ProcessNonce() *VMOutputAccountsProcessor {
-	oap.processNonce = true
-	return oap
 }
