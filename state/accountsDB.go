@@ -1291,15 +1291,13 @@ func (adb *AccountsDB) snapshotUserAccountDataTrie(
 		stats.NewSnapshotStarted()
 		stats.NewDataTrie()
 
+		iteratorChannelsCopy := iteratorChannels
+		iteratorChannelsCopy.LeavesChan = nil
 		if isSnapshot {
-			iteratorChannelsCopy := iteratorChannels
-			iteratorChannelsCopy.LeavesChan = nil
 			adb.mainTrie.GetStorageManager().TakeSnapshot(account.RootHash, mainTrieRootHash, iteratorChannelsCopy, missingNodesChannel, stats, epoch)
 			continue
 		}
 
-		iteratorChannelsCopy := iteratorChannels
-		iteratorChannelsCopy.LeavesChan = nil
 		adb.mainTrie.GetStorageManager().SetCheckpoint(account.RootHash, mainTrieRootHash, iteratorChannelsCopy, missingNodesChannel, stats)
 	}
 }

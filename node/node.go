@@ -315,7 +315,7 @@ func (n *Node) GetKeyValuePairs(address string, options api.AccountQueryOptions,
 
 	err = common.GetErrorFromChanNonBlocking(chLeaves.ErrChan)
 	if err != nil {
-		log.Error("error on getting all leaves", "err", err)
+		return nil, api.BlockInfo{}, err
 	}
 
 	if common.IsContextDone(ctx) {
