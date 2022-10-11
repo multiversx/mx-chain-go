@@ -36,10 +36,11 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	pcf, _ := processComp.NewProcessComponentsFactory(componentsMock.GetProcessComponentsFactoryArgs(shardCoordinator))
+	pcf, err := processComp.NewProcessComponentsFactory(componentsMock.GetProcessComponentsFactoryArgs(shardCoordinator))
+	require.NoError(t, err)
 	require.NotNil(t, pcf)
 
-	_, err := pcf.Create()
+	_, err = pcf.Create()
 	require.NoError(t, err)
 
 	bp, vmFactoryForSimulate, err := pcf.NewBlockProcessor(

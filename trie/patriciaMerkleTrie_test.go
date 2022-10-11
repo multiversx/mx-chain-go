@@ -758,6 +758,42 @@ func TestPatriciaMerkleTrie_GetNumNodesNilRootShouldReturnEmpty(t *testing.T) {
 	assert.Equal(t, common.NumNodesDTO{}, numNodes)
 }
 
+func TestPatriciaMerkleTrie_GetTrieStats(t *testing.T) {
+	t.Parallel()
+
+	tr := emptyTrie()
+
+	_ = tr.Update([]byte("dog"), []byte("reindeer"))
+	_ = tr.Update([]byte("fog"), []byte("puppy"))
+	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
+	_ = tr.Commit()
+
+	rootHash, _ := tr.RootHash()
+	address := []byte("address")
+
+	ts, ok := tr.(common.TrieStats)
+	assert.True(t, ok)
+
+	stats, err := ts.GetTrieStats(address, rootHash)
+	assert.Nil(t, err)
+
+	branchesPerLevel := []uint32{1, 0, 1}
+	extensionsPerLevel := []uint32{0, 1}
+	leavesPerLevel := []uint32{0, 1, 0, 2}
+	nodesPerLevel := []uint32{1, 2, 1, 2}
+
+	assert.Equal(t, rootHash, stats.RootHash)
+	assert.Equal(t, address, stats.Address)
+
+	assert.Equal(t, branchesPerLevel, stats.NumBranchesPerLevel)
+	assert.Equal(t, extensionsPerLevel, stats.NumExtensionsPerLevel)
+	assert.Equal(t, leavesPerLevel, stats.NumLeavesPerLevel)
+	assert.Equal(t, nodesPerLevel, stats.TotalNumNodesPerLevel)
+
+	assert.Equal(t, uint64(6), stats.TotalNumNodes)
+	assert.Equal(t, uint32(4), stats.MaxTrieDepth)
+}
+
 func TestPatriciaMerkleTrie_GetNumNodes(t *testing.T) {
 	t.Parallel()
 
