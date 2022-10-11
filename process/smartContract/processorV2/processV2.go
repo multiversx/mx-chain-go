@@ -87,6 +87,22 @@ type scProcessor struct {
 	enableEpochsHandler common.EnableEpochsHandler
 }
 
+type sameShardExecutionDataAfterBuiltIn struct {
+	isSCCallSelfShard    bool
+	callType             vmData.CallType
+	parsedTransfer       *vmcommon.ParsedESDTTransfers
+	scExecuteOutTransfer *vmcommon.OutputTransfer
+}
+
+type outputResultsToBeMerged struct {
+	tmpCreatedAsyncCallback bool
+	createdAsyncCallback    bool
+	newSCRTxs               []data.TransactionHandler
+	scrResults              []data.TransactionHandler
+	newVMOutput             *vmcommon.VMOutput
+	vmOutput                *vmcommon.VMOutput
+}
+
 // NewSmartContractProcessorV2 creates a smart contract processor that creates and interprets VM data
 func NewSmartContractProcessorV2(args scrCommon.ArgsNewSmartContractProcessor) (*scProcessor, error) {
 	if check.IfNil(args.VmContainer) {
@@ -323,7 +339,7 @@ func (sc *scProcessor) executeSmartContractCallAndCheckGas(
 ) (*vmcommon.VMOutput, vmcommon.ReturnCode, error) {
 	vmOutput, err := sc.executeSmartContractCall(vmInput, tx, vmInput.CurrentTxHash, snapshot, acntSnd, acntDst)
 	if err != nil {
-		return vmOutput, 0, err
+		return vmOutput, vmcommon.Ok, err
 	}
 	if vmOutput.ReturnCode != vmcommon.Ok {
 		return vmOutput, vmcommon.UserError, nil
@@ -335,7 +351,7 @@ func (sc *scProcessor) executeSmartContractCallAndCheckGas(
 		return vmOutput, vmcommon.ExecutionFailed, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte("gas consumed exceeded"), snapshot, vmInput.GasLocked)
 	}
 
-	return vmOutput, 0, nil
+	return vmOutput, vmcommon.Ok, nil
 }
 
 func (sc *scProcessor) executeSmartContractCall(
@@ -936,15 +952,6 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 	return sc.finishSCExecution(scrResults, txHash, tx, newVMOutput, builtInFuncGasUsed)
 }
 
-type outputResultsToBeMerged struct {
-	tmpCreatedAsyncCallback bool
-	createdAsyncCallback    bool
-	newSCRTxs               []data.TransactionHandler
-	scrResults              []data.TransactionHandler
-	newVMOutput             *vmcommon.VMOutput
-	vmOutput                *vmcommon.VMOutput
-}
-
 func mergeOutputResultsWithBuiltinResults(results *outputResultsToBeMerged) (bool, []data.TransactionHandler) {
 	results.createdAsyncCallback = results.createdAsyncCallback || results.tmpCreatedAsyncCallback
 
@@ -1076,19 +1083,12 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 	return vmOutput, nil
 }
 
-type sameShardExecutionDataAfterBuiltIn struct {
-	isSCCallSelfShard    bool
-	callType             vmData.CallType
-	parsedTransfer       *vmcommon.ParsedESDTTransfers
-	scExecuteOutTransfer *vmcommon.OutputTransfer
-}
-
 func (sc *scProcessor) isSameShardSCExecutionAfterBuiltInFunc(
 	tx data.TransactionHandler,
 	vmInput *vmcommon.ContractCallInput,
 	vmOutput *vmcommon.VMOutput,
 ) (*sameShardExecutionDataAfterBuiltIn, error) {
-	noExecutionFound := &sameShardExecutionDataAfterBuiltIn{
+	noExecutionDTO := &sameShardExecutionDataAfterBuiltIn{
 		isSCCallSelfShard:    false,
 		callType:             0,
 		parsedTransfer:       nil,
@@ -1096,19 +1096,19 @@ func (sc *scProcessor) isSameShardSCExecutionAfterBuiltInFunc(
 	}
 
 	if vmOutput.ReturnCode != vmcommon.Ok {
-		return noExecutionFound, nil
+		return noExecutionDTO, nil
 	}
 
 	parsedTransfer, err := sc.esdtTransferParser.ParseESDTTransfers(vmInput.CallerAddr, vmInput.RecipientAddr, vmInput.Function, vmInput.Arguments)
 	if err != nil {
-		return noExecutionFound, nil
+		return noExecutionDTO, nil
 	}
 	if !core.IsSmartContractAddress(parsedTransfer.RcvAddr) {
-		return noExecutionFound, nil
+		return noExecutionDTO, nil
 	}
 
 	if sc.shardCoordinator.ComputeId(parsedTransfer.RcvAddr) != sc.shardCoordinator.SelfId() {
-		return noExecutionFound, nil
+		return noExecutionDTO, nil
 	}
 
 	callType := determineCallType(tx)
@@ -1122,15 +1122,15 @@ func (sc *scProcessor) isSameShardSCExecutionAfterBuiltInFunc(
 	}
 
 	if len(parsedTransfer.CallFunction) == 0 {
-		return noExecutionFound, nil
+		return noExecutionDTO, nil
 	}
 
 	outAcc, ok := vmOutput.OutputAccounts[string(parsedTransfer.RcvAddr)]
 	if !ok {
-		return noExecutionFound, nil
+		return noExecutionDTO, nil
 	}
 	if len(outAcc.OutputTransfers) != 1 {
-		return noExecutionFound, nil
+		return noExecutionDTO, nil
 	}
 
 	scExecuteOutTransfer := outAcc.OutputTransfers[0]
