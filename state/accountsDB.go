@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"runtime/debug"
+	"strings"
 	"sync"
 	"time"
 
@@ -19,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common/holders"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/trie/keyBuilder"
+	"github.com/ElrondNetwork/elrond-go/trie/statistics"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -1123,7 +1125,7 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 	stats := newSnapshotStatistics(1, 1)
 	go func() {
 		stats.NewSnapshotStarted()
-		trieStorageManager.TakeSnapshot(rootHash, rootHash, iteratorChannels, missingNodesChannel, stats, epoch)
+		trieStorageManager.TakeSnapshot(nil, rootHash, rootHash, iteratorChannels, missingNodesChannel, stats, epoch)
 		adb.snapshotUserAccountDataTrie(true, rootHash, iteratorChannels, missingNodesChannel, stats, epoch)
 
 		stats.SnapshotFinished()
@@ -1289,12 +1291,11 @@ func (adb *AccountsDB) snapshotUserAccountDataTrie(
 		}
 
 		stats.NewSnapshotStarted()
-		stats.NewDataTrie()
 
 		iteratorChannelsCopy := iteratorChannels
 		iteratorChannelsCopy.LeavesChan = nil
 		if isSnapshot {
-			adb.mainTrie.GetStorageManager().TakeSnapshot(account.RootHash, mainTrieRootHash, iteratorChannelsCopy, missingNodesChannel, stats, epoch)
+			adb.mainTrie.GetStorageManager().TakeSnapshot(account.Address, account.RootHash, mainTrieRootHash, iteratorChannelsCopy, missingNodesChannel, stats, epoch)
 			continue
 		}
 
@@ -1367,6 +1368,61 @@ func (adb *AccountsDB) Close() error {
 
 	_ = adb.mainTrie.Close()
 	return adb.storagePruningManager.Close()
+}
+
+// GetStatsForRootHash will get trie statistics for the given rootHash
+func (adb *AccountsDB) GetStatsForRootHash(rootHash []byte) (common.TriesStatisticsCollector, error) {
+	stats := statistics.NewTrieStatisticsCollector()
+	mainTrie := adb.getMainTrie()
+
+	tr, ok := mainTrie.(common.TrieStats)
+	if !ok {
+		return nil, fmt.Errorf("invalid trie, type is %T", mainTrie)
+	}
+
+	collectStats(tr, stats, rootHash, nil)
+
+	iteratorChannels := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder, leavesChannelSize),
+		ErrChan:    make(chan error, 1),
+	}
+	err := mainTrie.GetAllLeavesOnChannel(iteratorChannels, context.Background(), rootHash, keyBuilder.NewDisabledKeyBuilder())
+	if err != nil {
+		return nil, err
+	}
+
+	for leaf := range iteratorChannels.LeavesChan {
+		account := &userAccount{}
+		err = adb.marshaller.Unmarshal(account, leaf.Value())
+		if err != nil {
+			log.Trace("this must be a leaf with code", "err", err)
+			continue
+		}
+
+		if len(account.RootHash) == 0 {
+			continue
+		}
+
+		collectStats(tr, stats, account.RootHash, account.Address)
+	}
+
+	err = common.GetErrorFromChanNonBlocking(iteratorChannels.ErrChan)
+	if err != nil {
+		return nil, err
+	}
+
+	return stats, nil
+}
+
+func collectStats(tr common.TrieStats, stats common.TriesStatisticsCollector, rootHash []byte, address []byte) {
+	trieStats, err := tr.GetTrieStats(address, rootHash)
+	if err != nil {
+		log.Error(err.Error())
+		return
+	}
+	stats.Add(trieStats)
+
+	log.Debug(strings.Join(trieStats.ToString(), " "))
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

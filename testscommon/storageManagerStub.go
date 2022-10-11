@@ -11,7 +11,7 @@ type StorageManagerStub struct {
 	PutInEpochWithoutCacheCalled           func([]byte, []byte, uint32) error
 	GetCalled                              func([]byte) ([]byte, error)
 	GetFromCurrentEpochCalled              func([]byte) ([]byte, error)
-	TakeSnapshotCalled                     func([]byte, []byte, *common.TrieIteratorChannels, chan []byte, common.SnapshotStatisticsHandler, uint32)
+	TakeSnapshotCalled                     func([]byte, []byte, []byte, *common.TrieIteratorChannels, chan []byte, common.SnapshotStatisticsHandler, uint32)
 	SetCheckpointCalled                    func([]byte, []byte, *common.TrieIteratorChannels, chan []byte, common.SnapshotStatisticsHandler)
 	GetDbThatContainsHashCalled            func([]byte) common.DBWriteCacher
 	IsPruningEnabledCalled                 func() bool
@@ -77,6 +77,7 @@ func (sms *StorageManagerStub) GetFromCurrentEpoch(key []byte) ([]byte, error) {
 
 // TakeSnapshot -
 func (sms *StorageManagerStub) TakeSnapshot(
+	address []byte,
 	rootHash []byte,
 	mainTrieRootHash []byte,
 	iteratorChannels *common.TrieIteratorChannels,
@@ -85,7 +86,7 @@ func (sms *StorageManagerStub) TakeSnapshot(
 	epoch uint32,
 ) {
 	if sms.TakeSnapshotCalled != nil {
-		sms.TakeSnapshotCalled(rootHash, mainTrieRootHash, iteratorChannels, missingNodesChan, stats, epoch)
+		sms.TakeSnapshotCalled(address, rootHash, mainTrieRootHash, iteratorChannels, missingNodesChan, stats, epoch)
 	}
 }
 

@@ -81,7 +81,7 @@ func TestTrieStorageManagerWithoutSnapshot_TakeSnapshot(t *testing.T) {
 		LeavesChan: make(chan core.KeyValueHolder),
 		ErrChan:    make(chan error, 1),
 	}
-	ts.TakeSnapshot(nil, nil, iteratorChannels, nil, &trieMock.MockStatistics{}, 10)
+	ts.TakeSnapshot(nil, nil, nil, iteratorChannels, nil, &trieMock.MockStatistics{}, 10)
 
 	select {
 	case <-iteratorChannels.LeavesChan:

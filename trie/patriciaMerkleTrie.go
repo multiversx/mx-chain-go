@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/errors"
+	"github.com/ElrondNetwork/elrond-go/trie/statistics"
 )
 
 var log = logger.GetOrCreate("trie")
@@ -25,6 +26,8 @@ const (
 	leaf
 	branch
 )
+
+const rootDepthLevel = 0
 
 // EmptyTrieHash returns the value with empty trie hash
 var EmptyTrieHash = make([]byte, 32)
@@ -641,6 +644,26 @@ func (tr *patriciaMerkleTrie) GetOldRoot() []byte {
 	defer tr.mutOperation.Unlock()
 
 	return tr.oldRoot
+}
+
+// GetTrieStats will collect and return the statistics for the given rootHash
+func (tr *patriciaMerkleTrie) GetTrieStats(address []byte, rootHash []byte) (*statistics.TrieStatsDTO, error) {
+	tr.mutOperation.RLock()
+	newTrie, err := tr.recreate(rootHash, tr.trieStorage)
+	if err != nil {
+		tr.mutOperation.RUnlock()
+		return nil, err
+	}
+	tr.mutOperation.RUnlock()
+
+	ts := statistics.NewTrieStatistics()
+	err = newTrie.root.collectStats(ts, rootDepthLevel, newTrie.trieStorage)
+	if err != nil {
+		return nil, err
+	}
+	ts.AddAccountInfo(address, rootHash)
+
+	return ts.GetTrieStats(), nil
 }
 
 // Close stops all the active goroutines started by the trie

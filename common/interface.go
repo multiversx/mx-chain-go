@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/trie/statistics"
 )
 
 // NumNodesDTO represents the DTO structure that will hold the number of nodes split by category and other
@@ -49,6 +50,11 @@ type Trie interface {
 	IsInterfaceNil() bool
 }
 
+// TrieStats is used to collect the trie statistics for the given rootHash
+type TrieStats interface {
+	GetTrieStats(address []byte, rootHash []byte) (*statistics.TrieStatsDTO, error)
+}
+
 // KeyBuilder is used for building trie keys as you traverse the trie
 type KeyBuilder interface {
 	BuildKey(keyPart []byte)
@@ -70,7 +76,7 @@ type StorageManager interface {
 	Put(key []byte, val []byte) error
 	PutInEpoch(key []byte, val []byte, epoch uint32) error
 	PutInEpochWithoutCache(key []byte, val []byte, epoch uint32) error
-	TakeSnapshot(rootHash []byte, mainTrieRootHash []byte, iteratorChannels *TrieIteratorChannels, missingNodesChan chan []byte, stats SnapshotStatisticsHandler, epoch uint32)
+	TakeSnapshot(address []byte, rootHash []byte, mainTrieRootHash []byte, iteratorChannels *TrieIteratorChannels, missingNodesChan chan []byte, stats SnapshotStatisticsHandler, epoch uint32)
 	SetCheckpoint(rootHash []byte, mainTrieRootHash []byte, iteratorChannels *TrieIteratorChannels, missingNodesChan chan []byte, stats SnapshotStatisticsHandler)
 	GetLatestStorageEpoch() (uint32, error)
 	IsPruningEnabled() bool
@@ -144,11 +150,25 @@ type SizeSyncStatisticsHandler interface {
 
 // SnapshotStatisticsHandler is used to measure different statistics for the trie snapshot
 type SnapshotStatisticsHandler interface {
-	AddSize(uint64)
 	SnapshotFinished()
 	NewSnapshotStarted()
-	NewDataTrie()
 	WaitForSnapshotsToFinish()
+	AddTrieStats(*statistics.TrieStatsDTO)
+}
+
+// TrieStatisticsHandler is used to collect different statistics about a single trie
+type TrieStatisticsHandler interface {
+	AddBranchNode(level int, size uint64)
+	AddExtensionNode(level int, size uint64)
+	AddLeafNode(level int, size uint64)
+	AddAccountInfo(address []byte, rootHash []byte)
+	GetTrieStats() *statistics.TrieStatsDTO
+}
+
+// TriesStatisticsCollector is used to merge the statistics for multiple tries
+type TriesStatisticsCollector interface {
+	Add(trieStats *statistics.TrieStatsDTO)
+	Print()
 }
 
 // ProcessStatusHandler defines the behavior of a component able to hold the current status of the node and
@@ -311,6 +331,7 @@ type EnableEpochsHandler interface {
 	IsChangeDelegationOwnerFlagEnabled() bool
 	IsRefactorPeersMiniBlocksFlagEnabled() bool
 	IsFixAsyncCallBackArgsListFlagEnabled() bool
+	IsFixOldTokenLiquidityEnabled() bool
 
 	IsInterfaceNil() bool
 }
