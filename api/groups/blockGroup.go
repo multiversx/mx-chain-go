@@ -170,6 +170,7 @@ func (bg *blockGroup) getAlteredAccountsByNonce(c *gin.Context) {
 	options, err := parseAlteredAccountsForBlockQueryOptionsWithoutRequestType(c)
 	if err != nil {
 		shared.RespondWithValidationError(c, errors.ErrGetAlteredAccountsForBlock, err)
+		return
 	}
 
 	options.GetBlockParameters = api.GetBlockParameters{

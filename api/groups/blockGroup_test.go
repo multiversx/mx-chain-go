@@ -466,6 +466,8 @@ func TestGetAlteredAccountsByNonce_ShouldWork(t *testing.T) {
 	response, code := httpGetAlteredAccountsForBlockBlock(ws, "/block/altered-accounts/by-nonce/37")
 	require.Equal(t, http.StatusOK, code)
 	require.Equal(t, expectedResponse, response.Data.Accounts)
+	require.Empty(t, response.Error)
+	require.Equal(t, string(shared.ReturnCodeSuccess), response.Code)
 }
 
 func TestGetAlteredAccountsByHash_ShouldWork(t *testing.T) {
