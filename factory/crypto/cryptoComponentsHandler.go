@@ -73,8 +73,8 @@ func (mcc *managedCryptoComponents) Close() error {
 
 // CheckSubcomponents verifies all subcomponents
 func (mcc *managedCryptoComponents) CheckSubcomponents() error {
-	mcc.mutCryptoComponents.Lock()
-	defer mcc.mutCryptoComponents.Unlock()
+	mcc.mutCryptoComponents.RLock()
+	defer mcc.mutCryptoComponents.RUnlock()
 
 	if mcc.cryptoComponents == nil {
 		return errors.ErrNilCryptoComponents

@@ -65,8 +65,8 @@ func (mbf *managedBootstrapComponents) Close() error {
 
 // CheckSubcomponents verifies all subcomponents
 func (mbf *managedBootstrapComponents) CheckSubcomponents() error {
-	mbf.mutBootstrapComponents.Lock()
-	defer mbf.mutBootstrapComponents.Unlock()
+	mbf.mutBootstrapComponents.RLock()
+	defer mbf.mutBootstrapComponents.RUnlock()
 
 	if mbf.bootstrapComponents == nil {
 		return errors.ErrNilBootstrapComponentsHolder

@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
+	arwenConfig "github.com/ElrondNetwork/wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
@@ -833,7 +833,7 @@ func CreateRandomAddress() []byte {
 	return CreateRandomBytes(32)
 }
 
-// MintAddress will create an account (if it does not exists), update the balance with required value,
+// MintAddress will create an account (if it does not exist), update the balance with required value,
 // save the account and commit the trie.
 func MintAddress(accnts state.AccountsAdapter, addressBytes []byte, value *big.Int) {
 	accnt, _ := accnts.LoadAccount(addressBytes)
