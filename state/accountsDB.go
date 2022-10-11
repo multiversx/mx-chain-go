@@ -1116,20 +1116,22 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 
 	log.Info("starting snapshot user trie", "rootHash", rootHash, "epoch", epoch)
 	missingNodesChannel := make(chan []byte, missingNodesChannelSize)
-	errChan := make(chan error, 1)
+	iteratorChannels := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder, leavesChannelSize),
+		ErrChan:    make(chan error, 1),
+	}
 	stats := newSnapshotStatistics(1, 1)
 	go func() {
-		leavesChannel := make(chan core.KeyValueHolder, leavesChannelSize)
 		stats.NewSnapshotStarted()
-		trieStorageManager.TakeSnapshot(rootHash, rootHash, leavesChannel, missingNodesChannel, errChan, stats, epoch)
-		adb.snapshotUserAccountDataTrie(true, rootHash, leavesChannel, missingNodesChannel, errChan, stats, epoch)
+		trieStorageManager.TakeSnapshot(rootHash, rootHash, iteratorChannels, missingNodesChannel, stats, epoch)
+		adb.snapshotUserAccountDataTrie(true, rootHash, iteratorChannels, missingNodesChannel, stats, epoch)
 
 		stats.SnapshotFinished()
 	}()
 
 	go adb.syncMissingNodes(missingNodesChannel, stats, adb.trieSyncer)
 
-	go adb.processSnapshotCompletion(stats, trieStorageManager, missingNodesChannel, errChan, rootHash, "snapshotState user trie", epoch)
+	go adb.processSnapshotCompletion(stats, trieStorageManager, missingNodesChannel, iteratorChannels.ErrChan, rootHash, "snapshotState user trie", epoch)
 
 	adb.waitForCompletionIfAppropriate(stats)
 }
@@ -1269,13 +1271,12 @@ func emptyErrChanReturningHadContained(errChan chan error) bool {
 func (adb *AccountsDB) snapshotUserAccountDataTrie(
 	isSnapshot bool,
 	mainTrieRootHash []byte,
-	leavesChannel chan core.KeyValueHolder,
+	iteratorChannels *common.TrieIteratorChannels,
 	missingNodesChannel chan []byte,
-	errChan chan error,
 	stats common.SnapshotStatisticsHandler,
 	epoch uint32,
 ) {
-	for leaf := range leavesChannel {
+	for leaf := range iteratorChannels.LeavesChan {
 		account := &userAccount{}
 		err := adb.marshaller.Unmarshal(account, leaf.Value())
 		if err != nil {
@@ -1291,11 +1292,15 @@ func (adb *AccountsDB) snapshotUserAccountDataTrie(
 		stats.NewDataTrie()
 
 		if isSnapshot {
-			adb.mainTrie.GetStorageManager().TakeSnapshot(account.RootHash, mainTrieRootHash, nil, missingNodesChannel, errChan, stats, epoch)
+			iteratorChannelsCopy := iteratorChannels
+			iteratorChannelsCopy.LeavesChan = nil
+			adb.mainTrie.GetStorageManager().TakeSnapshot(account.RootHash, mainTrieRootHash, iteratorChannelsCopy, missingNodesChannel, stats, epoch)
 			continue
 		}
 
-		adb.mainTrie.GetStorageManager().SetCheckpoint(account.RootHash, mainTrieRootHash, nil, missingNodesChannel, errChan, stats)
+		iteratorChannelsCopy := iteratorChannels
+		iteratorChannelsCopy.LeavesChan = nil
+		adb.mainTrie.GetStorageManager().SetCheckpoint(account.RootHash, mainTrieRootHash, iteratorChannelsCopy, missingNodesChannel, stats)
 	}
 }
 
@@ -1312,14 +1317,16 @@ func (adb *AccountsDB) setStateCheckpoint(rootHash []byte) {
 	log.Trace("accountsDB.SetStateCheckpoint", "root hash", rootHash)
 	trieStorageManager.EnterPruningBufferingMode()
 
-	errChan := make(chan error, 1)
+	iteratorChannels := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder, leavesChannelSize),
+		ErrChan:    make(chan error, 1),
+	}
 	missingNodesChannel := make(chan []byte, missingNodesChannelSize)
 	stats := newSnapshotStatistics(1, 1)
 	go func() {
-		leavesChannel := make(chan core.KeyValueHolder, leavesChannelSize)
 		stats.NewSnapshotStarted()
-		trieStorageManager.SetCheckpoint(rootHash, rootHash, leavesChannel, missingNodesChannel, errChan, stats)
-		adb.snapshotUserAccountDataTrie(false, rootHash, leavesChannel, missingNodesChannel, errChan, stats, 0)
+		trieStorageManager.SetCheckpoint(rootHash, rootHash, iteratorChannels, missingNodesChannel, stats)
+		adb.snapshotUserAccountDataTrie(false, rootHash, iteratorChannels, missingNodesChannel, stats, 0)
 
 		stats.SnapshotFinished()
 	}()

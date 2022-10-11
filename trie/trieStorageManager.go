@@ -321,27 +321,26 @@ func (tsm *trieStorageManager) GetLatestStorageEpoch() (uint32, error) {
 func (tsm *trieStorageManager) TakeSnapshot(
 	rootHash []byte,
 	mainTrieRootHash []byte,
-	leavesChan chan core.KeyValueHolder,
+	iteratorChannels *common.TrieIteratorChannels,
 	missingNodesChan chan []byte,
-	errChan chan error,
 	stats common.SnapshotStatisticsHandler,
 	epoch uint32,
 ) {
-	if errChan == nil {
+	if iteratorChannels.ErrChan == nil {
 		log.Error("programming error in trieStorageManager.TakeSnapshot, cannot take snapshot because errChan is nil")
-		safelyCloseChan(leavesChan)
+		safelyCloseChan(iteratorChannels.LeavesChan)
 		stats.SnapshotFinished()
 		return
 	}
 	if tsm.IsClosed() {
-		safelyCloseChan(leavesChan)
+		safelyCloseChan(iteratorChannels.LeavesChan)
 		stats.SnapshotFinished()
 		return
 	}
 
 	if bytes.Equal(rootHash, EmptyTrieHash) {
 		log.Trace("should not snapshot an empty trie")
-		safelyCloseChan(leavesChan)
+		safelyCloseChan(iteratorChannels.LeavesChan)
 		stats.SnapshotFinished()
 		return
 	}
@@ -352,8 +351,8 @@ func (tsm *trieStorageManager) TakeSnapshot(
 	snapshotEntry := &snapshotsQueueEntry{
 		rootHash:         rootHash,
 		mainTrieRootHash: mainTrieRootHash,
-		errChan:          errChan,
-		leavesChan:       leavesChan,
+		errChan:          iteratorChannels.ErrChan,
+		leavesChan:       iteratorChannels.LeavesChan,
 		missingNodesChan: missingNodesChan,
 		stats:            stats,
 		epoch:            epoch,
@@ -362,7 +361,7 @@ func (tsm *trieStorageManager) TakeSnapshot(
 	case tsm.snapshotReq <- snapshotEntry:
 	case <-tsm.closer.ChanClose():
 		tsm.ExitPruningBufferingMode()
-		safelyCloseChan(leavesChan)
+		safelyCloseChan(iteratorChannels.LeavesChan)
 		stats.SnapshotFinished()
 	}
 }
@@ -373,26 +372,25 @@ func (tsm *trieStorageManager) TakeSnapshot(
 func (tsm *trieStorageManager) SetCheckpoint(
 	rootHash []byte,
 	mainTrieRootHash []byte,
-	leavesChan chan core.KeyValueHolder,
+	iteratorChannels *common.TrieIteratorChannels,
 	missingNodesChan chan []byte,
-	errChan chan error,
 	stats common.SnapshotStatisticsHandler,
 ) {
-	if errChan == nil {
+	if iteratorChannels.ErrChan == nil {
 		log.Error("programming error in trieStorageManager.SetCheckpoint, cannot set checkpoint because errChan is nil")
-		safelyCloseChan(leavesChan)
+		safelyCloseChan(iteratorChannels.LeavesChan)
 		stats.SnapshotFinished()
 		return
 	}
 	if tsm.IsClosed() {
-		safelyCloseChan(leavesChan)
+		safelyCloseChan(iteratorChannels.LeavesChan)
 		stats.SnapshotFinished()
 		return
 	}
 
 	if bytes.Equal(rootHash, EmptyTrieHash) {
 		log.Trace("should not set checkpoint for empty trie")
-		safelyCloseChan(leavesChan)
+		safelyCloseChan(iteratorChannels.LeavesChan)
 		stats.SnapshotFinished()
 		return
 	}
@@ -402,16 +400,16 @@ func (tsm *trieStorageManager) SetCheckpoint(
 	checkpointEntry := &snapshotsQueueEntry{
 		rootHash:         rootHash,
 		mainTrieRootHash: mainTrieRootHash,
-		leavesChan:       leavesChan,
+		leavesChan:       iteratorChannels.LeavesChan,
 		missingNodesChan: missingNodesChan,
-		errChan:          errChan,
+		errChan:          iteratorChannels.ErrChan,
 		stats:            stats,
 	}
 	select {
 	case tsm.checkpointReq <- checkpointEntry:
 	case <-tsm.closer.ChanClose():
 		tsm.ExitPruningBufferingMode()
-		safelyCloseChan(leavesChan)
+		safelyCloseChan(iteratorChannels.LeavesChan)
 		stats.SnapshotFinished()
 	}
 }
