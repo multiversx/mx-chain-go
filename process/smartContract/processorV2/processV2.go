@@ -876,12 +876,12 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 
 	createdAsyncCallback, scrResults, err := sc.processSCOutputAccounts(&vmInput.VMInput, vmOutput, tx, txHash)
 	if err != nil {
-		return 0, err
+		return vmcommon.ExecutionFailed, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(err.Error()), snapshot, vmInput.GasLocked)
 	}
 
 	executionDataAfterBuiltIn, err := sc.isSameShardSCExecutionAfterBuiltInFunc(tx, vmInput, vmOutput)
 	if err != nil {
-		return 0, sc.ProcessIfError(acntSnd, vmInput.CurrentTxHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
+		return vmcommon.ExecutionFailed, sc.ProcessIfError(acntSnd, vmInput.CurrentTxHash, tx, err.Error(), []byte(err.Error()), snapshot, vmInput.GasLocked)
 	}
 
 	newVMInput := vmInput
@@ -902,12 +902,15 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 				snapshot:             snapshot,
 			})
 		if err != nil {
-			return 0, err
+			return vmcommon.ExecutionFailed, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(err.Error()), snapshot, vmInput.GasLocked)
 		}
 
 		newVMOutput, errReturnCode, err = sc.executeSmartContractCallAndCheckGas(newVMInput, tx, newVMInput.CurrentTxHash, snapshot, acntSnd, newDestSC)
-		if errReturnCode != vmcommon.Ok || err != nil {
-			return errReturnCode, err
+		if err != nil {
+			return vmcommon.ExecutionFailed, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(err.Error()), snapshot, vmInput.GasLocked)
+		}
+		if errReturnCode != vmcommon.Ok {
+			return errReturnCode, nil // process if error already happened inside executeSmartContractCallAndCheckGas
 		}
 
 		tmpCreatedAsyncCallback, newSCRTxs, err := sc.processSCOutputAccounts(&vmInput.VMInput, newVMOutput, tx, txHash)
@@ -940,7 +943,7 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 				createdAsyncCallback: createdAsyncCallback,
 			})
 		if errReturnCode != vmcommon.Ok || err != nil {
-			return errReturnCode, err
+			return errReturnCode, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(err.Error()), snapshot, vmInput.GasLocked)
 		}
 	}
 
@@ -2013,18 +2016,18 @@ func (sc *scProcessor) createSCRsWhenError(
 		ReturnMessage: returnMessage,
 	}
 
-	data := tx.GetData()
+	txData := tx.GetData()
 	var asyncArgs *vmcommon.AsyncArguments
 	if callType == vmData.AsynchronousCall {
 		var err error
-		asyncArgs, data, err = sc.extractAsyncCallParamsFromTxData(string(data))
+		asyncArgs, txData, err = sc.extractAsyncCallParamsFromTxData(string(txData))
 		if err != nil {
 			return nil, nil
 		}
 	}
 
 	accumulatedSCRData := ""
-	esdtReturnData, isCrossShardESDTCall := sc.isCrossShardESDTTransfer(tx.GetSndAddr(), tx.GetRcvAddr(), data)
+	esdtReturnData, isCrossShardESDTCall := sc.isCrossShardESDTTransfer(tx.GetSndAddr(), tx.GetRcvAddr(), txData)
 	if callType != vmData.AsynchronousCallBack && isCrossShardESDTCall {
 		accumulatedSCRData += esdtReturnData
 	}
