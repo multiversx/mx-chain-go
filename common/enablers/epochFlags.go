@@ -83,6 +83,7 @@ type epochFlagsHolder struct {
 	changeDelegationOwnerFlag                   *atomic.Flag
 	refactorPeersMiniBlocksFlag                 *atomic.Flag
 	fixAsyncCallBackArgsList                    *atomic.Flag
+	fixOldTokenLiquidity                        *atomic.Flag
 }
 
 func newEpochFlagsHolder() *epochFlagsHolder {
@@ -167,6 +168,7 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		changeDelegationOwnerFlag:                   &atomic.Flag{},
 		refactorPeersMiniBlocksFlag:                 &atomic.Flag{},
 		fixAsyncCallBackArgsList:                    &atomic.Flag{},
+		fixOldTokenLiquidity:                        &atomic.Flag{},
 	}
 }
 
@@ -621,4 +623,9 @@ func (holder *epochFlagsHolder) IsRefactorPeersMiniBlocksFlagEnabled() bool {
 // IsFixAsyncCallBackArgsListFlagEnabled returns true if fixAsyncCallBackArgsList is enabled
 func (holder *epochFlagsHolder) IsFixAsyncCallBackArgsListFlagEnabled() bool {
 	return holder.fixAsyncCallBackArgsList.IsSet()
+}
+
+// IsFixOldTokenLiquidityEnabled returns true if fixOldTokenLiquidity is enabled
+func (holder *epochFlagsHolder) IsFixOldTokenLiquidityEnabled() bool {
+	return holder.fixOldTokenLiquidity.IsSet()
 }

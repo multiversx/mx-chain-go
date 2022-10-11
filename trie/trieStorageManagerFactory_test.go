@@ -81,7 +81,11 @@ func TestTrieStorageManager_SerialFuncShadowingCallsExpectedImpl(t *testing.T) {
 		IsPruningEnabledCalled: func() bool {
 			return true
 		},
+<<<<<<< HEAD
 		TakeSnapshotCalled: func(_ []byte, _ []byte, _ *common.TrieIteratorChannels, _ chan []byte, _ common.SnapshotStatisticsHandler, _ uint32) {
+=======
+		TakeSnapshotCalled: func(_ []byte, _ []byte, _ []byte, _ chan core.KeyValueHolder, _ chan []byte, _ chan error, _ common.SnapshotStatisticsHandler, _ uint32) {
+>>>>>>> rc/v1.4.0
 			assert.Fail(t, shouldNotHaveBeenCalledErr.Error())
 		},
 		GetLatestStorageEpochCalled: func() (uint32, error) {
@@ -165,11 +169,16 @@ func testTsmWithoutSnapshot(
 	_ = tsm.PutInEpoch([]byte("hash"), []byte("val"), 0)
 	_ = tsm.PutInEpochWithoutCache([]byte("hash"), []byte("val"), 0)
 
+<<<<<<< HEAD
 	iteratorChannels := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder),
 		ErrChan:    make(chan error, 1),
 	}
 	tsm.TakeSnapshot(nil, nil, iteratorChannels, nil, &trieMock.MockStatistics{}, 10)
+=======
+	leavesCh := make(chan core.KeyValueHolder)
+	tsm.TakeSnapshot(nil, nil, nil, leavesCh, nil, make(chan error, 1), &trieMock.MockStatistics{}, 10)
+>>>>>>> rc/v1.4.0
 
 	select {
 	case <-iteratorChannels.LeavesChan:

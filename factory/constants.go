@@ -7,6 +7,8 @@ const (
 	ConsensusComponentsName = "managedConsensusComponents"
 	// CoreComponentsName is the core components identifier
 	CoreComponentsName = "managedCoreComponents"
+	// StatusCoreComponentsName is the status core components identifier
+	StatusCoreComponentsName = "managedStatusCoreComponents"
 	// CryptoComponentsName is the crypto components identifier
 	CryptoComponentsName = "managedCryptoComponents"
 	// DataComponentsName is the data components identifier
