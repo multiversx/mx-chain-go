@@ -277,52 +277,88 @@ func TestExportAll(t *testing.T) {
 func TestStateExport_ExportTrieShouldExportNodesSetupJson(t *testing.T) {
 	t.Parallel()
 
-	testFolderName := t.TempDir()
+	t.Run("should fail on getting trie nodes", func(t *testing.T) {
+		t.Parallel()
 
-	hs := &mock.HardforkStorerStub{
-		WriteCalled: func(identifier string, key []byte, value []byte) error {
-			return nil
-		},
-	}
+		args := getDefaultStateExporterArgs()
 
-	pubKeyConv := &mock.PubkeyConverterStub{
-		EncodeCalled: func(pkBytes []byte) string {
-			return string(pkBytes)
-		},
-	}
+		expectedErr := errors.New("expected error")
+		trie := &trieMock.TrieStub{
+			RootCalled: func() ([]byte, error) {
+				return []byte{}, nil
+			},
+			GetAllLeavesOnChannelCalled: func(channels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder) error {
+				mm := &mock.MarshalizerMock{}
+				valInfo := &state.ValidatorInfo{List: string(common.EligibleList)}
+				pacB, _ := mm.Marshal(valInfo)
 
-	args := getDefaultStateExporterArgs()
-	args.HardforkStorer = hs
-	args.ExportFolder = testFolderName
-	args.AddressPubKeyConverter = pubKeyConv
-	args.ValidatorPubKeyConverter = pubKeyConv
+				go func() {
+					channels.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("test"), pacB)
+					close(channels.LeavesChan)
+					channels.ErrChan <- expectedErr
+				}()
 
-	trie := &trieMock.TrieStub{
-		RootCalled: func() ([]byte, error) {
-			return []byte{}, nil
-		},
-		GetAllLeavesOnChannelCalled: func(channels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder) error {
-			mm := &mock.MarshalizerMock{}
-			valInfo := &state.ValidatorInfo{List: string(common.EligibleList)}
-			pacB, _ := mm.Marshal(valInfo)
+				return nil
+			},
+		}
 
-			go func() {
-				channels.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("test"), pacB)
-				close(channels.LeavesChan)
-				close(channels.ErrChan)
-			}()
+		stateExporter, err := NewStateExporter(args)
+		require.NoError(t, err)
 
-			return nil
-		},
-	}
+		err = stateExporter.exportTrie("test@1@9", trie)
+		require.Equal(t, expectedErr, err)
+	})
 
-	stateExporter, err := NewStateExporter(args)
-	require.NoError(t, err)
+	t.Run("should work export nodes setup json", func(t *testing.T) {
+		t.Parallel()
 
-	require.False(t, check.IfNil(stateExporter))
+		testFolderName := t.TempDir()
 
-	err = stateExporter.exportTrie("test@1@9", trie)
-	require.NoError(t, err)
+		hs := &mock.HardforkStorerStub{
+			WriteCalled: func(identifier string, key []byte, value []byte) error {
+				return nil
+			},
+		}
+
+		pubKeyConv := &mock.PubkeyConverterStub{
+			EncodeCalled: func(pkBytes []byte) string {
+				return string(pkBytes)
+			},
+		}
+
+		args := getDefaultStateExporterArgs()
+		args.HardforkStorer = hs
+		args.ExportFolder = testFolderName
+		args.AddressPubKeyConverter = pubKeyConv
+		args.ValidatorPubKeyConverter = pubKeyConv
+
+		trie := &trieMock.TrieStub{
+			RootCalled: func() ([]byte, error) {
+				return []byte{}, nil
+			},
+			GetAllLeavesOnChannelCalled: func(channels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder) error {
+				mm := &mock.MarshalizerMock{}
+				valInfo := &state.ValidatorInfo{List: string(common.EligibleList)}
+				pacB, _ := mm.Marshal(valInfo)
+
+				go func() {
+					channels.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("test"), pacB)
+					close(channels.LeavesChan)
+					close(channels.ErrChan)
+				}()
+
+				return nil
+			},
+		}
+
+		stateExporter, err := NewStateExporter(args)
+		require.NoError(t, err)
+
+		require.False(t, check.IfNil(stateExporter))
+
+		err = stateExporter.exportTrie("test@1@9", trie)
+		require.NoError(t, err)
+	})
 }
 
 func TestStateExport_ExportNodesSetupJsonShouldExportKeysInAlphabeticalOrder(t *testing.T) {

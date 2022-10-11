@@ -342,6 +342,59 @@ func TestNode_GetKeyValuePairs(t *testing.T) {
 	assert.Equal(t, hex.EncodeToString(v2), resV2)
 }
 
+func TestNode_GetKeyValuePairs_GetAllLeavesShouldFail(t *testing.T) {
+	acc, _ := state.NewUserAccount([]byte("newaddress"))
+
+	accDB := &stateMock.AccountsStub{}
+
+	expectedErr := errors.New("expected err")
+	acc.SetDataTrie(
+		&trieMock.TrieStub{
+			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
+				go func() {
+					close(leavesChannels.LeavesChan)
+					leavesChannels.ErrChan <- expectedErr
+				}()
+
+				return nil
+			},
+			RootCalled: func() ([]byte, error) {
+				return nil, nil
+			},
+		})
+
+	accDB.GetAccountWithBlockInfoCalled = func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
+		return acc, nil, nil
+	}
+	accDB.RecreateTrieCalled = func(rootHash []byte) error {
+		return nil
+	}
+
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
+	dataComponents := getDefaultDataComponents()
+	stateComponents := getDefaultStateComponents()
+	args := state.ArgsAccountsRepository{
+		FinalStateAccountsWrapper:      accDB,
+		CurrentStateAccountsWrapper:    accDB,
+		HistoricalStateAccountsWrapper: accDB,
+	}
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(args)
+	n, _ := node.NewNode(
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
+		node.WithDataComponents(dataComponents),
+	)
+
+	pairs, blockInfo, err := n.GetKeyValuePairs(createDummyHexAddress(64), api.AccountQueryOptions{}, context.Background())
+	assert.Nil(t, pairs)
+	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, api.BlockInfo{}, blockInfo)
+}
+
 func TestNode_GetKeyValuePairsContextShouldTimeout(t *testing.T) {
 	acc, _ := state.NewUserAccount([]byte("newaddress"))
 
@@ -591,6 +644,60 @@ func TestNode_GetAllESDTTokens(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(value))
 	assert.Equal(t, esdtData, value[esdtToken])
+}
+
+func TestNode_GetAllESDTTokens_GetAllLeavesShouldFail(t *testing.T) {
+	acc, _ := state.NewUserAccount(testscommon.TestPubKeyAlice)
+
+	expectedErr := errors.New("expected error")
+	acc.SetDataTrie(
+		&trieMock.TrieStub{
+			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
+				go func() {
+					close(leavesChannels.LeavesChan)
+					leavesChannels.ErrChan <- expectedErr
+				}()
+
+				return nil
+			},
+			RootCalled: func() ([]byte, error) {
+				return nil, nil
+			},
+		})
+
+	accDB := &stateMock.AccountsStub{
+		RecreateTrieCalled: func(rootHash []byte) error {
+			return nil
+		},
+	}
+	accDB.GetAccountWithBlockInfoCalled = func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
+		return acc, nil, nil
+	}
+
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+
+	dataComponents := getDefaultDataComponents()
+	stateComponents := getDefaultStateComponents()
+	args := state.ArgsAccountsRepository{
+		FinalStateAccountsWrapper:      accDB,
+		CurrentStateAccountsWrapper:    accDB,
+		HistoricalStateAccountsWrapper: accDB,
+	}
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(args)
+
+	n, _ := node.NewNode(
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
+		node.WithDataComponents(dataComponents),
+	)
+
+	value, blockInfo, err := n.GetAllESDTTokens(testscommon.TestAddressAlice, api.AccountQueryOptions{}, context.Background())
+	assert.Nil(t, value)
+	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, api.BlockInfo{}, blockInfo)
 }
 
 func TestNode_GetAllESDTTokensContextShouldTimeout(t *testing.T) {
