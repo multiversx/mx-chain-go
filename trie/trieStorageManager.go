@@ -39,9 +39,8 @@ type snapshotsQueueEntry struct {
 	address          []byte
 	rootHash         []byte
 	mainTrieRootHash []byte
-	leavesChan       chan core.KeyValueHolder
+	iteratorChannels *common.TrieIteratorChannels
 	missingNodesChan chan []byte
-	errChan          chan error
 	stats            common.SnapshotStatisticsHandler
 	epoch            uint32
 }
@@ -355,8 +354,7 @@ func (tsm *trieStorageManager) TakeSnapshot(
 		address:          address,
 		rootHash:         rootHash,
 		mainTrieRootHash: mainTrieRootHash,
-		errChan:          iteratorChannels.ErrChan,
-		leavesChan:       iteratorChannels.LeavesChan,
+		iteratorChannels: iteratorChannels,
 		missingNodesChan: missingNodesChan,
 		stats:            stats,
 		epoch:            epoch,
@@ -404,9 +402,8 @@ func (tsm *trieStorageManager) SetCheckpoint(
 	checkpointEntry := &snapshotsQueueEntry{
 		rootHash:         rootHash,
 		mainTrieRootHash: mainTrieRootHash,
-		leavesChan:       iteratorChannels.LeavesChan,
+		iteratorChannels: iteratorChannels,
 		missingNodesChan: missingNodesChan,
-		errChan:          iteratorChannels.ErrChan,
 		stats:            stats,
 	}
 	select {
@@ -427,7 +424,7 @@ func safelyCloseChan(ch chan core.KeyValueHolder) {
 func (tsm *trieStorageManager) finishOperation(snapshotEntry *snapshotsQueueEntry, message string) {
 	tsm.ExitPruningBufferingMode()
 	log.Trace(message, "rootHash", snapshotEntry.rootHash)
-	safelyCloseChan(snapshotEntry.leavesChan)
+	safelyCloseChan(snapshotEntry.iteratorChannels.LeavesChan)
 	snapshotEntry.stats.SnapshotFinished()
 }
 
@@ -441,7 +438,7 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 
 	stsm, err := newSnapshotTrieStorageManager(tsm, snapshotEntry.epoch)
 	if err != nil {
-		writeInChanNonBlocking(snapshotEntry.errChan, err)
+		writeInChanNonBlocking(snapshotEntry.iteratorChannels.ErrChan, err)
 		log.Error("takeSnapshot: trie storage manager: newSnapshotTrieStorageManager",
 			"rootHash", snapshotEntry.rootHash,
 			"main trie rootHash", snapshotEntry.mainTrieRootHash,
@@ -451,7 +448,7 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 
 	newRoot, err := newSnapshotNode(stsm, msh, hsh, snapshotEntry.rootHash, snapshotEntry.missingNodesChan)
 	if err != nil {
-		writeInChanNonBlocking(snapshotEntry.errChan, err)
+		writeInChanNonBlocking(snapshotEntry.iteratorChannels.ErrChan, err)
 		treatSnapshotError(err,
 			"trie storage manager: newSnapshotNode takeSnapshot",
 			snapshotEntry.rootHash,
@@ -461,9 +458,9 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 	}
 
 	stats := statistics.NewTrieStatistics()
-	err = newRoot.commitSnapshot(stsm, snapshotEntry.leavesChan, snapshotEntry.missingNodesChan, ctx, stats, tsm.idleProvider, rootDepthLevel)
+	err = newRoot.commitSnapshot(stsm, snapshotEntry.iteratorChannels.LeavesChan, snapshotEntry.missingNodesChan, ctx, stats, tsm.idleProvider, rootDepthLevel)
 	if err != nil {
-		writeInChanNonBlocking(snapshotEntry.errChan, err)
+		writeInChanNonBlocking(snapshotEntry.iteratorChannels.ErrChan, err)
 		treatSnapshotError(err,
 			"trie storage manager: takeSnapshot commit",
 			snapshotEntry.rootHash,
@@ -493,7 +490,7 @@ func (tsm *trieStorageManager) takeCheckpoint(checkpointEntry *snapshotsQueueEnt
 
 	newRoot, err := newSnapshotNode(tsm, msh, hsh, checkpointEntry.rootHash, checkpointEntry.missingNodesChan)
 	if err != nil {
-		writeInChanNonBlocking(checkpointEntry.errChan, err)
+		writeInChanNonBlocking(checkpointEntry.iteratorChannels.ErrChan, err)
 		treatSnapshotError(err,
 			"trie storage manager: newSnapshotNode takeCheckpoint",
 			checkpointEntry.rootHash,
@@ -503,9 +500,9 @@ func (tsm *trieStorageManager) takeCheckpoint(checkpointEntry *snapshotsQueueEnt
 	}
 
 	stats := statistics.NewTrieStatistics()
-	err = newRoot.commitCheckpoint(tsm, tsm.checkpointsStorer, tsm.checkpointHashesHolder, checkpointEntry.leavesChan, ctx, stats, tsm.idleProvider, rootDepthLevel)
+	err = newRoot.commitCheckpoint(tsm, tsm.checkpointsStorer, tsm.checkpointHashesHolder, checkpointEntry.iteratorChannels.LeavesChan, ctx, stats, tsm.idleProvider, rootDepthLevel)
 	if err != nil {
-		writeInChanNonBlocking(checkpointEntry.errChan, err)
+		writeInChanNonBlocking(checkpointEntry.iteratorChannels.ErrChan, err)
 		treatSnapshotError(err,
 			"trie storage manager: takeCheckpoint commit",
 			checkpointEntry.rootHash,

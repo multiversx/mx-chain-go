@@ -459,10 +459,10 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(
 		return ErrNilTrieIteratorChannels
 	}
 	if leavesChannels.LeavesChan == nil {
-		return ErrNilTrieIteratorChannel
+		return ErrNilTrieIteratorLeavesChannel
 	}
 	if leavesChannels.ErrChan == nil {
-		return ErrNilTrieIteratorChannel
+		return ErrNilTrieIteratorErrChannel
 	}
 
 	tr.mutOperation.RLock()

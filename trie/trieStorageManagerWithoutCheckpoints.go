@@ -29,7 +29,9 @@ func (tsm *trieStorageManagerWithoutCheckpoints) SetCheckpoint(
 	_ chan []byte,
 	stats common.SnapshotStatisticsHandler,
 ) {
-	safelyCloseChan(iteratorChannels.LeavesChan)
+	if iteratorChannels != nil {
+		safelyCloseChan(iteratorChannels.LeavesChan)
+	}
 	stats.SnapshotFinished()
 
 	log.Debug("trieStorageManagerWithoutCheckpoints - SetCheckpoint is disabled")

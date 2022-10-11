@@ -362,12 +362,7 @@ func (se *stateExport) exportDataTries(
 		return err
 	}
 
-	err = se.hardforkStorer.FinishedIdentifier(identifier)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return se.hardforkStorer.FinishedIdentifier(identifier)
 }
 
 func (se *stateExport) exportAccountLeaves(
@@ -389,12 +384,7 @@ func (se *stateExport) exportAccountLeaves(
 		return err
 	}
 
-	err = se.hardforkStorer.FinishedIdentifier(identifier)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return se.hardforkStorer.FinishedIdentifier(identifier)
 }
 
 func (se *stateExport) exportMBs(key string, mb *block.MiniBlock) error {

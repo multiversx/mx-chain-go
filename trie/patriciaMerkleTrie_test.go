@@ -565,7 +565,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 			ErrChan:    make(chan error, 1),
 		}
 		err := tr.GetAllLeavesOnChannel(iteratorChannels, context.Background(), []byte{}, keyBuilder.NewDisabledKeyBuilder())
-		assert.Equal(t, trie.ErrNilTrieIteratorChannel, err)
+		assert.Equal(t, trie.ErrNilTrieIteratorLeavesChannel, err)
 	})
 
 	t.Run("nil err chan", func(t *testing.T) {
@@ -578,7 +578,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 			ErrChan:    nil,
 		}
 		err := tr.GetAllLeavesOnChannel(iteratorChannels, context.Background(), []byte{}, keyBuilder.NewDisabledKeyBuilder())
-		assert.Equal(t, trie.ErrNilTrieIteratorChannel, err)
+		assert.Equal(t, trie.ErrNilTrieIteratorErrChannel, err)
 	})
 
 	t.Run("empty trie", func(t *testing.T) {
