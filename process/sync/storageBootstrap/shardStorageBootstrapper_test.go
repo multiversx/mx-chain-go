@@ -3,7 +3,6 @@ package storageBootstrap
 import (
 	"bytes"
 	"errors"
-	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -264,55 +263,57 @@ func TestShardStorageBootstrapper_applyCrossNotarizedHeaders(t *testing.T) {
 	t.Parallel()
 
 	t.Run("missing current meta should error", func(t *testing.T) {
-		addedCrossNotarized := make(map[string]data.HeaderHandler)
-		addedTrackedHeaders := make(map[string]data.HeaderHandler)
+		crossNotarizedHeadersAccumulator := make(map[string]data.HeaderHandler)
+		trackedHeadersAccumulator := make(map[string]data.HeaderHandler)
 
-		bootstrapper, _, currentMeta, crossNotarizedHeaders := setupForApplyCrossNotarizedHeadersTests(addedCrossNotarized, addedTrackedHeaders)
+		bootstrapper, _, currentMeta, crossNotarizedHeaders := setupForApplyCrossNotarizedHeadersTests(crossNotarizedHeadersAccumulator, trackedHeadersAccumulator)
+		// remove the current metaheader from storer, this is a critical error
 		_ = bootstrapper.store.GetStorer(dataRetriever.MetaBlockUnit).Remove(currentMeta.hash)
 
 		err := bootstrapper.applyCrossNotarizedHeaders(crossNotarizedHeaders)
 		assert.NotNil(t, err)
-		assert.True(t, strings.Contains(err.Error(), "missing header : GetMarshalizedHeaderFromStorage"))
+		assert.ErrorContains(t, err, "missing header : GetMarshalizedHeaderFromStorage")
 	})
 	t.Run("missing prev header should still work", func(t *testing.T) {
-		addedCrossNotarized := make(map[string]data.HeaderHandler)
-		addedTrackedHeaders := make(map[string]data.HeaderHandler)
+		crossNotarizedHeadersAccumulator := make(map[string]data.HeaderHandler)
+		trackedHeadersAccumulator := make(map[string]data.HeaderHandler)
 
-		bootstrapper, prevMeta, currentMeta, crossNotarizedHeaders := setupForApplyCrossNotarizedHeadersTests(addedCrossNotarized, addedTrackedHeaders)
+		bootstrapper, prevMeta, currentMeta, crossNotarizedHeaders := setupForApplyCrossNotarizedHeadersTests(crossNotarizedHeadersAccumulator, trackedHeadersAccumulator)
+		// remove the previous metaheader from storer, this should not be a critical error
 		_ = bootstrapper.store.GetStorer(dataRetriever.MetaBlockUnit).Remove(prevMeta.hash)
 
 		err := bootstrapper.applyCrossNotarizedHeaders(crossNotarizedHeaders)
 		assert.Nil(t, err)
 
-		assert.Equal(t, 1, len(addedCrossNotarized))
-		assert.Equal(t, 1, len(addedTrackedHeaders))
+		assert.Equal(t, 1, len(crossNotarizedHeadersAccumulator))
+		assert.Equal(t, 1, len(trackedHeadersAccumulator))
 
-		assert.Equal(t, currentMeta.metablock, addedCrossNotarized[string(currentMeta.hash)])
-		assert.Equal(t, currentMeta.metablock, addedTrackedHeaders[string(currentMeta.hash)])
+		assert.Equal(t, currentMeta.metablock, crossNotarizedHeadersAccumulator[string(currentMeta.hash)])
+		assert.Equal(t, currentMeta.metablock, trackedHeadersAccumulator[string(currentMeta.hash)])
 	})
 	t.Run("should work", func(t *testing.T) {
-		addedCrossNotarized := make(map[string]data.HeaderHandler)
-		addedTrackedHeaders := make(map[string]data.HeaderHandler)
+		crossNotarizedHeadersAccumulator := make(map[string]data.HeaderHandler)
+		trackedHeadersAccumulator := make(map[string]data.HeaderHandler)
 
-		bootstrapper, prevMeta, currentMeta, crossNotarizedHeaders := setupForApplyCrossNotarizedHeadersTests(addedCrossNotarized, addedTrackedHeaders)
+		bootstrapper, prevMeta, currentMeta, crossNotarizedHeaders := setupForApplyCrossNotarizedHeadersTests(crossNotarizedHeadersAccumulator, trackedHeadersAccumulator)
 
 		err := bootstrapper.applyCrossNotarizedHeaders(crossNotarizedHeaders)
 		assert.Nil(t, err)
 
-		assert.Equal(t, 2, len(addedCrossNotarized))
-		assert.Equal(t, 2, len(addedTrackedHeaders))
+		assert.Equal(t, 2, len(crossNotarizedHeadersAccumulator))
+		assert.Equal(t, 2, len(trackedHeadersAccumulator))
 
-		assert.Equal(t, currentMeta.metablock, addedCrossNotarized[string(currentMeta.hash)])
-		assert.Equal(t, currentMeta.metablock, addedTrackedHeaders[string(currentMeta.hash)])
+		assert.Equal(t, currentMeta.metablock, crossNotarizedHeadersAccumulator[string(currentMeta.hash)])
+		assert.Equal(t, currentMeta.metablock, trackedHeadersAccumulator[string(currentMeta.hash)])
 
-		assert.Equal(t, prevMeta.metablock, addedCrossNotarized[string(prevMeta.hash)])
-		assert.Equal(t, prevMeta.metablock, addedTrackedHeaders[string(prevMeta.hash)])
+		assert.Equal(t, prevMeta.metablock, crossNotarizedHeadersAccumulator[string(prevMeta.hash)])
+		assert.Equal(t, prevMeta.metablock, trackedHeadersAccumulator[string(prevMeta.hash)])
 	})
 }
 
 func setupForApplyCrossNotarizedHeadersTests(
-	addedCrossNotarized map[string]data.HeaderHandler,
-	addedTrackedHeaders map[string]data.HeaderHandler,
+	crossNotarizedHeadersAccumulator map[string]data.HeaderHandler,
+	trackedHeadersAccumulator map[string]data.HeaderHandler,
 ) (bootstrapper *shardStorageBootstrapper, prev *metaBlockInfo, current *metaBlockInfo, crossNotarizedHeaders []bootstrapStorage.BootstrapHeaderInfo) {
 	hasher := &hashingMocks.HasherMock{}
 
@@ -322,10 +323,10 @@ func setupForApplyCrossNotarizedHeadersTests(
 			marshalizer: &testscommon.MarshalizerMock{},
 			blockTracker: &mock.BlockTrackerMock{
 				AddCrossNotarizedHeaderCalled: func(shardID uint32, crossNotarizedHeader data.HeaderHandler, crossNotarizedHeaderHash []byte) {
-					addedCrossNotarized[string(crossNotarizedHeaderHash)] = crossNotarizedHeader
+					crossNotarizedHeadersAccumulator[string(crossNotarizedHeaderHash)] = crossNotarizedHeader
 				},
 				AddTrackedHeaderCalled: func(header data.HeaderHandler, hash []byte) {
-					addedTrackedHeaders[string(hash)] = header
+					trackedHeadersAccumulator[string(hash)] = header
 				},
 			},
 		},
