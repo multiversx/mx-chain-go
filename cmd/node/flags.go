@@ -352,10 +352,10 @@ var (
 		Value: "./config/p2pKey.pem",
 	}
 
-	// snapshotsEnabled is used to enabled snapshots
+	// snapshotsEnabled is used to enable snapshots, if it is not set it defaults to true, it will be set to false if it is set specifically
 	snapshotsEnabled = cli.BoolTFlag{
 		Name:  "snapshots-enabled",
-		Usage: "Boolean option for enabling state snapshots.",
+		Usage: "Boolean option for enabling state snapshots. If it is not set it defaults to true, it will be set to false if it is set specifically as --snapshots-enabled=false",
 	}
 )
 
