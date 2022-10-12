@@ -1041,7 +1041,7 @@ func (n *Node) Close() error {
 		allComponents = append(allComponents, fmt.Sprintf("%v", managedComponent))
 	}
 
-	log.Debug("closing all managed components", "all components", strings.Join(allComponents, ", "))
+	log.Debug("closing all managed components", "all components that will be closed, in order", strings.Join(allComponents, ", "))
 	for i := len(n.closableComponents) - 1; i >= 0; i-- {
 		managedComponent := n.closableComponents[i]
 		componentName := n.getClosableComponentName(managedComponent, i)
