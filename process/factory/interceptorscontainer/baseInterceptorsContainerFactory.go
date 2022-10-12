@@ -694,20 +694,20 @@ func (bicf *baseInterceptorsContainerFactory) generateHeartbeatInterceptor() err
 	return bicf.container.Add(identifierHeartbeat, interceptor)
 }
 
-// ------- DirectConnectionInfo interceptor
+// ------- PeerShard interceptor
 
-func (bicf *baseInterceptorsContainerFactory) generateDirectConnectionInfoInterceptor() error {
+func (bicf *baseInterceptorsContainerFactory) generatePeerShardInterceptor() error {
 	identifier := common.ConnectionTopic
 
-	interceptedDirectConnectionInfoFactory, err := interceptorFactory.NewInterceptedDirectConnectionInfoFactory(*bicf.argInterceptorFactory)
+	interceptedPeerShardFactory, err := interceptorFactory.NewInterceptedPeerShardFactory(*bicf.argInterceptorFactory)
 	if err != nil {
 		return err
 	}
 
-	argProcessor := processor.ArgDirectConnectionInfoInterceptorProcessor{
+	argProcessor := processor.ArgPeerShardInterceptorProcessor{
 		PeerShardMapper: bicf.peerShardMapper,
 	}
-	dciProcessor, err := processor.NewDirectConnectionInfoInterceptorProcessor(argProcessor)
+	dciProcessor, err := processor.NewPeerShardInterceptorProcessor(argProcessor)
 	if err != nil {
 		return err
 	}
@@ -715,7 +715,7 @@ func (bicf *baseInterceptorsContainerFactory) generateDirectConnectionInfoInterc
 	interceptor, err := interceptors.NewSingleDataInterceptor(
 		interceptors.ArgSingleDataInterceptor{
 			Topic:                identifier,
-			DataFactory:          interceptedDirectConnectionInfoFactory,
+			DataFactory:          interceptedPeerShardFactory,
 			Processor:            dciProcessor,
 			Throttler:            bicf.globalThrottler,
 			AntifloodHandler:     bicf.antifloodHandler,
