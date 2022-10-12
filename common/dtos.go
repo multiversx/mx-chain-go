@@ -52,3 +52,17 @@ type InitialAccountAPI struct {
 	StakingValue string            `json:"stakingvalue"`
 	Delegation   DelegationDataAPI `json:"delegation"`
 }
+
+// EpochStartDataAPI holds fields from the first block in a given epoch
+type EpochStartDataAPI struct {
+	Nonce             uint64 `json:"nonce"`
+	Round             uint64 `json:"round"`
+	Timestamp         int64  `json:"timestamp"`
+	Epoch             uint32 `json:"epoch"`
+	Shard             uint32 `json:"shard"`
+	PrevBlockHash     string `json:"prevBlockHash"`
+	StateRootHash     string `json:"stateRootHash"`
+	ScheduledRootHash string `json:"scheduledRootHash"`
+	AccumulatedFees   string `json:"accumulatedFees,omitempty"`
+	DeveloperFees     string `json:"developerFees,omitempty"`
+}

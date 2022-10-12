@@ -208,6 +208,7 @@ func initPersistersInEpoch(
 	}
 
 	oldestEpochActive, oldestEpochKeep := computeOldestEpochActiveAndToKeep(args)
+
 	var persisters []*persisterData
 	persistersMapByEpoch := make(map[uint32]*persisterData)
 
