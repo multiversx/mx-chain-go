@@ -524,9 +524,9 @@ func getWorkingDir(ctx *cli.Context, cliFlag cli.StringFlag, log logger.Logger) 
 }
 
 func getCustomDirIfSet(ctx *cli.Context, cliFlag cli.StringFlag, log logger.Logger) string {
-	dbDir := ctx.GlobalString(cliFlag.Name)
+	dirStr := ctx.GlobalString(cliFlag.Name)
 
-	if len(dbDir) == 0 {
+	if len(dirStr) == 0 {
 		return getWorkingDir(ctx, workingDirectory, log)
 	}
 
