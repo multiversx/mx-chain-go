@@ -182,8 +182,10 @@ func (sm *StorerMock) RemoveFromCurrentEpoch(_ []byte) error {
 }
 
 // Remove -
-func (sm *StorerMock) Remove(_ []byte) error {
-	return errors.New("not implemented")
+func (sm *StorerMock) Remove(key []byte) error {
+	sm.GetEpochData(sm.currentEpoch.Get()).Remove(string(key))
+
+	return nil
 }
 
 // ClearAll removes all data from the mock (useful in unit tests)

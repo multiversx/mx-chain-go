@@ -3,6 +3,7 @@ package storageBootstrap
 import (
 	"bytes"
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -17,12 +18,18 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	epochNotifierMock "github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	storageMock "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+type metaBlockInfo struct {
+	metablock *block.MetaBlock
+	hash      []byte
+}
 
 func TestShardStorageBootstrapper_LoadFromStorageShouldWork(t *testing.T) {
 	t.Parallel()
@@ -251,4 +258,130 @@ func TestShardStorageBootstrapper_GetCrossNotarizedHeaderNonceShouldWork(t *test
 	nonce, err = getLastCrossNotarizedHeaderNonce(crossNotarizedHeaders)
 	assert.Nil(t, err)
 	assert.Equal(t, uint64(2), nonce)
+}
+
+func TestShardStorageBootstrapper_applyCrossNotarizedHeaders(t *testing.T) {
+	t.Parallel()
+
+	t.Run("missing current meta should error", func(t *testing.T) {
+		addedCrossNotarized := make(map[string]data.HeaderHandler)
+		addedTrackedHeaders := make(map[string]data.HeaderHandler)
+
+		bootstrapper, _, currentMeta, crossNotarizedHeaders := setupForApplyCrossNotarizedHeadersTests(addedCrossNotarized, addedTrackedHeaders)
+		_ = bootstrapper.store.GetStorer(dataRetriever.MetaBlockUnit).Remove(currentMeta.hash)
+
+		err := bootstrapper.applyCrossNotarizedHeaders(crossNotarizedHeaders)
+		assert.NotNil(t, err)
+		assert.True(t, strings.Contains(err.Error(), "missing header : GetMarshalizedHeaderFromStorage"))
+	})
+	t.Run("missing prev header should still work", func(t *testing.T) {
+		addedCrossNotarized := make(map[string]data.HeaderHandler)
+		addedTrackedHeaders := make(map[string]data.HeaderHandler)
+
+		bootstrapper, prevMeta, currentMeta, crossNotarizedHeaders := setupForApplyCrossNotarizedHeadersTests(addedCrossNotarized, addedTrackedHeaders)
+		_ = bootstrapper.store.GetStorer(dataRetriever.MetaBlockUnit).Remove(prevMeta.hash)
+
+		err := bootstrapper.applyCrossNotarizedHeaders(crossNotarizedHeaders)
+		assert.Nil(t, err)
+
+		assert.Equal(t, 1, len(addedCrossNotarized))
+		assert.Equal(t, 1, len(addedTrackedHeaders))
+
+		assert.Equal(t, currentMeta.metablock, addedCrossNotarized[string(currentMeta.hash)])
+		assert.Equal(t, currentMeta.metablock, addedTrackedHeaders[string(currentMeta.hash)])
+	})
+	t.Run("should work", func(t *testing.T) {
+		addedCrossNotarized := make(map[string]data.HeaderHandler)
+		addedTrackedHeaders := make(map[string]data.HeaderHandler)
+
+		bootstrapper, prevMeta, currentMeta, crossNotarizedHeaders := setupForApplyCrossNotarizedHeadersTests(addedCrossNotarized, addedTrackedHeaders)
+
+		err := bootstrapper.applyCrossNotarizedHeaders(crossNotarizedHeaders)
+		assert.Nil(t, err)
+
+		assert.Equal(t, 2, len(addedCrossNotarized))
+		assert.Equal(t, 2, len(addedTrackedHeaders))
+
+		assert.Equal(t, currentMeta.metablock, addedCrossNotarized[string(currentMeta.hash)])
+		assert.Equal(t, currentMeta.metablock, addedTrackedHeaders[string(currentMeta.hash)])
+
+		assert.Equal(t, prevMeta.metablock, addedCrossNotarized[string(prevMeta.hash)])
+		assert.Equal(t, prevMeta.metablock, addedTrackedHeaders[string(prevMeta.hash)])
+	})
+}
+
+func setupForApplyCrossNotarizedHeadersTests(
+	addedCrossNotarized map[string]data.HeaderHandler,
+	addedTrackedHeaders map[string]data.HeaderHandler,
+) (bootstrapper *shardStorageBootstrapper, prev *metaBlockInfo, current *metaBlockInfo, crossNotarizedHeaders []bootstrapStorage.BootstrapHeaderInfo) {
+	hasher := &hashingMocks.HasherMock{}
+
+	bootstrapper = &shardStorageBootstrapper{
+		storageBootstrapper: &storageBootstrapper{
+			store:       genericMocks.NewChainStorerMock(0),
+			marshalizer: &testscommon.MarshalizerMock{},
+			blockTracker: &mock.BlockTrackerMock{
+				AddCrossNotarizedHeaderCalled: func(shardID uint32, crossNotarizedHeader data.HeaderHandler, crossNotarizedHeaderHash []byte) {
+					addedCrossNotarized[string(crossNotarizedHeaderHash)] = crossNotarizedHeader
+				},
+				AddTrackedHeaderCalled: func(header data.HeaderHandler, hash []byte) {
+					addedTrackedHeaders[string(hash)] = header
+				},
+			},
+		},
+	}
+
+	prevMetaBlock := &block.MetaBlock{
+		Nonce:    145,
+		Epoch:    0,
+		Round:    260,
+		PrevHash: []byte("random previous hash"),
+	}
+	prevMetaBlockBytes, _ := bootstrapper.marshalizer.Marshal(prevMetaBlock)
+	prevMetaBlockHash := hasher.Compute(string(prevMetaBlockBytes))
+	_ = bootstrapper.store.Put(dataRetriever.MetaBlockUnit, prevMetaBlockHash, prevMetaBlockBytes)
+	prev = &metaBlockInfo{
+		metablock: prevMetaBlock,
+		hash:      prevMetaBlockHash,
+	}
+
+	currentMetaBlock := &block.MetaBlock{
+		Nonce:    146,
+		Epoch:    0,
+		Round:    262,
+		PrevHash: prevMetaBlockHash,
+	}
+	currentMetaBlockBytes, _ := bootstrapper.marshalizer.Marshal(currentMetaBlock)
+	currentMetaBlockHash := hasher.Compute(string(currentMetaBlockBytes))
+	_ = bootstrapper.store.Put(dataRetriever.MetaBlockUnit, currentMetaBlockHash, currentMetaBlockBytes)
+	current = &metaBlockInfo{
+		metablock: currentMetaBlock,
+		hash:      currentMetaBlockHash,
+	}
+
+	shardBlock := &block.Header{
+		ShardID: 1,
+		Nonce:   140,
+		Round:   250,
+	}
+	shardBlockBytes, _ := bootstrapper.marshalizer.Marshal(shardBlock)
+	shardBlockHash := hasher.Compute(string(shardBlockBytes))
+	_ = bootstrapper.store.Put(dataRetriever.BlockHeaderUnit, shardBlockHash, shardBlockBytes)
+
+	crossNotarizedHeaders = []bootstrapStorage.BootstrapHeaderInfo{
+		{
+			ShardId: currentMetaBlock.GetShardID(),
+			Epoch:   0,
+			Nonce:   currentMetaBlock.Nonce,
+			Hash:    currentMetaBlockHash,
+		},
+		{
+			ShardId: shardBlock.ShardID,
+			Epoch:   0,
+			Nonce:   shardBlock.Nonce,
+			Hash:    shardBlockHash,
+		},
+	}
+
+	return
 }
