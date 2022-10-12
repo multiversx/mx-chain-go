@@ -3,7 +3,7 @@ package goroutines
 import (
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/common/goRoutines"
+	"github.com/ElrondNetwork/elrond-go/common/goroutines"
 )
 
 type goCounter struct {
@@ -23,7 +23,7 @@ func NewGoCounter(filterFunc func(goRoutineData string) bool) *goCounter {
 		snapshots: make([]*snapshot, 0),
 		filter:    filterFunc,
 		goRoutinesFetcher: func() string {
-			return goRoutines.GetGoRoutines()
+			return goroutines.GetGoRoutines()
 		},
 	}
 }
