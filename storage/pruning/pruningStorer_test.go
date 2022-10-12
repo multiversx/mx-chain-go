@@ -1014,7 +1014,7 @@ func TestPruningStorer_ConcurrentOperations(t *testing.T) {
 		_ = ps.Close()
 		r := recover()
 		if r != nil {
-			assert.Fail(t, fmt.Sprintf("should have not packed %v", r))
+			assert.Fail(t, fmt.Sprintf("should have not panicked %v", r))
 		}
 	}()
 
