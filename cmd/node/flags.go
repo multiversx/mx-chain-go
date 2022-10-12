@@ -246,7 +246,7 @@ var (
 	// workingDirectory defines a flag for the path for the working directory.
 	workingDirectory = cli.StringFlag{
 		Name:  "working-directory",
-		Usage: "This flag specifies the `directory` where the node will store statistics.",
+		Usage: "This flag specifies the `directory` where the node will store databases, logs and statistics if no other related flags are set.",
 		Value: "",
 	}
 	// dbDirectory defines a flag for the path for the db directory.
@@ -426,8 +426,8 @@ func getFlagsConfig(ctx *cli.Context, log logger.Logger) *config.ContextFlagsCon
 	flagsConfig := &config.ContextFlagsConfig{}
 
 	flagsConfig.WorkingDir = getWorkingDir(ctx, workingDirectory, log)
-	flagsConfig.DbDir = getWorkingDir(ctx, dbDirectory, log)
-	flagsConfig.LogsDir = getWorkingDir(ctx, logsDirectory, log)
+	flagsConfig.DbDir = getCustomDirIfSet(ctx, dbDirectory, log)
+	flagsConfig.LogsDir = getCustomDirIfSet(ctx, logsDirectory, log)
 	flagsConfig.EnableGops = ctx.GlobalBool(gopsEn.Name)
 	flagsConfig.SaveLogFile = ctx.GlobalBool(logSaveFile.Name)
 	flagsConfig.EnableLogCorrelation = ctx.GlobalBool(logWithCorrelation.Name)
@@ -521,6 +521,19 @@ func getWorkingDir(ctx *cli.Context, cliFlag cli.StringFlag, log logger.Logger) 
 	log.Trace("working directory", "dirName", cliFlag.Name, "path", workingDir)
 
 	return workingDir
+}
+
+func getCustomDirIfSet(ctx *cli.Context, cliFlag cli.StringFlag, log logger.Logger) string {
+	dbDir := ctx.GlobalString(cliFlag.Name)
+
+	var dirStr string
+	if len(dbDir) == 0 {
+		dirStr = getWorkingDir(ctx, workingDirectory, log)
+	} else {
+		dirStr = getWorkingDir(ctx, cliFlag, log)
+	}
+
+	return dirStr
 }
 
 func applyCompatibleConfigs(log logger.Logger, configs *config.Configs) error {
