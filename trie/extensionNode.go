@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"sync"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -252,6 +253,7 @@ func (en *extensionNode) commitSnapshot(
 		return errors.ErrContextClosing
 	}
 
+	time.Sleep(time.Millisecond * 100)
 	err := en.isEmptyOrNil()
 	if err != nil {
 		return fmt.Errorf("commit snapshot error %w", err)
