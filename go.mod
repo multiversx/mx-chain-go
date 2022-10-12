@@ -10,8 +10,8 @@ require (
 	github.com/ElrondNetwork/elrond-go-logger v1.0.7
 	github.com/ElrondNetwork/elrond-go-p2p v1.0.2
 	github.com/ElrondNetwork/elrond-go-storage v1.0.1
-	github.com/ElrondNetwork/elrond-vm-common v1.3.19
-	github.com/ElrondNetwork/wasm-vm v1.5.1
+	github.com/ElrondNetwork/elrond-vm-common v1.3.17-0.20220919101133-149c0edcc821
+	github.com/ElrondNetwork/wasm-vm v1.5.2-0.20221012143316-89a10dc4ca66
 	github.com/ElrondNetwork/wasm-vm-v1_2 v1.2.42
 	github.com/ElrondNetwork/wasm-vm-v1_3 v1.3.42
 	github.com/ElrondNetwork/wasm-vm-v1_4 v1.4.62
