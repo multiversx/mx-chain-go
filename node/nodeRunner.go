@@ -1244,6 +1244,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		ImportStartHandler:     importStartHandler,
 		WorkingDir:             configs.FlagsConfig.WorkingDir,
 		HistoryRepo:            historyRepository,
+		SnapshotsEnabled:       configs.FlagsConfig.SnapshotsEnabled,
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1284,6 +1285,7 @@ func (nr *nodeRunner) CreateManagedDataComponents(
 		EpochStartNotifier:            coreComponents.EpochStartNotifierWithConfirm(),
 		CurrentEpoch:                  storerEpoch,
 		CreateTrieEpochRootHashStorer: configs.ImportDbConfig.ImportDbSaveTrieEpochRootHash,
+		SnapshotsEnabled:              configs.FlagsConfig.SnapshotsEnabled,
 	}
 
 	dataComponentsFactory, err := dataComp.NewDataComponentsFactory(dataArgs)

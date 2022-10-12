@@ -41,7 +41,7 @@ import (
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	storageMocks "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon/syncer"
-	"github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
+	validatorInfoCacherStub "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
 	"github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -137,7 +137,6 @@ func createMockEpochStartBootstrapArgs(
 			},
 			StateTriesConfig: config.StateTriesConfig{
 				CheckpointRoundsModulus:     5,
-				SnapshotsEnabled:            true,
 				AccountsStatePruningEnabled: true,
 				PeerStatePruningEnabled:     true,
 				MaxStateTrieLevelInMemory:   5,
@@ -979,6 +978,7 @@ func TestSyncValidatorAccountsState_NilRequestHandlerErr(t *testing.T) {
 		},
 	}
 	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
+		false,
 		args.GeneralConfig,
 		coreComp,
 		disabled.NewChainStorer(),
@@ -998,6 +998,7 @@ func TestCreateTriesForNewShardID(t *testing.T) {
 	args.GeneralConfig = testscommon.GetGeneralConfig()
 
 	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
+		false,
 		args.GeneralConfig,
 		coreComp,
 		disabled.NewChainStorer(),
@@ -1024,6 +1025,7 @@ func TestSyncUserAccountsState(t *testing.T) {
 	}
 
 	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
+		false,
 		args.GeneralConfig,
 		coreComp,
 		disabled.NewChainStorer(),

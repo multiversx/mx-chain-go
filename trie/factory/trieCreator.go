@@ -106,6 +106,7 @@ func (tc *trieCreator) IsInterfaceNil() bool {
 
 // CreateTriesComponentsForShardId creates the user and peer tries and trieStorageManagers
 func CreateTriesComponentsForShardId(
+	snapshotsEnabled bool,
 	generalConfig config.Config,
 	coreComponentsHolder coreComponentsHandler,
 	storageService dataRetriever.StorageService,
@@ -137,7 +138,7 @@ func CreateTriesComponentsForShardId(
 		PruningEnabled:     generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
 		CheckpointsEnabled: generalConfig.StateTriesConfig.CheckpointsEnabled,
 		MaxTrieLevelInMem:  generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
-		SnapshotsEnabled:   generalConfig.StateTriesConfig.SnapshotsEnabled,
+		SnapshotsEnabled:   snapshotsEnabled,
 		IdleProvider:       coreComponentsHolder.ProcessStatusHandler(),
 	}
 	userStorageManager, userAccountTrie, err := trFactory.Create(args)
@@ -167,7 +168,7 @@ func CreateTriesComponentsForShardId(
 		PruningEnabled:     generalConfig.StateTriesConfig.PeerStatePruningEnabled,
 		CheckpointsEnabled: generalConfig.StateTriesConfig.CheckpointsEnabled,
 		MaxTrieLevelInMem:  generalConfig.StateTriesConfig.MaxPeerTrieLevelInMemory,
-		SnapshotsEnabled:   generalConfig.StateTriesConfig.SnapshotsEnabled,
+		SnapshotsEnabled:   snapshotsEnabled,
 		IdleProvider:       coreComponentsHolder.ProcessStatusHandler(),
 	}
 	peerStorageManager, peerAccountsTrie, err := trFactory.Create(args)

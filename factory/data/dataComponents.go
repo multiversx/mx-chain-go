@@ -27,6 +27,7 @@ type DataComponentsFactoryArgs struct {
 	EpochStartNotifier            factory.EpochStartNotifier
 	CurrentEpoch                  uint32
 	CreateTrieEpochRootHashStorer bool
+	SnapshotsEnabled              bool
 }
 
 type dataComponentsFactory struct {
@@ -37,6 +38,7 @@ type dataComponentsFactory struct {
 	epochStartNotifier            factory.EpochStartNotifier
 	currentEpoch                  uint32
 	createTrieEpochRootHashStorer bool
+	snapshotsEnabled              bool
 }
 
 // dataComponents struct holds the data components
@@ -163,6 +165,7 @@ func (dcf *dataComponentsFactory) createDataStoreFromConfig() (dataRetriever.Sto
 			CurrentEpoch:                  dcf.currentEpoch,
 			StorageType:                   storageFactory.ProcessStorageService,
 			CreateTrieEpochRootHashStorer: dcf.createTrieEpochRootHashStorer,
+			SnapshotsEnabled:              dcf.snapshotsEnabled,
 		})
 	if err != nil {
 		return nil, err

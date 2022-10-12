@@ -351,6 +351,12 @@ var (
 		Usage: "The `filepath` for the PEM file which contains the secret keys for the p2p key. If this is not specified a new key will be generated (internally) by default.",
 		Value: "./config/p2pKey.pem",
 	}
+
+	// snapshotsEnabled is used to enabled snapshots
+	snapshotsEnabled = cli.BoolTFlag{
+		Name:  "snapshots-enabled",
+		Usage: "Boolean option for enabling state snapshots.",
+	}
 )
 
 func getFlags() []cli.Flag {
@@ -405,6 +411,7 @@ func getFlags() []cli.Flag {
 		serializeSnapshots,
 		noKey,
 		p2pKeyPemFile,
+		snapshotsEnabled,
 	}
 }
 
@@ -431,6 +438,7 @@ func getFlagsConfig(ctx *cli.Context, log logger.Logger) *config.ContextFlagsCon
 	flagsConfig.DisableConsensusWatchdog = ctx.GlobalBool(disableConsensusWatchdog.Name)
 	flagsConfig.SerializeSnapshots = ctx.GlobalBool(serializeSnapshots.Name)
 	flagsConfig.NoKeyProvided = ctx.GlobalBool(noKey.Name)
+	flagsConfig.SnapshotsEnabled = ctx.GlobalBool(snapshotsEnabled.Name)
 
 	return flagsConfig
 }

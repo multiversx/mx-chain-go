@@ -207,7 +207,6 @@ func getArgumentsMeta() storageResolversContainers.FactoryArgs {
 			},
 			StateTriesConfig: config.StateTriesConfig{
 				CheckpointRoundsModulus:     100,
-				SnapshotsEnabled:            true,
 				AccountsStatePruningEnabled: false,
 				PeerStatePruningEnabled:     false,
 				MaxStateTrieLevelInMemory:   5,
@@ -226,5 +225,6 @@ func getArgumentsMeta() storageResolversContainers.FactoryArgs {
 		DataPacker:               &mock.DataPackerStub{},
 		ManualEpochStartNotifier: &mock.ManualEpochStartNotifierStub{},
 		ChanGracefullyClose:      make(chan endProcess.ArgEndProcess),
+		SnapshotsEnabled:         true,
 	}
 }

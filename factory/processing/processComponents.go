@@ -137,6 +137,7 @@ type ProcessComponentsFactoryArgs struct {
 	ImportStartHandler     update.ImportStartHandler
 	WorkingDir             string
 	HistoryRepo            dblookupext.HistoryRepository
+	SnapshotsEnabled       bool
 
 	Data                factory.DataComponentsHolder
 	CoreData            factory.CoreComponentsHolder
@@ -168,6 +169,7 @@ type processComponentsFactory struct {
 	historyRepo            dblookupext.HistoryRepository
 	epochNotifier          process.EpochNotifier
 	importHandler          update.ImportHandler
+	snapshotsEnabled       bool
 
 	data                factory.DataComponentsHolder
 	coreData            factory.CoreComponentsHolder
@@ -1231,6 +1233,7 @@ func (pcf *processComponentsFactory) newStorageResolver() (dataRetriever.Resolve
 			CurrentEpoch:                  pcf.bootstrapComponents.EpochBootstrapParams().Epoch(),
 			StorageType:                   storageFactory.ProcessStorageService,
 			CreateTrieEpochRootHashStorer: false,
+			SnapshotsEnabled:              pcf.snapshotsEnabled,
 		},
 	)
 	if err != nil {
@@ -1283,6 +1286,7 @@ func (pcf *processComponentsFactory) createStorageResolversForMeta(
 		DataPacker:               dataPacker,
 		ManualEpochStartNotifier: manualEpochStartNotifier,
 		ChanGracefullyClose:      pcf.coreData.ChanStopNodeProcess(),
+		SnapshotsEnabled:         pcf.snapshotsEnabled,
 	}
 	resolversContainerFactory, err := storageResolversContainers.NewMetaResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {
@@ -1315,6 +1319,7 @@ func (pcf *processComponentsFactory) createStorageResolversForShard(
 		DataPacker:               dataPacker,
 		ManualEpochStartNotifier: manualEpochStartNotifier,
 		ChanGracefullyClose:      pcf.coreData.ChanStopNodeProcess(),
+		SnapshotsEnabled:         pcf.snapshotsEnabled,
 	}
 	resolversContainerFactory, err := storageResolversContainers.NewShardResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {

@@ -24,6 +24,7 @@ type ContextFlagsConfig struct {
 	DisableConsensusWatchdog     bool
 	SerializeSnapshots           bool
 	NoKeyProvided                bool
+	SnapshotsEnabled             bool
 }
 
 // ImportDbConfig will hold the import-db parameters
