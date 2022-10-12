@@ -1012,6 +1012,10 @@ func TestPruningStorer_ConcurrentOperations(t *testing.T) {
 	require.NotNil(t, ps)
 	defer func() {
 		_ = ps.Close()
+		r := recover()
+		if r != nil {
+			assert.Fail(t, fmt.Sprintf("should have not packed %v", r))
+		}
 	}()
 
 	rnd := random.ConcurrentSafeIntRandomizer{}

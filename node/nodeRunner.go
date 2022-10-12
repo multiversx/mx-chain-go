@@ -23,7 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
-	"github.com/ElrondNetwork/elrond-go/common/goRoutines"
+	"github.com/ElrondNetwork/elrond-go/common/goroutines"
 	"github.com/ElrondNetwork/elrond-go/common/statistics"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
@@ -826,7 +826,7 @@ func waitForSignal(
 	case <-time.After(maxTimeToClose):
 		log.Warn("force closing the node",
 			"error", "closeAllComponents did not finish on time",
-			"stack", goRoutines.GetGoRoutines())
+			"stack", goroutines.GetGoRoutines())
 
 		return fmt.Errorf("did NOT close all components gracefully")
 	}

@@ -1,4 +1,4 @@
-package goRoutines
+package goroutines
 
 import (
 	"context"
