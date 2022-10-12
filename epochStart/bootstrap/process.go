@@ -1080,15 +1080,16 @@ func (e *epochStartBootstrap) createStorageService(
 	targetShardId uint32,
 ) (dataRetriever.StorageService, error) {
 	storageServiceCreator, err := storageFactory.NewStorageServiceFactory(
-		&e.generalConfig,
-		&e.prefsConfig,
-		shardCoordinator,
-		pathManager,
-		epochStartNotifier,
-		e.coreComponentsHolder.NodeTypeProvider(),
-		startEpoch,
-		createTrieEpochRootHashStorer,
-	)
+		storageFactory.StorageServiceFactoryArgs{
+			Config:                        e.generalConfig,
+			PrefsConfig:                   e.prefsConfig,
+			ShardCoordinator:              shardCoordinator,
+			PathManager:                   pathManager,
+			EpochStartNotifier:            epochStartNotifier,
+			NodeTypeProvider:              e.coreComponentsHolder.NodeTypeProvider(),
+			CurrentEpoch:                  startEpoch,
+			CreateTrieEpochRootHashStorer: createTrieEpochRootHashStorer,
+		})
 	if err != nil {
 		return nil, err
 	}
