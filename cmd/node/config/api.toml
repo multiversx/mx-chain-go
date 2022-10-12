@@ -199,7 +199,7 @@
         { Name = "/altered-accounts/by-nonce/:nonce", Open = true },
 
         # /altered-accounts/by-hash/:hash will return the altered accounts of a block with the provided hash
-        { Name = "/altered-accounts/by-hash/:nonce", Open = true }
+        { Name = "/altered-accounts/by-hash/:hash", Open = true }
     ]
 
 [APIPackages.internal]
