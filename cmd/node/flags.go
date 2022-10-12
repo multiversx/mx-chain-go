@@ -526,14 +526,11 @@ func getWorkingDir(ctx *cli.Context, cliFlag cli.StringFlag, log logger.Logger) 
 func getCustomDirIfSet(ctx *cli.Context, cliFlag cli.StringFlag, log logger.Logger) string {
 	dbDir := ctx.GlobalString(cliFlag.Name)
 
-	var dirStr string
 	if len(dbDir) == 0 {
-		dirStr = getWorkingDir(ctx, workingDirectory, log)
-	} else {
-		dirStr = getWorkingDir(ctx, cliFlag, log)
+		return getWorkingDir(ctx, workingDirectory, log)
 	}
 
-	return dirStr
+	return getWorkingDir(ctx, cliFlag, log)
 }
 
 func applyCompatibleConfigs(log logger.Logger, configs *config.Configs) error {
