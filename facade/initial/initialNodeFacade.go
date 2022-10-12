@@ -171,6 +171,11 @@ func (inf *initialNodeFacade) GetAccount(_ string, _ api.AccountQueryOptions) (a
 	return api.AccountResponse{}, api.BlockInfo{}, errNodeStarting
 }
 
+// GetAccounts returns error
+func (inf *initialNodeFacade) GetAccounts(_ []string, _ api.AccountQueryOptions) (map[string]*api.AccountResponse, api.BlockInfo, error) {
+	return nil, api.BlockInfo{}, errNodeStarting
+}
+
 // GetCode returns nil and error
 func (inf *initialNodeFacade) GetCode(_ []byte, _ api.AccountQueryOptions) []byte {
 	return nil
