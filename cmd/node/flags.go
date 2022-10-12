@@ -249,6 +249,18 @@ var (
 		Usage: "This flag specifies the `directory` where the node will store databases, logs and statistics.",
 		Value: "",
 	}
+	// dbDirectory defines a flag for the path for the db directory.
+	dbDirectory = cli.StringFlag{
+		Name:  "db-path",
+		Usage: "This flag specifies the `directory` where the node will store databases and statistics.",
+		Value: "",
+	}
+	// logsDirectory defines a flag for the path for the logs directory.
+	logsDirectory = cli.StringFlag{
+		Name:  "logs-path",
+		Usage: "This flag specifies the `directory` where the node will store logs.",
+		Value: "",
+	}
 
 	// destinationShardAsObserver defines a flag for the prefered shard to be assigned to as an observer.
 	destinationShardAsObserver = cli.StringFlag{
@@ -405,6 +417,8 @@ func getFlags() []cli.Flag {
 		serializeSnapshots,
 		noKey,
 		p2pKeyPemFile,
+		dbDirectory,
+		logsDirectory,
 	}
 }
 
@@ -413,6 +427,8 @@ func getFlagsConfig(ctx *cli.Context, log logger.Logger) *config.ContextFlagsCon
 
 	workingDir := ctx.GlobalString(workingDirectory.Name)
 	flagsConfig.WorkingDir = getWorkingDir(workingDir, log)
+	flagsConfig.DbDir = getWorkingDir(ctx.GlobalString(dbDirectory.Name), log)
+	flagsConfig.LogsDir = getWorkingDir(ctx.GlobalString(logsDirectory.Name), log)
 	flagsConfig.EnableGops = ctx.GlobalBool(gopsEn.Name)
 	flagsConfig.SaveLogFile = ctx.GlobalBool(logSaveFile.Name)
 	flagsConfig.EnableLogCorrelation = ctx.GlobalBool(logWithCorrelation.Name)
