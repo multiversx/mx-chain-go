@@ -335,9 +335,10 @@ func (vmf *vmContainerFactory) createInProcessArwenVMV15() (vmcommon.VMExecution
 		BuiltInFuncContainer:                vmf.builtinFunctions,
 		ElrondProtectedKeyPrefix:            []byte(core.ElrondProtectedKeyPrefix),
 		ESDTTransferParser:                  vmf.esdtTransferParser,
-		EpochNotifier:                       vmf.epochNotifier,
 		WasmerSIGSEGVPassthrough:            vmf.config.WasmerSIGSEGVPassthrough,
 		TimeOutForSCExecutionInMilliseconds: vmf.config.TimeOutForSCExecutionInMilliseconds,
+		EpochNotifier:                       vmf.epochNotifier,
+		EnableEpochsHandler:                 vmf.enableEpochsHandler,
 	}
 
 	executor := wasmer1.NewExecutor()
