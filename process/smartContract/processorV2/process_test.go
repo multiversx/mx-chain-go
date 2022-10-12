@@ -687,7 +687,7 @@ func TestScProcessor_ExecuteBuiltInFunction(t *testing.T) {
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
 	tx.Data = []byte(funcName + "@0500@0000")
-	tx.Value = big.NewInt(45)
+	tx.Value = big.NewInt(0)
 	acntSrc, _ := createAccounts(tx)
 
 	vm := &mock.VMExecutionHandlerStub{}
@@ -711,7 +711,7 @@ func TestScProcessor_ExecuteBuiltInESDTTransfer(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = rcvAddr
-	tx.Value = big.NewInt(45)
+	tx.Value = big.NewInt(0)
 	tx.GasLimit = 10
 	tx.Data = []byte(funcName + "@0500@0000@" + hex.EncodeToString([]byte("testFunc")))
 	executeBuiltInESDTTransfer(t, tx)
@@ -726,7 +726,7 @@ func TestScProcessor_ExecuteBuiltInESDTTransfer_InCallback(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = rcvAddr
-	tx.Value = big.NewInt(45)
+	tx.Value = big.NewInt(0)
 	tx.GasLimit = 10
 	tx.Data = []byte(funcName + "@00@00@00@00@0500@0000@" + hex.EncodeToString([]byte("testFunc")))
 	executeBuiltInESDTTransfer(t, tx)
@@ -750,7 +750,9 @@ func executeBuiltInESDTTransfer(t *testing.T, tx data.TransactionHandler) {
 
 	rcvAddr := bytes.Repeat([]byte{0}, core.NumInitCharactersForScAddress+1)
 
-	outacc1 := &vmcommon.OutputAccount{}
+	outacc1 := &vmcommon.OutputAccount{
+		BalanceDelta: big.NewInt(0),
+	}
 	outacc1.Address = rcvAddr
 	outacc1.Nonce = 0
 	outTransfer := vmcommon.OutputTransfer{
@@ -781,7 +783,7 @@ func executeBuiltInESDTTransfer(t *testing.T, tx data.TransactionHandler) {
 			outacc1 := &vmcommon.OutputAccount{}
 			outacc1.Address = rcvAddr
 			outacc1.Nonce = 0
-			outacc1.BalanceDelta = big.NewInt(45)
+			outacc1.BalanceDelta = big.NewInt(0)
 
 			addr2 := []byte("addr2")
 			outacc2 := &vmcommon.OutputAccount{}
@@ -833,7 +835,7 @@ func TestScProcessor_ExecuteBuiltInFunctionSCRTooBig(t *testing.T) {
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
 	tx.Data = []byte(funcName + "@0500@0000")
-	tx.Value = big.NewInt(45)
+	tx.Value = big.NewInt(0)
 	acntSrc, _ := createAccounts(tx)
 	userAcc, _ := acntSrc.(vmcommon.UserAccountHandler)
 
@@ -3174,7 +3176,7 @@ func TestScProcessor_ProcessSmartContractResultExecuteSCIfMetaAndBuiltIn(t *test
 			return &mock.VMExecutionHandlerStub{
 				RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (output *vmcommon.VMOutput, e error) {
 					executeCalled = true
-					return nil, nil
+					return &vmcommon.VMOutput{ReturnCode: vmcommon.Ok}, nil
 				},
 			}, nil
 		},
@@ -3184,9 +3186,7 @@ func TestScProcessor_ProcessSmartContractResultExecuteSCIfMetaAndBuiltIn(t *test
 			return process.BuiltInFunctionCall, process.BuiltInFunctionCall
 		},
 	}
-	enableEpochsHandlerStub := &testscommon.EnableEpochsHandlerStub{
-		IsSCDeployFlagEnabledField: true,
-	}
+	enableEpochsHandlerStub := &testscommon.EnableEpochsHandlerStub{}
 	arguments.EnableEpochsHandler = enableEpochsHandlerStub
 
 	sc, err := NewSmartContractProcessorV2(arguments)
@@ -3205,7 +3205,6 @@ func TestScProcessor_ProcessSmartContractResultExecuteSCIfMetaAndBuiltIn(t *test
 
 	executeCalled = false
 	enableEpochsHandlerStub.IsBuiltInFunctionOnMetaFlagEnabledField = true
-	enableEpochsHandlerStub.IsBuiltInFunctionsFlagEnabledField = true
 	_, err = sc.ProcessSmartContractResult(&scr)
 	require.Nil(t, err)
 	require.False(t, executeCalled)
