@@ -14,14 +14,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519/singlesig"
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestTxDataFieldContainingUTF8Characters(t *testing.T) {
 	suite := ed25519.NewEd25519()
 	keyGen := signing.NewKeyGenerator(suite)
-	singleSigner := &singlesig.Ed25519Signer{}
+	singleSigner := integrationTests.TestSingleSigner
 
 	sk, pk := keyGen.GeneratePair()
 	pkBytes, _ := pk.ToByteArray()

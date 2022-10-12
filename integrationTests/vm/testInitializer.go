@@ -10,7 +10,6 @@ import (
 	"sync"
 	"testing"
 
-	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_5/config"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
@@ -52,8 +51,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager"
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/storage/database"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
@@ -67,6 +66,7 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
+	arwenConfig "github.com/ElrondNetwork/wasm-vm/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -282,16 +282,16 @@ func CreateMemUnit() storage.Storer {
 	capacity := uint32(10)
 	shards := uint32(1)
 	sizeInBytes := uint64(0)
-	cache, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: capacity, Shards: shards, SizeInBytes: sizeInBytes})
+	cache, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: capacity, Shards: shards, SizeInBytes: sizeInBytes})
 
-	unit, _ := storageUnit.NewStorageUnit(cache, memorydb.New())
+	unit, _ := storageunit.NewStorageUnit(cache, database.NewMemDB())
 	return unit
 }
 
 // CreateInMemoryShardAccountsDB -
 func CreateInMemoryShardAccountsDB() *state.AccountsDB {
 	marshaller := &marshal.GogoProtoMarshalizer{}
-	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), marshaller)
+	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, database.NewMemDB(), marshaller)
 	generalCfg := config.TrieStorageManagerConfig{
 		PruningBufferLen:      1000,
 		SnapshotsBufferLen:    10,
@@ -921,8 +921,8 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 
 	argsNewSCProcessor.AccountsDB = readOnlyAccountsDB
 
-	vmOutputCacher, _ := storageUnit.NewCache(storageUnit.CacheConfig{
-		Type:     storageUnit.LRUCache,
+	vmOutputCacher, _ := storageunit.NewCache(storageunit.CacheConfig{
+		Type:     storageunit.LRUCache,
 		Capacity: 10000,
 	})
 	txSimulatorProcessorArgs := txsimulator.ArgsTxSimulator{
@@ -1004,7 +1004,7 @@ func TestDeployedContractContents(
 	assert.NotNil(t, destinationRecovShardAccount.GetRootHash())
 
 	for variable, requiredVal := range dataValues {
-		contractVariableData, err := destinationRecovShardAccount.DataTrieTracker().RetrieveValue([]byte(variable))
+		contractVariableData, err := destinationRecovShardAccount.RetrieveValue([]byte(variable))
 		assert.Nil(t, err)
 		assert.NotNil(t, contractVariableData)
 

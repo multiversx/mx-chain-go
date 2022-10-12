@@ -12,8 +12,8 @@ type StorageManagerStub struct {
 	PutInEpochWithoutCacheCalled           func([]byte, []byte, uint32) error
 	GetCalled                              func([]byte) ([]byte, error)
 	GetFromCurrentEpochCalled              func([]byte) ([]byte, error)
-	TakeSnapshotCalled                     func([]byte, []byte, chan core.KeyValueHolder, chan error, common.SnapshotStatisticsHandler, uint32)
-	SetCheckpointCalled                    func([]byte, []byte, chan core.KeyValueHolder, chan error, common.SnapshotStatisticsHandler)
+	TakeSnapshotCalled                     func([]byte, []byte, []byte, chan core.KeyValueHolder, chan []byte, chan error, common.SnapshotStatisticsHandler, uint32)
+	SetCheckpointCalled                    func([]byte, []byte, chan core.KeyValueHolder, chan []byte, chan error, common.SnapshotStatisticsHandler)
 	GetDbThatContainsHashCalled            func([]byte) common.DBWriteCacher
 	IsPruningEnabledCalled                 func() bool
 	IsPruningBlockedCalled                 func() bool
@@ -78,15 +78,17 @@ func (sms *StorageManagerStub) GetFromCurrentEpoch(key []byte) ([]byte, error) {
 
 // TakeSnapshot -
 func (sms *StorageManagerStub) TakeSnapshot(
+	address []byte,
 	rootHash []byte,
 	mainTrieRootHash []byte,
 	leavesChan chan core.KeyValueHolder,
+	missingNodesChan chan []byte,
 	errChan chan error,
 	stats common.SnapshotStatisticsHandler,
 	epoch uint32,
 ) {
 	if sms.TakeSnapshotCalled != nil {
-		sms.TakeSnapshotCalled(rootHash, mainTrieRootHash, leavesChan, errChan, stats, epoch)
+		sms.TakeSnapshotCalled(address, rootHash, mainTrieRootHash, leavesChan, missingNodesChan, errChan, stats, epoch)
 	}
 }
 
@@ -95,11 +97,12 @@ func (sms *StorageManagerStub) SetCheckpoint(
 	rootHash []byte,
 	mainTrieRootHash []byte,
 	leavesChan chan core.KeyValueHolder,
+	missingNodesChan chan []byte,
 	errChan chan error,
 	stats common.SnapshotStatisticsHandler,
 ) {
 	if sms.SetCheckpointCalled != nil {
-		sms.SetCheckpointCalled(rootHash, mainTrieRootHash, leavesChan, errChan, stats)
+		sms.SetCheckpointCalled(rootHash, mainTrieRootHash, leavesChan, missingNodesChan, errChan, stats)
 	}
 }
 

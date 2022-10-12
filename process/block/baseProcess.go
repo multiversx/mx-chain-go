@@ -37,7 +37,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 )
 
 var log = logger.GetOrCreate("process/block")
@@ -103,11 +103,11 @@ type baseProcessor struct {
 	gasConsumedProvider gasConsumedProvider
 	economicsData       process.EconomicsDataHandler
 
-	processDataTriesOnCommitEpoch  bool
-	lastRestartNonce               uint64
-	pruningDelay                   uint32
-	processedMiniBlocksTracker     process.ProcessedMiniBlocksTracker
-	receiptsRepository             receiptsRepository
+	processDataTriesOnCommitEpoch bool
+	lastRestartNonce              uint64
+	pruningDelay                  uint32
+	processedMiniBlocksTracker    process.ProcessedMiniBlocksTracker
+	receiptsRepository            receiptsRepository
 }
 
 type bootStorerDataArgs struct {
@@ -1709,7 +1709,7 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 	if check.IfNil(trieEpochRootHashStorageUnit) {
 		return nil
 	}
-	_, isStorerDisabled := trieEpochRootHashStorageUnit.(*storageUnit.NilStorer)
+	_, isStorerDisabled := trieEpochRootHashStorageUnit.(*storageunit.NilStorer)
 	if isStorerDisabled {
 		return nil
 	}

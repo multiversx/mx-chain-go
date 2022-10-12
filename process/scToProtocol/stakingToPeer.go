@@ -139,7 +139,7 @@ func (stp *stakingToPeer) getUserAccount(key []byte) (state.UserAccountHandler, 
 }
 
 func (stp *stakingToPeer) getStorageFromAccount(userAcc state.UserAccountHandler, key []byte) []byte {
-	value, err := userAcc.DataTrieTracker().RetrieveValue(key)
+	value, err := userAcc.RetrieveValue(key)
 	if err != nil {
 		return nil
 	}

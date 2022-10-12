@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/mock"
 	"github.com/ElrondNetwork/elrond-go/storage/pruning"
@@ -13,6 +13,32 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestNewTriePruningStorer(t *testing.T) {
+	t.Parallel()
+
+	t.Run("empty args struct, should not panic", func(t *testing.T) {
+		t.Parallel()
+
+		defer func() {
+			r := recover()
+			require.Nil(t, r)
+		}()
+		emptyAndInvalidConfig := pruning.StorerArgs{}
+		tps, err := pruning.NewTriePruningStorer(emptyAndInvalidConfig)
+		require.Error(t, err)
+		require.True(t, check.IfNil(tps))
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		args := getDefaultArgs()
+		ps, err := pruning.NewTriePruningStorer(args)
+		require.NoError(t, err)
+		require.False(t, check.IfNil(ps))
+	})
+}
 
 func TestTriePruningStorer_GetFromOldEpochsWithoutCacheSearchesOnlyOldEpochsAndReturnsEpoch(t *testing.T) {
 	t.Parallel()
@@ -108,7 +134,7 @@ func TestTriePruningStorer_GetFromOldEpochsWithoutCacheAllPersistersClosed(t *te
 			if !exists {
 				persister = &mock.PersisterStub{
 					GetCalled: func(key []byte) ([]byte, error) {
-						return nil, errors.ErrDBIsClosed
+						return nil, storage.ErrDBIsClosed
 					},
 				}
 				persistersMap[path] = persister
@@ -127,7 +153,7 @@ func TestTriePruningStorer_GetFromOldEpochsWithoutCacheAllPersistersClosed(t *te
 
 	val, _, err := ps.GetFromOldEpochsWithoutAddingToCache([]byte("key"))
 	assert.Nil(t, val)
-	assert.Equal(t, errors.ErrDBIsClosed, err)
+	assert.Equal(t, storage.ErrDBIsClosed, err)
 }
 
 func TestTriePruningStorer_GetFromOldEpochsWithoutCacheDoesNotSearchInCurrentStorer(t *testing.T) {

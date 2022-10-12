@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/errors"
+	"github.com/ElrondNetwork/elrond-go/trie/statistics"
 )
 
 var log = logger.GetOrCreate("trie")
@@ -26,6 +27,8 @@ const (
 	leaf
 	branch
 )
+
+const rootDepthLevel = 0
 
 // EmptyTrieHash returns the value with empty trie hash
 var EmptyTrieHash = make([]byte, 32)
@@ -451,6 +454,7 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(
 	leavesChannel chan core.KeyValueHolder,
 	ctx context.Context,
 	rootHash []byte,
+	keyBuilder common.KeyBuilder,
 ) error {
 	tr.mutOperation.RLock()
 	newTrie, err := tr.recreate(rootHash, tr.trieStorage)
@@ -472,7 +476,7 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(
 	go func() {
 		err = newTrie.root.getAllLeavesOnChannel(
 			leavesChannel,
-			[]byte{},
+			keyBuilder,
 			tr.trieStorage,
 			tr.marshalizer,
 			tr.chanClose,
@@ -629,6 +633,26 @@ func (tr *patriciaMerkleTrie) GetOldRoot() []byte {
 	return tr.oldRoot
 }
 
+// GetTrieStats will collect and return the statistics for the given rootHash
+func (tr *patriciaMerkleTrie) GetTrieStats(address []byte, rootHash []byte) (*statistics.TrieStatsDTO, error) {
+	tr.mutOperation.RLock()
+	newTrie, err := tr.recreate(rootHash, tr.trieStorage)
+	if err != nil {
+		tr.mutOperation.RUnlock()
+		return nil, err
+	}
+	tr.mutOperation.RUnlock()
+
+	ts := statistics.NewTrieStatistics()
+	err = newTrie.root.collectStats(ts, rootDepthLevel, newTrie.trieStorage)
+	if err != nil {
+		return nil, err
+	}
+	ts.AddAccountInfo(address, rootHash)
+
+	return ts.GetTrieStats(), nil
+}
+
 // Close stops all the active goroutines started by the trie
 func (tr *patriciaMerkleTrie) Close() error {
 	tr.mutOperation.Lock()
@@ -639,29 +663,6 @@ func (tr *patriciaMerkleTrie) Close() error {
 	}
 
 	return nil
-}
-
-// MarkStorerAsSyncedAndActive marks the storage as synced and active
-func (tr *patriciaMerkleTrie) MarkStorerAsSyncedAndActive() {
-	epoch, err := tr.trieStorage.GetLatestStorageEpoch()
-	if err != nil {
-		log.Error("getLatestStorageEpoch error", "error", err)
-	}
-
-	err = tr.trieStorage.Put([]byte(common.TrieSyncedKey), []byte(common.TrieSyncedVal))
-	if err != nil {
-		log.Error("error while putting trieSynced value into main storer after sync", "error", err)
-	}
-
-	lastEpoch := epoch - 1
-	if epoch == 0 {
-		lastEpoch = 0
-	}
-
-	err = tr.trieStorage.PutInEpochWithoutCache([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), lastEpoch)
-	if err != nil {
-		log.Error("error while putting activeDB value into main storer after sync", "error", err)
-	}
 }
 
 func isChannelClosed(ch chan struct{}) bool {

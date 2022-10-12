@@ -158,7 +158,7 @@ func isErrGetNodeFromDB(err error) bool {
 		return false
 	}
 
-	if strings.Contains(err.Error(), errors.ErrDBIsClosed.Error()) {
+	if strings.Contains(err.Error(), storage.ErrDBIsClosed.Error()) {
 		return false
 	}
 
@@ -356,4 +356,9 @@ func (boot *ShardBootstrap) isForkTriggeredByMeta() bool {
 
 func (boot *ShardBootstrap) requestHeaderByNonce(nonce uint64) {
 	boot.requestHandler.RequestShardHeaderByNonce(boot.shardCoordinator.SelfId(), nonce)
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (boot *ShardBootstrap) IsInterfaceNil() bool {
+	return boot == nil
 }

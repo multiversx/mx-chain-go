@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/arwen-wasm-vm/v1_5/arwen/contexts"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
@@ -30,6 +29,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
+	"github.com/ElrondNetwork/wasm-vm/arwen/contexts"
 )
 
 var _ process.SmartContractResultProcessor = (*scProcessor)(nil)

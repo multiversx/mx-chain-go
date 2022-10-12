@@ -20,6 +20,7 @@ import (
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
+	"github.com/ElrondNetwork/elrond-go/trie/keyBuilder"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -471,7 +472,7 @@ func TestPatriciaMerkleTrie_GetSerializedNodesGetFromCheckpoint(t *testing.T) {
 	storageManager := tr.GetStorageManager()
 	dirtyHashes := trie.GetDirtyHashes(tr)
 	storageManager.AddDirtyCheckpointHashes(rootHash, dirtyHashes)
-	storageManager.SetCheckpoint(rootHash, make([]byte, 0), nil, errChan, &trieMock.MockStatistics{})
+	storageManager.SetCheckpoint(rootHash, make([]byte, 0), nil, nil, errChan, &trieMock.MockStatistics{})
 	trie.WaitForOperationToComplete(storageManager)
 
 	err := storageManager.Remove(rootHash)
@@ -544,7 +545,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannelEmptyTrie(t *testing.T) {
 	tr := emptyTrie()
 
 	leavesChannel := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
-	err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), []byte{})
+	err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), []byte{}, keyBuilder.NewDisabledKeyBuilder())
 	assert.Nil(t, err)
 	assert.NotNil(t, leavesChannel)
 
@@ -565,7 +566,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 	rootHash, _ := tr.RootHash()
 
 	leavesChannel := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
-	err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), rootHash)
+	err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), rootHash, keyBuilder.NewKeyBuilder())
 	assert.Nil(t, err)
 	assert.NotNil(t, leavesChannel)
 
@@ -755,6 +756,42 @@ func TestPatriciaMerkleTrie_GetNumNodesNilRootShouldReturnEmpty(t *testing.T) {
 
 	numNodes := tr.GetNumNodes()
 	assert.Equal(t, common.NumNodesDTO{}, numNodes)
+}
+
+func TestPatriciaMerkleTrie_GetTrieStats(t *testing.T) {
+	t.Parallel()
+
+	tr := emptyTrie()
+
+	_ = tr.Update([]byte("dog"), []byte("reindeer"))
+	_ = tr.Update([]byte("fog"), []byte("puppy"))
+	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
+	_ = tr.Commit()
+
+	rootHash, _ := tr.RootHash()
+	address := []byte("address")
+
+	ts, ok := tr.(common.TrieStats)
+	assert.True(t, ok)
+
+	stats, err := ts.GetTrieStats(address, rootHash)
+	assert.Nil(t, err)
+
+	branchesPerLevel := []uint32{1, 0, 1}
+	extensionsPerLevel := []uint32{0, 1}
+	leavesPerLevel := []uint32{0, 1, 0, 2}
+	nodesPerLevel := []uint32{1, 2, 1, 2}
+
+	assert.Equal(t, rootHash, stats.RootHash)
+	assert.Equal(t, address, stats.Address)
+
+	assert.Equal(t, branchesPerLevel, stats.NumBranchesPerLevel)
+	assert.Equal(t, extensionsPerLevel, stats.NumExtensionsPerLevel)
+	assert.Equal(t, leavesPerLevel, stats.NumLeavesPerLevel)
+	assert.Equal(t, nodesPerLevel, stats.TotalNumNodesPerLevel)
+
+	assert.Equal(t, uint64(6), stats.TotalNumNodes)
+	assert.Equal(t, uint32(4), stats.MaxTrieDepth)
 }
 
 func TestPatriciaMerkleTrie_GetNumNodes(t *testing.T) {

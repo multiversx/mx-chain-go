@@ -124,6 +124,7 @@ func createGenesisConfig() config.EnableEpochs {
 		HeartbeatDisableEpoch:                             unreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch:              unreachableEpoch,
 		ESDTMetadataContinuousCleanupEnableEpoch:          unreachableEpoch,
+		FixOldTokenLiquidityEnableEpoch:                   unreachableEpoch,
 		RefactorPeersMiniBlocksEnableEpoch:                unreachableEpoch,
 	}
 }

@@ -536,6 +536,16 @@ func (mock *EnableEpochsHandlerMock) IsRefactorPeersMiniBlocksFlagEnabled() bool
 	return mock.IsRefactorPeersMiniBlocksFlagEnabledField
 }
 
+// IsFixAsyncCallBackArgsListFlagEnabled -
+func (mock *EnableEpochsHandlerMock) IsFixAsyncCallBackArgsListFlagEnabled() bool {
+	return false
+}
+
+// IsFixOldTokenLiquidityEnabled -
+func (mock *EnableEpochsHandlerMock) IsFixOldTokenLiquidityEnabled() bool {
+	return false
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (mock *EnableEpochsHandlerMock) IsInterfaceNil() bool {
 	return mock == nil

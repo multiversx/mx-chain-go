@@ -4,73 +4,76 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/trie/statistics"
 )
 
 type snapshotStatistics struct {
-	numNodes     uint64
-	numDataTries uint64
-	trieSize     uint64
-	startTime    time.Time
+	trieStatisticsCollector common.TriesStatisticsCollector
 
-	wg    *sync.WaitGroup
-	mutex sync.RWMutex
+	startTime time.Time
+
+	wgSnapshot *sync.WaitGroup
+	wgSync     *sync.WaitGroup
+	mutex      sync.RWMutex
 }
 
-func newSnapshotStatistics(delta int) *snapshotStatistics {
-	wg := &sync.WaitGroup{}
-	wg.Add(delta)
+func newSnapshotStatistics(snapshotDelta int, syncDelta int) *snapshotStatistics {
+	wgSnapshot := &sync.WaitGroup{}
+	wgSnapshot.Add(snapshotDelta)
+
+	wgSync := &sync.WaitGroup{}
+	wgSync.Add(syncDelta)
 	return &snapshotStatistics{
-		wg:        wg,
-		startTime: time.Now(),
+		wgSnapshot:              wgSnapshot,
+		wgSync:                  wgSync,
+		startTime:               time.Now(),
+		trieStatisticsCollector: statistics.NewTrieStatisticsCollector(),
 	}
-}
-
-// AddSize will add the given size to the trie size counter
-func (ss *snapshotStatistics) AddSize(size uint64) {
-	ss.mutex.Lock()
-	defer ss.mutex.Unlock()
-
-	ss.numNodes++
-	ss.trieSize += size
 }
 
 // SnapshotFinished marks the ending of a snapshot goroutine
 func (ss *snapshotStatistics) SnapshotFinished() {
-	ss.wg.Done()
+	ss.wgSnapshot.Done()
 }
 
 // NewSnapshotStarted marks the starting of a new snapshot goroutine
 func (ss *snapshotStatistics) NewSnapshotStarted() {
-	ss.wg.Add(1)
-}
-
-// NewDataTrie increases the data Tries counter
-func (ss *snapshotStatistics) NewDataTrie() {
-	ss.mutex.Lock()
-	defer ss.mutex.Unlock()
-
-	ss.numDataTries++
+	ss.wgSnapshot.Add(1)
 }
 
 // WaitForSnapshotsToFinish will wait until the waitGroup counter is zero
 func (ss *snapshotStatistics) WaitForSnapshotsToFinish() {
-	ss.wg.Wait()
+	ss.wgSnapshot.Wait()
+}
+
+// AddTrieStats adds the given trie stats to the snapshot statistics
+func (ss *snapshotStatistics) AddTrieStats(trieStats *statistics.TrieStatsDTO) {
+	ss.mutex.Lock()
+	defer ss.mutex.Unlock()
+
+	ss.trieStatisticsCollector.Add(trieStats)
+}
+
+// WaitForSyncToFinish will wait until the waitGroup counter is zero
+func (ss *snapshotStatistics) WaitForSyncToFinish() {
+	ss.wgSync.Wait()
+}
+
+// SyncFinished marks the end of the sync process
+func (ss *snapshotStatistics) SyncFinished() {
+	ss.wgSync.Done()
 }
 
 // PrintStats will print the stats after the snapshot has finished
 func (ss *snapshotStatistics) PrintStats(identifier string, rootHash []byte) {
-	ss.wg.Wait()
-
 	ss.mutex.RLock()
 	defer ss.mutex.RUnlock()
 
 	log.Debug("snapshot statistics",
 		"type", identifier,
 		"duration", time.Since(ss.startTime).Truncate(time.Second),
-		"num of nodes copied", ss.numNodes,
-		"total size copied", core.ConvertBytes(ss.trieSize),
-		"num data tries copied", ss.numDataTries,
 		"rootHash", rootHash,
 	)
+	ss.trieStatisticsCollector.Print()
 }

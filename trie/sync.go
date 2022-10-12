@@ -22,6 +22,7 @@ type trieNodeInfo struct {
 	received bool
 }
 
+// TODO consider removing this implementation
 type trieSyncer struct {
 	baseSyncTrie
 	rootFound                 bool
@@ -347,10 +348,6 @@ func trieNode(
 	n, ok := data.(*InterceptedTrieNode)
 	if !ok {
 		return nil, ErrWrongTypeAssertion
-	}
-
-	if n.node != nil {
-		return n.node, nil
 	}
 
 	decodedNode, err := decodeNode(n.GetSerialized(), marshalizer, hasher)
