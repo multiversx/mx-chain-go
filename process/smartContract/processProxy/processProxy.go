@@ -16,7 +16,7 @@ import (
 
 var log = logger.GetOrCreate("processProxy")
 
-var _ scrCommon.TestSmartContractProcessor = (*scProcessorProxy)(nil)
+var _ process.SmartContractProcessorFacade = (*scProcessorProxy)(nil)
 
 type configuredProcessor uint8
 
@@ -30,23 +30,11 @@ type scProcessorProxy struct {
 	args                scrCommon.ArgsNewSmartContractProcessor
 	processor           process.SmartContractProcessorFacade
 	processorsCache     map[configuredProcessor]process.SmartContractProcessorFacade
-	testScProcessor     scrCommon.TestSmartContractProcessor
-	testProcessorsCache map[configuredProcessor]scrCommon.TestSmartContractProcessor
 	mutRc               sync.Mutex
-	isTestVersion       bool
 }
 
 // NewSmartContractProcessorProxy creates a smart contract processor proxy
 func NewSmartContractProcessorProxy(args scrCommon.ArgsNewSmartContractProcessor, epochNotifier vmcommon.EpochNotifier) (*scProcessorProxy, error) {
-	return newSmartContractProcessorProxy(args, epochNotifier, false)
-}
-
-// NewTestSmartContractProcessorProxy creates a smart contract processor proxy
-func NewTestSmartContractProcessorProxy(args scrCommon.ArgsNewSmartContractProcessor, epochNotifier vmcommon.EpochNotifier) (*scProcessorProxy, error) {
-	return newSmartContractProcessorProxy(args, epochNotifier, true)
-}
-
-func newSmartContractProcessorProxy(args scrCommon.ArgsNewSmartContractProcessor, epochNotifier vmcommon.EpochNotifier, isTestVersion bool) (*scProcessorProxy, error) {
 	scProcessorProxy := &scProcessorProxy{
 		args: scrCommon.ArgsNewSmartContractProcessor{
 			VmContainer:         args.VmContainer,
@@ -72,13 +60,9 @@ func newSmartContractProcessorProxy(args scrCommon.ArgsNewSmartContractProcessor
 			ArwenChangeLocker:   args.ArwenChangeLocker,
 			IsGenesisProcessing: args.IsGenesisProcessing,
 		},
-		isTestVersion: isTestVersion,
 	}
 
 	scProcessorProxy.processorsCache = make(map[configuredProcessor]process.SmartContractProcessorFacade)
-	if isTestVersion {
-		scProcessorProxy.testProcessorsCache = make(map[configuredProcessor]scrCommon.TestSmartContractProcessor)
-	}
 
 	var err error
 	err = scProcessorProxy.createProcessorV1()
@@ -99,18 +83,12 @@ func newSmartContractProcessorProxy(args scrCommon.ArgsNewSmartContractProcessor
 func (proxy *scProcessorProxy) createProcessorV1() error {
 	processor, err := smartContract.NewSmartContractProcessor(proxy.args)
 	proxy.processorsCache[procV1] = processor
-	if proxy.isTestVersion {
-		proxy.testProcessorsCache[procV1] = smartContract.NewTestScProcessor(processor)
-	}
 	return err
 }
 
 func (proxy *scProcessorProxy) createProcessorV2() error {
 	processor, err := processorV2.NewSmartContractProcessorV2(proxy.args)
 	proxy.processorsCache[procV2] = processor
-	if proxy.isTestVersion {
-		proxy.testProcessorsCache[procV2] = processorV2.NewTestScProcessor(processor)
-	}
 	return err
 }
 
@@ -126,9 +104,6 @@ func (proxy *scProcessorProxy) setActiveProcessor(version configuredProcessor) {
 	log.Info("processorProxy", "configured", version)
 	proxy.configuredProcessor = version
 	proxy.processor = proxy.processorsCache[version]
-	if proxy.isTestVersion {
-		proxy.testScProcessor = proxy.testProcessorsCache[version]
-	}
 }
 
 func (proxy *scProcessorProxy) getProcessor() process.SmartContractProcessorFacade {
@@ -183,24 +158,4 @@ func (proxy *scProcessorProxy) EpochConfirmed(_ uint32, _ uint64) {
 	}
 
 	proxy.setActiveProcessorV1()
-}
-
-// GetCompositeTestError delegates to the selected testScProcessor
-func (proxy *scProcessorProxy) GetCompositeTestError() error {
-	return proxy.testScProcessor.GetCompositeTestError()
-}
-
-// GetGasRemaining delegates to the selected testScProcessor
-func (proxy *scProcessorProxy) GetGasRemaining() uint64 {
-	return proxy.testScProcessor.GetGasRemaining()
-}
-
-// GetAllSCRs delegates to the selected testScProcessor
-func (proxy *scProcessorProxy) GetAllSCRs() []data.TransactionHandler {
-	return proxy.testScProcessor.GetAllSCRs()
-}
-
-// CleanGasRefunded delegates to the selected testScProcessor
-func (proxy *scProcessorProxy) CleanGasRefunded() {
-	proxy.testScProcessor.CleanGasRefunded()
 }
