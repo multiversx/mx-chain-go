@@ -924,7 +924,8 @@
     MinPeersThreshold                                = 0.8  # 80%
     DelayBetweenRequestsInSec                        = 10   # 10sec
     MaxTimeoutInSec                                  = 7200 # 2h
-    DelayBetweenConnectionNotificationsInSec         = 60   # 1min
+    PeerShardTimeBetweenSendsInSec                   = 7200   # 2h
+    PeerShardThresholdBetweenSends                   = 0.1 # 10%
     MaxMissingKeysInRequest                          = 1000
     MaxDurationPeerUnresponsiveInSec                 = 900  # 15min
     HideInactiveValidatorIntervalInSec               = 3600 # 1h
