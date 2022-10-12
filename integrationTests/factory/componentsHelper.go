@@ -67,6 +67,8 @@ func CreateDefaultConfig() *config.Configs {
 	configs.RoundConfig = roundConfig
 	configs.FlagsConfig = &config.ContextFlagsConfig{
 		WorkingDir: "workingDir",
+		DbDir:      "workingDir",
+		LogsDir:    "workingDir",
 		UseLogView: true,
 		Version:    Version,
 	}
