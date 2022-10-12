@@ -39,7 +39,7 @@ type snapshotsQueueEntry struct {
 	address          []byte
 	rootHash         []byte
 	mainTrieRootHash []byte
-	iteratorChannels common.TrieIteratorChannels
+	iteratorChannels *common.TrieIteratorChannels
 	missingNodesChan chan []byte
 	stats            common.SnapshotStatisticsHandler
 	epoch            uint32
@@ -354,7 +354,7 @@ func (tsm *trieStorageManager) TakeSnapshot(
 		address:          address,
 		rootHash:         rootHash,
 		mainTrieRootHash: mainTrieRootHash,
-		iteratorChannels: *iteratorChannels,
+		iteratorChannels: iteratorChannels,
 		missingNodesChan: missingNodesChan,
 		stats:            stats,
 		epoch:            epoch,
@@ -402,7 +402,7 @@ func (tsm *trieStorageManager) SetCheckpoint(
 	checkpointEntry := &snapshotsQueueEntry{
 		rootHash:         rootHash,
 		mainTrieRootHash: mainTrieRootHash,
-		iteratorChannels: *iteratorChannels,
+		iteratorChannels: iteratorChannels,
 		missingNodesChan: missingNodesChan,
 		stats:            stats,
 	}
