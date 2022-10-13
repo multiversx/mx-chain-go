@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/wasm-vm/arwen/contexts"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
@@ -30,6 +29,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
+	"github.com/ElrondNetwork/wasm-vm/arwen/contexts"
 )
 
 var _ process.SmartContractResultProcessor = (*scProcessor)(nil)
@@ -2394,7 +2394,14 @@ func (sc *scProcessor) prependAsyncParamsToData(asyncParams [][]byte, data []byt
 		callData.Bytes(asyncParam)
 	}
 
-	return callData.ToBytes(), nil
+	dataBytes := callData.ToBytes()
+	if !sc.enableEpochsHandler.IsFixAsyncCallBackArgsListFlagEnabled() {
+		if len(dataBytes) == 0 {
+			dataBytes = []byte(nil)
+		}
+	}
+
+	return dataBytes, nil
 }
 
 func (sc *scProcessor) getESDTParsedTransfers(sndAddr []byte, dstAddr []byte, data []byte,
