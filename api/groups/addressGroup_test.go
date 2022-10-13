@@ -366,7 +366,7 @@ func TestGetAccounts(t *testing.T) {
 		ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
 
 		invalidRequest := []byte("{invalid json}")
-		req, _ := http.NewRequest("POST", fmt.Sprintf("/address/bulk"), bytes.NewBuffer(invalidRequest))
+		req, _ := http.NewRequest("POST", "/address/bulk", bytes.NewBuffer(invalidRequest))
 		resp := httptest.NewRecorder()
 		ws.ServeHTTP(resp, req)
 
@@ -389,7 +389,7 @@ func TestGetAccounts(t *testing.T) {
 
 		ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
 
-		req, _ := http.NewRequest("POST", fmt.Sprintf("/address/bulk"), bytes.NewBuffer([]byte(`["erd1", "erd1"]`)))
+		req, _ := http.NewRequest("POST", "/address/bulk", bytes.NewBuffer([]byte(`["erd1", "erd1"]`)))
 		resp := httptest.NewRecorder()
 		ws.ServeHTTP(resp, req)
 
@@ -418,7 +418,7 @@ func TestGetAccounts(t *testing.T) {
 
 		ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
 
-		req, _ := http.NewRequest("POST", fmt.Sprintf("/address/bulk"), bytes.NewBuffer([]byte(`["erd1", "erd1"]`)))
+		req, _ := http.NewRequest("POST", "/address/bulk", bytes.NewBuffer([]byte(`["erd1", "erd1"]`)))
 		resp := httptest.NewRecorder()
 		ws.ServeHTTP(resp, req)
 
