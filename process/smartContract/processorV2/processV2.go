@@ -2401,7 +2401,7 @@ func (sc *scProcessor) processSCOutputAccounts(
 				return false, nil, process.ErrNotAllowedToWriteUnderProtectedKey
 			}
 
-			err = acc.DataTrieTracker().SaveKeyValue(storeUpdate.Offset, storeUpdate.Data)
+			err = acc.SaveKeyValue(storeUpdate.Offset, storeUpdate.Data)
 			if err != nil {
 				log.Warn("saveKeyValue", "error", err)
 				return false, nil, err

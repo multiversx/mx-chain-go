@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	vmData "github.com/ElrondNetwork/elrond-go-core/data/vm"
+	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -24,7 +25,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/scrCommon"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
@@ -122,7 +122,6 @@ func TestNewSmartContractProcessorNilVM(t *testing.T) {
 	sc, err := NewSmartContractProcessorV2(arguments)
 
 	require.Nil(t, sc)
-	require.Nil(t, sc)
 	require.Equal(t, process.ErrNoVM, err)
 }
 
@@ -134,7 +133,6 @@ func TestNewSmartContractProcessorNilVMOutputCacher(t *testing.T) {
 	sc, err := NewSmartContractProcessorV2(arguments)
 
 	require.Nil(t, sc)
-	require.Nil(t, sc)
 	require.Equal(t, process.ErrNilCacher, err)
 }
 
@@ -145,7 +143,6 @@ func TestNewSmartContractProcessorNilBuiltInFunctions(t *testing.T) {
 	arguments.BuiltInFunctions = nil
 	sc, err := NewSmartContractProcessorV2(arguments)
 
-	require.Nil(t, sc)
 	require.Nil(t, sc)
 	require.Equal(t, process.ErrNilBuiltInFunction, err)
 }
@@ -2726,7 +2723,7 @@ func TestScProcessor_ProcessSmartContractResultBadAccType(t *testing.T) {
 
 	accountsDB := &stateMock.AccountsStub{
 		LoadAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
-			return &mock.AccountWrapMock{}, nil
+			return &stateMock.AccountWrapMock{}, nil
 		},
 	}
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
