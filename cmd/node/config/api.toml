@@ -29,7 +29,10 @@
         { Name = "/debug", Open = true },
 
         # /node/peerinfo will return the p2p peer info of the provided pid
-        { Name = "/peerinfo", Open = true }
+        { Name = "/peerinfo", Open = true },
+
+        # /node/epoch-start/:epoch will return the epoch start data for a given epoch
+        { Name = "/epoch-start/:epoch", Open = true }
     ]
 
 [APIPackages.address]

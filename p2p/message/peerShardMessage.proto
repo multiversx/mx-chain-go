@@ -7,7 +7,7 @@ option (gogoproto.stable_marshaler_all) = true;
 
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
-// DirectConnectionInfo represents the data regarding a new direct connection`s info
-message DirectConnectionInfo {
+// PeerShard represents the data regarding a peer's shard
+message PeerShard {
   string  ShardId = 1 [(gogoproto.jsontag) = "shardId"];
 }

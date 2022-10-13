@@ -88,6 +88,8 @@ type NodeHandler interface {
 	GetQueryHandler(name string) (debug.QueryHandler, error)
 	GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error)
 
+	GetEpochStartDataAPI(epoch uint32) (*common.EpochStartDataAPI, error)
+
 	GetProof(rootHash string, key string) (*common.GetProofResponse, error)
 	GetProofDataTrie(rootHash string, address string, key string) (*common.GetProofResponse, *common.GetProofResponse, error)
 	VerifyProof(rootHash string, address string, proof [][]byte) (bool, error)

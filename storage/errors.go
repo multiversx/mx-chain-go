@@ -47,9 +47,6 @@ var ErrNilPersisterFactory = errors.New("nil persister factory")
 // ErrDestroyingUnit signals that the destroy unit method did not manage to destroy all the persisters in a pruning storer
 var ErrDestroyingUnit = errors.New("destroy unit didn't remove all the persisters")
 
-// ErrNilConfig signals that a nil configuration has been received
-var ErrNilConfig = errors.New("nil config")
-
 // ErrInvalidConfig signals an invalid config
 var ErrInvalidConfig = errors.New("invalid config")
 
@@ -64,6 +61,9 @@ var ErrNilCustomDatabaseRemover = errors.New("custom database remover")
 
 // ErrNilStorageListProvider signals that a nil storage list provided has been provided
 var ErrNilStorageListProvider = errors.New("nil storage list provider")
+
+// ErrNilStatusHandler signals that a nil status handler has been provided
+var ErrNilStatusHandler = errors.New("nil status handler")
 
 // ErrEmptyPruningPathTemplate signals that an empty path template for pruning storers has been provided
 var ErrEmptyPruningPathTemplate = errors.New("empty path template for pruning storers")

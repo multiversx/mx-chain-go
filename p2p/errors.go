@@ -158,3 +158,6 @@ var ErrNilPeersRatingHandler = errors.New("nil peers rating handler")
 
 // ErrNilCacher signals that a nil cacher has been provided
 var ErrNilCacher = errors.New("nil cacher")
+
+// ErrNilPeerTopicNotifier signals that a nil peer topic notifier have been provided
+var ErrNilPeerTopicNotifier = errors.New("nil peer topic notifier")
