@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/common"
+	elrondErr "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 )
@@ -70,6 +71,9 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 			receiverShardID,
 			mbInfo)
 		if err != nil {
+			if elrondErr.IsGetNodeFromDBError(err) {
+				return nil, nil, nil, err
+			}
 			if shouldAddToRemaining {
 				remainingTxs = append(remainingTxs, sortedTxs[index])
 			}
@@ -269,7 +273,7 @@ func (txs *transactions) createScheduledMiniBlocks(
 	isMaxBlockSizeReached func(int, int) bool,
 	sortedTxs []*txcache.WrappedTransaction,
 	mapSCTxs map[string]struct{},
-) block.MiniBlockSlice {
+) (block.MiniBlockSlice, error) {
 	log.Debug("createScheduledMiniBlocks has been started")
 
 	mbInfo := txs.initCreateScheduledMiniBlocks()
@@ -312,6 +316,9 @@ func (txs *transactions) createScheduledMiniBlocks(
 			receiverShardID,
 			mbInfo)
 		if err != nil {
+			if elrondErr.IsGetNodeFromDBError(err) {
+				return nil, err
+			}
 			continue
 		}
 
@@ -330,7 +337,7 @@ func (txs *transactions) createScheduledMiniBlocks(
 
 	log.Debug("createScheduledMiniBlocks has been finished")
 
-	return miniBlocks
+	return miniBlocks, nil
 }
 
 func (txs *transactions) verifyTransaction(

@@ -561,7 +561,8 @@ func TestTransactions_CreateScheduledMiniBlocksShouldWork(t *testing.T) {
 	tx := &txcache.WrappedTransaction{}
 	sortedTxs = append(sortedTxs, tx)
 
-	mbs := preprocessor.createScheduledMiniBlocks(haveTimeMethod, haveAdditionalTimeMethod, isShardStuckMethod, isMaxBlockSizeReachedMethod, sortedTxs, mapSCTxs)
+	mbs, err := preprocessor.createScheduledMiniBlocks(haveTimeMethod, haveAdditionalTimeMethod, isShardStuckMethod, isMaxBlockSizeReachedMethod, sortedTxs, mapSCTxs)
+	assert.Nil(t, err)
 	assert.Equal(t, 0, len(mbs))
 
 	// should not create scheduled mini blocks when max block size is reached
@@ -576,7 +577,8 @@ func TestTransactions_CreateScheduledMiniBlocksShouldWork(t *testing.T) {
 	}
 	sortedTxs = append(sortedTxs, tx)
 
-	mbs = preprocessor.createScheduledMiniBlocks(haveTimeMethod, haveAdditionalTimeMethod, isShardStuckMethod, isMaxBlockSizeReachedMethod, sortedTxs, mapSCTxs)
+	mbs, err = preprocessor.createScheduledMiniBlocks(haveTimeMethod, haveAdditionalTimeMethod, isShardStuckMethod, isMaxBlockSizeReachedMethod, sortedTxs, mapSCTxs)
+	assert.Nil(t, err)
 	assert.Equal(t, 0, len(mbs))
 
 	// should not create scheduled mini blocks when verifyTransaction returns error
@@ -592,7 +594,8 @@ func TestTransactions_CreateScheduledMiniBlocksShouldWork(t *testing.T) {
 	}
 	sortedTxs = append(sortedTxs, tx)
 
-	mbs = preprocessor.createScheduledMiniBlocks(haveTimeMethod, haveAdditionalTimeMethod, isShardStuckMethod, isMaxBlockSizeReachedMethod, sortedTxs, mapSCTxs)
+	mbs, err = preprocessor.createScheduledMiniBlocks(haveTimeMethod, haveAdditionalTimeMethod, isShardStuckMethod, isMaxBlockSizeReachedMethod, sortedTxs, mapSCTxs)
+	assert.Nil(t, err)
 	assert.Equal(t, 0, len(mbs))
 
 	// should create two scheduled mini blocks
@@ -623,7 +626,8 @@ func TestTransactions_CreateScheduledMiniBlocksShouldWork(t *testing.T) {
 	sortedTxs = append(sortedTxs, tx3)
 	mapSCTxs["hash1"] = struct{}{}
 
-	mbs = preprocessor.createScheduledMiniBlocks(haveTimeMethod, haveAdditionalTimeMethod, isShardStuckMethod, isMaxBlockSizeReachedMethod, sortedTxs, mapSCTxs)
+	mbs, err = preprocessor.createScheduledMiniBlocks(haveTimeMethod, haveAdditionalTimeMethod, isShardStuckMethod, isMaxBlockSizeReachedMethod, sortedTxs, mapSCTxs)
+	assert.Nil(t, err)
 	assert.Equal(t, 2, len(mbs))
 }
 
