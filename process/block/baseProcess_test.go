@@ -1951,8 +1951,8 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeeded_GetAllLeaves(t *testing.T
 					return rootHash, nil
 				},
 				GetAllLeavesCalled: func(channels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error {
-					close(channels.LeavesChan)
 					channels.ErrChan <- expectedErr
+					close(channels.LeavesChan)
 					return nil
 				},
 			},

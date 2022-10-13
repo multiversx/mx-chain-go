@@ -370,8 +370,8 @@ func TestNode_GetKeyValuePairs_GetAllLeavesShouldFail(t *testing.T) {
 		&trieMock.TrieStub{
 			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
 				go func() {
-					close(leavesChannels.LeavesChan)
 					leavesChannels.ErrChan <- expectedErr
+					close(leavesChannels.LeavesChan)
 				}()
 
 				return nil
@@ -684,8 +684,8 @@ func TestNode_GetAllESDTTokens_GetAllLeavesShouldFail(t *testing.T) {
 		&trieMock.TrieStub{
 			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
 				go func() {
-					close(leavesChannels.LeavesChan)
 					leavesChannels.ErrChan <- expectedErr
+					close(leavesChannels.LeavesChan)
 				}()
 
 				return nil

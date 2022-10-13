@@ -2078,8 +2078,8 @@ func TestValidatorStatistics_GetValidatorInfoForRootHash(t *testing.T) {
 		peerAdapter.GetAllLeavesCalled = func(ch *common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error {
 			if bytes.Equal(rootHash, hash) {
 				go func() {
-					close(ch.LeavesChan)
 					ch.ErrChan <- expectedErr
+					close(ch.LeavesChan)
 				}()
 
 				return nil
