@@ -1,11 +1,12 @@
 package bls
 
 import (
+	"time"
+
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"golang.org/x/net/context"
-	"time"
 )
 
 type sideChainSubroundBlock struct {

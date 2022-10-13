@@ -189,10 +189,15 @@ func (fct *factory) generateBlockSubround() error {
 		return err
 	}
 
-	fct.worker.AddReceivedMessageCall(MtBlockBodyAndHeader, subroundBlock.receivedBlockBodyAndHeader)
-	fct.worker.AddReceivedMessageCall(MtBlockBody, subroundBlock.receivedBlockBody)
-	fct.worker.AddReceivedMessageCall(MtBlockHeader, subroundBlock.receivedBlockHeader)
-	fct.consensusCore.Chronology().AddSubround(subroundBlock)
+	sideChainSubroundBlock, err := NewSideChainSubroundBlock(subroundBlock)
+	if err != nil {
+		return err
+	}
+
+	fct.worker.AddReceivedMessageCall(MtBlockBodyAndHeader, sideChainSubroundBlock.receivedBlockBodyAndHeader)
+	fct.worker.AddReceivedMessageCall(MtBlockBody, sideChainSubroundBlock.receivedBlockBody)
+	fct.worker.AddReceivedMessageCall(MtBlockHeader, sideChainSubroundBlock.receivedBlockHeader)
+	fct.consensusCore.Chronology().AddSubround(sideChainSubroundBlock)
 
 	return nil
 }

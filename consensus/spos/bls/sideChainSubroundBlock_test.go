@@ -2,6 +2,9 @@ package bls_test
 
 import (
 	"errors"
+	"testing"
+	"time"
+
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
@@ -9,9 +12,26 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
 	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
-	"testing"
-	"time"
 )
+
+func TestNewSideChainSubroundBlock_ShouldErrNilSubround(t *testing.T) {
+	t.Parallel()
+
+	scsr, err := bls.NewSideChainSubroundBlock(nil)
+	assert.Nil(t, scsr)
+	assert.Equal(t, spos.ErrNilSubround, err)
+}
+
+func TestNewSideChainSubroundBlock_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	container := mock.InitConsensusCore()
+	sr := initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
+
+	scsr, err := bls.NewSideChainSubroundBlock(sr)
+	assert.NotNil(t, scsr)
+	assert.Nil(t, err)
+}
 
 func TestSideChainSubroundBlock_DoBlockJob(t *testing.T) {
 	t.Parallel()
