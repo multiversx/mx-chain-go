@@ -86,6 +86,7 @@ type EnableEpochs struct {
 	MiniBlockPartialExecutionEnableEpoch              uint32
 	ESDTMetadataContinuousCleanupEnableEpoch          uint32
 	FixAsyncCallBackArgsListEnableEpoch               uint32
+	FixOldTokenLiquidityEnableEpoch                   uint32
 	SetSenderInEeiOutputTransferEnableEpoch           uint32
 	RefactorPeersMiniBlocksEnableEpoch                uint32
 	BLSMultiSignerEnableEpoch                         []MultiSignerConfig
