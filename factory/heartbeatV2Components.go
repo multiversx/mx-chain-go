@@ -200,7 +200,6 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		Cache:                         hcf.dataComponents.Datapool().Heartbeats(),
 		PubKeyConverter:               hcf.coreComponents.ValidatorPubKeyConverter(),
 		Marshaller:                    hcf.coreComponents.InternalMarshalizer(),
-		PeerShardMapper:               hcf.processComponents.PeerShardMapper(),
 		MaxDurationPeerUnresponsive:   time.Second * time.Duration(cfg.MaxDurationPeerUnresponsiveInSec),
 		HideInactiveValidatorInterval: time.Second * time.Duration(cfg.HideInactiveValidatorIntervalInSec),
 		ShardId:                       epochBootstrapParams.SelfShardID(),
