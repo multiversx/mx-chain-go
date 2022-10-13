@@ -1583,8 +1583,6 @@ func TestGenerateTransaction_CorrectParamsShouldNotError(t *testing.T) {
 func TestCreateTransaction_NilAddrConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	t.Parallel()
-
 	coreComponents := getDefaultCoreComponents()
 	coreComponents.IntMarsh = getMarshalizer()
 	coreComponents.VmMarsh = getMarshalizer()
