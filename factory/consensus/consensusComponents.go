@@ -486,7 +486,12 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		return nil, err
 	}
 
-	return bootstrap, nil
+	sideChainBootstrap, err := sync.NewSideChainShardBootstrap(bootstrap)
+	if err != nil {
+		return nil, err
+	}
+
+	return sideChainBootstrap, nil
 }
 
 func (ccf *consensusComponentsFactory) createArgsBaseAccountsSyncer(trieStorageManager common.StorageManager) syncer.ArgsNewBaseAccountsSyncer {

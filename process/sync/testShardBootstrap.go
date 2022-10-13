@@ -4,7 +4,7 @@ package sync
 // that are not supposed to be used in production code
 // Exported funcs simplify the reproduction of edge cases
 type TestShardBootstrap struct {
-	*ShardBootstrap
+	*SideChainShardBootstrap
 }
 
 // RollBack decides to call (or not) the rollBackOneBlock on the current block from the blockchain structure
