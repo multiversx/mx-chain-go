@@ -2072,8 +2072,6 @@ func TestValidatorStatistics_GetValidatorInfoForRootHash(t *testing.T) {
 	addrBytesMeta := []byte("addrMeta")
 
 	t.Run("should fail on getting all leaves from trie", func(t *testing.T) {
-		t.Parallel()
-
 		peerAdapter := getAccountsMock()
 
 		expectedErr := errors.New("expected error")
@@ -2098,8 +2096,6 @@ func TestValidatorStatistics_GetValidatorInfoForRootHash(t *testing.T) {
 	})
 
 	t.Run("should work", func(t *testing.T) {
-		t.Parallel()
-
 		pa0, paMeta := createPeerAccounts(addrBytes0, addrBytesMeta)
 
 		marshalizedPa0, _ := arguments.Marshalizer.Marshal(pa0)

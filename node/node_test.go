@@ -1619,8 +1619,6 @@ func TestCreateTransaction_NilAddrConverterShouldErr(t *testing.T) {
 func TestCreateTransaction_NilAccountsAdapterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	t.Parallel()
-
 	coreComponents := getDefaultCoreComponents()
 	coreComponents.IntMarsh = getMarshalizer()
 	coreComponents.VmMarsh = getMarshalizer()
