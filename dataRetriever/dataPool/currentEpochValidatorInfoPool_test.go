@@ -27,11 +27,6 @@ func TestCurrentEpochValidatorInfoPool_AddGetCleanTx(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, validatorInfo, validatorInfoFromPool)
 
-	validatorInfoFromPool.Index++
-	validatorInfoFromPool2, err := currentValidatorInfoPool.GetValidatorInfo(validatorInfoHash)
-	require.Nil(t, err)
-	require.NotEqual(t, validatorInfoFromPool, validatorInfoFromPool2)
-
 	currentValidatorInfoPool.Clean()
 	validatorInfoFromPool, err = currentValidatorInfoPool.GetValidatorInfo(validatorInfoHash)
 	require.Nil(t, validatorInfoFromPool)

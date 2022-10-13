@@ -12,21 +12,21 @@ var _ dataRetriever.ValidatorInfoCacher = (*validatorInfoMapCacher)(nil)
 
 type validatorInfoMapCacher struct {
 	mutValidatorInfo      sync.RWMutex
-	validatorInfoForEpoch map[string]state.ShardValidatorInfo
+	validatorInfoForEpoch map[string]*state.ShardValidatorInfo
 }
 
 // NewCurrentEpochValidatorInfoPool returns a new validator info pool to be used for the current epoch
 func NewCurrentEpochValidatorInfoPool() *validatorInfoMapCacher {
 	return &validatorInfoMapCacher{
 		mutValidatorInfo:      sync.RWMutex{},
-		validatorInfoForEpoch: make(map[string]state.ShardValidatorInfo),
+		validatorInfoForEpoch: make(map[string]*state.ShardValidatorInfo),
 	}
 }
 
 // Clean creates a new validator info pool
 func (vimc *validatorInfoMapCacher) Clean() {
 	vimc.mutValidatorInfo.Lock()
-	vimc.validatorInfoForEpoch = make(map[string]state.ShardValidatorInfo)
+	vimc.validatorInfoForEpoch = make(map[string]*state.ShardValidatorInfo)
 	vimc.mutValidatorInfo.Unlock()
 }
 
@@ -40,7 +40,7 @@ func (vimc *validatorInfoMapCacher) GetValidatorInfo(validatorInfoHash []byte) (
 		return nil, dataRetriever.ErrValidatorInfoNotFoundInEpochPool
 	}
 
-	return &validatorInfo, nil
+	return validatorInfo, nil
 }
 
 // AddValidatorInfo adds the validator info for the given hash
@@ -50,7 +50,7 @@ func (vimc *validatorInfoMapCacher) AddValidatorInfo(validatorInfoHash []byte, v
 	}
 
 	vimc.mutValidatorInfo.Lock()
-	vimc.validatorInfoForEpoch[string(validatorInfoHash)] = *validatorInfo
+	vimc.validatorInfoForEpoch[string(validatorInfoHash)] = validatorInfo
 	vimc.mutValidatorInfo.Unlock()
 }
 
