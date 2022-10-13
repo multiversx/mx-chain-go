@@ -42,6 +42,7 @@ import (
 	nodeMockFactory "github.com/ElrondNetwork/elrond-go/node/mock/factory"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/state"
+	storagePackage "github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/bootstrapMocks"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
@@ -53,6 +54,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
+	"github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/testscommon/txsSenderMock"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
@@ -3792,6 +3794,117 @@ func TestNode_GetHeartbeats(t *testing.T) {
 			receivedMessages := n.GetHeartbeats()
 			assert.True(t, sameMessages(providedMessages, receivedMessages))
 		})
+	})
+}
+
+func TestNode_GetEpochStartDataAPI(t *testing.T) {
+	t.Parallel()
+
+	t.Run("epoch 0 - should return genesis", func(t *testing.T) {
+		t.Parallel()
+
+		n, _ := node.NewNode(
+			node.WithDataComponents(&integrationTestsMock.DataComponentsStub{
+				BlockChain: &testscommon.ChainHandlerStub{
+					GetGenesisHeaderCalled: func() data.HeaderHandler {
+						return &block.Header{
+							Nonce:     1,
+							Round:     2,
+							ShardID:   3,
+							TimeStamp: 4,
+						}
+					},
+				},
+			}),
+		)
+
+		result, err := n.GetEpochStartDataAPI(0)
+		require.NoError(t, err)
+		require.Equal(t, &common.EpochStartDataAPI{
+			Nonce:     1,
+			Round:     2,
+			Shard:     3,
+			Timestamp: 4,
+		}, result)
+	})
+
+	t.Run("should work for shard", func(t *testing.T) {
+		t.Parallel()
+
+		shardHeader := &block.Header{
+			Nonce:     1,
+			Round:     2,
+			ShardID:   3,
+			TimeStamp: 4,
+		}
+		coreComp := getDefaultCoreComponents()
+		marshalizer := coreComp.InternalMarshalizer()
+		shardHeaderBytes, _ := marshalizer.Marshal(shardHeader)
+		n, _ := node.NewNode(
+			node.WithCoreComponents(coreComp),
+			node.WithBootstrapComponents(&mainFactoryMocks.BootstrapComponentsStub{
+				ShCoordinator: &testscommon.ShardsCoordinatorMock{CurrentShard: 3},
+			}),
+			node.WithDataComponents(&integrationTestsMock.DataComponentsStub{
+				Store: &storage.ChainStorerStub{
+					GetStorerCalled: func(unitType dataRetriever.UnitType) storagePackage.Storer {
+						return &storage.StorerStub{
+							GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+								return shardHeaderBytes, nil
+							},
+						}
+					},
+				},
+			}),
+		)
+
+		result, err := n.GetEpochStartDataAPI(5)
+		require.NoError(t, err)
+		require.Equal(t, &common.EpochStartDataAPI{
+			Nonce:     1,
+			Round:     2,
+			Shard:     3,
+			Timestamp: 4,
+		}, result)
+	})
+
+	t.Run("should work for meta", func(t *testing.T) {
+		t.Parallel()
+
+		metaBlock := &block.MetaBlock{
+			Nonce:     1,
+			Round:     2,
+			TimeStamp: 4,
+		}
+		coreComp := getDefaultCoreComponents()
+		marshalizer := coreComp.InternalMarshalizer()
+		metaBlockBytes, _ := marshalizer.Marshal(metaBlock)
+		n, _ := node.NewNode(
+			node.WithCoreComponents(coreComp),
+			node.WithBootstrapComponents(&mainFactoryMocks.BootstrapComponentsStub{
+				ShCoordinator: &testscommon.ShardsCoordinatorMock{CurrentShard: core.MetachainShardId},
+			}),
+			node.WithDataComponents(&integrationTestsMock.DataComponentsStub{
+				Store: &storage.ChainStorerStub{
+					GetStorerCalled: func(unitType dataRetriever.UnitType) storagePackage.Storer {
+						return &storage.StorerStub{
+							GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+								return metaBlockBytes, nil
+							},
+						}
+					},
+				},
+			}),
+		)
+
+		result, err := n.GetEpochStartDataAPI(5)
+		require.NoError(t, err)
+		require.Equal(t, &common.EpochStartDataAPI{
+			Nonce:     1,
+			Round:     2,
+			Shard:     core.MetachainShardId,
+			Timestamp: 4,
+		}, result)
 	})
 }
 

@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/clean"
 	"github.com/ElrondNetwork/elrond-go/storage/databaseremover"
 	"github.com/ElrondNetwork/elrond-go/storage/databaseremover/disabled"
+	"github.com/ElrondNetwork/elrond-go/storage/databaseremover/factory"
 	storageDisabled "github.com/ElrondNetwork/elrond-go/storage/disabled"
 	"github.com/ElrondNetwork/elrond-go/storage/pruning"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -27,8 +28,8 @@ const (
 
 // StorageServiceFactory handles the creation of storage services for both meta and shards
 type StorageServiceFactory struct {
-	generalConfig                 *config.Config
-	prefsConfig                   *config.PreferencesConfig
+	generalConfig                 config.Config
+	prefsConfig                   config.PreferencesConfig
 	shardCoordinator              storage.ShardCoordinator
 	pathManager                   storage.PathManagerHandler
 	epochStartNotifier            storage.EpochStartNotifier
@@ -37,57 +38,63 @@ type StorageServiceFactory struct {
 	currentEpoch                  uint32
 }
 
+// StorageServiceFactoryArgs holds the arguments needed for creating a new storage service factory
+type StorageServiceFactoryArgs struct {
+	Config                        config.Config
+	PrefsConfig                   config.PreferencesConfig
+	ShardCoordinator              storage.ShardCoordinator
+	PathManager                   storage.PathManagerHandler
+	EpochStartNotifier            storage.EpochStartNotifier
+	NodeTypeProvider              NodeTypeProviderHandler
+	CurrentEpoch                  uint32
+	CreateTrieEpochRootHashStorer bool
+}
+
 // NewStorageServiceFactory will return a new instance of StorageServiceFactory
-func NewStorageServiceFactory(
-	config *config.Config,
-	prefsConfig *config.PreferencesConfig,
-	shardCoordinator storage.ShardCoordinator,
-	pathManager storage.PathManagerHandler,
-	epochStartNotifier storage.EpochStartNotifier,
-	nodeTypeProvider NodeTypeProviderHandler,
-	currentEpoch uint32,
-	createTrieEpochRootHashStorer bool,
-) (*StorageServiceFactory, error) {
-	if config == nil {
-		return nil, fmt.Errorf("%w for config.Config", storage.ErrNilConfig)
-	}
-	if prefsConfig == nil {
-		return nil, fmt.Errorf("%w for config.PreferencesConfig", storage.ErrNilConfig)
-	}
-	if config.StoragePruning.NumActivePersisters < minimumNumberOfActivePersisters {
-		return nil, storage.ErrInvalidNumberOfActivePersisters
-	}
-	if check.IfNil(shardCoordinator) {
-		return nil, storage.ErrNilShardCoordinator
-	}
-	if check.IfNil(pathManager) {
-		return nil, storage.ErrNilPathManager
-	}
-	if check.IfNil(epochStartNotifier) {
-		return nil, storage.ErrNilEpochStartNotifier
+func NewStorageServiceFactory(args StorageServiceFactoryArgs) (*StorageServiceFactory, error) {
+	err := checkArgs(args)
+	if err != nil {
+		return nil, err
 	}
 
 	oldDataCleanProvider, err := clean.NewOldDataCleanerProvider(
-		nodeTypeProvider,
-		config.StoragePruning,
+		args.NodeTypeProvider,
+		args.Config.StoragePruning,
 	)
 	if err != nil {
 		return nil, err
 	}
-	if config.StoragePruning.NumEpochsToKeep < minimumNumberOfEpochsToKeep && oldDataCleanProvider.ShouldClean() {
+	if args.Config.StoragePruning.NumEpochsToKeep < minimumNumberOfEpochsToKeep && oldDataCleanProvider.ShouldClean() {
 		return nil, storage.ErrInvalidNumberOfEpochsToSave
 	}
 
 	return &StorageServiceFactory{
-		generalConfig:                 config,
-		prefsConfig:                   prefsConfig,
-		shardCoordinator:              shardCoordinator,
-		pathManager:                   pathManager,
-		epochStartNotifier:            epochStartNotifier,
-		currentEpoch:                  currentEpoch,
-		createTrieEpochRootHashStorer: createTrieEpochRootHashStorer,
+		generalConfig:                 args.Config,
+		prefsConfig:                   args.PrefsConfig,
+		shardCoordinator:              args.ShardCoordinator,
+		pathManager:                   args.PathManager,
+		epochStartNotifier:            args.EpochStartNotifier,
+		currentEpoch:                  args.CurrentEpoch,
+		createTrieEpochRootHashStorer: args.CreateTrieEpochRootHashStorer,
 		oldDataCleanerProvider:        oldDataCleanProvider,
 	}, nil
+}
+
+func checkArgs(args StorageServiceFactoryArgs) error {
+	if args.Config.StoragePruning.NumActivePersisters < minimumNumberOfActivePersisters {
+		return storage.ErrInvalidNumberOfActivePersisters
+	}
+	if check.IfNil(args.ShardCoordinator) {
+		return storage.ErrNilShardCoordinator
+	}
+	if check.IfNil(args.PathManager) {
+		return storage.ErrNilPathManager
+	}
+	if check.IfNil(args.EpochStartNotifier) {
+		return storage.ErrNilEpochStartNotifier
+	}
+
+	return nil
 }
 
 // CreateForShard will return the storage service which contains all storers needed for a shard
@@ -112,7 +119,7 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	// in case of a failure while creating (not opening).
 
 	disabledCustomDatabaseRemover := disabled.NewDisabledCustomDatabaseRemover()
-	customDatabaseRemover, err := databaseremover.NewCustomDatabaseRemover(psf.generalConfig.StoragePruning)
+	customDatabaseRemover, err := factory.CreateCustomDatabaseRemover(psf.generalConfig.StoragePruning)
 	if err != nil {
 		return nil, err
 	}
