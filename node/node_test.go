@@ -118,17 +118,23 @@ func TestNewNode(t *testing.T) {
 }
 
 func TestNewNode_NilOptionShouldError(t *testing.T) {
+	t.Parallel()
+
 	_, err := node.NewNode(node.WithCoreComponents(nil))
 	assert.NotNil(t, err)
 }
 
 func TestNewNode_ApplyNilOptionShouldError(t *testing.T) {
+	t.Parallel()
+
 	n, _ := node.NewNode()
 	err := n.ApplyOptions(node.WithCoreComponents(nil))
 	assert.NotNil(t, err)
 }
 
 func TestGetBalance_GetAccountFailsShouldError(t *testing.T) {
+	t.Parallel()
+
 	expectedErr := errors.New("error")
 
 	accountsRepository := &stateMock.AccountsRepositoryStub{}
@@ -165,6 +171,8 @@ func createDummyHexAddress(hexChars int) string {
 }
 
 func TestGetBalance_AccountNotFoundShouldReturnZeroBalance(t *testing.T) {
+	t.Parallel()
+
 	accountsRepository := &stateMock.AccountsRepositoryStub{}
 
 	dataComponents := getDefaultDataComponents()
@@ -186,6 +194,8 @@ func TestGetBalance_AccountNotFoundShouldReturnZeroBalance(t *testing.T) {
 }
 
 func TestGetBalance(t *testing.T) {
+	t.Parallel()
+
 	testAccount, _ := state.NewUserAccount(testscommon.TestPubKeyAlice)
 	testAccount.Balance = big.NewInt(100)
 
@@ -215,6 +225,8 @@ func TestGetBalance(t *testing.T) {
 }
 
 func TestGetUsername(t *testing.T) {
+	t.Parallel()
+
 	expectedUsername := []byte("elrond")
 
 	testAccount, _ := state.NewUserAccount(testscommon.TestPubKeyAlice)
@@ -246,6 +258,8 @@ func TestGetUsername(t *testing.T) {
 }
 
 func TestGetCodeHash(t *testing.T) {
+	t.Parallel()
+
 	expectedCodeHash := []byte("hash")
 
 	testAccount, _ := state.NewUserAccount(testscommon.TestPubKeyAlice)
@@ -277,6 +291,8 @@ func TestGetCodeHash(t *testing.T) {
 }
 
 func TestNode_GetKeyValuePairs(t *testing.T) {
+	t.Parallel()
+
 	acc, _ := state.NewUserAccount([]byte("newaddress"))
 
 	k1, v1 := []byte("key1"), []byte("value1")
@@ -343,6 +359,8 @@ func TestNode_GetKeyValuePairs(t *testing.T) {
 }
 
 func TestNode_GetKeyValuePairs_GetAllLeavesShouldFail(t *testing.T) {
+	t.Parallel()
+
 	acc, _ := state.NewUserAccount([]byte("newaddress"))
 
 	accDB := &stateMock.AccountsStub{}
@@ -396,6 +414,8 @@ func TestNode_GetKeyValuePairs_GetAllLeavesShouldFail(t *testing.T) {
 }
 
 func TestNode_GetKeyValuePairsContextShouldTimeout(t *testing.T) {
+	t.Parallel()
+
 	acc, _ := state.NewUserAccount([]byte("newaddress"))
 
 	accDB := &stateMock.AccountsStub{}
@@ -451,6 +471,8 @@ func TestNode_GetKeyValuePairsContextShouldTimeout(t *testing.T) {
 }
 
 func TestNode_GetValueForKey(t *testing.T) {
+	t.Parallel()
+
 	acc, _ := state.NewUserAccount([]byte("newaddress"))
 
 	k1, v1 := []byte("key1"), []byte("value1")
@@ -491,6 +513,8 @@ func TestNode_GetValueForKey(t *testing.T) {
 }
 
 func TestNode_GetESDTData(t *testing.T) {
+	t.Parallel()
+
 	acc, _ := state.NewUserAccount(testscommon.TestPubKeyAlice)
 	esdtToken := "newToken"
 
@@ -538,6 +562,8 @@ func TestNode_GetESDTData(t *testing.T) {
 }
 
 func TestNode_GetESDTDataForNFT(t *testing.T) {
+	t.Parallel()
+
 	acc, _ := state.NewUserAccount(testscommon.TestPubKeyAlice)
 	esdtToken := "newToken"
 	nonce := int64(100)
@@ -581,6 +607,8 @@ func TestNode_GetESDTDataForNFT(t *testing.T) {
 }
 
 func TestNode_GetAllESDTTokens(t *testing.T) {
+	t.Parallel()
+
 	acc, _ := state.NewUserAccount(testscommon.TestPubKeyAlice)
 	esdtToken := "newToken"
 	esdtKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + esdtToken)
@@ -647,6 +675,8 @@ func TestNode_GetAllESDTTokens(t *testing.T) {
 }
 
 func TestNode_GetAllESDTTokens_GetAllLeavesShouldFail(t *testing.T) {
+	t.Parallel()
+
 	acc, _ := state.NewUserAccount(testscommon.TestPubKeyAlice)
 
 	expectedErr := errors.New("expected error")
@@ -701,6 +731,8 @@ func TestNode_GetAllESDTTokens_GetAllLeavesShouldFail(t *testing.T) {
 }
 
 func TestNode_GetAllESDTTokensContextShouldTimeout(t *testing.T) {
+	t.Parallel()
+
 	acc, _ := state.NewUserAccount(testscommon.TestPubKeyAlice)
 
 	acc.SetDataTrie(
@@ -757,6 +789,8 @@ func TestNode_GetAllESDTTokensContextShouldTimeout(t *testing.T) {
 }
 
 func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
+	t.Parallel()
+
 	acc, _ := state.NewUserAccount(testscommon.TestPubKeyAlice)
 
 	esdtToken := "TKKR-7q8w9e"
@@ -851,6 +885,8 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 }
 
 func TestNode_GetAllIssuedESDTs(t *testing.T) {
+	t.Parallel()
+
 	acc, _ := state.NewUserAccount([]byte("newaddress"))
 	esdtToken := []byte("TCK-RANDOM")
 	sftToken := []byte("SFT-RANDOM")
@@ -945,6 +981,8 @@ func TestNode_GetAllIssuedESDTs(t *testing.T) {
 }
 
 func TestNode_GetESDTsWithRole(t *testing.T) {
+	t.Parallel()
+
 	addrBytes := testscommon.TestPubKeyAlice
 	acc, _ := state.NewUserAccount(addrBytes)
 	esdtToken := []byte("TCK-RANDOM")
@@ -1023,6 +1061,8 @@ func TestNode_GetESDTsWithRole(t *testing.T) {
 }
 
 func TestNode_GetESDTsRoles(t *testing.T) {
+	t.Parallel()
+
 	addrBytes := testscommon.TestPubKeyAlice
 	acc, _ := state.NewUserAccount(addrBytes)
 	esdtToken := []byte("TCK-RANDOM")
@@ -1093,6 +1133,8 @@ func TestNode_GetESDTsRoles(t *testing.T) {
 }
 
 func TestNode_GetNFTTokenIDsRegisteredByAddress(t *testing.T) {
+	t.Parallel()
+
 	addrBytes := testscommon.TestPubKeyAlice
 	acc, _ := state.NewUserAccount(addrBytes)
 	esdtToken := []byte("TCK-RANDOM")
@@ -1156,6 +1198,8 @@ func TestNode_GetNFTTokenIDsRegisteredByAddress(t *testing.T) {
 }
 
 func TestNode_GetNFTTokenIDsRegisteredByAddressContextShouldTimeout(t *testing.T) {
+	t.Parallel()
+
 	addrBytes := testscommon.TestPubKeyAlice
 	acc, _ := state.NewUserAccount(addrBytes)
 
@@ -1215,6 +1259,8 @@ func TestNode_GetNFTTokenIDsRegisteredByAddressContextShouldTimeout(t *testing.T
 // ------- GenerateTransaction
 
 func TestGenerateTransaction_NoAddrConverterShouldError(t *testing.T) {
+	t.Parallel()
+
 	privateKey := getPrivateKey()
 	coreComponents := getDefaultCoreComponents()
 	coreComponents.AddrPubKeyConv = nil
@@ -1233,6 +1279,8 @@ func TestGenerateTransaction_NoAddrConverterShouldError(t *testing.T) {
 }
 
 func TestGenerateTransaction_NoAccAdapterShouldError(t *testing.T) {
+	t.Parallel()
+
 	coreComponents := getDefaultCoreComponents()
 	coreComponents.IntMarsh = getMarshalizer()
 	coreComponents.VmMarsh = getMarshalizer()
@@ -1250,6 +1298,8 @@ func TestGenerateTransaction_NoAccAdapterShouldError(t *testing.T) {
 }
 
 func TestGenerateTransaction_NoPrivateKeyShouldError(t *testing.T) {
+	t.Parallel()
+
 	coreComponents := getDefaultCoreComponents()
 	coreComponents.IntMarsh = getMarshalizer()
 	coreComponents.VmMarsh = getMarshalizer()
@@ -1267,6 +1317,8 @@ func TestGenerateTransaction_NoPrivateKeyShouldError(t *testing.T) {
 }
 
 func TestGenerateTransaction_CreateAddressFailsShouldError(t *testing.T) {
+	t.Parallel()
+
 	accAdapter := getAccAdapter(big.NewInt(0))
 	privateKey := getPrivateKey()
 
@@ -1288,6 +1340,7 @@ func TestGenerateTransaction_CreateAddressFailsShouldError(t *testing.T) {
 }
 
 func TestGenerateTransaction_GetAccountFailsShouldError(t *testing.T) {
+	t.Parallel()
 
 	accAdapter := &stateMock.AccountsStub{
 		GetExistingAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
@@ -1315,6 +1368,7 @@ func TestGenerateTransaction_GetAccountFailsShouldError(t *testing.T) {
 }
 
 func TestGenerateTransaction_GetAccountReturnsNilShouldWork(t *testing.T) {
+	t.Parallel()
 
 	accAdapter := &stateMock.AccountsStub{
 		GetExistingAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
@@ -1345,6 +1399,7 @@ func TestGenerateTransaction_GetAccountReturnsNilShouldWork(t *testing.T) {
 }
 
 func TestGenerateTransaction_GetExistingAccountShouldWork(t *testing.T) {
+	t.Parallel()
 
 	accAdapter := getAccAdapter(big.NewInt(0))
 	privateKey := getPrivateKey()
@@ -1371,6 +1426,7 @@ func TestGenerateTransaction_GetExistingAccountShouldWork(t *testing.T) {
 }
 
 func TestGenerateTransaction_MarshalErrorsShouldError(t *testing.T) {
+	t.Parallel()
 
 	accAdapter := getAccAdapter(big.NewInt(0))
 	privateKey := getPrivateKey()
@@ -1401,6 +1457,7 @@ func TestGenerateTransaction_MarshalErrorsShouldError(t *testing.T) {
 }
 
 func TestGenerateTransaction_SignTxErrorsShouldError(t *testing.T) {
+	t.Parallel()
 
 	accAdapter := getAccAdapter(big.NewInt(0))
 	privateKey := &mock.PrivateKeyStub{}
@@ -1427,6 +1484,7 @@ func TestGenerateTransaction_SignTxErrorsShouldError(t *testing.T) {
 }
 
 func TestGenerateTransaction_ShouldSetCorrectSignature(t *testing.T) {
+	t.Parallel()
 
 	accAdapter := getAccAdapter(big.NewInt(0))
 	signature := []byte("signed")
@@ -1456,6 +1514,7 @@ func TestGenerateTransaction_ShouldSetCorrectSignature(t *testing.T) {
 }
 
 func TestGenerateTransaction_ShouldSetCorrectNonce(t *testing.T) {
+	t.Parallel()
 
 	nonce := uint64(7)
 	accAdapter := &stateMock.AccountsStub{
@@ -1494,6 +1553,7 @@ func TestGenerateTransaction_ShouldSetCorrectNonce(t *testing.T) {
 }
 
 func TestGenerateTransaction_CorrectParamsShouldNotError(t *testing.T) {
+	t.Parallel()
 
 	accAdapter := getAccAdapter(big.NewInt(0))
 	privateKey := getPrivateKey()
@@ -1521,6 +1581,8 @@ func TestGenerateTransaction_CorrectParamsShouldNotError(t *testing.T) {
 }
 
 func TestCreateTransaction_NilAddrConverterShouldErr(t *testing.T) {
+	t.Parallel()
+
 	t.Parallel()
 
 	coreComponents := getDefaultCoreComponents()
@@ -1555,6 +1617,8 @@ func TestCreateTransaction_NilAddrConverterShouldErr(t *testing.T) {
 }
 
 func TestCreateTransaction_NilAccountsAdapterShouldErr(t *testing.T) {
+	t.Parallel()
+
 	t.Parallel()
 
 	coreComponents := getDefaultCoreComponents()
