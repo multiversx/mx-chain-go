@@ -1052,7 +1052,12 @@ func (pcf *processComponentsFactory) newBlockTracker(
 			ArgBaseTracker: argBaseTracker,
 		}
 
-		return track.NewShardBlockTrack(arguments)
+		shardBlockTrack, err := track.NewShardBlockTrack(arguments)
+		if err != nil {
+			return nil, err
+		}
+
+		return track.NewSideChainShardBlockTrack(shardBlockTrack)
 	}
 
 	if pcf.bootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
@@ -1423,7 +1428,12 @@ func (pcf *processComponentsFactory) newForkDetector(
 	blockTracker process.BlockTracker,
 ) (process.ForkDetector, error) {
 	if pcf.bootstrapComponents.ShardCoordinator().SelfId() < pcf.bootstrapComponents.ShardCoordinator().NumberOfShards() {
-		return sync.NewShardForkDetector(pcf.coreData.RoundHandler(), headerBlackList, blockTracker, pcf.coreData.GenesisNodesSetup().GetStartTime())
+		shardForkDetector, err := sync.NewShardForkDetector(pcf.coreData.RoundHandler(), headerBlackList, blockTracker, pcf.coreData.GenesisNodesSetup().GetStartTime())
+		if err != nil {
+			return nil, err
+		}
+
+		return sync.NewSideChainShardForkDetector(shardForkDetector)
 	}
 	if pcf.bootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
 		return sync.NewMetaForkDetector(pcf.coreData.RoundHandler(), headerBlackList, blockTracker, pcf.coreData.GenesisNodesSetup().GetStartTime())

@@ -644,7 +644,7 @@ func (boot *baseBootstrap) syncBlock() error {
 		return waitTime - time.Since(startTime)
 	}
 
-	err = boot.processAndCommit(header, body, haveTime)
+	err = boot.processAndCommitFunc(header, body, haveTime)
 	if err != nil {
 		return err
 	}

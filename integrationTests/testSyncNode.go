@@ -168,13 +168,8 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 		return nil, err
 	}
 
-	sideChainBootstrap, err := sync.NewSideChainShardBootstrap(bootstrap)
-	if err != nil {
-		return nil, err
-	}
-
 	return &sync.TestShardBootstrap{
-		SideChainShardBootstrap: sideChainBootstrap,
+		ShardBootstrap: bootstrap,
 	}, nil
 }
 
