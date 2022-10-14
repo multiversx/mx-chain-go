@@ -91,6 +91,9 @@ var ErrQueryError = errors.New("query error")
 // ErrGetPidInfo signals that an error occurred while getting peer ID info
 var ErrGetPidInfo = errors.New("error getting peer id info")
 
+// ErrGetEpochStartData signals that an error occurred while getting the epoch start data for a provided epoch
+var ErrGetEpochStartData = errors.New("error getting epoch start data for epoch")
+
 // ErrTooManyRequests signals that too many requests were simultaneously received
 var ErrTooManyRequests = errors.New("too many requests")
 

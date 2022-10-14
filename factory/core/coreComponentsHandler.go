@@ -81,8 +81,8 @@ func (mcc *managedCoreComponents) Close() error {
 
 // CheckSubcomponents verifies all subcomponents
 func (mcc *managedCoreComponents) CheckSubcomponents() error {
-	mcc.mutCoreComponents.Lock()
-	defer mcc.mutCoreComponents.Unlock()
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
 
 	if mcc.coreComponents == nil {
 		return errors.ErrNilCoreComponents
