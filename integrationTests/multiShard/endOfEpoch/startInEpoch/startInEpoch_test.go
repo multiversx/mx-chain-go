@@ -35,6 +35,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/scheduledDataSyncer"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
+	updateMocks "github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -258,6 +259,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		FlagsConfig: config.ContextFlagsConfig{
 			ForceStartFromNetwork: false,
 		},
+		BootstrapHeartbeatSender: &updateMocks.CloserStub{},
 	}
 
 	epochStartBootstrap, err := bootstrap.NewEpochStartBootstrap(argsBootstrapHandler)

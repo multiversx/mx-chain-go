@@ -106,6 +106,7 @@ type epochStartBootstrap struct {
 	maxHardCapForMissingNodes  int
 	trieSyncerVersion          int
 	checkNodesOnDisk           bool
+	bootstrapHeartbeatSender   update.Closer
 
 	// created components
 	requestHandler            process.RequestHandler
@@ -168,6 +169,7 @@ type ArgsEpochStartBootstrap struct {
 	HeaderIntegrityVerifier    process.HeaderIntegrityVerifier
 	DataSyncerCreator          types.ScheduledDataSyncerCreator
 	ScheduledSCRsStorer        storage.Storer
+	BootstrapHeartbeatSender   update.Closer
 }
 
 type dataToSync struct {
@@ -212,6 +214,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		dataSyncerFactory:          args.DataSyncerCreator,
 		storerScheduledSCRs:        args.ScheduledSCRsStorer,
 		shardCoordinator:           args.GenesisShardCoordinator,
+		bootstrapHeartbeatSender:   args.BootstrapHeartbeatSender,
 	}
 
 	whiteListCache, err := storageunit.NewCache(storageFactory.GetCacherFromConfig(epochStartProvider.generalConfig.WhiteListPool))
@@ -299,6 +302,7 @@ func (e *epochStartBootstrap) isNodeInGenesisNodesConfig() bool {
 // Bootstrap runs the fast bootstrap method from the network or local storage
 func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	defer e.closeTrieComponents()
+	defer e.closeBootstrapHeartbeatSender()
 
 	if e.flagsConfig.ForceStartFromNetwork {
 		log.Warn("epochStartBootstrap.Bootstrap: forcing start from network")
@@ -1238,6 +1242,12 @@ func (e *epochStartBootstrap) closeTrieComponents() {
 	if !check.IfNil(e.storageService) {
 		err := e.storageService.Destroy()
 		log.LogIfError(err)
+	}
+}
+
+func (e *epochStartBootstrap) closeBootstrapHeartbeatSender() {
+	if !check.IfNil(e.bootstrapHeartbeatSender) {
+		log.LogIfError(e.bootstrapHeartbeatSender.Close())
 	}
 }
 

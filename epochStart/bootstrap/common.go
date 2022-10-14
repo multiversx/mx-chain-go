@@ -106,6 +106,9 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 	if args.GeneralConfig.TrieSync.NumConcurrentTrieSyncers < 1 {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrInvalidNumConcurrentTrieSyncers)
 	}
+	if check.IfNil(args.BootstrapHeartbeatSender) {
+		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilHeartbeatSender)
+	}
 
 	return nil
 }

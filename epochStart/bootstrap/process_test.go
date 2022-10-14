@@ -43,6 +43,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/syncer"
 	"github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
 	"github.com/ElrondNetwork/elrond-go/trie/factory"
+	updateMocks "github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -222,6 +223,7 @@ func createMockEpochStartBootstrapArgs(
 		FlagsConfig: config.ContextFlagsConfig{
 			ForceStartFromNetwork: false,
 		},
+		BootstrapHeartbeatSender: &updateMocks.CloserStub{},
 	}
 }
 

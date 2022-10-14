@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"fmt"
 	"path/filepath"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -10,12 +11,16 @@ import (
 	nodeFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/blockchain"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/block"
+	"github.com/ElrondNetwork/elrond-go/heartbeat/sender"
 	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
+	"github.com/ElrondNetwork/elrond-go/process/peer"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
+	"github.com/ElrondNetwork/elrond-go/redundancy"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/directoryhandler"
@@ -157,6 +162,39 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		return nil, err
 	}
 
+	privateKey := bcf.cryptoComponents.PrivateKey()
+	boostrapRedundancy, err := redundancy.NewBootstrapNodeRedundancy(privateKey)
+	if err != nil {
+		return nil, err
+	}
+
+	heartbeatTopic := common.HeartbeatV2Topic + genesisShardCoordinator.CommunicationIdentifier(genesisShardCoordinator.SelfId())
+	peerSubType := core.RegularPeer
+	if bcf.prefConfig.Preferences.FullArchive {
+		peerSubType = core.FullHistoryObserver
+	}
+	heartbeatCfg := bcf.config.HeartbeatV2
+	argsHeartbeatSender := sender.ArgBootstrapSender{
+		Messenger:                          bcf.networkComponents.NetworkMessenger(),
+		Marshaller:                         bcf.coreComponents.InternalMarshalizer(),
+		HeartbeatTopic:                     heartbeatTopic,
+		HeartbeatTimeBetweenSends:          time.Second * time.Duration(heartbeatCfg.HeartbeatTimeBetweenSendsInSec),
+		HeartbeatTimeBetweenSendsWhenError: time.Second * time.Duration(heartbeatCfg.HeartbeatTimeBetweenSendsWhenErrorInSec),
+		HeartbeatThresholdBetweenSends:     heartbeatCfg.HeartbeatThresholdBetweenSends,
+		VersionNumber:                      bcf.flagsConfig.Version,
+		NodeDisplayName:                    bcf.prefConfig.Preferences.NodeDisplayName,
+		Identity:                           bcf.prefConfig.Preferences.Identity,
+		PeerSubType:                        peerSubType,
+		CurrentBlockProvider:               blockchain.NewBootstrapBlockchain(),
+		PrivateKey:                         privateKey,
+		RedundancyHandler:                  boostrapRedundancy,
+		PeerTypeProvider:                   peer.NewBootstrapPeerTypeProvider(),
+	}
+	bootstrapHeartbeatSender, err := sender.NewBootstrapSender(argsHeartbeatSender)
+	if err != nil {
+		return nil, err
+	}
+
 	dataSyncerFactory := bootstrap.NewScheduledDataSyncerFactory()
 
 	epochStartBootstrapArgs := bootstrap.ArgsEpochStartBootstrap{
@@ -179,7 +217,8 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		StatusHandler:              bcf.coreComponents.StatusHandler(),
 		HeaderIntegrityVerifier:    headerIntegrityVerifier,
 		DataSyncerCreator:          dataSyncerFactory,
-		ScheduledSCRsStorer:        nil, // will be updated after sync from network
+		ScheduledSCRsStorer:        nil,                      // will be updated after sync from network
+		BootstrapHeartbeatSender:   bootstrapHeartbeatSender, // will be closed after sync
 	}
 
 	var epochStartBootstrapper factory.EpochStartBootstrapper

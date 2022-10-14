@@ -322,3 +322,6 @@ var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
 
 // ErrNilValidatorInfoStorage signals that nil validator info storage has been provided
 var ErrNilValidatorInfoStorage = errors.New("nil validator info storage")
+
+// ErrNilHeartbeatSender signals that nil heartbeat sender has been provided
+var ErrNilHeartbeatSender = errors.New("nil heartbeat sender")

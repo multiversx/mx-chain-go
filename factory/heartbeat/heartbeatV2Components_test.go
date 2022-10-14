@@ -64,13 +64,13 @@ func createMockHeartbeatV2ComponentsFactoryArgs() heartbeatComp.ArgHeartbeatV2Co
 				Identity:        "identity",
 			},
 		},
-		AppVersion:         "test",
-		BoostrapComponents: bootstrapC,
-		CoreComponents:     coreC,
-		DataComponents:     dataC,
-		NetworkComponents:  networkC,
-		CryptoComponents:   cryptoC,
-		ProcessComponents:  processC,
+		AppVersion:          "test",
+		BootstrapComponents: bootstrapC,
+		CoreComponents:      coreC,
+		DataComponents:      dataC,
+		NetworkComponents:   networkC,
+		CryptoComponents:    cryptoC,
+		ProcessComponents:   processC,
 	}
 }
 

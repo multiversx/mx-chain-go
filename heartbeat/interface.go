@@ -103,6 +103,7 @@ type ValidatorStatisticsProcessor interface {
 // CurrentBlockProvider can provide the current block that the node was able to commit
 type CurrentBlockProvider interface {
 	GetCurrentBlockHeader() data.HeaderHandler
+	SetCurrentBlockHeaderAndRootHash(bh data.HeaderHandler, rootHash []byte) error
 	IsInterfaceNil() bool
 }
 
