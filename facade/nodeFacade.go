@@ -337,11 +337,6 @@ func (nf *nodeFacade) GetAccount(address string, options apiData.AccountQueryOpt
 	return accountResponse, blockInfo, nil
 }
 
-// TODO: refactor GetAccounts. Make AccountRepository/AccountsAdapterAPI able to return the entire accounts adapter in order to
-// only fetch it once, and then re-use it for getting all the accounts.
-// Currently, there is no improvement in changing the existing mechanism (GetAccount -> GetAccount*s*) since it would
-// still mean the recreation of the trie for each of the account
-
 // GetAccounts returns the state of the provided addresses
 func (nf *nodeFacade) GetAccounts(addresses []string, options apiData.AccountQueryOptions) (map[string]*apiData.AccountResponse, apiData.BlockInfo, error) {
 	numAddresses := uint32(len(addresses))
