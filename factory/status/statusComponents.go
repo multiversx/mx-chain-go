@@ -26,7 +26,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 // TODO: move app status handler initialization here
@@ -42,32 +41,34 @@ type statusComponents struct {
 
 // StatusComponentsFactoryArgs redefines the arguments structure needed for the status components factory
 type StatusComponentsFactoryArgs struct {
-	Config             config.Config
-	ExternalConfig     config.ExternalConfig
-	EconomicsConfig    config.EconomicsConfig
-	ShardCoordinator   sharding.Coordinator
-	NodesCoordinator   nodesCoordinator.NodesCoordinator
-	EpochStartNotifier factory.EpochStartNotifier
-	CoreComponents     factory.CoreComponentsHolder
-	DataComponents     factory.DataComponentsHolder
-	NetworkComponents  factory.NetworkComponentsHolder
-	StateComponents    factory.StateComponentsHolder
-	IsInImportMode     bool
+	Config               config.Config
+	ExternalConfig       config.ExternalConfig
+	EconomicsConfig      config.EconomicsConfig
+	ShardCoordinator     sharding.Coordinator
+	NodesCoordinator     nodesCoordinator.NodesCoordinator
+	EpochStartNotifier   factory.EpochStartNotifier
+	CoreComponents       factory.CoreComponentsHolder
+	StatusCoreComponents factory.StatusCoreComponentsHolder
+	DataComponents       factory.DataComponentsHolder
+	NetworkComponents    factory.NetworkComponentsHolder
+	StateComponents      factory.StateComponentsHolder
+	IsInImportMode       bool
 }
 
 type statusComponentsFactory struct {
-	config             config.Config
-	externalConfig     config.ExternalConfig
-	economicsConfig    config.EconomicsConfig
-	shardCoordinator   sharding.Coordinator
-	nodesCoordinator   nodesCoordinator.NodesCoordinator
-	epochStartNotifier factory.EpochStartNotifier
-	forkDetector       process.ForkDetector
-	coreComponents     factory.CoreComponentsHolder
-	dataComponents     factory.DataComponentsHolder
-	networkComponents  factory.NetworkComponentsHolder
-	stateComponents    factory.StateComponentsHolder
-	isInImportMode     bool
+	config               config.Config
+	externalConfig       config.ExternalConfig
+	economicsConfig      config.EconomicsConfig
+	shardCoordinator     sharding.Coordinator
+	nodesCoordinator     nodesCoordinator.NodesCoordinator
+	epochStartNotifier   factory.EpochStartNotifier
+	forkDetector         process.ForkDetector
+	coreComponents       factory.CoreComponentsHolder
+	statusCoreComponents factory.StatusCoreComponentsHolder
+	dataComponents       factory.DataComponentsHolder
+	networkComponents    factory.NetworkComponentsHolder
+	stateComponents      factory.StateComponentsHolder
+	isInImportMode       bool
 }
 
 var log = logger.GetOrCreate("factory")
@@ -98,36 +99,29 @@ func NewStatusComponentsFactory(args StatusComponentsFactoryArgs) (*statusCompon
 	if check.IfNil(args.EpochStartNotifier) {
 		return nil, errors.ErrNilEpochStartNotifier
 	}
+	if check.IfNil(args.StatusCoreComponents) {
+		return nil, errors.ErrNilStatusCoreComponents
+	}
 
 	return &statusComponentsFactory{
-		config:             args.Config,
-		externalConfig:     args.ExternalConfig,
-		economicsConfig:    args.EconomicsConfig,
-		shardCoordinator:   args.ShardCoordinator,
-		nodesCoordinator:   args.NodesCoordinator,
-		epochStartNotifier: args.EpochStartNotifier,
-		coreComponents:     args.CoreComponents,
-		dataComponents:     args.DataComponents,
-		networkComponents:  args.NetworkComponents,
-		stateComponents:    args.StateComponents,
-		isInImportMode:     args.IsInImportMode,
+		config:               args.Config,
+		externalConfig:       args.ExternalConfig,
+		economicsConfig:      args.EconomicsConfig,
+		shardCoordinator:     args.ShardCoordinator,
+		nodesCoordinator:     args.NodesCoordinator,
+		epochStartNotifier:   args.EpochStartNotifier,
+		coreComponents:       args.CoreComponents,
+		statusCoreComponents: args.StatusCoreComponents,
+		dataComponents:       args.DataComponents,
+		networkComponents:    args.NetworkComponents,
+		stateComponents:      args.StateComponents,
+		isInImportMode:       args.IsInImportMode,
 	}, nil
 }
 
 // Create will create and return the status components
 func (scf *statusComponentsFactory) Create() (*statusComponents, error) {
 	var err error
-	var resMon *statistics.ResourceMonitor
-	log.Trace("initializing stats file")
-	if scf.config.ResourceStats.Enabled {
-		resMon, err = startStatisticsMonitor(
-			&scf.config,
-			scf.coreComponents.PathHandler(),
-			core.GetShardIDString(scf.shardCoordinator.SelfId()))
-		if err != nil {
-			return nil, err
-		}
-	}
 
 	log.Trace("creating software checker structure")
 	softwareVersionCheckerFactory, err := swVersionFactory.NewSoftwareVersionFactory(
@@ -162,7 +156,6 @@ func (scf *statusComponentsFactory) Create() (*statusComponents, error) {
 		softwareVersion:  softwareVersionChecker,
 		outportHandler:   outportHandler,
 		statusHandler:    scf.coreComponents.StatusHandler(),
-		resourceMonitor:  resMon,
 		cancelFunc:       cancelFunc,
 	}
 
@@ -201,10 +194,6 @@ func (pc *statusComponents) Close() error {
 
 	if !check.IfNil(pc.softwareVersion) {
 		log.LogIfError(pc.softwareVersion.Close())
-	}
-
-	if !check.IfNil(pc.resourceMonitor) {
-		log.LogIfError(pc.resourceMonitor.Close())
 	}
 
 	return nil
@@ -299,22 +288,4 @@ func (scf *statusComponentsFactory) makeWebSocketDriverArgs() (wsDriverFactory.O
 		Log:                      log,
 		WithAcknowledge:          scf.externalConfig.WebSocketConnector.WithAcknowledge,
 	}, nil
-}
-
-func startStatisticsMonitor(
-	generalConfig *config.Config,
-	pathManager storage.PathManagerHandler,
-	shardId string,
-) (*statistics.ResourceMonitor, error) {
-	if generalConfig.ResourceStats.RefreshIntervalInSec < 1 {
-		return nil, fmt.Errorf("invalid RefreshIntervalInSec in section [ResourceStats]. Should be an integer higher than 1")
-	}
-	resMon, err := statistics.NewResourceMonitor(generalConfig, pathManager, shardId)
-	if err != nil {
-		return nil, err
-	}
-
-	resMon.StartMonitoring()
-
-	return resMon, nil
 }
