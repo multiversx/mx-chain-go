@@ -3,6 +3,8 @@ package preprocess
 import (
 	"bytes"
 	"errors"
+	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
+	"github.com/stretchr/testify/require"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -494,4 +496,76 @@ func TestNewValidatorInfoPreprocessor_RestoreValidatorsInfo(t *testing.T) {
 		assert.Nil(t, err)
 		assert.True(t, wasCalledWithExpectedKey)
 	})
+}
+
+func TestValidatorInfoPreprocessor_SaveTxsToStorageShouldWork(t *testing.T) {
+	t.Parallel()
+
+	txHash1 := []byte("txHash1")
+	txHash2 := []byte("txHash2")
+	txHash3 := []byte("txHash3")
+	txHash4 := []byte("txHash4")
+
+	tdp := initDataPool()
+
+	tdp.ValidatorsInfoCalled = func() dataRetriever.ShardedDataCacherNotifier {
+		return &testscommon.ShardedDataStub{
+			SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+				if bytes.Equal(key, txHash1) {
+					return nil, false
+				}
+				if bytes.Equal(key, txHash2) {
+					return &state.ValidatorInfo{}, true
+				}
+				if bytes.Equal(key, txHash3) {
+					return &state.ShardValidatorInfo{}, true
+				}
+				if bytes.Equal(key, txHash4) {
+					return &rewardTx.RewardTx{}, true
+				}
+				return nil, false
+			},
+		}
+	}
+
+	putHashes := make([][]byte, 0)
+	storer := &storage.ChainStorerStub{
+		PutCalled: func(unitType dataRetriever.UnitType, key []byte, value []byte) error {
+			putHashes = append(putHashes, key)
+			return nil
+		},
+	}
+
+	vip, _ := NewValidatorInfoPreprocessor(
+		&hashingMocks.HasherMock{},
+		&testscommon.MarshalizerMock{},
+		&testscommon.BlockSizeComputationStub{},
+		tdp.ValidatorsInfo(),
+		storer,
+		&testscommon.EnableEpochsHandlerStub{},
+	)
+
+	err := vip.SaveTxsToStorage(nil)
+	assert.Equal(t, process.ErrNilBlockBody, err)
+
+	peersHashes := [][]byte{txHash1, txHash2, txHash3}
+	rewardsHashes := [][]byte{txHash4}
+
+	mb1 := block.MiniBlock{
+		TxHashes: rewardsHashes,
+		Type:     block.RewardsBlock,
+	}
+	mb2 := block.MiniBlock{
+		TxHashes: peersHashes,
+		Type:     block.PeerBlock,
+	}
+
+	blockBody := &block.Body{}
+	blockBody.MiniBlocks = append(blockBody.MiniBlocks, &mb1, &mb2)
+
+	err = vip.SaveTxsToStorage(blockBody)
+
+	assert.Nil(t, err)
+	require.Equal(t, 1, len(putHashes))
+	assert.Equal(t, txHash3, putHashes[0])
 }
