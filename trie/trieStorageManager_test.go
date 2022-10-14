@@ -311,7 +311,7 @@ func TestTrieStorageManager_TakeSnapshotNilErrorChan(t *testing.T) {
 
 	rootHash := []byte("rootHash")
 	leavesChan := make(chan core.KeyValueHolder)
-	ts.TakeSnapshot(rootHash, rootHash, leavesChan, nil, nil, &trieMock.MockStatistics{}, 0)
+	ts.TakeSnapshot(nil, rootHash, rootHash, leavesChan, nil, nil, &trieMock.MockStatistics{}, 0)
 
 	_, ok := <-leavesChan
 	assert.False(t, ok)
@@ -329,7 +329,7 @@ func TestTrieStorageManager_TakeSnapshotClosedDb(t *testing.T) {
 	rootHash := []byte("rootHash")
 	leavesChan := make(chan core.KeyValueHolder)
 	errChan := make(chan error, 1)
-	ts.TakeSnapshot(rootHash, rootHash, leavesChan, nil, errChan, &trieMock.MockStatistics{}, 0)
+	ts.TakeSnapshot(nil, rootHash, rootHash, leavesChan, nil, errChan, &trieMock.MockStatistics{}, 0)
 
 	_, ok := <-leavesChan
 	assert.False(t, ok)
@@ -345,7 +345,7 @@ func TestTrieStorageManager_TakeSnapshotEmptyTrieRootHash(t *testing.T) {
 	rootHash := make([]byte, 32)
 	leavesChan := make(chan core.KeyValueHolder)
 	errChan := make(chan error, 1)
-	ts.TakeSnapshot(rootHash, rootHash, leavesChan, nil, errChan, &trieMock.MockStatistics{}, 0)
+	ts.TakeSnapshot(nil, rootHash, rootHash, leavesChan, nil, errChan, &trieMock.MockStatistics{}, 0)
 
 	_, ok := <-leavesChan
 	assert.False(t, ok)
@@ -363,7 +363,7 @@ func TestTrieStorageManager_TakeSnapshotWithGetNodeFromDBError(t *testing.T) {
 	leavesChan := make(chan core.KeyValueHolder)
 	errChan := make(chan error, 1)
 	missingNodesChan := make(chan []byte, 2)
-	ts.TakeSnapshot(rootHash, rootHash, leavesChan, missingNodesChan, errChan, &trieMock.MockStatistics{}, 0)
+	ts.TakeSnapshot(nil, rootHash, rootHash, leavesChan, missingNodesChan, errChan, &trieMock.MockStatistics{}, 0)
 	_, ok := <-leavesChan
 	assert.False(t, ok)
 
