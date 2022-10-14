@@ -67,7 +67,8 @@ func (ss *snapshotStatistics) SyncFinished() {
 
 // GetSnapshotDuration will get the duration in seconds of the last snapshot
 func (ss *snapshotStatistics) GetSnapshotDuration() int64 {
-	return int64(time.Since(ss.startTime).Truncate(time.Second).Seconds())
+	duration := time.Since(ss.startTime).Truncate(time.Second)
+	return int64(duration.Seconds())
 }
 
 // PrintStats will print the stats after the snapshot has finished

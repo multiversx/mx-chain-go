@@ -36,7 +36,7 @@ func (ash *appStatusHandler) SetStringValue(key string, value string) {
 func (ash *appStatusHandler) Close() {
 }
 
-// IsInterfaceNil -
+// IsInterfaceNil returns nil if there is no value under the interface
 func (ash *appStatusHandler) IsInterfaceNil() bool {
 	return ash == nil
 }
