@@ -163,7 +163,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 	}
 
 	privateKey := bcf.cryptoComponents.PrivateKey()
-	boostrapRedundancy, err := redundancy.NewBootstrapNodeRedundancy(privateKey)
+	bootstrapRedundancy, err := redundancy.NewBootstrapNodeRedundancy(privateKey)
 	if err != nil {
 		return nil, err
 	}
@@ -187,7 +187,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		PeerSubType:                        peerSubType,
 		CurrentBlockProvider:               blockchain.NewBootstrapBlockchain(),
 		PrivateKey:                         privateKey,
-		RedundancyHandler:                  boostrapRedundancy,
+		RedundancyHandler:                  bootstrapRedundancy,
 		PeerTypeProvider:                   peer.NewBootstrapPeerTypeProvider(),
 	}
 	bootstrapHeartbeatSender, err := sender.NewBootstrapSender(argsHeartbeatSender)
