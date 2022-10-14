@@ -1,9 +1,14 @@
 package blockchain
 
-import "github.com/ElrondNetwork/elrond-go-core/data"
+import (
+	"sync"
+
+	"github.com/ElrondNetwork/elrond-go-core/data"
+)
 
 type bootstrapBlockchain struct {
 	currentBlockHeader data.HeaderHandler
+	mut                sync.RWMutex
 }
 
 // NewBootstrapBlockchain returns a new instance of bootstrapBlockchain
@@ -14,11 +19,16 @@ func NewBootstrapBlockchain() *bootstrapBlockchain {
 
 // GetCurrentBlockHeader returns the current block header
 func (bbc *bootstrapBlockchain) GetCurrentBlockHeader() data.HeaderHandler {
+	bbc.mut.RLock()
+	defer bbc.mut.RUnlock()
 	return bbc.currentBlockHeader
 }
 
 // SetCurrentBlockHeaderAndRootHash returns nil always and saves the current block header
 func (bbc *bootstrapBlockchain) SetCurrentBlockHeaderAndRootHash(bh data.HeaderHandler, _ []byte) error {
+	bbc.mut.Lock()
+	defer bbc.mut.Unlock()
+
 	bbc.currentBlockHeader = bh
 	return nil
 }

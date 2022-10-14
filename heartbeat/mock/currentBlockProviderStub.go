@@ -10,6 +10,7 @@ type CurrentBlockProviderStub struct {
 	SetCurrentBlockHeaderAndRootHashCalled func(bh data.HeaderHandler, rootHash []byte) error
 }
 
+// SetCurrentBlockHeaderAndRootHash -
 func (cbps *CurrentBlockProviderStub) SetCurrentBlockHeaderAndRootHash(bh data.HeaderHandler, rootHash []byte) error {
 	if cbps.SetCurrentBlockHeaderAndRootHashCalled != nil {
 		return cbps.SetCurrentBlockHeaderAndRootHashCalled(bh, rootHash)
