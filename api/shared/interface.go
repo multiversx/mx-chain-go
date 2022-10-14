@@ -93,6 +93,7 @@ type FacadeHandler interface {
 	GetAllIssuedESDTs(tokenType string) ([]string, error)
 	GetHeartbeats() ([]data.PubKeyHeartbeat, error)
 	GetQueryHandler(name string) (debug.QueryHandler, error)
+	GetEpochStartDataAPI(epoch uint32) (*common.EpochStartDataAPI, error)
 	GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error)
 	GetProof(rootHash string, address string) (*common.GetProofResponse, error)
 	GetProofDataTrie(rootHash string, address string, key string) (*common.GetProofResponse, *common.GetProofResponse, error)

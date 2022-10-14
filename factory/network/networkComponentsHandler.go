@@ -68,8 +68,8 @@ func (mnc *managedNetworkComponents) Close() error {
 
 // CheckSubcomponents verifies all subcomponents
 func (mnc *managedNetworkComponents) CheckSubcomponents() error {
-	mnc.mutNetworkComponents.Lock()
-	defer mnc.mutNetworkComponents.Unlock()
+	mnc.mutNetworkComponents.RLock()
+	defer mnc.mutNetworkComponents.RUnlock()
 
 	if mnc.networkComponents == nil {
 		return errors.ErrNilNetworkComponents

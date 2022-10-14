@@ -666,8 +666,11 @@ func TestEnableEpochConfig(t *testing.T) {
     # FixAsyncCallBackArgsListEnableEpoch represents the epoch when the async callback arguments lists fix will be enabled
     FixAsyncCallBackArgsListEnableEpoch = 57
 
+	# FixOldTokenLiquidityEnableEpoch represents the epoch when the fix for old token liquidity is enabled
+	FixOldTokenLiquidityEnableEpoch = 58
+
 	# SetSenderInEeiOutputTransferEnableEpoch represents the epoch when setting the sender in eei output transfers will be enabled
-    SetSenderInEeiOutputTransferEnableEpoch = 58
+    SetSenderInEeiOutputTransferEnableEpoch = 59
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
@@ -758,7 +761,8 @@ func TestEnableEpochConfig(t *testing.T) {
 			HeartbeatDisableEpoch:                       55,
 			ESDTMetadataContinuousCleanupEnableEpoch:    56,
 			FixAsyncCallBackArgsListEnableEpoch:         57,
-			SetSenderInEeiOutputTransferEnableEpoch:     58,
+			FixOldTokenLiquidityEnableEpoch:             58,
+			SetSenderInEeiOutputTransferEnableEpoch:     59,
 			BLSMultiSignerEnableEpoch: []MultiSignerConfig{
 				{
 					EnableEpoch: 0,

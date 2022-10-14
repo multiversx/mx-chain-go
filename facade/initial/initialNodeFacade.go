@@ -241,6 +241,11 @@ func (inf *initialNodeFacade) GetPeerInfo(_ string) ([]core.QueryP2PPeerInfo, er
 	return nil, errNodeStarting
 }
 
+// GetEpochStartDataAPI returns nil and error
+func (inf *initialNodeFacade) GetEpochStartDataAPI(_ uint32) (*common.EpochStartDataAPI, error) {
+	return nil, errNodeStarting
+}
+
 // GetThrottlerForEndpoint returns nil and false
 func (inf *initialNodeFacade) GetThrottlerForEndpoint(_ string) (core.Throttler, bool) {
 	return nil, false
