@@ -2017,7 +2017,7 @@ func TestScProcessor_processVMOutputNilSndAcc(t *testing.T) {
 	_, err = sc.processVMOutput(&vmcommon.VMInput{
 		CallType:    vmData.DirectCall,
 		GasProvided: 0,
-	}, vmOutput, txHash, tx, nil, 0)
+	}, vmOutput, txHash, tx, nil, NewFailureContext(sc))
 	require.Nil(t, err)
 }
 
@@ -2051,7 +2051,7 @@ func TestScProcessor_processVMOutputNilDstAcc(t *testing.T) {
 	_, err = sc.processVMOutput(&vmcommon.VMInput{
 		CallType:    vmData.DirectCall,
 		GasProvided: 0,
-	}, vmOutput, txHash, tx, nil, 0)
+	}, vmOutput, txHash, tx, nil, NewFailureContext(sc))
 	require.Nil(t, err)
 }
 
@@ -2478,7 +2478,7 @@ func TestScProcessor_processVMOutput(t *testing.T) {
 	_, err = sc.processVMOutput(&vmcommon.VMInput{
 		CallType:    vmData.DirectCall,
 		GasProvided: 0,
-	}, vmOutput, txHash, tx, nil, 0)
+	}, vmOutput, txHash, tx, nil, NewFailureContext(sc))
 	require.Nil(t, err)
 }
 
@@ -2728,7 +2728,7 @@ func TestScProcessor_CreateCrossShardTransactionsWithAsyncCalls(t *testing.T) {
 		Arguments:   [][]byte{{}, {}},
 		CallType:    vmData.AsynchronousCall,
 		GasProvided: 10000,
-	}, &vmcommon.VMOutput{GasRemaining: 1000}, txHash, tx, nil, 0)
+	}, &vmcommon.VMOutput{GasRemaining: 1000}, txHash, tx, nil, NewFailureContext(sc))
 	require.Nil(t, err)
 	require.Equal(t, 1, len(scTxs))
 	lastScTx = scTxs[len(scTxs)-1].(*smartContractResult.SmartContractResult)
