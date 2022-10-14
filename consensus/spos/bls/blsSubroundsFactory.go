@@ -16,13 +16,14 @@ type factory struct {
 	consensusState *spos.ConsensusState
 	worker         spos.WorkerHandler
 
-	appStatusHandler core.AppStatusHandler
-	outportHandler   outport.OutportHandler
-	chainID          []byte
-	currentPid       core.PeerID
+	appStatusHandler            core.AppStatusHandler
+	outportHandler              outport.OutportHandler
+	chainID                     []byte
+	currentPid                  core.PeerID
+	generateBlockSubroundMethod func() error
 }
 
-// NewSubroundsFactory creates a new consensusState object
+// NewSubroundsFactory creates a new factory object
 func NewSubroundsFactory(
 	consensusDataContainer spos.ConsensusCoreHandler,
 	consensusState *spos.ConsensusState,
@@ -50,6 +51,8 @@ func NewSubroundsFactory(
 		chainID:          chainID,
 		currentPid:       currentPid,
 	}
+
+	fct.generateBlockSubroundMethod = fct.generateBlockSubround
 
 	return &fct, nil
 }
@@ -97,7 +100,7 @@ func (fct *factory) GenerateSubrounds() error {
 		return err
 	}
 
-	err = fct.generateBlockSubround()
+	err = fct.generateBlockSubroundMethod()
 	if err != nil {
 		return err
 	}
@@ -189,15 +192,10 @@ func (fct *factory) generateBlockSubround() error {
 		return err
 	}
 
-	sideChainSubroundBlock, err := NewSideChainSubroundBlock(subroundBlock)
-	if err != nil {
-		return err
-	}
-
-	fct.worker.AddReceivedMessageCall(MtBlockBodyAndHeader, sideChainSubroundBlock.receivedBlockBodyAndHeader)
-	fct.worker.AddReceivedMessageCall(MtBlockBody, sideChainSubroundBlock.receivedBlockBody)
-	fct.worker.AddReceivedMessageCall(MtBlockHeader, sideChainSubroundBlock.receivedBlockHeader)
-	fct.consensusCore.Chronology().AddSubround(sideChainSubroundBlock)
+	fct.worker.AddReceivedMessageCall(MtBlockBodyAndHeader, subroundBlock.receivedBlockBodyAndHeader)
+	fct.worker.AddReceivedMessageCall(MtBlockBody, subroundBlock.receivedBlockBody)
+	fct.worker.AddReceivedMessageCall(MtBlockHeader, subroundBlock.receivedBlockHeader)
+	fct.consensusCore.Chronology().AddSubround(subroundBlock)
 
 	return nil
 }

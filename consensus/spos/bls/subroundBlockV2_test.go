@@ -14,26 +14,26 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewSideChainSubroundBlock_ShouldErrNilSubround(t *testing.T) {
+func TestNewSubroundBlockV2_ShouldErrNilSubround(t *testing.T) {
 	t.Parallel()
 
-	scsr, err := bls.NewSideChainSubroundBlock(nil)
-	assert.Nil(t, scsr)
+	sr, err := bls.NewSubroundBlockV2(nil)
+	assert.Nil(t, sr)
 	assert.Equal(t, spos.ErrNilSubround, err)
 }
 
-func TestNewSideChainSubroundBlock_ShouldWork(t *testing.T) {
+func TestNewSubroundBlockV2_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	container := mock.InitConsensusCore()
 	sr := initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
 
-	scsr, err := bls.NewSideChainSubroundBlock(sr)
-	assert.NotNil(t, scsr)
+	srV2, err := bls.NewSubroundBlockV2(sr)
+	assert.NotNil(t, srV2)
 	assert.Nil(t, err)
 }
 
-func TestSideChainSubroundBlock_DoBlockJob(t *testing.T) {
+func TestSubroundBlockV2_DoBlockJob(t *testing.T) {
 	t.Parallel()
 
 	t.Run("if self is not leader in current round, should return false", func(t *testing.T) {
@@ -41,9 +41,9 @@ func TestSideChainSubroundBlock_DoBlockJob(t *testing.T) {
 
 		container := mock.InitConsensusCore()
 		sr := initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
-		scsr, _ := bls.NewSideChainSubroundBlock(sr)
+		srV2, _ := bls.NewSubroundBlockV2(sr)
 
-		r := scsr.DoBlockJob()
+		r := srV2.DoBlockJob()
 		assert.False(t, r)
 	})
 
@@ -52,11 +52,11 @@ func TestSideChainSubroundBlock_DoBlockJob(t *testing.T) {
 
 		container := mock.InitConsensusCore()
 		sr := initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
-		scsr, _ := bls.NewSideChainSubroundBlock(sr)
-		scsr.SetSelfPubKey(scsr.ConsensusGroup()[0])
-		_ = scsr.SetJobDone(scsr.SelfPubKey(), bls.SrBlock, true)
+		srV2, _ := bls.NewSubroundBlockV2(sr)
+		srV2.SetSelfPubKey(srV2.ConsensusGroup()[0])
+		_ = srV2.SetJobDone(srV2.SelfPubKey(), bls.SrBlock, true)
 
-		r := scsr.DoBlockJob()
+		r := srV2.DoBlockJob()
 		assert.False(t, r)
 	})
 
@@ -65,15 +65,15 @@ func TestSideChainSubroundBlock_DoBlockJob(t *testing.T) {
 
 		container := mock.InitConsensusCore()
 		sr := initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
-		scsr, _ := bls.NewSideChainSubroundBlock(sr)
-		scsr.SetSelfPubKey(scsr.ConsensusGroup()[0])
-		_ = scsr.SetJobDone(scsr.SelfPubKey(), bls.SrBlock, true)
+		srV2, _ := bls.NewSubroundBlockV2(sr)
+		srV2.SetSelfPubKey(srV2.ConsensusGroup()[0])
+		_ = srV2.SetJobDone(srV2.SelfPubKey(), bls.SrBlock, true)
 		container.SetRoundHandler(&mock.RoundHandlerMock{
 			RoundIndex: 1,
 		})
-		scsr.SetStatus(bls.SrBlock, spos.SsFinished)
+		srV2.SetStatus(bls.SrBlock, spos.SsFinished)
 
-		r := scsr.DoBlockJob()
+		r := srV2.DoBlockJob()
 		assert.False(t, r)
 	})
 
@@ -82,12 +82,12 @@ func TestSideChainSubroundBlock_DoBlockJob(t *testing.T) {
 
 		container := mock.InitConsensusCore()
 		sr := initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
-		scsr, _ := bls.NewSideChainSubroundBlock(sr)
-		scsr.SetSelfPubKey(scsr.ConsensusGroup()[0])
+		srV2, _ := bls.NewSubroundBlockV2(sr)
+		srV2.SetSelfPubKey(srV2.ConsensusGroup()[0])
 		container.SetRoundHandler(&mock.RoundHandlerMock{
 			RoundIndex: 1,
 		})
-		scsr.SetStatus(bls.SrBlock, spos.SsFinished)
+		srV2.SetStatus(bls.SrBlock, spos.SsFinished)
 		bpm := &mock.BlockProcessorMock{}
 		err := errors.New("error")
 		bpm.CreateBlockCalled = func(header data.HeaderHandler, remainingTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
@@ -95,7 +95,7 @@ func TestSideChainSubroundBlock_DoBlockJob(t *testing.T) {
 		}
 		container.SetBlockProcessor(bpm)
 
-		r := scsr.DoBlockJob()
+		r := srV2.DoBlockJob()
 		assert.False(t, r)
 	})
 
@@ -104,8 +104,8 @@ func TestSideChainSubroundBlock_DoBlockJob(t *testing.T) {
 
 		container := mock.InitConsensusCore()
 		sr := initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
-		scsr, _ := bls.NewSideChainSubroundBlock(sr)
-		scsr.SetSelfPubKey(scsr.ConsensusGroup()[0])
+		srV2, _ := bls.NewSubroundBlockV2(sr)
+		srV2.SetSelfPubKey(srV2.ConsensusGroup()[0])
 		container.SetRoundHandler(&mock.RoundHandlerMock{
 			RoundIndex: 1,
 		})
@@ -116,7 +116,7 @@ func TestSideChainSubroundBlock_DoBlockJob(t *testing.T) {
 		}
 		container.SetBlockProcessor(bpm)
 
-		r := scsr.DoBlockJob()
+		r := srV2.DoBlockJob()
 		assert.False(t, r)
 	})
 
@@ -125,8 +125,8 @@ func TestSideChainSubroundBlock_DoBlockJob(t *testing.T) {
 
 		container := mock.InitConsensusCore()
 		sr := initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
-		scsr, _ := bls.NewSideChainSubroundBlock(sr)
-		scsr.SetSelfPubKey(scsr.ConsensusGroup()[0])
+		srV2, _ := bls.NewSubroundBlockV2(sr)
+		srV2.SetSelfPubKey(srV2.ConsensusGroup()[0])
 		container.SetRoundHandler(&mock.RoundHandlerMock{
 			RoundIndex: 1,
 		})
@@ -137,7 +137,7 @@ func TestSideChainSubroundBlock_DoBlockJob(t *testing.T) {
 		}
 		container.SetBlockProcessor(bpm)
 
-		r := scsr.DoBlockJob()
+		r := srV2.DoBlockJob()
 		assert.False(t, r)
 	})
 
@@ -146,8 +146,8 @@ func TestSideChainSubroundBlock_DoBlockJob(t *testing.T) {
 
 		container := mock.InitConsensusCore()
 		sr := initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
-		scsr, _ := bls.NewSideChainSubroundBlock(sr)
-		scsr.SetSelfPubKey(scsr.ConsensusGroup()[0])
+		srV2, _ := bls.NewSubroundBlockV2(sr)
+		srV2.SetSelfPubKey(srV2.ConsensusGroup()[0])
 		container.SetRoundHandler(&mock.RoundHandlerMock{
 			RoundIndex: 1,
 		})
@@ -161,7 +161,7 @@ func TestSideChainSubroundBlock_DoBlockJob(t *testing.T) {
 		}
 		container.SetBroadcastMessenger(bm)
 
-		r := scsr.DoBlockJob()
+		r := srV2.DoBlockJob()
 		assert.False(t, r)
 	})
 
@@ -170,8 +170,8 @@ func TestSideChainSubroundBlock_DoBlockJob(t *testing.T) {
 
 		container := mock.InitConsensusCore()
 		sr := initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
-		scsr, _ := bls.NewSideChainSubroundBlock(sr)
-		scsr.SetSelfPubKey(scsr.ConsensusGroup()[0])
+		srV2, _ := bls.NewSubroundBlockV2(sr)
+		srV2.SetSelfPubKey(srV2.ConsensusGroup()[0])
 		container.SetRoundHandler(&mock.RoundHandlerMock{
 			RoundIndex: 1,
 		})
@@ -182,7 +182,7 @@ func TestSideChainSubroundBlock_DoBlockJob(t *testing.T) {
 		}
 		container.SetBlockProcessor(bpm)
 
-		r := scsr.DoBlockJob()
+		r := srV2.DoBlockJob()
 		assert.False(t, r)
 	})
 
@@ -191,13 +191,13 @@ func TestSideChainSubroundBlock_DoBlockJob(t *testing.T) {
 
 		container := mock.InitConsensusCore()
 		sr := initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
-		scsr, _ := bls.NewSideChainSubroundBlock(sr)
-		scsr.SetSelfPubKey(scsr.ConsensusGroup()[0])
+		srV2, _ := bls.NewSubroundBlockV2(sr)
+		srV2.SetSelfPubKey(srV2.ConsensusGroup()[0])
 		container.SetRoundHandler(&mock.RoundHandlerMock{
 			RoundIndex: 1,
 		})
 
-		r := scsr.DoBlockJob()
+		r := srV2.DoBlockJob()
 		assert.True(t, r)
 		assert.Equal(t, uint64(1), sr.Header.GetNonce())
 	})
