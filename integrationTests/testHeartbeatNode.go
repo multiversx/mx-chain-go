@@ -25,7 +25,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
-	"github.com/ElrondNetwork/elrond-go/heartbeat/monitor"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/processor"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/sender"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
@@ -99,6 +98,7 @@ type TestHeartbeatNode struct {
 	RequestedItemsHandler        dataRetriever.RequestedItemsHandler
 	RequestsProcessor            update.Closer
 	ShardSender                  update.Closer
+	DirectConnectionProcessor    update.Closer
 	Interceptor                  *CountInterceptor
 	heartbeatExpiryTimespanInSec int64
 }
@@ -373,7 +373,7 @@ func (thn *TestHeartbeatNode) InitTestHeartbeatNode(tb testing.TB, minPeersWaiti
 	thn.initResolvers()
 	thn.initInterceptors()
 	thn.initShardSender(tb)
-	thn.initCrossShardPeerTopicNotifier(tb)
+	thn.initDirectConnectionProcessor(tb)
 
 	for len(thn.Messenger.Peers()) < minPeersWaiting {
 		time.Sleep(time.Second)
@@ -634,15 +634,18 @@ func (thn *TestHeartbeatNode) initShardSender(tb testing.TB) {
 	require.Nil(tb, err)
 }
 
-func (thn *TestHeartbeatNode) initCrossShardPeerTopicNotifier(tb testing.TB) {
-	argsCrossShardPeerTopicNotifier := monitor.ArgsCrossShardPeerTopicNotifier{
-		ShardCoordinator: thn.ShardCoordinator,
-		PeerShardMapper:  thn.PeerShardMapper,
+func (thn *TestHeartbeatNode) initDirectConnectionProcessor(tb testing.TB) {
+	argsDirectConnectionProcessor := processor.ArgsDirectConnectionProcessor{
+		TimeToReadDirectConnections: 15 * time.Second,
+		Messenger:                   thn.Messenger,
+		PeerShardMapper:             thn.PeerShardMapper,
+		ShardCoordinator:            thn.ShardCoordinator,
+		BaseIntraShardTopic:         ShardTopic,
+		BaseCrossShardTopic:         ShardTopic,
 	}
-	crossShardPeerTopicNotifier, err := monitor.NewCrossShardPeerTopicNotifier(argsCrossShardPeerTopicNotifier)
-	require.Nil(tb, err)
 
-	err = thn.Messenger.AddPeerTopicNotifier(crossShardPeerTopicNotifier)
+	var err error
+	thn.DirectConnectionProcessor, err = processor.NewDirectConnectionProcessor(argsDirectConnectionProcessor)
 	require.Nil(tb, err)
 }
 
@@ -774,6 +777,7 @@ func (thn *TestHeartbeatNode) Close() {
 	_ = thn.ResolversContainer.Close()
 	_ = thn.ShardSender.Close()
 	_ = thn.Messenger.Close()
+	_ = thn.DirectConnectionProcessor.Close()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

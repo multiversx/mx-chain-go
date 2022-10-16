@@ -18,6 +18,7 @@ type P2PMessenger interface {
 	Broadcast(topic string, buff []byte)
 	ID() core.PeerID
 	Sign(payload []byte) ([]byte, error)
+	ConnectedPeersOnTopic(topic string) []core.PeerID
 	IsInterfaceNil() bool
 }
 

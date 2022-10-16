@@ -119,8 +119,6 @@ type networkMessenger struct {
 	preferredPeersHolder    p2p.PreferredPeersHolderHandler
 	printConnectionsWatcher p2p.ConnectionsWatcher
 	peersRatingHandler      p2p.PeersRatingHandler
-	mutPeerTopicNotifiers   sync.RWMutex
-	peerTopicNotifiers      []p2p.PeerTopicNotifier
 }
 
 // ArgsNetworkMessenger defines the options used to create a p2p wrapper
@@ -220,7 +218,6 @@ func constructNode(
 		port:                    port,
 		printConnectionsWatcher: connWatcher,
 		peersRatingHandler:      args.PeersRatingHandler,
-		peerTopicNotifiers:      make([]p2p.PeerTopicNotifier, 0),
 	}
 
 	return p2pNode, nil
@@ -334,8 +331,6 @@ func (netMes *networkMessenger) createPubSub(messageSigning messageSigningConfig
 		optsPS = append(optsPS, pubsub.WithMessageSignaturePolicy(noSignPolicy))
 	}
 
-	optsPS = append(optsPS, pubsub.WithPeerFilter(netMes.newPeerFound))
-
 	var err error
 	netMes.pb, err = pubsub.NewGossipSub(netMes.ctx, netMes.p2pHost, optsPS...)
 	if err != nil {
@@ -390,16 +385,6 @@ func (netMes *networkMessenger) createPubSub(messageSigning messageSigningConfig
 	}(netMes.outgoingPLB)
 
 	return nil
-}
-
-func (netMes *networkMessenger) newPeerFound(pid peer.ID, topic string) bool {
-	netMes.mutPeerTopicNotifiers.RLock()
-	defer netMes.mutPeerTopicNotifiers.RUnlock()
-	for _, notifier := range netMes.peerTopicNotifiers {
-		notifier.NewPeerFound(core.PeerID(pid), topic)
-	}
-
-	return true
 }
 
 func (netMes *networkMessenger) createMessageBytes(buff []byte) []byte {
@@ -1361,21 +1346,6 @@ func (netMes *networkMessenger) GetConnectedPeersInfo() *p2p.ConnectedPeersInfo 
 // Port returns the port that this network messenger is using
 func (netMes *networkMessenger) Port() int {
 	return netMes.port
-}
-
-// AddPeerTopicNotifier will add a new peer topic notifier
-func (netMes *networkMessenger) AddPeerTopicNotifier(notifier p2p.PeerTopicNotifier) error {
-	if check.IfNil(notifier) {
-		return p2p.ErrNilPeerTopicNotifier
-	}
-
-	netMes.mutPeerTopicNotifiers.Lock()
-	netMes.peerTopicNotifiers = append(netMes.peerTopicNotifiers, notifier)
-	netMes.mutPeerTopicNotifiers.Unlock()
-
-	log.Debug("networkMessenger.AddPeerTopicNotifier", "type", fmt.Sprintf("%T", notifier))
-
-	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
