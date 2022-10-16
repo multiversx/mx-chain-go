@@ -60,30 +60,6 @@ func TestConsensusComponentsFactoryV2_CreateForShard(t *testing.T) {
 	require.NotNil(t, cc)
 }
 
-func TestConsensusComponentsFactoryV2_CreateForMeta(t *testing.T) {
-	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
-
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	args := componentsMock.GetConsensusArgs(shardCoordinator)
-	args.ProcessComponents = &wrappedProcessComponents{
-		ProcessComponentsHolder: args.ProcessComponents,
-	}
-
-	ccf, _ := consensus.NewConsensusComponentsFactory(args)
-	require.NotNil(t, ccf)
-
-	ccfV2, _ := consensus.NewConsensusComponentsFactoryV2(ccf)
-	require.NotNil(t, ccfV2)
-
-	cc, err := ccfV2.Create()
-
-	require.NoError(t, err)
-	require.NotNil(t, cc)
-}
-
 func TestConsensusComponentsFactoryV2_CreateNilShardCoordinator(t *testing.T) {
 	t.Parallel()
 	if testing.Short() {
