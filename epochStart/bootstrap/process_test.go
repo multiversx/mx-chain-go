@@ -102,7 +102,11 @@ func createMockEpochStartBootstrapArgs(
 		ScheduledSCRsStorer:    genericMocks.NewStorerMock(),
 		CoreComponentsHolder:   coreMock,
 		CryptoComponentsHolder: cryptoMock,
-		Messenger:              &p2pmocks.MessengerStub{},
+		Messenger: &p2pmocks.MessengerStub{
+			ConnectedPeersCalled: func() []core.PeerID {
+				return []core.PeerID{"peer0", "peer1", "peer2", "peer3", "peer4", "peer5"}
+			},
+		},
 		GeneralConfig: config.Config{
 			MiniBlocksStorage:                  generalCfg.MiniBlocksStorage,
 			PeerBlockBodyStorage:               generalCfg.PeerBlockBodyStorage,
