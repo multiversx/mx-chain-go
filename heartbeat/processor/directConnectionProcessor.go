@@ -130,6 +130,7 @@ func (processor *directConnectionProcessor) processCrossShardPeers(intraShardPee
 }
 
 func (processor *directConnectionProcessor) processCrossShardPeersOnShard(shardID uint32, intraShardPeers map[core.PeerID]struct{}) {
+	// TODO create a component that can handle the topic creation & management
 	identifier := processor.baseCrossShardTopic + processor.shardCoordinator.CommunicationIdentifier(shardID)
 	crossShardPeers := processor.messenger.ConnectedPeersOnTopic(identifier)
 	for _, peer := range crossShardPeers {

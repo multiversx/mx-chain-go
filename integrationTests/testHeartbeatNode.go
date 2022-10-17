@@ -638,7 +638,7 @@ func (thn *TestHeartbeatNode) initShardSender(tb testing.TB) {
 
 func (thn *TestHeartbeatNode) initDirectConnectionProcessor(tb testing.TB) {
 	argsDirectConnectionProcessor := processor.ArgsDirectConnectionProcessor{
-		TimeToReadDirectConnections: 15 * time.Second,
+		TimeToReadDirectConnections: 5 * time.Second,
 		Messenger:                   thn.Messenger,
 		PeerShardMapper:             thn.PeerShardMapper,
 		ShardCoordinator:            thn.ShardCoordinator,
