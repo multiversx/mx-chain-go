@@ -4,7 +4,6 @@ import (
 	"context"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go/common"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -120,7 +119,7 @@ type AccountsAdapter interface {
 	SnapshotState(rootHash []byte)
 	SetStateCheckpoint(rootHash []byte)
 	IsPruningEnabled() bool
-	GetAllLeaves(leavesChannel chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error
+	GetAllLeaves(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error
 	RecreateAllTries(rootHash []byte) (map[string]common.Trie, error)
 	GetTrie(rootHash []byte) (common.Trie, error)
 	GetStackDebugFirstEntry() []byte
