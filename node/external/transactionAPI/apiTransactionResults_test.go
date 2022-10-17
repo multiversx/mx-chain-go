@@ -23,6 +23,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const chainID = "test"
+
 func TestPutEventsInTransactionReceipt(t *testing.T) {
 	t.Parallel()
 
@@ -61,7 +63,7 @@ func TestPutEventsInTransactionReceipt(t *testing.T) {
 			return &datafield.ResponseParseData{}
 		},
 	}
-	txUnmarshalerAndPreparer := newTransactionUnmarshaller(marshalizerdMock, pubKeyConverter, dataFieldParser)
+	txUnmarshalerAndPreparer := newTransactionUnmarshaller(marshalizerdMock, pubKeyConverter, dataFieldParser, chainID)
 	n := newAPITransactionResultProcessor(pubKeyConverter, historyRepo, dataStore, marshalizerdMock, txUnmarshalerAndPreparer, logsFacade, 0, dataFieldParser)
 
 	epoch := uint32(0)
@@ -101,7 +103,7 @@ func TestApiTransactionProcessor_PutResultsInTransactionWhenNoResultsShouldWork(
 		historyRepo,
 		genericMocks.NewChainStorerMock(epoch),
 		&testscommon.MarshalizerMock{},
-		newTransactionUnmarshaller(&testscommon.MarshalizerMock{}, testscommon.RealWorldBech32PubkeyConverter, dataFieldParser),
+		newTransactionUnmarshaller(&testscommon.MarshalizerMock{}, testscommon.RealWorldBech32PubkeyConverter, dataFieldParser, chainID),
 		&testscommon.LogsFacadeStub{},
 		0,
 		dataFieldParser,
@@ -210,7 +212,7 @@ func TestPutEventsInTransactionSmartContractResults(t *testing.T) {
 		},
 	}
 	pubKeyConverter := mock.NewPubkeyConverterMock(3)
-	txUnmarshalerAndPreparer := newTransactionUnmarshaller(marshalizerdMock, pubKeyConverter, dataFieldParser)
+	txUnmarshalerAndPreparer := newTransactionUnmarshaller(marshalizerdMock, pubKeyConverter, dataFieldParser, chainID)
 	n := newAPITransactionResultProcessor(pubKeyConverter, historyRepo, dataStore, marshalizerdMock, txUnmarshalerAndPreparer, logsFacade, 0, dataFieldParser)
 
 	expectedSCRS := []*transaction.ApiSmartContractResult{
@@ -298,7 +300,7 @@ func TestPutLogsInTransaction(t *testing.T) {
 		},
 	}
 	pubKeyConverter := &mock.PubkeyConverterMock{}
-	txUnmarshalerAndPreparer := newTransactionUnmarshaller(marshalizerMock, pubKeyConverter, dataFieldParser)
+	txUnmarshalerAndPreparer := newTransactionUnmarshaller(marshalizerMock, pubKeyConverter, dataFieldParser, chainID)
 	n := newAPITransactionResultProcessor(pubKeyConverter, historyRepo, dataStore, marshalizerMock, txUnmarshalerAndPreparer, logsFacade, 0, dataFieldParser)
 
 	tx := &transaction.ApiTransactionResult{}

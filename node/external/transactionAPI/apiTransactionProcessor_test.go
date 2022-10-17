@@ -59,6 +59,7 @@ func createMockArgAPITransactionProcessor() *ArgAPITransactionProcessor {
 				return &datafield.ResponseParseData{}
 			},
 		},
+		ChainID: chainID,
 	}
 }
 
@@ -458,6 +459,7 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 				return &datafield.ResponseParseData{}
 			},
 		},
+		ChainID: chainID,
 	}
 	apiTransactionProc, _ := NewAPITransactionProcessor(args)
 
@@ -482,6 +484,7 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 		},
 		InitiallyPaidFee: "1000",
 		Receivers:        []string{},
+		ChainID:          chainID,
 	}
 
 	apiTx, err := apiTransactionProc.GetTransaction(txHash, true)
@@ -1031,6 +1034,7 @@ func createAPITransactionProc(t *testing.T, epoch uint32, withDbLookupExt bool) 
 		TxTypeHandler:            &testscommon.TxTypeHandlerMock{},
 		LogsFacade:               &testscommon.LogsFacadeStub{},
 		DataFieldParser:          dataFieldParser,
+		ChainID:                  chainID,
 	}
 	apiTransactionProc, err := NewAPITransactionProcessor(args)
 	require.Nil(t, err)

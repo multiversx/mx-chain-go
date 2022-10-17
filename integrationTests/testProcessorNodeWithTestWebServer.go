@@ -220,6 +220,7 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 		TxTypeHandler:            txTypeHandler,
 		LogsFacade:               logsFacade,
 		DataFieldParser:          dataFieldParser,
+		ChainID:                  string(tpn.ChainID),
 	}
 	apiTransactionHandler, err := transactionAPI.NewAPITransactionProcessor(argsApiTransactionProc)
 	log.LogIfError(err)

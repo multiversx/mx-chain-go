@@ -2,6 +2,7 @@ package transactionAPI
 
 import (
 	"encoding/hex"
+	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/receipt"
@@ -16,17 +17,20 @@ type txUnmarshaller struct {
 	addressPubKeyConverter core.PubkeyConverter
 	marshalizer            marshal.Marshalizer
 	dataFieldParser        DataFieldParser
+	chainID                string
 }
 
 func newTransactionUnmarshaller(
 	marshalizer marshal.Marshalizer,
 	addressPubKeyConverter core.PubkeyConverter,
 	dataFieldParser DataFieldParser,
+	chainID string,
 ) *txUnmarshaller {
 	return &txUnmarshaller{
 		marshalizer:            marshalizer,
 		addressPubKeyConverter: addressPubKeyConverter,
 		dataFieldParser:        dataFieldParser,
+		chainID:                chainID,
 	}
 }
 
@@ -92,6 +96,7 @@ func (tu *txUnmarshaller) unmarshalTransaction(txBytes []byte, txType transactio
 	apiTx.Receivers = datafield.EncodeBytesSlice(tu.addressPubKeyConverter.Encode, res.Receivers)
 	apiTx.ReceiversShardIDs = res.ReceiversShardID
 	apiTx.IsRelayed = res.IsRelayed
+	apiTx.ChainID = tu.chainID
 
 	return apiTx, nil
 }
@@ -110,6 +115,8 @@ func (tu *txUnmarshaller) prepareNormalTx(tx *transaction.Transaction) (*transac
 		GasLimit:         tx.GasLimit,
 		Data:             tx.Data,
 		Signature:        hex.EncodeToString(tx.Signature),
+		Options:          tx.Options,
+		Version:          tx.Version,
 	}, nil
 }
 
@@ -159,10 +166,27 @@ func (tu *txUnmarshaller) prepareUnsignedTx(tx *smartContractResult.SmartContrac
 		PreviousTransactionHash: hex.EncodeToString(tx.GetPrevTxHash()),
 		OriginalTransactionHash: hex.EncodeToString(tx.GetOriginalTxHash()),
 		ReturnMessage:           string(tx.GetReturnMessage()),
-	}
-	if len(tx.GetOriginalSender()) == tu.addressPubKeyConverter.Len() {
-		txResult.OriginalSender = tu.addressPubKeyConverter.Encode(tx.GetOriginalSender())
+		CallType:                int(tx.CallType),
+		RelayerAddress:          tu.getEncodedAddress(tx.GetRelayerAddr()),
+		RelayedValue:            bigIntToStr(tx.GetRelayedValue()),
+		OriginalSender:          tu.getEncodedAddress(tx.GetOriginalSender()),
 	}
 
 	return txResult, nil
+}
+
+func (tu *txUnmarshaller) getEncodedAddress(address []byte) string {
+	if len(address) == tu.addressPubKeyConverter.Len() {
+		return tu.addressPubKeyConverter.Encode(address)
+	}
+
+	return ""
+}
+
+func bigIntToStr(value *big.Int) string {
+	if value != nil {
+		return value.String()
+	}
+
+	return ""
 }

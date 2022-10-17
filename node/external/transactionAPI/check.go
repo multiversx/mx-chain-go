@@ -42,6 +42,9 @@ func checkNilArgs(arg *ArgAPITransactionProcessor) error {
 	if check.IfNilReflect(arg.DataFieldParser) {
 		return ErrNilDataFieldParser
 	}
+	if len(arg.ChainID) == 0 {
+		return errEmptyChainID
+	}
 
 	return nil
 }
