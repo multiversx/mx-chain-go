@@ -89,6 +89,7 @@ type epochStartBootstrap struct {
 	destinationShardAsObserver uint32
 	coreComponentsHolder       process.CoreComponentsHolder
 	cryptoComponentsHolder     process.CryptoComponentsHolder
+	statusCoreComponentsHolder process.StatusCoreComponentsHolder
 	messenger                  Messenger
 	generalConfig              config.Config
 	prefsConfig                config.PreferencesConfig
@@ -155,6 +156,7 @@ type baseDataInStorage struct {
 type ArgsEpochStartBootstrap struct {
 	CoreComponentsHolder       process.CoreComponentsHolder
 	CryptoComponentsHolder     process.CryptoComponentsHolder
+	StatusCoreComponentsHolder process.StatusCoreComponentsHolder
 	DestinationShardAsObserver uint32
 	Messenger                  Messenger
 	GeneralConfig              config.Config
@@ -192,6 +194,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 	epochStartProvider := &epochStartBootstrap{
 		coreComponentsHolder:       args.CoreComponentsHolder,
 		cryptoComponentsHolder:     args.CryptoComponentsHolder,
+		statusCoreComponentsHolder: args.StatusCoreComponentsHolder,
 		messenger:                  args.Messenger,
 		generalConfig:              args.GeneralConfig,
 		prefsConfig:                args.PrefsConfig,
@@ -1057,6 +1060,7 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 			TrieSyncerVersion:         e.trieSyncerVersion,
 			CheckNodesOnDisk:          e.checkNodesOnDisk,
 			StorageMarker:             storageMarker.NewTrieStorageMarker(),
+			SyncStatisticsHandler:     e.statusCoreComponentsHolder.TrieSyncStatistics(),
 		},
 		ShardId:                e.shardCoordinator.SelfId(),
 		Throttler:              thr,
@@ -1256,6 +1260,7 @@ func (e *epochStartBootstrap) createHeartbeatSender() error {
 		PrivateKey:                         privateKey,
 		RedundancyHandler:                  bootstrapRedundancy,
 		PeerTypeProvider:                   peer.NewBootstrapPeerTypeProvider(),
+		TrieSyncStatisticsProvider:         e.statusCoreComponentsHolder.TrieSyncStatistics(),
 	}
 
 	e.bootstrapHeartbeatSender, err = sender.NewBootstrapSender(argsHeartbeatSender)

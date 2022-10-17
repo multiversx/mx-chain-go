@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	arwenConfig "github.com/ElrondNetwork/wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/throttler"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -27,6 +26,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/trie/statistics"
 	"github.com/ElrondNetwork/elrond-go/trie/storageMarker"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
+	arwenConfig "github.com/ElrondNetwork/wasm-vm/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -591,6 +591,7 @@ func getUserAccountSyncerArgs(node *integrationTests.TestProcessorNode, version 
 			MaxHardCapForMissingNodes: 5000,
 			TrieSyncerVersion:         version,
 			StorageMarker:             storageMarker.NewTrieStorageMarker(),
+			SyncStatisticsHandler:     statistics.NewTrieSyncStatistics(),
 		},
 		ShardId:                0,
 		Throttler:              thr,

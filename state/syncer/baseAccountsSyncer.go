@@ -33,6 +33,7 @@ type baseAccountsSyncer struct {
 	maxHardCapForMissingNodes int
 	checkNodesOnDisk          bool
 	storageMarker             trie.StorageMarker
+	syncStatisticsHandler     common.SizeSyncStatisticsHandler
 
 	trieSyncerVersion int
 	numTriesSynced    int32
@@ -50,6 +51,7 @@ type ArgsNewBaseAccountsSyncer struct {
 	RequestHandler            trie.RequestHandler
 	Timeout                   time.Duration
 	Cacher                    storage.Cacher
+	SyncStatisticsHandler     common.SizeSyncStatisticsHandler
 	MaxTrieLevelInMemory      uint
 	MaxHardCapForMissingNodes int
 	TrieSyncerVersion         int
@@ -72,6 +74,9 @@ func checkArgs(args ArgsNewBaseAccountsSyncer) error {
 	if check.IfNil(args.Cacher) {
 		return state.ErrNilCacher
 	}
+	if check.IfNil(args.SyncStatisticsHandler) {
+		return state.ErrNilSyncStatisticsHandler
+	}
 	if args.MaxHardCapForMissingNodes < 1 {
 		return state.ErrInvalidMaxHardCapForMissingNodes
 	}
@@ -82,7 +87,6 @@ func checkArgs(args ArgsNewBaseAccountsSyncer) error {
 func (b *baseAccountsSyncer) syncMainTrie(
 	rootHash []byte,
 	trieTopic string,
-	ssh common.SizeSyncStatisticsHandler,
 	ctx context.Context,
 ) (common.Trie, error) {
 	b.rootHash = rootHash
@@ -103,7 +107,7 @@ func (b *baseAccountsSyncer) syncMainTrie(
 		Hasher:                    b.hasher,
 		ShardId:                   b.shardId,
 		Topic:                     trieTopic,
-		TrieSyncStatistics:        ssh,
+		TrieSyncStatistics:        b.syncStatisticsHandler,
 		TimeoutHandler:            b.timeoutHandler,
 		MaxHardCapForMissingNodes: b.maxHardCapForMissingNodes,
 		CheckNodesOnDisk:          b.checkNodesOnDisk,
@@ -125,7 +129,7 @@ func (b *baseAccountsSyncer) syncMainTrie(
 	return dataTrie.Recreate(rootHash)
 }
 
-func (b *baseAccountsSyncer) printStatistics(ssh common.SizeSyncStatisticsHandler, ctx context.Context) {
+func (b *baseAccountsSyncer) printStatistics(ctx context.Context) {
 	lastDataReceived := uint64(0)
 	peakDataReceived := uint64(0)
 	startedSync := time.Now()
@@ -135,27 +139,27 @@ func (b *baseAccountsSyncer) printStatistics(ssh common.SizeSyncStatisticsHandle
 			peakSpeed := convertBytesPerIntervalToSpeed(peakDataReceived, timeBetweenStatisticsPrints)
 			finishedSync := time.Now()
 			totalSyncDuration := finishedSync.Sub(startedSync)
-			averageSpeed := convertBytesPerIntervalToSpeed(ssh.NumBytesReceived(), totalSyncDuration)
+			averageSpeed := convertBytesPerIntervalToSpeed(b.syncStatisticsHandler.NumBytesReceived(), totalSyncDuration)
 
 			log.Info("finished trie sync",
 				"name", b.name,
 				"time elapsed", totalSyncDuration.Truncate(time.Second),
-				"num processed", ssh.NumReceived(),
-				"num large nodes", ssh.NumLarge(),
-				"num missing", ssh.NumMissing(),
-				"state data size", core.ConvertBytes(ssh.NumBytesReceived()),
-				"total iterations", ssh.NumIterations(),
-				"total CPU time", ssh.ProcessingTime(),
+				"num processed", b.syncStatisticsHandler.NumReceived(),
+				"num large nodes", b.syncStatisticsHandler.NumLarge(),
+				"num missing", b.syncStatisticsHandler.NumMissing(),
+				"state data size", core.ConvertBytes(b.syncStatisticsHandler.NumBytesReceived()),
+				"total iterations", b.syncStatisticsHandler.NumIterations(),
+				"total CPU time", b.syncStatisticsHandler.ProcessingTime(),
 				"peak processing speed", peakSpeed,
 				"average processing speed", averageSpeed,
 			)
 			return
 		case <-time.After(timeBetweenStatisticsPrints):
-			bytesReceivedDelta := ssh.NumBytesReceived() - lastDataReceived
-			if ssh.NumBytesReceived() < lastDataReceived {
+			bytesReceivedDelta := b.syncStatisticsHandler.NumBytesReceived() - lastDataReceived
+			if b.syncStatisticsHandler.NumBytesReceived() < lastDataReceived {
 				bytesReceivedDelta = 0
 			}
-			lastDataReceived = ssh.NumBytesReceived()
+			lastDataReceived = b.syncStatisticsHandler.NumBytesReceived()
 
 			speed := convertBytesPerIntervalToSpeed(bytesReceivedDelta, timeBetweenStatisticsPrints)
 			if peakDataReceived < bytesReceivedDelta {
@@ -165,16 +169,16 @@ func (b *baseAccountsSyncer) printStatistics(ssh common.SizeSyncStatisticsHandle
 			log.Info("trie sync in progress",
 				"name", b.name,
 				"time elapsed", time.Since(startedSync).Truncate(time.Second),
-				"num tries currently syncing", ssh.NumTries(),
-				"num processed", ssh.NumReceived(),
-				"num large nodes", ssh.NumLarge(),
-				"num missing", ssh.NumMissing(),
+				"num tries currently syncing", b.syncStatisticsHandler.NumTries(),
+				"num processed", b.syncStatisticsHandler.NumReceived(),
+				"num large nodes", b.syncStatisticsHandler.NumLarge(),
+				"num missing", b.syncStatisticsHandler.NumMissing(),
 				"num tries synced", fmt.Sprintf("%d/%d", atomic.LoadInt32(&b.numTriesSynced), atomic.LoadInt32(&b.numMaxTries)),
 				"intercepted trie nodes cache size", core.ConvertBytes(b.cacher.SizeInBytesContained()),
 				"num of intercepted trie nodes", b.cacher.Len(),
-				"state data size", core.ConvertBytes(ssh.NumBytesReceived()),
-				"iterations", ssh.NumIterations(),
-				"CPU time", ssh.ProcessingTime(),
+				"state data size", core.ConvertBytes(b.syncStatisticsHandler.NumBytesReceived()),
+				"iterations", b.syncStatisticsHandler.NumIterations(),
+				"CPU time", b.syncStatisticsHandler.ProcessingTime(),
 				"processing speed", speed)
 		}
 	}

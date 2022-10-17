@@ -59,6 +59,7 @@ import (
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
+	trieStatistics "github.com/ElrondNetwork/elrond-go/trie/statistics"
 	"github.com/ElrondNetwork/elrond-go/trie/storageMarker"
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
 	"github.com/google/gops/agent"
@@ -679,6 +680,7 @@ func getBaseAccountSyncerArgs(
 		TrieSyncerVersion:         config.TrieSync.TrieSyncerVersion,
 		StorageMarker:             storageMarker.NewDisabledStorageMarker(),
 		CheckNodesOnDisk:          true,
+		SyncStatisticsHandler:     trieStatistics.NewTrieSyncStatistics(),
 	}
 }
 

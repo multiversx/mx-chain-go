@@ -15,22 +15,24 @@ const maxSizeInBytes = 128
 // argHeartbeatSender represents the arguments for the heartbeat sender
 type argHeartbeatSender struct {
 	argBaseSender
-	versionNumber        string
-	nodeDisplayName      string
-	identity             string
-	peerSubType          core.P2PPeerSubType
-	currentBlockProvider heartbeat.CurrentBlockProvider
-	peerTypeProvider     heartbeat.PeerTypeProviderHandler
+	versionNumber              string
+	nodeDisplayName            string
+	identity                   string
+	peerSubType                core.P2PPeerSubType
+	currentBlockProvider       heartbeat.CurrentBlockProvider
+	peerTypeProvider           heartbeat.PeerTypeProviderHandler
+	trieSyncStatisticsProvider heartbeat.TrieSyncStatisticsProvider
 }
 
 type heartbeatSender struct {
 	baseSender
-	versionNumber        string
-	nodeDisplayName      string
-	identity             string
-	peerSubType          core.P2PPeerSubType
-	currentBlockProvider heartbeat.CurrentBlockProvider
-	peerTypeProvider     heartbeat.PeerTypeProviderHandler
+	versionNumber              string
+	nodeDisplayName            string
+	identity                   string
+	peerSubType                core.P2PPeerSubType
+	currentBlockProvider       heartbeat.CurrentBlockProvider
+	peerTypeProvider           heartbeat.PeerTypeProviderHandler
+	trieSyncStatisticsProvider heartbeat.TrieSyncStatisticsProvider
 }
 
 // newHeartbeatSender creates a new instance of type heartbeatSender
@@ -41,13 +43,14 @@ func newHeartbeatSender(args argHeartbeatSender) (*heartbeatSender, error) {
 	}
 
 	return &heartbeatSender{
-		baseSender:           createBaseSender(args.argBaseSender),
-		versionNumber:        args.versionNumber,
-		nodeDisplayName:      args.nodeDisplayName,
-		identity:             args.identity,
-		peerSubType:          args.peerSubType,
-		currentBlockProvider: args.currentBlockProvider,
-		peerTypeProvider:     args.peerTypeProvider,
+		baseSender:                 createBaseSender(args.argBaseSender),
+		versionNumber:              args.versionNumber,
+		nodeDisplayName:            args.nodeDisplayName,
+		identity:                   args.identity,
+		peerSubType:                args.peerSubType,
+		currentBlockProvider:       args.currentBlockProvider,
+		peerTypeProvider:           args.peerTypeProvider,
+		trieSyncStatisticsProvider: args.trieSyncStatisticsProvider,
 	}, nil
 }
 
@@ -74,6 +77,9 @@ func checkHeartbeatSenderArgs(args argHeartbeatSender) error {
 	if check.IfNil(args.peerTypeProvider) {
 		return heartbeat.ErrNilPeerTypeProvider
 	}
+	if check.IfNil(args.trieSyncStatisticsProvider) {
+		return heartbeat.ErrNilTrieSyncStatisticsProvider
+	}
 
 	return nil
 }
@@ -93,9 +99,11 @@ func (sender *heartbeatSender) Execute() {
 }
 
 func (sender *heartbeatSender) execute() error {
+	trieNodesReceived := sender.trieSyncStatisticsProvider.NumReceived()
 	payload := &heartbeat.Payload{
-		Timestamp:       time.Now().Unix(),
-		HardforkMessage: "", // sent through peer authentication message
+		Timestamp:          time.Now().Unix(),
+		HardforkMessage:    "", // sent through peer authentication message
+		NumTrieNodesSynced: uint64(trieNodesReceived),
 	}
 	payloadBytes, err := sender.marshaller.Marshal(payload)
 	if err != nil {

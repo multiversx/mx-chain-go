@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state/syncer"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/trie"
+	"github.com/ElrondNetwork/elrond-go/trie/statistics"
 	"github.com/ElrondNetwork/elrond-go/trie/storageMarker"
 	"github.com/ElrondNetwork/elrond-go/update"
 	containers "github.com/ElrondNetwork/elrond-go/update/container"
@@ -149,6 +150,7 @@ func (a *accountDBSyncersContainerFactory) createUserAccountsSyncer(shardId uint
 			TrieSyncerVersion:         a.trieSyncerVersion,
 			CheckNodesOnDisk:          a.checkNodesOnDisk,
 			StorageMarker:             storageMarker.NewTrieStorageMarker(),
+			SyncStatisticsHandler:     statistics.NewTrieSyncStatistics(),
 		},
 		ShardId:                shardId,
 		Throttler:              thr,

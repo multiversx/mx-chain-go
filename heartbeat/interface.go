@@ -122,3 +122,9 @@ type NodesCoordinator interface {
 	GetValidatorWithPublicKey(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error)
 	IsInterfaceNil() bool
 }
+
+// TrieSyncStatisticsProvider is able to provide trie sync statistics
+type TrieSyncStatisticsProvider interface {
+	NumReceived() int
+	IsInterfaceNil() bool
+}

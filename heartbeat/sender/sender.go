@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
+	"github.com/ElrondNetwork/elrond-go/heartbeat/sender/disabled"
 )
 
 // ArgSender represents the arguments for the sender
@@ -81,12 +82,13 @@ func NewSender(args ArgSender) (*sender, error) {
 			privKey:                   args.PrivateKey,
 			redundancyHandler:         args.RedundancyHandler,
 		},
-		versionNumber:        args.VersionNumber,
-		nodeDisplayName:      args.NodeDisplayName,
-		identity:             args.Identity,
-		peerSubType:          args.PeerSubType,
-		currentBlockProvider: args.CurrentBlockProvider,
-		peerTypeProvider:     args.PeerTypeProvider,
+		versionNumber:              args.VersionNumber,
+		nodeDisplayName:            args.NodeDisplayName,
+		identity:                   args.Identity,
+		peerSubType:                args.PeerSubType,
+		currentBlockProvider:       args.CurrentBlockProvider,
+		peerTypeProvider:           args.PeerTypeProvider,
+		trieSyncStatisticsProvider: disabled.NewTrieSyncStatisticsProvider(),
 	})
 	if err != nil {
 		return nil, err

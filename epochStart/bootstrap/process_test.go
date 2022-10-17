@@ -102,7 +102,10 @@ func createMockEpochStartBootstrapArgs(
 		ScheduledSCRsStorer:    genericMocks.NewStorerMock(),
 		CoreComponentsHolder:   coreMock,
 		CryptoComponentsHolder: cryptoMock,
-		Messenger:              &p2pmocks.MessengerStub{},
+		StatusCoreComponentsHolder: &mock.StatusCoreComponentsMock{
+			TrieSyncStatisticsField: &testscommon.SizeSyncStatisticsHandlerStub{},
+		},
+		Messenger: &p2pmocks.MessengerStub{},
 		GeneralConfig: config.Config{
 			MiniBlocksStorage:                  generalCfg.MiniBlocksStorage,
 			PeerBlockBodyStorage:               generalCfg.PeerBlockBodyStorage,
@@ -280,6 +283,16 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 		require.Nil(t, epochStartProvider)
 		require.True(t, errors.Is(err, epochStart.ErrNilCryptoComponentsHolder))
 	})
+	t.Run("nil statusCoreComponents", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockEpochStartBootstrapArgs(createComponentsForEpochStart())
+		args.StatusCoreComponentsHolder = nil
+
+		epochStartProvider, err := NewEpochStartBootstrap(args)
+		require.Nil(t, epochStartProvider)
+		require.True(t, errors.Is(err, epochStart.ErrNilStatusCoreComponentsHolder))
+	})
 	t.Run("nil pubKey", func(t *testing.T) {
 		t.Parallel()
 
@@ -409,6 +422,16 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 		epochStartProvider, err := NewEpochStartBootstrap(args)
 		require.Nil(t, epochStartProvider)
 		require.True(t, errors.Is(err, epochStart.ErrNilPubkeyConverter))
+	})
+	t.Run("nil trieSyncStatistics", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockEpochStartBootstrapArgs(createComponentsForEpochStart())
+		args.StatusCoreComponentsHolder = &mock.StatusCoreComponentsMock{}
+
+		epochStartProvider, err := NewEpochStartBootstrap(args)
+		require.Nil(t, epochStartProvider)
+		require.True(t, errors.Is(err, epochStart.ErrNilTrieSyncStatistics))
 	})
 	t.Run("nil roundHandler", func(t *testing.T) {
 		t.Parallel()

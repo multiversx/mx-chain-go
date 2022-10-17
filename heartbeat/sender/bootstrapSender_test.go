@@ -32,6 +32,7 @@ func createMockBootstrapSenderArgs() ArgBootstrapSender {
 		PrivateKey:                         &cryptoMocks.PrivateKeyStub{},
 		RedundancyHandler:                  &mock.RedundancyHandlerStub{},
 		PeerTypeProvider:                   &mock.PeerTypeProviderStub{},
+		TrieSyncStatisticsProvider:         &testscommon.SizeSyncStatisticsHandlerStub{},
 	}
 }
 
@@ -163,6 +164,16 @@ func TestNewBootstrapSender(t *testing.T) {
 
 		assert.Nil(t, senderInstance)
 		assert.Equal(t, heartbeat.ErrNilPeerTypeProvider, err)
+	})
+	t.Run("nil trie sync statistics provider should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockBootstrapSenderArgs()
+		args.TrieSyncStatisticsProvider = nil
+		senderInstance, err := NewBootstrapSender(args)
+
+		assert.Nil(t, senderInstance)
+		assert.Equal(t, heartbeat.ErrNilTrieSyncStatisticsProvider, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
