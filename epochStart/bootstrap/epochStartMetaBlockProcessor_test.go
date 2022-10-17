@@ -106,7 +106,10 @@ func TestNewEpochStartMetaBlockProcessorOkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	esmbp, err := NewEpochStartMetaBlockProcessor(
-		&p2pmocks.MessengerStub{},
+		&p2pmocks.MessengerStub{
+			ConnectedPeersCalled: func() []core.PeerID {
+				return []core.PeerID{"peer_0", "peer_1", "peer_2", "peer_3", "peer_4", "peer_5"}
+			}},
 		&testscommon.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
@@ -159,7 +162,10 @@ func TestEpochStartMetaBlockProcessor_Validate(t *testing.T) {
 	t.Parallel()
 
 	esmbp, _ := NewEpochStartMetaBlockProcessor(
-		&p2pmocks.MessengerStub{},
+		&p2pmocks.MessengerStub{
+			ConnectedPeersCalled: func() []core.PeerID {
+				return []core.PeerID{"peer_0", "peer_1", "peer_2", "peer_3", "peer_4", "peer_5"}
+			}},
 		&testscommon.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
@@ -175,7 +181,10 @@ func TestEpochStartMetaBlockProcessor_SaveNilInterceptedDataShouldNotReturnError
 	t.Parallel()
 
 	esmbp, _ := NewEpochStartMetaBlockProcessor(
-		&p2pmocks.MessengerStub{},
+		&p2pmocks.MessengerStub{
+			ConnectedPeersCalled: func() []core.PeerID {
+				return []core.PeerID{"peer_0", "peer_1", "peer_2", "peer_3", "peer_4", "peer_5"}
+			}},
 		&testscommon.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
@@ -192,7 +201,11 @@ func TestEpochStartMetaBlockProcessor_SaveOkInterceptedDataShouldWork(t *testing
 	t.Parallel()
 
 	esmbp, _ := NewEpochStartMetaBlockProcessor(
-		&p2pmocks.MessengerStub{},
+		&p2pmocks.MessengerStub{
+			ConnectedPeersCalled: func() []core.PeerID {
+				return []core.PeerID{"peer_0", "peer_1", "peer_2", "peer_3", "peer_4", "peer_5"}
+			},
+		},
 		&testscommon.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
