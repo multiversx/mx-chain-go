@@ -380,9 +380,10 @@ func TestExtensionNode_tryGet(t *testing.T) {
 	key := append(enKey, bnKey...)
 	key = append(key, lnKey...)
 
-	val, err := en.tryGet(key, nil)
+	val, maxDepth, err := en.tryGet(key, 0, nil)
 	assert.Equal(t, dogBytes, val)
 	assert.Nil(t, err)
+	assert.Equal(t, uint32(2), maxDepth)
 }
 
 func TestExtensionNode_tryGetEmptyKey(t *testing.T) {
@@ -391,9 +392,10 @@ func TestExtensionNode_tryGetEmptyKey(t *testing.T) {
 	en, _ := getEnAndCollapsedEn()
 	var key []byte
 
-	val, err := en.tryGet(key, nil)
+	val, maxDepth, err := en.tryGet(key, 0, nil)
 	assert.Nil(t, err)
 	assert.Nil(t, val)
+	assert.Equal(t, uint32(0), maxDepth)
 }
 
 func TestExtensionNode_tryGetWrongKey(t *testing.T) {
@@ -402,9 +404,10 @@ func TestExtensionNode_tryGetWrongKey(t *testing.T) {
 	en, _ := getEnAndCollapsedEn()
 	key := []byte("gdo")
 
-	val, err := en.tryGet(key, nil)
+	val, maxDepth, err := en.tryGet(key, 0, nil)
 	assert.Nil(t, err)
 	assert.Nil(t, val)
+	assert.Equal(t, uint32(0), maxDepth)
 }
 
 func TestExtensionNode_tryGetCollapsedNode(t *testing.T) {
@@ -421,9 +424,10 @@ func TestExtensionNode_tryGetCollapsedNode(t *testing.T) {
 	key := append(enKey, bnKey...)
 	key = append(key, lnKey...)
 
-	val, err := collapsedEn.tryGet(key, db)
+	val, maxDepth, err := collapsedEn.tryGet(key, 0, db)
 	assert.Equal(t, []byte("dog"), val)
 	assert.Nil(t, err)
+	assert.Equal(t, uint32(2), maxDepth)
 }
 
 func TestExtensionNode_tryGetEmptyNode(t *testing.T) {
@@ -432,9 +436,10 @@ func TestExtensionNode_tryGetEmptyNode(t *testing.T) {
 	en := &extensionNode{}
 	key := []byte("dog")
 
-	val, err := en.tryGet(key, nil)
+	val, maxDepth, err := en.tryGet(key, 0, nil)
 	assert.True(t, errors.Is(err, ErrEmptyExtensionNode))
 	assert.Nil(t, val)
+	assert.Equal(t, uint32(0), maxDepth)
 }
 
 func TestExtensionNode_tryGetNilNode(t *testing.T) {
@@ -443,9 +448,10 @@ func TestExtensionNode_tryGetNilNode(t *testing.T) {
 	var en *extensionNode
 	key := []byte("dog")
 
-	val, err := en.tryGet(key, nil)
+	val, maxDepth, err := en.tryGet(key, 0, nil)
 	assert.True(t, errors.Is(err, ErrNilExtensionNode))
 	assert.Nil(t, val)
+	assert.Equal(t, uint32(0), maxDepth)
 }
 
 func TestExtensionNode_getNext(t *testing.T) {
@@ -491,7 +497,7 @@ func TestExtensionNode_insert(t *testing.T) {
 	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 
-	val, _ := newNode.tryGet(key, nil)
+	val, _, _ := newNode.tryGet(key, 0, nil)
 	assert.Equal(t, []byte("dogs"), val)
 }
 
@@ -510,7 +516,7 @@ func TestExtensionNode_insertCollapsedNode(t *testing.T) {
 	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 
-	val, _ := newNode.tryGet(key, db)
+	val, _, _ := newNode.tryGet(key, 0, db)
 	assert.Equal(t, []byte("dogs"), val)
 }
 
@@ -605,13 +611,13 @@ func TestExtensionNode_delete(t *testing.T) {
 	key := append(enKey, bnKey...)
 	key = append(key, lnKey...)
 
-	val, _ := en.tryGet(key, nil)
+	val, _, _ := en.tryGet(key, 0, nil)
 	assert.Equal(t, dogBytes, val)
 
 	dirty, _, _, err := en.delete(key, nil)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
-	val, _ = en.tryGet(key, nil)
+	val, _, _ = en.tryGet(key, 0, nil)
 	assert.Nil(t, val)
 }
 
@@ -697,13 +703,13 @@ func TestExtensionNode_deleteCollapsedNode(t *testing.T) {
 	key := append(enKey, bnKey...)
 	key = append(key, lnKey...)
 
-	val, _ := en.tryGet(key, db)
+	val, _, _ := en.tryGet(key, 0, db)
 	assert.Equal(t, []byte("dog"), val)
 
 	dirty, newNode, _, err := collapsedEn.delete(key, db)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
-	val, _ = newNode.tryGet(key, db)
+	val, _, _ = newNode.tryGet(key, 0, db)
 	assert.Nil(t, val)
 }
 

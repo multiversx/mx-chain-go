@@ -248,16 +248,16 @@ func (ln *leafNode) isPosCollapsed(_ int) bool {
 	return false
 }
 
-func (ln *leafNode) tryGet(key []byte, _ common.DBWriteCacher) (value []byte, err error) {
+func (ln *leafNode) tryGet(key []byte, currentDepth uint32, _ common.DBWriteCacher) (value []byte, maxDepth uint32, err error) {
 	err = ln.isEmptyOrNil()
 	if err != nil {
-		return nil, fmt.Errorf("tryGet error %w", err)
+		return nil, currentDepth, fmt.Errorf("tryGet error %w", err)
 	}
 	if bytes.Equal(key, ln.Key) {
-		return ln.Value, nil
+		return ln.Value, currentDepth, nil
 	}
 
-	return nil, nil
+	return nil, currentDepth, nil
 }
 
 func (ln *leafNode) getNext(key []byte, _ common.DBWriteCacher) (node, []byte, error) {

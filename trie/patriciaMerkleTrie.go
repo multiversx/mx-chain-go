@@ -89,7 +89,7 @@ func (tr *patriciaMerkleTrie) Get(key []byte) ([]byte, error) {
 	}
 	hexKey := keyBytesToHex(key)
 
-	val, err := tr.root.tryGet(hexKey, tr.trieStorage)
+	val, _, err := tr.root.tryGet(hexKey, rootDepthLevel, tr.trieStorage)
 	if err != nil {
 		err = fmt.Errorf("trie get error: %w, for key %v", err, hex.EncodeToString(key))
 		return nil, err
