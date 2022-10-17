@@ -294,8 +294,9 @@ func (bn *branchNode) commitCheckpoint(
 	checkpointHashes CheckpointHashesHolder,
 	leavesChan chan core.KeyValueHolder,
 	ctx context.Context,
-	stats common.SnapshotStatisticsHandler,
+	stats common.TrieStatisticsHandler,
 	idleProvider IdleNodeProvider,
+	depthLevel int,
 ) error {
 	if shouldStopIfContextDone(ctx, idleProvider) {
 		return errors.ErrContextClosing
@@ -326,14 +327,14 @@ func (bn *branchNode) commitCheckpoint(
 			continue
 		}
 
-		err = bn.children[i].commitCheckpoint(originDb, targetDb, checkpointHashes, leavesChan, ctx, stats, idleProvider)
+		err = bn.children[i].commitCheckpoint(originDb, targetDb, checkpointHashes, leavesChan, ctx, stats, idleProvider, depthLevel+1)
 		if err != nil {
 			return err
 		}
 	}
 
 	checkpointHashes.Remove(hash)
-	return bn.saveToStorage(targetDb, stats)
+	return bn.saveToStorage(targetDb, stats, depthLevel)
 }
 
 func (bn *branchNode) commitSnapshot(
@@ -341,8 +342,9 @@ func (bn *branchNode) commitSnapshot(
 	leavesChan chan core.KeyValueHolder,
 	missingNodesChan chan []byte,
 	ctx context.Context,
-	stats common.SnapshotStatisticsHandler,
+	stats common.TrieStatisticsHandler,
 	idleProvider IdleNodeProvider,
+	depthLevel int,
 ) error {
 	if shouldStopIfContextDone(ctx, idleProvider) {
 		return errors.ErrContextClosing
@@ -367,22 +369,22 @@ func (bn *branchNode) commitSnapshot(
 			continue
 		}
 
-		err = bn.children[i].commitSnapshot(db, leavesChan, missingNodesChan, ctx, stats, idleProvider)
+		err = bn.children[i].commitSnapshot(db, leavesChan, missingNodesChan, ctx, stats, idleProvider, depthLevel+1)
 		if err != nil {
 			return err
 		}
 	}
 
-	return bn.saveToStorage(db, stats)
+	return bn.saveToStorage(db, stats, depthLevel)
 }
 
-func (bn *branchNode) saveToStorage(targetDb common.DBWriteCacher, stats common.SnapshotStatisticsHandler) error {
+func (bn *branchNode) saveToStorage(targetDb common.DBWriteCacher, stats common.TrieStatisticsHandler, depthLevel int) error {
 	nodeSize, err := encodeNodeAndCommitToDB(bn, targetDb)
 	if err != nil {
 		return err
 	}
 
-	stats.AddSize(uint64(nodeSize))
+	stats.AddBranchNode(depthLevel, uint64(nodeSize))
 
 	bn.removeChildrenPointers()
 	return nil
@@ -909,6 +911,37 @@ func (bn *branchNode) sizeInBytes() int {
 
 func (bn *branchNode) getValue() []byte {
 	return []byte{}
+}
+
+func (bn *branchNode) collectStats(ts common.TrieStatisticsHandler, depthLevel int, db common.DBWriteCacher) error {
+	err := bn.isEmptyOrNil()
+	if err != nil {
+		return fmt.Errorf("collectStats error %w", err)
+	}
+
+	for i := range bn.children {
+		err = resolveIfCollapsed(bn, byte(i), db)
+		if err != nil {
+			return err
+		}
+
+		if bn.children[i] == nil {
+			continue
+		}
+
+		err = bn.children[i].collectStats(ts, depthLevel+1, db)
+		if err != nil {
+			return err
+		}
+	}
+
+	val, err := collapseAndEncodeNode(bn)
+	if err != nil {
+		return err
+	}
+
+	ts.AddBranchNode(depthLevel, uint64(len(val)))
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

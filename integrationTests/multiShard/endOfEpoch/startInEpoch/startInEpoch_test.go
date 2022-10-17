@@ -271,15 +271,17 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	shardC, _ := sharding.NewMultiShardCoordinator(2, shardID)
 
 	storageFactory, err := factory.NewStorageServiceFactory(
-		&generalConfig,
-		&prefsConfig,
-		shardC,
-		&testscommon.PathManagerStub{},
-		notifier.NewEpochStartSubscriptionHandler(),
-		&nodeTypeProviderMock.NodeTypeProviderStub{},
-		0,
-		false,
-		factory.ProcessStorageService,
+		factory.StorageServiceFactoryArgs{
+			Config:                        generalConfig,
+			PrefsConfig:                   prefsConfig,
+			ShardCoordinator:              shardC,
+			PathManager:                   &testscommon.PathManagerStub{},
+			EpochStartNotifier:            notifier.NewEpochStartSubscriptionHandler(),
+			NodeTypeProvider:              &nodeTypeProviderMock.NodeTypeProviderStub{},
+			CurrentEpoch:                  0,
+			StorageType:                   factory.ProcessStorageService,
+			CreateTrieEpochRootHashStorer: false,
+		},
 	)
 	assert.NoError(t, err)
 	storageServiceShard, err := storageFactory.CreateForMeta()

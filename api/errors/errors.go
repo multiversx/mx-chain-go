@@ -28,9 +28,6 @@ var ErrGetValueForKey = errors.New("get value for key error")
 // ErrGetKeyValuePairs signals an error in getting the key-value pairs of a key for an account
 var ErrGetKeyValuePairs = errors.New("get key-value pairs error")
 
-// ErrGetESDTTokens signals an error in getting esdt tokens for a given address
-var ErrGetESDTTokens = errors.New("get esdt tokens for account error")
-
 // ErrGetESDTBalance signals an error in getting esdt balance for given address
 var ErrGetESDTBalance = errors.New("get esdt balance for account error")
 
@@ -76,9 +73,6 @@ var ErrInvalidEpoch = errors.New("invalid epoch parameter")
 // ErrValidationEmptyBlockHash signals an empty block hash was provided
 var ErrValidationEmptyBlockHash = errors.New("block hash is empty")
 
-// ErrValidationEmptyToken signals that an empty token was provided
-var ErrValidationEmptyToken = errors.New("token is empty")
-
 // ErrGetTransaction signals an error happening when trying to fetch a transaction
 var ErrGetTransaction = errors.New("getting transaction failed")
 
@@ -90,6 +84,9 @@ var ErrQueryError = errors.New("query error")
 
 // ErrGetPidInfo signals that an error occurred while getting peer ID info
 var ErrGetPidInfo = errors.New("error getting peer id info")
+
+// ErrGetEpochStartData signals that an error occurred while getting the epoch start data for a provided epoch
+var ErrGetEpochStartData = errors.New("error getting epoch start data for epoch")
 
 // ErrTooManyRequests signals that too many requests were simultaneously received
 var ErrTooManyRequests = errors.New("too many requests")

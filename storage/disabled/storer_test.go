@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go-storage/common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -47,7 +47,7 @@ func TestStorer_MethodsDoNotPanic(t *testing.T) {
 
 	uintVal, err := s.GetOldestEpoch()
 	assert.Equal(t, uint32(0), uintVal)
-	assert.Equal(t, storage.ErrOldestEpochNotAvailable, err)
+	assert.Equal(t, common.ErrOldestEpochNotAvailable, err)
 
 	s.ClearCache()
 	s.RangeKeys(nil)

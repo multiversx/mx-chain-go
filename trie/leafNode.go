@@ -134,8 +134,9 @@ func (ln *leafNode) commitCheckpoint(
 	checkpointHashes CheckpointHashesHolder,
 	leavesChan chan core.KeyValueHolder,
 	ctx context.Context,
-	stats common.SnapshotStatisticsHandler,
+	stats common.TrieStatisticsHandler,
 	idleProvider IdleNodeProvider,
+	depthLevel int,
 ) error {
 	if shouldStopIfContextDone(ctx, idleProvider) {
 		return errors.ErrContextClosing
@@ -168,7 +169,7 @@ func (ln *leafNode) commitCheckpoint(
 		return err
 	}
 
-	stats.AddSize(uint64(nodeSize))
+	stats.AddLeafNode(depthLevel, uint64(nodeSize))
 
 	return nil
 }
@@ -178,8 +179,9 @@ func (ln *leafNode) commitSnapshot(
 	leavesChan chan core.KeyValueHolder,
 	_ chan []byte,
 	ctx context.Context,
-	stats common.SnapshotStatisticsHandler,
+	stats common.TrieStatisticsHandler,
 	idleProvider IdleNodeProvider,
+	depthLevel int,
 ) error {
 	if shouldStopIfContextDone(ctx, idleProvider) {
 		return errors.ErrContextClosing
@@ -200,7 +202,7 @@ func (ln *leafNode) commitSnapshot(
 		return err
 	}
 
-	stats.AddSize(uint64(nodeSize))
+	stats.AddLeafNode(depthLevel, uint64(nodeSize))
 
 	return nil
 }
@@ -498,6 +500,21 @@ func (ln *leafNode) sizeInBytes() int {
 
 func (ln *leafNode) getValue() []byte {
 	return ln.Value
+}
+
+func (ln *leafNode) collectStats(ts common.TrieStatisticsHandler, depthLevel int, _ common.DBWriteCacher) error {
+	err := ln.isEmptyOrNil()
+	if err != nil {
+		return fmt.Errorf("collectStats error %w", err)
+	}
+
+	val, err := collapseAndEncodeNode(ln)
+	if err != nil {
+		return err
+	}
+
+	ts.AddLeafNode(depthLevel, uint64(len(val)))
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
