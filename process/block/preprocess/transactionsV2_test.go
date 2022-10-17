@@ -2,6 +2,7 @@ package preprocess
 
 import (
 	"bytes"
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
@@ -750,6 +752,56 @@ func TestTransactions_CreateAndProcessMiniBlocksFromMeV2ShouldWork(t *testing.T)
 	mbs, _, mapSCTxs, _ = preprocessor.createAndProcessMiniBlocksFromMeV2(haveTimeMethod, isShardStuckMethod, isMaxBlockSizeReachedMethod, sortedTxs)
 	assert.Equal(t, 3, len(mbs))
 	assert.Equal(t, 2, len(mapSCTxs))
+}
+
+func TestTransactions_CreateAndProcessMiniBlocksFromMeV2MissingTrieNode(t *testing.T) {
+	t.Parallel()
+
+	missingNodeErr := fmt.Errorf(common.GetNodeFromDBErrorString)
+	preprocessor := createTransactionPreprocessor()
+	preprocessor.txProcessor = &testscommon.TxProcessorMock{
+		ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
+			return vmcommon.ExecutionFailed, missingNodeErr
+		},
+	}
+
+	haveTimeMethodReturn := true
+	isShardStuckMethodReturn := false
+	isMaxBlockSizeReachedMethodReturn := false
+	sortedTxs := make([]*txcache.WrappedTransaction, 0)
+	mapSCTxs := make(map[string]struct{})
+	tx1 := &txcache.WrappedTransaction{
+		ReceiverShardID: 0,
+		Tx:              &transaction.Transaction{Nonce: 1},
+		TxHash:          []byte("hash1"),
+	}
+	tx2 := &txcache.WrappedTransaction{
+		ReceiverShardID: 1,
+		Tx:              &transaction.Transaction{Nonce: 2, RcvAddr: []byte("smart contract address")},
+		TxHash:          []byte("hash2"),
+	}
+	tx3 := &txcache.WrappedTransaction{
+		ReceiverShardID: 2,
+		Tx:              &transaction.Transaction{Nonce: 3, RcvAddr: []byte("smart contract address")},
+		TxHash:          []byte("hash3"),
+	}
+	sortedTxs = append(sortedTxs, tx1)
+	sortedTxs = append(sortedTxs, tx2)
+	sortedTxs = append(sortedTxs, tx3)
+	mapSCTxs["hash1"] = struct{}{}
+
+	haveTimeMethod := func() bool {
+		return haveTimeMethodReturn
+	}
+	isShardStuckMethod := func(uint32) bool {
+		return isShardStuckMethodReturn
+	}
+	isMaxBlockSizeReachedMethod := func(int, int) bool {
+		return isMaxBlockSizeReachedMethodReturn
+	}
+
+	_, _, _, err := preprocessor.createAndProcessMiniBlocksFromMeV2(haveTimeMethod, isShardStuckMethod, isMaxBlockSizeReachedMethod, sortedTxs)
+	assert.Equal(t, missingNodeErr, err)
 }
 
 func TestTransactions_ProcessTransactionShouldWork(t *testing.T) {
