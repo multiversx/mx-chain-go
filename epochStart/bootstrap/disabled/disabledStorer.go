@@ -2,8 +2,8 @@ package disabled
 
 import (
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/storage/database"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 )
 
 const defaultCapacity = 10000
@@ -12,12 +12,12 @@ const zeroSize = 0
 
 // CreateMemUnit creates an in-memory storer unit using maps
 func CreateMemUnit() storage.Storer {
-	cache, err := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: defaultCapacity, Shards: defaultNumShards, SizeInBytes: zeroSize})
+	cache, err := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: defaultCapacity, Shards: defaultNumShards, SizeInBytes: zeroSize})
 	if err != nil {
 		return nil
 	}
 
-	unit, err := storageUnit.NewStorageUnit(cache, memorydb.New())
+	unit, err := storageunit.NewStorageUnit(cache, database.NewMemDB())
 	if err != nil {
 		return nil
 	}

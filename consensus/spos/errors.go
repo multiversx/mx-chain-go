@@ -22,6 +22,9 @@ var ErrNilSignature = errors.New("signature is nil")
 // ErrNilMultiSigner is raised when a valid multiSigner is expected but nil used
 var ErrNilMultiSigner = errors.New("multiSigner is nil")
 
+// ErrNilMultiSignerContainer is raised when a valid multiSigner container is expected, but nil used
+var ErrNilMultiSignerContainer = errors.New("multiSigner container is nil")
+
 // ErrNilConsensusState is raised when a valid consensus is expected but nil used
 var ErrNilConsensusState = errors.New("consensus state is nil")
 
@@ -240,3 +243,9 @@ var ErrNilKeyGenerator = errors.New("nil key generator")
 
 // ErrInvalidConsensusPeer signals that a consensus message has been received from a blacklisted peer
 var ErrInvalidConsensusPeer = errors.New("blacklisted consensus peer")
+
+// ErrNilSignatureOnP2PMessage signals that a p2p message without signature was received
+var ErrNilSignatureOnP2PMessage = errors.New("nil signature on the p2p message")
+
+// ErrNilSignatureHandler signals that provided signature handler is nil
+var ErrNilSignatureHandler = errors.New("nil signature handler")

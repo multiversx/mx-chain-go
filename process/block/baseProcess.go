@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"math/big"
 	"sort"
+	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
@@ -24,9 +24,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/holders"
 	"github.com/ElrondNetwork/elrond-go/common/logging"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
+	debugFactory "github.com/ElrondNetwork/elrond-go/debug/factory"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -35,7 +37,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 )
 
 var log = logger.GetOrCreate("process/block")
@@ -79,6 +81,8 @@ type baseProcessor struct {
 	blockChain              data.ChainHandler
 	hdrsForCurrBlock        *hdrForBlock
 	genesisNonce            uint64
+	mutProcessDebugger      sync.RWMutex
+	processDebugger         process.Debugger
 
 	versionedHeaderFactory       nodeFactory.VersionedHeaderFactory
 	headerIntegrityVerifier      process.HeaderIntegrityVerifier
@@ -92,19 +96,18 @@ type baseProcessor struct {
 	outportHandler      outport.OutportHandler
 	historyRepo         dblookupext.HistoryRepository
 	epochNotifier       process.EpochNotifier
-	roundNotifier       process.RoundNotifier
+	enableEpochsHandler common.EnableEpochsHandler
+	enableRoundsHandler process.EnableRoundsHandler
 	vmContainerFactory  process.VirtualMachinesContainerFactory
 	vmContainer         process.VirtualMachinesContainer
 	gasConsumedProvider gasConsumedProvider
 	economicsData       process.EconomicsDataHandler
 
-	processDataTriesOnCommitEpoch  bool
-	scheduledMiniBlocksEnableEpoch uint32
-	flagScheduledMiniBlocks        atomic.Flag
-	lastRestartNonce               uint64
-	pruningDelay                   uint32
-	processedMiniBlocksTracker     process.ProcessedMiniBlocksTracker
-	receiptsRepository             receiptsRepository
+	processDataTriesOnCommitEpoch bool
+	lastRestartNonce              uint64
+	pruningDelay                  uint32
+	processedMiniBlocksTracker    process.ProcessedMiniBlocksTracker
+	receiptsRepository            receiptsRepository
 }
 
 type bootStorerDataArgs struct {
@@ -207,7 +210,7 @@ func (bp *baseProcessor) checkBlockValidity(
 
 // checkScheduledRootHash checks if the scheduled root hash from the given header is the same with the current user accounts state root hash
 func (bp *baseProcessor) checkScheduledRootHash(headerHandler data.HeaderHandler) error {
-	if !bp.flagScheduledMiniBlocks.IsSet() {
+	if !bp.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
 		return nil
 	}
 
@@ -491,11 +494,14 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.BootstrapComponents.HeaderIntegrityVerifier()) {
 		return process.ErrNilHeaderIntegrityVerifier
 	}
-	if check.IfNil(arguments.EpochNotifier) {
+	if check.IfNil(arguments.CoreComponents.EpochNotifier()) {
 		return process.ErrNilEpochNotifier
 	}
-	if check.IfNil(arguments.RoundNotifier) {
-		return process.ErrNilRoundNotifier
+	if check.IfNil(arguments.CoreComponents.EnableEpochsHandler()) {
+		return process.ErrNilEnableEpochsHandler
+	}
+	if check.IfNil(arguments.EnableRoundsHandler) {
+		return process.ErrNilEnableRoundsHandler
 	}
 	if check.IfNil(arguments.CoreComponents.StatusHandler()) {
 		return process.ErrNilAppStatusHandler
@@ -644,7 +650,7 @@ func (bp *baseProcessor) setMiniBlockHeaderReservedField(
 	miniBlockHeaderHandler data.MiniBlockHeaderHandler,
 	processedMiniBlocksDestMeInfo map[string]*processedMb.ProcessedMiniBlockInfo,
 ) error {
-	if !bp.flagScheduledMiniBlocks.IsSet() {
+	if !bp.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
 		return nil
 	}
 
@@ -820,7 +826,7 @@ func checkConstructionStateAndIndexesCorrectness(mbh data.MiniBlockHeaderHandler
 }
 
 func (bp *baseProcessor) checkScheduledMiniBlocksValidity(headerHandler data.HeaderHandler) error {
-	if !bp.flagScheduledMiniBlocks.IsSet() {
+	if !bp.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
 		return nil
 	}
 
@@ -1017,7 +1023,7 @@ func (bp *baseProcessor) removeTxsFromPools(header data.HeaderHandler, body *blo
 }
 
 func (bp *baseProcessor) getFinalMiniBlocks(header data.HeaderHandler, body *block.Body) (*block.Body, error) {
-	if !bp.flagScheduledMiniBlocks.IsSet() {
+	if !bp.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
 		return body, nil
 	}
 
@@ -1695,11 +1701,15 @@ func (bp *baseProcessor) addHeaderIntoTrackerPool(nonce uint64, shardID uint32) 
 }
 
 func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBlock, rootHash []byte) error {
-	trieEpochRootHashStorageUnit := bp.store.GetStorer(dataRetriever.TrieEpochRootHashUnit)
+	trieEpochRootHashStorageUnit, err := bp.store.GetStorer(dataRetriever.TrieEpochRootHashUnit)
+	if err != nil {
+		return err
+	}
+
 	if check.IfNil(trieEpochRootHashStorageUnit) {
 		return nil
 	}
-	_, isStorerDisabled := trieEpochRootHashStorageUnit.(*storageUnit.NilStorer)
+	_, isStorerDisabled := trieEpochRootHashStorageUnit.(*storageunit.NilStorer)
 	if isStorerDisabled {
 		return nil
 	}
@@ -1711,7 +1721,7 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 
 	epochBytes := bp.uint64Converter.ToByteSlice(uint64(metaBlock.Epoch))
 
-	err := trieEpochRootHashStorageUnit.Put(epochBytes, rootHash)
+	err = trieEpochRootHashStorageUnit.Put(epochBytes, rootHash)
 	if err != nil {
 		return err
 	}
@@ -1803,15 +1813,17 @@ func unmarshalUserAccount(address []byte, userAccountsBytes []byte, marshalizer 
 
 // Close - closes all underlying components
 func (bp *baseProcessor) Close() error {
-	var err1, err2 error
+	var err1, err2, err3 error
 	if !check.IfNil(bp.vmContainer) {
 		err1 = bp.vmContainer.Close()
 	}
 	if !check.IfNil(bp.vmContainerFactory) {
 		err2 = bp.vmContainerFactory.Close()
 	}
-	if err1 != nil || err2 != nil {
-		return fmt.Errorf("vmContainer close error: %v, vmContainerFactory close error: %v", err1, err2)
+	err3 = bp.processDebugger.Close()
+	if err1 != nil || err2 != nil || err3 != nil {
+		return fmt.Errorf("vmContainer close error: %v, vmContainerFactory close error: %v, processDebugger close: %v",
+			err1, err2, err3)
 	}
 
 	return nil
@@ -1960,7 +1972,7 @@ func gasAndFeesDelta(initialGasAndFees, finalGasAndFees scheduled.GasAndFees) sc
 }
 
 func (bp *baseProcessor) getIndexOfFirstMiniBlockToBeExecuted(header data.HeaderHandler) int {
-	if !bp.flagScheduledMiniBlocks.IsSet() {
+	if !bp.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
 		return 0
 	}
 
@@ -1978,12 +1990,6 @@ func (bp *baseProcessor) getIndexOfFirstMiniBlockToBeExecuted(header data.Header
 	return len(header.GetMiniBlockHeaderHandlers())
 }
 
-// EpochConfirmed is called whenever a new epoch is confirmed
-func (bp *baseProcessor) EpochConfirmed(epoch uint32, _ uint64) {
-	bp.flagScheduledMiniBlocks.SetValue(epoch >= bp.scheduledMiniBlocksEnableEpoch)
-	log.Debug("baseProcessor: scheduled mini blocks", "enabled", bp.flagScheduledMiniBlocks.IsSet())
-}
-
 func displayCleanupErrorMessage(message string, shardID uint32, noncesToPrevFinal uint64, err error) {
 	// 2 blocks on shard + 2 blocks on meta + 1 block to previous final
 	maxNoncesToPrevFinalWithoutWarn := uint64(process.BlockFinality+1)*2 + 1
@@ -1996,4 +2002,31 @@ func displayCleanupErrorMessage(message string, shardID uint32, noncesToPrevFina
 		"shard", shardID,
 		"nonces to previous final", noncesToPrevFinal,
 		"error", err.Error())
+}
+
+// SetProcessDebugger sets the process debugger associated to this block processor
+func (bp *baseProcessor) SetProcessDebugger(debugger process.Debugger) error {
+	if check.IfNil(debugger) {
+		return process.ErrNilProcessDebugger
+	}
+
+	bp.mutProcessDebugger.Lock()
+	bp.processDebugger = debugger
+	bp.mutProcessDebugger.Unlock()
+
+	return nil
+}
+
+func (bp *baseProcessor) updateLastCommittedInDebugger(round uint64) {
+	bp.mutProcessDebugger.RLock()
+	bp.processDebugger.SetLastCommittedBlockRound(round)
+	bp.mutProcessDebugger.RUnlock()
+}
+
+func createDisabledProcessDebugger() (process.Debugger, error) {
+	configs := config.ProcessDebugConfig{
+		Enabled: false,
+	}
+
+	return debugFactory.CreateProcessDebugger(configs)
 }

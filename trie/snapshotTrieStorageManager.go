@@ -1,8 +1,11 @@
 package trie
 
 import (
+	"bytes"
 	"fmt"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/errors"
 )
 
@@ -35,15 +38,43 @@ func (stsm *snapshotTrieStorageManager) Get(key []byte) ([]byte, error) {
 		return nil, errors.ErrContextClosing
 	}
 
-	val, err := stsm.mainSnapshotStorer.GetFromOldEpochsWithoutAddingToCache(key)
+	val, epoch, err := stsm.mainSnapshotStorer.GetFromOldEpochsWithoutAddingToCache(key)
 	if errors.IsClosingError(err) {
 		return nil, err
 	}
 	if len(val) != 0 {
+		stsm.putInPreviousStorerIfAbsent(key, val, epoch)
 		return val, nil
 	}
 
 	return stsm.getFromOtherStorers(key)
+}
+
+func (stsm *snapshotTrieStorageManager) putInPreviousStorerIfAbsent(key []byte, val []byte, epoch core.OptionalUint32) {
+	if !epoch.HasValue {
+		return
+	}
+
+	if stsm.epoch == 0 {
+		return
+	}
+
+	if epoch.Value >= stsm.epoch-1 {
+		return
+	}
+
+	if bytes.Equal(key, []byte(common.ActiveDBKey)) || bytes.Equal(key, []byte(common.TrieSyncedKey)) {
+		return
+	}
+
+	log.Trace("put missing hash in snapshot storer", "hash", key, "epoch", stsm.epoch-1)
+	err := stsm.mainSnapshotStorer.PutInEpoch(key, val, stsm.epoch-1)
+	if err != nil {
+		log.Warn("can not put in epoch",
+			"error", err,
+			"epoch", stsm.epoch-1,
+		)
+	}
 }
 
 // Put adds the given value to the main storer

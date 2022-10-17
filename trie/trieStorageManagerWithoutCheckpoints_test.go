@@ -25,11 +25,11 @@ func TestTrieStorageManagerWithoutCheckpoints_SetCheckpoint(t *testing.T) {
 	tsm, _ := trie.NewTrieStorageManager(getNewTrieStorageManagerArgs())
 	ts, _ := trie.NewTrieStorageManagerWithoutCheckpoints(tsm)
 
-	ts.SetCheckpoint([]byte("rootHash"), make([]byte, 0), nil, errChan, &trieMock.MockStatistics{})
+	ts.SetCheckpoint([]byte("rootHash"), make([]byte, 0), nil, nil, errChan, &trieMock.MockStatistics{})
 	assert.Equal(t, uint32(0), ts.PruningBlockingOperations())
 
 	chLeaves := make(chan core.KeyValueHolder)
-	ts.SetCheckpoint([]byte("rootHash"), make([]byte, 0), chLeaves, errChan, &trieMock.MockStatistics{})
+	ts.SetCheckpoint([]byte("rootHash"), make([]byte, 0), chLeaves, nil, errChan, &trieMock.MockStatistics{})
 	assert.Equal(t, uint32(0), ts.PruningBlockingOperations())
 
 	select {

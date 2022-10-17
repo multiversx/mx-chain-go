@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	pubsub "github.com/ElrondNetwork/go-libp2p-pubsub"
 	pubsubPb "github.com/ElrondNetwork/go-libp2p-pubsub/pb"
@@ -26,6 +27,7 @@ var _ p2p.DirectSender = (*directSender)(nil)
 
 const timeSeenMessages = time.Second * 120
 const maxMutexes = 10000
+const sequenceNumberSize = 8
 
 type directSender struct {
 	counter         uint64
@@ -35,6 +37,7 @@ type directSender struct {
 	mutSeenMessages sync.Mutex
 	seenMessages    *timecache.TimeCache
 	mutexForPeer    *MutexHolder
+	signer          p2p.SignerVerifier
 }
 
 // NewDirectSender returns a new instance of direct sender object
@@ -42,6 +45,7 @@ func NewDirectSender(
 	ctx context.Context,
 	h host.Host,
 	messageHandler func(msg *pubsub.Message, fromConnectedPeer core.PeerID) error,
+	signer p2p.SignerVerifier,
 ) (*directSender, error) {
 
 	if h == nil {
@@ -52,6 +56,9 @@ func NewDirectSender(
 	}
 	if messageHandler == nil {
 		return nil, p2p.ErrNilDirectSendMessageHandler
+	}
+	if check.IfNil(signer) {
+		return nil, p2p.ErrNilP2PSigner
 	}
 
 	mutexForPeer, err := NewMutexHolder(maxMutexes)
@@ -66,6 +73,7 @@ func NewDirectSender(
 		seenMessages:   timecache.NewTimeCache(timeSeenMessages),
 		messageHandler: messageHandler,
 		mutexForPeer:   mutexForPeer,
+		signer:         signer,
 	}
 
 	// wire-up a handler for direct messages
@@ -117,8 +125,18 @@ func (ds *directSender) processReceivedDirectMessage(message *pubsubPb.Message, 
 	if !bytes.Equal(message.GetFrom(), []byte(fromConnectedPeer)) {
 		return fmt.Errorf("%w mismatch between From and fromConnectedPeer values", p2p.ErrInvalidValue)
 	}
+	if message.Key != nil {
+		return fmt.Errorf("%w for Key field as the node accepts only nil on this field", p2p.ErrInvalidValue)
+	}
+	if len(message.Seqno) > sequenceNumberSize {
+		return fmt.Errorf("%w for SeqNo field as the node accepts only a maximum %d bytes", p2p.ErrInvalidValue, sequenceNumberSize)
+	}
 	if ds.checkAndSetSeenMessage(message) {
 		return p2p.ErrAlreadySeenMessage
+	}
+	err := ds.checkSig(message)
+	if err != nil {
+		return err
 	}
 
 	pbMessage := &pubsub.Message{
@@ -142,9 +160,9 @@ func (ds *directSender) checkAndSetSeenMessage(msg *pubsubPb.Message) bool {
 	return false
 }
 
-// NextSeqno returns the next uint64 found in *counter as byte slice
-func (ds *directSender) NextSeqno() []byte {
-	seqno := make([]byte, 8)
+// NextSequenceNumber returns the next uint64 found in *counter as byte slice
+func (ds *directSender) NextSequenceNumber() []byte {
+	seqno := make([]byte, sequenceNumberSize)
 	newVal := atomic.AddUint64(&ds.counter, 1)
 	binary.BigEndian.PutUint64(seqno, newVal)
 	return seqno
@@ -170,7 +188,10 @@ func (ds *directSender) Send(topic string, buff []byte, peer core.PeerID) error 
 		return err
 	}
 
-	msg := ds.createMessage(topic, buff, conn)
+	msg, err := ds.createMessage(topic, buff, conn)
+	if err != nil {
+		return err
+	}
 
 	bufw := bufio.NewWriter(stream)
 	w := ggio.NewDelimitedWriter(bufw)
@@ -237,15 +258,51 @@ func (ds *directSender) getOrCreateStream(conn network.Conn) (network.Stream, er
 	return foundStream, nil
 }
 
-func (ds *directSender) createMessage(topic string, buff []byte, conn network.Conn) *pubsubPb.Message {
-	seqno := ds.NextSeqno()
+func (ds *directSender) createMessage(topic string, buff []byte, conn network.Conn) (*pubsubPb.Message, error) {
+	seqno := ds.NextSequenceNumber()
 	mes := pubsubPb.Message{}
 	mes.Data = buff
 	mes.Topic = &topic
 	mes.From = []byte(conn.LocalPeer())
 	mes.Seqno = seqno
+	mes.Key = nil
 
-	return &mes
+	buff, err := mes.Marshal()
+	if err != nil {
+		return nil, err
+	}
+
+	buff = withSignPrefix(buff)
+
+	mes.Signature, err = ds.signer.Sign(buff)
+	if err != nil {
+		return nil, err
+	}
+
+	return &mes, nil
+}
+
+func (ds *directSender) checkSig(message *pubsubPb.Message) error {
+	if len(message.Signature) == 0 {
+		return nil // TODO will remove this in the future
+	}
+
+	copyMessage := *message
+	copyMessage.Signature = nil
+	copyMessage.Key = nil
+
+	buff, err := copyMessage.Marshal()
+	if err != nil {
+		return err
+	}
+
+	buff = withSignPrefix(buff)
+
+	return ds.signer.Verify(buff, core.PeerID(message.From), message.Signature)
+}
+
+func withSignPrefix(bytes []byte) []byte {
+	return append([]byte(pubsub.SignPrefix), bytes...)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

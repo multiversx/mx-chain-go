@@ -102,11 +102,11 @@ func testInterceptedTxFromFrontendGeneratedParams(
 	valMinting, _ := big.NewInt(0).SetString(mintingValue, 10)
 	valMinting.Mul(valMinting, big.NewInt(5000000))
 
-	node := integrationTests.NewTestProcessorNode(
-		maxShards,
-		nodeShardId,
-		txSignPrivKeyShardId,
-	)
+	node := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+		MaxShards:            maxShards,
+		NodeShardId:          nodeShardId,
+		TxSignPrivKeyShardId: txSignPrivKeyShardId,
+	})
 
 	node.EconomicsData.SetMinGasPrice(10)
 	txHexHash := ""
