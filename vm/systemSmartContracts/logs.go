@@ -4,7 +4,6 @@ import (
 	"math/big"
 	"strconv"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -53,8 +52,7 @@ func (d *delegation) createAndAddLogEntryForDelegate(
 	address := contractCallInput.CallerAddr
 	function := contractCallInput.Function
 	if function == initFromValidatorData ||
-		function == mergeValidatorDataToDelegation ||
-		function == core.SCDeployInitFunctionName {
+		function == mergeValidatorDataToDelegation {
 		address = contractCallInput.Arguments[0]
 
 		topics = append(topics, contractCallInput.RecipientAddr)
