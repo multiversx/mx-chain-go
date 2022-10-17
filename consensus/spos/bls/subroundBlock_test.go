@@ -216,7 +216,7 @@ func TestSubroundBlock_NewSubroundBlockNilMarshalizerShouldFail(t *testing.T) {
 	assert.Equal(t, spos.ErrNilMarshalizer, err)
 }
 
-func TestSubroundBlock_NewSubroundBlockNilMultisignerShouldFail(t *testing.T) {
+func TestSubroundBlock_NewSubroundBlockNilMultiSignerContainerShouldFail(t *testing.T) {
 	t.Parallel()
 	container := mock.InitConsensusCore()
 
@@ -225,10 +225,10 @@ func TestSubroundBlock_NewSubroundBlockNilMultisignerShouldFail(t *testing.T) {
 	ch := make(chan bool, 1)
 	sr, _ := defaultSubroundForSRBlock(consensusState, ch, container, &statusHandler.AppStatusHandlerStub{})
 
-	container.SetMultiSigner(nil)
+	container.SetMultiSignerContainer(nil)
 	srBlock, err := defaultSubroundBlockFromSubround(sr)
 	assert.Nil(t, srBlock)
-	assert.Equal(t, spos.ErrNilMultiSigner, err)
+	assert.Equal(t, spos.ErrNilMultiSignerContainer, err)
 }
 
 func TestSubroundBlock_NewSubroundBlockNilRoundHandlerShouldFail(t *testing.T) {

@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/heartbeat/process"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
@@ -40,8 +39,7 @@ func createMonitor(
 		HeartbeatRefreshIntervalInSec:      1,
 		HideInactiveValidatorIntervalInSec: 600,
 		AppStatusHandler:                   &statusHandlerMock.AppStatusHandlerStub{},
-		EpochNotifier:                      &epochNotifier.EpochNotifierStub{},
-		HeartbeatDisableEpoch:              1,
+		EnableEpochsHandler:                &testscommon.EnableEpochsHandlerStub{},
 	}
 	mon, _ := process.NewMonitor(arg)
 

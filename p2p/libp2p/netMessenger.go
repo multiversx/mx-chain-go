@@ -309,7 +309,7 @@ func addComponentsToNode(
 
 	p2pNode.createConnectionsMetric()
 
-	p2pNode.ds, err = NewDirectSender(p2pNode.ctx, p2pNode.p2pHost, p2pNode.directMessageHandler)
+	p2pNode.ds, err = NewDirectSender(p2pNode.ctx, p2pNode.p2pHost, p2pNode.directMessageHandler, p2pNode)
 	if err != nil {
 		return err
 	}
@@ -1181,7 +1181,7 @@ func (netMes *networkMessenger) sendDirectToSelf(topic string, buff []byte) erro
 		Message: &pubsubPb.Message{
 			From:      netMes.ID().Bytes(),
 			Data:      buff,
-			Seqno:     netMes.ds.NextSeqno(),
+			Seqno:     netMes.ds.NextSequenceNumber(),
 			Topic:     &topic,
 			Signature: netMes.ID().Bytes(),
 		},

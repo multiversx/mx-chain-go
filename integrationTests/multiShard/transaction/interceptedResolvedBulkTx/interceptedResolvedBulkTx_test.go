@@ -116,7 +116,11 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShard(t 
 		nodesPerShard,
 		numMetachainNodes,
 	)
-	nodes[0] = integrationTests.NewTestProcessorNode(uint32(numOfShards), 0, firstSkInShard)
+	nodes[0] = integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+		MaxShards:            uint32(numOfShards),
+		NodeShardId:          0,
+		TxSignPrivKeyShardId: firstSkInShard,
+	})
 	integrationTests.CreateAccountForNodes(nodes)
 	integrationTests.DisplayAndStartNodes(nodes)
 
@@ -214,7 +218,11 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShardAnd
 		nodesPerShard,
 		numMetachainNodes,
 	)
-	nodes[0] = integrationTests.NewTestProcessorNode(uint32(numOfShards), 0, firstSkInShard)
+	nodes[0] = integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+		MaxShards:            uint32(numOfShards),
+		NodeShardId:          0,
+		TxSignPrivKeyShardId: firstSkInShard,
+	})
 	integrationTests.CreateAccountForNodes(nodes)
 	integrationTests.DisplayAndStartNodes(nodes)
 
@@ -338,12 +346,12 @@ func TestNode_InMultiShardEnvRequestTxsShouldRequireFromTheOtherShardAndSameShar
 	for i := 0; i < nodesPerShard; i++ {
 		dPool := integrationTests.CreateRequesterDataPool(recvTxs, &mutRecvTxs, i, 0)
 
-		tn := integrationTests.NewTestProcessorNodeWithCustomDataPool(
-			uint32(maxShards),
-			0,
-			0,
-			dPool,
-		)
+		tn := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+			MaxShards:            uint32(maxShards),
+			NodeShardId:          0,
+			TxSignPrivKeyShardId: 0,
+			DataPool:             dPool,
+		})
 
 		nodes = append(nodes, tn)
 		connectableNodes = append(connectableNodes, tn)
@@ -359,12 +367,12 @@ func TestNode_InMultiShardEnvRequestTxsShouldRequireFromTheOtherShardAndSameShar
 
 	//shard 1, resolvers, same data pool, does not matter
 	for i := 0; i < nodesPerShard; i++ {
-		tn := integrationTests.NewTestProcessorNodeWithCustomDataPool(
-			uint32(maxShards),
-			1,
-			1,
-			dPool,
-		)
+		tn := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+			MaxShards:            uint32(maxShards),
+			NodeShardId:          1,
+			TxSignPrivKeyShardId: 1,
+			DataPool:             dPool,
+		})
 
 		atomic.StoreInt32(&tn.CounterTxRecv, int32(txGenerated))
 

@@ -196,7 +196,7 @@ type ChannelLoadBalancer interface {
 
 // DirectSender defines a component that can send direct messages to connected peers
 type DirectSender interface {
-	NextSeqno() []byte
+	NextSequenceNumber() []byte
 	Send(topic string, buff []byte, peer core.PeerID) error
 	IsInterfaceNil() bool
 }
@@ -266,9 +266,8 @@ type NetworkShardingCollector interface {
 
 // SignerVerifier is used in higher level protocol authentication of 2 peers after the basic p2p connection has been made
 type SignerVerifier interface {
-	Sign(message []byte) ([]byte, error)
-	Verify(message []byte, sig []byte, pk []byte) error
-	PublicKey() []byte
+	Sign(payload []byte) ([]byte, error)
+	Verify(payload []byte, pid core.PeerID, signature []byte) error
 	IsInterfaceNil() bool
 }
 
