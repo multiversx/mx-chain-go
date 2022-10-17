@@ -2767,6 +2767,7 @@ func TestScProcessor_CreateCrossShardTransactionsWithAsyncCalls(t *testing.T) {
 	}
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	arguments := createMockSmartContractProcessorArguments()
+	arguments.ArgsParser = NewArgumentParser()
 	enableEpochsHandler := &testscommon.EnableEpochsHandlerStub{
 		IsFixAsyncCallBackArgsListFlagEnabledField: false,
 	}
@@ -2798,8 +2799,16 @@ func TestScProcessor_CreateCrossShardTransactionsWithAsyncCalls(t *testing.T) {
 	tx.GasLimit = 15
 	txHash := []byte("txHash")
 
+	asyncArguments := &vmcommon.AsyncArguments{
+		CallID:       []byte("asynccall"),
+		CallerCallID: []byte("initiatingCall"),
+	}
+
 	createdAsyncSCR, scTxs, err := sc.processSCOutputAccounts(
-		&vmcommon.VMInput{CallType: vmData.AsynchronousCall},
+		&vmcommon.VMInput{
+			AsyncArguments: asyncArguments,
+			CallType:       vmData.AsynchronousCall,
+		},
 		&vmcommon.VMOutput{GasRemaining: 1000},
 		outputAccounts,
 		tx,
@@ -2822,8 +2831,9 @@ func TestScProcessor_CreateCrossShardTransactionsWithAsyncCalls(t *testing.T) {
 	}
 	createdAsyncSCR, scTxs, err = sc.processSCOutputAccounts(
 		&vmcommon.VMInput{
-			Arguments: [][]byte{{}, {}},
-			CallType:  vmData.AsynchronousCall,
+			Arguments:      [][]byte{{}, {}},
+			AsyncArguments: asyncArguments,
+			CallType:       vmData.AsynchronousCall,
 		},
 		&vmcommon.VMOutput{GasRemaining: 1000},
 		outputAccounts,
@@ -2838,6 +2848,7 @@ func TestScProcessor_CreateCrossShardTransactionsWithAsyncCalls(t *testing.T) {
 		require.Equal(t, vmData.AsynchronousCallBack, lastScTx.CallType)
 		require.Equal(t, []byte(nil), lastScTx.Data)
 	})
+
 	enableEpochsHandler.IsFixAsyncCallBackArgsListFlagEnabledField = true
 
 	_, scTxs, err = sc.processSCOutputAccounts(

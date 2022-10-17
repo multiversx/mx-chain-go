@@ -2366,12 +2366,17 @@ func (sc *scProcessor) useLastTransferAsAsyncCallBackWhenNeeded(
 	result.CallType = vmData.AsynchronousCallBack
 	result.GasLimit, _ = core.SafeAddUint64(result.GasLimit, vmOutput.GasRemaining)
 
-	var err error
-	result.Data, err = sc.prependAsyncParamsToData(
-		contexts.CreateCallbackAsyncParams(hooks.NewVMCryptoHook(), vmInput.AsyncArguments), result.Data)
-	if err != nil {
-		log.Debug("processed built in functions error (async params extraction)", "error", err.Error())
-		return false
+	// This condition is required here to avoid passing an empty result.Data to
+	// sc.prependAsyncParamsToData(), an otherwise normal situation before the
+	// flag FixAsyncCallBackArgsListFlat is enabled
+	if sc.enableEpochsHandler.IsFixAsyncCallBackArgsListFlagEnabled() {
+		var err error
+		result.Data, err = sc.prependAsyncParamsToData(
+			contexts.CreateCallbackAsyncParams(hooks.NewVMCryptoHook(), vmInput.AsyncArguments), result.Data)
+		if err != nil {
+			log.Debug("processed built in functions error (async params extraction)", "error", err.Error())
+			return false
+		}
 	}
 
 	return true
