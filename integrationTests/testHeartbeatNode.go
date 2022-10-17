@@ -25,6 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
+	"github.com/ElrondNetwork/elrond-go/heartbeat/monitor"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/processor"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/sender"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
@@ -373,6 +374,7 @@ func (thn *TestHeartbeatNode) InitTestHeartbeatNode(tb testing.TB, minPeersWaiti
 	thn.initResolvers()
 	thn.initInterceptors()
 	thn.initShardSender(tb)
+	thn.initCrossShardPeerTopicNotifier(tb)
 	thn.initDirectConnectionProcessor(tb)
 
 	for len(thn.Messenger.Peers()) < minPeersWaiting {
@@ -646,6 +648,18 @@ func (thn *TestHeartbeatNode) initDirectConnectionProcessor(tb testing.TB) {
 
 	var err error
 	thn.DirectConnectionProcessor, err = processor.NewDirectConnectionProcessor(argsDirectConnectionProcessor)
+	require.Nil(tb, err)
+}
+
+func (thn *TestHeartbeatNode) initCrossShardPeerTopicNotifier(tb testing.TB) {
+	argsCrossShardPeerTopicNotifier := monitor.ArgsCrossShardPeerTopicNotifier{
+		ShardCoordinator: thn.ShardCoordinator,
+		PeerShardMapper:  thn.PeerShardMapper,
+	}
+	crossShardPeerTopicNotifier, err := monitor.NewCrossShardPeerTopicNotifier(argsCrossShardPeerTopicNotifier)
+	require.Nil(tb, err)
+
+	err = thn.Messenger.AddPeerTopicNotifier(crossShardPeerTopicNotifier)
 	require.Nil(tb, err)
 }
 

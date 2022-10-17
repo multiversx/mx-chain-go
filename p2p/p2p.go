@@ -165,6 +165,7 @@ type Messenger interface {
 	WaitForConnections(maxWaitingTime time.Duration, minNumOfPeers uint32)
 	Sign(payload []byte) ([]byte, error)
 	Verify(payload []byte, pid core.PeerID, signature []byte) error
+	AddPeerTopicNotifier(notifier PeerTopicNotifier) error
 
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
@@ -350,5 +351,11 @@ type PeersRatingHandler interface {
 	IncreaseRating(pid core.PeerID)
 	DecreaseRating(pid core.PeerID)
 	GetTopRatedPeersFromList(peers []core.PeerID, minNumOfPeersExpected int) []core.PeerID
+	IsInterfaceNil() bool
+}
+
+// PeerTopicNotifier represent an entity able to handle new notifications on a new peer on a topic
+type PeerTopicNotifier interface {
+	NewPeerFound(pid core.PeerID, topic string)
 	IsInterfaceNil() bool
 }
