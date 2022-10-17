@@ -84,6 +84,7 @@ func createComponentsForEpochStart() (*mock.CoreComponentsMock, *mock.CryptoComp
 		},
 		&mock.CryptoComponentsMock{
 			PubKey:          &cryptoMocks.PublicKeyStub{},
+			PrivKey:         &cryptoMocks.PrivateKeyStub{},
 			BlockSig:        &cryptoMocks.SignerStub{},
 			TxSig:           &cryptoMocks.SignerStub{},
 			BlKeyGen:        &cryptoMocks.KeyGenStub{},

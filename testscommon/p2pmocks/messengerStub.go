@@ -61,7 +61,7 @@ func (ms *MessengerStub) ID() core.PeerID {
 		return ms.IDCalled()
 	}
 
-	return ""
+	return "peer ID"
 }
 
 // RegisterMessageProcessor -
