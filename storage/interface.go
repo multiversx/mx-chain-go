@@ -84,7 +84,7 @@ type Batcher interface {
 }
 
 // Storer provides storage services in a two layered storage construct, where the first layer is
-// represented by a cache and second layer by a persitent storage (DB-like)
+// represented by a cache and second layer by a persistent storage (DB-like)
 type Storer interface {
 	Put(key, data []byte) error
 	PutInEpoch(key, data []byte, epoch uint32) error

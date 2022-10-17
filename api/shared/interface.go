@@ -65,6 +65,7 @@ type FacadeHandler interface {
 	GetCodeHash(address string, options api.AccountQueryOptions) ([]byte, api.BlockInfo, error)
 	GetValueForKey(address string, key string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
 	GetAccount(address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error)
+	GetAccounts(addresses []string, options api.AccountQueryOptions) (map[string]*api.AccountResponse, api.BlockInfo, error)
 	GetESDTData(address string, key string, nonce uint64, options api.AccountQueryOptions) (*esdt.ESDigitalToken, api.BlockInfo, error)
 	GetESDTsRoles(address string, options api.AccountQueryOptions) (map[string][]string, api.BlockInfo, error)
 	GetNFTTokenIDsRegisteredByAddress(address string, options api.AccountQueryOptions) ([]string, api.BlockInfo, error)

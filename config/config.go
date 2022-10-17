@@ -325,6 +325,7 @@ type WebServerAntifloodConfig struct {
 	SameSourceRequests                 uint32
 	SameSourceResetIntervalInSec       uint32
 	TrieOperationsDeadlineMilliseconds uint32
+	GetAddressesBulkMaxSize            uint32
 	EndpointsThrottlers                []EndpointsThrottlersConfig
 }
 
