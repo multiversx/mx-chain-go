@@ -16,7 +16,6 @@ import (
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
-	"github.com/ElrondNetwork/elrond-go/vm/mock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -29,7 +28,7 @@ func getNewTrieStorageManagerArgs() trie.NewTrieStorageManagerArgs {
 	return trie.NewTrieStorageManagerArgs{
 		MainStorer:             testscommon.CreateMemUnit(),
 		CheckpointsStorer:      testscommon.CreateMemUnit(),
-		Marshalizer:            &mock.MarshalizerMock{},
+		Marshalizer:            &testscommon.MarshalizerMock{},
 		Hasher:                 &hashingMocks.HasherMock{},
 		GeneralConfig:          config.TrieStorageManagerConfig{SnapshotsGoroutineNum: 1},
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10, hashSize),
@@ -89,15 +88,18 @@ func TestTrieCheckpoint(t *testing.T) {
 
 	dirtyHashes := trie.GetDirtyHashes(tr)
 
-	errChan := make(chan error, 1)
 	trieStorage.AddDirtyCheckpointHashes(rootHash, dirtyHashes)
-	trieStorage.SetCheckpoint(rootHash, []byte{}, nil, nil, errChan, &trieMock.MockStatistics{})
+	iteratorChannels := &common.TrieIteratorChannels{
+		LeavesChan: nil,
+		ErrChan:    make(chan error, 1),
+	}
+	trieStorage.SetCheckpoint(rootHash, []byte{}, iteratorChannels, nil, &trieMock.MockStatistics{})
 	trie.WaitForOperationToComplete(trieStorage)
 
 	val, err = trieStorage.GetFromCheckpoint(rootHash)
 	assert.Nil(t, err)
 	assert.NotNil(t, val)
-	assert.Equal(t, 0, len(errChan))
+	assert.Equal(t, 0, len(iteratorChannels.ErrChan))
 }
 
 func TestTrieStorageManager_SetCheckpointNilErrorChan(t *testing.T) {
@@ -107,10 +109,13 @@ func TestTrieStorageManager_SetCheckpointNilErrorChan(t *testing.T) {
 	ts, _ := trie.NewTrieStorageManager(args)
 
 	rootHash := []byte("rootHash")
-	leavesChan := make(chan core.KeyValueHolder)
-	ts.SetCheckpoint(rootHash, rootHash, leavesChan, nil, nil, &trieMock.MockStatistics{})
+	iteratorChannels := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder),
+		ErrChan:    nil,
+	}
+	ts.SetCheckpoint(rootHash, rootHash, iteratorChannels, nil, &trieMock.MockStatistics{})
 
-	_, ok := <-leavesChan
+	_, ok := <-iteratorChannels.LeavesChan
 	assert.False(t, ok)
 
 	_ = ts.Close()
@@ -124,13 +129,15 @@ func TestTrieStorageManager_SetCheckpointClosedDb(t *testing.T) {
 	_ = ts.Close()
 
 	rootHash := []byte("rootHash")
-	leavesChan := make(chan core.KeyValueHolder)
-	errChan := make(chan error, 1)
-	ts.SetCheckpoint(rootHash, rootHash, leavesChan, nil, errChan, &trieMock.MockStatistics{})
+	iteratorChannels := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder),
+		ErrChan:    make(chan error, 1),
+	}
+	ts.SetCheckpoint(rootHash, rootHash, iteratorChannels, nil, &trieMock.MockStatistics{})
 
-	_, ok := <-leavesChan
+	_, ok := <-iteratorChannels.LeavesChan
 	assert.False(t, ok)
-	assert.Equal(t, 0, len(errChan))
+	assert.Equal(t, 0, len(iteratorChannels.ErrChan))
 }
 
 func TestTrieStorageManager_SetCheckpointEmptyTrieRootHash(t *testing.T) {
@@ -140,13 +147,15 @@ func TestTrieStorageManager_SetCheckpointEmptyTrieRootHash(t *testing.T) {
 	ts, _ := trie.NewTrieStorageManager(args)
 
 	rootHash := make([]byte, 32)
-	leavesChan := make(chan core.KeyValueHolder)
-	errChan := make(chan error, 1)
-	ts.SetCheckpoint(rootHash, rootHash, leavesChan, nil, errChan, &trieMock.MockStatistics{})
+	iteratorChannels := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder),
+		ErrChan:    make(chan error, 1),
+	}
+	ts.SetCheckpoint(rootHash, rootHash, iteratorChannels, nil, &trieMock.MockStatistics{})
 
-	_, ok := <-leavesChan
+	_, ok := <-iteratorChannels.LeavesChan
 	assert.False(t, ok)
-	assert.Equal(t, 0, len(errChan))
+	assert.Equal(t, 0, len(iteratorChannels.ErrChan))
 }
 
 func TestTrieCheckpoint_DoesNotSaveToCheckpointStorageIfNotDirty(t *testing.T) {
@@ -159,14 +168,17 @@ func TestTrieCheckpoint_DoesNotSaveToCheckpointStorageIfNotDirty(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Nil(t, val)
 
-	errChan := make(chan error, 1)
-	trieStorage.SetCheckpoint(rootHash, []byte{}, nil, nil, errChan, &trieMock.MockStatistics{})
+	iteratorChannels := &common.TrieIteratorChannels{
+		LeavesChan: nil,
+		ErrChan:    make(chan error, 1),
+	}
+	trieStorage.SetCheckpoint(rootHash, []byte{}, iteratorChannels, nil, &trieMock.MockStatistics{})
 	trie.WaitForOperationToComplete(trieStorage)
 
 	val, err = trieStorage.GetFromCheckpoint(rootHash)
 	assert.NotNil(t, err)
 	assert.Nil(t, val)
-	assert.Equal(t, 0, len(errChan))
+	assert.Equal(t, 0, len(iteratorChannels.ErrChan))
 }
 
 func TestTrieStorageManager_IsPruningEnabled(t *testing.T) {
@@ -310,10 +322,13 @@ func TestTrieStorageManager_TakeSnapshotNilErrorChan(t *testing.T) {
 	ts, _ := trie.NewTrieStorageManager(args)
 
 	rootHash := []byte("rootHash")
-	leavesChan := make(chan core.KeyValueHolder)
-	ts.TakeSnapshot(nil, rootHash, rootHash, leavesChan, nil, nil, &trieMock.MockStatistics{}, 0)
+	iteratorChannels := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder),
+		ErrChan:    nil,
+	}
+	ts.TakeSnapshot(nil, rootHash, rootHash, iteratorChannels, nil, &trieMock.MockStatistics{}, 0)
 
-	_, ok := <-leavesChan
+	_, ok := <-iteratorChannels.LeavesChan
 	assert.False(t, ok)
 
 	_ = ts.Close()
@@ -327,13 +342,15 @@ func TestTrieStorageManager_TakeSnapshotClosedDb(t *testing.T) {
 	_ = ts.Close()
 
 	rootHash := []byte("rootHash")
-	leavesChan := make(chan core.KeyValueHolder)
-	errChan := make(chan error, 1)
-	ts.TakeSnapshot(nil, rootHash, rootHash, leavesChan, nil, errChan, &trieMock.MockStatistics{}, 0)
+	iteratorChannels := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder),
+		ErrChan:    make(chan error, 1),
+	}
+	ts.TakeSnapshot(nil, rootHash, rootHash, iteratorChannels, nil, &trieMock.MockStatistics{}, 0)
 
-	_, ok := <-leavesChan
+	_, ok := <-iteratorChannels.LeavesChan
 	assert.False(t, ok)
-	assert.Equal(t, 0, len(errChan))
+	assert.Equal(t, 0, len(iteratorChannels.ErrChan))
 }
 
 func TestTrieStorageManager_TakeSnapshotEmptyTrieRootHash(t *testing.T) {
@@ -343,13 +360,15 @@ func TestTrieStorageManager_TakeSnapshotEmptyTrieRootHash(t *testing.T) {
 	ts, _ := trie.NewTrieStorageManager(args)
 
 	rootHash := make([]byte, 32)
-	leavesChan := make(chan core.KeyValueHolder)
-	errChan := make(chan error, 1)
-	ts.TakeSnapshot(nil, rootHash, rootHash, leavesChan, nil, errChan, &trieMock.MockStatistics{}, 0)
+	iteratorChannels := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder),
+		ErrChan:    make(chan error, 1),
+	}
+	ts.TakeSnapshot(nil, rootHash, rootHash, iteratorChannels, nil, &trieMock.MockStatistics{}, 0)
 
-	_, ok := <-leavesChan
+	_, ok := <-iteratorChannels.LeavesChan
 	assert.False(t, ok)
-	assert.Equal(t, 0, len(errChan))
+	assert.Equal(t, 0, len(iteratorChannels.ErrChan))
 }
 
 func TestTrieStorageManager_TakeSnapshotWithGetNodeFromDBError(t *testing.T) {
@@ -360,15 +379,17 @@ func TestTrieStorageManager_TakeSnapshotWithGetNodeFromDBError(t *testing.T) {
 	ts, _ := trie.NewTrieStorageManager(args)
 
 	rootHash := []byte("rootHash")
-	leavesChan := make(chan core.KeyValueHolder)
-	errChan := make(chan error, 1)
+	iteratorChannels := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder),
+		ErrChan:    make(chan error, 1),
+	}
 	missingNodesChan := make(chan []byte, 2)
-	ts.TakeSnapshot(nil, rootHash, rootHash, leavesChan, missingNodesChan, errChan, &trieMock.MockStatistics{}, 0)
-	_, ok := <-leavesChan
+	ts.TakeSnapshot(nil, rootHash, rootHash, iteratorChannels, missingNodesChan, &trieMock.MockStatistics{}, 0)
+	_, ok := <-iteratorChannels.LeavesChan
 	assert.False(t, ok)
 
-	require.Equal(t, 1, len(errChan))
-	errRecovered := <-errChan
+	require.Equal(t, 1, len(iteratorChannels.ErrChan))
+	errRecovered := <-iteratorChannels.ErrChan
 	assert.True(t, strings.Contains(errRecovered.Error(), common.GetNodeFromDBErrorString))
 }
 
