@@ -182,6 +182,16 @@ func TestNewAPITransactionProcessor(t *testing.T) {
 		_, err := NewAPITransactionProcessor(arguments)
 		require.Equal(t, ErrNilDataFieldParser, err)
 	})
+
+	t.Run("empty chain id field, should return error", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgAPITransactionProcessor()
+		arguments.ChainID = ""
+
+		_, err := NewAPITransactionProcessor(arguments)
+		require.Equal(t, errEmptyChainID, err)
+	})
 }
 
 func TestNode_GetTransactionInvalidHashShouldErr(t *testing.T) {
