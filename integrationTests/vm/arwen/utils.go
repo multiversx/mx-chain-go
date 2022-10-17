@@ -38,6 +38,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/processProxy"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/scrCommon"
 	"github.com/ElrondNetwork/elrond-go/process/sync/disabled"
 	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
@@ -96,7 +97,7 @@ type TestContext struct {
 	ScCodeMetadata   vmcommon.CodeMetadata
 	Accounts         *state.AccountsDB
 	TxProcessor      process.TransactionProcessor
-	ScProcessor      *smartContract.TestScProcessor
+	ScProcessor      scrCommon.TestSmartContractProcessor
 	QueryService     external.SCQueryService
 	VMContainer      process.VirtualMachinesContainer
 	BlockchainHook   *hooks.BlockChainHookImpl
@@ -353,8 +354,8 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 		ArwenChangeLocker:   context.ArwenChangeLocker,
 		VMOutputCacher:      txcache.NewDisabledCache(),
 	}
-	sc, err := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
-	context.ScProcessor = smartContract.NewTestScProcessor(sc)
+
+	context.ScProcessor, _ = processProxy.NewTestSmartContractProcessorProxy(argsNewSCProcessor, context.EpochNotifier)
 	require.Nil(context.T, err)
 
 	argsNewTxProcessor := processTransaction.ArgsNewTxProcessor{

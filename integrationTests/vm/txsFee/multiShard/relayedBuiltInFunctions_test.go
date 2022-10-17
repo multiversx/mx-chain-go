@@ -90,15 +90,11 @@ func TestRelayedBuiltInFunctionExecuteOnRelayerAndDstShardShouldWork(t *testing.
 
 	utils.CheckOwnerAddr(t, testContextInner, scAddr, newOwner)
 
-	expectedFees = big.NewInt(850)
+	expectedFees = big.NewInt(7000)
 	accumulatedFees = testContextInner.TxFeeHandler.GetAccumulatedFees()
 	require.Equal(t, expectedFees, accumulatedFees)
 
-	txs := testContextInner.GetIntermediateTransactions(t)
-	scr := txs[0]
-	utils.ProcessSCRResult(t, testContextRelayer, scr, vmcommon.Ok, nil)
-
-	expectedRelayerBalance = big.NewInt(10760)
+	expectedRelayerBalance = big.NewInt(4610)
 	utils.TestAccount(t, testContextRelayer.Accounts, relayerAddr, 1, expectedRelayerBalance)
 
 	intermediateTxs = testContextInner.GetIntermediateTransactions(t)
@@ -106,7 +102,7 @@ func TestRelayedBuiltInFunctionExecuteOnRelayerAndDstShardShouldWork(t *testing.
 	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
 
 	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, uint64(424), indexerTx.GasUsed)
-	require.Equal(t, "4240", indexerTx.Fee)
+	require.Equal(t, uint64(1039), indexerTx.GasUsed)
+	require.Equal(t, "10390", indexerTx.Fee)
 	require.Equal(t, transaction.TxStatusSuccess.String(), indexerTx.Status)
 }

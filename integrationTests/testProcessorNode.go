@@ -80,6 +80,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/processProxy"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/scrCommon"
 	processSync "github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/process/track"
@@ -304,7 +305,7 @@ type TestProcessorNode struct {
 	BlockchainHook         *hooks.BlockChainHookImpl
 	VMContainer            process.VirtualMachinesContainer
 	ArgsParser             process.ArgumentsParser
-	ScProcessor            *smartContract.TestScProcessor
+	ScProcessor            process.SmartContractProcessorFacade
 	RewardsProcessor       process.RewardTransactionProcessor
 	PreProcessorsContainer process.PreProcessorsContainer
 	GasHandler             process.GasHandler
@@ -1461,8 +1462,8 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		VMOutputCacher:      txcache.NewDisabledCache(),
 		ArwenChangeLocker:   tpn.ArwenChangeLocker,
 	}
-	sc, _ := smartContract.NewSmartContractProcessor(argsNewScProcessor)
-	tpn.ScProcessor = smartContract.NewTestScProcessor(sc)
+
+	tpn.ScProcessor, _ = processProxy.NewTestSmartContractProcessorProxy(argsNewScProcessor, tpn.EpochNotifier)
 
 	receiptsHandler, _ := tpn.InterimProcContainer.Get(dataBlock.ReceiptBlock)
 	argsNewTxProcessor := transaction.ArgsNewTxProcessor{
@@ -1707,8 +1708,9 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		VMOutputCacher:      txcache.NewDisabledCache(),
 		ArwenChangeLocker:   tpn.ArwenChangeLocker,
 	}
-	scProcessor, _ := smartContract.NewSmartContractProcessor(argsNewScProcessor)
-	tpn.ScProcessor = smartContract.NewTestScProcessor(scProcessor)
+
+	tpn.ScProcessor, _ = processProxy.NewTestSmartContractProcessorProxy(argsNewScProcessor, tpn.EpochNotifier)
+
 	argsNewMetaTxProc := transaction.ArgsNewMetaTxProcessor{
 		Hasher:              TestHasher,
 		Marshalizer:         TestMarshalizer,
@@ -1740,7 +1742,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		tpn.AccntState,
 		tpn.RequestHandler,
 		tpn.TxProcessor,
-		scProcessor,
+		tpn.ScProcessor,
 		tpn.EconomicsData,
 		tpn.GasHandler,
 		tpn.BlockTracker,
@@ -2960,6 +2962,7 @@ func CreateEnableEpochsConfig() config.EnableEpochs {
 		HeartbeatDisableEpoch:                             UnreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch:              UnreachableEpoch,
 		RefactorPeersMiniBlocksEnableEpoch:                UnreachableEpoch,
+		SCProcessorV2EnableEpoch:                          UnreachableEpoch,
 	}
 }
 

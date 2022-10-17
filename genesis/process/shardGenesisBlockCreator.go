@@ -28,6 +28,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/processProxy"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/scrCommon"
 	syncDisabled "github.com/ElrondNetwork/elrond-go/process/sync/disabled"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
@@ -125,6 +126,7 @@ func createGenesisConfig() config.EnableEpochs {
 		MiniBlockPartialExecutionEnableEpoch:              unreachableEpoch,
 		ESDTMetadataContinuousCleanupEnableEpoch:          unreachableEpoch,
 		RefactorPeersMiniBlocksEnableEpoch:                unreachableEpoch,
+		SCProcessorV2EnableEpoch:                          unreachableEpoch,
 	}
 }
 
@@ -524,7 +526,8 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		VMOutputCacher:      txcache.NewDisabledCache(),
 		ArwenChangeLocker:   genesisArwenLocker,
 	}
-	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
+
+	scProcessorProxy, err := processProxy.NewSmartContractProcessorProxy(argsNewScProcessor, epochNotifier)
 	if err != nil {
 		return nil, err
 	}
@@ -545,7 +548,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		Marshalizer:         arg.Core.InternalMarshalizer(),
 		SignMarshalizer:     arg.Core.TxMarshalizer(),
 		ShardCoordinator:    arg.ShardCoordinator,
-		ScProcessor:         scProcessor,
+		ScProcessor:         scProcessorProxy,
 		TxFeeHandler:        genesisFeeHandler,
 		TxTypeHandler:       txTypeHandler,
 		EconomicsFee:        genesisFeeHandler,
@@ -577,8 +580,8 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		arg.Accounts,
 		disabledRequestHandler,
 		transactionProcessor,
-		scProcessor,
-		scProcessor,
+		scProcessorProxy,
+		scProcessorProxy,
 		rewardsTxProcessor,
 		arg.Economics,
 		gasHandler,
@@ -653,8 +656,8 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		txCoordinator:       txCoordinator,
 		systemSCs:           nil,
 		txProcessor:         transactionProcessor,
-		scProcessor:         scProcessor,
-		scrProcessor:        scProcessor,
+		scProcessor:         scProcessorProxy,
+		scrProcessor:        scProcessorProxy,
 		rwdProcessor:        rewardsTxProcessor,
 		blockchainHook:      vmFactoryImpl.BlockChainHookImpl(),
 		queryService:        queryService,

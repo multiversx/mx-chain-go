@@ -344,7 +344,7 @@ func (sc *scProcessor) executeSmartContractCall(
 	userErrorVmOutput := &vmcommon.VMOutput{
 		ReturnCode: vmcommon.UserError,
 	}
-	vmExec, _, err := findVMByScAddress(sc.vmContainer, vmInput.RecipientAddr)
+	vmExec, _, err := scrCommon.FindVMByScAddress(sc.vmContainer, vmInput.RecipientAddr)
 	if err != nil {
 		sc.arwenChangeLocker.RUnlock()
 		returnMessage := "cannot get vm from address"

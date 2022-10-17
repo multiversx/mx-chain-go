@@ -30,6 +30,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/receipts"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/processProxy"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/scrCommon"
 	syncDisabled "github.com/ElrondNetwork/elrond-go/process/sync/disabled"
 	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
@@ -425,7 +426,8 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		ArwenChangeLocker:   &sync.RWMutex{}, // local Locker as to not interfere with the rest of the components
 		VMOutputCacher:      txcache.NewDisabledCache(),
 	}
-	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
+
+	scProcessorProxy, err := processProxy.NewSmartContractProcessorProxy(argsNewSCProcessor, epochNotifier)
 	if err != nil {
 		return nil, err
 	}
@@ -436,7 +438,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		Accounts:            arg.Accounts,
 		PubkeyConv:          arg.Core.AddressPubKeyConverter(),
 		ShardCoordinator:    arg.ShardCoordinator,
-		ScProcessor:         scProcessor,
+		ScProcessor:         scProcessorProxy,
 		TxTypeHandler:       txTypeHandler,
 		EconomicsFee:        genesisFeeHandler,
 		EnableEpochsHandler: enableEpochsHandler,
@@ -462,7 +464,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		arg.Accounts,
 		disabledRequestHandler,
 		txProcessor,
-		scProcessor,
+		scProcessorProxy,
 		arg.Economics,
 		gasHandler,
 		disabledBlockTracker,
@@ -538,8 +540,8 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		systemSCs:      virtualMachineFactory.SystemSmartContractContainer(),
 		blockchainHook: virtualMachineFactory.BlockChainHookImpl(),
 		txProcessor:    txProcessor,
-		scProcessor:    scProcessor,
-		scrProcessor:   scProcessor,
+		scProcessor:    scProcessorProxy,
+		scrProcessor:   scProcessorProxy,
 		rwdProcessor:   nil,
 		queryService:   queryService,
 		vmContainer:    vmContainer,

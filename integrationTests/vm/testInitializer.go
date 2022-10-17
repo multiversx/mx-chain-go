@@ -42,6 +42,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/processProxy"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/scrCommon"
 	syncDisabled "github.com/ElrondNetwork/elrond-go/process/sync/disabled"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
@@ -106,7 +107,7 @@ type VMTestAccount struct {
 // VMTestContext -
 type VMTestContext struct {
 	TxProcessor         process.TransactionProcessor
-	ScProcessor         *smartContract.TestScProcessor
+	ScProcessor         scrCommon.TestSmartContractProcessor
 	Accounts            state.AccountsAdapter
 	BlockchainHook      vmcommon.BlockchainHook
 	VMContainer         process.VirtualMachinesContainer
@@ -492,7 +493,8 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		VMOutputCacher:      txcache.NewDisabledCache(),
 		ArwenChangeLocker:   arwenChangeLocker,
 	}
-	scProcessor, _ := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
+
+	scProcessor, _ := processProxy.NewTestSmartContractProcessorProxy(argsNewSCProcessor, genericEpochNotifier)
 
 	argsNewTxProcessor := transaction.ArgsNewTxProcessor{
 		Accounts:            accnts,
@@ -767,7 +769,7 @@ func createDefaultVMConfig() *config.VirtualMachineConfig {
 // ResultsCreateTxProcessor is the struct that will hold all needed processor instances
 type ResultsCreateTxProcessor struct {
 	TxProc             process.TransactionProcessor
-	SCProc             *smartContract.TestScProcessor
+	SCProc             scrCommon.TestSmartContractProcessor
 	IntermediateTxProc process.IntermediateTransactionHandler
 	EconomicsHandler   process.EconomicsDataHandler
 	CostHandler        external.TransactionCostHandler
@@ -844,11 +846,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		VMOutputCacher:      txcache.NewDisabledCache(),
 	}
 
-	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
-	if err != nil {
-		return nil, err
-	}
-	testScProcessor := smartContract.NewTestScProcessor(scProcessor)
+	scProcessorProxy, _ := processProxy.NewTestSmartContractProcessorProxy(argsNewSCProcessor, epochNotifierInstance)
 
 	argsNewTxProcessor := transaction.ArgsNewTxProcessor{
 		Accounts:            accnts,
@@ -857,7 +855,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		Marshalizer:         testMarshalizer,
 		SignMarshalizer:     testMarshalizer,
 		ShardCoordinator:    shardCoordinator,
-		ScProcessor:         scProcessor,
+		ScProcessor:         scProcessorProxy,
 		TxFeeHandler:        feeAccumulator,
 		TxTypeHandler:       txTypeHandler,
 		EconomicsFee:        economicsData,
@@ -934,13 +932,8 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	}
 
 	argsNewSCProcessor.VMOutputCacher = txSimulatorProcessorArgs.VMOutputCacher
-
-	scProcessorTxSim, err := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
-	if err != nil {
-		return nil, err
-	}
-	argsNewTxProcessor.ScProcessor = scProcessorTxSim
-
+	proxyProcessor, _ := processProxy.NewTestSmartContractProcessorProxy(argsNewSCProcessor, epochNotifierInstance)
+	argsNewTxProcessor.ScProcessor = proxyProcessor
 	argsNewTxProcessor.Accounts = readOnlyAccountsDB
 
 	txSimulatorProcessorArgs.TransactionProcessor, err = transaction.NewTxProcessor(argsNewTxProcessor)
@@ -969,7 +962,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 
 	return &ResultsCreateTxProcessor{
 		TxProc:             txProcessor,
-		SCProc:             testScProcessor,
+		SCProc:             scProcessorProxy,
 		IntermediateTxProc: intermediateTxHandler,
 		EconomicsHandler:   economicsData,
 		CostHandler:        txCostEstimator,

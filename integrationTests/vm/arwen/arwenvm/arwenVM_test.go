@@ -145,6 +145,87 @@ func TestVmSCDeployFactory(t *testing.T) {
 	require.Equal(t, vmcommon.Ok, returnCode)
 }
 
+// TODO remove this while processor V1 is deprecated
+func TestSCMoveBalanceBeforeSCDeployV1(t *testing.T) {
+	ownerAddressBytes := []byte("12345678901234567890123456789012")
+	ownerNonce := uint64(0)
+	ownerBalance := big.NewInt(100000000)
+	gasPrice := uint64(1)
+	gasLimit := uint64(100000)
+	transferOnCalls := big.NewInt(50)
+
+	scCode := arwen.GetSCCode("../testdata/misc/fib_arwen/output/fib_arwen.wasm")
+
+	testContext, err := vm.CreatePreparedTxProcessorAndAccountsWithVMs(
+		ownerNonce,
+		ownerAddressBytes,
+		ownerBalance,
+		config.EnableEpochs{
+			PenalizedTooMuchGasEnableEpoch: integrationTests.UnreachableEpoch,
+			SCProcessorV2EnableEpoch:       integrationTests.UnreachableEpoch,
+		},
+	)
+	require.Nil(t, err)
+	defer testContext.Close()
+
+	scAddressBytes, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce+1, factory.ArwenVirtualMachine)
+	fmt.Println(hex.EncodeToString(scAddressBytes))
+
+	tx := vm.CreateTx(
+		ownerAddressBytes,
+		scAddressBytes,
+		ownerNonce,
+		transferOnCalls,
+		gasPrice,
+		gasLimit,
+		"")
+
+	_, err = testContext.TxProcessor.ProcessTransaction(tx)
+
+	require.Equal(t, process.ErrFailedTransaction, err)
+	require.Equal(t, process.ErrAccountNotPayable, testContext.GetCompositeTestError())
+	vm.TestAccount(
+		t,
+		testContext.Accounts,
+		ownerAddressBytes,
+		ownerNonce+1,
+		big.NewInt(0).Sub(ownerBalance, big.NewInt(1)))
+
+	_, err = testContext.Accounts.Commit()
+	require.Nil(t, err)
+
+	tx = vm.CreateTx(
+		ownerAddressBytes,
+		vm.CreateEmptyAddress(),
+		ownerNonce+1,
+		transferOnCalls,
+		gasPrice,
+		gasLimit,
+		arwen.CreateDeployTxData(scCode),
+	)
+
+	returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
+	require.Nil(t, err)
+	require.Equal(t, returnCode, vmcommon.Ok)
+
+	_, err = testContext.Accounts.Commit()
+	require.Nil(t, err)
+
+	vm.TestAccount(
+		t,
+		testContext.Accounts,
+		ownerAddressBytes,
+		ownerNonce+2,
+		big.NewInt(99999100))
+
+	vm.TestAccount(
+		t,
+		testContext.Accounts,
+		scAddressBytes,
+		0,
+		transferOnCalls)
+}
+
 func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
 	ownerAddressBytes := []byte("12345678901234567890123456789012")
 	ownerNonce := uint64(0)
@@ -214,7 +295,7 @@ func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
 		testContext.Accounts,
 		ownerAddressBytes,
 		ownerNonce+2,
-		big.NewInt(99999100))
+		big.NewInt(99899949))
 
 	vm.TestAccount(
 		t,
@@ -290,7 +371,7 @@ func TestWASMMetering(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, returnCode, vmcommon.Ok)
 
-	expectedBalance := big.NewInt(2998080)
+	expectedBalance := big.NewInt(2499985)
 	expectedNonce := uint64(1)
 
 	actualBalanceBigInt := vm.TestAccount(
@@ -304,7 +385,7 @@ func TestWASMMetering(t *testing.T) {
 
 	consumedGasValue := aliceInitialBalance - actualBalance - testingValue
 
-	require.Equal(t, 1905, int(consumedGasValue))
+	require.Equal(t, 500000, int(consumedGasValue))
 }
 
 func TestMultipleTimesERC20BigIntInBatches(t *testing.T) {

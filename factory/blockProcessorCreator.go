@@ -28,6 +28,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/processProxy"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/scrCommon"
 	"github.com/ElrondNetwork/elrond-go/process/throttle"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
@@ -238,7 +239,8 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		VMOutputCacher:      txcache.NewDisabledCache(),
 		ArwenChangeLocker:   arwenChangeLocker,
 	}
-	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
+
+	scProcessorProxy, err := processProxy.NewSmartContractProcessorProxy(argsNewScProcessor, pcf.epochNotifier)
 	if err != nil {
 		return nil, err
 	}
@@ -259,7 +261,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		Marshalizer:         pcf.coreData.InternalMarshalizer(),
 		SignMarshalizer:     pcf.coreData.TxMarshalizer(),
 		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
-		ScProcessor:         scProcessor,
+		ScProcessor:         scProcessorProxy,
 		TxFeeHandler:        txFeeHandler,
 		TxTypeHandler:       txTypeHandler,
 		EconomicsFee:        pcf.coreData.EconomicsData(),
@@ -313,8 +315,8 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		pcf.state.AccountsAdapter(),
 		requestHandler,
 		transactionProcessor,
-		scProcessor,
-		scProcessor,
+		scProcessorProxy,
+		scProcessorProxy,
 		rewardsTxProcessor,
 		pcf.coreData.EconomicsData(),
 		gasHandler,
@@ -550,7 +552,8 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		VMOutputCacher:      txcache.NewDisabledCache(),
 		ArwenChangeLocker:   arwenChangeLocker,
 	}
-	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
+
+	scProcessorProxy, err := processProxy.NewSmartContractProcessorProxy(argsNewScProcessor, pcf.epochNotifier)
 	if err != nil {
 		return nil, err
 	}
@@ -561,7 +564,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		Accounts:            pcf.state.AccountsAdapter(),
 		PubkeyConv:          pcf.coreData.AddressPubKeyConverter(),
 		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
-		ScProcessor:         scProcessor,
+		ScProcessor:         scProcessorProxy,
 		TxTypeHandler:       txTypeHandler,
 		EconomicsFee:        pcf.coreData.EconomicsData(),
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
@@ -607,7 +610,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		pcf.state.AccountsAdapter(),
 		requestHandler,
 		transactionProcessor,
-		scProcessor,
+		scProcessorProxy,
 		pcf.coreData.EconomicsData(),
 		gasHandler,
 		blockTracker,
@@ -969,11 +972,11 @@ func (pcf *processComponentsFactory) createShardTxSimulatorProcessor(
 
 	scProcArgs.AccountsDB = readOnlyAccountsDB
 	scProcArgs.VMOutputCacher = txSimulatorProcessorArgs.VMOutputCacher
-	scProcessor, err := smartContract.NewSmartContractProcessor(scProcArgs)
+	scProcessorProxy, err := processProxy.NewSmartContractProcessorProxy(scProcArgs, pcf.epochNotifier)
 	if err != nil {
 		return nil, err
 	}
-	txProcArgs.ScProcessor = scProcessor
+	txProcArgs.ScProcessor = scProcessorProxy
 
 	txProcArgs.Accounts = readOnlyAccountsDB
 
@@ -1056,7 +1059,7 @@ func (pcf *processComponentsFactory) createMetaTxSimulatorProcessor(
 	scProcArgs.VmContainer = vmContainer
 	scProcArgs.BlockChainHook = vmFactory.BlockChainHookImpl()
 
-	scProcessor, err := smartContract.NewSmartContractProcessor(scProcArgs)
+	scProcessorProxy, err := processProxy.NewSmartContractProcessorProxy(scProcArgs, pcf.epochNotifier)
 	if err != nil {
 		return nil, err
 	}
@@ -1067,7 +1070,7 @@ func (pcf *processComponentsFactory) createMetaTxSimulatorProcessor(
 		Accounts:            readOnlyAccountsDB,
 		PubkeyConv:          pcf.coreData.AddressPubKeyConverter(),
 		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
-		ScProcessor:         scProcessor,
+		ScProcessor:         scProcessorProxy,
 		TxTypeHandler:       txTypeHandler,
 		EconomicsFee:        &processDisabled.FeeHandler{},
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
