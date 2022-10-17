@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -31,7 +30,7 @@ type AccountsStub struct {
 	SnapshotStateCalled           func(rootHash []byte)
 	SetStateCheckpointCalled      func(rootHash []byte)
 	IsPruningEnabledCalled        func() bool
-	GetAllLeavesCalled            func(leavesChannel chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error
+	GetAllLeavesCalled            func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error
 	RecreateAllTriesCalled        func(rootHash []byte) (map[string]common.Trie, error)
 	GetCodeCalled                 func([]byte) []byte
 	GetTrieCalled                 func([]byte) (common.Trie, error)
@@ -57,7 +56,7 @@ func (as *AccountsStub) StartSnapshotIfNeeded() error {
 	if as.StartSnapshotIfNeededCalled != nil {
 		return as.StartSnapshotIfNeededCalled()
 	}
-	
+
 	return nil
 }
 
@@ -103,9 +102,9 @@ func (as *AccountsStub) SaveAccount(account vmcommon.AccountHandler) error {
 }
 
 // GetAllLeaves -
-func (as *AccountsStub) GetAllLeaves(leavesChannel chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
+func (as *AccountsStub) GetAllLeaves(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error {
 	if as.GetAllLeavesCalled != nil {
-		return as.GetAllLeavesCalled(leavesChannel, ctx, rootHash)
+		return as.GetAllLeavesCalled(leavesChannels, ctx, rootHash)
 	}
 	return nil
 }

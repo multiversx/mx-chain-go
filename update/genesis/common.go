@@ -12,7 +12,7 @@ import (
 
 // TODO: create a structure or use this function also in process/peer/process.go
 func getValidatorDataFromLeaves(
-	leavesChannel chan core.KeyValueHolder,
+	leavesChannels *common.TrieIteratorChannels,
 	shardCoordinator sharding.Coordinator,
 	marshalizer marshal.Marshalizer,
 ) (map[uint32][]*state.ValidatorInfo, error) {
@@ -23,7 +23,7 @@ func getValidatorDataFromLeaves(
 	}
 	validators[core.MetachainShardId] = make([]*state.ValidatorInfo, 0)
 
-	for pa := range leavesChannel {
+	for pa := range leavesChannels.LeavesChan {
 		peerAccount, err := unmarshalPeer(pa.Value(), marshalizer)
 		if err != nil {
 			return nil, err
@@ -32,6 +32,11 @@ func getValidatorDataFromLeaves(
 		currentShardId := peerAccount.GetShardId()
 		validatorInfoData := peerAccountToValidatorInfo(peerAccount)
 		validators[currentShardId] = append(validators[currentShardId], validatorInfoData)
+	}
+
+	err := common.GetErrorFromChanNonBlocking(leavesChannels.ErrChan)
+	if err != nil {
+		return nil, err
 	}
 
 	return validators, nil

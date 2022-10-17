@@ -212,8 +212,11 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 		return err
 	}
 
-	leavesChannel := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
-	err = mainTrie.GetAllLeavesOnChannel(leavesChannel, context.Background(), mainRootHash, keyBuilder.NewDisabledKeyBuilder())
+	leavesChannels := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    make(chan error, 1),
+	}
+	err = mainTrie.GetAllLeavesOnChannel(leavesChannels, context.Background(), mainRootHash, keyBuilder.NewDisabledKeyBuilder())
 	if err != nil {
 		return err
 	}
@@ -222,7 +225,7 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 	errMutex := sync.Mutex{}
 	wg := sync.WaitGroup{}
 
-	for leaf := range leavesChannel {
+	for leaf := range leavesChannels.LeavesChan {
 		u.resetTimeoutHandlerWatchdog()
 
 		account := state.NewEmptyUserAccount()
@@ -262,6 +265,11 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 	}
 
 	wg.Wait()
+
+	err = common.GetErrorFromChanNonBlocking(leavesChannels.ErrChan)
+	if err != nil {
+		return err
+	}
 
 	return errFound
 }
