@@ -3,7 +3,6 @@ package bootstrap
 import (
 	"fmt"
 	"path/filepath"
-	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -11,23 +10,18 @@ import (
 	nodeFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/blockchain"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/block"
-	"github.com/ElrondNetwork/elrond-go/heartbeat/sender"
 	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
-	"github.com/ElrondNetwork/elrond-go/process/peer"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
-	"github.com/ElrondNetwork/elrond-go/redundancy"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/directoryhandler"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/latestData"
 	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
-	"github.com/ElrondNetwork/elrond-go/update"
 )
 
 var log = logger.GetOrCreate("factory")
@@ -163,11 +157,6 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		return nil, err
 	}
 
-	bootstrapHeartbeatSender, err := bcf.createHeartbeatSender(genesisShardCoordinator)
-	if err != nil {
-		return nil, err
-	}
-
 	dataSyncerFactory := bootstrap.NewScheduledDataSyncerFactory()
 
 	epochStartBootstrapArgs := bootstrap.ArgsEpochStartBootstrap{
@@ -190,8 +179,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		StatusHandler:              bcf.coreComponents.StatusHandler(),
 		HeaderIntegrityVerifier:    headerIntegrityVerifier,
 		DataSyncerCreator:          dataSyncerFactory,
-		ScheduledSCRsStorer:        nil,                      // will be updated after sync from network
-		BootstrapHeartbeatSender:   bootstrapHeartbeatSender, // will be closed after sync
+		ScheduledSCRsStorer:        nil, // will be updated after sync from network
 	}
 
 	var epochStartBootstrapper factory.EpochStartBootstrapper
@@ -255,39 +243,6 @@ func (bcf *bootstrapComponentsFactory) createHeaderFactory(handler nodeFactory.H
 		return block.NewMetaHeaderFactory(handler)
 	}
 	return block.NewShardHeaderFactory(handler)
-}
-
-func (bcf *bootstrapComponentsFactory) createHeartbeatSender(shardCoordinator sharding.Coordinator) (update.Closer, error) {
-	privateKey := bcf.cryptoComponents.PrivateKey()
-	bootstrapRedundancy, err := redundancy.NewBootstrapNodeRedundancy(privateKey)
-	if err != nil {
-		return nil, err
-	}
-
-	heartbeatTopic := common.HeartbeatV2Topic + shardCoordinator.CommunicationIdentifier(shardCoordinator.SelfId())
-	peerSubType := core.RegularPeer
-	if bcf.prefConfig.Preferences.FullArchive {
-		peerSubType = core.FullHistoryObserver
-	}
-	heartbeatCfg := bcf.config.HeartbeatV2
-	argsHeartbeatSender := sender.ArgBootstrapSender{
-		Messenger:                          bcf.networkComponents.NetworkMessenger(),
-		Marshaller:                         bcf.coreComponents.InternalMarshalizer(),
-		HeartbeatTopic:                     heartbeatTopic,
-		HeartbeatTimeBetweenSends:          time.Second * time.Duration(heartbeatCfg.HeartbeatTimeBetweenSendsInSec),
-		HeartbeatTimeBetweenSendsWhenError: time.Second * time.Duration(heartbeatCfg.HeartbeatTimeBetweenSendsWhenErrorInSec),
-		HeartbeatThresholdBetweenSends:     heartbeatCfg.HeartbeatThresholdBetweenSends,
-		VersionNumber:                      bcf.flagsConfig.Version,
-		NodeDisplayName:                    bcf.prefConfig.Preferences.NodeDisplayName,
-		Identity:                           bcf.prefConfig.Preferences.Identity,
-		PeerSubType:                        peerSubType,
-		CurrentBlockProvider:               blockchain.NewBootstrapBlockchain(),
-		PrivateKey:                         privateKey,
-		RedundancyHandler:                  bootstrapRedundancy,
-		PeerTypeProvider:                   peer.NewBootstrapPeerTypeProvider(),
-	}
-
-	return sender.NewBootstrapSender(argsHeartbeatSender)
 }
 
 // Close closes the bootstrap components, closing at the same time any running goroutines

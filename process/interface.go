@@ -1142,6 +1142,7 @@ type CryptoComponentsHolder interface {
 	SetMultiSignerContainer(ms cryptoCommon.MultiSignerContainer) error
 	PeerSignatureHandler() crypto.PeerSignatureHandler
 	PublicKey() crypto.PublicKey
+	PrivateKey() crypto.PrivateKey
 	Clone() interface{}
 	IsInterfaceNil() bool
 }
