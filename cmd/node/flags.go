@@ -5,6 +5,7 @@ import (
 	"math"
 	"os"
 	"runtime"
+	"strings"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -351,6 +352,13 @@ var (
 		Usage: "The `filepath` for the PEM file which contains the secret keys for the p2p key. If this is not specified a new key will be generated (internally) by default.",
 		Value: "./config/p2pKey.pem",
 	}
+
+	// operationMode defines the flag for specifying how configs should be altered depending on the node's intent
+	operationMode = cli.StringFlag{
+		Name:  "operation-mode",
+		Usage: "String flag for specifying the desired `operation mode`(s) of the node, resulting in altering some configuration values accordingly. Values are: import-db, full-archive, db-lookup-extension, historical-balances or `\"\"` (empty). Multiple values can be separated via ,",
+		Value: "",
+	}
 )
 
 func getFlags() []cli.Flag {
@@ -405,6 +413,7 @@ func getFlags() []cli.Flag {
 		serializeSnapshots,
 		noKey,
 		p2pKeyPemFile,
+		operationMode,
 	}
 }
 
@@ -431,6 +440,7 @@ func getFlagsConfig(ctx *cli.Context, log logger.Logger) *config.ContextFlagsCon
 	flagsConfig.DisableConsensusWatchdog = ctx.GlobalBool(disableConsensusWatchdog.Name)
 	flagsConfig.SerializeSnapshots = ctx.GlobalBool(serializeSnapshots.Name)
 	flagsConfig.NoKeyProvided = ctx.GlobalBool(noKey.Name)
+	flagsConfig.OperationMode = ctx.GlobalString(operationMode.Name)
 
 	return flagsConfig
 }
@@ -507,24 +517,64 @@ func getWorkingDir(workingDir string, log logger.Logger) string {
 }
 
 func applyCompatibleConfigs(log logger.Logger, configs *config.Configs) error {
-	importDbFlags := configs.ImportDbConfig
-	importDbFlags.ImportDbNoSigCheckFlag = importDbFlags.ImportDbNoSigCheckFlag && importDbFlags.IsImportDBMode
-	importDbFlags.ImportDbSaveTrieEpochRootHash = importDbFlags.ImportDbSaveTrieEpochRootHash && importDbFlags.IsImportDBMode
-
-	if importDbFlags.IsImportDBMode {
-		return processConfigImportDBMode(log, configs)
-	}
-
-	// if FullArchive is enabled, we override the conflicting StoragePruning settings and StartInEpoch as well
-	if configs.PreferencesConfig.Preferences.FullArchive {
-		return processConfigFullArchiveMode(log, configs)
-	}
-
 	if configs.FlagsConfig.EnablePprof {
 		runtime.SetMutexProfileFraction(5)
 	}
 
+	operationModes := strings.Split(configs.FlagsConfig.OperationMode, ",")
+	err := checkOperationModes(operationModes)
+	if err != nil {
+		return err
+	}
+
+	isInImportDBMode := configs.ImportDbConfig.IsImportDBMode || sliceContainsElement(operationModes, operationModeImportDb)
+	if isInImportDBMode {
+		err := processConfigImportDBMode(log, configs)
+		if err != nil {
+			return err
+		}
+	}
+
+	// if FullArchive is enabled, we override the conflicting StoragePruning settings and StartInEpoch as well
+	isInFullArchiveMode := configs.PreferencesConfig.Preferences.FullArchive || sliceContainsElement(operationModes, operationModeFullArchive)
+	if isInFullArchiveMode {
+		processConfigFullArchiveMode(log, configs)
+	}
+
+	isInHistoricalBalancesMode := sliceContainsElement(operationModes, operationModeHistoricalBalances)
+	if isInHistoricalBalancesMode {
+		processHistoricalBalancesMode(log, configs)
+	}
+
+	isInDbLookupExtensionMode := sliceContainsElement(operationModes, operationModeDbLookupExtension)
+	if isInDbLookupExtensionMode {
+		processDbLookupExtensionMode(log, configs)
+	}
+
 	return nil
+}
+
+func processHistoricalBalancesMode(log logger.Logger, configs *config.Configs) {
+	configs.GeneralConfig.StoragePruning.ObserverCleanOldEpochsData = false
+	configs.GeneralConfig.StoragePruning.AccountsTrieCleanOldEpochsData = false
+	configs.GeneralConfig.StateTriesConfig.AccountsStatePruningEnabled = false
+	configs.GeneralConfig.DbLookupExtensions.Enabled = true
+
+	log.Warn("the node is in historical balances mode! Will auto-set some config values",
+		"GeneralSettings.StoragePruning.ObserverCleanOldEpochsData", configs.GeneralConfig.StoragePruning.ObserverCleanOldEpochsData,
+		"GeneralConfig.StoragePruning.AccountsTrieCleanOldEpochsData", configs.GeneralConfig.StoragePruning.AccountsTrieCleanOldEpochsData,
+		"GeneralConfig.StateTriesConfig.AccountsStatePruningEnabled", configs.GeneralConfig.StateTriesConfig.AccountsStatePruningEnabled,
+		"GeneralSettings.DbLookupExtensions.Enabled", configs.GeneralConfig.DbLookupExtensions.Enabled,
+	)
+
+}
+
+func processDbLookupExtensionMode(log logger.Logger, configs *config.Configs) {
+	configs.GeneralConfig.DbLookupExtensions.Enabled = true
+
+	log.Warn("the node is in DB lookup extension mode! Will auto-set some config values",
+		"GeneralSettings.DbLookupExtensions.Enabled", configs.GeneralConfig.DbLookupExtensions.Enabled,
+	)
 }
 
 func processConfigImportDBMode(log logger.Logger, configs *config.Configs) error {
@@ -569,7 +619,7 @@ func processConfigImportDBMode(log logger.Logger, configs *config.Configs) error
 	return nil
 }
 
-func processConfigFullArchiveMode(log logger.Logger, configs *config.Configs) error {
+func processConfigFullArchiveMode(log logger.Logger, configs *config.Configs) {
 	generalConfigs := configs.GeneralConfig
 
 	configs.GeneralConfig.GeneralSettings.StartInEpochEnabled = false
@@ -583,8 +633,6 @@ func processConfigFullArchiveMode(log logger.Logger, configs *config.Configs) er
 		"StoragePruning.ObserverCleanOldEpochsData", generalConfigs.StoragePruning.ObserverCleanOldEpochsData,
 		"StoragePruning.Enabled", generalConfigs.StoragePruning.Enabled,
 	)
-
-	return nil
 }
 
 func alterStorageConfigsForDBImport(config *config.Config) {
