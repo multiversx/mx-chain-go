@@ -2371,7 +2371,7 @@ func (sc *scProcessor) useLastTransferAsAsyncCallBackWhenNeeded(
 	// flag FixAsyncCallBackArgsListFlat is enabled
 	if sc.enableEpochsHandler.IsFixAsyncCallBackArgsListFlagEnabled() {
 		var err error
-		result.Data, err = sc.prependAsyncParamsToData(
+		result.Data, err = sc.prependAsyncParamsToDataRaw(
 			contexts.CreateCallbackAsyncParams(hooks.NewVMCryptoHook(), vmInput.AsyncArguments), result.Data)
 		if err != nil {
 			log.Debug("processed built in functions error (async params extraction)", "error", err.Error())
@@ -2382,6 +2382,23 @@ func (sc *scProcessor) useLastTransferAsAsyncCallBackWhenNeeded(
 	return true
 }
 
+func (sc *scProcessor) prependAsyncParamsToDataRaw(asyncParams [][]byte, data []byte) ([]byte, error) {
+	if len(data) > 0 && data[0] != byte('@') {
+		// TODO rewrite if agreed upon
+		return nil, fmt.Errorf("malformed data")
+	}
+	asyncParamsBytes := make([]byte, 0)
+	for _, asyncParam := range asyncParams {
+		hexString := hex.EncodeToString(asyncParam)
+		asyncParamsBytes = append(asyncParamsBytes, []byte("@"+hexString)...)
+	}
+
+	return append(asyncParamsBytes, data...), nil
+}
+
+// TODO discuss; the data received by this function normally has the form
+// "@nn@xxxx", which will make the ArgumentsParser fail (it lacks a function);
+// this should not be used
 func (sc *scProcessor) prependAsyncParamsToData(asyncParams [][]byte, data []byte) ([]byte, error) {
 	function, args, err := sc.argsParser.ParseCallData(string(data))
 	if err != nil {
