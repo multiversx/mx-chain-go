@@ -829,3 +829,6 @@ const MetricPeersSnapshotIsProgress = "erd_peers_snapshot_in_progress"
 
 // MetricLastPeersSnapshotDurationSec is the metric that outputs the duration in seconds of the last peers db snapshot. If snapshot is in progress it will be set to 0
 const MetricLastPeersSnapshotDurationSec = "erd_peers_snapshot_last_duration_in_seconds"
+
+// GenesisStorageSuffix defines the storage suffix used for genesis altered data
+const GenesisStorageSuffix = "_genesis"
