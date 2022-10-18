@@ -39,7 +39,7 @@ func (tdaw *trackableDataTrie) RetrieveValue(key []byte) ([]byte, error) {
 	if tdaw.tr == nil {
 		return nil, ErrNilTrie
 	}
-	value, err := tdaw.tr.Get(key)
+	value, _, err := tdaw.tr.Get(key)
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +103,7 @@ func (tdaw *trackableDataTrie) SaveDirtyData(mainTrie common.Trie) (map[string][
 	oldValues := make(map[string][]byte)
 
 	for k, v := range tdaw.dirtyData {
-		val, err := tdaw.tr.Get([]byte(k))
+		val, _, err := tdaw.tr.Get([]byte(k))
 		if err != nil {
 			return oldValues, err
 		}

@@ -47,11 +47,11 @@ func TestTrackableDataTrie_RetrieveValueFoundInTrieShouldWork(t *testing.T) {
 		UpdateCalled: func(key, value []byte) error {
 			return nil
 		},
-		GetCalled: func(key []byte) (b []byte, e error) {
+		GetCalled: func(key []byte) ([]byte, uint32, error) {
 			if bytes.Equal(key, expectedKey) {
-				return value, nil
+				return value, 0, nil
 			}
-			return nil, nil
+			return nil, 0, nil
 		},
 	}
 	mdaw := state.NewTrackableDataTrie(identifier, trie)
@@ -71,8 +71,8 @@ func TestTrackableDataTrie_RetrieveValueMalfunctionTrieShouldErr(t *testing.T) {
 		UpdateCalled: func(key, value []byte) error {
 			return nil
 		},
-		GetCalled: func(key []byte) (b []byte, e error) {
-			return nil, errExpected
+		GetCalled: func(_ []byte) ([]byte, uint32, error) {
+			return nil, 0, errExpected
 		},
 	}
 	mdaw := state.NewTrackableDataTrie([]byte("identifier"), trie)
@@ -94,8 +94,8 @@ func TestTrackableDataTrie_RetrieveValueShouldCheckDirtyDataFirst(t *testing.T) 
 	newTrieValue := []byte("new trie value")
 
 	trie := &trieMock.TrieStub{
-		GetCalled: func(key []byte) (b []byte, e error) {
-			return trieValue, nil
+		GetCalled: func(_ []byte) ([]byte, uint32, error) {
+			return trieValue, 0, nil
 		},
 	}
 	mdaw := state.NewTrackableDataTrie([]byte("id"), trie)
@@ -122,9 +122,9 @@ func TestTrackableDataTrie_SaveKeyValueShouldSaveOnlyInDirty(t *testing.T) {
 		UpdateCalled: func(key, value []byte) error {
 			return nil
 		},
-		GetCalled: func(key []byte) (b []byte, e error) {
+		GetCalled: func(_ []byte) ([]byte, uint32, error) {
 			assert.Fail(t, "should not have saved directly in the trie")
-			return nil, nil
+			return nil, 0, nil
 		},
 	}
 	mdaw := state.NewTrackableDataTrie(identifier, trie)

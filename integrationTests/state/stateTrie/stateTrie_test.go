@@ -288,7 +288,7 @@ func TestTrieDB_RecreateFromStorageShouldWork(t *testing.T) {
 	tr2, err := tr1.Recreate(h1)
 	require.Nil(t, err)
 
-	valRecov, err := tr2.Get(key)
+	valRecov, _, err := tr2.Get(key)
 	require.Nil(t, err)
 	require.Equal(t, value, valRecov)
 }
@@ -1946,7 +1946,7 @@ func checkCodeConsistency(
 		tr := shardNode.TrieContainer.Get([]byte(trieFactory.UserAccountTrie))
 
 		if codeMap[code] != 0 {
-			val, err := tr.Get(codeHash)
+			val, _, err := tr.Get(codeHash)
 			require.Nil(t, err)
 			require.NotNil(t, val)
 

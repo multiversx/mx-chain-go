@@ -838,11 +838,11 @@ func TestBaseRewardsCreator_isSystemDelegationSC(t *testing.T) {
 	require.Nil(t, err)
 
 	userAccount.SetDataTrie(&trieMock.TrieStub{
-		GetCalled: func(key []byte) ([]byte, error) {
+		GetCalled: func(key []byte) ([]byte, uint32, error) {
 			if bytes.Equal(key, []byte(core.DelegationSystemSCKey)) {
-				return []byte("delegation"), nil
+				return []byte("delegation"), 0, nil
 			}
-			return nil, fmt.Errorf("not found")
+			return nil, 0, fmt.Errorf("not found")
 		},
 	})
 
