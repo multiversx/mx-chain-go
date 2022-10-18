@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
@@ -451,22 +450,34 @@ func (tr *patriciaMerkleTrie) GetSerializedNodes(rootHash []byte, maxBuffToSend 
 
 // GetAllLeavesOnChannel adds all the trie leaves to the given channel
 func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(
-	leavesChannel chan core.KeyValueHolder,
+	leavesChannels *common.TrieIteratorChannels,
 	ctx context.Context,
 	rootHash []byte,
 	keyBuilder common.KeyBuilder,
 ) error {
+	if leavesChannels == nil {
+		return ErrNilTrieIteratorChannels
+	}
+	if leavesChannels.LeavesChan == nil {
+		return ErrNilTrieIteratorLeavesChannel
+	}
+	if leavesChannels.ErrChan == nil {
+		return ErrNilTrieIteratorErrChannel
+	}
+
 	tr.mutOperation.RLock()
 	newTrie, err := tr.recreate(rootHash, tr.trieStorage)
 	if err != nil {
 		tr.mutOperation.RUnlock()
-		close(leavesChannel)
+		close(leavesChannels.LeavesChan)
+		close(leavesChannels.ErrChan)
 		return err
 	}
 
 	if check.IfNil(newTrie) || newTrie.root == nil {
 		tr.mutOperation.RUnlock()
-		close(leavesChannel)
+		close(leavesChannels.LeavesChan)
+		close(leavesChannels.ErrChan)
 		return nil
 	}
 
@@ -475,7 +486,7 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(
 
 	go func() {
 		err = newTrie.root.getAllLeavesOnChannel(
-			leavesChannel,
+			leavesChannels.LeavesChan,
 			keyBuilder,
 			tr.trieStorage,
 			tr.marshalizer,
@@ -483,6 +494,7 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(
 			ctx,
 		)
 		if err != nil {
+			writeInChanNonBlocking(leavesChannels.ErrChan, err)
 			log.Error("could not get all trie leaves: ", "error", err)
 		}
 
@@ -490,7 +502,8 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(
 		tr.trieStorage.ExitPruningBufferingMode()
 		tr.mutOperation.Unlock()
 
-		close(leavesChannel)
+		close(leavesChannels.LeavesChan)
+		close(leavesChannels.ErrChan)
 	}()
 
 	return nil
