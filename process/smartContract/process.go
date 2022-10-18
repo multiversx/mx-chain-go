@@ -344,7 +344,7 @@ func (sc *scProcessor) doExecuteSmartContractTransaction(
 	results, err = sc.processVMOutput(vmOutput, txHash, tx, vmInput.CallType, vmInput.GasProvided)
 	if err != nil {
 		if errors.IsGetNodeFromDBError(err) {
-			return vmcommon.UserError, err
+			return vmcommon.ExecutionFailed, err
 		}
 		log.Trace("process vm output returned with problem ", "err", err.Error())
 		return vmcommon.ExecutionFailed, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked)
@@ -382,7 +382,7 @@ func (sc *scProcessor) executeSmartContractCall(
 	sc.arwenChangeLocker.RUnlock()
 	if err != nil {
 		if errors.IsGetNodeFromDBError(err) {
-			return userErrorVmOutput, err
+			return nil, err
 		}
 		log.Debug("run smart contract call error", "error", err.Error())
 		return userErrorVmOutput, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
@@ -1047,7 +1047,7 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 		}
 
 		if errors.IsGetNodeFromDBError(err) {
-			return vmOutput, err
+			return nil, err
 		}
 
 		return vmOutput, nil
@@ -1680,7 +1680,7 @@ func (sc *scProcessor) doDeploySmartContract(
 	if err != nil {
 		log.Debug("VM error", "error", err.Error())
 		if errors.IsGetNodeFromDBError(err) {
-			return vmcommon.UserError, err
+			return vmcommon.ExecutionFailed, err
 		}
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
 	}
