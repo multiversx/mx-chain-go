@@ -25,9 +25,6 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 	if check.IfNil(args.CryptoComponentsHolder) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilCryptoComponentsHolder)
 	}
-	if check.IfNil(args.StatusCoreComponentsHolder) {
-		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilStatusCoreComponentsHolder)
-	}
 	if check.IfNil(args.CryptoComponentsHolder.PublicKey()) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilPubKey)
 	}
@@ -55,7 +52,7 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 	if check.IfNil(args.CoreComponentsHolder.PathHandler()) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilPathManager)
 	}
-	if check.IfNil(args.StatusCoreComponentsHolder.TrieSyncStatistics()) {
+	if check.IfNil(args.TrieSyncStatisticsProvider) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilTrieSyncStatistics)
 	}
 	if args.GenesisNodesConfig == nil {

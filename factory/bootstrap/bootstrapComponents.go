@@ -189,6 +189,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		HeaderIntegrityVerifier:    headerIntegrityVerifier,
 		DataSyncerCreator:          dataSyncerFactory,
 		ScheduledSCRsStorer:        nil, // will be updated after sync from network
+		TrieSyncStatisticsProvider: bcf.statusCoreComponents.TrieSyncStatistics(),
 	}
 
 	var epochStartBootstrapper factory.EpochStartBootstrapper

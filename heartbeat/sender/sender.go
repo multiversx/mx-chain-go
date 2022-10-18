@@ -134,12 +134,13 @@ func checkSenderArgs(args ArgSender) error {
 			privKey:                   args.PrivateKey,
 			redundancyHandler:         args.RedundancyHandler,
 		},
-		versionNumber:        args.VersionNumber,
-		nodeDisplayName:      args.NodeDisplayName,
-		identity:             args.Identity,
-		peerSubType:          args.PeerSubType,
-		currentBlockProvider: args.CurrentBlockProvider,
-		peerTypeProvider:     args.PeerTypeProvider,
+		versionNumber:              args.VersionNumber,
+		nodeDisplayName:            args.NodeDisplayName,
+		identity:                   args.Identity,
+		peerSubType:                args.PeerSubType,
+		currentBlockProvider:       args.CurrentBlockProvider,
+		peerTypeProvider:           args.PeerTypeProvider,
+		trieSyncStatisticsProvider: disabled.NewTrieSyncStatisticsProvider(),
 	}
 	return checkHeartbeatSenderArgs(hbsArgs)
 }

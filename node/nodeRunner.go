@@ -304,7 +304,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	}
 
 	log.Debug("creating bootstrap components")
-	managedBootstrapComponents, err := nr.CreateManagedBootstrapComponents(managedCoreComponents, managedCryptoComponents, managedNetworkComponents)
+	managedBootstrapComponents, err := nr.CreateManagedBootstrapComponents(managedStatusCoreComponents, managedCoreComponents, managedCryptoComponents, managedNetworkComponents)
 	if err != nil {
 		return true, err
 	}
@@ -1354,20 +1354,22 @@ func (nr *nodeRunner) CreateManagedStateComponents(
 
 // CreateManagedBootstrapComponents is the managed bootstrap components factory
 func (nr *nodeRunner) CreateManagedBootstrapComponents(
+	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
 	coreComponents mainFactory.CoreComponentsHolder,
 	cryptoComponents mainFactory.CryptoComponentsHolder,
 	networkComponents mainFactory.NetworkComponentsHolder,
 ) (mainFactory.BootstrapComponentsHandler, error) {
 
 	bootstrapComponentsFactoryArgs := bootstrapComp.BootstrapComponentsFactoryArgs{
-		Config:            *nr.configs.GeneralConfig,
-		PrefConfig:        *nr.configs.PreferencesConfig,
-		ImportDbConfig:    *nr.configs.ImportDbConfig,
-		FlagsConfig:       *nr.configs.FlagsConfig,
-		WorkingDir:        nr.configs.FlagsConfig.WorkingDir,
-		CoreComponents:    coreComponents,
-		CryptoComponents:  cryptoComponents,
-		NetworkComponents: networkComponents,
+		Config:               *nr.configs.GeneralConfig,
+		PrefConfig:           *nr.configs.PreferencesConfig,
+		ImportDbConfig:       *nr.configs.ImportDbConfig,
+		FlagsConfig:          *nr.configs.FlagsConfig,
+		WorkingDir:           nr.configs.FlagsConfig.WorkingDir,
+		CoreComponents:       coreComponents,
+		CryptoComponents:     cryptoComponents,
+		NetworkComponents:    networkComponents,
+		StatusCoreComponents: statusCoreComponents,
 	}
 
 	bootstrapComponentsFactory, err := bootstrapComp.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)

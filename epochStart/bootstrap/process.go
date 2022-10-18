@@ -45,6 +45,7 @@ import (
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/trie/factory"
+	"github.com/ElrondNetwork/elrond-go/trie/statistics"
 	"github.com/ElrondNetwork/elrond-go/trie/storageMarker"
 	"github.com/ElrondNetwork/elrond-go/update"
 	updateSync "github.com/ElrondNetwork/elrond-go/update/sync"
@@ -89,7 +90,6 @@ type epochStartBootstrap struct {
 	destinationShardAsObserver uint32
 	coreComponentsHolder       process.CoreComponentsHolder
 	cryptoComponentsHolder     process.CryptoComponentsHolder
-	statusCoreComponentsHolder process.StatusCoreComponentsHolder
 	messenger                  Messenger
 	generalConfig              config.Config
 	prefsConfig                config.PreferencesConfig
@@ -112,6 +112,7 @@ type epochStartBootstrap struct {
 	trieSyncerVersion          int
 	checkNodesOnDisk           bool
 	bootstrapHeartbeatSender   update.Closer
+	trieSyncStatisticsProvider common.SizeSyncStatisticsHandler
 
 	// created components
 	requestHandler            process.RequestHandler
@@ -156,7 +157,6 @@ type baseDataInStorage struct {
 type ArgsEpochStartBootstrap struct {
 	CoreComponentsHolder       process.CoreComponentsHolder
 	CryptoComponentsHolder     process.CryptoComponentsHolder
-	StatusCoreComponentsHolder process.StatusCoreComponentsHolder
 	DestinationShardAsObserver uint32
 	Messenger                  Messenger
 	GeneralConfig              config.Config
@@ -175,6 +175,7 @@ type ArgsEpochStartBootstrap struct {
 	HeaderIntegrityVerifier    process.HeaderIntegrityVerifier
 	DataSyncerCreator          types.ScheduledDataSyncerCreator
 	ScheduledSCRsStorer        storage.Storer
+	TrieSyncStatisticsProvider common.SizeSyncStatisticsHandler
 }
 
 type dataToSync struct {
@@ -194,7 +195,6 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 	epochStartProvider := &epochStartBootstrap{
 		coreComponentsHolder:       args.CoreComponentsHolder,
 		cryptoComponentsHolder:     args.CryptoComponentsHolder,
-		statusCoreComponentsHolder: args.StatusCoreComponentsHolder,
 		messenger:                  args.Messenger,
 		generalConfig:              args.GeneralConfig,
 		prefsConfig:                args.PrefsConfig,
@@ -220,6 +220,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		dataSyncerFactory:          args.DataSyncerCreator,
 		storerScheduledSCRs:        args.ScheduledSCRsStorer,
 		shardCoordinator:           args.GenesisShardCoordinator,
+		trieSyncStatisticsProvider: args.TrieSyncStatisticsProvider,
 	}
 
 	whiteListCache, err := storageunit.NewCache(storageFactory.GetCacherFromConfig(epochStartProvider.generalConfig.WhiteListPool))
@@ -1060,7 +1061,7 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 			TrieSyncerVersion:         e.trieSyncerVersion,
 			CheckNodesOnDisk:          e.checkNodesOnDisk,
 			StorageMarker:             storageMarker.NewTrieStorageMarker(),
-			SyncStatisticsHandler:     e.statusCoreComponentsHolder.TrieSyncStatistics(),
+			SyncStatisticsHandler:     e.trieSyncStatisticsProvider,
 		},
 		ShardId:                e.shardCoordinator.SelfId(),
 		Throttler:              thr,
@@ -1128,6 +1129,7 @@ func (e *epochStartBootstrap) syncValidatorAccountsState(rootHash []byte) error 
 			TrieSyncerVersion:         e.trieSyncerVersion,
 			CheckNodesOnDisk:          e.checkNodesOnDisk,
 			StorageMarker:             storageMarker.NewTrieStorageMarker(),
+			SyncStatisticsHandler:     statistics.NewTrieSyncStatistics(),
 		},
 	}
 	accountsDBSyncer, err := syncer.NewValidatorAccountsSyncer(argsValidatorAccountsSyncer)
@@ -1260,7 +1262,7 @@ func (e *epochStartBootstrap) createHeartbeatSender() error {
 		PrivateKey:                         privateKey,
 		RedundancyHandler:                  bootstrapRedundancy,
 		PeerTypeProvider:                   peer.NewBootstrapPeerTypeProvider(),
-		TrieSyncStatisticsProvider:         e.statusCoreComponentsHolder.TrieSyncStatistics(),
+		TrieSyncStatisticsProvider:         e.trieSyncStatisticsProvider,
 	}
 
 	e.bootstrapHeartbeatSender, err = sender.NewBootstrapSender(argsHeartbeatSender)

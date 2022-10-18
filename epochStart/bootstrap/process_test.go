@@ -102,9 +102,6 @@ func createMockEpochStartBootstrapArgs(
 		ScheduledSCRsStorer:    genericMocks.NewStorerMock(),
 		CoreComponentsHolder:   coreMock,
 		CryptoComponentsHolder: cryptoMock,
-		StatusCoreComponentsHolder: &mock.StatusCoreComponentsMock{
-			TrieSyncStatisticsField: &testscommon.SizeSyncStatisticsHandlerStub{},
-		},
 		Messenger: &p2pmocks.MessengerStub{
 			ConnectedPeersCalled: func() []core.PeerID {
 				return []core.PeerID{"peer0", "peer1", "peer2", "peer3", "peer4", "peer5"}
@@ -231,6 +228,7 @@ func createMockEpochStartBootstrapArgs(
 		FlagsConfig: config.ContextFlagsConfig{
 			ForceStartFromNetwork: false,
 		},
+		TrieSyncStatisticsProvider: &testscommon.SizeSyncStatisticsHandlerStub{},
 	}
 }
 
@@ -286,16 +284,6 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 		epochStartProvider, err := NewEpochStartBootstrap(args)
 		require.Nil(t, epochStartProvider)
 		require.True(t, errors.Is(err, epochStart.ErrNilCryptoComponentsHolder))
-	})
-	t.Run("nil statusCoreComponents", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockEpochStartBootstrapArgs(createComponentsForEpochStart())
-		args.StatusCoreComponentsHolder = nil
-
-		epochStartProvider, err := NewEpochStartBootstrap(args)
-		require.Nil(t, epochStartProvider)
-		require.True(t, errors.Is(err, epochStart.ErrNilStatusCoreComponentsHolder))
 	})
 	t.Run("nil pubKey", func(t *testing.T) {
 		t.Parallel()
@@ -431,7 +419,7 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 		t.Parallel()
 
 		args := createMockEpochStartBootstrapArgs(createComponentsForEpochStart())
-		args.StatusCoreComponentsHolder = &mock.StatusCoreComponentsMock{}
+		args.TrieSyncStatisticsProvider = nil
 
 		epochStartProvider, err := NewEpochStartBootstrap(args)
 		require.Nil(t, epochStartProvider)

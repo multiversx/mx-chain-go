@@ -9,6 +9,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
@@ -43,7 +44,8 @@ func createHeartbeatMessage(active bool) *heartbeat.HeartbeatV2 {
 	}
 
 	payload := heartbeat.Payload{
-		Timestamp: messageTimestamp,
+		Timestamp:          messageTimestamp,
+		NumTrieNodesSynced: 150,
 	}
 
 	marshaller := testscommon.MarshalizerMock{}
@@ -219,7 +221,7 @@ func TestHeartbeatV2Monitor_parseMessage(t *testing.T) {
 		}
 		hb, err := monitor.parseMessage(providedPid, message, numInstances)
 		assert.Nil(t, err)
-		checkResults(t, *message, hb, true, providedMap, 0)
+		checkResults(t, args.Marshaller, *message, hb, true, providedMap, 0)
 		assert.Equal(t, 0, len(providedMap))
 		pkFromMsg := args.PubKeyConverter.Encode(providedPkBytesFromMessage)
 		entries, ok := numInstances[pkFromMsg]
@@ -260,7 +262,7 @@ func TestHeartbeatV2Monitor_parseMessage(t *testing.T) {
 		}
 		hb, err := monitor.parseMessage(providedPid, message, numInstances)
 		assert.Nil(t, err)
-		checkResults(t, *message, hb, true, providedMap, 0)
+		checkResults(t, args.Marshaller, *message, hb, true, providedMap, 0)
 		assert.Equal(t, 0, len(providedMap))
 		pk := args.PubKeyConverter.Encode(providedPkBytes)
 		entries, ok := numInstances[pk]
@@ -349,7 +351,7 @@ func TestHeartbeatV2Monitor_GetHeartbeats(t *testing.T) {
 		assert.Equal(t, len(providedStatuses)-1, len(heartbeats))
 		assert.Equal(t, len(providedStatuses)-1, args.Cache.Len()) // faulty message was removed from cache
 		for i := 0; i < len(heartbeats); i++ {
-			checkResults(t, *providedMessages[i], heartbeats[i], providedStatuses[i], providedPids, 1)
+			checkResults(t, args.Marshaller, *providedMessages[i], heartbeats[i], providedStatuses[i], providedPids, 1)
 		}
 		assert.Equal(t, 1, len(providedPids)) // one message is skipped
 	})
@@ -396,13 +398,13 @@ func TestHeartbeatV2Monitor_GetHeartbeats(t *testing.T) {
 			if i > 0 {
 				numInstances = 2
 			}
-			checkResults(t, *providedMessages[i], heartbeats[i], providedStatuses[i], providedPids, numInstances)
+			checkResults(t, args.Marshaller, *providedMessages[i], heartbeats[i], providedStatuses[i], providedPids, numInstances)
 		}
 		assert.Equal(t, 0, len(providedPids))
 	})
 }
 
-func checkResults(t *testing.T, message heartbeat.HeartbeatV2, hb data.PubKeyHeartbeat, isActive bool, providedPids map[string]struct{}, numInstances uint64) {
+func checkResults(t *testing.T, marshaller marshal.Marshalizer, message heartbeat.HeartbeatV2, hb data.PubKeyHeartbeat, isActive bool, providedPids map[string]struct{}, numInstances uint64) {
 	assert.Equal(t, isActive, hb.IsActive)
 	assert.Equal(t, message.VersionNumber, hb.VersionNumber)
 	assert.Equal(t, message.NodeDisplayName, hb.NodeDisplayName)
@@ -413,4 +415,9 @@ func checkResults(t *testing.T, message heartbeat.HeartbeatV2, hb data.PubKeyHea
 	_, ok := providedPids[hb.PidString]
 	assert.True(t, ok)
 	delete(providedPids, hb.PidString)
+
+	payload := &heartbeat.Payload{}
+	err := marshaller.Unmarshal(payload, message.Payload)
+	assert.Nil(t, err)
+	assert.Equal(t, payload.NumTrieNodesSynced, hb.NumTrieNodesReceived)
 }

@@ -1147,24 +1147,6 @@ type CryptoComponentsHolder interface {
 	IsInterfaceNil() bool
 }
 
-// TrieSyncStatisticsProvider is able to provide trie sync statistics
-type TrieSyncStatisticsProvider interface {
-	data.SyncStatisticsHandler
-	AddNumBytesReceived(bytes uint64)
-	NumBytesReceived() uint64
-	NumTries() int
-	AddProcessingTime(duration time.Duration)
-	IncrementIteration()
-	ProcessingTime() time.Duration
-	NumIterations() int
-}
-
-// StatusCoreComponentsHolder holds the status core components
-type StatusCoreComponentsHolder interface {
-	TrieSyncStatistics() TrieSyncStatisticsProvider
-	IsInterfaceNil() bool
-}
-
 // NumConnectedPeersProvider defines the actions that a component that provides the number of connected peers should do
 type NumConnectedPeersProvider interface {
 	ConnectedPeers() []core.PeerID
