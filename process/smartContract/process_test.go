@@ -3297,7 +3297,7 @@ func TestScProcessor_ProcessSmartContractResultExecuteSCIfMetaAndBuiltIn(t *test
 		SndAddr: []byte("snd addr"),
 		RcvAddr: scAddress,
 		Data:    []byte("code@06"),
-		Value:   big.NewInt(15),
+		Value:   big.NewInt(0),
 	}
 	_, err = sc.ProcessSmartContractResult(&scr)
 	require.Nil(t, err)
