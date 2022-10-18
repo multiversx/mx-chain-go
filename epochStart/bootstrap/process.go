@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/blockchain"
 	factoryDataPool "github.com/ElrondNetwork/elrond-go/dataRetriever/factory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
@@ -27,11 +28,14 @@ import (
 	factoryInterceptors "github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/factory"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/types"
 	factoryDisabled "github.com/ElrondNetwork/elrond-go/factory/disabled"
+	"github.com/ElrondNetwork/elrond-go/heartbeat/sender"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/process/heartbeat/validator"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	disabledInterceptors "github.com/ElrondNetwork/elrond-go/process/interceptors/disabled"
+	"github.com/ElrondNetwork/elrond-go/process/peer"
+	"github.com/ElrondNetwork/elrond-go/redundancy"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -106,6 +110,7 @@ type epochStartBootstrap struct {
 	maxHardCapForMissingNodes  int
 	trieSyncerVersion          int
 	checkNodesOnDisk           bool
+	bootstrapHeartbeatSender   update.Closer
 
 	// created components
 	requestHandler            process.RequestHandler
@@ -299,6 +304,7 @@ func (e *epochStartBootstrap) isNodeInGenesisNodesConfig() bool {
 // Bootstrap runs the fast bootstrap method from the network or local storage
 func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	defer e.closeTrieComponents()
+	defer e.closeBootstrapHeartbeatSender()
 
 	if e.flagsConfig.ForceStartFromNetwork {
 		log.Warn("epochStartBootstrap.Bootstrap: forcing start from network")
@@ -650,6 +656,11 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 	log.Debug("start in epoch bootstrap: shardCoordinator", "numOfShards", e.baseData.numberOfShards, "shardId", e.baseData.shardId)
 
 	err = e.messenger.CreateTopic(common.ConsensusTopic+e.shardCoordinator.CommunicationIdentifier(e.shardCoordinator.SelfId()), true)
+	if err != nil {
+		return Parameters{}, err
+	}
+
+	err = e.createHeartbeatSender()
 	if err != nil {
 		return Parameters{}, err
 	}
@@ -1217,6 +1228,40 @@ func (e *epochStartBootstrap) applyShardIDAsObserverIfNeeded(receivedShardID uin
 	return receivedShardID
 }
 
+func (e *epochStartBootstrap) createHeartbeatSender() error {
+	privateKey := e.cryptoComponentsHolder.PrivateKey()
+	bootstrapRedundancy, err := redundancy.NewBootstrapNodeRedundancy(privateKey)
+	if err != nil {
+		return err
+	}
+
+	heartbeatTopic := common.HeartbeatV2Topic + e.shardCoordinator.CommunicationIdentifier(e.shardCoordinator.SelfId())
+	peerSubType := core.RegularPeer
+	if e.prefsConfig.FullArchive {
+		peerSubType = core.FullHistoryObserver
+	}
+	heartbeatCfg := e.generalConfig.HeartbeatV2
+	argsHeartbeatSender := sender.ArgBootstrapSender{
+		Messenger:                          e.messenger,
+		Marshaller:                         e.coreComponentsHolder.InternalMarshalizer(),
+		HeartbeatTopic:                     heartbeatTopic,
+		HeartbeatTimeBetweenSends:          time.Second * time.Duration(heartbeatCfg.HeartbeatTimeBetweenSendsInSec),
+		HeartbeatTimeBetweenSendsWhenError: time.Second * time.Duration(heartbeatCfg.HeartbeatTimeBetweenSendsWhenErrorInSec),
+		HeartbeatThresholdBetweenSends:     heartbeatCfg.HeartbeatThresholdBetweenSends,
+		VersionNumber:                      e.flagsConfig.Version,
+		NodeDisplayName:                    e.prefsConfig.NodeDisplayName,
+		Identity:                           e.prefsConfig.Identity,
+		PeerSubType:                        peerSubType,
+		CurrentBlockProvider:               blockchain.NewBootstrapBlockchain(),
+		PrivateKey:                         privateKey,
+		RedundancyHandler:                  bootstrapRedundancy,
+		PeerTypeProvider:                   peer.NewBootstrapPeerTypeProvider(),
+	}
+
+	e.bootstrapHeartbeatSender, err = sender.NewBootstrapSender(argsHeartbeatSender)
+	return err
+}
+
 func (e *epochStartBootstrap) closeTrieComponents() {
 	if e.trieStorageManagers != nil {
 		log.Debug("closing all trieStorageManagers", "num", len(e.trieStorageManagers))
@@ -1238,6 +1283,12 @@ func (e *epochStartBootstrap) closeTrieComponents() {
 	if !check.IfNil(e.storageService) {
 		err := e.storageService.Destroy()
 		log.LogIfError(err)
+	}
+}
+
+func (e *epochStartBootstrap) closeBootstrapHeartbeatSender() {
+	if !check.IfNil(e.bootstrapHeartbeatSender) {
+		log.LogIfError(e.bootstrapHeartbeatSender.Close())
 	}
 }
 
