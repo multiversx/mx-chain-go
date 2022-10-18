@@ -1320,6 +1320,17 @@ func CreateNodesWithEnableEpochs(
 	numMetaChainNodes int,
 	epochConfig config.EnableEpochs,
 ) []*TestProcessorNode {
+	return CreateNodesWithEnableEpochsAndVmConfig(numOfShards, nodesPerShard, numMetaChainNodes, epochConfig, nil)
+}
+
+// CreateNodesWithEnableEpochsAndVmConfig creates multiple nodes with custom epoch and vm config
+func CreateNodesWithEnableEpochsAndVmConfig(
+	numOfShards int,
+	nodesPerShard int,
+	numMetaChainNodes int,
+	epochConfig config.EnableEpochs,
+	vmConfig *config.VirtualMachineConfig,
+) []*TestProcessorNode {
 	nodes := make([]*TestProcessorNode, numOfShards*nodesPerShard+numMetaChainNodes)
 	connectableNodes := make([]Connectable, len(nodes))
 
@@ -1331,6 +1342,7 @@ func CreateNodesWithEnableEpochs(
 				NodeShardId:          shardId,
 				TxSignPrivKeyShardId: shardId,
 				EpochsConfig:         &epochConfig,
+				VMConfig:             vmConfig,
 			})
 			nodes[idx] = n
 			connectableNodes[idx] = n
@@ -1344,6 +1356,7 @@ func CreateNodesWithEnableEpochs(
 			NodeShardId:          core.MetachainShardId,
 			TxSignPrivKeyShardId: 0,
 			EpochsConfig:         &epochConfig,
+			VMConfig:             vmConfig,
 		})
 		idx = i + numOfShards*nodesPerShard
 		nodes[idx] = metaNode
