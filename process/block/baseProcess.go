@@ -1726,8 +1726,11 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 		return err
 	}
 
-	allLeavesChan := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
-	err = userAccountsDb.GetAllLeaves(allLeavesChan, context.Background(), rootHash)
+	iteratorChannels := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    make(chan error, 1),
+	}
+	err = userAccountsDb.GetAllLeaves(iteratorChannels, context.Background(), rootHash)
 	if err != nil {
 		return err
 	}
@@ -1740,7 +1743,7 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 	totalSizeAccounts := 0
 	totalSizeAccountsDataTries := 0
 	totalSizeCodeLeaves := 0
-	for leaf := range allLeavesChan {
+	for leaf := range iteratorChannels.LeavesChan {
 		userAccount, errUnmarshal := unmarshalUserAccount(leaf.Key(), leaf.Value(), bp.marshalizer)
 		if errUnmarshal != nil {
 			numCodeLeaves++
@@ -1752,15 +1755,23 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 		if processDataTries {
 			rh := userAccount.GetRootHash()
 			if len(rh) != 0 {
-				dataTrie := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+				dataTrie := &common.TrieIteratorChannels{
+					LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+					ErrChan:    make(chan error, 1),
+				}
 				errDataTrieGet := userAccountsDb.GetAllLeaves(dataTrie, context.Background(), rh)
 				if errDataTrieGet != nil {
 					continue
 				}
 
 				currentSize := 0
-				for lf := range dataTrie {
+				for lf := range dataTrie.LeavesChan {
 					currentSize += len(lf.Value())
+				}
+
+				err = common.GetErrorFromChanNonBlocking(dataTrie.ErrChan)
+				if err != nil {
+					return err
 				}
 
 				totalSizeAccountsDataTries += currentSize
@@ -1772,6 +1783,11 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 		totalSizeAccounts += len(leaf.Value())
 
 		balanceSum.Add(balanceSum, userAccount.GetBalance())
+	}
+
+	err = common.GetErrorFromChanNonBlocking(iteratorChannels.ErrChan)
+	if err != nil {
+		return err
 	}
 
 	totalSizeAccounts += totalSizeAccountsDataTries

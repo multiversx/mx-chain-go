@@ -47,6 +47,21 @@ func WithCoreComponents(coreComponents factory.CoreComponentsHandler) Option {
 	}
 }
 
+// WithStatusCoreComponents sets up the Node status core components
+func WithStatusCoreComponents(statusCoreComponents factory.StatusCoreComponentsHandler) Option {
+	return func(n *Node) error {
+		if check.IfNil(statusCoreComponents) {
+			return ErrNilStatusCoreComponents
+		}
+		err := statusCoreComponents.CheckSubcomponents()
+		if err != nil {
+			return err
+		}
+		n.closableComponents = append(n.closableComponents, statusCoreComponents)
+		return nil
+	}
+}
+
 // WithCryptoComponents sets up Node crypto components
 func WithCryptoComponents(cryptoComponents factory.CryptoComponentsHandler) Option {
 	return func(n *Node) error {

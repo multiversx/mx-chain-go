@@ -36,6 +36,7 @@ func prepareOpenTopics(
 // CreateNode is the node factory
 func CreateNode(
 	config *config.Config,
+	statusCoreComponents factory.StatusCoreComponentsHandler,
 	bootstrapComponents factory.BootstrapComponentsHandler,
 	coreComponents factory.CoreComponentsHandler,
 	cryptoComponents factory.CryptoComponentsHandler,
@@ -85,6 +86,7 @@ func CreateNode(
 
 	var nd *Node
 	nd, err = NewNode(
+		WithStatusCoreComponents(statusCoreComponents),
 		WithCoreComponents(coreComponents),
 		WithCryptoComponents(cryptoComponents),
 		WithBootstrapComponents(bootstrapComponents),

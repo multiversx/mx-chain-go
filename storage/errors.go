@@ -22,9 +22,6 @@ var ErrNilPersisterFactory = errors.New("nil persister factory")
 // ErrDestroyingUnit signals that the destroy unit method did not manage to destroy all the persisters in a pruning storer
 var ErrDestroyingUnit = errors.New("destroy unit didn't remove all the persisters")
 
-// ErrNilConfig signals that a nil configuration has been received
-var ErrNilConfig = errors.New("nil config")
-
 // ErrNilShardCoordinator signals that a nil shard coordinator has been provided
 var ErrNilShardCoordinator = errors.New("nil shard coordinator")
 
@@ -36,9 +33,6 @@ var ErrNilCustomDatabaseRemover = errors.New("custom database remover")
 
 // ErrNilStorageListProvider signals that a nil storage list provided has been provided
 var ErrNilStorageListProvider = errors.New("nil storage list provider")
-
-// ErrOldestEpochNotAvailable signals that fetching the oldest epoch is not available
-var ErrOldestEpochNotAvailable = errors.New("oldest epoch not available")
 
 // ErrInvalidNumberOfEpochsToSave signals that an invalid number of epochs to save has been provided
 var ErrInvalidNumberOfEpochsToSave = errors.New("invalid number of epochs to save")
@@ -84,9 +78,6 @@ var ErrNotSupportedDBType = storageErrors.ErrNotSupportedDBType
 
 // ErrNotSupportedCacheType is raised when an unsupported cache type is provided
 var ErrNotSupportedCacheType = storageErrors.ErrNotSupportedCacheType
-
-// ErrInvalidCacheExpiry signals that an invalid cache expiry was provided
-var ErrInvalidCacheExpiry = storageErrors.ErrInvalidCacheExpiry
 
 // ErrDBIsClosed is raised when the DB is closed
 var ErrDBIsClosed = storageErrors.ErrDBIsClosed

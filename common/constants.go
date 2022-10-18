@@ -810,3 +810,6 @@ const (
 
 // MaxIndexOfTxInMiniBlock defines the maximum index of a tx inside one mini block
 const MaxIndexOfTxInMiniBlock = int32(29999)
+
+// GenesisStorageSuffix defines the storage suffix used for genesis altered data
+const GenesisStorageSuffix = "_genesis"
