@@ -15,7 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/heartbeat/processor"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/sender"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/status"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
+	processFactory "github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/peer"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
@@ -233,7 +233,7 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		PeerShardMapper:             hcf.processComponents.PeerShardMapper(),
 		ShardCoordinator:            hcf.processComponents.ShardCoordinator(),
 		BaseIntraShardTopic:         common.ConsensusTopic,
-		BaseCrossShardTopic:         factory.MiniBlocksTopic,
+		BaseCrossShardTopic:         processFactory.MiniBlocksTopic,
 	}
 	directConnectionProcessor, err := processor.NewDirectConnectionProcessor(argsDirectConnectionProcessor)
 	if err != nil {
