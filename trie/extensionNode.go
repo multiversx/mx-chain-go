@@ -206,8 +206,9 @@ func (en *extensionNode) commitCheckpoint(
 	checkpointHashes CheckpointHashesHolder,
 	leavesChan chan core.KeyValueHolder,
 	ctx context.Context,
-	stats common.SnapshotStatisticsHandler,
+	stats common.TrieStatisticsHandler,
 	idleProvider IdleNodeProvider,
+	depthLevel int,
 ) error {
 	if shouldStopIfContextDone(ctx, idleProvider) {
 		return errors.ErrContextClosing
@@ -233,13 +234,13 @@ func (en *extensionNode) commitCheckpoint(
 		return nil
 	}
 
-	err = en.child.commitCheckpoint(originDb, targetDb, checkpointHashes, leavesChan, ctx, stats, idleProvider)
+	err = en.child.commitCheckpoint(originDb, targetDb, checkpointHashes, leavesChan, ctx, stats, idleProvider, depthLevel+1)
 	if err != nil {
 		return err
 	}
 
 	checkpointHashes.Remove(hash)
-	return en.saveToStorage(targetDb, stats)
+	return en.saveToStorage(targetDb, stats, depthLevel)
 }
 
 func (en *extensionNode) commitSnapshot(
@@ -247,8 +248,9 @@ func (en *extensionNode) commitSnapshot(
 	leavesChan chan core.KeyValueHolder,
 	missingNodesChan chan []byte,
 	ctx context.Context,
-	stats common.SnapshotStatisticsHandler,
+	stats common.TrieStatisticsHandler,
 	idleProvider IdleNodeProvider,
+	depthLevel int,
 ) error {
 	if shouldStopIfContextDone(ctx, idleProvider) {
 		return errors.ErrContextClosing
@@ -271,22 +273,22 @@ func (en *extensionNode) commitSnapshot(
 	if isMissingNodeErr {
 		treatCommitSnapshotError(err, en.EncodedChild, missingNodesChan)
 	} else {
-		err = en.child.commitSnapshot(db, leavesChan, missingNodesChan, ctx, stats, idleProvider)
+		err = en.child.commitSnapshot(db, leavesChan, missingNodesChan, ctx, stats, idleProvider, depthLevel+1)
 		if err != nil {
 			return err
 		}
 	}
 
-	return en.saveToStorage(db, stats)
+	return en.saveToStorage(db, stats, depthLevel)
 }
 
-func (en *extensionNode) saveToStorage(targetDb common.DBWriteCacher, stats common.SnapshotStatisticsHandler) error {
+func (en *extensionNode) saveToStorage(targetDb common.DBWriteCacher, stats common.TrieStatisticsHandler, depthLevel int) error {
 	nodeSize, err := encodeNodeAndCommitToDB(en, targetDb)
 	if err != nil {
 		return err
 	}
 
-	stats.AddSize(uint64(nodeSize))
+	stats.AddExtensionNode(depthLevel, uint64(nodeSize))
 
 	en.child = nil
 	return nil
@@ -731,6 +733,31 @@ func (en *extensionNode) sizeInBytes() int {
 
 func (en *extensionNode) getValue() []byte {
 	return []byte{}
+}
+
+func (en *extensionNode) collectStats(ts common.TrieStatisticsHandler, depthLevel int, db common.DBWriteCacher) error {
+	err := en.isEmptyOrNil()
+	if err != nil {
+		return fmt.Errorf("collectStats error %w", err)
+	}
+
+	err = resolveIfCollapsed(en, 0, db)
+	if err != nil {
+		return err
+	}
+
+	err = en.child.collectStats(ts, depthLevel+1, db)
+	if err != nil {
+		return err
+	}
+
+	val, err := collapseAndEncodeNode(en)
+	if err != nil {
+		return err
+	}
+
+	ts.AddExtensionNode(depthLevel, uint64(len(val)))
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
