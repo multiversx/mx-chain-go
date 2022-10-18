@@ -242,6 +242,12 @@ func TestSCProcessorProxy_ParallelRunOnExportedMethods(t *testing.T) {
 
 	args := createMockSmartContractProcessorArguments()
 	proxy, _ := NewSmartContractProcessorProxy(args, &epochNotifierMock.EpochNotifierStub{})
+	proxy.processor = &testscommon.SCProcessorMock{}
+	proxy.processorsCache[procV1] = &testscommon.SCProcessorMock{}
+	proxy.processorsCache[procV2] = &testscommon.SCProcessorMock{}
+
+	wg := sync.WaitGroup{}
+	wg.Add(numGoRoutines)
 	for i := 0; i < numGoRoutines; i++ {
 		go func(idx int) {
 			time.Sleep(time.Millisecond * 10)
@@ -264,7 +270,10 @@ func TestSCProcessorProxy_ParallelRunOnExportedMethods(t *testing.T) {
 			default:
 				assert.Fail(t, fmt.Sprintf("error in test, got index %d", idx))
 			}
+
+			wg.Done()
 		}(i % 7)
 	}
 
+	wg.Wait()
 }
