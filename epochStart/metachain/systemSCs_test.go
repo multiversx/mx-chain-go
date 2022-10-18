@@ -265,7 +265,7 @@ func checkNodesStatusInSystemSCDataTrie(t *testing.T, nodes []*state.ValidatorIn
 	systemScAccount, ok := account.(state.UserAccountHandler)
 	require.True(t, ok)
 	for _, nodeInfo := range nodes {
-		buff, err = systemScAccount.RetrieveValue(nodeInfo.PublicKey)
+		buff, _, err = systemScAccount.RetrieveValue(nodeInfo.PublicKey)
 		require.Nil(t, err)
 		require.True(t, len(buff) > 0)
 
@@ -836,7 +836,7 @@ func addKeysToWaitingList(
 		_ = stakingSCAcc.SaveKeyValue(waitingKey, marshaledData)
 	}
 
-	marshaledData, _ := stakingSCAcc.RetrieveValue([]byte("waitingList"))
+	marshaledData, _, _ := stakingSCAcc.RetrieveValue([]byte("waitingList"))
 	waitingListHead := &systemSmartContracts.WaitingList{}
 	_ = marshalizer.Unmarshal(waitingListHead, marshaledData)
 	waitingListHead.Length += uint32(len(waitingKeys))
@@ -868,7 +868,7 @@ func addKeysToWaitingList(
 		previousKey = waitingKeyInList
 	}
 
-	marshaledData, _ = stakingSCAcc.RetrieveValue(waitingListHead.FirstKey)
+	marshaledData, _, _ = stakingSCAcc.RetrieveValue(waitingListHead.FirstKey)
 	waitingListElement := &systemSmartContracts.ElementInList{}
 	_ = marshalizer.Unmarshal(waitingListElement, marshaledData)
 	waitingListElement.NextKey = []byte("w_" + string(waitingKeys[0]))
@@ -1758,7 +1758,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeFromAdditionalQueue(
 	assert.Equal(t, []byte("waitingPubKe3"), dStatus.UnStakedKeys[1].BLSKey)
 
 	stakingSCAcc := loadSCAccount(args.UserAccountsDB, vm.StakingSCAddress)
-	marshaledData, _ := stakingSCAcc.RetrieveValue([]byte("waitingList"))
+	marshaledData, _, _ := stakingSCAcc.RetrieveValue([]byte("waitingList"))
 	waitingListHead := &systemSmartContracts.WaitingList{}
 	_ = args.Marshalizer.Unmarshal(waitingListHead, marshaledData)
 	assert.Equal(t, uint32(3), waitingListHead.Length)

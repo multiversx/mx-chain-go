@@ -351,9 +351,9 @@ func TestBlockChainHookImpl_GetStorageDataCannotRetrieveAccountValueExpectError(
 	expectedErr := errors.New("error retrieving value")
 
 	dataTrieStub := &trie.DataTrieTrackerStub{
-		RetrieveValueCalled: func(key []byte) ([]byte, error) {
+		RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
 			require.Equal(t, index, key)
-			return nil, expectedErr
+			return nil, 0, expectedErr
 		},
 	}
 	account := &stateMock.AccountWrapMock{

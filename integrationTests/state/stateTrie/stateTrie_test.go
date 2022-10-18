@@ -84,11 +84,11 @@ func TestAccountsDB_RetrieveDataWithSomeValuesShouldWork(t *testing.T) {
 	recoveredAccount := acc.(state.UserAccountHandler)
 
 	// verify data
-	dataRecovered, err := recoveredAccount.RetrieveValue(key1)
+	dataRecovered, _, err := recoveredAccount.RetrieveValue(key1)
 	require.Nil(t, err)
 	require.Equal(t, val1, dataRecovered)
 
-	dataRecovered, err = recoveredAccount.RetrieveValue(key2)
+	dataRecovered, _, err = recoveredAccount.RetrieveValue(key2)
 	require.Nil(t, err)
 	require.Equal(t, val2, dataRecovered)
 }
@@ -261,7 +261,7 @@ func TestAccountsDB_CommitTwoOkAccountsShouldWork(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, balance2, newState2.(state.UserAccountHandler).GetBalance())
 	require.NotNil(t, newState2.(state.UserAccountHandler).GetRootHash())
-	valRecovered, err := newState2.(state.UserAccountHandler).RetrieveValue(key)
+	valRecovered, _, err := newState2.(state.UserAccountHandler).RetrieveValue(key)
 	require.Nil(t, err)
 	require.Equal(t, val, valRecovered)
 }
@@ -349,7 +349,7 @@ func TestAccountsDB_CommitTwoOkAccountsWithRecreationFromStorageShouldWork(t *te
 	newState2 := acc2.(state.UserAccountHandler)
 	require.Equal(t, balance2, newState2.GetBalance())
 	require.NotNil(t, newState2.GetRootHash())
-	valRecovered, err := newState2.RetrieveValue(key)
+	valRecovered, _, err := newState2.RetrieveValue(key)
 	require.Nil(t, err)
 	require.Equal(t, val, valRecovered)
 }
@@ -1206,7 +1206,7 @@ func TestAccountsDB_RecreateTrieInvalidatesDataTriesCache(t *testing.T) {
 	acc1, _ = adb.LoadAccount(address1)
 	state1 = acc1.(state.UserAccountHandler)
 
-	retrievedVal, _ := state1.RetrieveValue(key1)
+	retrievedVal, _, _ := state1.RetrieveValue(key1)
 	require.Equal(t, value1, retrievedVal)
 }
 
@@ -1255,11 +1255,11 @@ func TestTrieDbPruning_GetDataTrieTrackerAfterPruning(t *testing.T) {
 	collapseTrie(state1, t)
 	collapseTrie(stateMock, t)
 
-	val, err := state1.RetrieveValue(key1)
+	val, _, err := state1.RetrieveValue(key1)
 	require.Nil(t, err)
 	require.Equal(t, value1, val)
 
-	val, err = stateMock.RetrieveValue(key2)
+	val, _, err = stateMock.RetrieveValue(key2)
 	require.Nil(t, err)
 	require.Equal(t, value1, val)
 }
@@ -2358,7 +2358,7 @@ func checkAccountsDataTrie(t *testing.T, index uint32, startingKey uint32, adb *
 	accState := acc.(state.UserAccountHandler)
 	for i := int(startingKey); i < numKeys; i++ {
 		k, v := createDummyKeyValue(i)
-		actualValue, errKey := accState.RetrieveValue(k)
+		actualValue, _, errKey := accState.RetrieveValue(k)
 		require.Nil(t, errKey)
 		require.Equal(t, v, actualValue)
 	}

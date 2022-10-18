@@ -234,7 +234,7 @@ func (bh *BlockChainHookImpl) GetStorageData(accountAddress []byte, index []byte
 		return nil, err
 	}
 
-	value, err := userAcc.AccountDataHandler().RetrieveValue(index)
+	value, _, err := userAcc.AccountDataHandler().RetrieveValue(index)
 	messages := []interface{}{
 		"address", accountAddress,
 		"rootHash", userAcc.GetRootHash(),
@@ -612,7 +612,7 @@ func (bh *BlockChainHookImpl) returnESDTTokenByLegacyMethod(
 		esdtTokenKey = append(esdtTokenKey, big.NewInt(0).SetUint64(nonce).Bytes()...)
 	}
 
-	value, err := userAcc.AccountDataHandler().RetrieveValue(esdtTokenKey)
+	value, _, err := userAcc.AccountDataHandler().RetrieveValue(esdtTokenKey)
 	if err != nil {
 		return nil, err
 	}

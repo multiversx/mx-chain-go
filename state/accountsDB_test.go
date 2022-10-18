@@ -780,7 +780,7 @@ func TestAccountsDB_LoadDataWithSomeValuesShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 
 	// verify data
-	dataRecov, err := account.RetrieveValue(keyRequired)
+	dataRecov, _, err := account.RetrieveValue(keyRequired)
 	assert.Nil(t, err)
 	assert.Equal(t, val, dataRecov)
 }
@@ -1331,11 +1331,11 @@ func TestAccountsDB_SaveAccountWithoutLoading(t *testing.T) {
 	assert.Nil(t, err)
 	userAcc = account.(state.UserAccountHandler)
 
-	returnedVal, err := userAcc.RetrieveValue(key)
+	returnedVal, _, err := userAcc.RetrieveValue(key)
 	assert.Nil(t, err)
 	assert.Equal(t, value, returnedVal)
 
-	returnedVal, err = userAcc.RetrieveValue(key1)
+	returnedVal, _, err = userAcc.RetrieveValue(key1)
 	assert.Nil(t, err)
 	assert.Equal(t, value, returnedVal)
 
