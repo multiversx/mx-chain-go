@@ -3,6 +3,7 @@ package processProxy
 import (
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -30,12 +31,15 @@ type scProcessorProxy struct {
 	args                scrCommon.ArgsNewSmartContractProcessor
 	processor           process.SmartContractProcessorFacade
 	processorsCache     map[configuredProcessor]process.SmartContractProcessorFacade
-	mutRc               sync.Mutex
+	mutRc               sync.RWMutex
 }
+
+// TODO -> remove the epochNotifier usage and instead extend EnableEpochsHandler
+//   that will notify a new epoch *** after *** all its epoch flags are set
 
 // NewSmartContractProcessorProxy creates a smart contract processor proxy
 func NewSmartContractProcessorProxy(args scrCommon.ArgsNewSmartContractProcessor, epochNotifier vmcommon.EpochNotifier) (*scProcessorProxy, error) {
-	scProcessorProxy := &scProcessorProxy{
+	proxy := &scProcessorProxy{
 		args: scrCommon.ArgsNewSmartContractProcessor{
 			VmContainer:         args.VmContainer,
 			ArgsParser:          args.ArgsParser,
@@ -61,23 +65,26 @@ func NewSmartContractProcessorProxy(args scrCommon.ArgsNewSmartContractProcessor
 			IsGenesisProcessing: args.IsGenesisProcessing,
 		},
 	}
+	if check.IfNil(epochNotifier) {
+		return nil, process.ErrNilEpochNotifier
+	}
 
-	scProcessorProxy.processorsCache = make(map[configuredProcessor]process.SmartContractProcessorFacade)
+	proxy.processorsCache = make(map[configuredProcessor]process.SmartContractProcessorFacade)
 
 	var err error
-	err = scProcessorProxy.createProcessorV1()
+	err = proxy.createProcessorV1()
 	if err != nil {
 		return nil, err
 	}
 
-	err = scProcessorProxy.createProcessorV2()
+	err = proxy.createProcessorV2()
 	if err != nil {
 		return nil, err
 	}
 
-	epochNotifier.RegisterNotifyHandler(scProcessorProxy)
+	epochNotifier.RegisterNotifyHandler(proxy)
 
-	return scProcessorProxy, nil
+	return proxy, nil
 }
 
 func (proxy *scProcessorProxy) createProcessorV1() error {
@@ -107,8 +114,8 @@ func (proxy *scProcessorProxy) setActiveProcessor(version configuredProcessor) {
 }
 
 func (proxy *scProcessorProxy) getProcessor() process.SmartContractProcessorFacade {
-	proxy.mutRc.Lock()
-	defer proxy.mutRc.Unlock()
+	proxy.mutRc.RLock()
+	defer proxy.mutRc.RUnlock()
 	return proxy.processor
 }
 
