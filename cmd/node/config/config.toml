@@ -562,8 +562,7 @@
         Type = "LRU"
     [Antiflood.Topic]
         DefaultMaxMessagesPerSec = 15000
-        MaxMessages = [{ Topic = "heartbeat", NumMessagesPerSec = 30 },
-                       { Topic = "shardBlocks*", NumMessagesPerSec = 30 },
+        MaxMessages = [{ Topic = "shardBlocks*", NumMessagesPerSec = 30 },
                        { Topic = "metachainBlocks", NumMessagesPerSec = 30 }]
     [Antiflood.WebServer]
         # SimultaneousRequests represents the number of concurrent requests accepted by the web server
@@ -644,26 +643,6 @@
 [ResourceStats]
     Enabled = true
     RefreshIntervalInSec = 30
-
-# Heartbeat, if enabled, will output a heartbeat signal once x seconds,
-# where x in [MinTimeToWaitBetweenBroadcastsInSec, MaxTimeToWaitBetweenBroadcastsInSec)
-[Heartbeat]
-    MinTimeToWaitBetweenBroadcastsInSec  = 20
-    MaxTimeToWaitBetweenBroadcastsInSec  = 25
-    HeartbeatRefreshIntervalInSec        = 60
-    HideInactiveValidatorIntervalInSec   = 3600
-    DurationToConsiderUnresponsiveInSec  = 60
-    [Heartbeat.HeartbeatStorage]
-        [Heartbeat.HeartbeatStorage.Cache]
-            Name = "HeartbeatStorage"
-            Capacity = 1000
-            Type = "LRU"
-        [Heartbeat.HeartbeatStorage.DB]
-            FilePath = "HeartbeatStorage"
-            Type = "LvlDBSerial"
-            BatchDelaySeconds = 5
-            MaxBatchSize = 100
-            MaxOpenFiles = 10
 
 [ValidatorStatistics]
     CacheRefreshIntervalInSec = 60

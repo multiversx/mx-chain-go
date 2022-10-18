@@ -4,7 +4,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"strconv"
-	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
@@ -16,7 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
-	heartbeatComp "github.com/ElrondNetwork/elrond-go/factory/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/factory/peerSignatureHandler"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/node"
@@ -195,8 +193,6 @@ func (tP2pNode *TestP2PNode) initNode() {
 	dataComponents.Store = tP2pNode.Storage
 	dataComponents.BlockChain = &testscommon.ChainHandlerStub{}
 
-	redundancyHandler := &mock.RedundancyHandlerStub{}
-
 	tP2pNode.Node, err = node.NewNode(
 		node.WithCoreComponents(coreComponents),
 		node.WithCryptoComponents(cryptoComponents),
@@ -206,35 +202,6 @@ func (tP2pNode *TestP2PNode) initNode() {
 		node.WithInitialNodesPubKeys(pubkeys),
 		node.WithPeerDenialEvaluator(&mock.PeerDenialEvaluatorStub{}),
 	)
-	log.LogIfError(err)
-
-	hbConfig := config.HeartbeatConfig{
-		MinTimeToWaitBetweenBroadcastsInSec: 4,
-		MaxTimeToWaitBetweenBroadcastsInSec: 6,
-		DurationToConsiderUnresponsiveInSec: 60,
-		HeartbeatRefreshIntervalInSec:       5,
-		HideInactiveValidatorIntervalInSec:  600,
-	}
-
-	hbCompArgs := heartbeatComp.HeartbeatComponentsFactoryArgs{
-		Config: config.Config{
-			Heartbeat: hbConfig,
-		},
-		Prefs:             config.Preferences{},
-		AppVersion:        "test",
-		GenesisTime:       time.Time{},
-		RedundancyHandler: redundancyHandler,
-		CoreComponents:    coreComponents,
-		DataComponents:    dataComponents,
-		NetworkComponents: networkComponents,
-		CryptoComponents:  cryptoComponents,
-		ProcessComponents: processComponents,
-	}
-	heartbeatComponentsFactory, _ := heartbeatComp.NewHeartbeatComponentsFactory(hbCompArgs)
-	managedHBComponents, err := heartbeatComp.NewManagedHeartbeatComponents(heartbeatComponentsFactory)
-	log.LogIfError(err)
-
-	err = managedHBComponents.Create()
 	log.LogIfError(err)
 }
 

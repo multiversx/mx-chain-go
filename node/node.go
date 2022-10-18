@@ -84,7 +84,6 @@ type Node struct {
 	coreComponents        mainFactory.CoreComponentsHolder
 	cryptoComponents      mainFactory.CryptoComponentsHolder
 	dataComponents        mainFactory.DataComponentsHolder
-	heartbeatComponents   mainFactory.HeartbeatComponentsHolder
 	heartbeatV2Components mainFactory.HeartbeatV2ComponentsHolder
 	networkComponents     mainFactory.NetworkComponentsHolder
 	processComponents     mainFactory.ProcessComponentsHolder
@@ -836,38 +835,16 @@ func (n *Node) GetCode(codeHash []byte, options api.AccountQueryOptions) ([]byte
 
 // GetHeartbeats returns the heartbeat status for each public key defined in genesis.json
 func (n *Node) GetHeartbeats() []heartbeatData.PubKeyHeartbeat {
-	dataMap := make(map[string]heartbeatData.PubKeyHeartbeat)
-
-	if !check.IfNil(n.heartbeatComponents) {
-		v1Monitor := n.heartbeatComponents.Monitor()
-		if !check.IfNil(v1Monitor) {
-			n.addHeartbeatDataToMap(v1Monitor.GetHeartbeats(), dataMap)
-		}
+	if check.IfNil(n.heartbeatV2Components) {
+		return make([]heartbeatData.PubKeyHeartbeat, 0)
 	}
 
-	if !check.IfNil(n.heartbeatV2Components) {
-		v2Monitor := n.heartbeatV2Components.Monitor()
-		if !check.IfNil(v2Monitor) {
-			n.addHeartbeatDataToMap(v2Monitor.GetHeartbeats(), dataMap)
-		}
+	monitor := n.heartbeatV2Components.Monitor()
+	if check.IfNil(monitor) {
+		return make([]heartbeatData.PubKeyHeartbeat, 0)
 	}
 
-	dataSlice := make([]heartbeatData.PubKeyHeartbeat, 0)
-	for _, hb := range dataMap {
-		dataSlice = append(dataSlice, hb)
-	}
-
-	sort.Slice(dataSlice, func(i, j int) bool {
-		return strings.Compare(dataSlice[i].PublicKey, dataSlice[j].PublicKey) < 0
-	})
-
-	return dataSlice
-}
-
-func (n *Node) addHeartbeatDataToMap(data []heartbeatData.PubKeyHeartbeat, dataMap map[string]heartbeatData.PubKeyHeartbeat) {
-	for _, hb := range data {
-		dataMap[hb.PublicKey] = hb
-	}
+	return monitor.GetHeartbeats()
 }
 
 // ValidatorStatisticsApi will return the statistics for all the validators from the initial nodes pub keys
@@ -988,11 +965,6 @@ func (n *Node) GetBootstrapComponents() mainFactory.BootstrapComponentsHolder {
 // GetDataComponents returns the data components
 func (n *Node) GetDataComponents() mainFactory.DataComponentsHolder {
 	return n.dataComponents
-}
-
-// GetHeartbeatComponents returns the heartbeat components
-func (n *Node) GetHeartbeatComponents() mainFactory.HeartbeatComponentsHolder {
-	return n.heartbeatComponents
 }
 
 // GetHeartbeatV2Components returns the heartbeatV2 components
