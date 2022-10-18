@@ -407,17 +407,19 @@ func shouldIncludeAllTokens(tokensFilter string) bool {
 }
 
 func (bap *baseAPIBlockProcessor) apiBlockToAlteredAccounts(apiBlock *api.Block, options api.GetAlteredAccountsForBlockOptions) ([]*outport.AlteredAccount, error) {
-	rootHash, err := hex.DecodeString(apiBlock.StateRootHash)
-	if err != nil {
-		return nil, err
-	}
-
 	alteredAccountsOptions := shared.AlteredAccountsOptions{
 		WithCustomAccountsRepository: true,
 		AccountsRepository:           bap.accountsRepository,
-		// TODO: AccountQueryOptions could be used like options.WithBlockRootHash(..) instead of thinking what to provide
+		// TODO: AccountQueryOptions could be used like options.WithBlockNonce(..) instead of thinking what to provide
+
+		// send the block nonce as it guarantees the opening of the storer for the right epoch. Sending the block hash
+		// would be more optimal, but there is no link between a root hash and a block, which can result in the endpoint
+		// not working
 		AccountQueryOptions: api.AccountQueryOptions{
-			BlockRootHash: rootHash,
+			BlockNonce: core.OptionalUint64{
+				HasValue: true,
+				Value:    apiBlock.Nonce,
+			},
 		},
 	}
 
@@ -500,7 +502,7 @@ func (bap *baseAPIBlockProcessor) addLogsToPool(tx *transaction.ApiTransactionRe
 
 func (bap *baseAPIBlockProcessor) addTxToPool(tx *transaction.ApiTransactionResult, pool *outport.Pool) error {
 	senderBytes, err := bap.addressPubKeyConverter.Decode(tx.Sender)
-	if err != nil {
+	if err != nil && tx.Type != string(transaction.TxTypeReward) {
 		return fmt.Errorf("error while decoding the sender address. address=%s, error=%s", tx.Sender, err.Error())
 	}
 	receiverBytes, err := bap.addressPubKeyConverter.Decode(tx.Receiver)
