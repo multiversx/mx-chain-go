@@ -818,7 +818,6 @@ const (
 // MaxIndexOfTxInMiniBlock defines the maximum index of a tx inside one mini block
 const MaxIndexOfTxInMiniBlock = int32(29999)
 
-<<<<<<< HEAD
 // MetricAccountsSnapshotIsProgress is the metric that outputs the status of the accounts snapshot, if it's in progress or not
 const MetricAccountsSnapshotIsProgress = "erd_accounts_snapshot_in_progress"
 
@@ -830,7 +829,6 @@ const MetricPeersSnapshotIsProgress = "erd_peers_snapshot_in_progress"
 
 // MetricLastPeersSnapshotDurationSec is the metric that outputs the duration in seconds of the last peers db snapshot. If snapshot is in progress it will be set to 0
 const MetricLastPeersSnapshotDurationSec = "erd_peers_snapshot_last_duration_in_seconds"
-=======
+
 // GenesisStorageSuffix defines the storage suffix used for genesis altered data
 const GenesisStorageSuffix = "_genesis"
->>>>>>> rc/v1.4.0

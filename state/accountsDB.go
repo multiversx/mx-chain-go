@@ -1138,25 +1138,16 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 	adb.appStatusHandler.SetInt64Value(common.MetricLastAccountsSnapshotDurationSec, 0)
 	go func() {
 		stats.NewSnapshotStarted()
-<<<<<<< HEAD
 
-		trieStorageManager.TakeSnapshot(nil, rootHash, rootHash, leavesChannel, missingNodesChannel, errChan, stats, epoch)
-		adb.snapshotUserAccountDataTrie(true, rootHash, leavesChannel, missingNodesChannel, errChan, stats, epoch)
-=======
 		trieStorageManager.TakeSnapshot(nil, rootHash, rootHash, iteratorChannels, missingNodesChannel, stats, epoch)
 		adb.snapshotUserAccountDataTrie(true, rootHash, iteratorChannels, missingNodesChannel, stats, epoch)
->>>>>>> rc/v1.4.0
 
 		stats.SnapshotFinished()
 	}()
 
 	go adb.syncMissingNodes(missingNodesChannel, stats, adb.trieSyncer)
 
-<<<<<<< HEAD
-	go adb.processSnapshotCompletion(stats, trieStorageManager, missingNodesChannel, errChan, rootHash, userTrieSnapshotMsg, epoch)
-=======
-	go adb.processSnapshotCompletion(stats, trieStorageManager, missingNodesChannel, iteratorChannels.ErrChan, rootHash, "snapshotState user trie", epoch)
->>>>>>> rc/v1.4.0
+	go adb.processSnapshotCompletion(stats, trieStorageManager, missingNodesChannel, iteratorChannels.ErrChan, rootHash, userTrieSnapshotMsg, epoch)
 
 	adb.waitForCompletionIfAppropriate(stats)
 }
