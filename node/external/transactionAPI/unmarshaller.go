@@ -166,7 +166,7 @@ func (tu *txUnmarshaller) prepareUnsignedTx(tx *smartContractResult.SmartContrac
 		PreviousTransactionHash: hex.EncodeToString(tx.GetPrevTxHash()),
 		OriginalTransactionHash: hex.EncodeToString(tx.GetOriginalTxHash()),
 		ReturnMessage:           string(tx.GetReturnMessage()),
-		CallType:                int(tx.CallType),
+		CallType:                tx.CallType.ToString(),
 		RelayerAddress:          tu.getEncodedAddress(tx.GetRelayerAddr()),
 		RelayedValue:            bigIntToStr(tx.GetRelayedValue()),
 		OriginalSender:          tu.getEncodedAddress(tx.GetOriginalSender()),
