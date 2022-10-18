@@ -12,7 +12,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
+	arwenConfig "github.com/ElrondNetwork/wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/partitioning"
@@ -3117,14 +3117,22 @@ func GetTokenIdentifier(nodes []*TestProcessorNode, ticker []byte) []byte {
 		userAcc, _ := acc.(state.UserAccountHandler)
 
 		rootHash, _ := userAcc.DataTrie().RootHash()
-		chLeaves := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+		chLeaves := &common.TrieIteratorChannels{
+			LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+			ErrChan:    make(chan error, 1),
+		}
 		_ = userAcc.DataTrie().GetAllLeavesOnChannel(chLeaves, context.Background(), rootHash, keyBuilder.NewKeyBuilder())
-		for leaf := range chLeaves {
+		for leaf := range chLeaves.LeavesChan {
 			if !bytes.HasPrefix(leaf.Key(), ticker) {
 				continue
 			}
 
 			return leaf.Key()
+		}
+
+		err := common.GetErrorFromChanNonBlocking(chLeaves.ErrChan)
+		if err != nil {
+			log.Error("error getting all leaves from channel", "err", err)
 		}
 	}
 

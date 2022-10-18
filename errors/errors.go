@@ -131,6 +131,9 @@ var ErrNilConsensusWorker = errors.New("nil consensus worker")
 // ErrNilCoreComponents signals that an operation has been attempted with nil core components
 var ErrNilCoreComponents = errors.New("nil core components provided")
 
+// ErrNilStatusCoreComponents signals that an operation has been attempted with nil status core components
+var ErrNilStatusCoreComponents = errors.New("nil status core components provided")
+
 // ErrNilCoreComponentsHolder signals that a nil core components holder was provided
 var ErrNilCoreComponentsHolder = errors.New("nil core components holder")
 
@@ -410,6 +413,9 @@ var ErrConsensusComponentsFactoryCreate = errors.New("consensusComponentsFactory
 // ErrCoreComponentsFactoryCreate signals that an error occured on coreComponentsFactory create
 var ErrCoreComponentsFactoryCreate = errors.New("coreComponentsFactory create failed")
 
+// ErrStatusCoreComponentsFactoryCreate signals that an error occured on statusCoreComponentsFactory create
+var ErrStatusCoreComponentsFactoryCreate = errors.New("statusCoreComponentsFactory create failed")
+
 // ErrCryptoComponentsFactoryCreate signals that an error occured on cryptoComponentsFactory create
 var ErrCryptoComponentsFactoryCreate = errors.New("cryptoComponentsFactory create failed")
 
@@ -496,3 +502,9 @@ var ErrInvalidSignature = errors.New("invalid signature")
 
 // ErrInvalidHeartbeatV2Config signals that an invalid heartbeat v2 configuration has been provided
 var ErrInvalidHeartbeatV2Config = errors.New("invalid heartbeat v2 configuration")
+
+// ErrNilNetworkStatistics signals that a nil network statistics was provided
+var ErrNilNetworkStatistics = errors.New("nil network statistics")
+
+// ErrNilResourceMonitor signals that a nil resource monitor was provided
+var ErrNilResourceMonitor = errors.New("nil resource monitor")
