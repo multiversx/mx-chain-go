@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/arwen-wasm-vm/v1_5/arwen/contexts"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
@@ -21,12 +20,10 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/scrCommon"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
@@ -940,12 +937,7 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 
 		if !createdAsyncCallback {
 			if vmInput.CallType == vmData.AsynchronousCall {
-				asyncCallBackSCR, err := sc.createAsyncCallBackSCRFromVMOutput(newVMOutput, tx, txHash, vmInput.AsyncArguments)
-
-				if err != nil {
-					return vmcommon.ExecutionFailed, err
-				}
-
+				asyncCallBackSCR := sc.createAsyncCallBackSCRFromVMOutput(newVMOutput, tx, txHash)
 				scrResults = append(scrResults, asyncCallBackSCR)
 			} else {
 				scrResults = append(scrResults, scrForSender)
@@ -965,62 +957,6 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 	}
 
 	return sc.finishSCExecution(scrResults, txHash, tx, newVMOutput, builtInFuncGasUsed)
-}
-
-func (sc *scProcessor) extractAsyncCallParamsFromTxData(data string) (*vmcommon.AsyncArguments, []byte, error) {
-	function, args, err := sc.argsParser.ParseCallData(string(data))
-	dataAsString := function
-	if err != nil {
-		log.Trace("scProcessor.createSCRsWhenError()", "error parsing args", string(data))
-		return nil, nil, err
-	}
-
-	if len(args) < 2 {
-		log.Trace("scProcessor.createSCRsWhenError()", "no async params found", string(data))
-		return nil, nil, err
-	}
-
-	callIDIndex := len(args) - 3
-	callerCallIDIndex := len(args) - 2
-	asyncArgs := &vmcommon.AsyncArguments{
-		CallID:       args[callIDIndex],
-		CallerCallID: args[callerCallIDIndex],
-	}
-
-	for index, arg := range args {
-		if index != callIDIndex && index != callerCallIDIndex {
-			dataAsString += "@" + hex.EncodeToString(arg)
-		}
-	}
-
-	return asyncArgs, []byte(dataAsString), nil
-}
-
-func (sc *scProcessor) reAppendAsyncParamsToTxCallbackData(data string, isCrossShardESDTCall bool, asyncArgs *vmcommon.AsyncArguments) (string, error) {
-	newAsyncParams := contexts.CreateCallbackAsyncParams(hooks.NewVMCryptoHook(), asyncArgs)
-	var newArgs [][]byte
-	if isCrossShardESDTCall {
-		function, args, err := sc.argsParser.ParseCallData(data)
-		if err != nil {
-			log.Trace("scProcessor.createSCRsWhenError()", "error parsing args", data)
-			return "", err
-		}
-
-		if len(args) < 2 {
-			log.Trace("scProcessor.createSCRsWhenError()", "no async params found", data)
-			return "", err
-		}
-		data = function
-		newArgs = append(args, newAsyncParams...)
-	} else {
-		newArgs = newAsyncParams
-	}
-
-	for _, arg := range newArgs {
-		data += "@" + hex.EncodeToString(arg)
-	}
-
-	return data, nil
 }
 
 func mergeVMOutputLogs(newVMOutput *vmcommon.VMOutput, vmOutput *vmcommon.VMOutput) {
@@ -1197,7 +1133,7 @@ func (sc *scProcessor) createVMInputWithAsyncCallBackAfterBuiltIn(
 	vmOutput *vmcommon.VMOutput,
 	parsedTransfer *vmcommon.ParsedESDTTransfers,
 ) *vmcommon.ContractCallInput {
-	arguments := [][]byte{contexts.ReturnCodeToBytes(vmOutput.ReturnCode)}
+	arguments := [][]byte{big.NewInt(int64(vmOutput.ReturnCode)).Bytes()}
 	gasLimit := vmOutput.GasRemaining
 
 	outAcc, ok := vmOutput.OutputAccounts[string(vmInput.RecipientAddr)]
@@ -1859,10 +1795,7 @@ func (sc *scProcessor) processVMOutput(
 	}
 
 	if !createdAsyncCallback && vmInput.CallType == vmData.AsynchronousCall {
-		asyncCallBackSCR, err := sc.createAsyncCallBackSCRFromVMOutput(vmOutput, tx, txHash, vmInput.AsyncArguments)
-		if err != nil {
-			return nil, err
-		}
+		asyncCallBackSCR := sc.createAsyncCallBackSCRFromVMOutput(vmOutput, tx, txHash)
 		scrTxs = append(scrTxs, asyncCallBackSCR)
 	} else if !createdAsyncCallback {
 		scrTxs = append(scrTxs, scrForSender)
@@ -2019,18 +1952,8 @@ func (sc *scProcessor) createSCRsWhenError(
 		ReturnMessage: returnMessage,
 	}
 
-	txData := tx.GetData()
-	var asyncArgs *vmcommon.AsyncArguments
-	if callType == vmData.AsynchronousCall {
-		var err error
-		asyncArgs, txData, err = sc.extractAsyncCallParamsFromTxData(string(txData))
-		if err != nil {
-			return nil, nil
-		}
-	}
-
 	accumulatedSCRData := ""
-	esdtReturnData, isCrossShardESDTCall := sc.isCrossShardESDTTransfer(tx.GetSndAddr(), tx.GetRcvAddr(), txData)
+	esdtReturnData, isCrossShardESDTCall := sc.isCrossShardESDTTransfer(tx.GetSndAddr(), tx.GetRcvAddr(), tx.GetData())
 	if callType != vmData.AsynchronousCallBack && isCrossShardESDTCall {
 		accumulatedSCRData += esdtReturnData
 	}
@@ -2058,12 +1981,6 @@ func (sc *scProcessor) createSCRsWhenError(
 			accumulatedSCRData += "@" + core.ConvertToEvenHex(int(vmcommon.UserError))
 			if sc.enableEpochsHandler.IsRepairCallbackFlagEnabled() {
 				accumulatedSCRData += "@" + hex.EncodeToString(returnMessage)
-			}
-
-			var err error
-			accumulatedSCRData, err = sc.reAppendAsyncParamsToTxCallbackData(accumulatedSCRData, isCrossShardESDTCall, asyncArgs)
-			if err != nil {
-				return nil, nil
 			}
 		} else {
 			accumulatedSCRData += "@" + hex.EncodeToString([]byte(returnCode))
@@ -2159,8 +2076,7 @@ func (sc *scProcessor) createAsyncCallBackSCRFromVMOutput(
 	vmOutput *vmcommon.VMOutput,
 	tx data.TransactionHandler,
 	txHash []byte,
-	asyncParams *vmcommon.AsyncArguments,
-) (*smartContractResult.SmartContractResult, error) {
+) *smartContractResult.SmartContractResult {
 	scr := &smartContractResult.SmartContractResult{
 		Value:          big.NewInt(0),
 		RcvAddr:        tx.GetSndAddr(),
@@ -2179,18 +2095,7 @@ func (sc *scProcessor) createAsyncCallBackSCRFromVMOutput(
 
 	sc.addVMOutputResultsToSCR(vmOutput, scr)
 
-	var err error
-	scr.Data, err = contexts.AppendAsyncArgumentsToCallbackCallData(
-		hooks.NewVMCryptoHook(),
-		scr.Data,
-		asyncParams,
-		sc.argsParser.ParseArguments)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return scr, nil
+	return scr
 }
 
 func (sc *scProcessor) createSCRFromStakingSC(
@@ -2252,12 +2157,7 @@ func (sc *scProcessor) preprocessOutTransferToSCR(
 		result.Value.Set(outputTransfer.Value)
 	}
 
-	result.Data, _ = contexts.AppendTransferAsyncDataToCallData(
-		outputTransfer.Data,
-		outputTransfer.AsyncData,
-		sc.argsParser.ParseArguments,
-	)
-
+	result.Data = outputTransfer.Data
 	result.GasLimit = outputTransfer.GasLimit
 	result.CallType = outputTransfer.CallType
 	setOriginalTxHash(result, txHash, tx)
@@ -2362,35 +2262,7 @@ func (sc *scProcessor) useLastTransferAsAsyncCallBackWhenNeeded(
 	result.CallType = vmData.AsynchronousCallBack
 	result.GasLimit, _ = core.SafeAddUint64(result.GasLimit, vmOutput.GasRemaining)
 
-	var err error
-	result.Data, err = sc.prependAsyncParamsToData(
-		contexts.CreateCallbackAsyncParams(hooks.NewVMCryptoHook(), vmInput.AsyncArguments), result.Data)
-	if err != nil {
-		log.Debug("processed built in functions error (async params extraction)", "error", err.Error())
-		return false
-	}
-
 	return true
-}
-
-func (sc *scProcessor) prependAsyncParamsToData(asyncParams [][]byte, data []byte) ([]byte, error) {
-	function, args, err := sc.argsParser.ParseCallData(string(data))
-	if err != nil {
-		return nil, err
-	}
-
-	callData := txDataBuilder.NewBuilder()
-	callData.Func(function)
-
-	for _, arg := range args {
-		callData.Bytes(arg)
-	}
-
-	for _, asyncParam := range asyncParams {
-		callData.Bytes(asyncParam)
-	}
-
-	return callData.ToBytes(), nil
 }
 
 func (sc *scProcessor) getESDTParsedTransfers(sndAddr []byte, dstAddr []byte, data []byte,
