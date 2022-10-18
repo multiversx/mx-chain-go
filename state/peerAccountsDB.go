@@ -1,8 +1,6 @@
 package state
 
 import (
-	"strconv"
-
 	"github.com/ElrondNetwork/elrond-go/common"
 )
 
@@ -22,7 +20,7 @@ func NewPeerAccountsDB(args ArgsAccountsDB) (*PeerAccountsDB, error) {
 		AccountsDB: createAccountsDb(args),
 	}
 
-	args.AppStatusHandler.SetStringValue(common.MetricPeersSnapshotIsProgress, strconv.FormatBool(false))
+	args.AppStatusHandler.SetStringValue(common.MetricPeersSnapshotIsProgress, "false")
 
 	return adb, nil
 }
@@ -69,8 +67,6 @@ func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
 	go adb.processSnapshotCompletion(stats, trieStorageManager, missingNodesChannel, errChan, rootHash, peerTrieSnapshotMsg, epoch)
 
 	adb.waitForCompletionIfAppropriate(stats)
-	adb.appStatusHandler.SetStringValue(common.MetricPeersSnapshotIsProgress, "false")
-	adb.appStatusHandler.SetInt64Value(common.MetricLastPeersSnapshotDurationSec, stats.GetSnapshotDuration())
 }
 
 // SetStateCheckpoint triggers the checkpointing process of the state trie
