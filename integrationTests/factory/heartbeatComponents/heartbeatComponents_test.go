@@ -1,4 +1,4 @@
-package processComponents
+package consensusComponents
 
 import (
 	"fmt"
@@ -8,15 +8,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	bootstrapComp "github.com/ElrondNetwork/elrond-go/factory/bootstrap"
+	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/factory"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/testscommon/goroutines"
 	"github.com/stretchr/testify/require"
 )
 
-// ------------ Test TestProcessComponents --------------------
-func TestProcessComponents_Close_ShouldWork(t *testing.T) {
+// ------------ Test TestHeartbeatComponents --------------------
+func TestHeartbeatComponents_Close_ShouldWork(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -32,9 +32,6 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 	chanStopNodeProcess := make(chan endProcess.ArgEndProcess)
 	nr, err := node.NewNodeRunner(configs)
 	require.Nil(t, err)
-
-	managedStatusCoreComponents, err := nr.CreateManagedStatusCoreComponents()
-	require.Nil(t, err)
 	managedCoreComponents, err := nr.CreateManagedCoreComponents(chanStopNodeProcess)
 	require.Nil(t, err)
 	managedCryptoComponents, err := nr.CreateManagedCryptoComponents(managedCoreComponents)
@@ -47,11 +44,9 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 	require.Nil(t, err)
 	managedStateComponents, err := nr.CreateManagedStateComponents(managedCoreComponents, managedBootstrapComponents, managedDataComponents)
 	require.Nil(t, err)
-	nodesShufflerOut, err := bootstrapComp.CreateNodesShuffleOut(managedCoreComponents.GenesisNodesSetup(), configs.GeneralConfig.EpochStartConfig, managedCoreComponents.ChanStopNodeProcess())
+	nodesShufflerOut, err := mainFactory.CreateNodesShuffleOut(managedCoreComponents.GenesisNodesSetup(), configs.GeneralConfig.EpochStartConfig, managedCoreComponents.ChanStopNodeProcess())
 	require.Nil(t, err)
-	storer, err := managedDataComponents.StorageService().GetStorer(dataRetriever.BootstrapUnit)
-	require.Nil(t, err)
-	nodesCoordinator, err := bootstrapComp.CreateNodesCoordinator(
+	nodesCoordinator, err := mainFactory.CreateNodesCoordinator(
 		nodesShufflerOut,
 		managedCoreComponents.GenesisNodesSetup(),
 		configs.PreferencesConfig.Preferences,
@@ -60,19 +55,17 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 		managedCoreComponents.InternalMarshalizer(),
 		managedCoreComponents.Hasher(),
 		managedCoreComponents.Rater(),
-		storer,
+		managedDataComponents.StorageService().GetStorer(dataRetriever.BootstrapUnit),
 		managedCoreComponents.NodesShuffler(),
 		managedBootstrapComponents.ShardCoordinator().SelfId(),
 		managedBootstrapComponents.EpochBootstrapParams(),
 		managedBootstrapComponents.EpochBootstrapParams().Epoch(),
+		configs.EpochConfig.EnableEpochs.WaitingListFixEnableEpoch,
 		managedCoreComponents.ChanStopNodeProcess(),
 		managedCoreComponents.NodeTypeProvider(),
-		managedCoreComponents.EnableEpochsHandler(),
-		managedDataComponents.Datapool().CurrentEpochValidatorInfo(),
 	)
 	require.Nil(t, err)
 	managedStatusComponents, err := nr.CreateManagedStatusComponents(
-		managedStatusCoreComponents,
 		managedCoreComponents,
 		managedNetworkComponents,
 		managedBootstrapComponents,
@@ -82,6 +75,7 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 		false,
 	)
 	require.Nil(t, err)
+
 	argsGasScheduleNotifier := forking.ArgsNewGasScheduleNotifier{
 		GasScheduleConfig: configs.EpochConfig.GasSchedule,
 		ConfigDir:         configs.ConfigurationPathsHolder.GasScheduleDirectoryName,
@@ -90,6 +84,7 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 	}
 	gasScheduleNotifier, err := forking.NewGasScheduleNotifier(argsGasScheduleNotifier)
 	require.Nil(t, err)
+
 	managedProcessComponents, err := nr.CreateManagedProcessComponents(
 		managedCoreComponents,
 		managedCryptoComponents,
@@ -102,16 +97,20 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 		nodesCoordinator,
 	)
 	require.Nil(t, err)
-	require.NotNil(t, managedProcessComponents)
-
 	time.Sleep(2 * time.Second)
 
 	managedStatusComponents.SetForkDetector(managedProcessComponents.ForkDetector())
 	err = managedStatusComponents.StartPolling()
 	require.Nil(t, err)
 
+	managedHeartbeatComponents, err := nr.CreateManagedHeartbeatV2Components(managedBootstrapComponents, managedCoreComponents, managedNetworkComponents, managedCryptoComponents, managedDataComponents, managedProcessComponents)
+	require.Nil(t, err)
+	require.NotNil(t, managedHeartbeatComponents)
+
 	time.Sleep(5 * time.Second)
 
+	err = managedHeartbeatComponents.Close()
+	require.Nil(t, err)
 	err = managedProcessComponents.Close()
 	require.Nil(t, err)
 	err = managedStatusComponents.Close()
@@ -127,8 +126,6 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 	err = managedCryptoComponents.Close()
 	require.Nil(t, err)
 	err = managedCoreComponents.Close()
-	require.Nil(t, err)
-	err = managedStatusCoreComponents.Close()
 	require.Nil(t, err)
 
 	time.Sleep(5 * time.Second)

@@ -18,6 +18,7 @@ type P2PMessenger interface {
 	Broadcast(topic string, buff []byte)
 	ID() core.PeerID
 	Sign(payload []byte) ([]byte, error)
+	ConnectedPeersOnTopic(topic string) []core.PeerID
 	IsInterfaceNil() bool
 }
 
@@ -119,5 +120,11 @@ type NodesCoordinator interface {
 	GetAllEligibleValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
 	GetAllWaitingValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
 	GetValidatorWithPublicKey(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error)
+	IsInterfaceNil() bool
+}
+
+// PeerShardMapper saves the shard for a peer ID
+type PeerShardMapper interface {
+	PutPeerIdShardId(pid core.PeerID, shardID uint32)
 	IsInterfaceNil() bool
 }
