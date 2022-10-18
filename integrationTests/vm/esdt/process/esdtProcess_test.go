@@ -1406,10 +1406,20 @@ func TestExecOnDestWithTokenTransferFromScAtoScBWithIntermediaryExecOnDest_NotEn
 	nodesPerShard := 1
 	numMetachainNodes := 1
 
-	nodes := integrationTests.CreateNodes(
+	enableEpochs := config.EnableEpochs{
+		GlobalMintBurnDisableEpoch:              integrationTests.UnreachableEpoch,
+		BuiltInFunctionOnMetaEnableEpoch:        integrationTests.UnreachableEpoch,
+		SCProcessorV2EnableEpoch:                integrationTests.UnreachableEpoch,
+		FailExecutionOnEveryAPIErrorEnableEpoch: integrationTests.UnreachableEpoch,
+	}
+	arwenVersion := config.ArwenVersionByEpoch{Version: "v1.4"}
+	vmConfig := &config.VirtualMachineConfig{ArwenVersions: []config.ArwenVersionByEpoch{arwenVersion}}
+	nodes := integrationTests.CreateNodesWithEnableEpochsAndVmConfig(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
+		enableEpochs,
+		vmConfig,
 	)
 
 	idxProposers := make([]int, numOfShards+1)
