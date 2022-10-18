@@ -485,9 +485,6 @@ const (
 	// MetricWaitingListFixEnableEpoch represents the epoch when the waiting list fix is enabled
 	MetricWaitingListFixEnableEpoch = "erd_waiting_list_fix_enable_epoch"
 
-	// MetricHeartbeatDisableEpoch represents the epoch when heartbeat v1 messages stop being sent and processed
-	MetricHeartbeatDisableEpoch = "erd_heartbeat_disable_epoch"
-
 	// MetricMaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
 	MetricMaxNodesChangeEnableEpoch = "erd_max_nodes_change_enable_epoch"
 

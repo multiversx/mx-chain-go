@@ -195,7 +195,6 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("fail execution on every wrong API call"), "epoch", enableEpochs.FailExecutionOnEveryAPIErrorEnableEpoch)
 	log.Debug(readEpochFor("managed crypto API in wasm vm"), "epoch", enableEpochs.ManagedCryptoAPIsEnableEpoch)
 	log.Debug(readEpochFor("refactor contexts"), "epoch", enableEpochs.RefactorContextEnableEpoch)
-	log.Debug(readEpochFor("disable heartbeat v1"), "epoch", enableEpochs.HeartbeatDisableEpoch)
 	log.Debug(readEpochFor("mini block partial execution"), "epoch", enableEpochs.MiniBlockPartialExecutionEnableEpoch)
 	log.Debug(readEpochFor("fix async callback arguments list"), "epoch", enableEpochs.FixAsyncCallBackArgsListEnableEpoch)
 	log.Debug(readEpochFor("fix old token liquidity"), "epoch", enableEpochs.FixOldTokenLiquidityEnableEpoch)

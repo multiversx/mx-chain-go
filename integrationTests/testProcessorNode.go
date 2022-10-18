@@ -12,7 +12,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	arwenConfig "github.com/ElrondNetwork/wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/partitioning"
@@ -118,6 +117,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
+	arwenConfig "github.com/ElrondNetwork/wasm-vm/config"
 )
 
 var zero = big.NewInt(0)
@@ -2922,7 +2922,6 @@ func CreateEnableEpochsConfig() config.EnableEpochs {
 		AddFailedRelayedTxToInvalidMBsDisableEpoch:        UnreachableEpoch,
 		SCRSizeInvariantOnBuiltInResultEnableEpoch:        UnreachableEpoch,
 		CheckCorrectTokenIDForTransferRoleEnableEpoch:     UnreachableEpoch,
-		HeartbeatDisableEpoch:                             UnreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch:              UnreachableEpoch,
 		RefactorPeersMiniBlocksEnableEpoch:                UnreachableEpoch,
 	}
