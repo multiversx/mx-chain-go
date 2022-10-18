@@ -82,7 +82,6 @@ type EnableEpochs struct {
 	RefactorContextEnableEpoch                        uint32
 	CheckFunctionArgumentEnableEpoch                  uint32
 	CheckExecuteOnReadOnlyEnableEpoch                 uint32
-	HeartbeatDisableEpoch                             uint32
 	MiniBlockPartialExecutionEnableEpoch              uint32
 	ESDTMetadataContinuousCleanupEnableEpoch          uint32
 	FixAsyncCallBackArgsListEnableEpoch               uint32

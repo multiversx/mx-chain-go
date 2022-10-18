@@ -221,7 +221,6 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		HeartbeatSenderInfoProvider:         heartbeatV2Sender,
 		AppStatusHandler:                    hcf.coreComponents.StatusHandler(),
 		TimeBetweenConnectionsMetricsUpdate: time.Second * time.Duration(hcf.config.HeartbeatV2.TimeBetweenConnectionsMetricsUpdateInSec),
-		EnableEpochsHandler:                 hcf.coreComponents.EnableEpochsHandler(),
 	}
 	statusHandler, err := status.NewMetricsUpdater(argsMetricsUpdater)
 	if err != nil {

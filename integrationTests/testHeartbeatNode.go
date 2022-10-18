@@ -769,3 +769,13 @@ func (thn *TestHeartbeatNode) Close() {
 func (thn *TestHeartbeatNode) IsInterfaceNil() bool {
 	return thn == nil
 }
+
+func createCryptoPair() TestKeyPair {
+	suite := mcl.NewSuiteBLS12()
+	keyGen := signing.NewKeyGenerator(suite)
+
+	kp := TestKeyPair{}
+	kp.Sk, kp.Pk = keyGen.GeneratePair()
+
+	return kp
+}
