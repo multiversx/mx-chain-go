@@ -1,6 +1,8 @@
 package state
 
 import (
+	"strconv"
+
 	"github.com/ElrondNetwork/elrond-go/common"
 )
 
@@ -19,6 +21,8 @@ func NewPeerAccountsDB(args ArgsAccountsDB) (*PeerAccountsDB, error) {
 	adb := &PeerAccountsDB{
 		AccountsDB: createAccountsDb(args),
 	}
+
+	args.AppStatusHandler.SetStringValue(common.MetricPeersSnapshotIsProgress, strconv.FormatBool(false))
 
 	return adb, nil
 }
@@ -55,13 +59,18 @@ func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
 	errChan := make(chan error, 1)
 	stats := newSnapshotStatistics(0, 1)
 	stats.NewSnapshotStarted()
+	adb.appStatusHandler.SetStringValue(common.MetricPeersSnapshotIsProgress, "true")
+	adb.appStatusHandler.SetInt64Value(common.MetricLastPeersSnapshotDurationSec, 0)
+
 	trieStorageManager.TakeSnapshot(nil, rootHash, rootHash, nil, missingNodesChannel, errChan, stats, epoch)
 
 	go adb.syncMissingNodes(missingNodesChannel, stats, adb.trieSyncer)
 
-	go adb.processSnapshotCompletion(stats, trieStorageManager, missingNodesChannel, errChan, rootHash, "snapshotState peer trie", epoch)
+	go adb.processSnapshotCompletion(stats, trieStorageManager, missingNodesChannel, errChan, rootHash, peerTrieSnapshotMsg, epoch)
 
 	adb.waitForCompletionIfAppropriate(stats)
+	adb.appStatusHandler.SetStringValue(common.MetricPeersSnapshotIsProgress, "false")
+	adb.appStatusHandler.SetInt64Value(common.MetricLastPeersSnapshotDurationSec, stats.GetSnapshotDuration())
 }
 
 // SetStateCheckpoint triggers the checkpointing process of the state trie

@@ -52,7 +52,8 @@ func InitBaseMetrics(statusHandlerUtils StatusHandlersUtils) error {
 	appStatusHandler.SetUInt64Value(common.MetricNumConnectedPeers, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricEpochForEconomicsData, initUint)
 
-	appStatusHandler.SetInt64Value(common.MetricLastTrieSnapshotDurationSec, initInt)
+	appStatusHandler.SetInt64Value(common.MetricLastAccountsSnapshotDurationSec, initInt)
+	appStatusHandler.SetInt64Value(common.MetricLastPeersSnapshotDurationSec, initInt)
 
 	appStatusHandler.SetStringValue(common.MetricConsensusState, initString)
 	appStatusHandler.SetStringValue(common.MetricConsensusRoundState, initString)
@@ -68,7 +69,8 @@ func InitBaseMetrics(statusHandlerUtils StatusHandlersUtils) error {
 	appStatusHandler.SetStringValue(common.MetricP2PCrossShardObservers, initString)
 	appStatusHandler.SetStringValue(common.MetricP2PFullHistoryObservers, initString)
 	appStatusHandler.SetStringValue(common.MetricP2PUnknownPeers, initString)
-	appStatusHandler.SetStringValue(common.MetricTrieSnapshotIsProgress, initString)
+	appStatusHandler.SetStringValue(common.MetricAccountsSnapshotIsProgress, initString)
+	appStatusHandler.SetStringValue(common.MetricPeersSnapshotIsProgress, initString)
 
 	appStatusHandler.SetStringValue(common.MetricInflation, initZeroString)
 	appStatusHandler.SetStringValue(common.MetricDevRewardsInEpoch, initZeroString)

@@ -29,6 +29,8 @@ const (
 	leavesChannelSize       = 100
 	missingNodesChannelSize = 100
 	lastSnapshotStarted     = "lastSnapshot"
+	userTrieSnapshotMsg     = "snapshotState user trie"
+	peerTrieSnapshotMsg     = "snapshotState peer trie"
 )
 
 type loadingMeasurements struct {
@@ -119,7 +121,7 @@ func NewAccountsDB(args ArgsAccountsDB) (*AccountsDB, error) {
 		return nil, err
 	}
 
-	args.AppStatusHandler.SetStringValue(common.MetricTrieSnapshotIsProgress, strconv.FormatBool(false))
+	args.AppStatusHandler.SetStringValue(common.MetricAccountsSnapshotIsProgress, strconv.FormatBool(false))
 
 	return createAccountsDb(args), nil
 }
@@ -1121,10 +1123,14 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 	missingNodesChannel := make(chan []byte, missingNodesChannelSize)
 	errChan := make(chan error, 1)
 	stats := newSnapshotStatistics(1, 1)
-	adb.appStatusHandler.SetInt64Value(common.MetricLastTrieSnapshotDurationSec, 0)
+	adb.appStatusHandler.SetStringValue(common.MetricAccountsSnapshotIsProgress, "true")
+	adb.appStatusHandler.SetInt64Value(common.MetricLastAccountsSnapshotDurationSec, 0)
 	go func() {
 		leavesChannel := make(chan core.KeyValueHolder, leavesChannelSize)
 		stats.NewSnapshotStarted()
+
+		time.Sleep(6 * time.Second)
+
 		trieStorageManager.TakeSnapshot(nil, rootHash, rootHash, leavesChannel, missingNodesChannel, errChan, stats, epoch)
 		adb.snapshotUserAccountDataTrie(true, rootHash, leavesChannel, missingNodesChannel, errChan, stats, epoch)
 
@@ -1133,7 +1139,7 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 
 	go adb.syncMissingNodes(missingNodesChannel, stats, adb.trieSyncer)
 
-	go adb.processSnapshotCompletion(stats, trieStorageManager, missingNodesChannel, errChan, rootHash, "snapshotState user trie", epoch)
+	go adb.processSnapshotCompletion(stats, trieStorageManager, missingNodesChannel, errChan, rootHash, userTrieSnapshotMsg, epoch)
 
 	adb.waitForCompletionIfAppropriate(stats)
 }
@@ -1157,7 +1163,6 @@ func (adb *AccountsDB) prepareSnapshot(rootHash []byte) (common.StorageManager, 
 	}
 
 	adb.isSnapshotInProgress.SetValue(true)
-	adb.appStatusHandler.SetStringValue(common.MetricTrieSnapshotIsProgress, strconv.FormatBool(adb.isSnapshotInProgress.IsSet()))
 	adb.lastSnapshot.rootHash = rootHash
 	adb.lastSnapshot.epoch = epoch
 	err = trieStorageManager.Put([]byte(lastSnapshotStarted), rootHash)
@@ -1206,6 +1211,18 @@ func (adb *AccountsDB) finishSnapshotOperation(
 	stats.PrintStats(message, rootHash)
 }
 
+func (adb *AccountsDB) updateMetricsOnSnapshotCompletion(message string, stats *snapshotStatistics) {
+	if message == peerTrieSnapshotMsg {
+		adb.appStatusHandler.SetStringValue(common.MetricPeersSnapshotIsProgress, "false")
+		adb.appStatusHandler.SetInt64Value(common.MetricLastPeersSnapshotDurationSec, stats.GetSnapshotDuration())
+	}
+
+	if message == userTrieSnapshotMsg {
+		adb.appStatusHandler.SetStringValue(common.MetricAccountsSnapshotIsProgress, "false")
+		adb.appStatusHandler.SetInt64Value(common.MetricLastAccountsSnapshotDurationSec, stats.GetSnapshotDuration())
+	}
+}
+
 func (adb *AccountsDB) processSnapshotCompletion(
 	stats *snapshotStatistics,
 	trieStorageManager common.StorageManager,
@@ -1219,8 +1236,7 @@ func (adb *AccountsDB) processSnapshotCompletion(
 
 	defer func() {
 		adb.isSnapshotInProgress.Reset()
-		adb.appStatusHandler.SetStringValue(common.MetricTrieSnapshotIsProgress, strconv.FormatBool(adb.isSnapshotInProgress.IsSet()))
-		adb.appStatusHandler.SetInt64Value(common.MetricLastTrieSnapshotDurationSec, stats.GetSnapshotDuration())
+		adb.updateMetricsOnSnapshotCompletion(message, stats)
 	}()
 
 	containsErrorDuringSnapshot := emptyErrChanReturningHadContained(errChan)
