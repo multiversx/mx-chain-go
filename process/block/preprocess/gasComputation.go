@@ -11,12 +11,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
+const initialAllocation = 1000
+
 var _ process.GasHandler = (*gasComputation)(nil)
 
 type gasComputation struct {
 	economicsFee  process.FeeHandler
 	txTypeHandler process.TxTypeHandler
-	//TODO: Refactor these mutexes and maps in separated structures that handle the locking and unlocking for each operation required
+	// TODO: Refactor these mutexes and maps in separated structures that handle the locking and unlocking for each operation required
 	gasProvided                                      map[string]uint64
 	txHashesWithGasProvidedSinceLastReset            map[string][][]byte
 	gasProvidedAsScheduled                           map[string]uint64
@@ -53,11 +55,11 @@ func NewGasComputation(
 		gasProvided:                           make(map[string]uint64),
 		txHashesWithGasProvidedSinceLastReset: make(map[string][][]byte),
 		gasProvidedAsScheduled:                make(map[string]uint64),
-		txHashesWithGasProvidedAsScheduledSinceLastReset: make(map[string][][]byte, 0),
+		txHashesWithGasProvidedAsScheduledSinceLastReset: make(map[string][][]byte),
 		gasRefunded:                            make(map[string]uint64),
-		txHashesWithGasRefundedSinceLastReset:  make(map[string][][]byte, 0),
+		txHashesWithGasRefundedSinceLastReset:  make(map[string][][]byte),
 		gasPenalized:                           make(map[string]uint64),
-		txHashesWithGasPenalizedSinceLastReset: make(map[string][][]byte, 0),
+		txHashesWithGasPenalizedSinceLastReset: make(map[string][][]byte),
 		enableEpochsHandler:                    enableEpochsHandler,
 	}
 
@@ -85,18 +87,19 @@ func (gc *gasComputation) Init() {
 }
 
 // Reset method resets tx hashes with gas provided, refunded and penalized since last reset
+// TODO remove this call from basePreProcess.handleProcessTransactionInit
 func (gc *gasComputation) Reset(key []byte) {
 	gc.mutGasProvided.Lock()
-	gc.txHashesWithGasProvidedSinceLastReset[string(key)] = make([][]byte, 0)
-	gc.txHashesWithGasProvidedAsScheduledSinceLastReset[string(key)] = make([][]byte, 0)
+	gc.txHashesWithGasProvidedSinceLastReset[string(key)] = make([][]byte, 0, initialAllocation)
+	gc.txHashesWithGasProvidedAsScheduledSinceLastReset[string(key)] = make([][]byte, 0, initialAllocation)
 	gc.mutGasProvided.Unlock()
 
 	gc.mutGasRefunded.Lock()
-	gc.txHashesWithGasRefundedSinceLastReset[string(key)] = make([][]byte, 0)
+	gc.txHashesWithGasRefundedSinceLastReset[string(key)] = make([][]byte, 0, initialAllocation)
 	gc.mutGasRefunded.Unlock()
 
 	gc.mutGasPenalized.Lock()
-	gc.txHashesWithGasPenalizedSinceLastReset[string(key)] = make([][]byte, 0)
+	gc.txHashesWithGasPenalizedSinceLastReset[string(key)] = make([][]byte, 0, initialAllocation)
 	gc.mutGasPenalized.Unlock()
 }
 

@@ -1,5 +1,7 @@
 package config
 
+import p2pConfig "github.com/ElrondNetwork/elrond-go/p2p/config"
+
 // CacheConfig will map the cache configuration
 type CacheConfig struct {
 	Name                 string
@@ -111,7 +113,6 @@ type HeartbeatV2Config struct {
 	HeartbeatTimeBetweenSendsInSec                   int64
 	HeartbeatTimeBetweenSendsWhenErrorInSec          int64
 	HeartbeatThresholdBetweenSends                   float64
-	MaxNumOfPeerAuthenticationInResponse             int
 	HeartbeatExpiryTimespanInSec                     int64
 	MinPeersThreshold                                float32
 	DelayBetweenRequestsInSec                        int64
@@ -120,15 +121,9 @@ type HeartbeatV2Config struct {
 	MaxMissingKeysInRequest                          uint32
 	MaxDurationPeerUnresponsiveInSec                 int64
 	HideInactiveValidatorIntervalInSec               int64
-	PeerAuthenticationPool                           PeerAuthenticationPoolConfig
 	HeartbeatPool                                    CacheConfig
 	HardforkTimeBetweenSendsInSec                    int64
-}
-
-// PeerAuthenticationPoolConfig will hold the configuration for peer authentication pool
-type PeerAuthenticationPoolConfig struct {
-	DefaultSpanInSec int
-	CacheExpiryInSec int
+	TimeBetweenConnectionsMetricsUpdateInSec         int64
 }
 
 // Config will hold the entire application configuration parameters
@@ -170,6 +165,7 @@ type Config struct {
 	WhiteListPool               CacheConfig
 	WhiteListerVerifiedTxs      CacheConfig
 	SmartContractDataPool       CacheConfig
+	ValidatorInfoPool           CacheConfig
 	TrieSyncStorage             TrieSyncStorageConfig
 	EpochStartConfig            EpochStartConfig
 	AddressPubkeyConverter      PubkeyConfig
@@ -269,6 +265,12 @@ type MaxNodesChangeConfig struct {
 	EpochEnable            uint32
 	MaxNumNodes            uint32
 	NodesToShufflePerShard uint32
+}
+
+// MultiSignerConfig defines a config tuple for a BLS multi-signer that activates in a certain epoch
+type MultiSignerConfig struct {
+	EnableEpoch uint32
+	Type        string
 }
 
 // GeneralSettingsConfig will hold the general settings for a node
@@ -471,6 +473,7 @@ type DebugConfig struct {
 	Antiflood           AntifloodDebugConfig
 	ShuffleOut          ShuffleOutDebugConfig
 	EpochStart          EpochStartDebugConfig
+	Process             ProcessDebugConfig
 }
 
 // HealthServiceConfig will hold health service (monitoring) configuration
@@ -512,6 +515,14 @@ type ShuffleOutDebugConfig struct {
 type EpochStartDebugConfig struct {
 	GoRoutineAnalyserEnabled     bool
 	ProcessDataTrieOnCommitEpoch bool
+}
+
+// ProcessDebugConfig will hold the process debug configuration
+type ProcessDebugConfig struct {
+	Enabled              bool
+	GoRoutinesDump       bool
+	DebuggingLogLevel    string
+	PollingTimeInSeconds int
 }
 
 // ApiRoutesConfig holds the configuration related to Rest API routes
@@ -559,7 +570,7 @@ type Configs struct {
 	RatingsConfig            *RatingsConfig
 	PreferencesConfig        *Preferences
 	ExternalConfig           *ExternalConfig
-	P2pConfig                *P2PConfig
+	P2pConfig                *p2pConfig.P2PConfig
 	FlagsConfig              *ContextFlagsConfig
 	ImportDbConfig           *ImportDbConfig
 	ConfigurationPathsHolder *ConfigurationPathsHolder
@@ -584,6 +595,7 @@ type ConfigurationPathsHolder struct {
 	ValidatorKey             string
 	Epoch                    string
 	RoundActivation          string
+	P2pKey                   string
 }
 
 // TrieSyncConfig represents the trie synchronization configuration area

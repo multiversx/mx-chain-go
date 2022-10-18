@@ -514,7 +514,7 @@ func TestRewardsCreator_CreateMarshalizedData(t *testing.T) {
 			},
 		},
 	}
-	res := rwd.CreateMarshalizedData(&bdy)
+	res := rwd.CreateMarshalledData(&bdy)
 
 	assert.NotNil(t, res)
 }
@@ -579,7 +579,7 @@ func TestRewardsCreator_SaveTxBlockToStorage(t *testing.T) {
 			},
 		},
 	}
-	rwd.SaveTxBlockToStorage(&mb2, &bdy)
+	rwd.SaveBlockDataToStorage(&mb2, &bdy)
 
 	assert.True(t, putRwdTxWasCalled)
 	assert.True(t, putMbWasCalled)
@@ -767,7 +767,7 @@ func TestRewardsCreator_ValidatorInfoWithMetaAddressAddedToProtocolSustainabilit
 
 	acc, _ := args.UserAccountsDB.LoadAccount(vm.FirstDelegationSCAddress)
 	userAcc, _ := acc.(state.UserAccountHandler)
-	_ = userAcc.DataTrieTracker().SaveKeyValue([]byte(core.DelegationSystemSCKey), []byte(core.DelegationSystemSCKey))
+	_ = userAcc.SaveKeyValue([]byte(core.DelegationSystemSCKey), []byte(core.DelegationSystemSCKey))
 	_ = args.UserAccountsDB.SaveAccount(userAcc)
 
 	miniBlocks, err := rwdc.CreateRewardsMiniBlocks(metaBlk, valInfo, &metaBlk.EpochStart.Economics)

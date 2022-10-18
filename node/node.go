@@ -14,7 +14,9 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
@@ -34,6 +36,7 @@ import (
 	procTx "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/trie"
+	"github.com/ElrondNetwork/elrond-go/trie/keyBuilder"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -215,13 +218,16 @@ func (n *Node) GetAllIssuedESDTs(tokenType string, ctx context.Context) ([]strin
 		return nil, err
 	}
 
-	chLeaves := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
-	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash)
+	chLeaves := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    make(chan error, 1),
+	}
+	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash, keyBuilder.NewKeyBuilder())
 	if err != nil {
 		return nil, err
 	}
 
-	for leaf := range chLeaves {
+	for leaf := range chLeaves.LeavesChan {
 		tokenName := string(leaf.Key())
 		if !strings.Contains(tokenName, "-") {
 			continue
@@ -240,6 +246,11 @@ func (n *Node) GetAllIssuedESDTs(tokenType string, ctx context.Context) ([]strin
 		if bytes.Equal(esdtToken.TokenType, []byte(tokenType)) {
 			tokens = append(tokens, tokenName)
 		}
+	}
+
+	err = common.GetErrorFromChanNonBlocking(chLeaves.ErrChan)
+	if err != nil {
+		return nil, err
 	}
 
 	if common.IsContextDone(ctx) {
@@ -283,14 +294,17 @@ func (n *Node) GetKeyValuePairs(address string, options api.AccountQueryOptions,
 		return nil, api.BlockInfo{}, err
 	}
 
-	chLeaves := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
-	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash)
+	chLeaves := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    make(chan error, 1),
+	}
+	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash, keyBuilder.NewKeyBuilder())
 	if err != nil {
 		return nil, api.BlockInfo{}, err
 	}
 
 	mapToReturn := make(map[string]string)
-	for leaf := range chLeaves {
+	for leaf := range chLeaves.LeavesChan {
 		suffix := append(leaf.Key(), userAccount.AddressBytes()...)
 		value, errVal := leaf.ValueWithoutSuffix(suffix)
 		if errVal != nil {
@@ -299,6 +313,11 @@ func (n *Node) GetKeyValuePairs(address string, options api.AccountQueryOptions,
 		}
 
 		mapToReturn[hex.EncodeToString(leaf.Key())] = hex.EncodeToString(value)
+	}
+
+	err = common.GetErrorFromChanNonBlocking(chLeaves.ErrChan)
+	if err != nil {
+		return nil, api.BlockInfo{}, err
 	}
 
 	if common.IsContextDone(ctx) {
@@ -320,7 +339,7 @@ func (n *Node) GetValueForKey(address string, key string, options api.AccountQue
 		return "", api.BlockInfo{}, err
 	}
 
-	valueBytes, err := userAccount.DataTrieTracker().RetrieveValue(keyBytes)
+	valueBytes, err := userAccount.RetrieveValue(keyBytes)
 	if err != nil {
 		return "", api.BlockInfo{}, fmt.Errorf("fetching value error: %w", err)
 	}
@@ -377,13 +396,16 @@ func (n *Node) getTokensIDsWithFilter(
 		return nil, api.BlockInfo{}, err
 	}
 
-	chLeaves := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
-	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash)
+	chLeaves := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    make(chan error, 1),
+	}
+	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash, keyBuilder.NewKeyBuilder())
 	if err != nil {
 		return nil, api.BlockInfo{}, err
 	}
 
-	for leaf := range chLeaves {
+	for leaf := range chLeaves.LeavesChan {
 		tokenIdentifier := string(leaf.Key())
 		if !strings.Contains(tokenIdentifier, "-") {
 			continue
@@ -397,6 +419,11 @@ func (n *Node) getTokensIDsWithFilter(
 		if f.filter(tokenIdentifier, esdtToken) {
 			tokens = append(tokens, tokenIdentifier)
 		}
+	}
+
+	err = common.GetErrorFromChanNonBlocking(chLeaves.ErrChan)
+	if err != nil {
+		return nil, api.BlockInfo{}, err
 	}
 
 	if common.IsContextDone(ctx) {
@@ -499,13 +526,16 @@ func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions,
 		return nil, api.BlockInfo{}, err
 	}
 
-	chLeaves := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
-	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash)
+	chLeaves := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    make(chan error, 1),
+	}
+	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash, keyBuilder.NewKeyBuilder())
 	if err != nil {
 		return nil, api.BlockInfo{}, err
 	}
 
-	for leaf := range chLeaves {
+	for leaf := range chLeaves.LeavesChan {
 		if !bytes.HasPrefix(leaf.Key(), esdtPrefix) {
 			continue
 		}
@@ -534,6 +564,11 @@ func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions,
 		}
 
 		allESDTs[tokenName] = esdtToken
+	}
+
+	err = common.GetErrorFromChanNonBlocking(chLeaves.ErrChan)
+	if err != nil {
+		return nil, api.BlockInfo{}, err
 	}
 
 	if common.IsContextDone(ctx) {
@@ -964,6 +999,86 @@ func (n *Node) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
 	return peerInfoSlice, nil
 }
 
+// GetEpochStartDataAPI returns epoch start data of a given epoch
+func (n *Node) GetEpochStartDataAPI(epoch uint32) (*common.EpochStartDataAPI, error) {
+	if epoch == 0 {
+		// for the first epoch, epoch start identifier isn't committed. Therefore, return the genesis info
+		genesisHeader := n.dataComponents.Blockchain().GetGenesisHeader()
+		return prepareEpochStartDataResponse(genesisHeader), nil
+	}
+
+	if n.bootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
+		return n.getMetaFirstNonceOfEpoch(epoch)
+	}
+
+	return n.getShardFirstNonceOfEpoch(epoch)
+}
+
+func (n *Node) getShardFirstNonceOfEpoch(epoch uint32) (*common.EpochStartDataAPI, error) {
+	storer, err := n.dataComponents.StorageService().GetStorer(dataRetriever.BlockHeaderUnit)
+	if err != nil {
+		return nil, fmt.Errorf("%w for identifier BlockHeaderUnit", err)
+	}
+
+	identifier := core.EpochStartIdentifier(epoch)
+	headerBytes, err := storer.GetFromEpoch([]byte(identifier), epoch)
+	if err != nil {
+		return nil, fmt.Errorf("cannot load epoch start block for epoch %d (%w)", epoch, err)
+	}
+
+	header, err := process.UnmarshalShardHeader(n.coreComponents.InternalMarshalizer(), headerBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return prepareEpochStartDataResponse(header), nil
+}
+
+func (n *Node) getMetaFirstNonceOfEpoch(epoch uint32) (*common.EpochStartDataAPI, error) {
+	storer, err := n.dataComponents.StorageService().GetStorer(dataRetriever.MetaBlockUnit)
+	if err != nil {
+		return nil, fmt.Errorf("%w for identifier MetaBlockUnit", err)
+	}
+
+	identifier := core.EpochStartIdentifier(epoch)
+	result, err := storer.GetFromEpoch([]byte(identifier), epoch)
+	if err != nil {
+		return nil, fmt.Errorf("cannot load epoch start block for epoch %d (%w)", epoch, err)
+	}
+
+	var metaBlock block.MetaBlock
+	err = n.coreComponents.InternalMarshalizer().Unmarshal(&metaBlock, result)
+	if err != nil {
+		return nil, err
+	}
+
+	return prepareEpochStartDataResponse(&metaBlock), nil
+}
+
+func prepareEpochStartDataResponse(header data.HeaderHandler) *common.EpochStartDataAPI {
+	response := &common.EpochStartDataAPI{
+		Nonce:         header.GetNonce(),
+		Round:         header.GetRound(),
+		Shard:         header.GetShardID(),
+		Timestamp:     int64(time.Duration(header.GetTimeStamp())),
+		Epoch:         header.GetEpoch(),
+		PrevBlockHash: hex.EncodeToString(header.GetPrevHash()),
+		StateRootHash: hex.EncodeToString(header.GetRootHash()),
+	}
+
+	if header.GetAdditionalData() != nil {
+		response.ScheduledRootHash = hex.EncodeToString(header.GetAdditionalData().GetScheduledRootHash())
+	}
+	if header.GetAccumulatedFees() != nil {
+		response.AccumulatedFees = header.GetAccumulatedFees().String()
+	}
+	if header.GetDeveloperFees() != nil {
+		response.DeveloperFees = header.GetDeveloperFees().String()
+	}
+
+	return response
+}
+
 // GetCoreComponents returns the core components
 func (n *Node) GetCoreComponents() mainFactory.CoreComponentsHolder {
 	return n.coreComponents
@@ -1171,7 +1286,7 @@ func (n *Node) getAccountRootHashAndVal(address []byte, accBytes []byte, key []b
 		return nil, nil, fmt.Errorf("empty dataTrie rootHash")
 	}
 
-	retrievedVal, err := userAccount.RetrieveValueFromDataTrieTracker(key)
+	retrievedVal, err := userAccount.RetrieveValue(key)
 	if err != nil {
 		return nil, nil, err
 	}

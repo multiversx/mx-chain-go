@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/trie/statistics"
 )
 
 // NumNodesDTO represents the DTO structure that will hold the number of nodes split by category and other
@@ -16,6 +17,12 @@ type NumNodesDTO struct {
 	Extensions int
 	Branches   int
 	MaxLevel   int
+}
+
+// TrieIteratorChannels defines the channels that are being used when iterating the trie nodes
+type TrieIteratorChannels struct {
+	LeavesChan chan core.KeyValueHolder
+	ErrChan    chan error
 }
 
 // Trie is an interface for Merkle Trees implementations
@@ -34,13 +41,31 @@ type Trie interface {
 	GetSerializedNodes([]byte, uint64) ([][]byte, uint64, error)
 	GetSerializedNode([]byte) ([]byte, error)
 	GetNumNodes() NumNodesDTO
-	GetAllLeavesOnChannel(leavesChannel chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error
+	GetAllLeavesOnChannel(allLeavesChan *TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder KeyBuilder) error
 	GetAllHashes() ([][]byte, error)
 	GetProof(key []byte) ([][]byte, []byte, error)
 	VerifyProof(rootHash []byte, key []byte, proof [][]byte) (bool, error)
 	GetStorageManager() StorageManager
-	MarkStorerAsSyncedAndActive()
 	Close() error
+	IsInterfaceNil() bool
+}
+
+// TrieStats is used to collect the trie statistics for the given rootHash
+type TrieStats interface {
+	GetTrieStats(address []byte, rootHash []byte) (*statistics.TrieStatsDTO, error)
+}
+
+// KeyBuilder is used for building trie keys as you traverse the trie
+type KeyBuilder interface {
+	BuildKey(keyPart []byte)
+	GetKey() ([]byte, error)
+	Clone() KeyBuilder
+}
+
+// DataTrieHandler is an interface that declares the methods used for dataTries
+type DataTrieHandler interface {
+	RootHash() ([]byte, error)
+	GetAllLeavesOnChannel(leavesChannels *TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder KeyBuilder) error
 	IsInterfaceNil() bool
 }
 
@@ -51,8 +76,8 @@ type StorageManager interface {
 	Put(key []byte, val []byte) error
 	PutInEpoch(key []byte, val []byte, epoch uint32) error
 	PutInEpochWithoutCache(key []byte, val []byte, epoch uint32) error
-	TakeSnapshot(rootHash []byte, mainTrieRootHash []byte, leavesChan chan core.KeyValueHolder, errChan chan error, stats SnapshotStatisticsHandler, epoch uint32)
-	SetCheckpoint(rootHash []byte, mainTrieRootHash []byte, leavesChan chan core.KeyValueHolder, errChan chan error, stats SnapshotStatisticsHandler)
+	TakeSnapshot(address []byte, rootHash []byte, mainTrieRootHash []byte, iteratorChannels *TrieIteratorChannels, missingNodesChan chan []byte, stats SnapshotStatisticsHandler, epoch uint32)
+	SetCheckpoint(rootHash []byte, mainTrieRootHash []byte, iteratorChannels *TrieIteratorChannels, missingNodesChan chan []byte, stats SnapshotStatisticsHandler)
 	GetLatestStorageEpoch() (uint32, error)
 	IsPruningEnabled() bool
 	IsPruningBlocked() bool
@@ -125,11 +150,25 @@ type SizeSyncStatisticsHandler interface {
 
 // SnapshotStatisticsHandler is used to measure different statistics for the trie snapshot
 type SnapshotStatisticsHandler interface {
-	AddSize(uint64)
 	SnapshotFinished()
 	NewSnapshotStarted()
-	NewDataTrie()
 	WaitForSnapshotsToFinish()
+	AddTrieStats(*statistics.TrieStatsDTO)
+}
+
+// TrieStatisticsHandler is used to collect different statistics about a single trie
+type TrieStatisticsHandler interface {
+	AddBranchNode(level int, size uint64)
+	AddExtensionNode(level int, size uint64)
+	AddLeafNode(level int, size uint64)
+	AddAccountInfo(address []byte, rootHash []byte)
+	GetTrieStats() *statistics.TrieStatsDTO
+}
+
+// TriesStatisticsCollector is used to merge the statistics for multiple tries
+type TriesStatisticsCollector interface {
+	Add(trieStats *statistics.TrieStatsDTO)
+	Print()
 }
 
 // ProcessStatusHandler defines the behavior of a component able to hold the current status of the node and
@@ -202,6 +241,7 @@ type EnableEpochsHandler interface {
 	CheckExecuteReadOnlyEnableEpoch() uint32
 	StorageAPICostOptimizationEnableEpoch() uint32
 	MiniBlockPartialExecutionEnableEpoch() uint32
+	RefactorPeersMiniBlocksEnableEpoch() uint32
 	IsSCDeployFlagEnabled() bool
 	IsBuiltInFunctionsFlagEnabled() bool
 	IsRelayedTransactionsFlagEnabled() bool
@@ -289,6 +329,9 @@ type EnableEpochsHandler interface {
 	IsESDTNFTImprovementV1FlagEnabled() bool
 	IsSetSenderInEeiOutputTransferFlagEnabled() bool
 	IsChangeDelegationOwnerFlagEnabled() bool
+	IsRefactorPeersMiniBlocksFlagEnabled() bool
+	IsFixAsyncCallBackArgsListFlagEnabled() bool
+	IsFixOldTokenLiquidityEnabled() bool
 
 	IsInterfaceNil() bool
 }

@@ -201,7 +201,7 @@ func (bpp *basePreProcess) removeMiniBlocksFromPools(
 	return nil
 }
 
-func (bpp *basePreProcess) createMarshalizedData(txHashes [][]byte, forBlock *txsForBlock) ([][]byte, error) {
+func (bpp *basePreProcess) createMarshalledData(txHashes [][]byte, forBlock *txsForBlock) ([][]byte, error) {
 	mrsTxs := make([][]byte, 0, len(txHashes))
 	for _, txHash := range txHashes {
 		forBlock.mutTxsForBlock.RLock()
@@ -209,7 +209,7 @@ func (bpp *basePreProcess) createMarshalizedData(txHashes [][]byte, forBlock *tx
 		forBlock.mutTxsForBlock.RUnlock()
 
 		if txInfoFromMap == nil || check.IfNil(txInfoFromMap.tx) {
-			log.Warn("basePreProcess.createMarshalizedData: tx not found", "hash", txHash)
+			log.Warn("basePreProcess.createMarshalledData: tx not found", "hash", txHash)
 			continue
 		}
 
@@ -220,7 +220,7 @@ func (bpp *basePreProcess) createMarshalizedData(txHashes [][]byte, forBlock *tx
 		mrsTxs = append(mrsTxs, txMrs)
 	}
 
-	log.Trace("basePreProcess.createMarshalizedData",
+	log.Trace("basePreProcess.createMarshalledData",
 		"num txs", len(mrsTxs),
 	)
 
@@ -486,7 +486,6 @@ func (bpp *basePreProcess) updateGasConsumedWithGasRefundedAndGasPenalized(
 func (bpp *basePreProcess) handleProcessTransactionInit(preProcessorExecutionInfoHandler process.PreProcessorExecutionInfoHandler, txHash []byte) int {
 	snapshot := bpp.accounts.JournalLen()
 	preProcessorExecutionInfoHandler.InitProcessedTxsResults(txHash)
-	bpp.gasHandler.Reset(txHash)
 	return snapshot
 }
 

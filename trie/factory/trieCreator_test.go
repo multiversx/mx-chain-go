@@ -146,6 +146,7 @@ func TestTrieCreator_CreateWithNilMainStorerShouldErr(t *testing.T) {
 	createArgs.MainStorer = nil
 	_, tr, err := tf.Create(createArgs)
 	require.Nil(t, tr)
+	require.NotNil(t, err)
 	require.True(t, strings.Contains(err.Error(), trie.ErrNilStorer.Error()))
 }
 
@@ -160,6 +161,7 @@ func TestTrieCreator_CreateWithNilCheckpointsStorerShouldErr(t *testing.T) {
 	createArgs.CheckpointsStorer = nil
 	_, tr, err := tf.Create(createArgs)
 	require.Nil(t, tr)
+	require.NotNil(t, err)
 	require.True(t, strings.Contains(err.Error(), trie.ErrNilStorer.Error()))
 }
 
@@ -194,6 +196,7 @@ func testWithMissingStorer(missingUnit dataRetriever.UnitType) func(t *testing.T
 			})
 		require.True(t, check.IfNil(holder))
 		require.Nil(t, storageManager)
+		require.NotNil(t, err)
 		require.True(t, strings.Contains(err.Error(), storage.ErrKeyNotFound.Error()))
 		require.True(t, strings.Contains(err.Error(), missingUnit.String()))
 	}

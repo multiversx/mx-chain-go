@@ -11,7 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/p2p/message"
+	"github.com/ElrondNetwork/elrond-go/p2p/factory"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -130,7 +130,7 @@ func (dcp *directConnectionsProcessor) computeNewPeers(connectedPeers []core.Pee
 }
 
 func (dcp *directConnectionsProcessor) notifyNewPeers(newPeers []core.PeerID) {
-	shardValidatorInfo := &message.DirectConnectionInfo{
+	shardValidatorInfo := &factory.DirectConnectionInfo{
 		ShardId: fmt.Sprintf("%d", dcp.shardCoordinator.SelfId()),
 	}
 

@@ -16,18 +16,6 @@ func TestNewInterceptedTrieNodeDataFactory_NilArgumentsShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilArgumentStruct, err)
 }
 
-func TestNewInterceptedTrieNodeDataFactory_NilMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
-
-	coreComponents, cryptoComponents := createMockComponentHolders()
-	coreComponents.IntMarsh = nil
-	arg := createMockArgument(coreComponents, cryptoComponents)
-
-	itn, err := NewInterceptedTrieNodeDataFactory(arg)
-	assert.Nil(t, itn)
-	assert.Equal(t, process.ErrNilMarshalizer, err)
-}
-
 func TestNewInterceptedTrieNodeDataFactory_NilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 

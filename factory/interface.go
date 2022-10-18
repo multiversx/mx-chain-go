@@ -16,6 +16,7 @@ import (
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/common"
+	cryptoCommon "github.com/ElrondNetwork/elrond-go/common/crypto"
 	"github.com/ElrondNetwork/elrond-go/common/statistics"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -142,6 +143,19 @@ type CoreComponentsHandler interface {
 	CoreComponentsHolder
 }
 
+// StatusCoreComponentsHolder holds the status core components
+type StatusCoreComponentsHolder interface {
+	ResourceMonitor() ResourceMonitor
+	NetworkStatistics() NetworkStatisticsProvider
+	IsInterfaceNil() bool
+}
+
+// StatusCoreComponentsHandler defines the status core components handler actions
+type StatusCoreComponentsHandler interface {
+	ComponentHandler
+	StatusCoreComponentsHolder
+}
+
 // CryptoParamsHolder permits access to crypto parameters such as the private and public keys
 type CryptoParamsHolder interface {
 	PublicKey() crypto.PublicKey
@@ -156,9 +170,10 @@ type CryptoComponentsHolder interface {
 	CryptoParamsHolder
 	TxSingleSigner() crypto.SingleSigner
 	BlockSigner() crypto.SingleSigner
-	MultiSigner() crypto.MultiSigner
+	SetMultiSignerContainer(container cryptoCommon.MultiSignerContainer) error
+	MultiSignerContainer() cryptoCommon.MultiSignerContainer
+	GetMultiSigner(epoch uint32) (crypto.MultiSigner, error)
 	PeerSignatureHandler() crypto.PeerSignatureHandler
-	SetMultiSigner(ms crypto.MultiSigner) error
 	BlockSignKeyGen() crypto.KeyGenerator
 	TxSignKeyGen() crypto.KeyGenerator
 	MessageSignVerifier() vm.MessageSignVerifier
@@ -503,5 +518,33 @@ type LogsFacade interface {
 type ReceiptsRepository interface {
 	SaveReceipts(holder common.ReceiptsHolder, header data.HeaderHandler, headerHash []byte) error
 	LoadReceipts(header data.HeaderHandler, headerHash []byte) (common.ReceiptsHolder, error)
+	IsInterfaceNil() bool
+}
+
+// ProcessDebuggerSetter allows setting a debugger on the process component
+type ProcessDebuggerSetter interface {
+	SetProcessDebugger(debugger process.Debugger) error
+}
+
+// ResourceMonitor defines the function implemented by a struct that can monitor resources
+type ResourceMonitor interface {
+	Close() error
+	IsInterfaceNil() bool
+}
+
+// NetworkStatisticsProvider is able to provide network statistics
+type NetworkStatisticsProvider interface {
+	BpsSent() uint64
+	BpsRecv() uint64
+	BpsSentPeak() uint64
+	BpsRecvPeak() uint64
+	PercentSent() uint64
+	PercentRecv() uint64
+	TotalBytesSentInCurrentEpoch() uint64
+	TotalBytesReceivedInCurrentEpoch() uint64
+	TotalSentInCurrentEpoch() string
+	TotalReceivedInCurrentEpoch() string
+	EpochConfirmed(epoch uint32, timestamp uint64)
+	Close() error
 	IsInterfaceNil() bool
 }

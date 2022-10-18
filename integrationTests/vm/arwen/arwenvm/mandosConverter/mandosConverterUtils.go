@@ -3,8 +3,8 @@ package mandosConverter
 import (
 	"testing"
 
-	mge "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/mandos-go/elrondgo-exporter"
-	mgutil "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/mandos-go/util"
+	mge "github.com/ElrondNetwork/wasm-vm/mandos-go/elrondgo-exporter"
+	mgutil "github.com/ElrondNetwork/wasm-vm/mandos-go/util"
 	"github.com/ElrondNetwork/elrond-go/config"
 
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
@@ -39,13 +39,12 @@ func CheckAccounts(t *testing.T, accAdapter state.AccountsAdapter, mandosAccount
 		require.Equal(t, len(mandosAcc.GetCode()), len(code))
 
 		mandosAccStorage := mandosAcc.GetStorage()
-		accStorage := account.DataTrieTracker()
-		CheckStorage(t, accStorage, mandosAccStorage)
+		CheckStorage(t, account, mandosAccStorage)
 	}
 }
 
 // CheckStorage checks if the dataTrie of an account equals with the storage of the corresponding mandosAccount
-func CheckStorage(t *testing.T, dataTrie state.DataTrieTracker, mandosAccStorage map[string][]byte) {
+func CheckStorage(t *testing.T, dataTrie state.UserAccountHandler, mandosAccStorage map[string][]byte) {
 	for key := range mandosAccStorage {
 		dataTrieValue, err := dataTrie.RetrieveValue([]byte(key))
 		require.Nil(t, err)

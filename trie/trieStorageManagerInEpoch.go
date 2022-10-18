@@ -59,7 +59,7 @@ func (tsmie *trieStorageManagerInEpoch) Get(key []byte) ([]byte, error) {
 		epoch := tsmie.epoch - i
 
 		val, err := tsmie.mainStorer.GetFromEpoch(key, epoch)
-		treatGetFromEpochError(err)
+		treatGetFromEpochError(err, epoch)
 		if len(val) != 0 {
 			return val, nil
 		}
@@ -68,15 +68,20 @@ func (tsmie *trieStorageManagerInEpoch) Get(key []byte) ([]byte, error) {
 	return nil, ErrKeyNotFound
 }
 
-func treatGetFromEpochError(err error) {
+func treatGetFromEpochError(err error, epoch uint32) {
 	if err == nil {
 		return
 	}
 
 	if errors.IsClosingError(err) {
-		log.Debug("trieStorageManagerInEpoch closing err", "error", err.Error())
+		log.Debug("trieStorageManagerInEpoch closing err", "error", err.Error(), "epoch", epoch)
 		return
 	}
 
-	log.Warn("trieStorageManagerInEpoch", "error", err.Error())
+	log.Warn("trieStorageManagerInEpoch", "error", err.Error(), "epoch", epoch)
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (tsmie *trieStorageManagerInEpoch) IsInterfaceNil() bool {
+	return tsmie == nil
 }

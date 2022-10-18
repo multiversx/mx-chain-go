@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/trie"
+	"github.com/ElrondNetwork/elrond-go/trie/keyBuilder"
 	"github.com/ElrondNetwork/elrond-go/trie/statistics"
 )
 
@@ -88,6 +89,7 @@ func NewUserAccountsSyncer(args ArgsNewUserAccountsSyncer) (*userAccountsSyncer,
 		maxHardCapForMissingNodes: args.MaxHardCapForMissingNodes,
 		trieSyncerVersion:         args.TrieSyncerVersion,
 		checkNodesOnDisk:          args.CheckNodesOnDisk,
+		storageMarker:             args.StorageMarker,
 	}
 
 	u := &userAccountsSyncer{
@@ -132,7 +134,7 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 		return err
 	}
 
-	mainTrie.MarkStorerAsSyncedAndActive()
+	u.storageMarker.MarkStorerAsSyncedAndActive(mainTrie.GetStorageManager())
 
 	return nil
 }
@@ -210,8 +212,11 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 		return err
 	}
 
-	leavesChannel := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
-	err = mainTrie.GetAllLeavesOnChannel(leavesChannel, context.Background(), mainRootHash)
+	leavesChannels := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    make(chan error, 1),
+	}
+	err = mainTrie.GetAllLeavesOnChannel(leavesChannels, context.Background(), mainRootHash, keyBuilder.NewDisabledKeyBuilder())
 	if err != nil {
 		return err
 	}
@@ -220,7 +225,7 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 	errMutex := sync.Mutex{}
 	wg := sync.WaitGroup{}
 
-	for leaf := range leavesChannel {
+	for leaf := range leavesChannels.LeavesChan {
 		u.resetTimeoutHandlerWatchdog()
 
 		account := state.NewEmptyUserAccount()
@@ -260,6 +265,11 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 	}
 
 	wg.Wait()
+
+	err = common.GetErrorFromChanNonBlocking(leavesChannels.ErrChan)
+	if err != nil {
+		return err
+	}
 
 	return errFound
 }
@@ -312,4 +322,9 @@ func (u *userAccountsSyncer) checkGoRoutinesThrottler(ctx context.Context) error
 // requesting trie nodes as to prevent the sync process being terminated prematurely.
 func (u *userAccountsSyncer) resetTimeoutHandlerWatchdog() {
 	u.timeoutHandler.ResetWatchdog()
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (u *userAccountsSyncer) IsInterfaceNil() bool {
+	return u == nil
 }

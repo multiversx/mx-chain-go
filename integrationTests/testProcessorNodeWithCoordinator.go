@@ -8,13 +8,13 @@ import (
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519"
-	ed25519SingleSig "github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519/singlesig"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
+	"github.com/ElrondNetwork/elrond-go/storage/cache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	vic "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
 )
 
 type nodeKeys struct {
@@ -58,7 +58,7 @@ func CreateProcessorNodesWithNodesCoordinator(
 	for shardId, validatorList := range validatorsMap {
 		nodesList := make([]*TestProcessorNode, len(validatorList))
 		for i, v := range validatorList {
-			cache, _ := lrucache.NewCache(10000)
+			lruCache, _ := cache.NewLRUCache(10000)
 			argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
 				ShardConsensusGroupSize: shardConsensusGroupSize,
 				MetaConsensusGroupSize:  metaConsensusGroupSize,
@@ -69,11 +69,12 @@ func CreateProcessorNodesWithNodesCoordinator(
 				EligibleNodes:           validatorsMapForNodesCoordinator,
 				WaitingNodes:            waitingMapForNodesCoordinator,
 				SelfPublicKey:           v.PubKeyBytes(),
-				ConsensusGroupCache:     cache,
+				ConsensusGroupCache:     lruCache,
 				ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
 				ChanStopNode:            endProcess.GetDummyEndProcessChannel(),
 				IsFullArchive:           false,
 				EnableEpochsHandler:     &testscommon.EnableEpochsHandlerStub{},
+				ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 			}
 
 			nodesCoordinatorInstance, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
@@ -81,7 +82,7 @@ func CreateProcessorNodesWithNodesCoordinator(
 				fmt.Println("error creating node coordinator")
 			}
 
-			multiSigner, err := createMultiSigner(*cp, shardId, i)
+			multiSigner, err := createMultiSigner(*cp)
 			if err != nil {
 				log.Error("error generating multisigner: %s\n", err)
 				return nil, 0
@@ -90,8 +91,8 @@ func CreateProcessorNodesWithNodesCoordinator(
 			kp := ncp[shardId][i]
 
 			ownAccount := &TestWalletAccount{
-				SingleSigner:      createTestSingleSigner(),
-				BlockSingleSigner: createTestSingleSigner(),
+				SingleSigner:      TestSingleSigner,
+				BlockSingleSigner: TestSingleSigner,
 				SkTxSign:          kp.TxSignSk,
 				PkTxSign:          kp.TxSignPk,
 				PkTxSignBytes:     kp.TxSignPkBytes,
@@ -124,10 +125,6 @@ func CreateProcessorNodesWithNodesCoordinator(
 	ConnectNodes(completeNodesList)
 
 	return nodesMap, numShards
-}
-
-func createTestSingleSigner() crypto.SingleSigner {
-	return &ed25519SingleSig.Ed25519Signer{}
 }
 
 func createNodesCryptoParams(rewardsAddrsAssignments map[uint32][]uint32) (map[uint32][]*nodeKeys, uint32) {

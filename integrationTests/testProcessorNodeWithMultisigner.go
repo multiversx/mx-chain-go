@@ -26,11 +26,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/rating"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/storage/cache"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
+	vic "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
 )
 
 // CreateNodesWithNodesCoordinator returns a map with nodes per shard each using a real nodes coordinator
@@ -96,7 +98,7 @@ func CreateNodesWithNodesCoordinatorAndTxKeys(
 		nodesList := make([]*TestProcessorNode, len(validatorList))
 
 		for i := range validatorList {
-			dataCache, _ := lrucache.NewCache(10000)
+			dataCache, _ := cache.NewLRUCache(10000)
 			tpn := CreateNodeWithBLSAndTxKeys(
 				nodesPerShard,
 				nbMetaNodes,
@@ -165,7 +167,7 @@ func CreateNodeWithBLSAndTxKeys(
 	twa.KeygenBlockSign = &mock.KeyGenMock{}
 	twa.Address = twa.PkTxSignBytes
 
-	peerSigCache, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
+	peerSigCache, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000})
 	twa.PeerSigHandler, _ = peerSignatureHandler.NewPeerSignatureHandler(peerSigCache, twa.SingleSigner, keyGen)
 
 	epochsConfig := config.EnableEpochs{
@@ -174,6 +176,7 @@ func CreateNodeWithBLSAndTxKeys(
 		DelegationSmartContractEnableEpoch:   1,
 		ScheduledMiniBlocksEnableEpoch:       UnreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch: UnreachableEpoch,
+		RefactorPeersMiniBlocksEnableEpoch:   UnreachableEpoch,
 	}
 
 	return CreateNode(
@@ -230,6 +233,7 @@ func CreateNodesWithNodesCoordinatorFactory(
 		StakingV2EnableEpoch:                 UnreachableEpoch,
 		ScheduledMiniBlocksEnableEpoch:       UnreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch: UnreachableEpoch,
+		RefactorPeersMiniBlocksEnableEpoch:   UnreachableEpoch,
 	}
 
 	nodesMap := make(map[uint32][]*TestProcessorNode)
@@ -239,7 +243,7 @@ func CreateNodesWithNodesCoordinatorFactory(
 		nodesListWaiting := make([]*TestProcessorNode, len(waitingMap[shardId]))
 
 		for i := range validatorList {
-			dataCache, _ := lrucache.NewCache(10000)
+			dataCache, _ := cache.NewLRUCache(10000)
 			tpn := CreateNode(
 				nodesPerShard,
 				nbMetaNodes,
@@ -263,7 +267,7 @@ func CreateNodesWithNodesCoordinatorFactory(
 		}
 
 		for i := range waitingMap[shardId] {
-			dataCache, _ := lrucache.NewCache(10000)
+			dataCache, _ := cache.NewLRUCache(10000)
 			tpn := CreateNode(
 				nodesPerShard,
 				nbMetaNodes,
@@ -340,7 +344,7 @@ func CreateNode(
 		txSignPrivKeyShardId = 0
 	}
 
-	multiSigner, err := createMultiSigner(*cp, shardId, keyIndex)
+	multiSigner, err := createMultiSigner(*cp)
 	if err != nil {
 		log.Error("error generating multisigner: %s\n", err)
 		return nil
@@ -406,7 +410,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 
 	completeNodesList := make([]Connectable, 0)
 	for shardId, validatorList := range validatorsMap {
-		consensusCache, _ := lrucache.NewCache(10000)
+		consensusCache, _ := cache.NewLRUCache(10000)
 		argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
 			ShardConsensusGroupSize: shardConsensusGroupSize,
 			MetaConsensusGroupSize:  metaConsensusGroupSize,
@@ -426,6 +430,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 			NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 			IsFullArchive:           false,
 			EnableEpochsHandler:     &testscommon.EnableEpochsHandlerStub{},
+			ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 		}
 		nodesCoordinatorInstance, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 
@@ -438,7 +443,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 			Marshalizer:             TestMarshalizer,
 			Hasher:                  TestHasher,
 			NodesCoordinator:        nodesCoordinatorInstance,
-			MultiSigVerifier:        TestMultiSig,
+			MultiSigContainer:       cryptoMocks.NewMultiSignerContainerMock(TestMultiSig),
 			SingleSigVerifier:       signer,
 			KeyGen:                  keyGen,
 			FallbackHeaderValidator: &testscommon.FallBackHeaderValidatorStub{},
@@ -451,7 +456,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 		}
 
 		for i := range validatorList {
-			multiSigner, err := createMultiSigner(*cp, shardId, i)
+			multiSigner, err := createMultiSigner(*cp)
 			if err != nil {
 				log.Error("error generating multisigner: %s\n", err)
 				return nil
@@ -520,7 +525,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 	completeNodesList := make([]Connectable, 0)
 	for shardId, validatorList := range validatorsMap {
 		bootStorer := CreateMemUnit()
-		cache, _ := lrucache.NewCache(10000)
+		lruCache, _ := cache.NewLRUCache(10000)
 		argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
 			ShardConsensusGroupSize: shardConsensusGroupSize,
 			MetaConsensusGroupSize:  metaConsensusGroupSize,
@@ -534,12 +539,13 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 			EligibleNodes:           validatorsMapForNodesCoordinator,
 			WaitingNodes:            waitingMapForNodesCoordinator,
 			SelfPublicKey:           []byte(strconv.Itoa(int(shardId))),
-			ConsensusGroupCache:     cache,
+			ConsensusGroupCache:     lruCache,
 			ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
 			ChanStopNode:            endProcess.GetDummyEndProcessChannel(),
 			NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 			IsFullArchive:           false,
 			EnableEpochsHandler:     &testscommon.EnableEpochsHandlerStub{},
+			ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 		}
 		nodesCoord, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 
@@ -566,7 +572,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 				Marshalizer:             TestMarshalizer,
 				Hasher:                  TestHasher,
 				NodesCoordinator:        nodesCoord,
-				MultiSigVerifier:        TestMultiSig,
+				MultiSigContainer:       cryptoMocks.NewMultiSignerContainerMock(TestMultiSig),
 				SingleSigVerifier:       singleSigner,
 				KeyGen:                  keyGenForBlocks,
 				FallbackHeaderValidator: &testscommon.FallBackHeaderValidatorStub{},
@@ -574,7 +580,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 
 			headerSig, _ := headerCheck.NewHeaderSigVerifier(&args)
 
-			multiSigner, err := createMultiSigner(*cp, shardId, i)
+			multiSigner, err := createMultiSigner(*cp)
 			if err != nil {
 				log.Error("error generating multisigner: %s\n", err)
 				return nil
@@ -692,17 +698,17 @@ func DoConsensusSigningOnBlock(
 
 	blockHeaderHash, _ := core.CalculateHash(TestMarshalizer, TestHasher, blockHeader)
 
-	var msig crypto.MultiSigner
-	msigProposer, _ := consensusNodes[0].MultiSigner.Create(pubKeys, 0)
-	_, _ = msigProposer.CreateSignatureShare(blockHeaderHash, bitmap)
+	pubKeysBytes := make([][]byte, len(consensusNodes))
+	sigShares := make([][]byte, len(consensusNodes))
+	msig := consensusNodes[0].MultiSigner
 
-	for i := 1; i < len(consensusNodes); i++ {
-		msig, _ = consensusNodes[i].MultiSigner.Create(pubKeys, uint16(i))
-		sigShare, _ := msig.CreateSignatureShare(blockHeaderHash, bitmap)
-		_ = msigProposer.StoreSignatureShare(uint16(i), sigShare)
+	for i := 0; i < len(consensusNodes); i++ {
+		pubKeysBytes[i] = []byte(pubKeys[i])
+		sk, _ := consensusNodes[i].NodeKeys.Sk.ToByteArray()
+		sigShares[i], _ = msig.CreateSignatureShare(sk, blockHeaderHash)
 	}
 
-	sig, _ := msigProposer.AggregateSigs(bitmap)
+	sig, _ := msig.AggregateSigs(pubKeysBytes, sigShares)
 	err = blockHeader.SetSignature(sig)
 	if err != nil {
 		log.Error("blockHeader.SetSignature", "error", err)
@@ -783,17 +789,11 @@ func SyncAllShardsWithRoundBlock(
 	time.Sleep(4 * StepDelay)
 }
 
-func createMultiSigner(cp CryptoParams, shardId uint32, ownKeyIndex int) (crypto.MultiSigner, error) {
+func createMultiSigner(cp CryptoParams) (crypto.MultiSigner, error) {
 	blsHasher, _ := blake2b.NewBlake2bWithSize(hashing.BlsHashSize)
 	llsig := &mclmultisig.BlsMultiSigner{Hasher: blsHasher}
-
-	pubKeysMap := PubKeysMapFromKeysMap(cp.Keys)
-
 	return multisig.NewBLSMultisig(
 		llsig,
-		pubKeysMap[shardId],
-		cp.Keys[shardId][ownKeyIndex].Sk,
 		cp.KeyGen,
-		0,
 	)
 }

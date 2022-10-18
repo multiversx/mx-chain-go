@@ -24,7 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/timecache"
+	"github.com/ElrondNetwork/elrond-go/storage/cache"
 )
 
 var _ process.TransactionCoordinator = (*transactionCoordinator)(nil)
@@ -155,7 +155,7 @@ func NewTransactionCoordinator(args ArgTransactionCoordinator) (*transactionCoor
 		tc.interimProcessors[value] = interProc
 	}
 
-	tc.requestedItemsHandler = timecache.NewTimeCache(common.MaxWaitingTimeToReceiveRequestedItem)
+	tc.requestedItemsHandler = cache.NewTimeCache(common.MaxWaitingTimeToReceiveRequestedItem)
 	tc.miniBlockPool.RegisterHandler(tc.receivedMiniBlock, core.UniqueIdentifier())
 
 	return tc, nil
@@ -1005,7 +1005,7 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body *block.Body) map[st
 			dataMarshalizer, ok := preproc.(process.DataMarshalizer)
 			if ok {
 				// preproc supports marshalizing items
-				tc.appendMarshalizedItems(
+				tc.appendMarshalledItems(
 					dataMarshalizer,
 					miniBlock.TxHashes,
 					mrsTxs,
@@ -1019,7 +1019,7 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body *block.Body) map[st
 			dataMarshalizer, ok := interimProc.(process.DataMarshalizer)
 			if ok {
 				// interimProc supports marshalizing items
-				tc.appendMarshalizedItems(
+				tc.appendMarshalledItems(
 					dataMarshalizer,
 					miniBlock.TxHashes,
 					mrsTxs,
@@ -1032,15 +1032,15 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body *block.Body) map[st
 	return mrsTxs
 }
 
-func (tc *transactionCoordinator) appendMarshalizedItems(
+func (tc *transactionCoordinator) appendMarshalledItems(
 	dataMarshalizer process.DataMarshalizer,
 	txHashes [][]byte,
 	mrsTxs map[string][][]byte,
 	broadcastTopic string,
 ) {
-	currMrsTxs, err := dataMarshalizer.CreateMarshalizedData(txHashes)
+	currMrsTxs, err := dataMarshalizer.CreateMarshalledData(txHashes)
 	if err != nil {
-		log.Debug("appendMarshalizedItems.CreateMarshalizedData", "error", err.Error())
+		log.Debug("appendMarshalledItems.CreateMarshalledData", "error", err.Error())
 		return
 	}
 
