@@ -849,7 +849,6 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 	failureContext := NewFailureContext(sc)
 	retCode, err := sc.doExecuteBuiltInFunctionWithoutFailureProcessing(tx, acntSnd, acntDst, failureContext)
 	if failureContext.processFail {
-		// TODO matei-p send and errorProcessor to ProcessIfError()
 		failureProcessingError := sc.processIfErrorWithAddedLogs(
 			acntSnd,
 			tx,
@@ -1699,7 +1698,6 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 	failureContext := NewFailureContext(sc)
 	returnCode, err := sc.doDeploySmartContract(tx, acntSnd, failureContext)
 	if failureContext.processFail {
-		// TODO matei-p send and errorProcessor to ProcessIfError()
 		failureProcessingError := sc.processIfErrorWithAddedLogs(
 			acntSnd,
 			tx,
