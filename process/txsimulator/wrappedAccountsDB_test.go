@@ -148,7 +148,13 @@ func TestReadOnlyAccountsDB_ReadOperationsShouldWork(t *testing.T) {
 	actualIsPruningEnabled := roAccDb.IsPruningEnabled()
 	require.Equal(t, true, actualIsPruningEnabled)
 
-	allLeaves := make(chan core.KeyValueHolder)
+	allLeaves := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder),
+		ErrChan:    make(chan error, 1),
+	}
 	err = roAccDb.GetAllLeaves(allLeaves, context.Background(), nil)
+	require.NoError(t, err)
+
+	err = common.GetErrorFromChanNonBlocking(allLeaves.ErrChan)
 	require.NoError(t, err)
 }

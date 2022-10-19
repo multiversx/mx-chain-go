@@ -26,8 +26,11 @@ const JailedList PeerType = "jailed"
 // ObserverList represents the list of peers who don't participate in consensus but will join the next epoch
 const ObserverList PeerType = "observer"
 
-// NewList -
+// NewList represents the list of peers who have stake and are pending to become eligible
 const NewList PeerType = "new"
+
+// MetachainTopicIdentifier is the identifier used in topics to define the metachain shard ID
+const MetachainTopicIdentifier = "META" // TODO - move this to elrond-go-core and change wherever we use the string value
 
 // CombinedPeerType - represents the combination of two peerTypes
 const CombinedPeerType = "%s (%s)"
@@ -817,3 +820,6 @@ const (
 
 // MaxIndexOfTxInMiniBlock defines the maximum index of a tx inside one mini block
 const MaxIndexOfTxInMiniBlock = int32(29999)
+
+// GenesisStorageSuffix defines the storage suffix used for genesis altered data
+const GenesisStorageSuffix = "_genesis"
