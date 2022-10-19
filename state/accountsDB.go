@@ -121,7 +121,7 @@ func NewAccountsDB(args ArgsAccountsDB) (*AccountsDB, error) {
 		return nil, err
 	}
 
-	args.AppStatusHandler.SetStringValue(common.MetricAccountsSnapshotIsProgress, strconv.FormatBool(false))
+	args.AppStatusHandler.SetStringValue(common.MetricAccountsSnapshotInProgress, strconv.FormatBool(false))
 
 	return createAccountsDb(args), nil
 }
@@ -1134,7 +1134,7 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 		ErrChan:    make(chan error, 1),
 	}
 	stats := newSnapshotStatistics(1, 1)
-	adb.appStatusHandler.SetStringValue(common.MetricAccountsSnapshotIsProgress, "true")
+	adb.appStatusHandler.SetStringValue(common.MetricAccountsSnapshotInProgress, "true")
 	adb.appStatusHandler.SetInt64Value(common.MetricLastAccountsSnapshotDurationSec, 0)
 	go func() {
 		stats.NewSnapshotStarted()
@@ -1221,12 +1221,12 @@ func (adb *AccountsDB) finishSnapshotOperation(
 
 func (adb *AccountsDB) updateMetricsOnSnapshotCompletion(message string, stats *snapshotStatistics) {
 	if message == peerTrieSnapshotMsg {
-		adb.appStatusHandler.SetStringValue(common.MetricPeersSnapshotIsProgress, "false")
+		adb.appStatusHandler.SetStringValue(common.MetricPeersSnapshotInProgress, "false")
 		adb.appStatusHandler.SetInt64Value(common.MetricLastPeersSnapshotDurationSec, stats.GetSnapshotDuration())
 	}
 
 	if message == userTrieSnapshotMsg {
-		adb.appStatusHandler.SetStringValue(common.MetricAccountsSnapshotIsProgress, "false")
+		adb.appStatusHandler.SetStringValue(common.MetricAccountsSnapshotInProgress, "false")
 		adb.appStatusHandler.SetInt64Value(common.MetricLastAccountsSnapshotDurationSec, stats.GetSnapshotDuration())
 	}
 }

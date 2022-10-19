@@ -54,9 +54,9 @@ func TestInitBaseMetrics(t *testing.T) {
 		common.MetricInflation,
 		common.MetricDevRewardsInEpoch,
 		common.MetricTotalFees,
-		common.MetricAccountsSnapshotIsProgress,
+		common.MetricAccountsSnapshotInProgress,
 		common.MetricLastAccountsSnapshotDurationSec,
-		common.MetricPeersSnapshotIsProgress,
+		common.MetricPeersSnapshotInProgress,
 		common.MetricLastPeersSnapshotDurationSec,
 	}
 

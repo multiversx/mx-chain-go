@@ -69,8 +69,8 @@ func InitBaseMetrics(statusHandlerUtils StatusHandlersUtils) error {
 	appStatusHandler.SetStringValue(common.MetricP2PCrossShardObservers, initString)
 	appStatusHandler.SetStringValue(common.MetricP2PFullHistoryObservers, initString)
 	appStatusHandler.SetStringValue(common.MetricP2PUnknownPeers, initString)
-	appStatusHandler.SetStringValue(common.MetricAccountsSnapshotIsProgress, initString)
-	appStatusHandler.SetStringValue(common.MetricPeersSnapshotIsProgress, initString)
+	appStatusHandler.SetStringValue(common.MetricAccountsSnapshotInProgress, initString)
+	appStatusHandler.SetStringValue(common.MetricPeersSnapshotInProgress, initString)
 
 	appStatusHandler.SetStringValue(common.MetricInflation, initZeroString)
 	appStatusHandler.SetStringValue(common.MetricDevRewardsInEpoch, initZeroString)

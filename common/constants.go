@@ -818,14 +818,14 @@ const (
 // MaxIndexOfTxInMiniBlock defines the maximum index of a tx inside one mini block
 const MaxIndexOfTxInMiniBlock = int32(29999)
 
-// MetricAccountsSnapshotIsProgress is the metric that outputs the status of the accounts snapshot, if it's in progress or not
-const MetricAccountsSnapshotIsProgress = "erd_accounts_snapshot_in_progress"
+// MetricAccountsSnapshotInProgress is the metric that outputs the status of the accounts snapshot, if it's in progress or not
+const MetricAccountsSnapshotInProgress = "erd_accounts_snapshot_in_progress"
 
 // MetricLastAccountsSnapshotDurationSec is the metric that outputs the duration in seconds of the last accounts db snapshot. If snapshot is in progress it will be set to 0
 const MetricLastAccountsSnapshotDurationSec = "erd_accounts_snapshot_last_duration_in_seconds"
 
-// MetricPeersSnapshotIsProgress is the metric that outputs the status of the peers snapshot, if it's in progress or not
-const MetricPeersSnapshotIsProgress = "erd_peers_snapshot_in_progress"
+// MetricPeersSnapshotInProgress is the metric that outputs the status of the peers snapshot, if it's in progress or not
+const MetricPeersSnapshotInProgress = "erd_peers_snapshot_in_progress"
 
 // MetricLastPeersSnapshotDurationSec is the metric that outputs the duration in seconds of the last peers db snapshot. If snapshot is in progress it will be set to 0
 const MetricLastPeersSnapshotDurationSec = "erd_peers_snapshot_last_duration_in_seconds"
