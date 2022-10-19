@@ -1,11 +1,10 @@
 package goroutines
 
 import (
-	"runtime"
 	"sync"
-)
 
-const oneHundredMBSize = 2 << 20 * 100
+	"github.com/ElrondNetwork/elrond-go/common/goroutines"
+)
 
 type goCounter struct {
 	mutSnapshots      sync.RWMutex
@@ -24,10 +23,7 @@ func NewGoCounter(filterFunc func(goRoutineData string) bool) *goCounter {
 		snapshots: make([]*snapshot, 0),
 		filter:    filterFunc,
 		goRoutinesFetcher: func() string {
-			buff := make([]byte, oneHundredMBSize)
-			charsRead := runtime.Stack(buff, true)
-
-			return string(buff[:charsRead])
+			return goroutines.GetGoRoutines()
 		},
 	}
 }
