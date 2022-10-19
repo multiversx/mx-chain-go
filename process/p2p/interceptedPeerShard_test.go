@@ -15,84 +15,84 @@ import (
 
 const providedShard = "5"
 
-func createMockArgInterceptedDirectConnectionInfo() ArgInterceptedDirectConnectionInfo {
+func createMockArgInterceptedPeerShard() ArgInterceptedPeerShard {
 	marshaller := &marshal.GogoProtoMarshalizer{}
-	msg := &p2pFactory.DirectConnectionInfo{
+	msg := &p2pFactory.PeerShard{
 		ShardId: providedShard,
 	}
 	msgBuff, _ := marshaller.Marshal(msg)
 
-	return ArgInterceptedDirectConnectionInfo{
+	return ArgInterceptedPeerShard{
 		Marshaller:  marshaller,
 		DataBuff:    msgBuff,
 		NumOfShards: 10,
 	}
 }
-func TestNewInterceptedDirectConnectionInfo(t *testing.T) {
+func TestNewInterceptedPeerShard(t *testing.T) {
 	t.Parallel()
 
 	t.Run("nil marshaller should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockArgInterceptedDirectConnectionInfo()
+		args := createMockArgInterceptedPeerShard()
 		args.Marshaller = nil
 
-		idci, err := NewInterceptedDirectConnectionInfo(args)
+		idci, err := NewInterceptedPeerShard(args)
 		assert.Equal(t, process.ErrNilMarshalizer, err)
 		assert.True(t, check.IfNil(idci))
 	})
 	t.Run("nil data buff should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockArgInterceptedDirectConnectionInfo()
+		args := createMockArgInterceptedPeerShard()
 		args.DataBuff = nil
 
-		idci, err := NewInterceptedDirectConnectionInfo(args)
+		idci, err := NewInterceptedPeerShard(args)
 		assert.Equal(t, process.ErrNilBuffer, err)
 		assert.True(t, check.IfNil(idci))
 	})
 	t.Run("invalid num of shards should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockArgInterceptedDirectConnectionInfo()
+		args := createMockArgInterceptedPeerShard()
 		args.NumOfShards = 0
 
-		idci, err := NewInterceptedDirectConnectionInfo(args)
+		idci, err := NewInterceptedPeerShard(args)
 		assert.Equal(t, process.ErrInvalidValue, err)
 		assert.True(t, check.IfNil(idci))
 	})
 	t.Run("unmarshal returns error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockArgInterceptedDirectConnectionInfo()
+		args := createMockArgInterceptedPeerShard()
 		args.DataBuff = []byte("invalid data")
 
-		idci, err := NewInterceptedDirectConnectionInfo(args)
+		idci, err := NewInterceptedPeerShard(args)
 		assert.NotNil(t, err)
 		assert.True(t, check.IfNil(idci))
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		idci, err := NewInterceptedDirectConnectionInfo(createMockArgInterceptedDirectConnectionInfo())
+		idci, err := NewInterceptedPeerShard(createMockArgInterceptedPeerShard())
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(idci))
 	})
 }
 
-func Test_interceptedDirectConnectionInfo_CheckValidity(t *testing.T) {
+func TestInterceptedPeerShard_CheckValidity(t *testing.T) {
 	t.Parallel()
 
 	t.Run("invalid shard string should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockArgInterceptedDirectConnectionInfo()
-		msg := &p2pFactory.DirectConnectionInfo{
+		args := createMockArgInterceptedPeerShard()
+		msg := &p2pFactory.PeerShard{
 			ShardId: "invalid shard",
 		}
 		msgBuff, _ := args.Marshaller.Marshal(msg)
 		args.DataBuff = msgBuff
-		idci, err := NewInterceptedDirectConnectionInfo(args)
+		idci, err := NewInterceptedPeerShard(args)
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(idci))
 
@@ -102,11 +102,11 @@ func Test_interceptedDirectConnectionInfo_CheckValidity(t *testing.T) {
 	t.Run("invalid shard should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockArgInterceptedDirectConnectionInfo()
+		args := createMockArgInterceptedPeerShard()
 		ps, _ := strconv.ParseInt(providedShard, 10, 32)
 		args.NumOfShards = uint32(ps - 1)
 
-		idci, err := NewInterceptedDirectConnectionInfo(args)
+		idci, err := NewInterceptedPeerShard(args)
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(idci))
 
@@ -116,7 +116,7 @@ func Test_interceptedDirectConnectionInfo_CheckValidity(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		idci, err := NewInterceptedDirectConnectionInfo(createMockArgInterceptedDirectConnectionInfo())
+		idci, err := NewInterceptedPeerShard(createMockArgInterceptedPeerShard())
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(idci))
 
@@ -125,16 +125,16 @@ func Test_interceptedDirectConnectionInfo_CheckValidity(t *testing.T) {
 	})
 }
 
-func Test_interceptedDirectConnectionInfo_Getters(t *testing.T) {
+func TestInterceptedPeerShard_Getters(t *testing.T) {
 	t.Parallel()
 
-	idci, err := NewInterceptedDirectConnectionInfo(createMockArgInterceptedDirectConnectionInfo())
+	idci, err := NewInterceptedPeerShard(createMockArgInterceptedPeerShard())
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(idci))
 
 	assert.True(t, idci.IsForCurrentShard())
 	assert.True(t, bytes.Equal([]byte(""), idci.Hash()))
-	assert.Equal(t, interceptedDirectConnectionInfoType, idci.Type())
+	assert.Equal(t, interceptedPeerShardType, idci.Type())
 	identifiers := idci.Identifiers()
 	assert.Equal(t, 1, len(identifiers))
 	assert.True(t, bytes.Equal([]byte(""), identifiers[0]))

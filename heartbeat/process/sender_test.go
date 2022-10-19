@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/heartbeat/mock"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/process"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
@@ -22,7 +23,7 @@ import (
 
 func createMockArgHeartbeatSender() process.ArgHeartbeatSender {
 	return process.ArgHeartbeatSender{
-		PeerMessenger: &mock.MessengerStub{
+		PeerMessenger: &p2pmocks.MessengerStub{
 			BroadcastCalled: func(topic string, buff []byte) {},
 		},
 		PeerSignatureHandler: &mock.PeerSignatureHandler{},
@@ -240,7 +241,7 @@ func testSendHeartbeat(t *testing.T, pubKeyErr, signErr, marshalErr error) {
 			return pubKey
 		},
 	}
-	arg.PeerMessenger = &mock.MessengerStub{
+	arg.PeerMessenger = &p2pmocks.MessengerStub{
 		BroadcastCalled: func(topic string, buff []byte) {
 		},
 	}
@@ -286,7 +287,7 @@ func TestSender_SendHeartbeatShouldWork(t *testing.T) {
 
 	arg := createMockArgHeartbeatSender()
 	arg.Topic = testTopic
-	arg.PeerMessenger = &mock.MessengerStub{
+	arg.PeerMessenger = &p2pmocks.MessengerStub{
 		BroadcastCalled: func(topic string, buff []byte) {
 			if topic == testTopic && bytes.Equal(buff, marshaledBuff) {
 				broadcastCalled = true
@@ -353,7 +354,7 @@ func TestSender_SendHeartbeatNotABackupNodeShouldWork(t *testing.T) {
 	arg := createMockArgHeartbeatSender()
 	arg.Marshalizer = &testscommon.MarshalizerMock{}
 	arg.Topic = testTopic
-	arg.PeerMessenger = &mock.MessengerStub{
+	arg.PeerMessenger = &p2pmocks.MessengerStub{
 		BroadcastCalled: func(topic string, buff []byte) {
 			fmt.Println(string(buff))
 			pkEncoded := base64.StdEncoding.EncodeToString(pkBytes)
@@ -425,7 +426,7 @@ func TestSender_SendHeartbeatBackupNodeShouldWork(t *testing.T) {
 	}
 	arg.Marshalizer = &testscommon.MarshalizerMock{}
 	arg.Topic = testTopic
-	arg.PeerMessenger = &mock.MessengerStub{
+	arg.PeerMessenger = &p2pmocks.MessengerStub{
 		BroadcastCalled: func(topic string, buff []byte) {
 			fmt.Println(string(buff))
 			pkEncoded := base64.StdEncoding.EncodeToString(pkBytes)
@@ -497,7 +498,7 @@ func TestSender_SendHeartbeatIsBackupNodeButMainIsNotActiveShouldWork(t *testing
 	}
 	arg.Marshalizer = &testscommon.MarshalizerMock{}
 	arg.Topic = testTopic
-	arg.PeerMessenger = &mock.MessengerStub{
+	arg.PeerMessenger = &p2pmocks.MessengerStub{
 		BroadcastCalled: func(topic string, buff []byte) {
 			fmt.Println(string(buff))
 			originalPkEncoded := base64.StdEncoding.EncodeToString(originalPkBytes)
@@ -550,7 +551,7 @@ func TestSender_SendHeartbeatAfterTriggerShouldWork(t *testing.T) {
 	dataPayload := []byte("payload")
 	arg := createMockArgHeartbeatSender()
 	arg.Topic = testTopic
-	arg.PeerMessenger = &mock.MessengerStub{
+	arg.PeerMessenger = &p2pmocks.MessengerStub{
 		BroadcastCalled: func(topic string, buff []byte) {
 			if topic != testTopic {
 				return
@@ -631,7 +632,7 @@ func TestSender_SendHeartbeatAfterTriggerWithRecorededPayloadShouldWork(t *testi
 
 	arg := createMockArgHeartbeatSender()
 	arg.Topic = testTopic
-	arg.PeerMessenger = &mock.MessengerStub{
+	arg.PeerMessenger = &p2pmocks.MessengerStub{
 		BroadcastCalled: func(topic string, buff []byte) {
 			if topic != testTopic {
 				return
@@ -701,7 +702,7 @@ func TestSender_SendHeartbeatShouldNotSendAfterEpoch(t *testing.T) {
 	stub.Unlock()
 
 	wasBroadcastCalled := false
-	arg.PeerMessenger = &mock.MessengerStub{
+	arg.PeerMessenger = &p2pmocks.MessengerStub{
 		BroadcastCalled: func(topic string, buff []byte) {
 			wasBroadcastCalled = true
 		},
