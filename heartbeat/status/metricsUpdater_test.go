@@ -24,9 +24,6 @@ func createMockArgsMetricsUpdater() ArgsMetricsUpdater {
 		HeartbeatSenderInfoProvider:         &mock.HeartbeatSenderInfoProviderStub{},
 		AppStatusHandler:                    &statusHandler.AppStatusHandlerStub{},
 		TimeBetweenConnectionsMetricsUpdate: time.Second,
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
-			IsHeartbeatDisableFlagEnabledField: true,
-		},
 	}
 }
 
@@ -83,16 +80,6 @@ func TestNewMetricsUpdater(t *testing.T) {
 		assert.True(t, errors.Is(err, heartbeat.ErrInvalidTimeDuration))
 		assert.True(t, check.IfNil(updater))
 	})
-	t.Run("nil enable epochs handler should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockArgsMetricsUpdater()
-		args.EnableEpochsHandler = nil
-		updater, err := NewMetricsUpdater(args)
-
-		assert.Equal(t, heartbeat.ErrNilEnableEpochsHandler, err)
-		assert.True(t, check.IfNil(updater))
-	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -135,20 +122,7 @@ func TestMetricsUpdater_updateMetrics(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgsMetricsUpdater()
-	t.Run("heartbeat v1 still enabled should not send metrics", func(t *testing.T) {
-		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-			IsHeartbeatDisableFlagEnabledField: false,
-		}
-		args.AppStatusHandler = &statusHandler.AppStatusHandlerStub{
-			SetUInt64ValueHandler: func(key string, value uint64) {
-				assert.Fail(t, "should have not called SetUInt64")
-			},
-		}
-		updater, _ := NewMetricsUpdaterWithoutGoRoutineStart(args)
-
-		updater.updateMetrics()
-	})
-	t.Run("heartbeat v1 is disabled should send connection metrics", func(t *testing.T) {
+	t.Run("should send connection metrics", func(t *testing.T) {
 		_ = args.PeerAuthenticationCacher.Put([]byte("key1"), "key1", 0)
 		_ = args.PeerAuthenticationCacher.Put([]byte("key2"), "key2", 0)
 		_ = args.PeerAuthenticationCacher.Put([]byte("key3"), "key2", 0)
@@ -182,20 +156,14 @@ func TestMetricsUpdater_updateMetrics(t *testing.T) {
 				}
 			},
 		}
-		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-			IsHeartbeatDisableFlagEnabledField: true,
-		}
 		testUpdaterForConnectionMetrics(t, args)
 	})
-	t.Run("heartbeat v1 is disabled should send sender metrics", func(t *testing.T) {
+	t.Run("should send sender metrics", func(t *testing.T) {
 		t.Run("eligible node", func(t *testing.T) {
 			args.HeartbeatSenderInfoProvider = &mock.HeartbeatSenderInfoProviderStub{
 				GetSenderInfoCalled: func() (string, core.P2PPeerSubType, error) {
 					return string(common.EligibleList), core.FullHistoryObserver, nil
 				},
-			}
-			args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-				IsHeartbeatDisableFlagEnabledField: true,
 			}
 			testUpdaterForSenderMetrics(
 				t,
@@ -210,9 +178,6 @@ func TestMetricsUpdater_updateMetrics(t *testing.T) {
 					return string(common.WaitingList), core.FullHistoryObserver, nil
 				},
 			}
-			args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-				IsHeartbeatDisableFlagEnabledField: true,
-			}
 			testUpdaterForSenderMetrics(
 				t,
 				args,
@@ -226,9 +191,6 @@ func TestMetricsUpdater_updateMetrics(t *testing.T) {
 					return string(common.ObserverList), core.FullHistoryObserver, nil
 				},
 			}
-			args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-				IsHeartbeatDisableFlagEnabledField: true,
-			}
 			testUpdaterForSenderMetrics(
 				t,
 				args,
@@ -237,14 +199,11 @@ func TestMetricsUpdater_updateMetrics(t *testing.T) {
 				core.FullHistoryObserver)
 		})
 	})
-	t.Run("heartbeat v1 is disabled GetSenderInfo errors", func(t *testing.T) {
+	t.Run("GetSenderInfo errors", func(t *testing.T) {
 		args.HeartbeatSenderInfoProvider = &mock.HeartbeatSenderInfoProviderStub{
 			GetSenderInfoCalled: func() (string, core.P2PPeerSubType, error) {
 				return "", 0, errors.New("expected error")
 			},
-		}
-		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-			IsHeartbeatDisableFlagEnabledField: true,
 		}
 		args.AppStatusHandler = &statusHandler.AppStatusHandlerStub{
 			SetStringValueHandler: func(key string, value string) {
@@ -264,58 +223,23 @@ func TestMetricsUpdater_updateMetrics(t *testing.T) {
 func TestMetricsUpdater_MetricLiveValidatorNodesUpdatesDirectly(t *testing.T) {
 	t.Parallel()
 
-	t.Run("heartbeat v1 is still active", func(t *testing.T) {
-		t.Parallel()
+	args := createMockArgsMetricsUpdater()
 
-		args := createMockArgsMetricsUpdater()
-		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-			IsHeartbeatDisableFlagEnabledField: false,
-		}
-
-		wasCalled := atomic.Flag{}
-		args.AppStatusHandler = &statusHandler.AppStatusHandlerStub{
-			SetUInt64ValueHandler: func(key string, value uint64) {
-				switch key {
-				case common.MetricLiveValidatorNodes:
-					assert.Equal(t, uint64(0), value)
-					wasCalled.SetValue(true)
-				}
-			},
-		}
-		updater, _ := NewMetricsUpdaterWithoutGoRoutineStart(args)
-		time.Sleep(time.Second)
-		updater.peerAuthenticationCacher.Put([]byte("key1"), "value1", 0)
-		time.Sleep(time.Second)
-		updater.peerAuthenticationCacher.Put([]byte("key2"), "value2", 0)
-		time.Sleep(time.Second)
-		updater.peerAuthenticationCacher.Put([]byte("key3"), "value3", 0)
-		time.Sleep(time.Second)
-		assert.False(t, wasCalled.IsSet())
-	})
-	t.Run("heartbeat v1 is deactivated", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockArgsMetricsUpdater()
-		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-			IsHeartbeatDisableFlagEnabledField: true,
-		}
-
-		wasCalled := atomic.Flag{}
-		args.AppStatusHandler = &statusHandler.AppStatusHandlerStub{
-			SetUInt64ValueHandler: func(key string, value uint64) {
-				switch key {
-				case common.MetricLiveValidatorNodes:
-					assert.Equal(t, uint64(1), value)
-					wasCalled.SetValue(true)
-				}
-			},
-		}
-		updater, _ := NewMetricsUpdaterWithoutGoRoutineStart(args)
-		time.Sleep(time.Second)
-		updater.peerAuthenticationCacher.Put([]byte("key1"), "value1", 0)
-		time.Sleep(time.Second)
-		assert.True(t, wasCalled.IsSet())
-	})
+	wasCalled := atomic.Flag{}
+	args.AppStatusHandler = &statusHandler.AppStatusHandlerStub{
+		SetUInt64ValueHandler: func(key string, value uint64) {
+			switch key {
+			case common.MetricLiveValidatorNodes:
+				assert.Equal(t, uint64(1), value)
+				wasCalled.SetValue(true)
+			}
+		},
+	}
+	updater, _ := NewMetricsUpdaterWithoutGoRoutineStart(args)
+	time.Sleep(time.Second)
+	updater.peerAuthenticationCacher.Put([]byte("key1"), "value1", 0)
+	time.Sleep(time.Second)
+	assert.True(t, wasCalled.IsSet())
 }
 
 func testUpdaterForConnectionMetrics(tb testing.TB, args ArgsMetricsUpdater) {
