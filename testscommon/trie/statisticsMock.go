@@ -6,9 +6,6 @@ import (
 
 // MockStatistics -
 type MockStatistics struct {
-	size                           uint64
-	numDataTries                   uint64
-	numNodes                       uint64
 	WaitForSnapshotsToFinishCalled func()
 }
 
