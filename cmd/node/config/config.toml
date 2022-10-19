@@ -562,8 +562,7 @@
         Type = "LRU"
     [Antiflood.Topic]
         DefaultMaxMessagesPerSec = 15000
-        MaxMessages = [{ Topic = "heartbeat", NumMessagesPerSec = 30 },
-                       { Topic = "shardBlocks*", NumMessagesPerSec = 30 },
+        MaxMessages = [{ Topic = "shardBlocks*", NumMessagesPerSec = 30 },
                        { Topic = "metachainBlocks", NumMessagesPerSec = 30 }]
 
     [Antiflood.TxAccumulator]
@@ -647,26 +646,6 @@
 [ResourceStats]
     Enabled = true
     RefreshIntervalInSec = 30
-
-# Heartbeat, if enabled, will output a heartbeat signal once x seconds,
-# where x in [MinTimeToWaitBetweenBroadcastsInSec, MaxTimeToWaitBetweenBroadcastsInSec)
-[Heartbeat]
-    MinTimeToWaitBetweenBroadcastsInSec  = 20
-    MaxTimeToWaitBetweenBroadcastsInSec  = 25
-    HeartbeatRefreshIntervalInSec        = 60
-    HideInactiveValidatorIntervalInSec   = 3600
-    DurationToConsiderUnresponsiveInSec  = 60
-    [Heartbeat.HeartbeatStorage]
-        [Heartbeat.HeartbeatStorage.Cache]
-            Name = "HeartbeatStorage"
-            Capacity = 1000
-            Type = "LRU"
-        [Heartbeat.HeartbeatStorage.DB]
-            FilePath = "HeartbeatStorage"
-            Type = "LvlDBSerial"
-            BatchDelaySeconds = 5
-            MaxBatchSize = 100
-            MaxOpenFiles = 10
 
 [ValidatorStatistics]
     CacheRefreshIntervalInSec = 60
@@ -942,12 +921,14 @@
     MinPeersThreshold                                = 0.8  # 80%
     DelayBetweenRequestsInSec                        = 10   # 10sec
     MaxTimeoutInSec                                  = 7200 # 2h
-    DelayBetweenConnectionNotificationsInSec         = 60   # 1min
+    PeerShardTimeBetweenSendsInSec                   = 7200   # 2h
+    PeerShardThresholdBetweenSends                   = 0.1 # 10%
     MaxMissingKeysInRequest                          = 1000
     MaxDurationPeerUnresponsiveInSec                 = 900  # 15min
     HideInactiveValidatorIntervalInSec               = 3600 # 1h
     HardforkTimeBetweenSendsInSec                    = 60   # 1min
     TimeBetweenConnectionsMetricsUpdateInSec         = 30   # 30sec
+    TimeToReadDirectConnectionsInSec                 = 15   # 15sec
     [HeartbeatV2.HeartbeatPool]
         Name = "HeartbeatPool"
         Capacity = 1000

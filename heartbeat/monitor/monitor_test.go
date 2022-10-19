@@ -14,9 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
-	processMocks "github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -25,7 +23,6 @@ func createMockHeartbeatV2MonitorArgs() ArgHeartbeatV2Monitor {
 		Cache:                         testscommon.NewCacherMock(),
 		PubKeyConverter:               &testscommon.PubkeyConverterMock{},
 		Marshaller:                    &testscommon.MarshalizerMock{},
-		PeerShardMapper:               &p2pmocks.NetworkShardingCollectorStub{},
 		MaxDurationPeerUnresponsive:   time.Second * 3,
 		HideInactiveValidatorInterval: time.Second * 5,
 		ShardId:                       0,
@@ -33,7 +30,7 @@ func createMockHeartbeatV2MonitorArgs() ArgHeartbeatV2Monitor {
 	}
 }
 
-func createHeartbeatMessage(active bool) *heartbeat.HeartbeatV2 {
+func createHeartbeatMessage(active bool, publicKeyBytes []byte) *heartbeat.HeartbeatV2 {
 	crtTime := time.Now()
 	providedAgeInSec := int64(1)
 	messageTimestamp := crtTime.Unix() - providedAgeInSec
@@ -55,7 +52,7 @@ func createHeartbeatMessage(active bool) *heartbeat.HeartbeatV2 {
 		Identity:        "identity",
 		Nonce:           0,
 		PeerSubType:     0,
-		Pubkey:          []byte("public key"),
+		Pubkey:          publicKeyBytes,
 	}
 }
 
@@ -88,15 +85,6 @@ func TestNewHeartbeatV2Monitor(t *testing.T) {
 		monitor, err := NewHeartbeatV2Monitor(args)
 		assert.True(t, check.IfNil(monitor))
 		assert.Equal(t, heartbeat.ErrNilMarshaller, err)
-	})
-	t.Run("nil peer shard mapper should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockHeartbeatV2MonitorArgs()
-		args.PeerShardMapper = nil
-		monitor, err := NewHeartbeatV2Monitor(args)
-		assert.True(t, check.IfNil(monitor))
-		assert.Equal(t, heartbeat.ErrNilPeerShardMapper, err)
 	})
 	t.Run("invalid max duration peer unresponsive should error", func(t *testing.T) {
 		t.Parallel()
@@ -141,7 +129,7 @@ func TestNewHeartbeatV2Monitor(t *testing.T) {
 		assert.Nil(t, err)
 
 		pid1 := []byte("validator peer id")
-		message := createHeartbeatMessage(true)
+		message := createHeartbeatMessage(true, []byte("public key"))
 		args.Cache.Put(pid1, message, message.Size())
 	})
 }
@@ -166,7 +154,7 @@ func TestHeartbeatV2Monitor_parseMessage(t *testing.T) {
 		monitor, _ := NewHeartbeatV2Monitor(args)
 		assert.False(t, check.IfNil(monitor))
 
-		message := createHeartbeatMessage(true)
+		message := createHeartbeatMessage(true, []byte("public key"))
 		message.Payload = []byte("dummy payload")
 		_, err := monitor.parseMessage("pid", message, nil)
 		assert.NotNil(t, err)
@@ -175,19 +163,12 @@ func TestHeartbeatV2Monitor_parseMessage(t *testing.T) {
 		t.Parallel()
 
 		args := createMockHeartbeatV2MonitorArgs()
-		args.PeerShardMapper = &processMocks.PeerShardMapperStub{
-			GetPeerInfoCalled: func(pid core.PeerID) core.P2PPeerInfo {
-				return core.P2PPeerInfo{
-					PeerType: core.UnknownPeer,
-				}
-			},
-		}
 		monitor, _ := NewHeartbeatV2Monitor(args)
 		assert.False(t, check.IfNil(monitor))
 
-		message := createHeartbeatMessage(false)
+		message := createHeartbeatMessage(false, []byte("public key"))
 		_, err := monitor.parseMessage("pid", message, nil)
-		assert.Equal(t, heartbeat.ErrShouldSkipValidator, err)
+		assert.True(t, errors.Is(err, heartbeat.ErrShouldSkipValidator))
 	})
 	t.Run("should work, peer type provider returns error", func(t *testing.T) {
 		t.Parallel()
@@ -195,13 +176,6 @@ func TestHeartbeatV2Monitor_parseMessage(t *testing.T) {
 		providedPkBytes := []byte("provided pk")
 		providedPkBytesFromMessage := []byte("provided pk message")
 		args := createMockHeartbeatV2MonitorArgs()
-		args.PeerShardMapper = &processMocks.PeerShardMapperStub{
-			GetPeerInfoCalled: func(pid core.PeerID) core.P2PPeerInfo {
-				return core.P2PPeerInfo{
-					PkBytes: providedPkBytes,
-				}
-			},
-		}
 		args.PeerTypeProvider = &mock.PeerTypeProviderStub{
 			ComputeForPubKeyCalled: func(pubKey []byte) (common.PeerType, uint32, error) {
 				return "", 0, errors.New("some error")
@@ -211,7 +185,7 @@ func TestHeartbeatV2Monitor_parseMessage(t *testing.T) {
 		assert.False(t, check.IfNil(monitor))
 
 		numInstances := make(map[string]uint64)
-		message := createHeartbeatMessage(true)
+		message := createHeartbeatMessage(true, providedPkBytes)
 		message.Pubkey = providedPkBytesFromMessage
 		providedPid := core.PeerID("pid")
 		providedMap := map[string]struct{}{
@@ -236,13 +210,6 @@ func TestHeartbeatV2Monitor_parseMessage(t *testing.T) {
 
 		providedPkBytes := []byte("provided pk")
 		args := createMockHeartbeatV2MonitorArgs()
-		args.PeerShardMapper = &processMocks.PeerShardMapperStub{
-			GetPeerInfoCalled: func(pid core.PeerID) core.P2PPeerInfo {
-				return core.P2PPeerInfo{
-					PkBytes: providedPkBytes,
-				}
-			},
-		}
 		expectedPeerType := common.EligibleList
 		args.PeerTypeProvider = &mock.PeerTypeProviderStub{
 			ComputeForPubKeyCalled: func(pubKey []byte) (common.PeerType, uint32, error) {
@@ -253,7 +220,7 @@ func TestHeartbeatV2Monitor_parseMessage(t *testing.T) {
 		assert.False(t, check.IfNil(monitor))
 
 		numInstances := make(map[string]uint64)
-		message := createHeartbeatMessage(true)
+		message := createHeartbeatMessage(true, providedPkBytes)
 		providedPid := core.PeerID("pid")
 		providedMap := map[string]struct{}{
 			providedPid.Pretty(): {},
@@ -280,8 +247,9 @@ func TestHeartbeatV2Monitor_getMessageAge(t *testing.T) {
 	crtTime := time.Now()
 	providedAgeInSec := int64(args.MaxDurationPeerUnresponsive.Seconds() - 1)
 	messageTimestamp := crtTime.Unix() - providedAgeInSec
+	messageTime := time.Unix(messageTimestamp, 0)
 
-	msgAge := monitor.getMessageAge(crtTime, messageTimestamp)
+	msgAge := monitor.getMessageAge(crtTime, messageTime)
 	assert.Equal(t, providedAgeInSec, int64(msgAge.Seconds()))
 }
 
@@ -291,9 +259,11 @@ func TestHeartbeatV2Monitor_isActive(t *testing.T) {
 	args := createMockHeartbeatV2MonitorArgs()
 	monitor, _ := NewHeartbeatV2Monitor(args)
 	assert.False(t, check.IfNil(monitor))
+	messageTimestamp := int64(-10)
+	messageTime := time.Unix(messageTimestamp, 0)
 
 	// negative age should not be active
-	assert.False(t, monitor.isActive(monitor.getMessageAge(time.Now(), -10)))
+	assert.False(t, monitor.isActive(monitor.getMessageAge(time.Now(), messageTime)))
 	// one sec old message should be active
 	assert.True(t, monitor.isActive(time.Second))
 	// too old messages should not be active
@@ -322,14 +292,6 @@ func TestHeartbeatV2Monitor_GetHeartbeats(t *testing.T) {
 		t.Parallel()
 
 		args := createMockHeartbeatV2MonitorArgs()
-		args.PeerShardMapper = &processMocks.PeerShardMapperStub{
-			GetPeerInfoCalled: func(pid core.PeerID) core.P2PPeerInfo {
-				return core.P2PPeerInfo{
-					PkBytes:  pid.Bytes(),
-					PeerType: core.ObserverPeer,
-				}
-			},
-		}
 		providedStatuses := []bool{true, true, false}
 		numOfMessages := len(providedStatuses)
 		providedPids := make(map[string]struct{}, numOfMessages)
@@ -337,7 +299,7 @@ func TestHeartbeatV2Monitor_GetHeartbeats(t *testing.T) {
 		for i := 0; i < numOfMessages; i++ {
 			pid := core.PeerID(fmt.Sprintf("%s%d", "pid", i))
 			providedPids[pid.Pretty()] = struct{}{}
-			providedMessages[i] = createHeartbeatMessage(providedStatuses[i])
+			providedMessages[i] = createHeartbeatMessage(providedStatuses[i], pid.Bytes())
 
 			args.Cache.Put(pid.Bytes(), providedMessages[i], providedMessages[i].Size())
 		}
@@ -363,27 +325,15 @@ func TestHeartbeatV2Monitor_GetHeartbeats(t *testing.T) {
 		for i := 0; i < numOfMessages; i++ {
 			pid := core.PeerID(fmt.Sprintf("%s%d", "pid", i))
 			providedPids[pid.Pretty()] = struct{}{}
-			providedMessages[i] = createHeartbeatMessage(providedStatuses[i])
+
+			pkBytes := []byte("same pk")
+			if i == 0 {
+				pkBytes = pid.Bytes()
+			}
+
+			providedMessages[i] = createHeartbeatMessage(providedStatuses[i], pkBytes)
 
 			args.Cache.Put(pid.Bytes(), providedMessages[i], providedMessages[i].Size())
-		}
-		counter := 0
-		args.PeerShardMapper = &processMocks.PeerShardMapperStub{
-			GetPeerInfoCalled: func(pid core.PeerID) core.P2PPeerInfo {
-				// Only first entry is unique, then all should have same pk
-				var info core.P2PPeerInfo
-				if counter == 0 {
-					info = core.P2PPeerInfo{
-						PkBytes: pid.Bytes(),
-					}
-				} else {
-					info = core.P2PPeerInfo{
-						PkBytes: []byte("same pk"),
-					}
-				}
-				counter++
-				return info
-			},
 		}
 
 		monitor, _ := NewHeartbeatV2Monitor(args)

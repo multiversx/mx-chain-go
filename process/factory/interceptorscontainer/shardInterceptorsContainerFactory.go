@@ -179,7 +179,7 @@ func (sicf *shardInterceptorsContainerFactory) Create() (process.InterceptorsCon
 		return nil, err
 	}
 
-	err = sicf.generateDirectConnectionInfoInterceptor()
+	err = sicf.generatePeerShardInterceptor()
 	if err != nil {
 		return nil, err
 	}
