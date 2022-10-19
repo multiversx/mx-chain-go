@@ -468,7 +468,7 @@ type PendingMiniBlocksHandler interface {
 type BlockChainHookHandler interface {
 	GetCode(account vmcommon.UserAccountHandler) []byte
 	GetUserAccount(address []byte) (vmcommon.UserAccountHandler, error)
-	GetStorageData(accountAddress []byte, index []byte) ([]byte, error)
+	GetStorageData(accountAddress []byte, index []byte) ([]byte, uint32, error)
 	GetBlockhash(nonce uint64) ([]byte, error)
 	LastNonce() uint64
 	LastRound() uint64

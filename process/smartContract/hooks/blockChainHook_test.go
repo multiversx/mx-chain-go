@@ -337,7 +337,7 @@ func TestBlockChainHookImpl_GetStorageDataAccountNotFoundExpectEmptyStorage(t *t
 	}
 
 	bh, _ := hooks.NewBlockChainHookImpl(args)
-	storageData, err := bh.GetStorageData(address, []byte("index"))
+	storageData, _, err := bh.GetStorageData(address, []byte("index"))
 	require.Equal(t, []byte{}, storageData)
 	require.Nil(t, err)
 }
@@ -369,7 +369,7 @@ func TestBlockChainHookImpl_GetStorageDataCannotRetrieveAccountValueExpectError(
 	}
 
 	bh, _ := hooks.NewBlockChainHookImpl(args)
-	storageData, err := bh.GetStorageData(address, index)
+	storageData, _, err := bh.GetStorageData(address, index)
 	require.Nil(t, storageData)
 	require.Equal(t, expectedErr, err)
 }
@@ -387,7 +387,7 @@ func TestBlockChainHookImpl_GetStorageDataErrorsShouldErr(t *testing.T) {
 	}
 	bh, _ := hooks.NewBlockChainHookImpl(args)
 
-	value, err := bh.GetStorageData(make([]byte, 0), make([]byte, 0))
+	value, _, err := bh.GetStorageData(make([]byte, 0), make([]byte, 0))
 
 	assert.Equal(t, errExpected, err)
 	assert.Nil(t, value)
@@ -409,7 +409,7 @@ func TestBlockChainHookImpl_GetStorageDataShouldWork(t *testing.T) {
 	}
 	bh, _ := hooks.NewBlockChainHookImpl(args)
 
-	value, err := bh.GetStorageData(make([]byte, 0), variableIdentifier)
+	value, _, err := bh.GetStorageData(make([]byte, 0), variableIdentifier)
 
 	assert.Nil(t, err)
 	assert.Equal(t, variableValue, value)
