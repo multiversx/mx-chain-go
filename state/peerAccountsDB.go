@@ -60,8 +60,6 @@ func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
 	}
 	stats := newSnapshotStatistics(0, 1)
 	stats.NewSnapshotStarted()
-	adb.appStatusHandler.SetStringValue(common.MetricPeersSnapshotInProgress, "true")
-	adb.appStatusHandler.SetInt64Value(common.MetricLastPeersSnapshotDurationSec, 0)
 
 	peerAccountsMetrics := &accountMetrics{
 		snapshotInProgressKey:   common.MetricPeersSnapshotInProgress,
