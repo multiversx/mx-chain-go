@@ -362,6 +362,7 @@ func alteredAccountsMapToAPIResponse(alteredAccounts map[string]*outport.Altered
 		apiAlteredAccount := &outport.AlteredAccount{
 			Address: address,
 			Balance: altAccount.Balance,
+			Nonce:   altAccount.Nonce,
 		}
 
 		if len(tokensFilter) > 0 {
