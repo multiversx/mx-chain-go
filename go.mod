@@ -7,10 +7,10 @@ require (
 	github.com/ElrondNetwork/elastic-indexer-go v1.2.44
 	github.com/ElrondNetwork/elrond-go-core v1.1.20
 	github.com/ElrondNetwork/elrond-go-crypto v1.2.1
-	github.com/ElrondNetwork/elrond-go-logger v1.0.7
-	github.com/ElrondNetwork/elrond-go-p2p v1.0.2
+	github.com/ElrondNetwork/elrond-go-logger v1.0.9
+	github.com/ElrondNetwork/elrond-go-p2p v1.0.3
 	github.com/ElrondNetwork/elrond-go-storage v1.0.1
-	github.com/ElrondNetwork/elrond-vm-common v1.3.19
+	github.com/ElrondNetwork/elrond-vm-common v1.3.22
 	github.com/ElrondNetwork/wasm-vm v1.4.59
 	github.com/ElrondNetwork/wasm-vm-v1_2 v1.2.42
 	github.com/ElrondNetwork/wasm-vm-v1_3 v1.3.42

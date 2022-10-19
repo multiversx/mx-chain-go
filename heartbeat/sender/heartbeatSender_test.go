@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -310,7 +311,7 @@ func TestHeartbeatSender_execute(t *testing.T) {
 		providedNumTrieNodesSynced := 100
 		argsBase := createMockBaseArgs()
 		broadcastCalled := false
-		argsBase.messenger = &mock.MessengerStub{
+		argsBase.messenger = &p2pmocks.MessengerStub{
 			BroadcastCalled: func(topic string, buff []byte) {
 				assert.Equal(t, argsBase.topic, topic)
 				recoveredMessage := &heartbeat.HeartbeatV2{}
