@@ -310,8 +310,6 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 		return false
 	}
 
-	invalidSigners := make([]byte, 0)
-
 	err = sr.SignatureHandler().Verify(sr.GetData(), bitmap, sr.Header.GetEpoch())
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.Verify", "error", err.Error())
@@ -322,7 +320,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 			return false
 		}
 
-		invalidSigners, err = sr.getFullMessagesForInvalidSigners(invalidPubKeys)
+		invalidSigners, err := sr.getFullMessagesForInvalidSigners(invalidPubKeys)
 		if err != nil {
 			log.Debug("doEndRoundJobByLeader.getFullMessagesForInvalidSigners", "error", err.Error())
 			return false
