@@ -1230,23 +1230,6 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 		assert.False(t, res)
 	})
 
-	t.Run("cannot process message", func(t *testing.T) {
-		t.Parallel()
-
-		container := mock.InitConsensusCore()
-
-		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
-		sr.SetSelfPubKey("A")
-
-		cnsData := consensus.Message{
-			BlockHeaderHash: []byte("X"),
-			PubKey:          []byte("A"),
-		}
-
-		res := sr.ReceivedInvalidSignersInfo(&cnsData)
-		assert.False(t, res)
-	})
-
 	t.Run("empty invalid signers", func(t *testing.T) {
 		t.Parallel()
 

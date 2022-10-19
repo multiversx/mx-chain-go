@@ -158,19 +158,31 @@ func (sr *subroundEndRound) isBlockHeaderFinalInfoValid(cnsDta *consensus.Messag
 
 // receivedInvalidSignersInfo method is called when a message with invalid signers has been received
 func (sr *subroundEndRound) receivedInvalidSignersInfo(_ context.Context, cnsDta *consensus.Message) bool {
-	node := string(cnsDta.PubKey)
+	messageSender := string(cnsDta.PubKey)
 
 	if !sr.IsConsensusDataSet() {
 		return false
 	}
 
-	if !sr.IsNodeLeaderInCurrentRound(node) { // is NOT this node leader in current round?
+	if !sr.IsNodeLeaderInCurrentRound(messageSender) { // is NOT this node leader in current round?
 		sr.PeerHonestyHandler().ChangeScore(
-			node,
+			messageSender,
 			spos.GetConsensusTopicID(sr.ShardCoordinator()),
 			spos.LeaderPeerHonestyDecreaseFactor,
 		)
 
+		return false
+	}
+
+	if sr.IsSelfLeaderInCurrentRound() {
+		return false
+	}
+
+	if !sr.IsConsensusDataEqual(cnsDta.BlockHeaderHash) {
+		return false
+	}
+
+	if !sr.CanProcessReceivedMessage(cnsDta, sr.RoundHandler().Index(), sr.Current()) {
 		return false
 	}
 
@@ -180,13 +192,14 @@ func (sr *subroundEndRound) receivedInvalidSignersInfo(_ context.Context, cnsDta
 
 	err := sr.verifyInvalidSigners(cnsDta.InvalidSigners)
 	if err != nil {
+		log.Trace("receivedInvalidSignersInfo.verifyInvalidSigners", "error", err.Error())
 		return false
 	}
 
 	log.Debug("step 3: invalid signers info has been evaluated")
 
 	sr.PeerHonestyHandler().ChangeScore(
-		node,
+		messageSender,
 		spos.GetConsensusTopicID(sr.ShardCoordinator()),
 		spos.LeaderPeerHonestyIncreaseFactor,
 	)
@@ -298,7 +311,6 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	}
 
 	invalidSigners := make([]byte, 0)
-	shouldSendInvalidSigners := false
 
 	err = sr.SignatureHandler().Verify(sr.GetData(), bitmap, sr.Header.GetEpoch())
 	if err != nil {
@@ -310,10 +322,14 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 			return false
 		}
 
-		invalidSigners, shouldSendInvalidSigners, err = sr.getFullMessagesForInvalidSigners(invalidPubKeys)
+		invalidSigners, err = sr.getFullMessagesForInvalidSigners(invalidPubKeys)
 		if err != nil {
 			log.Debug("doEndRoundJobByLeader.getFullMessagesForInvalidSigners", "error", err.Error())
 			return false
+		}
+
+		if len(invalidSigners) > 0 {
+			sr.createAndBroadcastInvalidSigners(invalidSigners)
 		}
 
 		bitmap, sig, err = sr.computeAggSigOnValidNodes()
@@ -362,9 +378,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 		return false
 	}
 
-	if shouldSendInvalidSigners {
-		sr.createAndBroadcastInvalidSigners(invalidSigners)
-	}
+	// broadcast header and final info section
 
 	// create and broadcast header final info
 	sr.createAndBroadcastHeaderFinalInfo()
@@ -442,7 +456,7 @@ func (sr *subroundEndRound) verifyNodesOnAggSigVerificationFail() ([]string, err
 			}
 
 			// use increase factor since it was added optimistically, and it proved to be wrong
-			decreaseFactor := -spos.ValidatorPeerHonestyIncreaseFactor
+			decreaseFactor := -spos.ValidatorPeerHonestyIncreaseFactor + spos.ValidatorPeerHonestyDecreaseFactor
 			sr.PeerHonestyHandler().ChangeScore(
 				pk,
 				spos.GetConsensusTopicID(sr.ShardCoordinator()),
@@ -458,8 +472,7 @@ func (sr *subroundEndRound) verifyNodesOnAggSigVerificationFail() ([]string, err
 	return invalidPubKeys, nil
 }
 
-func (sr *subroundEndRound) getFullMessagesForInvalidSigners(invalidPubKeys []string) ([]byte, bool, error) {
-	shouldSend := false
+func (sr *subroundEndRound) getFullMessagesForInvalidSigners(invalidPubKeys []string) ([]byte, error) {
 	p2pMessages := make([]p2p.MessageP2P, 0)
 
 	for _, pk := range invalidPubKeys {
@@ -469,15 +482,14 @@ func (sr *subroundEndRound) getFullMessagesForInvalidSigners(invalidPubKeys []st
 		}
 
 		p2pMessages = append(p2pMessages, p2pMsg)
-		shouldSend = true
 	}
 
 	invalidSigners, err := sr.MessageSigningHandler().Serialize(p2pMessages)
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
 
-	return invalidSigners, shouldSend, nil
+	return invalidSigners, nil
 }
 
 func (sr *subroundEndRound) computeAggSigOnValidNodes() ([]byte, []byte, error) {

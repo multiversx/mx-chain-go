@@ -188,7 +188,7 @@ func (ccm *ConsensusCoreMock) PrivateKey() crypto.PrivateKey {
 	return ccm.blsPrivateKey
 }
 
-// SingleSigner returns the bls single signer stored in the ConsensusStore
+// SingleSigner returns the bls single signer stored in the ConsensusCore
 func (ccm *ConsensusCoreMock) SingleSigner() crypto.SingleSigner {
 	return ccm.blsSingleSigner
 }

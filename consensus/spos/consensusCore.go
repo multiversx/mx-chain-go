@@ -180,17 +180,17 @@ func (cc *ConsensusCore) EpochStartRegistrationHandler() epochStart.Registration
 	return cc.epochStartRegistrationHandler
 }
 
-// PrivateKey returns the BLS private key stored in the ConsensusStore
+// PrivateKey returns the BLS private key stored in the ConsensusCore
 func (cc *ConsensusCore) PrivateKey() crypto.PrivateKey {
 	return cc.blsPrivateKey
 }
 
-// SingleSigner returns the bls single signer stored in the ConsensusStore
+// SingleSigner returns the bls single signer stored in the ConsensusCore
 func (cc *ConsensusCore) SingleSigner() crypto.SingleSigner {
 	return cc.blsSingleSigner
 }
 
-// KeyGenerator returns the bls key generator stored in the ConsensusStore
+// KeyGenerator returns the bls key generator stored in the ConsensusCore
 func (cc *ConsensusCore) KeyGenerator() crypto.KeyGenerator {
 	return cc.keyGenerator
 }
