@@ -187,7 +187,6 @@ type Config struct {
 
 	Antiflood           AntifloodConfig
 	ResourceStats       ResourceStatsConfig
-	Heartbeat           HeartbeatConfig
 	HeartbeatV2         HeartbeatV2Config
 	ValidatorStatistics ValidatorStatisticsConfig
 	GeneralSettings     GeneralSettingsConfig
@@ -245,16 +244,6 @@ type StoragePruningConfig struct {
 type ResourceStatsConfig struct {
 	Enabled              bool
 	RefreshIntervalInSec int
-}
-
-// HeartbeatConfig will hold all heartbeat settings
-type HeartbeatConfig struct {
-	MinTimeToWaitBetweenBroadcastsInSec int
-	MaxTimeToWaitBetweenBroadcastsInSec int
-	DurationToConsiderUnresponsiveInSec int
-	HeartbeatRefreshIntervalInSec       uint32
-	HideInactiveValidatorIntervalInSec  uint32
-	HeartbeatStorage                    StorageConfig
 }
 
 // ValidatorStatisticsConfig will hold validator statistics specific settings
