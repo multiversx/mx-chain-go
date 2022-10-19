@@ -11,7 +11,6 @@ type HardforkTriggerStub struct {
 	RecordedTriggerMessageCalled  func() ([]byte, bool)
 	CreateDataCalled              func() []byte
 	AddCloserCalled               func(closer update.Closer) error
-	NotifyTriggerReceivedCalled   func() <-chan struct{}
 	NotifyTriggerReceivedV2Called func() <-chan struct{}
 }
 
@@ -76,15 +75,6 @@ func (hts *HardforkTriggerStub) AddCloser(closer update.Closer) error {
 	}
 
 	return nil
-}
-
-// NotifyTriggerReceived -
-func (hts *HardforkTriggerStub) NotifyTriggerReceived() <-chan struct{} {
-	if hts.NotifyTriggerReceivedCalled != nil {
-		return hts.NotifyTriggerReceivedCalled()
-	}
-
-	return make(chan struct{})
 }
 
 // NotifyTriggerReceivedV2 -

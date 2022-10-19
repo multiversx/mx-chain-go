@@ -311,7 +311,6 @@ type EnableEpochsHandler interface {
 	IsSCRSizeInvariantOnBuiltInResultFlagEnabled() bool
 	IsCheckCorrectTokenIDForTransferRoleFlagEnabled() bool
 	IsFailExecutionOnEveryAPIErrorFlagEnabled() bool
-	IsHeartbeatDisableFlagEnabled() bool
 	IsMiniBlockPartialExecutionFlagEnabled() bool
 	IsManagedCryptoAPIsFlagEnabled() bool
 	IsESDTMetadataContinuousCleanupFlagEnabled() bool
