@@ -63,11 +63,18 @@ func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
 	adb.appStatusHandler.SetStringValue(common.MetricPeersSnapshotInProgress, "true")
 	adb.appStatusHandler.SetInt64Value(common.MetricLastPeersSnapshotDurationSec, 0)
 
+	peerAccountsMetrics := &accountMetrics{
+		snapshotInProgressKey:   common.MetricPeersSnapshotInProgress,
+		lastSnapshotDurationKey: common.MetricLastPeersSnapshotDurationSec,
+		snapshotMessage:         peerTrieSnapshotMsg,
+	}
+	adb.updateMetricsOnSnapshotStart(peerAccountsMetrics)
+
 	trieStorageManager.TakeSnapshot(nil, rootHash, rootHash, iteratorChannels, missingNodesChannel, stats, epoch)
 
 	go adb.syncMissingNodes(missingNodesChannel, stats, adb.trieSyncer)
 
-	go adb.processSnapshotCompletion(stats, trieStorageManager, missingNodesChannel, iteratorChannels.ErrChan, rootHash, peerTrieSnapshotMsg, epoch)
+	go adb.processSnapshotCompletion(stats, trieStorageManager, missingNodesChannel, iteratorChannels.ErrChan, rootHash, peerAccountsMetrics, epoch)
 
 	adb.waitForCompletionIfAppropriate(stats)
 }
