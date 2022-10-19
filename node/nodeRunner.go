@@ -704,7 +704,7 @@ func (nr *nodeRunner) createApiFacade(
 		ApiResolver:            apiResolver,
 		TxSimulatorProcessor:   currentNode.processComponents.TransactionSimulatorProcessor(),
 		RestAPIServerDebugMode: flagsConfig.EnableRestAPIServerDebugMode,
-		WsAntifloodConfig:      configs.GeneralConfig.Antiflood.WebServer,
+		WsAntifloodConfig:      configs.GeneralConfig.WebServerAntiflood,
 		FacadeConfig: config.FacadeConfig{
 			RestApiInterface: flagsConfig.RestApiInterface,
 			PprofEnabled:     flagsConfig.EnablePprof,
@@ -738,7 +738,7 @@ func (nr *nodeRunner) createHttpServer() (shared.UpgradeableHttpServerHandler, e
 	httpServerArgs := gin.ArgsNewWebServer{
 		Facade:          initial.NewInitialNodeFacade(nr.configs.FlagsConfig.RestApiInterface, nr.configs.FlagsConfig.EnablePprof),
 		ApiConfig:       *nr.configs.ApiRoutesConfig,
-		AntiFloodConfig: nr.configs.GeneralConfig.Antiflood.WebServer,
+		AntiFloodConfig: nr.configs.GeneralConfig.WebServerAntiflood,
 	}
 
 	httpServerWrapper, err := gin.NewGinWebServerHandler(httpServerArgs)
