@@ -116,9 +116,8 @@ func (sender *peerAuthenticationSender) execute() (error, bool) {
 
 	hardforkPayload, isTriggered := sender.getHardforkPayload()
 	payload := &heartbeat.Payload{
-		Timestamp:          time.Now().Unix(),
-		HardforkMessage:    string(hardforkPayload),
-		NumTrieNodesSynced: 0, // sent through heartbeat v2 message
+		Timestamp:       time.Now().Unix(),
+		HardforkMessage: string(hardforkPayload),
 	}
 	payloadBytes, err := sender.marshaller.Marshal(payload)
 	if err != nil {

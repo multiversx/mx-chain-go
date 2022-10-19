@@ -74,22 +74,22 @@ func NewUserAccountsSyncer(args ArgsNewUserAccountsSyncer) (*userAccountsSyncer,
 	}
 
 	b := &baseAccountsSyncer{
-		hasher:                    args.Hasher,
-		marshalizer:               args.Marshalizer,
-		dataTries:                 make(map[string]struct{}),
-		trieStorageManager:        args.TrieStorageManager,
-		requestHandler:            args.RequestHandler,
-		timeoutHandler:            timeoutHandler,
-		shardId:                   args.ShardId,
-		cacher:                    args.Cacher,
-		rootHash:                  nil,
-		maxTrieLevelInMemory:      args.MaxTrieLevelInMemory,
-		name:                      fmt.Sprintf("user accounts for shard %s", core.GetShardIDString(args.ShardId)),
-		maxHardCapForMissingNodes: args.MaxHardCapForMissingNodes,
-		trieSyncerVersion:         args.TrieSyncerVersion,
-		checkNodesOnDisk:          args.CheckNodesOnDisk,
-		storageMarker:             args.StorageMarker,
-		syncStatisticsHandler:     args.SyncStatisticsHandler,
+		hasher:                            args.Hasher,
+		marshalizer:                       args.Marshalizer,
+		dataTries:                         make(map[string]struct{}),
+		trieStorageManager:                args.TrieStorageManager,
+		requestHandler:                    args.RequestHandler,
+		timeoutHandler:                    timeoutHandler,
+		shardId:                           args.ShardId,
+		cacher:                            args.Cacher,
+		rootHash:                          nil,
+		maxTrieLevelInMemory:              args.MaxTrieLevelInMemory,
+		name:                              fmt.Sprintf("user accounts for shard %s", core.GetShardIDString(args.ShardId)),
+		maxHardCapForMissingNodes:         args.MaxHardCapForMissingNodes,
+		trieSyncerVersion:                 args.TrieSyncerVersion,
+		checkNodesOnDisk:                  args.CheckNodesOnDisk,
+		storageMarker:                     args.StorageMarker,
+		userAccountsSyncStatisticsHandler: args.UserAccountsSyncStatisticsHandler,
 	}
 
 	u := &userAccountsSyncer{
@@ -135,6 +135,8 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 
 	u.storageMarker.MarkStorerAsSyncedAndActive(mainTrie.GetStorageManager())
 
+	u.userAccountsSyncStatisticsHandler.Reset()
+
 	return nil
 }
 
@@ -157,7 +159,7 @@ func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, address []byte, ctx c
 		Hasher:                    u.hasher,
 		ShardId:                   u.shardId,
 		Topic:                     factory.AccountTrieNodesTopic,
-		TrieSyncStatistics:        u.syncStatisticsHandler,
+		TrieSyncStatistics:        u.userAccountsSyncStatisticsHandler,
 		TimeoutHandler:            u.timeoutHandler,
 		MaxHardCapForMissingNodes: u.maxHardCapForMissingNodes,
 		CheckNodesOnDisk:          u.checkNodesOnDisk,

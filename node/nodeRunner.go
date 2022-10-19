@@ -670,18 +670,18 @@ func getBaseAccountSyncerArgs(
 	maxTrieLevelInMemory uint,
 ) syncer.ArgsNewBaseAccountsSyncer {
 	return syncer.ArgsNewBaseAccountsSyncer{
-		Hasher:                    coreComponents.Hasher(),
-		Marshalizer:               coreComponents.InternalMarshalizer(),
-		TrieStorageManager:        storageManager,
-		RequestHandler:            processComponents.RequestHandler(),
-		Timeout:                   common.TimeoutGettingTrieNodes,
-		Cacher:                    dataComponents.Datapool().TrieNodes(),
-		MaxTrieLevelInMemory:      maxTrieLevelInMemory,
-		MaxHardCapForMissingNodes: config.TrieSync.MaxHardCapForMissingNodes,
-		TrieSyncerVersion:         config.TrieSync.TrieSyncerVersion,
-		StorageMarker:             storageMarker.NewDisabledStorageMarker(),
-		CheckNodesOnDisk:          true,
-		SyncStatisticsHandler:     trieStatistics.NewTrieSyncStatistics(),
+		Hasher:                            coreComponents.Hasher(),
+		Marshalizer:                       coreComponents.InternalMarshalizer(),
+		TrieStorageManager:                storageManager,
+		RequestHandler:                    processComponents.RequestHandler(),
+		Timeout:                           common.TimeoutGettingTrieNodes,
+		Cacher:                            dataComponents.Datapool().TrieNodes(),
+		MaxTrieLevelInMemory:              maxTrieLevelInMemory,
+		MaxHardCapForMissingNodes:         config.TrieSync.MaxHardCapForMissingNodes,
+		TrieSyncerVersion:                 config.TrieSync.TrieSyncerVersion,
+		StorageMarker:                     storageMarker.NewDisabledStorageMarker(),
+		CheckNodesOnDisk:                  true,
+		UserAccountsSyncStatisticsHandler: trieStatistics.NewTrieSyncStatistics(),
 	}
 }
 

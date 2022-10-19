@@ -168,6 +168,11 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 
 	dataSyncerFactory := bootstrap.NewScheduledDataSyncerFactory()
 
+	// increment num received to make sure that first heartbeat message
+	// will have value 1, thus explorer will display status in progress
+	tss := bcf.statusCoreComponents.TrieSyncStatistics()
+	tss.AddNumReceived(1)
+
 	epochStartBootstrapArgs := bootstrap.ArgsEpochStartBootstrap{
 		CoreComponentsHolder:       bcf.coreComponents,
 		CryptoComponentsHolder:     bcf.cryptoComponents,
@@ -189,7 +194,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		HeaderIntegrityVerifier:    headerIntegrityVerifier,
 		DataSyncerCreator:          dataSyncerFactory,
 		ScheduledSCRsStorer:        nil, // will be updated after sync from network
-		TrieSyncStatisticsProvider: bcf.statusCoreComponents.TrieSyncStatistics(),
+		TrieSyncStatisticsProvider: tss,
 	}
 
 	var epochStartBootstrapper factory.EpochStartBootstrapper

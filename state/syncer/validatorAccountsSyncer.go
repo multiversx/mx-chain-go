@@ -34,22 +34,22 @@ func NewValidatorAccountsSyncer(args ArgsNewValidatorAccountsSyncer) (*validator
 	}
 
 	b := &baseAccountsSyncer{
-		hasher:                    args.Hasher,
-		marshalizer:               args.Marshalizer,
-		dataTries:                 make(map[string]struct{}),
-		trieStorageManager:        args.TrieStorageManager,
-		requestHandler:            args.RequestHandler,
-		timeoutHandler:            timeoutHandler,
-		shardId:                   core.MetachainShardId,
-		cacher:                    args.Cacher,
-		rootHash:                  nil,
-		maxTrieLevelInMemory:      args.MaxTrieLevelInMemory,
-		name:                      "peer accounts",
-		maxHardCapForMissingNodes: args.MaxHardCapForMissingNodes,
-		trieSyncerVersion:         args.TrieSyncerVersion,
-		checkNodesOnDisk:          args.CheckNodesOnDisk,
-		storageMarker:             args.StorageMarker,
-		syncStatisticsHandler:     statistics.NewTrieSyncStatistics(),
+		hasher:                            args.Hasher,
+		marshalizer:                       args.Marshalizer,
+		dataTries:                         make(map[string]struct{}),
+		trieStorageManager:                args.TrieStorageManager,
+		requestHandler:                    args.RequestHandler,
+		timeoutHandler:                    timeoutHandler,
+		shardId:                           core.MetachainShardId,
+		cacher:                            args.Cacher,
+		rootHash:                          nil,
+		maxTrieLevelInMemory:              args.MaxTrieLevelInMemory,
+		name:                              "peer accounts",
+		maxHardCapForMissingNodes:         args.MaxHardCapForMissingNodes,
+		trieSyncerVersion:                 args.TrieSyncerVersion,
+		checkNodesOnDisk:                  args.CheckNodesOnDisk,
+		storageMarker:                     args.StorageMarker,
+		userAccountsSyncStatisticsHandler: statistics.NewTrieSyncStatistics(),
 	}
 
 	u := &validatorAccountsSyncer{
