@@ -42,6 +42,7 @@ type MessengerStub struct {
 	WaitForConnectionsCalled               func(maxWaitingTime time.Duration, minNumOfPeers uint32)
 	SignCalled                             func(payload []byte) ([]byte, error)
 	VerifyCalled                           func(payload []byte, pid core.PeerID, signature []byte) error
+	AddPeerTopicNotifierCalled             func(notifier p2p.PeerTopicNotifier) error
 	BroadcastUsingPrivateKeyCalled         func(topic string, buff []byte, pid core.PeerID, skBytes []byte)
 	SignUsingPrivateKeyCalled              func(skBytes []byte, payload []byte) ([]byte, error)
 }
@@ -332,6 +333,15 @@ func (ms *MessengerStub) Sign(payload []byte) ([]byte, error) {
 func (ms *MessengerStub) Verify(payload []byte, pid core.PeerID, signature []byte) error {
 	if ms.VerifyCalled != nil {
 		return ms.VerifyCalled(payload, pid, signature)
+	}
+
+	return nil
+}
+
+// AddPeerTopicNotifier -
+func (ms *MessengerStub) AddPeerTopicNotifier(notifier p2p.PeerTopicNotifier) error {
+	if ms.AddPeerTopicNotifierCalled != nil {
+		return ms.AddPeerTopicNotifierCalled(notifier)
 	}
 
 	return nil
