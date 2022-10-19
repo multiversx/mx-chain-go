@@ -248,7 +248,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	sw := core.NewStopWatch()
 	sw.Start("execute")
 
-	failureContext := NewFailureContext(sc)
+	failureContext := NewFailureContext()
 	returnCode, err := sc.doExecuteSmartContractTransaction(tx, acntSnd, acntDst, failureContext)
 	if failureContext.processFail {
 		failureProcessingError := sc.processIfErrorWithAddedLogs(
@@ -298,9 +298,8 @@ func (sc *scProcessor) prepareExecution(
 		return 0, nil, nil, err
 	}
 
-	failureContext.
-		makeSnaphot().
-		setTxHash(txHash)
+	failureContext.makeSnaphot(sc.accounts.JournalLen())
+	failureContext.setTxHash(txHash)
 
 	var vmInput *vmcommon.ContractCallInput
 	vmInput, err = sc.createVMCallInput(tx, txHash, builtInFuncCall)
@@ -331,10 +330,9 @@ func (sc *scProcessor) doExecuteSmartContractTransaction(
 		return returnCode, err
 	}
 
-	failureContext.
-		makeSnaphot().
-		setTxHash(txHash).
-		setGasLocked(vmInput.GasLocked)
+	failureContext.makeSnaphot(sc.accounts.JournalLen())
+	failureContext.setTxHash(txHash)
+	failureContext.setGasLocked(vmInput.GasLocked)
 
 	vmOutput, errReturnCode, err := sc.executeSmartContractCallAndCheckGas(vmInput, tx, txHash, acntSnd, acntDst, failureContext)
 	if errReturnCode != vmcommon.Ok || err != nil {
@@ -420,9 +418,8 @@ func (sc *scProcessor) executeSmartContractCall(
 	vmOutput.GasRemaining += vmInput.GasLocked
 
 	if vmOutput.ReturnCode != vmcommon.Ok {
-		failureContext.
-			setMessages(vmOutput.ReturnCode.String(), []byte(vmOutput.ReturnMessage)).
-			setLogs(vmOutput.Logs)
+		failureContext.setMessages(vmOutput.ReturnCode.String(), []byte(vmOutput.ReturnMessage))
+		failureContext.setLogs(vmOutput.Logs)
 		return userErrorVmOutput, nil
 	}
 	acntSnd, err = sc.reloadLocalAccount(acntSnd) // nolint
@@ -846,7 +843,7 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 	tx data.TransactionHandler,
 	acntSnd, acntDst state.UserAccountHandler,
 ) (vmcommon.ReturnCode, error) {
-	failureContext := NewFailureContext(sc)
+	failureContext := NewFailureContext()
 	retCode, err := sc.doExecuteBuiltInFunctionWithoutFailureProcessing(tx, acntSnd, acntDst, failureContext)
 	if failureContext.processFail {
 		failureProcessingError := sc.processIfErrorWithAddedLogs(
@@ -870,10 +867,9 @@ func (sc *scProcessor) doExecuteBuiltInFunctionWithoutFailureProcessing(
 		return returnCode, err
 	}
 
-	failureContext.makeSnaphot()
-	failureContext.
-		setTxHash(txHash).
-		setGasLocked(vmInput.GasLocked)
+	failureContext.makeSnaphot(sc.accounts.JournalLen())
+	failureContext.setTxHash(txHash)
+	failureContext.setGasLocked(vmInput.GasLocked)
 
 	var vmOutput *vmcommon.VMOutput
 	vmOutput, err = sc.resolveBuiltInFunctions(vmInput)
@@ -888,8 +884,7 @@ func (sc *scProcessor) doExecuteBuiltInFunctionWithoutFailureProcessing(
 	}
 
 	if vmInput.ReturnCallAfterError && vmInput.CallType != vmData.AsynchronousCallBack {
-		returnCode, err := sc.finishSCExecution(make([]data.TransactionHandler, 0), txHash, tx, vmOutput, 0)
-		return returnCode, err
+		return sc.finishSCExecution(make([]data.TransactionHandler, 0), txHash, tx, vmOutput, 0)
 	}
 
 	_, txTypeOnDst := sc.txTypeHandler.ComputeTransactionType(tx)
@@ -903,9 +898,8 @@ func (sc *scProcessor) doExecuteBuiltInFunctionWithoutFailureProcessing(
 	if vmOutput.ReturnCode != vmcommon.Ok {
 		if !check.IfNil(acntSnd) {
 			err := sc.resolveFailedTransaction(acntSnd, tx, txHash)
-			failureContext.
-				setMessage(vmOutput.ReturnMessage).
-				setGasLocked(0)
+			failureContext.setMessage(vmOutput.ReturnMessage)
+			failureContext.setGasLocked(0)
 			return vmcommon.UserError, err
 
 		}
@@ -915,7 +909,7 @@ func (sc *scProcessor) doExecuteBuiltInFunctionWithoutFailureProcessing(
 
 	if vmInput.CallType == vmData.AsynchronousCallBack {
 		// in case of asynchronous callback - the process of built in function is a must
-		failureContext.makeSnaphot()
+		failureContext.makeSnaphot(sc.accounts.JournalLen())
 	}
 
 	err = sc.gasConsumedChecks(tx, vmInput.GasProvided, vmInput.GasLocked, vmOutput)
@@ -955,14 +949,17 @@ func (sc *scProcessor) doExecuteBuiltInFunctionWithoutFailureProcessing(
 				failureContext:       failureContext,
 			})
 		if err != nil {
+			failureContext.setMessagesFromError(err)
 			return vmcommon.ExecutionFailed, nil
 		}
 
 		newVMOutput, errReturnCode, err = sc.executeSmartContractCallAndCheckGas(newVMInput, tx, newVMInput.CurrentTxHash, acntSnd, newDestSC, failureContext)
 		if err != nil {
+			failureContext.setMessagesFromError(err)
 			return vmcommon.ExecutionFailed, nil
 		}
 		if errReturnCode != vmcommon.Ok {
+			failureContext.setMessagesFromError(err)
 			return errReturnCode, nil // process if error already happened inside executeSmartContractCallAndCheckGas
 		}
 
@@ -1007,8 +1004,7 @@ func (sc *scProcessor) doExecuteBuiltInFunctionWithoutFailureProcessing(
 		return vmcommon.UserError, nil
 	}
 
-	returnCode, err = sc.finishSCExecution(scrResults, txHash, tx, newVMOutput, builtInFuncGasUsed)
-	return returnCode, err
+	return sc.finishSCExecution(scrResults, txHash, tx, newVMOutput, builtInFuncGasUsed)
 }
 
 func mergeOutputResultsWithBuiltinResults(results *outputResultsToBeMerged) (bool, []data.TransactionHandler) {
@@ -1695,7 +1691,7 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 	sw := core.NewStopWatch()
 	sw.Start("deploy")
 
-	failureContext := NewFailureContext(sc)
+	failureContext := NewFailureContext()
 	returnCode, err := sc.doDeploySmartContract(tx, acntSnd, failureContext)
 	if failureContext.processFail {
 		failureProcessingError := sc.processIfErrorWithAddedLogs(
@@ -1750,9 +1746,8 @@ func (sc *scProcessor) doDeploySmartContract(
 
 	var vmOutput *vmcommon.VMOutput
 
-	failureContext.
-		makeSnaphot().
-		setTxHash(txHash)
+	failureContext.makeSnaphot(sc.accounts.JournalLen())
+	failureContext.setTxHash(txHash)
 
 	vmInput, vmType, err := sc.createVMDeployInput(tx)
 	if err != nil {

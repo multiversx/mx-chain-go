@@ -3,7 +3,6 @@ package processorV2
 import vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 
 type failureContext struct {
-	sc            *scProcessor
 	processFail   bool
 	txHash        []byte
 	errorMessage  string
@@ -13,46 +12,38 @@ type failureContext struct {
 	logs          []*vmcommon.LogEntry
 }
 
-func NewFailureContext(sc *scProcessor) *failureContext {
+func NewFailureContext() *failureContext {
 	return &failureContext{
-		sc:          sc,
 		processFail: false,
 	}
 }
 
-func (failCtx *failureContext) makeSnaphot() *failureContext {
-	failCtx.snapshot = failCtx.sc.accounts.JournalLen()
-	return failCtx
+func (failCtx *failureContext) makeSnaphot(snapshot int) {
+	failCtx.snapshot = snapshot
 }
 
-func (failCtx *failureContext) setTxHash(txHash []byte) *failureContext {
+func (failCtx *failureContext) setTxHash(txHash []byte) {
 	failCtx.txHash = txHash
-	return failCtx
 }
 
-func (failCtx *failureContext) setGasLocked(gasLocked uint64) *failureContext {
+func (failCtx *failureContext) setGasLocked(gasLocked uint64) {
 	failCtx.gasLocked = gasLocked
-	return failCtx
 }
 
-func (failCtx *failureContext) setMessage(errorMessage string) *failureContext {
+func (failCtx *failureContext) setMessage(errorMessage string) {
 	failCtx.setMessages(errorMessage, []byte(errorMessage))
-	return failCtx
 }
 
-func (failCtx *failureContext) setMessagesFromError(err error) *failureContext {
+func (failCtx *failureContext) setMessagesFromError(err error) {
 	failCtx.setMessage(err.Error())
-	return failCtx
 }
 
-func (failCtx *failureContext) setMessages(errorMessage string, returnMessage []byte) *failureContext {
+func (failCtx *failureContext) setMessages(errorMessage string, returnMessage []byte) {
 	failCtx.processFail = true
 	failCtx.errorMessage = errorMessage
 	failCtx.returnMessage = returnMessage
-	return failCtx
 }
 
-func (failCtx *failureContext) setLogs(logs []*vmcommon.LogEntry) *failureContext {
+func (failCtx *failureContext) setLogs(logs []*vmcommon.LogEntry) {
 	failCtx.logs = logs
-	return failCtx
 }
