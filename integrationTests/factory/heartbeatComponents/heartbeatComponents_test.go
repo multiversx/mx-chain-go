@@ -1,4 +1,4 @@
-package processComponents
+package consensusComponents
 
 import (
 	"fmt"
@@ -15,8 +15,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// ------------ Test TestProcessComponents --------------------
-func TestProcessComponents_Close_ShouldWork(t *testing.T) {
+// ------------ Test TestHeartbeatComponents --------------------
+func TestHeartbeatComponents_Close_ShouldWork(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -32,7 +32,6 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 	chanStopNodeProcess := make(chan endProcess.ArgEndProcess)
 	nr, err := node.NewNodeRunner(configs)
 	require.Nil(t, err)
-
 	managedStatusCoreComponents, err := nr.CreateManagedStatusCoreComponents()
 	require.Nil(t, err)
 	managedCoreComponents, err := nr.CreateManagedCoreComponents(chanStopNodeProcess)
@@ -82,6 +81,7 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 		false,
 	)
 	require.Nil(t, err)
+
 	argsGasScheduleNotifier := forking.ArgsNewGasScheduleNotifier{
 		GasScheduleConfig: configs.EpochConfig.GasSchedule,
 		ConfigDir:         configs.ConfigurationPathsHolder.GasScheduleDirectoryName,
@@ -90,6 +90,7 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 	}
 	gasScheduleNotifier, err := forking.NewGasScheduleNotifier(argsGasScheduleNotifier)
 	require.Nil(t, err)
+
 	managedProcessComponents, err := nr.CreateManagedProcessComponents(
 		managedCoreComponents,
 		managedCryptoComponents,
@@ -102,16 +103,20 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 		nodesCoordinator,
 	)
 	require.Nil(t, err)
-	require.NotNil(t, managedProcessComponents)
-
 	time.Sleep(2 * time.Second)
 
 	managedStatusComponents.SetForkDetector(managedProcessComponents.ForkDetector())
 	err = managedStatusComponents.StartPolling()
 	require.Nil(t, err)
 
+	managedHeartbeatComponents, err := nr.CreateManagedHeartbeatV2Components(managedBootstrapComponents, managedCoreComponents, managedNetworkComponents, managedCryptoComponents, managedDataComponents, managedProcessComponents)
+	require.Nil(t, err)
+	require.NotNil(t, managedHeartbeatComponents)
+
 	time.Sleep(5 * time.Second)
 
+	err = managedHeartbeatComponents.Close()
+	require.Nil(t, err)
 	err = managedProcessComponents.Close()
 	require.Nil(t, err)
 	err = managedStatusComponents.Close()
