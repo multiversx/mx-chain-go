@@ -258,7 +258,7 @@ func (psm *PeerShardMapper) putPublicKeyShardId(pk []byte, shardId uint32) {
 	psm.fallbackPkShardCache.Put(pk, shardId, uint32Size)
 }
 
-// PutPeerIdShardId puts the peer ID and shard ID into fallback cache in case it does not exists
+// PutPeerIdShardId puts the peer ID and shard ID into fallback cache in case it does not exist
 func (psm *PeerShardMapper) PutPeerIdShardId(pid core.PeerID, shardId uint32) {
 	psm.fallbackPidShardCache.Put([]byte(pid), shardId, uint32Size)
 	psm.preferredPeersHolder.PutShardID(pid, shardId)

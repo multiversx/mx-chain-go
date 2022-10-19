@@ -8,19 +8,19 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-type interceptedDirectConnectionInfoFactory struct {
+type interceptedPeerShardFactory struct {
 	marshaller       marshal.Marshalizer
 	shardCoordinator sharding.Coordinator
 }
 
-// NewInterceptedDirectConnectionInfoFactory creates an instance of interceptedDirectConnectionInfoFactory
-func NewInterceptedDirectConnectionInfoFactory(args ArgInterceptedDataFactory) (*interceptedDirectConnectionInfoFactory, error) {
+// NewInterceptedPeerShardFactory creates an instance of interceptedPeerShardFactory
+func NewInterceptedPeerShardFactory(args ArgInterceptedDataFactory) (*interceptedPeerShardFactory, error) {
 	err := checkInterceptedDirectConnectionInfoFactoryArgs(args)
 	if err != nil {
 		return nil, err
 	}
 
-	return &interceptedDirectConnectionInfoFactory{
+	return &interceptedPeerShardFactory{
 		marshaller:       args.CoreComponents.InternalMarshalizer(),
 		shardCoordinator: args.ShardCoordinator,
 	}, nil
@@ -41,17 +41,17 @@ func checkInterceptedDirectConnectionInfoFactoryArgs(args ArgInterceptedDataFact
 }
 
 // Create creates instances of InterceptedData by unmarshalling provided buffer
-func (idcif *interceptedDirectConnectionInfoFactory) Create(buff []byte) (process.InterceptedData, error) {
-	args := p2p.ArgInterceptedDirectConnectionInfo{
-		Marshaller:  idcif.marshaller,
+func (ipsf *interceptedPeerShardFactory) Create(buff []byte) (process.InterceptedData, error) {
+	args := p2p.ArgInterceptedPeerShard{
+		Marshaller:  ipsf.marshaller,
 		DataBuff:    buff,
-		NumOfShards: idcif.shardCoordinator.NumberOfShards(),
+		NumOfShards: ipsf.shardCoordinator.NumberOfShards(),
 	}
 
-	return p2p.NewInterceptedDirectConnectionInfo(args)
+	return p2p.NewInterceptedPeerShard(args)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (idcif *interceptedDirectConnectionInfoFactory) IsInterfaceNil() bool {
-	return idcif == nil
+func (ipsf *interceptedPeerShardFactory) IsInterfaceNil() bool {
+	return ipsf == nil
 }
