@@ -26,7 +26,6 @@ type ArgHeartbeatV2Monitor struct {
 	Cache                         storage.Cacher
 	PubKeyConverter               core.PubkeyConverter
 	Marshaller                    marshal.Marshalizer
-	PeerShardMapper               process.PeerShardMapper
 	MaxDurationPeerUnresponsive   time.Duration
 	HideInactiveValidatorInterval time.Duration
 	ShardId                       uint32
@@ -37,7 +36,6 @@ type heartbeatV2Monitor struct {
 	cache                         storage.Cacher
 	pubKeyConverter               core.PubkeyConverter
 	marshaller                    marshal.Marshalizer
-	peerShardMapper               process.PeerShardMapper
 	maxDurationPeerUnresponsive   time.Duration
 	hideInactiveValidatorInterval time.Duration
 	shardId                       uint32
@@ -55,7 +53,6 @@ func NewHeartbeatV2Monitor(args ArgHeartbeatV2Monitor) (*heartbeatV2Monitor, err
 		cache:                         args.Cache,
 		pubKeyConverter:               args.PubKeyConverter,
 		marshaller:                    args.Marshaller,
-		peerShardMapper:               args.PeerShardMapper,
 		maxDurationPeerUnresponsive:   args.MaxDurationPeerUnresponsive,
 		hideInactiveValidatorInterval: args.HideInactiveValidatorInterval,
 		shardId:                       args.ShardId,
@@ -74,9 +71,6 @@ func checkArgs(args ArgHeartbeatV2Monitor) error {
 	}
 	if check.IfNil(args.Marshaller) {
 		return heartbeat.ErrNilMarshaller
-	}
-	if check.IfNil(args.PeerShardMapper) {
-		return heartbeat.ErrNilPeerShardMapper
 	}
 	if args.MaxDurationPeerUnresponsive < minDuration {
 		return fmt.Errorf("%w on MaxDurationPeerUnresponsive, provided %d, min expected %d",
@@ -145,29 +139,23 @@ func (monitor *heartbeatV2Monitor) parseMessage(pid core.PeerID, message interfa
 		return pubKeyHeartbeat, err
 	}
 
-	peerInfo := monitor.peerShardMapper.GetPeerInfo(pid)
-
 	crtTime := time.Now()
 	messageTime := time.Unix(payload.Timestamp, 0)
-	messageAge := monitor.getMessageAge(crtTime, payload.Timestamp)
-	stringType := monitor.computePeerType(peerInfo.PkBytes)
+	messageAge := monitor.getMessageAge(crtTime, messageTime)
+	computedShardID, stringType := monitor.computePeerTypeAndShardID(heartbeatV2)
 	if monitor.shouldSkipMessage(messageAge) {
-		return pubKeyHeartbeat, heartbeat.ErrShouldSkipValidator
+		return pubKeyHeartbeat, fmt.Errorf("%w, messageAge %v", heartbeat.ErrShouldSkipValidator, messageAge)
 	}
 
-	pkBytes := peerInfo.PkBytes
-	if stringType == string(common.ObserverList) {
-		pkBytes = heartbeatV2.GetPubkey()
-	}
-	pk := monitor.pubKeyConverter.Encode(pkBytes)
-	numInstances[pk]++
+	pkHexString := monitor.pubKeyConverter.Encode(heartbeatV2.GetPubkey())
+	numInstances[pkHexString]++
 
 	pubKeyHeartbeat = data.PubKeyHeartbeat{
-		PublicKey:       pk,
+		PublicKey:       pkHexString,
 		TimeStamp:       messageTime,
 		IsActive:        monitor.isActive(messageAge),
 		ReceivedShardID: monitor.shardId,
-		ComputedShardID: peerInfo.ShardID,
+		ComputedShardID: computedShardID,
 		VersionNumber:   heartbeatV2.GetVersionNumber(),
 		NodeDisplayName: heartbeatV2.GetNodeDisplayName(),
 		Identity:        heartbeatV2.GetIdentity(),
@@ -180,18 +168,20 @@ func (monitor *heartbeatV2Monitor) parseMessage(pid core.PeerID, message interfa
 	return pubKeyHeartbeat, nil
 }
 
-func (monitor *heartbeatV2Monitor) computePeerType(pk []byte) string {
-	peerType, _, err := monitor.peerTypeProvider.ComputeForPubKey(pk)
+func (monitor *heartbeatV2Monitor) computePeerTypeAndShardID(hbMessage *heartbeat.HeartbeatV2) (uint32, string) {
+	peerType, shardID, err := monitor.peerTypeProvider.ComputeForPubKey(hbMessage.Pubkey)
 	if err != nil {
 		log.Warn("heartbeatV2Monitor: computePeerType", "error", err)
-		return string(common.ObserverList)
+		return monitor.shardId, string(common.ObserverList)
+	}
+	if peerType == common.ObserverList {
+		return monitor.shardId, string(common.ObserverList)
 	}
 
-	return string(peerType)
+	return shardID, string(peerType)
 }
 
-func (monitor *heartbeatV2Monitor) getMessageAge(crtTime time.Time, messageTimestamp int64) time.Duration {
-	messageTime := time.Unix(messageTimestamp, 0)
+func (monitor *heartbeatV2Monitor) getMessageAge(crtTime time.Time, messageTime time.Time) time.Duration {
 	msgAge := crtTime.Sub(messageTime)
 	return monitor.maxDuration(0, msgAge)
 }

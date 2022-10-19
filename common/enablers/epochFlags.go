@@ -71,7 +71,6 @@ type epochFlagsHolder struct {
 	scrSizeInvariantOnBuiltInResultFlag         *atomic.Flag
 	checkCorrectTokenIDForTransferRoleFlag      *atomic.Flag
 	failExecutionOnEveryAPIErrorFlag            *atomic.Flag
-	heartbeatDisableFlag                        *atomic.Flag
 	isMiniBlockPartialExecutionFlag             *atomic.Flag
 	managedCryptoAPIsFlag                       *atomic.Flag
 	esdtMetadataContinuousCleanupFlag           *atomic.Flag
@@ -156,7 +155,6 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		scrSizeInvariantOnBuiltInResultFlag:         &atomic.Flag{},
 		checkCorrectTokenIDForTransferRoleFlag:      &atomic.Flag{},
 		failExecutionOnEveryAPIErrorFlag:            &atomic.Flag{},
-		heartbeatDisableFlag:                        &atomic.Flag{},
 		isMiniBlockPartialExecutionFlag:             &atomic.Flag{},
 		managedCryptoAPIsFlag:                       &atomic.Flag{},
 		esdtMetadataContinuousCleanupFlag:           &atomic.Flag{},
@@ -515,11 +513,6 @@ func (holder *epochFlagsHolder) IsCheckCorrectTokenIDForTransferRoleFlagEnabled(
 // IsFailExecutionOnEveryAPIErrorFlagEnabled returns true if failExecutionOnEveryAPIErrorFlag is enabled
 func (holder *epochFlagsHolder) IsFailExecutionOnEveryAPIErrorFlagEnabled() bool {
 	return holder.failExecutionOnEveryAPIErrorFlag.IsSet()
-}
-
-// IsHeartbeatDisableFlagEnabled returns true if heartbeatDisableFlag is enabled
-func (holder *epochFlagsHolder) IsHeartbeatDisableFlagEnabled() bool {
-	return holder.heartbeatDisableFlag.IsSet()
 }
 
 // IsMiniBlockPartialExecutionFlagEnabled returns true if isMiniBlockPartialExecutionFlag is enabled
