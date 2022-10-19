@@ -522,27 +522,29 @@ func applyCompatibleConfigs(log logger.Logger, configs *config.Configs) error {
 		runtime.SetMutexProfileFraction(5)
 	}
 
-	operationModes := strings.Split(configs.FlagsConfig.OperationMode, ",")
-	err := operationmodes.CheckOperationModes(operationModes)
-	if err != nil {
-		return err
-	}
-
-	isInImportDBMode := configs.ImportDbConfig.IsImportDBMode || operationmodes.SliceContainsElement(operationModes, operationmodes.OperationModeImportDb)
+	// import-db is not an operation mode because it needs the path to the DB to be imported from. Making it an operation mode
+	// would bring confusion
+	isInImportDBMode := configs.ImportDbConfig.IsImportDBMode
 	if isInImportDBMode {
 		err := processConfigImportDBMode(log, configs)
 		if err != nil {
 			return err
 		}
 	}
+	if !isInImportDBMode && configs.ImportDbConfig.ImportDbNoSigCheckFlag {
+		return fmt.Errorf("import-db-no-sig-check can only be used with the import-db flag")
+	}
+
+	operationModes := strings.Split(configs.FlagsConfig.OperationMode, ",")
+	err := operationmodes.CheckOperationModes(operationModes)
+	if err != nil {
+		return err
+	}
 
 	// if FullArchive is enabled, we override the conflicting StoragePruning settings and StartInEpoch as well
 	isInFullArchiveMode := configs.PreferencesConfig.Preferences.FullArchive || operationmodes.SliceContainsElement(operationModes, operationmodes.OperationModeFullArchive)
 	if isInFullArchiveMode {
 		processConfigFullArchiveMode(log, configs)
-	}
-	if !isInImportDBMode && configs.ImportDbConfig.ImportDbNoSigCheckFlag {
-		return fmt.Errorf("import-db-no-sig-check can only be used with the import-db flag")
 	}
 
 	isInHistoricalBalancesMode := operationmodes.SliceContainsElement(operationModes, operationmodes.OperationModeHistoricalBalances)

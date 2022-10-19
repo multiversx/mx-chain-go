@@ -3,7 +3,6 @@ package operationmodes
 import "fmt"
 
 const (
-	OperationModeImportDb           = "import-db"
 	OperationModeFullArchive        = "full-archive"
 	OperationModeDbLookupExtension  = "db-lookup-extension"
 	OperationModeHistoricalBalances = "historical-balances"
@@ -12,6 +11,10 @@ const (
 
 // CheckOperationModes will check the compatibility of the provided operation modes and return an error if any
 func CheckOperationModes(modes []string) error {
+	if len(modes) == 0 {
+		return nil
+	}
+
 	// db lookup extension and historical balances
 	isInvalid := sliceContainsBothElements(modes, OperationModeHistoricalBalances, OperationModeDbLookupExtension)
 	if isInvalid {

@@ -40,7 +40,10 @@ func TestCheckOperationModes(t *testing.T) {
 			CheckOperationModes([]string{OperationModeDbLookupExtension}),
 		)
 		require.NoError(t,
-			CheckOperationModes([]string{OperationModeDbLookupExtension, OperationModeImportDb}),
+			CheckOperationModes([]string{OperationModeDbLookupExtension, OperationModeFullArchive}),
+		)
+		require.NoError(t,
+			CheckOperationModes([]string{}),
 		)
 	})
 }
