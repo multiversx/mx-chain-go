@@ -99,11 +99,9 @@ func (sender *heartbeatSender) Execute() {
 }
 
 func (sender *heartbeatSender) execute() error {
-	trieNodesReceived := sender.trieSyncStatisticsProvider.NumReceived()
 	payload := &heartbeat.Payload{
-		Timestamp:          time.Now().Unix(),
-		HardforkMessage:    "", // sent through peer authentication message
-		NumTrieNodesSynced: uint64(trieNodesReceived),
+		Timestamp:       time.Now().Unix(),
+		HardforkMessage: "", // sent through peer authentication message
 	}
 	payloadBytes, err := sender.marshaller.Marshal(payload)
 	if err != nil {
@@ -122,14 +120,16 @@ func (sender *heartbeatSender) execute() error {
 		return err
 	}
 
+	trieNodesReceived := sender.trieSyncStatisticsProvider.NumReceived()
 	msg := &heartbeat.HeartbeatV2{
-		Payload:         payloadBytes,
-		VersionNumber:   sender.versionNumber,
-		NodeDisplayName: sender.nodeDisplayName,
-		Identity:        sender.identity,
-		Nonce:           nonce,
-		PeerSubType:     uint32(sender.peerSubType),
-		Pubkey:          pkBytes,
+		Payload:            payloadBytes,
+		VersionNumber:      sender.versionNumber,
+		NodeDisplayName:    sender.nodeDisplayName,
+		Identity:           sender.identity,
+		Nonce:              nonce,
+		PeerSubType:        uint32(sender.peerSubType),
+		Pubkey:             pkBytes,
+		NumTrieNodesSynced: uint64(trieNodesReceived),
 	}
 
 	msgBytes, err := sender.marshaller.Marshal(msg)

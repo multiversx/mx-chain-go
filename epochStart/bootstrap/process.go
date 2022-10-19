@@ -1242,6 +1242,13 @@ func (e *epochStartBootstrap) createHeartbeatSender() error {
 	}
 
 	heartbeatTopic := common.HeartbeatV2Topic + e.shardCoordinator.CommunicationIdentifier(e.shardCoordinator.SelfId())
+	if !e.messenger.HasTopic(heartbeatTopic) {
+		err = e.messenger.CreateTopic(heartbeatTopic, true)
+		if err != nil {
+			return err
+		}
+	}
+
 	peerSubType := core.RegularPeer
 	if e.prefsConfig.FullArchive {
 		peerSubType = core.FullHistoryObserver

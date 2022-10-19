@@ -320,10 +320,7 @@ func TestHeartbeatSender_execute(t *testing.T) {
 				pk := argsBase.privKey.GeneratePublic()
 				pkBytes, _ := pk.ToByteArray()
 				assert.Equal(t, pkBytes, recoveredMessage.Pubkey)
-				recoveredPayload := &heartbeat.Payload{}
-				err = argsBase.marshaller.Unmarshal(recoveredPayload, recoveredMessage.Payload)
-				assert.Nil(t, err)
-				assert.Equal(t, uint64(providedNumTrieNodesSynced), recoveredPayload.NumTrieNodesSynced)
+				assert.Equal(t, uint64(providedNumTrieNodesSynced), recoveredMessage.NumTrieNodesSynced)
 				broadcastCalled = true
 			},
 		}

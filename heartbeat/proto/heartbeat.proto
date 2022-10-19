@@ -7,13 +7,14 @@ option go_package = "heartbeat";
 // HeartbeatV2 represents the heartbeat message that is sent between peers from the same shard containing
 // current node status
 message HeartbeatV2 {
-  bytes   Payload         = 1;
-  string  VersionNumber   = 2;
-  string  NodeDisplayName = 3;
-  string  Identity        = 4;
-  uint64  Nonce           = 5;
-  uint32  PeerSubType     = 6;
-  bytes   Pubkey          = 7;
+  bytes   Payload            = 1;
+  string  VersionNumber      = 2;
+  string  NodeDisplayName    = 3;
+  string  Identity           = 4;
+  uint64  Nonce              = 5;
+  uint32  PeerSubType        = 6;
+  bytes   Pubkey             = 7;
+  uint64  NumTrieNodesSynced = 8;
 }
 
 // PeerAuthentication represents the DTO used to pass peer authentication information such as public key, peer id,
@@ -28,7 +29,6 @@ message PeerAuthentication {
 
 // Payload represents the DTO used as payload for both HeartbeatV2 and PeerAuthentication messages
 message Payload {
-  int64  Timestamp          = 1;
-  string HardforkMessage    = 2;
-  uint64 NumTrieNodesSynced = 3;
+  int64  Timestamp       = 1;
+  string HardforkMessage = 2;
 }
