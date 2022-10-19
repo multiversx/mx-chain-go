@@ -22,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
 )
@@ -233,7 +234,7 @@ func TestPeerAuthenticationSender_execute(t *testing.T) {
 		t.Parallel()
 
 		argsBase := createMockBaseArgs()
-		argsBase.messenger = &mock.MessengerStub{
+		argsBase.messenger = &p2pmocks.MessengerStub{
 			SignCalled: func(payload []byte) ([]byte, error) {
 				return nil, expectedErr
 			},
@@ -253,7 +254,7 @@ func TestPeerAuthenticationSender_execute(t *testing.T) {
 		t.Parallel()
 
 		argsBase := createMockBaseArgs()
-		argsBase.messenger = &mock.MessengerStub{
+		argsBase.messenger = &p2pmocks.MessengerStub{
 			BroadcastCalled: func(topic string, buff []byte) {
 				assert.Fail(t, "should have not called Messenger.BroadcastCalled")
 			},
@@ -275,7 +276,7 @@ func TestPeerAuthenticationSender_execute(t *testing.T) {
 		t.Parallel()
 
 		baseArgs := createMockBaseArgs()
-		baseArgs.messenger = &mock.MessengerStub{
+		baseArgs.messenger = &p2pmocks.MessengerStub{
 			BroadcastCalled: func(topic string, buff []byte) {
 				assert.Fail(t, "should have not called Messenger.BroadcastCalled")
 			},
@@ -297,7 +298,7 @@ func TestPeerAuthenticationSender_execute(t *testing.T) {
 
 		numCalls := 0
 		argsBase := createMockBaseArgs()
-		argsBase.messenger = &mock.MessengerStub{
+		argsBase.messenger = &p2pmocks.MessengerStub{
 			BroadcastCalled: func(topic string, buff []byte) {
 				assert.Fail(t, "should have not called Messenger.BroadcastCalled")
 			},
@@ -324,7 +325,7 @@ func TestPeerAuthenticationSender_execute(t *testing.T) {
 
 		argsBase := createMockBaseArgs()
 		broadcastCalled := false
-		argsBase.messenger = &mock.MessengerStub{
+		argsBase.messenger = &p2pmocks.MessengerStub{
 			BroadcastCalled: func(topic string, buff []byte) {
 				assert.Equal(t, argsBase.topic, topic)
 				broadcastCalled = true
@@ -352,7 +353,7 @@ func TestPeerAuthenticationSender_execute(t *testing.T) {
 		argsBase := createMockBaseArgs()
 		argsBase.privKey = skMessenger
 		var buffResulted []byte
-		messenger := &mock.MessengerStub{
+		messenger := &p2pmocks.MessengerStub{
 			BroadcastCalled: func(topic string, buff []byte) {
 				assert.Equal(t, argsBase.topic, topic)
 				buffResulted = buff
@@ -421,7 +422,7 @@ func TestPeerAuthenticationSender_Execute(t *testing.T) {
 
 		argsBase := createMockBaseArgs()
 		wasBroadcastCalled := false
-		argsBase.messenger = &mock.MessengerStub{
+		argsBase.messenger = &p2pmocks.MessengerStub{
 			BroadcastCalled: func(topic string, buff []byte) {
 				wasBroadcastCalled = true
 			},
@@ -491,7 +492,7 @@ func TestPeerAuthenticationSender_Execute(t *testing.T) {
 
 		argsBase := createMockBaseArgs()
 		counterBroadcast := 0
-		argsBase.messenger = &mock.MessengerStub{
+		argsBase.messenger = &p2pmocks.MessengerStub{
 			BroadcastCalled: func(topic string, buff []byte) {
 				counterBroadcast++
 			},

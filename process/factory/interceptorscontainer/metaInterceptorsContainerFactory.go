@@ -180,7 +180,7 @@ func (micf *metaInterceptorsContainerFactory) Create() (process.InterceptorsCont
 		return nil, err
 	}
 
-	err = micf.generateDirectConnectionInfoInterceptor()
+	err = micf.generatePeerShardInterceptor()
 	if err != nil {
 		return nil, err
 	}
