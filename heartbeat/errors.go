@@ -65,9 +65,6 @@ var ErrNilCacher = errors.New("nil cacher")
 // ErrNilPeerShardMapper signals that a nil peer shard mapper has been provided
 var ErrNilPeerShardMapper = errors.New("nil peer shard mapper")
 
-// ErrNilEnableEpochsHandler signals that a nil enable epochs handler has been provided
-var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
-
 // ErrShouldSkipValidator signals that the validator should be skipped
 var ErrShouldSkipValidator = errors.New("validator should be skipped")
 
@@ -76,3 +73,6 @@ var ErrNilHeartbeatMonitor = errors.New("nil heartbeat monitor")
 
 // ErrNilHeartbeatSenderInfoProvider signals that a nil heartbeat sender info provider was provided
 var ErrNilHeartbeatSenderInfoProvider = errors.New("nil heartbeat sender info provider")
+
+// ErrNilShardCoordinator signlas that a nil shard coordinator was provided
+var ErrNilShardCoordinator = errors.New("nil shard coordinator")
