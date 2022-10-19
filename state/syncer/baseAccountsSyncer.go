@@ -153,6 +153,7 @@ func (b *baseAccountsSyncer) printStatistics(ctx context.Context) {
 				"peak processing speed", peakSpeed,
 				"average processing speed", averageSpeed,
 			)
+			b.userAccountsSyncStatisticsHandler.Reset()
 			return
 		case <-time.After(timeBetweenStatisticsPrints):
 			bytesReceivedDelta := b.userAccountsSyncStatisticsHandler.NumBytesReceived() - lastDataReceived
