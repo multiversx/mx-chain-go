@@ -247,4 +247,5 @@
     GasScheduleByEpochs = [
         { StartEpoch = 0, FileName = "gasScheduleV1.toml" },
         { StartEpoch = 1, FileName = "gasScheduleV6.toml" },
+        { StartEpoch = 5, FileName = "gasScheduleV7.toml" },
     ]
