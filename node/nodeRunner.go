@@ -76,6 +76,16 @@ const (
 // nodeRunner holds the node runner configuration and controls running of a node
 type nodeRunner struct {
 	configs *config.Configs
+
+	CreateManagedConsensusComponentsMethod func(
+		coreComponents mainFactory.CoreComponentsHolder,
+		networkComponents mainFactory.NetworkComponentsHolder,
+		cryptoComponents mainFactory.CryptoComponentsHolder,
+		dataComponents mainFactory.DataComponentsHolder,
+		stateComponents mainFactory.StateComponentsHolder,
+		statusComponents mainFactory.StatusComponentsHolder,
+		processComponents mainFactory.ProcessComponentsHolder,
+	) (mainFactory.ConsensusComponentsHandler, error)
 }
 
 // NewNodeRunner creates a nodeRunner instance
@@ -84,9 +94,13 @@ func NewNodeRunner(cfgs *config.Configs) (*nodeRunner, error) {
 		return nil, fmt.Errorf("nil configs provided")
 	}
 
-	return &nodeRunner{
+	nr := &nodeRunner{
 		configs: cfgs,
-	}, nil
+	}
+
+	nr.CreateManagedConsensusComponentsMethod = nr.CreateManagedConsensusComponents
+
+	return nr, nil
 }
 
 // Start creates and starts the managed components
@@ -433,7 +447,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 
 	log.Debug("starting node... executeOneComponentCreationCycle")
 
-	managedConsensusComponents, err := nr.CreateManagedConsensusComponents(
+	managedConsensusComponents, err := nr.CreateManagedConsensusComponentsMethod(
 		managedCoreComponents,
 		managedNetworkComponents,
 		managedCryptoComponents,

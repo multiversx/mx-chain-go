@@ -517,3 +517,6 @@ var ErrInvalidSignature = errors.New("invalid signature")
 
 // ErrInvalidHeartbeatV2Config signals that an invalid heartbeat v2 configuration has been provided
 var ErrInvalidHeartbeatV2Config = errors.New("invalid heartbeat v2 configuration")
+
+// ErrNilManagedConsensusComponents signals that the provided managed consensus components object is nil
+var ErrNilManagedConsensusComponents = errors.New("nil managed consensus components")

@@ -300,12 +300,14 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 	r = sr.DoBlockJob()
 	assert.False(t, r)
 
-	_ = sr.SetJobDone(sr.SelfPubKey(), bls.SrBlock, false)
+	container.SetRoundHandler(&mock.RoundHandlerMock{
+		RoundIndex: 1,
+	})
 	sr.SetStatus(bls.SrBlock, spos.SsFinished)
 	r = sr.DoBlockJob()
 	assert.False(t, r)
 
-	sr.SetStatus(bls.SrBlock, spos.SsNotFinished)
+	_ = sr.SetJobDone(sr.SelfPubKey(), bls.SrBlock, false)
 	bpm := &mock.BlockProcessorMock{}
 	err := errors.New("error")
 	bpm.CreateBlockCalled = func(header data.HeaderHandler, remainingTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
@@ -315,6 +317,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 	r = sr.DoBlockJob()
 	assert.False(t, r)
 
+	sr.SetStatus(bls.SrBlock, spos.SsNotFinished)
 	bpm = mock.InitBlockProcessorMock()
 	container.SetBlockProcessor(bpm)
 	bm := &mock.BroadcastMessengerMock{
@@ -323,9 +326,6 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		},
 	}
 	container.SetBroadcastMessenger(bm)
-	container.SetRoundHandler(&mock.RoundHandlerMock{
-		RoundIndex: 1,
-	})
 	r = sr.DoBlockJob()
 	assert.True(t, r)
 	assert.Equal(t, uint64(1), sr.Header.GetNonce())

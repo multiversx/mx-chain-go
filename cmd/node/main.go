@@ -45,10 +45,13 @@ VERSION:
 // appVersion should be populated at build time using ldflags
 // Usage examples:
 // linux/mac:
-//            go build -i -v -ldflags="-X main.appVersion=$(git describe --tags --long --dirty)"
+//
+//	go build -i -v -ldflags="-X main.appVersion=$(git describe --tags --long --dirty)"
+//
 // windows:
-//            for /f %i in ('git describe --tags --long --dirty') do set VERS=%i
-//            go build -i -v -ldflags="-X main.appVersion=%VERS%"
+//
+//	for /f %i in ('git describe --tags --long --dirty') do set VERS=%i
+//	go build -i -v -ldflags="-X main.appVersion=%VERS%"
 var appVersion = common.UnVersionedAppString
 
 func main() {
@@ -126,7 +129,13 @@ func startNodeRunner(c *cli.Context, log logger.Logger, version string) error {
 		return errRunner
 	}
 
-	err = nodeRunner.Start()
+	//TODO: Activate the following code for sovereign chain and also use the resulted instance, instead the original one, to call the method Start() below
+	//sovereignChainNodeRunner, errRunner := node.NewSovereignChainNodeRunner(nodeRunner)
+	//if errRunner != nil {
+	//	return errRunner
+	//}
+
+	err = nodeRunner.Start() // Use the following commented line, instead the current one, for sovereign chain -> err = sovereignChainNodeRunner.Start()
 	if err != nil {
 		log.Error(err.Error())
 	}

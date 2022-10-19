@@ -462,19 +462,18 @@ func TestFactory_GenerateSubroundBlockShouldFailWhenNewSubroundFail(t *testing.T
 
 	err := fct.GenerateBlockSubround()
 
-	assert.Equal(t, spos.ErrNilChannel, err)
+	assert.NotNil(t, err)
 }
 
-func TestFactory_GenerateSubroundBlockShouldFailWhenNewSubroundBlockFail(t *testing.T) {
+func TestFactory_GenerateSubroundBlockShouldWork(t *testing.T) {
 	t.Parallel()
 
 	container := mock.InitConsensusCore()
 	fct := *initFactoryWithContainer(container)
-	container.SetSyncTimer(nil)
 
 	err := fct.GenerateBlockSubround()
 
-	assert.Equal(t, spos.ErrNilSyncTimer, err)
+	assert.Nil(t, err)
 }
 
 func TestFactory_GenerateSubroundSignatureShouldFailWhenNewSubroundFail(t *testing.T) {
