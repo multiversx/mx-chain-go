@@ -4,6 +4,7 @@ import (
 	"math/big"
 	"strconv"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -61,6 +62,9 @@ func (d *delegation) createAndAddLogEntryForDelegate(
 		function == changeOwner {
 		address = contractCallInput.Arguments[0]
 
+		topics = append(topics, contractCallInput.RecipientAddr)
+	}
+	if function == core.SCDeployInitFunctionName {
 		topics = append(topics, contractCallInput.RecipientAddr)
 	}
 
