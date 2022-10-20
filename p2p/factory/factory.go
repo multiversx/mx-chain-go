@@ -40,6 +40,6 @@ func NewPeersHolder(preferredConnectionAddresses []string) (p2p.PreferredPeersHo
 }
 
 // NewRandomP2PIdentityGenerator creates a new identity generator
-func NewRandomP2PIdentityGenerator() RandomP2PIdentityGenerator {
+func NewRandomP2PIdentityGenerator() p2p.RandomP2PIdentityGenerator {
 	return crypto.NewIdentityGenerator()
 }

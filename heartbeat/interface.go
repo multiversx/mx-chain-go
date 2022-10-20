@@ -1,6 +1,8 @@
 package heartbeat
 
 import (
+	"time"
+
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-crypto"

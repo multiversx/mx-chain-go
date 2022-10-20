@@ -24,7 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/keysManagement"
-	"github.com/ElrondNetwork/elrond-go/p2p"
+	p2pFactory "github.com/ElrondNetwork/elrond-go/p2p/factory"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -180,7 +180,7 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 	isMainMachine := redundancyLevel == mainMachineRedundancyLevel
 	argsManagedPeersHolder := keysManagement.ArgsManagedPeersHolder{
 		KeyGenerator:                     blockSignKeyGen,
-		P2PIdentityGenerator:             p2p.NewRandomP2PIdentityGenerator(),
+		P2PIdentityGenerator:             p2pFactory.NewRandomP2PIdentityGenerator(),
 		IsMainMachine:                    isMainMachine,
 		MaxRoundsWithoutReceivedMessages: redundancyLevel,
 		PrefsConfig:                      ccf.prefsConfig,
