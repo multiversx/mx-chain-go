@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/trie/keyBuilder"
 )
 
@@ -79,12 +80,7 @@ func encodeNodeAndCommitToDB(n node, db common.DBWriteCacher) (int, error) {
 		return 0, err
 	}
 
-	n, err = n.getCollapsed()
-	if err != nil {
-		return 0, err
-	}
-
-	val, err := n.getEncodedNode()
+	val, err := collapseAndEncodeNode(n)
 	if err != nil {
 		return 0, err
 	}
@@ -94,6 +90,15 @@ func encodeNodeAndCommitToDB(n node, db common.DBWriteCacher) (int, error) {
 	err = db.Put(key, val)
 
 	return len(val), err
+}
+
+func collapseAndEncodeNode(n node) ([]byte, error) {
+	n, err := n.getCollapsed()
+	if err != nil {
+		return nil, err
+	}
+
+	return n.getEncodedNode()
 }
 
 func computeAndSetNodeHash(n node) ([]byte, error) {
@@ -254,4 +259,14 @@ func shouldStopIfContextDone(ctx context.Context, idleProvider IdleNodeProvider)
 		case <-time.After(pollingIdleNode):
 		}
 	}
+}
+
+func treatCommitSnapshotError(err error, hash []byte, missingNodesChan chan []byte) {
+	if errors.IsClosingError(err) {
+		log.Debug("context closing", "hash", hash)
+		return
+	}
+
+	log.Error("error during trie snapshot", "err", err.Error(), "hash", hash)
+	missingNodesChan <- hash
 }

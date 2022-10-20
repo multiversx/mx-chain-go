@@ -15,15 +15,16 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	factoryMarshalizer "github.com/ElrondNetwork/elrond-go-core/marshal/factory"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go-logger/file"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/cmd/seednode/api"
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/common/logging"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	p2pConfig "github.com/ElrondNetwork/elrond-go/p2p/config"
+	p2pFactory "github.com/ElrondNetwork/elrond-go/p2p/factory"
 	"github.com/urfave/cli"
 )
 
@@ -152,12 +153,12 @@ func startNode(ctx *cli.Context) error {
 	var fileLogging factory.FileLoggingHandler
 	if withLogFile {
 		workingDir := getWorkingDir(log)
-		args := logging.ArgsFileLogging{
+		args := file.ArgsFileLogging{
 			WorkingDir:      workingDir,
 			DefaultLogsPath: defaultLogsPath,
 			LogFilePrefix:   logFilePrefix,
 		}
-		fileLogging, err = logging.NewFileLogging(args)
+		fileLogging, err = file.NewFileLogging(args)
 		if err != nil {
 			return fmt.Errorf("%w creating a log file", err)
 		}
@@ -245,11 +246,11 @@ func loadMainConfig(filepath string) (*config.Config, error) {
 }
 
 func createNode(p2pConfig p2pConfig.P2PConfig, marshalizer marshal.Marshalizer, p2pKeyBytes []byte) (p2p.Messenger, error) {
-	arg := p2p.ArgsNetworkMessenger{
+	arg := p2pFactory.ArgsNetworkMessenger{
 		Marshalizer:           marshalizer,
 		ListenAddress:         p2p.ListenAddrWithIp4AndTcp,
 		P2pConfig:             p2pConfig,
-		SyncTimer:             &p2p.LocalSyncTimer{},
+		SyncTimer:             &p2pFactory.LocalSyncTimer{},
 		PreferredPeersHolder:  disabled.NewPreferredPeersHolder(),
 		NodeOperationMode:     p2p.NormalOperation,
 		PeersRatingHandler:    disabled.NewDisabledPeersRatingHandler(),
@@ -257,7 +258,7 @@ func createNode(p2pConfig p2pConfig.P2PConfig, marshalizer marshal.Marshalizer, 
 		P2pPrivateKeyBytes:    p2pKeyBytes,
 	}
 
-	return p2p.NewNetworkMessenger(arg)
+	return p2pFactory.NewNetworkMessenger(arg)
 }
 
 func displayMessengerInfo(messenger p2p.Messenger) {

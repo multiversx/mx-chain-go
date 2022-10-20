@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/api/shared/logging"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
 )
@@ -344,4 +345,12 @@ func bigIntToStr(value *big.Int) string {
 	}
 
 	return value.String()
+}
+
+func createAlteredBlockHash(hash []byte) []byte {
+	alteredHash := make([]byte, 0)
+	alteredHash = append(alteredHash, hash...)
+	alteredHash = append(alteredHash, []byte(common.GenesisStorageSuffix)...)
+
+	return alteredHash
 }

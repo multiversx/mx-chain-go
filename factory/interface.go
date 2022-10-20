@@ -143,6 +143,19 @@ type CoreComponentsHandler interface {
 	CoreComponentsHolder
 }
 
+// StatusCoreComponentsHolder holds the status core components
+type StatusCoreComponentsHolder interface {
+	ResourceMonitor() ResourceMonitor
+	NetworkStatistics() NetworkStatisticsProvider
+	IsInterfaceNil() bool
+}
+
+// StatusCoreComponentsHandler defines the status core components handler actions
+type StatusCoreComponentsHandler interface {
+	ComponentHandler
+	StatusCoreComponentsHolder
+}
+
 // CryptoParamsHolder permits access to crypto parameters such as the private and public keys
 type CryptoParamsHolder interface {
 	PublicKey() crypto.PublicKey
@@ -319,45 +332,6 @@ type StatusComponentsHandler interface {
 	StartPolling() error
 }
 
-// HeartbeatSender sends heartbeat messages
-type HeartbeatSender interface {
-	SendHeartbeat() error
-	IsInterfaceNil() bool
-}
-
-// HeartbeatMonitor monitors the received heartbeat messages
-type HeartbeatMonitor interface {
-	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
-	GetHeartbeats() []heartbeatData.PubKeyHeartbeat
-	IsInterfaceNil() bool
-	Cleanup()
-	Close() error
-}
-
-// HeartbeatStorer provides storage functionality for the heartbeat component
-type HeartbeatStorer interface {
-	UpdateGenesisTime(genesisTime time.Time) error
-	LoadGenesisTime() (time.Time, error)
-	SaveKeys(peersSlice [][]byte) error
-	LoadKeys() ([][]byte, error)
-	IsInterfaceNil() bool
-}
-
-// HeartbeatComponentsHolder holds the heartbeat components
-type HeartbeatComponentsHolder interface {
-	MessageHandler() heartbeat.MessageHandler
-	Monitor() HeartbeatMonitor
-	Sender() HeartbeatSender
-	Storer() HeartbeatStorer
-	IsInterfaceNil() bool
-}
-
-// HeartbeatComponentsHandler defines the heartbeat components handler actions
-type HeartbeatComponentsHandler interface {
-	ComponentHandler
-	HeartbeatComponentsHolder
-}
-
 // HeartbeatV2Monitor monitors the cache of heartbeatV2 messages
 type HeartbeatV2Monitor interface {
 	GetHeartbeats() []heartbeatData.PubKeyHeartbeat
@@ -412,7 +386,6 @@ type HardforkTrigger interface {
 	Trigger(epoch uint32, withEarlyEndOfEpoch bool) error
 	CreateData() []byte
 	AddCloser(closer update.Closer) error
-	NotifyTriggerReceived() <-chan struct{}
 	NotifyTriggerReceivedV2() <-chan struct{}
 	IsSelfTrigger() bool
 	IsInterfaceNil() bool
@@ -513,4 +486,27 @@ type ReceiptsRepository interface {
 // ProcessDebuggerSetter allows setting a debugger on the process component
 type ProcessDebuggerSetter interface {
 	SetProcessDebugger(debugger process.Debugger) error
+}
+
+// ResourceMonitor defines the function implemented by a struct that can monitor resources
+type ResourceMonitor interface {
+	Close() error
+	IsInterfaceNil() bool
+}
+
+// NetworkStatisticsProvider is able to provide network statistics
+type NetworkStatisticsProvider interface {
+	BpsSent() uint64
+	BpsRecv() uint64
+	BpsSentPeak() uint64
+	BpsRecvPeak() uint64
+	PercentSent() uint64
+	PercentRecv() uint64
+	TotalBytesSentInCurrentEpoch() uint64
+	TotalBytesReceivedInCurrentEpoch() uint64
+	TotalSentInCurrentEpoch() string
+	TotalReceivedInCurrentEpoch() string
+	EpochConfirmed(epoch uint32, timestamp uint64)
+	Close() error
+	IsInterfaceNil() bool
 }

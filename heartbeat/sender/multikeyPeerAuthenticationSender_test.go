@@ -21,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -53,7 +54,7 @@ func createMockMultikeyPeerAuthenticationSenderArgs(argBase argBaseSender) argMu
 
 func createMockMultikeyPeerAuthenticationSenderArgsSemiIntegrationTests(
 	numKeys int,
-) (argMultikeyPeerAuthenticationSender, *mock.MessengerStub) {
+) (argMultikeyPeerAuthenticationSender, *p2pmocks.MessengerStub) {
 	keyGenForBLS := signing.NewKeyGenerator(mcl.NewSuiteBLS12())
 	keyGenForP2P := signing.NewKeyGenerator(ed25519.NewEd25519())
 	signerMessenger := ed25519SingleSig.Ed25519Signer{}
@@ -130,7 +131,7 @@ func createMockMultikeyPeerAuthenticationSenderArgsSemiIntegrationTests(
 		shardCoordinator:         createShardCoordinatorInShard(0),
 	}
 
-	messenger := &mock.MessengerStub{
+	messenger := &p2pmocks.MessengerStub{
 		SignUsingPrivateKeyCalled: func(skBytes []byte, payload []byte) ([]byte, error) {
 			p2pSk, _ := keyGenForP2P.PrivateKeyFromByteArray(skBytes)
 
@@ -692,7 +693,7 @@ func testSingleMessage(
 	errVerify := args.peerSignatureHandler.VerifyPeerSignature(recoveredMessage.Pubkey, core.PeerID(recoveredMessage.Pid), recoveredMessage.Signature)
 	assert.Nil(tb, errVerify)
 
-	messenger := args.messenger.(*mock.MessengerStub)
+	messenger := args.messenger.(*p2pmocks.MessengerStub)
 	errVerify = messenger.Verify(recoveredMessage.Payload, core.PeerID(recoveredMessage.Pid), recoveredMessage.PayloadSignature)
 	assert.Nil(tb, errVerify)
 

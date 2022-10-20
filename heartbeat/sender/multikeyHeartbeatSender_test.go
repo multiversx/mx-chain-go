@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -286,7 +287,7 @@ func TestMultikeyHeartbeatSender_execute(t *testing.T) {
 		args := createMockMultikeyHeartbeatSenderArgs(createMockBaseArgs())
 		broadcastCalled := false
 		recordedMessages := make(map[core.PeerID][][]byte)
-		args.messenger = &mock.MessengerStub{
+		args.messenger = &p2pmocks.MessengerStub{
 			BroadcastCalled: func(topic string, buff []byte) {
 				assert.Equal(t, args.topic, topic)
 				recordedMessages[args.messenger.ID()] = append(recordedMessages[args.messenger.ID()], buff)
@@ -308,7 +309,7 @@ func TestMultikeyHeartbeatSender_execute(t *testing.T) {
 
 		args := createMockMultikeyHeartbeatSenderArgs(createMockBaseArgs())
 		recordedMessages := make(map[core.PeerID][][]byte)
-		args.messenger = &mock.MessengerStub{
+		args.messenger = &p2pmocks.MessengerStub{
 			BroadcastCalled: func(topic string, buff []byte) {
 				assert.Equal(t, args.topic, topic)
 				recordedMessages[args.messenger.ID()] = append(recordedMessages[args.messenger.ID()], buff)
