@@ -413,7 +413,7 @@ func (bap *baseAPIBlockProcessor) apiBlockToAlteredAccounts(apiBlock *api.Block,
 		AccountsRepository:           bap.accountsRepository,
 		// TODO: AccountQueryOptions could be used like options.WithBlockNonce(..) instead of thinking what to provide
 
-		// send the block nonce as it guarantees the opening of the storer for the right epoch. Sending the block hash
+		// send the block nonce as it guarantees the opening of the storer for the right epoch. Sending the block root hash
 		// would be more optimal, but there is no link between a root hash and a block, which can result in the endpoint
 		// not working
 		AccountQueryOptions: api.AccountQueryOptions{
