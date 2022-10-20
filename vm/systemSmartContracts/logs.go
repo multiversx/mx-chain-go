@@ -8,9 +8,13 @@ import (
 )
 
 func (d *delegation) createAndAddLogEntry(contractCallInput *vmcommon.ContractCallInput, topics ...[]byte) {
+	d.createAndAddLogEntryCustom(contractCallInput.Function, contractCallInput.CallerAddr, topics...)
+}
+
+func (d *delegation) createAndAddLogEntryCustom(identifier string, address []byte, topics ...[]byte) {
 	entry := &vmcommon.LogEntry{
-		Identifier: []byte(contractCallInput.Function),
-		Address:    contractCallInput.CallerAddr,
+		Identifier: []byte(identifier),
+		Address:    address,
 		Topics:     topics,
 	}
 
@@ -18,7 +22,8 @@ func (d *delegation) createAndAddLogEntry(contractCallInput *vmcommon.ContractCa
 }
 
 func (d *delegation) createAndAddLogEntryForWithdraw(
-	contractCallInput *vmcommon.ContractCallInput,
+	function string,
+	address []byte,
 	actualUserUnBond *big.Int,
 	globalFund *GlobalFundData,
 	delegator *DelegatorData,
@@ -26,7 +31,7 @@ func (d *delegation) createAndAddLogEntryForWithdraw(
 	wasDeleted bool,
 ) {
 	activeFund := d.getFundForLogEntry(delegator.ActiveFund)
-	d.createAndAddLogEntry(contractCallInput, actualUserUnBond.Bytes(), activeFund.Bytes(), big.NewInt(0).SetUint64(numUsers).Bytes(), globalFund.TotalActive.Bytes(), boolToSlice(wasDeleted))
+	d.createAndAddLogEntryCustom(function, address, actualUserUnBond.Bytes(), activeFund.Bytes(), big.NewInt(0).SetUint64(numUsers).Bytes(), globalFund.TotalActive.Bytes(), boolToSlice(wasDeleted))
 }
 
 func (d *delegation) createAndAddLogEntryForDelegate(
@@ -52,7 +57,8 @@ func (d *delegation) createAndAddLogEntryForDelegate(
 	address := contractCallInput.CallerAddr
 	function := contractCallInput.Function
 	if function == initFromValidatorData ||
-		function == mergeValidatorDataToDelegation {
+		function == mergeValidatorDataToDelegation ||
+		function == changeOwner {
 		address = contractCallInput.Arguments[0]
 
 		topics = append(topics, contractCallInput.RecipientAddr)
