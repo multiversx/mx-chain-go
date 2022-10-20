@@ -69,7 +69,7 @@ func NewDepthFirstTrieSyncer(arg ArgTrieSyncer) (*depthFirstTrieSyncer, error) {
 // so this function is treated as a large critical section. This was done so the inner processing can be done without using
 // other mutexes.
 func (d *depthFirstTrieSyncer) StartSyncing(rootHash []byte, ctx context.Context) error {
-	if len(rootHash) == 0 || bytes.Equal(rootHash, EmptyTrieHash) {
+	if len(rootHash) == 0 || bytes.Equal(rootHash, common.EmptyTrieHash) {
 		return nil
 	}
 	if ctx == nil {
