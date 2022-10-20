@@ -14,6 +14,7 @@ import (
 	chainData "github.com/ElrondNetwork/elrond-go-core/data"
 	apiData "github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
+	"github.com/ElrondNetwork/elrond-go-core/data/outport"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/data/vm"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -477,6 +478,11 @@ func (nf *nodeFacade) GetBlockByNonce(nonce uint64, options apiData.BlockQueryOp
 // GetBlockByRound returns the block for a given round
 func (nf *nodeFacade) GetBlockByRound(round uint64, options apiData.BlockQueryOptions) (*apiData.Block, error) {
 	return nf.apiResolver.GetBlockByRound(round, options)
+}
+
+// GetAlteredAccountsForBlock returns the altered accounts for a given block
+func (nf *nodeFacade) GetAlteredAccountsForBlock(options apiData.GetAlteredAccountsForBlockOptions) ([]*outport.AlteredAccount, error) {
+	return nf.apiResolver.GetAlteredAccountsForBlock(options)
 }
 
 // GetInternalMetaBlockByHash return the meta block for a given hash

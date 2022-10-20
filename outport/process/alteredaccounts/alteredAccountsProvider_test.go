@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/outport/process/alteredaccounts/shared"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/trie"
@@ -103,7 +104,7 @@ func testExtractAlteredAccountsFromPoolNoTransaction(t *testing.T) {
 	args := getMockArgs()
 	aap, _ := NewAlteredAccountsProvider(args)
 
-	res, err := aap.ExtractAlteredAccountsFromPool(&outportcore.Pool{})
+	res, err := aap.ExtractAlteredAccountsFromPool(&outportcore.Pool{}, shared.AlteredAccountsOptions{})
 	require.NoError(t, err)
 	require.Empty(t, res)
 }
@@ -138,7 +139,7 @@ func testExtractAlteredAccountsFromPoolSenderShard(t *testing.T) {
 				RcvAddr: []byte("receiver shard - tx1"),
 			}, 0, big.NewInt(0)),
 		},
-	})
+	}, shared.AlteredAccountsOptions{})
 	require.NoError(t, err)
 	require.Equal(t, 2, len(res))
 
@@ -178,7 +179,7 @@ func testExtractAlteredAccountsFromPoolReceiverShard(t *testing.T) {
 				RcvAddr: []byte("receiver shard - tx1"),
 			}, 0, big.NewInt(0)),
 		},
-	})
+	}, shared.AlteredAccountsOptions{})
 	require.NoError(t, err)
 	require.Equal(t, 2, len(res))
 
@@ -228,7 +229,7 @@ func testExtractAlteredAccountsFromPoolBothSenderAndReceiverShards(t *testing.T)
 				RcvAddr: []byte("shard2 addr - tx3  "),
 			}, 0, big.NewInt(0)),
 		},
-	})
+	}, shared.AlteredAccountsOptions{})
 	require.NoError(t, err)
 	require.Equal(t, 5, len(res))
 
@@ -278,7 +279,7 @@ func testExtractAlteredAccountsFromPoolTrieDataChecks(t *testing.T) {
 				RcvAddr: []byte(receiverInSelfShard),
 			}, 0, big.NewInt(0)),
 		},
-	})
+	}, shared.AlteredAccountsOptions{})
 	require.NoError(t, err)
 	require.Equal(t, 1, len(res))
 
@@ -339,7 +340,7 @@ func testExtractAlteredAccountsFromPoolScrsInvalidRewards(t *testing.T) {
 				RcvAddr: []byte("receiver in shard 0 - tx 3"), // receiver for invalid txs should not be included
 			}, 0, big.NewInt(0)),
 		},
-	})
+	}, shared.AlteredAccountsOptions{})
 	require.NoError(t, err)
 	require.Len(t, res, 5)
 }
@@ -388,7 +389,7 @@ func testExtractAlteredAccountsFromPoolShouldReturnErrorWhenCastingToVmCommonUse
 				},
 			},
 		},
-	})
+	}, shared.AlteredAccountsOptions{})
 	require.True(t, errors.Is(err, errCannotCastToVmCommonUserAccountHandler))
 	require.Nil(t, res)
 }
@@ -437,7 +438,7 @@ func testExtractAlteredAccountsFromPoolShouldIncludeESDT(t *testing.T) {
 				},
 			},
 		},
-	})
+	}, shared.AlteredAccountsOptions{})
 	require.NoError(t, err)
 
 	encodedAddr := args.AddressConverter.Encode([]byte("addr"))
@@ -493,7 +494,7 @@ func testExtractAlteredAccountsFromPoolShouldIncludeNFT(t *testing.T) {
 				},
 			},
 		},
-	})
+	}, shared.AlteredAccountsOptions{})
 	require.NoError(t, err)
 
 	encodedAddr := args.AddressConverter.Encode([]byte("addr"))
@@ -548,7 +549,7 @@ func testExtractAlteredAccountsFromPoolShouldNotIncludeReceiverAddressIfNftCreat
 				},
 			},
 		},
-	})
+	}, shared.AlteredAccountsOptions{})
 	require.NoError(t, err)
 
 	require.Len(t, res, 1)
@@ -600,7 +601,7 @@ func testExtractAlteredAccountsFromPoolShouldIncludeDestinationFromTokensLogsTop
 				},
 			},
 		},
-	})
+	}, shared.AlteredAccountsOptions{})
 	require.NoError(t, err)
 
 	require.Len(t, res, 2)
@@ -669,7 +670,7 @@ func testExtractAlteredAccountsFromPoolAddressHasBalanceChangeEsdtAndfNft(t *tes
 				},
 			},
 		},
-	})
+	}, shared.AlteredAccountsOptions{})
 	require.NoError(t, err)
 
 	encodedAddr := args.AddressConverter.Encode([]byte("addr"))
@@ -785,7 +786,7 @@ func testExtractAlteredAccountsFromPoolAddressHasMultipleNfts(t *testing.T) {
 				},
 			},
 		},
-	})
+	}, shared.AlteredAccountsOptions{})
 	require.NoError(t, err)
 
 	encodedAddr := args.AddressConverter.Encode([]byte("addr"))

@@ -593,7 +593,7 @@ func (m *managedProcessComponents) ESDTDataStorageHandlerForAPI() vmcommon.ESDTN
 	m.mutProcessComponents.RLock()
 	defer m.mutProcessComponents.RUnlock()
 
-	if m.esdtDataStorageForApi == nil {
+	if m.processComponents == nil {
 		return nil
 	}
 
@@ -605,7 +605,7 @@ func (m *managedProcessComponents) ReceiptsRepository() factory.ReceiptsReposito
 	m.mutProcessComponents.RLock()
 	defer m.mutProcessComponents.RUnlock()
 
-	if m.receiptsRepository == nil {
+	if m.processComponents == nil {
 		return nil
 	}
 

@@ -8,10 +8,12 @@ import (
 )
 
 var (
-	errNilArgAPIBlockProcessor = errors.New("nil arg api block processor")
-	errNilTransactionHandler   = errors.New("nil API transaction handler")
-	errNilLogsFacade           = errors.New("nil logs facade")
-	errNilReceiptsRepository   = errors.New("nil receipts repository")
+	errNilArgAPIBlockProcessor    = errors.New("nil arg api block processor")
+	errNilTransactionHandler      = errors.New("nil API transaction handler")
+	errNilLogsFacade              = errors.New("nil logs facade")
+	errNilReceiptsRepository      = errors.New("nil receipts repository")
+	errNilAlteredAccountsProvider = errors.New("nil altered accounts provider")
+	errNilAccountsRepository      = errors.New("nil accounts repository")
 )
 
 func checkNilArg(arg *ArgAPIBlockProcessor) error {
@@ -44,6 +46,12 @@ func checkNilArg(arg *ArgAPIBlockProcessor) error {
 	}
 	if check.IfNil(arg.ReceiptsRepository) {
 		return errNilReceiptsRepository
+	}
+	if check.IfNil(arg.AlteredAccountsProvider) {
+		return errNilAlteredAccountsProvider
+	}
+	if check.IfNil(arg.AccountsRepository) {
+		return errNilAccountsRepository
 	}
 
 	return nil

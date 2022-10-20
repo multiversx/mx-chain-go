@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node/external/transactionAPI"
 	"github.com/ElrondNetwork/elrond-go/node/trieIterators"
 	trieIteratorsFactory "github.com/ElrondNetwork/elrond-go/node/trieIterators/factory"
+	"github.com/ElrondNetwork/elrond-go/outport/process/alteredaccounts"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
@@ -514,6 +515,16 @@ func createAPIBlockProcessorArgs(args *ApiResolverArgs, apiTransactionHandler ex
 		return nil, err
 	}
 
+	alteredAccountsProvider, err := alteredaccounts.NewAlteredAccountsProvider(alteredaccounts.ArgsAlteredAccountsProvider{
+		ShardCoordinator:       args.ProcessComponents.ShardCoordinator(),
+		AddressConverter:       args.CoreComponents.AddressPubKeyConverter(),
+		AccountsDB:             args.StateComponents.AccountsAdapterAPI(),
+		EsdtDataStorageHandler: args.ProcessComponents.ESDTDataStorageHandlerForAPI(),
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	blockApiArgs := &blockAPI.ArgAPIBlockProcessor{
 		SelfShardID:              args.ProcessComponents.ShardCoordinator().SelfId(),
 		Store:                    args.DataComponents.StorageService(),
@@ -526,6 +537,8 @@ func createAPIBlockProcessorArgs(args *ApiResolverArgs, apiTransactionHandler ex
 		Hasher:                   args.CoreComponents.Hasher(),
 		LogsFacade:               logsFacade,
 		ReceiptsRepository:       args.ProcessComponents.ReceiptsRepository(),
+		AlteredAccountsProvider:  alteredAccountsProvider,
+		AccountsRepository:       args.StateComponents.AccountsRepository(),
 	}
 
 	return blockApiArgs, nil
