@@ -186,6 +186,7 @@ type Config struct {
 	PeerHonesty           CacheConfig
 
 	Antiflood           AntifloodConfig
+	WebServerAntiflood  WebServerAntifloodConfig
 	ResourceStats       ResourceStatsConfig
 	HeartbeatV2         HeartbeatV2Config
 	ValidatorStatistics ValidatorStatisticsConfig
@@ -312,6 +313,7 @@ type EndpointsThrottlersConfig struct {
 
 // WebServerAntifloodConfig will hold the anti-flooding parameters for the web server
 type WebServerAntifloodConfig struct {
+	WebServerAntifloodEnabled          bool
 	SimultaneousRequests               uint32
 	SameSourceRequests                 uint32
 	SameSourceResetIntervalInSec       uint32
@@ -354,7 +356,6 @@ type AntifloodConfig struct {
 	SlowReacting              FloodPreventerConfig
 	PeerMaxOutput             AntifloodLimitsConfig
 	Cache                     CacheConfig
-	WebServer                 WebServerAntifloodConfig
 	Topic                     TopicAntifloodConfig
 	TxAccumulator             TxAccumulatorConfig
 }

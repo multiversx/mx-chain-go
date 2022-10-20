@@ -1287,7 +1287,7 @@ func (txs *transactions) handleBadTransaction(
 ) {
 	log.Trace("bad tx", "error", err.Error(), "hash", wtx.TxHash)
 	errRevert := txs.accounts.RevertToSnapshot(snapshot)
-	if errRevert != nil {
+	if errRevert != nil && !elrondErr.IsClosingError(errRevert) {
 		log.Warn("revert to snapshot", "error", err.Error())
 	}
 

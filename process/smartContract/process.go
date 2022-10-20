@@ -1335,7 +1335,10 @@ func (sc *scProcessor) processIfErrorWithAddedLogs(
 
 	err := sc.accounts.RevertToSnapshot(snapshot)
 	if err != nil {
-		log.Warn("revert to snapshot", "error", err.Error())
+		if !errors.IsClosingError(err) {
+			log.Warn("revert to snapshot", "error", err.Error())
+		}
+
 		return err
 	}
 
