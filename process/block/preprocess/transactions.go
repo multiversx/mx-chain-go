@@ -575,7 +575,10 @@ func (txs *transactions) processTxsToMe(
 			txs.gasHandler.SetGasProvided(gasProvidedByTxInSelfShard, txHash)
 		}
 
-		txs.saveAccountBalanceForAddress(tx.GetRcvAddr())
+		err = txs.saveAccountBalanceForAddress(tx.GetRcvAddr())
+		if err != nil {
+			return err
+		}
 
 		if scheduledMode {
 			txs.scheduledTxsExecutionHandler.AddScheduledTx(txHash, tx)
@@ -711,7 +714,7 @@ func (txs *transactions) createAndProcessScheduledMiniBlocksFromMeAsValidator(
 
 	txs.sortTransactionsBySenderAndNonce(scheduledTxsFromMe, randomness)
 
-	scheduledMiniBlocks := txs.createScheduledMiniBlocks(
+	scheduledMiniBlocks, err := txs.createScheduledMiniBlocks(
 		haveTime,
 		haveAdditionalTime,
 		isShardStuck,
@@ -719,6 +722,9 @@ func (txs *transactions) createAndProcessScheduledMiniBlocksFromMeAsValidator(
 		scheduledTxsFromMe,
 		mapSCTxs,
 	)
+	if err != nil {
+		return nil, err
+	}
 
 	if !haveTime() && !haveAdditionalTime() {
 		return nil, process.ErrTimeIsOut
@@ -1114,7 +1120,7 @@ func (txs *transactions) createAndProcessScheduledMiniBlocksFromMeAsProposer(
 	}
 
 	startTime := time.Now()
-	scheduledMiniBlocks := txs.createScheduledMiniBlocks(
+	scheduledMiniBlocks, err := txs.createScheduledMiniBlocks(
 		haveTime,
 		haveAdditionalTime,
 		txs.blockTracker.IsShardStuck,
@@ -1126,6 +1132,9 @@ func (txs *transactions) createAndProcessScheduledMiniBlocksFromMeAsProposer(
 	log.Debug("elapsed time to createScheduledMiniBlocks",
 		"time [s]", elapsedTime,
 	)
+	if err != nil {
+		return nil, err
+	}
 
 	return scheduledMiniBlocks, nil
 }
@@ -1186,6 +1195,9 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV1(
 
 		err = txs.processMiniBlockBuilderTx(mbBuilder, wtx, tx)
 		if err != nil {
+			if elrondErr.IsGetNodeFromDBError(err) {
+				return nil, nil, err
+			}
 			continue
 		}
 
@@ -1538,7 +1550,10 @@ func (txs *transactions) ProcessMiniBlock(
 			}
 		}
 
-		txs.saveAccountBalanceForAddress(miniBlockTxs[txIndex].GetRcvAddr())
+		err = txs.saveAccountBalanceForAddress(miniBlockTxs[txIndex].GetRcvAddr())
+		if err != nil {
+			break
+		}
 
 		if !scheduledMode {
 			err = txs.processInNormalMode(

@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
+	elrondErr "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -217,6 +218,10 @@ func (txProc *txProcessor) executeAfterFailedMoveBalanceTransaction(
 	tx *transaction.Transaction,
 	txError error,
 ) error {
+	if elrondErr.IsGetNodeFromDBError(txError) {
+		return txError
+	}
+
 	acntSnd, err := txProc.getAccountFromAddress(tx.SndAddr)
 	if err != nil {
 		return err

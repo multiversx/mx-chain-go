@@ -283,11 +283,6 @@ func (tr *patriciaMerkleTrie) recreate(root []byte, tsm common.StorageManager) (
 		)
 	}
 
-	_, err := tsm.Get(root)
-	if err != nil {
-		return nil, err
-	}
-
 	newTr, _, err := tr.recreateFromDb(root, tsm)
 	if err != nil {
 		if errors.IsClosingError(err) {

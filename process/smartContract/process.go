@@ -343,6 +343,9 @@ func (sc *scProcessor) doExecuteSmartContractTransaction(
 	var results []data.TransactionHandler
 	results, err = sc.processVMOutput(vmOutput, txHash, tx, vmInput.CallType, vmInput.GasProvided)
 	if err != nil {
+		if errors.IsGetNodeFromDBError(err) {
+			return vmcommon.ExecutionFailed, err
+		}
 		log.Trace("process vm output returned with problem ", "err", err.Error())
 		return vmcommon.ExecutionFailed, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked)
 	}
@@ -378,6 +381,9 @@ func (sc *scProcessor) executeSmartContractCall(
 	vmOutput, err = vmExec.RunSmartContractCall(vmInput)
 	sc.arwenChangeLocker.RUnlock()
 	if err != nil {
+		if errors.IsGetNodeFromDBError(err) {
+			return nil, err
+		}
 		log.Debug("run smart contract call error", "error", err.Error())
 		return userErrorVmOutput, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
 	}
@@ -938,6 +944,9 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 		tmpCreatedAsyncCallback := false
 		tmpCreatedAsyncCallback, newSCRTxs, err = sc.processSCOutputAccounts(newVMOutput, vmInput.CallType, outPutAccounts, tx, txHash)
 		if err != nil {
+			if errors.IsGetNodeFromDBError(err) {
+				return vmcommon.ExecutionFailed, err
+			}
 			return vmcommon.ExecutionFailed, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(err.Error()), snapshot, vmInput.GasLocked)
 		}
 		createdAsyncCallback = createdAsyncCallback || tmpCreatedAsyncCallback
@@ -1035,6 +1044,10 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 			ReturnCode:    vmcommon.UserError,
 			ReturnMessage: err.Error(),
 			GasRemaining:  0,
+		}
+
+		if errors.IsGetNodeFromDBError(err) {
+			return nil, err
 		}
 
 		return vmOutput, nil
@@ -1305,7 +1318,8 @@ func (sc *scProcessor) ProcessIfError(
 	return sc.processIfErrorWithAddedLogs(acntSnd, txHash, tx, returnCode, returnMessage, snapshot, gasLocked, nil)
 }
 
-func (sc *scProcessor) processIfErrorWithAddedLogs(acntSnd state.UserAccountHandler,
+func (sc *scProcessor) processIfErrorWithAddedLogs(
+	acntSnd state.UserAccountHandler,
 	txHash []byte,
 	tx data.TransactionHandler,
 	returnCode string,
@@ -1668,6 +1682,9 @@ func (sc *scProcessor) doDeploySmartContract(
 	sc.arwenChangeLocker.RUnlock()
 	if err != nil {
 		log.Debug("VM error", "error", err.Error())
+		if errors.IsGetNodeFromDBError(err) {
+			return vmcommon.ExecutionFailed, err
+		}
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
 	}
 
@@ -1690,6 +1707,9 @@ func (sc *scProcessor) doDeploySmartContract(
 	results, err := sc.processVMOutput(vmOutput, txHash, tx, vmInput.CallType, vmInput.GasProvided)
 	if err != nil {
 		log.Trace("Processing error", "error", err.Error())
+		if errors.IsGetNodeFromDBError(err) {
+			return vmcommon.ExecutionFailed, err
+		}
 		return vmcommon.ExecutionFailed, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked)
 	}
 

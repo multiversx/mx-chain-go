@@ -2,16 +2,19 @@ package rewardTransaction_test
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
 	"github.com/ElrondNetwork/elrond-go/state"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
@@ -210,6 +213,41 @@ func TestRewardTxProcessor_ProcessRewardTransactionShouldWork(t *testing.T) {
 	err := rtp.ProcessRewardTransaction(&rwdTx)
 	assert.Nil(t, err)
 	assert.True(t, saveAccountWasCalled)
+}
+
+func TestRewardTxProcessor_ProcessRewardTransactionMissingTrieNode(t *testing.T) {
+	t.Parallel()
+
+	missingNodeErr := fmt.Errorf(common.GetNodeFromDBErrorString)
+	accountsDb := &stateMock.AccountsStub{
+		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
+			acc, _ := state.NewUserAccount(address)
+			acc.SetDataTrie(&trie.TrieStub{
+				GetCalled: func(key []byte) ([]byte, error) {
+					return nil, missingNodeErr
+				},
+			},
+			)
+
+			return acc, nil
+		},
+	}
+
+	rtp, _ := rewardTransaction.NewRewardTxProcessor(
+		accountsDb,
+		createMockPubkeyConverter(),
+		mock.NewMultiShardsCoordinatorMock(3),
+	)
+
+	rwdTx := rewardTx.RewardTx{
+		Round:   0,
+		Epoch:   0,
+		Value:   big.NewInt(100),
+		RcvAddr: []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6},
+	}
+
+	err := rtp.ProcessRewardTransaction(&rwdTx)
+	assert.Equal(t, missingNodeErr, err)
 }
 
 func TestRewardTxProcessor_ProcessRewardTransactionToASmartContractShouldWork(t *testing.T) {

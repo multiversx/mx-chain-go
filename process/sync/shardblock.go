@@ -3,13 +3,11 @@ package sync
 import (
 	"context"
 	"math"
-	"strings"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -145,32 +143,12 @@ func (boot *ShardBootstrap) StartSyncingBlocks() {
 // in the blockchain, and all this mechanism will be reiterated for the next block.
 func (boot *ShardBootstrap) SyncBlock(ctx context.Context) error {
 	err := boot.syncBlock()
-	if isErrGetNodeFromDB(err) {
+	if errors.IsGetNodeFromDBError(err) {
 		errSync := boot.syncUserAccountsState()
 		boot.handleTrieSyncError(errSync, ctx)
 	}
 
 	return err
-}
-
-func isErrGetNodeFromDB(err error) bool {
-	if err == nil {
-		return false
-	}
-
-	if strings.Contains(err.Error(), storage.ErrDBIsClosed.Error()) {
-		return false
-	}
-
-	if strings.Contains(err.Error(), errors.ErrContextClosing.Error()) {
-		return false
-	}
-
-	if strings.Contains(err.Error(), common.GetNodeFromDBErrorString) {
-		return true
-	}
-
-	return false
 }
 
 // Close closes the synchronization loop

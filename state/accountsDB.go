@@ -502,7 +502,7 @@ func (adb *AccountsDB) loadDataTrie(accountHandler baseAccountHandler, mainTrie 
 
 	dataTrie, err := mainTrie.Recreate(accountHandler.GetRootHash())
 	if err != nil {
-		return NewErrMissingTrie(accountHandler.GetRootHash())
+		return fmt.Errorf("%w for rootHash %v", err, accountHandler.GetRootHash())
 	}
 
 	accountHandler.SetDataTrie(dataTrie)

@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
+	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -96,7 +97,10 @@ func (rtp *rewardTxProcessor) ProcessRewardTransaction(rTx *rewardTx.RewardTx) e
 		return err
 	}
 
-	rtp.saveAccumulatedRewards(rTx, accHandler)
+	err = rtp.saveAccumulatedRewards(rTx, accHandler)
+	if err != nil {
+		return err
+	}
 
 	return rtp.accounts.SaveAccount(accHandler)
 }
@@ -104,9 +108,9 @@ func (rtp *rewardTxProcessor) ProcessRewardTransaction(rTx *rewardTx.RewardTx) e
 func (rtp *rewardTxProcessor) saveAccumulatedRewards(
 	rtx *rewardTx.RewardTx,
 	userAccount state.UserAccountHandler,
-) {
+) error {
 	if !core.IsSmartContractAddress(rtx.RcvAddr) {
-		return
+		return nil
 	}
 
 	existingReward := big.NewInt(0)
@@ -116,8 +120,14 @@ func (rtp *rewardTxProcessor) saveAccumulatedRewards(
 		existingReward.SetBytes(val)
 	}
 
+	if errors.IsGetNodeFromDBError(err) {
+		return err
+	}
+
 	existingReward.Add(existingReward, rtx.Value)
 	_ = userAccount.SaveKeyValue([]byte(fullRewardKey), existingReward.Bytes())
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
