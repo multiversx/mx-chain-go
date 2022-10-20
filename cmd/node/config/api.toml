@@ -40,6 +40,9 @@
         # /address/:address will return data about a given account
         { Name = "/:address", Open = true },
 
+        # /address/bulk will return the state of the accounts provided in the bulk
+        { Name = "/bulk", Open = true },
+
         # /address/:address/balance will return the balance of a given account
         { Name = "/:address/balance", Open = true },
 

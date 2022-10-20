@@ -26,6 +26,7 @@ type FacadeStub struct {
 	GetHeartbeatsHandler       func() ([]data.PubKeyHeartbeat, error)
 	GetBalanceCalled           func(address string, options api.AccountQueryOptions) (*big.Int, api.BlockInfo, error)
 	GetAccountCalled           func(address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error)
+	GetAccountsCalled          func(addresses []string, options api.AccountQueryOptions) (map[string]*api.AccountResponse, api.BlockInfo, error)
 	GenerateTransactionHandler func(sender string, receiver string, value *big.Int, code string) (*transaction.Transaction, error)
 	GetTransactionHandler      func(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
 	CreateTransactionHandler   func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64,
@@ -254,6 +255,15 @@ func (f *FacadeStub) GetAllIssuedESDTs(tokenType string) ([]string, error) {
 // GetAccount -
 func (f *FacadeStub) GetAccount(address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
 	return f.GetAccountCalled(address, options)
+}
+
+// GetAccounts -
+func (f *FacadeStub) GetAccounts(addresses []string, options api.AccountQueryOptions) (map[string]*api.AccountResponse, api.BlockInfo, error) {
+	if f.GetAccountsCalled != nil {
+		return f.GetAccountsCalled(addresses, options)
+	}
+
+	return nil, api.BlockInfo{}, nil
 }
 
 // CreateTransaction is  mock implementation of a handler's CreateTransaction method

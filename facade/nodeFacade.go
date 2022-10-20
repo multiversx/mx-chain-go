@@ -338,6 +338,36 @@ func (nf *nodeFacade) GetAccount(address string, options apiData.AccountQueryOpt
 	return accountResponse, blockInfo, nil
 }
 
+// GetAccounts returns the state of the provided addresses
+func (nf *nodeFacade) GetAccounts(addresses []string, options apiData.AccountQueryOptions) (map[string]*apiData.AccountResponse, apiData.BlockInfo, error) {
+	numAddresses := uint32(len(addresses))
+	// TODO: check if Antiflood is enabled before applying this constraint (EN-13278)
+	maxBulkSize := nf.wsAntifloodConfig.GetAddressesBulkMaxSize
+	if numAddresses > maxBulkSize {
+		return nil, apiData.BlockInfo{}, fmt.Errorf("%w (provided: %d, maximum: %d)", ErrTooManyAddressesInBulk, numAddresses, maxBulkSize)
+	}
+
+	response := make(map[string]*apiData.AccountResponse)
+	var blockInfo apiData.BlockInfo
+
+	for _, address := range addresses {
+		accountResponse, blockInfoForAccount, err := nf.node.GetAccount(address, options)
+		if err != nil {
+			return nil, apiData.BlockInfo{}, err
+		}
+
+		blockInfo = blockInfoForAccount
+
+		codeHash := accountResponse.CodeHash
+		code, _ := nf.node.GetCode(codeHash, options)
+		accountResponse.Code = hex.EncodeToString(code)
+
+		response[address] = &accountResponse
+	}
+
+	return response, blockInfo, nil
+}
+
 // GetHeartbeats returns the heartbeat status for each public key from initial list or later joined to the network
 func (nf *nodeFacade) GetHeartbeats() ([]data.PubKeyHeartbeat, error) {
 	hbStatus := nf.node.GetHeartbeats()
