@@ -993,23 +993,7 @@ func (d *delegation) changeOwner(args *vmcommon.ContractCallInput) vmcommon.Retu
 	d.eei.SetStorageForAddress(d.delegationMgrSCAddress, args.CallerAddr, []byte{})
 	d.eei.SetStorage([]byte(ownerKey), args.Arguments[0])
 
-	globalFund, err := d.getGlobalFundData()
-	if err != nil {
-		globalFund = &GlobalFundData{
-			TotalActive: big.NewInt(0),
-		}
-
-		log.Warn("d.changeOwner cannot get global fund data", "error", err)
-	}
-	dStatus, err := d.getDelegationStatus()
-	if err != nil {
-		dStatus = &DelegationContractStatus{}
-
-		log.Warn("d.changeOwner cannot get delegation status", "error", err)
-	}
-
-	d.createAndAddLogEntryForDelegate(args, big.NewInt(0), globalFund, ownerDelegatorData, dStatus, isNew)
-	d.createAndAddLogEntryForWithdraw(withdraw, args.CallerAddr, big.NewInt(0), globalFund, ownerDelegatorData, d.numUsers(), true)
+	d.createLogEventsForChangeOwner(args, ownerDelegatorData)
 
 	return vmcommon.Ok
 }

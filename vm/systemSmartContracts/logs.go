@@ -92,6 +92,29 @@ func (d *delegation) getFundForLogEntry(activeFund []byte) *big.Int {
 	return fund.Value
 }
 
+func (d *delegation) createLogEventsForChangeOwner(
+	args *vmcommon.ContractCallInput,
+	ownerDelegatorData *DelegatorData,
+) {
+	globalFund, err := d.getGlobalFundData()
+	if err != nil {
+		globalFund = &GlobalFundData{
+			TotalActive: big.NewInt(0),
+		}
+
+		log.Warn("d.changeOwner cannot get global fund data", "error", err)
+	}
+	dStatus, err := d.getDelegationStatus()
+	if err != nil {
+		dStatus = &DelegationContractStatus{}
+
+		log.Warn("d.changeOwner cannot get delegation status", "error", err)
+	}
+
+	d.createAndAddLogEntryForDelegate(args, big.NewInt(0), globalFund, ownerDelegatorData, dStatus, false)
+	d.createAndAddLogEntryForWithdraw(withdraw, args.CallerAddr, big.NewInt(0), globalFund, ownerDelegatorData, d.numUsers(), true)
+}
+
 func boolToSlice(b bool) []byte {
 	return []byte(strconv.FormatBool(b))
 }
