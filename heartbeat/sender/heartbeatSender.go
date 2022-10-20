@@ -120,7 +120,7 @@ func (sender *heartbeatSender) execute() error {
 		return err
 	}
 
-	trieNodesReceived := sender.trieSyncStatisticsProvider.NumReceived()
+	trieNodesReceived := sender.trieSyncStatisticsProvider.NumProcessed()
 	msg := &heartbeat.HeartbeatV2{
 		Payload:            payloadBytes,
 		VersionNumber:      sender.versionNumber,

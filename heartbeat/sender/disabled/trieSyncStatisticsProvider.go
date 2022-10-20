@@ -8,8 +8,8 @@ func NewTrieSyncStatisticsProvider() *trieSyncStatisticsProvider {
 	return &trieSyncStatisticsProvider{}
 }
 
-// NumReceived returns 0 always
-func (tssp *trieSyncStatisticsProvider) NumReceived() int {
+// NumProcessed returns 0 always
+func (tssp *trieSyncStatisticsProvider) NumProcessed() int {
 	return 0
 }
 

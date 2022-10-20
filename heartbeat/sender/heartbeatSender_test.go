@@ -338,7 +338,7 @@ func TestHeartbeatSender_execute(t *testing.T) {
 			},
 		}
 		args.trieSyncStatisticsProvider = &testscommon.SizeSyncStatisticsHandlerStub{
-			NumReceivedField: providedNumTrieNodesSynced,
+			NumProcessedField: providedNumTrieNodesSynced,
 		}
 
 		senderInstance, _ := newHeartbeatSender(args)

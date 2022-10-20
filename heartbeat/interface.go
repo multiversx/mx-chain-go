@@ -132,6 +132,6 @@ type PeerShardMapper interface {
 
 // TrieSyncStatisticsProvider is able to provide trie sync statistics
 type TrieSyncStatisticsProvider interface {
-	NumReceived() int
+	NumProcessed() int
 	IsInterfaceNil() bool
 }

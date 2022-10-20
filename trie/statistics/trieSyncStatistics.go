@@ -7,7 +7,7 @@ import (
 
 type trieSyncStatistics struct {
 	sync.RWMutex
-	numReceived      int
+	numProcessed     int
 	numMissing       int
 	numLarge         int
 	missingMap       map[string]int
@@ -26,7 +26,7 @@ func NewTrieSyncStatistics() *trieSyncStatistics {
 // Reset will reset the contained values to 0
 func (tss *trieSyncStatistics) Reset() {
 	tss.Lock()
-	tss.numReceived = 0
+	tss.numProcessed = 0
 	tss.numMissing = 0
 	tss.numLarge = 0
 	tss.numBytesReceived = 0
@@ -36,10 +36,10 @@ func (tss *trieSyncStatistics) Reset() {
 	tss.Unlock()
 }
 
-// AddNumReceived will add the provided value to the existing numReceived
-func (tss *trieSyncStatistics) AddNumReceived(value int) {
+// AddNumProcessed will add the provided value to the existing numProcessed
+func (tss *trieSyncStatistics) AddNumProcessed(value int) {
 	tss.Lock()
-	tss.numReceived += value
+	tss.numProcessed += value
 	tss.Unlock()
 }
 
@@ -91,15 +91,15 @@ func (tss *trieSyncStatistics) IncrementIteration() {
 	tss.Unlock()
 }
 
-// NumReceived returns the received nodes
-func (tss *trieSyncStatistics) NumReceived() int {
+// NumProcessed returns the number of processed nodes
+func (tss *trieSyncStatistics) NumProcessed() int {
 	tss.RLock()
 	defer tss.RUnlock()
 
-	return tss.numReceived
+	return tss.numProcessed
 }
 
-// NumLarge returns the received large nodes
+// NumLarge returns the number of processed large nodes
 func (tss *trieSyncStatistics) NumLarge() int {
 	tss.RLock()
 	defer tss.RUnlock()
@@ -107,7 +107,7 @@ func (tss *trieSyncStatistics) NumLarge() int {
 	return tss.numLarge
 }
 
-// NumMissing returns the missing nodes
+// NumMissing returns the number of missing nodes
 func (tss *trieSyncStatistics) NumMissing() int {
 	tss.RLock()
 	defer tss.RUnlock()
