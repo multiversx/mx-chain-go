@@ -420,10 +420,6 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 		wrk.doJobOnMessageWithSignature(cnsMsg, message)
 	}
 
-	if wrk.consensusService.IsMessageWithInvalidSigners(msgType) {
-		log.Debug("worker: message with invalid signers")
-	}
-
 	errNotCritical := wrk.checkSelfState(cnsMsg)
 	if errNotCritical != nil {
 		log.Trace("checkSelfState", "error", errNotCritical.Error())
@@ -618,8 +614,6 @@ func (wrk *Worker) checkChannels(ctx context.Context) {
 		}
 
 		msgType := consensus.MessageType(rcvDta.MsgType)
-
-		log.Debug("worker: MSGTYPE", "messageType", msgType)
 
 		if callReceivedMessage, exist := wrk.receivedMessagesCalls[msgType]; exist {
 			if callReceivedMessage(ctx, rcvDta) {
