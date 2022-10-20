@@ -1,7 +1,7 @@
 package testscommon
 
 import (
-	"fmt"
+	"github.com/ElrondNetwork/elrond-go-core/core"
 )
 
 // ShardsCoordinatorMock -
@@ -13,8 +13,8 @@ type ShardsCoordinatorMock struct {
 }
 
 // NewMultiShardsCoordinatorMock -
-func NewMultiShardsCoordinatorMock(nrShard uint32) *ShardsCoordinatorMock {
-	return &ShardsCoordinatorMock{NoShards: nrShard}
+func NewMultiShardsCoordinatorMock(numShards uint32) *ShardsCoordinatorMock {
+	return &ShardsCoordinatorMock{NoShards: numShards}
 }
 
 // NumberOfShards -
@@ -57,15 +57,7 @@ func (scm *ShardsCoordinatorMock) SetNoShards(noShards uint32) {
 // CommunicationIdentifier returns the identifier between current shard ID and destination shard ID
 // identifier is generated such as the first shard from identifier is always smaller than the last
 func (scm *ShardsCoordinatorMock) CommunicationIdentifier(destShardID uint32) string {
-	if destShardID == scm.CurrentShard {
-		return fmt.Sprintf("_%d", scm.CurrentShard)
-	}
-
-	if destShardID < scm.CurrentShard {
-		return fmt.Sprintf("_%d_%d", destShardID, scm.CurrentShard)
-	}
-
-	return fmt.Sprintf("_%d_%d", scm.CurrentShard, destShardID)
+	return core.CommunicationIdentifierBetweenShards(scm.CurrentShard, destShardID)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

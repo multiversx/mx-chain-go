@@ -424,7 +424,7 @@ func (vs *validatorStatistics) RootHash() ([]byte, error) {
 }
 
 func (vs *validatorStatistics) getValidatorDataFromLeaves(
-	leavesChannel chan core.KeyValueHolder,
+	leavesChannels *common.TrieIteratorChannels,
 ) (map[uint32][]*state.ValidatorInfo, error) {
 
 	validators := make(map[uint32][]*state.ValidatorInfo, vs.shardCoordinator.NumberOfShards()+1)
@@ -433,7 +433,7 @@ func (vs *validatorStatistics) getValidatorDataFromLeaves(
 	}
 	validators[core.MetachainShardId] = make([]*state.ValidatorInfo, 0)
 
-	for pa := range leavesChannel {
+	for pa := range leavesChannels.LeavesChan {
 		peerAccount, err := vs.unmarshalPeer(pa.Value())
 		if err != nil {
 			return nil, err
@@ -442,6 +442,11 @@ func (vs *validatorStatistics) getValidatorDataFromLeaves(
 		currentShardId := peerAccount.GetShardId()
 		validatorInfoData := vs.PeerAccountToValidatorInfo(peerAccount)
 		validators[currentShardId] = append(validators[currentShardId], validatorInfoData)
+	}
+
+	err := common.GetErrorFromChanNonBlocking(leavesChannels.ErrChan)
+	if err != nil {
+		return nil, err
 	}
 
 	return validators, nil
@@ -552,13 +557,16 @@ func (vs *validatorStatistics) GetValidatorInfoForRootHash(rootHash []byte) (map
 		log.Debug("GetValidatorInfoForRootHash", sw.GetMeasurements()...)
 	}()
 
-	leavesChannel := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
-	err := vs.peerAdapter.GetAllLeaves(leavesChannel, context.Background(), rootHash)
+	leavesChannels := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    make(chan error, 1),
+	}
+	err := vs.peerAdapter.GetAllLeaves(leavesChannels, context.Background(), rootHash)
 	if err != nil {
 		return nil, err
 	}
 
-	vInfos, err := vs.getValidatorDataFromLeaves(leavesChannel)
+	vInfos, err := vs.getValidatorDataFromLeaves(leavesChannels)
 	if err != nil {
 		return nil, err
 	}

@@ -105,3 +105,12 @@ var ErrNilIdleNodeProvider = errors.New("nil idle node provider")
 
 // ErrNilRootHashHolder signals that a nil root hash holder was provided
 var ErrNilRootHashHolder = errors.New("nil root hash holder provided")
+
+// ErrNilTrieIteratorChannels signals that nil trie iterator channels has been provided
+var ErrNilTrieIteratorChannels = errors.New("nil trie iterator channels")
+
+// ErrNilTrieIteratorLeavesChannel signals that a nil trie iterator leaves channel has been provided
+var ErrNilTrieIteratorLeavesChannel = errors.New("nil trie iterator leaves channel")
+
+// ErrNilTrieIteratorErrChannel signals that a nil trie iterator error channel has been provided
+var ErrNilTrieIteratorErrChannel = errors.New("nil trie iterator error channel")

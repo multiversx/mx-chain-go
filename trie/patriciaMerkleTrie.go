@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
@@ -15,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/errors"
+	"github.com/ElrondNetwork/elrond-go/trie/statistics"
 )
 
 var log = logger.GetOrCreate("trie")
@@ -26,6 +26,8 @@ const (
 	leaf
 	branch
 )
+
+const rootDepthLevel = 0
 
 // EmptyTrieHash returns the value with empty trie hash
 var EmptyTrieHash = make([]byte, 32)
@@ -448,22 +450,34 @@ func (tr *patriciaMerkleTrie) GetSerializedNodes(rootHash []byte, maxBuffToSend 
 
 // GetAllLeavesOnChannel adds all the trie leaves to the given channel
 func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(
-	leavesChannel chan core.KeyValueHolder,
+	leavesChannels *common.TrieIteratorChannels,
 	ctx context.Context,
 	rootHash []byte,
 	keyBuilder common.KeyBuilder,
 ) error {
+	if leavesChannels == nil {
+		return ErrNilTrieIteratorChannels
+	}
+	if leavesChannels.LeavesChan == nil {
+		return ErrNilTrieIteratorLeavesChannel
+	}
+	if leavesChannels.ErrChan == nil {
+		return ErrNilTrieIteratorErrChannel
+	}
+
 	tr.mutOperation.RLock()
 	newTrie, err := tr.recreate(rootHash, tr.trieStorage)
 	if err != nil {
 		tr.mutOperation.RUnlock()
-		close(leavesChannel)
+		close(leavesChannels.LeavesChan)
+		close(leavesChannels.ErrChan)
 		return err
 	}
 
 	if check.IfNil(newTrie) || newTrie.root == nil {
 		tr.mutOperation.RUnlock()
-		close(leavesChannel)
+		close(leavesChannels.LeavesChan)
+		close(leavesChannels.ErrChan)
 		return nil
 	}
 
@@ -472,7 +486,7 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(
 
 	go func() {
 		err = newTrie.root.getAllLeavesOnChannel(
-			leavesChannel,
+			leavesChannels.LeavesChan,
 			keyBuilder,
 			tr.trieStorage,
 			tr.marshalizer,
@@ -480,6 +494,7 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(
 			ctx,
 		)
 		if err != nil {
+			writeInChanNonBlocking(leavesChannels.ErrChan, err)
 			log.Error("could not get all trie leaves: ", "error", err)
 		}
 
@@ -487,7 +502,8 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(
 		tr.trieStorage.ExitPruningBufferingMode()
 		tr.mutOperation.Unlock()
 
-		close(leavesChannel)
+		close(leavesChannels.LeavesChan)
+		close(leavesChannels.ErrChan)
 	}()
 
 	return nil
@@ -628,6 +644,26 @@ func (tr *patriciaMerkleTrie) GetOldRoot() []byte {
 	defer tr.mutOperation.Unlock()
 
 	return tr.oldRoot
+}
+
+// GetTrieStats will collect and return the statistics for the given rootHash
+func (tr *patriciaMerkleTrie) GetTrieStats(address []byte, rootHash []byte) (*statistics.TrieStatsDTO, error) {
+	tr.mutOperation.RLock()
+	newTrie, err := tr.recreate(rootHash, tr.trieStorage)
+	if err != nil {
+		tr.mutOperation.RUnlock()
+		return nil, err
+	}
+	tr.mutOperation.RUnlock()
+
+	ts := statistics.NewTrieStatistics()
+	err = newTrie.root.collectStats(ts, rootDepthLevel, newTrie.trieStorage)
+	if err != nil {
+		return nil, err
+	}
+	ts.AddAccountInfo(address, rootHash)
+
+	return ts.GetTrieStats(), nil
 }
 
 // Close stops all the active goroutines started by the trie
