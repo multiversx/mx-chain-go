@@ -7,7 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 )
 
-func (boot *baseBootstrap) sideChainProcessAndCommit(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
+func (boot *baseBootstrap) sovereignChainProcessAndCommit(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 	startProcessBlockTime := time.Now()
 	header, body, err := boot.blockProcessor.ProcessBlock(header, body, haveTime)
 	elapsedTime := time.Since(startProcessBlockTime)

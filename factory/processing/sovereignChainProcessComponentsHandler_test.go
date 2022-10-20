@@ -1,3 +1,3 @@
-package sync_test
+package processing_test
 
 //TODO: Add unit tests

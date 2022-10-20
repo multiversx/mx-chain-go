@@ -8,21 +8,21 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewSideChainShardBootstrap_ShouldErrNilShardBootstrap(t *testing.T) {
+func TestNewSovereignChainShardBootstrap_ShouldErrNilShardBootstrap(t *testing.T) {
 	t.Parallel()
 
-	scsb, err := sync.NewSideChainShardBootstrap(nil)
+	scsb, err := sync.NewSovereignChainShardBootstrap(nil)
 	assert.Nil(t, scsb)
 	assert.Equal(t, process.ErrNilShardBootstrap, err)
 }
 
-func TestNewSideChainShardBootstrap_ShouldWork(t *testing.T) {
+func TestNewSovereignChainShardBootstrap_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	args := CreateShardBootstrapMockArguments()
 	sb, _ := sync.NewShardBootstrap(args)
 
-	scsb, err := sync.NewSideChainShardBootstrap(sb)
+	scsb, err := sync.NewSovereignChainShardBootstrap(sb)
 	assert.NotNil(t, scsb)
 	assert.Nil(t, err)
 }

@@ -176,6 +176,9 @@ type processComponentsFactory struct {
 	network             factory.NetworkComponentsHolder
 	bootstrapComponents factory.BootstrapComponentsHolder
 	statusComponents    factory.StatusComponentsHolder
+
+	createShardBlockTrackerMethod func(argBaseTracker track.ArgBaseTracker) (process.BlockTracker, error)
+	createShardForkDetectorMethod func(headerBlackList process.TimeCacher, blockTracker process.BlockTracker) (process.ForkDetector, error)
 }
 
 // NewProcessComponentsFactory will return a new instance of processComponentsFactory
@@ -185,7 +188,7 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		return nil, err
 	}
 
-	return &processComponentsFactory{
+	pcf := &processComponentsFactory{
 		config:                 args.Config,
 		epochConfig:            args.EpochConfig,
 		prefConfigs:            args.PrefConfigs,
@@ -211,7 +214,12 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		workingDir:             args.WorkingDir,
 		historyRepo:            args.HistoryRepo,
 		epochNotifier:          args.CoreData.EpochNotifier(),
-	}, nil
+	}
+
+	pcf.createShardBlockTrackerMethod = pcf.createShardBlockTracker
+	pcf.createShardForkDetectorMethod = pcf.createShardForkDetector
+
+	return pcf, nil
 }
 
 // TODO: Think if it would make sense here to create an array of closable interfaces
@@ -1048,16 +1056,7 @@ func (pcf *processComponentsFactory) newBlockTracker(
 	}
 
 	if pcf.bootstrapComponents.ShardCoordinator().SelfId() < pcf.bootstrapComponents.ShardCoordinator().NumberOfShards() {
-		arguments := track.ArgShardTracker{
-			ArgBaseTracker: argBaseTracker,
-		}
-
-		shardBlockTrack, err := track.NewShardBlockTrack(arguments)
-		if err != nil {
-			return nil, err
-		}
-
-		return track.NewSideChainShardBlockTrack(shardBlockTrack)
+		return pcf.createShardBlockTrackerMethod(argBaseTracker)
 	}
 
 	if pcf.bootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
@@ -1069,6 +1068,19 @@ func (pcf *processComponentsFactory) newBlockTracker(
 	}
 
 	return nil, errors.New("could not create block tracker")
+}
+
+func (pcf *processComponentsFactory) createShardBlockTracker(argBaseTracker track.ArgBaseTracker) (process.BlockTracker, error) {
+	arguments := track.ArgShardTracker{
+		ArgBaseTracker: argBaseTracker,
+	}
+
+	shardBlockTrack, err := track.NewShardBlockTrack(arguments)
+	if err != nil {
+		return nil, err
+	}
+
+	return shardBlockTrack, nil
 }
 
 // -- Resolvers container Factory begin
@@ -1428,18 +1440,17 @@ func (pcf *processComponentsFactory) newForkDetector(
 	blockTracker process.BlockTracker,
 ) (process.ForkDetector, error) {
 	if pcf.bootstrapComponents.ShardCoordinator().SelfId() < pcf.bootstrapComponents.ShardCoordinator().NumberOfShards() {
-		shardForkDetector, err := sync.NewShardForkDetector(pcf.coreData.RoundHandler(), headerBlackList, blockTracker, pcf.coreData.GenesisNodesSetup().GetStartTime())
-		if err != nil {
-			return nil, err
-		}
-
-		return sync.NewSideChainShardForkDetector(shardForkDetector)
+		return pcf.createShardForkDetectorMethod(headerBlackList, blockTracker)
 	}
 	if pcf.bootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
 		return sync.NewMetaForkDetector(pcf.coreData.RoundHandler(), headerBlackList, blockTracker, pcf.coreData.GenesisNodesSetup().GetStartTime())
 	}
 
 	return nil, errors.New("could not create fork detector")
+}
+
+func (pcf *processComponentsFactory) createShardForkDetector(headerBlackList process.TimeCacher, blockTracker process.BlockTracker) (process.ForkDetector, error) {
+	return sync.NewShardForkDetector(pcf.coreData.RoundHandler(), headerBlackList, blockTracker, pcf.coreData.GenesisNodesSetup().GetStartTime())
 }
 
 // PrepareNetworkShardingCollector will create the network sharding collector and apply it to the network messenger

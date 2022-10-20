@@ -77,15 +77,8 @@ const (
 type nodeRunner struct {
 	configs *config.Configs
 
-	CreateManagedConsensusComponentsMethod func(
-		coreComponents mainFactory.CoreComponentsHolder,
-		networkComponents mainFactory.NetworkComponentsHolder,
-		cryptoComponents mainFactory.CryptoComponentsHolder,
-		dataComponents mainFactory.DataComponentsHolder,
-		stateComponents mainFactory.StateComponentsHolder,
-		statusComponents mainFactory.StatusComponentsHolder,
-		processComponents mainFactory.ProcessComponentsHolder,
-	) (mainFactory.ConsensusComponentsHandler, error)
+	createManagedConsensusComponentsMethod func(consensusArgs consensusComp.ConsensusComponentsFactoryArgs) (mainFactory.ConsensusComponentsHandler, error)
+	createManagedProcessComponentsMethod   func(processArgs processComp.ProcessComponentsFactoryArgs) (mainFactory.ProcessComponentsHandler, error)
 }
 
 // NewNodeRunner creates a nodeRunner instance
@@ -98,7 +91,8 @@ func NewNodeRunner(cfgs *config.Configs) (*nodeRunner, error) {
 		configs: cfgs,
 	}
 
-	nr.CreateManagedConsensusComponentsMethod = nr.CreateManagedConsensusComponents
+	nr.createManagedConsensusComponentsMethod = nr.createManagedConsensusComponents
+	nr.createManagedProcessComponentsMethod = nr.createManagedProcessComponents
 
 	return nr, nil
 }
@@ -447,7 +441,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 
 	log.Debug("starting node... executeOneComponentCreationCycle")
 
-	managedConsensusComponents, err := nr.CreateManagedConsensusComponentsMethod(
+	managedConsensusComponents, err := nr.CreateManagedConsensusComponents(
 		managedCoreComponents,
 		managedNetworkComponents,
 		managedCryptoComponents,
@@ -859,6 +853,10 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 		ShouldDisableWatchdog: nr.configs.FlagsConfig.DisableConsensusWatchdog,
 	}
 
+	return nr.createManagedConsensusComponentsMethod(consensusArgs)
+}
+
+func (nr *nodeRunner) createManagedConsensusComponents(consensusArgs consensusComp.ConsensusComponentsFactoryArgs) (mainFactory.ConsensusComponentsHandler, error) {
 	consensusFactory, err := consensusComp.NewConsensusComponentsFactory(consensusArgs)
 	if err != nil {
 		return nil, fmt.Errorf("NewConsensusComponentsFactory failed: %w", err)
@@ -873,6 +871,7 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 	if err != nil {
 		return nil, err
 	}
+
 	return managedConsensusComponents, nil
 }
 
@@ -1246,6 +1245,11 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		WorkingDir:             configs.FlagsConfig.WorkingDir,
 		HistoryRepo:            historyRepository,
 	}
+
+	return nr.createManagedProcessComponentsMethod(processArgs)
+}
+
+func (nr *nodeRunner) createManagedProcessComponents(processArgs processComp.ProcessComponentsFactoryArgs) (mainFactory.ProcessComponentsHandler, error) {
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {
 		return nil, fmt.Errorf("NewProcessComponentsFactory failed: %w", err)

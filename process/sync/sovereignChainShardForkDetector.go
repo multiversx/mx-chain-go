@@ -5,25 +5,26 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
-type sideChainShardForkDetector struct {
+type sovereignChainShardForkDetector struct {
 	*shardForkDetector
 }
 
-// NewSideChainShardForkDetector creates an object for detecting the shard forks
-func NewSideChainShardForkDetector(shardForkDetector *shardForkDetector) (*sideChainShardForkDetector, error) {
+// NewSovereignChainShardForkDetector creates an object for detecting the shard forks
+func NewSovereignChainShardForkDetector(shardForkDetector *shardForkDetector) (*sovereignChainShardForkDetector, error) {
 	if shardForkDetector == nil {
 		return nil, process.ErrNilForkDetector
 	}
 
-	scsfd := &sideChainShardForkDetector{
+	scsfd := &sovereignChainShardForkDetector{
 		shardForkDetector,
 	}
 
 	scsfd.doJobOnBHProcessedFunc = scsfd.doJobOnBHProcessed
+
 	return scsfd, nil
 }
 
-func (scsfd *sideChainShardForkDetector) doJobOnBHProcessed(
+func (scsfd *sovereignChainShardForkDetector) doJobOnBHProcessed(
 	header data.HeaderHandler,
 	headerHash []byte,
 	_ []data.HeaderHandler,

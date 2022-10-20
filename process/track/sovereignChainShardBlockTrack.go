@@ -5,17 +5,17 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
-type sideChainShardBlockTrack struct {
+type sovereignChainShardBlockTrack struct {
 	*shardBlockTrack
 }
 
-// NewSideChainShardBlockTrack creates an object for tracking the received shard blocks
-func NewSideChainShardBlockTrack(shardBlockTrack *shardBlockTrack) (*sideChainShardBlockTrack, error) {
+// NewSovereignChainShardBlockTrack creates an object for tracking the received shard blocks
+func NewSovereignChainShardBlockTrack(shardBlockTrack *shardBlockTrack) (*sovereignChainShardBlockTrack, error) {
 	if shardBlockTrack == nil {
 		return nil, process.ErrNilBlockTracker
 	}
 
-	scsbt := &sideChainShardBlockTrack{
+	scsbt := &sovereignChainShardBlockTrack{
 		shardBlockTrack,
 	}
 
@@ -24,7 +24,7 @@ func NewSideChainShardBlockTrack(shardBlockTrack *shardBlockTrack) (*sideChainSh
 		return nil, process.ErrWrongTypeAssertion
 	}
 
-	newBlockProcessor, err := NewSideChainBlockProcessor(originalBlockProcessor)
+	newBlockProcessor, err := NewSovereignChainBlockProcessor(originalBlockProcessor)
 	if err != nil {
 		return nil, err
 	}
@@ -35,7 +35,7 @@ func NewSideChainShardBlockTrack(shardBlockTrack *shardBlockTrack) (*sideChainSh
 }
 
 // ComputeLongestSelfChain computes the longest chain from self shard
-func (scsbt *sideChainShardBlockTrack) ComputeLongestSelfChain() (data.HeaderHandler, []byte, []data.HeaderHandler, [][]byte) {
+func (scsbt *sovereignChainShardBlockTrack) ComputeLongestSelfChain() (data.HeaderHandler, []byte, []data.HeaderHandler, [][]byte) {
 	lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash, err := scsbt.selfNotarizer.GetLastNotarizedHeader(scsbt.shardCoordinator.SelfId())
 	if err != nil {
 		log.Warn("ComputeLongestSelfChain.GetLastNotarizedHeader", "error", err.Error())
@@ -47,6 +47,6 @@ func (scsbt *sideChainShardBlockTrack) ComputeLongestSelfChain() (data.HeaderHan
 }
 
 // GetSelfNotarizedHeader returns a self notarized header for self shard with a given offset, behind last self notarized header
-func (scsbt *sideChainShardBlockTrack) GetSelfNotarizedHeader(_ uint32, offset uint64) (data.HeaderHandler, []byte, error) {
+func (scsbt *sovereignChainShardBlockTrack) GetSelfNotarizedHeader(_ uint32, offset uint64) (data.HeaderHandler, []byte, error) {
 	return scsbt.selfNotarizer.GetNotarizedHeader(scsbt.shardCoordinator.SelfId(), offset)
 }

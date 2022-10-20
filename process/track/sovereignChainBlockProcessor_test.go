@@ -11,26 +11,26 @@ import (
 	"testing"
 )
 
-func TestNewSideBlockProcessor_ShouldErrNilBlockProcessor(t *testing.T) {
+func TestNewSovereignChainBlockProcessor_ShouldErrNilBlockProcessor(t *testing.T) {
 	t.Parallel()
 
-	scpb, err := track.NewSideChainBlockProcessor(nil)
+	scpb, err := track.NewSovereignChainBlockProcessor(nil)
 	assert.Nil(t, scpb)
 	assert.Equal(t, process.ErrNilBlockProcessor, err)
 }
 
-func TestNewSideBlockProcessor_ShouldWork(t *testing.T) {
+func TestNewSovereignChainBlockProcessor_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
 	bp, _ := track.NewBlockProcessor(blockProcessorArguments)
 
-	scpb, err := track.NewSideChainBlockProcessor(bp)
+	scpb, err := track.NewSovereignChainBlockProcessor(bp)
 	assert.NotNil(t, scpb)
 	assert.Nil(t, err)
 }
 
-func TestSideBlockProcessor_ShouldProcessReceivedHeaderShouldWork(t *testing.T) {
+func TestSovereignChainBlockProcessor_ShouldProcessReceivedHeaderShouldWork(t *testing.T) {
 	t.Parallel()
 
 	header := &block.Header{ShardID: 1}
@@ -44,7 +44,7 @@ func TestSideBlockProcessor_ShouldProcessReceivedHeaderShouldWork(t *testing.T) 
 		},
 	}
 	bp, _ := track.NewBlockProcessor(blockProcessorArguments)
-	scbp, _ := track.NewSideChainBlockProcessor(bp)
+	scbp, _ := track.NewSovereignChainBlockProcessor(bp)
 
 	header.Nonce = 499
 	assert.False(t, scbp.ShouldProcessReceivedHeader(header))

@@ -47,19 +47,20 @@ type ConsensusComponentsFactoryArgs struct {
 }
 
 type consensusComponentsFactory struct {
-	config                    config.Config
-	bootstrapRoundIndex       uint64
-	coreComponents            factory.CoreComponentsHolder
-	networkComponents         factory.NetworkComponentsHolder
-	cryptoComponents          factory.CryptoComponentsHolder
-	dataComponents            factory.DataComponentsHolder
-	processComponents         factory.ProcessComponentsHolder
-	stateComponents           factory.StateComponentsHolder
-	statusComponents          factory.StatusComponentsHolder
-	scheduledProcessor        consensus.ScheduledProcessor
-	isInImportMode            bool
-	shouldDisableWatchdog     bool
-	getSubroundsFactoryMethod func(consensusDataContainer *spos.ConsensusCore, consensusState *spos.ConsensusState, cc *consensusComponents) (spos.SubroundsFactory, error)
+	config                            config.Config
+	bootstrapRoundIndex               uint64
+	coreComponents                    factory.CoreComponentsHolder
+	networkComponents                 factory.NetworkComponentsHolder
+	cryptoComponents                  factory.CryptoComponentsHolder
+	dataComponents                    factory.DataComponentsHolder
+	processComponents                 factory.ProcessComponentsHolder
+	stateComponents                   factory.StateComponentsHolder
+	statusComponents                  factory.StatusComponentsHolder
+	scheduledProcessor                consensus.ScheduledProcessor
+	isInImportMode                    bool
+	shouldDisableWatchdog             bool
+	getSubroundsFactoryMethod         func(consensusDataContainer *spos.ConsensusCore, consensusState *spos.ConsensusState, cc *consensusComponents) (spos.SubroundsFactory, error)
+	createShardSyncBootstrapperMethod func(argsBaseBootstrapper sync.ArgBaseBootstrapper) (process.Bootstrapper, error)
 }
 
 type consensusComponents struct {
@@ -114,6 +115,7 @@ func NewConsensusComponentsFactory(args ConsensusComponentsFactoryArgs) (*consen
 	}
 
 	ccf.getSubroundsFactoryMethod = ccf.getSubroundsFactory
+	ccf.createShardSyncBootstrapperMethod = ccf.createShardSyncBootstrapper
 
 	return ccf, nil
 }
@@ -419,7 +421,7 @@ func (ccf *consensusComponentsFactory) createBootstrapper() (process.Bootstrappe
 	}
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		return ccf.createShardBootstrapper()
+		return ccf.createShardStorageAndSyncBootstrapper()
 	}
 
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -429,7 +431,7 @@ func (ccf *consensusComponentsFactory) createBootstrapper() (process.Bootstrappe
 	return nil, sharding.ErrShardIdOutOfRange
 }
 
-func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootstrapper, error) {
+func (ccf *consensusComponentsFactory) createShardStorageAndSyncBootstrapper() (process.Bootstrapper, error) {
 	argsBaseStorageBootstrapper := storageBootstrap.ArgsBaseStorageBootstrapper{
 		BootStorer:                   ccf.processComponents.BootStorer(),
 		ForkDetector:                 ccf.processComponents.ForkDetector(),
@@ -495,21 +497,15 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		ProcessWaitTime:              time.Duration(ccf.config.GeneralSettings.SyncProcessTimeInMillis) * time.Millisecond,
 	}
 
+	return ccf.createShardSyncBootstrapperMethod(argsBaseBootstrapper)
+}
+
+func (ccf *consensusComponentsFactory) createShardSyncBootstrapper(argsBaseBootstrapper sync.ArgBaseBootstrapper) (process.Bootstrapper, error) {
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
 		ArgBaseBootstrapper: argsBaseBootstrapper,
 	}
 
-	bootstrap, err := sync.NewShardBootstrap(argsShardBootstrapper)
-	if err != nil {
-		return nil, err
-	}
-
-	sideChainBootstrap, err := sync.NewSideChainShardBootstrap(bootstrap)
-	if err != nil {
-		return nil, err
-	}
-
-	return sideChainBootstrap, nil
+	return sync.NewShardBootstrap(argsShardBootstrapper)
 }
 
 func (ccf *consensusComponentsFactory) createArgsBaseAccountsSyncer(trieStorageManager common.StorageManager) syncer.ArgsNewBaseAccountsSyncer {

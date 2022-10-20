@@ -10,15 +10,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewSideChainShardForkDetector_ShouldErrNilForkDetector(t *testing.T) {
+func TestNewSovereignChainShardForkDetector_ShouldErrNilForkDetector(t *testing.T) {
 	t.Parallel()
 
-	scsfd, err := NewSideChainShardForkDetector(nil)
+	scsfd, err := NewSovereignChainShardForkDetector(nil)
 	assert.Nil(t, scsfd)
 	assert.Equal(t, process.ErrNilForkDetector, err)
 }
 
-func TestNewSideChainShardForkDetector_ShouldWork(t *testing.T) {
+func TestNewSovereignChainShardForkDetector_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	sfd, _ := NewShardForkDetector(
@@ -28,12 +28,12 @@ func TestNewSideChainShardForkDetector_ShouldWork(t *testing.T) {
 		0,
 	)
 
-	scsfd, err := NewSideChainShardForkDetector(sfd)
+	scsfd, err := NewSovereignChainShardForkDetector(sfd)
 	assert.NotNil(t, scsfd)
 	assert.Nil(t, err)
 }
 
-func TestSideChainShardForkDetector_DoJobOnBHProcessedShouldWork(t *testing.T) {
+func TestSovereignChainShardForkDetector_DoJobOnBHProcessedShouldWork(t *testing.T) {
 	t.Parallel()
 
 	sfd, _ := NewShardForkDetector(
@@ -43,7 +43,7 @@ func TestSideChainShardForkDetector_DoJobOnBHProcessedShouldWork(t *testing.T) {
 		0,
 	)
 
-	scsfd, _ := NewSideChainShardForkDetector(sfd)
+	scsfd, _ := NewSovereignChainShardForkDetector(sfd)
 
 	finalCheckpoint := &checkpointInfo{
 		nonce: 1,

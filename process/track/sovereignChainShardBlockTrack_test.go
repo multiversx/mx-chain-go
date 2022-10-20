@@ -12,15 +12,15 @@ import (
 	"testing"
 )
 
-func TestNewSideChainShardBlockTrack_ShouldErrNilBlockTracker(t *testing.T) {
+func TestNewSovereignChainShardBlockTrack_ShouldErrNilBlockTracker(t *testing.T) {
 	t.Parallel()
 
-	scsbt, err := track.NewSideChainShardBlockTrack(nil)
+	scsbt, err := track.NewSovereignChainShardBlockTrack(nil)
 	assert.Nil(t, scsbt)
 	assert.Equal(t, process.ErrNilBlockTracker, err)
 }
 
-func TestNewSideChainShardBlockTrack_ShouldErrWrongTypeAssertion(t *testing.T) {
+func TestNewSovereignChainShardBlockTrack_ShouldErrWrongTypeAssertion(t *testing.T) {
 	t.Parallel()
 
 	shardBlockTrackArguments := CreateShardTrackerMockArguments()
@@ -28,23 +28,23 @@ func TestNewSideChainShardBlockTrack_ShouldErrWrongTypeAssertion(t *testing.T) {
 
 	sbt.SetBlockProcessor(nil)
 
-	scsbt, err := track.NewSideChainShardBlockTrack(sbt)
+	scsbt, err := track.NewSovereignChainShardBlockTrack(sbt)
 	assert.Nil(t, scsbt)
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 }
 
-func TestNewSideChainShardBlockTrack_ShouldWork(t *testing.T) {
+func TestNewSovereignChainShardBlockTrack_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	shardBlockTrackArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardBlockTrackArguments)
 
-	scsbt, err := track.NewSideChainShardBlockTrack(sbt)
+	scsbt, err := track.NewSovereignChainShardBlockTrack(sbt)
 	assert.NotNil(t, scsbt)
 	assert.Nil(t, err)
 }
 
-func TestSideChainShardBlockTrack_ComputeLongestSelfChainShouldWork(t *testing.T) {
+func TestSovereignChainShardBlockTrack_ComputeLongestSelfChainShouldWork(t *testing.T) {
 	t.Parallel()
 
 	lastNotarizedHeader := &block.Header{Nonce: 1}
@@ -63,7 +63,7 @@ func TestSideChainShardBlockTrack_ComputeLongestSelfChainShouldWork(t *testing.T
 		},
 	}
 	sbt.SetSelfNotarizer(selfNotarizer)
-	scsbt, _ := track.NewSideChainShardBlockTrack(sbt)
+	scsbt, _ := track.NewSovereignChainShardBlockTrack(sbt)
 
 	header, hash, headers, hashes := scsbt.ComputeLongestSelfChain()
 
@@ -73,7 +73,7 @@ func TestSideChainShardBlockTrack_ComputeLongestSelfChainShouldWork(t *testing.T
 	assert.Equal(t, 0, len(hashes))
 }
 
-func TestSideChainShardBlockTrack_GetSelfNotarizedHeaderShouldWork(t *testing.T) {
+func TestSovereignChainShardBlockTrack_GetSelfNotarizedHeaderShouldWork(t *testing.T) {
 	t.Parallel()
 
 	lastNotarizedHeader := &block.Header{Nonce: 1}
@@ -92,7 +92,7 @@ func TestSideChainShardBlockTrack_GetSelfNotarizedHeaderShouldWork(t *testing.T)
 		},
 	}
 	sbt.SetSelfNotarizer(selfNotarizer)
-	scsbt, _ := track.NewSideChainShardBlockTrack(sbt)
+	scsbt, _ := track.NewSovereignChainShardBlockTrack(sbt)
 
 	header, hash, err := scsbt.GetSelfNotarizedHeader(core.MetachainShardId, 0)
 
