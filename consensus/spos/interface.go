@@ -65,7 +65,7 @@ type ConsensusCoreHandler interface {
 	NodeRedundancyHandler() consensus.NodeRedundancyHandler
 	// ScheduledProcessor returns the scheduled txs processor
 	ScheduledProcessor() consensus.ScheduledProcessor
-	// MessageSignerHandler return the p2p signing handler
+	// MessageSignerHandler returns the p2p signing handler
 	MessageSigningHandler() consensus.P2PSigningHandler
 	// SignatureHandler returns the signature handler component
 	SignatureHandler() consensus.SignatureHandler
