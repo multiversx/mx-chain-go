@@ -13,7 +13,6 @@ import (
 	"testing"
 	"time"
 
-	arwenConfig "github.com/ElrondNetwork/wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
@@ -65,6 +64,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
+	arwenConfig "github.com/ElrondNetwork/wasm-vm/config"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
@@ -2212,44 +2212,25 @@ func GenValidatorsFromPubKeysAndTxPubKeys(
 }
 
 // CreateCryptoParams generates the crypto parameters (key pairs, key generator and suite) for multiple nodes
-func CreateCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards uint32) *CryptoParams {
+func CreateCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards uint32, numKeysOnEachNode int) *CryptoParams {
 	txSuite := ed25519.NewEd25519()
 	txKeyGen := signing.NewKeyGenerator(txSuite)
 	suite := mcl.NewSuiteBLS12()
 	singleSigner := TestSingleSigner
 	keyGen := signing.NewKeyGenerator(suite)
 
-	txKeysMap := make(map[uint32][]*TestKeyPair)
 	keysMap := make(map[uint32][]*TestKeyPair)
+	txKeysMap := make(map[uint32][]*TestKeyPair)
+	multiKeyNodes := make(map[uint32][]*TestMultiKeyPair)
 	for shardId := uint32(0); shardId < nbShards; shardId++ {
-		txKeyPairs := make([]*TestKeyPair, nodesPerShard)
-		keyPairs := make([]*TestKeyPair, nodesPerShard)
 		for n := 0; n < nodesPerShard; n++ {
-			kp := &TestKeyPair{}
-			kp.Sk, kp.Pk = keyGen.GeneratePair()
-			keyPairs[n] = kp
-
-			txKp := &TestKeyPair{}
-			txKp.Sk, txKp.Pk = txKeyGen.GeneratePair()
-			txKeyPairs[n] = txKp
+			createAndAddKeys(keyGen, txKeyGen, shardId, keysMap, txKeysMap, multiKeyNodes, numKeysOnEachNode)
 		}
-		keysMap[shardId] = keyPairs
-		txKeysMap[shardId] = txKeyPairs
 	}
 
-	txKeyPairs := make([]*TestKeyPair, nbMetaNodes)
-	keyPairs := make([]*TestKeyPair, nbMetaNodes)
 	for n := 0; n < nbMetaNodes; n++ {
-		kp := &TestKeyPair{}
-		kp.Sk, kp.Pk = keyGen.GeneratePair()
-		keyPairs[n] = kp
-
-		txKp := &TestKeyPair{}
-		txKp.Sk, txKp.Pk = txKeyGen.GeneratePair()
-		txKeyPairs[n] = txKp
+		createAndAddKeys(keyGen, txKeyGen, core.MetachainShardId, keysMap, txKeysMap, multiKeyNodes, numKeysOnEachNode)
 	}
-	keysMap[core.MetachainShardId] = keyPairs
-	txKeysMap[core.MetachainShardId] = txKeyPairs
 
 	params := &CryptoParams{
 		Keys:         keysMap,
@@ -2260,6 +2241,45 @@ func CreateCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards uint32) *Cr
 	}
 
 	return params
+}
+
+func createAndAddKeys(
+	keyGen crypto.KeyGenerator,
+	txKeyGen crypto.KeyGenerator,
+	shardId uint32,
+	keysMap map[uint32][]*TestKeyPair,
+	txKeysMap map[uint32][]*TestKeyPair,
+	multiKeyNodes map[uint32][]*TestMultiKeyPair,
+	numKeysOnEachNode int,
+) {
+	kp := &TestKeyPair{}
+	kp.Sk, kp.Pk = keyGen.GeneratePair()
+
+	txKp := &TestKeyPair{}
+	txKp.Sk, txKp.Pk = txKeyGen.GeneratePair()
+
+	txKeysMap[shardId] = append(txKeysMap[shardId], txKp)
+	if numKeysOnEachNode == 1 {
+		// single key operation
+		keysMap[shardId] = append(keysMap[shardId], kp)
+		return
+	}
+
+	// multi key operation
+	mkp := &TestMultiKeyPair{
+		Observer:    kp,
+		HandledKeys: make([]*TestKeyPair, 0, numKeysOnEachNode),
+	}
+
+	for i := 0; i < numKeysOnEachNode; i++ {
+		validatorKp := &TestKeyPair{}
+		validatorKp.Sk, validatorKp.Pk = keyGen.GeneratePair()
+
+		mkp.HandledKeys = append(mkp.HandledKeys, validatorKp)
+		keysMap[shardId] = append(keysMap[shardId], validatorKp)
+	}
+
+	multiKeyNodes[shardId] = append(multiKeyNodes[shardId], mkp)
 }
 
 // CloseProcessorNodes closes the used TestProcessorNodes and advertiser
@@ -2281,14 +2301,14 @@ func SetupSyncNodesOneShardAndMeta(
 	numNodesMeta int,
 ) ([]*TestProcessorNode, []int) {
 
-	maxShards := uint32(1)
+	maxShardsLocal := uint32(1)
 	shardId := uint32(0)
 
 	var nodes []*TestProcessorNode
 	var connectableNodes []Connectable
 	for i := 0; i < numNodesPerShard; i++ {
 		shardNode := NewTestProcessorNode(ArgTestProcessorNode{
-			MaxShards:            maxShards,
+			MaxShards:            maxShardsLocal,
 			NodeShardId:          shardId,
 			TxSignPrivKeyShardId: shardId,
 			WithSync:             true,

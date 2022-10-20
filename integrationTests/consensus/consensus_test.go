@@ -47,6 +47,7 @@ func initNodesAndTest(
 	numInvalid uint32,
 	roundTime uint64,
 	consensusType string,
+	numKeysOnEachNode int,
 ) []*integrationTests.TestConsensusNode {
 
 	fmt.Println("Step 1. Setup nodes...")
@@ -57,6 +58,7 @@ func initNodesAndTest(
 		int(consensusSize),
 		roundTime,
 		consensusType,
+		numKeysOnEachNode,
 	)
 
 	for _, nodesList := range nodes {
@@ -204,7 +206,7 @@ func runFullConsensusTest(t *testing.T, consensusType string) {
 	roundTime := uint64(1000)
 	numCommBlock := uint64(8)
 
-	nodes := initNodesAndTest(numNodes, consensusSize, numInvalid, roundTime, consensusType)
+	nodes := initNodesAndTest(numNodes, consensusSize, numInvalid, roundTime, consensusType, 1)
 
 	mutex := &sync.Mutex{}
 	defer func() {
@@ -251,7 +253,7 @@ func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string) {
 	consensusSize := uint32(4)
 	numInvalid := uint32(2)
 	roundTime := uint64(1000)
-	nodes := initNodesAndTest(numNodes, consensusSize, numInvalid, roundTime, consensusType)
+	nodes := initNodesAndTest(numNodes, consensusSize, numInvalid, roundTime, consensusType, 1)
 
 	mutex := &sync.Mutex{}
 	defer func() {

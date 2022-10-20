@@ -70,7 +70,7 @@ func CreateNodesWithNodesCoordinatorAndTxKeys(
 	coordinatorFactory := &IndexHashedNodesCoordinatorWithRaterFactory{
 		PeerAccountListAndRatingHandler: rater,
 	}
-	cp := CreateCryptoParams(nodesPerShard, nbMetaNodes, uint32(nbShards))
+	cp := CreateCryptoParams(nodesPerShard, nbMetaNodes, uint32(nbShards), 1)
 	blsPubKeys := PubKeysMapFromKeysMap(cp.Keys)
 	txPubKeys := PubKeysMapFromKeysMap(cp.TxKeys)
 	validatorsMap := GenValidatorsFromPubKeysAndTxPubKeys(blsPubKeys, txPubKeys)
@@ -208,12 +208,12 @@ func CreateNodesWithNodesCoordinatorFactory(
 	metaConsensusGroupSize int,
 	nodesCoordinatorFactory NodesCoordinatorFactory,
 ) map[uint32][]*TestProcessorNode {
-	cp := CreateCryptoParams(nodesPerShard, nbMetaNodes, uint32(nbShards))
+	cp := CreateCryptoParams(nodesPerShard, nbMetaNodes, uint32(nbShards), 1)
 	pubKeys := PubKeysMapFromKeysMap(cp.Keys)
 	validatorsMap := GenValidatorsFromPubKeys(pubKeys, uint32(nbShards))
 	validatorsMapForNodesCoordinator, _ := nodesCoordinator.NodesInfoToValidators(validatorsMap)
 
-	cpWaiting := CreateCryptoParams(1, 1, uint32(nbShards))
+	cpWaiting := CreateCryptoParams(1, 1, uint32(nbShards), 1)
 	pubKeysWaiting := PubKeysMapFromKeysMap(cpWaiting.Keys)
 	waitingMap := GenValidatorsFromPubKeys(pubKeysWaiting, uint32(nbShards))
 	waitingMapForNodesCoordinator, _ := nodesCoordinator.NodesInfoToValidators(waitingMap)
@@ -385,7 +385,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 	signer crypto.SingleSigner,
 	keyGen crypto.KeyGenerator,
 ) map[uint32][]*TestProcessorNode {
-	cp := CreateCryptoParams(nodesPerShard, nbMetaNodes, uint32(nbShards))
+	cp := CreateCryptoParams(nodesPerShard, nbMetaNodes, uint32(nbShards), 1)
 	pubKeys := PubKeysMapFromKeysMap(cp.Keys)
 	validatorsMap := GenValidatorsFromPubKeys(pubKeys, uint32(nbShards))
 	validatorsMapForNodesCoordinator, _ := nodesCoordinator.NodesInfoToValidators(validatorsMap)
@@ -456,9 +456,9 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 		}
 
 		for i := range validatorList {
-			multiSigner, err := createMultiSigner(*cp)
-			if err != nil {
-				log.Error("error generating multisigner: %s\n", err)
+			multiSigner, errCreate := createMultiSigner(*cp)
+			if errCreate != nil {
+				log.Error("error generating multisigner: %s\n", errCreate)
 				return nil
 			}
 
@@ -502,12 +502,12 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 	singleSigner crypto.SingleSigner,
 	keyGenForBlocks crypto.KeyGenerator,
 ) map[uint32][]*TestProcessorNode {
-	cp := CreateCryptoParams(nodesPerShard, nbMetaNodes, uint32(nbShards))
+	cp := CreateCryptoParams(nodesPerShard, nbMetaNodes, uint32(nbShards), 1)
 	pubKeys := PubKeysMapFromKeysMap(cp.Keys)
 	validatorsMap := GenValidatorsFromPubKeys(pubKeys, uint32(nbShards))
 	validatorsMapForNodesCoordinator, _ := nodesCoordinator.NodesInfoToValidators(validatorsMap)
 
-	cpWaiting := CreateCryptoParams(2, 2, uint32(nbShards))
+	cpWaiting := CreateCryptoParams(2, 2, uint32(nbShards), 1)
 	pubKeysWaiting := PubKeysMapFromKeysMap(cpWaiting.Keys)
 	waitingMap := GenValidatorsFromPubKeys(pubKeysWaiting, uint32(nbShards))
 	waitingMapForNodesCoordinator, _ := nodesCoordinator.NodesInfoToValidators(waitingMap)
@@ -580,9 +580,9 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 
 			headerSig, _ := headerCheck.NewHeaderSigVerifier(&args)
 
-			multiSigner, err := createMultiSigner(*cp)
-			if err != nil {
-				log.Error("error generating multisigner: %s\n", err)
+			multiSigner, errCreate := createMultiSigner(*cp)
+			if errCreate != nil {
+				log.Error("error generating multisigner: %s\n", errCreate)
 				return nil
 			}
 

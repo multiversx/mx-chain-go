@@ -276,7 +276,7 @@ func CreateNodesWithTestHeartbeatNode(
 	p2pConfig p2pConfig.P2PConfig,
 ) map[uint32][]*TestHeartbeatNode {
 
-	cp := CreateCryptoParams(nodesPerShard, numMetaNodes, uint32(numShards))
+	cp := CreateCryptoParams(nodesPerShard, numMetaNodes, uint32(numShards), 1)
 	pubKeys := PubKeysMapFromKeysMap(cp.Keys)
 	validatorsMap := GenValidatorsFromPubKeys(pubKeys, uint32(numShards))
 	validatorsForNodesCoordinator, _ := nodesCoordinator.NodesInfoToValidators(validatorsMap)

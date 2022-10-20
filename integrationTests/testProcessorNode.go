@@ -227,13 +227,20 @@ type TestKeyPair struct {
 	Pk crypto.PublicKey
 }
 
-// CryptoParams holds crypto parametres
+// TestMultiKeyPair is a struct holding the keys info regarding a multikey node
+type TestMultiKeyPair struct {
+	Observer    *TestKeyPair
+	HandledKeys []*TestKeyPair
+}
+
+// CryptoParams holds crypto parameters
 type CryptoParams struct {
 	KeyGen       crypto.KeyGenerator
 	Keys         map[uint32][]*TestKeyPair
 	SingleSigner crypto.SingleSigner
 	TxKeyGen     crypto.KeyGenerator
 	TxKeys       map[uint32][]*TestKeyPair
+	MultiKeys    map[uint32][]*TestMultiKeyPair
 }
 
 // Connectable defines the operations for a struct to become connectable by other struct
