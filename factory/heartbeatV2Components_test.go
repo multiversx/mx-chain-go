@@ -44,6 +44,7 @@ func createMockHeartbeatV2ComponentsFactoryArgs() factory.ArgHeartbeatV2Componen
 				HideInactiveValidatorIntervalInSec:               60,
 				HardforkTimeBetweenSendsInSec:                    5,
 				TimeBetweenConnectionsMetricsUpdateInSec:         10,
+				TimeToReadDirectConnectionsInSec:                 15,
 				HeartbeatPool: config.CacheConfig{
 					Type:     "LRU",
 					Capacity: 1000,

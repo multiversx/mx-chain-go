@@ -123,6 +123,7 @@ type HeartbeatV2Config struct {
 	HeartbeatPool                                    CacheConfig
 	HardforkTimeBetweenSendsInSec                    int64
 	TimeBetweenConnectionsMetricsUpdateInSec         int64
+	TimeToReadDirectConnectionsInSec                 int64
 }
 
 // Config will hold the entire application configuration parameters
