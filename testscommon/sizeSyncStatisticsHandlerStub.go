@@ -9,13 +9,13 @@ type SizeSyncStatisticsHandlerStub struct {
 	IncrementIterationCalled  func()
 	ProcessingTimeCalled      func() time.Duration
 	ResetCalled               func()
-	AddNumReceivedCalled      func(value int)
+	AddNumProcessedCalled     func(value int)
 	AddNumLargeCalled         func(value int)
 	SetNumMissingCalled       func(rootHash []byte, value int)
 	NumBytesReceivedField     uint64
 	NumTriesField             int
 	NumIterationsField        int
-	NumReceivedField          int
+	NumProcessedField         int
 	NumLargeField             int
 	NumMissingField           int
 }
@@ -27,10 +27,10 @@ func (stub *SizeSyncStatisticsHandlerStub) Reset() {
 	}
 }
 
-// AddNumReceived -
-func (stub *SizeSyncStatisticsHandlerStub) AddNumReceived(value int) {
-	if stub.AddNumReceivedCalled != nil {
-		stub.AddNumReceivedCalled(value)
+// AddNumProcessed -
+func (stub *SizeSyncStatisticsHandlerStub) AddNumProcessed(value int) {
+	if stub.AddNumProcessedCalled != nil {
+		stub.AddNumProcessedCalled(value)
 	}
 }
 
@@ -48,9 +48,9 @@ func (stub *SizeSyncStatisticsHandlerStub) SetNumMissing(rootHash []byte, value 
 	}
 }
 
-// NumReceived -
-func (stub *SizeSyncStatisticsHandlerStub) NumReceived() int {
-	return stub.NumReceivedField
+// NumProcessed -
+func (stub *SizeSyncStatisticsHandlerStub) NumProcessed() int {
+	return stub.NumProcessedField
 }
 
 // NumLarge -
