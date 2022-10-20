@@ -1,7 +1,6 @@
 package trie
 
 import (
-	"bytes"
 	"context"
 	"sync"
 	"time"
@@ -84,7 +83,7 @@ func NewDoubleListTrieSyncer(arg ArgTrieSyncer) (*doubleListTrieSyncer, error) {
 // so this function is treated as a large critical section. This was done so the inner processing can be done without using
 // other mutexes.
 func (d *doubleListTrieSyncer) StartSyncing(rootHash []byte, ctx context.Context) error {
-	if len(rootHash) == 0 || bytes.Equal(rootHash, common.EmptyTrieHash) {
+	if common.IsEmptyTrie(rootHash) {
 		return nil
 	}
 	if ctx == nil {
