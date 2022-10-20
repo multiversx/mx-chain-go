@@ -45,6 +45,7 @@ import (
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/trie/factory"
+	"github.com/ElrondNetwork/elrond-go/trie/statistics"
 	"github.com/ElrondNetwork/elrond-go/trie/storageMarker"
 	"github.com/ElrondNetwork/elrond-go/update"
 	updateSync "github.com/ElrondNetwork/elrond-go/update/sync"
@@ -111,6 +112,7 @@ type epochStartBootstrap struct {
 	trieSyncerVersion          int
 	checkNodesOnDisk           bool
 	bootstrapHeartbeatSender   update.Closer
+	trieSyncStatisticsProvider common.SizeSyncStatisticsHandler
 
 	// created components
 	requestHandler            process.RequestHandler
@@ -173,6 +175,7 @@ type ArgsEpochStartBootstrap struct {
 	HeaderIntegrityVerifier    process.HeaderIntegrityVerifier
 	DataSyncerCreator          types.ScheduledDataSyncerCreator
 	ScheduledSCRsStorer        storage.Storer
+	TrieSyncStatisticsProvider common.SizeSyncStatisticsHandler
 }
 
 type dataToSync struct {
@@ -217,6 +220,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		dataSyncerFactory:          args.DataSyncerCreator,
 		storerScheduledSCRs:        args.ScheduledSCRsStorer,
 		shardCoordinator:           args.GenesisShardCoordinator,
+		trieSyncStatisticsProvider: args.TrieSyncStatisticsProvider,
 	}
 
 	whiteListCache, err := storageunit.NewCache(storageFactory.GetCacherFromConfig(epochStartProvider.generalConfig.WhiteListPool))
@@ -1046,17 +1050,18 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 
 	argsUserAccountsSyncer := syncer.ArgsNewUserAccountsSyncer{
 		ArgsNewBaseAccountsSyncer: syncer.ArgsNewBaseAccountsSyncer{
-			Hasher:                    e.coreComponentsHolder.Hasher(),
-			Marshalizer:               e.coreComponentsHolder.InternalMarshalizer(),
-			TrieStorageManager:        trieStorageManager,
-			RequestHandler:            e.requestHandler,
-			Timeout:                   common.TimeoutGettingTrieNodes,
-			Cacher:                    e.dataPool.TrieNodes(),
-			MaxTrieLevelInMemory:      e.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
-			MaxHardCapForMissingNodes: e.maxHardCapForMissingNodes,
-			TrieSyncerVersion:         e.trieSyncerVersion,
-			CheckNodesOnDisk:          e.checkNodesOnDisk,
-			StorageMarker:             storageMarker.NewTrieStorageMarker(),
+			Hasher:                            e.coreComponentsHolder.Hasher(),
+			Marshalizer:                       e.coreComponentsHolder.InternalMarshalizer(),
+			TrieStorageManager:                trieStorageManager,
+			RequestHandler:                    e.requestHandler,
+			Timeout:                           common.TimeoutGettingTrieNodes,
+			Cacher:                            e.dataPool.TrieNodes(),
+			MaxTrieLevelInMemory:              e.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
+			MaxHardCapForMissingNodes:         e.maxHardCapForMissingNodes,
+			TrieSyncerVersion:                 e.trieSyncerVersion,
+			CheckNodesOnDisk:                  e.checkNodesOnDisk,
+			StorageMarker:                     storageMarker.NewTrieStorageMarker(),
+			UserAccountsSyncStatisticsHandler: e.trieSyncStatisticsProvider,
 		},
 		ShardId:                e.shardCoordinator.SelfId(),
 		Throttler:              thr,
@@ -1113,17 +1118,18 @@ func (e *epochStartBootstrap) syncValidatorAccountsState(rootHash []byte) error 
 
 	argsValidatorAccountsSyncer := syncer.ArgsNewValidatorAccountsSyncer{
 		ArgsNewBaseAccountsSyncer: syncer.ArgsNewBaseAccountsSyncer{
-			Hasher:                    e.coreComponentsHolder.Hasher(),
-			Marshalizer:               e.coreComponentsHolder.InternalMarshalizer(),
-			TrieStorageManager:        peerTrieStorageManager,
-			RequestHandler:            e.requestHandler,
-			Timeout:                   common.TimeoutGettingTrieNodes,
-			Cacher:                    e.dataPool.TrieNodes(),
-			MaxTrieLevelInMemory:      e.generalConfig.StateTriesConfig.MaxPeerTrieLevelInMemory,
-			MaxHardCapForMissingNodes: e.maxHardCapForMissingNodes,
-			TrieSyncerVersion:         e.trieSyncerVersion,
-			CheckNodesOnDisk:          e.checkNodesOnDisk,
-			StorageMarker:             storageMarker.NewTrieStorageMarker(),
+			Hasher:                            e.coreComponentsHolder.Hasher(),
+			Marshalizer:                       e.coreComponentsHolder.InternalMarshalizer(),
+			TrieStorageManager:                peerTrieStorageManager,
+			RequestHandler:                    e.requestHandler,
+			Timeout:                           common.TimeoutGettingTrieNodes,
+			Cacher:                            e.dataPool.TrieNodes(),
+			MaxTrieLevelInMemory:              e.generalConfig.StateTriesConfig.MaxPeerTrieLevelInMemory,
+			MaxHardCapForMissingNodes:         e.maxHardCapForMissingNodes,
+			TrieSyncerVersion:                 e.trieSyncerVersion,
+			CheckNodesOnDisk:                  e.checkNodesOnDisk,
+			StorageMarker:                     storageMarker.NewTrieStorageMarker(),
+			UserAccountsSyncStatisticsHandler: statistics.NewTrieSyncStatistics(),
 		},
 	}
 	accountsDBSyncer, err := syncer.NewValidatorAccountsSyncer(argsValidatorAccountsSyncer)
@@ -1236,6 +1242,13 @@ func (e *epochStartBootstrap) createHeartbeatSender() error {
 	}
 
 	heartbeatTopic := common.HeartbeatV2Topic + e.shardCoordinator.CommunicationIdentifier(e.shardCoordinator.SelfId())
+	if !e.messenger.HasTopic(heartbeatTopic) {
+		err = e.messenger.CreateTopic(heartbeatTopic, true)
+		if err != nil {
+			return err
+		}
+	}
+
 	peerSubType := core.RegularPeer
 	if e.prefsConfig.FullArchive {
 		peerSubType = core.FullHistoryObserver
@@ -1256,6 +1269,7 @@ func (e *epochStartBootstrap) createHeartbeatSender() error {
 		PrivateKey:                         privateKey,
 		RedundancyHandler:                  bootstrapRedundancy,
 		PeerTypeProvider:                   peer.NewBootstrapPeerTypeProvider(),
+		TrieSyncStatisticsProvider:         e.trieSyncStatisticsProvider,
 	}
 
 	e.bootstrapHeartbeatSender, err = sender.NewBootstrapSender(argsHeartbeatSender)

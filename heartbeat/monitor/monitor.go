@@ -151,18 +151,19 @@ func (monitor *heartbeatV2Monitor) parseMessage(pid core.PeerID, message interfa
 	numInstances[pkHexString]++
 
 	pubKeyHeartbeat = data.PubKeyHeartbeat{
-		PublicKey:       pkHexString,
-		TimeStamp:       messageTime,
-		IsActive:        monitor.isActive(messageAge),
-		ReceivedShardID: monitor.shardId,
-		ComputedShardID: computedShardID,
-		VersionNumber:   heartbeatV2.GetVersionNumber(),
-		NodeDisplayName: heartbeatV2.GetNodeDisplayName(),
-		Identity:        heartbeatV2.GetIdentity(),
-		PeerType:        stringType,
-		Nonce:           heartbeatV2.GetNonce(),
-		PeerSubType:     heartbeatV2.GetPeerSubType(),
-		PidString:       pid.Pretty(),
+		PublicKey:            pkHexString,
+		TimeStamp:            messageTime,
+		IsActive:             monitor.isActive(messageAge),
+		ReceivedShardID:      monitor.shardId,
+		ComputedShardID:      computedShardID,
+		VersionNumber:        heartbeatV2.GetVersionNumber(),
+		NodeDisplayName:      heartbeatV2.GetNodeDisplayName(),
+		Identity:             heartbeatV2.GetIdentity(),
+		PeerType:             stringType,
+		Nonce:                heartbeatV2.GetNonce(),
+		PeerSubType:          heartbeatV2.GetPeerSubType(),
+		PidString:            pid.Pretty(),
+		NumTrieNodesReceived: heartbeatV2.NumTrieNodesSynced,
 	}
 
 	return pubKeyHeartbeat, nil

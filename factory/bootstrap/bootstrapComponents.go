@@ -28,26 +28,28 @@ var log = logger.GetOrCreate("factory")
 
 // BootstrapComponentsFactoryArgs holds the arguments needed to create a botstrap components factory
 type BootstrapComponentsFactoryArgs struct {
-	Config            config.Config
-	RoundConfig       config.RoundConfig
-	PrefConfig        config.Preferences
-	ImportDbConfig    config.ImportDbConfig
-	FlagsConfig       config.ContextFlagsConfig
-	WorkingDir        string
-	CoreComponents    factory.CoreComponentsHolder
-	CryptoComponents  factory.CryptoComponentsHolder
-	NetworkComponents factory.NetworkComponentsHolder
+	Config               config.Config
+	RoundConfig          config.RoundConfig
+	PrefConfig           config.Preferences
+	ImportDbConfig       config.ImportDbConfig
+	FlagsConfig          config.ContextFlagsConfig
+	WorkingDir           string
+	CoreComponents       factory.CoreComponentsHolder
+	CryptoComponents     factory.CryptoComponentsHolder
+	NetworkComponents    factory.NetworkComponentsHolder
+	StatusCoreComponents factory.StatusCoreComponentsHolder
 }
 
 type bootstrapComponentsFactory struct {
-	config            config.Config
-	prefConfig        config.Preferences
-	importDbConfig    config.ImportDbConfig
-	flagsConfig       config.ContextFlagsConfig
-	workingDir        string
-	coreComponents    factory.CoreComponentsHolder
-	cryptoComponents  factory.CryptoComponentsHolder
-	networkComponents factory.NetworkComponentsHolder
+	config               config.Config
+	prefConfig           config.Preferences
+	importDbConfig       config.ImportDbConfig
+	flagsConfig          config.ContextFlagsConfig
+	workingDir           string
+	coreComponents       factory.CoreComponentsHolder
+	cryptoComponents     factory.CryptoComponentsHolder
+	networkComponents    factory.NetworkComponentsHolder
+	statusCoreComponents factory.StatusCoreComponentsHolder
 }
 
 type bootstrapComponents struct {
@@ -71,19 +73,26 @@ func NewBootstrapComponentsFactory(args BootstrapComponentsFactoryArgs) (*bootst
 	if check.IfNil(args.NetworkComponents) {
 		return nil, errors.ErrNilNetworkComponentsHolder
 	}
+	if check.IfNil(args.StatusCoreComponents) {
+		return nil, errors.ErrNilStatusCoreComponents
+	}
+	if check.IfNil(args.StatusCoreComponents.TrieSyncStatistics()) {
+		return nil, errors.ErrNilTrieSyncStatistics
+	}
 	if args.WorkingDir == "" {
 		return nil, errors.ErrInvalidWorkingDir
 	}
 
 	return &bootstrapComponentsFactory{
-		config:            args.Config,
-		prefConfig:        args.PrefConfig,
-		importDbConfig:    args.ImportDbConfig,
-		flagsConfig:       args.FlagsConfig,
-		workingDir:        args.WorkingDir,
-		coreComponents:    args.CoreComponents,
-		cryptoComponents:  args.CryptoComponents,
-		networkComponents: args.NetworkComponents,
+		config:               args.Config,
+		prefConfig:           args.PrefConfig,
+		importDbConfig:       args.ImportDbConfig,
+		flagsConfig:          args.FlagsConfig,
+		workingDir:           args.WorkingDir,
+		coreComponents:       args.CoreComponents,
+		cryptoComponents:     args.CryptoComponents,
+		networkComponents:    args.NetworkComponents,
+		statusCoreComponents: args.StatusCoreComponents,
 	}, nil
 }
 
@@ -159,6 +168,11 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 
 	dataSyncerFactory := bootstrap.NewScheduledDataSyncerFactory()
 
+	// increment num received to make sure that first heartbeat message
+	// will have value 1, thus explorer will display status in progress
+	tss := bcf.statusCoreComponents.TrieSyncStatistics()
+	tss.AddNumReceived(1)
+
 	epochStartBootstrapArgs := bootstrap.ArgsEpochStartBootstrap{
 		CoreComponentsHolder:       bcf.coreComponents,
 		CryptoComponentsHolder:     bcf.cryptoComponents,
@@ -180,6 +194,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		HeaderIntegrityVerifier:    headerIntegrityVerifier,
 		DataSyncerCreator:          dataSyncerFactory,
 		ScheduledSCRsStorer:        nil, // will be updated after sync from network
+		TrieSyncStatisticsProvider: tss,
 	}
 
 	var epochStartBootstrapper factory.EpochStartBootstrapper

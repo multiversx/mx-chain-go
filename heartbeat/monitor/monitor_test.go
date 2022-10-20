@@ -46,13 +46,14 @@ func createHeartbeatMessage(active bool, publicKeyBytes []byte) *heartbeat.Heart
 	marshaller := testscommon.MarshalizerMock{}
 	payloadBytes, _ := marshaller.Marshal(payload)
 	return &heartbeat.HeartbeatV2{
-		Payload:         payloadBytes,
-		VersionNumber:   "v01",
-		NodeDisplayName: "node name",
-		Identity:        "identity",
-		Nonce:           0,
-		PeerSubType:     0,
-		Pubkey:          publicKeyBytes,
+		Payload:            payloadBytes,
+		VersionNumber:      "v01",
+		NodeDisplayName:    "node name",
+		Identity:           "identity",
+		Nonce:              0,
+		PeerSubType:        0,
+		Pubkey:             publicKeyBytes,
+		NumTrieNodesSynced: 150,
 	}
 }
 
@@ -363,4 +364,5 @@ func checkResults(t *testing.T, message heartbeat.HeartbeatV2, hb data.PubKeyHea
 	_, ok := providedPids[hb.PidString]
 	assert.True(t, ok)
 	delete(providedPids, hb.PidString)
+	assert.Equal(t, message.NumTrieNodesSynced, hb.NumTrieNodesReceived)
 }

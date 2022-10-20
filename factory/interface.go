@@ -147,6 +147,7 @@ type CoreComponentsHandler interface {
 type StatusCoreComponentsHolder interface {
 	ResourceMonitor() ResourceMonitor
 	NetworkStatistics() NetworkStatisticsProvider
+	TrieSyncStatistics() TrieSyncStatisticsProvider
 	IsInterfaceNil() bool
 }
 
@@ -547,4 +548,16 @@ type NetworkStatisticsProvider interface {
 	EpochConfirmed(epoch uint32, timestamp uint64)
 	Close() error
 	IsInterfaceNil() bool
+}
+
+// TrieSyncStatisticsProvider is able to provide trie sync statistics
+type TrieSyncStatisticsProvider interface {
+	data.SyncStatisticsHandler
+	AddNumBytesReceived(bytes uint64)
+	NumBytesReceived() uint64
+	NumTries() int
+	AddProcessingTime(duration time.Duration)
+	IncrementIteration()
+	ProcessingTime() time.Duration
+	NumIterations() int
 }

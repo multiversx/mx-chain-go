@@ -26,6 +26,7 @@ type ArgBootstrapSender struct {
 	PrivateKey                         crypto.PrivateKey
 	RedundancyHandler                  heartbeat.NodeRedundancyHandler
 	PeerTypeProvider                   heartbeat.PeerTypeProviderHandler
+	TrieSyncStatisticsProvider         heartbeat.TrieSyncStatisticsProvider
 }
 
 // bootstrapSender defines the component which sends heartbeat messages during bootstrap
@@ -47,12 +48,13 @@ func NewBootstrapSender(args ArgBootstrapSender) (*bootstrapSender, error) {
 			privKey:                   args.PrivateKey,
 			redundancyHandler:         args.RedundancyHandler,
 		},
-		versionNumber:        args.VersionNumber,
-		nodeDisplayName:      args.NodeDisplayName,
-		identity:             args.Identity,
-		peerSubType:          args.PeerSubType,
-		currentBlockProvider: args.CurrentBlockProvider,
-		peerTypeProvider:     args.PeerTypeProvider,
+		versionNumber:              args.VersionNumber,
+		nodeDisplayName:            args.NodeDisplayName,
+		identity:                   args.Identity,
+		peerSubType:                args.PeerSubType,
+		currentBlockProvider:       args.CurrentBlockProvider,
+		peerTypeProvider:           args.PeerTypeProvider,
+		trieSyncStatisticsProvider: args.TrieSyncStatisticsProvider,
 	})
 	if err != nil {
 		return nil, err

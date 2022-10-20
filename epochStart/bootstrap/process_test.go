@@ -228,6 +228,7 @@ func createMockEpochStartBootstrapArgs(
 		FlagsConfig: config.ContextFlagsConfig{
 			ForceStartFromNetwork: false,
 		},
+		TrieSyncStatisticsProvider: &testscommon.SizeSyncStatisticsHandlerStub{},
 	}
 }
 
@@ -413,6 +414,16 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 		epochStartProvider, err := NewEpochStartBootstrap(args)
 		require.Nil(t, epochStartProvider)
 		require.True(t, errors.Is(err, epochStart.ErrNilPubkeyConverter))
+	})
+	t.Run("nil trieSyncStatistics", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockEpochStartBootstrapArgs(createComponentsForEpochStart())
+		args.TrieSyncStatisticsProvider = nil
+
+		epochStartProvider, err := NewEpochStartBootstrap(args)
+		require.Nil(t, epochStartProvider)
+		require.True(t, errors.Is(err, epochStart.ErrNilTrieSyncStatistics))
 	})
 	t.Run("nil roundHandler", func(t *testing.T) {
 		t.Parallel()

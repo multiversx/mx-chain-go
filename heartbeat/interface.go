@@ -129,3 +129,9 @@ type PeerShardMapper interface {
 	PutPeerIdShardId(pid core.PeerID, shardID uint32)
 	IsInterfaceNil() bool
 }
+
+// TrieSyncStatisticsProvider is able to provide trie sync statistics
+type TrieSyncStatisticsProvider interface {
+	NumReceived() int
+	IsInterfaceNil() bool
+}

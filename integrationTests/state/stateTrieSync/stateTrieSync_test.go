@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	arwenConfig "github.com/ElrondNetwork/wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/throttler"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -27,6 +26,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/trie/statistics"
 	"github.com/ElrondNetwork/elrond-go/trie/storageMarker"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
+	arwenConfig "github.com/ElrondNetwork/wasm-vm/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -597,16 +597,17 @@ func getUserAccountSyncerArgs(node *integrationTests.TestProcessorNode, version 
 	thr, _ := throttler.NewNumGoRoutinesThrottler(50)
 	syncerArgs := syncer.ArgsNewUserAccountsSyncer{
 		ArgsNewBaseAccountsSyncer: syncer.ArgsNewBaseAccountsSyncer{
-			Hasher:                    integrationTests.TestHasher,
-			Marshalizer:               integrationTests.TestMarshalizer,
-			TrieStorageManager:        node.TrieStorageManagers[trieFactory.UserAccountTrie],
-			RequestHandler:            node.RequestHandler,
-			Timeout:                   common.TimeoutGettingTrieNodes,
-			Cacher:                    node.DataPool.TrieNodes(),
-			MaxTrieLevelInMemory:      200,
-			MaxHardCapForMissingNodes: 5000,
-			TrieSyncerVersion:         version,
-			StorageMarker:             storageMarker.NewTrieStorageMarker(),
+			Hasher:                            integrationTests.TestHasher,
+			Marshalizer:                       integrationTests.TestMarshalizer,
+			TrieStorageManager:                node.TrieStorageManagers[trieFactory.UserAccountTrie],
+			RequestHandler:                    node.RequestHandler,
+			Timeout:                           common.TimeoutGettingTrieNodes,
+			Cacher:                            node.DataPool.TrieNodes(),
+			MaxTrieLevelInMemory:              200,
+			MaxHardCapForMissingNodes:         5000,
+			TrieSyncerVersion:                 version,
+			StorageMarker:                     storageMarker.NewTrieStorageMarker(),
+			UserAccountsSyncStatisticsHandler: statistics.NewTrieSyncStatistics(),
 		},
 		ShardId:                0,
 		Throttler:              thr,

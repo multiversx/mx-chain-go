@@ -143,3 +143,6 @@ var ErrNilHeartbeatMonitor = errors.New("nil heartbeat monitor")
 
 // ErrNilHeartbeatSenderInfoProvider signals that a nil heartbeat sender info provider was provided
 var ErrNilHeartbeatSenderInfoProvider = errors.New("nil heartbeat sender info provider")
+
+// ErrNilTrieSyncStatisticsProvider signals that a nil trie sync statistics provider was provided
+var ErrNilTrieSyncStatisticsProvider = errors.New("nil trie sync statistics provider")
