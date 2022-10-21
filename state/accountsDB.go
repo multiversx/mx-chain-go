@@ -1440,7 +1440,7 @@ func (adb *AccountsDB) GetStatsForRootHash(rootHash []byte) (common.TriesStatist
 			continue
 		}
 
-		if len(account.RootHash) == 0 {
+		if common.IsEmptyTrie(account.RootHash) {
 			continue
 		}
 
