@@ -65,6 +65,12 @@ func (ss *snapshotStatistics) SyncFinished() {
 	ss.wgSync.Done()
 }
 
+// GetSnapshotDuration will get the duration in seconds of the last snapshot
+func (ss *snapshotStatistics) GetSnapshotDuration() int64 {
+	duration := time.Since(ss.startTime).Truncate(time.Second)
+	return int64(duration.Seconds())
+}
+
 // PrintStats will print the stats after the snapshot has finished
 func (ss *snapshotStatistics) PrintStats(identifier string, rootHash []byte) {
 	ss.mutex.RLock()
