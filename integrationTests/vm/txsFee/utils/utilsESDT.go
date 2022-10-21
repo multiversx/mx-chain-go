@@ -55,7 +55,7 @@ func CreateAccountWithESDTBalance(
 		key = append(key, big.NewInt(0).SetUint64(esdtNonce).Bytes()...)
 	}
 
-	err = userAccount.DataTrieTracker().SaveKeyValue(key, esdtDataBytes)
+	err = userAccount.SaveKeyValue(key, esdtDataBytes)
 	require.Nil(t, err)
 
 	err = accnts.SaveAccount(account)
@@ -82,7 +82,7 @@ func saveNewTokenOnSystemAccount(t *testing.T, accnts state.AccountsAdapter, tok
 	sysUserAccount, ok := sysAccount.(state.UserAccountHandler)
 	require.True(t, ok)
 
-	err = sysUserAccount.DataTrieTracker().SaveKeyValue(tokenKey, esdtDataBytes)
+	err = sysUserAccount.SaveKeyValue(tokenKey, esdtDataBytes)
 	require.Nil(t, err)
 
 	err = accnts.SaveAccount(sysAccount)
@@ -122,7 +122,7 @@ func SetESDTRoles(
 	key = append(key, tokenIdentifier...)
 
 	if len(roles) == 0 {
-		err = userAccount.DataTrieTracker().SaveKeyValue(key, []byte{})
+		err = userAccount.SaveKeyValue(key, []byte{})
 		require.Nil(t, err)
 
 		return
@@ -135,7 +135,7 @@ func SetESDTRoles(
 	rolesDataBytes, err := protoMarshalizer.Marshal(rolesData)
 	require.Nil(t, err)
 
-	err = userAccount.DataTrieTracker().SaveKeyValue(key, rolesDataBytes)
+	err = userAccount.SaveKeyValue(key, rolesDataBytes)
 	require.Nil(t, err)
 
 	err = accnts.SaveAccount(account)
@@ -162,7 +162,7 @@ func SetLastNFTNonce(
 	key := append([]byte(core.ElrondProtectedKeyPrefix), []byte(core.ESDTNFTLatestNonceIdentifier)...)
 	key = append(key, tokenIdentifier...)
 
-	err = userAccount.DataTrieTracker().SaveKeyValue(key, big.NewInt(int64(lastNonce)).Bytes())
+	err = userAccount.SaveKeyValue(key, big.NewInt(int64(lastNonce)).Bytes())
 	require.Nil(t, err)
 
 	err = accnts.SaveAccount(account)

@@ -25,6 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/blockchain"
@@ -36,8 +37,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/storage/database"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
@@ -102,7 +103,7 @@ func createArgBaseProcessor(
 		BlockSizeThrottler:             &mock.BlockSizeThrottlerStub{},
 		Version:                        "softwareVersion",
 		HistoryRepository:              &dblookupext.HistoryRepositoryStub{},
-		EnableRoundsHandler:          &testscommon.EnableRoundsHandlerStub{},
+		EnableRoundsHandler:            &testscommon.EnableRoundsHandlerStub{},
 		GasHandler:                     &mock.GasHandlerMock{},
 		ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
 		ScheduledMiniBlocksEnableEpoch: 2,
@@ -120,14 +121,14 @@ func createTestBlockchain() *testscommon.ChainHandlerStub {
 }
 
 func generateTestCache() storage.Cacher {
-	cache, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000, Shards: 1, SizeInBytes: 0})
+	cache, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000, Shards: 1, SizeInBytes: 0})
 	return cache
 }
 
 func generateTestUnit() storage.Storer {
-	storer, _ := storageUnit.NewStorageUnit(
+	storer, _ := storageunit.NewStorageUnit(
 		generateTestCache(),
-		memorydb.New(),
+		database.NewMemDB(),
 	)
 
 	return storer
@@ -1803,6 +1804,7 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeededNilStorerShouldErr(t *test
 
 	mb := &block.MetaBlock{Epoch: epoch}
 	err := sp.CommitTrieEpochRootHashIfNeeded(mb, []byte("root"))
+	require.NotNil(t, err)
 	require.True(t, strings.Contains(err.Error(), dataRetriever.ErrStorerNotFound.Error()))
 	require.True(t, strings.Contains(err.Error(), dataRetriever.TrieEpochRootHashUnit.String()))
 }
@@ -1813,7 +1815,7 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeededDisabledStorerShouldNotErr
 	epoch := uint32(37)
 
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-	dataComponents.Storage.AddStorer(dataRetriever.TrieEpochRootHashUnit, &storageUnit.NilStorer{})
+	dataComponents.Storage.AddStorer(dataRetriever.TrieEpochRootHashUnit, &storageunit.NilStorer{})
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
 	sp, _ := blproc.NewShardProcessor(arguments)
@@ -1866,8 +1868,9 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeededShouldWork(t *testing.T) {
 			RootHashCalled: func() ([]byte, error) {
 				return rootHash, nil
 			},
-			GetAllLeavesCalled: func(channel chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
-				close(channel)
+			GetAllLeavesCalled: func(channels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error {
+				close(channels.LeavesChan)
+				close(channels.ErrChan)
 				return nil
 			},
 		},
@@ -1878,6 +1881,89 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeededShouldWork(t *testing.T) {
 	mb := &block.MetaBlock{Epoch: epoch}
 	err := sp.CommitTrieEpochRootHashIfNeeded(mb, []byte("root"))
 	require.NoError(t, err)
+}
+
+func TestBaseProcessor_commitTrieEpochRootHashIfNeeded_GetAllLeaves(t *testing.T) {
+	t.Parallel()
+
+	epoch := uint32(37)
+	rootHash := []byte("root-hash")
+
+	t.Run("error on getting the leaves", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		coreComponents.UInt64ByteSliceConv = uint64ByteSlice.NewBigEndianConverter()
+		store := dataRetriever.NewChainStorer()
+		store.AddStorer(dataRetriever.TrieEpochRootHashUnit,
+			&storageStubs.StorerStub{
+				PutCalled: func(key, data []byte) error {
+					return nil
+				},
+			},
+		)
+		dataComponents.Storage = store
+
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+		expectedErr := errors.New("expected error")
+		arguments.AccountsDB = map[state.AccountsDbIdentifier]state.AccountsAdapter{
+			state.UserAccountsState: &stateMock.AccountsStub{
+				RootHashCalled: func() ([]byte, error) {
+					return rootHash, nil
+				},
+				GetAllLeavesCalled: func(channels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error {
+					close(channels.LeavesChan)
+					close(channels.ErrChan)
+					return expectedErr
+				},
+			},
+		}
+
+		sp, _ := blproc.NewShardProcessor(arguments)
+
+		mb := &block.MetaBlock{Epoch: epoch}
+		err := sp.CommitTrieEpochRootHashIfNeeded(mb, []byte("root"))
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("error on trie iterator chan", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		coreComponents.UInt64ByteSliceConv = uint64ByteSlice.NewBigEndianConverter()
+		store := dataRetriever.NewChainStorer()
+		store.AddStorer(dataRetriever.TrieEpochRootHashUnit,
+			&storageStubs.StorerStub{
+				PutCalled: func(key, data []byte) error {
+					return nil
+				},
+			},
+		)
+		dataComponents.Storage = store
+
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+		expectedErr := errors.New("expected error")
+		arguments.AccountsDB = map[state.AccountsDbIdentifier]state.AccountsAdapter{
+			state.UserAccountsState: &stateMock.AccountsStub{
+				RootHashCalled: func() ([]byte, error) {
+					return rootHash, nil
+				},
+				GetAllLeavesCalled: func(channels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error {
+					channels.ErrChan <- expectedErr
+					close(channels.LeavesChan)
+					return nil
+				},
+			},
+		}
+
+		sp, _ := blproc.NewShardProcessor(arguments)
+
+		mb := &block.MetaBlock{Epoch: epoch}
+		err := sp.CommitTrieEpochRootHashIfNeeded(mb, []byte("root"))
+		require.Equal(t, expectedErr, err)
+	})
 }
 
 func TestBaseProcessor_commitTrieEpochRootHashIfNeededShouldUseDataTrieIfNeededWork(t *testing.T) {
@@ -1921,16 +2007,18 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeededShouldUseDataTrieIfNeededW
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		arguments.AccountsDB = map[state.AccountsDbIdentifier]state.AccountsAdapter{
 			state.UserAccountsState: &stateMock.AccountsStub{
-				GetAllLeavesCalled: func(channel chan core.KeyValueHolder, ctx context.Context, rh []byte) error {
+				GetAllLeavesCalled: func(channels *common.TrieIteratorChannels, ctx context.Context, rh []byte) error {
 					if bytes.Equal(rootHash, rh) {
 						calledWithUserAccountRootHash = true
-						close(channel)
+						close(channels.LeavesChan)
+						close(channels.ErrChan)
 						return nil
 					}
 
 					go func() {
-						channel <- keyValStorage.NewKeyValStorage([]byte("address"), []byte("bytes"))
-						close(channel)
+						channels.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("address"), []byte("bytes"))
+						close(channels.LeavesChan)
+						close(channels.ErrChan)
 					}()
 
 					return nil

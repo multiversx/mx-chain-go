@@ -29,9 +29,14 @@ func TestBridgeSetupAndBurn(t *testing.T) {
 	numMetachainNodes := 1
 
 	enableEpochs := config.EnableEpochs{
-		GlobalMintBurnDisableEpoch:       integrationTests.UnreachableEpoch,
-		BuiltInFunctionOnMetaEnableEpoch: integrationTests.UnreachableEpoch,
-		SCProcessorV2EnableEpoch:         integrationTests.UnreachableEpoch,
+		GlobalMintBurnDisableEpoch:          integrationTests.UnreachableEpoch,
+		BuiltInFunctionOnMetaEnableEpoch:    integrationTests.UnreachableEpoch,
+		SCProcessorV2EnableEpoch:            integrationTests.UnreachableEpoch,
+		FixAsyncCallBackArgsListEnableEpoch: integrationTests.UnreachableEpoch,
+		GlobalMintBurnDisableEpoch:          integrationTests.UnreachableEpoch,
+		BuiltInFunctionOnMetaEnableEpoch:    integrationTests.UnreachableEpoch,
+		GlobalMintBurnDisableEpoch:          integrationTests.UnreachableEpoch,
+		BuiltInFunctionOnMetaEnableEpoch:    integrationTests.UnreachableEpoch,
 	}
 	arwenVersion := config.ArwenVersionByEpoch{Version: "v1.4"}
 	vmConfig := &config.VirtualMachineConfig{ArwenVersions: []config.ArwenVersionByEpoch{arwenVersion}}
@@ -146,7 +151,7 @@ func TestBridgeSetupAndBurn(t *testing.T) {
 
 func checkBurnedOnESDTContract(t *testing.T, nodes []*integrationTests.TestProcessorNode, tokenIdentifier []byte, burntValue *big.Int) {
 	esdtSCAcc := getUserAccountWithAddress(t, vm.ESDTSCAddress, nodes)
-	retrievedData, _ := esdtSCAcc.DataTrieTracker().RetrieveValue(tokenIdentifier)
+	retrievedData, _ := esdtSCAcc.RetrieveValue(tokenIdentifier)
 	tokenInSystemSC := &systemSmartContracts.ESDTDataV2{}
 	_ = integrationTests.TestMarshalizer.Unmarshal(tokenInSystemSC, retrievedData)
 

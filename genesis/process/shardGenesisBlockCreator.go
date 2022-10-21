@@ -122,9 +122,9 @@ func createGenesisConfig() config.EnableEpochs {
 		CheckCorrectTokenIDForTransferRoleEnableEpoch:     unreachableEpoch,
 		DisableExecByCallerEnableEpoch:                    unreachableEpoch,
 		RefactorContextEnableEpoch:                        unreachableEpoch,
-		HeartbeatDisableEpoch:                             unreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch:              unreachableEpoch,
 		ESDTMetadataContinuousCleanupEnableEpoch:          unreachableEpoch,
+		FixOldTokenLiquidityEnableEpoch:                   unreachableEpoch,
 		RefactorPeersMiniBlocksEnableEpoch:                unreachableEpoch,
 		SCProcessorV2EnableEpoch:                          unreachableEpoch,
 	}

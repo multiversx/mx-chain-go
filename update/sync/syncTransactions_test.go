@@ -108,6 +108,7 @@ func testWithMissingStorer(missingUnit dataRetriever.UnitType) func(t *testing.T
 		}
 
 		pendingTxsSyncer, err := NewTransactionsSyncer(args)
+		require.NotNil(t, err)
 		require.True(t, strings.Contains(err.Error(), storage.ErrKeyNotFound.Error()))
 		require.True(t, strings.Contains(err.Error(), missingUnit.String()))
 		require.True(t, check.IfNil(pendingTxsSyncer))

@@ -23,6 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/trie/keyBuilder"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -890,7 +891,7 @@ func (s *systemSCProcessor) processSCOutputAccounts(
 
 		storageUpdates := process.GetSortedStorageUpdates(outAcc)
 		for _, storeUpdate := range storageUpdates {
-			err = acc.DataTrieTracker().SaveKeyValue(storeUpdate.Offset, storeUpdate.Data)
+			err = acc.SaveKeyValue(storeUpdate.Offset, storeUpdate.Data)
 			if err != nil {
 				return err
 			}
@@ -1099,12 +1100,15 @@ func (s *systemSCProcessor) getArgumentsForSetOwnerFunctionality(userValidatorAc
 		return nil, err
 	}
 
-	chLeaves := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
-	err = userValidatorAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, context.Background(), rootHash)
+	leavesChannels := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    make(chan error, 1),
+	}
+	err = userValidatorAccount.DataTrie().GetAllLeavesOnChannel(leavesChannels, context.Background(), rootHash, keyBuilder.NewKeyBuilder())
 	if err != nil {
 		return nil, err
 	}
-	for leaf := range chLeaves {
+	for leaf := range leavesChannels.LeavesChan {
 		validatorData := &systemSmartContracts.ValidatorDataV2{}
 		value, errTrim := leaf.ValueWithoutSuffix(append(leaf.Key(), vm.ValidatorSCAddress...))
 		if errTrim != nil {
@@ -1119,6 +1123,11 @@ func (s *systemSCProcessor) getArgumentsForSetOwnerFunctionality(userValidatorAc
 			arguments = append(arguments, blsKey)
 			arguments = append(arguments, leaf.Key())
 		}
+	}
+
+	err = common.GetErrorFromChanNonBlocking(leavesChannels.ErrChan)
+	if err != nil {
+		return nil, err
 	}
 
 	return arguments, nil

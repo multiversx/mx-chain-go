@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/scrCommon"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -1298,7 +1299,10 @@ func (sc *scProcessor) processIfErrorWithAddedLogs(acntSnd state.UserAccountHand
 
 	err := sc.accounts.RevertToSnapshot(snapshot)
 	if err != nil {
-		log.Warn("revert to snapshot", "error", err.Error())
+		if !errors.IsClosingError(err) {
+			log.Warn("revert to snapshot", "error", err.Error())
+		}
+
 		return err
 	}
 
@@ -2258,6 +2262,10 @@ func (sc *scProcessor) useLastTransferAsAsyncCallBackWhenNeeded(
 		return false
 	}
 
+	if sc.enableEpochsHandler.IsFixAsyncCallBackArgsListFlagEnabled() {
+		result.Data = append(result.Data, []byte("@"+core.ConvertToEvenHex(int(vmOutput.ReturnCode)))...)
+	}
+
 	addReturnDataToSCR(vmOutput, result)
 	result.CallType = vmData.AsynchronousCallBack
 	result.GasLimit, _ = core.SafeAddUint64(result.GasLimit, vmOutput.GasRemaining)
@@ -2429,7 +2437,7 @@ func (sc *scProcessor) processSCOutputAccounts(
 				continue
 			}
 
-			err = acc.DataTrieTracker().SaveKeyValue(storeUpdate.Offset, storeUpdate.Data)
+			err = acc.SaveKeyValue(storeUpdate.Offset, storeUpdate.Data)
 			if err != nil {
 				log.Warn("saveKeyValue", "error", err)
 				return false, nil, err

@@ -18,7 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	systemVm "github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
@@ -35,13 +35,13 @@ func RunDelegationStressTest(
 	gasSchedule map[string]map[string]uint64,
 ) ([]time.Duration, error) {
 
-	cacheConfig := storageUnit.CacheConfig{
+	cacheConfig := storageunit.CacheConfig{
 		Name:        "trie",
 		Type:        "SizeLRU",
 		SizeInBytes: 314572800, // 300MB
 		Capacity:    500000,
 	}
-	trieCache, err := storageUnit.NewCache(cacheConfig)
+	trieCache, err := storageunit.NewCache(cacheConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +64,7 @@ func RunDelegationStressTest(
 		return nil, err
 	}
 
-	trieStorage, err := storageUnit.NewStorageUnit(trieCache, triePersister)
+	trieStorage, err := storageunit.NewStorageUnit(trieCache, triePersister)
 	if err != nil {
 		return nil, err
 	}

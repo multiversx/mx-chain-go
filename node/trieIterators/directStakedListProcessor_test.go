@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/keyValStorage"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -153,15 +153,16 @@ func createValidatorScAccount(address []byte, leaves [][]byte, rootHash []byte, 
 		RootCalled: func() ([]byte, error) {
 			return rootHash, nil
 		},
-		GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
+		GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
 			go func() {
 				time.Sleep(timeSleep)
 				for _, leafBuff := range leaves {
 					leaf := keyValStorage.NewKeyValStorage(leafBuff, nil)
-					ch <- leaf
+					leavesChannels.LeavesChan <- leaf
 				}
 
-				close(ch)
+				close(leavesChannels.LeavesChan)
+				close(leavesChannels.ErrChan)
 			}()
 
 			return nil

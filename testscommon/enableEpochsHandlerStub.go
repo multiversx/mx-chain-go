@@ -92,7 +92,6 @@ type EnableEpochsHandlerStub struct {
 	IsSCRSizeInvariantOnBuiltInResultFlagEnabledField            bool
 	IsCheckCorrectTokenIDForTransferRoleFlagEnabledField         bool
 	IsFailExecutionOnEveryAPIErrorFlagEnabledField               bool
-	IsHeartbeatDisableFlagEnabledField                           bool
 	IsMiniBlockPartialExecutionFlagEnabledField                  bool
 	IsManagedCryptoAPIsFlagEnabledField                          bool
 	IsESDTMetadataContinuousCleanupFlagEnabledField              bool
@@ -112,6 +111,8 @@ type EnableEpochsHandlerStub struct {
 	IsChangeDelegationOwnerFlagEnabledField                      bool
 	IsRefactorPeersMiniBlocksFlagEnabledField                    bool
 	IsSCProcessorV2FlagEnabledField                              bool
+	IsFixAsyncCallBackArgsListFlagEnabledField                   bool
+	IsFixOldTokenLiquidityEnabledField                           bool
 }
 
 // ResetPenalizedTooMuchGasFlag -
@@ -809,14 +810,6 @@ func (stub *EnableEpochsHandlerStub) IsFailExecutionOnEveryAPIErrorFlagEnabled()
 	return stub.IsFailExecutionOnEveryAPIErrorFlagEnabledField
 }
 
-// IsHeartbeatDisableFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsHeartbeatDisableFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsHeartbeatDisableFlagEnabledField
-}
-
 // IsMiniBlockPartialExecutionFlagEnabled -
 func (stub *EnableEpochsHandlerStub) IsMiniBlockPartialExecutionFlagEnabled() bool {
 	stub.RLock()
@@ -967,6 +960,22 @@ func (stub *EnableEpochsHandlerStub) IsSCProcessorV2FlagEnabled() bool {
 	defer stub.RUnlock()
 
 	return stub.IsSCProcessorV2FlagEnabledField
+}
+
+// IsFixAsyncCallBackArgsListFlagEnabled -
+func (stub *EnableEpochsHandlerStub) IsFixAsyncCallBackArgsListFlagEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsFixAsyncCallBackArgsListFlagEnabledField
+}
+
+// IsFixOldTokenLiquidityEnabled -
+func (stub *EnableEpochsHandlerStub) IsFixOldTokenLiquidityEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsFixOldTokenLiquidityEnabledField
 }
 
 // IsInterfaceNil -

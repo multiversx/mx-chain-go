@@ -344,6 +344,13 @@ var (
 		Usage: "Boolean flag for enabling the node to generate a signing key when it starts (if the validatorKey.pem" +
 			" file is present, setting this flag to true will overwrite the BLS key used by the node)",
 	}
+
+	// p2pKeyPemFile defines the flag for the path to the key pem file used for p2p signing
+	p2pKeyPemFile = cli.StringFlag{
+		Name:  "p2p-key-pem-file",
+		Usage: "The `filepath` for the PEM file which contains the secret keys for the p2p key. If this is not specified a new key will be generated (internally) by default.",
+		Value: "./config/p2pKey.pem",
+	}
 )
 
 func getFlags() []cli.Flag {
@@ -397,6 +404,7 @@ func getFlags() []cli.Flag {
 		disableConsensusWatchdog,
 		serializeSnapshots,
 		noKey,
+		p2pKeyPemFile,
 	}
 }
 
@@ -434,6 +442,7 @@ func applyFlags(ctx *cli.Context, cfgs *config.Configs, flagsConfig *config.Cont
 	cfgs.ConfigurationPathsHolder.GasScheduleDirectoryName = ctx.GlobalString(gasScheduleConfigurationDirectory.Name)
 	cfgs.ConfigurationPathsHolder.SmartContracts = ctx.GlobalString(smartContractsFile.Name)
 	cfgs.ConfigurationPathsHolder.ValidatorKey = ctx.GlobalString(validatorKeyPemFile.Name)
+	cfgs.ConfigurationPathsHolder.P2pKey = ctx.GlobalString(p2pKeyPemFile.Name)
 
 	if ctx.IsSet(startInEpoch.Name) {
 		log.Debug("start in epoch is enabled")
