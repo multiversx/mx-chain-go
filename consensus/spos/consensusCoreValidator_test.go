@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	consensusMocks "github.com/ElrondNetwork/elrond-go/testscommon/consensus"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
@@ -31,6 +32,8 @@ func initConsensusDataContainer() *ConsensusCore {
 	headerSigVerifier := &mock.HeaderSigVerifierStub{}
 	fallbackHeaderValidator := &testscommon.FallBackHeaderValidatorStub{}
 	nodeRedundancyHandler := &mock.NodeRedundancyHandlerStub{}
+	scheduledProcessor := &consensusMocks.ScheduledProcessorStub{}
+	messageSigningHandler := &mock.MessageSigningHandlerStub{}
 	multiSignerContainer := cryptoMocks.NewMultiSignerContainerMock(multiSignerMock)
 	signatureHandler := &mock.SignatureHandlerStub{}
 
@@ -54,6 +57,8 @@ func initConsensusDataContainer() *ConsensusCore {
 		headerSigVerifier:       headerSigVerifier,
 		fallbackHeaderValidator: fallbackHeaderValidator,
 		nodeRedundancyHandler:   nodeRedundancyHandler,
+		scheduledProcessor:      scheduledProcessor,
+		messageSigningHandler:   messageSigningHandler,
 		signatureHandler:        signatureHandler,
 	}
 }

@@ -297,12 +297,20 @@ func (sr *subroundEndRound) IsOutOfTime() bool {
 	return sr.isOutOfTime()
 }
 
-func (sr *subroundEndRound) VerifyNodesOnAggSigVerificationFail() error {
+func (sr *subroundEndRound) VerifyNodesOnAggSigVerificationFail() ([]string, error) {
 	return sr.verifyNodesOnAggSigVerificationFail()
 }
 
 func (sr *subroundEndRound) ComputeAggSigOnValidNodes() ([]byte, []byte, error) {
 	return sr.computeAggSigOnValidNodes()
+}
+
+func (sr *subroundEndRound) ReceivedInvalidSignersInfo(cnsDta *consensus.Message) bool {
+	return sr.receivedInvalidSignersInfo(context.Background(), cnsDta)
+}
+
+func (sr *subroundEndRound) VerifyInvalidSigners(invalidSigners []byte) error {
+	return sr.verifyInvalidSigners(invalidSigners)
 }
 
 // GetStringValue gets the name of the message type

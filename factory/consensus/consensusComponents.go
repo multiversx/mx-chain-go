@@ -235,6 +235,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		Marshalizer:                   ccf.coreComponents.InternalMarshalizer(),
 		BlsPrivateKey:                 ccf.cryptoComponents.PrivateKey(),
 		BlsSingleSigner:               ccf.cryptoComponents.BlockSigner(),
+		KeyGenerator:                  ccf.cryptoComponents.BlockSignKeyGen(),
 		MultiSignerContainer:          ccf.cryptoComponents.MultiSignerContainer(),
 		RoundHandler:                  ccf.processComponents.RoundHandler(),
 		ShardCoordinator:              ccf.processComponents.ShardCoordinator(),

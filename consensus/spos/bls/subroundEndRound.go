@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
+	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
 type subroundEndRound struct {
@@ -155,6 +156,107 @@ func (sr *subroundEndRound) isBlockHeaderFinalInfoValid(cnsDta *consensus.Messag
 	return true
 }
 
+// receivedInvalidSignersInfo method is called when a message with invalid signers has been received
+func (sr *subroundEndRound) receivedInvalidSignersInfo(_ context.Context, cnsDta *consensus.Message) bool {
+	messageSender := string(cnsDta.PubKey)
+
+	if !sr.IsConsensusDataSet() {
+		return false
+	}
+
+	if !sr.IsNodeLeaderInCurrentRound(messageSender) { // is NOT this node leader in current round?
+		sr.PeerHonestyHandler().ChangeScore(
+			messageSender,
+			spos.GetConsensusTopicID(sr.ShardCoordinator()),
+			spos.LeaderPeerHonestyDecreaseFactor,
+		)
+
+		return false
+	}
+
+	if sr.IsSelfLeaderInCurrentRound() {
+		return false
+	}
+
+	if !sr.IsConsensusDataEqual(cnsDta.BlockHeaderHash) {
+		return false
+	}
+
+	if !sr.CanProcessReceivedMessage(cnsDta, sr.RoundHandler().Index(), sr.Current()) {
+		return false
+	}
+
+	if len(cnsDta.InvalidSigners) == 0 {
+		return false
+	}
+
+	err := sr.verifyInvalidSigners(cnsDta.InvalidSigners)
+	if err != nil {
+		log.Trace("receivedInvalidSignersInfo.verifyInvalidSigners", "error", err.Error())
+		return false
+	}
+
+	log.Debug("step 3: invalid signers info has been evaluated")
+
+	sr.PeerHonestyHandler().ChangeScore(
+		messageSender,
+		spos.GetConsensusTopicID(sr.ShardCoordinator()),
+		spos.LeaderPeerHonestyIncreaseFactor,
+	)
+
+	return true
+}
+
+func (sr *subroundEndRound) verifyInvalidSigners(invalidSigners []byte) error {
+	messages, err := sr.MessageSigningHandler().Deserialize(invalidSigners)
+	if err != nil {
+		return err
+	}
+
+	for _, msg := range messages {
+		err := sr.verifyInvalidSigner(msg)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (sr *subroundEndRound) verifyInvalidSigner(msg p2p.MessageP2P) error {
+	err := sr.MessageSigningHandler().Verify(msg)
+	if err != nil {
+		return err
+	}
+
+	cnsMsg := &consensus.Message{}
+	err = sr.Marshalizer().Unmarshal(cnsMsg, msg.Data())
+	if err != nil {
+		return err
+	}
+
+	pubKey, err := sr.KeyGenerator().PublicKeyFromByteArray(cnsMsg.PubKey)
+	if err != nil {
+		return err
+	}
+
+	singleSigner := sr.SingleSigner()
+	err = singleSigner.Verify(pubKey, cnsMsg.BlockHeaderHash, cnsMsg.SignatureShare)
+	if err != nil {
+		log.Trace("verifyInvalidSigner: confirmed that node provided invalid signature", "pubKey", pubKey)
+		err = sr.applyBlacklistOnNode(msg.Peer())
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (sr *subroundEndRound) applyBlacklistOnNode(peer core.PeerID) error {
+	return nil
+}
+
 func (sr *subroundEndRound) receivedHeader(headerHandler data.HeaderHandler) {
 	if sr.ConsensusGroup() == nil || sr.IsSelfLeaderInCurrentRound() {
 		return
@@ -212,10 +314,20 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.Verify", "error", err.Error())
 
-		err = sr.verifyNodesOnAggSigVerificationFail()
+		invalidPubKeys, err := sr.verifyNodesOnAggSigVerificationFail()
 		if err != nil {
 			log.Debug("doEndRoundJobByLeader.verifyNodesOnAggSigVerificationFail", "error", err.Error())
 			return false
+		}
+
+		invalidSigners, err := sr.getFullMessagesForInvalidSigners(invalidPubKeys)
+		if err != nil {
+			log.Debug("doEndRoundJobByLeader.getFullMessagesForInvalidSigners", "error", err.Error())
+			return false
+		}
+
+		if len(invalidSigners) > 0 {
+			sr.createAndBroadcastInvalidSigners(invalidSigners)
 		}
 
 		bitmap, sig, err = sr.computeAggSigOnValidNodes()
@@ -312,11 +424,12 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 // TODO:
 //	- slashing for invalid sig shares
 //	- handle sig share verifications concurrently
-func (sr *subroundEndRound) verifyNodesOnAggSigVerificationFail() error {
+func (sr *subroundEndRound) verifyNodesOnAggSigVerificationFail() ([]string, error) {
+	invalidPubKeys := make([]string, 0)
 	pubKeys := sr.ConsensusGroup()
 
 	if check.IfNil(sr.Header) {
-		return spos.ErrNilHeader
+		return nil, spos.ErrNilHeader
 	}
 
 	for i, pk := range pubKeys {
@@ -327,7 +440,7 @@ func (sr *subroundEndRound) verifyNodesOnAggSigVerificationFail() error {
 
 		sigShare, err := sr.SignatureHandler().SignatureShare(uint16(i))
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		isSuccessfull := true
@@ -337,22 +450,44 @@ func (sr *subroundEndRound) verifyNodesOnAggSigVerificationFail() error {
 
 			err = sr.SetJobDone(pk, SrSignature, false)
 			if err != nil {
-				return err
+				return nil, err
 			}
 
 			// use increase factor since it was added optimistically, and it proved to be wrong
-			decreaseFactor := -spos.ValidatorPeerHonestyIncreaseFactor
+			decreaseFactor := -spos.ValidatorPeerHonestyIncreaseFactor + spos.ValidatorPeerHonestyDecreaseFactor
 			sr.PeerHonestyHandler().ChangeScore(
 				pk,
 				spos.GetConsensusTopicID(sr.ShardCoordinator()),
 				decreaseFactor,
 			)
+
+			invalidPubKeys = append(invalidPubKeys, pk)
 		}
 
 		log.Trace("verifyNodesOnAggSigVerificationFail: verifying signature share", "public key", pk, "is successfull", isSuccessfull)
 	}
 
-	return nil
+	return invalidPubKeys, nil
+}
+
+func (sr *subroundEndRound) getFullMessagesForInvalidSigners(invalidPubKeys []string) ([]byte, error) {
+	p2pMessages := make([]p2p.MessageP2P, 0)
+
+	for _, pk := range invalidPubKeys {
+		p2pMsg, ok := sr.GetMessageWithSignature(pk)
+		if !ok {
+			continue
+		}
+
+		p2pMessages = append(p2pMessages, p2pMsg)
+	}
+
+	invalidSigners, err := sr.MessageSigningHandler().Serialize(p2pMessages)
+	if err != nil {
+		return nil, err
+	}
+
+	return invalidSigners, nil
 }
 
 func (sr *subroundEndRound) computeAggSigOnValidNodes() ([]byte, []byte, error) {
@@ -402,6 +537,7 @@ func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfo() {
 		sr.Header.GetSignature(),
 		sr.Header.GetLeaderSignature(),
 		sr.CurrentPid(),
+		nil,
 	)
 
 	err := sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
@@ -414,6 +550,33 @@ func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfo() {
 		"PubKeysBitmap", sr.Header.GetPubKeysBitmap(),
 		"AggregateSignature", sr.Header.GetSignature(),
 		"LeaderSignature", sr.Header.GetLeaderSignature())
+}
+
+func (sr *subroundEndRound) createAndBroadcastInvalidSigners(invalidSigners []byte) {
+	cnsMsg := consensus.NewConsensusMessage(
+		sr.GetData(),
+		nil,
+		nil,
+		nil,
+		[]byte(sr.SelfPubKey()),
+		nil,
+		int(MtInvalidSigners),
+		sr.RoundHandler().Index(),
+		sr.ChainID(),
+		nil,
+		nil,
+		nil,
+		sr.CurrentPid(),
+		invalidSigners,
+	)
+
+	err := sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
+	if err != nil {
+		log.Debug("doEndRoundJob.BroadcastConsensusMessage", "error", err.Error())
+		return
+	}
+
+	log.Debug("step 3: invalid signers info has been sent")
 }
 
 func (sr *subroundEndRound) doEndRoundJobByParticipant(cnsDta *consensus.Message) bool {

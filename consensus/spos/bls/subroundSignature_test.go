@@ -323,6 +323,7 @@ func TestSubroundSignature_ReceivedSignature(t *testing.T) {
 		nil,
 		nil,
 		currentPid,
+		nil,
 	)
 
 	sr.Header = &block.Header{}
@@ -395,6 +396,7 @@ func TestSubroundSignature_ReceivedSignatureStoreShareFailed(t *testing.T) {
 		nil,
 		nil,
 		currentPid,
+		nil,
 	)
 
 	sr.Data = nil
@@ -605,6 +607,7 @@ func TestSubroundSignature_ReceivedSignatureReturnFalseWhenConsensusDataIsNotEqu
 		nil,
 		nil,
 		currentPid,
+		nil,
 	)
 
 	assert.False(t, sr.ReceivedSignature(cnsMsg))

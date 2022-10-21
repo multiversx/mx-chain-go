@@ -103,6 +103,7 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 			nil,
 			nil,
 			sr.CurrentPid(),
+			nil,
 		)
 
 		err = sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)

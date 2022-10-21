@@ -6,8 +6,8 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go-logger"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
@@ -197,6 +197,10 @@ func (cmv *consensusMessageValidator) checkConsensusMessageValidityForMessageTyp
 		return cmv.checkMessageWithFinalInfoValidity(cnsMsg)
 	}
 
+	if cmv.consensusService.IsMessageWithInvalidSigners(msgType) {
+		return cmv.checkMessageWithInvalidSingersValidity(cnsMsg)
+	}
+
 	return fmt.Errorf("%w : received message type from consensus topic is invalid: %d",
 		ErrInvalidMessageType,
 		msgType)
@@ -206,14 +210,16 @@ func (cmv *consensusMessageValidator) checkMessageWithBlockBodyAndHeaderValidity
 	isMessageInvalid := cnsMsg.SignatureShare != nil ||
 		cnsMsg.PubKeysBitmap != nil ||
 		cnsMsg.AggregateSignature != nil ||
-		cnsMsg.LeaderSignature != nil
+		cnsMsg.LeaderSignature != nil ||
+		cnsMsg.InvalidSigners != nil
 
 	if isMessageInvalid {
 		log.Trace("received message from consensus topic is invalid",
 			"SignatureShare", cnsMsg.SignatureShare,
 			"PubKeysBitmap", cnsMsg.PubKeysBitmap,
 			"AggregateSignature", cnsMsg.AggregateSignature,
-			"LeaderSignature", cnsMsg.LeaderSignature)
+			"LeaderSignature", cnsMsg.LeaderSignature,
+			"InvalidSigners len", len(cnsMsg.InvalidSigners))
 
 		return fmt.Errorf("%w : received message from public key: %s from consensus topic is invalid",
 			ErrInvalidMessage,
@@ -241,7 +247,8 @@ func (cmv *consensusMessageValidator) checkMessageWithBlockBodyValidity(cnsMsg *
 		cnsMsg.SignatureShare != nil ||
 		cnsMsg.PubKeysBitmap != nil ||
 		cnsMsg.AggregateSignature != nil ||
-		cnsMsg.LeaderSignature != nil
+		cnsMsg.LeaderSignature != nil ||
+		cnsMsg.InvalidSigners != nil
 
 	if isMessageInvalid {
 		log.Trace("received message from consensus topic is invalid",
@@ -249,7 +256,8 @@ func (cmv *consensusMessageValidator) checkMessageWithBlockBodyValidity(cnsMsg *
 			"SignatureShare", cnsMsg.SignatureShare,
 			"PubKeysBitmap", cnsMsg.PubKeysBitmap,
 			"AggregateSignature", cnsMsg.AggregateSignature,
-			"LeaderSignature", cnsMsg.LeaderSignature)
+			"LeaderSignature", cnsMsg.LeaderSignature,
+			"InvalidSigners len", len(cnsMsg.InvalidSigners))
 
 		return fmt.Errorf("%w : received message from public key: %s from consensus topic is invalid",
 			ErrInvalidMessage,
@@ -270,7 +278,8 @@ func (cmv *consensusMessageValidator) checkMessageWithBlockHeaderValidity(cnsMsg
 		cnsMsg.SignatureShare != nil ||
 		cnsMsg.PubKeysBitmap != nil ||
 		cnsMsg.AggregateSignature != nil ||
-		cnsMsg.LeaderSignature != nil
+		cnsMsg.LeaderSignature != nil ||
+		cnsMsg.InvalidSigners != nil
 
 	if isMessageInvalid {
 		log.Trace("received message from consensus topic is invalid",
@@ -278,7 +287,8 @@ func (cmv *consensusMessageValidator) checkMessageWithBlockHeaderValidity(cnsMsg
 			"SignatureShare", cnsMsg.SignatureShare,
 			"PubKeysBitmap", cnsMsg.PubKeysBitmap,
 			"AggregateSignature", cnsMsg.AggregateSignature,
-			"LeaderSignature", cnsMsg.LeaderSignature)
+			"LeaderSignature", cnsMsg.LeaderSignature,
+			"InvalidSigners len", len(cnsMsg.InvalidSigners))
 
 		return fmt.Errorf("%w : received message from public key: %s from consensus topic is invalid",
 			ErrInvalidMessage,
@@ -300,7 +310,8 @@ func (cmv *consensusMessageValidator) checkMessageWithSignatureValidity(cnsMsg *
 		cnsMsg.Header != nil ||
 		cnsMsg.PubKeysBitmap != nil ||
 		cnsMsg.AggregateSignature != nil ||
-		cnsMsg.LeaderSignature != nil
+		cnsMsg.LeaderSignature != nil ||
+		cnsMsg.InvalidSigners != nil
 
 	if isMessageInvalid {
 		log.Trace("received message from consensus topic is invalid",
@@ -308,7 +319,8 @@ func (cmv *consensusMessageValidator) checkMessageWithSignatureValidity(cnsMsg *
 			"header len", len(cnsMsg.Header),
 			"PubKeysBitmap", cnsMsg.PubKeysBitmap,
 			"AggregateSignature", cnsMsg.AggregateSignature,
-			"LeaderSignature", cnsMsg.LeaderSignature)
+			"LeaderSignature", cnsMsg.LeaderSignature,
+			"InvalidSigners len", len(cnsMsg.InvalidSigners))
 
 		return fmt.Errorf("%w : received message from public key: %s from consensus topic is invalid",
 			ErrInvalidMessage,
@@ -327,13 +339,15 @@ func (cmv *consensusMessageValidator) checkMessageWithSignatureValidity(cnsMsg *
 func (cmv *consensusMessageValidator) checkMessageWithFinalInfoValidity(cnsMsg *consensus.Message) error {
 	isMessageInvalid := cnsMsg.Body != nil ||
 		cnsMsg.Header != nil ||
-		cnsMsg.SignatureShare != nil
+		cnsMsg.SignatureShare != nil ||
+		cnsMsg.InvalidSigners != nil
 
 	if isMessageInvalid {
 		log.Trace("received message from consensus topic is invalid",
 			"body len", len(cnsMsg.Body),
 			"header len", len(cnsMsg.Header),
-			"SignatureShare", cnsMsg.SignatureShare)
+			"SignatureShare", cnsMsg.SignatureShare,
+			"InvalidSigners len", len(cnsMsg.InvalidSigners))
 
 		return fmt.Errorf("%w : received message from public key: %s from consensus topic is invalid",
 			ErrInvalidMessage,
@@ -356,6 +370,31 @@ func (cmv *consensusMessageValidator) checkMessageWithFinalInfoValidity(cnsMsg *
 		return fmt.Errorf("%w : received leader signature from consensus topic has an invalid size: %d",
 			ErrInvalidSignatureSize,
 			len(cnsMsg.LeaderSignature))
+	}
+
+	return nil
+}
+
+func (cmv *consensusMessageValidator) checkMessageWithInvalidSingersValidity(cnsMsg *consensus.Message) error {
+	isMessageInvalid := cnsMsg.SignatureShare != nil ||
+		cnsMsg.Body != nil ||
+		cnsMsg.Header != nil ||
+		cnsMsg.PubKeysBitmap != nil ||
+		cnsMsg.AggregateSignature != nil ||
+		cnsMsg.LeaderSignature != nil
+
+	if isMessageInvalid {
+		log.Trace("received message from consensus topic is invalid",
+			"body len", len(cnsMsg.Body),
+			"header len", len(cnsMsg.Header),
+			"pubKeysBitmap", cnsMsg.PubKeysBitmap,
+			"AggregateSignature", cnsMsg.AggregateSignature,
+			"LeaderSignature", cnsMsg.LeaderSignature,
+			"SignatureShare", cnsMsg.SignatureShare)
+
+		return fmt.Errorf("%w : received message from public key: %s from consensus topic is invalid",
+			ErrInvalidMessage,
+			logger.DisplayByteSlice(cnsMsg.PubKey))
 	}
 
 	return nil
