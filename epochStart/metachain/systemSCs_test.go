@@ -896,6 +896,7 @@ func createAccountsDB(
 		StoragePruningManager: spm,
 		ProcessingMode:        common.Normal,
 		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
+		AppStatusHandler:      &statusHandlerMock.AppStatusHandlerStub{},
 	}
 	adb, _ := state.NewAccountsDB(args)
 	return adb

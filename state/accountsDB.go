@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"runtime/debug"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -28,6 +29,8 @@ const (
 	leavesChannelSize       = 100
 	missingNodesChannelSize = 100
 	lastSnapshotStarted     = "lastSnapshot"
+	userTrieSnapshotMsg     = "snapshotState user trie"
+	peerTrieSnapshotMsg     = "snapshotState peer trie"
 )
 
 type loadingMeasurements struct {
@@ -65,6 +68,12 @@ func (lm *loadingMeasurements) resetAndPrint() {
 	)
 }
 
+type accountMetrics struct {
+	snapshotInProgressKey   string
+	lastSnapshotDurationKey string
+	snapshotMessage         string
+}
+
 type snapshotInfo struct {
 	rootHash []byte
 	epoch    uint32
@@ -91,6 +100,7 @@ type AccountsDB struct {
 	shouldSerializeSnapshots bool
 	loadCodeMeasurements     *loadingMeasurements
 	processStatusHandler     common.ProcessStatusHandler
+	appStatusHandler         core.AppStatusHandler
 
 	stackDebug []byte
 }
@@ -107,6 +117,7 @@ type ArgsAccountsDB struct {
 	ProcessingMode           common.NodeProcessingMode
 	ShouldSerializeSnapshots bool
 	ProcessStatusHandler     common.ProcessStatusHandler
+	AppStatusHandler         core.AppStatusHandler
 }
 
 // NewAccountsDB creates a new account manager
@@ -115,6 +126,8 @@ func NewAccountsDB(args ArgsAccountsDB) (*AccountsDB, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	args.AppStatusHandler.SetStringValue(common.MetricAccountsSnapshotInProgress, strconv.FormatBool(false))
 
 	return createAccountsDb(args), nil
 }
@@ -137,6 +150,7 @@ func createAccountsDb(args ArgsAccountsDB) *AccountsDB {
 		shouldSerializeSnapshots: args.ShouldSerializeSnapshots,
 		lastSnapshot:             &snapshotInfo{},
 		processStatusHandler:     args.ProcessStatusHandler,
+		appStatusHandler:         args.AppStatusHandler,
 		isSnapshotInProgress:     atomic.Flag{},
 	}
 }
@@ -159,6 +173,9 @@ func checkArgsAccountsDB(args ArgsAccountsDB) error {
 	}
 	if check.IfNil(args.ProcessStatusHandler) {
 		return ErrNilProcessStatusHandler
+	}
+	if check.IfNil(args.AppStatusHandler) {
+		return ErrNilAppStatusHandler
 	}
 
 	return nil
@@ -1123,8 +1140,17 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 		ErrChan:    make(chan error, 1),
 	}
 	stats := newSnapshotStatistics(1, 1)
+
+	accountMetrics := &accountMetrics{
+		snapshotInProgressKey:   common.MetricAccountsSnapshotInProgress,
+		lastSnapshotDurationKey: common.MetricLastAccountsSnapshotDurationSec,
+		snapshotMessage:         userTrieSnapshotMsg,
+	}
+	adb.updateMetricsOnSnapshotStart(accountMetrics)
+
 	go func() {
 		stats.NewSnapshotStarted()
+
 		trieStorageManager.TakeSnapshot(nil, rootHash, rootHash, iteratorChannels, missingNodesChannel, stats, epoch)
 		adb.snapshotUserAccountDataTrie(true, rootHash, iteratorChannels, missingNodesChannel, stats, epoch)
 
@@ -1133,7 +1159,7 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 
 	go adb.syncMissingNodes(missingNodesChannel, stats, adb.trieSyncer)
 
-	go adb.processSnapshotCompletion(stats, trieStorageManager, missingNodesChannel, iteratorChannels.ErrChan, rootHash, "snapshotState user trie", epoch)
+	go adb.processSnapshotCompletion(stats, trieStorageManager, missingNodesChannel, iteratorChannels.ErrChan, rootHash, accountMetrics, epoch)
 
 	adb.waitForCompletionIfAppropriate(stats)
 }
@@ -1205,18 +1231,31 @@ func (adb *AccountsDB) finishSnapshotOperation(
 	stats.PrintStats(message, rootHash)
 }
 
+func (adb *AccountsDB) updateMetricsOnSnapshotStart(metrics *accountMetrics) {
+	adb.appStatusHandler.SetStringValue(metrics.snapshotInProgressKey, "true")
+	adb.appStatusHandler.SetInt64Value(metrics.lastSnapshotDurationKey, 0)
+}
+
+func (adb *AccountsDB) updateMetricsOnSnapshotCompletion(metrics *accountMetrics, stats *snapshotStatistics) {
+	adb.appStatusHandler.SetStringValue(metrics.snapshotInProgressKey, "false")
+	adb.appStatusHandler.SetInt64Value(metrics.lastSnapshotDurationKey, stats.GetSnapshotDuration())
+}
+
 func (adb *AccountsDB) processSnapshotCompletion(
 	stats *snapshotStatistics,
 	trieStorageManager common.StorageManager,
 	missingNodesCh chan []byte,
 	errChan chan error,
 	rootHash []byte,
-	message string,
+	metrics *accountMetrics,
 	epoch uint32,
 ) {
-	adb.finishSnapshotOperation(rootHash, stats, missingNodesCh, message, trieStorageManager)
+	adb.finishSnapshotOperation(rootHash, stats, missingNodesCh, metrics.snapshotMessage, trieStorageManager)
 
-	defer adb.isSnapshotInProgress.Reset()
+	defer func() {
+		adb.isSnapshotInProgress.Reset()
+		adb.updateMetricsOnSnapshotCompletion(metrics, stats)
+	}()
 
 	containsErrorDuringSnapshot := emptyErrChanReturningHadContained(errChan)
 	shouldNotMarkActive := trieStorageManager.IsClosed() || containsErrorDuringSnapshot

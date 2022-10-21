@@ -36,6 +36,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/database"
 	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
@@ -1065,6 +1066,7 @@ func createAccounts(
 		StoragePruningManager: spm,
 		ProcessingMode:        common.Normal,
 		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
+		AppStatusHandler:      &statusHandler.AppStatusHandlerStub{},
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 
@@ -2408,6 +2410,7 @@ func createAccountsDBTestSetup() *state.AccountsDB {
 		StoragePruningManager: spm,
 		ProcessingMode:        common.Normal,
 		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
+		AppStatusHandler:      &statusHandler.AppStatusHandlerStub{},
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 
