@@ -21,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/api/shared/logging"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/outport/process"
@@ -552,4 +553,12 @@ func (bap *baseAPIBlockProcessor) addTxToPool(tx *transaction.ApiTransactionResu
 	}
 
 	return nil
+}
+
+func createAlteredBlockHash(hash []byte) []byte {
+	alteredHash := make([]byte, 0)
+	alteredHash = append(alteredHash, hash...)
+	alteredHash = append(alteredHash, []byte(common.GenesisStorageSuffix)...)
+
+	return alteredHash
 }

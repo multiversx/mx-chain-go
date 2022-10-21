@@ -3,8 +3,8 @@ package trie_test
 import (
 	"context"
 	cryptoRand "crypto/rand"
+	"errors"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/common/holders"
 	"math/rand"
 	"strconv"
 	"sync"
@@ -15,12 +15,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/common/holders"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
 	"github.com/ElrondNetwork/elrond-go/trie/keyBuilder"
+	"github.com/ElrondNetwork/elrond-go/trie/mock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -468,11 +470,14 @@ func TestPatriciaMerkleTrie_GetSerializedNodesGetFromCheckpoint(t *testing.T) {
 	_ = tr.Commit()
 	rootHash, _ := tr.RootHash()
 
-	errChan := make(chan error, 1)
 	storageManager := tr.GetStorageManager()
 	dirtyHashes := trie.GetDirtyHashes(tr)
 	storageManager.AddDirtyCheckpointHashes(rootHash, dirtyHashes)
-	storageManager.SetCheckpoint(rootHash, make([]byte, 0), nil, nil, errChan, &trieMock.MockStatistics{})
+	iteratorChannels := &common.TrieIteratorChannels{
+		LeavesChan: nil,
+		ErrChan:    make(chan error, 1),
+	}
+	storageManager.SetCheckpoint(rootHash, make([]byte, 0), iteratorChannels, nil, &trieMock.MockStatistics{})
 	trie.WaitForOperationToComplete(storageManager)
 
 	err := storageManager.Remove(rootHash)
@@ -539,42 +544,171 @@ func TestPatriciaMerkleTrie_GetAllHashesEmtyTrie(t *testing.T) {
 	assert.Equal(t, 0, len(hashes))
 }
 
-func TestPatriciaMerkleTrie_GetAllLeavesOnChannelEmptyTrie(t *testing.T) {
-	t.Parallel()
-
-	tr := emptyTrie()
-
-	leavesChannel := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
-	err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), []byte{}, keyBuilder.NewDisabledKeyBuilder())
-	assert.Nil(t, err)
-	assert.NotNil(t, leavesChannel)
-
-	_, ok := <-leavesChannel
-	assert.False(t, ok)
-}
-
 func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 	t.Parallel()
 
-	tr := initTrie()
-	leaves := map[string][]byte{
-		"doe":  []byte("reindeer"),
-		"dog":  []byte("puppy"),
-		"ddog": []byte("cat"),
-	}
-	_ = tr.Commit()
-	rootHash, _ := tr.RootHash()
+	t.Run("nil trie iterator channels", func(t *testing.T) {
+		t.Parallel()
 
-	leavesChannel := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
-	err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), rootHash, keyBuilder.NewKeyBuilder())
-	assert.Nil(t, err)
-	assert.NotNil(t, leavesChannel)
+		tr := emptyTrie()
+		err := tr.GetAllLeavesOnChannel(nil, context.Background(), []byte{}, keyBuilder.NewDisabledKeyBuilder())
+		assert.Equal(t, trie.ErrNilTrieIteratorChannels, err)
+	})
 
-	recovered := make(map[string][]byte)
-	for leaf := range leavesChannel {
-		recovered[string(leaf.Key())] = leaf.Value()
-	}
-	assert.Equal(t, leaves, recovered)
+	t.Run("nil leaves chan", func(t *testing.T) {
+		t.Parallel()
+
+		tr := emptyTrie()
+
+		iteratorChannels := &common.TrieIteratorChannels{
+			LeavesChan: nil,
+			ErrChan:    make(chan error, 1),
+		}
+		err := tr.GetAllLeavesOnChannel(iteratorChannels, context.Background(), []byte{}, keyBuilder.NewDisabledKeyBuilder())
+		assert.Equal(t, trie.ErrNilTrieIteratorLeavesChannel, err)
+	})
+
+	t.Run("nil err chan", func(t *testing.T) {
+		t.Parallel()
+
+		tr := emptyTrie()
+
+		iteratorChannels := &common.TrieIteratorChannels{
+			LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+			ErrChan:    nil,
+		}
+		err := tr.GetAllLeavesOnChannel(iteratorChannels, context.Background(), []byte{}, keyBuilder.NewDisabledKeyBuilder())
+		assert.Equal(t, trie.ErrNilTrieIteratorErrChannel, err)
+	})
+
+	t.Run("empty trie", func(t *testing.T) {
+		t.Parallel()
+
+		tr := emptyTrie()
+
+		leavesChannel := &common.TrieIteratorChannels{
+			LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+			ErrChan:    make(chan error, 1),
+		}
+		err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), []byte{}, keyBuilder.NewDisabledKeyBuilder())
+		assert.Nil(t, err)
+		assert.NotNil(t, leavesChannel)
+
+		_, ok := <-leavesChannel.LeavesChan
+		assert.False(t, ok)
+
+		err = common.GetErrorFromChanNonBlocking(leavesChannel.ErrChan)
+		assert.Nil(t, err)
+	})
+
+	t.Run("should fail on getting leaves", func(t *testing.T) {
+		t.Parallel()
+
+		tr := initTrie()
+		_ = tr.Commit()
+		rootHash, _ := tr.RootHash()
+
+		leavesChannel := &common.TrieIteratorChannels{
+			LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+			ErrChan:    make(chan error, 1),
+		}
+
+		expectedErr := errors.New("expected error")
+		keyBuilderStub := &mock.KeyBuilderStub{}
+		keyBuilderStub.GetKeyCalled = func() ([]byte, error) {
+			return nil, expectedErr
+		}
+		keyBuilderStub.CloneCalled = func() common.KeyBuilder {
+			return keyBuilderStub
+		}
+
+		err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), rootHash, keyBuilderStub)
+		assert.Nil(t, err)
+		assert.NotNil(t, leavesChannel)
+
+		recovered := make(map[string][]byte)
+		for leaf := range leavesChannel.LeavesChan {
+			recovered[string(leaf.Key())] = leaf.Value()
+		}
+		err = common.GetErrorFromChanNonBlocking(leavesChannel.ErrChan)
+		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, 0, len(recovered))
+	})
+
+	t.Run("should work for first leaf but fail at second one", func(t *testing.T) {
+		t.Parallel()
+
+		tr := emptyTrie()
+		_ = tr.Update([]byte("doe"), []byte("reindeer"))
+		_ = tr.Update([]byte("dog"), []byte("puppy"))
+		_ = tr.Commit()
+		rootHash, _ := tr.RootHash()
+
+		leavesChannel := &common.TrieIteratorChannels{
+			LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+			ErrChan:    make(chan error, 1),
+		}
+
+		expectedErr := errors.New("expected error")
+
+		keyBuilderStub := &mock.KeyBuilderStub{}
+		firstRun := true
+		keyBuilderStub.GetKeyCalled = func() ([]byte, error) {
+			if firstRun {
+				firstRun = false
+				return []byte("doe"), nil
+			}
+			return nil, expectedErr
+		}
+		keyBuilderStub.CloneCalled = func() common.KeyBuilder {
+			return keyBuilderStub
+		}
+
+		err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), rootHash, keyBuilderStub)
+		assert.Nil(t, err)
+		assert.NotNil(t, leavesChannel)
+
+		recovered := make(map[string][]byte)
+		for leaf := range leavesChannel.LeavesChan {
+			recovered[string(leaf.Key())] = leaf.Value()
+		}
+		err = common.GetErrorFromChanNonBlocking(leavesChannel.ErrChan)
+		assert.Equal(t, expectedErr, err)
+
+		expectedLeaves := map[string][]byte{
+			"doe": []byte("reindeer"),
+		}
+		assert.Equal(t, expectedLeaves, recovered)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		tr := initTrie()
+		leaves := map[string][]byte{
+			"doe":  []byte("reindeer"),
+			"dog":  []byte("puppy"),
+			"ddog": []byte("cat"),
+		}
+		_ = tr.Commit()
+		rootHash, _ := tr.RootHash()
+
+		leavesChannel := &common.TrieIteratorChannels{
+			LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+			ErrChan:    make(chan error, 1),
+		}
+		err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), rootHash, keyBuilder.NewKeyBuilder())
+		assert.Nil(t, err)
+		assert.NotNil(t, leavesChannel)
+
+		recovered := make(map[string][]byte)
+		for leaf := range leavesChannel.LeavesChan {
+			recovered[string(leaf.Key())] = leaf.Value()
+		}
+		err = common.GetErrorFromChanNonBlocking(leavesChannel.ErrChan)
+		assert.Nil(t, err)
+		assert.Equal(t, leaves, recovered)
+	})
 }
 
 func TestPatriciaMerkleTree_Prove(t *testing.T) {

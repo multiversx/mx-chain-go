@@ -24,7 +24,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
 	"github.com/ElrondNetwork/elrond-go/genesis"
-	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	heartbeatData "github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/outport"
@@ -332,45 +331,6 @@ type StatusComponentsHandler interface {
 	StartPolling() error
 }
 
-// HeartbeatSender sends heartbeat messages
-type HeartbeatSender interface {
-	SendHeartbeat() error
-	IsInterfaceNil() bool
-}
-
-// HeartbeatMonitor monitors the received heartbeat messages
-type HeartbeatMonitor interface {
-	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
-	GetHeartbeats() []heartbeatData.PubKeyHeartbeat
-	IsInterfaceNil() bool
-	Cleanup()
-	Close() error
-}
-
-// HeartbeatStorer provides storage functionality for the heartbeat component
-type HeartbeatStorer interface {
-	UpdateGenesisTime(genesisTime time.Time) error
-	LoadGenesisTime() (time.Time, error)
-	SaveKeys(peersSlice [][]byte) error
-	LoadKeys() ([][]byte, error)
-	IsInterfaceNil() bool
-}
-
-// HeartbeatComponentsHolder holds the heartbeat components
-type HeartbeatComponentsHolder interface {
-	MessageHandler() heartbeat.MessageHandler
-	Monitor() HeartbeatMonitor
-	Sender() HeartbeatSender
-	Storer() HeartbeatStorer
-	IsInterfaceNil() bool
-}
-
-// HeartbeatComponentsHandler defines the heartbeat components handler actions
-type HeartbeatComponentsHandler interface {
-	ComponentHandler
-	HeartbeatComponentsHolder
-}
-
 // HeartbeatV2Monitor monitors the cache of heartbeatV2 messages
 type HeartbeatV2Monitor interface {
 	GetHeartbeats() []heartbeatData.PubKeyHeartbeat
@@ -425,7 +385,6 @@ type HardforkTrigger interface {
 	Trigger(epoch uint32, withEarlyEndOfEpoch bool) error
 	CreateData() []byte
 	AddCloser(closer update.Closer) error
-	NotifyTriggerReceived() <-chan struct{}
 	NotifyTriggerReceivedV2() <-chan struct{}
 	IsSelfTrigger() bool
 	IsInterfaceNil() bool

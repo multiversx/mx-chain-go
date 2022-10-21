@@ -35,7 +35,6 @@ type statusComponents struct {
 	statusHandler    core.AppStatusHandler
 	outportHandler   outport.OutportHandler
 	softwareVersion  statistics.SoftwareVersionChecker
-	resourceMonitor  statistics.ResourceMonitorHandler
 	cancelFunc       func()
 }
 

@@ -13,7 +13,6 @@ func NewMetricsUpdaterWithoutGoRoutineStart(args ArgsMetricsUpdater) (*metricsUp
 		heartbeatSenderInfoProvider:         args.HeartbeatSenderInfoProvider,
 		appStatusHandler:                    args.AppStatusHandler,
 		timeBetweenConnectionsMetricsUpdate: args.TimeBetweenConnectionsMetricsUpdate,
-		enableEpochsHandler:                 args.EnableEpochsHandler,
 	}
 
 	args.PeerAuthenticationCacher.RegisterHandler(updater.onAddedPeerAuthenticationMessage, "metricsUpdater")

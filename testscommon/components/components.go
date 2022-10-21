@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math/big"
 	"testing"
-	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
@@ -22,7 +21,6 @@ import (
 	coreComp "github.com/ElrondNetwork/elrond-go/factory/core"
 	cryptoComp "github.com/ElrondNetwork/elrond-go/factory/crypto"
 	dataComp "github.com/ElrondNetwork/elrond-go/factory/data"
-	heartbeatComp "github.com/ElrondNetwork/elrond-go/factory/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	networkComp "github.com/ElrondNetwork/elrond-go/factory/network"
 	processComp "github.com/ElrondNetwork/elrond-go/factory/processing"
@@ -217,69 +215,6 @@ func GetCoreComponents() factory.CoreComponentsHolder {
 		fmt.Println("getCoreComponents Create", "error", err.Error())
 	}
 	return coreComponents
-}
-
-// GetHeartbeatFactoryArgs -
-func GetHeartbeatFactoryArgs(shardCoordinator sharding.Coordinator) heartbeatComp.HeartbeatComponentsFactoryArgs {
-	coreComponents := GetCoreComponents()
-	networkComponents := GetNetworkComponents()
-	dataComponents := GetDataComponents(coreComponents, shardCoordinator)
-	cryptoComponents := GetCryptoComponents(coreComponents)
-	stateComponents := GetStateComponents(coreComponents, shardCoordinator)
-	processComponents := GetProcessComponents(
-		shardCoordinator,
-		coreComponents,
-		networkComponents,
-		dataComponents,
-		cryptoComponents,
-		stateComponents,
-	)
-
-	return heartbeatComp.HeartbeatComponentsFactoryArgs{
-		Config: config.Config{
-			Heartbeat: config.HeartbeatConfig{
-				MinTimeToWaitBetweenBroadcastsInSec: 20,
-				MaxTimeToWaitBetweenBroadcastsInSec: 25,
-				HeartbeatRefreshIntervalInSec:       60,
-				HideInactiveValidatorIntervalInSec:  3600,
-				DurationToConsiderUnresponsiveInSec: 60,
-				HeartbeatStorage: config.StorageConfig{
-					Cache: config.CacheConfig{
-						Capacity: 10000,
-						Type:     "LRU",
-						Shards:   1,
-					},
-					DB: config.DBConfig{
-						FilePath:          "HeartbeatStorage",
-						Type:              "MemoryDB",
-						BatchDelaySeconds: 30,
-						MaxBatchSize:      6,
-						MaxOpenFiles:      10,
-					},
-				},
-			},
-			ValidatorStatistics: config.ValidatorStatisticsConfig{
-				CacheRefreshIntervalInSec: uint32(100),
-			},
-		},
-		Prefs:       config.Preferences{},
-		AppVersion:  "test",
-		GenesisTime: time.Time{},
-		RedundancyHandler: &mock.RedundancyHandlerStub{
-			ObserverPrivateKeyCalled: func() crypto.PrivateKey {
-				return &mock.PrivateKeyStub{
-					GeneratePublicHandler: func() crypto.PublicKey {
-						return &mock.PublicKeyMock{}
-					},
-				}
-			},
-		},
-		CoreComponents:    coreComponents,
-		DataComponents:    dataComponents,
-		NetworkComponents: networkComponents,
-		CryptoComponents:  cryptoComponents,
-		ProcessComponents: processComponents,
-	}
 }
 
 // GetNetworkFactoryArgs -
