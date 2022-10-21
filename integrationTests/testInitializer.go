@@ -368,7 +368,6 @@ func CreateStore(numOfShards uint32) dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.UnsignedTransactionUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.RewardTransactionUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, CreateMemUnit())
-	store.AddStorer(dataRetriever.HeartbeatUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.BootstrapUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.StatusMetricsUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.ReceiptsUnit, CreateMemUnit())
