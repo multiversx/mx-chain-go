@@ -122,7 +122,6 @@ func TestNewSmartContractProcessorNilVM(t *testing.T) {
 	sc, err := NewSmartContractProcessorV2(arguments)
 
 	require.Nil(t, sc)
-	require.Nil(t, sc)
 	require.Equal(t, process.ErrNoVM, err)
 }
 
@@ -134,7 +133,6 @@ func TestNewSmartContractProcessorNilVMOutputCacher(t *testing.T) {
 	sc, err := NewSmartContractProcessorV2(arguments)
 
 	require.Nil(t, sc)
-	require.Nil(t, sc)
 	require.Equal(t, process.ErrNilCacher, err)
 }
 
@@ -145,7 +143,6 @@ func TestNewSmartContractProcessorNilBuiltInFunctions(t *testing.T) {
 	arguments.BuiltInFunctions = nil
 	sc, err := NewSmartContractProcessorV2(arguments)
 
-	require.Nil(t, sc)
 	require.Nil(t, sc)
 	require.Equal(t, process.ErrNilBuiltInFunction, err)
 }
