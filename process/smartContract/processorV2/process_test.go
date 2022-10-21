@@ -2860,7 +2860,7 @@ func TestScProcessor_ProcessSmartContractResultBadAccType(t *testing.T) {
 
 	accountsDB := &stateMock.AccountsStub{
 		LoadAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
-			return &mock.AccountWrapMock{}, nil
+			return &stateMock.AccountWrapMock{}, nil
 		},
 	}
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
@@ -4178,4 +4178,38 @@ func TestScProcessor_TooMuchGasProvidedMessage(t *testing.T) {
 	returnMessage := "@" + fmt.Sprintf("%s for processing: gas provided = %d, gas used = %d",
 		TooMuchGasProvidedMessage, 11, 1)
 	assert.Equal(t, vmOutput.ReturnMessage, returnMessage)
+}
+
+func TestSCProcessor_PrependAsyncParamsToData(t *testing.T) {
+	ok := []byte{byte(vmcommon.Ok)}
+	data := []byte("@" + hex.EncodeToString(ok))
+
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.ArgsParser = smartContract.NewArgumentParser()
+	sc, _ := NewSmartContractProcessorV2(arguments)
+
+	t.Run("NilAsyncParams", func(t *testing.T) {
+		asyncParams := [][]byte(nil)
+		dataWithAsyncParams, err := sc.prependAsyncParamsToData(asyncParams, data)
+		require.Nil(t, err)
+		require.Equal(t, data, dataWithAsyncParams)
+	})
+
+	t.Run("CorrectAsyncParams", func(t *testing.T) {
+		callID := []byte("callID")
+		callerCallID := []byte("callerCallID")
+
+		asyncParams := [][]byte{callID, callerCallID}
+		expectedData := []byte(
+			"@" +
+				hex.EncodeToString(callID) +
+				"@" +
+				hex.EncodeToString(callerCallID) +
+				"@" +
+				hex.EncodeToString(ok),
+		)
+		dataWithAsyncParams, err := sc.prependAsyncParamsToData(asyncParams, data)
+		require.Nil(t, err)
+		require.Equal(t, expectedData, dataWithAsyncParams)
+	})
 }

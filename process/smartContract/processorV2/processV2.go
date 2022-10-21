@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/wasm-vm/arwen/contexts"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
@@ -30,6 +29,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
+	"github.com/ElrondNetwork/wasm-vm/arwen/contexts"
 )
 
 var _ process.SmartContractResultProcessor = (*scProcessor)(nil)
@@ -2414,8 +2414,8 @@ func (sc *scProcessor) useLastTransferAsAsyncCallBackWhenNeeded(
 	result.GasLimit, _ = core.SafeAddUint64(result.GasLimit, vmOutput.GasRemaining)
 
 	var err error
-	result.Data, err = sc.prependAsyncParamsToData(
-		contexts.CreateCallbackAsyncParams(hooks.NewVMCryptoHook(), vmInput.AsyncArguments), result.Data)
+	asyncParams := contexts.CreateCallbackAsyncParams(hooks.NewVMCryptoHook(), vmInput.AsyncArguments)
+	result.Data, err = sc.prependAsyncParamsToData(asyncParams, result.Data)
 	if err != nil {
 		log.Debug("processed built in functions error (async params extraction)", "error", err.Error())
 		return false
@@ -2425,13 +2425,12 @@ func (sc *scProcessor) useLastTransferAsAsyncCallBackWhenNeeded(
 }
 
 func (sc *scProcessor) prependAsyncParamsToData(asyncParams [][]byte, data []byte) ([]byte, error) {
-	function, args, err := sc.argsParser.ParseCallData(string(data))
+	args, err := sc.argsParser.ParseArguments(string(data))
 	if err != nil {
 		return nil, err
 	}
 
 	callData := txDataBuilder.NewBuilder()
-	callData.Func(function)
 
 	for _, arg := range args {
 		callData.Bytes(arg)
