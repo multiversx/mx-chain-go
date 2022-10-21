@@ -7,16 +7,15 @@ If you are unfamiliar with the workflow of contributing to github, you can refer
 
 If you are not part of the team and want to contribute to this repository, you must fork & clone this repository
 
-The development should happen in a personal fork, cloned on the local machine. Make sure you use signed commits before opening
-a pull request.
+The development should happen in a personal fork, cloned on the local machine. **Make sure you use signed commits before opening** a pull request.
 
 For external contributors, the PRs should be targeted towards the `master` branch. A team responsible will instruct 
 the PR owner to re-target it against another branch, in accordance to internal branches management.
 
-tl;dr:
-- fork `elrond-go` and use `master` branch
-- use signed commits
-- open a PR against `ElrondNetwork/elrond-go`'s `master` branch
+**tl;dr**:
+- fork `elrond-go` and use `master` branch.
+- use signed commits. [docs](https://docs.github.com/en/authentication/managing-commit-signature-verification/signing-commits).
+- open a PR against the `master` branch of `ElrondNetwork/elrond-go`.
 
 ## Use linter
 
