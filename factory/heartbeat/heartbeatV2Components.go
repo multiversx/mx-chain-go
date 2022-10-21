@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/random"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/errors"
@@ -19,6 +20,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/peer"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
+
+var log = logger.GetOrCreate("factory")
 
 // ArgHeartbeatV2ComponentsFactory represents the argument for the heartbeat v2 components factory
 type ArgHeartbeatV2ComponentsFactory struct {
@@ -220,7 +223,6 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		HeartbeatSenderInfoProvider:         heartbeatV2Sender,
 		AppStatusHandler:                    hcf.coreComponents.StatusHandler(),
 		TimeBetweenConnectionsMetricsUpdate: time.Second * time.Duration(hcf.config.HeartbeatV2.TimeBetweenConnectionsMetricsUpdateInSec),
-		EnableEpochsHandler:                 hcf.coreComponents.EnableEpochsHandler(),
 	}
 	statusHandler, err := status.NewMetricsUpdater(argsMetricsUpdater)
 	if err != nil {

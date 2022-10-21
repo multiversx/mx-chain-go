@@ -155,7 +155,7 @@ func TestDoubleListTrieSyncer_StartSyncingEmptyRootHashShouldReturnNil(t *testin
 
 	arg := createMockArgument(time.Minute)
 	d, _ := NewDoubleListTrieSyncer(arg)
-	err := d.StartSyncing(EmptyTrieHash, context.Background())
+	err := d.StartSyncing(common.EmptyTrieHash, context.Background())
 
 	assert.Nil(t, err)
 }
@@ -165,7 +165,7 @@ func TestDoubleListTrieSyncer_StartSyncingNilContextShouldErr(t *testing.T) {
 
 	arg := createMockArgument(time.Minute)
 	d, _ := NewDoubleListTrieSyncer(arg)
-	err := d.StartSyncing(bytes.Repeat([]byte{1}, len(EmptyTrieHash)), nil)
+	err := d.StartSyncing(bytes.Repeat([]byte{1}, len(common.EmptyTrieHash)), nil)
 
 	assert.Equal(t, ErrNilContext, err)
 }
