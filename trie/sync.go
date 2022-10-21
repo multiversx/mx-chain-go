@@ -275,7 +275,7 @@ func (ts *trieSyncer) addNew(nextNodes []node) bool {
 		nodeInfo, ok := ts.nodesForTrie[nextHash]
 		if !ok || !nodeInfo.received {
 			newElement = true
-			ts.trieSyncStatistics.AddNumReceived(1)
+			ts.trieSyncStatistics.AddNumProcessed(1)
 			ts.nodesForTrie[nextHash] = trieNodeInfo{
 				trieNode: nextNode,
 				received: true,
