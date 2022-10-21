@@ -1,62 +1,86 @@
 package monitor
 
 import (
-	"sort"
-
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 )
 
 type heartbeatMessages struct {
-	activePids         []core.PeerID
-	activeHeartbeats   map[core.PeerID]*data.PubKeyHeartbeat
-	inactiveHeartbeats map[core.PeerID]*data.PubKeyHeartbeat
+	firstActivePid          core.PeerID
+	firstActiveHeartbeat    *data.PubKeyHeartbeat
+	numActivePids           uint64
+	latestInactivePid       core.PeerID
+	latestInactiveHeartbeat *data.PubKeyHeartbeat
+	inactivePids            []core.PeerID
 }
 
 func newHeartbeatMessages() *heartbeatMessages {
-	return &heartbeatMessages{
-		activePids:         make([]core.PeerID, 0),
-		activeHeartbeats:   make(map[core.PeerID]*data.PubKeyHeartbeat),
-		inactiveHeartbeats: make(map[core.PeerID]*data.PubKeyHeartbeat),
-	}
+	return &heartbeatMessages{}
 }
 
 func (instance *heartbeatMessages) addMessage(pid core.PeerID, message *data.PubKeyHeartbeat) {
 	if message.IsActive {
-		instance.activePids = append(instance.activePids, pid)
-		instance.activeHeartbeats[pid] = message
-
+		instance.handleActiveMessage(pid, message)
 		return
 	}
 
-	instance.inactiveHeartbeats[pid] = message
+	instance.handleInactiveMessage(pid, message)
+}
+
+func (instance *heartbeatMessages) handleActiveMessage(pid core.PeerID, message *data.PubKeyHeartbeat) {
+	instance.numActivePids++
+
+	if len(instance.firstActivePid) == 0 {
+		instance.firstActivePid = pid
+		instance.firstActiveHeartbeat = message
+		return
+	}
+
+	if string(instance.firstActivePid) > string(pid) {
+		instance.firstActivePid = pid
+		instance.firstActiveHeartbeat = message
+	}
+}
+
+func (instance *heartbeatMessages) handleInactiveMessage(pid core.PeerID, message *data.PubKeyHeartbeat) {
+	instance.inactivePids = append(instance.inactivePids, pid)
+
+	if instance.latestInactiveHeartbeat == nil {
+		instance.latestInactivePid = pid
+		instance.latestInactiveHeartbeat = message
+		return
+	}
+
+	if message.TimeStamp.Unix() > instance.latestInactiveHeartbeat.TimeStamp.Unix() {
+		instance.latestInactivePid = pid
+		instance.latestInactiveHeartbeat = message
+	}
 }
 
 func (instance *heartbeatMessages) getHeartbeat() (*data.PubKeyHeartbeat, error) {
-	if len(instance.activeHeartbeats) > 0 {
-		return instance.getFirstActive()
+	if instance.firstActiveHeartbeat != nil {
+		return instance.firstActiveHeartbeat, nil
 	}
-	if len(instance.inactiveHeartbeats) > 0 {
-		for _, inactive := range instance.inactiveHeartbeats {
-			return inactive, nil
-		}
+	if instance.latestInactiveHeartbeat != nil {
+		return instance.latestInactiveHeartbeat, nil
 	}
 	return nil, errEmptyHeartbeatMessagesInstance
 }
 
-func (instance *heartbeatMessages) getFirstActive() (*data.PubKeyHeartbeat, error) {
-	sort.Slice(instance.activePids, func(i, j int) bool {
-		return string(instance.activePids[i]) < string(instance.activePids[j])
-	})
-
-	if len(instance.activePids) == 0 {
-		return nil, errInconsistentActivePidsList
+func (instance *heartbeatMessages) getInactivePids() []core.PeerID {
+	if instance.firstActiveHeartbeat != nil {
+		// at least one active heartbeat, return all pids containing inactive messages
+		return instance.inactivePids
 	}
 
-	message, found := instance.activeHeartbeats[instance.activePids[0]]
-	if !found {
-		return nil, errInconsistentActiveMap
+	result := make([]core.PeerID, 0, len(instance.inactivePids))
+	for _, pid := range instance.inactivePids {
+		if pid == instance.latestInactivePid {
+			continue
+		}
+
+		result = append(result, pid)
 	}
 
-	return message, nil
+	return result
 }

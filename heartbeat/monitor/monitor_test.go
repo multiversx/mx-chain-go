@@ -385,7 +385,7 @@ func TestHeartbeatV2Monitor_GetHeartbeats(t *testing.T) {
 		assert.Equal(t, 0, len(heartbeats))
 		assert.Equal(t, 0, args.Cache.Len())
 	})
-	t.Run("should work", func(t *testing.T) {
+	t.Run("should work with 2 public keys on different pids and one public key", func(t *testing.T) {
 		t.Parallel()
 		args := createMockHeartbeatV2MonitorArgs()
 		providedStatuses := []bool{true, true, true}
@@ -418,7 +418,31 @@ func TestHeartbeatV2Monitor_GetHeartbeats(t *testing.T) {
 			}
 			checkResults(t, providedMessages[i], heartbeats[i], providedStatuses[i], providedPids, numInstances)
 		}
-		assert.Equal(t, 1, len(providedPids)) // 1 inactive was removed from the heartbeat list
+		assert.Equal(t, 1, len(providedPids)) // 1 active was removed from the heartbeat list
+	})
+	t.Run("should choose the 'smaller' pid if multiple active messages are found (sort should work)", func(t *testing.T) {
+		t.Parallel()
+		args := createMockHeartbeatV2MonitorArgs()
+		providedStatuses := []bool{true, true, true}
+		numOfMessages := len(providedStatuses)
+		providedPids := make(map[string]struct{}, numOfMessages)
+		providedMessages := make([]*heartbeat.HeartbeatV2, numOfMessages)
+		for i := numOfMessages - 1; i >= 0; i-- {
+			pid := core.PeerID(fmt.Sprintf("%s%d", "pid", i))
+			providedPids[pid.Pretty()] = struct{}{}
+
+			pkBytes := []byte("same pk")
+			providedMessages[i] = createHeartbeatMessage(providedStatuses[i], pkBytes)
+
+			args.Cache.Put(pid.Bytes(), providedMessages[i], providedMessages[i].Size())
+		}
+
+		monitor, _ := NewHeartbeatV2Monitor(args)
+		assert.False(t, check.IfNil(monitor))
+
+		heartbeats := monitor.GetHeartbeats()
+		assert.Equal(t, 1, len(heartbeats))
+		checkResults(t, providedMessages[0], heartbeats[0], providedStatuses[0], providedPids, 3)
 	})
 }
 

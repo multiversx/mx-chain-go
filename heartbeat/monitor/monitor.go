@@ -90,7 +90,6 @@ func checkArgs(args ArgHeartbeatV2Monitor) error {
 // GetHeartbeats returns the heartbeat status
 func (monitor *heartbeatV2Monitor) GetHeartbeats() []data.PubKeyHeartbeat {
 	heartbeatMessagesMap := monitor.processRAWDataFromCache()
-	monitor.removeFromInactiveNodes(heartbeatMessagesMap)
 
 	heartbeatsV2 := make([]data.PubKeyHeartbeat, 0)
 	for _, heartbeatMessagesInstance := range heartbeatMessagesMap {
@@ -100,8 +99,10 @@ func (monitor *heartbeatV2Monitor) GetHeartbeats() []data.PubKeyHeartbeat {
 			continue
 		}
 
-		message.NumInstances = uint64(len(heartbeatMessagesInstance.activeHeartbeats))
+		message.NumInstances = heartbeatMessagesInstance.numActivePids
 		heartbeatsV2 = append(heartbeatsV2, *message)
+
+		monitor.removeInactive(heartbeatMessagesInstance.getInactivePids())
 	}
 
 	sort.Slice(heartbeatsV2, func(i, j int) bool {
@@ -109,6 +110,12 @@ func (monitor *heartbeatV2Monitor) GetHeartbeats() []data.PubKeyHeartbeat {
 	})
 
 	return heartbeatsV2
+}
+
+func (monitor *heartbeatV2Monitor) removeInactive(pids []core.PeerID) {
+	for _, pid := range pids {
+		monitor.cache.Remove([]byte(pid))
+	}
 }
 
 func (monitor *heartbeatV2Monitor) processRAWDataFromCache() map[string]*heartbeatMessages {
@@ -140,46 +147,6 @@ func (monitor *heartbeatV2Monitor) processRAWDataFromCache() map[string]*heartbe
 	}
 
 	return heartbeatsV2
-}
-
-func (monitor *heartbeatV2Monitor) removeFromInactiveNodes(heartbeatsV2 map[string]*heartbeatMessages) {
-	for _, heartbeatMessagesInstance := range heartbeatsV2 {
-		if len(heartbeatMessagesInstance.activeHeartbeats) > 0 {
-			// at least one active heartbeat message found, old inactive messages should be discarded
-			monitor.removeAllInactiveMessages(heartbeatMessagesInstance)
-			continue
-		}
-
-		monitor.removeInactiveMessagesExceptLatest(heartbeatMessagesInstance)
-	}
-}
-
-func (monitor *heartbeatV2Monitor) removeAllInactiveMessages(heartbeatMessagesInstance *heartbeatMessages) {
-	for pid := range heartbeatMessagesInstance.inactiveHeartbeats {
-		monitor.cache.Remove([]byte(pid))
-	}
-
-	heartbeatMessagesInstance.inactiveHeartbeats = make(map[core.PeerID]*data.PubKeyHeartbeat)
-}
-
-func (monitor *heartbeatV2Monitor) removeInactiveMessagesExceptLatest(heartbeatMessagesInstance *heartbeatMessages) {
-	latestPid := core.PeerID("")
-	latestTimeStamp := int64(0)
-	for pid, heartbeatMessage := range heartbeatMessagesInstance.inactiveHeartbeats {
-		if heartbeatMessage.TimeStamp.Unix() > latestTimeStamp {
-			latestTimeStamp = heartbeatMessage.TimeStamp.Unix()
-			latestPid = pid
-		}
-	}
-
-	for pid := range heartbeatMessagesInstance.inactiveHeartbeats {
-		if pid == latestPid {
-			continue
-		}
-
-		monitor.cache.Remove([]byte(pid))
-		delete(heartbeatMessagesInstance.inactiveHeartbeats, pid)
-	}
 }
 
 func (monitor *heartbeatV2Monitor) parseMessage(pid core.PeerID, message interface{}) (*data.PubKeyHeartbeat, error) {
