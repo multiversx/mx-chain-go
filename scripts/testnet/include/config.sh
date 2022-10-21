@@ -40,8 +40,7 @@ copySeednodeConfig() {
 
   cp p2pKey.pem $TESTNETDIR/seednode/config
   GENERATED_P2P_PUB_KEY=$(grep for  ./p2pKey.pem | head -1 | grep -oP '[^[:blank:]-]*' | tail -1)
-  P2P_SEEDNODE_ADDRESS=$P2P_SEEDNODE_ADDRESS$GENERATED_P2P_PUB_KEY
-  export P2P_SEEDNODE_ADDRESS
+  export P2P_SEEDNODE_ADDRESS="/ip4/$SEEDNODE_IP/tcp/$PORT_SEEDNODE/p2p/$GENERATED_P2P_PUB_KEY"
 
   popd
 }
