@@ -51,6 +51,7 @@ func NewShardStorageHandler(
 			EpochStartNotifier:            epochStartNotifier,
 			NodeTypeProvider:              nodeTypeProvider,
 			CurrentEpoch:                  currentEpoch,
+			StorageType:                   factory.BootstrapStorageService,
 			CreateTrieEpochRootHashStorer: false,
 		},
 	)
@@ -85,7 +86,10 @@ func (ssh *shardStorageHandler) CloseStorageService() {
 
 // SaveDataToStorage will save the fetched data to storage so it will be used by the storage bootstrap component
 func (ssh *shardStorageHandler) SaveDataToStorage(components *ComponentsNeededForBootstrap, notarizedShardHeader data.HeaderHandler, withScheduled bool) error {
-	bootStorer := ssh.storageService.GetStorer(dataRetriever.BootstrapUnit)
+	bootStorer, err := ssh.storageService.GetStorer(dataRetriever.BootstrapUnit)
+	if err != nil {
+		return err
+	}
 
 	lastHeader, err := ssh.saveLastHeader(components.ShardHeader)
 	if err != nil {
@@ -841,7 +845,12 @@ func (ssh *shardStorageHandler) saveTriggerRegistry(components *ComponentsNeeded
 		return nil, err
 	}
 
-	errPut := ssh.storageService.GetStorer(dataRetriever.BootstrapUnit).Put(trigInternalKey, triggerRegBytes)
+	bootstrapStorer, err := ssh.storageService.GetStorer(dataRetriever.BootstrapUnit)
+	if err != nil {
+		return nil, err
+	}
+
+	errPut := bootstrapStorer.Put(trigInternalKey, triggerRegBytes)
 	if errPut != nil {
 		return nil, errPut
 	}

@@ -16,6 +16,7 @@ import (
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/common"
+	cryptoCommon "github.com/ElrondNetwork/elrond-go/common/crypto"
 	"github.com/ElrondNetwork/elrond-go/common/statistics"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -23,7 +24,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
 	"github.com/ElrondNetwork/elrond-go/genesis"
-	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	heartbeatData "github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/outport"
@@ -120,7 +120,7 @@ type CoreComponentsHolder interface {
 	GenesisNodesSetup() sharding.GenesisNodesSetupHandler
 	NodesShuffler() nodesCoordinator.NodesShuffler
 	EpochNotifier() process.EpochNotifier
-	RoundNotifier() process.RoundNotifier
+	EnableRoundsHandler() process.EnableRoundsHandler
 	EpochStartNotifierWithConfirm() EpochStartNotifierWithConfirm
 	ChanStopNodeProcess() chan endProcess.ArgEndProcess
 	GenesisTime() time.Time
@@ -132,6 +132,7 @@ type CoreComponentsHolder interface {
 	ArwenChangeLocker() common.Locker
 	ProcessStatusHandler() common.ProcessStatusHandler
 	HardforkTriggerPubKey() []byte
+	EnableEpochsHandler() common.EnableEpochsHandler
 	IsInterfaceNil() bool
 }
 
@@ -139,6 +140,19 @@ type CoreComponentsHolder interface {
 type CoreComponentsHandler interface {
 	ComponentHandler
 	CoreComponentsHolder
+}
+
+// StatusCoreComponentsHolder holds the status core components
+type StatusCoreComponentsHolder interface {
+	ResourceMonitor() ResourceMonitor
+	NetworkStatistics() NetworkStatisticsProvider
+	IsInterfaceNil() bool
+}
+
+// StatusCoreComponentsHandler defines the status core components handler actions
+type StatusCoreComponentsHandler interface {
+	ComponentHandler
+	StatusCoreComponentsHolder
 }
 
 // CryptoParamsHolder permits access to crypto parameters such as the private and public keys
@@ -155,9 +169,10 @@ type CryptoComponentsHolder interface {
 	CryptoParamsHolder
 	TxSingleSigner() crypto.SingleSigner
 	BlockSigner() crypto.SingleSigner
-	MultiSigner() crypto.MultiSigner
+	SetMultiSignerContainer(container cryptoCommon.MultiSignerContainer) error
+	MultiSignerContainer() cryptoCommon.MultiSignerContainer
+	GetMultiSigner(epoch uint32) (crypto.MultiSigner, error)
 	PeerSignatureHandler() crypto.PeerSignatureHandler
-	SetMultiSigner(ms crypto.MultiSigner) error
 	BlockSignKeyGen() crypto.KeyGenerator
 	TxSignKeyGen() crypto.KeyGenerator
 	MessageSignVerifier() vm.MessageSignVerifier
@@ -314,45 +329,6 @@ type StatusComponentsHandler interface {
 	StartPolling() error
 }
 
-// HeartbeatSender sends heartbeat messages
-type HeartbeatSender interface {
-	SendHeartbeat() error
-	IsInterfaceNil() bool
-}
-
-// HeartbeatMonitor monitors the received heartbeat messages
-type HeartbeatMonitor interface {
-	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
-	GetHeartbeats() []heartbeatData.PubKeyHeartbeat
-	IsInterfaceNil() bool
-	Cleanup()
-	Close() error
-}
-
-// HeartbeatStorer provides storage functionality for the heartbeat component
-type HeartbeatStorer interface {
-	UpdateGenesisTime(genesisTime time.Time) error
-	LoadGenesisTime() (time.Time, error)
-	SaveKeys(peersSlice [][]byte) error
-	LoadKeys() ([][]byte, error)
-	IsInterfaceNil() bool
-}
-
-// HeartbeatComponentsHolder holds the heartbeat components
-type HeartbeatComponentsHolder interface {
-	MessageHandler() heartbeat.MessageHandler
-	Monitor() HeartbeatMonitor
-	Sender() HeartbeatSender
-	Storer() HeartbeatStorer
-	IsInterfaceNil() bool
-}
-
-// HeartbeatComponentsHandler defines the heartbeat components handler actions
-type HeartbeatComponentsHandler interface {
-	ComponentHandler
-	HeartbeatComponentsHolder
-}
-
 // HeartbeatV2Monitor monitors the cache of heartbeatV2 messages
 type HeartbeatV2Monitor interface {
 	GetHeartbeats() []heartbeatData.PubKeyHeartbeat
@@ -407,7 +383,6 @@ type HardforkTrigger interface {
 	Trigger(epoch uint32, withEarlyEndOfEpoch bool) error
 	CreateData() []byte
 	AddCloser(closer update.Closer) error
-	NotifyTriggerReceived() <-chan struct{}
 	NotifyTriggerReceivedV2() <-chan struct{}
 	IsSelfTrigger() bool
 	IsInterfaceNil() bool
@@ -447,7 +422,6 @@ type EpochStartBootstrapper interface {
 
 // BootstrapComponentsHolder holds the bootstrap components
 type BootstrapComponentsHolder interface {
-	RoundActivationHandler() process.RoundActivationHandler
 	EpochStartBootstrapper() EpochStartBootstrapper
 	EpochBootstrapParams() BootstrapParamsHolder
 	NodeType() core.NodeType
@@ -503,5 +477,33 @@ type LogsFacade interface {
 type ReceiptsRepository interface {
 	SaveReceipts(holder common.ReceiptsHolder, header data.HeaderHandler, headerHash []byte) error
 	LoadReceipts(header data.HeaderHandler, headerHash []byte) (common.ReceiptsHolder, error)
+	IsInterfaceNil() bool
+}
+
+// ProcessDebuggerSetter allows setting a debugger on the process component
+type ProcessDebuggerSetter interface {
+	SetProcessDebugger(debugger process.Debugger) error
+}
+
+// ResourceMonitor defines the function implemented by a struct that can monitor resources
+type ResourceMonitor interface {
+	Close() error
+	IsInterfaceNil() bool
+}
+
+// NetworkStatisticsProvider is able to provide network statistics
+type NetworkStatisticsProvider interface {
+	BpsSent() uint64
+	BpsRecv() uint64
+	BpsSentPeak() uint64
+	BpsRecvPeak() uint64
+	PercentSent() uint64
+	PercentRecv() uint64
+	TotalBytesSentInCurrentEpoch() uint64
+	TotalBytesReceivedInCurrentEpoch() uint64
+	TotalSentInCurrentEpoch() string
+	TotalReceivedInCurrentEpoch() string
+	EpochConfirmed(epoch uint32, timestamp uint64)
+	Close() error
 	IsInterfaceNil() bool
 }

@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/debug"
+	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/ntp"
@@ -84,17 +85,9 @@ func NewNodeFacade(arg ArgNodeFacade) (*nodeFacade, error) {
 	if len(arg.ApiRoutesConfig.APIPackages) == 0 {
 		return nil, ErrNoApiRoutesConfig
 	}
-	if arg.WsAntifloodConfig.SimultaneousRequests == 0 {
-		return nil, fmt.Errorf("%w, SimultaneousRequests should not be 0", ErrInvalidValue)
-	}
-	if arg.WsAntifloodConfig.SameSourceRequests == 0 {
-		return nil, fmt.Errorf("%w, SameSourceRequests should not be 0", ErrInvalidValue)
-	}
-	if arg.WsAntifloodConfig.SameSourceResetIntervalInSec == 0 {
-		return nil, fmt.Errorf("%w, SameSourceResetIntervalInSec should not be 0", ErrInvalidValue)
-	}
-	if arg.WsAntifloodConfig.TrieOperationsDeadlineMilliseconds == 0 {
-		return nil, fmt.Errorf("%w, TrieOperationsDeadlineMilliseconds should not be 0", ErrInvalidValue)
+	err := checkWebserverAntifloodConfig(arg.WsAntifloodConfig)
+	if err != nil {
+		return nil, err
 	}
 	if check.IfNil(arg.AccountsState) {
 		return nil, ErrNilAccountState
@@ -124,6 +117,27 @@ func NewNodeFacade(arg ArgNodeFacade) (*nodeFacade, error) {
 	nf.ctx, nf.cancelFunc = context.WithCancel(context.Background())
 
 	return nf, nil
+}
+
+func checkWebserverAntifloodConfig(cfg config.WebServerAntifloodConfig) error {
+	if !cfg.WebServerAntifloodEnabled {
+		return nil
+	}
+
+	if cfg.SimultaneousRequests == 0 {
+		return fmt.Errorf("%w, SimultaneousRequests should not be 0", ErrInvalidValue)
+	}
+	if cfg.SameSourceRequests == 0 {
+		return fmt.Errorf("%w, SameSourceRequests should not be 0", ErrInvalidValue)
+	}
+	if cfg.SameSourceResetIntervalInSec == 0 {
+		return fmt.Errorf("%w, SameSourceResetIntervalInSec should not be 0", ErrInvalidValue)
+	}
+	if cfg.TrieOperationsDeadlineMilliseconds == 0 {
+		return fmt.Errorf("%w, TrieOperationsDeadlineMilliseconds should not be 0", ErrInvalidValue)
+	}
+
+	return nil
 }
 
 func computeEndpointsNumGoRoutinesThrottlers(webServerAntiFloodConfig config.WebServerAntifloodConfig) map[string]core.Throttler {
@@ -173,6 +187,11 @@ func (nf *nodeFacade) GetBalance(address string, options apiData.AccountQueryOpt
 // GetUsername gets the username for a specified address
 func (nf *nodeFacade) GetUsername(address string, options apiData.AccountQueryOptions) (string, apiData.BlockInfo, error) {
 	return nf.node.GetUsername(address, options)
+}
+
+// GetCodeHash gets the code hash for a specified address
+func (nf *nodeFacade) GetCodeHash(address string, options apiData.AccountQueryOptions) ([]byte, apiData.BlockInfo, error) {
+	return nf.node.GetCodeHash(address, options)
 }
 
 // GetValueForKey gets the value for a key in a given address
@@ -239,8 +258,11 @@ func (nf *nodeFacade) GetAllIssuedESDTs(tokenType string) ([]string, error) {
 }
 
 func (nf *nodeFacade) getContextForApiTrieRangeOperations() (context.Context, context.CancelFunc) {
-	timeout := time.Duration(nf.wsAntifloodConfig.TrieOperationsDeadlineMilliseconds) * time.Millisecond
+	if !nf.wsAntifloodConfig.WebServerAntifloodEnabled {
+		return context.WithCancel(context.Background())
+	}
 
+	timeout := time.Duration(nf.wsAntifloodConfig.TrieOperationsDeadlineMilliseconds) * time.Millisecond
 	return context.WithTimeout(context.Background(), timeout)
 }
 
@@ -423,6 +445,10 @@ func (nf *nodeFacade) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
 
 // GetThrottlerForEndpoint returns the throttler for a given endpoint if found
 func (nf *nodeFacade) GetThrottlerForEndpoint(endpoint string) (core.Throttler, bool) {
+	if !nf.wsAntifloodConfig.WebServerAntifloodEnabled {
+		return disabled.NewThrottler(), true
+	}
+
 	throttlerForEndpoint, ok := nf.endpointsThrottlers[endpoint]
 	isThrottlerOk := ok && throttlerForEndpoint != nil
 

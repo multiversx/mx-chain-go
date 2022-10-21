@@ -82,11 +82,13 @@ type EnableEpochs struct {
 	RefactorContextEnableEpoch                        uint32
 	CheckFunctionArgumentEnableEpoch                  uint32
 	CheckExecuteOnReadOnlyEnableEpoch                 uint32
-	HeartbeatDisableEpoch                             uint32
 	MiniBlockPartialExecutionEnableEpoch              uint32
 	ESDTMetadataContinuousCleanupEnableEpoch          uint32
 	FixAsyncCallBackArgsListEnableEpoch               uint32
 	FixOldTokenLiquidityEnableEpoch                   uint32
+	SetSenderInEeiOutputTransferEnableEpoch           uint32
+	RefactorPeersMiniBlocksEnableEpoch                uint32
+	BLSMultiSignerEnableEpoch                         []MultiSignerConfig
 }
 
 // GasScheduleByEpochs represents a gas schedule toml entry that will be applied from the provided epoch

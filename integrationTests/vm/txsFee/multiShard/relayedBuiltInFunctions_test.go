@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -24,7 +25,7 @@ func TestRelayedBuiltInFunctionExecuteOnRelayerAndDstShardShouldWork(t *testing.
 	testContextRelayer, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(
 		2,
 		config.EnableEpochs{
-			PenalizedTooMuchGasEnableEpoch: 100,
+			PenalizedTooMuchGasEnableEpoch: integrationTests.UnreachableEpoch,
 		})
 	require.Nil(t, err)
 	defer testContextRelayer.Close()
@@ -32,7 +33,7 @@ func TestRelayedBuiltInFunctionExecuteOnRelayerAndDstShardShouldWork(t *testing.
 	testContextInner, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(
 		1,
 		config.EnableEpochs{
-			PenalizedTooMuchGasEnableEpoch: 100,
+			PenalizedTooMuchGasEnableEpoch: integrationTests.UnreachableEpoch,
 		})
 	require.Nil(t, err)
 	defer testContextInner.Close()

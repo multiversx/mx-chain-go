@@ -5,20 +5,20 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	p2pConfig "github.com/ElrondNetwork/elrond-go/p2p/config"
 	"github.com/stretchr/testify/assert"
 )
 
 var p2pBootstrapStepDelay = 2 * time.Second
 
-func createDefaultConfig() config.P2PConfig {
-	return config.P2PConfig{
-		Node: config.NodeConfig{
+func createDefaultConfig() p2pConfig.P2PConfig {
+	return p2pConfig.P2PConfig{
+		Node: p2pConfig.NodeConfig{
 			Port: "0",
 		},
-		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
+		KadDhtPeerDiscovery: p2pConfig.KadDhtPeerDiscoveryConfig{
 			Enabled:                          true,
 			Type:                             "optimized",
 			RefreshIntervalInSec:             1,
@@ -31,8 +31,8 @@ func createDefaultConfig() config.P2PConfig {
 }
 
 func TestConnectionsInNetworkShardingWithShardingWithLists(t *testing.T) {
-	p2pConfig := createDefaultConfig()
-	p2pConfig.Sharding = config.ShardingConfig{
+	p2pCfg := createDefaultConfig()
+	p2pCfg.Sharding = p2pConfig.ShardingConfig{
 		TargetPeerCount:         12,
 		MaxIntraShardValidators: 6,
 		MaxCrossShardValidators: 1,
@@ -40,15 +40,15 @@ func TestConnectionsInNetworkShardingWithShardingWithLists(t *testing.T) {
 		MaxCrossShardObservers:  1,
 		MaxSeeders:              1,
 		Type:                    p2p.ListsSharder,
-		AdditionalConnections: config.AdditionalConnectionsConfig{
+		AdditionalConnections: p2pConfig.AdditionalConnectionsConfig{
 			MaxFullHistoryObservers: 1,
 		},
 	}
 
-	testConnectionsInNetworkSharding(t, p2pConfig)
+	testConnectionsInNetworkSharding(t, p2pCfg)
 }
 
-func testConnectionsInNetworkSharding(t *testing.T, p2pConfig config.P2PConfig) {
+func testConnectionsInNetworkSharding(t *testing.T, p2pConfig p2pConfig.P2PConfig) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}

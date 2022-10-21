@@ -63,9 +63,6 @@ const ConsensusTopic = "consensus"
 // GenesisTxSignatureString is the string used to generate genesis transaction signature as 128 hex characters
 const GenesisTxSignatureString = "GENESISGENESISGENESISGENESISGENESISGENESISGENESISGENESISGENESISG"
 
-// HeartbeatTopic is the topic used for heartbeat signaling
-const HeartbeatTopic = "heartbeat"
-
 // HeartbeatV2Topic is the topic used for heartbeatV2 signaling
 const HeartbeatV2Topic = "heartbeatV2"
 
@@ -75,14 +72,8 @@ const PeerAuthenticationTopic = "peerAuthentication"
 // ConnectionTopic represents the topic used when sending the new connection message data
 const ConnectionTopic = "connection"
 
-// PathShardPlaceholder represents the placeholder for the shard ID in paths
-const PathShardPlaceholder = "[S]"
-
-// PathEpochPlaceholder represents the placeholder for the epoch number in paths
-const PathEpochPlaceholder = "[E]"
-
-// PathIdentifierPlaceholder represents the placeholder for the identifier in paths
-const PathIdentifierPlaceholder = "[I]"
+// ValidatorInfoTopic is the topic used for validatorInfo signaling
+const ValidatorInfoTopic = "validatorInfo"
 
 // MetricCurrentRound is the metric for monitoring the current round of a node
 const MetricCurrentRound = "erd_current_round"
@@ -301,7 +292,7 @@ const MetricCreatedProposedBlock = "erd_consensus_created_proposed_block"
 // MetricRedundancyLevel is the metric that specifies the redundancy level of the current node
 const MetricRedundancyLevel = "erd_redundancy_level"
 
-// MetricRedundancyIsMainActive is the metrics that specifies data about the redundancy main machine
+// MetricRedundancyIsMainActive is the metric that specifies data about the redundancy main machine
 const MetricRedundancyIsMainActive = "erd_redundancy_is_main_active"
 
 // MetricValueNA represents the value to be used when a metric is not available/applicable
@@ -497,9 +488,6 @@ const (
 	// MetricWaitingListFixEnableEpoch represents the epoch when the waiting list fix is enabled
 	MetricWaitingListFixEnableEpoch = "erd_waiting_list_fix_enable_epoch"
 
-	// MetricHeartbeatDisableEpoch represents the epoch when heartbeat v1 messages stop being sent and processed
-	MetricHeartbeatDisableEpoch = "erd_heartbeat_disable_epoch"
-
 	// MetricMaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
 	MetricMaxNodesChangeEnableEpoch = "erd_max_nodes_change_enable_epoch"
 
@@ -683,26 +671,11 @@ const WrongConfiguration = "wrongConfiguration"
 // ImportComplete signals that a node restart will be done because the import did complete
 const ImportComplete = "importComplete"
 
-// MaxRetriesToCreateDB represents the maximum number of times to try to create DB if it failed
-const MaxRetriesToCreateDB = 10
-
-// SleepTimeBetweenCreateDBRetries represents the number of seconds to sleep between DB creates
-const SleepTimeBetweenCreateDBRetries = 5 * time.Second
-
 // DefaultStatsPath is the default path where the node stats are logged
 const DefaultStatsPath = "stats"
 
 // DefaultDBPath is the default path for nodes databases
 const DefaultDBPath = "db"
-
-// DefaultEpochString is the default folder root name for node per epoch databases
-const DefaultEpochString = "Epoch"
-
-// DefaultStaticDbString is the default name for the static databases (not changing with epoch)
-const DefaultStaticDbString = "Static"
-
-// DefaultShardString is the default folder root name for per shard databases
-const DefaultShardString = "Shard"
 
 // MetachainShardName is the string identifier of the metachain shard
 const MetachainShardName = "metachain"
@@ -744,10 +717,6 @@ const InvalidMessageBlacklistDuration = time.Second * 3600
 // PublicKeyBlacklistDuration represents the time to keep a public key in the black list if it will degrade its
 // rating to a minimum threshold due to improper messages
 const PublicKeyBlacklistDuration = time.Second * 7200
-
-// WrongP2PMessageBlacklistDuration represents the time to keep a peer id in the blacklist if it sends a message that
-// do not follow this protocol
-const WrongP2PMessageBlacklistDuration = time.Second * 7200
 
 // MaxWaitingTimeToReceiveRequestedItem represents the maximum waiting time in seconds needed to receive the requested items
 const MaxWaitingTimeToReceiveRequestedItem = 5 * time.Second
@@ -841,3 +810,6 @@ const (
 
 // MaxIndexOfTxInMiniBlock defines the maximum index of a tx inside one mini block
 const MaxIndexOfTxInMiniBlock = int32(29999)
+
+// GenesisStorageSuffix defines the storage suffix used for genesis altered data
+const GenesisStorageSuffix = "_genesis"

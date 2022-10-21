@@ -9,10 +9,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	elrondErrors "github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
+	"github.com/ElrondNetwork/elrond-go/storage/cache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
+	"github.com/ElrondNetwork/elrond-go/trie/statistics"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -535,7 +535,7 @@ func TestLeafNode_loadChildren(t *testing.T) {
 	_, hasher := getTestMarshalizerAndHasher()
 	tr := initTrie()
 	nodes, hashes := getEncodedTrieNodesAndHashes(tr)
-	nodesCacher, _ := lrucache.NewCache(100)
+	nodesCacher, _ := cache.NewLRUCache(100)
 	for i := range nodes {
 		n, _ := NewInterceptedTrieNode(nodes[i], hasher)
 		nodesCacher.Put(n.hash, n, len(n.GetSerialized()))
@@ -728,10 +728,10 @@ func TestLeafNode_commitContextDone(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	err := ln.commitCheckpoint(db, db, nil, nil, ctx, &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{})
+	err := ln.commitCheckpoint(db, db, nil, nil, ctx, statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
 	assert.Equal(t, elrondErrors.ErrContextClosing, err)
 
-	err = ln.commitSnapshot(db, nil, ctx, &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{})
+	err = ln.commitSnapshot(db, nil, nil, ctx, statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
 	assert.Equal(t, elrondErrors.ErrContextClosing, err)
 }
 

@@ -7,12 +7,12 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -112,21 +112,16 @@ type processedIndexes struct {
 }
 
 // basePreProcess is the base struct for all pre-processors
-// beware of calling basePreProcess.epochConfirmed in all extensions of this struct if the flags from the basePreProcess are
-// used in those extensions instances
 type basePreProcess struct {
 	gasTracker
-	hasher                                      hashing.Hasher
-	marshalizer                                 marshal.Marshalizer
-	blockSizeComputation                        BlockSizeComputationHandler
-	balanceComputation                          BalanceComputationHandler
-	accounts                                    state.AccountsAdapter
-	pubkeyConverter                             core.PubkeyConverter
-	optimizeGasUsedInCrossMiniBlocksEnableEpoch uint32
-	flagOptimizeGasUsedInCrossMiniBlocks        atomic.Flag
-	frontRunningProtectionEnableEpoch           uint32
-	flagFrontRunningProtection                  atomic.Flag
-	processedMiniBlocksTracker                  process.ProcessedMiniBlocksTracker
+	hasher                     hashing.Hasher
+	marshalizer                marshal.Marshalizer
+	blockSizeComputation       BlockSizeComputationHandler
+	balanceComputation         BalanceComputationHandler
+	accounts                   state.AccountsAdapter
+	pubkeyConverter            core.PubkeyConverter
+	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker
+	enableEpochsHandler        common.EnableEpochsHandler
 }
 
 func (bpp *basePreProcess) removeBlockDataFromPools(
@@ -206,7 +201,7 @@ func (bpp *basePreProcess) removeMiniBlocksFromPools(
 	return nil
 }
 
-func (bpp *basePreProcess) createMarshalizedData(txHashes [][]byte, forBlock *txsForBlock) ([][]byte, error) {
+func (bpp *basePreProcess) createMarshalledData(txHashes [][]byte, forBlock *txsForBlock) ([][]byte, error) {
 	mrsTxs := make([][]byte, 0, len(txHashes))
 	for _, txHash := range txHashes {
 		forBlock.mutTxsForBlock.RLock()
@@ -214,7 +209,7 @@ func (bpp *basePreProcess) createMarshalizedData(txHashes [][]byte, forBlock *tx
 		forBlock.mutTxsForBlock.RUnlock()
 
 		if txInfoFromMap == nil || check.IfNil(txInfoFromMap.tx) {
-			log.Warn("basePreProcess.createMarshalizedData: tx not found", "hash", txHash)
+			log.Warn("basePreProcess.createMarshalledData: tx not found", "hash", txHash)
 			continue
 		}
 
@@ -225,7 +220,7 @@ func (bpp *basePreProcess) createMarshalizedData(txHashes [][]byte, forBlock *tx
 		mrsTxs = append(mrsTxs, txMrs)
 	}
 
-	log.Trace("basePreProcess.createMarshalizedData",
+	log.Trace("basePreProcess.createMarshalledData",
 		"num txs", len(mrsTxs),
 	)
 
@@ -441,7 +436,7 @@ func getTxMaxTotalCost(txHandler data.TransactionHandler) *big.Int {
 }
 
 func (bpp *basePreProcess) getTotalGasConsumed() uint64 {
-	if !bpp.flagOptimizeGasUsedInCrossMiniBlocks.IsSet() {
+	if !bpp.enableEpochsHandler.IsOptimizeGasUsedInCrossMiniBlocksFlagEnabled() {
 		return bpp.gasHandler.TotalGasProvided()
 	}
 
@@ -464,7 +459,7 @@ func (bpp *basePreProcess) updateGasConsumedWithGasRefundedAndGasPenalized(
 	txHash []byte,
 	gasInfo *gasConsumedInfo,
 ) {
-	if !bpp.flagOptimizeGasUsedInCrossMiniBlocks.IsSet() {
+	if !bpp.enableEpochsHandler.IsOptimizeGasUsedInCrossMiniBlocksFlagEnabled() {
 		return
 	}
 
@@ -513,14 +508,6 @@ func getMiniBlockHeaderOfMiniBlock(headerHandler data.HeaderHandler, miniBlockHa
 	}
 
 	return nil, process.ErrMissingMiniBlockHeader
-}
-
-// epochConfirmed is called whenever a new epoch is confirmed from the structs that extend this instance
-func (bpp *basePreProcess) epochConfirmed(epoch uint32, _ uint64) {
-	bpp.flagOptimizeGasUsedInCrossMiniBlocks.SetValue(epoch >= bpp.optimizeGasUsedInCrossMiniBlocksEnableEpoch)
-	log.Debug("basePreProcess: optimize gas used in cross mini blocks", "enabled", bpp.flagOptimizeGasUsedInCrossMiniBlocks.IsSet())
-	bpp.flagFrontRunningProtection.SetValue(epoch >= bpp.frontRunningProtectionEnableEpoch)
-	log.Debug("basePreProcess: front running protection", "enabled", bpp.flagFrontRunningProtection.IsSet())
 }
 
 func (bpp *basePreProcess) getIndexesOfLastTxProcessed(

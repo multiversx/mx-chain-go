@@ -3,7 +3,6 @@ package txsimulator
 import (
 	"context"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -24,8 +23,14 @@ func NewReadOnlyAccountsDB(accountsDB state.AccountsAdapter) (*readOnlyAccountsD
 	return &readOnlyAccountsDB{originalAccounts: accountsDB}, nil
 }
 
-// StartSnapshotIfNeeded does nothing for this implementation
-func (r *readOnlyAccountsDB) StartSnapshotIfNeeded() {
+// SetSyncer returns nil for this implementation
+func (r *readOnlyAccountsDB) SetSyncer(_ state.AccountsDBSyncer) error {
+	return nil
+}
+
+// StartSnapshotIfNeeded returns nil for this implementation
+func (r *readOnlyAccountsDB) StartSnapshotIfNeeded() error {
+	return nil
 }
 
 // GetCode returns the code for the given account
@@ -110,8 +115,8 @@ func (r *readOnlyAccountsDB) IsPruningEnabled() bool {
 }
 
 // GetAllLeaves will call the original accounts' function with the same name
-func (r *readOnlyAccountsDB) GetAllLeaves(leavesChannel chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
-	return r.originalAccounts.GetAllLeaves(leavesChannel, ctx, rootHash)
+func (r *readOnlyAccountsDB) GetAllLeaves(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error {
+	return r.originalAccounts.GetAllLeaves(leavesChannels, ctx, rootHash)
 }
 
 // RecreateAllTries will return an error which indicates that this operation is not supported

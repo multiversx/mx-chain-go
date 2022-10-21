@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
@@ -41,10 +42,18 @@ func createMockArgumentsForDelegation() ArgsNewDelegation {
 		ValidatorSCAddress:     vm.ValidatorSCAddress,
 		GasCost:                vm.GasCost{MetaChainSystemSCsCost: vm.MetaChainSystemSCsCost{ESDTIssue: 10}},
 		Marshalizer:            &mock.MarshalizerMock{},
-		EpochNotifier:          &mock.EpochNotifierStub{},
 		EndOfEpochAddress:      vm.EndOfEpochAddress,
 		GovernanceSCAddress:    vm.GovernanceSCAddress,
 		AddTokensAddress:       bytes.Repeat([]byte{1}, 32),
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+			IsDelegationSmartContractFlagEnabledField:              true,
+			IsStakingV2FlagEnabledForActivationEpochCompletedField: true,
+			IsAddTokensToDelegationFlagEnabledField:                true,
+			IsDeleteDelegatorAfterClaimRewardsFlagEnabledField:     true,
+			IsComputeRewardCheckpointFlagEnabledField:              true,
+			IsValidatorToDelegationFlagEnabledField:                true,
+			IsReDelegateBelowMinCheckFlagEnabledField:              true,
+		},
 	}
 }
 
@@ -53,6 +62,7 @@ func addValidatorAndStakingScToVmContext(eei *vmContext) {
 	validatorArgs.Eei = eei
 	validatorArgs.StakingSCConfig.GenesisNodePrice = "100"
 	validatorArgs.StakingSCAddress = vm.StakingSCAddress
+	enableEpochsHandler, _ := validatorArgs.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
 	validatorSc, _ := NewValidatorSmartContract(validatorArgs)
 
 	stakingArgs := createMockStakingScArguments()
@@ -67,7 +77,7 @@ func addValidatorAndStakingScToVmContext(eei *vmContext) {
 		}
 
 		if bytes.Equal(key, vm.ValidatorSCAddress) {
-			_ = validatorSc.flagEnableTopUp.SetReturningPrevious()
+			enableEpochsHandler.IsStakingV2FlagEnabledField = true
 			_ = validatorSc.saveRegistrationData([]byte("addr"), &ValidatorDataV2{
 				RewardAddress:   []byte("rewardAddr"),
 				TotalStakeValue: big.NewInt(1000),
@@ -122,17 +132,18 @@ func createDelegationManagerConfig(eei *vmContext, marshalizer marshal.Marshaliz
 
 func createDelegationContractAndEEI() (*delegation, *vmContext) {
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{
+	eei, _ := NewVMContext(VMContextArgs{
+		BlockChainHook: &mock.BlockChainHookStub{
 			CurrentEpochCalled: func() uint32 {
 				return 2
 			},
 		},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+		CryptoHook:          hooks.NewVMCryptoHook(),
+		InputParser:         &mock.ArgumentParserMock{},
+		ValidatorAccountsDB: &stateMock.AccountsStub{},
+		ChanceComputer:      &mock.RaterMock{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+	})
 	systemSCContainerStub := &mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
 		return &mock.SystemSCStub{ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 			return vmcommon.Ok
@@ -205,15 +216,15 @@ func TestNewDelegationSystemSC_NilMarshalizerShouldErr(t *testing.T) {
 	assert.Equal(t, vm.ErrNilMarshalizer, err)
 }
 
-func TestNewDelegationSystemSC_NilEpochNotifierShouldErr(t *testing.T) {
+func TestNewDelegationSystemSC_NilEnableEpochsHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
-	args.EpochNotifier = nil
+	args.EnableEpochsHandler = nil
 
 	d, err := NewDelegationSystemSC(args)
 	assert.Nil(t, d)
-	assert.Equal(t, vm.ErrNilEpochNotifier, err)
+	assert.Equal(t, vm.ErrNilEnableEpochsHandler, err)
 }
 
 func TestNewDelegationSystemSC_NilSigVerifierShouldErr(t *testing.T) {
@@ -266,18 +277,8 @@ func TestNewDelegationSystemSC_InvalidGenesisNodePriceShouldErr(t *testing.T) {
 func TestNewDelegationSystemSC_OkParamsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	registerHandler := false
-	args := createMockArgumentsForDelegation()
-
-	epochNotifier := &mock.EpochNotifierStub{}
-	epochNotifier.RegisterNotifyHandlerCalled = func(handler vmcommon.EpochSubscriberHandler) {
-		registerHandler = true
-	}
-	args.EpochNotifier = epochNotifier
-
-	d, err := NewDelegationSystemSC(args)
+	d, err := NewDelegationSystemSC(createMockArgumentsForDelegation())
 	assert.Nil(t, err)
-	assert.True(t, registerHandler)
 	assert.False(t, check.IfNil(d))
 }
 
@@ -285,12 +286,7 @@ func TestDelegationSystemSC_ExecuteNilArgsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 	d, _ := NewDelegationSystemSC(args)
 
@@ -303,15 +299,11 @@ func TestDelegationSystemSC_ExecuteDelegationDisabledShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
 	d, _ := NewDelegationSystemSC(args)
-	d.delegationEnabled.Reset()
+	enableEpochsHandler.IsDelegationSmartContractFlagEnabledField = false
 	vmInput := getDefaultVmInputForFunc("addNodes", [][]byte{})
 
 	output := d.Execute(vmInput)
@@ -323,13 +315,7 @@ func TestDelegationSystemSC_ExecuteInitScAlreadyPresentShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
-
+	eei := createDefaultEei()
 	delegationsMap := map[string][]byte{}
 	delegationsMap[ownerKey] = []byte("ownerAddr")
 	eei.storageUpdate[string(eei.scAddress)] = delegationsMap
@@ -347,12 +333,7 @@ func TestDelegationSystemSC_ExecuteInitWrongNumOfArgs(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	d, _ := NewDelegationSystemSC(args)
@@ -367,12 +348,7 @@ func TestDelegationSystemSC_ExecuteInitCallValueHigherThanMaxDelegationCapShould
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	d, _ := NewDelegationSystemSC(args)
@@ -394,18 +370,15 @@ func TestDelegationSystemSC_ExecuteInitShouldWork(t *testing.T) {
 	createdEpoch := uint32(150)
 	callValue := big.NewInt(130)
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{
-			CurrentEpochCalled: func() uint32 {
-				return createdEpoch
-			},
-			CurrentNonceCalled: func() uint64 {
-				return uint64(createdEpoch)
-			}},
-		hooks.NewVMCryptoHook(),
-		parsers.NewCallArgsParser(),
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
+	eei.blockChainHook = &mock.BlockChainHookStub{
+		CurrentEpochCalled: func() uint32 {
+			return createdEpoch
+		},
+		CurrentNonceCalled: func() uint64 {
+			return uint64(createdEpoch)
+		},
+	}
 	createDelegationManagerConfig(eei, args.Marshalizer, callValue)
 	args.Eei = eei
 	args.StakingSCConfig.UnBondPeriod = 20
@@ -470,13 +443,7 @@ func TestDelegationSystemSC_ExecuteAddNodesUserErrors(t *testing.T) {
 	callValue := big.NewInt(130)
 	vmInputArgs := make([][]byte, 0)
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
-
+	eei := createDefaultEei()
 	delegationsMap := map[string][]byte{}
 	delegationsMap[ownerKey] = []byte("ownerAddr")
 	eei.storageUpdate[string(eei.scAddress)] = delegationsMap
@@ -539,13 +506,7 @@ func TestDelegationSystemSC_ExecuteAddNodesStakedKeyAlreadyExistsInStakedKeysSho
 	blsKey := []byte("blsKey1")
 	sig := []byte("sig1")
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
-
+	eei := createDefaultEei()
 	delegationsMap := map[string][]byte{}
 	delegationsMap[ownerKey] = []byte("owner")
 	eei.storageUpdate[string(eei.scAddress)] = delegationsMap
@@ -572,13 +533,7 @@ func TestDelegationSystemSC_ExecuteAddNodesStakedKeyAlreadyExistsInUnStakedKeysS
 	blsKey := []byte("blsKey1")
 	sig := []byte("sig1")
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
-
+	eei := createDefaultEei()
 	delegationsMap := map[string][]byte{}
 	delegationsMap[ownerKey] = []byte("owner")
 	eei.storageUpdate[string(eei.scAddress)] = delegationsMap
@@ -605,13 +560,7 @@ func TestDelegationSystemSC_ExecuteAddNodesStakedKeyAlreadyExistsInNotStakedKeys
 	blsKey := []byte("blsKey1")
 	sig := []byte("sig1")
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
-
+	eei := createDefaultEei()
 	delegationsMap := map[string][]byte{}
 	delegationsMap[ownerKey] = []byte("owner")
 	eei.storageUpdate[string(eei.scAddress)] = delegationsMap
@@ -638,13 +587,7 @@ func TestDelegationSystemSC_ExecuteAddNodesShouldSaveAddedKeysAsNotStakedKeys(t 
 	blsKeys := [][]byte{[]byte("blsKey1"), []byte("blsKey2")}
 	signatures := [][]byte{[]byte("sig1"), []byte("sig2")}
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
-
+	eei := createDefaultEei()
 	delegationsMap := map[string][]byte{}
 	delegationsMap[ownerKey] = []byte("owner")
 	eei.storageUpdate[string(eei.scAddress)] = delegationsMap
@@ -669,13 +612,7 @@ func TestDelegationSystemSC_ExecuteAddNodesWithNoArgsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
-
+	eei := createDefaultEei()
 	delegationsMap := map[string][]byte{}
 	delegationsMap[ownerKey] = []byte("owner")
 	eei.storageUpdate[string(eei.scAddress)] = delegationsMap
@@ -695,13 +632,7 @@ func TestDelegationSystemSC_ExecuteRemoveNodesUserErrors(t *testing.T) {
 	blsKey := []byte("blsKey1")
 	callValue := big.NewInt(130)
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
-
+	eei := createDefaultEei()
 	delegationsMap := map[string][]byte{}
 	delegationsMap[ownerKey] = []byte("ownerAddr")
 	eei.storageUpdate[string(eei.scAddress)] = delegationsMap
@@ -751,13 +682,7 @@ func TestDelegationSystemSC_ExecuteRemoveNodesNotPresentInNotStakedShouldErr(t *
 
 	blsKey := []byte("blsKey1")
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
-
+	eei := createDefaultEei()
 	delegationsMap := map[string][]byte{}
 	delegationsMap[ownerKey] = []byte("owner")
 	eei.storageUpdate[string(eei.scAddress)] = delegationsMap
@@ -778,13 +703,7 @@ func TestDelegationSystemSC_ExecuteRemoveNodesShouldRemoveKeyFromNotStakedKeys(t
 	blsKey1 := []byte("blsKey1")
 	blsKey2 := []byte("blsKey2")
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
-
+	eei := createDefaultEei()
 	delegationsMap := map[string][]byte{}
 	delegationsMap[ownerKey] = []byte("owner")
 	eei.storageUpdate[string(eei.scAddress)] = delegationsMap
@@ -811,13 +730,7 @@ func TestDelegationSystemSC_ExecuteRemoveNodesWithNoArgsShouldErr(t *testing.T) 
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
-
+	eei := createDefaultEei()
 	delegationsMap := map[string][]byte{}
 	delegationsMap[ownerKey] = []byte("owner")
 	eei.storageUpdate[string(eei.scAddress)] = delegationsMap
@@ -837,13 +750,7 @@ func TestDelegationSystemSC_ExecuteStakeNodesUserErrors(t *testing.T) {
 	blsKey := []byte("blsKey1")
 	callValue := big.NewInt(130)
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
-
+	eei := createDefaultEei()
 	delegationsMap := map[string][]byte{}
 	delegationsMap[ownerKey] = []byte("ownerAddr")
 	eei.storageUpdate[string(eei.scAddress)] = delegationsMap
@@ -892,13 +799,7 @@ func TestDelegationSystemSC_ExecuteStakeNodesNotPresentInNotStakedOrUnStakedShou
 
 	blsKey := []byte("blsKey1")
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
-
+	eei := createDefaultEei()
 	delegationsMap := map[string][]byte{}
 	delegationsMap[ownerKey] = []byte("owner")
 	eei.storageUpdate[string(eei.scAddress)] = delegationsMap
@@ -919,13 +820,7 @@ func TestDelegationSystemSC_ExecuteStakeNodesVerifiesBothUnStakedAndNotStaked(t 
 	blsKey1 := []byte("blsKey1")
 	blsKey2 := []byte("blsKey2")
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
-
+	eei := createDefaultEei()
 	delegationsMap := map[string][]byte{}
 	delegationsMap[ownerKey] = []byte("owner")
 	eei.storageUpdate[string(eei.scAddress)] = delegationsMap
@@ -978,13 +873,7 @@ func TestDelegationSystemSC_ExecuteDelegateStakeNodes(t *testing.T) {
 	blsKey2 := []byte("blsKey2")
 	args := createMockArgumentsForDelegation()
 	args.GasCost.MetaChainSystemSCsCost.Stake = 1
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 
 	createDelegationManagerConfig(eei, args.Marshalizer, big.NewInt(10))
 	eei.SetSCAddress(vm.FirstDelegationSCAddress)
@@ -1050,13 +939,7 @@ func TestDelegationSystemSC_ExecuteUnStakeNodesUserErrors(t *testing.T) {
 	blsKey := []byte("blsKey1")
 	callValue := big.NewInt(130)
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
-
+	eei := createDefaultEei()
 	delegationsMap := map[string][]byte{}
 	delegationsMap[ownerKey] = []byte("ownerAddr")
 	eei.storageUpdate[string(eei.scAddress)] = delegationsMap
@@ -1105,13 +988,7 @@ func TestDelegationSystemSC_ExecuteUnStakeNodesNotPresentInStakedShouldErr(t *te
 
 	blsKey := []byte("blsKey1")
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
-
+	eei := createDefaultEei()
 	delegationsMap := map[string][]byte{}
 	delegationsMap[ownerKey] = []byte("owner")
 	eei.storageUpdate[string(eei.scAddress)] = delegationsMap
@@ -1132,13 +1009,7 @@ func TestDelegationSystemSC_ExecuteUnStakeNodes(t *testing.T) {
 	blsKey1 := []byte("blsKey1")
 	blsKey2 := []byte("blsKey2")
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
-
+	eei := createDefaultEei()
 	delegationsMap := map[string][]byte{}
 	delegationsMap[ownerKey] = []byte("owner")
 	eei.storageUpdate[string(eei.scAddress)] = delegationsMap
@@ -1190,13 +1061,8 @@ func TestDelegationSystemSC_ExecuteUnStakeNodesAtEndOfEpoch(t *testing.T) {
 	blsKey2 := []byte("blsKey2")
 	blockChainHook := &mock.BlockChainHookStub{}
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		blockChainHook,
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
-
+	eei := createDefaultEei()
+	eei.blockChainHook = blockChainHook
 	delegationsMap := map[string][]byte{}
 	delegationsMap[ownerKey] = []byte("owner")
 	eei.storageUpdate[string(eei.scAddress)] = delegationsMap
@@ -1212,7 +1078,8 @@ func TestDelegationSystemSC_ExecuteUnStakeNodesAtEndOfEpoch(t *testing.T) {
 	validatorArgs := createMockArgumentsForValidatorSC()
 	validatorArgs.Eei = eei
 	validatorArgs.StakingSCConfig.GenesisNodePrice = "100"
-	validatorArgs.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
+	enableEpochsHandler, _ := validatorArgs.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	enableEpochsHandler.IsStakingV2FlagEnabledField = true
 	validatorArgs.StakingSCAddress = vm.StakingSCAddress
 	validatorSc, _ := NewValidatorSmartContract(validatorArgs)
 
@@ -1287,13 +1154,7 @@ func TestDelegationSystemSC_ExecuteUnBondNodesUserErrors(t *testing.T) {
 	blsKey := []byte("blsKey1")
 	callValue := big.NewInt(130)
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
-
+	eei := createDefaultEei()
 	delegationsMap := map[string][]byte{}
 	delegationsMap[ownerKey] = []byte("ownerAddr")
 	eei.storageUpdate[string(eei.scAddress)] = delegationsMap
@@ -1342,13 +1203,7 @@ func TestDelegationSystemSC_ExecuteUnBondNodesNotPresentInUnStakedShouldErr(t *t
 
 	blsKey := []byte("blsKey1")
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
-
+	eei := createDefaultEei()
 	delegationsMap := map[string][]byte{}
 	delegationsMap[ownerKey] = []byte("owner")
 	eei.storageUpdate[string(eei.scAddress)] = delegationsMap
@@ -1369,12 +1224,7 @@ func TestDelegationSystemSC_ExecuteUnBondNodes(t *testing.T) {
 	blsKey1 := []byte("blsKey1")
 	blsKey2 := []byte("blsKey2")
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 
 	delegationsMap := map[string][]byte{}
 	delegationsMap[ownerKey] = []byte("owner")
@@ -1426,12 +1276,7 @@ func TestDelegationSystemSC_ExecuteUnJailNodesUserErrors(t *testing.T) {
 
 	blsKey := []byte("blsKey1")
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 
 	delegationsMap := map[string][]byte{}
 	delegationsMap[ownerKey] = []byte("ownerAddr")
@@ -1468,12 +1313,7 @@ func TestDelegationSystemSC_ExecuteUnJailNodesNotPresentInStakedOrUnStakedShould
 
 	blsKey := []byte("blsKey1")
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 
 	delegationsMap := map[string][]byte{}
 	delegationsMap[ownerKey] = []byte("owner")
@@ -1495,12 +1335,7 @@ func TestDelegationSystemSC_ExecuteUnJailNodesNotDelegatorShouldErr(t *testing.T
 	blsKey1 := []byte("blsKey1")
 	blsKey2 := []byte("blsKey2")
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 
 	delegationsMap := map[string][]byte{}
 	delegationsMap[ownerKey] = []byte("owner")
@@ -1527,12 +1362,7 @@ func TestDelegationSystemSC_ExecuteUnJailNodes(t *testing.T) {
 	blsKey1 := []byte("blsKey1")
 	blsKey2 := []byte("blsKey2")
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 
 	delegationsMap := map[string][]byte{}
 	delegationsMap[ownerKey] = []byte("owner")
@@ -1589,13 +1419,7 @@ func TestDelegationSystemSC_ExecuteDelegateUserErrors(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
 	createDelegationManagerConfig(eei, args.Marshalizer, big.NewInt(10))
 
@@ -1617,13 +1441,7 @@ func TestDelegationSystemSC_ExecuteDelegateWrongInit(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
 	createDelegationManagerConfig(eei, args.Marshalizer, big.NewInt(10))
 
@@ -1654,13 +1472,7 @@ func TestDelegationSystemSC_ExecuteDelegate(t *testing.T) {
 
 	delegator1 := []byte("delegator1")
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
 	addValidatorAndStakingScToVmContext(eei)
 	createDelegationManagerConfig(eei, args.Marshalizer, big.NewInt(10))
@@ -1711,13 +1523,7 @@ func TestDelegationSystemSC_ExecuteDelegateFailsWhenGettingDelegationManagement(
 
 	delegator1 := []byte("delegator1")
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
 	addValidatorAndStakingScToVmContext(eei)
 
@@ -1735,13 +1541,7 @@ func TestDelegationSystemSC_ExecuteUnDelegateUserErrors(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
 	createDelegationManagerConfig(eei, args.Marshalizer, big.NewInt(10))
 
@@ -1763,13 +1563,7 @@ func TestDelegationSystemSC_ExecuteUnDelegateUserErrorsWhenAnInvalidValueToDeleg
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	negativeValueToUndelegate := big.NewInt(0)
@@ -1787,13 +1581,7 @@ func TestDelegationSystemSC_ExecuteUnDelegateUserErrorsWhenGettingMinimumDelegat
 
 	fundKey := append([]byte(fundKeyPrefix), []byte{1}...)
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	vmInput := getDefaultVmInputForFunc("unDelegate", [][]byte{{80}})
@@ -1824,13 +1612,7 @@ func TestDelegationSystemSC_ExecuteUnDelegateUserNotDelegatorOrNoActiveFundShoul
 
 	fundKey := append([]byte(fundKeyPrefix), []byte{1}...)
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
 	createDelegationManagerConfig(eei, args.Marshalizer, big.NewInt(10))
 
@@ -1872,13 +1654,8 @@ func TestDelegationSystemSC_ExecuteUnDelegatePartOfFunds(t *testing.T) {
 	nextFundKey := append([]byte(fundKeyPrefix), []byte{2}...)
 	blockChainHook := &mock.BlockChainHookStub{}
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		blockChainHook,
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
+	eei.blockChainHook = blockChainHook
 	args.Eei = eei
 	addValidatorAndStakingScToVmContext(eei)
 	createDelegationManagerConfig(eei, args.Marshalizer, big.NewInt(10))
@@ -1951,13 +1728,7 @@ func TestDelegationSystemSC_ExecuteUnDelegateFailsAsLockedForVoting(t *testing.T
 
 	fundKey := append([]byte(fundKeyPrefix), []byte{1}...)
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
 	addValidatorAndStakingScToVmContext(eei)
 	createDelegationManagerConfig(eei, args.Marshalizer, big.NewInt(10))
@@ -1993,13 +1764,7 @@ func TestDelegationSystemSC_ExecuteUnDelegateAllFunds(t *testing.T) {
 	fundKey := append([]byte(fundKeyPrefix), []byte{1}...)
 	nextFundKey := append([]byte(fundKeyPrefix), []byte{2}...)
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
 	addValidatorAndStakingScToVmContext(eei)
 	createDelegationManagerConfig(eei, args.Marshalizer, big.NewInt(10))
@@ -2048,13 +1813,7 @@ func TestDelegationSystemSC_ExecuteUnDelegateAllFundsAsOwner(t *testing.T) {
 	fundKey := append([]byte(fundKeyPrefix), []byte{1}...)
 	nextFundKey := append([]byte(fundKeyPrefix), []byte{2}...)
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
 	addValidatorAndStakingScToVmContext(eei)
 	minDelegationAmount := big.NewInt(10)
@@ -2137,13 +1896,8 @@ func TestDelegationSystemSC_ExecuteUnDelegateMultipleTimesSameAndDiffEpochAndWit
 			return currentEpoch
 		},
 	}
-	eei, _ := NewVMContext(
-		blockChainHook,
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
+	eei.blockChainHook = blockChainHook
 	args.Eei = eei
 	args.StakingSCConfig.UnBondPeriodInEpochs = 10
 	addValidatorAndStakingScToVmContext(eei)
@@ -2239,13 +1993,7 @@ func TestDelegationSystemSC_ExecuteWithdrawUserErrors(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	vmInput := getDefaultVmInputForFunc("withdraw", [][]byte{[]byte("wrong arg")})
@@ -2271,13 +2019,7 @@ func TestDelegationSystemSC_ExecuteWithdrawWrongInit(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	vmInput := getDefaultVmInputForFunc("withdraw", [][]byte{})
@@ -2304,19 +2046,15 @@ func TestDelegationSystemSC_ExecuteWithdraw(t *testing.T) {
 	fundKey2 := []byte{2}
 	currentNonce := uint64(60)
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{
-			CurrentNonceCalled: func() uint64 {
-				return currentNonce
-			},
-			CurrentEpochCalled: func() uint32 {
-				return uint32(currentNonce)
-			}},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
+	eei.blockChainHook = &mock.BlockChainHookStub{
+		CurrentNonceCalled: func() uint64 {
+			return currentNonce
+		},
+		CurrentEpochCalled: func() uint32 {
+			return uint32(currentNonce)
+		},
+	}
 	args.Eei = eei
 	addValidatorAndStakingScToVmContext(eei)
 
@@ -2383,13 +2121,7 @@ func TestDelegationSystemSC_ExecuteChangeServiceFeeUserErrors(t *testing.T) {
 	newServiceFee := []byte{50}
 	callValue := big.NewInt(15)
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 
 	delegationsMap := map[string][]byte{}
 	delegationsMap[ownerKey] = []byte("ownerAddr")
@@ -2441,13 +2173,7 @@ func TestDelegationSystemSC_ExecuteChangeServiceFee(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 
 	delegationsMap := map[string][]byte{}
 	delegationsMap[ownerKey] = []byte("owner")
@@ -2472,13 +2198,7 @@ func TestDelegationSystemSC_ExecuteModifyTotalDelegationCapUserErrors(t *testing
 	newServiceFee := []byte{50}
 	callValue := big.NewInt(15)
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 
 	delegationsMap := map[string][]byte{}
 	delegationsMap[ownerKey] = []byte("ownerAddr")
@@ -2533,13 +2253,7 @@ func TestDelegationSystemSC_ExecuteModifyTotalDelegationCap(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 
 	delegationsMap := map[string][]byte{}
 	delegationsMap[ownerKey] = []byte("owner")
@@ -2624,13 +2338,7 @@ func TestDelegation_ExecuteUpdateRewardsUserErrors(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	vmInput := getDefaultVmInputForFunc("updateRewards", [][]byte{})
@@ -2662,17 +2370,12 @@ func TestDelegation_ExecuteUpdateRewards(t *testing.T) {
 	totalActive := big.NewInt(200)
 	serviceFee := big.NewInt(100)
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{
-			CurrentEpochCalled: func() uint32 {
-				return currentEpoch
-			},
+	eei := createDefaultEei()
+	eei.blockChainHook = &mock.BlockChainHookStub{
+		CurrentEpochCalled: func() uint32 {
+			return currentEpoch
 		},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	}
 	args.Eei = eei
 
 	vmInput := getDefaultVmInputForFunc("updateRewards", [][]byte{})
@@ -2698,13 +2401,7 @@ func TestDelegation_ExecuteClaimRewardsUserErrors(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	vmInput := getDefaultVmInputForFunc("claimRewards", [][]byte{{10}})
@@ -2735,13 +2432,9 @@ func TestDelegation_ExecuteClaimRewards(t *testing.T) {
 			return 2
 		},
 	}
-	eei, _ := NewVMContext(
-		blockChainHook,
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
+	eei.blockChainHook = blockChainHook
+	eei.inputParser = &mock.ArgumentParserMock{}
 	args.Eei = eei
 
 	args.DelegationSCConfig.MaxServiceFee = 10000
@@ -2819,13 +2512,8 @@ func TestDelegation_ExecuteClaimRewardsShouldDeleteDelegator(t *testing.T) {
 			return 10
 		},
 	}
-	eei, _ := NewVMContext(
-		blockChainHook,
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
+	eei.blockChainHook = blockChainHook
 	args.Eei = eei
 
 	args.DelegationSCConfig.MaxServiceFee = 10000
@@ -2926,17 +2614,12 @@ func prepareReDelegateRewardsComponents(
 	minDelegation *big.Int,
 ) (*delegation, *vmContext) {
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{
-			CurrentEpochCalled: func() uint32 {
-				return 2
-			},
+	eei := createDefaultEei()
+	eei.blockChainHook = &mock.BlockChainHookStub{
+		CurrentEpochCalled: func() uint32 {
+			return 2
 		},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	}
 	_ = eei.SetSystemSCContainer(&mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
 		return &mock.SystemSCStub{ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 			return vmcommon.Ok
@@ -2947,7 +2630,8 @@ func prepareReDelegateRewardsComponents(
 	args.Eei = eei
 	args.DelegationSCConfig.MaxServiceFee = 10000
 	args.DelegationSCConfig.MinServiceFee = 0
-	args.EpochConfig.EnableEpochs.ReDelegateBelowMinCheckEnableEpoch = extraCheckEpoch
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	enableEpochsHandler.IsReDelegateBelowMinCheckFlagEnabledField = extraCheckEpoch == 0
 	d, _ := NewDelegationSystemSC(args)
 	vmInput := getDefaultVmInputForFunc(core.SCDeployInitFunctionName, [][]byte{big.NewInt(0).Bytes(), big.NewInt(0).Bytes()})
 	vmInput.CallValue = big.NewInt(1000)
@@ -2987,13 +2671,7 @@ func TestDelegation_ExecuteGetRewardDataUserErrors(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	vmInput := getDefaultVmInputForFunc("getRewardData", [][]byte{})
@@ -3025,13 +2703,7 @@ func TestDelegation_ExecuteGetRewardData(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	vmInput := getDefaultVmInputForFunc("getRewardData", [][]byte{{2}})
@@ -3058,13 +2730,7 @@ func TestDelegation_ExecuteGetClaimableRewardsUserErrors(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	vmInput := getDefaultVmInputForFunc("getClaimableRewards", [][]byte{})
@@ -3096,17 +2762,12 @@ func TestDelegation_ExecuteGetClaimableRewards(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{
-			CurrentEpochCalled: func() uint32 {
-				return 2
-			},
+	eei := createDefaultEei()
+	eei.blockChainHook = &mock.BlockChainHookStub{
+		CurrentEpochCalled: func() uint32 {
+			return 2
 		},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	}
 	args.Eei = eei
 	args.DelegationSCConfig.MaxServiceFee = 10000
 	delegatorAddr := []byte("address")
@@ -3147,13 +2808,7 @@ func TestDelegation_ExecuteGetTotalCumulatedRewardsUserErrors(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	vmInput := getDefaultVmInputForFunc("getTotalCumulatedRewards", [][]byte{})
@@ -3186,17 +2841,12 @@ func TestDelegation_ExecuteGetTotalCumulatedRewards(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{
-			CurrentEpochCalled: func() uint32 {
-				return 2
-			},
+	eei := createDefaultEei()
+	eei.blockChainHook = &mock.BlockChainHookStub{
+		CurrentEpochCalled: func() uint32 {
+			return 2
 		},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	}
 	args.Eei = eei
 
 	vmInput := getDefaultVmInputForFunc("getTotalCumulatedRewards", [][]byte{})
@@ -3225,13 +2875,7 @@ func TestDelegation_ExecuteGetNumUsersUserErrors(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	vmInput := getDefaultVmInputForFunc("getNumUsers", [][]byte{})
@@ -3265,17 +2909,12 @@ func TestDelegation_ExecuteGetNumUsers(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{
-			CurrentEpochCalled: func() uint32 {
-				return 2
-			},
+	eei := createDefaultEei()
+	eei.blockChainHook = &mock.BlockChainHookStub{
+		CurrentEpochCalled: func() uint32 {
+			return 2
 		},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	}
 	args.Eei = eei
 
 	vmInput := getDefaultVmInputForFunc("getNumUsers", [][]byte{})
@@ -3296,13 +2935,7 @@ func TestDelegation_ExecuteGetTotalUnStakedUserErrors(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	vmInput := getDefaultVmInputForFunc("getTotalUnStaked", [][]byte{})
@@ -3336,17 +2969,12 @@ func TestDelegation_ExecuteGetTotalUnStaked(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{
-			CurrentEpochCalled: func() uint32 {
-				return 2
-			},
+	eei := createDefaultEei()
+	eei.blockChainHook = &mock.BlockChainHookStub{
+		CurrentEpochCalled: func() uint32 {
+			return 2
 		},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	}
 	args.Eei = eei
 
 	vmInput := getDefaultVmInputForFunc("getTotalUnStaked", [][]byte{})
@@ -3369,13 +2997,7 @@ func TestDelegation_ExecuteGetTotalActiveStakeUserErrors(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	vmInput := getDefaultVmInputForFunc("getTotalActiveStake", [][]byte{})
@@ -3409,17 +3031,12 @@ func TestDelegation_ExecuteGetTotalActiveStake(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{
-			CurrentEpochCalled: func() uint32 {
-				return 2
-			},
+	eei := createDefaultEei()
+	eei.blockChainHook = &mock.BlockChainHookStub{
+		CurrentEpochCalled: func() uint32 {
+			return 2
 		},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	}
 	args.Eei = eei
 
 	vmInput := getDefaultVmInputForFunc("getTotalActiveStake", [][]byte{})
@@ -3441,13 +3058,7 @@ func TestDelegation_ExecuteGetUserActiveStakeUserErrors(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	vmInput := getDefaultVmInputForFunc("getUserActiveStake", [][]byte{})
@@ -3479,13 +3090,7 @@ func TestDelegation_ExecuteGetUserActiveStakeNoActiveFund(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	delegatorAddress := []byte("delegatorAddress")
@@ -3506,13 +3111,7 @@ func TestDelegation_ExecuteGetUserActiveStake(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	delegatorAddress := []byte("delegatorAddress")
@@ -3539,13 +3138,7 @@ func TestDelegation_ExecuteGetUserUnStakedValueUserErrors(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	vmInput := getDefaultVmInputForFunc("getUserUnStakedValue", [][]byte{})
@@ -3577,13 +3170,7 @@ func TestDelegation_ExecuteGetUserUnStakedValueNoUnStakedFund(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	delegatorAddress := []byte("delegatorAddress")
@@ -3604,13 +3191,7 @@ func TestDelegation_ExecuteGetUserUnStakedValue(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	delegatorAddress := []byte("delegatorAddress")
@@ -3642,13 +3223,7 @@ func TestDelegation_ExecuteGetUserUnBondableUserErrors(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	vmInput := getDefaultVmInputForFunc("getUserUnBondable", [][]byte{})
@@ -3686,13 +3261,7 @@ func TestDelegation_ExecuteGetUserUnBondableNoUnStakedFund(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	delegatorAddress := []byte("delegatorAddress")
@@ -3717,20 +3286,15 @@ func TestDelegation_ExecuteGetUserUnBondable(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{
-			CurrentNonceCalled: func() uint64 {
-				return 500
-			},
-			CurrentEpochCalled: func() uint32 {
-				return 500
-			},
+	eei := createDefaultEei()
+	eei.blockChainHook = &mock.BlockChainHookStub{
+		CurrentNonceCalled: func() uint64 {
+			return 500
 		},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+		CurrentEpochCalled: func() uint32 {
+			return 500
+		},
+	}
 	args.Eei = eei
 
 	delegatorAddress := []byte("delegatorAddress")
@@ -3768,13 +3332,7 @@ func TestDelegation_ExecuteGetNumNodesUserErrors(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	vmInput := getDefaultVmInputForFunc("getNumNodes", [][]byte{})
@@ -3808,13 +3366,7 @@ func TestDelegation_ExecuteGetNumNodes(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	vmInput := getDefaultVmInputForFunc("getNumNodes", [][]byte{})
@@ -3836,13 +3388,7 @@ func TestDelegation_ExecuteGetAllNodeStatesUserErrors(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	vmInput := getDefaultVmInputForFunc("getAllNodeStates", [][]byte{})
@@ -3876,13 +3422,7 @@ func TestDelegation_ExecuteGetAllNodeStates(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	vmInput := getDefaultVmInputForFunc("getAllNodeStates", [][]byte{})
@@ -3914,13 +3454,7 @@ func TestDelegation_ExecuteGetContractConfigUserErrors(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	vmInput := getDefaultVmInputForFunc("getContractConfig", [][]byte{})
@@ -3954,13 +3488,7 @@ func TestDelegation_ExecuteGetContractConfig(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	vmInput := getDefaultVmInputForFunc("getContractConfig", [][]byte{})
@@ -4003,13 +3531,7 @@ func TestDelegation_ExecuteUnknownFunc(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	invalidFunc := "invalid func"
@@ -4026,17 +3548,12 @@ func TestDelegation_computeAndUpdateRewardsWithTotalActiveZeroDoesNotPanic(t *te
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{
-			CurrentEpochCalled: func() uint32 {
-				return 1
-			},
+	eei := createDefaultEei()
+	eei.blockChainHook = &mock.BlockChainHookStub{
+		CurrentEpochCalled: func() uint32 {
+			return 1
 		},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	}
 	args.Eei = eei
 	d, _ := NewDelegationSystemSC(args)
 
@@ -4066,17 +3583,12 @@ func TestDelegation_computeAndUpdateRewardsWithTotalActiveZeroSendsAllRewardsToO
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{
-			CurrentEpochCalled: func() uint32 {
-				return 1
-			},
+	eei := createDefaultEei()
+	eei.blockChainHook = &mock.BlockChainHookStub{
+		CurrentEpochCalled: func() uint32 {
+			return 1
 		},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	}
 	args.Eei = eei
 	d, _ := NewDelegationSystemSC(args)
 
@@ -4104,13 +3616,7 @@ func TestDelegation_computeAndUpdateRewardsWithTotalActiveZeroSendsAllRewardsToO
 
 func TestDelegation_isDelegatorShouldErrBecauseAddressIsNotFound(t *testing.T) {
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	delegatorAddress := []byte("address which didn't delegate")
@@ -4123,13 +3629,7 @@ func TestDelegation_isDelegatorShouldErrBecauseAddressIsNotFound(t *testing.T) {
 
 func TestDelegation_isDelegatorShouldWork(t *testing.T) {
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	delegatorAddress := []byte("delegatorAddress")
@@ -4148,13 +3648,7 @@ func TestDelegation_isDelegatorShouldWork(t *testing.T) {
 
 func TestDelegation_getDelegatorFundsDataDelegatorNotFoundShouldErr(t *testing.T) {
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	delegatorAddress := []byte("delegatorAddress")
@@ -4168,13 +3662,7 @@ func TestDelegation_getDelegatorFundsDataDelegatorNotFoundShouldErr(t *testing.T
 
 func TestDelegation_getDelegatorFundsDataCannotLoadFundsShouldErr(t *testing.T) {
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	delegatorAddress := []byte("delegatorAddress")
@@ -4200,13 +3688,7 @@ func TestDelegation_getDelegatorFundsDataCannotLoadFundsShouldErr(t *testing.T) 
 
 func TestDelegation_getDelegatorFundsDataCannotFindConfigShouldErr(t *testing.T) {
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	delegatorAddress := []byte("delegatorAddress")
@@ -4232,13 +3714,7 @@ func TestDelegation_getDelegatorFundsDataCannotFindConfigShouldErr(t *testing.T)
 
 func TestDelegation_getDelegatorFundsDataShouldWork(t *testing.T) {
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	delegatorAddress := []byte("delegatorAddress")
@@ -4270,13 +3746,7 @@ func TestDelegation_getDelegatorFundsDataShouldWork(t *testing.T) {
 
 func TestDelegation_setAndGetDelegationMetadata(t *testing.T) {
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	d, _ := NewDelegationSystemSC(args)
@@ -4301,13 +3771,7 @@ func TestDelegation_setAndGetDelegationMetadata(t *testing.T) {
 
 func TestDelegation_setAutomaticActivation(t *testing.T) {
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	d, _ := NewDelegationSystemSC(args)
@@ -4426,17 +3890,12 @@ func TestDelegation_ExecuteInitFromValidatorData(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{
-			CurrentEpochCalled: func() uint32 {
-				return 2
-			},
+	eei := createDefaultEei()
+	eei.blockChainHook = &mock.BlockChainHookStub{
+		CurrentEpochCalled: func() uint32 {
+			return 2
 		},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	}
 	_ = eei.SetSystemSCContainer(&mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
 		return &mock.SystemSCStub{ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 			return vmcommon.Ok
@@ -4460,22 +3919,18 @@ func TestDelegation_checkArgumentsForValidatorToDelegation(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{
-			CurrentEpochCalled: func() uint32 {
-				return 2
-			},
+	eei := createDefaultEei()
+	eei.blockChainHook = &mock.BlockChainHookStub{
+		CurrentEpochCalled: func() uint32 {
+			return 2
 		},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	}
 	_ = eei.SetSystemSCContainer(&mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
 		return &mock.SystemSCStub{ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 			return vmcommon.Ok
 		}}, nil
 	}})
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
 
 	args.Eei = eei
 	args.DelegationSCConfig.MaxServiceFee = 10000
@@ -4483,12 +3938,12 @@ func TestDelegation_checkArgumentsForValidatorToDelegation(t *testing.T) {
 	d, _ := NewDelegationSystemSC(args)
 	vmInput := getDefaultVmInputForFunc(initFromValidatorData, [][]byte{big.NewInt(0).Bytes(), big.NewInt(0).Bytes()})
 
-	d.flagValidatorToDelegation.Reset()
+	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = false
 	returnCode := d.checkArgumentsForValidatorToDelegation(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, initFromValidatorData+" is an unknown function")
 
-	_ = d.flagValidatorToDelegation.SetReturningPrevious()
+	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = true
 	eei.returnMessage = ""
 	returnCode = d.checkArgumentsForValidatorToDelegation(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
@@ -4520,17 +3975,12 @@ func TestDelegation_getAndVerifyValidatorData(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{
-			CurrentEpochCalled: func() uint32 {
-				return 2
-			},
+	eei := createDefaultEei()
+	eei.blockChainHook = &mock.BlockChainHookStub{
+		CurrentEpochCalled: func() uint32 {
+			return 2
 		},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	}
 	_ = eei.SetSystemSCContainer(&mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
 		return &mock.SystemSCStub{ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 			return vmcommon.Ok
@@ -4606,22 +4056,18 @@ func TestDelegation_initFromValidatorData(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{
-			CurrentEpochCalled: func() uint32 {
-				return 2
-			},
+	eei := createDefaultEei()
+	eei.blockChainHook = &mock.BlockChainHookStub{
+		CurrentEpochCalled: func() uint32 {
+			return 2
 		},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	}
 	systemSCContainerStub := &mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
 		return &mock.SystemSCStub{ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 			return vmcommon.Ok
 		}}, nil
 	}}
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
 
 	_ = eei.SetSystemSCContainer(systemSCContainerStub)
 
@@ -4631,12 +4077,12 @@ func TestDelegation_initFromValidatorData(t *testing.T) {
 	d, _ := NewDelegationSystemSC(args)
 	vmInput := getDefaultVmInputForFunc(initFromValidatorData, [][]byte{big.NewInt(0).Bytes(), big.NewInt(0).Bytes()})
 
-	d.flagValidatorToDelegation.Reset()
+	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = false
 	returnCode := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, initFromValidatorData+" is an unknown function")
 
-	_ = d.flagValidatorToDelegation.SetReturningPrevious()
+	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = true
 
 	eei.returnMessage = ""
 	vmInput.CallerAddr = d.delegationMgrSCAddress
@@ -4739,22 +4185,18 @@ func TestDelegation_initFromValidatorData(t *testing.T) {
 
 func TestDelegation_mergeValidatorDataToDelegation(t *testing.T) {
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{
-			CurrentEpochCalled: func() uint32 {
-				return 2
-			},
+	eei := createDefaultEei()
+	eei.blockChainHook = &mock.BlockChainHookStub{
+		CurrentEpochCalled: func() uint32 {
+			return 2
 		},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	}
 	systemSCContainerStub := &mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
 		return &mock.SystemSCStub{ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 			return vmcommon.Ok
 		}}, nil
 	}}
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
 
 	_ = eei.SetSystemSCContainer(systemSCContainerStub)
 
@@ -4764,12 +4206,12 @@ func TestDelegation_mergeValidatorDataToDelegation(t *testing.T) {
 	d, _ := NewDelegationSystemSC(args)
 	vmInput := getDefaultVmInputForFunc(mergeValidatorDataToDelegation, [][]byte{big.NewInt(0).Bytes(), big.NewInt(0).Bytes()})
 
-	d.flagValidatorToDelegation.Reset()
+	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = false
 	returnCode := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, mergeValidatorDataToDelegation+" is an unknown function")
 
-	_ = d.flagValidatorToDelegation.SetReturningPrevious()
+	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = true
 
 	eei.returnMessage = ""
 	vmInput.CallerAddr = d.delegationMgrSCAddress
@@ -4882,22 +4324,18 @@ func TestDelegation_mergeValidatorDataToDelegation(t *testing.T) {
 
 func TestDelegation_whitelistForMerge(t *testing.T) {
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{
-			CurrentEpochCalled: func() uint32 {
-				return 2
-			},
+	eei := createDefaultEei()
+	eei.blockChainHook = &mock.BlockChainHookStub{
+		CurrentEpochCalled: func() uint32 {
+			return 2
 		},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	}
 	systemSCContainerStub := &mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
 		return &mock.SystemSCStub{ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 			return vmcommon.Ok
 		}}, nil
 	}}
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
 
 	_ = eei.SetSystemSCContainer(systemSCContainerStub)
 
@@ -4909,12 +4347,12 @@ func TestDelegation_whitelistForMerge(t *testing.T) {
 
 	vmInput := getDefaultVmInputForFunc("whitelistForMerge", [][]byte{[]byte("address")})
 
-	d.flagValidatorToDelegation.Reset()
+	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = false
 	returnCode := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, "whitelistForMerge"+" is an unknown function")
 
-	_ = d.flagValidatorToDelegation.SetReturningPrevious()
+	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = true
 
 	eei.returnMessage = ""
 	returnCode = d.Execute(vmInput)
@@ -4965,22 +4403,18 @@ func TestDelegation_whitelistForMerge(t *testing.T) {
 
 func TestDelegation_deleteWhitelistForMerge(t *testing.T) {
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{
-			CurrentEpochCalled: func() uint32 {
-				return 2
-			},
+	eei := createDefaultEei()
+	eei.blockChainHook = &mock.BlockChainHookStub{
+		CurrentEpochCalled: func() uint32 {
+			return 2
 		},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	}
 	systemSCContainerStub := &mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
 		return &mock.SystemSCStub{ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 			return vmcommon.Ok
 		}}, nil
 	}}
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
 
 	_ = eei.SetSystemSCContainer(systemSCContainerStub)
 
@@ -4992,12 +4426,12 @@ func TestDelegation_deleteWhitelistForMerge(t *testing.T) {
 
 	vmInput := getDefaultVmInputForFunc("deleteWhitelistForMerge", [][]byte{[]byte("address")})
 
-	d.flagValidatorToDelegation.Reset()
+	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = false
 	returnCode := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, "deleteWhitelistForMerge"+" is an unknown function")
 
-	_ = d.flagValidatorToDelegation.SetReturningPrevious()
+	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = true
 	d.eei.SetStorage([]byte(ownerKey), []byte("address0"))
 	vmInput.CallerAddr = []byte("address0")
 
@@ -5027,22 +4461,18 @@ func TestDelegation_deleteWhitelistForMerge(t *testing.T) {
 
 func TestDelegation_GetWhitelistForMerge(t *testing.T) {
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{
-			CurrentEpochCalled: func() uint32 {
-				return 2
-			},
+	eei := createDefaultEei()
+	eei.blockChainHook = &mock.BlockChainHookStub{
+		CurrentEpochCalled: func() uint32 {
+			return 2
 		},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	}
 	systemSCContainerStub := &mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
 		return &mock.SystemSCStub{ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 			return vmcommon.Ok
 		}}, nil
 	}}
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
 
 	_ = eei.SetSystemSCContainer(systemSCContainerStub)
 
@@ -5054,12 +4484,12 @@ func TestDelegation_GetWhitelistForMerge(t *testing.T) {
 
 	vmInput := getDefaultVmInputForFunc("getWhitelistForMerge", make([][]byte, 0))
 
-	d.flagValidatorToDelegation.Reset()
+	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = false
 	returnCode := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, "getWhitelistForMerge"+" is an unknown function")
 
-	_ = d.flagValidatorToDelegation.SetReturningPrevious()
+	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = true
 
 	addr := []byte("address1")
 	vmInput = getDefaultVmInputForFunc("whitelistForMerge", [][]byte{addr})
@@ -5079,17 +4509,12 @@ func TestDelegation_GetWhitelistForMerge(t *testing.T) {
 func TestDelegation_OptimizeRewardsComputation(t *testing.T) {
 	args := createMockArgumentsForDelegation()
 	currentEpoch := uint32(2)
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{
-			CurrentEpochCalled: func() uint32 {
-				return currentEpoch
-			},
+	eei := createDefaultEei()
+	eei.blockChainHook = &mock.BlockChainHookStub{
+		CurrentEpochCalled: func() uint32 {
+			return currentEpoch
 		},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	}
 	systemSCContainerStub := &mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
 		return &mock.SystemSCStub{ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 			return vmcommon.Ok
@@ -5170,13 +4595,9 @@ func TestDelegation_OptimizeRewardsComputation(t *testing.T) {
 
 func TestDelegation_AddTokens(t *testing.T) {
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
+	eei.inputParser = &mock.ArgumentParserMock{}
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
 	args.Eei = eei
 	d, _ := NewDelegationSystemSC(args)
 
@@ -5184,13 +4605,13 @@ func TestDelegation_AddTokens(t *testing.T) {
 	vmInput.CallValue = big.NewInt(20)
 	vmInput.CallerAddr = vm.EndOfEpochAddress
 
-	d.flagAddTokens.Reset()
+	enableEpochsHandler.IsAddTokensToDelegationFlagEnabledField = false
 	returnCode := d.Execute(vmInput)
 	assert.Equal(t, returnCode, vmcommon.UserError)
 	assert.Equal(t, eei.returnMessage, vmInput.Function+" is an unknown function")
 
 	eei.returnMessage = ""
-	_ = d.flagAddTokens.SetReturningPrevious()
+	enableEpochsHandler.IsAddTokensToDelegationFlagEnabledField = true
 	returnCode = d.Execute(vmInput)
 	assert.Equal(t, returnCode, vmcommon.UserError)
 	assert.Equal(t, eei.returnMessage, vmInput.Function+" can be called by whitelisted address only")
@@ -5204,12 +4625,13 @@ func TestDelegation_correctNodesStatus(t *testing.T) {
 	d, eei := createDelegationContractAndEEI()
 	vmInput := getDefaultVmInputForFunc("correctNodesStatus", nil)
 
-	d.flagAddTokens.Reset()
+	enableEpochsHandler, _ := d.enableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	enableEpochsHandler.IsAddTokensToDelegationFlagEnabledField = false
 	returnCode := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, "correctNodesStatus is an unknown function")
 
-	_ = d.flagAddTokens.SetReturningPrevious()
+	enableEpochsHandler.IsAddTokensToDelegationFlagEnabledField = true
 	eei.returnMessage = ""
 	vmInput.CallValue.SetUint64(10)
 	returnCode = d.Execute(vmInput)
@@ -5323,17 +4745,38 @@ func TestDelegation_correctNodesStatus(t *testing.T) {
 	}
 }
 
+func createDefaultEei() *vmContext {
+	eei, _ := NewVMContext(createDefaultEeiArgs())
+
+	return eei
+}
+
+func createDefaultEeiArgs() VMContextArgs {
+	return VMContextArgs{
+		BlockChainHook:      &mock.BlockChainHookStub{},
+		CryptoHook:          hooks.NewVMCryptoHook(),
+		InputParser:         parsers.NewCallArgsParser(),
+		ValidatorAccountsDB: &stateMock.AccountsStub{},
+		ChanceComputer:      &mock.RaterMock{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+	}
+}
+
 func TestDelegationSystemSC_ExecuteChangeOwnerUserErrors(t *testing.T) {
 	t.Parallel()
 
 	vmInputArgs := make([][]byte, 0)
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	argsVmContext := VMContextArgs{
+		BlockChainHook:      &mock.BlockChainHookStub{},
+		CryptoHook:          hooks.NewVMCryptoHook(),
+		InputParser:         &mock.ArgumentParserMock{},
+		ValidatorAccountsDB: &stateMock.AccountsStub{},
+		ChanceComputer:      &mock.RaterMock{},
+		EnableEpochsHandler: args.EnableEpochsHandler,
+	}
+	eei, err := NewVMContext(argsVmContext)
+	require.Nil(t, err)
 
 	delegationsMap := map[string][]byte{}
 	delegationsMap[ownerKey] = []byte("ownerAddr")
@@ -5341,13 +4784,13 @@ func TestDelegationSystemSC_ExecuteChangeOwnerUserErrors(t *testing.T) {
 	args.Eei = eei
 
 	d, _ := NewDelegationSystemSC(args)
-	d.flagChangeDelegationOwner.Reset()
+	args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub).IsChangeDelegationOwnerFlagEnabledField = false
 	vmInput := getDefaultVmInputForFunc("changeOwner", vmInputArgs)
 	output := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.True(t, strings.Contains(eei.returnMessage, vmInput.Function+" is an unknown function"))
 
-	d.flagChangeDelegationOwner.SetValue(true)
+	args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub).IsChangeDelegationOwnerFlagEnabledField = true
 	vmInput.CallValue = big.NewInt(0)
 	vmInput.CallerAddr = []byte("aaa")
 	output = d.Execute(vmInput)
@@ -5391,12 +4834,17 @@ func TestDelegationSystemSC_ExecuteChangeOwner(t *testing.T) {
 
 	vmInputArgs := make([][]byte, 0)
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	argsVmContext := VMContextArgs{
+		BlockChainHook:      &mock.BlockChainHookStub{},
+		CryptoHook:          hooks.NewVMCryptoHook(),
+		InputParser:         &mock.ArgumentParserMock{},
+		ValidatorAccountsDB: &stateMock.AccountsStub{},
+		ChanceComputer:      &mock.RaterMock{},
+		EnableEpochsHandler: args.EnableEpochsHandler,
+	}
+	args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub).IsChangeDelegationOwnerFlagEnabledField = true
+	eei, err := NewVMContext(argsVmContext)
+	require.Nil(t, err)
 
 	delegationsMap := map[string][]byte{}
 	delegationsMap[ownerKey] = []byte("ownerAddr")

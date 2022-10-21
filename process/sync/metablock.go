@@ -95,8 +95,15 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 	base.requestMiniBlocks = boot.requestMiniBlocksFromHeaderWithNonceIfMissing
 
 	// placed in struct fields for performance reasons
-	base.headerStore = boot.store.GetStorer(dataRetriever.MetaBlockUnit)
-	base.headerNonceHashStore = boot.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
+	base.headerStore, err = boot.store.GetStorer(dataRetriever.MetaBlockUnit)
+	if err != nil {
+		return nil, err
+	}
+
+	base.headerNonceHashStore, err = boot.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
+	if err != nil {
+		return nil, err
+	}
 
 	base.init()
 
@@ -383,4 +390,9 @@ func (boot *MetaBootstrap) isForkTriggeredByMeta() bool {
 
 func (boot *MetaBootstrap) requestHeaderByNonce(nonce uint64) {
 	boot.requestHandler.RequestMetaHeaderByNonce(nonce)
+}
+
+// IsInterfaceNil returns true if there no value under the interface
+func (boot *MetaBootstrap) IsInterfaceNil() bool {
+	return boot == nil
 }

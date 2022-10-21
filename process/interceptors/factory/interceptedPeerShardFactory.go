@@ -15,7 +15,7 @@ type interceptedPeerShardFactory struct {
 
 // NewInterceptedPeerShardFactory creates an instance of interceptedPeerShardFactory
 func NewInterceptedPeerShardFactory(args ArgInterceptedDataFactory) (*interceptedPeerShardFactory, error) {
-	err := checkArgs(args)
+	err := checkInterceptedDirectConnectionInfoFactoryArgs(args)
 	if err != nil {
 		return nil, err
 	}
@@ -26,7 +26,7 @@ func NewInterceptedPeerShardFactory(args ArgInterceptedDataFactory) (*intercepte
 	}, nil
 }
 
-func checkArgs(args ArgInterceptedDataFactory) error {
+func checkInterceptedDirectConnectionInfoFactoryArgs(args ArgInterceptedDataFactory) error {
 	if check.IfNil(args.CoreComponents) {
 		return process.ErrNilCoreComponentsHolder
 	}

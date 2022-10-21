@@ -8,7 +8,7 @@ import (
 	"math/big"
 	"testing"
 
-	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
+	arwenConfig "github.com/ElrondNetwork/wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -59,18 +59,19 @@ func createMockArgument(
 		GenesisTime:   0,
 		StartEpochNum: 0,
 		Core: &mock.CoreComponentsMock{
-			IntMarsh:            &mock.MarshalizerMock{},
-			TxMarsh:             &mock.MarshalizerMock{},
-			Hash:                &hashingMocks.HasherMock{},
-			UInt64ByteSliceConv: &mock.Uint64ByteSliceConverterMock{},
-			AddrPubKeyConv:      mock.NewPubkeyConverterMock(32),
-			Chain:               "chainID",
-			MinTxVersion:        1,
+			IntMarsh:                 &mock.MarshalizerMock{},
+			TxMarsh:                  &mock.MarshalizerMock{},
+			Hash:                     &hashingMocks.HasherMock{},
+			UInt64ByteSliceConv:      &mock.Uint64ByteSliceConverterMock{},
+			AddrPubKeyConv:           mock.NewPubkeyConverterMock(32),
+			Chain:                    "chainID",
+			MinTxVersion:             1,
+			EnableEpochsHandlerField: &testscommon.EnableEpochsHandlerStub{},
 		},
 		Data: &mock.DataComponentsMock{
-			Storage: &mock.ChainStorerStub{
-				GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-					return genericMocks.NewStorerMock()
+			Storage: &storageCommon.ChainStorerStub{
+				GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+					return genericMocks.NewStorerMock(), nil
 				},
 			},
 			Blkc:     &testscommon.ChainHandlerStub{},

@@ -80,3 +80,8 @@ func treatGetFromEpochError(err error, epoch uint32) {
 
 	log.Warn("trieStorageManagerInEpoch", "error", err.Error(), "epoch", epoch)
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (tsmie *trieStorageManagerInEpoch) IsInterfaceNil() bool {
+	return tsmie == nil
+}

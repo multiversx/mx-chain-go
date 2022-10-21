@@ -58,6 +58,8 @@ type RequestHandler interface {
 	RequestInterval() time.Duration
 	SetNumPeersToQuery(key string, intra int, cross int) error
 	GetNumPeersToQuery(key string) (int, int, error)
+	RequestValidatorInfo(hash []byte)
+	RequestValidatorsInfo(hashes [][]byte)
 	IsInterfaceNil() bool
 }
 
@@ -147,9 +149,16 @@ type ManualEpochStartNotifier interface {
 	IsInterfaceNil() bool
 }
 
-// TransactionCacher defines the methods for the local cacher, info for current round
+// TransactionCacher defines the methods for the local transaction cacher, needed for the current block
 type TransactionCacher interface {
 	GetTx(txHash []byte) (data.TransactionHandler, error)
+	IsInterfaceNil() bool
+}
+
+// ValidatorInfoCacher defines the methods for the local validator info cacher, needed for the current epoch
+type ValidatorInfoCacher interface {
+	GetValidatorInfo(validatorInfoHash []byte) (*state.ShardValidatorInfo, error)
+	AddValidatorInfo(validatorInfoHash []byte, validatorInfo *state.ShardValidatorInfo)
 	IsInterfaceNil() bool
 }
 
@@ -190,10 +199,10 @@ type RewardsCreator interface {
 	) error
 	GetProtocolSustainabilityRewards() *big.Int
 	GetLocalTxCache() TransactionCacher
-	CreateMarshalizedData(body *block.Body) map[string][][]byte
+	CreateMarshalledData(body *block.Body) map[string][][]byte
 	GetRewardsTxs(body *block.Body) map[string]data.TransactionHandler
-	SaveTxBlockToStorage(metaBlock data.MetaHeaderHandler, body *block.Body)
-	DeleteTxsFromStorage(metaBlock data.MetaHeaderHandler, body *block.Body)
+	SaveBlockDataToStorage(metaBlock data.MetaHeaderHandler, body *block.Body)
+	DeleteBlockDataFromStorage(metaBlock data.MetaHeaderHandler, body *block.Body)
 	RemoveBlockDataFromPools(metaBlock data.MetaHeaderHandler, body *block.Body)
 	IsInterfaceNil() bool
 }
@@ -203,5 +212,11 @@ type EpochNotifier interface {
 	RegisterNotifyHandler(handler vmcommon.EpochSubscriberHandler)
 	CurrentEpoch() uint32
 	CheckEpoch(epoch uint32)
+	IsInterfaceNil() bool
+}
+
+// EpochStartNotifier defines which actions should be done for handling new epoch's events
+type EpochStartNotifier interface {
+	RegisterHandler(handler ActionHandler)
 	IsInterfaceNil() bool
 }

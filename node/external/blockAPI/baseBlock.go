@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/api/shared/logging"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
 )
@@ -168,7 +169,11 @@ func (bap *baseAPIBlockProcessor) getAndAttachTxsToMbByEpoch(
 }
 
 func (bap *baseAPIBlockProcessor) getReceiptsFromMiniblock(miniblock *block.MiniBlock, epoch uint32) ([]*transaction.ApiReceipt, error) {
-	storer := bap.store.GetStorer(dataRetriever.UnsignedTransactionUnit)
+	storer, err := bap.store.GetStorer(dataRetriever.UnsignedTransactionUnit)
+	if err != nil {
+		return nil, err
+	}
+
 	start := time.Now()
 	marshalledReceipts, err := storer.GetBulkFromEpoch(miniblock.TxHashes, epoch)
 	if err != nil {
@@ -198,7 +203,11 @@ func (bap *baseAPIBlockProcessor) getTxsFromMiniblock(
 	firstProcessedTxIndex int32,
 	lastProcessedTxIndex int32,
 ) ([]*transaction.ApiTransactionResult, error) {
-	storer := bap.store.GetStorer(unit)
+	storer, err := bap.store.GetStorer(unit)
+	if err != nil {
+		return nil, err
+	}
+
 	start := time.Now()
 
 	executedTxHashes := extractExecutedTxHashes(miniblock.TxHashes, firstProcessedTxIndex, lastProcessedTxIndex)
@@ -244,12 +253,20 @@ func (bap *baseAPIBlockProcessor) getFromStorer(unit dataRetriever.UnitType, key
 		return nil, err
 	}
 
-	storer := bap.store.GetStorer(unit)
+	storer, err := bap.store.GetStorer(unit)
+	if err != nil {
+		return nil, err
+	}
+
 	return storer.GetFromEpoch(key, epoch)
 }
 
 func (bap *baseAPIBlockProcessor) getFromStorerWithEpoch(unit dataRetriever.UnitType, key []byte, epoch uint32) ([]byte, error) {
-	storer := bap.store.GetStorer(unit)
+	storer, err := bap.store.GetStorer(unit)
+	if err != nil {
+		return nil, err
+	}
+
 	return storer.GetFromEpoch(key, epoch)
 }
 
@@ -328,4 +345,12 @@ func bigIntToStr(value *big.Int) string {
 	}
 
 	return value.String()
+}
+
+func createAlteredBlockHash(hash []byte) []byte {
+	alteredHash := make([]byte, 0)
+	alteredHash = append(alteredHash, hash...)
+	alteredHash = append(alteredHash, []byte(common.GenesisStorageSuffix)...)
+
+	return alteredHash
 }

@@ -24,12 +24,12 @@ func (adb *AccountsDB) LoadCode(accountHandler baseAccountHandler) error {
 
 // LoadDataTrie -
 func (adb *AccountsDB) LoadDataTrie(accountHandler baseAccountHandler) error {
-	return adb.loadDataTrie(accountHandler)
+	return adb.loadDataTrie(accountHandler, adb.getMainTrie())
 }
 
 // GetAccount -
 func (adb *AccountsDB) GetAccount(address []byte) (vmcommon.AccountHandler, error) {
-	return adb.getAccount(address)
+	return adb.getAccount(address, adb.getMainTrie())
 }
 
 // GetObsoleteHashes -

@@ -12,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/common/statistics"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/trie"
@@ -33,6 +32,7 @@ type baseAccountsSyncer struct {
 	name                      string
 	maxHardCapForMissingNodes int
 	checkNodesOnDisk          bool
+	storageMarker             trie.StorageMarker
 
 	trieSyncerVersion int
 	numTriesSynced    int32
@@ -46,6 +46,7 @@ type ArgsNewBaseAccountsSyncer struct {
 	Hasher                    hashing.Hasher
 	Marshalizer               marshal.Marshalizer
 	TrieStorageManager        common.StorageManager
+	StorageMarker             trie.StorageMarker
 	RequestHandler            trie.RequestHandler
 	Timeout                   time.Duration
 	Cacher                    storage.Cacher
@@ -148,7 +149,6 @@ func (b *baseAccountsSyncer) printStatistics(ssh common.SizeSyncStatisticsHandle
 				"peak processing speed", peakSpeed,
 				"average processing speed", averageSpeed,
 			)
-			log.Debug("trie sync node statistics", statistics.GetRuntimeStatistics()...)
 			return
 		case <-time.After(timeBetweenStatisticsPrints):
 			bytesReceivedDelta := ssh.NumBytesReceived() - lastDataReceived
@@ -176,7 +176,6 @@ func (b *baseAccountsSyncer) printStatistics(ssh common.SizeSyncStatisticsHandle
 				"iterations", ssh.NumIterations(),
 				"CPU time", ssh.ProcessingTime(),
 				"processing speed", speed)
-			log.Debug("trie sync node statistics", statistics.GetRuntimeStatistics()...)
 		}
 	}
 }

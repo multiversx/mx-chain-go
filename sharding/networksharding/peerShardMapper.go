@@ -13,7 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
+	"github.com/ElrondNetwork/elrond-go/storage/cache"
 )
 
 const maxNumPidsPerPk = 3
@@ -75,12 +75,12 @@ func NewPeerShardMapper(arg ArgPeerShardMapper) (*PeerShardMapper, error) {
 		return nil, p2p.ErrNilPreferredPeersHolder
 	}
 
-	pkPeerId, err := lrucache.NewCache(arg.PeerIdPkCache.MaxSize())
+	pkPeerId, err := cache.NewLRUCache(arg.PeerIdPkCache.MaxSize())
 	if err != nil {
 		return nil, err
 	}
 
-	peerIdSubTypeCache, err := lrucache.NewCache(arg.PeerIdPkCache.MaxSize())
+	peerIdSubTypeCache, err := cache.NewLRUCache(arg.PeerIdPkCache.MaxSize())
 	if err != nil {
 		return nil, err
 	}

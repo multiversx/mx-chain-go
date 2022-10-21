@@ -12,10 +12,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	storageErrors "github.com/ElrondNetwork/elrond-go-storage/common"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/factory/directoryhandler"
+	"github.com/ElrondNetwork/elrond-go/storage/directoryhandler"
 )
 
 var log = logger.GetOrCreate("storage/clean")
@@ -166,7 +167,7 @@ func (odc *oldDatabaseCleaner) computeOldestEpochToKeep() (uint32, error) {
 }
 
 func logOldestEpochCompute(err error) {
-	if err != storage.ErrOldestEpochNotAvailable {
+	if err != storageErrors.ErrOldestEpochNotAvailable {
 		log.Debug("cannot compute oldest epoch for storer", "error", err)
 	}
 }

@@ -9,9 +9,9 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -52,36 +52,19 @@ type delegation struct {
 	addTokensAddr          []byte
 	gasCost                vm.GasCost
 	marshalizer            marshal.Marshalizer
-	delegationEnabled      atomic.Flag
-	enableDelegationEpoch  uint32
 	minServiceFee          uint64
 	maxServiceFee          uint64
 	unBondPeriodInEpochs   uint32
 	nodePrice              *big.Int
 	unJailPrice            *big.Int
 	minStakeValue          *big.Int
-
-	mutExecution                                    sync.RWMutex
-	stakingV2EnableEpoch                            uint32
-	stakingV2Enabled                                atomic.Flag
-	flagValidatorToDelegation                       atomic.Flag
-	validatorToDelegationEnableEpoch                uint32
-	flagReDelegateBelowMinCheck                     atomic.Flag
-	reDelegateBelowMinCheckEnableEpoch              uint32
-	flagComputeRewardCheckpoint                     atomic.Flag
-	computeRewardCheckpointEnableEpoch              uint32
-	flagAddTokens                                   atomic.Flag
-	addTokensEnableEpoch                            uint32
-	flagDeleteDelegatorDataAfterClaimRewards        atomic.Flag
-	deleteDelegatorDataAfterClaimRewardsEnableEpoch uint32
-	flagChangeDelegationOwner                       atomic.Flag
-	changeDelegationOwnerEnableEpoch                uint32
+	enableEpochsHandler    common.EnableEpochsHandler
+	mutExecution           sync.RWMutex
 }
 
 // ArgsNewDelegation defines the arguments to create the delegation smart contract
 type ArgsNewDelegation struct {
 	DelegationSCConfig     config.DelegationSystemSCConfig
-	EpochConfig            config.EpochConfig
 	StakingSCConfig        config.StakingSystemSCConfig
 	Eei                    vm.SystemEI
 	SigVerifier            vm.MessageSignVerifier
@@ -93,7 +76,7 @@ type ArgsNewDelegation struct {
 	AddTokensAddress       []byte
 	GasCost                vm.GasCost
 	Marshalizer            marshal.Marshalizer
-	EpochNotifier          vm.EpochNotifier
+	EnableEpochsHandler    common.EnableEpochsHandler
 }
 
 // NewDelegationSystemSC creates a new delegation system SC
@@ -116,9 +99,6 @@ func NewDelegationSystemSC(args ArgsNewDelegation) (*delegation, error) {
 	if check.IfNil(args.Marshalizer) {
 		return nil, vm.ErrNilMarshalizer
 	}
-	if check.IfNil(args.EpochNotifier) {
-		return nil, vm.ErrNilEpochNotifier
-	}
 	if check.IfNil(args.SigVerifier) {
 		return nil, vm.ErrNilMessageSignVerifier
 	}
@@ -131,41 +111,26 @@ func NewDelegationSystemSC(args ArgsNewDelegation) (*delegation, error) {
 	if len(args.AddTokensAddress) < 1 {
 		return nil, fmt.Errorf("%w for add tokens address", vm.ErrInvalidAddress)
 	}
+	if check.IfNil(args.EnableEpochsHandler) {
+		return nil, vm.ErrNilEnableEpochsHandler
+	}
 
 	d := &delegation{
-		eei:                                args.Eei,
-		stakingSCAddr:                      args.StakingSCAddress,
-		validatorSCAddr:                    args.ValidatorSCAddress,
-		delegationMgrSCAddress:             args.DelegationMgrSCAddress,
-		gasCost:                            args.GasCost,
-		marshalizer:                        args.Marshalizer,
-		delegationEnabled:                  atomic.Flag{},
-		enableDelegationEpoch:              args.EpochConfig.EnableEpochs.DelegationSmartContractEnableEpoch,
-		minServiceFee:                      args.DelegationSCConfig.MinServiceFee,
-		maxServiceFee:                      args.DelegationSCConfig.MaxServiceFee,
-		sigVerifier:                        args.SigVerifier,
-		unBondPeriodInEpochs:               args.StakingSCConfig.UnBondPeriodInEpochs,
-		endOfEpochAddr:                     args.EndOfEpochAddress,
-		governanceSCAddr:                   args.GovernanceSCAddress,
-		stakingV2EnableEpoch:               args.EpochConfig.EnableEpochs.StakingV2EnableEpoch,
-		stakingV2Enabled:                   atomic.Flag{},
-		validatorToDelegationEnableEpoch:   args.EpochConfig.EnableEpochs.ValidatorToDelegationEnableEpoch,
-		reDelegateBelowMinCheckEnableEpoch: args.EpochConfig.EnableEpochs.ReDelegateBelowMinCheckEnableEpoch,
-		computeRewardCheckpointEnableEpoch: args.EpochConfig.EnableEpochs.ComputeRewardCheckpointEnableEpoch,
-		addTokensEnableEpoch:               args.EpochConfig.EnableEpochs.AddTokensToDelegationEnableEpoch,
-		addTokensAddr:                      args.AddTokensAddress,
-		changeDelegationOwnerEnableEpoch:   args.EpochConfig.EnableEpochs.ESDTMetadataContinuousCleanupEnableEpoch,
-		deleteDelegatorDataAfterClaimRewardsEnableEpoch: args.EpochConfig.EnableEpochs.DeleteDelegatorAfterClaimRewardsEnableEpoch,
-		flagDeleteDelegatorDataAfterClaimRewards:        atomic.Flag{},
+		eei:                    args.Eei,
+		stakingSCAddr:          args.StakingSCAddress,
+		validatorSCAddr:        args.ValidatorSCAddress,
+		delegationMgrSCAddress: args.DelegationMgrSCAddress,
+		gasCost:                args.GasCost,
+		marshalizer:            args.Marshalizer,
+		minServiceFee:          args.DelegationSCConfig.MinServiceFee,
+		maxServiceFee:          args.DelegationSCConfig.MaxServiceFee,
+		sigVerifier:            args.SigVerifier,
+		unBondPeriodInEpochs:   args.StakingSCConfig.UnBondPeriodInEpochs,
+		endOfEpochAddr:         args.EndOfEpochAddress,
+		governanceSCAddr:       args.GovernanceSCAddress,
+		addTokensAddr:          args.AddTokensAddress,
+		enableEpochsHandler:    args.EnableEpochsHandler,
 	}
-	log.Debug("delegation: enable epoch for delegation smart contract", "epoch", d.enableDelegationEpoch)
-	log.Debug("delegation: enable epoch for staking v2", "epoch", d.stakingV2EnableEpoch)
-	log.Debug("delegation: enable epoch for validator to delegation", "epoch", d.validatorToDelegationEnableEpoch)
-	log.Debug("delegation: enable epoch for re-delegate below minimum check", "epoch", d.reDelegateBelowMinCheckEnableEpoch)
-	log.Debug("delegation: enable epoch for compute rewards checkpoint", "epoch", d.computeRewardCheckpointEnableEpoch)
-	log.Debug("delegation: enable epoch for adding tokens", "epoch", d.addTokensEnableEpoch)
-	log.Debug("delegation: delete delegator data after claim rewards", "epoch", d.deleteDelegatorDataAfterClaimRewardsEnableEpoch)
-	log.Debug("delegation: change delegation owner", "epoch", d.changeDelegationOwnerEnableEpoch)
 
 	var okValue bool
 
@@ -182,8 +147,6 @@ func NewDelegationSystemSC(args ArgsNewDelegation) (*delegation, error) {
 		return nil, fmt.Errorf("%w, value is %v", vm.ErrInvalidNodePrice, args.StakingSCConfig.GenesisNodePrice)
 	}
 
-	args.EpochNotifier.RegisterNotifyHandler(d)
-
 	return d, nil
 }
 
@@ -197,7 +160,7 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
-	if !d.delegationEnabled.IsSet() {
+	if !d.enableEpochsHandler.IsDelegationSmartContractFlagEnabled() {
 		d.eei.AddReturnMessage("delegation contract is not enabled")
 		return vmcommon.UserError
 	}
@@ -392,7 +355,7 @@ func (d *delegation) initDelegationStructures(
 }
 
 func (d *delegation) checkArgumentsForValidatorToDelegation(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !d.flagValidatorToDelegation.IsSet() {
+	if !d.enableEpochsHandler.IsValidatorToDelegationFlagEnabled() {
 		d.eei.AddReturnMessage(args.Function + " is an unknown function")
 		return vmcommon.UserError
 	}
@@ -496,7 +459,7 @@ func (d *delegation) updateDelegationStatusFromValidatorData(
 		case active:
 			dStatus.StakedKeys = append(dStatus.StakedKeys, nodesData)
 		case unStaked:
-			if d.flagAddTokens.IsSet() {
+			if d.enableEpochsHandler.IsAddTokensToDelegationFlagEnabled() {
 				dStatus.UnStakedKeys = append(dStatus.UnStakedKeys, nodesData)
 			} else {
 				dStatus.UnStakedKeys = append(dStatus.StakedKeys, nodesData)
@@ -613,7 +576,7 @@ func (d *delegation) mergeValidatorDataToDelegation(args *vmcommon.ContractCallI
 }
 
 func (d *delegation) checkInputForWhitelisting(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !d.flagValidatorToDelegation.IsSet() {
+	if !d.enableEpochsHandler.IsValidatorToDelegationFlagEnabled() {
 		d.eei.AddReturnMessage(args.Function + " is an unknown function")
 		return vmcommon.UserError
 	}
@@ -675,7 +638,7 @@ func (d *delegation) deleteWhitelistForMerge(args *vmcommon.ContractCallInput) v
 }
 
 func (d *delegation) getWhitelistForMerge(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !d.flagValidatorToDelegation.IsSet() {
+	if !d.enableEpochsHandler.IsValidatorToDelegationFlagEnabled() {
 		d.eei.AddReturnMessage(args.Function + " is an unknown function")
 		return vmcommon.UserError
 	}
@@ -938,7 +901,7 @@ func (d *delegation) checkBLSKeysIfExistsInStakingSC(blsKeys [][]byte) bool {
 }
 
 func (d *delegation) changeOwner(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !d.flagChangeDelegationOwner.IsSet() {
+	if !d.enableEpochsHandler.IsChangeDelegationOwnerFlagEnabled() {
 		d.eei.AddReturnMessage(args.Function + " is an unknown function")
 		return vmcommon.UserError
 	}
@@ -1571,7 +1534,7 @@ func (d *delegation) finishDelegateUser(
 }
 
 func (d *delegation) checkActiveFund(delegator *DelegatorData) error {
-	if !d.flagReDelegateBelowMinCheck.IsSet() {
+	if !d.enableEpochsHandler.IsReDelegateBelowMinCheckFlagEnabled() {
 		return nil
 	}
 
@@ -1934,7 +1897,7 @@ func (d *delegation) saveRewardData(epoch uint32, rewardsData *RewardComputation
 func (d *delegation) computeAndUpdateRewards(callerAddress []byte, delegator *DelegatorData) error {
 	currentEpoch := d.eei.BlockChainHook().CurrentEpoch()
 	if len(delegator.ActiveFund) == 0 {
-		if d.flagComputeRewardCheckpoint.IsSet() {
+		if d.enableEpochsHandler.IsComputeRewardCheckpointFlagEnabled() {
 			delegator.RewardsCheckpoint = currentEpoch + 1
 		}
 		return nil
@@ -1966,7 +1929,7 @@ func (d *delegation) computeAndUpdateRewards(callerAddress []byte, delegator *De
 
 		var rewardsForOwner *big.Int
 		percentage := float64(rewardData.ServiceFee) / float64(d.maxServiceFee)
-		if d.stakingV2Enabled.IsSet() {
+		if d.enableEpochsHandler.IsStakingV2FlagEnabledForActivationEpochCompleted() {
 			rewardsForOwner = core.GetIntTrimmedPercentageOfValue(rewardData.RewardsToDistribute, percentage)
 		} else {
 			rewardsForOwner = core.GetApproximatePercentageOfValue(rewardData.RewardsToDistribute, percentage)
@@ -2033,7 +1996,7 @@ func (d *delegation) claimRewards(args *vmcommon.ContractCallInput) vmcommon.Ret
 	}
 
 	var wasDeleted bool
-	if d.flagDeleteDelegatorDataAfterClaimRewards.IsSet() {
+	if d.enableEpochsHandler.IsDeleteDelegatorAfterClaimRewardsFlagEnabled() {
 		wasDeleted, err = d.deleteDelegatorOnClaimRewardsIfNeeded(args.CallerAddr, delegator)
 		if err != nil {
 			d.eei.AddReturnMessage(err.Error())
@@ -2404,7 +2367,7 @@ func (d *delegation) getNumNodes(args *vmcommon.ContractCallInput) vmcommon.Retu
 }
 
 func (d *delegation) correctNodesStatus(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !d.flagAddTokens.IsSet() {
+	if !d.enableEpochsHandler.IsAddTokensToDelegationFlagEnabled() {
 		d.eei.AddReturnMessage(args.Function + " is an unknown function")
 		return vmcommon.UserError
 	}
@@ -2858,7 +2821,7 @@ func (d *delegation) getMetaData(args *vmcommon.ContractCallInput) vmcommon.Retu
 }
 
 func (d *delegation) addTokens(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !d.flagAddTokens.IsSet() {
+	if !d.enableEpochsHandler.IsAddTokensToDelegationFlagEnabled() {
 		d.eei.AddReturnMessage(args.Function + " is an unknown function")
 		return vmcommon.UserError
 	}
@@ -3105,36 +3068,9 @@ func (d *delegation) SetNewGasCost(gasCost vm.GasCost) {
 	d.mutExecution.Unlock()
 }
 
-// EpochConfirmed is called whenever a new epoch is confirmed
-func (d *delegation) EpochConfirmed(epoch uint32, _ uint64) {
-	d.delegationEnabled.SetValue(epoch >= d.enableDelegationEpoch)
-	log.Debug("delegationSC: delegation", "enabled", d.delegationEnabled.IsSet())
-
-	d.stakingV2Enabled.SetValue(epoch > d.stakingV2EnableEpoch)
-	log.Debug("delegationSC: stakingV2", "enabled", d.stakingV2Enabled.IsSet())
-
-	d.flagValidatorToDelegation.SetValue(epoch >= d.validatorToDelegationEnableEpoch)
-	log.Debug("delegationSC: validator to delegation", "enabled", d.flagValidatorToDelegation.IsSet())
-
-	d.flagReDelegateBelowMinCheck.SetValue(epoch >= d.reDelegateBelowMinCheckEnableEpoch)
-	log.Debug("delegationSC: re-delegate below minimum check", "enabled", d.flagReDelegateBelowMinCheck.IsSet())
-
-	d.flagComputeRewardCheckpoint.SetValue(epoch >= d.computeRewardCheckpointEnableEpoch)
-	log.Debug("delegationSC: compute rewards checkpoint", "enabled", d.flagComputeRewardCheckpoint.IsSet())
-
-	d.flagAddTokens.SetValue(epoch >= d.addTokensEnableEpoch)
-	log.Debug("delegationSC: add tokens", "enabled", d.flagAddTokens.IsSet())
-
-	d.flagDeleteDelegatorDataAfterClaimRewards.SetValue(epoch >= d.deleteDelegatorDataAfterClaimRewardsEnableEpoch)
-	log.Debug("delegationSC: delete delegator data after claim rewards", "enabled", d.flagDeleteDelegatorDataAfterClaimRewards.IsSet())
-
-	d.flagChangeDelegationOwner.SetValue(epoch >= d.changeDelegationOwnerEnableEpoch)
-	log.Debug("delegationSC: change delegation owner", "enabled", d.flagChangeDelegationOwner.IsSet())
-}
-
 // CanUseContract returns true if contract can be used
 func (d *delegation) CanUseContract() bool {
-	return d.delegationEnabled.IsSet()
+	return d.enableEpochsHandler.IsDelegationSmartContractFlagEnabled()
 }
 
 // IsInterfaceNil returns true if underlying object is nil
