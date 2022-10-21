@@ -897,7 +897,7 @@ func (pcf *processComponentsFactory) indexAndReturnGenesisAccounts() (map[string
 
 	err = common.GetErrorFromChanNonBlocking(leavesChannels.ErrChan)
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 
 	shardID := pcf.bootstrapComponents.ShardCoordinator().SelfId()
@@ -1123,8 +1123,8 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(
 			genesisBlockHash,
 			originalGenesisBlockHeader,
 			genesisBody,
-			txsPoolPerShard[currentShardId].Scrs,
-			txsPoolPerShard[currentShardId].Receipts,
+			unwrapTxs(txsPoolPerShard[currentShardId].Scrs),
+			unwrapTxs(txsPoolPerShard[currentShardId].Receipts),
 			intraShardMiniBlocks,
 			txsPoolPerShard[currentShardId].Logs)
 		if err != nil {
@@ -1138,7 +1138,7 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(
 	}
 
 	if txsPoolPerShard[currentShardId] != nil {
-		err = pcf.saveGenesisTxsToStorage(txsPoolPerShard[currentShardId].Txs)
+		err = pcf.saveGenesisTxsToStorage(unwrapTxs(txsPoolPerShard[currentShardId].Txs))
 		if err != nil {
 			return err
 		}
@@ -1154,7 +1154,6 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(
 	err = pcf.saveAlteredGenesisHeaderToStorage(
 		genesisBlockHeader,
 		genesisBlockHash,
-		miniBlocks,
 		genesisBody,
 		intraShardMiniBlocks,
 		txsPoolPerShard)
@@ -1168,10 +1167,9 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(
 func (pcf *processComponentsFactory) saveAlteredGenesisHeaderToStorage(
 	genesisBlockHeader data.HeaderHandler,
 	genesisBlockHash []byte,
-	miniBlocks []*dataBlock.MiniBlock,
 	genesisBody *dataBlock.Body,
 	intraShardMiniBlocks []*dataBlock.MiniBlock,
-	txsPoolPerShard map[uint32]*indexer.Pool,
+	txsPoolPerShard map[uint32]*outport.Pool,
 ) error {
 	currentShardId := pcf.bootstrapComponents.ShardCoordinator().SelfId()
 
@@ -1198,8 +1196,8 @@ func (pcf *processComponentsFactory) saveAlteredGenesisHeaderToStorage(
 			genesisBlockHash,
 			genesisBlockHeader,
 			genesisBody,
-			txsPoolPerShard[currentShardId].Scrs,
-			txsPoolPerShard[currentShardId].Receipts,
+			unwrapTxs(txsPoolPerShard[currentShardId].Scrs),
+			unwrapTxs(txsPoolPerShard[currentShardId].Receipts),
 			intraShardMiniBlocks,
 			txsPoolPerShard[currentShardId].Logs)
 		if err != nil {
@@ -1910,4 +1908,13 @@ func (pc *processComponents) Close() error {
 	}
 
 	return nil
+}
+
+func unwrapTxs(txs map[string]data.TransactionHandlerWithGasUsedAndFee) map[string]data.TransactionHandler {
+	output := make(map[string]data.TransactionHandler)
+	for hash, wrappedTx := range txs {
+		output[hash] = wrappedTx.GetTxHandler()
+	}
+
+	return output
 }

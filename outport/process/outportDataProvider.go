@@ -146,25 +146,25 @@ func (odp *outportDataProvider) createPool(rewardsTxs map[string]data.Transactio
 
 func (odp *outportDataProvider) createPoolForShard() *outportcore.Pool {
 	return &outportcore.Pool{
-		Txs:      wrapTxsMap(odp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock)),
-		Scrs:     wrapTxsMap(odp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)),
-		Rewards:  wrapTxsMap(odp.txCoordinator.GetAllCurrentUsedTxs(block.RewardsBlock)),
-		Invalid:  wrapTxsMap(odp.txCoordinator.GetAllCurrentUsedTxs(block.InvalidBlock)),
-		Receipts: wrapTxsMap(odp.txCoordinator.GetAllCurrentUsedTxs(block.ReceiptBlock)),
+		Txs:      WrapTxsMap(odp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock)),
+		Scrs:     WrapTxsMap(odp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)),
+		Rewards:  WrapTxsMap(odp.txCoordinator.GetAllCurrentUsedTxs(block.RewardsBlock)),
+		Invalid:  WrapTxsMap(odp.txCoordinator.GetAllCurrentUsedTxs(block.InvalidBlock)),
+		Receipts: WrapTxsMap(odp.txCoordinator.GetAllCurrentUsedTxs(block.ReceiptBlock)),
 		Logs:     odp.txCoordinator.GetAllCurrentLogs(),
 	}
 }
 
 func (odp *outportDataProvider) createPoolForMeta(rewardsTxs map[string]data.TransactionHandler) *outportcore.Pool {
 	return &outportcore.Pool{
-		Txs:     wrapTxsMap(odp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock)),
-		Scrs:    wrapTxsMap(odp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)),
-		Rewards: wrapTxsMap(rewardsTxs),
+		Txs:     WrapTxsMap(odp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock)),
+		Scrs:    WrapTxsMap(odp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)),
+		Rewards: WrapTxsMap(rewardsTxs),
 		Logs:    odp.txCoordinator.GetAllCurrentLogs(),
 	}
 }
 
-func wrapTxsMap(txs map[string]data.TransactionHandler) map[string]data.TransactionHandlerWithGasUsedAndFee {
+func WrapTxsMap(txs map[string]data.TransactionHandler) map[string]data.TransactionHandlerWithGasUsedAndFee {
 	newMap := make(map[string]data.TransactionHandlerWithGasUsedAndFee, len(txs))
 	for txHash, tx := range txs {
 		newMap[txHash] = outportcore.NewTransactionHandlerWithGasAndFee(tx, 0, big.NewInt(0))
