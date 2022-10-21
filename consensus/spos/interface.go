@@ -50,11 +50,11 @@ type ConsensusCoreHandler interface {
 	NodesCoordinator() nodesCoordinator.NodesCoordinator
 	// EpochStartRegistrationHandler gets the RegistrationHandler stored in the ConsensusCore
 	EpochStartRegistrationHandler() epochStart.RegistrationHandler
-	// PrivateKey returns the private key stored in the ConsensusStore used for randomness and leader's signature generation
+	// PrivateKey returns the private key stored in the ConsensusCore used for randomness and leader's signature generation
 	PrivateKey() crypto.PrivateKey
-	// SingleSigner returns the single signer stored in the ConsensusStore used for randomness and leader's signature generation
+	// SingleSigner returns the single signer stored in the ConsensusCore used for randomness and leader's signature generation
 	SingleSigner() crypto.SingleSigner
-	// KeyGenerator returns the key generator stored in the ConsensusStore
+	// KeyGenerator returns the key generator stored in the ConsensusCore
 	KeyGenerator() crypto.KeyGenerator
 	// PeerHonestyHandler returns the peer honesty handler which will be used in subrounds
 	PeerHonestyHandler() consensus.PeerHonestyHandler
@@ -66,7 +66,7 @@ type ConsensusCoreHandler interface {
 	NodeRedundancyHandler() consensus.NodeRedundancyHandler
 	// ScheduledProcessor returns the scheduled txs processor
 	ScheduledProcessor() consensus.ScheduledProcessor
-	// MessageSignerHandler return the message signer
+	// MessageSignerHandler returns the p2p signing handler
 	MessageSigningHandler() consensus.P2PSigningHandler
 	// PeerBlackListHandler return the peer blacklist handler
 	PeerBlacklistHandler() consensus.PeerBlacklistHandler
