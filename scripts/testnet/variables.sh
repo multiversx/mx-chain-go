@@ -89,10 +89,6 @@ export PORT_ORIGIN_OBSERVER_REST="10000"
 export PORT_ORIGIN_VALIDATOR="21500"
 export PORT_ORIGIN_VALIDATOR_REST="9500"
 
-# Address of the Seednode. Will be written to the p2p.toml file of the Nodes
-export P2P_SEEDNODE_ADDRESS="/ip4/127.0.0.1/tcp/$PORT_SEEDNODE/p2p/"
-
-
 # UI configuration profiles
 
 # Use tmux or not. If set to 1, only 2 terminal windows will be opened, and
