@@ -9,6 +9,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/stretchr/testify/assert"
@@ -49,7 +50,7 @@ func TestDepthFirstTrieSyncer_StartSyncingEmptyRootHashShouldReturnNil(t *testin
 
 	arg := createMockArgument(time.Minute)
 	d, _ := NewDepthFirstTrieSyncer(arg)
-	err := d.StartSyncing(EmptyTrieHash, context.Background())
+	err := d.StartSyncing(common.EmptyTrieHash, context.Background())
 
 	assert.Nil(t, err)
 }
@@ -59,7 +60,7 @@ func TestDepthFirstTrieSyncer_StartSyncingNilContextShouldErr(t *testing.T) {
 
 	arg := createMockArgument(time.Minute)
 	d, _ := NewDepthFirstTrieSyncer(arg)
-	err := d.StartSyncing(bytes.Repeat([]byte{1}, len(EmptyTrieHash)), nil)
+	err := d.StartSyncing(bytes.Repeat([]byte{1}, len(common.EmptyTrieHash)), nil)
 
 	assert.Equal(t, ErrNilContext, err)
 }
