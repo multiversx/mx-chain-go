@@ -331,6 +331,7 @@ func TestHeartbeatV2Monitor_GetHeartbeats(t *testing.T) {
 
 		heartbeats := monitor.GetHeartbeats()
 		assert.Equal(t, 1, len(heartbeats))
+		assert.Equal(t, 1, args.Cache.Len())
 		checkResults(t, providedMessages[2], heartbeats[0], providedStatuses[2], providedPids, 0)
 		assert.Equal(t, 2, len(providedPids)) // 1 inactive was removed from the heartbeat list
 	})
@@ -367,6 +368,7 @@ func TestHeartbeatV2Monitor_GetHeartbeats(t *testing.T) {
 
 		heartbeats := monitor.GetHeartbeats()
 		assert.Equal(t, 1, len(heartbeats))
+		assert.Equal(t, 1, args.Cache.Len())
 		checkResults(t, providedMessages[0], heartbeats[0], providedStatuses[0], providedPids, 1)
 		assert.Equal(t, 2, len(providedPids)) // 1 inactive was removed from the heartbeat list
 	})
