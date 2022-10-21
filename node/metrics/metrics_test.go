@@ -54,6 +54,10 @@ func TestInitBaseMetrics(t *testing.T) {
 		common.MetricInflation,
 		common.MetricDevRewardsInEpoch,
 		common.MetricTotalFees,
+		common.MetricAccountsSnapshotInProgress,
+		common.MetricLastAccountsSnapshotDurationSec,
+		common.MetricPeersSnapshotInProgress,
+		common.MetricLastPeersSnapshotDurationSec,
 	}
 
 	keys := make(map[string]struct{})
@@ -66,6 +70,10 @@ func TestInitBaseMetrics(t *testing.T) {
 		},
 		SetUInt64ValueHandler: func(key string, value uint64) {
 			require.Equal(t, value, initUint)
+			keys[key] = struct{}{}
+		},
+		SetInt64ValueHandler: func(key string, value int64) {
+			require.Equal(t, value, initInt)
 			keys[key] = struct{}{}
 		},
 	}
