@@ -1,3 +1,79 @@
-package sync_test
+package sync
 
-//TODO: Add unit tests for sovereignChainProcessAndCommit method
+import (
+	"errors"
+	"testing"
+	"time"
+
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/stretchr/testify/assert"
+)
+
+func haveTimeAlways() time.Duration {
+	return time.Hour
+}
+
+func TestBaseSync_sovereignChainProcessAndCommit(t *testing.T) {
+	t.Parallel()
+
+	t.Run("sovereignChainProcessAndCommit with process error", func(t *testing.T) {
+		t.Parallel()
+
+		errProcess := errors.New("process error")
+		boot := &baseBootstrap{
+			blockProcessor: &mock.BlockProcessorMock{
+				ProcessBlockCalled: func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) (data.HeaderHandler, data.BodyHandler, error) {
+					return nil, nil, errProcess
+				},
+			},
+		}
+
+		header := &block.Header{}
+		body := &block.Body{}
+		err := boot.sovereignChainProcessAndCommit(header, body, haveTimeAlways)
+		assert.Equal(t, errProcess, err)
+	})
+
+	t.Run("sovereignChainProcessAndCommit with commit error", func(t *testing.T) {
+		t.Parallel()
+
+		errCommit := errors.New("commit error")
+		boot := &baseBootstrap{
+			blockProcessor: &mock.BlockProcessorMock{
+				ProcessBlockCalled: func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) (data.HeaderHandler, data.BodyHandler, error) {
+					return &block.Header{}, &block.Body{}, nil
+				},
+				CommitBlockCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
+					return errCommit
+				},
+			},
+		}
+
+		header := &block.Header{}
+		body := &block.Body{}
+		err := boot.sovereignChainProcessAndCommit(header, body, haveTimeAlways)
+		assert.Equal(t, errCommit, err)
+	})
+
+	t.Run("sovereignChainProcessAndCommit without error", func(t *testing.T) {
+		t.Parallel()
+
+		boot := &baseBootstrap{
+			blockProcessor: &mock.BlockProcessorMock{
+				ProcessBlockCalled: func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) (data.HeaderHandler, data.BodyHandler, error) {
+					return &block.Header{}, &block.Body{}, nil
+				},
+				CommitBlockCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
+					return nil
+				},
+			},
+		}
+
+		header := &block.Header{}
+		body := &block.Body{}
+		err := boot.sovereignChainProcessAndCommit(header, body, haveTimeAlways)
+		assert.Nil(t, err)
+	})
+}
