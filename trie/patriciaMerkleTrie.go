@@ -89,13 +89,13 @@ func (tr *patriciaMerkleTrie) Get(key []byte) ([]byte, uint32, error) {
 	}
 	hexKey := keyBytesToHex(key)
 
-	val, maxDepth, err := tr.root.tryGet(hexKey, rootDepthLevel, tr.trieStorage)
+	val, depth, err := tr.root.tryGet(hexKey, rootDepthLevel, tr.trieStorage)
 	if err != nil {
 		err = fmt.Errorf("trie get error: %w, for key %v", err, hex.EncodeToString(key))
-		return nil, maxDepth, err
+		return nil, depth, err
 	}
 
-	return val, maxDepth, nil
+	return val, depth, nil
 }
 
 // Update updates the value at the given key.

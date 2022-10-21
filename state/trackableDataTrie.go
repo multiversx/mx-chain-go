@@ -40,14 +40,14 @@ func (tdaw *trackableDataTrie) RetrieveValue(key []byte) ([]byte, uint32, error)
 	if tdaw.tr == nil {
 		return nil, 0, ErrNilTrie
 	}
-	value, maxDepth, err := tdaw.tr.Get(key)
+	value, depth, err := tdaw.tr.Get(key)
 	if err != nil {
-		return nil, maxDepth, err
+		return nil, depth, err
 	}
-	log.Trace("retrieve value from trie", "key", key, "value", value)
+	log.Trace("retrieve value from trie", "key", key, "value", value, "depth", depth)
 	value, _ = trimValue(value, tailLength)
 
-	return value, maxDepth, nil
+	return value, depth, nil
 }
 
 func trimValue(value []byte, tailLength int) ([]byte, error) {
