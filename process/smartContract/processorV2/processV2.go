@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/arwen-wasm-vm/v1_5/arwen/contexts"
+	"github.com/ElrondNetwork/wasm-vm/arwen/contexts"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"

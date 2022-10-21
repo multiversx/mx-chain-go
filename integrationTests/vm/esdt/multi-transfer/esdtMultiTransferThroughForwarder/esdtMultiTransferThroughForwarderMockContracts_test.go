@@ -3,7 +3,7 @@ package esdtMultiTransferThroughForwarder
 import (
 	"testing"
 
-	test "github.com/ElrondNetwork/arwen-wasm-vm/v1_5/testcommon"
+	test "github.com/ElrondNetwork/wasm-vm/testcommon"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	arwenvm "github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen/arwenvm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/esdt"
