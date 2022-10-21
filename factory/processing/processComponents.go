@@ -869,14 +869,17 @@ func (pcf *processComponentsFactory) indexAndReturnGenesisAccounts() (map[string
 		return nil, err
 	}
 
-	leavesChannel := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
-	err = pcf.state.AccountsAdapter().GetAllLeaves(leavesChannel, context.Background(), rootHash)
+	leavesChannels := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    make(chan error, 1),
+	}
+	err = pcf.state.AccountsAdapter().GetAllLeaves(leavesChannels, context.Background(), rootHash)
 	if err != nil {
 		return nil, err
 	}
 
 	genesisAccounts := make(map[string]*outport.AlteredAccount, 0)
-	for leaf := range leavesChannel {
+	for leaf := range leavesChannels.LeavesChan {
 		userAccount, errUnmarshal := pcf.unmarshalUserAccount(leaf.Key(), leaf.Value())
 		if errUnmarshal != nil {
 			log.Debug("cannot unmarshal genesis user account. it may be a code leaf", "error", errUnmarshal)
@@ -890,6 +893,11 @@ func (pcf *processComponentsFactory) indexAndReturnGenesisAccounts() (map[string
 			Nonce:   userAccount.GetNonce(),
 			Tokens:  nil,
 		}
+	}
+
+	err = common.GetErrorFromChanNonBlocking(leavesChannels.ErrChan)
+	if err != nil {
+		return nil, err
 	}
 
 	shardID := pcf.bootstrapComponents.ShardCoordinator().SelfId()
@@ -924,7 +932,9 @@ func (pcf *processComponentsFactory) setGenesisHeader(genesisBlocks map[uint32]d
 	return nil
 }
 
-func (pcf *processComponentsFactory) prepareGenesisBlock(genesisBlocks map[uint32]data.HeaderHandler) error {
+func (pcf *processComponentsFactory) prepareGenesisBlock(
+	genesisBlocks map[uint32]data.HeaderHandler,
+) error {
 	genesisBlock, ok := genesisBlocks[pcf.bootstrapComponents.ShardCoordinator().SelfId()]
 	if !ok {
 		return errors.New("genesis block does not exist")
@@ -941,13 +951,26 @@ func (pcf *processComponentsFactory) prepareGenesisBlock(genesisBlocks map[uint3
 	}
 
 	pcf.data.Blockchain().SetGenesisHeaderHash(genesisBlockHash)
+	nonceToByteSlice := pcf.coreData.Uint64ByteSliceConverter().ToByteSlice(genesisBlock.GetNonce())
 
+	err = pcf.saveGenesisHeaderToStorage(genesisBlock, genesisBlockHash, nonceToByteSlice)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (pcf *processComponentsFactory) saveGenesisHeaderToStorage(
+	genesisBlock data.HeaderHandler,
+	genesisBlockHash []byte,
+	nonceToByteSlice []byte,
+) error {
 	marshalledBlock, err := pcf.coreData.InternalMarshalizer().Marshal(genesisBlock)
 	if err != nil {
 		return err
 	}
 
-	nonceToByteSlice := pcf.coreData.Uint64ByteSliceConverter().ToByteSlice(genesisBlock.GetNonce())
 	if pcf.bootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
 		pcf.saveMetaBlock(genesisBlockHash, marshalledBlock, nonceToByteSlice)
 	} else {
@@ -998,6 +1021,52 @@ func getGenesisBlockForShard(miniBlocks []*dataBlock.MiniBlock, shardId uint32) 
 	return genesisMiniBlocks
 }
 
+func getGenesisIntraShardMiniblocks(miniBlocks []*dataBlock.MiniBlock) []*dataBlock.MiniBlock {
+	intraShardMiniBlocks := make([]*dataBlock.MiniBlock, 0)
+
+	for _, miniBlock := range miniBlocks {
+		if miniBlock.GetReceiverShardID() == miniBlock.GetSenderShardID() {
+			intraShardMiniBlocks = append(intraShardMiniBlocks, miniBlock)
+		}
+	}
+
+	return intraShardMiniBlocks
+}
+
+func (pcf *processComponentsFactory) createGenesisMiniBlockHandlers(miniBlocks []*dataBlock.MiniBlock) ([]data.MiniBlockHeaderHandler, error) {
+	miniBlockHeaderHandlers := make([]data.MiniBlockHeaderHandler, len(miniBlocks))
+
+	for i := 0; i < len(miniBlocks); i++ {
+		txCount := len(miniBlocks[i].GetTxHashes())
+
+		miniBlockHash, err := core.CalculateHash(pcf.coreData.InternalMarshalizer(), pcf.coreData.Hasher(), miniBlocks[i])
+		if err != nil {
+			return nil, err
+		}
+
+		miniBlockHeader := &dataBlock.MiniBlockHeader{
+			Hash:            miniBlockHash,
+			SenderShardID:   miniBlocks[i].GetSenderShardID(),
+			ReceiverShardID: miniBlocks[i].GetReceiverShardID(),
+			TxCount:         uint32(txCount),
+			Type:            miniBlocks[i].GetType(),
+		}
+
+		err = miniBlockHeader.SetProcessingType(int32(dataBlock.Normal))
+		if err != nil {
+			return nil, err
+		}
+		err = miniBlockHeader.SetConstructionState(int32(dataBlock.Final))
+		if err != nil {
+			return nil, err
+		}
+
+		miniBlockHeaderHandlers[i] = miniBlockHeader
+	}
+
+	return miniBlockHeaderHandlers, nil
+}
+
 func (pcf *processComponentsFactory) indexGenesisBlocks(
 	genesisBlocks map[uint32]data.HeaderHandler,
 	initialIndexingData map[uint32]*genesis.IndexingData,
@@ -1012,6 +1081,14 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(
 		return err
 	}
 
+	miniBlocks, txsPoolPerShard, errGenerate := pcf.accountsParser.GenerateInitialTransactions(pcf.bootstrapComponents.ShardCoordinator(), initialIndexingData)
+	if errGenerate != nil {
+		return errGenerate
+	}
+
+	intraShardMiniBlocks := getGenesisIntraShardMiniblocks(miniBlocks)
+	genesisBody := getGenesisBlockForShard(miniBlocks, currentShardId)
+
 	if pcf.statusComponents.OutportHandler().HasDrivers() {
 		log.Info("indexGenesisBlocks(): indexer.SaveBlock", "hash", genesisBlockHash)
 
@@ -1022,14 +1099,7 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(
 			Balance: "0",
 		}
 
-		miniBlocks, txsPoolPerShard, errGenerate := pcf.accountsParser.GenerateInitialTransactions(pcf.bootstrapComponents.ShardCoordinator(), initialIndexingData)
-		if errGenerate != nil {
-			return errGenerate
-		}
-
 		_ = genesisBlockHeader.SetTxCount(uint32(len(txsPoolPerShard[currentShardId].Txs)))
-
-		genesisBody := getGenesisBlockForShard(miniBlocks, currentShardId)
 
 		arg := &outport.ArgsSaveBlockData{
 			HeaderHash: genesisBlockHash,
@@ -1048,10 +1118,30 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(
 	}
 
 	log.Info("indexGenesisBlocks(): historyRepo.RecordBlock", "shardID", currentShardId, "hash", genesisBlockHash)
-	// TODO: save also genesis body transactions into node storage
-	err = pcf.historyRepo.RecordBlock(genesisBlockHash, genesisBlockHeader, &dataBlock.Body{}, nil, nil, nil, nil)
+	if txsPoolPerShard[currentShardId] != nil {
+		err = pcf.historyRepo.RecordBlock(
+			genesisBlockHash,
+			originalGenesisBlockHeader,
+			genesisBody,
+			unwrapTxs(txsPoolPerShard[currentShardId].Scrs),
+			unwrapTxs(txsPoolPerShard[currentShardId].Receipts),
+			intraShardMiniBlocks,
+			txsPoolPerShard[currentShardId].Logs)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = pcf.saveGenesisMiniBlocksToStorage(miniBlocks)
 	if err != nil {
 		return err
+	}
+
+	if txsPoolPerShard[currentShardId] != nil {
+		err = pcf.saveGenesisTxsToStorage(unwrapTxs(txsPoolPerShard[currentShardId].Txs))
+		if err != nil {
+			return err
+		}
 	}
 
 	nonceByHashDataUnit := dataRetriever.GetHdrNonceHashDataUnit(currentShardId)
@@ -1059,6 +1149,97 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(
 	err = pcf.data.StorageService().Put(nonceByHashDataUnit, nonceAsBytes, genesisBlockHash)
 	if err != nil {
 		return err
+	}
+
+	err = pcf.saveAlteredGenesisHeaderToStorage(
+		genesisBlockHeader,
+		genesisBlockHash,
+		genesisBody,
+		intraShardMiniBlocks,
+		txsPoolPerShard)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (pcf *processComponentsFactory) saveAlteredGenesisHeaderToStorage(
+	genesisBlockHeader data.HeaderHandler,
+	genesisBlockHash []byte,
+	genesisBody *dataBlock.Body,
+	intraShardMiniBlocks []*dataBlock.MiniBlock,
+	txsPoolPerShard map[uint32]*outport.Pool,
+) error {
+	currentShardId := pcf.bootstrapComponents.ShardCoordinator().SelfId()
+
+	genesisMiniBlockHeaderHandlers, err := pcf.createGenesisMiniBlockHandlers(genesisBody.GetMiniBlocks())
+	if err != nil {
+		return err
+	}
+
+	nonceAsBytes := pcf.coreData.Uint64ByteSliceConverter().ToByteSlice(genesisBlockHeader.GetNonce())
+	nonceAsBytes = append(nonceAsBytes, []byte(common.GenesisStorageSuffix)...)
+	err = genesisBlockHeader.SetMiniBlockHeaderHandlers(genesisMiniBlockHeaderHandlers)
+	if err != nil {
+		return err
+	}
+
+	genesisBlockHash = append(genesisBlockHash, []byte(common.GenesisStorageSuffix)...)
+	err = pcf.saveGenesisHeaderToStorage(genesisBlockHeader, genesisBlockHash, nonceAsBytes)
+	if err != nil {
+		return err
+	}
+
+	if txsPoolPerShard[currentShardId] != nil {
+		err = pcf.historyRepo.RecordBlock(
+			genesisBlockHash,
+			genesisBlockHeader,
+			genesisBody,
+			unwrapTxs(txsPoolPerShard[currentShardId].Scrs),
+			unwrapTxs(txsPoolPerShard[currentShardId].Receipts),
+			intraShardMiniBlocks,
+			txsPoolPerShard[currentShardId].Logs)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (pcf *processComponentsFactory) saveGenesisTxsToStorage(txs map[string]data.TransactionHandler) error {
+	for txHash, tx := range txs {
+		marshalledTx, err := pcf.coreData.InternalMarshalizer().Marshal(tx)
+		if err != nil {
+			return err
+		}
+
+		err = pcf.data.StorageService().Put(dataRetriever.TransactionUnit, []byte(txHash), marshalledTx)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (pcf *processComponentsFactory) saveGenesisMiniBlocksToStorage(miniBlocks []*dataBlock.MiniBlock) error {
+	for _, miniBlock := range miniBlocks {
+		marshalizedMiniBlock, err := pcf.coreData.InternalMarshalizer().Marshal(miniBlock)
+		if err != nil {
+			return err
+		}
+
+		miniBlockHash, err := core.CalculateHash(pcf.coreData.InternalMarshalizer(), pcf.coreData.Hasher(), miniBlock)
+		if err != nil {
+			return err
+		}
+
+		err = pcf.data.StorageService().Put(dataRetriever.MiniBlockUnit, miniBlockHash, marshalizedMiniBlock)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -1727,4 +1908,13 @@ func (pc *processComponents) Close() error {
 	}
 
 	return nil
+}
+
+func unwrapTxs(txs map[string]data.TransactionHandlerWithGasUsedAndFee) map[string]data.TransactionHandler {
+	output := make(map[string]data.TransactionHandler)
+	for hash, wrappedTx := range txs {
+		output[hash] = wrappedTx.GetTxHandler()
+	}
+
+	return output
 }

@@ -22,8 +22,8 @@ type LocalSyncTimer = libp2p.LocalSyncTimer
 // Message is a data holder struct
 type Message = message.Message
 
-// DirectConnectionInfo represents the data regarding a new direct connection`s info
-type DirectConnectionInfo = message.DirectConnectionInfo
+// PeerShard represents the data regarding a new direct connection`s info
+type PeerShard = message.PeerShard
 
 // ArgPeersRatingHandler is the DTO used to create a new peers rating handler
 type ArgPeersRatingHandler = rating.ArgPeersRatingHandler

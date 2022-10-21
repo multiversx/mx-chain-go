@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/outport"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 )
 
@@ -50,7 +51,17 @@ func (mbp *metaAPIBlockProcessor) GetBlockByNonce(nonce uint64, options api.Bloc
 		return nil, err
 	}
 
-	blockBytes, err := mbp.getFromStorer(dataRetriever.MetaBlockUnit, headerHash)
+	// if genesis block, get the nonce key corresponding to the altered block
+	if nonce == 0 {
+		nonceToByteSlice = append(nonceToByteSlice, []byte(common.GenesisStorageSuffix)...)
+	}
+
+	alteredHeaderHash, err := mbp.store.Get(storerUnit, nonceToByteSlice)
+	if err != nil {
+		return nil, err
+	}
+
+	blockBytes, err := mbp.getFromStorer(dataRetriever.MetaBlockUnit, alteredHeaderHash)
 	if err != nil {
 		return nil, err
 	}
@@ -63,6 +74,21 @@ func (mbp *metaAPIBlockProcessor) GetBlockByHash(hash []byte, options api.BlockQ
 	blockBytes, err := mbp.getFromStorer(dataRetriever.MetaBlockUnit, hash)
 	if err != nil {
 		return nil, err
+	}
+
+	blockHeader := &block.MetaBlock{}
+	err = mbp.marshalizer.Unmarshal(blockHeader, blockBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	// if genesis block, get the altered block bytes
+	if blockHeader.GetNonce() == 0 {
+		alteredHash := createAlteredBlockHash(hash)
+		blockBytes, err = mbp.getFromStorer(dataRetriever.MetaBlockUnit, alteredHash)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	blockAPI, err := mbp.convertMetaBlockBytesToAPIBlock(hash, blockBytes, options)

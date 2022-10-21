@@ -69,7 +69,6 @@ type trigger struct {
 	chanStopNodeProcess          chan endProcess.ArgEndProcess
 	mutClosers                   sync.RWMutex
 	closers                      []update.Closer
-	chanTriggerReceived          chan struct{} // TODO: remove it with heartbeat v1 cleanup
 	chanTriggerReceivedV2        chan struct{}
 	importStartHandler           update.ImportStartHandler
 	isWithEarlyEndOfEpoch        bool
@@ -125,7 +124,6 @@ func NewTrigger(arg ArgHardforkTrigger) (*trigger, error) {
 		closeAfterInMinutes:   arg.CloseAfterExportInMinutes,
 		chanStopNodeProcess:   arg.ChanStopNodeProcess,
 		closers:               make([]update.Closer, 0),
-		chanTriggerReceived:   make(chan struct{}, 1), // TODO: remove it with heartbeat v1 cleanup
 		chanTriggerReceivedV2: make(chan struct{}, 1), // buffer with one value as there might be async calls
 		importStartHandler:    arg.ImportStartHandler,
 		roundHandler:          arg.RoundHandler,
@@ -256,7 +254,6 @@ func (t *trigger) computeAndSetTrigger(epoch uint32, originalPayload []byte, wit
 	}
 
 	if len(originalPayload) == 0 {
-		t.writeOnNotifyChan() // TODO: remove it with heartbeat v1 cleanup
 		t.writeOnNotifyChanV2()
 	}
 
@@ -273,15 +270,6 @@ func (t *trigger) computeAndSetTrigger(epoch uint32, originalPayload []byte, wit
 	t.triggerExecuting = true
 
 	return true, nil
-}
-
-func (t *trigger) writeOnNotifyChan() {
-	// TODO: remove it with heartbeat v1 cleanup
-	// writing on the notification chan should not be blocking as to allow self to initiate the hardfork process
-	select {
-	case t.chanTriggerReceived <- struct{}{}:
-	default:
-	}
 }
 
 func (t *trigger) writeOnNotifyChanV2() {
@@ -488,13 +476,6 @@ func (t *trigger) AddCloser(closer update.Closer) error {
 	t.mutClosers.Unlock()
 
 	return nil
-}
-
-// NotifyTriggerReceived writes a struct{}{} on the provided channel as soon as a trigger is received
-// this is done to decrease the latency of the heartbeat sending system
-func (t *trigger) NotifyTriggerReceived() <-chan struct{} {
-	// TODO: remove it with heartbeat v1 cleanup
-	return t.chanTriggerReceived
 }
 
 // NotifyTriggerReceivedV2 writes a struct{}{} on the provided channel as soon as a trigger is received
