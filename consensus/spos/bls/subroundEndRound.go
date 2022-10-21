@@ -244,19 +244,14 @@ func (sr *subroundEndRound) verifyInvalidSigner(msg p2p.MessageP2P) error {
 	err = singleSigner.Verify(pubKey, cnsMsg.BlockHeaderHash, cnsMsg.SignatureShare)
 	if err != nil {
 		log.Trace("verifyInvalidSigner: confirmed that node provided invalid signature", "pubKey", pubKey)
-		err = sr.applyBlacklistOnNode(msg.Peer())
-		if err != nil {
-			return err
-		}
+		sr.applyBlacklistOnNode(msg.Peer())
 	}
 
 	return nil
 }
 
-func (sr *subroundEndRound) applyBlacklistOnNode(peer core.PeerID) error {
+func (sr *subroundEndRound) applyBlacklistOnNode(peer core.PeerID) {
 	sr.PeerBlacklistHandler().BlacklistPeer(peer, common.InvalidMessageBlacklistDuration)
-
-	return nil
 }
 
 func (sr *subroundEndRound) receivedHeader(headerHandler data.HeaderHandler) {

@@ -27,8 +27,6 @@ func (stub *PeerBlacklistHandlerStub) BlacklistPeer(peer core.PeerID, duration t
 	if stub.BlacklistPeerCalled != nil {
 		stub.BlacklistPeerCalled(peer, duration)
 	}
-
-	return
 }
 
 // StartSweepingTimeCache -
