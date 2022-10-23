@@ -189,7 +189,6 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 	if err != nil {
 		return nil, err
 	}
-	peerBlacklistHandler.StartSweepingTimeCache()
 
 	workerArgs := &spos.WorkerArgs{
 		ConsensusService:         consensusService,

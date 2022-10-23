@@ -31,9 +31,13 @@ func NewPeerBlacklist(args PeerBlackListArgs) (*peerBlacklist, error) {
 		return nil, err
 	}
 
-	return &peerBlacklist{
+	pb := &peerBlacklist{
 		peerCacher: args.PeerCacher,
-	}, nil
+	}
+
+	pb.startSweepingTimeCache()
+
+	return pb, nil
 }
 
 func checkArgs(args PeerBlackListArgs) error {
@@ -71,8 +75,8 @@ func (pb *peerBlacklist) BlacklistPeer(peer core.PeerID, duration time.Duration)
 	}
 }
 
-// StartSweepingTimeCache will trigger the sweeping cache goroutine
-func (pb *peerBlacklist) StartSweepingTimeCache() {
+// startSweepingTimeCache will trigger the sweeping cache goroutine
+func (pb *peerBlacklist) startSweepingTimeCache() {
 	var ctx context.Context
 	ctx, pb.cancel = context.WithCancel(context.Background())
 
