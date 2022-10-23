@@ -891,22 +891,12 @@ func TestWorker_ProcessReceivedMessageTypeLimitReachedShouldErr(t *testing.T) {
 	assert.Equal(t, 1, len(wrk.ReceivedMessages()[bls.MtBlockBody]))
 	assert.Nil(t, err)
 
-<<<<<<< HEAD
-	err = wrk.ProcessReceivedMessage(
-		&mock.P2PMessageMock{
-			DataField:      buff,
-			SignatureField: []byte("signature"),
-		},
-		fromConnectedPeerId,
-	)
-=======
 	err = wrk.ProcessReceivedMessage(msg, fromConnectedPeerId)
 	time.Sleep(time.Second)
 	assert.Equal(t, 1, len(wrk.ReceivedMessages()[bls.MtBlockBody]))
 	assert.True(t, errors.Is(err, spos.ErrMessageTypeLimitReached))
 
 	err = wrk.ProcessReceivedMessage(msg, fromConnectedPeerId)
->>>>>>> rc/v1.4.0
 	time.Sleep(time.Second)
 	assert.Equal(t, 1, len(wrk.ReceivedMessages()[bls.MtBlockBody]))
 	assert.True(t, errors.Is(err, spos.ErrMessageTypeLimitReached))
