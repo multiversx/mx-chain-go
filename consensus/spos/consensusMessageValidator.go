@@ -6,14 +6,9 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-<<<<<<< HEAD
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-=======
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go-logger"
->>>>>>> rc/v1.4.0
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
