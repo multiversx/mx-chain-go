@@ -257,18 +257,6 @@ func GetGeneralConfig() config.Config {
 				MaxOpenFiles:      10,
 			},
 		},
-		Heartbeat: config.HeartbeatConfig{
-			HeartbeatStorage: config.StorageConfig{
-				Cache: getLRUCacheConfig(),
-				DB: config.DBConfig{
-					FilePath:          AddTimestampSuffix("HeartbeatStorage"),
-					Type:              string(storageunit.MemoryDB),
-					BatchDelaySeconds: 30,
-					MaxBatchSize:      6,
-					MaxOpenFiles:      10,
-				},
-			},
-		},
 		HeartbeatV2: config.HeartbeatV2Config{
 			PeerAuthenticationTimeBetweenSendsInSec:          1,
 			PeerAuthenticationTimeBetweenSendsWhenErrorInSec: 1,
@@ -276,7 +264,8 @@ func GetGeneralConfig() config.Config {
 			HeartbeatTimeBetweenSendsInSec:                   1,
 			HeartbeatTimeBetweenSendsWhenErrorInSec:          1,
 			HeartbeatThresholdBetweenSends:                   0.1,
-			DelayBetweenConnectionNotificationsInSec:         5,
+			PeerShardTimeBetweenSendsInSec:                   5,
+			PeerShardThresholdBetweenSends:                   0.1,
 			HeartbeatExpiryTimespanInSec:                     30,
 			MaxDurationPeerUnresponsiveInSec:                 10,
 			HideInactiveValidatorIntervalInSec:               60,

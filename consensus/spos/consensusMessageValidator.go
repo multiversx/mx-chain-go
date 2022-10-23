@@ -6,8 +6,14 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+<<<<<<< HEAD
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+=======
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-crypto"
+	"github.com/ElrondNetwork/elrond-go-logger"
+>>>>>>> rc/v1.4.0
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
@@ -20,7 +26,7 @@ type consensusMessageValidator struct {
 	signatureSize       int
 	publicKeySize       int
 	publicKeyBitmapSize int
-	hasherSize          int
+	headerHashSize      int
 	chainID             []byte
 
 	mutPkConsensusMessages sync.RWMutex
@@ -34,12 +40,17 @@ type ArgsConsensusMessageValidator struct {
 	PeerSignatureHandler crypto.PeerSignatureHandler
 	SignatureSize        int
 	PublicKeySize        int
-	HasherSize           int
+	HeaderHashSize       int
 	ChainID              []byte
 }
 
 // NewConsensusMessageValidator creates a new consensusMessageValidator object
-func NewConsensusMessageValidator(args *ArgsConsensusMessageValidator) (*consensusMessageValidator, error) {
+func NewConsensusMessageValidator(args ArgsConsensusMessageValidator) (*consensusMessageValidator, error) {
+	err := checkArgsConsensusMessageValidator(args)
+	if err != nil {
+		return nil, err
+	}
+
 	cmv := &consensusMessageValidator{
 		consensusState:       args.ConsensusState,
 		consensusService:     args.ConsensusService,
@@ -47,13 +58,39 @@ func NewConsensusMessageValidator(args *ArgsConsensusMessageValidator) (*consens
 		signatureSize:        args.SignatureSize,
 		publicKeySize:        args.PublicKeySize,
 		chainID:              args.ChainID,
-		hasherSize:           args.HasherSize,
+		headerHashSize:       args.HeaderHashSize,
 	}
 
 	cmv.publicKeyBitmapSize = cmv.getPublicKeyBitmapSize()
 	cmv.mapPkConsensusMessages = make(map[string]map[consensus.MessageType]uint32)
 
 	return cmv, nil
+}
+
+func checkArgsConsensusMessageValidator(args ArgsConsensusMessageValidator) error {
+	if check.IfNil(args.ConsensusService) {
+		return ErrNilConsensusService
+	}
+	if check.IfNil(args.PeerSignatureHandler) {
+		return ErrNilPeerSignatureHandler
+	}
+	if args.ConsensusState == nil {
+		return ErrNilConsensusState
+	}
+	if len(args.ChainID) == 0 {
+		return ErrInvalidChainID
+	}
+	if args.HeaderHashSize == 0 {
+		return ErrInvalidHeaderHashSize
+	}
+	if args.PublicKeySize == 0 {
+		return ErrInvalidPublicKeySize
+	}
+	if args.SignatureSize == 0 {
+		return ErrInvalidSignatureSize
+	}
+
+	return nil
 }
 
 func (cmv *consensusMessageValidator) getPublicKeyBitmapSize() int {
@@ -171,7 +208,7 @@ func (cmv *consensusMessageValidator) isBlockHeaderHashSizeValid(cnsMsg *consens
 		return cnsMsg.BlockHeaderHash == nil
 	}
 
-	return len(cnsMsg.BlockHeaderHash) == cmv.hasherSize
+	return len(cnsMsg.BlockHeaderHash) == cmv.headerHashSize
 }
 
 func (cmv *consensusMessageValidator) checkConsensusMessageValidityForMessageType(cnsMsg *consensus.Message) error {
@@ -416,7 +453,7 @@ func (cmv *consensusMessageValidator) isMessageTypeLimitReached(pk []byte, round
 		return false
 	}
 
-	return numMsgType >= MaxNumOfMessageTypeAccepted
+	return numMsgType >= cmv.consensusService.GetMaxNumOfMessageTypeAccepted(msgType)
 }
 
 func (cmv *consensusMessageValidator) addMessageTypeToPublicKey(pk []byte, round int64, msgType consensus.MessageType) {

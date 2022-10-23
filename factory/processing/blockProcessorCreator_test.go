@@ -20,7 +20,9 @@ import (
 	componentsMock "github.com/ElrondNetwork/elrond-go/testscommon/components"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	storageManager "github.com/ElrondNetwork/elrond-go/testscommon/storage"
+	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -34,10 +36,11 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	pcf, _ := processComp.NewProcessComponentsFactory(componentsMock.GetProcessComponentsFactoryArgs(shardCoordinator))
+	pcf, err := processComp.NewProcessComponentsFactory(componentsMock.GetProcessComponentsFactoryArgs(shardCoordinator))
+	require.NoError(t, err)
 	require.NotNil(t, pcf)
 
-	_, err := pcf.Create()
+	_, err = pcf.Create()
 	require.NoError(t, err)
 
 	bp, vmFactoryForSimulate, err := pcf.NewBlockProcessor(
@@ -136,7 +139,11 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 			return accounts
 		},
 		TriesContainerCalled: func() common.TriesHolder {
-			return &mock.TriesHolderStub{}
+			return &trieMock.TriesHolderStub{
+				GetCalled: func(bytes []byte) common.Trie {
+					return &trieMock.TrieStub{}
+				},
+			}
 		},
 		TrieStorageManagersCalled: func() map[string]common.StorageManager {
 			return trieStorageManagers
@@ -201,6 +208,7 @@ func createAccountAdapter(
 		StoragePruningManager: disabled.NewDisabledStoragePruningManager(),
 		ProcessingMode:        common.Normal,
 		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
+		AppStatusHandler:      &statusHandler.AppStatusHandlerStub{},
 	}
 	adb, err := state.NewAccountsDB(args)
 	if err != nil {

@@ -1,5 +1,7 @@
 package config
 
+import p2pConfig "github.com/ElrondNetwork/elrond-go/p2p/config"
+
 // CacheConfig will map the cache configuration
 type CacheConfig struct {
 	Name                 string
@@ -115,13 +117,15 @@ type HeartbeatV2Config struct {
 	MinPeersThreshold                                float32
 	DelayBetweenRequestsInSec                        int64
 	MaxTimeoutInSec                                  int64
-	DelayBetweenConnectionNotificationsInSec         int64
+	PeerShardTimeBetweenSendsInSec                   int64
+	PeerShardThresholdBetweenSends                   float64
 	MaxMissingKeysInRequest                          uint32
 	MaxDurationPeerUnresponsiveInSec                 int64
 	HideInactiveValidatorIntervalInSec               int64
 	HeartbeatPool                                    CacheConfig
 	HardforkTimeBetweenSendsInSec                    int64
 	TimeBetweenConnectionsMetricsUpdateInSec         int64
+	TimeToReadDirectConnectionsInSec                 int64
 }
 
 // Config will hold the entire application configuration parameters
@@ -182,8 +186,8 @@ type Config struct {
 	PeerHonesty           CacheConfig
 
 	Antiflood           AntifloodConfig
+	WebServerAntiflood  WebServerAntifloodConfig
 	ResourceStats       ResourceStatsConfig
-	Heartbeat           HeartbeatConfig
 	HeartbeatV2         HeartbeatV2Config
 	ValidatorStatistics ValidatorStatisticsConfig
 	GeneralSettings     GeneralSettingsConfig
@@ -241,16 +245,6 @@ type StoragePruningConfig struct {
 type ResourceStatsConfig struct {
 	Enabled              bool
 	RefreshIntervalInSec int
-}
-
-// HeartbeatConfig will hold all heartbeat settings
-type HeartbeatConfig struct {
-	MinTimeToWaitBetweenBroadcastsInSec int
-	MaxTimeToWaitBetweenBroadcastsInSec int
-	DurationToConsiderUnresponsiveInSec int
-	HeartbeatRefreshIntervalInSec       uint32
-	HideInactiveValidatorIntervalInSec  uint32
-	HeartbeatStorage                    StorageConfig
 }
 
 // ValidatorStatisticsConfig will hold validator statistics specific settings
@@ -319,6 +313,7 @@ type EndpointsThrottlersConfig struct {
 
 // WebServerAntifloodConfig will hold the anti-flooding parameters for the web server
 type WebServerAntifloodConfig struct {
+	WebServerAntifloodEnabled          bool
 	SimultaneousRequests               uint32
 	SameSourceRequests                 uint32
 	SameSourceResetIntervalInSec       uint32
@@ -361,7 +356,6 @@ type AntifloodConfig struct {
 	SlowReacting              FloodPreventerConfig
 	PeerMaxOutput             AntifloodLimitsConfig
 	Cache                     CacheConfig
-	WebServer                 WebServerAntifloodConfig
 	Topic                     TopicAntifloodConfig
 	TxAccumulator             TxAccumulatorConfig
 }
@@ -568,7 +562,7 @@ type Configs struct {
 	RatingsConfig            *RatingsConfig
 	PreferencesConfig        *Preferences
 	ExternalConfig           *ExternalConfig
-	P2pConfig                *P2PConfig
+	P2pConfig                *p2pConfig.P2PConfig
 	FlagsConfig              *ContextFlagsConfig
 	ImportDbConfig           *ImportDbConfig
 	ConfigurationPathsHolder *ConfigurationPathsHolder
@@ -593,6 +587,7 @@ type ConfigurationPathsHolder struct {
 	ValidatorKey             string
 	Epoch                    string
 	RoundActivation          string
+	P2pKey                   string
 }
 
 // TrieSyncConfig represents the trie synchronization configuration area

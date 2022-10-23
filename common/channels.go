@@ -7,3 +7,13 @@ func GetClosedUnbufferedChannel() chan struct{} {
 
 	return ch
 }
+
+// GetErrorFromChanNonBlocking will get the error from channel
+func GetErrorFromChanNonBlocking(errChan chan error) error {
+	select {
+	case err := <-errChan:
+		return err
+	default:
+		return nil
+	}
+}

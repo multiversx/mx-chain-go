@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/node/external"
@@ -16,13 +17,14 @@ import (
 )
 
 const (
-	pidQueryParam       = "pid"
-	debugPath           = "/debug"
-	heartbeatStatusPath = "/heartbeatstatus"
-	metricsPath         = "/metrics"
-	p2pStatusPath       = "/p2pstatus"
-	peerInfoPath        = "/peerinfo"
-	statusPath          = "/status"
+	pidQueryParam          = "pid"
+	debugPath              = "/debug"
+	heartbeatStatusPath    = "/heartbeatstatus"
+	metricsPath            = "/metrics"
+	p2pStatusPath          = "/p2pstatus"
+	peerInfoPath           = "/peerinfo"
+	statusPath             = "/status"
+	epochStartDataForEpoch = "/epoch-start/:epoch"
 )
 
 // nodeFacadeHandler defines the methods to be implemented by a facade for node requests
@@ -30,6 +32,7 @@ type nodeFacadeHandler interface {
 	GetHeartbeats() ([]data.PubKeyHeartbeat, error)
 	StatusMetrics() external.StatusMetricsHandler
 	GetQueryHandler(name string) (debug.QueryHandler, error)
+	GetEpochStartDataAPI(epoch uint32) (*common.EpochStartDataAPI, error)
 	GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error)
 	IsInterfaceNil() bool
 }
@@ -87,6 +90,11 @@ func NewNodeGroup(facade nodeFacadeHandler) (*nodeGroup, error) {
 			Path:    peerInfoPath,
 			Method:  http.MethodGet,
 			Handler: ng.peerInfo,
+		},
+		{
+			Path:    epochStartDataForEpoch,
+			Method:  http.MethodGet,
+			Handler: ng.epochStartDataForEpoch,
 		},
 	}
 	ng.endpoints = endpoints
@@ -239,6 +247,23 @@ func (ng *nodeGroup) peerInfo(c *gin.Context) {
 			Code:  shared.ReturnCodeSuccess,
 		},
 	)
+}
+
+// epochStartDataForEpoch returns epoch start data for the provided epoch
+func (ng *nodeGroup) epochStartDataForEpoch(c *gin.Context) {
+	epoch, err := getQueryParamEpoch(c)
+	if err != nil {
+		shared.RespondWithValidationError(c, errors.ErrValidation, errors.ErrBadUrlParams)
+		return
+	}
+
+	epochStartData, err := ng.getFacade().GetEpochStartDataAPI(epoch)
+	if err != nil {
+		shared.RespondWithInternalError(c, errors.ErrGetEpochStartData, err)
+		return
+	}
+
+	shared.RespondWithSuccess(c, gin.H{"epochStart": epochStartData})
 }
 
 // prometheusMetrics is the endpoint which will return the data in the way that prometheus expects them

@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/random"
 	storageCore "github.com/ElrondNetwork/elrond-go-core/storage"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -27,15 +28,14 @@ func TestNewFullHistoryPruningStorer_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	args := getDefaultArgs()
-	fhArgs := &pruning.FullHistoryStorerArgs{
+	fhArgs := pruning.FullHistoryStorerArgs{
 		StorerArgs:               args,
 		NumOfOldActivePersisters: 10,
 	}
 	fhps, err := pruning.NewFullHistoryPruningStorer(fhArgs)
 
-	assert.NotNil(t, fhps)
+	assert.False(t, check.IfNil(fhps))
 	assert.Nil(t, err)
-	assert.False(t, fhps.IsInterfaceNil())
 }
 
 func TestNewFullHistoryPruningStorer_InvalidNumberOfActivePersistersShouldErr(t *testing.T) {
@@ -43,7 +43,7 @@ func TestNewFullHistoryPruningStorer_InvalidNumberOfActivePersistersShouldErr(t 
 
 	args := getDefaultArgs()
 
-	fhArgs := &pruning.FullHistoryStorerArgs{
+	fhArgs := pruning.FullHistoryStorerArgs{
 		StorerArgs:               args,
 		NumOfOldActivePersisters: 0,
 	}
@@ -52,7 +52,7 @@ func TestNewFullHistoryPruningStorer_InvalidNumberOfActivePersistersShouldErr(t 
 	assert.Nil(t, fhps)
 	assert.Equal(t, storage.ErrInvalidNumberOfOldPersisters, err)
 
-	fhArgs = &pruning.FullHistoryStorerArgs{
+	fhArgs = pruning.FullHistoryStorerArgs{
 		StorerArgs:               args,
 		NumOfOldActivePersisters: math.MaxInt32 + 1,
 	}
@@ -66,7 +66,7 @@ func TestNewFullHistoryPruningStorer_PutAndGetInEpochShouldWork(t *testing.T) {
 	t.Parallel()
 
 	args := getDefaultArgs()
-	fhArgs := &pruning.FullHistoryStorerArgs{
+	fhArgs := pruning.FullHistoryStorerArgs{
 		StorerArgs:               args,
 		NumOfOldActivePersisters: 2,
 	}
@@ -88,7 +88,7 @@ func TestNewFullHistoryPruningStorer_GetMultipleDifferentEpochsShouldEvict(t *te
 	t.Parallel()
 
 	args := getDefaultArgs()
-	fhArgs := &pruning.FullHistoryStorerArgs{
+	fhArgs := pruning.FullHistoryStorerArgs{
 		StorerArgs:               args,
 		NumOfOldActivePersisters: 3,
 	}
@@ -121,7 +121,7 @@ func TestNewFullHistoryPruningStorer_GetAfterEvictShouldWork(t *testing.T) {
 	args.EpochsData.NumOfActivePersisters = 1
 	args.EpochsData.NumOfEpochsToKeep = 2
 
-	fhArgs := &pruning.FullHistoryStorerArgs{
+	fhArgs := pruning.FullHistoryStorerArgs{
 		StorerArgs:               args,
 		NumOfOldActivePersisters: 3,
 	}
@@ -155,7 +155,7 @@ func TestNewFullHistoryPruningStorer_GetFromEpochShouldSearchAlsoInNext(t *testi
 	t.Parallel()
 
 	args := getDefaultArgs()
-	fhArgs := &pruning.FullHistoryStorerArgs{
+	fhArgs := pruning.FullHistoryStorerArgs{
 		StorerArgs:               args,
 		NumOfOldActivePersisters: 5,
 	}
@@ -182,7 +182,7 @@ func TestNewFullHistoryPruningStorer_GetBulkFromEpoch(t *testing.T) {
 	t.Parallel()
 
 	args := getDefaultArgs()
-	fhArgs := &pruning.FullHistoryStorerArgs{
+	fhArgs := pruning.FullHistoryStorerArgs{
 		StorerArgs:               args,
 		NumOfOldActivePersisters: 5,
 	}
@@ -208,7 +208,7 @@ func TestNewFullHistoryPruningStorer_GetBulkFromEpochShouldNotLoadFromCache(t *t
 	t.Parallel()
 
 	args := getDefaultArgs()
-	fhArgs := &pruning.FullHistoryStorerArgs{
+	fhArgs := pruning.FullHistoryStorerArgs{
 		StorerArgs:               args,
 		NumOfOldActivePersisters: 5,
 	}
@@ -236,7 +236,7 @@ func TestFullHistoryPruningStorer_IsEpochActive(t *testing.T) {
 	t.Parallel()
 
 	args := getDefaultArgs()
-	fhArgs := &pruning.FullHistoryStorerArgs{
+	fhArgs := pruning.FullHistoryStorerArgs{
 		StorerArgs:               args,
 		NumOfOldActivePersisters: 2,
 	}
@@ -255,7 +255,7 @@ func TestFullHistoryPruningStorer_IsEpochActive(t *testing.T) {
 func TestNewFullHistoryShardedPruningStorer_ShouldWork(t *testing.T) {
 	t.Parallel()
 	args := getDefaultArgs()
-	fhArgs := &pruning.FullHistoryStorerArgs{
+	fhArgs := pruning.FullHistoryStorerArgs{
 		StorerArgs:               args,
 		NumOfOldActivePersisters: 5,
 	}
@@ -269,7 +269,7 @@ func TestFullHistoryPruningStorer_Close(t *testing.T) {
 	t.Parallel()
 
 	args := getDefaultArgs()
-	fhArgs := &pruning.FullHistoryStorerArgs{
+	fhArgs := pruning.FullHistoryStorerArgs{
 		StorerArgs:               args,
 		NumOfOldActivePersisters: 5,
 	}
@@ -305,7 +305,7 @@ func TestFullHistoryPruningStorer_ConcurrentOperations(t *testing.T) {
 	var err error
 	args.PathManager, err = pathmanager.NewPathManager(testDir+"/epoch_[E]/shard_[S]/[I]", "shard_[S]/[I]", "db")
 	require.NoError(t, err)
-	fhArgs := &pruning.FullHistoryStorerArgs{
+	fhArgs := pruning.FullHistoryStorerArgs{
 		StorerArgs:               args,
 		NumOfOldActivePersisters: 2,
 	}

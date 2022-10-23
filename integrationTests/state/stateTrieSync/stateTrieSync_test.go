@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
+	arwenConfig "github.com/ElrondNetwork/wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/throttler"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -57,6 +57,15 @@ func createTestProcessorNodeAndTrieStorage(
 }
 
 func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
+	t.Run("test with double lists version", func(t *testing.T) {
+		testNodeRequestInterceptTrieNodesWithMessenger(t, 2)
+	})
+	t.Run("test with depth version", func(t *testing.T) {
+		testNodeRequestInterceptTrieNodesWithMessenger(t, 3)
+	})
+}
+
+func testNodeRequestInterceptTrieNodesWithMessenger(t *testing.T, version int) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -124,7 +133,7 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 		MaxHardCapForMissingNodes: 10000,
 		CheckNodesOnDisk:          false,
 	}
-	trieSyncer, _ := trie.NewDoubleListTrieSyncer(arg)
+	trieSyncer, _ := trie.CreateTrieSyncer(arg, version)
 
 	ctxPrint, cancel := context.WithCancel(context.Background())
 	go printStatistics(ctxPrint, tss)
@@ -178,6 +187,15 @@ func printStatistics(ctx context.Context, stats common.SizeSyncStatisticsHandler
 }
 
 func TestNode_RequestInterceptTrieNodesWithMessengerNotSyncingShouldErr(t *testing.T) {
+	t.Run("test with double lists version", func(t *testing.T) {
+		testNodeRequestInterceptTrieNodesWithMessengerNotSyncingShouldErr(t, 2)
+	})
+	t.Run("test with depth version", func(t *testing.T) {
+		testNodeRequestInterceptTrieNodesWithMessengerNotSyncingShouldErr(t, 3)
+	})
+}
+
+func testNodeRequestInterceptTrieNodesWithMessengerNotSyncingShouldErr(t *testing.T, version int) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -244,7 +262,7 @@ func TestNode_RequestInterceptTrieNodesWithMessengerNotSyncingShouldErr(t *testi
 		MaxHardCapForMissingNodes: 10000,
 		CheckNodesOnDisk:          false,
 	}
-	trieSyncer, _ := trie.NewDoubleListTrieSyncer(arg)
+	trieSyncer, _ := trie.CreateTrieSyncer(arg, version)
 
 	ctxPrint, cancel := context.WithCancel(context.Background())
 	go printStatistics(ctxPrint, tss)
@@ -273,7 +291,12 @@ func TestMultipleDataTriesSyncSmallValues(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	testMultipleDataTriesSync(t, 1000, 50, 32)
+	t.Run("test with double lists version", func(t *testing.T) {
+		testMultipleDataTriesSync(t, 1000, 50, 32, 2)
+	})
+	t.Run("test with depth version", func(t *testing.T) {
+		testMultipleDataTriesSync(t, 1000, 50, 32, 3)
+	})
 }
 
 func TestMultipleDataTriesSyncLargeValues(t *testing.T) {
@@ -281,10 +304,15 @@ func TestMultipleDataTriesSyncLargeValues(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	testMultipleDataTriesSync(t, 3, 3, 1<<21)
+	t.Run("test with double lists version", func(t *testing.T) {
+		testMultipleDataTriesSync(t, 3, 3, 1<<21, 2)
+	})
+	t.Run("test with depth version", func(t *testing.T) {
+		testMultipleDataTriesSync(t, 3, 3, 1<<21, 3)
+	})
 }
 
-func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves int, valSize int) {
+func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves int, valSize int, version int) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -317,16 +345,21 @@ func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves 
 	dataTrieRootHashes := addAccountsToState(t, numAccounts, numDataTrieLeaves, accState, valSize)
 
 	rootHash, _ := accState.RootHash()
-	leavesChannel := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
-	err = accState.GetAllLeaves(leavesChannel, context.Background(), rootHash)
-	for range leavesChannel {
+	leavesChannel := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    make(chan error, 1),
 	}
+	err = accState.GetAllLeaves(leavesChannel, context.Background(), rootHash)
+	for range leavesChannel.LeavesChan {
+	}
+	require.Nil(t, err)
+	err = common.GetErrorFromChanNonBlocking(leavesChannel.ErrChan)
 	require.Nil(t, err)
 
 	requesterTrie := nRequester.TrieContainer.Get([]byte(trieFactory.UserAccountTrie))
 	nilRootHash, _ := requesterTrie.RootHash()
 
-	syncerArgs := getUserAccountSyncerArgs(nRequester)
+	syncerArgs := getUserAccountSyncerArgs(nRequester, version)
 
 	userAccSyncer, err := syncer.NewUserAccountsSyncer(syncerArgs)
 	assert.Nil(t, err)
@@ -340,13 +373,18 @@ func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves 
 	assert.NotEqual(t, nilRootHash, newRootHash)
 	assert.Equal(t, rootHash, newRootHash)
 
-	leavesChannel = make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+	leavesChannel = &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    make(chan error, 1),
+	}
 	err = nRequester.AccntState.GetAllLeaves(leavesChannel, context.Background(), rootHash)
 	assert.Nil(t, err)
 	numLeaves := 0
-	for range leavesChannel {
+	for range leavesChannel.LeavesChan {
 		numLeaves++
 	}
+	err = common.GetErrorFromChanNonBlocking(leavesChannel.ErrChan)
+	require.Nil(t, err)
 	assert.Equal(t, numAccounts, numLeaves)
 	checkAllDataTriesAreSynced(t, numDataTrieLeaves, requesterTrie, dataTrieRootHashes)
 }
@@ -362,7 +400,7 @@ func addValuesToDataTrie(t *testing.T, adb state.AccountsAdapter, acc state.User
 	for i := 0; i < numVals; i++ {
 		keyRandBytes := integrationTests.CreateRandomBytes(32)
 		valRandBytes := integrationTests.CreateRandomBytes(valSize)
-		_ = acc.DataTrieTracker().SaveKeyValue(keyRandBytes, valRandBytes)
+		_ = acc.SaveKeyValue(keyRandBytes, valRandBytes)
 	}
 
 	err := adb.SaveAccount(acc)
@@ -375,6 +413,19 @@ func addValuesToDataTrie(t *testing.T, adb state.AccountsAdapter, acc state.User
 }
 
 func TestSyncMissingSnapshotNodes(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	t.Run("test with double lists version", func(t *testing.T) {
+		testSyncMissingSnapshotNodes(t, 2)
+	})
+	t.Run("test with depth version", func(t *testing.T) {
+		testSyncMissingSnapshotNodes(t, 3)
+	})
+}
+
+func testSyncMissingSnapshotNodes(t *testing.T, version int) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -444,7 +495,7 @@ func TestSyncMissingSnapshotNodes(t *testing.T) {
 
 	copyPartialState(t, nResolver, nRequester, dataTrieRootHashes)
 
-	syncerArgs := getUserAccountSyncerArgs(nRequester)
+	syncerArgs := getUserAccountSyncerArgs(nRequester, version)
 	userAccSyncer, err := syncer.NewUserAccountsSyncer(syncerArgs)
 	assert.Nil(t, err)
 
@@ -524,19 +575,25 @@ func addAccountsToState(t *testing.T, numAccounts int, numDataTrieLeaves int, ac
 }
 
 func getNumLeaves(t *testing.T, tr common.Trie, rootHash []byte) int {
-	leavesChannel := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+	leavesChannel := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    make(chan error, 1),
+	}
 	err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), rootHash, keyBuilder.NewDisabledKeyBuilder())
 	require.Nil(t, err)
 
 	numLeaves := 0
-	for range leavesChannel {
+	for range leavesChannel.LeavesChan {
 		numLeaves++
 	}
+
+	err = common.GetErrorFromChanNonBlocking(leavesChannel.ErrChan)
+	require.Nil(t, err)
 
 	return numLeaves
 }
 
-func getUserAccountSyncerArgs(node *integrationTests.TestProcessorNode) syncer.ArgsNewUserAccountsSyncer {
+func getUserAccountSyncerArgs(node *integrationTests.TestProcessorNode, version int) syncer.ArgsNewUserAccountsSyncer {
 	thr, _ := throttler.NewNumGoRoutinesThrottler(50)
 	syncerArgs := syncer.ArgsNewUserAccountsSyncer{
 		ArgsNewBaseAccountsSyncer: syncer.ArgsNewBaseAccountsSyncer{
@@ -548,7 +605,7 @@ func getUserAccountSyncerArgs(node *integrationTests.TestProcessorNode) syncer.A
 			Cacher:                    node.DataPool.TrieNodes(),
 			MaxTrieLevelInMemory:      200,
 			MaxHardCapForMissingNodes: 5000,
-			TrieSyncerVersion:         2,
+			TrieSyncerVersion:         version,
 			StorageMarker:             storageMarker.NewTrieStorageMarker(),
 		},
 		ShardId:                0,

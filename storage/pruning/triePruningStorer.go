@@ -22,7 +22,7 @@ type triePruningStorer struct {
 }
 
 // NewTriePruningStorer will return a new instance of NewTriePruningStorer
-func NewTriePruningStorer(args *StorerArgs) (*triePruningStorer, error) {
+func NewTriePruningStorer(args StorerArgs) (*triePruningStorer, error) {
 	err := checkArgs(args)
 	if err != nil {
 		return nil, err
@@ -162,4 +162,9 @@ func (ps *triePruningStorer) GetLatestStorageEpoch() (uint32, error) {
 	}
 
 	return ps.activePersisters[currentEpochIndex].epoch, nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (ps *triePruningStorer) IsInterfaceNil() bool {
+	return ps == nil
 }

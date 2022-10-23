@@ -29,12 +29,12 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 	factory.PrintStack()
 
 	configs := factory.CreateDefaultConfig()
-	configs.ExternalConfig.ElasticSearchConnector.Enabled = false
-
 	chanStopNodeProcess := make(chan endProcess.ArgEndProcess)
 	nr, err := node.NewNodeRunner(configs)
 	require.Nil(t, err)
 
+	managedStatusCoreComponents, err := nr.CreateManagedStatusCoreComponents()
+	require.Nil(t, err)
 	managedCoreComponents, err := nr.CreateManagedCoreComponents(chanStopNodeProcess)
 	require.Nil(t, err)
 	managedCryptoComponents, err := nr.CreateManagedCryptoComponents(managedCoreComponents)
@@ -72,6 +72,7 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 	)
 	require.Nil(t, err)
 	managedStatusComponents, err := nr.CreateManagedStatusComponents(
+		managedStatusCoreComponents,
 		managedCoreComponents,
 		managedNetworkComponents,
 		managedBootstrapComponents,
@@ -126,6 +127,8 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 	err = managedCryptoComponents.Close()
 	require.Nil(t, err)
 	err = managedCoreComponents.Close()
+	require.Nil(t, err)
+	err = managedStatusCoreComponents.Close()
 	require.Nil(t, err)
 
 	time.Sleep(5 * time.Second)

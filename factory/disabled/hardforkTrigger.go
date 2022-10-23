@@ -19,11 +19,6 @@ func (h *hardforkTrigger) RecordedTriggerMessage() ([]byte, bool) {
 	return nil, false
 }
 
-// NotifyTriggerReceived does nothing as it is disabled
-func (h *hardforkTrigger) NotifyTriggerReceived() <-chan struct{} {
-	return nil
-}
-
 // NotifyTriggerReceivedV2 does nothing as it is disabled
 func (h *hardforkTrigger) NotifyTriggerReceivedV2() <-chan struct{} {
 	return nil

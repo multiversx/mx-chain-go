@@ -861,3 +861,8 @@ func (sr *subroundEndRound) isOutOfTime() bool {
 
 	return false
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (sr *subroundEndRound) IsInterfaceNil() bool {
+	return sr == nil
+}

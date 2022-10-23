@@ -113,13 +113,13 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 		return nil, err
 	}
 
-	argsConsensusMessageValidator := &ArgsConsensusMessageValidator{
+	argsConsensusMessageValidator := ArgsConsensusMessageValidator{
 		ConsensusState:       args.ConsensusState,
 		ConsensusService:     args.ConsensusService,
 		PeerSignatureHandler: args.PeerSignatureHandler,
 		SignatureSize:        args.SignatureSize,
 		PublicKeySize:        args.PublicKeySize,
-		HasherSize:           args.Hasher.Size(),
+		HeaderHashSize:       args.Hasher.Size(),
 		ChainID:              args.ChainID,
 	}
 

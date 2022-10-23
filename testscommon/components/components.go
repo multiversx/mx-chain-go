@@ -4,13 +4,10 @@ import (
 	"fmt"
 	"math/big"
 	"testing"
-	"time"
 
-	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
-	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	commonFactory "github.com/ElrondNetwork/elrond-go/common/factory"
@@ -23,16 +20,17 @@ import (
 	coreComp "github.com/ElrondNetwork/elrond-go/factory/core"
 	cryptoComp "github.com/ElrondNetwork/elrond-go/factory/crypto"
 	dataComp "github.com/ElrondNetwork/elrond-go/factory/data"
-	heartbeatComp "github.com/ElrondNetwork/elrond-go/factory/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	networkComp "github.com/ElrondNetwork/elrond-go/factory/network"
 	processComp "github.com/ElrondNetwork/elrond-go/factory/processing"
 	stateComp "github.com/ElrondNetwork/elrond-go/factory/state"
 	statusComp "github.com/ElrondNetwork/elrond-go/factory/status"
+	"github.com/ElrondNetwork/elrond-go/factory/statusCore"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/data"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
+	p2pConfig "github.com/ElrondNetwork/elrond-go/p2p/config"
+	p2pFactory "github.com/ElrondNetwork/elrond-go/p2p/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -44,6 +42,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/trie"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
+	arwenConfig "github.com/ElrondNetwork/wasm-vm/config"
 	"github.com/stretchr/testify/require"
 )
 
@@ -74,92 +73,7 @@ type LoadKeysFunc func(string, int) ([]byte, string, error)
 // GetCoreArgs -
 func GetCoreArgs() coreComp.CoreComponentsFactoryArgs {
 	return coreComp.CoreComponentsFactoryArgs{
-		Config: config.Config{
-			EpochStartConfig: GetEpochStartConfig(),
-			PublicKeyPeerId: config.CacheConfig{
-				Type:     "LRU",
-				Capacity: 5000,
-				Shards:   16,
-			},
-			PublicKeyShardId: config.CacheConfig{
-				Type:     "LRU",
-				Capacity: 5000,
-				Shards:   16,
-			},
-			PeerIdShardId: config.CacheConfig{
-				Type:     "LRU",
-				Capacity: 5000,
-				Shards:   16,
-			},
-			PeerHonesty: config.CacheConfig{
-				Type:     "LRU",
-				Capacity: 5000,
-				Shards:   16,
-			},
-			GeneralSettings: config.GeneralSettingsConfig{
-				ChainID:                  "undefined",
-				MinTransactionVersion:    1,
-				GenesisMaxNumberOfShards: 3,
-			},
-			Marshalizer: config.MarshalizerConfig{
-				Type:           TestMarshalizer,
-				SizeCheckDelta: 0,
-			},
-			Hasher: config.TypeConfig{
-				Type: TestHasher,
-			},
-			VmMarshalizer: config.TypeConfig{
-				Type: TestMarshalizer,
-			},
-			TxSignMarshalizer: config.TypeConfig{
-				Type: TestMarshalizer,
-			},
-			TxSignHasher: config.TypeConfig{
-				Type: TestHasher,
-			},
-			AddressPubkeyConverter: config.PubkeyConfig{
-				Length:          32,
-				Type:            "bech32",
-				SignatureLength: 0,
-			},
-			ValidatorPubkeyConverter: config.PubkeyConfig{
-				Length:          96,
-				Type:            "hex",
-				SignatureLength: 48,
-			},
-			Consensus: config.ConsensusConfig{
-				Type: "bls",
-			},
-			ValidatorStatistics: config.ValidatorStatisticsConfig{
-				CacheRefreshIntervalInSec: uint32(100),
-			},
-			SoftwareVersionConfig: config.SoftwareVersionConfig{
-				PollingIntervalInMinutes: 30,
-			},
-			Versions: config.VersionsConfig{
-				DefaultVersion:   "1",
-				VersionsByEpochs: nil,
-				Cache: config.CacheConfig{
-					Type:     "LRU",
-					Capacity: 1000,
-					Shards:   1,
-				},
-			},
-			PeersRatingConfig: config.PeersRatingConfig{
-				TopRatedCacheCapacity: 1000,
-				BadRatedCacheCapacity: 1000,
-			},
-			PoolsCleanersConfig: config.PoolsCleanersConfig{
-				MaxRoundsToKeepUnprocessedMiniBlocks:   50,
-				MaxRoundsToKeepUnprocessedTransactions: 50,
-			},
-			Hardfork: config.HardforkConfig{
-				PublicKeyToListenFrom: DummyPk,
-			},
-			HeartbeatV2: config.HeartbeatV2Config{
-				HeartbeatExpiryTimespanInSec: 10,
-			},
-		},
+		Config: GetGeneralConfig(),
 		ConfigPathsHolder: config.ConfigurationPathsHolder{
 			GasScheduleDirectoryName: "../../cmd/node/config/gasSchedules",
 		},
@@ -186,6 +100,13 @@ func GetCoreArgs() coreComp.CoreComponentsFactoryArgs {
 				},
 			},
 		},
+	}
+}
+
+// GetStatusCoreArgs -
+func GetStatusCoreArgs() statusCore.StatusCoreComponentsFactoryArgs {
+	return statusCore.StatusCoreComponentsFactoryArgs{
+		Config: GetGeneralConfig(),
 	}
 }
 
@@ -295,77 +216,13 @@ func GetCoreComponents() factory.CoreComponentsHolder {
 	return coreComponents
 }
 
-// GetHeartbeatFactoryArgs -
-func GetHeartbeatFactoryArgs(shardCoordinator sharding.Coordinator) heartbeatComp.HeartbeatComponentsFactoryArgs {
-	coreComponents := GetCoreComponents()
-	networkComponents := GetNetworkComponents()
-	dataComponents := GetDataComponents(coreComponents, shardCoordinator)
-	cryptoComponents := GetCryptoComponents(coreComponents)
-	stateComponents := GetStateComponents(coreComponents, shardCoordinator)
-	processComponents := GetProcessComponents(
-		shardCoordinator,
-		coreComponents,
-		networkComponents,
-		dataComponents,
-		cryptoComponents,
-		stateComponents,
-	)
-
-	return heartbeatComp.HeartbeatComponentsFactoryArgs{
-		Config: config.Config{
-			Heartbeat: config.HeartbeatConfig{
-				MinTimeToWaitBetweenBroadcastsInSec: 20,
-				MaxTimeToWaitBetweenBroadcastsInSec: 25,
-				HeartbeatRefreshIntervalInSec:       60,
-				HideInactiveValidatorIntervalInSec:  3600,
-				DurationToConsiderUnresponsiveInSec: 60,
-				HeartbeatStorage: config.StorageConfig{
-					Cache: config.CacheConfig{
-						Capacity: 10000,
-						Type:     "LRU",
-						Shards:   1,
-					},
-					DB: config.DBConfig{
-						FilePath:          "HeartbeatStorage",
-						Type:              "MemoryDB",
-						BatchDelaySeconds: 30,
-						MaxBatchSize:      6,
-						MaxOpenFiles:      10,
-					},
-				},
-			},
-			ValidatorStatistics: config.ValidatorStatisticsConfig{
-				CacheRefreshIntervalInSec: uint32(100),
-			},
-		},
-		Prefs:       config.Preferences{},
-		AppVersion:  "test",
-		GenesisTime: time.Time{},
-		RedundancyHandler: &mock.RedundancyHandlerStub{
-			ObserverPrivateKeyCalled: func() crypto.PrivateKey {
-				return &mock.PrivateKeyStub{
-					GeneratePublicHandler: func() crypto.PublicKey {
-						return &mock.PublicKeyMock{}
-					},
-				}
-			},
-		},
-		CoreComponents:    coreComponents,
-		DataComponents:    dataComponents,
-		NetworkComponents: networkComponents,
-		CryptoComponents:  cryptoComponents,
-		ProcessComponents: processComponents,
-	}
-}
-
 // GetNetworkFactoryArgs -
 func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
-	p2pConfig := config.P2PConfig{
-		Node: config.NodeConfig{
+	p2pCfg := p2pConfig.P2PConfig{
+		Node: p2pConfig.NodeConfig{
 			Port: "0",
-			Seed: "seed",
 		},
-		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
+		KadDhtPeerDiscovery: p2pConfig.KadDhtPeerDiscoveryConfig{
 			Enabled:                          false,
 			Type:                             "optimized",
 			RefreshIntervalInSec:             10,
@@ -374,7 +231,7 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 			BucketSize:                       10,
 			RoutingTableRefreshIntervalInSec: 5,
 		},
-		Sharding: config.ShardingConfig{
+		Sharding: p2pConfig.ShardingConfig{
 			TargetPeerCount:         10,
 			MaxIntraShardValidators: 10,
 			MaxCrossShardValidators: 10,
@@ -382,7 +239,7 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 			MaxCrossShardObservers:  10,
 			MaxSeeders:              2,
 			Type:                    "NilListSharder",
-			AdditionalConnections: config.AdditionalConnectionsConfig{
+			AdditionalConnections: p2pConfig.AdditionalConnectionsConfig{
 				MaxFullHistoryObservers: 10,
 			},
 		},
@@ -414,7 +271,7 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 	appStatusHandler := statusHandlerMock.NewAppStatusHandlerMock()
 
 	return networkComp.NetworkComponentsFactoryArgs{
-		P2pConfig:     p2pConfig,
+		P2pConfig:     p2pCfg,
 		MainConfig:    mainConfig,
 		StatusHandler: appStatusHandler,
 		Marshalizer:   &mock.MarshalizerMock{},
@@ -431,7 +288,7 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 				UnitValue:                    1.0,
 			},
 		},
-		Syncer:            &libp2p.LocalSyncTimer{},
+		Syncer:            &p2pFactory.LocalSyncTimer{},
 		NodeOperationMode: p2p.NormalOperation,
 	}
 }
@@ -707,15 +564,16 @@ func GetStatusComponents(
 				EnabledIndexes: []string{"transactions", "blocks"},
 			},
 		},
-		EconomicsConfig:    config.EconomicsConfig{},
-		ShardCoordinator:   shardCoordinator,
-		NodesCoordinator:   nodesCoordinator,
-		EpochStartNotifier: coreComponents.EpochStartNotifierWithConfirm(),
-		CoreComponents:     coreComponents,
-		DataComponents:     dataComponents,
-		NetworkComponents:  networkComponents,
-		StateComponents:    stateComponents,
-		IsInImportMode:     false,
+		EconomicsConfig:      config.EconomicsConfig{},
+		ShardCoordinator:     shardCoordinator,
+		NodesCoordinator:     nodesCoordinator,
+		EpochStartNotifier:   coreComponents.EpochStartNotifierWithConfirm(),
+		CoreComponents:       coreComponents,
+		DataComponents:       dataComponents,
+		NetworkComponents:    networkComponents,
+		StateComponents:      stateComponents,
+		IsInImportMode:       false,
+		StatusCoreComponents: GetStatusCoreComponents(),
 	}
 
 	statusComponentsFactory, _ := statusComp.NewStatusComponentsFactory(statusArgs)
@@ -747,6 +605,7 @@ func GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator shardin
 		cryptoComponents,
 		stateComponents,
 	)
+	statusCoreComponents := GetStatusCoreComponents()
 
 	indexerURL := "url"
 	elasticUsername := "user"
@@ -762,15 +621,16 @@ func GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator shardin
 				EnabledIndexes: []string{"transactions", "blocks"},
 			},
 		},
-		EconomicsConfig:    config.EconomicsConfig{},
-		ShardCoordinator:   mock.NewMultiShardsCoordinatorMock(2),
-		NodesCoordinator:   &shardingMocks.NodesCoordinatorMock{},
-		EpochStartNotifier: &mock.EpochStartNotifierStub{},
-		CoreComponents:     coreComponents,
-		DataComponents:     dataComponents,
-		NetworkComponents:  networkComponents,
-		StateComponents:    stateComponents,
-		IsInImportMode:     false,
+		EconomicsConfig:      config.EconomicsConfig{},
+		ShardCoordinator:     mock.NewMultiShardsCoordinatorMock(2),
+		NodesCoordinator:     &shardingMocks.NodesCoordinatorMock{},
+		EpochStartNotifier:   &mock.EpochStartNotifierStub{},
+		CoreComponents:       coreComponents,
+		DataComponents:       dataComponents,
+		NetworkComponents:    networkComponents,
+		StateComponents:      stateComponents,
+		StatusCoreComponents: statusCoreComponents,
+		IsInImportMode:       false,
 	}, processComponents
 }
 
@@ -832,6 +692,26 @@ func GetStateComponents(coreComponents factory.CoreComponentsHolder, shardCoordi
 		return nil
 	}
 	return stateComponents
+}
+
+// GetStatusCoreComponents -
+func GetStatusCoreComponents() factory.StatusCoreComponentsHolder {
+	args := GetStatusCoreArgs()
+	statusCoreFactory := statusCore.NewStatusCoreComponentsFactory(args)
+
+	statusCoreComponents, err := statusCore.NewManagedStatusCoreComponents(statusCoreFactory)
+	if err != nil {
+		log.Error("GetStatusCoreComponents NewManagedStatusCoreComponents", "error", err.Error())
+		return nil
+	}
+
+	err = statusCoreComponents.Create()
+	if err != nil {
+		log.Error("statusCoreComponents Create", "error", err.Error())
+		return nil
+	}
+
+	return statusCoreComponents
 }
 
 // GetProcessComponents -
