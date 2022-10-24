@@ -24,7 +24,6 @@ func newSnapshotStatistics(snapshotDelta int, syncDelta int) *snapshotStatistics
 
 	wgSync := &sync.WaitGroup{}
 	wgSync.Add(syncDelta)
-
 	return &snapshotStatistics{
 		wgSnapshot:              wgSnapshot,
 		wgSync:                  wgSync,

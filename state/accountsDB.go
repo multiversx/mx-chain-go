@@ -1140,6 +1140,7 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 		ErrChan:    make(chan error, 1),
 	}
 	stats := newSnapshotStatistics(1, 1)
+
 	accountMetrics := &accountMetrics{
 		snapshotInProgressKey:   common.MetricAccountsSnapshotInProgress,
 		lastSnapshotDurationKey: common.MetricLastAccountsSnapshotDurationSec,
@@ -1365,7 +1366,6 @@ func (adb *AccountsDB) setStateCheckpoint(rootHash []byte) {
 	}
 	missingNodesChannel := make(chan []byte, missingNodesChannelSize)
 	stats := newSnapshotStatistics(1, 1)
-
 	go func() {
 		stats.NewSnapshotStarted()
 		trieStorageManager.SetCheckpoint(rootHash, rootHash, iteratorChannels, missingNodesChannel, stats)
