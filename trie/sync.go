@@ -125,7 +125,7 @@ func checkArguments(arg ArgTrieSyncer) error {
 
 // StartSyncing completes the trie, asking for missing trie nodes on the network
 func (ts *trieSyncer) StartSyncing(rootHash []byte, ctx context.Context) error {
-	if len(rootHash) == 0 || bytes.Equal(rootHash, EmptyTrieHash) {
+	if common.IsEmptyTrie(rootHash) {
 		return nil
 	}
 	if ctx == nil {
@@ -275,7 +275,7 @@ func (ts *trieSyncer) addNew(nextNodes []node) bool {
 		nodeInfo, ok := ts.nodesForTrie[nextHash]
 		if !ok || !nodeInfo.received {
 			newElement = true
-			ts.trieSyncStatistics.AddNumReceived(1)
+			ts.trieSyncStatistics.AddNumProcessed(1)
 			ts.nodesForTrie[nextHash] = trieNodeInfo{
 				trieNode: nextNode,
 				received: true,
