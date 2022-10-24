@@ -299,20 +299,16 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	}
 
 	// Aggregate sig and add it to the block
-	aggSigVerificationHandled := false
 	sig, err := sr.SignatureHandler().AggregateSigs(bitmap, sr.Header.GetEpoch())
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.AggregateSigs", "error", err.Error())
 
-		aggSigVerificationHandled = true
 		bitmap, sig, err = sr.handleInvalidSignersOnAggSigFail()
 		if err != nil {
-			log.Debug("doEndRoundJobByLeader.computeAggSigOnValidNodes", "error", err.Error())
+			log.Debug("doEndRoundJobByLeader.handleInvalidSignersOnAggSigFail", "error", err.Error())
 			return false
 		}
-	}
-
-	if !aggSigVerificationHandled {
+	} else {
 		err = sr.SignatureHandler().SetAggregatedSig(sig)
 		if err != nil {
 			log.Debug("doEndRoundJobByLeader.SetAggregatedSig", "error", err.Error())
@@ -325,7 +321,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 
 			bitmap, sig, err = sr.handleInvalidSignersOnAggSigFail()
 			if err != nil {
-				log.Debug("doEndRoundJobByLeader.computeAggSigOnValidNodes", "error", err.Error())
+				log.Debug("doEndRoundJobByLeader.handleInvalidSignersOnAggSigFail", "error", err.Error())
 				return false
 			}
 		}
@@ -415,10 +411,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	return true
 }
 
-// TODO:
-//	- slashing for invalid sig shares
-//	- handle sig share verifications concurrently
-func (sr *subroundEndRound) verifyNodesOnAggSigVerificationFail() ([]string, error) {
+func (sr *subroundEndRound) verifyNodesOnAggSigFail() ([]string, error) {
 	invalidPubKeys := make([]string, 0)
 	pubKeys := sr.ConsensusGroup()
 
@@ -485,7 +478,7 @@ func (sr *subroundEndRound) getFullMessagesForInvalidSigners(invalidPubKeys []st
 }
 
 func (sr *subroundEndRound) handleInvalidSignersOnAggSigFail() ([]byte, []byte, error) {
-	invalidPubKeys, err := sr.verifyNodesOnAggSigVerificationFail()
+	invalidPubKeys, err := sr.verifyNodesOnAggSigFail()
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.verifyNodesOnAggSigVerificationFail", "error", err.Error())
 		return nil, nil, err
