@@ -31,7 +31,7 @@ type ArgsTxSimulator struct {
 }
 
 type transactionSimulator struct {
-	mutCriticalSection     sync.Mutex
+	mutOperation           sync.Mutex
 	txProcessor            TransactionProcessor
 	intermProcContainer    process.IntermediateProcessorContainer
 	addressPubKeyConverter core.PubkeyConverter
@@ -78,8 +78,8 @@ func NewTransactionSimulator(args ArgsTxSimulator) (*transactionSimulator, error
 
 // ProcessTx will process the transaction in a special environment, where state-writing is not allowed
 func (ts *transactionSimulator) ProcessTx(tx *transaction.Transaction) (*txSimData.SimulationResults, error) {
-	ts.mutCriticalSection.Lock()
-	defer ts.mutCriticalSection.Unlock()
+	ts.mutOperation.Lock()
+	defer ts.mutOperation.Unlock()
 
 	txStatus := transaction.TxStatusPending
 	failReason := ""
