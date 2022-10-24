@@ -66,7 +66,7 @@ func (psh *PersistentStatusHandler) initMap() {
 	psh.persistentMetrics.Store(common.MetricDevRewardsInEpoch, zeroString)
 	psh.persistentMetrics.Store(common.MetricInflation, zeroString)
 	psh.persistentMetrics.Store(common.MetricEpochForEconomicsData, initUint)
-	psh.persistentMetrics.Store(common.MetricNumSnapshotNodes, initUint)
+	psh.persistentMetrics.Store(common.MetricAccountsSnapshotNumNodes, initUint)
 }
 
 // SetStorage will set storage for persistent status handler

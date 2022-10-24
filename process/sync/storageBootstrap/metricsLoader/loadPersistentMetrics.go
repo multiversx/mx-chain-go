@@ -110,7 +110,7 @@ func prepareMetricMaps(metricsMap map[string]interface{}) (map[string]uint64, ma
 	stringMap[common.MetricTotalFees] = persister.GetString(metricsMap[common.MetricTotalFees])
 	stringMap[common.MetricDevRewardsInEpoch] = persister.GetString(metricsMap[common.MetricDevRewardsInEpoch])
 	stringMap[common.MetricInflation] = persister.GetString(metricsMap[common.MetricInflation])
-	uint64Map[common.MetricNumSnapshotNodes] = persister.GetUint64(metricsMap[common.MetricNumSnapshotNodes])
+	uint64Map[common.MetricAccountsSnapshotNumNodes] = persister.GetUint64(metricsMap[common.MetricAccountsSnapshotNumNodes])
 
 	return uint64Map, stringMap
 }

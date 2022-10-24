@@ -5,16 +5,13 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/common/disabled"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestSnapshotStatistics_AddTrieStats(t *testing.T) {
 	t.Parallel()
 
-	tsc, err := NewTrieStatisticsCollector(disabled.NewAppStatusHandler())
-	require.Nil(t, err)
+	tsc := NewTrieStatisticsCollector()
 
 	numInserts := 100
 	for i := 0; i < numInserts; i++ {
@@ -45,6 +42,7 @@ func TestSnapshotStatistics_AddTrieStats(t *testing.T) {
 		assert.True(t, isSortedByDepth)
 		assert.Equal(t, numTriesToPrint, len(tsc.triesBySize))
 		assert.Equal(t, numTriesToPrint, len(tsc.triesByDepth))
+		assert.Equal(t, uint64(i+1), tsc.GetNumNodes())
 	}
 }
 

@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 )
 
@@ -14,28 +13,22 @@ var log = logger.GetOrCreate("trieStatistics")
 const numTriesToPrint = 10
 
 type trieStatisticsCollector struct {
-	numNodes         uint64
-	numDataTries     uint64
-	triesSize        uint64
-	triesBySize      []*TrieStatsDTO
-	triesByDepth     []*TrieStatsDTO
-	appStatusHandler core.AppStatusHandler
+	numNodes     uint64
+	numDataTries uint64
+	triesSize    uint64
+	triesBySize  []*TrieStatsDTO
+	triesByDepth []*TrieStatsDTO
 }
 
 // NewTrieStatisticsCollector creates a new instance of trieStatisticsCollector
-func NewTrieStatisticsCollector(appStatusHandler core.AppStatusHandler) (*trieStatisticsCollector, error) {
-	if check.IfNil(appStatusHandler) {
-		return nil, core.ErrNilAppStatusHandler
-	}
-
+func NewTrieStatisticsCollector() *trieStatisticsCollector {
 	return &trieStatisticsCollector{
-		numNodes:         0,
-		numDataTries:     0,
-		triesSize:        0,
-		triesBySize:      make([]*TrieStatsDTO, numTriesToPrint),
-		triesByDepth:     make([]*TrieStatsDTO, numTriesToPrint),
-		appStatusHandler: appStatusHandler,
-	}, nil
+		numNodes:     0,
+		numDataTries: 0,
+		triesSize:    0,
+		triesBySize:  make([]*TrieStatsDTO, numTriesToPrint),
+		triesByDepth: make([]*TrieStatsDTO, numTriesToPrint),
+	}
 }
 
 // Add adds the given trie statistics to the statistics collector
@@ -48,10 +41,8 @@ func (tsc *trieStatisticsCollector) Add(trieStats *TrieStatsDTO) {
 	insertInSortedArray(tsc.triesByDepth, trieStats, isLessDeep)
 }
 
-// UpdateMetricAndPrintStatistics will update metric and print all the collected statistics
-func (tsc *trieStatisticsCollector) UpdateMetricAndPrintStatistics(metric string) {
-	tsc.appStatusHandler.SetUInt64Value(metric, tsc.numNodes)
-
+// Print will print all the collected statistics
+func (tsc *trieStatisticsCollector) Print() {
 	triesBySize := " \n top " + strconv.Itoa(numTriesToPrint) + " tries by size \n"
 	triesByDepth := " \n top " + strconv.Itoa(numTriesToPrint) + " tries by depth \n"
 
@@ -62,6 +53,11 @@ func (tsc *trieStatisticsCollector) UpdateMetricAndPrintStatistics(metric string
 		triesBySize, getOrderedTries(tsc.triesBySize),
 		triesByDepth, getOrderedTries(tsc.triesByDepth),
 	)
+}
+
+// GetNumNodes returns the number of nodes
+func (tsc *trieStatisticsCollector) GetNumNodes() uint64 {
+	return tsc.numNodes
 }
 
 func getOrderedTries(tries []*TrieStatsDTO) string {

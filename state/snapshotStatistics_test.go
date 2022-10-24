@@ -5,17 +5,14 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/trie/statistics"
-	"github.com/stretchr/testify/require"
 )
 
 func TestSnapshotStatistics_Concurrency(t *testing.T) {
 	t.Parallel()
 
 	wg := &sync.WaitGroup{}
-	stats, err := statistics.NewTrieStatisticsCollector(&statusHandler.AppStatusHandlerStub{})
-	require.Nil(t, err)
+	stats := statistics.NewTrieStatisticsCollector()
 	ss := &snapshotStatistics{
 		wgSnapshot:              wg,
 		trieStatisticsCollector: stats,

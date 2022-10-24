@@ -22,7 +22,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/trie/keyBuilder"
 	"github.com/ElrondNetwork/elrond-go/trie/statistics"
-	"github.com/ElrondNetwork/elrond-go/trie/statistics/disabled"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -1140,7 +1139,7 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 		LeavesChan: make(chan core.KeyValueHolder, leavesChannelSize),
 		ErrChan:    make(chan error, 1),
 	}
-	stats := newSnapshotStatistics(1, 1, adb.appStatusHandler)
+	stats := newSnapshotStatistics(1, 1)
 
 	accountMetrics := &accountMetrics{
 		snapshotInProgressKey:   common.MetricAccountsSnapshotInProgress,
@@ -1240,6 +1239,9 @@ func (adb *AccountsDB) updateMetricsOnSnapshotStart(metrics *accountMetrics) {
 func (adb *AccountsDB) updateMetricsOnSnapshotCompletion(metrics *accountMetrics, stats *snapshotStatistics) {
 	adb.appStatusHandler.SetStringValue(metrics.snapshotInProgressKey, "false")
 	adb.appStatusHandler.SetInt64Value(metrics.lastSnapshotDurationKey, stats.GetSnapshotDuration())
+	if metrics.snapshotMessage == userTrieSnapshotMsg {
+		adb.appStatusHandler.SetUInt64Value(common.MetricAccountsSnapshotNumNodes, stats.GetSnapshotNumNodes())
+	}
 }
 
 func (adb *AccountsDB) processSnapshotCompletion(
@@ -1363,7 +1365,7 @@ func (adb *AccountsDB) setStateCheckpoint(rootHash []byte) {
 		ErrChan:    make(chan error, 1),
 	}
 	missingNodesChannel := make(chan []byte, missingNodesChannelSize)
-	stats := newSnapshotStatistics(1, 1, adb.appStatusHandler)
+	stats := newSnapshotStatistics(1, 1)
 
 	go func() {
 		stats.NewSnapshotStarted()
@@ -1415,12 +1417,7 @@ func (adb *AccountsDB) Close() error {
 
 // GetStatsForRootHash will get trie statistics for the given rootHash
 func (adb *AccountsDB) GetStatsForRootHash(rootHash []byte) (common.TriesStatisticsCollector, error) {
-	var stats common.TriesStatisticsCollector
-	stats, err := statistics.NewTrieStatisticsCollector(adb.appStatusHandler)
-	if err != nil {
-		stats = disabled.NewTrieStatisticsCollector()
-		log.Error("could not create trie statistics collector, using a disabled one...", "error", err)
-	}
+	stats := statistics.NewTrieStatisticsCollector()
 
 	mainTrie := adb.getMainTrie()
 
@@ -1435,7 +1432,7 @@ func (adb *AccountsDB) GetStatsForRootHash(rootHash []byte) (common.TriesStatist
 		LeavesChan: make(chan core.KeyValueHolder, leavesChannelSize),
 		ErrChan:    make(chan error, 1),
 	}
-	err = mainTrie.GetAllLeavesOnChannel(iteratorChannels, context.Background(), rootHash, keyBuilder.NewDisabledKeyBuilder())
+	err := mainTrie.GetAllLeavesOnChannel(iteratorChannels, context.Background(), rootHash, keyBuilder.NewDisabledKeyBuilder())
 	if err != nil {
 		return nil, err
 	}

@@ -4,10 +4,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/trie/statistics"
-	"github.com/ElrondNetwork/elrond-go/trie/statistics/disabled"
 )
 
 type snapshotStatistics struct {
@@ -20,25 +18,18 @@ type snapshotStatistics struct {
 	mutex      sync.RWMutex
 }
 
-func newSnapshotStatistics(snapshotDelta int, syncDelta int, appStatusHandler core.AppStatusHandler) *snapshotStatistics {
+func newSnapshotStatistics(snapshotDelta int, syncDelta int) *snapshotStatistics {
 	wgSnapshot := &sync.WaitGroup{}
 	wgSnapshot.Add(snapshotDelta)
 
 	wgSync := &sync.WaitGroup{}
 	wgSync.Add(syncDelta)
 
-	var statisticsCollector common.TriesStatisticsCollector
-	statisticsCollector, err := statistics.NewTrieStatisticsCollector(appStatusHandler)
-	if err != nil {
-		statisticsCollector = disabled.NewTrieStatisticsCollector()
-		log.Error("could not create trie statistics collector, using a disabled one...", "error", err)
-	}
-
 	return &snapshotStatistics{
 		wgSnapshot:              wgSnapshot,
 		wgSync:                  wgSync,
 		startTime:               time.Now(),
-		trieStatisticsCollector: statisticsCollector,
+		trieStatisticsCollector: statistics.NewTrieStatisticsCollector(),
 	}
 }
 
@@ -91,5 +82,10 @@ func (ss *snapshotStatistics) PrintStats(identifier string, rootHash []byte) {
 		"duration", time.Since(ss.startTime).Truncate(time.Second),
 		"rootHash", rootHash,
 	)
-	ss.trieStatisticsCollector.UpdateMetricAndPrintStatistics(common.MetricNumSnapshotNodes)
+	ss.trieStatisticsCollector.Print()
+}
+
+// GetSnapshotNumNodes returns the number of nodes from the snapshot
+func (ss *snapshotStatistics) GetSnapshotNumNodes() uint64 {
+	return ss.trieStatisticsCollector.GetNumNodes()
 }
