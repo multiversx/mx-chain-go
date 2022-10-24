@@ -156,6 +156,13 @@ type P2PSigningHandler interface {
 	IsInterfaceNil() bool
 }
 
+// PeerBlacklistHandler defines the behaviour of a component able to blacklist p2p peers
+type PeerBlacklistHandler interface {
+	IsPeerBlacklisted(peer core.PeerID) bool
+	BlacklistPeer(peer core.PeerID, duration time.Duration)
+	IsInterfaceNil() bool
+}
+
 // SignatureHandler defines the behaviour of a component that handles signatures in consensus
 type SignatureHandler interface {
 	Reset(pubKeys []string) error

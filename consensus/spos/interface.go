@@ -2,6 +2,7 @@ package spos
 
 import (
 	"context"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
@@ -67,6 +68,8 @@ type ConsensusCoreHandler interface {
 	ScheduledProcessor() consensus.ScheduledProcessor
 	// MessageSignerHandler returns the p2p signing handler
 	MessageSigningHandler() consensus.P2PSigningHandler
+	// PeerBlackListHandler return the peer blacklist handler
+	PeerBlacklistHandler() consensus.PeerBlacklistHandler
 	// SignatureHandler returns the signature handler component
 	SignatureHandler() consensus.SignatureHandler
 	// IsInterfaceNil returns true if there is no value under the interface
@@ -164,5 +167,13 @@ type HeaderSigVerifier interface {
 // ConsensusDataIndexer defines the actions that a consensus data indexer has to do
 type ConsensusDataIndexer interface {
 	SaveRoundsInfo(roundsInfos []*indexer.RoundInfo)
+	IsInterfaceNil() bool
+}
+
+// PeerBlackListCacher can determine if a certain peer id is blacklisted or not
+type PeerBlackListCacher interface {
+	Upsert(pid core.PeerID, span time.Duration) error
+	Has(pid core.PeerID) bool
+	Sweep()
 	IsInterfaceNil() bool
 }

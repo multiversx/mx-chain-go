@@ -2,6 +2,7 @@ package bls_test
 
 import (
 	"errors"
+	"sync"
 	"testing"
 	"time"
 
@@ -1470,4 +1471,32 @@ func TestVerifyInvalidSigners(t *testing.T) {
 		err := sr.VerifyInvalidSigners(invalidSignersBytes)
 		require.Nil(t, err)
 	})
+}
+
+func TestSubroundEndRound_CreateAndBroadcastInvalidSigners(t *testing.T) {
+	t.Parallel()
+
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+
+	expectedInvalidSigners := []byte("invalid signers")
+
+	wasCalled := false
+	container := mock.InitConsensusCore()
+	messenger := &mock.BroadcastMessengerMock{
+		BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
+			wg.Done()
+			assert.Equal(t, expectedInvalidSigners, message.InvalidSigners)
+			wasCalled = true
+			return nil
+		},
+	}
+	container.SetBroadcastMessenger(messenger)
+	sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
+
+	sr.CreateAndBroadcastInvalidSigners(expectedInvalidSigners)
+
+	wg.Wait()
+
+	require.True(t, wasCalled)
 }

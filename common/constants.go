@@ -718,6 +718,13 @@ const InvalidMessageBlacklistDuration = time.Second * 3600
 // rating to a minimum threshold due to improper messages
 const PublicKeyBlacklistDuration = time.Second * 7200
 
+// WrongP2PMessageBlacklistDuration represents the time to keep a peer id in the blacklist if it sends a message that
+// do not follow this protocol
+const WrongP2PMessageBlacklistDuration = time.Second * 7200
+
+// InvalidSigningBlacklistDuration defines the time to keep a peer id in blacklist if it signs a message with invalid signature
+const InvalidSigningBlacklistDuration = time.Second * 7200
+
 // MaxWaitingTimeToReceiveRequestedItem represents the maximum waiting time in seconds needed to receive the requested items
 const MaxWaitingTimeToReceiveRequestedItem = 5 * time.Second
 

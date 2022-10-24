@@ -232,6 +232,18 @@ var ErrWrongTypeAssertion = errors.New("wrong type assertion")
 // ErrNilMessageSigningHandler signals that the provided message signing handler is nil
 var ErrNilMessageSigningHandler = errors.New("nil message signing handler")
 
+// ErrNilPeerBlacklistHandler signals that the provided peer blacklist handler is nil
+var ErrNilPeerBlacklistHandler = errors.New("nil peer blacklist handler")
+
+// ErrNilPeerBlacklistCacher signals that a nil peer blacklist cacher has been provided
+var ErrNilPeerBlacklistCacher = errors.New("nil peer blacklist cacher")
+
+// ErrNilKeyGenerator signals that a nil key generator has been provided
+var ErrNilKeyGenerator = errors.New("nil key generator")
+
+// ErrBlacklistedConsensusPeer signals that a consensus message has been received from a blacklisted peer
+var ErrBlacklistedConsensusPeer = errors.New("blacklisted consensus peer")
+
 // ErrNilSignatureOnP2PMessage signals that a p2p message without signature was received
 var ErrNilSignatureOnP2PMessage = errors.New("nil signature on the p2p message")
 

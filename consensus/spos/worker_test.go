@@ -112,6 +112,7 @@ func createDefaultWorkerArgs(appStatusHandler core.AppStatusHandler) *spos.Worke
 		PublicKeySize:            PublicKeySize,
 		AppStatusHandler:         appStatusHandler,
 		NodeRedundancyHandler:    &mock.NodeRedundancyHandlerStub{},
+		PeerBlacklistHandler:     &mock.PeerBlacklistHandlerStub{},
 	}
 
 	return workerArgs

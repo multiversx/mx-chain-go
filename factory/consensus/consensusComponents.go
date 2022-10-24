@@ -9,14 +9,17 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/watchdog"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go-storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/consensus/blacklist"
 	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
+	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/errors"
-	factory "github.com/ElrondNetwork/elrond-go/factory"
+	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/process/sync/storageBootstrap"
@@ -28,6 +31,8 @@ import (
 )
 
 var log = logger.GetOrCreate("factory")
+
+const defaultSpan = 300 * time.Second
 
 // ConsensusComponentsFactoryArgs holds the arguments needed to create a consensus components factory
 type ConsensusComponentsFactoryArgs struct {
@@ -180,6 +185,11 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		marshalizer = marshal.NewSizeCheckUnmarshalizer(marshalizer, sizeCheckDelta)
 	}
 
+	peerBlacklistHandler, err := ccf.createPeerBlacklistHandler()
+	if err != nil {
+		return nil, err
+	}
+
 	workerArgs := &spos.WorkerArgs{
 		ConsensusService:         consensusService,
 		BlockChain:               ccf.dataComponents.Blockchain(),
@@ -205,6 +215,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		PublicKeySize:            ccf.config.ValidatorPubkeyConverter.Length,
 		AppStatusHandler:         ccf.coreComponents.StatusHandler(),
 		NodeRedundancyHandler:    ccf.processComponents.NodeRedundancyHandler(),
+		PeerBlacklistHandler:     peerBlacklistHandler,
 	}
 
 	cc.worker, err = spos.NewWorker(workerArgs)
@@ -248,6 +259,8 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		FallbackHeaderValidator:       ccf.processComponents.FallbackHeaderValidator(),
 		NodeRedundancyHandler:         ccf.processComponents.NodeRedundancyHandler(),
 		ScheduledProcessor:            ccf.scheduledProcessor,
+		MessageSigningHandler:         &mock.MessageSignerMock{},
+		PeerBlacklistHandler:          peerBlacklistHandler,
 		SignatureHandler:              ccf.cryptoComponents.ConsensusSigHandler(),
 	}
 
@@ -639,6 +652,19 @@ func (ccf *consensusComponentsFactory) createConsensusTopic(cc *consensusCompone
 	}
 
 	return ccf.networkComponents.NetworkMessenger().RegisterMessageProcessor(cc.consensusTopic, common.DefaultInterceptorsIdentifier, cc.worker)
+}
+
+func (ccf *consensusComponentsFactory) createPeerBlacklistHandler() (consensus.PeerBlacklistHandler, error) {
+	cache := timecache.NewTimeCache(defaultSpan)
+	peerCacher, err := timecache.NewPeerTimeCache(cache)
+	if err != nil {
+		return nil, err
+	}
+	blacklistArgs := blacklist.PeerBlackListArgs{
+		PeerCacher: peerCacher,
+	}
+
+	return blacklist.NewPeerBlacklist(blacklistArgs)
 }
 
 func (ccf *consensusComponentsFactory) addCloserInstances(closers ...update.Closer) error {
