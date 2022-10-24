@@ -243,7 +243,11 @@ func (sr *subroundEndRound) verifyInvalidSigner(msg p2p.MessageP2P) error {
 	singleSigner := sr.SingleSigner()
 	err = singleSigner.Verify(pubKey, cnsMsg.BlockHeaderHash, cnsMsg.SignatureShare)
 	if err != nil {
-		log.Trace("verifyInvalidSigner: confirmed that node provided invalid signature", "pubKey", pubKey)
+		log.Trace("verifyInvalidSigner: confirmed that node provided invalid signature",
+			"pubKey", pubKey,
+			"blockHeaderHash", cnsMsg.BlockHeaderHash,
+			"error", err.Error(),
+		)
 		sr.applyBlacklistOnNode(msg.Peer())
 	}
 

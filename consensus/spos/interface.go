@@ -168,7 +168,7 @@ type ConsensusDataIndexer interface {
 	IsInterfaceNil() bool
 }
 
-// PeerBlackListCacher can determine if a certain peer id is blacklist or not
+// PeerBlackListCacher can determine if a certain peer id is blacklisted or not
 type PeerBlackListCacher interface {
 	Upsert(pid core.PeerID, span time.Duration) error
 	Has(pid core.PeerID) bool

@@ -350,7 +350,7 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 		log.Debug("received message from blacklisted peer",
 			"peer", fromConnectedPeer,
 		)
-		return ErrInvalidConsensusPeer
+		return ErrBlacklistedConsensusPeer
 	}
 
 	topic := GetConsensusTopicID(wrk.shardCoordinator)
