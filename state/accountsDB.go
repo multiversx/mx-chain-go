@@ -1140,7 +1140,6 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 		ErrChan:    make(chan error, 1),
 	}
 	stats := newSnapshotStatistics(1, 1)
-
 	accountMetrics := &accountMetrics{
 		snapshotInProgressKey:   common.MetricAccountsSnapshotInProgress,
 		lastSnapshotDurationKey: common.MetricLastAccountsSnapshotDurationSec,
@@ -1418,7 +1417,6 @@ func (adb *AccountsDB) Close() error {
 // GetStatsForRootHash will get trie statistics for the given rootHash
 func (adb *AccountsDB) GetStatsForRootHash(rootHash []byte) (common.TriesStatisticsCollector, error) {
 	stats := statistics.NewTrieStatisticsCollector()
-
 	mainTrie := adb.getMainTrie()
 
 	tr, ok := mainTrie.(common.TrieStats)

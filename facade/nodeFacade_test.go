@@ -24,9 +24,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/facade/mock"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
+	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -473,7 +473,7 @@ func TestNodeFacade_StatusMetrics(t *testing.T) {
 
 	apiResolverMetricsRequested := false
 	apiResStub := &mock.ApiResolverStub{
-		StatusMetricsHandler: func() statusHandler.StatusMetricsHandler {
+		StatusMetricsHandler: func() external.StatusMetricsHandler {
 			apiResolverMetricsRequested = true
 			return nil
 		},

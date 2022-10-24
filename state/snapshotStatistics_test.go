@@ -12,10 +12,9 @@ func TestSnapshotStatistics_Concurrency(t *testing.T) {
 	t.Parallel()
 
 	wg := &sync.WaitGroup{}
-	stats := statistics.NewTrieStatisticsCollector()
 	ss := &snapshotStatistics{
 		wgSnapshot:              wg,
-		trieStatisticsCollector: stats,
+		trieStatisticsCollector: statistics.NewTrieStatisticsCollector(),
 	}
 
 	numRuns := 100

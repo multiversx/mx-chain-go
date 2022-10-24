@@ -12,11 +12,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
+	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/process"
 	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
 var errNodeStarting = errors.New("node is starting")
@@ -25,7 +25,7 @@ var emptyString = ""
 // initialNodeFacade represents a facade with no functionality
 type initialNodeFacade struct {
 	apiInterface         string
-	statusMetricsHandler statusHandler.StatusMetricsHandler
+	statusMetricsHandler external.StatusMetricsHandler
 	pprofEnabled         bool
 }
 
@@ -187,7 +187,7 @@ func (inf *initialNodeFacade) GetHeartbeats() ([]data.PubKeyHeartbeat, error) {
 }
 
 // StatusMetrics will returns nil
-func (inf *initialNodeFacade) StatusMetrics() statusHandler.StatusMetricsHandler {
+func (inf *initialNodeFacade) StatusMetrics() external.StatusMetricsHandler {
 	return inf.statusMetricsHandler
 }
 

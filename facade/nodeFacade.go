@@ -22,11 +22,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
+	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/process"
 	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -365,7 +365,7 @@ func (nf *nodeFacade) GetHeartbeats() ([]data.PubKeyHeartbeat, error) {
 }
 
 // StatusMetrics will return the node's status metrics
-func (nf *nodeFacade) StatusMetrics() statusHandler.StatusMetricsHandler {
+func (nf *nodeFacade) StatusMetrics() external.StatusMetricsHandler {
 	return nf.apiResolver.StatusMetrics()
 }
 

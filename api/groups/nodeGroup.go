@@ -12,7 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
+	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/gin-gonic/gin"
 )
 
@@ -30,7 +30,7 @@ const (
 // nodeFacadeHandler defines the methods to be implemented by a facade for node requests
 type nodeFacadeHandler interface {
 	GetHeartbeats() ([]data.PubKeyHeartbeat, error)
-	StatusMetrics() statusHandler.StatusMetricsHandler
+	StatusMetrics() external.StatusMetricsHandler
 	GetQueryHandler(name string) (debug.QueryHandler, error)
 	GetEpochStartDataAPI(epoch uint32) (*common.EpochStartDataAPI, error)
 	GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error)

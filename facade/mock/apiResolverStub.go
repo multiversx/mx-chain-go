@@ -6,15 +6,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // ApiResolverStub -
 type ApiResolverStub struct {
 	ExecuteSCQueryHandler                       func(query *process.SCQuery) (*vmcommon.VMOutput, error)
-	StatusMetricsHandler                        func() statusHandler.StatusMetricsHandler
+	StatusMetricsHandler                        func() external.StatusMetricsHandler
 	ComputeTransactionGasLimitHandler           func(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	GetTotalStakedValueHandler                  func(ctx context.Context) (*api.StakeValues, error)
 	GetDirectStakedListHandler                  func(ctx context.Context) ([]*api.DirectStakedValue, error)
@@ -86,7 +86,7 @@ func (ars *ApiResolverStub) ExecuteSCQuery(query *process.SCQuery) (*vmcommon.VM
 }
 
 // StatusMetrics -
-func (ars *ApiResolverStub) StatusMetrics() statusHandler.StatusMetricsHandler {
+func (ars *ApiResolverStub) StatusMetrics() external.StatusMetricsHandler {
 	if ars.StatusMetricsHandler != nil {
 		return ars.StatusMetricsHandler()
 	}

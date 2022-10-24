@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
@@ -98,7 +99,7 @@ func TestNetworkConfigMetrics_ShouldWork(t *testing.T) {
 	statusMetricsProvider.SetUInt64Value(key, value)
 
 	facade := mock.FacadeStub{}
-	facade.StatusMetricsHandler = func() statusHandler.StatusMetricsHandler {
+	facade.StatusMetricsHandler = func() external.StatusMetricsHandler {
 		return statusMetricsProvider
 	}
 
@@ -123,7 +124,7 @@ func TestGetNetworkConfig_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
 	expectedErr := errors.New("i am an error")
 
 	facade := mock.FacadeStub{
-		StatusMetricsHandler: func() statusHandler.StatusMetricsHandler {
+		StatusMetricsHandler: func() external.StatusMetricsHandler {
 			return &testscommon.StatusMetricsStub{
 				ConfigMetricsCalled: func() (map[string]interface{}, error) {
 					return nil, expectedErr
@@ -153,7 +154,7 @@ func TestGetNetworkStatus_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
 	expectedErr := errors.New("i am an error")
 
 	facade := mock.FacadeStub{
-		StatusMetricsHandler: func() statusHandler.StatusMetricsHandler {
+		StatusMetricsHandler: func() external.StatusMetricsHandler {
 			return &testscommon.StatusMetricsStub{
 				NetworkMetricsCalled: func() (map[string]interface{}, error) {
 					return nil, expectedErr
@@ -188,7 +189,7 @@ func TestNetworkStatusMetrics_ShouldWork(t *testing.T) {
 	statusMetricsProvider.SetUInt64Value(key, value)
 
 	facade := mock.FacadeStub{}
-	facade.StatusMetricsHandler = func() statusHandler.StatusMetricsHandler {
+	facade.StatusMetricsHandler = func() external.StatusMetricsHandler {
 		return statusMetricsProvider
 	}
 
@@ -223,7 +224,7 @@ func TestEconomicsMetrics_ShouldWork(t *testing.T) {
 			}, nil
 		},
 	}
-	facade.StatusMetricsHandler = func() statusHandler.StatusMetricsHandler {
+	facade.StatusMetricsHandler = func() external.StatusMetricsHandler {
 		return statusMetricsProvider
 	}
 
@@ -248,7 +249,7 @@ func TestGetEconomicValues_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
 	expectedErr := errors.New("i am an error")
 
 	facade := mock.FacadeStub{
-		StatusMetricsHandler: func() statusHandler.StatusMetricsHandler {
+		StatusMetricsHandler: func() external.StatusMetricsHandler {
 			return &testscommon.StatusMetricsStub{
 				EconomicsMetricsCalled: func() (map[string]interface{}, error) {
 					return nil, expectedErr
@@ -289,7 +290,7 @@ func TestEconomicsMetrics_CannotGetStakeValues(t *testing.T) {
 			return nil, localErr
 		},
 	}
-	facade.StatusMetricsHandler = func() statusHandler.StatusMetricsHandler {
+	facade.StatusMetricsHandler = func() external.StatusMetricsHandler {
 		return statusMetricsProvider
 	}
 
@@ -513,7 +514,7 @@ func TestGetEnableEpochs_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
 	expectedErr := errors.New("i am an error")
 
 	facade := mock.FacadeStub{
-		StatusMetricsHandler: func() statusHandler.StatusMetricsHandler {
+		StatusMetricsHandler: func() external.StatusMetricsHandler {
 			return &testscommon.StatusMetricsStub{
 				EnableEpochsMetricsCalled: func() (map[string]interface{}, error) {
 					return nil, expectedErr
@@ -548,7 +549,7 @@ func TestGetEnableEpochs_ShouldWork(t *testing.T) {
 	statusMetrics.SetUInt64Value(key, value)
 
 	facade := mock.FacadeStub{}
-	facade.StatusMetricsHandler = func() statusHandler.StatusMetricsHandler {
+	facade.StatusMetricsHandler = func() external.StatusMetricsHandler {
 		return statusMetrics
 	}
 
@@ -600,7 +601,7 @@ func TestGetNetworkRatings_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
 	expectedErr := errors.New("i am an error")
 
 	facade := mock.FacadeStub{
-		StatusMetricsHandler: func() statusHandler.StatusMetricsHandler {
+		StatusMetricsHandler: func() external.StatusMetricsHandler {
 			return &testscommon.StatusMetricsStub{
 				RatingsMetricsCalled: func() (map[string]interface{}, error) {
 					return nil, expectedErr
@@ -632,7 +633,7 @@ func TestGetNetworkRatings_ShouldWork(t *testing.T) {
 	}
 
 	facade := mock.FacadeStub{
-		StatusMetricsHandler: func() statusHandler.StatusMetricsHandler {
+		StatusMetricsHandler: func() external.StatusMetricsHandler {
 			return &testscommon.StatusMetricsStub{
 				RatingsMetricsCalled: func() (map[string]interface{}, error) {
 					return expectedMap, nil
