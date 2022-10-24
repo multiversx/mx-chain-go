@@ -29,6 +29,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
@@ -56,6 +57,7 @@ func createMockAccountsDBArgs() state.ArgsAccountsDB {
 		StoragePruningManager: disabled.NewDisabledStoragePruningManager(),
 		ProcessingMode:        common.Normal,
 		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
+		AppStatusHandler:      &statusHandler.AppStatusHandlerStub{},
 	}
 }
 
@@ -119,6 +121,7 @@ func getDefaultStateComponents(
 		StoragePruningManager: spm,
 		ProcessingMode:        common.Normal,
 		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
+		AppStatusHandler:      &statusHandler.AppStatusHandlerStub{},
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 
@@ -187,6 +190,16 @@ func TestNewAccountsDB(t *testing.T) {
 		adb, err := state.NewAccountsDB(args)
 		assert.True(t, check.IfNil(adb))
 		assert.Equal(t, state.ErrNilProcessStatusHandler, err)
+	})
+	t.Run("nil app status handler should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockAccountsDBArgs()
+		args.AppStatusHandler = nil
+
+		adb, err := state.NewAccountsDB(args)
+		assert.True(t, check.IfNil(adb))
+		assert.Equal(t, state.ErrNilAppStatusHandler, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
