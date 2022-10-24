@@ -217,7 +217,7 @@ func (d *doubleListTrieSyncer) processExistingNodes() error {
 			return err
 		}
 
-		d.trieSyncStatistics.AddNumReceived(1)
+		d.trieSyncStatistics.AddNumProcessed(1)
 		if numBytes > core.MaxBufferSizeToSendTrieNodes {
 			d.trieSyncStatistics.AddNumLarge(1)
 		}
