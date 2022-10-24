@@ -17,18 +17,18 @@ type sovereignChainManagedProcessComponents struct {
 // NewSovereignChainManagedProcessComponents returns a news instance of sovereignChainManagedProcessComponents
 func NewSovereignChainManagedProcessComponents(
 	managedProcessComponents *managedProcessComponents,
-	scpcf *sovereignChainProcessComponentsFactory,
+	sovereignChainProcessComponentsFactory *sovereignChainProcessComponentsFactory,
 ) (*sovereignChainManagedProcessComponents, error) {
 	if managedProcessComponents == nil {
 		return nil, errors.ErrNilManagedProcessComponents
 	}
-	if scpcf == nil {
+	if sovereignChainProcessComponentsFactory == nil {
 		return nil, errors.ErrNilProcessComponentsFactory
 	}
 
 	return &sovereignChainManagedProcessComponents{
 		managedProcessComponents:               managedProcessComponents,
-		sovereignChainProcessComponentsFactory: scpcf,
+		sovereignChainProcessComponentsFactory: sovereignChainProcessComponentsFactory,
 	}, nil
 }
 

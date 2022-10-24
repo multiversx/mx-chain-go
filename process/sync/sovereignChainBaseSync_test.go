@@ -79,7 +79,7 @@ func TestBaseSync_sovereignChainProcessAndCommit(t *testing.T) {
 	})
 }
 
-func TestBaseSync_SovereignChainHandleScheduledRollBackToHeader(t *testing.T) {
+func TestBaseSync_sovereignChainHandleScheduledRollBackToHeader(t *testing.T) {
 	t.Parallel()
 
 	t.Run("sovereignChainHandleScheduledRollBackToHeader with nil header should return genesis root hash", func(t *testing.T) {

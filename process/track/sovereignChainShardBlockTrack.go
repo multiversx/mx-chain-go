@@ -19,17 +19,17 @@ func NewSovereignChainShardBlockTrack(shardBlockTrack *shardBlockTrack) (*sovere
 		shardBlockTrack,
 	}
 
-	originalBlockProcessor, ok := scsbt.blockProcessor.(*blockProcessor)
+	bp, ok := scsbt.blockProcessor.(*blockProcessor)
 	if !ok {
 		return nil, process.ErrWrongTypeAssertion
 	}
 
-	newBlockProcessor, err := NewSovereignChainBlockProcessor(originalBlockProcessor)
+	scbp, err := NewSovereignChainBlockProcessor(bp)
 	if err != nil {
 		return nil, err
 	}
 
-	scsbt.blockProcessor = newBlockProcessor
+	scsbt.blockProcessor = scbp
 
 	return scsbt, nil
 }

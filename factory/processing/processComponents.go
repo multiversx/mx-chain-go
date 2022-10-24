@@ -1075,12 +1075,7 @@ func (pcf *processComponentsFactory) createShardBlockTracker(argBaseTracker trac
 		ArgBaseTracker: argBaseTracker,
 	}
 
-	shardBlockTrack, err := track.NewShardBlockTrack(arguments)
-	if err != nil {
-		return nil, err
-	}
-
-	return shardBlockTrack, nil
+	return track.NewShardBlockTrack(arguments)
 }
 
 // -- Resolvers container Factory begin
