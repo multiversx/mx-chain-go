@@ -3,8 +3,9 @@ package state
 
 import (
 	"bytes"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"math/big"
+
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
 )
 
 var _ UserAccountHandler = (*userAccount)(nil)

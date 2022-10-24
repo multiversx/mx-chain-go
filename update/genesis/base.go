@@ -3,7 +3,6 @@ package genesis
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"strconv"
 	"strings"
 
@@ -12,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/update"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"

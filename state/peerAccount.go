@@ -2,9 +2,9 @@
 package state
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go/common"
 )
 
