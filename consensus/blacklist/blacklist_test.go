@@ -49,12 +49,12 @@ func TestNewPeerBlacklist(t *testing.T) {
 		}
 
 		pb, err := blacklist.NewPeerBlacklist(args)
+		require.Nil(t, err)
+		require.False(t, pb.IsInterfaceNil())
 		defer pb.Close()
 
 		wg.Wait()
 
-		require.Nil(t, err)
-		require.False(t, pb.IsInterfaceNil())
 		require.True(t, sweepWasCalled)
 	})
 }
