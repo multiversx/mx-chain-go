@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/keyValStorage"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/holders"
@@ -50,7 +51,7 @@ func createMockAccountsDBArgs() state.ArgsAccountsDB {
 		Hasher:     &hashingMocks.HasherMock{},
 		Marshaller: &testscommon.MarshalizerMock{},
 		AccountFactory: &stateMock.AccountsFactoryStub{
-			CreateAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
+			CreateAccountCalled: func(address []byte, _ hashing.Hasher) (vmcommon.AccountHandler, error) {
 				return stateMock.NewAccountWrapMock(address), nil
 			},
 		},
@@ -259,7 +260,7 @@ func TestAccountsDB_SaveAccountNilOldAccount(t *testing.T) {
 		},
 	})
 
-	acc, _ := state.NewUserAccount([]byte("someAddress"))
+	acc, _ := state.NewUserAccount([]byte("someAddress"), &hashingMocks.HasherMock{})
 	err := adb.SaveAccount(acc)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, adb.JournalLen())
@@ -268,7 +269,7 @@ func TestAccountsDB_SaveAccountNilOldAccount(t *testing.T) {
 func TestAccountsDB_SaveAccountExistingOldAccount(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewUserAccount([]byte("someAddress"))
+	acc, _ := state.NewUserAccount([]byte("someAddress"), &hashingMocks.HasherMock{})
 
 	adb := generateAccountDBFromTrie(&trieMock.TrieStub{
 		GetCalled: func(key []byte) (i []byte, err error) {
@@ -320,7 +321,7 @@ func TestAccountsDB_SaveAccountSavesCodeAndDataTrieForUserAccount(t *testing.T) 
 	})
 
 	accCode := []byte("code")
-	acc, _ := state.NewUserAccount([]byte("someAddress"))
+	acc, _ := state.NewUserAccount([]byte("someAddress"), &hashingMocks.HasherMock{})
 	acc.SetCode(accCode)
 	_ = acc.SaveKeyValue([]byte("key"), []byte("value"))
 
@@ -2420,7 +2421,7 @@ func TestAccountsDB_GetAccountFromBytes(t *testing.T) {
 
 	marshaller := &testscommon.MarshalizerMock{}
 	adr := make([]byte, 32)
-	accountExpected, _ := state.NewUserAccount(adr)
+	accountExpected, _ := state.NewUserAccount(adr, &hashingMocks.HasherMock{})
 	accountBytes, _ := marshaller.Marshal(accountExpected)
 	_, adb := getDefaultTrieAndAccountsDb()
 

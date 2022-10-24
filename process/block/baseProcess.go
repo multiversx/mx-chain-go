@@ -1744,7 +1744,7 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 	totalSizeAccountsDataTries := 0
 	totalSizeCodeLeaves := 0
 	for leaf := range iteratorChannels.LeavesChan {
-		userAccount, errUnmarshal := unmarshalUserAccount(leaf.Key(), leaf.Value(), bp.marshalizer)
+		userAccount, errUnmarshal := unmarshalUserAccount(leaf.Key(), leaf.Value(), bp.marshalizer, bp.hasher)
 		if errUnmarshal != nil {
 			numCodeLeaves++
 			totalSizeCodeLeaves += len(leaf.Value())
@@ -1814,8 +1814,13 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 	return nil
 }
 
-func unmarshalUserAccount(address []byte, userAccountsBytes []byte, marshalizer marshal.Marshalizer) (state.UserAccountHandler, error) {
-	userAccount, err := state.NewUserAccount(address)
+func unmarshalUserAccount(
+	address []byte,
+	userAccountsBytes []byte,
+	marshalizer marshal.Marshalizer,
+	hasher hashing.Hasher,
+) (state.UserAccountHandler, error) {
+	userAccount, err := state.NewUserAccount(address, hasher)
 	if err != nil {
 		return nil, err
 	}

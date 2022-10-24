@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/binary"
 	"errors"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"math/big"
 	"sync"
 	"testing"
@@ -308,7 +309,7 @@ func TestAccountsDBApi_GetExistingAccount(t *testing.T) {
 				return nil
 			},
 			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
-				return state.NewUserAccount(addressContainer)
+				return state.NewUserAccount(addressContainer, &hashingMocks.HasherMock{})
 			},
 		}
 
@@ -352,7 +353,7 @@ func TestAccountsDBApi_GetAccountFromBytes(t *testing.T) {
 				return nil
 			},
 			GetAccountFromBytesCalled: func(address []byte, accountBytes []byte) (vmcommon.AccountHandler, error) {
-				return state.NewUserAccount(address)
+				return state.NewUserAccount(address, &hashingMocks.HasherMock{})
 			},
 		}
 
@@ -396,7 +397,7 @@ func TestAccountsDBApi_LoadAccount(t *testing.T) {
 				return nil
 			},
 			LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
-				return state.NewUserAccount(address)
+				return state.NewUserAccount(address, &hashingMocks.HasherMock{})
 			},
 		}
 

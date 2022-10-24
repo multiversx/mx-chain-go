@@ -4,13 +4,13 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"math"
 	"math/big"
 	"strconv"
 	"sync"
 	"testing"
 
-	arwenConfig "github.com/ElrondNetwork/wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
@@ -67,6 +67,7 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
+	arwenConfig "github.com/ElrondNetwork/wasm-vm/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -261,8 +262,8 @@ type accountFactory struct {
 }
 
 // CreateAccount -
-func (af *accountFactory) CreateAccount(address []byte) (vmcommon.AccountHandler, error) {
-	return state.NewUserAccount(address)
+func (af *accountFactory) CreateAccount(address []byte, hasher hashing.Hasher) (vmcommon.AccountHandler, error) {
+	return state.NewUserAccount(address, hasher)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -3,6 +3,7 @@ package genesis
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"strconv"
 	"strings"
 
@@ -89,12 +90,12 @@ func NewObject(objType Type) (interface{}, error) {
 }
 
 // NewEmptyAccount returns a new account according to the given type
-func NewEmptyAccount(accType Type, address []byte) (vmcommon.AccountHandler, error) {
+func NewEmptyAccount(accType Type, address []byte, hasher hashing.Hasher) (vmcommon.AccountHandler, error) {
 	switch accType {
 	case UserAccount:
-		return state.NewUserAccount(address)
+		return state.NewUserAccount(address, hasher)
 	case ValidatorAccount:
-		return state.NewPeerAccount(address)
+		return state.NewPeerAccount(address, hasher)
 	case DataTrie:
 		return nil, nil
 	}
