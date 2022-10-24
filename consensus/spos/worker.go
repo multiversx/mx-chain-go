@@ -75,6 +75,7 @@ type Worker struct {
 	cancelFunc                func()
 	consensusMessageValidator *consensusMessageValidator
 	nodeRedundancyHandler     consensus.NodeRedundancyHandler
+	peerBlacklistHandler      consensus.PeerBlacklistHandler
 	closer                    core.SafeCloser
 }
 
@@ -104,6 +105,7 @@ type WorkerArgs struct {
 	PublicKeySize            int
 	AppStatusHandler         core.AppStatusHandler
 	NodeRedundancyHandler    consensus.NodeRedundancyHandler
+	PeerBlacklistHandler     consensus.PeerBlacklistHandler
 }
 
 // NewWorker creates a new Worker object
@@ -150,6 +152,7 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 		antifloodHandler:         args.AntifloodHandler,
 		poolAdder:                args.PoolAdder,
 		nodeRedundancyHandler:    args.NodeRedundancyHandler,
+		peerBlacklistHandler:     args.PeerBlacklistHandler,
 		closer:                   closing.NewSafeChanCloser(),
 	}
 
@@ -248,6 +251,9 @@ func checkNewWorkerParams(args *WorkerArgs) error {
 	if check.IfNil(args.NodeRedundancyHandler) {
 		return ErrNilNodeRedundancyHandler
 	}
+	if check.IfNil(args.PeerBlacklistHandler) {
+		return ErrNilPeerBlacklistHandler
+	}
 
 	return nil
 }
@@ -337,6 +343,14 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 	}
 	if len(message.Signature()) == 0 {
 		return ErrNilSignatureOnP2PMessage
+	}
+
+	isPeerBlacklisted := wrk.peerBlacklistHandler.IsPeerBlacklisted(fromConnectedPeer)
+	if isPeerBlacklisted {
+		log.Debug("received message from blacklisted peer",
+			"peer", fromConnectedPeer,
+		)
+		return ErrBlacklistedConsensusPeer
 	}
 
 	topic := GetConsensusTopicID(wrk.shardCoordinator)
@@ -600,6 +614,7 @@ func (wrk *Worker) checkChannels(ctx context.Context) {
 		}
 
 		msgType := consensus.MessageType(rcvDta.MsgType)
+
 		if callReceivedMessage, exist := wrk.receivedMessagesCalls[msgType]; exist {
 			if callReceivedMessage(ctx, rcvDta) {
 				select {

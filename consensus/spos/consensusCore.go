@@ -40,6 +40,7 @@ type ConsensusCore struct {
 	nodeRedundancyHandler         consensus.NodeRedundancyHandler
 	scheduledProcessor            consensus.ScheduledProcessor
 	messageSigningHandler         consensus.P2PSigningHandler
+	peerBlacklistHandler          consensus.PeerBlacklistHandler
 	signatureHandler              consensus.SignatureHandler
 }
 
@@ -68,6 +69,7 @@ type ConsensusCoreArgs struct {
 	NodeRedundancyHandler         consensus.NodeRedundancyHandler
 	ScheduledProcessor            consensus.ScheduledProcessor
 	MessageSigningHandler         consensus.P2PSigningHandler
+	PeerBlacklistHandler          consensus.PeerBlacklistHandler
 	SignatureHandler              consensus.SignatureHandler
 }
 
@@ -99,6 +101,7 @@ func NewConsensusCore(
 		nodeRedundancyHandler:         args.NodeRedundancyHandler,
 		scheduledProcessor:            args.ScheduledProcessor,
 		messageSigningHandler:         args.MessageSigningHandler,
+		peerBlacklistHandler:          args.PeerBlacklistHandler,
 		signatureHandler:              args.SignatureHandler,
 	}
 
@@ -223,6 +226,11 @@ func (cc *ConsensusCore) ScheduledProcessor() consensus.ScheduledProcessor {
 // MessageSigningHandler will return the message signing handler
 func (cc *ConsensusCore) MessageSigningHandler() consensus.P2PSigningHandler {
 	return cc.messageSigningHandler
+}
+
+// PeerBlacklistHandler will return the peer blacklist handler
+func (cc *ConsensusCore) PeerBlacklistHandler() consensus.PeerBlacklistHandler {
+	return cc.peerBlacklistHandler
 }
 
 // SignatureHandler will return the signature handler component
