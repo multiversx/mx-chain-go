@@ -9,15 +9,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/debug/antiflood"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
-	"github.com/ElrondNetwork/elrond-go/p2p/peersHolder"
-	"github.com/ElrondNetwork/elrond-go/p2p/rating"
+	p2pConfig "github.com/ElrondNetwork/elrond-go/p2p/config"
+	p2pFactory "github.com/ElrondNetwork/elrond-go/p2p/factory"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/rating/peerHonesty"
 	antifloodFactory "github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/factory"
@@ -28,7 +28,7 @@ import (
 
 // NetworkComponentsFactoryArgs holds the arguments to create a network component handler instance
 type NetworkComponentsFactoryArgs struct {
-	P2pConfig             config.P2PConfig
+	P2pConfig             p2pConfig.P2PConfig
 	MainConfig            config.Config
 	RatingsConfig         config.RatingsConfig
 	StatusHandler         core.AppStatusHandler
@@ -38,10 +38,11 @@ type NetworkComponentsFactoryArgs struct {
 	BootstrapWaitTime     time.Duration
 	NodeOperationMode     p2p.NodeOperation
 	ConnectionWatcherType string
+	P2pKeyPemFileName     string
 }
 
 type networkComponentsFactory struct {
-	p2pConfig             config.P2PConfig
+	p2pConfig             p2pConfig.P2PConfig
 	mainConfig            config.Config
 	ratingsConfig         config.RatingsConfig
 	statusHandler         core.AppStatusHandler
@@ -52,6 +53,7 @@ type networkComponentsFactory struct {
 	bootstrapWaitTime     time.Duration
 	nodeOperationMode     p2p.NodeOperation
 	connectionWatcherType string
+	p2pKeyPemFileName     string
 }
 
 // networkComponents struct holds the network components
@@ -92,18 +94,19 @@ func NewNetworkComponentsFactory(
 		marshalizer:           args.Marshalizer,
 		mainConfig:            args.MainConfig,
 		statusHandler:         args.StatusHandler,
-		listenAddress:         libp2p.ListenAddrWithIp4AndTcp,
+		listenAddress:         p2p.ListenAddrWithIp4AndTcp,
 		syncer:                args.Syncer,
 		bootstrapWaitTime:     args.BootstrapWaitTime,
 		preferredPeersSlices:  args.PreferredPeersSlices,
 		nodeOperationMode:     args.NodeOperationMode,
 		connectionWatcherType: args.ConnectionWatcherType,
+		p2pKeyPemFileName:     args.P2pKeyPemFileName,
 	}, nil
 }
 
 // Create creates and returns the network components
 func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
-	ph, err := peersHolder.NewPeersHolder(ncf.preferredPeersSlices)
+	ph, err := p2pFactory.NewPeersHolder(ncf.preferredPeersSlices)
 	if err != nil {
 		return nil, err
 	}
@@ -116,16 +119,21 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 	if err != nil {
 		return nil, err
 	}
-	argsPeersRatingHandler := rating.ArgPeersRatingHandler{
+	argsPeersRatingHandler := p2pFactory.ArgPeersRatingHandler{
 		TopRatedCache: topRatedCache,
 		BadRatedCache: badRatedCache,
 	}
-	peersRatingHandler, err := rating.NewPeersRatingHandler(argsPeersRatingHandler)
+	peersRatingHandler, err := p2pFactory.NewPeersRatingHandler(argsPeersRatingHandler)
 	if err != nil {
 		return nil, err
 	}
 
-	arg := libp2p.ArgsNetworkMessenger{
+	p2pPrivateKeyBytes, err := common.GetSkBytesFromP2pKey(ncf.p2pKeyPemFileName)
+	if err != nil {
+		return nil, err
+	}
+
+	arg := p2pFactory.ArgsNetworkMessenger{
 		Marshalizer:           ncf.marshalizer,
 		ListenAddress:         ncf.listenAddress,
 		P2pConfig:             ncf.p2pConfig,
@@ -134,8 +142,9 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		NodeOperationMode:     ncf.nodeOperationMode,
 		PeersRatingHandler:    peersRatingHandler,
 		ConnectionWatcherType: ncf.connectionWatcherType,
+		P2pPrivateKeyBytes:    p2pPrivateKeyBytes,
 	}
-	netMessenger, err := libp2p.NewNetworkMessenger(arg)
+	netMessenger, err := p2pFactory.NewNetworkMessenger(arg)
 	if err != nil {
 		return nil, err
 	}

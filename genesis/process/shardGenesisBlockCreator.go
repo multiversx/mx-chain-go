@@ -120,9 +120,9 @@ func createGenesisConfig() config.EnableEpochs {
 		CheckCorrectTokenIDForTransferRoleEnableEpoch:     unreachableEpoch,
 		DisableExecByCallerEnableEpoch:                    unreachableEpoch,
 		RefactorContextEnableEpoch:                        unreachableEpoch,
-		HeartbeatDisableEpoch:                             unreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch:              unreachableEpoch,
 		ESDTMetadataContinuousCleanupEnableEpoch:          unreachableEpoch,
+		FixOldTokenLiquidityEnableEpoch:                   unreachableEpoch,
 		RefactorPeersMiniBlocksEnableEpoch:                unreachableEpoch,
 	}
 }
@@ -380,7 +380,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		ShardCoordinator:          arg.ShardCoordinator,
 		EpochNotifier:             epochNotifier,
 		EnableEpochsHandler:       enableEpochsHandler,
-		AutomaticCrawlerAddresses:                [][]byte{   make([]byte, 32)},
+		AutomaticCrawlerAddresses: [][]byte{make([]byte, 32)},
 		MaxNumNodesInTransferRole: math.MaxUint32,
 	}
 	builtInFuncFactory, err := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)

@@ -10,7 +10,7 @@ import (
 	"sync"
 	"testing"
 
-	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
+	arwenConfig "github.com/ElrondNetwork/wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
@@ -58,6 +58,7 @@ import (
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
 	"github.com/ElrondNetwork/elrond-go/trie"
@@ -318,6 +319,7 @@ func CreateInMemoryShardAccountsDB() *state.AccountsDB {
 		StoragePruningManager: spm,
 		ProcessingMode:        common.Normal,
 		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
+		AppStatusHandler:      &statusHandler.AppStatusHandlerStub{},
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 
@@ -1003,7 +1005,7 @@ func TestDeployedContractContents(
 	assert.NotNil(t, destinationRecovShardAccount.GetRootHash())
 
 	for variable, requiredVal := range dataValues {
-		contractVariableData, err := destinationRecovShardAccount.DataTrieTracker().RetrieveValue([]byte(variable))
+		contractVariableData, err := destinationRecovShardAccount.RetrieveValue([]byte(variable))
 		assert.Nil(t, err)
 		assert.NotNil(t, contractVariableData)
 

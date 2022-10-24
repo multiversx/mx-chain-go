@@ -98,9 +98,6 @@ var ErrNilCoreComponentsFactory = errors.New("nil core components factory")
 // ErrNilDataComponentsFactory signals that the provided data components factory is nil
 var ErrNilDataComponentsFactory = errors.New("nil data components factory")
 
-// ErrNilHeartbeatComponentsFactory signals that the provided heartbeat components factory is nil
-var ErrNilHeartbeatComponentsFactory = errors.New("nil heartbeat components factory")
-
 // ErrNilHeartbeatV2ComponentsFactory signals that the provided heartbeatV2 components factory is nil
 var ErrNilHeartbeatV2ComponentsFactory = errors.New("nil heartbeatV2 components factory")
 
@@ -133,6 +130,9 @@ var ErrNilConsensusWorker = errors.New("nil consensus worker")
 
 // ErrNilCoreComponents signals that an operation has been attempted with nil core components
 var ErrNilCoreComponents = errors.New("nil core components provided")
+
+// ErrNilStatusCoreComponents signals that an operation has been attempted with nil status core components
+var ErrNilStatusCoreComponents = errors.New("nil status core components provided")
 
 // ErrNilCoreComponentsHolder signals that a nil core components holder was provided
 var ErrNilCoreComponentsHolder = errors.New("nil core components holder")
@@ -194,26 +194,11 @@ var ErrNilHeaderIntegrityVerifier = errors.New("nil header integrity verifier")
 // ErrNilHeaderSigVerifier signals that a nil header sig verifier has been provided
 var ErrNilHeaderSigVerifier = errors.New("")
 
-// ErrNilHeartbeatComponents signals that a nil heartbeat components instance was provided
-var ErrNilHeartbeatComponents = errors.New("nil heartbeat component")
-
 // ErrNilHeartbeatV2Components signals that a nil heartbeatV2 components instance was provided
 var ErrNilHeartbeatV2Components = errors.New("nil heartbeatV2 component")
 
-// ErrNilHeartbeatMessageHandler signals that a nil heartbeat message handler was provided
-var ErrNilHeartbeatMessageHandler = errors.New("nil heartbeat message handler")
-
-// ErrNilHeartbeatMonitor signals that a nil heartbeat monitor was provided
-var ErrNilHeartbeatMonitor = errors.New("nil heartbeat monitor")
-
-// ErrNilHeartbeatSender signals that a nil heartbeat sender was provided
-var ErrNilHeartbeatSender = errors.New("nil heartbeat sender")
-
 // ErrNilHeartbeatV2Sender signals that a nil heartbeatV2 sender was provided
 var ErrNilHeartbeatV2Sender = errors.New("nil heartbeatV2 sender")
-
-// ErrNilHeartbeatStorer signals that a nil heartbeat storer was provided
-var ErrNilHeartbeatStorer = errors.New("nil heartbeat storer")
 
 // ErrNilInputAntiFloodHandler signals that a nil input antiflood handler was provided
 var ErrNilInputAntiFloodHandler = errors.New("nil input antiflood handler")
@@ -428,14 +413,14 @@ var ErrConsensusComponentsFactoryCreate = errors.New("consensusComponentsFactory
 // ErrCoreComponentsFactoryCreate signals that an error occured on coreComponentsFactory create
 var ErrCoreComponentsFactoryCreate = errors.New("coreComponentsFactory create failed")
 
+// ErrStatusCoreComponentsFactoryCreate signals that an error occured on statusCoreComponentsFactory create
+var ErrStatusCoreComponentsFactoryCreate = errors.New("statusCoreComponentsFactory create failed")
+
 // ErrCryptoComponentsFactoryCreate signals that an error occured on cryptoComponentsFactory create
 var ErrCryptoComponentsFactoryCreate = errors.New("cryptoComponentsFactory create failed")
 
 // ErrDataComponentsFactoryCreate signals that an error occured on dataComponentsFactory create
 var ErrDataComponentsFactoryCreate = errors.New("dataComponentsFactory create failed")
-
-// ErrHeartbeatComponentsFactoryCreate signals that an error occured on heartbeatComponentsFactory create
-var ErrHeartbeatComponentsFactoryCreate = errors.New("heartbeatComponentsFactory create failed")
 
 // ErrNetworkComponentsFactoryCreate signals that an error occured on networkComponentsFactory create
 var ErrNetworkComponentsFactoryCreate = errors.New("networkComponentsFactory create failed")
@@ -514,3 +499,12 @@ var ErrInvalidPID = errors.New("invalid PID")
 
 // ErrInvalidSignature signals that the given signature is invalid
 var ErrInvalidSignature = errors.New("invalid signature")
+
+// ErrInvalidHeartbeatV2Config signals that an invalid heartbeat v2 configuration has been provided
+var ErrInvalidHeartbeatV2Config = errors.New("invalid heartbeat v2 configuration")
+
+// ErrNilNetworkStatistics signals that a nil network statistics was provided
+var ErrNilNetworkStatistics = errors.New("nil network statistics")
+
+// ErrNilResourceMonitor signals that a nil resource monitor was provided
+var ErrNilResourceMonitor = errors.New("nil resource monitor")

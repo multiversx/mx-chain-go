@@ -12,7 +12,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/partitioning"
@@ -58,7 +57,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/nodeDebugFactory"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	p2pRating "github.com/ElrondNetwork/elrond-go/p2p/rating"
+	p2pFactory "github.com/ElrondNetwork/elrond-go/p2p/factory"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -108,6 +107,7 @@ import (
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
+	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/trie/keyBuilder"
 	"github.com/ElrondNetwork/elrond-go/update"
@@ -117,6 +117,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
+	arwenConfig "github.com/ElrondNetwork/wasm-vm/config"
 )
 
 var zero = big.NewInt(0)
@@ -406,8 +407,8 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 		nodesCoordinatorInstance = getDefaultNodesCoordinator(args.MaxShards, pksBytes)
 	}
 
-	peersRatingHandler, _ := p2pRating.NewPeersRatingHandler(
-		p2pRating.ArgPeersRatingHandler{
+	peersRatingHandler, _ := p2pFactory.NewPeersRatingHandler(
+		p2pFactory.ArgPeersRatingHandler{
 			TopRatedCache: testscommon.NewCacherMock(),
 			BadRatedCache: testscommon.NewCacherMock(),
 		})
@@ -1848,7 +1849,7 @@ func (tpn *TestProcessorNode) processSCOutputAccounts(vmOutput *vmcommon.VMOutpu
 
 		storageUpdates := process.GetSortedStorageUpdates(outAcc)
 		for _, storeUpdate := range storageUpdates {
-			err = acc.DataTrieTracker().SaveKeyValue(storeUpdate.Offset, storeUpdate.Data)
+			err = acc.SaveKeyValue(storeUpdate.Offset, storeUpdate.Data)
 			if err != nil {
 				return err
 			}
@@ -2510,14 +2511,14 @@ func (tpn *TestProcessorNode) GetShardHeader(nonce uint64) (data.HeaderHandler, 
 
 	headerObjects, _, err := tpn.DataPool.Headers().GetHeadersByNonceAndShardId(nonce, tpn.ShardCoordinator.SelfId())
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("no headers found for nonce %d and shard id %d %s", nonce, tpn.ShardCoordinator.SelfId(), err.Error()))
+		return nil, fmt.Errorf("%w no headers found for nonce %d and shard id %d", err, nonce, tpn.ShardCoordinator.SelfId())
 	}
 
 	headerObject := headerObjects[len(headerObjects)-1]
 
 	header, ok := headerObject.(*dataBlock.Header)
 	if !ok {
-		return nil, errors.New(fmt.Sprintf("not a *dataBlock.Header stored in headers found for nonce and shard id %d %d", nonce, tpn.ShardCoordinator.SelfId()))
+		return nil, fmt.Errorf("not a *dataBlock.Header stored in headers found for nonce and shard id %d %d", nonce, tpn.ShardCoordinator.SelfId())
 	}
 
 	return header, nil
@@ -2536,12 +2537,12 @@ func (tpn *TestProcessorNode) GetBlockBody(header data.HeaderHandler) (*dataBloc
 
 		mbObject, ok := tpn.DataPool.MiniBlocks().Get(miniBlockHash)
 		if !ok {
-			return nil, errors.New(fmt.Sprintf("no miniblock found for hash %s", hex.EncodeToString(miniBlockHash)))
+			return nil, fmt.Errorf("no miniblock found for hash %s", hex.EncodeToString(miniBlockHash))
 		}
 
 		mb, ok := mbObject.(*dataBlock.MiniBlock)
 		if !ok {
-			return nil, errors.New(fmt.Sprintf("not a *dataBlock.MiniBlock stored in miniblocks found for hash %s", hex.EncodeToString(miniBlockHash)))
+			return nil, fmt.Errorf("not a *dataBlock.MiniBlock stored in miniblocks found for hash %s", hex.EncodeToString(miniBlockHash))
 		}
 
 		body.MiniBlocks = append(body.MiniBlocks, mb)
@@ -2563,12 +2564,12 @@ func (tpn *TestProcessorNode) GetMetaBlockBody(header *dataBlock.MetaBlock) (*da
 
 		mbObject, ok := tpn.DataPool.MiniBlocks().Get(miniBlockHash)
 		if !ok {
-			return nil, errors.New(fmt.Sprintf("no miniblock found for hash %s", hex.EncodeToString(miniBlockHash)))
+			return nil, fmt.Errorf("no miniblock found for hash %s", hex.EncodeToString(miniBlockHash))
 		}
 
 		mb, ok := mbObject.(*dataBlock.MiniBlock)
 		if !ok {
-			return nil, errors.New(fmt.Sprintf("not a *dataBlock.MiniBlock stored in miniblocks found for hash %s", hex.EncodeToString(miniBlockHash)))
+			return nil, fmt.Errorf("not a *dataBlock.MiniBlock stored in miniblocks found for hash %s", hex.EncodeToString(miniBlockHash))
 		}
 
 		body.MiniBlocks = append(body.MiniBlocks, mb)
@@ -2586,14 +2587,14 @@ func (tpn *TestProcessorNode) GetMetaHeader(nonce uint64) (*dataBlock.MetaBlock,
 
 	headerObjects, _, err := tpn.DataPool.Headers().GetHeadersByNonceAndShardId(nonce, core.MetachainShardId)
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("no headers found for nonce and shard id %d %d %s", nonce, core.MetachainShardId, err.Error()))
+		return nil, fmt.Errorf("%w no headers found for nonce and shard id %d %d", err, nonce, core.MetachainShardId)
 	}
 
 	headerObject := headerObjects[len(headerObjects)-1]
 
 	header, ok := headerObject.(*dataBlock.MetaBlock)
 	if !ok {
-		return nil, errors.New(fmt.Sprintf("not a *dataBlock.MetaBlock stored in headers found for nonce and shard id %d %d", nonce, core.MetachainShardId))
+		return nil, fmt.Errorf("not a *dataBlock.MetaBlock stored in headers found for nonce and shard id %d %d", nonce, core.MetachainShardId)
 	}
 
 	return header, nil
@@ -2704,7 +2705,7 @@ func (tpn *TestProcessorNode) initRoundHandler() {
 }
 
 func (tpn *TestProcessorNode) initRequestedItemsHandler() {
-	tpn.RequestedItemsHandler = cache.NewTimeCache(roundDuration)
+	tpn.RequestedItemsHandler = cache.NewTimeCache(time.Second)
 }
 
 func (tpn *TestProcessorNode) initBlockTracker() {
@@ -2801,45 +2802,6 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 	)
 	log.LogIfError(err)
 
-	// TODO: remove it with heartbeat v1 cleanup
-	// =============== Heartbeat ============== //
-	redundancyHandler := &mock.RedundancyHandlerStub{}
-
-	hbConfig := config.HeartbeatConfig{
-		MinTimeToWaitBetweenBroadcastsInSec: 4,
-		MaxTimeToWaitBetweenBroadcastsInSec: 6,
-		DurationToConsiderUnresponsiveInSec: 60,
-		HeartbeatRefreshIntervalInSec:       5,
-		HideInactiveValidatorIntervalInSec:  600,
-	}
-
-	hbFactoryArgs := heartbeatComp.HeartbeatComponentsFactoryArgs{
-		Config: config.Config{
-			Heartbeat: hbConfig,
-		},
-		Prefs:             config.Preferences{},
-		RedundancyHandler: redundancyHandler,
-		CoreComponents:    tpn.Node.GetCoreComponents(),
-		DataComponents:    tpn.Node.GetDataComponents(),
-		NetworkComponents: tpn.Node.GetNetworkComponents(),
-		CryptoComponents:  tpn.Node.GetCryptoComponents(),
-		ProcessComponents: tpn.Node.GetProcessComponents(),
-	}
-
-	heartbeatFactory, err := heartbeatComp.NewHeartbeatComponentsFactory(hbFactoryArgs)
-	log.LogIfError(err)
-
-	managedHeartbeatComponents, err := heartbeatComp.NewManagedHeartbeatComponents(heartbeatFactory)
-	log.LogIfError(err)
-
-	err = managedHeartbeatComponents.Create()
-	log.LogIfError(err)
-
-	err = tpn.Node.ApplyOptions(
-		node.WithHeartbeatComponents(managedHeartbeatComponents),
-	)
-	log.LogIfError(err)
-
 	// ============== HeartbeatV2 ============= //
 	hbv2Config := config.HeartbeatV2Config{
 		PeerAuthenticationTimeBetweenSendsInSec:          5,
@@ -2852,7 +2814,8 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 		MinPeersThreshold:                                0.8,
 		DelayBetweenRequestsInSec:                        10,
 		MaxTimeoutInSec:                                  60,
-		DelayBetweenConnectionNotificationsInSec:         5,
+		PeerShardTimeBetweenSendsInSec:                   5,
+		PeerShardThresholdBetweenSends:                   0.1,
 		MaxMissingKeysInRequest:                          100,
 		MaxDurationPeerUnresponsiveInSec:                 10,
 		HideInactiveValidatorIntervalInSec:               60,
@@ -2960,7 +2923,6 @@ func CreateEnableEpochsConfig() config.EnableEpochs {
 		AddFailedRelayedTxToInvalidMBsDisableEpoch:        UnreachableEpoch,
 		SCRSizeInvariantOnBuiltInResultEnableEpoch:        UnreachableEpoch,
 		CheckCorrectTokenIDForTransferRoleEnableEpoch:     UnreachableEpoch,
-		HeartbeatDisableEpoch:                             UnreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch:              UnreachableEpoch,
 		RefactorPeersMiniBlocksEnableEpoch:                UnreachableEpoch,
 	}
@@ -3085,7 +3047,7 @@ func GetDefaultStateComponents() *testscommon.StateComponentsMock {
 		PeersAcc:     &stateMock.AccountsStub{},
 		Accounts:     &stateMock.AccountsStub{},
 		AccountsRepo: &stateMock.AccountsRepositoryStub{},
-		Tries:        &mock.TriesHolderStub{},
+		Tries:        &trieMock.TriesHolderStub{},
 		StorageManagers: map[string]common.StorageManager{
 			"0":                         &testscommon.StorageManagerStub{},
 			trieFactory.UserAccountTrie: &testscommon.StorageManagerStub{},
@@ -3126,7 +3088,7 @@ func getDefaultBootstrapComponents(shardCoordinator sharding.Coordinator) *mainF
 
 	return &mainFactoryMocks.BootstrapComponentsStub{
 		Bootstrapper: &bootstrapMocks.EpochStartBootstrapperStub{
-			TrieHolder:      &mock.TriesHolderStub{},
+			TrieHolder:      &trieMock.TriesHolderStub{},
 			StorageManagers: map[string]common.StorageManager{"0": &testscommon.StorageManagerStub{}},
 			BootstrapCalled: nil,
 		},
@@ -3155,14 +3117,22 @@ func GetTokenIdentifier(nodes []*TestProcessorNode, ticker []byte) []byte {
 		userAcc, _ := acc.(state.UserAccountHandler)
 
 		rootHash, _ := userAcc.DataTrie().RootHash()
-		chLeaves := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+		chLeaves := &common.TrieIteratorChannels{
+			LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+			ErrChan:    make(chan error, 1),
+		}
 		_ = userAcc.DataTrie().GetAllLeavesOnChannel(chLeaves, context.Background(), rootHash, keyBuilder.NewKeyBuilder())
-		for leaf := range chLeaves {
+		for leaf := range chLeaves.LeavesChan {
 			if !bytes.HasPrefix(leaf.Key(), ticker) {
 				continue
 			}
 
 			return leaf.Key()
+		}
+
+		err := common.GetErrorFromChanNonBlocking(chLeaves.ErrChan)
+		if err != nil {
+			log.Error("error getting all leaves from channel", "err", err)
 		}
 	}
 

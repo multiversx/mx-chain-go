@@ -3,8 +3,8 @@ package mock
 import (
 	"encoding/json"
 
+	"github.com/ElrondNetwork/elrond-go-p2p/message"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/p2p/message"
 )
 
 // MessageSignerMock implements P2PSigningHandler interface but it does nothing as it is disabled
