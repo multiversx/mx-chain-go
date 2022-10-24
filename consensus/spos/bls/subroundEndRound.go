@@ -299,43 +299,10 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	}
 
 	// Aggregate sig and add it to the block
-	sig, err := sr.SignatureHandler().AggregateSigs(bitmap, sr.Header.GetEpoch())
+	bitmap, sig, err := sr.aggregateSigsAndHandleInvalidSigners(bitmap)
 	if err != nil {
-		log.Debug("doEndRoundJobByLeader.AggregateSigs", "error", err.Error())
+		log.Debug("doEndRoundJobByLeader.aggregateSigsAndHandleInvalidSigners", "error", err.Error())
 		return false
-	}
-
-	err = sr.SignatureHandler().SetAggregatedSig(sig)
-	if err != nil {
-		log.Debug("doEndRoundJobByLeader.SetAggregatedSig", "error", err.Error())
-		return false
-	}
-
-	err = sr.SignatureHandler().Verify(sr.GetData(), bitmap, sr.Header.GetEpoch())
-	if err != nil {
-		log.Debug("doEndRoundJobByLeader.Verify", "error", err.Error())
-
-		invalidPubKeys, err := sr.verifyNodesOnAggSigVerificationFail()
-		if err != nil {
-			log.Debug("doEndRoundJobByLeader.verifyNodesOnAggSigVerificationFail", "error", err.Error())
-			return false
-		}
-
-		invalidSigners, err := sr.getFullMessagesForInvalidSigners(invalidPubKeys)
-		if err != nil {
-			log.Debug("doEndRoundJobByLeader.getFullMessagesForInvalidSigners", "error", err.Error())
-			return false
-		}
-
-		if len(invalidSigners) > 0 {
-			sr.createAndBroadcastInvalidSigners(invalidSigners)
-		}
-
-		bitmap, sig, err = sr.computeAggSigOnValidNodes()
-		if err != nil {
-			log.Debug("doEndRoundJobByLeader.computeAggSigOnValidNodes", "error", err.Error())
-			return false
-		}
 	}
 
 	err = sr.Header.SetPubKeysBitmap(bitmap)
@@ -422,10 +389,31 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	return true
 }
 
-// TODO:
-//	- slashing for invalid sig shares
-//	- handle sig share verifications concurrently
-func (sr *subroundEndRound) verifyNodesOnAggSigVerificationFail() ([]string, error) {
+func (sr *subroundEndRound) aggregateSigsAndHandleInvalidSigners(bitmap []byte) ([]byte, []byte, error) {
+	sig, err := sr.SignatureHandler().AggregateSigs(bitmap, sr.Header.GetEpoch())
+	if err != nil {
+		log.Debug("doEndRoundJobByLeader.AggregateSigs", "error", err.Error())
+
+		return sr.handleInvalidSignersOnAggSigFail()
+	}
+
+	err = sr.SignatureHandler().SetAggregatedSig(sig)
+	if err != nil {
+		log.Debug("doEndRoundJobByLeader.SetAggregatedSig", "error", err.Error())
+		return nil, nil, err
+	}
+
+	err = sr.SignatureHandler().Verify(sr.GetData(), bitmap, sr.Header.GetEpoch())
+	if err != nil {
+		log.Debug("doEndRoundJobByLeader.Verify", "error", err.Error())
+
+		return sr.handleInvalidSignersOnAggSigFail()
+	}
+
+	return bitmap, sig, nil
+}
+
+func (sr *subroundEndRound) verifyNodesOnAggSigFail() ([]string, error) {
 	invalidPubKeys := make([]string, 0)
 	pubKeys := sr.ConsensusGroup()
 
@@ -489,6 +477,32 @@ func (sr *subroundEndRound) getFullMessagesForInvalidSigners(invalidPubKeys []st
 	}
 
 	return invalidSigners, nil
+}
+
+func (sr *subroundEndRound) handleInvalidSignersOnAggSigFail() ([]byte, []byte, error) {
+	invalidPubKeys, err := sr.verifyNodesOnAggSigFail()
+	if err != nil {
+		log.Debug("doEndRoundJobByLeader.verifyNodesOnAggSigFail", "error", err.Error())
+		return nil, nil, err
+	}
+
+	invalidSigners, err := sr.getFullMessagesForInvalidSigners(invalidPubKeys)
+	if err != nil {
+		log.Debug("doEndRoundJobByLeader.getFullMessagesForInvalidSigners", "error", err.Error())
+		return nil, nil, err
+	}
+
+	if len(invalidSigners) > 0 {
+		sr.createAndBroadcastInvalidSigners(invalidSigners)
+	}
+
+	bitmap, sig, err := sr.computeAggSigOnValidNodes()
+	if err != nil {
+		log.Debug("doEndRoundJobByLeader.computeAggSigOnValidNodes", "error", err.Error())
+		return nil, nil, err
+	}
+
+	return bitmap, sig, nil
 }
 
 func (sr *subroundEndRound) computeAggSigOnValidNodes() ([]byte, []byte, error) {
