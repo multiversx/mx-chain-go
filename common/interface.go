@@ -168,7 +168,7 @@ type TrieStatisticsHandler interface {
 // TriesStatisticsCollector is used to merge the statistics for multiple tries
 type TriesStatisticsCollector interface {
 	Add(trieStats *statistics.TrieStatsDTO)
-	Print()
+	UpdateMetricAndPrintStatistics(metric string)
 }
 
 // ProcessStatusHandler defines the behavior of a component able to hold the current status of the node and

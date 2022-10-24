@@ -7,8 +7,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -62,7 +62,7 @@ type FileLoggingHandler interface {
 // TODO: find a better naming
 type StatusHandlersUtils interface {
 	StatusHandler() core.AppStatusHandler
-	Metrics() external.StatusMetricsHandler
+	Metrics() statusHandler.StatusMetricsHandler
 	UpdateStorerAndMetricsForPersistentHandler(store storage.Storer) error
 	IsInterfaceNil() bool
 }

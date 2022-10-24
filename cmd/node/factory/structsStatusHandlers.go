@@ -8,7 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/statusHandler/persister"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -19,7 +18,7 @@ var log = logger.GetOrCreate("main")
 // StatusHandlersInfo is struct that stores all components that are returned when status handlers are created
 type statusHandlersInfo struct {
 	AppStatusHandler  core.AppStatusHandler
-	StatusMetrics     external.StatusMetricsHandler
+	StatusMetrics     statusHandler.StatusMetricsHandler
 	PersistentHandler *persister.PersistentStatusHandler
 }
 
@@ -91,7 +90,7 @@ func (shi *statusHandlersInfo) StatusHandler() core.AppStatusHandler {
 }
 
 // Metrics returns the status metrics
-func (shi *statusHandlersInfo) Metrics() external.StatusMetricsHandler {
+func (shi *statusHandlersInfo) Metrics() statusHandler.StatusMetricsHandler {
 	return shi.StatusMetrics
 }
 

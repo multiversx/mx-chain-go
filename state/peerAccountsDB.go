@@ -2,6 +2,7 @@ package state
 
 import (
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/common/disabled"
 )
 
 // PeerAccountsDB will save and synchronize data from peer processor, plus will synchronize with nodesCoordinator
@@ -58,7 +59,7 @@ func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
 		LeavesChan: nil,
 		ErrChan:    make(chan error, 1),
 	}
-	stats := newSnapshotStatistics(0, 1)
+	stats := newSnapshotStatistics(0, 1, disabled.NewAppStatusHandler())
 	stats.NewSnapshotStarted()
 
 	peerAccountsMetrics := &accountMetrics{
@@ -86,7 +87,7 @@ func (adb *PeerAccountsDB) SetStateCheckpoint(rootHash []byte) {
 	trieStorageManager := adb.mainTrie.GetStorageManager()
 
 	missingNodesChannel := make(chan []byte, missingNodesChannelSize)
-	stats := newSnapshotStatistics(0, 1)
+	stats := newSnapshotStatistics(0, 1, disabled.NewAppStatusHandler())
 
 	trieStorageManager.EnterPruningBufferingMode()
 	stats.NewSnapshotStarted()

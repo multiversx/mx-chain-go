@@ -2767,7 +2767,7 @@ func TestAccountsDB_PrintStatsForRootHash(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, stats)
 
-	stats.Print()
+	stats.UpdateMetricAndPrintStatistics("")
 }
 
 func addDataTries(accountsAddresses [][]byte, adb *state.AccountsDB) {

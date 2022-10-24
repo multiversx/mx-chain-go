@@ -15,13 +15,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // ArgNodeApiResolver represents the DTO structure used in the NewNodeApiResolver constructor
 type ArgNodeApiResolver struct {
 	SCQueryService           SCQueryService
-	StatusMetricsHandler     StatusMetricsHandler
+	StatusMetricsHandler     statusHandler.StatusMetricsHandler
 	TxCostHandler            TransactionCostHandler
 	TotalStakedValueHandler  TotalStakedValueHandler
 	DirectStakedListHandler  DirectStakedListHandler
@@ -38,7 +39,7 @@ type ArgNodeApiResolver struct {
 // nodeApiResolver can resolve API requests
 type nodeApiResolver struct {
 	scQueryService           SCQueryService
-	statusMetricsHandler     StatusMetricsHandler
+	statusMetricsHandler     statusHandler.StatusMetricsHandler
 	txCostHandler            TransactionCostHandler
 	totalStakedValueHandler  TotalStakedValueHandler
 	directStakedListHandler  DirectStakedListHandler
@@ -117,7 +118,7 @@ func (nar *nodeApiResolver) ExecuteSCQuery(query *process.SCQuery) (*vmcommon.VM
 }
 
 // StatusMetrics returns an implementation of the StatusMetricsHandler interface
-func (nar *nodeApiResolver) StatusMetrics() StatusMetricsHandler {
+func (nar *nodeApiResolver) StatusMetrics() statusHandler.StatusMetricsHandler {
 	return nar.statusMetricsHandler
 }
 

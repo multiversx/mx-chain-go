@@ -12,10 +12,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
-	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
 	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
 // FacadeStub is the mock implementation of a node router handler
@@ -33,7 +33,7 @@ type FacadeStub struct {
 	ValidateTransactionForSimulationHandler     func(tx *transaction.Transaction, bypassSignature bool) error
 	SendBulkTransactionsHandler                 func(txs []*transaction.Transaction) (uint64, error)
 	ExecuteSCQueryHandler                       func(query *process.SCQuery) (*vm.VMOutputApi, error)
-	StatusMetricsHandler                        func() external.StatusMetricsHandler
+	StatusMetricsHandler                        func() statusHandler.StatusMetricsHandler
 	ValidatorStatisticsHandler                  func() (map[string]*state.ValidatorApiResponse, error)
 	ComputeTransactionGasLimitHandler           func(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	NodeConfigCalled                            func() map[string]interface{}
@@ -309,7 +309,7 @@ func (f *FacadeStub) ExecuteSCQuery(query *process.SCQuery) (*vm.VMOutputApi, er
 }
 
 // StatusMetrics is the mock implementation for the StatusMetrics
-func (f *FacadeStub) StatusMetrics() external.StatusMetricsHandler {
+func (f *FacadeStub) StatusMetrics() statusHandler.StatusMetricsHandler {
 	return f.StatusMetricsHandler()
 }
 

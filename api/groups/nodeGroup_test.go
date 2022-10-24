@@ -22,7 +22,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
-	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/gin-gonic/gin"
@@ -137,7 +136,7 @@ func TestP2PMetrics_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
 	expectedErr := errors.New("i am an error")
 
 	facade := mock.FacadeStub{
-		StatusMetricsHandler: func() external.StatusMetricsHandler {
+		StatusMetricsHandler: func() statusHandler.StatusMetricsHandler {
 			return &testscommon.StatusMetricsStub{
 				StatusP2pMetricsMapCalled: func() (map[string]interface{}, error) {
 					return nil, expectedErr
@@ -167,7 +166,7 @@ func TestNodeStatus_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
 	expectedErr := errors.New("i am an error")
 
 	facade := mock.FacadeStub{
-		StatusMetricsHandler: func() external.StatusMetricsHandler {
+		StatusMetricsHandler: func() statusHandler.StatusMetricsHandler {
 			return &testscommon.StatusMetricsStub{
 				StatusMetricsMapWithoutP2PCalled: func() (map[string]interface{}, error) {
 					return nil, expectedErr
@@ -203,7 +202,7 @@ func TestStatusMetrics_ShouldDisplayNonP2pMetrics(t *testing.T) {
 	statusMetricsProvider.SetStringValue(p2pKey, "p2p value")
 
 	facade := mock.FacadeStub{}
-	facade.StatusMetricsHandler = func() external.StatusMetricsHandler {
+	facade.StatusMetricsHandler = func() statusHandler.StatusMetricsHandler {
 		return statusMetricsProvider
 	}
 
@@ -236,7 +235,7 @@ func TestP2PStatusMetrics_ShouldDisplayNonP2pMetrics(t *testing.T) {
 	statusMetricsProvider.SetStringValue(p2pKey, p2pValue)
 
 	facade := mock.FacadeStub{}
-	facade.StatusMetricsHandler = func() external.StatusMetricsHandler {
+	facade.StatusMetricsHandler = func() statusHandler.StatusMetricsHandler {
 		return statusMetricsProvider
 	}
 
@@ -459,7 +458,7 @@ func TestPrometheusMetrics_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
 	expectedErr := errors.New("i am an error")
 
 	facade := mock.FacadeStub{
-		StatusMetricsHandler: func() external.StatusMetricsHandler {
+		StatusMetricsHandler: func() statusHandler.StatusMetricsHandler {
 			return &testscommon.StatusMetricsStub{
 				StatusMetricsWithoutP2PPrometheusStringCalled: func() (string, error) {
 					return "", expectedErr
@@ -492,7 +491,7 @@ func TestPrometheusMetrics_ShouldWork(t *testing.T) {
 	statusMetricsProvider.SetUInt64Value(key, value)
 
 	facade := mock.FacadeStub{}
-	facade.StatusMetricsHandler = func() external.StatusMetricsHandler {
+	facade.StatusMetricsHandler = func() statusHandler.StatusMetricsHandler {
 		return statusMetricsProvider
 	}
 

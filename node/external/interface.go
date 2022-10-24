@@ -18,19 +18,6 @@ type SCQueryService interface {
 	IsInterfaceNil() bool
 }
 
-// StatusMetricsHandler is the interface that defines what a node details handler/provider should do
-type StatusMetricsHandler interface {
-	StatusMetricsMapWithoutP2P() (map[string]interface{}, error)
-	StatusP2pMetricsMap() (map[string]interface{}, error)
-	StatusMetricsWithoutP2PPrometheusString() (string, error)
-	EconomicsMetrics() (map[string]interface{}, error)
-	ConfigMetrics() (map[string]interface{}, error)
-	EnableEpochsMetrics() (map[string]interface{}, error)
-	NetworkMetrics() (map[string]interface{}, error)
-	RatingsMetrics() (map[string]interface{}, error)
-	IsInterfaceNil() bool
-}
-
 // TransactionCostHandler defines the actions which should be handler by a transaction cost estimator
 type TransactionCostHandler interface {
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error)
