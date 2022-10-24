@@ -1,6 +1,7 @@
 package blacklist_test
 
 import (
+	"sync"
 	"testing"
 	"time"
 
@@ -71,4 +72,31 @@ func TestBlacklistPeer(t *testing.T) {
 	pb.BlacklistPeer(expPeer, duration)
 	require.True(t, hasWasCalled)
 	require.True(t, upsertWasCalled)
+}
+
+func TestStartSweepingTimeCache(t *testing.T) {
+	t.Parallel()
+
+	args := createMockPeerBlacklistArgs()
+
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+
+	sweepWasCalled := false
+	args.PeerCacher = &mock.PeerBlackListCacherStub{
+		SweepCalled: func() {
+			sweepWasCalled = true
+			wg.Done()
+		},
+	}
+
+	pb, err := blacklist.NewPeerBlacklist(args)
+	require.Nil(t, err)
+
+	pb.StartSweepingTimeCache()
+	defer pb.Close()
+
+	wg.Wait()
+
+	require.True(t, sweepWasCalled)
 }
