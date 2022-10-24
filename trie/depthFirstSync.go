@@ -245,7 +245,7 @@ func (d *depthFirstTrieSyncer) storeTrieNode(element node) error {
 	}
 	d.timeoutHandler.ResetWatchdog()
 
-	d.trieSyncStatistics.AddNumReceived(1)
+	d.trieSyncStatistics.AddNumProcessed(1)
 	if numBytes > core.MaxBufferSizeToSendTrieNodes {
 		d.trieSyncStatistics.AddNumLarge(1)
 	}
