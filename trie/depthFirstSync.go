@@ -1,7 +1,6 @@
 package trie
 
 import (
-	"bytes"
 	"context"
 	"sync"
 	"time"
@@ -69,7 +68,7 @@ func NewDepthFirstTrieSyncer(arg ArgTrieSyncer) (*depthFirstTrieSyncer, error) {
 // so this function is treated as a large critical section. This was done so the inner processing can be done without using
 // other mutexes.
 func (d *depthFirstTrieSyncer) StartSyncing(rootHash []byte, ctx context.Context) error {
-	if len(rootHash) == 0 || bytes.Equal(rootHash, EmptyTrieHash) {
+	if common.IsEmptyTrie(rootHash) {
 		return nil
 	}
 	if ctx == nil {
@@ -246,7 +245,7 @@ func (d *depthFirstTrieSyncer) storeTrieNode(element node) error {
 	}
 	d.timeoutHandler.ResetWatchdog()
 
-	d.trieSyncStatistics.AddNumReceived(1)
+	d.trieSyncStatistics.AddNumProcessed(1)
 	if numBytes > core.MaxBufferSizeToSendTrieNodes {
 		d.trieSyncStatistics.AddNumLarge(1)
 	}
