@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/stretchr/testify/assert"
@@ -184,7 +185,7 @@ func TestNewJournalEntryDataTrieUpdates_EmptyTrieUpdatesShouldErr(t *testing.T) 
 	t.Parallel()
 
 	trieUpdates := make(map[string][]byte)
-	accnt, _ := state.NewUserAccount(make([]byte, 32))
+	accnt, _ := state.NewUserAccount(make([]byte, 32), &hashingMocks.HasherMock{})
 	entry, err := state.NewJournalEntryDataTrieUpdates(trieUpdates, accnt)
 
 	assert.True(t, check.IfNil(entry))
@@ -196,7 +197,7 @@ func TestNewJournalEntryDataTrieUpdates_OkValsShouldWork(t *testing.T) {
 
 	trieUpdates := make(map[string][]byte)
 	trieUpdates["a"] = []byte("b")
-	accnt, _ := state.NewUserAccount(make([]byte, 32))
+	accnt, _ := state.NewUserAccount(make([]byte, 32), &hashingMocks.HasherMock{})
 	entry, err := state.NewJournalEntryDataTrieUpdates(trieUpdates, accnt)
 
 	assert.Nil(t, err)

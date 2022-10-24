@@ -4,6 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go/common"
 )
 
@@ -11,16 +12,22 @@ import (
 type trackableDataTrie struct {
 	dirtyData  map[string][]byte
 	tr         common.Trie
+	hasher     hashing.Hasher
 	identifier []byte
 }
 
 // NewTrackableDataTrie returns an instance of trackableDataTrie
-func NewTrackableDataTrie(identifier []byte, tr common.Trie) *trackableDataTrie {
+func NewTrackableDataTrie(identifier []byte, tr common.Trie, hasher hashing.Hasher) (*trackableDataTrie, error) {
+	if check.IfNil(hasher) {
+		return nil, ErrNilHasher
+	}
+
 	return &trackableDataTrie{
 		tr:         tr,
+		hasher:     hasher,
 		dirtyData:  make(map[string][]byte),
 		identifier: identifier,
-	}
+	}, nil
 }
 
 // RetrieveValue fetches the value from a particular key searching the account data store

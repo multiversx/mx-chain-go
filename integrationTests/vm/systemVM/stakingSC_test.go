@@ -412,7 +412,7 @@ func manualSetToInactiveStateStakedPeers(t *testing.T, nodes []*integrationTests
 
 		for index := range nodes {
 			pubKey, _ := hex.DecodeString(generateUniqueKey(index))
-			peerAccount, _ := state.NewPeerAccount(pubKey)
+			peerAccount, _ := state.NewPeerAccount(pubKey, integrationTests.TestHasher)
 			peerAccount.List = string(common.InactiveList)
 			peerAccount.BLSPublicKey = pubKey
 			err := node.PeerState.SaveAccount(peerAccount)

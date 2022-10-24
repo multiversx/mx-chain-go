@@ -2,6 +2,7 @@ package mock
 
 import (
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -74,7 +75,7 @@ func (b *BlockChainHookStub) GetUserAccount(address []byte) (vmcommon.UserAccoun
 		return b.GetUserAccountCalled(address)
 	}
 
-	return state.NewUserAccount(address)
+	return state.NewUserAccount(address, &hashingMocks.HasherMock{})
 }
 
 // GetShardOfAddress -

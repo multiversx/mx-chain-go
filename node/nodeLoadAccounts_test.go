@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	mockState "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
@@ -24,7 +25,7 @@ import (
 func TestNode_GetAccountWithOptionsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	alice, _ := state.NewUserAccount(testscommon.TestPubKeyAlice)
+	alice, _ := state.NewUserAccount(testscommon.TestPubKeyAlice, &hashingMocks.HasherMock{})
 	alice.Balance = big.NewInt(100)
 
 	accountsRepostitory := &mockState.AccountsRepositoryStub{}

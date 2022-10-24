@@ -13,7 +13,6 @@ import (
 	"testing"
 	"time"
 
-	arwenConfig "github.com/ElrondNetwork/wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
@@ -66,6 +65,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
+	arwenConfig "github.com/ElrondNetwork/wasm-vm/config"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
@@ -900,7 +900,7 @@ func GenerateAddressJournalAccountAccountsDB() ([]byte, state.UserAccountHandler
 	adr := CreateRandomAddress()
 	trieStorage, _ := CreateTrieStorageManager(CreateMemUnit())
 	adb, _ := CreateAccountsDB(UserAccount, trieStorage)
-	account, _ := state.NewUserAccount(adr)
+	account, _ := state.NewUserAccount(adr, TestHasher)
 
 	return adr, account, adb
 }

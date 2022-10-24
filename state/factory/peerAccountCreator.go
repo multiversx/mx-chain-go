@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
@@ -15,8 +16,8 @@ func NewPeerAccountCreator() state.AccountFactory {
 }
 
 // CreateAccount calls the new Account creator and returns the result
-func (pac *PeerAccountCreator) CreateAccount(address []byte) (vmcommon.AccountHandler, error) {
-	return state.NewPeerAccount(address)
+func (pac *PeerAccountCreator) CreateAccount(address []byte, hasher hashing.Hasher) (vmcommon.AccountHandler, error) {
+	return state.NewPeerAccount(address, hasher)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
