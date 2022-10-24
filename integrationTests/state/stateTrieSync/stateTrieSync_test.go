@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	arwenConfig "github.com/ElrondNetwork/wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/throttler"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -27,6 +26,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/trie/statistics"
 	"github.com/ElrondNetwork/elrond-go/trie/storageMarker"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
+	arwenConfig "github.com/ElrondNetwork/wasm-vm/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -160,7 +160,7 @@ func printStatistics(ctx context.Context, stats common.SizeSyncStatisticsHandler
 		select {
 		case <-ctx.Done():
 			log.Info("finished trie sync",
-				"num received", stats.NumReceived(),
+				"num processed", stats.NumProcessed(),
 				"num large nodes", stats.NumLarge(),
 				"num missing", stats.NumMissing(),
 				"data size received", core.ConvertBytes(stats.NumBytesReceived()),
@@ -177,7 +177,7 @@ func printStatistics(ctx context.Context, stats common.SizeSyncStatisticsHandler
 			speed := fmt.Sprintf("%s/s", core.ConvertBytes(uint64(bytesReceivedPerSec)))
 
 			log.Info("trie sync in progress",
-				"num received", stats.NumReceived(),
+				"num processed", stats.NumProcessed(),
 				"num large nodes", stats.NumLarge(),
 				"num missing", stats.NumMissing(),
 				"data size received", core.ConvertBytes(stats.NumBytesReceived()),
