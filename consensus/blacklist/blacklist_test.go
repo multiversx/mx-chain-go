@@ -36,9 +36,26 @@ func TestNewPeerBlacklist(t *testing.T) {
 		t.Parallel()
 
 		args := createMockPeerBlacklistArgs()
+
+		wg := &sync.WaitGroup{}
+		wg.Add(1)
+
+		sweepWasCalled := false
+		args.PeerCacher = &mock.PeerBlackListCacherStub{
+			SweepCalled: func() {
+				sweepWasCalled = true
+				wg.Done()
+			},
+		}
+
 		pb, err := blacklist.NewPeerBlacklist(args)
+		defer pb.Close()
+
+		wg.Wait()
+
 		require.Nil(t, err)
 		require.False(t, pb.IsInterfaceNil())
+		require.True(t, sweepWasCalled)
 	})
 }
 
@@ -74,29 +91,26 @@ func TestBlacklistPeer(t *testing.T) {
 	require.True(t, upsertWasCalled)
 }
 
-func TestStartSweepingTimeCache(t *testing.T) {
+func TestIsPeerBlacklisted(t *testing.T) {
 	t.Parallel()
 
 	args := createMockPeerBlacklistArgs()
 
-	wg := &sync.WaitGroup{}
-	wg.Add(1)
+	expPeer, _ := core.NewPeerID("peerID")
 
-	sweepWasCalled := false
+	hasWasCalled := false
 	args.PeerCacher = &mock.PeerBlackListCacherStub{
-		SweepCalled: func() {
-			sweepWasCalled = true
-			wg.Done()
+		HasCalled: func(pid core.PeerID) bool {
+			require.Equal(t, expPeer, pid)
+			hasWasCalled = true
+			return true
 		},
 	}
 
 	pb, err := blacklist.NewPeerBlacklist(args)
 	require.Nil(t, err)
 
-	pb.StartSweepingTimeCache()
-	defer pb.Close()
-
-	wg.Wait()
-
-	require.True(t, sweepWasCalled)
+	isBlacklisted := pb.IsPeerBlacklisted(expPeer)
+	require.True(t, isBlacklisted)
+	require.True(t, hasWasCalled)
 }
