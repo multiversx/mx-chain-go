@@ -251,7 +251,7 @@ func (sr *subroundEndRound) verifyInvalidSigner(msg p2p.MessageP2P) error {
 }
 
 func (sr *subroundEndRound) applyBlacklistOnNode(peer core.PeerID) {
-	sr.PeerBlacklistHandler().BlacklistPeer(peer, common.InvalidMessageBlacklistDuration)
+	sr.PeerBlacklistHandler().BlacklistPeer(peer, common.InvalidSigningBlacklistDuration)
 }
 
 func (sr *subroundEndRound) receivedHeader(headerHandler data.HeaderHandler) {
