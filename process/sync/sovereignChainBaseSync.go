@@ -31,3 +31,16 @@ func (boot *baseBootstrap) sovereignChainProcessAndCommit(header data.HeaderHand
 
 	return err
 }
+
+func (boot *baseBootstrap) sovereignChainHandleScheduledRollBackToHeader(header data.HeaderHandler, headerHash []byte) []byte {
+	return boot.sovereignChainGetRootHashFromBlock(header, headerHash)
+}
+
+func (boot *baseBootstrap) sovereignChainGetRootHashFromBlock(header data.HeaderHandler, _ []byte) []byte {
+	rootHash := boot.chainHandler.GetGenesisHeader().GetRootHash()
+	if header != nil {
+		rootHash = header.GetRootHash()
+	}
+
+	return rootHash
+}

@@ -94,6 +94,8 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 	base.getHeaderFromPool = boot.getMetaHeaderFromPool
 	base.requestMiniBlocks = boot.requestMiniBlocksFromHeaderWithNonceIfMissing
 	base.processAndCommitFunc = base.processAndCommit
+	base.handleScheduledRollBackToHeaderFunc = base.handleScheduledRollBackToHeader
+	base.getRootHashFromBlockFunc = base.getRootHashFromBlock
 
 	// placed in struct fields for performance reasons
 	base.headerStore, err = boot.store.GetStorer(dataRetriever.MetaBlockUnit)

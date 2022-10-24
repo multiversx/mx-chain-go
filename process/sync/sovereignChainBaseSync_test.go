@@ -2,6 +2,7 @@ package sync
 
 import (
 	"errors"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"testing"
 	"time"
 
@@ -75,5 +76,50 @@ func TestBaseSync_sovereignChainProcessAndCommit(t *testing.T) {
 		body := &block.Body{}
 		err := boot.sovereignChainProcessAndCommit(header, body, haveTimeAlways)
 		assert.Nil(t, err)
+	})
+}
+
+func TestBaseSync_SovereignChainHandleScheduledRollBackToHeader(t *testing.T) {
+	t.Parallel()
+
+	t.Run("sovereignChainHandleScheduledRollBackToHeader with nil header should return genesis root hash", func(t *testing.T) {
+		t.Parallel()
+
+		genesisRootHash := []byte("genesis root hash")
+		boot := &baseBootstrap{
+			chainHandler: &testscommon.ChainHandlerStub{
+				GetGenesisHeaderCalled: func() data.HeaderHandler {
+					return &block.Header{
+						RootHash: genesisRootHash,
+					}
+				},
+			},
+		}
+
+		rootHash := boot.sovereignChainHandleScheduledRollBackToHeader(nil, nil)
+		assert.Equal(t, genesisRootHash, rootHash)
+	})
+
+	t.Run("sovereignChainHandleScheduledRollBackToHeader with not nil header should return header root hash", func(t *testing.T) {
+		t.Parallel()
+
+		genesisRootHash := []byte("genesis root hash")
+		boot := &baseBootstrap{
+			chainHandler: &testscommon.ChainHandlerStub{
+				GetGenesisHeaderCalled: func() data.HeaderHandler {
+					return &block.Header{
+						RootHash: genesisRootHash,
+					}
+				},
+			},
+		}
+
+		headerRootHash := []byte("header root hash")
+		header := &block.Header{
+			RootHash: headerRootHash,
+		}
+
+		rootHash := boot.sovereignChainHandleScheduledRollBackToHeader(header, nil)
+		assert.Equal(t, headerRootHash, rootHash)
 	})
 }

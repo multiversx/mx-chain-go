@@ -18,6 +18,8 @@ func NewSovereignChainShardBootstrap(shardBootstrap *ShardBootstrap) (*Sovereign
 	}
 
 	scsb.processAndCommitFunc = scsb.sovereignChainProcessAndCommit
+	scsb.handleScheduledRollBackToHeaderFunc = scsb.sovereignChainHandleScheduledRollBackToHeader
+	scsb.getRootHashFromBlockFunc = scsb.sovereignChainGetRootHashFromBlock
 
 	return scsb, nil
 }
