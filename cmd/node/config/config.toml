@@ -931,6 +931,7 @@
     HideInactiveValidatorIntervalInSec               = 3600 # 1h
     HardforkTimeBetweenSendsInSec                    = 60   # 1min
     TimeBetweenConnectionsMetricsUpdateInSec         = 30   # 30sec
+    TimeToReadDirectConnectionsInSec                 = 15   # 15sec
     [HeartbeatV2.HeartbeatPool]
         Name = "HeartbeatPool"
         Capacity = 1000

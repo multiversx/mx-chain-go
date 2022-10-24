@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/heartbeat/processor"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/sender"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/status"
+	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/peer"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
@@ -50,6 +51,7 @@ type heartbeatV2Components struct {
 	shardSender               update.Closer
 	monitor                   HeartbeatV2Monitor
 	statusHandler             update.Closer
+	directConnectionProcessor update.Closer
 }
 
 // NewHeartbeatV2ComponentsFactory creates a new instance of heartbeatV2ComponentsFactory
@@ -224,6 +226,19 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		return nil, err
 	}
 
+	argsDirectConnectionProcessor := processor.ArgsDirectConnectionProcessor{
+		TimeToReadDirectConnections: time.Second * time.Duration(hcf.config.HeartbeatV2.TimeToReadDirectConnectionsInSec),
+		Messenger:                   hcf.networkComponents.NetworkMessenger(),
+		PeerShardMapper:             hcf.processComponents.PeerShardMapper(),
+		ShardCoordinator:            hcf.processComponents.ShardCoordinator(),
+		BaseIntraShardTopic:         common.ConsensusTopic,
+		BaseCrossShardTopic:         factory.MiniBlocksTopic,
+	}
+	directConnectionProcessor, err := processor.NewDirectConnectionProcessor(argsDirectConnectionProcessor)
+	if err != nil {
+		return nil, err
+	}
+
 	argsCrossShardPeerTopicNotifier := monitor.ArgsCrossShardPeerTopicNotifier{
 		ShardCoordinator: hcf.processComponents.ShardCoordinator(),
 		PeerShardMapper:  hcf.processComponents.PeerShardMapper(),
@@ -243,6 +258,7 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		shardSender:               shardSender,
 		monitor:                   heartbeatsMonitor,
 		statusHandler:             statusHandler,
+		directConnectionProcessor: directConnectionProcessor,
 	}, nil
 }
 
@@ -264,6 +280,10 @@ func (hc *heartbeatV2Components) Close() error {
 
 	if !check.IfNil(hc.statusHandler) {
 		log.LogIfError(hc.statusHandler.Close())
+	}
+
+	if !check.IfNil(hc.directConnectionProcessor) {
+		log.LogIfError(hc.directConnectionProcessor.Close())
 	}
 
 	return nil
