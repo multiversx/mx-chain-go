@@ -1,6 +1,7 @@
 package consensus
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"sync"
@@ -44,7 +45,16 @@ func initNodesWithTestSigner(
 					fmt.Println("invalid sig share from ",
 						getPkEncoded(nodes[shardID][iCopy].NodeKeys.Pk),
 					)
-					invalidSigShare, _ := hex.DecodeString("2ee350b9a821e20df97ba487a80b0d0ffffca7da663185cf6a562edc7c2c71e3ca46ed71b31bccaf53c626b87f2b6e08")
+
+					var invalidSigShare []byte
+					if i%2 == 0 {
+						// invalid sig share but with valid format
+						invalidSigShare, _ = hex.DecodeString("2ee350b9a821e20df97ba487a80b0d0ffffca7da663185cf6a562edc7c2c71e3ca46ed71b31bccaf53c626b87f2b6e08")
+					} else {
+						// sig share with invalid size
+						invalidSigShare = bytes.Repeat([]byte("a"), 3)
+					}
+
 					return invalidSigShare, nil
 				}
 			}

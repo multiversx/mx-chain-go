@@ -317,3 +317,7 @@ func (sr *subroundEndRound) VerifyInvalidSigners(invalidSigners []byte) error {
 func GetStringValue(messageType consensus.MessageType) string {
 	return getStringValue(messageType)
 }
+
+func (sr *subroundEndRound) CreateAndBroadcastInvalidSigners(invalidSigners []byte) {
+	sr.createAndBroadcastInvalidSigners(invalidSigners)
+}
