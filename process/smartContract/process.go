@@ -211,6 +211,8 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 }
 
 // GasScheduleChange sets the new gas schedule where it is needed
+// Warning: do not use flags in this function as it will raise backward compatibility issues because the GasScheduleChange
+// is not called on each epoch change
 func (sc *scProcessor) GasScheduleChange(gasSchedule map[string]map[string]uint64) {
 	sc.mutGasLock.Lock()
 	defer sc.mutGasLock.Unlock()
@@ -221,10 +223,6 @@ func (sc *scProcessor) GasScheduleChange(gasSchedule map[string]map[string]uint6
 	}
 
 	sc.builtInGasCosts = builtInFuncCost
-	isFixAsyncCallBackArgumentsParserFlagSet := sc.enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabled()
-	if isFixAsyncCallBackArgumentsParserFlagSet {
-		sc.builtInGasCosts[core.BuiltInFunctionMultiESDTNFTTransfer] = builtInFuncCost["ESDTNFTMultiTransfer"]
-	}
 	sc.storePerByte = gasSchedule[common.BaseOperationCost]["StorePerByte"]
 	sc.persistPerByte = gasSchedule[common.BaseOperationCost]["PersistPerByte"]
 }

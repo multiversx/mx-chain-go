@@ -144,6 +144,9 @@ var ErrNilRootHash = errors.New("nil root hash")
 // ErrNilProcessStatusHandler signals that a nil process status handler was provided
 var ErrNilProcessStatusHandler = errors.New("nil process status handler")
 
+// ErrNilAppStatusHandler signals that a nil app status handler was provided
+var ErrNilAppStatusHandler = errors.New("nil app status handler")
+
 // ErrNilBlockInfo signals that a nil block info was provided
 var ErrNilBlockInfo = errors.New("nil block info")
 
