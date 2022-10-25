@@ -66,6 +66,7 @@ type scProcessor struct {
 	builtInFunctions   vmcommon.BuiltInFunctionContainer
 	arwenChangeLocker  common.Locker
 
+	enableRoundsHandler process.EnableRoundsHandler
 	enableEpochsHandler common.EnableEpochsHandler
 	badTxForwarder      process.IntermediateTransactionHandler
 	scrForwarder        process.IntermediateTransactionHandler
@@ -130,6 +131,9 @@ func NewSmartContractProcessor(args scrCommon.ArgsNewSmartContractProcessor) (*s
 	if check.IfNil(args.TxLogsProcessor) {
 		return nil, process.ErrNilTxLogsProcessor
 	}
+	if check.IfNil(args.EnableRoundsHandler) {
+		return nil, process.ErrNilEnableRoundsHandler
+	}
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
 	}
@@ -164,6 +168,7 @@ func NewSmartContractProcessor(args scrCommon.ArgsNewSmartContractProcessor) (*s
 		gasHandler:          args.GasHandler,
 		builtInGasCosts:     builtInFuncCost,
 		txLogsProcessor:     args.TxLogsProcessor,
+		enableRoundsHandler: args.EnableRoundsHandler,
 		enableEpochsHandler: args.EnableEpochsHandler,
 		badTxForwarder:      args.BadTxForwarder,
 		builtInFunctions:    args.BuiltInFunctions,
@@ -881,7 +886,10 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 	scrResults := make([]data.TransactionHandler, 0, len(vmOutput.OutputAccounts)+1)
 	outputAccounts := process.SortVMOutputInsideData(vmOutput)
 	for _, outAcc := range outputAccounts {
-		tmpCreatedAsyncCallback, scTxs := sc.createSmartContractResults(&vmInput.VMInput, vmOutput, outAcc, tx, txHash)
+		tmpCreatedAsyncCallback, scTxs, err := sc.createSmartContractResults(&vmInput.VMInput, vmOutput, outAcc, tx, txHash)
+		if err != nil {
+			return vmcommon.ExecutionFailed, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(err.Error()), snapshot, vmInput.GasLocked)
+		}
 		createdAsyncCallback = createdAsyncCallback || tmpCreatedAsyncCallback
 		if len(scTxs) > 0 {
 			scrResults = append(scrResults, scTxs...)
@@ -2173,16 +2181,17 @@ func (sc *scProcessor) createSmartContractResults(
 	outAcc *vmcommon.OutputAccount,
 	tx data.TransactionHandler,
 	txHash []byte,
-) (bool, []data.TransactionHandler) {
+) (bool, []data.TransactionHandler, error) {
 
 	result := sc.createSCRFromStakingSC(outAcc, tx, txHash)
 	if !check.IfNil(result) {
-		return false, []data.TransactionHandler{result}
+		return false, []data.TransactionHandler{result}, nil
 	}
 
 	lenOutTransfers := len(outAcc.OutputTransfers)
 	if lenOutTransfers == 0 {
-		return sc.createSCRIfNoOutputTransfer(vmOutput, vmInput.CallType, outAcc, tx, txHash)
+		createdAsyncCallBack, scResults := sc.createSCRIfNoOutputTransfer(vmOutput, vmInput.CallType, outAcc, tx, txHash)
+		return createdAsyncCallBack, scResults, nil
 	}
 
 	createdAsyncCallBack := false
@@ -2191,6 +2200,12 @@ func (sc *scProcessor) createSmartContractResults(
 		result = sc.preprocessOutTransferToSCR(i, outputTransfer, outAcc, tx, txHash)
 
 		isCrossShard := sc.shardCoordinator.ComputeId(outAcc.Address) != sc.shardCoordinator.SelfId()
+
+		if isCrossShard && result.CallType == vmData.AsynchronousCall &&
+			sc.enableRoundsHandler.IsDisableAsyncCallV1Enabled() {
+			return false, nil, process.ErrAsyncCallsDisabled
+		}
+
 		if result.CallType == vmData.AsynchronousCallBack {
 			isCreatedCallBackCrossShardOnlyFlagSet := sc.enableEpochsHandler.IsMultiESDTTransferFixOnCallBackFlagEnabled()
 			if !isCreatedCallBackCrossShardOnlyFlagSet || isCrossShard {
@@ -2227,7 +2242,7 @@ func (sc *scProcessor) createSmartContractResults(
 		scResults = append(scResults, result)
 	}
 
-	return createdAsyncCallBack, scResults
+	return createdAsyncCallBack, scResults, nil
 }
 
 func (sc *scProcessor) useLastTransferAsAsyncCallBackWhenNeeded(
@@ -2402,7 +2417,10 @@ func (sc *scProcessor) processSCOutputAccounts(
 			return false, nil, err
 		}
 
-		tmpCreatedAsyncCallback, newScrs := sc.createSmartContractResults(vmInput, vmOutput, outAcc, tx, txHash)
+		tmpCreatedAsyncCallback, newScrs, err := sc.createSmartContractResults(vmInput, vmOutput, outAcc, tx, txHash)
+		if err != nil {
+			return false, nil, err
+		}
 		createdAsyncCallback = createdAsyncCallback || tmpCreatedAsyncCallback
 
 		if len(newScrs) != 0 {

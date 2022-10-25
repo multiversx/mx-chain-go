@@ -1148,3 +1148,6 @@ var ErrPropertyTooShort = errors.New("property too short")
 
 // ErrNilProcessDebugger signals that a nil process debugger was provided
 var ErrNilProcessDebugger = errors.New("nil process debugger")
+
+// ErrAsyncCallsDisabled signals that async calls are disabled
+var ErrAsyncCallsDisabled = errors.New("async calls disabled")

@@ -71,8 +71,9 @@ func createMockSmartContractProcessorArguments() scrCommon.ArgsNewSmartContractP
 		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
 			IsSCDeployFlagEnabledField: true,
 		},
-		ArwenChangeLocker: &sync.RWMutex{},
-		VMOutputCacher:    txcache.NewDisabledCache(),
+		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
+		ArwenChangeLocker:   &sync.RWMutex{},
+		VMOutputCacher:      txcache.NewDisabledCache(),
 	}
 }
 

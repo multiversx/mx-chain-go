@@ -2,8 +2,8 @@ package testscommon
 
 // EnableRoundsHandlerStub -
 type EnableRoundsHandlerStub struct {
-	CheckRoundCalled        func(round uint64)
-	IsExampleEnabledChecked func() bool
+	CheckRoundCalled                  func(round uint64)
+	IsDisableAsyncCallV1EnabledCalled func() bool
 }
 
 // CheckRound -
@@ -13,10 +13,10 @@ func (stub *EnableRoundsHandlerStub) CheckRound(round uint64) {
 	}
 }
 
-// IsExampleEnabled -
-func (stub *EnableRoundsHandlerStub) IsExampleEnabled() bool {
-	if stub.IsExampleEnabledChecked != nil {
-		return stub.IsExampleEnabledChecked()
+// IsDisableAsyncCallV1Enabled -
+func (stub *EnableRoundsHandlerStub) IsDisableAsyncCallV1Enabled() bool {
+	if stub.IsDisableAsyncCallV1EnabledCalled != nil {
+		return stub.IsDisableAsyncCallV1EnabledCalled()
 	}
 
 	return false

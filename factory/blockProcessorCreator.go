@@ -235,6 +235,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		TxTypeHandler:       txTypeHandler,
 		IsGenesisProcessing: false,
 		BadTxForwarder:      badTxInterim,
+		EnableRoundsHandler: pcf.coreData.EnableRoundsHandler(),
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 		VMOutputCacher:      txcache.NewDisabledCache(),
 		ArwenChangeLocker:   arwenChangeLocker,
@@ -269,6 +270,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		BadTxForwarder:      badTxInterim,
 		ArgsParser:          argsParser,
 		ScrForwarder:        scForwarder,
+		EnableRoundsHandler: pcf.coreData.EnableRoundsHandler(),
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 	}
 	transactionProcessor, err := transaction.NewTxProcessor(argsNewTxProcessor)
@@ -548,6 +550,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		TxLogsProcessor:     pcf.txLogsProcessor,
 		IsGenesisProcessing: false,
 		BadTxForwarder:      badTxForwarder,
+		EnableRoundsHandler: pcf.coreData.EnableRoundsHandler(),
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 		VMOutputCacher:      txcache.NewDisabledCache(),
 		ArwenChangeLocker:   arwenChangeLocker,

@@ -8,7 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -58,6 +58,7 @@ type ArgsGenesisBlockCreator struct {
 	HardForkConfig       config.HardforkConfig
 	TrieStorageManagers  map[string]common.StorageManager
 	SystemSCConfig       config.SystemSmartContractsConfig
+	RoundConfig          *config.RoundConfig
 	EpochConfig          *config.EpochConfig
 	ImportStartHandler   update.ImportStartHandler
 	WorkingDir           string

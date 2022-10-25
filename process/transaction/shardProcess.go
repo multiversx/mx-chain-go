@@ -15,7 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/vm"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -63,6 +63,7 @@ type ArgsNewTxProcessor struct {
 	BadTxForwarder      process.IntermediateTransactionHandler
 	ArgsParser          process.ArgumentsParser
 	ScrForwarder        process.IntermediateTransactionHandler
+	EnableRoundsHandler process.EnableRoundsHandler
 	EnableEpochsHandler common.EnableEpochsHandler
 }
 
@@ -109,6 +110,9 @@ func NewTxProcessor(args ArgsNewTxProcessor) (*txProcessor, error) {
 	}
 	if check.IfNil(args.SignMarshalizer) {
 		return nil, process.ErrNilMarshalizer
+	}
+	if check.IfNil(args.EnableRoundsHandler) {
+		return nil, process.ErrNilEnableRoundsHandler
 	}
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler

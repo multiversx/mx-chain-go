@@ -398,7 +398,7 @@ func getCoreArgs() factory.CoreComponentsFactoryArgs {
 		},
 		RoundConfig: config.RoundConfig{
 			RoundActivations: map[string]config.ActivationRoundByName{
-				"Example": {
+				"DisableAsyncCallV1": {
 					Round: "18446744073709551615",
 				},
 			},

@@ -134,6 +134,13 @@ func createMockArgument(
 				PenalizedTooMuchGasEnableEpoch: 0,
 			},
 		},
+		RoundConfig: &config.RoundConfig{
+			RoundActivations: map[string]config.ActivationRoundByName{
+				"DisableAsyncCallV1": {
+					Round: "18446744073709551615",
+				},
+			},
+		},
 	}
 
 	arg.ShardCoordinator = &mock.ShardCoordinatorMock{

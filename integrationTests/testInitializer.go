@@ -651,6 +651,8 @@ func CreateFullGenesisBlocks(
 	dataComponents.DataPool = dataPool
 	dataComponents.BlockChain = blkc
 
+	roundsConfig := GetDefaultRoundsConfig()
+
 	argsGenesis := genesisProcess.ArgsGenesisBlockCreator{
 		Core:              coreComponents,
 		Data:              dataComponents,
@@ -717,6 +719,7 @@ func CreateFullGenesisBlocks(
 		EpochConfig: &config.EpochConfig{
 			EnableEpochs: enableEpochsConfig,
 		},
+		RoundConfig: &roundsConfig,
 	}
 
 	genesisProcessor, _ := genesisProcess.NewGenesisBlockCreator(argsGenesis)
@@ -1013,6 +1016,7 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 		BadTxForwarder:      &mock.IntermediateTransactionHandlerMock{},
 		ArgsParser:          smartContract.NewArgumentParser(),
 		ScrForwarder:        &mock.IntermediateTransactionHandlerMock{},
+		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
 	}
 	txProcessor, _ := txProc.NewTxProcessor(argsNewTxProcessor)
@@ -1331,6 +1335,25 @@ func CreateNodesWithEnableEpochsAndVmConfig(
 	epochConfig config.EnableEpochs,
 	vmConfig *config.VirtualMachineConfig,
 ) []*TestProcessorNode {
+	return CreateNodesWithEnableEpochsAndVmConfigWithRoundsConfig(
+		numOfShards,
+		nodesPerShard,
+		numMetaChainNodes,
+		epochConfig,
+		GetDefaultRoundsConfig(),
+		vmConfig,
+	)
+}
+
+// CreateNodesWithEnableEpochsAndVmConfigWithRoundsConfig creates multiple nodes with custom epoch and vm config
+func CreateNodesWithEnableEpochsAndVmConfigWithRoundsConfig(
+	numOfShards int,
+	nodesPerShard int,
+	numMetaChainNodes int,
+	epochConfig config.EnableEpochs,
+	roundsConfig config.RoundConfig,
+	vmConfig *config.VirtualMachineConfig,
+) []*TestProcessorNode {
 	nodes := make([]*TestProcessorNode, numOfShards*nodesPerShard+numMetaChainNodes)
 	connectableNodes := make([]Connectable, len(nodes))
 
@@ -1342,6 +1365,7 @@ func CreateNodesWithEnableEpochsAndVmConfig(
 				NodeShardId:          shardId,
 				TxSignPrivKeyShardId: shardId,
 				EpochsConfig:         &epochConfig,
+				RoundsConfig:         &roundsConfig,
 				VMConfig:             vmConfig,
 			})
 			nodes[idx] = n

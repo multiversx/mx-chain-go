@@ -1090,7 +1090,7 @@ type EpochNotifier interface {
 // EnableRoundsHandler is an interface which can be queried to check for round activation features/fixes
 type EnableRoundsHandler interface {
 	CheckRound(round uint64)
-	IsExampleEnabled() bool
+	IsDisableAsyncCallV1Enabled() bool
 	IsInterfaceNil() bool
 }
 

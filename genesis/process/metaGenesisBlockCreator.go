@@ -44,6 +44,7 @@ import (
 )
 
 const unreachableEpoch = uint32(1000000)
+const unreachableRound = ^uint64(0)
 
 // CreateMetaGenesisBlock will create a metachain genesis block
 func CreateMetaGenesisBlock(
@@ -64,7 +65,7 @@ func CreateMetaGenesisBlock(
 		DeployInitialScTxs: make([]data.TransactionHandler, 0),
 	}
 
-	processors, err := createProcessorsForMetaGenesisBlock(arg, createGenesisConfig())
+	processors, err := createProcessorsForMetaGenesisBlock(arg, createGenesisConfig(), createGenesisRoundConfig())
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -205,7 +206,7 @@ func createArgsMetaBlockCreatorAfterHardFork(
 ) (hardForkProcess.ArgsNewMetaBlockCreatorAfterHardFork, error) {
 	tmpArg := arg
 	tmpArg.Accounts = arg.importHandler.GetAccountsDBForShard(core.MetachainShardId)
-	processors, err := createProcessorsForMetaGenesisBlock(tmpArg, arg.EpochConfig.EnableEpochs)
+	processors, err := createProcessorsForMetaGenesisBlock(tmpArg, arg.EpochConfig.EnableEpochs, arg.RoundConfig)
 	if err != nil {
 		return hardForkProcess.ArgsNewMetaBlockCreatorAfterHardFork{}, err
 	}
@@ -284,7 +285,7 @@ func saveGenesisMetaToStorage(
 	return nil
 }
 
-func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpochsConfig config.EnableEpochs) (*genesisProcessors, error) {
+func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpochsConfig config.EnableEpochs, roundConfig *config.RoundConfig) (*genesisProcessors, error) {
 	epochNotifier := forking.NewGenericEpochNotifier()
 	temporaryMetaHeader := &block.MetaBlock{
 		Epoch:     arg.StartEpochNum,
@@ -295,6 +296,11 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		return nil, err
 	}
 	epochNotifier.CheckEpoch(temporaryMetaHeader)
+
+	enableRoundsHandler, err := enablers.NewEnableRoundsHandler(*roundConfig)
+	if err != nil {
+		return nil, err
+	}
 
 	builtInFuncs := vmcommonBuiltInFunctions.NewBuiltInFunctionContainer()
 	argsHook := hooks.ArgBlockChainHook{
@@ -421,6 +427,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		GasSchedule:         arg.GasSchedule,
 		TxLogsProcessor:     arg.TxLogsProcessor,
 		BadTxForwarder:      badTxForwarder,
+		EnableRoundsHandler: enableRoundsHandler,
 		EnableEpochsHandler: enableEpochsHandler,
 		IsGenesisProcessing: true,
 		ArwenChangeLocker:   &sync.RWMutex{}, // local Locker as to not interfere with the rest of the components
