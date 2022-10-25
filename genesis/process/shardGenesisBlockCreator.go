@@ -385,7 +385,8 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		return nil, err
 	}
 
-	enableRoundsHandler, err := enablers.NewEnableRoundsHandler(*roundConfig)
+	roundNotifier := forking.NewGenericRoundNotifier()
+	enableRoundsHandler, err := enablers.NewEnableRoundsHandler(*roundConfig, roundNotifier)
 	if err != nil {
 		return nil, err
 	}

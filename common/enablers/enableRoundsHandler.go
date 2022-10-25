@@ -7,6 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 const (
@@ -21,7 +22,7 @@ type enableRoundsHandler struct {
 }
 
 // NewEnableRoundsHandler creates a new enable rounds handler instance
-func NewEnableRoundsHandler(args config.RoundConfig) (*enableRoundsHandler, error) {
+func NewEnableRoundsHandler(args config.RoundConfig, roundNotifier process.RoundNotifier) (*enableRoundsHandler, error) {
 	disableAsyncCallV1, err := getRoundConfig(args, disableAsyncCallV1)
 	if err != nil {
 		return nil, err

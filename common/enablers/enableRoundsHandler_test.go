@@ -7,6 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -16,7 +17,10 @@ func TestNewEnableRoundsHandler(t *testing.T) {
 	t.Run("invalid config: empty (unloaded) round config", func(t *testing.T) {
 		t.Parallel()
 
-		handler, err := NewEnableRoundsHandler(config.RoundConfig{})
+		handler, err := NewEnableRoundsHandler(
+			config.RoundConfig{},
+			&epochNotifier.RoundNotifierStub{},
+		)
 
 		assert.True(t, check.IfNil(handler))
 		assert.True(t, errors.Is(err, errMissingRoundActivation))
@@ -34,7 +38,7 @@ func TestNewEnableRoundsHandler(t *testing.T) {
 			},
 		}
 
-		handler, err := NewEnableRoundsHandler(cfg)
+		handler, err := NewEnableRoundsHandler(cfg, &epochNotifier.RoundNotifierStub{})
 
 		assert.True(t, check.IfNil(handler))
 		assert.NotNil(t, err)
@@ -53,7 +57,7 @@ func TestNewEnableRoundsHandler(t *testing.T) {
 			},
 		}
 
-		handler, err := NewEnableRoundsHandler(cfg)
+		handler, err := NewEnableRoundsHandler(cfg, &epochNotifier.RoundNotifierStub{})
 
 		assert.False(t, check.IfNil(handler))
 		assert.Nil(t, err)
@@ -70,7 +74,7 @@ func TestNewEnableRoundsHandler(t *testing.T) {
 			},
 		}
 
-		handler, err := NewEnableRoundsHandler(cfg)
+		handler, err := NewEnableRoundsHandler(cfg, &epochNotifier.RoundNotifierStub{})
 
 		assert.False(t, check.IfNil(handler))
 		assert.Nil(t, err)
@@ -92,7 +96,7 @@ func TestFlagsHolder_DisableAsyncCallV1Enabled(t *testing.T) {
 			},
 		}
 
-		handler, _ := NewEnableRoundsHandler(cfg)
+		handler, _ := NewEnableRoundsHandler(cfg, &epochNotifier.RoundNotifierStub{})
 		assert.False(t, handler.IsDisableAsyncCallV1Enabled()) // check round not called
 
 		handler.CheckRound(0)
@@ -113,7 +117,7 @@ func TestFlagsHolder_DisableAsyncCallV1Enabled(t *testing.T) {
 			},
 		}
 
-		handler, _ := NewEnableRoundsHandler(cfg)
+		handler, _ := NewEnableRoundsHandler(cfg, &epochNotifier.RoundNotifierStub{})
 		assert.False(t, handler.IsDisableAsyncCallV1Enabled()) // check round not called
 		handler.CheckRound(0)
 		assert.False(t, handler.IsDisableAsyncCallV1Enabled())

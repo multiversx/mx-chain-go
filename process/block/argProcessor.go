@@ -25,6 +25,8 @@ type coreComponentsHolder interface {
 	Uint64ByteSliceConverter() typeConverters.Uint64ByteSliceConverter
 	EpochNotifier() process.EpochNotifier
 	EnableEpochsHandler() common.EnableEpochsHandler
+	RoundNotifier() process.RoundNotifier
+	EnableRoundsHandler() process.EnableRoundsHandler
 	RoundHandler() consensus.RoundHandler
 	StatusHandler() core.AppStatusHandler
 	EconomicsData() process.EconomicsDataHandler
@@ -74,7 +76,6 @@ type ArgBaseProcessor struct {
 	BlockSizeThrottler             process.BlockSizeThrottler
 	Version                        string
 	HistoryRepository              dblookupext.HistoryRepository
-	EnableRoundsHandler            process.EnableRoundsHandler
 	VMContainersFactory            process.VirtualMachinesContainerFactory
 	VmContainer                    process.VirtualMachinesContainer
 	GasHandler                     gasConsumedProvider

@@ -297,7 +297,8 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 	}
 	epochNotifier.CheckEpoch(temporaryMetaHeader)
 
-	enableRoundsHandler, err := enablers.NewEnableRoundsHandler(*roundConfig)
+	roundNotifier := forking.NewGenericRoundNotifier()
+	enableRoundsHandler, err := enablers.NewEnableRoundsHandler(*roundConfig, roundNotifier)
 	if err != nil {
 		return nil, err
 	}

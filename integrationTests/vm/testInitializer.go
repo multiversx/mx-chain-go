@@ -421,7 +421,8 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 
 	genericEpochNotifier := forking.NewGenericEpochNotifier()
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, genericEpochNotifier)
-	enableRoundsHandler, _ := enablers.NewEnableRoundsHandler(roundsConfig)
+	genericRoundNotifier := forking.NewGenericRoundNotifier()
+	enableRoundsHandler, _ := enablers.NewEnableRoundsHandler(roundsConfig, genericRoundNotifier)
 
 	builtInFuncs := vmcommonBuiltInFunctions.NewBuiltInFunctionContainer()
 	datapool := dataRetrieverMock.NewPoolsHolderMock()
@@ -792,6 +793,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	arwenChangeLocker common.Locker,
 	poolsHolder dataRetriever.PoolsHolder,
 	epochNotifierInstance process.EpochNotifier,
+	roundNotifierInstance process.RoundNotifier,
 ) (*ResultsCreateTxProcessor, error) {
 	if check.IfNil(poolsHolder) {
 		poolsHolder = dataRetrieverMock.NewPoolsHolderMock()
@@ -799,7 +801,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
 
-	enableRoundsHandler, _ := enablers.NewEnableRoundsHandler(roundsConfig)
+	enableRoundsHandler, _ := enablers.NewEnableRoundsHandler(roundsConfig, roundNotifierInstance)
 
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(testMarshalizer)
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
@@ -1052,6 +1054,7 @@ func CreatePreparedTxProcessorAndAccountsWithVMsWothRoundsConfig(
 	arwenChangeLocker := &sync.RWMutex{}
 	epochNotifierInstance := forking.NewGenericEpochNotifier()
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
+	roundNotifierInstance := forking.NewGenericRoundNotifier()
 	vmContainer, blockchainHook, pool := CreateVMAndBlockchainHookAndDataPool(
 		accounts,
 		nil,
@@ -1072,6 +1075,7 @@ func CreatePreparedTxProcessorAndAccountsWithVMsWothRoundsConfig(
 		arwenChangeLocker,
 		pool,
 		epochNotifierInstance,
+		roundNotifierInstance,
 	)
 	if err != nil {
 		return nil, err
@@ -1117,6 +1121,7 @@ func CreatePreparedTxProcessorWithVMsWithShardCoordinatorAndRoundConfig(enableEp
 	gasSchedule := mock.NewGasScheduleNotifierMock(testGasSchedule)
 	epochNotifierInstance := forking.NewGenericEpochNotifier()
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
+	roundNotifierInstance := forking.NewGenericRoundNotifier()
 	vmContainer, blockchainHook, pool := CreateVMAndBlockchainHookAndDataPool(
 		accounts,
 		gasSchedule,
@@ -1137,6 +1142,7 @@ func CreatePreparedTxProcessorWithVMsWithShardCoordinatorAndRoundConfig(enableEp
 		arwenChangeLocker,
 		pool,
 		epochNotifierInstance,
+		roundNotifierInstance,
 	)
 	if err != nil {
 		return nil, err
@@ -1196,6 +1202,7 @@ func CreateTxProcessorArwenVMWithGasScheduleAndRoundConfig(
 	gasScheduleNotifier := mock.NewGasScheduleNotifierMock(gasScheduleMap)
 	epochNotifierInstance := forking.NewGenericEpochNotifier()
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
+	roundNotifierInstance := forking.NewGenericRoundNotifier()
 	vmContainer, blockchainHook, pool := CreateVMAndBlockchainHookAndDataPool(
 		accounts,
 		gasScheduleNotifier,
@@ -1216,6 +1223,7 @@ func CreateTxProcessorArwenVMWithGasScheduleAndRoundConfig(
 		arwenChangeLocker,
 		pool,
 		epochNotifierInstance,
+		roundNotifierInstance,
 	)
 	if err != nil {
 		return nil, err
@@ -1262,6 +1270,7 @@ func CreateTxProcessorArwenWithVMConfigAndRoundConfig(
 	gasScheduleNotifier := mock.NewGasScheduleNotifierMock(gasSchedule)
 	epochNotifierInstance := forking.NewGenericEpochNotifier()
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
+	roundNotifierInstance := forking.NewGenericRoundNotifier()
 	vmContainer, blockchainHook, pool := CreateVMAndBlockchainHookAndDataPool(
 		accounts,
 		gasScheduleNotifier,
@@ -1282,6 +1291,7 @@ func CreateTxProcessorArwenWithVMConfigAndRoundConfig(
 		arwenChangeLocker,
 		pool,
 		epochNotifierInstance,
+		roundNotifierInstance,
 	)
 	if err != nil {
 		return nil, err
@@ -1603,6 +1613,7 @@ func CreatePreparedTxProcessorWithVMsMultiShardAndRoundConfig(selfShardID uint32
 	var blockchainHook *hooks.BlockChainHookImpl
 	epochNotifierInstance := forking.NewGenericEpochNotifier()
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
+	roundNotifierInstance := forking.NewGenericRoundNotifier()
 	if selfShardID == core.MetachainShardId {
 		vmContainer, blockchainHook = CreateVMAndBlockchainHookMeta(accounts, nil, shardCoordinator, enableEpochsConfig)
 	} else {
@@ -1629,6 +1640,7 @@ func CreatePreparedTxProcessorWithVMsMultiShardAndRoundConfig(selfShardID uint32
 		arwenChangeLocker,
 		nil,
 		epochNotifierInstance,
+		roundNotifierInstance,
 	)
 	if err != nil {
 		return nil, err

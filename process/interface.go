@@ -1087,9 +1087,16 @@ type EpochNotifier interface {
 	IsInterfaceNil() bool
 }
 
+// RoundNotifier can notify upon an epoch change and provide the current epoch
+type RoundNotifier interface {
+	RegisterNotifyHandler(handler vmcommon.RoundSubscriberHandler)
+	CurrentRound() uint64
+	CheckRound(header data.HeaderHandler)
+	IsInterfaceNil() bool
+}
+
 // EnableRoundsHandler is an interface which can be queried to check for round activation features/fixes
 type EnableRoundsHandler interface {
-	CheckRound(round uint64)
 	IsDisableAsyncCallV1Enabled() bool
 	IsInterfaceNil() bool
 }

@@ -88,6 +88,7 @@ type TestContext struct {
 
 	EpochNotifier       process.EpochNotifier
 	EnableRoundsHandler process.EnableRoundsHandler
+	RoundNotifier       process.RoundNotifier
 	EnableEpochsHandler common.EnableEpochsHandler
 	UnsignexTxHandler   process.TransactionFeeHandler
 	EconomicsFee        process.FeeHandler
@@ -139,7 +140,8 @@ func SetupTestContextWithGasSchedulePath(t *testing.T, gasScheduleConfigPath str
 	context.Round = 500
 	context.EpochNotifier = &epochNotifier.EpochNotifierStub{}
 	context.EnableEpochsHandler, _ = enablers.NewEnableEpochsHandler(config.EnableEpochs{}, context.EpochNotifier)
-	context.EnableRoundsHandler, _ = enablers.NewEnableRoundsHandler(integrationTests.GetDefaultRoundsConfig())
+	context.RoundNotifier = &epochNotifier.RoundNotifierStub{}
+	context.EnableRoundsHandler, _ = enablers.NewEnableRoundsHandler(integrationTests.GetDefaultRoundsConfig(), context.RoundNotifier)
 	context.ArwenChangeLocker = &sync.RWMutex{}
 
 	context.initAccounts()
