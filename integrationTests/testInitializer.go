@@ -1380,6 +1380,7 @@ func CreateNodesWithEnableEpochsAndVmConfigWithRoundsConfig(
 			NodeShardId:          core.MetachainShardId,
 			TxSignPrivKeyShardId: 0,
 			EpochsConfig:         &epochConfig,
+			RoundsConfig:         &roundsConfig,
 			VMConfig:             vmConfig,
 		})
 		idx = i + numOfShards*nodesPerShard

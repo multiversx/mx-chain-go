@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -23,15 +24,27 @@ func TestAsyncCallShouldWork(t *testing.T) {
 		t.Skip("cannot run with -race -short; requires Arwen fix")
 	}
 
-	testContextFirstContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{})
+	enableEpochs := config.EnableEpochs{
+		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: integrationTests.UnreachableEpoch,
+		ScheduledMiniBlocksEnableEpoch:              integrationTests.UnreachableEpoch,
+		MiniBlockPartialExecutionEnableEpoch:        integrationTests.UnreachableEpoch,
+		SCProcessorV2EnableEpoch:                    integrationTests.UnreachableEpoch,
+	}
+
+	roundsConfig := integrationTests.GetDefaultRoundsConfig()
+	activationRound := roundsConfig.RoundActivations["DisableAsyncCallV1"]
+	activationRound.Round = "1"
+	roundsConfig.RoundActivations["DisableAsyncCallV1"] = activationRound
+
+	testContextFirstContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShardAndRoundConfig(0, enableEpochs, roundsConfig)
 	require.Nil(t, err)
 	defer testContextFirstContract.Close()
 
-	testContextSecondContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{})
+	testContextSecondContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShardAndRoundConfig(1, enableEpochs, roundsConfig)
 	require.Nil(t, err)
 	defer testContextSecondContract.Close()
 
-	testContextSender, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, config.EnableEpochs{})
+	testContextSender, err := vm.CreatePreparedTxProcessorWithVMsMultiShardAndRoundConfig(2, enableEpochs, roundsConfig)
 	require.Nil(t, err)
 	defer testContextSender.Close()
 

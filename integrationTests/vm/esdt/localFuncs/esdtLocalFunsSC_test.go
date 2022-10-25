@@ -11,7 +11,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	esdtCommon "github.com/ElrondNetwork/elrond-go/integrationTests/vm/esdt"
 	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
@@ -404,59 +403,4 @@ func checkDataFromAccountAndKey(
 	userAcc := esdtCommon.GetUserAccountWithAddress(t, address, nodes)
 	val, _ := userAcc.DataTrieTracker().RetrieveValue(key)
 	assert.Equal(t, expectedData, val)
-}
-
-func TestAsyncCallDisabled(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
-
-	enableEpochs := config.EnableEpochs{
-		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: integrationTests.UnreachableEpoch,
-		ScheduledMiniBlocksEnableEpoch:              integrationTests.UnreachableEpoch,
-		MiniBlockPartialExecutionEnableEpoch:        integrationTests.UnreachableEpoch,
-		SCProcessorV2EnableEpoch:                    integrationTests.UnreachableEpoch,
-	}
-
-	roundsConfig := integrationTests.GetDefaultRoundsConfig()
-	activationRound := roundsConfig.RoundActivations["DisableAsyncCallV1"]
-	activationRound.Round = "0"
-
-	numShards := 2
-	nodes, idxProposers := esdtCommon.CreateNodesAndPrepareBalancesWithEpochsAndRoundsConfig(numShards, enableEpochs, roundsConfig)
-	defer func() {
-		for _, n := range nodes {
-			n.Close()
-		}
-	}()
-
-	initialVal := big.NewInt(10000000000)
-	integrationTests.MintAllNodes(nodes, initialVal)
-
-	round := uint64(0)
-	nonce := uint64(0)
-	round = integrationTests.IncrementAndPrintRound(round)
-	nonce++
-
-	scAddressA := esdtCommon.DeployNonPayableSmartContractFromNode(t, nodes, 0, idxProposers, &nonce, &round, "forwarder.wasm")
-	scAddressB := esdtCommon.DeployNonPayableSmartContractFromNode(t, nodes, 1, idxProposers, &nonce, &round, "vault.wasm")
-
-	txData := txDataBuilder.NewBuilder()
-	txData.Clear().Func("echo_args_async").Bytes(scAddressB).Str("AA").Str("BB")
-
-	integrationTests.CreateAndSendTransaction(
-		nodes[0],
-		nodes,
-		big.NewInt(0),
-		scAddressA,
-		txData.ToString(),
-		integrationTests.AdditionalGasLimit+core.MinMetaTxExtraGasCost,
-	)
-	time.Sleep(time.Second)
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 15, nonce, round, idxProposers)
-	time.Sleep(time.Second)
-
-	callbackArgs := append([]byte("success"), []byte{0}...)
-	callbackArgs = append(callbackArgs, []byte("AABB")...)
-	checkDataFromAccountAndKey(t, nodes, scAddressA, []byte("callbackStorage"), callbackArgs)
 }

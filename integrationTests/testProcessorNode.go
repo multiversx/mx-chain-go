@@ -1920,6 +1920,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 	coreComponents.Uint64ByteSliceConverterField = TestUint64Converter
 	coreComponents.RoundHandlerField = tpn.RoundHandler
 	coreComponents.EnableEpochsHandlerField = tpn.EnableEpochsHandler
+	coreComponents.EnableRoundsHandlerField = tpn.EnableRoundsHandler
 	coreComponents.EpochNotifierField = tpn.EpochNotifier
 	coreComponents.EconomicsDataField = tpn.EconomicsData
 

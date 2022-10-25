@@ -191,7 +191,7 @@ func CreateNodesAndPrepareBalancesWithEpochsAndRoundsConfig(numOfShards int, ena
 		roundsConfig,
 		&config.VirtualMachineConfig{
 			ArwenVersions: []config.ArwenVersionByEpoch{
-				{StartEpoch: 0, Version: "v1.4"},
+				{StartEpoch: 0, Version: "*"},
 			},
 		},
 	)
