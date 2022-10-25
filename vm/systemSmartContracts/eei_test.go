@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -98,7 +99,7 @@ func TestVmContext_GetBalance(t *testing.T) {
 
 	addr := []byte("addr")
 	balance := big.NewInt(10)
-	account, _ := state.NewUserAccount([]byte("123"), &hashingMocks.HasherMock{})
+	account, _ := state.NewUserAccount([]byte("123"), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	_ = account.AddToBalance(balance)
 
 	blockChainHook := &mock.BlockChainHookStub{GetUserAccountCalled: func(address []byte) (a vmcommon.UserAccountHandler, e error) {

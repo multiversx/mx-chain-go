@@ -5,28 +5,34 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
 )
 
 // TrackableDataTrie wraps a PatriciaMerkelTrie adding modifying data capabilities
 type trackableDataTrie struct {
-	dirtyData  map[string][]byte
-	tr         common.Trie
-	hasher     hashing.Hasher
-	identifier []byte
+	dirtyData   map[string][]byte
+	tr          common.Trie
+	hasher      hashing.Hasher
+	marshalizer marshal.Marshalizer
+	identifier  []byte
 }
 
 // NewTrackableDataTrie returns an instance of trackableDataTrie
-func NewTrackableDataTrie(identifier []byte, tr common.Trie, hasher hashing.Hasher) (*trackableDataTrie, error) {
+func NewTrackableDataTrie(identifier []byte, tr common.Trie, hasher hashing.Hasher, marshaller marshal.Marshalizer) (*trackableDataTrie, error) {
 	if check.IfNil(hasher) {
 		return nil, ErrNilHasher
 	}
+	if check.IfNil(marshaller) {
+		return nil, ErrNilMarshalizer
+	}
 
 	return &trackableDataTrie{
-		tr:         tr,
-		hasher:     hasher,
-		dirtyData:  make(map[string][]byte),
-		identifier: identifier,
+		tr:          tr,
+		hasher:      hasher,
+		marshalizer: marshaller,
+		dirtyData:   make(map[string][]byte),
+		identifier:  identifier,
 	}, nil
 }
 

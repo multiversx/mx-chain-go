@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
@@ -31,7 +32,7 @@ type AccountWrapMock struct {
 
 // NewAccountWrapMock -
 func NewAccountWrapMock(adr []byte) *AccountWrapMock {
-	tdt, _ := state.NewTrackableDataTrie([]byte("identifier"), nil, &hashingMocks.HasherMock{})
+	tdt, _ := state.NewTrackableDataTrie([]byte("identifier"), nil, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 
 	return &AccountWrapMock{
 		address:           adr,

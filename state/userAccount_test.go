@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 )
@@ -13,7 +14,7 @@ import (
 func TestNewUserAccount_NilAddressContainerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	acc, err := state.NewUserAccount(nil, &hashingMocks.HasherMock{})
+	acc, err := state.NewUserAccount(nil, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.True(t, check.IfNil(acc))
 	assert.Equal(t, state.ErrNilAddress, err)
 }
@@ -21,7 +22,7 @@ func TestNewUserAccount_NilAddressContainerShouldErr(t *testing.T) {
 func TestNewUserAccount_OkParamsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	acc, err := state.NewUserAccount(make([]byte, 32), &hashingMocks.HasherMock{})
+	acc, err := state.NewUserAccount(make([]byte, 32), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(acc))
 }
@@ -29,7 +30,7 @@ func TestNewUserAccount_OkParamsShouldWork(t *testing.T) {
 func TestUserAccount_AddToBalanceInsufficientFundsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewUserAccount(make([]byte, 32), &hashingMocks.HasherMock{})
+	acc, _ := state.NewUserAccount(make([]byte, 32), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	value := big.NewInt(-1)
 
 	err := acc.AddToBalance(value)
@@ -39,7 +40,7 @@ func TestUserAccount_AddToBalanceInsufficientFundsShouldErr(t *testing.T) {
 func TestUserAccount_SubFromBalanceInsufficientFundsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewUserAccount(make([]byte, 32), &hashingMocks.HasherMock{})
+	acc, _ := state.NewUserAccount(make([]byte, 32), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	value := big.NewInt(1)
 
 	err := acc.SubFromBalance(value)
@@ -49,7 +50,7 @@ func TestUserAccount_SubFromBalanceInsufficientFundsShouldErr(t *testing.T) {
 func TestUserAccount_GetBalance(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewUserAccount(make([]byte, 32), &hashingMocks.HasherMock{})
+	acc, _ := state.NewUserAccount(make([]byte, 32), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	balance := big.NewInt(100)
 	subFromBalance := big.NewInt(20)
 
@@ -62,7 +63,7 @@ func TestUserAccount_GetBalance(t *testing.T) {
 func TestUserAccount_AddToDeveloperReward(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewUserAccount(make([]byte, 32), &hashingMocks.HasherMock{})
+	acc, _ := state.NewUserAccount(make([]byte, 32), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	reward := big.NewInt(10)
 
 	acc.AddToDeveloperReward(reward)
@@ -72,7 +73,7 @@ func TestUserAccount_AddToDeveloperReward(t *testing.T) {
 func TestUserAccount_ClaimDeveloperRewardsWrongAddressShouldErr(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewUserAccount(make([]byte, 32), &hashingMocks.HasherMock{})
+	acc, _ := state.NewUserAccount(make([]byte, 32), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	val, err := acc.ClaimDeveloperRewards([]byte("wrong address"))
 	assert.Nil(t, val)
 	assert.Equal(t, state.ErrOperationNotPermitted, err)
@@ -81,7 +82,7 @@ func TestUserAccount_ClaimDeveloperRewardsWrongAddressShouldErr(t *testing.T) {
 func TestUserAccount_ClaimDeveloperRewards(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewUserAccount(make([]byte, 32), &hashingMocks.HasherMock{})
+	acc, _ := state.NewUserAccount(make([]byte, 32), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	reward := big.NewInt(10)
 	acc.AddToDeveloperReward(reward)
 
@@ -94,7 +95,7 @@ func TestUserAccount_ClaimDeveloperRewards(t *testing.T) {
 func TestUserAccount_ChangeOwnerAddressWrongAddressShouldErr(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewUserAccount(make([]byte, 32), &hashingMocks.HasherMock{})
+	acc, _ := state.NewUserAccount(make([]byte, 32), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	err := acc.ChangeOwnerAddress([]byte("wrong address"), []byte{})
 	assert.Equal(t, state.ErrOperationNotPermitted, err)
 }
@@ -102,7 +103,7 @@ func TestUserAccount_ChangeOwnerAddressWrongAddressShouldErr(t *testing.T) {
 func TestUserAccount_ChangeOwnerAddressInvalidAddressShouldErr(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewUserAccount(make([]byte, 32), &hashingMocks.HasherMock{})
+	acc, _ := state.NewUserAccount(make([]byte, 32), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	err := acc.ChangeOwnerAddress(acc.OwnerAddress, []byte("new address"))
 	assert.Equal(t, state.ErrInvalidAddressLength, err)
 }
@@ -111,7 +112,7 @@ func TestUserAccount_ChangeOwnerAddress(t *testing.T) {
 	t.Parallel()
 
 	newAddress := make([]byte, 32)
-	acc, _ := state.NewUserAccount(make([]byte, 32), &hashingMocks.HasherMock{})
+	acc, _ := state.NewUserAccount(make([]byte, 32), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 
 	err := acc.ChangeOwnerAddress(acc.OwnerAddress, newAddress)
 	assert.Nil(t, err)
@@ -122,7 +123,7 @@ func TestUserAccount_SetOwnerAddress(t *testing.T) {
 	t.Parallel()
 
 	newAddress := []byte("new address")
-	acc, _ := state.NewUserAccount(make([]byte, 32), &hashingMocks.HasherMock{})
+	acc, _ := state.NewUserAccount(make([]byte, 32), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 
 	acc.SetOwnerAddress(newAddress)
 	assert.Equal(t, newAddress, acc.GetOwnerAddress())
@@ -131,7 +132,7 @@ func TestUserAccount_SetOwnerAddress(t *testing.T) {
 func TestUserAccount_SetAndGetNonce(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewUserAccount(make([]byte, 32), &hashingMocks.HasherMock{})
+	acc, _ := state.NewUserAccount(make([]byte, 32), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	nonce := uint64(5)
 
 	acc.IncreaseNonce(nonce)
@@ -141,7 +142,7 @@ func TestUserAccount_SetAndGetNonce(t *testing.T) {
 func TestUserAccount_SetAndGetCodeHash(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewUserAccount(make([]byte, 32), &hashingMocks.HasherMock{})
+	acc, _ := state.NewUserAccount(make([]byte, 32), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	codeHash := []byte("code hash")
 
 	acc.SetCodeHash(codeHash)
@@ -151,7 +152,7 @@ func TestUserAccount_SetAndGetCodeHash(t *testing.T) {
 func TestUserAccount_SetAndGetRootHash(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewUserAccount(make([]byte, 32), &hashingMocks.HasherMock{})
+	acc, _ := state.NewUserAccount(make([]byte, 32), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	rootHash := []byte("root hash")
 
 	acc.SetRootHash(rootHash)

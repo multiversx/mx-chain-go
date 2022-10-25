@@ -900,7 +900,7 @@ func GenerateAddressJournalAccountAccountsDB() ([]byte, state.UserAccountHandler
 	adr := CreateRandomAddress()
 	trieStorage, _ := CreateTrieStorageManager(CreateMemUnit())
 	adb, _ := CreateAccountsDB(UserAccount, trieStorage)
-	account, _ := state.NewUserAccount(adr, TestHasher)
+	account, _ := state.NewUserAccount(adr, TestHasher, TestMarshaller)
 
 	return adr, account, adb
 }

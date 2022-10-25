@@ -130,7 +130,7 @@ func TestAccountsDBApiWithHistory_GetAccountWithBlockInfo(t *testing.T) {
 			},
 			GetExistingAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 				if bytes.Equal(address, testscommon.TestPubKeyAlice) {
-					return state.NewUserAccount(address, &hashingMocks.HasherMock{})
+					return state.NewUserAccount(address, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 				}
 
 				return nil, errors.New("not found")

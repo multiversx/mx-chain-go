@@ -1820,7 +1820,7 @@ func unmarshalUserAccount(
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 ) (state.UserAccountHandler, error) {
-	userAccount, err := state.NewUserAccount(address, hasher)
+	userAccount, err := state.NewUserAccount(address, hasher, marshalizer)
 	if err != nil {
 		return nil, err
 	}

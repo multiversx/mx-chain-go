@@ -49,13 +49,13 @@ func createMockPubkeyConverter() *mock.PubkeyConverterMock {
 }
 
 func createAccounts(tx data.TransactionHandler) (state.UserAccountHandler, state.UserAccountHandler) {
-	acntSrc, _ := state.NewUserAccount(tx.GetSndAddr(), &hashingMocks.HasherMock{})
+	acntSrc, _ := state.NewUserAccount(tx.GetSndAddr(), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntSrc.Balance = acntSrc.Balance.Add(acntSrc.Balance, tx.GetValue())
 	totalFee := big.NewInt(0)
 	totalFee = totalFee.Mul(big.NewInt(int64(tx.GetGasLimit())), big.NewInt(int64(tx.GetGasPrice())))
 	acntSrc.Balance.Set(acntSrc.Balance.Add(acntSrc.Balance, totalFee))
 
-	acntDst, _ := state.NewUserAccount(tx.GetRcvAddr(), &hashingMocks.HasherMock{})
+	acntDst, _ := state.NewUserAccount(tx.GetRcvAddr(), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 
 	return acntSrc, acntDst
 }
@@ -2146,7 +2146,7 @@ func TestScProcessor_GetAccountFromAddr(t *testing.T) {
 	getCalled := 0
 	accountsDB.LoadAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
 		getCalled++
-		acc, _ := state.NewUserAccount(address, &hashingMocks.HasherMock{})
+		acc, _ := state.NewUserAccount(address, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 		return acc, nil
 	}
 
@@ -2250,7 +2250,7 @@ func TestScProcessor_DeleteAccountsInShard(t *testing.T) {
 	accountsDB := &stateMock.AccountsStub{}
 	removeCalled := 0
 	accountsDB.LoadAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
-		acc, _ := state.NewUserAccount(address, &hashingMocks.HasherMock{})
+		acc, _ := state.NewUserAccount(address, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 		return acc, nil
 	}
 	accountsDB.RemoveAccountCalled = func(address []byte) error {
@@ -2328,7 +2328,7 @@ func TestScProcessor_ProcessSCPaymentNotEnoughBalance(t *testing.T) {
 	tx.GasPrice = 10
 	tx.GasLimit = 15
 
-	acntSrc, _ := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{})
+	acntSrc, _ := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	_ = acntSrc.AddToBalance(big.NewInt(45))
 
 	currBalance := acntSrc.GetBalance().Uint64()
@@ -2618,7 +2618,7 @@ func TestScProcessor_processSCOutputAccounts(t *testing.T) {
 	outputAccounts = append(outputAccounts, outacc1)
 
 	testAddr := outaddress
-	testAcc, _ := state.NewUserAccount(testAddr, &hashingMocks.HasherMock{})
+	testAcc, _ := state.NewUserAccount(testAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 
 	accountsDB.LoadAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
 		if bytes.Equal(address, testAddr) {
@@ -2691,7 +2691,7 @@ func TestScProcessor_processSCOutputAccountsNotInShard(t *testing.T) {
 func TestScProcessor_CreateCrossShardTransactions(t *testing.T) {
 	t.Parallel()
 
-	testAccounts, _ := state.NewUserAccount([]byte("address"), &hashingMocks.HasherMock{})
+	testAccounts, _ := state.NewUserAccount([]byte("address"), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	accountsDB := &stateMock.AccountsStub{
 		LoadAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, err error) {
 			return testAccounts, nil
@@ -2738,7 +2738,7 @@ func TestScProcessor_CreateCrossShardTransactions(t *testing.T) {
 func TestScProcessor_CreateCrossShardTransactionsWithAsyncCalls(t *testing.T) {
 	t.Parallel()
 
-	testAccounts, _ := state.NewUserAccount([]byte("address"), &hashingMocks.HasherMock{})
+	testAccounts, _ := state.NewUserAccount([]byte("address"), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	accountsDB := &stateMock.AccountsStub{
 		LoadAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, err error) {
 			return testAccounts, nil
@@ -2830,7 +2830,7 @@ func TestScProcessor_CreateCrossShardTransactionsWithAsyncCalls(t *testing.T) {
 func TestScProcessor_CreateIntraShardTransactionsWithAsyncCalls(t *testing.T) {
 	t.Parallel()
 
-	testAccounts, _ := state.NewUserAccount([]byte("address"), &hashingMocks.HasherMock{})
+	testAccounts, _ := state.NewUserAccount([]byte("address"), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	accountsDB := &stateMock.AccountsStub{
 		LoadAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, err error) {
 			return testAccounts, nil
@@ -2971,7 +2971,7 @@ func TestScProcessor_ProcessSmartContractResultBadAccType(t *testing.T) {
 func TestScProcessor_ProcessSmartContractResultNotPayable(t *testing.T) {
 	t.Parallel()
 
-	userAcc, _ := state.NewUserAccount([]byte("recv address"), &hashingMocks.HasherMock{})
+	userAcc, _ := state.NewUserAccount([]byte("recv address"), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	accountsDB := &stateMock.AccountsStub{
 		LoadAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
 			if bytes.Equal(address, userAcc.Address) {
@@ -3027,7 +3027,7 @@ func TestScProcessor_ProcessSmartContractResultOutputBalanceNil(t *testing.T) {
 
 	accountsDB := &stateMock.AccountsStub{
 		LoadAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
-			return state.NewUserAccount(address, &hashingMocks.HasherMock{})
+			return state.NewUserAccount(address, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 		},
 		SaveAccountCalled: func(accountHandler vmcommon.AccountHandler) error {
 			return nil
@@ -3056,7 +3056,7 @@ func TestScProcessor_ProcessSmartContractResultWithCode(t *testing.T) {
 	putCodeCalled := 0
 	accountsDB := &stateMock.AccountsStub{
 		LoadAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
-			return state.NewUserAccount(address, &hashingMocks.HasherMock{})
+			return state.NewUserAccount(address, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 		},
 		SaveAccountCalled: func(accountHandler vmcommon.AccountHandler) error {
 			putCodeCalled++
@@ -3091,7 +3091,7 @@ func TestScProcessor_ProcessSmartContractResultWithData(t *testing.T) {
 	saveAccountCalled := 0
 	accountsDB := &stateMock.AccountsStub{
 		LoadAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
-			return state.NewUserAccount(address, &hashingMocks.HasherMock{})
+			return state.NewUserAccount(address, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 		},
 		SaveAccountCalled: func(accountHandler vmcommon.AccountHandler) error {
 			saveAccountCalled++
@@ -3133,7 +3133,7 @@ func TestScProcessor_ProcessSmartContractResultDeploySCShouldError(t *testing.T)
 
 	accountsDB := &stateMock.AccountsStub{
 		LoadAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
-			return state.NewUserAccount(address, &hashingMocks.HasherMock{})
+			return state.NewUserAccount(address, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 		},
 		SaveAccountCalled: func(accountHandler vmcommon.AccountHandler) error {
 			return nil
@@ -3169,7 +3169,7 @@ func TestScProcessor_ProcessSmartContractResultExecuteSC(t *testing.T) {
 	t.Parallel()
 
 	scAddress := []byte("000000000001234567890123456789012")
-	dstScAddress, _ := state.NewUserAccount(scAddress, &hashingMocks.HasherMock{})
+	dstScAddress, _ := state.NewUserAccount(scAddress, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	dstScAddress.SetCode([]byte("code"))
 	accountsDB := &stateMock.AccountsStub{
 		LoadAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
@@ -3231,7 +3231,7 @@ func TestScProcessor_ProcessSmartContractResultExecuteSCIfMetaAndBuiltIn(t *test
 	t.Parallel()
 
 	scAddress := []byte("000000000001234567890123456789012")
-	dstScAddress, _ := state.NewUserAccount(scAddress, &hashingMocks.HasherMock{})
+	dstScAddress, _ := state.NewUserAccount(scAddress, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	dstScAddress.SetCode([]byte("code"))
 	accountsDB := &stateMock.AccountsStub{
 		LoadAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
@@ -3306,15 +3306,15 @@ func TestScProcessor_ProcessRelayedSCRValueBackToRelayer(t *testing.T) {
 	t.Parallel()
 
 	scAddress := []byte("000000000001234567890123456789012")
-	dstScAddress, _ := state.NewUserAccount(scAddress, &hashingMocks.HasherMock{})
+	dstScAddress, _ := state.NewUserAccount(scAddress, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	dstScAddress.SetCode([]byte("code"))
 
 	baseValue := big.NewInt(100)
 	userAddress := []byte("111111111111234567890123456789012")
-	userAcc, _ := state.NewUserAccount(userAddress, &hashingMocks.HasherMock{})
+	userAcc, _ := state.NewUserAccount(userAddress, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	_ = userAcc.AddToBalance(baseValue)
 	relayedAddress := []byte("211111111111234567890123456789012")
-	relayedAcc, _ := state.NewUserAccount(relayedAddress, &hashingMocks.HasherMock{})
+	relayedAcc, _ := state.NewUserAccount(relayedAddress, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 
 	accountsDB := &stateMock.AccountsStub{
 		LoadAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
@@ -3399,7 +3399,7 @@ func TestScProcessor_checkUpgradePermission(t *testing.T) {
 	require.Equal(t, process.ErrUpgradeNotAllowed, err)
 
 	// Create a contract, owned by Alice
-	contract, err := state.NewUserAccount([]byte("contract"), &hashingMocks.HasherMock{})
+	contract, err := state.NewUserAccount([]byte("contract"), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	require.Nil(t, err)
 	contract.SetOwnerAddress([]byte("alice"))
 	// Not yet upgradeable
@@ -3695,7 +3695,7 @@ func TestSmartContractProcessor_computeTotalConsumedFeeAndDevRwdWithDifferentSCC
 	t.Parallel()
 
 	scAccountAddress := []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x00, 0x1e, 0x2e, 0x61, 0x1a, 0x9c, 0xe1, 0xe0, 0xc8, 0xe3, 0x28, 0x3c, 0xcc, 0x7c, 0x1b, 0x0f, 0x46, 0x61, 0x91, 0x70, 0x79, 0xa7, 0x5c}
-	acc, err := state.NewUserAccount(scAccountAddress, &hashingMocks.HasherMock{})
+	acc, err := state.NewUserAccount(scAccountAddress, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	require.Nil(t, err)
 	require.NotNil(t, acc)
 
@@ -3785,7 +3785,7 @@ func TestSmartContractProcessor_finishSCExecutionV2(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			acc, err := state.NewUserAccount(scAccountAddress, &hashingMocks.HasherMock{})
+			acc, err := state.NewUserAccount(scAccountAddress, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 			require.Nil(t, err)
 			require.NotNil(t, acc)
 
@@ -4170,7 +4170,7 @@ func TestProcess_createCompletedTxEvent(t *testing.T) {
 	scrWithRefund := &smartContractResult.SmartContractResult{Value: big.NewInt(10), PrevTxHash: scrHash, Data: []byte("@6f6b@aaffaa")}
 	completedLogSaved = false
 
-	acntDst, _ := state.NewUserAccount(userAddress, &hashingMocks.HasherMock{})
+	acntDst, _ := state.NewUserAccount(userAddress, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	err := sc.processSimpleSCR(scrWithRefund, []byte("scrHash"), acntDst)
 	assert.Nil(t, err)
 	assert.True(t, completedLogSaved)

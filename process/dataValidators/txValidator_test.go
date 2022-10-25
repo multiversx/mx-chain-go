@@ -21,7 +21,7 @@ import (
 func getAccAdapter(nonce uint64, balance *big.Int) *stateMock.AccountsStub {
 	accDB := &stateMock.AccountsStub{}
 	accDB.GetExistingAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
-		acc, _ := state.NewUserAccount(address, &hashingMocks.HasherMock{})
+		acc, _ := state.NewUserAccount(address, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 		acc.Nonce = nonce
 		acc.Balance = balance
 
@@ -331,7 +331,7 @@ func TestTxValidator_CheckTxValidityWrongAccountTypeShouldReturnFalse(t *testing
 
 	accDB := &stateMock.AccountsStub{}
 	accDB.GetExistingAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
-		return state.NewPeerAccount(address, &hashingMocks.HasherMock{})
+		return state.NewPeerAccount(address, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	}
 	shardCoordinator := createMockCoordinator("_", 0)
 	maxNonceDeltaAllowed := 100
