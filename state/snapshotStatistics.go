@@ -52,7 +52,7 @@ func (ss *snapshotStatistics) AddTrieStats(trieStats *statistics.TrieStatsDTO) {
 	ss.mutex.Lock()
 	defer ss.mutex.Unlock()
 
-	ss.trieStatisticsCollector.Add(trieStats)
+	ss.trieStatisticsCollector.Add(*trieStats)
 }
 
 // WaitForSyncToFinish will wait until the waitGroup counter is zero

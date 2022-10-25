@@ -1464,7 +1464,7 @@ func collectStats(tr common.TrieStats, stats common.TriesStatisticsCollector, ro
 		log.Error(err.Error())
 		return
 	}
-	stats.Add(trieStats)
+	stats.Add(*trieStats)
 
 	log.Debug(strings.Join(trieStats.ToString(), " "))
 }
