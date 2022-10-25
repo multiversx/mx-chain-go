@@ -834,7 +834,7 @@ func TestBaseRewardsCreator_isSystemDelegationSC(t *testing.T) {
 	require.False(t, isDelegationSCAddress)
 
 	// existing user account
-	userAccount, err := state.NewUserAccount([]byte("userAddress"), &hashingMocks.HasherMock{}, &marshal.GogoProtoMarshalizer{})
+	userAccount, err := state.NewUserAccount([]byte("userAddress"), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	require.Nil(t, err)
 
 	userAccount.SetDataTrie(&trieMock.TrieStub{

@@ -11,11 +11,11 @@ import (
 
 // TrackableDataTrie wraps a PatriciaMerkelTrie adding modifying data capabilities
 type trackableDataTrie struct {
-	dirtyData   map[string][]byte
-	tr          common.Trie
-	hasher      hashing.Hasher
-	marshalizer marshal.Marshalizer
-	identifier  []byte
+	dirtyData  map[string][]byte
+	tr         common.Trie
+	hasher     hashing.Hasher
+	marshaller marshal.Marshalizer
+	identifier []byte
 }
 
 // NewTrackableDataTrie returns an instance of trackableDataTrie
@@ -28,11 +28,11 @@ func NewTrackableDataTrie(identifier []byte, tr common.Trie, hasher hashing.Hash
 	}
 
 	return &trackableDataTrie{
-		tr:          tr,
-		hasher:      hasher,
-		marshalizer: marshaller,
-		dirtyData:   make(map[string][]byte),
-		identifier:  identifier,
+		tr:         tr,
+		hasher:     hasher,
+		marshaller: marshaller,
+		dirtyData:  make(map[string][]byte),
+		identifier: identifier,
 	}, nil
 }
 
