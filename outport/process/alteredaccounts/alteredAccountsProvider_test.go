@@ -143,9 +143,11 @@ func testExtractAlteredAccountsFromPoolSenderShard(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 2, len(res))
 
-	for key := range res {
+	for key, info := range res {
 		decodedKey, _ := args.AddressConverter.Decode(key)
 		require.True(t, strings.HasPrefix(string(decodedKey), "sender"))
+		require.True(t, info.IsSender)
+		require.True(t, info.BalanceChange)
 	}
 }
 
@@ -183,9 +185,11 @@ func testExtractAlteredAccountsFromPoolReceiverShard(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 2, len(res))
 
-	for key := range res {
+	for key, info := range res {
 		decodedKey, _ := args.AddressConverter.Decode(key)
 		require.True(t, strings.HasPrefix(string(decodedKey), "receiver"))
+		require.True(t, info.BalanceChange)
+		require.False(t, info.IsSender)
 	}
 }
 
@@ -517,6 +521,7 @@ func testExtractAlteredAccountsFromPoolShouldNotIncludeReceiverAddressIfNftCreat
 		},
 	}
 	args := getMockArgs()
+	args.AddressConverter = testscommon.NewPubkeyConverterMock(26)
 	args.EsdtDataStorageHandler = &testscommon.EsdtStorageHandlerStub{
 		GetESDTNFTTokenOnDestinationCalled: func(acnt vmcommon.UserAccountHandler, esdtTokenKey []byte, nonce uint64) (*esdt.ESDigitalToken, bool, error) {
 			return &expectedToken, false, nil
@@ -530,13 +535,19 @@ func testExtractAlteredAccountsFromPoolShouldNotIncludeReceiverAddressIfNftCreat
 	aap, _ := NewAlteredAccountsProvider(args)
 
 	res, err := aap.ExtractAlteredAccountsFromPool(&outportcore.Pool{
+		Txs: map[string]data.TransactionHandlerWithGasUsedAndFee{
+			"hh": outportcore.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{
+				SndAddr: []byte("sender in shard 0 - tx 1  "),
+				RcvAddr: []byte("sender in shard 0 - tx 1  "),
+			}, 0, big.NewInt(0)),
+		},
 		Logs: []*data.LogData{
 			{
 				LogHandler: &transaction.Log{
-					Address: []byte("addr"),
+					Address: []byte("sender in shard 0 - tx 1  "),
 					Events: []*transaction.Event{
 						{
-							Address:    []byte("addr"),
+							Address:    []byte("sender in shard 0 - tx 1  "),
 							Identifier: []byte(core.BuiltInFunctionESDTNFTCreate),
 							Topics: [][]byte{
 								[]byte("token0"),
@@ -553,6 +564,9 @@ func testExtractAlteredAccountsFromPoolShouldNotIncludeReceiverAddressIfNftCreat
 	require.NoError(t, err)
 
 	require.Len(t, res, 1)
+	require.True(t, res["73656e64657220696e2073686172642030202d20747820312020"].Tokens[0].IsNFTCreate)
+	require.True(t, res["73656e64657220696e2073686172642030202d20747820312020"].BalanceChange)
+	require.True(t, res["73656e64657220696e2073686172642030202d20747820312020"].IsSender)
 
 	mapKeyToSearch := args.AddressConverter.Encode(receiverOnDestination)
 	require.Nil(t, res[mapKeyToSearch])

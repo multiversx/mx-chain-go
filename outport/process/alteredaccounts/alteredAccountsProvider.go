@@ -23,12 +23,15 @@ var (
 )
 
 type markedAlteredAccountToken struct {
-	identifier string
-	nonce      uint64
+	identifier  string
+	nonce       uint64
+	isNFTCreate bool
 }
 
 type markedAlteredAccount struct {
-	tokens map[string]*markedAlteredAccountToken
+	balanceChanged bool
+	isSender       bool
+	tokens         map[string]*markedAlteredAccountToken
 }
 
 // ArgsAlteredAccountsProvider holds the arguments needed for creating a new instance of alteredAccountsProvider
@@ -92,7 +95,7 @@ func (aap *alteredAccountsProvider) fetchDataForMarkedAccounts(markedAccounts ma
 	alteredAccounts := make(map[string]*outportcore.AlteredAccount)
 	var err error
 	for address, markedAccount := range markedAccounts {
-		err = aap.processMarkedAccountData(address, markedAccount.tokens, alteredAccounts, options)
+		err = aap.processMarkedAccountData(address, markedAccount, alteredAccounts, options)
 		if err != nil {
 			return nil, err
 		}
@@ -103,7 +106,7 @@ func (aap *alteredAccountsProvider) fetchDataForMarkedAccounts(markedAccounts ma
 
 func (aap *alteredAccountsProvider) processMarkedAccountData(
 	addressStr string,
-	markedAccountTokens map[string]*markedAlteredAccountToken,
+	markedAccount *markedAlteredAccount,
 	alteredAccounts map[string]*outportcore.AlteredAccount,
 	options shared.AlteredAccountsOptions,
 ) error {
@@ -116,12 +119,14 @@ func (aap *alteredAccountsProvider) processMarkedAccountData(
 	}
 
 	alteredAccounts[encodedAddress] = &outportcore.AlteredAccount{
-		Address: encodedAddress,
-		Balance: userAccount.GetBalance().String(),
-		Nonce:   userAccount.GetNonce(),
+		Address:       encodedAddress,
+		Balance:       userAccount.GetBalance().String(),
+		Nonce:         userAccount.GetNonce(),
+		IsSender:      markedAccount.isSender,
+		BalanceChange: markedAccount.balanceChanged,
 	}
 
-	for _, tokenData := range markedAccountTokens {
+	for _, tokenData := range markedAccount.tokens {
 		err = aap.addTokensDataForMarkedAccount(encodedAddress, userAccount, tokenData, alteredAccounts)
 		if err != nil {
 			return fmt.Errorf("%w while fetching token data when computing altered accounts", err)
@@ -185,11 +190,12 @@ func (aap *alteredAccountsProvider) addTokensDataForMarkedAccount(
 	alteredAccount := alteredAccounts[encodedAddress]
 
 	alteredAccount.Tokens = append(alteredAccount.Tokens, &outportcore.AccountTokenData{
-		Identifier: tokenID,
-		Balance:    esdtToken.Value.String(),
-		Nonce:      nonce,
-		Properties: string(esdtToken.Properties),
-		MetaData:   esdtToken.TokenMetaData,
+		Identifier:  tokenID,
+		Balance:     esdtToken.Value.String(),
+		Nonce:       nonce,
+		Properties:  string(esdtToken.Properties),
+		MetaData:    esdtToken.TokenMetaData,
+		IsNFTCreate: markedAccountToken.isNFTCreate,
 	})
 
 	alteredAccounts[encodedAddress] = alteredAccount
@@ -223,10 +229,10 @@ func (aap *alteredAccountsProvider) extractAddressesFromTxsHandlers(
 		receiverShardID := aap.shardCoordinator.ComputeId(receiverAddress)
 
 		if senderShardID == selfShardID && len(senderAddress) > 0 {
-			aap.addAddressWithBalanceChangeInMap(senderAddress, markedAlteredAccounts)
+			aap.addAddressWithBalanceChangeInMap(senderAddress, markedAlteredAccounts, true)
 		}
 		if txType != process.InvalidTransaction && receiverShardID == selfShardID && len(receiverAddress) > 0 {
-			aap.addAddressWithBalanceChangeInMap(receiverAddress, markedAlteredAccounts)
+			aap.addAddressWithBalanceChangeInMap(receiverAddress, markedAlteredAccounts, false)
 		}
 	}
 }
@@ -234,6 +240,7 @@ func (aap *alteredAccountsProvider) extractAddressesFromTxsHandlers(
 func (aap *alteredAccountsProvider) addAddressWithBalanceChangeInMap(
 	address []byte,
 	markedAlteredAccounts map[string]*markedAlteredAccount,
+	isSender bool,
 ) {
 	isValidAddress := len(address) == aap.addressConverter.Len()
 	if !isValidAddress {
@@ -242,10 +249,14 @@ func (aap *alteredAccountsProvider) addAddressWithBalanceChangeInMap(
 
 	_, addressAlreadySelected := markedAlteredAccounts[string(address)]
 	if addressAlreadySelected {
+		markedAlteredAccounts[string(address)].isSender = markedAlteredAccounts[string(address)].isSender || isSender
 		return
 	}
 
-	markedAlteredAccounts[string(address)] = &markedAlteredAccount{}
+	markedAlteredAccounts[string(address)] = &markedAlteredAccount{
+		isSender:       isSender,
+		balanceChanged: true,
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
