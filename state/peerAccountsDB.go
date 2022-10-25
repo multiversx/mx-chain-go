@@ -20,6 +20,8 @@ func NewPeerAccountsDB(args ArgsAccountsDB) (*PeerAccountsDB, error) {
 		AccountsDB: createAccountsDb(args),
 	}
 
+	args.AppStatusHandler.SetStringValue(common.MetricPeersSnapshotInProgress, "false")
+
 	return adb, nil
 }
 
@@ -52,14 +54,25 @@ func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
 
 	log.Info("starting snapshot peer trie", "rootHash", rootHash, "epoch", epoch)
 	missingNodesChannel := make(chan []byte, missingNodesChannelSize)
-	errChan := make(chan error, 1)
+	iteratorChannels := &common.TrieIteratorChannels{
+		LeavesChan: nil,
+		ErrChan:    make(chan error, 1),
+	}
 	stats := newSnapshotStatistics(0, 1)
 	stats.NewSnapshotStarted()
-	trieStorageManager.TakeSnapshot(nil, rootHash, rootHash, nil, missingNodesChannel, errChan, stats, epoch)
+
+	peerAccountsMetrics := &accountMetrics{
+		snapshotInProgressKey:   common.MetricPeersSnapshotInProgress,
+		lastSnapshotDurationKey: common.MetricLastPeersSnapshotDurationSec,
+		snapshotMessage:         peerTrieSnapshotMsg,
+	}
+	adb.updateMetricsOnSnapshotStart(peerAccountsMetrics)
+
+	trieStorageManager.TakeSnapshot(nil, rootHash, rootHash, iteratorChannels, missingNodesChannel, stats, epoch)
 
 	go adb.syncMissingNodes(missingNodesChannel, stats, adb.trieSyncer)
 
-	go adb.processSnapshotCompletion(stats, trieStorageManager, missingNodesChannel, errChan, rootHash, "snapshotState peer trie", epoch)
+	go adb.processSnapshotCompletion(stats, trieStorageManager, missingNodesChannel, iteratorChannels.ErrChan, rootHash, peerAccountsMetrics, epoch)
 
 	adb.waitForCompletionIfAppropriate(stats)
 }
@@ -77,8 +90,11 @@ func (adb *PeerAccountsDB) SetStateCheckpoint(rootHash []byte) {
 
 	trieStorageManager.EnterPruningBufferingMode()
 	stats.NewSnapshotStarted()
-	errChan := make(chan error, 1)
-	trieStorageManager.SetCheckpoint(rootHash, rootHash, nil, missingNodesChannel, errChan, stats)
+	iteratorChannels := &common.TrieIteratorChannels{
+		LeavesChan: nil,
+		ErrChan:    make(chan error, 1),
+	}
+	trieStorageManager.SetCheckpoint(rootHash, rootHash, iteratorChannels, missingNodesChannel, stats)
 
 	go adb.syncMissingNodes(missingNodesChannel, stats, adb.trieSyncer)
 

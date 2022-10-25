@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	arwenConfig "github.com/ElrondNetwork/wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/throttler"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -27,6 +26,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/trie/statistics"
 	"github.com/ElrondNetwork/elrond-go/trie/storageMarker"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
+	arwenConfig "github.com/ElrondNetwork/wasm-vm/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -160,7 +160,7 @@ func printStatistics(ctx context.Context, stats common.SizeSyncStatisticsHandler
 		select {
 		case <-ctx.Done():
 			log.Info("finished trie sync",
-				"num received", stats.NumReceived(),
+				"num processed", stats.NumProcessed(),
 				"num large nodes", stats.NumLarge(),
 				"num missing", stats.NumMissing(),
 				"data size received", core.ConvertBytes(stats.NumBytesReceived()),
@@ -177,7 +177,7 @@ func printStatistics(ctx context.Context, stats common.SizeSyncStatisticsHandler
 			speed := fmt.Sprintf("%s/s", core.ConvertBytes(uint64(bytesReceivedPerSec)))
 
 			log.Info("trie sync in progress",
-				"num received", stats.NumReceived(),
+				"num processed", stats.NumProcessed(),
 				"num large nodes", stats.NumLarge(),
 				"num missing", stats.NumMissing(),
 				"data size received", core.ConvertBytes(stats.NumBytesReceived()),
@@ -345,10 +345,15 @@ func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves 
 	dataTrieRootHashes := addAccountsToState(t, numAccounts, numDataTrieLeaves, accState, valSize)
 
 	rootHash, _ := accState.RootHash()
-	leavesChannel := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
-	err = accState.GetAllLeaves(leavesChannel, context.Background(), rootHash)
-	for range leavesChannel {
+	leavesChannel := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    make(chan error, 1),
 	}
+	err = accState.GetAllLeaves(leavesChannel, context.Background(), rootHash)
+	for range leavesChannel.LeavesChan {
+	}
+	require.Nil(t, err)
+	err = common.GetErrorFromChanNonBlocking(leavesChannel.ErrChan)
 	require.Nil(t, err)
 
 	requesterTrie := nRequester.TrieContainer.Get([]byte(trieFactory.UserAccountTrie))
@@ -368,13 +373,18 @@ func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves 
 	assert.NotEqual(t, nilRootHash, newRootHash)
 	assert.Equal(t, rootHash, newRootHash)
 
-	leavesChannel = make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+	leavesChannel = &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    make(chan error, 1),
+	}
 	err = nRequester.AccntState.GetAllLeaves(leavesChannel, context.Background(), rootHash)
 	assert.Nil(t, err)
 	numLeaves := 0
-	for range leavesChannel {
+	for range leavesChannel.LeavesChan {
 		numLeaves++
 	}
+	err = common.GetErrorFromChanNonBlocking(leavesChannel.ErrChan)
+	require.Nil(t, err)
 	assert.Equal(t, numAccounts, numLeaves)
 	checkAllDataTriesAreSynced(t, numDataTrieLeaves, requesterTrie, dataTrieRootHashes)
 }
@@ -565,14 +575,20 @@ func addAccountsToState(t *testing.T, numAccounts int, numDataTrieLeaves int, ac
 }
 
 func getNumLeaves(t *testing.T, tr common.Trie, rootHash []byte) int {
-	leavesChannel := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+	leavesChannel := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    make(chan error, 1),
+	}
 	err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), rootHash, keyBuilder.NewDisabledKeyBuilder())
 	require.Nil(t, err)
 
 	numLeaves := 0
-	for range leavesChannel {
+	for range leavesChannel.LeavesChan {
 		numLeaves++
 	}
+
+	err = common.GetErrorFromChanNonBlocking(leavesChannel.ErrChan)
+	require.Nil(t, err)
 
 	return numLeaves
 }

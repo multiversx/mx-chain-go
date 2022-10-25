@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
@@ -29,9 +28,6 @@ const (
 )
 
 const rootDepthLevel = 0
-
-// EmptyTrieHash returns the value with empty trie hash
-var EmptyTrieHash = make([]byte, 32)
 
 type patriciaMerkleTrie struct {
 	root node
@@ -200,7 +196,7 @@ func (tr *patriciaMerkleTrie) RootHash() ([]byte, error) {
 
 func (tr *patriciaMerkleTrie) getRootHash() ([]byte, error) {
 	if tr.root == nil {
-		return EmptyTrieHash, nil
+		return common.EmptyTrieHash, nil
 	}
 
 	hash := tr.root.getHash()
@@ -275,7 +271,7 @@ func (tr *patriciaMerkleTrie) RecreateFromEpoch(options common.RootHashHolder) (
 }
 
 func (tr *patriciaMerkleTrie) recreate(root []byte, tsm common.StorageManager) (*patriciaMerkleTrie, error) {
-	if emptyTrie(root) {
+	if common.IsEmptyTrie(root) {
 		return NewTrie(
 			tr.trieStorage,
 			tr.marshalizer,
@@ -319,16 +315,6 @@ func (tr *patriciaMerkleTrie) String() string {
 // IsInterfaceNil returns true if there is no value under the interface
 func (tr *patriciaMerkleTrie) IsInterfaceNil() bool {
 	return tr == nil
-}
-
-func emptyTrie(root []byte) bool {
-	if len(root) == 0 {
-		return true
-	}
-	if bytes.Equal(root, EmptyTrieHash) {
-		return true
-	}
-	return false
 }
 
 // GetObsoleteHashes resets the oldHashes and oldRoot variables and returns the old hashes
@@ -451,22 +437,34 @@ func (tr *patriciaMerkleTrie) GetSerializedNodes(rootHash []byte, maxBuffToSend 
 
 // GetAllLeavesOnChannel adds all the trie leaves to the given channel
 func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(
-	leavesChannel chan core.KeyValueHolder,
+	leavesChannels *common.TrieIteratorChannels,
 	ctx context.Context,
 	rootHash []byte,
 	keyBuilder common.KeyBuilder,
 ) error {
+	if leavesChannels == nil {
+		return ErrNilTrieIteratorChannels
+	}
+	if leavesChannels.LeavesChan == nil {
+		return ErrNilTrieIteratorLeavesChannel
+	}
+	if leavesChannels.ErrChan == nil {
+		return ErrNilTrieIteratorErrChannel
+	}
+
 	tr.mutOperation.RLock()
 	newTrie, err := tr.recreate(rootHash, tr.trieStorage)
 	if err != nil {
 		tr.mutOperation.RUnlock()
-		close(leavesChannel)
+		close(leavesChannels.LeavesChan)
+		close(leavesChannels.ErrChan)
 		return err
 	}
 
 	if check.IfNil(newTrie) || newTrie.root == nil {
 		tr.mutOperation.RUnlock()
-		close(leavesChannel)
+		close(leavesChannels.LeavesChan)
+		close(leavesChannels.ErrChan)
 		return nil
 	}
 
@@ -475,7 +473,7 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(
 
 	go func() {
 		err = newTrie.root.getAllLeavesOnChannel(
-			leavesChannel,
+			leavesChannels.LeavesChan,
 			keyBuilder,
 			tr.trieStorage,
 			tr.marshalizer,
@@ -483,6 +481,7 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(
 			ctx,
 		)
 		if err != nil {
+			writeInChanNonBlocking(leavesChannels.ErrChan, err)
 			log.Error("could not get all trie leaves: ", "error", err)
 		}
 
@@ -490,7 +489,8 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(
 		tr.trieStorage.ExitPruningBufferingMode()
 		tr.mutOperation.Unlock()
 
-		close(leavesChannel)
+		close(leavesChannels.LeavesChan)
+		close(leavesChannels.ErrChan)
 	}()
 
 	return nil

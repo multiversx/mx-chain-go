@@ -24,9 +24,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
+	"github.com/ElrondNetwork/elrond-go/common/goroutines"
 	"github.com/ElrondNetwork/elrond-go/common/statistics"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	dbLookupFactory "github.com/ElrondNetwork/elrond-go/dblookupext/factory"
@@ -196,7 +196,6 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("fail execution on every wrong API call"), "epoch", enableEpochs.FailExecutionOnEveryAPIErrorEnableEpoch)
 	log.Debug(readEpochFor("managed crypto API in wasm vm"), "epoch", enableEpochs.ManagedCryptoAPIsEnableEpoch)
 	log.Debug(readEpochFor("refactor contexts"), "epoch", enableEpochs.RefactorContextEnableEpoch)
-	log.Debug(readEpochFor("disable heartbeat v1"), "epoch", enableEpochs.HeartbeatDisableEpoch)
 	log.Debug(readEpochFor("mini block partial execution"), "epoch", enableEpochs.MiniBlockPartialExecutionEnableEpoch)
 	log.Debug(readEpochFor("fix async callback arguments list"), "epoch", enableEpochs.FixAsyncCallBackArgsListEnableEpoch)
 	log.Debug(readEpochFor("fix old token liquidity"), "epoch", enableEpochs.FixOldTokenLiquidityEnableEpoch)
@@ -455,19 +454,6 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
-	managedHeartbeatComponents, err := nr.CreateManagedHeartbeatComponents(
-		managedCoreComponents,
-		managedNetworkComponents,
-		managedCryptoComponents,
-		managedDataComponents,
-		managedProcessComponents,
-		managedProcessComponents.NodeRedundancyHandler(),
-	)
-
-	if err != nil {
-		return true, err
-	}
-
 	managedHeartbeatV2Components, err := nr.CreateManagedHeartbeatV2Components(
 		managedBootstrapComponents,
 		managedCoreComponents,
@@ -493,7 +479,6 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedProcessComponents,
 		managedStateComponents,
 		managedStatusComponents,
-		managedHeartbeatComponents,
 		managedHeartbeatV2Components,
 		managedConsensusComponents,
 		flagsConfig.BootstrapRoundIndex,
@@ -719,7 +704,7 @@ func (nr *nodeRunner) createApiFacade(
 		ApiResolver:            apiResolver,
 		TxSimulatorProcessor:   currentNode.processComponents.TransactionSimulatorProcessor(),
 		RestAPIServerDebugMode: flagsConfig.EnableRestAPIServerDebugMode,
-		WsAntifloodConfig:      configs.GeneralConfig.Antiflood.WebServer,
+		WsAntifloodConfig:      configs.GeneralConfig.WebServerAntiflood,
 		FacadeConfig: config.FacadeConfig{
 			RestApiInterface: flagsConfig.RestApiInterface,
 			PprofEnabled:     flagsConfig.EnablePprof,
@@ -753,7 +738,7 @@ func (nr *nodeRunner) createHttpServer() (shared.UpgradeableHttpServerHandler, e
 	httpServerArgs := gin.ArgsNewWebServer{
 		Facade:          initial.NewInitialNodeFacade(nr.configs.FlagsConfig.RestApiInterface, nr.configs.FlagsConfig.EnablePprof),
 		ApiConfig:       *nr.configs.ApiRoutesConfig,
-		AntiFloodConfig: nr.configs.GeneralConfig.Antiflood.WebServer,
+		AntiFloodConfig: nr.configs.GeneralConfig.WebServerAntiflood,
 	}
 
 	httpServerWrapper, err := gin.NewGinWebServerHandler(httpServerArgs)
@@ -872,47 +857,6 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 	return managedConsensusComponents, nil
 }
 
-// CreateManagedHeartbeatComponents is the managed heartbeat components factory
-func (nr *nodeRunner) CreateManagedHeartbeatComponents(
-	coreComponents mainFactory.CoreComponentsHolder,
-	networkComponents mainFactory.NetworkComponentsHolder,
-	cryptoComponents mainFactory.CryptoComponentsHolder,
-	dataComponents mainFactory.DataComponentsHolder,
-	processComponents mainFactory.ProcessComponentsHolder,
-	redundancyHandler consensus.NodeRedundancyHandler,
-) (mainFactory.HeartbeatComponentsHandler, error) {
-	genesisTime := time.Unix(coreComponents.GenesisNodesSetup().GetStartTime(), 0)
-
-	heartbeatArgs := heartbeatComp.HeartbeatComponentsFactoryArgs{
-		Config:            *nr.configs.GeneralConfig,
-		Prefs:             *nr.configs.PreferencesConfig,
-		AppVersion:        nr.configs.FlagsConfig.Version,
-		GenesisTime:       genesisTime,
-		RedundancyHandler: redundancyHandler,
-		CoreComponents:    coreComponents,
-		DataComponents:    dataComponents,
-		NetworkComponents: networkComponents,
-		CryptoComponents:  cryptoComponents,
-		ProcessComponents: processComponents,
-	}
-
-	heartbeatComponentsFactory, err := heartbeatComp.NewHeartbeatComponentsFactory(heartbeatArgs)
-	if err != nil {
-		return nil, fmt.Errorf("NewHeartbeatComponentsFactory failed: %w", err)
-	}
-
-	managedHeartbeatComponents, err := heartbeatComp.NewManagedHeartbeatComponents(heartbeatComponentsFactory)
-	if err != nil {
-		return nil, err
-	}
-
-	err = managedHeartbeatComponents.Create()
-	if err != nil {
-		return nil, err
-	}
-	return managedHeartbeatComponents, nil
-}
-
 // CreateManagedHeartbeatV2Components is the managed heartbeatV2 components factory
 func (nr *nodeRunner) CreateManagedHeartbeatV2Components(
 	bootstrapComponents mainFactory.BootstrapComponentsHolder,
@@ -988,7 +932,10 @@ func waitForSignal(
 	case <-chanCloseComponents:
 		log.Debug("Closed all components gracefully")
 	case <-time.After(maxTimeToClose):
-		log.Warn("force closing the node", "error", "closeAllComponents did not finish on time")
+		log.Warn("force closing the node",
+			"error", "closeAllComponents did not finish on time",
+			"stack", goroutines.GetGoRoutines())
+
 		return fmt.Errorf("did NOT close all components gracefully")
 	}
 

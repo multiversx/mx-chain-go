@@ -12,7 +12,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	arwenConfig "github.com/ElrondNetwork/wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/partitioning"
@@ -118,6 +117,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
+	arwenConfig "github.com/ElrondNetwork/wasm-vm/config"
 )
 
 var zero = big.NewInt(0)
@@ -2802,45 +2802,6 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 	)
 	log.LogIfError(err)
 
-	// TODO: remove it with heartbeat v1 cleanup
-	// =============== Heartbeat ============== //
-	redundancyHandler := &mock.RedundancyHandlerStub{}
-
-	hbConfig := config.HeartbeatConfig{
-		MinTimeToWaitBetweenBroadcastsInSec: 4,
-		MaxTimeToWaitBetweenBroadcastsInSec: 6,
-		DurationToConsiderUnresponsiveInSec: 60,
-		HeartbeatRefreshIntervalInSec:       5,
-		HideInactiveValidatorIntervalInSec:  600,
-	}
-
-	hbFactoryArgs := heartbeatComp.HeartbeatComponentsFactoryArgs{
-		Config: config.Config{
-			Heartbeat: hbConfig,
-		},
-		Prefs:             config.Preferences{},
-		RedundancyHandler: redundancyHandler,
-		CoreComponents:    tpn.Node.GetCoreComponents(),
-		DataComponents:    tpn.Node.GetDataComponents(),
-		NetworkComponents: tpn.Node.GetNetworkComponents(),
-		CryptoComponents:  tpn.Node.GetCryptoComponents(),
-		ProcessComponents: tpn.Node.GetProcessComponents(),
-	}
-
-	heartbeatFactory, err := heartbeatComp.NewHeartbeatComponentsFactory(hbFactoryArgs)
-	log.LogIfError(err)
-
-	managedHeartbeatComponents, err := heartbeatComp.NewManagedHeartbeatComponents(heartbeatFactory)
-	log.LogIfError(err)
-
-	err = managedHeartbeatComponents.Create()
-	log.LogIfError(err)
-
-	err = tpn.Node.ApplyOptions(
-		node.WithHeartbeatComponents(managedHeartbeatComponents),
-	)
-	log.LogIfError(err)
-
 	// ============== HeartbeatV2 ============= //
 	hbv2Config := config.HeartbeatV2Config{
 		PeerAuthenticationTimeBetweenSendsInSec:          5,
@@ -2853,7 +2814,8 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 		MinPeersThreshold:                                0.8,
 		DelayBetweenRequestsInSec:                        10,
 		MaxTimeoutInSec:                                  60,
-		DelayBetweenConnectionNotificationsInSec:         5,
+		PeerShardTimeBetweenSendsInSec:                   5,
+		PeerShardThresholdBetweenSends:                   0.1,
 		MaxMissingKeysInRequest:                          100,
 		MaxDurationPeerUnresponsiveInSec:                 10,
 		HideInactiveValidatorIntervalInSec:               60,
@@ -2961,7 +2923,6 @@ func CreateEnableEpochsConfig() config.EnableEpochs {
 		AddFailedRelayedTxToInvalidMBsDisableEpoch:        UnreachableEpoch,
 		SCRSizeInvariantOnBuiltInResultEnableEpoch:        UnreachableEpoch,
 		CheckCorrectTokenIDForTransferRoleEnableEpoch:     UnreachableEpoch,
-		HeartbeatDisableEpoch:                             UnreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch:              UnreachableEpoch,
 		RefactorPeersMiniBlocksEnableEpoch:                UnreachableEpoch,
 	}
@@ -3156,14 +3117,22 @@ func GetTokenIdentifier(nodes []*TestProcessorNode, ticker []byte) []byte {
 		userAcc, _ := acc.(state.UserAccountHandler)
 
 		rootHash, _ := userAcc.DataTrie().RootHash()
-		chLeaves := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+		chLeaves := &common.TrieIteratorChannels{
+			LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+			ErrChan:    make(chan error, 1),
+		}
 		_ = userAcc.DataTrie().GetAllLeavesOnChannel(chLeaves, context.Background(), rootHash, keyBuilder.NewKeyBuilder())
-		for leaf := range chLeaves {
+		for leaf := range chLeaves.LeavesChan {
 			if !bytes.HasPrefix(leaf.Key(), ticker) {
 				continue
 			}
 
 			return leaf.Key()
+		}
+
+		err := common.GetErrorFromChanNonBlocking(chLeaves.ErrChan)
+		if err != nil {
+			log.Error("error getting all leaves from channel", "err", err)
 		}
 	}
 
