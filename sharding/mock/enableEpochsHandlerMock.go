@@ -6,6 +6,7 @@ type EnableEpochsHandlerMock struct {
 	RefactorPeersMiniBlocksEnableEpochField   uint32
 	IsRefactorPeersMiniBlocksFlagEnabledField bool
 	IsSCProcessorV2FlagEnabledField           bool
+	IsFixOldTokenLiquidityFlagEnabledField    bool
 }
 
 // BlockGasAndFeesReCheckEnableEpoch returns 0
@@ -540,6 +541,11 @@ func (mock *EnableEpochsHandlerMock) IsRefactorPeersMiniBlocksFlagEnabled() bool
 // IsSCProcessorV2FlagEnabled -
 func (mock *EnableEpochsHandlerMock) IsSCProcessorV2FlagEnabled() bool {
 	return mock.IsSCProcessorV2FlagEnabledField
+}
+
+// IsFixOldTokenLiquidityFlagEnabled -
+func (mock *EnableEpochsHandlerMock) IsFixOldTokenLiquidityEnabled() bool {
+	return mock.IsFixOldTokenLiquidityFlagEnabledField
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

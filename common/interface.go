@@ -292,6 +292,7 @@ type EnableEpochsHandler interface {
 	IsChangeDelegationOwnerFlagEnabled() bool
 	IsRefactorPeersMiniBlocksFlagEnabled() bool
 	IsSCProcessorV2FlagEnabled() bool
+	IsFixOldTokenLiquidityEnabled() bool
 
 	IsInterfaceNil() bool
 }

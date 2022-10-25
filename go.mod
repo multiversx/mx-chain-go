@@ -6,7 +6,7 @@ require (
 	github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.42-0.20220729115258-b9f2fb2f6568
 	github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.42-0.20220729115131-85ecca868e90
 	github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.59-0.20220729115431-a6c93119bdda
-	github.com/ElrondNetwork/arwen-wasm-vm/v1_5 v1.5.1-0.20220919104158-3bb2cb5bc9e6
+	github.com/ElrondNetwork/arwen-wasm-vm/v1_5 v1.5.2-0.20221025144718-fc48d83bdf7e
 	github.com/ElrondNetwork/concurrent-map v0.1.3
 	github.com/ElrondNetwork/covalent-indexer-go v1.0.6
 	github.com/ElrondNetwork/elastic-indexer-go v1.2.39
@@ -57,4 +57,4 @@ replace github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.42-0.20220729115131-85e
 
 replace github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.59-0.20220729115431-a6c93119bdda => github.com/ElrondNetwork/arwen-wasm-vm v1.4.59-0.20220729115431-a6c93119bdda
 
-replace github.com/ElrondNetwork/arwen-wasm-vm/v1_5 v1.5.1-0.20220919104158-3bb2cb5bc9e6 => github.com/ElrondNetwork/arwen-wasm-vm v1.5.1-0.20220919104158-3bb2cb5bc9e6
+replace github.com/ElrondNetwork/arwen-wasm-vm/v1_5 v1.5.2-0.20221025144718-fc48d83bdf7e => github.com/ElrondNetwork/arwen-wasm-vm v1.5.2-0.20221025144718-fc48d83bdf7e

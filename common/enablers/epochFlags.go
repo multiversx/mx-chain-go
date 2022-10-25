@@ -622,3 +622,8 @@ func (holder *epochFlagsHolder) IsRefactorPeersMiniBlocksFlagEnabled() bool {
 func (holder *epochFlagsHolder) IsSCProcessorV2FlagEnabled() bool {
 	return holder.scProcessorV2Flag.IsSet()
 }
+
+// IsFixOldTokenLiquidityEnabled returns true if fixOldTokenLiquidityEnabled is enabled
+func (holder *epochFlagsHolder) IsFixOldTokenLiquidityEnabled() bool {
+	return true // TODO matei-p FIX WHEN MERGE !!!
+}

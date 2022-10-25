@@ -112,6 +112,7 @@ type EnableEpochsHandlerStub struct {
 	IsChangeDelegationOwnerFlagEnabledField                      bool
 	IsRefactorPeersMiniBlocksFlagEnabledField                    bool
 	IsSCProcessorV2FlagEnabledField                              bool
+	IsFixOldTokenLiquidityFlagEnabledField                       bool
 }
 
 // ResetPenalizedTooMuchGasFlag -
@@ -967,6 +968,14 @@ func (stub *EnableEpochsHandlerStub) IsSCProcessorV2FlagEnabled() bool {
 	defer stub.RUnlock()
 
 	return stub.IsSCProcessorV2FlagEnabledField
+}
+
+// IsFixOldTokenLiquidityEnabled -
+func (stub *EnableEpochsHandlerStub) IsFixOldTokenLiquidityEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsFixOldTokenLiquidityFlagEnabledField
 }
 
 // IsInterfaceNil -
