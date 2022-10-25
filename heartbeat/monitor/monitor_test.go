@@ -144,7 +144,7 @@ func TestHeartbeatV2Monitor_parseMessage(t *testing.T) {
 		monitor, _ := NewHeartbeatV2Monitor(args)
 		assert.False(t, check.IfNil(monitor))
 
-		_, err := monitor.parseMessage("pid", "dummy msg", nil)
+		_, err := monitor.parseMessage("pid", "dummy msg")
 		assert.Equal(t, process.ErrWrongTypeAssertion, err)
 	})
 	t.Run("unmarshal returns error", func(t *testing.T) {
@@ -156,7 +156,7 @@ func TestHeartbeatV2Monitor_parseMessage(t *testing.T) {
 
 		message := createHeartbeatMessage(true, []byte("public key"))
 		message.Payload = []byte("dummy payload")
-		_, err := monitor.parseMessage("pid", message, nil)
+		_, err := monitor.parseMessage("pid", message)
 		assert.NotNil(t, err)
 	})
 	t.Run("skippable message should return error", func(t *testing.T) {
@@ -167,7 +167,7 @@ func TestHeartbeatV2Monitor_parseMessage(t *testing.T) {
 		assert.False(t, check.IfNil(monitor))
 
 		message := createHeartbeatMessage(false, []byte("public key"))
-		_, err := monitor.parseMessage("pid", message, nil)
+		_, err := monitor.parseMessage("pid", message)
 		assert.True(t, errors.Is(err, heartbeat.ErrShouldSkipValidator))
 	})
 	t.Run("should work, peer type provider returns error", func(t *testing.T) {
@@ -184,26 +184,17 @@ func TestHeartbeatV2Monitor_parseMessage(t *testing.T) {
 		monitor, _ := NewHeartbeatV2Monitor(args)
 		assert.False(t, check.IfNil(monitor))
 
-		numInstances := make(map[string]uint64)
 		message := createHeartbeatMessage(true, providedPkBytes)
 		message.Pubkey = providedPkBytesFromMessage
 		providedPid := core.PeerID("pid")
 		providedMap := map[string]struct{}{
 			providedPid.Pretty(): {},
 		}
-		hb, err := monitor.parseMessage(providedPid, message, numInstances)
+		hb, err := monitor.parseMessage(providedPid, message)
 		assert.Nil(t, err)
-		checkResults(t, *message, hb, true, providedMap, 0)
+		checkResults(t, message, *hb, true, providedMap, 0)
 		assert.Equal(t, 0, len(providedMap))
-		pkFromMsg := args.PubKeyConverter.Encode(providedPkBytesFromMessage)
-		entries, ok := numInstances[pkFromMsg]
-		assert.True(t, ok)
-		assert.Equal(t, uint64(1), entries)
 		assert.Equal(t, string(common.ObserverList), hb.PeerType)
-
-		pkFromPSM := args.PubKeyConverter.Encode(providedPkBytes)
-		_, ok = numInstances[pkFromPSM]
-		assert.False(t, ok)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
@@ -219,20 +210,15 @@ func TestHeartbeatV2Monitor_parseMessage(t *testing.T) {
 		monitor, _ := NewHeartbeatV2Monitor(args)
 		assert.False(t, check.IfNil(monitor))
 
-		numInstances := make(map[string]uint64)
 		message := createHeartbeatMessage(true, providedPkBytes)
 		providedPid := core.PeerID("pid")
 		providedMap := map[string]struct{}{
 			providedPid.Pretty(): {},
 		}
-		hb, err := monitor.parseMessage(providedPid, message, numInstances)
+		hb, err := monitor.parseMessage(providedPid, message)
 		assert.Nil(t, err)
-		checkResults(t, *message, hb, true, providedMap, 0)
+		checkResults(t, message, *hb, true, providedMap, 0)
 		assert.Equal(t, 0, len(providedMap))
-		pk := args.PubKeyConverter.Encode(providedPkBytes)
-		entries, ok := numInstances[pk]
-		assert.True(t, ok)
-		assert.Equal(t, uint64(1), entries)
 		assert.Equal(t, string(expectedPeerType), hb.PeerType)
 	})
 }
@@ -311,11 +297,95 @@ func TestHeartbeatV2Monitor_GetHeartbeats(t *testing.T) {
 		assert.Equal(t, len(providedStatuses)-1, len(heartbeats))
 		assert.Equal(t, len(providedStatuses)-1, args.Cache.Len()) // faulty message was removed from cache
 		for i := 0; i < len(heartbeats); i++ {
-			checkResults(t, *providedMessages[i], heartbeats[i], providedStatuses[i], providedPids, 1)
+			checkResults(t, providedMessages[i], heartbeats[i], providedStatuses[i], providedPids, 1)
 		}
 		assert.Equal(t, 1, len(providedPids)) // one message is skipped
 	})
-	t.Run("should work", func(t *testing.T) {
+	t.Run("should remove all inactive messages except from the latest message", func(t *testing.T) {
+		t.Parallel()
+		args := createMockHeartbeatV2MonitorArgs()
+		args.HideInactiveValidatorInterval = time.Minute
+		providedStatuses := []bool{false, false, false}
+		numOfMessages := len(providedStatuses)
+		providedPids := make(map[string]struct{}, numOfMessages)
+		providedMessages := make([]*heartbeat.HeartbeatV2, numOfMessages)
+		for i := 0; i < numOfMessages; i++ {
+			pid := core.PeerID(fmt.Sprintf("%s%d", "pid", i))
+			providedPids[pid.Pretty()] = struct{}{}
+			pkBytes := []byte("same pk")
+
+			providedMessages[i] = createHeartbeatMessage(providedStatuses[i], pkBytes)
+			payload := heartbeat.Payload{
+				Timestamp: time.Now().Unix() - 30 + int64(i), // the last message will be the latest, so it will be returned
+			}
+
+			marshaller := testscommon.MarshalizerMock{}
+			payloadBytes, _ := marshaller.Marshal(payload)
+			providedMessages[i].Payload = payloadBytes
+
+			args.Cache.Put(pid.Bytes(), providedMessages[i], providedMessages[i].Size())
+		}
+
+		monitor, _ := NewHeartbeatV2Monitor(args)
+		assert.False(t, check.IfNil(monitor))
+
+		heartbeats := monitor.GetHeartbeats()
+		assert.Equal(t, 1, len(heartbeats))
+		assert.Equal(t, 1, args.Cache.Len())
+		checkResults(t, providedMessages[2], heartbeats[0], providedStatuses[2], providedPids, 0)
+		assert.Equal(t, 2, len(providedPids)) // 1 inactive was removed from the heartbeat list
+	})
+	t.Run("should remove all inactive messages if one is active", func(t *testing.T) {
+		t.Parallel()
+		args := createMockHeartbeatV2MonitorArgs()
+		args.HideInactiveValidatorInterval = time.Minute
+		providedStatuses := []bool{true, false, false}
+		numOfMessages := len(providedStatuses)
+		providedPids := make(map[string]struct{}, numOfMessages)
+		providedMessages := make([]*heartbeat.HeartbeatV2, numOfMessages)
+		for i := 0; i < numOfMessages; i++ {
+			pid := core.PeerID(fmt.Sprintf("%s%d", "pid", i))
+			providedPids[pid.Pretty()] = struct{}{}
+			pkBytes := []byte("same pk")
+
+			providedMessages[i] = createHeartbeatMessage(providedStatuses[i], pkBytes)
+			if i != 0 {
+				// 1, 2 ... are inactive messages
+				payload := heartbeat.Payload{
+					Timestamp: time.Now().Unix() - 30 + int64(i), // the last message will be the latest, so it will be returned
+				}
+
+				marshaller := testscommon.MarshalizerMock{}
+				payloadBytes, _ := marshaller.Marshal(payload)
+				providedMessages[i].Payload = payloadBytes
+			}
+
+			args.Cache.Put(pid.Bytes(), providedMessages[i], providedMessages[i].Size())
+		}
+
+		monitor, _ := NewHeartbeatV2Monitor(args)
+		assert.False(t, check.IfNil(monitor))
+
+		heartbeats := monitor.GetHeartbeats()
+		assert.Equal(t, 1, len(heartbeats))
+		assert.Equal(t, 1, args.Cache.Len())
+		checkResults(t, providedMessages[0], heartbeats[0], providedStatuses[0], providedPids, 1)
+		assert.Equal(t, 2, len(providedPids)) // 1 inactive was removed from the heartbeat list
+	})
+	t.Run("nil message in cache should remove", func(t *testing.T) {
+		t.Parallel()
+		args := createMockHeartbeatV2MonitorArgs()
+		args.HideInactiveValidatorInterval = time.Minute
+		args.Cache.Put([]byte("pid"), nil, 0)
+
+		monitor, _ := NewHeartbeatV2Monitor(args)
+		assert.False(t, check.IfNil(monitor))
+
+		heartbeats := monitor.GetHeartbeats()
+		assert.Equal(t, 0, len(heartbeats))
+		assert.Equal(t, 0, args.Cache.Len())
+	})
+	t.Run("should work with 2 public keys on different pids and one public key", func(t *testing.T) {
 		t.Parallel()
 		args := createMockHeartbeatV2MonitorArgs()
 		providedStatuses := []bool{true, true, true}
@@ -340,19 +410,43 @@ func TestHeartbeatV2Monitor_GetHeartbeats(t *testing.T) {
 		assert.False(t, check.IfNil(monitor))
 
 		heartbeats := monitor.GetHeartbeats()
-		assert.Equal(t, args.Cache.Len(), len(heartbeats))
-		for i := 0; i < numOfMessages; i++ {
+		assert.Equal(t, 2, len(heartbeats)) // 2 have the same pk
+		for i := 0; i < 2; i++ {
 			numInstances := uint64(1)
 			if i > 0 {
 				numInstances = 2
 			}
-			checkResults(t, *providedMessages[i], heartbeats[i], providedStatuses[i], providedPids, numInstances)
+			checkResults(t, providedMessages[i], heartbeats[i], providedStatuses[i], providedPids, numInstances)
 		}
-		assert.Equal(t, 0, len(providedPids))
+		assert.Equal(t, 1, len(providedPids)) // 1 active was removed from the heartbeat list
+	})
+	t.Run("should choose the 'smaller' pid if multiple active messages are found (sort should work)", func(t *testing.T) {
+		t.Parallel()
+		args := createMockHeartbeatV2MonitorArgs()
+		providedStatuses := []bool{true, true, true}
+		numOfMessages := len(providedStatuses)
+		providedPids := make(map[string]struct{}, numOfMessages)
+		providedMessages := make([]*heartbeat.HeartbeatV2, numOfMessages)
+		for i := numOfMessages - 1; i >= 0; i-- {
+			pid := core.PeerID(fmt.Sprintf("%s%d", "pid", i))
+			providedPids[pid.Pretty()] = struct{}{}
+
+			pkBytes := []byte("same pk")
+			providedMessages[i] = createHeartbeatMessage(providedStatuses[i], pkBytes)
+
+			args.Cache.Put(pid.Bytes(), providedMessages[i], providedMessages[i].Size())
+		}
+
+		monitor, _ := NewHeartbeatV2Monitor(args)
+		assert.False(t, check.IfNil(monitor))
+
+		heartbeats := monitor.GetHeartbeats()
+		assert.Equal(t, 1, len(heartbeats))
+		checkResults(t, providedMessages[0], heartbeats[0], providedStatuses[0], providedPids, 3)
 	})
 }
 
-func checkResults(t *testing.T, message heartbeat.HeartbeatV2, hb data.PubKeyHeartbeat, isActive bool, providedPids map[string]struct{}, numInstances uint64) {
+func checkResults(t *testing.T, message *heartbeat.HeartbeatV2, hb data.PubKeyHeartbeat, isActive bool, providedPids map[string]struct{}, numInstances uint64) {
 	assert.Equal(t, isActive, hb.IsActive)
 	assert.Equal(t, message.VersionNumber, hb.VersionNumber)
 	assert.Equal(t, message.NodeDisplayName, hb.NodeDisplayName)
