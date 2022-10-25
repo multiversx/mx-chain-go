@@ -12,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/clean"
-	"github.com/ElrondNetwork/elrond-go/storage/databaseremover"
 	"github.com/ElrondNetwork/elrond-go/storage/databaseremover/disabled"
 	"github.com/ElrondNetwork/elrond-go/storage/databaseremover/factory"
 	storageDisabled "github.com/ElrondNetwork/elrond-go/storage/disabled"
@@ -301,6 +300,9 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	return store, err
 }
 
+// TODO: split in 2 components shardStorageServiceCreator and metStorageServiceCreator that have a base which will contain the
+// common storers
+
 // CreateForMeta will return the storage service which contains all storers needed for metachain
 func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService, error) {
 	var metaBlockUnit storage.Storer
@@ -322,7 +324,7 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	// in case of a failure while creating (not opening)
 
 	disabledCustomDatabaseRemover := disabled.NewDisabledCustomDatabaseRemover()
-	customDatabaseRemover, err := databaseremover.NewCustomDatabaseRemover(psf.generalConfig.StoragePruning)
+	customDatabaseRemover, err := factory.CreateCustomDatabaseRemover(psf.generalConfig.StoragePruning)
 	if err != nil {
 		return nil, err
 	}
