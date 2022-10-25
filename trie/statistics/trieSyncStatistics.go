@@ -91,7 +91,7 @@ func (tss *trieSyncStatistics) IncrementIteration() {
 	tss.Unlock()
 }
 
-// NumProcessed returns the number of processed nodes
+// NumProcessed returns the number of processed trie nodes
 func (tss *trieSyncStatistics) NumProcessed() int {
 	tss.RLock()
 	defer tss.RUnlock()
@@ -99,7 +99,7 @@ func (tss *trieSyncStatistics) NumProcessed() int {
 	return tss.numProcessed
 }
 
-// NumLarge returns the number of processed large nodes
+// NumLarge returns the received large nodes
 func (tss *trieSyncStatistics) NumLarge() int {
 	tss.RLock()
 	defer tss.RUnlock()
@@ -107,7 +107,7 @@ func (tss *trieSyncStatistics) NumLarge() int {
 	return tss.numLarge
 }
 
-// NumMissing returns the number of missing nodes
+// NumMissing returns the missing nodes
 func (tss *trieSyncStatistics) NumMissing() int {
 	tss.RLock()
 	defer tss.RUnlock()
