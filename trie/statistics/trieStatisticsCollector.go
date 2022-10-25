@@ -32,13 +32,13 @@ func NewTrieStatisticsCollector() *trieStatisticsCollector {
 }
 
 // Add adds the given trie statistics to the statistics collector
-func (tsc *trieStatisticsCollector) Add(trieStats *TrieStatsDTO) {
+func (tsc *trieStatisticsCollector) Add(trieStats TrieStatsDTO) {
 	tsc.numNodes += trieStats.TotalNumNodes
 	tsc.triesSize += trieStats.TotalNodesSize
 	tsc.numDataTries++
 
-	insertInSortedArray(tsc.triesBySize, trieStats, isLessSize)
-	insertInSortedArray(tsc.triesByDepth, trieStats, isLessDeep)
+	insertInSortedArray(tsc.triesBySize, &trieStats, isLessSize)
+	insertInSortedArray(tsc.triesByDepth, &trieStats, isLessDeep)
 }
 
 // Print will print all the collected statistics

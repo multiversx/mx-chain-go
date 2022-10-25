@@ -46,8 +46,9 @@ func TestSnapshotStatistics_AddTrieStats(t *testing.T) {
 	}
 }
 
-func getTrieStatsDTO(maxLevel int, size uint64) *TrieStatsDTO {
+func getTrieStatsDTO(maxLevel int, size uint64) TrieStatsDTO {
 	ts := NewTrieStatistics()
 	ts.AddBranchNode(maxLevel, size)
-	return ts.GetTrieStats()
+	dto := ts.GetTrieStats()
+	return *dto
 }
