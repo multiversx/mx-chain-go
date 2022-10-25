@@ -168,17 +168,18 @@ func (a *accountDBSyncersContainerFactory) createUserAccountsSyncer(shardId uint
 func (a *accountDBSyncersContainerFactory) createValidatorAccountsSyncer(shardId uint32) error {
 	args := syncer.ArgsNewValidatorAccountsSyncer{
 		ArgsNewBaseAccountsSyncer: syncer.ArgsNewBaseAccountsSyncer{
-			Hasher:                    a.hasher,
-			Marshalizer:               a.marshalizer,
-			TrieStorageManager:        a.trieStorageManager,
-			RequestHandler:            a.requestHandler,
-			Timeout:                   a.timeoutGettingTrieNode,
-			Cacher:                    a.trieCacher,
-			MaxTrieLevelInMemory:      a.maxTrieLevelinMemory,
-			MaxHardCapForMissingNodes: a.maxHardCapForMissingNodes,
-			TrieSyncerVersion:         a.trieSyncerVersion,
-			CheckNodesOnDisk:          a.checkNodesOnDisk,
-			StorageMarker:             storageMarker.NewTrieStorageMarker(),
+			Hasher:                            a.hasher,
+			Marshalizer:                       a.marshalizer,
+			TrieStorageManager:                a.trieStorageManager,
+			RequestHandler:                    a.requestHandler,
+			Timeout:                           a.timeoutGettingTrieNode,
+			Cacher:                            a.trieCacher,
+			MaxTrieLevelInMemory:              a.maxTrieLevelinMemory,
+			MaxHardCapForMissingNodes:         a.maxHardCapForMissingNodes,
+			TrieSyncerVersion:                 a.trieSyncerVersion,
+			CheckNodesOnDisk:                  a.checkNodesOnDisk,
+			StorageMarker:                     storageMarker.NewTrieStorageMarker(),
+			UserAccountsSyncStatisticsHandler: statistics.NewTrieSyncStatistics(),
 		},
 	}
 	accountSyncer, err := syncer.NewValidatorAccountsSyncer(args)

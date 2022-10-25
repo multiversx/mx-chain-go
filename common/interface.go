@@ -169,6 +169,7 @@ type TrieStatisticsHandler interface {
 type TriesStatisticsCollector interface {
 	Add(trieStats *statistics.TrieStatsDTO)
 	Print()
+	GetNumNodes() uint64
 }
 
 // ProcessStatusHandler defines the behavior of a component able to hold the current status of the node and
