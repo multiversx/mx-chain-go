@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/config"
-	mge "github.com/ElrondNetwork/wasm-vm/mandos-go/elrondgo-exporter"
-	mgutil "github.com/ElrondNetwork/wasm-vm/mandos-go/util"
+	mge "github.com/ElrondNetwork/wasm-vm-v1_4/mandos-go/elrondgo-exporter"
+	mgutil "github.com/ElrondNetwork/wasm-vm-v1_4/mandos-go/util"
 
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
