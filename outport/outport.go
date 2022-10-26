@@ -65,7 +65,7 @@ func (o *outport) monitorCompletionOnDriver(function string, driver Driver) chan
 		select {
 		case <-ch:
 			o.logHandler(logger.LogDebug, "outport.monitorCompletionOnDriver ended",
-				"function", function, "driver", driverString(driver), "message counter", counter)
+				"function", function, "driver", driverString(driver), "message counter", counter, "time", o.timeForDriverCall)
 		case <-timer.C:
 			o.logHandler(logger.LogWarning, "outport.monitorCompletionOnDriver took too long",
 				"function", function, "driver", driverString(driver), "message counter", counter, "time", o.timeForDriverCall)
