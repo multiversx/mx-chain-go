@@ -15,11 +15,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/blacklist"
 	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
-	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
+	p2pFactory "github.com/ElrondNetwork/elrond-go/p2p/factory"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/process/sync/storageBootstrap"
@@ -236,6 +236,11 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		return nil, err
 	}
 
+	p2pSigningHandler, err := ccf.createP2pSigningHandler()
+	if err != nil {
+		return nil, err
+	}
+
 	consensusArgs := &spos.ConsensusCoreArgs{
 		BlockChain:                    ccf.dataComponents.Blockchain(),
 		BlockProcessor:                ccf.processComponents.BlockProcessor(),
@@ -259,7 +264,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		FallbackHeaderValidator:       ccf.processComponents.FallbackHeaderValidator(),
 		NodeRedundancyHandler:         ccf.processComponents.NodeRedundancyHandler(),
 		ScheduledProcessor:            ccf.scheduledProcessor,
-		MessageSigningHandler:         &mock.MessageSignerMock{},
+		MessageSigningHandler:         p2pSigningHandler,
 		PeerBlacklistHandler:          peerBlacklistHandler,
 		SignatureHandler:              ccf.cryptoComponents.ConsensusSigHandler(),
 	}
@@ -665,6 +670,19 @@ func (ccf *consensusComponentsFactory) createPeerBlacklistHandler() (consensus.P
 	}
 
 	return blacklist.NewPeerBlacklist(blacklistArgs)
+}
+
+func (ccf *consensusComponentsFactory) createP2pSigningHandler() (consensus.P2PSigningHandler, error) {
+	p2pSignerArgs := &p2pFactory.ArgsMessageVerifier{
+		Marshaller: ccf.coreComponents.InternalMarshalizer(),
+		P2PSigner:  ccf.networkComponents.NetworkMessenger(),
+	}
+	p2pSigningHandler, err := p2pFactory.NewMessageVerifier(*p2pSignerArgs)
+	if err != nil {
+		return nil, err
+	}
+
+	return p2pSigningHandler, nil
 }
 
 func (ccf *consensusComponentsFactory) addCloserInstances(closers ...update.Closer) error {
