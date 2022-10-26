@@ -1,6 +1,7 @@
 package processor
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -53,7 +54,36 @@ func (hip *HdrInterceptorProcessor) Validate(data process.InterceptedData, _ cor
 		return process.ErrHeaderIsBlackListed
 	}
 
+	err := hip.checkDevnetHardfork(interceptedHdr.HeaderHandler())
+	if err != nil {
+		return err
+	}
+
 	return nil
+}
+
+func (hip *HdrInterceptorProcessor) checkDevnetHardfork(hdr data.HeaderHandler) error {
+	if hdr.GetShardID() == 0 {
+		return hip.handleShard0Hardfork(hdr)
+	}
+
+	return nil
+}
+
+func (hip *HdrInterceptorProcessor) handleShard0Hardfork(hdr data.HeaderHandler) error {
+	low := uint64(3024122)
+	high := uint64(3028318)
+	if hip.isInExcludedRange(hdr, low, high) {
+		return fmt.Errorf("header is in excluded range, shard %d, round %d, low %d, high %d",
+			hdr.GetShardID(), hdr.GetRound(), low, high)
+	}
+
+	return nil
+}
+
+func (hip *HdrInterceptorProcessor) isInExcludedRange(hdr data.HeaderHandler, low uint64, high uint64) bool {
+	round := hdr.GetRound()
+	return round >= low && round <= high && low <= high
 }
 
 // Save will save the received data into the headers cacher as hash<->[plain header structure]

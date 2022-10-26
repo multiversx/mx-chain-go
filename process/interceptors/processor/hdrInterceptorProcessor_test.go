@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors/processor"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -120,10 +121,45 @@ func TestHdrInterceptorProcessor_ValidateReturnsNil(t *testing.T) {
 				return make([]byte, 0)
 			},
 		},
+		GetHdrHandlerStub: mock.GetHdrHandlerStub{
+			HeaderHandlerCalled: func() data.HeaderHandler {
+				return &block.Header{}
+			},
+		},
 	}
 	err := hip.Validate(hdrInterceptedData, "")
 
 	assert.Nil(t, err)
+}
+
+func TestHdrInterceptorProcessor_ValidateOnAnExcludedBlock(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockHdrArgument()
+	arg.BlockBlackList = &testscommon.TimeCacheStub{}
+	hip, _ := processor.NewHdrInterceptorProcessor(arg)
+
+	hdrInterceptedData := &struct {
+		testscommon.InterceptedDataStub
+		mock.GetHdrHandlerStub
+	}{
+		InterceptedDataStub: testscommon.InterceptedDataStub{
+			HashCalled: func() []byte {
+				return make([]byte, 0)
+			},
+		},
+		GetHdrHandlerStub: mock.GetHdrHandlerStub{
+			HeaderHandlerCalled: func() data.HeaderHandler {
+				return &block.Header{
+					ShardID: 0,
+					Round:   3024122,
+				}
+			},
+		},
+	}
+	err := hip.Validate(hdrInterceptedData, "")
+
+	assert.NotNil(t, err)
 }
 
 // ------- Save
