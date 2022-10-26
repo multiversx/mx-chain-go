@@ -132,34 +132,190 @@ func TestHdrInterceptorProcessor_ValidateReturnsNil(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestHdrInterceptorProcessor_ValidateOnAnExcludedBlock(t *testing.T) {
+func TestHdrInterceptorProcessor_TestingExcludedBlocks(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockHdrArgument()
 	arg.BlockBlackList = &testscommon.TimeCacheStub{}
 	hip, _ := processor.NewHdrInterceptorProcessor(arg)
 
-	hdrInterceptedData := &struct {
-		testscommon.InterceptedDataStub
-		mock.GetHdrHandlerStub
-	}{
-		InterceptedDataStub: testscommon.InterceptedDataStub{
-			HashCalled: func() []byte {
-				return make([]byte, 0)
+	t.Run("shard 0 - low", func(t *testing.T) {
+		hdrInterceptedData := &struct {
+			testscommon.InterceptedDataStub
+			mock.GetHdrHandlerStub
+		}{
+			InterceptedDataStub: testscommon.InterceptedDataStub{
+				HashCalled: func() []byte {
+					return make([]byte, 0)
+				},
 			},
-		},
-		GetHdrHandlerStub: mock.GetHdrHandlerStub{
-			HeaderHandlerCalled: func() data.HeaderHandler {
-				return &block.Header{
-					ShardID: 0,
-					Round:   3024122,
-				}
+			GetHdrHandlerStub: mock.GetHdrHandlerStub{
+				HeaderHandlerCalled: func() data.HeaderHandler {
+					return &block.Header{
+						ShardID: 0,
+						Round:   3024122,
+					}
+				},
 			},
-		},
-	}
-	err := hip.Validate(hdrInterceptedData, "")
+		}
+		err := hip.Validate(hdrInterceptedData, "")
+		assert.NotNil(t, err)
+	})
+	t.Run("shard 0 - high", func(t *testing.T) {
+		hdrInterceptedData := &struct {
+			testscommon.InterceptedDataStub
+			mock.GetHdrHandlerStub
+		}{
+			InterceptedDataStub: testscommon.InterceptedDataStub{
+				HashCalled: func() []byte {
+					return make([]byte, 0)
+				},
+			},
+			GetHdrHandlerStub: mock.GetHdrHandlerStub{
+				HeaderHandlerCalled: func() data.HeaderHandler {
+					return &block.Header{
+						ShardID: 0,
+						Round:   3028318,
+					}
+				},
+			},
+		}
+		err := hip.Validate(hdrInterceptedData, "")
+		assert.NotNil(t, err)
+	})
+	t.Run("shard 0 - middle", func(t *testing.T) {
+		hdrInterceptedData := &struct {
+			testscommon.InterceptedDataStub
+			mock.GetHdrHandlerStub
+		}{
+			InterceptedDataStub: testscommon.InterceptedDataStub{
+				HashCalled: func() []byte {
+					return make([]byte, 0)
+				},
+			},
+			GetHdrHandlerStub: mock.GetHdrHandlerStub{
+				HeaderHandlerCalled: func() data.HeaderHandler {
+					return &block.Header{
+						ShardID: 0,
+						Round:   3026220,
+					}
+				},
+			},
+		}
+		err := hip.Validate(hdrInterceptedData, "")
+		assert.NotNil(t, err)
+	})
+	t.Run("shard 0 - higher", func(t *testing.T) {
+		hdrInterceptedData := &struct {
+			testscommon.InterceptedDataStub
+			mock.GetHdrHandlerStub
+		}{
+			InterceptedDataStub: testscommon.InterceptedDataStub{
+				HashCalled: func() []byte {
+					return make([]byte, 0)
+				},
+			},
+			GetHdrHandlerStub: mock.GetHdrHandlerStub{
+				HeaderHandlerCalled: func() data.HeaderHandler {
+					return &block.Header{
+						ShardID: 0,
+						Round:   3028319,
+					}
+				},
+			},
+		}
+		err := hip.Validate(hdrInterceptedData, "")
+		assert.Nil(t, err)
+	})
 
-	assert.NotNil(t, err)
+	t.Run("shard 2 - low", func(t *testing.T) {
+		hdrInterceptedData := &struct {
+			testscommon.InterceptedDataStub
+			mock.GetHdrHandlerStub
+		}{
+			InterceptedDataStub: testscommon.InterceptedDataStub{
+				HashCalled: func() []byte {
+					return make([]byte, 0)
+				},
+			},
+			GetHdrHandlerStub: mock.GetHdrHandlerStub{
+				HeaderHandlerCalled: func() data.HeaderHandler {
+					return &block.Header{
+						ShardID: 2,
+						Round:   3024122,
+					}
+				},
+			},
+		}
+		err := hip.Validate(hdrInterceptedData, "")
+		assert.NotNil(t, err)
+	})
+	t.Run("shard 2 - high", func(t *testing.T) {
+		hdrInterceptedData := &struct {
+			testscommon.InterceptedDataStub
+			mock.GetHdrHandlerStub
+		}{
+			InterceptedDataStub: testscommon.InterceptedDataStub{
+				HashCalled: func() []byte {
+					return make([]byte, 0)
+				},
+			},
+			GetHdrHandlerStub: mock.GetHdrHandlerStub{
+				HeaderHandlerCalled: func() data.HeaderHandler {
+					return &block.Header{
+						ShardID: 2,
+						Round:   3028326,
+					}
+				},
+			},
+		}
+		err := hip.Validate(hdrInterceptedData, "")
+		assert.NotNil(t, err)
+	})
+	t.Run("shard 2 - middle", func(t *testing.T) {
+		hdrInterceptedData := &struct {
+			testscommon.InterceptedDataStub
+			mock.GetHdrHandlerStub
+		}{
+			InterceptedDataStub: testscommon.InterceptedDataStub{
+				HashCalled: func() []byte {
+					return make([]byte, 0)
+				},
+			},
+			GetHdrHandlerStub: mock.GetHdrHandlerStub{
+				HeaderHandlerCalled: func() data.HeaderHandler {
+					return &block.Header{
+						ShardID: 2,
+						Round:   3026224,
+					}
+				},
+			},
+		}
+		err := hip.Validate(hdrInterceptedData, "")
+		assert.NotNil(t, err)
+	})
+	t.Run("shard 2 - higher", func(t *testing.T) {
+		hdrInterceptedData := &struct {
+			testscommon.InterceptedDataStub
+			mock.GetHdrHandlerStub
+		}{
+			InterceptedDataStub: testscommon.InterceptedDataStub{
+				HashCalled: func() []byte {
+					return make([]byte, 0)
+				},
+			},
+			GetHdrHandlerStub: mock.GetHdrHandlerStub{
+				HeaderHandlerCalled: func() data.HeaderHandler {
+					return &block.Header{
+						ShardID: 2,
+						Round:   3028327,
+					}
+				},
+			},
+		}
+		err := hip.Validate(hdrInterceptedData, "")
+		assert.Nil(t, err)
+	})
 }
 
 // ------- Save
