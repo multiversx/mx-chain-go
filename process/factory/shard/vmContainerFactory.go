@@ -13,6 +13,7 @@ import (
 	arwenHost14 "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/arwen/host"
 	arwen15 "github.com/ElrondNetwork/arwen-wasm-vm/v1_5/arwen"
 	arwenHost15 "github.com/ElrondNetwork/arwen-wasm-vm/v1_5/arwen/host"
+	wasmer1 "github.com/ElrondNetwork/arwen-wasm-vm/v1_5/wasmer"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -340,7 +341,8 @@ func (vmf *vmContainerFactory) createInProcessArwenVMV15() (vmcommon.VMExecution
 		WasmerSIGSEGVPassthrough:            vmf.config.WasmerSIGSEGVPassthrough,
 		TimeOutForSCExecutionInMilliseconds: vmf.config.TimeOutForSCExecutionInMilliseconds,
 	}
-	return arwenHost15.NewArwenVM(vmf.blockChainHook, hostParameters)
+	executor, _ := wasmer1.NewExecutor()
+	return arwenHost15.NewArwenVM(vmf.blockChainHook, executor, hostParameters)
 }
 
 func (vmf *vmContainerFactory) closePreviousVM(vm vmcommon.VMExecutionHandler) {

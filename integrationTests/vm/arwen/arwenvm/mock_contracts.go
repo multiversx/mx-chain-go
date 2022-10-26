@@ -72,10 +72,10 @@ func GetAddressForNewAccount(
 	return GetAddressForNewAccountOnWalletAndNode(t, net, net.Wallets[node.ShardCoordinator.SelfId()], node)
 }
 
-func CreateHostAndInstanceBuilder(t *testing.T, net *integrationTests.TestNetwork, vmKey []byte) (map[uint32]arwen.VMHost, map[uint32]*contextmock.InstanceBuilderMock) {
+func CreateHostAndInstanceBuilder(t *testing.T, net *integrationTests.TestNetwork, vmKey []byte) (map[uint32]arwen.VMHost, map[uint32]*contextmock.ExecutorMock) {
 	numberOfShards := uint32(net.NumShards)
 	shardToWorld := make(map[uint32]*worldmock.MockWorld, numberOfShards)
-	shardToInstanceBuilder := make(map[uint32]*contextmock.InstanceBuilderMock, numberOfShards)
+	shardToInstanceBuilder := make(map[uint32]*contextmock.ExecutorMock, numberOfShards)
 	shardToHost := make(map[uint32]arwen.VMHost, numberOfShards)
 
 	for shardID := uint32(0); shardID < numberOfShards; shardID++ {
@@ -83,7 +83,7 @@ func CreateHostAndInstanceBuilder(t *testing.T, net *integrationTests.TestNetwor
 		world.SetProvidedBlockchainHook(net.DefaultNode.BlockchainHook)
 		world.SelfShardID = shardID
 		shardToWorld[shardID] = world
-		instanceBuilderMock := contextmock.NewInstanceBuilderMock(world)
+		instanceBuilderMock := contextmock.NewExecutorMock(world)
 		shardToInstanceBuilder[shardID] = instanceBuilderMock
 	}
 
@@ -92,7 +92,7 @@ func CreateHostAndInstanceBuilder(t *testing.T, net *integrationTests.TestNetwor
 		host, err := node.VMContainer.Get(factory.ArwenVirtualMachine)
 		require.NotNil(t, host)
 		require.Nil(t, err)
-		host.(arwen.VMHost).Runtime().ReplaceInstanceBuilder(shardToInstanceBuilder[shardID])
+		host.(arwen.VMHost).Runtime().ReplaceVMExecutor(shardToInstanceBuilder[shardID])
 		err = node.VMContainer.Replace(vmKey, host)
 		require.Nil(t, err)
 		shardToHost[shardID] = host.(arwen.VMHost)
