@@ -465,6 +465,7 @@ func (sr *subroundEndRound) getFullMessagesForInvalidSigners(invalidPubKeys []st
 	for _, pk := range invalidPubKeys {
 		p2pMsg, ok := sr.GetMessageWithSignature(pk)
 		if !ok {
+			log.Trace("message not found in state for invalid signer", "pubkey", pk)
 			continue
 		}
 

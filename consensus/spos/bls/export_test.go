@@ -323,3 +323,7 @@ func GetStringValue(messageType consensus.MessageType) string {
 func (sr *subroundEndRound) CreateAndBroadcastInvalidSigners(invalidSigners []byte) {
 	sr.createAndBroadcastInvalidSigners(invalidSigners)
 }
+
+func (sr *subroundEndRound) GetFullMessagesForInvalidSigners(invalidPubKeys []string) ([]byte, error) {
+	return sr.getFullMessagesForInvalidSigners(invalidPubKeys)
+}
