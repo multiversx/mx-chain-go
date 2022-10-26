@@ -72,7 +72,6 @@ func AdaptStructureValueBasedOnPath(structure interface{}, path string, newValue
 
 func trySetTheNewValue(value *reflect.Value, newValue string) error {
 	valueKind := value.Kind()
-	fmt.Println(valueKind)
 
 	errFunc := func() error {
 		return fmt.Errorf("cannot cast field <%s> to kind <%s>", newValue, valueKind)
