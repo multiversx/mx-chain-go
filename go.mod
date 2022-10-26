@@ -11,9 +11,9 @@ require (
 	github.com/ElrondNetwork/elrond-go-p2p v1.0.3
 	github.com/ElrondNetwork/elrond-go-storage v1.0.1
 	github.com/ElrondNetwork/elrond-vm-common v1.3.22
-	github.com/ElrondNetwork/wasm-vm v1.4.59
-	github.com/ElrondNetwork/wasm-vm-v1_2 v1.2.42
-	github.com/ElrondNetwork/wasm-vm-v1_3 v1.3.42
+	github.com/ElrondNetwork/wasm-vm-v1_2 v1.2.44
+	github.com/ElrondNetwork/wasm-vm-v1_3 v1.3.44
+	github.com/ElrondNetwork/wasm-vm-v1_4 v1.4.62
 	github.com/beevik/ntp v0.3.0
 	github.com/davecgh/go-spew v1.1.1
 	github.com/elastic/go-elasticsearch/v7 v7.12.0

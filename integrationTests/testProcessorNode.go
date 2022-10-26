@@ -117,7 +117,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
-	arwenConfig "github.com/ElrondNetwork/wasm-vm/config"
+	arwenConfig "github.com/ElrondNetwork/wasm-vm-v1_4/config"
 )
 
 var zero = big.NewInt(0)
