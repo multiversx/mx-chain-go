@@ -2,17 +2,18 @@ package state
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // AccountsFactoryStub -
 type AccountsFactoryStub struct {
-	CreateAccountCalled func(address []byte, hasher hashing.Hasher) (vmcommon.AccountHandler, error)
+	CreateAccountCalled func(address []byte, hasher hashing.Hasher, marshaller marshal.Marshalizer) (vmcommon.AccountHandler, error)
 }
 
 // CreateAccount -
-func (afs *AccountsFactoryStub) CreateAccount(address []byte, hasher hashing.Hasher) (vmcommon.AccountHandler, error) {
-	return afs.CreateAccountCalled(address, hasher)
+func (afs *AccountsFactoryStub) CreateAccount(address []byte, hasher hashing.Hasher, marshaller marshal.Marshalizer) (vmcommon.AccountHandler, error) {
+	return afs.CreateAccountCalled(address, hasher, marshaller)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -316,8 +316,8 @@ func TestTxProcessor_GetAccountsOkValsSrcShouldWork(t *testing.T) {
 	adr1 := []byte{65}
 	adr2 := []byte{67}
 
-	acnt1, _ := state.NewUserAccount(adr1, &hashingMocks.HasherMock{})
-	acnt2, _ := state.NewUserAccount(adr2, &hashingMocks.HasherMock{})
+	acnt1, _ := state.NewUserAccount(adr1, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	acnt2, _ := state.NewUserAccount(adr2, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 
 	adb.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		if bytes.Equal(address, adr1) {
@@ -361,8 +361,8 @@ func TestTxProcessor_GetAccountsOkValsDsthouldWork(t *testing.T) {
 	adr1 := []byte{65}
 	adr2 := []byte{67}
 
-	acnt1, _ := state.NewUserAccount(adr1, &hashingMocks.HasherMock{})
-	acnt2, _ := state.NewUserAccount(adr2, &hashingMocks.HasherMock{})
+	acnt1, _ := state.NewUserAccount(adr1, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	acnt2, _ := state.NewUserAccount(adr2, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 
 	adb.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		if bytes.Equal(address, adr1) {
@@ -404,8 +404,8 @@ func TestTxProcessor_GetAccountsOkValsShouldWork(t *testing.T) {
 	adr1 := []byte{65}
 	adr2 := []byte{67}
 
-	acnt1, _ := state.NewUserAccount(adr1, &hashingMocks.HasherMock{})
-	acnt2, _ := state.NewUserAccount(adr2, &hashingMocks.HasherMock{})
+	acnt1, _ := state.NewUserAccount(adr1, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	acnt2, _ := state.NewUserAccount(adr2, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 
 	adb := createAccountStub(adr1, adr2, acnt1, acnt2)
 
@@ -425,8 +425,8 @@ func TestTxProcessor_GetSameAccountShouldWork(t *testing.T) {
 	adr1 := []byte{65}
 	adr2 := []byte{65}
 
-	acnt1, _ := state.NewUserAccount(adr1, &hashingMocks.HasherMock{})
-	acnt2, _ := state.NewUserAccount(adr2, &hashingMocks.HasherMock{})
+	acnt1, _ := state.NewUserAccount(adr1, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	acnt2, _ := state.NewUserAccount(adr2, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 
 	adb := createAccountStub(adr1, adr2, acnt1, acnt2)
 
@@ -445,7 +445,7 @@ func TestTxProcessor_CheckTxValuesHigherNonceShouldErr(t *testing.T) {
 	t.Parallel()
 
 	adr1 := []byte{65}
-	acnt1, err := state.NewUserAccount(adr1, &hashingMocks.HasherMock{})
+	acnt1, err := state.NewUserAccount(adr1, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
 
 	execTx := *createTxProcessor()
@@ -460,7 +460,7 @@ func TestTxProcessor_CheckTxValuesLowerNonceShouldErr(t *testing.T) {
 	t.Parallel()
 
 	adr1 := []byte{65}
-	acnt1, err := state.NewUserAccount(adr1, &hashingMocks.HasherMock{})
+	acnt1, err := state.NewUserAccount(adr1, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
 
 	execTx := *createTxProcessor()
@@ -475,7 +475,7 @@ func TestTxProcessor_CheckTxValuesInsufficientFundsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	adr1 := []byte{65}
-	acnt1, err := state.NewUserAccount(adr1, &hashingMocks.HasherMock{})
+	acnt1, err := state.NewUserAccount(adr1, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
 
 	execTx := *createTxProcessor()
@@ -490,7 +490,7 @@ func TestTxProcessor_CheckTxValuesMismatchedSenderUsernamesShouldErr(t *testing.
 	t.Parallel()
 
 	adr1 := []byte{65}
-	senderAcc, err := state.NewUserAccount(adr1, &hashingMocks.HasherMock{})
+	senderAcc, err := state.NewUserAccount(adr1, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 
 	assert.Nil(t, err)
 
@@ -512,7 +512,7 @@ func TestTxProcessor_CheckTxValuesMismatchedReceiverUsernamesShouldErr(t *testin
 	t.Parallel()
 
 	adr1 := []byte{65}
-	receiverAcc, err := state.NewUserAccount(adr1, &hashingMocks.HasherMock{})
+	receiverAcc, err := state.NewUserAccount(adr1, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 
 	assert.Nil(t, err)
 
@@ -534,11 +534,11 @@ func TestTxProcessor_CheckTxValuesCorrectUserNamesShouldWork(t *testing.T) {
 	t.Parallel()
 
 	adr1 := []byte{65}
-	senderAcc, err := state.NewUserAccount(adr1, &hashingMocks.HasherMock{})
+	senderAcc, err := state.NewUserAccount(adr1, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
 
 	adr2 := []byte{66}
-	recvAcc, err := state.NewUserAccount(adr2, &hashingMocks.HasherMock{})
+	recvAcc, err := state.NewUserAccount(adr2, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
 
 	execTx := *createTxProcessor()
@@ -561,7 +561,7 @@ func TestTxProcessor_CheckTxValuesOkValsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	adr1 := []byte{65}
-	acnt1, err := state.NewUserAccount(adr1, &hashingMocks.HasherMock{})
+	acnt1, err := state.NewUserAccount(adr1, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
 
 	execTx := *createTxProcessor()
@@ -578,7 +578,7 @@ func TestTxProcessor_IncreaseNonceOkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	adrSrc := []byte{65}
-	acntSrc, err := state.NewUserAccount(adrSrc, &hashingMocks.HasherMock{})
+	acntSrc, err := state.NewUserAccount(adrSrc, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
 
 	execTx := *createTxProcessor()
@@ -629,9 +629,9 @@ func TestTxProcessor_ProcessCheckNotPassShouldErr(t *testing.T) {
 	tx.RcvAddr = []byte("DST")
 	tx.Value = big.NewInt(45)
 
-	acntSrc, err := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{})
+	acntSrc, err := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
-	acntDst, err := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{})
+	acntDst, err := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
 
 	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
@@ -665,9 +665,9 @@ func TestTxProcessor_ProcessWithTxFeeHandlerCheckErrorShouldErr(t *testing.T) {
 	tx.RcvAddr = make([]byte, 32)
 	tx.Value = big.NewInt(0)
 
-	acntSrc, err := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{})
+	acntSrc, err := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
-	acntDst, err := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{})
+	acntDst, err := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
 
 	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
@@ -717,9 +717,9 @@ func TestTxProcessor_ProcessWithTxFeeHandlerInsufficientFeeShouldErr(t *testing.
 	tx.RcvAddr = make([]byte, 32)
 	tx.Value = big.NewInt(0)
 
-	acntSrc, err := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{})
+	acntSrc, err := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
-	acntDst, err := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{})
+	acntDst, err := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
 
 	acntSrc.Balance = big.NewInt(9)
@@ -749,9 +749,9 @@ func TestTxProcessor_ProcessWithInsufficientFundsShouldCreateReceiptErr(t *testi
 	tx.RcvAddr = make([]byte, 32)
 	tx.Value = big.NewInt(0)
 
-	acntSrc, err := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{})
+	acntSrc, err := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
-	acntDst, err := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{})
+	acntDst, err := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
 
 	acntSrc.Balance = big.NewInt(9)
@@ -782,9 +782,9 @@ func TestTxProcessor_ProcessWithUsernameMismatchCreateReceiptErr(t *testing.T) {
 	tx.RcvAddr = make([]byte, 32)
 	tx.Value = big.NewInt(0)
 
-	acntSrc, err := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{})
+	acntSrc, err := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
-	acntDst, err := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{})
+	acntDst, err := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
 
 	acntSrc.Balance = big.NewInt(9)
@@ -814,9 +814,9 @@ func TestTxProcessor_ProcessWithUsernameMismatchAndSCProcessErrorShouldError(t *
 	tx.RcvAddr = make([]byte, 32)
 	tx.Value = big.NewInt(0)
 
-	acntSrc, err := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{})
+	acntSrc, err := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
-	acntDst, err := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{})
+	acntDst, err := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
 
 	acntSrc.Balance = big.NewInt(9)
@@ -861,9 +861,9 @@ func TestTxProcessor_ProcessMoveBalanceToSmartPayableContract(t *testing.T) {
 		return 0
 	}
 
-	acntSrc, err := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{})
+	acntSrc, err := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
-	acntDst, err := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{})
+	acntDst, err := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
 
 	acntDst.CodeMetadata = []byte{0, vmcommon.MetadataPayable}
@@ -902,9 +902,9 @@ func testProcessCheck(t *testing.T, nonce uint64, value *big.Int) {
 		return 0
 	}
 
-	acntSrc, err := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{})
+	acntSrc, err := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
-	acntDst, err := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{})
+	acntDst, err := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
 
 	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
@@ -934,9 +934,9 @@ func TestTxProcessor_ProcessMoveBalancesShouldWork(t *testing.T) {
 	tx.RcvAddr = []byte("DST")
 	tx.Value = big.NewInt(0)
 
-	acntSrc, err := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{})
+	acntSrc, err := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
-	acntDst, err := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{})
+	acntDst, err := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
 
 	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
@@ -965,9 +965,9 @@ func TestTxProcessor_ProcessOkValsShouldWork(t *testing.T) {
 	tx.RcvAddr = []byte("DST")
 	tx.Value = big.NewInt(61)
 
-	acntSrc, err := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{})
+	acntSrc, err := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
-	acntDst, err := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{})
+	acntDst, err := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
 
 	acntSrc.Nonce = 4
@@ -1003,9 +1003,9 @@ func TestTxProcessor_MoveBalanceWithFeesShouldWork(t *testing.T) {
 	tx.GasPrice = 2
 	tx.GasLimit = 2
 
-	acntSrc, err := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{})
+	acntSrc, err := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
-	acntDst, err := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{})
+	acntDst, err := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
 
 	acntSrc.Nonce = 4
@@ -1053,10 +1053,10 @@ func TestTxProcessor_ProcessTransactionScDeployTxShouldWork(t *testing.T) {
 	tx.GasPrice = 1
 	tx.GasLimit = 1
 
-	acntSrc, err := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{})
+	acntSrc, err := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
 
-	acntDst, err := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{})
+	acntDst, err := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
 
 	acntSrc.Balance = big.NewInt(46)
@@ -1104,10 +1104,10 @@ func TestTxProcessor_ProcessTransactionBuiltInFunctionCallShouldWork(t *testing.
 	tx.GasPrice = 1
 	tx.GasLimit = 1
 
-	acntSrc, err := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{})
+	acntSrc, err := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
 
-	acntDst, err := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{})
+	acntDst, err := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
 
 	acntSrc.Balance = big.NewInt(46)
@@ -1155,10 +1155,10 @@ func TestTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 	tx.GasPrice = 1
 	tx.GasLimit = 1
 
-	acntSrc, err := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{})
+	acntSrc, err := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
 
-	acntDst, err := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{})
+	acntDst, err := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
 
 	acntSrc.Balance = big.NewInt(46)
@@ -1205,10 +1205,10 @@ func TestTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails(t *
 	tx.RcvAddr = generateRandomByteSlice(createMockPubkeyConverter().Len())
 	tx.Value = big.NewInt(45)
 
-	acntSrc, err := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{})
+	acntSrc, err := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
 	acntSrc.Balance = big.NewInt(45)
-	acntDst, err := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{})
+	acntDst, err := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
 	acntDst.SetCode([]byte{65})
 
@@ -1262,10 +1262,10 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNod
 		return 0
 	}
 
-	acntSrc, err := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{})
+	acntSrc, err := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
 	acntSrc.Balance = big.NewInt(45)
-	acntDst, err := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{})
+	acntDst, err := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
 	acntDst.SetCode([]byte{65})
 
@@ -1533,7 +1533,7 @@ func TestTxProcessor_ProcessTransactionShouldReturnErrForInvalidMetaTx(t *testin
 	tx.GasPrice = 1
 	tx.GasLimit = 1
 
-	acntSrc, err := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{})
+	acntSrc, err := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
 	acntSrc.Balance = big.NewInt(100000000)
 
@@ -1590,7 +1590,7 @@ func TestTxProcessor_ProcessTransactionShouldTreatAsInvalidTxIfTxTypeIsWrong(t *
 	tx.GasPrice = 1
 	tx.GasLimit = 1
 
-	acntSrc, err := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{})
+	acntSrc, err := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
 	acntSrc.Balance = big.NewInt(46)
 
@@ -1647,12 +1647,12 @@ func TestTxProcessor_ProcessRelayedTransactionV2NotActiveShouldErr(t *testing.T)
 		"@" +
 		"01a2")
 
-	acntSrc, _ := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{})
+	acntSrc, _ := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntSrc.Balance = big.NewInt(100)
-	acntDst, _ := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{})
+	acntDst, _ := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntDst.Balance = big.NewInt(10)
 
-	acntFinal, _ := state.NewUserAccount(userTxDest, &hashingMocks.HasherMock{})
+	acntFinal, _ := state.NewUserAccount(userTxDest, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntFinal.Balance = big.NewInt(10)
 
 	adb := &stateMock.AccountsStub{}
@@ -1729,12 +1729,12 @@ func TestTxProcessor_ProcessRelayedTransactionV2WithValueShouldErr(t *testing.T)
 		"@" +
 		"01a2")
 
-	acntSrc, _ := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{})
+	acntSrc, _ := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntSrc.Balance = big.NewInt(100)
-	acntDst, _ := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{})
+	acntDst, _ := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntDst.Balance = big.NewInt(10)
 
-	acntFinal, _ := state.NewUserAccount(userTxDest, &hashingMocks.HasherMock{})
+	acntFinal, _ := state.NewUserAccount(userTxDest, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntFinal.Balance = big.NewInt(10)
 
 	adb := &stateMock.AccountsStub{}
@@ -1811,12 +1811,12 @@ func TestTxProcessor_ProcessRelayedTransactionV2ArgsParserShouldErr(t *testing.T
 		"@" +
 		"01a2")
 
-	acntSrc, _ := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{})
+	acntSrc, _ := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntSrc.Balance = big.NewInt(100)
-	acntDst, _ := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{})
+	acntDst, _ := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntDst.Balance = big.NewInt(10)
 
-	acntFinal, _ := state.NewUserAccount(userTxDest, &hashingMocks.HasherMock{})
+	acntFinal, _ := state.NewUserAccount(userTxDest, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntFinal.Balance = big.NewInt(10)
 
 	adb := &stateMock.AccountsStub{}
@@ -1900,12 +1900,12 @@ func TestTxProcessor_ProcessRelayedTransactionV2InvalidParamCountShouldErr(t *te
 		"@" +
 		"1010")
 
-	acntSrc, _ := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{})
+	acntSrc, _ := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntSrc.Balance = big.NewInt(100)
-	acntDst, _ := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{})
+	acntDst, _ := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntDst.Balance = big.NewInt(10)
 
-	acntFinal, _ := state.NewUserAccount(userTxDest, &hashingMocks.HasherMock{})
+	acntFinal, _ := state.NewUserAccount(userTxDest, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntFinal.Balance = big.NewInt(10)
 
 	adb := &stateMock.AccountsStub{}
@@ -1982,12 +1982,12 @@ func TestTxProcessor_ProcessRelayedTransactionV2(t *testing.T) {
 		"@" +
 		"01a2")
 
-	acntSrc, _ := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{})
+	acntSrc, _ := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntSrc.Balance = big.NewInt(100)
-	acntDst, _ := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{})
+	acntDst, _ := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntDst.Balance = big.NewInt(10)
 
-	acntFinal, _ := state.NewUserAccount(userTxDest, &hashingMocks.HasherMock{})
+	acntFinal, _ := state.NewUserAccount(userTxDest, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntFinal.Balance = big.NewInt(10)
 
 	adb := &stateMock.AccountsStub{}
@@ -2063,11 +2063,11 @@ func TestTxProcessor_ProcessRelayedTransaction(t *testing.T) {
 	userTxMarshalled, _ := marshalizer.Marshal(userTx)
 	tx.Data = []byte(core.RelayedTransaction + "@" + hex.EncodeToString(userTxMarshalled))
 
-	acntSrc, _ := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{})
+	acntSrc, _ := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntSrc.Balance = big.NewInt(100)
-	acntDst, _ := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{})
+	acntDst, _ := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntDst.Balance = big.NewInt(10)
-	acntFinal, _ := state.NewUserAccount(userTx.RcvAddr, &hashingMocks.HasherMock{})
+	acntFinal, _ := state.NewUserAccount(userTx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntFinal.Balance = big.NewInt(10)
 
 	adb := &stateMock.AccountsStub{}
@@ -2159,11 +2159,11 @@ func TestTxProcessor_ProcessRelayedTransactionArgsParserErrorShouldError(t *test
 			return "", nil, parseError
 		}}
 
-	acntSrc, _ := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{})
+	acntSrc, _ := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntSrc.Balance = big.NewInt(100)
-	acntDst, _ := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{})
+	acntDst, _ := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntDst.Balance = big.NewInt(10)
-	acntFinal, _ := state.NewUserAccount(userTx.RcvAddr, &hashingMocks.HasherMock{})
+	acntFinal, _ := state.NewUserAccount(userTx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntFinal.Balance = big.NewInt(10)
 
 	adb := &stateMock.AccountsStub{}
@@ -2222,11 +2222,11 @@ func TestTxProcessor_ProcessRelayedTransactionMultipleArgumentsShouldError(t *te
 			return core.RelayedTransaction, [][]byte{[]byte("0"), []byte("1")}, nil
 		}}
 
-	acntSrc, _ := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{})
+	acntSrc, _ := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntSrc.Balance = big.NewInt(100)
-	acntDst, _ := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{})
+	acntDst, _ := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntDst.Balance = big.NewInt(10)
-	acntFinal, _ := state.NewUserAccount(userTx.RcvAddr, &hashingMocks.HasherMock{})
+	acntFinal, _ := state.NewUserAccount(userTx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntFinal.Balance = big.NewInt(10)
 
 	adb := &stateMock.AccountsStub{}
@@ -2285,11 +2285,11 @@ func TestTxProcessor_ProcessRelayedTransactionFailUnMarshalInnerShouldError(t *t
 			return core.RelayedTransaction, [][]byte{[]byte("0")}, nil
 		}}
 
-	acntSrc, _ := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{})
+	acntSrc, _ := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntSrc.Balance = big.NewInt(100)
-	acntDst, _ := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{})
+	acntDst, _ := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntDst.Balance = big.NewInt(10)
-	acntFinal, _ := state.NewUserAccount(userTx.RcvAddr, &hashingMocks.HasherMock{})
+	acntFinal, _ := state.NewUserAccount(userTx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntFinal.Balance = big.NewInt(10)
 
 	adb := &stateMock.AccountsStub{}
@@ -2348,11 +2348,11 @@ func TestTxProcessor_ProcessRelayedTransactionDifferentSenderInInnerTxThanReceiv
 			return core.RelayedTransaction, [][]byte{userTxMarshalled}, nil
 		}}
 
-	acntSrc, _ := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{})
+	acntSrc, _ := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntSrc.Balance = big.NewInt(100)
-	acntDst, _ := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{})
+	acntDst, _ := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntDst.Balance = big.NewInt(10)
-	acntFinal, _ := state.NewUserAccount(userTx.RcvAddr, &hashingMocks.HasherMock{})
+	acntFinal, _ := state.NewUserAccount(userTx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntFinal.Balance = big.NewInt(10)
 
 	adb := &stateMock.AccountsStub{}
@@ -2411,11 +2411,11 @@ func TestTxProcessor_ProcessRelayedTransactionSmallerValueInnerTxShouldError(t *
 			return core.RelayedTransaction, [][]byte{userTxMarshalled}, nil
 		}}
 
-	acntSrc, _ := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{})
+	acntSrc, _ := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntSrc.Balance = big.NewInt(100)
-	acntDst, _ := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{})
+	acntDst, _ := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntDst.Balance = big.NewInt(10)
-	acntFinal, _ := state.NewUserAccount(userTx.RcvAddr, &hashingMocks.HasherMock{})
+	acntFinal, _ := state.NewUserAccount(userTx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntFinal.Balance = big.NewInt(10)
 
 	adb := &stateMock.AccountsStub{}
@@ -2474,11 +2474,11 @@ func TestTxProcessor_ProcessRelayedTransactionGasPriceMismatchShouldError(t *tes
 			return core.RelayedTransaction, [][]byte{userTxMarshalled}, nil
 		}}
 
-	acntSrc, _ := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{})
+	acntSrc, _ := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntSrc.Balance = big.NewInt(100)
-	acntDst, _ := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{})
+	acntDst, _ := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntDst.Balance = big.NewInt(10)
-	acntFinal, _ := state.NewUserAccount(userTx.RcvAddr, &hashingMocks.HasherMock{})
+	acntFinal, _ := state.NewUserAccount(userTx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntFinal.Balance = big.NewInt(10)
 
 	adb := &stateMock.AccountsStub{}
@@ -2537,11 +2537,11 @@ func TestTxProcessor_ProcessRelayedTransactionGasLimitMismatchShouldError(t *tes
 			return core.RelayedTransaction, [][]byte{userTxMarshalled}, nil
 		}}
 
-	acntSrc, _ := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{})
+	acntSrc, _ := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntSrc.Balance = big.NewInt(100)
-	acntDst, _ := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{})
+	acntDst, _ := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntDst.Balance = big.NewInt(10)
-	acntFinal, _ := state.NewUserAccount(userTx.RcvAddr, &hashingMocks.HasherMock{})
+	acntFinal, _ := state.NewUserAccount(userTx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntFinal.Balance = big.NewInt(10)
 
 	adb := &stateMock.AccountsStub{}
@@ -2596,11 +2596,11 @@ func TestTxProcessor_ProcessRelayedTransactionDisabled(t *testing.T) {
 	userTxMarshalled, _ := marshalizer.Marshal(userTx)
 	tx.Data = []byte(core.RelayedTransaction + "@" + hex.EncodeToString(userTxMarshalled))
 
-	acntSrc, _ := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{})
+	acntSrc, _ := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntSrc.Balance = big.NewInt(100)
-	acntDst, _ := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{})
+	acntDst, _ := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntDst.Balance = big.NewInt(10)
-	acntFinal, _ := state.NewUserAccount(userTx.RcvAddr, &hashingMocks.HasherMock{})
+	acntFinal, _ := state.NewUserAccount(userTx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntFinal.Balance = big.NewInt(10)
 
 	adb := &stateMock.AccountsStub{}
@@ -2674,7 +2674,7 @@ func TestTxProcessor_ConsumeMoveBalanceWithUserTx(t *testing.T) {
 	}
 	execTx, _ := txproc.NewTxProcessor(args)
 
-	acntSrc, _ := state.NewUserAccount([]byte("address"), &hashingMocks.HasherMock{})
+	acntSrc, _ := state.NewUserAccount([]byte("address"), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntSrc.Balance = big.NewInt(100)
 
 	originalTxHash := []byte("originalTxHash")
@@ -2734,11 +2734,11 @@ func TestTxProcessor_ProcessUserTxOfTypeRelayedShouldError(t *testing.T) {
 			return core.RelayedTransaction, [][]byte{userTxMarshalled}, nil
 		}}
 
-	acntSrc, _ := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{})
+	acntSrc, _ := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntSrc.Balance = big.NewInt(100)
-	acntDst, _ := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{})
+	acntDst, _ := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntDst.Balance = big.NewInt(100)
-	acntFinal, _ := state.NewUserAccount(userTx.RcvAddr, &hashingMocks.HasherMock{})
+	acntFinal, _ := state.NewUserAccount(userTx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntFinal.Balance = big.NewInt(100)
 
 	adb := &stateMock.AccountsStub{}
@@ -2798,11 +2798,11 @@ func TestTxProcessor_ProcessUserTxOfTypeMoveBalanceShouldWork(t *testing.T) {
 			return core.RelayedTransaction, [][]byte{userTxMarshalled}, nil
 		}}
 
-	acntSrc, _ := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{})
+	acntSrc, _ := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntSrc.Balance = big.NewInt(100)
-	acntDst, _ := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{})
+	acntDst, _ := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntDst.Balance = big.NewInt(100)
-	acntFinal, _ := state.NewUserAccount(userTx.RcvAddr, &hashingMocks.HasherMock{})
+	acntFinal, _ := state.NewUserAccount(userTx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntFinal.Balance = big.NewInt(100)
 
 	adb := &stateMock.AccountsStub{}
@@ -2862,11 +2862,11 @@ func TestTxProcessor_ProcessUserTxOfTypeSCDeploymentShouldWork(t *testing.T) {
 			return core.RelayedTransaction, [][]byte{userTxMarshalled}, nil
 		}}
 
-	acntSrc, _ := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{})
+	acntSrc, _ := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntSrc.Balance = big.NewInt(100)
-	acntDst, _ := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{})
+	acntDst, _ := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntDst.Balance = big.NewInt(100)
-	acntFinal, _ := state.NewUserAccount(userTx.RcvAddr, &hashingMocks.HasherMock{})
+	acntFinal, _ := state.NewUserAccount(userTx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntFinal.Balance = big.NewInt(100)
 
 	adb := &stateMock.AccountsStub{}
@@ -2926,11 +2926,11 @@ func TestTxProcessor_ProcessUserTxOfTypeSCInvokingShouldWork(t *testing.T) {
 			return core.RelayedTransaction, [][]byte{userTxMarshalled}, nil
 		}}
 
-	acntSrc, _ := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{})
+	acntSrc, _ := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntSrc.Balance = big.NewInt(100)
-	acntDst, _ := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{})
+	acntDst, _ := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntDst.Balance = big.NewInt(100)
-	acntFinal, _ := state.NewUserAccount(userTx.RcvAddr, &hashingMocks.HasherMock{})
+	acntFinal, _ := state.NewUserAccount(userTx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntFinal.Balance = big.NewInt(100)
 
 	adb := &stateMock.AccountsStub{}
@@ -2990,11 +2990,11 @@ func TestTxProcessor_ProcessUserTxOfTypeBuiltInFunctionCallShouldWork(t *testing
 			return core.RelayedTransaction, [][]byte{userTxMarshalled}, nil
 		}}
 
-	acntSrc, _ := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{})
+	acntSrc, _ := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntSrc.Balance = big.NewInt(100)
-	acntDst, _ := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{})
+	acntDst, _ := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntDst.Balance = big.NewInt(100)
-	acntFinal, _ := state.NewUserAccount(userTx.RcvAddr, &hashingMocks.HasherMock{})
+	acntFinal, _ := state.NewUserAccount(userTx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntFinal.Balance = big.NewInt(100)
 
 	adb := &stateMock.AccountsStub{}
@@ -3058,11 +3058,11 @@ func TestTxProcessor_ProcessUserTxErrNotPayableShouldFailRelayTx(t *testing.T) {
 		return false, process.ErrAccountNotPayable
 	}}
 
-	acntSrc, _ := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{})
+	acntSrc, _ := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntSrc.Balance = big.NewInt(100)
-	acntDst, _ := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{})
+	acntDst, _ := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntDst.Balance = big.NewInt(100)
-	acntFinal, _ := state.NewUserAccount(userTx.RcvAddr, &hashingMocks.HasherMock{})
+	acntFinal, _ := state.NewUserAccount(userTx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntFinal.Balance = big.NewInt(100)
 
 	adb := &stateMock.AccountsStub{}
@@ -3128,11 +3128,11 @@ func TestTxProcessor_ProcessUserTxFailedBuiltInFunctionCall(t *testing.T) {
 		},
 	}
 
-	acntSrc, _ := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{})
+	acntSrc, _ := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntSrc.Balance = big.NewInt(100)
-	acntDst, _ := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{})
+	acntDst, _ := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntDst.Balance = big.NewInt(100)
-	acntFinal, _ := state.NewUserAccount(userTx.RcvAddr, &hashingMocks.HasherMock{})
+	acntFinal, _ := state.NewUserAccount(userTx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntFinal.Balance = big.NewInt(100)
 
 	adb := &stateMock.AccountsStub{}
@@ -3188,11 +3188,11 @@ func TestTxProcessor_ExecuteFailingRelayedTxShouldNotHaveNegativeFee(t *testing.
 
 	args := createArgsForTxProcessor()
 
-	acntSrc, _ := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{})
+	acntSrc, _ := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntSrc.Balance = big.NewInt(100)
-	acntDst, _ := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{})
+	acntDst, _ := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntDst.Balance = big.NewInt(100)
-	acntFinal, _ := state.NewUserAccount(userTx.RcvAddr, &hashingMocks.HasherMock{})
+	acntFinal, _ := state.NewUserAccount(userTx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	acntFinal.Balance = big.NewInt(100)
 
 	adb := &stateMock.AccountsStub{}

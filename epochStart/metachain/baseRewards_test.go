@@ -826,7 +826,7 @@ func TestBaseRewardsCreator_isSystemDelegationSC(t *testing.T) {
 	require.False(t, isDelegationSCAddress)
 
 	// peer account
-	peerAccount, err := state.NewPeerAccount([]byte("addressPeer"), &hashingMocks.HasherMock{})
+	peerAccount, err := state.NewPeerAccount([]byte("addressPeer"), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	require.Nil(t, err)
 	err = rwd.userAccountsDB.SaveAccount(peerAccount)
 	require.Nil(t, err)
@@ -834,7 +834,7 @@ func TestBaseRewardsCreator_isSystemDelegationSC(t *testing.T) {
 	require.False(t, isDelegationSCAddress)
 
 	// existing user account
-	userAccount, err := state.NewUserAccount([]byte("userAddress"), &hashingMocks.HasherMock{})
+	userAccount, err := state.NewUserAccount([]byte("userAddress"), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	require.Nil(t, err)
 
 	userAccount.SetDataTrie(&trieMock.TrieStub{

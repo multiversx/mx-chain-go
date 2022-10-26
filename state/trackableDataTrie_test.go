@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/pkg/errors"
@@ -19,7 +20,7 @@ func TestNewTrackableDataTrie(t *testing.T) {
 
 	identifier := []byte("identifier")
 	trie := &trieMock.TrieStub{}
-	tdaw, err := state.NewTrackableDataTrie(identifier, trie, &hashingMocks.HasherMock{})
+	tdaw, err := state.NewTrackableDataTrie(identifier, trie, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(tdaw))
 }
@@ -29,15 +30,25 @@ func TestNewTrackableDataTrie_NilHasherShouldErr(t *testing.T) {
 
 	identifier := []byte("identifier")
 	trie := &trieMock.TrieStub{}
-	tdaw, err := state.NewTrackableDataTrie(identifier, trie, nil)
+	tdaw, err := state.NewTrackableDataTrie(identifier, trie, nil, &testscommon.MarshalizerMock{})
 	assert.Equal(t, state.ErrNilHasher, err)
+	assert.True(t, check.IfNil(tdaw))
+}
+
+func TestNewTrackableDataTrie_NilMarshallerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	identifier := []byte("identifier")
+	trie := &trieMock.TrieStub{}
+	tdaw, err := state.NewTrackableDataTrie(identifier, trie, &hashingMocks.HasherMock{}, nil)
+	assert.Equal(t, state.ErrNilMarshalizer, err)
 	assert.True(t, check.IfNil(tdaw))
 }
 
 func TestTrackableDataTrie_RetrieveValueNilDataTrieShouldErr(t *testing.T) {
 	t.Parallel()
 
-	as, err := state.NewTrackableDataTrie([]byte("identifier"), nil, &hashingMocks.HasherMock{})
+	as, err := state.NewTrackableDataTrie([]byte("identifier"), nil, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
 	assert.NotNil(t, as)
 
@@ -66,7 +77,7 @@ func TestTrackableDataTrie_RetrieveValueFoundInTrieShouldWork(t *testing.T) {
 			return nil, nil
 		},
 	}
-	mdaw, _ := state.NewTrackableDataTrie(identifier, trie, &hashingMocks.HasherMock{})
+	mdaw, _ := state.NewTrackableDataTrie(identifier, trie, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.NotNil(t, mdaw)
 
 	valRecovered, err := mdaw.RetrieveValue(expectedKey)
@@ -87,7 +98,7 @@ func TestTrackableDataTrie_RetrieveValueMalfunctionTrieShouldErr(t *testing.T) {
 			return nil, errExpected
 		},
 	}
-	mdaw, _ := state.NewTrackableDataTrie([]byte("identifier"), trie, &hashingMocks.HasherMock{})
+	mdaw, _ := state.NewTrackableDataTrie([]byte("identifier"), trie, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.NotNil(t, mdaw)
 
 	valRecovered, err := mdaw.RetrieveValue(keyExpected)
@@ -110,7 +121,7 @@ func TestTrackableDataTrie_RetrieveValueShouldCheckDirtyDataFirst(t *testing.T) 
 			return trieValue, nil
 		},
 	}
-	mdaw, _ := state.NewTrackableDataTrie([]byte("id"), trie, &hashingMocks.HasherMock{})
+	mdaw, _ := state.NewTrackableDataTrie([]byte("id"), trie, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.NotNil(t, mdaw)
 
 	valRecovered, err := mdaw.RetrieveValue(key)
@@ -139,7 +150,7 @@ func TestTrackableDataTrie_SaveKeyValueShouldSaveOnlyInDirty(t *testing.T) {
 			return nil, nil
 		},
 	}
-	mdaw, _ := state.NewTrackableDataTrie(identifier, trie, &hashingMocks.HasherMock{})
+	mdaw, _ := state.NewTrackableDataTrie(identifier, trie, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.NotNil(t, mdaw)
 
 	_ = mdaw.SaveKeyValue(keyExpected, value)
@@ -154,7 +165,7 @@ func TestTrackableDataTrie_SetAndGetDataTrie(t *testing.T) {
 	t.Parallel()
 
 	trie := &trieMock.TrieStub{}
-	mdaw, _ := state.NewTrackableDataTrie([]byte("identifier"), trie, &hashingMocks.HasherMock{})
+	mdaw, _ := state.NewTrackableDataTrie([]byte("identifier"), trie, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 
 	newTrie := &trieMock.TrieStub{}
 	mdaw.SetDataTrie(newTrie)
@@ -166,7 +177,7 @@ func TestTrackableDataTrie_SaveKeyValueTooBig(t *testing.T) {
 
 	identifier := []byte("identifier")
 	trie := &trieMock.TrieStub{}
-	tdaw, _ := state.NewTrackableDataTrie(identifier, trie, &hashingMocks.HasherMock{})
+	tdaw, _ := state.NewTrackableDataTrie(identifier, trie, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 
 	err := tdaw.SaveKeyValue([]byte("key"), make([]byte, core.MaxLeafSize+1))
 	assert.Equal(t, err, data.ErrLeafSizeTooBig)

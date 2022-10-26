@@ -154,9 +154,9 @@ func TestMetaTxProcessor_ProcessCheckNotPassShouldErr(t *testing.T) {
 	tx.RcvAddr = []byte("DST")
 	tx.Value = big.NewInt(45)
 
-	acntSrc, err := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{})
+	acntSrc, err := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
-	acntDst, err := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{})
+	acntDst, err := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
 
 	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
@@ -180,9 +180,9 @@ func TestMetaTxProcessor_ProcessMoveBalancesShouldCallProcessIfError(t *testing.
 	tx.RcvAddr = []byte("DST")
 	tx.Value = big.NewInt(0)
 
-	acntSrc, err := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{})
+	acntSrc, err := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
-	acntDst, err := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{})
+	acntDst, err := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
 
 	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
@@ -220,10 +220,10 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 	tx.GasPrice = 1
 	tx.GasLimit = 1
 
-	acntSrc, err := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{})
+	acntSrc, err := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
 
-	acntDst, err := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{})
+	acntDst, err := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
 
 	acntSrc.Balance = big.NewInt(46)
@@ -269,10 +269,10 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails
 	tx.RcvAddr = generateRandomByteSlice(createMockPubkeyConverter().Len())
 	tx.Value = big.NewInt(45)
 
-	acntSrc, err := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{})
+	acntSrc, err := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
 	acntSrc.Balance = big.NewInt(45)
-	acntDst, err := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{})
+	acntDst, err := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
 	acntDst.SetCode([]byte{65})
 
@@ -327,10 +327,10 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotI
 		return 0
 	}
 
-	acntSrc, err := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{})
+	acntSrc, err := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
 	acntSrc.Balance = big.NewInt(45)
-	acntDst, err := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{})
+	acntDst, err := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
 	acntDst.SetCode([]byte{65})
 
@@ -391,10 +391,10 @@ func TestMetaTxProcessor_ProcessTransactionBuiltInCallTxShouldWork(t *testing.T)
 	tx.GasPrice = 1
 	tx.GasLimit = 1
 
-	acntSrc, err := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{})
+	acntSrc, err := state.NewUserAccount(tx.SndAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
 
-	acntDst, err := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{})
+	acntDst, err := state.NewUserAccount(tx.RcvAddr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	assert.Nil(t, err)
 
 	acntSrc.Balance = big.NewInt(46)

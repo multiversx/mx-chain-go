@@ -6,6 +6,7 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 )
 
 var _ UserAccountHandler = (*userAccount)(nil)
@@ -30,12 +31,12 @@ func NewEmptyUserAccount() *userAccount {
 }
 
 // NewUserAccount creates new simple account wrapper for an AccountContainer (that has just been initialized)
-func NewUserAccount(address []byte, hasher hashing.Hasher) (*userAccount, error) {
+func NewUserAccount(address []byte, hasher hashing.Hasher, marshaller marshal.Marshalizer) (*userAccount, error) {
 	if len(address) == 0 {
 		return nil, ErrNilAddress
 	}
 
-	tdt, err := NewTrackableDataTrie(address, nil, hasher)
+	tdt, err := NewTrackableDataTrie(address, nil, hasher, marshaller)
 	if err != nil {
 		return nil, err
 	}

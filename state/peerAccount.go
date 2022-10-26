@@ -5,6 +5,7 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
 )
 
@@ -26,12 +27,12 @@ func NewEmptyPeerAccount() *peerAccount {
 }
 
 // NewPeerAccount creates new simple account wrapper for an PeerAccountContainer (that has just been initialized)
-func NewPeerAccount(address []byte, hasher hashing.Hasher) (*peerAccount, error) {
+func NewPeerAccount(address []byte, hasher hashing.Hasher, marshaller marshal.Marshalizer) (*peerAccount, error) {
 	if len(address) == 0 {
 		return nil, ErrNilAddress
 	}
 
-	tdt, err := NewTrackableDataTrie(address, nil, hasher)
+	tdt, err := NewTrackableDataTrie(address, nil, hasher, marshaller)
 	if err != nil {
 		return nil, err
 	}

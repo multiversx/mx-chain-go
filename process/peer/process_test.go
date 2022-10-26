@@ -325,7 +325,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateSetAddressErrors(t *testin
 	t.Parallel()
 
 	saveAccountError := errors.New("save account error")
-	peerAccount, _ := state.NewPeerAccount([]byte("1234"), &hashingMocks.HasherMock{})
+	peerAccount, _ := state.NewPeerAccount([]byte("1234"), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	peerAdapter := &stateMock.AccountsStub{
 		LoadAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
 			return peerAccount, nil
@@ -351,7 +351,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateCommitErrors(t *testing.T)
 	t.Parallel()
 
 	commitError := errors.New("commit error")
-	peerAccount, _ := state.NewPeerAccount([]byte("1234"), &hashingMocks.HasherMock{})
+	peerAccount, _ := state.NewPeerAccount([]byte("1234"), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	peerAdapter := &stateMock.AccountsStub{
 		LoadAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
 			return peerAccount, nil
@@ -374,7 +374,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateCommitErrors(t *testing.T)
 func TestValidatorStatisticsProcessor_SaveInitialStateCommit(t *testing.T) {
 	t.Parallel()
 
-	peerAccount, _ := state.NewPeerAccount([]byte("1234"), &hashingMocks.HasherMock{})
+	peerAccount, _ := state.NewPeerAccount([]byte("1234"), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	peerAdapter := &stateMock.AccountsStub{
 		LoadAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
 			return peerAccount, nil
@@ -516,7 +516,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetHeaderError(t *testing.T
 	marshalizer := &mock.MarshalizerStub{}
 
 	adapter.LoadAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
-		return state.NewPeerAccount(address, &hashingMocks.HasherMock{})
+		return state.NewPeerAccount(address, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	}
 	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
 
@@ -2487,7 +2487,7 @@ func compare(t *testing.T, peerAccount state.PeerAccountHandler, validatorInfo *
 
 func createPeerAccounts(addrBytes0 []byte, addrBytesMeta []byte) (state.PeerAccountHandler, state.PeerAccountHandler) {
 	addr := addrBytes0
-	pa0, _ := state.NewPeerAccount(addr, &hashingMocks.HasherMock{})
+	pa0, _ := state.NewPeerAccount(addr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	pa0.PeerAccountData = state.PeerAccountData{
 		BLSPublicKey:    []byte("bls0"),
 		RewardAddress:   []byte("reward0"),
@@ -2518,7 +2518,7 @@ func createPeerAccounts(addrBytes0 []byte, addrBytesMeta []byte) (state.PeerAcco
 	}
 
 	addr = addrBytesMeta
-	paMeta, _ := state.NewPeerAccount(addr, &hashingMocks.HasherMock{})
+	paMeta, _ := state.NewPeerAccount(addr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	paMeta.PeerAccountData = state.PeerAccountData{
 		BLSPublicKey:    []byte("blsM"),
 		RewardAddress:   []byte("rewardM"),

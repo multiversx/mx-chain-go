@@ -309,7 +309,7 @@ func TestAccountsDBApi_GetExistingAccount(t *testing.T) {
 				return nil
 			},
 			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
-				return state.NewUserAccount(addressContainer, &hashingMocks.HasherMock{})
+				return state.NewUserAccount(addressContainer, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 			},
 		}
 
@@ -353,7 +353,7 @@ func TestAccountsDBApi_GetAccountFromBytes(t *testing.T) {
 				return nil
 			},
 			GetAccountFromBytesCalled: func(address []byte, accountBytes []byte) (vmcommon.AccountHandler, error) {
-				return state.NewUserAccount(address, &hashingMocks.HasherMock{})
+				return state.NewUserAccount(address, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 			},
 		}
 
@@ -397,7 +397,7 @@ func TestAccountsDBApi_LoadAccount(t *testing.T) {
 				return nil
 			},
 			LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
-				return state.NewUserAccount(address, &hashingMocks.HasherMock{})
+				return state.NewUserAccount(address, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 			},
 		}
 

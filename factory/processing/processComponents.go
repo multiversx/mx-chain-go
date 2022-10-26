@@ -882,7 +882,7 @@ func (pcf *processComponentsFactory) indexGenesisAccounts() error {
 }
 
 func (pcf *processComponentsFactory) unmarshalUserAccount(address []byte, userAccountsBytes []byte) (state.UserAccountHandler, error) {
-	userAccount, err := state.NewUserAccount(address, pcf.coreData.Hasher())
+	userAccount, err := state.NewUserAccount(address, pcf.coreData.Hasher(), pcf.coreData.InternalMarshalizer())
 	if err != nil {
 		return nil, err
 	}

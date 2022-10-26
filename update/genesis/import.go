@@ -515,7 +515,7 @@ func (si *stateImport) unMarshalAndSaveAccount(
 	accountsDB state.AccountsDBImporter,
 	mainTrie common.Trie,
 ) error {
-	account, err := NewEmptyAccount(accType, address, si.hasher)
+	account, err := NewEmptyAccount(accType, address, si.hasher, si.marshalizer)
 	if err != nil {
 		return err
 	}

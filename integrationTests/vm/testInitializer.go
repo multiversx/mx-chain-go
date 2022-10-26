@@ -262,8 +262,8 @@ type accountFactory struct {
 }
 
 // CreateAccount -
-func (af *accountFactory) CreateAccount(address []byte, hasher hashing.Hasher) (vmcommon.AccountHandler, error) {
-	return state.NewUserAccount(address, hasher)
+func (af *accountFactory) CreateAccount(address []byte, hasher hashing.Hasher, marshaller marshal.Marshalizer) (vmcommon.AccountHandler, error) {
+	return state.NewUserAccount(address, hasher, marshaller)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

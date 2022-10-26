@@ -25,7 +25,7 @@ import (
 func TestNode_GetAccountWithOptionsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	alice, _ := state.NewUserAccount(testscommon.TestPubKeyAlice, &hashingMocks.HasherMock{})
+	alice, _ := state.NewUserAccount(testscommon.TestPubKeyAlice, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
 	alice.Balance = big.NewInt(100)
 
 	accountsRepostitory := &mockState.AccountsRepositoryStub{}
