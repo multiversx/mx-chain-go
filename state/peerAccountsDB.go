@@ -20,6 +20,8 @@ func NewPeerAccountsDB(args ArgsAccountsDB) (*PeerAccountsDB, error) {
 		AccountsDB: createAccountsDb(args),
 	}
 
+	args.AppStatusHandler.SetStringValue(common.MetricPeersSnapshotInProgress, "false")
+
 	return adb, nil
 }
 
@@ -58,11 +60,19 @@ func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
 	}
 	stats := newSnapshotStatistics(0, 1)
 	stats.NewSnapshotStarted()
+
+	peerAccountsMetrics := &accountMetrics{
+		snapshotInProgressKey:   common.MetricPeersSnapshotInProgress,
+		lastSnapshotDurationKey: common.MetricLastPeersSnapshotDurationSec,
+		snapshotMessage:         peerTrieSnapshotMsg,
+	}
+	adb.updateMetricsOnSnapshotStart(peerAccountsMetrics)
+
 	trieStorageManager.TakeSnapshot(nil, rootHash, rootHash, iteratorChannels, missingNodesChannel, stats, epoch)
 
 	go adb.syncMissingNodes(missingNodesChannel, stats, adb.trieSyncer)
 
-	go adb.processSnapshotCompletion(stats, trieStorageManager, missingNodesChannel, iteratorChannels.ErrChan, rootHash, "snapshotState peer trie", epoch)
+	go adb.processSnapshotCompletion(stats, trieStorageManager, missingNodesChannel, iteratorChannels.ErrChan, rootHash, peerAccountsMetrics, epoch)
 
 	adb.waitForCompletionIfAppropriate(stats)
 }

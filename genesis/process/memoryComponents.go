@@ -31,6 +31,7 @@ func createAccountAdapter(
 		StoragePruningManager: disabled.NewDisabledStoragePruningManager(),
 		ProcessingMode:        common.Normal,
 		ProcessStatusHandler:  commonDisabled.NewProcessStatusHandler(),
+		AppStatusHandler:      commonDisabled.NewAppStatusHandler(),
 	}
 
 	adb, err := state.NewAccountsDB(args)
