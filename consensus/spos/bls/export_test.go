@@ -299,7 +299,7 @@ func (sr *subroundEndRound) IsOutOfTime() bool {
 	return sr.isOutOfTime()
 }
 
-func (sr *subroundEndRound) VerifyNodesOnAggSigVerificationFail() ([]string, error) {
+func (sr *subroundEndRound) VerifyNodesOnAggSigFail() ([]string, error) {
 	return sr.verifyNodesOnAggSigFail()
 }
 
