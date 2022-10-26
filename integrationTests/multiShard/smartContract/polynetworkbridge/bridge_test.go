@@ -33,10 +33,6 @@ func TestBridgeSetupAndBurn(t *testing.T) {
 		BuiltInFunctionOnMetaEnableEpoch:    integrationTests.UnreachableEpoch,
 		SCProcessorV2EnableEpoch:            integrationTests.UnreachableEpoch,
 		FixAsyncCallBackArgsListEnableEpoch: integrationTests.UnreachableEpoch,
-		GlobalMintBurnDisableEpoch:          integrationTests.UnreachableEpoch,
-		BuiltInFunctionOnMetaEnableEpoch:    integrationTests.UnreachableEpoch,
-		GlobalMintBurnDisableEpoch:          integrationTests.UnreachableEpoch,
-		BuiltInFunctionOnMetaEnableEpoch:    integrationTests.UnreachableEpoch,
 	}
 	arwenVersion := config.ArwenVersionByEpoch{Version: "v1.4"}
 	vmConfig := &config.VirtualMachineConfig{ArwenVersions: []config.ArwenVersionByEpoch{arwenVersion}}

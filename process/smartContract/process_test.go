@@ -2816,10 +2816,14 @@ func TestScProcessor_CreateCrossShardTransactionsWithAsyncCalls(t *testing.T) {
 	shardCoordinator.ComputeIdCalled = func(_ []byte) uint32 {
 		return shardCoordinator.SelfId() + 1
 	}
-	createdAsyncSCR, scTxs, err = sc.processSCOutputAccounts(&vmcommon.VMInput{
-		Arguments: [][]byte{{}, {}},
-		CallType:  vmData.AsynchronousCall,
-	}, &vmcommon.VMOutput{GasRemaining: 1000}, outputAccounts, tx, txHash)
+	createdAsyncSCR, scTxs, err = sc.processSCOutputAccounts(
+		&vmcommon.VMInput{
+			Arguments: [][]byte{{}, {}},
+			CallType:  vmData.AsynchronousCall},
+		&vmcommon.VMOutput{GasRemaining: 1000},
+		outputAccounts,
+		tx,
+		txHash)
 	require.Nil(t, err)
 	require.Equal(t, len(outputAccounts), len(scTxs))
 	require.True(t, createdAsyncSCR)
@@ -2831,7 +2835,12 @@ func TestScProcessor_CreateCrossShardTransactionsWithAsyncCalls(t *testing.T) {
 	})
 	enableEpochsHandler.IsFixAsyncCallBackArgsListFlagEnabledField = true
 
-	_, scTxs, err = sc.processSCOutputAccounts(&vmcommon.VMOutput{GasRemaining: 1000}, vmData.AsynchronousCall, outputAccounts, tx, txHash)
+	_, scTxs, err = sc.processSCOutputAccounts(
+		&vmcommon.VMInput{CallType: vmData.AsynchronousCall},
+		&vmcommon.VMOutput{GasRemaining: 1000},
+		outputAccounts,
+		tx,
+		txHash)
 	require.Nil(t, err)
 	require.Equal(t, len(outputAccounts), len(scTxs))
 	require.True(t, createdAsyncSCR)
