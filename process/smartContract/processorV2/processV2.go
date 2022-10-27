@@ -2424,12 +2424,24 @@ func (sc *scProcessor) useLastTransferAsAsyncCallBackWhenNeeded(
 }
 
 func (sc *scProcessor) prependAsyncParamsToData(asyncParams [][]byte, data []byte) ([]byte, error) {
-	args, err := sc.argsParser.ParseArguments(string(data))
-	if err != nil {
-		return nil, err
-	}
+	var args [][]byte
+	var err error
 
 	callData := txDataBuilder.NewBuilder()
+
+	// These nested conditions ensure that prependAsyncParamsToData() can handle
+	// data strings with or without a function as the first token in the string.
+	// The string "ESDTTransfer@...@..." requires ParseCallData().
+	// The string "@...@..." requires ParseArguments() instead.
+	function, args, err := sc.argsParser.ParseCallData(string(data))
+	if err == nil {
+		callData.Func(function)
+	} else {
+		args, err = sc.argsParser.ParseArguments(string(data))
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	for _, arg := range args {
 		callData.Bytes(arg)
