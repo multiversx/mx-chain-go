@@ -410,7 +410,7 @@ func (ap *accountsParser) setTxsPoolAndMiniBlocks(
 		receiverShardID := shardCoordinator.ComputeId(txHandler.GetRcvAddr())
 
 		var senderShardID uint32
-		if bytes.Compare(txHandler.GetSndAddr(), ap.minterAddressBytes) == 0 {
+		if bytes.Equal(txHandler.GetSndAddr(), ap.minterAddressBytes) {
 			senderShardID = core.MetachainShardId
 		} else {
 			senderShardID = shardCoordinator.ComputeId(txHandler.GetSndAddr())
