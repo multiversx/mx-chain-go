@@ -119,11 +119,11 @@ func (aap *alteredAccountsProvider) processMarkedAccountData(
 	}
 
 	alteredAccounts[encodedAddress] = &outportcore.AlteredAccount{
-		Address:       encodedAddress,
-		Balance:       userAccount.GetBalance().String(),
-		Nonce:         userAccount.GetNonce(),
-		IsSender:      markedAccount.isSender,
-		BalanceChange: markedAccount.balanceChanged,
+		Address:        encodedAddress,
+		Balance:        userAccount.GetBalance().String(),
+		Nonce:          userAccount.GetNonce(),
+		IsSender:       markedAccount.isSender,
+		BalanceChanged: markedAccount.balanceChanged,
 	}
 
 	for _, tokenData := range markedAccount.tokens {

@@ -147,7 +147,7 @@ func testExtractAlteredAccountsFromPoolSenderShard(t *testing.T) {
 		decodedKey, _ := args.AddressConverter.Decode(key)
 		require.True(t, strings.HasPrefix(string(decodedKey), "sender"))
 		require.True(t, info.IsSender)
-		require.True(t, info.BalanceChange)
+		require.True(t, info.BalanceChanged)
 	}
 }
 
@@ -188,7 +188,7 @@ func testExtractAlteredAccountsFromPoolReceiverShard(t *testing.T) {
 	for key, info := range res {
 		decodedKey, _ := args.AddressConverter.Decode(key)
 		require.True(t, strings.HasPrefix(string(decodedKey), "receiver"))
-		require.True(t, info.BalanceChange)
+		require.True(t, info.BalanceChanged)
 		require.False(t, info.IsSender)
 	}
 }
@@ -565,7 +565,7 @@ func testExtractAlteredAccountsFromPoolShouldNotIncludeReceiverAddressIfNftCreat
 
 	require.Len(t, res, 1)
 	require.True(t, res["73656e64657220696e2073686172642030202d20747820312020"].Tokens[0].IsNFTCreate)
-	require.True(t, res["73656e64657220696e2073686172642030202d20747820312020"].BalanceChange)
+	require.True(t, res["73656e64657220696e2073686172642030202d20747820312020"].BalanceChanged)
 	require.True(t, res["73656e64657220696e2073686172642030202d20747820312020"].IsSender)
 
 	mapKeyToSearch := args.AddressConverter.Encode(receiverOnDestination)
