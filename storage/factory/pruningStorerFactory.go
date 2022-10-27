@@ -249,7 +249,6 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 
 	// shardHdrHashNonce storer is static
 	shardHdrHashNonceConfig := GetDBFromConfig(psf.generalConfig.ShardHdrNonceHashStorage.DB)
-	shardID = core.GetShardIDString(psf.shardCoordinator.SelfId())
 	dbPath := psf.pathManager.PathForStatic(shardID, psf.generalConfig.ShardHdrNonceHashStorage.DB.FilePath) + shardID
 	shardHdrHashNonceConfig.FilePath = dbPath
 	shardHdrHashNonceUnit, err := storageunit.NewStorageUnitFromConf(
@@ -299,9 +298,6 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 
 	return store, err
 }
-
-// TODO: split in 2 components shardStorageServiceCreator and metStorageServiceCreator that have a base which will contain the
-// common storers
 
 // CreateForMeta will return the storage service which contains all storers needed for metachain
 func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService, error) {
