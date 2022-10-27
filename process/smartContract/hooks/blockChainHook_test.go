@@ -337,7 +337,7 @@ func TestBlockChainHookImpl_GetStorageDataAccountNotFoundExpectEmptyStorage(t *t
 	}
 
 	bh, _ := hooks.NewBlockChainHookImpl(args)
-	storageData, err := bh.GetStorageData(address, []byte("index"))
+	storageData, _, err := bh.GetStorageData(address, []byte("index"))
 	require.Equal(t, []byte{}, storageData)
 	require.Nil(t, err)
 }
@@ -351,9 +351,9 @@ func TestBlockChainHookImpl_GetStorageDataCannotRetrieveAccountValueExpectError(
 	expectedErr := errors.New("error retrieving value")
 
 	dataTrieStub := &trie.DataTrieTrackerStub{
-		RetrieveValueCalled: func(key []byte) ([]byte, error) {
+		RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
 			require.Equal(t, index, key)
-			return nil, expectedErr
+			return nil, 0, expectedErr
 		},
 	}
 	account := &stateMock.AccountWrapMock{
@@ -369,7 +369,7 @@ func TestBlockChainHookImpl_GetStorageDataCannotRetrieveAccountValueExpectError(
 	}
 
 	bh, _ := hooks.NewBlockChainHookImpl(args)
-	storageData, err := bh.GetStorageData(address, index)
+	storageData, _, err := bh.GetStorageData(address, index)
 	require.Nil(t, storageData)
 	require.Equal(t, expectedErr, err)
 }
@@ -387,7 +387,7 @@ func TestBlockChainHookImpl_GetStorageDataErrorsShouldErr(t *testing.T) {
 	}
 	bh, _ := hooks.NewBlockChainHookImpl(args)
 
-	value, err := bh.GetStorageData(make([]byte, 0), make([]byte, 0))
+	value, _, err := bh.GetStorageData(make([]byte, 0), make([]byte, 0))
 
 	assert.Equal(t, errExpected, err)
 	assert.Nil(t, value)
@@ -409,7 +409,7 @@ func TestBlockChainHookImpl_GetStorageDataShouldWork(t *testing.T) {
 	}
 	bh, _ := hooks.NewBlockChainHookImpl(args)
 
-	value, err := bh.GetStorageData(make([]byte, 0), variableIdentifier)
+	value, _, err := bh.GetStorageData(make([]byte, 0), variableIdentifier)
 
 	assert.Nil(t, err)
 	assert.Equal(t, variableValue, value)
@@ -1660,8 +1660,8 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 				addressHandler := stateMock.NewAccountWrapMock(address)
 				addressHandler.SetDataTrie(&trie.TrieStub{
-					GetCalled: func(key []byte) ([]byte, error) {
-						return make([]byte, 0), nil
+					GetCalled: func(_ []byte) ([]byte, uint32, error) {
+						return make([]byte, 0), 0, nil
 					},
 				})
 

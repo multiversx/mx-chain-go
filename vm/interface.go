@@ -110,7 +110,7 @@ type EpochNotifier interface {
 
 // BlockchainHook is the interface for VM blockchain callbacks
 type BlockchainHook interface {
-	GetStorageData(accountAddress []byte, index []byte) ([]byte, error)
+	GetStorageData(accountAddress []byte, index []byte) ([]byte, uint32, error)
 	CurrentNonce() uint64
 	CurrentRound() uint64
 	CurrentEpoch() uint32

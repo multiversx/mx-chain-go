@@ -35,9 +35,9 @@ func (ba *baseAccount) SetDataTrie(trie common.Trie) {
 }
 
 // RetrieveValue fetches the value from a particular key searching the account data store in the data trie tracker
-func (ba *baseAccount) RetrieveValue(key []byte) ([]byte, error) {
+func (ba *baseAccount) RetrieveValue(key []byte) ([]byte, uint32, error) {
 	if check.IfNil(ba.dataTrieTracker) {
-		return nil, ErrNilTrackableDataTrie
+		return nil, 0, ErrNilTrackableDataTrie
 	}
 
 	return ba.dataTrieTracker.RetrieveValue(key)
