@@ -27,7 +27,7 @@ type TrieIteratorChannels struct {
 
 // Trie is an interface for Merkle Trees implementations
 type Trie interface {
-	Get(key []byte) ([]byte, error)
+	Get(key []byte) ([]byte, uint32, error)
 	Update(key, value []byte) error
 	Delete(key []byte) error
 	RootHash() ([]byte, error)

@@ -3684,9 +3684,9 @@ func TestNode_GetProofDataTrieShouldWork(t *testing.T) {
 		GetAccountFromBytesCalled: func(address []byte, accountBytes []byte) (vmcommon.AccountHandler, error) {
 			acc := &stateMock.AccountWrapMock{}
 			acc.SetTrackableDataTrie(&trieMock.DataTrieTrackerStub{
-				RetrieveValueCalled: func(key []byte) ([]byte, error) {
+				RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
 					assert.Equal(t, dataTrieKey, hex.EncodeToString(key))
-					return dataTrieValue, nil
+					return dataTrieValue, 0, nil
 				},
 			})
 			acc.SetRootHash(dataTrieRootHash)

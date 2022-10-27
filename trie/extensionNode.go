@@ -329,26 +329,26 @@ func (en *extensionNode) isPosCollapsed(_ int) bool {
 	return en.isCollapsed()
 }
 
-func (en *extensionNode) tryGet(key []byte, db common.DBWriteCacher) (value []byte, err error) {
+func (en *extensionNode) tryGet(key []byte, currentDepth uint32, db common.DBWriteCacher) (value []byte, maxDepth uint32, err error) {
 	err = en.isEmptyOrNil()
 	if err != nil {
-		return nil, fmt.Errorf("tryGet error %w", err)
+		return nil, currentDepth, fmt.Errorf("tryGet error %w", err)
 	}
 	keyTooShort := len(key) < len(en.Key)
 	if keyTooShort {
-		return nil, nil
+		return nil, currentDepth, nil
 	}
 	keysDontMatch := !bytes.Equal(en.Key, key[:len(en.Key)])
 	if keysDontMatch {
-		return nil, nil
+		return nil, currentDepth, nil
 	}
 	key = key[len(en.Key):]
 	err = resolveIfCollapsed(en, 0, db)
 	if err != nil {
-		return nil, err
+		return nil, currentDepth, err
 	}
 
-	return en.child.tryGet(key, db)
+	return en.child.tryGet(key, currentDepth+1, db)
 }
 
 func (en *extensionNode) getNext(key []byte, db common.DBWriteCacher) (node, []byte, error) {
