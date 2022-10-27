@@ -673,16 +673,12 @@ func (ccf *consensusComponentsFactory) createPeerBlacklistHandler() (consensus.P
 }
 
 func (ccf *consensusComponentsFactory) createP2pSigningHandler() (consensus.P2PSigningHandler, error) {
-	p2pSignerArgs := &p2pFactory.ArgsMessageVerifier{
+	p2pSignerArgs := p2pFactory.ArgsMessageVerifier{
 		Marshaller: ccf.coreComponents.InternalMarshalizer(),
 		P2PSigner:  ccf.networkComponents.NetworkMessenger(),
 	}
-	p2pSigningHandler, err := p2pFactory.NewMessageVerifier(*p2pSignerArgs)
-	if err != nil {
-		return nil, err
-	}
 
-	return p2pSigningHandler, nil
+	return p2pFactory.NewMessageVerifier(p2pSignerArgs)
 }
 
 func (ccf *consensusComponentsFactory) addCloserInstances(closers ...update.Closer) error {

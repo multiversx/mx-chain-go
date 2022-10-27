@@ -41,10 +41,9 @@ func initNodesWithTestSigner(
 		if numInvalid < numNodes {
 			for i := uint32(0); i < numInvalid; i++ {
 				ii := numNodes - i - 1
-				iCopy := ii
 				nodes[shardID][ii].MultiSigner.CreateSignatureShareCalled = func(privateKeyBytes, message []byte) ([]byte, error) {
 					fmt.Println("invalid sig share from ",
-						getPkEncoded(nodes[shardID][iCopy].NodeKeys.Pk),
+						getPkEncoded(nodes[shardID][ii].NodeKeys.Pk),
 					)
 
 					var invalidSigShare []byte
