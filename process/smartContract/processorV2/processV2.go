@@ -959,7 +959,6 @@ func (sc *scProcessor) doExecuteBuiltInFunctionWithoutFailureProcessing(
 			return vmcommon.ExecutionFailed, nil
 		}
 		if errReturnCode != vmcommon.Ok {
-			failureContext.setMessagesFromError(err)
 			return errReturnCode, nil // process if error already happened inside executeSmartContractCallAndCheckGas
 		}
 
