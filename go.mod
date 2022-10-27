@@ -8,7 +8,7 @@ require (
 	github.com/ElrondNetwork/elrond-go-core v1.1.21
 	github.com/ElrondNetwork/elrond-go-crypto v1.2.1
 	github.com/ElrondNetwork/elrond-go-logger v1.0.9
-	github.com/ElrondNetwork/elrond-go-p2p v1.0.3
+	github.com/ElrondNetwork/elrond-go-p2p v1.0.4-0.20221026185205-acf8dd97d5f1
 	github.com/ElrondNetwork/elrond-go-storage v1.0.1
 	github.com/ElrondNetwork/elrond-vm-common v1.3.22
 	github.com/ElrondNetwork/wasm-vm v1.4.59

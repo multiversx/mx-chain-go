@@ -348,7 +348,7 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 	isPeerBlacklisted := wrk.peerBlacklistHandler.IsPeerBlacklisted(fromConnectedPeer)
 	if isPeerBlacklisted {
 		log.Debug("received message from blacklisted peer",
-			"peer", fromConnectedPeer,
+			"peer", fromConnectedPeer.Pretty(),
 		)
 		return ErrBlacklistedConsensusPeer
 	}

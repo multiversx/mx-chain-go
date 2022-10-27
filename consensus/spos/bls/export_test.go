@@ -299,7 +299,7 @@ func (sr *subroundEndRound) IsOutOfTime() bool {
 	return sr.isOutOfTime()
 }
 
-func (sr *subroundEndRound) VerifyNodesOnAggSigVerificationFail() ([]string, error) {
+func (sr *subroundEndRound) VerifyNodesOnAggSigFail() ([]string, error) {
 	return sr.verifyNodesOnAggSigFail()
 }
 
@@ -322,4 +322,8 @@ func GetStringValue(messageType consensus.MessageType) string {
 
 func (sr *subroundEndRound) CreateAndBroadcastInvalidSigners(invalidSigners []byte) {
 	sr.createAndBroadcastInvalidSigners(invalidSigners)
+}
+
+func (sr *subroundEndRound) GetFullMessagesForInvalidSigners(invalidPubKeys []string) ([]byte, error) {
+	return sr.getFullMessagesForInvalidSigners(invalidPubKeys)
 }

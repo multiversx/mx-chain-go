@@ -19,7 +19,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/blockchain"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
-	pb "github.com/ElrondNetwork/go-libp2p-pubsub/pb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -966,7 +965,7 @@ func TestVerifyNodesOnAggSigVerificationFail(t *testing.T) {
 		sr.Header = &block.Header{}
 		_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
 
-		_, err := sr.VerifyNodesOnAggSigVerificationFail()
+		_, err := sr.VerifyNodesOnAggSigFail()
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -990,7 +989,7 @@ func TestVerifyNodesOnAggSigVerificationFail(t *testing.T) {
 		_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
 		container.SetSignatureHandler(signatureHandler)
 
-		_, err := sr.VerifyNodesOnAggSigVerificationFail()
+		_, err := sr.VerifyNodesOnAggSigFail()
 		require.Nil(t, err)
 
 		isJobDone, err := sr.JobDone(sr.ConsensusGroup()[0], bls.SrSignature)
@@ -1020,7 +1019,7 @@ func TestVerifyNodesOnAggSigVerificationFail(t *testing.T) {
 		_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
 		_ = sr.SetJobDone(sr.ConsensusGroup()[1], bls.SrSignature, true)
 
-		invalidSigners, err := sr.VerifyNodesOnAggSigVerificationFail()
+		invalidSigners, err := sr.VerifyNodesOnAggSigFail()
 		require.Nil(t, err)
 		require.NotNil(t, invalidSigners)
 	})
@@ -1325,25 +1324,14 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		pbMsg := &pb.Message{
-			From:      []byte("from"),
-			Data:      []byte{},
-			Seqno:     []byte{},
-			Topic:     nil,
-			Signature: []byte{},
-			Key:       []byte{},
-		}
-
 		container := mock.InitConsensusCore()
 
 		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 
-		pbMsgBytes, _ := container.Marshalizer().Marshal(pbMsg)
-
 		cnsData := consensus.Message{
 			BlockHeaderHash: []byte("X"),
 			PubKey:          []byte("A"),
-			InvalidSigners:  pbMsgBytes,
+			InvalidSigners:  []byte("invalidSignersData"),
 		}
 
 		res := sr.ReceivedInvalidSignersInfo(&cnsData)
@@ -1499,4 +1487,59 @@ func TestSubroundEndRound_CreateAndBroadcastInvalidSigners(t *testing.T) {
 	wg.Wait()
 
 	require.True(t, wasCalled)
+}
+
+func TestGetFullMessagesForInvalidSigners(t *testing.T) {
+	t.Parallel()
+
+	t.Run("empty p2p messages slice if not in state", func(t *testing.T) {
+		t.Parallel()
+
+		container := mock.InitConsensusCore()
+
+		messageSigningHandler := &mock.MessageSigningHandlerStub{
+			SerializeCalled: func(messages []p2p.MessageP2P) ([]byte, error) {
+				require.Equal(t, 0, len(messages))
+
+				return []byte{}, nil
+			},
+		}
+
+		container.SetMessageSigningHandler(messageSigningHandler)
+
+		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
+		invalidSigners := []string{"B", "C"}
+
+		invalidSignersBytes, err := sr.GetFullMessagesForInvalidSigners(invalidSigners)
+		require.Nil(t, err)
+		require.Equal(t, []byte{}, invalidSignersBytes)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		container := mock.InitConsensusCore()
+
+		expectedInvalidSigners := []byte("expectedInvalidSigners")
+
+		messageSigningHandler := &mock.MessageSigningHandlerStub{
+			SerializeCalled: func(messages []p2p.MessageP2P) ([]byte, error) {
+				require.Equal(t, 2, len(messages))
+
+				return expectedInvalidSigners, nil
+			},
+		}
+
+		container.SetMessageSigningHandler(messageSigningHandler)
+
+		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
+		sr.AddMessageWithSignature("B", &mock.P2PMessageMock{})
+		sr.AddMessageWithSignature("C", &mock.P2PMessageMock{})
+
+		invalidSigners := []string{"B", "C"}
+
+		invalidSignersBytes, err := sr.GetFullMessagesForInvalidSigners(invalidSigners)
+		require.Nil(t, err)
+		require.Equal(t, expectedInvalidSigners, invalidSignersBytes)
+	})
 }
