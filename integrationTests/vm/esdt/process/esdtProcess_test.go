@@ -350,9 +350,10 @@ func TestESDTIssueFromASmartContractSimulated(t *testing.T) {
 	initialSupply := big.NewInt(10000000000)
 	numDecimals := byte(6)
 
-	txData.Clear().IssueESDTWithAsyncArgs("robertWhyNot", ticker, initialSupply.Int64(), numDecimals)
-	txData.CanFreeze(true).CanWipe(true).CanPause(true).CanMint(true).CanBurn(true).Int(1000)
-	txData.Bytes([]byte{}).Bytes([]byte{}) // async args
+	txData.Clear().IssueESDT("robertWhyNot", ticker, initialSupply.Int64(), numDecimals)
+	txData.CanFreeze(true).CanWipe(true).CanPause(true).CanMint(true).CanBurn(true)
+	txData.Bytes([]byte("callID")).Bytes([]byte("callerCallID")) // async args
+	txData.Int64(1000)                                           // gas locked
 	scr := &smartContractResult.SmartContractResult{
 		Nonce:          0,
 		Value:          issuePrice,
