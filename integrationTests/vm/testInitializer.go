@@ -1005,7 +1005,7 @@ func TestDeployedContractContents(
 	assert.NotNil(t, destinationRecovShardAccount.GetRootHash())
 
 	for variable, requiredVal := range dataValues {
-		contractVariableData, err := destinationRecovShardAccount.RetrieveValue([]byte(variable))
+		contractVariableData, _, err := destinationRecovShardAccount.RetrieveValue([]byte(variable))
 		assert.Nil(t, err)
 		assert.NotNil(t, contractVariableData)
 
