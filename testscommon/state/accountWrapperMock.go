@@ -116,7 +116,7 @@ func (awm *AccountWrapMock) SetCode(code []byte) {
 }
 
 // RetrieveValue -
-func (awm *AccountWrapMock) RetrieveValue(key []byte) ([]byte, error) {
+func (awm *AccountWrapMock) RetrieveValue(key []byte) ([]byte, uint32, error) {
 	return awm.trackableDataTrie.RetrieveValue(key)
 }
 
