@@ -26,27 +26,28 @@ func NewTrackableDataTrie(identifier []byte, tr common.Trie) *trackableDataTrie 
 // RetrieveValue fetches the value from a particular key searching the account data store
 // The search starts with dirty map, continues with original map and ends with the trie
 // Data must have been retrieved from its trie
-func (tdaw *trackableDataTrie) RetrieveValue(key []byte) ([]byte, error) {
+func (tdaw *trackableDataTrie) RetrieveValue(key []byte) ([]byte, uint32, error) {
 	tailLength := len(key) + len(tdaw.identifier)
 
 	// search in dirty data cache
 	if value, found := tdaw.dirtyData[string(key)]; found {
 		log.Trace("retrieve value from dirty data", "key", key, "value", value)
-		return trimValue(value, tailLength)
+		trimmedVal, err := trimValue(value, tailLength)
+		return trimmedVal, 0, err
 	}
 
 	// ok, not in cache, retrieve from trie
 	if tdaw.tr == nil {
-		return nil, ErrNilTrie
+		return nil, 0, ErrNilTrie
 	}
-	value, err := tdaw.tr.Get(key)
+	value, depth, err := tdaw.tr.Get(key)
 	if err != nil {
-		return nil, err
+		return nil, depth, err
 	}
-	log.Trace("retrieve value from trie", "key", key, "value", value)
+	log.Trace("retrieve value from trie", "key", key, "value", value, "depth", depth)
 	value, _ = trimValue(value, tailLength)
 
-	return value, nil
+	return value, depth, nil
 }
 
 func trimValue(value []byte, tailLength int) ([]byte, error) {
@@ -103,7 +104,7 @@ func (tdaw *trackableDataTrie) SaveDirtyData(mainTrie common.Trie) (map[string][
 	oldValues := make(map[string][]byte)
 
 	for k, v := range tdaw.dirtyData {
-		val, err := tdaw.tr.Get([]byte(k))
+		val, _, err := tdaw.tr.Get([]byte(k))
 		if err != nil {
 			return oldValues, err
 		}
