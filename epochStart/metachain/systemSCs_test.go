@@ -265,7 +265,7 @@ func checkNodesStatusInSystemSCDataTrie(t *testing.T, nodes []*state.ValidatorIn
 	systemScAccount, ok := account.(state.UserAccountHandler)
 	require.True(t, ok)
 	for _, nodeInfo := range nodes {
-		buff, err = systemScAccount.RetrieveValue(nodeInfo.PublicKey)
+		buff, _, err = systemScAccount.RetrieveValue(nodeInfo.PublicKey)
 		require.Nil(t, err)
 		require.True(t, len(buff) > 0)
 
@@ -836,7 +836,7 @@ func addKeysToWaitingList(
 		_ = stakingSCAcc.SaveKeyValue(waitingKey, marshaledData)
 	}
 
-	marshaledData, _ := stakingSCAcc.RetrieveValue([]byte("waitingList"))
+	marshaledData, _, _ := stakingSCAcc.RetrieveValue([]byte("waitingList"))
 	waitingListHead := &systemSmartContracts.WaitingList{}
 	_ = marshalizer.Unmarshal(waitingListHead, marshaledData)
 	waitingListHead.Length += uint32(len(waitingKeys))
@@ -868,7 +868,7 @@ func addKeysToWaitingList(
 		previousKey = waitingKeyInList
 	}
 
-	marshaledData, _ = stakingSCAcc.RetrieveValue(waitingListHead.FirstKey)
+	marshaledData, _, _ = stakingSCAcc.RetrieveValue(waitingListHead.FirstKey)
 	waitingListElement := &systemSmartContracts.ElementInList{}
 	_ = marshalizer.Unmarshal(waitingListElement, marshaledData)
 	waitingListElement.NextKey = []byte("w_" + string(waitingKeys[0]))
@@ -1564,7 +1564,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeFromDelegationContra
 	assert.Equal(t, 4, len(validatorInfos[0]))
 
 	delegationSC := loadSCAccount(args.UserAccountsDB, delegationAddr)
-	marshalledData, err := delegationSC.DataTrie().(common.Trie).Get([]byte("delegationStatus"))
+	marshalledData, _, err := delegationSC.DataTrie().(common.Trie).Get([]byte("delegationStatus"))
 	assert.Nil(t, err)
 	dStatus := &systemSmartContracts.DelegationContractStatus{
 		StakedKeys:    make([]*systemSmartContracts.NodesData, 0),
@@ -1653,7 +1653,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractShouldUnStakeFromAdditional
 	}
 
 	delegationSC := loadSCAccount(args.UserAccountsDB, delegationAddr)
-	marshalledData, err := delegationSC.DataTrie().(common.Trie).Get([]byte("delegationStatus"))
+	marshalledData, _, err := delegationSC.DataTrie().(common.Trie).Get([]byte("delegationStatus"))
 	assert.Nil(t, err)
 	dStatus := &systemSmartContracts.DelegationContractStatus{
 		StakedKeys:    make([]*systemSmartContracts.NodesData, 0),
@@ -1743,7 +1743,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeFromAdditionalQueue(
 	assert.Nil(t, err)
 
 	delegationSC := loadSCAccount(args.UserAccountsDB, delegationAddr2)
-	marshalledData, err := delegationSC.DataTrie().(common.Trie).Get([]byte("delegationStatus"))
+	marshalledData, _, err := delegationSC.DataTrie().(common.Trie).Get([]byte("delegationStatus"))
 	assert.Nil(t, err)
 	dStatus := &systemSmartContracts.DelegationContractStatus{
 		StakedKeys:    make([]*systemSmartContracts.NodesData, 0),
@@ -1759,7 +1759,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeFromAdditionalQueue(
 	assert.Equal(t, []byte("waitingPubKe3"), dStatus.UnStakedKeys[1].BLSKey)
 
 	stakingSCAcc := loadSCAccount(args.UserAccountsDB, vm.StakingSCAddress)
-	marshaledData, _ := stakingSCAcc.RetrieveValue([]byte("waitingList"))
+	marshaledData, _, _ := stakingSCAcc.RetrieveValue([]byte("waitingList"))
 	waitingListHead := &systemSmartContracts.WaitingList{}
 	_ = args.Marshalizer.Unmarshal(waitingListHead, marshaledData)
 	assert.Equal(t, uint32(3), waitingListHead.Length)
@@ -1828,14 +1828,14 @@ func TestSystemSCProcessor_TogglePauseUnPause(t *testing.T) {
 	assert.Nil(t, err)
 
 	validatorSC := loadSCAccount(s.userAccountsDB, vm.ValidatorSCAddress)
-	value, _ := validatorSC.DataTrie().(common.Trie).Get([]byte("unStakeUnBondPause"))
+	value, _, _ := validatorSC.DataTrie().(common.Trie).Get([]byte("unStakeUnBondPause"))
 	assert.True(t, value[0] == 1)
 
 	err = s.ToggleUnStakeUnBond(false)
 	assert.Nil(t, err)
 
 	validatorSC = loadSCAccount(s.userAccountsDB, vm.ValidatorSCAddress)
-	value, _ = validatorSC.DataTrie().(common.Trie).Get([]byte("unStakeUnBondPause"))
+	value, _, _ = validatorSC.DataTrie().(common.Trie).Get([]byte("unStakeUnBondPause"))
 	assert.True(t, value[0] == 0)
 }
 
