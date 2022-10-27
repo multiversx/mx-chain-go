@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common/statistics/machine"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/factory"
+	trieStatistics "github.com/ElrondNetwork/elrond-go/trie/statistics"
 )
 
 // StatusCoreComponentsFactoryArgs holds the arguments needed for creating a status core components factory
@@ -20,8 +21,9 @@ type statusCoreComponentsFactory struct {
 
 // statusCoreComponents is the DTO used for core components
 type statusCoreComponents struct {
-	resourceMonitor   factory.ResourceMonitor
-	networkStatistics factory.NetworkStatisticsProvider
+	resourceMonitor    factory.ResourceMonitor
+	networkStatistics  factory.NetworkStatisticsProvider
+	trieSyncStatistics factory.TrieSyncStatisticsProvider
 }
 
 // NewStatusCoreComponentsFactory initializes the factory which is responsible to creating status core components
@@ -45,8 +47,9 @@ func (sccf *statusCoreComponentsFactory) Create() (*statusCoreComponents, error)
 	}
 
 	return &statusCoreComponents{
-		resourceMonitor:   resourceMonitor,
-		networkStatistics: netStats,
+		resourceMonitor:    resourceMonitor,
+		networkStatistics:  netStats,
+		trieSyncStatistics: trieStatistics.NewTrieSyncStatistics(),
 	}, nil
 }
 

@@ -4,39 +4,33 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/trie/statistics"
 )
 
-func TestSnapshotStatistics_AddSize(t *testing.T) {
-	ss := &snapshotStatistics{}
-	assert.Equal(t, uint64(0), ss.numNodes)
-	assert.Equal(t, uint64(0), ss.trieSize)
-
-	ss.AddSize(8)
-	ss.AddSize(16)
-	ss.AddSize(32)
-	assert.Equal(t, uint64(3), ss.numNodes)
-	assert.Equal(t, uint64(56), ss.trieSize)
-}
-
 func TestSnapshotStatistics_Concurrency(t *testing.T) {
+	t.Parallel()
+
 	wg := &sync.WaitGroup{}
 	ss := &snapshotStatistics{
-		wgSnapshot: wg,
+		wgSnapshot:              wg,
+		trieStatisticsCollector: statistics.NewTrieStatisticsCollector(),
 	}
 
 	numRuns := 100
 	for i := 0; i < numRuns; i++ {
 		ss.NewSnapshotStarted()
 		go func() {
-			ss.AddSize(10)
-			ss.NewDataTrie()
+			ss.AddTrieStats(getTrieStatsDTO(5, 60).GetTrieStats())
 			ss.SnapshotFinished()
 		}()
 	}
 
 	wg.Wait()
-	assert.Equal(t, uint64(100), ss.numNodes)
-	assert.Equal(t, uint64(1000), ss.trieSize)
-	assert.Equal(t, uint64(100), ss.numDataTries)
+}
+
+func getTrieStatsDTO(maxLevel int, size uint64) common.TrieStatisticsHandler {
+	ts := statistics.NewTrieStatistics()
+	ts.AddBranchNode(maxLevel, size)
+	return ts
 }

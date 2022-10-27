@@ -77,16 +77,15 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		SCRSizeInvariantOnBuiltInResultEnableEpoch:        61,
 		CheckCorrectTokenIDForTransferRoleEnableEpoch:     62,
 		FailExecutionOnEveryAPIErrorEnableEpoch:           63,
-		HeartbeatDisableEpoch:                             64,
-		MiniBlockPartialExecutionEnableEpoch:              65,
-		ManagedCryptoAPIsEnableEpoch:                      66,
-		ESDTMetadataContinuousCleanupEnableEpoch:          67,
-		DisableExecByCallerEnableEpoch:                    68,
-		RefactorContextEnableEpoch:                        69,
-		CheckFunctionArgumentEnableEpoch:                  70,
-		CheckExecuteOnReadOnlyEnableEpoch:                 71,
-		FixAsyncCallBackArgsListEnableEpoch:               72,
-		FixOldTokenLiquidityEnableEpoch:                   73,
+		MiniBlockPartialExecutionEnableEpoch:              64,
+		ManagedCryptoAPIsEnableEpoch:                      65,
+		ESDTMetadataContinuousCleanupEnableEpoch:          66,
+		DisableExecByCallerEnableEpoch:                    67,
+		RefactorContextEnableEpoch:                        68,
+		CheckFunctionArgumentEnableEpoch:                  69,
+		CheckExecuteOnReadOnlyEnableEpoch:                 70,
+		FixAsyncCallBackArgsListEnableEpoch:               71,
+		FixOldTokenLiquidityEnableEpoch:                   72,
 	}
 }
 
@@ -196,7 +195,6 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsSCRSizeInvariantOnBuiltInResultFlagEnabled())
 		assert.True(t, handler.IsCheckCorrectTokenIDForTransferRoleFlagEnabled())
 		assert.True(t, handler.IsFailExecutionOnEveryAPIErrorFlagEnabled())
-		assert.True(t, handler.IsHeartbeatDisableFlagEnabled())
 		assert.True(t, handler.IsMiniBlockPartialExecutionFlagEnabled())
 		assert.True(t, handler.IsManagedCryptoAPIsFlagEnabled())
 		assert.True(t, handler.IsESDTMetadataContinuousCleanupFlagEnabled())
@@ -291,7 +289,6 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsSCRSizeInvariantOnBuiltInResultFlagEnabled())
 		assert.True(t, handler.IsCheckCorrectTokenIDForTransferRoleFlagEnabled())
 		assert.True(t, handler.IsFailExecutionOnEveryAPIErrorFlagEnabled())
-		assert.True(t, handler.IsHeartbeatDisableFlagEnabled())
 		assert.True(t, handler.IsMiniBlockPartialExecutionFlagEnabled())
 		assert.True(t, handler.IsManagedCryptoAPIsFlagEnabled())
 		assert.True(t, handler.IsESDTMetadataContinuousCleanupFlagEnabled())
@@ -382,7 +379,6 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.False(t, handler.IsSCRSizeInvariantOnBuiltInResultFlagEnabled())
 		assert.False(t, handler.IsCheckCorrectTokenIDForTransferRoleFlagEnabled())
 		assert.False(t, handler.IsFailExecutionOnEveryAPIErrorFlagEnabled())
-		assert.False(t, handler.IsHeartbeatDisableFlagEnabled())
 		assert.False(t, handler.IsMiniBlockPartialExecutionFlagEnabled())
 		assert.False(t, handler.IsManagedCryptoAPIsFlagEnabled())
 		assert.False(t, handler.IsESDTMetadataContinuousCleanupFlagEnabled())
