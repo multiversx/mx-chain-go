@@ -111,12 +111,12 @@ func checkArgs(args StorageServiceFactoryArgs) error {
 	return nil
 }
 
-func (psf *StorageServiceFactory) createAndAddBaseStorageUnits(store dataRetriever.StorageService, shardID string) error {
+func (psf *StorageServiceFactory) createAndAddBaseStorageUnits(
+	store dataRetriever.StorageService,
+	customDatabaseRemover storage.CustomDatabaseRemoverHandler,
+	shardID string,
+) error {
 	disabledCustomDatabaseRemover := disabled.NewDisabledCustomDatabaseRemover()
-	customDatabaseRemover, err := factory.CreateCustomDatabaseRemover(psf.generalConfig.StoragePruning)
-	if err != nil {
-		return err
-	}
 
 	txUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.TxStorage, disabledCustomDatabaseRemover)
 	txUnit, err := psf.createPruningPersister(txUnitArgs)
@@ -199,12 +199,6 @@ func (psf *StorageServiceFactory) createAndAddBaseStorageUnits(store dataRetriev
 	}
 	store.AddStorer(dataRetriever.UserAccountsUnit, userAccountsUnit)
 
-	peerAccountsUnit, err := psf.createTriePruningStorer(psf.generalConfig.PeerAccountsTrieStorage, customDatabaseRemover)
-	if err != nil {
-		return err
-	}
-	store.AddStorer(dataRetriever.PeerAccountsUnit, peerAccountsUnit)
-
 	userAccountsCheckpointsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.AccountsTrieCheckpointsStorage, disabledCustomDatabaseRemover)
 	userAccountsCheckpointsUnit, err := psf.createPruningPersister(userAccountsCheckpointsUnitArgs)
 	if err != nil {
@@ -242,16 +236,11 @@ func (psf *StorageServiceFactory) createAndAddBaseStorageUnits(store dataRetriev
 
 // CreateForShard will return the storage service which contains all storers needed for a shard
 func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService, error) {
-	var peerBlockUnit storage.Storer
-	var err error
-
 	// TODO: if there will be a differentiation between the creation or opening of a DB, the DBs could be destroyed on a defer
 	// in case of a failure while creating (not opening).
 
 	disabledCustomDatabaseRemover := disabled.NewDisabledCustomDatabaseRemover()
-
-	peerBlockUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.PeerBlockBodyStorage, disabledCustomDatabaseRemover)
-	peerBlockUnit, err = psf.createPruningPersister(peerBlockUnitArgs)
+	customDatabaseRemover, err := factory.CreateCustomDatabaseRemover(psf.generalConfig.StoragePruning)
 	if err != nil {
 		return nil, err
 	}
@@ -271,12 +260,25 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	}
 
 	store := dataRetriever.NewChainStorer()
-	err = psf.createAndAddBaseStorageUnits(store, shardID)
+	err = psf.createAndAddBaseStorageUnits(store, customDatabaseRemover, shardID)
 	if err != nil {
 		return nil, err
 	}
 
+	peerAccountsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.PeerAccountsTrieStorage, customDatabaseRemover)
+	peerAccountsUnit, err := psf.createTrieUnit(psf.generalConfig.PeerAccountsTrieStorage, peerAccountsUnitArgs)
+	if err != nil {
+		return nil, err
+	}
+	store.AddStorer(dataRetriever.PeerAccountsUnit, peerAccountsUnit)
+
+	peerBlockUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.PeerBlockBodyStorage, disabledCustomDatabaseRemover)
+	peerBlockUnit, err := psf.createPruningPersister(peerBlockUnitArgs)
+	if err != nil {
+		return nil, err
+	}
 	store.AddStorer(dataRetriever.PeerChangesUnit, peerBlockUnit)
+
 	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(psf.shardCoordinator.SelfId())
 	store.AddStorer(hdrNonceHashDataUnit, shardHdrHashNonceUnit)
 
@@ -303,11 +305,13 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 
 // CreateForMeta will return the storage service which contains all storers needed for metachain
 func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService, error) {
-	var err error
-
 	// TODO: if there will be a differentiation between the creation or opening of a DB, the DBs could be destroyed on a defer
 	// in case of a failure while creating (not opening)
 
+	customDatabaseRemover, err := factory.CreateCustomDatabaseRemover(psf.generalConfig.StoragePruning)
+	if err != nil {
+		return nil, err
+	}
 	shardID := core.GetShardIDString(core.MetachainShardId)
 
 	shardHdrHashNonceUnits := make([]*storageunit.Unit, psf.shardCoordinator.NumberOfShards())
@@ -325,10 +329,16 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	}
 
 	store := dataRetriever.NewChainStorer()
-	err = psf.createAndAddBaseStorageUnits(store, shardID)
+	err = psf.createAndAddBaseStorageUnits(store, customDatabaseRemover, shardID)
 	if err != nil {
 		return nil, err
 	}
+
+	peerAccountsUnit, err := psf.createTriePruningStorer(psf.generalConfig.PeerAccountsTrieStorage, customDatabaseRemover)
+	if err != nil {
+		return nil, err
+	}
+	store.AddStorer(dataRetriever.PeerAccountsUnit, peerAccountsUnit)
 
 	for i := uint32(0); i < psf.shardCoordinator.NumberOfShards(); i++ {
 		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(i)
