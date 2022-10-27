@@ -274,7 +274,7 @@ func (adb *AccountsDB) GetCode(codeHash []byte) []byte {
 		adb.loadCodeMeasurements.addMeasurement(len(codeEntry.Code), duration)
 	}()
 
-	val, err := adb.getMainTrie().Get(codeHash)
+	val, _, err := adb.getMainTrie().Get(codeHash)
 	if err != nil {
 		return nil
 	}
@@ -472,7 +472,7 @@ func (adb *AccountsDB) updateNewCodeEntry(newCodeHash []byte, newCode []byte) er
 }
 
 func getCodeEntry(codeHash []byte, trie Updater, marshalizer marshal.Marshalizer) (*CodeEntry, error) {
-	val, err := trie.Get(codeHash)
+	val, _, err := trie.Get(codeHash)
 	if err != nil {
 		return nil, err
 	}
@@ -707,7 +707,7 @@ func (adb *AccountsDB) LoadAccount(address []byte) (vmcommon.AccountHandler, err
 }
 
 func (adb *AccountsDB) getAccount(address []byte, mainTrie common.Trie) (vmcommon.AccountHandler, error) {
-	val, err := mainTrie.Get(address)
+	val, _, err := mainTrie.Get(address)
 	if err != nil {
 		return nil, err
 	}
@@ -793,7 +793,7 @@ func (adb *AccountsDB) loadCode(accountHandler baseAccountHandler) error {
 		return nil
 	}
 
-	val, err := adb.mainTrie.Get(accountHandler.GetCodeHash())
+	val, _, err := adb.mainTrie.Get(accountHandler.GetCodeHash())
 	if err != nil {
 		return err
 	}

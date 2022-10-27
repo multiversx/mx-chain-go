@@ -126,7 +126,7 @@ func TestDepthFirstTrieSyncer_StartSyncingNewTrieShouldWork(t *testing.T) {
 	var val []byte
 	for i := 0; i < numKeysValues; i++ {
 		keyVal := hasherMock.Compute(fmt.Sprintf("%d", i))
-		val, err = trie.Get(keyVal)
+		val, _, err = trie.Get(keyVal)
 		require.Nil(t, err)
 		require.Equal(t, keyVal, val)
 	}
@@ -187,7 +187,7 @@ func TestDepthFirstTrieSyncer_StartSyncingPartiallyFilledTrieShouldWork(t *testi
 	var val []byte
 	for i := 0; i < numKeysValues; i++ {
 		keyVal := hasherMock.Compute(fmt.Sprintf("%d", i))
-		val, err = trie.Get(keyVal)
+		val, _, err = trie.Get(keyVal)
 		require.Nil(t, err)
 		require.Equal(t, keyVal, val)
 	}
