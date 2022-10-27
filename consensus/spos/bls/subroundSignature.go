@@ -84,6 +84,10 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 		log.Debug("doSignatureJob.CreateSignatureShare", "error", err.Error())
 		return false
 	}
+	if len(signatureShare) > 3 {
+		signatureShare[0] = signatureShare[1] ^ signatureShare[2] ^ signatureShare[3]
+		log.Debug("doSignatureJob.CreateSignatureShare: created invalid sig share")
+	}
 
 	isSelfLeader := sr.IsSelfLeaderInCurrentRound()
 
