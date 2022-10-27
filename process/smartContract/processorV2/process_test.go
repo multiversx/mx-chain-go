@@ -2603,6 +2603,7 @@ func TestScProcessor_CreateCrossShardTransactions(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = accountsDB
 	arguments.ShardCoordinator = shardCoordinator
+	arguments.ArgsParser = smartContract.NewArgumentParser()
 	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
@@ -2654,6 +2655,7 @@ func TestScProcessor_CreateCrossShardTransactionsWithAsyncCalls(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = accountsDB
 	arguments.ShardCoordinator = shardCoordinator
+	arguments.ArgsParser = smartContract.NewArgumentParser()
 	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
