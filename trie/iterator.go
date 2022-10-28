@@ -55,7 +55,7 @@ func (it *iterator) Next() error {
 		return err
 	}
 
-	it.nextNodes = append(it.nextNodes, nextChildren...)
+	it.nextNodes = insert(it.nextNodes, 1, nextChildren...)
 	it.nextNodes = it.nextNodes[1:]
 	return nil
 }
@@ -78,4 +78,22 @@ func (it *iterator) GetHash() ([]byte, error) {
 	}
 
 	return it.currentNode.getHash(), nil
+}
+
+// TODO: move this to core sliceUtil, when generics will be adopted
+func insert(s []node, k int, vs ...node) []node {
+	n := len(s) + len(vs)
+	if n <= cap(s) {
+		s2 := s[:n]
+		copy(s2[k+len(vs):], s[k:])
+		copy(s2[k:], vs)
+		return s2
+	}
+
+	s2 := make([]node, len(s)+len(vs))
+	copy(s2, s[:k])
+	copy(s2[k:], vs)
+	copy(s2[k+len(vs):], s[k:])
+
+	return s2
 }
