@@ -825,3 +825,6 @@ const MetricLastPeersSnapshotDurationSec = "erd_peers_snapshot_last_duration_in_
 
 // GenesisStorageSuffix defines the storage suffix used for genesis altered data
 const GenesisStorageSuffix = "_genesis"
+
+// MetricAccountsSnapshotNumNodes is the metric that outputs the number of trie nodes written for accounts after snapshot
+const MetricAccountsSnapshotNumNodes = "erd_accounts_snapshot_num_nodes"
