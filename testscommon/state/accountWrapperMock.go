@@ -21,6 +21,7 @@ type AccountWrapMock struct {
 	RootHash          []byte
 	address           []byte
 	trackableDataTrie state.DataTrieTracker
+	Balance           *big.Int
 
 	SetNonceWithJournalCalled    func(nonce uint64) error           `json:"-"`
 	SetCodeHashWithJournalCalled func(codeHash []byte) error        `json:"-"`
@@ -62,7 +63,7 @@ func (awm *AccountWrapMock) SubFromBalance(_ *big.Int) error {
 
 // GetBalance -
 func (awm *AccountWrapMock) GetBalance() *big.Int {
-	return nil
+	return awm.Balance
 }
 
 // ClaimDeveloperRewards -
