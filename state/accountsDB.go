@@ -1239,6 +1239,9 @@ func (adb *AccountsDB) updateMetricsOnSnapshotStart(metrics *accountMetrics) {
 func (adb *AccountsDB) updateMetricsOnSnapshotCompletion(metrics *accountMetrics, stats *snapshotStatistics) {
 	adb.appStatusHandler.SetStringValue(metrics.snapshotInProgressKey, "false")
 	adb.appStatusHandler.SetInt64Value(metrics.lastSnapshotDurationKey, stats.GetSnapshotDuration())
+	if metrics.snapshotMessage == userTrieSnapshotMsg {
+		adb.appStatusHandler.SetUInt64Value(common.MetricAccountsSnapshotNumNodes, stats.GetSnapshotNumNodes())
+	}
 }
 
 func (adb *AccountsDB) processSnapshotCompletion(

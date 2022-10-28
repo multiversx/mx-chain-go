@@ -32,6 +32,8 @@ const initFromValidatorData = "initFromValidatorData"
 const mergeValidatorDataToDelegation = "mergeValidatorDataToDelegation"
 const deleteWhitelistForMerge = "deleteWhitelistForMerge"
 const whitelistedAddress = "whitelistedAddress"
+const changeOwner = "changeOwner"
+const withdraw = "withdraw"
 
 const (
 	active    = uint32(0)
@@ -201,7 +203,7 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return d.delegate(args)
 	case "unDelegate":
 		return d.unDelegate(args)
-	case "withdraw":
+	case withdraw:
 		return d.withdraw(args)
 	case "changeServiceFee":
 		return d.changeServiceFee(args)
@@ -261,7 +263,7 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return d.addTokens(args)
 	case "correctNodesStatus":
 		return d.correctNodesStatus(args)
-	case "changeOwner":
+	case changeOwner:
 		return d.changeOwner(args)
 	}
 
@@ -953,6 +955,8 @@ func (d *delegation) changeOwner(args *vmcommon.ContractCallInput) vmcommon.Retu
 	d.eei.SetStorageForAddress(d.delegationMgrSCAddress, args.Arguments[0], args.RecipientAddr)
 	d.eei.SetStorageForAddress(d.delegationMgrSCAddress, args.CallerAddr, []byte{})
 	d.eei.SetStorage([]byte(ownerKey), args.Arguments[0])
+
+	d.createLogEventsForChangeOwner(args, ownerDelegatorData)
 
 	return vmcommon.Ok
 }
@@ -2154,7 +2158,7 @@ func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return vmcommon.UserError
 	}
 
-	d.createAndAddLogEntryForWithdraw(args, actualUserUnBond, globalFund, delegator, d.numUsers(), wasDeleted)
+	d.createAndAddLogEntryForWithdraw(args.Function, args.CallerAddr, actualUserUnBond, globalFund, delegator, d.numUsers(), wasDeleted)
 
 	return vmcommon.Ok
 }
