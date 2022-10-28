@@ -11,12 +11,12 @@ import (
 type SinglesignMock struct {
 }
 
-// Sign signs a message with using a single signature schnorr scheme
+// Sign signs a message using a single signature Schnorr scheme
 func (s *SinglesignMock) Sign(_ crypto.PrivateKey, _ []byte) ([]byte, error) {
 	return []byte("signed"), nil
 }
 
-// Verify verifies a signature using a single signature schnorr scheme
+// Verify verifies a signature using a single signature Schnorr scheme
 func (s *SinglesignMock) Verify(_ crypto.PublicKey, _ []byte, sig []byte) error {
 	verSig := []byte("signed")
 
@@ -35,12 +35,12 @@ func (s *SinglesignMock) IsInterfaceNil() bool {
 type SinglesignFailMock struct {
 }
 
-// Sign signs a message with using a single signature schnorr scheme
+// Sign signs a message using a single signature Schnorr scheme
 func (s *SinglesignFailMock) Sign(_ crypto.PrivateKey, _ []byte) ([]byte, error) {
 	return nil, errors.New("signing failure")
 }
 
-// Verify verifies a signature using a single signature schnorr scheme
+// Verify verifies a signature using a single signature Schnorr scheme
 func (s *SinglesignFailMock) Verify(_ crypto.PublicKey, _ []byte, _ []byte) error {
 	return errors.New("signature verification failure")
 }
@@ -56,12 +56,12 @@ type SinglesignStub struct {
 	VerifyCalled func(public crypto.PublicKey, msg []byte, sig []byte) error
 }
 
-// Sign signs a message with using a single signature schnorr scheme
+// Sign signs a message using a single signature Schnorr scheme
 func (s *SinglesignStub) Sign(private crypto.PrivateKey, msg []byte) ([]byte, error) {
 	return s.SignCalled(private, msg)
 }
 
-// Verify verifies a signature using a single signature schnorr scheme
+// Verify verifies a signature using a single signature Schnorr scheme
 func (s *SinglesignStub) Verify(public crypto.PublicKey, msg []byte, sig []byte) error {
 	return s.VerifyCalled(public, msg, sig)
 }
