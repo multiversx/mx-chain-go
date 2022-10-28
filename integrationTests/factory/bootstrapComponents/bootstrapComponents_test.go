@@ -37,7 +37,7 @@ func TestBootstrapComponents_Create_Close_ShouldWork(t *testing.T) {
 	require.Nil(t, err)
 	managedNetworkComponents, err := nr.CreateManagedNetworkComponents(managedCoreComponents, managedStatusCoreComponents)
 	require.Nil(t, err)
-	managedBootstrapComponents, err := nr.CreateManagedBootstrapComponents(managedCoreComponents, managedCryptoComponents, managedNetworkComponents, managedStatusCoreComponents)
+	managedBootstrapComponents, err := nr.CreateManagedBootstrapComponents(managedStatusCoreComponents, managedCoreComponents, managedCryptoComponents, managedNetworkComponents)
 	require.Nil(t, err)
 	require.NotNil(t, managedBootstrapComponents)
 

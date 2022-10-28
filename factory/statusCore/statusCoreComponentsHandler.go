@@ -81,6 +81,9 @@ func (mscc *managedStatusCoreComponents) CheckSubcomponents() error {
 	if check.IfNil(mscc.resourceMonitor) {
 		return errors.ErrNilResourceMonitor
 	}
+	if check.IfNil(mscc.trieSyncStatistics) {
+		return errors.ErrNilTrieSyncStatistics
+	}
 	if check.IfNil(mscc.appStatusHandler) {
 		return errors.ErrNilAppStatusHandler
 	}
@@ -116,6 +119,18 @@ func (mscc *managedStatusCoreComponents) ResourceMonitor() factory.ResourceMonit
 	}
 
 	return mscc.statusCoreComponents.resourceMonitor
+}
+
+// TrieSyncStatistics returns the trie sync statistics instance
+func (mscc *managedStatusCoreComponents) TrieSyncStatistics() factory.TrieSyncStatisticsProvider {
+	mscc.mutCoreComponents.RLock()
+	defer mscc.mutCoreComponents.RUnlock()
+
+	if mscc.statusCoreComponents == nil {
+		return nil
+	}
+
+	return mscc.statusCoreComponents.trieSyncStatistics
 }
 
 // AppStatusHandler returns the app status handler instance

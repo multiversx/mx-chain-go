@@ -58,6 +58,7 @@ import (
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
+	trieStatistics "github.com/ElrondNetwork/elrond-go/trie/statistics"
 	"github.com/ElrondNetwork/elrond-go/trie/storageMarker"
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
 	"github.com/google/gops/agent"
@@ -301,7 +302,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	}
 
 	log.Debug("creating bootstrap components")
-	managedBootstrapComponents, err := nr.CreateManagedBootstrapComponents(managedCoreComponents, managedCryptoComponents, managedNetworkComponents, managedStatusCoreComponents)
+	managedBootstrapComponents, err := nr.CreateManagedBootstrapComponents(managedStatusCoreComponents, managedCoreComponents, managedCryptoComponents, managedNetworkComponents)
 	if err != nil {
 		return true, err
 	}
@@ -656,17 +657,18 @@ func getBaseAccountSyncerArgs(
 	maxTrieLevelInMemory uint,
 ) syncer.ArgsNewBaseAccountsSyncer {
 	return syncer.ArgsNewBaseAccountsSyncer{
-		Hasher:                    coreComponents.Hasher(),
-		Marshalizer:               coreComponents.InternalMarshalizer(),
-		TrieStorageManager:        storageManager,
-		RequestHandler:            processComponents.RequestHandler(),
-		Timeout:                   common.TimeoutGettingTrieNodes,
-		Cacher:                    dataComponents.Datapool().TrieNodes(),
-		MaxTrieLevelInMemory:      maxTrieLevelInMemory,
-		MaxHardCapForMissingNodes: config.TrieSync.MaxHardCapForMissingNodes,
-		TrieSyncerVersion:         config.TrieSync.TrieSyncerVersion,
-		StorageMarker:             storageMarker.NewDisabledStorageMarker(),
-		CheckNodesOnDisk:          true,
+		Hasher:                            coreComponents.Hasher(),
+		Marshalizer:                       coreComponents.InternalMarshalizer(),
+		TrieStorageManager:                storageManager,
+		RequestHandler:                    processComponents.RequestHandler(),
+		Timeout:                           common.TimeoutGettingTrieNodes,
+		Cacher:                            dataComponents.Datapool().TrieNodes(),
+		MaxTrieLevelInMemory:              maxTrieLevelInMemory,
+		MaxHardCapForMissingNodes:         config.TrieSync.MaxHardCapForMissingNodes,
+		TrieSyncerVersion:                 config.TrieSync.TrieSyncerVersion,
+		StorageMarker:                     storageMarker.NewDisabledStorageMarker(),
+		CheckNodesOnDisk:                  true,
+		UserAccountsSyncStatisticsHandler: trieStatistics.NewTrieSyncStatistics(),
 	}
 }
 
@@ -818,7 +820,6 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 	stateComponents mainFactory.StateComponentsHolder,
 	statusComponents mainFactory.StatusComponentsHolder,
 	processComponents mainFactory.ProcessComponentsHolder,
-	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
 ) (mainFactory.ConsensusComponentsHandler, error) {
 	scheduledProcessorArgs := spos.ScheduledProcessorWrapperArgs{
 		SyncTimer:                coreComponents.SyncTimer(),
@@ -878,7 +879,7 @@ func (nr *nodeRunner) CreateManagedHeartbeatV2Components(
 		Config:               *nr.configs.GeneralConfig,
 		Prefs:                *nr.configs.PreferencesConfig,
 		AppVersion:           nr.configs.FlagsConfig.Version,
-		BoostrapComponents:   bootstrapComponents,
+		BootstrapComponents:  bootstrapComponents,
 		CoreComponents:       coreComponents,
 		DataComponents:       dataComponents,
 		NetworkComponents:    networkComponents,
@@ -1314,10 +1315,10 @@ func (nr *nodeRunner) CreateManagedStateComponents(
 
 // CreateManagedBootstrapComponents is the managed bootstrap components factory
 func (nr *nodeRunner) CreateManagedBootstrapComponents(
+	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
 	coreComponents mainFactory.CoreComponentsHolder,
 	cryptoComponents mainFactory.CryptoComponentsHolder,
 	networkComponents mainFactory.NetworkComponentsHolder,
-	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
 ) (mainFactory.BootstrapComponentsHandler, error) {
 
 	bootstrapComponentsFactoryArgs := bootstrapComp.BootstrapComponentsFactoryArgs{

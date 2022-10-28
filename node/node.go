@@ -334,7 +334,7 @@ func (n *Node) GetValueForKey(address string, key string, options api.AccountQue
 		return "", api.BlockInfo{}, err
 	}
 
-	valueBytes, err := userAccount.RetrieveValue(keyBytes)
+	valueBytes, _, err := userAccount.RetrieveValue(keyBytes)
 	if err != nil {
 		return "", api.BlockInfo{}, fmt.Errorf("fetching value error: %w", err)
 	}
@@ -1267,7 +1267,7 @@ func (n *Node) getAccountRootHashAndVal(address []byte, accBytes []byte, key []b
 		return nil, nil, fmt.Errorf("empty dataTrie rootHash")
 	}
 
-	retrievedVal, err := userAccount.RetrieveValue(key)
+	retrievedVal, _, err := userAccount.RetrieveValue(key)
 	if err != nil {
 		return nil, nil, err
 	}

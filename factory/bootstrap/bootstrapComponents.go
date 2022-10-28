@@ -73,6 +73,12 @@ func NewBootstrapComponentsFactory(args BootstrapComponentsFactoryArgs) (*bootst
 	if check.IfNil(args.NetworkComponents) {
 		return nil, errors.ErrNilNetworkComponentsHolder
 	}
+	if check.IfNil(args.StatusCoreComponents) {
+		return nil, errors.ErrNilStatusCoreComponents
+	}
+	if check.IfNil(args.StatusCoreComponents.TrieSyncStatistics()) {
+		return nil, errors.ErrNilTrieSyncStatistics
+	}
 	if args.WorkingDir == "" {
 		return nil, errors.ErrInvalidWorkingDir
 	}
@@ -168,6 +174,11 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 
 	dataSyncerFactory := bootstrap.NewScheduledDataSyncerFactory()
 
+	// increment num received to make sure that first heartbeat message
+	// will have value 1, thus explorer will display status in progress
+	tss := bcf.statusCoreComponents.TrieSyncStatistics()
+	tss.AddNumProcessed(1)
+
 	epochStartBootstrapArgs := bootstrap.ArgsEpochStartBootstrap{
 		CoreComponentsHolder:       bcf.coreComponents,
 		CryptoComponentsHolder:     bcf.cryptoComponents,
@@ -189,6 +200,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		HeaderIntegrityVerifier:    headerIntegrityVerifier,
 		DataSyncerCreator:          dataSyncerFactory,
 		ScheduledSCRsStorer:        nil, // will be updated after sync from network
+		TrieSyncStatisticsProvider: tss,
 	}
 
 	var epochStartBootstrapper factory.EpochStartBootstrapper

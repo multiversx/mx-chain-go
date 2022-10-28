@@ -27,7 +27,7 @@ type node interface {
 	resolveCollapsed(pos byte, db common.DBWriteCacher) error
 	hashNode() ([]byte, error)
 	hashChildren() error
-	tryGet(key []byte, db common.DBWriteCacher) ([]byte, error)
+	tryGet(key []byte, depth uint32, db common.DBWriteCacher) ([]byte, uint32, error)
 	getNext(key []byte, db common.DBWriteCacher) (node, []byte, error)
 	insert(n *leafNode, db common.DBWriteCacher) (node, [][]byte, error)
 	delete(key []byte, db common.DBWriteCacher) (bool, node, [][]byte, error)

@@ -68,7 +68,7 @@ func createMockHeartbeatV2ComponentsFactoryArgs() heartbeatComp.ArgHeartbeatV2Co
 			},
 		},
 		AppVersion:           "test",
-		BoostrapComponents:   bootstrapC,
+		BootstrapComponents:  bootstrapC,
 		CoreComponents:       coreC,
 		DataComponents:       dataC,
 		NetworkComponents:    networkC,

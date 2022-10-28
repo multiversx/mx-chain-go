@@ -46,7 +46,7 @@ func CheckAccounts(t *testing.T, accAdapter state.AccountsAdapter, mandosAccount
 // CheckStorage checks if the dataTrie of an account equals with the storage of the corresponding mandosAccount
 func CheckStorage(t *testing.T, dataTrie state.UserAccountHandler, mandosAccStorage map[string][]byte) {
 	for key := range mandosAccStorage {
-		dataTrieValue, err := dataTrie.RetrieveValue([]byte(key))
+		dataTrieValue, _, err := dataTrie.RetrieveValue([]byte(key))
 		require.Nil(t, err)
 		if len(mandosAccStorage[key]) == 0 {
 			require.Nil(t, dataTrieValue)

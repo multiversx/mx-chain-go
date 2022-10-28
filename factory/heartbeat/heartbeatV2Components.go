@@ -28,7 +28,7 @@ type ArgHeartbeatV2ComponentsFactory struct {
 	Config               config.Config
 	Prefs                config.Preferences
 	AppVersion           string
-	BoostrapComponents   factory.BootstrapComponentsHolder
+	BootstrapComponents  factory.BootstrapComponentsHolder
 	CoreComponents       factory.CoreComponentsHolder
 	DataComponents       factory.DataComponentsHolder
 	NetworkComponents    factory.NetworkComponentsHolder
@@ -41,7 +41,7 @@ type heartbeatV2ComponentsFactory struct {
 	config               config.Config
 	prefs                config.Preferences
 	version              string
-	boostrapComponents   factory.BootstrapComponentsHolder
+	bootstrapComponents  factory.BootstrapComponentsHolder
 	coreComponents       factory.CoreComponentsHolder
 	dataComponents       factory.DataComponentsHolder
 	networkComponents    factory.NetworkComponentsHolder
@@ -70,7 +70,7 @@ func NewHeartbeatV2ComponentsFactory(args ArgHeartbeatV2ComponentsFactory) (*hea
 		config:               args.Config,
 		prefs:                args.Prefs,
 		version:              args.AppVersion,
-		boostrapComponents:   args.BoostrapComponents,
+		bootstrapComponents:  args.BootstrapComponents,
 		coreComponents:       args.CoreComponents,
 		dataComponents:       args.DataComponents,
 		networkComponents:    args.NetworkComponents,
@@ -81,7 +81,7 @@ func NewHeartbeatV2ComponentsFactory(args ArgHeartbeatV2ComponentsFactory) (*hea
 }
 
 func checkHeartbeatV2FactoryArgs(args ArgHeartbeatV2ComponentsFactory) error {
-	if check.IfNil(args.BoostrapComponents) {
+	if check.IfNil(args.BootstrapComponents) {
 		return errors.ErrNilBootstrapComponentsHolder
 	}
 	if check.IfNil(args.CoreComponents) {
@@ -108,12 +108,6 @@ func checkHeartbeatV2FactoryArgs(args ArgHeartbeatV2ComponentsFactory) error {
 	hardforkTrigger := args.ProcessComponents.HardforkTrigger()
 	if check.IfNil(hardforkTrigger) {
 		return errors.ErrNilHardforkTrigger
-	}
-	if check.IfNil(args.StatusCoreComponents) {
-		return errors.ErrNilStatusCoreComponents
-	}
-	if check.IfNil(args.StatusCoreComponents.AppStatusHandler()) {
-		return errors.ErrNilAppStatusHandler
 	}
 
 	return nil
@@ -144,7 +138,7 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		peerSubType = core.FullHistoryObserver
 	}
 
-	shardC := hcf.boostrapComponents.ShardCoordinator()
+	shardC := hcf.bootstrapComponents.ShardCoordinator()
 	heartbeatTopic := common.HeartbeatV2Topic + shardC.CommunicationIdentifier(shardC.SelfId())
 
 	argPeerTypeProvider := peer.ArgPeerTypeProvider{
@@ -187,7 +181,7 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		return nil, err
 	}
 
-	epochBootstrapParams := hcf.boostrapComponents.EpochBootstrapParams()
+	epochBootstrapParams := hcf.bootstrapComponents.EpochBootstrapParams()
 	argsProcessor := processor.ArgPeerAuthenticationRequestsProcessor{
 		RequestHandler:          hcf.processComponents.RequestHandler(),
 		NodesCoordinator:        hcf.processComponents.NodesCoordinator(),
@@ -208,7 +202,7 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 	argsPeerShardSender := sender.ArgPeerShardSender{
 		Messenger:             hcf.networkComponents.NetworkMessenger(),
 		Marshaller:            hcf.coreComponents.InternalMarshalizer(),
-		ShardCoordinator:      hcf.boostrapComponents.ShardCoordinator(),
+		ShardCoordinator:      hcf.bootstrapComponents.ShardCoordinator(),
 		TimeBetweenSends:      time.Second * time.Duration(cfg.PeerShardTimeBetweenSendsInSec),
 		ThresholdBetweenSends: cfg.PeerShardThresholdBetweenSends,
 		NodesCoordinator:      hcf.processComponents.NodesCoordinator(),

@@ -509,6 +509,9 @@ var ErrNilNetworkStatistics = errors.New("nil network statistics")
 // ErrNilResourceMonitor signals that a nil resource monitor was provided
 var ErrNilResourceMonitor = errors.New("nil resource monitor")
 
+// ErrNilTrieSyncStatistics signals that a nil trie sync statistics was provided
+var ErrNilTrieSyncStatistics = errors.New("nil trie sync statistics")
+
 // ErrNilAppStatusHandler signals that a nil app status handler was provided
 var ErrNilAppStatusHandler = errors.New("nil app status handler")
 

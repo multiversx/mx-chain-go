@@ -128,7 +128,7 @@ func TestPatriciaMerkleTree_Get(t *testing.T) {
 	tr, val := initTrieMultipleValues(10000)
 
 	for i := range val {
-		v, _ := tr.Get(val[i])
+		v, _, _ := tr.Get(val[i])
 		assert.Equal(t, val[i], v)
 	}
 }
@@ -138,7 +138,7 @@ func TestPatriciaMerkleTree_GetEmptyTrie(t *testing.T) {
 
 	tr := emptyTrie()
 
-	val, err := tr.Get([]byte("dog"))
+	val, _, err := tr.Get([]byte("dog"))
 	assert.Nil(t, err)
 	assert.Nil(t, val)
 }
@@ -151,7 +151,7 @@ func TestPatriciaMerkleTree_Update(t *testing.T) {
 	newVal := []byte("doge")
 	_ = tr.Update([]byte("dog"), newVal)
 
-	val, _ := tr.Get([]byte("dog"))
+	val, _, _ := tr.Get([]byte("dog"))
 	assert.Equal(t, newVal, val)
 }
 
@@ -163,7 +163,7 @@ func TestPatriciaMerkleTree_UpdateEmptyVal(t *testing.T) {
 
 	_ = tr.Update([]byte("doe"), []byte{})
 
-	v, _ := tr.Get([]byte("doe"))
+	v, _, _ := tr.Get([]byte("doe"))
 	assert.Equal(t, empty, v)
 }
 
@@ -174,7 +174,7 @@ func TestPatriciaMerkleTree_UpdateNotExisting(t *testing.T) {
 
 	_ = tr.Update([]byte("does"), []byte("this"))
 
-	v, _ := tr.Get([]byte("does"))
+	v, _, _ := tr.Get([]byte("does"))
 	assert.Equal(t, []byte("this"), v)
 }
 
@@ -186,7 +186,7 @@ func TestPatriciaMerkleTree_Delete(t *testing.T) {
 
 	_ = tr.Delete([]byte("doe"))
 
-	v, _ := tr.Get([]byte("doe"))
+	v, _, _ := tr.Get([]byte("doe"))
 	assert.Equal(t, empty, v)
 }
 
@@ -248,7 +248,7 @@ func TestPatriciaMerkleTrie_UpdateAndGetConcurrently(t *testing.T) {
 			err := tr.Update([]byte(strconv.Itoa(index)), []byte(strconv.Itoa(index)))
 			assert.Nil(t, err)
 
-			val, err := tr.Get([]byte(strconv.Itoa(index)))
+			val, _, err := tr.Get([]byte(strconv.Itoa(index)))
 			assert.Nil(t, err)
 			assert.Equal(t, []byte(strconv.Itoa(index)), val)
 
@@ -322,7 +322,7 @@ func TestPatriciaMerkleTree_GetAfterCommit(t *testing.T) {
 	err := tr.Commit()
 	assert.Nil(t, err)
 
-	val, err := tr.Get([]byte("dog"))
+	val, _, err := tr.Get([]byte("dog"))
 	assert.Equal(t, []byte("puppy"), val)
 	assert.Nil(t, err)
 }
@@ -956,6 +956,21 @@ func TestPatriciaMerkleTrie_GetOldRoot(t *testing.T) {
 	assert.Equal(t, expecterOldRoot, tr.GetOldRoot())
 }
 
+func TestPatriciaMerkleTree_GetValueReturnsTrieDepth(t *testing.T) {
+	t.Parallel()
+
+	tr := initTrie()
+	_, depth, err := tr.Get([]byte("doe"))
+	assert.Nil(t, err)
+	assert.Equal(t, uint32(1), depth)
+	_, depth, err = tr.Get([]byte("dog"))
+	assert.Nil(t, err)
+	assert.Equal(t, uint32(3), depth)
+	_, depth, err = tr.Get([]byte("ddog"))
+	assert.Nil(t, err)
+	assert.Equal(t, uint32(3), depth)
+}
+
 func BenchmarkPatriciaMerkleTree_Insert(b *testing.B) {
 	tr := emptyTrie()
 	hsh := keccak.NewKeccak()
@@ -1053,7 +1068,7 @@ func BenchmarkPatriciaMerkleTree_Get(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = tr.Get(values[i%nrValuesInTrie])
+		_, _, _ = tr.Get(values[i%nrValuesInTrie])
 	}
 }
 
@@ -1072,7 +1087,7 @@ func BenchmarkPatriciaMerkleTree_GetCollapsedTrie(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = tr.Get(values[i%nrValuesInTrie])
+		_, _, _ = tr.Get(values[i%nrValuesInTrie])
 	}
 }
 

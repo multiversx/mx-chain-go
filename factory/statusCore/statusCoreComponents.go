@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	errErd "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
+	trieStatistics "github.com/ElrondNetwork/elrond-go/trie/statistics"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/metrics"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
@@ -39,11 +40,12 @@ type statusCoreComponentsFactory struct {
 
 // statusCoreComponents is the DTO used for core components
 type statusCoreComponents struct {
-	resourceMonitor   factory.ResourceMonitor
-	networkStatistics factory.NetworkStatisticsProvider
-	appStatusHandler  core.AppStatusHandler
-	statusMetrics     external.StatusMetricsHandler
-	persistentHandler factory.PersistenStatusHandler
+	resourceMonitor    factory.ResourceMonitor
+	networkStatistics  factory.NetworkStatisticsProvider
+	trieSyncStatistics factory.TrieSyncStatisticsProvider
+	appStatusHandler   core.AppStatusHandler
+	statusMetrics      external.StatusMetricsHandler
+	persistentHandler  factory.PersistenStatusHandler
 }
 
 // NewStatusCoreComponentsFactory initializes the factory which is responsible to creating status core components
@@ -137,8 +139,9 @@ func (sccf *statusCoreComponentsFactory) Create() (*statusCoreComponents, error)
 	}
 
 	return &statusCoreComponents{
-		resourceMonitor:   resourceMonitor,
-		networkStatistics: netStats,
+		resourceMonitor:    resourceMonitor,
+		networkStatistics:  netStats,
+		trieSyncStatistics: trieStatistics.NewTrieSyncStatistics(),
 		appStatusHandler:  handler,
 		statusMetrics:     statusMetrics,
 		persistentHandler: persistentHandler,

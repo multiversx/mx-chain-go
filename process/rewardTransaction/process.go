@@ -111,7 +111,7 @@ func (rtp *rewardTxProcessor) saveAccumulatedRewards(
 
 	existingReward := big.NewInt(0)
 	fullRewardKey := core.ElrondProtectedKeyPrefix + rewardKey
-	val, err := userAccount.RetrieveValue([]byte(fullRewardKey))
+	val, _, err := userAccount.RetrieveValue([]byte(fullRewardKey))
 	if err == nil {
 		existingReward.SetBytes(val)
 	}

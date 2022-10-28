@@ -44,6 +44,7 @@ func InitBaseMetrics(appStatusHandler core.AppStatusHandler) error {
 	appStatusHandler.SetUInt64Value(common.MetricNoncesPassedInCurrentEpoch, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricNumConnectedPeers, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricEpochForEconomicsData, initUint)
+	appStatusHandler.SetUInt64Value(common.MetricAccountsSnapshotNumNodes, initUint)
 
 	appStatusHandler.SetInt64Value(common.MetricLastAccountsSnapshotDurationSec, initInt)
 	appStatusHandler.SetInt64Value(common.MetricLastPeersSnapshotDurationSec, initInt)
