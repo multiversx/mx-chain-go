@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -29,7 +30,7 @@ func TestNewStorageEpochStartMetaBlockProcessor_InvalidArgumentsShouldErr(t *tes
 	assert.Equal(t, epochStart.ErrNilMessenger, err)
 
 	sesmbp, err = NewStorageEpochStartMetaBlockProcessor(
-		&mock.MessengerStub{},
+		&p2pmocks.MessengerStub{},
 		nil,
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
@@ -38,7 +39,7 @@ func TestNewStorageEpochStartMetaBlockProcessor_InvalidArgumentsShouldErr(t *tes
 	assert.Equal(t, epochStart.ErrNilRequestHandler, err)
 
 	sesmbp, err = NewStorageEpochStartMetaBlockProcessor(
-		&mock.MessengerStub{},
+		&p2pmocks.MessengerStub{},
 		&testscommon.RequestHandlerStub{},
 		nil,
 		&hashingMocks.HasherMock{},
@@ -47,7 +48,7 @@ func TestNewStorageEpochStartMetaBlockProcessor_InvalidArgumentsShouldErr(t *tes
 	assert.Equal(t, epochStart.ErrNilMarshalizer, err)
 
 	sesmbp, err = NewStorageEpochStartMetaBlockProcessor(
-		&mock.MessengerStub{},
+		&p2pmocks.MessengerStub{},
 		&testscommon.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
 		nil,
@@ -60,7 +61,7 @@ func TestNewStorageEpochStartMetaBlockProcessor_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	sesmbp, err := NewStorageEpochStartMetaBlockProcessor(
-		&mock.MessengerStub{},
+		&p2pmocks.MessengerStub{},
 		&testscommon.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
@@ -73,7 +74,7 @@ func TestStorageEpochStartMetaBlockProcessor_Validate(t *testing.T) {
 	t.Parallel()
 
 	sesmbp, _ := NewStorageEpochStartMetaBlockProcessor(
-		&mock.MessengerStub{},
+		&p2pmocks.MessengerStub{},
 		&testscommon.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
@@ -92,7 +93,7 @@ func TestStorageEpochStartMetaBlockProcessor_RegisterHandlerShouldNotPanic(t *te
 	}()
 
 	sesmbp, _ := NewStorageEpochStartMetaBlockProcessor(
-		&mock.MessengerStub{},
+		&p2pmocks.MessengerStub{},
 		&testscommon.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
@@ -104,7 +105,7 @@ func TestStorageEpochStartMetaBlockProcessor_SaveNilData(t *testing.T) {
 	t.Parallel()
 
 	sesmbp, _ := NewStorageEpochStartMetaBlockProcessor(
-		&mock.MessengerStub{},
+		&p2pmocks.MessengerStub{},
 		&testscommon.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
@@ -120,7 +121,7 @@ func TestStorageEpochStartMetaBlockProcessor_SaveNotAHeader(t *testing.T) {
 	t.Parallel()
 
 	sesmbp, _ := NewStorageEpochStartMetaBlockProcessor(
-		&mock.MessengerStub{},
+		&p2pmocks.MessengerStub{},
 		&testscommon.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
@@ -136,7 +137,7 @@ func TestStorageEpochStartMetaBlockProcessor_SaveNotAnEpochStartBlock(t *testing
 	t.Parallel()
 
 	sesmbp, _ := NewStorageEpochStartMetaBlockProcessor(
-		&mock.MessengerStub{},
+		&p2pmocks.MessengerStub{},
 		&testscommon.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
@@ -158,7 +159,7 @@ func TestStorageEpochStartMetaBlockProcessor_SaveShouldWork(t *testing.T) {
 	t.Parallel()
 
 	sesmbp, _ := NewStorageEpochStartMetaBlockProcessor(
-		&mock.MessengerStub{},
+		&p2pmocks.MessengerStub{},
 		&testscommon.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
@@ -195,7 +196,7 @@ func TestStorageEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldRequest
 
 	var sesmbp EpochStartMetaBlockInterceptorProcessor
 	sesmbp, _ = NewStorageEpochStartMetaBlockProcessor(
-		&mock.MessengerStub{},
+		&p2pmocks.MessengerStub{},
 		&testscommon.RequestHandlerStub{
 			RequestStartOfEpochMetaBlockCalled: func(epoch uint32) {
 				numRequests++
@@ -218,7 +219,7 @@ func TestStorageEpochStartMetaBlockProcessor_GetEpochStartMetaBlockContextDoneSh
 
 	var sesmbp EpochStartMetaBlockInterceptorProcessor
 	sesmbp, _ = NewStorageEpochStartMetaBlockProcessor(
-		&mock.MessengerStub{},
+		&p2pmocks.MessengerStub{},
 		&testscommon.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},

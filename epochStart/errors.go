@@ -98,6 +98,9 @@ var ErrNilCoreComponentsHolder = errors.New("nil core components holder")
 // ErrNilCryptoComponentsHolder signals that a nil crypto components holder was provided
 var ErrNilCryptoComponentsHolder = errors.New("nil crypto components holder")
 
+// ErrNilStatusCoreComponentsHolder signals that a nil status core components holder was provided
+var ErrNilStatusCoreComponentsHolder = errors.New("nil status core components holder")
+
 // ErrRewardMiniBlocksNumDoesNotMatch signals that number of created and received rewards miniblocks is not equal
 var ErrRewardMiniBlocksNumDoesNotMatch = errors.New("number of created and received rewards miniblocks missmatch")
 
@@ -322,3 +325,6 @@ var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
 
 // ErrNilValidatorInfoStorage signals that nil validator info storage has been provided
 var ErrNilValidatorInfoStorage = errors.New("nil validator info storage")
+
+// ErrNilTrieSyncStatistics signals that nil trie sync statistics has been provided
+var ErrNilTrieSyncStatistics = errors.New("nil trie sync statistics")

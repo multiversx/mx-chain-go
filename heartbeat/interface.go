@@ -37,6 +37,7 @@ type HardforkTrigger interface {
 // CurrentBlockProvider can provide the current block that the node was able to commit
 type CurrentBlockProvider interface {
 	GetCurrentBlockHeader() data.HeaderHandler
+	SetCurrentBlockHeaderAndRootHash(bh data.HeaderHandler, rootHash []byte) error
 	IsInterfaceNil() bool
 }
 
@@ -59,5 +60,11 @@ type NodesCoordinator interface {
 // PeerShardMapper saves the shard for a peer ID
 type PeerShardMapper interface {
 	PutPeerIdShardId(pid core.PeerID, shardID uint32)
+	IsInterfaceNil() bool
+}
+
+// TrieSyncStatisticsProvider is able to provide trie sync statistics
+type TrieSyncStatisticsProvider interface {
+	NumProcessed() int
 	IsInterfaceNil() bool
 }
