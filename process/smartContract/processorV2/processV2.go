@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/scrCommon"
@@ -69,12 +70,13 @@ type scProcessor struct {
 	builtInFunctions   vmcommon.BuiltInFunctionContainer
 	arwenChangeLocker  common.Locker
 
-	badTxForwarder process.IntermediateTransactionHandler
-	scrForwarder   process.IntermediateTransactionHandler
-	txFeeHandler   process.TransactionFeeHandler
-	economicsFee   process.FeeHandler
-	txTypeHandler  process.TxTypeHandler
-	gasHandler     process.GasHandler
+	enableEpochsHandler common.EnableEpochsHandler
+	badTxForwarder      process.IntermediateTransactionHandler
+	scrForwarder        process.IntermediateTransactionHandler
+	txFeeHandler        process.TransactionFeeHandler
+	economicsFee        process.FeeHandler
+	txTypeHandler       process.TxTypeHandler
+	gasHandler          process.GasHandler
 
 	builtInGasCosts     map[string]uint64
 	persistPerByte      uint64
@@ -83,8 +85,6 @@ type scProcessor struct {
 	txLogsProcessor     process.TransactionLogProcessor
 	vmOutputCacher      storage.Cacher
 	isGenesisProcessing bool
-
-	enableEpochsHandler common.EnableEpochsHandler
 }
 
 type sameShardExecutionDataAfterBuiltIn struct {
@@ -150,6 +150,9 @@ func NewSmartContractProcessorV2(args scrCommon.ArgsNewSmartContractProcessor) (
 	if check.IfNil(args.TxLogsProcessor) {
 		return nil, process.ErrNilTxLogsProcessor
 	}
+	if check.IfNil(args.EnableEpochsHandler) {
+		return nil, process.ErrNilEnableEpochsHandler
+	}
 	if check.IfNil(args.BadTxForwarder) {
 		return nil, process.ErrNilBadTxHandler
 	}
@@ -203,6 +206,8 @@ func NewSmartContractProcessorV2(args scrCommon.ArgsNewSmartContractProcessor) (
 }
 
 // GasScheduleChange sets the new gas schedule where it is needed
+// Warning: do not use flags in this function as it will raise backward compatibility issues because the GasScheduleChange
+// is not called on each epoch change
 func (sc *scProcessor) GasScheduleChange(gasSchedule map[string]map[string]uint64) {
 	sc.mutGasLock.Lock()
 	defer sc.mutGasLock.Unlock()
@@ -1410,7 +1415,10 @@ func (sc *scProcessor) processIfErrorWithAddedLogs(acntSnd state.UserAccountHand
 
 	err := sc.accounts.RevertToSnapshot(failureContext.snapshot)
 	if err != nil {
-		log.Warn("revert to snapshot", "error", err.Error())
+		if !errors.IsClosingError(err) {
+			log.Warn("revert to snapshot", "error", err.Error())
+		}
+
 		return err
 	}
 
@@ -2414,16 +2422,19 @@ func (sc *scProcessor) useLastTransferAsAsyncCallBackWhenNeeded(
 
 	var err error
 	asyncParams := contexts.CreateCallbackAsyncParams(hooks.NewVMCryptoHook(), vmInput.AsyncArguments)
-	result.Data, err = sc.prependAsyncParamsToData(asyncParams, result.Data)
+	dataBuilder, err := sc.prependAsyncParamsToData(asyncParams, result.Data)
 	if err != nil {
 		log.Debug("processed built in functions error (async params extraction)", "error", err.Error())
 		return false
 	}
 
+	dataBuilder.Int(int(vmOutput.ReturnCode))
+	result.Data = dataBuilder.ToBytes()
+
 	return true
 }
 
-func (sc *scProcessor) prependAsyncParamsToData(asyncParams [][]byte, data []byte) ([]byte, error) {
+func (sc *scProcessor) prependAsyncParamsToData(asyncParams [][]byte, data []byte) (*txDataBuilder.TxDataBuilder, error) {
 	var args [][]byte
 	var err error
 
@@ -2451,7 +2462,7 @@ func (sc *scProcessor) prependAsyncParamsToData(asyncParams [][]byte, data []byt
 		callData.Bytes(asyncParam)
 	}
 
-	return callData.ToBytes(), nil
+	return callData, nil
 }
 
 func (sc *scProcessor) getESDTParsedTransfers(sndAddr []byte, dstAddr []byte, data []byte,
@@ -2671,7 +2682,7 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 		returnCode, err = sc.ExecuteSmartContractTransaction(scr, sndAcc, dstAcc)
 		return returnCode, err
 	case process.BuiltInFunctionCall:
-		if sc.shardCoordinator.SelfId() == core.MetachainShardId && !sc.enableEpochsHandler.IsBuiltInFunctionOnMetaFlagEnabled() {
+		if sc.shardCoordinator.SelfId() == core.MetachainShardId {
 			returnCode, err = sc.ExecuteSmartContractTransaction(scr, sndAcc, dstAcc)
 			return returnCode, err
 		}
