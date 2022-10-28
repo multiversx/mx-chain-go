@@ -135,10 +135,12 @@ func testExtractAlteredAccountsFromPoolSenderShard(t *testing.T) {
 			"hash0": outportcore.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{
 				SndAddr: []byte("sender shard - tx0  "),
 				RcvAddr: []byte("receiver shard - tx0"),
+				Value:   big.NewInt(0),
 			}, 0, big.NewInt(0)),
 			"hash1": outportcore.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{
 				SndAddr: []byte("sender shard - tx1  "),
 				RcvAddr: []byte("receiver shard - tx1"),
+				Value:   big.NewInt(0),
 			}, 0, big.NewInt(0)),
 		},
 	}, shared.AlteredAccountsOptions{})
@@ -177,10 +179,12 @@ func testExtractAlteredAccountsFromPoolReceiverShard(t *testing.T) {
 			"hash0": outportcore.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{
 				SndAddr: []byte("sender shard - tx0  "),
 				RcvAddr: []byte("receiver shard - tx0"),
+				Value:   big.NewInt(1),
 			}, 0, big.NewInt(0)),
 			"hash1": outportcore.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{
 				SndAddr: []byte("sender shard - tx1  "),
 				RcvAddr: []byte("receiver shard - tx1"),
+				Value:   big.NewInt(1),
 			}, 0, big.NewInt(0)),
 		},
 	}, shared.AlteredAccountsOptions{})
@@ -217,22 +221,27 @@ func testExtractAlteredAccountsFromPoolBothSenderAndReceiverShards(t *testing.T)
 			"hash0": outportcore.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{ // intra-shard 0, different addresses
 				SndAddr: []byte("shard0 addr - tx0  "),
 				RcvAddr: []byte("shard0 addr 2 - tx0"),
+				Value:   big.NewInt(1),
 			}, 0, big.NewInt(0)),
 			"hash1": outportcore.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{ // intra-shard 0, same addresses
 				SndAddr: []byte("shard0 addr 3 - tx1"),
 				RcvAddr: []byte("shard0 addr 3 - tx1"),
+				Value:   big.NewInt(1),
 			}, 0, big.NewInt(0)),
 			"hash2": outportcore.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{ // cross-shard, sender in shard 0
 				SndAddr: []byte("shard0 addr - tx2  "),
 				RcvAddr: []byte("shard1 - tx2       "),
+				Value:   big.NewInt(1),
 			}, 0, big.NewInt(0)),
 			"hash3": outportcore.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{ // cross-shard, receiver in shard 0
 				SndAddr: []byte("shard1 addr - tx3  "),
 				RcvAddr: []byte("shard0 addr - tx3  "),
+				Value:   big.NewInt(1),
 			}, 0, big.NewInt(0)),
 			"hash4": outportcore.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{ // cross-shard, no address in shard 0
 				SndAddr: []byte("shard2 addr - tx4  "),
 				RcvAddr: []byte("shard2 addr - tx3  "),
+				Value:   big.NewInt(1),
 			}, 0, big.NewInt(0)),
 		},
 	}, shared.AlteredAccountsOptions{})
@@ -283,6 +292,7 @@ func testExtractAlteredAccountsFromPoolTrieDataChecks(t *testing.T) {
 			"hash0": outportcore.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{
 				SndAddr: []byte("sender in shard 0  "),
 				RcvAddr: []byte(receiverInSelfShard),
+				Value:   big.NewInt(1),
 			}, 0, big.NewInt(0)),
 		},
 	}, shared.AlteredAccountsOptions{})
@@ -327,23 +337,27 @@ func testExtractAlteredAccountsFromPoolScrsInvalidRewards(t *testing.T) {
 		Txs: map[string]data.TransactionHandlerWithGasUsedAndFee{
 			"hash0": outportcore.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{
 				SndAddr: []byte("sender in shard 0 - tx 0  "),
+				Value:   big.NewInt(1),
 			}, 0, big.NewInt(0)),
 		},
 		Rewards: map[string]data.TransactionHandlerWithGasUsedAndFee{
 			"hash1": outportcore.NewTransactionHandlerWithGasAndFee(&rewardTx.RewardTx{
 				RcvAddr: []byte("receiver in shard 0 - tx 1"),
+				Value:   big.NewInt(1),
 			}, 0, big.NewInt(0)),
 		},
 		Scrs: map[string]data.TransactionHandlerWithGasUsedAndFee{
 			"hash2": outportcore.NewTransactionHandlerWithGasAndFee(&smartContractResult.SmartContractResult{
 				SndAddr: []byte("sender in shard 0 - tx 2  "),
 				RcvAddr: []byte("receiver in shard 0 - tx 2"),
+				Value:   big.NewInt(1),
 			}, 0, big.NewInt(0)),
 		},
 		Invalid: map[string]data.TransactionHandlerWithGasUsedAndFee{
 			"hash3": outportcore.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{
 				SndAddr: []byte("sender in shard 0 - tx 3  "),
 				RcvAddr: []byte("receiver in shard 0 - tx 3"), // receiver for invalid txs should not be included
+				Value:   big.NewInt(1),
 			}, 0, big.NewInt(0)),
 		},
 	}, shared.AlteredAccountsOptions{})
@@ -541,6 +555,7 @@ func testExtractAlteredAccountsFromPoolShouldNotIncludeReceiverAddressIfNftCreat
 			"hh": outportcore.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{
 				SndAddr: []byte("sender in shard 0 - tx 1  "),
 				RcvAddr: []byte("sender in shard 0 - tx 1  "),
+				Value:   big.NewInt(0),
 			}, 0, big.NewInt(0)),
 		},
 		Logs: []*data.LogData{
@@ -660,6 +675,7 @@ func testExtractAlteredAccountsFromPoolAddressHasBalanceChangeEsdtAndfNft(t *tes
 		Txs: map[string]data.TransactionHandlerWithGasUsedAndFee{
 			"hash0": outportcore.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{
 				SndAddr: []byte("addr"),
+				Value:   big.NewInt(0),
 			}, 0, big.NewInt(0)),
 		},
 		Logs: []*data.LogData{
@@ -768,6 +784,7 @@ func testExtractAlteredAccountsFromPoolAddressHasMultipleNfts(t *testing.T) {
 		Txs: map[string]data.TransactionHandlerWithGasUsedAndFee{
 			"hash0": outportcore.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{
 				SndAddr: []byte("addr"),
+				Value:   big.NewInt(0),
 			}, 0, big.NewInt(0)),
 		},
 		Logs: []*data.LogData{
