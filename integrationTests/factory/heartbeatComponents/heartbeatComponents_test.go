@@ -32,19 +32,19 @@ func TestHeartbeatComponents_Close_ShouldWork(t *testing.T) {
 	chanStopNodeProcess := make(chan endProcess.ArgEndProcess)
 	nr, err := node.NewNodeRunner(configs)
 	require.Nil(t, err)
-	managedStatusCoreComponents, err := nr.CreateManagedStatusCoreComponents()
-	require.Nil(t, err)
 	managedCoreComponents, err := nr.CreateManagedCoreComponents(chanStopNodeProcess)
+	require.Nil(t, err)
+	managedStatusCoreComponents, err := nr.CreateManagedStatusCoreComponents(managedCoreComponents)
 	require.Nil(t, err)
 	managedCryptoComponents, err := nr.CreateManagedCryptoComponents(managedCoreComponents)
 	require.Nil(t, err)
-	managedNetworkComponents, err := nr.CreateManagedNetworkComponents(managedCoreComponents)
+	managedNetworkComponents, err := nr.CreateManagedNetworkComponents(managedCoreComponents, managedStatusCoreComponents)
 	require.Nil(t, err)
-	managedBootstrapComponents, err := nr.CreateManagedBootstrapComponents(managedCoreComponents, managedCryptoComponents, managedNetworkComponents)
+	managedBootstrapComponents, err := nr.CreateManagedBootstrapComponents(managedCoreComponents, managedCryptoComponents, managedNetworkComponents, managedStatusCoreComponents)
 	require.Nil(t, err)
-	managedDataComponents, err := nr.CreateManagedDataComponents(managedCoreComponents, managedBootstrapComponents)
+	managedDataComponents, err := nr.CreateManagedDataComponents(managedStatusCoreComponents, managedCoreComponents, managedBootstrapComponents)
 	require.Nil(t, err)
-	managedStateComponents, err := nr.CreateManagedStateComponents(managedCoreComponents, managedBootstrapComponents, managedDataComponents)
+	managedStateComponents, err := nr.CreateManagedStateComponents(managedCoreComponents, managedBootstrapComponents, managedDataComponents, managedStatusCoreComponents)
 	require.Nil(t, err)
 	nodesShufflerOut, err := bootstrapComp.CreateNodesShuffleOut(managedCoreComponents.GenesisNodesSetup(), configs.GeneralConfig.EpochStartConfig, managedCoreComponents.ChanStopNodeProcess())
 	require.Nil(t, err)
@@ -99,6 +99,7 @@ func TestHeartbeatComponents_Close_ShouldWork(t *testing.T) {
 		managedStateComponents,
 		managedDataComponents,
 		managedStatusComponents,
+		managedStatusCoreComponents,
 		gasScheduleNotifier,
 		nodesCoordinator,
 	)
@@ -109,7 +110,14 @@ func TestHeartbeatComponents_Close_ShouldWork(t *testing.T) {
 	err = managedStatusComponents.StartPolling()
 	require.Nil(t, err)
 
-	managedHeartbeatComponents, err := nr.CreateManagedHeartbeatV2Components(managedBootstrapComponents, managedCoreComponents, managedNetworkComponents, managedCryptoComponents, managedDataComponents, managedProcessComponents)
+	managedHeartbeatComponents, err := nr.CreateManagedHeartbeatV2Components(
+		managedBootstrapComponents,
+		managedCoreComponents,
+		managedNetworkComponents,
+		managedCryptoComponents,
+		managedDataComponents,
+		managedProcessComponents,
+		managedStatusCoreComponents)
 	require.Nil(t, err)
 	require.NotNil(t, managedHeartbeatComponents)
 
@@ -131,9 +139,9 @@ func TestHeartbeatComponents_Close_ShouldWork(t *testing.T) {
 	require.Nil(t, err)
 	err = managedCryptoComponents.Close()
 	require.Nil(t, err)
-	err = managedCoreComponents.Close()
-	require.Nil(t, err)
 	err = managedStatusCoreComponents.Close()
+	require.Nil(t, err)
+	err = managedCoreComponents.Close()
 	require.Nil(t, err)
 
 	time.Sleep(5 * time.Second)

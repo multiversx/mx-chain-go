@@ -39,6 +39,7 @@ var log = logger.GetOrCreate("update/factory")
 type ArgsExporter struct {
 	CoreComponents            process.CoreComponentsHolder
 	CryptoComponents          process.CryptoComponentsHolder
+	StatusCoreComponents      process.StatusCoreComponentsHolder
 	HeaderValidator           epochStart.HeaderValidator
 	DataPool                  dataRetriever.PoolsHolder
 	StorageService            dataRetriever.StorageService
@@ -73,6 +74,7 @@ type ArgsExporter struct {
 type exportHandlerFactory struct {
 	CoreComponents            process.CoreComponentsHolder
 	CryptoComponents          process.CryptoComponentsHolder
+	statusCoreComponents      process.StatusCoreComponentsHolder
 	headerValidator           epochStart.HeaderValidator
 	dataPool                  dataRetriever.PoolsHolder
 	storageService            dataRetriever.StorageService
@@ -222,6 +224,12 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 	if err != nil {
 		return nil, err
 	}
+	if check.IfNil(args.StatusCoreComponents) {
+		return nil, update.ErrNilStatusCoreComponentsHolder
+	}
+	if check.IfNil(args.StatusCoreComponents.AppStatusHandler()) {
+		return nil, update.ErrNilAppStatusHandler
+	}
 
 	e := &exportHandlerFactory{
 		CoreComponents:            args.CoreComponents,
@@ -297,7 +305,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		Finality:             process.BlockFinality,
 		PeerMiniBlocksSyncer: peerMiniBlocksSyncer,
 		RoundHandler:         e.roundHandler,
-		AppStatusHandler:     e.CoreComponents.StatusHandler(),
+		AppStatusHandler:     e.statusCoreComponents.AppStatusHandler(),
 		EnableEpochsHandler:  e.CoreComponents.EnableEpochsHandler(),
 	}
 	epochHandler, err := shardchain.NewEpochStartTrigger(&argsEpochTrigger)

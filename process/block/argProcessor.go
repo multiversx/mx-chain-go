@@ -26,7 +26,6 @@ type coreComponentsHolder interface {
 	EpochNotifier() process.EpochNotifier
 	EnableEpochsHandler() common.EnableEpochsHandler
 	RoundHandler() consensus.RoundHandler
-	StatusHandler() core.AppStatusHandler
 	EconomicsData() process.EconomicsDataHandler
 	ProcessStatusHandler() common.ProcessStatusHandler
 	IsInterfaceNil() bool
@@ -51,13 +50,19 @@ type statusComponentsHolder interface {
 	IsInterfaceNil() bool
 }
 
+type statusCoreComponentsHolder interface {
+	AppStatusHandler() core.AppStatusHandler
+	IsInterfaceNil() bool
+}
+
 // ArgBaseProcessor holds all dependencies required by the process data factory in order to create
 // new instances
 type ArgBaseProcessor struct {
-	CoreComponents      coreComponentsHolder
-	DataComponents      dataComponentsHolder
-	BootstrapComponents bootstrapComponentsHolder
-	StatusComponents    statusComponentsHolder
+	CoreComponents       coreComponentsHolder
+	DataComponents       dataComponentsHolder
+	BootstrapComponents  bootstrapComponentsHolder
+	StatusComponents     statusComponentsHolder
+	StatusCoreComponents statusCoreComponentsHolder
 
 	Config                         config.Config
 	AccountsDB                     map[state.AccountsDbIdentifier]state.AccountsAdapter

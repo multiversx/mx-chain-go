@@ -25,27 +25,29 @@ var log = logger.GetOrCreate("factory")
 
 // ArgHeartbeatV2ComponentsFactory represents the argument for the heartbeat v2 components factory
 type ArgHeartbeatV2ComponentsFactory struct {
-	Config             config.Config
-	Prefs              config.Preferences
-	AppVersion         string
-	BoostrapComponents factory.BootstrapComponentsHolder
-	CoreComponents     factory.CoreComponentsHolder
-	DataComponents     factory.DataComponentsHolder
-	NetworkComponents  factory.NetworkComponentsHolder
-	CryptoComponents   factory.CryptoComponentsHolder
-	ProcessComponents  factory.ProcessComponentsHolder
+	Config               config.Config
+	Prefs                config.Preferences
+	AppVersion           string
+	BoostrapComponents   factory.BootstrapComponentsHolder
+	CoreComponents       factory.CoreComponentsHolder
+	DataComponents       factory.DataComponentsHolder
+	NetworkComponents    factory.NetworkComponentsHolder
+	CryptoComponents     factory.CryptoComponentsHolder
+	ProcessComponents    factory.ProcessComponentsHolder
+	StatusCoreComponents factory.StatusCoreComponentsHolder
 }
 
 type heartbeatV2ComponentsFactory struct {
-	config             config.Config
-	prefs              config.Preferences
-	version            string
-	boostrapComponents factory.BootstrapComponentsHolder
-	coreComponents     factory.CoreComponentsHolder
-	dataComponents     factory.DataComponentsHolder
-	networkComponents  factory.NetworkComponentsHolder
-	cryptoComponents   factory.CryptoComponentsHolder
-	processComponents  factory.ProcessComponentsHolder
+	config               config.Config
+	prefs                config.Preferences
+	version              string
+	boostrapComponents   factory.BootstrapComponentsHolder
+	coreComponents       factory.CoreComponentsHolder
+	dataComponents       factory.DataComponentsHolder
+	networkComponents    factory.NetworkComponentsHolder
+	cryptoComponents     factory.CryptoComponentsHolder
+	processComponents    factory.ProcessComponentsHolder
+	statusCoreComponents factory.StatusCoreComponentsHolder
 }
 
 type heartbeatV2Components struct {
@@ -65,15 +67,16 @@ func NewHeartbeatV2ComponentsFactory(args ArgHeartbeatV2ComponentsFactory) (*hea
 	}
 
 	return &heartbeatV2ComponentsFactory{
-		config:             args.Config,
-		prefs:              args.Prefs,
-		version:            args.AppVersion,
-		boostrapComponents: args.BoostrapComponents,
-		coreComponents:     args.CoreComponents,
-		dataComponents:     args.DataComponents,
-		networkComponents:  args.NetworkComponents,
-		cryptoComponents:   args.CryptoComponents,
-		processComponents:  args.ProcessComponents,
+		config:               args.Config,
+		prefs:                args.Prefs,
+		version:              args.AppVersion,
+		boostrapComponents:   args.BoostrapComponents,
+		coreComponents:       args.CoreComponents,
+		dataComponents:       args.DataComponents,
+		networkComponents:    args.NetworkComponents,
+		cryptoComponents:     args.CryptoComponents,
+		processComponents:    args.ProcessComponents,
+		statusCoreComponents: args.StatusCoreComponents,
 	}, nil
 }
 
@@ -96,9 +99,21 @@ func checkHeartbeatV2FactoryArgs(args ArgHeartbeatV2ComponentsFactory) error {
 	if check.IfNil(args.ProcessComponents) {
 		return errors.ErrNilProcessComponentsHolder
 	}
+	if check.IfNil(args.StatusCoreComponents) {
+		return errors.ErrNilStatusCoreComponents
+	}
+	if check.IfNil(args.StatusCoreComponents.AppStatusHandler()) {
+		return errors.ErrNilAppStatusHandler
+	}
 	hardforkTrigger := args.ProcessComponents.HardforkTrigger()
 	if check.IfNil(hardforkTrigger) {
 		return errors.ErrNilHardforkTrigger
+	}
+	if check.IfNil(args.StatusCoreComponents) {
+		return errors.ErrNilStatusCoreComponents
+	}
+	if check.IfNil(args.StatusCoreComponents.AppStatusHandler()) {
+		return errors.ErrNilAppStatusHandler
 	}
 
 	return nil
@@ -221,7 +236,7 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		PeerAuthenticationCacher:            hcf.dataComponents.Datapool().PeerAuthentications(),
 		HeartbeatMonitor:                    heartbeatsMonitor,
 		HeartbeatSenderInfoProvider:         heartbeatV2Sender,
-		AppStatusHandler:                    hcf.coreComponents.StatusHandler(),
+		AppStatusHandler:                    hcf.statusCoreComponents.AppStatusHandler(),
 		TimeBetweenConnectionsMetricsUpdate: time.Second * time.Duration(hcf.config.HeartbeatV2.TimeBetweenConnectionsMetricsUpdateInSec),
 	}
 	statusHandler, err := status.NewMetricsUpdater(argsMetricsUpdater)

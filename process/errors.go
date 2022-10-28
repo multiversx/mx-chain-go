@@ -19,6 +19,9 @@ var ErrNilBootstrapComponentsHolder = errors.New("nil bootstrap components holde
 // ErrNilStatusComponentsHolder signals that a nil status components holder was provided
 var ErrNilStatusComponentsHolder = errors.New("nil status components holder")
 
+// ErrNilStatusCoreComponentsHolder signals that a nil status core components holder was provided
+var ErrNilStatusCoreComponentsHolder = errors.New("nil status core components holder")
+
 // ErrNilCryptoComponentsHolder signals that a nil crypto components holder was provided
 var ErrNilCryptoComponentsHolder = errors.New("nil crypto components holder")
 

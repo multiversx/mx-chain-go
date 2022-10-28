@@ -503,7 +503,10 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.EnableRoundsHandler) {
 		return process.ErrNilEnableRoundsHandler
 	}
-	if check.IfNil(arguments.CoreComponents.StatusHandler()) {
+	if check.IfNil(arguments.StatusCoreComponents) {
+		return process.ErrNilStatusCoreComponentsHolder
+	}
+	if check.IfNil(arguments.StatusCoreComponents.AppStatusHandler()) {
 		return process.ErrNilAppStatusHandler
 	}
 	if check.IfNil(arguments.GasHandler) {
