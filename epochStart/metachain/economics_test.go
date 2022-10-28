@@ -447,7 +447,7 @@ func TestEconomics_VerifyRewardsPerBlock_DifferentHitRates(t *testing.T) {
 	}
 	args.Store = &storageStubs.ChainStorerStub{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
-			// this will be the previous epoch meta block. It has initial 0 values so it can be considered at genesis
+			// this will be the previous epoch meta block. It has initial 0 values, so it can be considered at genesis
 			return &storageStubs.StorerStub{GetCalled: func(key []byte) ([]byte, error) {
 				hdrBytes, _ := json.Marshal(hdrPrevEpochStart)
 				return hdrBytes, nil
@@ -565,7 +565,7 @@ func TestEconomics_VerifyRewardsPerBlock_DifferentFees(t *testing.T) {
 	}
 	args.Store = &storageStubs.ChainStorerStub{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
-			// this will be the previous epoch meta block. It has initial 0 values so it can be considered at genesis
+			// this will be the previous epoch meta block. It has initial 0 values, so it can be considered at genesis
 			return &storageStubs.StorerStub{GetCalled: func(key []byte) ([]byte, error) {
 				hdrBytes, _ := json.Marshal(hdrPrevEpochStart)
 				return hdrBytes, nil
@@ -782,7 +782,7 @@ func TestEconomics_VerifyRewardsPerBlock_MoreFeesThanInflation(t *testing.T) {
 	}
 	args.Store = &storageStubs.ChainStorerStub{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
-			// this will be the previous epoch meta block. It has initial 0 values so it can be considered at genesis
+			// this will be the previous epoch meta block. It has initial 0 values, so it can be considered at genesis
 			return &storageStubs.StorerStub{GetCalled: func(key []byte) ([]byte, error) {
 				hdrBytes, _ := json.Marshal(hdrPrevEpochStart)
 				return hdrBytes, nil
@@ -980,7 +980,7 @@ func TestEconomics_VerifyRewardsPerBlock_InflationZero(t *testing.T) {
 	}
 	args.Store = &storageStubs.ChainStorerStub{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
-			// this will be the previous epoch meta block. It has initial 0 values so it can be considered at genesis
+			// this will be the previous epoch meta block. It has initial 0 values, so it can be considered at genesis
 			return &storageStubs.StorerStub{GetCalled: func(key []byte) ([]byte, error) {
 				hdrBytes, _ := json.Marshal(hdrPrevEpochStart)
 				return hdrBytes, nil
@@ -1627,7 +1627,7 @@ func createArgsForComputeEndOfEpochEconomics(
 	}
 	args.Store = &storageStubs.ChainStorerStub{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
-			// this will be the previous epoch meta block. It has initial 0 values so it can be considered at genesis
+			// this will be the previous epoch meta block. It has initial 0 values, so it can be considered at genesis
 			return &storageStubs.StorerStub{GetCalled: func(key []byte) ([]byte, error) {
 				hdrBytes, _ := json.Marshal(hdrPrevEpochStart)
 				return hdrBytes, nil

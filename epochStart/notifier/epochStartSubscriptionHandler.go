@@ -37,7 +37,7 @@ func NewEpochStartSubscriptionHandler() *epochStartSubscriptionHandler {
 	}
 }
 
-// RegisterHandler will subscribe a function so it will be called when NotifyAll method is called
+// RegisterHandler will subscribe a function, so it will be called when NotifyAll method is called
 func (essh *epochStartSubscriptionHandler) RegisterHandler(handler epochStart.ActionHandler) {
 	if handler != nil {
 		essh.mutEpochStartHandler.Lock()

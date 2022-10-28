@@ -257,7 +257,7 @@ func TestBaseBlock_getAndAttachTxsToMbShouldIncludeLogsAsSpecified(t *testing.T)
 	processor.marshalizer = marshalizer
 	processor.store = storageService
 
-	// Setup a dummy transformer for "txBytes" -> "ApiTransactionResult" (only "Nonce" is handled)
+	// Set up a dummy transformer for "txBytes" -> "ApiTransactionResult" (only "Nonce" is handled)
 	processor.apiTransactionHandler = &mock.TransactionAPIHandlerStub{
 		UnmarshalTransactionCalled: func(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error) {
 			tx := &transaction.Transaction{}
@@ -270,7 +270,7 @@ func TestBaseBlock_getAndAttachTxsToMbShouldIncludeLogsAsSpecified(t *testing.T)
 		},
 	}
 
-	// Setup a miniblock
+	// Set up a miniblock
 	miniblockHash := []byte{0xff}
 	miniblock := &block.MiniBlock{
 		Type:     block.TxBlock,

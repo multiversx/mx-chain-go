@@ -186,7 +186,7 @@ func (inf *initialNodeFacade) GetHeartbeats() ([]data.PubKeyHeartbeat, error) {
 	return nil, errNodeStarting
 }
 
-// StatusMetrics will returns nil
+// StatusMetrics will return nil
 func (inf *initialNodeFacade) StatusMetrics() external.StatusMetricsHandler {
 	return inf.statusMetricsHandler
 }

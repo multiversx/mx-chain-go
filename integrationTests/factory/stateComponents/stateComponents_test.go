@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
-	factory "github.com/ElrondNetwork/elrond-go/integrationTests/factory"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/factory"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/testscommon/goroutines"
 	"github.com/stretchr/testify/require"

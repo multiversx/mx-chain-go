@@ -125,7 +125,7 @@ func TestNode_AddBlockCoordinatesToAccountQueryOptions(t *testing.T) {
 	var headerHashPassedToGetScheduledRootHashForHeaderWithEpoch []byte
 	var epochPassedToGetScheduledRootHashForHeaderWithEpoch uint32
 
-	getScheduledRootHashForHeaderResult := []byte{}
+	var getScheduledRootHashForHeaderResult []byte
 	getScheduledRootHashForHeaderError := errors.New("missing")
 
 	scheduledTxsStub := &testscommon.ScheduledTxsExecutionStub{

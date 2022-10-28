@@ -34,6 +34,6 @@ func (KeccakMock) Size() int {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (k *KeccakMock) IsInterfaceNil() bool {
-	return k == nil
+func (k KeccakMock) IsInterfaceNil() bool {
+	return false
 }

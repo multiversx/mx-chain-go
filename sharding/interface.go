@@ -20,7 +20,7 @@ type EpochHandler interface {
 
 //PeerAccountListAndRatingHandler provides Rating Computation Capabilites for the Nodes Coordinator and ValidatorStatistics
 type PeerAccountListAndRatingHandler interface {
-	//GetChance returns the chances for the the rating
+	//GetChance returns the chances for the rating
 	GetChance(uint32) uint32
 	//GetStartRating gets the start rating values
 	GetStartRating() uint32

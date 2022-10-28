@@ -42,7 +42,7 @@ func (s *StateComponentsHolderStub) AccountsAdapterAPI() state.AccountsAdapter {
 	return nil
 }
 
-// AccountRepository -
+// AccountsRepository -
 func (s *StateComponentsHolderStub) AccountsRepository() state.AccountsRepository {
 	if s.AccountsRepositoryCalled != nil {
 		return s.AccountsRepositoryCalled()

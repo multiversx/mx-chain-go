@@ -11,7 +11,7 @@ import (
 type SinglesignMock struct {
 }
 
-// Sign Signs a message with using a single signature schnorr scheme
+// Sign signs a message with using a single signature schnorr scheme
 func (s *SinglesignMock) Sign(_ crypto.PrivateKey, _ []byte) ([]byte, error) {
 	return []byte("signed"), nil
 }
@@ -35,7 +35,7 @@ func (s *SinglesignMock) IsInterfaceNil() bool {
 type SinglesignFailMock struct {
 }
 
-// Sign Signs a message with using a single signature schnorr scheme
+// Sign signs a message with using a single signature schnorr scheme
 func (s *SinglesignFailMock) Sign(_ crypto.PrivateKey, _ []byte) ([]byte, error) {
 	return nil, errors.New("signing failure")
 }
@@ -56,7 +56,7 @@ type SinglesignStub struct {
 	VerifyCalled func(public crypto.PublicKey, msg []byte, sig []byte) error
 }
 
-// Sign Signs a message with using a single signature schnorr scheme
+// Sign signs a message with using a single signature schnorr scheme
 func (s *SinglesignStub) Sign(private crypto.PrivateKey, msg []byte) ([]byte, error) {
 	return s.SignCalled(private, msg)
 }

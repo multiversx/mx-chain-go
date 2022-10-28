@@ -2,12 +2,17 @@ package dataRetriever
 
 import (
 	"fmt"
+	"sort"
+	"strings"
 	"sync"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 var _ StorageService = (*ChainStorer)(nil)
+
+var log = logger.GetOrCreate("chainstorer")
 
 // ChainStorer is a StorageService implementation that can hold multiple storages
 //  grouped by storage unit type
@@ -24,9 +29,20 @@ func NewChainStorer() *ChainStorer {
 }
 
 // AddStorer will add a new storer to the chain map
+// AddStorer will add a new storer to the chain map
 func (bc *ChainStorer) AddStorer(key UnitType, s storage.Storer) {
 	bc.lock.Lock()
 	bc.chain[key] = s
+	allStorersArr := make([]string, 0)
+	for key := range bc.chain {
+		allStorersArr = append(allStorersArr, key.String())
+	}
+
+	sort.SliceStable(allStorersArr, func(i, j int) bool {
+		return allStorersArr[i] < allStorersArr[j]
+	})
+
+	log.Error("adding storer", "type", key.String(), "current num of storers", len(bc.chain), "all storers", "\n"+strings.Join(allStorersArr, "\n"))
 	bc.lock.Unlock()
 }
 

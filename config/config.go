@@ -414,7 +414,7 @@ type VirtualMachineGasConfig struct {
 	MetaMaxGasPerVmQuery  uint64
 }
 
-// BuiltInFunctionsConfig holds the configuration for the built in functions
+// BuiltInFunctionsConfig holds the configuration for the built-in functions
 type BuiltInFunctionsConfig struct {
 	AutomaticCrawlerAddresses     []string
 	MaxNumAddressesInTransferRole uint32

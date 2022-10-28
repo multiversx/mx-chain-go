@@ -5,7 +5,7 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
-// BuiltInFunctionsCostHandler is able to calculated the cost of a built in function call
+// BuiltInFunctionsCostHandler is able to calculate the cost of a built in function call
 type BuiltInFunctionsCostHandler interface {
 	ComputeBuiltInCost(tx data.TransactionWithFeeHandler) uint64
 	IsBuiltInFuncCall(tx data.TransactionWithFeeHandler) bool

@@ -101,7 +101,7 @@ func (bpm *BlockProcessorMock) AddLastNotarizedHdr(shardId uint32, processedHdr 
 	bpm.AddLastNotarizedHdrCalled(shardId, processedHdr)
 }
 
-// RevertStateToBlock recreates thee state tries to the root hashes indicated by the provided header
+// RevertStateToBlock recreates the state tries to the root hashes indicated by the provided header
 func (bpm *BlockProcessorMock) RevertStateToBlock(header data.HeaderHandler, rootHash []byte) error {
 	if bpm.RevertStateToBlockCalled != nil {
 		return bpm.RevertStateToBlockCalled(header, rootHash)
@@ -117,7 +117,7 @@ func (bpm *BlockProcessorMock) RevertIndexedBlock(header data.HeaderHandler) {
 	}
 }
 
-// PruneStateOnRollback recreates thee state tries to the root hashes indicated by the provided header
+// PruneStateOnRollback recreates the state tries to the root hashes indicated by the provided header
 func (bpm *BlockProcessorMock) PruneStateOnRollback(currHeader data.HeaderHandler, currHeaderHash []byte, prevHeader data.HeaderHandler, prevHeaderHash []byte) {
 	if bpm.PruneStateOnRollbackCalled != nil {
 		bpm.PruneStateOnRollbackCalled(currHeader, currHeaderHash, prevHeader, prevHeaderHash)

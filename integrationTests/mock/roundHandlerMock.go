@@ -20,34 +20,34 @@ func (rndm *RoundHandlerMock) BeforeGenesis() bool {
 }
 
 // Index -
-func (rm *RoundHandlerMock) Index() int64 {
-	return rm.IndexField
+func (rndm *RoundHandlerMock) Index() int64 {
+	return rndm.IndexField
 }
 
 // UpdateRound -
-func (rm *RoundHandlerMock) UpdateRound(time.Time, time.Time) {
+func (rndm *RoundHandlerMock) UpdateRound(time.Time, time.Time) {
 }
 
 // TimeStamp -
-func (rm *RoundHandlerMock) TimeStamp() time.Time {
-	return rm.TimeStampField
+func (rndm *RoundHandlerMock) TimeStamp() time.Time {
+	return rndm.TimeStampField
 }
 
 // TimeDuration -
-func (rm *RoundHandlerMock) TimeDuration() time.Duration {
-	if rm.TimeDurationField.Seconds() == 0 {
+func (rndm *RoundHandlerMock) TimeDuration() time.Duration {
+	if rndm.TimeDurationField.Seconds() == 0 {
 		return time.Second
 	}
 
-	return rm.TimeDurationField
+	return rndm.TimeDurationField
 }
 
 // RemainingTime -
-func (rm *RoundHandlerMock) RemainingTime(_ time.Time, _ time.Duration) time.Duration {
-	return rm.RemainingTimeField
+func (rndm *RoundHandlerMock) RemainingTime(_ time.Time, _ time.Duration) time.Duration {
+	return rndm.RemainingTimeField
 }
 
 // IsInterfaceNil -
-func (rm *RoundHandlerMock) IsInterfaceNil() bool {
-	return rm == nil
+func (rndm *RoundHandlerMock) IsInterfaceNil() bool {
+	return rndm == nil
 }
