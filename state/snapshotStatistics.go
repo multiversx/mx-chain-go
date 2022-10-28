@@ -83,3 +83,8 @@ func (ss *snapshotStatistics) PrintStats(identifier string, rootHash []byte) {
 	)
 	ss.trieStatisticsCollector.Print()
 }
+
+// GetSnapshotNumNodes returns the number of nodes from the snapshot
+func (ss *snapshotStatistics) GetSnapshotNumNodes() uint64 {
+	return ss.trieStatisticsCollector.GetNumNodes()
+}

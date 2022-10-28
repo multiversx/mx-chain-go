@@ -24,6 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state/syncer"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
+	"github.com/ElrondNetwork/elrond-go/trie/statistics"
 	"github.com/ElrondNetwork/elrond-go/trie/storageMarker"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
@@ -491,17 +492,18 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 
 func (ccf *consensusComponentsFactory) createArgsBaseAccountsSyncer(trieStorageManager common.StorageManager) syncer.ArgsNewBaseAccountsSyncer {
 	return syncer.ArgsNewBaseAccountsSyncer{
-		Hasher:                    ccf.coreComponents.Hasher(),
-		Marshalizer:               ccf.coreComponents.InternalMarshalizer(),
-		TrieStorageManager:        trieStorageManager,
-		RequestHandler:            ccf.processComponents.RequestHandler(),
-		Timeout:                   common.TimeoutGettingTrieNodes,
-		Cacher:                    ccf.dataComponents.Datapool().TrieNodes(),
-		MaxTrieLevelInMemory:      ccf.config.StateTriesConfig.MaxStateTrieLevelInMemory,
-		MaxHardCapForMissingNodes: ccf.config.TrieSync.MaxHardCapForMissingNodes,
-		TrieSyncerVersion:         ccf.config.TrieSync.TrieSyncerVersion,
-		CheckNodesOnDisk:          ccf.config.TrieSync.CheckNodesOnDisk,
-		StorageMarker:             storageMarker.NewTrieStorageMarker(),
+		Hasher:                            ccf.coreComponents.Hasher(),
+		Marshalizer:                       ccf.coreComponents.InternalMarshalizer(),
+		TrieStorageManager:                trieStorageManager,
+		RequestHandler:                    ccf.processComponents.RequestHandler(),
+		Timeout:                           common.TimeoutGettingTrieNodes,
+		Cacher:                            ccf.dataComponents.Datapool().TrieNodes(),
+		MaxTrieLevelInMemory:              ccf.config.StateTriesConfig.MaxStateTrieLevelInMemory,
+		MaxHardCapForMissingNodes:         ccf.config.TrieSync.MaxHardCapForMissingNodes,
+		TrieSyncerVersion:                 ccf.config.TrieSync.TrieSyncerVersion,
+		CheckNodesOnDisk:                  ccf.config.TrieSync.CheckNodesOnDisk,
+		StorageMarker:                     storageMarker.NewTrieStorageMarker(),
+		UserAccountsSyncStatisticsHandler: statistics.NewTrieSyncStatistics(),
 	}
 }
 
