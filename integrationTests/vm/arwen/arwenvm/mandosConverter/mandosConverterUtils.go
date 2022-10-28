@@ -3,15 +3,14 @@ package mandosConverter
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/config"
-	mge "github.com/ElrondNetwork/wasm-vm/mandos-go/elrondgo-exporter"
-	mgutil "github.com/ElrondNetwork/wasm-vm/mandos-go/util"
-
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	mge "github.com/ElrondNetwork/wasm-vm/mandos-go/elrondgo-exporter"
+	mgutil "github.com/ElrondNetwork/wasm-vm/mandos-go/util"
 	"github.com/stretchr/testify/require"
 )
 
@@ -46,7 +45,7 @@ func CheckAccounts(t *testing.T, accAdapter state.AccountsAdapter, mandosAccount
 // CheckStorage checks if the dataTrie of an account equals with the storage of the corresponding mandosAccount
 func CheckStorage(t *testing.T, dataTrie state.UserAccountHandler, mandosAccStorage map[string][]byte) {
 	for key := range mandosAccStorage {
-		dataTrieValue, err := dataTrie.RetrieveValue([]byte(key))
+		dataTrieValue, _, err := dataTrie.RetrieveValue([]byte(key))
 		require.Nil(t, err)
 		if len(mandosAccStorage[key]) == 0 {
 			require.Nil(t, dataTrieValue)

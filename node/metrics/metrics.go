@@ -14,6 +14,7 @@ import (
 
 const millisecondsInSecond = 1000
 const initUint = uint64(0)
+const initInt = int64(0)
 const initString = ""
 const initZeroString = "0"
 
@@ -50,6 +51,10 @@ func InitBaseMetrics(statusHandlerUtils StatusHandlersUtils) error {
 	appStatusHandler.SetUInt64Value(common.MetricNoncesPassedInCurrentEpoch, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricNumConnectedPeers, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricEpochForEconomicsData, initUint)
+	appStatusHandler.SetUInt64Value(common.MetricAccountsSnapshotNumNodes, initUint)
+
+	appStatusHandler.SetInt64Value(common.MetricLastAccountsSnapshotDurationSec, initInt)
+	appStatusHandler.SetInt64Value(common.MetricLastPeersSnapshotDurationSec, initInt)
 
 	appStatusHandler.SetStringValue(common.MetricConsensusState, initString)
 	appStatusHandler.SetStringValue(common.MetricConsensusRoundState, initString)
@@ -65,6 +70,8 @@ func InitBaseMetrics(statusHandlerUtils StatusHandlersUtils) error {
 	appStatusHandler.SetStringValue(common.MetricP2PCrossShardObservers, initString)
 	appStatusHandler.SetStringValue(common.MetricP2PFullHistoryObservers, initString)
 	appStatusHandler.SetStringValue(common.MetricP2PUnknownPeers, initString)
+	appStatusHandler.SetStringValue(common.MetricAccountsSnapshotInProgress, initString)
+	appStatusHandler.SetStringValue(common.MetricPeersSnapshotInProgress, initString)
 
 	appStatusHandler.SetStringValue(common.MetricInflation, initZeroString)
 	appStatusHandler.SetStringValue(common.MetricDevRewardsInEpoch, initZeroString)

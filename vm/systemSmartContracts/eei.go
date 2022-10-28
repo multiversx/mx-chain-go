@@ -127,7 +127,7 @@ func (host *vmContext) GetStorageFromAddress(address []byte, key []byte) []byte 
 		}
 	}
 
-	data, err := host.blockChainHook.GetStorageData(address, key)
+	data, _, err := host.blockChainHook.GetStorageData(address, key)
 	if err != nil {
 		return nil
 	}

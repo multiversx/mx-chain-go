@@ -155,7 +155,7 @@ func TestDoubleListTrieSyncer_StartSyncingEmptyRootHashShouldReturnNil(t *testin
 
 	arg := createMockArgument(time.Minute)
 	d, _ := NewDoubleListTrieSyncer(arg)
-	err := d.StartSyncing(EmptyTrieHash, context.Background())
+	err := d.StartSyncing(common.EmptyTrieHash, context.Background())
 
 	assert.Nil(t, err)
 }
@@ -165,7 +165,7 @@ func TestDoubleListTrieSyncer_StartSyncingNilContextShouldErr(t *testing.T) {
 
 	arg := createMockArgument(time.Minute)
 	d, _ := NewDoubleListTrieSyncer(arg)
-	err := d.StartSyncing(bytes.Repeat([]byte{1}, len(EmptyTrieHash)), nil)
+	err := d.StartSyncing(bytes.Repeat([]byte{1}, len(common.EmptyTrieHash)), nil)
 
 	assert.Equal(t, ErrNilContext, err)
 }
@@ -231,7 +231,7 @@ func TestDoubleListTrieSyncer_StartSyncingNewTrieShouldWork(t *testing.T) {
 	var val []byte
 	for i := 0; i < numKeysValues; i++ {
 		keyVal := hasherMock.Compute(fmt.Sprintf("%d", i))
-		val, err = trie.Get(keyVal)
+		val, _, err = trie.Get(keyVal)
 		require.Nil(t, err)
 		require.Equal(t, keyVal, val)
 	}
@@ -292,7 +292,7 @@ func TestDoubleListTrieSyncer_StartSyncingPartiallyFilledTrieShouldWork(t *testi
 	var val []byte
 	for i := 0; i < numKeysValues; i++ {
 		keyVal := hasherMock.Compute(fmt.Sprintf("%d", i))
-		val, err = trie.Get(keyVal)
+		val, _, err = trie.Get(keyVal)
 		require.Nil(t, err)
 		require.Equal(t, keyVal, val)
 	}

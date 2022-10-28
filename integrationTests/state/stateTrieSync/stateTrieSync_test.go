@@ -160,7 +160,7 @@ func printStatistics(ctx context.Context, stats common.SizeSyncStatisticsHandler
 		select {
 		case <-ctx.Done():
 			log.Info("finished trie sync",
-				"num received", stats.NumReceived(),
+				"num processed", stats.NumProcessed(),
 				"num large nodes", stats.NumLarge(),
 				"num missing", stats.NumMissing(),
 				"data size received", core.ConvertBytes(stats.NumBytesReceived()),
@@ -177,7 +177,7 @@ func printStatistics(ctx context.Context, stats common.SizeSyncStatisticsHandler
 			speed := fmt.Sprintf("%s/s", core.ConvertBytes(uint64(bytesReceivedPerSec)))
 
 			log.Info("trie sync in progress",
-				"num received", stats.NumReceived(),
+				"num processed", stats.NumProcessed(),
 				"num large nodes", stats.NumLarge(),
 				"num missing", stats.NumMissing(),
 				"data size received", core.ConvertBytes(stats.NumBytesReceived()),
@@ -597,16 +597,17 @@ func getUserAccountSyncerArgs(node *integrationTests.TestProcessorNode, version 
 	thr, _ := throttler.NewNumGoRoutinesThrottler(50)
 	syncerArgs := syncer.ArgsNewUserAccountsSyncer{
 		ArgsNewBaseAccountsSyncer: syncer.ArgsNewBaseAccountsSyncer{
-			Hasher:                    integrationTests.TestHasher,
-			Marshalizer:               integrationTests.TestMarshalizer,
-			TrieStorageManager:        node.TrieStorageManagers[trieFactory.UserAccountTrie],
-			RequestHandler:            node.RequestHandler,
-			Timeout:                   common.TimeoutGettingTrieNodes,
-			Cacher:                    node.DataPool.TrieNodes(),
-			MaxTrieLevelInMemory:      200,
-			MaxHardCapForMissingNodes: 5000,
-			TrieSyncerVersion:         version,
-			StorageMarker:             storageMarker.NewTrieStorageMarker(),
+			Hasher:                            integrationTests.TestHasher,
+			Marshalizer:                       integrationTests.TestMarshalizer,
+			TrieStorageManager:                node.TrieStorageManagers[trieFactory.UserAccountTrie],
+			RequestHandler:                    node.RequestHandler,
+			Timeout:                           common.TimeoutGettingTrieNodes,
+			Cacher:                            node.DataPool.TrieNodes(),
+			MaxTrieLevelInMemory:              200,
+			MaxHardCapForMissingNodes:         5000,
+			TrieSyncerVersion:                 version,
+			StorageMarker:                     storageMarker.NewTrieStorageMarker(),
+			UserAccountsSyncStatisticsHandler: statistics.NewTrieSyncStatistics(),
 		},
 		ShardId:                0,
 		Throttler:              thr,

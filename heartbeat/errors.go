@@ -74,5 +74,8 @@ var ErrNilHeartbeatMonitor = errors.New("nil heartbeat monitor")
 // ErrNilHeartbeatSenderInfoProvider signals that a nil heartbeat sender info provider was provided
 var ErrNilHeartbeatSenderInfoProvider = errors.New("nil heartbeat sender info provider")
 
-// ErrNilShardCoordinator signlas that a nil shard coordinator was provided
+// ErrNilShardCoordinator signals that a nil shard coordinator was provided
 var ErrNilShardCoordinator = errors.New("nil shard coordinator")
+
+// ErrNilTrieSyncStatisticsProvider signals that a nil trie sync statistics provider was provided
+var ErrNilTrieSyncStatisticsProvider = errors.New("nil trie sync statistics provider")

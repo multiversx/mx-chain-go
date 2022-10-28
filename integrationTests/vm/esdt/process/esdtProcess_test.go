@@ -144,11 +144,11 @@ func TestESDTIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 
 	wipedAcc := esdtCommon.GetUserAccountWithAddress(t, nodes[2].OwnAccount.Address, nodes)
 	tokenKey := []byte(core.ElrondProtectedKeyPrefix + "esdt" + tokenIdentifier)
-	retrievedData, _ := wipedAcc.RetrieveValue(tokenKey)
+	retrievedData, _, _ := wipedAcc.RetrieveValue(tokenKey)
 	require.Equal(t, 0, len(retrievedData))
 
 	systemSCAcc := esdtCommon.GetUserAccountWithAddress(t, core.SystemAccountAddress, nodes)
-	retrievedData, _ = systemSCAcc.RetrieveValue(tokenKey)
+	retrievedData, _, _ = systemSCAcc.RetrieveValue(tokenKey)
 	esdtGlobalMetaData := vmcommonBuiltInFunctions.ESDTGlobalMetadataFromBytes(retrievedData)
 	require.True(t, esdtGlobalMetaData.Paused)
 
@@ -156,7 +156,7 @@ func TestESDTIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 	esdtCommon.CheckAddressHasTokens(t, tokenIssuer.OwnAccount.Address, nodes, []byte(tokenIdentifier), 0, finalSupply)
 
 	esdtSCAcc := esdtCommon.GetUserAccountWithAddress(t, vm.ESDTSCAddress, nodes)
-	retrievedData, _ = esdtSCAcc.RetrieveValue([]byte(tokenIdentifier))
+	retrievedData, _, _ = esdtSCAcc.RetrieveValue([]byte(tokenIdentifier))
 	tokenInSystemSC := &systemSmartContracts.ESDTDataV2{}
 	_ = integrationTests.TestMarshalizer.Unmarshal(tokenInSystemSC, retrievedData)
 	require.Zero(t, tokenInSystemSC.MintedValue.Cmp(big.NewInt(initialSupply+mintValue)))
@@ -258,7 +258,7 @@ func TestESDTCallBurnOnANonBurnableToken(t *testing.T) {
 	time.Sleep(time.Second)
 
 	esdtSCAcc := esdtCommon.GetUserAccountWithAddress(t, vm.ESDTSCAddress, nodes)
-	retrievedData, _ := esdtSCAcc.RetrieveValue([]byte(tokenIdentifier))
+	retrievedData, _, _ := esdtSCAcc.RetrieveValue([]byte(tokenIdentifier))
 	tokenInSystemSC := &systemSmartContracts.ESDTDataV2{}
 	_ = integrationTests.TestMarshalizer.Unmarshal(tokenInSystemSC, retrievedData)
 	require.Equal(t, initialSupply, tokenInSystemSC.MintedValue.Int64())
