@@ -354,18 +354,17 @@ var (
 		Value: "./config/p2pKey.pem",
 	}
 
-<<<<<<< HEAD
 	// snapshotsEnabled is used to enable snapshots, if it is not set it defaults to true, it will be set to false if it is set specifically
 	snapshotsEnabled = cli.BoolTFlag{
 		Name:  "snapshots-enabled",
 		Usage: "Boolean option for enabling state snapshots. If it is not set it defaults to true, it will be set to false if it is set specifically as --snapshots-enabled=false",
-=======
+	}
+
 	// operationMode defines the flag for specifying how configs should be altered depending on the node's intent
 	operationMode = cli.StringFlag{
 		Name:  "operation-mode",
 		Usage: "String flag for specifying the desired `operation mode`(s) of the node, resulting in altering some configuration values accordingly. Possible values are: lite-observer, full-archive, db-lookup-extension, historical-balances or `\"\"` (empty). Multiple values can be separated via ,",
 		Value: "",
->>>>>>> rc/v1.4.0
 	}
 )
 
@@ -421,11 +420,8 @@ func getFlags() []cli.Flag {
 		serializeSnapshots,
 		noKey,
 		p2pKeyPemFile,
-<<<<<<< HEAD
 		snapshotsEnabled,
-=======
 		operationMode,
->>>>>>> rc/v1.4.0
 	}
 }
 
@@ -452,11 +448,8 @@ func getFlagsConfig(ctx *cli.Context, log logger.Logger) *config.ContextFlagsCon
 	flagsConfig.DisableConsensusWatchdog = ctx.GlobalBool(disableConsensusWatchdog.Name)
 	flagsConfig.SerializeSnapshots = ctx.GlobalBool(serializeSnapshots.Name)
 	flagsConfig.NoKeyProvided = ctx.GlobalBool(noKey.Name)
-<<<<<<< HEAD
 	flagsConfig.SnapshotsEnabled = ctx.GlobalBool(snapshotsEnabled.Name)
-=======
 	flagsConfig.OperationMode = ctx.GlobalString(operationMode.Name)
->>>>>>> rc/v1.4.0
 
 	return flagsConfig
 }
