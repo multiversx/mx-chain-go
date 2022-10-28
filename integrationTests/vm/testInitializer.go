@@ -67,7 +67,7 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
-	arwenConfig "github.com/ElrondNetwork/wasm-vm/config"
+	arwenConfig "github.com/ElrondNetwork/wasm-vm-v1_4/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -1006,7 +1006,7 @@ func TestDeployedContractContents(
 	assert.NotNil(t, destinationRecovShardAccount.GetRootHash())
 
 	for variable, requiredVal := range dataValues {
-		contractVariableData, err := destinationRecovShardAccount.RetrieveValue([]byte(variable))
+		contractVariableData, _, err := destinationRecovShardAccount.RetrieveValue([]byte(variable))
 		assert.Nil(t, err)
 		assert.NotNil(t, contractVariableData)
 

@@ -42,11 +42,13 @@ func TestSnapshotStatistics_AddTrieStats(t *testing.T) {
 		assert.True(t, isSortedByDepth)
 		assert.Equal(t, numTriesToPrint, len(tsc.triesBySize))
 		assert.Equal(t, numTriesToPrint, len(tsc.triesByDepth))
+		assert.Equal(t, uint64(i+1), tsc.GetNumNodes())
 	}
 }
 
 func getTrieStatsDTO(maxLevel int, size uint64) *TrieStatsDTO {
 	ts := NewTrieStatistics()
 	ts.AddBranchNode(maxLevel, size)
+
 	return ts.GetTrieStats()
 }
