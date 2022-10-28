@@ -231,7 +231,9 @@ func (aap *alteredAccountsProvider) extractAddressesFromTxsHandlers(
 		if senderShardID == selfShardID && len(senderAddress) > 0 {
 			aap.addAddressWithBalanceChangeInMap(senderAddress, markedAlteredAccounts, true)
 		}
-		if txType != process.InvalidTransaction && receiverShardID == selfShardID && len(receiverAddress) > 0 {
+		balanceChanged := txHandler.GetValue().Cmp(big.NewInt(0)) > 0
+		addReceiver := txType != process.InvalidTransaction && receiverShardID == selfShardID && len(receiverAddress) > 0 && balanceChanged
+		if addReceiver {
 			aap.addAddressWithBalanceChangeInMap(receiverAddress, markedAlteredAccounts, false)
 		}
 	}
@@ -247,13 +249,15 @@ func (aap *alteredAccountsProvider) addAddressWithBalanceChangeInMap(
 		return
 	}
 
-	_, addressAlreadySelected := markedAlteredAccounts[string(address)]
+	adrStr := string(address)
+	_, addressAlreadySelected := markedAlteredAccounts[adrStr]
 	if addressAlreadySelected {
-		markedAlteredAccounts[string(address)].isSender = markedAlteredAccounts[string(address)].isSender || isSender
+		markedAlteredAccounts[adrStr].isSender = markedAlteredAccounts[adrStr].isSender || isSender
+		markedAlteredAccounts[adrStr].balanceChanged = true
 		return
 	}
 
-	markedAlteredAccounts[string(address)] = &markedAlteredAccount{
+	markedAlteredAccounts[adrStr] = &markedAlteredAccount{
 		isSender:       isSender,
 		balanceChanged: true,
 	}
