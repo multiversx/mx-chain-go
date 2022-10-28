@@ -99,6 +99,7 @@ func TestAlteredAccountsProvider_ExtractAlteredAccountsFromPool(t *testing.T) {
 	t.Run("should not return balanceChanged for a receiver on an ESDTTransfer", testExtractAlteredAccountsFromPoolESDTTransferBalanceNotChanged)
 	t.Run("should return balanceChanged for sender and receiver", testExtractAlteredAccountsFromPoolReceiverShouldHaveBalanceChanged)
 	t.Run("should return balanceChanged only for sender", testExtractAlteredAccountsFromPoolOnlySenderShouldHaveBalanceChanged)
+	t.Run("should return balanceChanged for sender nft create", textExtractAlteredAccountsFromPoolNftCreate)
 }
 
 func testExtractAlteredAccountsFromPoolNoTransaction(t *testing.T) {
@@ -1040,6 +1041,83 @@ func testExtractAlteredAccountsFromPoolOnlySenderShouldHaveBalanceChanged(t *tes
 		encodedAddrSnd: {
 			Address: encodedAddrSnd,
 			Balance: "15",
+			AdditionalData: &outportcore.AdditionalAccountData{
+				BalanceChanged: true,
+				IsSender:       true,
+			},
+		},
+	}, res)
+}
+
+func textExtractAlteredAccountsFromPoolNftCreate(t *testing.T) {
+	t.Parallel()
+
+	expectedToken := esdt.ESDigitalToken{
+		Value:      big.NewInt(37),
+		Properties: []byte("ok"),
+	}
+	args := getMockArgs()
+	args.EsdtDataStorageHandler = &testscommon.EsdtStorageHandlerStub{
+		GetESDTNFTTokenOnDestinationCalled: func(acnt vmcommon.UserAccountHandler, esdtTokenKey []byte, nonce uint64) (*esdt.ESDigitalToken, bool, error) {
+			return &expectedToken, false, nil
+		},
+	}
+	args.AccountsDB = &state.AccountsStub{
+		LoadAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
+			return &state.AccountWrapMock{
+				Balance: big.NewInt(10),
+			}, nil
+		},
+	}
+	args.AddressConverter = testscommon.NewPubkeyConverterMock(3)
+	aap, _ := NewAlteredAccountsProvider(args)
+
+	res, err := aap.ExtractAlteredAccountsFromPool(&outportcore.Pool{
+		Txs: map[string]data.TransactionHandlerWithGasUsedAndFee{
+			"txHash": outportcore.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{
+				SndAddr: []byte("snd"),
+				RcvAddr: []byte("snd"),
+				Value:   big.NewInt(0),
+			}, 0, big.NewInt(0)),
+		},
+		Logs: []*data.LogData{
+			{
+				LogHandler: &transaction.Log{
+					Address: []byte("snd"),
+					Events: []*transaction.Event{
+						{
+							Address:    []byte("snd"),
+							Identifier: []byte(core.BuiltInFunctionESDTNFTCreate),
+							Topics: [][]byte{
+								[]byte("token0"), big.NewInt(0).Bytes(), big.NewInt(10).Bytes(), []byte("a"),
+							},
+						},
+					},
+				},
+			},
+		},
+	}, shared.AlteredAccountsOptions{
+		AdditionalAlteredAccountsData: true,
+	})
+	require.NoError(t, err)
+
+	encodedAddrSnd := args.AddressConverter.Encode([]byte("snd"))
+	require.Equal(t, map[string]*outportcore.AlteredAccount{
+		encodedAddrSnd: {
+			Address: encodedAddrSnd,
+			Balance: "10",
+			Tokens: []*outportcore.AccountTokenData{
+				{
+					Identifier: "token0",
+					Balance:    expectedToken.Value.String(),
+					Nonce:      0,
+					Properties: "ok",
+					MetaData:   nil,
+					AdditionalData: &outportcore.AdditionalAccountTokenData{
+						IsNFTCreate: true,
+					},
+				},
+			},
 			AdditionalData: &outportcore.AdditionalAccountData{
 				BalanceChanged: true,
 				IsSender:       true,
