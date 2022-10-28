@@ -34,21 +34,22 @@ func NewValidatorAccountsSyncer(args ArgsNewValidatorAccountsSyncer) (*validator
 	}
 
 	b := &baseAccountsSyncer{
-		hasher:                    args.Hasher,
-		marshalizer:               args.Marshalizer,
-		dataTries:                 make(map[string]struct{}),
-		trieStorageManager:        args.TrieStorageManager,
-		requestHandler:            args.RequestHandler,
-		timeoutHandler:            timeoutHandler,
-		shardId:                   core.MetachainShardId,
-		cacher:                    args.Cacher,
-		rootHash:                  nil,
-		maxTrieLevelInMemory:      args.MaxTrieLevelInMemory,
-		name:                      "peer accounts",
-		maxHardCapForMissingNodes: args.MaxHardCapForMissingNodes,
-		trieSyncerVersion:         args.TrieSyncerVersion,
-		checkNodesOnDisk:          args.CheckNodesOnDisk,
-		storageMarker:             args.StorageMarker,
+		hasher:                            args.Hasher,
+		marshalizer:                       args.Marshalizer,
+		dataTries:                         make(map[string]struct{}),
+		trieStorageManager:                args.TrieStorageManager,
+		requestHandler:                    args.RequestHandler,
+		timeoutHandler:                    timeoutHandler,
+		shardId:                           core.MetachainShardId,
+		cacher:                            args.Cacher,
+		rootHash:                          nil,
+		maxTrieLevelInMemory:              args.MaxTrieLevelInMemory,
+		name:                              "peer accounts",
+		maxHardCapForMissingNodes:         args.MaxHardCapForMissingNodes,
+		trieSyncerVersion:                 args.TrieSyncerVersion,
+		checkNodesOnDisk:                  args.CheckNodesOnDisk,
+		storageMarker:                     args.StorageMarker,
+		userAccountsSyncStatisticsHandler: statistics.NewTrieSyncStatistics(),
 	}
 
 	u := &validatorAccountsSyncer{
@@ -71,10 +72,9 @@ func (v *validatorAccountsSyncer) SyncAccounts(rootHash []byte) error {
 		cancel()
 	}()
 
-	tss := statistics.NewTrieSyncStatistics()
-	go v.printStatistics(tss, ctx)
+	go v.printStatistics(ctx)
 
-	mainTrie, err := v.syncMainTrie(rootHash, factory.ValidatorTrieNodesTopic, tss, ctx)
+	mainTrie, err := v.syncMainTrie(rootHash, factory.ValidatorTrieNodesTopic, ctx)
 	if err != nil {
 		return err
 	}

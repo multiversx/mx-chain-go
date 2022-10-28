@@ -2,6 +2,7 @@ package builtInFunctions
 
 import (
 	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
@@ -97,6 +98,7 @@ func CreateBuiltInFunctionsFactory(args ArgsCreateBuiltInFunctionContainer) (vmc
 	return bContainerFactory, nil
 }
 
+// GetAllowedAddress returns the allowed crawler address on the current shard
 func GetAllowedAddress(coordinator sharding.Coordinator, addresses [][]byte) ([]byte, error) {
 	if check.IfNil(coordinator) {
 		return nil, process.ErrNilShardCoordinator

@@ -2,6 +2,7 @@ package txsimulator
 
 import (
 	"encoding/hex"
+	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -30,6 +31,7 @@ type ArgsTxSimulator struct {
 }
 
 type transactionSimulator struct {
+	mutOperation           sync.Mutex
 	txProcessor            TransactionProcessor
 	intermProcContainer    process.IntermediateProcessorContainer
 	addressPubKeyConverter core.PubkeyConverter
@@ -76,6 +78,9 @@ func NewTransactionSimulator(args ArgsTxSimulator) (*transactionSimulator, error
 
 // ProcessTx will process the transaction in a special environment, where state-writing is not allowed
 func (ts *transactionSimulator) ProcessTx(tx *transaction.Transaction) (*txSimData.SimulationResults, error) {
+	ts.mutOperation.Lock()
+	defer ts.mutOperation.Unlock()
+
 	txStatus := transaction.TxStatusPending
 	failReason := ""
 

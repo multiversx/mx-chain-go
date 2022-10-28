@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/random"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/errors"
@@ -15,41 +16,45 @@ import (
 	"github.com/ElrondNetwork/elrond-go/heartbeat/processor"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/sender"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/status"
+	processFactory "github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/peer"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
+var log = logger.GetOrCreate("factory")
+
 // ArgHeartbeatV2ComponentsFactory represents the argument for the heartbeat v2 components factory
 type ArgHeartbeatV2ComponentsFactory struct {
-	Config             config.Config
-	Prefs              config.Preferences
-	AppVersion         string
-	BoostrapComponents factory.BootstrapComponentsHolder
-	CoreComponents     factory.CoreComponentsHolder
-	DataComponents     factory.DataComponentsHolder
-	NetworkComponents  factory.NetworkComponentsHolder
-	CryptoComponents   factory.CryptoComponentsHolder
-	ProcessComponents  factory.ProcessComponentsHolder
+	Config              config.Config
+	Prefs               config.Preferences
+	AppVersion          string
+	BootstrapComponents factory.BootstrapComponentsHolder
+	CoreComponents      factory.CoreComponentsHolder
+	DataComponents      factory.DataComponentsHolder
+	NetworkComponents   factory.NetworkComponentsHolder
+	CryptoComponents    factory.CryptoComponentsHolder
+	ProcessComponents   factory.ProcessComponentsHolder
 }
 
 type heartbeatV2ComponentsFactory struct {
-	config             config.Config
-	prefs              config.Preferences
-	version            string
-	boostrapComponents factory.BootstrapComponentsHolder
-	coreComponents     factory.CoreComponentsHolder
-	dataComponents     factory.DataComponentsHolder
-	networkComponents  factory.NetworkComponentsHolder
-	cryptoComponents   factory.CryptoComponentsHolder
-	processComponents  factory.ProcessComponentsHolder
+	config              config.Config
+	prefs               config.Preferences
+	version             string
+	bootstrapComponents factory.BootstrapComponentsHolder
+	coreComponents      factory.CoreComponentsHolder
+	dataComponents      factory.DataComponentsHolder
+	networkComponents   factory.NetworkComponentsHolder
+	cryptoComponents    factory.CryptoComponentsHolder
+	processComponents   factory.ProcessComponentsHolder
 }
 
 type heartbeatV2Components struct {
-	sender                     update.Closer
-	peerAuthRequestsProcessor  update.Closer
-	directConnectionsProcessor update.Closer
-	monitor                    factory.HeartbeatV2Monitor
-	statusHandler              update.Closer
+	sender                    update.Closer
+	peerAuthRequestsProcessor update.Closer
+	shardSender               update.Closer
+	monitor                   factory.HeartbeatV2Monitor
+	statusHandler             update.Closer
+	directConnectionProcessor update.Closer
 }
 
 // NewHeartbeatV2ComponentsFactory creates a new instance of heartbeatV2ComponentsFactory
@@ -60,20 +65,20 @@ func NewHeartbeatV2ComponentsFactory(args ArgHeartbeatV2ComponentsFactory) (*hea
 	}
 
 	return &heartbeatV2ComponentsFactory{
-		config:             args.Config,
-		prefs:              args.Prefs,
-		version:            args.AppVersion,
-		boostrapComponents: args.BoostrapComponents,
-		coreComponents:     args.CoreComponents,
-		dataComponents:     args.DataComponents,
-		networkComponents:  args.NetworkComponents,
-		cryptoComponents:   args.CryptoComponents,
-		processComponents:  args.ProcessComponents,
+		config:              args.Config,
+		prefs:               args.Prefs,
+		version:             args.AppVersion,
+		bootstrapComponents: args.BootstrapComponents,
+		coreComponents:      args.CoreComponents,
+		dataComponents:      args.DataComponents,
+		networkComponents:   args.NetworkComponents,
+		cryptoComponents:    args.CryptoComponents,
+		processComponents:   args.ProcessComponents,
 	}, nil
 }
 
 func checkHeartbeatV2FactoryArgs(args ArgHeartbeatV2ComponentsFactory) error {
-	if check.IfNil(args.BoostrapComponents) {
+	if check.IfNil(args.BootstrapComponents) {
 		return errors.ErrNilBootstrapComponentsHolder
 	}
 	if check.IfNil(args.CoreComponents) {
@@ -124,7 +129,7 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		peerSubType = core.FullHistoryObserver
 	}
 
-	shardC := hcf.boostrapComponents.ShardCoordinator()
+	shardC := hcf.bootstrapComponents.ShardCoordinator()
 	heartbeatTopic := common.HeartbeatV2Topic + shardC.CommunicationIdentifier(shardC.SelfId())
 
 	argPeerTypeProvider := peer.ArgPeerTypeProvider{
@@ -167,7 +172,7 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		return nil, err
 	}
 
-	epochBootstrapParams := hcf.boostrapComponents.EpochBootstrapParams()
+	epochBootstrapParams := hcf.bootstrapComponents.EpochBootstrapParams()
 	argsProcessor := processor.ArgPeerAuthenticationRequestsProcessor{
 		RequestHandler:          hcf.processComponents.RequestHandler(),
 		NodesCoordinator:        hcf.processComponents.NodesCoordinator(),
@@ -185,14 +190,15 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		return nil, err
 	}
 
-	argsDirectConnectionsProcessor := processor.ArgDirectConnectionsProcessor{
-		Messenger:                 hcf.networkComponents.NetworkMessenger(),
-		Marshaller:                hcf.coreComponents.InternalMarshalizer(),
-		ShardCoordinator:          hcf.boostrapComponents.ShardCoordinator(),
-		DelayBetweenNotifications: time.Second * time.Duration(cfg.DelayBetweenConnectionNotificationsInSec),
-		NodesCoordinator:          hcf.processComponents.NodesCoordinator(),
+	argsPeerShardSender := sender.ArgPeerShardSender{
+		Messenger:             hcf.networkComponents.NetworkMessenger(),
+		Marshaller:            hcf.coreComponents.InternalMarshalizer(),
+		ShardCoordinator:      hcf.bootstrapComponents.ShardCoordinator(),
+		TimeBetweenSends:      time.Second * time.Duration(cfg.PeerShardTimeBetweenSendsInSec),
+		ThresholdBetweenSends: cfg.PeerShardThresholdBetweenSends,
+		NodesCoordinator:      hcf.processComponents.NodesCoordinator(),
 	}
-	directConnectionsProcessor, err := processor.NewDirectConnectionsProcessor(argsDirectConnectionsProcessor)
+	shardSender, err := sender.NewPeerShardSender(argsPeerShardSender)
 	if err != nil {
 		return nil, err
 	}
@@ -201,7 +207,6 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		Cache:                         hcf.dataComponents.Datapool().Heartbeats(),
 		PubKeyConverter:               hcf.coreComponents.ValidatorPubKeyConverter(),
 		Marshaller:                    hcf.coreComponents.InternalMarshalizer(),
-		PeerShardMapper:               hcf.processComponents.PeerShardMapper(),
 		MaxDurationPeerUnresponsive:   time.Second * time.Duration(cfg.MaxDurationPeerUnresponsiveInSec),
 		HideInactiveValidatorInterval: time.Second * time.Duration(cfg.HideInactiveValidatorIntervalInSec),
 		ShardId:                       epochBootstrapParams.SelfShardID(),
@@ -218,19 +223,45 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		HeartbeatSenderInfoProvider:         heartbeatV2Sender,
 		AppStatusHandler:                    hcf.coreComponents.StatusHandler(),
 		TimeBetweenConnectionsMetricsUpdate: time.Second * time.Duration(hcf.config.HeartbeatV2.TimeBetweenConnectionsMetricsUpdateInSec),
-		EnableEpochsHandler:                 hcf.coreComponents.EnableEpochsHandler(),
 	}
 	statusHandler, err := status.NewMetricsUpdater(argsMetricsUpdater)
 	if err != nil {
 		return nil, err
 	}
 
+	argsDirectConnectionProcessor := processor.ArgsDirectConnectionProcessor{
+		TimeToReadDirectConnections: time.Second * time.Duration(hcf.config.HeartbeatV2.TimeToReadDirectConnectionsInSec),
+		Messenger:                   hcf.networkComponents.NetworkMessenger(),
+		PeerShardMapper:             hcf.processComponents.PeerShardMapper(),
+		ShardCoordinator:            hcf.processComponents.ShardCoordinator(),
+		BaseIntraShardTopic:         common.ConsensusTopic,
+		BaseCrossShardTopic:         processFactory.MiniBlocksTopic,
+	}
+	directConnectionProcessor, err := processor.NewDirectConnectionProcessor(argsDirectConnectionProcessor)
+	if err != nil {
+		return nil, err
+	}
+
+	argsCrossShardPeerTopicNotifier := monitor.ArgsCrossShardPeerTopicNotifier{
+		ShardCoordinator: hcf.processComponents.ShardCoordinator(),
+		PeerShardMapper:  hcf.processComponents.PeerShardMapper(),
+	}
+	crossShardPeerTopicNotifier, err := monitor.NewCrossShardPeerTopicNotifier(argsCrossShardPeerTopicNotifier)
+	if err != nil {
+		return nil, err
+	}
+	err = hcf.networkComponents.NetworkMessenger().AddPeerTopicNotifier(crossShardPeerTopicNotifier)
+	if err != nil {
+		return nil, err
+	}
+
 	return &heartbeatV2Components{
-		sender:                     heartbeatV2Sender,
-		peerAuthRequestsProcessor:  paRequestsProcessor,
-		directConnectionsProcessor: directConnectionsProcessor,
-		monitor:                    heartbeatsMonitor,
-		statusHandler:              statusHandler,
+		sender:                    heartbeatV2Sender,
+		peerAuthRequestsProcessor: paRequestsProcessor,
+		shardSender:               shardSender,
+		monitor:                   heartbeatsMonitor,
+		statusHandler:             statusHandler,
+		directConnectionProcessor: directConnectionProcessor,
 	}, nil
 }
 
@@ -246,12 +277,16 @@ func (hc *heartbeatV2Components) Close() error {
 		log.LogIfError(hc.peerAuthRequestsProcessor.Close())
 	}
 
-	if !check.IfNil(hc.directConnectionsProcessor) {
-		log.LogIfError(hc.directConnectionsProcessor.Close())
+	if !check.IfNil(hc.shardSender) {
+		log.LogIfError(hc.shardSender.Close())
 	}
 
 	if !check.IfNil(hc.statusHandler) {
 		log.LogIfError(hc.statusHandler.Close())
+	}
+
+	if !check.IfNil(hc.directConnectionProcessor) {
+		log.LogIfError(hc.directConnectionProcessor.Close())
 	}
 
 	return nil
