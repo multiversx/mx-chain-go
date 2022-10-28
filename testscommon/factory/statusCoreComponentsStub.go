@@ -13,7 +13,7 @@ type StatusCoreComponentsStub struct {
 	TrieSyncStatisticsField      factory.TrieSyncStatisticsProvider
 	AppStatusHandlerField        core.AppStatusHandler
 	StatusMetricsField           external.StatusMetricsHandler
-	PersistentStatusHandlerField factory.PersistenStatusHandler
+	PersistentStatusHandlerField factory.PersistentStatusHandler
 }
 
 // Create -
@@ -62,7 +62,7 @@ func (stub *StatusCoreComponentsStub) StatusMetrics() external.StatusMetricsHand
 }
 
 // PersistentStatusHandler -
-func (stub *StatusCoreComponentsStub) PersistentStatusHandler() factory.PersistenStatusHandler {
+func (stub *StatusCoreComponentsStub) PersistentStatusHandler() factory.PersistentStatusHandler {
 	return stub.PersistentStatusHandlerField
 }
 

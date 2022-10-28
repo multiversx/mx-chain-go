@@ -158,7 +158,7 @@ func (mscc *managedStatusCoreComponents) StatusMetrics() external.StatusMetricsH
 }
 
 // PersistentStatusHandler returns the persistent handler instance
-func (mscc *managedStatusCoreComponents) PersistentStatusHandler() factory.PersistenStatusHandler {
+func (mscc *managedStatusCoreComponents) PersistentStatusHandler() factory.PersistentStatusHandler {
 	mscc.mutCoreComponents.RLock()
 	defer mscc.mutCoreComponents.RUnlock()
 

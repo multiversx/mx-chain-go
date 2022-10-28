@@ -148,7 +148,7 @@ type StatusCoreComponentsHolder interface {
 	TrieSyncStatistics() TrieSyncStatisticsProvider
 	AppStatusHandler() core.AppStatusHandler
 	StatusMetrics() external.StatusMetricsHandler
-	PersistentStatusHandler() PersistenStatusHandler
+	PersistentStatusHandler() PersistentStatusHandler
 	IsInterfaceNil() bool
 }
 
@@ -523,8 +523,8 @@ type TrieSyncStatisticsProvider interface {
 	NumIterations() int
 }
 
-// PersistenStatusHandler defines a persistend status handler
-type PersistenStatusHandler interface {
+// PersistentStatusHandler defines a persistent status handler
+type PersistentStatusHandler interface {
 	core.AppStatusHandler
 	SetStorage(store storage.Storer) error
 }

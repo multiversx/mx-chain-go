@@ -9,11 +9,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	errErd "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
-	trieStatistics "github.com/ElrondNetwork/elrond-go/trie/statistics"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/metrics"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/statusHandler/persister"
+	trieStatistics "github.com/ElrondNetwork/elrond-go/trie/statistics"
 )
 
 var log = logger.GetOrCreate("factory")
@@ -45,7 +45,7 @@ type statusCoreComponents struct {
 	trieSyncStatistics factory.TrieSyncStatisticsProvider
 	appStatusHandler   core.AppStatusHandler
 	statusMetrics      external.StatusMetricsHandler
-	persistentHandler  factory.PersistenStatusHandler
+	persistentHandler  factory.PersistentStatusHandler
 }
 
 // NewStatusCoreComponentsFactory initializes the factory which is responsible to creating status core components
@@ -98,6 +98,24 @@ func (sccf *statusCoreComponentsFactory) Create() (*statusCoreComponents, error)
 		resourceMonitor.StartMonitoring()
 	}
 
+	appStatusHandler, statusMetrics, persistentStatusHandler, err := sccf.createStatusHandler()
+	if err != nil {
+		return nil, err
+	}
+
+	ssc := &statusCoreComponents{
+		resourceMonitor:    resourceMonitor,
+		networkStatistics:  netStats,
+		trieSyncStatistics: trieStatistics.NewTrieSyncStatistics(),
+		appStatusHandler:   appStatusHandler,
+		statusMetrics:      statusMetrics,
+		persistentHandler:  persistentStatusHandler,
+	}
+
+	return ssc, nil
+}
+
+func (sccf *statusCoreComponentsFactory) createStatusHandler() (core.AppStatusHandler, external.StatusMetricsHandler, factory.PersistentStatusHandler, error) {
 	var appStatusHandlers []core.AppStatusHandler
 	var handler core.AppStatusHandler
 	statusMetrics := statusHandler.NewStatusMetrics()
@@ -105,47 +123,42 @@ func (sccf *statusCoreComponentsFactory) Create() (*statusCoreComponents, error)
 
 	persistentHandler, err := persister.NewPersistentStatusHandler(sccf.coreComp.InternalMarshalizer(), sccf.coreComp.Uint64ByteSliceConverter())
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
 	appStatusHandlers = append(appStatusHandlers, persistentHandler)
 	if len(appStatusHandlers) > 0 {
 		handler, err = statusHandler.NewAppStatusFacadeWithHandlers(appStatusHandlers...)
 		if err != nil {
-			log.Warn("cannot init AppStatusFacade", "error", err)
+			log.Warn("cannot init AppStatusFacade, will start with NilStatusHandler", "error", err)
+			handler = statusHandler.NewNilStatusHandler()
 		}
 	} else {
 		handler = statusHandler.NewNilStatusHandler()
-		log.Debug("no AppStatusHandler used: started with NilStatusHandler")
+		log.Debug("no AppStatusHandler used: will start with NilStatusHandler")
 	}
 
 	err = metrics.InitBaseMetrics(handler)
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
 
 	err = metrics.InitConfigMetrics(handler, sccf.epochConfig, sccf.economicsConfig, sccf.coreComp.GenesisNodesSetup())
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
 
 	err = metrics.InitRatingsMetrics(handler, sccf.ratingsConfig)
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
 
 	err = sccf.coreComp.EconomicsData().SetStatusHandler(handler)
 	if err != nil {
 		log.Debug("cannot set status handler to economicsData", "error", err)
+		return nil, nil, nil, err
 	}
 
-	return &statusCoreComponents{
-		resourceMonitor:    resourceMonitor,
-		networkStatistics:  netStats,
-		trieSyncStatistics: trieStatistics.NewTrieSyncStatistics(),
-		appStatusHandler:  handler,
-		statusMetrics:     statusMetrics,
-		persistentHandler: persistentHandler,
-	}, nil
+	return handler, statusMetrics, persistentHandler, nil
 }
 
 // Close closes all underlying components
