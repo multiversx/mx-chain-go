@@ -820,6 +820,7 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 	stateComponents mainFactory.StateComponentsHolder,
 	statusComponents mainFactory.StatusComponentsHolder,
 	processComponents mainFactory.ProcessComponentsHolder,
+	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
 ) (mainFactory.ConsensusComponentsHandler, error) {
 	scheduledProcessorArgs := spos.ScheduledProcessorWrapperArgs{
 		SyncTimer:                coreComponents.SyncTimer(),

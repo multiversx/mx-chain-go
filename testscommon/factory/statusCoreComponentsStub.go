@@ -10,6 +10,7 @@ import (
 type StatusCoreComponentsStub struct {
 	ResourceMonitorField         factory.ResourceMonitor
 	NetworkStatisticsField       factory.NetworkStatisticsProvider
+	TrieSyncStatisticsField      factory.TrieSyncStatisticsProvider
 	AppStatusHandlerField        core.AppStatusHandler
 	StatusMetricsField           external.StatusMetricsHandler
 	PersistentStatusHandlerField factory.PersistenStatusHandler
@@ -43,6 +44,11 @@ func (stub *StatusCoreComponentsStub) ResourceMonitor() factory.ResourceMonitor 
 // NetworkStatistics -
 func (stub *StatusCoreComponentsStub) NetworkStatistics() factory.NetworkStatisticsProvider {
 	return stub.NetworkStatisticsField
+}
+
+// TrieSyncStatistics -
+func (stub *StatusCoreComponentsStub) TrieSyncStatistics() factory.TrieSyncStatisticsProvider {
+	return stub.TrieSyncStatisticsField
 }
 
 // AppStatusHandler -
