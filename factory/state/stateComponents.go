@@ -138,6 +138,7 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 		ProcessingMode:           scf.processingMode,
 		ShouldSerializeSnapshots: scf.shouldSerializeSnapshots,
 		ProcessStatusHandler:     scf.core.ProcessStatusHandler(),
+		AppStatusHandler:         scf.core.StatusHandler(),
 	}
 	accountsAdapter, err := state.NewAccountsDB(argsProcessingAccountsDB)
 	if err != nil {
@@ -152,6 +153,7 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 		StoragePruningManager: storagePruning,
 		ProcessingMode:        scf.processingMode,
 		ProcessStatusHandler:  scf.core.ProcessStatusHandler(),
+		AppStatusHandler:      scf.core.StatusHandler(),
 	}
 
 	accountsAdapterApiOnFinal, err := factoryState.CreateAccountsAdapterAPIOnFinal(argsAPIAccountsDB, scf.chainHandler)
@@ -200,6 +202,7 @@ func (scf *stateComponentsFactory) createPeerAdapter(triesContainer common.Tries
 		ProcessingMode:           scf.processingMode,
 		ShouldSerializeSnapshots: scf.shouldSerializeSnapshots,
 		ProcessStatusHandler:     scf.core.ProcessStatusHandler(),
+		AppStatusHandler:         scf.core.StatusHandler(),
 	}
 	peerAdapter, err := state.NewPeerAccountsDB(argsProcessingPeerAccountsDB)
 	if err != nil {

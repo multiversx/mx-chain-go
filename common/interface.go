@@ -27,7 +27,7 @@ type TrieIteratorChannels struct {
 
 // Trie is an interface for Merkle Trees implementations
 type Trie interface {
-	Get(key []byte) ([]byte, error)
+	Get(key []byte) ([]byte, uint32, error)
 	Update(key, value []byte) error
 	Delete(key []byte) error
 	RootHash() ([]byte, error)
@@ -169,6 +169,7 @@ type TrieStatisticsHandler interface {
 type TriesStatisticsCollector interface {
 	Add(trieStats *statistics.TrieStatsDTO)
 	Print()
+	GetNumNodes() uint64
 }
 
 // ProcessStatusHandler defines the behavior of a component able to hold the current status of the node and
@@ -311,7 +312,6 @@ type EnableEpochsHandler interface {
 	IsSCRSizeInvariantOnBuiltInResultFlagEnabled() bool
 	IsCheckCorrectTokenIDForTransferRoleFlagEnabled() bool
 	IsFailExecutionOnEveryAPIErrorFlagEnabled() bool
-	IsHeartbeatDisableFlagEnabled() bool
 	IsMiniBlockPartialExecutionFlagEnabled() bool
 	IsManagedCryptoAPIsFlagEnabled() bool
 	IsESDTMetadataContinuousCleanupFlagEnabled() bool
