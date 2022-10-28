@@ -601,11 +601,11 @@ func processDbLookupExtensionMode(log logger.Logger, configs *config.Configs) {
 
 func processLiteObserverMode(log logger.Logger, configs *config.Configs) {
 	configs.GeneralConfig.StoragePruning.ObserverCleanOldEpochsData = true
-	configs.GeneralConfig.StateTriesConfig.SnapshotsEnabled = false
+	configs.FlagsConfig.SnapshotsEnabled = false
 
 	log.Warn("the node is in lite observer mode! Will auto-set some config values",
 		"StoragePruning.ObserverCleanOldEpochsData", configs.GeneralConfig.StoragePruning.ObserverCleanOldEpochsData,
-		"StateTriesConfig.SnapshotsEnabled", configs.GeneralConfig.StateTriesConfig.SnapshotsEnabled,
+		"FlagsConfig.SnapshotsEnabled", configs.FlagsConfig.SnapshotsEnabled,
 	)
 }
 
