@@ -358,6 +358,7 @@ type TestProcessorNode struct {
 	WaitTime                 time.Duration
 	HistoryRepository        dblookupext.HistoryRepository
 	EpochNotifier            process.EpochNotifier
+	RoundNotifier            process.RoundNotifier
 	EnableEpochs             config.EnableEpochs
 	EnableRoundsHandler      process.EnableRoundsHandler
 	EnableEpochsHandler      common.EnableEpochsHandler
@@ -421,8 +422,8 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 		defaultRoundsConfig := GetDefaultRoundsConfig()
 		args.RoundsConfig = &defaultRoundsConfig
 	}
-	roundNotifier := forking.NewGenericRoundNotifier()
-	enableRoundsHandler, _ := enablers.NewEnableRoundsHandler(*args.RoundsConfig, roundNotifier)
+	genericRoundNotifier := forking.NewGenericRoundNotifier()
+	enableRoundsHandler, _ := enablers.NewEnableRoundsHandler(*args.RoundsConfig, genericRoundNotifier)
 
 	logsProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{Marshalizer: TestMarshalizer})
 	tpn := &TestProcessorNode{
@@ -434,6 +435,7 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 		NodesSetup:               nodesSetup,
 		HistoryRepository:        &dblookupextMock.HistoryRepositoryStub{},
 		EpochNotifier:            genericEpochNotifier,
+		RoundNotifier:            genericRoundNotifier,
 		EnableRoundsHandler:      enableRoundsHandler,
 		EnableEpochsHandler:      enableEpochsHandler,
 		ArwenChangeLocker:        &sync.RWMutex{},
@@ -1096,6 +1098,7 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 	coreComponents.TxVersionCheckField = versioning.NewTxVersionChecker(tpn.MinTransactionVersion)
 	coreComponents.EnableEpochsHandlerField = tpn.EnableEpochsHandler
 	coreComponents.EpochNotifierField = tpn.EpochNotifier
+	coreComponents.RoundNotifierField = tpn.RoundNotifier
 	coreComponents.EconomicsDataField = tpn.EconomicsData
 
 	cryptoComponents := GetDefaultCryptoComponents()
@@ -1923,6 +1926,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 	coreComponents.EnableEpochsHandlerField = tpn.EnableEpochsHandler
 	coreComponents.EnableRoundsHandlerField = tpn.EnableRoundsHandler
 	coreComponents.EpochNotifierField = tpn.EpochNotifier
+	coreComponents.RoundNotifierField = tpn.RoundNotifier
 	coreComponents.EconomicsDataField = tpn.EconomicsData
 
 	dataComponents := GetDefaultDataComponents()
@@ -2196,6 +2200,7 @@ func (tpn *TestProcessorNode) initNode() {
 	coreComponents.SyncTimerField = &mock.SyncTimerMock{}
 	coreComponents.EnableEpochsHandlerField = tpn.EnableEpochsHandler
 	coreComponents.EpochNotifierField = tpn.EpochNotifier
+	coreComponents.RoundNotifierField = tpn.RoundNotifier
 	coreComponents.ArwenChangeLockerInternal = tpn.ArwenChangeLocker
 	hardforkPubKeyBytes, _ := coreComponents.ValidatorPubKeyConverterField.Decode(hardforkPubKey)
 	coreComponents.HardforkTriggerPubKeyField = hardforkPubKeyBytes

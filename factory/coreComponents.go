@@ -378,6 +378,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		chainID:                       ccf.config.GeneralSettings.ChainID,
 		minTransactionVersion:         ccf.config.GeneralSettings.MinTransactionVersion,
 		epochNotifier:                 epochNotifier,
+		roundNotifier:                 roundNotifier,
 		enableRoundsHandler:           enableRoundsHandler,
 		epochStartNotifierWithConfirm: notifier.NewEpochStartSubscriptionHandler(),
 		chanStopNodeProcess:           ccf.chanStopNodeProcess,

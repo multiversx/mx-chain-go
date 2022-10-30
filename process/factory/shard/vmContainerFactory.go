@@ -338,6 +338,7 @@ func (vmf *vmContainerFactory) createInProcessArwenVMV15() (vmcommon.VMExecution
 		ElrondProtectedKeyPrefix:            []byte(core.ElrondProtectedKeyPrefix),
 		ESDTTransferParser:                  vmf.esdtTransferParser,
 		EpochNotifier:                       vmf.epochNotifier,
+		EnableEpochsHandler:                 vmf.enableEpochsHandler,
 		WasmerSIGSEGVPassthrough:            vmf.config.WasmerSIGSEGVPassthrough,
 		TimeOutForSCExecutionInMilliseconds: vmf.config.TimeOutForSCExecutionInMilliseconds,
 	}
