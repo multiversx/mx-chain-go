@@ -44,22 +44,23 @@ type ConsensusComponentsFactoryArgs struct {
 	ScheduledProcessor    consensus.ScheduledProcessor
 	IsInImportMode        bool
 	ShouldDisableWatchdog bool
+	SubRoundBlockType     consensus.SubRoundBlockType
 }
 
 type consensusComponentsFactory struct {
-	config                    config.Config
-	bootstrapRoundIndex       uint64
-	coreComponents            factory.CoreComponentsHolder
-	networkComponents         factory.NetworkComponentsHolder
-	cryptoComponents          factory.CryptoComponentsHolder
-	dataComponents            factory.DataComponentsHolder
-	processComponents         factory.ProcessComponentsHolder
-	stateComponents           factory.StateComponentsHolder
-	statusComponents          factory.StatusComponentsHolder
-	scheduledProcessor        consensus.ScheduledProcessor
-	isInImportMode            bool
-	shouldDisableWatchdog     bool
-	getSubroundsFactoryMethod func(consensusDataContainer *spos.ConsensusCore, consensusState *spos.ConsensusState, cc *consensusComponents) (spos.SubroundsFactory, error)
+	config                config.Config
+	bootstrapRoundIndex   uint64
+	coreComponents        factory.CoreComponentsHolder
+	networkComponents     factory.NetworkComponentsHolder
+	cryptoComponents      factory.CryptoComponentsHolder
+	dataComponents        factory.DataComponentsHolder
+	processComponents     factory.ProcessComponentsHolder
+	stateComponents       factory.StateComponentsHolder
+	statusComponents      factory.StatusComponentsHolder
+	scheduledProcessor    consensus.ScheduledProcessor
+	isInImportMode        bool
+	shouldDisableWatchdog bool
+	subRoundBlockType     consensus.SubRoundBlockType
 }
 
 type consensusComponents struct {
@@ -98,7 +99,7 @@ func NewConsensusComponentsFactory(args ConsensusComponentsFactoryArgs) (*consen
 		return nil, errors.ErrNilScheduledProcessor
 	}
 
-	ccf := &consensusComponentsFactory{
+	return &consensusComponentsFactory{
 		config:                args.Config,
 		bootstrapRoundIndex:   args.BootstrapRoundIndex,
 		coreComponents:        args.CoreComponents,
@@ -111,11 +112,8 @@ func NewConsensusComponentsFactory(args ConsensusComponentsFactoryArgs) (*consen
 		scheduledProcessor:    args.ScheduledProcessor,
 		isInImportMode:        args.IsInImportMode,
 		shouldDisableWatchdog: args.ShouldDisableWatchdog,
-	}
-
-	ccf.getSubroundsFactoryMethod = ccf.getSubroundsFactory
-
-	return ccf, nil
+		subRoundBlockType:     args.SubRoundBlockType,
+	}, nil
 }
 
 // Create will init all the components needed for a new instance of consensusComponents
@@ -268,7 +266,17 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		return nil, err
 	}
 
-	fct, err := ccf.getSubroundsFactoryMethod(consensusDataContainer, consensusState, cc)
+	fct, err := sposFactory.GetSubroundsFactory(
+		consensusDataContainer,
+		consensusState,
+		cc.worker,
+		ccf.config.Consensus.Type,
+		ccf.coreComponents.StatusHandler(),
+		ccf.statusComponents.OutportHandler(),
+		[]byte(ccf.coreComponents.ChainID()),
+		ccf.networkComponents.NetworkMessenger().ID(),
+		ccf.subRoundBlockType,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -286,28 +294,6 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 	}
 
 	return cc, nil
-}
-
-func (ccf *consensusComponentsFactory) getSubroundsFactory(
-	consensusDataContainer *spos.ConsensusCore,
-	consensusState *spos.ConsensusState,
-	cc *consensusComponents,
-) (spos.SubroundsFactory, error) {
-	fct, err := sposFactory.GetSubroundsFactory(
-		consensusDataContainer,
-		consensusState,
-		cc.worker,
-		ccf.config.Consensus.Type,
-		ccf.coreComponents.StatusHandler(),
-		ccf.statusComponents.OutportHandler(),
-		[]byte(ccf.coreComponents.ChainID()),
-		ccf.networkComponents.NetworkMessenger().ID(),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return fct, nil
 }
 
 // Close will close all the inner components

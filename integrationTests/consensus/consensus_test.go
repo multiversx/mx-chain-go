@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/consensus"
 	consensusComp "github.com/ElrondNetwork/elrond-go/factory/consensus"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -140,6 +141,7 @@ func startNodesWithCommitBlock(nodes []*integrationTests.TestConsensusNode, mute
 			StatusComponents:    statusComponents,
 			ScheduledProcessor:  &consensusMocks.ScheduledProcessorStub{},
 			IsInImportMode:      n.Node.IsInImportMode(),
+			SubRoundBlockType:   consensus.SubRoundBlockTypeV1,
 		}
 
 		consensusFactory, err := consensusComp.NewConsensusComponentsFactory(consensusArgs)

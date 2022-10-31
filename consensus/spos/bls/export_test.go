@@ -104,7 +104,7 @@ func (fct *factory) GenerateStartRoundSubround() error {
 
 // GenerateBlockSubround generates the instance of subround Block and added it to the chronology subrounds list
 func (fct *factory) GenerateBlockSubround() error {
-	return fct.generateBlockSubroundMethod()
+	return fct.generateBlockSubround()
 }
 
 // GenerateSignatureSubround generates the instance of subround Signature and added it to the chronology subrounds list
@@ -168,8 +168,8 @@ func (sr *subroundBlock) DoBlockJob() bool {
 }
 
 // DoBlockJob method does the job of the subround Block
-func (scsr *subroundBlockV2) DoBlockJob() bool {
-	return scsr.doBlockJob(context.Background())
+func (sr *subroundBlockV2) DoBlockJob() bool {
+	return sr.doBlockJob(context.Background())
 }
 
 // ProcessReceivedBlock method processes the received proposed block in the subround Block
