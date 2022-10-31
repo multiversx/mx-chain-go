@@ -28,9 +28,9 @@ func TestBridgeSetupAndBurn(t *testing.T) {
 	numMetachainNodes := 1
 
 	enableEpochs := config.EnableEpochs{
-		GlobalMintBurnDisableEpoch:          10,
-		BuiltInFunctionOnMetaEnableEpoch:    10,
-		FixAsyncCallBackArgsListEnableEpoch: 10,
+		GlobalMintBurnDisableEpoch:          integrationTests.UnreachableEpoch,
+		BuiltInFunctionOnMetaEnableEpoch:    integrationTests.UnreachableEpoch,
+		FixAsyncCallBackArgsListEnableEpoch: integrationTests.UnreachableEpoch,
 	}
 	nodes := integrationTests.CreateNodesWithEnableEpochs(
 		numOfShards,
@@ -142,7 +142,7 @@ func TestBridgeSetupAndBurn(t *testing.T) {
 
 func checkBurnedOnESDTContract(t *testing.T, nodes []*integrationTests.TestProcessorNode, tokenIdentifier []byte, burntValue *big.Int) {
 	esdtSCAcc := getUserAccountWithAddress(t, vm.ESDTSCAddress, nodes)
-	retrievedData, _ := esdtSCAcc.DataTrieTracker().RetrieveValue(tokenIdentifier)
+	retrievedData, _, _ := esdtSCAcc.RetrieveValue(tokenIdentifier)
 	tokenInSystemSC := &systemSmartContracts.ESDTDataV2{}
 	_ = integrationTests.TestMarshalizer.Unmarshal(tokenInSystemSC, retrievedData)
 

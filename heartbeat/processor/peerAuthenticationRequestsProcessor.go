@@ -48,7 +48,6 @@ type peerAuthenticationRequestsProcessor struct {
 	epoch                   uint32
 	minPeersThreshold       float32
 	delayBetweenRequests    time.Duration
-	maxTimeout              time.Duration
 	maxMissingKeysInRequest uint32
 	randomizer              dataRetriever.IntRandomizer
 	cancel                  func()
@@ -69,7 +68,6 @@ func NewPeerAuthenticationRequestsProcessor(args ArgPeerAuthenticationRequestsPr
 		epoch:                   args.Epoch,
 		minPeersThreshold:       args.MinPeersThreshold,
 		delayBetweenRequests:    args.DelayBetweenRequests,
-		maxTimeout:              args.MaxTimeout,
 		maxMissingKeysInRequest: args.MaxMissingKeysInRequest,
 		randomizer:              args.Randomizer,
 	}

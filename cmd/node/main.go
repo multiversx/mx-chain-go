@@ -9,9 +9,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go-logger/file"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/common/logging"
+	"github.com/ElrondNetwork/elrond-go/common/reflectcommon"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/urfave/cli"
@@ -186,6 +187,15 @@ func readConfigs(ctx *cli.Context, log logger.Logger) (*config.Configs, error) {
 	}
 	log.Debug("config", "file", configurationPaths.Preferences)
 
+	for _, overridable := range preferencesConfig.Preferences.OverridableConfigTomlValues {
+		err = reflectcommon.AdaptStructureValueBasedOnPath(generalConfig, overridable.Path, overridable.Value)
+		if err != nil {
+			return nil, err
+		}
+
+		log.Info("updated config toml value", "path", overridable.Path, "new value", overridable.Value)
+	}
+
 	configurationPaths.External = ctx.GlobalString(externalConfigFile.Name)
 	externalConfig, err := common.LoadExternalConfig(configurationPaths.External)
 	if err != nil {
@@ -246,12 +256,12 @@ func attachFileLogger(log logger.Logger, flagsConfig *config.ContextFlagsConfig)
 	var fileLogging factory.FileLoggingHandler
 	var err error
 	if flagsConfig.SaveLogFile {
-		args := logging.ArgsFileLogging{
+		args := file.ArgsFileLogging{
 			WorkingDir:      flagsConfig.WorkingDir,
 			DefaultLogsPath: defaultLogsPath,
 			LogFilePrefix:   logFilePrefix,
 		}
-		fileLogging, err = logging.NewFileLogging(args)
+		fileLogging, err = file.NewFileLogging(args)
 		if err != nil {
 			return nil, fmt.Errorf("%w creating a log file", err)
 		}

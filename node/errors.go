@@ -88,6 +88,9 @@ var ErrNilBootstrapComponents = errors.New("nil bootstrap componennts")
 // ErrNilCoreComponents signals that a nil core components instance has been provided
 var ErrNilCoreComponents = errors.New("nil core components")
 
+// ErrNilStatusCoreComponents signals that a nil status core components has been provided
+var ErrNilStatusCoreComponents = errors.New("nil status core components")
+
 // ErrNilCryptoComponents signals that a nil crypto components instance has been provided
 var ErrNilCryptoComponents = errors.New("nil crypto components")
 
@@ -129,6 +132,3 @@ var ErrCannotCastUserAccountHandlerToVmCommonUserAccountHandler = errors.New("ca
 
 // ErrTrieOperationsTimeout signals that a trie operation took too long
 var ErrTrieOperationsTimeout = errors.New("trie operations timeout")
-
-// ErrNilStorer signals the using of a nil storer
-var ErrNilStorer = errors.New("nil storer")

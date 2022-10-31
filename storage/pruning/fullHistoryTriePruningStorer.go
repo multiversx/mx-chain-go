@@ -7,16 +7,16 @@ import (
 type fullHistoryTriePruningStorer struct {
 	*triePruningStorer
 	storerWithEpochOperations storerWithEpochOperations
-	args                      *StorerArgs
+	args                      StorerArgs
 	shardId                   string
 }
 
 // NewFullHistoryTriePruningStorer will return a new instance of PruningStorer without sharded directories' naming scheme
-func NewFullHistoryTriePruningStorer(args *FullHistoryStorerArgs) (*fullHistoryTriePruningStorer, error) {
+func NewFullHistoryTriePruningStorer(args FullHistoryStorerArgs) (*fullHistoryTriePruningStorer, error) {
 	return initFullHistoryTriePruningStorer(args, "")
 }
 
-func initFullHistoryTriePruningStorer(args *FullHistoryStorerArgs, shardId string) (*fullHistoryTriePruningStorer, error) {
+func initFullHistoryTriePruningStorer(args FullHistoryStorerArgs, shardId string) (*fullHistoryTriePruningStorer, error) {
 	fhps, err := initFullHistoryPruningStorer(args, shardId)
 	if err != nil {
 		return nil, err
@@ -25,7 +25,8 @@ func initFullHistoryTriePruningStorer(args *FullHistoryStorerArgs, shardId strin
 	tps := &triePruningStorer{
 		PruningStorer: fhps.PruningStorer,
 	}
-	fhps.PruningStorer.extendPersisterLifeHandler = tps.extendPersisterLife
+	fhps.PruningStorer.lastEpochNeededHandler = tps.lastEpochNeeded
+	tps.registerHandler(args.Notifier)
 
 	return &fullHistoryTriePruningStorer{
 		triePruningStorer:         tps,

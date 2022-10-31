@@ -111,13 +111,13 @@ func (rtp *rewardTxProcessor) saveAccumulatedRewards(
 
 	existingReward := big.NewInt(0)
 	fullRewardKey := core.ElrondProtectedKeyPrefix + rewardKey
-	val, err := userAccount.DataTrieTracker().RetrieveValue([]byte(fullRewardKey))
+	val, _, err := userAccount.RetrieveValue([]byte(fullRewardKey))
 	if err == nil {
 		existingReward.SetBytes(val)
 	}
 
 	existingReward.Add(existingReward, rtx.Value)
-	_ = userAccount.DataTrieTracker().SaveKeyValue([]byte(fullRewardKey), existingReward.Bytes())
+	_ = userAccount.SaveKeyValue([]byte(fullRewardKey), existingReward.Bytes())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

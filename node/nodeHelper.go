@@ -25,17 +25,18 @@ func prepareOpenTopics(
 	selfID := shardCoordinator.SelfId()
 	selfShardHeartbeatV2Topic := common.HeartbeatV2Topic + core.CommunicationIdentifierBetweenShards(selfID, selfID)
 	if selfID == core.MetachainShardId {
-		antiflood.SetTopicsForAll(common.HeartbeatTopic, common.PeerAuthenticationTopic, selfShardHeartbeatV2Topic, common.ConnectionTopic)
+		antiflood.SetTopicsForAll(common.PeerAuthenticationTopic, selfShardHeartbeatV2Topic, common.ConnectionTopic)
 		return
 	}
 
 	selfShardTxTopic := procFactory.TransactionTopic + core.CommunicationIdentifierBetweenShards(selfID, selfID)
-	antiflood.SetTopicsForAll(common.HeartbeatTopic, common.PeerAuthenticationTopic, selfShardHeartbeatV2Topic, common.ConnectionTopic, selfShardTxTopic)
+	antiflood.SetTopicsForAll(common.PeerAuthenticationTopic, selfShardHeartbeatV2Topic, common.ConnectionTopic, selfShardTxTopic)
 }
 
 // CreateNode is the node factory
 func CreateNode(
 	config *config.Config,
+	statusCoreComponents factory.StatusCoreComponentsHandler,
 	bootstrapComponents factory.BootstrapComponentsHandler,
 	coreComponents factory.CoreComponentsHandler,
 	cryptoComponents factory.CryptoComponentsHandler,
@@ -44,10 +45,8 @@ func CreateNode(
 	processComponents factory.ProcessComponentsHandler,
 	stateComponents factory.StateComponentsHandler,
 	statusComponents factory.StatusComponentsHandler,
-	heartbeatComponents factory.HeartbeatComponentsHandler,
 	heartbeatV2Components factory.HeartbeatV2ComponentsHandler,
 	consensusComponents factory.ConsensusComponentsHandler,
-	epochConfig config.EpochConfig,
 	bootstrapRoundIndex uint64,
 	isInImportMode bool,
 ) (*Node, error) {
@@ -75,12 +74,11 @@ func CreateNode(
 	}
 
 	esdtNftStorage, err := builtInFunctions.NewESDTDataStorage(builtInFunctions.ArgsNewESDTDataStorage{
-		Accounts:                stateComponents.AccountsAdapterAPI(),
-		GlobalSettingsHandler:   nodeDisabled.NewDisabledGlobalSettingHandler(),
-		Marshalizer:             coreComponents.InternalMarshalizer(),
-		SaveToSystemEnableEpoch: epochConfig.EnableEpochs.OptimizeNFTStoreEnableEpoch,
-		EpochNotifier:           coreComponents.EpochNotifier(),
-		ShardCoordinator:        processComponents.ShardCoordinator(),
+		Accounts:              stateComponents.AccountsAdapterAPI(),
+		GlobalSettingsHandler: nodeDisabled.NewDisabledGlobalSettingHandler(),
+		Marshalizer:           coreComponents.InternalMarshalizer(),
+		EnableEpochsHandler:   coreComponents.EnableEpochsHandler(),
+		ShardCoordinator:      processComponents.ShardCoordinator(),
 	})
 	if err != nil {
 		return nil, err
@@ -88,6 +86,7 @@ func CreateNode(
 
 	var nd *Node
 	nd, err = NewNode(
+		WithStatusCoreComponents(statusCoreComponents),
 		WithCoreComponents(coreComponents),
 		WithCryptoComponents(cryptoComponents),
 		WithBootstrapComponents(bootstrapComponents),
@@ -95,7 +94,6 @@ func CreateNode(
 		WithDataComponents(dataComponents),
 		WithStatusComponents(statusComponents),
 		WithProcessComponents(processComponents),
-		WithHeartbeatComponents(heartbeatComponents),
 		WithHeartbeatV2Components(heartbeatV2Components),
 		WithConsensusComponents(consensusComponents),
 		WithNetworkComponents(networkComponents),

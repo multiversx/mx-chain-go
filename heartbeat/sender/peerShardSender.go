@@ -11,7 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/processor"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/p2p/message"
+	"github.com/ElrondNetwork/elrond-go/p2p/factory"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -122,7 +122,7 @@ func (pss *peerShardSender) broadcastShard() {
 		return
 	}
 
-	peerShard := &message.PeerShard{
+	peerShard := &factory.PeerShard{
 		ShardId: fmt.Sprintf("%d", pss.shardCoordinator.SelfId()),
 	}
 

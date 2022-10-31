@@ -10,13 +10,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/errors"
+	"github.com/ElrondNetwork/elrond-go/trie/keyBuilder"
 )
 
 const (
 	nrOfChildren         = 17
 	firstByte            = 0
 	hexTerminator        = 16
-	nibbleSize           = 4
 	nibbleMask           = 0x0f
 	pointerSizeInBytes   = 8
 	numNodeInnerPointers = 2 // each trie node contains a marshalizer and a hasher
@@ -79,12 +80,7 @@ func encodeNodeAndCommitToDB(n node, db common.DBWriteCacher) (int, error) {
 		return 0, err
 	}
 
-	n, err = n.getCollapsed()
-	if err != nil {
-		return 0, err
-	}
-
-	val, err := n.getEncodedNode()
+	val, err := collapseAndEncodeNode(n)
 	if err != nil {
 		return 0, err
 	}
@@ -94,6 +90,15 @@ func encodeNodeAndCommitToDB(n node, db common.DBWriteCacher) (int, error) {
 	err = db.Put(key, val)
 
 	return len(val), err
+}
+
+func collapseAndEncodeNode(n node) ([]byte, error) {
+	n, err := n.getCollapsed()
+	if err != nil {
+		return nil, err
+	}
+
+	return n.getEncodedNode()
 }
 
 func computeAndSetNodeHash(n node) ([]byte, error) {
@@ -211,31 +216,12 @@ func keyBytesToHex(str []byte) []byte {
 	nibbles[hexLength-1] = hexTerminator
 
 	for i := hexLength - 2; i > 0; i -= 2 {
-		nibbles[i] = str[hexSliceIndex] >> nibbleSize
+		nibbles[i] = str[hexSliceIndex] >> keyBuilder.NibbleSize
 		nibbles[i-1] = str[hexSliceIndex] & nibbleMask
 		hexSliceIndex++
 	}
 
 	return nibbles
-}
-
-// hexToKeyBytes transforms hex nibbles into key bytes. The hex terminator is removed from the end of the hex slice,
-// and then the hex slice is reversed when forming the key bytes.
-func hexToKeyBytes(hex []byte) ([]byte, error) {
-	hex = hex[:len(hex)-1]
-	length := len(hex)
-	if length%2 != 0 {
-		return nil, ErrInvalidLength
-	}
-
-	key := make([]byte, length/2)
-	hexSliceIndex := 0
-	for i := len(key) - 1; i >= 0; i-- {
-		key[i] = hex[hexSliceIndex+1]<<nibbleSize | hex[hexSliceIndex]
-		hexSliceIndex += 2
-	}
-
-	return key, nil
 }
 
 // prefixLen returns the length of the common prefix of a and b.
@@ -273,4 +259,14 @@ func shouldStopIfContextDone(ctx context.Context, idleProvider IdleNodeProvider)
 		case <-time.After(pollingIdleNode):
 		}
 	}
+}
+
+func treatCommitSnapshotError(err error, hash []byte, missingNodesChan chan []byte) {
+	if errors.IsClosingError(err) {
+		log.Debug("context closing", "hash", hash)
+		return
+	}
+
+	log.Error("error during trie snapshot", "err", err.Error(), "hash", hash)
+	missingNodesChan <- hash
 }

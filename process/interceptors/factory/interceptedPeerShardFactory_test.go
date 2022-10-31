@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/p2p/message"
+	p2pFactory "github.com/ElrondNetwork/elrond-go/p2p/factory"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/stretchr/testify/assert"
 )
@@ -56,7 +56,7 @@ func TestNewInterceptedPeerShardFactory(t *testing.T) {
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(idcif))
 
-		msg := &message.PeerShard{
+		msg := &p2pFactory.PeerShard{
 			ShardId: "5",
 		}
 		msgBuff, _ := arg.CoreComponents.InternalMarshalizer().Marshal(msg)

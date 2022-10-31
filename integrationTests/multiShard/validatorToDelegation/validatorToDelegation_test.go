@@ -227,12 +227,12 @@ func jailNodes(nodes []*integrationTests.TestProcessorNode, blsKeys [][]byte) {
 		stakingAcc := acc.(state.UserAccountHandler)
 
 		for _, blsKey := range blsKeys {
-			marshaledData, _ := stakingAcc.DataTrieTracker().RetrieveValue(blsKey)
+			marshaledData, _, _ := stakingAcc.RetrieveValue(blsKey)
 			stakingData := &systemSmartContracts.StakedDataV2_0{}
 			_ = integrationTests.TestMarshalizer.Unmarshal(stakingData, marshaledData)
 			stakingData.Jailed = true
 			marshaledData, _ = integrationTests.TestMarshalizer.Marshal(stakingData)
-			_ = stakingAcc.DataTrieTracker().SaveKeyValue(blsKey, marshaledData)
+			_ = stakingAcc.SaveKeyValue(blsKey, marshaledData)
 		}
 
 		_ = node.AccntState.SaveAccount(stakingAcc)
@@ -367,7 +367,7 @@ func testBLSKeyOwnerIsAddress(t *testing.T, nodes []*integrationTests.TestProces
 		acnt, _ := n.AccntState.GetExistingAccount(vm.StakingSCAddress)
 		userAcc, _ := acnt.(state.UserAccountHandler)
 
-		marshaledData, _ := userAcc.DataTrieTracker().RetrieveValue(blsKey)
+		marshaledData, _, _ := userAcc.RetrieveValue(blsKey)
 		stakingData := &systemSmartContracts.StakedDataV2_0{}
 		_ = integrationTests.TestMarshalizer.Unmarshal(stakingData, marshaledData)
 		assert.Equal(t, stakingData.OwnerAddress, address)

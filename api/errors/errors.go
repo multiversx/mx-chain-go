@@ -19,6 +19,9 @@ var ErrGetBalance = errors.New("get balance error")
 // ErrGetUsername signals an error in getting the username for an account
 var ErrGetUsername = errors.New("get username error")
 
+// ErrGetCodeHash signals an error in getting the code hash for an account
+var ErrGetCodeHash = errors.New("get code hash error")
+
 // ErrGetValueForKey signals an error in getting the value of a key for an account
 var ErrGetValueForKey = errors.New("get value for key error")
 

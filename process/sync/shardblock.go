@@ -83,9 +83,16 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 	base.requestMiniBlocks = boot.requestMiniBlocksFromHeaderWithNonceIfMissing
 
 	// placed in struct fields for performance reasons
-	base.headerStore = boot.store.GetStorer(dataRetriever.BlockHeaderUnit)
+	base.headerStore, err = boot.store.GetStorer(dataRetriever.BlockHeaderUnit)
+	if err != nil {
+		return nil, err
+	}
+
 	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(boot.shardCoordinator.SelfId())
-	base.headerNonceHashStore = boot.store.GetStorer(hdrNonceHashDataUnit)
+	base.headerNonceHashStore, err = boot.store.GetStorer(hdrNonceHashDataUnit)
+	if err != nil {
+		return nil, err
+	}
 
 	base.init()
 
@@ -151,7 +158,7 @@ func isErrGetNodeFromDB(err error) bool {
 		return false
 	}
 
-	if strings.Contains(err.Error(), errors.ErrDBIsClosed.Error()) {
+	if strings.Contains(err.Error(), storage.ErrDBIsClosed.Error()) {
 		return false
 	}
 
@@ -349,4 +356,9 @@ func (boot *ShardBootstrap) isForkTriggeredByMeta() bool {
 
 func (boot *ShardBootstrap) requestHeaderByNonce(nonce uint64) {
 	boot.requestHandler.RequestShardHeaderByNonce(boot.shardCoordinator.SelfId(), nonce)
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (boot *ShardBootstrap) IsInterfaceNil() bool {
+	return boot == nil
 }
