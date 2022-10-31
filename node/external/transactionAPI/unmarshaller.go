@@ -17,20 +17,17 @@ type txUnmarshaller struct {
 	addressPubKeyConverter core.PubkeyConverter
 	marshalizer            marshal.Marshalizer
 	dataFieldParser        DataFieldParser
-	chainID                string
 }
 
 func newTransactionUnmarshaller(
 	marshalizer marshal.Marshalizer,
 	addressPubKeyConverter core.PubkeyConverter,
 	dataFieldParser DataFieldParser,
-	chainID string,
 ) *txUnmarshaller {
 	return &txUnmarshaller{
 		marshalizer:            marshalizer,
 		addressPubKeyConverter: addressPubKeyConverter,
 		dataFieldParser:        dataFieldParser,
-		chainID:                chainID,
 	}
 }
 
@@ -96,7 +93,6 @@ func (tu *txUnmarshaller) unmarshalTransaction(txBytes []byte, txType transactio
 	apiTx.Receivers = datafield.EncodeBytesSlice(tu.addressPubKeyConverter.Encode, res.Receivers)
 	apiTx.ReceiversShardIDs = res.ReceiversShardID
 	apiTx.IsRelayed = res.IsRelayed
-	apiTx.ChainID = tu.chainID
 
 	return apiTx, nil
 }
@@ -117,6 +113,7 @@ func (tu *txUnmarshaller) prepareNormalTx(tx *transaction.Transaction) (*transac
 		Signature:        hex.EncodeToString(tx.Signature),
 		Options:          tx.Options,
 		Version:          tx.Version,
+		ChainID:          string(tx.ChainID),
 	}, nil
 }
 

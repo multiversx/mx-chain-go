@@ -234,7 +234,6 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		TxTypeHandler:            txTypeHandler,
 		LogsFacade:               logsFacade,
 		DataFieldParser:          dataFieldParser,
-		ChainID:                  args.Configs.GeneralConfig.GeneralSettings.ChainID,
 	}
 	apiTransactionProcessor, err := transactionAPI.NewAPITransactionProcessor(argsAPITransactionProc)
 	if err != nil {

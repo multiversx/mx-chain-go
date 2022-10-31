@@ -54,7 +54,6 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 		args.Marshalizer,
 		args.AddressPubKeyConverter,
 		args.DataFieldParser,
-		args.ChainID,
 	)
 	txResultsProc := newAPITransactionResultProcessor(
 		args.AddressPubKeyConverter,
