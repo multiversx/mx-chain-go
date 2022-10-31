@@ -702,7 +702,7 @@ func TestAccountsParser_GenerateInitialTransactionsVerifyTxsHashes(t *testing.T)
 
 	ap := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
 	balance := int64(1)
-	ibs := []*data.InitialAccount{}
+	ibs := make([]*data.InitialAccount, 0)
 
 	ap.SetEntireSupply(big.NewInt(int64(len(ibs)) * balance))
 	ap.SetInitialAccounts(ibs)

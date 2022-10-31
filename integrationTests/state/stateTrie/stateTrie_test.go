@@ -141,7 +141,7 @@ func TestAccountsDB_GetJournalizedAccountReturnExistingAccntShouldWork(t *testin
 }
 
 func TestAccountsDB_GetJournalizedAccountReturnNotFoundAccntShouldWork(t *testing.T) {
-	// test when the account does not exists
+	// test when the account does not exist
 	t.Parallel()
 
 	adr, _, adb := integrationTests.GenerateAddressJournalAccountAccountsDB()

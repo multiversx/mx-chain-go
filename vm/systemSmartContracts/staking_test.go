@@ -1032,7 +1032,7 @@ func TestStakingSc_StakeWithV1ShouldWork(t *testing.T) {
 // 2 -- will try to do jail before stake should return user error
 // 3 -- will stake and stake should work
 // 4 -- will jail user that stake and should work
-// 5 -- will try do to unStake and should not work because cannot do unStake if validator is jail
+// 5 -- will try to do to unStake and should not work because cannot do unStake if validator is jailed
 // 6 -- will try to do unJail with wrong access address should not work
 // 7 -- will do unJail with correct parameters and should work and after that stakeValue should be 999
 func TestStakingSc_StakeJailAndUnJail(t *testing.T) {
@@ -1080,7 +1080,7 @@ func TestStakingSc_StakeJailAndUnJail(t *testing.T) {
 
 	// unJail wrong access address should not work
 	doUnJail(t, stakingSmartContract, []byte("addr"), stakerPubKey, vmcommon.UserError)
-	// cannot do unJail on a address that not stake
+	// cannot do unJail on an address that not stake
 	doUnJail(t, stakingSmartContract, stakingAccessAddress, []byte("addr"), vmcommon.UserError)
 	// unJail should work
 	blockChainHook.CurrentRoundCalled = func() uint64 {
