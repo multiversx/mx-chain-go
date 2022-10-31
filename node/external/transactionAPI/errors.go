@@ -31,5 +31,3 @@ var ErrCannotRetrieveTransactions = errors.New("transactions cannot be retrieved
 
 // ErrInvalidAddress signals that the address is invalid
 var ErrInvalidAddress = errors.New("invalid address")
-
-var errEmptyChainID = errors.New("empty chain id provided")
