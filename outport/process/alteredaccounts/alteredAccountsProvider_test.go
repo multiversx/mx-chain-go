@@ -761,25 +761,25 @@ func testExtractAlteredAccountsFromPoolAddressHasMultipleNfts(t *testing.T) {
 	args.AccountsDB = &state.AccountsStub{
 		LoadAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
 			trieMock := trie.DataTrieTrackerStub{
-				RetrieveValueCalled: func(key []byte) ([]byte, error) {
+				RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
 					if strings.Contains(string(key), "esdttoken") {
 						tokenBytes, _ := marshaller.Marshal(expectedToken0)
-						return tokenBytes, nil
+						return tokenBytes, 0, nil
 					}
 
 					firstNftKey := fmt.Sprintf("%s%s", "nft-0", string(big.NewInt(5).Bytes()))
 					if strings.Contains(string(key), firstNftKey) {
 						tokenBytes, _ := marshaller.Marshal(expectedToken1)
-						return tokenBytes, nil
+						return tokenBytes, 0, nil
 					}
 
 					secondNftKey := fmt.Sprintf("%s%s", "nft-0", string(big.NewInt(6).Bytes()))
 					if strings.Contains(string(key), secondNftKey) {
 						tokenBytes, _ := marshaller.Marshal(expectedToken2)
-						return tokenBytes, nil
+						return tokenBytes, 0, nil
 					}
 
-					return nil, nil
+					return nil, 0, nil
 				},
 			}
 			wrappedAccountMock := &state.AccountWrapMock{}
