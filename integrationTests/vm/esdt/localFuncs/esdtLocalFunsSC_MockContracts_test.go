@@ -6,9 +6,9 @@ package localFuncs
 import (
 	"testing"
 
-	test "github.com/ElrondNetwork/arwen-wasm-vm/v1_5/testcommon"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen/arwenvm"
+	test "github.com/ElrondNetwork/wasm-vm/testcommon"
 )
 
 func TestESDTLocalMintAndBurnFromSC_MockContracts(t *testing.T) {

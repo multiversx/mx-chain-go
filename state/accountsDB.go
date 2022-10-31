@@ -6,6 +6,8 @@ import (
 	"encoding/hex"
 	"fmt"
 	"runtime/debug"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -18,12 +20,17 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/holders"
 	"github.com/ElrondNetwork/elrond-go/errors"
+	"github.com/ElrondNetwork/elrond-go/trie/keyBuilder"
+	"github.com/ElrondNetwork/elrond-go/trie/statistics"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 const (
-	leavesChannelSize   = 100
-	lastSnapshotStarted = "lastSnapshot"
+	leavesChannelSize       = 100
+	missingNodesChannelSize = 100
+	lastSnapshotStarted     = "lastSnapshot"
+	userTrieSnapshotMsg     = "snapshotState user trie"
+	peerTrieSnapshotMsg     = "snapshotState peer trie"
 )
 
 type loadingMeasurements struct {
@@ -61,6 +68,12 @@ func (lm *loadingMeasurements) resetAndPrint() {
 	)
 }
 
+type accountMetrics struct {
+	snapshotInProgressKey   string
+	lastSnapshotDurationKey string
+	snapshotMessage         string
+}
+
 type snapshotInfo struct {
 	rootHash []byte
 	epoch    uint32
@@ -74,18 +87,20 @@ type AccountsDB struct {
 	accountFactory         AccountFactory
 	storagePruningManager  StoragePruningManager
 	obsoleteDataTrieHashes map[string][][]byte
+	trieSyncer             AccountsDBSyncer
 
 	isSnapshotInProgress atomic.Flag
 	lastSnapshot         *snapshotInfo
 	lastRootHash         []byte
 	dataTries            common.TriesHolder
 	entries              []JournalEntry
-	// TODO use mutOp only for critical sections, and refactor to parallelize as much as possible
+
 	mutOp                    sync.RWMutex
 	processingMode           common.NodeProcessingMode
 	shouldSerializeSnapshots bool
 	loadCodeMeasurements     *loadingMeasurements
 	processStatusHandler     common.ProcessStatusHandler
+	appStatusHandler         core.AppStatusHandler
 
 	stackDebug []byte
 }
@@ -102,6 +117,7 @@ type ArgsAccountsDB struct {
 	ProcessingMode           common.NodeProcessingMode
 	ShouldSerializeSnapshots bool
 	ProcessStatusHandler     common.ProcessStatusHandler
+	AppStatusHandler         core.AppStatusHandler
 }
 
 // NewAccountsDB creates a new account manager
@@ -111,16 +127,9 @@ func NewAccountsDB(args ArgsAccountsDB) (*AccountsDB, error) {
 		return nil, err
 	}
 
-	adb := createAccountsDb(args)
+	args.AppStatusHandler.SetStringValue(common.MetricAccountsSnapshotInProgress, strconv.FormatBool(false))
 
-	trieStorageManager := adb.mainTrie.GetStorageManager()
-	val, err := trieStorageManager.GetFromCurrentEpoch([]byte(common.ActiveDBKey))
-	isActiveDBVal := bytes.Equal(val, []byte(common.ActiveDBVal))
-	if err != nil || !isActiveDBVal {
-		startSnapshotAfterRestart(adb, args)
-	}
-
-	return adb, nil
+	return createAccountsDb(args), nil
 }
 
 func createAccountsDb(args ArgsAccountsDB) *AccountsDB {
@@ -141,6 +150,7 @@ func createAccountsDb(args ArgsAccountsDB) *AccountsDB {
 		shouldSerializeSnapshots: args.ShouldSerializeSnapshots,
 		lastSnapshot:             &snapshotInfo{},
 		processStatusHandler:     args.ProcessStatusHandler,
+		appStatusHandler:         args.AppStatusHandler,
 		isSnapshotInProgress:     atomic.Flag{},
 	}
 }
@@ -164,21 +174,23 @@ func checkArgsAccountsDB(args ArgsAccountsDB) error {
 	if check.IfNil(args.ProcessStatusHandler) {
 		return ErrNilProcessStatusHandler
 	}
+	if check.IfNil(args.AppStatusHandler) {
+		return ErrNilAppStatusHandler
+	}
 
 	return nil
 }
 
-func startSnapshotAfterRestart(adb AccountsAdapter, args ArgsAccountsDB) {
-	tsm := args.Trie.GetStorageManager()
+func startSnapshotAfterRestart(adb AccountsAdapter, tsm common.StorageManager, processingMode common.NodeProcessingMode) {
 	epoch, err := tsm.GetLatestStorageEpoch()
 	if err != nil {
 		log.Error("could not get latest storage epoch")
 	}
 	putActiveDBMarker := epoch == 0 && err == nil
-	isInImportDBMode := args.ProcessingMode == common.ImportDb
+	isInImportDBMode := processingMode == common.ImportDb
 	putActiveDBMarker = putActiveDBMarker || isInImportDBMode
 	if putActiveDBMarker {
-		log.Debug("marking activeDB", "epoch", epoch, "error", err, "processing mode", args.ProcessingMode)
+		log.Debug("marking activeDB", "epoch", epoch, "error", err, "processing mode", processingMode)
 		err = tsm.Put([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal))
 		handleLoggingWhenError("error while putting active DB value into main storer", err)
 		return
@@ -212,6 +224,42 @@ func handleLoggingWhenError(message string, err error, extraArguments ...interfa
 	log.Warn(message, append(args, extraArguments...)...)
 }
 
+// SetSyncer sets the given syncer as the syncer for the underlying trie
+func (adb *AccountsDB) SetSyncer(syncer AccountsDBSyncer) error {
+	if check.IfNil(syncer) {
+		return ErrNilTrieSyncer
+	}
+
+	adb.mutOp.Lock()
+	defer adb.mutOp.Unlock()
+
+	adb.trieSyncer = syncer
+	return nil
+}
+
+// StartSnapshotIfNeeded starts the snapshot if the previous snapshot process was not fully completed
+func (adb *AccountsDB) StartSnapshotIfNeeded() error {
+	return startSnapshotIfNeeded(adb, adb.getTrieSyncer(), adb.getMainTrie().GetStorageManager(), adb.processingMode)
+}
+
+func startSnapshotIfNeeded(
+	adb AccountsAdapter,
+	trieSyncer AccountsDBSyncer,
+	trieStorageManager common.StorageManager,
+	processingMode common.NodeProcessingMode,
+) error {
+	if check.IfNil(trieSyncer) {
+		return ErrNilTrieSyncer
+	}
+
+	val, err := trieStorageManager.GetFromCurrentEpoch([]byte(common.ActiveDBKey))
+	if err != nil || !bytes.Equal(val, []byte(common.ActiveDBVal)) {
+		startSnapshotAfterRestart(adb, trieStorageManager, processingMode)
+	}
+
+	return nil
+}
+
 // GetCode returns the code for the given account
 func (adb *AccountsDB) GetCode(codeHash []byte) []byte {
 	if len(codeHash) == 0 {
@@ -226,7 +274,7 @@ func (adb *AccountsDB) GetCode(codeHash []byte) []byte {
 		adb.loadCodeMeasurements.addMeasurement(len(codeEntry.Code), duration)
 	}()
 
-	val, err := adb.mainTrie.Get(codeHash)
+	val, _, err := adb.getMainTrie().Get(codeHash)
 	if err != nil {
 		return nil
 	}
@@ -241,26 +289,39 @@ func (adb *AccountsDB) GetCode(codeHash []byte) []byte {
 
 // ImportAccount saves the account in the trie. It does not modify
 func (adb *AccountsDB) ImportAccount(account vmcommon.AccountHandler) error {
-	adb.mutOp.Lock()
-	defer adb.mutOp.Unlock()
-
 	if check.IfNil(account) {
 		return fmt.Errorf("%w in accountsDB ImportAccount", ErrNilAccountHandler)
 	}
 
-	return adb.saveAccountToTrie(account)
+	mainTrie := adb.getMainTrie()
+	return adb.saveAccountToTrie(account, mainTrie)
+}
+
+func (adb *AccountsDB) getMainTrie() common.Trie {
+	adb.mutOp.RLock()
+	defer adb.mutOp.RUnlock()
+
+	return adb.mainTrie
+}
+
+func (adb *AccountsDB) getTrieSyncer() AccountsDBSyncer {
+	adb.mutOp.RLock()
+	defer adb.mutOp.RUnlock()
+
+	return adb.trieSyncer
 }
 
 // SaveAccount saves in the trie all changes made to the account.
 func (adb *AccountsDB) SaveAccount(account vmcommon.AccountHandler) error {
-	adb.mutOp.Lock()
-	defer adb.mutOp.Unlock()
-
 	if check.IfNil(account) {
 		return fmt.Errorf("%w in accountsDB SaveAccount", ErrNilAccountHandler)
 	}
 
-	oldAccount, err := adb.getAccount(account.AddressBytes())
+	// this is a critical section, do not remove the mutex
+	adb.mutOp.Lock()
+	defer adb.mutOp.Unlock()
+
+	oldAccount, err := adb.getAccount(account.AddressBytes(), adb.mainTrie)
 	if err != nil {
 		return err
 	}
@@ -285,7 +346,7 @@ func (adb *AccountsDB) SaveAccount(account vmcommon.AccountHandler) error {
 		return err
 	}
 
-	return adb.saveAccountToTrie(account)
+	return adb.saveAccountToTrie(account, adb.mainTrie)
 }
 
 func (adb *AccountsDB) saveCodeAndDataTrie(oldAcc, newAcc vmcommon.AccountHandler) error {
@@ -411,7 +472,7 @@ func (adb *AccountsDB) updateNewCodeEntry(newCodeHash []byte, newCode []byte) er
 }
 
 func getCodeEntry(codeHash []byte, trie Updater, marshalizer marshal.Marshalizer) (*CodeEntry, error) {
-	val, err := trie.Get(codeHash)
+	val, _, err := trie.Get(codeHash)
 	if err != nil {
 		return nil, err
 	}
@@ -445,7 +506,7 @@ func saveCodeEntry(codeHash []byte, entry *CodeEntry, trie Updater, marshalizer 
 
 // LoadDataTrie retrieves and saves the SC data inside accountHandler object.
 // Errors if something went wrong
-func (adb *AccountsDB) loadDataTrie(accountHandler baseAccountHandler) error {
+func (adb *AccountsDB) loadDataTrie(accountHandler baseAccountHandler, mainTrie common.Trie) error {
 	if len(accountHandler.GetRootHash()) == 0 {
 		return nil
 	}
@@ -456,7 +517,7 @@ func (adb *AccountsDB) loadDataTrie(accountHandler baseAccountHandler) error {
 		return nil
 	}
 
-	dataTrie, err := adb.mainTrie.Recreate(accountHandler.GetRootHash())
+	dataTrie, err := mainTrie.Recreate(accountHandler.GetRootHash())
 	if err != nil {
 		return NewErrMissingTrie(accountHandler.GetRootHash())
 	}
@@ -469,44 +530,12 @@ func (adb *AccountsDB) loadDataTrie(accountHandler baseAccountHandler) error {
 // SaveDataTrie is used to save the data trie (not committing it) and to recompute the new Root value
 // If data is not dirtied, method will not create its JournalEntries to keep track of data modification
 func (adb *AccountsDB) saveDataTrie(accountHandler baseAccountHandler) error {
-	if check.IfNil(accountHandler.DataTrieTracker()) {
-		return ErrNilTrackableDataTrie
+	oldValues, err := accountHandler.SaveDirtyData(adb.mainTrie)
+	if err != nil {
+		return err
 	}
-	if len(accountHandler.DataTrieTracker().DirtyData()) == 0 {
+	if len(oldValues) == 0 {
 		return nil
-	}
-
-	log.Trace("accountsDB.SaveDataTrie",
-		"address", hex.EncodeToString(accountHandler.AddressBytes()),
-		"nonce", accountHandler.GetNonce(),
-	)
-
-	if check.IfNil(accountHandler.DataTrie()) {
-		newDataTrie, err := adb.mainTrie.Recreate(make([]byte, 0))
-		if err != nil {
-			return err
-		}
-
-		accountHandler.SetDataTrie(newDataTrie)
-		adb.dataTries.Put(accountHandler.AddressBytes(), newDataTrie)
-	}
-
-	trackableDataTrie := accountHandler.DataTrieTracker()
-	dataTrie := trackableDataTrie.DataTrie()
-	oldValues := make(map[string][]byte)
-
-	for k, v := range trackableDataTrie.DirtyData() {
-		val, err := dataTrie.Get([]byte(k))
-		if err != nil {
-			return err
-		}
-
-		oldValues[k] = val
-
-		err = dataTrie.Update([]byte(k), v)
-		if err != nil {
-			return err
-		}
 	}
 
 	entry, err := NewJournalEntryDataTrieUpdates(oldValues, accountHandler)
@@ -515,27 +544,26 @@ func (adb *AccountsDB) saveDataTrie(accountHandler baseAccountHandler) error {
 	}
 	adb.journalize(entry)
 
-	rootHash, err := trackableDataTrie.DataTrie().RootHash()
+	rootHash, err := accountHandler.DataTrie().RootHash()
 	if err != nil {
 		return err
 	}
-
 	accountHandler.SetRootHash(rootHash)
-	trackableDataTrie.ClearDataCaches()
-
-	log.Trace("accountsDB.SaveDataTrie",
-		"address", hex.EncodeToString(accountHandler.AddressBytes()),
-		"new root hash", accountHandler.GetRootHash(),
-	)
 
 	if check.IfNil(adb.dataTries.Get(accountHandler.AddressBytes())) {
-		adb.dataTries.Put(accountHandler.AddressBytes(), accountHandler.DataTrie())
+		trie, ok := accountHandler.DataTrie().(common.Trie)
+		if !ok {
+			log.Warn("wrong type conversion", "trie type", fmt.Sprintf("%T", accountHandler.DataTrie()))
+			return nil
+		}
+
+		adb.dataTries.Put(accountHandler.AddressBytes(), trie)
 	}
 
 	return nil
 }
 
-func (adb *AccountsDB) saveAccountToTrie(accountHandler vmcommon.AccountHandler) error {
+func (adb *AccountsDB) saveAccountToTrie(accountHandler vmcommon.AccountHandler, mainTrie common.Trie) error {
 	log.Trace("accountsDB.saveAccountToTrie",
 		"address", hex.EncodeToString(accountHandler.AddressBytes()),
 	)
@@ -546,20 +574,21 @@ func (adb *AccountsDB) saveAccountToTrie(accountHandler vmcommon.AccountHandler)
 		return err
 	}
 
-	return adb.mainTrie.Update(accountHandler.AddressBytes(), buff)
+	return mainTrie.Update(accountHandler.AddressBytes(), buff)
 }
 
 // RemoveAccount removes the account data from underlying trie.
 // It basically calls Update with empty slice
 func (adb *AccountsDB) RemoveAccount(address []byte) error {
-	adb.mutOp.Lock()
-	defer adb.mutOp.Unlock()
-
 	if len(address) == 0 {
 		return fmt.Errorf("%w in RemoveAccount", ErrNilAddress)
 	}
 
-	acnt, err := adb.getAccount(address)
+	// this is a critical section, do not remove the mutex
+	adb.mutOp.Lock()
+	defer adb.mutOp.Unlock()
+
+	acnt, err := adb.getAccount(address, adb.mainTrie)
 	if err != nil {
 		return err
 	}
@@ -649,9 +678,6 @@ func (adb *AccountsDB) removeCode(baseAcc baseAccountHandler) error {
 
 // LoadAccount fetches the account based on the address. Creates an empty account if the account is missing.
 func (adb *AccountsDB) LoadAccount(address []byte) (vmcommon.AccountHandler, error) {
-	adb.mutOp.Lock()
-	defer adb.mutOp.Unlock()
-
 	if len(address) == 0 {
 		return nil, fmt.Errorf("%w in LoadAccount", ErrNilAddress)
 	}
@@ -660,7 +686,8 @@ func (adb *AccountsDB) LoadAccount(address []byte) (vmcommon.AccountHandler, err
 		"address", hex.EncodeToString(address),
 	)
 
-	acnt, err := adb.getAccount(address)
+	mainTrie := adb.getMainTrie()
+	acnt, err := adb.getAccount(address, mainTrie)
 	if err != nil {
 		return nil, err
 	}
@@ -670,7 +697,7 @@ func (adb *AccountsDB) LoadAccount(address []byte) (vmcommon.AccountHandler, err
 
 	baseAcc, ok := acnt.(baseAccountHandler)
 	if ok {
-		err = adb.loadDataTrie(baseAcc)
+		err = adb.loadDataTrie(baseAcc, mainTrie)
 		if err != nil {
 			return nil, err
 		}
@@ -679,8 +706,8 @@ func (adb *AccountsDB) LoadAccount(address []byte) (vmcommon.AccountHandler, err
 	return acnt, nil
 }
 
-func (adb *AccountsDB) getAccount(address []byte) (vmcommon.AccountHandler, error) {
-	val, err := adb.mainTrie.Get(address)
+func (adb *AccountsDB) getAccount(address []byte, mainTrie common.Trie) (vmcommon.AccountHandler, error) {
+	val, _, err := mainTrie.Get(address)
 	if err != nil {
 		return nil, err
 	}
@@ -703,9 +730,6 @@ func (adb *AccountsDB) getAccount(address []byte) (vmcommon.AccountHandler, erro
 
 // GetExistingAccount returns an existing account if exists or nil if missing
 func (adb *AccountsDB) GetExistingAccount(address []byte) (vmcommon.AccountHandler, error) {
-	adb.mutOp.Lock()
-	defer adb.mutOp.Unlock()
-
 	if len(address) == 0 {
 		return nil, fmt.Errorf("%w in GetExistingAccount", ErrNilAddress)
 	}
@@ -714,7 +738,8 @@ func (adb *AccountsDB) GetExistingAccount(address []byte) (vmcommon.AccountHandl
 		"address", hex.EncodeToString(address),
 	)
 
-	acnt, err := adb.getAccount(address)
+	mainTrie := adb.getMainTrie()
+	acnt, err := adb.getAccount(address, mainTrie)
 	if err != nil {
 		return nil, err
 	}
@@ -724,7 +749,7 @@ func (adb *AccountsDB) GetExistingAccount(address []byte) (vmcommon.AccountHandl
 
 	baseAcc, ok := acnt.(baseAccountHandler)
 	if ok {
-		err = adb.loadDataTrie(baseAcc)
+		err = adb.loadDataTrie(baseAcc, mainTrie)
 		if err != nil {
 			return nil, err
 		}
@@ -735,9 +760,6 @@ func (adb *AccountsDB) GetExistingAccount(address []byte) (vmcommon.AccountHandl
 
 // GetAccountFromBytes returns an account from the given bytes
 func (adb *AccountsDB) GetAccountFromBytes(address []byte, accountBytes []byte) (vmcommon.AccountHandler, error) {
-	adb.mutOp.Lock()
-	defer adb.mutOp.Unlock()
-
 	if len(address) == 0 {
 		return nil, fmt.Errorf("%w in GetAccountFromBytes", ErrNilAddress)
 	}
@@ -757,7 +779,7 @@ func (adb *AccountsDB) GetAccountFromBytes(address []byte, accountBytes []byte) 
 		return acnt, nil
 	}
 
-	err = adb.loadDataTrie(baseAcc)
+	err = adb.loadDataTrie(baseAcc, adb.getMainTrie())
 	if err != nil {
 		return nil, err
 	}
@@ -771,7 +793,7 @@ func (adb *AccountsDB) loadCode(accountHandler baseAccountHandler) error {
 		return nil
 	}
 
-	val, err := adb.mainTrie.Get(accountHandler.GetCodeHash())
+	val, _, err := adb.mainTrie.Get(accountHandler.GetCodeHash())
 	if err != nil {
 		return err
 	}
@@ -816,7 +838,7 @@ func (adb *AccountsDB) RevertToSnapshot(snapshot int) error {
 		}
 
 		if !check.IfNil(account) {
-			err = adb.saveAccountToTrie(account)
+			err = adb.saveAccountToTrie(account, adb.mainTrie)
 			if err != nil {
 				return err
 			}
@@ -956,10 +978,7 @@ func (adb *AccountsDB) commitTrie(tr common.Trie, oldHashes common.ModifiedHashe
 
 // RootHash returns the main trie's root hash
 func (adb *AccountsDB) RootHash() ([]byte, error) {
-	adb.mutOp.Lock()
-	defer adb.mutOp.Unlock()
-
-	rootHash, err := adb.mainTrie.RootHash()
+	rootHash, err := adb.getMainTrie().RootHash()
 	log.Trace("accountsDB.RootHash",
 		"root hash", rootHash,
 		"err", err,
@@ -1010,8 +1029,12 @@ func (adb *AccountsDB) recreateTrie(options common.RootHashHolder) error {
 
 // RecreateAllTries recreates all the tries from the accounts DB
 func (adb *AccountsDB) RecreateAllTries(rootHash []byte) (map[string]common.Trie, error) {
-	leavesChannel := make(chan core.KeyValueHolder, leavesChannelSize)
-	err := adb.mainTrie.GetAllLeavesOnChannel(leavesChannel, context.Background(), rootHash)
+	leavesChannels := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder, leavesChannelSize),
+		ErrChan:    make(chan error, 1),
+	}
+	mainTrie := adb.getMainTrie()
+	err := mainTrie.GetAllLeavesOnChannel(leavesChannels, context.Background(), rootHash, keyBuilder.NewDisabledKeyBuilder())
 	if err != nil {
 		return nil, err
 	}
@@ -1021,7 +1044,7 @@ func (adb *AccountsDB) RecreateAllTries(rootHash []byte) (map[string]common.Trie
 		return nil, err
 	}
 
-	for leaf := range leavesChannel {
+	for leaf := range leavesChannels.LeavesChan {
 		account := &userAccount{}
 		err = adb.marshaller.Unmarshal(account, leaf.Value())
 		if err != nil {
@@ -1030,7 +1053,7 @@ func (adb *AccountsDB) RecreateAllTries(rootHash []byte) (map[string]common.Trie
 		}
 
 		if len(account.RootHash) > 0 {
-			dataTrie, errRecreate := adb.mainTrie.Recreate(account.RootHash)
+			dataTrie, errRecreate := mainTrie.Recreate(account.RootHash)
 			if errRecreate != nil {
 				return nil, errRecreate
 			}
@@ -1039,11 +1062,16 @@ func (adb *AccountsDB) RecreateAllTries(rootHash []byte) (map[string]common.Trie
 		}
 	}
 
+	err = common.GetErrorFromChanNonBlocking(leavesChannels.ErrChan)
+	if err != nil {
+		return nil, err
+	}
+
 	return allTries, nil
 }
 
 func (adb *AccountsDB) recreateMainTrie(rootHash []byte) (map[string]common.Trie, error) {
-	recreatedTrie, err := adb.mainTrie.Recreate(rootHash)
+	recreatedTrie, err := adb.getMainTrie().Recreate(rootHash)
 	if err != nil {
 		return nil, err
 	}
@@ -1056,10 +1084,7 @@ func (adb *AccountsDB) recreateMainTrie(rootHash []byte) (map[string]common.Trie
 
 // GetTrie returns the trie that has the given rootHash
 func (adb *AccountsDB) GetTrie(rootHash []byte) (common.Trie, error) {
-	adb.mutOp.Lock()
-	defer adb.mutOp.Unlock()
-
-	return adb.mainTrie.Recreate(rootHash)
+	return adb.getMainTrie().Recreate(rootHash)
 }
 
 // Journalize adds a new object to entries list.
@@ -1086,22 +1111,16 @@ func (adb *AccountsDB) GetStackDebugFirstEntry() []byte {
 
 // PruneTrie removes old values from the trie database
 func (adb *AccountsDB) PruneTrie(rootHash []byte, identifier TriePruningIdentifier, handler PruningHandler) {
-	adb.mutOp.Lock()
-	defer adb.mutOp.Unlock()
-
 	log.Trace("accountsDB.PruneTrie", "root hash", rootHash)
 
-	adb.storagePruningManager.PruneTrie(rootHash, identifier, adb.mainTrie.GetStorageManager(), handler)
+	adb.storagePruningManager.PruneTrie(rootHash, identifier, adb.getMainTrie().GetStorageManager(), handler)
 }
 
 // CancelPrune clears the trie's evictionWaitingList
 func (adb *AccountsDB) CancelPrune(rootHash []byte, identifier TriePruningIdentifier) {
-	adb.mutOp.Lock()
-	defer adb.mutOp.Unlock()
-
 	log.Trace("accountsDB.CancelPrune", "root hash", rootHash)
 
-	adb.storagePruningManager.CancelPrune(rootHash, identifier, adb.mainTrie.GetStorageManager())
+	adb.storagePruningManager.CancelPrune(rootHash, identifier, adb.getMainTrie().GetStorageManager())
 }
 
 // SnapshotState triggers the snapshotting process of the state trie
@@ -1115,27 +1134,40 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 	}
 
 	log.Info("starting snapshot user trie", "rootHash", rootHash, "epoch", epoch)
-	errChan := make(chan error, 1)
-	stats := newSnapshotStatistics(1)
-	go func() {
-		leavesChannel := make(chan core.KeyValueHolder, leavesChannelSize)
-		stats.NewSnapshotStarted()
-		trieStorageManager.TakeSnapshot(rootHash, rootHash, leavesChannel, errChan, stats, epoch)
-		adb.snapshotUserAccountDataTrie(true, rootHash, leavesChannel, errChan, stats, epoch)
-		trieStorageManager.ExitPruningBufferingMode()
+	missingNodesChannel := make(chan []byte, missingNodesChannelSize)
+	iteratorChannels := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder, leavesChannelSize),
+		ErrChan:    make(chan error, 1),
+	}
+	stats := newSnapshotStatistics(1, 1)
 
-		stats.wg.Done()
+	accountMetrics := &accountMetrics{
+		snapshotInProgressKey:   common.MetricAccountsSnapshotInProgress,
+		lastSnapshotDurationKey: common.MetricLastAccountsSnapshotDurationSec,
+		snapshotMessage:         userTrieSnapshotMsg,
+	}
+	adb.updateMetricsOnSnapshotStart(accountMetrics)
+
+	go func() {
+		stats.NewSnapshotStarted()
+
+		trieStorageManager.TakeSnapshot(nil, rootHash, rootHash, iteratorChannels, missingNodesChannel, stats, epoch)
+		adb.snapshotUserAccountDataTrie(true, rootHash, iteratorChannels, missingNodesChannel, stats, epoch)
+
+		stats.SnapshotFinished()
 	}()
 
-	go adb.processSnapshotCompletion(stats, errChan, rootHash, "snapshotState user trie", epoch)
+	go adb.syncMissingNodes(missingNodesChannel, stats, adb.trieSyncer)
+
+	go adb.processSnapshotCompletion(stats, trieStorageManager, missingNodesChannel, iteratorChannels.ErrChan, rootHash, accountMetrics, epoch)
 
 	adb.waitForCompletionIfAppropriate(stats)
 }
 
 func (adb *AccountsDB) prepareSnapshot(rootHash []byte) (common.StorageManager, uint32, bool) {
-	trieStorageManager, epoch, err := adb.getTrieStorageManagerAndLatestEpoch()
+	trieStorageManager, epoch, err := adb.getTrieStorageManagerAndLatestEpoch(adb.mainTrie)
 	if err != nil {
-		log.Error("snapshot user state error", "err", err.Error())
+		log.Error("prepareSnapshot error", "err", err.Error())
 		return nil, 0, false
 	}
 
@@ -1160,8 +1192,8 @@ func (adb *AccountsDB) prepareSnapshot(rootHash []byte) (common.StorageManager, 
 	return trieStorageManager, epoch, true
 }
 
-func (adb *AccountsDB) getTrieStorageManagerAndLatestEpoch() (common.StorageManager, uint32, error) {
-	trieStorageManager := adb.mainTrie.GetStorageManager()
+func (adb *AccountsDB) getTrieStorageManagerAndLatestEpoch(mainTrie common.Trie) (common.StorageManager, uint32, error) {
+	trieStorageManager := mainTrie.GetStorageManager()
 	epoch, err := trieStorageManager.GetLatestStorageEpoch()
 	if err != nil {
 		return nil, 0, fmt.Errorf("%w while getting the latest storage epoch", err)
@@ -1183,12 +1215,51 @@ func (adb *AccountsDB) shouldTakeSnapshot(trieStorageManager common.StorageManag
 	return trieStorageManager.ShouldTakeSnapshot()
 }
 
-func (adb *AccountsDB) processSnapshotCompletion(stats *snapshotStatistics, errChan chan error, rootHash []byte, message string, epoch uint32) {
+func (adb *AccountsDB) finishSnapshotOperation(
+	rootHash []byte,
+	stats *snapshotStatistics,
+	missingNodesCh chan []byte,
+	message string,
+	trieStorageManager common.StorageManager,
+) {
+	stats.WaitForSnapshotsToFinish()
+	close(missingNodesCh)
+	stats.WaitForSyncToFinish()
+
+	trieStorageManager.ExitPruningBufferingMode()
+
 	stats.PrintStats(message, rootHash)
+}
 
-	defer adb.isSnapshotInProgress.Reset()
+func (adb *AccountsDB) updateMetricsOnSnapshotStart(metrics *accountMetrics) {
+	adb.appStatusHandler.SetStringValue(metrics.snapshotInProgressKey, "true")
+	adb.appStatusHandler.SetInt64Value(metrics.lastSnapshotDurationKey, 0)
+}
 
-	trieStorageManager := adb.mainTrie.GetStorageManager()
+func (adb *AccountsDB) updateMetricsOnSnapshotCompletion(metrics *accountMetrics, stats *snapshotStatistics) {
+	adb.appStatusHandler.SetStringValue(metrics.snapshotInProgressKey, "false")
+	adb.appStatusHandler.SetInt64Value(metrics.lastSnapshotDurationKey, stats.GetSnapshotDuration())
+	if metrics.snapshotMessage == userTrieSnapshotMsg {
+		adb.appStatusHandler.SetUInt64Value(common.MetricAccountsSnapshotNumNodes, stats.GetSnapshotNumNodes())
+	}
+}
+
+func (adb *AccountsDB) processSnapshotCompletion(
+	stats *snapshotStatistics,
+	trieStorageManager common.StorageManager,
+	missingNodesCh chan []byte,
+	errChan chan error,
+	rootHash []byte,
+	metrics *accountMetrics,
+	epoch uint32,
+) {
+	adb.finishSnapshotOperation(rootHash, stats, missingNodesCh, metrics.snapshotMessage, trieStorageManager)
+
+	defer func() {
+		adb.isSnapshotInProgress.Reset()
+		adb.updateMetricsOnSnapshotCompletion(metrics, stats)
+	}()
+
 	containsErrorDuringSnapshot := emptyErrChanReturningHadContained(errChan)
 	shouldNotMarkActive := trieStorageManager.IsClosed() || containsErrorDuringSnapshot
 	if shouldNotMarkActive {
@@ -1206,6 +1277,29 @@ func (adb *AccountsDB) processSnapshotCompletion(stats *snapshotStatistics, errC
 	handleLoggingWhenError("error while putting active DB value into main storer", errPut)
 }
 
+func (adb *AccountsDB) syncMissingNodes(missingNodesChan chan []byte, stats *snapshotStatistics, syncer AccountsDBSyncer) {
+	defer stats.SyncFinished()
+
+	if check.IfNil(syncer) {
+		log.Error("nil trie syncer")
+		for missingNode := range missingNodesChan {
+			log.Warn("could not sync node", "hash", missingNode)
+		}
+
+		return
+	}
+
+	for missingNode := range missingNodesChan {
+		err := syncer.SyncAccounts(missingNode)
+		if err != nil {
+			log.Error("could not sync missing node",
+				"missing node hash", missingNode,
+				"error", err,
+			)
+		}
+	}
+}
+
 func emptyErrChanReturningHadContained(errChan chan error) bool {
 	contained := false
 	for {
@@ -1221,12 +1315,12 @@ func emptyErrChanReturningHadContained(errChan chan error) bool {
 func (adb *AccountsDB) snapshotUserAccountDataTrie(
 	isSnapshot bool,
 	mainTrieRootHash []byte,
-	leavesChannel chan core.KeyValueHolder,
-	errChan chan error,
+	iteratorChannels *common.TrieIteratorChannels,
+	missingNodesChannel chan []byte,
 	stats common.SnapshotStatisticsHandler,
 	epoch uint32,
 ) {
-	for leaf := range leavesChannel {
+	for leaf := range iteratorChannels.LeavesChan {
 		account := &userAccount{}
 		err := adb.marshaller.Unmarshal(account, leaf.Value())
 		if err != nil {
@@ -1239,14 +1333,17 @@ func (adb *AccountsDB) snapshotUserAccountDataTrie(
 		}
 
 		stats.NewSnapshotStarted()
-		stats.NewDataTrie()
 
+		iteratorChannelsForDataTries := &common.TrieIteratorChannels{
+			LeavesChan: nil,
+			ErrChan:    iteratorChannels.ErrChan,
+		}
 		if isSnapshot {
-			adb.mainTrie.GetStorageManager().TakeSnapshot(account.RootHash, mainTrieRootHash, nil, errChan, stats, epoch)
+			adb.mainTrie.GetStorageManager().TakeSnapshot(account.Address, account.RootHash, mainTrieRootHash, iteratorChannelsForDataTries, missingNodesChannel, stats, epoch)
 			continue
 		}
 
-		adb.mainTrie.GetStorageManager().SetCheckpoint(account.RootHash, mainTrieRootHash, nil, errChan, stats)
+		adb.mainTrie.GetStorageManager().SetCheckpoint(account.RootHash, mainTrieRootHash, iteratorChannelsForDataTries, missingNodesChannel, stats)
 	}
 }
 
@@ -1263,21 +1360,25 @@ func (adb *AccountsDB) setStateCheckpoint(rootHash []byte) {
 	log.Trace("accountsDB.SetStateCheckpoint", "root hash", rootHash)
 	trieStorageManager.EnterPruningBufferingMode()
 
-	stats := newSnapshotStatistics(1)
-	errChan := make(chan error, 1)
+	iteratorChannels := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder, leavesChannelSize),
+		ErrChan:    make(chan error, 1),
+	}
+	missingNodesChannel := make(chan []byte, missingNodesChannelSize)
+	stats := newSnapshotStatistics(1, 1)
 	go func() {
-		leavesChannel := make(chan core.KeyValueHolder, leavesChannelSize)
 		stats.NewSnapshotStarted()
-		trieStorageManager.SetCheckpoint(rootHash, rootHash, leavesChannel, errChan, stats)
-		adb.snapshotUserAccountDataTrie(false, rootHash, leavesChannel, errChan, stats, 0)
-		trieStorageManager.ExitPruningBufferingMode()
+		trieStorageManager.SetCheckpoint(rootHash, rootHash, iteratorChannels, missingNodesChannel, stats)
+		adb.snapshotUserAccountDataTrie(false, rootHash, iteratorChannels, missingNodesChannel, stats, 0)
 
-		stats.wg.Done()
+		stats.SnapshotFinished()
 	}()
+
+	go adb.syncMissingNodes(missingNodesChannel, stats, adb.trieSyncer)
 
 	// TODO decide if we need to take some actions whenever we hit an error that occurred in the checkpoint process
 	//  that will be present in the errChan var
-	go stats.PrintStats("setStateCheckpoint user trie", rootHash)
+	go adb.finishSnapshotOperation(rootHash, stats, missingNodesChannel, "setStateCheckpoint user trie", trieStorageManager)
 
 	adb.waitForCompletionIfAppropriate(stats)
 }
@@ -1296,15 +1397,12 @@ func (adb *AccountsDB) waitForCompletionIfAppropriate(stats common.SnapshotStati
 
 // IsPruningEnabled returns true if state pruning is enabled
 func (adb *AccountsDB) IsPruningEnabled() bool {
-	return adb.mainTrie.GetStorageManager().IsPruningEnabled()
+	return adb.getMainTrie().GetStorageManager().IsPruningEnabled()
 }
 
 // GetAllLeaves returns all the leaves from a given rootHash
-func (adb *AccountsDB) GetAllLeaves(leavesChannel chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
-	adb.mutOp.Lock()
-	defer adb.mutOp.Unlock()
-
-	return adb.mainTrie.GetAllLeavesOnChannel(leavesChannel, ctx, rootHash)
+func (adb *AccountsDB) GetAllLeaves(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error {
+	return adb.getMainTrie().GetAllLeavesOnChannel(leavesChannels, ctx, rootHash, keyBuilder.NewKeyBuilder())
 }
 
 // Close will handle the closing of the underlying components
@@ -1314,6 +1412,61 @@ func (adb *AccountsDB) Close() error {
 
 	_ = adb.mainTrie.Close()
 	return adb.storagePruningManager.Close()
+}
+
+// GetStatsForRootHash will get trie statistics for the given rootHash
+func (adb *AccountsDB) GetStatsForRootHash(rootHash []byte) (common.TriesStatisticsCollector, error) {
+	stats := statistics.NewTrieStatisticsCollector()
+	mainTrie := adb.getMainTrie()
+
+	tr, ok := mainTrie.(common.TrieStats)
+	if !ok {
+		return nil, fmt.Errorf("invalid trie, type is %T", mainTrie)
+	}
+
+	collectStats(tr, stats, rootHash, nil)
+
+	iteratorChannels := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder, leavesChannelSize),
+		ErrChan:    make(chan error, 1),
+	}
+	err := mainTrie.GetAllLeavesOnChannel(iteratorChannels, context.Background(), rootHash, keyBuilder.NewDisabledKeyBuilder())
+	if err != nil {
+		return nil, err
+	}
+
+	for leaf := range iteratorChannels.LeavesChan {
+		account := &userAccount{}
+		err = adb.marshaller.Unmarshal(account, leaf.Value())
+		if err != nil {
+			log.Trace("this must be a leaf with code", "err", err)
+			continue
+		}
+
+		if common.IsEmptyTrie(account.RootHash) {
+			continue
+		}
+
+		collectStats(tr, stats, account.RootHash, account.Address)
+	}
+
+	err = common.GetErrorFromChanNonBlocking(iteratorChannels.ErrChan)
+	if err != nil {
+		return nil, err
+	}
+
+	return stats, nil
+}
+
+func collectStats(tr common.TrieStats, stats common.TriesStatisticsCollector, rootHash []byte, address []byte) {
+	trieStats, err := tr.GetTrieStats(address, rootHash)
+	if err != nil {
+		log.Error(err.Error())
+		return
+	}
+	stats.Add(trieStats)
+
+	log.Debug(strings.Join(trieStats.ToString(), " "))
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -24,7 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/scrCommon"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
@@ -122,7 +122,6 @@ func TestNewSmartContractProcessorNilVM(t *testing.T) {
 	sc, err := NewSmartContractProcessorV2(arguments)
 
 	require.Nil(t, sc)
-	require.Nil(t, sc)
 	require.Equal(t, process.ErrNoVM, err)
 }
 
@@ -134,7 +133,6 @@ func TestNewSmartContractProcessorNilVMOutputCacher(t *testing.T) {
 	sc, err := NewSmartContractProcessorV2(arguments)
 
 	require.Nil(t, sc)
-	require.Nil(t, sc)
 	require.Equal(t, process.ErrNilCacher, err)
 }
 
@@ -145,7 +143,6 @@ func TestNewSmartContractProcessorNilBuiltInFunctions(t *testing.T) {
 	arguments.BuiltInFunctions = nil
 	sc, err := NewSmartContractProcessorV2(arguments)
 
-	require.Nil(t, sc)
 	require.Nil(t, sc)
 	require.Equal(t, process.ErrNilBuiltInFunction, err)
 }
@@ -1605,8 +1602,8 @@ func TestScProcessor_ExecuteSmartContractTransactionGasConsumedChecksError(t *te
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
 	arguments.AccountsDB = accntState
-	arguments.VMOutputCacher, _ = storageUnit.NewCache(storageUnit.CacheConfig{
-		Type:     storageUnit.LRUCache,
+	arguments.VMOutputCacher, _ = storageunit.NewCache(storageunit.CacheConfig{
+		Type:     storageunit.LRUCache,
 		Capacity: 10000,
 	})
 
@@ -2606,6 +2603,7 @@ func TestScProcessor_CreateCrossShardTransactions(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = accountsDB
 	arguments.ShardCoordinator = shardCoordinator
+	arguments.ArgsParser = smartContract.NewArgumentParser()
 	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
@@ -2657,6 +2655,7 @@ func TestScProcessor_CreateCrossShardTransactionsWithAsyncCalls(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = accountsDB
 	arguments.ShardCoordinator = shardCoordinator
+	arguments.ArgsParser = smartContract.NewArgumentParser()
 	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
@@ -2863,7 +2862,7 @@ func TestScProcessor_ProcessSmartContractResultBadAccType(t *testing.T) {
 
 	accountsDB := &stateMock.AccountsStub{
 		LoadAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
-			return &mock.AccountWrapMock{}, nil
+			return &stateMock.AccountWrapMock{}, nil
 		},
 	}
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
@@ -4181,4 +4180,40 @@ func TestScProcessor_TooMuchGasProvidedMessage(t *testing.T) {
 	returnMessage := "@" + fmt.Sprintf("%s for processing: gas provided = %d, gas used = %d",
 		TooMuchGasProvidedMessage, 11, 1)
 	assert.Equal(t, vmOutput.ReturnMessage, returnMessage)
+}
+
+func TestSCProcessor_PrependAsyncParamsToData(t *testing.T) {
+	t.Skip("needs clarification")
+
+	ok := []byte{byte(vmcommon.Ok)}
+	data := []byte("@" + hex.EncodeToString(ok))
+
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.ArgsParser = smartContract.NewArgumentParser()
+	sc, _ := NewSmartContractProcessorV2(arguments)
+
+	t.Run("NilAsyncParams", func(t *testing.T) {
+		asyncParams := [][]byte(nil)
+		dataWithAsyncParams, err := sc.prependAsyncParamsToData(asyncParams, data)
+		require.Nil(t, err)
+		require.Equal(t, data, dataWithAsyncParams)
+	})
+
+	t.Run("CorrectAsyncParams", func(t *testing.T) {
+		callID := []byte("callID")
+		callerCallID := []byte("callerCallID")
+
+		asyncParams := [][]byte{callID, callerCallID}
+		expectedData := []byte(
+			"@" +
+				hex.EncodeToString(callID) +
+				"@" +
+				hex.EncodeToString(callerCallID) +
+				"@" +
+				hex.EncodeToString(ok),
+		)
+		dataWithAsyncParams, err := sc.prependAsyncParamsToData(asyncParams, data)
+		require.Nil(t, err)
+		require.Equal(t, expectedData, dataWithAsyncParams)
+	})
 }

@@ -134,8 +134,9 @@ func (ln *leafNode) commitCheckpoint(
 	checkpointHashes CheckpointHashesHolder,
 	leavesChan chan core.KeyValueHolder,
 	ctx context.Context,
-	stats common.SnapshotStatisticsHandler,
+	stats common.TrieStatisticsHandler,
 	idleProvider IdleNodeProvider,
+	depthLevel int,
 ) error {
 	if shouldStopIfContextDone(ctx, idleProvider) {
 		return errors.ErrContextClosing
@@ -168,7 +169,7 @@ func (ln *leafNode) commitCheckpoint(
 		return err
 	}
 
-	stats.AddSize(uint64(nodeSize))
+	stats.AddLeafNode(depthLevel, uint64(nodeSize))
 
 	return nil
 }
@@ -176,9 +177,11 @@ func (ln *leafNode) commitCheckpoint(
 func (ln *leafNode) commitSnapshot(
 	db common.DBWriteCacher,
 	leavesChan chan core.KeyValueHolder,
+	_ chan []byte,
 	ctx context.Context,
-	stats common.SnapshotStatisticsHandler,
+	stats common.TrieStatisticsHandler,
 	idleProvider IdleNodeProvider,
+	depthLevel int,
 ) error {
 	if shouldStopIfContextDone(ctx, idleProvider) {
 		return errors.ErrContextClosing
@@ -199,7 +202,7 @@ func (ln *leafNode) commitSnapshot(
 		return err
 	}
 
-	stats.AddSize(uint64(nodeSize))
+	stats.AddLeafNode(depthLevel, uint64(nodeSize))
 
 	return nil
 }
@@ -245,16 +248,16 @@ func (ln *leafNode) isPosCollapsed(_ int) bool {
 	return false
 }
 
-func (ln *leafNode) tryGet(key []byte, _ common.DBWriteCacher) (value []byte, err error) {
+func (ln *leafNode) tryGet(key []byte, currentDepth uint32, _ common.DBWriteCacher) (value []byte, maxDepth uint32, err error) {
 	err = ln.isEmptyOrNil()
 	if err != nil {
-		return nil, fmt.Errorf("tryGet error %w", err)
+		return nil, currentDepth, fmt.Errorf("tryGet error %w", err)
 	}
 	if bytes.Equal(key, ln.Key) {
-		return ln.Value, nil
+		return ln.Value, currentDepth, nil
 	}
 
-	return nil, nil
+	return nil, currentDepth, nil
 }
 
 func (ln *leafNode) getNext(key []byte, _ common.DBWriteCacher) (node, []byte, error) {
@@ -431,7 +434,7 @@ func (ln *leafNode) loadChildren(_ func([]byte) (node, error)) ([][]byte, []node
 
 func (ln *leafNode) getAllLeavesOnChannel(
 	leavesChannel chan core.KeyValueHolder,
-	key []byte,
+	keyBuilder common.KeyBuilder,
 	_ common.DBWriteCacher,
 	_ marshal.Marshalizer,
 	chanClose chan struct{},
@@ -442,8 +445,8 @@ func (ln *leafNode) getAllLeavesOnChannel(
 		return fmt.Errorf("getAllLeavesOnChannel error: %w", err)
 	}
 
-	nodeKey := append(key, ln.Key...)
-	nodeKey, err = hexToKeyBytes(nodeKey)
+	keyBuilder.BuildKey(ln.Key)
+	nodeKey, err := keyBuilder.GetKey()
 	if err != nil {
 		return err
 	}
@@ -497,6 +500,21 @@ func (ln *leafNode) sizeInBytes() int {
 
 func (ln *leafNode) getValue() []byte {
 	return ln.Value
+}
+
+func (ln *leafNode) collectStats(ts common.TrieStatisticsHandler, depthLevel int, _ common.DBWriteCacher) error {
+	err := ln.isEmptyOrNil()
+	if err != nil {
+		return fmt.Errorf("collectStats error %w", err)
+	}
+
+	val, err := collapseAndEncodeNode(ln)
+	if err != nil {
+		return err
+	}
+
+	ts.AddLeafNode(depthLevel, uint64(len(val)))
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

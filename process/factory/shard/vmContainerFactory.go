@@ -5,14 +5,6 @@ import (
 	"io"
 	"sort"
 
-	arwen12 "github.com/ElrondNetwork/arwen-wasm-vm/v1_2/arwen"
-	arwenHost12 "github.com/ElrondNetwork/arwen-wasm-vm/v1_2/arwen/host"
-	arwen13 "github.com/ElrondNetwork/arwen-wasm-vm/v1_3/arwen"
-	arwenHost13 "github.com/ElrondNetwork/arwen-wasm-vm/v1_3/arwen/host"
-	arwen14 "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/arwen"
-	arwenHost14 "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/arwen/host"
-	arwen15 "github.com/ElrondNetwork/arwen-wasm-vm/v1_5/arwen"
-	arwenHost15 "github.com/ElrondNetwork/arwen-wasm-vm/v1_5/arwen/host"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -23,6 +15,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	arwen12 "github.com/ElrondNetwork/wasm-vm-v1_2/arwen"
+	arwenHost12 "github.com/ElrondNetwork/wasm-vm-v1_2/arwen/host"
+	arwen13 "github.com/ElrondNetwork/wasm-vm-v1_3/arwen"
+	arwenHost13 "github.com/ElrondNetwork/wasm-vm-v1_3/arwen/host"
+	arwen14 "github.com/ElrondNetwork/wasm-vm-v1_4/arwen"
+	arwenHost14 "github.com/ElrondNetwork/wasm-vm-v1_4/arwen/host"
+	arwen15 "github.com/ElrondNetwork/wasm-vm/arwen"
+	arwenHost15 "github.com/ElrondNetwork/wasm-vm/arwen/host"
+	wasmer1 "github.com/ElrondNetwork/wasm-vm/wasmer"
 )
 
 var _ process.VirtualMachinesContainerFactory = (*vmContainerFactory)(nil)
@@ -336,11 +337,16 @@ func (vmf *vmContainerFactory) createInProcessArwenVMV15() (vmcommon.VMExecution
 		BuiltInFuncContainer:                vmf.builtinFunctions,
 		ElrondProtectedKeyPrefix:            []byte(core.ElrondProtectedKeyPrefix),
 		ESDTTransferParser:                  vmf.esdtTransferParser,
-		EpochNotifier:                       vmf.epochNotifier,
 		WasmerSIGSEGVPassthrough:            vmf.config.WasmerSIGSEGVPassthrough,
 		TimeOutForSCExecutionInMilliseconds: vmf.config.TimeOutForSCExecutionInMilliseconds,
+		EpochNotifier:                       vmf.epochNotifier,
+		EnableEpochsHandler:                 vmf.enableEpochsHandler,
 	}
-	return arwenHost15.NewArwenVM(vmf.blockChainHook, hostParameters)
+
+	// TODO the "executor" parameter is temporary;
+	// it will not be needed after an upcoming refactor in the VM
+	executor := wasmer1.NewExecutor()
+	return arwenHost15.NewArwenVM(vmf.blockChainHook, executor, hostParameters)
 }
 
 func (vmf *vmContainerFactory) closePreviousVM(vm vmcommon.VMExecutionHandler) {

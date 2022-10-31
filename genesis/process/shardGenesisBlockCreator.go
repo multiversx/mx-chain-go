@@ -49,6 +49,13 @@ type deployedScMetrics struct {
 }
 
 func createGenesisConfig() config.EnableEpochs {
+	blsMultiSignerEnableEpoch := []config.MultiSignerConfig{
+		{
+			EnableEpoch: 0,
+			Type:        "no-KOSK",
+		},
+	}
+
 	return config.EnableEpochs{
 		SCDeployEnableEpoch:                    unreachableEpoch,
 		BuiltInFunctionsEnableEpoch:            0,
@@ -71,7 +78,7 @@ func createGenesisConfig() config.EnableEpochs {
 		},
 		BlockGasAndFeesReCheckEnableEpoch:                 unreachableEpoch,
 		StakingV2EnableEpoch:                              unreachableEpoch,
-		StakeEnableEpoch:                                  0,
+		StakeEnableEpoch:                                  unreachableEpoch, // no need to enable this, we have builtin exceptions in staking system SC
 		DoubleKeyProtectionEnableEpoch:                    0,
 		ESDTEnableEpoch:                                   unreachableEpoch,
 		GovernanceEnableEpoch:                             unreachableEpoch,
@@ -122,11 +129,17 @@ func createGenesisConfig() config.EnableEpochs {
 		CheckCorrectTokenIDForTransferRoleEnableEpoch:     unreachableEpoch,
 		DisableExecByCallerEnableEpoch:                    unreachableEpoch,
 		RefactorContextEnableEpoch:                        unreachableEpoch,
-		HeartbeatDisableEpoch:                             unreachableEpoch,
+		CheckFunctionArgumentEnableEpoch:                  unreachableEpoch,
+		CheckExecuteOnReadOnlyEnableEpoch:                 unreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch:              unreachableEpoch,
 		ESDTMetadataContinuousCleanupEnableEpoch:          unreachableEpoch,
+		FixAsyncCallBackArgsListEnableEpoch:               unreachableEpoch,
+		FixOldTokenLiquidityEnableEpoch:                   unreachableEpoch,
+		SetSenderInEeiOutputTransferEnableEpoch:           unreachableEpoch,
 		RefactorPeersMiniBlocksEnableEpoch:                unreachableEpoch,
 		SCProcessorV2EnableEpoch:                          unreachableEpoch,
+		DoNotReturnOldBlockInBlockchainHookEnableEpoch:    unreachableEpoch,
+		BLSMultiSignerEnableEpoch:                         blsMultiSignerEnableEpoch,
 	}
 }
 
@@ -205,6 +218,7 @@ func CreateShardGenesisBlock(
 		"total staked on a delegation SC", delegationResult.NumTotalStaked,
 		"total delegation nodes", delegationResult.NumTotalDelegated,
 		"cross shard delegation calls", numCrossShardDelegations,
+		"resulted roothash", rootHash,
 	)
 
 	round, nonce, epoch := getGenesisBlocksRoundNonceEpoch(arg)

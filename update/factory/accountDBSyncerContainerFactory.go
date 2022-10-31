@@ -13,6 +13,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state/syncer"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/trie"
+	"github.com/ElrondNetwork/elrond-go/trie/statistics"
+	"github.com/ElrondNetwork/elrond-go/trie/storageMarker"
 	"github.com/ElrondNetwork/elrond-go/update"
 	containers "github.com/ElrondNetwork/elrond-go/update/container"
 	"github.com/ElrondNetwork/elrond-go/update/genesis"
@@ -137,16 +139,18 @@ func (a *accountDBSyncersContainerFactory) createUserAccountsSyncer(shardId uint
 
 	args := syncer.ArgsNewUserAccountsSyncer{
 		ArgsNewBaseAccountsSyncer: syncer.ArgsNewBaseAccountsSyncer{
-			Hasher:                    a.hasher,
-			Marshalizer:               a.marshalizer,
-			TrieStorageManager:        a.trieStorageManager,
-			RequestHandler:            a.requestHandler,
-			Timeout:                   a.timeoutGettingTrieNode,
-			Cacher:                    a.trieCacher,
-			MaxTrieLevelInMemory:      a.maxTrieLevelinMemory,
-			MaxHardCapForMissingNodes: a.maxHardCapForMissingNodes,
-			TrieSyncerVersion:         a.trieSyncerVersion,
-			CheckNodesOnDisk:          a.checkNodesOnDisk,
+			Hasher:                            a.hasher,
+			Marshalizer:                       a.marshalizer,
+			TrieStorageManager:                a.trieStorageManager,
+			RequestHandler:                    a.requestHandler,
+			Timeout:                           a.timeoutGettingTrieNode,
+			Cacher:                            a.trieCacher,
+			MaxTrieLevelInMemory:              a.maxTrieLevelinMemory,
+			MaxHardCapForMissingNodes:         a.maxHardCapForMissingNodes,
+			TrieSyncerVersion:                 a.trieSyncerVersion,
+			CheckNodesOnDisk:                  a.checkNodesOnDisk,
+			StorageMarker:                     storageMarker.NewTrieStorageMarker(),
+			UserAccountsSyncStatisticsHandler: statistics.NewTrieSyncStatistics(),
 		},
 		ShardId:                shardId,
 		Throttler:              thr,
@@ -164,16 +168,18 @@ func (a *accountDBSyncersContainerFactory) createUserAccountsSyncer(shardId uint
 func (a *accountDBSyncersContainerFactory) createValidatorAccountsSyncer(shardId uint32) error {
 	args := syncer.ArgsNewValidatorAccountsSyncer{
 		ArgsNewBaseAccountsSyncer: syncer.ArgsNewBaseAccountsSyncer{
-			Hasher:                    a.hasher,
-			Marshalizer:               a.marshalizer,
-			TrieStorageManager:        a.trieStorageManager,
-			RequestHandler:            a.requestHandler,
-			Timeout:                   a.timeoutGettingTrieNode,
-			Cacher:                    a.trieCacher,
-			MaxTrieLevelInMemory:      a.maxTrieLevelinMemory,
-			MaxHardCapForMissingNodes: a.maxHardCapForMissingNodes,
-			TrieSyncerVersion:         a.trieSyncerVersion,
-			CheckNodesOnDisk:          a.checkNodesOnDisk,
+			Hasher:                            a.hasher,
+			Marshalizer:                       a.marshalizer,
+			TrieStorageManager:                a.trieStorageManager,
+			RequestHandler:                    a.requestHandler,
+			Timeout:                           a.timeoutGettingTrieNode,
+			Cacher:                            a.trieCacher,
+			MaxTrieLevelInMemory:              a.maxTrieLevelinMemory,
+			MaxHardCapForMissingNodes:         a.maxHardCapForMissingNodes,
+			TrieSyncerVersion:                 a.trieSyncerVersion,
+			CheckNodesOnDisk:                  a.checkNodesOnDisk,
+			StorageMarker:                     storageMarker.NewTrieStorageMarker(),
+			UserAccountsSyncStatisticsHandler: statistics.NewTrieSyncStatistics(),
 		},
 	}
 	accountSyncer, err := syncer.NewValidatorAccountsSyncer(args)

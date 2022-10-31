@@ -17,7 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
+	"github.com/ElrondNetwork/elrond-go/storage/cache"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/sync"
 )
@@ -103,7 +103,7 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 		return nil, err
 	}
 
-	consensusGroupCache, err := lrucache.NewCache(consensusGroupCacheSize)
+	consensusGroupCache, err := cache.NewLRUCache(consensusGroupCacheSize)
 	if err != nil {
 		return nil, err
 	}

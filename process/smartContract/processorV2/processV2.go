@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/arwen-wasm-vm/v1_5/arwen/contexts"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
@@ -20,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/scrCommon"
@@ -30,6 +30,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
+	"github.com/ElrondNetwork/wasm-vm/arwen/contexts"
 )
 
 var _ process.SmartContractResultProcessor = (*scProcessor)(nil)
@@ -69,12 +70,13 @@ type scProcessor struct {
 	builtInFunctions   vmcommon.BuiltInFunctionContainer
 	arwenChangeLocker  common.Locker
 
-	badTxForwarder process.IntermediateTransactionHandler
-	scrForwarder   process.IntermediateTransactionHandler
-	txFeeHandler   process.TransactionFeeHandler
-	economicsFee   process.FeeHandler
-	txTypeHandler  process.TxTypeHandler
-	gasHandler     process.GasHandler
+	enableEpochsHandler common.EnableEpochsHandler
+	badTxForwarder      process.IntermediateTransactionHandler
+	scrForwarder        process.IntermediateTransactionHandler
+	txFeeHandler        process.TransactionFeeHandler
+	economicsFee        process.FeeHandler
+	txTypeHandler       process.TxTypeHandler
+	gasHandler          process.GasHandler
 
 	builtInGasCosts     map[string]uint64
 	persistPerByte      uint64
@@ -83,8 +85,6 @@ type scProcessor struct {
 	txLogsProcessor     process.TransactionLogProcessor
 	vmOutputCacher      storage.Cacher
 	isGenesisProcessing bool
-
-	enableEpochsHandler common.EnableEpochsHandler
 }
 
 type sameShardExecutionDataAfterBuiltIn struct {
@@ -150,6 +150,9 @@ func NewSmartContractProcessorV2(args scrCommon.ArgsNewSmartContractProcessor) (
 	if check.IfNil(args.TxLogsProcessor) {
 		return nil, process.ErrNilTxLogsProcessor
 	}
+	if check.IfNil(args.EnableEpochsHandler) {
+		return nil, process.ErrNilEnableEpochsHandler
+	}
 	if check.IfNil(args.BadTxForwarder) {
 		return nil, process.ErrNilBadTxHandler
 	}
@@ -203,6 +206,8 @@ func NewSmartContractProcessorV2(args scrCommon.ArgsNewSmartContractProcessor) (
 }
 
 // GasScheduleChange sets the new gas schedule where it is needed
+// Warning: do not use flags in this function as it will raise backward compatibility issues because the GasScheduleChange
+// is not called on each epoch change
 func (sc *scProcessor) GasScheduleChange(gasSchedule map[string]map[string]uint64) {
 	sc.mutGasLock.Lock()
 	defer sc.mutGasLock.Unlock()
@@ -213,7 +218,6 @@ func (sc *scProcessor) GasScheduleChange(gasSchedule map[string]map[string]uint6
 	}
 
 	sc.builtInGasCosts = builtInFuncCost
-	sc.builtInGasCosts[core.BuiltInFunctionMultiESDTNFTTransfer] = builtInFuncCost["ESDTNFTMultiTransfer"]
 	sc.storePerByte = gasSchedule[common.BaseOperationCost]["StorePerByte"]
 	sc.persistPerByte = gasSchedule[common.BaseOperationCost]["PersistPerByte"]
 }
@@ -959,7 +963,6 @@ func (sc *scProcessor) doExecuteBuiltInFunctionWithoutFailureProcessing(
 			return vmcommon.ExecutionFailed, nil
 		}
 		if errReturnCode != vmcommon.Ok {
-			failureContext.setMessagesFromError(err)
 			return errReturnCode, nil // process if error already happened inside executeSmartContractCallAndCheckGas
 		}
 
@@ -1411,7 +1414,10 @@ func (sc *scProcessor) processIfErrorWithAddedLogs(acntSnd state.UserAccountHand
 
 	err := sc.accounts.RevertToSnapshot(failureContext.snapshot)
 	if err != nil {
-		log.Warn("revert to snapshot", "error", err.Error())
+		if !errors.IsClosingError(err) {
+			log.Warn("revert to snapshot", "error", err.Error())
+		}
+
 		return err
 	}
 
@@ -2414,24 +2420,38 @@ func (sc *scProcessor) useLastTransferAsAsyncCallBackWhenNeeded(
 	result.GasLimit, _ = core.SafeAddUint64(result.GasLimit, vmOutput.GasRemaining)
 
 	var err error
-	result.Data, err = sc.prependAsyncParamsToData(
-		contexts.CreateCallbackAsyncParams(hooks.NewVMCryptoHook(), vmInput.AsyncArguments), result.Data)
+	asyncParams := contexts.CreateCallbackAsyncParams(hooks.NewVMCryptoHook(), vmInput.AsyncArguments)
+	dataBuilder, err := sc.prependAsyncParamsToData(asyncParams, result.Data)
 	if err != nil {
 		log.Debug("processed built in functions error (async params extraction)", "error", err.Error())
 		return false
 	}
 
+	dataBuilder.Int(int(vmOutput.ReturnCode))
+	result.Data = dataBuilder.ToBytes()
+
 	return true
 }
 
-func (sc *scProcessor) prependAsyncParamsToData(asyncParams [][]byte, data []byte) ([]byte, error) {
-	function, args, err := sc.argsParser.ParseCallData(string(data))
-	if err != nil {
-		return nil, err
-	}
+func (sc *scProcessor) prependAsyncParamsToData(asyncParams [][]byte, data []byte) (*txDataBuilder.TxDataBuilder, error) {
+	var args [][]byte
+	var err error
 
 	callData := txDataBuilder.NewBuilder()
-	callData.Func(function)
+
+	// These nested conditions ensure that prependAsyncParamsToData() can handle
+	// data strings with or without a function as the first token in the string.
+	// The string "ESDTTransfer@...@..." requires ParseCallData().
+	// The string "@...@..." requires ParseArguments() instead.
+	function, args, err := sc.argsParser.ParseCallData(string(data))
+	if err == nil {
+		callData.Func(function)
+	} else {
+		args, err = sc.argsParser.ParseArguments(string(data))
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	for _, arg := range args {
 		callData.Bytes(arg)
@@ -2441,7 +2461,7 @@ func (sc *scProcessor) prependAsyncParamsToData(asyncParams [][]byte, data []byt
 		callData.Bytes(asyncParam)
 	}
 
-	return callData.ToBytes(), nil
+	return callData, nil
 }
 
 func (sc *scProcessor) getESDTParsedTransfers(sndAddr []byte, dstAddr []byte, data []byte,
