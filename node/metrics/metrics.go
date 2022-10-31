@@ -52,6 +52,8 @@ func InitBaseMetrics(statusHandlerUtils StatusHandlersUtils) error {
 	appStatusHandler.SetUInt64Value(common.MetricNumConnectedPeers, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricEpochForEconomicsData, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricAccountsSnapshotNumNodes, initUint)
+	appStatusHandler.SetUInt64Value(common.MetricAccountsSyncNodesProcessed, initUint)
+	appStatusHandler.SetUInt64Value(common.MetricAccountsSyncBytesReceived, initUint)
 
 	appStatusHandler.SetInt64Value(common.MetricLastAccountsSnapshotDurationSec, initInt)
 	appStatusHandler.SetInt64Value(common.MetricLastPeersSnapshotDurationSec, initInt)

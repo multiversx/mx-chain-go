@@ -59,6 +59,9 @@ type Presenter interface {
 	GetNetworkSentBytesInEpoch() uint64
 	GetNetworkReceivedBytesInEpoch() uint64
 
+	GetAccountsSyncNodesProcessed() uint64
+	GetAccountsSyncBytesReceived() uint64
+
 	InvalidateCache()
 	IsInterfaceNil() bool
 }
