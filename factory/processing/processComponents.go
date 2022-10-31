@@ -888,6 +888,9 @@ func (pcf *processComponentsFactory) indexAndReturnGenesisAccounts() (map[string
 
 		encodedAddress := pcf.coreData.AddressPubKeyConverter().Encode(userAccount.AddressBytes())
 		genesisAccounts[encodedAddress] = &outport.AlteredAccount{
+			AdditionalData: &outport.AdditionalAccountData{
+				BalanceChanged: true,
+			},
 			Address: encodedAddress,
 			Balance: userAccount.GetBalance().String(),
 			Nonce:   userAccount.GetNonce(),

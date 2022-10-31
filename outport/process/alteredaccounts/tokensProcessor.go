@@ -122,14 +122,15 @@ func (tp *tokensProcessor) extractEsdtData(
 		return nil
 	}
 
+	identifier := string(event.GetIdentifier())
+	isNFTCreate := identifier == core.BuiltInFunctionESDTNFTCreate
 	tokenID := topics[idxTokenIDInTopics]
-	err := tp.processEsdtDataForAddress(address, nonce, string(tokenID), markedAlteredAccounts)
+	err := tp.processEsdtDataForAddress(address, nonce, string(tokenID), markedAlteredAccounts, isNFTCreate)
 	if err != nil {
 		return err
 	}
 
 	// in case of esdt transfer, nft transfer, wipe or multi esdt transfers, the 3rd index of the topics contains the destination address
-	identifier := string(event.GetIdentifier())
 	eventShouldContainReceiverAddress := identifier == core.BuiltInFunctionESDTTransfer ||
 		identifier == core.BuiltInFunctionESDTNFTTransfer ||
 		identifier == core.BuiltInFunctionESDTWipe ||
@@ -137,7 +138,7 @@ func (tp *tokensProcessor) extractEsdtData(
 
 	if eventShouldContainReceiverAddress && len(topics) > idxReceiverAddressInTopics {
 		destinationAddress := topics[idxReceiverAddressInTopics]
-		err = tp.processEsdtDataForAddress(destinationAddress, nonce, string(tokenID), markedAlteredAccounts)
+		err = tp.processEsdtDataForAddress(destinationAddress, nonce, string(tokenID), markedAlteredAccounts, false)
 		if err != nil {
 			return err
 		}
@@ -151,6 +152,7 @@ func (tp *tokensProcessor) processEsdtDataForAddress(
 	nonce *big.Int,
 	tokenID string,
 	markedAlteredAccounts map[string]*markedAlteredAccount,
+	isNFTCreate bool,
 ) error {
 	if !tp.isSameShard(address) {
 		return nil
@@ -170,12 +172,14 @@ func (tp *tokensProcessor) processEsdtDataForAddress(
 	tokenKey := tokenID + string(nonce.Bytes())
 	_, alreadyExists := markedAccount.tokens[tokenKey]
 	if alreadyExists {
+		markedAccount.tokens[tokenKey].isNFTCreate = markedAccount.tokens[tokenKey].isNFTCreate || isNFTCreate
 		return nil
 	}
 
 	markedAccount.tokens[tokenKey] = &markedAlteredAccountToken{
-		identifier: tokenID,
-		nonce:      nonce.Uint64(),
+		identifier:  tokenID,
+		nonce:       nonce.Uint64(),
+		isNFTCreate: isNFTCreate,
 	}
 
 	return nil

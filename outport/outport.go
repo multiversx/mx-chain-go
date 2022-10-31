@@ -59,20 +59,20 @@ func (o *outport) monitorCompletionOnDriver(function string, driver Driver) chan
 	o.logHandler(logger.LogDebug, "outport.monitorCompletionOnDriver starting",
 		"function", function, "driver", driverString(driver), "message counter", counter)
 	ch := make(chan struct{})
-	go func() {
+	go func(startTime time.Time) {
 		timer := time.NewTimer(o.timeForDriverCall)
 
 		select {
 		case <-ch:
 			o.logHandler(logger.LogDebug, "outport.monitorCompletionOnDriver ended",
-				"function", function, "driver", driverString(driver), "message counter", counter)
+				"function", function, "driver", driverString(driver), "message counter", counter, "time", time.Since(startTime))
 		case <-timer.C:
 			o.logHandler(logger.LogWarning, "outport.monitorCompletionOnDriver took too long",
 				"function", function, "driver", driverString(driver), "message counter", counter, "time", o.timeForDriverCall)
 		}
 
 		timer.Stop()
-	}()
+	}(time.Now())
 
 	return ch
 }
