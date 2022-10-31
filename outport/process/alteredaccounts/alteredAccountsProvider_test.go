@@ -137,12 +137,12 @@ func testExtractAlteredAccountsFromPoolSenderShard(t *testing.T) {
 			"hash0": outportcore.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{
 				SndAddr: []byte("sender shard - tx0  "),
 				RcvAddr: []byte("receiver shard - tx0"),
-				Value:   big.NewInt(0),
+				Value:   big.NewInt(1),
 			}, 0, big.NewInt(0)),
 			"hash1": outportcore.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{
 				SndAddr: []byte("sender shard - tx1  "),
 				RcvAddr: []byte("receiver shard - tx1"),
-				Value:   big.NewInt(0),
+				Value:   big.NewInt(1),
 			}, 0, big.NewInt(0)),
 		},
 	}, shared.AlteredAccountsOptions{
@@ -535,6 +535,7 @@ func testExtractAlteredAccountsFromPoolShouldIncludeNFT(t *testing.T) {
 func testExtractAlteredAccountsFromPoolShouldNotIncludeReceiverAddressIfNftCreateLog(t *testing.T) {
 	t.Parallel()
 
+	sendAddrShard0 := []byte("sender in shard 0 - tx 1  ")
 	receiverOnDestination := []byte("receiver on destination shard")
 	expectedToken := esdt.ESDigitalToken{
 		Value: big.NewInt(37),
@@ -543,7 +544,7 @@ func testExtractAlteredAccountsFromPoolShouldNotIncludeReceiverAddressIfNftCreat
 		},
 	}
 	args := getMockArgs()
-	args.AddressConverter = testscommon.NewPubkeyConverterMock(len(receiverOnDestination))
+	args.AddressConverter = testscommon.NewPubkeyConverterMock(len(sendAddrShard0))
 	args.EsdtDataStorageHandler = &testscommon.EsdtStorageHandlerStub{
 		GetESDTNFTTokenOnDestinationCalled: func(acnt vmcommon.UserAccountHandler, esdtTokenKey []byte, nonce uint64) (*esdt.ESDigitalToken, bool, error) {
 			return &expectedToken, false, nil
@@ -556,7 +557,6 @@ func testExtractAlteredAccountsFromPoolShouldNotIncludeReceiverAddressIfNftCreat
 	}
 	aap, _ := NewAlteredAccountsProvider(args)
 
-	sendAddrShard0 := []byte("sender in shard 0 - tx 1  ")
 	res, err := aap.ExtractAlteredAccountsFromPool(&outportcore.Pool{
 		Txs: map[string]data.TransactionHandlerWithGasUsedAndFee{
 			"hh": outportcore.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{

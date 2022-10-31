@@ -4,7 +4,7 @@ go 1.15
 
 require (
 	github.com/ElrondNetwork/covalent-indexer-go v1.0.7-0.20220922092743-7f3a26b4001a
-	github.com/ElrondNetwork/elastic-indexer-go v1.2.45-0.20221027134230-3fed07b8f208
+	github.com/ElrondNetwork/elastic-indexer-go v1.2.45-0.20221031080848-6f62eb469e79
 	github.com/ElrondNetwork/elrond-go-core v1.1.24-0.20221028092924-4f1c38bae5f9
 	github.com/ElrondNetwork/elrond-go-crypto v1.2.1
 	github.com/ElrondNetwork/elrond-go-logger v1.0.9
