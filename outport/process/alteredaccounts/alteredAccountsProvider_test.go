@@ -146,7 +146,7 @@ func testExtractAlteredAccountsFromPoolSenderShard(t *testing.T) {
 			}, 0, big.NewInt(0)),
 		},
 	}, shared.AlteredAccountsOptions{
-		AdditionalAlteredAccountsData: true,
+		WithAdditionalOutportData: true,
 	})
 	require.NoError(t, err)
 	require.Equal(t, 2, len(res))
@@ -192,7 +192,7 @@ func testExtractAlteredAccountsFromPoolReceiverShard(t *testing.T) {
 			}, 0, big.NewInt(0)),
 		},
 	}, shared.AlteredAccountsOptions{
-		AdditionalAlteredAccountsData: true,
+		WithAdditionalOutportData: true,
 	})
 	require.NoError(t, err)
 	require.Equal(t, 2, len(res))
@@ -585,7 +585,7 @@ func testExtractAlteredAccountsFromPoolShouldNotIncludeReceiverAddressIfNftCreat
 			},
 		},
 	}, shared.AlteredAccountsOptions{
-		AdditionalAlteredAccountsData: true,
+		WithAdditionalOutportData: true,
 	})
 	require.NoError(t, err)
 
@@ -907,7 +907,7 @@ func testExtractAlteredAccountsFromPoolESDTTransferBalanceNotChanged(t *testing.
 			},
 		},
 	}, shared.AlteredAccountsOptions{
-		AdditionalAlteredAccountsData: true,
+		WithAdditionalOutportData: true,
 	})
 	require.NoError(t, err)
 
@@ -984,7 +984,7 @@ func testExtractAlteredAccountsFromPoolReceiverShouldHaveBalanceChanged(t *testi
 			}, 0, big.NewInt(0)),
 		},
 	}, shared.AlteredAccountsOptions{
-		AdditionalAlteredAccountsData: true,
+		WithAdditionalOutportData: true,
 	})
 
 	require.NoError(t, err)
@@ -1032,7 +1032,7 @@ func testExtractAlteredAccountsFromPoolOnlySenderShouldHaveBalanceChanged(t *tes
 			}, 0, big.NewInt(0)),
 		},
 	}, shared.AlteredAccountsOptions{
-		AdditionalAlteredAccountsData: true,
+		WithAdditionalOutportData: true,
 	})
 	require.NoError(t, err)
 
@@ -1097,7 +1097,7 @@ func textExtractAlteredAccountsFromPoolNftCreate(t *testing.T) {
 			},
 		},
 	}, shared.AlteredAccountsOptions{
-		AdditionalAlteredAccountsData: true,
+		WithAdditionalOutportData: true,
 	})
 	require.NoError(t, err)
 

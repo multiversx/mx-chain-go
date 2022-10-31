@@ -14,10 +14,10 @@ var errInvalidAlteredAccountsOptions = errors.New("invalid altered accounts opti
 
 // AlteredAccountsOptions holds some configurable parameters to be used for extracting the altered accounts
 type AlteredAccountsOptions struct {
-	WithCustomAccountsRepository  bool
-	AdditionalAlteredAccountsData bool
-	AccountsRepository            state.AccountsRepository
-	AccountQueryOptions           api.AccountQueryOptions
+	WithCustomAccountsRepository bool
+	WithAdditionalOutportData    bool
+	AccountsRepository           state.AccountsRepository
+	AccountQueryOptions          api.AccountQueryOptions
 }
 
 // Verify will check the validity of the options

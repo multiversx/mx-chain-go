@@ -123,7 +123,7 @@ func (aap *alteredAccountsProvider) processMarkedAccountData(
 		Balance: userAccount.GetBalance().String(),
 		Nonce:   userAccount.GetNonce(),
 	}
-	if options.AdditionalAlteredAccountsData {
+	if options.WithAdditionalOutportData {
 		alteredAccounts[encodedAddress].AdditionalData = &outportcore.AdditionalAccountData{
 			IsSender:       markedAccount.isSender,
 			BalanceChanged: markedAccount.balanceChanged,
@@ -199,7 +199,7 @@ func (aap *alteredAccountsProvider) addTokensDataForMarkedAccount(
 		Properties: string(esdtToken.Properties),
 		MetaData:   esdtToken.TokenMetaData,
 	}
-	if options.AdditionalAlteredAccountsData {
+	if options.WithAdditionalOutportData {
 		accountTokenData.AdditionalData = &outportcore.AdditionalAccountTokenData{
 			IsNFTCreate: markedAccountToken.isNFTCreate,
 		}
@@ -240,7 +240,8 @@ func (aap *alteredAccountsProvider) extractAddressesFromTxsHandlers(
 			aap.addAddressWithBalanceChangeInMap(senderAddress, markedAlteredAccounts, true)
 		}
 
-		balanceChanged := txHandler.GetValue().Cmp(big.NewInt(0)) > 0
+		txValue := txHandler.GetValue()
+		balanceChanged := txValue.Cmp(big.NewInt(0)) > 0
 		isValid := txType != process.InvalidTransaction
 		isOnCurrentShard := receiverShardID == selfShardID
 		addReceiver := isValid && isOnCurrentShard && balanceChanged && len(receiverAddress) > 0
@@ -260,15 +261,15 @@ func (aap *alteredAccountsProvider) addAddressWithBalanceChangeInMap(
 		return
 	}
 
-	adrStr := string(address)
-	_, addressAlreadySelected := markedAlteredAccounts[adrStr]
+	addressStr := string(address)
+	_, addressAlreadySelected := markedAlteredAccounts[addressStr]
 	if addressAlreadySelected {
-		markedAlteredAccounts[adrStr].isSender = markedAlteredAccounts[adrStr].isSender || isSender
-		markedAlteredAccounts[adrStr].balanceChanged = true
+		markedAlteredAccounts[addressStr].isSender = markedAlteredAccounts[addressStr].isSender || isSender
+		markedAlteredAccounts[addressStr].balanceChanged = true
 		return
 	}
 
-	markedAlteredAccounts[adrStr] = &markedAlteredAccount{
+	markedAlteredAccounts[addressStr] = &markedAlteredAccount{
 		isSender:       isSender,
 		balanceChanged: true,
 	}
