@@ -12,42 +12,42 @@ type RoundHandlerMock struct {
 }
 
 // BeforeGenesis -
-func (rndm *RoundHandlerMock) BeforeGenesis() bool {
-	if rndm.BeforeGenesisCalled != nil {
-		return rndm.BeforeGenesisCalled()
+func (mock *RoundHandlerMock) BeforeGenesis() bool {
+	if mock.BeforeGenesisCalled != nil {
+		return mock.BeforeGenesisCalled()
 	}
 	return false
 }
 
 // Index -
-func (rndm *RoundHandlerMock) Index() int64 {
-	return rndm.IndexField
+func (mock *RoundHandlerMock) Index() int64 {
+	return mock.IndexField
 }
 
 // UpdateRound -
-func (rndm *RoundHandlerMock) UpdateRound(time.Time, time.Time) {
+func (mock *RoundHandlerMock) UpdateRound(time.Time, time.Time) {
 }
 
 // TimeStamp -
-func (rndm *RoundHandlerMock) TimeStamp() time.Time {
-	return rndm.TimeStampField
+func (mock *RoundHandlerMock) TimeStamp() time.Time {
+	return mock.TimeStampField
 }
 
 // TimeDuration -
-func (rndm *RoundHandlerMock) TimeDuration() time.Duration {
-	if rndm.TimeDurationField.Seconds() == 0 {
+func (mock *RoundHandlerMock) TimeDuration() time.Duration {
+	if mock.TimeDurationField.Seconds() == 0 {
 		return time.Second
 	}
 
-	return rndm.TimeDurationField
+	return mock.TimeDurationField
 }
 
 // RemainingTime -
-func (rndm *RoundHandlerMock) RemainingTime(_ time.Time, _ time.Duration) time.Duration {
-	return rndm.RemainingTimeField
+func (mock *RoundHandlerMock) RemainingTime(_ time.Time, _ time.Duration) time.Duration {
+	return mock.RemainingTimeField
 }
 
 // IsInterfaceNil -
-func (rndm *RoundHandlerMock) IsInterfaceNil() bool {
-	return rndm == nil
+func (mock *RoundHandlerMock) IsInterfaceNil() bool {
+	return mock == nil
 }

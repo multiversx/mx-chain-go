@@ -35,7 +35,7 @@ func createBaseBlockProcessor() *baseAPIBlockProcessor {
 		marshalizer:              &mock.MarshalizerFake{},
 		uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
 		historyRepo:              &dblookupext.HistoryRepositoryStub{},
-		hasher:                   &mock.HasherFake{},
+		hasher:                   &mock.HasherMock{},
 		addressPubKeyConverter:   mock.NewPubkeyConverterMock(32),
 		txStatusComputer:         &mock.StatusComputerStub{},
 		apiTransactionHandler:    &mock.TransactionAPIHandlerStub{},
