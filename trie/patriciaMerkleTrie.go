@@ -409,7 +409,7 @@ func (tr *patriciaMerkleTrie) GetSerializedNodes(rootHash []byte, maxBuffToSend 
 		return nil, 0, err
 	}
 
-	it, err := NewIterator(newTr)
+	it, err := NewBFSIterator(newTr)
 	if err != nil {
 		return nil, 0, err
 	}
