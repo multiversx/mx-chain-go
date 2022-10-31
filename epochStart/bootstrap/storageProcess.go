@@ -22,8 +22,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/storage/cache"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
-	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/trie/factory"
 )
 
@@ -72,6 +72,7 @@ func NewStorageEpochStartBootstrap(args ArgsStorageEpochStartBootstrap) (*storag
 // Bootstrap runs the fast bootstrap method from local storage or from import-db directory
 func (sesb *storageEpochStartBootstrap) Bootstrap() (Parameters, error) {
 	defer sesb.closeTrieComponents()
+	defer sesb.closeBootstrapHeartbeatSender()
 
 	if !sesb.generalConfig.GeneralSettings.StartInEpochEnabled {
 		return sesb.bootstrapFromLocalStorage()
@@ -206,7 +207,7 @@ func (sesb *storageEpochStartBootstrap) createStorageRequestHandler() error {
 		return err
 	}
 
-	requestedItemsHandler := timecache.NewTimeCache(timeBetweenRequests)
+	requestedItemsHandler := cache.NewTimeCache(timeBetweenRequests)
 	sesb.requestHandler, err = requestHandlers.NewResolverRequestHandler(
 		finder,
 		requestedItemsHandler,

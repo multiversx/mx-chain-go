@@ -5,12 +5,12 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/arwen-wasm-vm/v1_5/arwen"
-	"github.com/ElrondNetwork/arwen-wasm-vm/v1_5/mock/contracts"
-	"github.com/ElrondNetwork/arwen-wasm-vm/v1_5/testcommon"
-	test "github.com/ElrondNetwork/arwen-wasm-vm/v1_5/testcommon"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-vm-common/txDataBuilder"
+	"github.com/ElrondNetwork/wasm-vm/arwen"
+	"github.com/ElrondNetwork/wasm-vm/mock/contracts"
+	"github.com/ElrondNetwork/wasm-vm/testcommon"
+	test "github.com/ElrondNetwork/wasm-vm/testcommon"
 	"github.com/stretchr/testify/require"
 )
 
@@ -135,22 +135,22 @@ func testMockContract_CrossShard(t *testing.T, asyncCallType []byte) {
 	parentHandler, err := net.NodesSharded[0][0].BlockchainHook.GetUserAccount(parentAddress)
 	require.Nil(t, err)
 
-	parentValueA, err := parentHandler.AccountDataHandler().RetrieveValue(test.ParentKeyA)
+	parentValueA, _, err := parentHandler.AccountDataHandler().RetrieveValue(test.ParentKeyA)
 	require.Nil(t, err)
 	require.Equal(t, test.ParentDataA, parentValueA)
 
-	parentValueB, err := parentHandler.AccountDataHandler().RetrieveValue(test.ParentKeyB)
+	parentValueB, _, err := parentHandler.AccountDataHandler().RetrieveValue(test.ParentKeyB)
 	require.Nil(t, err)
 	require.Equal(t, test.ParentDataB, parentValueB)
 
-	callbackValue, err := parentHandler.AccountDataHandler().RetrieveValue(test.CallbackKey)
+	callbackValue, _, err := parentHandler.AccountDataHandler().RetrieveValue(test.CallbackKey)
 	require.Nil(t, err)
 	require.Equal(t, test.CallbackData, callbackValue)
 
 	childHandler, err := net.NodesSharded[1][0].BlockchainHook.GetUserAccount(childAddress)
 	require.Nil(t, err)
 
-	childValue, err := childHandler.AccountDataHandler().RetrieveValue(test.ChildKey)
+	childValue, _, err := childHandler.AccountDataHandler().RetrieveValue(test.ChildKey)
 	require.Nil(t, err)
 	require.Equal(t, test.ChildData, childValue)
 }

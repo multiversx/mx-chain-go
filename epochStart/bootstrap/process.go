@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/blockchain"
 	factoryDataPool "github.com/ElrondNetwork/elrond-go/dataRetriever/factory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
@@ -27,20 +28,25 @@ import (
 	factoryInterceptors "github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/factory"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/types"
 	factoryDisabled "github.com/ElrondNetwork/elrond-go/factory/disabled"
+	"github.com/ElrondNetwork/elrond-go/heartbeat/sender"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/process/heartbeat/validator"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	disabledInterceptors "github.com/ElrondNetwork/elrond-go/process/interceptors/disabled"
+	"github.com/ElrondNetwork/elrond-go/process/peer"
+	"github.com/ElrondNetwork/elrond-go/redundancy"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/state/syncer"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/cache"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	"github.com/ElrondNetwork/elrond-go/storage/timecache"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/trie/factory"
+	"github.com/ElrondNetwork/elrond-go/trie/statistics"
+	"github.com/ElrondNetwork/elrond-go/trie/storageMarker"
 	"github.com/ElrondNetwork/elrond-go/update"
 	updateSync "github.com/ElrondNetwork/elrond-go/update/sync"
 )
@@ -105,6 +111,8 @@ type epochStartBootstrap struct {
 	maxHardCapForMissingNodes  int
 	trieSyncerVersion          int
 	checkNodesOnDisk           bool
+	bootstrapHeartbeatSender   update.Closer
+	trieSyncStatisticsProvider common.SizeSyncStatisticsHandler
 
 	// created components
 	requestHandler            process.RequestHandler
@@ -167,6 +175,7 @@ type ArgsEpochStartBootstrap struct {
 	HeaderIntegrityVerifier    process.HeaderIntegrityVerifier
 	DataSyncerCreator          types.ScheduledDataSyncerCreator
 	ScheduledSCRsStorer        storage.Storer
+	TrieSyncStatisticsProvider common.SizeSyncStatisticsHandler
 }
 
 type dataToSync struct {
@@ -211,9 +220,10 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		dataSyncerFactory:          args.DataSyncerCreator,
 		storerScheduledSCRs:        args.ScheduledSCRsStorer,
 		shardCoordinator:           args.GenesisShardCoordinator,
+		trieSyncStatisticsProvider: args.TrieSyncStatisticsProvider,
 	}
 
-	whiteListCache, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(epochStartProvider.generalConfig.WhiteListPool))
+	whiteListCache, err := storageunit.NewCache(storageFactory.GetCacherFromConfig(epochStartProvider.generalConfig.WhiteListPool))
 	if err != nil {
 		return nil, err
 	}
@@ -298,6 +308,7 @@ func (e *epochStartBootstrap) isNodeInGenesisNodesConfig() bool {
 // Bootstrap runs the fast bootstrap method from the network or local storage
 func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	defer e.closeTrieComponents()
+	defer e.closeBootstrapHeartbeatSender()
 
 	if e.flagsConfig.ForceStartFromNetwork {
 		log.Warn("epochStartBootstrap.Bootstrap: forcing start from network")
@@ -649,6 +660,11 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 	log.Debug("start in epoch bootstrap: shardCoordinator", "numOfShards", e.baseData.numberOfShards, "shardId", e.baseData.shardId)
 
 	err = e.messenger.CreateTopic(common.ConsensusTopic+e.shardCoordinator.CommunicationIdentifier(e.shardCoordinator.SelfId()), true)
+	if err != nil {
+		return Parameters{}, err
+	}
+
+	err = e.createHeartbeatSender()
 	if err != nil {
 		return Parameters{}, err
 	}
@@ -1034,16 +1050,18 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 
 	argsUserAccountsSyncer := syncer.ArgsNewUserAccountsSyncer{
 		ArgsNewBaseAccountsSyncer: syncer.ArgsNewBaseAccountsSyncer{
-			Hasher:                    e.coreComponentsHolder.Hasher(),
-			Marshalizer:               e.coreComponentsHolder.InternalMarshalizer(),
-			TrieStorageManager:        trieStorageManager,
-			RequestHandler:            e.requestHandler,
-			Timeout:                   common.TimeoutGettingTrieNodes,
-			Cacher:                    e.dataPool.TrieNodes(),
-			MaxTrieLevelInMemory:      e.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
-			MaxHardCapForMissingNodes: e.maxHardCapForMissingNodes,
-			TrieSyncerVersion:         e.trieSyncerVersion,
-			CheckNodesOnDisk:          e.checkNodesOnDisk,
+			Hasher:                            e.coreComponentsHolder.Hasher(),
+			Marshalizer:                       e.coreComponentsHolder.InternalMarshalizer(),
+			TrieStorageManager:                trieStorageManager,
+			RequestHandler:                    e.requestHandler,
+			Timeout:                           common.TimeoutGettingTrieNodes,
+			Cacher:                            e.dataPool.TrieNodes(),
+			MaxTrieLevelInMemory:              e.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
+			MaxHardCapForMissingNodes:         e.maxHardCapForMissingNodes,
+			TrieSyncerVersion:                 e.trieSyncerVersion,
+			CheckNodesOnDisk:                  e.checkNodesOnDisk,
+			StorageMarker:                     storageMarker.NewTrieStorageMarker(),
+			UserAccountsSyncStatisticsHandler: e.trieSyncStatisticsProvider,
 		},
 		ShardId:                e.shardCoordinator.SelfId(),
 		Throttler:              thr,
@@ -1065,22 +1083,23 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 func (e *epochStartBootstrap) createStorageService(
 	shardCoordinator sharding.Coordinator,
 	pathManager storage.PathManagerHandler,
-	epochStartNotifier storage.EpochStartNotifier,
+	epochStartNotifier epochStart.EpochStartNotifier,
 	startEpoch uint32,
 	createTrieEpochRootHashStorer bool,
 	targetShardId uint32,
 ) (dataRetriever.StorageService, error) {
 	storageServiceCreator, err := storageFactory.NewStorageServiceFactory(
-		&e.generalConfig,
-		&e.prefsConfig,
-		shardCoordinator,
-		pathManager,
-		epochStartNotifier,
-		e.coreComponentsHolder.NodeTypeProvider(),
-		startEpoch,
-		createTrieEpochRootHashStorer,
-		storageFactory.BootstrapStorageService,
-	)
+		storageFactory.StorageServiceFactoryArgs{
+			Config:                        e.generalConfig,
+			PrefsConfig:                   e.prefsConfig,
+			ShardCoordinator:              shardCoordinator,
+			PathManager:                   pathManager,
+			EpochStartNotifier:            epochStartNotifier,
+			NodeTypeProvider:              e.coreComponentsHolder.NodeTypeProvider(),
+			CurrentEpoch:                  startEpoch,
+			StorageType:                   storageFactory.BootstrapStorageService,
+			CreateTrieEpochRootHashStorer: createTrieEpochRootHashStorer,
+		})
 	if err != nil {
 		return nil, err
 	}
@@ -1099,16 +1118,18 @@ func (e *epochStartBootstrap) syncValidatorAccountsState(rootHash []byte) error 
 
 	argsValidatorAccountsSyncer := syncer.ArgsNewValidatorAccountsSyncer{
 		ArgsNewBaseAccountsSyncer: syncer.ArgsNewBaseAccountsSyncer{
-			Hasher:                    e.coreComponentsHolder.Hasher(),
-			Marshalizer:               e.coreComponentsHolder.InternalMarshalizer(),
-			TrieStorageManager:        peerTrieStorageManager,
-			RequestHandler:            e.requestHandler,
-			Timeout:                   common.TimeoutGettingTrieNodes,
-			Cacher:                    e.dataPool.TrieNodes(),
-			MaxTrieLevelInMemory:      e.generalConfig.StateTriesConfig.MaxPeerTrieLevelInMemory,
-			MaxHardCapForMissingNodes: e.maxHardCapForMissingNodes,
-			TrieSyncerVersion:         e.trieSyncerVersion,
-			CheckNodesOnDisk:          e.checkNodesOnDisk,
+			Hasher:                            e.coreComponentsHolder.Hasher(),
+			Marshalizer:                       e.coreComponentsHolder.InternalMarshalizer(),
+			TrieStorageManager:                peerTrieStorageManager,
+			RequestHandler:                    e.requestHandler,
+			Timeout:                           common.TimeoutGettingTrieNodes,
+			Cacher:                            e.dataPool.TrieNodes(),
+			MaxTrieLevelInMemory:              e.generalConfig.StateTriesConfig.MaxPeerTrieLevelInMemory,
+			MaxHardCapForMissingNodes:         e.maxHardCapForMissingNodes,
+			TrieSyncerVersion:                 e.trieSyncerVersion,
+			CheckNodesOnDisk:                  e.checkNodesOnDisk,
+			StorageMarker:                     storageMarker.NewTrieStorageMarker(),
+			UserAccountsSyncStatisticsHandler: statistics.NewTrieSyncStatistics(),
 		},
 	}
 	accountsDBSyncer, err := syncer.NewValidatorAccountsSyncer(argsValidatorAccountsSyncer)
@@ -1179,7 +1200,7 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 		return err
 	}
 
-	requestedItemsHandler := timecache.NewTimeCache(timeBetweenRequests)
+	requestedItemsHandler := cache.NewTimeCache(timeBetweenRequests)
 	e.requestHandler, err = requestHandlers.NewResolverRequestHandler(
 		finder,
 		requestedItemsHandler,
@@ -1213,6 +1234,48 @@ func (e *epochStartBootstrap) applyShardIDAsObserverIfNeeded(receivedShardID uin
 	return receivedShardID
 }
 
+func (e *epochStartBootstrap) createHeartbeatSender() error {
+	privateKey := e.cryptoComponentsHolder.PrivateKey()
+	bootstrapRedundancy, err := redundancy.NewBootstrapNodeRedundancy(privateKey)
+	if err != nil {
+		return err
+	}
+
+	heartbeatTopic := common.HeartbeatV2Topic + e.shardCoordinator.CommunicationIdentifier(e.shardCoordinator.SelfId())
+	if !e.messenger.HasTopic(heartbeatTopic) {
+		err = e.messenger.CreateTopic(heartbeatTopic, true)
+		if err != nil {
+			return err
+		}
+	}
+
+	peerSubType := core.RegularPeer
+	if e.prefsConfig.FullArchive {
+		peerSubType = core.FullHistoryObserver
+	}
+	heartbeatCfg := e.generalConfig.HeartbeatV2
+	argsHeartbeatSender := sender.ArgBootstrapSender{
+		Messenger:                          e.messenger,
+		Marshaller:                         e.coreComponentsHolder.InternalMarshalizer(),
+		HeartbeatTopic:                     heartbeatTopic,
+		HeartbeatTimeBetweenSends:          time.Second * time.Duration(heartbeatCfg.HeartbeatTimeBetweenSendsInSec),
+		HeartbeatTimeBetweenSendsWhenError: time.Second * time.Duration(heartbeatCfg.HeartbeatTimeBetweenSendsWhenErrorInSec),
+		HeartbeatThresholdBetweenSends:     heartbeatCfg.HeartbeatThresholdBetweenSends,
+		VersionNumber:                      e.flagsConfig.Version,
+		NodeDisplayName:                    e.prefsConfig.NodeDisplayName,
+		Identity:                           e.prefsConfig.Identity,
+		PeerSubType:                        peerSubType,
+		CurrentBlockProvider:               blockchain.NewBootstrapBlockchain(),
+		PrivateKey:                         privateKey,
+		RedundancyHandler:                  bootstrapRedundancy,
+		PeerTypeProvider:                   peer.NewBootstrapPeerTypeProvider(),
+		TrieSyncStatisticsProvider:         e.trieSyncStatisticsProvider,
+	}
+
+	e.bootstrapHeartbeatSender, err = sender.NewBootstrapSender(argsHeartbeatSender)
+	return err
+}
+
 func (e *epochStartBootstrap) closeTrieComponents() {
 	if e.trieStorageManagers != nil {
 		log.Debug("closing all trieStorageManagers", "num", len(e.trieStorageManagers))
@@ -1234,6 +1297,12 @@ func (e *epochStartBootstrap) closeTrieComponents() {
 	if !check.IfNil(e.storageService) {
 		err := e.storageService.Destroy()
 		log.LogIfError(err)
+	}
+}
+
+func (e *epochStartBootstrap) closeBootstrapHeartbeatSender() {
+	if !check.IfNil(e.bootstrapHeartbeatSender) {
+		log.LogIfError(e.bootstrapHeartbeatSender.Close())
 	}
 }
 

@@ -100,6 +100,7 @@ func TestNewNodeFacade_WithInvalidSimultaneousRequestsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArguments()
+	arg.WsAntifloodConfig.WebServerAntifloodEnabled = true
 	arg.WsAntifloodConfig.SimultaneousRequests = 0
 	nf, err := NewNodeFacade(arg)
 
@@ -111,6 +112,7 @@ func TestNewNodeFacade_WithInvalidSameSourceResetIntervalInSecShouldErr(t *testi
 	t.Parallel()
 
 	arg := createMockArguments()
+	arg.WsAntifloodConfig.WebServerAntifloodEnabled = true
 	arg.WsAntifloodConfig.SameSourceResetIntervalInSec = 0
 	nf, err := NewNodeFacade(arg)
 
@@ -122,6 +124,7 @@ func TestNewNodeFacade_WithInvalidSameSourceRequestsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArguments()
+	arg.WsAntifloodConfig.WebServerAntifloodEnabled = true
 	arg.WsAntifloodConfig.SameSourceRequests = 0
 	nf, err := NewNodeFacade(arg)
 
@@ -631,6 +634,7 @@ func TestNodeFacade_GetThrottlerForEndpointNoConfigShouldReturnNilAndFalse(t *te
 	t.Parallel()
 
 	arg := createMockArguments()
+	arg.WsAntifloodConfig.WebServerAntifloodEnabled = true
 	arg.WsAntifloodConfig.EndpointsThrottlers = []config.EndpointsThrottlersConfig{} // ensure it is empty
 	nf, _ := NewNodeFacade(arg)
 
@@ -644,6 +648,7 @@ func TestNodeFacade_GetThrottlerForEndpointNotFoundShouldReturnNilAndFalse(t *te
 	t.Parallel()
 
 	arg := createMockArguments()
+	arg.WsAntifloodConfig.WebServerAntifloodEnabled = true
 	arg.WsAntifloodConfig.EndpointsThrottlers = []config.EndpointsThrottlersConfig{
 		{
 			Endpoint:         "endpoint",
@@ -662,6 +667,7 @@ func TestNodeFacade_GetThrottlerForEndpointShouldFindAndReturn(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArguments()
+	arg.WsAntifloodConfig.WebServerAntifloodEnabled = true
 	arg.WsAntifloodConfig.EndpointsThrottlers = []config.EndpointsThrottlersConfig{
 		{
 			Endpoint:         "endpoint",

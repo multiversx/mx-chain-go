@@ -3,7 +3,9 @@ package txsimulator
 import (
 	"encoding/hex"
 	"errors"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
@@ -13,11 +15,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -144,8 +147,8 @@ func TestTransactionSimulator_getVMOutput(t *testing.T) {
 	t.Parallel()
 
 	args := getTxSimulatorArgs()
-	args.VMOutputCacher, _ = storageUnit.NewCache(storageUnit.CacheConfig{
-		Type:     storageUnit.LRUCache,
+	args.VMOutputCacher, _ = storageunit.NewCache(storageunit.CacheConfig{
+		Type:     storageunit.LRUCache,
 		Capacity: 100,
 	})
 
@@ -179,8 +182,8 @@ func TestTransactionSimulator_ProcessTxShouldIncludeScrsAndReceipts(t *testing.T
 	}
 
 	args := getTxSimulatorArgs()
-	args.VMOutputCacher, _ = storageUnit.NewCache(storageUnit.CacheConfig{
-		Type:     storageUnit.LRUCache,
+	args.VMOutputCacher, _ = storageunit.NewCache(storageunit.CacheConfig{
+		Type:     storageunit.LRUCache,
 		Capacity: 100,
 	})
 
@@ -227,4 +230,35 @@ func getTxSimulatorArgs() ArgsTxSimulator {
 		Marshalizer:               &mock.MarshalizerMock{},
 		Hasher:                    &hashingMocks.HasherMock{},
 	}
+}
+
+func TestTransactionSimulator_ProcessTxConcurrentCalls(t *testing.T) {
+	t.Parallel()
+
+	numTransactionProcessorCalls := 0
+	args := getTxSimulatorArgs()
+	args.TransactionProcessor = &testscommon.TxProcessorStub{
+		ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
+			// deliberately not used a mutex here as to catch race conditions
+			numTransactionProcessorCalls++
+
+			return vmcommon.Ok, nil
+		},
+	}
+	txSimulator, _ := NewTransactionSimulator(args)
+	tx := &transaction.Transaction{Nonce: 37}
+
+	numCalls := 100
+	wg := sync.WaitGroup{}
+	wg.Add(numCalls)
+	for i := 0; i < numCalls; i++ {
+		go func(idx int) {
+			time.Sleep(time.Millisecond * 10)
+			_, _ = txSimulator.ProcessTx(tx)
+			wg.Done()
+		}(i)
+	}
+
+	wg.Wait()
+	assert.Equal(t, numCalls, numTransactionProcessorCalls)
 }

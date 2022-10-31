@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go/common"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/stretchr/testify/assert"
@@ -21,19 +22,25 @@ func TestNewTrieStorageManagerWithoutCheckpointsOkVals(t *testing.T) {
 func TestTrieStorageManagerWithoutCheckpoints_SetCheckpoint(t *testing.T) {
 	t.Parallel()
 
-	errChan := make(chan error, 1)
 	tsm, _ := trie.NewTrieStorageManager(getNewTrieStorageManagerArgs())
 	ts, _ := trie.NewTrieStorageManagerWithoutCheckpoints(tsm)
 
-	ts.SetCheckpoint([]byte("rootHash"), make([]byte, 0), nil, errChan, &trieMock.MockStatistics{})
+	iteratorChannels := &common.TrieIteratorChannels{
+		LeavesChan: nil,
+		ErrChan:    make(chan error, 1),
+	}
+	ts.SetCheckpoint([]byte("rootHash"), make([]byte, 0), iteratorChannels, nil, &trieMock.MockStatistics{})
 	assert.Equal(t, uint32(0), ts.PruningBlockingOperations())
 
-	chLeaves := make(chan core.KeyValueHolder)
-	ts.SetCheckpoint([]byte("rootHash"), make([]byte, 0), chLeaves, errChan, &trieMock.MockStatistics{})
+	iteratorChannels = &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder),
+		ErrChan:    make(chan error, 1),
+	}
+	ts.SetCheckpoint([]byte("rootHash"), make([]byte, 0), iteratorChannels, nil, &trieMock.MockStatistics{})
 	assert.Equal(t, uint32(0), ts.PruningBlockingOperations())
 
 	select {
-	case <-chLeaves:
+	case <-iteratorChannels.LeavesChan:
 	default:
 		assert.Fail(t, "unclosed channel")
 	}

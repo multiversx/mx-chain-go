@@ -34,7 +34,7 @@ type interceptedDataCryptoComponentsHolder interface {
 	BlockSignKeyGen() crypto.KeyGenerator
 	TxSingleSigner() crypto.SingleSigner
 	BlockSigner() crypto.SingleSigner
-	MultiSigner() crypto.MultiSigner
+	GetMultiSigner(epoch uint32) (crypto.MultiSigner, error)
 	PublicKey() crypto.PublicKey
 	IsInterfaceNil() bool
 }

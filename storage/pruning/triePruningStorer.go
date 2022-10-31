@@ -7,7 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/common"
-	elrondErrors "github.com/ElrondNetwork/elrond-go/errors"
+	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 const (
@@ -22,7 +22,7 @@ type triePruningStorer struct {
 }
 
 // NewTriePruningStorer will return a new instance of NewTriePruningStorer
-func NewTriePruningStorer(args *StorerArgs) (*triePruningStorer, error) {
+func NewTriePruningStorer(args StorerArgs) (*triePruningStorer, error) {
 	err := checkArgs(args)
 	if err != nil {
 		return nil, err
@@ -104,7 +104,7 @@ func (ps *triePruningStorer) GetFromOldEpochsWithoutAddingToCache(key []byte) ([
 	for idx := 1; idx < len(ps.activePersisters); idx++ {
 		val, err := ps.activePersisters[idx].persister.Get(key)
 		if err != nil {
-			if err == elrondErrors.ErrDBIsClosed {
+			if err == storage.ErrDBIsClosed {
 				numClosedDbs++
 			}
 
@@ -119,7 +119,7 @@ func (ps *triePruningStorer) GetFromOldEpochsWithoutAddingToCache(key []byte) ([
 	}
 
 	if numClosedDbs+1 == len(ps.activePersisters) && len(ps.activePersisters) > 1 {
-		return nil, core.OptionalUint32{}, elrondErrors.ErrDBIsClosed
+		return nil, core.OptionalUint32{}, storage.ErrDBIsClosed
 	}
 
 	return nil, core.OptionalUint32{}, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
@@ -162,4 +162,9 @@ func (ps *triePruningStorer) GetLatestStorageEpoch() (uint32, error) {
 	}
 
 	return ps.activePersisters[currentEpochIndex].epoch, nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (ps *triePruningStorer) IsInterfaceNil() bool {
+	return ps == nil
 }

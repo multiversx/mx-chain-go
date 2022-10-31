@@ -44,3 +44,8 @@ func (t *TestTrigger) GetRoundsPerEpoch() uint64 {
 func (t *TestTrigger) SetEpoch(epoch uint32) {
 	t.epoch = epoch
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (t *TestTrigger) IsInterfaceNil() bool {
+	return t == nil
+}

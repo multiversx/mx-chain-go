@@ -9,9 +9,13 @@ import (
 )
 
 func (d *delegation) createAndAddLogEntry(contractCallInput *vmcommon.ContractCallInput, topics ...[]byte) {
+	d.createAndAddLogEntryCustom(contractCallInput.Function, contractCallInput.CallerAddr, topics...)
+}
+
+func (d *delegation) createAndAddLogEntryCustom(identifier string, address []byte, topics ...[]byte) {
 	entry := &vmcommon.LogEntry{
-		Identifier: []byte(contractCallInput.Function),
-		Address:    contractCallInput.CallerAddr,
+		Identifier: []byte(identifier),
+		Address:    address,
 		Topics:     topics,
 	}
 
@@ -19,7 +23,8 @@ func (d *delegation) createAndAddLogEntry(contractCallInput *vmcommon.ContractCa
 }
 
 func (d *delegation) createAndAddLogEntryForWithdraw(
-	contractCallInput *vmcommon.ContractCallInput,
+	function string,
+	address []byte,
 	actualUserUnBond *big.Int,
 	globalFund *GlobalFundData,
 	delegator *DelegatorData,
@@ -27,7 +32,7 @@ func (d *delegation) createAndAddLogEntryForWithdraw(
 	wasDeleted bool,
 ) {
 	activeFund := d.getFundForLogEntry(delegator.ActiveFund)
-	d.createAndAddLogEntry(contractCallInput, actualUserUnBond.Bytes(), activeFund.Bytes(), big.NewInt(0).SetUint64(numUsers).Bytes(), globalFund.TotalActive.Bytes(), boolToSlice(wasDeleted))
+	d.createAndAddLogEntryCustom(function, address, actualUserUnBond.Bytes(), activeFund.Bytes(), big.NewInt(0).SetUint64(numUsers).Bytes(), globalFund.TotalActive.Bytes(), boolToSlice(wasDeleted))
 }
 
 func (d *delegation) createAndAddLogEntryForDelegate(
@@ -54,9 +59,12 @@ func (d *delegation) createAndAddLogEntryForDelegate(
 	function := contractCallInput.Function
 	if function == initFromValidatorData ||
 		function == mergeValidatorDataToDelegation ||
-		function == core.SCDeployInitFunctionName {
+		function == changeOwner {
 		address = contractCallInput.Arguments[0]
 
+		topics = append(topics, contractCallInput.RecipientAddr)
+	}
+	if function == core.SCDeployInitFunctionName {
 		topics = append(topics, contractCallInput.RecipientAddr)
 	}
 
@@ -82,6 +90,29 @@ func (d *delegation) getFundForLogEntry(activeFund []byte) *big.Int {
 	}
 
 	return fund.Value
+}
+
+func (d *delegation) createLogEventsForChangeOwner(
+	args *vmcommon.ContractCallInput,
+	ownerDelegatorData *DelegatorData,
+) {
+	globalFund, err := d.getGlobalFundData()
+	if err != nil {
+		globalFund = &GlobalFundData{
+			TotalActive: big.NewInt(0),
+		}
+
+		log.Warn("d.changeOwner cannot get global fund data", "error", err)
+	}
+	dStatus, err := d.getDelegationStatus()
+	if err != nil {
+		dStatus = &DelegationContractStatus{}
+
+		log.Warn("d.changeOwner cannot get delegation status", "error", err)
+	}
+
+	d.createAndAddLogEntryForDelegate(args, big.NewInt(0), globalFund, ownerDelegatorData, dStatus, false)
+	d.createAndAddLogEntryForWithdraw(withdraw, args.CallerAddr, big.NewInt(0), globalFund, ownerDelegatorData, d.numUsers(), true)
 }
 
 func boolToSlice(b bool) []byte {

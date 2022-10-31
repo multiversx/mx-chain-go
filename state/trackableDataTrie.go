@@ -2,60 +2,52 @@ package state
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/common"
 )
 
 // TrackableDataTrie wraps a PatriciaMerkelTrie adding modifying data capabilities
-type TrackableDataTrie struct {
+type trackableDataTrie struct {
 	dirtyData  map[string][]byte
 	tr         common.Trie
 	identifier []byte
 }
 
-// NewTrackableDataTrie returns an instance of DataTrieTracker
-func NewTrackableDataTrie(identifier []byte, tr common.Trie) *TrackableDataTrie {
-	return &TrackableDataTrie{
+// NewTrackableDataTrie returns an instance of trackableDataTrie
+func NewTrackableDataTrie(identifier []byte, tr common.Trie) *trackableDataTrie {
+	return &trackableDataTrie{
 		tr:         tr,
 		dirtyData:  make(map[string][]byte),
 		identifier: identifier,
 	}
 }
 
-// ClearDataCaches empties the dirtyData map and original map
-func (tdaw *TrackableDataTrie) ClearDataCaches() {
-	tdaw.dirtyData = make(map[string][]byte)
-}
-
-// DirtyData returns the map of (key, value) pairs that contain the data needed to be saved in the data trie
-func (tdaw *TrackableDataTrie) DirtyData() map[string][]byte {
-	return tdaw.dirtyData
-}
-
 // RetrieveValue fetches the value from a particular key searching the account data store
 // The search starts with dirty map, continues with original map and ends with the trie
 // Data must have been retrieved from its trie
-func (tdaw *TrackableDataTrie) RetrieveValue(key []byte) ([]byte, error) {
+func (tdaw *trackableDataTrie) RetrieveValue(key []byte) ([]byte, uint32, error) {
 	tailLength := len(key) + len(tdaw.identifier)
 
 	// search in dirty data cache
 	if value, found := tdaw.dirtyData[string(key)]; found {
 		log.Trace("retrieve value from dirty data", "key", key, "value", value)
-		return trimValue(value, tailLength)
+		trimmedVal, err := trimValue(value, tailLength)
+		return trimmedVal, 0, err
 	}
 
 	// ok, not in cache, retrieve from trie
 	if tdaw.tr == nil {
-		return nil, ErrNilTrie
+		return nil, 0, ErrNilTrie
 	}
-	value, err := tdaw.tr.Get(key)
+	value, depth, err := tdaw.tr.Get(key)
 	if err != nil {
-		return nil, err
+		return nil, depth, err
 	}
-	log.Trace("retrieve value from trie", "key", key, "value", value)
+	log.Trace("retrieve value from trie", "key", key, "value", value, "depth", depth)
 	value, _ = trimValue(value, tailLength)
 
-	return value, nil
+	return value, depth, nil
 }
 
 func trimValue(value []byte, tailLength int) ([]byte, error) {
@@ -69,7 +61,7 @@ func trimValue(value []byte, tailLength int) ([]byte, error) {
 
 // SaveKeyValue stores in dirtyData the data keys "touched"
 // It does not care if the data is really dirty as calling this check here will be sub-optimal
-func (tdaw *TrackableDataTrie) SaveKeyValue(key []byte, value []byte) error {
+func (tdaw *trackableDataTrie) SaveKeyValue(key []byte, value []byte) error {
 	var identifier []byte
 	lenValue := uint64(len(value))
 	if lenValue > core.MaxLeafSize {
@@ -85,16 +77,51 @@ func (tdaw *TrackableDataTrie) SaveKeyValue(key []byte, value []byte) error {
 }
 
 // SetDataTrie sets the internal data trie
-func (tdaw *TrackableDataTrie) SetDataTrie(tr common.Trie) {
+func (tdaw *trackableDataTrie) SetDataTrie(tr common.Trie) {
 	tdaw.tr = tr
 }
 
 // DataTrie sets the internal data trie
-func (tdaw *TrackableDataTrie) DataTrie() common.Trie {
+func (tdaw *trackableDataTrie) DataTrie() common.DataTrieHandler {
 	return tdaw.tr
 }
 
+// SaveDirtyData saved the dirty data to the trie
+func (tdaw *trackableDataTrie) SaveDirtyData(mainTrie common.Trie) (map[string][]byte, error) {
+	if len(tdaw.dirtyData) == 0 {
+		return map[string][]byte{}, nil
+	}
+
+	if check.IfNil(tdaw.tr) {
+		newDataTrie, err := mainTrie.Recreate(make([]byte, 0))
+		if err != nil {
+			return nil, err
+		}
+
+		tdaw.tr = newDataTrie
+	}
+
+	oldValues := make(map[string][]byte)
+
+	for k, v := range tdaw.dirtyData {
+		val, _, err := tdaw.tr.Get([]byte(k))
+		if err != nil {
+			return oldValues, err
+		}
+
+		oldValues[k] = val
+
+		err = tdaw.tr.Update([]byte(k), v)
+		if err != nil {
+			return oldValues, err
+		}
+	}
+
+	tdaw.dirtyData = make(map[string][]byte)
+	return oldValues, nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
-func (tdaw *TrackableDataTrie) IsInterfaceNil() bool {
+func (tdaw *trackableDataTrie) IsInterfaceNil() bool {
 	return tdaw == nil
 }

@@ -71,7 +71,6 @@ type epochFlagsHolder struct {
 	scrSizeInvariantOnBuiltInResultFlag         *atomic.Flag
 	checkCorrectTokenIDForTransferRoleFlag      *atomic.Flag
 	failExecutionOnEveryAPIErrorFlag            *atomic.Flag
-	heartbeatDisableFlag                        *atomic.Flag
 	isMiniBlockPartialExecutionFlag             *atomic.Flag
 	managedCryptoAPIsFlag                       *atomic.Flag
 	esdtMetadataContinuousCleanupFlag           *atomic.Flag
@@ -83,6 +82,8 @@ type epochFlagsHolder struct {
 	changeDelegationOwnerFlag                   *atomic.Flag
 	refactorPeersMiniBlocksFlag                 *atomic.Flag
 	scProcessorV2Flag                           *atomic.Flag
+	fixAsyncCallBackArgsList                    *atomic.Flag
+	fixOldTokenLiquidity                        *atomic.Flag
 }
 
 func newEpochFlagsHolder() *epochFlagsHolder {
@@ -155,7 +156,6 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		scrSizeInvariantOnBuiltInResultFlag:         &atomic.Flag{},
 		checkCorrectTokenIDForTransferRoleFlag:      &atomic.Flag{},
 		failExecutionOnEveryAPIErrorFlag:            &atomic.Flag{},
-		heartbeatDisableFlag:                        &atomic.Flag{},
 		isMiniBlockPartialExecutionFlag:             &atomic.Flag{},
 		managedCryptoAPIsFlag:                       &atomic.Flag{},
 		esdtMetadataContinuousCleanupFlag:           &atomic.Flag{},
@@ -167,6 +167,8 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		changeDelegationOwnerFlag:                   &atomic.Flag{},
 		refactorPeersMiniBlocksFlag:                 &atomic.Flag{},
 		scProcessorV2Flag:                           &atomic.Flag{},
+		fixAsyncCallBackArgsList:                    &atomic.Flag{},
+		fixOldTokenLiquidity:                        &atomic.Flag{},
 	}
 }
 
@@ -515,11 +517,6 @@ func (holder *epochFlagsHolder) IsFailExecutionOnEveryAPIErrorFlagEnabled() bool
 	return holder.failExecutionOnEveryAPIErrorFlag.IsSet()
 }
 
-// IsHeartbeatDisableFlagEnabled returns true if heartbeatDisableFlag is enabled
-func (holder *epochFlagsHolder) IsHeartbeatDisableFlagEnabled() bool {
-	return holder.heartbeatDisableFlag.IsSet()
-}
-
 // IsMiniBlockPartialExecutionFlagEnabled returns true if isMiniBlockPartialExecutionFlag is enabled
 func (holder *epochFlagsHolder) IsMiniBlockPartialExecutionFlagEnabled() bool {
 	return holder.isMiniBlockPartialExecutionFlag.IsSet()
@@ -623,7 +620,12 @@ func (holder *epochFlagsHolder) IsSCProcessorV2FlagEnabled() bool {
 	return holder.scProcessorV2Flag.IsSet()
 }
 
-// IsFixOldTokenLiquidityEnabled returns true if fixOldTokenLiquidityEnabled is enabled
+// IsFixAsyncCallBackArgsListFlagEnabled returns true if fixAsyncCallBackArgsList is enabled
+func (holder *epochFlagsHolder) IsFixAsyncCallBackArgsListFlagEnabled() bool {
+	return holder.fixAsyncCallBackArgsList.IsSet()
+}
+
+// IsFixOldTokenLiquidityEnabled returns true if fixOldTokenLiquidity is enabled
 func (holder *epochFlagsHolder) IsFixOldTokenLiquidityEnabled() bool {
-	return true // TODO matei-p FIX WHEN MERGE !!!
+	return holder.fixOldTokenLiquidity.IsSet()
 }

@@ -6,20 +6,6 @@
     #If the port = 0, the node will search for a free port on the machine and use it
     Port = "37373-38383"
 
-    #Seed represents the seed string generator for p2p identity (used during authentication and message passing).
-    #An empty Seed value will mean that the identity will be generated randomly in a secure cryptographically manner.
-    #The seed provided in this string can be of any length.
-    #########################################################################################
-    # WARNING! FOR SECURITY REASONS, ONE MIGHT USE A GENERATED STRING AS LONG AS POSSIBLE!  #
-    # IT IS RECOMMENDED THAT THE SEED FIELD SHOULD REMAIN EMPTY (NO CHARACTERS BETWEEN "")  #
-    # THIS SEED WILL BE USED FOR P2P'S PRIVATE KEY GENERATION. SAME SEED USED WILL LEAD TO  #
-    # THE GENERATION OF THE SAME P2P IDENTITY.                                              #
-    # SPECIFY A SEED VALUE IF YOU KNOW WHAT YOU ARE DOING!                                  #
-    #########################################################################################
-    #The seed provided will be hashed using SHA256 and the resulting 32 byte length byte array will be used in
-    #p2p identity generation
-    Seed = ""
-
     #ThresholdMinConnectedPeers represents the minimum number of connections a node should have before it can start
     #the sync and consensus mechanisms
     ThresholdMinConnectedPeers = 3

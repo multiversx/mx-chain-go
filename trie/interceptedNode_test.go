@@ -6,18 +6,17 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/stretchr/testify/assert"
 )
 
-func getDefaultInterceptedTrieNodeParameters() ([]byte, marshal.Marshalizer, hashing.Hasher) {
+func getDefaultInterceptedTrieNodeParameters() ([]byte, hashing.Hasher) {
 	tr := initTrie()
 	nodes, _ := getEncodedTrieNodesAndHashes(tr)
 
-	return nodes[0], &testscommon.ProtobufMarshalizerMock{}, &testscommon.KeccakMock{}
+	return nodes[0], &testscommon.KeccakMock{}
 }
 
 func getEncodedTrieNodesAndHashes(tr common.Trie) ([][]byte, [][]byte) {
@@ -46,26 +45,17 @@ func getEncodedTrieNodesAndHashes(tr common.Trie) ([][]byte, [][]byte) {
 func TestNewInterceptedTrieNode_EmptyBufferShouldFail(t *testing.T) {
 	t.Parallel()
 
-	_, marsh, hasher := getDefaultInterceptedTrieNodeParameters()
-	interceptedNode, err := trie.NewInterceptedTrieNode([]byte{}, marsh, hasher)
+	_, hasher := getDefaultInterceptedTrieNodeParameters()
+	interceptedNode, err := trie.NewInterceptedTrieNode([]byte{}, hasher)
 	assert.True(t, check.IfNil(interceptedNode))
 	assert.Equal(t, trie.ErrValueTooShort, err)
-}
-
-func TestNewInterceptedTrieNode_NilMarshalizerShouldFail(t *testing.T) {
-	t.Parallel()
-
-	buff, _, hasher := getDefaultInterceptedTrieNodeParameters()
-	interceptedNode, err := trie.NewInterceptedTrieNode(buff, nil, hasher)
-	assert.True(t, check.IfNil(interceptedNode))
-	assert.Equal(t, trie.ErrNilMarshalizer, err)
 }
 
 func TestNewInterceptedTrieNode_NilHasherShouldFail(t *testing.T) {
 	t.Parallel()
 
-	buff, marsh, _ := getDefaultInterceptedTrieNodeParameters()
-	interceptedNode, err := trie.NewInterceptedTrieNode(buff, marsh, nil)
+	buff, _ := getDefaultInterceptedTrieNodeParameters()
+	interceptedNode, err := trie.NewInterceptedTrieNode(buff, nil)
 	assert.True(t, check.IfNil(interceptedNode))
 	assert.Equal(t, trie.ErrNilHasher, err)
 }
@@ -186,5 +176,5 @@ func TestInterceptedTrieNode_SizeInBytes(t *testing.T) {
 	t.Parallel()
 
 	interceptedNode, _ := trie.NewInterceptedTrieNode(getDefaultInterceptedTrieNodeParameters())
-	assert.Equal(t, 380, interceptedNode.SizeInBytes())
+	assert.Equal(t, 131, interceptedNode.SizeInBytes())
 }

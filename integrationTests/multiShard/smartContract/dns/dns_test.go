@@ -12,6 +12,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/keccak"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/relayedTx"
@@ -299,7 +300,7 @@ func checkUserNamesAreDeleted(
 			dnsAcc, _ := acnt.(state.UserAccountHandler)
 
 			keyFromTrie := "value_state" + string(keccak.NewKeccak().Compute(userName))
-			value, err := dnsAcc.DataTrie().Get([]byte(keyFromTrie))
+			value, _, err := dnsAcc.DataTrie().(common.Trie).Get([]byte(keyFromTrie))
 			assert.Nil(t, err)
 			assert.Nil(t, value)
 		}

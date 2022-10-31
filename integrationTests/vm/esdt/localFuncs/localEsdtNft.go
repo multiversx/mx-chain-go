@@ -3,9 +3,9 @@ package localFuncs
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/arwen-wasm-vm/v1_5/arwen/elrondapi"
-	mock "github.com/ElrondNetwork/arwen-wasm-vm/v1_5/mock/context"
 	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
+	"github.com/ElrondNetwork/wasm-vm/arwen/elrondapi"
+	mock "github.com/ElrondNetwork/wasm-vm/mock/context"
 )
 
 // LocalMintMock is an exposed mock contract method

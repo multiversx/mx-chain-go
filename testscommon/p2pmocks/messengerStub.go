@@ -42,6 +42,9 @@ type MessengerStub struct {
 	WaitForConnectionsCalled               func(maxWaitingTime time.Duration, minNumOfPeers uint32)
 	SignCalled                             func(payload []byte) ([]byte, error)
 	VerifyCalled                           func(payload []byte, pid core.PeerID, signature []byte) error
+	AddPeerTopicNotifierCalled             func(notifier p2p.PeerTopicNotifier) error
+	BroadcastUsingPrivateKeyCalled         func(topic string, buff []byte, pid core.PeerID, skBytes []byte)
+	SignUsingPrivateKeyCalled              func(skBytes []byte, payload []byte) ([]byte, error)
 }
 
 // ConnectedFullHistoryPeersOnTopic -
@@ -59,7 +62,7 @@ func (ms *MessengerStub) ID() core.PeerID {
 		return ms.IDCalled()
 	}
 
-	return ""
+	return "peer ID"
 }
 
 // RegisterMessageProcessor -
@@ -333,6 +336,31 @@ func (ms *MessengerStub) Verify(payload []byte, pid core.PeerID, signature []byt
 	}
 
 	return nil
+}
+
+// AddPeerTopicNotifier -
+func (ms *MessengerStub) AddPeerTopicNotifier(notifier p2p.PeerTopicNotifier) error {
+	if ms.AddPeerTopicNotifierCalled != nil {
+		return ms.AddPeerTopicNotifierCalled(notifier)
+	}
+
+	return nil
+}
+
+// BroadcastUsingPrivateKey -
+func (ms *MessengerStub) BroadcastUsingPrivateKey(topic string, buff []byte, pid core.PeerID, skBytes []byte) {
+	if ms.BroadcastUsingPrivateKeyCalled != nil {
+		ms.BroadcastUsingPrivateKeyCalled(topic, buff, pid, skBytes)
+	}
+}
+
+// SignUsingPrivateKey -
+func (ms *MessengerStub) SignUsingPrivateKey(skBytes []byte, payload []byte) ([]byte, error) {
+	if ms.SignUsingPrivateKeyCalled != nil {
+		return ms.SignUsingPrivateKeyCalled(skBytes, payload)
+	}
+
+	return make([]byte, 0), nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

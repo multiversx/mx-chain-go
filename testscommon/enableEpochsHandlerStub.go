@@ -92,7 +92,6 @@ type EnableEpochsHandlerStub struct {
 	IsSCRSizeInvariantOnBuiltInResultFlagEnabledField            bool
 	IsCheckCorrectTokenIDForTransferRoleFlagEnabledField         bool
 	IsFailExecutionOnEveryAPIErrorFlagEnabledField               bool
-	IsHeartbeatDisableFlagEnabledField                           bool
 	IsMiniBlockPartialExecutionFlagEnabledField                  bool
 	IsManagedCryptoAPIsFlagEnabledField                          bool
 	IsESDTMetadataContinuousCleanupFlagEnabledField              bool
@@ -112,7 +111,12 @@ type EnableEpochsHandlerStub struct {
 	IsChangeDelegationOwnerFlagEnabledField                      bool
 	IsRefactorPeersMiniBlocksFlagEnabledField                    bool
 	IsSCProcessorV2FlagEnabledField                              bool
+<<<<<<< HEAD
 	IsFixOldTokenLiquidityFlagEnabledField                       bool
+=======
+	IsFixAsyncCallBackArgsListFlagEnabledField                   bool
+	IsFixOldTokenLiquidityEnabledField                           bool
+>>>>>>> feat/vm1.5
 }
 
 // ResetPenalizedTooMuchGasFlag -
@@ -810,14 +814,6 @@ func (stub *EnableEpochsHandlerStub) IsFailExecutionOnEveryAPIErrorFlagEnabled()
 	return stub.IsFailExecutionOnEveryAPIErrorFlagEnabledField
 }
 
-// IsHeartbeatDisableFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsHeartbeatDisableFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsHeartbeatDisableFlagEnabledField
-}
-
 // IsMiniBlockPartialExecutionFlagEnabled -
 func (stub *EnableEpochsHandlerStub) IsMiniBlockPartialExecutionFlagEnabled() bool {
 	stub.RLock()
@@ -970,12 +966,27 @@ func (stub *EnableEpochsHandlerStub) IsSCProcessorV2FlagEnabled() bool {
 	return stub.IsSCProcessorV2FlagEnabledField
 }
 
+<<<<<<< HEAD
+=======
+// IsFixAsyncCallBackArgsListFlagEnabled -
+func (stub *EnableEpochsHandlerStub) IsFixAsyncCallBackArgsListFlagEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsFixAsyncCallBackArgsListFlagEnabledField
+}
+
+>>>>>>> feat/vm1.5
 // IsFixOldTokenLiquidityEnabled -
 func (stub *EnableEpochsHandlerStub) IsFixOldTokenLiquidityEnabled() bool {
 	stub.RLock()
 	defer stub.RUnlock()
 
+<<<<<<< HEAD
 	return stub.IsFixOldTokenLiquidityFlagEnabledField
+=======
+	return stub.IsFixOldTokenLiquidityEnabledField
+>>>>>>> feat/vm1.5
 }
 
 // IsInterfaceNil -

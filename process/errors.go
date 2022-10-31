@@ -221,20 +221,8 @@ var ErrNilShardedDataCacherNotifier = errors.New("nil sharded data cacher notifi
 // ErrInvalidTxInPool signals an invalid transaction in the transactions pool
 var ErrInvalidTxInPool = errors.New("invalid transaction in the transactions pool")
 
-// ErrInvalidValidatorInfoInPool signals an invalid validator info in the validators info pool
-var ErrInvalidValidatorInfoInPool = errors.New("invalid validator info in the validators info pool")
-
 // ErrTxNotFound signals that a transaction has not found
 var ErrTxNotFound = errors.New("transaction not found")
-
-// ErrValidatorInfoNotFound signals that a validator info has not found
-var ErrValidatorInfoNotFound = errors.New("validator info not found")
-
-// ErrNilHeadersStorage signals that a nil header storage has been provided
-var ErrNilHeadersStorage = errors.New("nil headers storage")
-
-// ErrNilHeadersNonceHashStorage signals that a nil header nonce hash storage has been provided
-var ErrNilHeadersNonceHashStorage = errors.New("nil headers nonce hash storage")
 
 // ErrNilTransactionPool signals that a nil transaction pool was used
 var ErrNilTransactionPool = errors.New("nil transaction pool")
@@ -1133,6 +1121,9 @@ var ErrNilESDTGlobalSettingsHandler = errors.New("nil esdt global settings handl
 
 // ErrNilEnableEpochsHandler signals that a nil enable epochs handler has been provided
 var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
+
+// ErrNilMultiSignerContainer signals that the given multisigner container is nil
+var ErrNilMultiSignerContainer = errors.New("nil multiSigner container")
 
 // ErrNilCrawlerAllowedAddress signals that no crawler allowed address was found
 var ErrNilCrawlerAllowedAddress = errors.New("nil crawler allowed address")

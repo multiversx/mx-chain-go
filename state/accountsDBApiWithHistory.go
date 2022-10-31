@@ -5,7 +5,6 @@ import (
 	"context"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/holders"
@@ -27,6 +26,16 @@ func NewAccountsDBApiWithHistory(innerAccountsAdapter AccountsAdapter) (*account
 	return &accountsDBApiWithHistory{
 		innerAccountsAdapter: innerAccountsAdapter,
 	}, nil
+}
+
+// SetSyncer  is a not permitted operation in this implementation and thus, does nothing
+func (accountsDB *accountsDBApiWithHistory) SetSyncer(_ AccountsDBSyncer) error {
+	return nil
+}
+
+// StartSnapshotIfNeeded  is a not permitted operation in this implementation and thus, does nothing
+func (accountsDB *accountsDBApiWithHistory) StartSnapshotIfNeeded() error {
+	return nil
 }
 
 // GetExistingAccount will return an error
@@ -116,7 +125,7 @@ func (accountsDB *accountsDBApiWithHistory) IsPruningEnabled() bool {
 }
 
 // GetAllLeaves will return an error
-func (accountsDB *accountsDBApiWithHistory) GetAllLeaves(_ chan core.KeyValueHolder, _ context.Context, _ []byte) error {
+func (accountsDB *accountsDBApiWithHistory) GetAllLeaves(_ *common.TrieIteratorChannels, _ context.Context, _ []byte) error {
 	return ErrOperationNotPermitted
 }
 
