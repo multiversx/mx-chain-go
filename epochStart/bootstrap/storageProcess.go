@@ -450,7 +450,7 @@ func (sesb *storageEpochStartBootstrap) processNodesConfig(pubKey []byte) error 
 // applyCurrentShardIDOnMiniblocksCopy will alter the fetched metablocks making the sender shard ID for each miniblock
 // header to  be exactly the shard ID used in the import-db process. This is necessary as to allow the miniblocks to be requested
 // on the available resolver and should be called only from this storage-base bootstrap instance.
-// This method also copies the MiniBlockHeaders slice pointer. Otherwise the node will end up stating
+// This method also copies the MiniBlockHeaders slice pointer. Otherwise, the node will end up stating
 // "start of epoch metablock mismatch"
 func (sesb *storageEpochStartBootstrap) applyCurrentShardIDOnMiniblocksCopy(metablock data.HeaderHandler) error {
 	originalMiniblocksHeaders := metablock.GetMiniBlockHeaderHandlers()

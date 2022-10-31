@@ -61,7 +61,7 @@ func (bps *BlockProcessorStub) CreateGenesisBlock(balances map[string]*big.Int) 
 	return bps.CreateGenesisBlockCalled(balances)
 }
 
-// PruneStateOnRollback recreates thee state tries to the root hashes indicated by the provided header
+// PruneStateOnRollback recreates the state tries to the root hashes indicated by the provided header
 func (bps *BlockProcessorStub) PruneStateOnRollback(currHeader data.HeaderHandler, currHeaderHash []byte, prevHeader data.HeaderHandler, prevHeaderHash []byte) {
 	if bps.PruneStateOnRollbackCalled != nil {
 		bps.PruneStateOnRollbackCalled(currHeader, currHeaderHash, prevHeader, prevHeaderHash)

@@ -98,9 +98,6 @@ var ErrNilCoreComponentsHolder = errors.New("nil core components holder")
 // ErrNilCryptoComponentsHolder signals that a nil crypto components holder was provided
 var ErrNilCryptoComponentsHolder = errors.New("nil crypto components holder")
 
-// ErrNilStatusCoreComponentsHolder signals that a nil status core components holder was provided
-var ErrNilStatusCoreComponentsHolder = errors.New("nil status core components holder")
-
 // ErrRewardMiniBlocksNumDoesNotMatch signals that number of created and received rewards miniblocks is not equal
 var ErrRewardMiniBlocksNumDoesNotMatch = errors.New("number of created and received rewards miniblocks missmatch")
 
@@ -263,7 +260,7 @@ var ErrNilStakingDataProvider = errors.New("nil staking data provider")
 // ErrNilDataTrie signals that a nil data trie was provided
 var ErrNilDataTrie = errors.New("nil data trie")
 
-// ErrInvalidMinNodePrice signals that the minimum node price is invalid (e.g negative, not a number, etc)
+// ErrInvalidMinNodePrice signals that the minimum node price is invalid (e.g. negative, not a number, etc)
 var ErrInvalidMinNodePrice = errors.New("minimum node price is invalid")
 
 // ErrNilEconomicsDataProvider signals that the economics data provider is nil

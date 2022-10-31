@@ -164,7 +164,7 @@ func (hdrRes *HeaderResolver) resolveHeaderFromNonce(rd *dataRetriever.RequestDa
 
 	epoch := rd.Epoch
 
-	// header-nonces storer contains un-pruned data so it is safe to search like this
+	// header-nonces storer contains un-pruned data, so it is safe to search like this
 	hash, err := hdrRes.hdrNoncesStorage.SearchFirst(rd.Value)
 	if err != nil {
 		log.Trace("hdrNoncesStorage.Get from calculated epoch", "error", err.Error())
