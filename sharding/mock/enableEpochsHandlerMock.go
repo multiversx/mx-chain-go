@@ -538,11 +538,6 @@ func (mock *EnableEpochsHandlerMock) IsSCProcessorV2FlagEnabled() bool {
 	return mock.IsSCProcessorV2FlagEnabledField
 }
 
-<<<<<<< HEAD
-// IsFixOldTokenLiquidityFlagEnabled -
-func (mock *EnableEpochsHandlerMock) IsFixOldTokenLiquidityEnabled() bool {
-	return mock.IsFixOldTokenLiquidityFlagEnabledField
-=======
 // IsFixAsyncCallBackArgsListFlagEnabled -
 func (mock *EnableEpochsHandlerMock) IsFixAsyncCallBackArgsListFlagEnabled() bool {
 	return false
@@ -551,7 +546,6 @@ func (mock *EnableEpochsHandlerMock) IsFixAsyncCallBackArgsListFlagEnabled() boo
 // IsFixOldTokenLiquidityEnabled -
 func (mock *EnableEpochsHandlerMock) IsFixOldTokenLiquidityEnabled() bool {
 	return false
->>>>>>> feat/vm1.5
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
