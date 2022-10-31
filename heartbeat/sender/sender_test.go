@@ -124,7 +124,7 @@ func TestNewSender(t *testing.T) {
 		assert.True(t, strings.Contains(err.Error(), "timeBetweenSends"))
 		assert.False(t, strings.Contains(err.Error(), "timeBetweenSendsWhenError"))
 	})
-	t.Run("invalid time between sends should error", func(t *testing.T) {
+	t.Run("invalid time between sends when error should error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockSenderArgs()

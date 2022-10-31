@@ -347,7 +347,7 @@ func TestNewNodeSetupChecker_CheckStakedAndDelegatedShouldWork(t *testing.T) {
 	)
 
 	assert.Nil(t, err)
-	//the following 2 asserts assure that the original values did not changed
+	// the following 2 asserts assure that the original values did not change
 	assert.Equal(t, nodePrice, iaStaked.StakingValue)
 	assert.Equal(t, nodePrice, iaDelegated.Delegation.Value)
 }

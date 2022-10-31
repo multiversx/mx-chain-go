@@ -296,12 +296,12 @@ func (bfd *baseForkDetector) append(hdrInfo *headerInfo) bool {
 	return true
 }
 
-// GetHighestFinalBlockNonce gets the highest nonce of the block which is final and it can not be reverted anymore
+// GetHighestFinalBlockNonce gets the highest nonce of the block which is final, and it can not be reverted anymore
 func (bfd *baseForkDetector) GetHighestFinalBlockNonce() uint64 {
 	return bfd.finalCheckpoint().nonce
 }
 
-// GetHighestFinalBlockHash gets the hash of the block which is final and it can not be reverted anymore
+// GetHighestFinalBlockHash gets the hash of the block which is final, and it can not be reverted anymore
 func (bfd *baseForkDetector) GetHighestFinalBlockHash() []byte {
 	return bfd.finalCheckpoint().hash
 }
@@ -320,7 +320,7 @@ func (bfd *baseForkDetector) ResetFork() {
 		"last round with forced fork", bfd.lastRoundWithForcedFork())
 }
 
-// ResetProbableHighestNonce resets the probable highest nonce to the last checkpoint nonce / highest notarized nonce
+// ResetProbableHighestNonce resets the probable highest nonce to the last checkpoint nonce / the highest notarized nonce
 func (bfd *baseForkDetector) ResetProbableHighestNonce() {
 	bfd.cleanupReceivedHeadersHigherThanNonce(bfd.lastCheckpoint().nonce)
 	probableHighestNonce := bfd.computeProbableHighestNonce()

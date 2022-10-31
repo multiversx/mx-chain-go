@@ -22,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	storageMocks "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/require"
 )
@@ -35,7 +36,7 @@ func createBaseBlockProcessor() *baseAPIBlockProcessor {
 		marshalizer:              &mock.MarshalizerFake{},
 		uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
 		historyRepo:              &dblookupext.HistoryRepositoryStub{},
-		hasher:                   &mock.HasherFake{},
+		hasher:                   &hashingMocks.HasherMock{},
 		addressPubKeyConverter:   mock.NewPubkeyConverterMock(32),
 		txStatusComputer:         &mock.StatusComputerStub{},
 		apiTransactionHandler:    &mock.TransactionAPIHandlerStub{},
@@ -257,7 +258,7 @@ func TestBaseBlock_getAndAttachTxsToMbShouldIncludeLogsAsSpecified(t *testing.T)
 	processor.marshalizer = marshalizer
 	processor.store = storageService
 
-	// Setup a dummy transformer for "txBytes" -> "ApiTransactionResult" (only "Nonce" is handled)
+	// Set up a dummy transformer for "txBytes" -> "ApiTransactionResult" (only "Nonce" is handled)
 	processor.apiTransactionHandler = &mock.TransactionAPIHandlerStub{
 		UnmarshalTransactionCalled: func(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error) {
 			tx := &transaction.Transaction{}
@@ -270,7 +271,7 @@ func TestBaseBlock_getAndAttachTxsToMbShouldIncludeLogsAsSpecified(t *testing.T)
 		},
 	}
 
-	// Setup a miniblock
+	// Set up a miniblock
 	miniblockHash := []byte{0xff}
 	miniblock := &block.MiniBlock{
 		Type:     block.TxBlock,

@@ -298,7 +298,7 @@ func TestRunWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 		t,
 		destinationAddressBytes,
 		accnts,
-		// transfer did not happened
+		// transfer did not happen
 		big.NewInt(0),
 		scCode,
 		map[string]*big.Int{"a": expectedValueForVariable})

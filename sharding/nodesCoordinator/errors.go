@@ -7,7 +7,7 @@ import (
 // ErrInvalidNumberOfShards signals that an invalid number of shards was passed to the sharding registry
 var ErrInvalidNumberOfShards = errors.New("the number of shards must be greater than zero")
 
-// ErrInvalidShardId signals that an invalid shard is was passed
+// ErrInvalidShardId signals that an invalid shard id was passed
 var ErrInvalidShardId = errors.New("shard id must be smaller than the total number of shards")
 
 // ErrNilPubKey signals that the public key is nil
@@ -21,9 +21,6 @@ var ErrNilNodesCoordinator = errors.New("nil nodesCoordinator")
 
 // ErrNilMarshalizer signals that the marshalizer is nil
 var ErrNilMarshalizer = errors.New("nil marshalizer")
-
-// ErrNilPubkeyConverter signals that a nil public key converter has been provided
-var ErrNilPubkeyConverter = errors.New("trying to set nil pubkey converter")
 
 // ErrNilInputNodesMap signals that a nil nodes map was provided
 var ErrNilInputNodesMap = errors.New("nil input nodes map")

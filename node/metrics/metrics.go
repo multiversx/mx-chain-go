@@ -51,6 +51,7 @@ func InitBaseMetrics(statusHandlerUtils StatusHandlersUtils) error {
 	appStatusHandler.SetUInt64Value(common.MetricNoncesPassedInCurrentEpoch, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricNumConnectedPeers, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricEpochForEconomicsData, initUint)
+	appStatusHandler.SetUInt64Value(common.MetricAccountsSnapshotNumNodes, initUint)
 
 	appStatusHandler.SetInt64Value(common.MetricLastAccountsSnapshotDurationSec, initInt)
 	appStatusHandler.SetInt64Value(common.MetricLastPeersSnapshotDurationSec, initInt)
@@ -274,7 +275,7 @@ func InitMetrics(
 	return nil
 }
 
-// SaveUint64Metric will save a uint64 metric in status handler
+// SaveUint64Metric will save an uint64 metric in status handler
 func SaveUint64Metric(ash core.AppStatusHandler, key string, value uint64) {
 	ash.SetUInt64Value(key, value)
 }

@@ -207,6 +207,8 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 }
 
 // GasScheduleChange sets the new gas schedule where it is needed
+// Warning: do not use flags in this function as it will raise backward compatibility issues because the GasScheduleChange
+// is not called on each epoch change
 func (sc *scProcessor) GasScheduleChange(gasSchedule map[string]map[string]uint64) {
 	sc.mutGasLock.Lock()
 	defer sc.mutGasLock.Unlock()
@@ -217,10 +219,6 @@ func (sc *scProcessor) GasScheduleChange(gasSchedule map[string]map[string]uint6
 	}
 
 	sc.builtInGasCosts = builtInFuncCost
-	isFixAsyncCallBackArgumentsParserFlagSet := sc.enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabled()
-	if isFixAsyncCallBackArgumentsParserFlagSet {
-		sc.builtInGasCosts[core.BuiltInFunctionMultiESDTNFTTransfer] = builtInFuncCost["ESDTNFTMultiTransfer"]
-	}
 	sc.storePerByte = gasSchedule[common.BaseOperationCost]["StorePerByte"]
 	sc.persistPerByte = gasSchedule[common.BaseOperationCost]["PersistPerByte"]
 }
@@ -1587,7 +1585,7 @@ func (sc *scProcessor) addBackTxValues(
 	return nil
 }
 
-// DeploySmartContract processes the transaction, than deploy the smart contract into VM, final code is saved in account
+// DeploySmartContract processes the transaction, then deploy the smart contract into VM, final code is saved in account
 func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd state.UserAccountHandler) (vmcommon.ReturnCode, error) {
 	err := sc.checkTxValidity(tx)
 	if err != nil {

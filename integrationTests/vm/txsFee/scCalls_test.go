@@ -10,7 +10,6 @@ import (
 	"math/big"
 	"testing"
 
-	arwenConfig "github.com/ElrondNetwork/wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
@@ -20,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	arwenConfig "github.com/ElrondNetwork/wasm-vm-v1_4/config"
 	"github.com/stretchr/testify/require"
 )
 

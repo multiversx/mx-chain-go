@@ -15,7 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-// GetSubroundsFactory returns a subrounds factory depending of the given parameter
+// GetSubroundsFactory returns a subrounds factory depending on the given parameter
 func GetSubroundsFactory(
 	consensusDataContainer spos.ConsensusCoreHandler,
 	consensusState *spos.ConsensusState,
@@ -48,7 +48,7 @@ func GetSubroundsFactory(
 	}
 }
 
-// GetConsensusCoreFactory returns a consensus service depending of the given parameter
+// GetConsensusCoreFactory returns a consensus service depending on the given parameter
 func GetConsensusCoreFactory(consensusType string) (spos.ConsensusService, error) {
 	switch consensusType {
 	case blsConsensusType:
@@ -58,7 +58,7 @@ func GetConsensusCoreFactory(consensusType string) (spos.ConsensusService, error
 	}
 }
 
-// GetBroadcastMessenger returns a consensus service depending of the given parameter
+// GetBroadcastMessenger returns a consensus service depending on the given parameter
 func GetBroadcastMessenger(
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,

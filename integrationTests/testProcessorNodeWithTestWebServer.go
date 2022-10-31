@@ -5,7 +5,6 @@ import (
 	"net/http/httptest"
 	"sync"
 
-	arwenConfig "github.com/ElrondNetwork/wasm-vm/config"
 	dataTransaction "github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/api/groups"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
@@ -29,6 +28,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	datafield "github.com/ElrondNetwork/elrond-vm-common/parsers/dataField"
+	arwenConfig "github.com/ElrondNetwork/wasm-vm-v1_4/config"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )

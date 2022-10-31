@@ -44,7 +44,7 @@ type ArgValidatorsProvider struct {
 	MaxRating                         uint32
 }
 
-// NewValidatorsProvider instantiates a new validatorsProvider structure responsible of keeping account of
+// NewValidatorsProvider instantiates a new validatorsProvider structure responsible for keeping account of
 //  the latest information about the validators
 func NewValidatorsProvider(
 	args ArgValidatorsProvider,
@@ -289,7 +289,7 @@ func (vp *validatorsProvider) IsInterfaceNil() bool {
 	return vp == nil
 }
 
-// Close - frees up everything, cancels long running methods
+// Close - frees up everything, cancels long-running methods
 func (vp *validatorsProvider) Close() error {
 	vp.cancelFunc()
 

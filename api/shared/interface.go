@@ -49,7 +49,7 @@ type UpgradeableHttpServerHandler interface {
 	IsInterfaceNil() bool
 }
 
-// GroupHandler defines the actions needed to be performed by an gin API group
+// GroupHandler defines the actions needed to be performed by a gin API group
 type GroupHandler interface {
 	UpdateFacade(newFacade interface{}) error
 	RegisterRoutes(

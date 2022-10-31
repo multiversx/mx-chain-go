@@ -42,7 +42,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/trie"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
-	arwenConfig "github.com/ElrondNetwork/wasm-vm/config"
+	arwenConfig "github.com/ElrondNetwork/wasm-vm-v1_4/config"
 	"github.com/stretchr/testify/require"
 )
 
@@ -357,12 +357,14 @@ func GetBootStrapFactoryArgs() bootstrapComp.BootstrapComponentsFactoryArgs {
 	coreComponents := GetCoreComponents()
 	networkComponents := GetNetworkComponents()
 	cryptoComponents := GetCryptoComponents(coreComponents)
+	statusCoreComponents := GetStatusCoreComponents()
 	return bootstrapComp.BootstrapComponentsFactoryArgs{
-		Config:            testscommon.GetGeneralConfig(),
-		WorkingDir:        "home",
-		CoreComponents:    coreComponents,
-		CryptoComponents:  cryptoComponents,
-		NetworkComponents: networkComponents,
+		Config:               testscommon.GetGeneralConfig(),
+		WorkingDir:           "home",
+		CoreComponents:       coreComponents,
+		CryptoComponents:     cryptoComponents,
+		NetworkComponents:    networkComponents,
+		StatusCoreComponents: statusCoreComponents,
 		PrefConfig: config.Preferences{
 			Preferences: config.PreferencesConfig{
 				DestinationShardAsObserver: "0",

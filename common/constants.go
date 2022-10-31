@@ -315,7 +315,7 @@ const MetricRewardsTopUpGradientPoint = "erd_rewards_top_up_gradient_point"
 // MetricGasPriceModifier is the metric that specifies the gas price modifier
 const MetricGasPriceModifier = "erd_gas_price_modifier"
 
-// MetricTopUpFactor is the metric that specifies the top up factor
+// MetricTopUpFactor is the metric that specifies the top-up factor
 const MetricTopUpFactor = "erd_top_up_factor"
 
 // MetricMinTransactionVersion is the metric that specifies the minimum transaction version
@@ -363,7 +363,7 @@ const MetachainShardId = uint32(0xFFFFFFFF)
 // BaseOperationCost represents the field name for base operation costs
 const BaseOperationCost = "BaseOperationCost"
 
-// BuiltInCost represents the field name for built in operation costs
+// BuiltInCost represents the field name for built-in operation costs
 const BuiltInCost = "BuiltInCost"
 
 // MetaChainSystemSCsCost represents the field name for metachain system smart contract operation costs
@@ -383,7 +383,7 @@ const (
 	// MetricScDeployEnableEpoch represents the epoch when the deployment of smart contracts is enabled
 	MetricScDeployEnableEpoch = "erd_smart_contract_deploy_enable_epoch"
 
-	// MetricBuiltInFunctionsEnableEpoch represents the epoch when the built in functions is enabled
+	// MetricBuiltInFunctionsEnableEpoch represents the epoch when the built-in functions is enabled
 	MetricBuiltInFunctionsEnableEpoch = "erd_built_in_functions_enable_epoch"
 
 	// MetricRelayedTransactionsEnableEpoch represents the epoch when the relayed transactions is enabled
@@ -811,13 +811,13 @@ const (
 // MaxIndexOfTxInMiniBlock defines the maximum index of a tx inside one mini block
 const MaxIndexOfTxInMiniBlock = int32(29999)
 
-// MetricAccountsSnapshotInProgress is the metric that outputs the status of the accounts snapshot, if it's in progress or not
+// MetricAccountsSnapshotInProgress is the metric that outputs the status of the accounts' snapshot, if it's in progress or not
 const MetricAccountsSnapshotInProgress = "erd_accounts_snapshot_in_progress"
 
 // MetricLastAccountsSnapshotDurationSec is the metric that outputs the duration in seconds of the last accounts db snapshot. If snapshot is in progress it will be set to 0
 const MetricLastAccountsSnapshotDurationSec = "erd_accounts_snapshot_last_duration_in_seconds"
 
-// MetricPeersSnapshotInProgress is the metric that outputs the status of the peers snapshot, if it's in progress or not
+// MetricPeersSnapshotInProgress is the metric that outputs the status of the peers' snapshot, if it's in progress or not
 const MetricPeersSnapshotInProgress = "erd_peers_snapshot_in_progress"
 
 // MetricLastPeersSnapshotDurationSec is the metric that outputs the duration in seconds of the last peers db snapshot. If snapshot is in progress it will be set to 0
@@ -825,3 +825,6 @@ const MetricLastPeersSnapshotDurationSec = "erd_peers_snapshot_last_duration_in_
 
 // GenesisStorageSuffix defines the storage suffix used for genesis altered data
 const GenesisStorageSuffix = "_genesis"
+
+// MetricAccountsSnapshotNumNodes is the metric that outputs the number of trie nodes written for accounts after snapshot
+const MetricAccountsSnapshotNumNodes = "erd_accounts_snapshot_num_nodes"

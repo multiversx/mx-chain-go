@@ -58,6 +58,7 @@ func TestInitBaseMetrics(t *testing.T) {
 		common.MetricLastAccountsSnapshotDurationSec,
 		common.MetricPeersSnapshotInProgress,
 		common.MetricLastPeersSnapshotDurationSec,
+		common.MetricAccountsSnapshotNumNodes,
 	}
 
 	keys := make(map[string]struct{})
@@ -316,7 +317,7 @@ func TestInitRatingsMetrics(t *testing.T) {
 
 	ash := &statusHandler.AppStatusHandlerStub{
 		SetUInt64ValueHandler: func(key string, value uint64) {
-			keys[key] = uint64(value)
+			keys[key] = value
 		},
 		SetStringValueHandler: func(key string, value string) {
 			keys[key] = value
