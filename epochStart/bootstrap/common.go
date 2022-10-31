@@ -52,6 +52,9 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 	if check.IfNil(args.CoreComponentsHolder.PathHandler()) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilPathManager)
 	}
+	if check.IfNil(args.TrieSyncStatisticsProvider) {
+		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilTrieSyncStatistics)
+	}
 	if args.GenesisNodesConfig == nil {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilGenesisNodesConfig)
 	}

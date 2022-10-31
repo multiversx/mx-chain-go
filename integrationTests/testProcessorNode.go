@@ -117,7 +117,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
-	arwenConfig "github.com/ElrondNetwork/wasm-vm/config"
+	arwenConfig "github.com/ElrondNetwork/wasm-vm-v1_4/config"
 )
 
 var zero = big.NewInt(0)
@@ -2835,12 +2835,12 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 				PublicKeyToListenFrom: hardforkPubKey,
 			},
 		},
-		BoostrapComponents: tpn.Node.GetBootstrapComponents(),
-		CoreComponents:     tpn.Node.GetCoreComponents(),
-		DataComponents:     tpn.Node.GetDataComponents(),
-		NetworkComponents:  tpn.Node.GetNetworkComponents(),
-		CryptoComponents:   tpn.Node.GetCryptoComponents(),
-		ProcessComponents:  tpn.Node.GetProcessComponents(),
+		BootstrapComponents: tpn.Node.GetBootstrapComponents(),
+		CoreComponents:      tpn.Node.GetCoreComponents(),
+		DataComponents:      tpn.Node.GetDataComponents(),
+		NetworkComponents:   tpn.Node.GetNetworkComponents(),
+		CryptoComponents:    tpn.Node.GetCryptoComponents(),
+		ProcessComponents:   tpn.Node.GetProcessComponents(),
 	}
 
 	heartbeatV2Factory, err := heartbeatComp.NewHeartbeatV2ComponentsFactory(hbv2FactoryArgs)

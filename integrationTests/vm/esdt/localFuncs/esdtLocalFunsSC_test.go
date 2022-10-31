@@ -380,6 +380,6 @@ func checkDataFromAccountAndKey(
 	expectedData []byte,
 ) {
 	userAcc := esdtCommon.GetUserAccountWithAddress(t, address, nodes)
-	val, _ := userAcc.RetrieveValue(key)
+	val, _, _ := userAcc.RetrieveValue(key)
 	assert.Equal(t, expectedData, val)
 }

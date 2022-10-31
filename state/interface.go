@@ -17,7 +17,7 @@ type AccountFactory interface {
 
 // Updater set a new value for a key, implemented by trie
 type Updater interface {
-	Get(key []byte) ([]byte, error)
+	Get(key []byte) ([]byte, uint32, error)
 	Update(key, value []byte) error
 	IsInterfaceNil() bool
 }
@@ -72,7 +72,7 @@ type UserAccountHandler interface {
 	GetRootHash() []byte
 	SetDataTrie(trie common.Trie)
 	DataTrie() common.DataTrieHandler
-	RetrieveValue(key []byte) ([]byte, error)
+	RetrieveValue(key []byte) ([]byte, uint32, error)
 	SaveKeyValue(key []byte, value []byte) error
 	AddToBalance(value *big.Int) error
 	SubFromBalance(value *big.Int) error
@@ -90,7 +90,7 @@ type UserAccountHandler interface {
 
 // DataTrieTracker models what how to manipulate data held by a SC account
 type DataTrieTracker interface {
-	RetrieveValue(key []byte) ([]byte, error)
+	RetrieveValue(key []byte) ([]byte, uint32, error)
 	SaveKeyValue(key []byte, value []byte) error
 	SetDataTrie(tr common.Trie)
 	DataTrie() common.DataTrieHandler
