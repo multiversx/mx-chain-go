@@ -93,3 +93,8 @@ func IsTrieStorageManagerInEpoch(tsm common.StorageManager) bool {
 	_, ok := tsm.(*trieStorageManagerInEpoch)
 	return ok
 }
+
+// NewBaseIterator -
+func NewBaseIterator(trie common.Trie) (*baseIterator, error) {
+	return newBaseIterator(trie)
+}
