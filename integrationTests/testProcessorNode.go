@@ -100,7 +100,7 @@ import (
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	dblookupextMock "github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
-	factory2 "github.com/ElrondNetwork/elrond-go/testscommon/factory"
+	testFactory "github.com/ElrondNetwork/elrond-go/testscommon/factory"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genesisMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
@@ -1934,7 +1934,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		},
 	}
 
-	statusCoreComponents := &factory2.StatusCoreComponentsStub{
+	statusCoreComponents := &testFactory.StatusCoreComponentsStub{
 		AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{},
 	}
 

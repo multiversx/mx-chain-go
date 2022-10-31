@@ -35,7 +35,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
-	factory2 "github.com/ElrondNetwork/elrond-go/testscommon/factory"
+	testFactory "github.com/ElrondNetwork/elrond-go/testscommon/factory"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
@@ -248,7 +248,7 @@ func (tcn *TestConsensusNode) initNode(
 	networkComponents.InputAntiFlood = &mock.NilAntifloodHandler{}
 	networkComponents.PeerHonesty = &mock.PeerHonestyHandlerStub{}
 
-	statusCoreComponents := &factory2.StatusCoreComponentsStub{
+	statusCoreComponents := &testFactory.StatusCoreComponentsStub{
 		AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{},
 	}
 
