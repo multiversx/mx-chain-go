@@ -98,7 +98,7 @@ func (ssb *shardStorageBootstrapper) applyCrossNotarizedHeaders(crossNotarizedHe
 
 		prevMetaBlock, err := process.GetMetaHeaderFromStorage(metaBlock.PrevHash, ssb.marshalizer, ssb.store)
 		if err != nil {
-			log.Warn("added cross notarized header in block tracker - cannot add prev header to block tracker",
+			log.Debug("cannot add previous header in block tracker",
 				"prev header hash", metaBlock.PrevHash,
 				"error", err)
 			continue
@@ -163,15 +163,15 @@ func (ssb *shardStorageBootstrapper) cleanupNotarizedStorageForHigherNoncesIfExi
 	for {
 		nonce++
 
-		metaBlock, metaBlockHash, err := process.GetMetaHeaderFromStorageWithNonce(
+		metaBlock, metaBlockHash, errGet := process.GetMetaHeaderFromStorageWithNonce(
 			nonce,
 			ssb.store,
 			ssb.uint64Converter,
 			ssb.marshalizer,
 		)
-		if err != nil {
+		if errGet != nil {
 			log.Debug("meta block is not found in MetaHdrNonceHashDataUnit storage",
-				"nonce", nonce, "error", err.Error())
+				"nonce", nonce, "error", errGet.Error())
 
 			numConsecutiveNoncesNotFound++
 			if numConsecutiveNoncesNotFound > maxNumOfConsecutiveNoncesNotFoundAccepted {
