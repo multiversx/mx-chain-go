@@ -56,7 +56,7 @@ func createMockArgAPITransactionProcessor() *ArgAPITransactionProcessor {
 		TxTypeHandler:            &testscommon.TxTypeHandlerMock{},
 		LogsFacade:               &testscommon.LogsFacadeStub{},
 		DataFieldParser: &testscommon.DataFieldParserStub{
-			ParseCalled: func(dataField []byte, sender, receiver []byte) *datafield.ResponseParseData {
+			ParseCalled: func(dataField []byte, sender, receiver []byte, _ uint32) *datafield.ResponseParseData {
 				return &datafield.ResponseParseData{}
 			},
 		},
@@ -456,7 +456,7 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 		TxTypeHandler:            &testscommon.TxTypeHandlerMock{},
 		LogsFacade:               &testscommon.LogsFacadeStub{},
 		DataFieldParser: &testscommon.DataFieldParserStub{
-			ParseCalled: func(dataField []byte, sender, receiver []byte) *datafield.ResponseParseData {
+			ParseCalled: func(dataField []byte, sender, receiver []byte, _ uint32) *datafield.ResponseParseData {
 				return &datafield.ResponseParseData{}
 			},
 		},
@@ -998,7 +998,7 @@ func createAPITransactionProc(t *testing.T, epoch uint32, withDbLookupExt bool) 
 		},
 	}
 	dataFieldParser := &testscommon.DataFieldParserStub{
-		ParseCalled: func(dataField []byte, sender, receiver []byte) *datafield.ResponseParseData {
+		ParseCalled: func(dataField []byte, sender, receiver []byte, _ uint32) *datafield.ResponseParseData {
 			return &datafield.ResponseParseData{}
 		},
 	}

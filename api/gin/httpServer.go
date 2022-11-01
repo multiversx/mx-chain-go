@@ -23,8 +23,8 @@ func NewHttpServer(server *http.Server) (*httpServer, error) {
 	}, nil
 }
 
-// Start will handle the starting of the gin web server. This call is blocking and it should be
-// called on a go routine (different than the main one)
+// Start will handle the starting of the gin web server. This call is blocking, and it should be
+// called on a go routine (different from the main one)
 func (h *httpServer) Start() {
 	err := h.server.ListenAndServe()
 	if err != nil {

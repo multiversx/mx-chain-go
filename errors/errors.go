@@ -98,9 +98,6 @@ var ErrNilCoreComponentsFactory = errors.New("nil core components factory")
 // ErrNilDataComponentsFactory signals that the provided data components factory is nil
 var ErrNilDataComponentsFactory = errors.New("nil data components factory")
 
-// ErrNilHeartbeatComponentsFactory signals that the provided heartbeat components factory is nil
-var ErrNilHeartbeatComponentsFactory = errors.New("nil heartbeat components factory")
-
 // ErrNilHeartbeatV2ComponentsFactory signals that the provided heartbeatV2 components factory is nil
 var ErrNilHeartbeatV2ComponentsFactory = errors.New("nil heartbeatV2 components factory")
 
@@ -197,26 +194,11 @@ var ErrNilHeaderIntegrityVerifier = errors.New("nil header integrity verifier")
 // ErrNilHeaderSigVerifier signals that a nil header sig verifier has been provided
 var ErrNilHeaderSigVerifier = errors.New("")
 
-// ErrNilHeartbeatComponents signals that a nil heartbeat components instance was provided
-var ErrNilHeartbeatComponents = errors.New("nil heartbeat component")
-
 // ErrNilHeartbeatV2Components signals that a nil heartbeatV2 components instance was provided
 var ErrNilHeartbeatV2Components = errors.New("nil heartbeatV2 component")
 
-// ErrNilHeartbeatMessageHandler signals that a nil heartbeat message handler was provided
-var ErrNilHeartbeatMessageHandler = errors.New("nil heartbeat message handler")
-
-// ErrNilHeartbeatMonitor signals that a nil heartbeat monitor was provided
-var ErrNilHeartbeatMonitor = errors.New("nil heartbeat monitor")
-
-// ErrNilHeartbeatSender signals that a nil heartbeat sender was provided
-var ErrNilHeartbeatSender = errors.New("nil heartbeat sender")
-
 // ErrNilHeartbeatV2Sender signals that a nil heartbeatV2 sender was provided
 var ErrNilHeartbeatV2Sender = errors.New("nil heartbeatV2 sender")
-
-// ErrNilHeartbeatStorer signals that a nil heartbeat storer was provided
-var ErrNilHeartbeatStorer = errors.New("nil heartbeat storer")
 
 // ErrNilInputAntiFloodHandler signals that a nil input antiflood handler was provided
 var ErrNilInputAntiFloodHandler = errors.New("nil input antiflood handler")
@@ -440,9 +422,6 @@ var ErrCryptoComponentsFactoryCreate = errors.New("cryptoComponentsFactory creat
 // ErrDataComponentsFactoryCreate signals that an error occured on dataComponentsFactory create
 var ErrDataComponentsFactoryCreate = errors.New("dataComponentsFactory create failed")
 
-// ErrHeartbeatComponentsFactoryCreate signals that an error occured on heartbeatComponentsFactory create
-var ErrHeartbeatComponentsFactoryCreate = errors.New("heartbeatComponentsFactory create failed")
-
 // ErrNetworkComponentsFactoryCreate signals that an error occured on networkComponentsFactory create
 var ErrNetworkComponentsFactoryCreate = errors.New("networkComponentsFactory create failed")
 
@@ -484,6 +463,12 @@ var ErrNilTxsSender = errors.New("nil transactions sender has been provided")
 
 // ErrNilProcessStatusHandler signals that a nil process status handler was provided
 var ErrNilProcessStatusHandler = errors.New("nil process status handler")
+
+// ErrNilESDTDataStorage signals that a nil esdt data storage has been provided
+var ErrNilESDTDataStorage = errors.New("nil esdt data storage")
+
+// ErrDBIsClosed is raised when the DB is closed
+var ErrDBIsClosed = errors.New("DB is closed")
 
 // ErrNilEnableEpochsHandler signals that a nil enable epochs handler was provided
 var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
@@ -529,3 +514,6 @@ var ErrNilNetworkStatistics = errors.New("nil network statistics")
 
 // ErrNilResourceMonitor signals that a nil resource monitor was provided
 var ErrNilResourceMonitor = errors.New("nil resource monitor")
+
+// ErrNilTrieSyncStatistics signals that a nil trie sync statistics was provided
+var ErrNilTrieSyncStatistics = errors.New("nil trie sync statistics")

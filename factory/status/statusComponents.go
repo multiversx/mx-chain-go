@@ -5,10 +5,13 @@ import (
 	"fmt"
 
 	covalentFactory "github.com/ElrondNetwork/covalent-indexer-go/factory"
-	indexerFactory "github.com/ElrondNetwork/elastic-indexer-go/factory"
+	indexerFactory "github.com/ElrondNetwork/elastic-indexer-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	nodeData "github.com/ElrondNetwork/elrond-go-core/data"
+	factoryMarshalizer "github.com/ElrondNetwork/elrond-go-core/marshal/factory"
+	"github.com/ElrondNetwork/elrond-go-core/websocketOutportDriver/data"
+	wsDriverFactory "github.com/ElrondNetwork/elrond-go-core/websocketOutportDriver/factory"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/statistics"
@@ -32,7 +35,6 @@ type statusComponents struct {
 	statusHandler    core.AppStatusHandler
 	outportHandler   outport.OutportHandler
 	softwareVersion  statistics.SoftwareVersionChecker
-	resourceMonitor  statistics.ResourceMonitorHandler
 	cancelFunc       func()
 }
 
@@ -199,24 +201,31 @@ func (pc *statusComponents) Close() error {
 // createOutportDriver creates a new outport.OutportHandler which is used to register outport drivers
 // once a driver is subscribed it will receive data through the implemented outport.Driver methods
 func (scf *statusComponentsFactory) createOutportDriver() (outport.OutportHandler, error) {
+	webSocketSenderDriverFactoryArgs, err := scf.makeWebSocketDriverArgs()
+	if err != nil {
+		return nil, err
+	}
 
 	outportFactoryArgs := &outportDriverFactory.OutportFactoryArgs{
 		RetrialInterval:            common.RetrialIntervalForOutportDriver,
 		ElasticIndexerFactoryArgs:  scf.makeElasticIndexerArgs(),
 		EventNotifierFactoryArgs:   scf.makeEventNotifierArgs(),
 		CovalentIndexerFactoryArgs: scf.makeCovalentIndexerArgs(),
+		WebSocketSenderDriverFactoryArgs: outportDriverFactory.WrappedOutportDriverWebSocketSenderFactoryArgs{
+			Enabled:                                 scf.externalConfig.WebSocketConnector.Enabled,
+			OutportDriverWebSocketSenderFactoryArgs: webSocketSenderDriverFactoryArgs,
+		},
 	}
 
 	return outportDriverFactory.CreateOutport(outportFactoryArgs)
 }
 
-func (scf *statusComponentsFactory) makeElasticIndexerArgs() *indexerFactory.ArgsIndexerFactory {
+func (scf *statusComponentsFactory) makeElasticIndexerArgs() indexerFactory.ArgsIndexerFactory {
 	elasticSearchConfig := scf.externalConfig.ElasticSearchConnector
-	return &indexerFactory.ArgsIndexerFactory{
+	return indexerFactory.ArgsIndexerFactory{
 		Enabled:                  elasticSearchConfig.Enabled,
 		IndexerCacheSize:         elasticSearchConfig.IndexerCacheSize,
 		BulkRequestMaxSize:       elasticSearchConfig.BulkRequestMaxSizeInBytes,
-		ShardCoordinator:         scf.shardCoordinator,
 		Url:                      elasticSearchConfig.URL,
 		UserName:                 elasticSearchConfig.Username,
 		Password:                 elasticSearchConfig.Password,
@@ -225,11 +234,8 @@ func (scf *statusComponentsFactory) makeElasticIndexerArgs() *indexerFactory.Arg
 		AddressPubkeyConverter:   scf.coreComponents.AddressPubKeyConverter(),
 		ValidatorPubkeyConverter: scf.coreComponents.ValidatorPubKeyConverter(),
 		EnabledIndexes:           elasticSearchConfig.EnabledIndexes,
-		AccountsDB:               scf.stateComponents.AccountsAdapter(),
 		Denomination:             scf.economicsConfig.GlobalSettings.Denomination,
-		TransactionFeeCalculator: scf.coreComponents.EconomicsData(),
 		UseKibana:                elasticSearchConfig.UseKibana,
-		IsInImportDBMode:         scf.isInImportMode,
 	}
 }
 
@@ -255,9 +261,30 @@ func (scf *statusComponentsFactory) makeCovalentIndexerArgs() *covalentFactory.A
 		RouteSendData:        scf.externalConfig.CovalentConnector.RouteSendData,
 		RouteAcknowledgeData: scf.externalConfig.CovalentConnector.RouteAcknowledgeData,
 		PubKeyConverter:      scf.coreComponents.AddressPubKeyConverter(),
-		Accounts:             scf.stateComponents.AccountsAdapter(),
 		Hasher:               scf.coreComponents.Hasher(),
 		Marshaller:           scf.coreComponents.InternalMarshalizer(),
 		ShardCoordinator:     scf.shardCoordinator,
 	}
+}
+
+func (scf *statusComponentsFactory) makeWebSocketDriverArgs() (wsDriverFactory.OutportDriverWebSocketSenderFactoryArgs, error) {
+	if !scf.externalConfig.WebSocketConnector.Enabled {
+		return wsDriverFactory.OutportDriverWebSocketSenderFactoryArgs{}, nil
+	}
+
+	marshaller, err := factoryMarshalizer.NewMarshalizer(scf.externalConfig.WebSocketConnector.MarshallerType)
+	if err != nil {
+		return wsDriverFactory.OutportDriverWebSocketSenderFactoryArgs{}, err
+	}
+
+	return wsDriverFactory.OutportDriverWebSocketSenderFactoryArgs{
+		Marshaller: marshaller,
+		WebSocketConfig: data.WebSocketConfig{
+			URL:             scf.externalConfig.WebSocketConnector.URL,
+			WithAcknowledge: scf.externalConfig.WebSocketConnector.WithAcknowledge,
+		},
+		Uint64ByteSliceConverter: scf.coreComponents.Uint64ByteSliceConverter(),
+		Log:                      log,
+		WithAcknowledge:          scf.externalConfig.WebSocketConnector.WithAcknowledge,
+	}, nil
 }

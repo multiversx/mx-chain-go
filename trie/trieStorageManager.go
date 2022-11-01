@@ -340,7 +340,7 @@ func (tsm *trieStorageManager) TakeSnapshot(
 		return
 	}
 
-	if bytes.Equal(rootHash, EmptyTrieHash) {
+	if bytes.Equal(rootHash, common.EmptyTrieHash) {
 		log.Trace("should not snapshot an empty trie")
 		safelyCloseChan(iteratorChannels.LeavesChan)
 		stats.SnapshotFinished()
@@ -390,7 +390,7 @@ func (tsm *trieStorageManager) SetCheckpoint(
 		return
 	}
 
-	if bytes.Equal(rootHash, EmptyTrieHash) {
+	if bytes.Equal(rootHash, common.EmptyTrieHash) {
 		log.Trace("should not set checkpoint for empty trie")
 		safelyCloseChan(iteratorChannels.LeavesChan)
 		stats.SnapshotFinished()

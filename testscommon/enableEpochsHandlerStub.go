@@ -92,7 +92,6 @@ type EnableEpochsHandlerStub struct {
 	IsSCRSizeInvariantOnBuiltInResultFlagEnabledField            bool
 	IsCheckCorrectTokenIDForTransferRoleFlagEnabledField         bool
 	IsFailExecutionOnEveryAPIErrorFlagEnabledField               bool
-	IsHeartbeatDisableFlagEnabledField                           bool
 	IsMiniBlockPartialExecutionFlagEnabledField                  bool
 	IsManagedCryptoAPIsFlagEnabledField                          bool
 	IsESDTMetadataContinuousCleanupFlagEnabledField              bool
@@ -808,14 +807,6 @@ func (stub *EnableEpochsHandlerStub) IsFailExecutionOnEveryAPIErrorFlagEnabled()
 	defer stub.RUnlock()
 
 	return stub.IsFailExecutionOnEveryAPIErrorFlagEnabledField
-}
-
-// IsHeartbeatDisableFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsHeartbeatDisableFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsHeartbeatDisableFlagEnabledField
 }
 
 // IsMiniBlockPartialExecutionFlagEnabled -

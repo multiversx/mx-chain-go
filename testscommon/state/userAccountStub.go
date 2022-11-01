@@ -14,7 +14,7 @@ var _ state.UserAccountHandler = (*UserAccountStub)(nil)
 type UserAccountStub struct {
 	Balance             *big.Int
 	AddToBalanceCalled  func(value *big.Int) error
-	RetrieveValueCalled func(_ []byte) ([]byte, error)
+	RetrieveValueCalled func(_ []byte) ([]byte, uint32, error)
 }
 
 // HasNewCode -
@@ -138,12 +138,12 @@ func (u *UserAccountStub) DataTrie() common.DataTrieHandler {
 }
 
 // RetrieveValue -
-func (u *UserAccountStub) RetrieveValue(key []byte) ([]byte, error) {
+func (u *UserAccountStub) RetrieveValue(key []byte) ([]byte, uint32, error) {
 	if u.RetrieveValueCalled != nil {
 		return u.RetrieveValueCalled(key)
 	}
 
-	return nil, nil
+	return nil, 0, nil
 }
 
 // SaveKeyValue -

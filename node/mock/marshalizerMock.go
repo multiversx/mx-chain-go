@@ -7,7 +7,7 @@ type MarshalizerMock struct {
 }
 
 // Marshal -
-func (j MarshalizerMock) Marshal(obj interface{}) ([]byte, error) {
+func (j *MarshalizerMock) Marshal(obj interface{}) ([]byte, error) {
 	if j.MarshalHandler != nil {
 		return j.MarshalHandler(obj)
 	}
@@ -15,7 +15,7 @@ func (j MarshalizerMock) Marshal(obj interface{}) ([]byte, error) {
 }
 
 // Unmarshal -
-func (j MarshalizerMock) Unmarshal(obj interface{}, buff []byte) error {
+func (j *MarshalizerMock) Unmarshal(obj interface{}, buff []byte) error {
 	if j.UnmarshalHandler != nil {
 		return j.UnmarshalHandler(obj, buff)
 	}

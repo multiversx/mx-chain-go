@@ -6,7 +6,7 @@ import (
 
 // DataTrieTrackerStub -
 type DataTrieTrackerStub struct {
-	RetrieveValueCalled func(key []byte) ([]byte, error)
+	RetrieveValueCalled func(key []byte) ([]byte, uint32, error)
 	SaveKeyValueCalled  func(key []byte, value []byte) error
 	SetDataTrieCalled   func(tr common.Trie)
 	DataTrieCalled      func() common.Trie
@@ -14,12 +14,12 @@ type DataTrieTrackerStub struct {
 }
 
 // RetrieveValue -
-func (dtts *DataTrieTrackerStub) RetrieveValue(key []byte) ([]byte, error) {
+func (dtts *DataTrieTrackerStub) RetrieveValue(key []byte) ([]byte, uint32, error) {
 	if dtts.RetrieveValueCalled != nil {
 		return dtts.RetrieveValueCalled(key)
 	}
 
-	return []byte{}, nil
+	return []byte{}, 0, nil
 }
 
 // SaveKeyValue -

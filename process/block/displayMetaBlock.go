@@ -2,9 +2,9 @@ package block
 
 import (
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go-core/data"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/display"
 	"github.com/ElrondNetwork/elrond-go-logger"

@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/state"
 	storageMocks "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 )
@@ -35,6 +36,8 @@ func createMockArgsAPIBlockProc() *ArgAPIBlockProcessor {
 		AddressPubkeyConverter:   &mock.PubkeyConverterMock{},
 		LogsFacade:               &testscommon.LogsFacadeStub{},
 		ReceiptsRepository:       &testscommon.ReceiptsRepositoryStub{},
+		AlteredAccountsProvider:  &testscommon.AlteredAccountsProviderStub{},
+		AccountsRepository:       &state.AccountsRepositoryStub{},
 	}
 }
 

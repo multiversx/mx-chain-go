@@ -17,6 +17,9 @@ import (
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	processDisabled "github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
+	"github.com/ElrondNetwork/elrond-go/outport"
+	processOutport "github.com/ElrondNetwork/elrond-go/outport/process"
+	factoryOutportProvider "github.com/ElrondNetwork/elrond-go/outport/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/postprocess"
@@ -374,6 +377,11 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
+	outportDataProvider, err := pcf.createOutportDataProvider(txCoordinator, gasHandler)
+	if err != nil {
+		return nil, err
+	}
+
 	scheduledTxsExecutionHandler.SetTransactionCoordinator(txCoordinator)
 
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
@@ -407,6 +415,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		ScheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
 		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
 		ReceiptsRepository:           receiptsRepository,
+		OutportDataProvider:          outportDataProvider,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
@@ -784,6 +793,11 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
+	outportDataProvider, err := pcf.createOutportDataProvider(txCoordinator, gasHandler)
+	if err != nil {
+		return nil, err
+	}
+
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
 	accountsDb[state.UserAccountsState] = pcf.state.AccountsAdapter()
 	accountsDb[state.PeerAccountsState] = pcf.state.PeerAccounts()
@@ -815,6 +829,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		ScheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
 		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
 		ReceiptsRepository:           receiptsRepository,
+		OutportDataProvider:          outportDataProvider,
 	}
 
 	esdtOwnerAddress, err := pcf.coreData.AddressPubKeyConverter().Decode(pcf.systemSCConfig.ESDTSystemSCConfig.OwnerAddress)
@@ -888,6 +903,31 @@ func (pcf *processComponentsFactory) attachProcessDebugger(
 	}
 
 	return processor.SetProcessDebugger(processDebugger)
+}
+
+func (pcf *processComponentsFactory) createOutportDataProvider(
+	txCoordinator process.TransactionCoordinator,
+	gasConsumedProvider processOutport.GasConsumedProvider,
+) (outport.DataProviderOutport, error) {
+	txsStorer, err := pcf.data.StorageService().GetStorer(dataRetriever.TransactionUnit)
+	if err != nil {
+		return nil, err
+	}
+
+	return factoryOutportProvider.CreateOutportDataProvider(factoryOutportProvider.ArgOutportDataProviderFactory{
+		HasDrivers:             pcf.statusComponents.OutportHandler().HasDrivers(),
+		AddressConverter:       pcf.coreData.AddressPubKeyConverter(),
+		AccountsDB:             pcf.state.AccountsAdapter(),
+		Marshaller:             pcf.coreData.InternalMarshalizer(),
+		EsdtDataStorageHandler: pcf.esdtNftStorage,
+		TransactionsStorer:     txsStorer,
+		ShardCoordinator:       pcf.bootstrapComponents.ShardCoordinator(),
+		TxCoordinator:          txCoordinator,
+		NodesCoordinator:       pcf.nodesCoordinator,
+		GasConsumedProvider:    gasConsumedProvider,
+		EconomicsData:          pcf.coreData.EconomicsData(),
+		IsImportDBMode:         pcf.importDBConfig.IsImportDBMode,
+	})
 }
 
 func (pcf *processComponentsFactory) createShardTxSimulatorProcessor(

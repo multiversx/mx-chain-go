@@ -242,16 +242,10 @@ var ErrPeerAuthNotFound = errors.New("peer authentication not found")
 // ErrNilNodesCoordinator signals a nil nodes coordinator has been provided
 var ErrNilNodesCoordinator = errors.New("nil nodes coordinator")
 
-// InvalidChunkIndex signals that an invalid chunk was provided
-var InvalidChunkIndex = errors.New("invalid chunk index")
-
-// ErrInvalidNumOfPeerAuthentication signals that an invalid number of peer authentication was provided
-var ErrInvalidNumOfPeerAuthentication = errors.New("invalid num of peer authentication")
-
 // ErrNilPayloadValidator signals that a nil payload validator was provided
 var ErrNilPayloadValidator = errors.New("nil payload validator")
 
-// ErrWrongTypeAssertion signals that an type assertion failed
+// ErrWrongTypeAssertion signals that a type assertion failed
 var ErrWrongTypeAssertion = errors.New("wrong type assertion")
 
 // ErrStorerNotFound signals that the storer was not found

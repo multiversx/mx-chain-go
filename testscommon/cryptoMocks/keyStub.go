@@ -102,7 +102,7 @@ func (keyGen *KeyGenStub) GeneratePair() (crypto.PrivateKey, crypto.PublicKey) {
 	return &PrivateKeyStub{}, &PublicKeyStub{}
 }
 
-// PrivateKeyFromByteArray generates the private key from it's byte array representation
+// PrivateKeyFromByteArray generates the private key from its byte array representation
 func (keyGen *KeyGenStub) PrivateKeyFromByteArray(b []byte) (crypto.PrivateKey, error) {
 	if keyGen.PrivateKeyFromByteArrayStub != nil {
 		return keyGen.PrivateKeyFromByteArrayStub(b)
@@ -110,7 +110,7 @@ func (keyGen *KeyGenStub) PrivateKeyFromByteArray(b []byte) (crypto.PrivateKey, 
 	return &PrivateKeyStub{}, nil
 }
 
-// PublicKeyFromByteArray generates a public key from it's byte array representation
+// PublicKeyFromByteArray generates a public key from its byte array representation
 func (keyGen *KeyGenStub) PublicKeyFromByteArray(b []byte) (crypto.PublicKey, error) {
 	if keyGen.PublicKeyFromByteArrayStub != nil {
 		return keyGen.PublicKeyFromByteArrayStub(b)
