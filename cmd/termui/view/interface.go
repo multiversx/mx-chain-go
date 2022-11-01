@@ -60,7 +60,7 @@ type Presenter interface {
 	GetNetworkReceivedBytesInEpoch() uint64
 
 	GetTrieSyncNumProcessedNodes() uint64
-	GetTrieSyncBytesReceived() uint64
+	GetTrieSyncNumBytesReceived() uint64
 
 	InvalidateCache()
 	IsInterfaceNil() bool

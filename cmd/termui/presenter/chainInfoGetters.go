@@ -185,7 +185,7 @@ func (psh *PresenterStatusHandler) GetTrieSyncNumProcessedNodes() uint64 {
 	return psh.getFromCacheAsUint64(common.MetricTrieSyncNumProcessedNodes)
 }
 
-// GetTrieSyncBytesReceived will return the number of bytes synced during trie sync
-func (psh *PresenterStatusHandler) GetTrieSyncBytesReceived() uint64 {
+// GetTrieSyncNumBytesReceived will return the number of bytes synced during trie sync
+func (psh *PresenterStatusHandler) GetTrieSyncNumBytesReceived() uint64 {
 	return psh.getFromCacheAsUint64(common.MetricTrieSyncNumReceivedBytes)
 }

@@ -830,7 +830,7 @@ const GenesisStorageSuffix = "_genesis"
 const MetricAccountsSnapshotNumNodes = "erd_accounts_snapshot_num_nodes"
 
 // MetricTrieSyncNumReceivedBytes is the metric that outputs the number of bytes received for accounts during trie sync
-const MetricTrieSyncNumReceivedBytes = "erd_trie_sync_bytes_received"
+const MetricTrieSyncNumReceivedBytes = "erd_trie_sync_num_bytes_received"
 
 // MetricTrieSyncNumProcessedNodes is the metric that outputs the number of trie nodes processed for accounts during trie sync
-const MetricTrieSyncNumProcessedNodes = "erd_trie_sync_nodes_processed"
+const MetricTrieSyncNumProcessedNodes = "erd_trie_sync_num_nodes_processed"

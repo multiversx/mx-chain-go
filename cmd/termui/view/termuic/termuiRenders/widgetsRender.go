@@ -183,13 +183,13 @@ func (wr *WidgetsRender) prepareChainInfo(numMillisecondsRefreshTime int) {
 	currentRound := wr.presenter.GetCurrentRound()
 
 	nodesProcessed := wr.presenter.GetTrieSyncNumProcessedNodes()
-	isNodeSyncingAccounts := nodesProcessed != 0
+	isNodeSyncingTrie := nodesProcessed != 0
 
 	var syncingStr, statusMessage, blocksPerSecondMessage string
 	switch {
-	case isNodeSyncingAccounts:
+	case isNodeSyncingTrie:
 		syncingStr = statusSyncing
-		bytesReceived := wr.presenter.GetTrieSyncBytesReceived()
+		bytesReceived := wr.presenter.GetTrieSyncNumBytesReceived()
 		statusMessage = fmt.Sprintf("Trie sync: %d nodes, %s state size", nodesProcessed, core.ConvertBytes(bytesReceived))
 	case synchronizedRound < currentRound:
 		syncingStr = statusSyncing
