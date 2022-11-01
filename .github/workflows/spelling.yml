@@ -1,0 +1,25 @@
+name: Spelling check
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches: [ master, development, feat/*, rc/* ]
+
+permissions:
+  contents: read
+
+jobs:
+  misspell:
+    name: Check misspellings
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Check misspellings
+        uses: codespell-project/actions-codespell@master
+        with:
+          builtin: clear,rare
+          check_filenames: true
