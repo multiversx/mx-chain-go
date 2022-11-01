@@ -264,6 +264,7 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		numConcurrentTrieSyncers:  args.NumConcurrentTrieSyncers,
 		trieSyncerVersion:         args.TrieSyncerVersion,
 		checkNodesOnDisk:          args.CheckNodesOnDisk,
+		statusCoreComponents:      args.StatusCoreComponents,
 	}
 
 	return e, nil

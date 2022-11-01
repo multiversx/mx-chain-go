@@ -2802,7 +2802,12 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 
 	processComponents.HardforkTriggerField = tpn.HardforkTrigger
 
+	statusCoreComponents := &testFactory.StatusCoreComponentsStub{
+		AppStatusHandlerField: TestAppStatusHandler,
+	}
+
 	err = tpn.Node.ApplyOptions(
+		node.WithStatusCoreComponents(statusCoreComponents),
 		node.WithCryptoComponents(cryptoComponents),
 		node.WithProcessComponents(processComponents),
 	)
@@ -2832,6 +2837,7 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 			Capacity: 1000,
 			Shards:   1,
 		},
+		TimeToReadDirectConnectionsInSec: 5,
 	}
 
 	hbv2FactoryArgs := heartbeatComp.ArgHeartbeatV2ComponentsFactory{
@@ -2841,12 +2847,13 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 				PublicKeyToListenFrom: hardforkPubKey,
 			},
 		},
-		BootstrapComponents: tpn.Node.GetBootstrapComponents(),
-		CoreComponents:      tpn.Node.GetCoreComponents(),
-		DataComponents:      tpn.Node.GetDataComponents(),
-		NetworkComponents:   tpn.Node.GetNetworkComponents(),
-		CryptoComponents:    tpn.Node.GetCryptoComponents(),
-		ProcessComponents:   tpn.Node.GetProcessComponents(),
+		BootstrapComponents:  tpn.Node.GetBootstrapComponents(),
+		CoreComponents:       tpn.Node.GetCoreComponents(),
+		DataComponents:       tpn.Node.GetDataComponents(),
+		NetworkComponents:    tpn.Node.GetNetworkComponents(),
+		CryptoComponents:     tpn.Node.GetCryptoComponents(),
+		ProcessComponents:    tpn.Node.GetProcessComponents(),
+		StatusCoreComponents: tpn.Node.GetStatusCoreComponents(),
 	}
 
 	heartbeatV2Factory, err := heartbeatComp.NewHeartbeatV2ComponentsFactory(hbv2FactoryArgs)
