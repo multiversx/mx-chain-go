@@ -2,6 +2,7 @@ package transactionAPI
 
 import (
 	"encoding/hex"
+	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/receipt"
@@ -114,6 +115,9 @@ func (tu *txUnmarshaller) prepareNormalTx(tx *transaction.Transaction) (*transac
 		GasLimit:         tx.GasLimit,
 		Data:             tx.Data,
 		Signature:        hex.EncodeToString(tx.Signature),
+		Options:          tx.Options,
+		Version:          tx.Version,
+		ChainID:          string(tx.ChainID),
 	}, nil
 }
 
@@ -163,10 +167,27 @@ func (tu *txUnmarshaller) prepareUnsignedTx(tx *smartContractResult.SmartContrac
 		PreviousTransactionHash: hex.EncodeToString(tx.GetPrevTxHash()),
 		OriginalTransactionHash: hex.EncodeToString(tx.GetOriginalTxHash()),
 		ReturnMessage:           string(tx.GetReturnMessage()),
-	}
-	if len(tx.GetOriginalSender()) == tu.addressPubKeyConverter.Len() {
-		txResult.OriginalSender = tu.addressPubKeyConverter.Encode(tx.GetOriginalSender())
+		CallType:                tx.CallType.ToString(),
+		RelayerAddress:          tu.getEncodedAddress(tx.GetRelayerAddr()),
+		RelayedValue:            bigIntToStr(tx.GetRelayedValue()),
+		OriginalSender:          tu.getEncodedAddress(tx.GetOriginalSender()),
 	}
 
 	return txResult, nil
+}
+
+func (tu *txUnmarshaller) getEncodedAddress(address []byte) string {
+	if len(address) == tu.addressPubKeyConverter.Len() {
+		return tu.addressPubKeyConverter.Encode(address)
+	}
+
+	return ""
+}
+
+func bigIntToStr(value *big.Int) string {
+	if value != nil {
+		return value.String()
+	}
+
+	return ""
 }
