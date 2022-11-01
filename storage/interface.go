@@ -84,7 +84,7 @@ type Batcher interface {
 }
 
 // Storer provides storage services in a two layered storage construct, where the first layer is
-// represented by a cache and second layer by a persitent storage (DB-like)
+// represented by a cache and second layer by a persistent storage (DB-like)
 type Storer interface {
 	Put(key, data []byte) error
 	PutInEpoch(key, data []byte, epoch uint32) error
@@ -138,7 +138,7 @@ type DirectoryReaderHandler interface {
 	IsInterfaceNil() bool
 }
 
-// LatestStorageDataProviderHandler defines which actions be done by a component who fetches latest data from storage
+// LatestStorageDataProviderHandler defines which actions be done by a component who fetches the latest data from storage
 type LatestStorageDataProviderHandler interface {
 	GetParentDirectory() string
 	GetParentDirAndLastEpoch() (string, uint32, error)

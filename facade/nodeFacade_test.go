@@ -100,6 +100,7 @@ func TestNewNodeFacade_WithInvalidSimultaneousRequestsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArguments()
+	arg.WsAntifloodConfig.WebServerAntifloodEnabled = true
 	arg.WsAntifloodConfig.SimultaneousRequests = 0
 	nf, err := NewNodeFacade(arg)
 
@@ -111,6 +112,7 @@ func TestNewNodeFacade_WithInvalidSameSourceResetIntervalInSecShouldErr(t *testi
 	t.Parallel()
 
 	arg := createMockArguments()
+	arg.WsAntifloodConfig.WebServerAntifloodEnabled = true
 	arg.WsAntifloodConfig.SameSourceResetIntervalInSec = 0
 	nf, err := NewNodeFacade(arg)
 
@@ -122,6 +124,7 @@ func TestNewNodeFacade_WithInvalidSameSourceRequestsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArguments()
+	arg.WsAntifloodConfig.WebServerAntifloodEnabled = true
 	arg.WsAntifloodConfig.SameSourceRequests = 0
 	nf, err := NewNodeFacade(arg)
 
@@ -295,6 +298,64 @@ func TestNodeFacade_GetAccount(t *testing.T) {
 
 	_, _, _ = nf.GetAccount("test", api.AccountQueryOptions{})
 	assert.True(t, getAccountCalled)
+}
+
+func TestNodeFacade_GetAccounts(t *testing.T) {
+	t.Parallel()
+
+	t.Run("too many addresses in bulk", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+		arg.WsAntifloodConfig.GetAddressesBulkMaxSize = 1
+		nf, _ := NewNodeFacade(arg)
+
+		resp, blockInfo, err := nf.GetAccounts([]string{"test1", "test2"}, api.AccountQueryOptions{})
+		assert.Nil(t, resp)
+		assert.Empty(t, blockInfo)
+		assert.Error(t, err)
+		assert.Equal(t, "too many addresses in the bulk request (provided: 2, maximum: 1)", err.Error())
+	})
+
+	t.Run("node responds with error, should err", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := errors.New("expected error")
+		node := &mock.NodeStub{}
+		node.GetAccountCalled = func(address string, _ api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
+			return api.AccountResponse{}, api.BlockInfo{}, expectedErr
+		}
+
+		arg := createMockArguments()
+		arg.Node = node
+		arg.WsAntifloodConfig.GetAddressesBulkMaxSize = 2
+		nf, _ := NewNodeFacade(arg)
+
+		resp, blockInfo, err := nf.GetAccounts([]string{"test"}, api.AccountQueryOptions{})
+		assert.Nil(t, resp)
+		assert.Empty(t, blockInfo)
+		assert.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		expectedAcount := api.AccountResponse{Address: "test"}
+		node := &mock.NodeStub{}
+		node.GetAccountCalled = func(address string, _ api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
+			return expectedAcount, api.BlockInfo{}, nil
+		}
+
+		arg := createMockArguments()
+		arg.Node = node
+		arg.WsAntifloodConfig.GetAddressesBulkMaxSize = 1
+		nf, _ := NewNodeFacade(arg)
+
+		resp, blockInfo, err := nf.GetAccounts([]string{"test"}, api.AccountQueryOptions{})
+		assert.NoError(t, err)
+		assert.Empty(t, blockInfo)
+		assert.Equal(t, &expectedAcount, resp["test"])
+	})
 }
 
 func TestNodeFacade_GetUsername(t *testing.T) {
@@ -631,6 +692,7 @@ func TestNodeFacade_GetThrottlerForEndpointNoConfigShouldReturnNilAndFalse(t *te
 	t.Parallel()
 
 	arg := createMockArguments()
+	arg.WsAntifloodConfig.WebServerAntifloodEnabled = true
 	arg.WsAntifloodConfig.EndpointsThrottlers = []config.EndpointsThrottlersConfig{} // ensure it is empty
 	nf, _ := NewNodeFacade(arg)
 
@@ -644,6 +706,7 @@ func TestNodeFacade_GetThrottlerForEndpointNotFoundShouldReturnNilAndFalse(t *te
 	t.Parallel()
 
 	arg := createMockArguments()
+	arg.WsAntifloodConfig.WebServerAntifloodEnabled = true
 	arg.WsAntifloodConfig.EndpointsThrottlers = []config.EndpointsThrottlersConfig{
 		{
 			Endpoint:         "endpoint",
@@ -662,6 +725,7 @@ func TestNodeFacade_GetThrottlerForEndpointShouldFindAndReturn(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArguments()
+	arg.WsAntifloodConfig.WebServerAntifloodEnabled = true
 	arg.WsAntifloodConfig.EndpointsThrottlers = []config.EndpointsThrottlersConfig{
 		{
 			Endpoint:         "endpoint",

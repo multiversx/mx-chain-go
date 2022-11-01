@@ -328,7 +328,7 @@ func (si *stateImport) importDataTrie(identifier string, shID uint32, keys [][]b
 		return err
 	}
 
-	if len(originalRootHash) == 0 || bytes.Equal(originalRootHash, trie.EmptyTrieHash) {
+	if common.IsEmptyTrie(originalRootHash) {
 		err = dataTrie.Commit()
 		if err != nil {
 			return err
@@ -402,6 +402,7 @@ func (si *stateImport) getAccountsDB(accType Type, shardID uint32) (state.Accoun
 				StoragePruningManager: disabled.NewDisabledStoragePruningManager(),
 				ProcessingMode:        common.Normal,
 				ProcessStatusHandler:  commonDisabled.NewProcessStatusHandler(),
+				AppStatusHandler:      commonDisabled.NewAppStatusHandler(),
 			}
 			accountsDB, errCreate := state.NewAccountsDB(argsAccountDB)
 			if errCreate != nil {
@@ -425,6 +426,7 @@ func (si *stateImport) getAccountsDB(accType Type, shardID uint32) (state.Accoun
 		StoragePruningManager: disabled.NewDisabledStoragePruningManager(),
 		ProcessingMode:        common.Normal,
 		ProcessStatusHandler:  commonDisabled.NewProcessStatusHandler(),
+		AppStatusHandler:      commonDisabled.NewAppStatusHandler(),
 	}
 	accountsDB, err = state.NewAccountsDB(argsAccountDB)
 	si.accountDBsMap[shardID] = accountsDB
@@ -472,7 +474,7 @@ func (si *stateImport) importState(identifier string, keys [][]byte) error {
 
 	log.Debug("importing state", "shard ID", shId, "root hash", rootHash)
 
-	if len(rootHash) == 0 || bytes.Equal(rootHash, trie.EmptyTrieHash) {
+	if common.IsEmptyTrie(rootHash) {
 		return si.saveRootHash(accountsDB, accType, shId, rootHash)
 	}
 

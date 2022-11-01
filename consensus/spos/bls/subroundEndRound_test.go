@@ -857,7 +857,7 @@ func TestSubroundEndRound_IsOutOfTimeShouldReturnFalse(t *testing.T) {
 func TestSubroundEndRound_IsOutOfTimeShouldReturnTrue(t *testing.T) {
 	t.Parallel()
 
-	// update roundHandler's mock so it will calculate for real the duration
+	// update roundHandler's mock, so it will calculate for real the duration
 	container := mock.InitConsensusCore()
 	roundHandler := mock.RoundHandlerMock{RemainingTimeCalled: func(startTime time.Time, maxTime time.Duration) time.Duration {
 		currentTime := time.Now()

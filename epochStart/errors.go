@@ -260,7 +260,7 @@ var ErrNilStakingDataProvider = errors.New("nil staking data provider")
 // ErrNilDataTrie signals that a nil data trie was provided
 var ErrNilDataTrie = errors.New("nil data trie")
 
-// ErrInvalidMinNodePrice signals that the minimum node price is invalid (e.g negative, not a number, etc)
+// ErrInvalidMinNodePrice signals that the minimum node price is invalid (e.g. negative, not a number, etc)
 var ErrInvalidMinNodePrice = errors.New("minimum node price is invalid")
 
 // ErrNilEconomicsDataProvider signals that the economics data provider is nil
@@ -322,3 +322,6 @@ var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
 
 // ErrNilValidatorInfoStorage signals that nil validator info storage has been provided
 var ErrNilValidatorInfoStorage = errors.New("nil validator info storage")
+
+// ErrNilTrieSyncStatistics signals that nil trie sync statistics has been provided
+var ErrNilTrieSyncStatistics = errors.New("nil trie sync statistics")

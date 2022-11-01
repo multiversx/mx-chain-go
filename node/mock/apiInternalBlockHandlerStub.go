@@ -4,7 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 )
 
-// InternalBlockProcessorStub -
+// InternalBlockApiHandlerStub -
 type InternalBlockApiHandlerStub struct {
 	GetInternalShardBlockByNonceCalled     func(format common.ApiOutputFormat, nonce uint64) (interface{}, error)
 	GetInternalShardBlockByHashCalled      func(format common.ApiOutputFormat, hash []byte) (interface{}, error)

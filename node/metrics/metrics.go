@@ -14,6 +14,7 @@ import (
 
 const millisecondsInSecond = 1000
 const initUint = uint64(0)
+const initInt = int64(0)
 const initString = ""
 const initZeroString = "0"
 
@@ -50,6 +51,10 @@ func InitBaseMetrics(statusHandlerUtils StatusHandlersUtils) error {
 	appStatusHandler.SetUInt64Value(common.MetricNoncesPassedInCurrentEpoch, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricNumConnectedPeers, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricEpochForEconomicsData, initUint)
+	appStatusHandler.SetUInt64Value(common.MetricAccountsSnapshotNumNodes, initUint)
+
+	appStatusHandler.SetInt64Value(common.MetricLastAccountsSnapshotDurationSec, initInt)
+	appStatusHandler.SetInt64Value(common.MetricLastPeersSnapshotDurationSec, initInt)
 
 	appStatusHandler.SetStringValue(common.MetricConsensusState, initString)
 	appStatusHandler.SetStringValue(common.MetricConsensusRoundState, initString)
@@ -65,6 +70,8 @@ func InitBaseMetrics(statusHandlerUtils StatusHandlersUtils) error {
 	appStatusHandler.SetStringValue(common.MetricP2PCrossShardObservers, initString)
 	appStatusHandler.SetStringValue(common.MetricP2PFullHistoryObservers, initString)
 	appStatusHandler.SetStringValue(common.MetricP2PUnknownPeers, initString)
+	appStatusHandler.SetStringValue(common.MetricAccountsSnapshotInProgress, initString)
+	appStatusHandler.SetStringValue(common.MetricPeersSnapshotInProgress, initString)
 
 	appStatusHandler.SetStringValue(common.MetricInflation, initZeroString)
 	appStatusHandler.SetStringValue(common.MetricDevRewardsInEpoch, initZeroString)
@@ -121,7 +128,6 @@ func InitConfigMetrics(
 	appStatusHandler.SetUInt64Value(common.MetricGlobalMintBurnDisableEpoch, uint64(enableEpochs.GlobalMintBurnDisableEpoch))
 	appStatusHandler.SetUInt64Value(common.MetricESDTTransferRoleEnableEpoch, uint64(enableEpochs.ESDTTransferRoleEnableEpoch))
 	appStatusHandler.SetUInt64Value(common.MetricBuiltInFunctionOnMetaEnableEpoch, uint64(enableEpochs.BuiltInFunctionOnMetaEnableEpoch))
-	appStatusHandler.SetUInt64Value(common.MetricHeartbeatDisableEpoch, uint64(enableEpochs.HeartbeatDisableEpoch))
 	appStatusHandler.SetStringValue(common.MetricTotalSupply, economicsConfig.GlobalSettings.GenesisTotalSupply)
 	appStatusHandler.SetUInt64Value(common.MetricWaitingListFixEnableEpoch, uint64(enableEpochs.WaitingListFixEnableEpoch))
 
@@ -269,7 +275,7 @@ func InitMetrics(
 	return nil
 }
 
-// SaveUint64Metric will save a uint64 metric in status handler
+// SaveUint64Metric will save an uint64 metric in status handler
 func SaveUint64Metric(ash core.AppStatusHandler, key string, value uint64) {
 	ash.SetUInt64Value(key, value)
 }

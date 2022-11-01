@@ -7,7 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	nodeData "github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
+	"github.com/ElrondNetwork/elrond-go-core/data/outport"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -23,10 +23,10 @@ const (
 
 // SaveBlockData holds the data that will be sent to notifier instance
 type SaveBlockData struct {
-	Hash      string                                 `json:"hash"`
-	Txs       map[string]nodeData.TransactionHandler `json:"txs"`
-	Scrs      map[string]nodeData.TransactionHandler `json:"scrs"`
-	LogEvents []Event                                `json:"events"`
+	Hash      string                                                  `json:"hash"`
+	Txs       map[string]nodeData.TransactionHandlerWithGasUsedAndFee `json:"txs"`
+	Scrs      map[string]nodeData.TransactionHandlerWithGasUsedAndFee `json:"scrs"`
+	LogEvents []Event                                                 `json:"events"`
 }
 
 // Event holds event data
@@ -106,7 +106,7 @@ func checkEventNotifierArgs(args ArgsEventNotifier) error {
 }
 
 // SaveBlock converts block data in order to be pushed to subscribers
-func (en *eventNotifier) SaveBlock(args *indexer.ArgsSaveBlockData) error {
+func (en *eventNotifier) SaveBlock(args *outport.ArgsSaveBlockData) error {
 	log.Debug("eventNotifier: SaveBlock called at block", "block hash", args.HeaderHash)
 	if args.TransactionsPool == nil {
 		return ErrNilTransactionsPool
@@ -220,12 +220,12 @@ func (en *eventNotifier) FinalizedBlock(headerHash []byte) error {
 }
 
 // SaveRoundsInfo returns nil
-func (en *eventNotifier) SaveRoundsInfo(_ []*indexer.RoundInfo) error {
+func (en *eventNotifier) SaveRoundsInfo(_ []*outport.RoundInfo) error {
 	return nil
 }
 
 // SaveValidatorsRating returns nil
-func (en *eventNotifier) SaveValidatorsRating(_ string, _ []*indexer.ValidatorRatingInfo) error {
+func (en *eventNotifier) SaveValidatorsRating(_ string, _ []*outport.ValidatorRatingInfo) error {
 	return nil
 }
 
@@ -235,7 +235,7 @@ func (en *eventNotifier) SaveValidatorsPubKeys(_ map[uint32][][]byte, _ uint32) 
 }
 
 // SaveAccounts does nothing
-func (en *eventNotifier) SaveAccounts(_ uint64, _ []nodeData.UserAccountHandler) error {
+func (en *eventNotifier) SaveAccounts(_ uint64, _ map[string]*outport.AlteredAccount, _ uint32) error {
 	return nil
 }
 

@@ -21,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/outport"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
@@ -124,7 +125,7 @@ func NewShardProcessorEmptyWith3shards(
 		VersionedHdrFactory:  &testscommon.VersionedHeaderFactoryStub{},
 	}
 	statusComponents := &mock.StatusComponentsMock{
-		Outport: &testscommon.OutportStub{},
+		Outport: &outport.OutportStub{},
 	}
 
 	arguments := ArgShardProcessor{
@@ -139,7 +140,7 @@ func NewShardProcessorEmptyWith3shards(
 			FeeHandler:          &mock.FeeAccumulatorStub{},
 			RequestHandler:      &testscommon.RequestHandlerStub{},
 			BlockChainHook:      &testscommon.BlockChainHookStub{},
-			TxCoordinator:       &mock.TransactionCoordinatorMock{},
+			TxCoordinator:       &testscommon.TransactionCoordinatorMock{},
 			EpochStartTrigger:   &mock.EpochStartTriggerStub{},
 			HeaderValidator:     hdrValidator,
 			BootStorer: &mock.BoostrapStorerMock{
@@ -153,6 +154,7 @@ func NewShardProcessorEmptyWith3shards(
 			HistoryRepository:            &dblookupext.HistoryRepositoryStub{},
 			EnableRoundsHandler:          &testscommon.EnableRoundsHandlerStub{},
 			GasHandler:                   &mock.GasHandlerMock{},
+			OutportDataProvider:          &outport.OutportDataProviderStub{},
 			ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 			ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 			ReceiptsRepository:           &testscommon.ReceiptsRepositoryStub{},

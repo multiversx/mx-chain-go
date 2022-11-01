@@ -12,7 +12,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	arwenConfig "github.com/ElrondNetwork/wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/partitioning"
@@ -103,6 +102,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genesisMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/outport"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
@@ -118,6 +118,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
+	arwenConfig "github.com/ElrondNetwork/wasm-vm-v1_4/config"
 )
 
 var zero = big.NewInt(0)
@@ -1959,6 +1960,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		ReceiptsRepository:           &testscommon.ReceiptsRepositoryStub{},
+		OutportDataProvider:          &outport.OutportDataProviderStub{},
 	}
 
 	if check.IfNil(tpn.EpochStartNotifier) {
@@ -2802,45 +2804,6 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 	)
 	log.LogIfError(err)
 
-	// TODO: remove it with heartbeat v1 cleanup
-	// =============== Heartbeat ============== //
-	redundancyHandler := &mock.RedundancyHandlerStub{}
-
-	hbConfig := config.HeartbeatConfig{
-		MinTimeToWaitBetweenBroadcastsInSec: 4,
-		MaxTimeToWaitBetweenBroadcastsInSec: 6,
-		DurationToConsiderUnresponsiveInSec: 60,
-		HeartbeatRefreshIntervalInSec:       5,
-		HideInactiveValidatorIntervalInSec:  600,
-	}
-
-	hbFactoryArgs := heartbeatComp.HeartbeatComponentsFactoryArgs{
-		Config: config.Config{
-			Heartbeat: hbConfig,
-		},
-		Prefs:             config.Preferences{},
-		RedundancyHandler: redundancyHandler,
-		CoreComponents:    tpn.Node.GetCoreComponents(),
-		DataComponents:    tpn.Node.GetDataComponents(),
-		NetworkComponents: tpn.Node.GetNetworkComponents(),
-		CryptoComponents:  tpn.Node.GetCryptoComponents(),
-		ProcessComponents: tpn.Node.GetProcessComponents(),
-	}
-
-	heartbeatFactory, err := heartbeatComp.NewHeartbeatComponentsFactory(hbFactoryArgs)
-	log.LogIfError(err)
-
-	managedHeartbeatComponents, err := heartbeatComp.NewManagedHeartbeatComponents(heartbeatFactory)
-	log.LogIfError(err)
-
-	err = managedHeartbeatComponents.Create()
-	log.LogIfError(err)
-
-	err = tpn.Node.ApplyOptions(
-		node.WithHeartbeatComponents(managedHeartbeatComponents),
-	)
-	log.LogIfError(err)
-
 	// ============== HeartbeatV2 ============= //
 	hbv2Config := config.HeartbeatV2Config{
 		PeerAuthenticationTimeBetweenSendsInSec:          5,
@@ -2874,12 +2837,12 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 				PublicKeyToListenFrom: hardforkPubKey,
 			},
 		},
-		BoostrapComponents: tpn.Node.GetBootstrapComponents(),
-		CoreComponents:     tpn.Node.GetCoreComponents(),
-		DataComponents:     tpn.Node.GetDataComponents(),
-		NetworkComponents:  tpn.Node.GetNetworkComponents(),
-		CryptoComponents:   tpn.Node.GetCryptoComponents(),
-		ProcessComponents:  tpn.Node.GetProcessComponents(),
+		BootstrapComponents: tpn.Node.GetBootstrapComponents(),
+		CoreComponents:      tpn.Node.GetCoreComponents(),
+		DataComponents:      tpn.Node.GetDataComponents(),
+		NetworkComponents:   tpn.Node.GetNetworkComponents(),
+		CryptoComponents:    tpn.Node.GetCryptoComponents(),
+		ProcessComponents:   tpn.Node.GetProcessComponents(),
 	}
 
 	heartbeatV2Factory, err := heartbeatComp.NewHeartbeatV2ComponentsFactory(hbv2FactoryArgs)
@@ -2962,7 +2925,6 @@ func CreateEnableEpochsConfig() config.EnableEpochs {
 		AddFailedRelayedTxToInvalidMBsDisableEpoch:        UnreachableEpoch,
 		SCRSizeInvariantOnBuiltInResultEnableEpoch:        UnreachableEpoch,
 		CheckCorrectTokenIDForTransferRoleEnableEpoch:     UnreachableEpoch,
-		HeartbeatDisableEpoch:                             UnreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch:              UnreachableEpoch,
 		RefactorPeersMiniBlocksEnableEpoch:                UnreachableEpoch,
 	}

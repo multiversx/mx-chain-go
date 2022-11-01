@@ -223,18 +223,18 @@ func (bh *BlockChainHookImpl) GetUserAccount(address []byte) (vmcommon.UserAccou
 }
 
 // GetStorageData returns the storage value of a variable held in account's data trie
-func (bh *BlockChainHookImpl) GetStorageData(accountAddress []byte, index []byte) ([]byte, error) {
+func (bh *BlockChainHookImpl) GetStorageData(accountAddress []byte, index []byte) ([]byte, uint32, error) {
 	defer stopMeasure(startMeasure("GetStorageData"))
 
 	userAcc, err := bh.GetUserAccount(accountAddress)
 	if err == state.ErrAccNotFound {
-		return make([]byte, 0), nil
+		return make([]byte, 0), 0, nil
 	}
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
-	value, err := userAcc.AccountDataHandler().RetrieveValue(index)
+	value, trieDepth, err := userAcc.AccountDataHandler().RetrieveValue(index)
 	messages := []interface{}{
 		"address", accountAddress,
 		"rootHash", userAcc.GetRootHash(),
@@ -246,7 +246,7 @@ func (bh *BlockChainHookImpl) GetStorageData(accountAddress []byte, index []byte
 		messages = append(messages, err)
 	}
 	log.Trace("GetStorageData ", messages...)
-	return value, err
+	return value, trieDepth, err
 }
 
 // GetBlockhash returns the header hash for a requested nonce delta
@@ -400,7 +400,7 @@ func (bh *BlockChainHookImpl) NewAddress(creatorAddress []byte, creatorNonce uin
 	return base, nil
 }
 
-// ProcessBuiltInFunction is the hook through which a smart contract can execute a built in function
+// ProcessBuiltInFunction is the hook through which a smart contract can execute a built-in function
 func (bh *BlockChainHookImpl) ProcessBuiltInFunction(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
 	defer stopMeasure(startMeasure("ProcessBuiltInFunction"))
 
@@ -550,12 +550,12 @@ func (bh *BlockChainHookImpl) getUserAccounts(
 	return sndAccount, dstAccount, nil
 }
 
-// GetBuiltinFunctionNames returns the built in function names
+// GetBuiltinFunctionNames returns the built-in function names
 func (bh *BlockChainHookImpl) GetBuiltinFunctionNames() vmcommon.FunctionNames {
 	return bh.builtInFunctions.Keys()
 }
 
-// GetBuiltinFunctionsContainer returns the built in functions container
+// GetBuiltinFunctionsContainer returns the built-in functions container
 func (bh *BlockChainHookImpl) GetBuiltinFunctionsContainer() vmcommon.BuiltInFunctionContainer {
 	return bh.builtInFunctions
 }
@@ -612,7 +612,7 @@ func (bh *BlockChainHookImpl) returnESDTTokenByLegacyMethod(
 		esdtTokenKey = append(esdtTokenKey, big.NewInt(0).SetUint64(nonce).Bytes()...)
 	}
 
-	value, err := userAcc.AccountDataHandler().RetrieveValue(esdtTokenKey)
+	value, _, err := userAcc.AccountDataHandler().RetrieveValue(esdtTokenKey)
 	if err != nil {
 		return nil, err
 	}
