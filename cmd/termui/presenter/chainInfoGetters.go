@@ -180,12 +180,12 @@ func (psh *PresenterStatusHandler) GetEpochInfo() (uint64, uint64, int, string) 
 	return currentRound, epochFinishRound, epochLoadPercent, remainingTime
 }
 
-// GetAccountsSyncNodesProcessed will return information the number of trie nodes processed during sync
-func (psh *PresenterStatusHandler) GetAccountsSyncNodesProcessed() uint64 {
-	return psh.getFromCacheAsUint64(common.MetricAccountsSyncNodesProcessed)
+// GetTrieSyncNumProcessedNodes will return the number of processed nodes during trie sync
+func (psh *PresenterStatusHandler) GetTrieSyncNumProcessedNodes() uint64 {
+	return psh.getFromCacheAsUint64(common.MetricTrieSyncNumProcessedNodes)
 }
 
-// GetAccountsSyncBytesReceived will return information the number of bytes received during sync
-func (psh *PresenterStatusHandler) GetAccountsSyncBytesReceived() uint64 {
-	return psh.getFromCacheAsUint64(common.MetricAccountsSyncBytesReceived)
+// GetTrieSyncBytesReceived will return the number of bytes synced during trie sync
+func (psh *PresenterStatusHandler) GetTrieSyncBytesReceived() uint64 {
+	return psh.getFromCacheAsUint64(common.MetricTrieSyncNumReceivedBytes)
 }

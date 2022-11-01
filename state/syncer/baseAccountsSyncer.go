@@ -194,8 +194,8 @@ func (b *baseAccountsSyncer) printStatisticsAndUpdateMetrics(ctx context.Context
 }
 
 func (b *baseAccountsSyncer) updateMetrics() {
-	b.appStatusHandler.SetUInt64Value(common.MetricAccountsSyncNodesProcessed, uint64(b.userAccountsSyncStatisticsHandler.NumProcessed()))
-	b.appStatusHandler.SetUInt64Value(common.MetricAccountsSyncBytesReceived, b.userAccountsSyncStatisticsHandler.NumBytesReceived())
+	b.appStatusHandler.SetUInt64Value(common.MetricTrieSyncNumProcessedNodes, uint64(b.userAccountsSyncStatisticsHandler.NumProcessed()))
+	b.appStatusHandler.SetUInt64Value(common.MetricTrieSyncNumReceivedBytes, b.userAccountsSyncStatisticsHandler.NumBytesReceived())
 }
 
 func convertBytesPerIntervalToSpeed(bytes uint64, interval time.Duration) string {

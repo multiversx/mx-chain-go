@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestDisabledNodeFacade(t *testing.T) {
+func TestInitialNodeFacade(t *testing.T) {
 	t.Parallel()
 
 	t.Run("nil status metrics should error", func(t *testing.T) {
@@ -30,7 +30,7 @@ func TestDisabledNodeFacade(t *testing.T) {
 	})
 }
 
-func TestDisabledNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
+func TestInitialNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 	t.Parallel()
 	defer func() {
 		r := recover()

@@ -182,11 +182,15 @@ func (wr *WidgetsRender) prepareChainInfo(numMillisecondsRefreshTime int) {
 	synchronizedRound := wr.presenter.GetSynchronizedRound()
 	currentRound := wr.presenter.GetCurrentRound()
 
-	nodesProcessed := wr.presenter.GetAccountsSyncNodesProcessed()
+	nodesProcessed := wr.presenter.GetTrieSyncNumProcessedNodes()
 	isNodeSyncingAccounts := nodesProcessed != 0
 
 	var syncingStr, statusMessage, blocksPerSecondMessage string
 	switch {
+	case isNodeSyncingAccounts:
+		syncingStr = statusSyncing
+		bytesReceived := wr.presenter.GetTrieSyncBytesReceived()
+		statusMessage = fmt.Sprintf("Trie sync: %d nodes, %s state size", nodesProcessed, core.ConvertBytes(bytesReceived))
 	case synchronizedRound < currentRound:
 		syncingStr = statusSyncing
 
@@ -195,10 +199,6 @@ func (wr *WidgetsRender) prepareChainInfo(numMillisecondsRefreshTime int) {
 
 		blocksPerSecond := wr.presenter.CalculateSynchronizationSpeed(numMillisecondsRefreshTime)
 		blocksPerSecondMessage = fmt.Sprintf("%d blocks/sec", blocksPerSecond)
-	case isNodeSyncingAccounts:
-		syncingStr = statusSyncing
-		bytesReceived := wr.presenter.GetAccountsSyncBytesReceived()
-		statusMessage = fmt.Sprintf("Trie sync: %d nodes, %s state size", nodesProcessed, core.ConvertBytes(bytesReceived))
 	case currentRound == 0:
 		syncingStr = statusNotApplicable
 	default:
