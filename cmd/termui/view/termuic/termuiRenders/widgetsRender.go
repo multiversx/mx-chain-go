@@ -183,8 +183,7 @@ func (wr *WidgetsRender) prepareChainInfo(numMillisecondsRefreshTime int) {
 	currentRound := wr.presenter.GetCurrentRound()
 
 	nodesProcessed := wr.presenter.GetAccountsSyncNodesProcessed()
-	bytesReceived := wr.presenter.GetNetworkReceivedBytesInEpoch()
-	isNodeSyncingAccounts := nodesProcessed != 0 || bytesReceived != 0
+	isNodeSyncingAccounts := nodesProcessed != 0
 
 	var syncingStr, statusMessage, blocksPerSecondMessage string
 	switch {
@@ -198,6 +197,7 @@ func (wr *WidgetsRender) prepareChainInfo(numMillisecondsRefreshTime int) {
 		blocksPerSecondMessage = fmt.Sprintf("%d blocks/sec", blocksPerSecond)
 	case isNodeSyncingAccounts:
 		syncingStr = statusSyncing
+		bytesReceived := wr.presenter.GetAccountsSyncBytesReceived()
 		statusMessage = fmt.Sprintf("Trie sync: %d nodes, %s state size", nodesProcessed, core.ConvertBytes(bytesReceived))
 	case currentRound == 0:
 		syncingStr = statusNotApplicable
@@ -210,6 +210,7 @@ func (wr *WidgetsRender) prepareChainInfo(numMillisecondsRefreshTime int) {
 		wr.chainInfo.RowStyles[0] = ui.NewStyle(ui.ColorGreen)
 	} else {
 		wr.chainInfo.RowStyles[0] = ui.NewStyle(ui.ColorYellow)
+		wr.chainInfo.RowStyles[1] = ui.NewStyle(ui.ColorYellow)
 	}
 
 	rows[1] = []string{statusMessage}
