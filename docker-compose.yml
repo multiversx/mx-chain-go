@@ -8,7 +8,7 @@ services:
 
     command: bash -c "go run cmd/node/main.go -port 4000 -max-allowed-peers 4 -private-key \"ZBis8aK5I66x1hwD+fE8sIw2nwQR5EBlTM8EiAOLZwE=\""
     ports:
-      - 8080:8080
+      - "8080:8080"
 
   es01:
     image: docker.elastic.co/elasticsearch/elasticsearch:7.1.0
@@ -28,7 +28,7 @@ services:
       - ./esdata/node1:/usr/share/elasticsearch/data
       - ./docker/elasticsearch/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
     ports:
-      - 9200:9200
+      - "9200:9200"
 #    networks:
 #      - elrond
 

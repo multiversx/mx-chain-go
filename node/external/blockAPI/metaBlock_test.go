@@ -294,14 +294,14 @@ func TestMetaAPIBlockProcessor_GetBlockByNonceFromHistoryNode(t *testing.T) {
 	processor.marshalizer = marshalizer
 	processor.historyRepo = historyRepository
 
-	// Setup a miniblock
+	// Set up a miniblock
 	miniblockHash := []byte{0xff}
 	miniblock := &block.MiniBlock{
 		Type:     block.TxBlock,
 		TxHashes: [][]byte{},
 	}
 
-	// Setup a block containing the miniblock
+	// Set up a block containing the miniblock
 	metablockHash := []byte{0xaa, 0xbb}
 	metablock := &block.MetaBlock{
 		Nonce: testNonce,

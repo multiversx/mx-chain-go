@@ -40,7 +40,7 @@ func TestDeployDNSContract_TestRegisterAndResolveAndSendTxWithSndAndRcvUserName(
 
 	userName := utils.GenerateUserNameForMyDNSContract()
 	txData := []byte("register@" + hex.EncodeToString(userName))
-	// create user name for sender
+	// create username for sender
 	tx := vm.CreateTransaction(0, big.NewInt(0), sndAddr, scAddress, gasPrice, gasLimit, txData)
 	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
@@ -55,7 +55,7 @@ func TestDeployDNSContract_TestRegisterAndResolveAndSendTxWithSndAndRcvUserName(
 	require.Equal(t, big.NewInt(70023), developerFees)
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
-	// create user name for receiver
+	// create username for receiver
 	rcvUserName := utils.GenerateUserNameForMyDNSContract()
 	txData = []byte("register@" + hex.EncodeToString(rcvUserName))
 	tx = vm.CreateTransaction(0, big.NewInt(0), rcvAddr, scAddress, gasPrice, gasLimit, txData)

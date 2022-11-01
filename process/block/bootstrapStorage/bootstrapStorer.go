@@ -94,7 +94,7 @@ func (bs *bootstrapStorer) Get(round int64) (BootstrapData, error) {
 	return bootData, nil
 }
 
-// GetHighestRound will return highest round saved in storage
+// GetHighestRound will return the highest round saved in storage
 func (bs *bootstrapStorer) GetHighestRound() int64 {
 	roundBytes, err := bs.store.Get([]byte(common.HighestRoundFromBootStorage))
 	if err != nil {

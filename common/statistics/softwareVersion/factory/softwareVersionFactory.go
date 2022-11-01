@@ -29,7 +29,7 @@ func NewSoftwareVersionFactory(
 	return softwareVersionFactoryObject, nil
 }
 
-// Create returns an software version checker object
+// Create returns a software version checker object
 func (svf *softwareVersionFactory) Create() (*softwareVersion.SoftwareVersionChecker, error) {
 	stableTagProvider := softwareVersion.NewStableTagProvider(svf.config.StableTagLocation)
 	softwareVersionChecker, err := softwareVersion.NewSoftwareVersionChecker(svf.statusHandler, stableTagProvider, svf.config.PollingIntervalInMinutes)

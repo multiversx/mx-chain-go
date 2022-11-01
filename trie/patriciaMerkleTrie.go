@@ -77,22 +77,22 @@ func NewTrie(
 
 // Get starts at the root and searches for the given key.
 // If the key is present in the tree, it returns the corresponding value
-func (tr *patriciaMerkleTrie) Get(key []byte) ([]byte, error) {
+func (tr *patriciaMerkleTrie) Get(key []byte) ([]byte, uint32, error) {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
 	if tr.root == nil {
-		return nil, nil
+		return nil, 0, nil
 	}
 	hexKey := keyBytesToHex(key)
 
-	val, err := tr.root.tryGet(hexKey, tr.trieStorage)
+	val, depth, err := tr.root.tryGet(hexKey, rootDepthLevel, tr.trieStorage)
 	if err != nil {
 		err = fmt.Errorf("trie get error: %w, for key %v", err, hex.EncodeToString(key))
-		return nil, err
+		return nil, depth, err
 	}
 
-	return val, nil
+	return val, depth, nil
 }
 
 // Update updates the value at the given key.

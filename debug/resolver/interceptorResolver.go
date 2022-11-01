@@ -412,7 +412,7 @@ func (ir *interceptorResolver) LogFailedToResolveData(topic string, hash []byte,
 	ev.mutEvent.Unlock()
 }
 
-// LogSucceededToResolveData removes the recording that the resolver did not resolved a hash in the past
+// LogSucceededToResolveData removes the recording that the resolver did not resolve a hash in the past
 func (ir *interceptorResolver) LogSucceededToResolveData(topic string, hash []byte) {
 	identifier := ir.computeIdentifier(resolveEvent, topic, hash)
 

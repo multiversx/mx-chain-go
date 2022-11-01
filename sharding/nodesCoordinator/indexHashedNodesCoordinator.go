@@ -307,7 +307,7 @@ func (ihnc *indexHashedNodesCoordinator) ComputeAdditionalLeaving(_ []*state.Sha
 	return make(map[uint32][]Validator), nil
 }
 
-// ComputeConsensusGroup will generate a list of validators based on the the eligible list
+// ComputeConsensusGroup will generate a list of validators based on the eligible list
 // and each eligible validator weight/chance
 func (ihnc *indexHashedNodesCoordinator) ComputeConsensusGroup(
 	randomness []byte,

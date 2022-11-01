@@ -18,25 +18,25 @@ type EpochHandler interface {
 	IsInterfaceNil() bool
 }
 
-//PeerAccountListAndRatingHandler provides Rating Computation Capabilites for the Nodes Coordinator and ValidatorStatistics
+// PeerAccountListAndRatingHandler provides Rating Computation Capabilites for the Nodes Coordinator and ValidatorStatistics
 type PeerAccountListAndRatingHandler interface {
-	//GetChance returns the chances for the the rating
+	// GetChance returns the chances for the rating
 	GetChance(uint32) uint32
-	//GetStartRating gets the start rating values
+	// GetStartRating gets the start rating values
 	GetStartRating() uint32
-	//GetSignedBlocksThreshold gets the threshold for the minimum signed blocks
+	// GetSignedBlocksThreshold gets the threshold for the minimum signed blocks
 	GetSignedBlocksThreshold() float32
-	//ComputeIncreaseProposer computes the new rating for the increaseLeader
+	// ComputeIncreaseProposer computes the new rating for the increaseLeader
 	ComputeIncreaseProposer(shardId uint32, currentRating uint32) uint32
-	//ComputeDecreaseProposer computes the new rating for the decreaseLeader
+	// ComputeDecreaseProposer computes the new rating for the decreaseLeader
 	ComputeDecreaseProposer(shardId uint32, currentRating uint32, consecutiveMisses uint32) uint32
-	//RevertIncreaseValidator computes the new rating if a revert for increaseProposer should be done
+	// RevertIncreaseValidator computes the new rating if a revert for increaseProposer should be done
 	RevertIncreaseValidator(shardId uint32, currentRating uint32, nrReverts uint32) uint32
-	//ComputeIncreaseValidator computes the new rating for the increaseValidator
+	// ComputeIncreaseValidator computes the new rating for the increaseValidator
 	ComputeIncreaseValidator(shardId uint32, currentRating uint32) uint32
-	//ComputeDecreaseValidator computes the new rating for the decreaseValidator
+	// ComputeDecreaseValidator computes the new rating for the decreaseValidator
 	ComputeDecreaseValidator(shardId uint32, currentRating uint32) uint32
-	//IsInterfaceNil verifies if the interface is nil
+	// IsInterfaceNil verifies if the interface is nil
 	IsInterfaceNil() bool
 }
 

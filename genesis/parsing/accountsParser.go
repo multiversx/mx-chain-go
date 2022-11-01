@@ -255,7 +255,7 @@ func (ap *accountsParser) GenesisMintingAddress() string {
 	return ap.pubkeyConverter.Encode(ap.minterAddressBytes)
 }
 
-// InitialAccountsSplitOnAddressesShards gets the initial accounts of the nodes split on the addresses's shards
+// InitialAccountsSplitOnAddressesShards gets the initial accounts of the nodes split on the addresses' shards
 func (ap *accountsParser) InitialAccountsSplitOnAddressesShards(
 	shardCoordinator sharding.Coordinator,
 ) (map[uint32][]genesis.InitialAccountHandler, error) {
@@ -437,11 +437,16 @@ func (ap *accountsParser) setTxsPoolAndMiniBlocks(
 	txsPoolPerShard map[uint32]*outportcore.Pool,
 	miniBlocks []*block.MiniBlock,
 ) error {
-	var senderShardID uint32
 
 	for _, txHandler := range allTxs {
 		receiverShardID := shardCoordinator.ComputeId(txHandler.GetRcvAddr())
-		senderShardID = shardCoordinator.ComputeId(txHandler.GetSndAddr())
+
+		var senderShardID uint32
+		if bytes.Equal(txHandler.GetSndAddr(), ap.minterAddressBytes) {
+			senderShardID = core.MetachainShardId
+		} else {
+			senderShardID = shardCoordinator.ComputeId(txHandler.GetSndAddr())
+		}
 
 		txHash, err := core.CalculateHash(ap.marshalizer, ap.hasher, txHandler)
 		if err != nil {
@@ -478,29 +483,23 @@ func (ap *accountsParser) GenerateInitialTransactions(
 		return nil, nil, genesis.ErrNilShardCoordinator
 	}
 
-	allMiniBlocks := make([]*block.MiniBlock, 0)
 	shardIDs := getShardIDs(shardCoordinator)
 	txsPoolPerShard := ap.createIndexerPools(shardIDs)
 
 	mintTxs := ap.createMintTransactions()
-	mintMiniBlock, err := ap.putMintingTxsInPoolAndCreateMiniBlock(mintTxs, txsPoolPerShard)
-	if err != nil {
-		return nil, nil, err
-	}
-	allMiniBlocks = append(allMiniBlocks, mintMiniBlock)
 
 	allTxs := ap.getAllTxs(indexingData)
+	allTxs = append(allTxs, mintTxs...)
 	miniBlocks := createMiniBlocks(shardIDs, block.TxBlock)
 
-	err = ap.setTxsPoolAndMiniBlocks(shardCoordinator, allTxs, txsPoolPerShard, miniBlocks)
+	err := ap.setTxsPoolAndMiniBlocks(shardCoordinator, allTxs, txsPoolPerShard, miniBlocks)
 	if err != nil {
 		return nil, nil, err
 	}
-	allMiniBlocks = append(allMiniBlocks, miniBlocks...)
 
 	ap.setScrsTxsPool(shardCoordinator, indexingData, txsPoolPerShard)
 
-	return allMiniBlocks, txsPoolPerShard, nil
+	return miniBlocks, txsPoolPerShard, nil
 }
 
 // IsInterfaceNil returns true if the underlying object is nil

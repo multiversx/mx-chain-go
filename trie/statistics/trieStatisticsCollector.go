@@ -33,6 +33,11 @@ func NewTrieStatisticsCollector() *trieStatisticsCollector {
 
 // Add adds the given trie statistics to the statistics collector
 func (tsc *trieStatisticsCollector) Add(trieStats *TrieStatsDTO) {
+	if trieStats == nil {
+		log.Warn("programming error, nil trie stats received")
+		return
+	}
+
 	tsc.numNodes += trieStats.TotalNumNodes
 	tsc.triesSize += trieStats.TotalNodesSize
 	tsc.numDataTries++
@@ -53,6 +58,11 @@ func (tsc *trieStatisticsCollector) Print() {
 		triesBySize, getOrderedTries(tsc.triesBySize),
 		triesByDepth, getOrderedTries(tsc.triesByDepth),
 	)
+}
+
+// GetNumNodes returns the number of nodes
+func (tsc *trieStatisticsCollector) GetNumNodes() uint64 {
+	return tsc.numNodes
 }
 
 func getOrderedTries(tries []*TrieStatsDTO) string {
