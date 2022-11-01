@@ -11,62 +11,7 @@ type baseIterator struct {
 	db          common.DBWriteCacher
 }
 
-type dfsIterator struct {
-	*baseIterator
-}
-
-type bfsIterator struct {
-	*baseIterator
-}
-
-// NewDFSIterator creates a new depth first traversal iterator
-func NewDFSIterator(trie common.Trie) (*dfsIterator, error) {
-	bit, err := newBaseIterator(trie)
-	if err != nil {
-		return nil, err
-	}
-
-	return &dfsIterator{
-		baseIterator: bit,
-	}, nil
-}
-
-// Next moves the iterator to the next node
-func (it *dfsIterator) Next() error {
-	nextChildren, err := it.next()
-	if err != nil {
-		return err
-	}
-
-	it.nextNodes = append(nextChildren, it.nextNodes[1:]...)
-	return nil
-}
-
-// NewBFSIterator creates a new level order traversal iterator
-func NewBFSIterator(trie common.Trie) (*bfsIterator, error) {
-	bit, err := newBaseIterator(trie)
-	if err != nil {
-		return nil, err
-	}
-
-	return &bfsIterator{
-		baseIterator: bit,
-	}, nil
-}
-
-// Next moves the iterator to the next node
-func (it *bfsIterator) Next() error {
-	nextChildren, err := it.next()
-	if err != nil {
-		return err
-	}
-
-	it.nextNodes = append(it.nextNodes, nextChildren...)
-	it.nextNodes = it.nextNodes[1:]
-	return nil
-}
-
-// NewIterator creates a new instance of trie iterator
+// newBaseIterator creates a new instance of trie iterator
 func newBaseIterator(trie common.Trie) (*baseIterator, error) {
 	if check.IfNil(trie) {
 		return nil, ErrNilTrie
