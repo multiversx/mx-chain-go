@@ -40,7 +40,7 @@ var ErrGetESDTNFTData = errors.New("get esdt nft data for account error")
 // ErrEmptyAddress signals that an empty address was provided
 var ErrEmptyAddress = errors.New("address is empty")
 
-// ErrEmptyKey signals an that empty key was provided
+// ErrEmptyKey signals that an empty key was provided
 var ErrEmptyKey = errors.New("key is empty")
 
 // ErrEmptyTokenIdentifier signals that an empty token identifier was provided

@@ -62,7 +62,7 @@ func (teps *TxExecutionProcessorStub) AddNonce(senderBytes []byte, nonce uint64)
 }
 
 // GetExecutedTransactions -
-func (tep *TxExecutionProcessorStub) GetExecutedTransactions() []data.TransactionHandler {
+func (teps *TxExecutionProcessorStub) GetExecutedTransactions() []data.TransactionHandler {
 	return nil
 }
 

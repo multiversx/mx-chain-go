@@ -138,7 +138,7 @@ type DirectoryReaderHandler interface {
 	IsInterfaceNil() bool
 }
 
-// LatestStorageDataProviderHandler defines which actions be done by a component who fetches latest data from storage
+// LatestStorageDataProviderHandler defines which actions be done by a component who fetches the latest data from storage
 type LatestStorageDataProviderHandler interface {
 	GetParentDirectory() string
 	GetParentDirAndLastEpoch() (string, uint32, error)

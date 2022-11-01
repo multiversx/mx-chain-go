@@ -28,7 +28,7 @@ const firstHeaderNonce = uint64(1)
 
 var _ process.BlockProcessor = (*metaProcessor)(nil)
 
-// metaProcessor implements metaProcessor interface and actually it tries to execute block
+// metaProcessor implements metaProcessor interface, and actually it tries to execute block
 type metaProcessor struct {
 	*baseProcessor
 	scToProtocol                 process.SmartContractToProtocolHandler

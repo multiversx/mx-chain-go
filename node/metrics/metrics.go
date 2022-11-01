@@ -263,7 +263,7 @@ func InitMetrics(
 	return nil
 }
 
-// SaveUint64Metric will save a uint64 metric in status handler
+// SaveUint64Metric will save an uint64 metric in status handler
 func SaveUint64Metric(ash core.AppStatusHandler, key string, value uint64) {
 	ash.SetUInt64Value(key, value)
 }

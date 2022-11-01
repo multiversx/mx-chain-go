@@ -301,7 +301,7 @@ func (bc *bootstrapComponents) HeaderIntegrityVerifier() nodeFactory.HeaderInteg
 	return bc.headerIntegrityVerifier
 }
 
-// createLatestStorageDataProvider will create a latest storage data provider handler
+// createLatestStorageDataProvider will create the latest storage data provider handler
 func createLatestStorageDataProvider(
 	bootstrapDataProvider storageFactory.BootstrapDataProviderHandler,
 	generalConfig config.Config,

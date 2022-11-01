@@ -1589,7 +1589,7 @@ func (sc *scProcessor) addBackTxValues(
 	return nil
 }
 
-// DeploySmartContract processes the transaction, than deploy the smart contract into VM, final code is saved in account
+// DeploySmartContract processes the transaction, then deploy the smart contract into VM, final code is saved in account
 func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd state.UserAccountHandler) (vmcommon.ReturnCode, error) {
 	err := sc.checkTxValidity(tx)
 	if err != nil {
