@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewIterator(t *testing.T) {
+func TestNewBaseIterator(t *testing.T) {
 	t.Parallel()
 
 	tr := initTrie()
@@ -20,7 +20,7 @@ func TestNewIterator(t *testing.T) {
 	assert.NotNil(t, it)
 }
 
-func TestNewIteratorNilTrieShouldErr(t *testing.T) {
+func TestNewBaseIteratorNilTrieShouldErr(t *testing.T) {
 	t.Parallel()
 
 	var tr common.Trie
@@ -30,7 +30,7 @@ func TestNewIteratorNilTrieShouldErr(t *testing.T) {
 	assert.Equal(t, trie.ErrNilTrie, err)
 }
 
-func TestIterator_HasNext(t *testing.T) {
+func TestBaseIterator_HasNext(t *testing.T) {
 	t.Parallel()
 
 	tr := emptyTrie()
@@ -43,7 +43,7 @@ func TestIterator_HasNext(t *testing.T) {
 	assert.True(t, it.HasNext())
 }
 
-func TestIterator_GetMarshalizedNode(t *testing.T) {
+func TestBaseIterator_GetMarshalizedNode(t *testing.T) {
 	t.Parallel()
 
 	tr := initTrie()
@@ -58,7 +58,7 @@ func TestIterator_GetMarshalizedNode(t *testing.T) {
 	assert.Equal(t, branchNodeIdentifier, encNode[lastByte])
 }
 
-func TestIterator_GetHash(t *testing.T) {
+func TestBaseIterator_GetHash(t *testing.T) {
 	t.Parallel()
 
 	tr := initTrie()
@@ -68,18 +68,6 @@ func TestIterator_GetHash(t *testing.T) {
 	hash, err := it.GetHash()
 	assert.Nil(t, err)
 	assert.Equal(t, rootHash, hash)
-}
-
-func TestBFSIterator_Next(t *testing.T) {
-	t.Parallel()
-
-	tr := initTrie()
-
-	it, _ := trie.NewBFSIterator(tr)
-	for it.HasNext() {
-		err := it.Next()
-		assert.Nil(t, err)
-	}
 }
 
 func TestIterator_Search(t *testing.T) {
