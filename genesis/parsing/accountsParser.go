@@ -367,33 +367,6 @@ func createMiniBlocks(shardIDs []uint32, blockType block.Type) []*block.MiniBloc
 	return miniBlocks
 }
 
-func (ap *accountsParser) putMintingTxsInPoolAndCreateMiniBlock(
-	txs []coreData.TransactionHandler,
-	txsPoolPerShard map[uint32]*outportcore.Pool,
-) (*block.MiniBlock, error) {
-	txHashes := make([][]byte, 0, len(txs))
-	mintShardID := core.MetachainShardId
-
-	for _, tx := range txs {
-		txHash, err := core.CalculateHash(ap.marshalizer, ap.hasher, tx)
-		if err != nil {
-			return nil, err
-		}
-		txHashes = append(txHashes, txHash)
-
-		txsPoolPerShard[mintShardID].Txs[string(txHash)] = outportcore.NewTransactionHandlerWithGasAndFee(tx, 0, big.NewInt(0))
-	}
-
-	miniBlock := &block.MiniBlock{
-		TxHashes:        txHashes,
-		ReceiverShardID: mintShardID,
-		SenderShardID:   mintShardID,
-		Type:            block.TxBlock,
-	}
-
-	return miniBlock, nil
-}
-
 func (ap *accountsParser) getAllTxs(
 	indexingData map[uint32]*genesis.IndexingData,
 ) []coreData.TransactionHandler {
