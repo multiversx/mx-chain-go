@@ -28,11 +28,15 @@ func NewEnableRoundsHandler(args config.RoundConfig, roundNotifier process.Round
 		return nil, err
 	}
 
-	return &enableRoundsHandler{
+	handler := &enableRoundsHandler{
 		roundFlagsHolder: &roundFlagsHolder{
 			disableAsyncCallV1: disableAsyncCallV1,
 		},
-	}, nil
+	}
+
+	roundNotifier.RegisterNotifyHandler(handler)
+
+	return handler, nil
 }
 
 func getRoundConfig(args config.RoundConfig, configName string) (*roundFlag, error) {
@@ -58,8 +62,8 @@ func getRoundConfig(args config.RoundConfig, configName string) (*roundFlag, err
 	}, nil
 }
 
-// CheckRound should be called whenever a new round is known. It will trigger the updating of all containing round flags
-func (handler *enableRoundsHandler) CheckRound(round uint64) {
+// RoundConfirmed is called whenever a new round is confirmed
+func (handler *enableRoundsHandler) RoundConfirmed(round uint64, timestamp uint64) {
 	handler.disableAsyncCallV1.SetValue(handler.disableAsyncCallV1.round <= round)
 }
 

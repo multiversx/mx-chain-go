@@ -146,7 +146,7 @@ func TestAsyncCallDisabled(t *testing.T) {
 
 	roundsConfig := integrationTests.GetDefaultRoundsConfig()
 	activationRound := roundsConfig.RoundActivations["DisableAsyncCallV1"]
-	activationRound.Round = "1"
+	activationRound.Round = "0"
 	roundsConfig.RoundActivations["DisableAsyncCallV1"] = activationRound
 
 	testContextFirstContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShardAndRoundConfig(0, enableEpochs, roundsConfig)
@@ -200,5 +200,22 @@ func TestAsyncCallDisabled(t *testing.T) {
 	// execute on the sender shard
 	retCode, err := testContextSender.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
+	require.Nil(t, err)
+
+	require.Equal(t, big.NewInt(120), testContextSender.TxFeeHandler.GetAccumulatedFees())
+
+	testIndexer := vm.CreateTestIndexer(t, testContextSender.ShardCoordinator, testContextSender.EconomicsData, false, testContextSender.TxsLogsProcessor)
+	testIndexer.SaveTransaction(tx, block.TxBlock, nil)
+
+	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
+	require.Equal(t, uint64(12), indexerTx.GasUsed)
+	require.Equal(t, "120", indexerTx.Fee)
+	require.Equal(t, transaction.TxStatusPending.String(), indexerTx.Status)
+
+	utils.TestAccount(t, testContextSender.Accounts, senderAddr, 1, big.NewInt(950000000))
+
+	// execute on the destination shard
+	retCode, err = testContextSecondContract.TxProcessor.ProcessTransaction(tx)
+	require.Equal(t, vmcommon.ExecutionFailed, retCode)
 	require.Nil(t, err)
 }
