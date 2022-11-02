@@ -1268,11 +1268,13 @@ func (pcf *processComponentsFactory) newResolverContainerFactory(
 		return nil, err
 	}
 
+	isSyncedLiteObserver := pcf.config.StoragePruning.ObserverCleanOldEpochsData && !pcf.config.StateTriesConfig.SnapshotsEnabled
+
 	if pcf.bootstrapComponents.ShardCoordinator().SelfId() < pcf.bootstrapComponents.ShardCoordinator().NumberOfShards() {
-		return pcf.newShardResolverContainerFactory(currentEpochProvider, payloadValidator)
+		return pcf.newShardResolverContainerFactory(currentEpochProvider, payloadValidator, isSyncedLiteObserver)
 	}
 	if pcf.bootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
-		return pcf.newMetaResolverContainerFactory(currentEpochProvider, payloadValidator)
+		return pcf.newMetaResolverContainerFactory(currentEpochProvider, payloadValidator, isSyncedLiteObserver)
 	}
 
 	return nil, errors.New("could not create interceptor and resolver container factory")
@@ -1281,6 +1283,7 @@ func (pcf *processComponentsFactory) newResolverContainerFactory(
 func (pcf *processComponentsFactory) newShardResolverContainerFactory(
 	currentEpochProvider dataRetriever.CurrentNetworkEpochProviderHandler,
 	payloadValidator process.PeerAuthenticationPayloadValidator,
+	isSyncedLiteObserver bool,
 ) (dataRetriever.ResolversContainerFactory, error) {
 
 	dataPacker, err := partitioning.NewSimpleDataPacker(pcf.coreData.InternalMarshalizer())
@@ -1302,6 +1305,7 @@ func (pcf *processComponentsFactory) newShardResolverContainerFactory(
 		OutputAntifloodHandler:      pcf.network.OutputAntiFloodHandler(),
 		NumConcurrentResolvingJobs:  pcf.config.Antiflood.NumConcurrentResolverJobs,
 		IsFullHistoryNode:           pcf.prefConfigs.FullArchive,
+		IsSyncedLiteObserver:        isSyncedLiteObserver,
 		CurrentNetworkEpochProvider: currentEpochProvider,
 		ResolverConfig:              pcf.config.Resolvers,
 		PreferredPeersHolder:        pcf.network.PreferredPeersHolderHandler(),
@@ -1319,6 +1323,7 @@ func (pcf *processComponentsFactory) newShardResolverContainerFactory(
 func (pcf *processComponentsFactory) newMetaResolverContainerFactory(
 	currentEpochProvider dataRetriever.CurrentNetworkEpochProviderHandler,
 	payloadValidator process.PeerAuthenticationPayloadValidator,
+	isSyncedLiteObserver bool,
 ) (dataRetriever.ResolversContainerFactory, error) {
 
 	dataPacker, err := partitioning.NewSimpleDataPacker(pcf.coreData.InternalMarshalizer())
@@ -1340,6 +1345,7 @@ func (pcf *processComponentsFactory) newMetaResolverContainerFactory(
 		OutputAntifloodHandler:      pcf.network.OutputAntiFloodHandler(),
 		NumConcurrentResolvingJobs:  pcf.config.Antiflood.NumConcurrentResolverJobs,
 		IsFullHistoryNode:           pcf.prefConfigs.FullArchive,
+		IsSyncedLiteObserver:        isSyncedLiteObserver,
 		CurrentNetworkEpochProvider: currentEpochProvider,
 		ResolverConfig:              pcf.config.Resolvers,
 		PreferredPeersHolder:        pcf.network.PreferredPeersHolderHandler(),

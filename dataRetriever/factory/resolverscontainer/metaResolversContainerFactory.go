@@ -51,6 +51,7 @@ func NewMetaResolversContainerFactory(
 		outputAntifloodHandler:      args.OutputAntifloodHandler,
 		throttler:                   thr,
 		isFullHistoryNode:           args.IsFullHistoryNode,
+		isSyncedLiteObserver:        args.IsSyncedLiteObserver,
 		currentNetworkEpochProvider: args.CurrentNetworkEpochProvider,
 		preferredPeersHolder:        args.PreferredPeersHolder,
 		peersRatingHandler:          args.PeersRatingHandler,
@@ -118,9 +119,11 @@ func (mrcf *metaResolversContainerFactory) Create() (dataRetriever.ResolversCont
 		return nil, err
 	}
 
-	err = mrcf.generateTrieNodesResolvers()
-	if err != nil {
-		return nil, err
+	if !mrcf.isSyncedLiteObserver {
+		err = mrcf.generateTrieNodesResolvers()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	err = mrcf.generatePeerAuthenticationResolver()

@@ -1179,6 +1179,7 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 		ResolverConfig:              e.generalConfig.Resolvers,
 		PeersRatingHandler:          disabled.NewDisabledPeersRatingHandler(),
 		PayloadValidator:            payloadValidator,
+		IsSyncedLiteObserver:        false,
 	}
 	resolverFactory, err := resolverscontainer.NewMetaResolversContainerFactory(resolversContainerArgs)
 	if err != nil {

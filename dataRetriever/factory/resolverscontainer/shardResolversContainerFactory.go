@@ -49,6 +49,7 @@ func NewShardResolversContainerFactory(
 		outputAntifloodHandler:      args.OutputAntifloodHandler,
 		throttler:                   thr,
 		isFullHistoryNode:           args.IsFullHistoryNode,
+		isSyncedLiteObserver:        args.IsSyncedLiteObserver,
 		currentNetworkEpochProvider: args.CurrentNetworkEpochProvider,
 		preferredPeersHolder:        args.PreferredPeersHolder,
 		peersRatingHandler:          args.PeersRatingHandler,
@@ -116,9 +117,11 @@ func (srcf *shardResolversContainerFactory) Create() (dataRetriever.ResolversCon
 		return nil, err
 	}
 
-	err = srcf.generateTrieNodesResolvers()
-	if err != nil {
-		return nil, err
+	if !srcf.isSyncedLiteObserver {
+		err = srcf.generateTrieNodesResolvers()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	err = srcf.generatePeerAuthenticationResolver()

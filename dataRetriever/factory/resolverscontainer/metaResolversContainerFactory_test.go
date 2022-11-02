@@ -361,6 +361,38 @@ func TestMetaResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	assert.Equal(t, totalResolvers+noOfShards, container.Len())
 }
 
+func TestMetaResolversContainerFactory_LiteObserverShouldWork(t *testing.T) {
+	t.Parallel()
+
+	noOfShards := 4
+	shardCoordinator := mock.NewMultipleShardsCoordinatorMock()
+	shardCoordinator.SetNoShards(uint32(noOfShards))
+	shardCoordinator.CurrentShard = 1
+
+	args := getArgumentsMeta()
+	args.IsSyncedLiteObserver = true
+	args.ShardCoordinator = shardCoordinator
+	rcf, _ := resolverscontainer.NewMetaResolversContainerFactory(args)
+
+	container, _ := rcf.Create()
+	numResolversShardHeadersForMetachain := noOfShards
+	numResolverMetablocks := 1
+	numResolversMiniBlocks := noOfShards + 2
+	numResolversUnsigned := noOfShards + 1
+	numResolversRewards := noOfShards
+	numResolversTxs := noOfShards + 1
+	numResolversPeerAuth := 1
+	numResolverValidatorInfo := 1
+	totalResolvers := numResolversShardHeadersForMetachain + numResolverMetablocks + numResolversMiniBlocks +
+		numResolversUnsigned + numResolversTxs + numResolversRewards + numResolversPeerAuth + numResolverValidatorInfo
+
+	assert.Equal(t, totalResolvers, container.Len())
+
+	err := rcf.AddShardTrieNodeResolvers(container)
+	assert.Nil(t, err)
+	assert.Equal(t, totalResolvers+noOfShards, container.Len())
+}
+
 func getArgumentsMeta() resolverscontainer.FactoryArgs {
 	return resolverscontainer.FactoryArgs{
 		ShardCoordinator:            mock.NewOneShardCoordinatorMock(),

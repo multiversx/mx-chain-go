@@ -37,6 +37,7 @@ type baseResolversContainerFactory struct {
 	throttler                   dataRetriever.ResolverThrottler
 	intraShardTopic             string
 	isFullHistoryNode           bool
+	isSyncedLiteObserver        bool
 	currentNetworkEpochProvider dataRetriever.CurrentNetworkEpochProviderHandler
 	preferredPeersHolder        dataRetriever.PreferredPeersHolderHandler
 	peersRatingHandler          dataRetriever.PeersRatingHandler

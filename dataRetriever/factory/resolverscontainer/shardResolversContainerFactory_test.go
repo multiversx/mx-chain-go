@@ -422,6 +422,36 @@ func TestShardResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	assert.Equal(t, totalResolvers, container.Len())
 }
 
+func TestShardResolversContainerFactory_LiteObserverShouldWork(t *testing.T) {
+	t.Parallel()
+
+	noOfShards := 4
+
+	shardCoordinator := mock.NewMultipleShardsCoordinatorMock()
+	shardCoordinator.SetNoShards(uint32(noOfShards))
+	shardCoordinator.CurrentShard = 1
+
+	args := getArgumentsShard()
+	args.IsSyncedLiteObserver = true
+	args.ShardCoordinator = shardCoordinator
+	rcf, _ := resolverscontainer.NewShardResolversContainerFactory(args)
+
+	container, _ := rcf.Create()
+
+	numResolverSCRs := noOfShards + 1
+	numResolverTxs := noOfShards + 1
+	numResolverRewardTxs := 1
+	numResolverHeaders := 1
+	numResolverMiniBlocks := noOfShards + 2
+	numResolverMetaBlockHeaders := 1
+	numResolverPeerAuth := 1
+	numResolverValidatorInfo := 1
+	totalResolvers := numResolverTxs + numResolverHeaders + numResolverMiniBlocks + numResolverMetaBlockHeaders +
+		numResolverSCRs + numResolverRewardTxs + numResolverPeerAuth + numResolverValidatorInfo
+
+	assert.Equal(t, totalResolvers, container.Len())
+}
+
 func getArgumentsShard() resolverscontainer.FactoryArgs {
 	return resolverscontainer.FactoryArgs{
 		ShardCoordinator:            mock.NewOneShardCoordinatorMock(),
