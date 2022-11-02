@@ -90,7 +90,7 @@ func initTrie() *patriciaMerkleTrie {
 }
 
 func getEncodedTrieNodesAndHashes(tr common.Trie) ([][]byte, [][]byte) {
-	it, _ := NewBFSIterator(tr)
+	it, _ := NewDFSIterator(tr)
 	encNode, _ := it.MarshalizedNode()
 
 	nodes := make([][]byte, 0)
