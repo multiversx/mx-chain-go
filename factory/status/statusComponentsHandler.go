@@ -167,7 +167,7 @@ func (msc *managedStatusComponents) IsInterfaceNil() bool {
 func (msc *managedStatusComponents) startStatusPolling(ctx context.Context) error {
 	// TODO: inject the context to the AppStatusPolling
 	appStatusPollingHandler, err := appStatusPolling.NewAppStatusPolling(
-		msc.statusComponentsFactory.coreComponents.StatusHandler(),
+		msc.statusComponentsFactory.statusCoreComponents.AppStatusHandler(),
 		time.Duration(msc.statusComponentsFactory.config.GeneralSettings.StatusPollingIntervalSec)*time.Second,
 		log,
 	)
@@ -328,7 +328,7 @@ func registerPollProbableHighestNonce(
 }
 
 func (msc *managedStatusComponents) startMachineStatisticsPolling(ctx context.Context) error {
-	appStatusPollingHandler, err := appStatusPolling.NewAppStatusPolling(msc.statusComponentsFactory.coreComponents.StatusHandler(), time.Second, log)
+	appStatusPollingHandler, err := appStatusPolling.NewAppStatusPolling(msc.statusComponentsFactory.statusCoreComponents.AppStatusHandler(), time.Second, log)
 	if err != nil {
 		return fmt.Errorf("%w, cannot init AppStatusPolling", err)
 	}

@@ -78,9 +78,6 @@ func createComponentsForEpochStart() (*mock.CoreComponentsMock, *mock.CryptoComp
 			ProcessStatusHandlerInstance: &testscommon.ProcessStatusHandlerStub{},
 			HardforkTriggerPubKeyField:   []byte("provided hardfork pub key"),
 			EnableEpochsHandlerField:     &testscommon.EnableEpochsHandlerStub{},
-			StatusHandlerCalled: func() core.AppStatusHandler {
-				return &statusHandlerMock.AppStatusHandlerStub{}
-			},
 		},
 		&mock.CryptoComponentsMock{
 			PubKey:          &cryptoMocks.PublicKeyStub{},

@@ -14,6 +14,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/testscommon/factory"
+	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 )
 
 func (tpn *TestProcessorNode) addGenesisBlocksIntoStorage() {
@@ -64,20 +66,25 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		},
 	}
 
+	statusCoreComponents := &factory.StatusCoreComponentsStub{
+		AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{},
+	}
+
 	argumentsBase := block.ArgBaseProcessor{
-		CoreComponents:      coreComponents,
-		DataComponents:      dataComponents,
-		BootstrapComponents: bootstrapComponents,
-		StatusComponents:    statusComponents,
-		Config:              triesConfig,
-		AccountsDB:          accountsDb,
-		ForkDetector:        nil,
-		NodesCoordinator:    tpn.NodesCoordinator,
-		FeeHandler:          tpn.FeeAccumulator,
-		RequestHandler:      tpn.RequestHandler,
-		BlockChainHook:      &testscommon.BlockChainHookStub{},
-		EpochStartTrigger:   &mock.EpochStartTriggerStub{},
-		HeaderValidator:     tpn.HeaderValidator,
+		CoreComponents:       coreComponents,
+		DataComponents:       dataComponents,
+		BootstrapComponents:  bootstrapComponents,
+		StatusComponents:     statusComponents,
+		StatusCoreComponents: statusCoreComponents,
+		Config:               triesConfig,
+		AccountsDB:           accountsDb,
+		ForkDetector:         nil,
+		NodesCoordinator:     tpn.NodesCoordinator,
+		FeeHandler:           tpn.FeeAccumulator,
+		RequestHandler:       tpn.RequestHandler,
+		BlockChainHook:       &testscommon.BlockChainHookStub{},
+		EpochStartTrigger:    &mock.EpochStartTriggerStub{},
+		HeaderValidator:      tpn.HeaderValidator,
 		BootStorer: &mock.BoostrapStorerMock{
 			PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
 				return nil

@@ -82,6 +82,12 @@ func NewBootstrapComponentsFactory(args BootstrapComponentsFactoryArgs) (*bootst
 	if args.WorkingDir == "" {
 		return nil, errors.ErrInvalidWorkingDir
 	}
+	if check.IfNil(args.StatusCoreComponents) {
+		return nil, errors.ErrNilStatusCoreComponents
+	}
+	if check.IfNil(args.StatusCoreComponents.AppStatusHandler()) {
+		return nil, errors.ErrNilAppStatusHandler
+	}
 
 	return &bootstrapComponentsFactory{
 		config:               args.Config,
@@ -190,7 +196,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		RoundHandler:               bcf.coreComponents.RoundHandler(),
 		LatestStorageDataProvider:  latestStorageDataProvider,
 		ArgumentsParser:            smartContract.NewArgumentParser(),
-		StatusHandler:              bcf.coreComponents.StatusHandler(),
+		StatusHandler:              bcf.statusCoreComponents.AppStatusHandler(),
 		HeaderIntegrityVerifier:    headerIntegrityVerifier,
 		DataSyncerCreator:          dataSyncerFactory,
 		ScheduledSCRsStorer:        nil, // will be updated after sync from network

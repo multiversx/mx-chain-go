@@ -8,7 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	nodeFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/factory"
@@ -32,7 +31,6 @@ type CoreComponentsStub struct {
 	PathHandlerField                   storage.PathManagerHandler
 	ChainIdCalled                      func() string
 	MinTransactionVersionCalled        func() uint32
-	StatusHandlerUtilsField            nodeFactory.StatusHandlersUtils
 	StatusHandlerField                 core.AppStatusHandler
 	WatchdogField                      core.WatchdogTimer
 	AlarmSchedulerField                core.TimersScheduler
@@ -75,16 +73,6 @@ func (ccs *CoreComponentsStub) CheckSubcomponents() error {
 // VmMarshalizer -
 func (ccs *CoreComponentsStub) VmMarshalizer() marshal.Marshalizer {
 	return ccs.VmMarshalizerField
-}
-
-// StatusHandlerUtils -
-func (ccs *CoreComponentsStub) StatusHandlerUtils() nodeFactory.StatusHandlersUtils {
-	return ccs.StatusHandlerUtilsField
-}
-
-// StatusHandler -
-func (ccs *CoreComponentsStub) StatusHandler() core.AppStatusHandler {
-	return ccs.StatusHandlerField
 }
 
 // Watchdog -
