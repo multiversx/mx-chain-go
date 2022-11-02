@@ -298,7 +298,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	}
 
 	log.Debug("creating disabled API services")
-	webServerHandler, err := nr.createHttpServer(managedCoreComponents)
+	webServerHandler, err := nr.createHttpServer(managedStatusCoreComponents)
 	if err != nil {
 		return true, err
 	}
@@ -743,15 +743,11 @@ func (nr *nodeRunner) createApiFacade(
 	return ef, nil
 }
 
-func (nr *nodeRunner) createHttpServer(managedCoreComponents mainFactory.CoreComponentsHolder) (shared.UpgradeableHttpServerHandler, error) {
-	if check.IfNil(managedCoreComponents) {
-		return nil, ErrNilCoreComponents
-	}
-	statusHandler := managedCoreComponents.StatusHandlerUtils()
-	if check.IfNil(statusHandler) {
+func (nr *nodeRunner) createHttpServer(managedStatusCoreComponents mainFactory.StatusCoreComponentsHolder) (shared.UpgradeableHttpServerHandler, error) {
+	if check.IfNil(managedStatusCoreComponents) {
 		return nil, ErrNilStatusHandler
 	}
-	initialFacade, err := initial.NewInitialNodeFacade(nr.configs.FlagsConfig.RestApiInterface, nr.configs.FlagsConfig.EnablePprof, statusHandler.Metrics())
+	initialFacade, err := initial.NewInitialNodeFacade(nr.configs.FlagsConfig.RestApiInterface, nr.configs.FlagsConfig.EnablePprof, managedStatusCoreComponents.StatusMetrics())
 	if err != nil {
 		return nil, err
 	}
