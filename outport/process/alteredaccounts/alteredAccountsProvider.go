@@ -241,6 +241,10 @@ func (aap *alteredAccountsProvider) extractAddressesFromTxsHandlers(
 		}
 
 		txValue := txHandler.GetValue()
+		if txValue == nil {
+			txValue = big.NewInt(0)
+		}
+
 		balanceChanged := txValue.Cmp(big.NewInt(0)) > 0
 		isValid := txType != process.InvalidTransaction
 		isOnCurrentShard := receiverShardID == selfShardID

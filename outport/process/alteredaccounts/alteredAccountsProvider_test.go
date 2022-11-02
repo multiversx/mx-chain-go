@@ -100,6 +100,7 @@ func TestAlteredAccountsProvider_ExtractAlteredAccountsFromPool(t *testing.T) {
 	t.Run("should return balanceChanged for sender and receiver", testExtractAlteredAccountsFromPoolReceiverShouldHaveBalanceChanged)
 	t.Run("should return balanceChanged only for sender", testExtractAlteredAccountsFromPoolOnlySenderShouldHaveBalanceChanged)
 	t.Run("should return balanceChanged for sender nft create", textExtractAlteredAccountsFromPoolNftCreate)
+	t.Run("should work with transaction value nil", textExtractAlteredAccountsFromPoolTransactionValueNil)
 }
 
 func testExtractAlteredAccountsFromPoolNoTransaction(t *testing.T) {
@@ -1118,6 +1119,47 @@ func textExtractAlteredAccountsFromPoolNftCreate(t *testing.T) {
 					},
 				},
 			},
+			AdditionalData: &outportcore.AdditionalAccountData{
+				BalanceChanged: true,
+				IsSender:       true,
+			},
+		},
+	}, res)
+}
+
+func textExtractAlteredAccountsFromPoolTransactionValueNil(t *testing.T) {
+	t.Parallel()
+
+	args := getMockArgs()
+	args.AccountsDB = &state.AccountsStub{
+		LoadAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
+			return &state.AccountWrapMock{
+				Balance: big.NewInt(15),
+			}, nil
+		},
+	}
+	args.AddressConverter = testscommon.NewPubkeyConverterMock(3)
+	aap, _ := NewAlteredAccountsProvider(args)
+
+	res, err := aap.ExtractAlteredAccountsFromPool(&outportcore.Pool{
+		Txs: map[string]data.TransactionHandlerWithGasUsedAndFee{
+			"txHash": outportcore.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{
+				SndAddr: []byte("snd"),
+				RcvAddr: []byte("rcv"),
+				Value:   nil,
+			}, 0, big.NewInt(0)),
+		},
+	}, shared.AlteredAccountsOptions{
+		WithAdditionalOutportData: true,
+	})
+
+	require.NoError(t, err)
+
+	encodedAddrSnd := args.AddressConverter.Encode([]byte("snd"))
+	require.Equal(t, map[string]*outportcore.AlteredAccount{
+		encodedAddrSnd: {
+			Address: encodedAddrSnd,
+			Balance: "15",
 			AdditionalData: &outportcore.AdditionalAccountData{
 				BalanceChanged: true,
 				IsSender:       true,
