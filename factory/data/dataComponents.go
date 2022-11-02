@@ -24,6 +24,7 @@ type DataComponentsFactoryArgs struct {
 	PrefsConfig                   config.PreferencesConfig
 	ShardCoordinator              sharding.Coordinator
 	Core                          factory.CoreComponentsHolder
+	StatusCore                    factory.StatusCoreComponentsHolder
 	EpochStartNotifier            factory.EpochStartNotifier
 	CurrentEpoch                  uint32
 	CreateTrieEpochRootHashStorer bool
@@ -35,6 +36,7 @@ type dataComponentsFactory struct {
 	shardCoordinator              sharding.Coordinator
 	core                          factory.CoreComponentsHolder
 	epochStartNotifier            factory.EpochStartNotifier
+	statusCore                    factory.StatusCoreComponentsHolder
 	currentEpoch                  uint32
 	createTrieEpochRootHashStorer bool
 }
@@ -66,12 +68,19 @@ func NewDataComponentsFactory(args DataComponentsFactoryArgs) (*dataComponentsFa
 	if check.IfNil(args.Core.EconomicsData()) {
 		return nil, errors.ErrNilEconomicsHandler
 	}
+	if check.IfNil(args.StatusCore) {
+		return nil, errors.ErrNilStatusCoreComponents
+	}
+	if check.IfNil(args.StatusCore.AppStatusHandler()) {
+		return nil, errors.ErrNilAppStatusHandler
+	}
 
 	return &dataComponentsFactory{
 		config:                        args.Config,
 		prefsConfig:                   args.PrefsConfig,
 		shardCoordinator:              args.ShardCoordinator,
 		core:                          args.Core,
+		statusCore:                    args.StatusCore,
 		epochStartNotifier:            args.EpochStartNotifier,
 		currentEpoch:                  args.CurrentEpoch,
 		createTrieEpochRootHashStorer: args.CreateTrieEpochRootHashStorer,
@@ -135,14 +144,14 @@ func (dcf *dataComponentsFactory) Create() (*dataComponents, error) {
 
 func (dcf *dataComponentsFactory) createBlockChainFromConfig() (data.ChainHandler, error) {
 	if dcf.shardCoordinator.SelfId() < dcf.shardCoordinator.NumberOfShards() {
-		blockChain, err := blockchain.NewBlockChain(dcf.core.StatusHandler())
+		blockChain, err := blockchain.NewBlockChain(dcf.statusCore.AppStatusHandler())
 		if err != nil {
 			return nil, err
 		}
 		return blockChain, nil
 	}
 	if dcf.shardCoordinator.SelfId() == core.MetachainShardId {
-		blockChain, err := blockchain.NewMetaChain(dcf.core.StatusHandler())
+		blockChain, err := blockchain.NewMetaChain(dcf.statusCore.AppStatusHandler())
 		if err != nil {
 			return nil, err
 		}

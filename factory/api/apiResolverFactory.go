@@ -44,31 +44,33 @@ var log = logger.GetOrCreate("factory")
 
 // ApiResolverArgs holds the argument needed to create an API resolver
 type ApiResolverArgs struct {
-	Configs             *config.Configs
-	CoreComponents      factory.CoreComponentsHolder
-	DataComponents      factory.DataComponentsHolder
-	StateComponents     factory.StateComponentsHolder
-	BootstrapComponents factory.BootstrapComponentsHolder
-	CryptoComponents    factory.CryptoComponentsHolder
-	ProcessComponents   factory.ProcessComponentsHolder
-	GasScheduleNotifier common.GasScheduleNotifierAPI
-	Bootstrapper        process.Bootstrapper
-	AllowVMQueriesChan  chan struct{}
+	Configs              *config.Configs
+	CoreComponents       factory.CoreComponentsHolder
+	DataComponents       factory.DataComponentsHolder
+	StateComponents      factory.StateComponentsHolder
+	BootstrapComponents  factory.BootstrapComponentsHolder
+	CryptoComponents     factory.CryptoComponentsHolder
+	ProcessComponents    factory.ProcessComponentsHolder
+	StatusCoreComponents factory.StatusCoreComponentsHolder
+	GasScheduleNotifier  common.GasScheduleNotifierAPI
+	Bootstrapper         process.Bootstrapper
+	AllowVMQueriesChan   chan struct{}
 }
 
 type scQueryServiceArgs struct {
-	generalConfig       *config.Config
-	epochConfig         *config.EpochConfig
-	coreComponents      factory.CoreComponentsHolder
-	stateComponents     factory.StateComponentsHolder
-	dataComponents      factory.DataComponentsHolder
-	processComponents   factory.ProcessComponentsHolder
-	gasScheduleNotifier core.GasScheduleNotifier
-	messageSigVerifier  vm.MessageSignVerifier
-	systemSCConfig      *config.SystemSmartContractsConfig
-	bootstrapper        process.Bootstrapper
-	allowVMQueriesChan  chan struct{}
-	workingDir          string
+	generalConfig        *config.Config
+	epochConfig          *config.EpochConfig
+	coreComponents       factory.CoreComponentsHolder
+	stateComponents      factory.StateComponentsHolder
+	dataComponents       factory.DataComponentsHolder
+	processComponents    factory.ProcessComponentsHolder
+	statusCoreComponents factory.StatusCoreComponentsHolder
+	gasScheduleNotifier  core.GasScheduleNotifier
+	messageSigVerifier   vm.MessageSignVerifier
+	systemSCConfig       *config.SystemSmartContractsConfig
+	bootstrapper         process.Bootstrapper
+	allowVMQueriesChan   chan struct{}
+	workingDir           string
 }
 
 type scQueryElementArgs struct {
@@ -92,18 +94,19 @@ type scQueryElementArgs struct {
 func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 	apiWorkingDir := filepath.Join(args.Configs.FlagsConfig.WorkingDir, common.TemporaryPath)
 	argsSCQuery := &scQueryServiceArgs{
-		generalConfig:       args.Configs.GeneralConfig,
-		epochConfig:         args.Configs.EpochConfig,
-		coreComponents:      args.CoreComponents,
-		dataComponents:      args.DataComponents,
-		stateComponents:     args.StateComponents,
-		processComponents:   args.ProcessComponents,
-		gasScheduleNotifier: args.GasScheduleNotifier,
-		messageSigVerifier:  args.CryptoComponents.MessageSignVerifier(),
-		systemSCConfig:      args.Configs.SystemSCConfig,
-		bootstrapper:        args.Bootstrapper,
-		allowVMQueriesChan:  args.AllowVMQueriesChan,
-		workingDir:          apiWorkingDir,
+		generalConfig:        args.Configs.GeneralConfig,
+		epochConfig:          args.Configs.EpochConfig,
+		coreComponents:       args.CoreComponents,
+		dataComponents:       args.DataComponents,
+		stateComponents:      args.StateComponents,
+		processComponents:    args.ProcessComponents,
+		statusCoreComponents: args.StatusCoreComponents,
+		gasScheduleNotifier:  args.GasScheduleNotifier,
+		messageSigVerifier:   args.CryptoComponents.MessageSignVerifier(),
+		systemSCConfig:       args.Configs.SystemSCConfig,
+		bootstrapper:         args.Bootstrapper,
+		allowVMQueriesChan:   args.AllowVMQueriesChan,
+		workingDir:           apiWorkingDir,
 	}
 
 	scQueryService, err := createScQueryService(argsSCQuery)
@@ -252,7 +255,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 
 	argsApiResolver := external.ArgNodeApiResolver{
 		SCQueryService:           scQueryService,
-		StatusMetricsHandler:     args.CoreComponents.StatusHandlerUtils().Metrics(),
+		StatusMetricsHandler:     args.StatusCoreComponents.StatusMetrics(),
 		TxCostHandler:            txCostHandler,
 		TotalStakedValueHandler:  totalStakedValueHandler,
 		DirectStakedListHandler:  directStakedListHandler,
