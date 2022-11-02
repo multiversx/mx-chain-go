@@ -388,6 +388,40 @@ func (brcf *baseResolversContainerFactory) createTrieNodesResolver(
 	return resolver, nil
 }
 
+func (brcf *baseResolversContainerFactory) createRequestingOnlyTrieNodesResolver(
+	topic string,
+	numCrossShardPeers int,
+	numIntraShardPeers int,
+	targetShardID uint32,
+) (dataRetriever.Resolver, error) {
+	resolverSender, err := brcf.createOneResolverSenderWithSpecifiedNumRequests(
+		topic,
+		EmptyExcludePeersOnTopic,
+		targetShardID,
+		numCrossShardPeers,
+		numIntraShardPeers,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	argResolver := resolvers.ArgRequestingOnlyTrieNodeResolver{
+		ArgBaseResolver: resolvers.ArgBaseResolver{
+			SenderResolver:   resolverSender,
+			Marshaller:       brcf.marshalizer,
+			AntifloodHandler: brcf.inputAntifloodHandler,
+			Throttler:        brcf.throttler,
+		},
+	}
+
+	resolver, err := resolvers.NewRequestingOnlyTrieNodeResolver(argResolver)
+	if err != nil {
+		return nil, err
+	}
+
+	return resolver, nil
+}
+
 func (brcf *baseResolversContainerFactory) generateValidatorInfoResolver() error {
 	identifierValidatorInfo := common.ValidatorInfoTopic
 	shardC := brcf.shardCoordinator

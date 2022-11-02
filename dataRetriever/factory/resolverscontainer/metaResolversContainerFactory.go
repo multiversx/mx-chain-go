@@ -119,11 +119,9 @@ func (mrcf *metaResolversContainerFactory) Create() (dataRetriever.ResolversCont
 		return nil, err
 	}
 
-	if !mrcf.isSyncedLiteObserver {
-		err = mrcf.generateTrieNodesResolvers()
-		if err != nil {
-			return nil, err
-		}
+	err = mrcf.generateTrieNodesResolvers()
+	if err != nil {
+		return nil, err
 	}
 
 	err = mrcf.generatePeerAuthenticationResolver()
@@ -311,13 +309,25 @@ func (mrcf *metaResolversContainerFactory) generateTrieNodesResolvers() error {
 	resolversSlice := make([]dataRetriever.Resolver, 0)
 
 	identifierTrieNodes := factory.AccountTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
-	resolver, err := mrcf.createTrieNodesResolver(
-		identifierTrieNodes,
-		triesFactory.UserAccountTrie,
-		0,
-		mrcf.numTotalPeers,
-		core.MetachainShardId,
-	)
+
+	var resolver dataRetriever.Resolver
+	var err error
+	if mrcf.isSyncedLiteObserver {
+		resolver, err = mrcf.createRequestingOnlyTrieNodesResolver(
+			triesFactory.UserAccountTrie,
+			0,
+			mrcf.numTotalPeers,
+			core.MetachainShardId,
+		)
+	} else {
+		resolver, err = mrcf.createTrieNodesResolver(
+			identifierTrieNodes,
+			triesFactory.UserAccountTrie,
+			0,
+			mrcf.numTotalPeers,
+			core.MetachainShardId,
+		)
+	}
 	if err != nil {
 		return err
 	}

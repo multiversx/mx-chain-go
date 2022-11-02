@@ -117,11 +117,9 @@ func (srcf *shardResolversContainerFactory) Create() (dataRetriever.ResolversCon
 		return nil, err
 	}
 
-	if !srcf.isSyncedLiteObserver {
-		err = srcf.generateTrieNodesResolvers()
-		if err != nil {
-			return nil, err
-		}
+	err = srcf.generateTrieNodesResolvers()
+	if err != nil {
+		return nil, err
 	}
 
 	err = srcf.generatePeerAuthenticationResolver()
@@ -238,25 +236,31 @@ func (srcf *shardResolversContainerFactory) generateMetablockHeaderResolvers() e
 func (srcf *shardResolversContainerFactory) generateTrieNodesResolvers() error {
 	shardC := srcf.shardCoordinator
 
-	keys := make([]string, 0)
-	resolversSlice := make([]dataRetriever.Resolver, 0)
-
 	identifierTrieNodes := factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
-	resolver, err := srcf.createTrieNodesResolver(
-		identifierTrieNodes,
-		triesFactory.UserAccountTrie,
-		0,
-		srcf.numTotalPeers,
-		core.MetachainShardId,
-	)
+
+	var resolver dataRetriever.Resolver
+	var err error
+	if srcf.isSyncedLiteObserver {
+		resolver, err = srcf.createRequestingOnlyTrieNodesResolver(
+			triesFactory.UserAccountTrie,
+			0,
+			srcf.numTotalPeers,
+			core.MetachainShardId,
+		)
+	} else {
+		resolver, err = srcf.createTrieNodesResolver(
+			identifierTrieNodes,
+			triesFactory.UserAccountTrie,
+			0,
+			srcf.numTotalPeers,
+			core.MetachainShardId,
+		)
+	}
 	if err != nil {
 		return err
 	}
 
-	resolversSlice = append(resolversSlice, resolver)
-	keys = append(keys, identifierTrieNodes)
-
-	return srcf.container.AddMultiple(keys, resolversSlice)
+	return srcf.container.Add(identifierTrieNodes, resolver)
 }
 
 func (srcf *shardResolversContainerFactory) generateRewardResolver(

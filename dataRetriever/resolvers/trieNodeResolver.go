@@ -19,6 +19,7 @@ type ArgTrieNodeResolver struct {
 }
 
 // TrieNodeResolver is a wrapper over Resolver that is specialized in resolving trie node requests
+// TODO: properly split this component into 2 components: one to send requests and one to answer the requests
 type TrieNodeResolver struct {
 	*baseResolver
 	messageProcessor
