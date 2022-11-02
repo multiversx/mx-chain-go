@@ -365,6 +365,17 @@ func (brcf *baseResolversContainerFactory) createTrieNodesResolver(
 		return nil, err
 	}
 
+	if brcf.isSyncedLiteObserver {
+		return brcf.createRequestingOnlyTrieNodesResolver(resolverSender)
+	}
+
+	return brcf.createFullTrieNodesResolver(trieId, resolverSender)
+}
+
+func (brcf *baseResolversContainerFactory) createFullTrieNodesResolver(
+	trieId string,
+	resolverSender dataRetriever.TopicResolverSender,
+) (dataRetriever.Resolver, error) {
 	trie := brcf.triesContainer.Get([]byte(trieId))
 	argTrie := resolvers.ArgTrieNodeResolver{
 		ArgBaseResolver: resolvers.ArgBaseResolver{
@@ -389,22 +400,8 @@ func (brcf *baseResolversContainerFactory) createTrieNodesResolver(
 }
 
 func (brcf *baseResolversContainerFactory) createRequestingOnlyTrieNodesResolver(
-	topic string,
-	numCrossShardPeers int,
-	numIntraShardPeers int,
-	targetShardID uint32,
+	resolverSender dataRetriever.TopicResolverSender,
 ) (dataRetriever.Resolver, error) {
-	resolverSender, err := brcf.createOneResolverSenderWithSpecifiedNumRequests(
-		topic,
-		EmptyExcludePeersOnTopic,
-		targetShardID,
-		numCrossShardPeers,
-		numIntraShardPeers,
-	)
-	if err != nil {
-		return nil, err
-	}
-
 	argResolver := resolvers.ArgRequestingOnlyTrieNodeResolver{
 		ArgBaseResolver: resolvers.ArgBaseResolver{
 			SenderResolver:   resolverSender,

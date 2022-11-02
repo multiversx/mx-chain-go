@@ -310,24 +310,13 @@ func (mrcf *metaResolversContainerFactory) generateTrieNodesResolvers() error {
 
 	identifierTrieNodes := factory.AccountTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
 
-	var resolver dataRetriever.Resolver
-	var err error
-	if mrcf.isSyncedLiteObserver {
-		resolver, err = mrcf.createRequestingOnlyTrieNodesResolver(
-			triesFactory.UserAccountTrie,
-			0,
-			mrcf.numTotalPeers,
-			core.MetachainShardId,
-		)
-	} else {
-		resolver, err = mrcf.createTrieNodesResolver(
-			identifierTrieNodes,
-			triesFactory.UserAccountTrie,
-			0,
-			mrcf.numTotalPeers,
-			core.MetachainShardId,
-		)
-	}
+	resolver, err := mrcf.createTrieNodesResolver(
+		identifierTrieNodes,
+		triesFactory.UserAccountTrie,
+		0,
+		mrcf.numTotalPeers,
+		core.MetachainShardId,
+	)
 	if err != nil {
 		return err
 	}

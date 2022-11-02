@@ -1268,7 +1268,7 @@ func (pcf *processComponentsFactory) newResolverContainerFactory(
 		return nil, err
 	}
 
-	isSyncedLiteObserver := pcf.config.StoragePruning.ObserverCleanOldEpochsData && !pcf.config.StateTriesConfig.SnapshotsEnabled
+	isSyncedLiteObserver := !pcf.config.StateTriesConfig.SnapshotsEnabled
 
 	if pcf.bootstrapComponents.ShardCoordinator().SelfId() < pcf.bootstrapComponents.ShardCoordinator().NumberOfShards() {
 		return pcf.newShardResolverContainerFactory(currentEpochProvider, payloadValidator, isSyncedLiteObserver)
