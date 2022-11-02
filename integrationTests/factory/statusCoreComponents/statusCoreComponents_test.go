@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/factory"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/testscommon/goroutines"
@@ -25,15 +26,22 @@ func TestStatusCoreComponents_CreateCloseShouldWork(t *testing.T) {
 	factory.PrintStack()
 
 	configs := factory.CreateDefaultConfig()
+	chanStopNodeProcess := make(chan endProcess.ArgEndProcess)
+
 	nr, err := node.NewNodeRunner(configs)
 	require.Nil(t, err)
-	statusCoreComponents, err := nr.CreateManagedStatusCoreComponents()
+
+	managedCoreComponents, err := nr.CreateManagedCoreComponents(chanStopNodeProcess)
+	require.Nil(t, err)
+	statusCoreComponents, err := nr.CreateManagedStatusCoreComponents(managedCoreComponents)
 	require.Nil(t, err)
 	require.NotNil(t, statusCoreComponents)
 
 	time.Sleep(2 * time.Second)
 
 	err = statusCoreComponents.Close()
+	require.Nil(t, err)
+	err = managedCoreComponents.Close()
 	require.Nil(t, err)
 
 	time.Sleep(2 * time.Second)
