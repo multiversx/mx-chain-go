@@ -43,7 +43,7 @@ func TestAntifloodAndBlacklistWithNumMessages(t *testing.T) {
 	}()
 
 	// node 3 is connected to 0, 2, 4 and 6 (check integrationTests.CreateFixedNetworkOf7Peers function)
-	// large number of broadcast messages from 3 might flood above mentioned peers but should not flood 5 and 7
+	// large number of broadcast messages from 3 might flood above-mentioned peers but should not flood 5 and 7
 
 	topic := "test_topic"
 	broadcastMessageDuration := time.Second * 2

@@ -82,7 +82,7 @@ func TestHeaderAndMiniBlocksAreRoutedCorrectly(t *testing.T) {
 }
 
 // TestMetaHeadersAreRequsted tests the metaheader request to be made towards any peer
-// The test will have 2 shards and meta, one shard node will request a metaheader and it should received it only from
+// The test will have 2 shards and meta, one shard node will request a metaheader, and it should receive it only from
 // the meta node
 func TestMetaHeadersAreRequsted(t *testing.T) {
 	if testing.Short() {

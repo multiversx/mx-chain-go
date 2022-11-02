@@ -331,7 +331,7 @@ func (brc *baseRewardsCreator) isSystemDelegationSC(address []byte) bool {
 		return false
 	}
 
-	val, err := userAcc.RetrieveValue([]byte(core.DelegationSystemSCKey))
+	val, _, err := userAcc.RetrieveValue([]byte(core.DelegationSystemSCKey))
 	if err != nil {
 		return false
 	}

@@ -34,7 +34,7 @@ func (sm *ScalarMock) SetInt64(_ int64) {
 	panic("implement me")
 }
 
-// Zero returns the the additive identity (0)
+// Zero returns the additive identity (0)
 func (sm *ScalarMock) Zero() crypto.Scalar {
 	panic("implement me")
 }

@@ -70,7 +70,7 @@ func (vmc *VMContainerMock) Keys() [][]byte {
 }
 
 // Close -
-func (V *VMContainerMock) Close() error {
+func (vmc *VMContainerMock) Close() error {
 	return nil
 }
 

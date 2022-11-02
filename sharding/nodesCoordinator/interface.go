@@ -65,7 +65,7 @@ type NodesCoordinatorHelper interface {
 
 //ChanceComputer provides chance computation capabilities based on a rating
 type ChanceComputer interface {
-	//GetChance returns the chances for the the rating
+	//GetChance returns the chances for the rating
 	GetChance(uint32) uint32
 	//IsInterfaceNil verifies if the interface is nil
 	IsInterfaceNil() bool

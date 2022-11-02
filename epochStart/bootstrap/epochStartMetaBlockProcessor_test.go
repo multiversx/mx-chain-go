@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -37,7 +38,7 @@ func TestNewEpochStartMetaBlockProcessor_NilRequestHandlerShouldErr(t *testing.T
 	t.Parallel()
 
 	esmbp, err := NewEpochStartMetaBlockProcessor(
-		&mock.MessengerStub{},
+		&p2pmocks.MessengerStub{},
 		nil,
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
@@ -54,7 +55,7 @@ func TestNewEpochStartMetaBlockProcessor_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	esmbp, err := NewEpochStartMetaBlockProcessor(
-		&mock.MessengerStub{},
+		&p2pmocks.MessengerStub{},
 		&testscommon.RequestHandlerStub{},
 		nil,
 		&hashingMocks.HasherMock{},
@@ -71,7 +72,7 @@ func TestNewEpochStartMetaBlockProcessor_NilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
 	esmbp, err := NewEpochStartMetaBlockProcessor(
-		&mock.MessengerStub{},
+		&p2pmocks.MessengerStub{},
 		&testscommon.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
 		nil,
@@ -88,7 +89,7 @@ func TestNewEpochStartMetaBlockProcessor_InvalidConsensusPercentageShouldErr(t *
 	t.Parallel()
 
 	esmbp, err := NewEpochStartMetaBlockProcessor(
-		&mock.MessengerStub{},
+		&p2pmocks.MessengerStub{},
 		&testscommon.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
@@ -105,7 +106,10 @@ func TestNewEpochStartMetaBlockProcessorOkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	esmbp, err := NewEpochStartMetaBlockProcessor(
-		&mock.MessengerStub{},
+		&p2pmocks.MessengerStub{
+			ConnectedPeersCalled: func() []core.PeerID {
+				return []core.PeerID{"peer_0", "peer_1", "peer_2", "peer_3", "peer_4", "peer_5"}
+			}},
 		&testscommon.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
@@ -135,7 +139,7 @@ func TestNewEpochStartMetaBlockProcessorOkValsShouldWorkAfterMoreTriesWaitingFor
 
 	counter := 0
 	esmbp, err := NewEpochStartMetaBlockProcessor(
-		&mock.MessengerStub{
+		&p2pmocks.MessengerStub{
 			ConnectedPeersCalled: func() []core.PeerID {
 				peers := getConnectedPeers(counter)
 				counter++
@@ -158,7 +162,10 @@ func TestEpochStartMetaBlockProcessor_Validate(t *testing.T) {
 	t.Parallel()
 
 	esmbp, _ := NewEpochStartMetaBlockProcessor(
-		&mock.MessengerStub{},
+		&p2pmocks.MessengerStub{
+			ConnectedPeersCalled: func() []core.PeerID {
+				return []core.PeerID{"peer_0", "peer_1", "peer_2", "peer_3", "peer_4", "peer_5"}
+			}},
 		&testscommon.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
@@ -174,7 +181,10 @@ func TestEpochStartMetaBlockProcessor_SaveNilInterceptedDataShouldNotReturnError
 	t.Parallel()
 
 	esmbp, _ := NewEpochStartMetaBlockProcessor(
-		&mock.MessengerStub{},
+		&p2pmocks.MessengerStub{
+			ConnectedPeersCalled: func() []core.PeerID {
+				return []core.PeerID{"peer_0", "peer_1", "peer_2", "peer_3", "peer_4", "peer_5"}
+			}},
 		&testscommon.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
@@ -191,7 +201,11 @@ func TestEpochStartMetaBlockProcessor_SaveOkInterceptedDataShouldWork(t *testing
 	t.Parallel()
 
 	esmbp, _ := NewEpochStartMetaBlockProcessor(
-		&mock.MessengerStub{},
+		&p2pmocks.MessengerStub{
+			ConnectedPeersCalled: func() []core.PeerID {
+				return []core.PeerID{"peer_0", "peer_1", "peer_2", "peer_3", "peer_4", "peer_5"}
+			},
+		},
 		&testscommon.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
@@ -216,7 +230,7 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldTimeOut(t *tes
 	t.Parallel()
 
 	esmbp, _ := NewEpochStartMetaBlockProcessor(
-		&mock.MessengerStub{
+		&p2pmocks.MessengerStub{
 			ConnectedPeersCalled: func() []core.PeerID {
 				return []core.PeerID{"peer_0", "peer_1", "peer_2", "peer_3", "peer_4", "peer_5"}
 			},
@@ -240,7 +254,7 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldReturnMostRece
 	t.Parallel()
 
 	esmbp, _ := NewEpochStartMetaBlockProcessor(
-		&mock.MessengerStub{
+		&p2pmocks.MessengerStub{
 			ConnectedPeersCalled: func() []core.PeerID {
 				return []core.PeerID{"peer_0", "peer_1", "peer_2", "peer_3", "peer_4", "peer_5"}
 			},
@@ -276,7 +290,7 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldWorkFromFirstT
 	t.Parallel()
 
 	esmbp, _ := NewEpochStartMetaBlockProcessor(
-		&mock.MessengerStub{
+		&p2pmocks.MessengerStub{
 			ConnectedPeersCalled: func() []core.PeerID {
 				return []core.PeerID{"peer_0", "peer_1", "peer_2", "peer_3", "peer_4", "peer_5"}
 			},
@@ -320,7 +334,7 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldWorkAfterMulti
 
 func testEpochStartMbIsReceivedWithSleepBetweenReceivedMessages(t *testing.T, tts time.Duration) {
 	esmbp, _ := NewEpochStartMetaBlockProcessor(
-		&mock.MessengerStub{
+		&p2pmocks.MessengerStub{
 			ConnectedPeersCalled: func() []core.PeerID {
 				return []core.PeerID{"peer_0", "peer_1", "peer_2", "peer_3", "peer_4", "peer_5"}
 			},

@@ -58,8 +58,9 @@ func TestJournalEntryCode_OldHashIsNilAndNewHashIsNotNil(t *testing.T) {
 
 	updateCalled := false
 	trieStub := &trieMock.TrieStub{
-		GetCalled: func(key []byte) ([]byte, error) {
-			return marshalizer.Marshal(codeEntry)
+		GetCalled: func(_ []byte) ([]byte, uint32, error) {
+			serializedCodeEntry, err := marshalizer.Marshal(codeEntry)
+			return serializedCodeEntry, 0, err
 		},
 		UpdateCalled: func(key, value []byte) error {
 			updateCalled = true
