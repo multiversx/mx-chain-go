@@ -309,7 +309,6 @@ func (mrcf *metaResolversContainerFactory) generateTrieNodesResolvers() error {
 	resolversSlice := make([]dataRetriever.Resolver, 0)
 
 	identifierTrieNodes := factory.AccountTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
-
 	resolver, err := mrcf.createTrieNodesResolver(
 		identifierTrieNodes,
 		triesFactory.UserAccountTrie,

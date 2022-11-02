@@ -237,7 +237,6 @@ func (srcf *shardResolversContainerFactory) generateTrieNodesResolvers() error {
 	shardC := srcf.shardCoordinator
 
 	identifierTrieNodes := factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
-
 	resolver, err := srcf.createTrieNodesResolver(
 		identifierTrieNodes,
 		triesFactory.UserAccountTrie,
