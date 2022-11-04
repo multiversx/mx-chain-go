@@ -28,7 +28,7 @@ const firstHeaderNonce = uint64(1)
 
 var _ process.BlockProcessor = (*metaProcessor)(nil)
 
-// metaProcessor implements metaProcessor interface and actually it tries to execute block
+// metaProcessor implements metaProcessor interface, and actually it tries to execute block
 type metaProcessor struct {
 	*baseProcessor
 	scToProtocol                 process.SmartContractToProtocolHandler
@@ -113,7 +113,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		nodesCoordinator:              arguments.NodesCoordinator,
 		uint64Converter:               arguments.CoreComponents.Uint64ByteSliceConverter(),
 		requestHandler:                arguments.RequestHandler,
-		appStatusHandler:              arguments.CoreComponents.StatusHandler(),
+		appStatusHandler:              arguments.StatusCoreComponents.AppStatusHandler(),
 		blockChainHook:                arguments.BlockChainHook,
 		txCoordinator:                 arguments.TxCoordinator,
 		epochStartTrigger:             arguments.EpochStartTrigger,

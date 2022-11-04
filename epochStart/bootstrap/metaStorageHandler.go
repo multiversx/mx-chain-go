@@ -80,7 +80,7 @@ func (msh *metaStorageHandler) CloseStorageService() {
 	}
 }
 
-// SaveDataToStorage will save the fetched data to storage so it will be used by the storage bootstrap component
+// SaveDataToStorage will save the fetched data to storage, so it will be used by the storage bootstrap component
 func (msh *metaStorageHandler) SaveDataToStorage(components *ComponentsNeededForBootstrap) error {
 	bootStorer, err := msh.storageService.GetStorer(dataRetriever.BootstrapUnit)
 	if err != nil {

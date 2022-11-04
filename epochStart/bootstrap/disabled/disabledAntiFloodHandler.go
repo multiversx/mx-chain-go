@@ -48,7 +48,7 @@ func (a *antiFloodHandler) IsOriginatorEligibleForTopic(_ core.PeerID, _ string)
 }
 
 // Close returns nil
-func (af *antiFloodHandler) Close() error {
+func (a *antiFloodHandler) Close() error {
 	return nil
 }
 

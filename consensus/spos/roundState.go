@@ -5,7 +5,7 @@ import (
 )
 
 // roundState defines the data needed by spos to know the state of each node from the current jobDone group,
-// regarding to the consensus validatorRoundStates in each subround of the current round
+// regarding the consensus validatorRoundStates in each subround of the current round
 type roundState struct {
 	jobDone map[int]bool
 	mut     sync.RWMutex

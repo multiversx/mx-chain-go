@@ -12,7 +12,7 @@ var _ Coordinator = (*multiShardCoordinator)(nil)
 
 // multiShardCoordinator struct defines the functionality for handling transaction dispatching to
 // the corresponding shards. The number of shards is currently passed as a constructor
-// parameter and later it should be calculated by this structure
+// parameter, and later it should be calculated by this structure
 type multiShardCoordinator struct {
 	maskHigh       uint32
 	maskLow        uint32
@@ -37,7 +37,7 @@ func NewMultiShardCoordinator(numberOfShards, selfId uint32) (*multiShardCoordin
 	return sr, nil
 }
 
-// calculateMasks will create two numbers who's binary form is composed from as many
+// calculateMasks will create two numbers whose binary form is composed of as many
 // ones needed to be taken into consideration for the shard assignment. The result
 // of a bitwise AND operation of an address with this mask will result in the
 // shard id where a transaction from that address will be dispatched

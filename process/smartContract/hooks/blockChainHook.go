@@ -400,7 +400,7 @@ func (bh *BlockChainHookImpl) NewAddress(creatorAddress []byte, creatorNonce uin
 	return base, nil
 }
 
-// ProcessBuiltInFunction is the hook through which a smart contract can execute a built in function
+// ProcessBuiltInFunction is the hook through which a smart contract can execute a built-in function
 func (bh *BlockChainHookImpl) ProcessBuiltInFunction(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
 	defer stopMeasure(startMeasure("ProcessBuiltInFunction"))
 
@@ -550,12 +550,12 @@ func (bh *BlockChainHookImpl) getUserAccounts(
 	return sndAccount, dstAccount, nil
 }
 
-// GetBuiltinFunctionNames returns the built in function names
+// GetBuiltinFunctionNames returns the built-in function names
 func (bh *BlockChainHookImpl) GetBuiltinFunctionNames() vmcommon.FunctionNames {
 	return bh.builtInFunctions.Keys()
 }
 
-// GetBuiltinFunctionsContainer returns the built in functions container
+// GetBuiltinFunctionsContainer returns the built-in functions container
 func (bh *BlockChainHookImpl) GetBuiltinFunctionsContainer() vmcommon.BuiltInFunctionContainer {
 	return bh.builtInFunctions
 }
