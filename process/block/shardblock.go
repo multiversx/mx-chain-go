@@ -44,7 +44,7 @@ type createAndProcessMiniBlocksDestMeInfo struct {
 	scheduledMode               bool
 }
 
-// shardProcessor implements shardProcessor interface and actually it tries to execute block
+// shardProcessor implements shardProcessor interface, and actually it tries to execute block
 type shardProcessor struct {
 	*baseProcessor
 	metaBlockFinality uint32
@@ -98,7 +98,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		nodesCoordinator:              arguments.NodesCoordinator,
 		uint64Converter:               arguments.CoreComponents.Uint64ByteSliceConverter(),
 		requestHandler:                arguments.RequestHandler,
-		appStatusHandler:              arguments.CoreComponents.StatusHandler(),
+		appStatusHandler:              arguments.StatusCoreComponents.AppStatusHandler(),
 		blockChainHook:                arguments.BlockChainHook,
 		txCoordinator:                 arguments.TxCoordinator,
 		roundHandler:                  arguments.CoreComponents.RoundHandler(),
@@ -919,7 +919,7 @@ func (sp *shardProcessor) CreateBlock(
 	return shardHdr, finalBody, nil
 }
 
-// createBlockBody creates a a list of miniblocks by filling them with transactions out of the transactions pools
+// createBlockBody creates a list of miniblocks by filling them with transactions out of the transactions pools
 // as long as the transactions limit for the block has not been reached and there is still time to add transactions
 func (sp *shardProcessor) createBlockBody(shardHdr data.HeaderHandler, haveTime func() bool) (*block.Body, map[string]*processedMb.ProcessedMiniBlockInfo, error) {
 	sp.blockSizeThrottler.ComputeCurrentMaxSize()

@@ -3,6 +3,7 @@ package mock
 import (
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 )
 
@@ -37,6 +38,7 @@ type EconomicsHandlerStub struct {
 	RewardsTopUpGradientPointCalled                func() *big.Int
 	RewardsTopUpFactorCalled                       func() float64
 	ComputeGasLimitBasedOnBalanceCalled            func(tx data.TransactionWithFeeHandler, balance *big.Int) (uint64, error)
+	SetStatusHandlerCalled                         func(statusHandler core.AppStatusHandler) error
 }
 
 // ComputeGasLimitBasedOnBalance -
@@ -258,6 +260,14 @@ func (ehs *EconomicsHandlerStub) RewardsTopUpFactor() float64 {
 		return ehs.RewardsTopUpFactorCalled()
 	}
 	return 0
+}
+
+// SetStatusHandler -
+func (ehs *EconomicsHandlerStub) SetStatusHandler(statusHandler core.AppStatusHandler) error {
+	if ehs.SetStatusHandlerCalled != nil {
+		return ehs.SetStatusHandlerCalled(statusHandler)
+	}
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

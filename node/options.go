@@ -57,6 +57,7 @@ func WithStatusCoreComponents(statusCoreComponents factory.StatusCoreComponentsH
 		if err != nil {
 			return err
 		}
+		n.statusCoreComponents = statusCoreComponents
 		n.closableComponents = append(n.closableComponents, statusCoreComponents)
 		return nil
 	}

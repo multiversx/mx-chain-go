@@ -250,7 +250,7 @@ func (ap *accountsParser) InitialAccounts() []genesis.InitialAccountHandler {
 	return accounts
 }
 
-// InitialAccountsSplitOnAddressesShards gets the initial accounts of the nodes split on the addresses's shards
+// InitialAccountsSplitOnAddressesShards gets the initial accounts of the nodes split on the addresses' shards
 func (ap *accountsParser) InitialAccountsSplitOnAddressesShards(
 	shardCoordinator sharding.Coordinator,
 ) (map[uint32][]genesis.InitialAccountHandler, error) {

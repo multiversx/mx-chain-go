@@ -11,9 +11,9 @@ type StorageListProviderStub struct {
 }
 
 // GetAllStorers -
-func (sis *StorageListProviderStub) GetAllStorers() map[dataRetriever.UnitType]storage.Storer {
-	if sis.GetAllStorersCalled != nil {
-		return sis.GetAllStorersCalled()
+func (slps *StorageListProviderStub) GetAllStorers() map[dataRetriever.UnitType]storage.Storer {
+	if slps.GetAllStorersCalled != nil {
+		return slps.GetAllStorersCalled()
 	}
 
 	return nil

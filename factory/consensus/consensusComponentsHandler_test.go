@@ -6,6 +6,8 @@ import (
 	consensusComp "github.com/ElrondNetwork/elrond-go/factory/consensus"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	componentsMock "github.com/ElrondNetwork/elrond-go/testscommon/components"
+	"github.com/ElrondNetwork/elrond-go/testscommon/factory"
+	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/require"
 )
 
@@ -18,13 +20,15 @@ func TestManagedConsensusComponents_CreateWithInvalidArgsShouldErr(t *testing.T)
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	args := componentsMock.GetConsensusArgs(shardCoordinator)
-	coreComponents := componentsMock.GetDefaultCoreComponents()
-	args.CoreComponents = coreComponents
+	statusCoreComponents := &factory.StatusCoreComponentsStub{
+		AppStatusHandlerField: &statusHandler.AppStatusHandlerStub{},
+	}
+	args.StatusCoreComponents = statusCoreComponents
 	consensusComponentsFactory, _ := consensusComp.NewConsensusComponentsFactory(args)
 	managedConsensusComponents, err := consensusComp.NewManagedConsensusComponents(consensusComponentsFactory)
 	require.NoError(t, err)
 
-	coreComponents.AppStatusHdl = nil
+	statusCoreComponents.AppStatusHandlerField = nil
 	err = managedConsensusComponents.Create()
 	require.Error(t, err)
 	require.NotNil(t, managedConsensusComponents.CheckSubcomponents())

@@ -14,10 +14,11 @@ func TestManagedStatusCoreComponents_CreateWithInvalidArgsShouldErr(t *testing.T
 		t.Skip("this is not a short test")
 	}
 
-	args := componentsMock.GetStatusCoreArgs()
+	args := componentsMock.GetStatusCoreArgs(componentsMock.GetDefaultCoreComponents())
 	args.Config.ResourceStats.RefreshIntervalInSec = 0
 
-	statusCoreComponentsFactory := statusCore.NewStatusCoreComponentsFactory(args)
+	statusCoreComponentsFactory, err := statusCore.NewStatusCoreComponentsFactory(args)
+	require.NoError(t, err)
 	managedStatusCoreComponents, err := statusCore.NewManagedStatusCoreComponents(statusCoreComponentsFactory)
 	require.NoError(t, err)
 
@@ -32,8 +33,9 @@ func TestManagedStatusCoreComponents_CreateShouldWork(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	args := componentsMock.GetStatusCoreArgs()
-	statusCoreComponentsFactory := statusCore.NewStatusCoreComponentsFactory(args)
+	args := componentsMock.GetStatusCoreArgs(componentsMock.GetCoreComponents())
+	statusCoreComponentsFactory, err := statusCore.NewStatusCoreComponentsFactory(args)
+	require.NoError(t, err)
 	managedStatusCoreComponents, err := statusCore.NewManagedStatusCoreComponents(statusCoreComponentsFactory)
 	require.NoError(t, err)
 
@@ -53,8 +55,9 @@ func TestManagedCoreComponents_Close(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	args := componentsMock.GetStatusCoreArgs()
-	statusCoreComponentsFactory := statusCore.NewStatusCoreComponentsFactory(args)
+	args := componentsMock.GetStatusCoreArgs(componentsMock.GetCoreComponents())
+	statusCoreComponentsFactory, err := statusCore.NewStatusCoreComponentsFactory(args)
+	require.NoError(t, err)
 	managedStatusCoreComponents, err := statusCore.NewManagedStatusCoreComponents(statusCoreComponentsFactory)
 	require.NoError(t, err)
 

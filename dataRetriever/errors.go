@@ -245,7 +245,7 @@ var ErrNilNodesCoordinator = errors.New("nil nodes coordinator")
 // ErrNilPayloadValidator signals that a nil payload validator was provided
 var ErrNilPayloadValidator = errors.New("nil payload validator")
 
-// ErrWrongTypeAssertion signals that an type assertion failed
+// ErrWrongTypeAssertion signals that a type assertion failed
 var ErrWrongTypeAssertion = errors.New("wrong type assertion")
 
 // ErrStorerNotFound signals that the storer was not found
