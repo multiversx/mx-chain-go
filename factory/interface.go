@@ -170,6 +170,9 @@ type CryptoParamsHolder interface {
 // CryptoComponentsHolder holds the crypto components
 type CryptoComponentsHolder interface {
 	CryptoParamsHolder
+	P2pPublicKey() crypto.PublicKey
+	P2pPrivateKey() crypto.PrivateKey
+	P2pSingleSigner() crypto.SingleSigner
 	TxSingleSigner() crypto.SingleSigner
 	BlockSigner() crypto.SingleSigner
 	SetMultiSignerContainer(container cryptoCommon.MultiSignerContainer) error

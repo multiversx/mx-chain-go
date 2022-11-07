@@ -4,7 +4,7 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	cryptoCommon "github.com/ElrondNetwork/elrond-go/common/crypto"
 	"github.com/ElrondNetwork/elrond-go/vm"
 )
@@ -13,6 +13,9 @@ import (
 type CryptoComponentsStub struct {
 	PubKey            crypto.PublicKey
 	PrivKey           crypto.PrivateKey
+	P2pPubKey         crypto.PublicKey
+	P2pPrivKey        crypto.PrivateKey
+	P2pSig            crypto.SingleSigner
 	PubKeyString      string
 	PrivKeyBytes      []byte
 	PubKeyBytes       []byte
@@ -51,6 +54,16 @@ func (ccs *CryptoComponentsStub) PrivateKey() crypto.PrivateKey {
 	return ccs.PrivKey
 }
 
+// P2pPrivateKey -
+func (ccs *CryptoComponentsStub) P2pPrivateKey() crypto.PrivateKey {
+	return ccs.P2pPrivKey
+}
+
+// P2pPublicKey -
+func (ccs *CryptoComponentsStub) P2pPublicKey() crypto.PublicKey {
+	return ccs.P2pPubKey
+}
+
 // PublicKeyString -
 func (ccs *CryptoComponentsStub) PublicKeyString() string {
 	return ccs.PubKeyString
@@ -69,6 +82,11 @@ func (ccs *CryptoComponentsStub) PrivateKeyBytes() []byte {
 // BlockSigner -
 func (ccs *CryptoComponentsStub) BlockSigner() crypto.SingleSigner {
 	return ccs.BlockSig
+}
+
+// P2pSingleSigner -
+func (ccs *CryptoComponentsStub) P2pSingleSigner() crypto.SingleSigner {
+	return ccs.P2pSig
 }
 
 // TxSingleSigner -

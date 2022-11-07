@@ -134,6 +134,30 @@ func (mcc *managedCryptoComponents) PrivateKey() crypto.PrivateKey {
 	return mcc.cryptoParams.privateKey
 }
 
+// P2pPrivateKey returns the configured p2p private key
+func (mcc *managedCryptoComponents) P2pPrivateKey() crypto.PrivateKey {
+	mcc.mutCryptoComponents.RLock()
+	defer mcc.mutCryptoComponents.RUnlock()
+
+	if mcc.cryptoComponents == nil {
+		return nil
+	}
+
+	return mcc.p2pCryptoParams.p2pPrivateKey
+}
+
+// P2pPublicKey returns the configured p2p public key
+func (mcc *managedCryptoComponents) P2pPublicKey() crypto.PublicKey {
+	mcc.mutCryptoComponents.RLock()
+	defer mcc.mutCryptoComponents.RUnlock()
+
+	if mcc.cryptoComponents == nil {
+		return nil
+	}
+
+	return mcc.p2pCryptoParams.p2pPublicKey
+}
+
 // PublicKeyString returns the configured validator public key as string
 func (mcc *managedCryptoComponents) PublicKeyString() string {
 	mcc.mutCryptoComponents.RLock()
@@ -192,6 +216,18 @@ func (mcc *managedCryptoComponents) BlockSigner() crypto.SingleSigner {
 	}
 
 	return mcc.cryptoComponents.blockSingleSigner
+}
+
+// P2pSingleSigner returns p2p single signer
+func (mcc *managedCryptoComponents) P2pSingleSigner() crypto.SingleSigner {
+	mcc.mutCryptoComponents.RLock()
+	defer mcc.mutCryptoComponents.RUnlock()
+
+	if mcc.cryptoComponents == nil {
+		return nil
+	}
+
+	return mcc.cryptoComponents.p2pSingleSigner
 }
 
 // MultiSignerContainer returns the multiSigner container holding the multiSigner versions
