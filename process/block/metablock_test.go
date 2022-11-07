@@ -27,6 +27,7 @@ import (
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	"github.com/ElrondNetwork/elrond-go/testscommon/factory"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/outport"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
@@ -110,22 +111,27 @@ func createMockMetaArguments(
 		},
 	}
 
+	statusCoreComponents := &factory.StatusCoreComponentsStub{
+		AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{},
+	}
+
 	arguments := blproc.ArgMetaProcessor{
 		ArgBaseProcessor: blproc.ArgBaseProcessor{
-			CoreComponents:      coreComponents,
-			DataComponents:      dataComponents,
-			BootstrapComponents: bootstrapComponents,
-			StatusComponents:    statusComponents,
-			AccountsDB:          accountsDb,
-			ForkDetector:        &mock.ForkDetectorMock{},
-			NodesCoordinator:    shardingMocks.NewNodesCoordinatorMock(),
-			FeeHandler:          &mock.FeeAccumulatorStub{},
-			RequestHandler:      &testscommon.RequestHandlerStub{},
-			BlockChainHook:      &testscommon.BlockChainHookStub{},
-			TxCoordinator:       &testscommon.TransactionCoordinatorMock{},
-			EpochStartTrigger:   &mock.EpochStartTriggerStub{},
-			HeaderValidator:     headerValidator,
-			GasHandler:          &mock.GasHandlerMock{},
+			CoreComponents:       coreComponents,
+			DataComponents:       dataComponents,
+			BootstrapComponents:  bootstrapComponents,
+			StatusComponents:     statusComponents,
+			StatusCoreComponents: statusCoreComponents,
+			AccountsDB:           accountsDb,
+			ForkDetector:         &mock.ForkDetectorMock{},
+			NodesCoordinator:     shardingMocks.NewNodesCoordinatorMock(),
+			FeeHandler:           &mock.FeeAccumulatorStub{},
+			RequestHandler:       &testscommon.RequestHandlerStub{},
+			BlockChainHook:       &testscommon.BlockChainHookStub{},
+			TxCoordinator:        &testscommon.TransactionCoordinatorMock{},
+			EpochStartTrigger:    &mock.EpochStartTriggerStub{},
+			HeaderValidator:      headerValidator,
+			GasHandler:           &mock.GasHandlerMock{},
 			BootStorer: &mock.BoostrapStorerMock{
 				PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
 					return nil
