@@ -411,12 +411,7 @@ func (brcf *baseResolversContainerFactory) createRequestingOnlyTrieNodesResolver
 		},
 	}
 
-	resolver, err := resolvers.NewRequestingOnlyTrieNodeResolver(argResolver)
-	if err != nil {
-		return nil, err
-	}
-
-	return resolver, nil
+	return resolvers.NewRequestingOnlyTrieNodeResolver(argResolver)
 }
 
 func (brcf *baseResolversContainerFactory) generateValidatorInfoResolver() error {
