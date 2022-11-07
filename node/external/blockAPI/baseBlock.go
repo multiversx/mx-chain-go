@@ -513,7 +513,11 @@ func (bap *baseAPIBlockProcessor) addTxToPool(tx *transaction.ApiTransactionResu
 	}
 
 	zeroBigInt := big.NewInt(0)
-	txValue, ok := big.NewInt(0).SetString(tx.Value, 10)
+	txValueString := tx.Value
+	if len(txValueString) == 0 {
+		txValueString = "0"
+	}
+	txValue, ok := big.NewInt(0).SetString(txValueString, 10)
 	if !ok {
 		return fmt.Errorf("cannot convert tx value to big int. Value=%s", tx.Value)
 	}
