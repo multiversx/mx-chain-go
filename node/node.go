@@ -84,6 +84,7 @@ type Node struct {
 	bootstrapComponents   mainFactory.BootstrapComponentsHolder
 	consensusComponents   mainFactory.ConsensusComponentsHolder
 	coreComponents        mainFactory.CoreComponentsHolder
+	statusCoreComponents  mainFactory.StatusCoreComponentsHolder
 	cryptoComponents      mainFactory.CryptoComponentsHolder
 	dataComponents        mainFactory.DataComponentsHolder
 	heartbeatV2Components mainFactory.HeartbeatV2ComponentsHolder
@@ -122,11 +123,6 @@ func NewNode(opts ...Option) (*Node, error) {
 	}
 
 	return node, nil
-}
-
-// GetAppStatusHandler will return the current status handler
-func (n *Node) GetAppStatusHandler() core.AppStatusHandler {
-	return n.coreComponents.StatusHandler()
 }
 
 // CreateShardedStores instantiate sharded cachers for Transactions and Headers
@@ -1059,6 +1055,11 @@ func prepareEpochStartDataResponse(header data.HeaderHandler) *common.EpochStart
 // GetCoreComponents returns the core components
 func (n *Node) GetCoreComponents() mainFactory.CoreComponentsHolder {
 	return n.coreComponents
+}
+
+// GetStatusCoreComponents returns the status core components
+func (n *Node) GetStatusCoreComponents() mainFactory.StatusCoreComponentsHolder {
+	return n.statusCoreComponents
 }
 
 // GetCryptoComponents returns the crypto components

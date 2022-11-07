@@ -3,6 +3,7 @@ package mock
 import (
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 )
 
@@ -38,6 +39,7 @@ type EconomicsHandlerStub struct {
 	ComputeGasUsedAndFeeBasedOnRefundValueCalled   func(tx data.TransactionWithFeeHandler, refundValue *big.Int) (uint64, *big.Int)
 	ComputeTxFeeBasedOnGasUsedCalled               func(tx data.TransactionWithFeeHandler, gasUsed uint64) *big.Int
 	ComputeGasLimitBasedOnBalanceCalled            func(tx data.TransactionWithFeeHandler, balance *big.Int) (uint64, error)
+	SetStatusHandlerCalled                         func(statusHandler core.AppStatusHandler) error
 }
 
 // ComputeGasLimitBasedOnBalance -
@@ -271,6 +273,14 @@ func (ehs *EconomicsHandlerStub) ComputeTxFeeBasedOnGasUsed(tx data.TransactionW
 		return ehs.ComputeTxFeeBasedOnGasUsedCalled(tx, gasUsed)
 	}
 	return big.NewInt(0)
+}
+
+// SetStatusHandler -
+func (ehs *EconomicsHandlerStub) SetStatusHandler(statusHandler core.AppStatusHandler) error {
+	if ehs.SetStatusHandlerCalled != nil {
+		return ehs.SetStatusHandlerCalled(statusHandler)
+	}
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
