@@ -250,21 +250,22 @@ func (bpp *basePreProcess) saveTransactionToStorage(
 	forBlock.mutTxsForBlock.RUnlock()
 
 	if txInfoFromMap == nil || txInfoFromMap.tx == nil {
-		log.Warn("basePreProcess.saveTransactionToStorage", "type", dataUnit, "txHash", txHash, "error", process.ErrMissingTransaction.Error())
+		log.Warn("basePreProcess.saveTransactionToStorage", "txHash", txHash, "dataUnit", dataUnit, "error", process.ErrMissingTransaction)
 		return
 	}
 
 	buff, err := bpp.marshalizer.Marshal(txInfoFromMap.tx)
 	if err != nil {
-		log.Warn("basePreProcess.saveTransactionToStorage", "txHash", txHash, "error", err.Error())
+		log.Warn("basePreProcess.saveTransactionToStorage: Marshal", "txHash", txHash, "error", err)
 		return
 	}
 
 	errNotCritical := store.Put(dataUnit, txHash, buff)
 	if errNotCritical != nil {
-		log.Debug("store.Put",
-			"error", errNotCritical.Error(),
+		log.Debug("basePreProcess.saveTransactionToStorage: Put",
+			"txHash", txHash,
 			"dataUnit", dataUnit,
+			"error", errNotCritical,
 		)
 	}
 }
