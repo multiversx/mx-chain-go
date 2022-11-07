@@ -513,6 +513,14 @@ func (bap *baseAPIBlockProcessor) addTxToPool(tx *transaction.ApiTransactionResu
 	}
 
 	zeroBigInt := big.NewInt(0)
+	txValueString := tx.Value
+	if len(txValueString) == 0 {
+		txValueString = "0"
+	}
+	txValue, ok := big.NewInt(0).SetString(txValueString, 10)
+	if !ok {
+		return fmt.Errorf("cannot convert tx value to big int. Value=%s", tx.Value)
+	}
 
 	switch tx.Type {
 	case string(transaction.TxTypeNormal):
@@ -520,6 +528,7 @@ func (bap *baseAPIBlockProcessor) addTxToPool(tx *transaction.ApiTransactionResu
 			&transaction.Transaction{
 				SndAddr: senderBytes,
 				RcvAddr: receiverBytes,
+				Value:   txValue,
 			},
 			0,
 			zeroBigInt,
@@ -529,6 +538,7 @@ func (bap *baseAPIBlockProcessor) addTxToPool(tx *transaction.ApiTransactionResu
 			&smartContractResult.SmartContractResult{
 				SndAddr: senderBytes,
 				RcvAddr: receiverBytes,
+				Value:   txValue,
 			},
 			0,
 			zeroBigInt,
@@ -538,6 +548,7 @@ func (bap *baseAPIBlockProcessor) addTxToPool(tx *transaction.ApiTransactionResu
 			&transaction.Transaction{
 				SndAddr: senderBytes,
 				// do not set the receiver since the cost is only on sender's side in case of invalid txs
+				Value: txValue,
 			},
 			0,
 			zeroBigInt,
@@ -546,6 +557,7 @@ func (bap *baseAPIBlockProcessor) addTxToPool(tx *transaction.ApiTransactionResu
 		pool.Rewards[tx.Hash] = outport.NewTransactionHandlerWithGasAndFee(
 			&rewardTx.RewardTx{
 				RcvAddr: receiverBytes,
+				Value:   txValue,
 			},
 			0,
 			zeroBigInt,
