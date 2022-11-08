@@ -69,7 +69,7 @@ func extractSpecificMiddlewares(middlewares []shared.AdditionalMiddleware) ([]gi
 func getEndpointProperties(ws *gin.RouterGroup, path string, apiConfig config.ApiRoutesConfig) endpointProperties {
 	basePath := ws.BasePath()
 
-	// ws.BasePath will return paths like /group or /v1.0/group so we need the last token after splitting by /
+	// ws.BasePath will return paths like /group or /v1.0/group, so we need the last token after splitting by /
 	splitPath := strings.Split(basePath, "/")
 	basePath = splitPath[len(splitPath)-1]
 

@@ -25,6 +25,7 @@ type StateComponentsFactoryArgs struct {
 	Config                   config.Config
 	ShardCoordinator         sharding.Coordinator
 	Core                     factory.CoreComponentsHolder
+	StatusCore               factory.StatusCoreComponentsHolder
 	StorageService           dataRetriever.StorageService
 	ProcessingMode           common.NodeProcessingMode
 	ShouldSerializeSnapshots bool
@@ -35,6 +36,7 @@ type stateComponentsFactory struct {
 	config                   config.Config
 	shardCoordinator         sharding.Coordinator
 	core                     factory.CoreComponentsHolder
+	statusCore               factory.StatusCoreComponentsHolder
 	storageService           dataRetriever.StorageService
 	processingMode           common.NodeProcessingMode
 	shouldSerializeSnapshots bool
@@ -74,11 +76,18 @@ func NewStateComponentsFactory(args StateComponentsFactoryArgs) (*stateComponent
 	if check.IfNil(args.ChainHandler) {
 		return nil, errors.ErrNilBlockChainHandler
 	}
+	if check.IfNil(args.StatusCore) {
+		return nil, errors.ErrNilStatusCoreComponents
+	}
+	if check.IfNil(args.StatusCore.AppStatusHandler()) {
+		return nil, errors.ErrNilAppStatusHandler
+	}
 
 	return &stateComponentsFactory{
 		config:                   args.Config,
 		shardCoordinator:         args.ShardCoordinator,
 		core:                     args.Core,
+		statusCore:               args.StatusCore,
 		storageService:           args.StorageService,
 		processingMode:           args.ProcessingMode,
 		shouldSerializeSnapshots: args.ShouldSerializeSnapshots,
@@ -134,7 +143,7 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 		ProcessingMode:           scf.processingMode,
 		ShouldSerializeSnapshots: scf.shouldSerializeSnapshots,
 		ProcessStatusHandler:     scf.core.ProcessStatusHandler(),
-		AppStatusHandler:         scf.core.StatusHandler(),
+		AppStatusHandler:         scf.statusCore.AppStatusHandler(),
 	}
 	accountsAdapter, err := state.NewAccountsDB(argsProcessingAccountsDB)
 	if err != nil {
@@ -149,7 +158,7 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 		StoragePruningManager: storagePruning,
 		ProcessingMode:        scf.processingMode,
 		ProcessStatusHandler:  scf.core.ProcessStatusHandler(),
-		AppStatusHandler:      scf.core.StatusHandler(),
+		AppStatusHandler:      scf.statusCore.AppStatusHandler(),
 	}
 
 	accountsAdapterApiOnFinal, err := factoryState.CreateAccountsAdapterAPIOnFinal(argsAPIAccountsDB, scf.chainHandler)
@@ -198,7 +207,7 @@ func (scf *stateComponentsFactory) createPeerAdapter(triesContainer common.Tries
 		ProcessingMode:           scf.processingMode,
 		ShouldSerializeSnapshots: scf.shouldSerializeSnapshots,
 		ProcessStatusHandler:     scf.core.ProcessStatusHandler(),
-		AppStatusHandler:         scf.core.StatusHandler(),
+		AppStatusHandler:         scf.statusCore.AppStatusHandler(),
 	}
 	peerAdapter, err := state.NewPeerAccountsDB(argsProcessingPeerAccountsDB)
 	if err != nil {
