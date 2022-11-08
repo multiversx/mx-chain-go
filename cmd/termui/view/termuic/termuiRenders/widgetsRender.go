@@ -182,13 +182,20 @@ func (wr *WidgetsRender) prepareChainInfo(numMillisecondsRefreshTime int) {
 	synchronizedRound := wr.presenter.GetSynchronizedRound()
 	currentRound := wr.presenter.GetCurrentRound()
 
-	var syncingStr, remainingTimeMessage, blocksPerSecondMessage string
+	nodesProcessed := wr.presenter.GetTrieSyncNumProcessedNodes()
+	isNodeSyncingTrie := nodesProcessed != 0
+
+	var syncingStr, statusMessage, blocksPerSecondMessage string
 	switch {
+	case isNodeSyncingTrie:
+		syncingStr = statusSyncing
+		bytesReceived := wr.presenter.GetTrieSyncNumBytesReceived()
+		statusMessage = fmt.Sprintf("Trie sync: %d nodes, %s state size", nodesProcessed, core.ConvertBytes(bytesReceived))
 	case synchronizedRound < currentRound:
 		syncingStr = statusSyncing
 
 		remainingTime := wr.presenter.CalculateTimeToSynchronize(numMillisecondsRefreshTime)
-		remainingTimeMessage = fmt.Sprintf("Synchronization time remaining: ~%s", remainingTime)
+		statusMessage = fmt.Sprintf("Synchronization time remaining: ~%s", remainingTime)
 
 		blocksPerSecond := wr.presenter.CalculateSynchronizationSpeed(numMillisecondsRefreshTime)
 		blocksPerSecondMessage = fmt.Sprintf("%d blocks/sec", blocksPerSecond)
@@ -203,9 +210,10 @@ func (wr *WidgetsRender) prepareChainInfo(numMillisecondsRefreshTime int) {
 		wr.chainInfo.RowStyles[0] = ui.NewStyle(ui.ColorGreen)
 	} else {
 		wr.chainInfo.RowStyles[0] = ui.NewStyle(ui.ColorYellow)
+		wr.chainInfo.RowStyles[1] = ui.NewStyle(ui.ColorYellow)
 	}
 
-	rows[1] = []string{remainingTimeMessage}
+	rows[1] = []string{statusMessage}
 
 	shardId := wr.presenter.GetShardId()
 	if shardId == uint64(core.MetachainShardId) {
