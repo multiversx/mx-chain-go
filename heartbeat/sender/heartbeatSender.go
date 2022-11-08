@@ -24,6 +24,7 @@ type argHeartbeatSender struct {
 
 type heartbeatSender struct {
 	commonHeartbeatSender
+	trieSyncStatisticsProvider heartbeat.TrieSyncStatisticsProvider
 }
 
 // newHeartbeatSender creates a new instance of type heartbeatSender
@@ -42,8 +43,8 @@ func newHeartbeatSender(args argHeartbeatSender) (*heartbeatSender, error) {
 			nodeDisplayName:      args.nodeDisplayName,
 			identity:             args.identity,
 			peerSubType:          args.peerSubType,
-			trieSyncStatisticsProvider: args.trieSyncStatisticsProvider,
 		},
+		trieSyncStatisticsProvider: args.trieSyncStatisticsProvider,
 	}, nil
 }
 
@@ -98,7 +99,15 @@ func (sender *heartbeatSender) execute() error {
 		return err
 	}
 
-	msgBytes, err := sender.generateMessageBytes(sender.versionNumber, sender.nodeDisplayName, sender.identity, uint32(sender.peerSubType), pkBytes)
+	trieNodesReceived := uint64(sender.trieSyncStatisticsProvider.NumProcessed())
+	msgBytes, err := sender.generateMessageBytes(
+		sender.versionNumber,
+		sender.nodeDisplayName,
+		sender.identity,
+		uint32(sender.peerSubType),
+		pkBytes,
+		trieNodesReceived,
+	)
 	if err != nil {
 		return err
 	}

@@ -11,16 +11,17 @@ import (
 
 type argHeartbeatSenderFactory struct {
 	argBaseSender
-	baseVersionNumber    string
-	versionNumber        string
-	nodeDisplayName      string
-	identity             string
-	peerSubType          core.P2PPeerSubType
-	currentBlockProvider heartbeat.CurrentBlockProvider
-	peerTypeProvider     heartbeat.PeerTypeProviderHandler
-	managedPeersHolder   heartbeat.ManagedPeersHolder
-	shardCoordinator     process.ShardCoordinator
-	nodesCoordinator     heartbeat.NodesCoordinator
+	baseVersionNumber          string
+	versionNumber              string
+	nodeDisplayName            string
+	identity                   string
+	peerSubType                core.P2PPeerSubType
+	currentBlockProvider       heartbeat.CurrentBlockProvider
+	peerTypeProvider           heartbeat.PeerTypeProviderHandler
+	managedPeersHolder         heartbeat.ManagedPeersHolder
+	shardCoordinator           process.ShardCoordinator
+	nodesCoordinator           heartbeat.NodesCoordinator
+	trieSyncStatisticsProvider heartbeat.TrieSyncStatisticsProvider
 }
 
 func createHeartbeatSender(args argHeartbeatSenderFactory) (heartbeatSenderHandler, error) {
@@ -48,12 +49,13 @@ func createRegularHeartbeatSender(args argHeartbeatSenderFactory) (*heartbeatSen
 			redundancyHandler:         args.redundancyHandler,
 			privKey:                   args.privKey,
 		},
-		versionNumber:        args.versionNumber,
-		nodeDisplayName:      args.nodeDisplayName,
-		identity:             args.identity,
-		peerSubType:          args.peerSubType,
-		currentBlockProvider: args.currentBlockProvider,
-		peerTypeProvider:     args.peerTypeProvider,
+		versionNumber:              args.versionNumber,
+		nodeDisplayName:            args.nodeDisplayName,
+		identity:                   args.identity,
+		peerSubType:                args.peerSubType,
+		currentBlockProvider:       args.currentBlockProvider,
+		peerTypeProvider:           args.peerTypeProvider,
+		trieSyncStatisticsProvider: args.trieSyncStatisticsProvider,
 	}
 
 	return newHeartbeatSender(argsSender)
@@ -71,15 +73,16 @@ func createMultikeyHeartbeatSender(args argHeartbeatSenderFactory) (*multikeyHea
 			redundancyHandler:         args.redundancyHandler,
 			privKey:                   args.privKey,
 		},
-		peerTypeProvider:     args.peerTypeProvider,
-		versionNumber:        args.versionNumber,
-		baseVersionNumber:    args.baseVersionNumber,
-		nodeDisplayName:      args.nodeDisplayName,
-		identity:             args.identity,
-		peerSubType:          args.peerSubType,
-		currentBlockProvider: args.currentBlockProvider,
-		managedPeersHolder:   args.managedPeersHolder,
-		shardCoordinator:     args.shardCoordinator,
+		peerTypeProvider:           args.peerTypeProvider,
+		versionNumber:              args.versionNumber,
+		baseVersionNumber:          args.baseVersionNumber,
+		nodeDisplayName:            args.nodeDisplayName,
+		identity:                   args.identity,
+		peerSubType:                args.peerSubType,
+		currentBlockProvider:       args.currentBlockProvider,
+		managedPeersHolder:         args.managedPeersHolder,
+		shardCoordinator:           args.shardCoordinator,
+		trieSyncStatisticsProvider: args.trieSyncStatisticsProvider,
 	}
 
 	return newMultikeyHeartbeatSender(argsSender)

@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createMockSenderArgs() ArgSender {
@@ -333,9 +334,10 @@ func TestSender_GetCurrentNodeTypeShouldNotPanic(t *testing.T) {
 	}()
 
 	args := createMockSenderArgs()
-	senderInstance, _ := NewSender(args)
+	senderInstance, err := NewSender(args)
+	require.Nil(t, err)
 
-	_, _, err := senderInstance.GetCurrentNodeType()
+	_, _, err = senderInstance.GetCurrentNodeType()
 	assert.Nil(t, err)
 
 	_ = senderInstance.Close()
