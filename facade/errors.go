@@ -40,3 +40,6 @@ var ErrNilGenesisBalances = errors.New("nil genesis balances slice")
 
 // ErrEmptyGasConfigs signals that the provided gas configs map is empty
 var ErrEmptyGasConfigs = errors.New("empty gas configs")
+
+// ErrNilStatusMetrics signals that a nil status metrics was provided
+var ErrNilStatusMetrics = errors.New("nil status metrics handler")

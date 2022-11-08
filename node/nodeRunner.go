@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/closing"
 	"github.com/ElrondNetwork/elrond-go-core/core/throttler"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
@@ -22,6 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/gin"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/common/disabled"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/common/goroutines"
 	"github.com/ElrondNetwork/elrond-go/common/statistics"
@@ -296,7 +298,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	}
 
 	log.Debug("creating disabled API services")
-	webServerHandler, err := nr.createHttpServer()
+	webServerHandler, err := nr.createHttpServer(managedStatusCoreComponents)
 	if err != nil {
 		return true, err
 	}
@@ -669,6 +671,7 @@ func getBaseAccountSyncerArgs(
 		StorageMarker:                     storageMarker.NewDisabledStorageMarker(),
 		CheckNodesOnDisk:                  true,
 		UserAccountsSyncStatisticsHandler: trieStatistics.NewTrieSyncStatistics(),
+		AppStatusHandler:                  disabled.NewAppStatusHandler(),
 	}
 }
 
@@ -740,9 +743,17 @@ func (nr *nodeRunner) createApiFacade(
 	return ef, nil
 }
 
-func (nr *nodeRunner) createHttpServer() (shared.UpgradeableHttpServerHandler, error) {
+func (nr *nodeRunner) createHttpServer(managedStatusCoreComponents mainFactory.StatusCoreComponentsHolder) (shared.UpgradeableHttpServerHandler, error) {
+	if check.IfNil(managedStatusCoreComponents) {
+		return nil, ErrNilStatusHandler
+	}
+	initialFacade, err := initial.NewInitialNodeFacade(nr.configs.FlagsConfig.RestApiInterface, nr.configs.FlagsConfig.EnablePprof, managedStatusCoreComponents.StatusMetrics())
+	if err != nil {
+		return nil, err
+	}
+
 	httpServerArgs := gin.ArgsNewWebServer{
-		Facade:          initial.NewInitialNodeFacade(nr.configs.FlagsConfig.RestApiInterface, nr.configs.FlagsConfig.EnablePprof),
+		Facade:          initialFacade,
 		ApiConfig:       *nr.configs.ApiRoutesConfig,
 		AntiFloodConfig: nr.configs.GeneralConfig.WebServerAntiflood,
 	}
