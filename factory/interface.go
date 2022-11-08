@@ -25,6 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	heartbeatData "github.com/ElrondNetwork/elrond-go/heartbeat/data"
+	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -107,8 +108,6 @@ type CoreComponentsHolder interface {
 	Uint64ByteSliceConverter() typeConverters.Uint64ByteSliceConverter
 	AddressPubKeyConverter() core.PubkeyConverter
 	ValidatorPubKeyConverter() core.PubkeyConverter
-	StatusHandlerUtils() factory.StatusHandlersUtils
-	StatusHandler() core.AppStatusHandler
 	PathHandler() storage.PathManagerHandler
 	Watchdog() core.WatchdogTimer
 	AlarmScheduler() core.TimersScheduler
@@ -148,6 +147,9 @@ type StatusCoreComponentsHolder interface {
 	ResourceMonitor() ResourceMonitor
 	NetworkStatistics() NetworkStatisticsProvider
 	TrieSyncStatistics() TrieSyncStatisticsProvider
+	AppStatusHandler() core.AppStatusHandler
+	StatusMetrics() external.StatusMetricsHandler
+	PersistentStatusHandler() PersistentStatusHandler
 	IsInterfaceNil() bool
 }
 
@@ -521,4 +523,10 @@ type TrieSyncStatisticsProvider interface {
 	IncrementIteration()
 	ProcessingTime() time.Duration
 	NumIterations() int
+}
+
+// PersistentStatusHandler defines a persistent status handler
+type PersistentStatusHandler interface {
+	core.AppStatusHandler
+	SetStorage(store storage.Storer) error
 }

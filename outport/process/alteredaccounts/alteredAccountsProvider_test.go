@@ -403,6 +403,7 @@ func testExtractAlteredAccountsFromPoolShouldReturnErrorWhenCastingToVmCommonUse
 							Identifier: []byte(core.BuiltInFunctionESDTTransfer),
 							Topics: [][]byte{
 								[]byte("token0"),
+								big.NewInt(0).Bytes(),
 							},
 						},
 						{
@@ -410,6 +411,7 @@ func testExtractAlteredAccountsFromPoolShouldReturnErrorWhenCastingToVmCommonUse
 							Identifier: []byte(core.BuiltInFunctionESDTTransfer),
 							Topics: [][]byte{
 								[]byte("token0"),
+								big.NewInt(0).Bytes(),
 							},
 						},
 					},
@@ -452,6 +454,7 @@ func testExtractAlteredAccountsFromPoolShouldIncludeESDT(t *testing.T) {
 							Identifier: []byte(core.BuiltInFunctionESDTTransfer),
 							Topics: [][]byte{
 								[]byte("token0"),
+								big.NewInt(0).Bytes(),
 							},
 						},
 						{
@@ -459,6 +462,7 @@ func testExtractAlteredAccountsFromPoolShouldIncludeESDT(t *testing.T) {
 							Identifier: []byte(core.BuiltInFunctionESDTTransfer),
 							Topics: [][]byte{
 								[]byte("token0"),
+								big.NewInt(0).Bytes(),
 							},
 						},
 					},
@@ -699,6 +703,7 @@ func testExtractAlteredAccountsFromPoolAddressHasBalanceChangeEsdtAndfNft(t *tes
 							Identifier: []byte(core.BuiltInFunctionESDTTransfer),
 							Topics: [][]byte{
 								[]byte("esdt"),
+								big.NewInt(1).Bytes(),
 							},
 						},
 						{
@@ -707,6 +712,7 @@ func testExtractAlteredAccountsFromPoolAddressHasBalanceChangeEsdtAndfNft(t *tes
 							Topics: [][]byte{
 								[]byte("nft"),
 								big.NewInt(38).Bytes(),
+								big.NewInt(1).Bytes(),
 							},
 						},
 					},
@@ -808,6 +814,7 @@ func testExtractAlteredAccountsFromPoolAddressHasMultipleNfts(t *testing.T) {
 							Identifier: []byte(core.BuiltInFunctionESDTTransfer),
 							Topics: [][]byte{
 								[]byte("esdttoken"),
+								big.NewInt(0).Bytes(),
 							},
 						},
 						{

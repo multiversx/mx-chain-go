@@ -3,6 +3,7 @@ package economicsmocks
 import (
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 )
 
@@ -38,6 +39,7 @@ type EconomicsHandlerStub struct {
 	ComputeGasUsedAndFeeBasedOnRefundValueCalled   func(tx data.TransactionWithFeeHandler, refundValue *big.Int) (uint64, *big.Int)
 	ComputeTxFeeBasedOnGasUsedCalled               func(tx data.TransactionWithFeeHandler, gasUsed uint64) *big.Int
 	ComputeGasLimitBasedOnBalanceCalled            func(tx data.TransactionWithFeeHandler, balance *big.Int) (uint64, error)
+	SetStatusHandlerCalled                         func(statusHandler core.AppStatusHandler) error
 }
 
 // ComputeFeeForProcessing -
@@ -289,6 +291,14 @@ func (e *EconomicsHandlerStub) ComputeTxFeeBasedOnGasUsed(tx data.TransactionWit
 		return e.ComputeTxFeeBasedOnGasUsedCalled(tx, gasUsed)
 	}
 
+	return nil
+}
+
+// SetStatusHandler -
+func (e *EconomicsHandlerStub) SetStatusHandler(statusHandler core.AppStatusHandler) error {
+	if e.SetStatusHandlerCalled != nil {
+		return e.SetStatusHandlerCalled(statusHandler)
+	}
 	return nil
 }
 

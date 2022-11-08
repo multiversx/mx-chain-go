@@ -141,13 +141,14 @@ type ProcessComponentsFactoryArgs struct {
 	WorkingDir             string
 	HistoryRepo            dblookupext.HistoryRepository
 
-	Data                factory.DataComponentsHolder
-	CoreData            factory.CoreComponentsHolder
-	Crypto              factory.CryptoComponentsHolder
-	State               factory.StateComponentsHolder
-	Network             factory.NetworkComponentsHolder
-	BootstrapComponents factory.BootstrapComponentsHolder
-	StatusComponents    factory.StatusComponentsHolder
+	Data                 factory.DataComponentsHolder
+	CoreData             factory.CoreComponentsHolder
+	Crypto               factory.CryptoComponentsHolder
+	State                factory.StateComponentsHolder
+	Network              factory.NetworkComponentsHolder
+	BootstrapComponents  factory.BootstrapComponentsHolder
+	StatusComponents     factory.StatusComponentsHolder
+	StatusCoreComponents factory.StatusCoreComponentsHolder
 }
 
 type processComponentsFactory struct {
@@ -173,13 +174,14 @@ type processComponentsFactory struct {
 	importHandler          update.ImportHandler
 	esdtNftStorage         vmcommon.ESDTNFTStorageHandler
 
-	data                factory.DataComponentsHolder
-	coreData            factory.CoreComponentsHolder
-	crypto              factory.CryptoComponentsHolder
-	state               factory.StateComponentsHolder
-	network             factory.NetworkComponentsHolder
-	bootstrapComponents factory.BootstrapComponentsHolder
-	statusComponents    factory.StatusComponentsHolder
+	data                 factory.DataComponentsHolder
+	coreData             factory.CoreComponentsHolder
+	crypto               factory.CryptoComponentsHolder
+	state                factory.StateComponentsHolder
+	network              factory.NetworkComponentsHolder
+	bootstrapComponents  factory.BootstrapComponentsHolder
+	statusComponents     factory.StatusComponentsHolder
+	statusCoreComponents factory.StatusCoreComponentsHolder
 }
 
 // NewProcessComponentsFactory will return a new instance of processComponentsFactory
@@ -215,6 +217,7 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		workingDir:             args.WorkingDir,
 		historyRepo:            args.HistoryRepo,
 		epochNotifier:          args.CoreData.EpochNotifier(),
+		statusCoreComponents:   args.StatusCoreComponents,
 	}, nil
 }
 
@@ -775,7 +778,7 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler epochSt
 			Finality:             process.BlockFinality,
 			PeerMiniBlocksSyncer: peerMiniBlockSyncer,
 			RoundHandler:         pcf.coreData.RoundHandler(),
-			AppStatusHandler:     pcf.coreData.StatusHandler(),
+			AppStatusHandler:     pcf.statusCoreComponents.AppStatusHandler(),
 			EnableEpochsHandler:  pcf.coreData.EnableEpochsHandler(),
 		}
 		epochStartTrigger, err := shardchain.NewEpochStartTrigger(argEpochStart)
@@ -796,7 +799,7 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler epochSt
 			Storage:            pcf.data.StorageService(),
 			Marshalizer:        pcf.coreData.InternalMarshalizer(),
 			Hasher:             pcf.coreData.Hasher(),
-			AppStatusHandler:   pcf.coreData.StatusHandler(),
+			AppStatusHandler:   pcf.statusCoreComponents.AppStatusHandler(),
 			DataPool:           pcf.data.Datapool(),
 		}
 		epochStartTrigger, err := metachain.NewEpochStartTrigger(argEpochStart)
@@ -1698,6 +1701,7 @@ func (pcf *processComponentsFactory) createExportFactoryHandler(
 	argsExporter := updateFactory.ArgsExporter{
 		CoreComponents:            pcf.coreData,
 		CryptoComponents:          pcf.crypto,
+		StatusCoreComponents:      pcf.statusCoreComponents,
 		HeaderValidator:           headerValidator,
 		DataPool:                  pcf.data.Datapool(),
 		StorageService:            pcf.data.StorageService(),
@@ -1872,6 +1876,12 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	}
 	if check.IfNil(args.StatusComponents) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilStatusComponentsHolder)
+	}
+	if check.IfNil(args.StatusCoreComponents) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilStatusCoreComponents)
+	}
+	if check.IfNil(args.StatusCoreComponents.AppStatusHandler()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilAppStatusHandler)
 	}
 
 	return nil

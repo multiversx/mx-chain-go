@@ -43,6 +43,7 @@ import (
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	"github.com/ElrondNetwork/elrond-go/testscommon/factory"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/outport"
@@ -80,21 +81,26 @@ func createArgBaseProcessor(
 		},
 	}
 
+	statusCoreComponents := &factory.StatusCoreComponentsStub{
+		AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{},
+	}
+
 	return blproc.ArgBaseProcessor{
-		CoreComponents:      coreComponents,
-		DataComponents:      dataComponents,
-		BootstrapComponents: bootstrapComponents,
-		StatusComponents:    statusComponents,
-		Config:              config.Config{},
-		AccountsDB:          accountsDb,
-		ForkDetector:        &mock.ForkDetectorMock{},
-		NodesCoordinator:    nodesCoordinator,
-		FeeHandler:          &mock.FeeAccumulatorStub{},
-		RequestHandler:      &testscommon.RequestHandlerStub{},
-		BlockChainHook:      &testscommon.BlockChainHookStub{},
-		TxCoordinator:       &testscommon.TransactionCoordinatorMock{},
-		EpochStartTrigger:   &mock.EpochStartTriggerStub{},
-		HeaderValidator:     headerValidator,
+		CoreComponents:       coreComponents,
+		DataComponents:       dataComponents,
+		BootstrapComponents:  bootstrapComponents,
+		StatusComponents:     statusComponents,
+		StatusCoreComponents: statusCoreComponents,
+		Config:               config.Config{},
+		AccountsDB:           accountsDb,
+		ForkDetector:         &mock.ForkDetectorMock{},
+		NodesCoordinator:     nodesCoordinator,
+		FeeHandler:           &mock.FeeAccumulatorStub{},
+		RequestHandler:       &testscommon.RequestHandlerStub{},
+		BlockChainHook:       &testscommon.BlockChainHookStub{},
+		TxCoordinator:        &testscommon.TransactionCoordinatorMock{},
+		EpochStartTrigger:    &mock.EpochStartTriggerStub{},
+		HeaderValidator:      headerValidator,
 		BootStorer: &mock.BoostrapStorerMock{
 			PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
 				return nil
@@ -668,9 +674,19 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
-				coreCompCopy := *coreComponents
-				coreCompCopy.StatusField = nil
-				return createArgBaseProcessor(&coreCompCopy, dataComponents, bootstrapComponents, statusComponents)
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.StatusCoreComponents = nil
+				return args
+			},
+			expectedErr: process.ErrNilStatusCoreComponentsHolder,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.StatusCoreComponents = &factory.StatusCoreComponentsStub{
+					AppStatusHandlerField: nil,
+				}
+				return args
 			},
 			expectedErr: process.ErrNilAppStatusHandler,
 		},
@@ -2941,6 +2957,9 @@ func TestBaseProcessor_getPruningHandler(t *testing.T) {
 		StateTriesConfig: config.StateTriesConfig{
 			UserStatePruningQueueSize: 6,
 		},
+	}
+	arguments.StatusCoreComponents = &factory.StatusCoreComponentsStub{
+		AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{},
 	}
 	bp, _ := blproc.NewShardProcessor(arguments)
 

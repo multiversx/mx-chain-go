@@ -13,46 +13,26 @@ const (
 	idxTokenIDInTopics         = 0
 	idxTokenNonceInTopics      = 1
 	idxReceiverAddressInTopics = 3
-	issueFungibleESDTFunc      = "issue"
-	issueSemiFungibleESDTFunc  = "issueSemiFungible"
-	issueNonFungibleESDTFunc   = "issueNonFungible"
-	registerMetaESDTFunc       = "registerMetaESDT"
-	changeSFTToMetaESDTFunc    = "changeSFTToMetaESDT"
-	transferOwnershipFunc      = "transferOwnership"
-	registerAndSetRolesFunc    = "registerAndSetAllRoles"
 )
 
 type tokensProcessor struct {
-	shardCoordinator            sharding.Coordinator
-	fungibleTokensIdentifiers   map[string]struct{}
-	nonFungibleTokensIdentifier map[string]struct{}
+	shardCoordinator sharding.Coordinator
+	tokensIdentifier map[string]struct{}
 }
 
 func newTokensProcessor(shardCoordinator sharding.Coordinator) *tokensProcessor {
 	return &tokensProcessor{
-		fungibleTokensIdentifiers: map[string]struct{}{
+		tokensIdentifier: map[string]struct{}{
 			core.BuiltInFunctionESDTTransfer:         {},
 			core.BuiltInFunctionESDTBurn:             {},
 			core.BuiltInFunctionESDTLocalMint:        {},
 			core.BuiltInFunctionESDTLocalBurn:        {},
 			core.BuiltInFunctionESDTWipe:             {},
 			core.BuiltInFunctionMultiESDTNFTTransfer: {},
-			transferOwnershipFunc:                    {},
-			issueFungibleESDTFunc:                    {},
-			registerAndSetRolesFunc:                  {},
-		},
-		nonFungibleTokensIdentifier: map[string]struct{}{
 			core.BuiltInFunctionESDTNFTTransfer:      {},
 			core.BuiltInFunctionESDTNFTBurn:          {},
 			core.BuiltInFunctionESDTNFTAddQuantity:   {},
 			core.BuiltInFunctionESDTNFTCreate:        {},
-			core.BuiltInFunctionMultiESDTNFTTransfer: {},
-			issueSemiFungibleESDTFunc:                {},
-			issueNonFungibleESDTFunc:                 {},
-			registerMetaESDTFunc:                     {},
-			changeSFTToMetaESDTFunc:                  {},
-			transferOwnershipFunc:                    {},
-			registerAndSetRolesFunc:                  {},
 		},
 		shardCoordinator: shardCoordinator,
 	}
@@ -79,32 +59,21 @@ func (tp *tokensProcessor) processEvent(
 	event data.EventHandler,
 	markedAlteredAccounts map[string]*markedAlteredAccount,
 ) error {
-	_, isEsdtOperation := tp.fungibleTokensIdentifiers[string(event.GetIdentifier())]
-	if isEsdtOperation {
-		err := tp.extractEsdtData(event, zeroBigInt, markedAlteredAccounts)
-		if err != nil {
-			log.Debug("cannot extract esdt data", "error", err)
-			return err
-		}
-
+	_, isESDT := tp.tokensIdentifier[string(event.GetIdentifier())]
+	if !isESDT {
 		return nil
 	}
 
-	_, isNftOperation := tp.nonFungibleTokensIdentifier[string(event.GetIdentifier())]
-	if isNftOperation {
-		topics := event.GetTopics()
-		if len(topics) == 0 {
-			return nil
-		}
+	topics := event.GetTopics()
+	if len(topics) < idxTokenNonceInTopics+1 {
+		return nil
+	}
 
-		nonce := topics[idxTokenNonceInTopics]
-		nonceBigInt := big.NewInt(0).SetBytes(nonce)
-		err := tp.extractEsdtData(event, nonceBigInt, markedAlteredAccounts)
-		if err != nil {
-			log.Debug("cannot extract nft data", "error", err)
-			return nil
-		}
-
+	nonce := topics[idxTokenNonceInTopics]
+	nonceBigInt := big.NewInt(0).SetBytes(nonce)
+	err := tp.extractEsdtData(event, nonceBigInt, markedAlteredAccounts)
+	if err != nil {
+		log.Debug("cannot extract esdt data", "error", err)
 		return nil
 	}
 

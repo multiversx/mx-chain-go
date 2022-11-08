@@ -20,7 +20,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	marshalizerFactory "github.com/ElrondNetwork/elrond-go-core/marshal/factory"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	nodeFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/enablers"
 	commonFactory "github.com/ElrondNetwork/elrond-go/common/factory"
@@ -31,7 +30,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
-	"github.com/ElrondNetwork/elrond-go/node/metrics"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
@@ -48,32 +46,30 @@ var log = logger.GetOrCreate("factory")
 
 // CoreComponentsFactoryArgs holds the arguments needed for creating a core components factory
 type CoreComponentsFactoryArgs struct {
-	Config                config.Config
-	ConfigPathsHolder     config.ConfigurationPathsHolder
-	EpochConfig           config.EpochConfig
-	RoundConfig           config.RoundConfig
-	RatingsConfig         config.RatingsConfig
-	EconomicsConfig       config.EconomicsConfig
-	ImportDbConfig        config.ImportDbConfig
-	NodesFilename         string
-	WorkingDirectory      string
-	ChanStopNodeProcess   chan endProcess.ArgEndProcess
-	StatusHandlersFactory nodeFactory.StatusHandlerUtilsFactory
+	Config              config.Config
+	ConfigPathsHolder   config.ConfigurationPathsHolder
+	EpochConfig         config.EpochConfig
+	RoundConfig         config.RoundConfig
+	RatingsConfig       config.RatingsConfig
+	EconomicsConfig     config.EconomicsConfig
+	ImportDbConfig      config.ImportDbConfig
+	NodesFilename       string
+	WorkingDirectory    string
+	ChanStopNodeProcess chan endProcess.ArgEndProcess
 }
 
 // coreComponentsFactory is responsible for creating the core components
 type coreComponentsFactory struct {
-	config                config.Config
-	configPathsHolder     config.ConfigurationPathsHolder
-	epochConfig           config.EpochConfig
-	roundConfig           config.RoundConfig
-	ratingsConfig         config.RatingsConfig
-	economicsConfig       config.EconomicsConfig
-	importDbConfig        config.ImportDbConfig
-	nodesFilename         string
-	workingDir            string
-	chanStopNodeProcess   chan endProcess.ArgEndProcess
-	statusHandlersFactory nodeFactory.StatusHandlerUtilsFactory
+	config              config.Config
+	configPathsHolder   config.ConfigurationPathsHolder
+	epochConfig         config.EpochConfig
+	roundConfig         config.RoundConfig
+	ratingsConfig       config.RatingsConfig
+	economicsConfig     config.EconomicsConfig
+	importDbConfig      config.ImportDbConfig
+	nodesFilename       string
+	workingDir          string
+	chanStopNodeProcess chan endProcess.ArgEndProcess
 }
 
 // coreComponents is the DTO used for core components
@@ -86,7 +82,6 @@ type coreComponents struct {
 	uint64ByteSliceConverter      typeConverters.Uint64ByteSliceConverter
 	addressPubKeyConverter        core.PubkeyConverter
 	validatorPubKeyConverter      core.PubkeyConverter
-	statusHandlersUtils           nodeFactory.StatusHandlersUtils
 	pathHandler                   storage.PathManagerHandler
 	syncTimer                     ntp.SyncTimer
 	roundHandler                  consensus.RoundHandler
@@ -117,17 +112,16 @@ type coreComponents struct {
 // NewCoreComponentsFactory initializes the factory which is responsible to creating core components
 func NewCoreComponentsFactory(args CoreComponentsFactoryArgs) (*coreComponentsFactory, error) {
 	return &coreComponentsFactory{
-		config:                args.Config,
-		configPathsHolder:     args.ConfigPathsHolder,
-		epochConfig:           args.EpochConfig,
-		roundConfig:           args.RoundConfig,
-		ratingsConfig:         args.RatingsConfig,
-		importDbConfig:        args.ImportDbConfig,
-		economicsConfig:       args.EconomicsConfig,
-		workingDir:            args.WorkingDirectory,
-		chanStopNodeProcess:   args.ChanStopNodeProcess,
-		nodesFilename:         args.NodesFilename,
-		statusHandlersFactory: args.StatusHandlersFactory,
+		config:              args.Config,
+		configPathsHolder:   args.ConfigPathsHolder,
+		epochConfig:         args.EpochConfig,
+		roundConfig:         args.RoundConfig,
+		ratingsConfig:       args.RatingsConfig,
+		importDbConfig:      args.ImportDbConfig,
+		economicsConfig:     args.EconomicsConfig,
+		workingDir:          args.WorkingDirectory,
+		chanStopNodeProcess: args.ChanStopNodeProcess,
+		nodesFilename:       args.NodesFilename,
 	}, nil
 }
 
@@ -303,31 +297,6 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, err
 	}
 
-	statusHandlersInfo, err := ccf.statusHandlersFactory.Create(internalMarshalizer, uint64ByteSliceConverter)
-	if err != nil {
-		return nil, err
-	}
-
-	err = metrics.InitBaseMetrics(statusHandlersInfo)
-	if err != nil {
-		return nil, err
-	}
-
-	err = metrics.InitConfigMetrics(statusHandlersInfo, ccf.epochConfig, ccf.economicsConfig, genesisNodesConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	err = metrics.InitRatingsMetrics(statusHandlersInfo, ccf.ratingsConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	err = economicsData.SetStatusHandler(statusHandlersInfo.StatusHandler())
-	if err != nil {
-		log.Debug("cannot set status handler to economicsData", "error", err)
-	}
-
 	argsNodesShuffler := &nodesCoordinator.NodesShufflerArgs{
 		NodesShard:           genesisNodesConfig.MinNumberOfShardNodes(),
 		NodesMeta:            genesisNodesConfig.MinNumberOfMetaNodes(),
@@ -363,7 +332,6 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		uint64ByteSliceConverter:      uint64ByteSliceConverter,
 		addressPubKeyConverter:        addressPubkeyConverter,
 		validatorPubKeyConverter:      validatorPubkeyConverter,
-		statusHandlersUtils:           statusHandlersInfo,
 		pathHandler:                   pathHandler,
 		syncTimer:                     syncer,
 		roundHandler:                  roundHandler,
@@ -394,9 +362,6 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 
 // Close closes all underlying components
 func (cc *coreComponents) Close() error {
-	if !check.IfNil(cc.statusHandlersUtils) {
-		cc.statusHandlersUtils.StatusHandler().Close()
-	}
 	if !check.IfNil(cc.alarmScheduler) {
 		cc.alarmScheduler.Close()
 	}
