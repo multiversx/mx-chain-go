@@ -8,6 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
+	"github.com/ElrondNetwork/elrond-go-crypto/signing"
+	"github.com/ElrondNetwork/elrond-go-crypto/signing/secp256k1"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	commonFactory "github.com/ElrondNetwork/elrond-go/common/factory"
@@ -291,6 +293,9 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 
 	appStatusHandler := statusHandlerMock.NewAppStatusHandlerMock()
 
+	p2pKeyGenerator := signing.NewKeyGenerator(secp256k1.NewSecp256k1())
+	p2pKey, _ := p2pKeyGenerator.GeneratePair()
+
 	return networkComp.NetworkComponentsFactoryArgs{
 		P2pConfig:     p2pCfg,
 		MainConfig:    mainConfig,
@@ -311,6 +316,8 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 		},
 		Syncer:            &p2pFactory.LocalSyncTimer{},
 		NodeOperationMode: p2p.NormalOperation,
+		P2pPrivateKey:     p2pKey,
+		P2pSingleSigner:   &mock.SinglesignMock{},
 	}
 }
 

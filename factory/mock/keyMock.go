@@ -1,7 +1,7 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 )
 
@@ -50,7 +50,11 @@ func (sspk *PublicKeyMock) IsInterfaceNil() bool {
 
 // ToByteArray -
 func (sk *PrivateKeyStub) ToByteArray() ([]byte, error) {
-	return sk.ToByteArrayHandler()
+	if sk.ToByteArrayHandler != nil {
+		return sk.ToByteArrayHandler()
+	}
+
+	return []byte{}, nil
 }
 
 // GeneratePublic -
