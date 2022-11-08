@@ -4,8 +4,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 )
 
-const TopicRequestSuffix = topicRequestSuffix
-
 func MakeDiffList(
 	allConnectedPeers []core.PeerID,
 	excludedConnectedPeers []core.PeerID,
@@ -14,10 +12,10 @@ func MakeDiffList(
 	return makeDiffList(allConnectedPeers, excludedConnectedPeers)
 }
 
-func (dplc *DiffPeerListCreator) MainTopic() string {
+func (dplc *diffPeerListCreator) MainTopic() string {
 	return dplc.mainTopic
 }
 
-func (dplc *DiffPeerListCreator) ExcludedPeersOnTopic() string {
+func (dplc *diffPeerListCreator) ExcludedPeersOnTopic() string {
 	return dplc.excludePeersFromTopic
 }

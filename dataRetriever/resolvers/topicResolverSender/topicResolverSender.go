@@ -16,8 +16,6 @@ import (
 )
 
 const (
-	// topicRequestSuffix represents the topic name suffix
-	topicRequestSuffix = "_REQUEST"
 	minPeersToQuery    = 2
 	preferredPeerIndex = -1
 )
@@ -146,7 +144,7 @@ func (trs *topicResolverSender) SendOnRequestTopic(rd *dataRetriever.RequestData
 		return err
 	}
 
-	topicToSendRequest := trs.topicName + topicRequestSuffix
+	topicToSendRequest := trs.topicName + dataRetriever.TopicRequestSuffix
 
 	var numSentIntra, numSentCross int
 	var intraPeers, crossPeers []core.PeerID
@@ -328,7 +326,7 @@ func (trs *topicResolverSender) SetResolverDebugHandler(handler dataRetriever.Re
 
 // RequestTopic returns the topic with the request suffix used for sending requests
 func (trs *topicResolverSender) RequestTopic() string {
-	return trs.topicName + topicRequestSuffix
+	return trs.topicName + dataRetriever.TopicRequestSuffix
 }
 
 // TargetShardID returns the target shard ID for this resolver should serve data

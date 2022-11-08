@@ -316,7 +316,8 @@ func (brcf *baseResolversContainerFactory) createOneResolverSenderWithSpecifiedN
 		"topic", topic, "intraShardTopic", brcf.intraShardTopic, "excludedTopic", excludedTopic,
 		"numCrossShardPeers", numCrossShardPeers, "numIntraShardPeers", numIntraShardPeers)
 
-	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(brcf.messenger, topic, brcf.intraShardTopic, excludedTopic)
+	topicForRequests := topic + dataRetriever.TopicRequestSuffix
+	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(brcf.messenger, topicForRequests, brcf.intraShardTopic, excludedTopic)
 	if err != nil {
 		return nil, err
 	}

@@ -11,3 +11,6 @@ const RewardTxPoolName = "rewardTxPool"
 
 // ValidatorsInfoPoolName defines the name of the validators info pool
 const ValidatorsInfoPoolName = "validatorsInfoPool"
+
+// TopicRequestSuffix defines the topic name suffix
+const TopicRequestSuffix = "_REQUEST"

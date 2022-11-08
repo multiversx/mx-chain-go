@@ -9,24 +9,24 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 )
 
-var _ dataRetriever.PeerListCreator = (*DiffPeerListCreator)(nil)
+var _ dataRetriever.PeerListCreator = (*diffPeerListCreator)(nil)
 
-// DiffPeerListCreator can create a peer list by making the set difference between peers on
+// diffPeerListCreator can create a peer list by making the set difference between peers on
 // main topic and the exclusion topic. If the resulting list is empty, will return the peers on the main topic.
-type DiffPeerListCreator struct {
+type diffPeerListCreator struct {
 	messenger             dataRetriever.MessageHandler
 	mainTopic             string
 	intraShardTopic       string
 	excludePeersFromTopic string
 }
 
-// NewDiffPeerListCreator is the constructor for DiffPeerListCreator
+// NewDiffPeerListCreator is the constructor for diffPeerListCreator
 func NewDiffPeerListCreator(
 	messenger dataRetriever.MessageHandler,
 	mainTopic string,
 	intraShardTopic string,
 	excludePeersFromTopic string,
-) (*DiffPeerListCreator, error) {
+) (*diffPeerListCreator, error) {
 	if check.IfNil(messenger) {
 		return nil, dataRetriever.ErrNilMessenger
 	}
@@ -37,7 +37,7 @@ func NewDiffPeerListCreator(
 		return nil, fmt.Errorf("%w for intraShardTopic", dataRetriever.ErrEmptyString)
 	}
 
-	return &DiffPeerListCreator{
+	return &diffPeerListCreator{
 		messenger:             messenger,
 		mainTopic:             mainTopic,
 		intraShardTopic:       intraShardTopic,
@@ -46,7 +46,7 @@ func NewDiffPeerListCreator(
 }
 
 // CrossShardPeerList will return the generated list of cross shard peers
-func (dplc *DiffPeerListCreator) CrossShardPeerList() []core.PeerID {
+func (dplc *diffPeerListCreator) CrossShardPeerList() []core.PeerID {
 	allConnectedPeers := dplc.messenger.ConnectedPeersOnTopic(dplc.mainTopic)
 	mainTopicHasPeers := len(allConnectedPeers) != 0
 	if !mainTopicHasPeers {
@@ -69,17 +69,17 @@ func (dplc *DiffPeerListCreator) CrossShardPeerList() []core.PeerID {
 }
 
 // IntraShardPeerList returns the intra shard peer list
-func (dplc *DiffPeerListCreator) IntraShardPeerList() []core.PeerID {
+func (dplc *diffPeerListCreator) IntraShardPeerList() []core.PeerID {
 	return dplc.messenger.ConnectedPeersOnTopic(dplc.intraShardTopic)
 }
 
 // FullHistoryList returns the full history peers list
-func (dplc *DiffPeerListCreator) FullHistoryList() []core.PeerID {
+func (dplc *diffPeerListCreator) FullHistoryList() []core.PeerID {
 	return dplc.messenger.ConnectedFullHistoryPeersOnTopic(dplc.intraShardTopic)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (dplc *DiffPeerListCreator) IsInterfaceNil() bool {
+func (dplc *diffPeerListCreator) IsInterfaceNil() bool {
 	return dplc == nil
 }
 
