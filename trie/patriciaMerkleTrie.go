@@ -29,9 +29,6 @@ const (
 
 const rootDepthLevel = 0
 
-// EmptyTrieHash returns the value with empty trie hash
-var EmptyTrieHash = make([]byte, 32)
-
 type patriciaMerkleTrie struct {
 	root node
 
@@ -80,22 +77,22 @@ func NewTrie(
 
 // Get starts at the root and searches for the given key.
 // If the key is present in the tree, it returns the corresponding value
-func (tr *patriciaMerkleTrie) Get(key []byte) ([]byte, error) {
+func (tr *patriciaMerkleTrie) Get(key []byte) ([]byte, uint32, error) {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
 	if tr.root == nil {
-		return nil, nil
+		return nil, 0, nil
 	}
 	hexKey := keyBytesToHex(key)
 
-	val, err := tr.root.tryGet(hexKey, tr.trieStorage)
+	val, depth, err := tr.root.tryGet(hexKey, rootDepthLevel, tr.trieStorage)
 	if err != nil {
 		err = fmt.Errorf("trie get error: %w, for key %v", err, hex.EncodeToString(key))
-		return nil, err
+		return nil, depth, err
 	}
 
-	return val, nil
+	return val, depth, nil
 }
 
 // Update updates the value at the given key.
@@ -199,7 +196,7 @@ func (tr *patriciaMerkleTrie) RootHash() ([]byte, error) {
 
 func (tr *patriciaMerkleTrie) getRootHash() ([]byte, error) {
 	if tr.root == nil {
-		return EmptyTrieHash, nil
+		return common.EmptyTrieHash, nil
 	}
 
 	hash := tr.root.getHash()
@@ -274,7 +271,7 @@ func (tr *patriciaMerkleTrie) RecreateFromEpoch(options common.RootHashHolder) (
 }
 
 func (tr *patriciaMerkleTrie) recreate(root []byte, tsm common.StorageManager) (*patriciaMerkleTrie, error) {
-	if emptyTrie(root) {
+	if common.IsEmptyTrie(root) {
 		return NewTrie(
 			tr.trieStorage,
 			tr.marshalizer,
@@ -318,16 +315,6 @@ func (tr *patriciaMerkleTrie) String() string {
 // IsInterfaceNil returns true if there is no value under the interface
 func (tr *patriciaMerkleTrie) IsInterfaceNil() bool {
 	return tr == nil
-}
-
-func emptyTrie(root []byte) bool {
-	if len(root) == 0 {
-		return true
-	}
-	if bytes.Equal(root, EmptyTrieHash) {
-		return true
-	}
-	return false
 }
 
 // GetObsoleteHashes resets the oldHashes and oldRoot variables and returns the old hashes

@@ -21,13 +21,14 @@ var expectedErr = errors.New("expected error")
 
 func createMockHeartbeatSenderArgs(argBase argBaseSender) argHeartbeatSender {
 	return argHeartbeatSender{
-		argBaseSender:        argBase,
-		versionNumber:        "v1",
-		nodeDisplayName:      "node",
-		identity:             "identity",
-		peerSubType:          core.RegularPeer,
-		currentBlockProvider: &mock.CurrentBlockProviderStub{},
-		peerTypeProvider:     &mock.PeerTypeProviderStub{},
+		argBaseSender:              argBase,
+		versionNumber:              "v1",
+		nodeDisplayName:            "node",
+		identity:                   "identity",
+		peerSubType:                core.RegularPeer,
+		currentBlockProvider:       &mock.CurrentBlockProviderStub{},
+		peerTypeProvider:           &mock.PeerTypeProviderStub{},
+		trieSyncStatisticsProvider: &testscommon.SizeSyncStatisticsHandlerStub{},
 	}
 }
 
@@ -80,7 +81,7 @@ func TestNewHeartbeatSender(t *testing.T) {
 		assert.True(t, strings.Contains(err.Error(), "timeBetweenSends"))
 		assert.False(t, strings.Contains(err.Error(), "timeBetweenSendsWhenError"))
 	})
-	t.Run("invalid time between sends should error", func(t *testing.T) {
+	t.Run("invalid time between sends when error should error", func(t *testing.T) {
 		t.Parallel()
 
 		argBase := createMockBaseArgs()
@@ -186,6 +187,16 @@ func TestNewHeartbeatSender(t *testing.T) {
 
 		assert.Nil(t, senderInstance)
 		assert.Equal(t, heartbeat.ErrNilPeerTypeProvider, err)
+	})
+	t.Run("nil trie sync statistics provider should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockHeartbeatSenderArgs(createMockBaseArgs())
+		args.trieSyncStatisticsProvider = nil
+		senderInstance, err := newHeartbeatSender(args)
+
+		assert.Nil(t, senderInstance)
+		assert.Equal(t, heartbeat.ErrNilTrieSyncStatisticsProvider, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
@@ -297,6 +308,7 @@ func TestHeartbeatSender_execute(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
+		providedNumTrieNodesSynced := 100
 		argsBase := createMockBaseArgs()
 		broadcastCalled := false
 		argsBase.messenger = &p2pmocks.MessengerStub{
@@ -308,23 +320,25 @@ func TestHeartbeatSender_execute(t *testing.T) {
 				pk := argsBase.privKey.GeneratePublic()
 				pkBytes, _ := pk.ToByteArray()
 				assert.Equal(t, pkBytes, recoveredMessage.Pubkey)
+				assert.Equal(t, uint64(providedNumTrieNodesSynced), recoveredMessage.NumTrieNodesSynced)
 				broadcastCalled = true
 			},
 		}
 
 		args := createMockHeartbeatSenderArgs(argsBase)
-
 		args.currentBlockProvider = &mock.CurrentBlockProviderStub{
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 				return &testscommon.HeaderHandlerStub{}
 			},
 		}
-
 		providedPeerType := common.EligibleList
 		args.peerTypeProvider = &mock.PeerTypeProviderStub{
 			ComputeForPubKeyCalled: func(pubKey []byte) (common.PeerType, uint32, error) {
 				return providedPeerType, 0, nil
 			},
+		}
+		args.trieSyncStatisticsProvider = &testscommon.SizeSyncStatisticsHandlerStub{
+			NumProcessedField: providedNumTrieNodesSynced,
 		}
 
 		senderInstance, _ := newHeartbeatSender(args)

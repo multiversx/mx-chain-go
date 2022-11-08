@@ -41,7 +41,8 @@ func createMockMultikeyHeartbeatSenderArgs(argBase argBaseSender) argMultikeyHea
 				return true
 			},
 		},
-		shardCoordinator: createShardCoordinatorInShard(0),
+		shardCoordinator:           createShardCoordinatorInShard(0),
+		trieSyncStatisticsProvider: &testscommon.SizeSyncStatisticsHandlerStub{},
 	}
 }
 
@@ -406,7 +407,7 @@ func TestMultikeyHeartbeatSender_generateMessageBytes(t *testing.T) {
 		versionNumber := strings.Repeat("a", maxSizeInBytes+1)
 		nodeDisplayName := "a"
 		identity := "b"
-		buff, err := senderInstance.generateMessageBytes(versionNumber, nodeDisplayName, identity, 0, []byte("public key"))
+		buff, err := senderInstance.generateMessageBytes(versionNumber, nodeDisplayName, identity, 0, []byte("public key"), 0)
 
 		assert.True(t, errors.Is(err, heartbeat.ErrPropertyTooLong))
 		assert.True(t, strings.Contains(err.Error(), "versionNumber"))
@@ -421,7 +422,7 @@ func TestMultikeyHeartbeatSender_generateMessageBytes(t *testing.T) {
 		versionNumber := "a"
 		nodeDisplayName := strings.Repeat("a", maxSizeInBytes+1)
 		identity := "b"
-		buff, err := senderInstance.generateMessageBytes(versionNumber, nodeDisplayName, identity, 0, []byte("public key"))
+		buff, err := senderInstance.generateMessageBytes(versionNumber, nodeDisplayName, identity, 0, []byte("public key"), 0)
 
 		assert.True(t, errors.Is(err, heartbeat.ErrPropertyTooLong))
 		assert.True(t, strings.Contains(err.Error(), "nodeDisplayName"))
@@ -436,7 +437,7 @@ func TestMultikeyHeartbeatSender_generateMessageBytes(t *testing.T) {
 		versionNumber := "a"
 		nodeDisplayName := "b"
 		identity := strings.Repeat("a", maxSizeInBytes+1)
-		buff, err := senderInstance.generateMessageBytes(versionNumber, nodeDisplayName, identity, 0, []byte("public key"))
+		buff, err := senderInstance.generateMessageBytes(versionNumber, nodeDisplayName, identity, 0, []byte("public key"), 0)
 
 		assert.True(t, errors.Is(err, heartbeat.ErrPropertyTooLong))
 		assert.True(t, strings.Contains(err.Error(), "identity"))

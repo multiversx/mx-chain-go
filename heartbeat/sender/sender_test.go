@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createMockSenderArgs() ArgSender {
@@ -128,7 +129,7 @@ func TestNewSender(t *testing.T) {
 		assert.True(t, strings.Contains(err.Error(), "timeBetweenSends"))
 		assert.False(t, strings.Contains(err.Error(), "timeBetweenSendsWhenError"))
 	})
-	t.Run("invalid time between sends should error", func(t *testing.T) {
+	t.Run("invalid time between sends when error should error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockSenderArgs()
@@ -333,9 +334,10 @@ func TestSender_GetCurrentNodeTypeShouldNotPanic(t *testing.T) {
 	}()
 
 	args := createMockSenderArgs()
-	senderInstance, _ := NewSender(args)
+	senderInstance, err := NewSender(args)
+	require.Nil(t, err)
 
-	_, _, err := senderInstance.GetCurrentNodeType()
+	_, _, err = senderInstance.GetCurrentNodeType()
 	assert.Nil(t, err)
 
 	_ = senderInstance.Close()

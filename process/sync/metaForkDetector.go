@@ -104,6 +104,6 @@ func (mfd *metaForkDetector) computeFinalCheckpoint() {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (mdf *metaForkDetector) IsInterfaceNil() bool {
-	return mdf == nil
+func (mfd *metaForkDetector) IsInterfaceNil() bool {
+	return mfd == nil
 }

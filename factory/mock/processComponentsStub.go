@@ -218,7 +218,7 @@ func (pcm *ProcessComponentsMock) CurrentEpochProvider() process.CurrentNetworkE
 	return pcm.CurrentEpochProviderInternal
 }
 
-// GenesisAccounts -
+// AccountsParser -
 func (pcm *ProcessComponentsMock) AccountsParser() genesis.AccountsParser {
 	return pcm.AccountsParserInternal
 }

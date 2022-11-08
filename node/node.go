@@ -84,6 +84,7 @@ type Node struct {
 	bootstrapComponents   mainFactory.BootstrapComponentsHolder
 	consensusComponents   mainFactory.ConsensusComponentsHolder
 	coreComponents        mainFactory.CoreComponentsHolder
+	statusCoreComponents  mainFactory.StatusCoreComponentsHolder
 	cryptoComponents      mainFactory.CryptoComponentsHolder
 	dataComponents        mainFactory.DataComponentsHolder
 	heartbeatV2Components mainFactory.HeartbeatV2ComponentsHolder
@@ -122,11 +123,6 @@ func NewNode(opts ...Option) (*Node, error) {
 	}
 
 	return node, nil
-}
-
-// GetAppStatusHandler will return the current status handler
-func (n *Node) GetAppStatusHandler() core.AppStatusHandler {
-	return n.coreComponents.StatusHandler()
 }
 
 // CreateShardedStores instantiate sharded cachers for Transactions and Headers
@@ -338,7 +334,7 @@ func (n *Node) GetValueForKey(address string, key string, options api.AccountQue
 		return "", api.BlockInfo{}, err
 	}
 
-	valueBytes, err := userAccount.RetrieveValue(keyBytes)
+	valueBytes, _, err := userAccount.RetrieveValue(keyBytes)
 	if err != nil {
 		return "", api.BlockInfo{}, fmt.Errorf("fetching value error: %w", err)
 	}
@@ -1061,6 +1057,11 @@ func (n *Node) GetCoreComponents() mainFactory.CoreComponentsHolder {
 	return n.coreComponents
 }
 
+// GetStatusCoreComponents returns the status core components
+func (n *Node) GetStatusCoreComponents() mainFactory.StatusCoreComponentsHolder {
+	return n.statusCoreComponents
+}
+
 // GetCryptoComponents returns the crypto components
 func (n *Node) GetCryptoComponents() mainFactory.CryptoComponentsHolder {
 	return n.cryptoComponents
@@ -1266,7 +1267,7 @@ func (n *Node) getAccountRootHashAndVal(address []byte, accBytes []byte, key []b
 		return nil, nil, fmt.Errorf("empty dataTrie rootHash")
 	}
 
-	retrievedVal, err := userAccount.RetrieveValue(key)
+	retrievedVal, _, err := userAccount.RetrieveValue(key)
 	if err != nil {
 		return nil, nil, err
 	}

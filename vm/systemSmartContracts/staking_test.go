@@ -301,8 +301,8 @@ func TestStakingSC_ExecuteStake(t *testing.T) {
 	}
 
 	blockChainHook := &mock.BlockChainHookStub{}
-	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
-		return nil, nil
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) ([]byte, uint32, error) {
+		return nil, 0, nil
 	}
 
 	eei := createDefaultEei()
@@ -951,8 +951,8 @@ func TestStakingSc_ExecuteIsStaked(t *testing.T) {
 
 	stakeValue := big.NewInt(100)
 	blockChainHook := &mock.BlockChainHookStub{}
-	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
-		return nil, nil
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) ([]byte, uint32, error) {
+		return nil, 0, nil
 	}
 
 	eei := createDefaultEei()
@@ -990,8 +990,8 @@ func TestStakingSc_StakeWithV1ShouldWork(t *testing.T) {
 
 	stakeValue := big.NewInt(100)
 	blockChainHook := &mock.BlockChainHookStub{}
-	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
-		return nil, nil
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) ([]byte, uint32, error) {
+		return nil, 0, nil
 	}
 
 	jailAccessAddr := []byte("jailAccessAddr")
@@ -1032,7 +1032,7 @@ func TestStakingSc_StakeWithV1ShouldWork(t *testing.T) {
 // 2 -- will try to do jail before stake should return user error
 // 3 -- will stake and stake should work
 // 4 -- will jail user that stake and should work
-// 5 -- will try do to unStake and should not work because cannot do unStake if validator is jail
+// 5 -- will try to do to unStake and should not work because cannot do unStake if validator is jailed
 // 6 -- will try to do unJail with wrong access address should not work
 // 7 -- will do unJail with correct parameters and should work and after that stakeValue should be 999
 func TestStakingSc_StakeJailAndUnJail(t *testing.T) {
@@ -1040,8 +1040,8 @@ func TestStakingSc_StakeJailAndUnJail(t *testing.T) {
 
 	stakeValue := big.NewInt(100)
 	blockChainHook := &mock.BlockChainHookStub{}
-	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
-		return nil, nil
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) ([]byte, uint32, error) {
+		return nil, 0, nil
 	}
 
 	jailAccessAddr := []byte("jailAccessAddr")
@@ -1080,7 +1080,7 @@ func TestStakingSc_StakeJailAndUnJail(t *testing.T) {
 
 	// unJail wrong access address should not work
 	doUnJail(t, stakingSmartContract, []byte("addr"), stakerPubKey, vmcommon.UserError)
-	// cannot do unJail on a address that not stake
+	// cannot do unJail on an address that not stake
 	doUnJail(t, stakingSmartContract, stakingAccessAddress, []byte("addr"), vmcommon.UserError)
 	// unJail should work
 	blockChainHook.CurrentRoundCalled = func() uint64 {
@@ -1094,8 +1094,8 @@ func TestStakingSc_ExecuteStakeStakeJailAndSwitch(t *testing.T) {
 
 	stakeValue := big.NewInt(100)
 	blockChainHook := &mock.BlockChainHookStub{}
-	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
-		return nil, nil
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) ([]byte, uint32, error) {
+		return nil, 0, nil
 	}
 
 	eei := createDefaultEei()
@@ -1242,8 +1242,8 @@ func TestStakingSc_ExecuteStakeStakeJailAndSwitchWithBoundaries(t *testing.T) {
 
 			var stakedResult vmcommon.ReturnCode
 			blockChainHook := &mock.BlockChainHookStub{}
-			blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
-				return nil, nil
+			blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) ([]byte, uint32, error) {
+				return nil, 0, nil
 			}
 
 			eei := createDefaultEei()
@@ -1318,8 +1318,8 @@ func TestStakingSc_ExecuteStakeStakeStakeJailJailUnJailTwice(t *testing.T) {
 
 	stakeValue := big.NewInt(100)
 	blockChainHook := &mock.BlockChainHookStub{}
-	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
-		return nil, nil
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) ([]byte, uint32, error) {
+		return nil, 0, nil
 	}
 
 	eei := createDefaultEei()
@@ -1445,8 +1445,8 @@ func TestStakingSc_ExecuteStakeUnStakeJailCombinations(t *testing.T) {
 
 	stakeValue := big.NewInt(100)
 	blockChainHook := &mock.BlockChainHookStub{}
-	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
-		return nil, nil
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) ([]byte, uint32, error) {
+		return nil, 0, nil
 	}
 
 	eei := createDefaultEei()
@@ -1536,8 +1536,8 @@ func TestStakingSc_UnBondFromWaitingNotPossible(t *testing.T) {
 
 	stakeValue := big.NewInt(100)
 	blockChainHook := &mock.BlockChainHookStub{}
-	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
-		return nil, nil
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) ([]byte, uint32, error) {
+		return nil, 0, nil
 	}
 
 	eei := createDefaultEei()
@@ -1595,8 +1595,8 @@ func Test_NoActionAllowedForBadRatingOrJailed(t *testing.T) {
 
 	stakeValue := big.NewInt(100)
 	blockChainHook := &mock.BlockChainHookStub{}
-	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
-		return nil, nil
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) ([]byte, uint32, error) {
+		return nil, 0, nil
 	}
 
 	accountsStub := &stateMock.AccountsStub{}
@@ -1651,8 +1651,8 @@ func Test_UnJailNotAllowedIfJailed(t *testing.T) {
 
 	stakeValue := big.NewInt(100)
 	blockChainHook := &mock.BlockChainHookStub{}
-	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
-		return nil, nil
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) ([]byte, uint32, error) {
+		return nil, 0, nil
 	}
 
 	accountsStub := &stateMock.AccountsStub{}
@@ -1700,8 +1700,8 @@ func TestStakingSc_updateConfigMinNodesOK(t *testing.T) {
 
 	stakeValue := big.NewInt(100)
 	blockChainHook := &mock.BlockChainHookStub{}
-	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
-		return nil, nil
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) ([]byte, uint32, error) {
+		return nil, 0, nil
 	}
 
 	eei := createDefaultEei()
@@ -1759,8 +1759,8 @@ func TestStakingSc_updateConfigMaxNodesOK(t *testing.T) {
 
 	stakeValue := big.NewInt(100)
 	blockChainHook := &mock.BlockChainHookStub{}
-	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
-		return nil, nil
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) ([]byte, uint32, error) {
+		return nil, 0, nil
 	}
 
 	eei := createDefaultEei()
@@ -1820,8 +1820,8 @@ func TestStakingSC_SetOwnersOnAddressesNotEnabledShouldErr(t *testing.T) {
 
 	args := createMockStakingScArguments()
 	blockChainHook := &mock.BlockChainHookStub{}
-	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
-		return nil, nil
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) ([]byte, uint32, error) {
+		return nil, 0, nil
 	}
 	eei := createDefaultEei()
 	eei.blockChainHook = blockChainHook
@@ -1844,8 +1844,8 @@ func TestStakingSC_SetOwnersOnAddressesWrongCallerShouldErr(t *testing.T) {
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
 	enableEpochsHandler.IsStakingV2FlagEnabledField = true
 	blockChainHook := &mock.BlockChainHookStub{}
-	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
-		return nil, nil
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) ([]byte, uint32, error) {
+		return nil, 0, nil
 	}
 	eei := createDefaultEei()
 	eei.blockChainHook = blockChainHook
@@ -1868,8 +1868,8 @@ func TestStakingSC_SetOwnersOnAddressesWrongArgumentsShouldErr(t *testing.T) {
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
 	enableEpochsHandler.IsStakingV2FlagEnabledField = true
 	blockChainHook := &mock.BlockChainHookStub{}
-	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
-		return nil, nil
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) ([]byte, uint32, error) {
+		return nil, 0, nil
 	}
 	eei := createDefaultEei()
 	eei.blockChainHook = blockChainHook
@@ -1893,8 +1893,8 @@ func TestStakingSC_SetOwnersOnAddressesShouldWork(t *testing.T) {
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
 	enableEpochsHandler.IsStakingV2FlagEnabledField = true
 	blockChainHook := &mock.BlockChainHookStub{}
-	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
-		return nil, nil
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) ([]byte, uint32, error) {
+		return nil, 0, nil
 	}
 	eei := createDefaultEei()
 	eei.blockChainHook = blockChainHook
@@ -1932,8 +1932,8 @@ func TestStakingSC_SetOwnersOnAddressesEmptyArgsShouldWork(t *testing.T) {
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
 	enableEpochsHandler.IsStakingV2FlagEnabledField = true
 	blockChainHook := &mock.BlockChainHookStub{}
-	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
-		return nil, nil
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) ([]byte, uint32, error) {
+		return nil, 0, nil
 	}
 	eei := createDefaultEei()
 	eei.blockChainHook = blockChainHook
@@ -1953,8 +1953,8 @@ func TestStakingSC_GetOwnerStakingV2NotEnabledShouldErr(t *testing.T) {
 
 	args := createMockStakingScArguments()
 	blockChainHook := &mock.BlockChainHookStub{}
-	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
-		return nil, nil
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) ([]byte, uint32, error) {
+		return nil, 0, nil
 	}
 	eei := createDefaultEei()
 	eei.blockChainHook = blockChainHook
@@ -1977,8 +1977,8 @@ func TestStakingSC_GetOwnerWrongCallerShouldErr(t *testing.T) {
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
 	enableEpochsHandler.IsStakingV2FlagEnabledField = true
 	blockChainHook := &mock.BlockChainHookStub{}
-	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
-		return nil, nil
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) ([]byte, uint32, error) {
+		return nil, 0, nil
 	}
 	eei := createDefaultEei()
 	eei.blockChainHook = blockChainHook
@@ -2001,8 +2001,8 @@ func TestStakingSC_GetOwnerWrongArgumentsShouldErr(t *testing.T) {
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
 	enableEpochsHandler.IsStakingV2FlagEnabledField = true
 	blockChainHook := &mock.BlockChainHookStub{}
-	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
-		return nil, nil
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) ([]byte, uint32, error) {
+		return nil, 0, nil
 	}
 	eei := createDefaultEei()
 	eei.blockChainHook = blockChainHook
@@ -2025,8 +2025,8 @@ func TestStakingSC_GetOwnerShouldWork(t *testing.T) {
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
 	enableEpochsHandler.IsStakingV2FlagEnabledField = true
 	blockChainHook := &mock.BlockChainHookStub{}
-	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
-		return nil, nil
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) ([]byte, uint32, error) {
+		return nil, 0, nil
 	}
 	eei := createDefaultEei()
 	eei.blockChainHook = blockChainHook
@@ -2060,8 +2060,8 @@ func TestStakingSc_StakeFromQueue(t *testing.T) {
 	t.Parallel()
 
 	blockChainHook := &mock.BlockChainHookStub{}
-	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
-		return nil, nil
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) ([]byte, uint32, error) {
+		return nil, 0, nil
 	}
 
 	eei := createDefaultEei()
@@ -2175,8 +2175,8 @@ func TestStakingSC_UnstakeAtEndOfEpoch(t *testing.T) {
 
 	stakeValue := big.NewInt(100)
 	blockChainHook := &mock.BlockChainHookStub{}
-	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
-		return nil, nil
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) ([]byte, uint32, error) {
+		return nil, 0, nil
 	}
 
 	eei := createDefaultEei()
@@ -2207,8 +2207,8 @@ func TestStakingSC_ResetWaitingListUnJailed(t *testing.T) {
 
 	stakeValue := big.NewInt(100)
 	blockChainHook := &mock.BlockChainHookStub{}
-	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
-		return nil, nil
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) ([]byte, uint32, error) {
+		return nil, 0, nil
 	}
 
 	eei := createDefaultEei()
@@ -2268,8 +2268,8 @@ func TestStakingSc_UnStakeNodeWhenMaxNumIsMoreShouldNotStakeFromWaiting(t *testi
 
 	stakeValue := big.NewInt(100)
 	blockChainHook := &mock.BlockChainHookStub{}
-	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
-		return nil, nil
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) ([]byte, uint32, error) {
+		return nil, 0, nil
 	}
 
 	eei := createDefaultEei()
@@ -2305,8 +2305,8 @@ func TestStakingSc_ChangeRewardAndOwnerAddress(t *testing.T) {
 	t.Parallel()
 
 	blockChainHook := &mock.BlockChainHookStub{}
-	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
-		return nil, nil
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) ([]byte, uint32, error) {
+		return nil, 0, nil
 	}
 
 	eei := createDefaultEei()
@@ -2414,12 +2414,13 @@ func TestStakingSc_RemoveFromWaitingListFirst(t *testing.T) {
 			marshalizer := &marshal.JsonMarshalizer{}
 
 			blockChainHook := &mock.BlockChainHookStub{}
-			blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
+			blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) ([]byte, uint32, error) {
 				obj, ok := m[string(index)]
 				if ok {
-					return marshalizer.Marshal(obj)
+					serializedObj, err := marshalizer.Marshal(obj)
+					return serializedObj, 0, err
 				}
-				return nil, nil
+				return nil, 0, nil
 			}
 
 			eei := createDefaultEei()
@@ -2463,12 +2464,13 @@ func TestStakingSc_RemoveFromWaitingListSecondThatLooksLikeFirstBeforeFix(t *tes
 	marshalizer := &marshal.JsonMarshalizer{}
 
 	blockChainHook := &mock.BlockChainHookStub{}
-	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) ([]byte, uint32, error) {
 		obj, ok := m[string(index)]
 		if ok {
-			return marshalizer.Marshal(obj)
+			serializedObj, err := marshalizer.Marshal(obj)
+			return serializedObj, 0, err
 		}
-		return nil, nil
+		return nil, 0, nil
 	}
 
 	eei := createDefaultEei()
@@ -2516,12 +2518,13 @@ func TestStakingSc_RemoveFromWaitingListSecondThatLooksLikeFirstAfterFix(t *test
 	marshalizer := &marshal.JsonMarshalizer{}
 
 	blockChainHook := &mock.BlockChainHookStub{}
-	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) ([]byte, uint32, error) {
 		obj, ok := m[string(index)]
 		if ok {
-			return marshalizer.Marshal(obj)
+			serializedObj, err := marshalizer.Marshal(obj)
+			return serializedObj, 0, err
 		}
-		return nil, nil
+		return nil, 0, nil
 	}
 
 	eei := createDefaultEei()
@@ -2572,12 +2575,13 @@ func TestStakingSc_RemoveFromWaitingListNotFoundPreviousShouldErrAndFinish(t *te
 	marshalizer := &marshal.JsonMarshalizer{}
 
 	blockChainHook := &mock.BlockChainHookStub{}
-	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) ([]byte, uint32, error) {
 		obj, ok := m[string(index)]
 		if ok {
-			return marshalizer.Marshal(obj)
+			serializedObj, err := marshalizer.Marshal(obj)
+			return serializedObj, 0, err
 		}
-		return nil, nil
+		return nil, 0, nil
 	}
 
 	eei := createDefaultEei()
@@ -2608,13 +2612,14 @@ func TestStakingSc_InsertAfterLastJailedBeforeFix(t *testing.T) {
 	marshalizer := &marshal.JsonMarshalizer{}
 
 	blockChainHook := &mock.BlockChainHookStub{}
-	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) ([]byte, uint32, error) {
 		obj, ok := m[string(index)]
 		if ok {
-			return marshalizer.Marshal(obj)
+			serializedObj, err := marshalizer.Marshal(obj)
+			return serializedObj, 0, err
 		}
 
-		return nil, nil
+		return nil, 0, nil
 	}
 
 	eei := createDefaultEei()
@@ -2668,13 +2673,14 @@ func TestStakingSc_InsertAfterLastJailedAfterFix(t *testing.T) {
 	marshalizer := &marshal.JsonMarshalizer{}
 
 	blockChainHook := &mock.BlockChainHookStub{}
-	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) ([]byte, uint32, error) {
 		obj, ok := m[string(index)]
 		if ok {
-			return marshalizer.Marshal(obj)
+			serializedObj, err := marshalizer.Marshal(obj)
+			return serializedObj, 0, err
 		}
 
-		return nil, nil
+		return nil, 0, nil
 	}
 
 	eei := createDefaultEei()
@@ -2723,13 +2729,14 @@ func TestStakingSc_InsertAfterLastJailedAfterFixWithEmptyQueue(t *testing.T) {
 	marshalizer := &marshal.JsonMarshalizer{}
 
 	blockChainHook := &mock.BlockChainHookStub{}
-	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) ([]byte, uint32, error) {
 		obj, ok := m[string(index)]
 		if ok {
-			return marshalizer.Marshal(obj)
+			serializedObj, err := marshalizer.Marshal(obj)
+			return serializedObj, 0, err
 		}
 
-		return nil, nil
+		return nil, 0, nil
 	}
 
 	eei := createDefaultEei()
@@ -3028,13 +3035,14 @@ func makeWrongConfigForWaitingBlsKeysListWithLastJailed(t *testing.T, waitingBls
 	waitingListHead := &WaitingList{nil, nil, 0, lastJailedKey}
 	m[waitingListHeadKey] = waitingListHead
 
-	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) ([]byte, uint32, error) {
 		obj, found := m[string(index)]
 		if found {
-			return marshalizer.Marshal(obj)
+			serializedObj, err := marshalizer.Marshal(obj)
+			return serializedObj, 0, err
 		}
 
-		return nil, nil
+		return nil, 0, nil
 	}
 
 	args := createMockStakingScArguments()
