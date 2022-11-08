@@ -15,6 +15,13 @@ func CheckOperationModes(modes []string) error {
 		return nil
 	}
 
+	for _, mode := range modes {
+		err := checkOperationModeValidity(mode)
+		if err != nil {
+			return err
+		}
+	}
+
 	// db lookup extension and historical balances
 	isInvalid := sliceContainsBothElements(modes, OperationModeHistoricalBalances, OperationModeDbLookupExtension)
 	if isInvalid {
@@ -34,6 +41,15 @@ func CheckOperationModes(modes []string) error {
 	}
 
 	return nil
+}
+
+func checkOperationModeValidity(mode string) error {
+	switch mode {
+	case OperationModeFullArchive, OperationModeDbLookupExtension, OperationModeHistoricalBalances, OperationModeLiteObserver:
+		return nil
+	default:
+		return fmt.Errorf("invalid operation mode <%s>", mode)
+	}
 }
 
 func sliceContainsBothElements(elements []string, first string, second string) bool {

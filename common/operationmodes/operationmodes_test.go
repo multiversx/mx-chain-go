@@ -9,6 +9,20 @@ import (
 func TestCheckOperationModes(t *testing.T) {
 	t.Parallel()
 
+	t.Run("invalid operation mode", func(t *testing.T) {
+		t.Parallel()
+
+		require.Equal(t,
+			"invalid operation mode <invalid op>",
+			CheckOperationModes([]string{"invalid op"}).Error(),
+		)
+
+		require.Equal(t,
+			"invalid operation mode <invalid op>",
+			CheckOperationModes([]string{OperationModeDbLookupExtension, "invalid op"}).Error(),
+		)
+	})
+
 	t.Run("bad config", func(t *testing.T) {
 		t.Parallel()
 
