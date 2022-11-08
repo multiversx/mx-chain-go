@@ -236,9 +236,10 @@ func TestLeafNode_tryGet(t *testing.T) {
 	ln := getLn(getTestMarshalizerAndHasher())
 	key := []byte("dog")
 
-	val, err := ln.tryGet(key, nil)
+	val, maxDepth, err := ln.tryGet(key, 0, nil)
 	assert.Equal(t, []byte("dog"), val)
 	assert.Nil(t, err)
+	assert.Equal(t, uint32(0), maxDepth)
 }
 
 func TestLeafNode_tryGetWrongKey(t *testing.T) {
@@ -247,9 +248,10 @@ func TestLeafNode_tryGetWrongKey(t *testing.T) {
 	ln := getLn(getTestMarshalizerAndHasher())
 	wrongKey := []byte{1, 2, 3}
 
-	val, err := ln.tryGet(wrongKey, nil)
+	val, maxDepth, err := ln.tryGet(wrongKey, 0, nil)
 	assert.Nil(t, val)
 	assert.Nil(t, err)
+	assert.Equal(t, uint32(0), maxDepth)
 }
 
 func TestLeafNode_tryGetEmptyNode(t *testing.T) {
@@ -258,9 +260,10 @@ func TestLeafNode_tryGetEmptyNode(t *testing.T) {
 	ln := &leafNode{}
 
 	key := []byte("dog")
-	val, err := ln.tryGet(key, nil)
+	val, maxDepth, err := ln.tryGet(key, 0, nil)
 	assert.True(t, errors.Is(err, ErrEmptyLeafNode))
 	assert.Nil(t, val)
+	assert.Equal(t, uint32(0), maxDepth)
 }
 
 func TestLeafNode_tryGetNilNode(t *testing.T) {
@@ -269,9 +272,10 @@ func TestLeafNode_tryGetNilNode(t *testing.T) {
 	var ln *leafNode
 	key := []byte("dog")
 
-	val, err := ln.tryGet(key, nil)
+	val, maxDepth, err := ln.tryGet(key, 0, nil)
 	assert.True(t, errors.Is(err, ErrNilLeafNode))
 	assert.Nil(t, val)
+	assert.Equal(t, uint32(0), maxDepth)
 }
 
 func TestLeafNode_getNext(t *testing.T) {
@@ -322,7 +326,7 @@ func TestLeafNode_insertAtSameKey(t *testing.T) {
 	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 
-	val, _ := newNode.tryGet(key, nil)
+	val, _, _ := newNode.tryGet(key, 0, nil)
 	assert.Equal(t, expectedVal, val)
 }
 
@@ -342,7 +346,7 @@ func TestLeafNode_insertAtDifferentKey(t *testing.T) {
 	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 
-	val, _ := newNode.tryGet(nodeKey, nil)
+	val, _, _ := newNode.tryGet(nodeKey, 0, nil)
 	assert.Equal(t, nodeVal, val)
 	assert.IsType(t, &branchNode{}, newNode)
 }

@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -64,7 +65,7 @@ func TestEpochStartMetaSyncer_SyncEpochStartMetaRegisterMessengerProcessorFailsS
 	expectedErr := errors.New("expected error")
 
 	args := getEpochStartSyncerArgs()
-	messenger := &mock.MessengerStub{
+	messenger := &p2pmocks.MessengerStub{
 		RegisterMessageProcessorCalled: func(_ string, _ string, _ p2p.MessageProcessor) error {
 			return expectedErr
 		},
@@ -83,7 +84,7 @@ func TestEpochStartMetaSyncer_SyncEpochStartMetaProcessorFailsShouldErr(t *testi
 	expectedErr := errors.New("expected error")
 
 	args := getEpochStartSyncerArgs()
-	messenger := &mock.MessengerStub{
+	messenger := &p2pmocks.MessengerStub{
 		ConnectedPeersCalled: func() []core.PeerID {
 			return []core.PeerID{"peer_0", "peer_1", "peer_2", "peer_3", "peer_4", "peer_5"}
 		},
@@ -109,7 +110,7 @@ func TestEpochStartMetaSyncer_SyncEpochStartMetaShouldWork(t *testing.T) {
 	expectedMb := &block.MetaBlock{Nonce: 37}
 
 	args := getEpochStartSyncerArgs()
-	messenger := &mock.MessengerStub{
+	messenger := &p2pmocks.MessengerStub{
 		ConnectedPeersCalled: func() []core.PeerID {
 			return []core.PeerID{"peer_0", "peer_1", "peer_2", "peer_3", "peer_4", "peer_5"}
 		},
@@ -150,7 +151,7 @@ func getEpochStartSyncerArgs() ArgsNewEpochStartMetaSyncer {
 			TxKeyGen: &cryptoMocks.KeyGenStub{},
 		},
 		RequestHandler:   &testscommon.RequestHandlerStub{},
-		Messenger:        &mock.MessengerStub{},
+		Messenger:        &p2pmocks.MessengerStub{},
 		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(2),
 		EconomicsData:    &economicsmocks.EconomicsHandlerStub{},
 		WhitelistHandler: &testscommon.WhiteListHandlerStub{},

@@ -415,7 +415,7 @@ type VirtualMachineGasConfig struct {
 	MetaMaxGasPerVmQuery  uint64
 }
 
-// BuiltInFunctionsConfig holds the configuration for the built in functions
+// BuiltInFunctionsConfig holds the configuration for the built-in functions
 type BuiltInFunctionsConfig struct {
 	AutomaticCrawlerAddresses     []string
 	MaxNumAddressesInTransferRole uint32
@@ -512,10 +512,11 @@ type EpochStartDebugConfig struct {
 
 // ProcessDebugConfig will hold the process debug configuration
 type ProcessDebugConfig struct {
-	Enabled              bool
-	GoRoutinesDump       bool
-	DebuggingLogLevel    string
-	PollingTimeInSeconds int
+	Enabled                     bool
+	GoRoutinesDump              bool
+	DebuggingLogLevel           string
+	PollingTimeInSeconds        int
+	RevertLogLevelTimeInSeconds int
 }
 
 // ApiRoutesConfig holds the configuration related to Rest API routes

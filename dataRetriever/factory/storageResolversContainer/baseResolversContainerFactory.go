@@ -240,3 +240,28 @@ func (brcf *baseResolversContainerFactory) generatePeerAuthenticationResolver() 
 
 	return brcf.container.Add(identifierPeerAuth, peerAuthResolver)
 }
+
+func (brcf *baseResolversContainerFactory) generateValidatorInfoResolver() error {
+	validatorInfoStorer, err := brcf.store.GetStorer(dataRetriever.UnsignedTransactionUnit)
+	if err != nil {
+		return err
+	}
+
+	identifierValidatorInfo := common.ValidatorInfoTopic
+	arg := storageResolvers.ArgSliceResolver{
+		Messenger:                brcf.messenger,
+		ResponseTopicName:        identifierValidatorInfo,
+		Storage:                  validatorInfoStorer,
+		DataPacker:               brcf.dataPacker,
+		Marshalizer:              brcf.marshalizer,
+		ManualEpochStartNotifier: brcf.manualEpochStartNotifier,
+		ChanGracefullyClose:      brcf.chanGracefullyClose,
+		DelayBeforeGracefulClose: defaultBeforeGracefulClose,
+	}
+	validatorInfoResolver, err := storageResolvers.NewSliceResolver(arg)
+	if err != nil {
+		return err
+	}
+
+	return brcf.container.Add(identifierValidatorInfo, validatorInfoResolver)
+}

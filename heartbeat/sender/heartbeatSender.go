@@ -13,12 +13,13 @@ const maxSizeInBytes = 128
 // argHeartbeatSender represents the arguments for the heartbeat sender
 type argHeartbeatSender struct {
 	argBaseSender
-	versionNumber        string
-	nodeDisplayName      string
-	identity             string
-	peerSubType          core.P2PPeerSubType
-	currentBlockProvider heartbeat.CurrentBlockProvider
-	peerTypeProvider     heartbeat.PeerTypeProviderHandler
+	versionNumber              string
+	nodeDisplayName            string
+	identity                   string
+	peerSubType                core.P2PPeerSubType
+	currentBlockProvider       heartbeat.CurrentBlockProvider
+	peerTypeProvider           heartbeat.PeerTypeProviderHandler
+	trieSyncStatisticsProvider heartbeat.TrieSyncStatisticsProvider
 }
 
 type heartbeatSender struct {
@@ -41,6 +42,7 @@ func newHeartbeatSender(args argHeartbeatSender) (*heartbeatSender, error) {
 			nodeDisplayName:      args.nodeDisplayName,
 			identity:             args.identity,
 			peerSubType:          args.peerSubType,
+			trieSyncStatisticsProvider: args.trieSyncStatisticsProvider,
 		},
 	}, nil
 }
@@ -67,6 +69,9 @@ func checkHeartbeatSenderArgs(args argHeartbeatSender) error {
 	}
 	if check.IfNil(args.peerTypeProvider) {
 		return heartbeat.ErrNilPeerTypeProvider
+	}
+	if check.IfNil(args.trieSyncStatisticsProvider) {
+		return heartbeat.ErrNilTrieSyncStatisticsProvider
 	}
 
 	return nil
