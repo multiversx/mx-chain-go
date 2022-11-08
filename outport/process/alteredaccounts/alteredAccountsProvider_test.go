@@ -611,7 +611,13 @@ func testExtractAlteredAccountsFromPoolShouldIncludeDestinationFromTokensLogsTop
 	expectedToken := esdt.ESDigitalToken{
 		Value: big.NewInt(37),
 		TokenMetaData: &esdt.MetaData{
-			Nonce: 38,
+			Nonce:      38,
+			Name:       []byte("name"),
+			Creator:    []byte("creator"),
+			Royalties:  1000,
+			Hash:       []byte("hash"),
+			URIs:       [][]byte{[]byte("uri1"), []byte("uri2")},
+			Attributes: []byte("attributes"),
 		},
 	}
 	args := getMockArgs()
@@ -653,12 +659,21 @@ func testExtractAlteredAccountsFromPoolShouldIncludeDestinationFromTokensLogsTop
 	require.Len(t, res, 2)
 
 	mapKeyToSearch := args.AddressConverter.Encode(receiverOnDestination)
+	creator := args.AddressConverter.Encode(expectedToken.TokenMetaData.Creator)
 	require.Len(t, res[mapKeyToSearch].Tokens, 1)
 	require.Equal(t, res[mapKeyToSearch].Tokens[0], &outportcore.AccountTokenData{
 		Identifier: "token0",
 		Balance:    "37",
 		Nonce:      38,
-		MetaData:   &outportcore.TokenMetaData{Nonce: 38},
+		MetaData: &outportcore.TokenMetaData{
+			Nonce:      38,
+			Name:       "name",
+			Creator:    creator,
+			Royalties:  1000,
+			Hash:       []byte("hash"),
+			URIs:       [][]byte{[]byte("uri1"), []byte("uri2")},
+			Attributes: []byte("attributes"),
+		},
 	})
 }
 
