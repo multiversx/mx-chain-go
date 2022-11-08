@@ -25,8 +25,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 )
 
-// TODO: move app status handler initialization here
-
 type statusComponents struct {
 	nodesCoordinator nodesCoordinator.NodesCoordinator
 	statusHandler    core.AppStatusHandler
@@ -98,6 +96,9 @@ func NewStatusComponentsFactory(args StatusComponentsFactoryArgs) (*statusCompon
 	if check.IfNil(args.StatusCoreComponents) {
 		return nil, errors.ErrNilStatusCoreComponents
 	}
+	if check.IfNil(args.StatusCoreComponents.AppStatusHandler()) {
+		return nil, errors.ErrNilAppStatusHandler
+	}
 
 	return &statusComponentsFactory{
 		config:               args.Config,
@@ -121,7 +122,7 @@ func (scf *statusComponentsFactory) Create() (*statusComponents, error) {
 
 	log.Trace("creating software checker structure")
 	softwareVersionCheckerFactory, err := swVersionFactory.NewSoftwareVersionFactory(
-		scf.coreComponents.StatusHandler(),
+		scf.statusCoreComponents.AppStatusHandler(),
 		scf.config.SoftwareVersionConfig,
 	)
 	if err != nil {
@@ -151,7 +152,7 @@ func (scf *statusComponentsFactory) Create() (*statusComponents, error) {
 		nodesCoordinator: scf.nodesCoordinator,
 		softwareVersion:  softwareVersionChecker,
 		outportHandler:   outportHandler,
-		statusHandler:    scf.coreComponents.StatusHandler(),
+		statusHandler:    scf.statusCoreComponents.AppStatusHandler(),
 		cancelFunc:       cancelFunc,
 	}
 

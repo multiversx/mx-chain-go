@@ -511,7 +511,7 @@ func (nf *nodeFacade) GetInternalMiniBlockByHash(format common.ApiOutputFormat, 
 	return nf.apiResolver.GetInternalMiniBlock(format, txHash, epoch)
 }
 
-// Close will cleanup started go routines
+// Close will clean up started go routines
 func (nf *nodeFacade) Close() error {
 	log.LogIfError(nf.apiResolver.Close())
 

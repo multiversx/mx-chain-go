@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	nodeFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/factory"
@@ -30,9 +29,6 @@ type CoreComponentsMock struct {
 	UInt64ByteSliceConv          typeConverters.Uint64ByteSliceConverter
 	AddrPubKeyConv               core.PubkeyConverter
 	ValPubKeyConv                core.PubkeyConverter
-	StatusHdlUtils               nodeFactory.StatusHandlersUtils
-	AppStatusHdl                 core.AppStatusHandler
-	mutStatus                    sync.RWMutex
 	PathHdl                      storage.PathManagerHandler
 	WatchdogTimer                core.WatchdogTimer
 	AlarmSch                     core.TimersScheduler
@@ -111,22 +107,6 @@ func (ccm *CoreComponentsMock) AddressPubKeyConverter() core.PubkeyConverter {
 // ValidatorPubKeyConverter -
 func (ccm *CoreComponentsMock) ValidatorPubKeyConverter() core.PubkeyConverter {
 	return ccm.ValPubKeyConv
-}
-
-// StatusHandlerUtils -
-func (ccm *CoreComponentsMock) StatusHandlerUtils() nodeFactory.StatusHandlersUtils {
-	ccm.mutStatus.RLock()
-	defer ccm.mutStatus.RUnlock()
-
-	return ccm.StatusHdlUtils
-}
-
-// StatusHandler -
-func (ccm *CoreComponentsMock) StatusHandler() core.AppStatusHandler {
-	ccm.mutStatus.RLock()
-	defer ccm.mutStatus.RUnlock()
-
-	return ccm.AppStatusHdl
 }
 
 // PathHandler -

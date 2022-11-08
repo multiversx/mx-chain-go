@@ -33,7 +33,7 @@ func NewResponseLoggerMiddleware(thresholdDurationForLoggingRequest time.Duratio
 	return rlm
 }
 
-// MiddlewareHandlerFunc logs detail about a request if it is not successful or it's duration is higher than a threshold
+// MiddlewareHandlerFunc logs detail about a request if it is not successful, or it's duration is higher than a threshold
 func (rlm *responseLoggerMiddleware) MiddlewareHandlerFunc() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		t := time.Now()

@@ -77,12 +77,11 @@ func GetCoreArgs() coreComp.CoreComponentsFactoryArgs {
 		ConfigPathsHolder: config.ConfigurationPathsHolder{
 			GasScheduleDirectoryName: "../../cmd/node/config/gasSchedules",
 		},
-		RatingsConfig:         CreateDummyRatingsConfig(),
-		EconomicsConfig:       CreateDummyEconomicsConfig(),
-		NodesFilename:         "../mock/testdata/nodesSetupMock.json",
-		WorkingDirectory:      "home",
-		ChanStopNodeProcess:   make(chan endProcess.ArgEndProcess),
-		StatusHandlersFactory: &statusHandlerMock.StatusHandlersFactoryMock{},
+		RatingsConfig:       CreateDummyRatingsConfig(),
+		EconomicsConfig:     CreateDummyEconomicsConfig(),
+		NodesFilename:       "../mock/testdata/nodesSetupMock.json",
+		WorkingDirectory:    "home",
+		ChanStopNodeProcess: make(chan endProcess.ArgEndProcess),
 		EpochConfig: config.EpochConfig{
 			GasSchedule: config.GasScheduleConfig{
 				GasScheduleByEpochs: []config.GasScheduleByEpochs{
@@ -104,9 +103,29 @@ func GetCoreArgs() coreComp.CoreComponentsFactoryArgs {
 }
 
 // GetStatusCoreArgs -
-func GetStatusCoreArgs() statusCore.StatusCoreComponentsFactoryArgs {
+func GetStatusCoreArgs(coreComponents factory.CoreComponentsHolder) statusCore.StatusCoreComponentsFactoryArgs {
 	return statusCore.StatusCoreComponentsFactoryArgs{
 		Config: GetGeneralConfig(),
+		EpochConfig: config.EpochConfig{
+			GasSchedule: config.GasScheduleConfig{
+				GasScheduleByEpochs: []config.GasScheduleByEpochs{
+					{
+						StartEpoch: 0,
+						FileName:   "gasScheduleV1.toml",
+					},
+				},
+			},
+		},
+		RoundConfig: config.RoundConfig{
+			RoundActivations: map[string]config.ActivationRoundByName{
+				"Example": {
+					Round: "18446744073709551615",
+				},
+			},
+		},
+		RatingsConfig:   CreateDummyRatingsConfig(),
+		EconomicsConfig: CreateDummyEconomicsConfig(),
+		CoreComp:        coreComponents,
 	}
 }
 
@@ -142,16 +161,17 @@ func GetConsensusArgs(shardCoordinator sharding.Coordinator) consensusComp.Conse
 	scheduledProcessor, _ := spos.NewScheduledProcessorWrapper(args)
 
 	return consensusComp.ConsensusComponentsFactoryArgs{
-		Config:              testscommon.GetGeneralConfig(),
-		BootstrapRoundIndex: 0,
-		CoreComponents:      coreComponents,
-		NetworkComponents:   networkComponents,
-		CryptoComponents:    cryptoComponents,
-		DataComponents:      dataComponents,
-		ProcessComponents:   processComponents,
-		StateComponents:     stateComponents,
-		StatusComponents:    statusComponents,
-		ScheduledProcessor:  scheduledProcessor,
+		Config:               testscommon.GetGeneralConfig(),
+		BootstrapRoundIndex:  0,
+		CoreComponents:       coreComponents,
+		NetworkComponents:    networkComponents,
+		CryptoComponents:     cryptoComponents,
+		DataComponents:       dataComponents,
+		ProcessComponents:    processComponents,
+		StateComponents:      stateComponents,
+		StatusComponents:     statusComponents,
+		StatusCoreComponents: GetStatusCoreComponents(),
+		ScheduledProcessor:   scheduledProcessor,
 	}
 }
 
@@ -194,6 +214,7 @@ func GetDataArgs(coreComponents factory.CoreComponentsHolder, shardCoordinator s
 		},
 		ShardCoordinator:              shardCoordinator,
 		Core:                          coreComponents,
+		StatusCore:                    GetStatusCoreComponents(),
 		EpochStartNotifier:            &mock.EpochStartNotifierStub{},
 		CurrentEpoch:                  0,
 		CreateTrieEpochRootHashStorer: false,
@@ -326,6 +347,7 @@ func GetStateFactoryArgs(coreComponents factory.CoreComponentsHolder, shardCoord
 		Config:           GetGeneralConfig(),
 		ShardCoordinator: shardCoordinator,
 		Core:             coreComponents,
+		StatusCore:       GetStatusCoreComponents(),
 		StorageService:   disabled.NewChainStorer(),
 		ProcessingMode:   common.Normal,
 		ChainHandler:     &testscommon.ChainHandlerStub{},
@@ -357,12 +379,14 @@ func GetBootStrapFactoryArgs() bootstrapComp.BootstrapComponentsFactoryArgs {
 	coreComponents := GetCoreComponents()
 	networkComponents := GetNetworkComponents()
 	cryptoComponents := GetCryptoComponents(coreComponents)
+	statusCoreComponents := GetStatusCoreComponents()
 	return bootstrapComp.BootstrapComponentsFactoryArgs{
-		Config:            testscommon.GetGeneralConfig(),
-		WorkingDir:        "home",
-		CoreComponents:    coreComponents,
-		CryptoComponents:  cryptoComponents,
-		NetworkComponents: networkComponents,
+		Config:               testscommon.GetGeneralConfig(),
+		WorkingDir:           "home",
+		CoreComponents:       coreComponents,
+		CryptoComponents:     cryptoComponents,
+		NetworkComponents:    networkComponents,
+		StatusCoreComponents: statusCoreComponents,
 		PrefConfig: config.Preferences{
 			Preferences: config.PreferencesConfig{
 				DestinationShardAsObserver: "0",
@@ -487,6 +511,7 @@ func GetProcessArgs(
 		Network:                networkComponents,
 		StatusComponents:       statusComponents,
 		BootstrapComponents:    bootstrapComponents,
+		StatusCoreComponents:   GetStatusCoreComponents(),
 		RequestedItemsHandler:  &testscommon.RequestedItemsHandlerStub{},
 		WhiteListHandler:       &testscommon.WhiteListHandlerStub{},
 		WhiteListerVerifiedTxs: &testscommon.WhiteListHandlerStub{},
@@ -696,8 +721,12 @@ func GetStateComponents(coreComponents factory.CoreComponentsHolder, shardCoordi
 
 // GetStatusCoreComponents -
 func GetStatusCoreComponents() factory.StatusCoreComponentsHolder {
-	args := GetStatusCoreArgs()
-	statusCoreFactory := statusCore.NewStatusCoreComponentsFactory(args)
+	args := GetStatusCoreArgs(GetCoreComponents())
+	statusCoreFactory, err := statusCore.NewStatusCoreComponentsFactory(args)
+	if err != nil {
+		log.Error("GetStatusCoreComponents NewStatusCoreComponentsFactory", "error", err.Error())
+		return nil
+	}
 
 	statusCoreComponents, err := statusCore.NewManagedStatusCoreComponents(statusCoreFactory)
 	if err != nil {

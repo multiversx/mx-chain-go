@@ -649,7 +649,7 @@ func (dbb *delayedBlockBroadcaster) interceptedHeader(_ string, headerHash []byt
 
 		if sameHeader {
 			dbb.valHeaderBroadcastData = append(dbb.valHeaderBroadcastData[:i], dbb.valHeaderBroadcastData[i+1:]...)
-			// leader has broadcast the header so we can cancel the header alarm
+			// leader has already broadcast the header, so we can cancel the header alarm
 			alarmID := prefixHeaderAlarm + hex.EncodeToString(headerHash)
 			alarmsToCancel = append(alarmsToCancel, alarmID)
 			log.Trace("delayedBlockBroadcaster.interceptedHeader: leader has broadcast header, validator cancelling alarm",

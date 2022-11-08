@@ -28,7 +28,7 @@ type TestWalletAccount struct {
 	Balance *big.Int
 }
 
-// CreateTestWalletAccount creates an wallet account in a selected shard
+// CreateTestWalletAccount creates a wallet account in a selected shard
 func CreateTestWalletAccount(coordinator sharding.Coordinator, shardId uint32) *TestWalletAccount {
 	testWalletAccount := &TestWalletAccount{}
 	testWalletAccount.initCrypto(coordinator, shardId)

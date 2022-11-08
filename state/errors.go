@@ -158,3 +158,6 @@ var ErrFunctionalityNotImplemented = errors.New("functionality not implemented y
 
 // ErrNilTrieSyncer signals that the trie syncer is nil
 var ErrNilTrieSyncer = errors.New("trie syncer is nil")
+
+// ErrNilSyncStatisticsHandler signals that a nil sync statistics handler was provided
+var ErrNilSyncStatisticsHandler = errors.New("nil sync statistics handler")
