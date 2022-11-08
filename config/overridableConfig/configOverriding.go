@@ -1,4 +1,4 @@
-package config
+package overridableConfig
 
 import (
 	"fmt"
@@ -6,6 +6,7 @@ import (
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common/reflectcommon"
+	"github.com/ElrondNetwork/elrond-go/config"
 )
 
 const (
@@ -21,7 +22,7 @@ var (
 )
 
 // OverrideConfigValues will override config values for the specified configurations
-func OverrideConfigValues(newConfigs []OverridableConfig, configs *Configs) error {
+func OverrideConfigValues(newConfigs []config.OverridableConfig, configs *config.Configs) error {
 	var err error
 	for _, newConfig := range newConfigs {
 		switch newConfig.File {

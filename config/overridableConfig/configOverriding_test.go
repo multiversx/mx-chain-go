@@ -1,9 +1,10 @@
-package config
+package overridableConfig
 
 import (
 	"testing"
 
 	p2pConfig "github.com/ElrondNetwork/elrond-go-p2p/config"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/stretchr/testify/require"
 )
 
@@ -13,30 +14,30 @@ func TestOverrideConfigValues(t *testing.T) {
 	t.Run("empty overridable config, should not error", func(t *testing.T) {
 		t.Parallel()
 
-		err := OverrideConfigValues([]OverridableConfig{}, &Configs{})
+		err := OverrideConfigValues([]config.OverridableConfig{}, &config.Configs{})
 		require.NoError(t, err)
 	})
 
 	t.Run("invalid config file, should error", func(t *testing.T) {
 		t.Parallel()
 
-		err := OverrideConfigValues([]OverridableConfig{{File: "invalid.toml"}}, &Configs{})
+		err := OverrideConfigValues([]config.OverridableConfig{{File: "invalid.toml"}}, &config.Configs{})
 		require.Equal(t, "invalid config file <invalid.toml>. Available options are config.toml,enableEpochs.toml,p2p.toml,external.toml", err.Error())
 	})
 
 	t.Run("nil config, should error", func(t *testing.T) {
 		t.Parallel()
 
-		err := OverrideConfigValues([]OverridableConfig{{Path: "test", File: "config.toml"}}, &Configs{GeneralConfig: nil})
+		err := OverrideConfigValues([]config.OverridableConfig{{Path: "test", File: "config.toml"}}, &config.Configs{GeneralConfig: nil})
 		require.Equal(t, "nil structure to update", err.Error())
 	})
 
 	t.Run("should work for config.toml", func(t *testing.T) {
 		t.Parallel()
 
-		configs := &Configs{GeneralConfig: &Config{}}
+		configs := &config.Configs{GeneralConfig: &config.Config{}}
 
-		err := OverrideConfigValues([]OverridableConfig{{Path: "BootstrapStorage.DB.FilePath", Value: "new path", File: "config.toml"}}, configs)
+		err := OverrideConfigValues([]config.OverridableConfig{{Path: "BootstrapStorage.DB.FilePath", Value: "new path", File: "config.toml"}}, configs)
 		require.NoError(t, err)
 		require.Equal(t, "new path", configs.GeneralConfig.BootstrapStorage.DB.FilePath)
 	})
@@ -44,9 +45,9 @@ func TestOverrideConfigValues(t *testing.T) {
 	t.Run("should work for p2p.toml", func(t *testing.T) {
 		t.Parallel()
 
-		configs := &Configs{P2pConfig: &p2pConfig.P2PConfig{Sharding: p2pConfig.ShardingConfig{TargetPeerCount: 5}}}
+		configs := &config.Configs{P2pConfig: &p2pConfig.P2PConfig{Sharding: p2pConfig.ShardingConfig{TargetPeerCount: 5}}}
 
-		err := OverrideConfigValues([]OverridableConfig{{Path: "Sharding.TargetPeerCount", Value: "37", File: "p2p.toml"}}, configs)
+		err := OverrideConfigValues([]config.OverridableConfig{{Path: "Sharding.TargetPeerCount", Value: "37", File: "p2p.toml"}}, configs)
 		require.NoError(t, err)
 		require.Equal(t, uint32(37), configs.P2pConfig.Sharding.TargetPeerCount)
 	})
@@ -54,9 +55,9 @@ func TestOverrideConfigValues(t *testing.T) {
 	t.Run("should work for external.toml", func(t *testing.T) {
 		t.Parallel()
 
-		configs := &Configs{ExternalConfig: &ExternalConfig{ElasticSearchConnector: ElasticSearchConfig{Password: "old pass"}}}
+		configs := &config.Configs{ExternalConfig: &config.ExternalConfig{ElasticSearchConnector: config.ElasticSearchConfig{Password: "old pass"}}}
 
-		err := OverrideConfigValues([]OverridableConfig{{Path: "ElasticSearchConnector.Password", Value: "new pass", File: "external.toml"}}, configs)
+		err := OverrideConfigValues([]config.OverridableConfig{{Path: "ElasticSearchConnector.Password", Value: "new pass", File: "external.toml"}}, configs)
 		require.NoError(t, err)
 		require.Equal(t, "new pass", configs.ExternalConfig.ElasticSearchConnector.Password)
 	})
@@ -64,9 +65,9 @@ func TestOverrideConfigValues(t *testing.T) {
 	t.Run("should work for enableEpochs.toml", func(t *testing.T) {
 		t.Parallel()
 
-		configs := &Configs{EpochConfig: &EpochConfig{EnableEpochs: EnableEpochs{ESDTMetadataContinuousCleanupEnableEpoch: 5}}}
+		configs := &config.Configs{EpochConfig: &config.EpochConfig{EnableEpochs: config.EnableEpochs{ESDTMetadataContinuousCleanupEnableEpoch: 5}}}
 
-		err := OverrideConfigValues([]OverridableConfig{{Path: "EnableEpochs.ESDTMetadataContinuousCleanupEnableEpoch", Value: "37", File: "enableEpochs.toml"}}, configs)
+		err := OverrideConfigValues([]config.OverridableConfig{{Path: "EnableEpochs.ESDTMetadataContinuousCleanupEnableEpoch", Value: "37", File: "enableEpochs.toml"}}, configs)
 		require.NoError(t, err)
 		require.Equal(t, uint32(37), configs.EpochConfig.EnableEpochs.ESDTMetadataContinuousCleanupEnableEpoch)
 	})

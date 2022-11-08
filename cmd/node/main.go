@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/config/overridableConfig"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/urfave/cli"
 	// test point 1 for custom profiler
@@ -96,7 +97,7 @@ func startNodeRunner(c *cli.Context, log logger.Logger, version string) error {
 		return errCfg
 	}
 
-	errCfgOverride := config.OverrideConfigValues(cfgs.PreferencesConfig.Preferences.OverridableConfigTomlValues, cfgs)
+	errCfgOverride := overridableConfig.OverrideConfigValues(cfgs.PreferencesConfig.Preferences.OverridableConfigTomlValues, cfgs)
 	if errCfgOverride != nil {
 		return errCfgOverride
 	}
