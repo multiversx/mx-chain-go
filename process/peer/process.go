@@ -76,7 +76,7 @@ type validatorStatistics struct {
 	enableEpochsHandler                  common.EnableEpochsHandler
 }
 
-// NewValidatorStatisticsProcessor instantiates a new validatorStatistics structure responsible of keeping account of
+// NewValidatorStatisticsProcessor instantiates a new validatorStatistics structure responsible for keeping account of
 //  each validator actions in the consensus process
 func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) (*validatorStatistics, error) {
 	if check.IfNil(arguments.PeerAdapter) {

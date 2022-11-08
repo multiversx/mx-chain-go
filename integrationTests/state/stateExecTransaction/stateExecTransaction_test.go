@@ -126,7 +126,7 @@ func testExecTransactionsMoreTxWithRevert(
 	gasPrice := uint64(2)
 	gasLimit := uint64(2)
 	value := uint64(1)
-	//Step 1. execute a lot moving transactions from pubKeyBuff to another pubKeyBuff
+	//Step 1. execute a lot of moving transactions from pubKeyBuff to another pubKeyBuff
 	for i := 0; i < txToGenerate; i++ {
 		tx := &transaction.Transaction{
 			Nonce:    initialNonce + uint64(i),

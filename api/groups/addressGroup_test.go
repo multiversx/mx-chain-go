@@ -676,7 +676,7 @@ func TestGetESDTNFTData_ShouldWork(t *testing.T) {
 		GetESDTDataCalled: func(_ string, _ string, _ uint64, _ api.AccountQueryOptions) (*esdt.ESDigitalToken, api.BlockInfo, error) {
 			return &esdt.ESDigitalToken{
 				Value:         big.NewInt(100),
-				Properties:    []byte(testProperties),
+				Properties:    testProperties,
 				TokenMetaData: &esdt.MetaData{Nonce: testNonce, Creator: []byte(testAddress)}}, api.BlockInfo{}, nil
 		},
 	}

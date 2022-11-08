@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/common/disabled"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
@@ -17,7 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/errors"
-	factory "github.com/ElrondNetwork/elrond-go/factory"
+	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/process/sync/storageBootstrap"
@@ -42,6 +43,7 @@ type ConsensusComponentsFactoryArgs struct {
 	ProcessComponents     factory.ProcessComponentsHolder
 	StateComponents       factory.StateComponentsHolder
 	StatusComponents      factory.StatusComponentsHolder
+	StatusCoreComponents  factory.StatusCoreComponentsHolder
 	ScheduledProcessor    consensus.ScheduledProcessor
 	IsInImportMode        bool
 	ShouldDisableWatchdog bool
@@ -57,6 +59,7 @@ type consensusComponentsFactory struct {
 	processComponents     factory.ProcessComponentsHolder
 	stateComponents       factory.StateComponentsHolder
 	statusComponents      factory.StatusComponentsHolder
+	statusCoreComponents  factory.StatusCoreComponentsHolder
 	scheduledProcessor    consensus.ScheduledProcessor
 	isInImportMode        bool
 	shouldDisableWatchdog bool
@@ -97,6 +100,9 @@ func NewConsensusComponentsFactory(args ConsensusComponentsFactoryArgs) (*consen
 	if check.IfNil(args.ScheduledProcessor) {
 		return nil, errors.ErrNilScheduledProcessor
 	}
+	if check.IfNil(args.StatusCoreComponents) {
+		return nil, errors.ErrNilStatusCoreComponents
+	}
 
 	return &consensusComponentsFactory{
 		config:                args.Config,
@@ -108,6 +114,7 @@ func NewConsensusComponentsFactory(args ConsensusComponentsFactoryArgs) (*consen
 		processComponents:     args.ProcessComponents,
 		stateComponents:       args.StateComponents,
 		statusComponents:      args.StatusComponents,
+		statusCoreComponents:  args.StatusCoreComponents,
 		scheduledProcessor:    args.ScheduledProcessor,
 		isInImportMode:        args.IsInImportMode,
 		shouldDisableWatchdog: args.ShouldDisableWatchdog,
@@ -205,7 +212,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		PoolAdder:                ccf.dataComponents.Datapool().MiniBlocks(),
 		SignatureSize:            ccf.config.ValidatorPubkeyConverter.SignatureLength,
 		PublicKeySize:            ccf.config.ValidatorPubkeyConverter.Length,
-		AppStatusHandler:         ccf.coreComponents.StatusHandler(),
+		AppStatusHandler:         ccf.statusCoreComponents.AppStatusHandler(),
 		NodeRedundancyHandler:    ccf.processComponents.NodeRedundancyHandler(),
 	}
 
@@ -269,7 +276,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		consensusState,
 		cc.worker,
 		ccf.config.Consensus.Type,
-		ccf.coreComponents.StatusHandler(),
+		ccf.statusCoreComponents.AppStatusHandler(),
 		ccf.statusComponents.OutportHandler(),
 		[]byte(ccf.coreComponents.ChainID()),
 		ccf.networkComponents.NetworkMessenger().ID(),
@@ -334,7 +341,7 @@ func (ccf *consensusComponentsFactory) createChronology() (consensus.ChronologyH
 		RoundHandler:     ccf.processComponents.RoundHandler(),
 		SyncTimer:        ccf.coreComponents.SyncTimer(),
 		Watchdog:         wd,
-		AppStatusHandler: ccf.coreComponents.StatusHandler(),
+		AppStatusHandler: ccf.statusCoreComponents.AppStatusHandler(),
 	}
 	chronologyHandler, err := chronology.NewChronology(chronologyArg)
 	if err != nil {
@@ -431,7 +438,7 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		MiniblocksProvider:           ccf.dataComponents.MiniBlocksProvider(),
 		EpochNotifier:                ccf.coreComponents.EpochNotifier(),
 		ProcessedMiniBlocksTracker:   ccf.processComponents.ProcessedMiniBlocksTracker(),
-		AppStatusHandler:             ccf.coreComponents.StatusHandler(),
+		AppStatusHandler:             ccf.statusCoreComponents.AppStatusHandler(),
 	}
 
 	argsShardStorageBootstrapper := storageBootstrap.ArgsShardStorageBootstrapper{
@@ -468,7 +475,7 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		EpochHandler:                 ccf.processComponents.EpochStartTrigger(),
 		MiniblocksProvider:           ccf.dataComponents.MiniBlocksProvider(),
 		Uint64Converter:              ccf.coreComponents.Uint64ByteSliceConverter(),
-		AppStatusHandler:             ccf.coreComponents.StatusHandler(),
+		AppStatusHandler:             ccf.statusCoreComponents.AppStatusHandler(),
 		OutportHandler:               ccf.statusComponents.OutportHandler(),
 		AccountsDBSyncer:             accountsDBSyncer,
 		CurrentEpochProvider:         ccf.processComponents.CurrentEpochProvider(),
@@ -504,6 +511,7 @@ func (ccf *consensusComponentsFactory) createArgsBaseAccountsSyncer(trieStorageM
 		CheckNodesOnDisk:                  ccf.config.TrieSync.CheckNodesOnDisk,
 		StorageMarker:                     storageMarker.NewTrieStorageMarker(),
 		UserAccountsSyncStatisticsHandler: statistics.NewTrieSyncStatistics(),
+		AppStatusHandler:                  disabled.NewAppStatusHandler(),
 	}
 }
 
@@ -558,7 +566,7 @@ func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bo
 		MiniblocksProvider:           ccf.dataComponents.MiniBlocksProvider(),
 		EpochNotifier:                ccf.coreComponents.EpochNotifier(),
 		ProcessedMiniBlocksTracker:   ccf.processComponents.ProcessedMiniBlocksTracker(),
-		AppStatusHandler:             ccf.coreComponents.StatusHandler(),
+		AppStatusHandler:             ccf.statusCoreComponents.AppStatusHandler(),
 	}
 
 	argsMetaStorageBootstrapper := storageBootstrap.ArgsMetaStorageBootstrapper{
@@ -601,7 +609,7 @@ func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bo
 		EpochHandler:                 ccf.processComponents.EpochStartTrigger(),
 		MiniblocksProvider:           ccf.dataComponents.MiniBlocksProvider(),
 		Uint64Converter:              ccf.coreComponents.Uint64ByteSliceConverter(),
-		AppStatusHandler:             ccf.coreComponents.StatusHandler(),
+		AppStatusHandler:             ccf.statusCoreComponents.AppStatusHandler(),
 		OutportHandler:               ccf.statusComponents.OutportHandler(),
 		AccountsDBSyncer:             accountsDBSyncer,
 		CurrentEpochProvider:         ccf.processComponents.CurrentEpochProvider(),
@@ -700,6 +708,9 @@ func (ccf *consensusComponentsFactory) checkArgs() error {
 	hardforkTrigger := ccf.processComponents.HardforkTrigger()
 	if check.IfNil(hardforkTrigger) {
 		return errors.ErrNilHardforkTrigger
+	}
+	if check.IfNil(ccf.statusCoreComponents.AppStatusHandler()) {
+		return errors.ErrNilAppStatusHandler
 	}
 
 	return nil

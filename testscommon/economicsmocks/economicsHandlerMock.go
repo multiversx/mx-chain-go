@@ -3,6 +3,7 @@ package economicsmocks
 import (
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 )
 
@@ -40,6 +41,7 @@ type EconomicsHandlerMock struct {
 	ComputeGasUsedAndFeeBasedOnRefundValueCalled   func(tx data.TransactionWithFeeHandler, refundValue *big.Int) (uint64, *big.Int)
 	ComputeTxFeeBasedOnGasUsedCalled               func(tx data.TransactionWithFeeHandler, gasUsed uint64) *big.Int
 	ComputeGasLimitBasedOnBalanceCalled            func(tx data.TransactionWithFeeHandler, balance *big.Int) (uint64, error)
+	SetStatusHandlerCalled                         func(statusHandler core.AppStatusHandler) error
 }
 
 // LeaderPercentage -
@@ -277,6 +279,14 @@ func (ehm *EconomicsHandlerMock) ComputeTxFeeBasedOnGasUsed(tx data.TransactionW
 		return ehm.ComputeTxFeeBasedOnGasUsedCalled(tx, gasUsed)
 	}
 	return big.NewInt(0)
+}
+
+// SetStatusHandler -
+func (ehm *EconomicsHandlerMock) SetStatusHandler(statusHandler core.AppStatusHandler) error {
+	if ehm.SetStatusHandlerCalled != nil {
+		return ehm.SetStatusHandlerCalled(statusHandler)
+	}
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

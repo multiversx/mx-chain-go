@@ -260,7 +260,7 @@ func TestDoubleListTrieSyncer_StartSyncingPartiallyFilledTrieShouldWork(t *testi
 	arg := createMockArgument(time.Minute)
 
 	exceptionHashes := make([][]byte, 0)
-	// copy half of the nodes from source to destination, add them also to exception list and than try to sync the trie
+	// copy half of the nodes from source to destination, add them also to exception list and then try to sync the trie
 	numKeysCopied := 0
 	memUnitSource.RangeKeys(func(key []byte, val []byte) bool {
 		if numKeysCopied >= numKeysValues/2 {

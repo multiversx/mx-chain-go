@@ -157,7 +157,7 @@ func (chr *chronology) startRound(ctx context.Context) {
 	chr.subroundId = sr.Next()
 }
 
-// updateRound updates rounds and subrounds depending of the current time and the finished tasks
+// updateRound updates rounds and subrounds depending on the current time and the finished tasks
 func (chr *chronology) updateRound() {
 	oldRoundIndex := chr.roundHandler.Index()
 	chr.roundHandler.UpdateRound(chr.genesisTime, chr.syncTimer.CurrentTime())
@@ -172,7 +172,7 @@ func (chr *chronology) updateRound() {
 	}
 }
 
-// initRound is called when a new round begins and it does the necessary initialization
+// initRound is called when a new round begins, and it does the necessary initialization
 func (chr *chronology) initRound() {
 	chr.subroundId = srBeforeStartRound
 
