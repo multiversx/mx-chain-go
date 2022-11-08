@@ -533,7 +533,7 @@ func testExtractAlteredAccountsFromPoolShouldIncludeNFT(t *testing.T) {
 		Identifier: "token0",
 		Balance:    expectedToken.Value.String(),
 		Nonce:      expectedToken.TokenMetaData.Nonce,
-		MetaData:   expectedToken.TokenMetaData,
+		MetaData:   &outportcore.TokenMetaData{Nonce: expectedToken.TokenMetaData.Nonce},
 	}, res[encodedAddr].Tokens[0])
 }
 
@@ -611,7 +611,13 @@ func testExtractAlteredAccountsFromPoolShouldIncludeDestinationFromTokensLogsTop
 	expectedToken := esdt.ESDigitalToken{
 		Value: big.NewInt(37),
 		TokenMetaData: &esdt.MetaData{
-			Nonce: 38,
+			Nonce:      38,
+			Name:       []byte("name"),
+			Creator:    []byte("creator"),
+			Royalties:  1000,
+			Hash:       []byte("hash"),
+			URIs:       [][]byte{[]byte("uri1"), []byte("uri2")},
+			Attributes: []byte("attributes"),
 		},
 	}
 	args := getMockArgs()
@@ -653,13 +659,20 @@ func testExtractAlteredAccountsFromPoolShouldIncludeDestinationFromTokensLogsTop
 	require.Len(t, res, 2)
 
 	mapKeyToSearch := args.AddressConverter.Encode(receiverOnDestination)
+	creator := args.AddressConverter.Encode(expectedToken.TokenMetaData.Creator)
 	require.Len(t, res[mapKeyToSearch].Tokens, 1)
 	require.Equal(t, res[mapKeyToSearch].Tokens[0], &outportcore.AccountTokenData{
 		Identifier: "token0",
 		Balance:    "37",
 		Nonce:      38,
-		MetaData: &esdt.MetaData{
-			Nonce: 38,
+		MetaData: &outportcore.TokenMetaData{
+			Nonce:      38,
+			Name:       "name",
+			Creator:    creator,
+			Royalties:  1000,
+			Hash:       []byte("hash"),
+			URIs:       [][]byte{[]byte("uri1"), []byte("uri2")},
+			Attributes: []byte("attributes"),
 		},
 	})
 }
@@ -855,14 +868,20 @@ func testExtractAlteredAccountsFromPoolAddressHasMultipleNfts(t *testing.T) {
 		Identifier: string(expectedToken1.TokenMetaData.Name),
 		Balance:    expectedToken1.Value.String(),
 		Nonce:      expectedToken1.TokenMetaData.Nonce,
-		MetaData:   expectedToken1.TokenMetaData,
+		MetaData: &outportcore.TokenMetaData{
+			Nonce: expectedToken1.TokenMetaData.Nonce,
+			Name:  string(expectedToken1.TokenMetaData.Name),
+		},
 	})
 
 	require.Contains(t, res[encodedAddr].Tokens, &outportcore.AccountTokenData{
 		Identifier: string(expectedToken2.TokenMetaData.Name),
 		Balance:    expectedToken2.Value.String(),
 		Nonce:      expectedToken2.TokenMetaData.Nonce,
-		MetaData:   expectedToken2.TokenMetaData,
+		MetaData: &outportcore.TokenMetaData{
+			Nonce: expectedToken2.TokenMetaData.Nonce,
+			Name:  string(expectedToken2.TokenMetaData.Name),
+		},
 	})
 
 }

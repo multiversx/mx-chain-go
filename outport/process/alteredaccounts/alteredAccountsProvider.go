@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/outport/process/alteredaccounts/shared"
@@ -188,16 +189,13 @@ func (aap *alteredAccountsProvider) addTokensDataForMarkedAccount(
 		log.Warn("alteredAccountsProvider: nil esdt/nft token", "address", encodedAddress, "token ID", tokenID, "nonce", nonce)
 		return nil
 	}
-	if esdtToken.Value.Cmp(big.NewInt(0)) == 0 {
-		log.Warn("alteredAccountsProvider: esdt/nft value 0 for address", "address", encodedAddress, "token ID", tokenID, "nonce", nonce)
-	}
 
 	accountTokenData := &outportcore.AccountTokenData{
 		Identifier: tokenID,
 		Balance:    esdtToken.Value.String(),
 		Nonce:      nonce,
 		Properties: string(esdtToken.Properties),
-		MetaData:   esdtToken.TokenMetaData,
+		MetaData:   aap.convertMetaData(esdtToken.TokenMetaData),
 	}
 	if options.WithAdditionalOutportData {
 		accountTokenData.AdditionalData = &outportcore.AdditionalAccountTokenData{
@@ -209,6 +207,22 @@ func (aap *alteredAccountsProvider) addTokensDataForMarkedAccount(
 	alteredAccount.Tokens = append(alteredAccounts[encodedAddress].Tokens, accountTokenData)
 
 	return nil
+}
+
+func (aap *alteredAccountsProvider) convertMetaData(metaData *esdt.MetaData) *outportcore.TokenMetaData {
+	if metaData == nil {
+		return nil
+	}
+
+	return &outportcore.TokenMetaData{
+		Nonce:      metaData.Nonce,
+		Name:       string(metaData.Name),
+		Creator:    aap.addressConverter.Encode(metaData.Creator),
+		Royalties:  metaData.Royalties,
+		Hash:       metaData.Hash,
+		URIs:       metaData.URIs,
+		Attributes: metaData.Attributes,
+	}
 }
 
 func (aap *alteredAccountsProvider) extractAddressesWithBalanceChange(
