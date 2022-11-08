@@ -102,7 +102,8 @@ func createMockSmartContractProcessorArguments() scrCommon.ArgsNewSmartContractP
 		GasHandler: &testscommon.GasHandlerStub{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
-		GasSchedule: testscommon.NewGasScheduleNotifierMock(gasSchedule),
+		GasSchedule:         testscommon.NewGasScheduleNotifierMock(gasSchedule),
+		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
 			IsSCDeployFlagEnabledField: true,
 		},
@@ -3637,8 +3638,9 @@ func TestGasLockedInSmartContractProcessor(t *testing.T) {
 	}
 	vmOutput.OutputAccounts[string(outaddress)] = outacc1
 
-	asyncCallback, results := sc.createSmartContractResults(&vmcommon.VMInput{CallType: vmData.DirectCall},
+	asyncCallback, results, err := sc.createSmartContractResults(&vmcommon.VMInput{CallType: vmData.DirectCall},
 		vmOutput, outacc1, &transaction.Transaction{}, []byte("hash"))
+	require.Nil(t, err)
 	require.False(t, asyncCallback)
 	require.Equal(t, 1, len(results))
 
@@ -3657,8 +3659,9 @@ func TestGasLockedInSmartContractProcessor(t *testing.T) {
 	shardCoordinator.ComputeIdCalled = func(_ []byte) uint32 {
 		return shardCoordinator.SelfId()
 	}
-	asyncCallback, results = sc.createSmartContractResults(&vmcommon.VMInput{CallType: vmData.DirectCall},
+	asyncCallback, results, err = sc.createSmartContractResults(&vmcommon.VMInput{CallType: vmData.DirectCall},
 		vmOutput, outacc1, &transaction.Transaction{}, []byte("hash"))
+	require.Nil(t, err)
 	require.False(t, asyncCallback)
 	require.Equal(t, 1, len(results))
 
@@ -4389,4 +4392,57 @@ func TestScProcessor_TooMuchGasProvidedMessage(t *testing.T) {
 	returnMessage = "@" + fmt.Sprintf("%s for processing: gas provided = %d, gas used = %d",
 		TooMuchGasProvidedMessage, 11, 1)
 	assert.Equal(t, vmOutput.ReturnMessage, returnMessage)
+}
+
+func TestScProcessor_DisableAsyncCalls(t *testing.T) {
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.ArgsParser = NewArgumentParser()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
+	shardCoordinator.ComputeIdCalled = func(_ []byte) uint32 {
+		return shardCoordinator.SelfId() + 1
+	}
+	arguments.ShardCoordinator = shardCoordinator
+	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{}
+	arguments.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
+		IsDisableAsyncCallV1EnabledCalled: func() bool {
+			return false
+		},
+	}
+	sc, _ := NewSmartContractProcessor(arguments)
+
+	outaddress := []byte("newsmartcontract")
+	outacc1 := &vmcommon.OutputAccount{}
+	outacc1.Address = outaddress
+	outacc1.Nonce = 0
+	outacc1.Balance = big.NewInt(5)
+	outacc1.BalanceDelta = big.NewInt(15)
+	outTransfer := vmcommon.OutputTransfer{
+		Value:     big.NewInt(5),
+		CallType:  vmData.AsynchronousCall,
+		GasLocked: 100,
+		GasLimit:  100,
+		Data:      []byte("functionCall"),
+	}
+	outacc1.OutputTransfers = append(outacc1.OutputTransfers, outTransfer)
+	vmOutput := &vmcommon.VMOutput{
+		OutputAccounts: make(map[string]*vmcommon.OutputAccount),
+	}
+	vmOutput.OutputAccounts[string(outaddress)] = outacc1
+
+	_, scResults, err := sc.createSmartContractResults(&vmcommon.VMInput{CallType: vmData.DirectCall},
+		vmOutput, outacc1, &transaction.Transaction{}, []byte("hash"))
+	require.Nil(t, err)
+	require.NotNil(t, scResults)
+
+	arguments.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
+		IsDisableAsyncCallV1EnabledCalled: func() bool {
+			return true
+		},
+	}
+	sc, _ = NewSmartContractProcessor(arguments)
+
+	_, scResults, err = sc.createSmartContractResults(&vmcommon.VMInput{CallType: vmData.DirectCall},
+		vmOutput, outacc1, &transaction.Transaction{}, []byte("hash"))
+	require.Equal(t, process.ErrAsyncCallsDisabled.Error(), err.Error())
+	require.Nil(t, scResults)
 }

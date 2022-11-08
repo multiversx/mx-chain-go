@@ -456,6 +456,9 @@ var ErrNilEpochStartNotifier = errors.New("nil epochStartNotifier")
 // ErrNilEpochNotifier signals that the provided EpochNotifier is nil
 var ErrNilEpochNotifier = errors.New("nil EpochNotifier")
 
+// ErrNilRoundNotifier signals that the provided EpochNotifier is nil
+var ErrNilRoundNotifier = errors.New("nil RoundNotifier")
+
 // ErrInvalidCacheRefreshIntervalInSec signals that the cacheRefreshIntervalInSec is invalid - zero or less
 var ErrInvalidCacheRefreshIntervalInSec = errors.New("invalid cacheRefreshIntervalInSec")
 
@@ -1139,3 +1142,6 @@ var ErrPropertyTooShort = errors.New("property too short")
 
 // ErrNilProcessDebugger signals that a nil process debugger was provided
 var ErrNilProcessDebugger = errors.New("nil process debugger")
+
+// ErrAsyncCallsDisabled signals that async calls are disabled
+var ErrAsyncCallsDisabled = errors.New("async calls disabled")

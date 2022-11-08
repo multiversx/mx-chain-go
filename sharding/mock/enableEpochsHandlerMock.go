@@ -6,6 +6,7 @@ type EnableEpochsHandlerMock struct {
 	RefactorPeersMiniBlocksEnableEpochField   uint32
 	IsRefactorPeersMiniBlocksFlagEnabledField bool
 	IsSCProcessorV2FlagEnabledField           bool
+	IsFixOldTokenLiquidityFlagEnabledField    bool
 }
 
 // BlockGasAndFeesReCheckEnableEpoch returns 0

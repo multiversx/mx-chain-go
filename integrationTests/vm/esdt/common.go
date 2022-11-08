@@ -165,20 +165,35 @@ func CheckAddressHasTokens(
 
 // CreateNodesAndPrepareBalances -
 func CreateNodesAndPrepareBalances(numOfShards int) ([]*integrationTests.TestProcessorNode, []int) {
-	nodesPerShard := 1
-	numMetachainNodes := 1
-
 	enableEpochs := config.EnableEpochs{
 		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: integrationTests.UnreachableEpoch,
 		ScheduledMiniBlocksEnableEpoch:              integrationTests.UnreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch:        integrationTests.UnreachableEpoch,
 	}
+	roundsConfig := integrationTests.GetDefaultRoundsConfig()
+	return CreateNodesAndPrepareBalancesWithEpochsAndRoundsConfig(
+		numOfShards,
+		enableEpochs,
+		roundsConfig,
+	)
+}
 
-	nodes := integrationTests.CreateNodesWithEnableEpochs(
+// CreateNodesAndPrepareBalances -
+func CreateNodesAndPrepareBalancesWithEpochsAndRoundsConfig(numOfShards int, enableEpochs config.EnableEpochs, roundsConfig config.RoundConfig) ([]*integrationTests.TestProcessorNode, []int) {
+	nodesPerShard := 1
+	numMetachainNodes := 1
+
+	nodes := integrationTests.CreateNodesWithEnableEpochsAndVmConfigWithRoundsConfig(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
 		enableEpochs,
+		roundsConfig,
+		&config.VirtualMachineConfig{
+			ArwenVersions: []config.ArwenVersionByEpoch{
+				{StartEpoch: 0, Version: "*"},
+			},
+		},
 	)
 
 	idxProposers := make([]int, numOfShards+1)

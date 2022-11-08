@@ -417,11 +417,14 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 	accnts state.AccountsAdapter,
 	opGas uint64,
 	enableEpochsConfig config.EnableEpochs,
+	roundsConfig config.RoundConfig,
 	arwenChangeLocker common.Locker,
 ) (process.TransactionProcessor, error) {
 
 	genericEpochNotifier := forking.NewGenericEpochNotifier()
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, genericEpochNotifier)
+	genericRoundNotifier := forking.NewGenericRoundNotifier()
+	enableRoundsHandler, _ := enablers.NewEnableRoundsHandler(roundsConfig, genericRoundNotifier)
 
 	builtInFuncs := vmcommonBuiltInFunctions.NewBuiltInFunctionContainer()
 	datapool := dataRetrieverMock.NewPoolsHolderMock()
@@ -492,6 +495,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		GasSchedule:         mock.NewGasScheduleNotifierMock(gasSchedule),
 		TxLogsProcessor:     &mock.TxLogsProcessorStub{},
 		EnableEpochsHandler: enableEpochsHandler,
+		EnableRoundsHandler: enableRoundsHandler,
 		VMOutputCacher:      txcache.NewDisabledCache(),
 		ArwenChangeLocker:   arwenChangeLocker,
 	}
@@ -513,6 +517,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		BadTxForwarder:      &mock.IntermediateTransactionHandlerMock{},
 		ArgsParser:          smartContract.NewArgumentParser(),
 		ScrForwarder:        &mock.IntermediateTransactionHandlerMock{},
+		EnableRoundsHandler: enableRoundsHandler,
 		EnableEpochsHandler: enableEpochsHandler,
 	}
 
@@ -786,15 +791,19 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	feeAccumulator process.TransactionFeeHandler,
 	shardCoordinator sharding.Coordinator,
 	enableEpochsConfig config.EnableEpochs,
+	roundsConfig config.RoundConfig,
 	arwenChangeLocker common.Locker,
 	poolsHolder dataRetriever.PoolsHolder,
 	epochNotifierInstance process.EpochNotifier,
+	roundNotifierInstance process.RoundNotifier,
 ) (*ResultsCreateTxProcessor, error) {
 	if check.IfNil(poolsHolder) {
 		poolsHolder = dataRetrieverMock.NewPoolsHolderMock()
 	}
 
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
+
+	enableRoundsHandler, _ := enablers.NewEnableRoundsHandler(roundsConfig, roundNotifierInstance)
 
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(testMarshalizer)
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
@@ -843,6 +852,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		GasHandler:          gasComp,
 		GasSchedule:         mock.NewGasScheduleNotifierMock(gasSchedule),
 		TxLogsProcessor:     logProc,
+		EnableRoundsHandler: enableRoundsHandler,
 		EnableEpochsHandler: enableEpochsHandler,
 		ArwenChangeLocker:   arwenChangeLocker,
 		VMOutputCacher:      txcache.NewDisabledCache(),
@@ -865,6 +875,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		BadTxForwarder:      intermediateTxHandler,
 		ArgsParser:          smartContract.NewArgumentParser(),
 		ScrForwarder:        intermediateTxHandler,
+		EnableRoundsHandler: enableRoundsHandler,
 		EnableEpochsHandler: enableEpochsHandler,
 	}
 	txProcessor, err := transaction.NewTxProcessor(argsNewTxProcessor)
@@ -1022,6 +1033,22 @@ func CreatePreparedTxProcessorAndAccountsWithVMs(
 	senderBalance *big.Int,
 	enableEpochsConfig config.EnableEpochs,
 ) (*VMTestContext, error) {
+	return CreatePreparedTxProcessorAndAccountsWithVMsWothRoundsConfig(
+		senderNonce,
+		senderAddressBytes,
+		senderBalance,
+		enableEpochsConfig,
+		integrationTests.GetDefaultRoundsConfig())
+}
+
+// CreatePreparedTxProcessorAndAccountsWithVMsWithRoundsConfig -
+func CreatePreparedTxProcessorAndAccountsWithVMsWothRoundsConfig(
+	senderNonce uint64,
+	senderAddressBytes []byte,
+	senderBalance *big.Int,
+	enableEpochsConfig config.EnableEpochs,
+	roundsConfig config.RoundConfig,
+) (*VMTestContext, error) {
 	feeAccumulator, _ := postprocess.NewFeeAccumulator()
 	accounts := CreateInMemoryShardAccountsDB()
 	_, _ = CreateAccount(accounts, senderAddressBytes, senderNonce, senderBalance)
@@ -1029,6 +1056,7 @@ func CreatePreparedTxProcessorAndAccountsWithVMs(
 	arwenChangeLocker := &sync.RWMutex{}
 	epochNotifierInstance := forking.NewGenericEpochNotifier()
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
+	roundNotifierInstance := forking.NewGenericRoundNotifier()
 	vmContainer, blockchainHook, pool := CreateVMAndBlockchainHookAndDataPool(
 		accounts,
 		nil,
@@ -1045,9 +1073,11 @@ func CreatePreparedTxProcessorAndAccountsWithVMs(
 		feeAccumulator,
 		oneShardCoordinator,
 		enableEpochsConfig,
+		roundsConfig,
 		arwenChangeLocker,
 		pool,
 		epochNotifierInstance,
+		roundNotifierInstance,
 	)
 	if err != nil {
 		return nil, err
@@ -1071,8 +1101,18 @@ func CreatePreparedTxProcessorWithVMs(enableEpochs config.EnableEpochs) (*VMTest
 	return CreatePreparedTxProcessorWithVMsWithShardCoordinator(enableEpochs, oneShardCoordinator)
 }
 
+// CreatePreparedTxProcessorWithVMsAndRoundConfig -
+func CreatePreparedTxProcessorWithVMsAndRoundConfig(enableEpochs config.EnableEpochs, roundsConfig config.RoundConfig) (*VMTestContext, error) {
+	return CreatePreparedTxProcessorWithVMsWithShardCoordinatorAndRoundConfig(enableEpochs, roundsConfig, oneShardCoordinator)
+}
+
 // CreatePreparedTxProcessorWithVMsWithShardCoordinator -
 func CreatePreparedTxProcessorWithVMsWithShardCoordinator(enableEpochsConfig config.EnableEpochs, shardCoordinator sharding.Coordinator) (*VMTestContext, error) {
+	return CreatePreparedTxProcessorWithVMsWithShardCoordinatorAndRoundConfig(enableEpochsConfig, integrationTests.GetDefaultRoundsConfig(), shardCoordinator)
+}
+
+// CreatePreparedTxProcessorWithVMsWithShardCoordinatorAndRoundConfig -
+func CreatePreparedTxProcessorWithVMsWithShardCoordinatorAndRoundConfig(enableEpochsConfig config.EnableEpochs, roundsConfig config.RoundConfig, shardCoordinator sharding.Coordinator) (*VMTestContext, error) {
 	feeAccumulator, _ := postprocess.NewFeeAccumulator()
 	accounts := CreateInMemoryShardAccountsDB()
 	vmConfig := createDefaultVMConfig()
@@ -1083,6 +1123,7 @@ func CreatePreparedTxProcessorWithVMsWithShardCoordinator(enableEpochsConfig con
 	gasSchedule := mock.NewGasScheduleNotifierMock(testGasSchedule)
 	epochNotifierInstance := forking.NewGenericEpochNotifier()
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
+	roundNotifierInstance := forking.NewGenericRoundNotifier()
 	vmContainer, blockchainHook, pool := CreateVMAndBlockchainHookAndDataPool(
 		accounts,
 		gasSchedule,
@@ -1099,9 +1140,11 @@ func CreatePreparedTxProcessorWithVMsWithShardCoordinator(enableEpochsConfig con
 		feeAccumulator,
 		shardCoordinator,
 		enableEpochsConfig,
+		roundsConfig,
 		arwenChangeLocker,
 		pool,
 		epochNotifierInstance,
+		roundNotifierInstance,
 	)
 	if err != nil {
 		return nil, err
@@ -1133,6 +1176,25 @@ func CreateTxProcessorArwenVMWithGasSchedule(
 	gasScheduleMap map[string]map[string]uint64,
 	enableEpochsConfig config.EnableEpochs,
 ) (*VMTestContext, error) {
+	return CreateTxProcessorArwenVMWithGasScheduleAndRoundConfig(
+		senderNonce,
+		senderAddressBytes,
+		senderBalance,
+		gasScheduleMap,
+		enableEpochsConfig,
+		integrationTests.GetDefaultRoundsConfig(),
+	)
+}
+
+// CreateTxProcessorArwenVMWithGasScheduleAndRoundConfig -
+func CreateTxProcessorArwenVMWithGasScheduleAndRoundConfig(
+	senderNonce uint64,
+	senderAddressBytes []byte,
+	senderBalance *big.Int,
+	gasScheduleMap map[string]map[string]uint64,
+	enableEpochsConfig config.EnableEpochs,
+	roundsConfig config.RoundConfig,
+) (*VMTestContext, error) {
 	feeAccumulator, _ := postprocess.NewFeeAccumulator()
 	accounts := CreateInMemoryShardAccountsDB()
 	_, _ = CreateAccount(accounts, senderAddressBytes, senderNonce, senderBalance)
@@ -1142,6 +1204,7 @@ func CreateTxProcessorArwenVMWithGasSchedule(
 	gasScheduleNotifier := mock.NewGasScheduleNotifierMock(gasScheduleMap)
 	epochNotifierInstance := forking.NewGenericEpochNotifier()
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
+	roundNotifierInstance := forking.NewGenericRoundNotifier()
 	vmContainer, blockchainHook, pool := CreateVMAndBlockchainHookAndDataPool(
 		accounts,
 		gasScheduleNotifier,
@@ -1158,9 +1221,11 @@ func CreateTxProcessorArwenVMWithGasSchedule(
 		feeAccumulator,
 		oneShardCoordinator,
 		enableEpochsConfig,
+		roundsConfig,
 		arwenChangeLocker,
 		pool,
 		epochNotifierInstance,
+		roundNotifierInstance,
 	)
 	if err != nil {
 		return nil, err
@@ -1186,12 +1251,28 @@ func CreateTxProcessorArwenWithVMConfig(
 	vmConfig *config.VirtualMachineConfig,
 	gasSchedule map[string]map[string]uint64,
 ) (*VMTestContext, error) {
+	return CreateTxProcessorArwenWithVMConfigAndRoundConfig(
+		enableEpochsConfig,
+		integrationTests.GetDefaultRoundsConfig(),
+		vmConfig,
+		gasSchedule,
+	)
+}
+
+// CreateTxProcessorArwenWithVMConfig -
+func CreateTxProcessorArwenWithVMConfigAndRoundConfig(
+	enableEpochsConfig config.EnableEpochs,
+	roundsConfig config.RoundConfig,
+	vmConfig *config.VirtualMachineConfig,
+	gasSchedule map[string]map[string]uint64,
+) (*VMTestContext, error) {
 	feeAccumulator, _ := postprocess.NewFeeAccumulator()
 	accounts := CreateInMemoryShardAccountsDB()
 	arwenChangeLocker := &sync.RWMutex{}
 	gasScheduleNotifier := mock.NewGasScheduleNotifierMock(gasSchedule)
 	epochNotifierInstance := forking.NewGenericEpochNotifier()
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
+	roundNotifierInstance := forking.NewGenericRoundNotifier()
 	vmContainer, blockchainHook, pool := CreateVMAndBlockchainHookAndDataPool(
 		accounts,
 		gasScheduleNotifier,
@@ -1208,9 +1289,11 @@ func CreateTxProcessorArwenWithVMConfig(
 		feeAccumulator,
 		oneShardCoordinator,
 		enableEpochsConfig,
+		roundsConfig,
 		arwenChangeLocker,
 		pool,
 		epochNotifierInstance,
+		roundNotifierInstance,
 	)
 	if err != nil {
 		return nil, err
@@ -1240,11 +1323,32 @@ func CreatePreparedTxProcessorAndAccountsWithMockedVM(
 	enableEpochs config.EnableEpochs,
 	arwenChangeLocker common.Locker,
 ) (process.TransactionProcessor, state.AccountsAdapter, error) {
+	return CreatePreparedTxProcessorAndAccountsWithMockedVMWithRoundsConfig(
+		vmOpGas,
+		senderNonce,
+		senderAddressBytes,
+		senderBalance,
+		enableEpochs,
+		integrationTests.GetDefaultRoundsConfig(),
+		arwenChangeLocker,
+	)
+}
+
+// CreatePreparedTxProcessorAndAccountsWithMockedVMWithRoundsConfig -
+func CreatePreparedTxProcessorAndAccountsWithMockedVMWithRoundsConfig(
+	vmOpGas uint64,
+	senderNonce uint64,
+	senderAddressBytes []byte,
+	senderBalance *big.Int,
+	enableEpochs config.EnableEpochs,
+	roundsConfig config.RoundConfig,
+	arwenChangeLocker common.Locker,
+) (process.TransactionProcessor, state.AccountsAdapter, error) {
 
 	accnts := CreateInMemoryShardAccountsDB()
 	_, _ = CreateAccount(accnts, senderAddressBytes, senderNonce, senderBalance)
 
-	txProcessor, err := CreateTxProcessorWithOneSCExecutorMockVM(accnts, vmOpGas, enableEpochs, arwenChangeLocker)
+	txProcessor, err := CreateTxProcessorWithOneSCExecutorMockVM(accnts, vmOpGas, enableEpochs, roundsConfig, arwenChangeLocker)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1496,6 +1600,11 @@ func GetNodeIndex(nodeList []*integrationTests.TestProcessorNode, node *integrat
 
 // CreatePreparedTxProcessorWithVMsMultiShard -
 func CreatePreparedTxProcessorWithVMsMultiShard(selfShardID uint32, enableEpochsConfig config.EnableEpochs) (*VMTestContext, error) {
+	return CreatePreparedTxProcessorWithVMsMultiShardAndRoundConfig(selfShardID, enableEpochsConfig, integrationTests.GetDefaultRoundsConfig())
+}
+
+// CreatePreparedTxProcessorWithVMsMultiShard -
+func CreatePreparedTxProcessorWithVMsMultiShardAndRoundConfig(selfShardID uint32, enableEpochsConfig config.EnableEpochs, roundsConfig config.RoundConfig) (*VMTestContext, error) {
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(3, selfShardID)
 
 	feeAccumulator, _ := postprocess.NewFeeAccumulator()
@@ -1506,6 +1615,7 @@ func CreatePreparedTxProcessorWithVMsMultiShard(selfShardID uint32, enableEpochs
 	var blockchainHook *hooks.BlockChainHookImpl
 	epochNotifierInstance := forking.NewGenericEpochNotifier()
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
+	roundNotifierInstance := forking.NewGenericRoundNotifier()
 	if selfShardID == core.MetachainShardId {
 		vmContainer, blockchainHook = CreateVMAndBlockchainHookMeta(accounts, nil, shardCoordinator, enableEpochsConfig)
 	} else {
@@ -1528,9 +1638,11 @@ func CreatePreparedTxProcessorWithVMsMultiShard(selfShardID uint32, enableEpochs
 		feeAccumulator,
 		shardCoordinator,
 		enableEpochsConfig,
+		roundsConfig,
 		arwenChangeLocker,
 		nil,
 		epochNotifierInstance,
+		roundNotifierInstance,
 	)
 	if err != nil {
 		return nil, err

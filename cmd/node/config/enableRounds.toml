@@ -5,8 +5,7 @@
 # some exceptions to process in a different manner at a special round (say a block, a transaction, a smart contract result and such)
 
 [RoundActivations]
-    # RoundActivations.Example represents an example how to use the round activation
-    # mechanism. Replace this with the first real use case
-    [RoundActivations.Example]
+    [RoundActivations.DisableAsyncCallV1]
+        # just an example, not used for this flag
         Options = ["test string1", "test string 2"]
         Round = "18446744073709551614"

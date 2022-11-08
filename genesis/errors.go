@@ -172,3 +172,6 @@ var ErrNilGeneralSettingsConfig = errors.New("nil general settings config")
 
 // ErrNilEpochConfig signals that a nil epoch config was provided
 var ErrNilEpochConfig = errors.New("nil epoch config")
+
+// ErrNilRoundConfig signals that a nil round config was provided
+var ErrNilRoundConfig = errors.New("nil round config")

@@ -44,6 +44,7 @@ func NewTestSmartContractProcessorProxy(args scrCommon.ArgsNewSmartContractProce
 			GasSchedule:         args.GasSchedule,
 			TxLogsProcessor:     args.TxLogsProcessor,
 			BadTxForwarder:      args.BadTxForwarder,
+			EnableRoundsHandler: args.EnableRoundsHandler,
 			EnableEpochsHandler: args.EnableEpochsHandler,
 			EnableEpochs:        args.EnableEpochs,
 			VMOutputCacher:      args.VMOutputCacher,

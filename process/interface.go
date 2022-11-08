@@ -1082,16 +1082,24 @@ type NodesCoordinator interface {
 
 // EpochNotifier can notify upon an epoch change and provide the current epoch
 type EpochNotifier interface {
+	// TODO RoundSubscriberHandler should be move to elrond-core
 	RegisterNotifyHandler(handler vmcommon.EpochSubscriberHandler)
 	CurrentEpoch() uint32
 	CheckEpoch(header data.HeaderHandler)
 	IsInterfaceNil() bool
 }
 
+// RoundNotifier can notify upon an epoch change and provide the current epoch
+type RoundNotifier interface {
+	RegisterNotifyHandler(handler vmcommon.RoundSubscriberHandler)
+	CurrentRound() uint64
+	CheckRound(header data.HeaderHandler)
+	IsInterfaceNil() bool
+}
+
 // EnableRoundsHandler is an interface which can be queried to check for round activation features/fixes
 type EnableRoundsHandler interface {
-	CheckRound(round uint64)
-	IsExampleEnabled() bool
+	IsDisableAsyncCallV1Enabled() bool
 	IsInterfaceNil() bool
 }
 
