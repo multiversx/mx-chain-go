@@ -884,6 +884,7 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 	createdAsyncCallback := false
 	scrResults := make([]data.TransactionHandler, 0, len(vmOutput.OutputAccounts)+1)
 	outputAccounts := process.SortVMOutputInsideData(vmOutput)
+
 	for _, outAcc := range outputAccounts {
 		tmpCreatedAsyncCallback, scTxs, err := sc.createSmartContractResults(&vmInput.VMInput, vmOutput, outAcc, tx, txHash)
 		if err != nil {

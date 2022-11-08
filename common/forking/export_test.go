@@ -16,3 +16,18 @@ func (gen *genericEpochNotifier) CurrentTimestamp() uint64 {
 
 	return timestamp
 }
+
+// Handlers -
+func (grn *genericRoundNotifier) Handlers() []vmcommon.RoundSubscriberHandler {
+	grn.mutHandler.RLock()
+	defer grn.mutHandler.RUnlock()
+
+	return grn.handlers
+}
+
+// CurrentTimestamp -
+func (grn *genericRoundNotifier) CurrentTimestamp() uint64 {
+	_, timestamp := grn.getRoundTimestamp()
+
+	return timestamp
+}

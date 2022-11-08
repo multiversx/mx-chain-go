@@ -43,7 +43,7 @@ import (
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 )
 
-const unreachableEpoch = uint32(1000000)
+const unreachableEpoch = ^uint32(0)
 const unreachableRound = ^uint64(0)
 
 // CreateMetaGenesisBlock will create a metachain genesis block

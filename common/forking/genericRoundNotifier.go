@@ -27,78 +27,78 @@ func NewGenericRoundNotifier() *genericRoundNotifier {
 
 // CheckRound should be called whenever a new Round is known. It will trigger the notifications of the registered handlers
 // only if the current stored Round is different from the one provided
-func (gen *genericRoundNotifier) CheckRound(header data.HeaderHandler) {
+func (grn *genericRoundNotifier) CheckRound(header data.HeaderHandler) {
 	if check.IfNil(header) {
 		return
 	}
 
-	gen.mutData.Lock()
-	Round := header.GetRound()
+	grn.mutData.Lock()
+	round := header.GetRound()
 	timestamp := header.GetTimeStamp()
-	shouldSkipHeader := gen.wasInitialized && gen.currentRound == Round
+	shouldSkipHeader := grn.wasInitialized && grn.currentRound == round
 	if shouldSkipHeader {
-		gen.mutData.Unlock()
+		grn.mutData.Unlock()
 
 		return
 	}
-	gen.wasInitialized = true
-	gen.currentRound = Round
-	gen.currentTimestamp = timestamp
-	gen.mutData.Unlock()
+	grn.wasInitialized = true
+	grn.currentRound = round
+	grn.currentTimestamp = timestamp
+	grn.mutData.Unlock()
 
-	gen.mutHandler.RLock()
-	handlersCopy := make([]vmcommon.RoundSubscriberHandler, len(gen.handlers))
-	copy(handlersCopy, gen.handlers)
-	gen.mutHandler.RUnlock()
+	grn.mutHandler.RLock()
+	handlersCopy := make([]vmcommon.RoundSubscriberHandler, len(grn.handlers))
+	copy(handlersCopy, grn.handlers)
+	grn.mutHandler.RUnlock()
 
 	log.Debug("genericRoundNotifier.NotifyRoundChangeConfirmed",
-		"new Round", Round,
+		"new Round", round,
 		"new Round at timestamp", timestamp,
 		"num handlers", len(handlersCopy),
 	)
 
 	for _, handler := range handlersCopy {
-		handler.RoundConfirmed(Round, timestamp)
+		handler.RoundConfirmed(round, timestamp)
 	}
 }
 
 // RegisterNotifyHandler will register the provided handler to be called whenever a new Round has changed
-func (gen *genericRoundNotifier) RegisterNotifyHandler(handler vmcommon.RoundSubscriberHandler) {
+func (grn *genericRoundNotifier) RegisterNotifyHandler(handler vmcommon.RoundSubscriberHandler) {
 	if check.IfNil(handler) {
 		return
 	}
 
-	gen.mutHandler.Lock()
-	gen.handlers = append(gen.handlers, handler)
-	gen.mutHandler.Unlock()
+	grn.mutHandler.Lock()
+	grn.handlers = append(grn.handlers, handler)
+	grn.mutHandler.Unlock()
 
-	Round, timestamp := gen.getRoundTimestamp()
-	handler.RoundConfirmed(Round, timestamp)
+	round, timestamp := grn.getRoundTimestamp()
+	handler.RoundConfirmed(round, timestamp)
 }
 
-func (gen *genericRoundNotifier) getRoundTimestamp() (uint64, uint64) {
-	gen.mutData.RLock()
-	defer gen.mutData.RUnlock()
+func (grn *genericRoundNotifier) getRoundTimestamp() (uint64, uint64) {
+	grn.mutData.RLock()
+	defer grn.mutData.RUnlock()
 
-	return gen.currentRound, gen.currentTimestamp
+	return grn.currentRound, grn.currentTimestamp
 }
 
 // CurrentRound returns the stored Round. Useful when the Round has already changed and a new component needs to be
 // created.
-func (gen *genericRoundNotifier) CurrentRound() uint64 {
-	Round, _ := gen.getRoundTimestamp()
+func (grn *genericRoundNotifier) CurrentRound() uint64 {
+	round, _ := grn.getRoundTimestamp()
 
-	return Round
+	return round
 }
 
 // UnRegisterAll removes all registered handlers queue
-func (gen *genericRoundNotifier) UnRegisterAll() {
-	gen.mutHandler.Lock()
-	gen.handlers = make([]vmcommon.RoundSubscriberHandler, 0)
-	gen.mutHandler.Unlock()
+func (grn *genericRoundNotifier) UnRegisterAll() {
+	grn.mutHandler.Lock()
+	grn.handlers = make([]vmcommon.RoundSubscriberHandler, 0)
+	grn.mutHandler.Unlock()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (gen *genericRoundNotifier) IsInterfaceNil() bool {
-	return gen == nil
+func (grn *genericRoundNotifier) IsInterfaceNil() bool {
+	return grn == nil
 }

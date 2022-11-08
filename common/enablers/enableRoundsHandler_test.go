@@ -97,12 +97,12 @@ func TestFlagsHolder_DisableAsyncCallV1Enabled(t *testing.T) {
 		}
 
 		handler, _ := NewEnableRoundsHandler(cfg, &epochNotifier.RoundNotifierStub{})
-		assert.False(t, handler.IsDisableAsyncCallV1Enabled()) // check round not called
+		assert.True(t, handler.IsDisableAsyncCallV1Enabled()) // check round not called
 
-		handler.CheckRound(0)
+		handler.RoundConfirmed(0, 0)
 		assert.True(t, handler.IsDisableAsyncCallV1Enabled())
 
-		handler.CheckRound(1)
+		handler.RoundConfirmed(1, 0)
 		assert.True(t, handler.IsDisableAsyncCallV1Enabled())
 	})
 	t.Run("should work: config round 1", func(t *testing.T) {
@@ -119,19 +119,19 @@ func TestFlagsHolder_DisableAsyncCallV1Enabled(t *testing.T) {
 
 		handler, _ := NewEnableRoundsHandler(cfg, &epochNotifier.RoundNotifierStub{})
 		assert.False(t, handler.IsDisableAsyncCallV1Enabled()) // check round not called
-		handler.CheckRound(0)
+		handler.RoundConfirmed(0, 0)
 		assert.False(t, handler.IsDisableAsyncCallV1Enabled())
 
-		handler.CheckRound(1)
+		handler.RoundConfirmed(1, 0)
 		assert.True(t, handler.IsDisableAsyncCallV1Enabled())
 
-		handler.CheckRound(2)
+		handler.RoundConfirmed(2, 0)
 		assert.True(t, handler.IsDisableAsyncCallV1Enabled())
 
-		handler.CheckRound(0)
+		handler.RoundConfirmed(0, 0)
 		assert.False(t, handler.IsDisableAsyncCallV1Enabled())
 
-		handler.CheckRound(2)
+		handler.RoundConfirmed(2, 0)
 		assert.True(t, handler.IsDisableAsyncCallV1Enabled())
 	})
 }

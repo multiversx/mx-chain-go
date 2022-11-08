@@ -263,6 +263,17 @@ func TestNewTxProcessor_NilEnableEpochsHandlerShouldErr(t *testing.T) {
 	assert.Nil(t, txProc)
 }
 
+func TestNewTxProcessor_NilEnableRoundsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForTxProcessor()
+	args.EnableRoundsHandler = nil
+	txProc, err := txproc.NewTxProcessor(args)
+
+	assert.Equal(t, process.ErrNilEnableRoundsHandler, err)
+	assert.Nil(t, txProc)
+}
+
 func TestNewTxProcessor_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
