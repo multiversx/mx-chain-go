@@ -533,7 +533,7 @@ func testExtractAlteredAccountsFromPoolShouldIncludeNFT(t *testing.T) {
 		Identifier: "token0",
 		Balance:    expectedToken.Value.String(),
 		Nonce:      expectedToken.TokenMetaData.Nonce,
-		MetaData:   expectedToken.TokenMetaData,
+		MetaData:   &outportcore.TokenMetaData{Nonce: expectedToken.TokenMetaData.Nonce},
 	}, res[encodedAddr].Tokens[0])
 }
 
@@ -658,9 +658,7 @@ func testExtractAlteredAccountsFromPoolShouldIncludeDestinationFromTokensLogsTop
 		Identifier: "token0",
 		Balance:    "37",
 		Nonce:      38,
-		MetaData: &esdt.MetaData{
-			Nonce: 38,
-		},
+		MetaData:   &outportcore.TokenMetaData{Nonce: 38},
 	})
 }
 
@@ -855,14 +853,20 @@ func testExtractAlteredAccountsFromPoolAddressHasMultipleNfts(t *testing.T) {
 		Identifier: string(expectedToken1.TokenMetaData.Name),
 		Balance:    expectedToken1.Value.String(),
 		Nonce:      expectedToken1.TokenMetaData.Nonce,
-		MetaData:   expectedToken1.TokenMetaData,
+		MetaData: &outportcore.TokenMetaData{
+			Nonce: expectedToken1.TokenMetaData.Nonce,
+			Name:  string(expectedToken1.TokenMetaData.Name),
+		},
 	})
 
 	require.Contains(t, res[encodedAddr].Tokens, &outportcore.AccountTokenData{
 		Identifier: string(expectedToken2.TokenMetaData.Name),
 		Balance:    expectedToken2.Value.String(),
 		Nonce:      expectedToken2.TokenMetaData.Nonce,
-		MetaData:   expectedToken2.TokenMetaData,
+		MetaData: &outportcore.TokenMetaData{
+			Nonce: expectedToken2.TokenMetaData.Nonce,
+			Name:  string(expectedToken2.TokenMetaData.Name),
+		},
 	})
 
 }
