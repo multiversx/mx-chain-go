@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/genesis/data"
 	"github.com/ElrondNetwork/elrond-go/genesis/mock"
 	"github.com/ElrondNetwork/elrond-go/genesis/parsing"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -38,8 +39,8 @@ func createMockInitialAccount() *data.InitialAccount {
 	}
 }
 
-func createMockHexPubkeyConverter() *mock.PubkeyConverterStub {
-	return &mock.PubkeyConverterStub{
+func createMockHexPubkeyConverter() *testscommon.PubkeyConverterStub {
+	return &testscommon.PubkeyConverterStub{
 		DecodeCalled: func(humanReadable string) ([]byte, error) {
 			return hex.DecodeString(humanReadable)
 		},

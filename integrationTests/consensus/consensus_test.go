@@ -1,7 +1,6 @@
 package consensus
 
 import (
-	"crypto"
 	"encoding/hex"
 	"fmt"
 	"sync"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/config"
 	consensusComp "github.com/ElrondNetwork/elrond-go/factory/consensus"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
