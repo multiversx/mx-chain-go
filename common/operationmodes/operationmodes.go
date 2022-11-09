@@ -19,10 +19,6 @@ func ParseOperationModes(operationModeList string) ([]string, error) {
 	}
 
 	modes := strings.Split(operationModeList, ",")
-	if len(modes) == 0 {
-		return []string{}, nil
-	}
-
 	for _, mode := range modes {
 		err := checkOperationModeValidity(mode)
 		if err != nil {
