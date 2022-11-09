@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	coreMock "github.com/ElrondNetwork/elrond-go-core/core/mock"
 	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
@@ -45,7 +44,7 @@ func createMockArgAPITransactionProcessor() *ArgAPITransactionProcessor {
 		RoundDuration:            0,
 		GenesisTime:              time.Time{},
 		Marshalizer:              &mock.MarshalizerFake{},
-		AddressPubKeyConverter:   &mock.PubkeyConverterMock{},
+		AddressPubKeyConverter:   &testscommon.PubkeyConverterMock{},
 		ShardCoordinator:         createShardCoordinator(),
 		HistoryRepository:        &dblookupextMock.HistoryRepositoryStub{},
 		StorageService:           &storageStubs.ChainStorerStub{},
@@ -445,7 +444,7 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 		RoundDuration:            0,
 		GenesisTime:              time.Time{},
 		Marshalizer:              &mock.MarshalizerFake{},
-		AddressPubKeyConverter:   &mock.PubkeyConverterMock{},
+		AddressPubKeyConverter:   &testscommon.PubkeyConverterMock{},
 		ShardCoordinator:         &mock.ShardCoordinatorMock{},
 		HistoryRepository:        historyRepo,
 		StorageService:           chainStorer,
@@ -803,7 +802,7 @@ func TestApiTransactionProcessor_GetTransactionsPoolForSender(t *testing.T) {
 			}
 		},
 	}
-	args.AddressPubKeyConverter = &mock.PubkeyConverterStub{
+	args.AddressPubKeyConverter = &testscommon.PubkeyConverterStub{
 		DecodeCalled: func(humanReadable string) ([]byte, error) {
 			return []byte(humanReadable), nil
 		},
@@ -869,7 +868,7 @@ func TestApiTransactionProcessor_GetLastPoolNonceForSender(t *testing.T) {
 			}
 		},
 	}
-	args.AddressPubKeyConverter = &mock.PubkeyConverterStub{
+	args.AddressPubKeyConverter = &testscommon.PubkeyConverterStub{
 		DecodeCalled: func(humanReadable string) ([]byte, error) {
 			return []byte(humanReadable), nil
 		},
@@ -943,7 +942,7 @@ func TestApiTransactionProcessor_GetTransactionsPoolNonceGapsForSender(t *testin
 			}
 		},
 	}
-	args.AddressPubKeyConverter = &mock.PubkeyConverterStub{
+	args.AddressPubKeyConverter = &testscommon.PubkeyConverterStub{
 		DecodeCalled: func(humanReadable string) ([]byte, error) {
 			return []byte(humanReadable), nil
 		},
@@ -1006,7 +1005,7 @@ func createAPITransactionProc(t *testing.T, epoch uint32, withDbLookupExt bool) 
 		RoundDuration:            0,
 		GenesisTime:              time.Time{},
 		Marshalizer:              &mock.MarshalizerFake{},
-		AddressPubKeyConverter:   &mock.PubkeyConverterMock{},
+		AddressPubKeyConverter:   &testscommon.PubkeyConverterMock{},
 		ShardCoordinator:         createShardCoordinator(),
 		HistoryRepository:        historyRepo,
 		StorageService:           chainStorer,
@@ -1076,8 +1075,8 @@ func TestPrepareUnsignedTx(t *testing.T) {
 	}
 
 	n, _, _, _ := createAPITransactionProc(t, 0, true)
-	n.txUnmarshaller.addressPubKeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(addrSize, &coreMock.LoggerMock{})
-	n.addressPubKeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(addrSize, &coreMock.LoggerMock{})
+	n.txUnmarshaller.addressPubKeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(addrSize, "erd")
+	n.addressPubKeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(addrSize, "erd")
 
 	scrResult1, err := n.txUnmarshaller.prepareUnsignedTx(scr1)
 	assert.Nil(t, err)

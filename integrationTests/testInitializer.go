@@ -1555,13 +1555,29 @@ func DisplayAndStartNodes(nodes []*TestProcessorNode) {
 		pkTxBuff, _ := n.OwnAccount.PkTxSign.ToByteArray()
 		pkNode := n.NodesCoordinator.GetOwnPublicKey()
 
+		encodedPkNode, err := TestValidatorPubkeyConverter.Encode(pkNode)
+		if err != nil {
+			log.Info(fmt.Sprintf("Encoding failed for Shard ID: %v, pkNode: %s with %w",
+				n.ShardCoordinator.SelfId(),
+				encodedPkNode,
+				err))
+		}
+
 		log.Info(fmt.Sprintf("Shard ID: %v, pkNode: %s",
 			n.ShardCoordinator.SelfId(),
-			TestValidatorPubkeyConverter.Encode(pkNode)))
+			encodedPkNode))
+
+		encodedPkTxBuff, err := TestAddressPubkeyConverter.Encode(pkTxBuff)
+		if err != nil {
+			log.Info(fmt.Sprintf("Encoding failed for Shard ID: %v, pkNode: %s with %w",
+				n.ShardCoordinator.SelfId(),
+				encodedPkTxBuff,
+				err))
+		}
 
 		log.Info(fmt.Sprintf("skTx: %s, pkTx: %s",
 			hex.EncodeToString(skTxBuff),
-			TestAddressPubkeyConverter.Encode(pkTxBuff)))
+			encodedPkTxBuff))
 	}
 
 	log.Info("Delaying for node bootstrap and topic announcement...")
@@ -2125,9 +2141,15 @@ func generateValidTx(
 		node.WithStateComponents(stateComponents),
 	)
 
+	encodedPkSenderBuff, err := TestAddressPubkeyConverter.Encode(pkSenderBuff)
+	assert.Nil(t, err)
+
+	encodedPkRecvBuff, err := TestAddressPubkeyConverter.Encode(pkRecvBuff)
+	assert.Nil(t, err)
+
 	tx, err := mockNode.GenerateTransaction(
-		TestAddressPubkeyConverter.Encode(pkSenderBuff),
-		TestAddressPubkeyConverter.Encode(pkRecvBuff),
+		encodedPkSenderBuff,
+		encodedPkRecvBuff,
 		big.NewInt(1),
 		"",
 		skSender,

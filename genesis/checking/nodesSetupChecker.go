@@ -64,7 +64,7 @@ func NewNodesSetupChecker(
 // also, it checks that the amount staked (either directly or delegated) matches exactly the total
 // staked value defined in the genesis file
 func (nsc *nodeSetupChecker) Check(initialNodes []nodesCoordinator.GenesisNodeInfoHandler) error {
-	err := nsc.ckeckGenesisNodes(initialNodes)
+	err := nsc.checkGenesisNodes(initialNodes)
 	if err != nil {
 		return err
 	}
@@ -79,13 +79,18 @@ func (nsc *nodeSetupChecker) Check(initialNodes []nodesCoordinator.GenesisNodeIn
 	return nsc.checkRemainderInitialAccounts(initialAccounts, delegated)
 }
 
-func (nsc *nodeSetupChecker) ckeckGenesisNodes(initialNodes []nodesCoordinator.GenesisNodeInfoHandler) error {
+func (nsc *nodeSetupChecker) checkGenesisNodes(initialNodes []nodesCoordinator.GenesisNodeInfoHandler) error {
 	for _, node := range initialNodes {
-		err := nsc.keyGenerator.CheckPublicKeyValid(node.PubKeyBytes())
+		validatorPubkeyEncodedAddr, err := nsc.validatorPubkeyConverter.Encode(node.PubKeyBytes())
+		if err != nil {
+			return err
+		}
+
+		err = nsc.keyGenerator.CheckPublicKeyValid(node.PubKeyBytes())
 		if err != nil {
 			return fmt.Errorf("%w for node's public key `%s`, error: %s",
 				genesis.ErrInvalidPubKey,
-				nsc.validatorPubkeyConverter.Encode(node.PubKeyBytes()),
+				validatorPubkeyEncodedAddr,
 				err.Error(),
 			)
 		}
@@ -111,10 +116,15 @@ func (nsc *nodeSetupChecker) traverseInitialNodesSubtractingStakedValue(
 	delegated map[string]*delegationAddress,
 ) error {
 	for _, initialNode := range initialNodes {
-		err := nsc.subtractStakedValue(initialNode.AddressBytes(), initialAccounts, delegated)
+		validatorPubkeyEncodedAddr, err := nsc.validatorPubkeyConverter.Encode(initialNode.PubKeyBytes())
+		if err != nil {
+			return err
+		}
+
+		err = nsc.subtractStakedValue(initialNode.AddressBytes(), initialAccounts, delegated)
 		if err != nil {
 			return fmt.Errorf("'%w' while processing node pubkey %s",
-				err, nsc.validatorPubkeyConverter.Encode(initialNode.PubKeyBytes()))
+				err, validatorPubkeyEncodedAddr)
 		}
 	}
 

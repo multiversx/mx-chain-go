@@ -42,7 +42,12 @@ func (dp *baseDeploy) deployForOneAddress(
 	}
 
 	sc.AddAddressBytes(scResultingAddressBytes)
-	sc.AddAddress(dp.pubkeyConv.Encode(scResultingAddressBytes))
+
+	encodedSCResultingAddress, err := dp.pubkeyConv.Encode(scResultingAddressBytes)
+	if err != nil {
+		return nil, err
+	}
+	sc.AddAddress(encodedSCResultingAddress)
 
 	vmType := sc.GetVmType()
 	arguments := []string{code, vmType, codeMetadataHexForInitialSC}
@@ -53,7 +58,7 @@ func (dp *baseDeploy) deployForOneAddress(
 
 	log.Trace("deploying genesis SC",
 		"SC owner", sc.GetOwner(),
-		"SC ownerAddress", dp.pubkeyConv.Encode(scResultingAddressBytes),
+		"SC ownerAddress", encodedSCResultingAddress,
 		"type", sc.GetType(),
 		"VM type", sc.GetVmType(),
 		"init params", initParams,
@@ -80,12 +85,17 @@ func (dp *baseDeploy) deployForOneAddress(
 		return nil, err
 	}
 
+	encodedOwnerAddress, err := dp.pubkeyConv.Encode(ownerAddress)
+	if err != nil {
+		return nil, err
+	}
+
 	_, accountExists = dp.GetAccount(scResultingAddressBytes)
 	if !accountExists {
 		return nil, fmt.Errorf("%w for SC ownerAddress %s, owner %s with nonce %d",
 			genesis.ErrAccountNotCreated,
-			dp.pubkeyConv.Encode(scResultingAddressBytes),
-			dp.pubkeyConv.Encode(ownerAddress),
+			encodedSCResultingAddress,
+			encodedOwnerAddress,
 			nonce,
 		)
 	}

@@ -126,7 +126,7 @@ VERSION:
 
 	validatorPubKeyConverter, _ = pubkeyConverter.NewHexPubkeyConverter(blsPubkeyLen)
 	p2pPubKeyConverter          = NewP2pConverter()
-	walletPubKeyConverter, _    = pubkeyConverter.NewBech32PubkeyConverter(txSignPubkeyLen, log)
+	walletPubKeyConverter, _    = pubkeyConverter.NewBech32PubkeyConverter(txSignPubkeyLen, "erd")
 )
 
 func main() {
@@ -385,7 +385,10 @@ func writeKeyToStream(writer io.Writer, key key, pubkeyConverter core.PubkeyConv
 		return fmt.Errorf("nil writer")
 	}
 
-	pkString := pubkeyConverter.Encode(key.pkBytes)
+	pkString, err := pubkeyConverter.Encode(key.pkBytes)
+	if err != nil {
+		return err
+	}
 
 	blk := pem.Block{
 		Type:  "PRIVATE KEY for " + pkString,

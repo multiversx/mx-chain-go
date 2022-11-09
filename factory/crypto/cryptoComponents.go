@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	disabledCrypto "github.com/ElrondNetwork/elrond-go-crypto/signing/disabled"
 	disabledSig "github.com/ElrondNetwork/elrond-go-crypto/signing/disabled/singlesig"
@@ -258,7 +258,10 @@ func (ccf *cryptoComponentsFactory) readCryptoParams(keygen crypto.KeyGenerator)
 	}
 
 	validatorKeyConverter := ccf.coreComponentsHolder.ValidatorPubKeyConverter()
-	cp.publicKeyString = validatorKeyConverter.Encode(cp.publicKeyBytes)
+	cp.publicKeyString, err = validatorKeyConverter.Encode(cp.publicKeyBytes)
+	if err != nil {
+		return nil, err
+	}
 
 	return cp, nil
 }
@@ -282,7 +285,10 @@ func (ccf *cryptoComponentsFactory) generateCryptoParams(keygen crypto.KeyGenera
 	}
 
 	validatorKeyConverter := ccf.coreComponentsHolder.ValidatorPubKeyConverter()
-	cp.publicKeyString = validatorKeyConverter.Encode(cp.publicKeyBytes)
+	cp.publicKeyString, err = validatorKeyConverter.Encode(cp.publicKeyBytes)
+	if err != nil {
+		return nil, err
+	}
 
 	return cp, nil
 }

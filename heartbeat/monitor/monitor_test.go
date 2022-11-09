@@ -19,6 +19,7 @@ import (
 )
 
 func createMockHeartbeatV2MonitorArgs() ArgHeartbeatV2Monitor {
+
 	return ArgHeartbeatV2Monitor{
 		Cache:                         testscommon.NewCacherMock(),
 		PubKeyConverter:               &testscommon.PubkeyConverterMock{},

@@ -20,7 +20,7 @@ import (
 func createMockDeployArg() ArgDeployProcessor {
 	return ArgDeployProcessor{
 		Executor:       &mock.TxExecutionProcessorStub{},
-		PubkeyConv:     mock.NewPubkeyConverterMock(32),
+		PubkeyConv:     testscommon.NewPubkeyConverterMock(32),
 		BlockchainHook: &testscommon.BlockChainHookStub{},
 		QueryService:   &mock.QueryServiceStub{},
 	}

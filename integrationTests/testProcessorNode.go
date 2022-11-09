@@ -141,7 +141,7 @@ var TestVmMarshalizer = &marshal.JsonMarshalizer{}
 var TestTxSignMarshalizer = &marshal.JsonMarshalizer{}
 
 // TestAddressPubkeyConverter represents an address public key converter
-var TestAddressPubkeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(32, log)
+var TestAddressPubkeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
 
 // TestValidatorPubkeyConverter represents an address public key converter
 var TestValidatorPubkeyConverter, _ = pubkeyConverter.NewHexPubkeyConverter(96)
@@ -2282,12 +2282,22 @@ func (tpn *TestProcessorNode) initNode() {
 
 // SendTransaction can send a transaction (it does the dispatching)
 func (tpn *TestProcessorNode) SendTransaction(tx *dataTransaction.Transaction) (string, error) {
+	encodedRcvAddr, err := TestAddressPubkeyConverter.Encode(tx.RcvAddr)
+	if err != nil {
+		return "", err
+	}
+
+	encodedSndAddr, err := TestAddressPubkeyConverter.Encode(tx.SndAddr)
+	if err != nil {
+		return "", err
+	}
+
 	tx, txHash, err := tpn.Node.CreateTransaction(
 		tx.Nonce,
 		tx.Value.String(),
-		TestAddressPubkeyConverter.Encode(tx.RcvAddr),
+		encodedRcvAddr,
 		nil,
-		TestAddressPubkeyConverter.Encode(tx.SndAddr),
+		encodedSndAddr,
 		nil,
 		tx.GasPrice,
 		tx.GasLimit,

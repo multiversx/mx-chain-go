@@ -25,18 +25,18 @@ func (p *p2pConverter) Decode(humanReadable string) ([]byte, error) {
 }
 
 // Encode encodes a byte array representing public key as peer ID string
-func (p *p2pConverter) Encode(pkBytes []byte) string {
+func (p *p2pConverter) Encode(pkBytes []byte) (string, error) {
 	pubKey, err := libp2pCrypto.UnmarshalSecp256k1PublicKey(pkBytes)
 	if err != nil {
-		return ""
+		return "", err
 	}
 
 	id, err := peer.IDFromPublicKey(pubKey)
 	if err != nil {
-		return ""
+		return "", err
 	}
 
-	return id.Pretty()
+	return id.Pretty(), nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -169,7 +169,10 @@ func (monitor *heartbeatV2Monitor) parseMessage(pid core.PeerID, message interfa
 		return nil, fmt.Errorf("%w, messageAge %v", heartbeat.ErrShouldSkipValidator, messageAge)
 	}
 
-	pkHexString := monitor.pubKeyConverter.Encode(heartbeatV2.GetPubkey())
+	pkHexString, err := monitor.pubKeyConverter.Encode(heartbeatV2.GetPubkey())
+	if err != nil {
+		return nil, err
+	}
 
 	pubKeyHeartbeat := &data.PubKeyHeartbeat{
 		PublicKey:            pkHexString,

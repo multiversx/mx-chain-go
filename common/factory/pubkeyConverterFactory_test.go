@@ -36,7 +36,8 @@ func TestNewPubkeyConverter_Bech32ShouldWork(t *testing.T) {
 	)
 
 	assert.Nil(t, err)
-	expected, _ := pubkeyConverter.NewBech32PubkeyConverter(32, log)
+	expected, err := pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
+	assert.Nil(t, err)
 	assert.IsType(t, expected, pc)
 }
 

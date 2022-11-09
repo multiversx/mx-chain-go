@@ -7,11 +7,10 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/mock"
 	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
@@ -59,8 +58,10 @@ func TestTxDataFieldContainingUTF8Characters(t *testing.T) {
 		Version:  version,
 	}
 
-	sig1 := sign(tx1, singleSigner, sk)
-	sig2 := sign(tx2, singleSigner, sk)
+	sig1, err := sign(tx1, singleSigner, sk)
+	assert.Nil(t, err)
+	sig2, err := sign(tx2, singleSigner, sk)
+	assert.Nil(t, err)
 
 	fmt.Println("sig1: " + hex.EncodeToString(sig1))
 	fmt.Println("sig2: " + hex.EncodeToString(sig2))
@@ -68,15 +69,20 @@ func TestTxDataFieldContainingUTF8Characters(t *testing.T) {
 	assert.NotEqual(t, sig1, sig2)
 }
 
-func sign(tx *transaction.Transaction, signer crypto.SingleSigner, sk crypto.PrivateKey) []byte {
+func sign(tx *transaction.Transaction, signer crypto.SingleSigner, sk crypto.PrivateKey) ([]byte, error) {
 	marshalizer := &marshal.JsonMarshalizer{}
-	converter, _ := pubkeyConverter.NewBech32PubkeyConverter(32, &mock.LoggerMock{})
+	converter, _ := pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
+
+	encodedSignerAddr, err := converter.Encode(tx.RcvAddr)
+	if err != nil {
+		return nil, err
+	}
 
 	ftx := &transaction.FrontendTransaction{
 		Nonce:            tx.Nonce,
 		Value:            tx.Value.String(),
-		Receiver:         converter.Encode(tx.RcvAddr),
-		Sender:           converter.Encode(tx.RcvAddr),
+		Receiver:         encodedSignerAddr,
+		Sender:           encodedSignerAddr,
 		SenderUsername:   nil,
 		ReceiverUsername: nil,
 		GasPrice:         tx.GasPrice,
@@ -93,5 +99,5 @@ func sign(tx *transaction.Transaction, signer crypto.SingleSigner, sk crypto.Pri
 
 	signature, _ := signer.Sign(sk, buff)
 
-	return signature
+	return signature, nil
 }

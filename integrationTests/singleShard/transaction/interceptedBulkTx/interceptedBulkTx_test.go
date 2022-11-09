@@ -1,6 +1,7 @@
 package interceptedBulkTx
 
 import (
+	"crypto"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -11,7 +12,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/stretchr/testify/assert"
@@ -87,9 +87,11 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithMessenger(t *testing.T) {
 	mintingValue := big.NewInt(10000000000)
 	integrationTests.CreateMintingForSenders([]*integrationTests.TestProcessorNode{n}, shardId, senderPrivateKeys, mintingValue)
 
-	receiver := integrationTests.TestAddressPubkeyConverter.Encode(integrationTests.CreateRandomBytes(32))
-	err := n.Node.GenerateAndSendBulkTransactions(
-		receiver,
+	encodedReceiverAddr, err := integrationTests.TestAddressPubkeyConverter.Encode(integrationTests.CreateRandomBytes(32))
+	assert.Nil(t, err)
+
+	err = n.Node.GenerateAndSendBulkTransactions(
+		encodedReceiverAddr,
 		big.NewInt(1),
 		uint64(noOfTx),
 		n.OwnAccount.SkTxSign,

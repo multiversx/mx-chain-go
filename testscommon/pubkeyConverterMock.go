@@ -22,8 +22,8 @@ func (pcm *PubkeyConverterMock) Decode(humanReadable string) ([]byte, error) {
 }
 
 // Encode -
-func (pcm *PubkeyConverterMock) Encode(pkBytes []byte) string {
-	return hex.EncodeToString(pkBytes)
+func (pcm *PubkeyConverterMock) Encode(pkBytes []byte) (string, error) {
+	return hex.EncodeToString(pkBytes), nil
 }
 
 // Len -

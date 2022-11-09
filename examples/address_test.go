@@ -21,7 +21,7 @@ func TestHexAddressToBech32Address(t *testing.T) {
 	hexEncodedAddressBytes, err := hex.DecodeString(hexEncodedAddress)
 	require.NoError(t, err)
 
-	bech32Address := addressEncoder.Encode(hexEncodedAddressBytes)
+	bech32Address, _ := addressEncoder.Encode(hexEncodedAddressBytes)
 	require.Equal(t, "erd14uqxan5rgucsf6537ll4vpwyc96z7us5586xhc5euv8w96rsw95sfl6a49", bech32Address)
 }
 
@@ -61,20 +61,20 @@ func computeShardID(t *testing.T, addressBech32 string, shardCoordinator shardin
 }
 
 func TestSystemSCsAddressesAndSpecialAddresses(t *testing.T) {
-	contractDeployScAdress := addressEncoder.Encode(make([]byte, addressEncoder.Len()))
-	stakingScAddress := addressEncoder.Encode(vm.StakingSCAddress)
-	validatorScAddress := addressEncoder.Encode(vm.ValidatorSCAddress)
-	esdtScAddress := addressEncoder.Encode(vm.ESDTSCAddress)
-	governanceScAddress := addressEncoder.Encode(vm.GovernanceSCAddress)
-	jailingAddress := addressEncoder.Encode(vm.JailingAddress)
-	endOfEpochAddress := addressEncoder.Encode(vm.EndOfEpochAddress)
-	delegationManagerScAddress := addressEncoder.Encode(vm.DelegationManagerSCAddress)
-	firstDelegationScAddress := addressEncoder.Encode(vm.FirstDelegationSCAddress)
+	contractDeployScAdress, _ := addressEncoder.Encode(make([]byte, addressEncoder.Len()))
+	stakingScAddress, _ := addressEncoder.Encode(vm.StakingSCAddress)
+	validatorScAddress, _ := addressEncoder.Encode(vm.ValidatorSCAddress)
+	esdtScAddress, _ := addressEncoder.Encode(vm.ESDTSCAddress)
+	governanceScAddress, _ := addressEncoder.Encode(vm.GovernanceSCAddress)
+	jailingAddress, _ := addressEncoder.Encode(vm.JailingAddress)
+	endOfEpochAddress, _ := addressEncoder.Encode(vm.EndOfEpochAddress)
+	delegationManagerScAddress, _ := addressEncoder.Encode(vm.DelegationManagerSCAddress)
+	firstDelegationScAddress, _ := addressEncoder.Encode(vm.FirstDelegationSCAddress)
 
 	genesisMintingAddressBytes, err := hex.DecodeString("f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0")
 	require.NoError(t, err)
-	genesisMintingAddress := addressEncoder.Encode(genesisMintingAddressBytes)
-	systemAccountAddress := addressEncoder.Encode(core.SystemAccountAddress)
+	genesisMintingAddress, _ := addressEncoder.Encode(genesisMintingAddressBytes)
+	systemAccountAddress, _ := addressEncoder.Encode(core.SystemAccountAddress)
 
 	header := []string{"Smart contract/Special address", "Address"}
 	lines := []*display.LineData{

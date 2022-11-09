@@ -1,10 +1,10 @@
-package mock
+package testscommon
 
 // PubkeyConverterStub -
 type PubkeyConverterStub struct {
 	LenCalled    func() int
 	DecodeCalled func(humanReadable string) ([]byte, error)
-	EncodeCalled func(pkBytes []byte) string
+	EncodeCalled func(pkBytes []byte) (string, error)
 }
 
 // Len -
@@ -26,12 +26,12 @@ func (pcs *PubkeyConverterStub) Decode(humanReadable string) ([]byte, error) {
 }
 
 // Encode -
-func (pcs *PubkeyConverterStub) Encode(pkBytes []byte) string {
+func (pcs *PubkeyConverterStub) Encode(pkBytes []byte) (string, error) {
 	if pcs.EncodeCalled != nil {
 		return pcs.EncodeCalled(pkBytes)
 	}
 
-	return ""
+	return "", nil
 }
 
 // IsInterfaceNil -
