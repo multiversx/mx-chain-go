@@ -207,8 +207,8 @@ func initDataPool() *dataRetrieverMock.PoolsHolderStub {
 	return sdp
 }
 
-func createMockPubkeyConverter() *mock.PubkeyConverterMock {
-	return mock.NewPubkeyConverterMock(32)
+func createMockPubkeyConverter() *testscommon.PubkeyConverterMock {
+	return testscommon.NewPubkeyConverterMock(32)
 }
 
 func createDefaultTransactionsProcessorArgs() ArgsTransactionPreProcessor {
@@ -1826,7 +1826,7 @@ func TestSortTransactionsBySenderAndNonceWithFrontRunningProtection_TestnetBids(
 		"erd1hshz86ke95z58920xl59jnakv5ppmsfarwtump6scjjcyfr9zxwsd0cy8y",
 		"erd13l5pgsz32u2t7mpanr9hyalahn2newj6ew85s8pgaln5kglm5s3s7w657h",
 	}
-	bch32, _ := pubkeyConverter.NewBech32PubkeyConverter(32, log)
+	bch32, _ := pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
 	txs := make([]*txcache.WrappedTransaction, 0)
 
 	for idx, addr := range addresses {
@@ -1842,8 +1842,9 @@ func TestSortTransactionsBySenderAndNonceWithFrontRunningProtection_TestnetBids(
 		randomness := make([]byte, 32)
 		_, _ = rand.Read(randomness)
 		txPreproc.sortTransactionsBySenderAndNonceWithFrontRunningProtection(txs, randomness)
-		winner := bch32.Encode(txs[0].Tx.GetSndAddr())
-		numWinsForAddresses[winner]++
+		encodedWinnerAddr, err := bch32.Encode(txs[0].Tx.GetSndAddr())
+		assert.Nil(t, err)
+		numWinsForAddresses[encodedWinnerAddr]++
 	}
 
 	expectedWinsPerSender := numCalls / len(addresses)

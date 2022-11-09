@@ -45,7 +45,7 @@ func createMockBlockChainHookArgs() hooks.ArgBlockChainHook {
 				return &stateMock.AccountWrapMock{}, nil
 			},
 		},
-		PubkeyConv:            mock.NewPubkeyConverterMock(32),
+		PubkeyConv:            testscommon.NewPubkeyConverterMock(32),
 		StorageService:        &storageStubs.ChainStorerStub{},
 		BlockChain:            &testscommon.ChainHandlerStub{},
 		ShardCoordinator:      mock.NewOneShardCoordinatorMock(),

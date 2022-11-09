@@ -624,6 +624,9 @@ func DisplayProcessTxDetails(
 	txHash []byte,
 	addressPubkeyConverter core.PubkeyConverter,
 ) {
+
+	var err error
+
 	if !check.IfNil(accountHandler) {
 		account, ok := accountHandler.(state.UserAccountHandler)
 		if ok {
@@ -643,12 +646,14 @@ func DisplayProcessTxDetails(
 
 	receiver := ""
 	if len(txHandler.GetRcvAddr()) == addressPubkeyConverter.Len() {
-		receiver = addressPubkeyConverter.Encode(txHandler.GetRcvAddr())
+		receiver, err = addressPubkeyConverter.Encode(txHandler.GetRcvAddr())
+		log.Debug("DisplayProcessTxDetails(), error occured while encoding receiver address ", "error", err)
 	}
 
 	sender := ""
 	if len(txHandler.GetSndAddr()) == addressPubkeyConverter.Len() {
-		sender = addressPubkeyConverter.Encode(txHandler.GetSndAddr())
+		sender, err = addressPubkeyConverter.Encode(txHandler.GetSndAddr())
+		log.Debug("DisplayProcessTxDetails(), error occured while encoding sender address ", "error", err)
 	}
 
 	log.Trace("executing transaction",

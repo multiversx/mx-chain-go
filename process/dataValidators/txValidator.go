@@ -71,11 +71,17 @@ func (txv *txValidator) CheckTxValidity(interceptedTx process.TxValidatorHandler
 	}
 
 	senderAddress := interceptedTx.SenderAddress()
+
+	encodedSenderAddr, err := txv.pubkeyConverter.Encode(senderAddress)
+	if err != nil {
+		return err
+	}
+
 	accountHandler, err := txv.accounts.GetExistingAccount(senderAddress)
 	if err != nil {
 		return fmt.Errorf("%w for address %s and shard %d, err: %s",
 			process.ErrAccountNotFound,
-			txv.pubkeyConverter.Encode(senderAddress),
+			encodedSenderAddr,
 			shardID,
 			err.Error(),
 		)
@@ -98,7 +104,7 @@ func (txv *txValidator) CheckTxValidity(interceptedTx process.TxValidatorHandler
 	if !ok {
 		return fmt.Errorf("%w, account is not of type *state.Account, address: %s",
 			process.ErrWrongTypeAssertion,
-			txv.pubkeyConverter.Encode(senderAddress),
+			encodedSenderAddr,
 		)
 	}
 
@@ -107,7 +113,7 @@ func (txv *txValidator) CheckTxValidity(interceptedTx process.TxValidatorHandler
 	if accountBalance.Cmp(txFee) < 0 {
 		return fmt.Errorf("%w, for address: %s, wanted %v, have %v",
 			process.ErrInsufficientFunds,
-			txv.pubkeyConverter.Encode(senderAddress),
+			encodedSenderAddr,
 			txFee,
 			accountBalance,
 		)

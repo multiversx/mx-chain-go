@@ -157,7 +157,10 @@ func (ts *transactionSimulator) addIntermediateTxsToResult(result *txSimData.Sim
 		if !ok {
 			continue
 		}
-		scResults[hex.EncodeToString([]byte(hash))] = ts.adaptSmartContractResult(scr)
+		scResults[hex.EncodeToString([]byte(hash))], err = ts.adaptSmartContractResult(scr)
+		if err != nil {
+			return err
+		}
 	}
 	result.ScResults = scResults
 
@@ -176,19 +179,31 @@ func (ts *transactionSimulator) addIntermediateTxsToResult(result *txSimData.Sim
 		if !ok {
 			continue
 		}
-		receipts[hex.EncodeToString([]byte(hash))] = ts.adaptReceipt(rcpt)
+		receipts[hex.EncodeToString([]byte(hash))], err = ts.adaptReceipt(rcpt)
+		if err != nil {
+			return err
+		}
 	}
 	result.Receipts = receipts
 
 	return nil
 }
 
-func (ts *transactionSimulator) adaptSmartContractResult(scr *smartContractResult.SmartContractResult) *transaction.ApiSmartContractResult {
+func (ts *transactionSimulator) adaptSmartContractResult(scr *smartContractResult.SmartContractResult) (*transaction.ApiSmartContractResult, error) {
+	encodedRcvAddr, err := ts.addressPubKeyConverter.Encode(scr.RcvAddr)
+	if err != nil {
+		return nil, err
+	}
+	encodedSndAddr, err := ts.addressPubKeyConverter.Encode(scr.SndAddr)
+	if err != nil {
+		return nil, err
+	}
+
 	resScr := &transaction.ApiSmartContractResult{
 		Nonce:          scr.Nonce,
 		Value:          scr.Value,
-		RcvAddr:        ts.addressPubKeyConverter.Encode(scr.RcvAddr),
-		SndAddr:        ts.addressPubKeyConverter.Encode(scr.SndAddr),
+		RcvAddr:        encodedRcvAddr,
+		SndAddr:        encodedSndAddr,
 		RelayedValue:   scr.RelayedValue,
 		Code:           string(scr.Code),
 		Data:           string(scr.Data),
@@ -202,22 +217,33 @@ func (ts *transactionSimulator) adaptSmartContractResult(scr *smartContractResul
 	}
 
 	if scr.OriginalSender != nil {
-		resScr.OriginalSender = ts.addressPubKeyConverter.Encode(scr.OriginalSender)
+		resScr.OriginalSender, err = ts.addressPubKeyConverter.Encode(scr.OriginalSender)
+		if err != nil {
+			return nil, err
+		}
 	}
 	if scr.RelayerAddr != nil {
-		resScr.RelayerAddr = ts.addressPubKeyConverter.Encode(scr.RelayerAddr)
+		resScr.RelayerAddr, err = ts.addressPubKeyConverter.Encode(scr.RelayerAddr)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	return resScr
+	return resScr, nil
 }
 
-func (ts *transactionSimulator) adaptReceipt(rcpt *receipt.Receipt) *transaction.ApiReceipt {
+func (ts *transactionSimulator) adaptReceipt(rcpt *receipt.Receipt) (*transaction.ApiReceipt, error) {
+	encodedRcptSenderAddr, err := ts.addressPubKeyConverter.Encode(rcpt.SndAddr)
+	if err != nil {
+		return nil, err
+	}
+
 	return &transaction.ApiReceipt{
 		Value:   rcpt.Value,
-		SndAddr: ts.addressPubKeyConverter.Encode(rcpt.SndAddr),
+		SndAddr: encodedRcptSenderAddr,
 		Data:    string(rcpt.Data),
 		TxHash:  hex.EncodeToString(rcpt.TxHash),
-	}
+	}, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

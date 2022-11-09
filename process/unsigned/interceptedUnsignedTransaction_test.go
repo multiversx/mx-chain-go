@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/unsigned"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 )
@@ -45,13 +46,13 @@ func createInterceptedScrFromPlainScr(scr *smartContractResult.SmartContractResu
 		txBuff,
 		marshalizer,
 		&hashingMocks.HasherMock{},
-		&mock.PubkeyConverterStub{},
+		&testscommon.PubkeyConverterStub{},
 		shardCoordinator,
 	)
 }
 
-func createMockPubkeyConverter() *mock.PubkeyConverterMock {
-	return mock.NewPubkeyConverterMock(32)
+func createMockPubkeyConverter() *testscommon.PubkeyConverterMock {
+	return testscommon.NewPubkeyConverterMock(32)
 }
 
 // ------- NewInterceptedUnsignedTransaction
