@@ -5,7 +5,6 @@ import (
 	"math"
 	"os"
 	"runtime"
-	"strings"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -535,8 +534,7 @@ func applyCompatibleConfigs(log logger.Logger, configs *config.Configs) error {
 		return fmt.Errorf("import-db-no-sig-check can only be used with the import-db flag")
 	}
 
-	operationModes := strings.Split(configs.FlagsConfig.OperationMode, ",")
-	err := operationmodes.CheckOperationModes(operationModes)
+	operationModes, err := operationmodes.ParseOperationModes(configs.FlagsConfig.OperationMode)
 	if err != nil {
 		return err
 	}

@@ -1,6 +1,9 @@
 package operationmodes
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 const (
 	OperationModeFullArchive        = "full-archive"
@@ -9,38 +12,43 @@ const (
 	OperationModeLiteObserver       = "lite-observer"
 )
 
-// CheckOperationModes will check the compatibility of the provided operation modes and return an error if any
-func CheckOperationModes(modes []string) error {
+// ParseOperationModes will check and parse the operation modes
+func ParseOperationModes(operationModeList string) ([]string, error) {
+	if len(operationModeList) == 0 {
+		return []string{}, nil
+	}
+
+	modes := strings.Split(operationModeList, ",")
 	if len(modes) == 0 {
-		return nil
+		return []string{}, nil
 	}
 
 	for _, mode := range modes {
 		err := checkOperationModeValidity(mode)
 		if err != nil {
-			return err
+			return []string{}, err
 		}
 	}
 
 	// db lookup extension and historical balances
 	isInvalid := sliceContainsBothElements(modes, OperationModeHistoricalBalances, OperationModeDbLookupExtension)
 	if isInvalid {
-		return fmt.Errorf("operation-mode flag cannot contain both db-lookup-extension and historical-balances")
+		return []string{}, fmt.Errorf("operation-mode flag cannot contain both db-lookup-extension and historical-balances")
 	}
 
 	// lite observer and historical balances
 	isInvalid = sliceContainsBothElements(modes, OperationModeLiteObserver, OperationModeHistoricalBalances)
 	if isInvalid {
-		return fmt.Errorf("operation-mode flag cannot contain both lite-observer and historical-balances")
+		return []string{}, fmt.Errorf("operation-mode flag cannot contain both lite-observer and historical-balances")
 	}
 
 	// lite observer and full archive
 	isInvalid = sliceContainsBothElements(modes, OperationModeLiteObserver, OperationModeFullArchive)
 	if isInvalid {
-		return fmt.Errorf("operation-mode flag cannot contain both lite-observer and full-archive")
+		return []string{}, fmt.Errorf("operation-mode flag cannot contain both lite-observer and full-archive")
 	}
 
-	return nil
+	return modes, nil
 }
 
 func checkOperationModeValidity(mode string) error {
