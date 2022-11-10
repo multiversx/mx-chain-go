@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/node/external/blockAPI"
@@ -17,6 +18,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
+
+var log = logger.GetOrCreate("node")
 
 // ArgNodeApiResolver represents the DTO structure used in the NewNodeApiResolver constructor
 type ArgNodeApiResolver struct {
@@ -279,21 +282,32 @@ func bigInToString(input *big.Int) string {
 }
 
 // GetGenesisNodesPubKeys will return genesis nodes public keys by shard
-func (nar *nodeApiResolver) GetGenesisNodesPubKeys() (map[uint32][]string, map[uint32][]string) {
+func (nar *nodeApiResolver) GetGenesisNodesPubKeys() (map[uint32][]string, map[uint32][]string, error) {
 	eligibleNodesConfig, waitingNodesConfig := nar.genesisNodesSetupHandler.InitialNodesInfo()
-	return nar.getInitialNodesPubKeysBytes(eligibleNodesConfig), nar.getInitialNodesPubKeysBytes(waitingNodesConfig)
+
+	eligibleNodesPubKeysBytes, errEligible := nar.getInitialNodesPubKeysBytes(eligibleNodesConfig)
+	waitingNodesPubKeysBytes, errWaiting := nar.getInitialNodesPubKeysBytes(waitingNodesConfig)
+	if errEligible != nil || errWaiting != nil {
+		return nil, nil, ErrEncodeValidatorPubKey
+	}
+
+	return eligibleNodesPubKeysBytes, waitingNodesPubKeysBytes, nil
 }
 
-func (nar *nodeApiResolver) getInitialNodesPubKeysBytes(nodesInfo map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) map[uint32][]string {
+func (nar *nodeApiResolver) getInitialNodesPubKeysBytes(nodesInfo map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) (map[uint32][]string, error) {
 	nodesInfoPubkeys := make(map[uint32][]string)
 
 	for shardID, ni := range nodesInfo {
 		for i := 0; i < len(ni); i++ {
-			nodesInfoPubkeys[shardID] = append(nodesInfoPubkeys[shardID], nar.validatorPubKeyConverter.Encode(ni[i].PubKeyBytes()))
+			encodeValidatorPubKey, err := nar.validatorPubKeyConverter.Encode(ni[i].PubKeyBytes())
+			if err != nil {
+				return nil, err
+			}
+			nodesInfoPubkeys[shardID] = append(nodesInfoPubkeys[shardID], encodeValidatorPubKey)
 		}
 	}
 
-	return nodesInfoPubkeys
+	return nodesInfoPubkeys, nil
 }
 
 // GetGasConfigs return currently used gas schedule config

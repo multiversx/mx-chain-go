@@ -199,7 +199,10 @@ func (atp *apiTransactionProcessor) GetTransactionsPoolForSender(sender, fields 
 	requestedFieldsHandler := newFieldsHandler(fields)
 	transactions := &common.TransactionsPoolForSenderApiResponse{}
 	for _, wrappedTx := range wrappedTxs {
-		tx := atp.extractRequestedTxInfo(wrappedTx, requestedFieldsHandler)
+		tx, err := atp.extractRequestedTxInfo(wrappedTx, requestedFieldsHandler)
+		if err != nil {
+			return nil, err
+		}
 		transactions.Transactions = append(transactions.Transactions, tx)
 	}
 
@@ -252,7 +255,12 @@ func (atp *apiTransactionProcessor) extractRequestedTxInfoFromObj(txObj interfac
 		TxHash: txHash,
 	}
 
-	return atp.extractRequestedTxInfo(wrappedTx, requestedFieldsHandler), nil
+	requestedTxInfo, err := atp.extractRequestedTxInfo(wrappedTx, requestedFieldsHandler)
+	if err != nil {
+		return common.Transaction{}, err
+	}
+
+	return requestedTxInfo, nil
 }
 
 func (atp *apiTransactionProcessor) getRegularTransactionsFromPool(requestedFieldsHandler fieldsHandler) ([]common.Transaction, error) {
@@ -315,7 +323,9 @@ func (atp *apiTransactionProcessor) getUnsignedTransactionsFromPool(requestedFie
 	return unsignedTxs, nil
 }
 
-func (atp *apiTransactionProcessor) extractRequestedTxInfo(wrappedTx *txcache.WrappedTransaction, requestedFieldsHandler fieldsHandler) common.Transaction {
+func (atp *apiTransactionProcessor) extractRequestedTxInfo(wrappedTx *txcache.WrappedTransaction, requestedFieldsHandler fieldsHandler) (common.Transaction, error) {
+	var err error
+
 	tx := common.Transaction{
 		TxFields: make(map[string]interface{}),
 	}
@@ -326,10 +336,16 @@ func (atp *apiTransactionProcessor) extractRequestedTxInfo(wrappedTx *txcache.Wr
 		tx.TxFields[nonceField] = wrappedTx.Tx.GetNonce()
 	}
 	if requestedFieldsHandler.HasSender {
-		tx.TxFields[senderField] = atp.addressPubKeyConverter.Encode(wrappedTx.Tx.GetSndAddr())
+		tx.TxFields[senderField], err = atp.addressPubKeyConverter.Encode(wrappedTx.Tx.GetSndAddr())
+		if err != nil {
+			return common.Transaction{}, err
+		}
 	}
 	if requestedFieldsHandler.HasReceiver {
-		tx.TxFields[receiverField] = atp.addressPubKeyConverter.Encode(wrappedTx.Tx.GetRcvAddr())
+		tx.TxFields[receiverField], err = atp.addressPubKeyConverter.Encode(wrappedTx.Tx.GetRcvAddr())
+		if err != nil {
+			return common.Transaction{}, err
+		}
 	}
 	if requestedFieldsHandler.HasGasLimit {
 		tx.TxFields[gasLimitField] = wrappedTx.Tx.GetGasLimit()
@@ -347,7 +363,7 @@ func (atp *apiTransactionProcessor) extractRequestedTxInfo(wrappedTx *txcache.Wr
 		tx.TxFields[valueField] = wrappedTx.Tx.GetValue()
 	}
 
-	return tx
+	return tx, nil
 }
 
 func (atp *apiTransactionProcessor) fetchTxsForSender(sender string, senderShard uint32) []*txcache.WrappedTransaction {

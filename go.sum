@@ -66,6 +66,10 @@ github.com/ElrondNetwork/elrond-go-core v1.1.24-0.20221108122810-1865a33e1679 h1
 github.com/ElrondNetwork/elrond-go-core v1.1.24-0.20221108122810-1865a33e1679/go.mod h1:Yz8JK5sGBctw7+gU8j2mZHbzQ09Ek4XHJ4Uinq1N6nM=
 github.com/ElrondNetwork/elrond-go-core v1.1.24-0.20221108131533-15ef756cddb2 h1:coHmiMGNDIgPOsgxMJDJxuJvTgY0Pd364a1WLlYFAy8=
 github.com/ElrondNetwork/elrond-go-core v1.1.24-0.20221108131533-15ef756cddb2/go.mod h1:Yz8JK5sGBctw7+gU8j2mZHbzQ09Ek4XHJ4Uinq1N6nM=
+github.com/ElrondNetwork/elrond-go-core v1.1.24-0.20221110133457-50a82ab93681 h1:ddwxbxNkrckkscNV1JSNCvvLoQCagZNeV56X6o8W85Q=
+github.com/ElrondNetwork/elrond-go-core v1.1.24-0.20221110133457-50a82ab93681/go.mod h1:Yz8JK5sGBctw7+gU8j2mZHbzQ09Ek4XHJ4Uinq1N6nM=
+github.com/ElrondNetwork/elrond-go-core v1.1.24-0.20221110134410-b8488aa2f9a5 h1:7lCRE8ko+CJiP3cDsXsk/Ogjyc27AtHn2oOqYfKHj7A=
+github.com/ElrondNetwork/elrond-go-core v1.1.24-0.20221110134410-b8488aa2f9a5/go.mod h1:Yz8JK5sGBctw7+gU8j2mZHbzQ09Ek4XHJ4Uinq1N6nM=
 github.com/ElrondNetwork/elrond-go-crypto v1.0.0/go.mod h1:DGiR7/j1xv729Xg8SsjYaUzWXL5svMd44REXjWS/gAc=
 github.com/ElrondNetwork/elrond-go-crypto v1.2.1 h1:5wWCBEZp5SMFO2+Nal8UaJNJcG9G9J4PHNNZvQpEeUE=
 github.com/ElrondNetwork/elrond-go-crypto v1.2.1/go.mod h1:UNmpDaJjLTKxfzUcwua2R7Mh9bicw/L3ICJt5V7zqMo=
@@ -83,6 +87,8 @@ github.com/ElrondNetwork/elrond-vm-common v1.2.9/go.mod h1:B/Y8WiqHyDd7xsjNYsaYb
 github.com/ElrondNetwork/elrond-vm-common v1.3.7/go.mod h1:seROQuR7RJCoCS7mgRXVAlvjztltY1c+UroAgWr/USE=
 github.com/ElrondNetwork/elrond-vm-common v1.3.24 h1:KK3Oa9mznnMhXJ0JrObO4ulka1grEKxzbxVD1+iTnAo=
 github.com/ElrondNetwork/elrond-vm-common v1.3.24/go.mod h1:seROQuR7RJCoCS7mgRXVAlvjztltY1c+UroAgWr/USE=
+github.com/ElrondNetwork/elrond-vm-common v1.3.25-0.20221110130743-a8b18306c418 h1:jv3954FwpFhqmchgLGh3vVmJpdrUAYj8jgMwrCS0yHQ=
+github.com/ElrondNetwork/elrond-vm-common v1.3.25-0.20221110130743-a8b18306c418/go.mod h1:VfPG0Zwy+jQtaYOplYXJUctr88AWm2LduuAalY01t4I=
 github.com/ElrondNetwork/go-libp2p-pubsub v0.6.1-rc1 h1:Nu/uwYQg/QbfoQ0uD6GahYTwgtAkAwtzsB0HVfSP58I=
 github.com/ElrondNetwork/go-libp2p-pubsub v0.6.1-rc1/go.mod h1:pJfaShe+i5aWZx8NhSkQjvOYQYLoqPztmFUlKjToOzM=
 github.com/ElrondNetwork/protobuf v1.3.2 h1:qoCSYiO+8GtXBEZWEjw0WPcZfM3g7QuuJrwpN+y6Mvg=

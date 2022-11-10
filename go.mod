@@ -5,12 +5,12 @@ go 1.15
 require (
 	github.com/ElrondNetwork/covalent-indexer-go v1.0.6
 	github.com/ElrondNetwork/elastic-indexer-go v1.2.45
-	github.com/ElrondNetwork/elrond-go-core v1.1.24-0.20221108131533-15ef756cddb2
+	github.com/ElrondNetwork/elrond-go-core v1.1.24-0.20221110134410-b8488aa2f9a5
 	github.com/ElrondNetwork/elrond-go-crypto v1.2.1
 	github.com/ElrondNetwork/elrond-go-logger v1.0.9
 	github.com/ElrondNetwork/elrond-go-p2p v1.0.3
 	github.com/ElrondNetwork/elrond-go-storage v1.0.1
-	github.com/ElrondNetwork/elrond-vm-common v1.3.24
+	github.com/ElrondNetwork/elrond-vm-common v1.3.25-0.20221110130743-a8b18306c418
 	github.com/ElrondNetwork/wasm-vm-v1_2 v1.2.45-rc
 	github.com/ElrondNetwork/wasm-vm-v1_3 v1.3.45-rc
 	github.com/ElrondNetwork/wasm-vm-v1_4 v1.4.63

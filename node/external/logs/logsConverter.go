@@ -15,24 +15,33 @@ func newLogsConverter(pubKeyConverter core.PubkeyConverter) *logsConverter {
 	}
 }
 
-func (converter *logsConverter) txLogToApiResource(logKey []byte, log *transaction.Log) *transaction.ApiLogs {
+func (converter *logsConverter) txLogToApiResource(logKey []byte, log *transaction.Log) (*transaction.ApiLogs, error) {
 	events := make([]*transaction.Events, len(log.Events))
 
 	for i, event := range log.Events {
+		encodedEventAddr, err := converter.encodeAddress(event.Address)
+		if err != nil {
+			return nil, err
+		}
 		events[i] = &transaction.Events{
-			Address:    converter.encodeAddress(event.Address),
+			Address:    encodedEventAddr,
 			Identifier: string(event.Identifier),
 			Topics:     event.Topics,
 			Data:       event.Data,
 		}
 	}
 
-	return &transaction.ApiLogs{
-		Address: converter.encodeAddress(log.Address),
-		Events:  events,
+	encodedLogAddr, err := converter.encodeAddress(log.Address)
+	if err != nil {
+		return nil, err
 	}
+
+	return &transaction.ApiLogs{
+		Address: encodedLogAddr,
+		Events:  events,
+	}, nil
 }
 
-func (converter *logsConverter) encodeAddress(pubkey []byte) string {
+func (converter *logsConverter) encodeAddress(pubkey []byte) (string, error) {
 	return converter.pubKeyConverter.Encode(pubkey)
 }

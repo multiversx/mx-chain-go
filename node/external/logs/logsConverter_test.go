@@ -39,6 +39,7 @@ func TestLogsConverter_TxLogToApiResourceShouldWork(t *testing.T) {
 		},
 	}
 
-	apiResource := logsConverter.txLogToApiResource([]byte("aaaabbbb"), txLog)
+	apiResource, err := logsConverter.txLogToApiResource([]byte("aaaabbbb"), txLog)
+	require.Nil(t, err)
 	require.Equal(t, expectedApiResource, apiResource)
 }

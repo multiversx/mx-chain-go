@@ -2,9 +2,10 @@ package testscommon
 
 // PubkeyConverterStub -
 type PubkeyConverterStub struct {
-	LenCalled    func() int
-	DecodeCalled func(humanReadable string) ([]byte, error)
-	EncodeCalled func(pkBytes []byte) (string, error)
+	LenCalled         func() int
+	DecodeCalled      func(humanReadable string) ([]byte, error)
+	EncodeCalled      func(pkBytes []byte) (string, error)
+	EncodeSliceCalled func(pkBytesSlice [][]byte) ([]string, error)
 }
 
 // Len -
@@ -32,6 +33,15 @@ func (pcs *PubkeyConverterStub) Encode(pkBytes []byte) (string, error) {
 	}
 
 	return "", nil
+}
+
+// Encode -
+func (pcs *PubkeyConverterStub) EncodeSlice(pkBytesSlice [][]byte) ([]string, error) {
+	if pcs.EncodeSliceCalled != nil {
+		return pcs.EncodeSliceCalled(pkBytesSlice)
+	}
+
+	return make([]string, 0), nil
 }
 
 // IsInterfaceNil -

@@ -872,8 +872,8 @@ func TestApiTransactionProcessor_GetLastPoolNonceForSender(t *testing.T) {
 		DecodeCalled: func(humanReadable string) ([]byte, error) {
 			return []byte(humanReadable), nil
 		},
-		EncodeCalled: func(pkBytes []byte) string {
-			return string(pkBytes)
+		EncodeCalled: func(pkBytes []byte) (string, error) {
+			return string(pkBytes), nil
 		},
 	}
 	args.ShardCoordinator = &processMocks.ShardCoordinatorStub{
@@ -946,8 +946,8 @@ func TestApiTransactionProcessor_GetTransactionsPoolNonceGapsForSender(t *testin
 		DecodeCalled: func(humanReadable string) ([]byte, error) {
 			return []byte(humanReadable), nil
 		},
-		EncodeCalled: func(pkBytes []byte) string {
-			return string(pkBytes)
+		EncodeCalled: func(pkBytes []byte) (string, error) {
+			return string(pkBytes), nil
 		},
 	}
 	args.ShardCoordinator = &processMocks.ShardCoordinatorStub{

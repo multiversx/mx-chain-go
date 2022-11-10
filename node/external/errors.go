@@ -43,3 +43,6 @@ var ErrNilGasScheduler = errors.New("nil gas scheduler")
 
 // ErrEpochSubscriberHandlerWrongTypeAssertion signals that a type conversion to an epoch subscriber handler type failed
 var ErrEpochSubscriberHandlerWrongTypeAssertion = errors.New("epoch subscriber handler - wrong type assertion")
+
+// ErrEncodeValidatorPubKey signals that an error occured while
+var ErrEncodeValidatorPubKey = errors.New("cannot encode validator public key")

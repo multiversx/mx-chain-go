@@ -26,6 +26,17 @@ func (pcm *PubkeyConverterMock) Encode(pkBytes []byte) (string, error) {
 	return hex.EncodeToString(pkBytes), nil
 }
 
+// EncodeSlice -
+func (pcm *PubkeyConverterMock) EncodeSlice(pkBytesSlice [][]byte) ([]string, error) {
+	decodedSlice := make([]string, 0)
+
+	for _, pkBytes := range pkBytesSlice {
+		decodedSlice = append(decodedSlice, hex.EncodeToString(pkBytes))
+	}
+
+	return decodedSlice, nil
+}
+
 // Len -
 func (pcm *PubkeyConverterMock) Len() int {
 	return pcm.len

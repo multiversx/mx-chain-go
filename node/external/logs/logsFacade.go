@@ -37,7 +37,10 @@ func (facade *logsFacade) GetLog(logKey []byte, epoch uint32) (*transaction.ApiL
 		return nil, err
 	}
 
-	apiResource := facade.converter.txLogToApiResource(logKey, txLog)
+	apiResource, err := facade.converter.txLogToApiResource(logKey, txLog)
+	if err != nil {
+		return nil, err
+	}
 	return apiResource, nil
 }
 
@@ -53,7 +56,10 @@ func (facade *logsFacade) IncludeLogsInTransactions(txs []*transaction.ApiTransa
 		key := tx.HashBytes
 		txLog, ok := logsByKey[string(key)]
 		if ok {
-			tx.Logs = facade.converter.txLogToApiResource(key, txLog)
+			tx.Logs, err = facade.converter.txLogToApiResource(key, txLog)
+			if err != nil {
+				return err
+			}
 		}
 	}
 

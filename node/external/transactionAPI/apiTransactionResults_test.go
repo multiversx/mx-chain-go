@@ -54,7 +54,7 @@ func TestPutEventsInTransactionReceipt(t *testing.T) {
 		},
 	}
 
-	pubKeyConverter := &mock.PubkeyConverterMock{}
+	pubKeyConverter := &testscommon.PubkeyConverterMock{}
 	logsFacade := &testscommon.LogsFacadeStub{}
 	dataFieldParser := &testscommon.DataFieldParserStub{
 		ParseCalled: func(dataField []byte, sender, receiver []byte) *datafield.ResponseParseData {
@@ -68,14 +68,17 @@ func TestPutEventsInTransactionReceipt(t *testing.T) {
 
 	tx := &transaction.ApiTransactionResult{}
 
+	encodedSndAddr, err := pubKeyConverter.Encode(rec.SndAddr)
+	require.Nil(t, err)
+
 	expectedRecAPI := &transaction.ApiReceipt{
 		Value:   rec.Value,
 		Data:    string(rec.Data),
 		TxHash:  hex.EncodeToString(txHash),
-		SndAddr: pubKeyConverter.Encode(rec.SndAddr),
+		SndAddr: encodedSndAddr,
 	}
 
-	err := n.putResultsInTransaction(txHash, tx, epoch)
+	err = n.putResultsInTransaction(txHash, tx, epoch)
 	require.Nil(t, err)
 	require.Equal(t, expectedRecAPI, tx.Receipt)
 }
@@ -209,9 +212,18 @@ func TestPutEventsInTransactionSmartContractResults(t *testing.T) {
 			return &datafield.ResponseParseData{}
 		},
 	}
-	pubKeyConverter := mock.NewPubkeyConverterMock(3)
+	pubKeyConverter := testscommon.NewPubkeyConverterMock(3)
 	txUnmarshalerAndPreparer := newTransactionUnmarshaller(marshalizerdMock, pubKeyConverter, dataFieldParser)
 	n := newAPITransactionResultProcessor(pubKeyConverter, historyRepo, dataStore, marshalizerdMock, txUnmarshalerAndPreparer, logsFacade, 0, dataFieldParser)
+
+	encodedSndAddr, err := pubKeyConverter.Encode(scr1.SndAddr)
+	require.Nil(t, err)
+	encodedRcvAddr, err := pubKeyConverter.Encode(scr1.RcvAddr)
+	require.Nil(t, err)
+	encodedRelayerAddr, err := pubKeyConverter.Encode(scr1.RelayerAddr)
+	require.Nil(t, err)
+	encodedOriginalAddr, err := pubKeyConverter.Encode(scr1.OriginalSender)
+	require.Nil(t, err)
 
 	expectedSCRS := []*transaction.ApiSmartContractResult{
 		{
@@ -228,10 +240,10 @@ func TestPutEventsInTransactionSmartContractResults(t *testing.T) {
 			CallType:       scr1.CallType,
 			CodeMetadata:   string(scr1.CodeMetadata),
 			ReturnMessage:  string(scr1.ReturnMessage),
-			SndAddr:        pubKeyConverter.Encode(scr1.SndAddr),
-			RcvAddr:        pubKeyConverter.Encode(scr1.RcvAddr),
-			RelayerAddr:    pubKeyConverter.Encode(scr1.RelayerAddr),
-			OriginalSender: pubKeyConverter.Encode(scr1.OriginalSender),
+			SndAddr:        encodedSndAddr,
+			RcvAddr:        encodedRcvAddr,
+			RelayerAddr:    encodedRelayerAddr,
+			OriginalSender: encodedOriginalAddr,
 			Logs:           logs,
 			Receivers:      []string{},
 		},
@@ -244,7 +256,7 @@ func TestPutEventsInTransactionSmartContractResults(t *testing.T) {
 	}
 
 	tx := &transaction.ApiTransactionResult{}
-	err := n.putResultsInTransaction(testTxHash, tx, testEpoch)
+	err = n.putResultsInTransaction(testTxHash, tx, testEpoch)
 	require.Nil(t, err)
 	require.Equal(t, expectedSCRS, tx.SmartContractResults)
 }
@@ -297,7 +309,7 @@ func TestPutLogsInTransaction(t *testing.T) {
 			return &datafield.ResponseParseData{}
 		},
 	}
-	pubKeyConverter := &mock.PubkeyConverterMock{}
+	pubKeyConverter := &testscommon.PubkeyConverterMock{}
 	txUnmarshalerAndPreparer := newTransactionUnmarshaller(marshalizerMock, pubKeyConverter, dataFieldParser)
 	n := newAPITransactionResultProcessor(pubKeyConverter, historyRepo, dataStore, marshalizerMock, txUnmarshalerAndPreparer, logsFacade, 0, dataFieldParser)
 

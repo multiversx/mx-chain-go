@@ -12,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/node/filters"
-	datafield "github.com/ElrondNetwork/elrond-vm-common/parsers/dataField"
 )
 
 type apiTransactionResultsProcessor struct {
@@ -120,7 +119,7 @@ func (arp *apiTransactionResultsProcessor) putSmartContractResultsInTransactionB
 			return fmt.Errorf("%w: %v, hash = %s", errCannotLoadContractResults, err, hex.EncodeToString(scrHash))
 		}
 
-		scrAPI := arp.adaptSmartContractResult(scrHash, scr)
+		scrAPI, err := arp.adaptSmartContractResult(scrHash, scr)
 		arp.loadLogsIntoContractResults(scrHash, epoch, scrAPI)
 
 		tx.SmartContractResults = append(tx.SmartContractResults, scrAPI)
@@ -167,7 +166,9 @@ func (arp *apiTransactionResultsProcessor) getScrFromStorage(hash []byte, epoch 
 	return scr, nil
 }
 
-func (arp *apiTransactionResultsProcessor) adaptSmartContractResult(scrHash []byte, scr *smartContractResult.SmartContractResult) *transaction.ApiSmartContractResult {
+func (arp *apiTransactionResultsProcessor) adaptSmartContractResult(scrHash []byte, scr *smartContractResult.SmartContractResult) (*transaction.ApiSmartContractResult, error) {
+	var err error
+
 	isRefund := arp.refundDetector.isRefund(refundDetectorInput{
 		Value:         scr.Value.String(),
 		Data:          scr.Data,
@@ -193,19 +194,31 @@ func (arp *apiTransactionResultsProcessor) adaptSmartContractResult(scrHash []by
 	}
 
 	if len(scr.SndAddr) == arp.addressPubKeyConverter.Len() {
-		apiSCR.SndAddr = arp.addressPubKeyConverter.Encode(scr.SndAddr)
+		apiSCR.SndAddr, err = arp.addressPubKeyConverter.Encode(scr.SndAddr)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if len(scr.RcvAddr) == arp.addressPubKeyConverter.Len() {
-		apiSCR.RcvAddr = arp.addressPubKeyConverter.Encode(scr.RcvAddr)
+		apiSCR.RcvAddr, err = arp.addressPubKeyConverter.Encode(scr.RcvAddr)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if len(scr.RelayerAddr) == arp.addressPubKeyConverter.Len() {
-		apiSCR.RelayerAddr = arp.addressPubKeyConverter.Encode(scr.RelayerAddr)
+		apiSCR.RelayerAddr, err = arp.addressPubKeyConverter.Encode(scr.RelayerAddr)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if len(scr.OriginalSender) == arp.addressPubKeyConverter.Len() {
-		apiSCR.OriginalSender = arp.addressPubKeyConverter.Encode(scr.OriginalSender)
+		apiSCR.OriginalSender, err = arp.addressPubKeyConverter.Encode(scr.OriginalSender)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	res := arp.dataFieldParser.Parse(scr.Data, scr.GetSndAddr(), scr.GetRcvAddr())
@@ -213,9 +226,13 @@ func (arp *apiTransactionResultsProcessor) adaptSmartContractResult(scrHash []by
 	apiSCR.Function = res.Function
 	apiSCR.ESDTValues = res.ESDTValues
 	apiSCR.Tokens = res.Tokens
-	apiSCR.Receivers = datafield.EncodeBytesSlice(arp.addressPubKeyConverter.Encode, res.Receivers)
+	apiSCR.Receivers, err = arp.addressPubKeyConverter.EncodeSlice(res.Receivers)
+	if err != nil {
+		return nil, err
+	}
+
 	apiSCR.ReceiversShardIDs = res.ReceiversShardID
 	apiSCR.IsRelayed = res.IsRelayed
 
-	return apiSCR
+	return apiSCR, nil
 }
