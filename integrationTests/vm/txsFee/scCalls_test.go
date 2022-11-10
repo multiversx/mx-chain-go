@@ -366,6 +366,7 @@ func TestESDTScCallAndGasChangeShouldWork(t *testing.T) {
 
 func TestScCallBuyNFTShouldWork(t *testing.T) {
 	unreachableEpoch := uint32(999999)
+	// create the environment set for epoch 460
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
 		GovernanceEnableEpoch:                             unreachableEpoch,
 		WaitingListFixEnableEpoch:                         unreachableEpoch,
@@ -425,6 +426,7 @@ func TestScCallBuyNFTShouldWork(t *testing.T) {
 
 	blockChainHook := testContext.BlockchainHook.(process.BlockChainHookHandler)
 	t.Run("transaction that fails", func(t *testing.T) {
+		utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 		blockChainHook.SetCurrentHeader(&block.Header{
 			TimeStamp: 1635880560,
 		})
@@ -447,6 +449,7 @@ func TestScCallBuyNFTShouldWork(t *testing.T) {
 		assert.Equal(t, "execution failed", string(scr.ReturnMessage))
 	})
 	t.Run("transaction that succeed", func(t *testing.T) {
+		utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 		blockChainHook.SetCurrentHeader(&block.Header{
 			TimeStamp: 1635880566, // next timestamp
 		})
@@ -463,9 +466,9 @@ func TestScCallBuyNFTShouldWork(t *testing.T) {
 		require.Nil(t, errCommit)
 
 		intermediateTxs := testContext.GetIntermediateTransactions(t)
-		require.Equal(t, 4, len(intermediateTxs))
+		assert.Equal(t, 5, len(intermediateTxs))
 
 		scr := intermediateTxs[0].(*smartContractResult.SmartContractResult)
-		assert.Equal(t, "execution failed", string(scr.ReturnMessage))
+		assert.Equal(t, "", string(scr.ReturnMessage))
 	})
 }
