@@ -21,7 +21,7 @@ type userAccount struct {
 
 var zero = big.NewInt(0)
 
-// NewEmptyUserAccount creates new simple account wrapper for an AccountContainer (that has just been initialized)
+// NewEmptyUserAccount creates a new empty instance of userAccount
 func NewEmptyUserAccount() *userAccount {
 	return &userAccount{
 		baseAccount: &baseAccount{},
@@ -32,24 +32,32 @@ func NewEmptyUserAccount() *userAccount {
 	}
 }
 
-// NewUserAccount creates new simple account wrapper for an AccountContainer (that has just been initialized)
+// ArgsAccountCreation holds the arguments needed to create a new instance of userAccount
+type ArgsAccountCreation struct {
+	Hasher              hashing.Hasher
+	Marshaller          marshal.Marshalizer
+	EnableEpochsHandler common.EnableEpochsHandler
+}
+
+// NewUserAccount creates a new instance of userAccount
 func NewUserAccount(
 	address []byte,
-	hasher hashing.Hasher,
-	marshaller marshal.Marshalizer,
-	enableEpochsHandler common.EnableEpochsHandler,
+	args ArgsAccountCreation,
 ) (*userAccount, error) {
 	if len(address) == 0 {
 		return nil, ErrNilAddress
 	}
-	if check.IfNil(marshaller) {
+	if check.IfNil(args.Marshaller) {
 		return nil, ErrNilMarshalizer
 	}
-	if check.IfNil(enableEpochsHandler) {
+	if check.IfNil(args.Hasher) {
+		return nil, ErrNilHasher
+	}
+	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, ErrNilEnableEpochsHandler
 	}
 
-	tdt, err := NewTrackableDataTrie(address, nil, hasher, marshaller)
+	tdt, err := NewTrackableDataTrie(address, nil, args.Hasher, args.Marshaller)
 	if err != nil {
 		return nil, err
 	}

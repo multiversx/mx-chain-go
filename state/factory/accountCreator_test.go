@@ -12,34 +12,48 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func getDefaultArgs() state.ArgsAccountCreation {
+	return state.ArgsAccountCreation{
+		Hasher:              &hashingMocks.HasherMock{},
+		Marshaller:          &testscommon.MarshalizerMock{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+	}
+}
+
 func TestNewAccountCreator(t *testing.T) {
 	t.Parallel()
 
 	t.Run("nil hasher", func(t *testing.T) {
 		t.Parallel()
 
-		accF, err := factory.NewAccountCreator(nil, &testscommon.MarshalizerMock{}, &testscommon.EnableEpochsHandlerStub{})
+		args := getDefaultArgs()
+		args.Hasher = nil
+		accF, err := factory.NewAccountCreator(args)
 		assert.True(t, check.IfNil(accF))
 		assert.Equal(t, errors.ErrNilHasher, err)
 	})
 	t.Run("nil marshalizer", func(t *testing.T) {
 		t.Parallel()
 
-		accF, err := factory.NewAccountCreator(&hashingMocks.HasherMock{}, nil, &testscommon.EnableEpochsHandlerStub{})
+		args := getDefaultArgs()
+		args.Marshaller = nil
+		accF, err := factory.NewAccountCreator(args)
 		assert.True(t, check.IfNil(accF))
 		assert.Equal(t, errors.ErrNilMarshalizer, err)
 	})
 	t.Run("nil enableEpochsHandler", func(t *testing.T) {
 		t.Parallel()
 
-		accF, err := factory.NewAccountCreator(&hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{}, nil)
+		args := getDefaultArgs()
+		args.EnableEpochsHandler = nil
+		accF, err := factory.NewAccountCreator(args)
 		assert.True(t, check.IfNil(accF))
 		assert.Equal(t, errors.ErrNilEnableEpochsHandler, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		accF, err := factory.NewAccountCreator(&hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{}, &testscommon.EnableEpochsHandlerStub{})
+		accF, err := factory.NewAccountCreator(getDefaultArgs())
 		assert.False(t, check.IfNil(accF))
 		assert.Nil(t, err)
 	})
@@ -48,7 +62,7 @@ func TestNewAccountCreator(t *testing.T) {
 func TestAccountCreator_CreateAccountNilAddress(t *testing.T) {
 	t.Parallel()
 
-	accF, _ := factory.NewAccountCreator(&hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{}, &testscommon.EnableEpochsHandlerStub{})
+	accF, _ := factory.NewAccountCreator(getDefaultArgs())
 
 	_, ok := accF.(*factory.AccountCreator)
 	assert.Equal(t, true, ok)
@@ -63,7 +77,7 @@ func TestAccountCreator_CreateAccountNilAddress(t *testing.T) {
 func TestAccountCreator_CreateAccountOk(t *testing.T) {
 	t.Parallel()
 
-	accF, _ := factory.NewAccountCreator(&hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{}, &testscommon.EnableEpochsHandlerStub{})
+	accF, _ := factory.NewAccountCreator(getDefaultArgs())
 
 	_, ok := accF.(*factory.AccountCreator)
 	assert.Equal(t, true, ok)

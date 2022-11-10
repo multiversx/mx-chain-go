@@ -1057,7 +1057,12 @@ func createAccounts(
 	maxTrieLevelInMemory := uint(5)
 	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, maxTrieLevelInMemory)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
-	accCreator, _ := factory.NewAccountCreator(integrationTests.TestHasher, integrationTests.TestMarshalizer, &testscommon.EnableEpochsHandlerStub{})
+	argsAccCreator := state.ArgsAccountCreation{
+		Hasher:              integrationTests.TestHasher,
+		Marshaller:          integrationTests.TestMarshalizer,
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+	}
+	accCreator, _ := factory.NewAccountCreator(argsAccCreator)
 	argsAccountsDB := state.ArgsAccountsDB{
 		Trie:                  tr,
 		Hasher:                integrationTests.TestHasher,
@@ -2401,7 +2406,12 @@ func createAccountsDBTestSetup() *state.AccountsDB {
 	maxTrieLevelInMemory := uint(5)
 	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, maxTrieLevelInMemory)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
-	accCreator, _ := factory.NewAccountCreator(integrationTests.TestHasher, integrationTests.TestMarshalizer, &testscommon.EnableEpochsHandlerStub{})
+	argsAccCreator := state.ArgsAccountCreation{
+		Hasher:              integrationTests.TestHasher,
+		Marshaller:          integrationTests.TestMarshalizer,
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+	}
+	accCreator, _ := factory.NewAccountCreator(argsAccCreator)
 
 	argsAccountsDB := state.ArgsAccountsDB{
 		Trie:                  tr,

@@ -280,7 +280,12 @@ func newAccountCreator(
 ) (state.AccountFactory, error) {
 	switch accType {
 	case UserAccount:
-		return factory.NewAccountCreator(hasher, marshaller, handler)
+		args := state.ArgsAccountCreation{
+			Hasher:              hasher,
+			Marshaller:          marshaller,
+			EnableEpochsHandler: handler,
+		}
+		return factory.NewAccountCreator(args)
 	case ValidatorAccount:
 		return factory.NewPeerAccountCreator(), nil
 	}

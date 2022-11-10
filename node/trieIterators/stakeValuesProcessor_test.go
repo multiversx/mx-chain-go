@@ -166,7 +166,12 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotGetRootHash(t *test
 	t.Parallel()
 
 	expectedErr := errors.New("expected error")
-	acc, _ := state.NewUserAccount([]byte("newaddress"), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{}, &testscommon.EnableEpochsHandlerStub{})
+	argsAccCreation := state.ArgsAccountCreation{
+		Hasher:              &hashingMocks.HasherMock{},
+		Marshaller:          &testscommon.MarshalizerMock{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+	}
+	acc, _ := state.NewUserAccount([]byte("newaddress"), argsAccCreation)
 	acc.SetDataTrie(&trieMock.TrieStub{
 		RootCalled: func() ([]byte, error) {
 			return nil, expectedErr
@@ -192,7 +197,12 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotGetRootHash(t *test
 func TestTotalStakedValueProcessor_GetTotalStakedValue_ContextShouldTimeout(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewUserAccount([]byte("newaddress"), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{}, &testscommon.EnableEpochsHandlerStub{})
+	argsAccCreation := state.ArgsAccountCreation{
+		Hasher:              &hashingMocks.HasherMock{},
+		Marshaller:          &testscommon.MarshalizerMock{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+	}
+	acc, _ := state.NewUserAccount([]byte("newaddress"), argsAccCreation)
 	acc.SetDataTrie(&trieMock.TrieStub{
 		GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, _ context.Context, _ []byte, _ common.KeyBuilder) error {
 			time.Sleep(time.Second)
@@ -228,7 +238,12 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotGetAllLeaves(t *tes
 	t.Parallel()
 
 	expectedErr := errors.New("expected error")
-	acc, _ := state.NewUserAccount([]byte("newaddress"), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{}, &testscommon.EnableEpochsHandlerStub{})
+	argsAccCreation := state.ArgsAccountCreation{
+		Hasher:              &hashingMocks.HasherMock{},
+		Marshaller:          &testscommon.MarshalizerMock{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+	}
+	acc, _ := state.NewUserAccount([]byte("newaddress"), argsAccCreation)
 	acc.SetDataTrie(&trieMock.TrieStub{
 		GetAllLeavesOnChannelCalled: func(_ *common.TrieIteratorChannels, _ context.Context, _ []byte, _ common.KeyBuilder) error {
 			return expectedErr
@@ -273,7 +288,12 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue(t *testing.T) {
 	leafKey4 := "0123456783"
 	leafKey5 := "0123456780"
 	leafKey6 := "0123456788"
-	acc, _ := state.NewUserAccount([]byte("newaddress"), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{}, &testscommon.EnableEpochsHandlerStub{})
+	argsAccCreation := state.ArgsAccountCreation{
+		Hasher:              &hashingMocks.HasherMock{},
+		Marshaller:          &testscommon.MarshalizerMock{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+	}
+	acc, _ := state.NewUserAccount([]byte("newaddress"), argsAccCreation)
 	acc.SetDataTrie(&trieMock.TrieStub{
 		RootCalled: func() ([]byte, error) {
 			return rootHash, nil

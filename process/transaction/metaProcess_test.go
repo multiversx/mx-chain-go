@@ -37,12 +37,12 @@ func createMockNewMetaTxArgs() txproc.ArgsNewMetaTxProcessor {
 }
 
 func createUserAcc(address []byte) state.UserAccountHandler {
-	acc, _ := state.NewUserAccount(
-		address,
-		&hashingMocks.HasherMock{},
-		&testscommon.MarshalizerMock{},
-		&testscommon.EnableEpochsHandlerStub{},
-	)
+	argsAccCreation := state.ArgsAccountCreation{
+		Hasher:              &hashingMocks.HasherMock{},
+		Marshaller:          &testscommon.MarshalizerMock{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+	}
+	acc, _ := state.NewUserAccount(address, argsAccCreation)
 	return acc
 }
 

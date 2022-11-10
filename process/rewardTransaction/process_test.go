@@ -188,7 +188,12 @@ func TestRewardTxProcessor_ProcessRewardTransactionShouldWork(t *testing.T) {
 
 	accountsDb := &stateMock.AccountsStub{
 		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
-			return state.NewUserAccount(address, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{}, &testscommon.EnableEpochsHandlerStub{})
+			argsAccCreation := state.ArgsAccountCreation{
+				Hasher:              &hashingMocks.HasherMock{},
+				Marshaller:          &testscommon.MarshalizerMock{},
+				EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+			}
+			return state.NewUserAccount(address, argsAccCreation)
 		},
 		SaveAccountCalled: func(accountHandler vmcommon.AccountHandler) error {
 			saveAccountWasCalled = true
@@ -220,7 +225,12 @@ func TestRewardTxProcessor_ProcessRewardTransactionToASmartContractShouldWork(t 
 	saveAccountWasCalled := false
 
 	address := []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6}
-	userAccount, _ := state.NewUserAccount(address, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{}, &testscommon.EnableEpochsHandlerStub{})
+	argsAccCreation := state.ArgsAccountCreation{
+		Hasher:              &hashingMocks.HasherMock{},
+		Marshaller:          &testscommon.MarshalizerMock{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+	}
+	userAccount, _ := state.NewUserAccount(address, argsAccCreation)
 	accountsDb := &stateMock.AccountsStub{
 		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 			return userAccount, nil

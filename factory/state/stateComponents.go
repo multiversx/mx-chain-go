@@ -118,7 +118,12 @@ func (scf *stateComponentsFactory) Create() (*stateComponents, error) {
 }
 
 func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.TriesHolder) (state.AccountsAdapter, state.AccountsAdapter, state.AccountsRepository, error) {
-	accountFactory, err := factoryState.NewAccountCreator(scf.core.Hasher(), scf.core.InternalMarshalizer(), scf.core.EnableEpochsHandler())
+	argsAccCreator := state.ArgsAccountCreation{
+		Hasher:              scf.core.Hasher(),
+		Marshaller:          scf.core.InternalMarshalizer(),
+		EnableEpochsHandler: scf.core.EnableEpochsHandler(),
+	}
+	accountFactory, err := factoryState.NewAccountCreator(argsAccCreator)
 	if err != nil {
 		return nil, nil, nil, err
 	}

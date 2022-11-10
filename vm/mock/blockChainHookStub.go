@@ -76,7 +76,12 @@ func (b *BlockChainHookStub) GetUserAccount(address []byte) (vmcommon.UserAccoun
 		return b.GetUserAccountCalled(address)
 	}
 
-	return state.NewUserAccount(address, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{}, &testscommon.EnableEpochsHandlerStub{})
+	argsAccCreation := state.ArgsAccountCreation{
+		Hasher:              &hashingMocks.HasherMock{},
+		Marshaller:          &testscommon.MarshalizerMock{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+	}
+	return state.NewUserAccount(address, argsAccCreation)
 }
 
 // GetShardOfAddress -

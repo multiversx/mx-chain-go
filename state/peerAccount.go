@@ -10,6 +10,7 @@ import (
 
 // PeerAccount is the struct used in serialization/deserialization
 type peerAccount struct {
+	//TODO investigate if *baseAccount is needed in peerAccount, and remove if not
 	*baseAccount
 	PeerAccountData
 }
