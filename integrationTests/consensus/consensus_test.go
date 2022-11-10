@@ -141,7 +141,7 @@ func startNodesWithCommitBlock(nodes []*integrationTests.TestConsensusNode, mute
 			StatusComponents:    statusComponents,
 			ScheduledProcessor:  &consensusMocks.ScheduledProcessorStub{},
 			IsInImportMode:      n.Node.IsInImportMode(),
-			SubRoundBlockType:   consensus.SubRoundBlockTypeV1,
+			SubroundBlockType:   consensus.SubroundBlockTypeV1,
 		}
 
 		consensusFactory, err := consensusComp.NewConsensusComponentsFactory(consensusArgs)

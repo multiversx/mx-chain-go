@@ -44,7 +44,7 @@ type ConsensusComponentsFactoryArgs struct {
 	ScheduledProcessor    consensus.ScheduledProcessor
 	IsInImportMode        bool
 	ShouldDisableWatchdog bool
-	SubRoundBlockType     consensus.SubRoundBlockType
+	SubroundBlockType     consensus.SubroundBlockType
 }
 
 type consensusComponentsFactory struct {
@@ -60,7 +60,7 @@ type consensusComponentsFactory struct {
 	scheduledProcessor    consensus.ScheduledProcessor
 	isInImportMode        bool
 	shouldDisableWatchdog bool
-	subRoundBlockType     consensus.SubRoundBlockType
+	subroundBlockType     consensus.SubroundBlockType
 }
 
 type consensusComponents struct {
@@ -112,7 +112,7 @@ func NewConsensusComponentsFactory(args ConsensusComponentsFactoryArgs) (*consen
 		scheduledProcessor:    args.ScheduledProcessor,
 		isInImportMode:        args.IsInImportMode,
 		shouldDisableWatchdog: args.ShouldDisableWatchdog,
-		subRoundBlockType:     args.SubRoundBlockType,
+		subroundBlockType:     args.SubroundBlockType,
 	}, nil
 }
 
@@ -275,7 +275,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		ccf.statusComponents.OutportHandler(),
 		[]byte(ccf.coreComponents.ChainID()),
 		ccf.networkComponents.NetworkMessenger().ID(),
-		ccf.subRoundBlockType,
+		ccf.subroundBlockType,
 	)
 	if err != nil {
 		return nil, err

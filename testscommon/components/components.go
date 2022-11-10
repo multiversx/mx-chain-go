@@ -233,7 +233,7 @@ func GetConsensusArgs(shardCoordinator sharding.Coordinator) consensusComp.Conse
 		StateComponents:     stateComponents,
 		StatusComponents:    statusComponents,
 		ScheduledProcessor:  scheduledProcessor,
-		SubRoundBlockType:   consensus.SubRoundBlockTypeV1,
+		SubroundBlockType:   consensus.SubroundBlockTypeV1,
 	}
 }
 
@@ -497,7 +497,7 @@ func GetProcessComponentsFactoryArgs(shardCoordinator sharding.Coordinator) proc
 	return processArgs
 }
 
-//GetBootStrapFactoryArgs -
+// GetBootStrapFactoryArgs -
 func GetBootStrapFactoryArgs() bootstrapComp.BootstrapComponentsFactoryArgs {
 	coreComponents := GetCoreComponents()
 	networkComponents := GetNetworkComponents()

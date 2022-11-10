@@ -76,7 +76,7 @@ func initFactoryWithContainer(container *mock.ConsensusCoreMock) bls.Factory {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		consensus.SubRoundBlockTypeV1,
+		consensus.SubroundBlockTypeV1,
 	)
 
 	return fct
@@ -125,7 +125,7 @@ func TestFactory_NewFactoryNilContainerShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		consensus.SubRoundBlockTypeV1,
+		consensus.SubroundBlockTypeV1,
 	)
 
 	assert.Nil(t, fct)
@@ -145,7 +145,7 @@ func TestFactory_NewFactoryNilConsensusStateShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		consensus.SubRoundBlockTypeV1,
+		consensus.SubroundBlockTypeV1,
 	)
 
 	assert.Nil(t, fct)
@@ -167,7 +167,7 @@ func TestFactory_NewFactoryNilBlockchainShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		consensus.SubRoundBlockTypeV1,
+		consensus.SubroundBlockTypeV1,
 	)
 
 	assert.Nil(t, fct)
@@ -189,7 +189,7 @@ func TestFactory_NewFactoryNilBlockProcessorShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		consensus.SubRoundBlockTypeV1,
+		consensus.SubroundBlockTypeV1,
 	)
 
 	assert.Nil(t, fct)
@@ -211,7 +211,7 @@ func TestFactory_NewFactoryNilBootstrapperShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		consensus.SubRoundBlockTypeV1,
+		consensus.SubroundBlockTypeV1,
 	)
 
 	assert.Nil(t, fct)
@@ -233,7 +233,7 @@ func TestFactory_NewFactoryNilChronologyHandlerShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		consensus.SubRoundBlockTypeV1,
+		consensus.SubroundBlockTypeV1,
 	)
 
 	assert.Nil(t, fct)
@@ -255,7 +255,7 @@ func TestFactory_NewFactoryNilHasherShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		consensus.SubRoundBlockTypeV1,
+		consensus.SubroundBlockTypeV1,
 	)
 
 	assert.Nil(t, fct)
@@ -277,7 +277,7 @@ func TestFactory_NewFactoryNilMarshalizerShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		consensus.SubRoundBlockTypeV1,
+		consensus.SubroundBlockTypeV1,
 	)
 
 	assert.Nil(t, fct)
@@ -299,7 +299,7 @@ func TestFactory_NewFactoryNilMultiSignerContainerShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		consensus.SubRoundBlockTypeV1,
+		consensus.SubroundBlockTypeV1,
 	)
 
 	assert.Nil(t, fct)
@@ -321,7 +321,7 @@ func TestFactory_NewFactoryNilRoundHandlerShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		consensus.SubRoundBlockTypeV1,
+		consensus.SubroundBlockTypeV1,
 	)
 
 	assert.Nil(t, fct)
@@ -343,7 +343,7 @@ func TestFactory_NewFactoryNilShardCoordinatorShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		consensus.SubRoundBlockTypeV1,
+		consensus.SubroundBlockTypeV1,
 	)
 
 	assert.Nil(t, fct)
@@ -365,7 +365,7 @@ func TestFactory_NewFactoryNilSyncTimerShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		consensus.SubRoundBlockTypeV1,
+		consensus.SubroundBlockTypeV1,
 	)
 
 	assert.Nil(t, fct)
@@ -387,7 +387,7 @@ func TestFactory_NewFactoryNilValidatorGroupSelectorShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		consensus.SubRoundBlockTypeV1,
+		consensus.SubroundBlockTypeV1,
 	)
 
 	assert.Nil(t, fct)
@@ -407,7 +407,7 @@ func TestFactory_NewFactoryNilWorkerShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		consensus.SubRoundBlockTypeV1,
+		consensus.SubroundBlockTypeV1,
 	)
 
 	assert.Nil(t, fct)
@@ -436,7 +436,7 @@ func TestFactory_NewFactoryEmptyChainIDShouldFail(t *testing.T) {
 		nil,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		consensus.SubRoundBlockTypeV1,
+		consensus.SubroundBlockTypeV1,
 	)
 
 	assert.Nil(t, fct)
@@ -499,7 +499,7 @@ func TestFactory_GenerateSubroundBlock(t *testing.T) {
 		)
 
 		err := fct.GenerateBlockSubround()
-		assert.ErrorIs(t, err, bls.ErrUnImplementedSubRoundType)
+		assert.ErrorIs(t, err, bls.ErrUnimplementedSubroundType)
 	})
 	t.Run("should work with v1", func(t *testing.T) {
 		t.Parallel()
@@ -537,7 +537,7 @@ func TestFactory_GenerateSubroundBlock(t *testing.T) {
 			chainID,
 			currentPid,
 			&statusHandler.AppStatusHandlerStub{},
-			consensus.SubRoundBlockTypeV2,
+			consensus.SubroundBlockTypeV2,
 		)
 
 		err := fct.GenerateBlockSubround()

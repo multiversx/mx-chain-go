@@ -52,7 +52,7 @@ func TestGetSubroundsFactory_BlsNilConsensusCoreShouldErr(t *testing.T) {
 		indexer,
 		chainID,
 		currentPid,
-		consensus.SubRoundBlockTypeV1,
+		consensus.SubroundBlockTypeV1,
 	)
 
 	assert.Nil(t, sf)
@@ -76,7 +76,7 @@ func TestGetSubroundsFactory_BlsNilStatusHandlerShouldErr(t *testing.T) {
 		indexer,
 		chainID,
 		currentPid,
-		consensus.SubRoundBlockTypeV1,
+		consensus.SubroundBlockTypeV1,
 	)
 
 	assert.Nil(t, sf)
@@ -101,7 +101,7 @@ func TestGetSubroundsFactory_BlsShouldWork(t *testing.T) {
 		indexer,
 		chainID,
 		currentPid,
-		consensus.SubRoundBlockTypeV1,
+		consensus.SubroundBlockTypeV1,
 	)
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(sf))
@@ -120,7 +120,7 @@ func TestGetSubroundsFactory_InvalidConsensusTypeShouldErr(t *testing.T) {
 		nil,
 		nil,
 		currentPid,
-		consensus.SubRoundBlockTypeV1,
+		consensus.SubroundBlockTypeV1,
 	)
 
 	assert.Nil(t, sf)
