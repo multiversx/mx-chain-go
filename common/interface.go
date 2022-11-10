@@ -332,6 +332,7 @@ type EnableEpochsHandler interface {
 	IsRefactorPeersMiniBlocksFlagEnabled() bool
 	IsFixAsyncCallBackArgsListFlagEnabled() bool
 	IsFixOldTokenLiquidityEnabled() bool
+	IsAutoBalanceDataTriesEnabled() bool
 
 	IsInterfaceNil() bool
 }
