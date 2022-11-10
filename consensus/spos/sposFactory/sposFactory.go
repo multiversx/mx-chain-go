@@ -25,6 +25,7 @@ func GetSubroundsFactory(
 	outportHandler outport.OutportHandler,
 	chainID []byte,
 	currentPid core.PeerID,
+	subroundBlockType consensus.SubRoundBlockType,
 ) (spos.SubroundsFactory, error) {
 	switch consensusType {
 	case blsConsensusType:
@@ -35,6 +36,7 @@ func GetSubroundsFactory(
 			chainID,
 			currentPid,
 			appStatusHandler,
+			subroundBlockType,
 		)
 		if err != nil {
 			return nil, err

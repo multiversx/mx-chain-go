@@ -129,13 +129,7 @@ func startNodeRunner(c *cli.Context, log logger.Logger, version string) error {
 		return errRunner
 	}
 
-	//TODO: Activate the following code for sovereign chain and also use the resulted instance, instead the original one, to call the method Start() below
-	//sovereignChainNodeRunner, errRunner := node.NewSovereignChainNodeRunner(nodeRunner)
-	//if errRunner != nil {
-	//	return errRunner
-	//}
-
-	err = nodeRunner.Start() // Use the following commented line, instead the current one, for sovereign chain -> err = sovereignChainNodeRunner.Start()
+	err = nodeRunner.Start()
 	if err != nil {
 		log.Error(err.Error())
 	}

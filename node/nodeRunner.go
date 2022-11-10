@@ -76,16 +76,6 @@ const (
 // nodeRunner holds the node runner configuration and controls running of a node
 type nodeRunner struct {
 	configs *config.Configs
-
-	CreateManagedConsensusComponentsMethod func(
-		coreComponents mainFactory.CoreComponentsHolder,
-		networkComponents mainFactory.NetworkComponentsHolder,
-		cryptoComponents mainFactory.CryptoComponentsHolder,
-		dataComponents mainFactory.DataComponentsHolder,
-		stateComponents mainFactory.StateComponentsHolder,
-		statusComponents mainFactory.StatusComponentsHolder,
-		processComponents mainFactory.ProcessComponentsHolder,
-	) (mainFactory.ConsensusComponentsHandler, error)
 }
 
 // NewNodeRunner creates a nodeRunner instance
@@ -94,13 +84,9 @@ func NewNodeRunner(cfgs *config.Configs) (*nodeRunner, error) {
 		return nil, fmt.Errorf("nil configs provided")
 	}
 
-	nr := &nodeRunner{
+	return &nodeRunner{
 		configs: cfgs,
-	}
-
-	nr.CreateManagedConsensusComponentsMethod = nr.CreateManagedConsensusComponents
-
-	return nr, nil
+	}, nil
 }
 
 // Start creates and starts the managed components
@@ -447,7 +433,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 
 	log.Debug("starting node... executeOneComponentCreationCycle")
 
-	managedConsensusComponents, err := nr.CreateManagedConsensusComponentsMethod(
+	managedConsensusComponents, err := nr.CreateManagedConsensusComponents(
 		managedCoreComponents,
 		managedNetworkComponents,
 		managedCryptoComponents,
@@ -857,6 +843,7 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 		ScheduledProcessor:    scheduledProcessor,
 		IsInImportMode:        nr.configs.ImportDbConfig.IsImportDBMode,
 		ShouldDisableWatchdog: nr.configs.FlagsConfig.DisableConsensusWatchdog,
+		SubRoundBlockType:     consensus.SubRoundBlockTypeV1,
 	}
 
 	consensusFactory, err := consensusComp.NewConsensusComponentsFactory(consensusArgs)
