@@ -72,7 +72,7 @@ func DoDeploy(t *testing.T, testContext *vm.VMTestContext, pathToContract string
 
 // DoDeployWithCustomParams -
 func DoDeployWithCustomParams(
-	t *testing.T,
+	tb testing.TB,
 	testContext *vm.VMTestContext,
 	pathToContract string,
 	senderBalance *big.Int,
@@ -93,11 +93,11 @@ func DoDeployWithCustomParams(
 	tx := vm.CreateTransaction(senderNonce, big.NewInt(0), owner, vm.CreateEmptyAddress(), gasPrice, gasLimit, []byte(txData))
 
 	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
-	require.Equal(t, vmcommon.Ok, retCode)
-	require.Nil(t, err)
+	require.Equal(tb, vmcommon.Ok, retCode)
+	require.Nil(tb, err)
 
 	_, err = testContext.Accounts.Commit()
-	require.Nil(t, err)
+	require.Nil(tb, err)
 
 	scAddr, _ = testContext.BlockchainHook.NewAddress(owner, 0, factory.ArwenVirtualMachine)
 
@@ -306,10 +306,10 @@ func ProcessSCRResult(
 }
 
 // CleanAccumulatedIntermediateTransactions -
-func CleanAccumulatedIntermediateTransactions(t *testing.T, testContext *vm.VMTestContext) {
+func CleanAccumulatedIntermediateTransactions(tb testing.TB, testContext *vm.VMTestContext) {
 	scForwarder := testContext.ScForwarder
 	mockIntermediate, ok := scForwarder.(*mock.IntermediateTransactionHandlerMock)
-	require.True(t, ok)
+	require.True(tb, ok)
 
 	mockIntermediate.Clean()
 }
