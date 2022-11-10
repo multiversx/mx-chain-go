@@ -21,7 +21,6 @@ func TestCreateApiResolver(t *testing.T) {
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
 	coreComponents := componentsMock.GetCoreComponents()
-	coreComponents.StatusHandlerUtils().Metrics()
 	networkComponents := componentsMock.GetNetworkComponents()
 	dataComponents := componentsMock.GetDataComponents(coreComponents, shardCoordinator)
 	cryptoComponents := componentsMock.GetCryptoComponents(coreComponents)
@@ -47,12 +46,13 @@ func TestCreateApiResolver(t *testing.T) {
 			EpochConfig:     &config.EpochConfig{},
 			EconomicsConfig: &economicsConfig,
 		},
-		CoreComponents:      coreComponents,
-		DataComponents:      dataComponents,
-		StateComponents:     stateComponents,
-		BootstrapComponents: mbc,
-		CryptoComponents:    cryptoComponents,
-		ProcessComponents:   processComponents,
+		CoreComponents:       coreComponents,
+		DataComponents:       dataComponents,
+		StateComponents:      stateComponents,
+		BootstrapComponents:  mbc,
+		CryptoComponents:     cryptoComponents,
+		ProcessComponents:    processComponents,
+		StatusCoreComponents: componentsMock.GetStatusCoreComponents(),
 		GasScheduleNotifier: &testscommon.GasScheduleNotifierMock{
 			GasSchedule: gasSchedule,
 		},

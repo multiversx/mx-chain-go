@@ -442,28 +442,28 @@ func (bn *branchNode) isPosCollapsed(pos int) bool {
 	return bn.children[pos] == nil && len(bn.EncodedChildren[pos]) != 0
 }
 
-func (bn *branchNode) tryGet(key []byte, db common.DBWriteCacher) (value []byte, err error) {
+func (bn *branchNode) tryGet(key []byte, currentDepth uint32, db common.DBWriteCacher) (value []byte, maxDepth uint32, err error) {
 	err = bn.isEmptyOrNil()
 	if err != nil {
-		return nil, fmt.Errorf("tryGet error %w", err)
+		return nil, currentDepth, fmt.Errorf("tryGet error %w", err)
 	}
 	if len(key) == 0 {
-		return nil, nil
+		return nil, currentDepth, nil
 	}
 	childPos := key[firstByte]
 	if childPosOutOfRange(childPos) {
-		return nil, ErrChildPosOutOfRange
+		return nil, currentDepth, ErrChildPosOutOfRange
 	}
 	key = key[1:]
 	err = resolveIfCollapsed(bn, childPos, db)
 	if err != nil {
-		return nil, err
+		return nil, currentDepth, err
 	}
 	if bn.children[childPos] == nil {
-		return nil, nil
+		return nil, currentDepth, nil
 	}
 
-	return bn.children[childPos].tryGet(key, db)
+	return bn.children[childPos].tryGet(key, currentDepth+1, db)
 }
 
 func (bn *branchNode) getNext(key []byte, db common.DBWriteCacher) (node, []byte, error) {

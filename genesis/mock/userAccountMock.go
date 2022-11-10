@@ -70,8 +70,8 @@ func (uam *UserAccountMock) DataTrie() common.DataTrieHandler {
 }
 
 // RetrieveValue -
-func (uam *UserAccountMock) RetrieveValue(_ []byte) ([]byte, error) {
-	return nil, nil
+func (uam *UserAccountMock) RetrieveValue(_ []byte) ([]byte, uint32, error) {
+	return nil, 0, nil
 }
 
 // SaveKeyValue -

@@ -10,7 +10,7 @@ func NewCurrentNetworkEpochProviderHandler() *currentNetworkEpochProviderHandler
 }
 
 // EpochConfirmed does nothing
-func (ep *currentNetworkEpochProviderHandler) EpochConfirmed(_ uint32, _ uint64) {
+func (cneph *currentNetworkEpochProviderHandler) EpochConfirmed(_ uint32, _ uint64) {
 }
 
 // EpochIsActiveInNetwork returns true

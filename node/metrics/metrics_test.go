@@ -58,6 +58,7 @@ func TestInitBaseMetrics(t *testing.T) {
 		common.MetricLastAccountsSnapshotDurationSec,
 		common.MetricPeersSnapshotInProgress,
 		common.MetricLastPeersSnapshotDurationSec,
+		common.MetricAccountsSnapshotNumNodes,
 	}
 
 	keys := make(map[string]struct{})
@@ -78,14 +79,10 @@ func TestInitBaseMetrics(t *testing.T) {
 		},
 	}
 
-	sm := &statusHandler.StatusHandlersUtilsMock{
-		AppStatusHandler: ash,
-	}
-
 	err := InitBaseMetrics(nil)
-	require.Equal(t, ErrNilStatusHandlerUtils, err)
+	require.Equal(t, ErrNilAppStatusHandler, err)
 
-	err = InitBaseMetrics(sm)
+	err = InitBaseMetrics(ash)
 	require.Nil(t, err)
 
 	require.Equal(t, len(expectedKeys), len(keys))
@@ -206,14 +203,10 @@ func TestInitConfigMetrics(t *testing.T) {
 		},
 	}
 
-	sm := &statusHandler.StatusHandlersUtilsMock{
-		AppStatusHandler: ash,
-	}
-
 	err := InitConfigMetrics(nil, cfg, economicsConfig, genesisNodesConfig)
-	require.Equal(t, ErrNilStatusHandlerUtils, err)
+	require.Equal(t, ErrNilAppStatusHandler, err)
 
-	err = InitConfigMetrics(sm, cfg, economicsConfig, genesisNodesConfig)
+	err = InitConfigMetrics(ash, cfg, economicsConfig, genesisNodesConfig)
 	require.Nil(t, err)
 
 	assert.Equal(t, len(expectedValues), len(keys))
@@ -232,7 +225,7 @@ func TestInitConfigMetrics(t *testing.T) {
 	expectedValues["erd_adaptivity"] = "false"
 	expectedValues["erd_hysteresis"] = "0.000000"
 
-	err = InitConfigMetrics(sm, cfg, economicsConfig, genesisNodesConfig)
+	err = InitConfigMetrics(ash, cfg, economicsConfig, genesisNodesConfig)
 	require.Nil(t, err)
 
 	assert.Equal(t, expectedValues["erd_adaptivity"], keys["erd_adaptivity"])
@@ -316,21 +309,17 @@ func TestInitRatingsMetrics(t *testing.T) {
 
 	ash := &statusHandler.AppStatusHandlerStub{
 		SetUInt64ValueHandler: func(key string, value uint64) {
-			keys[key] = uint64(value)
+			keys[key] = value
 		},
 		SetStringValueHandler: func(key string, value string) {
 			keys[key] = value
 		},
 	}
 
-	sm := &statusHandler.StatusHandlersUtilsMock{
-		AppStatusHandler: ash,
-	}
-
 	err := InitRatingsMetrics(nil, cfg)
-	require.Equal(t, ErrNilStatusHandlerUtils, err)
+	require.Equal(t, ErrNilAppStatusHandler, err)
 
-	err = InitRatingsMetrics(sm, cfg)
+	err = InitRatingsMetrics(ash, cfg)
 	require.Nil(t, err)
 
 	assert.Equal(t, len(expectedValues), len(keys))

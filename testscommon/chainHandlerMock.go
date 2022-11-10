@@ -66,7 +66,7 @@ func (mock *ChainHandlerMock) GetCurrentBlockRootHash() []byte {
 	return mock.currentBlockRootHash
 }
 
-// SetFinalBlockInfoCalled -
+// SetFinalBlockInfo -
 func (mock *ChainHandlerMock) SetFinalBlockInfo(nonce uint64, headerHash []byte, rootHash []byte) {
 	mock.finalBlockNonce = nonce
 	mock.finalBlockHash = headerHash

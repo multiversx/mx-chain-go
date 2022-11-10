@@ -408,7 +408,7 @@ func CheckAddressHasTokens(
 
 func getESDTDataFromKey(userAcnt state.UserAccountHandler, key []byte) (*esdt.ESDigitalToken, error) {
 	esdtData := &esdt.ESDigitalToken{Value: big.NewInt(0)}
-	marshaledData, err := userAcnt.RetrieveValue(key)
+	marshaledData, _, err := userAcnt.RetrieveValue(key)
 	if err != nil {
 		return esdtData, nil
 	}

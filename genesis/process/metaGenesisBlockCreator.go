@@ -127,6 +127,11 @@ func CreateMetaGenesisBlock(
 		return nil, nil, nil, err
 	}
 
+	log.Debug("meta block genesis",
+		"resulted user accounts roothash", rootHash,
+		"resulted validator roothash", validatorRootHash,
+	)
+
 	err = header.SetValidatorStatsRootHash(validatorRootHash)
 	if err != nil {
 		return nil, nil, nil, err

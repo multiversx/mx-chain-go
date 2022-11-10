@@ -174,7 +174,7 @@ func getShardIDAndHashesForIncludedMetaBlocks(notarizedShardHeader data.ShardHea
 	shardIDs := make([]uint32, 0)
 	hashesToRequest := make([][]byte, 0)
 
-	// if there were processed metaBlocks in the notarized header, these need to be synced so they can get again processed
+	// if there were processed metaBlocks in the notarized header, these need to be synced, so they can get again processed
 	metaBlockHashes := notarizedShardHeader.GetMetaBlockHashes()
 	for i := range metaBlockHashes {
 		shardIDs = append(shardIDs, core.MetachainShardId)

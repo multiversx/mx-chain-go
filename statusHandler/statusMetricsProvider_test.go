@@ -284,13 +284,13 @@ func TestStatusMetrics_EnableEpochMetrics(t *testing.T) {
 	}
 	for i, nodesChangeConfig := range maxNodesChangeConfig {
 		epochEnable := fmt.Sprintf("%s%d%s", common.MetricMaxNodesChangeEnableEpoch, i, common.EpochEnableSuffix)
-		sm.SetUInt64Value(epochEnable, uint64(nodesChangeConfig["EpochEnable"]))
+		sm.SetUInt64Value(epochEnable, nodesChangeConfig["EpochEnable"])
 
 		maxNumNodes := fmt.Sprintf("%s%d%s", common.MetricMaxNodesChangeEnableEpoch, i, common.MaxNumNodesSuffix)
-		sm.SetUInt64Value(maxNumNodes, uint64(nodesChangeConfig["MaxNumNodes"]))
+		sm.SetUInt64Value(maxNumNodes, nodesChangeConfig["MaxNumNodes"])
 
 		nodesToShufflePerShard := fmt.Sprintf("%s%d%s", common.MetricMaxNodesChangeEnableEpoch, i, common.NodesToShufflePerShardSuffix)
-		sm.SetUInt64Value(nodesToShufflePerShard, uint64(nodesChangeConfig["NodesToShufflePerShard"]))
+		sm.SetUInt64Value(nodesToShufflePerShard, nodesChangeConfig["NodesToShufflePerShard"])
 	}
 	sm.SetUInt64Value(common.MetricMaxNodesChangeEnableEpoch+"_count", uint64(len(maxNodesChangeConfig)))
 

@@ -25,27 +25,29 @@ var log = logger.GetOrCreate("factory")
 
 // ArgHeartbeatV2ComponentsFactory represents the argument for the heartbeat v2 components factory
 type ArgHeartbeatV2ComponentsFactory struct {
-	Config             config.Config
-	Prefs              config.Preferences
-	AppVersion         string
-	BoostrapComponents factory.BootstrapComponentsHolder
-	CoreComponents     factory.CoreComponentsHolder
-	DataComponents     factory.DataComponentsHolder
-	NetworkComponents  factory.NetworkComponentsHolder
-	CryptoComponents   factory.CryptoComponentsHolder
-	ProcessComponents  factory.ProcessComponentsHolder
+	Config               config.Config
+	Prefs                config.Preferences
+	AppVersion           string
+	BootstrapComponents  factory.BootstrapComponentsHolder
+	CoreComponents       factory.CoreComponentsHolder
+	DataComponents       factory.DataComponentsHolder
+	NetworkComponents    factory.NetworkComponentsHolder
+	CryptoComponents     factory.CryptoComponentsHolder
+	ProcessComponents    factory.ProcessComponentsHolder
+	StatusCoreComponents factory.StatusCoreComponentsHolder
 }
 
 type heartbeatV2ComponentsFactory struct {
-	config             config.Config
-	prefs              config.Preferences
-	version            string
-	boostrapComponents factory.BootstrapComponentsHolder
-	coreComponents     factory.CoreComponentsHolder
-	dataComponents     factory.DataComponentsHolder
-	networkComponents  factory.NetworkComponentsHolder
-	cryptoComponents   factory.CryptoComponentsHolder
-	processComponents  factory.ProcessComponentsHolder
+	config               config.Config
+	prefs                config.Preferences
+	version              string
+	bootstrapComponents  factory.BootstrapComponentsHolder
+	coreComponents       factory.CoreComponentsHolder
+	dataComponents       factory.DataComponentsHolder
+	networkComponents    factory.NetworkComponentsHolder
+	cryptoComponents     factory.CryptoComponentsHolder
+	processComponents    factory.ProcessComponentsHolder
+	statusCoreComponents factory.StatusCoreComponentsHolder
 }
 
 type heartbeatV2Components struct {
@@ -65,20 +67,21 @@ func NewHeartbeatV2ComponentsFactory(args ArgHeartbeatV2ComponentsFactory) (*hea
 	}
 
 	return &heartbeatV2ComponentsFactory{
-		config:             args.Config,
-		prefs:              args.Prefs,
-		version:            args.AppVersion,
-		boostrapComponents: args.BoostrapComponents,
-		coreComponents:     args.CoreComponents,
-		dataComponents:     args.DataComponents,
-		networkComponents:  args.NetworkComponents,
-		cryptoComponents:   args.CryptoComponents,
-		processComponents:  args.ProcessComponents,
+		config:               args.Config,
+		prefs:                args.Prefs,
+		version:              args.AppVersion,
+		bootstrapComponents:  args.BootstrapComponents,
+		coreComponents:       args.CoreComponents,
+		dataComponents:       args.DataComponents,
+		networkComponents:    args.NetworkComponents,
+		cryptoComponents:     args.CryptoComponents,
+		processComponents:    args.ProcessComponents,
+		statusCoreComponents: args.StatusCoreComponents,
 	}, nil
 }
 
 func checkHeartbeatV2FactoryArgs(args ArgHeartbeatV2ComponentsFactory) error {
-	if check.IfNil(args.BoostrapComponents) {
+	if check.IfNil(args.BootstrapComponents) {
 		return errors.ErrNilBootstrapComponentsHolder
 	}
 	if check.IfNil(args.CoreComponents) {
@@ -95,6 +98,12 @@ func checkHeartbeatV2FactoryArgs(args ArgHeartbeatV2ComponentsFactory) error {
 	}
 	if check.IfNil(args.ProcessComponents) {
 		return errors.ErrNilProcessComponentsHolder
+	}
+	if check.IfNil(args.StatusCoreComponents) {
+		return errors.ErrNilStatusCoreComponents
+	}
+	if check.IfNil(args.StatusCoreComponents.AppStatusHandler()) {
+		return errors.ErrNilAppStatusHandler
 	}
 	hardforkTrigger := args.ProcessComponents.HardforkTrigger()
 	if check.IfNil(hardforkTrigger) {
@@ -129,7 +138,7 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		peerSubType = core.FullHistoryObserver
 	}
 
-	shardC := hcf.boostrapComponents.ShardCoordinator()
+	shardC := hcf.bootstrapComponents.ShardCoordinator()
 	heartbeatTopic := common.HeartbeatV2Topic + shardC.CommunicationIdentifier(shardC.SelfId())
 
 	argPeerTypeProvider := peer.ArgPeerTypeProvider{
@@ -172,7 +181,7 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		return nil, err
 	}
 
-	epochBootstrapParams := hcf.boostrapComponents.EpochBootstrapParams()
+	epochBootstrapParams := hcf.bootstrapComponents.EpochBootstrapParams()
 	argsProcessor := processor.ArgPeerAuthenticationRequestsProcessor{
 		RequestHandler:          hcf.processComponents.RequestHandler(),
 		NodesCoordinator:        hcf.processComponents.NodesCoordinator(),
@@ -193,7 +202,7 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 	argsPeerShardSender := sender.ArgPeerShardSender{
 		Messenger:             hcf.networkComponents.NetworkMessenger(),
 		Marshaller:            hcf.coreComponents.InternalMarshalizer(),
-		ShardCoordinator:      hcf.boostrapComponents.ShardCoordinator(),
+		ShardCoordinator:      hcf.bootstrapComponents.ShardCoordinator(),
 		TimeBetweenSends:      time.Second * time.Duration(cfg.PeerShardTimeBetweenSendsInSec),
 		ThresholdBetweenSends: cfg.PeerShardThresholdBetweenSends,
 		NodesCoordinator:      hcf.processComponents.NodesCoordinator(),
@@ -221,7 +230,7 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		PeerAuthenticationCacher:            hcf.dataComponents.Datapool().PeerAuthentications(),
 		HeartbeatMonitor:                    heartbeatsMonitor,
 		HeartbeatSenderInfoProvider:         heartbeatV2Sender,
-		AppStatusHandler:                    hcf.coreComponents.StatusHandler(),
+		AppStatusHandler:                    hcf.statusCoreComponents.AppStatusHandler(),
 		TimeBetweenConnectionsMetricsUpdate: time.Second * time.Duration(hcf.config.HeartbeatV2.TimeBetweenConnectionsMetricsUpdateInSec),
 	}
 	statusHandler, err := status.NewMetricsUpdater(argsMetricsUpdater)

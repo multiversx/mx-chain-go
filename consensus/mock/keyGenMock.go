@@ -82,7 +82,7 @@ func (keyGen *KeyGenMock) GeneratePair() (crypto.PrivateKey, crypto.PublicKey) {
 	return keyGen.GeneratePairMock()
 }
 
-// PrivateKeyFromByteArray generates the private key from it's byte array representation
+// PrivateKeyFromByteArray generates the private key from its byte array representation
 func (keyGen *KeyGenMock) PrivateKeyFromByteArray(b []byte) (crypto.PrivateKey, error) {
 	if keyGen.PrivateKeyFromByteArrayMock != nil {
 		return keyGen.PrivateKeyFromByteArrayMock(b)
@@ -91,7 +91,7 @@ func (keyGen *KeyGenMock) PrivateKeyFromByteArray(b []byte) (crypto.PrivateKey, 
 	return &PrivateKeyMock{}, nil
 }
 
-// PublicKeyFromByteArray generates a public key from it's byte array representation
+// PublicKeyFromByteArray generates a public key from its byte array representation
 func (keyGen *KeyGenMock) PublicKeyFromByteArray(b []byte) (crypto.PublicKey, error) {
 	if keyGen.PublicKeyFromByteArrayMock != nil {
 		return keyGen.PublicKeyFromByteArrayMock(b)
