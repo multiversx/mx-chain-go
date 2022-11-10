@@ -253,3 +253,48 @@ func TestPutFeeAndGasUsedLogWithErrorAndInformative(t *testing.T) {
 	require.Equal(t, tx1.GetGasLimit(), tx1.GetGasUsed())
 	require.Equal(t, tx2.GetGasLimit(), tx2.GetGasUsed())
 }
+
+func TestPutFeeAndGasUsedWrongRelayedTx(t *testing.T) {
+	t.Parallel()
+
+	txHash := []byte("relayedTx")
+	scrHash1 := []byte("scrHash1")
+	initialTx := outportcore.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{
+		Nonce:    1011,
+		SndAddr:  []byte("erd1dglncxk6sl9a3xumj78n6z2xux4ghp5c92cstv5zsn56tjgtdwpsk46qrs"),
+		RcvAddr:  []byte("erd1xlrw5j482m3fwl72fsu9saj984rxqdrjd860e02tcz0qakvqrp6q2pjqgg"),
+		GasLimit: 550000000,
+		GasPrice: 1000000000,
+		Data:     []byte("relayedTxV2@000000000000000005005eaf5311cedc6fa17f08f33e156926f8f3816d8ed8dc@06e2@7472616e73666572546f6b656e4064633132346163313733323937623836623936316362636663363339326231643130303533326533336530663933313838373634396336613935636236633931403031@ba26daf1353b8fa62d183b7d7df8db48846ea982a0cb26450b703e16720c77b9d7d4e47b652d270b160ae6866ca7b04aae38ca83a58ce508bf660db07d5b6401"),
+		Value:    big.NewInt(0),
+	}, 0, big.NewInt(0))
+
+	scr1 := &smartContractResult.SmartContractResult{
+		Nonce:          1011,
+		SndAddr:        []byte("erd1xlrw5j482m3fwl72fsu9saj984rxqdrjd860e02tcz0qakvqrp6q2pjqgg"),
+		RcvAddr:        []byte("erd1dglncxk6sl9a3xumj78n6z2xux4ghp5c92cstv5zsn56tjgtdwpsk46qrs"),
+		PrevTxHash:     txHash,
+		OriginalTxHash: txHash,
+		ReturnMessage:  []byte("higher nonce in transaction"),
+	}
+
+	pool := &outportcore.Pool{
+		Txs: map[string]coreData.TransactionHandlerWithGasUsedAndFee{
+			string(txHash): initialTx,
+		},
+		Scrs: map[string]coreData.TransactionHandlerWithGasUsedAndFee{
+			string(scrHash1): outportcore.NewTransactionHandlerWithGasAndFee(scr1, 0, big.NewInt(0)),
+		},
+	}
+
+	arg := prepareMockArg()
+	txsFeeProc, err := NewTransactionsFeeProcessor(arg)
+	require.NotNil(t, txsFeeProc)
+	require.Nil(t, err)
+
+	err = txsFeeProc.PutFeeAndGasUsed(pool)
+	require.Nil(t, err)
+	require.Equal(t, big.NewInt(6103405000000000), initialTx.GetFee())
+	require.Equal(t, uint64(550000000), initialTx.GetGasUsed())
+	require.Equal(t, "6103405000000000", initialTx.GetInitialPaidFee().String())
+}
