@@ -12,6 +12,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
@@ -21,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	arwenConfig "github.com/ElrondNetwork/wasm-vm-v1_4/config"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -360,4 +362,110 @@ func TestESDTScCallAndGasChangeShouldWork(t *testing.T) {
 		indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
 		require.Equal(t, uint64(25095), indexerTx.GasUsed)
 	}
+}
+
+func TestScCallBuyNFTShouldWork(t *testing.T) {
+	unreachableEpoch := uint32(999999)
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
+		GovernanceEnableEpoch:                             unreachableEpoch,
+		WaitingListFixEnableEpoch:                         unreachableEpoch,
+		ScheduledMiniBlocksEnableEpoch:                    unreachableEpoch,
+		CorrectJailedNotUnstakedEmptyQueueEpoch:           unreachableEpoch,
+		OptimizeNFTStoreEnableEpoch:                       unreachableEpoch,
+		CreateNFTThroughExecByCallerEnableEpoch:           unreachableEpoch,
+		StopDecreasingValidatorRatingWhenStuckEnableEpoch: unreachableEpoch,
+		FrontRunningProtectionEnableEpoch:                 unreachableEpoch,
+		IsPayableBySCEnableEpoch:                          unreachableEpoch,
+		CleanUpInformativeSCRsEnableEpoch:                 unreachableEpoch,
+		StorageAPICostOptimizationEnableEpoch:             unreachableEpoch,
+		TransformToMultiShardCreateEnableEpoch:            unreachableEpoch,
+		ESDTRegisterAndSetAllRolesEnableEpoch:             unreachableEpoch,
+		DoNotReturnOldBlockInBlockchainHookEnableEpoch:    unreachableEpoch,
+		AddFailedRelayedTxToInvalidMBsDisableEpoch:        unreachableEpoch,
+		SCRSizeInvariantOnBuiltInResultEnableEpoch:        unreachableEpoch,
+		CheckCorrectTokenIDForTransferRoleEnableEpoch:     unreachableEpoch,
+		DisableExecByCallerEnableEpoch:                    unreachableEpoch,
+		FailExecutionOnEveryAPIErrorEnableEpoch:           unreachableEpoch,
+		ManagedCryptoAPIsEnableEpoch:                      unreachableEpoch,
+		RefactorContextEnableEpoch:                        unreachableEpoch,
+		CheckFunctionArgumentEnableEpoch:                  unreachableEpoch,
+		CheckExecuteOnReadOnlyEnableEpoch:                 unreachableEpoch,
+		MiniBlockPartialExecutionEnableEpoch:              unreachableEpoch,
+		ESDTMetadataContinuousCleanupEnableEpoch:          unreachableEpoch,
+		FixAsyncCallBackArgsListEnableEpoch:               unreachableEpoch,
+		FixOldTokenLiquidityEnableEpoch:                   unreachableEpoch,
+		SetSenderInEeiOutputTransferEnableEpoch:           unreachableEpoch,
+		RefactorPeersMiniBlocksEnableEpoch:                unreachableEpoch,
+	})
+	require.Nil(t, err)
+	defer testContext.Close()
+
+	senderBalance := big.NewInt(1000000000000000000)
+	gasLimit := uint64(100000)
+	params := []string{"01"}
+	scAddress, _ := utils.DoDeployWithCustomParams(
+		t,
+		testContext,
+		"../arwen/testdata/buyNFTCall/code.wasm",
+		senderBalance,
+		gasLimit,
+		params,
+	)
+	utils.ApplyDataOverwritingExistingData(t, testContext, scAddress, "../arwen/testdata/buyNFTCall/data.hex")
+	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
+
+	sndAddr1 := []byte("12345678901234567890123456789112")
+	sndAddr2 := []byte("12345678901234567890123456789113")
+	senderBalance = big.NewInt(1000000000000000000)
+	gasPrice := uint64(10)
+	gasLimit = uint64(1000000)
+
+	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr1, 0, senderBalance)
+	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr2, 0, senderBalance)
+
+	blockChainHook := testContext.BlockchainHook.(process.BlockChainHookHandler)
+	t.Run("transaction that fails", func(t *testing.T) {
+		blockChainHook.SetCurrentHeader(&block.Header{
+			TimeStamp: 1635880560,
+		})
+
+		txData, errDecode := hex.DecodeString("6275794e6674406338403435353035353465346235333264333433363632333133383336406533")
+		require.Nil(t, errDecode)
+		tx := vm.CreateTransaction(0, big.NewInt(250000000000000000), sndAddr1, scAddress, gasPrice, gasLimit, txData)
+
+		returnCode, errProcess := testContext.TxProcessor.ProcessTransaction(tx)
+		require.Nil(t, errProcess)
+		require.Equal(t, vmcommon.UserError, returnCode)
+
+		_, errCommit := testContext.Accounts.Commit()
+		require.Nil(t, errCommit)
+
+		intermediateTxs := testContext.GetIntermediateTransactions(t)
+		require.Equal(t, 1, len(intermediateTxs))
+
+		scr := intermediateTxs[0].(*smartContractResult.SmartContractResult)
+		assert.Equal(t, "execution failed", string(scr.ReturnMessage))
+	})
+	t.Run("transaction that succeed", func(t *testing.T) {
+		blockChainHook.SetCurrentHeader(&block.Header{
+			TimeStamp: 1635880566, // next timestamp
+		})
+
+		txData, errDecode := hex.DecodeString("6275794e6674403264403435353035353465346235333264333433363632333133383336403337")
+		require.Nil(t, errDecode)
+		tx := vm.CreateTransaction(0, big.NewInt(250000000000000000), sndAddr2, scAddress, gasPrice, gasLimit, txData)
+
+		returnCode, errProcess := testContext.TxProcessor.ProcessTransaction(tx)
+		require.Nil(t, errProcess)
+		assert.Equal(t, vmcommon.Ok, returnCode)
+
+		_, errCommit := testContext.Accounts.Commit()
+		require.Nil(t, errCommit)
+
+		intermediateTxs := testContext.GetIntermediateTransactions(t)
+		require.Equal(t, 4, len(intermediateTxs))
+
+		scr := intermediateTxs[0].(*smartContractResult.SmartContractResult)
+		assert.Equal(t, "execution failed", string(scr.ReturnMessage))
+	})
 }
