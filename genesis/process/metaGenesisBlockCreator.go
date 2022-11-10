@@ -362,6 +362,8 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		return nil, err
 	}
 
+	blockChainHookImpl.SetVMContainer(vmContainer)
+
 	genesisFeeHandler := &disabled.FeeHandler{}
 	interimProcFactory, err := metachain.NewIntermediateProcessorsContainerFactory(
 		arg.ShardCoordinator,

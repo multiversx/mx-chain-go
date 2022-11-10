@@ -345,7 +345,10 @@ func (vmf *vmContainerFactory) createInProcessArwenVMV15() (vmcommon.VMExecution
 
 	// TODO the "executor" parameter is temporary;
 	// it will not be needed after an upcoming refactor in the VM
-	executor := wasmer1.NewExecutor()
+	executor, err := wasmer1.NewExecutor()
+	if err != nil {
+		return nil, err
+	}
 	return arwenHost15.NewArwenVM(vmf.blockChainHook, executor, hostParameters)
 }
 

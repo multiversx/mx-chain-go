@@ -75,16 +75,10 @@ github.com/ElrondNetwork/elrond-vm-common v1.2.9/go.mod h1:B/Y8WiqHyDd7xsjNYsaYb
 github.com/ElrondNetwork/elrond-vm-common v1.3.7/go.mod h1:seROQuR7RJCoCS7mgRXVAlvjztltY1c+UroAgWr/USE=
 github.com/ElrondNetwork/elrond-vm-common v1.3.24/go.mod h1:seROQuR7RJCoCS7mgRXVAlvjztltY1c+UroAgWr/USE=
 github.com/ElrondNetwork/elrond-vm-common v1.3.25-0.20221027135829-abf3f6b8b9f2/go.mod h1:seROQuR7RJCoCS7mgRXVAlvjztltY1c+UroAgWr/USE=
-github.com/ElrondNetwork/elrond-vm-common v1.3.25-0.20221031090629-9e11c6cd2149 h1:2nWJFkiflIOWpvMCv8HjzRK8tzuVTcPNNe0aNMOq/PI=
-github.com/ElrondNetwork/elrond-vm-common v1.3.25-0.20221031090629-9e11c6cd2149/go.mod h1:seROQuR7RJCoCS7mgRXVAlvjztltY1c+UroAgWr/USE=
 github.com/ElrondNetwork/go-libp2p-pubsub v0.6.1-rc1 h1:Nu/uwYQg/QbfoQ0uD6GahYTwgtAkAwtzsB0HVfSP58I=
 github.com/ElrondNetwork/go-libp2p-pubsub v0.6.1-rc1/go.mod h1:pJfaShe+i5aWZx8NhSkQjvOYQYLoqPztmFUlKjToOzM=
 github.com/ElrondNetwork/protobuf v1.3.2 h1:qoCSYiO+8GtXBEZWEjw0WPcZfM3g7QuuJrwpN+y6Mvg=
 github.com/ElrondNetwork/protobuf v1.3.2/go.mod h1:SlYgWuQ5SjCEi6WLHjHCa1yvBfUnHcTbrrZtXPKa29o=
-github.com/ElrondNetwork/wasm-vm v1.5.3-0.20221027144136-555e72b5c0d6 h1:UCjA3SiYg7NZQIrVewcOjEvpNfHhd/bE3QXgcs3CN4A=
-github.com/ElrondNetwork/wasm-vm v1.5.3-0.20221027144136-555e72b5c0d6/go.mod h1:rmfWSiohWHToi6fs9GNW8gAvrgNUsqTG37Y5gbPAmfc=
-github.com/ElrondNetwork/wasm-vm-v1_2 v1.2.45-rc h1:+CcDhUEwPNnKsf9AmA+GShut9W+KgCd5Fe6u0scVdL4=
-github.com/ElrondNetwork/wasm-vm-v1_2 v1.2.45-rc/go.mod h1:i1TIkkBwx3ss3C4balJCKQDiRpG6WOI4blhlfSf56uI=
 github.com/ElrondNetwork/wasm-vm-v1_3 v1.3.45-rc h1:4aCnmAusTmj+qtsQV+jiCpOaM2VP7p3l8SyXk0JIC8s=
 github.com/ElrondNetwork/wasm-vm-v1_3 v1.3.45-rc/go.mod h1:6m4U8OM0C6Jaa6UBilPx1OJqECoz4MfyKw0pV1eAnxs=
 github.com/ElrondNetwork/wasm-vm-v1_4 v1.4.63 h1:yHvpNnFEpAJZBG8zPgk91SiEccMi5V617unCMnYNg+E=

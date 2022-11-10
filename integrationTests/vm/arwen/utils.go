@@ -310,6 +310,8 @@ func (context *TestContext) initVMAndBlockchainHook() {
 	context.VMContainer, err = vmFactory.Create()
 	require.Nil(context.T, err)
 
+	blockChainHookImpl.SetVMContainer(context.VMContainer)
+
 	context.BlockchainHook = vmFactory.BlockChainHookImpl().(*hooks.BlockChainHookImpl)
 	_ = builtInFuncFactory.SetPayableHandler(context.BlockchainHook)
 }

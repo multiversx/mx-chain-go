@@ -9,7 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
 	"github.com/ElrondNetwork/wasm-vm/arwen"
-	contextmock "github.com/ElrondNetwork/wasm-vm/mock/context"
+	mock "github.com/ElrondNetwork/wasm-vm/mock/context"
 	worldmock "github.com/ElrondNetwork/wasm-vm/mock/world"
 	"github.com/ElrondNetwork/wasm-vm/testcommon"
 	"github.com/stretchr/testify/require"
@@ -72,10 +72,10 @@ func GetAddressForNewAccount(
 	return GetAddressForNewAccountOnWalletAndNode(t, net, net.Wallets[node.ShardCoordinator.SelfId()], node)
 }
 
-func CreateHostAndInstanceBuilder(t *testing.T, net *integrationTests.TestNetwork, vmKey []byte) (map[uint32]arwen.VMHost, map[uint32]*contextmock.InstanceBuilderMock) {
+func CreateHostAndInstanceBuilder(t *testing.T, net *integrationTests.TestNetwork, vmKey []byte) (map[uint32]arwen.VMHost, map[uint32]*mock.ExecutorMock) {
 	numberOfShards := uint32(net.NumShards)
 	shardToWorld := make(map[uint32]*worldmock.MockWorld, numberOfShards)
-	shardToInstanceBuilder := make(map[uint32]*contextmock.InstanceBuilderMock, numberOfShards)
+	shardToInstanceBuilder := make(map[uint32]*mock.ExecutorMock, numberOfShards)
 	shardToHost := make(map[uint32]arwen.VMHost, numberOfShards)
 
 	for shardID := uint32(0); shardID < numberOfShards; shardID++ {
@@ -83,7 +83,7 @@ func CreateHostAndInstanceBuilder(t *testing.T, net *integrationTests.TestNetwor
 		world.SetProvidedBlockchainHook(net.DefaultNode.BlockchainHook)
 		world.SelfShardID = shardID
 		shardToWorld[shardID] = world
-		instanceBuilderMock := contextmock.NewInstanceBuilderMock(world)
+		instanceBuilderMock := mock.NewExecutorMock(world)
 		shardToInstanceBuilder[shardID] = instanceBuilderMock
 	}
 
@@ -92,7 +92,7 @@ func CreateHostAndInstanceBuilder(t *testing.T, net *integrationTests.TestNetwor
 		host, err := node.VMContainer.Get(factory.ArwenVirtualMachine)
 		require.NotNil(t, host)
 		require.Nil(t, err)
-		host.(arwen.VMHost).Runtime().ReplaceInstanceBuilder(shardToInstanceBuilder[shardID])
+		host.(arwen.VMHost).Runtime().ReplaceVMExecutor(shardToInstanceBuilder[shardID])
 		err = node.VMContainer.Replace(vmKey, host)
 		require.Nil(t, err)
 		shardToHost[shardID] = host.(arwen.VMHost)

@@ -513,6 +513,8 @@ type BlockChainHookHandler interface {
 	ClearCompiledCodes()
 	GetSnapshot() int
 	RevertToSnapshot(snapshot int) error
+	ExecuteSmartContractCallOnOtherVM(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
+	SetVMContainer(vmContainer VirtualMachinesContainer)
 	Close() error
 	FilterCodeMetadataForUpgrade(input []byte) ([]byte, error)
 	ApplyFiltersOnCodeMetadata(codeMetadata vmcommon.CodeMetadata) vmcommon.CodeMetadata

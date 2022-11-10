@@ -23,6 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/scrCommon"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -71,6 +72,7 @@ type BlockChainHookImpl struct {
 	marshalizer           marshal.Marshalizer
 	uint64Converter       typeConverters.Uint64ByteSliceConverter
 	builtInFunctions      vmcommon.BuiltInFunctionContainer
+	vmContainer           process.VirtualMachinesContainer
 	nftStorageHandler     vmcommon.SimpleESDTNFTStorageHandler
 	globalSettingsHandler vmcommon.ESDTGlobalSettingsHandler
 	enableEpochsHandler   common.EnableEpochsHandler
@@ -769,6 +771,22 @@ func (bh *BlockChainHookImpl) EpochConfirmed(epoch uint32, _ uint64) {
 	if ok {
 		bh.ClearCompiledCodes()
 	}
+}
+
+// ExecuteSmartContractCallOnOtherVM on another VM
+func (bh *BlockChainHookImpl) ExecuteSmartContractCallOnOtherVM(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+	if bh.vmContainer == nil {
+		return nil, process.ErrNilVMContainer
+	}
+	vmExec, _, err := scrCommon.FindVMByScAddress(bh.vmContainer, input.RecipientAddr)
+	if err != nil {
+		return nil, err
+	}
+	return vmExec.RunSmartContractCall(input)
+}
+
+func (bh *BlockChainHookImpl) SetVMContainer(vmContainer process.VirtualMachinesContainer) {
+	bh.vmContainer = vmContainer
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

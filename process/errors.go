@@ -1145,3 +1145,6 @@ var ErrNilProcessDebugger = errors.New("nil process debugger")
 
 // ErrAsyncCallsDisabled signals that async calls are disabled
 var ErrAsyncCallsDisabled = errors.New("async calls disabled")
+
+// ErrNilVMContainer defines the error when trying to use a nil vm container
+var ErrNilVMContainer = errors.New("nil ErrNilVMContainer")

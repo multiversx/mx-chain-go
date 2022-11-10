@@ -439,6 +439,8 @@ func createScQueryElement(
 		return nil, err
 	}
 
+	vmFactory.BlockChainHookImpl().SetVMContainer(vmContainer)
+
 	err = builtInFuncFactory.SetPayableHandler(vmFactory.BlockChainHookImpl())
 	if err != nil {
 		return nil, err
