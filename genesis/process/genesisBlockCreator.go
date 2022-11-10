@@ -114,6 +114,7 @@ func (gbc *genesisBlockCreator) createHardForkImportHandler() error {
 		ShardID:             gbc.arg.ShardCoordinator.SelfId(),
 		StorageConfig:       gbc.arg.HardForkConfig.ImportStateStorageConfig,
 		TrieStorageManagers: gbc.arg.TrieStorageManagers,
+		EnableEpochsHandler: gbc.arg.Core.EnableEpochsHandler(),
 	}
 	importHandler, err := hardfork.NewStateImport(argsHardForkImport)
 	if err != nil {
@@ -475,12 +476,17 @@ func (gbc *genesisBlockCreator) getNewArgForShard(shardID uint32) (ArgsGenesisBl
 		newArgument.Data = newArgument.Data.Clone().(dataComponentsHandler)
 		return newArgument, nil
 	}
-
 	newArgument := gbc.arg // copy the arguments
+
+	accCreator, err := factoryState.NewAccountCreator(newArgument.Core.Hasher(), newArgument.Core.InternalMarshalizer(), newArgument.Core.EnableEpochsHandler())
+	if err != nil {
+		return ArgsGenesisBlockCreator{}, err
+	}
+
 	newArgument.Accounts, err = createAccountAdapter(
 		newArgument.Core.InternalMarshalizer(),
 		newArgument.Core.Hasher(),
-		factoryState.NewAccountCreator(),
+		accCreator,
 		gbc.arg.TrieStorageManagers[triesFactory.UserAccountTrie],
 	)
 	if err != nil {

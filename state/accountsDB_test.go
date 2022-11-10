@@ -113,12 +113,13 @@ func getDefaultStateComponents(
 	tr, _ := trie.NewTrie(trieStorage, marshaller, hasher, 5)
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, testscommon.NewMemDbMock(), marshaller)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, generalCfg.PruningBufferLen)
+	accCreator, _ := factory.NewAccountCreator(hasher, marshaller, &testscommon.EnableEpochsHandlerStub{})
 
 	argsAccountsDB := state.ArgsAccountsDB{
 		Trie:                  tr,
 		Hasher:                hasher,
 		Marshaller:            marshaller,
-		AccountFactory:        factory.NewAccountCreator(),
+		AccountFactory:        accCreator,
 		StoragePruningManager: spm,
 		ProcessingMode:        common.Normal,
 		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
@@ -260,7 +261,7 @@ func TestAccountsDB_SaveAccountNilOldAccount(t *testing.T) {
 		},
 	})
 
-	acc, _ := state.NewUserAccount([]byte("someAddress"), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	acc, _ := state.NewUserAccount([]byte("someAddress"), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{}, &testscommon.EnableEpochsHandlerStub{})
 	err := adb.SaveAccount(acc)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, adb.JournalLen())
@@ -269,7 +270,7 @@ func TestAccountsDB_SaveAccountNilOldAccount(t *testing.T) {
 func TestAccountsDB_SaveAccountExistingOldAccount(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewUserAccount([]byte("someAddress"), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	acc, _ := state.NewUserAccount([]byte("someAddress"), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{}, &testscommon.EnableEpochsHandlerStub{})
 
 	adb := generateAccountDBFromTrie(&trieMock.TrieStub{
 		GetCalled: func(_ []byte) ([]byte, uint32, error) {
@@ -322,7 +323,7 @@ func TestAccountsDB_SaveAccountSavesCodeAndDataTrieForUserAccount(t *testing.T) 
 	})
 
 	accCode := []byte("code")
-	acc, _ := state.NewUserAccount([]byte("someAddress"), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	acc, _ := state.NewUserAccount([]byte("someAddress"), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{}, &testscommon.EnableEpochsHandlerStub{})
 	acc.SetCode(accCode)
 	_ = acc.SaveKeyValue([]byte("key"), []byte("value"))
 
@@ -1747,7 +1748,7 @@ func TestAccountsDB_MainTrieAutomaticallyMarksCodeUpdatesForEviction(t *testing.
 	argsAccountsDB.Trie = tr
 	argsAccountsDB.Hasher = hasher
 	argsAccountsDB.Marshaller = marshaller
-	argsAccountsDB.AccountFactory = factory.NewAccountCreator()
+	argsAccountsDB.AccountFactory, _ = factory.NewAccountCreator(hasher, marshaller, &testscommon.EnableEpochsHandlerStub{})
 	argsAccountsDB.StoragePruningManager = spm
 
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
@@ -1831,7 +1832,7 @@ func TestAccountsDB_RemoveAccountMarksObsoleteHashesForEviction(t *testing.T) {
 	argsAccountsDB.Trie = tr
 	argsAccountsDB.Hasher = hasher
 	argsAccountsDB.Marshaller = marshaller
-	argsAccountsDB.AccountFactory = factory.NewAccountCreator()
+	argsAccountsDB.AccountFactory, _ = factory.NewAccountCreator(hasher, marshaller, &testscommon.EnableEpochsHandlerStub{})
 	argsAccountsDB.StoragePruningManager = spm
 
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
@@ -2258,7 +2259,7 @@ func TestAccountsDB_GetCode(t *testing.T) {
 	argsAccountsDB.Trie = tr
 	argsAccountsDB.Hasher = hasher
 	argsAccountsDB.Marshaller = marshaller
-	argsAccountsDB.AccountFactory = factory.NewAccountCreator()
+	argsAccountsDB.AccountFactory, _ = factory.NewAccountCreator(hasher, marshaller, &testscommon.EnableEpochsHandlerStub{})
 	argsAccountsDB.StoragePruningManager = spm
 
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
@@ -2410,7 +2411,7 @@ func TestAccountsDB_Close(t *testing.T) {
 	argsAccountsDB.Trie = tr
 	argsAccountsDB.Hasher = hasher
 	argsAccountsDB.Marshaller = marshaller
-	argsAccountsDB.AccountFactory = factory.NewAccountCreator()
+	argsAccountsDB.AccountFactory, _ = factory.NewAccountCreator(hasher, marshaller, &testscommon.EnableEpochsHandlerStub{})
 	argsAccountsDB.StoragePruningManager = spm
 
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
@@ -2436,7 +2437,7 @@ func TestAccountsDB_GetAccountFromBytes(t *testing.T) {
 
 	marshaller := &testscommon.MarshalizerMock{}
 	adr := make([]byte, 32)
-	accountExpected, _ := state.NewUserAccount(adr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	accountExpected, _ := state.NewUserAccount(adr, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{}, &testscommon.EnableEpochsHandlerStub{})
 	accountBytes, _ := marshaller.Marshal(accountExpected)
 	_, adb := getDefaultTrieAndAccountsDb()
 
@@ -2645,7 +2646,7 @@ func BenchmarkAccountsDb_GetCodeEntry(b *testing.B) {
 	argsAccountsDB.Trie = tr
 	argsAccountsDB.Hasher = hasher
 	argsAccountsDB.Marshaller = marshaller
-	argsAccountsDB.AccountFactory = factory.NewAccountCreator()
+	argsAccountsDB.AccountFactory, _ = factory.NewAccountCreator(hasher, marshaller, &testscommon.EnableEpochsHandlerStub{})
 	argsAccountsDB.StoragePruningManager = spm
 
 	adb, _ := state.NewAccountsDB(argsAccountsDB)

@@ -99,7 +99,7 @@ func TestVmContext_GetBalance(t *testing.T) {
 
 	addr := []byte("addr")
 	balance := big.NewInt(10)
-	account, _ := state.NewUserAccount([]byte("123"), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	account, _ := state.NewUserAccount([]byte("123"), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{}, &testscommon.EnableEpochsHandlerStub{})
 	_ = account.AddToBalance(balance)
 
 	blockChainHook := &mock.BlockChainHookStub{GetUserAccountCalled: func(address []byte) (a vmcommon.UserAccountHandler, e error) {

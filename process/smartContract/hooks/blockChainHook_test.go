@@ -251,7 +251,12 @@ func TestBlockChainHookImpl_GetCode(t *testing.T) {
 		}
 		bh, _ := hooks.NewBlockChainHookImpl(args)
 
-		account, _ := state.NewUserAccount([]byte("address"), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+		account, _ := state.NewUserAccount(
+			[]byte("address"),
+			&hashingMocks.HasherMock{},
+			&testscommon.MarshalizerMock{},
+			&testscommon.EnableEpochsHandlerStub{},
+		)
 		account.SetCodeHash(expectedCodeHash)
 
 		code := bh.GetCode(account)
@@ -311,7 +316,12 @@ func TestBlockChainHookImpl_GetUserAccountWrongTypeShouldErr(t *testing.T) {
 func TestBlockChainHookImpl_GetUserAccount(t *testing.T) {
 	t.Parallel()
 
-	expectedAccount, _ := state.NewUserAccount([]byte("1234"), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	expectedAccount, _ := state.NewUserAccount(
+		[]byte("1234"),
+		&hashingMocks.HasherMock{},
+		&testscommon.MarshalizerMock{},
+		&testscommon.EnableEpochsHandlerStub{},
+	)
 	args := createMockBlockChainHookArgs()
 	args.Accounts = &stateMock.AccountsStub{
 		GetExistingAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
@@ -421,7 +431,12 @@ func TestBlockChainHookImpl_NewAddressLengthNoGood(t *testing.T) {
 
 	acnts := &stateMock.AccountsStub{}
 	acnts.GetExistingAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
-		return state.NewUserAccount(address, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+		return state.NewUserAccount(
+			address,
+			&hashingMocks.HasherMock{},
+			&testscommon.MarshalizerMock{},
+			&testscommon.EnableEpochsHandlerStub{},
+		)
 	}
 	args := createMockBlockChainHookArgs()
 	args.Accounts = acnts
@@ -445,7 +460,12 @@ func TestBlockChainHookImpl_NewAddressVMTypeTooLong(t *testing.T) {
 
 	acnts := &stateMock.AccountsStub{}
 	acnts.GetExistingAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
-		return state.NewUserAccount(address, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+		return state.NewUserAccount(
+			address,
+			&hashingMocks.HasherMock{},
+			&testscommon.MarshalizerMock{},
+			&testscommon.EnableEpochsHandlerStub{},
+		)
 	}
 	args := createMockBlockChainHookArgs()
 	args.Accounts = acnts
@@ -465,7 +485,12 @@ func TestBlockChainHookImpl_NewAddress(t *testing.T) {
 
 	acnts := &stateMock.AccountsStub{}
 	acnts.GetExistingAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
-		return state.NewUserAccount(address, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+		return state.NewUserAccount(
+			address,
+			&hashingMocks.HasherMock{},
+			&testscommon.MarshalizerMock{},
+			&testscommon.EnableEpochsHandlerStub{},
+		)
 	}
 	args := createMockBlockChainHookArgs()
 	args.Accounts = acnts

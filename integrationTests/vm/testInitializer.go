@@ -259,11 +259,17 @@ func (vmTestContext *VMTestContext) GetVMOutputWithTransientVM(funcName string, 
 }
 
 type accountFactory struct {
+	hasher     hashing.Hasher
+	marshaller marshal.Marshalizer
 }
 
 // CreateAccount -
-func (af *accountFactory) CreateAccount(address []byte, hasher hashing.Hasher, marshaller marshal.Marshalizer) (vmcommon.AccountHandler, error) {
-	return state.NewUserAccount(address, hasher, marshaller)
+func (af *accountFactory) CreateAccount(address []byte) (vmcommon.AccountHandler, error) {
+	return state.NewUserAccount(address,
+		af.hasher,
+		af.marshaller,
+		&testscommon.EnableEpochsHandlerStub{},
+	)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
@@ -313,10 +319,13 @@ func CreateInMemoryShardAccountsDB() *state.AccountsDB {
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
 
 	argsAccountsDB := state.ArgsAccountsDB{
-		Trie:                  tr,
-		Hasher:                testHasher,
-		Marshaller:            marshaller,
-		AccountFactory:        &accountFactory{},
+		Trie:       tr,
+		Hasher:     testHasher,
+		Marshaller: marshaller,
+		AccountFactory: &accountFactory{
+			hasher:     testHasher,
+			marshaller: testMarshalizer,
+		},
 		StoragePruningManager: spm,
 		ProcessingMode:        common.Normal,
 		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},

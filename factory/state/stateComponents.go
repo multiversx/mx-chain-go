@@ -118,7 +118,11 @@ func (scf *stateComponentsFactory) Create() (*stateComponents, error) {
 }
 
 func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.TriesHolder) (state.AccountsAdapter, state.AccountsAdapter, state.AccountsRepository, error) {
-	accountFactory := factoryState.NewAccountCreator()
+	accountFactory, err := factoryState.NewAccountCreator(scf.core.Hasher(), scf.core.InternalMarshalizer(), scf.core.EnableEpochsHandler())
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
 	merkleTrie := triesContainer.Get([]byte(trieFactory.UserAccountTrie))
 	storagePruning, err := scf.newStoragePruningManager()
 	if err != nil {

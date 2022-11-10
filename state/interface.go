@@ -5,15 +5,13 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // AccountFactory creates an account of different types
 type AccountFactory interface {
-	CreateAccount(address []byte, hasher hashing.Hasher, marshaller marshal.Marshalizer) (vmcommon.AccountHandler, error)
+	CreateAccount(address []byte) (vmcommon.AccountHandler, error)
 	IsInterfaceNil() bool
 }
 

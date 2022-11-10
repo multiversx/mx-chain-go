@@ -5,8 +5,10 @@ import (
 	"bytes"
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 )
 
 var _ UserAccountHandler = (*userAccount)(nil)
@@ -31,9 +33,20 @@ func NewEmptyUserAccount() *userAccount {
 }
 
 // NewUserAccount creates new simple account wrapper for an AccountContainer (that has just been initialized)
-func NewUserAccount(address []byte, hasher hashing.Hasher, marshaller marshal.Marshalizer) (*userAccount, error) {
+func NewUserAccount(
+	address []byte,
+	hasher hashing.Hasher,
+	marshaller marshal.Marshalizer,
+	enableEpochsHandler common.EnableEpochsHandler,
+) (*userAccount, error) {
 	if len(address) == 0 {
 		return nil, ErrNilAddress
+	}
+	if check.IfNil(marshaller) {
+		return nil, ErrNilMarshalizer
+	}
+	if check.IfNil(enableEpochsHandler) {
+		return nil, ErrNilEnableEpochsHandler
 	}
 
 	tdt, err := NewTrackableDataTrie(address, nil, hasher, marshaller)

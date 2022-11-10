@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/state/factory"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -11,16 +12,49 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestNewAccountCreator(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil hasher", func(t *testing.T) {
+		t.Parallel()
+
+		accF, err := factory.NewAccountCreator(nil, &testscommon.MarshalizerMock{}, &testscommon.EnableEpochsHandlerStub{})
+		assert.True(t, check.IfNil(accF))
+		assert.Equal(t, errors.ErrNilHasher, err)
+	})
+	t.Run("nil marshalizer", func(t *testing.T) {
+		t.Parallel()
+
+		accF, err := factory.NewAccountCreator(&hashingMocks.HasherMock{}, nil, &testscommon.EnableEpochsHandlerStub{})
+		assert.True(t, check.IfNil(accF))
+		assert.Equal(t, errors.ErrNilMarshalizer, err)
+	})
+	t.Run("nil enableEpochsHandler", func(t *testing.T) {
+		t.Parallel()
+
+		accF, err := factory.NewAccountCreator(&hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{}, nil)
+		assert.True(t, check.IfNil(accF))
+		assert.Equal(t, errors.ErrNilEnableEpochsHandler, err)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		accF, err := factory.NewAccountCreator(&hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{}, &testscommon.EnableEpochsHandlerStub{})
+		assert.False(t, check.IfNil(accF))
+		assert.Nil(t, err)
+	})
+}
+
 func TestAccountCreator_CreateAccountNilAddress(t *testing.T) {
 	t.Parallel()
 
-	accF := factory.NewAccountCreator()
+	accF, _ := factory.NewAccountCreator(&hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{}, &testscommon.EnableEpochsHandlerStub{})
 
 	_, ok := accF.(*factory.AccountCreator)
 	assert.Equal(t, true, ok)
 	assert.False(t, check.IfNil(accF))
 
-	acc, err := accF.CreateAccount(nil, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	acc, err := accF.CreateAccount(nil)
 
 	assert.Nil(t, acc)
 	assert.Equal(t, err, state.ErrNilAddress)
@@ -29,12 +63,12 @@ func TestAccountCreator_CreateAccountNilAddress(t *testing.T) {
 func TestAccountCreator_CreateAccountOk(t *testing.T) {
 	t.Parallel()
 
-	accF := factory.NewAccountCreator()
+	accF, _ := factory.NewAccountCreator(&hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{}, &testscommon.EnableEpochsHandlerStub{})
 
 	_, ok := accF.(*factory.AccountCreator)
 	assert.Equal(t, true, ok)
 
-	acc, err := accF.CreateAccount(make([]byte, 32), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	acc, err := accF.CreateAccount(make([]byte, 32))
 
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(acc))
