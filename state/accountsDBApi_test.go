@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/holders"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/state/disabled"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	mockState "github.com/ElrondNetwork/elrond-go/testscommon/state"
@@ -463,14 +464,14 @@ func TestAccountsDBApi_GetAllLeaves(t *testing.T) {
 			RecreateTrieCalled: func(rootHash []byte) error {
 				return expectedErr
 			},
-			GetAllLeavesCalled: func(_ *common.TrieIteratorChannels, _ context.Context, _ []byte) error {
+			GetAllLeavesCalled: func(_ *common.TrieIteratorChannels, _ context.Context, _ []byte, _ common.TrieLeafParser) error {
 				require.Fail(t, "should have not called inner method")
 				return nil
 			},
 		}
 
 		accountsApi, _ := state.NewAccountsDBApi(accountsAdapter, createBlockInfoProviderStub(dummyRootHash))
-		err := accountsApi.GetAllLeaves(&common.TrieIteratorChannels{}, nil, []byte{})
+		err := accountsApi.GetAllLeaves(&common.TrieIteratorChannels{}, nil, []byte{}, disabled.NewDisabledTrieLeafParser())
 		assert.Equal(t, expectedErr, err)
 	})
 	t.Run("recreate trie works, should call inner method", func(t *testing.T) {
@@ -486,7 +487,7 @@ func TestAccountsDBApi_GetAllLeaves(t *testing.T) {
 		}
 
 		accountsApi, _ := state.NewAccountsDBApi(accountsAdapter, createBlockInfoProviderStub(dummyRootHash))
-		err := accountsApi.GetAllLeaves(providedChan, context.Background(), []byte("address"))
+		err := accountsApi.GetAllLeaves(providedChan, context.Background(), []byte("address"), disabled.NewDisabledTrieLeafParser())
 		assert.Nil(t, err)
 		assert.True(t, recreateTrieCalled)
 	})

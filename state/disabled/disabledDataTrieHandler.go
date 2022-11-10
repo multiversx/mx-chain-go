@@ -25,6 +25,7 @@ func (ddth *disabledDataTrieHandler) GetAllLeavesOnChannel(
 	_ context.Context,
 	_ []byte,
 	_ common.KeyBuilder,
+	_ common.TrieLeafParser,
 ) error {
 	if leavesChannels.LeavesChan != nil {
 		close(leavesChannels.LeavesChan)

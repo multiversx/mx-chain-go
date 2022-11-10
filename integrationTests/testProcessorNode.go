@@ -90,6 +90,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/state/blockInfoProviders"
+	stateDisabled "github.com/ElrondNetwork/elrond-go/state/disabled"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/cache"
 	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
@@ -3121,7 +3122,13 @@ func GetTokenIdentifier(nodes []*TestProcessorNode, ticker []byte) []byte {
 			LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 			ErrChan:    make(chan error, 1),
 		}
-		_ = userAcc.DataTrie().GetAllLeavesOnChannel(chLeaves, context.Background(), rootHash, keyBuilder.NewKeyBuilder())
+		_ = userAcc.DataTrie().GetAllLeavesOnChannel(
+			chLeaves,
+			context.Background(),
+			rootHash,
+			keyBuilder.NewKeyBuilder(),
+			stateDisabled.NewDisabledTrieLeafParser(),
+		)
 		for leaf := range chLeaves.LeavesChan {
 			if !bytes.HasPrefix(leaf.Key(), ticker) {
 				continue

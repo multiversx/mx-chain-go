@@ -59,3 +59,8 @@ func hexToTrieKeyBytes(hex []byte) ([]byte, error) {
 
 	return key, nil
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (kb *keyBuilder) IsInterfaceNil() bool {
+	return kb == nil
+}

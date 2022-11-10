@@ -114,3 +114,9 @@ var ErrNilTrieIteratorLeavesChannel = errors.New("nil trie iterator leaves chann
 
 // ErrNilTrieIteratorErrChannel signals that a nil trie iterator error channel has been provided
 var ErrNilTrieIteratorErrChannel = errors.New("nil trie iterator error channel")
+
+// ErrNilKeyBuilder signals that a nil key builder has been provided
+var ErrNilKeyBuilder = errors.New("nil key builder")
+
+// ErrNilTrieLeafParser signals that a nil trie leaf parser has been provided
+var ErrNilTrieLeafParser = errors.New("nil trie leaf parser")

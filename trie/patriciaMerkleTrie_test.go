@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/holders"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/state/disabled"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/trie"
@@ -363,6 +364,18 @@ func TestPatriciaMerkleTree_DeleteAfterCommit(t *testing.T) {
 	assert.Equal(t, root2, root1)
 }
 
+func TestPatriciaMerkleTree_DeleteNotPresent(t *testing.T) {
+	t.Parallel()
+
+	tr := initTrie()
+
+	err := tr.Commit()
+	assert.Nil(t, err)
+
+	err = tr.Delete([]byte("adog"))
+	assert.Nil(t, err)
+}
+
 func TestPatriciaMerkleTrie_Recreate(t *testing.T) {
 	t.Parallel()
 
@@ -551,7 +564,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 		t.Parallel()
 
 		tr := emptyTrie()
-		err := tr.GetAllLeavesOnChannel(nil, context.Background(), []byte{}, keyBuilder.NewDisabledKeyBuilder())
+		err := tr.GetAllLeavesOnChannel(nil, context.Background(), []byte{}, keyBuilder.NewDisabledKeyBuilder(), disabled.NewDisabledTrieLeafParser())
 		assert.Equal(t, trie.ErrNilTrieIteratorChannels, err)
 	})
 
@@ -564,7 +577,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 			LeavesChan: nil,
 			ErrChan:    make(chan error, 1),
 		}
-		err := tr.GetAllLeavesOnChannel(iteratorChannels, context.Background(), []byte{}, keyBuilder.NewDisabledKeyBuilder())
+		err := tr.GetAllLeavesOnChannel(iteratorChannels, context.Background(), []byte{}, keyBuilder.NewDisabledKeyBuilder(), disabled.NewDisabledTrieLeafParser())
 		assert.Equal(t, trie.ErrNilTrieIteratorLeavesChannel, err)
 	})
 
@@ -577,8 +590,34 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 			LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 			ErrChan:    nil,
 		}
-		err := tr.GetAllLeavesOnChannel(iteratorChannels, context.Background(), []byte{}, keyBuilder.NewDisabledKeyBuilder())
+		err := tr.GetAllLeavesOnChannel(iteratorChannels, context.Background(), []byte{}, keyBuilder.NewDisabledKeyBuilder(), disabled.NewDisabledTrieLeafParser())
 		assert.Equal(t, trie.ErrNilTrieIteratorErrChannel, err)
+	})
+
+	t.Run("nil keyBuilder", func(t *testing.T) {
+		t.Parallel()
+
+		tr := emptyTrie()
+
+		iteratorChannels := &common.TrieIteratorChannels{
+			LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+			ErrChan:    make(chan error, 1),
+		}
+		err := tr.GetAllLeavesOnChannel(iteratorChannels, context.Background(), []byte{}, nil, disabled.NewDisabledTrieLeafParser())
+		assert.Equal(t, trie.ErrNilKeyBuilder, err)
+	})
+
+	t.Run("nil  trieLeafParser", func(t *testing.T) {
+		t.Parallel()
+
+		tr := emptyTrie()
+
+		iteratorChannels := &common.TrieIteratorChannels{
+			LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+			ErrChan:    make(chan error, 1),
+		}
+		err := tr.GetAllLeavesOnChannel(iteratorChannels, context.Background(), []byte{}, keyBuilder.NewDisabledKeyBuilder(), nil)
+		assert.Equal(t, trie.ErrNilTrieLeafParser, err)
 	})
 
 	t.Run("empty trie", func(t *testing.T) {
@@ -590,7 +629,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 			LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 			ErrChan:    make(chan error, 1),
 		}
-		err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), []byte{}, keyBuilder.NewDisabledKeyBuilder())
+		err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), []byte{}, keyBuilder.NewDisabledKeyBuilder(), disabled.NewDisabledTrieLeafParser())
 		assert.Nil(t, err)
 		assert.NotNil(t, leavesChannel)
 
@@ -622,7 +661,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 			return keyBuilderStub
 		}
 
-		err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), rootHash, keyBuilderStub)
+		err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), rootHash, keyBuilderStub, disabled.NewDisabledTrieLeafParser())
 		assert.Nil(t, err)
 		assert.NotNil(t, leavesChannel)
 
@@ -664,7 +703,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 			return keyBuilderStub
 		}
 
-		err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), rootHash, keyBuilderStub)
+		err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), rootHash, keyBuilderStub, disabled.NewDisabledTrieLeafParser())
 		assert.Nil(t, err)
 		assert.NotNil(t, leavesChannel)
 
@@ -697,7 +736,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 			LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 			ErrChan:    make(chan error, 1),
 		}
-		err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), rootHash, keyBuilder.NewKeyBuilder())
+		err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), rootHash, keyBuilder.NewKeyBuilder(), disabled.NewDisabledTrieLeafParser())
 		assert.Nil(t, err)
 		assert.NotNil(t, leavesChannel)
 

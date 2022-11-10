@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/state/disabled"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/keyBuilder"
 )
@@ -214,7 +215,13 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 		ErrChan:    make(chan error, 1),
 	}
-	err = mainTrie.GetAllLeavesOnChannel(leavesChannels, context.Background(), mainRootHash, keyBuilder.NewDisabledKeyBuilder())
+	err = mainTrie.GetAllLeavesOnChannel(
+		leavesChannels,
+		context.Background(),
+		mainRootHash,
+		keyBuilder.NewDisabledKeyBuilder(),
+		disabled.NewDisabledTrieLeafParser(),
+	)
 	if err != nil {
 		return err
 	}

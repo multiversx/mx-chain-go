@@ -441,6 +441,7 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(
 	ctx context.Context,
 	rootHash []byte,
 	keyBuilder common.KeyBuilder,
+	trieLeafParser common.TrieLeafParser,
 ) error {
 	if leavesChannels == nil {
 		return ErrNilTrieIteratorChannels
@@ -450,6 +451,12 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(
 	}
 	if leavesChannels.ErrChan == nil {
 		return ErrNilTrieIteratorErrChannel
+	}
+	if check.IfNil(keyBuilder) {
+		return ErrNilKeyBuilder
+	}
+	if check.IfNil(trieLeafParser) {
+		return ErrNilTrieLeafParser
 	}
 
 	tr.mutOperation.RLock()
@@ -472,6 +479,7 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(
 	tr.mutOperation.RUnlock()
 
 	go func() {
+		//TODO pass the trieLeafParser to the trie leaves
 		err = newTrie.root.getAllLeavesOnChannel(
 			leavesChannels.LeavesChan,
 			keyBuilder,

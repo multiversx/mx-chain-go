@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/state/disabled"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
@@ -152,7 +153,7 @@ func TestReadOnlyAccountsDB_ReadOperationsShouldWork(t *testing.T) {
 		LeavesChan: make(chan core.KeyValueHolder),
 		ErrChan:    make(chan error, 1),
 	}
-	err = roAccDb.GetAllLeaves(allLeaves, context.Background(), nil)
+	err = roAccDb.GetAllLeaves(allLeaves, context.Background(), nil, disabled.NewDisabledTrieLeafParser())
 	require.NoError(t, err)
 
 	err = common.GetErrorFromChanNonBlocking(allLeaves.ErrChan)

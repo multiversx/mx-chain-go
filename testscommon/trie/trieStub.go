@@ -22,7 +22,7 @@ type TrieStub struct {
 	AppendToOldHashesCalled     func([][]byte)
 	GetSerializedNodesCalled    func([]byte, uint64) ([][]byte, uint64, error)
 	GetAllHashesCalled          func() ([][]byte, error)
-	GetAllLeavesOnChannelCalled func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder) error
+	GetAllLeavesOnChannelCalled func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder, trieLeafParser common.TrieLeafParser) error
 	GetProofCalled              func(key []byte) ([][]byte, []byte, error)
 	VerifyProofCalled           func(rootHash []byte, key []byte, proof [][]byte) (bool, error)
 	GetStorageManagerCalled     func() common.StorageManager
@@ -60,9 +60,9 @@ func (ts *TrieStub) VerifyProof(rootHash []byte, key []byte, proof [][]byte) (bo
 }
 
 // GetAllLeavesOnChannel -
-func (ts *TrieStub) GetAllLeavesOnChannel(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder) error {
+func (ts *TrieStub) GetAllLeavesOnChannel(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder, trieLeafParser common.TrieLeafParser) error {
 	if ts.GetAllLeavesOnChannelCalled != nil {
-		return ts.GetAllLeavesOnChannelCalled(leavesChannels, ctx, rootHash, keyBuilder)
+		return ts.GetAllLeavesOnChannelCalled(leavesChannels, ctx, rootHash, keyBuilder, trieLeafParser)
 	}
 
 	return nil

@@ -38,7 +38,7 @@ func TestNewDisabledDataTrieHandler(t *testing.T) {
 			ErrChan:    nil,
 		}
 
-		err := ddth.GetAllLeavesOnChannel(chans, nil, nil, nil)
+		err := ddth.GetAllLeavesOnChannel(chans, nil, nil, nil, nil)
 		assert.Nil(t, err)
 		_, ok := <-chans.LeavesChan
 		assert.False(t, ok)
