@@ -12,8 +12,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-logger/file"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/common/reflectcommon"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/config/overridableConfig"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/urfave/cli"
 	// test point 1 for custom profiler
@@ -95,6 +95,11 @@ func startNodeRunner(c *cli.Context, log logger.Logger, version string) error {
 	cfgs, errCfg := readConfigs(c, log)
 	if errCfg != nil {
 		return errCfg
+	}
+
+	errCfgOverride := overridableConfig.OverrideConfigValues(cfgs.PreferencesConfig.Preferences.OverridableConfigTomlValues, cfgs)
+	if errCfgOverride != nil {
+		return errCfgOverride
 	}
 
 	if !check.IfNil(fileLogging) {
@@ -186,15 +191,6 @@ func readConfigs(ctx *cli.Context, log logger.Logger) (*config.Configs, error) {
 		return nil, err
 	}
 	log.Debug("config", "file", configurationPaths.Preferences)
-
-	for _, overridable := range preferencesConfig.Preferences.OverridableConfigTomlValues {
-		err = reflectcommon.AdaptStructureValueBasedOnPath(generalConfig, overridable.Path, overridable.Value)
-		if err != nil {
-			return nil, err
-		}
-
-		log.Info("updated config toml value", "path", overridable.Path, "new value", overridable.Value)
-	}
 
 	configurationPaths.External = ctx.GlobalString(externalConfigFile.Name)
 	externalConfig, err := common.LoadExternalConfig(configurationPaths.External)

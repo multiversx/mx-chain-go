@@ -19,8 +19,7 @@ import (
 )
 
 var (
-	log        = logger.GetOrCreate("outport/process/alteredaccounts")
-	zeroBigInt = big.NewInt(0)
+	log = logger.GetOrCreate("outport/process/alteredaccounts")
 )
 
 type markedAlteredAccountToken struct {
