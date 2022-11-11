@@ -1,13 +1,16 @@
 package processing_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	processComp "github.com/ElrondNetwork/elrond-go/factory/processing"
 	componentsMock "github.com/ElrondNetwork/elrond-go/testscommon/components"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -35,10 +38,16 @@ func TestManagedProcessComponents_CreateShouldWork(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
+	testManagedProcessComponentsCreateShouldWork(t, common.MetachainShardId, common.ChainRunTypeRegular)
+	testManagedProcessComponentsCreateShouldWork(t, 0, common.ChainRunTypeRegular)
+	testManagedProcessComponentsCreateShouldWork(t, 0, common.ChainRunTypeSovereign)
+}
+
+func testManagedProcessComponentsCreateShouldWork(t *testing.T, shardID uint32, chainType common.ChainRunType) {
 	coreComponents := componentsMock.GetCoreComponents()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
 	shardCoordinator.SelfIDCalled = func() uint32 {
-		return core.MetachainShardId
+		return shardID
 	}
 	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
 		if core.IsSmartContractOnMetachain(address[len(address)-1:], address) {
@@ -61,6 +70,7 @@ func TestManagedProcessComponents_CreateShouldWork(t *testing.T) {
 		stateComponents,
 		networkComponents,
 	)
+	processArgs.ChainRunType = chainType
 
 	componentsMock.SetShardCoordinator(t, processArgs.BootstrapComponents, shardCoordinator)
 
@@ -143,6 +153,21 @@ func TestManagedProcessComponents_CreateShouldWork(t *testing.T) {
 	observerSkBytes, err := managedProcessComponents.NodeRedundancyHandler().ObserverPrivateKey().ToByteArray()
 	require.Nil(t, err)
 	require.NotEqual(t, nodeSkBytes, observerSkBytes)
+
+	switch chainType {
+	case common.ChainRunTypeRegular:
+		switch shardID {
+		case common.MetachainShardId:
+			assert.Equal(t, "*sync.metaForkDetector", fmt.Sprintf("%T", managedProcessComponents.ForkDetector()))
+			assert.Equal(t, "*track.metaBlockTrack", fmt.Sprintf("%T", managedProcessComponents.BlockTracker()))
+		case 0:
+			assert.Equal(t, "*sync.shardForkDetector", fmt.Sprintf("%T", managedProcessComponents.ForkDetector()))
+			assert.Equal(t, "*track.shardBlockTrack", fmt.Sprintf("%T", managedProcessComponents.BlockTracker()))
+		}
+	case common.ChainRunTypeSovereign:
+		assert.Equal(t, "*sync.sovereignChainShardForkDetector", fmt.Sprintf("%T", managedProcessComponents.ForkDetector()))
+		assert.Equal(t, "*track.sovereignChainShardBlockTrack", fmt.Sprintf("%T", managedProcessComponents.BlockTracker()))
+	}
 }
 
 func TestManagedProcessComponents_Close(t *testing.T) {
