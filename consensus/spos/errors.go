@@ -225,6 +225,3 @@ var ErrNilScheduledProcessor = errors.New("nil scheduled processor")
 
 // ErrNilSignatureHandler signals that provided signature handler is nil
 var ErrNilSignatureHandler = errors.New("nil signature handler")
-
-// ErrNilFactory signals that provided factory is nil
-var ErrNilFactory = errors.New("nil factory")

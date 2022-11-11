@@ -77,7 +77,6 @@ const (
 type nodeRunner struct {
 	configs *config.Configs
 
-	createManagedConsensusComponentsMethod func(consensusArgs consensusComp.ConsensusComponentsFactoryArgs) (mainFactory.ConsensusComponentsHandler, error)
 	createManagedProcessComponentsMethod   func(processArgs processComp.ProcessComponentsFactoryArgs) (mainFactory.ProcessComponentsHandler, error)
 }
 
@@ -91,7 +90,6 @@ func NewNodeRunner(cfgs *config.Configs) (*nodeRunner, error) {
 		configs: cfgs,
 	}
 
-	nr.createManagedConsensusComponentsMethod = nr.createManagedConsensusComponents
 	nr.createManagedProcessComponentsMethod = nr.createManagedProcessComponents
 
 	return nr, nil
@@ -851,12 +849,9 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 		ScheduledProcessor:    scheduledProcessor,
 		IsInImportMode:        nr.configs.ImportDbConfig.IsImportDBMode,
 		ShouldDisableWatchdog: nr.configs.FlagsConfig.DisableConsensusWatchdog,
+		SubroundBlockType:     consensus.SubroundBlockTypeV1,
 	}
 
-	return nr.createManagedConsensusComponentsMethod(consensusArgs)
-}
-
-func (nr *nodeRunner) createManagedConsensusComponents(consensusArgs consensusComp.ConsensusComponentsFactoryArgs) (mainFactory.ConsensusComponentsHandler, error) {
 	consensusFactory, err := consensusComp.NewConsensusComponentsFactory(consensusArgs)
 	if err != nil {
 		return nil, fmt.Errorf("NewConsensusComponentsFactory failed: %w", err)
@@ -871,7 +866,6 @@ func (nr *nodeRunner) createManagedConsensusComponents(consensusArgs consensusCo
 	if err != nil {
 		return nil, err
 	}
-
 	return managedConsensusComponents, nil
 }
 

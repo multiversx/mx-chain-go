@@ -1480,9 +1480,11 @@ func (txs *transactions) ProcessMiniBlock(
 		totalGasConsumed = txs.getTotalGasConsumed()
 	}
 
+	isSelfShardStuck := txs.blockTracker.IsShardStuck(txs.shardCoordinator.SelfId())
+
 	var maxGasLimitUsedForDestMeTxs uint64
 	isFirstMiniBlockDestMe := totalGasConsumed == 0
-	if isFirstMiniBlockDestMe {
+	if isFirstMiniBlockDestMe || isSelfShardStuck {
 		maxGasLimitUsedForDestMeTxs = txs.economicsFee.MaxGasLimitPerBlock(txs.shardCoordinator.SelfId())
 	} else {
 		maxGasLimitUsedForDestMeTxs = txs.economicsFee.MaxGasLimitPerBlock(txs.shardCoordinator.SelfId()) * maxGasLimitPercentUsedForDestMeTxs / 100
@@ -1561,7 +1563,7 @@ func (txs *transactions) ProcessMiniBlock(
 		numTXsProcessed++
 	}
 
-	if err != nil && !partialMbExecutionMode {
+	if err != nil && (!partialMbExecutionMode || isSelfShardStuck) {
 		return processedTxHashes, txIndex - 1, true, err
 	}
 

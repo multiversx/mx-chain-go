@@ -44,6 +44,7 @@ type ConsensusComponentsFactoryArgs struct {
 	ScheduledProcessor    consensus.ScheduledProcessor
 	IsInImportMode        bool
 	ShouldDisableWatchdog bool
+	SubroundBlockType     consensus.SubroundBlockType
 }
 
 type consensusComponentsFactory struct {
@@ -59,7 +60,7 @@ type consensusComponentsFactory struct {
 	scheduledProcessor                consensus.ScheduledProcessor
 	isInImportMode                    bool
 	shouldDisableWatchdog             bool
-	getSubroundsFactoryMethod         func(consensusDataContainer *spos.ConsensusCore, consensusState *spos.ConsensusState, cc *consensusComponents) (spos.SubroundsFactory, error)
+	subroundBlockType                 consensus.SubroundBlockType
 	createShardSyncBootstrapperMethod func(argsBaseBootstrapper sync.ArgBaseBootstrapper) (process.Bootstrapper, error)
 }
 
@@ -112,9 +113,9 @@ func NewConsensusComponentsFactory(args ConsensusComponentsFactoryArgs) (*consen
 		scheduledProcessor:    args.ScheduledProcessor,
 		isInImportMode:        args.IsInImportMode,
 		shouldDisableWatchdog: args.ShouldDisableWatchdog,
+		subroundBlockType:     args.SubroundBlockType,
 	}
 
-	ccf.getSubroundsFactoryMethod = ccf.getSubroundsFactory
 	ccf.createShardSyncBootstrapperMethod = ccf.createShardSyncBootstrapper
 
 	return ccf, nil
@@ -270,7 +271,17 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		return nil, err
 	}
 
-	fct, err := ccf.getSubroundsFactoryMethod(consensusDataContainer, consensusState, cc)
+	fct, err := sposFactory.GetSubroundsFactory(
+		consensusDataContainer,
+		consensusState,
+		cc.worker,
+		ccf.config.Consensus.Type,
+		ccf.coreComponents.StatusHandler(),
+		ccf.statusComponents.OutportHandler(),
+		[]byte(ccf.coreComponents.ChainID()),
+		ccf.networkComponents.NetworkMessenger().ID(),
+		ccf.subroundBlockType,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -288,28 +299,6 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 	}
 
 	return cc, nil
-}
-
-func (ccf *consensusComponentsFactory) getSubroundsFactory(
-	consensusDataContainer *spos.ConsensusCore,
-	consensusState *spos.ConsensusState,
-	cc *consensusComponents,
-) (spos.SubroundsFactory, error) {
-	fct, err := sposFactory.GetSubroundsFactory(
-		consensusDataContainer,
-		consensusState,
-		cc.worker,
-		ccf.config.Consensus.Type,
-		ccf.coreComponents.StatusHandler(),
-		ccf.statusComponents.OutportHandler(),
-		[]byte(ccf.coreComponents.ChainID()),
-		ccf.networkComponents.NetworkMessenger().ID(),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return fct, nil
 }
 
 // Close will close all the inner components

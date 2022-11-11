@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
-	consensusComp "github.com/ElrondNetwork/elrond-go/factory/consensus"
 	processComp "github.com/ElrondNetwork/elrond-go/factory/processing"
 )
 
@@ -23,39 +22,9 @@ func NewSovereignChainNodeRunner(nodeRunner *nodeRunner) (*sovereignChainNodeRun
 		nodeRunner,
 	}
 
-	scnr.createManagedConsensusComponentsMethod = scnr.createManagedConsensusComponents
 	scnr.createManagedProcessComponentsMethod = scnr.createManagedProcessComponents
 
 	return scnr, nil
-}
-
-func (scnr *sovereignChainNodeRunner) createManagedConsensusComponents(consensusArgs consensusComp.ConsensusComponentsFactoryArgs) (mainFactory.ConsensusComponentsHandler, error) {
-	consensusFactory, err := consensusComp.NewConsensusComponentsFactory(consensusArgs)
-	if err != nil {
-		return nil, fmt.Errorf("NewConsensusComponentsFactory failed: %w", err)
-	}
-
-	managedConsensusComponents, err := consensusComp.NewManagedConsensusComponents(consensusFactory)
-	if err != nil {
-		return nil, err
-	}
-
-	consensusFactoryV2, err := consensusComp.NewConsensusComponentsFactoryV2(consensusFactory)
-	if err != nil {
-		return nil, fmt.Errorf("NewConsensusComponentsFactoryV2 failed: %w", err)
-	}
-
-	managedConsensusComponentsV2, err := consensusComp.NewManagedConsensusComponentsV2(managedConsensusComponents, consensusFactoryV2)
-	if err != nil {
-		return nil, err
-	}
-
-	err = managedConsensusComponentsV2.Create()
-	if err != nil {
-		return nil, err
-	}
-
-	return managedConsensusComponentsV2, nil
 }
 
 func (scnr *sovereignChainNodeRunner) createManagedProcessComponents(processArgs processComp.ProcessComponentsFactoryArgs) (mainFactory.ProcessComponentsHandler, error) {
