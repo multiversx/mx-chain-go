@@ -144,7 +144,7 @@ func (fct *factory) generateStartRoundSubround() error {
 		return err
 	}
 
-	subroundStartRound, err := NewSubroundStartRound(
+	subroundStartRoundInstance, err := NewSubroundStartRound(
 		subround,
 		fct.worker.Extend,
 		processingThresholdPercent,
@@ -155,40 +155,40 @@ func (fct *factory) generateStartRoundSubround() error {
 		return err
 	}
 
-	err = subroundStartRound.SetOutportHandler(fct.outportHandler)
+	err = subroundStartRoundInstance.SetOutportHandler(fct.outportHandler)
 	if err != nil {
 		return err
 	}
 
-	fct.consensusCore.Chronology().AddSubround(subroundStartRound)
+	fct.consensusCore.Chronology().AddSubround(subroundStartRoundInstance)
 
 	return nil
 }
 
 func (fct *factory) generateBlockSubround() error {
-	subroundBlock, err := fct.generateBlockSubroundV1()
+	subroundBlockInstance, err := fct.generateBlockSubroundV1()
 	if err != nil {
 		return err
 	}
 
 	switch fct.subroundBlockType {
 	case consensus.SubroundBlockTypeV1:
-		fct.worker.AddReceivedMessageCall(MtBlockBodyAndHeader, subroundBlock.receivedBlockBodyAndHeader)
-		fct.worker.AddReceivedMessageCall(MtBlockBody, subroundBlock.receivedBlockBody)
-		fct.worker.AddReceivedMessageCall(MtBlockHeader, subroundBlock.receivedBlockHeader)
-		fct.consensusCore.Chronology().AddSubround(subroundBlock)
+		fct.worker.AddReceivedMessageCall(MtBlockBodyAndHeader, subroundBlockInstance.receivedBlockBodyAndHeader)
+		fct.worker.AddReceivedMessageCall(MtBlockBody, subroundBlockInstance.receivedBlockBody)
+		fct.worker.AddReceivedMessageCall(MtBlockHeader, subroundBlockInstance.receivedBlockHeader)
+		fct.consensusCore.Chronology().AddSubround(subroundBlockInstance)
 
 		return nil
 	case consensus.SubroundBlockTypeV2:
-		subroundBlockV2, errV2 := NewSubroundBlockV2(subroundBlock)
+		subroundBlockV2Instance, errV2 := NewSubroundBlockV2(subroundBlockInstance)
 		if errV2 != nil {
 			return errV2
 		}
 
-		fct.worker.AddReceivedMessageCall(MtBlockBodyAndHeader, subroundBlockV2.receivedBlockBodyAndHeader)
-		fct.worker.AddReceivedMessageCall(MtBlockBody, subroundBlockV2.receivedBlockBody)
-		fct.worker.AddReceivedMessageCall(MtBlockHeader, subroundBlockV2.receivedBlockHeader)
-		fct.consensusCore.Chronology().AddSubround(subroundBlockV2)
+		fct.worker.AddReceivedMessageCall(MtBlockBodyAndHeader, subroundBlockV2Instance.receivedBlockBodyAndHeader)
+		fct.worker.AddReceivedMessageCall(MtBlockBody, subroundBlockV2Instance.receivedBlockBody)
+		fct.worker.AddReceivedMessageCall(MtBlockHeader, subroundBlockV2Instance.receivedBlockHeader)
+		fct.consensusCore.Chronology().AddSubround(subroundBlockV2Instance)
 
 		return nil
 	default:
@@ -216,7 +216,7 @@ func (fct *factory) generateBlockSubroundV1() (*subroundBlock, error) {
 		return nil, err
 	}
 
-	subroundBlock, err := NewSubroundBlock(
+	subroundBlockInstance, err := NewSubroundBlock(
 		subround,
 		fct.worker.Extend,
 		processingThresholdPercent,
@@ -225,7 +225,7 @@ func (fct *factory) generateBlockSubroundV1() (*subroundBlock, error) {
 		return nil, err
 	}
 
-	return subroundBlock, nil
+	return subroundBlockInstance, nil
 }
 
 func (fct *factory) generateSignatureSubround() error {
