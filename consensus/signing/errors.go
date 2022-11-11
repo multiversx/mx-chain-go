@@ -8,9 +8,6 @@ var ErrInvalidSignature = errors.New("invalid signature was provided")
 // ErrNilElement is raised when searching for a specific element but found nil
 var ErrNilElement = errors.New("element is nil")
 
-// ErrIndexNotSelected is raised when a not selected index is used for multi-signing
-var ErrIndexNotSelected = errors.New("index is not selected")
-
 // ErrNilBitmap is raised when a nil bitmap is used
 var ErrNilBitmap = errors.New("bitmap is nil")
 
