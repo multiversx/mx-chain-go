@@ -912,7 +912,12 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 	storageManagerArgs.CheckpointsStorer = trieStorer
 
 	trieFactoryManager, _ := trie.CreateTrieStorageManager(storageManagerArgs, options)
-	accCreator, _ := factory.NewAccountCreator(hasher, marshalizer, &testscommon.EnableEpochsHandlerStub{})
+	argsAccCreator := state.ArgsAccountCreation{
+		Hasher:              hasher,
+		Marshaller:          marshalizer,
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+	}
+	accCreator, _ := factory.NewAccountCreator(argsAccCreator)
 	peerAccCreator := factory.NewPeerAccountCreator()
 	userAccountsDB := createAccountsDB(hasher, marshalizer, accCreator, trieFactoryManager)
 	peerAccountsDB := createAccountsDB(hasher, marshalizer, peerAccCreator, trieFactoryManager)

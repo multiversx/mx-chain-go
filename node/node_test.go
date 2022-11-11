@@ -67,12 +67,12 @@ func createMockPubkeyConverter() *mock.PubkeyConverterMock {
 }
 
 func createAcc(address []byte) state.UserAccountHandler {
-	acc, _ := state.NewUserAccount(
-		address,
-		&hashingMocks.HasherMock{},
-		&testscommon.MarshalizerMock{},
-		&testscommon.EnableEpochsHandlerStub{},
-	)
+	argsAccCreation := state.ArgsAccountCreation{
+		Hasher:              &hashingMocks.HasherMock{},
+		Marshaller:          &testscommon.MarshalizerMock{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+	}
+	acc, _ := state.NewUserAccount(address, argsAccCreation)
 
 	return acc
 }
@@ -206,12 +206,12 @@ func TestGetBalance_AccountNotFoundShouldReturnZeroBalance(t *testing.T) {
 func TestGetBalance(t *testing.T) {
 	t.Parallel()
 
-	testAccount, _ := state.NewUserAccount(
-		testscommon.TestPubKeyAlice,
-		&hashingMocks.HasherMock{},
-		&testscommon.MarshalizerMock{},
-		&testscommon.EnableEpochsHandlerStub{},
-	)
+	argsAccCreation := state.ArgsAccountCreation{
+		Hasher:              &hashingMocks.HasherMock{},
+		Marshaller:          &testscommon.MarshalizerMock{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+	}
+	testAccount, _ := state.NewUserAccount(testscommon.TestPubKeyAlice, argsAccCreation)
 	testAccount.Balance = big.NewInt(100)
 
 	accountsRepository := &stateMock.AccountsRepositoryStub{
@@ -244,12 +244,12 @@ func TestGetUsername(t *testing.T) {
 
 	expectedUsername := []byte("elrond")
 
-	testAccount, _ := state.NewUserAccount(
-		testscommon.TestPubKeyAlice,
-		&hashingMocks.HasherMock{},
-		&testscommon.MarshalizerMock{},
-		&testscommon.EnableEpochsHandlerStub{},
-	)
+	argsAccCreation := state.ArgsAccountCreation{
+		Hasher:              &hashingMocks.HasherMock{},
+		Marshaller:          &testscommon.MarshalizerMock{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+	}
+	testAccount, _ := state.NewUserAccount(testscommon.TestPubKeyAlice, argsAccCreation)
 	testAccount.UserName = expectedUsername
 	accountsRepository := &stateMock.AccountsRepositoryStub{
 		GetAccountWithBlockInfoCalled: func(address []byte, options api.AccountQueryOptions) (vmcommon.AccountHandler, common.BlockInfo, error) {
@@ -282,12 +282,12 @@ func TestGetCodeHash(t *testing.T) {
 
 	expectedCodeHash := []byte("hash")
 
-	testAccount, _ := state.NewUserAccount(
-		testscommon.TestPubKeyAlice,
-		&hashingMocks.HasherMock{},
-		&testscommon.MarshalizerMock{},
-		&testscommon.EnableEpochsHandlerStub{},
-	)
+	argsAccCreation := state.ArgsAccountCreation{
+		Hasher:              &hashingMocks.HasherMock{},
+		Marshaller:          &testscommon.MarshalizerMock{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+	}
+	testAccount, _ := state.NewUserAccount(testscommon.TestPubKeyAlice, argsAccCreation)
 	testAccount.CodeHash = expectedCodeHash
 	accountsRepository := &stateMock.AccountsRepositoryStub{
 		GetAccountWithBlockInfoCalled: func(address []byte, options api.AccountQueryOptions) (vmcommon.AccountHandler, common.BlockInfo, error) {

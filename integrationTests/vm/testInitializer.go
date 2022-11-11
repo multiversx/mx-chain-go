@@ -265,11 +265,12 @@ type accountFactory struct {
 
 // CreateAccount -
 func (af *accountFactory) CreateAccount(address []byte) (vmcommon.AccountHandler, error) {
-	return state.NewUserAccount(address,
-		af.hasher,
-		af.marshaller,
-		&testscommon.EnableEpochsHandlerStub{},
-	)
+	argsAccCreation := state.ArgsAccountCreation{
+		Hasher:              af.hasher,
+		Marshaller:          af.marshaller,
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+	}
+	return state.NewUserAccount(address, argsAccCreation)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

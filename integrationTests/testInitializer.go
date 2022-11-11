@@ -469,7 +469,12 @@ func CreateAccountsDBWithEnableEpochsHandler(
 func getAccountFactory(accountType Type, enableEpochsHandler common.EnableEpochsHandler) (state.AccountFactory, error) {
 	switch accountType {
 	case UserAccount:
-		return factory.NewAccountCreator(sha256.NewSha256(), TestMarshalizer, enableEpochsHandler)
+		argsAccCreator := state.ArgsAccountCreation{
+			Hasher:              TestHasher,
+			Marshaller:          TestMarshalizer,
+			EnableEpochsHandler: enableEpochsHandler,
+		}
+		return factory.NewAccountCreator(argsAccCreator)
 	case ValidatorAccount:
 		return factory.NewPeerAccountCreator(), nil
 	default:
@@ -909,12 +914,12 @@ func GenerateAddressJournalAccountAccountsDB() ([]byte, state.UserAccountHandler
 	adr := CreateRandomAddress()
 	trieStorage, _ := CreateTrieStorageManager(CreateMemUnit())
 	adb, _ := CreateAccountsDB(UserAccount, trieStorage)
-	account, _ := state.NewUserAccount(
-		adr,
-		TestHasher,
-		TestMarshaller,
-		&testscommon.EnableEpochsHandlerStub{},
-	)
+	argsAccCreation := state.ArgsAccountCreation{
+		Hasher:              TestHasher,
+		Marshaller:          TestMarshaller,
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+	}
+	account, _ := state.NewUserAccount(adr, argsAccCreation)
 
 	return adr, account, adb
 }

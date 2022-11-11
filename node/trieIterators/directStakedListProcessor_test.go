@@ -150,7 +150,12 @@ func TestDirectStakedListProc_GetDelegatorsListShouldWork(t *testing.T) {
 }
 
 func createScAccount(address []byte, leaves [][]byte, rootHash []byte, timeSleep time.Duration) state.UserAccountHandler {
-	acc, _ := state.NewUserAccount(address, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{}, &testscommon.EnableEpochsHandlerStub{})
+	argsAccCreation := state.ArgsAccountCreation{
+		Hasher:              &hashingMocks.HasherMock{},
+		Marshaller:          &testscommon.MarshalizerMock{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+	}
+	acc, _ := state.NewUserAccount(address, argsAccCreation)
 	acc.SetDataTrie(&trieMock.TrieStub{
 		RootCalled: func() ([]byte, error) {
 			return rootHash, nil

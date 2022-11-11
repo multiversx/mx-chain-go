@@ -1819,7 +1819,12 @@ func (bp *baseProcessor) unmarshalUserAccount(
 	address []byte,
 	userAccountsBytes []byte,
 ) (state.UserAccountHandler, error) {
-	userAccount, err := state.NewUserAccount(address, bp.hasher, bp.marshalizer, bp.enableEpochsHandler)
+	argsAccCreation := state.ArgsAccountCreation{
+		Hasher:              bp.hasher,
+		Marshaller:          bp.marshalizer,
+		EnableEpochsHandler: bp.enableEpochsHandler,
+	}
+	userAccount, err := state.NewUserAccount(address, argsAccCreation)
 	if err != nil {
 		return nil, err
 	}

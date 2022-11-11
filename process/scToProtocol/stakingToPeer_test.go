@@ -58,12 +58,12 @@ func createBlockBody() *block.Body {
 }
 
 func createStakingScAccount() state.UserAccountHandler {
-	userAcc, _ := state.NewUserAccount(
-		vm.StakingSCAddress,
-		&hashingMocks.HasherMock{},
-		&testscommon.MarshalizerMock{},
-		&testscommon.EnableEpochsHandlerStub{},
-	)
+	argsAccCreation := state.ArgsAccountCreation{
+		Hasher:              &hashingMocks.HasherMock{},
+		Marshaller:          &testscommon.MarshalizerMock{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+	}
+	userAcc, _ := state.NewUserAccount(vm.StakingSCAddress, argsAccCreation)
 	return userAcc
 }
 

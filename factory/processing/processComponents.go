@@ -883,12 +883,12 @@ func (pcf *processComponentsFactory) indexGenesisAccounts() error {
 }
 
 func (pcf *processComponentsFactory) unmarshalUserAccount(address []byte, userAccountsBytes []byte) (state.UserAccountHandler, error) {
-	userAccount, err := state.NewUserAccount(
-		address,
-		pcf.coreData.Hasher(),
-		pcf.coreData.InternalMarshalizer(),
-		pcf.coreData.EnableEpochsHandler(),
-	)
+	argsAccCreation := state.ArgsAccountCreation{
+		Hasher:              pcf.coreData.Hasher(),
+		Marshaller:          pcf.coreData.InternalMarshalizer(),
+		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+	}
+	userAccount, err := state.NewUserAccount(address, argsAccCreation)
 	if err != nil {
 		return nil, err
 	}

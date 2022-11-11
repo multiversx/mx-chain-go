@@ -101,7 +101,12 @@ func NewEmptyAccount(
 ) (vmcommon.AccountHandler, error) {
 	switch accType {
 	case UserAccount:
-		return state.NewUserAccount(address, hasher, marshaller, enableEpochsHandler)
+		argsAccCreation := state.ArgsAccountCreation{
+			Hasher:              hasher,
+			Marshaller:          marshaller,
+			EnableEpochsHandler: enableEpochsHandler,
+		}
+		return state.NewUserAccount(address, argsAccCreation)
 	case ValidatorAccount:
 		return state.NewPeerAccount(address)
 	case DataTrie:

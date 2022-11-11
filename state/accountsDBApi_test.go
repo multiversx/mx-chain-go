@@ -15,7 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/state/disabled"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	mockState "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -310,7 +309,7 @@ func TestAccountsDBApi_GetExistingAccount(t *testing.T) {
 				return nil
 			},
 			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
-				return state.NewUserAccount(addressContainer, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{}, &testscommon.EnableEpochsHandlerStub{})
+				return createUserAcc(addressContainer), nil
 			},
 		}
 
@@ -354,7 +353,7 @@ func TestAccountsDBApi_GetAccountFromBytes(t *testing.T) {
 				return nil
 			},
 			GetAccountFromBytesCalled: func(address []byte, accountBytes []byte) (vmcommon.AccountHandler, error) {
-				return state.NewUserAccount(address, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{}, &testscommon.EnableEpochsHandlerStub{})
+				return createUserAcc(address), nil
 			},
 		}
 
@@ -398,7 +397,7 @@ func TestAccountsDBApi_LoadAccount(t *testing.T) {
 				return nil
 			},
 			LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
-				return state.NewUserAccount(address, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{}, &testscommon.EnableEpochsHandlerStub{})
+				return createUserAcc(address), nil
 			},
 		}
 

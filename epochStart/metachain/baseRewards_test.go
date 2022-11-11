@@ -833,13 +833,13 @@ func TestBaseRewardsCreator_isSystemDelegationSC(t *testing.T) {
 	isDelegationSCAddress = rwd.isSystemDelegationSC(peerAccount.AddressBytes())
 	require.False(t, isDelegationSCAddress)
 
+	argsAccCreation := state.ArgsAccountCreation{
+		Hasher:              &hashingMocks.HasherMock{},
+		Marshaller:          &testscommon.MarshalizerMock{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+	}
 	// existing user account
-	userAccount, err := state.NewUserAccount(
-		[]byte("userAddress"),
-		&hashingMocks.HasherMock{},
-		&testscommon.MarshalizerMock{},
-		&testscommon.EnableEpochsHandlerStub{},
-	)
+	userAccount, err := state.NewUserAccount([]byte("userAddress"), argsAccCreation)
 	require.Nil(t, err)
 
 	userAccount.SetDataTrie(&trieMock.TrieStub{
@@ -1146,7 +1146,12 @@ func getBaseRewardsArguments() BaseRewardsCreatorArgs {
 	storageManagerArgs.Hasher = hasher
 
 	trieFactoryManager, _ := trie.CreateTrieStorageManager(storageManagerArgs, options)
-	accCreator, _ := factory.NewAccountCreator(hasher, marshalizer, &testscommon.EnableEpochsHandlerStub{})
+	argsAccCreator := state.ArgsAccountCreation{
+		Hasher:              hasher,
+		Marshaller:          marshalizer,
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+	}
+	accCreator, _ := factory.NewAccountCreator(argsAccCreator)
 	userAccountsDB := createAccountsDB(hasher, marshalizer, accCreator, trieFactoryManager)
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	shardCoordinator.CurrentShard = core.MetachainShardId

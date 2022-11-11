@@ -35,12 +35,14 @@ func TestNewDisabledDataTrieHandler(t *testing.T) {
 
 		chans := &common.TrieIteratorChannels{
 			LeavesChan: make(chan core.KeyValueHolder, 1),
-			ErrChan:    nil,
+			ErrChan:    make(chan error),
 		}
 
 		err := ddth.GetAllLeavesOnChannel(chans, nil, nil, nil, nil)
 		assert.Nil(t, err)
 		_, ok := <-chans.LeavesChan
+		assert.False(t, ok)
+		_, ok = <-chans.ErrChan
 		assert.False(t, ok)
 	})
 }
