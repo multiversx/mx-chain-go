@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"math/big"
+	"strings"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
@@ -44,4 +45,10 @@ func isSCRWithRefundNoTx(scr *smartContractResult.SmartContractResult) bool {
 	differentHash := !bytes.Equal(scr.OriginalTxHash, scr.PrevTxHash)
 
 	return ok && differentHash && hasRefund
+}
+
+func isRelayedTx(tx *transactionWithResults) bool {
+	txData := string(tx.GetData())
+	isRelayed := strings.HasPrefix(txData, core.RelayedTransaction) || strings.HasPrefix(txData, core.RelayedTransactionV2)
+	return isRelayed && len(tx.scrs) > 0
 }

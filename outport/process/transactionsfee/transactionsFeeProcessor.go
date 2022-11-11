@@ -86,6 +86,11 @@ func (tep *transactionsFeeProcessor) prepareNormalTxs(transactionsAndScrs *trans
 		txWithResult.SetFee(fee)
 		txWithResult.SetInitialPaidFee(initialPaidFee)
 
+		if isRelayedTx(txWithResult) {
+			txWithResult.SetGasUsed(txWithResult.GetGasLimit())
+			txWithResult.SetFee(initialPaidFee)
+		}
+
 		tep.prepareTxWithResults([]byte(txHash), txWithResult)
 	}
 }

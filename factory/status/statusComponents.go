@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	covalentFactory "github.com/ElrondNetwork/covalent-indexer-go/factory"
 	indexerFactory "github.com/ElrondNetwork/elastic-indexer-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -208,10 +207,9 @@ func (scf *statusComponentsFactory) createOutportDriver() (outport.OutportHandle
 	}
 
 	outportFactoryArgs := &outportDriverFactory.OutportFactoryArgs{
-		RetrialInterval:            common.RetrialIntervalForOutportDriver,
-		ElasticIndexerFactoryArgs:  scf.makeElasticIndexerArgs(),
-		EventNotifierFactoryArgs:   scf.makeEventNotifierArgs(),
-		CovalentIndexerFactoryArgs: scf.makeCovalentIndexerArgs(),
+		RetrialInterval:           common.RetrialIntervalForOutportDriver,
+		ElasticIndexerFactoryArgs: scf.makeElasticIndexerArgs(),
+		EventNotifierFactoryArgs:  scf.makeEventNotifierArgs(),
 		WebSocketSenderDriverFactoryArgs: outportDriverFactory.WrappedOutportDriverWebSocketSenderFactoryArgs{
 			Enabled:                                 scf.externalConfig.WebSocketConnector.Enabled,
 			OutportDriverWebSocketSenderFactoryArgs: webSocketSenderDriverFactoryArgs,
@@ -252,19 +250,6 @@ func (scf *statusComponentsFactory) makeEventNotifierArgs() *outportDriverFactor
 		Marshaller:        scf.coreComponents.InternalMarshalizer(),
 		Hasher:            scf.coreComponents.Hasher(),
 		PubKeyConverter:   scf.coreComponents.AddressPubKeyConverter(),
-	}
-}
-
-func (scf *statusComponentsFactory) makeCovalentIndexerArgs() *covalentFactory.ArgsCovalentIndexerFactory {
-	return &covalentFactory.ArgsCovalentIndexerFactory{
-		Enabled:              scf.externalConfig.CovalentConnector.Enabled,
-		URL:                  scf.externalConfig.CovalentConnector.URL,
-		RouteSendData:        scf.externalConfig.CovalentConnector.RouteSendData,
-		RouteAcknowledgeData: scf.externalConfig.CovalentConnector.RouteAcknowledgeData,
-		PubKeyConverter:      scf.coreComponents.AddressPubKeyConverter(),
-		Hasher:               scf.coreComponents.Hasher(),
-		Marshaller:           scf.coreComponents.InternalMarshalizer(),
-		ShardCoordinator:     scf.shardCoordinator,
 	}
 }
 
