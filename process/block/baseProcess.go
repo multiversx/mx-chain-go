@@ -94,6 +94,7 @@ type baseProcessor struct {
 	txCounter              *transactionCounter
 
 	outportHandler      outport.OutportHandler
+	outportDataProvider outport.DataProviderOutport
 	historyRepo         dblookupext.HistoryRepository
 	epochNotifier       process.EpochNotifier
 	enableEpochsHandler common.EnableEpochsHandler
@@ -514,6 +515,9 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	}
 	if check.IfNil(arguments.CoreComponents.EconomicsData()) {
 		return process.ErrNilEconomicsData
+	}
+	if check.IfNil(arguments.OutportDataProvider) {
+		return process.ErrNilOutportDataProvider
 	}
 	if check.IfNil(arguments.ScheduledTxsExecutionHandler) {
 		return process.ErrNilScheduledTxsExecutionHandler

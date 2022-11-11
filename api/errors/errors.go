@@ -79,6 +79,12 @@ var ErrGetTransaction = errors.New("getting transaction failed")
 // ErrGetBlock signals an error happening when trying to fetch a block
 var ErrGetBlock = errors.New("getting block failed")
 
+// ErrGetAlteredAccountsForBlock signals an error happening when trying to fetch the altered accounts for a block
+var ErrGetAlteredAccountsForBlock = errors.New("getting altered accounts for block failed")
+
+// ErrIncompatibleWithMetadataParam signals a request error, because withMetadata should only be used with the tokens param
+var ErrIncompatibleWithMetadataParam = errors.New("withMetadata param should only be used with the tokens param")
+
 // ErrQueryError signals a general query error
 var ErrQueryError = errors.New("query error")
 
