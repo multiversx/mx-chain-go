@@ -578,13 +578,13 @@ func (sr *subroundBlock) printCancelRoundLogMessage(ctx context.Context, err err
 }
 
 func (sr *subroundBlock) computeSubroundProcessingMetric(startTime time.Time, metric string) {
-	subRoundDuration := sr.EndTime() - sr.StartTime()
-	if subRoundDuration == 0 {
+	subroundDuration := sr.EndTime() - sr.StartTime()
+	if subroundDuration == 0 {
 		// can not do division by 0
 		return
 	}
 
-	percent := uint64(time.Since(startTime)) * 100 / uint64(subRoundDuration)
+	percent := uint64(time.Since(startTime)) * 100 / uint64(subroundDuration)
 	sr.AppStatusHandler().SetUInt64Value(metric, percent)
 }
 

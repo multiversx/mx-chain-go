@@ -167,6 +167,11 @@ func (sr *subroundBlock) DoBlockJob() bool {
 	return sr.doBlockJob(context.Background())
 }
 
+// DoBlockJob method does the job of the subround Block
+func (sr *subroundBlockV2) DoBlockJob() bool {
+	return sr.doBlockJob(context.Background())
+}
+
 // ProcessReceivedBlock method processes the received proposed block in the subround Block
 func (sr *subroundBlock) ProcessReceivedBlock(cnsDta *consensus.Message) bool {
 	return sr.processReceivedBlock(context.Background(), cnsDta)
