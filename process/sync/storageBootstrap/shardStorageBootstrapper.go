@@ -95,23 +95,6 @@ func (ssb *shardStorageBootstrapper) applyCrossNotarizedHeaders(crossNotarizedHe
 
 		ssb.blockTracker.AddCrossNotarizedHeader(core.MetachainShardId, metaBlock, crossNotarizedHeader.Hash)
 		ssb.blockTracker.AddTrackedHeader(metaBlock, crossNotarizedHeader.Hash)
-
-		prevMetaBlock, err := process.GetMetaHeaderFromStorage(metaBlock.PrevHash, ssb.marshalizer, ssb.store)
-		if err != nil {
-			log.Debug("cannot add previous header in block tracker",
-				"prev header hash", metaBlock.PrevHash,
-				"error", err)
-			continue
-		}
-
-		ssb.blockTracker.AddCrossNotarizedHeader(core.MetachainShardId, prevMetaBlock, metaBlock.PrevHash)
-		ssb.blockTracker.AddTrackedHeader(prevMetaBlock, metaBlock.PrevHash)
-
-		log.Debug("added cross notarized header in block tracker - for previous",
-			"shard", core.MetachainShardId,
-			"round", prevMetaBlock.GetRound(),
-			"nonce", prevMetaBlock.GetNonce(),
-			"hash", metaBlock.PrevHash)
 	}
 
 	return nil

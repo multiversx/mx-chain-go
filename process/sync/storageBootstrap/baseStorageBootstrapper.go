@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -171,6 +172,11 @@ func (st *storageBootstrapper) loadBlocks() error {
 		"EpochStartTriggerConfigKey", headerInfo.EpochStartTriggerConfigKey,
 	)
 
+	err = st.addReferencedMetablocksInTracker(headerInfo.LastHeader)
+	if err != nil {
+		log.Warn("addReferencedMetablocksInTracker", "error", err)
+	}
+
 	st.bootstrapper.applyNumPendingMiniBlocks(headerInfo.PendingMiniBlocks)
 
 	st.processedMiniBlocksTracker.ConvertSliceToProcessedMiniBlocksMap(headerInfo.ProcessedMiniBlocks)
@@ -202,6 +208,44 @@ func (st *storageBootstrapper) loadBlocks() error {
 
 	st.highestNonce = headerInfo.LastHeader.Nonce
 	st.epochNotifier.CheckEpoch(st.blkc.GetCurrentBlockHeader())
+
+	return nil
+}
+
+func (st *storageBootstrapper) addReferencedMetablocksInTracker(header bootstrapStorage.BootstrapHeaderInfo) error {
+	if header.ShardId == common.MetachainShardId {
+		return nil
+	}
+
+	hdr, err := st.bootstrapper.getHeader(header.Hash)
+	if err != nil {
+		return err
+	}
+
+	shardHeader, ok := hdr.(data.ShardHeaderHandler)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	metablockHashes := shardHeader.GetMetaBlockHashes()
+	for _, hash := range metablockHashes {
+		metaBlock, errGet := process.GetMetaHeaderFromStorage(hash, st.marshalizer, st.store)
+		if errGet != nil {
+			log.Debug("cannot add metablock from previous header in block tracker",
+				"metablock hash", hash,
+				"error", errGet)
+			continue
+		}
+
+		st.blockTracker.AddCrossNotarizedHeader(core.MetachainShardId, metaBlock, hash)
+		st.blockTracker.AddTrackedHeader(metaBlock, hash)
+
+		log.Debug("added cross notarized header in block tracker - for previous header",
+			"shard", core.MetachainShardId,
+			"round", metaBlock.GetRound(),
+			"nonce", metaBlock.GetNonce(),
+			"hash", hash)
+	}
 
 	return nil
 }

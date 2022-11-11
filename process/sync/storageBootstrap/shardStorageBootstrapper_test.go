@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -36,23 +37,33 @@ func TestShardStorageBootstrapper_LoadFromStorageShouldWork(t *testing.T) {
 	wasCalledBlockchainSetHash := false
 	wasCalledBlockchainSetHeader := false
 	wasCalledForkDetectorAddHeader := false
-	wasCalledBlockTrackerAddTrackedHeader := false
+	numCalledBlockTrackerAddTrackedHeader := 0
+	numCrossNotarizedHeaderCalled := 0
 	wasCalledEpochNotifier := false
 	savedLastRound := int64(0)
 
 	marshaller := &testscommon.MarshalizerMock{}
 	startRound := 4000
+	metaHdrHash := []byte("metablock hash 1")
 	hdr := &block.Header{
-		Nonce:    3999,
-		Round:    3999,
-		RootHash: []byte("roothash"),
-		ShardID:  0,
-		ChainID:  []byte("1"),
+		Nonce:           3999,
+		Round:           3999,
+		RootHash:        []byte("roothash"),
+		ShardID:         0,
+		ChainID:         []byte("1"),
+		MetaBlockHashes: [][]byte{metaHdrHash},
 	}
 	hdrHash := []byte("header hash")
 	hdrBytes, _ := marshaller.Marshal(hdr)
+
+	metaHdr := &block.MetaBlock{
+		Nonce: 3990,
+	}
+	metaHdrBytes, _ := marshaller.Marshal(metaHdr)
+
 	blockStorerMock := genericMocks.NewStorerMock()
 	_ = blockStorerMock.Put(hdrHash, hdrBytes)
+	_ = blockStorerMock.Put(metaHdrHash, metaHdrBytes)
 
 	args := ArgsShardStorageBootstrapper{
 		ArgsBaseStorageBootstrapper{
@@ -124,10 +135,22 @@ func TestShardStorageBootstrapper_LoadFromStorageShouldWork(t *testing.T) {
 			EpochStartTrigger:   &mock.EpochStartTriggerStub{},
 			BlockTracker: &mock.BlockTrackerMock{
 				AddTrackedHeaderCalled: func(header data.HeaderHandler, hash []byte) {
-					assert.Equal(t, hdr, header)
-					assert.Equal(t, hdrHash, hash)
+					numCalledBlockTrackerAddTrackedHeader++
 
-					wasCalledBlockTrackerAddTrackedHeader = true
+					if bytes.Equal(hash, hdrHash) {
+						assert.Equal(t, header, hdr)
+					}
+					if bytes.Equal(hash, metaHdrHash) {
+						assert.Equal(t, metaHdr, header)
+					}
+				},
+				AddCrossNotarizedHeaderCalled: func(shardID uint32, crossNotarizedHeader data.HeaderHandler, crossNotarizedHeaderHash []byte) {
+					numCrossNotarizedHeaderCalled++
+
+					if bytes.Equal(metaHdrHash, crossNotarizedHeaderHash) {
+						assert.Equal(t, common.MetachainShardId, shardID)
+						assert.Equal(t, metaHdr, crossNotarizedHeader)
+					}
 				},
 			},
 			ChainID:                      string(hdr.ChainID),
@@ -152,7 +175,8 @@ func TestShardStorageBootstrapper_LoadFromStorageShouldWork(t *testing.T) {
 	assert.True(t, wasCalledBlockchainSetHash)
 	assert.True(t, wasCalledBlockchainSetHeader)
 	assert.True(t, wasCalledForkDetectorAddHeader)
-	assert.True(t, wasCalledBlockTrackerAddTrackedHeader)
+	assert.Equal(t, 2, numCalledBlockTrackerAddTrackedHeader)
+	assert.Equal(t, 1, numCrossNotarizedHeaderCalled)
 	assert.Equal(t, int64(3999), savedLastRound)
 	assert.True(t, wasCalledEpochNotifier)
 }
@@ -262,53 +286,17 @@ func TestShardStorageBootstrapper_GetCrossNotarizedHeaderNonceShouldWork(t *test
 func TestShardStorageBootstrapper_applyCrossNotarizedHeaders(t *testing.T) {
 	t.Parallel()
 
-	t.Run("missing current meta should error", func(t *testing.T) {
-		crossNotarizedHeadersAccumulator := make(map[string]data.HeaderHandler)
-		trackedHeadersAccumulator := make(map[string]data.HeaderHandler)
+	crossNotarizedHeadersAccumulator := make(map[string]data.HeaderHandler)
+	trackedHeadersAccumulator := make(map[string]data.HeaderHandler)
 
-		bootstrapper, _, currentMeta, crossNotarizedHeaders := setupForApplyCrossNotarizedHeadersTests(crossNotarizedHeadersAccumulator, trackedHeadersAccumulator)
-		// remove the current metaheader from storer, this is a critical error
-		_ = bootstrapper.store.GetStorer(dataRetriever.MetaBlockUnit).Remove(currentMeta.hash)
+	bootstrapper, _, currentMeta, crossNotarizedHeaders := setupForApplyCrossNotarizedHeadersTests(crossNotarizedHeadersAccumulator, trackedHeadersAccumulator)
+	// remove the current metaheader from storer, this is a critical error
+	storerUnit, _ := bootstrapper.store.GetStorer(dataRetriever.MetaBlockUnit)
+	_ = storerUnit.Remove(currentMeta.hash)
 
-		err := bootstrapper.applyCrossNotarizedHeaders(crossNotarizedHeaders)
-		assert.NotNil(t, err)
-		assert.ErrorContains(t, err, "missing header : GetMarshalizedHeaderFromStorage")
-	})
-	t.Run("missing prev header should still work", func(t *testing.T) {
-		crossNotarizedHeadersAccumulator := make(map[string]data.HeaderHandler)
-		trackedHeadersAccumulator := make(map[string]data.HeaderHandler)
-
-		bootstrapper, prevMeta, currentMeta, crossNotarizedHeaders := setupForApplyCrossNotarizedHeadersTests(crossNotarizedHeadersAccumulator, trackedHeadersAccumulator)
-		// remove the previous metaheader from storer, this should not be a critical error
-		_ = bootstrapper.store.GetStorer(dataRetriever.MetaBlockUnit).Remove(prevMeta.hash)
-
-		err := bootstrapper.applyCrossNotarizedHeaders(crossNotarizedHeaders)
-		assert.Nil(t, err)
-
-		assert.Equal(t, 1, len(crossNotarizedHeadersAccumulator))
-		assert.Equal(t, 1, len(trackedHeadersAccumulator))
-
-		assert.Equal(t, currentMeta.metablock, crossNotarizedHeadersAccumulator[string(currentMeta.hash)])
-		assert.Equal(t, currentMeta.metablock, trackedHeadersAccumulator[string(currentMeta.hash)])
-	})
-	t.Run("should work", func(t *testing.T) {
-		crossNotarizedHeadersAccumulator := make(map[string]data.HeaderHandler)
-		trackedHeadersAccumulator := make(map[string]data.HeaderHandler)
-
-		bootstrapper, prevMeta, currentMeta, crossNotarizedHeaders := setupForApplyCrossNotarizedHeadersTests(crossNotarizedHeadersAccumulator, trackedHeadersAccumulator)
-
-		err := bootstrapper.applyCrossNotarizedHeaders(crossNotarizedHeaders)
-		assert.Nil(t, err)
-
-		assert.Equal(t, 2, len(crossNotarizedHeadersAccumulator))
-		assert.Equal(t, 2, len(trackedHeadersAccumulator))
-
-		assert.Equal(t, currentMeta.metablock, crossNotarizedHeadersAccumulator[string(currentMeta.hash)])
-		assert.Equal(t, currentMeta.metablock, trackedHeadersAccumulator[string(currentMeta.hash)])
-
-		assert.Equal(t, prevMeta.metablock, crossNotarizedHeadersAccumulator[string(prevMeta.hash)])
-		assert.Equal(t, prevMeta.metablock, trackedHeadersAccumulator[string(prevMeta.hash)])
-	})
+	err := bootstrapper.applyCrossNotarizedHeaders(crossNotarizedHeaders)
+	assert.NotNil(t, err)
+	assert.ErrorContains(t, err, "missing header : GetMarshalizedHeaderFromStorage")
 }
 
 func setupForApplyCrossNotarizedHeadersTests(
