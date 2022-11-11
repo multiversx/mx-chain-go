@@ -84,11 +84,9 @@ func NewNodeRunner(cfgs *config.Configs) (*nodeRunner, error) {
 		return nil, fmt.Errorf("nil configs provided")
 	}
 
-	nr := &nodeRunner{
+	return &nodeRunner{
 		configs: cfgs,
-	}
-
-	return nr, nil
+	}, nil
 }
 
 // Start creates and starts the managed components
@@ -1237,11 +1235,6 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		HistoryRepo:            historyRepository,
 		ChainRunType:           common.ChainRunTypeRegular,
 	}
-
-	return nr.createManagedProcessComponents(processArgs)
-}
-
-func (nr *nodeRunner) createManagedProcessComponents(processArgs processComp.ProcessComponentsFactoryArgs) (mainFactory.ProcessComponentsHandler, error) {
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {
 		return nil, fmt.Errorf("NewProcessComponentsFactory failed: %w", err)
