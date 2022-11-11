@@ -442,9 +442,18 @@ func (se *stateExport) exportNodesSetupJson(validators map[uint32][]*state.Valid
 	for _, validatorsInShard := range validators {
 		for _, validator := range validatorsInShard {
 			if shouldExportValidator(validator, acceptedListsForExport) {
+
+				pubKey, err := se.validatorPubKeyConverter.Encode(validator.GetPublicKey())
+				if err != nil {
+					return nil
+				}
+				address, err := se.addressPubKeyConverter.Encode(validator.GetRewardAddress())
+				if err != nil {
+					return nil
+				}
 				initialNodes = append(initialNodes, &sharding.InitialNode{
-					PubKey:        se.validatorPubKeyConverter.Encode(validator.GetPublicKey()),
-					Address:       se.addressPubKeyConverter.Encode(validator.GetRewardAddress()),
+					PubKey:        pubKey,
+					Address:       address,
 					InitialRating: validator.GetRating(),
 				})
 			}

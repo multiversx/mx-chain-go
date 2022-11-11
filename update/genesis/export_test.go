@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/update"
@@ -42,8 +43,8 @@ func TestNewStateExporter(t *testing.T) {
 				Hasher:                   &mock.HasherStub{},
 				StateSyncer:              &mock.StateSyncStub{},
 				HardforkStorer:           &mock.HardforkStorerStub{},
-				AddressPubKeyConverter:   &mock.PubkeyConverterStub{},
-				ValidatorPubKeyConverter: &mock.PubkeyConverterStub{},
+				AddressPubKeyConverter:   &testscommon.PubkeyConverterStub{},
+				ValidatorPubKeyConverter: &testscommon.PubkeyConverterStub{},
 				GenesisNodesSetupHandler: &mock.GenesisNodesSetupHandlerStub{},
 				ExportFolder:             "test",
 			},
@@ -57,8 +58,8 @@ func TestNewStateExporter(t *testing.T) {
 				StateSyncer:              nil,
 				HardforkStorer:           &mock.HardforkStorerStub{},
 				Hasher:                   &mock.HasherStub{},
-				AddressPubKeyConverter:   &mock.PubkeyConverterStub{},
-				ValidatorPubKeyConverter: &mock.PubkeyConverterStub{},
+				AddressPubKeyConverter:   &testscommon.PubkeyConverterStub{},
+				ValidatorPubKeyConverter: &testscommon.PubkeyConverterStub{},
 				GenesisNodesSetupHandler: &mock.GenesisNodesSetupHandlerStub{},
 				ExportFolder:             "test",
 			},
@@ -72,8 +73,8 @@ func TestNewStateExporter(t *testing.T) {
 				StateSyncer:              &mock.StateSyncStub{},
 				HardforkStorer:           &mock.HardforkStorerStub{},
 				Hasher:                   &mock.HasherStub{},
-				AddressPubKeyConverter:   &mock.PubkeyConverterStub{},
-				ValidatorPubKeyConverter: &mock.PubkeyConverterStub{},
+				AddressPubKeyConverter:   &testscommon.PubkeyConverterStub{},
+				ValidatorPubKeyConverter: &testscommon.PubkeyConverterStub{},
 				GenesisNodesSetupHandler: &mock.GenesisNodesSetupHandlerStub{},
 				ExportFolder:             "test",
 			},
@@ -87,8 +88,8 @@ func TestNewStateExporter(t *testing.T) {
 				StateSyncer:              &mock.StateSyncStub{},
 				HardforkStorer:           nil,
 				Hasher:                   &mock.HasherStub{},
-				AddressPubKeyConverter:   &mock.PubkeyConverterStub{},
-				ValidatorPubKeyConverter: &mock.PubkeyConverterStub{},
+				AddressPubKeyConverter:   &testscommon.PubkeyConverterStub{},
+				ValidatorPubKeyConverter: &testscommon.PubkeyConverterStub{},
 				GenesisNodesSetupHandler: &mock.GenesisNodesSetupHandlerStub{},
 				ExportFolder:             "test",
 			},
@@ -102,8 +103,8 @@ func TestNewStateExporter(t *testing.T) {
 				StateSyncer:              &mock.StateSyncStub{},
 				HardforkStorer:           &mock.HardforkStorerStub{},
 				Hasher:                   nil,
-				AddressPubKeyConverter:   &mock.PubkeyConverterStub{},
-				ValidatorPubKeyConverter: &mock.PubkeyConverterStub{},
+				AddressPubKeyConverter:   &testscommon.PubkeyConverterStub{},
+				ValidatorPubKeyConverter: &testscommon.PubkeyConverterStub{},
 				GenesisNodesSetupHandler: &mock.GenesisNodesSetupHandlerStub{},
 				ExportFolder:             "test",
 			},
@@ -119,7 +120,7 @@ func TestNewStateExporter(t *testing.T) {
 				HardforkStorer:           &mock.HardforkStorerStub{},
 				Hasher:                   &mock.HasherStub{},
 				AddressPubKeyConverter:   nil,
-				ValidatorPubKeyConverter: &mock.PubkeyConverterStub{},
+				ValidatorPubKeyConverter: &testscommon.PubkeyConverterStub{},
 				GenesisNodesSetupHandler: &mock.GenesisNodesSetupHandlerStub{},
 				ExportFolder:             "test",
 			},
@@ -134,7 +135,7 @@ func TestNewStateExporter(t *testing.T) {
 				StateSyncer:              &mock.StateSyncStub{},
 				HardforkStorer:           &mock.HardforkStorerStub{},
 				Hasher:                   &mock.HasherStub{},
-				AddressPubKeyConverter:   &mock.PubkeyConverterStub{},
+				AddressPubKeyConverter:   &testscommon.PubkeyConverterStub{},
 				ValidatorPubKeyConverter: nil,
 				GenesisNodesSetupHandler: &mock.GenesisNodesSetupHandlerStub{},
 				ExportFolder:             "test",
@@ -149,8 +150,8 @@ func TestNewStateExporter(t *testing.T) {
 				StateSyncer:              &mock.StateSyncStub{},
 				HardforkStorer:           &mock.HardforkStorerStub{},
 				Hasher:                   &mock.HasherStub{},
-				AddressPubKeyConverter:   &mock.PubkeyConverterStub{},
-				ValidatorPubKeyConverter: &mock.PubkeyConverterStub{},
+				AddressPubKeyConverter:   &testscommon.PubkeyConverterStub{},
+				ValidatorPubKeyConverter: &testscommon.PubkeyConverterStub{},
 				GenesisNodesSetupHandler: nil,
 				ExportFolder:             "test",
 			},
@@ -164,8 +165,8 @@ func TestNewStateExporter(t *testing.T) {
 				StateSyncer:              &mock.StateSyncStub{},
 				HardforkStorer:           &mock.HardforkStorerStub{},
 				Hasher:                   &mock.HasherStub{},
-				AddressPubKeyConverter:   &mock.PubkeyConverterStub{},
-				ValidatorPubKeyConverter: &mock.PubkeyConverterStub{},
+				AddressPubKeyConverter:   &testscommon.PubkeyConverterStub{},
+				ValidatorPubKeyConverter: &testscommon.PubkeyConverterStub{},
 				GenesisNodesSetupHandler: &mock.GenesisNodesSetupHandlerStub{},
 				ExportFolder:             "",
 			},
@@ -179,8 +180,8 @@ func TestNewStateExporter(t *testing.T) {
 				StateSyncer:              &mock.StateSyncStub{},
 				HardforkStorer:           &mock.HardforkStorerStub{},
 				Hasher:                   &mock.HasherStub{},
-				AddressPubKeyConverter:   &mock.PubkeyConverterStub{},
-				ValidatorPubKeyConverter: &mock.PubkeyConverterStub{},
+				AddressPubKeyConverter:   &testscommon.PubkeyConverterStub{},
+				ValidatorPubKeyConverter: &testscommon.PubkeyConverterStub{},
 				ExportFolder:             "test",
 				GenesisNodesSetupHandler: &mock.GenesisNodesSetupHandlerStub{},
 			},
@@ -320,9 +321,9 @@ func TestStateExport_ExportTrieShouldExportNodesSetupJson(t *testing.T) {
 			},
 		}
 
-		pubKeyConv := &mock.PubkeyConverterStub{
-			EncodeCalled: func(pkBytes []byte) string {
-				return string(pkBytes)
+		pubKeyConv := &testscommon.PubkeyConverterStub{
+			EncodeCalled: func(pkBytes []byte) (string, error) {
+				return string(pkBytes), nil
 			},
 		}
 
@@ -372,9 +373,9 @@ func TestStateExport_ExportNodesSetupJsonShouldExportKeysInAlphabeticalOrder(t *
 		},
 	}
 
-	pubKeyConv := &mock.PubkeyConverterStub{
-		EncodeCalled: func(pkBytes []byte) string {
-			return string(pkBytes)
+	pubKeyConv := &testscommon.PubkeyConverterStub{
+		EncodeCalled: func(pkBytes []byte) (string, error) {
+			return string(pkBytes), nil
 		},
 	}
 
@@ -567,8 +568,8 @@ func getDefaultStateExporterArgs() ArgsNewStateExporter {
 		StateSyncer:              &mock.StateSyncStub{},
 		HardforkStorer:           &mock.HardforkStorerStub{},
 		Hasher:                   &hashingMocks.HasherMock{},
-		AddressPubKeyConverter:   &mock.PubkeyConverterStub{},
-		ValidatorPubKeyConverter: &mock.PubkeyConverterStub{},
+		AddressPubKeyConverter:   &testscommon.PubkeyConverterStub{},
+		ValidatorPubKeyConverter: &testscommon.PubkeyConverterStub{},
 		ExportFolder:             "test",
 		GenesisNodesSetupHandler: &mock.GenesisNodesSetupHandlerStub{},
 	}
