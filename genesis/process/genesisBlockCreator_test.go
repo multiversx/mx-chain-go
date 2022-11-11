@@ -141,11 +141,18 @@ func createMockArgument(
 		SelfShardId: 0,
 	}
 
-	var err error
+	argsAccCreator := state.ArgsAccountCreation{
+		Hasher:              &hashingMocks.HasherMock{},
+		Marshaller:          &mock.MarshalizerMock{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+	}
+	accCreator, err := factoryState.NewAccountCreator(argsAccCreator)
+	require.Nil(t, err)
+
 	arg.Accounts, err = createAccountAdapter(
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
-		factoryState.NewAccountCreator(),
+		accCreator,
 		trieStorageManagers[factory.UserAccountTrie],
 	)
 	require.Nil(t, err)

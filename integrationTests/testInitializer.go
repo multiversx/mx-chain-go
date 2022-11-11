@@ -437,10 +437,19 @@ func CreateAccountsDB(
 	accountType Type,
 	trieStorageManager common.StorageManager,
 ) (*state.AccountsDB, common.Trie) {
+	return CreateAccountsDBWithEnableEpochsHandler(accountType, trieStorageManager, &testscommon.EnableEpochsHandlerStub{})
+}
+
+// CreateAccountsDBWithEnableEpochsHandler creates a new AccountsDb with the given enableEpochsHandler
+func CreateAccountsDBWithEnableEpochsHandler(
+	accountType Type,
+	trieStorageManager common.StorageManager,
+	enableEpochsHandler common.EnableEpochsHandler,
+) (*state.AccountsDB, common.Trie) {
 	tr, _ := trie.NewTrie(trieStorageManager, TestMarshalizer, TestHasher, maxTrieLevelInMemory)
 
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, database.NewMemDB(), TestMarshalizer)
-	accountFactory := getAccountFactory(accountType)
+	accountFactory, _ := getAccountFactory(accountType, enableEpochsHandler)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
 	args := state.ArgsAccountsDB{
 		Trie:                  tr,
@@ -457,14 +466,19 @@ func CreateAccountsDB(
 	return adb, tr
 }
 
-func getAccountFactory(accountType Type) state.AccountFactory {
+func getAccountFactory(accountType Type, enableEpochsHandler common.EnableEpochsHandler) (state.AccountFactory, error) {
 	switch accountType {
 	case UserAccount:
-		return factory.NewAccountCreator()
+		argsAccCreator := state.ArgsAccountCreation{
+			Hasher:              TestHasher,
+			Marshaller:          TestMarshalizer,
+			EnableEpochsHandler: enableEpochsHandler,
+		}
+		return factory.NewAccountCreator(argsAccCreator)
 	case ValidatorAccount:
-		return factory.NewPeerAccountCreator()
+		return factory.NewPeerAccountCreator(), nil
 	default:
-		return nil
+		return nil, fmt.Errorf("invalid account type provided")
 	}
 }
 
@@ -803,7 +817,7 @@ func CreateGenesisMetaBlock(
 
 		newBlkc, _ := blockchain.NewMetaChain(&statusHandlerMock.AppStatusHandlerStub{})
 		trieStorage, _ := CreateTrieStorageManager(CreateMemUnit())
-		newAccounts, _ := CreateAccountsDB(UserAccount, trieStorage)
+		newAccounts, _ := CreateAccountsDBWithEnableEpochsHandler(UserAccount, trieStorage, coreComponents.EnableEpochsHandler())
 
 		argsMetaGenesis.ShardCoordinator = newShardCoordinator
 		argsMetaGenesis.Accounts = newAccounts
@@ -900,7 +914,12 @@ func GenerateAddressJournalAccountAccountsDB() ([]byte, state.UserAccountHandler
 	adr := CreateRandomAddress()
 	trieStorage, _ := CreateTrieStorageManager(CreateMemUnit())
 	adb, _ := CreateAccountsDB(UserAccount, trieStorage)
-	account, _ := state.NewUserAccount(adr, TestHasher, TestMarshaller)
+	argsAccCreation := state.ArgsAccountCreation{
+		Hasher:              TestHasher,
+		Marshaller:          TestMarshaller,
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+	}
+	account, _ := state.NewUserAccount(adr, argsAccCreation)
 
 	return adr, account, adb
 }

@@ -186,7 +186,12 @@ func TestNewJournalEntryDataTrieUpdates_EmptyTrieUpdatesShouldErr(t *testing.T) 
 	t.Parallel()
 
 	trieUpdates := make(map[string][]byte)
-	accnt, _ := state.NewUserAccount(make([]byte, 32), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	args := state.ArgsAccountCreation{
+		Hasher:              &hashingMocks.HasherMock{},
+		Marshaller:          &testscommon.MarshalizerMock{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+	}
+	accnt, _ := state.NewUserAccount(make([]byte, 32), args)
 	entry, err := state.NewJournalEntryDataTrieUpdates(trieUpdates, accnt)
 
 	assert.True(t, check.IfNil(entry))
@@ -198,7 +203,12 @@ func TestNewJournalEntryDataTrieUpdates_OkValsShouldWork(t *testing.T) {
 
 	trieUpdates := make(map[string][]byte)
 	trieUpdates["a"] = []byte("b")
-	accnt, _ := state.NewUserAccount(make([]byte, 32), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	args := state.ArgsAccountCreation{
+		Hasher:              &hashingMocks.HasherMock{},
+		Marshaller:          &testscommon.MarshalizerMock{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+	}
+	accnt, _ := state.NewUserAccount(make([]byte, 32), args)
 	entry, err := state.NewJournalEntryDataTrieUpdates(trieUpdates, accnt)
 
 	assert.Nil(t, err)

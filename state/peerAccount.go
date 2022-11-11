@@ -4,13 +4,13 @@ package state
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/state/disabled"
 )
 
 // PeerAccount is the struct used in serialization/deserialization
 type peerAccount struct {
+	//TODO investigate if *baseAccount is needed in peerAccount, and remove if not
 	*baseAccount
 	PeerAccountData
 }
@@ -26,21 +26,16 @@ func NewEmptyPeerAccount() *peerAccount {
 	}
 }
 
-// NewPeerAccount creates new simple account wrapper for an PeerAccountContainer (that has just been initialized)
-func NewPeerAccount(address []byte, hasher hashing.Hasher, marshaller marshal.Marshalizer) (*peerAccount, error) {
+// NewPeerAccount creates a new instance of peerAccount
+func NewPeerAccount(address []byte) (*peerAccount, error) {
 	if len(address) == 0 {
 		return nil, ErrNilAddress
-	}
-
-	tdt, err := NewTrackableDataTrie(address, nil, hasher, marshaller)
-	if err != nil {
-		return nil, err
 	}
 
 	return &peerAccount{
 		baseAccount: &baseAccount{
 			address:         address,
-			dataTrieTracker: tdt,
+			dataTrieTracker: disabled.NewDisabledTrackableDataTrie(),
 		},
 		PeerAccountData: PeerAccountData{
 			AccumulatedFees: big.NewInt(0),

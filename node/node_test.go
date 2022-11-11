@@ -66,10 +66,21 @@ func createMockPubkeyConverter() *mock.PubkeyConverterMock {
 	return mock.NewPubkeyConverterMock(32)
 }
 
+func createAcc(address []byte) state.UserAccountHandler {
+	argsAccCreation := state.ArgsAccountCreation{
+		Hasher:              &hashingMocks.HasherMock{},
+		Marshaller:          &testscommon.MarshalizerMock{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+	}
+	acc, _ := state.NewUserAccount(address, argsAccCreation)
+
+	return acc
+}
+
 func getAccAdapter(balance *big.Int) *stateMock.AccountsStub {
 	accDB := &stateMock.AccountsStub{}
 	accDB.GetExistingAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
-		acc, _ := state.NewUserAccount(address, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+		acc := createAcc(address)
 		_ = acc.AddToBalance(balance)
 		acc.IncreaseNonce(1)
 
@@ -195,7 +206,12 @@ func TestGetBalance_AccountNotFoundShouldReturnZeroBalance(t *testing.T) {
 func TestGetBalance(t *testing.T) {
 	t.Parallel()
 
-	testAccount, _ := state.NewUserAccount(testscommon.TestPubKeyAlice, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	argsAccCreation := state.ArgsAccountCreation{
+		Hasher:              &hashingMocks.HasherMock{},
+		Marshaller:          &testscommon.MarshalizerMock{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+	}
+	testAccount, _ := state.NewUserAccount(testscommon.TestPubKeyAlice, argsAccCreation)
 	testAccount.Balance = big.NewInt(100)
 
 	accountsRepository := &stateMock.AccountsRepositoryStub{
@@ -228,7 +244,12 @@ func TestGetUsername(t *testing.T) {
 
 	expectedUsername := []byte("elrond")
 
-	testAccount, _ := state.NewUserAccount(testscommon.TestPubKeyAlice, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	argsAccCreation := state.ArgsAccountCreation{
+		Hasher:              &hashingMocks.HasherMock{},
+		Marshaller:          &testscommon.MarshalizerMock{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+	}
+	testAccount, _ := state.NewUserAccount(testscommon.TestPubKeyAlice, argsAccCreation)
 	testAccount.UserName = expectedUsername
 	accountsRepository := &stateMock.AccountsRepositoryStub{
 		GetAccountWithBlockInfoCalled: func(address []byte, options api.AccountQueryOptions) (vmcommon.AccountHandler, common.BlockInfo, error) {
@@ -261,7 +282,12 @@ func TestGetCodeHash(t *testing.T) {
 
 	expectedCodeHash := []byte("hash")
 
-	testAccount, _ := state.NewUserAccount(testscommon.TestPubKeyAlice, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	argsAccCreation := state.ArgsAccountCreation{
+		Hasher:              &hashingMocks.HasherMock{},
+		Marshaller:          &testscommon.MarshalizerMock{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+	}
+	testAccount, _ := state.NewUserAccount(testscommon.TestPubKeyAlice, argsAccCreation)
 	testAccount.CodeHash = expectedCodeHash
 	accountsRepository := &stateMock.AccountsRepositoryStub{
 		GetAccountWithBlockInfoCalled: func(address []byte, options api.AccountQueryOptions) (vmcommon.AccountHandler, common.BlockInfo, error) {
@@ -292,7 +318,7 @@ func TestGetCodeHash(t *testing.T) {
 func TestNode_GetKeyValuePairs(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewUserAccount([]byte("newaddress"), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	acc := createAcc([]byte("newaddress"))
 
 	k1, v1 := []byte("key1"), []byte("value1")
 	k2, v2 := []byte("key2"), []byte("value2")
@@ -360,7 +386,7 @@ func TestNode_GetKeyValuePairs(t *testing.T) {
 func TestNode_GetKeyValuePairs_GetAllLeavesShouldFail(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewUserAccount([]byte("newaddress"), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	acc := createAcc([]byte("newaddress"))
 
 	accDB := &stateMock.AccountsStub{}
 
@@ -415,7 +441,7 @@ func TestNode_GetKeyValuePairs_GetAllLeavesShouldFail(t *testing.T) {
 func TestNode_GetKeyValuePairsContextShouldTimeout(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewUserAccount([]byte("newaddress"), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	acc := createAcc([]byte("newaddress"))
 
 	accDB := &stateMock.AccountsStub{}
 	acc.SetDataTrie(
@@ -472,7 +498,7 @@ func TestNode_GetKeyValuePairsContextShouldTimeout(t *testing.T) {
 func TestNode_GetValueForKey(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewUserAccount([]byte("newaddress"), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	acc := createAcc([]byte("newaddress"))
 
 	k1, v1 := []byte("key1"), []byte("value1")
 	_ = acc.SaveKeyValue(k1, v1)
@@ -514,7 +540,7 @@ func TestNode_GetValueForKey(t *testing.T) {
 func TestNode_GetESDTData(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewUserAccount(testscommon.TestPubKeyAlice, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	acc := createAcc(testscommon.TestPubKeyAlice)
 	esdtToken := "newToken"
 
 	esdtData := &esdt.ESDigitalToken{Value: big.NewInt(10)}
@@ -563,7 +589,7 @@ func TestNode_GetESDTData(t *testing.T) {
 func TestNode_GetESDTDataForNFT(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewUserAccount(testscommon.TestPubKeyAlice, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	acc := createAcc(testscommon.TestPubKeyAlice)
 	esdtToken := "newToken"
 	nonce := int64(100)
 
@@ -608,7 +634,7 @@ func TestNode_GetESDTDataForNFT(t *testing.T) {
 func TestNode_GetAllESDTTokens(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewUserAccount(testscommon.TestPubKeyAlice, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	acc := createAcc(testscommon.TestPubKeyAlice)
 	esdtToken := "newToken"
 	esdtKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + esdtToken)
 
@@ -676,7 +702,7 @@ func TestNode_GetAllESDTTokens(t *testing.T) {
 func TestNode_GetAllESDTTokens_GetAllLeavesShouldFail(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewUserAccount(testscommon.TestPubKeyAlice, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	acc := createAcc(testscommon.TestPubKeyAlice)
 
 	expectedErr := errors.New("expected error")
 	acc.SetDataTrie(
@@ -732,7 +758,7 @@ func TestNode_GetAllESDTTokens_GetAllLeavesShouldFail(t *testing.T) {
 func TestNode_GetAllESDTTokensContextShouldTimeout(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewUserAccount(testscommon.TestPubKeyAlice, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	acc := createAcc(testscommon.TestPubKeyAlice)
 
 	acc.SetDataTrie(
 		&trieMock.TrieStub{
@@ -790,7 +816,7 @@ func TestNode_GetAllESDTTokensContextShouldTimeout(t *testing.T) {
 func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewUserAccount(testscommon.TestPubKeyAlice, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	acc := createAcc(testscommon.TestPubKeyAlice)
 
 	esdtToken := "TKKR-7q8w9e"
 	esdtKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + esdtToken)
@@ -886,7 +912,7 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 func TestNode_GetAllIssuedESDTs(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewUserAccount([]byte("newaddress"), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	acc := createAcc([]byte("newaddress"))
 	esdtToken := []byte("TCK-RANDOM")
 	sftToken := []byte("SFT-RANDOM")
 	nftToken := []byte("NFT-RANDOM")
@@ -983,7 +1009,7 @@ func TestNode_GetESDTsWithRole(t *testing.T) {
 	t.Parallel()
 
 	addrBytes := testscommon.TestPubKeyAlice
-	acc, _ := state.NewUserAccount(addrBytes, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	acc := createAcc(addrBytes)
 	esdtToken := []byte("TCK-RANDOM")
 
 	specialRoles := []*systemSmartContracts.ESDTRoles{
@@ -1063,7 +1089,7 @@ func TestNode_GetESDTsRoles(t *testing.T) {
 	t.Parallel()
 
 	addrBytes := testscommon.TestPubKeyAlice
-	acc, _ := state.NewUserAccount(addrBytes, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	acc := createAcc(addrBytes)
 	esdtToken := []byte("TCK-RANDOM")
 
 	specialRoles := []*systemSmartContracts.ESDTRoles{
@@ -1135,7 +1161,7 @@ func TestNode_GetNFTTokenIDsRegisteredByAddress(t *testing.T) {
 	t.Parallel()
 
 	addrBytes := testscommon.TestPubKeyAlice
-	acc, _ := state.NewUserAccount(addrBytes, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	acc := createAcc(addrBytes)
 	esdtToken := []byte("TCK-RANDOM")
 
 	esdtData := &systemSmartContracts.ESDTDataV2{TokenName: []byte("fungible"), TokenType: []byte(core.SemiFungibleESDT), OwnerAddress: addrBytes}
@@ -1200,7 +1226,7 @@ func TestNode_GetNFTTokenIDsRegisteredByAddressContextShouldTimeout(t *testing.T
 	t.Parallel()
 
 	addrBytes := testscommon.TestPubKeyAlice
-	acc, _ := state.NewUserAccount(addrBytes, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	acc := createAcc(addrBytes)
 
 	acc.SetDataTrie(
 		&trieMock.TrieStub{
@@ -1371,7 +1397,7 @@ func TestGenerateTransaction_GetAccountReturnsNilShouldWork(t *testing.T) {
 
 	accAdapter := &stateMock.AccountsStub{
 		GetExistingAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
-			return state.NewUserAccount(address, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+			return createAcc(address), nil
 		},
 	}
 	privateKey := getPrivateKey()
@@ -1518,7 +1544,7 @@ func TestGenerateTransaction_ShouldSetCorrectNonce(t *testing.T) {
 	nonce := uint64(7)
 	accAdapter := &stateMock.AccountsStub{
 		GetExistingAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
-			acc, _ := state.NewUserAccount(address, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+			acc := createAcc(address)
 			_ = acc.AddToBalance(big.NewInt(0))
 			acc.IncreaseNonce(nonce)
 
@@ -2347,7 +2373,7 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 	stateComponents := getDefaultStateComponents()
 	stateComponents.AccountsAPI = &stateMock.AccountsStub{
 		GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
-			return state.NewUserAccount([]byte("address"), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+			return createAcc([]byte("address")), nil
 		},
 	}
 
@@ -2944,7 +2970,7 @@ func TestNode_GetAccountAccountsRepositoryFailsShouldErr(t *testing.T) {
 func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 	t.Parallel()
 
-	accnt, _ := state.NewUserAccount(testscommon.TestPubKeyBob, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	accnt := createAcc(testscommon.TestPubKeyBob)
 	_ = accnt.AddToBalance(big.NewInt(1))
 	accnt.IncreaseNonce(2)
 	accnt.SetRootHash([]byte("root hash"))

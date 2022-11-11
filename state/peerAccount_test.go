@@ -6,8 +6,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -23,7 +21,7 @@ func TestNewEmptyPeerAccount(t *testing.T) {
 func TestNewPeerAccount_NilAddressContainerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	acc, err := state.NewPeerAccount(nil, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	acc, err := state.NewPeerAccount(nil)
 	assert.True(t, check.IfNil(acc))
 	assert.Equal(t, state.ErrNilAddress, err)
 }
@@ -31,7 +29,7 @@ func TestNewPeerAccount_NilAddressContainerShouldErr(t *testing.T) {
 func TestNewPeerAccount_OkParamsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	acc, err := state.NewPeerAccount(make([]byte, 32), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	acc, err := state.NewPeerAccount(make([]byte, 32))
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(acc))
 }
@@ -39,7 +37,7 @@ func TestNewPeerAccount_OkParamsShouldWork(t *testing.T) {
 func TestPeerAccount_SetInvalidBLSPublicKey(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewPeerAccount(make([]byte, 32), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	acc, _ := state.NewPeerAccount(make([]byte, 32))
 	pubKey := []byte("")
 
 	err := acc.SetBLSPublicKey(pubKey)
@@ -49,7 +47,7 @@ func TestPeerAccount_SetInvalidBLSPublicKey(t *testing.T) {
 func TestPeerAccount_SetAndGetBLSPublicKey(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewPeerAccount(make([]byte, 32), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	acc, _ := state.NewPeerAccount(make([]byte, 32))
 	pubKey := []byte("BLSpubKey")
 
 	err := acc.SetBLSPublicKey(pubKey)
@@ -60,7 +58,7 @@ func TestPeerAccount_SetAndGetBLSPublicKey(t *testing.T) {
 func TestPeerAccount_SetRewardAddressInvalidAddress(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewPeerAccount(make([]byte, 32), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	acc, _ := state.NewPeerAccount(make([]byte, 32))
 
 	err := acc.SetRewardAddress([]byte{})
 	assert.Equal(t, state.ErrEmptyAddress, err)
@@ -69,7 +67,7 @@ func TestPeerAccount_SetRewardAddressInvalidAddress(t *testing.T) {
 func TestPeerAccount_SetAndGetRewardAddress(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewPeerAccount(make([]byte, 32), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	acc, _ := state.NewPeerAccount(make([]byte, 32))
 	addr := []byte("reward address")
 
 	_ = acc.SetRewardAddress(addr)
@@ -79,7 +77,7 @@ func TestPeerAccount_SetAndGetRewardAddress(t *testing.T) {
 func TestPeerAccount_SetAndGetAccumulatedFees(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewPeerAccount(make([]byte, 32), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	acc, _ := state.NewPeerAccount(make([]byte, 32))
 	fees := big.NewInt(10)
 
 	acc.AddToAccumulatedFees(fees)
@@ -89,7 +87,7 @@ func TestPeerAccount_SetAndGetAccumulatedFees(t *testing.T) {
 func TestPeerAccount_SetAndGetLeaderSuccessRate(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewPeerAccount(make([]byte, 32), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	acc, _ := state.NewPeerAccount(make([]byte, 32))
 	increaseVal := uint32(5)
 	decreaseVal := uint32(3)
 
@@ -103,7 +101,7 @@ func TestPeerAccount_SetAndGetLeaderSuccessRate(t *testing.T) {
 func TestPeerAccount_SetAndGetValidatorSuccessRate(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewPeerAccount(make([]byte, 32), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	acc, _ := state.NewPeerAccount(make([]byte, 32))
 	increaseVal := uint32(5)
 	decreaseVal := uint32(3)
 
@@ -117,7 +115,7 @@ func TestPeerAccount_SetAndGetValidatorSuccessRate(t *testing.T) {
 func TestPeerAccount_IncreaseAndGetSetNumSelectedInSuccessBlocks(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewPeerAccount(make([]byte, 32), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	acc, _ := state.NewPeerAccount(make([]byte, 32))
 
 	acc.IncreaseNumSelectedInSuccessBlocks()
 	assert.Equal(t, uint32(1), acc.GetNumSelectedInSuccessBlocks())
@@ -126,7 +124,7 @@ func TestPeerAccount_IncreaseAndGetSetNumSelectedInSuccessBlocks(t *testing.T) {
 func TestPeerAccount_SetAndGetRating(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewPeerAccount(make([]byte, 32), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	acc, _ := state.NewPeerAccount(make([]byte, 32))
 	rating := uint32(10)
 
 	acc.SetRating(rating)
@@ -136,7 +134,7 @@ func TestPeerAccount_SetAndGetRating(t *testing.T) {
 func TestPeerAccount_SetAndGetTempRating(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewPeerAccount(make([]byte, 32), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	acc, _ := state.NewPeerAccount(make([]byte, 32))
 	rating := uint32(10)
 
 	acc.SetTempRating(rating)
@@ -146,7 +144,7 @@ func TestPeerAccount_SetAndGetTempRating(t *testing.T) {
 func TestPeerAccount_ResetAtNewEpoch(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewPeerAccount(make([]byte, 32), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	acc, _ := state.NewPeerAccount(make([]byte, 32))
 	acc.AddToAccumulatedFees(big.NewInt(15))
 	tempRating := uint32(5)
 	acc.SetTempRating(tempRating)
@@ -171,7 +169,7 @@ func TestPeerAccount_ResetAtNewEpoch(t *testing.T) {
 func TestPeerAccount_IncreaseAndGetNonce(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewPeerAccount(make([]byte, 32), &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	acc, _ := state.NewPeerAccount(make([]byte, 32))
 	nonce := uint64(5)
 
 	acc.IncreaseNonce(nonce)

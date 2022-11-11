@@ -107,10 +107,17 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 	trieStorageManagers[trieFactory.UserAccountTrie] = storageManagerUser
 	trieStorageManagers[trieFactory.PeerAccountTrie] = storageManagerPeer
 
+	argsAccCreator := state.ArgsAccountCreation{
+		Hasher:              coreComponents.Hasher(),
+		Marshaller:          coreComponents.InternalMarshalizer(),
+		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
+	}
+	accCreator, _ := factoryState.NewAccountCreator(argsAccCreator)
+
 	accounts, err := createAccountAdapter(
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
-		factoryState.NewAccountCreator(),
+		accCreator,
 		trieStorageManagers[trieFactory.UserAccountTrie],
 	)
 	require.Nil(t, err)

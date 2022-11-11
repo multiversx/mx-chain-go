@@ -66,6 +66,7 @@ func TestNewStateImport(t *testing.T) {
 				Marshalizer:         &mock.MarshalizerMock{},
 				Hasher:              &mock.HasherStub{},
 				TrieStorageManagers: trieStorageManagers,
+				EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
 			},
 			exError: nil,
 		},
@@ -92,6 +93,7 @@ func TestImportAll(t *testing.T) {
 		TrieStorageManagers: trieStorageManagers,
 		ShardID:             0,
 		StorageConfig:       config.StorageConfig{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
 	}
 
 	importState, _ := NewStateImport(args)
@@ -126,6 +128,7 @@ func TestStateImport_ImportUnFinishedMetaBlocksShouldWork(t *testing.T) {
 		TrieStorageManagers: trieStorageManagers,
 		ShardID:             0,
 		StorageConfig:       config.StorageConfig{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
 	}
 
 	importState, _ := NewStateImport(args)

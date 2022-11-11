@@ -161,3 +161,6 @@ var ErrNilTrieSyncer = errors.New("trie syncer is nil")
 
 // ErrNilSyncStatisticsHandler signals that a nil sync statistics handler was provided
 var ErrNilSyncStatisticsHandler = errors.New("nil sync statistics handler")
+
+// ErrNilEnableEpochsHandler signals that a nil enable epochs handler has been provided
+var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")

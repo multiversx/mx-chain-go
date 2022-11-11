@@ -522,11 +522,11 @@ func (tpn *TestProcessorNode) initAccountDBsWithPruningStorer() {
 	trieStorageManager := CreateTrieStorageManagerWithPruningStorer(tpn.ShardCoordinator, tpn.EpochStartNotifier)
 	tpn.TrieContainer = state.NewDataTriesHolder()
 	var stateTrie common.Trie
-	tpn.AccntState, stateTrie = CreateAccountsDB(UserAccount, trieStorageManager)
+	tpn.AccntState, stateTrie = CreateAccountsDBWithEnableEpochsHandler(UserAccount, trieStorageManager, tpn.EnableEpochsHandler)
 	tpn.TrieContainer.Put([]byte(trieFactory.UserAccountTrie), stateTrie)
 
 	var peerTrie common.Trie
-	tpn.PeerState, peerTrie = CreateAccountsDB(ValidatorAccount, trieStorageManager)
+	tpn.PeerState, peerTrie = CreateAccountsDBWithEnableEpochsHandler(ValidatorAccount, trieStorageManager, tpn.EnableEpochsHandler)
 	tpn.TrieContainer.Put([]byte(trieFactory.PeerAccountTrie), peerTrie)
 
 	tpn.TrieStorageManagers = make(map[string]common.StorageManager)
@@ -538,11 +538,11 @@ func (tpn *TestProcessorNode) initAccountDBs(store storage.Storer) {
 	trieStorageManager, _ := CreateTrieStorageManager(store)
 	tpn.TrieContainer = state.NewDataTriesHolder()
 	var stateTrie common.Trie
-	tpn.AccntState, stateTrie = CreateAccountsDB(UserAccount, trieStorageManager)
+	tpn.AccntState, stateTrie = CreateAccountsDBWithEnableEpochsHandler(UserAccount, trieStorageManager, tpn.EnableEpochsHandler)
 	tpn.TrieContainer.Put([]byte(trieFactory.UserAccountTrie), stateTrie)
 
 	var peerTrie common.Trie
-	tpn.PeerState, peerTrie = CreateAccountsDB(ValidatorAccount, trieStorageManager)
+	tpn.PeerState, peerTrie = CreateAccountsDBWithEnableEpochsHandler(ValidatorAccount, trieStorageManager, tpn.EnableEpochsHandler)
 	tpn.TrieContainer.Put([]byte(trieFactory.PeerAccountTrie), peerTrie)
 
 	tpn.TrieStorageManagers = make(map[string]common.StorageManager)

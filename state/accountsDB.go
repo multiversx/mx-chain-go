@@ -692,7 +692,7 @@ func (adb *AccountsDB) LoadAccount(address []byte) (vmcommon.AccountHandler, err
 		return nil, err
 	}
 	if check.IfNil(acnt) {
-		return adb.accountFactory.CreateAccount(address, adb.hasher, adb.marshaller)
+		return adb.accountFactory.CreateAccount(address)
 	}
 
 	baseAcc, ok := acnt.(baseAccountHandler)
@@ -715,7 +715,7 @@ func (adb *AccountsDB) getAccount(address []byte, mainTrie common.Trie) (vmcommo
 		return nil, nil
 	}
 
-	acnt, err := adb.accountFactory.CreateAccount(address, adb.hasher, adb.marshaller)
+	acnt, err := adb.accountFactory.CreateAccount(address)
 	if err != nil {
 		return nil, err
 	}
@@ -764,7 +764,7 @@ func (adb *AccountsDB) GetAccountFromBytes(address []byte, accountBytes []byte) 
 		return nil, fmt.Errorf("%w in GetAccountFromBytes", ErrNilAddress)
 	}
 
-	acnt, err := adb.accountFactory.CreateAccount(address, adb.hasher, adb.marshaller)
+	acnt, err := adb.accountFactory.CreateAccount(address)
 	if err != nil {
 		return nil, err
 	}

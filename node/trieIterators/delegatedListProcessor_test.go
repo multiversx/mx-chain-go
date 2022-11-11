@@ -10,17 +10,11 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/keyValStorage"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
-	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
-	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -126,7 +120,7 @@ func TestDelegatedListProc_GetDelegatorsListContextShouldTimeout(t *testing.T) {
 	}
 	arg.Accounts.AccountsAdapter = &stateMock.AccountsStub{
 		GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
-			return createDelegationScAccount(addressContainer, delegators, addressContainer, time.Second), nil
+			return createScAccount(addressContainer, delegators, addressContainer, time.Second), nil
 		},
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
@@ -173,7 +167,7 @@ func TestDelegatedListProc_GetDelegatorsListShouldWork(t *testing.T) {
 	}
 	arg.Accounts.AccountsAdapter = &stateMock.AccountsStub{
 		GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
-			return createDelegationScAccount(addressContainer, delegators, addressContainer, 0), nil
+			return createScAccount(addressContainer, delegators, addressContainer, 0), nil
 		},
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
@@ -217,29 +211,4 @@ func TestDelegatedListProc_GetDelegatorsListShouldWork(t *testing.T) {
 	}
 
 	assert.Equal(t, []*api.Delegator{&expectedDelegator1, &expectedDelegator2}, delegatorsValues)
-}
-
-func createDelegationScAccount(address []byte, leaves [][]byte, rootHash []byte, timeSleep time.Duration) state.UserAccountHandler {
-	acc, _ := state.NewUserAccount(address, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
-	acc.SetDataTrie(&trieMock.TrieStub{
-		RootCalled: func() ([]byte, error) {
-			return rootHash, nil
-		},
-		GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
-			go func() {
-				time.Sleep(timeSleep)
-				for _, leafBuff := range leaves {
-					leaf := keyValStorage.NewKeyValStorage(leafBuff, nil)
-					leavesChannels.LeavesChan <- leaf
-				}
-
-				close(leavesChannels.LeavesChan)
-				close(leavesChannels.ErrChan)
-			}()
-
-			return nil
-		},
-	})
-
-	return acc
 }

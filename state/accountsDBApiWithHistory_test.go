@@ -15,7 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common/holders"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	mockState "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
@@ -130,7 +129,7 @@ func TestAccountsDBApiWithHistory_GetAccountWithBlockInfo(t *testing.T) {
 			},
 			GetExistingAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 				if bytes.Equal(address, testscommon.TestPubKeyAlice) {
-					return state.NewUserAccount(address, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+					return createUserAcc(address), nil
 				}
 
 				return nil, errors.New("not found")

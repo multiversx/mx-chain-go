@@ -22,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/state"
 	factoryState "github.com/ElrondNetwork/elrond-go/state/factory"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -114,6 +115,7 @@ func (gbc *genesisBlockCreator) createHardForkImportHandler() error {
 		ShardID:             gbc.arg.ShardCoordinator.SelfId(),
 		StorageConfig:       gbc.arg.HardForkConfig.ImportStateStorageConfig,
 		TrieStorageManagers: gbc.arg.TrieStorageManagers,
+		EnableEpochsHandler: gbc.arg.Core.EnableEpochsHandler(),
 	}
 	importHandler, err := hardfork.NewStateImport(argsHardForkImport)
 	if err != nil {
@@ -475,12 +477,22 @@ func (gbc *genesisBlockCreator) getNewArgForShard(shardID uint32) (ArgsGenesisBl
 		newArgument.Data = newArgument.Data.Clone().(dataComponentsHandler)
 		return newArgument, nil
 	}
-
 	newArgument := gbc.arg // copy the arguments
+
+	argsAccCreator := state.ArgsAccountCreation{
+		Hasher:              newArgument.Core.Hasher(),
+		Marshaller:          newArgument.Core.InternalMarshalizer(),
+		EnableEpochsHandler: newArgument.Core.EnableEpochsHandler(),
+	}
+	accCreator, err := factoryState.NewAccountCreator(argsAccCreator)
+	if err != nil {
+		return ArgsGenesisBlockCreator{}, err
+	}
+
 	newArgument.Accounts, err = createAccountAdapter(
 		newArgument.Core.InternalMarshalizer(),
 		newArgument.Core.Hasher(),
-		factoryState.NewAccountCreator(),
+		accCreator,
 		gbc.arg.TrieStorageManagers[triesFactory.UserAccountTrie],
 	)
 	if err != nil {

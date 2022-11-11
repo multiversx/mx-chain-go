@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	commonDisabled "github.com/ElrondNetwork/elrond-go/common/disabled"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/state/factory"
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/disabled"
@@ -36,6 +37,7 @@ type ArgsNewStateImport struct {
 	StorageConfig       config.StorageConfig
 	TrieStorageManagers map[string]common.StorageManager
 	HardforkStorer      update.HardforkStorer
+	EnableEpochsHandler common.EnableEpochsHandler
 }
 
 type stateImport struct {
@@ -54,6 +56,7 @@ type stateImport struct {
 	shardID             uint32
 	storageConfig       config.StorageConfig
 	trieStorageManagers map[string]common.StorageManager
+	enableEpochsHandler common.EnableEpochsHandler
 }
 
 // NewStateImport creates an importer which reads all the files for a new start
@@ -70,6 +73,9 @@ func NewStateImport(args ArgsNewStateImport) (*stateImport, error) {
 	if check.IfNil(args.HardforkStorer) {
 		return nil, update.ErrNilHardforkStorer
 	}
+	if check.IfNil(args.EnableEpochsHandler) {
+		return nil, errors.ErrNilEnableEpochsHandler
+	}
 
 	st := &stateImport{
 		genesisHeaders:               make(map[uint32]data.HeaderHandler),
@@ -85,6 +91,7 @@ func NewStateImport(args ArgsNewStateImport) (*stateImport, error) {
 		storageConfig:                args.StorageConfig,
 		shardID:                      args.ShardID,
 		hardforkStorer:               args.HardforkStorer,
+		enableEpochsHandler:          args.EnableEpochsHandler,
 	}
 
 	return st, nil
@@ -265,10 +272,20 @@ func (si *stateImport) importMiniBlocks(identifier string, keys [][]byte) error 
 	return nil
 }
 
-func newAccountCreator(accType Type) (state.AccountFactory, error) {
+func newAccountCreator(
+	accType Type,
+	hasher hashing.Hasher,
+	marshaller marshal.Marshalizer,
+	handler common.EnableEpochsHandler,
+) (state.AccountFactory, error) {
 	switch accType {
 	case UserAccount:
-		return factory.NewAccountCreator(), nil
+		args := state.ArgsAccountCreation{
+			Hasher:              hasher,
+			Marshaller:          marshaller,
+			EnableEpochsHandler: handler,
+		}
+		return factory.NewAccountCreator(args)
 	case ValidatorAccount:
 		return factory.NewPeerAccountCreator(), nil
 	}
@@ -382,7 +399,7 @@ func (si *stateImport) importDataTrie(identifier string, shID uint32, keys [][]b
 }
 
 func (si *stateImport) getAccountsDB(accType Type, shardID uint32) (state.AccountsDBImporter, common.Trie, error) {
-	accountFactory, err := newAccountCreator(accType)
+	accountFactory, err := newAccountCreator(accType, si.hasher, si.marshalizer, si.enableEpochsHandler)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -515,7 +532,7 @@ func (si *stateImport) unMarshalAndSaveAccount(
 	accountsDB state.AccountsDBImporter,
 	mainTrie common.Trie,
 ) error {
-	account, err := NewEmptyAccount(accType, address, si.hasher, si.marshalizer)
+	account, err := NewEmptyAccount(accType, address, si.hasher, si.marshalizer, si.enableEpochsHandler)
 	if err != nil {
 		return err
 	}
