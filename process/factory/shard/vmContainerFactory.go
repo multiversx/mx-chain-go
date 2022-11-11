@@ -288,6 +288,7 @@ func (vmf *vmContainerFactory) createInProcessArwenVMByVersion(version config.Ar
 }
 
 func (vmf *vmContainerFactory) createInProcessArwenVMV12() (vmcommon.VMExecutionHandler, error) {
+	logVMContainerFactory.Info("VM 1.2 created")
 	hostParameters := &arwen12.VMHostParameters{
 		VMType:                   factory.ArwenVirtualMachine,
 		BlockGasLimit:            vmf.blockGasLimit,
@@ -300,6 +301,7 @@ func (vmf *vmContainerFactory) createInProcessArwenVMV12() (vmcommon.VMExecution
 }
 
 func (vmf *vmContainerFactory) createInProcessArwenVMV13() (vmcommon.VMExecutionHandler, error) {
+	logVMContainerFactory.Info("VM 1.3 created")
 	hostParameters := &arwen13.VMHostParameters{
 		VMType:                   factory.ArwenVirtualMachine,
 		BlockGasLimit:            vmf.blockGasLimit,
@@ -312,7 +314,7 @@ func (vmf *vmContainerFactory) createInProcessArwenVMV13() (vmcommon.VMExecution
 }
 
 func (vmf *vmContainerFactory) createInProcessArwenVMV14() (vmcommon.VMExecutionHandler, error) {
-	logVMContainerFactory.Error("VM 1.4 created")
+	logVMContainerFactory.Info("VM 1.4 created")
 	hostParameters := &arwen14.VMHostParameters{
 		VMType:                              factory.ArwenVirtualMachine,
 		BlockGasLimit:                       vmf.blockGasLimit,
@@ -329,7 +331,7 @@ func (vmf *vmContainerFactory) createInProcessArwenVMV14() (vmcommon.VMExecution
 }
 
 func (vmf *vmContainerFactory) createInProcessArwenVMV15() (vmcommon.VMExecutionHandler, error) {
-	logVMContainerFactory.Error("VM 1.5 created")
+	logVMContainerFactory.Info("VM 1.5 created")
 	hostParameters := &arwen15.VMHostParameters{
 		VMType:                              factory.ArwenVirtualMachine,
 		BlockGasLimit:                       vmf.blockGasLimit,
