@@ -76,8 +76,6 @@ const (
 // nodeRunner holds the node runner configuration and controls running of a node
 type nodeRunner struct {
 	configs *config.Configs
-
-	createManagedProcessComponentsMethod func(processArgs processComp.ProcessComponentsFactoryArgs) (mainFactory.ProcessComponentsHandler, error)
 }
 
 // NewNodeRunner creates a nodeRunner instance
@@ -89,8 +87,6 @@ func NewNodeRunner(cfgs *config.Configs) (*nodeRunner, error) {
 	nr := &nodeRunner{
 		configs: cfgs,
 	}
-
-	nr.createManagedProcessComponentsMethod = nr.createManagedProcessComponents
 
 	return nr, nil
 }
@@ -1242,7 +1238,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		ChainRunType:           common.ChainRunTypeRegular,
 	}
 
-	return nr.createManagedProcessComponentsMethod(processArgs)
+	return nr.createManagedProcessComponents(processArgs)
 }
 
 func (nr *nodeRunner) createManagedProcessComponents(processArgs processComp.ProcessComponentsFactoryArgs) (mainFactory.ProcessComponentsHandler, error) {
