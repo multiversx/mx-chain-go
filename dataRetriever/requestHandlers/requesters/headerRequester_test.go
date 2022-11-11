@@ -1,4 +1,4 @@
-package requestHandlers
+package requesters
 
 import (
 	"testing"
@@ -10,50 +10,50 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func createMockArgHeaderRequestHandler(argBase ArgBaseRequestHandler) ArgHeaderRequestHandler {
-	return ArgHeaderRequestHandler{
-		ArgBaseRequestHandler: argBase,
-		NonceConverter:        &mock.Uint64ByteSliceConverterMock{},
+func createMockArgHeaderRequester(argBase ArgBaseRequester) ArgHeaderRequester {
+	return ArgHeaderRequester{
+		ArgBaseRequester: argBase,
+		NonceConverter:   &mock.Uint64ByteSliceConverterMock{},
 	}
 }
 
-func TestNewHeaderRequestHandler(t *testing.T) {
+func TestNewHeaderRequester(t *testing.T) {
 	t.Parallel()
 
 	t.Run("nil base arg should error", func(t *testing.T) {
 		t.Parallel()
 
-		argsBase := createMockArgBaseRequestHandler()
+		argsBase := createMockArgBaseRequester()
 		argsBase.Marshaller = nil
-		handler, err := NewHeaderRequestHandler(createMockArgHeaderRequestHandler(argsBase))
+		requester, err := NewHeaderRequester(createMockArgHeaderRequester(argsBase))
 		assert.Equal(t, dataRetriever.ErrNilMarshalizer, err)
-		assert.True(t, check.IfNil(handler))
+		assert.True(t, check.IfNil(requester))
 	})
 	t.Run("nil nonce converter should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockArgHeaderRequestHandler(createMockArgBaseRequestHandler())
+		args := createMockArgHeaderRequester(createMockArgBaseRequester())
 		args.NonceConverter = nil
-		handler, err := NewHeaderRequestHandler(args)
+		requester, err := NewHeaderRequester(args)
 		assert.Equal(t, dataRetriever.ErrNilUint64ByteSliceConverter, err)
-		assert.True(t, check.IfNil(handler))
+		assert.True(t, check.IfNil(requester))
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		handler, err := NewHeaderRequestHandler(createMockArgHeaderRequestHandler(createMockArgBaseRequestHandler()))
+		requester, err := NewHeaderRequester(createMockArgHeaderRequester(createMockArgBaseRequester()))
 		assert.Nil(t, err)
-		assert.False(t, check.IfNil(handler))
+		assert.False(t, check.IfNil(requester))
 	})
 }
 
-func TestHeaderRequestHandler_RequestDataFromNonce(t *testing.T) {
+func TestHeaderRequester_RequestDataFromNonce(t *testing.T) {
 	t.Parallel()
 
 	providedNonce := uint64(1234)
 	providedEpoch := uint32(1000)
 	providedNonceConverter := mock.NewNonceHashConverterMock()
-	argBase := createMockArgBaseRequestHandler()
+	argBase := createMockArgBaseRequester()
 	wasCalled := false
 	argBase.SenderResolver = &dataRetrieverMocks.TopicResolverSenderStub{
 		SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData, originalHashes [][]byte) error {
@@ -65,23 +65,23 @@ func TestHeaderRequestHandler_RequestDataFromNonce(t *testing.T) {
 			return nil
 		},
 	}
-	args := ArgHeaderRequestHandler{
-		ArgBaseRequestHandler: argBase,
-		NonceConverter:        providedNonceConverter,
+	args := ArgHeaderRequester{
+		ArgBaseRequester: argBase,
+		NonceConverter:   providedNonceConverter,
 	}
-	handler, err := NewHeaderRequestHandler(args)
+	requester, err := NewHeaderRequester(args)
 	assert.Nil(t, err)
-	assert.False(t, check.IfNil(handler))
+	assert.False(t, check.IfNil(requester))
 
-	assert.Nil(t, handler.RequestDataFromNonce(providedNonce, providedEpoch))
+	assert.Nil(t, requester.RequestDataFromNonce(providedNonce, providedEpoch))
 	assert.True(t, wasCalled)
 }
 
-func TestHeaderRequestHandler_RequestDataFromEpoch(t *testing.T) {
+func TestHeaderRequester_RequestDataFromEpoch(t *testing.T) {
 	t.Parallel()
 
 	providedIdentifier := []byte("provided identifier")
-	argBase := createMockArgBaseRequestHandler()
+	argBase := createMockArgBaseRequester()
 	wasCalled := false
 	argBase.SenderResolver = &dataRetrieverMocks.TopicResolverSenderStub{
 		SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData, originalHashes [][]byte) error {
@@ -92,10 +92,10 @@ func TestHeaderRequestHandler_RequestDataFromEpoch(t *testing.T) {
 			return nil
 		},
 	}
-	handler, err := NewHeaderRequestHandler(createMockArgHeaderRequestHandler(argBase))
+	requester, err := NewHeaderRequester(createMockArgHeaderRequester(argBase))
 	assert.Nil(t, err)
-	assert.False(t, check.IfNil(handler))
+	assert.False(t, check.IfNil(requester))
 
-	assert.Nil(t, handler.RequestDataFromEpoch(providedIdentifier))
+	assert.Nil(t, requester.RequestDataFromEpoch(providedIdentifier))
 	assert.True(t, wasCalled)
 }

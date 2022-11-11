@@ -1,4 +1,4 @@
-package requestHandlers
+package requesters
 
 import (
 	"testing"
@@ -10,17 +10,17 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func createMockArgBaseRequestHandler() ArgBaseRequestHandler {
-	return ArgBaseRequestHandler{
+func createMockArgBaseRequester() ArgBaseRequester {
+	return ArgBaseRequester{
 		SenderResolver: &mock.TopicResolverSenderStub{},
 		Marshaller:     &testscommon.MarshalizerStub{},
 	}
 }
 
-func Test_createBaseRequestHandler(t *testing.T) {
+func Test_createBaseRequester(t *testing.T) {
 	t.Parallel()
 
-	baseHandler := createBaseRequestHandler(createMockArgBaseRequestHandler())
+	baseHandler := createBaseRequester(createMockArgBaseRequester())
 	assert.False(t, check.IfNilReflect(baseHandler))
 }
 
@@ -30,7 +30,7 @@ func Test_checkArgBase(t *testing.T) {
 	t.Run("nil sender resolver should error", func(t *testing.T) {
 		t.Parallel()
 
-		err := checkArgBase(ArgBaseRequestHandler{
+		err := checkArgBase(ArgBaseRequester{
 			SenderResolver: nil,
 			Marshaller:     &testscommon.MarshalizerStub{},
 		})
@@ -39,7 +39,7 @@ func Test_checkArgBase(t *testing.T) {
 	t.Run("nil marshaller should error", func(t *testing.T) {
 		t.Parallel()
 
-		err := checkArgBase(ArgBaseRequestHandler{
+		err := checkArgBase(ArgBaseRequester{
 			SenderResolver: &mock.TopicResolverSenderStub{},
 			Marshaller:     nil,
 		})
@@ -48,12 +48,12 @@ func Test_checkArgBase(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		err := checkArgBase(createMockArgBaseRequestHandler())
+		err := checkArgBase(createMockArgBaseRequester())
 		assert.Nil(t, err)
 	})
 }
 
-func TestBaseRequestHandler_RequestDataFromHash(t *testing.T) {
+func TestBaseRequester_RequestDataFromHash(t *testing.T) {
 	t.Parallel()
 
 	providedEpoch := uint32(1234)
@@ -70,7 +70,7 @@ func TestBaseRequestHandler_RequestDataFromHash(t *testing.T) {
 			return nil
 		},
 	}
-	baseHandler := createBaseRequestHandler(ArgBaseRequestHandler{
+	baseHandler := createBaseRequester(ArgBaseRequester{
 		SenderResolver: senderResolver,
 		Marshaller:     &testscommon.MarshalizerStub{},
 	})
@@ -80,7 +80,7 @@ func TestBaseRequestHandler_RequestDataFromHash(t *testing.T) {
 	assert.True(t, wasCalled)
 }
 
-func TestBaseRequestHandler_NumPeersToQuery(t *testing.T) {
+func TestBaseRequester_NumPeersToQuery(t *testing.T) {
 	t.Parallel()
 
 	providedIntra := 123
@@ -96,7 +96,7 @@ func TestBaseRequestHandler_NumPeersToQuery(t *testing.T) {
 			return providedIntra, providedCross
 		},
 	}
-	baseHandler := createBaseRequestHandler(ArgBaseRequestHandler{
+	baseHandler := createBaseRequester(ArgBaseRequester{
 		SenderResolver: senderResolver,
 		Marshaller:     &testscommon.MarshalizerStub{},
 	})
@@ -110,12 +110,12 @@ func TestBaseRequestHandler_NumPeersToQuery(t *testing.T) {
 	assert.Equal(t, providedCross, cross)
 }
 
-func TestBaseRequestHandler_SetResolverDebugHandler(t *testing.T) {
+func TestBaseRequester_SetResolverDebugHandler(t *testing.T) {
 	t.Parallel()
 
 	providedDebugHandler := &mock.ResolverDebugHandler{}
 	senderResolver := &mock.TopicResolverSenderStub{}
-	baseHandler := createBaseRequestHandler(ArgBaseRequestHandler{
+	baseHandler := createBaseRequester(ArgBaseRequester{
 		SenderResolver: senderResolver,
 		Marshaller:     &testscommon.MarshalizerStub{},
 	})
