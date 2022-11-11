@@ -43,3 +43,6 @@ var ErrEmptyGasConfigs = errors.New("empty gas configs")
 
 // ErrTooManyAddressesInBulk signals that there are too many addresses present in a bulk request
 var ErrTooManyAddressesInBulk = errors.New("too many addresses in the bulk request")
+
+// ErrNilStatusMetrics signals that a nil status metrics was provided
+var ErrNilStatusMetrics = errors.New("nil status metrics handler")
