@@ -222,12 +222,17 @@ func (st *storageBootstrapper) addReferencedMetablocksInTracker(header bootstrap
 		return err
 	}
 
-	shardHeader, ok := hdr.(data.ShardHeaderHandler)
+	prevHdr, err := st.bootstrapper.getHeader(hdr.GetPrevHash())
+	if err != nil {
+		return err
+	}
+
+	prevShardHeader, ok := prevHdr.(data.ShardHeaderHandler)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
 
-	metablockHashes := shardHeader.GetMetaBlockHashes()
+	metablockHashes := prevShardHeader.GetMetaBlockHashes()
 	for _, hash := range metablockHashes {
 		metaBlock, errGet := process.GetMetaHeaderFromStorage(hash, st.marshalizer, st.store)
 		if errGet != nil {

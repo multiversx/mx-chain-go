@@ -44,17 +44,28 @@ func TestShardStorageBootstrapper_LoadFromStorageShouldWork(t *testing.T) {
 
 	marshaller := &testscommon.MarshalizerMock{}
 	startRound := 4000
-	metaHdrHash := []byte("metablock hash 1")
+	prevHdrHash := []byte("prev header hash")
 	hdr := &block.Header{
-		Nonce:           3999,
-		Round:           3999,
-		RootHash:        []byte("roothash"),
+		Nonce:    3999,
+		Round:    3999,
+		RootHash: []byte("roothash"),
+		ShardID:  0,
+		ChainID:  []byte("1"),
+		PrevHash: prevHdrHash,
+	}
+	hdrHash := []byte("header hash")
+	hdrBytes, _ := marshaller.Marshal(hdr)
+
+	metaHdrHash := []byte("metablock hash 1")
+	prevHdr := &block.Header{
+		Nonce:           3998,
+		Round:           3998,
+		RootHash:        []byte("roothash-prev"),
 		ShardID:         0,
 		ChainID:         []byte("1"),
 		MetaBlockHashes: [][]byte{metaHdrHash},
 	}
-	hdrHash := []byte("header hash")
-	hdrBytes, _ := marshaller.Marshal(hdr)
+	prevHdrBytes, _ := marshaller.Marshal(prevHdr)
 
 	metaHdr := &block.MetaBlock{
 		Nonce: 3990,
@@ -63,6 +74,7 @@ func TestShardStorageBootstrapper_LoadFromStorageShouldWork(t *testing.T) {
 
 	blockStorerMock := genericMocks.NewStorerMock()
 	_ = blockStorerMock.Put(hdrHash, hdrBytes)
+	_ = blockStorerMock.Put(prevHdrHash, prevHdrBytes)
 	_ = blockStorerMock.Put(metaHdrHash, metaHdrBytes)
 
 	args := ArgsShardStorageBootstrapper{
