@@ -540,7 +540,10 @@ func applyCompatibleConfigs(log logger.Logger, configs *config.Configs) error {
 	}
 
 	// if FullArchive is enabled, we override the conflicting StoragePruning settings and StartInEpoch as well
-	isInFullArchiveMode := configs.PreferencesConfig.Preferences.FullArchive || operationmodes.SliceContainsElement(operationModes, operationmodes.OperationModeFullArchive)
+	if operationmodes.SliceContainsElement(operationModes, operationmodes.OperationModeFullArchive) {
+		configs.PreferencesConfig.Preferences.FullArchive = true
+	}
+	isInFullArchiveMode := configs.PreferencesConfig.Preferences.FullArchive
 	if isInFullArchiveMode {
 		processConfigFullArchiveMode(log, configs)
 	}
