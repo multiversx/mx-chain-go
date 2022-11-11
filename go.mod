@@ -3,7 +3,6 @@ module github.com/ElrondNetwork/elrond-go
 go 1.15
 
 require (
-	github.com/ElrondNetwork/covalent-indexer-go v1.0.7-0.20220922092743-7f3a26b4001a
 	github.com/ElrondNetwork/elastic-indexer-go v1.2.46-0.20221109100505-9b1b1482999a
 	github.com/ElrondNetwork/elrond-go-core v1.1.24-0.20221108113024-38dd797ed574
 	github.com/ElrondNetwork/elrond-go-crypto v1.2.1

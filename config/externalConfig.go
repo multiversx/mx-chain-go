@@ -4,7 +4,6 @@ package config
 type ExternalConfig struct {
 	ElasticSearchConnector ElasticSearchConfig
 	EventNotifierConnector EventNotifierConfig
-	CovalentConnector      CovalentConfig
 	WebSocketConnector     WebSocketDriverConfig
 }
 

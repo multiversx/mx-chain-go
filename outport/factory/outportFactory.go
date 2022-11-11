@@ -3,7 +3,6 @@ package factory
 import (
 	"time"
 
-	covalentFactory "github.com/ElrondNetwork/covalent-indexer-go/factory"
 	indexerFactory "github.com/ElrondNetwork/elastic-indexer-go/process/factory"
 	wsDriverFactory "github.com/ElrondNetwork/elrond-go-core/websocketOutportDriver/factory"
 	"github.com/ElrondNetwork/elrond-go/outport"
@@ -20,7 +19,6 @@ type OutportFactoryArgs struct {
 	RetrialInterval                  time.Duration
 	ElasticIndexerFactoryArgs        indexerFactory.ArgsIndexerFactory
 	EventNotifierFactoryArgs         *EventNotifierFactoryArgs
-	CovalentIndexerFactoryArgs       *covalentFactory.ArgsCovalentIndexerFactory
 	WebSocketSenderDriverFactoryArgs WrappedOutportDriverWebSocketSenderFactoryArgs
 }
 
@@ -55,28 +53,7 @@ func createAndSubscribeDrivers(outport outport.OutportHandler, args *OutportFact
 		return err
 	}
 
-	err = createAndSubscribeCovalentDriverIfNeeded(outport, args.CovalentIndexerFactoryArgs)
-	if err != nil {
-		return err
-	}
-
 	return createAndSubscribeWebSocketDriver(outport, args.WebSocketSenderDriverFactoryArgs)
-}
-
-func createAndSubscribeCovalentDriverIfNeeded(
-	outport outport.OutportHandler,
-	args *covalentFactory.ArgsCovalentIndexerFactory,
-) error {
-	if !args.Enabled {
-		return nil
-	}
-
-	covalentDriver, err := covalentFactory.CreateCovalentIndexer(args)
-	if err != nil {
-		return err
-	}
-
-	return outport.SubscribeDriver(covalentDriver)
 }
 
 func createAndSubscribeElasticDriverIfNeeded(
