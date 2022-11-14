@@ -3,6 +3,7 @@ package processing
 import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/outport"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/factory"
@@ -51,7 +52,7 @@ func (pcf *processComponentsFactory) NewBlockProcessor(
 
 // IndexGenesisBlocks -
 func (pcf *processComponentsFactory) IndexGenesisBlocks(genesisBlocks map[uint32]data.HeaderHandler, indexingData map[uint32]*genesis.IndexingData) error {
-	return pcf.indexGenesisBlocks(genesisBlocks, indexingData)
+	return pcf.indexGenesisBlocks(genesisBlocks, indexingData, map[string]*outport.AlteredAccount{})
 }
 
 // DecodeAddresses -
