@@ -98,8 +98,12 @@ func (tdaw *trackableDataTrie) retrieveValV2(key string) ([]byte, uint32, error)
 
 	dataTrieVal := &dataTrieValue.TrieLeafData{}
 	err = tdaw.marshaller.Unmarshal(dataTrieVal, val)
+	if err != nil {
+		return nil, depth, err
+	}
+
 	log.Trace("retrieve value from trie V2", "key", key, "value", dataTrieVal.Value)
-	return dataTrieVal.Value, depth, err
+	return dataTrieVal.Value, depth, nil
 }
 
 func (tdaw *trackableDataTrie) retrieveValV1(key []byte) ([]byte, uint32, error) {

@@ -3,7 +3,6 @@ package esdtSupply
 import (
 	"encoding/hex"
 	"errors"
-	"github.com/ElrondNetwork/elrond-go/testscommon/marshallerMock"
 	"math/big"
 	"testing"
 
@@ -15,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/marshallerMock"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/require"
 )
