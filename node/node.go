@@ -35,6 +35,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	procTx "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/state/parsers"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/keyBuilder"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -221,7 +222,13 @@ func (n *Node) GetAllIssuedESDTs(tokenType string, ctx context.Context) ([]strin
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 		ErrChan:    make(chan error, 1),
 	}
-	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash, keyBuilder.NewKeyBuilder())
+	err = userAccount.DataTrie().GetAllLeavesOnChannel(
+		chLeaves,
+		ctx,
+		rootHash,
+		keyBuilder.NewKeyBuilder(),
+		parsers.NewTrieLeafParserV1(),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -297,7 +304,13 @@ func (n *Node) GetKeyValuePairs(address string, options api.AccountQueryOptions,
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 		ErrChan:    make(chan error, 1),
 	}
-	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash, keyBuilder.NewKeyBuilder())
+	err = userAccount.DataTrie().GetAllLeavesOnChannel(
+		chLeaves,
+		ctx,
+		rootHash,
+		keyBuilder.NewKeyBuilder(),
+		parsers.NewTrieLeafParserV1(),
+	)
 	if err != nil {
 		return nil, api.BlockInfo{}, err
 	}
@@ -399,7 +412,13 @@ func (n *Node) getTokensIDsWithFilter(
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 		ErrChan:    make(chan error, 1),
 	}
-	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash, keyBuilder.NewKeyBuilder())
+	err = userAccount.DataTrie().GetAllLeavesOnChannel(
+		chLeaves,
+		ctx,
+		rootHash,
+		keyBuilder.NewKeyBuilder(),
+		parsers.NewTrieLeafParserV1(),
+	)
 	if err != nil {
 		return nil, api.BlockInfo{}, err
 	}
@@ -529,7 +548,13 @@ func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions,
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 		ErrChan:    make(chan error, 1),
 	}
-	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash, keyBuilder.NewKeyBuilder())
+	err = userAccount.DataTrie().GetAllLeavesOnChannel(
+		chLeaves,
+		ctx,
+		rootHash,
+		keyBuilder.NewKeyBuilder(),
+		parsers.NewTrieLeafParserV1(),
+	)
 	if err != nil {
 		return nil, api.BlockInfo{}, err
 	}

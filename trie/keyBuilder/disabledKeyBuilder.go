@@ -26,3 +26,8 @@ func (dkb *disabledKeyBuilder) GetKey() ([]byte, error) {
 func (dkb *disabledKeyBuilder) Clone() common.KeyBuilder {
 	return &disabledKeyBuilder{}
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (dkb *disabledKeyBuilder) IsInterfaceNil() bool {
+	return dkb == nil
+}

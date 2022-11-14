@@ -287,7 +287,7 @@ func TestStateExport_ExportTrieShouldExportNodesSetupJson(t *testing.T) {
 			RootCalled: func() ([]byte, error) {
 				return []byte{}, nil
 			},
-			GetAllLeavesOnChannelCalled: func(channels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder) error {
+			GetAllLeavesOnChannelCalled: func(channels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder, _ common.TrieLeafParser) error {
 				mm := &mock.MarshalizerMock{}
 				valInfo := &state.ValidatorInfo{List: string(common.EligibleList)}
 				pacB, _ := mm.Marshal(valInfo)
@@ -336,7 +336,7 @@ func TestStateExport_ExportTrieShouldExportNodesSetupJson(t *testing.T) {
 			RootCalled: func() ([]byte, error) {
 				return []byte{}, nil
 			},
-			GetAllLeavesOnChannelCalled: func(channels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder) error {
+			GetAllLeavesOnChannelCalled: func(channels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder, _ common.TrieLeafParser) error {
 				mm := &mock.MarshalizerMock{}
 				valInfo := &state.ValidatorInfo{List: string(common.EligibleList)}
 				pacB, _ := mm.Marshal(valInfo)

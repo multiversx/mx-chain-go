@@ -196,13 +196,13 @@ func (accountsDB *accountsDBApi) IsPruningEnabled() bool {
 }
 
 // GetAllLeaves will call the inner accountsAdapter method after trying to recreate the trie
-func (accountsDB *accountsDBApi) GetAllLeaves(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error {
+func (accountsDB *accountsDBApi) GetAllLeaves(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, trieLeafParser common.TrieLeafParser) error {
 	_, err := accountsDB.recreateTrieIfNecessary()
 	if err != nil {
 		return err
 	}
 
-	return accountsDB.innerAccountsAdapter.GetAllLeaves(leavesChannels, ctx, rootHash)
+	return accountsDB.innerAccountsAdapter.GetAllLeaves(leavesChannels, ctx, rootHash, trieLeafParser)
 }
 
 // RecreateAllTries is a not permitted operation in this implementation and thus, will return an error

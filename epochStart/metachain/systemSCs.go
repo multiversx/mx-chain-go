@@ -23,6 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/state/parsers"
 	"github.com/ElrondNetwork/elrond-go/trie/keyBuilder"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
@@ -1104,7 +1105,13 @@ func (s *systemSCProcessor) getArgumentsForSetOwnerFunctionality(userValidatorAc
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 		ErrChan:    make(chan error, 1),
 	}
-	err = userValidatorAccount.DataTrie().GetAllLeavesOnChannel(leavesChannels, context.Background(), rootHash, keyBuilder.NewKeyBuilder())
+	err = userValidatorAccount.DataTrie().GetAllLeavesOnChannel(
+		leavesChannels,
+		context.Background(),
+		rootHash,
+		keyBuilder.NewKeyBuilder(),
+		parsers.NewTrieLeafParserV1(),
+	)
 	if err != nil {
 		return nil, err
 	}

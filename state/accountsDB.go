@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/holders"
 	"github.com/ElrondNetwork/elrond-go/errors"
+	"github.com/ElrondNetwork/elrond-go/state/parsers"
 	"github.com/ElrondNetwork/elrond-go/trie/keyBuilder"
 	"github.com/ElrondNetwork/elrond-go/trie/statistics"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -1034,7 +1035,13 @@ func (adb *AccountsDB) RecreateAllTries(rootHash []byte) (map[string]common.Trie
 		ErrChan:    make(chan error, 1),
 	}
 	mainTrie := adb.getMainTrie()
-	err := mainTrie.GetAllLeavesOnChannel(leavesChannels, context.Background(), rootHash, keyBuilder.NewDisabledKeyBuilder())
+	err := mainTrie.GetAllLeavesOnChannel(
+		leavesChannels,
+		context.Background(),
+		rootHash,
+		keyBuilder.NewDisabledKeyBuilder(),
+		parsers.NewTrieLeafParserV1(),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -1401,8 +1408,8 @@ func (adb *AccountsDB) IsPruningEnabled() bool {
 }
 
 // GetAllLeaves returns all the leaves from a given rootHash
-func (adb *AccountsDB) GetAllLeaves(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error {
-	return adb.getMainTrie().GetAllLeavesOnChannel(leavesChannels, ctx, rootHash, keyBuilder.NewKeyBuilder())
+func (adb *AccountsDB) GetAllLeaves(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, trieLeafParser common.TrieLeafParser) error {
+	return adb.getMainTrie().GetAllLeavesOnChannel(leavesChannels, ctx, rootHash, keyBuilder.NewKeyBuilder(), trieLeafParser)
 }
 
 // Close will handle the closing of the underlying components
@@ -1430,7 +1437,13 @@ func (adb *AccountsDB) GetStatsForRootHash(rootHash []byte) (common.TriesStatist
 		LeavesChan: make(chan core.KeyValueHolder, leavesChannelSize),
 		ErrChan:    make(chan error, 1),
 	}
-	err := mainTrie.GetAllLeavesOnChannel(iteratorChannels, context.Background(), rootHash, keyBuilder.NewDisabledKeyBuilder())
+	err := mainTrie.GetAllLeavesOnChannel(
+		iteratorChannels,
+		context.Background(),
+		rootHash,
+		keyBuilder.NewDisabledKeyBuilder(),
+		parsers.NewTrieLeafParserV1(),
+	)
 	if err != nil {
 		return nil, err
 	}

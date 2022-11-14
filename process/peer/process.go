@@ -21,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/state/parsers"
 )
 
 var log = logger.GetOrCreate("process/peer")
@@ -561,7 +562,7 @@ func (vs *validatorStatistics) GetValidatorInfoForRootHash(rootHash []byte) (map
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 		ErrChan:    make(chan error, 1),
 	}
-	err := vs.peerAdapter.GetAllLeaves(leavesChannels, context.Background(), rootHash)
+	err := vs.peerAdapter.GetAllLeaves(leavesChannels, context.Background(), rootHash, parsers.NewTrieLeafParserV1())
 	if err != nil {
 		return nil, err
 	}

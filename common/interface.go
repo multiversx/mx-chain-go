@@ -41,12 +41,18 @@ type Trie interface {
 	GetSerializedNodes([]byte, uint64) ([][]byte, uint64, error)
 	GetSerializedNode([]byte) ([]byte, error)
 	GetNumNodes() NumNodesDTO
-	GetAllLeavesOnChannel(allLeavesChan *TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder KeyBuilder) error
+	GetAllLeavesOnChannel(allLeavesChan *TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder KeyBuilder, trieLeafParser TrieLeafParser) error
 	GetAllHashes() ([][]byte, error)
 	GetProof(key []byte) ([][]byte, []byte, error)
 	VerifyProof(rootHash []byte, key []byte, proof [][]byte) (bool, error)
 	GetStorageManager() StorageManager
 	Close() error
+	IsInterfaceNil() bool
+}
+
+// TrieLeafParser is used to parse trie leaves
+type TrieLeafParser interface {
+	ParseLeaf(key []byte, val []byte) (core.KeyValueHolder, error)
 	IsInterfaceNil() bool
 }
 
@@ -60,12 +66,13 @@ type KeyBuilder interface {
 	BuildKey(keyPart []byte)
 	GetKey() ([]byte, error)
 	Clone() KeyBuilder
+	IsInterfaceNil() bool
 }
 
 // DataTrieHandler is an interface that declares the methods used for dataTries
 type DataTrieHandler interface {
 	RootHash() ([]byte, error)
-	GetAllLeavesOnChannel(leavesChannels *TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder KeyBuilder) error
+	GetAllLeavesOnChannel(leavesChannels *TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder KeyBuilder, trieLeafParser TrieLeafParser) error
 	IsInterfaceNil() bool
 }
 

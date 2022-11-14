@@ -160,7 +160,7 @@ func createScAccount(address []byte, leaves [][]byte, rootHash []byte, timeSleep
 		RootCalled: func() ([]byte, error) {
 			return rootHash, nil
 		},
-		GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
+		GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder, _ common.TrieLeafParser) error {
 			go func() {
 				time.Sleep(timeSleep)
 				for _, leafBuff := range leaves {
