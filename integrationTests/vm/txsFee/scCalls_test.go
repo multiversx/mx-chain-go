@@ -11,8 +11,6 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
@@ -53,14 +51,6 @@ func TestScCallShouldWork(t *testing.T) {
 
 		_, errCommit := testContext.Accounts.Commit()
 		require.Nil(t, errCommit)
-
-		intermediateTxs := testContext.GetIntermediateTransactions(t)
-		testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, true, testContext.TxsLogsProcessor)
-		testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
-
-		indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-		require.Equal(t, uint64(387), indexerTx.GasUsed)
-		require.Equal(t, "3870", indexerTx.Fee)
 	}
 
 	ret := vm.GetIntValueFromSC(nil, testContext.Accounts, scAddress, "get")
@@ -105,14 +95,6 @@ func TestScCallContractNotFoundShouldConsumeGas(t *testing.T) {
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
 	require.Equal(t, big.NewInt(10000), accumulatedFees)
-
-	intermediateTxs := testContext.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, false, testContext.TxsLogsProcessor)
-	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
-
-	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, tx.GasLimit, indexerTx.GasUsed)
-	require.Equal(t, "10000", indexerTx.Fee)
 }
 
 func TestScCallInvalidMethodToCallShouldConsumeGas(t *testing.T) {
@@ -147,14 +129,6 @@ func TestScCallInvalidMethodToCallShouldConsumeGas(t *testing.T) {
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
 	require.Equal(t, big.NewInt(20970), accumulatedFees)
-
-	intermediateTxs := testContext.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, false, testContext.TxsLogsProcessor)
-	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
-
-	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, tx.GasLimit, indexerTx.GasUsed)
-	require.Equal(t, "10000", indexerTx.Fee)
 }
 
 func TestScCallInsufficientGasLimitShouldNotConsumeGas(t *testing.T) {
@@ -224,14 +198,6 @@ func TestScCallOutOfGasShouldConsumeGas(t *testing.T) {
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
 	require.Equal(t, big.NewInt(11170), accumulatedFees)
-
-	intermediateTxs := testContext.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, false, testContext.TxsLogsProcessor)
-	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
-
-	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, tx.GasLimit, indexerTx.GasUsed)
-	require.Equal(t, "200", indexerTx.Fee)
 }
 
 func TestScCallAndGasChangeShouldWork(t *testing.T) {
@@ -260,13 +226,6 @@ func TestScCallAndGasChangeShouldWork(t *testing.T) {
 
 		_, errCommit := testContext.Accounts.Commit()
 		require.Nil(t, errCommit)
-
-		intermediateTxs := testContext.GetIntermediateTransactions(t)
-		testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, true, testContext.TxsLogsProcessor)
-		testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
-
-		indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-		require.Equal(t, uint64(387), indexerTx.GasUsed)
 	}
 
 	newGasSchedule := arwenConfig.MakeGasMapForTests()
@@ -282,13 +241,6 @@ func TestScCallAndGasChangeShouldWork(t *testing.T) {
 
 		_, errCommit := testContext.Accounts.Commit()
 		require.Nil(t, errCommit)
-
-		intermediateTxs := testContext.GetIntermediateTransactions(t)
-		testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, true, testContext.TxsLogsProcessor)
-		testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
-
-		indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-		require.Equal(t, uint64(400), indexerTx.GasUsed)
 	}
 }
 
@@ -329,13 +281,6 @@ func TestESDTScCallAndGasChangeShouldWork(t *testing.T) {
 
 		_, errCommit := testContext.Accounts.Commit()
 		require.Nil(t, errCommit)
-
-		intermediateTxs := testContext.GetIntermediateTransactions(t)
-		testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, true, testContext.TxsLogsProcessor)
-		testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
-
-		indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-		require.Equal(t, uint64(25092), indexerTx.GasUsed)
 	}
 
 	mockGasSchedule := testContext.GasSchedule.(*mock.GasScheduleNotifierMock)
@@ -354,13 +299,6 @@ func TestESDTScCallAndGasChangeShouldWork(t *testing.T) {
 
 		_, errCommit := testContext.Accounts.Commit()
 		require.Nil(t, errCommit)
-
-		intermediateTxs := testContext.GetIntermediateTransactions(t)
-		testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, true, testContext.TxsLogsProcessor)
-		testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
-
-		indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-		require.Equal(t, uint64(25095), indexerTx.GasUsed)
 	}
 }
 
