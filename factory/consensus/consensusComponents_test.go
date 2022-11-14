@@ -7,8 +7,11 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
+	customErrors "github.com/ElrondNetwork/elrond-go/errors"
 	errorsErd "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	consensusComp "github.com/ElrondNetwork/elrond-go/factory/consensus"
@@ -18,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	componentsMock "github.com/ElrondNetwork/elrond-go/testscommon/components"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -131,6 +135,22 @@ func TestNewConsensusComponentsFactory_NilStateComponents(t *testing.T) {
 
 	require.Nil(t, bcf)
 	require.Equal(t, errorsErd.ErrNilStateComponentsHolder, err)
+}
+
+func TestNewConsensusComponentsFactory_IncompatibleArguments(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	args := componentsMock.GetConsensusArgs(shardCoordinator)
+	args.ChainRunType = common.ChainRunTypeSovereign
+	args.SubroundBlockType = consensus.SubroundBlockTypeV1
+
+	ccf, err := consensusComp.NewConsensusComponentsFactory(args)
+	assert.Nil(t, ccf)
+	assert.ErrorIs(t, err, customErrors.ErrIncompatibleArgumentsProvided)
 }
 
 // ------------ Test Old Use Cases --------------------

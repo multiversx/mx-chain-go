@@ -517,3 +517,12 @@ var ErrInvalidSignature = errors.New("invalid signature")
 
 // ErrInvalidHeartbeatV2Config signals that an invalid heartbeat v2 configuration has been provided
 var ErrInvalidHeartbeatV2Config = errors.New("invalid heartbeat v2 configuration")
+
+// ErrUnimplementedSubroundType signals an unimplemented subround type
+var ErrUnimplementedSubroundType = errors.New("unimplemented subround type")
+
+// ErrUnimplementedChainRunType signals an unimplemented chain run type
+var ErrUnimplementedChainRunType = errors.New("unimplemented chain run type")
+
+// ErrIncompatibleArgumentsProvided signals that incompatible arguments were provided
+var ErrIncompatibleArgumentsProvided = errors.New("incompatible arguments provided")

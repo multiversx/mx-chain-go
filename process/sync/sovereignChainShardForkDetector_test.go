@@ -1,23 +1,24 @@
 package sync
 
 import (
+	"testing"
+
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
-func TestNewSideChainShardForkDetector_ShouldErrNilForkDetector(t *testing.T) {
+func TestNewSovereignChainShardForkDetector_ShouldErrNilForkDetector(t *testing.T) {
 	t.Parallel()
 
-	sdsfd, err := NewSideChainShardForkDetector(nil)
-	assert.Nil(t, sdsfd)
+	scsfd, err := NewSovereignChainShardForkDetector(nil)
+	assert.Nil(t, scsfd)
 	assert.Equal(t, process.ErrNilForkDetector, err)
 }
 
-func TestNewSideChainShardForkDetector_ShouldWork(t *testing.T) {
+func TestNewSovereignChainShardForkDetector_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	sfd, _ := NewShardForkDetector(
@@ -27,12 +28,12 @@ func TestNewSideChainShardForkDetector_ShouldWork(t *testing.T) {
 		0,
 	)
 
-	sdsfd, err := NewSideChainShardForkDetector(sfd)
-	assert.NotNil(t, sdsfd)
+	scsfd, err := NewSovereignChainShardForkDetector(sfd)
+	assert.NotNil(t, scsfd)
 	assert.Nil(t, err)
 }
 
-func TestSideChainShardForkDetector_DoJobOnBHProcessedShouldWork(t *testing.T) {
+func TestSovereignChainShardForkDetector_DoJobOnBHProcessedShouldWork(t *testing.T) {
 	t.Parallel()
 
 	sfd, _ := NewShardForkDetector(
@@ -42,18 +43,18 @@ func TestSideChainShardForkDetector_DoJobOnBHProcessedShouldWork(t *testing.T) {
 		0,
 	)
 
-	sdsfd, _ := NewSideChainShardForkDetector(sfd)
+	scsfd, _ := NewSovereignChainShardForkDetector(sfd)
 
 	finalCheckpoint := &checkpointInfo{
 		nonce: 1,
 		round: 1,
 		hash:  []byte("hash1"),
 	}
-	sdsfd.addCheckpoint(finalCheckpoint)
+	scsfd.addCheckpoint(finalCheckpoint)
 
 	header := &block.Header{Round: 2, Nonce: 2}
 	headerHash := []byte("hash2")
-	sdsfd.doJobOnBHProcessedFunc(header, headerHash, nil, nil)
+	scsfd.doJobOnBHProcessedFunc(header, headerHash, nil, nil)
 
 	expectedCheckpoint := &checkpointInfo{
 		nonce: header.Nonce,
@@ -61,6 +62,6 @@ func TestSideChainShardForkDetector_DoJobOnBHProcessedShouldWork(t *testing.T) {
 		hash:  headerHash,
 	}
 
-	assert.Equal(t, finalCheckpoint, sdsfd.finalCheckpoint())
-	assert.Equal(t, expectedCheckpoint, sdsfd.lastCheckpoint())
+	assert.Equal(t, finalCheckpoint, scsfd.finalCheckpoint())
+	assert.Equal(t, expectedCheckpoint, scsfd.lastCheckpoint())
 }

@@ -844,6 +844,7 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 		IsInImportMode:        nr.configs.ImportDbConfig.IsImportDBMode,
 		ShouldDisableWatchdog: nr.configs.FlagsConfig.DisableConsensusWatchdog,
 		SubroundBlockType:     consensus.SubroundBlockTypeV1,
+		ChainRunType:          common.ChainRunTypeRegular,
 	}
 
 	consensusFactory, err := consensusComp.NewConsensusComponentsFactory(consensusArgs)
@@ -1232,6 +1233,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		ImportStartHandler:     importStartHandler,
 		WorkingDir:             configs.FlagsConfig.WorkingDir,
 		HistoryRepo:            historyRepository,
+		ChainRunType:           common.ChainRunTypeRegular,
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {

@@ -29,6 +29,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
+	customErrors "github.com/ElrondNetwork/elrond-go/errors"
 	errErd "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
@@ -145,6 +146,7 @@ type ProcessComponentsFactoryArgs struct {
 	Network             factory.NetworkComponentsHolder
 	BootstrapComponents factory.BootstrapComponentsHolder
 	StatusComponents    factory.StatusComponentsHolder
+	ChainRunType        common.ChainRunType
 }
 
 type processComponentsFactory struct {
@@ -176,6 +178,7 @@ type processComponentsFactory struct {
 	network             factory.NetworkComponentsHolder
 	bootstrapComponents factory.BootstrapComponentsHolder
 	statusComponents    factory.StatusComponentsHolder
+	chainRunType        common.ChainRunType
 }
 
 // NewProcessComponentsFactory will return a new instance of processComponentsFactory
@@ -211,6 +214,7 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		workingDir:             args.WorkingDir,
 		historyRepo:            args.HistoryRepo,
 		epochNotifier:          args.CoreData.EpochNotifier(),
+		chainRunType:           args.ChainRunType,
 	}, nil
 }
 
@@ -1048,11 +1052,7 @@ func (pcf *processComponentsFactory) newBlockTracker(
 	}
 
 	if pcf.bootstrapComponents.ShardCoordinator().SelfId() < pcf.bootstrapComponents.ShardCoordinator().NumberOfShards() {
-		arguments := track.ArgShardTracker{
-			ArgBaseTracker: argBaseTracker,
-		}
-
-		return track.NewShardBlockTrack(arguments)
+		return pcf.createShardBlockTracker(argBaseTracker)
 	}
 
 	if pcf.bootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
@@ -1064,6 +1064,26 @@ func (pcf *processComponentsFactory) newBlockTracker(
 	}
 
 	return nil, errors.New("could not create block tracker")
+}
+
+func (pcf *processComponentsFactory) createShardBlockTracker(argBaseTracker track.ArgBaseTracker) (process.BlockTracker, error) {
+	arguments := track.ArgShardTracker{
+		ArgBaseTracker: argBaseTracker,
+	}
+
+	blockTracker, err := track.NewShardBlockTrack(arguments)
+	if err != nil {
+		return nil, err
+	}
+
+	switch pcf.chainRunType {
+	case common.ChainRunTypeRegular:
+		return blockTracker, nil
+	case common.ChainRunTypeSovereign:
+		return track.NewSovereignChainShardBlockTrack(blockTracker)
+	default:
+		return nil, fmt.Errorf("%w type %v", customErrors.ErrUnimplementedChainRunType, pcf.chainRunType)
+	}
 }
 
 // -- Resolvers container Factory begin
@@ -1423,13 +1443,29 @@ func (pcf *processComponentsFactory) newForkDetector(
 	blockTracker process.BlockTracker,
 ) (process.ForkDetector, error) {
 	if pcf.bootstrapComponents.ShardCoordinator().SelfId() < pcf.bootstrapComponents.ShardCoordinator().NumberOfShards() {
-		return sync.NewShardForkDetector(pcf.coreData.RoundHandler(), headerBlackList, blockTracker, pcf.coreData.GenesisNodesSetup().GetStartTime())
+		return pcf.createShardForkDetector(headerBlackList, blockTracker)
 	}
 	if pcf.bootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
 		return sync.NewMetaForkDetector(pcf.coreData.RoundHandler(), headerBlackList, blockTracker, pcf.coreData.GenesisNodesSetup().GetStartTime())
 	}
 
 	return nil, errors.New("could not create fork detector")
+}
+
+func (pcf *processComponentsFactory) createShardForkDetector(headerBlackList process.TimeCacher, blockTracker process.BlockTracker) (process.ForkDetector, error) {
+	forkDetector, err := sync.NewShardForkDetector(pcf.coreData.RoundHandler(), headerBlackList, blockTracker, pcf.coreData.GenesisNodesSetup().GetStartTime())
+	if err != nil {
+		return nil, err
+	}
+
+	switch pcf.chainRunType {
+	case common.ChainRunTypeRegular:
+		return forkDetector, nil
+	case common.ChainRunTypeSovereign:
+		return sync.NewSovereignChainShardForkDetector(forkDetector)
+	default:
+		return nil, fmt.Errorf("%w type %v", customErrors.ErrUnimplementedChainRunType, pcf.chainRunType)
+	}
 }
 
 // PrepareNetworkShardingCollector will create the network sharding collector and apply it to the network messenger

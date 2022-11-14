@@ -1151,3 +1151,6 @@ var ErrPropertyTooShort = errors.New("property too short")
 
 // ErrNilProcessDebugger signals that a nil process debugger was provided
 var ErrNilProcessDebugger = errors.New("nil process debugger")
+
+// ErrNilShardBootstrap signals that a nil shard bootstrap was provided
+var ErrNilShardBootstrap = errors.New("nil shard bootstrap")

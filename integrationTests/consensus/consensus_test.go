@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-crypto"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	consensusComp "github.com/ElrondNetwork/elrond-go/factory/consensus"
@@ -142,6 +143,7 @@ func startNodesWithCommitBlock(nodes []*integrationTests.TestConsensusNode, mute
 			ScheduledProcessor:  &consensusMocks.ScheduledProcessorStub{},
 			IsInImportMode:      n.Node.IsInImportMode(),
 			SubroundBlockType:   consensus.SubroundBlockTypeV1,
+			ChainRunType:        common.ChainRunTypeRegular,
 		}
 
 		consensusFactory, err := consensusComp.NewConsensusComponentsFactory(consensusArgs)

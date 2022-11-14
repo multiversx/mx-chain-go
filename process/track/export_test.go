@@ -223,9 +223,9 @@ func (bp *blockProcessor) ShouldProcessReceivedHeader(headerHandler data.HeaderH
 	return bp.shouldProcessReceivedHeaderFunc(headerHandler)
 }
 
-// sideChainBlockProcessor
+// sovereignChainBlockProcessor
 
-func (scbp *sideChainBlockProcessor) ShouldProcessReceivedHeader(headerHandler data.HeaderHandler) bool {
+func (scbp *sovereignChainBlockProcessor) ShouldProcessReceivedHeader(headerHandler data.HeaderHandler) bool {
 	return scbp.shouldProcessReceivedHeaderFunc(headerHandler)
 }
 
