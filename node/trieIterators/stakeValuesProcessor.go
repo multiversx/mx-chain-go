@@ -12,7 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/state/disabled"
+	"github.com/ElrondNetwork/elrond-go/state/parsers"
 	"github.com/ElrondNetwork/elrond-go/trie/keyBuilder"
 	"github.com/ElrondNetwork/elrond-go/vm"
 )
@@ -106,7 +106,7 @@ func (svp *stakedValuesProcessor) computeBaseStakedAndTopUp(ctx context.Context)
 		ctx,
 		rootHash,
 		keyBuilder.NewKeyBuilder(),
-		disabled.NewDisabledTrieLeafParser(),
+		parsers.NewTrieLeafParserV1(),
 	)
 	if err != nil {
 		return nil, nil, err

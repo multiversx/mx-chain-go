@@ -23,8 +23,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/state"
-	stateDisabled "github.com/ElrondNetwork/elrond-go/state/disabled"
 	"github.com/ElrondNetwork/elrond-go/state/factory"
+	"github.com/ElrondNetwork/elrond-go/state/parsers"
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager"
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/disabled"
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/evictionWaitingList"
@@ -1457,7 +1457,7 @@ func TestAccountsDB_GetAllLeaves(t *testing.T) {
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 		ErrChan:    make(chan error, 1),
 	}
-	err := adb.GetAllLeaves(leavesChannel, context.Background(), []byte("root hash"), stateDisabled.NewDisabledTrieLeafParser())
+	err := adb.GetAllLeaves(leavesChannel, context.Background(), []byte("root hash"), parsers.NewTrieLeafParserV1())
 	assert.Nil(t, err)
 	assert.True(t, getAllLeavesCalled)
 
@@ -2912,7 +2912,7 @@ func testAccountMethodsConcurrency(
 			case 17:
 				_ = adb.IsPruningEnabled()
 			case 18:
-				_ = adb.GetAllLeaves(&common.TrieIteratorChannels{}, context.Background(), rootHash, stateDisabled.NewDisabledTrieLeafParser())
+				_ = adb.GetAllLeaves(&common.TrieIteratorChannels{}, context.Background(), rootHash, parsers.NewTrieLeafParserV1())
 			case 19:
 				_, _ = adb.RecreateAllTries(rootHash)
 			case 20:

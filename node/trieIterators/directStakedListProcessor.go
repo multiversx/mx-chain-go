@@ -8,7 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/state/disabled"
+	"github.com/ElrondNetwork/elrond-go/state/parsers"
 	"github.com/ElrondNetwork/elrond-go/trie/keyBuilder"
 	"github.com/ElrondNetwork/elrond-go/vm"
 )
@@ -64,7 +64,7 @@ func (dslp *directStakedListProcessor) getAllStakedAccounts(validatorAccount sta
 		ctx,
 		rootHash,
 		keyBuilder.NewKeyBuilder(),
-		disabled.NewDisabledTrieLeafParser(),
+		parsers.NewTrieLeafParserV1(),
 	)
 	if err != nil {
 		return nil, err

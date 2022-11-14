@@ -1,4 +1,4 @@
-package disabled
+package parsers
 
 import (
 	"testing"
@@ -7,13 +7,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewDisabledTrieLeafParser(t *testing.T) {
+func TestNewTrieLeafParserV1(t *testing.T) {
 	t.Parallel()
 
-	t.Run("new disabledTrieLeafParser", func(t *testing.T) {
+	t.Run("new trieLeafParserV1", func(t *testing.T) {
 		t.Parallel()
 
-		assert.False(t, check.IfNil(NewDisabledTrieLeafParser()))
+		assert.False(t, check.IfNil(NewTrieLeafParserV1()))
 	})
 
 	t.Run("parse leaf", func(t *testing.T) {
@@ -21,7 +21,7 @@ func TestNewDisabledTrieLeafParser(t *testing.T) {
 
 		key := []byte("key")
 		value := []byte("value")
-		dtlp := NewDisabledTrieLeafParser()
+		dtlp := NewTrieLeafParserV1()
 
 		keyValHolder, err := dtlp.ParseLeaf(key, value)
 		assert.Nil(t, err)

@@ -16,7 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/state/disabled"
+	"github.com/ElrondNetwork/elrond-go/state/parsers"
 	"github.com/ElrondNetwork/elrond-go/state/syncer"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -350,7 +350,7 @@ func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves 
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 		ErrChan:    make(chan error, 1),
 	}
-	err = accState.GetAllLeaves(leavesChannel, context.Background(), rootHash, disabled.NewDisabledTrieLeafParser())
+	err = accState.GetAllLeaves(leavesChannel, context.Background(), rootHash, parsers.NewTrieLeafParserV1())
 	for range leavesChannel.LeavesChan {
 	}
 	require.Nil(t, err)
@@ -378,7 +378,7 @@ func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves 
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 		ErrChan:    make(chan error, 1),
 	}
-	err = nRequester.AccntState.GetAllLeaves(leavesChannel, context.Background(), rootHash, disabled.NewDisabledTrieLeafParser())
+	err = nRequester.AccntState.GetAllLeaves(leavesChannel, context.Background(), rootHash, parsers.NewTrieLeafParserV1())
 	assert.Nil(t, err)
 	numLeaves := 0
 	for range leavesChannel.LeavesChan {
@@ -585,7 +585,7 @@ func getNumLeaves(t *testing.T, tr common.Trie, rootHash []byte) int {
 		context.Background(),
 		rootHash,
 		keyBuilder.NewDisabledKeyBuilder(),
-		disabled.NewDisabledTrieLeafParser(),
+		parsers.NewTrieLeafParserV1(),
 	)
 	require.Nil(t, err)
 

@@ -13,7 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/state/disabled"
+	"github.com/ElrondNetwork/elrond-go/state/parsers"
 	"github.com/ElrondNetwork/elrond-go/trie/keyBuilder"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -137,7 +137,7 @@ func (dlp *delegatedListProcessor) getDelegatorsList(delegationSC []byte, ctx co
 		ctx,
 		rootHash,
 		keyBuilder.NewKeyBuilder(),
-		disabled.NewDisabledTrieLeafParser(),
+		parsers.NewTrieLeafParserV1(),
 	)
 	if err != nil {
 		return nil, err
