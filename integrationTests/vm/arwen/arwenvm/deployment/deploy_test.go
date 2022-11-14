@@ -21,10 +21,6 @@ var senderNonce = uint64(0)
 var senderBalance = big.NewInt(1000000000000)
 
 func TestScDeployShouldManageCorrectlyTheCodeMetadata(t *testing.T) {
-	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Arwen fix")
-	}
-
 	testContext, err := vm.CreatePreparedTxProcessorAndAccountsWithVMs(
 		senderNonce,
 		senderAddressBytes,

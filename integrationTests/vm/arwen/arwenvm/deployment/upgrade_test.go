@@ -19,10 +19,6 @@ const gasPrice = uint64(1)
 const gasLimit = uint64(10000000)
 
 func TestScUpgradeShouldManageCorrectlyTheCodeMetadata(t *testing.T) {
-	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Arwen fix")
-	}
-
 	testContext, err := vm.CreatePreparedTxProcessorAndAccountsWithVMs(
 		senderNonce,
 		senderAddressBytes,

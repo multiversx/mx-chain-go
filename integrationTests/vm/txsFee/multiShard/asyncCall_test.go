@@ -1,6 +1,3 @@
-//go:build !race
-// +build !race
-
 package multiShard
 
 import (
@@ -16,11 +13,6 @@ import (
 )
 
 func TestAsyncCallShouldWork(t *testing.T) {
-	// TODO reinstate test after Arwen pointer fix
-	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Arwen fix")
-	}
-
 	testContextFirstContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContextFirstContract.Close()

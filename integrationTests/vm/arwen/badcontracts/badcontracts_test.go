@@ -1,6 +1,3 @@
-//go:build !race
-// +build !race
-
 package badcontracts
 
 import (
@@ -12,11 +9,6 @@ import (
 )
 
 func Test_Bad_C_NoPanic(t *testing.T) {
-	// TODO reinstate test after Arwen pointer fix
-	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Arwen fix")
-	}
-
 	context := arwen.SetupTestContext(t)
 	defer context.Close()
 

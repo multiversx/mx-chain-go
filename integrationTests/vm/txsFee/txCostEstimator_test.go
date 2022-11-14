@@ -26,10 +26,6 @@ func getZeroGasAndFees() scheduled.GasAndFees {
 }
 
 func TestSCCallCostTransactionCost(t *testing.T) {
-	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Arwen fix")
-	}
-
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -52,10 +48,6 @@ func TestSCCallCostTransactionCost(t *testing.T) {
 }
 
 func TestScDeployTransactionCost(t *testing.T) {
-	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Arwen fix")
-	}
-
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -72,10 +64,6 @@ func TestScDeployTransactionCost(t *testing.T) {
 }
 
 func TestAsyncCallsTransactionCost(t *testing.T) {
-	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Arwen fix")
-	}
-
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -104,10 +92,6 @@ func TestAsyncCallsTransactionCost(t *testing.T) {
 }
 
 func TestBuiltInFunctionTransactionCost(t *testing.T) {
-	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Arwen fix")
-	}
-
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(
 		config.EnableEpochs{
 			PenalizedTooMuchGasEnableEpoch: integrationTests.UnreachableEpoch,
@@ -130,10 +114,6 @@ func TestBuiltInFunctionTransactionCost(t *testing.T) {
 }
 
 func TestESDTTransfer(t *testing.T) {
-	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Arwen fix")
-	}
-
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -153,10 +133,6 @@ func TestESDTTransfer(t *testing.T) {
 }
 
 func TestAsyncESDTTransfer(t *testing.T) {
-	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Arwen fix")
-	}
-
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
