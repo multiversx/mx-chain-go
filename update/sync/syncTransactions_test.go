@@ -82,7 +82,7 @@ func TestNewPendingTransactionsSyncer_NilMarshalizer(t *testing.T) {
 
 	pendingTxsSyncer, err := NewTransactionsSyncer(args)
 	require.Nil(t, pendingTxsSyncer)
-	require.NotNil(t, dataRetriever.ErrNilMarshalizer, err)
+	require.NotNil(t, dataRetriever.ErrNilMarshaller, err)
 }
 
 func TestNewPendingTransactionsSyncer_NilRequestHandler(t *testing.T) {

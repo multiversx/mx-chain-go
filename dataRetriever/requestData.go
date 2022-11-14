@@ -9,9 +9,9 @@ import (
 
 // UnmarshalWith sets the fields according to p2p.MessageP2P.Data() contents
 // Errors if something went wrong
-func (rd *RequestData) UnmarshalWith(marshalizer marshal.Marshalizer, message p2p.MessageP2P) error {
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
-		return ErrNilMarshalizer
+func (rd *RequestData) UnmarshalWith(marshaller marshal.Marshalizer, message p2p.MessageP2P) error {
+	if marshaller == nil || check.IfNil(marshaller) {
+		return ErrNilMarshaller
 	}
 	if check.IfNil(message) {
 		return ErrNilMessage
@@ -20,7 +20,7 @@ func (rd *RequestData) UnmarshalWith(marshalizer marshal.Marshalizer, message p2
 		return ErrNilDataToProcess
 	}
 
-	err := marshalizer.Unmarshal(rd, message.Data())
+	err := marshaller.Unmarshal(rd, message.Data())
 	if err != nil {
 		return err
 	}

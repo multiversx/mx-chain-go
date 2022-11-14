@@ -57,7 +57,7 @@ func TestNewTrieNodeResolver_NilMarshalizerShouldErr(t *testing.T) {
 	arg.Marshaller = nil
 	tnRes, err := resolvers.NewTrieNodeResolver(arg)
 
-	assert.Equal(t, dataRetriever.ErrNilMarshalizer, err)
+	assert.Equal(t, dataRetriever.ErrNilMarshaller, err)
 	assert.Nil(t, tnRes)
 }
 
@@ -583,54 +583,6 @@ func buffInSlice(buff []byte, slice [][]byte) bool {
 	return false
 }
 
-//------- RequestTransactionFromHash
-
-func TestTrieNodeResolver_RequestDataFromHashShouldWork(t *testing.T) {
-	t.Parallel()
-
-	requested := &dataRetriever.RequestData{}
-
-	res := &mock.TopicResolverSenderStub{}
-	res.SendOnRequestTopicCalled = func(rd *dataRetriever.RequestData, hashes [][]byte) error {
-		requested = rd
-		return nil
-	}
-
-	buffRequested := []byte("node1")
-
-	arg := createMockArgTrieNodeResolver()
-	arg.SenderResolver = res
-	tnRes, _ := resolvers.NewTrieNodeResolver(arg)
-
-	assert.Nil(t, tnRes.RequestDataFromHash(buffRequested, 0))
-	assert.Equal(t, &dataRetriever.RequestData{
-		Type:  dataRetriever.HashType,
-		Value: buffRequested,
-	}, requested)
-}
-
-//------ NumPeersToQuery setter and getter
-
-func TestTrieNodeResolver_SetAndGetNumPeersToQuery(t *testing.T) {
-	t.Parallel()
-
-	expectedIntra := 5
-	expectedCross := 7
-
-	arg := createMockArgTrieNodeResolver()
-	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		GetNumPeersToQueryCalled: func() (int, int) {
-			return expectedIntra, expectedCross
-		},
-	}
-	tnRes, _ := resolvers.NewTrieNodeResolver(arg)
-
-	tnRes.SetNumPeersToQuery(expectedIntra, expectedCross)
-	actualIntra, actualCross := tnRes.NumPeersToQuery()
-	assert.Equal(t, expectedIntra, actualIntra)
-	assert.Equal(t, expectedCross, actualCross)
-}
-
 func TestTrieNodeResolver_Close(t *testing.T) {
 	t.Parallel()
 
@@ -638,54 +590,4 @@ func TestTrieNodeResolver_Close(t *testing.T) {
 	tnRes, _ := resolvers.NewTrieNodeResolver(arg)
 
 	assert.Nil(t, tnRes.Close())
-}
-
-func TestTrieNodeResolver_RequestDataFromHashArray(t *testing.T) {
-	t.Parallel()
-
-	hash1 := []byte("hash1")
-	hash2 := []byte("hash2")
-	sendRequestCalled := false
-	arg := createMockArgTrieNodeResolver()
-	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData, originalHashes [][]byte) error {
-			sendRequestCalled = true
-			assert.Equal(t, dataRetriever.HashArrayType, rd.Type)
-
-			b := &batch.Batch{}
-			err := arg.Marshaller.Unmarshal(b, rd.Value)
-			require.Nil(t, err)
-			assert.Equal(t, [][]byte{hash1, hash2}, b.Data)
-			assert.Equal(t, uint32(0), b.ChunkIndex) //mandatory to be 0
-
-			return nil
-		},
-	}
-	tnRes, _ := resolvers.NewTrieNodeResolver(arg)
-	err := tnRes.RequestDataFromHashArray([][]byte{hash1, hash2}, 0)
-	require.Nil(t, err)
-	assert.True(t, sendRequestCalled)
-}
-
-func TestTrieNodeResolver_RequestDataFromReferenceAndChunk(t *testing.T) {
-	t.Parallel()
-
-	hash := []byte("hash")
-	chunkIndex := uint32(343)
-	sendRequestCalled := false
-	arg := createMockArgTrieNodeResolver()
-	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData, originalHashes [][]byte) error {
-			sendRequestCalled = true
-			assert.Equal(t, dataRetriever.HashType, rd.Type)
-			assert.Equal(t, hash, rd.Value)
-			assert.Equal(t, chunkIndex, rd.ChunkIndex)
-
-			return nil
-		},
-	}
-	tnRes, _ := resolvers.NewTrieNodeResolver(arg)
-	err := tnRes.RequestDataFromReferenceAndChunk(hash, chunkIndex)
-	require.Nil(t, err)
-	assert.True(t, sendRequestCalled)
 }

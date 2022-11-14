@@ -14,6 +14,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
+var _ dataRetriever.Resolver = (*validatorInfoResolver)(nil)
+
 // maxBuffToSendValidatorsInfo represents max buffer size to send in bytes
 const maxBuffToSendValidatorsInfo = 1 << 18 // 256KB
 
@@ -66,7 +68,7 @@ func checkArgs(args ArgValidatorInfoResolver) error {
 		return dataRetriever.ErrNilResolverSender
 	}
 	if check.IfNil(args.Marshaller) {
-		return dataRetriever.ErrNilMarshalizer
+		return dataRetriever.ErrNilMarshaller
 	}
 	if check.IfNil(args.AntifloodHandler) {
 		return dataRetriever.ErrNilAntifloodHandler
@@ -85,38 +87,6 @@ func checkArgs(args ArgValidatorInfoResolver) error {
 	}
 
 	return nil
-}
-
-// RequestDataFromHash requests validator info from other peers by hash
-func (res *validatorInfoResolver) RequestDataFromHash(hash []byte, epoch uint32) error {
-	return res.SendOnRequestTopic(
-		&dataRetriever.RequestData{
-			Type:  dataRetriever.HashType,
-			Value: hash,
-			Epoch: epoch,
-		},
-		[][]byte{hash},
-	)
-}
-
-// RequestDataFromHashArray requests validator info from other peers by hash array
-func (res *validatorInfoResolver) RequestDataFromHashArray(hashes [][]byte, epoch uint32) error {
-	b := &batch.Batch{
-		Data: hashes,
-	}
-	buffHashes, err := res.marshalizer.Marshal(b)
-	if err != nil {
-		return err
-	}
-
-	return res.SendOnRequestTopic(
-		&dataRetriever.RequestData{
-			Type:  dataRetriever.HashArrayType,
-			Value: buffHashes,
-			Epoch: epoch,
-		},
-		hashes,
-	)
 }
 
 // ProcessReceivedMessage represents the callback func from the p2p.Messenger that is called each time a new message is received
@@ -239,21 +209,6 @@ func (res *validatorInfoResolver) marshalAndSend(data []byte, pid core.PeerID) e
 	}
 
 	return res.Send(buff, pid)
-}
-
-// SetResolverDebugHandler sets a resolver debug handler
-func (res *validatorInfoResolver) SetResolverDebugHandler(handler dataRetriever.ResolverDebugHandler) error {
-	return res.TopicResolverSender.SetResolverDebugHandler(handler)
-}
-
-// SetNumPeersToQuery sets the number of intra shard and cross shard peers to query
-func (res *validatorInfoResolver) SetNumPeersToQuery(intra int, cross int) {
-	res.TopicResolverSender.SetNumPeersToQuery(intra, cross)
-}
-
-// NumPeersToQuery returns the number of intra shard and cross shard peers to query
-func (res *validatorInfoResolver) NumPeersToQuery() (int, int) {
-	return res.TopicResolverSender.NumPeersToQuery()
 }
 
 // Close returns nil

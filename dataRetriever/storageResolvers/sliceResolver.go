@@ -44,7 +44,7 @@ func NewSliceResolver(arg ArgSliceResolver) (*sliceResolver, error) {
 		return nil, dataRetriever.ErrNilStore
 	}
 	if check.IfNil(arg.Marshalizer) {
-		return nil, dataRetriever.ErrNilMarshalizer
+		return nil, dataRetriever.ErrNilMarshaller
 	}
 	if check.IfNil(arg.DataPacker) {
 		return nil, dataRetriever.ErrNilDataPacker

@@ -66,7 +66,7 @@ func TestNewTrieNodeResolver_InvalidArgumentsShouldErr(t *testing.T) {
 	args.Marshalizer = nil
 	tnr, err = NewTrieNodeResolver(args)
 	assert.True(t, check.IfNil(tnr))
-	assert.Equal(t, dataRetriever.ErrNilMarshalizer, err)
+	assert.Equal(t, dataRetriever.ErrNilMarshaller, err)
 }
 
 func TestNewTrieNodeResolver_ShouldWork(t *testing.T) {

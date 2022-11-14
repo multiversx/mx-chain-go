@@ -23,7 +23,7 @@ func checkArgBase(arg ArgBaseResolver) error {
 		return dataRetriever.ErrNilResolverSender
 	}
 	if check.IfNil(arg.Marshaller) {
-		return dataRetriever.ErrNilMarshalizer
+		return dataRetriever.ErrNilMarshaller
 	}
 	if check.IfNil(arg.AntifloodHandler) {
 		return dataRetriever.ErrNilAntifloodHandler
@@ -32,16 +32,6 @@ func checkArgBase(arg ArgBaseResolver) error {
 		return dataRetriever.ErrNilThrottler
 	}
 	return nil
-}
-
-// SetNumPeersToQuery will set the number of intra shard and cross shard number of peer to query
-func (res *baseResolver) SetNumPeersToQuery(intra int, cross int) {
-	res.TopicResolverSender.SetNumPeersToQuery(intra, cross)
-}
-
-// NumPeersToQuery will return the number of intra shard and cross shard number of peer to query
-func (res *baseResolver) NumPeersToQuery() (int, int) {
-	return res.TopicResolverSender.NumPeersToQuery()
 }
 
 // SetResolverDebugHandler will set a resolver debug handler

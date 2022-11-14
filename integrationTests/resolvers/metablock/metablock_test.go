@@ -6,7 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/resolvers"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -44,7 +44,7 @@ func TestRequestResolveMetaHeadersByHashRequestingShardResolvingShard(t *testing
 	)
 
 	//request by hash should work
-	resolver, err := nRequester.ResolverFinder.MetaChainResolver(factory.MetachainBlocksTopic)
+	resolver, err := nRequester.RequestersFinder.MetaChainRequester(factory.MetachainBlocksTopic)
 	resolvers.Log.LogIfError(err)
 	err = resolver.RequestDataFromHash(hash, 0)
 	resolvers.Log.LogIfError(err)
@@ -81,7 +81,7 @@ func TestRequestResolveMetaHeadersByHashRequestingMetaResolvingShard(t *testing.
 	)
 
 	//request by hash should work
-	resolver, err := nRequester.ResolverFinder.MetaChainResolver(factory.MetachainBlocksTopic)
+	resolver, err := nRequester.RequestersFinder.MetaChainRequester(factory.MetachainBlocksTopic)
 	resolvers.Log.LogIfError(err)
 	err = resolver.RequestDataFromHash(hash, 0)
 	resolvers.Log.LogIfError(err)
@@ -118,7 +118,7 @@ func TestRequestResolveMetaHeadersByHashRequestingShardResolvingMeta(t *testing.
 	)
 
 	//request by hash should work
-	resolver, err := nRequester.ResolverFinder.MetaChainResolver(factory.MetachainBlocksTopic)
+	resolver, err := nRequester.RequestersFinder.MetaChainRequester(factory.MetachainBlocksTopic)
 	resolvers.Log.LogIfError(err)
 	err = resolver.RequestDataFromHash(hash, 0)
 	resolvers.Log.LogIfError(err)
@@ -157,9 +157,9 @@ func TestRequestResolveMetaHeadersByNonceRequestingShardResolvingShard(t *testin
 	)
 
 	//request by hash should work
-	resolver, err := nRequester.ResolverFinder.MetaChainResolver(factory.MetachainBlocksTopic)
+	resolver, err := nRequester.RequestersFinder.MetaChainRequester(factory.MetachainBlocksTopic)
 	resolvers.Log.LogIfError(err)
-	headerResolver, ok := resolver.(dataRetriever.HeaderResolver)
+	headerResolver, ok := resolver.(requestHandlers.NonceRequester)
 	assert.True(t, ok)
 	err = headerResolver.RequestDataFromNonce(headerNonce, 0)
 	resolvers.Log.LogIfError(err)
@@ -196,9 +196,9 @@ func TestRequestResolveMetaHeadersByNonceRequestingMetaResolvingShard(t *testing
 	)
 
 	//request by hash should work
-	resolver, err := nRequester.ResolverFinder.MetaChainResolver(factory.MetachainBlocksTopic)
+	resolver, err := nRequester.RequestersFinder.MetaChainRequester(factory.MetachainBlocksTopic)
 	resolvers.Log.LogIfError(err)
-	headerResolver, ok := resolver.(dataRetriever.HeaderResolver)
+	headerResolver, ok := resolver.(requestHandlers.NonceRequester)
 	assert.True(t, ok)
 	err = headerResolver.RequestDataFromNonce(headerNonce, 0)
 	resolvers.Log.LogIfError(err)
@@ -235,9 +235,9 @@ func TestRequestResolveMetaHeadersByNonceRequestingShardResolvingMeta(t *testing
 	)
 
 	//request by hash should work
-	resolver, err := nRequester.ResolverFinder.MetaChainResolver(factory.MetachainBlocksTopic)
+	resolver, err := nRequester.RequestersFinder.MetaChainRequester(factory.MetachainBlocksTopic)
 	resolvers.Log.LogIfError(err)
-	headerResolver, ok := resolver.(dataRetriever.HeaderResolver)
+	headerResolver, ok := resolver.(requestHandlers.NonceRequester)
 	assert.True(t, ok)
 	err = headerResolver.RequestDataFromNonce(headerNonce, 0)
 	resolvers.Log.LogIfError(err)

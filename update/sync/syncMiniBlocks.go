@@ -49,7 +49,7 @@ func NewPendingMiniBlocksSyncer(args ArgsNewPendingMiniBlocksSyncer) (*pendingMi
 		return nil, update.ErrNilCacher
 	}
 	if check.IfNil(args.Marshalizer) {
-		return nil, dataRetriever.ErrNilMarshalizer
+		return nil, dataRetriever.ErrNilMarshaller
 	}
 	if check.IfNil(args.RequestHandler) {
 		return nil, process.ErrNilRequestHandler

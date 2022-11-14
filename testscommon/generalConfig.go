@@ -386,11 +386,6 @@ func GetGeneralConfig() config.Config {
 				MaxDeviationTimeInMilliseconds: 1,
 			},
 		},
-		Resolvers: config.ResolverConfig{
-			NumCrossShardPeers:  2,
-			NumTotalPeers:       3,
-			NumFullHistoryPeers: 3,
-		},
 		VirtualMachine: config.VirtualMachineServicesConfig{
 			Execution: config.VirtualMachineConfig{
 				ArwenVersions: []config.ArwenVersionByEpoch{

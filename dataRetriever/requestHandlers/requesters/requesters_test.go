@@ -48,7 +48,7 @@ func testNewRequester(t *testing.T, requesterType requestHandlerType) {
 		argsBase := createMockArgBaseRequester()
 		argsBase.Marshaller = nil
 		requester, err := getHandler(requesterType, argsBase)
-		assert.Equal(t, dataRetriever.ErrNilMarshalizer, err)
+		assert.Equal(t, dataRetriever.ErrNilMarshaller, err)
 		assert.True(t, check.IfNil(requester))
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -73,7 +73,7 @@ func testRequestDataFromHashArray(t *testing.T, requesterType requestHandlerType
 		requester, err := getHandler(requesterType, args)
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(requester))
-		hashArrayHandler, ok := requester.(requestHandlers.HashSliceResolver)
+		hashArrayHandler, ok := requester.(requestHandlers.HashSliceRequester)
 		assert.True(t, ok)
 		assert.Equal(t, expectedErr, hashArrayHandler.RequestDataFromHashArray(nil, 0))
 	})
@@ -84,7 +84,7 @@ func testRequestDataFromHashArray(t *testing.T, requesterType requestHandlerType
 		providedHashes := [][]byte{[]byte("hash 1"), []byte("hash 2"), []byte("hash 3")}
 		args := createMockArgBaseRequester()
 		wasCalled := false
-		args.SenderResolver = &mock.TopicResolverSenderStub{
+		args.RequestSender = &mock.TopicResolverSenderStub{
 			SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData, originalHashes [][]byte) error {
 				wasCalled = true
 				b := &batch.Batch{
@@ -102,7 +102,7 @@ func testRequestDataFromHashArray(t *testing.T, requesterType requestHandlerType
 		requester, err := getHandler(requesterType, args)
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(requester))
-		hashArrayHandler, ok := requester.(requestHandlers.HashSliceResolver)
+		hashArrayHandler, ok := requester.(requestHandlers.HashSliceRequester)
 		assert.True(t, ok)
 		assert.Nil(t, hashArrayHandler.RequestDataFromHashArray(providedHashes, providedEpoch))
 		assert.True(t, wasCalled)
@@ -115,7 +115,7 @@ func testRequestDataFromReferenceAndChunk(t *testing.T, requesterType requestHan
 	providedHashes := [][]byte{providedHash}
 	args := createMockArgBaseRequester()
 	wasCalled := false
-	args.SenderResolver = &mock.TopicResolverSenderStub{
+	args.RequestSender = &mock.TopicResolverSenderStub{
 		SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData, originalHashes [][]byte) error {
 			wasCalled = true
 			assert.Equal(t, providedHash, rd.Value)
@@ -128,7 +128,7 @@ func testRequestDataFromReferenceAndChunk(t *testing.T, requesterType requestHan
 	requester, err := getHandler(requesterType, args)
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(requester))
-	chunkHandler, ok := requester.(requestHandlers.ChunkResolver)
+	chunkHandler, ok := requester.(requestHandlers.ChunkRequester)
 	assert.True(t, ok)
 	assert.Nil(t, chunkHandler.RequestDataFromReferenceAndChunk(providedHash, providedChunkIndex))
 	assert.True(t, wasCalled)

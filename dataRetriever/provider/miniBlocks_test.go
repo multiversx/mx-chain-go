@@ -66,7 +66,7 @@ func TestNewMiniBlockProvider_NilMarshalizerShouldErr(t *testing.T) {
 	mbp, err := provider.NewMiniBlockProvider(arg)
 
 	assert.True(t, check.IfNil(mbp))
-	assert.Equal(t, dataRetriever.ErrNilMarshalizer, err)
+	assert.Equal(t, dataRetriever.ErrNilMarshaller, err)
 }
 
 func TestNewMiniBlockProvider_NilPoolShouldErr(t *testing.T) {

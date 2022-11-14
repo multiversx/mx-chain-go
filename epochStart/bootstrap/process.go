@@ -1168,7 +1168,7 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 		ShardCoordinator:            e.shardCoordinator,
 		Messenger:                   e.messenger,
 		Store:                       storageService,
-		Marshalizer:                 e.coreComponentsHolder.InternalMarshalizer(),
+		Marshaller:                  e.coreComponentsHolder.InternalMarshalizer(),
 		DataPools:                   e.dataPool,
 		Uint64ByteSliceConverter:    uint64ByteSlice.NewBigEndianConverter(),
 		NumConcurrentResolvingJobs:  10,
@@ -1179,7 +1179,6 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 		OutputAntifloodHandler:      disabled.NewAntiFloodHandler(),
 		CurrentNetworkEpochProvider: disabled.NewCurrentNetworkEpochProviderHandler(),
 		PreferredPeersHolder:        disabled.NewPreferredPeersHolder(),
-		ResolverConfig:              e.generalConfig.Resolvers,
 		PeersRatingHandler:          disabled.NewDisabledPeersRatingHandler(),
 		PayloadValidator:            payloadValidator,
 	}

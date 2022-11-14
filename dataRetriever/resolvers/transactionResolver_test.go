@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/batch"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
@@ -72,7 +71,7 @@ func TestNewTxResolver_NilMarshalizerShouldErr(t *testing.T) {
 	arg.Marshaller = nil
 	txRes, err := resolvers.NewTxResolver(arg)
 
-	assert.Equal(t, dataRetriever.ErrNilMarshalizer, err)
+	assert.Equal(t, dataRetriever.ErrNilMarshaller, err)
 	assert.Nil(t, txRes)
 }
 
@@ -483,91 +482,4 @@ func TestTxResolver_ProcessReceivedMessageRequestedTwoSmallTransactionsFoundOnly
 	assert.True(t, sendWasCalled)
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
-}
-
-//------- RequestTransactionFromHash
-
-func TestTxResolver_RequestDataFromHashShouldWork(t *testing.T) {
-	t.Parallel()
-
-	requested := &dataRetriever.RequestData{}
-
-	res := &mock.TopicResolverSenderStub{}
-	res.SendOnRequestTopicCalled = func(rd *dataRetriever.RequestData, hashes [][]byte) error {
-		requested = rd
-		return nil
-	}
-
-	buffRequested := []byte("aaaa")
-
-	arg := createMockArgTxResolver()
-	arg.SenderResolver = res
-	txRes, _ := resolvers.NewTxResolver(arg)
-
-	assert.Nil(t, txRes.RequestDataFromHash(buffRequested, 0))
-	assert.Equal(t, &dataRetriever.RequestData{
-		Type:  dataRetriever.HashType,
-		Value: buffRequested,
-	}, requested)
-}
-
-//------- RequestDataFromHashArray
-
-func TestTxResolver_RequestDataFromHashArrayShouldWork(t *testing.T) {
-	t.Parallel()
-
-	requested := &dataRetriever.RequestData{}
-
-	res := &mock.TopicResolverSenderStub{}
-	res.SendOnRequestTopicCalled = func(rd *dataRetriever.RequestData, hashes [][]byte) error {
-		requested = rd
-		return nil
-	}
-
-	buffRequested := [][]byte{[]byte("aaaa"), []byte("bbbb")}
-
-	marshalizer := &marshal.GogoProtoMarshalizer{}
-	arg := createMockArgTxResolver()
-	arg.Marshaller = marshalizer
-	arg.SenderResolver = res
-	txRes, _ := resolvers.NewTxResolver(arg)
-
-	buff, _ := marshalizer.Marshal(&batch.Batch{Data: buffRequested})
-
-	assert.Nil(t, txRes.RequestDataFromHashArray(buffRequested, 0))
-	assert.Equal(t, &dataRetriever.RequestData{
-		Type:  dataRetriever.HashArrayType,
-		Value: buff,
-	}, requested)
-}
-
-//------ NumPeersToQuery setter and getter
-
-func TestTxResolver_SetAndGetNumPeersToQuery(t *testing.T) {
-	t.Parallel()
-
-	expectedIntra := 5
-	expectedCross := 7
-
-	arg := createMockArgTxResolver()
-	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		GetNumPeersToQueryCalled: func() (int, int) {
-			return expectedIntra, expectedCross
-		},
-	}
-	txRes, _ := resolvers.NewTxResolver(arg)
-
-	txRes.SetNumPeersToQuery(expectedIntra, expectedCross)
-	actualIntra, actualCross := txRes.NumPeersToQuery()
-	assert.Equal(t, expectedIntra, actualIntra)
-	assert.Equal(t, expectedCross, actualCross)
-}
-
-func TestTxResolver_Close(t *testing.T) {
-	t.Parallel()
-
-	arg := createMockArgTxResolver()
-	txRes, _ := resolvers.NewTxResolver(arg)
-
-	assert.Nil(t, txRes.Close())
 }

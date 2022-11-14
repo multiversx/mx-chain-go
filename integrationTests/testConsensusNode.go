@@ -221,7 +221,7 @@ func (tcn *TestConsensusNode) initNode(
 	processComponents.ShardCoord = tcn.ShardCoordinator
 	processComponents.NodesCoord = tcn.NodesCoordinator
 	processComponents.BlockProcess = tcn.BlockProcessor
-	processComponents.ResFinder = tcn.ResolverFinder
+	processComponents.Requester = tcn.ResolverFinder
 	processComponents.EpochTrigger = epochStartTrigger
 	processComponents.EpochNotifier = epochStartRegistrationHandler
 	processComponents.BlackListHdl = &testscommon.TimeCacheStub{}

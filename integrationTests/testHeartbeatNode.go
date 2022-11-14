@@ -19,7 +19,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/singlesig"
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
@@ -443,7 +442,7 @@ func (thn *TestHeartbeatNode) initResolvers() {
 		ShardCoordinator:         thn.ShardCoordinator,
 		Messenger:                thn.Messenger,
 		Store:                    thn.Storage,
-		Marshalizer:              TestMarshaller,
+		Marshaller:               TestMarshaller,
 		DataPools:                thn.DataPool,
 		Uint64ByteSliceConverter: TestUint64Converter,
 		DataPacker:               dataPacker,
@@ -458,13 +457,8 @@ func (thn *TestHeartbeatNode) initResolvers() {
 		NumConcurrentResolvingJobs:  10,
 		CurrentNetworkEpochProvider: &mock.CurrentNetworkEpochProviderStub{},
 		PreferredPeersHolder:        &p2pmocks.PeersHolderStub{},
-		ResolverConfig: config.ResolverConfig{
-			NumCrossShardPeers:  2,
-			NumTotalPeers:       3,
-			NumFullHistoryPeers: 3,
-		},
-		PeersRatingHandler: &p2pmocks.PeersRatingHandlerStub{},
-		PayloadValidator:   payloadValidator,
+		PeersRatingHandler:          &p2pmocks.PeersRatingHandlerStub{},
+		PayloadValidator:            payloadValidator,
 	}
 
 	if thn.ShardCoordinator.SelfId() == core.MetachainShardId {

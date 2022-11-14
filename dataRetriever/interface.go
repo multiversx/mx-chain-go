@@ -19,59 +19,48 @@ type ResolverThrottler interface {
 	IsInterfaceNil() bool
 }
 
-// Resolver defines what a data resolver should do
-type Resolver interface {
+// Requester defines what a data requester should do
+type Requester interface {
 	RequestDataFromHash(hash []byte, epoch uint32) error
-	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
-	SetResolverDebugHandler(handler ResolverDebugHandler) error
 	SetNumPeersToQuery(intra int, cross int)
 	NumPeersToQuery() (int, int)
-	Close() error
+	SetResolverDebugHandler(handler ResolverDebugHandler) error
 	IsInterfaceNil() bool
 }
 
-// TrieNodesResolver defines what a trie nodes resolver should do
-type TrieNodesResolver interface {
-	Resolver
-	RequestDataFromHashArray(hashes [][]byte, epoch uint32) error
+// Resolver defines what a data resolver should do
+type Resolver interface {
+	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
+	SetResolverDebugHandler(handler ResolverDebugHandler) error
+	Close() error
+	IsInterfaceNil() bool
 }
 
 // HeaderResolver defines what a block header resolver should do
 type HeaderResolver interface {
 	Resolver
-	RequestDataFromNonce(nonce uint64, epoch uint32) error
-	RequestDataFromEpoch(identifier []byte) error
 	SetEpochHandler(epochHandler EpochHandler) error
 }
 
-// MiniBlocksResolver defines what a mini blocks resolver should do
-type MiniBlocksResolver interface {
-	Resolver
-	RequestDataFromHashArray(hashes [][]byte, epoch uint32) error
-}
-
-// PeerAuthenticationResolver defines what a peer authentication resolver should do
-type PeerAuthenticationResolver interface {
-	Resolver
-	RequestDataFromHashArray(hashes [][]byte, epoch uint32) error
-}
-
-// ValidatorInfoResolver defines what a validator info resolver should do
-type ValidatorInfoResolver interface {
-	Resolver
-	RequestDataFromHashArray(hashes [][]byte, epoch uint32) error
+// TopicRequestSender defines what sending operations are allowed for a topic requester
+type TopicRequestSender interface {
+	SendOnRequestTopic(rd *RequestData, originalHashes [][]byte) error
+	SetNumPeersToQuery(intra int, cross int)
+	NumPeersToQuery() (int, int)
+	RequestTopic() string
+	TargetShardID() uint32
+	SetResolverDebugHandler(handler ResolverDebugHandler) error
+	ResolverDebugHandler() ResolverDebugHandler
+	IsInterfaceNil() bool
 }
 
 // TopicResolverSender defines what sending operations are allowed for a topic resolver
 type TopicResolverSender interface {
-	SendOnRequestTopic(rd *RequestData, originalHashes [][]byte) error
 	Send(buff []byte, peer core.PeerID) error
 	RequestTopic() string
 	TargetShardID() uint32
-	SetNumPeersToQuery(intra int, cross int)
 	SetResolverDebugHandler(handler ResolverDebugHandler) error
 	ResolverDebugHandler() ResolverDebugHandler
-	NumPeersToQuery() (int, int)
 	IsInterfaceNil() bool
 }
 
@@ -89,18 +78,32 @@ type ResolversContainer interface {
 	IsInterfaceNil() bool
 }
 
-// ResolversFinder extends a container resolver and have 2 additional functionality
-type ResolversFinder interface {
-	ResolversContainer
-	IntraShardResolver(baseTopic string) (Resolver, error)
-	MetaChainResolver(baseTopic string) (Resolver, error)
-	CrossShardResolver(baseTopic string, crossShard uint32) (Resolver, error)
-	MetaCrossShardResolver(baseTopic string, crossShard uint32) (Resolver, error)
+// RequestersFinder extends a requesters container
+type RequestersFinder interface {
+	RequestersContainer
+	IntraShardRequester(baseTopic string) (Requester, error)
+	MetaChainRequester(baseTopic string) (Requester, error)
+	CrossShardRequester(baseTopic string, crossShard uint32) (Requester, error)
+	MetaCrossShardRequester(baseTopic string, crossShard uint32) (Requester, error)
 }
 
 // ResolversContainerFactory defines the functionality to create a resolvers container
 type ResolversContainerFactory interface {
 	Create() (ResolversContainer, error)
+	IsInterfaceNil() bool
+}
+
+// RequestersContainer defines a requesters holder data type with basic functionality
+type RequestersContainer interface {
+	Get(key string) (Requester, error)
+	Add(key string, val Requester) error
+	AddMultiple(keys []string, requesters []Requester) error
+	Replace(key string, val Requester) error
+	Remove(key string)
+	Len() int
+	RequesterKeys() string
+	Iterate(handler func(key string, resolver Requester) bool)
+	Close() error
 	IsInterfaceNil() bool
 }
 
@@ -311,7 +314,7 @@ type WhiteListHandler interface {
 	IsInterfaceNil() bool
 }
 
-// ResolverDebugHandler defines an interface for debugging the reqested-resolved data
+// ResolverDebugHandler defines an interface for debugging the requested-resolved data
 type ResolverDebugHandler interface {
 	LogRequestedData(topic string, hashes [][]byte, numReqIntra int, numReqCross int)
 	LogFailedToResolveData(topic string, hash []byte, err error)

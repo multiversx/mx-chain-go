@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
@@ -134,23 +133,23 @@ func TestNewShardResolversContainerFactory_NilMarshalizerShouldErr(t *testing.T)
 	t.Parallel()
 
 	args := getArgumentsShard()
-	args.Marshalizer = nil
+	args.Marshaller = nil
 	rcf, err := resolverscontainer.NewShardResolversContainerFactory(args)
 
 	assert.Nil(t, rcf)
-	assert.Equal(t, dataRetriever.ErrNilMarshalizer, err)
+	assert.Equal(t, dataRetriever.ErrNilMarshaller, err)
 }
 
 func TestNewShardResolversContainerFactory_NilMarshalizerAndSizeShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := getArgumentsShard()
-	args.Marshalizer = nil
+	args.Marshaller = nil
 	args.SizeCheckDelta = 1
 	rcf, err := resolverscontainer.NewShardResolversContainerFactory(args)
 
 	assert.Nil(t, rcf)
-	assert.Equal(t, dataRetriever.ErrNilMarshalizer, err)
+	assert.Equal(t, dataRetriever.ErrNilMarshaller, err)
 }
 
 func TestNewShardResolversContainerFactory_NilDataPoolShouldErr(t *testing.T) {
@@ -219,53 +218,6 @@ func TestNewShardResolversContainerFactory_NilTriesContainerShouldErr(t *testing
 	assert.Equal(t, dataRetriever.ErrNilTrieDataGetter, err)
 }
 
-func TestNewShardResolversContainerFactory_InvalidNumTotalPeersShouldErr(t *testing.T) {
-	t.Parallel()
-
-	t.Run("NumTotalPeers is lower than NumCrossShardPeers", func(t *testing.T) {
-		t.Parallel()
-
-		args := getArgumentsShard()
-		args.ResolverConfig.NumTotalPeers = 0
-		rcf, err := resolverscontainer.NewShardResolversContainerFactory(args)
-
-		assert.Nil(t, rcf)
-		assert.True(t, errors.Is(err, dataRetriever.ErrInvalidValue))
-	})
-	t.Run("NumTotalPeers is equal to NumCrossShardPeers", func(t *testing.T) {
-		t.Parallel()
-
-		args := getArgumentsShard()
-		args.ResolverConfig.NumTotalPeers = args.ResolverConfig.NumCrossShardPeers
-		rcf, err := resolverscontainer.NewShardResolversContainerFactory(args)
-
-		assert.Nil(t, rcf)
-		assert.True(t, errors.Is(err, dataRetriever.ErrInvalidValue))
-	})
-}
-
-func TestNewShardResolversContainerFactory_InvalidNumCrossShardPeersShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getArgumentsShard()
-	args.ResolverConfig.NumCrossShardPeers = 0
-	rcf, err := resolverscontainer.NewShardResolversContainerFactory(args)
-
-	assert.Nil(t, rcf)
-	assert.True(t, errors.Is(err, dataRetriever.ErrInvalidValue))
-}
-
-func TestNewShardResolversContainerFactory_InvalidNumFullHistoryPeersShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getArgumentsShard()
-	args.ResolverConfig.NumFullHistoryPeers = 0
-	rcf, err := resolverscontainer.NewShardResolversContainerFactory(args)
-
-	assert.Nil(t, rcf)
-	assert.True(t, errors.Is(err, dataRetriever.ErrInvalidValue))
-}
-
 func TestNewShardResolversContainerFactory_NilInputAntifloodHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -308,9 +260,6 @@ func TestNewShardResolversContainerFactory_ShouldWork(t *testing.T) {
 	assert.NotNil(t, rcf)
 	assert.Nil(t, err)
 	require.False(t, rcf.IsInterfaceNil())
-	assert.Equal(t, int(args.ResolverConfig.NumTotalPeers), rcf.NumTotalPeers())
-	assert.Equal(t, int(args.ResolverConfig.NumCrossShardPeers), rcf.NumCrossShardPeers())
-	assert.Equal(t, int(args.ResolverConfig.NumFullHistoryPeers), rcf.NumFullHistoryPeers())
 }
 
 // ------- Create
@@ -427,7 +376,7 @@ func getArgumentsShard() resolverscontainer.FactoryArgs {
 		ShardCoordinator:            mock.NewOneShardCoordinatorMock(),
 		Messenger:                   createStubTopicMessageHandlerForShard("", ""),
 		Store:                       createStoreForShard(),
-		Marshalizer:                 &mock.MarshalizerMock{},
+		Marshaller:                  &mock.MarshalizerMock{},
 		DataPools:                   createDataPoolsForShard(),
 		Uint64ByteSliceConverter:    &mock.Uint64ByteSliceConverterMock{},
 		DataPacker:                  &mock.DataPackerStub{},
@@ -438,12 +387,7 @@ func getArgumentsShard() resolverscontainer.FactoryArgs {
 		NumConcurrentResolvingJobs:  10,
 		CurrentNetworkEpochProvider: &mock.CurrentNetworkEpochProviderStub{},
 		PreferredPeersHolder:        &p2pmocks.PeersHolderStub{},
-		ResolverConfig: config.ResolverConfig{
-			NumCrossShardPeers:  1,
-			NumTotalPeers:       3,
-			NumFullHistoryPeers: 3,
-		},
-		PeersRatingHandler: &p2pmocks.PeersRatingHandlerStub{},
-		PayloadValidator:   &testscommon.PeerAuthenticationPayloadValidatorStub{},
+		PeersRatingHandler:          &p2pmocks.PeersRatingHandlerStub{},
+		PayloadValidator:            &testscommon.PeerAuthenticationPayloadValidatorStub{},
 	}
 }

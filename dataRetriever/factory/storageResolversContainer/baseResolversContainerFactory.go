@@ -52,7 +52,7 @@ func (brcf *baseResolversContainerFactory) checkParams() error {
 		return dataRetriever.ErrNilStore
 	}
 	if check.IfNil(brcf.marshalizer) {
-		return dataRetriever.ErrNilMarshalizer
+		return dataRetriever.ErrNilMarshaller
 	}
 	if check.IfNil(brcf.uint64ByteSliceConverter) {
 		return dataRetriever.ErrNilUint64ByteSliceConverter

@@ -47,7 +47,7 @@ func TestRequestData_UnmarshalNilMarshalizer(t *testing.T) {
 	requestData := dataRetriever.RequestData{}
 
 	err := requestData.UnmarshalWith(nil, &mock.P2PMessageMock{})
-	require.Equal(t, dataRetriever.ErrNilMarshalizer, err)
+	require.Equal(t, dataRetriever.ErrNilMarshaller, err)
 }
 
 func TestRequestData_UnmarshalNilMessageP2P(t *testing.T) {

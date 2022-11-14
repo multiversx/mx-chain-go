@@ -108,7 +108,7 @@ func GetDefaultProcessComponents(shardCoordinator sharding.Coordinator) *mock.Pr
 		NodesCoord:               &shardingMocks.NodesCoordinatorMock{},
 		ShardCoord:               shardCoordinator,
 		IntContainer:             &testscommon.InterceptorsContainerStub{},
-		ResFinder:                &mock.ResolversFinderStub{},
+		Requester:                &dataRetrieverMock.RequestersFinderStub{},
 		RoundHandlerField:        &testscommon.RoundHandlerMock{},
 		EpochTrigger:             &testscommon.EpochStartTriggerStub{},
 		EpochNotifier:            &mock.EpochStartNotifierStub{},

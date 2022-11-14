@@ -35,7 +35,7 @@ func TestNewMissingheadersByHashSyncer_NilParamsShouldErr(t *testing.T) {
 
 	nilMarshalizerArgs := okArgs
 	nilMarshalizerArgs.Marshalizer = nil
-	testInput[nilMarshalizerArgs] = dataRetriever.ErrNilMarshalizer
+	testInput[nilMarshalizerArgs] = dataRetriever.ErrNilMarshaller
 
 	nilRequestHandlerArgs := okArgs
 	nilRequestHandlerArgs.RequestHandler = nil

@@ -115,7 +115,7 @@ func TestHeadersSyncHandler_NilMarshalizerEr(t *testing.T) {
 
 	headersSyncHandler, err := NewHeadersSyncHandler(args)
 	require.Nil(t, headersSyncHandler)
-	require.Equal(t, dataRetriever.ErrNilMarshalizer, err)
+	require.Equal(t, dataRetriever.ErrNilMarshaller, err)
 }
 
 func TestHeadersSyncHandler_NilRequestHandlerEr(t *testing.T) {

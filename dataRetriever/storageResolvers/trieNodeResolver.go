@@ -51,7 +51,7 @@ func NewTrieNodeResolver(arg ArgTrieResolver) (*trieNodeResolver, error) {
 		return nil, dataRetriever.ErrNilTrieDataGetter
 	}
 	if check.IfNil(arg.Marshalizer) {
-		return nil, dataRetriever.ErrNilMarshalizer
+		return nil, dataRetriever.ErrNilMarshaller
 	}
 
 	return &trieNodeResolver{

@@ -31,7 +31,7 @@ type miniBlockProvider struct {
 // NewMiniBlockProvider creates a new miniBlockDataGetter instance
 func NewMiniBlockProvider(arg ArgMiniBlockProvider) (*miniBlockProvider, error) {
 	if check.IfNil(arg.Marshalizer) {
-		return nil, dataRetriever.ErrNilMarshalizer
+		return nil, dataRetriever.ErrNilMarshaller
 	}
 	if check.IfNil(arg.MiniBlockPool) {
 		return nil, dataRetriever.ErrNilMiniblocksPool

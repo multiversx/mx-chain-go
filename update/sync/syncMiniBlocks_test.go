@@ -70,7 +70,7 @@ func TestNewPendingMiniBlocksSyncer_NilMarshalizer(t *testing.T) {
 	args.Marshalizer = nil
 
 	pendingMiniBlocksSyncer, err := NewPendingMiniBlocksSyncer(args)
-	require.Equal(t, dataRetriever.ErrNilMarshalizer, err)
+	require.Equal(t, dataRetriever.ErrNilMarshaller, err)
 	require.Nil(t, pendingMiniBlocksSyncer)
 }
 

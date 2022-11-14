@@ -18,7 +18,7 @@ type ProcessComponentsMock struct {
 	NodesCoord                           nodesCoordinator.NodesCoordinator
 	ShardCoord                           sharding.Coordinator
 	IntContainer                         process.InterceptorsContainer
-	ResFinder                            dataRetriever.ResolversFinder
+	RequesterFinder                      dataRetriever.RequestersFinder
 	RoundHandlerField                    consensus.RoundHandler
 	EpochTrigger                         epochStart.TriggerHandler
 	EpochNotifier                        factory.EpochStartNotifier
@@ -84,8 +84,8 @@ func (pcm *ProcessComponentsMock) InterceptorsContainer() process.InterceptorsCo
 }
 
 // ResolversFinder -
-func (pcm *ProcessComponentsMock) ResolversFinder() dataRetriever.ResolversFinder {
-	return pcm.ResFinder
+func (pcm *ProcessComponentsMock) ResolversFinder() dataRetriever.RequestersFinder {
+	return pcm.RequesterFinder
 }
 
 // RoundHandler -

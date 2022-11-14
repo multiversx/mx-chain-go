@@ -98,6 +98,7 @@ type exportHandlerFactory struct {
 	headerIntegrityVerifier   process.HeaderIntegrityVerifier
 	validityAttester          process.ValidityAttester
 	resolverContainer         dataRetriever.ResolversContainer
+	requesterContainer        dataRetriever.RequestersContainer
 	inputAntifloodHandler     process.P2PAntifloodHandler
 	outputAntifloodHandler    process.P2PAntifloodHandler
 	roundHandler              process.RoundHandler
@@ -157,7 +158,7 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		return nil, update.ErrNilInterceptorsContainer
 	}
 	if check.IfNil(args.ExistingResolvers) {
-		return nil, update.ErrNilResolverContainer
+		return nil, fmt.Errorf("%w for resolvers", update.ErrNilContainer)
 	}
 	multiSigner, err := args.CryptoComponents.GetMultiSigner(0)
 	if err != nil {
@@ -350,7 +351,6 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		NumConcurrentResolvingJobs: 100,
 		InputAntifloodHandler:      e.inputAntifloodHandler,
 		OutputAntifloodHandler:     e.outputAntifloodHandler,
-		PeersRatingHandler:         e.peersRatingHandler,
 	}
 	resolversFactory, err := NewResolversContainerFactory(argsResolvers)
 	if err != nil {
@@ -365,6 +365,32 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		errNotCritical = resolver.SetResolverDebugHandler(debugger)
 		if errNotCritical != nil {
 			log.Warn("error setting debugger", "resolver", key, "error", errNotCritical)
+		}
+
+		return true
+	})
+
+	argsRequesters := ArgsNewRequestersContainerFactory{
+		ShardCoordinator:       e.shardCoordinator,
+		Messenger:              e.messenger,
+		Marshaller:             e.CoreComponents.InternalMarshalizer(),
+		ExistingRequesters:     nil, // TODO next PR
+		OutputAntifloodHandler: e.outputAntifloodHandler,
+		PeersRatingHandler:     e.peersRatingHandler,
+	}
+	requestersFactory, err := NewRequestersContainerFactory(argsRequesters)
+	if err != nil {
+		return nil, err
+	}
+	e.requesterContainer, err = requestersFactory.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	e.requesterContainer.Iterate(func(key string, requester dataRetriever.Requester) bool {
+		errNotCritical = requester.SetResolverDebugHandler(debugger)
+		if errNotCritical != nil {
+			log.Warn("error setting debugger", "requester", key, "error", errNotCritical)
 		}
 
 		return true

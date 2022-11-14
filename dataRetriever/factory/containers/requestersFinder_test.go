@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
+	dataRetrieverTests "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -20,11 +21,11 @@ func createMockCoordinator(identifierPrefix string, currentShardID uint32) *mock
 	}
 }
 
-func createMockContainer(expectedKey string) *mock.ResolversContainerStub {
-	return &mock.ResolversContainerStub{
-		GetCalled: func(key string) (resolver dataRetriever.Resolver, e error) {
+func createMockContainer(expectedKey string) *dataRetrieverTests.RequestersContainerStub {
+	return &dataRetrieverTests.RequestersContainerStub{
+		GetCalled: func(key string) (resolver dataRetriever.Requester, e error) {
 			if key == expectedKey {
-				return &mock.ResolverStub{}, nil
+				return &dataRetrieverTests.RequesterStub{}, nil
 			}
 
 			return nil, nil
@@ -32,78 +33,78 @@ func createMockContainer(expectedKey string) *mock.ResolversContainerStub {
 	}
 }
 
-//------- NewResolversFinder
+//------- NewRequestersFinder
 
-func TestNewResolversFinder_NilContainerShouldErr(t *testing.T) {
+func TestNewRequestersFinder_NilContainerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	rf, err := NewResolversFinder(nil, &mock.CoordinatorStub{})
+	rf, err := NewRequestersFinder(nil, &mock.CoordinatorStub{})
 
 	assert.Nil(t, rf)
-	assert.Equal(t, dataRetriever.ErrNilResolverContainer, err)
+	assert.Equal(t, dataRetriever.ErrNilRequestersContainer, err)
 }
 
-func TestNewResolversFinder_NilCoordinatorShouldErr(t *testing.T) {
+func TestNewRequestersFinder_NilCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	rf, err := NewResolversFinder(&mock.ResolversContainerStub{}, nil)
+	rf, err := NewRequestersFinder(&dataRetrieverTests.RequestersContainerStub{}, nil)
 
 	assert.Nil(t, rf)
 	assert.Equal(t, dataRetriever.ErrNilShardCoordinator, err)
 }
 
-func TestNewResolversFinder_ShouldWork(t *testing.T) {
+func TestNewRequestersFinder_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	rf, err := NewResolversFinder(&mock.ResolversContainerStub{}, &mock.CoordinatorStub{})
+	rf, err := NewRequestersFinder(&dataRetrieverTests.RequestersContainerStub{}, &mock.CoordinatorStub{})
 
 	assert.NotNil(t, rf)
 	assert.Nil(t, err)
 	assert.False(t, rf.IsInterfaceNil())
 }
 
-func TestResolversFinder_IntraShardResolver(t *testing.T) {
+func TestRequestersFinder_IntraShardRequester(t *testing.T) {
 	currentShardID := uint32(4)
 	identifierPrefix := "_"
 	baseTopic := "baseTopic"
 
 	expectedTopic := baseTopic + identifierPrefix + strconv.Itoa(int(currentShardID))
 
-	rf, _ := NewResolversFinder(
+	rf, _ := NewRequestersFinder(
 		createMockContainer(expectedTopic),
 		createMockCoordinator(identifierPrefix, currentShardID),
 	)
 
-	resolver, _ := rf.IntraShardResolver(baseTopic)
+	resolver, _ := rf.IntraShardRequester(baseTopic)
 	assert.NotNil(t, resolver)
 }
 
-func TestResolversFinder_MetaChainResolver(t *testing.T) {
+func TestRequestersFinder_MetaChainRequester(t *testing.T) {
 	currentShardID := uint32(4)
 	identifierPrefix := "_"
 	baseTopic := "baseTopic"
 
-	rf, _ := NewResolversFinder(
+	rf, _ := NewRequestersFinder(
 		createMockContainer(baseTopic),
 		createMockCoordinator(identifierPrefix, currentShardID),
 	)
 
-	resolver, _ := rf.MetaChainResolver(baseTopic)
+	resolver, _ := rf.MetaChainRequester(baseTopic)
 	assert.NotNil(t, resolver)
 }
 
-func TestResolversFinder_CrossShardResolver(t *testing.T) {
+func TestRequestersFinder_CrossShardRequester(t *testing.T) {
 	crossShardID := uint32(5)
 	identifierPrefix := "_"
 	baseTopic := "baseTopic"
 
 	expectedTopic := baseTopic + identifierPrefix + strconv.Itoa(int(crossShardID))
 
-	rf, _ := NewResolversFinder(
+	rf, _ := NewRequestersFinder(
 		createMockContainer(expectedTopic),
 		createMockCoordinator(identifierPrefix, crossShardID),
 	)
 
-	resolver, _ := rf.CrossShardResolver(baseTopic, crossShardID)
+	resolver, _ := rf.CrossShardRequester(baseTopic, crossShardID)
 	assert.NotNil(t, resolver)
 }

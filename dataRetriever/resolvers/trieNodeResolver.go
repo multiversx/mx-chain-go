@@ -9,30 +9,30 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
-var _ dataRetriever.Resolver = (*TrieNodeResolver)(nil)
+var _ dataRetriever.Resolver = (*trieNodeResolver)(nil)
 var logTrieNodes = logger.GetOrCreate("dataretriever/resolvers/trienoderesolver")
 
-// ArgTrieNodeResolver is the argument structure used to create new TrieNodeResolver instance
+// ArgTrieNodeResolver is the argument structure used to create new trieNodeResolver instance
 type ArgTrieNodeResolver struct {
 	ArgBaseResolver
 	TrieDataGetter dataRetriever.TrieDataGetter
 }
 
-// TrieNodeResolver is a wrapper over Resolver that is specialized in resolving trie node requests
-type TrieNodeResolver struct {
+// trieNodeResolver is a wrapper over Resolver that is specialized in resolving trie node requests
+type trieNodeResolver struct {
 	*baseResolver
 	messageProcessor
 	trieDataGetter dataRetriever.TrieDataGetter
 }
 
 // NewTrieNodeResolver creates a new trie node resolver
-func NewTrieNodeResolver(arg ArgTrieNodeResolver) (*TrieNodeResolver, error) {
+func NewTrieNodeResolver(arg ArgTrieNodeResolver) (*trieNodeResolver, error) {
 	err := checkArgTrieNodeResolver(arg)
 	if err != nil {
 		return nil, err
 	}
 
-	return &TrieNodeResolver{
+	return &trieNodeResolver{
 		baseResolver: &baseResolver{
 			TopicResolverSender: arg.SenderResolver,
 		},
@@ -59,7 +59,7 @@ func checkArgTrieNodeResolver(arg ArgTrieNodeResolver) error {
 
 // ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to, usually a request topic)
-func (tnRes *TrieNodeResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+func (tnRes *trieNodeResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
 	err := tnRes.canProcessMessage(message, fromConnectedPeer)
 	if err != nil {
 		return err
@@ -83,7 +83,7 @@ func (tnRes *TrieNodeResolver) ProcessReceivedMessage(message p2p.MessageP2P, fr
 	}
 }
 
-func (tnRes *TrieNodeResolver) resolveMultipleHashes(hashesBuff []byte, message p2p.MessageP2P) error {
+func (tnRes *trieNodeResolver) resolveMultipleHashes(hashesBuff []byte, message p2p.MessageP2P) error {
 	b := batch.Batch{}
 	err := tnRes.marshalizer.Unmarshal(&b, hashesBuff)
 	if err != nil {
@@ -103,7 +103,7 @@ func (tnRes *TrieNodeResolver) resolveMultipleHashes(hashesBuff []byte, message 
 	return tnRes.sendResponse(convertMapToSlice(nodes), hashes, supportedChunkIndex, message)
 }
 
-func (tnRes *TrieNodeResolver) resolveOnlyRequestedHashes(hashes [][]byte, nodes map[string]struct{}) (int, bool) {
+func (tnRes *trieNodeResolver) resolveOnlyRequestedHashes(hashes [][]byte, nodes map[string]struct{}) (int, bool) {
 	spaceUsed := 0
 	usedAllSpace := false
 	remainingSpace := core.MaxBufferSizeToSendTrieNodes
@@ -128,7 +128,7 @@ func (tnRes *TrieNodeResolver) resolveOnlyRequestedHashes(hashes [][]byte, nodes
 	return spaceUsed, usedAllSpace
 }
 
-func (tnRes *TrieNodeResolver) resolveSubTries(hashes [][]byte, nodes map[string]struct{}, spaceUsedAlready int) {
+func (tnRes *trieNodeResolver) resolveSubTries(hashes [][]byte, nodes map[string]struct{}, spaceUsedAlready int) {
 	var serializedNodes [][]byte
 	var err error
 	var serializedNode []byte
@@ -167,7 +167,7 @@ func convertMapToSlice(m map[string]struct{}) [][]byte {
 	return buff
 }
 
-func (tnRes *TrieNodeResolver) resolveOneHash(hash []byte, chunkIndex uint32, message p2p.MessageP2P) error {
+func (tnRes *trieNodeResolver) resolveOneHash(hash []byte, chunkIndex uint32, message p2p.MessageP2P) error {
 	serializedNode, err := tnRes.trieDataGetter.GetSerializedNode(hash)
 	if err != nil {
 		return err
@@ -176,7 +176,7 @@ func (tnRes *TrieNodeResolver) resolveOneHash(hash []byte, chunkIndex uint32, me
 	return tnRes.sendResponse([][]byte{serializedNode}, [][]byte{hash}, chunkIndex, message)
 }
 
-func (tnRes *TrieNodeResolver) getSubTrie(hash []byte, remainingSpace uint64) ([][]byte, uint64, error) {
+func (tnRes *trieNodeResolver) getSubTrie(hash []byte, remainingSpace uint64) ([][]byte, uint64, error) {
 	serializedNodes, remainingSpace, err := tnRes.trieDataGetter.GetSerializedNodes(hash, remainingSpace)
 	if err != nil {
 		tnRes.ResolverDebugHandler().LogFailedToResolveData(
@@ -193,7 +193,7 @@ func (tnRes *TrieNodeResolver) getSubTrie(hash []byte, remainingSpace uint64) ([
 	return serializedNodes, remainingSpace, nil
 }
 
-func (tnRes *TrieNodeResolver) sendResponse(
+func (tnRes *trieNodeResolver) sendResponse(
 	serializedNodes [][]byte,
 	hashes [][]byte,
 	chunkIndex uint32,
@@ -217,7 +217,7 @@ func (tnRes *TrieNodeResolver) sendResponse(
 	return tnRes.Send(buff, message.Peer())
 }
 
-func (tnRes *TrieNodeResolver) sendLargeMessage(
+func (tnRes *trieNodeResolver) sendLargeMessage(
 	largeBuff []byte,
 	reference []byte,
 	chunkIndex int,
@@ -251,49 +251,7 @@ func (tnRes *TrieNodeResolver) sendLargeMessage(
 	return tnRes.Send(buff, message.Peer())
 }
 
-// RequestDataFromHash requests trie nodes from other peers having input a trie node hash
-func (tnRes *TrieNodeResolver) RequestDataFromHash(hash []byte, _ uint32) error {
-	return tnRes.SendOnRequestTopic(
-		&dataRetriever.RequestData{
-			Type:  dataRetriever.HashType,
-			Value: hash,
-		},
-		[][]byte{hash},
-	)
-}
-
-// RequestDataFromHashArray requests trie nodes from other peers having input multiple trie node hashes
-func (tnRes *TrieNodeResolver) RequestDataFromHashArray(hashes [][]byte, _ uint32) error {
-	b := &batch.Batch{
-		Data: hashes,
-	}
-	buffHashes, err := tnRes.marshalizer.Marshal(b)
-	if err != nil {
-		return err
-	}
-
-	return tnRes.SendOnRequestTopic(
-		&dataRetriever.RequestData{
-			Type:  dataRetriever.HashArrayType,
-			Value: buffHashes,
-		},
-		hashes,
-	)
-}
-
-// RequestDataFromReferenceAndChunk requests a trie node's chunk by specifying the reference and the chunk index
-func (tnRes *TrieNodeResolver) RequestDataFromReferenceAndChunk(hash []byte, chunkIndex uint32) error {
-	return tnRes.SendOnRequestTopic(
-		&dataRetriever.RequestData{
-			Type:       dataRetriever.HashType,
-			Value:      hash,
-			ChunkIndex: chunkIndex,
-		},
-		[][]byte{hash},
-	)
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
-func (tnRes *TrieNodeResolver) IsInterfaceNil() bool {
+func (tnRes *trieNodeResolver) IsInterfaceNil() bool {
 	return tnRes == nil
 }

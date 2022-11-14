@@ -1,4 +1,4 @@
-package topicResolverSender_test
+package topicSender_test
 
 import (
 	"errors"
@@ -8,7 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers/topicResolverSender"
+	topicSender2 "github.com/ElrondNetwork/elrond-go/dataRetriever/topicSender"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -20,7 +20,7 @@ const emptyTopic = ""
 func TestNewDiffPeerListCreator_NilMessengerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	dplc, err := topicResolverSender.NewDiffPeerListCreator(
+	dplc, err := topicSender2.NewDiffPeerListCreator(
 		nil,
 		mainTopic,
 		intraTopic,
@@ -34,7 +34,7 @@ func TestNewDiffPeerListCreator_NilMessengerShouldErr(t *testing.T) {
 func TestNewDiffPeerListCreator_EmptyMainTopicShouldErr(t *testing.T) {
 	t.Parallel()
 
-	dplc, err := topicResolverSender.NewDiffPeerListCreator(
+	dplc, err := topicSender2.NewDiffPeerListCreator(
 		&mock.MessageHandlerStub{},
 		emptyTopic,
 		intraTopic,
@@ -48,7 +48,7 @@ func TestNewDiffPeerListCreator_EmptyMainTopicShouldErr(t *testing.T) {
 func TestNewDiffPeerListCreator_EmptyIntraTopicShouldErr(t *testing.T) {
 	t.Parallel()
 
-	dplc, err := topicResolverSender.NewDiffPeerListCreator(
+	dplc, err := topicSender2.NewDiffPeerListCreator(
 		&mock.MessageHandlerStub{},
 		mainTopic,
 		emptyTopic,
@@ -62,7 +62,7 @@ func TestNewDiffPeerListCreator_EmptyIntraTopicShouldErr(t *testing.T) {
 func TestNewDiffPeerListCreator_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	dplc, err := topicResolverSender.NewDiffPeerListCreator(
+	dplc, err := topicSender2.NewDiffPeerListCreator(
 		&mock.MessageHandlerStub{},
 		mainTopic,
 		intraTopic,
@@ -80,7 +80,7 @@ func TestMakeDiffList_EmptyExcludedShoudRetAllPeersList(t *testing.T) {
 
 	allPeers := []core.PeerID{core.PeerID("peer1"), core.PeerID("peer2")}
 	excludedPeerList := make([]core.PeerID, 0)
-	diff := topicResolverSender.MakeDiffList(allPeers, excludedPeerList)
+	diff := topicSender2.MakeDiffList(allPeers, excludedPeerList)
 
 	assert.Equal(t, allPeers, diff)
 }
@@ -92,7 +92,7 @@ func TestMakeDiffList_AllFoundInExcludedShouldRetEmpty(t *testing.T) {
 	excluded := make([]core.PeerID, len(allPeers))
 	copy(excluded, allPeers)
 
-	diff := topicResolverSender.MakeDiffList(allPeers, excluded)
+	diff := topicSender2.MakeDiffList(allPeers, excluded)
 
 	assert.Empty(t, diff)
 }
@@ -103,7 +103,7 @@ func TestMakeDiffList_SomeFoundInExcludedShouldRetTheDifference(t *testing.T) {
 	allPeers := []core.PeerID{core.PeerID("peer1"), core.PeerID("peer2")}
 	excluded := []core.PeerID{core.PeerID("peer1"), core.PeerID("peer3")}
 
-	diff := topicResolverSender.MakeDiffList(allPeers, excluded)
+	diff := topicSender2.MakeDiffList(allPeers, excluded)
 
 	assert.Equal(t, 1, len(diff))
 	assert.Equal(t, allPeers[1], diff[0])
@@ -115,7 +115,7 @@ func TestMakeDiffList_NoneFoundInExcludedShouldRetAllPeers(t *testing.T) {
 	allPeers := []core.PeerID{core.PeerID("peer1"), core.PeerID("peer2")}
 	excluded := []core.PeerID{core.PeerID("peer3"), core.PeerID("peer4")}
 
-	diff := topicResolverSender.MakeDiffList(allPeers, excluded)
+	diff := topicSender2.MakeDiffList(allPeers, excluded)
 
 	assert.Equal(t, allPeers, diff)
 }
@@ -123,7 +123,7 @@ func TestMakeDiffList_NoneFoundInExcludedShouldRetAllPeers(t *testing.T) {
 func TestDiffPeerListCreator_CrossShardPeersListEmptyMainListShouldRetEmpty(t *testing.T) {
 	t.Parallel()
 
-	dplc, _ := topicResolverSender.NewDiffPeerListCreator(
+	dplc, _ := topicSender2.NewDiffPeerListCreator(
 		&mock.MessageHandlerStub{
 			ConnectedPeersOnTopicCalled: func(topic string) []core.PeerID {
 				return make([]core.PeerID, 0)
@@ -143,7 +143,7 @@ func TestDiffPeerListCreator_CrossShardPeersListNoExcludedTopicSetShouldRetPeers
 	pID1 := core.PeerID("peer1")
 	pID2 := core.PeerID("peer2")
 	peersOnMain := []core.PeerID{pID1, pID2}
-	dplc, _ := topicResolverSender.NewDiffPeerListCreator(
+	dplc, _ := topicSender2.NewDiffPeerListCreator(
 		&mock.MessageHandlerStub{
 			ConnectedPeersOnTopicCalled: func(topic string) []core.PeerID {
 				return peersOnMain
@@ -165,7 +165,7 @@ func TestDiffPeerListCreator_CrossShardPeersListDiffShouldWork(t *testing.T) {
 	pID3 := core.PeerID("peer3")
 	peersOnMain := []core.PeerID{pID1, pID2}
 	peersOnExcluded := []core.PeerID{pID2, pID3}
-	dplc, _ := topicResolverSender.NewDiffPeerListCreator(
+	dplc, _ := topicSender2.NewDiffPeerListCreator(
 		&mock.MessageHandlerStub{
 			ConnectedPeersOnTopicCalled: func(topic string) []core.PeerID {
 				switch topic {
@@ -196,7 +196,7 @@ func TestDiffPeerListCreator_CrossShardPeersListNoDifferenceShouldReturnMain(t *
 	pID2 := core.PeerID("peer2")
 	peersOnMain := []core.PeerID{pID1, pID2}
 	peersOnExcluded := []core.PeerID{pID1, pID2}
-	dplc, _ := topicResolverSender.NewDiffPeerListCreator(
+	dplc, _ := topicSender2.NewDiffPeerListCreator(
 		&mock.MessageHandlerStub{
 			ConnectedPeersOnTopicCalled: func(topic string) []core.PeerID {
 				switch topic {
@@ -223,7 +223,7 @@ func TestDiffPeerListCreator_IntraShardPeersList(t *testing.T) {
 	t.Parallel()
 
 	peerList := []core.PeerID{"pid1", "pid2"}
-	dplc, _ := topicResolverSender.NewDiffPeerListCreator(
+	dplc, _ := topicSender2.NewDiffPeerListCreator(
 		&mock.MessageHandlerStub{
 			ConnectedPeersOnTopicCalled: func(topic string) []core.PeerID {
 				if topic == intraTopic {

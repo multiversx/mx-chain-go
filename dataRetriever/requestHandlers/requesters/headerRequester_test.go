@@ -26,7 +26,7 @@ func TestNewHeaderRequester(t *testing.T) {
 		argsBase := createMockArgBaseRequester()
 		argsBase.Marshaller = nil
 		requester, err := NewHeaderRequester(createMockArgHeaderRequester(argsBase))
-		assert.Equal(t, dataRetriever.ErrNilMarshalizer, err)
+		assert.Equal(t, dataRetriever.ErrNilMarshaller, err)
 		assert.True(t, check.IfNil(requester))
 	})
 	t.Run("nil nonce converter should error", func(t *testing.T) {
@@ -55,7 +55,7 @@ func TestHeaderRequester_RequestDataFromNonce(t *testing.T) {
 	providedNonceConverter := mock.NewNonceHashConverterMock()
 	argBase := createMockArgBaseRequester()
 	wasCalled := false
-	argBase.SenderResolver = &dataRetrieverMocks.TopicResolverSenderStub{
+	argBase.RequestSender = &dataRetrieverMocks.TopicResolverSenderStub{
 		SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData, originalHashes [][]byte) error {
 			wasCalled = true
 			assert.Equal(t, providedNonceConverter.ToByteSlice(providedNonce), rd.Value)
@@ -83,7 +83,7 @@ func TestHeaderRequester_RequestDataFromEpoch(t *testing.T) {
 	providedIdentifier := []byte("provided identifier")
 	argBase := createMockArgBaseRequester()
 	wasCalled := false
-	argBase.SenderResolver = &dataRetrieverMocks.TopicResolverSenderStub{
+	argBase.RequestSender = &dataRetrieverMocks.TopicResolverSenderStub{
 		SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData, originalHashes [][]byte) error {
 			wasCalled = true
 			assert.Equal(t, providedIdentifier, rd.Value)

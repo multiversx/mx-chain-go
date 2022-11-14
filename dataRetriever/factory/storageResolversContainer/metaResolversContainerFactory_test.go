@@ -97,7 +97,7 @@ func TestNewMetaResolversContainerFactory_NilMarshalizerShouldErr(t *testing.T) 
 	rcf, err := storageResolversContainers.NewMetaResolversContainerFactory(args)
 
 	assert.Nil(t, rcf)
-	assert.Equal(t, dataRetriever.ErrNilMarshalizer, err)
+	assert.Equal(t, dataRetriever.ErrNilMarshaller, err)
 }
 
 func TestNewMetaResolversContainerFactory_NilUint64SliceConverterShouldErr(t *testing.T) {

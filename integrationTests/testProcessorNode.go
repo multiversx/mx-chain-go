@@ -302,7 +302,8 @@ type TestProcessorNode struct {
 	BlockTracker          process.BlockTracker
 	InterceptorsContainer process.InterceptorsContainer
 	ResolversContainer    dataRetriever.ResolversContainer
-	ResolverFinder        dataRetriever.ResolversFinder
+	RequestersContainer   dataRetriever.RequestersContainer
+	RequestersFinder      dataRetriever.RequestersFinder
 	RequestHandler        process.RequestHandler
 	ArwenChangeLocker     common.Locker
 
@@ -1265,7 +1266,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 		ShardCoordinator:            tpn.ShardCoordinator,
 		Messenger:                   tpn.Messenger,
 		Store:                       tpn.Storage,
-		Marshalizer:                 TestMarshalizer,
+		Marshaller:                  TestMarshalizer,
 		DataPools:                   tpn.DataPool,
 		Uint64ByteSliceConverter:    TestUint64Converter,
 		DataPacker:                  dataPacker,
@@ -1276,13 +1277,8 @@ func (tpn *TestProcessorNode) initResolvers() {
 		NumConcurrentResolvingJobs:  10,
 		CurrentNetworkEpochProvider: &mock.CurrentNetworkEpochProviderStub{},
 		PreferredPeersHolder:        &p2pmocks.PeersHolderStub{},
-		ResolverConfig: config.ResolverConfig{
-			NumCrossShardPeers:  2,
-			NumTotalPeers:       3,
-			NumFullHistoryPeers: 3,
-		},
-		PeersRatingHandler: tpn.PeersRatingHandler,
-		PayloadValidator:   payloadValidator,
+		PeersRatingHandler:          tpn.PeersRatingHandler,
+		PayloadValidator:            payloadValidator,
 	}
 
 	var err error
@@ -1292,9 +1288,9 @@ func (tpn *TestProcessorNode) initResolvers() {
 		tpn.ResolversContainer, err = resolversContainerFactory.Create()
 		log.LogIfError(err)
 
-		tpn.ResolverFinder, _ = containers.NewResolversFinder(tpn.ResolversContainer, tpn.ShardCoordinator)
+		tpn.RequestersFinder, _ = containers.NewRequestersFinder(tpn.RequestersContainer, tpn.ShardCoordinator)
 		tpn.RequestHandler, _ = requestHandlers.NewResolverRequestHandler(
-			tpn.ResolverFinder,
+			tpn.RequestersFinder,
 			tpn.RequestedItemsHandler,
 			tpn.WhiteListHandler,
 			100,
@@ -1307,9 +1303,9 @@ func (tpn *TestProcessorNode) initResolvers() {
 		tpn.ResolversContainer, err = resolversContainerFactory.Create()
 		log.LogIfError(err)
 
-		tpn.ResolverFinder, _ = containers.NewResolversFinder(tpn.ResolversContainer, tpn.ShardCoordinator)
+		tpn.RequestersFinder, _ = containers.NewRequestersFinder(tpn.RequestersContainer, tpn.ShardCoordinator)
 		tpn.RequestHandler, _ = requestHandlers.NewResolverRequestHandler(
-			tpn.ResolverFinder,
+			tpn.RequestersFinder,
 			tpn.RequestedItemsHandler,
 			tpn.WhiteListHandler,
 			100,
@@ -2205,7 +2201,7 @@ func (tpn *TestProcessorNode) initNode() {
 
 	processComponents := GetDefaultProcessComponents()
 	processComponents.BlockProcess = tpn.BlockProcessor
-	processComponents.ResFinder = tpn.ResolverFinder
+	processComponents.Requester = tpn.RequestersFinder
 	processComponents.HeaderIntegrVerif = tpn.HeaderIntegrityVerifier
 	processComponents.HeaderSigVerif = tpn.HeaderSigVerifier
 	processComponents.BlackListHdl = tpn.BlockBlackListHandler
@@ -2266,7 +2262,7 @@ func (tpn *TestProcessorNode) initNode() {
 	err = nodeDebugFactory.CreateInterceptedDebugHandler(
 		tpn.Node,
 		tpn.InterceptorsContainer,
-		tpn.ResolverFinder,
+		tpn.RequestersFinder,
 		config.InterceptorResolverDebugConfig{
 			Enabled:                    true,
 			CacheSize:                  1000,
@@ -2778,7 +2774,7 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 
 	processComponents := GetDefaultProcessComponents()
 	processComponents.BlockProcess = tpn.BlockProcessor
-	processComponents.ResFinder = tpn.ResolverFinder
+	processComponents.Requester = tpn.RequestersFinder
 	processComponents.HeaderIntegrVerif = tpn.HeaderIntegrityVerifier
 	processComponents.HeaderSigVerif = tpn.HeaderSigVerifier
 	processComponents.BlackListHdl = tpn.BlockBlackListHandler
@@ -2990,7 +2986,7 @@ func GetDefaultProcessComponents() *mock.ProcessComponentsStub {
 			CurrentShard: 0,
 		},
 		IntContainer:             &testscommon.InterceptorsContainerStub{},
-		ResFinder:                &mock.ResolversFinderStub{},
+		Requester:                &dataRetrieverMock.RequestersFinderStub{},
 		RoundHandlerField:        &testscommon.RoundHandlerMock{},
 		EpochTrigger:             &testscommon.EpochStartTriggerStub{},
 		EpochNotifier:            &mock.EpochStartNotifierStub{},

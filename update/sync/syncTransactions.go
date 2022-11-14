@@ -55,7 +55,7 @@ func NewTransactionsSyncer(args ArgsNewTransactionsSyncer) (*transactionsSync, e
 		return nil, dataRetriever.ErrNilDataPoolHolder
 	}
 	if check.IfNil(args.Marshaller) {
-		return nil, dataRetriever.ErrNilMarshalizer
+		return nil, dataRetriever.ErrNilMarshaller
 	}
 	if check.IfNil(args.RequestHandler) {
 		return nil, process.ErrNilRequestHandler

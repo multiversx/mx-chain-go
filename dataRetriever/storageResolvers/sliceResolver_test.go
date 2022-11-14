@@ -58,7 +58,7 @@ func TestNewSliceResolver_NilMarshalizerShouldErr(t *testing.T) {
 	sr, err := NewSliceResolver(arg)
 
 	assert.True(t, check.IfNil(sr))
-	assert.Equal(t, dataRetriever.ErrNilMarshalizer, err)
+	assert.Equal(t, dataRetriever.ErrNilMarshaller, err)
 }
 
 func TestNewSliceResolver_NilDataPackerShouldErr(t *testing.T) {

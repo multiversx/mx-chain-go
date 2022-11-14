@@ -7,7 +7,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
@@ -124,27 +123,27 @@ func TestNewMetaResolversContainerFactory_NilStoreShouldErr(t *testing.T) {
 	assert.Equal(t, dataRetriever.ErrNilStore, err)
 }
 
-func TestNewMetaResolversContainerFactory_NilMarshalizerShouldErr(t *testing.T) {
+func TestNewMetaResolversContainerFactory_NilMarshallerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := getArgumentsMeta()
-	args.Marshalizer = nil
+	args.Marshaller = nil
 	rcf, err := resolverscontainer.NewMetaResolversContainerFactory(args)
 
 	assert.Nil(t, rcf)
-	assert.Equal(t, dataRetriever.ErrNilMarshalizer, err)
+	assert.Equal(t, dataRetriever.ErrNilMarshaller, err)
 }
 
-func TestNewMetaResolversContainerFactory_NilMarshalizerAndSizeCheckShouldErr(t *testing.T) {
+func TestNewMetaResolversContainerFactory_NilMarshallerAndSizeCheckShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := getArgumentsMeta()
-	args.Marshalizer = nil
+	args.Marshaller = nil
 	args.SizeCheckDelta = 1
 	rcf, err := resolverscontainer.NewMetaResolversContainerFactory(args)
 
 	assert.Nil(t, rcf)
-	assert.Equal(t, dataRetriever.ErrNilMarshalizer, err)
+	assert.Equal(t, dataRetriever.ErrNilMarshaller, err)
 }
 
 func TestNewMetaResolversContainerFactory_NilDataPoolShouldErr(t *testing.T) {
@@ -246,49 +245,6 @@ func TestNewMetaResolversContainerFactory_NilCurrentNetworkEpochProviderShouldEr
 	assert.Equal(t, dataRetriever.ErrNilCurrentNetworkEpochProvider, err)
 }
 
-func TestNewMetaResolversContainerFactory_InvalidNumCrossShardPeersShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getArgumentsMeta()
-	args.ResolverConfig.NumCrossShardPeers = 0
-	rcf, err := resolverscontainer.NewMetaResolversContainerFactory(args)
-
-	assert.Nil(t, rcf)
-	assert.True(t, errors.Is(err, dataRetriever.ErrInvalidValue))
-}
-
-func TestNewMetaResolversContainerFactory_InvalidNumTotalPeersShouldErr(t *testing.T) {
-	t.Parallel()
-
-	t.Run("NumTotalPeers is lower than NumCrossShardPeers", func(t *testing.T) {
-		args := getArgumentsMeta()
-		args.ResolverConfig.NumTotalPeers = 0
-		rcf, err := resolverscontainer.NewMetaResolversContainerFactory(args)
-
-		assert.Nil(t, rcf)
-		assert.True(t, errors.Is(err, dataRetriever.ErrInvalidValue))
-	})
-	t.Run("NumTotalPeers is equal to NumCrossShardPeers", func(t *testing.T) {
-		args := getArgumentsMeta()
-		args.ResolverConfig.NumTotalPeers = args.ResolverConfig.NumCrossShardPeers
-		rcf, err := resolverscontainer.NewMetaResolversContainerFactory(args)
-
-		assert.Nil(t, rcf)
-		assert.True(t, errors.Is(err, dataRetriever.ErrInvalidValue))
-	})
-}
-
-func TestNewMetaResolversContainerFactory_InvalidNumFullHistoryPeersShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getArgumentsMeta()
-	args.ResolverConfig.NumFullHistoryPeers = 0
-	rcf, err := resolverscontainer.NewMetaResolversContainerFactory(args)
-
-	assert.Nil(t, rcf)
-	assert.True(t, errors.Is(err, dataRetriever.ErrInvalidValue))
-}
-
 func TestNewMetaResolversContainerFactory_ShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -297,9 +253,6 @@ func TestNewMetaResolversContainerFactory_ShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(rcf))
-	assert.Equal(t, int(args.ResolverConfig.NumTotalPeers), rcf.NumTotalPeers())
-	assert.Equal(t, int(args.ResolverConfig.NumCrossShardPeers), rcf.NumCrossShardPeers())
-	assert.Equal(t, int(args.ResolverConfig.NumFullHistoryPeers), rcf.NumFullHistoryPeers())
 }
 
 // ------- Create
@@ -366,7 +319,7 @@ func getArgumentsMeta() resolverscontainer.FactoryArgs {
 		ShardCoordinator:            mock.NewOneShardCoordinatorMock(),
 		Messenger:                   createStubTopicMessageHandlerForMeta("", ""),
 		Store:                       createStoreForMeta(),
-		Marshalizer:                 &mock.MarshalizerMock{},
+		Marshaller:                  &mock.MarshalizerMock{},
 		DataPools:                   createDataPoolsForMeta(),
 		Uint64ByteSliceConverter:    &mock.Uint64ByteSliceConverterMock{},
 		DataPacker:                  &mock.DataPackerStub{},
@@ -377,12 +330,7 @@ func getArgumentsMeta() resolverscontainer.FactoryArgs {
 		NumConcurrentResolvingJobs:  10,
 		CurrentNetworkEpochProvider: &mock.CurrentNetworkEpochProviderStub{},
 		PreferredPeersHolder:        &p2pmocks.PeersHolderStub{},
-		ResolverConfig: config.ResolverConfig{
-			NumCrossShardPeers:  1,
-			NumTotalPeers:       3,
-			NumFullHistoryPeers: 3,
-		},
-		PeersRatingHandler: &p2pmocks.PeersRatingHandlerStub{},
-		PayloadValidator:   &testscommon.PeerAuthenticationPayloadValidatorStub{},
+		PeersRatingHandler:          &p2pmocks.PeersRatingHandlerStub{},
+		PayloadValidator:            &testscommon.PeerAuthenticationPayloadValidatorStub{},
 	}
 }

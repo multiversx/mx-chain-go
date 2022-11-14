@@ -66,7 +66,7 @@ func TestNewValidatorInfoResolver(t *testing.T) {
 		args.Marshaller = nil
 
 		res, err := resolvers.NewValidatorInfoResolver(args)
-		assert.Equal(t, dataRetriever.ErrNilMarshalizer, err)
+		assert.Equal(t, dataRetriever.ErrNilMarshaller, err)
 		assert.True(t, check.IfNil(res))
 	})
 	t.Run("nil AntifloodHandler should error", func(t *testing.T) {
