@@ -91,41 +91,6 @@ func TestIterator_Search(t *testing.T) {
 		"7121fb99a2c85ff3370e8ebf73a23a9f389a767891fece807c506f03abb1bc67",
 	}
 
-	t.Run("bfs iterator search", func(t *testing.T) {
-		t.Parallel()
-
-		expectedHashesBFSOrder := []string{
-			expectedHashes[0],
-			expectedHashes[1],
-			expectedHashes[2],
-			expectedHashes[3],
-			expectedHashes[4],
-			expectedHashes[5],
-			expectedHashes[6],
-			expectedHashes[7],
-			expectedHashes[8],
-		}
-
-		it, _ := trie.NewBFSIterator(tr)
-		nodeHash, err := it.GetHash()
-		require.Nil(t, err)
-
-		nodesHashes := make([]string, 0)
-		nodesHashes = append(nodesHashes, hex.EncodeToString(nodeHash))
-
-		for it.HasNext() {
-			err := it.Next()
-			require.Nil(t, err)
-
-			nodeHash, err := it.GetHash()
-			require.Nil(t, err)
-
-			nodesHashes = append(nodesHashes, hex.EncodeToString(nodeHash))
-		}
-
-		require.Equal(t, expectedHashesBFSOrder, nodesHashes)
-	})
-
 	t.Run("dfs iterator search", func(t *testing.T) {
 		t.Parallel()
 
