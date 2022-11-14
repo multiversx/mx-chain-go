@@ -1,24 +1,24 @@
-package trieLeafParser
+package parsers
 
 import (
-	"github.com/ElrondNetwork/elrond-go/state/dataTrieValue"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/errors"
+	"github.com/ElrondNetwork/elrond-go/state/dataTrieValue"
 	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/marshallerMock"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewTrieLeafParser(t *testing.T) {
+func TestNewTrieLeafParserV2(t *testing.T) {
 	t.Parallel()
 
 	t.Run("nil marshaller", func(t *testing.T) {
 		t.Parallel()
 
-		tlp, err := NewTrieLeafParser([]byte("address"), nil, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+		tlp, err := NewTrieLeafParserV2([]byte("address"), nil, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 		assert.True(t, check.IfNil(tlp))
 		assert.Equal(t, errors.ErrNilMarshalizer, err)
 	})
@@ -26,7 +26,7 @@ func TestNewTrieLeafParser(t *testing.T) {
 	t.Run("nil enableEpochsHandler", func(t *testing.T) {
 		t.Parallel()
 
-		tlp, err := NewTrieLeafParser([]byte("address"), &marshallerMock.MarshalizerMock{}, nil)
+		tlp, err := NewTrieLeafParserV2([]byte("address"), &marshallerMock.MarshalizerMock{}, nil)
 		assert.True(t, check.IfNil(tlp))
 		assert.Equal(t, errors.ErrNilEnableEpochsHandler, err)
 	})
@@ -34,7 +34,7 @@ func TestNewTrieLeafParser(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		tlp, err := NewTrieLeafParser([]byte("address"), &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+		tlp, err := NewTrieLeafParserV2([]byte("address"), &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(tlp))
 	})
@@ -50,7 +50,7 @@ func TestTrieLeafParser_ParseLeaf(t *testing.T) {
 		val := []byte("val")
 		address := []byte("address")
 		suffix := append(key, address...)
-		tlp, _ := NewTrieLeafParser(address, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+		tlp, _ := NewTrieLeafParserV2(address, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 
 		keyVal, err := tlp.ParseLeaf(key, append(val, suffix...))
 		assert.Nil(t, err)
@@ -68,7 +68,7 @@ func TestTrieLeafParser_ParseLeaf(t *testing.T) {
 		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsAutoBalanceDataTriesEnabledField: true,
 		}
-		tlp, _ := NewTrieLeafParser(address, &marshallerMock.MarshalizerMock{}, enableEpochsHandler)
+		tlp, _ := NewTrieLeafParserV2(address, &marshallerMock.MarshalizerMock{}, enableEpochsHandler)
 
 		keyVal, err := tlp.ParseLeaf(key, append(val, suffix...))
 		assert.Nil(t, err)
@@ -93,7 +93,7 @@ func TestTrieLeafParser_ParseLeaf(t *testing.T) {
 		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsAutoBalanceDataTriesEnabledField: true,
 		}
-		tlp, _ := NewTrieLeafParser(address, marshaller, enableEpochsHandler)
+		tlp, _ := NewTrieLeafParserV2(address, marshaller, enableEpochsHandler)
 
 		keyVal, err := tlp.ParseLeaf(hasher.Compute(string(key)), serializedLeafData)
 		assert.Nil(t, err)

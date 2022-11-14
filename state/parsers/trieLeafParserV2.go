@@ -1,4 +1,4 @@
-package trieLeafParser
+package parsers
 
 import (
 	"bytes"
@@ -12,14 +12,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state/dataTrieValue"
 )
 
-type trieLeafParser struct {
+type trieLeafParserV2 struct {
 	address             []byte
 	marshaller          marshal.Marshalizer
 	enableEpochsHandler common.EnableEpochsHandler
 }
 
-// NewTrieLeafParser returns a new instance of trieLeafParser
-func NewTrieLeafParser(address []byte, marshaller marshal.Marshalizer, enableEpochsHandler common.EnableEpochsHandler) (*trieLeafParser, error) {
+// NewTrieLeafParserV2 returns a new instance of trieLeafParserV2
+func NewTrieLeafParserV2(address []byte, marshaller marshal.Marshalizer, enableEpochsHandler common.EnableEpochsHandler) (*trieLeafParserV2, error) {
 	if check.IfNil(marshaller) {
 		return nil, errors.ErrNilMarshalizer
 	}
@@ -27,7 +27,7 @@ func NewTrieLeafParser(address []byte, marshaller marshal.Marshalizer, enableEpo
 		return nil, errors.ErrNilEnableEpochsHandler
 	}
 
-	return &trieLeafParser{
+	return &trieLeafParserV2{
 		address:             address,
 		marshaller:          marshaller,
 		enableEpochsHandler: enableEpochsHandler,
@@ -35,7 +35,7 @@ func NewTrieLeafParser(address []byte, marshaller marshal.Marshalizer, enableEpo
 }
 
 // ParseLeaf returns a new KeyValStorage with the actual key and value
-func (tlp *trieLeafParser) ParseLeaf(trieKey []byte, trieVal []byte) (core.KeyValueHolder, error) {
+func (tlp *trieLeafParserV2) ParseLeaf(trieKey []byte, trieVal []byte) (core.KeyValueHolder, error) {
 	if tlp.enableEpochsHandler.IsAutoBalanceDataTriesEnabled() {
 		data := &dataTrieValue.TrieLeafData{}
 		err := tlp.marshaller.Unmarshal(data, trieVal)
@@ -60,6 +60,6 @@ func (tlp *trieLeafParser) ParseLeaf(trieKey []byte, trieVal []byte) (core.KeyVa
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (tlp *trieLeafParser) IsInterfaceNil() bool {
+func (tlp *trieLeafParserV2) IsInterfaceNil() bool {
 	return tlp == nil
 }

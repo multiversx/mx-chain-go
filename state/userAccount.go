@@ -10,7 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/state/trieLeafParser"
+	"github.com/ElrondNetwork/elrond-go/state/parsers"
 	"github.com/ElrondNetwork/elrond-go/trie/keyBuilder"
 )
 
@@ -199,7 +199,7 @@ func (a *userAccount) GetAllLeaves(
 		return err
 	}
 
-	tlp, err := trieLeafParser.NewTrieLeafParser(a.Address, a.marshaller, a.enableEpochsHandler)
+	tlp, err := parsers.NewTrieLeafParserV2(a.Address, a.marshaller, a.enableEpochsHandler)
 	if err != nil {
 		return err
 	}
