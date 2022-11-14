@@ -39,6 +39,26 @@ func (p *p2pConverter) Encode(pkBytes []byte) (string, error) {
 	return id.Pretty(), nil
 }
 
+// EncodSlice encodes a byte array slice representing public key as peer ID string
+func (p *p2pConverter) EncodeSlice(pkBytesSlice [][]byte) ([]string, error) {
+	encodedSlice := make([]string, 0, len(pkBytesSlice))
+
+	for _, pkBytes := range pkBytesSlice {
+		pubKey, err := libp2pCrypto.UnmarshalSecp256k1PublicKey(pkBytes)
+		if err != nil {
+			return nil, err
+		}
+
+		id, err := peer.IDFromPublicKey(pubKey)
+		if err != nil {
+			return nil, err
+		}
+
+		encodedSlice = append(encodedSlice, id.Pretty())
+	}
+	return encodedSlice, nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (p *p2pConverter) IsInterfaceNil() bool {
 	return p == nil

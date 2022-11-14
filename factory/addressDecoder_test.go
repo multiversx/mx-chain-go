@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 
 	elrondError "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
@@ -24,7 +24,7 @@ func Test_DecodeAddressesError(t *testing.T) {
 	t.Run("decode error", func(t *testing.T) {
 		t.Parallel()
 		pkError := errors.New("pkerror")
-		pkConverter := &mock.PubkeyConverterStub{
+		pkConverter := &testscommon.PubkeyConverterStub{
 			DecodeCalled: func(humanReadable string) ([]byte, error) {
 				return nil, pkError
 			}}
@@ -46,7 +46,7 @@ func Test_DecodeAddressesShouldWork(t *testing.T) {
 	decodeMap["addr1"] = decodedAddr1
 	decodeMap["addr2"] = decodedAddr2
 
-	pkConverter := &mock.PubkeyConverterStub{
+	pkConverter := &testscommon.PubkeyConverterStub{
 		DecodeCalled: func(humanReadable string) ([]byte, error) {
 			return decodeMap[humanReadable], nil
 		}}
