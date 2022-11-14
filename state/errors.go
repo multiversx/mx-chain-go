@@ -8,27 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 )
 
-// ErrMissingTrie is an error-compatible struct holding the root hash of the trie that is missing
-type ErrMissingTrie struct {
-	rootHash    []byte
-	originalErr error
-}
-
-// ------- ErrMissingTrie
-
-// NewErrMissingTrie returns a new instantiated struct
-func NewErrMissingTrie(rootHash []byte, originalErr error) *ErrMissingTrie {
-	return &ErrMissingTrie{
-		rootHash:    rootHash,
-		originalErr: originalErr,
-	}
-}
-
-// Error returns the error as string
-func (e *ErrMissingTrie) Error() string {
-	return fmt.Sprintf("trie was not found for hash, rootHash = %s, err = %s", hex.EncodeToString(e.rootHash), e.originalErr.Error())
-}
-
 // ErrAccountNotFoundAtBlock is an error-compatible struct holding the block info at which an account was not found
 type ErrAccountNotFoundAtBlock struct {
 	BlockInfo common.BlockInfo
