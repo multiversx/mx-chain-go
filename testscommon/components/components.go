@@ -234,6 +234,7 @@ func GetConsensusArgs(shardCoordinator sharding.Coordinator) consensusComp.Conse
 		StatusComponents:    statusComponents,
 		ScheduledProcessor:  scheduledProcessor,
 		SubroundBlockType:   consensus.SubroundBlockTypeV1,
+		ChainRunType:        common.ChainRunTypeRegular,
 	}
 }
 
@@ -681,8 +682,9 @@ func GetProcessArgs(
 				MaxServiceFee: 100,
 			},
 		},
-		Version:     "v1.0.0",
-		HistoryRepo: &dblookupext.HistoryRepositoryStub{},
+		Version:      "v1.0.0",
+		HistoryRepo:  &dblookupext.HistoryRepositoryStub{},
+		ChainRunType: common.ChainRunTypeRegular,
 	}
 }
 

@@ -76,8 +76,6 @@ const (
 // nodeRunner holds the node runner configuration and controls running of a node
 type nodeRunner struct {
 	configs *config.Configs
-
-	createManagedProcessComponentsMethod   func(processArgs processComp.ProcessComponentsFactoryArgs) (mainFactory.ProcessComponentsHandler, error)
 }
 
 // NewNodeRunner creates a nodeRunner instance
@@ -86,13 +84,9 @@ func NewNodeRunner(cfgs *config.Configs) (*nodeRunner, error) {
 		return nil, fmt.Errorf("nil configs provided")
 	}
 
-	nr := &nodeRunner{
+	return &nodeRunner{
 		configs: cfgs,
-	}
-
-	nr.createManagedProcessComponentsMethod = nr.createManagedProcessComponents
-
-	return nr, nil
+	}, nil
 }
 
 // Start creates and starts the managed components
@@ -850,6 +844,7 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 		IsInImportMode:        nr.configs.ImportDbConfig.IsImportDBMode,
 		ShouldDisableWatchdog: nr.configs.FlagsConfig.DisableConsensusWatchdog,
 		SubroundBlockType:     consensus.SubroundBlockTypeV1,
+		ChainRunType:          common.ChainRunTypeRegular,
 	}
 
 	consensusFactory, err := consensusComp.NewConsensusComponentsFactory(consensusArgs)
@@ -1238,12 +1233,8 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		ImportStartHandler:     importStartHandler,
 		WorkingDir:             configs.FlagsConfig.WorkingDir,
 		HistoryRepo:            historyRepository,
+		ChainRunType:           common.ChainRunTypeRegular,
 	}
-
-	return nr.createManagedProcessComponentsMethod(processArgs)
-}
-
-func (nr *nodeRunner) createManagedProcessComponents(processArgs processComp.ProcessComponentsFactoryArgs) (mainFactory.ProcessComponentsHandler, error) {
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {
 		return nil, fmt.Errorf("NewProcessComponentsFactory failed: %w", err)

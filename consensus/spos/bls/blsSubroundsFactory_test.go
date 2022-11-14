@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
+	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
@@ -499,7 +500,7 @@ func TestFactory_GenerateSubroundBlock(t *testing.T) {
 		)
 
 		err := fct.GenerateBlockSubround()
-		assert.ErrorIs(t, err, bls.ErrUnimplementedSubroundType)
+		assert.ErrorIs(t, err, errors.ErrUnimplementedSubroundType)
 	})
 	t.Run("should work with v1", func(t *testing.T) {
 		t.Parallel()

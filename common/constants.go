@@ -721,10 +721,6 @@ const InvalidMessageBlacklistDuration = time.Second * 3600
 // rating to a minimum threshold due to improper messages
 const PublicKeyBlacklistDuration = time.Second * 7200
 
-// WrongP2PMessageBlacklistDuration represents the time to keep a peer id in the blacklist if it sends a message that
-// do not follow this protocol
-const WrongP2PMessageBlacklistDuration = time.Second * 7200
-
 // MaxWaitingTimeToReceiveRequestedItem represents the maximum waiting time in seconds needed to receive the requested items
 const MaxWaitingTimeToReceiveRequestedItem = 5 * time.Second
 
@@ -817,3 +813,13 @@ const (
 
 // MaxIndexOfTxInMiniBlock defines the maximum index of a tx inside one mini block
 const MaxIndexOfTxInMiniBlock = int32(29999)
+
+// ChainRunType defines the types of chain to be run: regular (shards + metachain) or sovereign
+type ChainRunType string
+
+const (
+	// ChainRunTypeRegular defines the type of "regular" chain: a chain that uses shards + metachain
+	ChainRunTypeRegular ChainRunType = "regular"
+	// ChainRunTypeSovereign defines the type of sovereign chain that can be run independently
+	ChainRunTypeSovereign ChainRunType = "sovereign"
+)

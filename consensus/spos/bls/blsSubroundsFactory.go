@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
+	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/outport"
 )
 
@@ -192,7 +193,7 @@ func (fct *factory) generateBlockSubround() error {
 
 		return nil
 	default:
-		return fmt.Errorf("%w type %v", ErrUnimplementedSubroundType, fct.subroundBlockType)
+		return fmt.Errorf("%w type %v", errors.ErrUnimplementedSubroundType, fct.subroundBlockType)
 	}
 }
 
