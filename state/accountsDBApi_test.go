@@ -13,7 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/holders"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/state/disabled"
+	"github.com/ElrondNetwork/elrond-go/state/parsers"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	mockState "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/trie"
@@ -470,7 +470,7 @@ func TestAccountsDBApi_GetAllLeaves(t *testing.T) {
 		}
 
 		accountsApi, _ := state.NewAccountsDBApi(accountsAdapter, createBlockInfoProviderStub(dummyRootHash))
-		err := accountsApi.GetAllLeaves(&common.TrieIteratorChannels{}, nil, []byte{}, disabled.NewDisabledTrieLeafParser())
+		err := accountsApi.GetAllLeaves(&common.TrieIteratorChannels{}, nil, []byte{}, parsers.NewTrieLeafParserV1())
 		assert.Equal(t, expectedErr, err)
 	})
 	t.Run("recreate trie works, should call inner method", func(t *testing.T) {
@@ -486,7 +486,7 @@ func TestAccountsDBApi_GetAllLeaves(t *testing.T) {
 		}
 
 		accountsApi, _ := state.NewAccountsDBApi(accountsAdapter, createBlockInfoProviderStub(dummyRootHash))
-		err := accountsApi.GetAllLeaves(providedChan, context.Background(), []byte("address"), disabled.NewDisabledTrieLeafParser())
+		err := accountsApi.GetAllLeaves(providedChan, context.Background(), []byte("address"), parsers.NewTrieLeafParserV1())
 		assert.Nil(t, err)
 		assert.True(t, recreateTrieCalled)
 	})

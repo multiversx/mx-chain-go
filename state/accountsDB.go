@@ -20,7 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/holders"
 	"github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/state/disabled"
+	"github.com/ElrondNetwork/elrond-go/state/parsers"
 	"github.com/ElrondNetwork/elrond-go/trie/keyBuilder"
 	"github.com/ElrondNetwork/elrond-go/trie/statistics"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -1040,7 +1040,7 @@ func (adb *AccountsDB) RecreateAllTries(rootHash []byte) (map[string]common.Trie
 		context.Background(),
 		rootHash,
 		keyBuilder.NewDisabledKeyBuilder(),
-		disabled.NewDisabledTrieLeafParser(),
+		parsers.NewTrieLeafParserV1(),
 	)
 	if err != nil {
 		return nil, err
@@ -1442,7 +1442,7 @@ func (adb *AccountsDB) GetStatsForRootHash(rootHash []byte) (common.TriesStatist
 		context.Background(),
 		rootHash,
 		keyBuilder.NewDisabledKeyBuilder(),
-		disabled.NewDisabledTrieLeafParser(),
+		parsers.NewTrieLeafParserV1(),
 	)
 	if err != nil {
 		return nil, err

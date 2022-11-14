@@ -37,7 +37,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/state/disabled"
+	"github.com/ElrondNetwork/elrond-go/state/parsers"
 	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 )
 
@@ -1731,7 +1731,7 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 		ErrChan:    make(chan error, 1),
 	}
-	err = userAccountsDb.GetAllLeaves(iteratorChannels, context.Background(), rootHash, disabled.NewDisabledTrieLeafParser())
+	err = userAccountsDb.GetAllLeaves(iteratorChannels, context.Background(), rootHash, parsers.NewTrieLeafParserV1())
 	if err != nil {
 		return err
 	}
@@ -1760,7 +1760,7 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 					LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 					ErrChan:    make(chan error, 1),
 				}
-				errDataTrieGet := userAccountsDb.GetAllLeaves(dataTrie, context.Background(), rh, disabled.NewDisabledTrieLeafParser())
+				errDataTrieGet := userAccountsDb.GetAllLeaves(dataTrie, context.Background(), rh, parsers.NewTrieLeafParserV1())
 				if errDataTrieGet != nil {
 					continue
 				}
