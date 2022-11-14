@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/outport/factory"
 	notifierFactory "github.com/ElrondNetwork/elrond-go/outport/factory"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/stretchr/testify/require"
@@ -109,7 +110,7 @@ func TestCreateOutport_SubscribeCovalentDriver(t *testing.T) {
 	args.CovalentIndexerFactoryArgs.ShardCoordinator = &mock.ShardCoordinatorStub{}
 	args.CovalentIndexerFactoryArgs.Marshaller = &mock.MarshalizerMock{}
 	args.CovalentIndexerFactoryArgs.Accounts = &stateMock.AccountsStub{}
-	args.CovalentIndexerFactoryArgs.PubKeyConverter = &mock.PubkeyConverterStub{}
+	args.CovalentIndexerFactoryArgs.PubKeyConverter = &testscommon.PubkeyConverterStub{}
 
 	outPort, err := factory.CreateOutport(args)
 
@@ -126,7 +127,7 @@ func TestCreateOutport_SubscribeNotifierDriver(t *testing.T) {
 
 	args.EventNotifierFactoryArgs.Marshaller = &mock.MarshalizerMock{}
 	args.EventNotifierFactoryArgs.Hasher = &hashingMocks.HasherMock{}
-	args.EventNotifierFactoryArgs.PubKeyConverter = &mock.PubkeyConverterMock{}
+	args.EventNotifierFactoryArgs.PubKeyConverter = &testscommon.PubkeyConverterMock{}
 	args.EventNotifierFactoryArgs.RequestTimeoutSec = 1
 	outPort, err := factory.CreateOutport(args)
 

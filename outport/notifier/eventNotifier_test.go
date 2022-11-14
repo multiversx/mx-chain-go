@@ -208,7 +208,8 @@ func TestGetLogEventsFromTransactionsPool(t *testing.T) {
 	args := createMockEventNotifierArgs()
 	en, _ := notifier.NewEventNotifier(args)
 
-	receivedEvents := en.GetLogEventsFromTransactionsPool(logs)
+	receivedEvents, err := en.GetLogEventsFromTransactionsPool(logs)
+	require.Nil(t, err)
 
 	for i, event := range receivedEvents {
 		require.Equal(t, hex.EncodeToString(events[i].Address), event.Address)

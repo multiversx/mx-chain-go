@@ -1301,8 +1301,14 @@ func (e *esdt) getSpecialRoles(args *vmcommon.ContractCallInput) vmcommon.Return
 		for _, role := range specialRole.Roles {
 			rolesAsString = append(rolesAsString, string(role))
 		}
+		specialRole, err := e.addressPubKeyConverter.Encode(specialRole.Address)
+		if err != nil {
+			e.eei.AddReturnMessage(err.Error())
+			return vmcommon.EncodingFailed
+		}
+
 		roles := strings.Join(rolesAsString, ",")
-		message := fmt.Sprintf("%s:%s", e.addressPubKeyConverter.Encode(specialRole.Address), roles)
+		message := fmt.Sprintf("%s:%s", specialRole, roles)
 		e.eei.Finish([]byte(message))
 	}
 
@@ -2204,7 +2210,10 @@ func (e *esdt) isAddressValid(addressBytes []byte) bool {
 		return false
 	}
 
-	encodedAddress := e.addressPubKeyConverter.Encode(addressBytes)
+	encodedAddress, err := e.addressPubKeyConverter.Encode(addressBytes)
+	if err != nil {
+		return false
+	}
 
 	return encodedAddress != ""
 }

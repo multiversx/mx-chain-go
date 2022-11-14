@@ -115,7 +115,10 @@ func (en *eventNotifier) SaveBlock(args *indexer.ArgsSaveBlockData) error {
 	log.Debug("eventNotifier: checking if block has logs", "num logs", len(args.TransactionsPool.Logs))
 	log.Debug("eventNotifier: checking if block has txs", "num txs", len(args.TransactionsPool.Txs))
 
-	events := en.getLogEventsFromTransactionsPool(args.TransactionsPool.Logs)
+	events, err := en.getLogEventsFromTransactionsPool(args.TransactionsPool.Logs)
+	if err != nil {
+		return err
+	}
 	log.Debug("eventNotifier: extracted events from block logs", "num events", len(events))
 
 	blockData := SaveBlockData{
@@ -125,7 +128,7 @@ func (en *eventNotifier) SaveBlock(args *indexer.ArgsSaveBlockData) error {
 		LogEvents: events,
 	}
 
-	err := en.httpClient.Post(pushEventEndpoint, blockData)
+	err = en.httpClient.Post(pushEventEndpoint, blockData)
 	if err != nil {
 		return fmt.Errorf("%w in eventNotifier.SaveBlock while posting block data", err)
 	}
@@ -133,7 +136,7 @@ func (en *eventNotifier) SaveBlock(args *indexer.ArgsSaveBlockData) error {
 	return nil
 }
 
-func (en *eventNotifier) getLogEventsFromTransactionsPool(logs []*nodeData.LogData) []Event {
+func (en *eventNotifier) getLogEventsFromTransactionsPool(logs []*nodeData.LogData) ([]Event, error) {
 	var logEvents []*logEvent
 	for _, logData := range logs {
 		if logData == nil {
@@ -154,7 +157,7 @@ func (en *eventNotifier) getLogEventsFromTransactionsPool(logs []*nodeData.LogDa
 	}
 
 	if len(logEvents) == 0 {
-		return nil
+		return nil, nil
 	}
 
 	events := make([]Event, 0, len(logEvents))
@@ -163,7 +166,10 @@ func (en *eventNotifier) getLogEventsFromTransactionsPool(logs []*nodeData.LogDa
 			continue
 		}
 
-		bech32Address := en.pubKeyConverter.Encode(event.eventHandler.GetAddress())
+		bech32Address, err := en.pubKeyConverter.Encode(event.eventHandler.GetAddress())
+		if err != nil {
+			return nil, err
+		}
 		eventIdentifier := string(event.eventHandler.GetIdentifier())
 
 		log.Debug("eventNotifier: received event from address",
@@ -180,7 +186,7 @@ func (en *eventNotifier) getLogEventsFromTransactionsPool(logs []*nodeData.LogDa
 		})
 	}
 
-	return events
+	return events, nil
 }
 
 // RevertIndexedBlock converts revert data in order to be pushed to subscribers
