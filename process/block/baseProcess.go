@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
@@ -109,6 +110,7 @@ type baseProcessor struct {
 	pruningDelay                  uint32
 	processedMiniBlocksTracker    process.ProcessedMiniBlocksTracker
 	receiptsRepository            receiptsRepository
+	wasBlockCommitted             atomic.Flag
 }
 
 type bootStorerDataArgs struct {
@@ -2052,4 +2054,9 @@ func createDisabledProcessDebugger() (process.Debugger, error) {
 	}
 
 	return debugFactory.CreateProcessDebugger(configs)
+}
+
+// WasBlockCommitted returns true if at least one block was committed
+func (bp *baseProcessor) WasBlockCommitted() bool {
+	return bp.wasBlockCommitted.IsSet()
 }

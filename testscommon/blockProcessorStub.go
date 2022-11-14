@@ -1,7 +1,6 @@
-package mock
+package testscommon
 
 import (
-	"math/big"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
@@ -9,56 +8,63 @@ import (
 
 // BlockProcessorStub mocks the implementation for a blockProcessor
 type BlockProcessorStub struct {
+	SetNumProcessedObjCalled         func(numObj uint64)
 	ProcessBlockCalled               func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	ProcessScheduledBlockCalled      func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	CommitBlockCalled                func(header data.HeaderHandler, body data.BodyHandler) error
 	RevertCurrentBlockCalled         func()
-	CreateGenesisBlockCalled         func(balances map[string]*big.Int) (data.HeaderHandler, error)
+	PruneStateOnRollbackCalled       func(currHeader data.HeaderHandler, currHeaderHash []byte, prevHeader data.HeaderHandler, prevHeaderHash []byte)
 	CreateBlockCalled                func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
 	RestoreBlockIntoPoolsCalled      func(header data.HeaderHandler, body data.BodyHandler) error
 	RestoreBlockBodyIntoPoolsCalled  func(body data.BodyHandler) error
-	SetOnRequestTransactionCalled    func(f func(destShardID uint32, txHash []byte))
 	MarshalizedDataToBroadcastCalled func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
 	DecodeBlockBodyCalled            func(dta []byte) data.BodyHandler
 	DecodeBlockHeaderCalled          func(dta []byte) data.HeaderHandler
-	AddLastNotarizedHdrCalled        func(shardId uint32, processedHdr data.HeaderHandler)
 	CreateNewHeaderCalled            func(round uint64, nonce uint64) (data.HeaderHandler, error)
-	PruneStateOnRollbackCalled       func(currHeader data.HeaderHandler, currHeaderHash []byte, prevHeader data.HeaderHandler, prevHeaderHash []byte)
 	RevertStateToBlockCalled         func(header data.HeaderHandler, rootHash []byte) error
-	RevertIndexedBlockCalled         func(header data.HeaderHandler)
-}
-
-// RestoreLastNotarizedHrdsToGenesis -
-func (bps *BlockProcessorStub) RestoreLastNotarizedHrdsToGenesis() {
+	WasBlockCommittedCalled          func() bool
+	CloseCalled                      func() error
 }
 
 // SetNumProcessedObj -
-func (bps *BlockProcessorStub) SetNumProcessedObj(_ uint64) {
+func (bps *BlockProcessorStub) SetNumProcessedObj(numObj uint64) {
+	if bps.SetNumProcessedObjCalled != nil {
+		bps.SetNumProcessedObjCalled(numObj)
+	}
 }
 
 // ProcessBlock mocks processing a block
 func (bps *BlockProcessorStub) ProcessBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
-	return bps.ProcessBlockCalled(header, body, haveTime)
+	if bps.ProcessBlockCalled != nil {
+		return bps.ProcessBlockCalled(header, body, haveTime)
+	}
+
+	return nil
 }
 
 // ProcessScheduledBlock mocks processing a scheduled block
 func (bps *BlockProcessorStub) ProcessScheduledBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
-	return bps.ProcessScheduledBlockCalled(header, body, haveTime)
+	if bps.ProcessScheduledBlockCalled != nil {
+		return bps.ProcessScheduledBlockCalled(header, body, haveTime)
+	}
+
+	return nil
 }
 
 // CommitBlock mocks the commit of a block
 func (bps *BlockProcessorStub) CommitBlock(header data.HeaderHandler, body data.BodyHandler) error {
-	return bps.CommitBlockCalled(header, body)
+	if bps.CommitBlockCalled != nil {
+		return bps.CommitBlockCalled(header, body)
+	}
+
+	return nil
 }
 
 // RevertCurrentBlock mocks revert of the current block
 func (bps *BlockProcessorStub) RevertCurrentBlock() {
-	bps.RevertCurrentBlockCalled()
-}
-
-// CreateGenesisBlock mocks the creation of a genesis block body
-func (bps *BlockProcessorStub) CreateGenesisBlock(balances map[string]*big.Int) (data.HeaderHandler, error) {
-	return bps.CreateGenesisBlockCalled(balances)
+	if bps.RevertCurrentBlockCalled != nil {
+		bps.RevertCurrentBlockCalled()
+	}
 }
 
 // PruneStateOnRollback recreates the state tries to the root hashes indicated by the provided header
@@ -70,52 +76,65 @@ func (bps *BlockProcessorStub) PruneStateOnRollback(currHeader data.HeaderHandle
 
 // CreateBlock mocks the creation of a new block with header and body
 func (bps *BlockProcessorStub) CreateBlock(initialHdrData data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
-	return bps.CreateBlockCalled(initialHdrData, haveTime)
+	if bps.CreateBlockCalled != nil {
+		return bps.CreateBlockCalled(initialHdrData, haveTime)
+	}
+
+	return nil, nil, ErrNotImplemented
 }
 
 // RestoreBlockIntoPools -
 func (bps *BlockProcessorStub) RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error {
-	return bps.RestoreBlockIntoPoolsCalled(header, body)
+	if bps.RestoreBlockIntoPoolsCalled != nil {
+		return bps.RestoreBlockIntoPoolsCalled(header, body)
+	}
+
+	return nil
 }
 
 // RestoreBlockBodyIntoPools -
 func (bps *BlockProcessorStub) RestoreBlockBodyIntoPools(body data.BodyHandler) error {
-	return bps.RestoreBlockBodyIntoPoolsCalled(body)
+	if bps.RestoreBlockBodyIntoPoolsCalled != nil {
+		return bps.RestoreBlockBodyIntoPoolsCalled(body)
+	}
+
+	return nil
 }
 
 // MarshalizedDataToBroadcast -
 func (bps *BlockProcessorStub) MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
-	return bps.MarshalizedDataToBroadcastCalled(header, body)
+	if bps.MarshalizedDataToBroadcastCalled != nil {
+		return bps.MarshalizedDataToBroadcastCalled(header, body)
+	}
+
+	return nil, nil, ErrNotImplemented
 }
 
 // DecodeBlockBody -
 func (bps *BlockProcessorStub) DecodeBlockBody(dta []byte) data.BodyHandler {
-	return bps.DecodeBlockBodyCalled(dta)
+	if bps.DecodeBlockBodyCalled != nil {
+		return bps.DecodeBlockBodyCalled(dta)
+	}
+
+	return nil
 }
 
 // DecodeBlockHeader -
 func (bps *BlockProcessorStub) DecodeBlockHeader(dta []byte) data.HeaderHandler {
-	return bps.DecodeBlockHeaderCalled(dta)
-}
+	if bps.DecodeBlockHeaderCalled != nil {
+		return bps.DecodeBlockHeaderCalled(dta)
+	}
 
-// AddLastNotarizedHdr -
-func (bps *BlockProcessorStub) AddLastNotarizedHdr(shardId uint32, processedHdr data.HeaderHandler) {
-	bps.AddLastNotarizedHdrCalled(shardId, processedHdr)
+	return nil
 }
 
 // CreateNewHeader creates a new header
 func (bps *BlockProcessorStub) CreateNewHeader(round uint64, nonce uint64) (data.HeaderHandler, error) {
-	return bps.CreateNewHeaderCalled(round, nonce)
-}
+	if bps.CreateNewHeaderCalled != nil {
+		return bps.CreateNewHeaderCalled(round, nonce)
+	}
 
-// Close -
-func (bps *BlockProcessorStub) Close() error {
-	return nil
-}
-
-// IsInterfaceNil returns true if there is no value under the interface
-func (bps *BlockProcessorStub) IsInterfaceNil() bool {
-	return bps == nil
+	return nil, ErrNotImplemented
 }
 
 // RevertStateToBlock recreates the state tries to the root hashes indicated by the provided header
@@ -127,9 +146,25 @@ func (bps *BlockProcessorStub) RevertStateToBlock(header data.HeaderHandler, roo
 	return nil
 }
 
-// RevertIndexedBlock -
-func (bps *BlockProcessorStub) RevertIndexedBlock(header data.HeaderHandler) {
-	if bps.RevertIndexedBlockCalled != nil {
-		bps.RevertIndexedBlockCalled(header)
+// WasBlockCommitted -
+func (bps *BlockProcessorStub) WasBlockCommitted() bool {
+	if bps.WasBlockCommittedCalled != nil {
+		return bps.WasBlockCommittedCalled()
 	}
+
+	return false
+}
+
+// Close -
+func (bps *BlockProcessorStub) Close() error {
+	if bps.CloseCalled != nil {
+		return bps.CloseCalled()
+	}
+
+	return nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (bps *BlockProcessorStub) IsInterfaceNil() bool {
+	return bps == nil
 }

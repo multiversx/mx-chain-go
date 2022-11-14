@@ -1835,9 +1835,11 @@ func TestShardProcessor_CommitBlockMarshalizerFailForHeaderShouldErr(t *testing.
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	arguments.AccountsDB[state.UserAccountsState] = accounts
 	sp, _ := blproc.NewShardProcessor(arguments)
+	assert.False(t, sp.WasBlockCommitted())
 
 	err := sp.CommitBlock(hdr, body)
 	assert.Equal(t, errMarshalizer, err)
+	assert.False(t, sp.WasBlockCommitted())
 }
 
 func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) {
@@ -1925,12 +1927,14 @@ func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 	mockProcessHandler.SetBusyCalled = func(reason string) {
 		statusBusySet = true
 	}
+	assert.False(t, sp.WasBlockCommitted())
 
 	err := sp.CommitBlock(hdr, body)
 	wg.Wait()
 	assert.True(t, atomic.LoadUint32(&putCalledNr) > 0)
 	assert.Nil(t, err)
 	assert.True(t, statusBusySet && statusIdleSet)
+	assert.True(t, sp.WasBlockCommitted())
 }
 
 func TestShardProcessor_CommitBlockStorageFailsForBodyShouldWork(t *testing.T) {

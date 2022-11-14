@@ -1222,7 +1222,7 @@ func (mp *metaProcessor) CommitBlock(
 		"round", headerHandler.GetRound(),
 		"nonce", headerHandler.GetNonce(),
 		"hash", headerHash)
-
+	mp.wasBlockCommitted.SetValue(true)
 	mp.updateLastCommittedInDebugger(headerHandler.GetRound())
 
 	notarizedHeadersHashes, errNotCritical := mp.updateCrossShardInfo(header)

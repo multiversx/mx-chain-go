@@ -242,8 +242,9 @@ type BlockProcessor interface {
 	DecodeBlockHeader(dta []byte) data.HeaderHandler
 	SetNumProcessedObj(numObj uint64)
 	RestoreBlockBodyIntoPools(body data.BodyHandler) error
-	IsInterfaceNil() bool
+	WasBlockCommitted() bool
 	Close() error
+	IsInterfaceNil() bool
 }
 
 // ScheduledBlockProcessor is the interface for the scheduled miniBlocks execution part of the block processor
