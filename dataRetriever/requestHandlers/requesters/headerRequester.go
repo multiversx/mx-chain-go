@@ -6,7 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 )
 
-// ArgHeaderRequester is the argument structure used to create a new a header requester instance
+// ArgHeaderRequester is the argument structure used to create a new header requester instance
 type ArgHeaderRequester struct {
 	ArgBaseRequester
 	NonceConverter typeConverters.Uint64ByteSliceConverter
@@ -42,7 +42,7 @@ func checkArgs(args ArgHeaderRequester) error {
 	return nil
 }
 
-// RequestDataFromNonce requests a header from other peers having input the hdr nonce
+// RequestDataFromNonce requests a header from other peers by having input the hdr nonce
 func (requester *headerRequester) RequestDataFromNonce(nonce uint64, epoch uint32) error {
 	return requester.SendOnRequestTopic(
 		&dataRetriever.RequestData{

@@ -10,7 +10,7 @@ import (
 
 var log = logger.GetOrCreate("requesters")
 
-// ArgBaseRequester is the argument structure used as base to create a new a requester instance
+// ArgBaseRequester is the argument structure used as base to create a new requester instance
 type ArgBaseRequester struct {
 	SenderResolver dataRetriever.TopicResolverSender
 	Marshaller     marshal.Marshalizer
@@ -38,7 +38,7 @@ func checkArgBase(arg ArgBaseRequester) error {
 	return nil
 }
 
-// RequestDataFromHash requests data from other peers having input a hash
+// RequestDataFromHash requests data from other peers by having input a hash
 func (requester *baseRequester) RequestDataFromHash(hash []byte, epoch uint32) error {
 	return requester.SendOnRequestTopic(
 		&dataRetriever.RequestData{

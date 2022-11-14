@@ -4,7 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 )
 
-// ArgTrieNodeRequester is the argument structure used to create a new a trie node requester instance
+// ArgTrieNodeRequester is the argument structure used to create a new trie node requester instance
 type ArgTrieNodeRequester struct {
 	ArgBaseRequester
 }
@@ -25,7 +25,7 @@ func NewTrieNodeRequester(args ArgTrieNodeRequester) (*trieNodeRequester, error)
 	}, nil
 }
 
-// RequestDataFromHashArray requests trie nodes from other peers having input multiple trie node hashes
+// RequestDataFromHashArray requests trie nodes from other peers by having input multiple trie node hashes
 func (requester *trieNodeRequester) RequestDataFromHashArray(hashes [][]byte, epoch uint32) error {
 	return requester.requestDataFromHashArray(hashes, epoch)
 }

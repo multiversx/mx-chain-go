@@ -1,6 +1,6 @@
 package requesters
 
-// ArgMiniblockRequester is the argument structure used to create a new a miniblock requester instance
+// ArgMiniblockRequester is the argument structure used to create a new miniblock requester instance
 type ArgMiniblockRequester struct {
 	ArgBaseRequester
 }
@@ -21,7 +21,7 @@ func NewMiniblockRequester(args ArgMiniblockRequester) (*miniblockRequester, err
 	}, nil
 }
 
-// RequestDataFromHashArray requests a block body from other peers having input the block body hash
+// RequestDataFromHashArray requests a block body from other peers by having input the block body hash
 func (requester *miniblockRequester) RequestDataFromHashArray(hashes [][]byte, epoch uint32) error {
 	return requester.requestDataFromHashArray(hashes, epoch)
 }

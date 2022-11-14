@@ -1,6 +1,6 @@
 package requesters
 
-// ArgValidatorInfoRequester is the argument structure used to create a new a validator info requester instance
+// ArgValidatorInfoRequester is the argument structure used to create a new validator info requester instance
 type ArgValidatorInfoRequester struct {
 	ArgBaseRequester
 }

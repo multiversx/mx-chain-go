@@ -1,6 +1,6 @@
 package requesters
 
-// ArgPeerAuthenticationRequester is the argument structure used to create a new a peer authentication requester instance
+// ArgPeerAuthenticationRequester is the argument structure used to create a new peer authentication requester instance
 type ArgPeerAuthenticationRequester struct {
 	ArgBaseRequester
 }
@@ -21,7 +21,7 @@ func NewPeerAuthenticationRequester(args ArgPeerAuthenticationRequester) (*peerA
 	}, nil
 }
 
-// RequestDataFromHashArray requests peer authentication data from other peers having input multiple public key hashes
+// RequestDataFromHashArray requests peer authentication data from other peers by having input multiple public key hashes
 func (requester *peerAuthenticationRequester) RequestDataFromHashArray(hashes [][]byte, epoch uint32) error {
 	return requester.requestDataFromHashArray(hashes, epoch)
 }

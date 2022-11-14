@@ -1,6 +1,6 @@
 package requesters
 
-// ArgTransactionRequester is the argument structure used to create a new a transaction requester instance
+// ArgTransactionRequester is the argument structure used to create a new transaction requester instance
 type ArgTransactionRequester struct {
 	ArgBaseRequester
 }
