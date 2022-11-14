@@ -23,6 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
@@ -66,7 +67,7 @@ func createMockArgument(
 			AddrPubKeyConv:           mock.NewPubkeyConverterMock(32),
 			Chain:                    "chainID",
 			MinTxVersion:             1,
-			EnableEpochsHandlerField: &testscommon.EnableEpochsHandlerStub{},
+			EnableEpochsHandlerField: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		},
 		Data: &mock.DataComponentsMock{
 			Storage: &storageCommon.ChainStorerStub{
@@ -144,7 +145,7 @@ func createMockArgument(
 	argsAccCreator := state.ArgsAccountCreation{
 		Hasher:              &hashingMocks.HasherMock{},
 		Marshaller:          &mock.MarshalizerMock{},
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	accCreator, err := factoryState.NewAccountCreator(argsAccCreator)
 	require.Nil(t, err)

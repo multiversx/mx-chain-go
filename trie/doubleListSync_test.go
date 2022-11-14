@@ -17,12 +17,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/marshallerMock"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-var marshalizer = &testscommon.MarshalizerMock{}
+var marshalizer = &marshallerMock.MarshalizerMock{}
 var hasherMock = &hashingMocks.HasherMock{}
 
 func createMemUnit() storage.Storer {

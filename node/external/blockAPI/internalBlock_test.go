@@ -11,9 +11,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/marshallerMock"
 	storageMocks "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -61,7 +61,7 @@ func TestInternalBlockProcessor_ConvertShardBlockBytesToInternalBlockShouldFail(
 
 	ibp := newInternalBlockProcessor(
 		&ArgAPIBlockProcessor{
-			Marshalizer: &testscommon.MarshalizerStub{
+			Marshalizer: &marshallerMock.MarshalizerStub{
 				UnmarshalCalled: func(_ interface{}, buff []byte) error {
 					return expectedErr
 				},
@@ -81,7 +81,7 @@ func TestInternalBlockProcessor_ConvertShardBlockBytesToInternalBlockShouldWork(
 
 	ibp := newInternalBlockProcessor(
 		&ArgAPIBlockProcessor{
-			Marshalizer: &testscommon.MarshalizerMock{},
+			Marshalizer: &marshallerMock.MarshalizerMock{},
 			HistoryRepo: &dblookupext.HistoryRepositoryStub{},
 		}, nil)
 
@@ -327,7 +327,7 @@ func TestInternalBlockProcessor_ConvertMetaBlockBytesToInternalBlock_ShouldFail(
 
 	ibp := newInternalBlockProcessor(
 		&ArgAPIBlockProcessor{
-			Marshalizer: &testscommon.MarshalizerStub{
+			Marshalizer: &marshallerMock.MarshalizerStub{
 				UnmarshalCalled: func(_ interface{}, buff []byte) error {
 					return expectedErr
 				},
@@ -347,7 +347,7 @@ func TestInternalBlockProcessor_ConvertMetaBlockBytesToInternalBlockShouldWork(t
 
 	ibp := newInternalBlockProcessor(
 		&ArgAPIBlockProcessor{
-			Marshalizer: &testscommon.MarshalizerMock{},
+			Marshalizer: &marshallerMock.MarshalizerMock{},
 			HistoryRepo: &dblookupext.HistoryRepositoryStub{},
 		}, nil)
 

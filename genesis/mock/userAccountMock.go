@@ -1,6 +1,7 @@
 package mock
 
 import (
+	"context"
 	"errors"
 	"math/big"
 
@@ -142,4 +143,9 @@ func (uam *UserAccountMock) GetUserName() []byte {
 // SaveDirtyData -
 func (uam *UserAccountMock) SaveDirtyData(_ common.Trie) (map[string][]byte, error) {
 	return nil, nil
+}
+
+// GetAllLeaves -
+func (uam *UserAccountMock) GetAllLeaves(_ *common.TrieIteratorChannels, _ context.Context) error {
+	return nil
 }

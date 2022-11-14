@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
@@ -62,7 +63,7 @@ func createVmContainerMockArgument(gasSchedule core.GasScheduleNotifier) ArgsNew
 		ValidatorAccountsDB: &stateMock.AccountsStub{},
 		ChanceComputer:      &mock.RaterMock{},
 		ShardCoordinator:    &mock.ShardCoordinatorStub{},
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsStakeFlagEnabledField: true,
 		},
 	}
@@ -279,7 +280,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 			},
 		},
 		EpochNotifier:               &epochNotifier.EpochNotifierStub{},
-		EnableEpochsHandler:         &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler:         &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		BuiltInFunctionsCostHandler: &mock.BuiltInCostHandlerStub{},
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
@@ -333,7 +334,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 		ValidatorAccountsDB: &stateMock.AccountsStub{},
 		ChanceComputer:      &mock.RaterMock{},
 		ShardCoordinator:    mock.NewMultiShardsCoordinatorMock(1),
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	vmf, err := NewVMContainerFactory(argsNewVMContainerFactory)
 	assert.NotNil(t, vmf)

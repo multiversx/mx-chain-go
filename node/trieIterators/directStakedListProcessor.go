@@ -8,8 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/state/disabled"
-	"github.com/ElrondNetwork/elrond-go/trie/keyBuilder"
 	"github.com/ElrondNetwork/elrond-go/vm"
 )
 
@@ -50,22 +48,11 @@ func (dslp *directStakedListProcessor) GetDirectStakedList(ctx context.Context) 
 }
 
 func (dslp *directStakedListProcessor) getAllStakedAccounts(validatorAccount state.UserAccountHandler, ctx context.Context) ([]*api.DirectStakedValue, error) {
-	rootHash, err := validatorAccount.DataTrie().RootHash()
-	if err != nil {
-		return nil, err
-	}
-
 	chLeaves := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 		ErrChan:    make(chan error, 1),
 	}
-	err = validatorAccount.DataTrie().GetAllLeavesOnChannel(
-		chLeaves,
-		ctx,
-		rootHash,
-		keyBuilder.NewKeyBuilder(),
-		disabled.NewDisabledTrieLeafParser(),
-	)
+	err := validatorAccount.GetAllLeaves(chLeaves, ctx)
 	if err != nil {
 		return nil, err
 	}

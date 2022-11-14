@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	"github.com/stretchr/testify/assert"
@@ -94,7 +95,7 @@ func createArgsForEconomicsData(gasModifier float64) economics.ArgsNewEconomicsD
 	args := economics.ArgsNewEconomicsData{
 		Economics:     createDummyEconomicsConfig(feeSettings),
 		EpochNotifier: &epochNotifier.EpochNotifierStub{},
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsGasPriceModifierFlagEnabledField: true,
 		},
 		BuiltInFunctionsCostHandler: &mock.BuiltInCostHandlerStub{},
@@ -107,7 +108,7 @@ func createArgsForEconomicsDataRealFees(handler economics.BuiltInFunctionsCostHa
 	args := economics.ArgsNewEconomicsData{
 		Economics:     createDummyEconomicsConfig(feeSettings),
 		EpochNotifier: &epochNotifier.EpochNotifierStub{},
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsGasPriceModifierFlagEnabledField: true,
 		},
 		BuiltInFunctionsCostHandler: handler,

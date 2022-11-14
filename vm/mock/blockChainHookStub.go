@@ -2,8 +2,9 @@ package mock
 
 import (
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/marshallerMock"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -78,8 +79,8 @@ func (b *BlockChainHookStub) GetUserAccount(address []byte) (vmcommon.UserAccoun
 
 	argsAccCreation := state.ArgsAccountCreation{
 		Hasher:              &hashingMocks.HasherMock{},
-		Marshaller:          &testscommon.MarshalizerMock{},
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		Marshaller:          &marshallerMock.MarshalizerMock{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	return state.NewUserAccount(address, argsAccCreation)
 }

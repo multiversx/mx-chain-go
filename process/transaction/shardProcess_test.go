@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -83,7 +84,7 @@ func createArgsForTxProcessor() txproc.ArgsNewTxProcessor {
 		BadTxForwarder:   &mock.IntermediateTransactionHandlerMock{},
 		ArgsParser:       &mock.ArgumentParserMock{},
 		ScrForwarder:     &mock.IntermediateTransactionHandlerMock{},
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsPenalizedTooMuchGasFlagEnabledField: true,
 		},
 	}
@@ -1243,7 +1244,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNod
 		BuiltInFunctions:   builtInFunctions.NewBuiltInFunctionContainer(),
 		ArgumentParser:     parsers.NewCallArgsParser(),
 		ESDTTransferParser: esdtTransferParser,
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsESDTMetadataContinuousCleanupFlagEnabledField: true,
 		},
 	}
@@ -1511,7 +1512,7 @@ func TestTxProcessor_ProcessTransactionShouldReturnErrForInvalidMetaTx(t *testin
 			return process.MoveBalance, process.MoveBalance
 		},
 	}
-	args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+	args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 		IsMetaProtectionFlagEnabledField: true,
 	}
 	execTx, _ := txproc.NewTxProcessor(args)
@@ -1631,7 +1632,7 @@ func TestTxProcessor_ProcessRelayedTransactionV2NotActiveShouldErr(t *testing.T)
 		BuiltInFunctions:   builtInFunctions.NewBuiltInFunctionContainer(),
 		ArgumentParser:     parsers.NewCallArgsParser(),
 		ESDTTransferParser: esdtTransferParser,
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsESDTMetadataContinuousCleanupFlagEnabledField: true,
 		},
 	}
@@ -1713,7 +1714,7 @@ func TestTxProcessor_ProcessRelayedTransactionV2WithValueShouldErr(t *testing.T)
 		BuiltInFunctions:   builtInFunctions.NewBuiltInFunctionContainer(),
 		ArgumentParser:     parsers.NewCallArgsParser(),
 		ESDTTransferParser: esdtTransferParser,
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsESDTMetadataContinuousCleanupFlagEnabledField: true,
 		},
 	}
@@ -1795,7 +1796,7 @@ func TestTxProcessor_ProcessRelayedTransactionV2ArgsParserShouldErr(t *testing.T
 		BuiltInFunctions:   builtInFunctions.NewBuiltInFunctionContainer(),
 		ArgumentParser:     parsers.NewCallArgsParser(),
 		ESDTTransferParser: esdtTransferParser,
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsESDTMetadataContinuousCleanupFlagEnabledField: true,
 		},
 	}
@@ -1884,7 +1885,7 @@ func TestTxProcessor_ProcessRelayedTransactionV2InvalidParamCountShouldErr(t *te
 		BuiltInFunctions:   builtInFunctions.NewBuiltInFunctionContainer(),
 		ArgumentParser:     parsers.NewCallArgsParser(),
 		ESDTTransferParser: esdtTransferParser,
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsESDTMetadataContinuousCleanupFlagEnabledField: true,
 		},
 	}
@@ -1966,7 +1967,7 @@ func TestTxProcessor_ProcessRelayedTransactionV2(t *testing.T) {
 		BuiltInFunctions:   builtInFunctions.NewBuiltInFunctionContainer(),
 		ArgumentParser:     parsers.NewCallArgsParser(),
 		ESDTTransferParser: esdtTransferParser,
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsESDTMetadataContinuousCleanupFlagEnabledField: true,
 		},
 	}
@@ -1979,7 +1980,7 @@ func TestTxProcessor_ProcessRelayedTransactionV2(t *testing.T) {
 	args.TxTypeHandler = txTypeHandler
 	args.PubkeyConv = pubKeyConverter
 	args.ArgsParser = smartContract.NewArgumentParser()
-	args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+	args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 		IsRelayedTransactionsV2FlagEnabledField: true,
 	}
 	execTx, _ := txproc.NewTxProcessor(args)
@@ -2046,7 +2047,7 @@ func TestTxProcessor_ProcessRelayedTransaction(t *testing.T) {
 		BuiltInFunctions:   builtInFunctions.NewBuiltInFunctionContainer(),
 		ArgumentParser:     parsers.NewCallArgsParser(),
 		ESDTTransferParser: esdtTransferParser,
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsESDTMetadataContinuousCleanupFlagEnabledField: true,
 		},
 	}
@@ -2059,7 +2060,7 @@ func TestTxProcessor_ProcessRelayedTransaction(t *testing.T) {
 	args.TxTypeHandler = txTypeHandler
 	args.PubkeyConv = pubKeyConverter
 	args.ArgsParser = smartContract.NewArgumentParser()
-	args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+	args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 		IsRelayedTransactionsFlagEnabledField: true,
 	}
 	execTx, _ := txproc.NewTxProcessor(args)
@@ -2579,7 +2580,7 @@ func TestTxProcessor_ProcessRelayedTransactionDisabled(t *testing.T) {
 		BuiltInFunctions:   builtInFunctions.NewBuiltInFunctionContainer(),
 		ArgumentParser:     parsers.NewCallArgsParser(),
 		ESDTTransferParser: esdtTransferParser,
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsESDTMetadataContinuousCleanupFlagEnabledField: true,
 		},
 	}

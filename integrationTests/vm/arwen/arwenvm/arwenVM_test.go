@@ -33,6 +33,7 @@ import (
 	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
@@ -510,7 +511,7 @@ func TestExecuteTransactionAndTimeToProcessChange(t *testing.T) {
 		BuiltInFunctions:    builtInFunctions.NewBuiltInFunctionContainer(),
 		ArgumentParser:      parsers.NewCallArgsParser(),
 		ESDTTransferParser:  esdtTransferParser,
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	feeHandler := &mock.FeeHandlerStub{
@@ -540,7 +541,7 @@ func TestExecuteTransactionAndTimeToProcessChange(t *testing.T) {
 		BadTxForwarder:      &mock.IntermediateTransactionHandlerMock{},
 		ArgsParser:          smartContract.NewArgumentParser(),
 		ScrForwarder:        &mock.IntermediateTransactionHandlerMock{},
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	txProc, _ := processTransaction.NewTxProcessor(argsNewTxProcessor)
 

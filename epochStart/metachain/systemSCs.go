@@ -3,7 +3,6 @@ package metachain
 import (
 	"bytes"
 	"context"
-	"encoding/hex"
 	"fmt"
 	"math"
 	"math/big"
@@ -23,8 +22,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/state/disabled"
-	"github.com/ElrondNetwork/elrond-go/trie/keyBuilder"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -1096,33 +1093,18 @@ func (s *systemSCProcessor) getValidatorSystemAccount() (state.UserAccountHandle
 func (s *systemSCProcessor) getArgumentsForSetOwnerFunctionality(userValidatorAccount state.UserAccountHandler) ([][]byte, error) {
 	arguments := make([][]byte, 0)
 
-	rootHash, err := userValidatorAccount.DataTrie().RootHash()
-	if err != nil {
-		return nil, err
-	}
-
 	leavesChannels := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 		ErrChan:    make(chan error, 1),
 	}
-	err = userValidatorAccount.DataTrie().GetAllLeavesOnChannel(
-		leavesChannels,
-		context.Background(),
-		rootHash,
-		keyBuilder.NewKeyBuilder(),
-		disabled.NewDisabledTrieLeafParser(),
-	)
+	err := userValidatorAccount.GetAllLeaves(leavesChannels, context.Background())
 	if err != nil {
 		return nil, err
 	}
 	for leaf := range leavesChannels.LeavesChan {
 		validatorData := &systemSmartContracts.ValidatorDataV2{}
-		value, errTrim := leaf.ValueWithoutSuffix(append(leaf.Key(), vm.ValidatorSCAddress...))
-		if errTrim != nil {
-			return nil, fmt.Errorf("%w for validator key %s", errTrim, hex.EncodeToString(leaf.Key()))
-		}
 
-		err = s.marshalizer.Unmarshal(validatorData, value)
+		err = s.marshalizer.Unmarshal(validatorData, leaf.Value())
 		if err != nil {
 			continue
 		}

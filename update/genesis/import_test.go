@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/update"
@@ -66,7 +67,7 @@ func TestNewStateImport(t *testing.T) {
 				Marshalizer:         &mock.MarshalizerMock{},
 				Hasher:              &mock.HasherStub{},
 				TrieStorageManagers: trieStorageManagers,
-				EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+				EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			},
 			exError: nil,
 		},
@@ -93,7 +94,7 @@ func TestImportAll(t *testing.T) {
 		TrieStorageManagers: trieStorageManagers,
 		ShardID:             0,
 		StorageConfig:       config.StorageConfig{},
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 
 	importState, _ := NewStateImport(args)
@@ -128,7 +129,7 @@ func TestStateImport_ImportUnFinishedMetaBlocksShouldWork(t *testing.T) {
 		TrieStorageManagers: trieStorageManagers,
 		ShardID:             0,
 		StorageConfig:       config.StorageConfig{},
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 
 	importState, _ := NewStateImport(args)

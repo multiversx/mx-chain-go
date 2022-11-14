@@ -8,7 +8,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
@@ -40,7 +40,7 @@ func createMockGovernanceArgs() ArgsNewGovernanceContract {
 		GovernanceSCAddress:    vm.GovernanceSCAddress,
 		DelegationMgrSCAddress: vm.DelegationManagerSCAddress,
 		ValidatorSCAddress:     vm.ValidatorSCAddress,
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsGovernanceFlagEnabledField: true,
 		},
 		InitialWhiteListedAddresses: [][]byte{vm.GovernanceSCAddress},
@@ -231,7 +231,7 @@ func TestGovernanceContract_ExecuteInitV2(t *testing.T) {
 	t.Parallel()
 
 	args := createMockGovernanceArgs()
-	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 	gsc, _ := NewGovernanceContract(args)
 
 	callInput := createVMInput(big.NewInt(0), "initV2", vm.GovernanceSCAddress, []byte("addr2"), nil)

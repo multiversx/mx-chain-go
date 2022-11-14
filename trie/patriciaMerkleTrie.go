@@ -483,6 +483,7 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(
 		err = newTrie.root.getAllLeavesOnChannel(
 			leavesChannels.LeavesChan,
 			keyBuilder,
+			trieLeafParser,
 			tr.trieStorage,
 			tr.marshalizer,
 			tr.chanClose,
@@ -585,6 +586,18 @@ func (tr *patriciaMerkleTrie) VerifyProof(rootHash []byte, key []byte, proof [][
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
+	ok, err := tr.verifyProof(rootHash, tr.hasher.Compute(string(key)), proof)
+	if err != nil {
+		return false, err
+	}
+	if ok {
+		return true, nil
+	}
+
+	return tr.verifyProof(rootHash, key, proof)
+}
+
+func (tr *patriciaMerkleTrie) verifyProof(rootHash []byte, key []byte, proof [][]byte) (bool, error) {
 	wantHash := rootHash
 	key = keyBytesToHex(key)
 	for _, encodedNode := range proof {

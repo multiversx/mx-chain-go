@@ -2,12 +2,14 @@
 package state
 
 import (
+	"context"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/marshallerMock"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -32,7 +34,13 @@ type AccountWrapMock struct {
 
 // NewAccountWrapMock -
 func NewAccountWrapMock(adr []byte) *AccountWrapMock {
-	tdt, _ := state.NewTrackableDataTrie([]byte("identifier"), nil, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	tdt, _ := state.NewTrackableDataTrie(
+		[]byte("identifier"),
+		nil,
+		&hashingMocks.HasherMock{},
+		&marshallerMock.MarshalizerMock{},
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+	)
 
 	return &AccountWrapMock{
 		address:           adr,
@@ -190,4 +198,9 @@ func (awm *AccountWrapMock) AccountDataHandler() vmcommon.AccountDataHandler {
 // GetNonce gets the nonce of the account
 func (awm *AccountWrapMock) GetNonce() uint64 {
 	return awm.nonce
+}
+
+// GetAllLeaves -
+func (awm *AccountWrapMock) GetAllLeaves(_ *common.TrieIteratorChannels, _ context.Context) error {
+	return nil
 }

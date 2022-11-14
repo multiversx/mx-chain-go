@@ -46,9 +46,11 @@ import (
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/marshallerMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
@@ -69,8 +71,8 @@ func createMockPubkeyConverter() *mock.PubkeyConverterMock {
 func createAcc(address []byte) state.UserAccountHandler {
 	argsAccCreation := state.ArgsAccountCreation{
 		Hasher:              &hashingMocks.HasherMock{},
-		Marshaller:          &testscommon.MarshalizerMock{},
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		Marshaller:          &marshallerMock.MarshalizerMock{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	acc, _ := state.NewUserAccount(address, argsAccCreation)
 
@@ -208,8 +210,8 @@ func TestGetBalance(t *testing.T) {
 
 	argsAccCreation := state.ArgsAccountCreation{
 		Hasher:              &hashingMocks.HasherMock{},
-		Marshaller:          &testscommon.MarshalizerMock{},
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		Marshaller:          &marshallerMock.MarshalizerMock{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	testAccount, _ := state.NewUserAccount(testscommon.TestPubKeyAlice, argsAccCreation)
 	testAccount.Balance = big.NewInt(100)
@@ -246,8 +248,8 @@ func TestGetUsername(t *testing.T) {
 
 	argsAccCreation := state.ArgsAccountCreation{
 		Hasher:              &hashingMocks.HasherMock{},
-		Marshaller:          &testscommon.MarshalizerMock{},
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		Marshaller:          &marshallerMock.MarshalizerMock{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	testAccount, _ := state.NewUserAccount(testscommon.TestPubKeyAlice, argsAccCreation)
 	testAccount.UserName = expectedUsername
@@ -284,8 +286,8 @@ func TestGetCodeHash(t *testing.T) {
 
 	argsAccCreation := state.ArgsAccountCreation{
 		Hasher:              &hashingMocks.HasherMock{},
-		Marshaller:          &testscommon.MarshalizerMock{},
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		Marshaller:          &marshallerMock.MarshalizerMock{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	testAccount, _ := state.NewUserAccount(testscommon.TestPubKeyAlice, argsAccCreation)
 	testAccount.CodeHash = expectedCodeHash
@@ -3944,9 +3946,9 @@ func createHeartbeatMessage(prefix string, idx int, isActive bool) heartbeatData
 
 func getDefaultCoreComponents() *nodeMockFactory.CoreComponentsMock {
 	return &nodeMockFactory.CoreComponentsMock{
-		IntMarsh:            &testscommon.MarshalizerMock{},
-		TxMarsh:             &testscommon.MarshalizerMock{},
-		VmMarsh:             &testscommon.MarshalizerMock{},
+		IntMarsh:            &marshallerMock.MarshalizerMock{},
+		TxMarsh:             &marshallerMock.MarshalizerMock{},
+		VmMarsh:             &marshallerMock.MarshalizerMock{},
 		TxSignHasherField:   &testscommon.HasherStub{},
 		Hash:                &testscommon.HasherStub{},
 		UInt64ByteSliceConv: testscommon.NewNonceHashConverterMock(),

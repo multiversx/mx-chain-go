@@ -3,12 +3,15 @@ package state
 
 import (
 	"bytes"
+	"context"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/state/trieLeafParser"
+	"github.com/ElrondNetwork/elrond-go/trie/keyBuilder"
 )
 
 var _ UserAccountHandler = (*userAccount)(nil)
@@ -17,6 +20,8 @@ var _ UserAccountHandler = (*userAccount)(nil)
 type userAccount struct {
 	*baseAccount
 	UserAccountData
+	marshaller          marshal.Marshalizer
+	enableEpochsHandler common.EnableEpochsHandler
 }
 
 var zero = big.NewInt(0)
@@ -57,7 +62,7 @@ func NewUserAccount(
 		return nil, ErrNilEnableEpochsHandler
 	}
 
-	tdt, err := NewTrackableDataTrie(address, nil, args.Hasher, args.Marshaller)
+	tdt, err := NewTrackableDataTrie(address, nil, args.Hasher, args.Marshaller, args.EnableEpochsHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -72,6 +77,8 @@ func NewUserAccount(
 			Balance:         big.NewInt(0),
 			Address:         address,
 		},
+		marshaller:          args.Marshaller,
+		enableEpochsHandler: args.EnableEpochsHandler,
 	}, nil
 }
 
@@ -167,6 +174,37 @@ func (a *userAccount) SetRootHash(roothash []byte) {
 // SetCodeMetadata sets the code metadata
 func (a *userAccount) SetCodeMetadata(codeMetadata []byte) {
 	a.CodeMetadata = codeMetadata
+}
+
+// GetAllLeaves returns all the leaves of the account's data trie
+func (a *userAccount) GetAllLeaves(
+	leavesChannels *common.TrieIteratorChannels,
+	ctx context.Context,
+) error {
+	if check.IfNil(a.marshaller) {
+		return ErrNilMarshalizer
+	}
+	if check.IfNil(a.dataTrieTracker) {
+		return ErrNilTrackableDataTrie
+	}
+	if check.IfNil(a.enableEpochsHandler) {
+		return ErrNilEnableEpochsHandler
+	}
+	dataTrie := a.dataTrieTracker.DataTrie()
+	if check.IfNil(dataTrie) {
+		return ErrNilTrie
+	}
+	rootHash, err := dataTrie.RootHash()
+	if err != nil {
+		return err
+	}
+
+	tlp, err := trieLeafParser.NewTrieLeafParser(a.Address, a.marshaller, a.enableEpochsHandler)
+	if err != nil {
+		return err
+	}
+
+	return dataTrie.GetAllLeavesOnChannel(leavesChannels, ctx, rootHash, keyBuilder.NewKeyBuilder(), tlp)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

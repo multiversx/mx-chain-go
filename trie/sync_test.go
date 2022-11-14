@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/marshallerMock"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/statistics"
 	"github.com/stretchr/testify/assert"
@@ -31,7 +32,7 @@ func createMockArgument(timeout time.Duration) ArgTrieSyncer {
 		InterceptedNodes:          testscommon.NewCacherMock(),
 		DB:                        trieStorage,
 		Hasher:                    &hashingMocks.HasherMock{},
-		Marshalizer:               &testscommon.MarshalizerMock{},
+		Marshalizer:               &marshallerMock.MarshalizerMock{},
 		ShardId:                   0,
 		Topic:                     "topic",
 		TrieSyncStatistics:        statistics.NewTrieSyncStatistics(),

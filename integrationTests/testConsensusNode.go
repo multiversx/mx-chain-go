@@ -35,6 +35,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
@@ -294,7 +295,7 @@ func (tcn *TestConsensusNode) initNodesCoordinator(
 		ChanStopNode:            endProcess.GetDummyEndProcessChannel(),
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 		IsFullArchive:           false,
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsWaitingListFixFlagEnabledField: true,
 		},
 		ValidatorInfoCacher: &vic.ValidatorInfoCacherStub{},

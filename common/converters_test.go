@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/marshallerMock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -122,7 +123,7 @@ func TestCalculateHash_Good(t *testing.T) {
 	marshaledData := "marshalized random string"
 	hashedData := "hashed marshalized random string"
 	hash, err := core.CalculateHash(
-		&testscommon.MarshalizerStub{
+		&marshallerMock.MarshalizerStub{
 			MarshalCalled: func(obj interface{}) ([]byte, error) {
 				marshalCalled = true
 				assert.Equal(t, initialObject, obj)

@@ -11,8 +11,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/marshallerMock"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
@@ -190,8 +191,8 @@ func TestRewardTxProcessor_ProcessRewardTransactionShouldWork(t *testing.T) {
 		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 			argsAccCreation := state.ArgsAccountCreation{
 				Hasher:              &hashingMocks.HasherMock{},
-				Marshaller:          &testscommon.MarshalizerMock{},
-				EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+				Marshaller:          &marshallerMock.MarshalizerMock{},
+				EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			}
 			return state.NewUserAccount(address, argsAccCreation)
 		},
@@ -227,8 +228,8 @@ func TestRewardTxProcessor_ProcessRewardTransactionToASmartContractShouldWork(t 
 	address := []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6}
 	argsAccCreation := state.ArgsAccountCreation{
 		Hasher:              &hashingMocks.HasherMock{},
-		Marshaller:          &testscommon.MarshalizerMock{},
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		Marshaller:          &marshallerMock.MarshalizerMock{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	userAccount, _ := state.NewUserAccount(address, argsAccCreation)
 	accountsDb := &stateMock.AccountsStub{

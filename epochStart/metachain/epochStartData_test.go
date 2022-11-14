@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -75,7 +76,7 @@ func createMockEpochStartCreatorArguments() ArgsNewEpochStartData {
 		ShardCoordinator:    shardCoordinator,
 		EpochStartTrigger:   &mock.EpochStartTriggerStub{},
 		RequestHandler:      &testscommon.RequestHandlerStub{},
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	return argsNewEpochStartData
 }
@@ -706,7 +707,7 @@ func Test_setIndexOfFirstAndLastTxProcessedShouldNotSetReserved(t *testing.T) {
 	partialExecutionEnableEpoch := uint32(5)
 
 	arguments := createMockEpochStartCreatorArguments()
-	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+	arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 		MiniBlockPartialExecutionEnableEpochField: partialExecutionEnableEpoch,
 	}
 	arguments.EpochStartTrigger = &mock.EpochStartTriggerStub{
@@ -732,7 +733,7 @@ func Test_setIndexOfFirstAndLastTxProcessedShouldSetReserved(t *testing.T) {
 	partialExecutionEnableEpoch := uint32(5)
 
 	arguments := createMockEpochStartCreatorArguments()
-	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+	arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 		MiniBlockPartialExecutionEnableEpochField: partialExecutionEnableEpoch,
 	}
 	arguments.EpochStartTrigger = &mock.EpochStartTriggerStub{

@@ -36,6 +36,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/database"
 	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/trie"
@@ -1060,7 +1061,7 @@ func createAccounts(
 	argsAccCreator := state.ArgsAccountCreation{
 		Hasher:              integrationTests.TestHasher,
 		Marshaller:          integrationTests.TestMarshalizer,
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	accCreator, _ := factory.NewAccountCreator(argsAccCreator)
 	argsAccountsDB := state.ArgsAccountsDB{
@@ -2409,7 +2410,7 @@ func createAccountsDBTestSetup() *state.AccountsDB {
 	argsAccCreator := state.ArgsAccountCreation{
 		Hasher:              integrationTests.TestHasher,
 		Marshaller:          integrationTests.TestMarshalizer,
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	accCreator, _ := factory.NewAccountCreator(argsAccCreator)
 

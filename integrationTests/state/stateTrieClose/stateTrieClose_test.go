@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/goroutines"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/marshallerMock"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
 	"github.com/ElrondNetwork/elrond-go/trie/keyBuilder"
@@ -143,7 +144,7 @@ func TestTrieStorageManager_Close(t *testing.T) {
 	args := trie.NewTrieStorageManagerArgs{
 		MainStorer:             testscommon.CreateMemUnit(),
 		CheckpointsStorer:      testscommon.CreateMemUnit(),
-		Marshalizer:            &testscommon.MarshalizerMock{},
+		Marshalizer:            &marshallerMock.MarshalizerMock{},
 		Hasher:                 &hashingMocks.HasherMock{},
 		GeneralConfig:          config.TrieStorageManagerConfig{SnapshotsGoroutineNum: 1},
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10, 32),

@@ -435,6 +435,7 @@ func (ln *leafNode) loadChildren(_ func([]byte) (node, error)) ([][]byte, []node
 func (ln *leafNode) getAllLeavesOnChannel(
 	leavesChannel chan core.KeyValueHolder,
 	keyBuilder common.KeyBuilder,
+	trieLeafParser common.TrieLeafParser,
 	_ common.DBWriteCacher,
 	_ marshal.Marshalizer,
 	chanClose chan struct{},
@@ -451,7 +452,11 @@ func (ln *leafNode) getAllLeavesOnChannel(
 		return err
 	}
 
-	trieLeaf := keyValStorage.NewKeyValStorage(nodeKey, ln.Value)
+	trieLeaf, err := trieLeafParser.ParseLeaf(nodeKey, ln.Value)
+	if err != nil {
+		return err
+	}
+
 	for {
 		select {
 		case <-chanClose:

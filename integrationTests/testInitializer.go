@@ -56,6 +56,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	testStorage "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
@@ -437,7 +438,7 @@ func CreateAccountsDB(
 	accountType Type,
 	trieStorageManager common.StorageManager,
 ) (*state.AccountsDB, common.Trie) {
-	return CreateAccountsDBWithEnableEpochsHandler(accountType, trieStorageManager, &testscommon.EnableEpochsHandlerStub{})
+	return CreateAccountsDBWithEnableEpochsHandler(accountType, trieStorageManager, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 }
 
 // CreateAccountsDBWithEnableEpochsHandler creates a new AccountsDb with the given enableEpochsHandler
@@ -917,7 +918,7 @@ func GenerateAddressJournalAccountAccountsDB() ([]byte, state.UserAccountHandler
 	argsAccCreation := state.ArgsAccountCreation{
 		Hasher:              TestHasher,
 		Marshaller:          TestMarshaller,
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	account, _ := state.NewUserAccount(adr, argsAccCreation)
 
@@ -1006,7 +1007,7 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 		BadTxForwarder:      &mock.IntermediateTransactionHandlerMock{},
 		ArgsParser:          smartContract.NewArgumentParser(),
 		ScrForwarder:        &mock.IntermediateTransactionHandlerMock{},
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	txProcessor, _ := txProc.NewTxProcessor(argsNewTxProcessor)
 

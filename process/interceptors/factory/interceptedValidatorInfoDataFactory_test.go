@@ -7,7 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/marshallerMock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -21,7 +21,7 @@ func createMockValidatorInfoBuff() []byte {
 		Rating:    10,
 	}
 
-	marshalizerMock := testscommon.MarshalizerMock{}
+	marshalizerMock := marshallerMock.MarshalizerMock{}
 	buff, _ := marshalizerMock.Marshal(vi)
 
 	return buff

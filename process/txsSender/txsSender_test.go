@@ -23,6 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/marshallerMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -103,7 +104,7 @@ func TestNewTxsSenderWithAccumulator(t *testing.T) {
 func TestTxsSender_SendBulkTransactions(t *testing.T) {
 	t.Parallel()
 
-	marshaller := &testscommon.MarshalizerMock{}
+	marshaller := &marshallerMock.MarshalizerMock{}
 	mutRecoveredTransactions := &sync.RWMutex{}
 	recoveredTransactions := make(map[uint32][]*transaction.Transaction)
 	shardCoordinator := testscommon.NewMultiShardsCoordinatorMock(2)
@@ -179,9 +180,9 @@ func TestTxsSender_SendBulkTransactions(t *testing.T) {
 			return nil
 		},
 	}
-	dataPacker, _ := partitioning.NewSimpleDataPacker(&testscommon.MarshalizerMock{})
+	dataPacker, _ := partitioning.NewSimpleDataPacker(&marshallerMock.MarshalizerMock{})
 	args := ArgsTxsSenderWithAccumulator{
-		Marshaller:       &testscommon.MarshalizerMock{},
+		Marshaller:       &marshallerMock.MarshalizerMock{},
 		ShardCoordinator: shardCoordinator,
 		NetworkMessenger: mes,
 		DataPacker:       dataPacker,
@@ -252,7 +253,7 @@ func TestTxsSender_sendFromTxAccumulatorSendOneTxOneSCRExpectOnlyTxToBeSent(t *t
 	}
 
 	txMarshalled := []byte("txMarshalled")
-	marshaller := &testscommon.MarshalizerStub{
+	marshaller := &marshallerMock.MarshalizerStub{
 		MarshalCalled: func(obj interface{}) ([]byte, error) {
 			ctMarshallCalled.Increment()
 			require.Equal(t, tx, obj)
@@ -332,7 +333,7 @@ func TestTxsSender_sendBulkTransactionsSendTwoTxsFailToMarshallOneExpectOnlyOneT
 	}
 
 	tx1Marshalled := []byte("tx1Marshalled")
-	marshaller := &testscommon.MarshalizerStub{
+	marshaller := &marshallerMock.MarshalizerStub{
 		MarshalCalled: func(obj interface{}) ([]byte, error) {
 			switch ctMarshallCalled.Get() {
 			case 0:
@@ -426,7 +427,7 @@ func TestTxsSender_SendBulkTransactionsNoTxToProcessExpectError(t *testing.T) {
 }
 
 func generateMockArgsTxsSender() ArgsTxsSenderWithAccumulator {
-	marshaller := testscommon.MarshalizerMock{}
+	marshaller := marshallerMock.MarshalizerMock{}
 	dataPacker, _ := partitioning.NewSimpleDataPacker(marshaller)
 	accumulatorConfig := config.TxAccumulatorConfig{
 		MaxAllowedTimeInMilliseconds:   10,

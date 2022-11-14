@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/stretchr/testify/assert"
@@ -31,7 +32,7 @@ func createMockArguments() ArgsCreateBuiltInFunctionContainer {
 		Accounts:             &stateMock.AccountsStub{},
 		ShardCoordinator:     mock.NewMultiShardsCoordinatorMock(1),
 		EpochNotifier:        &epochNotifier.EpochNotifierStub{},
-		EnableEpochsHandler:  &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler:  &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		AutomaticCrawlerAddresses: [][]byte{
 			bytes.Repeat([]byte{1}, 32),
 		},

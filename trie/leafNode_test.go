@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/cache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/marshallerMock"
 	"github.com/ElrondNetwork/elrond-go/trie/statistics"
 	"github.com/stretchr/testify/assert"
 )
@@ -619,7 +620,7 @@ func TestLeafNode_newLeafNodeNilMarshalizerShouldErr(t *testing.T) {
 func TestLeafNode_newLeafNodeNilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ln, err := newLeafNode([]byte("key"), []byte("val"), &testscommon.MarshalizerMock{}, nil)
+	ln, err := newLeafNode([]byte("key"), []byte("val"), &marshallerMock.MarshalizerMock{}, nil)
 	assert.Nil(t, ln)
 	assert.Equal(t, ErrNilHasher, err)
 }

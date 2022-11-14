@@ -32,9 +32,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/marshallerMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/scheduledDataSyncer"
@@ -77,7 +79,7 @@ func createComponentsForEpochStart() (*mock.CoreComponentsMock, *mock.CryptoComp
 			NodeTypeProviderField:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 			ProcessStatusHandlerInstance: &testscommon.ProcessStatusHandlerStub{},
 			HardforkTriggerPubKeyField:   []byte("provided hardfork pub key"),
-			EnableEpochsHandlerField:     &testscommon.EnableEpochsHandlerStub{},
+			EnableEpochsHandlerField:     &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			StatusHandlerCalled: func() core.AppStatusHandler {
 				return &statusHandlerMock.AppStatusHandlerStub{}
 			},
@@ -1231,7 +1233,7 @@ func TestRequestAndProcessForShard_ShouldFail(t *testing.T) {
 
 		expectedErr := errors.New("expected error")
 		coreComp, cryptoComp := createComponentsForEpochStart()
-		coreComp.IntMarsh = &testscommon.MarshalizerStub{
+		coreComp.IntMarsh = &marshallerMock.MarshalizerStub{
 			MarshalCalled: func(obj interface{}) ([]byte, error) {
 				return nil, expectedErr
 			},
@@ -1365,7 +1367,7 @@ func TestRequestAndProcessForMeta_ShouldFail(t *testing.T) {
 
 		expectedErr := errors.New("expected error")
 		coreComp, cryptoComp := createComponentsForEpochStart()
-		coreComp.IntMarsh = &testscommon.MarshalizerStub{
+		coreComp.IntMarsh = &marshallerMock.MarshalizerStub{
 			MarshalCalled: func(obj interface{}) ([]byte, error) {
 				return nil, expectedErr
 			},

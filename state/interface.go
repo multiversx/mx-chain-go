@@ -85,6 +85,7 @@ type UserAccountHandler interface {
 	GetOwnerAddress() []byte
 	SetUserName(userName []byte)
 	GetUserName() []byte
+	GetAllLeaves(leavesChannels *common.TrieIteratorChannels, ctx context.Context) error
 	vmcommon.AccountHandler
 }
 

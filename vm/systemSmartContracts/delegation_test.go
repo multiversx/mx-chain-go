@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
 	"math/big"
 	"strings"
 	"testing"
@@ -14,7 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
@@ -45,7 +45,7 @@ func createMockArgumentsForDelegation() ArgsNewDelegation {
 		EndOfEpochAddress:      vm.EndOfEpochAddress,
 		GovernanceSCAddress:    vm.GovernanceSCAddress,
 		AddTokensAddress:       bytes.Repeat([]byte{1}, 32),
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsDelegationSmartContractFlagEnabledField:              true,
 			IsStakingV2FlagEnabledForActivationEpochCompletedField: true,
 			IsAddTokensToDelegationFlagEnabledField:                true,
@@ -62,7 +62,7 @@ func addValidatorAndStakingScToVmContext(eei *vmContext) {
 	validatorArgs.Eei = eei
 	validatorArgs.StakingSCConfig.GenesisNodePrice = "100"
 	validatorArgs.StakingSCAddress = vm.StakingSCAddress
-	enableEpochsHandler, _ := validatorArgs.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	enableEpochsHandler, _ := validatorArgs.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 	validatorSc, _ := NewValidatorSmartContract(validatorArgs)
 
 	stakingArgs := createMockStakingScArguments()
@@ -142,7 +142,7 @@ func createDelegationContractAndEEI() (*delegation, *vmContext) {
 		InputParser:         &mock.ArgumentParserMock{},
 		ValidatorAccountsDB: &stateMock.AccountsStub{},
 		ChanceComputer:      &mock.RaterMock{},
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	})
 	systemSCContainerStub := &mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
 		return &mock.SystemSCStub{ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -301,7 +301,7 @@ func TestDelegationSystemSC_ExecuteDelegationDisabledShouldErr(t *testing.T) {
 	args := createMockArgumentsForDelegation()
 	eei := createDefaultEei()
 	args.Eei = eei
-	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 	d, _ := NewDelegationSystemSC(args)
 	enableEpochsHandler.IsDelegationSmartContractFlagEnabledField = false
 	vmInput := getDefaultVmInputForFunc("addNodes", [][]byte{})
@@ -1078,7 +1078,7 @@ func TestDelegationSystemSC_ExecuteUnStakeNodesAtEndOfEpoch(t *testing.T) {
 	validatorArgs := createMockArgumentsForValidatorSC()
 	validatorArgs.Eei = eei
 	validatorArgs.StakingSCConfig.GenesisNodePrice = "100"
-	enableEpochsHandler, _ := validatorArgs.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	enableEpochsHandler, _ := validatorArgs.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 	enableEpochsHandler.IsStakingV2FlagEnabledField = true
 	validatorArgs.StakingSCAddress = vm.StakingSCAddress
 	validatorSc, _ := NewValidatorSmartContract(validatorArgs)
@@ -2630,7 +2630,7 @@ func prepareReDelegateRewardsComponents(
 	args.Eei = eei
 	args.DelegationSCConfig.MaxServiceFee = 10000
 	args.DelegationSCConfig.MinServiceFee = 0
-	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 	enableEpochsHandler.IsReDelegateBelowMinCheckFlagEnabledField = extraCheckEpoch == 0
 	d, _ := NewDelegationSystemSC(args)
 	vmInput := getDefaultVmInputForFunc(core.SCDeployInitFunctionName, [][]byte{big.NewInt(0).Bytes(), big.NewInt(0).Bytes()})
@@ -3930,7 +3930,7 @@ func TestDelegation_checkArgumentsForValidatorToDelegation(t *testing.T) {
 			return vmcommon.Ok
 		}}, nil
 	}})
-	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 
 	args.Eei = eei
 	args.DelegationSCConfig.MaxServiceFee = 10000
@@ -4067,7 +4067,7 @@ func TestDelegation_initFromValidatorData(t *testing.T) {
 			return vmcommon.Ok
 		}}, nil
 	}}
-	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 
 	_ = eei.SetSystemSCContainer(systemSCContainerStub)
 
@@ -4196,7 +4196,7 @@ func TestDelegation_mergeValidatorDataToDelegation(t *testing.T) {
 			return vmcommon.Ok
 		}}, nil
 	}}
-	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 
 	_ = eei.SetSystemSCContainer(systemSCContainerStub)
 
@@ -4335,7 +4335,7 @@ func TestDelegation_whitelistForMerge(t *testing.T) {
 			return vmcommon.Ok
 		}}, nil
 	}}
-	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 
 	_ = eei.SetSystemSCContainer(systemSCContainerStub)
 
@@ -4414,7 +4414,7 @@ func TestDelegation_deleteWhitelistForMerge(t *testing.T) {
 			return vmcommon.Ok
 		}}, nil
 	}}
-	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 
 	_ = eei.SetSystemSCContainer(systemSCContainerStub)
 
@@ -4472,7 +4472,7 @@ func TestDelegation_GetWhitelistForMerge(t *testing.T) {
 			return vmcommon.Ok
 		}}, nil
 	}}
-	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 
 	_ = eei.SetSystemSCContainer(systemSCContainerStub)
 
@@ -4597,7 +4597,7 @@ func TestDelegation_AddTokens(t *testing.T) {
 	args := createMockArgumentsForDelegation()
 	eei := createDefaultEei()
 	eei.inputParser = &mock.ArgumentParserMock{}
-	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 	args.Eei = eei
 	d, _ := NewDelegationSystemSC(args)
 
@@ -4625,7 +4625,7 @@ func TestDelegation_correctNodesStatus(t *testing.T) {
 	d, eei := createDelegationContractAndEEI()
 	vmInput := getDefaultVmInputForFunc("correctNodesStatus", nil)
 
-	enableEpochsHandler, _ := d.enableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	enableEpochsHandler, _ := d.enableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 	enableEpochsHandler.IsAddTokensToDelegationFlagEnabledField = false
 	returnCode := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
@@ -4758,7 +4758,7 @@ func createDefaultEeiArgs() VMContextArgs {
 		InputParser:         parsers.NewCallArgsParser(),
 		ValidatorAccountsDB: &stateMock.AccountsStub{},
 		ChanceComputer:      &mock.RaterMock{},
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 }
 
@@ -4784,13 +4784,13 @@ func TestDelegationSystemSC_ExecuteChangeOwnerUserErrors(t *testing.T) {
 	args.Eei = eei
 
 	d, _ := NewDelegationSystemSC(args)
-	args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub).IsChangeDelegationOwnerFlagEnabledField = false
+	args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub).IsChangeDelegationOwnerFlagEnabledField = false
 	vmInput := getDefaultVmInputForFunc("changeOwner", vmInputArgs)
 	output := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.True(t, strings.Contains(eei.returnMessage, vmInput.Function+" is an unknown function"))
 
-	args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub).IsChangeDelegationOwnerFlagEnabledField = true
+	args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub).IsChangeDelegationOwnerFlagEnabledField = true
 	vmInput.CallValue = big.NewInt(0)
 	vmInput.CallerAddr = []byte("aaa")
 	output = d.Execute(vmInput)
@@ -4842,7 +4842,7 @@ func TestDelegationSystemSC_ExecuteChangeOwner(t *testing.T) {
 		ChanceComputer:      &mock.RaterMock{},
 		EnableEpochsHandler: args.EnableEpochsHandler,
 	}
-	args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub).IsChangeDelegationOwnerFlagEnabledField = true
+	args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub).IsChangeDelegationOwnerFlagEnabledField = true
 	eei, err := NewVMContext(argsVmContext)
 	require.Nil(t, err)
 

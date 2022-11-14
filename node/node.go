@@ -35,9 +35,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	procTx "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/state"
-	stateDisabled "github.com/ElrondNetwork/elrond-go/state/disabled"
 	"github.com/ElrondNetwork/elrond-go/trie"
-	"github.com/ElrondNetwork/elrond-go/trie/keyBuilder"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -213,22 +211,11 @@ func (n *Node) GetAllIssuedESDTs(tokenType string, ctx context.Context) ([]strin
 		return tokens, nil
 	}
 
-	rootHash, err := userAccount.DataTrie().RootHash()
-	if err != nil {
-		return nil, err
-	}
-
 	chLeaves := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 		ErrChan:    make(chan error, 1),
 	}
-	err = userAccount.DataTrie().GetAllLeavesOnChannel(
-		chLeaves,
-		ctx,
-		rootHash,
-		keyBuilder.NewKeyBuilder(),
-		stateDisabled.NewDisabledTrieLeafParser(),
-	)
+	err = userAccount.GetAllLeaves(chLeaves, ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -244,7 +231,7 @@ func (n *Node) GetAllIssuedESDTs(tokenType string, ctx context.Context) ([]strin
 			continue
 		}
 
-		esdtToken, okGet := n.getEsdtDataFromLeaf(leaf, userAccount)
+		esdtToken, okGet := n.getEsdtDataFromLeaf(leaf)
 		if !okGet {
 			continue
 		}
@@ -266,16 +253,10 @@ func (n *Node) GetAllIssuedESDTs(tokenType string, ctx context.Context) ([]strin
 	return tokens, nil
 }
 
-func (n *Node) getEsdtDataFromLeaf(leaf core.KeyValueHolder, userAccount state.UserAccountHandler) (*systemSmartContracts.ESDTDataV2, bool) {
+func (n *Node) getEsdtDataFromLeaf(leaf core.KeyValueHolder) (*systemSmartContracts.ESDTDataV2, bool) {
 	esdtToken := &systemSmartContracts.ESDTDataV2{}
-	suffix := append(leaf.Key(), userAccount.AddressBytes()...)
-	value, errVal := leaf.ValueWithoutSuffix(suffix)
-	if errVal != nil {
-		log.Warn("cannot get value without suffix", "error", errVal, "key", leaf.Key())
-		return nil, false
-	}
 
-	err := n.coreComponents.InternalMarshalizer().Unmarshal(esdtToken, value)
+	err := n.coreComponents.InternalMarshalizer().Unmarshal(esdtToken, leaf.Value())
 	if err != nil {
 		log.Warn("cannot unmarshal esdt data", "err", err)
 		return nil, false
@@ -295,36 +276,18 @@ func (n *Node) GetKeyValuePairs(address string, options api.AccountQueryOptions,
 		return map[string]string{}, api.BlockInfo{}, nil
 	}
 
-	rootHash, err := userAccount.DataTrie().RootHash()
-	if err != nil {
-		return nil, api.BlockInfo{}, err
-	}
-
 	chLeaves := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 		ErrChan:    make(chan error, 1),
 	}
-	err = userAccount.DataTrie().GetAllLeavesOnChannel(
-		chLeaves,
-		ctx,
-		rootHash,
-		keyBuilder.NewKeyBuilder(),
-		stateDisabled.NewDisabledTrieLeafParser(),
-	)
+	err = userAccount.GetAllLeaves(chLeaves, ctx)
 	if err != nil {
 		return nil, api.BlockInfo{}, err
 	}
 
 	mapToReturn := make(map[string]string)
 	for leaf := range chLeaves.LeavesChan {
-		suffix := append(leaf.Key(), userAccount.AddressBytes()...)
-		value, errVal := leaf.ValueWithoutSuffix(suffix)
-		if errVal != nil {
-			log.Warn("cannot get value without suffix", "error", errVal, "key", leaf.Key())
-			continue
-		}
-
-		mapToReturn[hex.EncodeToString(leaf.Key())] = hex.EncodeToString(value)
+		mapToReturn[hex.EncodeToString(leaf.Key())] = hex.EncodeToString(leaf.Value())
 	}
 
 	err = common.GetErrorFromChanNonBlocking(chLeaves.ErrChan)
@@ -403,22 +366,11 @@ func (n *Node) getTokensIDsWithFilter(
 		return tokens, api.BlockInfo{}, nil
 	}
 
-	rootHash, err := userAccount.DataTrie().RootHash()
-	if err != nil {
-		return nil, api.BlockInfo{}, err
-	}
-
 	chLeaves := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 		ErrChan:    make(chan error, 1),
 	}
-	err = userAccount.DataTrie().GetAllLeavesOnChannel(
-		chLeaves,
-		ctx,
-		rootHash,
-		keyBuilder.NewKeyBuilder(),
-		stateDisabled.NewDisabledTrieLeafParser(),
-	)
+	err = userAccount.GetAllLeaves(chLeaves, ctx)
 	if err != nil {
 		return nil, api.BlockInfo{}, err
 	}
@@ -429,7 +381,7 @@ func (n *Node) getTokensIDsWithFilter(
 			continue
 		}
 
-		esdtToken, okGet := n.getEsdtDataFromLeaf(leaf, userAccount)
+		esdtToken, okGet := n.getEsdtDataFromLeaf(leaf)
 		if !okGet {
 			continue
 		}
@@ -539,22 +491,11 @@ func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions,
 	esdtPrefix := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier)
 	lenESDTPrefix := len(esdtPrefix)
 
-	rootHash, err := userAccount.DataTrie().RootHash()
-	if err != nil {
-		return nil, api.BlockInfo{}, err
-	}
-
 	chLeaves := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 		ErrChan:    make(chan error, 1),
 	}
-	err = userAccount.DataTrie().GetAllLeavesOnChannel(
-		chLeaves,
-		ctx,
-		rootHash,
-		keyBuilder.NewKeyBuilder(),
-		stateDisabled.NewDisabledTrieLeafParser(),
-	)
+	err = userAccount.GetAllLeaves(chLeaves, ctx)
 	if err != nil {
 		return nil, api.BlockInfo{}, err
 	}
@@ -1231,9 +1172,13 @@ func (n *Node) GetProofDataTrie(rootHash string, address string, key string) (*c
 		return nil, nil, err
 	}
 
-	dataTrieProofResponse, err := n.getProof(dataTrieRootHash, keyBytes)
+	dataTrieKey := n.coreComponents.Hasher().Compute(string(keyBytes))
+	dataTrieProofResponse, err := n.getProof(dataTrieRootHash, dataTrieKey)
 	if err != nil {
-		return nil, nil, err
+		dataTrieProofResponse, err = n.getProof(dataTrieRootHash, keyBytes)
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 
 	dataTrieProofResponse.Value = value

@@ -9,7 +9,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state/factory"
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/marshallerMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
@@ -22,7 +24,7 @@ func getDefaultTrieAndAccountsDbAndStoragePruningManager() (common.Trie, *state.
 		SnapshotsBufferLen:    10,
 		SnapshotsGoroutineNum: 1,
 	}
-	marshaller := &testscommon.MarshalizerMock{}
+	marshaller := &marshallerMock.MarshalizerMock{}
 	hasher := &hashingMocks.HasherMock{}
 	args := trie.NewTrieStorageManagerArgs{
 		MainStorer:             testscommon.CreateMemUnit(),
@@ -40,7 +42,7 @@ func getDefaultTrieAndAccountsDbAndStoragePruningManager() (common.Trie, *state.
 	argsAccCreator := state.ArgsAccountCreation{
 		Hasher:              hasher,
 		Marshaller:          marshaller,
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	accCreator, _ := factory.NewAccountCreator(argsAccCreator)
 

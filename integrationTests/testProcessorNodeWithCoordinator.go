@@ -13,7 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage/cache"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
 	vic "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
 )
 
@@ -73,7 +73,7 @@ func CreateProcessorNodesWithNodesCoordinator(
 				ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
 				ChanStopNode:            endProcess.GetDummyEndProcessChannel(),
 				IsFullArchive:           false,
-				EnableEpochsHandler:     &testscommon.EnableEpochsHandlerStub{},
+				EnableEpochsHandler:     &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 				ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 			}
 

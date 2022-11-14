@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
@@ -69,7 +70,7 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 		},
 		AddressPubKeyConverter: &mock.PubkeyConverterMock{},
 		ShardCoordinator:       &mock.ShardCoordinatorStub{},
-		EnableEpochsHandler:    &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 }
 

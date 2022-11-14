@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/marshallerMock"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
@@ -28,7 +29,7 @@ func getNewTrieStorageManagerArgs() trie.NewTrieStorageManagerArgs {
 	return trie.NewTrieStorageManagerArgs{
 		MainStorer:             testscommon.CreateMemUnit(),
 		CheckpointsStorer:      testscommon.CreateMemUnit(),
-		Marshalizer:            &testscommon.MarshalizerMock{},
+		Marshalizer:            &marshallerMock.MarshalizerMock{},
 		Hasher:                 &hashingMocks.HasherMock{},
 		GeneralConfig:          config.TrieStorageManagerConfig{SnapshotsGoroutineNum: 1},
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10, hashSize),

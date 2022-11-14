@@ -652,6 +652,7 @@ func (en *extensionNode) loadChildren(getNode func([]byte) (node, error)) ([][]b
 func (en *extensionNode) getAllLeavesOnChannel(
 	leavesChannel chan core.KeyValueHolder,
 	keyBuilder common.KeyBuilder,
+	trieLeafParser common.TrieLeafParser,
 	db common.DBWriteCacher,
 	marshalizer marshal.Marshalizer,
 	chanClose chan struct{},
@@ -676,7 +677,7 @@ func (en *extensionNode) getAllLeavesOnChannel(
 		}
 
 		keyBuilder.BuildKey(en.Key)
-		err = en.child.getAllLeavesOnChannel(leavesChannel, keyBuilder.Clone(), db, marshalizer, chanClose, ctx)
+		err = en.child.getAllLeavesOnChannel(leavesChannel, keyBuilder.Clone(), trieLeafParser, db, marshalizer, chanClose, ctx)
 		if err != nil {
 			return err
 		}

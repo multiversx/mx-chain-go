@@ -12,7 +12,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/marshallerMock"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
@@ -23,8 +25,8 @@ func getAccAdapter(nonce uint64, balance *big.Int) *stateMock.AccountsStub {
 	accDB.GetExistingAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
 		argsAccCreation := state.ArgsAccountCreation{
 			Hasher:              &hashingMocks.HasherMock{},
-			Marshaller:          &testscommon.MarshalizerMock{},
-			EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+			Marshaller:          &marshallerMock.MarshalizerMock{},
+			EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		}
 		acc, _ := state.NewUserAccount(address, argsAccCreation)
 		acc.Nonce = nonce

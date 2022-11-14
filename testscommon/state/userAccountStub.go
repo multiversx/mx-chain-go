@@ -2,6 +2,7 @@
 package state
 
 import (
+	"context"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -159,4 +160,9 @@ func (u *UserAccountStub) SaveDirtyData(_ common.Trie) (map[string][]byte, error
 // IsInterfaceNil -
 func (u *UserAccountStub) IsInterfaceNil() bool {
 	return false
+}
+
+// GetAllLeaves -
+func (u *UserAccountStub) GetAllLeaves(_ *common.TrieIteratorChannels, _ context.Context) error {
+	return nil
 }

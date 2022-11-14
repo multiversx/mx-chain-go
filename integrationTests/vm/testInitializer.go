@@ -56,6 +56,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
@@ -268,7 +269,7 @@ func (af *accountFactory) CreateAccount(address []byte) (vmcommon.AccountHandler
 	argsAccCreation := state.ArgsAccountCreation{
 		Hasher:              af.hasher,
 		Marshaller:          af.marshaller,
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	return state.NewUserAccount(address, argsAccCreation)
 }
@@ -546,7 +547,7 @@ func CreateOneSCExecutorMockVM(accnts state.AccountsAdapter) vmcommon.VMExecutio
 		NilCompiledSCStore:    true,
 		ConfigSCStorage:       *defaultStorageConfig(),
 		EpochNotifier:         &epochNotifier.EpochNotifierStub{},
-		EnableEpochsHandler:   &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
 	vm, _ := mock.NewOneSCExecutorMockVM(blockChainHook, testHasher)

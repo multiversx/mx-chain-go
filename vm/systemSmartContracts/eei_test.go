@@ -9,8 +9,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/marshallerMock"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
@@ -101,8 +102,8 @@ func TestVmContext_GetBalance(t *testing.T) {
 	balance := big.NewInt(10)
 	argsAccCreation := state.ArgsAccountCreation{
 		Hasher:              &hashingMocks.HasherMock{},
-		Marshaller:          &testscommon.MarshalizerMock{},
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		Marshaller:          &marshallerMock.MarshalizerMock{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	account, _ := state.NewUserAccount([]byte("123"), argsAccCreation)
 	_ = account.AddToBalance(balance)

@@ -7,14 +7,16 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
+	"github.com/ElrondNetwork/elrond-go/testscommon/marshallerMock"
 	"github.com/stretchr/testify/assert"
 )
 
 func createMockArgsPrintDoubleTransactionsDetector() ArgsPrintDoubleTransactionsDetector {
 	return ArgsPrintDoubleTransactionsDetector{
-		Marshaller:          &testscommon.MarshalizerMock{},
+		Marshaller:          &marshallerMock.MarshalizerMock{},
 		Hasher:              &testscommon.HasherStub{},
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 }
 
@@ -131,7 +133,7 @@ func TestPrintDoubleTransactionsDetector_ProcessBlockBody(t *testing.T) {
 
 		debugCalled := false
 		args := createMockArgsPrintDoubleTransactionsDetector()
-		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsAddFailedRelayedTxToInvalidMBsFlagField: true,
 		}
 		detector, _ := NewPrintDoubleTransactionsDetector(args)

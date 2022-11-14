@@ -16,8 +16,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/marshallerMock"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -152,8 +153,8 @@ func TestDirectStakedListProc_GetDelegatorsListShouldWork(t *testing.T) {
 func createScAccount(address []byte, leaves [][]byte, rootHash []byte, timeSleep time.Duration) state.UserAccountHandler {
 	argsAccCreation := state.ArgsAccountCreation{
 		Hasher:              &hashingMocks.HasherMock{},
-		Marshaller:          &testscommon.MarshalizerMock{},
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		Marshaller:          &marshallerMock.MarshalizerMock{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	acc, _ := state.NewUserAccount(address, argsAccCreation)
 	acc.SetDataTrie(&trieMock.TrieStub{

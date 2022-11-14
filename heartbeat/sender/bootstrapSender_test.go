@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/heartbeat/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/marshallerMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 )
@@ -19,7 +20,7 @@ import (
 func createMockBootstrapSenderArgs() ArgBootstrapSender {
 	return ArgBootstrapSender{
 		Messenger:                          &p2pmocks.MessengerStub{},
-		Marshaller:                         &testscommon.MarshalizerMock{},
+		Marshaller:                         &marshallerMock.MarshalizerMock{},
 		HeartbeatTopic:                     "hb-topic",
 		HeartbeatTimeBetweenSends:          time.Second,
 		HeartbeatTimeBetweenSendsWhenError: time.Second,
