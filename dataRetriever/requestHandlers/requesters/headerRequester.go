@@ -42,7 +42,7 @@ func checkArgs(args ArgHeaderRequester) error {
 	return nil
 }
 
-// RequestDataFromNonce requests a header from other peers by having input the hdr nonce
+// RequestDataFromNonce requests a header from other peers by having the header's nonce and the epoch as input
 func (requester *headerRequester) RequestDataFromNonce(nonce uint64, epoch uint32) error {
 	return requester.SendOnRequestTopic(
 		&dataRetriever.RequestData{

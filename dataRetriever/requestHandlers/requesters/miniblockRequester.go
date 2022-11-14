@@ -21,7 +21,7 @@ func NewMiniblockRequester(args ArgMiniblockRequester) (*miniblockRequester, err
 	}, nil
 }
 
-// RequestDataFromHashArray requests a block body from other peers by having input the block body hash
+// RequestDataFromHashArray requests a block body from other peers by having the miniblocks' hashes and the epoch as input
 func (requester *miniblockRequester) RequestDataFromHashArray(hashes [][]byte, epoch uint32) error {
 	return requester.requestDataFromHashArray(hashes, epoch)
 }

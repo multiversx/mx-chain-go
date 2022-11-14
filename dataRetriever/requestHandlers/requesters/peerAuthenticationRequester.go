@@ -21,7 +21,7 @@ func NewPeerAuthenticationRequester(args ArgPeerAuthenticationRequester) (*peerA
 	}, nil
 }
 
-// RequestDataFromHashArray requests peer authentication data from other peers by having input multiple public key hashes
+// RequestDataFromHashArray requests peer authentication data from other peers by having multiple public keys' hashes and the epoch as input
 func (requester *peerAuthenticationRequester) RequestDataFromHashArray(hashes [][]byte, epoch uint32) error {
 	return requester.requestDataFromHashArray(hashes, epoch)
 }

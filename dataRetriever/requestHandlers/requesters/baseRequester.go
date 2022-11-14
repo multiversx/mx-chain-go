@@ -38,7 +38,7 @@ func checkArgBase(arg ArgBaseRequester) error {
 	return nil
 }
 
-// RequestDataFromHash requests data from other peers by having input a hash
+// RequestDataFromHash requests data from other peers by having a hash and the epoch as input
 func (requester *baseRequester) RequestDataFromHash(hash []byte, epoch uint32) error {
 	return requester.SendOnRequestTopic(
 		&dataRetriever.RequestData{
