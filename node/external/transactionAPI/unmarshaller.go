@@ -232,7 +232,7 @@ func (tu *txUnmarshaller) getEncodedAddress(address []byte) (string, error) {
 		return tu.addressPubKeyConverter.Encode(address)
 	}
 
-	return "", ErrEncodeAddress
+	return "", nil
 }
 
 func bigIntToStr(value *big.Int) string {

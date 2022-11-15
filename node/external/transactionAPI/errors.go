@@ -33,4 +33,4 @@ var ErrCannotRetrieveTransactions = errors.New("transactions cannot be retrieved
 var ErrInvalidAddress = errors.New("invalid address")
 
 // ErrEncodeAddress signals that an error occured while encoding an address
-var ErrEncodeAddress = errors.New("cannot encode provided error")
+var ErrEncodeAddress = errors.New("cannot encode provided address")

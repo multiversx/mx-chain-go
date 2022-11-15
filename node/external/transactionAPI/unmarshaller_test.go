@@ -11,8 +11,8 @@ import (
 func TestGetEncodedAddress(t *testing.T) {
 	t.Parallel()
 
-	address := []byte("address")
-	expectedEncodedAddr := "encoded"
+	address := []byte("12345678901234567890123456789012")
+	expectedEncodedAddr := "erd1xyerxdp4xcmnswfsxyerxdp4xcmnswfsxyerxdp4xcmnswfsxyeqlrqt99"
 	txUnmarshalledHandler := &txUnmarshaller{
 		addressPubKeyConverter: &testscommon.PubkeyConverterStub{
 			LenCalled: func() int {
@@ -29,9 +29,9 @@ func TestGetEncodedAddress(t *testing.T) {
 	require.Equal(t, expectedEncodedAddr, encodedAddr)
 	require.Nil(t, err)
 
-	encodedAddr, err = txUnmarshalledHandler.getEncodedAddress([]byte("adr"))
+	encodedAddr, err = txUnmarshalledHandler.getEncodedAddress([]byte("abc"))
 	require.Empty(t, encodedAddr)
-	require.Nil(t, err)
+	require.Error(t, ErrEncodeAddress, err)
 }
 
 func TestBigIntToStr(t *testing.T) {

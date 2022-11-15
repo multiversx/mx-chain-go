@@ -1557,10 +1557,9 @@ func DisplayAndStartNodes(nodes []*TestProcessorNode) {
 
 		encodedPkNode, err := TestValidatorPubkeyConverter.Encode(pkNode)
 		if err != nil {
-			log.Info(fmt.Sprintf("Encoding failed for Shard ID: %v, pkNode: %s with %w",
+			log.Info(fmt.Sprintf("Encoding failed for Shard ID: %v, pkNode: %s ",
 				n.ShardCoordinator.SelfId(),
-				encodedPkNode,
-				err))
+				encodedPkNode))
 		}
 
 		log.Info(fmt.Sprintf("Shard ID: %v, pkNode: %s",
@@ -1569,10 +1568,9 @@ func DisplayAndStartNodes(nodes []*TestProcessorNode) {
 
 		encodedPkTxBuff, err := TestAddressPubkeyConverter.Encode(pkTxBuff)
 		if err != nil {
-			log.Info(fmt.Sprintf("Encoding failed for Shard ID: %v, pkNode: %s with %w",
+			log.Info(fmt.Sprintf("Encoding failed for Shard ID: %v, pkNode: %s ",
 				n.ShardCoordinator.SelfId(),
-				encodedPkTxBuff,
-				err))
+				encodedPkTxBuff))
 		}
 
 		log.Info(fmt.Sprintf("skTx: %s, pkTx: %s",

@@ -795,7 +795,7 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 	esdtToken := "TKKR-7q8w9e"
 	esdtKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + esdtToken)
 
-	esdtData := &esdt.ESDigitalToken{Value: big.NewInt(10)}
+	esdtData := &esdt.ESDigitalToken{Value: big.NewInt(10), TokenMetaData: &esdt.MetaData{Creator: []byte("12345678901234567890123456789012")}}
 	marshalledData, _ := getMarshalizer().Marshal(esdtData)
 
 	suffix := append(esdtKey, acc.AddressBytes()...)
@@ -806,7 +806,7 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 	nftKeyWithBytes := append(nftKey, nftNonce.Bytes()...)
 	nftSuffix := append(nftKeyWithBytes, acc.AddressBytes()...)
 
-	nftData := &esdt.ESDigitalToken{Type: uint32(core.NonFungible), Value: big.NewInt(10), TokenMetaData: &esdt.MetaData{Nonce: nftNonce.Uint64()}}
+	nftData := &esdt.ESDigitalToken{Type: uint32(core.NonFungible), Value: big.NewInt(10), TokenMetaData: &esdt.MetaData{Nonce: nftNonce.Uint64(), Creator: []byte("12345678901234567890123456789012")}}
 	marshalledNftData, _ := getMarshalizer().Marshal(nftData)
 
 	esdtStorageStub := &testscommon.EsdtStorageHandlerStub{
@@ -875,7 +875,7 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 	tokens, _, err := n.GetAllESDTTokens(testscommon.TestAddressAlice, api.AccountQueryOptions{}, context.Background())
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(tokens))
-	assert.Equal(t, esdtData, tokens[esdtToken])
+	assert.Equal(t, esdtData, tokens["TKKR-7q8w9e-"])
 
 	// check that the NFT was formatted correctly
 	expectedNftFormattedKey := "TCKR-67tgv3-01"
