@@ -24,8 +24,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/outport/process"
+	outportProcess "github.com/ElrondNetwork/elrond-go/outport/process"
 	"github.com/ElrondNetwork/elrond-go/outport/process/alteredaccounts/shared"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/state"
 )
 
@@ -40,21 +41,22 @@ const (
 )
 
 type baseAPIBlockProcessor struct {
-	hasDbLookupExtensions    bool
-	selfShardID              uint32
-	emptyReceiptsHash        []byte
-	store                    dataRetriever.StorageService
-	marshalizer              marshal.Marshalizer
-	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
-	historyRepo              dblookupext.HistoryRepository
-	hasher                   hashing.Hasher
-	addressPubKeyConverter   core.PubkeyConverter
-	txStatusComputer         transaction.StatusComputerHandler
-	apiTransactionHandler    APITransactionHandler
-	logsFacade               logsFacade
-	receiptsRepository       receiptsRepository
-	alteredAccountsProvider  process.AlteredAccountsProviderHandler
-	accountsRepository       state.AccountsRepository
+	hasDbLookupExtensions        bool
+	selfShardID                  uint32
+	emptyReceiptsHash            []byte
+	store                        dataRetriever.StorageService
+	marshalizer                  marshal.Marshalizer
+	uint64ByteSliceConverter     typeConverters.Uint64ByteSliceConverter
+	historyRepo                  dblookupext.HistoryRepository
+	hasher                       hashing.Hasher
+	addressPubKeyConverter       core.PubkeyConverter
+	txStatusComputer             transaction.StatusComputerHandler
+	apiTransactionHandler        APITransactionHandler
+	logsFacade                   logsFacade
+	receiptsRepository           receiptsRepository
+	alteredAccountsProvider      outportProcess.AlteredAccountsProviderHandler
+	accountsRepository           state.AccountsRepository
+	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 }
 
 var log = logger.GetOrCreate("node/blockAPI")
@@ -414,9 +416,13 @@ func (bap *baseAPIBlockProcessor) apiBlockToAlteredAccounts(apiBlock *api.Block,
 		return nil, err
 	}
 
-	blockRootHash, err := hex.DecodeString(apiBlock.StateRootHash)
+	var blockRootHash []byte
+	blockRootHash, err = bap.scheduledTxsExecutionHandler.GetScheduledRootHashForHeaderWithEpoch(blockHash, apiBlock.Epoch)
 	if err != nil {
-		return nil, err
+		blockRootHash, err = hex.DecodeString(apiBlock.StateRootHash)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	alteredAccountsOptions := shared.AlteredAccountsOptions{
