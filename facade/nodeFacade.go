@@ -14,6 +14,7 @@ import (
 	chainData "github.com/ElrondNetwork/elrond-go-core/data"
 	apiData "github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
+	"github.com/ElrondNetwork/elrond-go-core/data/outport"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/data/vm"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -354,6 +355,36 @@ func (nf *nodeFacade) GetAccount(address string, options apiData.AccountQueryOpt
 	return accountResponse, blockInfo, nil
 }
 
+// GetAccounts returns the state of the provided addresses
+func (nf *nodeFacade) GetAccounts(addresses []string, options apiData.AccountQueryOptions) (map[string]*apiData.AccountResponse, apiData.BlockInfo, error) {
+	numAddresses := uint32(len(addresses))
+	// TODO: check if Antiflood is enabled before applying this constraint (EN-13278)
+	maxBulkSize := nf.wsAntifloodConfig.GetAddressesBulkMaxSize
+	if numAddresses > maxBulkSize {
+		return nil, apiData.BlockInfo{}, fmt.Errorf("%w (provided: %d, maximum: %d)", ErrTooManyAddressesInBulk, numAddresses, maxBulkSize)
+	}
+
+	response := make(map[string]*apiData.AccountResponse)
+	var blockInfo apiData.BlockInfo
+
+	for _, address := range addresses {
+		accountResponse, blockInfoForAccount, err := nf.node.GetAccount(address, options)
+		if err != nil {
+			return nil, apiData.BlockInfo{}, err
+		}
+
+		blockInfo = blockInfoForAccount
+
+		codeHash := accountResponse.CodeHash
+		code, _ := nf.node.GetCode(codeHash, options)
+		accountResponse.Code = hex.EncodeToString(code)
+
+		response[address] = &accountResponse
+	}
+
+	return response, blockInfo, nil
+}
+
 // GetHeartbeats returns the heartbeat status for each public key from initial list or later joined to the network
 func (nf *nodeFacade) GetHeartbeats() ([]data.PubKeyHeartbeat, error) {
 	hbStatus := nf.node.GetHeartbeats()
@@ -468,6 +499,11 @@ func (nf *nodeFacade) GetBlockByNonce(nonce uint64, options apiData.BlockQueryOp
 // GetBlockByRound returns the block for a given round
 func (nf *nodeFacade) GetBlockByRound(round uint64, options apiData.BlockQueryOptions) (*apiData.Block, error) {
 	return nf.apiResolver.GetBlockByRound(round, options)
+}
+
+// GetAlteredAccountsForBlock returns the altered accounts for a given block
+func (nf *nodeFacade) GetAlteredAccountsForBlock(options apiData.GetAlteredAccountsForBlockOptions) ([]*outport.AlteredAccount, error) {
+	return nf.apiResolver.GetAlteredAccountsForBlock(options)
 }
 
 // GetInternalMetaBlockByHash return the meta block for a given hash

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
+	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/node/external"
@@ -22,6 +23,7 @@ type ApiResolverStub struct {
 	GetBlockByHashCalled                        func(hash string, options api.BlockQueryOptions) (*api.Block, error)
 	GetBlockByNonceCalled                       func(nonce uint64, options api.BlockQueryOptions) (*api.Block, error)
 	GetBlockByRoundCalled                       func(round uint64, options api.BlockQueryOptions) (*api.Block, error)
+	GetAlteredAccountsForBlockCalled            func(options api.GetAlteredAccountsForBlockOptions) ([]*outportcore.AlteredAccount, error)
 	GetTransactionHandler                       func(hash string, withEvents bool) (*transaction.ApiTransactionResult, error)
 	GetInternalShardBlockByNonceCalled          func(format common.ApiOutputFormat, nonce uint64) (interface{}, error)
 	GetInternalShardBlockByHashCalled           func(format common.ApiOutputFormat, hash string) (interface{}, error)
@@ -71,6 +73,15 @@ func (ars *ApiResolverStub) GetBlockByNonce(nonce uint64, options api.BlockQuery
 func (ars *ApiResolverStub) GetBlockByRound(round uint64, options api.BlockQueryOptions) (*api.Block, error) {
 	if ars.GetBlockByRoundCalled != nil {
 		return ars.GetBlockByRoundCalled(round, options)
+	}
+
+	return nil, nil
+}
+
+// GetAlteredAccountsForBlock -
+func (ars *ApiResolverStub) GetAlteredAccountsForBlock(options api.GetAlteredAccountsForBlockOptions) ([]*outportcore.AlteredAccount, error) {
+	if ars.GetAlteredAccountsForBlockCalled != nil {
+		return ars.GetAlteredAccountsForBlockCalled(options)
 	}
 
 	return nil, nil

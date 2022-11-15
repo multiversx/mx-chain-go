@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/node/filters"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 type apiTransactionResultsProcessor struct {
@@ -21,7 +22,7 @@ type apiTransactionResultsProcessor struct {
 	storageService         dataRetriever.StorageService
 	marshalizer            marshal.Marshalizer
 	dataFieldParser        DataFieldParser
-	selfShardID            uint32
+	shardCoordinator       sharding.Coordinator
 	refundDetector         *refundDetector
 	logsFacade             LogsFacade
 }
@@ -33,7 +34,7 @@ func newAPITransactionResultProcessor(
 	marshalizer marshal.Marshalizer,
 	txUnmarshaller *txUnmarshaller,
 	logsFacade LogsFacade,
-	selfShardID uint32,
+	shardCoordinator sharding.Coordinator,
 	dataFieldParser DataFieldParser,
 ) *apiTransactionResultsProcessor {
 	refundDetector := newRefundDetector()
@@ -44,7 +45,7 @@ func newAPITransactionResultProcessor(
 		historyRepository:      historyRepository,
 		storageService:         storageService,
 		marshalizer:            marshalizer,
-		selfShardID:            selfShardID,
+		shardCoordinator:       shardCoordinator,
 		refundDetector:         refundDetector,
 		logsFacade:             logsFacade,
 		dataFieldParser:        dataFieldParser,
@@ -107,7 +108,7 @@ func (arp *apiTransactionResultsProcessor) putSmartContractResultsInTransaction(
 		}
 	}
 
-	statusFilters := filters.NewStatusFilters(arp.selfShardID)
+	statusFilters := filters.NewStatusFilters(arp.shardCoordinator.SelfId())
 	statusFilters.SetStatusIfIsFailedESDTTransfer(tx)
 	return nil
 }
@@ -221,7 +222,7 @@ func (arp *apiTransactionResultsProcessor) adaptSmartContractResult(scrHash []by
 		}
 	}
 
-	res := arp.dataFieldParser.Parse(scr.Data, scr.GetSndAddr(), scr.GetRcvAddr())
+	res := arp.dataFieldParser.Parse(scr.Data, scr.GetSndAddr(), scr.GetRcvAddr(), arp.shardCoordinator.NumberOfShards())
 	apiSCR.Operation = res.Operation
 	apiSCR.Function = res.Function
 	apiSCR.ESDTValues = res.ESDTValues

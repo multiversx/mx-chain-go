@@ -17,14 +17,14 @@ import (
 	atomicCore "github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
-	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
+	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/blockchain"
+	processOutport "github.com/ElrondNetwork/elrond-go/outport/process"
 	"github.com/ElrondNetwork/elrond-go/process"
 	blproc "github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
@@ -36,6 +36,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/outport"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
@@ -2198,9 +2199,6 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 	}
 	store := initStore()
 
-	var txsPool *indexer.Pool
-	saveBlockCalledMutex := sync.Mutex{}
-
 	blkc := createTestBlockchain()
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return prevHdr
@@ -2216,37 +2214,22 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
-	statusComponents.Outport = &testscommon.OutportStub{
-		SaveBlockCalled: func(args *indexer.ArgsSaveBlockData) {
-			saveBlockCalledMutex.Lock()
-			txsPool = args.TransactionsPool
-			saveBlockCalledMutex.Unlock()
+	called := false
+	statusComponents.Outport = &outport.OutportStub{
+		SaveBlockCalled: func(args *outportcore.ArgsSaveBlockData) {
+			called = true
 		},
 		HasDriversCalled: func() bool {
 			return true
 		},
 	}
+	arguments.OutportDataProvider = &outport.OutportDataProviderStub{
+		PrepareOutportSaveBlockDataCalled: func(_ processOutport.ArgPrepareOutportSaveBlockData) (*outportcore.ArgsSaveBlockData, error) {
+			return &outportcore.ArgsSaveBlockData{}, nil
+		}}
 
 	arguments.AccountsDB[state.UserAccountsState] = accounts
 	arguments.ForkDetector = fd
-	arguments.TxCoordinator = &mock.TransactionCoordinatorMock{
-		GetAllCurrentUsedTxsCalled: func(blockType block.Type) map[string]data.TransactionHandler {
-			switch blockType {
-			case block.TxBlock:
-				return map[string]data.TransactionHandler{
-					"tx_1": &transaction.Transaction{Nonce: 1},
-					"tx_2": &transaction.Transaction{Nonce: 2},
-				}
-			case block.SmartContractResultBlock:
-				return map[string]data.TransactionHandler{
-					"utx_1": &smartContractResult.SmartContractResult{Nonce: 1},
-					"utx_2": &smartContractResult.SmartContractResult{Nonce: 2},
-				}
-			default:
-				return nil
-			}
-		},
-	}
 	blockTrackerMock := mock.NewBlockTrackerMock(mock.NewOneShardCoordinatorMock(), createGenesisBlocks(mock.NewOneShardCoordinatorMock()))
 	blockTrackerMock.GetCrossNotarizedHeaderCalled = func(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error) {
 		return &block.MetaBlock{}, []byte("hash"), nil
@@ -2263,8 +2246,7 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 	// Wait for the index block go routine to start
 	time.Sleep(time.Second * 2)
 
-	assert.Equal(t, 2, len(txsPool.Txs))
-	assert.Equal(t, 2, len(txsPool.Scrs))
+	require.True(t, called)
 }
 
 func TestShardProcessor_CreateTxBlockBodyWithDirtyAccStateShouldReturnEmptyBody(t *testing.T) {
@@ -5054,7 +5036,7 @@ func TestShardProcessor_createMiniBlocks(t *testing.T) {
 	}
 
 	var called = &atomicCore.Flag{}
-	arguments.TxCoordinator = &mock.TransactionCoordinatorMock{
+	arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
 		AddTransactionsCalled: func(txHandlers []data.TransactionHandler, blockType block.Type) {
 			require.Equal(t, block.TxBlock, blockType)
 			require.Equal(t, txs, txHandlers)

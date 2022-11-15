@@ -35,7 +35,7 @@ func (pcs *PubkeyConverterStub) Encode(pkBytes []byte) (string, error) {
 	return "", nil
 }
 
-// Encode -
+// EncodeSlice -
 func (pcs *PubkeyConverterStub) EncodeSlice(pkBytesSlice [][]byte) ([]string, error) {
 	if pcs.EncodeSliceCalled != nil {
 		return pcs.EncodeSliceCalled(pkBytesSlice)
