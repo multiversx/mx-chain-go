@@ -23,7 +23,6 @@ func createStubTopicMessageHandlerForShard(matchStrToErrOnCreate string) dataRet
 		if matchStrToErrOnCreate == "" {
 			return nil
 		}
-
 		if strings.Contains(name, matchStrToErrOnCreate) {
 			return errExpected
 		}
@@ -39,7 +38,7 @@ func createStubTopicMessageHandlerForShard(matchStrToErrOnCreate string) dataRet
 func TestNewShardRequestersContainerFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsShard()
+	args := getArguments()
 	args.ShardCoordinator = nil
 	rcf, err := requesterscontainer.NewShardRequestersContainerFactory(args)
 
@@ -50,7 +49,7 @@ func TestNewShardRequestersContainerFactory_NilShardCoordinatorShouldErr(t *test
 func TestNewShardRequestersContainerFactory_NilMessengerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsShard()
+	args := getArguments()
 	args.Messenger = nil
 	rcf, err := requesterscontainer.NewShardRequestersContainerFactory(args)
 
@@ -61,7 +60,7 @@ func TestNewShardRequestersContainerFactory_NilMessengerShouldErr(t *testing.T) 
 func TestNewShardRequestersContainerFactory_NilMarshallerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsShard()
+	args := getArguments()
 	args.Marshaller = nil
 	rcf, err := requesterscontainer.NewShardRequestersContainerFactory(args)
 
@@ -72,7 +71,7 @@ func TestNewShardRequestersContainerFactory_NilMarshallerShouldErr(t *testing.T)
 func TestNewShardRequestersContainerFactory_NilMarshallerAndSizeShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsShard()
+	args := getArguments()
 	args.Marshaller = nil
 	args.SizeCheckDelta = 1
 	rcf, err := requesterscontainer.NewShardRequestersContainerFactory(args)
@@ -84,7 +83,7 @@ func TestNewShardRequestersContainerFactory_NilMarshallerAndSizeShouldErr(t *tes
 func TestNewShardRequestersContainerFactory_NilUint64SliceConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsShard()
+	args := getArguments()
 	args.Uint64ByteSliceConverter = nil
 	rcf, err := requesterscontainer.NewShardRequestersContainerFactory(args)
 
@@ -95,7 +94,7 @@ func TestNewShardRequestersContainerFactory_NilUint64SliceConverterShouldErr(t *
 func TestNewShardRequestersContainerFactory_NilPreferredPeersHolderShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsShard()
+	args := getArguments()
 	args.PreferredPeersHolder = nil
 	rcf, err := requesterscontainer.NewShardRequestersContainerFactory(args)
 
@@ -106,7 +105,7 @@ func TestNewShardRequestersContainerFactory_NilPreferredPeersHolderShouldErr(t *
 func TestNewShardRequestersContainerFactory_NilPeersRatingHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsShard()
+	args := getArguments()
 	args.PeersRatingHandler = nil
 	rcf, err := requesterscontainer.NewShardRequestersContainerFactory(args)
 
@@ -120,7 +119,7 @@ func TestNewShardRequestersContainerFactory_InvalidNumTotalPeersShouldErr(t *tes
 	t.Run("NumTotalPeers is lower than NumCrossShardPeers", func(t *testing.T) {
 		t.Parallel()
 
-		args := getArgumentsShard()
+		args := getArguments()
 		args.RequesterConfig.NumTotalPeers = 0
 		rcf, err := requesterscontainer.NewShardRequestersContainerFactory(args)
 
@@ -130,7 +129,7 @@ func TestNewShardRequestersContainerFactory_InvalidNumTotalPeersShouldErr(t *tes
 	t.Run("NumTotalPeers is equal to NumCrossShardPeers", func(t *testing.T) {
 		t.Parallel()
 
-		args := getArgumentsShard()
+		args := getArguments()
 		args.RequesterConfig.NumTotalPeers = args.RequesterConfig.NumCrossShardPeers
 		rcf, err := requesterscontainer.NewShardRequestersContainerFactory(args)
 
@@ -142,7 +141,7 @@ func TestNewShardRequestersContainerFactory_InvalidNumTotalPeersShouldErr(t *tes
 func TestNewShardRequestersContainerFactory_InvalidNumCrossShardPeersShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsShard()
+	args := getArguments()
 	args.RequesterConfig.NumCrossShardPeers = 0
 	rcf, err := requesterscontainer.NewShardRequestersContainerFactory(args)
 
@@ -153,7 +152,7 @@ func TestNewShardRequestersContainerFactory_InvalidNumCrossShardPeersShouldErr(t
 func TestNewShardRequestersContainerFactory_InvalidNumFullHistoryPeersShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsShard()
+	args := getArguments()
 	args.RequesterConfig.NumFullHistoryPeers = 0
 	rcf, err := requesterscontainer.NewShardRequestersContainerFactory(args)
 
@@ -164,7 +163,7 @@ func TestNewShardRequestersContainerFactory_InvalidNumFullHistoryPeersShouldErr(
 func TestNewShardRequestersContainerFactory_NilOutputAntifloodHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsShard()
+	args := getArguments()
 	args.OutputAntifloodHandler = nil
 	rcf, err := requesterscontainer.NewShardRequestersContainerFactory(args)
 
@@ -175,7 +174,7 @@ func TestNewShardRequestersContainerFactory_NilOutputAntifloodHandlerShouldErr(t
 func TestNewShardRequestersContainerFactory_NilCurrentNetworkEpochProviderShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsShard()
+	args := getArguments()
 	args.CurrentNetworkEpochProvider = nil
 	rcf, err := requesterscontainer.NewShardRequestersContainerFactory(args)
 
@@ -186,7 +185,7 @@ func TestNewShardRequestersContainerFactory_NilCurrentNetworkEpochProviderShould
 func TestNewShardRequestersContainerFactory_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsShard()
+	args := getArguments()
 	rcf, err := requesterscontainer.NewShardRequestersContainerFactory(args)
 
 	assert.NotNil(t, rcf)
@@ -202,7 +201,7 @@ func TestNewShardRequestersContainerFactory_ShouldWork(t *testing.T) {
 func TestShardRequestersContainerFactory_CreateShouldWork(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsShard()
+	args := getArguments()
 	rcf, _ := requesterscontainer.NewShardRequestersContainerFactory(args)
 
 	container, err := rcf.Create()
@@ -220,7 +219,7 @@ func TestShardRequestersContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	shardCoordinator.SetNoShards(uint32(noOfShards))
 	shardCoordinator.CurrentShard = 1
 
-	args := getArgumentsShard()
+	args := getArguments()
 	args.ShardCoordinator = shardCoordinator
 	rcf, _ := requesterscontainer.NewShardRequestersContainerFactory(args)
 
@@ -241,7 +240,7 @@ func TestShardRequestersContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	assert.Equal(t, totalRequesters, container.Len())
 }
 
-func getArgumentsShard() requesterscontainer.FactoryArgs {
+func getArguments() requesterscontainer.FactoryArgs {
 	return requesterscontainer.FactoryArgs{
 		RequesterConfig: config.RequesterConfig{
 			NumCrossShardPeers:  1,

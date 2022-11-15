@@ -2,41 +2,21 @@ package requesterscontainer_test
 
 import (
 	"errors"
-	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/requestersContainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
-	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 )
-
-func createStubTopicMessageHandlerForMeta(matchStrToErrOnCreate string) dataRetriever.TopicMessageHandler {
-	tmhs := mock.NewTopicMessageHandlerStub()
-
-	tmhs.CreateTopicCalled = func(name string, createChannelForTopic bool) error {
-		if matchStrToErrOnCreate == "" {
-			return nil
-		}
-		if strings.Contains(name, matchStrToErrOnCreate) {
-			return errExpected
-		}
-
-		return nil
-	}
-
-	return tmhs
-}
 
 // ------- NewRequestersContainerFactory
 
 func TestNewMetaRequestersContainerFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsMeta()
+	args := getArguments()
 	args.ShardCoordinator = nil
 	rcf, err := requesterscontainer.NewMetaRequestersContainerFactory(args)
 
@@ -47,7 +27,7 @@ func TestNewMetaRequestersContainerFactory_NilShardCoordinatorShouldErr(t *testi
 func TestNewMetaRequestersContainerFactory_NilMessengerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsMeta()
+	args := getArguments()
 	args.Messenger = nil
 	rcf, err := requesterscontainer.NewMetaRequestersContainerFactory(args)
 
@@ -58,7 +38,7 @@ func TestNewMetaRequestersContainerFactory_NilMessengerShouldErr(t *testing.T) {
 func TestNewMetaRequestersContainerFactory_NilMarshallerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsMeta()
+	args := getArguments()
 	args.Marshaller = nil
 	rcf, err := requesterscontainer.NewMetaRequestersContainerFactory(args)
 
@@ -69,7 +49,7 @@ func TestNewMetaRequestersContainerFactory_NilMarshallerShouldErr(t *testing.T) 
 func TestNewMetaRequestersContainerFactory_NilMarshallerAndSizeCheckShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsMeta()
+	args := getArguments()
 	args.Marshaller = nil
 	args.SizeCheckDelta = 1
 	rcf, err := requesterscontainer.NewMetaRequestersContainerFactory(args)
@@ -81,7 +61,7 @@ func TestNewMetaRequestersContainerFactory_NilMarshallerAndSizeCheckShouldErr(t 
 func TestNewMetaRequestersContainerFactory_NilPreferredPeersHolderShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsMeta()
+	args := getArguments()
 	args.PreferredPeersHolder = nil
 	rcf, err := requesterscontainer.NewMetaRequestersContainerFactory(args)
 
@@ -92,7 +72,7 @@ func TestNewMetaRequestersContainerFactory_NilPreferredPeersHolderShouldErr(t *t
 func TestNewMetaRequestersContainerFactory_NilPeersRatingHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsMeta()
+	args := getArguments()
 	args.PeersRatingHandler = nil
 	rcf, err := requesterscontainer.NewMetaRequestersContainerFactory(args)
 
@@ -103,7 +83,7 @@ func TestNewMetaRequestersContainerFactory_NilPeersRatingHandlerShouldErr(t *tes
 func TestNewMetaRequestersContainerFactory_NilUint64SliceConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsMeta()
+	args := getArguments()
 	args.Uint64ByteSliceConverter = nil
 	rcf, err := requesterscontainer.NewMetaRequestersContainerFactory(args)
 
@@ -114,7 +94,7 @@ func TestNewMetaRequestersContainerFactory_NilUint64SliceConverterShouldErr(t *t
 func TestNewMetaRequestersContainerFactory_NilOutputAntifloodHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsMeta()
+	args := getArguments()
 	args.OutputAntifloodHandler = nil
 	rcf, err := requesterscontainer.NewMetaRequestersContainerFactory(args)
 
@@ -125,7 +105,7 @@ func TestNewMetaRequestersContainerFactory_NilOutputAntifloodHandlerShouldErr(t 
 func TestNewMetaRequestersContainerFactory_NilCurrentNetworkEpochProviderShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsMeta()
+	args := getArguments()
 	args.CurrentNetworkEpochProvider = nil
 	rcf, err := requesterscontainer.NewMetaRequestersContainerFactory(args)
 
@@ -136,7 +116,7 @@ func TestNewMetaRequestersContainerFactory_NilCurrentNetworkEpochProviderShouldE
 func TestNewMetaRequestersContainerFactory_InvalidNumCrossShardPeersShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsMeta()
+	args := getArguments()
 	args.RequesterConfig.NumCrossShardPeers = 0
 	rcf, err := requesterscontainer.NewMetaRequestersContainerFactory(args)
 
@@ -148,7 +128,7 @@ func TestNewMetaRequestersContainerFactory_InvalidNumTotalPeersShouldErr(t *test
 	t.Parallel()
 
 	t.Run("NumTotalPeers is lower than NumCrossShardPeers", func(t *testing.T) {
-		args := getArgumentsMeta()
+		args := getArguments()
 		args.RequesterConfig.NumTotalPeers = 0
 		rcf, err := requesterscontainer.NewMetaRequestersContainerFactory(args)
 
@@ -156,7 +136,7 @@ func TestNewMetaRequestersContainerFactory_InvalidNumTotalPeersShouldErr(t *test
 		assert.True(t, errors.Is(err, dataRetriever.ErrInvalidValue))
 	})
 	t.Run("NumTotalPeers is equal to NumCrossShardPeers", func(t *testing.T) {
-		args := getArgumentsMeta()
+		args := getArguments()
 		args.RequesterConfig.NumTotalPeers = args.RequesterConfig.NumCrossShardPeers
 		rcf, err := requesterscontainer.NewMetaRequestersContainerFactory(args)
 
@@ -168,7 +148,7 @@ func TestNewMetaRequestersContainerFactory_InvalidNumTotalPeersShouldErr(t *test
 func TestNewMetaRequestersContainerFactory_InvalidNumFullHistoryPeersShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsMeta()
+	args := getArguments()
 	args.RequesterConfig.NumFullHistoryPeers = 0
 	rcf, err := requesterscontainer.NewMetaRequestersContainerFactory(args)
 
@@ -179,7 +159,7 @@ func TestNewMetaRequestersContainerFactory_InvalidNumFullHistoryPeersShouldErr(t
 func TestNewMetaRequestersContainerFactory_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsMeta()
+	args := getArguments()
 	rcf, err := requesterscontainer.NewMetaRequestersContainerFactory(args)
 
 	assert.Nil(t, err)
@@ -194,7 +174,7 @@ func TestNewMetaRequestersContainerFactory_ShouldWork(t *testing.T) {
 func TestMetaRequestersContainerFactory_CreateShouldWork(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsMeta()
+	args := getArguments()
 	rcf, _ := requesterscontainer.NewMetaRequestersContainerFactory(args)
 
 	container, err := rcf.Create()
@@ -211,7 +191,7 @@ func TestMetaRequestersContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	shardCoordinator.SetNoShards(uint32(noOfShards))
 	shardCoordinator.CurrentShard = 1
 
-	args := getArgumentsMeta()
+	args := getArguments()
 	args.ShardCoordinator = shardCoordinator
 	rcf, _ := requesterscontainer.NewMetaRequestersContainerFactory(args)
 
@@ -233,23 +213,4 @@ func TestMetaRequestersContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	err := rcf.AddShardTrieNodeRequesters(container)
 	assert.Nil(t, err)
 	assert.Equal(t, totalRequesters+noOfShards, container.Len())
-}
-
-func getArgumentsMeta() requesterscontainer.FactoryArgs {
-	return requesterscontainer.FactoryArgs{
-		RequesterConfig: config.RequesterConfig{
-			NumCrossShardPeers:  1,
-			NumTotalPeers:       3,
-			NumFullHistoryPeers: 3,
-		},
-		ShardCoordinator:            mock.NewOneShardCoordinatorMock(),
-		Messenger:                   createStubTopicMessageHandlerForMeta(""),
-		Marshaller:                  &mock.MarshalizerMock{},
-		Uint64ByteSliceConverter:    &mock.Uint64ByteSliceConverterMock{},
-		OutputAntifloodHandler:      &mock.P2PAntifloodHandlerStub{},
-		CurrentNetworkEpochProvider: &mock.CurrentNetworkEpochProviderStub{},
-		PreferredPeersHolder:        &p2pmocks.PeersHolderStub{},
-		PeersRatingHandler:          &p2pmocks.PeersRatingHandlerStub{},
-		SizeCheckDelta:              0,
-	}
 }
