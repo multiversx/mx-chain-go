@@ -600,7 +600,15 @@ type TrieSyncConfig struct {
 }
 
 // ResolverConfig represents the config options to be used when setting up the resolver instances
+// TODO[Sorin]: remove this in a cleanup PR
 type ResolverConfig struct {
+	NumCrossShardPeers  uint32
+	NumTotalPeers       uint32
+	NumFullHistoryPeers uint32
+}
+
+// RequesterConfig represents the config options to be used when setting up the requester instances
+type RequesterConfig struct {
 	NumCrossShardPeers  uint32
 	NumTotalPeers       uint32
 	NumFullHistoryPeers uint32

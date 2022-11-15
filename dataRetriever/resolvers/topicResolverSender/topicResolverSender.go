@@ -43,6 +43,7 @@ type ArgTopicResolverSender struct {
 	TargetShardId               uint32
 }
 
+// TODO[Sorin]: cleanup and move this into topicSender
 type topicResolverSender struct {
 	messenger                          dataRetriever.MessageHandler
 	marshalizer                        marshal.Marshalizer
