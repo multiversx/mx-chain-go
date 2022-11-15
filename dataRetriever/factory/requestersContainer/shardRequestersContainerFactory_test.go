@@ -16,7 +16,7 @@ import (
 
 var errExpected = errors.New("expected error")
 
-func createStubTopicMessageHandlerForShard(matchStrToErrOnCreate string) dataRetriever.TopicMessageHandler {
+func createStubTopicMessageHandler(matchStrToErrOnCreate string) dataRetriever.TopicMessageHandler {
 	tmhs := mock.NewTopicMessageHandlerStub()
 
 	tmhs.CreateTopicCalled = func(name string, createChannelForTopic bool) error {
@@ -248,7 +248,7 @@ func getArguments() requesterscontainer.FactoryArgs {
 			NumFullHistoryPeers: 3,
 		},
 		ShardCoordinator:            mock.NewOneShardCoordinatorMock(),
-		Messenger:                   createStubTopicMessageHandlerForShard(""),
+		Messenger:                   createStubTopicMessageHandler(""),
 		Marshaller:                  &mock.MarshalizerMock{},
 		Uint64ByteSliceConverter:    &mock.Uint64ByteSliceConverterMock{},
 		OutputAntifloodHandler:      &mock.P2PAntifloodHandlerStub{},
