@@ -6,6 +6,8 @@ import (
 	"os"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	p2pConfig "github.com/ElrondNetwork/elrond-go/p2p/config"
 )
@@ -162,4 +164,34 @@ func GetSkBytesFromP2pKey(p2pKeyFilename string) ([]byte, error) {
 	}
 
 	return skBytes, nil
+}
+
+// CreateP2pKeyPair will create a set of key pair for p2p based on provided pem file. If
+// the provided key is empty it will generate a new one
+func CreateP2pKeyPair(
+	keyFileName string,
+	keyGen crypto.KeyGenerator,
+	log logger.Logger,
+) (crypto.PrivateKey, crypto.PublicKey, error) {
+	privKeyBytes, err := GetSkBytesFromP2pKey(keyFileName)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if len(privKeyBytes) == 0 {
+		privKey, pubKey := keyGen.GeneratePair()
+
+		log.Info("p2p private key: generated a new private key for p2p signing")
+
+		return privKey, pubKey, nil
+	}
+
+	privKey, err := keyGen.PrivateKeyFromByteArray(privKeyBytes)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	log.Info("p2p private key: using the provided private key for p2p signing")
+
+	return privKey, privKey.GeneratePublic(), nil
 }

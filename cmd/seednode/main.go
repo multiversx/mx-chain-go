@@ -14,7 +14,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/display"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	factoryMarshalizer "github.com/ElrondNetwork/elrond-go-core/marshal/factory"
-	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/secp256k1"
 	secp256k1SinglerSig "github.com/ElrondNetwork/elrond-go-crypto/signing/secp256k1/singlesig"
@@ -199,18 +198,7 @@ func startNode(ctx *cli.Context) error {
 	}
 
 	p2pKeyPemFileName := ctx.GlobalString(p2pKeyPemFile.Name)
-	p2pKeyBytes, err := common.GetSkBytesFromP2pKey(p2pKeyPemFileName)
-	if err != nil {
-		return err
-	}
-
-	p2pKeyGenerator := signing.NewKeyGenerator(secp256k1.NewSecp256k1())
-	p2pKey, err := p2pKeyGenerator.PrivateKeyFromByteArray(p2pKeyBytes)
-	if err != nil {
-		return err
-	}
-
-	messenger, err := createNode(*p2pCfg, internalMarshalizer, p2pKey)
+	messenger, err := createNode(*p2pCfg, internalMarshalizer, p2pKeyPemFileName)
 	if err != nil {
 		return err
 	}
@@ -255,8 +243,18 @@ func loadMainConfig(filepath string) (*config.Config, error) {
 	return cfg, nil
 }
 
-func createNode(p2pConfig p2pConfig.P2PConfig, marshalizer marshal.Marshalizer, p2pKey crypto.PrivateKey) (p2p.Messenger, error) {
+func createNode(
+	p2pConfig p2pConfig.P2PConfig,
+	marshalizer marshal.Marshalizer,
+	p2pKeyFileName string,
+) (p2p.Messenger, error) {
 	p2pSingleSigner := &secp256k1SinglerSig.Secp256k1Signer{}
+	p2pKeyGen := signing.NewKeyGenerator(secp256k1.NewSecp256k1())
+
+	p2pKey, _, err := common.CreateP2pKeyPair(p2pKeyFileName, p2pKeyGen, log)
+	if err != nil {
+		return nil, err
+	}
 
 	arg := p2pFactory.ArgsNetworkMessenger{
 		Marshalizer:           marshalizer,
@@ -269,6 +267,7 @@ func createNode(p2pConfig p2pConfig.P2PConfig, marshalizer marshal.Marshalizer, 
 		ConnectionWatcherType: "disabled",
 		P2pPrivateKey:         p2pKey,
 		P2pSingleSigner:       p2pSingleSigner,
+		P2pKeyGenerator:       p2pKeyGen,
 	}
 
 	return p2pFactory.NewNetworkMessenger(arg)

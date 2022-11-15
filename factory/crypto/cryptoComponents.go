@@ -336,31 +336,15 @@ func (ccf *cryptoComponentsFactory) getSkPk() ([]byte, []byte, error) {
 func (ccf *cryptoComponentsFactory) createP2pCryptoParams(
 	keygen crypto.KeyGenerator,
 ) (*p2pCryptoParams, error) {
-	cp := &p2pCryptoParams{}
-
-	p2pPrivateKeyBytes, err := common.GetSkBytesFromP2pKey(ccf.p2pKeyPemFileName)
+	privKey, pubKey, err := common.CreateP2pKeyPair(ccf.p2pKeyPemFileName, keygen, log)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(p2pPrivateKeyBytes) == 0 {
-		cp.p2pPrivateKey, cp.p2pPublicKey = keygen.GeneratePair()
-
-		log.Info("p2p private key: generated a new private key for p2p signing")
-
-		return cp, nil
-	}
-
-	cp.p2pPrivateKey, err = keygen.PrivateKeyFromByteArray(p2pPrivateKeyBytes)
-	if err != nil {
-		return nil, err
-	}
-
-	log.Info("p2p private key: using the provided private key for p2p signing")
-
-	cp.p2pPublicKey = cp.p2pPrivateKey.GeneratePublic()
-
-	return cp, nil
+	return &p2pCryptoParams{
+		p2pPrivateKey: privKey,
+		p2pPublicKey:  pubKey,
+	}, nil
 }
 
 // Close closes all underlying components that need closing
