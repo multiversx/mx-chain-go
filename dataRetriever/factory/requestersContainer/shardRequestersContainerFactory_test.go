@@ -5,13 +5,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/requestersContainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -19,7 +16,7 @@ import (
 
 var errExpected = errors.New("expected error")
 
-func createStubTopicMessageHandlerForShard(matchStrToErrOnCreate string, matchStrToErrOnRegister string) dataRetriever.TopicMessageHandler {
+func createStubTopicMessageHandlerForShard(matchStrToErrOnCreate string) dataRetriever.TopicMessageHandler {
 	tmhs := mock.NewTopicMessageHandlerStub()
 
 	tmhs.CreateTopicCalled = func(name string, createChannelForTopic bool) error {
@@ -28,18 +25,6 @@ func createStubTopicMessageHandlerForShard(matchStrToErrOnCreate string, matchSt
 		}
 
 		if strings.Contains(name, matchStrToErrOnCreate) {
-			return errExpected
-		}
-
-		return nil
-	}
-
-	tmhs.RegisterMessageProcessorCalled = func(topic string, identifier string, handler p2p.MessageProcessor) error {
-		if matchStrToErrOnRegister == "" {
-			return nil
-		}
-
-		if strings.Contains(topic, matchStrToErrOnRegister) {
 			return errExpected
 		}
 
@@ -214,71 +199,6 @@ func TestNewShardRequestersContainerFactory_ShouldWork(t *testing.T) {
 
 // ------- Create
 
-func TestShardRequestersContainerFactory_CreateRegisterTxFailsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getArgumentsShard()
-	args.Messenger = createStubTopicMessageHandlerForShard("", factory.TransactionTopic)
-	rcf, _ := requesterscontainer.NewShardRequestersContainerFactory(args)
-
-	container, err := rcf.Create()
-
-	assert.Nil(t, container)
-	assert.Equal(t, errExpected, err)
-}
-
-func TestShardRequestersContainerFactory_CreateRegisterHdrFailsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getArgumentsShard()
-	args.Messenger = createStubTopicMessageHandlerForShard("", factory.ShardBlocksTopic)
-	rcf, _ := requesterscontainer.NewShardRequestersContainerFactory(args)
-
-	container, err := rcf.Create()
-
-	assert.Nil(t, container)
-	assert.Equal(t, errExpected, err)
-}
-
-func TestShardRequestersContainerFactory_CreateRegisterMiniBlocksFailsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getArgumentsShard()
-	args.Messenger = createStubTopicMessageHandlerForShard("", factory.MiniBlocksTopic)
-	rcf, _ := requesterscontainer.NewShardRequestersContainerFactory(args)
-
-	container, err := rcf.Create()
-
-	assert.Nil(t, container)
-	assert.Equal(t, errExpected, err)
-}
-
-func TestShardRequestersContainerFactory_CreateRegisterTrieNodesFailsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getArgumentsShard()
-	args.Messenger = createStubTopicMessageHandlerForShard("", factory.AccountTrieNodesTopic)
-	rcf, _ := requesterscontainer.NewShardRequestersContainerFactory(args)
-
-	container, err := rcf.Create()
-
-	assert.Nil(t, container)
-	assert.Equal(t, errExpected, err)
-}
-
-func TestShardRequestersContainerFactory_CreateRegisterPeerAuthenticationShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getArgumentsShard()
-	args.Messenger = createStubTopicMessageHandlerForShard("", common.PeerAuthenticationTopic)
-	rcf, _ := requesterscontainer.NewShardRequestersContainerFactory(args)
-
-	container, err := rcf.Create()
-
-	assert.Nil(t, container)
-	assert.Equal(t, errExpected, err)
-}
-
 func TestShardRequestersContainerFactory_CreateShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -329,7 +249,7 @@ func getArgumentsShard() requesterscontainer.FactoryArgs {
 			NumFullHistoryPeers: 3,
 		},
 		ShardCoordinator:            mock.NewOneShardCoordinatorMock(),
-		Messenger:                   createStubTopicMessageHandlerForShard("", ""),
+		Messenger:                   createStubTopicMessageHandlerForShard(""),
 		Marshaller:                  &mock.MarshalizerMock{},
 		Uint64ByteSliceConverter:    &mock.Uint64ByteSliceConverterMock{},
 		OutputAntifloodHandler:      &mock.P2PAntifloodHandlerStub{},

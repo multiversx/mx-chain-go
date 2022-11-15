@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers/requesters"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 )
@@ -23,8 +24,9 @@ func NewShardRequestersContainerFactory(
 	}
 
 	numIntraShardPeers := args.RequesterConfig.NumTotalPeers - args.RequesterConfig.NumCrossShardPeers
+	container := containers.NewRequestersContainer()
 	base := &baseRequestersContainerFactory{
-		container:                   nil, // TODO[Sorin]: add real component
+		container:                   container,
 		shardCoordinator:            args.ShardCoordinator,
 		messenger:                   args.Messenger,
 		marshaller:                  args.Marshaller,

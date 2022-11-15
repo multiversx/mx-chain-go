@@ -10,13 +10,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/requestersContainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 )
 
-func createStubTopicMessageHandlerForMeta(matchStrToErrOnCreate string, matchStrToErrOnRegister string) dataRetriever.TopicMessageHandler {
+func createStubTopicMessageHandlerForMeta(matchStrToErrOnCreate string) dataRetriever.TopicMessageHandler {
 	tmhs := mock.NewTopicMessageHandlerStub()
 
 	tmhs.CreateTopicCalled = func(name string, createChannelForTopic bool) error {
@@ -24,17 +22,6 @@ func createStubTopicMessageHandlerForMeta(matchStrToErrOnCreate string, matchStr
 			return nil
 		}
 		if strings.Contains(name, matchStrToErrOnCreate) {
-			return errExpected
-		}
-
-		return nil
-	}
-
-	tmhs.RegisterMessageProcessorCalled = func(topic string, identifier string, handler p2p.MessageProcessor) error {
-		if matchStrToErrOnRegister == "" {
-			return nil
-		}
-		if strings.Contains(topic, matchStrToErrOnRegister) {
 			return errExpected
 		}
 
@@ -204,19 +191,6 @@ func TestNewMetaRequestersContainerFactory_ShouldWork(t *testing.T) {
 
 // ------- Create
 
-func TestMetaRequestersContainerFactory_CreateRegisterShardHeadersForMetachainFailsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getArgumentsMeta()
-	args.Messenger = createStubTopicMessageHandlerForMeta("", factory.ShardBlocksTopic)
-	rcf, _ := requesterscontainer.NewMetaRequestersContainerFactory(args)
-
-	container, err := rcf.Create()
-
-	assert.Nil(t, container)
-	assert.Equal(t, errExpected, err)
-}
-
 func TestMetaRequestersContainerFactory_CreateShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -269,7 +243,7 @@ func getArgumentsMeta() requesterscontainer.FactoryArgs {
 			NumFullHistoryPeers: 3,
 		},
 		ShardCoordinator:            mock.NewOneShardCoordinatorMock(),
-		Messenger:                   createStubTopicMessageHandlerForMeta("", ""),
+		Messenger:                   createStubTopicMessageHandlerForMeta(""),
 		Marshaller:                  &mock.MarshalizerMock{},
 		Uint64ByteSliceConverter:    &mock.Uint64ByteSliceConverterMock{},
 		OutputAntifloodHandler:      &mock.P2PAntifloodHandlerStub{},
