@@ -27,14 +27,14 @@ func Test_createBaseRequester(t *testing.T) {
 func Test_checkArgBase(t *testing.T) {
 	t.Parallel()
 
-	t.Run("nil sender resolver should error", func(t *testing.T) {
+	t.Run("nil request sender should error", func(t *testing.T) {
 		t.Parallel()
 
 		err := checkArgBase(ArgBaseRequester{
 			RequestSender: nil,
 			Marshaller:    &testscommon.MarshalizerStub{},
 		})
-		assert.Equal(t, err, dataRetriever.ErrNilResolverSender)
+		assert.Equal(t, err, dataRetriever.ErrNilRequestSender)
 	})
 	t.Run("nil marshaller should error", func(t *testing.T) {
 		t.Parallel()
