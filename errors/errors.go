@@ -272,8 +272,11 @@ var ErrNilPendingMiniBlocksHandler = errors.New("nil pending miniBlocks handler"
 // ErrNilPoolsHolder signals that a nil pools holder was provided
 var ErrNilPoolsHolder = errors.New("nil pools holder")
 
-// ErrNilPrivateKey signals that a nil provate key was provided
+// ErrNilPrivateKey signals that a nil private key was provided
 var ErrNilPrivateKey = errors.New("nil private key")
+
+// ErrNilP2pPrivateKey signals that a nil p2p private key was provided
+var ErrNilP2pPrivateKey = errors.New("nil p2p private key")
 
 // ErrNilProcessComponents signals that a nil process components instance was provided
 var ErrNilProcessComponents = errors.New("nil process components")
@@ -286,6 +289,9 @@ var ErrNilPubKeyConverter = errors.New("nil public key converter")
 
 // ErrNilPublicKey signals that a nil public key was provided
 var ErrNilPublicKey = errors.New("nil public key")
+
+// ErrNilP2pPublicKey signals that a nil p2p public key was provided
+var ErrNilP2pPublicKey = errors.New("nil p2p public key")
 
 // ErrNilRater signals that a nil rater was provided
 var ErrNilRater = errors.New("nil rater")

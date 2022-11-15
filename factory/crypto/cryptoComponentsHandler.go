@@ -83,13 +83,13 @@ func (mcc *managedCryptoComponents) CheckSubcomponents() error {
 		return errors.ErrNilPublicKey
 	}
 	if check.IfNil(mcc.cryptoComponents.p2pPublicKey) {
-		return errors.ErrNilPublicKey
+		return errors.ErrNilP2pPublicKey
 	}
 	if check.IfNil(mcc.cryptoComponents.privateKey) {
 		return errors.ErrNilPrivateKey
 	}
 	if check.IfNil(mcc.cryptoComponents.p2pPrivateKey) {
-		return errors.ErrNilPrivateKey
+		return errors.ErrNilP2pPrivateKey
 	}
 	if check.IfNil(mcc.cryptoComponents.txSingleSigner) {
 		return errors.ErrNilTxSigner
