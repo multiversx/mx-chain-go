@@ -4127,7 +4127,7 @@ func TestProcess_createCompletedTxEvent(t *testing.T) {
 	completedLogSaved := false
 	arguments.TxLogsProcessor = &mock.TxLogsProcessorStub{SaveLogCalled: func(txHash []byte, tx data.TransactionHandler, vmLogs []*vmcommon.LogEntry) error {
 		for _, vmLog := range vmLogs {
-			if string(vmLog.Identifier) == completedTxEvent {
+			if string(vmLog.Identifier) == core.CompletedTxEventIdentifier {
 				completedLogSaved = true
 			}
 		}
@@ -4164,7 +4164,7 @@ func TestProcess_createCompletedTxEvent(t *testing.T) {
 	scrWithTransfer.Value = big.NewInt(0)
 	completeTxEvent = sc.createCompleteEventLogIfNoMoreAction(scr, scrHash, []data.TransactionHandler{scrWithTransfer})
 	assert.NotNil(t, completeTxEvent)
-	assert.Equal(t, completeTxEvent.Identifier, []byte(completedTxEvent))
+	assert.Equal(t, completeTxEvent.Identifier, []byte(core.CompletedTxEventIdentifier))
 	assert.Equal(t, completeTxEvent.Topics[0], scr.PrevTxHash)
 
 	scrWithRefund := &smartContractResult.SmartContractResult{Value: big.NewInt(10), PrevTxHash: scrHash, Data: []byte("@6f6b@aaffaa")}

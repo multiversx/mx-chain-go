@@ -12,10 +12,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/headerVersionData"
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	processOutport "github.com/ElrondNetwork/elrond-go/outport/process"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
@@ -128,6 +128,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		processedMiniBlocksTracker:    arguments.ProcessedMiniBlocksTracker,
 		receiptsRepository:            arguments.ReceiptsRepository,
 		processDebugger:               processDebugger,
+		outportDataProvider:           arguments.OutportDataProvider,
 	}
 
 	sp := shardProcessor{
@@ -599,98 +600,22 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 	if !sp.outportHandler.HasDrivers() {
 		return
 	}
-	if check.IfNil(header) {
-		return
-	}
-	if check.IfNil(body) {
-		return
-	}
 
 	log.Debug("preparing to index block", "hash", headerHash, "nonce", header.GetNonce(), "round", header.GetRound())
-
-	pool := &indexer.Pool{
-		Txs:      sp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock),
-		Scrs:     sp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock),
-		Rewards:  sp.txCoordinator.GetAllCurrentUsedTxs(block.RewardsBlock),
-		Invalid:  sp.txCoordinator.GetAllCurrentUsedTxs(block.InvalidBlock),
-		Receipts: sp.txCoordinator.GetAllCurrentUsedTxs(block.ReceiptBlock),
-		Logs:     sp.txCoordinator.GetAllCurrentLogs(),
-	}
-
-	shardId := sp.shardCoordinator.SelfId()
-
-	// TODO: remove if epoch start block needs to be validated by the new epoch nodes
-	epoch := header.GetEpoch()
-	if header.IsStartOfEpochBlock() && epoch > 0 {
-		epoch = epoch - 1
-	}
-
-	pubKeys, err := sp.nodesCoordinator.GetConsensusValidatorsPublicKeys(
-		header.GetPrevRandSeed(),
-		header.GetRound(),
-		shardId,
-		epoch,
-	)
+	argSaveBlock, err := sp.outportDataProvider.PrepareOutportSaveBlockData(processOutport.ArgPrepareOutportSaveBlockData{
+		HeaderHash: headerHash,
+		Header:     header,
+		Body:       body,
+	})
 	if err != nil {
-		log.Debug("indexBlockIfNeeded: GetConsensusValidatorsPublicKeys",
-			"hash", headerHash,
-			"epoch", epoch,
-			"error", err.Error())
+		log.Warn("shardProcessor.indexBlockIfNeeded cannot prepare argSaveBlock", "error", err.Error())
 		return
 	}
-
-	nodesCoordinatorShardID, err := sp.nodesCoordinator.ShardIdForEpoch(epoch)
-	if err != nil {
-		log.Debug("indexBlockIfNeeded: ShardIdForEpoch",
-			"hash", headerHash,
-			"epoch", epoch,
-			"error", err.Error())
-		return
-	}
-
-	if shardId != nodesCoordinatorShardID {
-		log.Debug("indexBlockIfNeeded: shardId != nodesCoordinatorShardID",
-			"epoch", epoch,
-			"shardCoordinator.ShardID", shardId,
-			"nodesCoordinator.ShardID", nodesCoordinatorShardID)
-		return
-	}
-
-	signersIndexes, err := sp.nodesCoordinator.GetValidatorsIndexes(pubKeys, epoch)
-	if err != nil {
-		log.Error("indexBlockIfNeeded: GetValidatorsIndexes",
-			"round", header.GetRound(),
-			"nonce", header.GetNonce(),
-			"hash", headerHash,
-			"error", err.Error(),
-		)
-		return
-	}
-
-	gasProvidedInHeader := sp.baseProcessor.gasConsumedProvider.TotalGasProvidedWithScheduled()
-	gasPenalizedInheader := sp.baseProcessor.gasConsumedProvider.TotalGasPenalized()
-	gasRefundedInHeader := sp.baseProcessor.gasConsumedProvider.TotalGasRefunded()
-	maxGasInHeader := sp.baseProcessor.economicsData.MaxGasLimitPerBlock(sp.shardCoordinator.SelfId())
-
-	args := &indexer.ArgsSaveBlockData{
-		HeaderHash:     headerHash,
-		Body:           body,
-		Header:         header,
-		SignersIndexes: signersIndexes,
-		HeaderGasConsumption: indexer.HeaderGasConsumption{
-			GasProvided:    gasProvidedInHeader,
-			GasRefunded:    gasRefundedInHeader,
-			GasPenalized:   gasPenalizedInheader,
-			MaxGasPerBlock: maxGasInHeader,
-		},
-		NotarizedHeadersHashes: nil,
-		TransactionsPool:       pool,
-	}
-
-	sp.outportHandler.SaveBlock(args)
+	sp.outportHandler.SaveBlock(argSaveBlock)
 	log.Debug("indexed block", "hash", headerHash, "nonce", header.GetNonce(), "round", header.GetRound())
 
-	indexRoundInfo(sp.outportHandler, sp.nodesCoordinator, shardId, header, lastBlockHeader, signersIndexes)
+	shardID := sp.shardCoordinator.SelfId()
+	indexRoundInfo(sp.outportHandler, sp.nodesCoordinator, shardID, header, lastBlockHeader, argSaveBlock.SignersIndexes)
 }
 
 // RestoreBlockIntoPools restores the TxBlock and MetaBlock into associated pools
