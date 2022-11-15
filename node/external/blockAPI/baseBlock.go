@@ -409,19 +409,24 @@ func shouldIncludeAllTokens(tokensFilter string) bool {
 }
 
 func (bap *baseAPIBlockProcessor) apiBlockToAlteredAccounts(apiBlock *api.Block, options api.GetAlteredAccountsForBlockOptions) ([]*outport.AlteredAccount, error) {
+	blockHash, err := hex.DecodeString(apiBlock.Hash)
+	if err != nil {
+		return nil, err
+	}
+
+	blockRootHash, err := hex.DecodeString(apiBlock.StateRootHash)
+	if err != nil {
+		return nil, err
+	}
+
 	alteredAccountsOptions := shared.AlteredAccountsOptions{
 		WithCustomAccountsRepository: true,
 		AccountsRepository:           bap.accountsRepository,
-		// TODO: AccountQueryOptions could be used like options.WithBlockNonce(..) instead of thinking what to provide
-
-		// send the block nonce as it guarantees the opening of the storer for the right epoch. Sending the block root hash
-		// would be more optimal, but there is no link between a root hash and a block, which can result in the endpoint
-		// not working
 		AccountQueryOptions: api.AccountQueryOptions{
-			BlockNonce: core.OptionalUint64{
-				HasValue: true,
-				Value:    apiBlock.Nonce,
-			},
+			BlockHash:     blockHash,
+			BlockNonce:    core.OptionalUint64{HasValue: true, Value: apiBlock.Nonce},
+			BlockRootHash: blockRootHash,
+			HintEpoch:     core.OptionalUint32{HasValue: true, Value: apiBlock.Epoch},
 		},
 	}
 
