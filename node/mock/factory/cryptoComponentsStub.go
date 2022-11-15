@@ -25,6 +25,7 @@ type CryptoComponentsMock struct {
 	PeerSignHandler   crypto.PeerSignatureHandler
 	BlKeyGen          crypto.KeyGenerator
 	TxKeyGen          crypto.KeyGenerator
+	P2PKeyGen         crypto.KeyGenerator
 	MsgSigVerifier    vm.MessageSignVerifier
 	mutMultiSig       sync.RWMutex
 }
@@ -141,6 +142,11 @@ func (ccm *CryptoComponentsMock) TxSignKeyGen() crypto.KeyGenerator {
 	return ccm.TxKeyGen
 }
 
+// P2pKeyGen -
+func (ccm *CryptoComponentsMock) P2pKeyGen() crypto.KeyGenerator {
+	return ccm.P2PKeyGen
+}
+
 // MessageSignVerifier -
 func (ccm *CryptoComponentsMock) MessageSignVerifier() vm.MessageSignVerifier {
 	return ccm.MsgSigVerifier
@@ -150,7 +156,9 @@ func (ccm *CryptoComponentsMock) MessageSignVerifier() vm.MessageSignVerifier {
 func (ccm *CryptoComponentsMock) Clone() interface{} {
 	return &CryptoComponentsMock{
 		PubKey:            ccm.PubKey,
+		P2pPubKey:         ccm.P2pPubKey,
 		PrivKey:           ccm.PrivKey,
+		P2pPrivKey:        ccm.P2pPrivKey,
 		PubKeyString:      ccm.PubKeyString,
 		PrivKeyBytes:      ccm.PrivKeyBytes,
 		PubKeyBytes:       ccm.PubKeyBytes,
@@ -160,6 +168,7 @@ func (ccm *CryptoComponentsMock) Clone() interface{} {
 		PeerSignHandler:   ccm.PeerSignHandler,
 		BlKeyGen:          ccm.BlKeyGen,
 		TxKeyGen:          ccm.TxKeyGen,
+		P2PKeyGen:         ccm.P2PKeyGen,
 		MsgSigVerifier:    ccm.MsgSigVerifier,
 		mutMultiSig:       sync.RWMutex{},
 	}
