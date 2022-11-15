@@ -861,9 +861,9 @@ func (boot *baseBootstrap) shouldAllowRollback(currHeader data.HeaderHandler, cu
 }
 
 func (boot *baseBootstrap) wasBlockCommitted(currHeader data.HeaderHandler) bool {
-	lastCommittedNonce := boot.blockProcessor.NonceOfFirstCommittedBlock()
+	firstCommittedNonce := boot.blockProcessor.NonceOfFirstCommittedBlock()
 
-	return currHeader.GetNonce() >= lastCommittedNonce.Value && lastCommittedNonce.HasValue
+	return currHeader.GetNonce() >= firstCommittedNonce.Value && firstCommittedNonce.HasValue
 }
 
 func (boot *baseBootstrap) rollBackOneBlock(

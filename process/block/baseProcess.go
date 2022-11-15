@@ -2057,7 +2057,7 @@ func createDisabledProcessDebugger() (process.Debugger, error) {
 	return debugFactory.CreateProcessDebugger(configs)
 }
 
-// NonceOfFirstCommittedBlock returns the last committed block's nonce. The optional Uint64 will contain a-not-set value
+// NonceOfFirstCommittedBlock returns the first committed block's nonce. The optional Uint64 will contain a-not-set value
 // if no block was committed by the node
 func (bp *baseProcessor) NonceOfFirstCommittedBlock() core.OptionalUint64 {
 	bp.mutNonceOfFirstCommittedBlock.RLock()
@@ -2067,15 +2067,6 @@ func (bp *baseProcessor) NonceOfFirstCommittedBlock() core.OptionalUint64 {
 }
 
 func (bp *baseProcessor) setNonceOfFirstCommittedBlock(nonce uint64) {
-	// try first a read operation that will be parallelized to improve performance
-	// if it wasn't set, try again but under the Lock-Unlock block, ensuring critical section execution
-	bp.mutNonceOfFirstCommittedBlock.RLock()
-	if bp.nonceOfFirstCommittedBlock.HasValue {
-		bp.mutNonceOfFirstCommittedBlock.RUnlock()
-		return
-	}
-	bp.mutNonceOfFirstCommittedBlock.RUnlock()
-
 	bp.mutNonceOfFirstCommittedBlock.Lock()
 	defer bp.mutNonceOfFirstCommittedBlock.Unlock()
 

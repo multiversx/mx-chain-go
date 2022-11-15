@@ -233,7 +233,7 @@ func TestBaseSync_shouldAllowRollback(t *testing.T) {
 
 	finalBlockHash := []byte("final block hash")
 	notFinalBlockHash := []byte("not final block hash")
-	lastBlockNonce := &core.OptionalUint64{
+	firstBlockNonce := &core.OptionalUint64{
 		HasValue: true,
 		Value:    2,
 	}
@@ -248,7 +248,7 @@ func TestBaseSync_shouldAllowRollback(t *testing.T) {
 		},
 		blockProcessor: &testscommon.BlockProcessorStub{
 			NonceOfFirstCommittedBlockCalled: func() core.OptionalUint64 {
-				return *lastBlockNonce
+				return *firstBlockNonce
 			},
 		},
 	}
@@ -309,7 +309,7 @@ func TestBaseSync_shouldAllowRollback(t *testing.T) {
 	})
 
 	t.Run("should not allow rollback of a final header if it holds scheduled miniBlocks but no commit was done", func(t *testing.T) {
-		lastBlockNonce.HasValue = false
+		firstBlockNonce.HasValue = false
 		header := &testscommon.HeaderHandlerStub{
 			GetNonceCalled: func() uint64 {
 				return 10
@@ -319,11 +319,11 @@ func TestBaseSync_shouldAllowRollback(t *testing.T) {
 			},
 		}
 		require.False(t, boot.shouldAllowRollback(header, finalBlockHash))
-		lastBlockNonce.HasValue = true
+		firstBlockNonce.HasValue = true
 	})
 
-	t.Run("should not allow rollback of a final header if it holds scheduled miniBlocks but last committed nonce is higher", func(t *testing.T) {
-		lastBlockNonce.Value = 11
+	t.Run("should not allow rollback of a final header if it holds scheduled miniBlocks but first committed nonce is higher", func(t *testing.T) {
+		firstBlockNonce.Value = 11
 		header := &testscommon.HeaderHandlerStub{
 			GetNonceCalled: func() uint64 {
 				return 10
@@ -333,7 +333,7 @@ func TestBaseSync_shouldAllowRollback(t *testing.T) {
 			},
 		}
 		require.False(t, boot.shouldAllowRollback(header, finalBlockHash))
-		lastBlockNonce.Value = 2
+		firstBlockNonce.Value = 2
 	})
 
 	t.Run("should not allow any rollBack of a header if nonce is behind final", func(t *testing.T) {
