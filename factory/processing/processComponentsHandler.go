@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/update"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var _ factory.ComponentHandler = (*managedProcessComponents)(nil)
@@ -160,6 +161,10 @@ func (m *managedProcessComponents) CheckSubcomponents() error {
 	if check.IfNil(m.processComponents.processedMiniBlocksTracker) {
 		return process.ErrNilProcessedMiniBlocksTracker
 	}
+	if check.IfNil(m.processComponents.esdtDataStorageForApi) {
+		return errors.ErrNilESDTDataStorage
+	}
+
 	return nil
 }
 
@@ -583,12 +588,24 @@ func (m *managedProcessComponents) ProcessedMiniBlocksTracker() process.Processe
 	return m.processComponents.processedMiniBlocksTracker
 }
 
+// ESDTDataStorageHandlerForAPI returns the esdt data storage handler to be used for API calls
+func (m *managedProcessComponents) ESDTDataStorageHandlerForAPI() vmcommon.ESDTNFTStorageHandler {
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.processComponents == nil {
+		return nil
+	}
+
+	return m.processComponents.esdtDataStorageForApi
+}
+
 // ReceiptsRepository returns the receipts repository
 func (m *managedProcessComponents) ReceiptsRepository() factory.ReceiptsRepository {
 	m.mutProcessComponents.RLock()
 	defer m.mutProcessComponents.RUnlock()
 
-	if m.receiptsRepository == nil {
+	if m.processComponents == nil {
 		return nil
 	}
 

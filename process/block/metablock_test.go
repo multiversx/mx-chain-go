@@ -29,6 +29,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/factory"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/outport"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
@@ -72,7 +73,7 @@ func createMockComponentHolders() (
 	}
 
 	statusComponents := &mock.StatusComponentsMock{
-		Outport: &testscommon.OutportStub{},
+		Outport: &outport.OutportStub{},
 	}
 
 	return coreComponents, dataComponents, boostrapComponents, statusComponents
@@ -127,7 +128,7 @@ func createMockMetaArguments(
 			FeeHandler:           &mock.FeeAccumulatorStub{},
 			RequestHandler:       &testscommon.RequestHandlerStub{},
 			BlockChainHook:       &testscommon.BlockChainHookStub{},
-			TxCoordinator:        &mock.TransactionCoordinatorMock{},
+			TxCoordinator:        &testscommon.TransactionCoordinatorMock{},
 			EpochStartTrigger:    &mock.EpochStartTriggerStub{},
 			HeaderValidator:      headerValidator,
 			GasHandler:           &mock.GasHandlerMock{},
@@ -139,10 +140,11 @@ func createMockMetaArguments(
 			BlockTracker:                 mock.NewBlockTrackerMock(bootstrapComponents.ShardCoordinator(), startHeaders),
 			BlockSizeThrottler:           &mock.BlockSizeThrottlerStub{},
 			HistoryRepository:            &dblookupext.HistoryRepositoryStub{},
-			EnableRoundsHandler:          &testscommon.EnableRoundsHandlerStub{},
+			EnableRoundsHandler:            &testscommon.EnableRoundsHandlerStub{},
 			ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 			ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 			ReceiptsRepository:           &testscommon.ReceiptsRepositoryStub{},
+			OutportDataProvider:            &outport.OutportDataProviderStub{},
 		},
 		SCToProtocol:                 &mock.SCToProtocolStub{},
 		PendingMiniBlocksHandler:     &mock.PendingMiniBlocksHandlerStub{},
@@ -2504,7 +2506,7 @@ func TestMetaProcessor_CreateMiniBlocksDestMe(t *testing.T) {
 		return cs
 	}
 
-	txCoordinator := &mock.TransactionCoordinatorMock{
+	txCoordinator := &testscommon.TransactionCoordinatorMock{
 		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (slices block.MiniBlockSlice, u uint32, b bool, err error) {
 			return block.MiniBlockSlice{expectedMiniBlock1}, 0, true, nil
 		},
@@ -2671,7 +2673,7 @@ func TestMetaProcessor_VerifyCrossShardMiniBlocksDstMe(t *testing.T) {
 		return cs
 	}
 
-	txCoordinator := &mock.TransactionCoordinatorMock{
+	txCoordinator := &testscommon.TransactionCoordinatorMock{
 		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (slices block.MiniBlockSlice, u uint32, b bool, err error) {
 			return block.MiniBlockSlice{miniBlock1}, 0, true, nil
 		},
@@ -2794,7 +2796,7 @@ func TestMetaProcessor_CreateBlockCreateHeaderProcessBlock(t *testing.T) {
 		return cs
 	}
 
-	txCoordinator := &mock.TransactionCoordinatorMock{
+	txCoordinator := &testscommon.TransactionCoordinatorMock{
 		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (slices block.MiniBlockSlice, u uint32, b bool, err error) {
 			return block.MiniBlockSlice{miniBlock1}, 0, true, nil
 		},
@@ -2940,7 +2942,7 @@ func TestMetaProcessor_CreateAndProcessBlockCallsProcessAfterFirstEpoch(t *testi
 		return cs
 	}
 
-	txCoordinator := &mock.TransactionCoordinatorMock{
+	txCoordinator := &testscommon.TransactionCoordinatorMock{
 		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (slices block.MiniBlockSlice, u uint32, b bool, err error) {
 			return block.MiniBlockSlice{miniBlock1}, 0, true, nil
 		},
