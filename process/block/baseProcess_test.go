@@ -3029,3 +3029,31 @@ func TestBaseProcessor_checkConstructionStateAndIndexesCorrectness(t *testing.T)
 	err = bp.CheckConstructionStateAndIndexesCorrectness(mbh)
 	assert.Nil(t, err)
 }
+
+func TestBaseProcessor_ConcurrentCallsNonceOfFirstCommittedBlock(t *testing.T) {
+	t.Parallel()
+
+	arguments := CreateMockArguments(createComponentHolderMocks())
+	bp, _ := blproc.NewShardProcessor(arguments)
+
+	numCalls := 1000
+	wg := &sync.WaitGroup{}
+	wg.Add(numCalls)
+
+	for i := 0; i < numCalls; i++ {
+		go func(idx int) {
+			time.Sleep(time.Millisecond * 10)
+
+			switch idx % 2 {
+			case 0:
+				_ = bp.NonceOfFirstCommittedBlock()
+			case 1:
+				bp.SetNonceOfFirstCommittedBlock(uint64(idx))
+			}
+
+			wg.Done()
+		}(i)
+	}
+
+	wg.Wait()
+}

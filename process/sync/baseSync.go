@@ -840,7 +840,7 @@ func (boot *baseBootstrap) shouldAllowRollback(currHeader data.HeaderHandler, cu
 	finalBlockHash := boot.forkDetector.GetHighestFinalBlockHash()
 	isRollBackBehindFinal := currHeader.GetNonce() <= finalBlockNonce
 	isFinalBlockRollBack := currHeader.GetNonce() == finalBlockNonce
-	wasBlockCommitted := boot.blockProcessor.WasBlockCommitted()
+	wasBlockCommitted := boot.wasBlockCommitted(currHeader)
 
 	headerWithScheduledMiniBlocks := currHeader.HasScheduledMiniBlocks()
 	headerHashDoesNotMatchWithFinalBlockHash := !bytes.Equal(currHeaderHash, finalBlockHash)
@@ -858,6 +858,12 @@ func (boot *baseBootstrap) shouldAllowRollback(currHeader data.HeaderHandler, cu
 	)
 
 	return allowRollBack
+}
+
+func (boot *baseBootstrap) wasBlockCommitted(currHeader data.HeaderHandler) bool {
+	lastCommittedNonce := boot.blockProcessor.NonceOfFirstCommittedBlock()
+
+	return currHeader.GetNonce() >= lastCommittedNonce.Value && lastCommittedNonce.HasValue
 }
 
 func (boot *baseBootstrap) rollBackOneBlock(

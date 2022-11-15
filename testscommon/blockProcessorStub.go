@@ -3,6 +3,7 @@ package testscommon
 import (
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 )
 
@@ -22,7 +23,7 @@ type BlockProcessorStub struct {
 	DecodeBlockHeaderCalled          func(dta []byte) data.HeaderHandler
 	CreateNewHeaderCalled            func(round uint64, nonce uint64) (data.HeaderHandler, error)
 	RevertStateToBlockCalled         func(header data.HeaderHandler, rootHash []byte) error
-	WasBlockCommittedCalled          func() bool
+	NonceOfFirstCommittedBlockCalled func() core.OptionalUint64
 	CloseCalled                      func() error
 }
 
@@ -146,13 +147,15 @@ func (bps *BlockProcessorStub) RevertStateToBlock(header data.HeaderHandler, roo
 	return nil
 }
 
-// WasBlockCommitted -
-func (bps *BlockProcessorStub) WasBlockCommitted() bool {
-	if bps.WasBlockCommittedCalled != nil {
-		return bps.WasBlockCommittedCalled()
+// NonceOfFirstCommittedBlock -
+func (bps *BlockProcessorStub) NonceOfFirstCommittedBlock() core.OptionalUint64 {
+	if bps.NonceOfFirstCommittedBlockCalled != nil {
+		return bps.NonceOfFirstCommittedBlockCalled()
 	}
 
-	return false
+	return core.OptionalUint64{
+		HasValue: false,
+	}
 }
 
 // Close -

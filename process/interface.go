@@ -242,7 +242,7 @@ type BlockProcessor interface {
 	DecodeBlockHeader(dta []byte) data.HeaderHandler
 	SetNumProcessedObj(numObj uint64)
 	RestoreBlockBodyIntoPools(body data.BodyHandler) error
-	WasBlockCommitted() bool
+	NonceOfFirstCommittedBlock() core.OptionalUint64
 	Close() error
 	IsInterfaceNil() bool
 }

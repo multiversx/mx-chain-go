@@ -3,6 +3,7 @@ package mock
 import (
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
@@ -151,9 +152,11 @@ func (bpm *BlockProcessorMock) DecodeBlockHeader(dta []byte) data.HeaderHandler 
 	return &header
 }
 
-// WasBlockCommitted -
-func (bpm *BlockProcessorMock) WasBlockCommitted() bool {
-	return true
+// NonceOfFirstCommittedBlock -
+func (bpm *BlockProcessorMock) NonceOfFirstCommittedBlock() core.OptionalUint64 {
+	return core.OptionalUint64{
+		HasValue: false,
+	}
 }
 
 // Close -

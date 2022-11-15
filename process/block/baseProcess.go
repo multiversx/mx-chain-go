@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
@@ -110,7 +109,9 @@ type baseProcessor struct {
 	pruningDelay                  uint32
 	processedMiniBlocksTracker    process.ProcessedMiniBlocksTracker
 	receiptsRepository            receiptsRepository
-	wasBlockCommitted             atomic.Flag
+
+	mutNonceOfFirstCommittedBlock sync.RWMutex
+	nonceOfFirstCommittedBlock    core.OptionalUint64
 }
 
 type bootStorerDataArgs struct {
@@ -2056,7 +2057,32 @@ func createDisabledProcessDebugger() (process.Debugger, error) {
 	return debugFactory.CreateProcessDebugger(configs)
 }
 
-// WasBlockCommitted returns true if at least one block was committed
-func (bp *baseProcessor) WasBlockCommitted() bool {
-	return bp.wasBlockCommitted.IsSet()
+// NonceOfFirstCommittedBlock returns the last committed block's nonce. The optional Uint64 will contain a-not-set value
+// if no block was committed by the node
+func (bp *baseProcessor) NonceOfFirstCommittedBlock() core.OptionalUint64 {
+	bp.mutNonceOfFirstCommittedBlock.RLock()
+	defer bp.mutNonceOfFirstCommittedBlock.RUnlock()
+
+	return bp.nonceOfFirstCommittedBlock
+}
+
+func (bp *baseProcessor) setNonceOfFirstCommittedBlock(nonce uint64) {
+	// try first a read operation that will be parallelized to improve performance
+	// if it wasn't set, try again but under the Lock-Unlock block, ensuring critical section execution
+	bp.mutNonceOfFirstCommittedBlock.RLock()
+	if bp.nonceOfFirstCommittedBlock.HasValue {
+		bp.mutNonceOfFirstCommittedBlock.RUnlock()
+		return
+	}
+	bp.mutNonceOfFirstCommittedBlock.RUnlock()
+
+	bp.mutNonceOfFirstCommittedBlock.Lock()
+	defer bp.mutNonceOfFirstCommittedBlock.Unlock()
+
+	if bp.nonceOfFirstCommittedBlock.HasValue {
+		return
+	}
+
+	bp.nonceOfFirstCommittedBlock.HasValue = true
+	bp.nonceOfFirstCommittedBlock.Value = nonce
 }

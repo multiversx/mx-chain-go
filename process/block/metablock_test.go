@@ -837,11 +837,14 @@ func TestMetaProcessor_CommitBlockMarshalizerFailForHeaderShouldErr(t *testing.T
 	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	arguments.AccountsDB[state.UserAccountsState] = accounts
 	mp, _ := blproc.NewMetaProcessor(arguments)
-	assert.False(t, mp.WasBlockCommitted())
+	expectedLastNonce := core.OptionalUint64{
+		HasValue: false,
+	}
+	assert.Equal(t, expectedLastNonce, mp.NonceOfFirstCommittedBlock())
 	err := mp.CommitBlock(hdr, body)
 
 	assert.Equal(t, errMarshalizer, err)
-	assert.False(t, mp.WasBlockCommitted())
+	assert.Equal(t, expectedLastNonce, mp.NonceOfFirstCommittedBlock())
 }
 
 func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldNotReturnError(t *testing.T) {
@@ -912,13 +915,19 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldNotReturnError(t *t
 	}
 
 	mp.SetHdrForCurrentBlock([]byte("hdr_hash1"), &block.Header{}, true)
-	assert.False(t, mp.WasBlockCommitted())
+	expectedLastNonce := core.OptionalUint64{
+		HasValue: false,
+	}
+	assert.Equal(t, expectedLastNonce, mp.NonceOfFirstCommittedBlock())
 	err := mp.CommitBlock(hdr, body)
 	wg.Wait()
 	assert.True(t, wasCalled)
 	assert.Nil(t, err)
 	assert.True(t, statusBusySet && statusIdleSet)
-	assert.True(t, mp.WasBlockCommitted())
+
+	expectedLastNonce.HasValue = true
+	expectedLastNonce.Value = hdr.Nonce
+	assert.Equal(t, expectedLastNonce, mp.NonceOfFirstCommittedBlock())
 }
 
 func TestMetaProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {

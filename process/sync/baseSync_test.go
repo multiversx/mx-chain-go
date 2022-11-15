@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	customAtomic "github.com/ElrondNetwork/elrond-go-core/core/atomic"
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -233,8 +233,10 @@ func TestBaseSync_shouldAllowRollback(t *testing.T) {
 
 	finalBlockHash := []byte("final block hash")
 	notFinalBlockHash := []byte("not final block hash")
-	wasBlockCommitted := &customAtomic.Flag{}
-	wasBlockCommitted.SetValue(true)
+	lastBlockNonce := &core.OptionalUint64{
+		HasValue: true,
+		Value:    2,
+	}
 	boot := &baseBootstrap{
 		forkDetector: &mock.ForkDetectorMock{
 			GetHighestFinalBlockNonceCalled: func() uint64 {
@@ -245,8 +247,8 @@ func TestBaseSync_shouldAllowRollback(t *testing.T) {
 			},
 		},
 		blockProcessor: &testscommon.BlockProcessorStub{
-			WasBlockCommittedCalled: func() bool {
-				return wasBlockCommitted.IsSet()
+			NonceOfFirstCommittedBlockCalled: func() core.OptionalUint64 {
+				return *lastBlockNonce
 			},
 		},
 	}
@@ -307,7 +309,7 @@ func TestBaseSync_shouldAllowRollback(t *testing.T) {
 	})
 
 	t.Run("should not allow rollback of a final header if it holds scheduled miniBlocks but no commit was done", func(t *testing.T) {
-		wasBlockCommitted.SetValue(false)
+		lastBlockNonce.HasValue = false
 		header := &testscommon.HeaderHandlerStub{
 			GetNonceCalled: func() uint64 {
 				return 10
@@ -317,7 +319,21 @@ func TestBaseSync_shouldAllowRollback(t *testing.T) {
 			},
 		}
 		require.False(t, boot.shouldAllowRollback(header, finalBlockHash))
-		wasBlockCommitted.SetValue(true)
+		lastBlockNonce.HasValue = true
+	})
+
+	t.Run("should not allow rollback of a final header if it holds scheduled miniBlocks but last committed nonce is higher", func(t *testing.T) {
+		lastBlockNonce.Value = 11
+		header := &testscommon.HeaderHandlerStub{
+			GetNonceCalled: func() uint64 {
+				return 10
+			},
+			HasScheduledMiniBlocksCalled: func() bool {
+				return true
+			},
+		}
+		require.False(t, boot.shouldAllowRollback(header, finalBlockHash))
+		lastBlockNonce.Value = 2
 	})
 
 	t.Run("should not allow any rollBack of a header if nonce is behind final", func(t *testing.T) {
