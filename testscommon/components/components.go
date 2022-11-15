@@ -8,8 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go-core/data/outport"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing/secp256k1"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	commonFactory "github.com/ElrondNetwork/elrond-go/common/factory"
@@ -134,9 +132,9 @@ func GetStatusCoreArgs(coreComponents factory.CoreComponentsHolder) statusCore.S
 // GetConsensusArgs -
 func GetConsensusArgs(shardCoordinator sharding.Coordinator) consensusComp.ConsensusComponentsFactoryArgs {
 	coreComponents := GetCoreComponents()
-	networkComponents := GetNetworkComponents()
-	stateComponents := GetStateComponents(coreComponents, shardCoordinator)
 	cryptoComponents := GetCryptoComponents(coreComponents)
+	networkComponents := GetNetworkComponents(cryptoComponents)
+	stateComponents := GetStateComponents(coreComponents, shardCoordinator)
 	dataComponents := GetDataComponents(coreComponents, shardCoordinator)
 	processComponents := GetProcessComponents(
 		shardCoordinator,
@@ -293,8 +291,7 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 
 	appStatusHandler := statusHandlerMock.NewAppStatusHandlerMock()
 
-	p2pKeyGenerator := signing.NewKeyGenerator(secp256k1.NewSecp256k1())
-	p2pKey, _ := p2pKeyGenerator.GeneratePair()
+	cryptoCompMock := GetDefaultCryptoComponents()
 
 	return networkComp.NetworkComponentsFactoryArgs{
 		P2pConfig:     p2pCfg,
@@ -316,8 +313,7 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 		},
 		Syncer:            &p2pFactory.LocalSyncTimer{},
 		NodeOperationMode: p2p.NormalOperation,
-		P2pPrivateKey:     p2pKey,
-		P2pSingleSigner:   &mock.SinglesignMock{},
+		CryptoComponents:  cryptoCompMock,
 	}
 }
 
@@ -366,9 +362,9 @@ func GetStateFactoryArgs(coreComponents factory.CoreComponentsHolder, shardCoord
 // GetProcessComponentsFactoryArgs -
 func GetProcessComponentsFactoryArgs(shardCoordinator sharding.Coordinator) processComp.ProcessComponentsFactoryArgs {
 	coreComponents := GetCoreComponents()
-	networkComponents := GetNetworkComponents()
-	dataComponents := GetDataComponents(coreComponents, shardCoordinator)
 	cryptoComponents := GetCryptoComponents(coreComponents)
+	networkComponents := GetNetworkComponents(cryptoComponents)
+	dataComponents := GetDataComponents(coreComponents, shardCoordinator)
 	stateComponents := GetStateComponents(coreComponents, shardCoordinator)
 	processArgs := GetProcessArgs(
 		shardCoordinator,
@@ -384,8 +380,8 @@ func GetProcessComponentsFactoryArgs(shardCoordinator sharding.Coordinator) proc
 //GetBootStrapFactoryArgs -
 func GetBootStrapFactoryArgs() bootstrapComp.BootstrapComponentsFactoryArgs {
 	coreComponents := GetCoreComponents()
-	networkComponents := GetNetworkComponents()
 	cryptoComponents := GetCryptoComponents(coreComponents)
+	networkComponents := GetNetworkComponents(cryptoComponents)
 	statusCoreComponents := GetStatusCoreComponents()
 	return bootstrapComp.BootstrapComponentsFactoryArgs{
 		Config:               testscommon.GetGeneralConfig(),
@@ -625,9 +621,9 @@ func GetStatusComponents(
 // GetStatusComponentsFactoryArgsAndProcessComponents -
 func GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator sharding.Coordinator) (statusComp.StatusComponentsFactoryArgs, factory.ProcessComponentsHolder) {
 	coreComponents := GetCoreComponents()
-	networkComponents := GetNetworkComponents()
-	dataComponents := GetDataComponents(coreComponents, shardCoordinator)
 	cryptoComponents := GetCryptoComponents(coreComponents)
+	networkComponents := GetNetworkComponents(cryptoComponents)
+	dataComponents := GetDataComponents(coreComponents, shardCoordinator)
 	stateComponents := GetStateComponents(coreComponents, shardCoordinator)
 	processComponents := GetProcessComponents(
 		shardCoordinator,
@@ -667,8 +663,9 @@ func GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator shardin
 }
 
 // GetNetworkComponents -
-func GetNetworkComponents() factory.NetworkComponentsHolder {
+func GetNetworkComponents(cryptoComp factory.CryptoComponentsHolder) factory.NetworkComponentsHolder {
 	networkArgs := GetNetworkFactoryArgs()
+	networkArgs.CryptoComponents = cryptoComp
 	networkComponentsFactory, _ := networkComp.NewNetworkComponentsFactory(networkArgs)
 	networkComponents, _ := networkComp.NewManagedNetworkComponents(networkComponentsFactory)
 

@@ -25,6 +25,7 @@ type CryptoComponentsStub struct {
 	PeerSignHandler   crypto.PeerSignatureHandler
 	BlKeyGen          crypto.KeyGenerator
 	TxKeyGen          crypto.KeyGenerator
+	P2PKeyGen         crypto.KeyGenerator
 	MsgSigVerifier    vm.MessageSignVerifier
 	mutMultiSig       sync.RWMutex
 }
@@ -141,6 +142,11 @@ func (ccs *CryptoComponentsStub) TxSignKeyGen() crypto.KeyGenerator {
 	return ccs.TxKeyGen
 }
 
+// P2pKeyGen -
+func (ccs *CryptoComponentsStub) P2pKeyGen() crypto.KeyGenerator {
+	return ccs.P2PKeyGen
+}
+
 // MessageSignVerifier -
 func (ccs *CryptoComponentsStub) MessageSignVerifier() vm.MessageSignVerifier {
 	return ccs.MsgSigVerifier
@@ -150,7 +156,9 @@ func (ccs *CryptoComponentsStub) MessageSignVerifier() vm.MessageSignVerifier {
 func (ccs *CryptoComponentsStub) Clone() interface{} {
 	return &CryptoComponentsStub{
 		PubKey:            ccs.PubKey,
+		P2pPubKey:         ccs.P2pPubKey,
 		PrivKey:           ccs.PrivKey,
+		P2pPrivKey:        ccs.P2pPrivKey,
 		PubKeyString:      ccs.PubKeyString,
 		PrivKeyBytes:      ccs.PrivKeyBytes,
 		PubKeyBytes:       ccs.PubKeyBytes,
@@ -160,6 +168,7 @@ func (ccs *CryptoComponentsStub) Clone() interface{} {
 		PeerSignHandler:   ccs.PeerSignHandler,
 		BlKeyGen:          ccs.BlKeyGen,
 		TxKeyGen:          ccs.TxKeyGen,
+		P2PKeyGen:         ccs.P2PKeyGen,
 		MsgSigVerifier:    ccs.MsgSigVerifier,
 		mutMultiSig:       sync.RWMutex{},
 	}

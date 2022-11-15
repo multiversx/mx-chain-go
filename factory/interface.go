@@ -182,6 +182,7 @@ type CryptoComponentsHolder interface {
 	PeerSignatureHandler() crypto.PeerSignatureHandler
 	BlockSignKeyGen() crypto.KeyGenerator
 	TxSignKeyGen() crypto.KeyGenerator
+	P2pKeyGen() crypto.KeyGenerator
 	MessageSignVerifier() vm.MessageSignVerifier
 	Clone() interface{}
 	IsInterfaceNil() bool

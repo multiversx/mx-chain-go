@@ -87,6 +87,7 @@ type cryptoComponents struct {
 	peerSignHandler      crypto.PeerSignatureHandler
 	blockSignKeyGen      crypto.KeyGenerator
 	txSignKeyGen         crypto.KeyGenerator
+	p2pKeyGen            crypto.KeyGenerator
 	messageSignVerifier  vm.MessageSignVerifier
 	cryptoParams
 	p2pCryptoParams
@@ -195,6 +196,7 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 		peerSignHandler:      peerSigHandler,
 		blockSignKeyGen:      blockSignKeyGen,
 		txSignKeyGen:         txSignKeyGen,
+		p2pKeyGen:            p2pKeyGenerator,
 		messageSignVerifier:  messageSignVerifier,
 		cryptoParams:         *cp,
 		p2pCryptoParams:      *p2pCryptoParams,

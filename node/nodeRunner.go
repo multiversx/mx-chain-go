@@ -1380,8 +1380,7 @@ func (nr *nodeRunner) CreateManagedNetworkComponents(
 		BootstrapWaitTime:     common.TimeToWaitForP2PBootstrap,
 		NodeOperationMode:     p2p.NormalOperation,
 		ConnectionWatcherType: nr.configs.PreferencesConfig.Preferences.ConnectionWatcherType,
-		P2pPrivateKey:         cryptoComponents.P2pPrivateKey(),
-		P2pSingleSigner:       cryptoComponents.P2pSingleSigner(),
+		CryptoComponents:      cryptoComponents,
 	}
 	if nr.configs.ImportDbConfig.IsImportDBMode {
 		networkComponentsFactoryArgs.BootstrapWaitTime = 0

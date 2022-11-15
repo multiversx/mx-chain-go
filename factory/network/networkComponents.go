@@ -8,7 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
@@ -38,8 +37,7 @@ type NetworkComponentsFactoryArgs struct {
 	BootstrapWaitTime     time.Duration
 	NodeOperationMode     p2p.NodeOperation
 	ConnectionWatcherType string
-	P2pPrivateKey         crypto.PrivateKey
-	P2pSingleSigner       crypto.SingleSigner
+	CryptoComponents      factory.CryptoComponentsHolder
 }
 
 type networkComponentsFactory struct {
@@ -54,8 +52,7 @@ type networkComponentsFactory struct {
 	bootstrapWaitTime     time.Duration
 	nodeOperationMode     p2p.NodeOperation
 	connectionWatcherType string
-	p2pPrivateKey         crypto.PrivateKey
-	p2pSingleSigner       crypto.SingleSigner
+	cryptoComponents      factory.CryptoComponentsHolder
 }
 
 // networkComponents struct holds the network components
@@ -89,6 +86,9 @@ func NewNetworkComponentsFactory(
 	if check.IfNil(args.Syncer) {
 		return nil, errors.ErrNilSyncTimer
 	}
+	if check.IfNil(args.CryptoComponents) {
+		return nil, errors.ErrNilCryptoComponentsHolder
+	}
 
 	return &networkComponentsFactory{
 		p2pConfig:             args.P2pConfig,
@@ -102,8 +102,7 @@ func NewNetworkComponentsFactory(
 		preferredPeersSlices:  args.PreferredPeersSlices,
 		nodeOperationMode:     args.NodeOperationMode,
 		connectionWatcherType: args.ConnectionWatcherType,
-		p2pPrivateKey:         args.P2pPrivateKey,
-		p2pSingleSigner:       args.P2pSingleSigner,
+		cryptoComponents:      args.CryptoComponents,
 	}, nil
 }
 
@@ -140,8 +139,9 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		NodeOperationMode:     ncf.nodeOperationMode,
 		PeersRatingHandler:    peersRatingHandler,
 		ConnectionWatcherType: ncf.connectionWatcherType,
-		P2pPrivateKey:         ncf.p2pPrivateKey,
-		P2pSingleSigner:       ncf.p2pSingleSigner,
+		P2pPrivateKey:         ncf.cryptoComponents.P2pPrivateKey(),
+		P2pSingleSigner:       ncf.cryptoComponents.P2pSingleSigner(),
+		P2pKeyGenerator:       ncf.cryptoComponents.P2pKeyGen(),
 	}
 	netMessenger, err := p2pFactory.NewNetworkMessenger(arg)
 	if err != nil {
