@@ -217,16 +217,16 @@ func TestMetaRequestersContainerFactory_With4ShardsShouldWork(t *testing.T) {
 
 	container, _ := rcf.Create()
 	numRequestersShardHeadersForMetachain := noOfShards
-	numResolverMetablocks := 1
+	numRequesterMetablocks := 1
 	numRequestersMiniBlocks := noOfShards + 2
 	numRequestersUnsigned := noOfShards + 1
 	numRequestersRewards := noOfShards
 	numRequestersTxs := noOfShards + 1
 	numRequestersTrieNodes := 2
 	numRequestersPeerAuth := 1
-	numResolverValidatorInfo := 1
-	totalRequesters := numRequestersShardHeadersForMetachain + numResolverMetablocks + numRequestersMiniBlocks +
-		numRequestersUnsigned + numRequestersTxs + numRequestersTrieNodes + numRequestersRewards + numRequestersPeerAuth + numResolverValidatorInfo
+	numRequesterValidatorInfo := 1
+	totalRequesters := numRequestersShardHeadersForMetachain + numRequesterMetablocks + numRequestersMiniBlocks +
+		numRequestersUnsigned + numRequestersTxs + numRequestersTrieNodes + numRequestersRewards + numRequestersPeerAuth + numRequesterValidatorInfo
 
 	assert.Equal(t, totalRequesters, container.Len())
 
