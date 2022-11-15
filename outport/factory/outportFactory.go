@@ -3,17 +3,23 @@ package factory
 import (
 	"time"
 
-	covalentFactory "github.com/ElrondNetwork/covalent-indexer-go/factory"
-	indexerFactory "github.com/ElrondNetwork/elastic-indexer-go/factory"
+	indexerFactory "github.com/ElrondNetwork/elastic-indexer-go/process/factory"
+	wsDriverFactory "github.com/ElrondNetwork/elrond-go-core/websocketOutportDriver/factory"
 	"github.com/ElrondNetwork/elrond-go/outport"
 )
 
+// WrappedOutportDriverWebSocketSenderFactoryArgs extends the wsDriverFactory.OutportDriverWebSocketSenderFactoryArgs structure with the Enabled field
+type WrappedOutportDriverWebSocketSenderFactoryArgs struct {
+	Enabled bool
+	wsDriverFactory.OutportDriverWebSocketSenderFactoryArgs
+}
+
 // OutportFactoryArgs holds the factory arguments of different outport drivers
 type OutportFactoryArgs struct {
-	RetrialInterval            time.Duration
-	ElasticIndexerFactoryArgs  *indexerFactory.ArgsIndexerFactory
-	EventNotifierFactoryArgs   *EventNotifierFactoryArgs
-	CovalentIndexerFactoryArgs *covalentFactory.ArgsCovalentIndexerFactory
+	RetrialInterval                  time.Duration
+	ElasticIndexerFactoryArgs        indexerFactory.ArgsIndexerFactory
+	EventNotifierFactoryArgs         *EventNotifierFactoryArgs
+	WebSocketSenderDriverFactoryArgs WrappedOutportDriverWebSocketSenderFactoryArgs
 }
 
 // CreateOutport will create a new instance of OutportHandler
@@ -47,33 +53,12 @@ func createAndSubscribeDrivers(outport outport.OutportHandler, args *OutportFact
 		return err
 	}
 
-	err = createAndSubscribeCovalentDriverIfNeeded(outport, args.CovalentIndexerFactoryArgs)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func createAndSubscribeCovalentDriverIfNeeded(
-	outport outport.OutportHandler,
-	args *covalentFactory.ArgsCovalentIndexerFactory,
-) error {
-	if !args.Enabled {
-		return nil
-	}
-
-	covalentDriver, err := covalentFactory.CreateCovalentIndexer(args)
-	if err != nil {
-		return err
-	}
-
-	return outport.SubscribeDriver(covalentDriver)
+	return createAndSubscribeWebSocketDriver(outport, args.WebSocketSenderDriverFactoryArgs)
 }
 
 func createAndSubscribeElasticDriverIfNeeded(
 	outport outport.OutportHandler,
-	args *indexerFactory.ArgsIndexerFactory,
+	args indexerFactory.ArgsIndexerFactory,
 ) error {
 	if !args.Enabled {
 		return nil
@@ -109,4 +94,25 @@ func checkArguments(args *OutportFactoryArgs) error {
 	}
 
 	return nil
+}
+
+func createAndSubscribeWebSocketDriver(
+	outport outport.OutportHandler,
+	args WrappedOutportDriverWebSocketSenderFactoryArgs,
+) error {
+	if !args.Enabled {
+		return nil
+	}
+
+	wsFactory, err := wsDriverFactory.NewOutportDriverWebSocketSenderFactory(args.OutportDriverWebSocketSenderFactoryArgs)
+	if err != nil {
+		return err
+	}
+
+	wsDriver, err := wsFactory.Create()
+	if err != nil {
+		return err
+	}
+
+	return outport.SubscribeDriver(wsDriver)
 }

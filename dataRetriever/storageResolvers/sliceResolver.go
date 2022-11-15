@@ -98,9 +98,10 @@ func (sliceRes *sliceResolver) RequestDataFromHashArray(hashes [][]byte, _ uint3
 		mb, errTemp := sliceRes.storage.Get(hash)
 		if errTemp != nil {
 			errFetch = fmt.Errorf("%w for hash %s", errTemp, logger.DisplayByteSlice(hash))
-			log.Trace("fetchMbAsByteSlice missing",
+			log.Trace("fetchByteSlice missing",
 				"error", errFetch.Error(),
-				"hash", hash)
+				"hash", hash,
+				"topic", sliceRes.responseTopicName)
 			errorsFound++
 
 			continue
@@ -121,7 +122,8 @@ func (sliceRes *sliceResolver) RequestDataFromHashArray(hashes [][]byte, _ uint3
 	}
 
 	if errFetch != nil {
-		errFetch = fmt.Errorf("resolveMbRequestByHashArray last error %w from %d encountered errors", errFetch, errorsFound)
+		errFetch = fmt.Errorf("resolveRequestByHashArray on topic %s, last error %w from %d encountered errors",
+			sliceRes.responseTopicName, errFetch, errorsFound)
 		sliceRes.signalGracefullyClose()
 	}
 
