@@ -244,7 +244,7 @@ func (sr *subroundEndRound) verifyInvalidSigner(msg p2p.MessageP2P) error {
 	err = singleSigner.Verify(pubKey, cnsMsg.BlockHeaderHash, cnsMsg.SignatureShare)
 	if err != nil {
 		log.Trace("verifyInvalidSigner: confirmed that node provided invalid signature",
-			"pubKey", pubKey,
+			"pubKey", cnsMsg.PubKey,
 			"blockHeaderHash", cnsMsg.BlockHeaderHash,
 			"error", err.Error(),
 		)
