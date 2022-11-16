@@ -336,7 +336,7 @@ func (ccf *cryptoComponentsFactory) getSkPk() ([]byte, []byte, error) {
 func (ccf *cryptoComponentsFactory) createP2pCryptoParams(
 	keygen crypto.KeyGenerator,
 ) (*p2pCryptoParams, error) {
-	privKey, pubKey, err := common.CreateP2pKeyPair(ccf.p2pKeyPemFileName, keygen, log)
+	privKey, pubKey, err := CreateP2pKeyPair(ccf.p2pKeyPemFileName, keygen, log)
 	if err != nil {
 		return nil, err
 	}
@@ -345,6 +345,36 @@ func (ccf *cryptoComponentsFactory) createP2pCryptoParams(
 		p2pPrivateKey: privKey,
 		p2pPublicKey:  pubKey,
 	}, nil
+}
+
+// CreateP2pKeyPair will create a set of key pair for p2p based on provided pem file. If
+// the provided key is empty it will generate a new one
+func CreateP2pKeyPair(
+	keyFileName string,
+	keyGen crypto.KeyGenerator,
+	log logger.Logger,
+) (crypto.PrivateKey, crypto.PublicKey, error) {
+	privKeyBytes, err := common.GetSkBytesFromP2pKey(keyFileName)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if len(privKeyBytes) == 0 {
+		privKey, pubKey := keyGen.GeneratePair()
+
+		log.Info("p2p private key: generated a new private key for p2p signing")
+
+		return privKey, pubKey, nil
+	}
+
+	privKey, err := keyGen.PrivateKeyFromByteArray(privKeyBytes)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	log.Info("p2p private key: using the provided private key for p2p signing")
+
+	return privKey, privKey.GeneratePublic(), nil
 }
 
 // Close closes all underlying components that need closing

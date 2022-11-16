@@ -25,6 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/facade"
+	cryptoFactory "github.com/ElrondNetwork/elrond-go/factory/crypto"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	p2pConfig "github.com/ElrondNetwork/elrond-go/p2p/config"
 	p2pFactory "github.com/ElrondNetwork/elrond-go/p2p/factory"
@@ -251,7 +252,7 @@ func createNode(
 	p2pSingleSigner := &secp256k1SinglerSig.Secp256k1Signer{}
 	p2pKeyGen := signing.NewKeyGenerator(secp256k1.NewSecp256k1())
 
-	p2pKey, _, err := common.CreateP2pKeyPair(p2pKeyFileName, p2pKeyGen, log)
+	p2pKey, _, err := cryptoFactory.CreateP2pKeyPair(p2pKeyFileName, p2pKeyGen, log)
 	if err != nil {
 		return nil, err
 	}
