@@ -1019,6 +1019,11 @@ func (sp *shardProcessor) CommitBlock(
 		"hash", headerHash,
 	)
 
+	if header.GetRound() == common.TempRoundForPauseProcessing {
+		log.Info("pausing the processing", "round", header.GetRound(), "time to sleep", "72 hours")
+		time.Sleep(72 * time.Hour)
+	}
+
 	errNotCritical := sp.updateCrossShardInfo(processedMetaHdrs)
 	if errNotCritical != nil {
 		log.Debug("updateCrossShardInfo", "error", errNotCritical.Error())

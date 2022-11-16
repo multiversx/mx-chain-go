@@ -1271,6 +1271,10 @@ func (mp *metaProcessor) CommitBlock(
 		"nonce", headerHandler.GetNonce(),
 		"hash", headerHash)
 
+	if header.GetRound() == common.TempRoundForPauseProcessing {
+		log.Info("pausing the processing", "round", header.GetRound(), "time to sleep", 72*time.Hour)
+		time.Sleep(72 * time.Hour)
+	}
 	notarizedHeadersHashes, errNotCritical := mp.updateCrossShardInfo(header)
 	if errNotCritical != nil {
 		log.Debug("updateCrossShardInfo", "error", errNotCritical.Error())
