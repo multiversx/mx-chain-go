@@ -61,7 +61,7 @@ const NodesSetupJsonFileName = "nodesSetup.json"
 const ConsensusTopic = "consensus"
 
 // TempRoundForPauseProcessing is used for a temporary branch that is used for stopping the processing at a specific round
-const TempRoundForPauseProcessing = uint64(12063990) // 12063990 means nov 16th, 17:30 UTC
+const TempRoundForPauseProcessing = uint64(12083700) // 12083700 means nov 16th, 17:30 UTC
 
 // GenesisTxSignatureString is the string used to generate genesis transaction signature as 128 hex characters
 const GenesisTxSignatureString = "GENESISGENESISGENESISGENESISGENESISGENESISGENESISGENESISGENESISG"
