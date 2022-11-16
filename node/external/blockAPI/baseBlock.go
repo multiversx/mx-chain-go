@@ -358,7 +358,7 @@ func bigIntToStr(value *big.Int) string {
 	return value.String()
 }
 
-func alteredAccountsMapToAPIResponse(alteredAccounts map[string]*outport.AlteredAccount, tokensFilter string, withMetadata bool) []*outport.AlteredAccount {
+func alteredAccountsMapToAPIResponse(alteredAccounts map[string]*outport.AlteredAccount, tokensFilter string) []*outport.AlteredAccount {
 	response := make([]*outport.AlteredAccount, 0, len(alteredAccounts))
 
 	for address, altAccount := range alteredAccounts {
@@ -369,7 +369,7 @@ func alteredAccountsMapToAPIResponse(alteredAccounts map[string]*outport.Altered
 		}
 
 		if len(tokensFilter) > 0 {
-			attachTokensToAlteredAccount(apiAlteredAccount, altAccount, tokensFilter, withMetadata)
+			attachTokensToAlteredAccount(apiAlteredAccount, altAccount, tokensFilter)
 		}
 
 		response = append(response, apiAlteredAccount)
@@ -378,22 +378,19 @@ func alteredAccountsMapToAPIResponse(alteredAccounts map[string]*outport.Altered
 	return response
 }
 
-func attachTokensToAlteredAccount(apiAlteredAccount *outport.AlteredAccount, altAccount *outport.AlteredAccount, tokensFilter string, withMetadata bool) {
+func attachTokensToAlteredAccount(apiAlteredAccount *outport.AlteredAccount, altAccount *outport.AlteredAccount, tokensFilter string) {
 	for _, token := range altAccount.Tokens {
 		if !shouldAddTokenToResult(token.Identifier, tokensFilter) {
 			continue
 		}
-		if withMetadata {
-			apiAlteredAccount.Tokens = append(apiAlteredAccount.Tokens, token)
-			continue
-		}
 
 		apiAlteredAccount.Tokens = append(apiAlteredAccount.Tokens, &outport.AccountTokenData{
-			Identifier: token.Identifier,
-			Balance:    token.Balance,
-			Nonce:      token.Nonce,
-			Properties: token.Properties,
-			MetaData:   nil,
+			Identifier:     token.Identifier,
+			Balance:        token.Balance,
+			Nonce:          token.Nonce,
+			Properties:     token.Properties,
+			MetaData:       nil,
+			AdditionalData: nil,
 		})
 	}
 }
@@ -446,7 +443,7 @@ func (bap *baseAPIBlockProcessor) apiBlockToAlteredAccounts(apiBlock *api.Block,
 		return nil, err
 	}
 
-	alteredAccountsAPI := alteredAccountsMapToAPIResponse(alteredAccounts, options.TokensFilter, options.WithMetadata)
+	alteredAccountsAPI := alteredAccountsMapToAPIResponse(alteredAccounts, options.TokensFilter)
 	return alteredAccountsAPI, nil
 }
 

@@ -237,7 +237,6 @@ func parseAlteredAccountsForBlockQueryOptionsWithoutRequestType(c *gin.Context) 
 
 	return api.GetAlteredAccountsForBlockOptions{
 		TokensFilter: tokensFilter,
-		WithMetadata: false,
 	}, nil
 }
 
