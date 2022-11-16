@@ -266,28 +266,6 @@ func TestRequestersContainer_Iterate(t *testing.T) {
 
 		c.Iterate(nil)
 	})
-	t.Run("invalid key should work", func(t *testing.T) {
-		t.Parallel()
-
-		defer func() {
-			r := recover()
-			if r != nil {
-				assert.Fail(t, "should not have panicked")
-			}
-		}()
-
-		c := containers.NewRequestersContainer()
-
-		_ = c.Add("key1", &dataRetrieverTests.RequesterStub{})
-
-		runs := uint32(0)
-		c.Iterate(func(key string, requester dataRetriever.Requester) bool {
-			atomic.AddUint32(&runs, 1)
-			return true
-		})
-
-		assert.Equal(t, uint32(1), atomic.LoadUint32(&runs))
-	})
 	t.Run("early exist should work", func(t *testing.T) {
 		t.Parallel()
 
