@@ -1,2 +1,2 @@
-*.hex binary eol=crlf
-*.wasm binary
+*.hex -diff
+*.wasm -diff
