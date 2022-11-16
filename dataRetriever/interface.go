@@ -30,6 +30,15 @@ type Resolver interface {
 	IsInterfaceNil() bool
 }
 
+// Requester defines what a data requester should do
+type Requester interface {
+	RequestDataFromHash(hash []byte, epoch uint32) error
+	SetNumPeersToQuery(intra int, cross int)
+	NumPeersToQuery() (int, int)
+	SetResolverDebugHandler(handler ResolverDebugHandler) error
+	IsInterfaceNil() bool
+}
+
 // TrieNodesResolver defines what a trie nodes resolver should do
 type TrieNodesResolver interface {
 	Resolver
@@ -101,6 +110,32 @@ type ResolversFinder interface {
 // ResolversContainerFactory defines the functionality to create a resolvers container
 type ResolversContainerFactory interface {
 	Create() (ResolversContainer, error)
+	IsInterfaceNil() bool
+}
+
+// TopicRequestSender defines what sending operations are allowed for a topic requester
+type TopicRequestSender interface {
+	SendOnRequestTopic(rd *RequestData, originalHashes [][]byte) error
+	SetNumPeersToQuery(intra int, cross int)
+	NumPeersToQuery() (int, int)
+	RequestTopic() string
+	TargetShardID() uint32
+	SetResolverDebugHandler(handler ResolverDebugHandler) error
+	ResolverDebugHandler() ResolverDebugHandler
+	IsInterfaceNil() bool
+}
+
+// RequestersContainer defines a requesters holder data type with basic functionality
+type RequestersContainer interface {
+	Get(key string) (Requester, error)
+	Add(key string, val Requester) error
+	AddMultiple(keys []string, requesters []Requester) error
+	Replace(key string, val Requester) error
+	Remove(key string)
+	Len() int
+	RequesterKeys() string
+	Iterate(handler func(key string, requester Requester) bool)
+	Close() error
 	IsInterfaceNil() bool
 }
 

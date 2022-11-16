@@ -12,8 +12,8 @@ import (
 
 func createMockArgBaseRequester() ArgBaseRequester {
 	return ArgBaseRequester{
-		SenderResolver: &mock.TopicResolverSenderStub{},
-		Marshaller:     &testscommon.MarshalizerStub{},
+		RequestSender: &mock.TopicResolverSenderStub{},
+		Marshaller:    &testscommon.MarshalizerStub{},
 	}
 }
 
@@ -27,21 +27,21 @@ func Test_createBaseRequester(t *testing.T) {
 func Test_checkArgBase(t *testing.T) {
 	t.Parallel()
 
-	t.Run("nil sender resolver should error", func(t *testing.T) {
+	t.Run("nil request sender should error", func(t *testing.T) {
 		t.Parallel()
 
 		err := checkArgBase(ArgBaseRequester{
-			SenderResolver: nil,
-			Marshaller:     &testscommon.MarshalizerStub{},
+			RequestSender: nil,
+			Marshaller:    &testscommon.MarshalizerStub{},
 		})
-		assert.Equal(t, err, dataRetriever.ErrNilResolverSender)
+		assert.Equal(t, err, dataRetriever.ErrNilRequestSender)
 	})
 	t.Run("nil marshaller should error", func(t *testing.T) {
 		t.Parallel()
 
 		err := checkArgBase(ArgBaseRequester{
-			SenderResolver: &mock.TopicResolverSenderStub{},
-			Marshaller:     nil,
+			RequestSender: &mock.TopicResolverSenderStub{},
+			Marshaller:    nil,
 		})
 		assert.Equal(t, err, dataRetriever.ErrNilMarshalizer)
 	})
@@ -60,7 +60,7 @@ func TestBaseRequester_RequestDataFromHash(t *testing.T) {
 	providedHash := []byte("provided hash")
 	providedHashes := [][]byte{providedHash}
 	wasCalled := false
-	senderResolver := &mock.TopicResolverSenderStub{
+	RequestSender := &mock.TopicResolverSenderStub{
 		SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData, originalHashes [][]byte) error {
 			wasCalled = true
 			assert.Equal(t, providedHash, rd.Value)
@@ -71,8 +71,8 @@ func TestBaseRequester_RequestDataFromHash(t *testing.T) {
 		},
 	}
 	baseHandler := createBaseRequester(ArgBaseRequester{
-		SenderResolver: senderResolver,
-		Marshaller:     &testscommon.MarshalizerStub{},
+		RequestSender: RequestSender,
+		Marshaller:    &testscommon.MarshalizerStub{},
 	})
 	assert.False(t, check.IfNilReflect(baseHandler))
 
@@ -86,7 +86,7 @@ func TestBaseRequester_NumPeersToQuery(t *testing.T) {
 	providedIntra := 123
 	providedCross := 100
 	wasCalled := false
-	senderResolver := &mock.TopicResolverSenderStub{
+	RequestSender := &mock.TopicResolverSenderStub{
 		SetNumPeersToQueryCalled: func(intra int, cross int) {
 			wasCalled = true
 			assert.Equal(t, providedIntra, intra)
@@ -97,8 +97,8 @@ func TestBaseRequester_NumPeersToQuery(t *testing.T) {
 		},
 	}
 	baseHandler := createBaseRequester(ArgBaseRequester{
-		SenderResolver: senderResolver,
-		Marshaller:     &testscommon.MarshalizerStub{},
+		RequestSender: RequestSender,
+		Marshaller:    &testscommon.MarshalizerStub{},
 	})
 	assert.False(t, check.IfNilReflect(baseHandler))
 
@@ -114,13 +114,13 @@ func TestBaseRequester_SetResolverDebugHandler(t *testing.T) {
 	t.Parallel()
 
 	providedDebugHandler := &mock.ResolverDebugHandler{}
-	senderResolver := &mock.TopicResolverSenderStub{}
+	RequestSender := &mock.TopicResolverSenderStub{}
 	baseHandler := createBaseRequester(ArgBaseRequester{
-		SenderResolver: senderResolver,
-		Marshaller:     &testscommon.MarshalizerStub{},
+		RequestSender: RequestSender,
+		Marshaller:    &testscommon.MarshalizerStub{},
 	})
 	assert.False(t, check.IfNilReflect(baseHandler))
 
 	assert.Nil(t, baseHandler.SetResolverDebugHandler(providedDebugHandler))
-	assert.Equal(t, providedDebugHandler, senderResolver.ResolverDebugHandler())
+	assert.Equal(t, providedDebugHandler, RequestSender.ResolverDebugHandler())
 }

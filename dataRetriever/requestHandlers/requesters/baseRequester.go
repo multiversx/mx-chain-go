@@ -12,25 +12,25 @@ var log = logger.GetOrCreate("requesters")
 
 // ArgBaseRequester is the argument structure used as base to create a new requester instance
 type ArgBaseRequester struct {
-	SenderResolver dataRetriever.TopicResolverSender
-	Marshaller     marshal.Marshalizer
+	RequestSender dataRetriever.TopicRequestSender
+	Marshaller    marshal.Marshalizer
 }
 
 type baseRequester struct {
-	dataRetriever.TopicResolverSender
+	dataRetriever.TopicRequestSender
 	marshaller marshal.Marshalizer
 }
 
 func createBaseRequester(args ArgBaseRequester) *baseRequester {
 	return &baseRequester{
-		TopicResolverSender: args.SenderResolver,
-		marshaller:          args.Marshaller,
+		TopicRequestSender: args.RequestSender,
+		marshaller:         args.Marshaller,
 	}
 }
 
 func checkArgBase(arg ArgBaseRequester) error {
-	if check.IfNil(arg.SenderResolver) {
-		return dataRetriever.ErrNilResolverSender
+	if check.IfNil(arg.RequestSender) {
+		return dataRetriever.ErrNilRequestSender
 	}
 	if check.IfNil(arg.Marshaller) {
 		return dataRetriever.ErrNilMarshalizer
@@ -52,17 +52,17 @@ func (requester *baseRequester) RequestDataFromHash(hash []byte, epoch uint32) e
 
 // SetNumPeersToQuery sets the number of intra shard and cross shard number of peer to query
 func (requester *baseRequester) SetNumPeersToQuery(intra int, cross int) {
-	requester.TopicResolverSender.SetNumPeersToQuery(intra, cross)
+	requester.TopicRequestSender.SetNumPeersToQuery(intra, cross)
 }
 
 // NumPeersToQuery returns the number of intra shard and cross shard number of peer to query
 func (requester *baseRequester) NumPeersToQuery() (int, int) {
-	return requester.TopicResolverSender.NumPeersToQuery()
+	return requester.TopicRequestSender.NumPeersToQuery()
 }
 
 // SetResolverDebugHandler sets a resolver debug requester
 func (requester *baseRequester) SetResolverDebugHandler(debugHandler dataRetriever.ResolverDebugHandler) error {
-	return requester.TopicResolverSender.SetResolverDebugHandler(debugHandler)
+	return requester.TopicRequestSender.SetResolverDebugHandler(debugHandler)
 }
 
 func (requester *baseRequester) requestDataFromHashArray(hashes [][]byte, epoch uint32) error {

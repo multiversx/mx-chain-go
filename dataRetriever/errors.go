@@ -58,6 +58,9 @@ var ErrNilHeadersNoncesStorage = errors.New("nil headers nonces storage")
 // ErrNilResolverSender signals that a nil resolver sender object has been provided
 var ErrNilResolverSender = errors.New("nil resolver sender")
 
+// ErrNilRequestSender signals that a nil request sender object has been provided
+var ErrNilRequestSender = errors.New("nil request sender")
+
 // ErrInvalidNonceByteSlice signals that an invalid byte slice has been provided
 // and an uint64 can not be decoded from that byte slice
 var ErrInvalidNonceByteSlice = errors.New("invalid nonce byte slice")

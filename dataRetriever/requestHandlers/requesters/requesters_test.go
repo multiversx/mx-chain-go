@@ -84,7 +84,7 @@ func testRequestDataFromHashArray(t *testing.T, requesterType requestHandlerType
 		providedHashes := [][]byte{[]byte("hash 1"), []byte("hash 2"), []byte("hash 3")}
 		args := createMockArgBaseRequester()
 		wasCalled := false
-		args.SenderResolver = &mock.TopicResolverSenderStub{
+		args.RequestSender = &mock.TopicResolverSenderStub{
 			SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData, originalHashes [][]byte) error {
 				wasCalled = true
 				b := &batch.Batch{
@@ -115,7 +115,7 @@ func testRequestDataFromReferenceAndChunk(t *testing.T, requesterType requestHan
 	providedHashes := [][]byte{providedHash}
 	args := createMockArgBaseRequester()
 	wasCalled := false
-	args.SenderResolver = &mock.TopicResolverSenderStub{
+	args.RequestSender = &mock.TopicResolverSenderStub{
 		SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData, originalHashes [][]byte) error {
 			wasCalled = true
 			assert.Equal(t, providedHash, rd.Value)
