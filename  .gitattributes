@@ -1,2 +1,2 @@
-*.hex binary
+*.hex binary eol=crlf
 *.wasm binary
