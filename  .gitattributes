@@ -1,2 +1,2 @@
-*.hex binary
-*.wasm binary
+*.hex filter=lfs diff=lfs merge=lfs -text
+*.wasm filter=lfs diff=lfs merge=lfs -text
