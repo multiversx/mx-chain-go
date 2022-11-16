@@ -11,8 +11,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// ------- NewRequestersContainerFactory
-
 func TestNewMetaRequestersContainerFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -168,8 +166,6 @@ func TestNewMetaRequestersContainerFactory_ShouldWork(t *testing.T) {
 	assert.Equal(t, int(args.RequesterConfig.NumCrossShardPeers), rcf.NumCrossShardPeers())
 	assert.Equal(t, int(args.RequesterConfig.NumFullHistoryPeers), rcf.NumFullHistoryPeers())
 }
-
-// ------- Create
 
 func TestMetaRequestersContainerFactory_CreateShouldWork(t *testing.T) {
 	t.Parallel()

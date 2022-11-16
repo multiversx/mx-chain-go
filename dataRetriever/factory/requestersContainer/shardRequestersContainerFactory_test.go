@@ -33,8 +33,6 @@ func createStubTopicMessageHandler(matchStrToErrOnCreate string) dataRetriever.T
 	return tmhs
 }
 
-// ------- NewRequestersContainerFactory
-
 func TestNewShardRequestersContainerFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -195,8 +193,6 @@ func TestNewShardRequestersContainerFactory_ShouldWork(t *testing.T) {
 	assert.Equal(t, int(args.RequesterConfig.NumCrossShardPeers), rcf.NumCrossShardPeers())
 	assert.Equal(t, int(args.RequesterConfig.NumFullHistoryPeers), rcf.NumFullHistoryPeers())
 }
-
-// ------- Create
 
 func TestShardRequestersContainerFactory_CreateShouldWork(t *testing.T) {
 	t.Parallel()

@@ -13,7 +13,8 @@ import (
 var _ dataRetriever.RequestersContainer = (*requestersContainer)(nil)
 
 // requestersContainer is a requesters holder organized by type
-// TODO[Sorin]: next PR, add unittests and extract resolversContainer + requestersContainer in a general container struct
+// TODO[Sorin]: next PR, add unittests
+// TODO: extract resolversContainer + requestersContainer in a general container struct
 type requestersContainer struct {
 	objects *container.MutexMap
 }

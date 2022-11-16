@@ -78,6 +78,35 @@ func (brcf *baseRequestersContainerFactory) checkParams() error {
 	return nil
 }
 
+func (brcf *baseRequestersContainerFactory) generateCommonRequesters() error {
+	err := brcf.generateTxRequesters(factory.TransactionTopic)
+	if err != nil {
+		return err
+	}
+
+	err = brcf.generateTxRequesters(factory.UnsignedTransactionTopic)
+	if err != nil {
+		return err
+	}
+
+	err = brcf.generateMiniBlocksRequesters()
+	if err != nil {
+		return err
+	}
+
+	err = brcf.generatePeerAuthenticationRequester()
+	if err != nil {
+		return err
+	}
+
+	err = brcf.generateValidatorInfoRequester()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (brcf *baseRequestersContainerFactory) generateTxRequesters(topic string) error {
 
 	shardC := brcf.shardCoordinator

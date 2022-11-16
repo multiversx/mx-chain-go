@@ -27,6 +27,7 @@ type ArgTopicRequestSender struct {
 	PeersRatingHandler          dataRetriever.PeersRatingHandler
 }
 
+// TODO[Sorin]: add more unittests
 type topicRequestSender struct {
 	*baseTopicSender
 	marshaller                         marshal.Marshalizer

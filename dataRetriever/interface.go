@@ -134,7 +134,7 @@ type RequestersContainer interface {
 	Remove(key string)
 	Len() int
 	RequesterKeys() string
-	Iterate(handler func(key string, resolver Requester) bool)
+	Iterate(handler func(key string, requester Requester) bool)
 	Close() error
 	IsInterfaceNil() bool
 }

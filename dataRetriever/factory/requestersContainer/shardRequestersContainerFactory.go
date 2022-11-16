@@ -57,12 +57,7 @@ func NewShardRequestersContainerFactory(
 
 // Create returns a requesters container that will hold all requesters in the system
 func (srcf *shardRequestersContainerFactory) Create() (dataRetriever.RequestersContainer, error) {
-	err := srcf.generateTxRequesters(factory.TransactionTopic)
-	if err != nil {
-		return nil, err
-	}
-
-	err = srcf.generateTxRequesters(factory.UnsignedTransactionTopic)
+	err := srcf.generateCommonRequesters()
 	if err != nil {
 		return nil, err
 	}
@@ -77,11 +72,6 @@ func (srcf *shardRequestersContainerFactory) Create() (dataRetriever.RequestersC
 		return nil, err
 	}
 
-	err = srcf.generateMiniBlocksRequesters()
-	if err != nil {
-		return nil, err
-	}
-
 	err = srcf.generateMetablockHeaderRequesters()
 	if err != nil {
 		return nil, err
@@ -92,20 +82,8 @@ func (srcf *shardRequestersContainerFactory) Create() (dataRetriever.RequestersC
 		return nil, err
 	}
 
-	err = srcf.generatePeerAuthenticationRequester()
-	if err != nil {
-		return nil, err
-	}
-
-	err = srcf.generateValidatorInfoRequester()
-	if err != nil {
-		return nil, err
-	}
-
 	return srcf.container, nil
 }
-
-// ------- Hdr requester
 
 func (srcf *shardRequestersContainerFactory) generateHeaderRequesters() error {
 	shardC := srcf.shardCoordinator
@@ -131,8 +109,6 @@ func (srcf *shardRequestersContainerFactory) generateHeaderRequesters() error {
 
 	return srcf.container.Add(identifierHdr, requester)
 }
-
-// ------- MetaBlockHeaderRequesters
 
 func (srcf *shardRequestersContainerFactory) generateMetablockHeaderRequesters() error {
 	// only one metachain header block topic
