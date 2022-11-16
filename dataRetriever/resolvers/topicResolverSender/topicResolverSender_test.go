@@ -215,6 +215,7 @@ func TestNewTopicResolverSender_OkValsWithNumZeroShouldWork(t *testing.T) {
 }
 
 //------- SendOnRequestTopic
+// TODO[Sorin]: remove these tests with cleanup as they were moved to topicSender/topicRequestSender_test.go
 
 func TestTopicResolverSender_SendOnRequestTopicMarshalizerFailsShouldErr(t *testing.T) {
 	t.Parallel()
