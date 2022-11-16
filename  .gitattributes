@@ -1,2 +1,3 @@
-*.hex -diff
-*.wasm -diff
+[diff "hex"]
+   textconv = text
+   binary   = true
