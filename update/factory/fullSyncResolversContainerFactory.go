@@ -10,7 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	factoryDataRetriever "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers/topicResolverSender"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/topicSender"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -161,7 +161,7 @@ func (rcf *resolversContainerFactory) createTrieNodesResolver(baseTopic string, 
 	}
 
 	targetConsensusStopic := common.ConsensusTopic + targetShardCoordinator.CommunicationIdentifier(targetShardID)
-	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(
+	peerListCreator, err := topicsender.NewDiffPeerListCreator(
 		rcf.messenger,
 		baseTopic,
 		targetConsensusStopic,
@@ -171,7 +171,7 @@ func (rcf *resolversContainerFactory) createTrieNodesResolver(baseTopic string, 
 		return nil, err
 	}
 
-	arg := topicResolverSender.ArgTopicResolverSender{
+	arg := topicsender.ArgTopicResolverSender{
 		Messenger:                   rcf.messenger,
 		TopicName:                   baseTopic,
 		PeerListCreator:             peerListCreator,
@@ -187,7 +187,7 @@ func (rcf *resolversContainerFactory) createTrieNodesResolver(baseTopic string, 
 		SelfShardIdProvider:         rcf.shardCoordinator,
 		PeersRatingHandler:          rcf.peersRatingHandler,
 	}
-	resolverSender, err := topicResolverSender.NewTopicResolverSender(arg)
+	resolverSender, err := topicsender.NewTopicResolverSender(arg)
 	if err != nil {
 		return nil, err
 	}

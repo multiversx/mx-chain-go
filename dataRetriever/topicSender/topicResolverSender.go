@@ -1,4 +1,4 @@
-package topicResolverSender
+package topicsender
 
 import (
 	"fmt"
@@ -8,22 +8,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/random"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go-p2p/message"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	resolverDebug "github.com/ElrondNetwork/elrond-go/debug/resolver"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
-const (
-	// topicRequestSuffix represents the topic name suffix
-	topicRequestSuffix = "_REQUEST"
-	minPeersToQuery    = 2
-	preferredPeerIndex = -1
-)
-
 var _ dataRetriever.TopicResolverSender = (*topicResolverSender)(nil)
-var log = logger.GetOrCreate("dataretriever/resolverstopicresolversender")
 
 // ArgTopicResolverSender is the argument structure used to create new TopicResolverSender instance
 type ArgTopicResolverSender struct {
@@ -43,7 +34,7 @@ type ArgTopicResolverSender struct {
 	TargetShardId               uint32
 }
 
-// TODO[Sorin]: cleanup and move this into topicSender
+// TODO[Sorin]: cleanup
 type topicResolverSender struct {
 	messenger                          dataRetriever.MessageHandler
 	marshalizer                        marshal.Marshalizer
@@ -66,7 +57,7 @@ type topicResolverSender struct {
 
 // NewTopicResolverSender returns a new topic resolver instance
 func NewTopicResolverSender(arg ArgTopicResolverSender) (*topicResolverSender, error) {
-	err := checkArgs(arg)
+	err := checkArgTopicResolverSender(arg)
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +83,7 @@ func NewTopicResolverSender(arg ArgTopicResolverSender) (*topicResolverSender, e
 	return resolver, nil
 }
 
-func checkArgs(args ArgTopicResolverSender) error {
+func checkArgTopicResolverSender(args ArgTopicResolverSender) error {
 	if check.IfNil(args.Messenger) {
 		return dataRetriever.ErrNilMessenger
 	}
@@ -187,15 +178,6 @@ func (trs *topicResolverSender) callDebugHandler(originalHashes [][]byte, numSen
 	trs.resolverDebugHandler.LogRequestedData(trs.topicName, originalHashes, numSentIntra, numSentCross)
 }
 
-func createIndexList(listLength int) []int {
-	indexes := make([]int, listLength)
-	for i := 0; i < listLength; i++ {
-		indexes[i] = i
-	}
-
-	return indexes
-}
-
 func (trs *topicResolverSender) sendOnTopic(
 	peerList []core.PeerID,
 	preferredPeer core.PeerID,
@@ -240,18 +222,6 @@ func (trs *topicResolverSender) sendOnTopic(
 	log.Trace("request peers histogram", "max peers to send", maxToSend, "topic", topicToSendRequest, "histogram", histogramMap)
 
 	return msgSentCounter
-}
-
-func getPeerID(index int, peersList []core.PeerID, preferredPeer core.PeerID, peerType string, topic string, histogramMap map[string]int) core.PeerID {
-	if index == preferredPeerIndex {
-		histogramMap["preferred"]++
-		log.Trace("sending request to preferred peer", "peer", preferredPeer.Pretty(), "topic", topic, "peer type", peerType)
-
-		return preferredPeer
-	}
-
-	histogramMap[peerType]++
-	return peersList[index]
 }
 
 func (trs *topicResolverSender) getPreferredPeer(shardID uint32) core.PeerID {
