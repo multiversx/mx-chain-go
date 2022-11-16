@@ -228,6 +228,8 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 		Timestamp:              time.Duration(blockHeader.GetTimeStamp()),
 		StateRootHash:          hex.EncodeToString(blockHeader.RootHash),
 		Status:                 BlockStatusOnChain,
+		PrevRandSeed:           hex.EncodeToString(blockHeader.GetPrevRandSeed()),
+		RandSeed:               hex.EncodeToString(blockHeader.GetRandSeed()),
 	}
 
 	addScheduledInfoInBlock(blockHeader, apiMetaBlock)

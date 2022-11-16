@@ -8,9 +8,9 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/common"
 	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/outport/process/alteredaccounts/shared"
@@ -134,6 +134,8 @@ func TestShardAPIBlockProcessor_GetBlockByHashFromNormalNode(t *testing.T) {
 	shardID := uint32(3)
 	miniblockHeader := []byte("miniBlockHash")
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
+	prevRandSeed := []byte("prevRandSeed")
+	randSeed := []byte("randSeed")
 
 	storerMock := genericMocks.NewStorerMock()
 	uint64Converter := mock.NewNonceHashConverterMock()
@@ -156,6 +158,8 @@ func TestShardAPIBlockProcessor_GetBlockByHashFromNormalNode(t *testing.T) {
 		},
 		AccumulatedFees: big.NewInt(0),
 		DeveloperFees:   big.NewInt(0),
+		PrevRandSeed:    prevRandSeed,
+		RandSeed:        randSeed,
 	}
 	headerBytes, _ := json.Marshal(header)
 	_ = storerMock.Put(headerHash, headerBytes)
@@ -183,6 +187,8 @@ func TestShardAPIBlockProcessor_GetBlockByHashFromNormalNode(t *testing.T) {
 		AccumulatedFees: "0",
 		DeveloperFees:   "0",
 		Status:          BlockStatusOnChain,
+		PrevRandSeed:    hex.EncodeToString(prevRandSeed),
+		RandSeed:        hex.EncodeToString(randSeed),
 	}
 
 	blk, err := shardAPIBlockProcessor.GetBlockByHash(headerHash, api.BlockQueryOptions{})

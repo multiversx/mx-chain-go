@@ -128,6 +128,8 @@ func TestMetaAPIBlockProcessor_GetBlockByHashFromHistoryNode(t *testing.T) {
 	epoch := uint32(1)
 	miniblockHeader := []byte("miniBlockHash")
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
+	prevRandSeed := []byte("prevRandSeed")
+	randSeed := []byte("randSeed")
 
 	storerMock := genericMocks.NewStorerMockWithEpoch(epoch)
 	metaAPIBlockProcessor := createMockMetaAPIProcessor(
@@ -151,6 +153,8 @@ func TestMetaAPIBlockProcessor_GetBlockByHashFromHistoryNode(t *testing.T) {
 		DeveloperFees:          big.NewInt(0),
 		AccumulatedFeesInEpoch: big.NewInt(10),
 		DevFeesInEpoch:         big.NewInt(5),
+		PrevRandSeed:           prevRandSeed,
+		RandSeed:               randSeed,
 	}
 	headerBytes, _ := json.Marshal(header)
 	_ = storerMock.Put(headerHash, headerBytes)
@@ -173,6 +177,8 @@ func TestMetaAPIBlockProcessor_GetBlockByHashFromHistoryNode(t *testing.T) {
 		AccumulatedFeesInEpoch: "10",
 		DeveloperFeesInEpoch:   "5",
 		Status:                 BlockStatusOnChain,
+		PrevRandSeed:           hex.EncodeToString(prevRandSeed),
+		RandSeed:               hex.EncodeToString(randSeed),
 	}
 
 	blk, err := metaAPIBlockProcessor.GetBlockByHash(headerHash, api.BlockQueryOptions{})
