@@ -41,8 +41,8 @@ require (
 
 replace github.com/gogo/protobuf => github.com/ElrondNetwork/protobuf v1.3.2
 
-replace github.com/ElrondNetwork/elrond-vm-common v1.3.25-0.20221031090629-9e11c6cd2149 => ../elrond-vm-common
+replace github.com/ElrondNetwork/elrond-vm-common v1.3.25-0.20221031090629-9e11c6cd2149 => /home/bogdan/Elrond/elrond-vm-common
 
-replace github.com/ElrondNetwork/wasm-vm v1.5.3-0.20221027144136-555e72b5c0d6 => ../wasm-vm
+replace github.com/ElrondNetwork/wasm-vm v1.5.3-0.20221027144136-555e72b5c0d6 => /home/bogdan/go2/src/github.com/ElrondNetwork/arwen-wasm-vm
 
-replace github.com/ElrondNetwork/wasm-vm-v1_2 v1.2.45-rc => ../wasm-vm-v1_2
+replace github.com/ElrondNetwork/wasm-vm-v1_2 v1.2.45-rc => /home/bogdan/go2/src/wasm-vm-v1_2

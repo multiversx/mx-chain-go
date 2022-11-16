@@ -819,9 +819,6 @@ var ErrShardIsStuck = errors.New("shard is stuck")
 // ErrRelayedTxBeneficiaryDoesNotMatchReceiver signals that an invalid address was provided in the relayed tx
 var ErrRelayedTxBeneficiaryDoesNotMatchReceiver = errors.New("invalid address in relayed tx")
 
-// ErrInvalidVMType signals that invalid vm type was provided
-var ErrInvalidVMType = errors.New("invalid VM type")
-
 // ErrRecursiveRelayedTxIsNotAllowed signals that recursive relayed tx is not allowed
 var ErrRecursiveRelayedTxIsNotAllowed = errors.New("recursive relayed tx is not allowed")
 

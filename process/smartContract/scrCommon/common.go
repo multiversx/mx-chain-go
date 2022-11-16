@@ -52,7 +52,7 @@ type ArgsNewSmartContractProcessor struct {
 
 // FindVMByScAddress is exported for use in all version of scr processors
 func FindVMByScAddress(container process.VirtualMachinesContainer, scAddress []byte) (vmcommon.VMExecutionHandler, []byte, error) {
-	vmType, err := parseVMTypeFromContractAddress(scAddress)
+	vmType, err := vmcommon.ParseVMTypeFromContractAddress(scAddress)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -63,14 +63,4 @@ func FindVMByScAddress(container process.VirtualMachinesContainer, scAddress []b
 	}
 
 	return vm, vmType, nil
-}
-
-func parseVMTypeFromContractAddress(contractAddress []byte) ([]byte, error) {
-	if len(contractAddress) < core.NumInitCharactersForScAddress {
-		return nil, process.ErrInvalidVMType
-	}
-
-	startIndex := core.NumInitCharactersForScAddress - core.VMTypeLen
-	endIndex := core.NumInitCharactersForScAddress
-	return contractAddress[startIndex:endIndex], nil
 }
