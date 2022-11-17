@@ -71,37 +71,37 @@ func NewSliceRequester(arg ArgSliceRequester) (*sliceRequester, error) {
 }
 
 // RequestDataFromHash searches the hash in provided storage and then will send to self the message
-func (sliceRes *sliceRequester) RequestDataFromHash(hash []byte, _ uint32) error {
-	mb, err := sliceRes.storage.Get(hash)
+func (sliceReq *sliceRequester) RequestDataFromHash(hash []byte, _ uint32) error {
+	mb, err := sliceReq.storage.Get(hash)
 	if err != nil {
-		sliceRes.signalGracefullyClose()
+		sliceReq.signalGracefullyClose()
 		return err
 	}
 
 	b := &batch.Batch{
 		Data: [][]byte{mb},
 	}
-	buffToSend, err := sliceRes.marshalizer.Marshal(b)
+	buffToSend, err := sliceReq.marshalizer.Marshal(b)
 	if err != nil {
 		return err
 	}
 
-	return sliceRes.sendToSelf(buffToSend)
+	return sliceReq.sendToSelf(buffToSend)
 }
 
 // RequestDataFromHashArray searches the hashes in provided storage and then will send to self the message(s)
-func (sliceRes *sliceRequester) RequestDataFromHashArray(hashes [][]byte, _ uint32) error {
+func (sliceReq *sliceRequester) RequestDataFromHashArray(hashes [][]byte, _ uint32) error {
 	var errFetch error
 	errorsFound := 0
 	mbsBuffSlice := make([][]byte, 0, len(hashes))
 	for _, hash := range hashes {
-		mb, errTemp := sliceRes.storage.Get(hash)
+		mb, errTemp := sliceReq.storage.Get(hash)
 		if errTemp != nil {
 			errFetch = fmt.Errorf("%w for hash %s", errTemp, logger.DisplayByteSlice(hash))
 			log.Trace("fetchByteSlice missing",
 				"error", errFetch.Error(),
 				"hash", hash,
-				"topic", sliceRes.responseTopicName)
+				"topic", sliceReq.responseTopicName)
 			errorsFound++
 
 			continue
@@ -109,13 +109,13 @@ func (sliceRes *sliceRequester) RequestDataFromHashArray(hashes [][]byte, _ uint
 		mbsBuffSlice = append(mbsBuffSlice, mb)
 	}
 
-	buffsToSend, errPack := sliceRes.dataPacker.PackDataInChunks(mbsBuffSlice, maxBuffToSend)
+	buffsToSend, errPack := sliceReq.dataPacker.PackDataInChunks(mbsBuffSlice, maxBuffToSend)
 	if errPack != nil {
 		return errPack
 	}
 
 	for _, buff := range buffsToSend {
-		errSend := sliceRes.sendToSelf(buff)
+		errSend := sliceReq.sendToSelf(buff)
 		if errSend != nil {
 			return errSend
 		}
@@ -123,19 +123,23 @@ func (sliceRes *sliceRequester) RequestDataFromHashArray(hashes [][]byte, _ uint
 
 	if errFetch != nil {
 		errFetch = fmt.Errorf("RequesterequestByHashArray on topic %s, last error %w from %d encountered errors",
-			sliceRes.responseTopicName, errFetch, errorsFound)
-		sliceRes.signalGracefullyClose()
+			sliceReq.responseTopicName, errFetch, errorsFound)
+		sliceReq.signalGracefullyClose()
 	}
 
 	return errFetch
 }
 
 // Close will try to close the associated opened storers
-func (sliceRes *sliceRequester) Close() error {
-	return sliceRes.storage.Close()
+func (sliceReq *sliceRequester) Close() error {
+	var err error
+	if !check.IfNil(sliceReq.storage) {
+		err = sliceReq.storage.Close()
+	}
+	return err
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (sliceRes *sliceRequester) IsInterfaceNil() bool {
-	return sliceRes == nil
+func (sliceReq *sliceRequester) IsInterfaceNil() bool {
+	return sliceReq == nil
 }

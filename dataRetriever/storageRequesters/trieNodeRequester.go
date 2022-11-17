@@ -125,7 +125,11 @@ func (tnr *trieNodeRequester) sendDataToSelf(serializedNodes [][]byte) error {
 
 // Close will try to close the associated opened storers
 func (tnr *trieNodeRequester) Close() error {
-	return tnr.trieStorageManager.Close()
+	var err error
+	if !check.IfNil(tnr.trieStorageManager) {
+		err = tnr.trieStorageManager.Close()
+	}
+	return err
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

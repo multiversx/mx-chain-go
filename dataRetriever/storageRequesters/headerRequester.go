@@ -75,48 +75,48 @@ func NewHeaderRequester(arg ArgHeaderRequester) (*headerRequester, error) {
 }
 
 // RequestDataFromHash searches the hash in provided storage and then will send to self the message
-func (hdrRes *headerRequester) RequestDataFromHash(hash []byte, _ uint32) error {
-	hdrRes.mutEpochHandler.RLock()
-	metaEpoch := hdrRes.epochHandler.MetaEpoch()
-	hdrRes.mutEpochHandler.RUnlock()
+func (hdrReq *headerRequester) RequestDataFromHash(hash []byte, _ uint32) error {
+	hdrReq.mutEpochHandler.RLock()
+	metaEpoch := hdrReq.epochHandler.MetaEpoch()
+	hdrReq.mutEpochHandler.RUnlock()
 
-	hdrRes.manualEpochStartNotifier.NewEpoch(metaEpoch + 1)
-	hdrRes.manualEpochStartNotifier.NewEpoch(metaEpoch + 2)
+	hdrReq.manualEpochStartNotifier.NewEpoch(metaEpoch + 1)
+	hdrReq.manualEpochStartNotifier.NewEpoch(metaEpoch + 2)
 
-	buff, err := hdrRes.hdrStorage.SearchFirst(hash)
+	buff, err := hdrReq.hdrStorage.SearchFirst(hash)
 	if err != nil {
-		hdrRes.signalGracefullyClose()
+		hdrReq.signalGracefullyClose()
 		return err
 	}
 
-	return hdrRes.sendToSelf(buff)
+	return hdrReq.sendToSelf(buff)
 }
 
 // RequestDataFromNonce requests a header by its nonce
-func (hdrRes *headerRequester) RequestDataFromNonce(nonce uint64, epoch uint32) error {
-	nonceKey := hdrRes.nonceConverter.ToByteSlice(nonce)
-	hash, err := hdrRes.hdrNoncesStorage.SearchFirst(nonceKey)
+func (hdrReq *headerRequester) RequestDataFromNonce(nonce uint64, epoch uint32) error {
+	nonceKey := hdrReq.nonceConverter.ToByteSlice(nonce)
+	hash, err := hdrReq.hdrNoncesStorage.SearchFirst(nonceKey)
 	if err != nil {
-		hdrRes.signalGracefullyClose()
+		hdrReq.signalGracefullyClose()
 		return err
 	}
 
-	return hdrRes.RequestDataFromHash(hash, epoch)
+	return hdrReq.RequestDataFromHash(hash, epoch)
 }
 
 // RequestDataFromEpoch requests the epoch start block
-func (hdrRes *headerRequester) RequestDataFromEpoch(identifier []byte) error {
-	buff, err := hdrRes.resolveHeaderFromEpoch(identifier)
+func (hdrReq *headerRequester) RequestDataFromEpoch(identifier []byte) error {
+	buff, err := hdrReq.resolveHeaderFromEpoch(identifier)
 	if err != nil {
-		hdrRes.signalGracefullyClose()
+		hdrReq.signalGracefullyClose()
 		return err
 	}
 
-	return hdrRes.sendToSelf(buff)
+	return hdrReq.sendToSelf(buff)
 }
 
 // resolveHeaderFromEpoch resolves a header using its key based on epoch
-func (hdrRes *headerRequester) resolveHeaderFromEpoch(key []byte) ([]byte, error) {
+func (hdrReq *headerRequester) resolveHeaderFromEpoch(key []byte) ([]byte, error) {
 	actualKey := key
 
 	isUnknownEpoch, err := core.IsUnknownEpochIdentifier(key)
@@ -124,41 +124,42 @@ func (hdrRes *headerRequester) resolveHeaderFromEpoch(key []byte) ([]byte, error
 		return nil, err
 	}
 	if isUnknownEpoch {
-		actualKey = []byte(core.EpochStartIdentifier(hdrRes.manualEpochStartNotifier.CurrentEpoch() - 1))
+		actualKey = []byte(core.EpochStartIdentifier(hdrReq.manualEpochStartNotifier.CurrentEpoch() - 1))
 	}
 
-	return hdrRes.hdrStorage.SearchFirst(actualKey)
+	return hdrReq.hdrStorage.SearchFirst(actualKey)
 }
 
 // SetEpochHandler sets the epoch handler
-func (hdrRes *headerRequester) SetEpochHandler(epochHandler dataRetriever.EpochHandler) error {
+func (hdrReq *headerRequester) SetEpochHandler(epochHandler dataRetriever.EpochHandler) error {
 	if check.IfNil(epochHandler) {
 		return dataRetriever.ErrNilEpochHandler
 	}
 
-	hdrRes.mutEpochHandler.Lock()
-	hdrRes.epochHandler = epochHandler
-	hdrRes.mutEpochHandler.Unlock()
+	hdrReq.mutEpochHandler.Lock()
+	hdrReq.epochHandler = epochHandler
+	hdrReq.mutEpochHandler.Unlock()
 
 	return nil
 }
 
 // Close will try to close the associated opened storers
-func (hdrRes *headerRequester) Close() error {
-	errNonces := hdrRes.hdrNoncesStorage.Close()
-	log.LogIfError(errNonces)
-
-	errHeaders := hdrRes.hdrStorage.Close()
-	log.LogIfError(errHeaders)
-
-	if errNonces != nil {
-		return errNonces
+func (hdrReq *headerRequester) Close() error {
+	var lastErr error
+	if !check.IfNil(hdrReq.hdrNoncesStorage) {
+		lastErr = hdrReq.hdrNoncesStorage.Close()
+		log.LogIfError(lastErr)
 	}
 
-	return errHeaders
+	if !check.IfNil(hdrReq.hdrStorage) {
+		lastErr = hdrReq.hdrStorage.Close()
+		log.LogIfError(lastErr)
+	}
+
+	return lastErr
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (hdrRes *headerRequester) IsInterfaceNil() bool {
-	return hdrRes == nil
+func (hdrReq *headerRequester) IsInterfaceNil() bool {
+	return hdrReq == nil
 }
