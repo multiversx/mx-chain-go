@@ -126,15 +126,16 @@ type epochStartBootstrap struct {
 	storageService            dataRetriever.StorageService
 
 	// gathered data
-	epochStartMeta     data.MetaHeaderHandler
-	prevEpochStartMeta data.MetaHeaderHandler
-	syncedHeaders      map[string]data.HeaderHandler
-	nodesConfig        *nodesCoordinator.NodesCoordinatorRegistry
-	baseData           baseDataInStorage
-	startRound         int64
-	nodeType           core.NodeType
-	startEpoch         uint32
-	shuffledOut        bool
+	epochStartMeta      data.MetaHeaderHandler
+	prevEpochStartMeta  data.MetaHeaderHandler
+	syncedHeaders       map[string]data.HeaderHandler
+	nodesConfig         *nodesCoordinator.NodesCoordinatorRegistry
+	baseData            baseDataInStorage
+	startRound          int64
+	nodeType            core.NodeType
+	startEpoch          uint32
+	shuffledOut         bool
+	getDataToSyncMethod func(epochStartData data.EpochStartShardDataHandler, shardNotarizedHeader data.ShardHeaderHandler) (*dataToSync, error)
 }
 
 type baseDataInStorage struct {
@@ -239,6 +240,8 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		epochStartProvider.baseData.lastRound = epochStartProvider.startRound
 		epochStartProvider.baseData.epochStartRound = uint64(epochStartProvider.startRound)
 	}
+
+	epochStartProvider.getDataToSyncMethod = epochStartProvider.getDataToSync
 
 	return epochStartProvider, nil
 }
@@ -883,7 +886,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard(peerMiniBlocks []*block.
 		return epochStart.ErrWrongTypeAssertion
 	}
 
-	dts, err := e.getDataToSync(
+	dts, err := e.getDataToSyncMethod(
 		epochStartData,
 		shardNotarizedHeader,
 	)

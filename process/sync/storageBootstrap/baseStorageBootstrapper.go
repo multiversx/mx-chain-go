@@ -79,6 +79,8 @@ type storageBootstrapper struct {
 	epochNotifier                process.EpochNotifier
 	processedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
 	appStatusHandler             core.AppStatusHandler
+	getScheduledRootHashMethod   func(headerFromStorage data.HeaderHandler, headerHash []byte) []byte
+	setScheduledInfoMethod       func(headerInfo bootstrapStorage.BootstrapData)
 }
 
 func (st *storageBootstrapper) loadBlocks() error {
@@ -189,7 +191,16 @@ func (st *storageBootstrapper) loadBlocks() error {
 		log.Debug("cannot save last round in storage ", "error", err.Error())
 	}
 
-	err = st.scheduledTxsExecutionHandler.RollBackToBlock(headerInfo.LastHeader.Hash)
+	st.setScheduledInfoMethod(headerInfo)
+
+	st.highestNonce = headerInfo.LastHeader.Nonce
+	st.epochNotifier.CheckEpoch(st.blkc.GetCurrentBlockHeader())
+
+	return nil
+}
+
+func (st *storageBootstrapper) setScheduledInfo(headerInfo bootstrapStorage.BootstrapData) {
+	err := st.scheduledTxsExecutionHandler.RollBackToBlock(headerInfo.LastHeader.Hash)
 	if err != nil {
 		scheduledInfo := &process.ScheduledInfo{
 			RootHash:        st.bootstrapper.getRootHash(headerInfo.LastHeader.Hash),
@@ -199,11 +210,6 @@ func (st *storageBootstrapper) loadBlocks() error {
 		}
 		st.scheduledTxsExecutionHandler.SetScheduledInfo(scheduledInfo)
 	}
-
-	st.highestNonce = headerInfo.LastHeader.Nonce
-	st.epochNotifier.CheckEpoch(st.blkc.GetCurrentBlockHeader())
-
-	return nil
 }
 
 func (st *storageBootstrapper) displayBootstrapHeaders(hdrs []bootstrapStorage.BootstrapHeaderInfo) string {
@@ -273,12 +279,7 @@ func (st *storageBootstrapper) applyHeaderInfo(hdrInfo bootstrapStorage.Bootstra
 		return process.ErrInvalidChainID
 	}
 
-	rootHash := headerFromStorage.GetRootHash()
-	scheduledRootHash, err := st.scheduledTxsExecutionHandler.GetScheduledRootHashForHeader(headerHash)
-	if err == nil {
-		rootHash = scheduledRootHash
-	}
-	log.Debug("storageBootstrapper.applyHeaderInfo", "rootHash", rootHash, "scheduledRootHash", scheduledRootHash)
+	rootHash := st.getScheduledRootHashMethod(headerFromStorage, headerHash)
 
 	err = st.blkExecutor.RevertStateToBlock(headerFromStorage, rootHash)
 	if err != nil {
@@ -293,6 +294,19 @@ func (st *storageBootstrapper) applyHeaderInfo(hdrInfo bootstrapStorage.Bootstra
 	}
 
 	return nil
+}
+
+func (st *storageBootstrapper) getScheduledRootHash(headerFromStorage data.HeaderHandler, headerHash []byte) []byte {
+	rootHash := headerFromStorage.GetRootHash()
+
+	scheduledRootHash, err := st.scheduledTxsExecutionHandler.GetScheduledRootHashForHeader(headerHash)
+	if err == nil {
+		rootHash = scheduledRootHash
+	}
+
+	log.Debug("storageBootstrapper.getScheduledRootHash", "rootHash", rootHash, "scheduledRootHash", scheduledRootHash)
+
+	return rootHash
 }
 
 func (st *storageBootstrapper) getBootInfos(hdrInfo bootstrapStorage.BootstrapData) ([]bootstrapStorage.BootstrapData, error) {

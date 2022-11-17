@@ -1187,12 +1187,12 @@ type ScheduledTxsExecutionHandler interface {
 	GetScheduledIntermediateTxs() map[block.Type][]data.TransactionHandler
 	GetScheduledMiniBlocks() block.MiniBlockSlice
 	GetScheduledGasAndFees() scheduled.GasAndFees
-	SetScheduledInfo(scheduledInfo *ScheduledInfo)                   // Here process/sync/storageBootstrap/baseStorageBootstrapper.go
-	GetScheduledRootHashForHeader(headerHash []byte) ([]byte, error) // Here process/sync/storageBootstrap/baseStorageBootstrapper.go
+	SetScheduledInfo(scheduledInfo *ScheduledInfo)
+	GetScheduledRootHashForHeader(headerHash []byte) ([]byte, error)
 	GetScheduledRootHashForHeaderWithEpoch(headerHash []byte, epoch uint32) ([]byte, error)
-	RollBackToBlock(headerHash []byte) error // Here process/sync/storageBootstrap/baseStorageBootstrapper.go
+	RollBackToBlock(headerHash []byte) error
 	SaveStateIfNeeded(headerHash []byte)
-	SaveState(headerHash []byte, scheduledInfo *ScheduledInfo) // Here epochStart/bootstrap/startInEpochScheduled.go
+	SaveState(headerHash []byte, scheduledInfo *ScheduledInfo)
 	GetScheduledRootHash() []byte
 	SetScheduledRootHash(rootHash []byte)
 	SetScheduledGasAndFees(gasAndFees scheduled.GasAndFees)
