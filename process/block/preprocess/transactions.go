@@ -1669,9 +1669,8 @@ func (txs *transactions) sortTransactionsBySenderAndNonceWithFrontRunningProtect
 
 	txSorter.SortTransactionsBySenderAndNonceWithFrontRunningProtection(innerTransactions, txs.hasher, randomness)
 
-	transactions = transactions[:0]
 	for i := range innerTransactions {
-		transactions = append(transactions, transactionToWrappedTransactionsMap[innerTransactions[i]])
+		transactions[i] = transactionToWrappedTransactionsMap[innerTransactions[i]]
 	}
 }
 
