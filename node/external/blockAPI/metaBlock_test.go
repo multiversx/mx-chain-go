@@ -4,7 +4,9 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"math/big"
+	"reflect"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
@@ -120,6 +122,111 @@ func TestMetaAPIBlockProcessor_GetBlockByRoundInvalidRoundShouldErr(t *testing.T
 	assert.Error(t, err)
 }
 
+func TestMetaAPIBlockProcessor_CheckAllFieldsAreAccountedFor(t *testing.T) {
+	t.Parallel()
+
+	nonce := uint64(1)
+	round := uint64(2)
+	epoch := uint32(1)
+	miniblockHeader := []byte("miniBlockHash")
+	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
+	prevHash := []byte("prevHash")
+	prevRandSeed := []byte("prevRandSeed")
+	randSeed := []byte("randSeed")
+	pubkeysBitmap := []byte("pubkeysBitmap")
+	timestamp := uint64(12345678)
+	stateRootHash := []byte("stateRootHash")
+	accumulatedFees := big.NewInt(11)
+	developerFees := big.NewInt(12)
+	accumulatedFeesInEpoch := big.NewInt(13)
+	developerFeesInEpoch := big.NewInt(14)
+	numTxs := uint32(2)
+
+	storerMock := genericMocks.NewStorerMockWithEpoch(epoch)
+	metaAPIBlockProcessor := createMockMetaAPIProcessor(
+		headerHash,
+		storerMock,
+		true,
+		false,
+	)
+
+	header := &block.MetaBlock{
+		Nonce:                  nonce,
+		Epoch:                  epoch,
+		Round:                  round,
+		TimeStamp:              timestamp,
+		ShardInfo:              nil,
+		PeerInfo:               nil,
+		Signature:              nil,
+		LeaderSignature:        nil,
+		PubKeysBitmap:          pubkeysBitmap,
+		PrevHash:               prevHash,
+		PrevRandSeed:           prevRandSeed,
+		RandSeed:               randSeed,
+		RootHash:               stateRootHash,
+		ValidatorStatsRootHash: nil,
+		MiniBlockHeaders: []block.MiniBlockHeader{
+			{
+				Hash:    miniblockHeader,
+				Type:    block.TxBlock,
+				TxCount: numTxs,
+			},
+		},
+		ReceiptsHash:           nil,
+		EpochStart:             block.EpochStart{},
+		ChainID:                nil,
+		SoftwareVersion:        nil,
+		AccumulatedFees:        accumulatedFees,
+		AccumulatedFeesInEpoch: accumulatedFeesInEpoch,
+		DeveloperFees:          developerFees,
+		DevFeesInEpoch:         developerFeesInEpoch,
+		TxCount:                numTxs,
+		Reserved:               nil,
+	}
+	headerBytes, _ := json.Marshal(header)
+	_ = storerMock.Put(headerHash, headerBytes)
+
+	expectedBlock := &api.Block{
+		Nonce:                  nonce,
+		Round:                  round,
+		Epoch:                  epoch,
+		Shard:                  core.MetachainShardId,
+		NumTxs:                 numTxs,
+		Hash:                   hex.EncodeToString(headerHash),
+		PrevBlockHash:          hex.EncodeToString(prevHash),
+		StateRootHash:          hex.EncodeToString(stateRootHash),
+		AccumulatedFees:        accumulatedFees.String(),
+		DeveloperFees:          developerFees.String(),
+		AccumulatedFeesInEpoch: accumulatedFeesInEpoch.String(),
+		DeveloperFeesInEpoch:   developerFeesInEpoch.String(),
+		Status:                 BlockStatusOnChain,
+		RandSeed:               hex.EncodeToString(randSeed),
+		PrevRandSeed:           hex.EncodeToString(prevRandSeed),
+		Timestamp:              time.Duration(timestamp),
+		NotarizedBlocks:        []*api.NotarizedBlock{},
+		MiniBlocks: []*api.MiniBlock{
+			{
+				Hash: hex.EncodeToString(miniblockHeader),
+				Type: block.TxBlock.String(),
+			},
+		},
+		EpochStartInfo:       nil,
+		EpochStartShardsData: nil,
+		ScheduledData:        nil,
+	}
+
+	blk, err := metaAPIBlockProcessor.GetBlockByHash(headerHash, api.BlockQueryOptions{})
+	assert.Nil(t, err)
+	assert.Equal(t, expectedBlock, blk)
+
+	expectedBlockValue := reflect.ValueOf(expectedBlock)
+	expectedBlockIndirect := reflect.Indirect(expectedBlockValue)
+	expectedBlockType := expectedBlockIndirect.Type()
+
+	numFieldsOnBlockOnGoCore1125 := 21
+	assert.Equal(t, numFieldsOnBlockOnGoCore1125, expectedBlockType.NumField(), "please add the new fields to this test and update the numFields")
+}
+
 func TestMetaAPIBlockProcessor_GetBlockByHashFromHistoryNode(t *testing.T) {
 	t.Parallel()
 
@@ -128,8 +235,6 @@ func TestMetaAPIBlockProcessor_GetBlockByHashFromHistoryNode(t *testing.T) {
 	epoch := uint32(1)
 	miniblockHeader := []byte("miniBlockHash")
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
-	prevRandSeed := []byte("prevRandSeed")
-	randSeed := []byte("randSeed")
 
 	storerMock := genericMocks.NewStorerMockWithEpoch(epoch)
 	metaAPIBlockProcessor := createMockMetaAPIProcessor(
@@ -153,8 +258,6 @@ func TestMetaAPIBlockProcessor_GetBlockByHashFromHistoryNode(t *testing.T) {
 		DeveloperFees:          big.NewInt(0),
 		AccumulatedFeesInEpoch: big.NewInt(10),
 		DevFeesInEpoch:         big.NewInt(5),
-		PrevRandSeed:           prevRandSeed,
-		RandSeed:               randSeed,
 	}
 	headerBytes, _ := json.Marshal(header)
 	_ = storerMock.Put(headerHash, headerBytes)
@@ -177,8 +280,6 @@ func TestMetaAPIBlockProcessor_GetBlockByHashFromHistoryNode(t *testing.T) {
 		AccumulatedFeesInEpoch: "10",
 		DeveloperFeesInEpoch:   "5",
 		Status:                 BlockStatusOnChain,
-		PrevRandSeed:           hex.EncodeToString(prevRandSeed),
-		RandSeed:               hex.EncodeToString(randSeed),
 	}
 
 	blk, err := metaAPIBlockProcessor.GetBlockByHash(headerHash, api.BlockQueryOptions{})
