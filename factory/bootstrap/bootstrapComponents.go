@@ -202,7 +202,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 	} else {
 		epochStartBootstrapper, err = bcf.createEpochStartBootstrapper(epochStartBootstrapArgs)
 		if err != nil {
-			return nil, fmt.Errorf("%w: %v", errors.ErrNewEpochStartBootstrap, err)
+			return nil, err
 		}
 	}
 
@@ -245,7 +245,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 func (bcf *bootstrapComponentsFactory) createEpochStartBootstrapper(epochStartBootstrapArgs bootstrap.ArgsEpochStartBootstrap) (factory.EpochStartBootstrapper, error) {
 	epochStartBootstrapper, err := bootstrap.NewEpochStartBootstrap(epochStartBootstrapArgs)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %v", errors.ErrNewEpochStartBootstrap, err)
 	}
 
 	switch bcf.chainRunType {
