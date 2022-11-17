@@ -5,20 +5,20 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/keyValStorage"
 )
 
-type trieLeafParserV1 struct {
+type mainTrieLeafParser struct {
 }
 
-// NewTrieLeafParserV1 creates a new instance of trieLeafParserV1
-func NewTrieLeafParserV1() *trieLeafParserV1 {
-	return &trieLeafParserV1{}
+// NewMainTrieLeafParser creates a new instance of mainTrieLeafParser
+func NewMainTrieLeafParser() *mainTrieLeafParser {
+	return &mainTrieLeafParser{}
 }
 
 // ParseLeaf returns the given key an value as a KeyValStorage
-func (tlp *trieLeafParserV1) ParseLeaf(trieKey []byte, trieVal []byte) (core.KeyValueHolder, error) {
+func (tlp *mainTrieLeafParser) ParseLeaf(trieKey []byte, trieVal []byte) (core.KeyValueHolder, error) {
 	return keyValStorage.NewKeyValStorage(trieKey, trieVal), nil
 }
 
 // IsInterfaceNil returns nil if there is no value under the interface
-func (tlp *trieLeafParserV1) IsInterfaceNil() bool {
+func (tlp *mainTrieLeafParser) IsInterfaceNil() bool {
 	return tlp == nil
 }

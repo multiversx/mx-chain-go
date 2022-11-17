@@ -45,7 +45,7 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 		context.Background(),
 		rootHash,
 		keyBuilder.NewDisabledKeyBuilder(),
-		parsers.NewTrieLeafParserV1(),
+		parsers.NewMainTrieLeafParser(),
 	)
 	time.Sleep(time.Second) // allow the go routine to start
 	idx, _ := gc.Snapshot()
@@ -63,7 +63,7 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 		context.Background(),
 		rootHash,
 		keyBuilder.NewDisabledKeyBuilder(),
-		parsers.NewTrieLeafParserV1(),
+		parsers.NewMainTrieLeafParser(),
 	)
 	idx, _ = gc.Snapshot()
 	diff = gc.DiffGoRoutines(idxInitial, idx)
@@ -84,7 +84,7 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 		context.Background(),
 		rootHash,
 		keyBuilder.NewDisabledKeyBuilder(),
-		parsers.NewTrieLeafParserV1(),
+		parsers.NewMainTrieLeafParser(),
 	)
 	idx, _ = gc.Snapshot()
 	diff = gc.DiffGoRoutines(idxInitial, idx)
@@ -105,7 +105,7 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 		context.Background(),
 		rootHash,
 		keyBuilder.NewDisabledKeyBuilder(),
-		parsers.NewTrieLeafParserV1(),
+		parsers.NewMainTrieLeafParser(),
 	)
 	time.Sleep(time.Second) // allow the go routine to start
 	idx, _ = gc.Snapshot()

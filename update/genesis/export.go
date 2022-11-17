@@ -303,7 +303,7 @@ func (se *stateExport) exportTrie(key string, trie common.Trie) error {
 		context.Background(),
 		rootHash,
 		keyBuilder.NewKeyBuilder(),
-		parsers.NewTrieLeafParserV1(),
+		parsers.NewMainTrieLeafParser(),
 	)
 	if err != nil {
 		return err

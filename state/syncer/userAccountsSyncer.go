@@ -220,7 +220,7 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 		context.Background(),
 		mainRootHash,
 		keyBuilder.NewDisabledKeyBuilder(),
-		parsers.NewTrieLeafParserV1(),
+		parsers.NewMainTrieLeafParser(),
 	)
 	if err != nil {
 		return err

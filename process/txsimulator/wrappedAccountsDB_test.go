@@ -153,7 +153,7 @@ func TestReadOnlyAccountsDB_ReadOperationsShouldWork(t *testing.T) {
 		LeavesChan: make(chan core.KeyValueHolder),
 		ErrChan:    make(chan error, 1),
 	}
-	err = roAccDb.GetAllLeaves(allLeaves, context.Background(), nil, parsers.NewTrieLeafParserV1())
+	err = roAccDb.GetAllLeaves(allLeaves, context.Background(), nil, parsers.NewMainTrieLeafParser())
 	require.NoError(t, err)
 
 	err = common.GetErrorFromChanNonBlocking(allLeaves.ErrChan)

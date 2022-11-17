@@ -62,29 +62,12 @@ func (tdaw *trackableDataTrie) RetrieveValue(key []byte) ([]byte, uint32, error)
 	if check.IfNil(tdaw.tr) {
 		return nil, 0, ErrNilTrie
 	}
-	value, depth, err := tdaw.retrieveValV2(string(key))
-	if err != nil {
-		return nil, depth, err
-	}
-	if len(value) != 0 {
-		return value, depth, nil
-	}
-
-	return tdaw.retrieveValV1(key)
+	return tdaw.retrieveVal(string(key))
 }
 
-func trimValue(value []byte, tailLength int) ([]byte, error) {
-	dataLength := len(value) - tailLength
-	if dataLength < 0 {
-		return nil, ErrNegativeValue
-	}
-
-	return value[:dataLength], nil
-}
-
-func (tdaw *trackableDataTrie) retrieveValV2(key string) ([]byte, uint32, error) {
+func (tdaw *trackableDataTrie) retrieveVal(key string) ([]byte, uint32, error) {
 	if !tdaw.enableEpochsHandler.IsAutoBalanceDataTriesEnabled() {
-		return nil, 0, nil
+		return tdaw.retrieveValV1([]byte(key))
 	}
 
 	val, depth, err := tdaw.tr.Get(tdaw.hasher.Compute(key))
@@ -93,7 +76,7 @@ func (tdaw *trackableDataTrie) retrieveValV2(key string) ([]byte, uint32, error)
 	}
 
 	if len(val) == 0 {
-		return nil, depth, nil
+		return tdaw.retrieveValV1([]byte(key))
 	}
 
 	dataTrieVal := &dataTrieValue.TrieLeafData{}
@@ -113,7 +96,7 @@ func (tdaw *trackableDataTrie) retrieveValV1(key []byte) ([]byte, uint32, error)
 	}
 
 	tailLength := len(key) + len(tdaw.identifier)
-	value, _ := trimValue(val, tailLength)
+	value, _ := common.TrimSuffixFromValue(val, tailLength)
 	log.Trace("retrieve value from trie V1", "key", key, "value", value)
 	return value, depth, nil
 }
@@ -160,10 +143,10 @@ func (tdaw *trackableDataTrie) SaveDirtyData(mainTrie common.Trie) (map[string][
 		return tdaw.updateTrieWithAutoBalancing()
 	}
 
-	return tdaw.updateTrieNormal()
+	return tdaw.updateTrieV1()
 }
 
-func (tdaw *trackableDataTrie) updateTrieNormal() (map[string][]byte, error) {
+func (tdaw *trackableDataTrie) updateTrieV1() (map[string][]byte, error) {
 	oldValues := make(map[string][]byte)
 
 	for key, val := range tdaw.dirtyData {
@@ -195,7 +178,7 @@ func (tdaw *trackableDataTrie) updateTrieWithAutoBalancing() (map[string][]byte,
 	oldValues := make(map[string][]byte)
 
 	for key, val := range tdaw.dirtyData {
-		oldKey, oldVal, err := tdaw.getOldKeyAndVal(key)
+		oldKey, oldVal, err := tdaw.getOldKeyAndValWithCleanup(key)
 		if err != nil {
 			return nil, err
 		}
@@ -212,7 +195,7 @@ func (tdaw *trackableDataTrie) updateTrieWithAutoBalancing() (map[string][]byte,
 	return oldValues, nil
 }
 
-func (tdaw *trackableDataTrie) getOldKeyAndVal(key string) ([]byte, []byte, error) {
+func (tdaw *trackableDataTrie) getOldKeyAndValWithCleanup(key string) ([]byte, []byte, error) {
 	hashedKey := tdaw.hasher.Compute(key)
 
 	oldVal, _, err := tdaw.tr.Get(hashedKey)

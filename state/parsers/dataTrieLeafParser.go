@@ -1,8 +1,6 @@
 package parsers
 
 import (
-	"bytes"
-
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/keyValStorage"
@@ -12,14 +10,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state/dataTrieValue"
 )
 
-type trieLeafParserV2 struct {
+type dataTrieLeafParser struct {
 	address             []byte
 	marshaller          marshal.Marshalizer
 	enableEpochsHandler common.EnableEpochsHandler
 }
 
-// NewTrieLeafParserV2 returns a new instance of trieLeafParserV2
-func NewTrieLeafParserV2(address []byte, marshaller marshal.Marshalizer, enableEpochsHandler common.EnableEpochsHandler) (*trieLeafParserV2, error) {
+// NewDataTrieLeafParser returns a new instance of dataTrieLeafParser
+func NewDataTrieLeafParser(address []byte, marshaller marshal.Marshalizer, enableEpochsHandler common.EnableEpochsHandler) (*dataTrieLeafParser, error) {
 	if check.IfNil(marshaller) {
 		return nil, errors.ErrNilMarshalizer
 	}
@@ -27,7 +25,7 @@ func NewTrieLeafParserV2(address []byte, marshaller marshal.Marshalizer, enableE
 		return nil, errors.ErrNilEnableEpochsHandler
 	}
 
-	return &trieLeafParserV2{
+	return &dataTrieLeafParser{
 		address:             address,
 		marshaller:          marshaller,
 		enableEpochsHandler: enableEpochsHandler,
@@ -35,7 +33,7 @@ func NewTrieLeafParserV2(address []byte, marshaller marshal.Marshalizer, enableE
 }
 
 // ParseLeaf returns a new KeyValStorage with the actual key and value
-func (tlp *trieLeafParserV2) ParseLeaf(trieKey []byte, trieVal []byte) (core.KeyValueHolder, error) {
+func (tlp *dataTrieLeafParser) ParseLeaf(trieKey []byte, trieVal []byte) (core.KeyValueHolder, error) {
 	if tlp.enableEpochsHandler.IsAutoBalanceDataTriesEnabled() {
 		data := &dataTrieValue.TrieLeafData{}
 		err := tlp.marshaller.Unmarshal(data, trieVal)
@@ -45,21 +43,15 @@ func (tlp *trieLeafParserV2) ParseLeaf(trieKey []byte, trieVal []byte) (core.Key
 	}
 
 	suffix := append(trieKey, tlp.address...)
-	lenSuffix := len(suffix)
-	if lenSuffix == 0 {
-		return keyValStorage.NewKeyValStorage(trieKey, trieVal), nil
+	value, err := common.TrimSuffixFromValue(trieVal, len(suffix))
+	if err != nil {
+		return nil, err
 	}
 
-	lenValue := len(trieVal)
-	position := bytes.Index(trieVal, suffix)
-	if position != lenValue-lenSuffix || position < 0 {
-		return nil, core.ErrSuffixNotPresentOrInIncorrectPosition
-	}
-
-	return keyValStorage.NewKeyValStorage(trieKey, trieVal[:position]), nil
+	return keyValStorage.NewKeyValStorage(trieKey, value), nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (tlp *trieLeafParserV2) IsInterfaceNil() bool {
+func (tlp *dataTrieLeafParser) IsInterfaceNil() bool {
 	return tlp == nil
 }

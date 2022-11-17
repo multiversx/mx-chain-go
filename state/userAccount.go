@@ -199,7 +199,7 @@ func (a *userAccount) GetAllLeaves(
 		return err
 	}
 
-	tlp, err := parsers.NewTrieLeafParserV2(a.Address, a.marshaller, a.enableEpochsHandler)
+	tlp, err := parsers.NewDataTrieLeafParser(a.Address, a.marshaller, a.enableEpochsHandler)
 	if err != nil {
 		return err
 	}

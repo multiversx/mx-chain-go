@@ -1459,7 +1459,7 @@ func TestAccountsDB_GetAllLeaves(t *testing.T) {
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 		ErrChan:    make(chan error, 1),
 	}
-	err := adb.GetAllLeaves(leavesChannel, context.Background(), []byte("root hash"), parsers.NewTrieLeafParserV1())
+	err := adb.GetAllLeaves(leavesChannel, context.Background(), []byte("root hash"), parsers.NewMainTrieLeafParser())
 	assert.Nil(t, err)
 	assert.True(t, getAllLeavesCalled)
 
@@ -2914,7 +2914,7 @@ func testAccountMethodsConcurrency(
 			case 17:
 				_ = adb.IsPruningEnabled()
 			case 18:
-				_ = adb.GetAllLeaves(&common.TrieIteratorChannels{}, context.Background(), rootHash, parsers.NewTrieLeafParserV1())
+				_ = adb.GetAllLeaves(&common.TrieIteratorChannels{}, context.Background(), rootHash, parsers.NewMainTrieLeafParser())
 			case 19:
 				_, _ = adb.RecreateAllTries(rootHash)
 			case 20:
