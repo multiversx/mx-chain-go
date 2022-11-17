@@ -1071,9 +1071,11 @@ func BenchmarkSortTransactionsByNonceAndSender_WhenReversedNoncesWithFrontRunnin
 
 	txpreproc := &transactions{
 		basePreProcess: &basePreProcess{
-			hasher:              hasher,
-			marshalizer:         marshaller,
-			enableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+			hasher:      hasher,
+			marshalizer: marshaller,
+			enableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+				IsFrontRunningProtectionFlagEnabledField: true,
+			},
 		},
 	}
 	numRands := 1000
