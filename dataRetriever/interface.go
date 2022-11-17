@@ -35,7 +35,7 @@ type Requester interface {
 	RequestDataFromHash(hash []byte, epoch uint32) error
 	SetNumPeersToQuery(intra int, cross int)
 	NumPeersToQuery() (int, int)
-	SetResolverDebugHandler(handler ResolverDebugHandler) error
+	SetResolverDebugHandler(handler ResolverDebugHandler) error // TODO[Sorin]: rename this in both interface to SetDebugHandler
 	IsInterfaceNil() bool
 }
 
@@ -98,13 +98,13 @@ type ResolversContainer interface {
 	IsInterfaceNil() bool
 }
 
-// ResolversFinder extends a container resolver and have 2 additional functionality
-type ResolversFinder interface {
-	ResolversContainer
-	IntraShardResolver(baseTopic string) (Resolver, error)
-	MetaChainResolver(baseTopic string) (Resolver, error)
-	CrossShardResolver(baseTopic string, crossShard uint32) (Resolver, error)
-	MetaCrossShardResolver(baseTopic string, crossShard uint32) (Resolver, error)
+// RequestersFinder extends a requesters container
+type RequestersFinder interface {
+	RequestersContainer
+	IntraShardRequester(baseTopic string) (Requester, error)
+	MetaChainRequester(baseTopic string) (Requester, error)
+	CrossShardRequester(baseTopic string, crossShard uint32) (Requester, error)
+	MetaCrossShardRequester(baseTopic string, crossShard uint32) (Requester, error)
 }
 
 // ResolversContainerFactory defines the functionality to create a resolvers container
@@ -136,6 +136,12 @@ type RequestersContainer interface {
 	RequesterKeys() string
 	Iterate(handler func(key string, requester Requester) bool)
 	Close() error
+	IsInterfaceNil() bool
+}
+
+// RequestersContainerFactory defines the functionality to create a requesters container
+type RequestersContainerFactory interface {
+	Create() (RequestersContainer, error)
 	IsInterfaceNil() bool
 }
 

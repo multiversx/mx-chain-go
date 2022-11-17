@@ -1,4 +1,4 @@
-package storageResolversContainers_test
+package storagerequesterscontainer_test
 
 import (
 	"strings"
@@ -8,7 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	storageResolversContainers "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/storageResolversContainer"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/storageRequestersContainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -54,79 +54,79 @@ func createStoreForMeta() dataRetriever.StorageService {
 	}
 }
 
-// ------- NewResolversContainerFactory
+// ------- NewRequestersContainerFactory
 
-func TestNewMetaResolversContainerFactory_NilShardCoordinatorShouldErr(t *testing.T) {
+func TestNewMetaRequestersContainerFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := getArgumentsMeta()
 	args.ShardCoordinator = nil
-	rcf, err := storageResolversContainers.NewMetaResolversContainerFactory(args)
+	rcf, err := storagerequesterscontainer.NewMetaRequestersContainerFactory(args)
 
 	assert.Nil(t, rcf)
 	assert.Equal(t, dataRetriever.ErrNilShardCoordinator, err)
 }
 
-func TestNewMetaResolversContainerFactory_NilMessengerShouldErr(t *testing.T) {
+func TestNewMetaRequestersContainerFactory_NilMessengerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := getArgumentsMeta()
 	args.Messenger = nil
-	rcf, err := storageResolversContainers.NewMetaResolversContainerFactory(args)
+	rcf, err := storagerequesterscontainer.NewMetaRequestersContainerFactory(args)
 
 	assert.Nil(t, rcf)
 	assert.Equal(t, dataRetriever.ErrNilMessenger, err)
 }
 
-func TestNewMetaResolversContainerFactory_NilStoreShouldErr(t *testing.T) {
+func TestNewMetaRequestersContainerFactory_NilStoreShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := getArgumentsMeta()
 	args.Store = nil
-	rcf, err := storageResolversContainers.NewMetaResolversContainerFactory(args)
+	rcf, err := storagerequesterscontainer.NewMetaRequestersContainerFactory(args)
 
 	assert.Nil(t, rcf)
 	assert.Equal(t, dataRetriever.ErrNilStore, err)
 }
 
-func TestNewMetaResolversContainerFactory_NilMarshalizerShouldErr(t *testing.T) {
+func TestNewMetaRequestersContainerFactory_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := getArgumentsMeta()
 	args.Marshalizer = nil
-	rcf, err := storageResolversContainers.NewMetaResolversContainerFactory(args)
+	rcf, err := storagerequesterscontainer.NewMetaRequestersContainerFactory(args)
 
 	assert.Nil(t, rcf)
 	assert.Equal(t, dataRetriever.ErrNilMarshalizer, err)
 }
 
-func TestNewMetaResolversContainerFactory_NilUint64SliceConverterShouldErr(t *testing.T) {
+func TestNewMetaRequestersContainerFactory_NilUint64SliceConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := getArgumentsMeta()
 	args.Uint64ByteSliceConverter = nil
-	rcf, err := storageResolversContainers.NewMetaResolversContainerFactory(args)
+	rcf, err := storagerequesterscontainer.NewMetaRequestersContainerFactory(args)
 
 	assert.Nil(t, rcf)
 	assert.Equal(t, dataRetriever.ErrNilUint64ByteSliceConverter, err)
 }
 
-func TestNewMetaResolversContainerFactory_NilDataPackerShouldErr(t *testing.T) {
+func TestNewMetaRequestersContainerFactory_NilDataPackerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := getArgumentsMeta()
 	args.DataPacker = nil
-	rcf, err := storageResolversContainers.NewMetaResolversContainerFactory(args)
+	rcf, err := storagerequesterscontainer.NewMetaRequestersContainerFactory(args)
 
 	assert.Nil(t, rcf)
 	assert.Equal(t, dataRetriever.ErrNilDataPacker, err)
 }
 
-func TestNewMetaResolversContainerFactory_ShouldWork(t *testing.T) {
+func TestNewMetaRequestersContainerFactory_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	args := getArgumentsMeta()
-	rcf, err := storageResolversContainers.NewMetaResolversContainerFactory(args)
+	rcf, err := storagerequesterscontainer.NewMetaRequestersContainerFactory(args)
 
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(rcf))
@@ -134,11 +134,11 @@ func TestNewMetaResolversContainerFactory_ShouldWork(t *testing.T) {
 
 // ------- Create
 
-func TestMetaResolversContainerFactory_CreateShouldWork(t *testing.T) {
+func TestMetaRequestersContainerFactory_CreateShouldWork(t *testing.T) {
 	t.Parallel()
 
 	args := getArgumentsMeta()
-	rcf, _ := storageResolversContainers.NewMetaResolversContainerFactory(args)
+	rcf, _ := storagerequesterscontainer.NewMetaRequestersContainerFactory(args)
 
 	container, err := rcf.Create()
 
@@ -146,7 +146,7 @@ func TestMetaResolversContainerFactory_CreateShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestMetaResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
+func TestMetaRequestersContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	noOfShards := 4
@@ -156,27 +156,27 @@ func TestMetaResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 
 	args := getArgumentsMeta()
 	args.ShardCoordinator = shardCoordinator
-	rcf, err := storageResolversContainers.NewMetaResolversContainerFactory(args)
+	rcf, err := storagerequesterscontainer.NewMetaRequestersContainerFactory(args)
 	require.Nil(t, err)
 
 	container, err := rcf.Create()
 	require.Nil(t, err)
 
-	numResolversShardHeadersForMetachain := noOfShards
-	numResolverMetablocks := 1
-	numResolversMiniBlocks := noOfShards + 2
-	numResolversUnsigned := noOfShards + 1
-	numResolversRewards := noOfShards
-	numResolversTxs := noOfShards + 1
-	numResolversTrieNodes := 2
+	numRequestersShardHeadersForMetachain := noOfShards
+	numRequesterMetablocks := 1
+	numRequestersMiniBlocks := noOfShards + 2
+	numRequestersUnsigned := noOfShards + 1
+	numRequestersRewards := noOfShards
+	numRequestersTxs := noOfShards + 1
+	numRequestersTrieNodes := 2
 	numPeerAuthentication := 1
 	numValidatorInfo := 1
-	totalResolvers := numResolversShardHeadersForMetachain + numResolverMetablocks + numResolversMiniBlocks +
-		numResolversUnsigned + numResolversTxs + numResolversTrieNodes + numResolversRewards + numPeerAuthentication +
+	totalRequesters := numRequestersShardHeadersForMetachain + numRequesterMetablocks + numRequestersMiniBlocks +
+		numRequestersUnsigned + numRequestersTxs + numRequestersTrieNodes + numRequestersRewards + numPeerAuthentication +
 		numValidatorInfo
 
-	assert.Equal(t, totalResolvers, container.Len())
-	assert.Equal(t, totalResolvers, container.Len())
+	assert.Equal(t, totalRequesters, container.Len())
+	assert.Equal(t, totalRequesters, container.Len())
 }
 
 func getMockStorageConfig() config.StorageConfig {
@@ -197,8 +197,8 @@ func getMockStorageConfig() config.StorageConfig {
 	}
 }
 
-func getArgumentsMeta() storageResolversContainers.FactoryArgs {
-	return storageResolversContainers.FactoryArgs{
+func getArgumentsMeta() storagerequesterscontainer.FactoryArgs {
+	return storagerequesterscontainer.FactoryArgs{
 		GeneralConfig: config.Config{
 			AccountsTrieStorage:     getMockStorageConfig(),
 			PeerAccountsTrieStorage: getMockStorageConfig(),

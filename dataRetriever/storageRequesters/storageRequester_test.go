@@ -1,4 +1,4 @@
-package storageResolvers
+package storagerequesters
 
 import (
 	"fmt"
@@ -13,7 +13,7 @@ import (
 
 const timeout = time.Second * 2
 
-func TestStorageResolver_ImplementedMethodsShouldNotPanic(t *testing.T) {
+func TestStorageRequester_ImplementedMethodsShouldNotPanic(t *testing.T) {
 	t.Parallel()
 
 	defer func() {
@@ -23,8 +23,7 @@ func TestStorageResolver_ImplementedMethodsShouldNotPanic(t *testing.T) {
 		}
 	}()
 
-	sr := &storageResolver{}
-	assert.Nil(t, sr.ProcessReceivedMessage(nil, ""))
+	sr := &storageRequester{}
 	assert.Nil(t, sr.SetResolverDebugHandler(nil))
 	sr.SetNumPeersToQuery(0, 0)
 	v1, v2 := sr.NumPeersToQuery()
@@ -32,12 +31,12 @@ func TestStorageResolver_ImplementedMethodsShouldNotPanic(t *testing.T) {
 	assert.Equal(t, 0, v2)
 }
 
-func TestStorageResolver_signalGracefullyClose(t *testing.T) {
+func TestStorageRequester_signalGracefullyClose(t *testing.T) {
 	t.Parallel()
 
 	chanClose := make(chan endProcess.ArgEndProcess, 1)
 	timeToWait := time.Millisecond * 100
-	sr := &storageResolver{
+	sr := &storageRequester{
 		chanGracefullyClose: chanClose,
 		manualEpochStartNotifier: &mock.ManualEpochStartNotifierStub{
 			CurrentEpochCalled: func() uint32 {
@@ -63,7 +62,7 @@ func TestStorageResolver_signalGracefullyClose(t *testing.T) {
 	assert.Equal(t, endArg.Reason, common.ImportComplete)
 }
 
-func TestStorageResolver_signalGracefullyCloseCanNotWriteOnChanShouldNotPanic(t *testing.T) {
+func TestStorageRequester_signalGracefullyCloseCanNotWriteOnChanShouldNotPanic(t *testing.T) {
 	t.Parallel()
 
 	defer func() {
@@ -74,7 +73,7 @@ func TestStorageResolver_signalGracefullyCloseCanNotWriteOnChanShouldNotPanic(t 
 	}()
 
 	chanClose := make(chan endProcess.ArgEndProcess)
-	sr := &storageResolver{
+	sr := &storageRequester{
 		chanGracefullyClose: chanClose,
 		manualEpochStartNotifier: &mock.ManualEpochStartNotifierStub{
 			CurrentEpochCalled: func() uint32 {
@@ -88,7 +87,7 @@ func TestStorageResolver_signalGracefullyCloseCanNotWriteOnChanShouldNotPanic(t 
 	time.Sleep(time.Second)
 }
 
-func TestStorageResolver_signalGracefullyCloseDoubleSignalShouldNotPanic(t *testing.T) {
+func TestStorageRequester_signalGracefullyCloseDoubleSignalShouldNotPanic(t *testing.T) {
 	t.Parallel()
 
 	defer func() {
@@ -99,7 +98,7 @@ func TestStorageResolver_signalGracefullyCloseDoubleSignalShouldNotPanic(t *test
 	}()
 
 	chanClose := make(chan endProcess.ArgEndProcess)
-	sr := &storageResolver{
+	sr := &storageRequester{
 		chanGracefullyClose: chanClose,
 		manualEpochStartNotifier: &mock.ManualEpochStartNotifierStub{
 			CurrentEpochCalled: func() uint32 {

@@ -1,4 +1,4 @@
-package storageResolvers
+package storagerequesters
 
 import (
 	"errors"
@@ -16,8 +16,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func createMockTrieResolverArguments() ArgTrieResolver {
-	return ArgTrieResolver{
+func createMockTrieRequesterArguments() ArgTrieRequester {
+	return ArgTrieRequester{
 		Messenger:                &mock.MessengerStub{},
 		ResponseTopicName:        "",
 		Marshalizer:              &mock.MarshalizerStub{},
@@ -29,66 +29,66 @@ func createMockTrieResolverArguments() ArgTrieResolver {
 	}
 }
 
-func TestNewTrieNodeResolver_InvalidArgumentsShouldErr(t *testing.T) {
+func TestNewTrieNodeRequester_InvalidArgumentsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := createMockTrieResolverArguments()
+	args := createMockTrieRequesterArguments()
 	args.Messenger = nil
-	tnr, err := NewTrieNodeResolver(args)
+	tnr, err := NewTrieNodeRequester(args)
 	assert.True(t, check.IfNil(tnr))
 	assert.Equal(t, dataRetriever.ErrNilMessenger, err)
 
-	args = createMockTrieResolverArguments()
+	args = createMockTrieRequesterArguments()
 	args.ManualEpochStartNotifier = nil
-	tnr, err = NewTrieNodeResolver(args)
+	tnr, err = NewTrieNodeRequester(args)
 	assert.True(t, check.IfNil(tnr))
 	assert.Equal(t, dataRetriever.ErrNilManualEpochStartNotifier, err)
 
-	args = createMockTrieResolverArguments()
+	args = createMockTrieRequesterArguments()
 	args.ChanGracefullyClose = nil
-	tnr, err = NewTrieNodeResolver(args)
+	tnr, err = NewTrieNodeRequester(args)
 	assert.True(t, check.IfNil(tnr))
 	assert.Equal(t, dataRetriever.ErrNilGracefullyCloseChannel, err)
 
-	args = createMockTrieResolverArguments()
+	args = createMockTrieRequesterArguments()
 	args.TrieStorageManager = nil
-	tnr, err = NewTrieNodeResolver(args)
+	tnr, err = NewTrieNodeRequester(args)
 	assert.True(t, check.IfNil(tnr))
 	assert.Equal(t, dataRetriever.ErrNilTrieStorageManager, err)
 
-	args = createMockTrieResolverArguments()
+	args = createMockTrieRequesterArguments()
 	args.TrieDataGetter = nil
-	tnr, err = NewTrieNodeResolver(args)
+	tnr, err = NewTrieNodeRequester(args)
 	assert.True(t, check.IfNil(tnr))
 	assert.Equal(t, dataRetriever.ErrNilTrieDataGetter, err)
 
-	args = createMockTrieResolverArguments()
+	args = createMockTrieRequesterArguments()
 	args.Marshalizer = nil
-	tnr, err = NewTrieNodeResolver(args)
+	tnr, err = NewTrieNodeRequester(args)
 	assert.True(t, check.IfNil(tnr))
 	assert.Equal(t, dataRetriever.ErrNilMarshalizer, err)
 }
 
-func TestNewTrieNodeResolver_ShouldWork(t *testing.T) {
+func TestNewTrieNodeRequester_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	args := createMockTrieResolverArguments()
-	tnr, err := NewTrieNodeResolver(args)
+	args := createMockTrieRequesterArguments()
+	tnr, err := NewTrieNodeRequester(args)
 	assert.False(t, check.IfNil(tnr))
 	assert.Nil(t, err)
 }
 
-func TestTrieNodeResolver_RequestDataFromHashGetSubtrieFailsShouldErr(t *testing.T) {
+func TestTrieNodeRequester_RequestDataFromHashGetSubtrieFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := createMockTrieResolverArguments()
+	args := createMockTrieRequesterArguments()
 	expectedErr := errors.New("expected error")
 	args.TrieDataGetter = &trieMock.TrieStub{
 		GetSerializedNodesCalled: func(bytes []byte, u uint64) ([][]byte, uint64, error) {
 			return nil, 0, expectedErr
 		},
 	}
-	tnr, _ := NewTrieNodeResolver(args)
+	tnr, _ := NewTrieNodeRequester(args)
 
 	err := tnr.RequestDataFromHash(nil, 0)
 	assert.Equal(t, expectedErr, err)
@@ -100,10 +100,10 @@ func TestTrieNodeResolver_RequestDataFromHashGetSubtrieFailsShouldErr(t *testing
 	}
 }
 
-func TestTrieNodeResolver_RequestDataFromHashShouldWork(t *testing.T) {
+func TestTrieNodeRequester_RequestDataFromHashShouldWork(t *testing.T) {
 	t.Parallel()
 
-	args := createMockTrieResolverArguments()
+	args := createMockTrieRequesterArguments()
 	buff := []byte("data")
 	args.TrieDataGetter = &trieMock.TrieStub{
 		GetSerializedNodesCalled: func(bytes []byte, u uint64) ([][]byte, uint64, error) {
@@ -118,7 +118,7 @@ func TestTrieNodeResolver_RequestDataFromHashShouldWork(t *testing.T) {
 		},
 	}
 	args.Marshalizer = &mock.MarshalizerMock{}
-	tnr, _ := NewTrieNodeResolver(args)
+	tnr, _ := NewTrieNodeRequester(args)
 
 	err := tnr.RequestDataFromHash(nil, 0)
 	assert.Nil(t, err)
@@ -126,10 +126,10 @@ func TestTrieNodeResolver_RequestDataFromHashShouldWork(t *testing.T) {
 	assert.Equal(t, uint32(1), atomic.LoadUint32(&numSendToConnectedPeerCalled))
 }
 
-func TestTrieNodeResolver_RequestDataFromHashArrayShouldWork(t *testing.T) {
+func TestTrieNodeRequester_RequestDataFromHashArrayShouldWork(t *testing.T) {
 	t.Parallel()
 
-	args := createMockTrieResolverArguments()
+	args := createMockTrieRequesterArguments()
 	buff := []byte("data")
 	numGetSerializedNodesCalled := uint32(0)
 	args.TrieDataGetter = &trieMock.TrieStub{
@@ -146,7 +146,7 @@ func TestTrieNodeResolver_RequestDataFromHashArrayShouldWork(t *testing.T) {
 		},
 	}
 	args.Marshalizer = &mock.MarshalizerMock{}
-	tnr, _ := NewTrieNodeResolver(args)
+	tnr, _ := NewTrieNodeRequester(args)
 
 	err := tnr.RequestDataFromHashArray(
 		[][]byte{

@@ -1,4 +1,4 @@
-package storageResolversContainers
+package storagerequesterscontainer
 
 import (
 	"fmt"
@@ -6,22 +6,22 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/storageResolvers"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/storageRequesters"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 )
 
-var _ dataRetriever.ResolversContainerFactory = (*metaResolversContainerFactory)(nil)
+var _ dataRetriever.RequestersContainerFactory = (*metaRequestersContainerFactory)(nil)
 
-type metaResolversContainerFactory struct {
-	*baseResolversContainerFactory
+type metaRequestersContainerFactory struct {
+	*baseRequestersContainerFactory
 }
 
-// NewMetaResolversContainerFactory creates a new container filled with topic resolvers for metachain
-func NewMetaResolversContainerFactory(
+// NewMetaRequestersContainerFactory creates a new container filled with topic requesters for metachain
+func NewMetaRequestersContainerFactory(
 	args FactoryArgs,
-) (*metaResolversContainerFactory, error) {
-	container := containers.NewResolversContainer()
-	base := &baseResolversContainerFactory{
+) (*metaRequestersContainerFactory, error) {
+	container := containers.NewRequestersContainer()
+	base := &baseRequestersContainerFactory{
 		container:                container,
 		shardCoordinator:         args.ShardCoordinator,
 		messenger:                args.Messenger,
@@ -43,24 +43,24 @@ func NewMetaResolversContainerFactory(
 		return nil, err
 	}
 
-	return &metaResolversContainerFactory{
-		baseResolversContainerFactory: base,
+	return &metaRequestersContainerFactory{
+		baseRequestersContainerFactory: base,
 	}, nil
 }
 
 // Create returns an interceptor container that will hold all interceptors in the system
-func (mrcf *metaResolversContainerFactory) Create() (dataRetriever.ResolversContainer, error) {
-	err := mrcf.generateShardHeaderResolvers()
+func (mrcf *metaRequestersContainerFactory) Create() (dataRetriever.RequestersContainer, error) {
+	err := mrcf.generateShardHeaderRequesters()
 	if err != nil {
 		return nil, err
 	}
 
-	err = mrcf.generateMetaChainHeaderResolvers()
+	err = mrcf.generateMetaChainHeaderRequesters()
 	if err != nil {
 		return nil, err
 	}
 
-	err = mrcf.generateTxResolvers(
+	err = mrcf.generateTxRequesters(
 		factory.TransactionTopic,
 		dataRetriever.TransactionUnit,
 	)
@@ -68,7 +68,7 @@ func (mrcf *metaResolversContainerFactory) Create() (dataRetriever.ResolversCont
 		return nil, err
 	}
 
-	err = mrcf.generateTxResolvers(
+	err = mrcf.generateTxRequesters(
 		factory.UnsignedTransactionTopic,
 		dataRetriever.UnsignedTransactionUnit,
 	)
@@ -76,7 +76,7 @@ func (mrcf *metaResolversContainerFactory) Create() (dataRetriever.ResolversCont
 		return nil, err
 	}
 
-	err = mrcf.generateRewardsResolvers(
+	err = mrcf.generateRewardsRequesters(
 		factory.RewardsTransactionTopic,
 		dataRetriever.RewardTransactionUnit,
 	)
@@ -84,22 +84,22 @@ func (mrcf *metaResolversContainerFactory) Create() (dataRetriever.ResolversCont
 		return nil, err
 	}
 
-	err = mrcf.generateMiniBlocksResolvers()
+	err = mrcf.generateMiniBlocksRequesters()
 	if err != nil {
 		return nil, err
 	}
 
-	err = mrcf.generateTrieNodesResolvers()
+	err = mrcf.generateTrieNodesRequesters()
 	if err != nil {
 		return nil, err
 	}
 
-	err = mrcf.generatePeerAuthenticationResolver()
+	err = mrcf.generatePeerAuthenticationRequester()
 	if err != nil {
 		return nil, err
 	}
 
-	err = mrcf.generateValidatorInfoResolver()
+	err = mrcf.generateValidatorInfoRequester()
 	if err != nil {
 		return nil, err
 	}
@@ -107,33 +107,33 @@ func (mrcf *metaResolversContainerFactory) Create() (dataRetriever.ResolversCont
 	return mrcf.container, nil
 }
 
-// ------- Shard header resolvers
+// ------- Shard header requesters
 
-func (mrcf *metaResolversContainerFactory) generateShardHeaderResolvers() error {
+func (mrcf *metaRequestersContainerFactory) generateShardHeaderRequesters() error {
 	shardC := mrcf.shardCoordinator
 	noOfShards := shardC.NumberOfShards()
 	keys := make([]string, noOfShards)
-	resolversSlice := make([]dataRetriever.Resolver, noOfShards)
+	requestersSlice := make([]dataRetriever.Requester, noOfShards)
 
 	// wire up to topics: shardBlocks_0_META, shardBlocks_1_META ...
 	for idx := uint32(0); idx < noOfShards; idx++ {
 		identifierHeader := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(idx)
-		resolver, err := mrcf.createShardHeaderResolver(identifierHeader, idx)
+		requester, err := mrcf.createShardHeaderRequester(identifierHeader, idx)
 		if err != nil {
 			return err
 		}
 
-		resolversSlice[idx] = resolver
+		requestersSlice[idx] = requester
 		keys[idx] = identifierHeader
 	}
 
-	return mrcf.container.AddMultiple(keys, resolversSlice)
+	return mrcf.container.AddMultiple(keys, requestersSlice)
 }
 
-func (mrcf *metaResolversContainerFactory) createShardHeaderResolver(
+func (mrcf *metaRequestersContainerFactory) createShardHeaderRequester(
 	responseTopicName string,
 	shardID uint32,
-) (dataRetriever.Resolver, error) {
+) (dataRetriever.Requester, error) {
 	hdrStorer, err := mrcf.store.GetStorer(dataRetriever.BlockHeaderUnit)
 	if err != nil {
 		return nil, err
@@ -146,7 +146,7 @@ func (mrcf *metaResolversContainerFactory) createShardHeaderResolver(
 		return nil, err
 	}
 
-	arg := storageResolvers.ArgHeaderResolver{
+	arg := storagerequesters.ArgHeaderRequester{
 		Messenger:                mrcf.messenger,
 		ResponseTopicName:        responseTopicName,
 		NonceConverter:           mrcf.uint64ByteSliceConverter,
@@ -156,27 +156,27 @@ func (mrcf *metaResolversContainerFactory) createShardHeaderResolver(
 		ChanGracefullyClose:      mrcf.chanGracefullyClose,
 		DelayBeforeGracefulClose: defaultBeforeGracefulClose,
 	}
-	resolver, err := storageResolvers.NewHeaderResolver(arg)
+	requester, err := storagerequesters.NewHeaderRequester(arg)
 	if err != nil {
 		return nil, err
 	}
 
-	return resolver, nil
+	return requester, nil
 }
 
-// ------- Meta header resolvers
+// ------- Meta header requesters
 
-func (mrcf *metaResolversContainerFactory) generateMetaChainHeaderResolvers() error {
+func (mrcf *metaRequestersContainerFactory) generateMetaChainHeaderRequesters() error {
 	identifierHeader := factory.MetachainBlocksTopic
-	resolver, err := mrcf.createMetaChainHeaderResolver()
+	requester, err := mrcf.createMetaChainHeaderRequester()
 	if err != nil {
 		return err
 	}
 
-	return mrcf.container.Add(identifierHeader, resolver)
+	return mrcf.container.Add(identifierHeader, requester)
 }
 
-func (mrcf *metaResolversContainerFactory) createMetaChainHeaderResolver() (dataRetriever.Resolver, error) {
+func (mrcf *metaRequestersContainerFactory) createMetaChainHeaderRequester() (dataRetriever.Requester, error) {
 	hdrStorer, err := mrcf.store.GetStorer(dataRetriever.MetaBlockUnit)
 	if err != nil {
 		return nil, err
@@ -187,7 +187,7 @@ func (mrcf *metaResolversContainerFactory) createMetaChainHeaderResolver() (data
 		return nil, err
 	}
 
-	arg := storageResolvers.ArgHeaderResolver{
+	arg := storagerequesters.ArgHeaderRequester{
 		Messenger:                mrcf.messenger,
 		ResponseTopicName:        factory.MetachainBlocksTopic,
 		NonceConverter:           mrcf.uint64ByteSliceConverter,
@@ -197,17 +197,17 @@ func (mrcf *metaResolversContainerFactory) createMetaChainHeaderResolver() (data
 		ChanGracefullyClose:      mrcf.chanGracefullyClose,
 		DelayBeforeGracefulClose: defaultBeforeGracefulClose,
 	}
-	resolver, err := storageResolvers.NewHeaderResolver(arg)
+	requester, err := storagerequesters.NewHeaderRequester(arg)
 	if err != nil {
 		return nil, err
 	}
 
-	return resolver, nil
+	return requester, nil
 }
 
-func (mrcf *metaResolversContainerFactory) generateTrieNodesResolvers() error {
+func (mrcf *metaRequestersContainerFactory) generateTrieNodesRequesters() error {
 	keys := make([]string, 0)
-	resolversSlice := make([]dataRetriever.Resolver, 0)
+	requestersSlice := make([]dataRetriever.Requester, 0)
 
 	userAccountsStorer, err := mrcf.store.GetStorer(dataRetriever.UserAccountsUnit)
 	if err != nil {
@@ -227,7 +227,7 @@ func (mrcf *metaResolversContainerFactory) generateTrieNodesResolvers() error {
 	if err != nil {
 		return fmt.Errorf("%w while creating user accounts data trie storage getter", err)
 	}
-	arg := storageResolvers.ArgTrieResolver{
+	arg := storagerequesters.ArgTrieRequester{
 		Messenger:                mrcf.messenger,
 		ResponseTopicName:        identifierTrieNodes,
 		Marshalizer:              mrcf.marshalizer,
@@ -237,12 +237,12 @@ func (mrcf *metaResolversContainerFactory) generateTrieNodesResolvers() error {
 		ChanGracefullyClose:      mrcf.chanGracefullyClose,
 		DelayBeforeGracefulClose: defaultBeforeGracefulClose,
 	}
-	resolver, err := storageResolvers.NewTrieNodeResolver(arg)
+	requester, err := storagerequesters.NewTrieNodeRequester(arg)
 	if err != nil {
-		return fmt.Errorf("%w while creating user accounts trie node resolver", err)
+		return fmt.Errorf("%w while creating user accounts trie node requester", err)
 	}
 
-	resolversSlice = append(resolversSlice, resolver)
+	requestersSlice = append(requestersSlice, requester)
 	keys = append(keys, identifierTrieNodes)
 
 	peerAccountsStorer, err := mrcf.store.GetStorer(dataRetriever.PeerAccountsUnit)
@@ -263,7 +263,7 @@ func (mrcf *metaResolversContainerFactory) generateTrieNodesResolvers() error {
 	if err != nil {
 		return fmt.Errorf("%w while creating peer accounts data trie storage getter", err)
 	}
-	arg = storageResolvers.ArgTrieResolver{
+	arg = storagerequesters.ArgTrieRequester{
 		Messenger:                mrcf.messenger,
 		ResponseTopicName:        identifierTrieNodes,
 		Marshalizer:              mrcf.marshalizer,
@@ -274,18 +274,18 @@ func (mrcf *metaResolversContainerFactory) generateTrieNodesResolvers() error {
 		DelayBeforeGracefulClose: defaultBeforeGracefulClose,
 	}
 
-	resolver, err = storageResolvers.NewTrieNodeResolver(arg)
+	requester, err = storagerequesters.NewTrieNodeRequester(arg)
 	if err != nil {
-		return fmt.Errorf("%w while creating peer accounts trie node resolver", err)
+		return fmt.Errorf("%w while creating peer accounts trie node requester", err)
 	}
 
-	resolversSlice = append(resolversSlice, resolver)
+	requestersSlice = append(requestersSlice, requester)
 	keys = append(keys, identifierTrieNodes)
 
-	return mrcf.container.AddMultiple(keys, resolversSlice)
+	return mrcf.container.AddMultiple(keys, requestersSlice)
 }
 
-func (mrcf *metaResolversContainerFactory) generateRewardsResolvers(
+func (mrcf *metaRequestersContainerFactory) generateRewardsRequesters(
 	topic string,
 	unit dataRetriever.UnitType,
 ) error {
@@ -294,24 +294,24 @@ func (mrcf *metaResolversContainerFactory) generateRewardsResolvers(
 	noOfShards := shardC.NumberOfShards()
 
 	keys := make([]string, noOfShards)
-	resolverSlice := make([]dataRetriever.Resolver, noOfShards)
+	requestersSlice := make([]dataRetriever.Requester, noOfShards)
 
 	// wire up to topics: shardBlocks_0_META, shardBlocks_1_META ...
 	for idx := uint32(0); idx < noOfShards; idx++ {
 		identifierTx := topic + shardC.CommunicationIdentifier(idx)
-		resolver, err := mrcf.createTxResolver(identifierTx, unit)
+		requester, err := mrcf.createTxRequester(identifierTx, unit)
 		if err != nil {
 			return err
 		}
 
-		resolverSlice[idx] = resolver
+		requestersSlice[idx] = requester
 		keys[idx] = identifierTx
 	}
 
-	return mrcf.container.AddMultiple(keys, resolverSlice)
+	return mrcf.container.AddMultiple(keys, requestersSlice)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (mrcf *metaResolversContainerFactory) IsInterfaceNil() bool {
+func (mrcf *metaRequestersContainerFactory) IsInterfaceNil() bool {
 	return mrcf == nil
 }

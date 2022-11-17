@@ -22,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/blockchain"
 	factoryDataPool "github.com/ElrondNetwork/elrond-go/dataRetriever/factory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/requestersContainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
@@ -491,6 +492,11 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 
 	e.trieContainer = triesContainer
 	e.trieStorageManagers = trieStorageManagers
+
+	err = e.createResolversContainer()
+	if err != nil {
+		return err
+	}
 
 	err = e.createRequestHandler()
 	if err != nil {
@@ -1148,7 +1154,7 @@ func (e *epochStartBootstrap) syncValidatorAccountsState(rootHash []byte) error 
 	return nil
 }
 
-func (e *epochStartBootstrap) createRequestHandler() error {
+func (e *epochStartBootstrap) createResolversContainer() error {
 	dataPacker, err := partitioning.NewSimpleDataPacker(e.coreComponentsHolder.InternalMarshalizer())
 	if err != nil {
 		return err
@@ -1193,12 +1199,42 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 		return err
 	}
 
-	err = resolverFactory.AddShardTrieNodeResolvers(container)
+	return resolverFactory.AddShardTrieNodeResolvers(container)
+}
+
+func (e *epochStartBootstrap) createRequestHandler() error {
+	requestersContainerArgs := requesterscontainer.FactoryArgs{
+		RequesterConfig: config.RequesterConfig{
+			NumCrossShardPeers:  e.generalConfig.Resolvers.NumCrossShardPeers,
+			NumTotalPeers:       e.generalConfig.Resolvers.NumTotalPeers,
+			NumFullHistoryPeers: e.generalConfig.Resolvers.NumFullHistoryPeers,
+		}, // TODO[Sorin]: pass the proper config
+		ShardCoordinator:            e.shardCoordinator,
+		Messenger:                   e.messenger,
+		Marshaller:                  e.coreComponentsHolder.InternalMarshalizer(),
+		Uint64ByteSliceConverter:    uint64ByteSlice.NewBigEndianConverter(),
+		OutputAntifloodHandler:      disabled.NewAntiFloodHandler(),
+		CurrentNetworkEpochProvider: disabled.NewCurrentNetworkEpochProviderHandler(),
+		PreferredPeersHolder:        disabled.NewPreferredPeersHolder(),
+		PeersRatingHandler:          disabled.NewDisabledPeersRatingHandler(),
+		SizeCheckDelta:              0,
+	}
+	requestersFactory, err := requesterscontainer.NewMetaRequestersContainerFactory(requestersContainerArgs)
 	if err != nil {
 		return err
 	}
 
-	finder, err := containers.NewResolversFinder(container, e.shardCoordinator)
+	container, err := requestersFactory.Create()
+	if err != nil {
+		return err
+	}
+
+	err = requestersFactory.AddShardTrieNodeRequesters(container)
+	if err != nil {
+		return err
+	}
+
+	finder, err := containers.NewRequestersFinder(container, e.shardCoordinator)
 	if err != nil {
 		return err
 	}

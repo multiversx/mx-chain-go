@@ -14,7 +14,7 @@ import (
 )
 
 var _ dataRetriever.MiniBlocksResolver = (*miniblockResolver)(nil)
-var _ requestHandlers.HashSliceResolver = (*miniblockResolver)(nil)
+var _ requestHandlers.HashSliceRequester = (*miniblockResolver)(nil)
 
 // ArgMiniblockResolver is the argument structure used to create a new miniblockResolver instance
 type ArgMiniblockResolver struct {

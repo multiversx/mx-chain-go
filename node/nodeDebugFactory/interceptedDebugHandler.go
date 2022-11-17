@@ -17,7 +17,8 @@ const InterceptorResolverDebugger = "interceptor resolver debugger"
 func CreateInterceptedDebugHandler(
 	node NodeWrapper,
 	interceptors process.InterceptorsContainer,
-	resolvers dataRetriever.ResolversFinder,
+	resolvers dataRetriever.ResolversContainer,
+	requesters dataRetriever.RequestersContainer,
 	config config.InterceptorResolverDebugConfig,
 ) error {
 	if check.IfNil(node) {
@@ -28,6 +29,9 @@ func CreateInterceptedDebugHandler(
 	}
 	if check.IfNil(resolvers) {
 		return ErrNilResolverContainer
+	}
+	if check.IfNil(requesters) {
+		return ErrNilRequestersContainer
 	}
 
 	debugHandler, err := factory.NewInterceptorResolverDebuggerFactory(config)
@@ -51,6 +55,19 @@ func CreateInterceptedDebugHandler(
 
 	resolvers.Iterate(func(key string, resolver dataRetriever.Resolver) bool {
 		err = resolver.SetResolverDebugHandler(debugHandler)
+		if err != nil {
+			errFound = err
+			return false
+		}
+
+		return true
+	})
+	if errFound != nil {
+		return fmt.Errorf("%w while setting up debugger on resolvers", errFound)
+	}
+
+	requesters.Iterate(func(key string, requester dataRetriever.Requester) bool {
+		err = requester.SetResolverDebugHandler(debugHandler)
 		if err != nil {
 			errFound = err
 			return false

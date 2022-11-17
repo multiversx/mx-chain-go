@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/storage/cache"
+	dataRetrieverMocks "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -19,18 +20,18 @@ import (
 var timeoutSendRequests = time.Second * 2
 var errExpected = errors.New("expected error")
 
-func createResolversFinderStubThatShouldNotBeCalled(tb testing.TB) *mock.ResolversFinderStub {
-	return &mock.ResolversFinderStub{
-		IntraShardResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, err error) {
-			assert.Fail(tb, "IntraShardResolverCalled should not have been called")
+func createRequestersFinderStubThatShouldNotBeCalled(tb testing.TB) *dataRetrieverMocks.RequestersFinderStub {
+	return &dataRetrieverMocks.RequestersFinderStub{
+		IntraShardRequesterCalled: func(baseTopic string) (requester dataRetriever.Requester, err error) {
+			assert.Fail(tb, "IntraShardRequesterCalled should not have been called")
 			return nil, nil
 		},
-		MetaChainResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, err error) {
-			assert.Fail(tb, "MetaChainResolverCalled should not have been called")
+		MetaChainRequesterCalled: func(baseTopic string) (requester dataRetriever.Requester, err error) {
+			assert.Fail(tb, "MetaChainRequesterCalled should not have been called")
 			return nil, nil
 		},
-		CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, err error) {
-			assert.Fail(tb, "CrossShardResolverCalled should not have been called")
+		CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (requester dataRetriever.Requester, err error) {
+			assert.Fail(tb, "CrossShardRequesterCalled should not have been called")
 			return nil, nil
 		},
 	}
@@ -49,14 +50,14 @@ func TestNewResolverRequestHandlerNilFinder(t *testing.T) {
 	)
 
 	assert.Nil(t, rrh)
-	assert.Equal(t, dataRetriever.ErrNilResolverFinder, err)
+	assert.Equal(t, dataRetriever.ErrNilRequestersFinder, err)
 }
 
 func TestNewResolverRequestHandlerNilRequestedItemsHandler(t *testing.T) {
 	t.Parallel()
 
 	rrh, err := NewResolverRequestHandler(
-		&mock.ResolversFinderStub{},
+		&dataRetrieverMocks.RequestersFinderStub{},
 		nil,
 		&mock.WhiteListHandlerStub{},
 		1,
@@ -72,7 +73,7 @@ func TestNewResolverRequestHandlerMaxTxRequestTooSmall(t *testing.T) {
 	t.Parallel()
 
 	rrh, err := NewResolverRequestHandler(
-		&mock.ResolversFinderStub{},
+		&dataRetrieverMocks.RequestersFinderStub{},
 		&mock.RequestedItemsHandlerStub{},
 		&mock.WhiteListHandlerStub{},
 		0,
@@ -88,7 +89,7 @@ func TestNewResolverRequestHandler(t *testing.T) {
 	t.Parallel()
 
 	rrh, err := NewResolverRequestHandler(
-		&mock.ResolversFinderStub{},
+		&dataRetrieverMocks.RequestersFinderStub{},
 		&mock.RequestedItemsHandlerStub{},
 		&mock.WhiteListHandlerStub{},
 		1,
@@ -102,7 +103,7 @@ func TestNewResolverRequestHandler(t *testing.T) {
 
 // ------- RequestTransaction
 
-func TestResolverRequestHandler_RequestTransactionErrorWhenGettingCrossShardResolverShouldNotPanic(t *testing.T) {
+func TestResolverRequestHandler_RequestTransactionErrorWhenGettingCrossShardRequesterShouldNotPanic(t *testing.T) {
 	t.Parallel()
 
 	defer func() {
@@ -113,8 +114,8 @@ func TestResolverRequestHandler_RequestTransactionErrorWhenGettingCrossShardReso
 	}()
 
 	rrh, _ := NewResolverRequestHandler(
-		&mock.ResolversFinderStub{
-			CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, e error) {
+		&dataRetrieverMocks.RequestersFinderStub{
+			CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (requester dataRetriever.Requester, e error) {
 				return nil, errExpected
 			},
 		},
@@ -138,12 +139,12 @@ func TestResolverRequestHandler_RequestTransactionWrongResolverShouldNotPanic(t 
 		}
 	}()
 
-	wrongTxResolver := &mock.HeaderResolverStub{}
+	wrongTxRequester := &dataRetrieverMocks.NonceRequesterStub{}
 
 	rrh, _ := NewResolverRequestHandler(
-		&mock.ResolversFinderStub{
-			CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, e error) {
-				return wrongTxResolver, nil
+		&dataRetrieverMocks.RequestersFinderStub{
+			CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (requester dataRetriever.Requester, e error) {
+				return wrongTxRequester, nil
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
@@ -160,7 +161,7 @@ func TestResolverRequestHandler_RequestTransactionShouldRequestTransactions(t *t
 	t.Parallel()
 
 	chTxRequested := make(chan struct{})
-	txResolver := &mock.HashSliceResolverStub{
+	txRequester := &dataRetrieverMocks.HashSliceRequesterStub{
 		RequestDataFromHashArrayCalled: func(hashes [][]byte, epoch uint32) error {
 			chTxRequested <- struct{}{}
 			return nil
@@ -168,9 +169,9 @@ func TestResolverRequestHandler_RequestTransactionShouldRequestTransactions(t *t
 	}
 
 	rrh, _ := NewResolverRequestHandler(
-		&mock.ResolversFinderStub{
-			CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, e error) {
-				return txResolver, nil
+		&dataRetrieverMocks.RequestersFinderStub{
+			CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (requester dataRetriever.Requester, e error) {
+				return txRequester, nil
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
@@ -195,7 +196,7 @@ func TestResolverRequestHandler_RequestTransactionShouldRequest4TimesIfDifferent
 	t.Parallel()
 
 	numRequests := uint32(0)
-	txResolver := &mock.HashSliceResolverStub{
+	txRequester := &dataRetrieverMocks.HashSliceRequesterStub{
 		RequestDataFromHashArrayCalled: func(hashes [][]byte, epoch uint32) error {
 			atomic.AddUint32(&numRequests, 1)
 			return nil
@@ -205,9 +206,9 @@ func TestResolverRequestHandler_RequestTransactionShouldRequest4TimesIfDifferent
 	timeSpan := time.Second
 	timeCache := cache.NewTimeCache(timeSpan)
 	rrh, _ := NewResolverRequestHandler(
-		&mock.ResolversFinderStub{
-			CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, e error) {
-				return txResolver, nil
+		&dataRetrieverMocks.RequestersFinderStub{
+			CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (requester dataRetriever.Requester, e error) {
+				return txRequester, nil
 			},
 		},
 		timeCache,
@@ -246,7 +247,7 @@ func TestResolverRequestHandler_RequestTransactionErrorsOnRequestShouldNotPanic(
 	}()
 
 	chTxRequested := make(chan struct{})
-	txResolver := &mock.HashSliceResolverStub{
+	txRequester := &dataRetrieverMocks.HashSliceRequesterStub{
 		RequestDataFromHashArrayCalled: func(hashes [][]byte, epoch uint32) error {
 			chTxRequested <- struct{}{}
 			return errExpected
@@ -254,9 +255,9 @@ func TestResolverRequestHandler_RequestTransactionErrorsOnRequestShouldNotPanic(
 	}
 
 	rrh, _ := NewResolverRequestHandler(
-		&mock.ResolversFinderStub{
-			CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, e error) {
-				return txResolver, nil
+		&dataRetrieverMocks.RequestersFinderStub{
+			CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (requester dataRetriever.Requester, e error) {
+				return txRequester, nil
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
@@ -279,7 +280,7 @@ func TestResolverRequestHandler_RequestTransactionErrorsOnRequestShouldNotPanic(
 
 // ------- RequestMiniBlock
 
-func TestResolverRequestHandler_RequestMiniBlockErrorWhenGettingCrossShardResolverShouldNotPanic(t *testing.T) {
+func TestResolverRequestHandler_RequestMiniBlockErrorWhenGettingCrossShardRequesterShouldNotPanic(t *testing.T) {
 	t.Parallel()
 
 	defer func() {
@@ -290,8 +291,8 @@ func TestResolverRequestHandler_RequestMiniBlockErrorWhenGettingCrossShardResolv
 	}()
 
 	rrh, _ := NewResolverRequestHandler(
-		&mock.ResolversFinderStub{
-			CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, e error) {
+		&dataRetrieverMocks.RequestersFinderStub{
+			CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (requester dataRetriever.Requester, e error) {
 				return nil, errExpected
 			},
 		},
@@ -315,16 +316,16 @@ func TestResolverRequestHandler_RequestMiniBlockErrorsOnRequestShouldNotPanic(t 
 		}
 	}()
 
-	mbResolver := &mock.ResolverStub{
+	mbRequester := &dataRetrieverMocks.RequesterStub{
 		RequestDataFromHashCalled: func(hash []byte, epoch uint32) error {
 			return errExpected
 		},
 	}
 
 	rrh, _ := NewResolverRequestHandler(
-		&mock.ResolversFinderStub{
-			CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, e error) {
-				return mbResolver, nil
+		&dataRetrieverMocks.RequestersFinderStub{
+			CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (requester dataRetriever.Requester, e error) {
+				return mbRequester, nil
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
@@ -341,7 +342,7 @@ func TestResolverRequestHandler_RequestMiniBlockShouldCallRequestOnResolver(t *t
 	t.Parallel()
 
 	wasCalled := false
-	mbResolver := &mock.ResolverStub{
+	mbRequester := &dataRetrieverMocks.RequesterStub{
 		RequestDataFromHashCalled: func(hash []byte, epoch uint32) error {
 			wasCalled = true
 			return nil
@@ -349,9 +350,9 @@ func TestResolverRequestHandler_RequestMiniBlockShouldCallRequestOnResolver(t *t
 	}
 
 	rrh, _ := NewResolverRequestHandler(
-		&mock.ResolversFinderStub{
-			CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, e error) {
-				return mbResolver, nil
+		&dataRetrieverMocks.RequestersFinderStub{
+			CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (requester dataRetriever.Requester, e error) {
+				return mbRequester, nil
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
@@ -370,7 +371,7 @@ func TestResolverRequestHandler_RequestMiniBlockShouldCallWithTheCorrectEpoch(t 
 	t.Parallel()
 
 	expectedEpoch := uint32(7)
-	mbResolver := &mock.ResolverStub{
+	mbRequester := &dataRetrieverMocks.RequesterStub{
 		RequestDataFromHashCalled: func(hash []byte, epoch uint32) error {
 			assert.Equal(t, expectedEpoch, epoch)
 			return nil
@@ -378,9 +379,9 @@ func TestResolverRequestHandler_RequestMiniBlockShouldCallWithTheCorrectEpoch(t 
 	}
 
 	rrh, _ := NewResolverRequestHandler(
-		&mock.ResolversFinderStub{
-			CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, e error) {
-				return mbResolver, nil
+		&dataRetrieverMocks.RequestersFinderStub{
+			CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (requester dataRetriever.Requester, e error) {
+				return mbRequester, nil
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
@@ -401,7 +402,7 @@ func TestResolverRequestHandler_RequestShardHeaderHashAlreadyRequestedShouldNotR
 	t.Parallel()
 
 	rrh, _ := NewResolverRequestHandler(
-		createResolversFinderStubThatShouldNotBeCalled(t),
+		createRequestersFinderStubThatShouldNotBeCalled(t),
 		&mock.RequestedItemsHandlerStub{
 			HasCalled: func(key string) bool {
 				return true
@@ -420,7 +421,7 @@ func TestResolverRequestHandler_RequestShardHeaderHashBadRequest(t *testing.T) {
 	t.Parallel()
 
 	rrh, _ := NewResolverRequestHandler(
-		createResolversFinderStubThatShouldNotBeCalled(t),
+		createRequestersFinderStubThatShouldNotBeCalled(t),
 		&mock.RequestedItemsHandlerStub{},
 		&mock.WhiteListHandlerStub{},
 		1,
@@ -435,7 +436,7 @@ func TestResolverRequestHandler_RequestShardHeaderShouldCallRequestOnResolver(t 
 	t.Parallel()
 
 	wasCalled := false
-	mbResolver := &mock.HeaderResolverStub{
+	mbRequester := &mock.HeaderResolverStub{
 		RequestDataFromHashCalled: func(hash []byte, epoch uint32) error {
 			wasCalled = true
 			return nil
@@ -443,9 +444,9 @@ func TestResolverRequestHandler_RequestShardHeaderShouldCallRequestOnResolver(t 
 	}
 
 	rrh, _ := NewResolverRequestHandler(
-		&mock.ResolversFinderStub{
-			CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, e error) {
-				return mbResolver, nil
+		&dataRetrieverMocks.RequestersFinderStub{
+			CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (requester dataRetriever.Requester, e error) {
+				return mbRequester, nil
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
@@ -466,7 +467,7 @@ func TestResolverRequestHandler_RequestMetadHeaderHashAlreadyRequestedShouldNotR
 	t.Parallel()
 
 	rrh, _ := NewResolverRequestHandler(
-		createResolversFinderStubThatShouldNotBeCalled(t),
+		createRequestersFinderStubThatShouldNotBeCalled(t),
 		&mock.RequestedItemsHandlerStub{
 			HasCalled: func(key string) bool {
 				return true
@@ -485,7 +486,7 @@ func TestResolverRequestHandler_RequestMetadHeaderHashNotHeaderResolverShouldNot
 	t.Parallel()
 
 	wasCalled := false
-	mbResolver := &mock.ResolverStub{
+	mbRequester := &dataRetrieverMocks.RequesterStub{
 		RequestDataFromHashCalled: func(hash []byte, epoch uint32) error {
 			wasCalled = true
 			return nil
@@ -493,9 +494,9 @@ func TestResolverRequestHandler_RequestMetadHeaderHashNotHeaderResolverShouldNot
 	}
 
 	rrh, _ := NewResolverRequestHandler(
-		&mock.ResolversFinderStub{
-			MetaChainResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, e error) {
-				return mbResolver, nil
+		&dataRetrieverMocks.RequestersFinderStub{
+			MetaChainRequesterCalled: func(baseTopic string) (requester dataRetriever.Requester, e error) {
+				return mbRequester, nil
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
@@ -514,7 +515,7 @@ func TestResolverRequestHandler_RequestMetaHeaderShouldCallRequestOnResolver(t *
 	t.Parallel()
 
 	wasCalled := false
-	mbResolver := &mock.HeaderResolverStub{
+	mbRequester := &dataRetrieverMocks.HeaderRequesterStub{
 		RequestDataFromHashCalled: func(hash []byte, epoch uint32) error {
 			wasCalled = true
 			return nil
@@ -522,9 +523,9 @@ func TestResolverRequestHandler_RequestMetaHeaderShouldCallRequestOnResolver(t *
 	}
 
 	rrh, _ := NewResolverRequestHandler(
-		&mock.ResolversFinderStub{
-			MetaChainResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, e error) {
-				return mbResolver, nil
+		&dataRetrieverMocks.RequestersFinderStub{
+			MetaChainRequesterCalled: func(baseTopic string) (requester dataRetriever.Requester, e error) {
+				return mbRequester, nil
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
@@ -546,7 +547,7 @@ func TestResolverRequestHandler_RequestShardHeaderByNonceAlreadyRequestedShouldN
 
 	called := false
 	rrh, _ := NewResolverRequestHandler(
-		createResolversFinderStubThatShouldNotBeCalled(t),
+		createRequestersFinderStubThatShouldNotBeCalled(t),
 		&mock.RequestedItemsHandlerStub{
 			HasCalled: func(key string) bool {
 				called = true
@@ -569,8 +570,8 @@ func TestResolverRequestHandler_RequestShardHeaderByNonceBadRequest(t *testing.T
 	localErr := errors.New("err")
 	called := false
 	rrh, _ := NewResolverRequestHandler(
-		&mock.ResolversFinderStub{
-			CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, err error) {
+		&dataRetrieverMocks.RequestersFinderStub{
+			CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (requester dataRetriever.Requester, err error) {
 				called = true
 				return nil, localErr
 			},
@@ -597,8 +598,8 @@ func TestResolverRequestHandler_RequestShardHeaderByNonceFinderReturnsErrorShoul
 	}()
 
 	rrh, _ := NewResolverRequestHandler(
-		&mock.ResolversFinderStub{
-			CrossShardResolverCalled: func(baseTopic string, shardID uint32) (resolver dataRetriever.Resolver, e error) {
+		&dataRetrieverMocks.RequestersFinderStub{
+			CrossShardRequesterCalled: func(baseTopic string, shardID uint32) (requester dataRetriever.Requester, e error) {
 				return nil, errExpected
 			},
 		},
@@ -622,16 +623,16 @@ func TestResolverRequestHandler_RequestShardHeaderByNonceFinderReturnsAWrongReso
 		}
 	}()
 
-	hdrResolver := &mock.ResolverStub{
+	hdrRequester := &dataRetrieverMocks.RequesterStub{
 		RequestDataFromHashCalled: func(hash []byte, epoch uint32) error {
 			return errExpected
 		},
 	}
 
 	rrh, _ := NewResolverRequestHandler(
-		&mock.ResolversFinderStub{
-			CrossShardResolverCalled: func(baseTopic string, shardID uint32) (resolver dataRetriever.Resolver, e error) {
-				return hdrResolver, nil
+		&dataRetrieverMocks.RequestersFinderStub{
+			CrossShardRequesterCalled: func(baseTopic string, shardID uint32) (requester dataRetriever.Requester, e error) {
+				return hdrRequester, nil
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
@@ -654,16 +655,16 @@ func TestResolverRequestHandler_RequestShardHeaderByNonceResolverFailsShouldNotP
 		}
 	}()
 
-	hdrResolver := &mock.HeaderResolverStub{
+	hdrRequester := &mock.HeaderResolverStub{
 		RequestDataFromHashCalled: func(hash []byte, epoch uint32) error {
 			return errExpected
 		},
 	}
 
 	rrh, _ := NewResolverRequestHandler(
-		&mock.ResolversFinderStub{
-			CrossShardResolverCalled: func(baseTopic string, shardID uint32) (resolver dataRetriever.Resolver, e error) {
-				return hdrResolver, nil
+		&dataRetrieverMocks.RequestersFinderStub{
+			CrossShardRequesterCalled: func(baseTopic string, shardID uint32) (requester dataRetriever.Requester, e error) {
+				return hdrRequester, nil
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
@@ -680,7 +681,7 @@ func TestResolverRequestHandler_RequestShardHeaderByNonceShouldRequest(t *testin
 	t.Parallel()
 
 	wasCalled := false
-	hdrResolver := &mock.HeaderResolverStub{
+	hdrRequester := &mock.HeaderResolverStub{
 		RequestDataFromNonceCalled: func(nonce uint64, epoch uint32) error {
 			wasCalled = true
 			return nil
@@ -688,9 +689,9 @@ func TestResolverRequestHandler_RequestShardHeaderByNonceShouldRequest(t *testin
 	}
 
 	rrh, _ := NewResolverRequestHandler(
-		&mock.ResolversFinderStub{
-			CrossShardResolverCalled: func(baseTopic string, shardID uint32) (resolver dataRetriever.Resolver, e error) {
-				return hdrResolver, nil
+		&dataRetrieverMocks.RequestersFinderStub{
+			CrossShardRequesterCalled: func(baseTopic string, shardID uint32) (requester dataRetriever.Requester, e error) {
+				return hdrRequester, nil
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
@@ -711,7 +712,7 @@ func TestResolverRequestHandler_RequestMetaHeaderHashAlreadyRequestedShouldNotRe
 	t.Parallel()
 
 	rrh, _ := NewResolverRequestHandler(
-		createResolversFinderStubThatShouldNotBeCalled(t),
+		createRequestersFinderStubThatShouldNotBeCalled(t),
 		&mock.RequestedItemsHandlerStub{
 			HasCalled: func(key string) bool {
 				return true
@@ -730,7 +731,7 @@ func TestResolverRequestHandler_RequestMetaHeaderByNonceShouldRequest(t *testing
 	t.Parallel()
 
 	wasCalled := false
-	hdrResolver := &mock.HeaderResolverStub{
+	hdrRequester := &mock.HeaderResolverStub{
 		RequestDataFromNonceCalled: func(nonce uint64, epoch uint32) error {
 			wasCalled = true
 			return nil
@@ -738,9 +739,9 @@ func TestResolverRequestHandler_RequestMetaHeaderByNonceShouldRequest(t *testing
 	}
 
 	rrh, _ := NewResolverRequestHandler(
-		&mock.ResolversFinderStub{
-			MetaChainResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, e error) {
-				return hdrResolver, nil
+		&dataRetrieverMocks.RequestersFinderStub{
+			MetaChainRequesterCalled: func(baseTopic string) (requester dataRetriever.Requester, e error) {
+				return hdrRequester, nil
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
@@ -757,7 +758,7 @@ func TestResolverRequestHandler_RequestMetaHeaderByNonceShouldRequest(t *testing
 
 // ------- RequestSmartContractResult
 
-func TestResolverRequestHandler_RequestScrErrorWhenGettingCrossShardResolverShouldNotPanic(t *testing.T) {
+func TestResolverRequestHandler_RequestScrErrorWhenGettingCrossShardRequesterShouldNotPanic(t *testing.T) {
 	t.Parallel()
 
 	defer func() {
@@ -768,8 +769,8 @@ func TestResolverRequestHandler_RequestScrErrorWhenGettingCrossShardResolverShou
 	}()
 
 	rrh, _ := NewResolverRequestHandler(
-		&mock.ResolversFinderStub{
-			CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, e error) {
+		&dataRetrieverMocks.RequestersFinderStub{
+			CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (requester dataRetriever.Requester, e error) {
 				return nil, errExpected
 			},
 		},
@@ -793,12 +794,12 @@ func TestResolverRequestHandler_RequestScrWrongResolverShouldNotPanic(t *testing
 		}
 	}()
 
-	wrongTxResolver := &mock.HeaderResolverStub{}
+	wrongTxRequester := &dataRetrieverMocks.NonceRequesterStub{}
 
 	rrh, _ := NewResolverRequestHandler(
-		&mock.ResolversFinderStub{
-			CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, e error) {
-				return wrongTxResolver, nil
+		&dataRetrieverMocks.RequestersFinderStub{
+			CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (requester dataRetriever.Requester, e error) {
+				return wrongTxRequester, nil
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
@@ -815,7 +816,7 @@ func TestResolverRequestHandler_RequestScrShouldRequestScr(t *testing.T) {
 	t.Parallel()
 
 	chTxRequested := make(chan struct{})
-	txResolver := &mock.HashSliceResolverStub{
+	txRequester := &dataRetrieverMocks.HashSliceRequesterStub{
 		RequestDataFromHashArrayCalled: func(hashes [][]byte, epoch uint32) error {
 			chTxRequested <- struct{}{}
 			return nil
@@ -823,9 +824,9 @@ func TestResolverRequestHandler_RequestScrShouldRequestScr(t *testing.T) {
 	}
 
 	rrh, _ := NewResolverRequestHandler(
-		&mock.ResolversFinderStub{
-			CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, e error) {
-				return txResolver, nil
+		&dataRetrieverMocks.RequestersFinderStub{
+			CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (requester dataRetriever.Requester, e error) {
+				return txRequester, nil
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
@@ -857,7 +858,7 @@ func TestResolverRequestHandler_RequestScrErrorsOnRequestShouldNotPanic(t *testi
 	}()
 
 	chTxRequested := make(chan struct{})
-	txResolver := &mock.HashSliceResolverStub{
+	txRequester := &dataRetrieverMocks.HashSliceRequesterStub{
 		RequestDataFromHashArrayCalled: func(hashes [][]byte, epoch uint32) error {
 			chTxRequested <- struct{}{}
 			return errExpected
@@ -865,9 +866,9 @@ func TestResolverRequestHandler_RequestScrErrorsOnRequestShouldNotPanic(t *testi
 	}
 
 	rrh, _ := NewResolverRequestHandler(
-		&mock.ResolversFinderStub{
-			CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, e error) {
-				return txResolver, nil
+		&dataRetrieverMocks.RequestersFinderStub{
+			CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (requester dataRetriever.Requester, e error) {
+				return txRequester, nil
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
@@ -894,7 +895,7 @@ func TestResolverRequestHandler_RequestRewardShouldRequestReward(t *testing.T) {
 	t.Parallel()
 
 	chTxRequested := make(chan struct{})
-	txResolver := &mock.HashSliceResolverStub{
+	txRequester := &dataRetrieverMocks.HashSliceRequesterStub{
 		RequestDataFromHashArrayCalled: func(hashes [][]byte, epoch uint32) error {
 			chTxRequested <- struct{}{}
 			return nil
@@ -902,9 +903,9 @@ func TestResolverRequestHandler_RequestRewardShouldRequestReward(t *testing.T) {
 	}
 
 	rrh, _ := NewResolverRequestHandler(
-		&mock.ResolversFinderStub{
-			CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, e error) {
-				return txResolver, nil
+		&dataRetrieverMocks.RequestersFinderStub{
+			CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (requester dataRetriever.Requester, e error) {
+				return txRequester, nil
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
@@ -929,7 +930,7 @@ func TestRequestTrieNodes_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	chTxRequested := make(chan struct{})
-	resolverMock := &mock.HashSliceResolverStub{
+	requesterMock := &dataRetrieverMocks.HashSliceRequesterStub{
 		RequestDataFromHashArrayCalled: func(hash [][]byte, epoch uint32) error {
 			chTxRequested <- struct{}{}
 			return nil
@@ -937,9 +938,9 @@ func TestRequestTrieNodes_ShouldWork(t *testing.T) {
 	}
 
 	rrh, _ := NewResolverRequestHandler(
-		&mock.ResolversFinderStub{
-			MetaCrossShardResolverCalled: func(baseTopic string, crossShard uint32) (dataRetriever.Resolver, error) {
-				return resolverMock, nil
+		&dataRetrieverMocks.RequestersFinderStub{
+			MetaCrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (dataRetriever.Requester, error) {
+				return requesterMock, nil
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
@@ -965,8 +966,8 @@ func TestRequestTrieNodes_NilResolver(t *testing.T) {
 	localError := errors.New("test error")
 	called := false
 	rrh, _ := NewResolverRequestHandler(
-		&mock.ResolversFinderStub{
-			MetaCrossShardResolverCalled: func(baseTopic string, shId uint32) (resolver dataRetriever.Resolver, err error) {
+		&dataRetrieverMocks.RequestersFinderStub{
+			MetaCrossShardRequesterCalled: func(baseTopic string, shId uint32) (requester dataRetriever.Requester, err error) {
 				called = true
 				return nil, localError
 			},
@@ -988,8 +989,8 @@ func TestRequestStartOfEpochMetaBlock_MissingResolver(t *testing.T) {
 	called := false
 	localError := errors.New("test error")
 	rrh, _ := NewResolverRequestHandler(
-		&mock.ResolversFinderStub{
-			MetaChainResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, err error) {
+		&dataRetrieverMocks.RequestersFinderStub{
+			MetaChainRequesterCalled: func(baseTopic string) (requester dataRetriever.Requester, err error) {
 				called = true
 				return nil, localError
 			},
@@ -1009,13 +1010,11 @@ func TestRequestStartOfEpochMetaBlock_WrongResolver(t *testing.T) {
 	t.Parallel()
 
 	called := false
-	resolverMock := &mock.HashSliceResolverStub{}
-
 	rrh, _ := NewResolverRequestHandler(
-		&mock.ResolversFinderStub{
-			MetaChainResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, err error) {
+		&dataRetrieverMocks.RequestersFinderStub{
+			MetaChainRequesterCalled: func(baseTopic string) (requester dataRetriever.Requester, err error) {
 				called = true
-				return resolverMock, nil
+				return &dataRetrieverMocks.RequesterStub{}, nil
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
@@ -1034,7 +1033,7 @@ func TestRequestStartOfEpochMetaBlock_RequestDataFromEpochError(t *testing.T) {
 
 	called := false
 	localError := errors.New("test error")
-	resolverMock := &mock.HeaderResolverStub{
+	requesterMock := &dataRetrieverMocks.EpochRequesterStub{
 		RequestDataFromEpochCalled: func(identifier []byte) error {
 			called = true
 			return localError
@@ -1042,9 +1041,9 @@ func TestRequestStartOfEpochMetaBlock_RequestDataFromEpochError(t *testing.T) {
 	}
 
 	rrh, _ := NewResolverRequestHandler(
-		&mock.ResolversFinderStub{
-			MetaChainResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, err error) {
-				return resolverMock, nil
+		&dataRetrieverMocks.RequestersFinderStub{
+			MetaChainRequesterCalled: func(baseTopic string) (requester dataRetriever.Requester, err error) {
+				return requesterMock, nil
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
@@ -1063,16 +1062,16 @@ func TestRequestStartOfEpochMetaBlock_AddError(t *testing.T) {
 
 	called := false
 	localError := errors.New("test error")
-	resolverMock := &mock.HeaderResolverStub{
+	requesterMock := &dataRetrieverMocks.EpochRequesterStub{
 		RequestDataFromEpochCalled: func(identifier []byte) error {
 			return nil
 		},
 	}
 
 	rrh, _ := NewResolverRequestHandler(
-		&mock.ResolversFinderStub{
-			MetaChainResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, err error) {
-				return resolverMock, nil
+		&dataRetrieverMocks.RequestersFinderStub{
+			MetaChainRequesterCalled: func(baseTopic string) (requester dataRetriever.Requester, err error) {
+				return requesterMock, nil
 			},
 		},
 		&mock.RequestedItemsHandlerStub{
@@ -1094,7 +1093,7 @@ func TestRequestStartOfEpochMetaBlock_AddError(t *testing.T) {
 func TestResolverRequestHandler_RequestTrieNodeRequestFails(t *testing.T) {
 	chTxRequested := make(chan struct{})
 	localErr := errors.New("local error")
-	resolverMock := &mock.ChunkResolverStub{
+	requesterMock := &dataRetrieverMocks.ChunkRequesterStub{
 		RequestDataFromReferenceAndChunkCalled: func(hash []byte, chunkIndex uint32) error {
 			chTxRequested <- struct{}{}
 			return localErr
@@ -1102,9 +1101,9 @@ func TestResolverRequestHandler_RequestTrieNodeRequestFails(t *testing.T) {
 	}
 
 	rrh, _ := NewResolverRequestHandler(
-		&mock.ResolversFinderStub{
-			MetaChainResolverCalled: func(baseTopic string) (dataRetriever.Resolver, error) {
-				return resolverMock, nil
+		&dataRetrieverMocks.RequestersFinderStub{
+			MetaChainRequesterCalled: func(baseTopic string) (dataRetriever.Requester, error) {
+				return requesterMock, nil
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
@@ -1126,7 +1125,7 @@ func TestResolverRequestHandler_RequestTrieNodeRequestFails(t *testing.T) {
 
 func TestResolverRequestHandler_RequestTrieNodeShouldWork(t *testing.T) {
 	chTxRequested := make(chan struct{})
-	resolverMock := &mock.ChunkResolverStub{
+	requesterMock := &dataRetrieverMocks.ChunkRequesterStub{
 		RequestDataFromReferenceAndChunkCalled: func(hash []byte, chunkIndex uint32) error {
 			chTxRequested <- struct{}{}
 			return nil
@@ -1134,9 +1133,9 @@ func TestResolverRequestHandler_RequestTrieNodeShouldWork(t *testing.T) {
 	}
 
 	rrh, _ := NewResolverRequestHandler(
-		&mock.ResolversFinderStub{
-			MetaChainResolverCalled: func(baseTopic string) (dataRetriever.Resolver, error) {
-				return resolverMock, nil
+		&dataRetrieverMocks.RequestersFinderStub{
+			MetaChainRequesterCalled: func(baseTopic string) (dataRetriever.Requester, error) {
+				return requesterMock, nil
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
@@ -1160,8 +1159,8 @@ func TestResolverRequestHandler_RequestTrieNodeNilResolver(t *testing.T) {
 	localError := errors.New("test error")
 	called := false
 	rrh, _ := NewResolverRequestHandler(
-		&mock.ResolversFinderStub{
-			MetaChainResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, err error) {
+		&dataRetrieverMocks.RequestersFinderStub{
+			MetaChainRequesterCalled: func(baseTopic string) (requester dataRetriever.Requester, err error) {
 				called = true
 				return nil, localError
 			},
@@ -1182,10 +1181,10 @@ func TestResolverRequestHandler_RequestTrieNodeNotAValidResolver(t *testing.T) {
 
 	called := false
 	rrh, _ := NewResolverRequestHandler(
-		&mock.ResolversFinderStub{
-			MetaChainResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, err error) {
+		&dataRetrieverMocks.RequestersFinderStub{
+			MetaChainRequesterCalled: func(baseTopic string) (requester dataRetriever.Requester, err error) {
 				called = true
-				return &mock.HashSliceResolverStub{}, nil
+				return &dataRetrieverMocks.HashSliceRequesterStub{}, nil
 			},
 		},
 		&mock.RequestedItemsHandlerStub{},
@@ -1206,21 +1205,21 @@ func TestResolverRequestHandler_RequestPeerAuthenticationsByHashes(t *testing.T)
 
 	providedHashes := [][]byte{[]byte("h1"), []byte("h2")}
 	providedShardId := uint32(15)
-	t.Run("CrossShardResolver returns error", func(t *testing.T) {
+	t.Run("CrossShardRequester returns error", func(t *testing.T) {
 		t.Parallel()
 
 		wasCalled := false
-		paResolver := &mock.PeerAuthenticationResolverStub{
+		paRequester := &dataRetrieverMocks.HashSliceRequesterStub{
 			RequestDataFromHashArrayCalled: func(hashes [][]byte, epoch uint32) error {
 				wasCalled = true
 				return nil
 			},
 		}
 		rrh, _ := NewResolverRequestHandler(
-			&mock.ResolversFinderStub{
-				MetaChainResolverCalled: func(baseTopic string) (dataRetriever.Resolver, error) {
+			&dataRetrieverMocks.RequestersFinderStub{
+				MetaChainRequesterCalled: func(baseTopic string) (dataRetriever.Requester, error) {
 					assert.Equal(t, common.PeerAuthenticationTopic, baseTopic)
-					return paResolver, errExpected
+					return paRequester, errExpected
 				},
 			},
 			&mock.RequestedItemsHandlerStub{},
@@ -1237,17 +1236,17 @@ func TestResolverRequestHandler_RequestPeerAuthenticationsByHashes(t *testing.T)
 		t.Parallel()
 
 		wasCalled := false
-		mbResolver := &mock.ResolverStub{
+		mbRequester := &dataRetrieverMocks.RequesterStub{
 			RequestDataFromHashCalled: func(hash []byte, epoch uint32) error {
 				wasCalled = true
 				return nil
 			},
 		}
 		rrh, _ := NewResolverRequestHandler(
-			&mock.ResolversFinderStub{
-				MetaChainResolverCalled: func(baseTopic string) (dataRetriever.Resolver, error) {
+			&dataRetrieverMocks.RequestersFinderStub{
+				MetaChainRequesterCalled: func(baseTopic string) (dataRetriever.Requester, error) {
 					assert.Equal(t, common.PeerAuthenticationTopic, baseTopic)
-					return mbResolver, errExpected
+					return mbRequester, errExpected
 				},
 			},
 			&mock.RequestedItemsHandlerStub{},
@@ -1264,7 +1263,7 @@ func TestResolverRequestHandler_RequestPeerAuthenticationsByHashes(t *testing.T)
 		t.Parallel()
 
 		wasCalled := false
-		paResolver := &mock.PeerAuthenticationResolverStub{
+		paRequester := &dataRetrieverMocks.HashSliceRequesterStub{
 			RequestDataFromHashArrayCalled: func(hashes [][]byte, epoch uint32) error {
 				wasCalled = true
 				assert.Equal(t, providedHashes, hashes)
@@ -1272,10 +1271,10 @@ func TestResolverRequestHandler_RequestPeerAuthenticationsByHashes(t *testing.T)
 			},
 		}
 		rrh, _ := NewResolverRequestHandler(
-			&mock.ResolversFinderStub{
-				MetaChainResolverCalled: func(baseTopic string) (dataRetriever.Resolver, error) {
+			&dataRetrieverMocks.RequestersFinderStub{
+				MetaChainRequesterCalled: func(baseTopic string) (dataRetriever.Requester, error) {
 					assert.Equal(t, common.PeerAuthenticationTopic, baseTopic)
-					return paResolver, nil
+					return paRequester, nil
 				},
 			},
 			&mock.RequestedItemsHandlerStub{},
@@ -1299,7 +1298,7 @@ func TestResolverRequestHandler_RequestPeerAuthenticationsByHashes(t *testing.T)
 		}()
 
 		wasCalled := false
-		paResolver := &mock.PeerAuthenticationResolverStub{
+		paRequester := &dataRetrieverMocks.HashSliceRequesterStub{
 			RequestDataFromHashArrayCalled: func(hashes [][]byte, epoch uint32) error {
 				wasCalled = true
 				assert.Equal(t, providedHashes, hashes)
@@ -1307,10 +1306,10 @@ func TestResolverRequestHandler_RequestPeerAuthenticationsByHashes(t *testing.T)
 			},
 		}
 		rrh, _ := NewResolverRequestHandler(
-			&mock.ResolversFinderStub{
-				MetaChainResolverCalled: func(baseTopic string) (dataRetriever.Resolver, error) {
+			&dataRetrieverMocks.RequestersFinderStub{
+				MetaChainRequesterCalled: func(baseTopic string) (dataRetriever.Requester, error) {
 					assert.Equal(t, common.PeerAuthenticationTopic, baseTopic)
-					return paResolver, nil
+					return paRequester, nil
 				},
 			},
 			&mock.RequestedItemsHandlerStub{},
@@ -1328,10 +1327,10 @@ func TestResolverRequestHandler_RequestPeerAuthenticationsByHashes(t *testing.T)
 func TestResolverRequestHandler_RequestValidatorInfo(t *testing.T) {
 	t.Parallel()
 
-	t.Run("MetaChainResolver returns error", func(t *testing.T) {
+	t.Run("MetaChainRequester returns error", func(t *testing.T) {
 		providedHash := []byte("provided hash")
 		wasCalled := false
-		res := &mock.ResolverStub{
+		res := &dataRetrieverMocks.RequesterStub{
 			RequestDataFromHashCalled: func(hash []byte, epoch uint32) error {
 				wasCalled = true
 				return nil
@@ -1339,8 +1338,8 @@ func TestResolverRequestHandler_RequestValidatorInfo(t *testing.T) {
 		}
 
 		rrh, _ := NewResolverRequestHandler(
-			&mock.ResolversFinderStub{
-				MetaChainResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, e error) {
+			&dataRetrieverMocks.RequestersFinderStub{
+				MetaChainRequesterCalled: func(baseTopic string) (requester dataRetriever.Requester, e error) {
 					return res, errors.New("provided err")
 				},
 			},
@@ -1357,7 +1356,7 @@ func TestResolverRequestHandler_RequestValidatorInfo(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		providedHash := []byte("provided hash")
 		wasCalled := false
-		res := &mock.ResolverStub{
+		res := &dataRetrieverMocks.RequesterStub{
 			RequestDataFromHashCalled: func(hash []byte, epoch uint32) error {
 				assert.True(t, bytes.Equal(providedHash, hash))
 				wasCalled = true
@@ -1366,8 +1365,8 @@ func TestResolverRequestHandler_RequestValidatorInfo(t *testing.T) {
 		}
 
 		rrh, _ := NewResolverRequestHandler(
-			&mock.ResolversFinderStub{
-				MetaChainResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, e error) {
+			&dataRetrieverMocks.RequestersFinderStub{
+				MetaChainRequesterCalled: func(baseTopic string) (requester dataRetriever.Requester, e error) {
 					assert.Equal(t, common.ValidatorInfoTopic, baseTopic)
 					return res, nil
 				},
@@ -1387,10 +1386,10 @@ func TestResolverRequestHandler_RequestValidatorInfo(t *testing.T) {
 func TestResolverRequestHandler_RequestValidatorsInfo(t *testing.T) {
 	t.Parallel()
 
-	t.Run("MetaChainResolver returns error", func(t *testing.T) {
+	t.Run("MetaChainRequester returns error", func(t *testing.T) {
 		providedHash := []byte("provided hash")
 		wasCalled := false
-		res := &mock.ResolverStub{
+		res := &dataRetrieverMocks.RequesterStub{
 			RequestDataFromHashCalled: func(hash []byte, epoch uint32) error {
 				wasCalled = true
 				return nil
@@ -1398,8 +1397,8 @@ func TestResolverRequestHandler_RequestValidatorsInfo(t *testing.T) {
 		}
 
 		rrh, _ := NewResolverRequestHandler(
-			&mock.ResolversFinderStub{
-				MetaChainResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, e error) {
+			&dataRetrieverMocks.RequestersFinderStub{
+				MetaChainRequesterCalled: func(baseTopic string) (requester dataRetriever.Requester, e error) {
 					return res, errors.New("provided err")
 				},
 			},
@@ -1415,12 +1414,12 @@ func TestResolverRequestHandler_RequestValidatorsInfo(t *testing.T) {
 	})
 	t.Run("cast fails", func(t *testing.T) {
 		providedHash := []byte("provided hash")
-		mbResolver := &mock.ResolverStub{} // uncastable to HashSliceResolver
+		mbRequester := &dataRetrieverMocks.NonceRequesterStub{} // uncastable to HashSliceRequester
 		wasCalled := false
 		rrh, _ := NewResolverRequestHandler(
-			&mock.ResolversFinderStub{
-				MetaChainResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, e error) {
-					return mbResolver, nil
+			&dataRetrieverMocks.RequestersFinderStub{
+				MetaChainRequesterCalled: func(baseTopic string) (requester dataRetriever.Requester, e error) {
+					return mbRequester, nil
 				},
 			},
 			&mock.RequestedItemsHandlerStub{},
@@ -1440,7 +1439,7 @@ func TestResolverRequestHandler_RequestValidatorsInfo(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		providedHashes := [][]byte{[]byte("provided hash 1"), []byte("provided hash 2")}
 		wasCalled := false
-		res := &mock.HashSliceResolverStub{
+		res := &dataRetrieverMocks.HashSliceRequesterStub{
 			RequestDataFromHashArrayCalled: func(hashes [][]byte, epoch uint32) error {
 				assert.Equal(t, providedHashes, hashes)
 				wasCalled = true
@@ -1449,8 +1448,8 @@ func TestResolverRequestHandler_RequestValidatorsInfo(t *testing.T) {
 		}
 
 		rrh, _ := NewResolverRequestHandler(
-			&mock.ResolversFinderStub{
-				MetaChainResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, e error) {
+			&dataRetrieverMocks.RequestersFinderStub{
+				MetaChainRequesterCalled: func(baseTopic string) (requester dataRetriever.Requester, e error) {
 					assert.Equal(t, common.ValidatorInfoTopic, baseTopic)
 					return res, nil
 				},

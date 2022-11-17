@@ -1,4 +1,4 @@
-package storageResolversContainers
+package storagerequesterscontainer
 
 import (
 	"time"
@@ -13,8 +13,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common/disabled"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	disabledResolvers "github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers/disabled"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/storageResolvers"
+	disabledRequesters "github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers/requesters/disabled"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/storageRequesters"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -24,8 +24,8 @@ import (
 
 const defaultBeforeGracefulClose = time.Minute
 
-type baseResolversContainerFactory struct {
-	container                dataRetriever.ResolversContainer
+type baseRequestersContainerFactory struct {
+	container                dataRetriever.RequestersContainer
 	shardCoordinator         sharding.Coordinator
 	messenger                dataRetriever.TopicMessageHandler
 	store                    dataRetriever.StorageService
@@ -41,7 +41,7 @@ type baseResolversContainerFactory struct {
 	workingDir               string
 }
 
-func (brcf *baseResolversContainerFactory) checkParams() error {
+func (brcf *baseRequestersContainerFactory) checkParams() error {
 	if check.IfNil(brcf.shardCoordinator) {
 		return dataRetriever.ErrNilShardCoordinator
 	}
@@ -73,7 +73,7 @@ func (brcf *baseResolversContainerFactory) checkParams() error {
 	return nil
 }
 
-func (brcf *baseResolversContainerFactory) generateTxResolvers(
+func (brcf *baseRequestersContainerFactory) generateTxRequesters(
 	topic string,
 	unit dataRetriever.UnitType,
 ) error {
@@ -82,42 +82,42 @@ func (brcf *baseResolversContainerFactory) generateTxResolvers(
 	noOfShards := shardC.NumberOfShards()
 
 	keys := make([]string, noOfShards+1)
-	resolverSlice := make([]dataRetriever.Resolver, noOfShards+1)
+	requestersSlice := make([]dataRetriever.Requester, noOfShards+1)
 
 	for idx := uint32(0); idx < noOfShards; idx++ {
 		identifierTx := topic + shardC.CommunicationIdentifier(idx)
-		resolver, err := brcf.createTxResolver(identifierTx, unit)
+		requester, err := brcf.createTxRequester(identifierTx, unit)
 		if err != nil {
 			return err
 		}
 
-		resolverSlice[idx] = resolver
+		requestersSlice[idx] = requester
 		keys[idx] = identifierTx
 	}
 
 	identifierTx := topic + shardC.CommunicationIdentifier(core.MetachainShardId)
-	resolver, err := brcf.createTxResolver(identifierTx, unit)
+	requester, err := brcf.createTxRequester(identifierTx, unit)
 	if err != nil {
 		return err
 	}
 
-	resolverSlice[noOfShards] = resolver
+	requestersSlice[noOfShards] = requester
 	keys[noOfShards] = identifierTx
 
-	return brcf.container.AddMultiple(keys, resolverSlice)
+	return brcf.container.AddMultiple(keys, requestersSlice)
 }
 
-func (brcf *baseResolversContainerFactory) createTxResolver(
+func (brcf *baseRequestersContainerFactory) createTxRequester(
 	responseTopic string,
 	unit dataRetriever.UnitType,
-) (dataRetriever.Resolver, error) {
+) (dataRetriever.Requester, error) {
 
 	txStorer, err := brcf.store.GetStorer(unit)
 	if err != nil {
 		return nil, err
 	}
 
-	arg := storageResolvers.ArgSliceResolver{
+	arg := storagerequesters.ArgSliceRequester{
 		Messenger:                brcf.messenger,
 		ResponseTopicName:        responseTopic,
 		Storage:                  txStorer,
@@ -127,59 +127,59 @@ func (brcf *baseResolversContainerFactory) createTxResolver(
 		ChanGracefullyClose:      brcf.chanGracefullyClose,
 		DelayBeforeGracefulClose: defaultBeforeGracefulClose,
 	}
-	resolver, err := storageResolvers.NewSliceResolver(arg)
+	requester, err := storagerequesters.NewSliceRequester(arg)
 	if err != nil {
 		return nil, err
 	}
 
-	return resolver, nil
+	return requester, nil
 }
 
-func (brcf *baseResolversContainerFactory) generateMiniBlocksResolvers() error {
+func (brcf *baseRequestersContainerFactory) generateMiniBlocksRequesters() error {
 	shardC := brcf.shardCoordinator
 	noOfShards := shardC.NumberOfShards()
 	keys := make([]string, noOfShards+2)
-	resolverSlice := make([]dataRetriever.Resolver, noOfShards+2)
+	requestersSlice := make([]dataRetriever.Requester, noOfShards+2)
 
 	for idx := uint32(0); idx < noOfShards; idx++ {
 		identifierMiniBlocks := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(idx)
-		resolver, err := brcf.createMiniBlocksResolver(identifierMiniBlocks)
+		requester, err := brcf.createMiniBlocksRequester(identifierMiniBlocks)
 		if err != nil {
 			return err
 		}
 
-		resolverSlice[idx] = resolver
+		requestersSlice[idx] = requester
 		keys[idx] = identifierMiniBlocks
 	}
 
 	identifierMiniBlocks := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
-	resolver, err := brcf.createMiniBlocksResolver(identifierMiniBlocks)
+	requester, err := brcf.createMiniBlocksRequester(identifierMiniBlocks)
 	if err != nil {
 		return err
 	}
 
-	resolverSlice[noOfShards] = resolver
+	requestersSlice[noOfShards] = requester
 	keys[noOfShards] = identifierMiniBlocks
 
 	identifierAllShardMiniBlocks := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(core.AllShardId)
-	allShardMiniblocksResolver, err := brcf.createMiniBlocksResolver(identifierAllShardMiniBlocks)
+	allShardMiniblocksRequester, err := brcf.createMiniBlocksRequester(identifierAllShardMiniBlocks)
 	if err != nil {
 		return err
 	}
 
-	resolverSlice[noOfShards+1] = allShardMiniblocksResolver
+	requestersSlice[noOfShards+1] = allShardMiniblocksRequester
 	keys[noOfShards+1] = identifierAllShardMiniBlocks
 
-	return brcf.container.AddMultiple(keys, resolverSlice)
+	return brcf.container.AddMultiple(keys, requestersSlice)
 }
 
-func (brcf *baseResolversContainerFactory) createMiniBlocksResolver(responseTopic string) (dataRetriever.Resolver, error) {
+func (brcf *baseRequestersContainerFactory) createMiniBlocksRequester(responseTopic string) (dataRetriever.Requester, error) {
 	miniBlocksStorer, err := brcf.store.GetStorer(dataRetriever.MiniBlockUnit)
 	if err != nil {
 		return nil, err
 	}
 
-	arg := storageResolvers.ArgSliceResolver{
+	arg := storagerequesters.ArgSliceRequester{
 		Messenger:                brcf.messenger,
 		ResponseTopicName:        responseTopic,
 		Storage:                  miniBlocksStorer,
@@ -189,15 +189,15 @@ func (brcf *baseResolversContainerFactory) createMiniBlocksResolver(responseTopi
 		ChanGracefullyClose:      brcf.chanGracefullyClose,
 		DelayBeforeGracefulClose: defaultBeforeGracefulClose,
 	}
-	mbResolver, err := storageResolvers.NewSliceResolver(arg)
+	mbRequester, err := storagerequesters.NewSliceRequester(arg)
 	if err != nil {
 		return nil, err
 	}
 
-	return mbResolver, nil
+	return mbRequester, nil
 }
 
-func (brcf *baseResolversContainerFactory) newImportDBTrieStorage(
+func (brcf *baseRequestersContainerFactory) newImportDBTrieStorage(
 	mainStorer storage.Storer,
 	checkpointsStorer storage.Storer,
 ) (common.StorageManager, dataRetriever.TrieDataGetter, error) {
@@ -234,21 +234,21 @@ func (brcf *baseResolversContainerFactory) newImportDBTrieStorage(
 	return trieFactoryInstance.Create(args)
 }
 
-func (brcf *baseResolversContainerFactory) generatePeerAuthenticationResolver() error {
+func (brcf *baseRequestersContainerFactory) generatePeerAuthenticationRequester() error {
 	identifierPeerAuth := common.PeerAuthenticationTopic
-	peerAuthResolver := disabledResolvers.NewDisabledPeerAuthenticatorResolver()
+	peerAuthRequester := disabledRequesters.NewDisabledRequester()
 
-	return brcf.container.Add(identifierPeerAuth, peerAuthResolver)
+	return brcf.container.Add(identifierPeerAuth, peerAuthRequester)
 }
 
-func (brcf *baseResolversContainerFactory) generateValidatorInfoResolver() error {
+func (brcf *baseRequestersContainerFactory) generateValidatorInfoRequester() error {
 	validatorInfoStorer, err := brcf.store.GetStorer(dataRetriever.UnsignedTransactionUnit)
 	if err != nil {
 		return err
 	}
 
 	identifierValidatorInfo := common.ValidatorInfoTopic
-	arg := storageResolvers.ArgSliceResolver{
+	arg := storagerequesters.ArgSliceRequester{
 		Messenger:                brcf.messenger,
 		ResponseTopicName:        identifierValidatorInfo,
 		Storage:                  validatorInfoStorer,
@@ -258,10 +258,10 @@ func (brcf *baseResolversContainerFactory) generateValidatorInfoResolver() error
 		ChanGracefullyClose:      brcf.chanGracefullyClose,
 		DelayBeforeGracefulClose: defaultBeforeGracefulClose,
 	}
-	validatorInfoResolver, err := storageResolvers.NewSliceResolver(arg)
+	validatorInfoRequester, err := storagerequesters.NewSliceRequester(arg)
 	if err != nil {
 		return err
 	}
 
-	return brcf.container.Add(identifierValidatorInfo, validatorInfoResolver)
+	return brcf.container.Add(identifierValidatorInfo, validatorInfoRequester)
 }

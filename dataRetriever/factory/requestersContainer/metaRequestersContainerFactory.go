@@ -89,7 +89,7 @@ func (mrcf *metaRequestersContainerFactory) Create() (dataRetriever.RequestersCo
 // AddShardTrieNodeRequesters will add trie node requesters to the existing container, needed for start in epoch
 func (mrcf *metaRequestersContainerFactory) AddShardTrieNodeRequesters(container dataRetriever.RequestersContainer) error {
 	if check.IfNil(container) {
-		return dataRetriever.ErrNilResolverContainer
+		return dataRetriever.ErrNilRequestersContainer
 	}
 
 	shardC := mrcf.shardCoordinator

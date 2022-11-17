@@ -1,4 +1,4 @@
-package storageResolvers
+package storagerequesters
 
 import (
 	"errors"
@@ -17,8 +17,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func createMockHeaderResolverArg() ArgHeaderResolver {
-	return ArgHeaderResolver{
+func createMockHeaderRequesterArg() ArgHeaderRequester {
+	return ArgHeaderRequester{
 		Messenger:         &mock.MessageHandlerStub{},
 		ResponseTopicName: "",
 		NonceConverter: &mock.Uint64ByteSliceConverterMock{
@@ -36,98 +36,98 @@ func createMockHeaderResolverArg() ArgHeaderResolver {
 	}
 }
 
-func TestNewHeaderResolver_NilMessengerShouldErr(t *testing.T) {
+func TestNewHeaderRequester_NilMessengerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockHeaderResolverArg()
+	arg := createMockHeaderRequesterArg()
 	arg.Messenger = nil
-	hdRes, err := NewHeaderResolver(arg)
+	hdRes, err := NewHeaderRequester(arg)
 
 	assert.True(t, check.IfNil(hdRes))
 	assert.Equal(t, dataRetriever.ErrNilMessenger, err)
 }
 
-func TestNewHeaderResolver_NilHeaderStorageShouldErr(t *testing.T) {
+func TestNewHeaderRequester_NilHeaderStorageShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockHeaderResolverArg()
+	arg := createMockHeaderRequesterArg()
 	arg.HdrStorage = nil
-	hdRes, err := NewHeaderResolver(arg)
+	hdRes, err := NewHeaderRequester(arg)
 
 	assert.True(t, check.IfNil(hdRes))
 	assert.Equal(t, dataRetriever.ErrNilHeadersStorage, err)
 }
 
-func TestNewHeaderResolver_NilHeaderNonceStorageShouldErr(t *testing.T) {
+func TestNewHeaderRequester_NilHeaderNonceStorageShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockHeaderResolverArg()
+	arg := createMockHeaderRequesterArg()
 	arg.HeadersNoncesStorage = nil
-	hdRes, err := NewHeaderResolver(arg)
+	hdRes, err := NewHeaderRequester(arg)
 
 	assert.True(t, check.IfNil(hdRes))
 	assert.Equal(t, dataRetriever.ErrNilHeadersNoncesStorage, err)
 }
 
-func TestNewHeaderResolver_NilNonceConverterShouldErr(t *testing.T) {
+func TestNewHeaderRequester_NilNonceConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockHeaderResolverArg()
+	arg := createMockHeaderRequesterArg()
 	arg.NonceConverter = nil
-	hdRes, err := NewHeaderResolver(arg)
+	hdRes, err := NewHeaderRequester(arg)
 
 	assert.True(t, check.IfNil(hdRes))
 	assert.Equal(t, dataRetriever.ErrNilUint64ByteSliceConverter, err)
 }
 
-func TestNewHeaderResolver_NilManualEpochStartNotifierShouldErr(t *testing.T) {
+func TestNewHeaderRequester_NilManualEpochStartNotifierShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockHeaderResolverArg()
+	arg := createMockHeaderRequesterArg()
 	arg.ManualEpochStartNotifier = nil
-	hdRes, err := NewHeaderResolver(arg)
+	hdRes, err := NewHeaderRequester(arg)
 
 	assert.True(t, check.IfNil(hdRes))
 	assert.Equal(t, dataRetriever.ErrNilManualEpochStartNotifier, err)
 }
 
-func TestNewHeaderResolver_NilChanShouldErr(t *testing.T) {
+func TestNewHeaderRequester_NilChanShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockHeaderResolverArg()
+	arg := createMockHeaderRequesterArg()
 	arg.ChanGracefullyClose = nil
-	hdRes, err := NewHeaderResolver(arg)
+	hdRes, err := NewHeaderRequester(arg)
 
 	assert.True(t, check.IfNil(hdRes))
 	assert.Equal(t, dataRetriever.ErrNilGracefullyCloseChannel, err)
 }
 
-func TestNewHeaderResolver_ShouldWork(t *testing.T) {
+func TestNewHeaderRequester_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockHeaderResolverArg()
-	hdRes, err := NewHeaderResolver(arg)
+	arg := createMockHeaderRequesterArg()
+	hdRes, err := NewHeaderRequester(arg)
 
 	assert.False(t, check.IfNil(hdRes))
 	assert.Nil(t, err)
 }
 
-func TestHeaderResolver_SetEpochHandlerNilHandlerShouldErr(t *testing.T) {
+func TestHeaderRequester_SetEpochHandlerNilHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockHeaderResolverArg()
-	hdRes, _ := NewHeaderResolver(arg)
+	arg := createMockHeaderRequesterArg()
+	hdRes, _ := NewHeaderRequester(arg)
 
 	err := hdRes.SetEpochHandler(nil)
 
 	assert.Equal(t, dataRetriever.ErrNilEpochHandler, err)
 }
 
-func TestHeaderResolver_SetEpochHandlerShouldWork(t *testing.T) {
+func TestHeaderRequester_SetEpochHandlerShouldWork(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockHeaderResolverArg()
-	hdRes, _ := NewHeaderResolver(arg)
+	arg := createMockHeaderRequesterArg()
+	hdRes, _ := NewHeaderRequester(arg)
 
 	handler := &mock.EpochHandlerStub{}
 	err := hdRes.SetEpochHandler(handler)
@@ -136,13 +136,13 @@ func TestHeaderResolver_SetEpochHandlerShouldWork(t *testing.T) {
 	assert.True(t, handler == hdRes.epochHandler) // pointer testing
 }
 
-func TestHeaderResolver_RequestDataFromHashNotFoundNotBufferedChannelShouldErr(t *testing.T) {
+func TestHeaderRequester_RequestDataFromHashNotFoundNotBufferedChannelShouldErr(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("expected error")
 	newEpochCalled := false
 	sendCalled := false
-	arg := createMockHeaderResolverArg()
+	arg := createMockHeaderRequesterArg()
 	arg.HdrStorage = &storageStubs.StorerStub{
 		SearchFirstCalled: func(key []byte) ([]byte, error) {
 			return nil, expectedErr
@@ -160,7 +160,7 @@ func TestHeaderResolver_RequestDataFromHashNotFoundNotBufferedChannelShouldErr(t
 			return nil
 		},
 	}
-	hdRes, _ := NewHeaderResolver(arg)
+	hdRes, _ := NewHeaderRequester(arg)
 
 	err := hdRes.RequestDataFromHash([]byte("hash"), 0)
 
@@ -169,13 +169,13 @@ func TestHeaderResolver_RequestDataFromHashNotFoundNotBufferedChannelShouldErr(t
 	assert.False(t, sendCalled)
 }
 
-func TestHeaderResolver_RequestDataFromHashNotFoundShouldErr(t *testing.T) {
+func TestHeaderRequester_RequestDataFromHashNotFoundShouldErr(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("expected error")
 	newEpochCalled := false
 	sendCalled := false
-	arg := createMockHeaderResolverArg()
+	arg := createMockHeaderRequesterArg()
 	arg.HdrStorage = &storageStubs.StorerStub{
 		SearchFirstCalled: func(key []byte) ([]byte, error) {
 			return nil, expectedErr
@@ -194,7 +194,7 @@ func TestHeaderResolver_RequestDataFromHashNotFoundShouldErr(t *testing.T) {
 		},
 	}
 	arg.ChanGracefullyClose = make(chan endProcess.ArgEndProcess, 1)
-	hdRes, _ := NewHeaderResolver(arg)
+	hdRes, _ := NewHeaderRequester(arg)
 
 	err := hdRes.RequestDataFromHash([]byte("hash"), 0)
 
@@ -212,12 +212,12 @@ func TestHeaderResolver_RequestDataFromHashNotFoundShouldErr(t *testing.T) {
 	}
 }
 
-func TestHeaderResolver_RequestDataFromHashShouldWork(t *testing.T) {
+func TestHeaderRequester_RequestDataFromHashShouldWork(t *testing.T) {
 	t.Parallel()
 
 	newEpochCalled := false
 	sendCalled := false
-	arg := createMockHeaderResolverArg()
+	arg := createMockHeaderRequesterArg()
 	arg.HdrStorage = &storageStubs.StorerStub{
 		SearchFirstCalled: func(key []byte) ([]byte, error) {
 			return make([]byte, 0), nil
@@ -235,7 +235,7 @@ func TestHeaderResolver_RequestDataFromHashShouldWork(t *testing.T) {
 			return nil
 		},
 	}
-	hdRes, _ := NewHeaderResolver(arg)
+	hdRes, _ := NewHeaderRequester(arg)
 
 	err := hdRes.RequestDataFromHash([]byte("hash"), 0)
 
@@ -244,13 +244,13 @@ func TestHeaderResolver_RequestDataFromHashShouldWork(t *testing.T) {
 	assert.True(t, sendCalled)
 }
 
-func TestHeaderResolver_RequestDataFromNonceNotFoundShouldErr(t *testing.T) {
+func TestHeaderRequester_RequestDataFromNonceNotFoundShouldErr(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("expected error")
 	newEpochCalled := false
 	sendCalled := false
-	arg := createMockHeaderResolverArg()
+	arg := createMockHeaderRequesterArg()
 	arg.HdrStorage = &storageStubs.StorerStub{
 		SearchFirstCalled: func(key []byte) ([]byte, error) {
 			return make([]byte, 0), nil
@@ -273,7 +273,7 @@ func TestHeaderResolver_RequestDataFromNonceNotFoundShouldErr(t *testing.T) {
 			return nil
 		},
 	}
-	hdRes, _ := NewHeaderResolver(arg)
+	hdRes, _ := NewHeaderRequester(arg)
 
 	err := hdRes.RequestDataFromNonce(1, 0)
 
@@ -282,12 +282,12 @@ func TestHeaderResolver_RequestDataFromNonceNotFoundShouldErr(t *testing.T) {
 	assert.False(t, sendCalled)
 }
 
-func TestHeaderResolver_RequestDataFromNonceShouldWork(t *testing.T) {
+func TestHeaderRequester_RequestDataFromNonceShouldWork(t *testing.T) {
 	t.Parallel()
 
 	epochsCalled := make(map[uint32]struct{})
 	sendCalled := false
-	arg := createMockHeaderResolverArg()
+	arg := createMockHeaderRequesterArg()
 	arg.HdrStorage = &storageStubs.StorerStub{
 		SearchFirstCalled: func(key []byte) ([]byte, error) {
 			return make([]byte, 0), nil
@@ -310,7 +310,7 @@ func TestHeaderResolver_RequestDataFromNonceShouldWork(t *testing.T) {
 			return nil
 		},
 	}
-	hdRes, _ := NewHeaderResolver(arg)
+	hdRes, _ := NewHeaderRequester(arg)
 
 	err := hdRes.RequestDataFromNonce(1, 0)
 
@@ -323,12 +323,12 @@ func TestHeaderResolver_RequestDataFromNonceShouldWork(t *testing.T) {
 	assert.True(t, sendCalled)
 }
 
-func TestHeaderResolver_RequestDataFromEpochShouldWork(t *testing.T) {
+func TestHeaderRequester_RequestDataFromEpochShouldWork(t *testing.T) {
 	t.Parallel()
 
 	sendCalled := false
 	epochIdentifier := []byte(core.EpochStartIdentifier(math.MaxUint32))
-	arg := createMockHeaderResolverArg()
+	arg := createMockHeaderRequesterArg()
 	arg.HdrStorage = &storageStubs.StorerStub{
 		SearchFirstCalled: func(key []byte) ([]byte, error) {
 			assert.Equal(t, epochIdentifier, key)
@@ -343,7 +343,7 @@ func TestHeaderResolver_RequestDataFromEpochShouldWork(t *testing.T) {
 			return nil
 		},
 	}
-	hdRes, _ := NewHeaderResolver(arg)
+	hdRes, _ := NewHeaderRequester(arg)
 
 	err := hdRes.RequestDataFromEpoch(epochIdentifier)
 
@@ -351,10 +351,10 @@ func TestHeaderResolver_RequestDataFromEpochShouldWork(t *testing.T) {
 	assert.True(t, sendCalled)
 }
 
-func TestHeaderResolver_Close(t *testing.T) {
+func TestHeaderRequester_Close(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockHeaderResolverArg()
+	arg := createMockHeaderRequesterArg()
 	closeCalled := 0
 	arg.HdrStorage = &storageStubs.StorerStub{
 		CloseCalled: func() error {
@@ -368,7 +368,7 @@ func TestHeaderResolver_Close(t *testing.T) {
 			return nil
 		},
 	}
-	hdRes, _ := NewHeaderResolver(arg)
+	hdRes, _ := NewHeaderRequester(arg)
 
 	assert.Nil(t, hdRes.Close())
 	assert.Equal(t, 2, closeCalled)

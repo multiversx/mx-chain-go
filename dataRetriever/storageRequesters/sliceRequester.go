@@ -1,4 +1,4 @@
-package storageResolvers
+package storagerequesters
 
 import (
 	"fmt"
@@ -16,8 +16,8 @@ import (
 // maxBuffToSend represents max buffer size to send in bytes
 const maxBuffToSend = 1 << 18 //256KB
 
-// ArgSliceResolver is the argument structure used to create a new sliceResolver instance
-type ArgSliceResolver struct {
+// ArgSliceRequester is the argument structure used to create a new sliceRequester instance
+type ArgSliceRequester struct {
 	Messenger                dataRetriever.MessageHandler
 	ResponseTopicName        string
 	Storage                  storage.Storer
@@ -28,15 +28,15 @@ type ArgSliceResolver struct {
 	DelayBeforeGracefulClose time.Duration
 }
 
-type sliceResolver struct {
-	*storageResolver
+type sliceRequester struct {
+	*storageRequester
 	storage     storage.Storer
 	dataPacker  dataRetriever.DataPacker
 	marshalizer marshal.Marshalizer
 }
 
-// NewSliceResolver is a wrapper over Resolver that is specialized in resolving single and multiple requests
-func NewSliceResolver(arg ArgSliceResolver) (*sliceResolver, error) {
+// NewSliceRequester is a wrapper over Requester that is specialized in sending requests
+func NewSliceRequester(arg ArgSliceRequester) (*sliceRequester, error) {
 	if check.IfNil(arg.Messenger) {
 		return nil, dataRetriever.ErrNilMessenger
 	}
@@ -56,8 +56,8 @@ func NewSliceResolver(arg ArgSliceResolver) (*sliceResolver, error) {
 		return nil, dataRetriever.ErrNilGracefullyCloseChannel
 	}
 
-	return &sliceResolver{
-		storageResolver: &storageResolver{
+	return &sliceRequester{
+		storageRequester: &storageRequester{
 			messenger:                arg.Messenger,
 			responseTopicName:        arg.ResponseTopicName,
 			manualEpochStartNotifier: arg.ManualEpochStartNotifier,
@@ -71,7 +71,7 @@ func NewSliceResolver(arg ArgSliceResolver) (*sliceResolver, error) {
 }
 
 // RequestDataFromHash searches the hash in provided storage and then will send to self the message
-func (sliceRes *sliceResolver) RequestDataFromHash(hash []byte, _ uint32) error {
+func (sliceRes *sliceRequester) RequestDataFromHash(hash []byte, _ uint32) error {
 	mb, err := sliceRes.storage.Get(hash)
 	if err != nil {
 		sliceRes.signalGracefullyClose()
@@ -90,7 +90,7 @@ func (sliceRes *sliceResolver) RequestDataFromHash(hash []byte, _ uint32) error 
 }
 
 // RequestDataFromHashArray searches the hashes in provided storage and then will send to self the message(s)
-func (sliceRes *sliceResolver) RequestDataFromHashArray(hashes [][]byte, _ uint32) error {
+func (sliceRes *sliceRequester) RequestDataFromHashArray(hashes [][]byte, _ uint32) error {
 	var errFetch error
 	errorsFound := 0
 	mbsBuffSlice := make([][]byte, 0, len(hashes))
@@ -122,7 +122,7 @@ func (sliceRes *sliceResolver) RequestDataFromHashArray(hashes [][]byte, _ uint3
 	}
 
 	if errFetch != nil {
-		errFetch = fmt.Errorf("resolveRequestByHashArray on topic %s, last error %w from %d encountered errors",
+		errFetch = fmt.Errorf("RequesterequestByHashArray on topic %s, last error %w from %d encountered errors",
 			sliceRes.responseTopicName, errFetch, errorsFound)
 		sliceRes.signalGracefullyClose()
 	}
@@ -131,11 +131,11 @@ func (sliceRes *sliceResolver) RequestDataFromHashArray(hashes [][]byte, _ uint3
 }
 
 // Close will try to close the associated opened storers
-func (sliceRes *sliceResolver) Close() error {
+func (sliceRes *sliceRequester) Close() error {
 	return sliceRes.storage.Close()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (sliceRes *sliceResolver) IsInterfaceNil() bool {
+func (sliceRes *sliceRequester) IsInterfaceNil() bool {
 	return sliceRes == nil
 }

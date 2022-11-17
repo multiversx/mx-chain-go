@@ -1,4 +1,4 @@
-package storageResolversContainers_test
+package storagerequesterscontainer_test
 
 import (
 	"errors"
@@ -8,7 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	storageResolversContainers "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/storageResolversContainer"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/storageRequestersContainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -58,79 +58,79 @@ func createStoreForShard() dataRetriever.StorageService {
 	}
 }
 
-// ------- NewResolversContainerFactory
+// ------- NewRequestersContainerFactory
 
-func TestNewShardResolversContainerFactory_NilShardCoordinatorShouldErr(t *testing.T) {
+func TestNewShardRequestersContainerFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := getArgumentsShard()
 	args.ShardCoordinator = nil
-	rcf, err := storageResolversContainers.NewShardResolversContainerFactory(args)
+	rcf, err := storagerequesterscontainer.NewShardRequestersContainerFactory(args)
 
 	assert.Nil(t, rcf)
 	assert.Equal(t, dataRetriever.ErrNilShardCoordinator, err)
 }
 
-func TestNewShardResolversContainerFactory_NilMessengerShouldErr(t *testing.T) {
+func TestNewShardRequestersContainerFactory_NilMessengerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := getArgumentsShard()
 	args.Messenger = nil
-	rcf, err := storageResolversContainers.NewShardResolversContainerFactory(args)
+	rcf, err := storagerequesterscontainer.NewShardRequestersContainerFactory(args)
 
 	assert.Nil(t, rcf)
 	assert.Equal(t, dataRetriever.ErrNilMessenger, err)
 }
 
-func TestNewShardResolversContainerFactory_NilStoreShouldErr(t *testing.T) {
+func TestNewShardRequestersContainerFactory_NilStoreShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := getArgumentsShard()
 	args.Store = nil
-	rcf, err := storageResolversContainers.NewShardResolversContainerFactory(args)
+	rcf, err := storagerequesterscontainer.NewShardRequestersContainerFactory(args)
 
 	assert.Nil(t, rcf)
 	assert.Equal(t, dataRetriever.ErrNilStore, err)
 }
 
-func TestNewShardResolversContainerFactory_NilMarshalizerShouldErr(t *testing.T) {
+func TestNewShardRequestersContainerFactory_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := getArgumentsShard()
 	args.Marshalizer = nil
-	rcf, err := storageResolversContainers.NewShardResolversContainerFactory(args)
+	rcf, err := storagerequesterscontainer.NewShardRequestersContainerFactory(args)
 
 	assert.Nil(t, rcf)
 	assert.Equal(t, dataRetriever.ErrNilMarshalizer, err)
 }
 
-func TestNewShardResolversContainerFactory_NilUint64SliceConverterShouldErr(t *testing.T) {
+func TestNewShardRequestersContainerFactory_NilUint64SliceConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := getArgumentsShard()
 	args.Uint64ByteSliceConverter = nil
-	rcf, err := storageResolversContainers.NewShardResolversContainerFactory(args)
+	rcf, err := storagerequesterscontainer.NewShardRequestersContainerFactory(args)
 
 	assert.Nil(t, rcf)
 	assert.Equal(t, dataRetriever.ErrNilUint64ByteSliceConverter, err)
 }
 
-func TestNewShardResolversContainerFactory_NilDataPackerShouldErr(t *testing.T) {
+func TestNewShardRequestersContainerFactory_NilDataPackerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := getArgumentsShard()
 	args.DataPacker = nil
-	rcf, err := storageResolversContainers.NewShardResolversContainerFactory(args)
+	rcf, err := storagerequesterscontainer.NewShardRequestersContainerFactory(args)
 
 	assert.Nil(t, rcf)
 	assert.Equal(t, dataRetriever.ErrNilDataPacker, err)
 }
 
-func TestNewShardResolversContainerFactory_ShouldWork(t *testing.T) {
+func TestNewShardRequestersContainerFactory_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	args := getArgumentsShard()
-	rcf, err := storageResolversContainers.NewShardResolversContainerFactory(args)
+	rcf, err := storagerequesterscontainer.NewShardRequestersContainerFactory(args)
 
 	assert.NotNil(t, rcf)
 	assert.Nil(t, err)
@@ -139,11 +139,11 @@ func TestNewShardResolversContainerFactory_ShouldWork(t *testing.T) {
 
 // ------- Create
 
-func TestShardResolversContainerFactory_CreateShouldWork(t *testing.T) {
+func TestShardRequestersContainerFactory_CreateShouldWork(t *testing.T) {
 	t.Parallel()
 
 	args := getArgumentsShard()
-	rcf, _ := storageResolversContainers.NewShardResolversContainerFactory(args)
+	rcf, _ := storagerequesterscontainer.NewShardRequestersContainerFactory(args)
 
 	container, err := rcf.Create()
 
@@ -151,7 +151,7 @@ func TestShardResolversContainerFactory_CreateShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestShardResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
+func TestShardRequestersContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	noOfShards := 4
@@ -162,28 +162,28 @@ func TestShardResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 
 	args := getArgumentsShard()
 	args.ShardCoordinator = shardCoordinator
-	rcf, _ := storageResolversContainers.NewShardResolversContainerFactory(args)
+	rcf, _ := storagerequesterscontainer.NewShardRequestersContainerFactory(args)
 
 	container, _ := rcf.Create()
 
-	numResolverSCRs := noOfShards + 1
-	numResolverTxs := noOfShards + 1
-	numResolverRewardTxs := 1
-	numResolverHeaders := 1
-	numResolverMiniBlocks := noOfShards + 2
-	numResolverMetaBlockHeaders := 1
-	numResolverTrieNodes := 1
+	numRequesterSCRs := noOfShards + 1
+	numRequesterTxs := noOfShards + 1
+	numRequesterRewardTxs := 1
+	numRequesterHeaders := 1
+	numRequesterMiniBlocks := noOfShards + 2
+	numRequesterMetaBlockHeaders := 1
+	numRequesterTrieNodes := 1
 	numPeerAuthentication := 1
 	numValidatorInfo := 1
-	totalResolvers := numResolverTxs + numResolverHeaders + numResolverMiniBlocks +
-		numResolverMetaBlockHeaders + numResolverSCRs + numResolverRewardTxs + numResolverTrieNodes +
+	totalRequesters := numRequesterTxs + numRequesterHeaders + numRequesterMiniBlocks +
+		numRequesterMetaBlockHeaders + numRequesterSCRs + numRequesterRewardTxs + numRequesterTrieNodes +
 		numPeerAuthentication + numValidatorInfo
 
-	assert.Equal(t, totalResolvers, container.Len())
+	assert.Equal(t, totalRequesters, container.Len())
 }
 
-func getArgumentsShard() storageResolversContainers.FactoryArgs {
-	return storageResolversContainers.FactoryArgs{
+func getArgumentsShard() storagerequesterscontainer.FactoryArgs {
+	return storagerequesterscontainer.FactoryArgs{
 		GeneralConfig: config.Config{
 			AccountsTrieStorage:     getMockStorageConfig(),
 			PeerAccountsTrieStorage: getMockStorageConfig(),

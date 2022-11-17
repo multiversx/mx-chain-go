@@ -48,6 +48,7 @@ type ArgsExporter struct {
 	Messenger                 p2p.Messenger
 	ActiveAccountsDBs         map[state.AccountsDbIdentifier]state.AccountsAdapter
 	ExistingResolvers         dataRetriever.ResolversContainer
+	ExistingRequesters        dataRetriever.RequestersContainer
 	ExportFolder              string
 	ExportTriesStorageConfig  config.StorageConfig
 	ExportStateStorageConfig  config.StorageConfig
@@ -91,6 +92,7 @@ type exportHandlerFactory struct {
 	whiteListerVerifiedTxs    process.WhiteListHandler
 	interceptorsContainer     process.InterceptorsContainer
 	existingResolvers         dataRetriever.ResolversContainer
+	existingRequesters        dataRetriever.RequestersContainer
 	epochStartTrigger         epochStart.TriggerHandler
 	accounts                  state.AccountsAdapter
 	nodesCoordinator          nodesCoordinator.NodesCoordinator
@@ -98,6 +100,7 @@ type exportHandlerFactory struct {
 	headerIntegrityVerifier   process.HeaderIntegrityVerifier
 	validityAttester          process.ValidityAttester
 	resolverContainer         dataRetriever.ResolversContainer
+	requestersContainer       dataRetriever.RequestersContainer
 	inputAntifloodHandler     process.P2PAntifloodHandler
 	outputAntifloodHandler    process.P2PAntifloodHandler
 	roundHandler              process.RoundHandler
@@ -158,6 +161,9 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 	}
 	if check.IfNil(args.ExistingResolvers) {
 		return nil, update.ErrNilResolverContainer
+	}
+	if check.IfNil(args.ExistingRequesters) {
+		return nil, update.ErrNilRequestersContainer
 	}
 	multiSigner, err := args.CryptoComponents.GetMultiSigner(0)
 	if err != nil {
@@ -249,6 +255,7 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		whiteListHandler:          args.WhiteListHandler,
 		whiteListerVerifiedTxs:    args.WhiteListerVerifiedTxs,
 		existingResolvers:         args.ExistingResolvers,
+		existingRequesters:        args.ExistingRequesters,
 		accounts:                  args.ActiveAccountsDBs[state.UserAccountsState],
 		nodesCoordinator:          args.NodesCoordinator,
 		headerSigVerifier:         args.HeaderSigVerifier,
@@ -365,6 +372,32 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		errNotCritical = resolver.SetResolverDebugHandler(debugger)
 		if errNotCritical != nil {
 			log.Warn("error setting debugger", "resolver", key, "error", errNotCritical)
+		}
+
+		return true
+	})
+
+	argsRequesters := ArgsRequestersContainerFactory{
+		ShardCoordinator:       e.shardCoordinator,
+		Messenger:              e.messenger,
+		Marshaller:             e.CoreComponents.InternalMarshalizer(),
+		ExistingRequesters:     e.existingRequesters,
+		OutputAntifloodHandler: e.outputAntifloodHandler,
+		PeersRatingHandler:     e.peersRatingHandler,
+	}
+	requestersFactory, err := NewRequestersContainerFactory(argsRequesters)
+	if err != nil {
+		return nil, err
+	}
+	e.requestersContainer, err = requestersFactory.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	e.requestersContainer.Iterate(func(key string, requester dataRetriever.Requester) bool {
+		errNotCritical = requester.SetResolverDebugHandler(debugger)
+		if errNotCritical != nil {
+			log.Warn("error setting debugger", "requester", key, "error", errNotCritical)
 		}
 
 		return true

@@ -1,4 +1,4 @@
-package storageResolvers
+package storagerequesters
 
 import (
 	"errors"
@@ -16,8 +16,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func createMockSliceResolverArg() ArgSliceResolver {
-	return ArgSliceResolver{
+func createMockSliceRequesterArg() ArgSliceRequester {
+	return ArgSliceRequester{
 		Messenger:                &mock.MessageHandlerStub{},
 		ResponseTopicName:        "",
 		Storage:                  genericMocks.NewStorerMock(),
@@ -28,88 +28,88 @@ func createMockSliceResolverArg() ArgSliceResolver {
 	}
 }
 
-func TestNewSliceResolver_NilMessengerShouldErr(t *testing.T) {
+func TestNewSliceRequester_NilMessengerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockSliceResolverArg()
+	arg := createMockSliceRequesterArg()
 	arg.Messenger = nil
-	sr, err := NewSliceResolver(arg)
+	sr, err := NewSliceRequester(arg)
 
 	assert.True(t, check.IfNil(sr))
 	assert.Equal(t, dataRetriever.ErrNilMessenger, err)
 }
 
-func TestNewSliceResolver_NilStorageShouldErr(t *testing.T) {
+func TestNewSliceRequester_NilStorageShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockSliceResolverArg()
+	arg := createMockSliceRequesterArg()
 	arg.Storage = nil
-	sr, err := NewSliceResolver(arg)
+	sr, err := NewSliceRequester(arg)
 
 	assert.True(t, check.IfNil(sr))
 	assert.Equal(t, dataRetriever.ErrNilStore, err)
 }
 
-func TestNewSliceResolver_NilMarshalizerShouldErr(t *testing.T) {
+func TestNewSliceRequester_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockSliceResolverArg()
+	arg := createMockSliceRequesterArg()
 	arg.Marshalizer = nil
-	sr, err := NewSliceResolver(arg)
+	sr, err := NewSliceRequester(arg)
 
 	assert.True(t, check.IfNil(sr))
 	assert.Equal(t, dataRetriever.ErrNilMarshalizer, err)
 }
 
-func TestNewSliceResolver_NilDataPackerShouldErr(t *testing.T) {
+func TestNewSliceRequester_NilDataPackerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockSliceResolverArg()
+	arg := createMockSliceRequesterArg()
 	arg.DataPacker = nil
-	sr, err := NewSliceResolver(arg)
+	sr, err := NewSliceRequester(arg)
 
 	assert.True(t, check.IfNil(sr))
 	assert.Equal(t, dataRetriever.ErrNilDataPacker, err)
 }
 
-func TestNewSliceResolver_NilManualEpochStartNotifierShouldErr(t *testing.T) {
+func TestNewSliceRequester_NilManualEpochStartNotifierShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockSliceResolverArg()
+	arg := createMockSliceRequesterArg()
 	arg.ManualEpochStartNotifier = nil
-	sr, err := NewSliceResolver(arg)
+	sr, err := NewSliceRequester(arg)
 
 	assert.True(t, check.IfNil(sr))
 	assert.Equal(t, dataRetriever.ErrNilManualEpochStartNotifier, err)
 }
 
-func TestNewSliceResolver_NilGracefullyCloseChanShouldErr(t *testing.T) {
+func TestNewSliceRequester_NilGracefullyCloseChanShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockSliceResolverArg()
+	arg := createMockSliceRequesterArg()
 	arg.ChanGracefullyClose = nil
-	sr, err := NewSliceResolver(arg)
+	sr, err := NewSliceRequester(arg)
 
 	assert.True(t, check.IfNil(sr))
 	assert.Equal(t, dataRetriever.ErrNilGracefullyCloseChannel, err)
 }
 
-func TestNewSliceResolver_ShouldWork(t *testing.T) {
+func TestNewSliceRequester_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockSliceResolverArg()
-	sr, err := NewSliceResolver(arg)
+	arg := createMockSliceRequesterArg()
+	sr, err := NewSliceRequester(arg)
 
 	assert.False(t, check.IfNil(sr))
 	assert.Nil(t, err)
 }
 
-func TestSliceResolver_RequestDataFromHashNotFoundShouldErr(t *testing.T) {
+func TestSliceRequester_RequestDataFromHashNotFoundShouldErr(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("expected error")
 	sendWasCalled := false
-	arg := createMockSliceResolverArg()
+	arg := createMockSliceRequesterArg()
 	arg.Storage = &storageStubs.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
 			return nil, expectedErr
@@ -122,7 +122,7 @@ func TestSliceResolver_RequestDataFromHashNotFoundShouldErr(t *testing.T) {
 		},
 	}
 	arg.ChanGracefullyClose = make(chan endProcess.ArgEndProcess, 1)
-	sr, _ := NewSliceResolver(arg)
+	sr, _ := NewSliceRequester(arg)
 
 	err := sr.RequestDataFromHash([]byte("hash"), 0)
 
@@ -139,11 +139,11 @@ func TestSliceResolver_RequestDataFromHashNotFoundShouldErr(t *testing.T) {
 	}
 }
 
-func TestSliceResolver_RequestDataFromHashShouldWork(t *testing.T) {
+func TestSliceRequester_RequestDataFromHashShouldWork(t *testing.T) {
 	t.Parallel()
 
 	sendWasCalled := false
-	arg := createMockSliceResolverArg()
+	arg := createMockSliceRequesterArg()
 	arg.Storage = &storageStubs.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
 			return make([]byte, 0), nil
@@ -155,7 +155,7 @@ func TestSliceResolver_RequestDataFromHashShouldWork(t *testing.T) {
 			return nil
 		},
 	}
-	sr, _ := NewSliceResolver(arg)
+	sr, _ := NewSliceRequester(arg)
 
 	err := sr.RequestDataFromHash([]byte("hash"), 0)
 
@@ -163,12 +163,12 @@ func TestSliceResolver_RequestDataFromHashShouldWork(t *testing.T) {
 	assert.True(t, sendWasCalled)
 }
 
-func TestSliceResolver_RequestDataFromHashesShouldWork(t *testing.T) {
+func TestSliceRequester_RequestDataFromHashesShouldWork(t *testing.T) {
 	t.Parallel()
 
 	numSendCalled := 0
 	numGetCalled := 0
-	arg := createMockSliceResolverArg()
+	arg := createMockSliceRequesterArg()
 	arg.Storage = &storageStubs.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
 			numGetCalled++
@@ -181,7 +181,7 @@ func TestSliceResolver_RequestDataFromHashesShouldWork(t *testing.T) {
 			return nil
 		},
 	}
-	sr, _ := NewSliceResolver(arg)
+	sr, _ := NewSliceRequester(arg)
 
 	hashes := [][]byte{[]byte("hash1"), []byte("hash2")}
 	err := sr.RequestDataFromHashArray(hashes, 0)
@@ -191,13 +191,13 @@ func TestSliceResolver_RequestDataFromHashesShouldWork(t *testing.T) {
 	assert.Equal(t, len(hashes), numGetCalled)
 }
 
-func TestSliceResolver_GetErroredShouldReturnErr(t *testing.T) {
+func TestSliceRequester_GetErroredShouldReturnErr(t *testing.T) {
 	t.Parallel()
 
 	numSendCalled := 0
 	numGetCalled := 0
 	expectedErr := errors.New("expected err")
-	arg := createMockSliceResolverArg()
+	arg := createMockSliceRequesterArg()
 	arg.Storage = &storageStubs.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
 			numGetCalled++
@@ -215,7 +215,7 @@ func TestSliceResolver_GetErroredShouldReturnErr(t *testing.T) {
 		},
 	}
 	arg.ChanGracefullyClose = make(chan endProcess.ArgEndProcess, 1)
-	sr, _ := NewSliceResolver(arg)
+	sr, _ := NewSliceRequester(arg)
 
 	hashes := [][]byte{[]byte("hash1"), []byte("hash2")}
 	err := sr.RequestDataFromHashArray(hashes, 0)
@@ -234,13 +234,13 @@ func TestSliceResolver_GetErroredShouldReturnErr(t *testing.T) {
 	}
 }
 
-func TestSliceResolver_SendErroredShouldReturnErr(t *testing.T) {
+func TestSliceRequester_SendErroredShouldReturnErr(t *testing.T) {
 	t.Parallel()
 
 	numSendCalled := 0
 	numGetCalled := 0
 	expectedErr := errors.New("expected err")
-	arg := createMockSliceResolverArg()
+	arg := createMockSliceRequesterArg()
 	arg.Storage = &storageStubs.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
 			numGetCalled++
@@ -256,7 +256,7 @@ func TestSliceResolver_SendErroredShouldReturnErr(t *testing.T) {
 			return nil
 		},
 	}
-	sr, _ := NewSliceResolver(arg)
+	sr, _ := NewSliceRequester(arg)
 
 	hashes := [][]byte{[]byte("hash1"), []byte("hash2")}
 	err := sr.RequestDataFromHashArray(hashes, 0)
@@ -266,10 +266,10 @@ func TestSliceResolver_SendErroredShouldReturnErr(t *testing.T) {
 	assert.Equal(t, len(hashes), numGetCalled)
 }
 
-func TestSliceResolver_Close(t *testing.T) {
+func TestSliceRequester_Close(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockSliceResolverArg()
+	arg := createMockSliceRequesterArg()
 	closeCalled := 0
 	arg.Storage = &storageStubs.StorerStub{
 		CloseCalled: func() error {
@@ -277,7 +277,7 @@ func TestSliceResolver_Close(t *testing.T) {
 			return nil
 		},
 	}
-	sr, _ := NewSliceResolver(arg)
+	sr, _ := NewSliceRequester(arg)
 
 	assert.Nil(t, sr.Close())
 	assert.Equal(t, 1, closeCalled)

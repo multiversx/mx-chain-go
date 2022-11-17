@@ -1,4 +1,4 @@
-package storageResolvers
+package storagerequesters
 
 import (
 	"sync"
@@ -14,10 +14,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-var log = logger.GetOrCreate("dataretriever/storageresolvers")
+var log = logger.GetOrCreate("dataretriever/storagerequesters")
 
-// ArgHeaderResolver is the argument structure used to create new HeaderResolver instance
-type ArgHeaderResolver struct {
+// ArgHeaderRequester is the argument structure used to create new headerRequester instance
+type ArgHeaderRequester struct {
 	Messenger                dataRetriever.MessageHandler
 	ResponseTopicName        string
 	NonceConverter           typeConverters.Uint64ByteSliceConverter
@@ -28,8 +28,8 @@ type ArgHeaderResolver struct {
 	DelayBeforeGracefulClose time.Duration
 }
 
-type headerResolver struct {
-	*storageResolver
+type headerRequester struct {
+	*storageRequester
 	nonceConverter   typeConverters.Uint64ByteSliceConverter
 	mutEpochHandler  sync.RWMutex
 	epochHandler     dataRetriever.EpochHandler
@@ -37,8 +37,8 @@ type headerResolver struct {
 	hdrNoncesStorage storage.Storer
 }
 
-// NewHeaderResolver creates a new storage header resolver
-func NewHeaderResolver(arg ArgHeaderResolver) (*headerResolver, error) {
+// NewHeaderRequester creates a new storage header resolver
+func NewHeaderRequester(arg ArgHeaderRequester) (*headerRequester, error) {
 	if check.IfNil(arg.Messenger) {
 		return nil, dataRetriever.ErrNilMessenger
 	}
@@ -59,8 +59,8 @@ func NewHeaderResolver(arg ArgHeaderResolver) (*headerResolver, error) {
 	}
 
 	epochHandler := disabled.NewEpochHandler()
-	return &headerResolver{
-		storageResolver: &storageResolver{
+	return &headerRequester{
+		storageRequester: &storageRequester{
 			messenger:                arg.Messenger,
 			responseTopicName:        arg.ResponseTopicName,
 			manualEpochStartNotifier: arg.ManualEpochStartNotifier,
@@ -75,7 +75,7 @@ func NewHeaderResolver(arg ArgHeaderResolver) (*headerResolver, error) {
 }
 
 // RequestDataFromHash searches the hash in provided storage and then will send to self the message
-func (hdrRes *headerResolver) RequestDataFromHash(hash []byte, _ uint32) error {
+func (hdrRes *headerRequester) RequestDataFromHash(hash []byte, _ uint32) error {
 	hdrRes.mutEpochHandler.RLock()
 	metaEpoch := hdrRes.epochHandler.MetaEpoch()
 	hdrRes.mutEpochHandler.RUnlock()
@@ -93,7 +93,7 @@ func (hdrRes *headerResolver) RequestDataFromHash(hash []byte, _ uint32) error {
 }
 
 // RequestDataFromNonce requests a header by its nonce
-func (hdrRes *headerResolver) RequestDataFromNonce(nonce uint64, epoch uint32) error {
+func (hdrRes *headerRequester) RequestDataFromNonce(nonce uint64, epoch uint32) error {
 	nonceKey := hdrRes.nonceConverter.ToByteSlice(nonce)
 	hash, err := hdrRes.hdrNoncesStorage.SearchFirst(nonceKey)
 	if err != nil {
@@ -105,7 +105,7 @@ func (hdrRes *headerResolver) RequestDataFromNonce(nonce uint64, epoch uint32) e
 }
 
 // RequestDataFromEpoch requests the epoch start block
-func (hdrRes *headerResolver) RequestDataFromEpoch(identifier []byte) error {
+func (hdrRes *headerRequester) RequestDataFromEpoch(identifier []byte) error {
 	buff, err := hdrRes.resolveHeaderFromEpoch(identifier)
 	if err != nil {
 		hdrRes.signalGracefullyClose()
@@ -116,7 +116,7 @@ func (hdrRes *headerResolver) RequestDataFromEpoch(identifier []byte) error {
 }
 
 // resolveHeaderFromEpoch resolves a header using its key based on epoch
-func (hdrRes *headerResolver) resolveHeaderFromEpoch(key []byte) ([]byte, error) {
+func (hdrRes *headerRequester) resolveHeaderFromEpoch(key []byte) ([]byte, error) {
 	actualKey := key
 
 	isUnknownEpoch, err := core.IsUnknownEpochIdentifier(key)
@@ -131,7 +131,7 @@ func (hdrRes *headerResolver) resolveHeaderFromEpoch(key []byte) ([]byte, error)
 }
 
 // SetEpochHandler sets the epoch handler
-func (hdrRes *headerResolver) SetEpochHandler(epochHandler dataRetriever.EpochHandler) error {
+func (hdrRes *headerRequester) SetEpochHandler(epochHandler dataRetriever.EpochHandler) error {
 	if check.IfNil(epochHandler) {
 		return dataRetriever.ErrNilEpochHandler
 	}
@@ -144,7 +144,7 @@ func (hdrRes *headerResolver) SetEpochHandler(epochHandler dataRetriever.EpochHa
 }
 
 // Close will try to close the associated opened storers
-func (hdrRes *headerResolver) Close() error {
+func (hdrRes *headerRequester) Close() error {
 	errNonces := hdrRes.hdrNoncesStorage.Close()
 	log.LogIfError(errNonces)
 
@@ -159,6 +159,6 @@ func (hdrRes *headerResolver) Close() error {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (hdrRes *headerResolver) IsInterfaceNil() bool {
+func (hdrRes *headerRequester) IsInterfaceNil() bool {
 	return hdrRes == nil
 }

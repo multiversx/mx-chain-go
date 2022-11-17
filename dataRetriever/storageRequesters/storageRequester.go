@@ -1,18 +1,16 @@
-package storageResolvers
+package storagerequesters
 
 import (
 	"fmt"
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
-type storageResolver struct {
+type storageRequester struct {
 	messenger                dataRetriever.MessageHandler
 	responseTopicName        string
 	manualEpochStartNotifier dataRetriever.ManualEpochStartNotifier
@@ -22,30 +20,25 @@ type storageResolver struct {
 	delayBeforeGracefulClose time.Duration
 }
 
-// ProcessReceivedMessage does nothing, won't be able to process network requests
-func (sr *storageResolver) ProcessReceivedMessage(_ p2p.MessageP2P, _ core.PeerID) error {
-	return nil
-}
-
 // SetResolverDebugHandler returns nil, no debugging associated to this implementation
-func (sr *storageResolver) SetResolverDebugHandler(_ dataRetriever.ResolverDebugHandler) error {
+func (sr *storageRequester) SetResolverDebugHandler(_ dataRetriever.ResolverDebugHandler) error {
 	return nil
 }
 
 // SetNumPeersToQuery does nothing
-func (sr *storageResolver) SetNumPeersToQuery(_ int, _ int) {
+func (sr *storageRequester) SetNumPeersToQuery(_ int, _ int) {
 }
 
 // NumPeersToQuery returns (0, 0) tuple as it won't request any connected peer
-func (sr *storageResolver) NumPeersToQuery() (int, int) {
+func (sr *storageRequester) NumPeersToQuery() (int, int) {
 	return 0, 0
 }
 
-func (sr *storageResolver) sendToSelf(buffToSend []byte) error {
+func (sr *storageRequester) sendToSelf(buffToSend []byte) error {
 	return sr.messenger.SendToConnectedPeer(sr.responseTopicName, buffToSend, sr.messenger.ID())
 }
 
-func (sr *storageResolver) signalGracefullyClose() {
+func (sr *storageRequester) signalGracefullyClose() {
 	sr.mutSignaled.Lock()
 	defer sr.mutSignaled.Unlock()
 
@@ -57,7 +50,7 @@ func (sr *storageResolver) signalGracefullyClose() {
 	go sr.asyncCallGracefullyClose()
 }
 
-func (sr *storageResolver) asyncCallGracefullyClose() {
+func (sr *storageRequester) asyncCallGracefullyClose() {
 	crtEpoch := sr.manualEpochStartNotifier.CurrentEpoch()
 
 	argEndProcess := endProcess.ArgEndProcess{
@@ -71,6 +64,6 @@ func (sr *storageResolver) asyncCallGracefullyClose() {
 	select {
 	case sr.chanGracefullyClose <- argEndProcess:
 	default:
-		log.Debug("storageResolver.RequestDataFromHash: could not wrote on the end chan")
+		log.Debug("storageRequester.RequestDataFromHash: could not wrote on the end chan")
 	}
 }

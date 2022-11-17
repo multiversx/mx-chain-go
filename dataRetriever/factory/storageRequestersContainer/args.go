@@ -1,4 +1,4 @@
-package storageResolversContainers
+package storagerequesterscontainer
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
@@ -10,7 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-// FactoryArgs will hold the arguments for ResolversContainerFactory for both shard and meta
+// FactoryArgs will hold the arguments for RequestersContainerFactory for both shard and meta
 type FactoryArgs struct {
 	GeneralConfig            config.Config
 	ShardIDForTries          uint32

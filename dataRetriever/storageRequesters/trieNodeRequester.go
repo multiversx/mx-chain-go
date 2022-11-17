@@ -1,4 +1,4 @@
-package storageResolvers
+package storagerequesters
 
 import (
 	"time"
@@ -14,8 +14,8 @@ import (
 // maxBuffToSendTrieNodes represents max buffer size to send in bytes
 var maxBuffToSendTrieNodes = uint64(1 << 18) //256KB
 
-// ArgTrieResolver is the argument structure used to create new TrieResolver instance
-type ArgTrieResolver struct {
+// ArgTrieRequester is the argument structure used to create new TrieRequester instance
+type ArgTrieRequester struct {
 	Messenger                dataRetriever.MessageHandler
 	ResponseTopicName        string
 	Marshalizer              marshal.Marshalizer
@@ -26,15 +26,15 @@ type ArgTrieResolver struct {
 	DelayBeforeGracefulClose time.Duration
 }
 
-type trieNodeResolver struct {
-	*storageResolver
+type trieNodeRequester struct {
+	*storageRequester
 	trieDataGetter     dataRetriever.TrieDataGetter
 	trieStorageManager common.StorageManager
 	marshalizer        marshal.Marshalizer
 }
 
-// NewTrieNodeResolver returns a new trie node resolver instance. It uses trie snapshots in order to get older data
-func NewTrieNodeResolver(arg ArgTrieResolver) (*trieNodeResolver, error) {
+// NewTrieNodeRequester returns a new trie node Requester instance. It uses trie snapshots in order to get older data
+func NewTrieNodeRequester(arg ArgTrieRequester) (*trieNodeRequester, error) {
 	if check.IfNil(arg.Messenger) {
 		return nil, dataRetriever.ErrNilMessenger
 	}
@@ -54,8 +54,8 @@ func NewTrieNodeResolver(arg ArgTrieResolver) (*trieNodeResolver, error) {
 		return nil, dataRetriever.ErrNilMarshalizer
 	}
 
-	return &trieNodeResolver{
-		storageResolver: &storageResolver{
+	return &trieNodeRequester{
+		storageRequester: &storageRequester{
 			messenger:                arg.Messenger,
 			responseTopicName:        arg.ResponseTopicName,
 			manualEpochStartNotifier: arg.ManualEpochStartNotifier,
@@ -69,7 +69,7 @@ func NewTrieNodeResolver(arg ArgTrieResolver) (*trieNodeResolver, error) {
 }
 
 // RequestDataFromHash tries to fetch the required trie node and send it to self
-func (tnr *trieNodeResolver) RequestDataFromHash(hash []byte, _ uint32) error {
+func (tnr *trieNodeRequester) RequestDataFromHash(hash []byte, _ uint32) error {
 	nodes, _, err := tnr.getSubTrie(hash, maxBuffToSendTrieNodes)
 	if err != nil {
 		return err
@@ -79,7 +79,7 @@ func (tnr *trieNodeResolver) RequestDataFromHash(hash []byte, _ uint32) error {
 }
 
 // RequestDataFromHashArray tries to fetch the required trie nodes and send it to self
-func (tnr *trieNodeResolver) RequestDataFromHashArray(hashes [][]byte, _ uint32) error {
+func (tnr *trieNodeRequester) RequestDataFromHashArray(hashes [][]byte, _ uint32) error {
 	remainingSpace := maxBuffToSendTrieNodes
 	nodes := make([][]byte, 0, maxBuffToSendTrieNodes)
 	var nextNodes [][]byte
@@ -101,7 +101,7 @@ func (tnr *trieNodeResolver) RequestDataFromHashArray(hashes [][]byte, _ uint32)
 	return tnr.sendDataToSelf(nodes)
 }
 
-func (tnr *trieNodeResolver) getSubTrie(hash []byte, remainingSpace uint64) ([][]byte, uint64, error) {
+func (tnr *trieNodeRequester) getSubTrie(hash []byte, remainingSpace uint64) ([][]byte, uint64, error) {
 	serializedNodes, remainingSpace, err := tnr.trieDataGetter.GetSerializedNodes(hash, remainingSpace)
 	if err != nil {
 		tnr.signalGracefullyClose()
@@ -111,7 +111,7 @@ func (tnr *trieNodeResolver) getSubTrie(hash []byte, remainingSpace uint64) ([][
 	return serializedNodes, remainingSpace, nil
 }
 
-func (tnr *trieNodeResolver) sendDataToSelf(serializedNodes [][]byte) error {
+func (tnr *trieNodeRequester) sendDataToSelf(serializedNodes [][]byte) error {
 	buff, err := tnr.marshalizer.Marshal(
 		&batch.Batch{
 			Data: serializedNodes,
@@ -124,11 +124,11 @@ func (tnr *trieNodeResolver) sendDataToSelf(serializedNodes [][]byte) error {
 }
 
 // Close will try to close the associated opened storers
-func (tnr *trieNodeResolver) Close() error {
+func (tnr *trieNodeRequester) Close() error {
 	return tnr.trieStorageManager.Close()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (tnr *trieNodeResolver) IsInterfaceNil() bool {
+func (tnr *trieNodeRequester) IsInterfaceNil() bool {
 	return tnr == nil
 }
