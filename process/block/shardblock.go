@@ -962,6 +962,7 @@ func (sp *shardProcessor) CommitBlock(
 		"nonce", header.GetNonce(),
 		"hash", headerHash,
 	)
+	sp.setNonceOfFirstCommittedBlock(headerHandler.GetNonce())
 
 	sp.updateLastCommittedInDebugger(headerHandler.GetRound())
 
