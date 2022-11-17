@@ -171,7 +171,7 @@ func TestShardAPIBlockProcessor_CheckAllFieldsAreAccountedFor(t *testing.T) {
 		Signature:       nil,
 		LeaderSignature: nil,
 		MiniBlockHeaders: []block.MiniBlockHeader{
-			{Hash: miniblockHeader, TxCount: 1},
+			{Hash: miniblockHeader, TxCount: txCount},
 		},
 		PeerChanges:        nil,
 		RootHash:           stateRootHash,
@@ -221,7 +221,7 @@ func TestShardAPIBlockProcessor_CheckAllFieldsAreAccountedFor(t *testing.T) {
 				Transactions:            nil,
 				Receipts:                nil,
 				IndexOfFirstTxProcessed: 0,
-				IndexOfLastTxProcessed:  0,
+				IndexOfLastTxProcessed:  int32(txCount - 1),
 			},
 		},
 		EpochStartInfo:       nil,

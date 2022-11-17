@@ -10,6 +10,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	txSorter "github.com/ElrondNetwork/elrond-go-core/core/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
@@ -1659,28 +1660,19 @@ func (txs *transactions) sortTransactionsBySenderAndNonce(transactions []*txcach
 }
 
 func (txs *transactions) sortTransactionsBySenderAndNonceWithFrontRunningProtection(transactions []*txcache.WrappedTransaction, randomness []byte) {
-	// make sure randomness is 32bytes and uniform
-	randSeed := txs.hasher.Compute(string(randomness))
-	xoredAddresses := make(map[string][]byte)
-
-	for _, tx := range transactions {
-		xoredBytes := xorBytes(tx.Tx.GetSndAddr(), randSeed)
-		xoredAddresses[string(tx.Tx.GetSndAddr())] = txs.hasher.Compute(string(xoredBytes))
+	innerTransactions := make([]data.TransactionHandler, 0)
+	transactionToWrappedTransactionsMap := make(map[data.TransactionHandler]*txcache.WrappedTransaction)
+	for _, wt := range transactions {
+		innerTransactions = append(innerTransactions, wt.Tx)
+		transactionToWrappedTransactionsMap[wt.Tx] = wt
 	}
 
-	sorter := func(i, j int) bool {
-		txI := transactions[i].Tx
-		txJ := transactions[j].Tx
+	txSorter.SortTransactionsBySenderAndNonceWithFrontRunningProtection(innerTransactions, txs.hasher, randomness)
 
-		delta := bytes.Compare(xoredAddresses[string(txI.GetSndAddr())], xoredAddresses[string(txJ.GetSndAddr())])
-		if delta == 0 {
-			delta = int(txI.GetNonce()) - int(txJ.GetNonce())
-		}
-
-		return delta < 0
+	transactions = transactions[:0]
+	for i := range innerTransactions {
+		transactions = append(transactions, transactionToWrappedTransactionsMap[innerTransactions[i]])
 	}
-
-	sort.Slice(transactions, sorter)
 }
 
 func sortTransactionsBySenderAndNonceLegacy(transactions []*txcache.WrappedTransaction) {
@@ -1697,15 +1689,6 @@ func sortTransactionsBySenderAndNonceLegacy(transactions []*txcache.WrappedTrans
 	}
 
 	sort.Slice(transactions, sorter)
-}
-
-// parameters need to be of the same len, otherwise it will panic (if second slice shorter)
-func xorBytes(a, b []byte) []byte {
-	res := make([]byte, len(a))
-	for i := range a {
-		res[i] = a[i] ^ b[i]
-	}
-	return res
 }
 
 func (txs *transactions) filterMoveBalance(transactions []*txcache.WrappedTransaction) ([]*txcache.WrappedTransaction, []*txcache.WrappedTransaction, uint64) {
