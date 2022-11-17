@@ -50,28 +50,17 @@ func NewMetaRequestersContainerFactory(
 
 // Create returns an interceptor container that will hold all interceptors in the system
 func (mrcf *metaRequestersContainerFactory) Create() (dataRetriever.RequestersContainer, error) {
-	err := mrcf.generateShardHeaderRequesters()
+	err := mrcf.generateCommonRequesters()
+	if err != nil {
+		return nil, err
+	}
+
+	err = mrcf.generateShardHeaderRequesters()
 	if err != nil {
 		return nil, err
 	}
 
 	err = mrcf.generateMetaChainHeaderRequesters()
-	if err != nil {
-		return nil, err
-	}
-
-	err = mrcf.generateTxRequesters(
-		factory.TransactionTopic,
-		dataRetriever.TransactionUnit,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	err = mrcf.generateTxRequesters(
-		factory.UnsignedTransactionTopic,
-		dataRetriever.UnsignedTransactionUnit,
-	)
 	if err != nil {
 		return nil, err
 	}
@@ -84,30 +73,13 @@ func (mrcf *metaRequestersContainerFactory) Create() (dataRetriever.RequestersCo
 		return nil, err
 	}
 
-	err = mrcf.generateMiniBlocksRequesters()
-	if err != nil {
-		return nil, err
-	}
-
 	err = mrcf.generateTrieNodesRequesters()
-	if err != nil {
-		return nil, err
-	}
-
-	err = mrcf.generatePeerAuthenticationRequester()
-	if err != nil {
-		return nil, err
-	}
-
-	err = mrcf.generateValidatorInfoRequester()
 	if err != nil {
 		return nil, err
 	}
 
 	return mrcf.container, nil
 }
-
-// ------- Shard header requesters
 
 func (mrcf *metaRequestersContainerFactory) generateShardHeaderRequesters() error {
 	shardC := mrcf.shardCoordinator
@@ -163,8 +135,6 @@ func (mrcf *metaRequestersContainerFactory) createShardHeaderRequester(
 
 	return requester, nil
 }
-
-// ------- Meta header requesters
 
 func (mrcf *metaRequestersContainerFactory) generateMetaChainHeaderRequesters() error {
 	identifierHeader := factory.MetachainBlocksTopic

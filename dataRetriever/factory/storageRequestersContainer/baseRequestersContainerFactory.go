@@ -73,6 +73,36 @@ func (brcf *baseRequestersContainerFactory) checkParams() error {
 	return nil
 }
 
+func (brcf *baseRequestersContainerFactory) generateCommonRequesters() error {
+	err := brcf.generateTxRequesters(
+		factory.TransactionTopic,
+		dataRetriever.TransactionUnit,
+	)
+	if err != nil {
+		return err
+	}
+
+	err = brcf.generateTxRequesters(
+		factory.UnsignedTransactionTopic,
+		dataRetriever.UnsignedTransactionUnit,
+	)
+	if err != nil {
+		return err
+	}
+
+	err = brcf.generateMiniBlocksRequesters()
+	if err != nil {
+		return err
+	}
+
+	err = brcf.generatePeerAuthenticationRequester()
+	if err != nil {
+		return err
+	}
+
+	return brcf.generateValidatorInfoRequester()
+}
+
 func (brcf *baseRequestersContainerFactory) generateTxRequesters(
 	topic string,
 	unit dataRetriever.UnitType,
