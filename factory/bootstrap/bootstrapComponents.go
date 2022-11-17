@@ -37,6 +37,7 @@ type BootstrapComponentsFactoryArgs struct {
 	CoreComponents    factory.CoreComponentsHolder
 	CryptoComponents  factory.CryptoComponentsHolder
 	NetworkComponents factory.NetworkComponentsHolder
+	ChainRunType      common.ChainRunType
 }
 
 type bootstrapComponentsFactory struct {
@@ -48,6 +49,7 @@ type bootstrapComponentsFactory struct {
 	coreComponents    factory.CoreComponentsHolder
 	cryptoComponents  factory.CryptoComponentsHolder
 	networkComponents factory.NetworkComponentsHolder
+	chainRunType      common.ChainRunType
 }
 
 type bootstrapComponents struct {
@@ -84,6 +86,7 @@ func NewBootstrapComponentsFactory(args BootstrapComponentsFactoryArgs) (*bootst
 		coreComponents:    args.CoreComponents,
 		cryptoComponents:  args.CryptoComponents,
 		networkComponents: args.NetworkComponents,
+		chainRunType:      args.ChainRunType,
 	}, nil
 }
 
@@ -189,6 +192,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 			ImportDbConfig:             bcf.importDbConfig,
 			ChanGracefullyClose:        bcf.coreComponents.ChanStopNodeProcess(),
 			TimeToWaitForRequestedData: bootstrap.DefaultTimeToWaitForRequestedData,
+			ChainRunType:               bcf.chainRunType,
 		}
 
 		epochStartBootstrapper, err = bootstrap.NewStorageEpochStartBootstrap(storageArg)
@@ -196,7 +200,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 			return nil, fmt.Errorf("%w: %v", errors.ErrNewStorageEpochStartBootstrap, err)
 		}
 	} else {
-		epochStartBootstrapper, err = bootstrap.NewEpochStartBootstrap(epochStartBootstrapArgs)
+		epochStartBootstrapper, err = bcf.createEpochStartBootstrapper(epochStartBootstrapArgs)
 		if err != nil {
 			return nil, fmt.Errorf("%w: %v", errors.ErrNewEpochStartBootstrap, err)
 		}
@@ -236,6 +240,22 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		headerIntegrityVerifier: headerIntegrityVerifier,
 		versionedHeaderFactory:  versionedHeaderFactory,
 	}, nil
+}
+
+func (bcf *bootstrapComponentsFactory) createEpochStartBootstrapper(epochStartBootstrapArgs bootstrap.ArgsEpochStartBootstrap) (factory.EpochStartBootstrapper, error) {
+	epochStartBootstrapper, err := bootstrap.NewEpochStartBootstrap(epochStartBootstrapArgs)
+	if err != nil {
+		return nil, err
+	}
+
+	switch bcf.chainRunType {
+	case common.ChainRunTypeRegular:
+		return epochStartBootstrapper, nil
+	case common.ChainRunTypeSovereign:
+		return bootstrap.NewSovereignChainEpochStartBootstrap(epochStartBootstrapper)
+	default:
+		return nil, fmt.Errorf("%w type %v", errors.ErrUnimplementedChainRunType, bcf.chainRunType)
+	}
 }
 
 func (bcf *bootstrapComponentsFactory) createHeaderFactory(handler nodeFactory.HeaderVersionHandler, shardID uint32) (nodeFactory.VersionedHeaderFactory, error) {

@@ -522,6 +522,7 @@ func GetBootStrapFactoryArgs() bootstrapComp.BootstrapComponentsFactoryArgs {
 		FlagsConfig: config.ContextFlagsConfig{
 			ForceStartFromNetwork: false,
 		},
+		ChainRunType: common.ChainRunTypeRegular,
 	}
 }
 

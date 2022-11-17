@@ -21,10 +21,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
+	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage/cache"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
-	"github.com/ElrondNetwork/elrond-go/trie/factory"
+	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 )
 
 // ArgsStorageEpochStartBootstrap holds the arguments needed for creating an epoch start data provider component
@@ -34,6 +35,7 @@ type ArgsStorageEpochStartBootstrap struct {
 	ImportDbConfig             config.ImportDbConfig
 	ChanGracefullyClose        chan endProcess.ArgEndProcess
 	TimeToWaitForRequestedData time.Duration
+	ChainRunType               common.ChainRunType
 }
 
 type storageEpochStartBootstrap struct {
@@ -49,7 +51,7 @@ type storageEpochStartBootstrap struct {
 // NewStorageEpochStartBootstrap will return a new instance of storageEpochStartBootstrap that can bootstrap
 // the node with the help of storage resolvers through the import-db process
 func NewStorageEpochStartBootstrap(args ArgsStorageEpochStartBootstrap) (*storageEpochStartBootstrap, error) {
-	esb, err := NewEpochStartBootstrap(args.ArgsEpochStartBootstrap)
+	esb, err := createEpochStartBootstrapper(args)
 	if err != nil {
 		return nil, err
 	}
@@ -67,6 +69,26 @@ func NewStorageEpochStartBootstrap(args ArgsStorageEpochStartBootstrap) (*storag
 	}
 
 	return sesb, nil
+}
+
+func createEpochStartBootstrapper(args ArgsStorageEpochStartBootstrap) (*epochStartBootstrap, error) {
+	esb, err := NewEpochStartBootstrap(args.ArgsEpochStartBootstrap)
+	if err != nil {
+		return nil, err
+	}
+
+	switch args.ChainRunType {
+	case common.ChainRunTypeRegular:
+		return esb, nil
+	case common.ChainRunTypeSovereign:
+		scesb, err := NewSovereignChainEpochStartBootstrap(esb)
+		if err != nil {
+			return nil, err
+		}
+		return scesb.epochStartBootstrap, nil
+	default:
+		return nil, fmt.Errorf("%w type %v", errors.ErrUnimplementedChainRunType, args.ChainRunType)
+	}
 }
 
 // Bootstrap runs the fast bootstrap method from local storage or from import-db directory
@@ -147,7 +169,7 @@ func (sesb *storageEpochStartBootstrap) Bootstrap() (Parameters, error) {
 func (sesb *storageEpochStartBootstrap) prepareComponentsToSync() error {
 	sesb.closeTrieComponents()
 	sesb.storageService = disabled.NewChainStorer()
-	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
+	triesContainer, trieStorageManagers, err := trieFactory.CreateTriesComponentsForShardId(
 		sesb.generalConfig,
 		sesb.coreComponentsHolder,
 		sesb.storageService,

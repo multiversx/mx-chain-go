@@ -1356,6 +1356,7 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 		CoreComponents:    coreComponents,
 		CryptoComponents:  cryptoComponents,
 		NetworkComponents: networkComponents,
+		ChainRunType:      common.ChainRunTypeRegular,
 	}
 
 	bootstrapComponentsFactory, err := bootstrapComp.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)

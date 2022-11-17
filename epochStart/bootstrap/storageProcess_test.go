@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"context"
 	"errors"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"testing"
 	"time"
 
@@ -34,6 +35,7 @@ func createMockStorageEpochStartBootstrapArgs(
 		ImportDbConfig:             config.ImportDbConfig{},
 		ChanGracefullyClose:        make(chan endProcess.ArgEndProcess, 1),
 		TimeToWaitForRequestedData: time.Second,
+		ChainRunType:               common.ChainRunTypeRegular,
 	}
 }
 
