@@ -436,7 +436,7 @@ func TestResolverRequestHandler_RequestShardHeaderShouldCallRequestOnResolver(t 
 	t.Parallel()
 
 	wasCalled := false
-	mbRequester := &mock.HeaderResolverStub{
+	mbRequester := &dataRetrieverMocks.RequesterStub{
 		RequestDataFromHashCalled: func(hash []byte, epoch uint32) error {
 			wasCalled = true
 			return nil
@@ -655,7 +655,7 @@ func TestResolverRequestHandler_RequestShardHeaderByNonceResolverFailsShouldNotP
 		}
 	}()
 
-	hdrRequester := &mock.HeaderResolverStub{
+	hdrRequester := &dataRetrieverMocks.RequesterStub{
 		RequestDataFromHashCalled: func(hash []byte, epoch uint32) error {
 			return errExpected
 		},
@@ -681,7 +681,7 @@ func TestResolverRequestHandler_RequestShardHeaderByNonceShouldRequest(t *testin
 	t.Parallel()
 
 	wasCalled := false
-	hdrRequester := &mock.HeaderResolverStub{
+	hdrRequester := &dataRetrieverMocks.NonceRequesterStub{
 		RequestDataFromNonceCalled: func(nonce uint64, epoch uint32) error {
 			wasCalled = true
 			return nil
@@ -731,7 +731,7 @@ func TestResolverRequestHandler_RequestMetaHeaderByNonceShouldRequest(t *testing
 	t.Parallel()
 
 	wasCalled := false
-	hdrRequester := &mock.HeaderResolverStub{
+	hdrRequester := &dataRetrieverMocks.HeaderRequesterStub{
 		RequestDataFromNonceCalled: func(nonce uint64, epoch uint32) error {
 			wasCalled = true
 			return nil

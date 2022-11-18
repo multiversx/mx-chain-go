@@ -357,7 +357,6 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		NumConcurrentResolvingJobs: 100,
 		InputAntifloodHandler:      e.inputAntifloodHandler,
 		OutputAntifloodHandler:     e.outputAntifloodHandler,
-		PeersRatingHandler:         e.peersRatingHandler,
 	}
 	resolversFactory, err := NewResolversContainerFactory(argsResolvers)
 	if err != nil {

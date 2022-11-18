@@ -386,10 +386,10 @@ func GetGeneralConfig() config.Config {
 				MaxDeviationTimeInMilliseconds: 1,
 			},
 		},
-		Resolvers: config.ResolverConfig{
+		Requesters: config.RequesterConfig{
 			NumCrossShardPeers:  2,
 			NumTotalPeers:       3,
-			NumFullHistoryPeers: 3,
+			NumFullHistoryPeers: 4,
 		},
 		VirtualMachine: config.VirtualMachineServicesConfig{
 			Execution: config.VirtualMachineConfig{

@@ -16,6 +16,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
+const (
+	numCrossShardPeers  = 2
+	numIntraShardPeers  = 2
+	numFullHistoryPeers = 3
+)
+
 type requestersContainerFactory struct {
 	shardCoordinator       sharding.Coordinator
 	messenger              dataRetriever.TopicMessageHandler

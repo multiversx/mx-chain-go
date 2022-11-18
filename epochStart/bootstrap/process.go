@@ -1171,23 +1171,20 @@ func (e *epochStartBootstrap) createResolversContainer() error {
 	//  this one should only be used before determining the correct shard where the node should reside
 	log.Debug("epochStartBootstrap.createRequestHandler", "shard", e.shardCoordinator.SelfId())
 	resolversContainerArgs := resolverscontainer.FactoryArgs{
-		ShardCoordinator:            e.shardCoordinator,
-		Messenger:                   e.messenger,
-		Store:                       storageService,
-		Marshalizer:                 e.coreComponentsHolder.InternalMarshalizer(),
-		DataPools:                   e.dataPool,
-		Uint64ByteSliceConverter:    uint64ByteSlice.NewBigEndianConverter(),
-		NumConcurrentResolvingJobs:  10,
-		DataPacker:                  dataPacker,
-		TriesContainer:              e.trieContainer,
-		SizeCheckDelta:              0,
-		InputAntifloodHandler:       disabled.NewAntiFloodHandler(),
-		OutputAntifloodHandler:      disabled.NewAntiFloodHandler(),
-		CurrentNetworkEpochProvider: disabled.NewCurrentNetworkEpochProviderHandler(),
-		PreferredPeersHolder:        disabled.NewPreferredPeersHolder(),
-		ResolverConfig:              e.generalConfig.Resolvers,
-		PeersRatingHandler:          disabled.NewDisabledPeersRatingHandler(),
-		PayloadValidator:            payloadValidator,
+		ShardCoordinator:           e.shardCoordinator,
+		Messenger:                  e.messenger,
+		Store:                      storageService,
+		Marshalizer:                e.coreComponentsHolder.InternalMarshalizer(),
+		DataPools:                  e.dataPool,
+		Uint64ByteSliceConverter:   uint64ByteSlice.NewBigEndianConverter(),
+		NumConcurrentResolvingJobs: 10,
+		DataPacker:                 dataPacker,
+		TriesContainer:             e.trieContainer,
+		SizeCheckDelta:             0,
+		InputAntifloodHandler:      disabled.NewAntiFloodHandler(),
+		OutputAntifloodHandler:     disabled.NewAntiFloodHandler(),
+		PreferredPeersHolder:       disabled.NewPreferredPeersHolder(),
+		PayloadValidator:           payloadValidator,
 	}
 	resolverFactory, err := resolverscontainer.NewMetaResolversContainerFactory(resolversContainerArgs)
 	if err != nil {
@@ -1204,11 +1201,7 @@ func (e *epochStartBootstrap) createResolversContainer() error {
 
 func (e *epochStartBootstrap) createRequestHandler() error {
 	requestersContainerArgs := requesterscontainer.FactoryArgs{
-		RequesterConfig: config.RequesterConfig{
-			NumCrossShardPeers:  e.generalConfig.Resolvers.NumCrossShardPeers,
-			NumTotalPeers:       e.generalConfig.Resolvers.NumTotalPeers,
-			NumFullHistoryPeers: e.generalConfig.Resolvers.NumFullHistoryPeers,
-		}, // TODO[Sorin]: pass the proper config
+		RequesterConfig:             e.generalConfig.Requesters,
 		ShardCoordinator:            e.shardCoordinator,
 		Messenger:                   e.messenger,
 		Marshaller:                  e.coreComponentsHolder.InternalMarshalizer(),

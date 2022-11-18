@@ -30,7 +30,6 @@ type ArgTopicRequestSender struct {
 type topicRequestSender struct {
 	*baseTopicSender
 	marshaller                         marshal.Marshalizer
-	topicName                          string
 	peerListCreator                    dataRetriever.PeerListCreator
 	randomizer                         dataRetriever.IntRandomizer
 	mutNumPeersToQuery                 sync.RWMutex
@@ -52,7 +51,6 @@ func NewTopicRequestSender(args ArgTopicRequestSender) (*topicRequestSender, err
 	return &topicRequestSender{
 		baseTopicSender:                    createBaseTopicSender(args.ArgBaseTopicSender),
 		marshaller:                         args.Marshaller,
-		topicName:                          args.TopicName,
 		peerListCreator:                    args.PeerListCreator,
 		randomizer:                         args.Randomizer,
 		numIntraShardPeers:                 args.NumIntraShardPeers,

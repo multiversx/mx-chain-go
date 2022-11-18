@@ -8,42 +8,14 @@ import (
 
 // TopicResolverSenderStub -
 type TopicResolverSenderStub struct {
-	SendOnRequestTopicCalled func(rd *dataRetriever.RequestData, originalHashes [][]byte) error
-	SendCalled               func(buff []byte, peer core.PeerID) error
-	TargetShardIDCalled      func() uint32
-	SetNumPeersToQueryCalled func(intra int, cross int)
-	GetNumPeersToQueryCalled func() (int, int)
-	debugHandler             dataRetriever.ResolverDebugHandler
-}
-
-// SetNumPeersToQuery -
-func (trss *TopicResolverSenderStub) SetNumPeersToQuery(intra int, cross int) {
-	if trss.SetNumPeersToQueryCalled != nil {
-		trss.SetNumPeersToQueryCalled(intra, cross)
-	}
-}
-
-// NumPeersToQuery -
-func (trss *TopicResolverSenderStub) NumPeersToQuery() (int, int) {
-	if trss.GetNumPeersToQueryCalled != nil {
-		return trss.GetNumPeersToQueryCalled()
-	}
-
-	return 2, 2
+	SendCalled          func(buff []byte, peer core.PeerID) error
+	TargetShardIDCalled func() uint32
+	debugHandler        dataRetriever.ResolverDebugHandler
 }
 
 // RequestTopic -
 func (trss *TopicResolverSenderStub) RequestTopic() string {
 	return "topic_REQUEST"
-}
-
-// SendOnRequestTopic -
-func (trss *TopicResolverSenderStub) SendOnRequestTopic(rd *dataRetriever.RequestData, originalHashes [][]byte) error {
-	if trss.SendOnRequestTopicCalled != nil {
-		return trss.SendOnRequestTopicCalled(rd, originalHashes)
-	}
-
-	return nil
 }
 
 // Send -

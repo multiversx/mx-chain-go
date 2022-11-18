@@ -251,48 +251,6 @@ func (tnRes *TrieNodeResolver) sendLargeMessage(
 	return tnRes.Send(buff, message.Peer())
 }
 
-// RequestDataFromHash requests trie nodes from other peers having input a trie node hash
-func (tnRes *TrieNodeResolver) RequestDataFromHash(hash []byte, _ uint32) error {
-	return tnRes.SendOnRequestTopic(
-		&dataRetriever.RequestData{
-			Type:  dataRetriever.HashType,
-			Value: hash,
-		},
-		[][]byte{hash},
-	)
-}
-
-// RequestDataFromHashArray requests trie nodes from other peers having input multiple trie node hashes
-func (tnRes *TrieNodeResolver) RequestDataFromHashArray(hashes [][]byte, _ uint32) error {
-	b := &batch.Batch{
-		Data: hashes,
-	}
-	buffHashes, err := tnRes.marshalizer.Marshal(b)
-	if err != nil {
-		return err
-	}
-
-	return tnRes.SendOnRequestTopic(
-		&dataRetriever.RequestData{
-			Type:  dataRetriever.HashArrayType,
-			Value: buffHashes,
-		},
-		hashes,
-	)
-}
-
-// RequestDataFromReferenceAndChunk requests a trie node's chunk by specifying the reference and the chunk index
-func (tnRes *TrieNodeResolver) RequestDataFromReferenceAndChunk(hash []byte, chunkIndex uint32) error {
-	return tnRes.SendOnRequestTopic(
-		&dataRetriever.RequestData{
-			Type:       dataRetriever.HashType,
-			Value:      hash,
-			ChunkIndex: chunkIndex,
-		},
-		[][]byte{hash},
-	)
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (tnRes *TrieNodeResolver) IsInterfaceNil() bool {
 	return tnRes == nil

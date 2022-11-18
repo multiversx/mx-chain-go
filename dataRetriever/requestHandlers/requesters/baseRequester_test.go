@@ -7,12 +7,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	dataRetrieverMocks "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/stretchr/testify/assert"
 )
 
 func createMockArgBaseRequester() ArgBaseRequester {
 	return ArgBaseRequester{
-		RequestSender: &mock.TopicResolverSenderStub{},
+		RequestSender: &dataRetrieverMocks.TopicRequestSenderStub{},
 		Marshaller:    &testscommon.MarshalizerStub{},
 	}
 }
@@ -40,7 +41,7 @@ func Test_checkArgBase(t *testing.T) {
 		t.Parallel()
 
 		err := checkArgBase(ArgBaseRequester{
-			RequestSender: &mock.TopicResolverSenderStub{},
+			RequestSender: &dataRetrieverMocks.TopicRequestSenderStub{},
 			Marshaller:    nil,
 		})
 		assert.Equal(t, err, dataRetriever.ErrNilMarshalizer)
@@ -60,7 +61,7 @@ func TestBaseRequester_RequestDataFromHash(t *testing.T) {
 	providedHash := []byte("provided hash")
 	providedHashes := [][]byte{providedHash}
 	wasCalled := false
-	RequestSender := &mock.TopicResolverSenderStub{
+	requestSender := &dataRetrieverMocks.TopicRequestSenderStub{
 		SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData, originalHashes [][]byte) error {
 			wasCalled = true
 			assert.Equal(t, providedHash, rd.Value)
@@ -71,7 +72,7 @@ func TestBaseRequester_RequestDataFromHash(t *testing.T) {
 		},
 	}
 	baseHandler := createBaseRequester(ArgBaseRequester{
-		RequestSender: RequestSender,
+		RequestSender: requestSender,
 		Marshaller:    &testscommon.MarshalizerStub{},
 	})
 	assert.False(t, check.IfNilReflect(baseHandler))
@@ -86,7 +87,7 @@ func TestBaseRequester_NumPeersToQuery(t *testing.T) {
 	providedIntra := 123
 	providedCross := 100
 	wasCalled := false
-	RequestSender := &mock.TopicResolverSenderStub{
+	requestSender := &dataRetrieverMocks.TopicRequestSenderStub{
 		SetNumPeersToQueryCalled: func(intra int, cross int) {
 			wasCalled = true
 			assert.Equal(t, providedIntra, intra)
@@ -97,7 +98,7 @@ func TestBaseRequester_NumPeersToQuery(t *testing.T) {
 		},
 	}
 	baseHandler := createBaseRequester(ArgBaseRequester{
-		RequestSender: RequestSender,
+		RequestSender: requestSender,
 		Marshaller:    &testscommon.MarshalizerStub{},
 	})
 	assert.False(t, check.IfNilReflect(baseHandler))
@@ -114,13 +115,21 @@ func TestBaseRequester_SetResolverDebugHandler(t *testing.T) {
 	t.Parallel()
 
 	providedDebugHandler := &mock.ResolverDebugHandler{}
-	RequestSender := &mock.TopicResolverSenderStub{}
+	requestSender := &dataRetrieverMocks.TopicRequestSenderStub{
+		SetResolverDebugHandlerCalled: func(handler dataRetriever.ResolverDebugHandler) error {
+			assert.Equal(t, providedDebugHandler, handler)
+			return nil
+		},
+		ResolverDebugHandlerCalled: func() dataRetriever.ResolverDebugHandler {
+			return providedDebugHandler
+		},
+	}
 	baseHandler := createBaseRequester(ArgBaseRequester{
-		RequestSender: RequestSender,
+		RequestSender: requestSender,
 		Marshaller:    &testscommon.MarshalizerStub{},
 	})
 	assert.False(t, check.IfNilReflect(baseHandler))
 
 	assert.Nil(t, baseHandler.SetResolverDebugHandler(providedDebugHandler))
-	assert.Equal(t, providedDebugHandler, RequestSender.ResolverDebugHandler())
+	assert.Equal(t, providedDebugHandler, requestSender.ResolverDebugHandler())
 }

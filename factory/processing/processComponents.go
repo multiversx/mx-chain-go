@@ -265,7 +265,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	resolversContainerFactory, err := pcf.newResolverContainerFactory(currentEpochProvider)
+	resolversContainerFactory, err := pcf.newResolverContainerFactory()
 	if err != nil {
 		return nil, err
 	}
@@ -1269,9 +1269,7 @@ func (pcf *processComponentsFactory) newBlockTracker(
 }
 
 // -- Resolvers container Factory begin
-func (pcf *processComponentsFactory) newResolverContainerFactory(
-	currentEpochProvider dataRetriever.CurrentNetworkEpochProviderHandler,
-) (dataRetriever.ResolversContainerFactory, error) {
+func (pcf *processComponentsFactory) newResolverContainerFactory() (dataRetriever.ResolversContainerFactory, error) {
 
 	if pcf.importDBConfig.IsImportDBMode {
 		log.Debug("starting with disabled resolvers", "path", pcf.importDBConfig.ImportDBWorkingDir)
@@ -1284,17 +1282,16 @@ func (pcf *processComponentsFactory) newResolverContainerFactory(
 	}
 
 	if pcf.bootstrapComponents.ShardCoordinator().SelfId() < pcf.bootstrapComponents.ShardCoordinator().NumberOfShards() {
-		return pcf.newShardResolverContainerFactory(currentEpochProvider, payloadValidator)
+		return pcf.newShardResolverContainerFactory(payloadValidator)
 	}
 	if pcf.bootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
-		return pcf.newMetaResolverContainerFactory(currentEpochProvider, payloadValidator)
+		return pcf.newMetaResolverContainerFactory(payloadValidator)
 	}
 
 	return nil, errors.New("could not create interceptor and resolver container factory")
 }
 
 func (pcf *processComponentsFactory) newShardResolverContainerFactory(
-	currentEpochProvider dataRetriever.CurrentNetworkEpochProviderHandler,
 	payloadValidator process.PeerAuthenticationPayloadValidator,
 ) (dataRetriever.ResolversContainerFactory, error) {
 
@@ -1304,24 +1301,21 @@ func (pcf *processComponentsFactory) newShardResolverContainerFactory(
 	}
 
 	resolversContainerFactoryArgs := resolverscontainer.FactoryArgs{
-		ShardCoordinator:            pcf.bootstrapComponents.ShardCoordinator(),
-		Messenger:                   pcf.network.NetworkMessenger(),
-		Store:                       pcf.data.StorageService(),
-		Marshalizer:                 pcf.coreData.InternalMarshalizer(),
-		DataPools:                   pcf.data.Datapool(),
-		Uint64ByteSliceConverter:    pcf.coreData.Uint64ByteSliceConverter(),
-		DataPacker:                  dataPacker,
-		TriesContainer:              pcf.state.TriesContainer(),
-		SizeCheckDelta:              pcf.config.Marshalizer.SizeCheckDelta,
-		InputAntifloodHandler:       pcf.network.InputAntiFloodHandler(),
-		OutputAntifloodHandler:      pcf.network.OutputAntiFloodHandler(),
-		NumConcurrentResolvingJobs:  pcf.config.Antiflood.NumConcurrentResolverJobs,
-		IsFullHistoryNode:           pcf.prefConfigs.FullArchive,
-		CurrentNetworkEpochProvider: currentEpochProvider,
-		ResolverConfig:              pcf.config.Resolvers,
-		PreferredPeersHolder:        pcf.network.PreferredPeersHolderHandler(),
-		PeersRatingHandler:          pcf.network.PeersRatingHandler(),
-		PayloadValidator:            payloadValidator,
+		ShardCoordinator:           pcf.bootstrapComponents.ShardCoordinator(),
+		Messenger:                  pcf.network.NetworkMessenger(),
+		Store:                      pcf.data.StorageService(),
+		Marshalizer:                pcf.coreData.InternalMarshalizer(),
+		DataPools:                  pcf.data.Datapool(),
+		Uint64ByteSliceConverter:   pcf.coreData.Uint64ByteSliceConverter(),
+		DataPacker:                 dataPacker,
+		TriesContainer:             pcf.state.TriesContainer(),
+		SizeCheckDelta:             pcf.config.Marshalizer.SizeCheckDelta,
+		InputAntifloodHandler:      pcf.network.InputAntiFloodHandler(),
+		OutputAntifloodHandler:     pcf.network.OutputAntiFloodHandler(),
+		NumConcurrentResolvingJobs: pcf.config.Antiflood.NumConcurrentResolverJobs,
+		IsFullHistoryNode:          pcf.prefConfigs.FullArchive,
+		PreferredPeersHolder:       pcf.network.PreferredPeersHolderHandler(),
+		PayloadValidator:           payloadValidator,
 	}
 	resolversContainerFactory, err := resolverscontainer.NewShardResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {
@@ -1332,7 +1326,6 @@ func (pcf *processComponentsFactory) newShardResolverContainerFactory(
 }
 
 func (pcf *processComponentsFactory) newMetaResolverContainerFactory(
-	currentEpochProvider dataRetriever.CurrentNetworkEpochProviderHandler,
 	payloadValidator process.PeerAuthenticationPayloadValidator,
 ) (dataRetriever.ResolversContainerFactory, error) {
 
@@ -1342,24 +1335,21 @@ func (pcf *processComponentsFactory) newMetaResolverContainerFactory(
 	}
 
 	resolversContainerFactoryArgs := resolverscontainer.FactoryArgs{
-		ShardCoordinator:            pcf.bootstrapComponents.ShardCoordinator(),
-		Messenger:                   pcf.network.NetworkMessenger(),
-		Store:                       pcf.data.StorageService(),
-		Marshalizer:                 pcf.coreData.InternalMarshalizer(),
-		DataPools:                   pcf.data.Datapool(),
-		Uint64ByteSliceConverter:    pcf.coreData.Uint64ByteSliceConverter(),
-		DataPacker:                  dataPacker,
-		TriesContainer:              pcf.state.TriesContainer(),
-		SizeCheckDelta:              pcf.config.Marshalizer.SizeCheckDelta,
-		InputAntifloodHandler:       pcf.network.InputAntiFloodHandler(),
-		OutputAntifloodHandler:      pcf.network.OutputAntiFloodHandler(),
-		NumConcurrentResolvingJobs:  pcf.config.Antiflood.NumConcurrentResolverJobs,
-		IsFullHistoryNode:           pcf.prefConfigs.FullArchive,
-		CurrentNetworkEpochProvider: currentEpochProvider,
-		ResolverConfig:              pcf.config.Resolvers,
-		PreferredPeersHolder:        pcf.network.PreferredPeersHolderHandler(),
-		PeersRatingHandler:          pcf.network.PeersRatingHandler(),
-		PayloadValidator:            payloadValidator,
+		ShardCoordinator:           pcf.bootstrapComponents.ShardCoordinator(),
+		Messenger:                  pcf.network.NetworkMessenger(),
+		Store:                      pcf.data.StorageService(),
+		Marshalizer:                pcf.coreData.InternalMarshalizer(),
+		DataPools:                  pcf.data.Datapool(),
+		Uint64ByteSliceConverter:   pcf.coreData.Uint64ByteSliceConverter(),
+		DataPacker:                 dataPacker,
+		TriesContainer:             pcf.state.TriesContainer(),
+		SizeCheckDelta:             pcf.config.Marshalizer.SizeCheckDelta,
+		InputAntifloodHandler:      pcf.network.InputAntiFloodHandler(),
+		OutputAntifloodHandler:     pcf.network.OutputAntiFloodHandler(),
+		NumConcurrentResolvingJobs: pcf.config.Antiflood.NumConcurrentResolverJobs,
+		IsFullHistoryNode:          pcf.prefConfigs.FullArchive,
+		PreferredPeersHolder:       pcf.network.PreferredPeersHolderHandler(),
+		PayloadValidator:           payloadValidator,
 	}
 	resolversContainerFactory, err := resolverscontainer.NewMetaResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {
@@ -1378,11 +1368,7 @@ func (pcf *processComponentsFactory) newRequestersContainerFactory(
 	}
 
 	requestersContainerFactoryArgs := requesterscontainer.FactoryArgs{
-		RequesterConfig: config.RequesterConfig{
-			NumCrossShardPeers:  pcf.config.Resolvers.NumCrossShardPeers,
-			NumTotalPeers:       pcf.config.Resolvers.NumTotalPeers,
-			NumFullHistoryPeers: pcf.config.Resolvers.NumFullHistoryPeers,
-		}, // TODO[Sorin]: pass the proper config
+		RequesterConfig:             pcf.config.Requesters,
 		ShardCoordinator:            pcf.bootstrapComponents.ShardCoordinator(),
 		Messenger:                   pcf.network.NetworkMessenger(),
 		Marshaller:                  pcf.coreData.InternalMarshalizer(),

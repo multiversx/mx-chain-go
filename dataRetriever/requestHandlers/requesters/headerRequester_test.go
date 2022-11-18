@@ -5,8 +5,8 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	dataRetrieverMocks "github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	dataRetrieverTests "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -55,7 +55,7 @@ func TestHeaderRequester_RequestDataFromNonce(t *testing.T) {
 	providedNonceConverter := mock.NewNonceHashConverterMock()
 	argBase := createMockArgBaseRequester()
 	wasCalled := false
-	argBase.RequestSender = &dataRetrieverMocks.TopicResolverSenderStub{
+	argBase.RequestSender = &dataRetrieverTests.TopicRequestSenderStub{
 		SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData, originalHashes [][]byte) error {
 			wasCalled = true
 			assert.Equal(t, providedNonceConverter.ToByteSlice(providedNonce), rd.Value)
@@ -83,7 +83,7 @@ func TestHeaderRequester_RequestDataFromEpoch(t *testing.T) {
 	providedIdentifier := []byte("provided identifier")
 	argBase := createMockArgBaseRequester()
 	wasCalled := false
-	argBase.RequestSender = &dataRetrieverMocks.TopicResolverSenderStub{
+	argBase.RequestSender = &dataRetrieverTests.TopicRequestSenderStub{
 		SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData, originalHashes [][]byte) error {
 			wasCalled = true
 			assert.Equal(t, providedIdentifier, rd.Value)

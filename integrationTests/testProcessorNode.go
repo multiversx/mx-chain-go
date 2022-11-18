@@ -1265,27 +1265,20 @@ func (tpn *TestProcessorNode) initResolvers() {
 	payloadValidator, _ := validator.NewPeerAuthenticationPayloadValidator(60)
 
 	resolverContainerFactory := resolverscontainer.FactoryArgs{
-		ShardCoordinator:            tpn.ShardCoordinator,
-		Messenger:                   tpn.Messenger,
-		Store:                       tpn.Storage,
-		Marshalizer:                 TestMarshalizer,
-		DataPools:                   tpn.DataPool,
-		Uint64ByteSliceConverter:    TestUint64Converter,
-		DataPacker:                  dataPacker,
-		TriesContainer:              tpn.TrieContainer,
-		SizeCheckDelta:              100,
-		InputAntifloodHandler:       &mock.NilAntifloodHandler{},
-		OutputAntifloodHandler:      &mock.NilAntifloodHandler{},
-		NumConcurrentResolvingJobs:  10,
-		CurrentNetworkEpochProvider: &mock.CurrentNetworkEpochProviderStub{},
-		PreferredPeersHolder:        &p2pmocks.PeersHolderStub{},
-		ResolverConfig: config.ResolverConfig{
-			NumCrossShardPeers:  2,
-			NumTotalPeers:       3,
-			NumFullHistoryPeers: 3,
-		},
-		PeersRatingHandler: tpn.PeersRatingHandler,
-		PayloadValidator:   payloadValidator,
+		ShardCoordinator:           tpn.ShardCoordinator,
+		Messenger:                  tpn.Messenger,
+		Store:                      tpn.Storage,
+		Marshalizer:                TestMarshalizer,
+		DataPools:                  tpn.DataPool,
+		Uint64ByteSliceConverter:   TestUint64Converter,
+		DataPacker:                 dataPacker,
+		TriesContainer:             tpn.TrieContainer,
+		SizeCheckDelta:             100,
+		InputAntifloodHandler:      &mock.NilAntifloodHandler{},
+		OutputAntifloodHandler:     &mock.NilAntifloodHandler{},
+		NumConcurrentResolvingJobs: 10,
+		PreferredPeersHolder:       &p2pmocks.PeersHolderStub{},
+		PayloadValidator:           payloadValidator,
 	}
 
 	var err error
