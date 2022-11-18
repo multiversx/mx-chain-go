@@ -84,7 +84,6 @@ func TestCreateEpochStartBootstrapper_ShouldWork(t *testing.T) {
 
 		require.NotNil(t, esb)
 		assert.Nil(t, err)
-		assert.Equal(t, esb.getDataToSync, esb.getDataToSyncMethod)
 	})
 
 	t.Run("should create a sovereign chain instance", func(t *testing.T) {
@@ -96,7 +95,6 @@ func TestCreateEpochStartBootstrapper_ShouldWork(t *testing.T) {
 
 		require.NotNil(t, esb)
 		assert.Nil(t, err)
-		assert.NotEqual(t, esb.getDataToSync, esb.getDataToSyncMethod)
 	})
 
 	t.Run("should error when chain run type is not implemented", func(t *testing.T) {

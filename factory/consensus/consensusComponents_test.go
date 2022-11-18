@@ -338,6 +338,7 @@ func TestConsensusComponentsFactory_CreateShardStorageAndSyncBootstrapperShouldW
 		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 		args := componentsMock.GetConsensusArgs(shardCoordinator)
 		args.ChainRunType = common.ChainRunTypeSovereign
+		args.SubroundBlockType = consensus.SubroundBlockTypeV2
 
 		ccf, _ := consensusComp.NewConsensusComponentsFactory(args)
 		cc, err := ccf.Create()
