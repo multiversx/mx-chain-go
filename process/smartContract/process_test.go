@@ -2988,7 +2988,9 @@ func TestScProcessor_ProcessSmartContractResultNotPayable(t *testing.T) {
 			if bytes.Equal(address, userAcc.AddressBytes()) {
 				return userAcc, nil
 			}
-			return state.NewEmptyUserAccount(), nil
+			return &stateMock.AccountWrapMock{
+				Balance: big.NewInt(0),
+			}, nil
 		},
 		SaveAccountCalled: func(accountHandler vmcommon.AccountHandler) error {
 			return nil

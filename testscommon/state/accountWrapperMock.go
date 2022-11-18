@@ -3,6 +3,7 @@ package state
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -24,6 +25,7 @@ type AccountWrapMock struct {
 	CodeMetadata      []byte
 	RootHash          []byte
 	address           []byte
+	Balance           *big.Int
 	trackableDataTrie state.DataTrieTracker
 
 	SetNonceWithJournalCalled    func(nonce uint64) error           `json:"-"`
@@ -31,6 +33,8 @@ type AccountWrapMock struct {
 	SetCodeWithJournalCalled     func([]byte) error                 `json:"-"`
 	AccountDataHandlerCalled     func() vmcommon.AccountDataHandler `json:"-"`
 }
+
+var errInsufficientBalance = fmt.Errorf("insufficient balance")
 
 // NewAccountWrapMock -
 func NewAccountWrapMock(adr []byte) *AccountWrapMock {
@@ -45,6 +49,7 @@ func NewAccountWrapMock(adr []byte) *AccountWrapMock {
 	return &AccountWrapMock{
 		address:           adr,
 		trackableDataTrie: tdt,
+		Balance:           big.NewInt(0),
 	}
 }
 
@@ -63,18 +68,28 @@ func (awm *AccountWrapMock) GetUserName() []byte {
 }
 
 // AddToBalance -
-func (awm *AccountWrapMock) AddToBalance(_ *big.Int) error {
+func (awm *AccountWrapMock) AddToBalance(val *big.Int) error {
+	newBalance := big.NewInt(0).Add(awm.Balance, val)
+	if newBalance.Cmp(big.NewInt(0)) < 0 {
+		return errInsufficientBalance
+	}
+	awm.Balance = newBalance
 	return nil
 }
 
 // SubFromBalance -
-func (awm *AccountWrapMock) SubFromBalance(_ *big.Int) error {
+func (awm *AccountWrapMock) SubFromBalance(val *big.Int) error {
+	newBalance := big.NewInt(0).Sub(awm.Balance, val)
+	if newBalance.Cmp(big.NewInt(0)) < 0 {
+		return errInsufficientBalance
+	}
+	awm.Balance = newBalance
 	return nil
 }
 
 // GetBalance -
 func (awm *AccountWrapMock) GetBalance() *big.Int {
-	return nil
+	return awm.Balance
 }
 
 // ClaimDeveloperRewards -

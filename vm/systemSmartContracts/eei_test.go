@@ -204,7 +204,7 @@ func TestVmContext_IsValidatorInvalidAccountTypeShouldRetFalse(t *testing.T) {
 	args := createDefaultEeiArgs()
 	args.ValidatorAccountsDB = &stateMock.AccountsStub{
 		GetExistingAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
-			return state.NewEmptyUserAccount(), nil
+			return &stateMock.AccountWrapMock{}, nil
 		},
 	}
 	vmCtx, _ := NewVMContext(args)

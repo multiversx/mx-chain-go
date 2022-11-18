@@ -375,6 +375,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		TrieSyncerVersion:         e.trieSyncerVersion,
 		CheckNodesOnDisk:          e.checkNodesOnDisk,
 		AddressPubKeyConverter:    e.CoreComponents.AddressPubKeyConverter(),
+		EnableEpochsHandler:       e.CoreComponents.EnableEpochsHandler(),
 	}
 	accountsDBSyncerFactory, err := NewAccountsDBSContainerFactory(argsAccountsSyncers)
 	if err != nil {

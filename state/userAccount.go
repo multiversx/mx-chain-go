@@ -26,17 +26,6 @@ type userAccount struct {
 
 var zero = big.NewInt(0)
 
-// NewEmptyUserAccount creates a new empty instance of userAccount
-func NewEmptyUserAccount() *userAccount {
-	return &userAccount{
-		baseAccount: &baseAccount{},
-		UserAccountData: UserAccountData{
-			DeveloperReward: big.NewInt(0),
-			Balance:         big.NewInt(0),
-		},
-	}
-}
-
 // ArgsAccountCreation holds the arguments needed to create a new instance of userAccount
 type ArgsAccountCreation struct {
 	Hasher              hashing.Hasher
@@ -52,14 +41,9 @@ func NewUserAccount(
 	if len(address) == 0 {
 		return nil, ErrNilAddress
 	}
-	if check.IfNil(args.Marshaller) {
-		return nil, ErrNilMarshalizer
-	}
-	if check.IfNil(args.Hasher) {
-		return nil, ErrNilHasher
-	}
-	if check.IfNil(args.EnableEpochsHandler) {
-		return nil, ErrNilEnableEpochsHandler
+	err := checkArgs(args)
+	if err != nil {
+		return nil, err
 	}
 
 	tdt, err := NewTrackableDataTrie(address, nil, args.Hasher, args.Marshaller, args.EnableEpochsHandler)
@@ -80,6 +64,51 @@ func NewUserAccount(
 		marshaller:          args.Marshaller,
 		enableEpochsHandler: args.EnableEpochsHandler,
 	}, nil
+}
+
+// NewUserAccountFromBytes creates a new instance of userAccount from the given bytes
+func NewUserAccountFromBytes(
+	accountBytes []byte,
+	args ArgsAccountCreation,
+) (*userAccount, error) {
+	err := checkArgs(args)
+	if err != nil {
+		return nil, err
+	}
+
+	acc := &userAccount{}
+	err = args.Marshaller.Unmarshal(acc, accountBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	tdt, err := NewTrackableDataTrie(acc.Address, nil, args.Hasher, args.Marshaller, args.EnableEpochsHandler)
+	if err != nil {
+		return nil, err
+	}
+
+	acc.baseAccount = &baseAccount{
+		address:         acc.Address,
+		dataTrieTracker: tdt,
+	}
+	acc.marshaller = args.Marshaller
+	acc.enableEpochsHandler = args.EnableEpochsHandler
+
+	return acc, nil
+}
+
+func checkArgs(args ArgsAccountCreation) error {
+	if check.IfNil(args.Marshaller) {
+		return ErrNilMarshalizer
+	}
+	if check.IfNil(args.Hasher) {
+		return ErrNilHasher
+	}
+	if check.IfNil(args.EnableEpochsHandler) {
+		return ErrNilEnableEpochsHandler
+	}
+
+	return nil
 }
 
 // SetUserName sets the users name
@@ -181,19 +210,11 @@ func (a *userAccount) GetAllLeaves(
 	leavesChannels *common.TrieIteratorChannels,
 	ctx context.Context,
 ) error {
-	if check.IfNil(a.marshaller) {
-		return ErrNilMarshalizer
-	}
-	if check.IfNil(a.dataTrieTracker) {
-		return ErrNilTrackableDataTrie
-	}
-	if check.IfNil(a.enableEpochsHandler) {
-		return ErrNilEnableEpochsHandler
-	}
 	dataTrie := a.dataTrieTracker.DataTrie()
 	if check.IfNil(dataTrie) {
 		return ErrNilTrie
 	}
+
 	rootHash, err := dataTrie.RootHash()
 	if err != nil {
 		return err

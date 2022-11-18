@@ -283,3 +283,6 @@ var ErrInvalidNumConcurrentTrieSyncers = errors.New("invalid num concurrent trie
 
 // ErrNilPeersRatingHandler signals that a nil peers rating handler implementation has been provided
 var ErrNilPeersRatingHandler = errors.New("nil peers rating handler")
+
+// ErrNilEnableEpochsHandler signals that a nil enable epochs handler was provided
+var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")

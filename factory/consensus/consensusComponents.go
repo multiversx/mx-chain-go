@@ -535,6 +535,7 @@ func (ccf *consensusComponentsFactory) createUserAccountsSyncer() (process.Accou
 		ShardId:                   ccf.processComponents.ShardCoordinator().SelfId(),
 		Throttler:                 thr,
 		AddressPubKeyConverter:    ccf.coreComponents.AddressPubKeyConverter(),
+		EnableEpochsHandler:       ccf.coreComponents.EnableEpochsHandler(),
 	}
 	return syncer.NewUserAccountsSyncer(argsUserAccountsSyncer)
 }

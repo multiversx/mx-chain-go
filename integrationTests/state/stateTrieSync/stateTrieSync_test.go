@@ -619,6 +619,7 @@ func getUserAccountSyncerArgs(node *integrationTests.TestProcessorNode, version 
 		ShardId:                0,
 		Throttler:              thr,
 		AddressPubKeyConverter: integrationTests.TestAddressPubkeyConverter,
+		EnableEpochsHandler:    node.EnableEpochsHandler,
 	}
 
 	return syncerArgs

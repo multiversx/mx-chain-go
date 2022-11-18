@@ -185,7 +185,7 @@ func (tdaw *trackableDataTrie) updateTrieWithAutoBalancing() (map[string][]byte,
 
 		oldValues[string(oldKey)] = oldVal
 
-		err = tdaw.updateTrie([]byte(key), val)
+		err = tdaw.updateValInTrie([]byte(key), val)
 		if err != nil {
 			return nil, err
 		}
@@ -220,7 +220,7 @@ func (tdaw *trackableDataTrie) getOldKeyAndValWithCleanup(key string) ([]byte, [
 	return []byte(key), oldVal, nil
 }
 
-func (tdaw *trackableDataTrie) updateTrie(key []byte, val []byte) error {
+func (tdaw *trackableDataTrie) updateValInTrie(key []byte, val []byte) error {
 	trieVal := &dataTrieValue.TrieLeafData{
 		Value:   val,
 		Key:     key,

@@ -22,6 +22,7 @@ import (
 	vmFactory "github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genesisMocks"
 	"github.com/ElrondNetwork/elrond-go/update/factory"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
@@ -561,6 +562,7 @@ func createHardForkExporter(
 			return string(node.ChainID)
 		}
 		coreComponents.HardforkTriggerPubKeyField = []byte("provided hardfork pub key")
+		coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
 
 		cryptoComponents := integrationTests.GetDefaultCryptoComponents()
 		cryptoComponents.BlockSig = node.OwnAccount.BlockSingleSigner
