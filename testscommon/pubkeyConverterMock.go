@@ -2,6 +2,8 @@ package testscommon
 
 import (
 	"encoding/hex"
+
+	"github.com/ElrondNetwork/elrond-go-core/core"
 )
 
 // PubkeyConverterMock -
@@ -24,6 +26,11 @@ func (pcm *PubkeyConverterMock) Decode(humanReadable string) ([]byte, error) {
 // Encode -
 func (pcm *PubkeyConverterMock) Encode(pkBytes []byte) (string, error) {
 	return hex.EncodeToString(pkBytes), nil
+}
+
+// Encode -
+func (pcm *PubkeyConverterMock) QuietEncode(pkBytes []byte, log core.Logger) string {
+	return hex.EncodeToString(pkBytes)
 }
 
 // EncodeSlice -

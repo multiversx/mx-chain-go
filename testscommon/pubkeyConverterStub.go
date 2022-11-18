@@ -1,10 +1,13 @@
 package testscommon
 
+import "github.com/ElrondNetwork/elrond-go-core/core"
+
 // PubkeyConverterStub -
 type PubkeyConverterStub struct {
 	LenCalled         func() int
 	DecodeCalled      func(humanReadable string) ([]byte, error)
 	EncodeCalled      func(pkBytes []byte) (string, error)
+	QuietEncodeCalled func(pkBytes []byte, log core.Logger) string
 	EncodeSliceCalled func(pkBytesSlice [][]byte) ([]string, error)
 }
 
@@ -42,6 +45,15 @@ func (pcs *PubkeyConverterStub) EncodeSlice(pkBytesSlice [][]byte) ([]string, er
 	}
 
 	return make([]string, 0), nil
+}
+
+// QuietEncode -
+func (pcs *PubkeyConverterStub) QuietEncode(pkBytes []byte, log core.Logger) string {
+	if pcs.EncodeCalled != nil {
+		return pcs.QuietEncodeCalled(pkBytes, log)
+	}
+
+	return ""
 }
 
 // IsInterfaceNil -

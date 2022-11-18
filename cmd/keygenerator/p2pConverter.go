@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
@@ -57,6 +58,23 @@ func (p *p2pConverter) EncodeSlice(pkBytesSlice [][]byte) ([]string, error) {
 		encodedSlice = append(encodedSlice, id.Pretty())
 	}
 	return encodedSlice, nil
+}
+
+// Encode encodes a byte array representing public key as peer ID string
+func (p *p2pConverter) QuietEncode(pkBytes []byte, log core.Logger) string {
+	pubKey, err := libp2pCrypto.UnmarshalSecp256k1PublicKey(pkBytes)
+	if err != nil {
+		log.Warn("err")
+		return ""
+	}
+
+	id, err := peer.IDFromPublicKey(pubKey)
+	if err != nil {
+		log.Warn("err")
+		return ""
+	}
+
+	return id.Pretty()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
