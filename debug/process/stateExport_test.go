@@ -41,8 +41,8 @@ func TestExportUserAccountState(t *testing.T) {
 	require.Nil(t, err)
 
 	t.Run("check fetched data", func(t *testing.T) {
-		recoveredCode, recoveredLines, err := getCodeAndData(accounts, address)
-		assert.Nil(t, err)
+		recoveredCode, recoveredLines, errGet := getCodeAndData(accounts, address)
+		assert.Nil(t, errGet)
 		assert.Equal(t, code, recoveredCode)
 		assert.Equal(t, numKeys, len(recoveredLines))
 
@@ -67,10 +67,18 @@ func TestExportUserAccountState(t *testing.T) {
 		require.Nil(t, errReadDir)
 		assert.Zero(t, len(contents))
 
-		ExportUserAccountState(accounts, address, tempDir)
+		ExportUserAccountState(accounts, "", address, tempDir)
 
 		contents, errReadDir = ioutil.ReadDir(tempDir)
 		require.Nil(t, errReadDir)
 		assert.Equal(t, 2, len(contents))
 	})
+}
+
+func TestComputePrefix(t *testing.T) {
+	t.Parallel()
+
+	assert.Equal(t, "base", computePrefix("base", ""))
+	assert.Equal(t, "base", computePrefix("base", " \t\n"))
+	assert.Equal(t, "base_identifier", computePrefix("base", "identifier"))
 }

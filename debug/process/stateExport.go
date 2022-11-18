@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"strings"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -11,22 +12,22 @@ import (
 )
 
 // ExportUserAccountState will try to export the account state of a provided address
-func ExportUserAccountState(accountsDB state.AccountsAdapter, address []byte, parentDirForFiles string) {
+func ExportUserAccountState(accountsDB state.AccountsAdapter, identifier string, address []byte, parentDirForFiles string) {
 	code, csvHexedData, err := getCodeAndData(accountsDB, address)
 	if err != nil {
-		log.Error("ExportUserAccountState", "error", err)
+		log.Error("ExportUserAccountState", "identifier", identifier, "error", err)
 		return
 	}
 
-	err = exportCode(code, parentDirForFiles)
+	err = exportCode(identifier, code, parentDirForFiles)
 	if err != nil {
-		log.Error("ExportUserAccountState", "error", err)
+		log.Error("ExportUserAccountState", "identifier", identifier, "error", err)
 		return
 	}
 
-	err = exportData(csvHexedData, parentDirForFiles)
+	err = exportData(identifier, csvHexedData, parentDirForFiles)
 	if err != nil {
-		log.Error("ExportUserAccountState", "error", err)
+		log.Error("ExportUserAccountState", "identifier", identifier, "error", err)
 		return
 	}
 }
@@ -102,14 +103,14 @@ func getData(accountsDB state.AccountsAdapter, rootHash []byte, address []byte) 
 	return lines, nil
 }
 
-func exportCode(code []byte, parentDirForFiles string) error {
+func exportCode(identifier string, code []byte, parentDirForFiles string) error {
 	if len(code) == 0 {
 		return nil
 	}
 
 	fileArgs := core.ArgCreateFileArgument{
 		Directory:     parentDirForFiles,
-		Prefix:        "code",
+		Prefix:        computePrefix("code", identifier),
 		FileExtension: "wasm",
 	}
 	f, err := core.CreateFile(fileArgs)
@@ -129,14 +130,14 @@ func exportCode(code []byte, parentDirForFiles string) error {
 	return f.Close()
 }
 
-func exportData(lines []string, parentDirForFiles string) error {
+func exportData(identifier string, lines []string, parentDirForFiles string) error {
 	if len(lines) == 0 {
 		return nil
 	}
 
 	fileArgs := core.ArgCreateFileArgument{
 		Directory:     parentDirForFiles,
-		Prefix:        "data",
+		Prefix:        computePrefix("data", identifier),
 		FileExtension: "hex",
 	}
 	f, err := core.CreateFile(fileArgs)
@@ -156,4 +157,13 @@ func exportData(lines []string, parentDirForFiles string) error {
 	log.Info("ExportUserAccountState.exportData", "num (key,values)", len(lines))
 
 	return f.Close()
+}
+
+func computePrefix(basePrefix string, identifier string) string {
+	identifier = strings.TrimSpace(identifier)
+	if len(identifier) > 0 {
+		basePrefix = basePrefix + "_" + identifier
+	}
+
+	return basePrefix
 }
