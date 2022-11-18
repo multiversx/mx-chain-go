@@ -101,8 +101,6 @@ func TestNewResolverRequestHandler(t *testing.T) {
 	assert.NotNil(t, rrh)
 }
 
-// ------- RequestTransaction
-
 func TestResolverRequestHandler_RequestTransactionErrorWhenGettingCrossShardRequesterShouldNotPanic(t *testing.T) {
 	t.Parallel()
 
@@ -278,8 +276,6 @@ func TestResolverRequestHandler_RequestTransactionErrorsOnRequestShouldNotPanic(
 	time.Sleep(time.Second)
 }
 
-// ------- RequestMiniBlock
-
 func TestResolverRequestHandler_RequestMiniBlockErrorWhenGettingCrossShardRequesterShouldNotPanic(t *testing.T) {
 	t.Parallel()
 
@@ -396,8 +392,6 @@ func TestResolverRequestHandler_RequestMiniBlockShouldCallWithTheCorrectEpoch(t 
 	rrh.RequestMiniBlock(0, []byte("mbHash"))
 }
 
-// ------- RequestShardHeader
-
 func TestResolverRequestHandler_RequestShardHeaderHashAlreadyRequestedShouldNotRequest(t *testing.T) {
 	t.Parallel()
 
@@ -460,8 +454,6 @@ func TestResolverRequestHandler_RequestShardHeaderShouldCallRequestOnResolver(t 
 
 	assert.True(t, wasCalled)
 }
-
-// ------- RequestMetaHeader
 
 func TestResolverRequestHandler_RequestMetadHeaderHashAlreadyRequestedShouldNotRequest(t *testing.T) {
 	t.Parallel()
@@ -539,8 +531,6 @@ func TestResolverRequestHandler_RequestMetaHeaderShouldCallRequestOnResolver(t *
 
 	assert.True(t, wasCalled)
 }
-
-// ------- RequestShardHeaderByNonce
 
 func TestResolverRequestHandler_RequestShardHeaderByNonceAlreadyRequestedShouldNotRequest(t *testing.T) {
 	t.Parallel()
@@ -706,8 +696,6 @@ func TestResolverRequestHandler_RequestShardHeaderByNonceShouldRequest(t *testin
 	assert.True(t, wasCalled)
 }
 
-// ------- RequestMetaHeaderByNonce
-
 func TestResolverRequestHandler_RequestMetaHeaderHashAlreadyRequestedShouldNotRequest(t *testing.T) {
 	t.Parallel()
 
@@ -755,8 +743,6 @@ func TestResolverRequestHandler_RequestMetaHeaderByNonceShouldRequest(t *testing
 
 	assert.True(t, wasCalled)
 }
-
-// ------- RequestSmartContractResult
 
 func TestResolverRequestHandler_RequestScrErrorWhenGettingCrossShardRequesterShouldNotPanic(t *testing.T) {
 	t.Parallel()
@@ -888,8 +874,6 @@ func TestResolverRequestHandler_RequestScrErrorsOnRequestShouldNotPanic(t *testi
 
 	time.Sleep(time.Second)
 }
-
-// ------- RequestRewardTransaction
 
 func TestResolverRequestHandler_RequestRewardShouldRequestReward(t *testing.T) {
 	t.Parallel()
