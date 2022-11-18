@@ -60,7 +60,7 @@ func (requester *baseRequester) NumPeersToQuery() (int, int) {
 	return requester.TopicRequestSender.NumPeersToQuery()
 }
 
-// SetDebugHandler sets a resolver debug requester
+// SetDebugHandler sets a debug requester
 func (requester *baseRequester) SetDebugHandler(debugHandler dataRetriever.DebugHandler) error {
 	return requester.TopicRequestSender.SetDebugHandler(debugHandler)
 }

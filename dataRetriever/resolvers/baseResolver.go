@@ -34,7 +34,7 @@ func checkArgBase(arg ArgBaseResolver) error {
 	return nil
 }
 
-// SetDebugHandler will set a resolver debug handler
+// SetDebugHandler will set a debug handler
 func (res *baseResolver) SetDebugHandler(handler dataRetriever.DebugHandler) error {
 	return res.TopicResolverSender.SetDebugHandler(handler)
 }

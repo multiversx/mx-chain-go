@@ -10,8 +10,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
-// InterceptorResolverDebugger is the contant string for the debugger
-const InterceptorResolverDebugger = "interceptor resolver debugger"
+// InterceptorDebugger is the constant string for the debugger
+const InterceptorDebugger = "interceptor debugger"
 
 // CreateInterceptedDebugHandler creates and applies an interceptor-resolver debug handler
 func CreateInterceptedDebugHandler(
@@ -79,5 +79,5 @@ func CreateInterceptedDebugHandler(
 		return fmt.Errorf("%w while setting up debugger on resolvers", errFound)
 	}
 
-	return node.AddQueryHandler(InterceptorResolverDebugger, debugHandler)
+	return node.AddQueryHandler(InterceptorDebugger, debugHandler)
 }

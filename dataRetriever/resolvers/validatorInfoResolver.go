@@ -209,7 +209,7 @@ func (res *validatorInfoResolver) marshalAndSend(data []byte, pid core.PeerID) e
 	return res.Send(buff, pid)
 }
 
-// SetDebugHandler sets a resolver debug handler
+// SetDebugHandler sets a debug handler
 func (res *validatorInfoResolver) SetDebugHandler(handler dataRetriever.DebugHandler) error {
 	return res.TopicResolverSender.SetDebugHandler(handler)
 }
