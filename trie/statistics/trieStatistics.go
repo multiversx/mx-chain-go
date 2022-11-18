@@ -5,7 +5,10 @@ import (
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
 )
+
+const addressLength = 32
 
 type trieStatistics struct {
 	address  []byte
@@ -143,8 +146,18 @@ type TrieStatsDTO struct {
 
 // ToString returns the collected statistics as a string array
 func (tsd *TrieStatsDTO) ToString() []string {
+	addressConverter, err := pubkeyConverter.NewBech32PubkeyConverter(addressLength, log)
+	if err != nil {
+		log.Error("could not create address converter", "err", err.Error())
+	}
+
+	address := ""
+	if len(tsd.Address) == addressLength {
+		address = addressConverter.Encode(tsd.Address)
+	}
+
 	stats := make([]string, 0)
-	stats = append(stats, fmt.Sprintf("address %v,", hex.EncodeToString(tsd.Address)))
+	stats = append(stats, fmt.Sprintf("address %v,", address))
 	stats = append(stats, fmt.Sprintf("rootHash %v,", hex.EncodeToString(tsd.RootHash)))
 	stats = append(stats, fmt.Sprintf("total trie size = %v,", core.ConvertBytes(tsd.TotalNodesSize)))
 	stats = append(stats, fmt.Sprintf("num trie nodes =  %v,", tsd.TotalNumNodes))
