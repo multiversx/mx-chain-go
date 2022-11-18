@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
@@ -22,8 +23,17 @@ func InitializeMockContracts(
 	net *integrationTests.TestNetwork,
 	mockSCs ...testcommon.MockTestSmartContract,
 ) {
+	InitializeMockContractsWithVMContainer(t, net, nil, mockSCs...)
+}
+
+func InitializeMockContractsWithVMContainer(
+	t *testing.T,
+	net *integrationTests.TestNetwork,
+	vmContainer process.VirtualMachinesContainer,
+	mockSCs ...testcommon.MockTestSmartContract,
+) {
 	shardToHost, shardToInstanceBuilder :=
-		CreateHostAndInstanceBuilder(t, net, factory.ArwenVirtualMachine)
+		CreateHostAndInstanceBuilder(t, net, vmContainer, factory.ArwenVirtualMachine)
 	for _, mockSC := range mockSCs {
 		shardID := mockSC.GetShardID()
 		mockSC.Initialize(t, shardToHost[shardID], shardToInstanceBuilder[shardID], true)
@@ -36,6 +46,16 @@ func GetAddressForNewAccountOnWalletAndNode(
 	wallet *integrationTests.TestWalletAccount,
 	node *integrationTests.TestProcessorNode,
 ) ([]byte, state.UserAccountHandler) {
+	return GetAddressForNewAccountOnWalletAndNodeWithVM(t, net, wallet, node, net.DefaultVM)
+}
+
+func GetAddressForNewAccountOnWalletAndNodeWithVM(
+	t *testing.T,
+	net *integrationTests.TestNetwork,
+	wallet *integrationTests.TestWalletAccount,
+	node *integrationTests.TestProcessorNode,
+	vmType []byte,
+) ([]byte, state.UserAccountHandler) {
 	walletAccount, err := node.AccntState.GetExistingAccount(wallet.Address)
 	require.Nil(t, err)
 	walletAccount.IncreaseNonce(1)
@@ -43,7 +63,7 @@ func GetAddressForNewAccountOnWalletAndNode(
 	err = node.AccntState.SaveAccount(walletAccount)
 	require.Nil(t, err)
 
-	address := net.NewAddress(wallet)
+	address := net.NewAddressWithVM(wallet, vmType)
 	account, _ := state.NewUserAccount(address)
 	account.Balance = MockInitialBalance
 	account.SetCode(address)
@@ -69,14 +89,27 @@ func GetAddressForNewAccount(
 	t *testing.T,
 	net *integrationTests.TestNetwork,
 	node *integrationTests.TestProcessorNode) ([]byte, state.UserAccountHandler) {
-	return GetAddressForNewAccountOnWalletAndNode(t, net, net.Wallets[node.ShardCoordinator.SelfId()], node)
+	return GetAddressForNewAccountWithVM(t, net, node, net.DefaultVM)
 }
 
-func CreateHostAndInstanceBuilder(t *testing.T, net *integrationTests.TestNetwork, vmKey []byte) (map[uint32]arwen.VMHost, map[uint32]*mock.ExecutorMock) {
+func GetAddressForNewAccountWithVM(
+	t *testing.T,
+	net *integrationTests.TestNetwork,
+	node *integrationTests.TestProcessorNode,
+	vmType []byte) ([]byte, state.UserAccountHandler) {
+	return GetAddressForNewAccountOnWalletAndNodeWithVM(t, net, net.Wallets[node.ShardCoordinator.SelfId()], node, vmType)
+}
+
+func CreateHostAndInstanceBuilder(t *testing.T,
+	net *integrationTests.TestNetwork,
+	vmContainer process.VirtualMachinesContainer,
+	vmKey []byte) (map[uint32]arwen.VMHost, map[uint32]*mock.ExecutorMock) {
 	numberOfShards := uint32(net.NumShards)
 	shardToWorld := make(map[uint32]*worldmock.MockWorld, numberOfShards)
 	shardToInstanceBuilder := make(map[uint32]*mock.ExecutorMock, numberOfShards)
 	shardToHost := make(map[uint32]arwen.VMHost, numberOfShards)
+
+	net.DefaultNode.BlockchainHook.SetVMContainer(vmContainer)
 
 	for shardID := uint32(0); shardID < numberOfShards; shardID++ {
 		world := worldmock.NewMockWorld()
@@ -89,13 +122,18 @@ func CreateHostAndInstanceBuilder(t *testing.T, net *integrationTests.TestNetwor
 
 	for shardID := uint32(0); shardID < numberOfShards; shardID++ {
 		node := net.NodesSharded[shardID][0]
-		host, err := node.VMContainer.Get(factory.ArwenVirtualMachine)
-		require.NotNil(t, host)
-		require.Nil(t, err)
-		host.(arwen.VMHost).Runtime().ReplaceVMExecutor(shardToInstanceBuilder[shardID])
-		err = node.VMContainer.Replace(vmKey, host)
-		require.Nil(t, err)
-		shardToHost[shardID] = host.(arwen.VMHost)
+		for _, vmType := range vmContainer.Keys() {
+			host, err := node.VMContainer.Get(vmType)
+			require.NotNil(t, host)
+			require.Nil(t, err)
+			if _, ok := host.(arwen.VMHost); !ok {
+				continue
+			}
+			host.(arwen.VMHost).Runtime().ReplaceVMExecutor(shardToInstanceBuilder[shardID])
+			err = node.VMContainer.Replace(vmKey, host)
+			require.Nil(t, err)
+			shardToHost[shardID] = host.(arwen.VMHost)
+		}
 	}
 
 	return shardToHost, shardToInstanceBuilder

@@ -336,10 +336,16 @@ func (net *TestNetwork) SignTx(signer *TestWalletAccount, tx *transaction.Transa
 // NewAddress creates a new child address of the provided wallet; used to
 // compute the address of newly deployed smart contracts.
 func (net *TestNetwork) NewAddress(creator *TestWalletAccount) Address {
+	return net.NewAddressWithVM(creator, net.DefaultVM)
+}
+
+// NewAddressWithVM creates a new child address of the provided wallet; used to
+// compute the address of newly deployed smart contracts.
+func (net *TestNetwork) NewAddressWithVM(creator *TestWalletAccount, vmType []byte) Address {
 	address, err := net.DefaultNode.BlockchainHook.NewAddress(
 		creator.Address,
 		creator.Nonce,
-		net.DefaultVM)
+		vmType)
 	net.handleOrBypassError(err)
 
 	return address
