@@ -7,8 +7,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 )
 
-const addressLength = 32
-
 type trieStatistics struct {
 	address  []byte
 	rootHash []byte
