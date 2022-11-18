@@ -46,6 +46,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	"github.com/ElrondNetwork/elrond-go/testscommon/integrationtests"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -384,7 +385,7 @@ func (context *TestContext) Close() {
 }
 
 func (context *TestContext) initAccounts() {
-	context.Accounts = vm.CreateInMemoryShardAccountsDB()
+	context.Accounts = integrationtests.CreateInMemoryShardAccountsDB()
 
 	context.Owner = testParticipant{}
 	context.Owner.Address, _ = hex.DecodeString("d4105de8e44aee9d4be670401cec546e5df381028e805012386a05acf76518d9")
