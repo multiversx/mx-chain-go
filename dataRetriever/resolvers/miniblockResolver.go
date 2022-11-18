@@ -132,7 +132,7 @@ func (mbRes *miniblockResolver) fetchMbAsByteSlice(hash []byte, epoch uint32) ([
 
 	buff, err := mbRes.getFromStorage(hash, epoch)
 	if err != nil {
-		mbRes.ResolverDebugHandler().LogFailedToResolveData(
+		mbRes.DebugHandler().LogFailedToResolveData(
 			mbRes.topic,
 			hash,
 			err,
@@ -141,7 +141,7 @@ func (mbRes *miniblockResolver) fetchMbAsByteSlice(hash []byte, epoch uint32) ([
 		return nil, err
 	}
 
-	mbRes.ResolverDebugHandler().LogSucceededToResolveData(mbRes.topic, hash)
+	mbRes.DebugHandler().LogSucceededToResolveData(mbRes.topic, hash)
 
 	return buff, nil
 }

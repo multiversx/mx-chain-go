@@ -10,7 +10,7 @@ import (
 type TopicResolverSenderStub struct {
 	SendCalled          func(buff []byte, peer core.PeerID) error
 	TargetShardIDCalled func() uint32
-	debugHandler        dataRetriever.ResolverDebugHandler
+	debugHandler        dataRetriever.DebugHandler
 }
 
 // RequestTopic -
@@ -36,17 +36,17 @@ func (trss *TopicResolverSenderStub) TargetShardID() uint32 {
 	return 0
 }
 
-// ResolverDebugHandler -
-func (trss *TopicResolverSenderStub) ResolverDebugHandler() dataRetriever.ResolverDebugHandler {
+// DebugHandler -
+func (trss *TopicResolverSenderStub) DebugHandler() dataRetriever.DebugHandler {
 	if check.IfNil(trss.debugHandler) {
-		return &ResolverDebugHandler{}
+		return &DebugHandler{}
 	}
 
 	return trss.debugHandler
 }
 
-// SetResolverDebugHandler -
-func (trss *TopicResolverSenderStub) SetResolverDebugHandler(handler dataRetriever.ResolverDebugHandler) error {
+// SetDebugHandler -
+func (trss *TopicResolverSenderStub) SetDebugHandler(handler dataRetriever.DebugHandler) error {
 	trss.debugHandler = handler
 
 	return nil

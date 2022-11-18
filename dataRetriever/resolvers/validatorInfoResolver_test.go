@@ -529,7 +529,7 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 	})
 }
 
-func TestValidatorInfoResolver_SetResolverDebugHandler(t *testing.T) {
+func TestValidatorInfoResolver_SetDebugHandler(t *testing.T) {
 	t.Parallel()
 
 	defer func() {
@@ -542,5 +542,5 @@ func TestValidatorInfoResolver_SetResolverDebugHandler(t *testing.T) {
 	res, _ := resolvers.NewValidatorInfoResolver(createMockArgValidatorInfoResolver())
 	require.False(t, check.IfNil(res))
 
-	_ = res.SetResolverDebugHandler(nil)
+	_ = res.SetDebugHandler(nil)
 }

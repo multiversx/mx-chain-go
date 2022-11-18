@@ -63,7 +63,7 @@ func NewSingleDataInterceptor(arg ArgSingleDataInterceptor) (*SingleDataIntercep
 			currentPeerId:        arg.CurrentPeerId,
 			processor:            arg.Processor,
 			preferredPeersHolder: arg.PreferredPeersHolder,
-			debugHandler:         resolver.NewDisabledInterceptorResolver(),
+			debugHandler:         resolver.NewDisabledInterceptorDebugHandler(),
 		},
 		factory:          arg.DataFactory,
 		whiteListRequest: arg.WhiteListRequest,

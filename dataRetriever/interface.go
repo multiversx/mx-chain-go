@@ -22,7 +22,7 @@ type ResolverThrottler interface {
 // Resolver defines what a data resolver should do
 type Resolver interface {
 	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
-	SetResolverDebugHandler(handler ResolverDebugHandler) error
+	SetDebugHandler(handler DebugHandler) error
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -32,7 +32,7 @@ type Requester interface {
 	RequestDataFromHash(hash []byte, epoch uint32) error
 	SetNumPeersToQuery(intra int, cross int)
 	NumPeersToQuery() (int, int)
-	SetResolverDebugHandler(handler ResolverDebugHandler) error // TODO[Sorin]: rename this in both interface to SetDebugHandler
+	SetDebugHandler(handler DebugHandler) error
 	IsInterfaceNil() bool
 }
 
@@ -47,8 +47,8 @@ type TopicResolverSender interface {
 	Send(buff []byte, peer core.PeerID) error
 	RequestTopic() string
 	TargetShardID() uint32
-	SetResolverDebugHandler(handler ResolverDebugHandler) error
-	ResolverDebugHandler() ResolverDebugHandler
+	SetDebugHandler(handler DebugHandler) error
+	DebugHandler() DebugHandler
 	IsInterfaceNil() bool
 }
 
@@ -88,8 +88,8 @@ type TopicRequestSender interface {
 	NumPeersToQuery() (int, int)
 	RequestTopic() string
 	TargetShardID() uint32
-	SetResolverDebugHandler(handler ResolverDebugHandler) error
-	ResolverDebugHandler() ResolverDebugHandler
+	SetDebugHandler(handler DebugHandler) error
+	DebugHandler() DebugHandler
 	IsInterfaceNil() bool
 }
 
@@ -320,8 +320,8 @@ type WhiteListHandler interface {
 	IsInterfaceNil() bool
 }
 
-// ResolverDebugHandler defines an interface for debugging the reqested-resolved data
-type ResolverDebugHandler interface {
+// DebugHandler defines an interface for debugging the reqested-resolved data
+type DebugHandler interface {
 	LogRequestedData(topic string, hashes [][]byte, numReqIntra int, numReqCross int)
 	LogFailedToResolveData(topic string, hash []byte, err error)
 	LogSucceededToResolveData(topic string, hash []byte)

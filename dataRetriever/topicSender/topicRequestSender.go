@@ -146,10 +146,10 @@ func (trs *topicRequestSender) SendOnRequestTopic(rd *dataRetriever.RequestData,
 }
 
 func (trs *topicRequestSender) callDebugHandler(originalHashes [][]byte, numSentIntra int, numSentCross int) {
-	trs.mutResolverDebugHandler.RLock()
-	defer trs.mutResolverDebugHandler.RUnlock()
+	trs.mutDebugHandler.RLock()
+	defer trs.mutDebugHandler.RUnlock()
 
-	trs.resolverDebugHandler.LogRequestedData(trs.topicName, originalHashes, numSentIntra, numSentCross)
+	trs.debugHandler.LogRequestedData(trs.topicName, originalHashes, numSentIntra, numSentCross)
 }
 
 func createIndexList(listLength int) []int {

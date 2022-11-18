@@ -19,8 +19,8 @@ func (r *resolver) ProcessReceivedMessage(_ p2p.MessageP2P, _ core.PeerID) error
 	return nil
 }
 
-// SetResolverDebugHandler returns nil as it is disabled
-func (r *resolver) SetResolverDebugHandler(_ dataRetriever.ResolverDebugHandler) error {
+// SetDebugHandler returns nil as it is disabled
+func (r *resolver) SetDebugHandler(_ dataRetriever.DebugHandler) error {
 	return nil
 }
 

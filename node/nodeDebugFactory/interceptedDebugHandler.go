@@ -54,7 +54,7 @@ func CreateInterceptedDebugHandler(
 	}
 
 	resolvers.Iterate(func(key string, resolver dataRetriever.Resolver) bool {
-		err = resolver.SetResolverDebugHandler(debugHandler)
+		err = resolver.SetDebugHandler(debugHandler)
 		if err != nil {
 			errFound = err
 			return false
@@ -67,7 +67,7 @@ func CreateInterceptedDebugHandler(
 	}
 
 	requesters.Iterate(func(key string, requester dataRetriever.Requester) bool {
-		err = requester.SetResolverDebugHandler(debugHandler)
+		err = requester.SetDebugHandler(debugHandler)
 		if err != nil {
 			errFound = err
 			return false

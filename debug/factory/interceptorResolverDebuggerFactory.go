@@ -5,10 +5,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/debug/resolver"
 )
 
-// NewInterceptorResolverDebuggerFactory will instantiate an InterceptorResolverDebugHandler based on the provided config
-func NewInterceptorResolverDebuggerFactory(config config.InterceptorResolverDebugConfig) (InterceptorResolverDebugHandler, error) {
+// NewInterceptorResolverDebuggerFactory will instantiate an InterceptorDebugHandler based on the provided config
+func NewInterceptorResolverDebuggerFactory(config config.InterceptorResolverDebugConfig) (InterceptorDebugHandler, error) {
 	if !config.Enabled {
-		return resolver.NewDisabledInterceptorResolver(), nil
+		return resolver.NewDisabledInterceptorDebugHandler(), nil
 	}
 
 	return resolver.NewInterceptorResolver(config)

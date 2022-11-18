@@ -4,13 +4,13 @@ import "github.com/ElrondNetwork/elrond-go/dataRetriever"
 
 // TopicRequestSenderStub -
 type TopicRequestSenderStub struct {
-	SendOnRequestTopicCalled      func(rd *dataRetriever.RequestData, originalHashes [][]byte) error
-	SetNumPeersToQueryCalled      func(intra int, cross int)
-	GetNumPeersToQueryCalled      func() (int, int)
-	RequestTopicCalled            func() string
-	TargetShardIDCalled           func() uint32
-	SetResolverDebugHandlerCalled func(handler dataRetriever.ResolverDebugHandler) error
-	ResolverDebugHandlerCalled    func() dataRetriever.ResolverDebugHandler
+	SendOnRequestTopicCalled func(rd *dataRetriever.RequestData, originalHashes [][]byte) error
+	SetNumPeersToQueryCalled func(intra int, cross int)
+	GetNumPeersToQueryCalled func() (int, int)
+	RequestTopicCalled       func() string
+	TargetShardIDCalled      func() uint32
+	SetDebugHandlerCalled    func(handler dataRetriever.DebugHandler) error
+	DebugHandlerCalled       func() dataRetriever.DebugHandler
 }
 
 // SendOnRequestTopic -
@@ -52,18 +52,18 @@ func (stub *TopicRequestSenderStub) TargetShardID() uint32 {
 	return 0
 }
 
-// SetResolverDebugHandler -
-func (stub *TopicRequestSenderStub) SetResolverDebugHandler(handler dataRetriever.ResolverDebugHandler) error {
-	if stub.SetResolverDebugHandlerCalled != nil {
-		return stub.SetResolverDebugHandlerCalled(handler)
+// SetDebugHandler -
+func (stub *TopicRequestSenderStub) SetDebugHandler(handler dataRetriever.DebugHandler) error {
+	if stub.SetDebugHandlerCalled != nil {
+		return stub.SetDebugHandlerCalled(handler)
 	}
 	return nil
 }
 
-// ResolverDebugHandler -
-func (stub *TopicRequestSenderStub) ResolverDebugHandler() dataRetriever.ResolverDebugHandler {
-	if stub.ResolverDebugHandlerCalled != nil {
-		return stub.ResolverDebugHandlerCalled()
+// DebugHandler -
+func (stub *TopicRequestSenderStub) DebugHandler() dataRetriever.DebugHandler {
+	if stub.DebugHandlerCalled != nil {
+		return stub.DebugHandlerCalled()
 	}
 	return nil
 }

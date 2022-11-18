@@ -138,7 +138,7 @@ func (txRes *TxResolver) fetchTxAsByteSlice(hash []byte, epoch uint32) ([]byte, 
 
 	buff, err := txRes.getFromStorage(hash, epoch)
 	if err != nil {
-		txRes.ResolverDebugHandler().LogFailedToResolveData(
+		txRes.DebugHandler().LogFailedToResolveData(
 			txRes.topic,
 			hash,
 			err,
@@ -147,7 +147,7 @@ func (txRes *TxResolver) fetchTxAsByteSlice(hash []byte, epoch uint32) ([]byte, 
 		return nil, err
 	}
 
-	txRes.ResolverDebugHandler().LogSucceededToResolveData(txRes.topic, hash)
+	txRes.DebugHandler().LogSucceededToResolveData(txRes.topic, hash)
 
 	return buff, nil
 }

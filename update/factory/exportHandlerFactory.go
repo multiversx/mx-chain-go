@@ -368,7 +368,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	}
 
 	e.resolverContainer.Iterate(func(key string, resolver dataRetriever.Resolver) bool {
-		errNotCritical = resolver.SetResolverDebugHandler(debugger)
+		errNotCritical = resolver.SetDebugHandler(debugger)
 		if errNotCritical != nil {
 			log.Warn("error setting debugger", "resolver", key, "error", errNotCritical)
 		}
@@ -394,7 +394,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	}
 
 	e.requestersContainer.Iterate(func(key string, requester dataRetriever.Requester) bool {
-		errNotCritical = requester.SetResolverDebugHandler(debugger)
+		errNotCritical = requester.SetDebugHandler(debugger)
 		if errNotCritical != nil {
 			log.Warn("error setting debugger", "requester", key, "error", errNotCritical)
 		}

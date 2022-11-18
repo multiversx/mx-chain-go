@@ -111,16 +111,16 @@ func TestBaseRequester_NumPeersToQuery(t *testing.T) {
 	assert.Equal(t, providedCross, cross)
 }
 
-func TestBaseRequester_SetResolverDebugHandler(t *testing.T) {
+func TestBaseRequester_SetDebugHandler(t *testing.T) {
 	t.Parallel()
 
-	providedDebugHandler := &mock.ResolverDebugHandler{}
+	providedDebugHandler := &mock.DebugHandler{}
 	requestSender := &dataRetrieverMocks.TopicRequestSenderStub{
-		SetResolverDebugHandlerCalled: func(handler dataRetriever.ResolverDebugHandler) error {
+		SetDebugHandlerCalled: func(handler dataRetriever.DebugHandler) error {
 			assert.Equal(t, providedDebugHandler, handler)
 			return nil
 		},
-		ResolverDebugHandlerCalled: func() dataRetriever.ResolverDebugHandler {
+		DebugHandlerCalled: func() dataRetriever.DebugHandler {
 			return providedDebugHandler
 		},
 	}
@@ -130,6 +130,6 @@ func TestBaseRequester_SetResolverDebugHandler(t *testing.T) {
 	})
 	assert.False(t, check.IfNilReflect(baseHandler))
 
-	assert.Nil(t, baseHandler.SetResolverDebugHandler(providedDebugHandler))
-	assert.Equal(t, providedDebugHandler, requestSender.ResolverDebugHandler())
+	assert.Nil(t, baseHandler.SetDebugHandler(providedDebugHandler))
+	assert.Equal(t, providedDebugHandler, requestSender.DebugHandler())
 }

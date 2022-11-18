@@ -179,7 +179,7 @@ func (tnRes *TrieNodeResolver) resolveOneHash(hash []byte, chunkIndex uint32, me
 func (tnRes *TrieNodeResolver) getSubTrie(hash []byte, remainingSpace uint64) ([][]byte, uint64, error) {
 	serializedNodes, remainingSpace, err := tnRes.trieDataGetter.GetSerializedNodes(hash, remainingSpace)
 	if err != nil {
-		tnRes.ResolverDebugHandler().LogFailedToResolveData(
+		tnRes.DebugHandler().LogFailedToResolveData(
 			tnRes.topic,
 			hash,
 			err,
@@ -188,7 +188,7 @@ func (tnRes *TrieNodeResolver) getSubTrie(hash []byte, remainingSpace uint64) ([
 		return nil, remainingSpace, err
 	}
 
-	tnRes.ResolverDebugHandler().LogSucceededToResolveData(tnRes.topic, hash)
+	tnRes.DebugHandler().LogSucceededToResolveData(tnRes.topic, hash)
 
 	return serializedNodes, remainingSpace, nil
 }

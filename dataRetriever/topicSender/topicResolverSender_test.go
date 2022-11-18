@@ -166,26 +166,26 @@ func TestTopicResolverSender_Topic(t *testing.T) {
 	assert.Equal(t, arg.TopicName+topicsender.TopicRequestSuffix, trs.RequestTopic())
 }
 
-func TestTopicResolverSender_ResolverDebugHandler(t *testing.T) {
+func TestTopicResolverSender_DebugHandler(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArgTopicResolverSender()
 	trs, _ := topicsender.NewTopicResolverSender(arg)
 
-	handler := &mock.ResolverDebugHandler{}
+	handler := &mock.DebugHandler{}
 
-	err := trs.SetResolverDebugHandler(handler)
+	err := trs.SetDebugHandler(handler)
 	assert.Nil(t, err)
 
-	assert.True(t, handler == trs.ResolverDebugHandler()) // pointer testing
+	assert.True(t, handler == trs.DebugHandler()) // pointer testing
 }
 
-func TestTopicResolverSender_SetResolverDebugHandlerNilShouldErr(t *testing.T) {
+func TestTopicResolverSender_SetDebugHandlerNilShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArgTopicResolverSender()
 	trs, _ := topicsender.NewTopicResolverSender(arg)
 
-	err := trs.SetResolverDebugHandler(nil)
-	assert.Equal(t, dataRetriever.ErrNilResolverDebugHandler, err)
+	err := trs.SetDebugHandler(nil)
+	assert.Equal(t, dataRetriever.ErrNilDebugHandler, err)
 }

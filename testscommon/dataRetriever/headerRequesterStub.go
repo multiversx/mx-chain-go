@@ -4,12 +4,12 @@ import "github.com/ElrondNetwork/elrond-go/dataRetriever"
 
 // HeaderRequesterStub -
 type HeaderRequesterStub struct {
-	RequestDataFromHashCalled     func(hash []byte, epoch uint32) error
-	SetNumPeersToQueryCalled      func(intra int, cross int)
-	NumPeersToQueryCalled         func() (int, int)
-	SetResolverDebugHandlerCalled func(handler dataRetriever.ResolverDebugHandler) error
-	RequestDataFromEpochCalled    func(identifier []byte) error
-	RequestDataFromNonceCalled    func(nonce uint64, epoch uint32) error
+	RequestDataFromHashCalled  func(hash []byte, epoch uint32) error
+	SetNumPeersToQueryCalled   func(intra int, cross int)
+	NumPeersToQueryCalled      func() (int, int)
+	SetDebugHandlerCalled      func(handler dataRetriever.DebugHandler) error
+	RequestDataFromEpochCalled func(identifier []byte) error
+	RequestDataFromNonceCalled func(nonce uint64, epoch uint32) error
 }
 
 // RequestDataFromHash -
@@ -35,10 +35,10 @@ func (stub *HeaderRequesterStub) NumPeersToQuery() (int, int) {
 	return 0, 0
 }
 
-// SetResolverDebugHandler -
-func (stub *HeaderRequesterStub) SetResolverDebugHandler(handler dataRetriever.ResolverDebugHandler) error {
-	if stub.SetResolverDebugHandlerCalled != nil {
-		return stub.SetResolverDebugHandlerCalled(handler)
+// SetDebugHandler -
+func (stub *HeaderRequesterStub) SetDebugHandler(handler dataRetriever.DebugHandler) error {
+	if stub.SetDebugHandlerCalled != nil {
+		return stub.SetDebugHandlerCalled(handler)
 	}
 	return nil
 }

@@ -8,9 +8,9 @@ import (
 
 // ResolverStub -
 type ResolverStub struct {
-	ProcessReceivedMessageCalled  func(message p2p.MessageP2P) error
-	SetResolverDebugHandlerCalled func(handler dataRetriever.ResolverDebugHandler) error
-	CloseCalled                   func() error
+	ProcessReceivedMessageCalled func(message p2p.MessageP2P) error
+	SetDebugHandlerCalled        func(handler dataRetriever.DebugHandler) error
+	CloseCalled                  func() error
 }
 
 // ProcessReceivedMessage -
@@ -18,10 +18,10 @@ func (rs *ResolverStub) ProcessReceivedMessage(message p2p.MessageP2P, _ core.Pe
 	return rs.ProcessReceivedMessageCalled(message)
 }
 
-// SetResolverDebugHandler -
-func (rs *ResolverStub) SetResolverDebugHandler(handler dataRetriever.ResolverDebugHandler) error {
-	if rs.SetResolverDebugHandlerCalled != nil {
-		return rs.SetResolverDebugHandlerCalled(handler)
+// SetDebugHandler -
+func (rs *ResolverStub) SetDebugHandler(handler dataRetriever.DebugHandler) error {
+	if rs.SetDebugHandlerCalled != nil {
+		return rs.SetDebugHandlerCalled(handler)
 	}
 
 	return nil

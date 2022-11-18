@@ -78,7 +78,7 @@ func NewMultiDataInterceptor(arg ArgMultiDataInterceptor) (*MultiDataInterceptor
 			currentPeerId:        arg.CurrentPeerId,
 			processor:            arg.Processor,
 			preferredPeersHolder: arg.PreferredPeersHolder,
-			debugHandler:         resolver.NewDisabledInterceptorResolver(),
+			debugHandler:         resolver.NewDisabledInterceptorDebugHandler(),
 		},
 		marshalizer:      arg.Marshalizer,
 		factory:          arg.DataFactory,

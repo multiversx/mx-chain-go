@@ -1,7 +1,7 @@
 package mock
 
-// ResolverDebugHandler -
-type ResolverDebugHandler struct {
+// DebugHandler -
+type DebugHandler struct {
 	LogRequestedDataCalled          func(topic string, hash [][]byte, numReqIntra int, numReqCross int)
 	LogFailedToResolveDataCalled    func(topic string, hash []byte, err error)
 	LogSucceededToResolveDataCalled func(topic string, hash []byte)
@@ -9,27 +9,27 @@ type ResolverDebugHandler struct {
 }
 
 // LogSucceededToResolveData -
-func (rdh *ResolverDebugHandler) LogSucceededToResolveData(topic string, hash []byte) {
+func (rdh *DebugHandler) LogSucceededToResolveData(topic string, hash []byte) {
 	if rdh.LogSucceededToResolveDataCalled != nil {
 		rdh.LogSucceededToResolveDataCalled(topic, hash)
 	}
 }
 
 // LogRequestedData -
-func (rdh *ResolverDebugHandler) LogRequestedData(topic string, hashes [][]byte, numReqIntra int, numReqCross int) {
+func (rdh *DebugHandler) LogRequestedData(topic string, hashes [][]byte, numReqIntra int, numReqCross int) {
 	if rdh.LogRequestedDataCalled != nil {
 		rdh.LogRequestedDataCalled(topic, hashes, numReqIntra, numReqCross)
 	}
 }
 
 // LogFailedToResolveData -
-func (rdh *ResolverDebugHandler) LogFailedToResolveData(topic string, hash []byte, err error) {
+func (rdh *DebugHandler) LogFailedToResolveData(topic string, hash []byte, err error) {
 	if rdh.LogFailedToResolveDataCalled != nil {
 		rdh.LogFailedToResolveDataCalled(topic, hash, err)
 	}
 }
 
 // IsInterfaceNil -
-func (rdh *ResolverDebugHandler) IsInterfaceNil() bool {
+func (rdh *DebugHandler) IsInterfaceNil() bool {
 	return rdh == nil
 }

@@ -161,7 +161,7 @@ func TestCreateInterceptedDebugHandler_SettingOnResolverErrShouldErr(t *testing.
 		&dataRetrieverMocks.ResolversContainerStub{
 			IterateCalled: func(handler func(key string, resolver dataRetriever.Resolver) bool) {
 				handler("key", &dataRetrieverMocks.HeaderResolverStub{
-					SetResolverDebugHandlerCalled: func(handler dataRetriever.ResolverDebugHandler) error {
+					SetDebugHandlerCalled: func(handler dataRetriever.DebugHandler) error {
 						return expectedErr
 					},
 				})

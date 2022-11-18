@@ -1,44 +1,44 @@
 package resolver
 
-type disabledInterceptorResolver struct {
+type disabledInterceptorDebugHandler struct {
 }
 
-// NewDisabledInterceptorResolver returns a disabled instance of the debug handler
-func NewDisabledInterceptorResolver() *disabledInterceptorResolver {
-	return &disabledInterceptorResolver{}
+// NewDisabledInterceptorDebugHandler returns a disabled instance of the debug handler
+func NewDisabledInterceptorDebugHandler() *disabledInterceptorDebugHandler {
+	return &disabledInterceptorDebugHandler{}
 }
 
 // LogRequestedData dos nothing
-func (dir *disabledInterceptorResolver) LogRequestedData(_ string, _ [][]byte, _ int, _ int) {
+func (dir *disabledInterceptorDebugHandler) LogRequestedData(_ string, _ [][]byte, _ int, _ int) {
 }
 
 // LogReceivedHashes does nothing
-func (dir *disabledInterceptorResolver) LogReceivedHashes(_ string, _ [][]byte) {
+func (dir *disabledInterceptorDebugHandler) LogReceivedHashes(_ string, _ [][]byte) {
 }
 
 // LogProcessedHashes does nothing
-func (dir *disabledInterceptorResolver) LogProcessedHashes(_ string, _ [][]byte, _ error) {
+func (dir *disabledInterceptorDebugHandler) LogProcessedHashes(_ string, _ [][]byte, _ error) {
 }
 
 // Query returns an empty slice
-func (dir *disabledInterceptorResolver) Query(_ string) []string {
+func (dir *disabledInterceptorDebugHandler) Query(_ string) []string {
 	return make([]string, 0)
 }
 
 // LogFailedToResolveData does nothing
-func (dir *disabledInterceptorResolver) LogFailedToResolveData(_ string, _ []byte, _ error) {
+func (dir *disabledInterceptorDebugHandler) LogFailedToResolveData(_ string, _ []byte, _ error) {
 }
 
 // LogSucceededToResolveData does nothing
-func (dir *disabledInterceptorResolver) LogSucceededToResolveData(_ string, _ []byte) {
+func (dir *disabledInterceptorDebugHandler) LogSucceededToResolveData(_ string, _ []byte) {
 }
 
 // Close returns nil
-func (dir *disabledInterceptorResolver) Close() error {
+func (dir *disabledInterceptorDebugHandler) Close() error {
 	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (dir *disabledInterceptorResolver) IsInterfaceNil() bool {
+func (dir *disabledInterceptorDebugHandler) IsInterfaceNil() bool {
 	return dir == nil
 }

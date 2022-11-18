@@ -184,7 +184,7 @@ func (res *validatorInfoResolver) fetchValidatorInfoByteSlice(hash []byte, epoch
 
 	buff, err := res.getFromStorage(hash, epoch)
 	if err != nil {
-		res.ResolverDebugHandler().LogFailedToResolveData(
+		res.DebugHandler().LogFailedToResolveData(
 			res.topic,
 			hash,
 			err,
@@ -192,7 +192,7 @@ func (res *validatorInfoResolver) fetchValidatorInfoByteSlice(hash []byte, epoch
 		return nil, err
 	}
 
-	res.ResolverDebugHandler().LogSucceededToResolveData(res.topic, hash)
+	res.DebugHandler().LogSucceededToResolveData(res.topic, hash)
 
 	return buff, nil
 }
@@ -209,9 +209,9 @@ func (res *validatorInfoResolver) marshalAndSend(data []byte, pid core.PeerID) e
 	return res.Send(buff, pid)
 }
 
-// SetResolverDebugHandler sets a resolver debug handler
-func (res *validatorInfoResolver) SetResolverDebugHandler(handler dataRetriever.ResolverDebugHandler) error {
-	return res.TopicResolverSender.SetResolverDebugHandler(handler)
+// SetDebugHandler sets a resolver debug handler
+func (res *validatorInfoResolver) SetDebugHandler(handler dataRetriever.DebugHandler) error {
+	return res.TopicResolverSender.SetDebugHandler(handler)
 }
 
 // Close returns nil

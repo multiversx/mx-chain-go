@@ -18,7 +18,7 @@ func TestNewInterceptorResolverDebuggerFactory_DisabledShouldWork(t *testing.T) 
 	)
 
 	assert.Nil(t, err)
-	expected := resolver.NewDisabledInterceptorResolver()
+	expected := resolver.NewDisabledInterceptorDebugHandler()
 	assert.IsType(t, expected, irdh)
 }
 

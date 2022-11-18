@@ -11,10 +11,10 @@ var errNotImplemented = errors.New("not implemented")
 
 // HeaderResolverStub -
 type HeaderResolverStub struct {
-	ProcessReceivedMessageCalled  func(message p2p.MessageP2P) error
-	SetEpochHandlerCalled         func(epochHandler dataRetriever.EpochHandler) error
-	SetResolverDebugHandlerCalled func(handler dataRetriever.ResolverDebugHandler) error
-	CloseCalled                   func() error
+	ProcessReceivedMessageCalled func(message p2p.MessageP2P) error
+	SetEpochHandlerCalled        func(epochHandler dataRetriever.EpochHandler) error
+	SetDebugHandlerCalled        func(handler dataRetriever.DebugHandler) error
+	CloseCalled                  func() error
 }
 
 // SetEpochHandler -
@@ -34,10 +34,10 @@ func (hrs *HeaderResolverStub) ProcessReceivedMessage(message p2p.MessageP2P, _ 
 	return errNotImplemented
 }
 
-// SetResolverDebugHandler -
-func (hrs *HeaderResolverStub) SetResolverDebugHandler(handler dataRetriever.ResolverDebugHandler) error {
-	if hrs.SetResolverDebugHandlerCalled != nil {
-		return hrs.SetResolverDebugHandlerCalled(handler)
+// SetDebugHandler -
+func (hrs *HeaderResolverStub) SetDebugHandler(handler dataRetriever.DebugHandler) error {
+	if hrs.SetDebugHandlerCalled != nil {
+		return hrs.SetDebugHandlerCalled(handler)
 	}
 
 	return nil
