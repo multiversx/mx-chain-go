@@ -8,7 +8,7 @@ import (
 )
 
 type trieStatistics struct {
-	address  []byte
+	address  string
 	rootHash []byte
 
 	branchNodes    *nodesStatistics
@@ -24,7 +24,7 @@ type nodesStatistics struct {
 // NewTrieStatistics creates a new instance of trieStatistics
 func NewTrieStatistics() *trieStatistics {
 	return &trieStatistics{
-		address:  nil,
+		address:  "",
 		rootHash: nil,
 		branchNodes: &nodesStatistics{
 			nodesSize:     0,
@@ -57,7 +57,7 @@ func (ts *trieStatistics) AddLeafNode(level int, size uint64) {
 }
 
 // AddAccountInfo will add the address and rootHash to  the collected statistics
-func (ts *trieStatistics) AddAccountInfo(address []byte, rootHash []byte) {
+func (ts *trieStatistics) AddAccountInfo(address string, rootHash []byte) {
 	ts.address = address
 	ts.rootHash = rootHash
 }
@@ -125,7 +125,7 @@ func (ts *trieStatistics) GetTrieStats() *TrieStatsDTO {
 
 // TrieStatsDTO holds the statistics for the trie
 type TrieStatsDTO struct {
-	Address        []byte
+	Address        string
 	RootHash       []byte
 	TotalNodesSize uint64
 	TotalNumNodes  uint64
