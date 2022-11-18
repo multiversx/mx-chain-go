@@ -27,7 +27,7 @@ func TestNewSovereignChainShardStorageBootstrapper(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		ssb, err := NewShardStorageBootstrapper(args)
+		ssb, _ := NewShardStorageBootstrapper(args)
 		scssb, err := NewSovereignChainShardStorageBootstrapper(ssb)
 
 		assert.NotNil(t, scssb)

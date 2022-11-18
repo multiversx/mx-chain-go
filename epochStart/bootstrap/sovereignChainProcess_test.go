@@ -27,6 +27,7 @@ func TestNewSovereignChainEpochStartBootstrap(t *testing.T) {
 		t.Parallel()
 
 		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+
 		esb, _ := NewEpochStartBootstrap(args)
 		scesb, err := NewSovereignChainEpochStartBootstrap(esb)
 
@@ -40,6 +41,7 @@ func TestGetDataToSync_ShouldWork(t *testing.T) {
 
 	coreComp, cryptoComp := createComponentsForEpochStart()
 	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+
 	esb, _ := NewEpochStartBootstrap(args)
 	scesb, _ := NewSovereignChainEpochStartBootstrap(esb)
 
@@ -47,7 +49,6 @@ func TestGetDataToSync_ShouldWork(t *testing.T) {
 	hdr := &block.Header{
 		RootHash: rootHash,
 	}
-
 	dts, err := scesb.getDataToSync(nil, hdr)
 
 	require.Nil(t, err)

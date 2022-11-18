@@ -81,6 +81,7 @@ func TestCreateEpochStartBootstrapper_ShouldWork(t *testing.T) {
 		args.ChainRunType = common.ChainRunTypeRegular
 
 		esb, err := createEpochStartBootstrapper(args)
+
 		require.NotNil(t, esb)
 		assert.Nil(t, err)
 		assert.Equal(t, esb.getDataToSync, esb.getDataToSyncMethod)
@@ -92,6 +93,7 @@ func TestCreateEpochStartBootstrapper_ShouldWork(t *testing.T) {
 		args.ChainRunType = common.ChainRunTypeSovereign
 
 		esb, err := createEpochStartBootstrapper(args)
+
 		require.NotNil(t, esb)
 		assert.Nil(t, err)
 		assert.NotEqual(t, esb.getDataToSync, esb.getDataToSyncMethod)
@@ -103,6 +105,7 @@ func TestCreateEpochStartBootstrapper_ShouldWork(t *testing.T) {
 		args.ChainRunType = "X"
 
 		esb, err := createEpochStartBootstrapper(args)
+
 		assert.Nil(t, esb)
 		require.True(t, errors.Is(err, errorsErd.ErrUnimplementedChainRunType))
 	})

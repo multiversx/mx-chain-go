@@ -324,9 +324,10 @@ func TestConsensusComponentsFactory_CreateShardStorageAndSyncBootstrapperShouldW
 		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 		args := componentsMock.GetConsensusArgs(shardCoordinator)
 		args.ChainRunType = common.ChainRunTypeRegular
-		ccf, _ := consensusComp.NewConsensusComponentsFactory(args)
 
+		ccf, _ := consensusComp.NewConsensusComponentsFactory(args)
 		cc, err := ccf.Create()
+
 		require.NotNil(t, cc)
 		assert.Nil(t, err)
 	})
@@ -337,9 +338,10 @@ func TestConsensusComponentsFactory_CreateShardStorageAndSyncBootstrapperShouldW
 		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 		args := componentsMock.GetConsensusArgs(shardCoordinator)
 		args.ChainRunType = common.ChainRunTypeSovereign
-		ccf, _ := consensusComp.NewConsensusComponentsFactory(args)
 
+		ccf, _ := consensusComp.NewConsensusComponentsFactory(args)
 		cc, err := ccf.Create()
+
 		require.NotNil(t, cc)
 		assert.Nil(t, err)
 	})
@@ -350,8 +352,8 @@ func TestConsensusComponentsFactory_CreateShardStorageAndSyncBootstrapperShouldW
 		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 		args := componentsMock.GetConsensusArgs(shardCoordinator)
 		args.ChainRunType = "X"
-		ccf, _ := consensusComp.NewConsensusComponentsFactory(args)
 
+		ccf, _ := consensusComp.NewConsensusComponentsFactory(args)
 		cc, err := ccf.Create()
 
 		assert.Nil(t, cc)

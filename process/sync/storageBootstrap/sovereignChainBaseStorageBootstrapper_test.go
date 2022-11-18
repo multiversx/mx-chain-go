@@ -14,6 +14,7 @@ func TestBaseStorageBootstrapper_SovereignChainGetScheduledRootHash(t *testing.T
 	args := ArgsShardStorageBootstrapper{
 		ArgsBaseStorageBootstrapper: baseArgs,
 	}
+
 	ssb, _ := NewShardStorageBootstrapper(args)
 	scssb, _ := NewSovereignChainShardStorageBootstrapper(ssb)
 
@@ -21,7 +22,7 @@ func TestBaseStorageBootstrapper_SovereignChainGetScheduledRootHash(t *testing.T
 	hdr := &block.Header{
 		RootHash: expectedRootHash,
 	}
-
 	rootHash := scssb.sovereignChainGetScheduledRootHash(hdr, nil)
+
 	assert.Equal(t, expectedRootHash, rootHash)
 }

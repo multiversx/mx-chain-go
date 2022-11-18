@@ -149,8 +149,8 @@ func TestBootstrapComponentsFactory_CreateEpochStartBootstrapperShouldWork(t *te
 
 		args := componentsMock.GetBootStrapFactoryArgs()
 		args.ChainRunType = common.ChainRunTypeRegular
-		bcf, _ := bootstrap.NewBootstrapComponentsFactory(args)
 
+		bcf, _ := bootstrap.NewBootstrapComponentsFactory(args)
 		bc, err := bcf.Create()
 
 		require.NotNil(t, bc)
@@ -162,8 +162,8 @@ func TestBootstrapComponentsFactory_CreateEpochStartBootstrapperShouldWork(t *te
 
 		args := componentsMock.GetBootStrapFactoryArgs()
 		args.ChainRunType = common.ChainRunTypeSovereign
-		bcf, _ := bootstrap.NewBootstrapComponentsFactory(args)
 
+		bcf, _ := bootstrap.NewBootstrapComponentsFactory(args)
 		bc, err := bcf.Create()
 
 		require.NotNil(t, bc)
@@ -175,8 +175,8 @@ func TestBootstrapComponentsFactory_CreateEpochStartBootstrapperShouldWork(t *te
 
 		args := componentsMock.GetBootStrapFactoryArgs()
 		args.ChainRunType = "X"
-		bcf, _ := bootstrap.NewBootstrapComponentsFactory(args)
 
+		bcf, _ := bootstrap.NewBootstrapComponentsFactory(args)
 		bc, err := bcf.Create()
 
 		assert.Nil(t, bc)
