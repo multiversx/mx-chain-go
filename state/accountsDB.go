@@ -101,6 +101,7 @@ type AccountsDB struct {
 	loadCodeMeasurements     *loadingMeasurements
 	processStatusHandler     common.ProcessStatusHandler
 	appStatusHandler         core.AppStatusHandler
+	addressConverter         core.PubkeyConverter
 
 	stackDebug []byte
 }
@@ -118,6 +119,7 @@ type ArgsAccountsDB struct {
 	ShouldSerializeSnapshots bool
 	ProcessStatusHandler     common.ProcessStatusHandler
 	AppStatusHandler         core.AppStatusHandler
+	AddressConverter         core.PubkeyConverter
 }
 
 // NewAccountsDB creates a new account manager
@@ -152,6 +154,7 @@ func createAccountsDb(args ArgsAccountsDB) *AccountsDB {
 		processStatusHandler:     args.ProcessStatusHandler,
 		appStatusHandler:         args.AppStatusHandler,
 		isSnapshotInProgress:     atomic.Flag{},
+		addressConverter:         args.AddressConverter,
 	}
 }
 
@@ -176,6 +179,9 @@ func checkArgsAccountsDB(args ArgsAccountsDB) error {
 	}
 	if check.IfNil(args.AppStatusHandler) {
 		return ErrNilAppStatusHandler
+	}
+	if check.IfNil(args.AddressConverter) {
+		return ErrNilAddressConverter
 	}
 
 	return nil
@@ -1339,7 +1345,8 @@ func (adb *AccountsDB) snapshotUserAccountDataTrie(
 			ErrChan:    iteratorChannels.ErrChan,
 		}
 		if isSnapshot {
-			adb.mainTrie.GetStorageManager().TakeSnapshot(account.Address, account.RootHash, mainTrieRootHash, iteratorChannelsForDataTries, missingNodesChannel, stats, epoch)
+			address := adb.addressConverter.Encode(account.Address)
+			adb.mainTrie.GetStorageManager().TakeSnapshot([]byte(address), account.RootHash, mainTrieRootHash, iteratorChannelsForDataTries, missingNodesChannel, stats, epoch)
 			continue
 		}
 
@@ -1447,7 +1454,8 @@ func (adb *AccountsDB) GetStatsForRootHash(rootHash []byte) (common.TriesStatist
 			continue
 		}
 
-		collectStats(tr, stats, account.RootHash, account.Address)
+		address := adb.addressConverter.Encode(account.Address)
+		collectStats(tr, stats, account.RootHash, []byte(address))
 	}
 
 	err = common.GetErrorFromChanNonBlocking(iteratorChannels.ErrChan)
