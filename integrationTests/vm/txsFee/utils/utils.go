@@ -129,6 +129,43 @@ func DoDeployNoChecks(t *testing.T, testContext *vm.VMTestContext, pathToContrac
 	return scAddr, owner
 }
 
+// DoColdDeploy will deploy the SC code but won't call the constructor
+func DoColdDeploy(
+	tb testing.TB,
+	testContext *vm.VMTestContext,
+	pathToContract string,
+	senderBalance *big.Int,
+	codeMetadata string,
+) (scAddr []byte, owner []byte) {
+	owner = []byte("12345678901234567890123456789011")
+	senderNonce := uint64(0)
+
+	_, _ = vm.CreateAccount(testContext.Accounts, owner, senderNonce, senderBalance)
+	scCode := arwen.GetSCCode(pathToContract)
+	scCodeBytes, err := hex.DecodeString(scCode)
+	require.Nil(tb, err)
+
+	codeMetadataBytes, err := hex.DecodeString(codeMetadata)
+	require.Nil(tb, err)
+
+	scAddr, _ = testContext.BlockchainHook.NewAddress(owner, senderNonce, factory.ArwenVirtualMachine)
+	account, err := testContext.Accounts.LoadAccount(scAddr)
+	require.Nil(tb, err)
+
+	userAccount := account.(state.UserAccountHandler)
+	userAccount.SetOwnerAddress(owner)
+	userAccount.SetCodeMetadata(codeMetadataBytes)
+	userAccount.SetCode(scCodeBytes)
+
+	err = testContext.Accounts.SaveAccount(account)
+	require.Nil(tb, err)
+
+	_, err = testContext.Accounts.Commit()
+	require.Nil(tb, err)
+
+	return
+}
+
 // DoDeploySecond -
 func DoDeploySecond(
 	t *testing.T,
@@ -341,16 +378,18 @@ func GenerateUserNameForMyDNSContract() []byte {
 	}
 }
 
-// ApplyDataOverwritingExistingData applies pairs of <key,value> from provided file to the state of the provided address
+// OverwriteAccountStorageWithHexFileContent applies pairs of <key,value> from provided file to the state of the provided address
 // Before applying the data it does a cleanup on the old state
 // the data from the file must be in the following format:
+//
 //hex(key1),hex(value1)
 //hex(key2),hex(value2)
 //...
+//
 // Example:
 //61750100,0000
 //61750101,0001
-func ApplyDataOverwritingExistingData(tb testing.TB, testContext *vm.VMTestContext, address []byte, pathToData string) {
+func OverwriteAccountStorageWithHexFileContent(tb testing.TB, testContext *vm.VMTestContext, address []byte, pathToData string) {
 	allData, err := ioutil.ReadFile(filepath.Clean(pathToData))
 	require.Nil(tb, err)
 
