@@ -1084,7 +1084,7 @@ func BenchmarkSortTransactionsByNonceAndSender_WhenReversedNoncesWithFrontRunnin
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		txpreproc.sortTransactionsBySenderAndNonce(txs, randomness[i%numRands])
+		txpreproc.sortTransactionsBySenderAndNonceWithFrontRunningProtection(txs, randomness[i%numRands])
 	}
 }
 

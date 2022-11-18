@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"sort"
 	"sync"
 	"time"
 
@@ -1675,19 +1674,18 @@ func (txs *transactions) sortTransactionsBySenderAndNonceWithFrontRunningProtect
 }
 
 func sortTransactionsBySenderAndNonceLegacy(transactions []*txcache.WrappedTransaction) {
-	sorter := func(i, j int) bool {
-		txI := transactions[i].Tx
-		txJ := transactions[j].Tx
-
-		delta := bytes.Compare(txI.GetSndAddr(), txJ.GetSndAddr())
-		if delta == 0 {
-			delta = int(txI.GetNonce()) - int(txJ.GetNonce())
-		}
-
-		return delta < 0
+	innerTransactions := make([]data.TransactionHandler, 0)
+	transactionToWrappedTransactionsMap := make(map[data.TransactionHandler]*txcache.WrappedTransaction)
+	for _, wt := range transactions {
+		innerTransactions = append(innerTransactions, wt.Tx)
+		transactionToWrappedTransactionsMap[wt.Tx] = wt
 	}
 
-	sort.Slice(transactions, sorter)
+	txSorter.SortTransactionsBySenderAndNonce(innerTransactions)
+
+	for i := range innerTransactions {
+		transactions[i] = transactionToWrappedTransactionsMap[innerTransactions[i]]
+	}
 }
 
 func (txs *transactions) filterMoveBalance(transactions []*txcache.WrappedTransaction) ([]*txcache.WrappedTransaction, []*txcache.WrappedTransaction, uint64) {
