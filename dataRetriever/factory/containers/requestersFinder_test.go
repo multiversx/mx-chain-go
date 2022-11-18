@@ -34,7 +34,7 @@ func createMockContainer(expectedKey string) *dataRetrieverMocks.RequestersConta
 	}
 }
 
-func TestNewRequestersFinder_NilContainerShouldErr(t *testing.T) {
+func TestNewRequestersFinder(t *testing.T) {
 	t.Parallel()
 
 	t.Run("nil container should error", func(t *testing.T) {
@@ -65,6 +65,8 @@ func TestNewRequestersFinder_NilContainerShouldErr(t *testing.T) {
 }
 
 func TestRequestersFinder_IntraShardRequester(t *testing.T) {
+	t.Parallel()
+
 	currentShardID := uint32(4)
 	identifierPrefix := "_"
 	baseTopic := "baseTopic"
@@ -81,6 +83,8 @@ func TestRequestersFinder_IntraShardRequester(t *testing.T) {
 }
 
 func TestRequestersFinder_MetaChainRequester(t *testing.T) {
+	t.Parallel()
+
 	currentShardID := uint32(4)
 	identifierPrefix := "_"
 	baseTopic := "baseTopic"
@@ -95,6 +99,8 @@ func TestRequestersFinder_MetaChainRequester(t *testing.T) {
 }
 
 func TestRequestersFinder_CrossShardRequester(t *testing.T) {
+	t.Parallel()
+
 	crossShardID := uint32(5)
 	identifierPrefix := "_"
 	baseTopic := "baseTopic"
@@ -111,6 +117,8 @@ func TestRequestersFinder_CrossShardRequester(t *testing.T) {
 }
 
 func TestRequestersFinder_MetaCrossShardRequester(t *testing.T) {
+	t.Parallel()
+
 	crossShardID := uint32(5)
 	identifierPrefix := "_"
 	baseTopic := "baseTopic"

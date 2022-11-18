@@ -50,6 +50,9 @@ func NewRequestersContainerFactory(args ArgsRequestersContainerFactory) (*reques
 	if check.IfNil(args.ExistingRequesters) {
 		return nil, update.ErrNilRequestersContainer
 	}
+	if check.IfNil(args.OutputAntifloodHandler) {
+		return nil, update.ErrNilAntiFloodHandler
+	}
 	if check.IfNil(args.PeersRatingHandler) {
 		return nil, update.ErrNilPeersRatingHandler
 	}

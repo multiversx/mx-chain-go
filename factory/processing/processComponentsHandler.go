@@ -88,6 +88,9 @@ func (m *managedProcessComponents) CheckSubcomponents() error {
 	if check.IfNil(m.processComponents.interceptorsContainer) {
 		return errors.ErrNilInterceptorsContainer
 	}
+	if check.IfNil(m.processComponents.resolversContainer) {
+		return errors.ErrNilResolversContainer
+	}
 	if check.IfNil(m.processComponents.requestersFinder) {
 		return errors.ErrNilRequestersFinder
 	}
