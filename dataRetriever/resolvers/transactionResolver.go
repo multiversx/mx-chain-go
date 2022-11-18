@@ -13,7 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-var _ requestHandlers.HashSliceResolver = (*TxResolver)(nil)
+var _ requestHandlers.HashSliceRequester = (*TxResolver)(nil)
 var _ dataRetriever.Resolver = (*TxResolver)(nil)
 
 // maxBuffToSendBulkTransactions represents max buffer size to send in bytes

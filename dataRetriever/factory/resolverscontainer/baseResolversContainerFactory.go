@@ -11,7 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers/topicResolverSender"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/topicSender"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -315,12 +315,12 @@ func (brcf *baseResolversContainerFactory) createOneResolverSenderWithSpecifiedN
 		"topic", topic, "intraShardTopic", brcf.intraShardTopic, "excludedTopic", excludedTopic,
 		"numCrossShardPeers", numCrossShardPeers, "numIntraShardPeers", numIntraShardPeers)
 
-	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(brcf.messenger, topic, brcf.intraShardTopic, excludedTopic)
+	peerListCreator, err := topicsender.NewDiffPeerListCreator(brcf.messenger, topic, brcf.intraShardTopic, excludedTopic)
 	if err != nil {
 		return nil, err
 	}
 
-	arg := topicResolverSender.ArgTopicResolverSender{
+	arg := topicsender.ArgTopicResolverSender{
 		Messenger:                   brcf.messenger,
 		TopicName:                   topic,
 		PeerListCreator:             peerListCreator,
@@ -338,7 +338,7 @@ func (brcf *baseResolversContainerFactory) createOneResolverSenderWithSpecifiedN
 	}
 	// TODO instantiate topic sender resolver with the shard IDs for which this resolver is supposed to serve the data
 	// this will improve the serving of transactions as the searching will be done only on 2 sharded data units
-	resolverSender, err := topicResolverSender.NewTopicResolverSender(arg)
+	resolverSender, err := topicsender.NewTopicResolverSender(arg)
 	if err != nil {
 		return nil, err
 	}
