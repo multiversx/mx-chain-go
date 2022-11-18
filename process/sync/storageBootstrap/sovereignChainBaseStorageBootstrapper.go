@@ -9,5 +9,5 @@ func (st *storageBootstrapper) sovereignChainGetScheduledRootHash(headerFromStor
 	return headerFromStorage.GetRootHash()
 }
 
-func (st *storageBootstrapper) sovereignChainSetScheduledInfo(headerInfo bootstrapStorage.BootstrapData) {
+func (st *storageBootstrapper) sovereignChainSetScheduledInfo(_ bootstrapStorage.BootstrapData) {
 }

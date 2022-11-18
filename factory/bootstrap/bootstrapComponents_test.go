@@ -4,9 +4,11 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/common"
 	errorsErd "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory/bootstrap"
 	componentsMock "github.com/ElrondNetwork/elrond-go/testscommon/components"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -137,4 +139,47 @@ func TestBootstrapComponentsFactory_CreateEpochStartBootstrapCreationFail(t *tes
 
 	require.Nil(t, bc)
 	require.True(t, errors.Is(err, errorsErd.ErrNewEpochStartBootstrap))
+}
+
+func TestBootstrapComponentsFactory_CreateEpochStartBootstrapperShouldWork(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should create a epoch start bootstrapper main chain instance", func(t *testing.T) {
+		t.Parallel()
+
+		args := componentsMock.GetBootStrapFactoryArgs()
+		args.ChainRunType = common.ChainRunTypeRegular
+		bcf, _ := bootstrap.NewBootstrapComponentsFactory(args)
+
+		bc, err := bcf.Create()
+
+		require.NotNil(t, bc)
+		assert.Nil(t, err)
+	})
+
+	t.Run("should create a epoch start bootstrapper sovereign chain instance", func(t *testing.T) {
+		t.Parallel()
+
+		args := componentsMock.GetBootStrapFactoryArgs()
+		args.ChainRunType = common.ChainRunTypeSovereign
+		bcf, _ := bootstrap.NewBootstrapComponentsFactory(args)
+
+		bc, err := bcf.Create()
+
+		require.NotNil(t, bc)
+		assert.Nil(t, err)
+	})
+
+	t.Run("should error when chain run type is not implemented", func(t *testing.T) {
+		t.Parallel()
+
+		args := componentsMock.GetBootStrapFactoryArgs()
+		args.ChainRunType = "X"
+		bcf, _ := bootstrap.NewBootstrapComponentsFactory(args)
+
+		bc, err := bcf.Create()
+
+		assert.Nil(t, bc)
+		require.True(t, errors.Is(err, errorsErd.ErrUnimplementedChainRunType))
+	})
 }

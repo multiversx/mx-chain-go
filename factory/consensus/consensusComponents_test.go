@@ -315,6 +315,50 @@ func TestConsensusComponentsFactory_CreateNilSyncTimer(t *testing.T) {
 	require.Equal(t, chronology.ErrNilSyncTimer, err)
 }
 
+func TestConsensusComponentsFactory_CreateShardStorageAndSyncBootstrapperShouldWork(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should create a shard storage and sync bootstrapper main chain instance", func(t *testing.T) {
+		t.Parallel()
+
+		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+		args := componentsMock.GetConsensusArgs(shardCoordinator)
+		args.ChainRunType = common.ChainRunTypeRegular
+		ccf, _ := consensusComp.NewConsensusComponentsFactory(args)
+
+		cc, err := ccf.Create()
+		require.NotNil(t, cc)
+		assert.Nil(t, err)
+	})
+
+	t.Run("should create a shard storage and sync bootstrapper sovereign chain instance", func(t *testing.T) {
+		t.Parallel()
+
+		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+		args := componentsMock.GetConsensusArgs(shardCoordinator)
+		args.ChainRunType = common.ChainRunTypeSovereign
+		ccf, _ := consensusComp.NewConsensusComponentsFactory(args)
+
+		cc, err := ccf.Create()
+		require.NotNil(t, cc)
+		assert.Nil(t, err)
+	})
+
+	t.Run("should error when chain run type is not implemented", func(t *testing.T) {
+		t.Parallel()
+
+		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+		args := componentsMock.GetConsensusArgs(shardCoordinator)
+		args.ChainRunType = "X"
+		ccf, _ := consensusComp.NewConsensusComponentsFactory(args)
+
+		cc, err := ccf.Create()
+
+		assert.Nil(t, cc)
+		require.True(t, errors.Is(err, errorsErd.ErrUnimplementedChainRunType))
+	})
+}
+
 func TestStartConsensus_ShardBootstrapperNilAccounts(t *testing.T) {
 	t.Parallel()
 	if testing.Short() {
