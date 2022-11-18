@@ -688,8 +688,12 @@ func createSystemSCConfig() *config.SystemSmartContractsConfig {
 func createDefaultVMConfig() *config.VirtualMachineConfig {
 	return &config.VirtualMachineConfig{
 		ArwenVersions: []config.ArwenVersionByEpoch{
-			{StartEpoch: 0, Version: "*"},
+			{
+				StartEpoch: 0,
+				Version:    "*",
+			},
 		},
+		TimeOutForSCExecutionInMilliseconds: 10000, // 10 seconds
 	}
 }
 

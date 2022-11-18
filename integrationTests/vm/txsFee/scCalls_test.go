@@ -409,7 +409,7 @@ func prepareTestContextForEpoch460(tb testing.TB) (*vm.VMTestContext, []byte) {
 		gasLimit,
 		params,
 	)
-	utils.ApplyDataOverwritingExistingData(tb, testContext, scAddress, "../arwen/testdata/buyNFTCall/data.hex")
+	utils.OverwriteAccountStorageWithHexFileContent(tb, testContext, scAddress, "../arwen/testdata/buyNFTCall/data.hex")
 	utils.CleanAccumulatedIntermediateTransactions(tb, testContext)
 
 	return testContext, scAddress
