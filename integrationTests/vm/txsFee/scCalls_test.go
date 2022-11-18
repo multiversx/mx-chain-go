@@ -28,7 +28,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	arwenConfig "github.com/ElrondNetwork/wasm-vm-v1_4/config"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -77,7 +76,7 @@ func prepareTestContextForEpoch836(tb testing.TB) (*vm.VMTestContext, []byte) {
 		senderBalance,
 		"0100",
 	)
-	utils.ApplyDataOverwritingExistingData(tb, testContext, scAddress, "../arwen/testdata/distributeRewards/data.hex")
+	utils.OverwriteAccountStorageWithHexFileContent(tb, testContext, scAddress, "../arwen/testdata/distributeRewards/data.hex")
 	utils.CleanAccumulatedIntermediateTransactions(tb, testContext)
 
 	db.ClearCache()
@@ -399,7 +398,7 @@ func TestScCallDistributeStakingRewards_ShouldWork(t *testing.T) {
 
 	intermediateTxs := testContext.GetIntermediateTransactions(t)
 	assert.Equal(t, 1, len(intermediateTxs))
-	log.Info(spew.Sdump(intermediateTxs))
+	log.Info(integrationtests.TransactionHandlerToString(pkConv, intermediateTxs...))
 	log.Info("transaction took", "time", endTime.Sub(startTime))
 
 	scr := intermediateTxs[0].(*smartContractResult.SmartContractResult)

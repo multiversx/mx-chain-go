@@ -1,6 +1,7 @@
 package process
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
 	"fmt"
@@ -11,31 +12,25 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state"
 )
 
-// ExportUserAccountState will try to export the account state of a provided address
-func ExportUserAccountState(accountsDB state.AccountsAdapter, identifier string, address []byte, parentDirForFiles string) {
+// ExportUserAccountState will export the account state of a provided address
+func ExportUserAccountState(accountsDB state.AccountsAdapter, identifier string, address []byte, parentDirForFiles string) error {
 	code, csvHexedData, err := getCodeAndData(accountsDB, address)
 	if err != nil {
-		log.Error("ExportUserAccountState", "identifier", identifier, "error", err)
-		return
+		return err
 	}
 
 	err = exportCode(identifier, code, parentDirForFiles)
 	if err != nil {
-		log.Error("ExportUserAccountState", "identifier", identifier, "error", err)
-		return
+		return err
 	}
 
-	err = exportData(identifier, csvHexedData, parentDirForFiles)
-	if err != nil {
-		log.Error("ExportUserAccountState", "identifier", identifier, "error", err)
-		return
-	}
+	return exportData(identifier, csvHexedData, parentDirForFiles)
 }
 
 func getCodeAndData(accountsDB state.AccountsAdapter, address []byte) (code []byte, csvHexedData []string, err error) {
 	account, err := accountsDB.GetExistingAccount(address)
 	if err != nil {
-		return nil, nil, fmt.Errorf("%w while getting existing data for hex address %s",
+		return nil, nil, fmt.Errorf("%w while getting existing data for hex code hash %s",
 			err, hex.EncodeToString(code))
 	}
 
@@ -145,15 +140,12 @@ func exportData(identifier string, lines []string, parentDirForFiles string) err
 		return err
 	}
 
+	buffer := bytes.Buffer{}
 	for _, line := range lines {
-		_, err = f.Write([]byte(fmt.Sprintf("%s\n", line)))
-		if err != nil {
-			_ = f.Close()
-
-			return err
-		}
+		buffer.Write([]byte(fmt.Sprintf("%s\n", line)))
 	}
 
+	_, _ = f.Write(buffer.Bytes())
 	log.Info("ExportUserAccountState.exportData", "num (key,values)", len(lines))
 
 	return f.Close()

@@ -67,7 +67,8 @@ func TestExportUserAccountState(t *testing.T) {
 		require.Nil(t, errReadDir)
 		assert.Zero(t, len(contents))
 
-		ExportUserAccountState(accounts, "", address, tempDir)
+		errExport := ExportUserAccountState(accounts, "", address, tempDir)
+		require.Nil(t, errExport)
 
 		contents, errReadDir = ioutil.ReadDir(tempDir)
 		require.Nil(t, errReadDir)
