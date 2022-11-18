@@ -8,20 +8,81 @@ package txsFee
 import (
 	"encoding/hex"
 	"math/big"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/testscommon/integrationtests"
 	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	arwenConfig "github.com/ElrondNetwork/wasm-vm-v1_4/config"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+var log = logger.GetOrCreate("integrationTests/vm/txFee")
+
+func prepareTestContextForEpoch836(tb testing.TB) (*vm.VMTestContext, []byte) {
+	unreachableEpoch := uint32(999999)
+	db := integrationtests.CreateStorer(tb.TempDir())
+	gasScheduleDir := "../../../cmd/node/config/gasSchedules"
+
+	cfg := config.GasScheduleByEpochs{
+		StartEpoch: 0,
+		FileName:   "gasScheduleV6.toml",
+	}
+
+	argsGasScheduleNotifier := forking.ArgsNewGasScheduleNotifier{
+		GasScheduleConfig: config.GasScheduleConfig{
+			GasScheduleByEpochs: []config.GasScheduleByEpochs{cfg},
+		},
+		ConfigDir:         gasScheduleDir,
+		EpochNotifier:     forking.NewGenericEpochNotifier(),
+		ArwenChangeLocker: &sync.RWMutex{},
+	}
+	gasScheduleNotifier, err := forking.NewGasScheduleNotifier(argsGasScheduleNotifier)
+	require.Nil(tb, err)
+
+	testContext, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGas(
+		config.EnableEpochs{
+			GovernanceEnableEpoch:                   unreachableEpoch,
+			WaitingListFixEnableEpoch:               unreachableEpoch,
+			SetSenderInEeiOutputTransferEnableEpoch: unreachableEpoch,
+			RefactorPeersMiniBlocksEnableEpoch:      unreachableEpoch,
+		},
+		mock.NewMultiShardsCoordinatorMock(2),
+		db,
+		gasScheduleNotifier,
+	)
+	require.Nil(tb, err)
+
+	senderBalance := big.NewInt(1000000000000000000)
+	scAddress, _ := utils.DoColdDeploy(
+		tb,
+		testContext,
+		"../arwen/testdata/distributeRewards/code.wasm",
+		senderBalance,
+		"0100",
+	)
+	utils.OverwriteAccountStorageWithHexFileContent(tb, testContext, scAddress, "../arwen/testdata/distributeRewards/data.hex")
+	utils.CleanAccumulatedIntermediateTransactions(tb, testContext)
+
+	db.ClearCache()
+
+	return testContext, scAddress
+}
 
 func TestScCallShouldWork(t *testing.T) {
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
@@ -299,4 +360,48 @@ func TestESDTScCallAndGasChangeShouldWork(t *testing.T) {
 		_, errCommit := testContext.Accounts.Commit()
 		require.Nil(t, errCommit)
 	}
+}
+
+func TestScCallDistributeStakingRewards_ShouldWork(t *testing.T) {
+	testContext, scAddress := prepareTestContextForEpoch836(t)
+	defer testContext.Close()
+
+	pkConv, _ := pubkeyConverter.NewBech32PubkeyConverter(32, log)
+	sndAddr1, err := pkConv.Decode("erd1rkhyj0ne054upekymjafwas44v2trdykd22vcg27ap8x2hpg5u7q0296ne")
+	require.Nil(t, err)
+
+	senderBalance := big.NewInt(1000000000000000000)
+	gasPrice := uint64(10)
+	gasLimit := uint64(600000000)
+
+	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr1, 0, senderBalance)
+
+	blockChainHook := testContext.BlockchainHook.(process.BlockChainHookHandler)
+
+	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
+	blockChainHook.SetCurrentHeader(&block.Header{
+		TimeStamp: 1668430842,
+	})
+
+	txData, errDecode := hex.DecodeString("646973747269627574655f7374616b696e675f72657761726473")
+	require.Nil(t, errDecode)
+	tx := vm.CreateTransaction(0, big.NewInt(0), sndAddr1, scAddress, gasPrice, gasLimit, txData)
+
+	startTime := time.Now()
+	returnCode, errProcess := testContext.TxProcessor.ProcessTransaction(tx)
+	endTime := time.Now()
+	assert.Nil(t, errProcess)
+	assert.Equal(t, vmcommon.Ok, returnCode)
+
+	_, errCommit := testContext.Accounts.Commit()
+	require.Nil(t, errCommit)
+
+	intermediateTxs := testContext.GetIntermediateTransactions(t)
+	assert.Equal(t, 1, len(intermediateTxs))
+	log.Info(integrationtests.TransactionHandlerToString(pkConv, intermediateTxs...))
+	log.Info("transaction took", "time", endTime.Sub(startTime))
+
+	scr := intermediateTxs[0].(*smartContractResult.SmartContractResult)
+	assert.Equal(t, "", string(scr.ReturnMessage))
+	assert.Equal(t, sndAddr1, intermediateTxs[0].(*smartContractResult.SmartContractResult).RcvAddr)
 }
