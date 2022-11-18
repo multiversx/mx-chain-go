@@ -58,8 +58,6 @@ func createStoreForShard() dataRetriever.StorageService {
 	}
 }
 
-// ------- NewRequestersContainerFactory
-
 func TestNewShardRequestersContainerFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -136,8 +134,6 @@ func TestNewShardRequestersContainerFactory_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	require.False(t, rcf.IsInterfaceNil())
 }
-
-// ------- Create
 
 func TestShardRequestersContainerFactory_CreateShouldWork(t *testing.T) {
 	t.Parallel()
