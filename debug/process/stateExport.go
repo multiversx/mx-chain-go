@@ -30,8 +30,8 @@ func ExportUserAccountState(accountsDB state.AccountsAdapter, identifier string,
 func getCodeAndData(accountsDB state.AccountsAdapter, address []byte) (code []byte, csvHexedData []string, err error) {
 	account, err := accountsDB.GetExistingAccount(address)
 	if err != nil {
-		return nil, nil, fmt.Errorf("%w while getting existing data for hex code hash %s",
-			err, hex.EncodeToString(code))
+		return nil, nil, fmt.Errorf("%w while getting existing data for address %s",
+			err, hex.EncodeToString(address))
 	}
 
 	userAccount := account.(state.UserAccountHandler)
