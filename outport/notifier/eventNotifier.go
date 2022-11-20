@@ -21,23 +21,6 @@ const (
 	finalizedEventsEndpoint = "/events/finalized"
 )
 
-// SaveBlockData holds the data that will be sent to notifier instance
-type SaveBlockData struct {
-	Hash      string                                                  `json:"hash"`
-	Txs       map[string]nodeData.TransactionHandlerWithGasUsedAndFee `json:"txs"`
-	Scrs      map[string]nodeData.TransactionHandlerWithGasUsedAndFee `json:"scrs"`
-	LogEvents []Event                                                 `json:"events"`
-}
-
-// Event holds event data
-type Event struct {
-	Address    string   `json:"address"`
-	Identifier string   `json:"identifier"`
-	TxHash     string   `json:"txHash"`
-	Topics     [][]byte `json:"topics"`
-	Data       []byte   `json:"data"`
-}
-
 // RevertBlock holds revert event data
 type RevertBlock struct {
 	Hash  string `json:"hash"`
@@ -56,12 +39,6 @@ type eventNotifier struct {
 	marshalizer     marshal.Marshalizer
 	hasher          hashing.Hasher
 	pubKeyConverter core.PubkeyConverter
-}
-
-// logEvent defines a log event associated with corresponding tx hash
-type logEvent struct {
-	eventHandler nodeData.EventHandler
-	txHash       string
 }
 
 // ArgsEventNotifier defines the arguments needed for event notifier creation
