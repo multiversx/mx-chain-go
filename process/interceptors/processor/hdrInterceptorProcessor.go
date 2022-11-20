@@ -85,7 +85,7 @@ func (hip *HdrInterceptorProcessor) handleShard0Hardfork(hdr data.HeaderHandler)
 	}
 
 	low2 := uint64(3387043)
-	high2 := uint64(3401510)
+	high2 := uint64(3404000)
 	if hip.isInExcludedRange(hdr, low2, high2) {
 		return fmt.Errorf("header is in excluded range, shard %d, round %d, low %d, high %d",
 			hdr.GetShardID(), hdr.GetRound(), low2, high2)
@@ -103,7 +103,7 @@ func (hip *HdrInterceptorProcessor) handleShard1Hardfork(hdr data.HeaderHandler)
 	}
 
 	low2 := uint64(3387043)
-	high2 := uint64(3401510)
+	high2 := uint64(3404000)
 	if hip.isInExcludedRange(hdr, low2, high2) {
 		return fmt.Errorf("header is in excluded range, shard %d, round %d, low %d, high %d",
 			hdr.GetShardID(), hdr.GetRound(), low2, high2)
@@ -121,7 +121,7 @@ func (hip *HdrInterceptorProcessor) handleShard2Hardfork(hdr data.HeaderHandler)
 	}
 
 	low2 := uint64(3387043)
-	high2 := uint64(3401510)
+	high2 := uint64(3404000)
 	if hip.isInExcludedRange(hdr, low2, high2) {
 		return fmt.Errorf("header is in excluded range, shard %d, round %d, low %d, high %d",
 			hdr.GetShardID(), hdr.GetRound(), low2, high2)
