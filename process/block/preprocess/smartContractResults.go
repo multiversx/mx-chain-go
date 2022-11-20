@@ -452,7 +452,7 @@ func (scr *smartContractResults) computeMissingScrsForMiniBlock(miniBlock *block
 			miniBlock.ReceiverShardID,
 			txHash,
 			scr.scrPool,
-			false)
+			process.SearchMethodPeekWithFallbackSearchFirst)
 
 		if check.IfNil(tx) {
 			missingSmartContractResults = append(missingSmartContractResults, txHash)
@@ -484,7 +484,14 @@ func (scr *smartContractResults) getAllScrsFromMiniBlock(
 
 		tmp, _ := txCache.Peek(txHash)
 		if tmp == nil {
-			return nil, nil, process.ErrNilSmartContractResult
+			tmp, _ = scr.scrPool.SearchFirstData(txHash)
+			if tmp == nil {
+				return nil, nil, process.ErrNilSmartContractResult
+			}
+
+			log.Debug("scr hash not found with Peek method but found with SearchData",
+				"scr hash", txHash,
+				"strCache", strCache)
 		}
 
 		tx, ok := tmp.(*smartContractResult.SmartContractResult)

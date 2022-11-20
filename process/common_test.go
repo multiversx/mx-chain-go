@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"math/big"
+	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -1577,64 +1578,59 @@ func TestGetHeaderFromStorageWithNonceShouldWorkForMeta(t *testing.T) {
 	assert.Equal(t, hdr, header)
 }
 
-func TestGetTransactionHandlerShouldErrNilShardedDataCacherNotifier(t *testing.T) {
+func TestGetTransactionHandler_Errors(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 
 	storageService := &mock.ChainStorerMock{}
-	marshalizer := &mock.MarshalizerMock{}
-
-	tx, err := process.GetTransactionHandler(
-		0,
-		0,
-		hash,
-		nil,
-		storageService,
-		marshalizer,
-		false)
-
-	assert.Nil(t, tx)
-	assert.Equal(t, process.ErrNilShardedDataCacherNotifier, err)
-}
-
-func TestGetTransactionHandlerShouldErrNilStorage(t *testing.T) {
-	hash := []byte("X")
-
-	shardedDataCacherNotifier := testscommon.NewShardedDataStub()
-	marshalizer := &mock.MarshalizerMock{}
-
-	tx, err := process.GetTransactionHandler(
-		0,
-		0,
-		hash,
-		shardedDataCacherNotifier,
-		nil,
-		marshalizer,
-		false)
-
-	assert.Nil(t, tx)
-	assert.Equal(t, process.ErrNilStorage, err)
-}
-
-func TestGetTransactionHandlerShouldErrNilMarshalizer(t *testing.T) {
-	hash := []byte("X")
-
-	storageService := &mock.ChainStorerMock{}
+	marshaller := &mock.MarshalizerMock{}
 	shardedDataCacherNotifier := testscommon.NewShardedDataStub()
 
-	tx, err := process.GetTransactionHandler(
-		0,
-		0,
-		hash,
-		shardedDataCacherNotifier,
-		storageService,
-		nil,
-		false)
+	t.Run("errors if the sharded cacher is nil", func(t *testing.T) {
+		tx, err := process.GetTransactionHandler(
+			0,
+			0,
+			hash,
+			nil,
+			storageService,
+			marshaller,
+			process.SearchMethodJustPeek)
 
-	assert.Nil(t, tx)
-	assert.Equal(t, process.ErrNilMarshalizer, err)
+		assert.Nil(t, tx)
+		assert.Equal(t, process.ErrNilShardedDataCacherNotifier, err)
+	})
+	t.Run("errors if the storage service is nil", func(t *testing.T) {
+		tx, err := process.GetTransactionHandler(
+			0,
+			0,
+			hash,
+			shardedDataCacherNotifier,
+			nil,
+			marshaller,
+			process.SearchMethodJustPeek)
+
+		assert.Nil(t, tx)
+		assert.Equal(t, process.ErrNilStorage, err)
+	})
+	t.Run("errors if the marshaller is nil", func(t *testing.T) {
+		tx, err := process.GetTransactionHandler(
+			0,
+			0,
+			hash,
+			shardedDataCacherNotifier,
+			storageService,
+			nil,
+			process.SearchMethodJustPeek)
+
+		assert.Nil(t, tx)
+		assert.Equal(t, process.ErrNilMarshalizer, err)
+	})
 }
 
 func TestGetTransactionHandlerShouldGetTransactionFromPool(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 	txFromPool := &transaction.Transaction{Nonce: 1}
 
@@ -1657,13 +1653,15 @@ func TestGetTransactionHandlerShouldGetTransactionFromPool(t *testing.T) {
 		shardedDataCacherNotifier,
 		storageService,
 		marshalizer,
-		false)
+		process.SearchMethodJustPeek)
 
 	assert.Nil(t, err)
 	assert.Equal(t, tx, txFromPool)
 }
 
 func TestGetTransactionHandlerShouldGetTransactionFromStorage(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 	txFromStorage := &transaction.Transaction{
 		Nonce: 1,
@@ -1697,47 +1695,65 @@ func TestGetTransactionHandlerShouldGetTransactionFromStorage(t *testing.T) {
 		shardedDataCacherNotifier,
 		storageService,
 		marshalizer,
-		false)
+		process.SearchMethodJustPeek)
 
 	assert.Nil(t, err)
 	assert.Equal(t, tx, txFromStorage)
 }
 
-func TestGetTransactionHandlerFromPoolShouldErrNilShardedDataCacherNotifier(t *testing.T) {
+func TestGetTransactionHandlerFromPool_Errors(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 
-	tx, err := process.GetTransactionHandlerFromPool(
-		0,
-		0,
-		hash,
-		nil,
-		false)
-
-	assert.Nil(t, tx)
-	assert.Equal(t, process.ErrNilShardedDataCacherNotifier, err)
-}
-
-func TestGetTransactionHandlerFromPoolShouldErrNilStorage(t *testing.T) {
-	hash := []byte("X")
-
-	shardedDataCacherNotifier := &testscommon.ShardedDataStub{
-		ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
-			return nil
-		},
+	shardedDataCacherNotifier := testscommon.NewShardedDataStub()
+	shardedDataCacherNotifier.ShardDataStoreCalled = func(cacheID string) storage.Cacher {
+		return testscommon.NewCacherMock()
 	}
 
-	tx, err := process.GetTransactionHandlerFromPool(
-		0,
-		0,
-		hash,
-		shardedDataCacherNotifier,
-		false)
+	t.Run("nil sharded cache", func(t *testing.T) {
+		tx, err := process.GetTransactionHandlerFromPool(
+			0,
+			0,
+			hash,
+			nil,
+			process.SearchMethodJustPeek)
 
-	assert.Nil(t, tx)
-	assert.Equal(t, process.ErrNilStorage, err)
+		assert.Nil(t, tx)
+		assert.Equal(t, process.ErrNilShardedDataCacherNotifier, err)
+	})
+	t.Run("invalid method", func(t *testing.T) {
+		tx, err := process.GetTransactionHandlerFromPool(
+			0,
+			0,
+			hash,
+			shardedDataCacherNotifier,
+			"invalid method")
+
+		assert.Nil(t, tx)
+		assert.True(t, errors.Is(err, process.ErrInvalidValue))
+		assert.True(t, strings.Contains(err.Error(), "invalid method"))
+	})
+	t.Run("nil cache", func(t *testing.T) {
+		shardedDataCacherNotifier.ShardDataStoreCalled = func(cacheID string) storage.Cacher {
+			return nil
+		}
+
+		tx, err := process.GetTransactionHandlerFromPool(
+			0,
+			0,
+			hash,
+			shardedDataCacherNotifier,
+			process.SearchMethodJustPeek)
+
+		assert.Nil(t, tx)
+		assert.Equal(t, process.ErrNilStorage, err)
+	})
 }
 
 func TestGetTransactionHandlerFromPoolShouldErrTxNotFound(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 
 	shardedDataCacherNotifier := &testscommon.ShardedDataStub{
@@ -1755,13 +1771,15 @@ func TestGetTransactionHandlerFromPoolShouldErrTxNotFound(t *testing.T) {
 		0,
 		hash,
 		shardedDataCacherNotifier,
-		false)
+		process.SearchMethodJustPeek)
 
 	assert.Nil(t, tx)
 	assert.Equal(t, process.ErrTxNotFound, err)
 }
 
 func TestGetTransactionHandlerFromPoolShouldErrInvalidTxInPool(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 
 	shardedDataCacherNotifier := &testscommon.ShardedDataStub{
@@ -1779,13 +1797,15 @@ func TestGetTransactionHandlerFromPoolShouldErrInvalidTxInPool(t *testing.T) {
 		0,
 		hash,
 		shardedDataCacherNotifier,
-		false)
+		process.SearchMethodJustPeek)
 
 	assert.Nil(t, tx)
 	assert.Equal(t, process.ErrInvalidTxInPool, err)
 }
 
-func TestGetTransactionHandlerFromPoolShouldWork(t *testing.T) {
+func TestGetTransactionHandlerFromPoolShouldWorkWithPeek(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 	txFromPool := &transaction.Transaction{Nonce: 1}
 
@@ -1804,10 +1824,66 @@ func TestGetTransactionHandlerFromPoolShouldWork(t *testing.T) {
 		0,
 		hash,
 		shardedDataCacherNotifier,
-		false)
+		process.SearchMethodJustPeek)
 
 	assert.Nil(t, err)
 	assert.Equal(t, txFromPool, tx)
+}
+
+func TestGetTransactionHandlerFromPoolShouldWorkWithSearchFirst(t *testing.T) {
+	t.Parallel()
+
+	hash := []byte("X")
+	txFromPool := &transaction.Transaction{Nonce: 1}
+
+	shardedDataCacherNotifier := &testscommon.ShardedDataStub{
+		SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+			return txFromPool, true
+		},
+	}
+
+	tx, err := process.GetTransactionHandlerFromPool(
+		0,
+		0,
+		hash,
+		shardedDataCacherNotifier,
+		process.SearchMethodSearchFirst)
+
+	assert.Nil(t, err)
+	assert.Equal(t, txFromPool, tx)
+}
+
+func TestGetTransactionHandlerFromPoolShouldWorkWithPeekFallbackToSearchFirst(t *testing.T) {
+	t.Parallel()
+
+	hash := []byte("X")
+	txFromPool := &transaction.Transaction{Nonce: 1}
+
+	peekCalled := false
+	shardedDataCacherNotifier := &testscommon.ShardedDataStub{
+		ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
+			return &testscommon.CacherStub{
+				PeekCalled: func(key []byte) (value interface{}, ok bool) {
+					peekCalled = true
+					return nil, false
+				},
+			}
+		},
+		SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+			return txFromPool, true
+		},
+	}
+
+	tx, err := process.GetTransactionHandlerFromPool(
+		0,
+		0,
+		hash,
+		shardedDataCacherNotifier,
+		process.SearchMethodPeekWithFallbackSearchFirst)
+
+	assert.Nil(t, err)
+	assert.Equal(t, txFromPool, tx)
+	assert.True(t, peekCalled)
 }
 
 func TestGetTransactionHandlerFromStorageShouldErrNilStorage(t *testing.T) {
