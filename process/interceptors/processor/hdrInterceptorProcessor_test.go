@@ -176,7 +176,7 @@ func TestHdrInterceptorProcessor_TestingExcludedBlocks(t *testing.T) {
 					HeaderHandlerCalled: func() data.HeaderHandler {
 						return &block.Header{
 							ShardID: 0,
-							Round:   3387048,
+							Round:   3387049,
 						}
 					},
 				},
@@ -355,7 +355,7 @@ func TestHdrInterceptorProcessor_TestingExcludedBlocks(t *testing.T) {
 					HeaderHandlerCalled: func() data.HeaderHandler {
 						return &block.Header{
 							ShardID: 1,
-							Round:   3387048,
+							Round:   3387049,
 						}
 					},
 				},
@@ -534,7 +534,7 @@ func TestHdrInterceptorProcessor_TestingExcludedBlocks(t *testing.T) {
 					HeaderHandlerCalled: func() data.HeaderHandler {
 						return &block.Header{
 							ShardID: 2,
-							Round:   3387048,
+							Round:   3387049,
 						}
 					},
 				},
