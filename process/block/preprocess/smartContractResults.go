@@ -489,7 +489,7 @@ func (scr *smartContractResults) getAllScrsFromMiniBlock(
 				return nil, nil, process.ErrNilSmartContractResult
 			}
 
-			log.Debug("scr hash not found with Peek method but found with SearchData",
+			log.Debug("scr hash not found with Peek method but found with SearchFirstData",
 				"scr hash", txHash,
 				"strCache", strCache)
 		}
