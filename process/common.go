@@ -27,19 +27,33 @@ import (
 var log = logger.GetOrCreate("process")
 
 // ShardedCacheSearchMethod defines the algorithm for searching through a sharded cache
-type ShardedCacheSearchMethod string
+type ShardedCacheSearchMethod byte
 
 const (
 	// SearchMethodJustPeek will make the algorithm invoke just Peek method
-	SearchMethodJustPeek ShardedCacheSearchMethod = "just peek"
+	SearchMethodJustPeek ShardedCacheSearchMethod = iota
 
 	// SearchMethodSearchFirst will make the algorithm invoke just SearchFirst method
-	SearchMethodSearchFirst ShardedCacheSearchMethod = "search first"
+	SearchMethodSearchFirst
 
 	// SearchMethodPeekWithFallbackSearchFirst will first try a Peek method. If the data is not found will fall back
 	// to SearchFirst method
-	SearchMethodPeekWithFallbackSearchFirst ShardedCacheSearchMethod = "peek with fallback to search first"
+	SearchMethodPeekWithFallbackSearchFirst
 )
+
+// ToString converts the ShardedCacheSearchMethod to its string representation
+func (method ShardedCacheSearchMethod) ToString() string {
+	switch method {
+	case SearchMethodJustPeek:
+		return "just peek"
+	case SearchMethodSearchFirst:
+		return "search first"
+	case SearchMethodPeekWithFallbackSearchFirst:
+		return "peek with fallback to search first"
+	default:
+		return fmt.Sprintf("unknown method %d", method)
+	}
+}
 
 // GetShardHeader gets the header, which is associated with the given hash, from pool or storage
 func GetShardHeader(
@@ -443,7 +457,7 @@ func getTransactionHandlerFromPool(
 		}
 	default:
 		return nil, fmt.Errorf("%w for provided method: %s in getTransactionHandlerFromPool",
-			ErrInvalidValue, method)
+			ErrInvalidValue, method.ToString())
 	}
 
 	return castDataFromCacheAsTransactionHandler(val, ok)

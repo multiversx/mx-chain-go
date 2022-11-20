@@ -1890,11 +1890,12 @@ func TestGetTransactionHandlerFromPool_Errors(t *testing.T) {
 			0,
 			hash,
 			shardedDataCacherNotifier,
-			"invalid method")
+			166)
 
 		assert.Nil(t, tx)
 		assert.True(t, errors.Is(err, process.ErrInvalidValue))
-		assert.True(t, strings.Contains(err.Error(), "invalid method"))
+		assert.True(t, strings.Contains(err.Error(), "invalid value"))
+		assert.True(t, strings.Contains(err.Error(), "166"))
 	})
 	t.Run("nil cache", func(t *testing.T) {
 		shardedDataCacherNotifier.ShardDataStoreCalled = func(cacheID string) storage.Cacher {
@@ -2308,4 +2309,14 @@ func TestUnmarshalHeader(t *testing.T) {
 		assert.NotNil(t, err)
 		assert.Nil(t, header)
 	})
+}
+
+func TestShardedCacheSearchMethod_ToString(t *testing.T) {
+	t.Parallel()
+
+	assert.Equal(t, "just peek", process.SearchMethodJustPeek.ToString())
+	assert.Equal(t, "search first", process.SearchMethodSearchFirst.ToString())
+	assert.Equal(t, "peek with fallback to search first", process.SearchMethodPeekWithFallbackSearchFirst.ToString())
+	str := process.ShardedCacheSearchMethod(166).ToString()
+	assert.Equal(t, "unknown method 166", str)
 }
