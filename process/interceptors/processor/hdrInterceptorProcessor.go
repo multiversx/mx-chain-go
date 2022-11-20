@@ -77,33 +77,54 @@ func (hip *HdrInterceptorProcessor) checkDevnetHardfork(hdr data.HeaderHandler) 
 }
 
 func (hip *HdrInterceptorProcessor) handleShard0Hardfork(hdr data.HeaderHandler) error {
-	low := uint64(3024122)
-	high := uint64(3028318)
-	if hip.isInExcludedRange(hdr, low, high) {
+	low1 := uint64(3024122)
+	high1 := uint64(3028318)
+	if hip.isInExcludedRange(hdr, low1, high1) {
 		return fmt.Errorf("header is in excluded range, shard %d, round %d, low %d, high %d",
-			hdr.GetShardID(), hdr.GetRound(), low, high)
+			hdr.GetShardID(), hdr.GetRound(), low1, high1)
+	}
+
+	low2 := uint64(3387048)
+	high2 := uint64(3401510)
+	if hip.isInExcludedRange(hdr, low2, high2) {
+		return fmt.Errorf("header is in excluded range, shard %d, round %d, low %d, high %d",
+			hdr.GetShardID(), hdr.GetRound(), low2, high2)
 	}
 
 	return nil
 }
 
 func (hip *HdrInterceptorProcessor) handleShard1Hardfork(hdr data.HeaderHandler) error {
-	low := uint64(3024122)
-	high := uint64(3028322)
-	if hip.isInExcludedRange(hdr, low, high) {
+	low1 := uint64(3024122)
+	high1 := uint64(3028322)
+	if hip.isInExcludedRange(hdr, low1, high1) {
 		return fmt.Errorf("header is in excluded range, shard %d, round %d, low %d, high %d",
-			hdr.GetShardID(), hdr.GetRound(), low, high)
+			hdr.GetShardID(), hdr.GetRound(), low1, high1)
+	}
+
+	low2 := uint64(3387048)
+	high2 := uint64(3401510)
+	if hip.isInExcludedRange(hdr, low2, high2) {
+		return fmt.Errorf("header is in excluded range, shard %d, round %d, low %d, high %d",
+			hdr.GetShardID(), hdr.GetRound(), low2, high2)
 	}
 
 	return nil
 }
 
 func (hip *HdrInterceptorProcessor) handleShard2Hardfork(hdr data.HeaderHandler) error {
-	low := uint64(3024122)
-	high := uint64(3028326)
-	if hip.isInExcludedRange(hdr, low, high) {
+	low1 := uint64(3024122)
+	high1 := uint64(3028326)
+	if hip.isInExcludedRange(hdr, low1, high1) {
 		return fmt.Errorf("header is in excluded range, shard %d, round %d, low %d, high %d",
-			hdr.GetShardID(), hdr.GetRound(), low, high)
+			hdr.GetShardID(), hdr.GetRound(), low1, high1)
+	}
+
+	low2 := uint64(3387048)
+	high2 := uint64(3401510)
+	if hip.isInExcludedRange(hdr, low2, high2) {
+		return fmt.Errorf("header is in excluded range, shard %d, round %d, low %d, high %d",
+			hdr.GetShardID(), hdr.GetRound(), low2, high2)
 	}
 
 	return nil
