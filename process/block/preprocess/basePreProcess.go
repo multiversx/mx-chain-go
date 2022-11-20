@@ -323,9 +323,13 @@ func (bpp *basePreProcess) computeExistingAndRequestMissing(
 		}
 
 		txShardInfoObject := &txShardInfo{senderShardID: miniBlock.SenderShardID, receiverShardID: miniBlock.ReceiverShardID}
+		// TODO refactor this section
 		method := process.SearchMethodJustPeek
 		if miniBlock.Type == block.InvalidBlock {
 			method = process.SearchMethodSearchFirst
+		}
+		if miniBlock.Type == block.SmartContractResultBlock {
+			method = process.SearchMethodPeekWithFallbackSearchFirst
 		}
 
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
