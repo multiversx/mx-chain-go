@@ -31,6 +31,3 @@ var ErrCannotRetrieveTransactions = errors.New("transactions cannot be retrieved
 
 // ErrInvalidAddress signals that the address is invalid
 var ErrInvalidAddress = errors.New("invalid address")
-
-// ErrCannotRetrieveNonce signals that nonce cannot be retrieved
-var ErrCannotRetrieveNonce = errors.New("nonce cannot be retrieved")

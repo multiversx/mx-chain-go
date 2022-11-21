@@ -94,6 +94,7 @@ type baseProcessor struct {
 	txCounter              *transactionCounter
 
 	outportHandler      outport.OutportHandler
+	outportDataProvider outport.DataProviderOutport
 	historyRepo         dblookupext.HistoryRepository
 	epochNotifier       process.EpochNotifier
 	enableEpochsHandler common.EnableEpochsHandler
@@ -108,6 +109,9 @@ type baseProcessor struct {
 	pruningDelay                  uint32
 	processedMiniBlocksTracker    process.ProcessedMiniBlocksTracker
 	receiptsRepository            receiptsRepository
+
+	mutNonceOfFirstCommittedBlock sync.RWMutex
+	nonceOfFirstCommittedBlock    core.OptionalUint64
 }
 
 type bootStorerDataArgs struct {
@@ -503,7 +507,10 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.EnableRoundsHandler) {
 		return process.ErrNilEnableRoundsHandler
 	}
-	if check.IfNil(arguments.CoreComponents.StatusHandler()) {
+	if check.IfNil(arguments.StatusCoreComponents) {
+		return process.ErrNilStatusCoreComponentsHolder
+	}
+	if check.IfNil(arguments.StatusCoreComponents.AppStatusHandler()) {
 		return process.ErrNilAppStatusHandler
 	}
 	if check.IfNil(arguments.GasHandler) {
@@ -511,6 +518,9 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	}
 	if check.IfNil(arguments.CoreComponents.EconomicsData()) {
 		return process.ErrNilEconomicsData
+	}
+	if check.IfNil(arguments.OutportDataProvider) {
+		return process.ErrNilOutportDataProvider
 	}
 	if check.IfNil(arguments.ScheduledTxsExecutionHandler) {
 		return process.ErrNilScheduledTxsExecutionHandler
@@ -2045,4 +2055,25 @@ func createDisabledProcessDebugger() (process.Debugger, error) {
 	}
 
 	return debugFactory.CreateProcessDebugger(configs)
+}
+
+// NonceOfFirstCommittedBlock returns the first committed block's nonce. The optional Uint64 will contain a-not-set value
+// if no block was committed by the node
+func (bp *baseProcessor) NonceOfFirstCommittedBlock() core.OptionalUint64 {
+	bp.mutNonceOfFirstCommittedBlock.RLock()
+	defer bp.mutNonceOfFirstCommittedBlock.RUnlock()
+
+	return bp.nonceOfFirstCommittedBlock
+}
+
+func (bp *baseProcessor) setNonceOfFirstCommittedBlock(nonce uint64) {
+	bp.mutNonceOfFirstCommittedBlock.Lock()
+	defer bp.mutNonceOfFirstCommittedBlock.Unlock()
+
+	if bp.nonceOfFirstCommittedBlock.HasValue {
+		return
+	}
+
+	bp.nonceOfFirstCommittedBlock.HasValue = true
+	bp.nonceOfFirstCommittedBlock.Value = nonce
 }

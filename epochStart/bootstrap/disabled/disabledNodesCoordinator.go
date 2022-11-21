@@ -85,7 +85,7 @@ func (n *nodesCoordinator) ShardIdForEpoch(_ uint32) (uint32, error) {
 }
 
 // ShuffleOutForEpoch verifies if the shards changed in the new epoch and calls the shuffleOutHandler
-func (ncm *nodesCoordinator) ShuffleOutForEpoch(_ uint32) {
+func (n *nodesCoordinator) ShuffleOutForEpoch(_ uint32) {
 }
 
 // GetConsensusWhitelistedNodes -

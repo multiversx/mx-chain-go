@@ -164,7 +164,7 @@ var ErrNegativeMaximumPercentageToBleed = errors.New("negative maximum percentag
 // ErrInvalidMaxNumberOfNodes signals that invalid number of max number of nodes has been provided
 var ErrInvalidMaxNumberOfNodes = errors.New("invalid number of max number of nodes")
 
-// ErrTokenNameNotHumanReadable signals that token name is not human readable
+// ErrTokenNameNotHumanReadable signals that token name is not human-readable
 var ErrTokenNameNotHumanReadable = errors.New("token name is not human readable")
 
 // ErrTickerNameNotValid signals that ticker name is not valid
@@ -185,7 +185,7 @@ var ErrNilChanceComputer = errors.New("nil chance computer")
 // ErrNilAddressPubKeyConverter signals that the provided public key converter is nil
 var ErrNilAddressPubKeyConverter = errors.New("nil address public key converter")
 
-// ErrNoTickerWithGivenName signals that ticker does not exists with given name
+// ErrNoTickerWithGivenName signals that ticker does not exist with given name
 var ErrNoTickerWithGivenName = errors.New("no ticker with given name")
 
 // ErrInvalidAddress signals that invalid address has been provided

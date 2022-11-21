@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/data/vm"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -55,7 +56,7 @@ func createMockArgAPITransactionProcessor() *ArgAPITransactionProcessor {
 		TxTypeHandler:            &testscommon.TxTypeHandlerMock{},
 		LogsFacade:               &testscommon.LogsFacadeStub{},
 		DataFieldParser: &testscommon.DataFieldParserStub{
-			ParseCalled: func(dataField []byte, sender, receiver []byte) *datafield.ResponseParseData {
+			ParseCalled: func(dataField []byte, sender, receiver []byte, _ uint32) *datafield.ResponseParseData {
 				return &datafield.ResponseParseData{}
 			},
 		},
@@ -455,7 +456,7 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 		TxTypeHandler:            &testscommon.TxTypeHandlerMock{},
 		LogsFacade:               &testscommon.LogsFacadeStub{},
 		DataFieldParser: &testscommon.DataFieldParserStub{
-			ParseCalled: func(dataField []byte, sender, receiver []byte) *datafield.ResponseParseData {
+			ParseCalled: func(dataField []byte, sender, receiver []byte, _ uint32) *datafield.ResponseParseData {
 				return &datafield.ResponseParseData{}
 			},
 		},
@@ -997,7 +998,7 @@ func createAPITransactionProc(t *testing.T, epoch uint32, withDbLookupExt bool) 
 		},
 	}
 	dataFieldParser := &testscommon.DataFieldParserStub{
-		ParseCalled: func(dataField []byte, sender, receiver []byte) *datafield.ResponseParseData {
+		ParseCalled: func(dataField []byte, sender, receiver []byte, _ uint32) *datafield.ResponseParseData {
 			return &datafield.ResponseParseData{}
 		},
 	}
@@ -1089,6 +1090,7 @@ func TestPrepareUnsignedTx(t *testing.T) {
 		Receiver:       "erd1qyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqsl6e0p7",
 		Sender:         "erd1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq6gq4hu",
 		OriginalSender: "",
+		CallType:       vm.DirectCallStr,
 	}
 	assert.Equal(t, scrResult1, expectedScr1)
 
@@ -1110,6 +1112,7 @@ func TestPrepareUnsignedTx(t *testing.T) {
 		Receiver:       "erd1qcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqwkh39e",
 		Sender:         "erd1q5zs2pg9q5zs2pg9q5zs2pg9q5zs2pg9q5zs2pg9q5zs2pg9q5zsrqsks3",
 		OriginalSender: "erd1qurswpc8qurswpc8qurswpc8qurswpc8qurswpc8qurswpc8qurstywtnm",
+		CallType:       vm.DirectCallStr,
 	}
 	assert.Equal(t, scrResult2, expectedScr2)
 }
