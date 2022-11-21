@@ -223,8 +223,8 @@ func TestRewardTxProcessor_ProcessRewardTransactionMissingTrieNode(t *testing.T)
 		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 			acc, _ := state.NewUserAccount(address)
 			acc.SetDataTrie(&trie.TrieStub{
-				GetCalled: func(key []byte) ([]byte, error) {
-					return nil, missingNodeErr
+				GetCalled: func(key []byte) ([]byte, uint32, error) {
+					return nil, 0, missingNodeErr
 				},
 			},
 			)
@@ -283,14 +283,14 @@ func TestRewardTxProcessor_ProcessRewardTransactionToASmartContractShouldWork(t 
 	err := rtp.ProcessRewardTransaction(&rwdTx)
 	assert.Nil(t, err)
 	assert.True(t, saveAccountWasCalled)
-	val, err := userAccount.RetrieveValue([]byte(core.ElrondProtectedKeyPrefix + rewardTransaction.RewardKey))
+	val, _, err := userAccount.RetrieveValue([]byte(core.ElrondProtectedKeyPrefix + rewardTransaction.RewardKey))
 	assert.Nil(t, err)
 	assert.True(t, rwdTx.Value.Cmp(big.NewInt(0).SetBytes(val)) == 0)
 
 	err = rtp.ProcessRewardTransaction(&rwdTx)
 	assert.Nil(t, err)
 	assert.True(t, saveAccountWasCalled)
-	val, err = userAccount.RetrieveValue([]byte(core.ElrondProtectedKeyPrefix + rewardTransaction.RewardKey))
+	val, _, err = userAccount.RetrieveValue([]byte(core.ElrondProtectedKeyPrefix + rewardTransaction.RewardKey))
 	assert.Nil(t, err)
 	rwdTx.Value.Add(rwdTx.Value, rwdTx.Value)
 	assert.True(t, rwdTx.Value.Cmp(big.NewInt(0).SetBytes(val)) == 0)

@@ -48,7 +48,7 @@ func (ghm *TxGasHandlerMock) MinGasLimit() uint64 {
 	return ghm.MinimumGasMove
 }
 
-// MinGasPriceProcessing -
+// MinGasPriceForProcessing -
 func (ghm *TxGasHandlerMock) MinGasPriceForProcessing() uint64 {
 	return ghm.MinimumGasPrice / ghm.GasProcessingDivisor
 }

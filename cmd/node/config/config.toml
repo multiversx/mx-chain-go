@@ -587,6 +587,8 @@
     # TrieOperationsDeadlineMilliseconds represents the maximum duration that an API call targeting a trie operation
     # can take.
     TrieOperationsDeadlineMilliseconds = 10000
+    # GetAddressesBulkMaxSize represents the maximum number of addresses to be fetched in a bulk per API request. 0 means unlimited
+    GetAddressesBulkMaxSize = 100
     # EndpointsThrottlers represents a map for maximum simultaneous go routines for an endpoint
     EndpointsThrottlers = [{ Endpoint = "/transaction/:hash", MaxNumGoRoutines = 10 },
                            { Endpoint = "/transaction/send", MaxNumGoRoutines = 2 },
@@ -802,6 +804,8 @@
         DebuggingLogLevel = "*:DEBUG,p2p:TRACE,debug:DEBUG,process:TRACE,intercept:TRACE"
         GoRoutinesDump = true
         PollingTimeInSeconds = 240 # 4 minutes
+        # setting this to 0 disables the automatic revert of the log level
+        RevertLogLevelTimeInSeconds = 600 # 10 minutes
 
 [Health]
     IntervalVerifyMemoryInSeconds = 30
