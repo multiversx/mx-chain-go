@@ -362,6 +362,189 @@ func TestESDTScCallAndGasChangeShouldWork(t *testing.T) {
 	}
 }
 
+func prepareTestContextForEpoch460(tb testing.TB) (*vm.VMTestContext, []byte) {
+	unreachableEpoch := uint32(999999)
+
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
+		GovernanceEnableEpoch:                             unreachableEpoch,
+		WaitingListFixEnableEpoch:                         unreachableEpoch,
+		ScheduledMiniBlocksEnableEpoch:                    unreachableEpoch,
+		CorrectJailedNotUnstakedEmptyQueueEpoch:           unreachableEpoch,
+		OptimizeNFTStoreEnableEpoch:                       unreachableEpoch,
+		CreateNFTThroughExecByCallerEnableEpoch:           unreachableEpoch,
+		StopDecreasingValidatorRatingWhenStuckEnableEpoch: unreachableEpoch,
+		FrontRunningProtectionEnableEpoch:                 unreachableEpoch,
+		IsPayableBySCEnableEpoch:                          unreachableEpoch,
+		CleanUpInformativeSCRsEnableEpoch:                 unreachableEpoch,
+		StorageAPICostOptimizationEnableEpoch:             unreachableEpoch,
+		TransformToMultiShardCreateEnableEpoch:            unreachableEpoch,
+		ESDTRegisterAndSetAllRolesEnableEpoch:             unreachableEpoch,
+		DoNotReturnOldBlockInBlockchainHookEnableEpoch:    unreachableEpoch,
+		AddFailedRelayedTxToInvalidMBsDisableEpoch:        unreachableEpoch,
+		SCRSizeInvariantOnBuiltInResultEnableEpoch:        unreachableEpoch,
+		CheckCorrectTokenIDForTransferRoleEnableEpoch:     unreachableEpoch,
+		DisableExecByCallerEnableEpoch:                    unreachableEpoch,
+		FailExecutionOnEveryAPIErrorEnableEpoch:           unreachableEpoch,
+		ManagedCryptoAPIsEnableEpoch:                      unreachableEpoch,
+		RefactorContextEnableEpoch:                        unreachableEpoch,
+		CheckFunctionArgumentEnableEpoch:                  unreachableEpoch,
+		CheckExecuteOnReadOnlyEnableEpoch:                 unreachableEpoch,
+		MiniBlockPartialExecutionEnableEpoch:              unreachableEpoch,
+		ESDTMetadataContinuousCleanupEnableEpoch:          unreachableEpoch,
+		FixAsyncCallBackArgsListEnableEpoch:               unreachableEpoch,
+		FixOldTokenLiquidityEnableEpoch:                   unreachableEpoch,
+		SetSenderInEeiOutputTransferEnableEpoch:           unreachableEpoch,
+		RefactorPeersMiniBlocksEnableEpoch:                unreachableEpoch,
+	})
+	require.Nil(tb, err)
+
+	senderBalance := big.NewInt(1000000000000000000)
+	gasLimit := uint64(100000)
+	params := []string{"01"}
+	scAddress, _ := utils.DoDeployWithCustomParams(
+		tb,
+		testContext,
+		"../arwen/testdata/buyNFTCall/code.wasm",
+		senderBalance,
+		gasLimit,
+		params,
+	)
+	utils.OverwriteAccountStorageWithHexFileContent(tb, testContext, scAddress, "../arwen/testdata/buyNFTCall/data.hex")
+	utils.CleanAccumulatedIntermediateTransactions(tb, testContext)
+
+	return testContext, scAddress
+}
+
+func TestScCallBuyNFT_OneFailedTxAndOneOkTx(t *testing.T) {
+	testContext, scAddress := prepareTestContextForEpoch460(t)
+	defer testContext.Close()
+
+	sndAddr1 := []byte("12345678901234567890123456789112")
+	sndAddr2 := []byte("12345678901234567890123456789113")
+	senderBalance := big.NewInt(1000000000000000000)
+	gasPrice := uint64(10)
+	gasLimit := uint64(1000000)
+
+	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr1, 0, senderBalance)
+	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr2, 0, senderBalance)
+
+	blockChainHook := testContext.BlockchainHook.(process.BlockChainHookHandler)
+	t.Run("transaction that fails", func(t *testing.T) {
+		utils.CleanAccumulatedIntermediateTransactions(t, testContext)
+		blockChainHook.SetCurrentHeader(&block.Header{
+			TimeStamp: 1635880560,
+		})
+
+		txData, errDecode := hex.DecodeString("6275794e6674406338403435353035353465346235333264333433363632333133383336406533")
+		require.Nil(t, errDecode)
+		tx := vm.CreateTransaction(0, big.NewInt(250000000000000000), sndAddr1, scAddress, gasPrice, gasLimit, txData)
+
+		returnCode, errProcess := testContext.TxProcessor.ProcessTransaction(tx)
+		require.Nil(t, errProcess)
+		require.Equal(t, vmcommon.UserError, returnCode)
+
+		_, errCommit := testContext.Accounts.Commit()
+		require.Nil(t, errCommit)
+
+		intermediateTxs := testContext.GetIntermediateTransactions(t)
+		require.Equal(t, 1, len(intermediateTxs))
+
+		scr := intermediateTxs[0].(*smartContractResult.SmartContractResult)
+		assert.Equal(t, "execution failed", string(scr.ReturnMessage))
+	})
+	t.Run("transaction that succeed", func(t *testing.T) {
+		utils.CleanAccumulatedIntermediateTransactions(t, testContext)
+		blockChainHook.SetCurrentHeader(&block.Header{
+			TimeStamp: 1635880566, // next timestamp
+		})
+
+		txData, errDecode := hex.DecodeString("6275794e6674403264403435353035353465346235333264333433363632333133383336403337")
+		require.Nil(t, errDecode)
+		tx := vm.CreateTransaction(0, big.NewInt(250000000000000000), sndAddr2, scAddress, gasPrice, gasLimit, txData)
+
+		returnCode, errProcess := testContext.TxProcessor.ProcessTransaction(tx)
+		require.Nil(t, errProcess)
+		assert.Equal(t, vmcommon.Ok, returnCode)
+
+		_, errCommit := testContext.Accounts.Commit()
+		require.Nil(t, errCommit)
+
+		intermediateTxs := testContext.GetIntermediateTransactions(t)
+		assert.Equal(t, 5, len(intermediateTxs))
+
+		scr := intermediateTxs[0].(*smartContractResult.SmartContractResult)
+		assert.Equal(t, "", string(scr.ReturnMessage))
+	})
+}
+
+func TestScCallBuyNFT_TwoOkTxs(t *testing.T) {
+	testContext, scAddress := prepareTestContextForEpoch460(t)
+	defer testContext.Close()
+
+	sndAddr1 := []byte("12345678901234567890123456789112")
+	sndAddr2 := []byte("12345678901234567890123456789113")
+	senderBalance := big.NewInt(1000000000000000000)
+	gasPrice := uint64(10)
+	gasLimit := uint64(1000000)
+
+	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr1, 0, senderBalance)
+	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr2, 0, senderBalance)
+
+	blockChainHook := testContext.BlockchainHook.(process.BlockChainHookHandler)
+	t.Run("first transaction that succeed", func(t *testing.T) {
+		utils.CleanAccumulatedIntermediateTransactions(t, testContext)
+		blockChainHook.SetCurrentHeader(&block.Header{
+			TimeStamp: 1635880566, // next timestamp
+		})
+
+		txData, errDecode := hex.DecodeString("6275794e6674403264403435353035353465346235333264333433363632333133383336403337")
+		require.Nil(t, errDecode)
+		tx := vm.CreateTransaction(0, big.NewInt(250000000000000000), sndAddr1, scAddress, gasPrice, gasLimit, txData)
+
+		returnCode, errProcess := testContext.TxProcessor.ProcessTransaction(tx)
+		require.Nil(t, errProcess)
+		assert.Equal(t, vmcommon.Ok, returnCode)
+
+		_, errCommit := testContext.Accounts.Commit()
+		require.Nil(t, errCommit)
+
+		intermediateTxs := testContext.GetIntermediateTransactions(t)
+		assert.Equal(t, 5, len(intermediateTxs))
+
+		scr := intermediateTxs[0].(*smartContractResult.SmartContractResult)
+		assert.Equal(t, "", string(scr.ReturnMessage))
+		assert.Equal(t, sndAddr1, intermediateTxs[0].(*smartContractResult.SmartContractResult).OriginalSender)
+		expectedNFTTransfer := "ESDTNFTTransfer@4550554e4b532d343662313836@37@01@3132333435363738393031323334353637383930313233343536373839313132@626f7567687420746f6b656e2061742061756374696f6e"
+		assert.Equal(t, expectedNFTTransfer, string(intermediateTxs[1].GetData()))
+	})
+	t.Run("second transaction that succeed", func(t *testing.T) {
+		utils.CleanAccumulatedIntermediateTransactions(t, testContext)
+		blockChainHook.SetCurrentHeader(&block.Header{
+			TimeStamp: 1635880572, // next timestamp
+		})
+
+		txData, errDecode := hex.DecodeString("6275794e6674403434403435353035353465346235333264333433363632333133383336403531")
+		require.Nil(t, errDecode)
+		tx := vm.CreateTransaction(0, big.NewInt(250000000000000000), sndAddr2, scAddress, gasPrice, gasLimit, txData)
+
+		returnCode, errProcess := testContext.TxProcessor.ProcessTransaction(tx)
+		require.Nil(t, errProcess)
+		assert.Equal(t, vmcommon.Ok, returnCode)
+
+		_, errCommit := testContext.Accounts.Commit()
+		require.Nil(t, errCommit)
+
+		intermediateTxs := testContext.GetIntermediateTransactions(t)
+		assert.Equal(t, 5, len(intermediateTxs))
+
+		scr := intermediateTxs[0].(*smartContractResult.SmartContractResult)
+		assert.Equal(t, "", string(scr.ReturnMessage))
+		assert.Equal(t, sndAddr2, intermediateTxs[0].(*smartContractResult.SmartContractResult).OriginalSender)
+		expectedNFTTransfer := "ESDTNFTTransfer@4550554e4b532d343662313836@51@01@3132333435363738393031323334353637383930313233343536373839313133@626f7567687420746f6b656e2061742061756374696f6e"
+		assert.Equal(t, expectedNFTTransfer, string(intermediateTxs[1].GetData()))
+	})
+}
+
 func TestScCallDistributeStakingRewards_ShouldWork(t *testing.T) {
 	testContext, scAddress := prepareTestContextForEpoch836(t)
 	defer testContext.Close()
