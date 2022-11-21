@@ -27,19 +27,21 @@ func IsGetNodeFromDBError(err error) bool {
 
 // GetNodeFromDBErr defines a custom error for trie get node
 type GetNodeFromDBErr struct {
-	key []byte
+	getErr error
+	key    []byte
 }
 
 // NewGetNodeFromDBErr will create a new instance of GetNodeFromDBErr
-func NewGetNodeFromDBErr(key []byte) *GetNodeFromDBErr {
-	return &GetNodeFromDBErr{key: key}
+func NewGetNodeFromDBErr(key []byte, err error) *GetNodeFromDBErr {
+	return &GetNodeFromDBErr{getErr: err, key: key}
 }
 
 // Error returns the error as string
 func (e *GetNodeFromDBErr) Error() string {
 	return fmt.Sprintf(
-		"%s for key %v",
+		"%s: %s for key %v",
 		common.GetNodeFromDBErrorString,
+		e.getErr.Error(),
 		hex.EncodeToString(e.key),
 	)
 }

@@ -118,7 +118,7 @@ func getNodeFromDBAndDecode(n []byte, db common.DBWriteCacher, marshalizer marsh
 	encChild, err := db.Get(n)
 	if err != nil {
 		log.Trace(common.GetNodeFromDBErrorString, "error", err, "key", n)
-		return nil, errors.NewGetNodeFromDBErr(n)
+		return nil, errors.NewGetNodeFromDBErr(n, err)
 	}
 
 	return decodeNode(encChild, marshalizer, hasher)
