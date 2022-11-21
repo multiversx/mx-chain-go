@@ -519,11 +519,7 @@ func (adb *AccountsDB) loadDataTrie(accountHandler baseAccountHandler, mainTrie 
 
 	dataTrie, err := mainTrie.Recreate(accountHandler.GetRootHash())
 	if err != nil {
-<<<<<<< HEAD
-		return fmt.Errorf("%w for rootHash %v", err, accountHandler.GetRootHash())
-=======
 		return fmt.Errorf("trie was not found for hash, rootHash = %s, err = %w", hex.EncodeToString(accountHandler.GetRootHash()), err)
->>>>>>> rc/v1.4.0
 	}
 
 	accountHandler.SetDataTrie(dataTrie)
