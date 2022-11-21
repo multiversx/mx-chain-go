@@ -10,9 +10,9 @@ require (
 	github.com/ElrondNetwork/elrond-go-logger v1.0.9
 	github.com/ElrondNetwork/elrond-go-p2p v1.0.3
 	github.com/ElrondNetwork/elrond-go-storage v1.0.1
-	github.com/ElrondNetwork/elrond-vm-common v1.3.25-0.20221031090629-9e11c6cd2149
-	github.com/ElrondNetwork/wasm-vm v1.5.3-0.20221027144136-555e72b5c0d6
-	github.com/ElrondNetwork/wasm-vm-v1_2 v1.2.45-rc
+	github.com/ElrondNetwork/elrond-vm-common v1.3.25-0.20221116113837-c7ddf1c3baee
+	github.com/ElrondNetwork/wasm-vm v1.5.3-0.20221121111432-c441a260fcda
+	github.com/ElrondNetwork/wasm-vm-v1_2 v1.2.47-0.20221110093203-b8df168c4e6a
 	github.com/ElrondNetwork/wasm-vm-v1_3 v1.3.45-rc
 	github.com/ElrondNetwork/wasm-vm-v1_4 v1.4.63
 	github.com/beevik/ntp v0.3.0
@@ -40,9 +40,3 @@ require (
 )
 
 replace github.com/gogo/protobuf => github.com/ElrondNetwork/protobuf v1.3.2
-
-replace github.com/ElrondNetwork/elrond-vm-common v1.3.25-0.20221031090629-9e11c6cd2149 => /home/bogdan/Elrond/elrond-vm-common
-
-replace github.com/ElrondNetwork/wasm-vm v1.5.3-0.20221027144136-555e72b5c0d6 => /home/bogdan/go2/src/github.com/ElrondNetwork/arwen-wasm-vm
-
-replace github.com/ElrondNetwork/wasm-vm-v1_2 v1.2.45-rc => /home/bogdan/go2/src/wasm-vm-v1_2
