@@ -381,7 +381,7 @@ func (rtp *rewardTxPreprocessor) computeMissingRewardTxsForMiniBlock(miniBlock *
 			miniBlock.ReceiverShardID,
 			txHash,
 			rtp.rewardTxPool,
-			false,
+			process.SearchMethodJustPeek,
 		)
 
 		if tx == nil {
