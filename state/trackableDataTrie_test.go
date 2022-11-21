@@ -518,6 +518,62 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, 0, len(tdt.DirtyData()))
 	})
+
+	t.Run("nil val autobalance disabled", func(t *testing.T) {
+		t.Parallel()
+
+		expectedKey := []byte("key")
+		updateCalled := false
+		trie := &trieMock.TrieStub{
+			GetCalled: func(key []byte) ([]byte, uint32, error) {
+				return nil, 0, nil
+			},
+			UpdateCalled: func(key, value []byte) error {
+				assert.Nil(t, value)
+				assert.Equal(t, expectedKey, key)
+				updateCalled = true
+				return nil
+			},
+		}
+
+		tdt, _ := state.NewTrackableDataTrie([]byte("identifier"), trie, &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+
+		_ = tdt.SaveKeyValue(expectedKey, nil)
+		_, err := tdt.SaveDirtyData(trie)
+		assert.Nil(t, err)
+		assert.Equal(t, 0, len(tdt.DirtyData()))
+		assert.True(t, updateCalled)
+	})
+
+	t.Run("nil val autobalance enabled", func(t *testing.T) {
+		t.Parallel()
+
+		hasher := &hashingMocks.HasherMock{}
+		expectedKey := []byte("key")
+		updateCalled := false
+		trie := &trieMock.TrieStub{
+			GetCalled: func(key []byte) ([]byte, uint32, error) {
+				return nil, 0, nil
+			},
+			UpdateCalled: func(key, value []byte) error {
+				assert.Nil(t, value)
+				assert.Equal(t, hasher.Compute(string(expectedKey)), key)
+				updateCalled = true
+				return nil
+			},
+		}
+
+		enableEpchs := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsAutoBalanceDataTriesEnabledField: true,
+		}
+		tdt, _ := state.NewTrackableDataTrie([]byte("identifier"), trie, &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, enableEpchs)
+
+		_ = tdt.SaveKeyValue(expectedKey, nil)
+		_, err := tdt.SaveDirtyData(trie)
+		assert.Nil(t, err)
+		assert.Equal(t, 0, len(tdt.DirtyData()))
+		assert.True(t, updateCalled)
+	})
 }
 
 func TestTrackableDataTrie_SetAndGetDataTrie(t *testing.T) {

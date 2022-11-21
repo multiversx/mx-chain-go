@@ -221,6 +221,10 @@ func (tdaw *trackableDataTrie) getOldKeyAndValWithCleanup(key string) ([]byte, [
 }
 
 func (tdaw *trackableDataTrie) updateValInTrie(key []byte, val []byte) error {
+	if len(val) == 0 {
+		return tdaw.tr.Update(tdaw.hasher.Compute(string(key)), val)
+	}
+
 	trieVal := &dataTrieValue.TrieLeafData{
 		Value:   val,
 		Key:     key,
