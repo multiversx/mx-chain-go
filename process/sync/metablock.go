@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/trie"
 )
 
 // MetaBootstrap implements the bootstrap mechanism
@@ -180,14 +181,19 @@ func (boot *MetaBootstrap) setLastEpochStartRound() {
 func (boot *MetaBootstrap) SyncBlock(ctx context.Context) error {
 	err := boot.syncBlock()
 	if errors.IsGetNodeFromDBError(err) {
-		errSync := boot.syncAccountsDBs()
+		getNodeErr, ok := err.(*trie.GetErr)
+		if !ok {
+			return err
+		}
+
+		errSync := boot.syncAccountsDBs(getNodeErr.GetKey())
 		boot.handleTrieSyncError(errSync, ctx)
 	}
 
 	return err
 }
 
-func (boot *MetaBootstrap) syncAccountsDBs() error {
+func (boot *MetaBootstrap) syncAccountsDBs(key []byte) error {
 	var err error
 
 	err = boot.syncValidatorAccountsState()
@@ -195,7 +201,7 @@ func (boot *MetaBootstrap) syncAccountsDBs() error {
 		return err
 	}
 
-	err = boot.syncUserAccountsState()
+	err = boot.syncUserAccountsState(key)
 	if err != nil {
 		return err
 	}

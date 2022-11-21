@@ -3,8 +3,6 @@ package trie
 
 import (
 	"context"
-	"encoding/hex"
-	"fmt"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
@@ -120,7 +118,7 @@ func getNodeFromDBAndDecode(n []byte, db common.DBWriteCacher, marshalizer marsh
 	encChild, err := db.Get(n)
 	if err != nil {
 		log.Trace(common.GetNodeFromDBErrorString, "error", err, "key", n)
-		return nil, fmt.Errorf(common.GetNodeFromDBErrorString+" %w for key %v", err, hex.EncodeToString(n))
+		return nil, NewGetErr(n)
 	}
 
 	return decodeNode(encChild, marshalizer, hasher)

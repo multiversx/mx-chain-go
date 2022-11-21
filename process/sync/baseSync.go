@@ -693,14 +693,9 @@ func (boot *baseBootstrap) handleTrieSyncError(err error, ctx context.Context) {
 	}
 }
 
-func (boot *baseBootstrap) syncUserAccountsState() error {
-	rootHash, err := boot.accounts.RootHash()
-	if err != nil {
-		return err
-	}
-
+func (boot *baseBootstrap) syncUserAccountsState(key []byte) error {
 	log.Warn("base sync: started syncUserAccountsState")
-	return boot.accountsDBSyncer.SyncAccounts(rootHash)
+	return boot.accountsDBSyncer.SyncAccounts(key)
 }
 
 func (boot *baseBootstrap) cleanNoncesSyncedWithErrorsBehindFinal() {

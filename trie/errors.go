@@ -1,8 +1,36 @@
 package trie
 
 import (
+	"encoding/hex"
 	"errors"
+	"fmt"
+
+	"github.com/ElrondNetwork/elrond-go/common"
 )
+
+// GetErr defines a custom error for trie get node
+type GetErr struct {
+	key []byte
+}
+
+// NewGetErr will create a new instance of GetErr
+func NewGetErr(key []byte) *GetErr {
+	return &GetErr{key: key}
+}
+
+// Error returns the error as string
+func (e *GetErr) Error() string {
+	return fmt.Sprintf(
+		"%s for key %v",
+		common.GetNodeFromDBErrorString,
+		hex.EncodeToString(e.key),
+	)
+}
+
+// GetKey will return the key that generated the error
+func (e *GetErr) GetKey() []byte {
+	return e.key
+}
 
 // ErrInvalidNode is raised when we reach an invalid node
 var ErrInvalidNode = errors.New("invalid node")
