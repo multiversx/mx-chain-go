@@ -787,7 +787,7 @@ func TestScrsPreprocessor_GetAllTxsFromMiniBlockShouldWorkEvenIfScrIsMisplaced(t
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
 	txs, _ := NewSmartContractResultPreprocessor(
 		dataPool.UnsignedTransactions(),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.TxProcessorMock{},
@@ -799,8 +799,7 @@ func TestScrsPreprocessor_GetAllTxsFromMiniBlockShouldWorkEvenIfScrIsMisplaced(t
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
