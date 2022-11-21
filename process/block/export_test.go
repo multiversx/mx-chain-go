@@ -548,3 +548,8 @@ func (bp *baseProcessor) CheckConstructionStateAndIndexesCorrectness(mbh data.Mi
 func (mp *metaProcessor) GetAllMarshalledTxs(body *block.Body) map[string][][]byte {
 	return mp.getAllMarshalledTxs(body)
 }
+
+// SetNonceOfFirstCommittedBlock -
+func (bp *baseProcessor) SetNonceOfFirstCommittedBlock(nonce uint64) {
+	bp.setNonceOfFirstCommittedBlock(nonce)
+}
