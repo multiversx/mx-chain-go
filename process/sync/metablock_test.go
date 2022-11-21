@@ -1622,7 +1622,7 @@ func TestMetaBootstrap_SyncBlockErrGetNodeDBShouldSyncAccounts(t *testing.T) {
 	}
 	args.ChainHandler = blkc
 
-	errGetNodeFromDB := commonErrors.NewGetNodeFromDBErr([]byte("key"))
+	errGetNodeFromDB := commonErrors.NewGetNodeFromDBErr([]byte("key"), errors.New("get error"))
 	blockProcessor := createMetaBlockProcessor(args.ChainHandler)
 	blockProcessor.ProcessBlockCalled = func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 		return errGetNodeFromDB
