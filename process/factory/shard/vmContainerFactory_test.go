@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
@@ -39,7 +40,7 @@ func createMockVMAccountsArguments() ArgVMContainerFactory {
 		BlockGasLimit:       10000,
 		GasSchedule:         testscommon.NewGasScheduleNotifierMock(arwenConfig.MakeGasMapForTests()),
 		EpochNotifier:       &epochNotifier.EpochNotifierStub{},
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		ArwenChangeLocker:   &sync.RWMutex{},
 		ESDTTransferParser:  esdtTransferParser,
 		BuiltInFunctions:    vmcommonBuiltInFunctions.NewBuiltInFunctionContainer(),

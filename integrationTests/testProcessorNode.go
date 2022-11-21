@@ -90,7 +90,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/state/blockInfoProviders"
-	stateParser "github.com/ElrondNetwork/elrond-go/state/parsers"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/cache"
 	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
@@ -110,7 +109,6 @@ import (
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
-	"github.com/ElrondNetwork/elrond-go/trie/keyBuilder"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -3117,18 +3115,11 @@ func GetTokenIdentifier(nodes []*TestProcessorNode, ticker []byte) []byte {
 		acc, _ := n.AccntState.LoadAccount(vm.ESDTSCAddress)
 		userAcc, _ := acc.(state.UserAccountHandler)
 
-		rootHash, _ := userAcc.DataTrie().RootHash()
 		chLeaves := &common.TrieIteratorChannels{
 			LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 			ErrChan:    make(chan error, 1),
 		}
-		_ = userAcc.DataTrie().GetAllLeavesOnChannel(
-			chLeaves,
-			context.Background(),
-			rootHash,
-			keyBuilder.NewKeyBuilder(),
-			stateParser.NewTrieLeafParserV1(),
-		)
+		_ = userAcc.GetAllLeaves(chLeaves, context.Background())
 		for leaf := range chLeaves.LeavesChan {
 			if !bytes.HasPrefix(leaf.Key(), ticker) {
 				continue

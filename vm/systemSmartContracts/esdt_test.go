@@ -15,7 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
 	vmData "github.com/ElrondNetwork/elrond-go-core/data/vm"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
@@ -36,7 +36,7 @@ func createMockArgumentsForESDT() ArgsNewESDTSmartContract {
 		Hasher:                 &hashingMocks.HasherMock{},
 		AddressPubKeyConverter: mock.NewPubkeyConverterMock(32),
 		EndOfEpochSCAddress:    vm.EndOfEpochAddress,
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsESDTFlagEnabledField:                          true,
 			IsGlobalMintBurnFlagEnabledField:                true,
 			IsMetaESDTSetFlagEnabledField:                   true,
@@ -190,7 +190,7 @@ func TestEsdt_ExecuteIssueWithMultiNFTCreate(t *testing.T) {
 	args := createMockArgumentsForESDT()
 	eei := createDefaultEei()
 	args.Eei = eei
-	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 	e, _ := NewESDTSmartContract(args)
 
 	vmInput := &vmcommon.ContractCallInput{
@@ -268,7 +268,7 @@ func TestEsdt_ExecuteIssueWithZero(t *testing.T) {
 	args := createMockArgumentsForESDT()
 	eei := createDefaultEei()
 	args.Eei = eei
-	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 	e, _ := NewESDTSmartContract(args)
 
 	vmInput := &vmcommon.ContractCallInput{
@@ -482,7 +482,7 @@ func TestEsdt_ExecuteBurnAndMintDisabled(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 	enableEpochsHandler.IsGlobalMintBurnFlagEnabledField = false
 	eei := createDefaultEei()
 	args.Eei = eei
@@ -884,7 +884,7 @@ func TestEsdt_ExecuteIssueDisabled(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 	enableEpochsHandler.IsESDTFlagEnabledField = false
 	e, _ := NewESDTSmartContract(args)
 
@@ -2933,7 +2933,7 @@ func TestEsdt_SetSpecialRoleTransferNotEnabledShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 	enableEpochsHandler.IsESDTTransferRoleFlagEnabledField = false
 
 	token := &ESDTDataV2{
@@ -3025,7 +3025,7 @@ func TestEsdt_SetSpecialRoleTransferWithTransferRoleEnhancement(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 	enableEpochsHandler.IsESDTTransferRoleFlagEnabledField = false
 
 	token := &ESDTDataV2{
@@ -3118,7 +3118,7 @@ func TestEsdt_SendAllTransferRoleAddresses(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 	enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabledField = false
 
 	token := &ESDTDataV2{
@@ -3945,7 +3945,7 @@ func TestEsdt_ExecuteIssueMetaESDT(t *testing.T) {
 	args := createMockArgumentsForESDT()
 	eei := createDefaultEei()
 	args.Eei = eei
-	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 	e, _ := NewESDTSmartContract(args)
 
 	enableEpochsHandler.IsMetaESDTSetFlagEnabledField = false
@@ -3994,7 +3994,7 @@ func TestEsdt_ExecuteChangeSFTToMetaESDT(t *testing.T) {
 	args := createMockArgumentsForESDT()
 	eei := createDefaultEei()
 	args.Eei = eei
-	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 	e, _ := NewESDTSmartContract(args)
 
 	enableEpochsHandler.IsMetaESDTSetFlagEnabledField = false
@@ -4081,7 +4081,7 @@ func TestEsdt_ExecuteRegisterAndSetErrors(t *testing.T) {
 	args := createMockArgumentsForESDT()
 	eei := createDefaultEei()
 	args.Eei = eei
-	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 	e, _ := NewESDTSmartContract(args)
 
 	enableEpochsHandler.IsESDTRegisterAndSetAllRolesFlagEnabledField = false
@@ -4208,7 +4208,7 @@ func TestEsdt_ExecuteRegisterAndSetMetaESDTShouldSetType(t *testing.T) {
 
 func registerAndSetAllRolesWithTypeCheck(t *testing.T, typeArgument []byte, expectedType []byte) {
 	args := createMockArgumentsForESDT()
-	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 	eei := createDefaultEei()
 	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)
@@ -4239,7 +4239,7 @@ func TestEsdt_setBurnRoleGlobally(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 	eei := createDefaultEei()
 	args.Eei = eei
 
@@ -4299,7 +4299,7 @@ func TestEsdt_unsetBurnRoleGlobally(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 	eei := createDefaultEei()
 	args.Eei = eei
 
@@ -4367,7 +4367,7 @@ func TestEsdt_CheckRolesOnMetaESDT(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 	eei := createDefaultEei()
 	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)

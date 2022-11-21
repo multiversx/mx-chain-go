@@ -1040,7 +1040,7 @@ func (adb *AccountsDB) RecreateAllTries(rootHash []byte) (map[string]common.Trie
 		context.Background(),
 		rootHash,
 		keyBuilder.NewDisabledKeyBuilder(),
-		parsers.NewTrieLeafParserV1(),
+		parsers.NewMainTrieLeafParser(),
 	)
 	if err != nil {
 		return nil, err
@@ -1442,7 +1442,7 @@ func (adb *AccountsDB) GetStatsForRootHash(rootHash []byte) (common.TriesStatist
 		context.Background(),
 		rootHash,
 		keyBuilder.NewDisabledKeyBuilder(),
-		parsers.NewTrieLeafParserV1(),
+		parsers.NewMainTrieLeafParser(),
 	)
 	if err != nil {
 		return nil, err

@@ -14,8 +14,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/require"
 )
@@ -101,7 +101,7 @@ func TestRewardsCreatorProxy_CreateRewardsMiniBlocksWithSwitchToRewardsCreatorV2
 	}
 
 	rewardsCreatorProxy, vInfo, metaBlock := createTestData(rewardCreatorV1, rCreatorV1)
-	stub, _ := rewardsCreatorProxy.args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	stub, _ := rewardsCreatorProxy.args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 	stub.StakingV2EnableEpochField = 1
 	metaBlock.Epoch = 3
 	economics := &metaBlock.EpochStart.Economics
@@ -128,7 +128,7 @@ func TestRewardsCreatorProxy_CreateRewardsMiniBlocksWithSwitchToRewardsCreatorV1
 	}
 
 	rewardsCreatorProxy, vInfo, metaBlock := createTestData(rewardCreatorV2, rCreatorV2)
-	stub, _ := rewardsCreatorProxy.args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	stub, _ := rewardsCreatorProxy.args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 	stub.StakingV2EnableEpochField = 5
 	metaBlock.Epoch = 3
 	economics := &metaBlock.EpochStart.Economics

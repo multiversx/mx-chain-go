@@ -10,12 +10,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/database"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/marshallerMock"
 	"github.com/stretchr/testify/assert"
 )
 
 func getDefaultParameters() (uint, storage.Persister, marshal.Marshalizer) {
-	return 10, database.NewMemDB(), &testscommon.MarshalizerMock{}
+	return 10, database.NewMemDB(), &marshallerMock.MarshalizerMock{}
 }
 
 func TestNewEvictionWaitingList(t *testing.T) {
@@ -298,7 +298,7 @@ func TestNewEvictionWaitingList_Close(t *testing.T) {
 	t.Parallel()
 
 	memDB := database.NewMemDB()
-	ewl, err := NewEvictionWaitingList(10, memDB, &testscommon.MarshalizerMock{})
+	ewl, err := NewEvictionWaitingList(10, memDB, &marshallerMock.MarshalizerMock{})
 	assert.Nil(t, err)
 	assert.NotNil(t, ewl)
 

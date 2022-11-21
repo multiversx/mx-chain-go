@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/outport/factory"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/marshallerMock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -19,7 +20,7 @@ func createMockNotifierFactoryArgs() *factory.EventNotifierFactoryArgs {
 		Username:          "",
 		Password:          "",
 		RequestTimeoutSec: 1,
-		Marshaller:        &testscommon.MarshalizerMock{},
+		Marshaller:        &marshallerMock.MarshalizerMock{},
 		Hasher:            &hashingMocks.HasherMock{},
 		PubKeyConverter:   &testscommon.PubkeyConverterMock{},
 	}

@@ -1,4 +1,4 @@
-package testscommon
+package marshallerMock
 
 // MarshalizerStub -
 type MarshalizerStub struct {

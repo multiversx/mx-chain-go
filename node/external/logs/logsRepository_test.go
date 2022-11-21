@@ -9,8 +9,8 @@ import (
 	storageCore "github.com/ElrondNetwork/elrond-go-core/storage"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/marshallerMock"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/require"
 )
@@ -25,13 +25,13 @@ func TestNewLogsRepository(t *testing.T) {
 			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 				return nil, errors.New("new error")
 			},
-		}, testscommon.MarshalizerMock{})
+		}, marshallerMock.MarshalizerMock{})
 		require.Nil(t, repository)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		repository := newLogsRepository(&genericMocks.ChainStorerMock{}, testscommon.MarshalizerMock{})
+		repository := newLogsRepository(&genericMocks.ChainStorerMock{}, marshallerMock.MarshalizerMock{})
 		require.NotNil(t, repository)
 	})
 }

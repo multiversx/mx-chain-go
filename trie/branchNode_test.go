@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/cache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/marshallerMock"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
 	"github.com/ElrondNetwork/elrond-go/trie/statistics"
 	"github.com/stretchr/testify/assert"
@@ -1148,7 +1149,7 @@ func TestBranchNode_newBranchNodeNilMarshalizerShouldErr(t *testing.T) {
 func TestBranchNode_newBranchNodeNilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
-	bn, err := newBranchNode(&testscommon.MarshalizerMock{}, nil)
+	bn, err := newBranchNode(&marshallerMock.MarshalizerMock{}, nil)
 	assert.Nil(t, bn)
 	assert.Equal(t, ErrNilHasher, err)
 }
@@ -1171,7 +1172,7 @@ func TestBranchNode_newBranchNodeOkVals(t *testing.T) {
 func TestBranchNode_getMarshalizer(t *testing.T) {
 	t.Parallel()
 
-	expectedMarsh := &testscommon.MarshalizerMock{}
+	expectedMarsh := &marshallerMock.MarshalizerMock{}
 	bn := &branchNode{
 		baseNode: &baseNode{
 			marsh: expectedMarsh,

@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/marshallerMock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -16,7 +17,7 @@ func TestNewLogsFacade(t *testing.T) {
 	t.Run("NilStorageService", func(t *testing.T) {
 		arguments := ArgsNewLogsFacade{
 			StorageService:  nil,
-			Marshaller:      testscommon.MarshalizerMock{},
+			Marshaller:      marshallerMock.MarshalizerMock{},
 			PubKeyConverter: testscommon.NewPubkeyConverterMock(32),
 		}
 
@@ -42,7 +43,7 @@ func TestNewLogsFacade(t *testing.T) {
 	t.Run("NilPubKeyConverter", func(t *testing.T) {
 		arguments := ArgsNewLogsFacade{
 			StorageService:  genericMocks.NewChainStorerMock(7),
-			Marshaller:      testscommon.MarshalizerMock{},
+			Marshaller:      marshallerMock.MarshalizerMock{},
 			PubKeyConverter: nil,
 		}
 

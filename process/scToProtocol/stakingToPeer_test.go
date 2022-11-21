@@ -18,8 +18,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/marshallerMock"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
@@ -37,7 +38,7 @@ func createMockArgumentsNewStakingToPeer() ArgStakingToPeer {
 		ArgParser:   &mock.ArgumentParserMock{},
 		CurrTxs:     &mock.TxForCurrentBlockStub{},
 		RatingsData: &mock.RatingsInfoMock{},
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsStakeFlagEnabledField:                 true,
 			IsValidatorToDelegationFlagEnabledField: true,
 		},
@@ -60,8 +61,8 @@ func createBlockBody() *block.Body {
 func createStakingScAccount() state.UserAccountHandler {
 	argsAccCreation := state.ArgsAccountCreation{
 		Hasher:              &hashingMocks.HasherMock{},
-		Marshaller:          &testscommon.MarshalizerMock{},
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		Marshaller:          &marshallerMock.MarshalizerMock{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	userAcc, _ := state.NewUserAccount(vm.StakingSCAddress, argsAccCreation)
 	return userAcc

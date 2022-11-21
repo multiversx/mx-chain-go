@@ -3,12 +3,15 @@ package state
 
 import (
 	"bytes"
+	"context"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/state/parsers"
+	"github.com/ElrondNetwork/elrond-go/trie/keyBuilder"
 )
 
 var _ UserAccountHandler = (*userAccount)(nil)
@@ -17,20 +20,11 @@ var _ UserAccountHandler = (*userAccount)(nil)
 type userAccount struct {
 	*baseAccount
 	UserAccountData
+	marshaller          marshal.Marshalizer
+	enableEpochsHandler common.EnableEpochsHandler
 }
 
 var zero = big.NewInt(0)
-
-// NewEmptyUserAccount creates a new empty instance of userAccount
-func NewEmptyUserAccount() *userAccount {
-	return &userAccount{
-		baseAccount: &baseAccount{},
-		UserAccountData: UserAccountData{
-			DeveloperReward: big.NewInt(0),
-			Balance:         big.NewInt(0),
-		},
-	}
-}
 
 // ArgsAccountCreation holds the arguments needed to create a new instance of userAccount
 type ArgsAccountCreation struct {
@@ -47,17 +41,12 @@ func NewUserAccount(
 	if len(address) == 0 {
 		return nil, ErrNilAddress
 	}
-	if check.IfNil(args.Marshaller) {
-		return nil, ErrNilMarshalizer
-	}
-	if check.IfNil(args.Hasher) {
-		return nil, ErrNilHasher
-	}
-	if check.IfNil(args.EnableEpochsHandler) {
-		return nil, ErrNilEnableEpochsHandler
+	err := checkArgs(args)
+	if err != nil {
+		return nil, err
 	}
 
-	tdt, err := NewTrackableDataTrie(address, nil, args.Hasher, args.Marshaller)
+	tdt, err := NewTrackableDataTrie(address, nil, args.Hasher, args.Marshaller, args.EnableEpochsHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +61,54 @@ func NewUserAccount(
 			Balance:         big.NewInt(0),
 			Address:         address,
 		},
+		marshaller:          args.Marshaller,
+		enableEpochsHandler: args.EnableEpochsHandler,
 	}, nil
+}
+
+// NewUserAccountFromBytes creates a new instance of userAccount from the given bytes
+func NewUserAccountFromBytes(
+	accountBytes []byte,
+	args ArgsAccountCreation,
+) (*userAccount, error) {
+	err := checkArgs(args)
+	if err != nil {
+		return nil, err
+	}
+
+	acc := &userAccount{}
+	err = args.Marshaller.Unmarshal(acc, accountBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	tdt, err := NewTrackableDataTrie(acc.Address, nil, args.Hasher, args.Marshaller, args.EnableEpochsHandler)
+	if err != nil {
+		return nil, err
+	}
+
+	acc.baseAccount = &baseAccount{
+		address:         acc.Address,
+		dataTrieTracker: tdt,
+	}
+	acc.marshaller = args.Marshaller
+	acc.enableEpochsHandler = args.EnableEpochsHandler
+
+	return acc, nil
+}
+
+func checkArgs(args ArgsAccountCreation) error {
+	if check.IfNil(args.Marshaller) {
+		return ErrNilMarshalizer
+	}
+	if check.IfNil(args.Hasher) {
+		return ErrNilHasher
+	}
+	if check.IfNil(args.EnableEpochsHandler) {
+		return ErrNilEnableEpochsHandler
+	}
+
+	return nil
 }
 
 // SetUserName sets the users name
@@ -167,6 +203,29 @@ func (a *userAccount) SetRootHash(roothash []byte) {
 // SetCodeMetadata sets the code metadata
 func (a *userAccount) SetCodeMetadata(codeMetadata []byte) {
 	a.CodeMetadata = codeMetadata
+}
+
+// GetAllLeaves returns all the leaves of the account's data trie
+func (a *userAccount) GetAllLeaves(
+	leavesChannels *common.TrieIteratorChannels,
+	ctx context.Context,
+) error {
+	dataTrie := a.dataTrieTracker.DataTrie()
+	if check.IfNil(dataTrie) {
+		return ErrNilTrie
+	}
+
+	rootHash, err := dataTrie.RootHash()
+	if err != nil {
+		return err
+	}
+
+	tlp, err := parsers.NewDataTrieLeafParser(a.Address, a.marshaller, a.enableEpochsHandler)
+	if err != nil {
+		return err
+	}
+
+	return dataTrie.GetAllLeavesOnChannel(leavesChannels, ctx, rootHash, keyBuilder.NewKeyBuilder(), tlp)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

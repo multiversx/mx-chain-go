@@ -13,7 +13,9 @@ import (
 	txproc "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/marshallerMock"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
@@ -31,7 +33,7 @@ func createMockNewMetaTxArgs() txproc.ArgsNewMetaTxProcessor {
 		ScProcessor:         &testscommon.SCProcessorMock{},
 		TxTypeHandler:       &testscommon.TxTypeHandlerMock{},
 		EconomicsFee:        createFreeTxFeeHandler(),
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	return args
 }
@@ -39,8 +41,8 @@ func createMockNewMetaTxArgs() txproc.ArgsNewMetaTxProcessor {
 func createUserAcc(address []byte) state.UserAccountHandler {
 	argsAccCreation := state.ArgsAccountCreation{
 		Hasher:              &hashingMocks.HasherMock{},
-		Marshaller:          &testscommon.MarshalizerMock{},
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		Marshaller:          &marshallerMock.MarshalizerMock{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	acc, _ := state.NewUserAccount(address, argsAccCreation)
 	return acc
@@ -358,7 +360,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotI
 		BuiltInFunctions:   builtInFunctions.NewBuiltInFunctionContainer(),
 		ArgumentParser:     parsers.NewCallArgsParser(),
 		ESDTTransferParser: esdtTransferParser,
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsESDTMetadataContinuousCleanupFlagEnabledField: true,
 		},
 	}
@@ -417,7 +419,7 @@ func TestMetaTxProcessor_ProcessTransactionBuiltInCallTxShouldWork(t *testing.T)
 			return process.BuiltInFunctionCall, process.BuiltInFunctionCall
 		},
 	}
-	enableEpochsHandlerStub := &testscommon.EnableEpochsHandlerStub{
+	enableEpochsHandlerStub := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 		IsBuiltInFunctionOnMetaFlagEnabledField: false,
 		IsESDTFlagEnabledField:                  true,
 	}

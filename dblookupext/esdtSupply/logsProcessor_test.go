@@ -9,7 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/marshallerMock"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -50,7 +50,7 @@ func TestProcessLogsSaveSupplyNothingInStorage(t *testing.T) {
 		"log": nil,
 	}
 
-	marshalizer := testscommon.MarshalizerMock{}
+	marshalizer := marshallerMock.MarshalizerMock{}
 	storer := &storageStubs.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
 			return nil, storage.ErrKeyNotFound
@@ -104,7 +104,7 @@ func TestTestProcessLogsSaveSupplyExistsInStorage(t *testing.T) {
 		},
 	}
 
-	marshalizer := testscommon.MarshalizerMock{}
+	marshalizer := marshallerMock.MarshalizerMock{}
 	storer := &storageStubs.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
 			supplyESDT := &SupplyESDT{

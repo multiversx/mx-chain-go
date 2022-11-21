@@ -2,12 +2,15 @@
 package state
 
 import (
+	"context"
+	"fmt"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/marshallerMock"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -22,6 +25,7 @@ type AccountWrapMock struct {
 	CodeMetadata      []byte
 	RootHash          []byte
 	address           []byte
+	Balance           *big.Int
 	trackableDataTrie state.DataTrieTracker
 
 	SetNonceWithJournalCalled    func(nonce uint64) error           `json:"-"`
@@ -30,13 +34,22 @@ type AccountWrapMock struct {
 	AccountDataHandlerCalled     func() vmcommon.AccountDataHandler `json:"-"`
 }
 
+var errInsufficientBalance = fmt.Errorf("insufficient balance")
+
 // NewAccountWrapMock -
 func NewAccountWrapMock(adr []byte) *AccountWrapMock {
-	tdt, _ := state.NewTrackableDataTrie([]byte("identifier"), nil, &hashingMocks.HasherMock{}, &testscommon.MarshalizerMock{})
+	tdt, _ := state.NewTrackableDataTrie(
+		[]byte("identifier"),
+		nil,
+		&hashingMocks.HasherMock{},
+		&marshallerMock.MarshalizerMock{},
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+	)
 
 	return &AccountWrapMock{
 		address:           adr,
 		trackableDataTrie: tdt,
+		Balance:           big.NewInt(0),
 	}
 }
 
@@ -55,18 +68,28 @@ func (awm *AccountWrapMock) GetUserName() []byte {
 }
 
 // AddToBalance -
-func (awm *AccountWrapMock) AddToBalance(_ *big.Int) error {
+func (awm *AccountWrapMock) AddToBalance(val *big.Int) error {
+	newBalance := big.NewInt(0).Add(awm.Balance, val)
+	if newBalance.Cmp(big.NewInt(0)) < 0 {
+		return errInsufficientBalance
+	}
+	awm.Balance = newBalance
 	return nil
 }
 
 // SubFromBalance -
-func (awm *AccountWrapMock) SubFromBalance(_ *big.Int) error {
+func (awm *AccountWrapMock) SubFromBalance(val *big.Int) error {
+	newBalance := big.NewInt(0).Sub(awm.Balance, val)
+	if newBalance.Cmp(big.NewInt(0)) < 0 {
+		return errInsufficientBalance
+	}
+	awm.Balance = newBalance
 	return nil
 }
 
 // GetBalance -
 func (awm *AccountWrapMock) GetBalance() *big.Int {
-	return nil
+	return awm.Balance
 }
 
 // ClaimDeveloperRewards -
@@ -190,4 +213,9 @@ func (awm *AccountWrapMock) AccountDataHandler() vmcommon.AccountDataHandler {
 // GetNonce gets the nonce of the account
 func (awm *AccountWrapMock) GetNonce() uint64 {
 	return awm.nonce
+}
+
+// GetAllLeaves -
+func (awm *AccountWrapMock) GetAllLeaves(_ *common.TrieIteratorChannels, _ context.Context) error {
+	return nil
 }

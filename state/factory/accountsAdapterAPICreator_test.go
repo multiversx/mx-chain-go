@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/marshallerMock"
 	mockState "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	mockTrie "github.com/ElrondNetwork/elrond-go/testscommon/trie"
@@ -22,7 +23,7 @@ func createMockAccountsArgs() state.ArgsAccountsDB {
 			},
 		},
 		Hasher:                &testscommon.HasherStub{},
-		Marshaller:            &testscommon.MarshalizerMock{},
+		Marshaller:            &marshallerMock.MarshalizerMock{},
 		AccountFactory:        &mockState.AccountsFactoryStub{},
 		StoragePruningManager: &mockState.StoragePruningManagerStub{},
 		ProcessingMode:        0,

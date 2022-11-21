@@ -9,15 +9,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/marshallerMock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func createMockArgInterceptedValidatorInfo() ArgInterceptedValidatorInfo {
 	args := ArgInterceptedValidatorInfo{
-		Marshalizer: testscommon.MarshalizerMock{},
+		Marshalizer: marshallerMock.MarshalizerMock{},
 		Hasher:      &hashingMocks.HasherMock{},
 	}
 	args.DataBuff, _ = args.Marshalizer.Marshal(createMockShardValidatorInfo())
@@ -63,7 +63,7 @@ func TestNewInterceptedValidatorInfo(t *testing.T) {
 
 		expectedErr := errors.New("expected err")
 		args := createMockArgInterceptedValidatorInfo()
-		args.Marshalizer = &testscommon.MarshalizerStub{
+		args.Marshalizer = &marshallerMock.MarshalizerStub{
 			UnmarshalCalled: func(obj interface{}, buff []byte) error {
 				return expectedErr
 			},

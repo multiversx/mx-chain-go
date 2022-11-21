@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dbLookupExtMock "github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/marshallerMock"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	datafield "github.com/ElrondNetwork/elrond-vm-common/parsers/dataField"
 	"github.com/stretchr/testify/require"
@@ -100,8 +101,8 @@ func TestApiTransactionProcessor_PutResultsInTransactionWhenNoResultsShouldWork(
 		testscommon.RealWorldBech32PubkeyConverter,
 		historyRepo,
 		genericMocks.NewChainStorerMock(epoch),
-		&testscommon.MarshalizerMock{},
-		newTransactionUnmarshaller(&testscommon.MarshalizerMock{}, testscommon.RealWorldBech32PubkeyConverter, dataFieldParser),
+		&marshallerMock.MarshalizerMock{},
+		newTransactionUnmarshaller(&marshallerMock.MarshalizerMock{}, testscommon.RealWorldBech32PubkeyConverter, dataFieldParser),
 		&testscommon.LogsFacadeStub{},
 		0,
 		dataFieldParser,

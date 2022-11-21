@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/marshallerMock"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/factory"
@@ -21,7 +22,7 @@ import (
 
 func getArgs() factory.TrieFactoryArgs {
 	return factory.TrieFactoryArgs{
-		Marshalizer:              &testscommon.MarshalizerMock{},
+		Marshalizer:              &marshallerMock.MarshalizerMock{},
 		Hasher:                   &hashingMocks.HasherMock{},
 		PathManager:              &testscommon.PathManagerStub{},
 		TrieStorageManagerConfig: config.TrieStorageManagerConfig{SnapshotsGoroutineNum: 1},
@@ -181,7 +182,7 @@ func testWithMissingStorer(missingUnit dataRetriever.UnitType) func(t *testing.T
 		holder, storageManager, err := factory.CreateTriesComponentsForShardId(
 			testscommon.GetGeneralConfig(),
 			&mock.CoreComponentsStub{
-				InternalMarshalizerField:     &testscommon.MarshalizerMock{},
+				InternalMarshalizerField:     &marshallerMock.MarshalizerMock{},
 				HasherField:                  &hashingMocks.HasherMock{},
 				PathHandlerField:             &testscommon.PathManagerStub{},
 				ProcessStatusHandlerInternal: &testscommon.ProcessStatusHandlerStub{},

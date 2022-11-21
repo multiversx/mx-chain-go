@@ -1,11 +1,16 @@
 package state_test
 
 import (
+	"context"
 	"math/big"
+	"strconv"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -189,4 +194,121 @@ func TestUserAccount_SetAndGetRootHash(t *testing.T) {
 
 	acc.SetRootHash(rootHash)
 	assert.Equal(t, rootHash, acc.GetRootHash())
+}
+
+func TestUserAccount_GetAllLeaves(t *testing.T) {
+	t.Parallel()
+
+	t.Run("autoBalance data tries disabled", func(t *testing.T) {
+		t.Parallel()
+
+		tr, _ := getDefaultTrieAndAccountsDb()
+		acc, _ := state.NewUserAccount([]byte("address"), getDefaultArgsAccountCreation())
+		numKeys := 1000
+		vals := make(map[string][]byte)
+		for i := 0; i < numKeys; i++ {
+			key := []byte(strconv.Itoa(i))
+			val := []byte(strconv.Itoa(i))
+			vals[string(key)] = val
+			err := acc.SaveKeyValue(key, val)
+			assert.Nil(t, err)
+		}
+		acc.SetDataTrie(tr)
+		_, _ = acc.SaveDirtyData(tr)
+		rh, _ := acc.DataTrie().RootHash()
+		acc.SetRootHash(rh)
+		_ = tr.Commit()
+
+		chLeaves := &common.TrieIteratorChannels{
+			LeavesChan: make(chan core.KeyValueHolder, 100),
+			ErrChan:    make(chan error, 1),
+		}
+		err := acc.GetAllLeaves(chLeaves, context.Background())
+		assert.Nil(t, err)
+
+		for leaf := range chLeaves.LeavesChan {
+			val, ok := vals[string(leaf.Key())]
+			assert.True(t, ok)
+			assert.Equal(t, val, leaf.Value())
+		}
+	})
+
+	t.Run("autoBalance data tries enabled", func(t *testing.T) {
+		t.Parallel()
+
+		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsAutoBalanceDataTriesEnabledField: true,
+		}
+		tr, _ := getDefaultTrieAndAccountsDb()
+		args := getDefaultArgsAccountCreation()
+		args.EnableEpochsHandler = enableEpochsHandler
+		acc, _ := state.NewUserAccount([]byte("address"), args)
+		numKeys := 1000
+		vals := make(map[string][]byte)
+		for i := 0; i < numKeys; i++ {
+			key := []byte(strconv.Itoa(i))
+			val := []byte(strconv.Itoa(i))
+			vals[string(key)] = val
+			err := acc.SaveKeyValue(key, val)
+			assert.Nil(t, err)
+		}
+		acc.SetDataTrie(tr)
+		_, _ = acc.SaveDirtyData(tr)
+		rh, _ := acc.DataTrie().RootHash()
+		acc.SetRootHash(rh)
+		_ = tr.Commit()
+
+		chLeaves := &common.TrieIteratorChannels{
+			LeavesChan: make(chan core.KeyValueHolder, 100),
+			ErrChan:    make(chan error, 1),
+		}
+		err := acc.GetAllLeaves(chLeaves, context.Background())
+		assert.Nil(t, err)
+
+		for leaf := range chLeaves.LeavesChan {
+			val, ok := vals[string(leaf.Key())]
+			assert.True(t, ok)
+			assert.Equal(t, val, leaf.Value())
+		}
+	})
+
+	t.Run("autoBalance data tries enabled after insert", func(t *testing.T) {
+		t.Parallel()
+
+		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsAutoBalanceDataTriesEnabledField: false,
+		}
+		tr, _ := getDefaultTrieAndAccountsDb()
+		args := getDefaultArgsAccountCreation()
+		args.EnableEpochsHandler = enableEpochsHandler
+		acc, _ := state.NewUserAccount([]byte("address"), args)
+		numKeys := 1000
+		vals := make(map[string][]byte)
+		for i := 0; i < numKeys; i++ {
+			key := []byte(strconv.Itoa(i))
+			val := []byte(strconv.Itoa(i))
+			vals[string(key)] = val
+			err := acc.SaveKeyValue(key, val)
+			assert.Nil(t, err)
+		}
+		acc.SetDataTrie(tr)
+		_, _ = acc.SaveDirtyData(tr)
+		rh, _ := acc.DataTrie().RootHash()
+		acc.SetRootHash(rh)
+		_ = tr.Commit()
+		enableEpochsHandler.IsAutoBalanceDataTriesEnabledField = true
+
+		chLeaves := &common.TrieIteratorChannels{
+			LeavesChan: make(chan core.KeyValueHolder, 100),
+			ErrChan:    make(chan error, 1),
+		}
+		err := acc.GetAllLeaves(chLeaves, context.Background())
+		assert.Nil(t, err)
+
+		for leaf := range chLeaves.LeavesChan {
+			val, ok := vals[string(leaf.Key())]
+			assert.True(t, ok)
+			assert.Equal(t, val, leaf.Value())
+		}
+	})
 }

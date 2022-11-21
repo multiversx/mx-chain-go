@@ -1066,6 +1066,7 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 		ShardId:                e.shardCoordinator.SelfId(),
 		Throttler:              thr,
 		AddressPubKeyConverter: e.coreComponentsHolder.AddressPubKeyConverter(),
+		EnableEpochsHandler:    e.coreComponentsHolder.EnableEpochsHandler(),
 	}
 	accountsDBSyncer, err := syncer.NewUserAccountsSyncer(argsUserAccountsSyncer)
 	if err != nil {

@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/display"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/marshallerMock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -29,7 +30,7 @@ func createGenesisBlock(shardId uint32) *block.Header {
 func TestDisplayBlock_NewTransactionCounterShouldErrWhenHasherIsNil(t *testing.T) {
 	t.Parallel()
 
-	txCounter, err := NewTransactionCounter(nil, &testscommon.MarshalizerMock{})
+	txCounter, err := NewTransactionCounter(nil, &marshallerMock.MarshalizerMock{})
 
 	assert.Nil(t, txCounter)
 	assert.Equal(t, process.ErrNilHasher, err)
@@ -47,7 +48,7 @@ func TestDisplayBlock_NewTransactionCounterShouldErrWhenMarshalizerIsNil(t *test
 func TestDisplayBlock_NewTransactionCounterShouldWork(t *testing.T) {
 	t.Parallel()
 
-	txCounter, err := NewTransactionCounter(&testscommon.HasherStub{}, &testscommon.MarshalizerMock{})
+	txCounter, err := NewTransactionCounter(&testscommon.HasherStub{}, &marshallerMock.MarshalizerMock{})
 
 	assert.NotNil(t, txCounter)
 	assert.Nil(t, err)
@@ -58,7 +59,7 @@ func TestDisplayBlock_DisplayMetaHashesIncluded(t *testing.T) {
 
 	shardLines := make([]*display.LineData, 0)
 	header := createGenesisBlock(0)
-	txCounter, _ := NewTransactionCounter(&testscommon.HasherStub{}, &testscommon.MarshalizerMock{})
+	txCounter, _ := NewTransactionCounter(&testscommon.HasherStub{}, &marshallerMock.MarshalizerMock{})
 	lines := txCounter.displayMetaHashesIncluded(
 		shardLines,
 		header,
@@ -79,7 +80,7 @@ func TestDisplayBlock_DisplayTxBlockBody(t *testing.T) {
 		TxHashes:        [][]byte{[]byte("hash1"), []byte("hash2"), []byte("hash3")},
 	}
 	body.MiniBlocks = append(body.MiniBlocks, &miniblock)
-	txCounter, _ := NewTransactionCounter(&testscommon.HasherStub{}, &testscommon.MarshalizerMock{})
+	txCounter, _ := NewTransactionCounter(&testscommon.HasherStub{}, &marshallerMock.MarshalizerMock{})
 	lines := txCounter.displayTxBlockBody(
 		shardLines,
 		&block.Header{},

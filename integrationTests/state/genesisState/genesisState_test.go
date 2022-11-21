@@ -16,8 +16,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/marshallerMock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -44,7 +44,7 @@ func TestCreationOfTheGenesisState(t *testing.T) {
 		PubkeyConverter: integrationTests.TestAddressPubkeyConverter,
 		KeyGenerator:    &mock.KeyGenMock{},
 		Hasher:          &hashingMocks.HasherMock{},
-		Marshalizer:     &testscommon.MarshalizerMock{},
+		Marshalizer:     &marshallerMock.MarshalizerMock{},
 	}
 
 	accountsParser, err := parsing.NewAccountsParser(args)

@@ -470,7 +470,7 @@ func TestAccountsDBApi_GetAllLeaves(t *testing.T) {
 		}
 
 		accountsApi, _ := state.NewAccountsDBApi(accountsAdapter, createBlockInfoProviderStub(dummyRootHash))
-		err := accountsApi.GetAllLeaves(&common.TrieIteratorChannels{}, nil, []byte{}, parsers.NewTrieLeafParserV1())
+		err := accountsApi.GetAllLeaves(&common.TrieIteratorChannels{}, nil, []byte{}, parsers.NewMainTrieLeafParser())
 		assert.Equal(t, expectedErr, err)
 	})
 	t.Run("recreate trie works, should call inner method", func(t *testing.T) {
@@ -486,7 +486,7 @@ func TestAccountsDBApi_GetAllLeaves(t *testing.T) {
 		}
 
 		accountsApi, _ := state.NewAccountsDBApi(accountsAdapter, createBlockInfoProviderStub(dummyRootHash))
-		err := accountsApi.GetAllLeaves(providedChan, context.Background(), []byte("address"), parsers.NewTrieLeafParserV1())
+		err := accountsApi.GetAllLeaves(providedChan, context.Background(), []byte("address"), parsers.NewMainTrieLeafParser())
 		assert.Nil(t, err)
 		assert.True(t, recreateTrieCalled)
 	})
@@ -563,7 +563,9 @@ func TestAccountsDBApi_GetAccountWithBlockInfoWhenHighConcurrency(t *testing.T) 
 }
 
 func createDummyAccountWithBalanceBytes(balanceBytes []byte) state.UserAccountHandler {
-	dummyAccount := state.NewEmptyUserAccount()
+	dummyAccount := &mockState.AccountWrapMock{
+		Balance: big.NewInt(0),
+	}
 	dummyBalance := big.NewInt(0).SetBytes(balanceBytes)
 	_ = dummyAccount.AddToBalance(dummyBalance)
 

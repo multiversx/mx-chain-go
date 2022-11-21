@@ -307,7 +307,9 @@ func TestAccountsDBApiWithHistory_GetAccountWithBlockInfoWhenHighConcurrency(t *
 }
 
 func createDummyAccountWithBalanceString(balanceString string) state.UserAccountHandler {
-	dummyAccount := state.NewEmptyUserAccount()
+	dummyAccount := &mockState.AccountWrapMock{
+		Balance: big.NewInt(0),
+	}
 	dummyBalance, _ := big.NewInt(0).SetString(balanceString, 10)
 	_ = dummyAccount.AddToBalance(dummyBalance)
 

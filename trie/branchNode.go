@@ -782,6 +782,7 @@ func (bn *branchNode) loadChildren(getNode func([]byte) (node, error)) ([][]byte
 func (bn *branchNode) getAllLeavesOnChannel(
 	leavesChannel chan core.KeyValueHolder,
 	keyBuilder common.KeyBuilder,
+	trieLeafParser common.TrieLeafParser,
 	db common.DBWriteCacher,
 	marshalizer marshal.Marshalizer,
 	chanClose chan struct{},
@@ -812,7 +813,7 @@ func (bn *branchNode) getAllLeavesOnChannel(
 
 			clonedKeyBuilder := keyBuilder.Clone()
 			clonedKeyBuilder.BuildKey([]byte{byte(i)})
-			err = bn.children[i].getAllLeavesOnChannel(leavesChannel, clonedKeyBuilder, db, marshalizer, chanClose, ctx)
+			err = bn.children[i].getAllLeavesOnChannel(leavesChannel, clonedKeyBuilder, trieLeafParser, db, marshalizer, chanClose, ctx)
 			if err != nil {
 				return err
 			}

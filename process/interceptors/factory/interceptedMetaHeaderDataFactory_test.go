@@ -16,6 +16,7 @@ import (
 	processMocks "github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
@@ -71,7 +72,7 @@ func createMockComponentHolders() (*mock.CoreComponentsMock, *mock.CryptoCompone
 		TxVersionCheckField:        versioning.NewTxVersionChecker(1),
 		EpochNotifierField:         &epochNotifier.EpochNotifierStub{},
 		HardforkTriggerPubKeyField: []byte("provided hardfork pub key"),
-		EnableEpochsHandlerField:   &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandlerField:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	cryptoComponents := &mock.CryptoComponentsMock{
 		BlockSig:          createMockSigner(),

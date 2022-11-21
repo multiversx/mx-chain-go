@@ -7,13 +7,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewTrieLeafParserV1(t *testing.T) {
+func TestNewMainTrieLeafParser(t *testing.T) {
 	t.Parallel()
 
-	t.Run("new trieLeafParserV1", func(t *testing.T) {
+	t.Run("new mainTrieLeafParser", func(t *testing.T) {
 		t.Parallel()
 
-		assert.False(t, check.IfNil(NewTrieLeafParserV1()))
+		assert.False(t, check.IfNil(NewMainTrieLeafParser()))
 	})
 
 	t.Run("parse leaf", func(t *testing.T) {
@@ -21,7 +21,7 @@ func TestNewTrieLeafParserV1(t *testing.T) {
 
 		key := []byte("key")
 		value := []byte("value")
-		dtlp := NewTrieLeafParserV1()
+		dtlp := NewMainTrieLeafParser()
 
 		keyValHolder, err := dtlp.ParseLeaf(key, value)
 		assert.Nil(t, err)

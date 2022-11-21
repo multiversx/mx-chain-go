@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
 )
 
 func (tpn *TestProcessorNode) addGenesisBlocksIntoStorage() {
@@ -43,7 +44,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	coreComponents.HasherField = TestHasher
 	coreComponents.Uint64ByteSliceConverterField = TestUint64Converter
 	coreComponents.EpochNotifierField = tpn.EpochNotifier
-	coreComponents.EnableEpochsHandlerField = &testscommon.EnableEpochsHandlerStub{
+	coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 		RefactorPeersMiniBlocksEnableEpochField: UnreachableEpoch,
 	}
 

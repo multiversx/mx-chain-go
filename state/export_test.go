@@ -77,3 +77,13 @@ func (accountsDB *accountsDBApi) SetCurrentBlockInfo(blockInfo common.BlockInfo)
 func EmptyErrChanReturningHadContained(errChan chan error) bool {
 	return emptyErrChanReturningHadContained(errChan)
 }
+
+// DirtyData -
+func (tdaw *trackableDataTrie) DirtyData() map[string][]byte {
+	return tdaw.dirtyData
+}
+
+// SaveDirtyData -
+func (a *userAccount) SaveDirtyData(trie common.Trie) (map[string][]byte, error) {
+	return a.dataTrieTracker.SaveDirtyData(trie)
+}

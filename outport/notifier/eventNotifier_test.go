@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/outport/notifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/marshallerMock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -20,7 +21,7 @@ import (
 func createMockEventNotifierArgs() notifier.ArgsEventNotifier {
 	return notifier.ArgsEventNotifier{
 		HttpClient:      &mock.HTTPClientStub{},
-		Marshaller:      &testscommon.MarshalizerMock{},
+		Marshaller:      &marshallerMock.MarshalizerMock{},
 		Hasher:          &hashingMocks.HasherMock{},
 		PubKeyConverter: &testscommon.PubkeyConverterMock{},
 	}

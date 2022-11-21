@@ -7,32 +7,44 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/state/dataTrieValue"
 )
 
 // TrackableDataTrie wraps a PatriciaMerkelTrie adding modifying data capabilities
 type trackableDataTrie struct {
-	dirtyData  map[string][]byte
-	tr         common.Trie
-	hasher     hashing.Hasher
-	marshaller marshal.Marshalizer
-	identifier []byte
+	dirtyData           map[string][]byte
+	tr                  common.Trie
+	hasher              hashing.Hasher
+	marshaller          marshal.Marshalizer
+	enableEpochsHandler common.EnableEpochsHandler
+	identifier          []byte
 }
 
 // NewTrackableDataTrie returns an instance of trackableDataTrie
-func NewTrackableDataTrie(identifier []byte, tr common.Trie, hasher hashing.Hasher, marshaller marshal.Marshalizer) (*trackableDataTrie, error) {
+func NewTrackableDataTrie(
+	identifier []byte,
+	tr common.Trie,
+	hasher hashing.Hasher,
+	marshaller marshal.Marshalizer,
+	enableEpochsHandler common.EnableEpochsHandler,
+) (*trackableDataTrie, error) {
 	if check.IfNil(hasher) {
 		return nil, ErrNilHasher
 	}
 	if check.IfNil(marshaller) {
 		return nil, ErrNilMarshalizer
 	}
+	if check.IfNil(enableEpochsHandler) {
+		return nil, ErrNilEnableEpochsHandler
+	}
 
 	return &trackableDataTrie{
-		tr:         tr,
-		hasher:     hasher,
-		marshaller: marshaller,
-		dirtyData:  make(map[string][]byte),
-		identifier: identifier,
+		tr:                  tr,
+		hasher:              hasher,
+		marshaller:          marshaller,
+		dirtyData:           make(map[string][]byte),
+		identifier:          identifier,
+		enableEpochsHandler: enableEpochsHandler,
 	}, nil
 }
 
@@ -40,52 +52,65 @@ func NewTrackableDataTrie(identifier []byte, tr common.Trie, hasher hashing.Hash
 // The search starts with dirty map, continues with original map and ends with the trie
 // Data must have been retrieved from its trie
 func (tdaw *trackableDataTrie) RetrieveValue(key []byte) ([]byte, uint32, error) {
-	tailLength := len(key) + len(tdaw.identifier)
-
 	// search in dirty data cache
 	if value, found := tdaw.dirtyData[string(key)]; found {
 		log.Trace("retrieve value from dirty data", "key", key, "value", value)
-		trimmedVal, err := trimValue(value, tailLength)
-		return trimmedVal, 0, err
+		return value, 0, nil
 	}
 
 	// ok, not in cache, retrieve from trie
-	if tdaw.tr == nil {
+	if check.IfNil(tdaw.tr) {
 		return nil, 0, ErrNilTrie
 	}
-	value, depth, err := tdaw.tr.Get(key)
+	return tdaw.retrieveVal(string(key))
+}
+
+func (tdaw *trackableDataTrie) retrieveVal(key string) ([]byte, uint32, error) {
+	if !tdaw.enableEpochsHandler.IsAutoBalanceDataTriesEnabled() {
+		return tdaw.retrieveValV1([]byte(key))
+	}
+
+	val, depth, err := tdaw.tr.Get(tdaw.hasher.Compute(key))
+	if err != nil {
+		return nil, 0, err
+	}
+
+	if len(val) == 0 {
+		return tdaw.retrieveValV1([]byte(key))
+	}
+
+	dataTrieVal := &dataTrieValue.TrieLeafData{}
+	err = tdaw.marshaller.Unmarshal(dataTrieVal, val)
 	if err != nil {
 		return nil, depth, err
 	}
-	log.Trace("retrieve value from trie", "key", key, "value", value, "depth", depth)
-	value, _ = trimValue(value, tailLength)
 
-	return value, depth, nil
+	log.Trace("retrieve value from trie V2", "key", key, "value", dataTrieVal.Value)
+	return dataTrieVal.Value, depth, nil
 }
 
-func trimValue(value []byte, tailLength int) ([]byte, error) {
-	dataLength := len(value) - tailLength
-	if dataLength < 0 {
-		return nil, ErrNegativeValue
+func (tdaw *trackableDataTrie) retrieveValV1(key []byte) ([]byte, uint32, error) {
+	val, depth, err := tdaw.tr.Get(key)
+	if err != nil {
+		return nil, 0, err
 	}
 
-	return value[:dataLength], nil
+	tailLength := len(key) + len(tdaw.identifier)
+	value, _ := common.TrimSuffixFromValue(val, tailLength)
+	log.Trace("retrieve value from trie V1", "key", key, "value", value)
+	return value, depth, nil
 }
 
 // SaveKeyValue stores in dirtyData the data keys "touched"
 // It does not care if the data is really dirty as calling this check here will be sub-optimal
 func (tdaw *trackableDataTrie) SaveKeyValue(key []byte, value []byte) error {
-	var identifier []byte
 	lenValue := uint64(len(value))
-	if lenValue > core.MaxLeafSize {
+	lenKey := uint64(len(key))
+	if lenValue+lenKey > core.MaxLeafSize {
 		return data.ErrLeafSizeTooBig
 	}
 
-	if lenValue != 0 {
-		identifier = append(key, tdaw.identifier...)
-	}
-
-	tdaw.dirtyData[string(key)] = append(value, identifier...)
+	tdaw.dirtyData[string(key)] = value
 	return nil
 }
 
@@ -114,24 +139,104 @@ func (tdaw *trackableDataTrie) SaveDirtyData(mainTrie common.Trie) (map[string][
 		tdaw.tr = newDataTrie
 	}
 
+	if tdaw.enableEpochsHandler.IsAutoBalanceDataTriesEnabled() {
+		return tdaw.updateTrieWithAutoBalancing()
+	}
+
+	return tdaw.updateTrieV1()
+}
+
+func (tdaw *trackableDataTrie) updateTrieV1() (map[string][]byte, error) {
 	oldValues := make(map[string][]byte)
 
-	for k, v := range tdaw.dirtyData {
-		val, _, err := tdaw.tr.Get([]byte(k))
+	for key, val := range tdaw.dirtyData {
+		oldVal, _, err := tdaw.tr.Get([]byte(key))
 		if err != nil {
-			return oldValues, err
+			return nil, err
 		}
 
-		oldValues[k] = val
+		oldValues[key] = oldVal
 
-		err = tdaw.tr.Update([]byte(k), v)
+		var identifier []byte
+		if len(val) != 0 {
+			identifier = append([]byte(key), tdaw.identifier...)
+		}
+
+		valueWithAppendedData := append(val, identifier...)
+
+		err = tdaw.tr.Update([]byte(key), valueWithAppendedData)
 		if err != nil {
-			return oldValues, err
+			return nil, err
 		}
 	}
 
 	tdaw.dirtyData = make(map[string][]byte)
 	return oldValues, nil
+}
+
+func (tdaw *trackableDataTrie) updateTrieWithAutoBalancing() (map[string][]byte, error) {
+	oldValues := make(map[string][]byte)
+
+	for key, val := range tdaw.dirtyData {
+		oldKey, oldVal, err := tdaw.getOldKeyAndValWithCleanup(key)
+		if err != nil {
+			return nil, err
+		}
+
+		oldValues[string(oldKey)] = oldVal
+
+		err = tdaw.updateValInTrie([]byte(key), val)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	tdaw.dirtyData = make(map[string][]byte)
+	return oldValues, nil
+}
+
+func (tdaw *trackableDataTrie) getOldKeyAndValWithCleanup(key string) ([]byte, []byte, error) {
+	hashedKey := tdaw.hasher.Compute(key)
+
+	oldVal, _, err := tdaw.tr.Get(hashedKey)
+	if err == nil && len(oldVal) != 0 {
+		return hashedKey, oldVal, nil
+	}
+
+	oldVal, _, err = tdaw.tr.Get([]byte(key))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if len(oldVal) == 0 {
+		return hashedKey, oldVal, nil
+	}
+
+	err = tdaw.tr.Delete([]byte(key))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return []byte(key), oldVal, nil
+}
+
+func (tdaw *trackableDataTrie) updateValInTrie(key []byte, val []byte) error {
+	if len(val) == 0 {
+		return tdaw.tr.Update(tdaw.hasher.Compute(string(key)), val)
+	}
+
+	trieVal := &dataTrieValue.TrieLeafData{
+		Value:   val,
+		Key:     key,
+		Address: tdaw.identifier,
+	}
+
+	serializedTrieVal, err := tdaw.marshaller.Marshal(trieVal)
+	if err != nil {
+		return err
+	}
+
+	return tdaw.tr.Update(tdaw.hasher.Compute(string(key)), serializedTrieVal)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/goroutines"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/marshallerMock"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
 	"github.com/ElrondNetwork/elrond-go/trie/keyBuilder"
@@ -44,7 +45,7 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 		context.Background(),
 		rootHash,
 		keyBuilder.NewDisabledKeyBuilder(),
-		parsers.NewTrieLeafParserV1(),
+		parsers.NewMainTrieLeafParser(),
 	)
 	time.Sleep(time.Second) // allow the go routine to start
 	idx, _ := gc.Snapshot()
@@ -62,7 +63,7 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 		context.Background(),
 		rootHash,
 		keyBuilder.NewDisabledKeyBuilder(),
-		parsers.NewTrieLeafParserV1(),
+		parsers.NewMainTrieLeafParser(),
 	)
 	idx, _ = gc.Snapshot()
 	diff = gc.DiffGoRoutines(idxInitial, idx)
@@ -83,7 +84,7 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 		context.Background(),
 		rootHash,
 		keyBuilder.NewDisabledKeyBuilder(),
-		parsers.NewTrieLeafParserV1(),
+		parsers.NewMainTrieLeafParser(),
 	)
 	idx, _ = gc.Snapshot()
 	diff = gc.DiffGoRoutines(idxInitial, idx)
@@ -104,7 +105,7 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 		context.Background(),
 		rootHash,
 		keyBuilder.NewDisabledKeyBuilder(),
-		parsers.NewTrieLeafParserV1(),
+		parsers.NewMainTrieLeafParser(),
 	)
 	time.Sleep(time.Second) // allow the go routine to start
 	idx, _ = gc.Snapshot()
@@ -143,7 +144,7 @@ func TestTrieStorageManager_Close(t *testing.T) {
 	args := trie.NewTrieStorageManagerArgs{
 		MainStorer:             testscommon.CreateMemUnit(),
 		CheckpointsStorer:      testscommon.CreateMemUnit(),
-		Marshalizer:            &testscommon.MarshalizerMock{},
+		Marshalizer:            &marshallerMock.MarshalizerMock{},
 		Hasher:                 &hashingMocks.HasherMock{},
 		GeneralConfig:          config.TrieStorageManagerConfig{SnapshotsGoroutineNum: 1},
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10, 32),
