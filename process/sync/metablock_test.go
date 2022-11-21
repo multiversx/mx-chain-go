@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/blockchain"
+	commonErrors "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/sync"
@@ -30,7 +31,6 @@ import (
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
-	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -1622,7 +1622,7 @@ func TestMetaBootstrap_SyncBlockErrGetNodeDBShouldSyncAccounts(t *testing.T) {
 	}
 	args.ChainHandler = blkc
 
-	errGetNodeFromDB := trie.NewGetErr([]byte("key"))
+	errGetNodeFromDB := commonErrors.NewGetNodeFromDBErr([]byte("key"))
 	blockProcessor := createMetaBlockProcessor(args.ChainHandler)
 	blockProcessor.ProcessBlockCalled = func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 		return errGetNodeFromDB

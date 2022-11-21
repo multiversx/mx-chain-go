@@ -12,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/trie"
 )
 
 // ShardBootstrap implements the bootstrap mechanism
@@ -145,7 +144,7 @@ func (boot *ShardBootstrap) StartSyncingBlocks() {
 func (boot *ShardBootstrap) SyncBlock(ctx context.Context) error {
 	err := boot.syncBlock()
 	if errors.IsGetNodeFromDBError(err) {
-		getNodeErr, ok := err.(*trie.GetErr)
+		getNodeErr, ok := err.(*errors.GetNodeFromDBErr)
 		if !ok {
 			return err
 		}
