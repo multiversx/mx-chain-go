@@ -478,7 +478,13 @@ func TestScrsPreProcessor_GetTransactionFromPool(t *testing.T) {
 	)
 
 	txHash := []byte("tx1_hash")
-	tx, _ := process.GetTransactionHandlerFromPool(1, 1, txHash, tdp.UnsignedTransactions(), false)
+	tx, _ := process.GetTransactionHandlerFromPool(
+		1,
+		1,
+		txHash,
+		tdp.UnsignedTransactions(),
+		process.SearchMethodPeekWithFallbackSearchFirst,
+	)
 	assert.NotNil(t, txs)
 	assert.NotNil(t, tx)
 	assert.Equal(t, uint64(10), tx.(*smartContractResult.SmartContractResult).Nonce)
@@ -706,6 +712,95 @@ func TestScrsPreprocessor_GetAllTxsFromMiniBlockShouldWork(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&testscommon.EnableEpochsHandlerStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
+	)
+
+	mb := &block.MiniBlock{
+		SenderShardID:   senderShardId,
+		ReceiverShardID: destinationShardId,
+		TxHashes:        transactionsHashes,
+		Type:            block.SmartContractResultBlock,
+	}
+
+	txsRetrieved, txHashesRetrieved, err := txs.getAllScrsFromMiniBlock(mb, haveTimeTrue)
+
+	assert.Nil(t, err)
+	assert.Equal(t, len(txsSlice), len(txsRetrieved))
+	assert.Equal(t, len(txsSlice), len(txHashesRetrieved))
+
+	for idx, tx := range txsSlice {
+		// txReceived should be all txs in the same order
+		assert.Equal(t, txsRetrieved[idx], tx)
+		// verify corresponding transaction hashes
+		assert.Equal(t, txHashesRetrieved[idx], computeHash(tx, marshalizer, hasher))
+	}
+}
+
+func TestScrsPreprocessor_GetAllTxsFromMiniBlockShouldWorkEvenIfScrIsMisplaced(t *testing.T) {
+	t.Parallel()
+
+	hasher := &hashingMocks.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	dataPool := dataRetrieverMock.NewPoolsHolderMock()
+	senderShardId := uint32(0)
+	destinationShardId := uint32(1)
+
+	txsSlice := []*smartContractResult.SmartContractResult{
+		{Nonce: 1},
+		{Nonce: 2},
+		{Nonce: 3},
+	}
+	transactionsHashes := make([][]byte, len(txsSlice))
+
+	// add defined transactions to sender-destination cacher
+	for idx, tx := range txsSlice {
+		transactionsHashes[idx] = computeHash(tx, marshalizer, hasher)
+
+		if idx < len(txsSlice)-1 {
+			// place the first scrs correctly in pool
+			dataPool.UnsignedTransactions().AddData(
+				transactionsHashes[idx],
+				tx,
+				tx.Size(),
+				process.ShardCacherIdentifier(senderShardId, destinationShardId),
+			)
+		} else {
+			// misplace the last one
+			dataPool.UnsignedTransactions().AddData(
+				transactionsHashes[idx],
+				tx,
+				tx.Size(),
+				process.ShardCacherIdentifier(senderShardId, senderShardId), // only in shard 0
+			)
+		}
+	}
+
+	// add some random data
+	txRandom := &smartContractResult.SmartContractResult{Nonce: 4}
+	dataPool.UnsignedTransactions().AddData(
+		computeHash(txRandom, marshalizer, hasher),
+		txRandom,
+		txRandom.Size(),
+		process.ShardCacherIdentifier(3, 4),
+	)
+
+	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
+	txs, _ := NewSmartContractResultPreprocessor(
+		dataPool.UnsignedTransactions(),
+		&mock.ChainStorerMock{},
+		&hashingMocks.HasherMock{},
+		&mock.MarshalizerMock{},
+		&testscommon.TxProcessorMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&stateMock.AccountsStub{},
+		requestTransaction,
+		&testscommon.GasHandlerStub{},
+		feeHandlerMock(),
+		createMockPubkeyConverter(),
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
+		&epochNotifier.EpochNotifierStub{},
+		2,
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
