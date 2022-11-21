@@ -9,27 +9,27 @@ type DebugHandler struct {
 }
 
 // LogSucceededToResolveData -
-func (rdh *DebugHandler) LogSucceededToResolveData(topic string, hash []byte) {
-	if rdh.LogSucceededToResolveDataCalled != nil {
-		rdh.LogSucceededToResolveDataCalled(topic, hash)
+func (dh *DebugHandler) LogSucceededToResolveData(topic string, hash []byte) {
+	if dh.LogSucceededToResolveDataCalled != nil {
+		dh.LogSucceededToResolveDataCalled(topic, hash)
 	}
 }
 
 // LogRequestedData -
-func (rdh *DebugHandler) LogRequestedData(topic string, hashes [][]byte, numReqIntra int, numReqCross int) {
-	if rdh.LogRequestedDataCalled != nil {
-		rdh.LogRequestedDataCalled(topic, hashes, numReqIntra, numReqCross)
+func (dh *DebugHandler) LogRequestedData(topic string, hashes [][]byte, numReqIntra int, numReqCross int) {
+	if dh.LogRequestedDataCalled != nil {
+		dh.LogRequestedDataCalled(topic, hashes, numReqIntra, numReqCross)
 	}
 }
 
 // LogFailedToResolveData -
-func (rdh *DebugHandler) LogFailedToResolveData(topic string, hash []byte, err error) {
-	if rdh.LogFailedToResolveDataCalled != nil {
-		rdh.LogFailedToResolveDataCalled(topic, hash, err)
+func (dh *DebugHandler) LogFailedToResolveData(topic string, hash []byte, err error) {
+	if dh.LogFailedToResolveDataCalled != nil {
+		dh.LogFailedToResolveDataCalled(topic, hash, err)
 	}
 }
 
 // IsInterfaceNil -
-func (rdh *DebugHandler) IsInterfaceNil() bool {
-	return rdh == nil
+func (dh *DebugHandler) IsInterfaceNil() bool {
+	return dh == nil
 }

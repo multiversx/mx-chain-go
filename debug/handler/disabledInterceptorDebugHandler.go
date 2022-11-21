@@ -1,4 +1,4 @@
-package resolver
+package handler
 
 type disabledInterceptorDebugHandler struct {
 }
@@ -8,7 +8,7 @@ func NewDisabledInterceptorDebugHandler() *disabledInterceptorDebugHandler {
 	return &disabledInterceptorDebugHandler{}
 }
 
-// LogRequestedData dos nothing
+// LogRequestedData does nothing
 func (dir *disabledInterceptorDebugHandler) LogRequestedData(_ string, _ [][]byte, _ int, _ int) {
 }
 

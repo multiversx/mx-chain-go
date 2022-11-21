@@ -34,7 +34,7 @@ func CreateInterceptedDebugHandler(
 		return ErrNilRequestersContainer
 	}
 
-	debugHandler, err := factory.NewInterceptorResolverDebuggerFactory(config)
+	debugHandler, err := factory.NewInterceptorDebuggerFactory(config)
 	if err != nil {
 		return err
 	}

@@ -1,6 +1,6 @@
-package resolver
+package handler
 
-func (ir *interceptorResolver) Events() []*event {
+func (ir *interceptorDebugHandler) Events() []*event {
 	keys := ir.cache.Keys()
 	requests := make([]*event, 0, len(keys))
 	for _, key := range keys {
@@ -20,6 +20,6 @@ func (ir *interceptorResolver) Events() []*event {
 	return requests
 }
 
-func (ir *interceptorResolver) SetTimehandler(handler func() int64) {
+func (ir *interceptorDebugHandler) SetTimehandler(handler func() int64) {
 	ir.timestampHandler = handler
 }

@@ -4,28 +4,28 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/debug/resolver"
+	"github.com/ElrondNetwork/elrond-go/debug/handler"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNewInterceptorResolverDebuggerFactory_DisabledShouldWork(t *testing.T) {
 	t.Parallel()
 
-	irdh, err := NewInterceptorResolverDebuggerFactory(
+	irdh, err := NewInterceptorDebuggerFactory(
 		config.InterceptorResolverDebugConfig{
 			Enabled: false,
 		},
 	)
 
 	assert.Nil(t, err)
-	expected := resolver.NewDisabledInterceptorDebugHandler()
+	expected := handler.NewDisabledInterceptorDebugHandler()
 	assert.IsType(t, expected, irdh)
 }
 
 func TestNewInterceptorResolverDebuggerFactory_InterceptorResolver(t *testing.T) {
 	t.Parallel()
 
-	irdh, err := NewInterceptorResolverDebuggerFactory(
+	irdh, err := NewInterceptorDebuggerFactory(
 		config.InterceptorResolverDebugConfig{
 			Enabled:   true,
 			CacheSize: 1000,
@@ -33,7 +33,7 @@ func TestNewInterceptorResolverDebuggerFactory_InterceptorResolver(t *testing.T)
 	)
 
 	assert.Nil(t, err)
-	expected, _ := resolver.NewInterceptorResolver(config.InterceptorResolverDebugConfig{
+	expected, _ := handler.NewInterceptorDebugHandler(config.InterceptorResolverDebugConfig{
 		Enabled:   false,
 		CacheSize: 1,
 	})

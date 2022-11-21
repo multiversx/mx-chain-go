@@ -9,7 +9,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go-p2p/message"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	resolverDebug "github.com/ElrondNetwork/elrond-go/debug/resolver"
+	"github.com/ElrondNetwork/elrond-go/debug/handler"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
@@ -46,7 +46,7 @@ func createBaseTopicSender(args ArgBaseTopicSender) *baseTopicSender {
 		messenger:                   args.Messenger,
 		topicName:                   args.TopicName,
 		outputAntiflooder:           args.OutputAntiflooder,
-		debugHandler:                resolverDebug.NewDisabledInterceptorDebugHandler(),
+		debugHandler:                handler.NewDisabledInterceptorDebugHandler(),
 		preferredPeersHolderHandler: args.PreferredPeersHolder,
 		targetShardId:               args.TargetShardId,
 	}

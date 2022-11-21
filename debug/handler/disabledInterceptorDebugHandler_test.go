@@ -1,4 +1,4 @@
-package resolver
+package handler
 
 import (
 	"testing"

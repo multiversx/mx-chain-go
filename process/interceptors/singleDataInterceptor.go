@@ -4,7 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/debug/resolver"
+	"github.com/ElrondNetwork/elrond-go/debug/handler"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
@@ -63,7 +63,7 @@ func NewSingleDataInterceptor(arg ArgSingleDataInterceptor) (*SingleDataIntercep
 			currentPeerId:        arg.CurrentPeerId,
 			processor:            arg.Processor,
 			preferredPeersHolder: arg.PreferredPeersHolder,
-			debugHandler:         resolver.NewDisabledInterceptorDebugHandler(),
+			debugHandler:         handler.NewDisabledInterceptorDebugHandler(),
 		},
 		factory:          arg.DataFactory,
 		whiteListRequest: arg.WhiteListRequest,
