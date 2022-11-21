@@ -8,9 +8,9 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/common"
 	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/outport/process/alteredaccounts/shared"
@@ -55,10 +55,11 @@ func createMockShardAPIProcessor(
 				return withHistory
 			},
 		},
-		ReceiptsRepository:      &testscommon.ReceiptsRepositoryStub{},
-		AddressPubkeyConverter:  &testscommon.PubkeyConverterMock{},
-		AlteredAccountsProvider: &testscommon.AlteredAccountsProviderStub{},
-		AccountsRepository:      &state.AccountsRepositoryStub{},
+		ReceiptsRepository:           &testscommon.ReceiptsRepositoryStub{},
+		AddressPubkeyConverter:       &testscommon.PubkeyConverterMock{},
+		AlteredAccountsProvider:      &testscommon.AlteredAccountsProviderStub{},
+		AccountsRepository:           &state.AccountsRepositoryStub{},
+		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 	}, nil)
 }
 
