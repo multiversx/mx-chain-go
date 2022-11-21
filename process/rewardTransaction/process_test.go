@@ -223,8 +223,8 @@ func TestRewardTxProcessor_ProcessRewardTransactionMissingTrieNode(t *testing.T)
 		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 			acc, _ := state.NewUserAccount(address)
 			acc.SetDataTrie(&trie.TrieStub{
-				GetCalled: func(key []byte) ([]byte, error) {
-					return nil, missingNodeErr
+				GetCalled: func(key []byte) ([]byte, uint32, error) {
+					return nil, 0, missingNodeErr
 				},
 			},
 			)
