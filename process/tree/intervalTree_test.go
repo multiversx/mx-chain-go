@@ -38,6 +38,12 @@ func TestNewIntervalTree(t *testing.T) {
 			},
 		},
 	}
+	//             [15, 20]
+	//              /     \
+	//       [10, 30]     [17, 19]
+	//        /   \           \
+	//  [5, 20]   [12, 15]    [30, 40]
+
 	tree := NewIntervalTree(cfg)
 	assert.Equal(t, uint64(40), tree.root.max)
 	assert.True(t, tree.Contains(16))
