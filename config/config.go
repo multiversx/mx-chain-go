@@ -201,9 +201,10 @@ type Config struct {
 	VirtualMachine          VirtualMachineServicesConfig
 	BuiltInFunctions        BuiltInFunctionsConfig
 
-	Hardfork HardforkConfig
-	Debug    DebugConfig
-	Health   HealthServiceConfig
+	Hardfork   HardforkConfig
+	HardforkV2 HardforkV2Config
+	Debug      DebugConfig
+	Health     HealthServiceConfig
 
 	SoftwareVersionConfig SoftwareVersionConfig
 	DbLookupExtensions    DbLookupExtensionsConfig
