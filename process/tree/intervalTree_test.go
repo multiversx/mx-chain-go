@@ -3,6 +3,7 @@ package tree
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/stretchr/testify/assert"
 )
@@ -45,6 +46,7 @@ func TestNewIntervalTree(t *testing.T) {
 	//  [5, 20]   [12, 15]    [30, 40]
 
 	tree := NewIntervalTree(cfg)
+	assert.False(t, check.IfNil(tree))
 	assert.Equal(t, uint64(40), tree.root.max)
 	assert.True(t, tree.Contains(16))
 	assert.True(t, tree.Contains(11))
