@@ -612,3 +612,14 @@ type PoolsCleanersConfig struct {
 	MaxRoundsToKeepUnprocessedMiniBlocks   int64
 	MaxRoundsToKeepUnprocessedTransactions int64
 }
+
+// HardforkV2Config holds the config for hardfork v2
+type HardforkV2Config struct {
+	BlocksExceptionsByRound []BlocksExceptionInterval
+}
+
+// BlocksExceptionInterval represents an exception config for an interval of rounds
+type BlocksExceptionInterval struct {
+	Low  uint64
+	High uint64
+}
