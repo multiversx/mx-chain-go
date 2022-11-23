@@ -1154,3 +1154,6 @@ var ErrNilProcessDebugger = errors.New("nil process debugger")
 
 // ErrNilShardBootstrap signals that a nil shard bootstrap was provided
 var ErrNilShardBootstrap = errors.New("nil shard bootstrap")
+
+// ErrNilShardStorageBootstrapper signals that a nil shard storage bootstrapper was provided
+var ErrNilShardStorageBootstrapper = errors.New("nil shard storage bootstrapper")

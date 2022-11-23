@@ -11,10 +11,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
+	errorsErd "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -23,6 +25,7 @@ import (
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createMockStorageEpochStartBootstrapArgs(
@@ -34,6 +37,7 @@ func createMockStorageEpochStartBootstrapArgs(
 		ImportDbConfig:             config.ImportDbConfig{},
 		ChanGracefullyClose:        make(chan endProcess.ArgEndProcess, 1),
 		TimeToWaitForRequestedData: time.Second,
+		ChainRunType:               common.ChainRunTypeRegular,
 	}
 }
 
@@ -63,6 +67,46 @@ func TestNewStorageEpochStartBootstrap_ShouldWork(t *testing.T) {
 	sesb, err := NewStorageEpochStartBootstrap(args)
 	assert.False(t, check.IfNil(sesb))
 	assert.Nil(t, err)
+}
+
+func TestCreateEpochStartBootstrapper_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	coreComp, cryptoComp := createComponentsForEpochStart()
+	args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
+
+	t.Run("should create a main chain instance", func(t *testing.T) {
+		t.Parallel()
+
+		args.ChainRunType = common.ChainRunTypeRegular
+
+		esb, err := createEpochStartBootstrapper(args)
+
+		require.NotNil(t, esb)
+		assert.Nil(t, err)
+	})
+
+	t.Run("should create a sovereign chain instance", func(t *testing.T) {
+		t.Parallel()
+
+		args.ChainRunType = common.ChainRunTypeSovereign
+
+		esb, err := createEpochStartBootstrapper(args)
+
+		require.NotNil(t, esb)
+		assert.Nil(t, err)
+	})
+
+	t.Run("should error when chain run type is not implemented", func(t *testing.T) {
+		t.Parallel()
+
+		args.ChainRunType = "X"
+
+		esb, err := createEpochStartBootstrapper(args)
+
+		assert.Nil(t, esb)
+		require.True(t, errors.Is(err, errorsErd.ErrUnimplementedChainRunType))
+	})
 }
 
 func TestStorageEpochStartBootstrap_BootstrapStartInEpochNotEnabled(t *testing.T) {
