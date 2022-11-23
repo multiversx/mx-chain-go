@@ -1622,7 +1622,7 @@ func TestMetaBootstrap_SyncBlockErrGetNodeDBShouldSyncAccounts(t *testing.T) {
 	}
 	args.ChainHandler = blkc
 
-	errGetNodeFromDB := commonErrors.NewGetNodeFromDBErr([]byte("key"), errors.New("get error"))
+	errGetNodeFromDB := commonErrors.NewGetNodeFromDBErr([]byte("key"), errors.New("get error"), common.AccountsTrieIdentifier)
 	blockProcessor := createMetaBlockProcessor(args.ChainHandler)
 	blockProcessor.ProcessBlockCalled = func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 		return errGetNodeFromDB
@@ -1681,13 +1681,8 @@ func TestMetaBootstrap_SyncBlockErrGetNodeDBShouldSyncAccounts(t *testing.T) {
 		SyncAccountsCalled: func(rootHash []byte) error {
 			accountsSyncCalled = true
 			return nil
-		}}
-	validatorSyncCalled := false
-	args.ValidatorStatisticsDBSyncer = &mock.AccountsDBSyncerStub{
-		SyncAccountsCalled: func(rootHash []byte) error {
-			validatorSyncCalled = true
-			return nil
-		}}
+		},
+	}
 	args.Accounts = &stateMock.AccountsStub{RootHashCalled: func() ([]byte, error) {
 		return []byte("roothash"), nil
 	}}
@@ -1700,5 +1695,46 @@ func TestMetaBootstrap_SyncBlockErrGetNodeDBShouldSyncAccounts(t *testing.T) {
 
 	assert.Equal(t, errGetNodeFromDB, err)
 	assert.True(t, accountsSyncCalled)
-	assert.True(t, validatorSyncCalled)
+}
+
+func TestMetaBootstrap_SyncAccountsDBs(t *testing.T) {
+	t.Parallel()
+
+	t.Run("sync user accounts state", func(t *testing.T) {
+		t.Parallel()
+
+		args := CreateMetaBootstrapMockArguments()
+		accountsSyncCalled := false
+		args.AccountsDBSyncer = &mock.AccountsDBSyncerStub{
+			SyncAccountsCalled: func(rootHash []byte) error {
+				accountsSyncCalled = true
+				return nil
+			},
+		}
+
+		bs, _ := sync.NewMetaBootstrap(args)
+
+		err := bs.SyncAccountsDBs([]byte("key"), common.AccountsTrieIdentifier)
+		require.Nil(t, err)
+		require.True(t, accountsSyncCalled)
+	})
+
+	t.Run("sync validator accounts state", func(t *testing.T) {
+		t.Parallel()
+
+		args := CreateMetaBootstrapMockArguments()
+		accountsSyncCalled := false
+		args.ValidatorStatisticsDBSyncer = &mock.AccountsDBSyncerStub{
+			SyncAccountsCalled: func(rootHash []byte) error {
+				accountsSyncCalled = true
+				return nil
+			},
+		}
+
+		bs, _ := sync.NewMetaBootstrap(args)
+
+		err := bs.SyncAccountsDBs([]byte("key"), common.PeerAccountsTrieIdentifier)
+		require.Nil(t, err)
+		require.True(t, accountsSyncCalled)
+	})
 }

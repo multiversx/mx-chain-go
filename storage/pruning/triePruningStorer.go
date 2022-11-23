@@ -164,6 +164,11 @@ func (ps *triePruningStorer) GetLatestStorageEpoch() (uint32, error) {
 	return ps.activePersisters[currentEpochIndex].epoch, nil
 }
 
+// GetIdentifier returns the identifier for storer
+func (ps *triePruningStorer) GetIdentifier() string {
+	return ps.identifier
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (ps *triePruningStorer) IsInterfaceNil() bool {
 	return ps == nil
