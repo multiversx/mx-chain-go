@@ -2,7 +2,7 @@ package preprocess
 
 import (
 	"encoding/json"
-	"errors"
+	"fmt"
 	"reflect"
 	"testing"
 	"time"
@@ -12,8 +12,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	commonErrors "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -1106,7 +1106,7 @@ func TestScrsPreprocessor_ProcessBlockTransactionsShouldWork(t *testing.T) {
 func TestScrsPreprocessor_ProcessBlockTransactionsMissingTrieNode(t *testing.T) {
 	t.Parallel()
 
-	missingNodeErr := commonErrors.NewGetNodeFromDBErr([]byte("key"), errors.New("get error"))
+	missingNodeErr := fmt.Errorf(common.GetNodeFromDBErrorString)
 	tdp := initDataPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
 	scrPreproc, _ := NewSmartContractResultPreprocessor(
