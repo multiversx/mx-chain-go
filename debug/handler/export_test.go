@@ -1,10 +1,10 @@
 package handler
 
-func (ir *interceptorDebugHandler) Events() []*event {
-	keys := ir.cache.Keys()
+func (idh *interceptorDebugHandler) Events() []*event {
+	keys := idh.cache.Keys()
 	requests := make([]*event, 0, len(keys))
 	for _, key := range keys {
-		obj, ok := ir.cache.Get(key)
+		obj, ok := idh.cache.Get(key)
 		if !ok {
 			continue
 		}
@@ -20,6 +20,6 @@ func (ir *interceptorDebugHandler) Events() []*event {
 	return requests
 }
 
-func (ir *interceptorDebugHandler) SetTimehandler(handler func() int64) {
-	ir.timestampHandler = handler
+func (idh *interceptorDebugHandler) SetTimeHandler(handler func() int64) {
+	idh.timestampHandler = handler
 }

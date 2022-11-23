@@ -11,7 +11,7 @@ import (
 func TestNewInterceptorResolverDebuggerFactory_DisabledShouldWork(t *testing.T) {
 	t.Parallel()
 
-	irdh, err := NewInterceptorDebuggerFactory(
+	idf, err := NewInterceptorDebuggerFactory(
 		config.InterceptorResolverDebugConfig{
 			Enabled: false,
 		},
@@ -19,13 +19,13 @@ func TestNewInterceptorResolverDebuggerFactory_DisabledShouldWork(t *testing.T) 
 
 	assert.Nil(t, err)
 	expected := handler.NewDisabledInterceptorDebugHandler()
-	assert.IsType(t, expected, irdh)
+	assert.IsType(t, expected, idf)
 }
 
 func TestNewInterceptorResolverDebuggerFactory_InterceptorResolver(t *testing.T) {
 	t.Parallel()
 
-	irdh, err := NewInterceptorDebuggerFactory(
+	idf, err := NewInterceptorDebuggerFactory(
 		config.InterceptorResolverDebugConfig{
 			Enabled:   true,
 			CacheSize: 1000,
@@ -37,5 +37,5 @@ func TestNewInterceptorResolverDebuggerFactory_InterceptorResolver(t *testing.T)
 		Enabled:   false,
 		CacheSize: 1,
 	})
-	assert.IsType(t, expected, irdh)
+	assert.IsType(t, expected, idf)
 }
