@@ -104,30 +104,11 @@ func (tdaw *trackableDataTrie) retrieveValV1(key []byte) ([]byte, uint32, error)
 // SaveKeyValue stores in dirtyData the data keys "touched"
 // It does not care if the data is really dirty as calling this check here will be sub-optimal
 func (tdaw *trackableDataTrie) SaveKeyValue(key []byte, value []byte) error {
-	err := tdaw.checkSize(key, value)
-	if err != nil {
-		return err
-	}
-
-	tdaw.dirtyData[string(key)] = value
-	return nil
-}
-
-func (tdaw *trackableDataTrie) checkSize(key []byte, value []byte) error {
-	lenValue := uint64(len(value))
-	if tdaw.enableEpochsHandler.IsAutoBalanceDataTriesEnabled() {
-		lenKey := uint64(len(key))
-		return verifyAllowedLeafSize(lenValue + lenKey)
-	}
-
-	return verifyAllowedLeafSize(lenValue)
-}
-
-func verifyAllowedLeafSize(size uint64) error {
-	if size > core.MaxLeafSize {
+	if uint64(len(value)) > core.MaxLeafSize {
 		return data.ErrLeafSizeTooBig
 	}
 
+	tdaw.dirtyData[string(key)] = value
 	return nil
 }
 
