@@ -2,11 +2,13 @@ package sync
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -185,37 +187,27 @@ func (boot *MetaBootstrap) SyncBlock(ctx context.Context) error {
 			return err
 		}
 
-		errSync := boot.syncAccountsDBs(getNodeErr.GetKey())
+		errSync := boot.syncAccountsDBs(getNodeErr.GetKey(), getNodeErr.GetIdentifier())
 		boot.handleTrieSyncError(errSync, ctx)
 	}
 
 	return err
 }
 
-func (boot *MetaBootstrap) syncAccountsDBs(key []byte) error {
-	var err error
-
-	err = boot.syncValidatorAccountsState()
-	if err != nil {
-		return err
+func (boot *MetaBootstrap) syncAccountsDBs(key []byte, id string) error {
+	switch id {
+	case common.AccountsTrieIdentifier:
+		return boot.syncUserAccountsState(key)
+	case common.PeerAccountsTrieIdentifier:
+		return boot.syncValidatorAccountsState(key)
+	default:
+		return fmt.Errorf("invalid trie identifier, id %s", id)
 	}
-
-	err = boot.syncUserAccountsState(key)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
-func (boot *MetaBootstrap) syncValidatorAccountsState() error {
-	rootHash, err := boot.validatorAccountsDB.RootHash()
-	if err != nil {
-		return err
-	}
-
+func (boot *MetaBootstrap) syncValidatorAccountsState(key []byte) error {
 	log.Warn("base sync: started syncValidatorAccountsState")
-	return boot.validatorStatisticsDBSyncer.SyncAccounts(rootHash)
+	return boot.validatorStatisticsDBSyncer.SyncAccounts(key)
 }
 
 // Close closes the synchronization loop

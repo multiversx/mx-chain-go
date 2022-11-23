@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/errors"
+	"github.com/ElrondNetwork/elrond-go/storage/pruning"
 	"github.com/ElrondNetwork/elrond-go/trie/keyBuilder"
 )
 
@@ -117,8 +118,13 @@ func computeAndSetNodeHash(n node) ([]byte, error) {
 func getNodeFromDBAndDecode(n []byte, db common.DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, error) {
 	encChild, err := db.Get(n)
 	if err != nil {
-		log.Trace(common.GetNodeFromDBErrorString, "error", err, "key", n)
-		return nil, errors.NewGetNodeFromDBErr(n, err)
+		dbWithID, ok := db.(*pruning.TriePruningStorerWithID)
+		if !ok {
+			return nil, errors.NewGetNodeFromDBErr(n, err, "")
+		}
+
+		log.Debug(common.GetNodeFromDBErrorString, "error", err, "key", n)
+		return nil, errors.NewGetNodeFromDBErr(n, err, dbWithID.GetIdentifier())
 	}
 
 	return decodeNode(encChild, marshalizer, hasher)
