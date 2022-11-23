@@ -3,7 +3,6 @@ package errors
 import (
 	"encoding/hex"
 	"fmt"
-	"strings"
 
 	"github.com/ElrondNetwork/elrond-go/common"
 )
@@ -18,11 +17,12 @@ func IsGetNodeFromDBError(err error) bool {
 		return false
 	}
 
-	if strings.Contains(err.Error(), common.GetNodeFromDBErrorString) {
-		return true
+	_, ok := err.(*GetNodeFromDBErr)
+	if !ok {
+		return false
 	}
 
-	return false
+	return true
 }
 
 // GetNodeFromDBErr defines a custom error for trie get node
