@@ -18,11 +18,7 @@ func IsGetNodeFromDBError(err error) bool {
 	}
 
 	_, ok := err.(*GetNodeFromDBErr)
-	if !ok {
-		return false
-	}
-
-	return true
+	return ok
 }
 
 // GetNodeFromDBErr defines a custom error for trie get node
