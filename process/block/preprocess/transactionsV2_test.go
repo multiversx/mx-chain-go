@@ -2,7 +2,7 @@ package preprocess
 
 import (
 	"bytes"
-	"fmt"
+	"errors"
 	"math/big"
 	"testing"
 
@@ -11,7 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/common"
+	commonErrors "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
@@ -757,7 +757,7 @@ func TestTransactions_CreateAndProcessMiniBlocksFromMeV2ShouldWork(t *testing.T)
 func TestTransactions_CreateAndProcessMiniBlocksFromMeV2MissingTrieNode(t *testing.T) {
 	t.Parallel()
 
-	missingNodeErr := fmt.Errorf(common.GetNodeFromDBErrorString)
+	missingNodeErr := commonErrors.NewGetNodeFromDBErr([]byte("key"), errors.New("get error"))
 	preprocessor := createTransactionPreprocessor()
 	preprocessor.txProcessor = &testscommon.TxProcessorMock{
 		ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {

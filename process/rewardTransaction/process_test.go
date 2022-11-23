@@ -2,13 +2,12 @@ package rewardTransaction_test
 
 import (
 	"errors"
-	"fmt"
 	"math/big"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
-	"github.com/ElrondNetwork/elrond-go/common"
+	commonErrors "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
@@ -218,7 +217,7 @@ func TestRewardTxProcessor_ProcessRewardTransactionShouldWork(t *testing.T) {
 func TestRewardTxProcessor_ProcessRewardTransactionMissingTrieNode(t *testing.T) {
 	t.Parallel()
 
-	missingNodeErr := fmt.Errorf(common.GetNodeFromDBErrorString)
+	missingNodeErr := commonErrors.NewGetNodeFromDBErr([]byte("key"), errors.New("get error"))
 	accountsDb := &stateMock.AccountsStub{
 		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 			acc, _ := state.NewUserAccount(address)

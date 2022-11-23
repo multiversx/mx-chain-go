@@ -1,7 +1,7 @@
 package preprocess
 
 import (
-	"fmt"
+	"errors"
 	"testing"
 	"time"
 
@@ -9,8 +9,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
-	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	commonErrors "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -684,7 +684,7 @@ func TestRewardTxPreprocessor_ProcessBlockTransactions(t *testing.T) {
 func TestRewardTxPreprocessor_ProcessBlockTransactionsMissingTrieNode(t *testing.T) {
 	t.Parallel()
 
-	missingNodeErr := fmt.Errorf(common.GetNodeFromDBErrorString)
+	missingNodeErr := commonErrors.NewGetNodeFromDBErr([]byte("key"), errors.New("get error"))
 	txHash := testTxHash
 	tdp := initDataPool()
 	rtp, _ := NewRewardTxPreprocessor(
