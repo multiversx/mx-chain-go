@@ -3961,7 +3961,7 @@ func getDefaultProcessComponents() *factoryMock.ProcessComponentsMock {
 		EpochTrigger:                         &testscommon.EpochStartTriggerStub{},
 		EpochNotifier:                        &mock.EpochStartNotifierStub{},
 		ForkDetect:                           &mock.ForkDetectorMock{},
-		BlockProcess:                         &mock.BlockProcessorStub{},
+		BlockProcess:                         &testscommon.BlockProcessorStub{},
 		BlackListHdl:                         &testscommon.TimeCacheStub{},
 		BootSore:                             &mock.BootstrapStorerMock{},
 		HeaderSigVerif:                       &mock.HeaderSigVerifierStub{},

@@ -97,7 +97,7 @@ func startNodesWithCommitBlock(nodes []*integrationTests.TestConsensusNode, mute
 	for _, n := range nodes {
 		nCopy := n
 		n.BlockProcessor.CommitBlockCalled = func(header data.HeaderHandler, body data.BodyHandler) error {
-			nCopy.BlockProcessor.NrCommitBlockCalled++
+			nCopy.BlockProcessor.NumCommitBlockCalled++
 			_ = nCopy.ChainHandler.SetCurrentBlockHeaderAndRootHash(header, header.GetRootHash())
 
 			mutex.Lock()

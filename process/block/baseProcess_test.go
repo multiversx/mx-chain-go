@@ -3029,3 +3029,51 @@ func TestBaseProcessor_checkConstructionStateAndIndexesCorrectness(t *testing.T)
 	err = bp.CheckConstructionStateAndIndexesCorrectness(mbh)
 	assert.Nil(t, err)
 }
+
+func TestBaseProcessor_ConcurrentCallsNonceOfFirstCommittedBlock(t *testing.T) {
+	t.Parallel()
+
+	arguments := CreateMockArguments(createComponentHolderMocks())
+	bp, _ := blproc.NewShardProcessor(arguments)
+
+	numCalls := 1000
+	wg := &sync.WaitGroup{}
+	wg.Add(numCalls)
+
+	mutValuesRead := sync.Mutex{}
+	values := make(map[uint64]int)
+	noValues := 0
+	lastValRead := uint64(0)
+
+	for i := 0; i < numCalls; i++ {
+		go func(idx int) {
+			time.Sleep(time.Millisecond * 10)
+
+			switch idx % 2 {
+			case 0:
+				val := bp.NonceOfFirstCommittedBlock()
+
+				mutValuesRead.Lock()
+				if val.HasValue {
+					values[val.Value]++
+					lastValRead = val.Value
+				} else {
+					noValues++
+				}
+				mutValuesRead.Unlock()
+			case 1:
+				bp.SetNonceOfFirstCommittedBlock(uint64(idx))
+			}
+
+			wg.Done()
+		}(i)
+	}
+
+	wg.Wait()
+
+	mutValuesRead.Lock()
+	defer mutValuesRead.Unlock()
+
+	assert.True(t, len(values) <= 1) // we can have the situation when all reads are done before the first set
+	assert.Equal(t, numCalls/2, values[lastValRead]+noValues)
+}
