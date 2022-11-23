@@ -1,4 +1,4 @@
-package topicsender
+package topicsender_test
 
 import (
 	"bytes"
@@ -11,25 +11,30 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
+	topicsender "github.com/ElrondNetwork/elrond-go/dataRetriever/topicSender"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func createMockArgTopicRequestSender() ArgTopicRequestSender {
-	return ArgTopicRequestSender{
-		ArgBaseTopicSender: ArgBaseTopicSender{
-			Messenger:         &mock.MessageHandlerStub{},
-			TopicName:         "topic",
-			OutputAntiflooder: &mock.P2PAntifloodHandlerStub{},
-			PreferredPeersHolder: &p2pmocks.PeersHolderStub{
-				GetCalled: func() map[uint32][]core.PeerID {
-					return map[uint32][]core.PeerID{}
-				},
+func createMockArgBaseTopicSender() topicsender.ArgBaseTopicSender {
+	return topicsender.ArgBaseTopicSender{
+		Messenger:         &mock.MessageHandlerStub{},
+		TopicName:         "topic",
+		OutputAntiflooder: &mock.P2PAntifloodHandlerStub{},
+		PreferredPeersHolder: &p2pmocks.PeersHolderStub{
+			GetCalled: func() map[uint32][]core.PeerID {
+				return map[uint32][]core.PeerID{}
 			},
-			TargetShardId: 0,
 		},
+		TargetShardId: 0,
+	}
+}
+
+func createMockArgTopicRequestSender() topicsender.ArgTopicRequestSender {
+	return topicsender.ArgTopicRequestSender{
+		ArgBaseTopicSender:          createMockArgBaseTopicSender(),
 		Marshaller:                  &mock.MarshalizerMock{},
 		Randomizer:                  &mock.IntRandomizerStub{},
 		PeerListCreator:             &mock.PeerListCreatorStub{},
@@ -50,7 +55,7 @@ func TestNewTopicRequestSender(t *testing.T) {
 
 		arg := createMockArgTopicRequestSender()
 		arg.Messenger = nil
-		trs, err := NewTopicRequestSender(arg)
+		trs, err := topicsender.NewTopicRequestSender(arg)
 		assert.True(t, check.IfNil(trs))
 		assert.Equal(t, dataRetriever.ErrNilMessenger, err)
 	})
@@ -59,7 +64,7 @@ func TestNewTopicRequestSender(t *testing.T) {
 
 		arg := createMockArgTopicRequestSender()
 		arg.OutputAntiflooder = nil
-		trs, err := NewTopicRequestSender(arg)
+		trs, err := topicsender.NewTopicRequestSender(arg)
 		assert.True(t, check.IfNil(trs))
 		assert.Equal(t, dataRetriever.ErrNilAntifloodHandler, err)
 	})
@@ -68,7 +73,7 @@ func TestNewTopicRequestSender(t *testing.T) {
 
 		arg := createMockArgTopicRequestSender()
 		arg.PreferredPeersHolder = nil
-		trs, err := NewTopicRequestSender(arg)
+		trs, err := topicsender.NewTopicRequestSender(arg)
 		assert.True(t, check.IfNil(trs))
 		assert.Equal(t, dataRetriever.ErrNilPreferredPeersHolder, err)
 	})
@@ -77,7 +82,7 @@ func TestNewTopicRequestSender(t *testing.T) {
 
 		arg := createMockArgTopicRequestSender()
 		arg.Marshaller = nil
-		trs, err := NewTopicRequestSender(arg)
+		trs, err := topicsender.NewTopicRequestSender(arg)
 		assert.True(t, check.IfNil(trs))
 		assert.Equal(t, dataRetriever.ErrNilMarshalizer, err)
 	})
@@ -86,7 +91,7 @@ func TestNewTopicRequestSender(t *testing.T) {
 
 		arg := createMockArgTopicRequestSender()
 		arg.Randomizer = nil
-		trs, err := NewTopicRequestSender(arg)
+		trs, err := topicsender.NewTopicRequestSender(arg)
 		assert.True(t, check.IfNil(trs))
 		assert.Equal(t, dataRetriever.ErrNilRandomizer, err)
 	})
@@ -95,7 +100,7 @@ func TestNewTopicRequestSender(t *testing.T) {
 
 		arg := createMockArgTopicRequestSender()
 		arg.PeerListCreator = nil
-		trs, err := NewTopicRequestSender(arg)
+		trs, err := topicsender.NewTopicRequestSender(arg)
 		assert.True(t, check.IfNil(trs))
 		assert.Equal(t, dataRetriever.ErrNilPeerListCreator, err)
 	})
@@ -104,7 +109,7 @@ func TestNewTopicRequestSender(t *testing.T) {
 
 		arg := createMockArgTopicRequestSender()
 		arg.CurrentNetworkEpochProvider = nil
-		trs, err := NewTopicRequestSender(arg)
+		trs, err := topicsender.NewTopicRequestSender(arg)
 		assert.True(t, check.IfNil(trs))
 		assert.Equal(t, dataRetriever.ErrNilCurrentNetworkEpochProvider, err)
 	})
@@ -113,7 +118,7 @@ func TestNewTopicRequestSender(t *testing.T) {
 
 		arg := createMockArgTopicRequestSender()
 		arg.PeersRatingHandler = nil
-		trs, err := NewTopicRequestSender(arg)
+		trs, err := topicsender.NewTopicRequestSender(arg)
 		assert.True(t, check.IfNil(trs))
 		assert.Equal(t, dataRetriever.ErrNilPeersRatingHandler, err)
 	})
@@ -122,7 +127,7 @@ func TestNewTopicRequestSender(t *testing.T) {
 
 		arg := createMockArgTopicRequestSender()
 		arg.SelfShardIdProvider = nil
-		trs, err := NewTopicRequestSender(arg)
+		trs, err := topicsender.NewTopicRequestSender(arg)
 		assert.True(t, check.IfNil(trs))
 		assert.Equal(t, dataRetriever.ErrNilSelfShardIDProvider, err)
 	})
@@ -131,7 +136,7 @@ func TestNewTopicRequestSender(t *testing.T) {
 
 		arg := createMockArgTopicRequestSender()
 		arg.NumIntraShardPeers = -1
-		trs, err := NewTopicRequestSender(arg)
+		trs, err := topicsender.NewTopicRequestSender(arg)
 		assert.True(t, check.IfNil(trs))
 		assert.True(t, errors.Is(err, dataRetriever.ErrInvalidValue))
 		assert.True(t, strings.Contains(err.Error(), "NumIntraShardPeers"))
@@ -141,7 +146,7 @@ func TestNewTopicRequestSender(t *testing.T) {
 
 		arg := createMockArgTopicRequestSender()
 		arg.NumCrossShardPeers = -1
-		trs, err := NewTopicRequestSender(arg)
+		trs, err := topicsender.NewTopicRequestSender(arg)
 		assert.True(t, check.IfNil(trs))
 		assert.True(t, errors.Is(err, dataRetriever.ErrInvalidValue))
 		assert.True(t, strings.Contains(err.Error(), "NumCrossShardPeers"))
@@ -151,7 +156,7 @@ func TestNewTopicRequestSender(t *testing.T) {
 
 		arg := createMockArgTopicRequestSender()
 		arg.NumFullHistoryPeers = -1
-		trs, err := NewTopicRequestSender(arg)
+		trs, err := topicsender.NewTopicRequestSender(arg)
 		assert.True(t, check.IfNil(trs))
 		assert.True(t, errors.Is(err, dataRetriever.ErrInvalidValue))
 		assert.True(t, strings.Contains(err.Error(), "NumFullHistoryPeers"))
@@ -162,7 +167,7 @@ func TestNewTopicRequestSender(t *testing.T) {
 		arg := createMockArgTopicRequestSender()
 		arg.NumCrossShardPeers = 0
 		arg.NumIntraShardPeers = 0
-		trs, err := NewTopicRequestSender(arg)
+		trs, err := topicsender.NewTopicRequestSender(arg)
 		assert.True(t, check.IfNil(trs))
 		assert.True(t, errors.Is(err, dataRetriever.ErrInvalidValue))
 		assert.True(t, strings.Contains(err.Error(), "NumIntraShardPeers"))
@@ -171,7 +176,7 @@ func TestNewTopicRequestSender(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		trs, err := NewTopicRequestSender(createMockArgTopicRequestSender())
+		trs, err := topicsender.NewTopicRequestSender(createMockArgTopicRequestSender())
 		assert.False(t, check.IfNil(trs))
 		assert.Nil(t, err)
 	})
@@ -184,13 +189,15 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 	var defaultHashes = [][]byte{[]byte("hash")}
 
 	t.Run("marshal fails", func(t *testing.T) {
+		t.Parallel()
+
 		arg := createMockArgTopicRequestSender()
 		arg.Marshaller = &mock.MarshalizerStub{
 			MarshalCalled: func(obj interface{}) (bytes []byte, e error) {
 				return nil, expectedErr
 			},
 		}
-		trs, _ := NewTopicRequestSender(arg)
+		trs, _ := topicsender.NewTopicRequestSender(arg)
 
 		err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, defaultHashes)
 
@@ -208,7 +215,7 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 				return make([]core.PeerID, 0)
 			},
 		}
-		trs, _ := NewTopicRequestSender(arg)
+		trs, _ := topicsender.NewTopicRequestSender(arg)
 
 		err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, defaultHashes)
 
@@ -243,7 +250,7 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 				return []core.PeerID{pID2}
 			},
 		}
-		trs, _ := NewTopicRequestSender(arg)
+		trs, _ := topicsender.NewTopicRequestSender(arg)
 
 		err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, defaultHashes)
 
@@ -277,7 +284,7 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 				return false
 			},
 		}
-		trs, _ := NewTopicRequestSender(arg)
+		trs, _ := topicsender.NewTopicRequestSender(arg)
 
 		err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, defaultHashes)
 		assert.Nil(t, err)
@@ -339,7 +346,7 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 				return nil
 			},
 		}
-		trs, _ := NewTopicRequestSender(arg)
+		trs, _ := topicsender.NewTopicRequestSender(arg)
 
 		err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, defaultHashes)
 		assert.Nil(t, err)
@@ -384,7 +391,7 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 				return nil
 			},
 		}
-		trs, _ := NewTopicRequestSender(arg)
+		trs, _ := topicsender.NewTopicRequestSender(arg)
 
 		err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, defaultHashes)
 		assert.Nil(t, err)
@@ -434,7 +441,7 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 		selfShardIDProvider.CurrentShard = selfShardID
 		arg.SelfShardIdProvider = selfShardIDProvider
 
-		trs, _ := NewTopicRequestSender(arg)
+		trs, _ := topicsender.NewTopicRequestSender(arg)
 
 		err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, defaultHashes)
 		assert.Nil(t, err)
@@ -494,7 +501,7 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 		selfShardIDProvider.CurrentShard = selfShardID
 		arg.SelfShardIdProvider = selfShardIDProvider
 
-		trs, _ := NewTopicRequestSender(arg)
+		trs, _ := topicsender.NewTopicRequestSender(arg)
 
 		err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, defaultHashes)
 		require.NoError(t, err)
@@ -536,7 +543,7 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 				return nil
 			},
 		}
-		trs, _ := NewTopicRequestSender(arg)
+		trs, _ := topicsender.NewTopicRequestSender(arg)
 
 		err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, defaultHashes)
 		assert.Nil(t, err)
@@ -564,7 +571,7 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 				return pIDs
 			},
 		}
-		trs, _ := NewTopicRequestSender(arg)
+		trs, _ := topicsender.NewTopicRequestSender(arg)
 
 		err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, defaultHashes)
 
@@ -598,7 +605,7 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 				return []core.PeerID{pidNotCalled}
 			},
 		}
-		trs, _ := NewTopicRequestSender(arg)
+		trs, _ := topicsender.NewTopicRequestSender(arg)
 
 		err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, defaultHashes)
 
@@ -632,7 +639,7 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 				return pIDs
 			},
 		}
-		trs, _ := NewTopicRequestSender(arg)
+		trs, _ := topicsender.NewTopicRequestSender(arg)
 
 		err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, defaultHashes)
 
@@ -663,7 +670,7 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 				return make([]core.PeerID, 0)
 			},
 		}
-		trs, _ := NewTopicRequestSender(arg)
+		trs, _ := topicsender.NewTopicRequestSender(arg)
 
 		err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, defaultHashes)
 
@@ -676,7 +683,7 @@ func TestTopicRequestSender_NumPeersToQuery(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArgTopicRequestSender()
-	trs, _ := NewTopicRequestSender(arg)
+	trs, _ := topicsender.NewTopicRequestSender(arg)
 
 	intra := 1123
 	cross := 2143

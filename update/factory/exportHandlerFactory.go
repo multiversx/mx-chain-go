@@ -285,7 +285,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	}
 
 	// TODO reuse the debugger when the one used for regular resolvers & interceptors will be moved inside the status components
-	debugger, errNotCritical := factory.NewInterceptorResolverDebuggerFactory(e.interceptorDebugConfig)
+	debugger, errNotCritical := factory.NewInterceptorDebuggerFactory(e.interceptorDebugConfig)
 	if errNotCritical != nil {
 		log.Warn("error creating hardfork debugger", "error", errNotCritical)
 	}
@@ -357,7 +357,6 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		NumConcurrentResolvingJobs: 100,
 		InputAntifloodHandler:      e.inputAntifloodHandler,
 		OutputAntifloodHandler:     e.outputAntifloodHandler,
-		PeersRatingHandler:         e.peersRatingHandler,
 	}
 	resolversFactory, err := NewResolversContainerFactory(argsResolvers)
 	if err != nil {
@@ -369,7 +368,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	}
 
 	e.resolverContainer.Iterate(func(key string, resolver dataRetriever.Resolver) bool {
-		errNotCritical = resolver.SetResolverDebugHandler(debugger)
+		errNotCritical = resolver.SetDebugHandler(debugger)
 		if errNotCritical != nil {
 			log.Warn("error setting debugger", "resolver", key, "error", errNotCritical)
 		}
@@ -395,7 +394,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	}
 
 	e.requestersContainer.Iterate(func(key string, requester dataRetriever.Requester) bool {
-		errNotCritical = requester.SetResolverDebugHandler(debugger)
+		errNotCritical = requester.SetDebugHandler(debugger)
 		if errNotCritical != nil {
 			log.Warn("error setting debugger", "requester", key, "error", errNotCritical)
 		}

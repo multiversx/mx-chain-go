@@ -1,4 +1,4 @@
-package resolver
+package handler
 
 import (
 	"testing"
@@ -10,7 +10,7 @@ import (
 func TestDisabledInterceptorResolver(t *testing.T) {
 	t.Parallel()
 
-	dir := NewDisabledInterceptorResolver()
+	dir := NewDisabledInterceptorDebugHandler()
 	assert.False(t, check.IfNil(dir))
 
 	dir.LogReceivedHashes("", nil)

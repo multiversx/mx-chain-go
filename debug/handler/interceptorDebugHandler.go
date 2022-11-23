@@ -1,4 +1,4 @@
-package resolver
+package handler
 
 import (
 	"context"
@@ -27,7 +27,7 @@ const numIntsInEventStruct = 6
 const intSize = 8
 const maxKeysToDisplay = 200
 
-var log = logger.GetOrCreate("debug/resolver")
+var log = logger.GetOrCreate("debug/handler")
 
 type event struct {
 	mutEvent     sync.RWMutex
@@ -92,7 +92,7 @@ func displayTime(timestamp int64) string {
 	return t.Format("2006-01-02 15:04:05.000")
 }
 
-type interceptorResolver struct {
+type interceptorDebugHandler struct {
 	cache                storage.Cacher
 	intervalAutoPrint    time.Duration
 	requestsThreshold    int
@@ -103,38 +103,38 @@ type interceptorResolver struct {
 	cancelFunc           context.CancelFunc
 }
 
-// NewInterceptorResolver creates a new interceptorResolver able to hold requested-intercepted information
-func NewInterceptorResolver(config config.InterceptorResolverDebugConfig) (*interceptorResolver, error) {
+// NewInterceptorDebugHandler creates a new interceptorDebugHandler able to hold requested-intercepted information
+func NewInterceptorDebugHandler(config config.InterceptorResolverDebugConfig) (*interceptorDebugHandler, error) {
 	lruCache, err := cache.NewLRUCache(config.CacheSize)
 	if err != nil {
-		return nil, fmt.Errorf("%w when creating NewInterceptorResolver", err)
+		return nil, fmt.Errorf("%w when creating NewInterceptorDebugHandler", err)
 	}
 
-	ir := &interceptorResolver{
+	idh := &interceptorDebugHandler{
 		cache:            lruCache,
 		timestampHandler: getCurrentTimeStamp,
 	}
 
-	err = ir.parseConfig(config)
+	err = idh.parseConfig(config)
 	if err != nil {
 		return nil, err
 	}
 
-	ir.printEventFunc = ir.printEvent
+	idh.printEventFunc = idh.printEvent
 	if config.EnablePrint {
 		ctx, cancelFunc := context.WithCancel(context.Background())
-		ir.cancelFunc = cancelFunc
-		go ir.printContinuously(ctx)
+		idh.cancelFunc = cancelFunc
+		go idh.printContinuously(ctx)
 	}
 
-	return ir, nil
+	return idh, nil
 }
 
 func getCurrentTimeStamp() int64 {
 	return time.Now().Unix()
 }
 
-func (ir *interceptorResolver) parseConfig(config config.InterceptorResolverDebugConfig) error {
+func (idh *interceptorDebugHandler) parseConfig(config config.InterceptorResolverDebugConfig) error {
 	if !config.EnablePrint {
 		return nil
 	}
@@ -151,42 +151,42 @@ func (ir *interceptorResolver) parseConfig(config config.InterceptorResolverDebu
 		return fmt.Errorf("%w for DebugLineExpiration, minimum is %d", debug.ErrInvalidValue, minDebugLineExpiration)
 	}
 
-	ir.intervalAutoPrint = time.Second * time.Duration(config.IntervalAutoPrintInSeconds)
-	ir.requestsThreshold = config.NumRequestsThreshold
-	ir.resolveFailThreshold = config.NumResolveFailureThreshold
-	ir.maxNumPrints = config.DebugLineExpiration
+	idh.intervalAutoPrint = time.Second * time.Duration(config.IntervalAutoPrintInSeconds)
+	idh.requestsThreshold = config.NumRequestsThreshold
+	idh.resolveFailThreshold = config.NumResolveFailureThreshold
+	idh.maxNumPrints = config.DebugLineExpiration
 
 	return nil
 }
 
-func (ir *interceptorResolver) printContinuously(ctx context.Context) {
+func (idh *interceptorDebugHandler) printContinuously(ctx context.Context) {
 	for {
 		select {
-		case <-time.After(ir.intervalAutoPrint):
-			ir.incrementNumOfPrints()
+		case <-time.After(idh.intervalAutoPrint):
+			idh.incrementNumOfPrints()
 
 			events := []string{"Requests pending and resolver fails:"}
-			events = append(events, ir.getStringEvents(ir.maxNumPrints)...)
+			events = append(events, idh.getStringEvents(idh.maxNumPrints)...)
 			if len(events) == 1 {
 				continue
 			}
 
 			stringEvent := strings.Join(events, newLineChar)
-			ir.printEventFunc(stringEvent)
+			idh.printEventFunc(stringEvent)
 		case <-ctx.Done():
 			return
 		}
 	}
 }
 
-func (ir *interceptorResolver) printEvent(data string) {
+func (idh *interceptorDebugHandler) printEvent(data string) {
 	log.Debug(data)
 }
 
-func (ir *interceptorResolver) incrementNumOfPrints() {
-	keys := ir.cache.Keys()
+func (idh *interceptorDebugHandler) incrementNumOfPrints() {
+	keys := idh.cache.Keys()
 	for _, key := range keys {
-		obj, ok := ir.cache.Get(key)
+		obj, ok := idh.cache.Get(key)
 		if !ok {
 			continue
 		}
@@ -204,31 +204,31 @@ func (ir *interceptorResolver) incrementNumOfPrints() {
 
 //TODO replace this with a call to Query(search) when a suitable conditional parser will be used. Also replace config parameters
 // with a query string so it will be more extensible
-func (ir *interceptorResolver) getStringEvents(maxNumPrints int) []string {
+func (idh *interceptorDebugHandler) getStringEvents(maxNumPrints int) []string {
 	acceptEvent := func(ev *event) bool {
 		ev.mutEvent.RLock()
 		defer ev.mutEvent.RUnlock()
 
-		shouldAcceptRequested := ev.eventType == requestEvent && ev.numReqCross+ev.numReqIntra >= ir.requestsThreshold
-		shouldAcceptResolved := ev.eventType == resolveEvent && ev.numReceived >= ir.resolveFailThreshold
+		shouldAcceptRequested := ev.eventType == requestEvent && ev.numReqCross+ev.numReqIntra >= idh.requestsThreshold
+		shouldAcceptResolved := ev.eventType == resolveEvent && ev.numReceived >= idh.resolveFailThreshold
 
 		return shouldAcceptRequested || shouldAcceptResolved
 	}
 
-	return ir.query(acceptEvent, maxNumPrints)
+	return idh.query(acceptEvent, maxNumPrints)
 }
 
 // LogRequestedData is called whenever hashes have been requested
-func (ir *interceptorResolver) LogRequestedData(topic string, hashes [][]byte, numReqIntra int, numReqCross int) {
+func (idh *interceptorDebugHandler) LogRequestedData(topic string, hashes [][]byte, numReqIntra int, numReqCross int) {
 	for _, hash := range hashes {
-		ir.logRequestedData(topic, hash, numReqIntra, numReqCross)
+		idh.logRequestedData(topic, hash, numReqIntra, numReqCross)
 	}
 }
 
-func (ir *interceptorResolver) logRequestedData(topic string, hash []byte, numReqIntra int, numReqCross int) {
-	identifier := ir.computeIdentifier(requestEvent, topic, hash)
+func (idh *interceptorDebugHandler) logRequestedData(topic string, hash []byte, numReqIntra int, numReqCross int) {
+	identifier := idh.computeIdentifier(requestEvent, topic, hash)
 
-	obj, ok := ir.cache.Get(identifier)
+	obj, ok := idh.cache.Get(identifier)
 	if !ok {
 		req := &event{
 			hash:         hash,
@@ -239,9 +239,9 @@ func (ir *interceptorResolver) logRequestedData(topic string, hash []byte, numRe
 			numReceived:  0,
 			numProcessed: 0,
 			lastErr:      nil,
-			timestamp:    ir.timestampHandler(),
+			timestamp:    idh.timestampHandler(),
 		}
-		ir.cache.Put(identifier, req, req.Size())
+		idh.cache.Put(identifier, req, req.Size())
 
 		return
 	}
@@ -254,21 +254,21 @@ func (ir *interceptorResolver) logRequestedData(topic string, hash []byte, numRe
 	req.mutEvent.Lock()
 	req.numReqCross += numReqCross
 	req.numReqIntra += numReqIntra
-	req.timestamp = ir.timestampHandler()
+	req.timestamp = idh.timestampHandler()
 	req.mutEvent.Unlock()
 }
 
 // LogReceivedHashes is called whenever request hashes have been received
-func (ir *interceptorResolver) LogReceivedHashes(topic string, hashes [][]byte) {
+func (idh *interceptorDebugHandler) LogReceivedHashes(topic string, hashes [][]byte) {
 	for _, hash := range hashes {
-		ir.logReceivedHash(topic, hash)
+		idh.logReceivedHash(topic, hash)
 	}
 }
 
-func (ir *interceptorResolver) logReceivedHash(topic string, hash []byte) {
-	identifier := ir.computeIdentifier(requestEvent, topic, hash)
+func (idh *interceptorDebugHandler) logReceivedHash(topic string, hash []byte) {
+	identifier := idh.computeIdentifier(requestEvent, topic, hash)
 
-	obj, ok := ir.cache.Get(identifier)
+	obj, ok := idh.cache.Get(identifier)
 	if !ok {
 		return
 	}
@@ -280,21 +280,21 @@ func (ir *interceptorResolver) logReceivedHash(topic string, hash []byte) {
 
 	req.mutEvent.Lock()
 	req.numReceived++
-	req.timestamp = ir.timestampHandler()
+	req.timestamp = idh.timestampHandler()
 	req.mutEvent.Unlock()
 }
 
 // LogProcessedHashes is called whenever request hashes have been processed
-func (ir *interceptorResolver) LogProcessedHashes(topic string, hashes [][]byte, err error) {
+func (idh *interceptorDebugHandler) LogProcessedHashes(topic string, hashes [][]byte, err error) {
 	for _, hash := range hashes {
-		ir.logProcessedHash(topic, hash, err)
+		idh.logProcessedHash(topic, hash, err)
 	}
 }
 
-func (ir *interceptorResolver) logProcessedHash(topic string, hash []byte, err error) {
-	identifier := ir.computeIdentifier(requestEvent, topic, hash)
+func (idh *interceptorDebugHandler) logProcessedHash(topic string, hash []byte, err error) {
+	identifier := idh.computeIdentifier(requestEvent, topic, hash)
 
-	obj, ok := ir.cache.Get(identifier)
+	obj, ok := idh.cache.Get(identifier)
 	if !ok {
 		return
 	}
@@ -307,23 +307,23 @@ func (ir *interceptorResolver) logProcessedHash(topic string, hash []byte, err e
 	if err != nil {
 		req.mutEvent.Lock()
 		req.numProcessed++
-		req.timestamp = ir.timestampHandler()
+		req.timestamp = idh.timestampHandler()
 		req.lastErr = err
 		req.mutEvent.Unlock()
 
 		return
 	}
 
-	ir.cache.Remove(identifier)
+	idh.cache.Remove(identifier)
 }
 
-func (ir *interceptorResolver) computeIdentifier(eventType string, topic string, hash []byte) []byte {
+func (idh *interceptorDebugHandler) computeIdentifier(eventType string, topic string, hash []byte) []byte {
 	return append([]byte(eventType+topic), hash...)
 }
 
 // Query returns active requests in a string-ified format having the topic provided
 // * will return each and every data
-func (ir *interceptorResolver) Query(search string) []string {
+func (idh *interceptorDebugHandler) Query(search string) []string {
 	acceptEvent := func(ev *event) bool {
 		//TODO replace this rudimentary search pattern with something like
 		// github.com/oleksandr/conditions
@@ -333,16 +333,16 @@ func (ir *interceptorResolver) Query(search string) []string {
 	}
 
 	maxNumPrints := math.MaxInt32
-	return ir.query(acceptEvent, maxNumPrints)
+	return idh.query(acceptEvent, maxNumPrints)
 }
 
-func (ir *interceptorResolver) query(acceptEvent func(ev *event) bool, maxNumPrints int) []string {
-	keys := ir.cache.Keys()
+func (idh *interceptorDebugHandler) query(acceptEvent func(ev *event) bool, maxNumPrints int) []string {
+	keys := idh.cache.Keys()
 
 	events := make([]string, 0, len(keys))
 	trimmed := false
 	for _, key := range keys {
-		obj, ok := ir.cache.Get(key)
+		obj, ok := idh.cache.Get(key)
 		if !ok {
 			continue
 		}
@@ -379,10 +379,10 @@ func (ir *interceptorResolver) query(acceptEvent func(ev *event) bool, maxNumPri
 }
 
 // LogFailedToResolveData adds a record stating that the resolver was unable to process the data
-func (ir *interceptorResolver) LogFailedToResolveData(topic string, hash []byte, err error) {
-	identifier := ir.computeIdentifier(resolveEvent, topic, hash)
+func (idh *interceptorDebugHandler) LogFailedToResolveData(topic string, hash []byte, err error) {
+	identifier := idh.computeIdentifier(resolveEvent, topic, hash)
 
-	obj, ok := ir.cache.Get(identifier)
+	obj, ok := idh.cache.Get(identifier)
 	if !ok {
 		req := &event{
 			hash:         hash,
@@ -393,9 +393,9 @@ func (ir *interceptorResolver) LogFailedToResolveData(topic string, hash []byte,
 			numReceived:  1,
 			numProcessed: 0,
 			lastErr:      err,
-			timestamp:    ir.timestampHandler(),
+			timestamp:    idh.timestampHandler(),
 		}
-		ir.cache.Put(identifier, req, req.Size())
+		idh.cache.Put(identifier, req, req.Size())
 
 		return
 	}
@@ -407,26 +407,26 @@ func (ir *interceptorResolver) LogFailedToResolveData(topic string, hash []byte,
 
 	ev.mutEvent.Lock()
 	ev.numReceived++
-	ev.timestamp = ir.timestampHandler()
+	ev.timestamp = idh.timestampHandler()
 	ev.lastErr = err
 	ev.mutEvent.Unlock()
 }
 
 // LogSucceededToResolveData removes the recording that the resolver did not resolve a hash in the past
-func (ir *interceptorResolver) LogSucceededToResolveData(topic string, hash []byte) {
-	identifier := ir.computeIdentifier(resolveEvent, topic, hash)
+func (idh *interceptorDebugHandler) LogSucceededToResolveData(topic string, hash []byte) {
+	identifier := idh.computeIdentifier(resolveEvent, topic, hash)
 
-	ir.cache.Remove(identifier)
+	idh.cache.Remove(identifier)
 }
 
 // Close closes all underlying components
-func (ir *interceptorResolver) Close() error {
-	ir.cancelFunc()
+func (idh *interceptorDebugHandler) Close() error {
+	idh.cancelFunc()
 
 	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (ir *interceptorResolver) IsInterfaceNil() bool {
-	return ir == nil
+func (idh *interceptorDebugHandler) IsInterfaceNil() bool {
+	return idh == nil
 }

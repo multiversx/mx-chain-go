@@ -1,4 +1,4 @@
-package resolver
+package handler
 
 import (
 	"errors"
@@ -35,16 +35,14 @@ func mockTimestampHandler() int64 {
 	return 22342
 }
 
-//------- NewInterceptorResolver
-
 func TestNewInterceptorResolver_InvalidSizeShouldErr(t *testing.T) {
 	t.Parallel()
 
 	cfg := createWorkableConfig()
 	cfg.CacheSize = -1
-	ir, err := NewInterceptorResolver(cfg)
+	idh, err := NewInterceptorDebugHandler(cfg)
 
-	assert.True(t, check.IfNil(ir))
+	assert.True(t, check.IfNil(idh))
 	assert.NotNil(t, err)
 }
 
@@ -54,9 +52,9 @@ func TestNewInterceptorResolver_InvalidIntervalShouldErr(t *testing.T) {
 	cfg := createWorkableConfig()
 	cfg.EnablePrint = true
 	cfg.IntervalAutoPrintInSeconds = 0
-	ir, err := NewInterceptorResolver(cfg)
+	idh, err := NewInterceptorDebugHandler(cfg)
 
-	assert.True(t, check.IfNil(ir))
+	assert.True(t, check.IfNil(idh))
 	assert.True(t, errors.Is(err, debug.ErrInvalidValue))
 }
 
@@ -68,9 +66,9 @@ func TestNewInterceptorResolver_NumResolveFailureThresholdShouldErr(t *testing.T
 	cfg.IntervalAutoPrintInSeconds = 1
 	cfg.NumResolveFailureThreshold = 0
 	cfg.NumRequestsThreshold = 1
-	ir, err := NewInterceptorResolver(cfg)
+	idh, err := NewInterceptorDebugHandler(cfg)
 
-	assert.True(t, check.IfNil(ir))
+	assert.True(t, check.IfNil(idh))
 	assert.True(t, errors.Is(err, debug.ErrInvalidValue))
 }
 
@@ -82,9 +80,9 @@ func TestNewInterceptorResolver_NumRequestsThresholdShouldErr(t *testing.T) {
 	cfg.IntervalAutoPrintInSeconds = 1
 	cfg.NumResolveFailureThreshold = 1
 	cfg.NumRequestsThreshold = 0
-	ir, err := NewInterceptorResolver(cfg)
+	idh, err := NewInterceptorDebugHandler(cfg)
 
-	assert.True(t, check.IfNil(ir))
+	assert.True(t, check.IfNil(idh))
 	assert.True(t, errors.Is(err, debug.ErrInvalidValue))
 }
 
@@ -97,18 +95,18 @@ func TestNewInterceptorResolver_DebugLineExpirationShouldErr(t *testing.T) {
 	cfg.NumResolveFailureThreshold = 1
 	cfg.NumRequestsThreshold = 1
 	cfg.DebugLineExpiration = 0
-	ir, err := NewInterceptorResolver(cfg)
+	idh, err := NewInterceptorDebugHandler(cfg)
 
-	assert.True(t, check.IfNil(ir))
+	assert.True(t, check.IfNil(idh))
 	assert.True(t, errors.Is(err, debug.ErrInvalidValue))
 }
 
 func TestNewInterceptorResolver_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	ir, err := NewInterceptorResolver(createWorkableConfig())
+	idh, err := NewInterceptorDebugHandler(createWorkableConfig())
 
-	assert.False(t, check.IfNil(ir))
+	assert.False(t, check.IfNil(idh))
 	assert.Nil(t, err)
 }
 
@@ -121,31 +119,29 @@ func TestNewInterceptorResolver_EnablePrintShouldWork(t *testing.T) {
 	cfg.NumResolveFailureThreshold = 1
 	cfg.NumRequestsThreshold = 1
 	cfg.DebugLineExpiration = 100
-	ir, err := NewInterceptorResolver(cfg)
+	idh, err := NewInterceptorDebugHandler(cfg)
 
-	assert.False(t, check.IfNil(ir))
+	assert.False(t, check.IfNil(idh))
 	assert.Nil(t, err)
 }
-
-//------- LogRequestedData
 
 func TestInterceptorResolver_LogRequestedDataWithFiveIdentifiersShouldWork(t *testing.T) {
 	t.Parallel()
 
-	ir, _ := NewInterceptorResolver(createWorkableConfig())
-	ir.SetTimehandler(mockTimestampHandler)
+	idh, _ := NewInterceptorDebugHandler(createWorkableConfig())
+	idh.SetTimeHandler(mockTimestampHandler)
 	numIdentifiers := 5
 	foundMap := make(map[string]struct{})
 	for i := 0; i < numIdentifiers; i++ {
 		newTopic := fmt.Sprintf("topic%d", i)
-		ir.LogRequestedData(newTopic, [][]byte{hash}, numIntra, numCross)
+		idh.LogRequestedData(newTopic, [][]byte{hash}, numIntra, numCross)
 		foundMap[newTopic] = struct{}{}
 	}
 
-	s := strings.Join(ir.Query("*"), "\r\n")
+	s := strings.Join(idh.Query("*"), "\r\n")
 	fmt.Println(s)
 
-	events := ir.Events()
+	events := idh.Events()
 	require.Equal(t, numIdentifiers, len(events))
 	for _, ev := range events {
 		_, ok := foundMap[ev.topic]
@@ -159,10 +155,10 @@ func TestInterceptorResolver_LogRequestedDataWithFiveIdentifiersShouldWork(t *te
 func TestInterceptorResolver_LogRequestedDataSameIdentifierShouldAddRequested(t *testing.T) {
 	t.Parallel()
 
-	ir, _ := NewInterceptorResolver(createWorkableConfig())
-	ir.SetTimehandler(mockTimestampHandler)
-	ir.LogRequestedData(topic, [][]byte{hash}, numIntra, numCross)
-	events := ir.Events()
+	idh, _ := NewInterceptorDebugHandler(createWorkableConfig())
+	idh.SetTimeHandler(mockTimestampHandler)
+	idh.LogRequestedData(topic, [][]byte{hash}, numIntra, numCross)
+	events := idh.Events()
 	require.Equal(t, 1, len(events))
 	expected := &event{
 		eventType:   requestEvent,
@@ -175,8 +171,8 @@ func TestInterceptorResolver_LogRequestedDataSameIdentifierShouldAddRequested(t 
 
 	assert.Equal(t, expected, events[0])
 
-	ir.LogRequestedData(topic, [][]byte{hash}, numIntra, numCross)
-	events = ir.Events()
+	idh.LogRequestedData(topic, [][]byte{hash}, numIntra, numCross)
+	events = idh.Events()
 	require.Equal(t, 1, len(events))
 	expected = &event{
 		eventType:   requestEvent,
@@ -188,7 +184,7 @@ func TestInterceptorResolver_LogRequestedDataSameIdentifierShouldAddRequested(t 
 	}
 
 	assert.Equal(t, expected, events[0])
-	fmt.Println(ir.Query("*"))
+	fmt.Println(idh.Query("*"))
 }
 
 //------- LogProcessedHashes
@@ -196,37 +192,37 @@ func TestInterceptorResolver_LogRequestedDataSameIdentifierShouldAddRequested(t 
 func TestInterceptorResolver_LogProcessedHashesNotFoundShouldNotAdd(t *testing.T) {
 	t.Parallel()
 
-	ir, _ := NewInterceptorResolver(createWorkableConfig())
+	idh, _ := NewInterceptorDebugHandler(createWorkableConfig())
 
-	ir.LogProcessedHashes(topic, [][]byte{hash}, nil)
+	idh.LogProcessedHashes(topic, [][]byte{hash}, nil)
 
-	require.Equal(t, 0, len(ir.Events()))
+	require.Equal(t, 0, len(idh.Events()))
 }
 
 func TestInterceptorResolver_LogProcessedHashesExistingNoErrorShouldRemove(t *testing.T) {
 	t.Parallel()
 
-	ir, _ := NewInterceptorResolver(createWorkableConfig())
-	ir.LogRequestedData(topic, [][]byte{hash}, numIntra, numCross)
-	require.Equal(t, 1, len(ir.Events()))
+	idh, _ := NewInterceptorDebugHandler(createWorkableConfig())
+	idh.LogRequestedData(topic, [][]byte{hash}, numIntra, numCross)
+	require.Equal(t, 1, len(idh.Events()))
 
-	ir.LogProcessedHashes(topic, [][]byte{hash}, nil)
+	idh.LogProcessedHashes(topic, [][]byte{hash}, nil)
 
-	require.Equal(t, 0, len(ir.Events()))
+	require.Equal(t, 0, len(idh.Events()))
 }
 
 func TestInterceptorResolver_LogProcessedHashesExistingWithErrorShouldIncrementProcessed(t *testing.T) {
 	t.Parallel()
 
-	ir, _ := NewInterceptorResolver(createWorkableConfig())
-	ir.SetTimehandler(mockTimestampHandler)
-	ir.LogRequestedData(topic, [][]byte{hash}, numIntra, numCross)
-	require.Equal(t, 1, len(ir.Events()))
+	idh, _ := NewInterceptorDebugHandler(createWorkableConfig())
+	idh.SetTimeHandler(mockTimestampHandler)
+	idh.LogRequestedData(topic, [][]byte{hash}, numIntra, numCross)
+	require.Equal(t, 1, len(idh.Events()))
 
 	err := errors.New("expected err")
-	ir.LogProcessedHashes(topic, [][]byte{hash}, err)
+	idh.LogProcessedHashes(topic, [][]byte{hash}, err)
 
-	requests := ir.Events()
+	requests := idh.Events()
 	require.Equal(t, 1, len(requests))
 
 	expected := &event{
@@ -242,7 +238,7 @@ func TestInterceptorResolver_LogProcessedHashesExistingWithErrorShouldIncrementP
 	}
 
 	assert.Equal(t, expected, requests[0])
-	fmt.Println(ir.Query("*"))
+	fmt.Println(idh.Query("*"))
 }
 
 //------- LogReceivedHashes
@@ -250,24 +246,24 @@ func TestInterceptorResolver_LogProcessedHashesExistingWithErrorShouldIncrementP
 func TestInterceptorResolver_LogReceivedHashesNotFoundShouldNotAdd(t *testing.T) {
 	t.Parallel()
 
-	ir, _ := NewInterceptorResolver(createWorkableConfig())
+	idh, _ := NewInterceptorDebugHandler(createWorkableConfig())
 
-	ir.LogReceivedHashes(topic, [][]byte{hash})
+	idh.LogReceivedHashes(topic, [][]byte{hash})
 
-	require.Equal(t, 0, len(ir.Events()))
+	require.Equal(t, 0, len(idh.Events()))
 }
 
 func TestInterceptorResolver_LogReceivedHashesExistingShouldIncrementReceived(t *testing.T) {
 	t.Parallel()
 
-	ir, _ := NewInterceptorResolver(createWorkableConfig())
-	ir.SetTimehandler(mockTimestampHandler)
-	ir.LogRequestedData(topic, [][]byte{hash}, numIntra, numCross)
-	require.Equal(t, 1, len(ir.Events()))
+	idh, _ := NewInterceptorDebugHandler(createWorkableConfig())
+	idh.SetTimeHandler(mockTimestampHandler)
+	idh.LogRequestedData(topic, [][]byte{hash}, numIntra, numCross)
+	require.Equal(t, 1, len(idh.Events()))
 
-	ir.LogReceivedHashes(topic, [][]byte{hash})
+	idh.LogReceivedHashes(topic, [][]byte{hash})
 
-	requests := ir.Events()
+	requests := idh.Events()
 	require.Equal(t, 1, len(requests))
 
 	expected := &event{
@@ -290,11 +286,11 @@ func TestInterceptorResolver_LogReceivedHashesExistingShouldIncrementReceived(t 
 func TestInterceptorResolver_LogFailedToResolveDataShouldWork(t *testing.T) {
 	t.Parallel()
 
-	ir, _ := NewInterceptorResolver(createWorkableConfig())
-	ir.SetTimehandler(mockTimestampHandler)
-	ir.LogFailedToResolveData(topic, hash, nil)
+	idh, _ := NewInterceptorDebugHandler(createWorkableConfig())
+	idh.SetTimeHandler(mockTimestampHandler)
+	idh.LogFailedToResolveData(topic, hash, nil)
 
-	require.Equal(t, 1, len(ir.Events()))
+	require.Equal(t, 1, len(idh.Events()))
 	expected := &event{
 		eventType:    resolveEvent,
 		hash:         hash,
@@ -306,10 +302,10 @@ func TestInterceptorResolver_LogFailedToResolveDataShouldWork(t *testing.T) {
 		numReceived:  1,
 		timestamp:    mockTimestampHandler(),
 	}
-	assert.Equal(t, expected, ir.Events()[0])
+	assert.Equal(t, expected, idh.Events()[0])
 
-	ir.LogFailedToResolveData(topic, hash, nil)
-	require.Equal(t, 1, len(ir.Events()))
+	idh.LogFailedToResolveData(topic, hash, nil)
+	require.Equal(t, 1, len(idh.Events()))
 	expected = &event{
 		eventType:    resolveEvent,
 		hash:         hash,
@@ -321,21 +317,21 @@ func TestInterceptorResolver_LogFailedToResolveDataShouldWork(t *testing.T) {
 		numReceived:  2,
 		timestamp:    mockTimestampHandler(),
 	}
-	assert.Equal(t, expected, ir.Events()[0])
+	assert.Equal(t, expected, idh.Events()[0])
 }
 
 func TestInterceptorResolver_LogFailedToResolveDataAndRequestedDataShouldWork(t *testing.T) {
 	t.Parallel()
 
-	ir, _ := NewInterceptorResolver(createWorkableConfig())
-	ir.LogFailedToResolveData(topic, hash, nil)
+	idh, _ := NewInterceptorDebugHandler(createWorkableConfig())
+	idh.LogFailedToResolveData(topic, hash, nil)
 
-	assert.Equal(t, 1, len(ir.Events()))
+	assert.Equal(t, 1, len(idh.Events()))
 
-	ir.LogRequestedData(topic, [][]byte{hash}, numIntra, numCross)
+	idh.LogRequestedData(topic, [][]byte{hash}, numIntra, numCross)
 
-	assert.Equal(t, 2, len(ir.Events()))
-	fmt.Println(ir.Query("*"))
+	assert.Equal(t, 2, len(idh.Events()))
+	fmt.Println(idh.Query("*"))
 }
 
 //------- LogSucceedToResolveData
@@ -343,11 +339,11 @@ func TestInterceptorResolver_LogFailedToResolveDataAndRequestedDataShouldWork(t 
 func TestInterceptorResolver_LogSucceededToResolveDataShouldWork(t *testing.T) {
 	t.Parallel()
 
-	ir, _ := NewInterceptorResolver(createWorkableConfig())
-	ir.SetTimehandler(mockTimestampHandler)
-	ir.LogFailedToResolveData(topic, hash, nil)
+	idh, _ := NewInterceptorDebugHandler(createWorkableConfig())
+	idh.SetTimeHandler(mockTimestampHandler)
+	idh.LogFailedToResolveData(topic, hash, nil)
 
-	require.Equal(t, 1, len(ir.Events()))
+	require.Equal(t, 1, len(idh.Events()))
 	expected := &event{
 		eventType:    resolveEvent,
 		hash:         hash,
@@ -359,10 +355,10 @@ func TestInterceptorResolver_LogSucceededToResolveDataShouldWork(t *testing.T) {
 		numReceived:  1,
 		timestamp:    mockTimestampHandler(),
 	}
-	assert.Equal(t, expected, ir.Events()[0])
+	assert.Equal(t, expected, idh.Events()[0])
 
-	ir.LogSucceededToResolveData(topic, hash)
-	assert.Equal(t, 0, len(ir.Events()))
+	idh.LogSucceededToResolveData(topic, hash)
+	assert.Equal(t, 0, len(idh.Events()))
 }
 
 //------- functions
@@ -372,28 +368,28 @@ func TestInterceptorResolver_Query(t *testing.T) {
 
 	topic1 := "topic1"
 	topic2 := "aaaa"
-	ir, _ := NewInterceptorResolver(createWorkableConfig())
-	ir.LogRequestedData(topic1, [][]byte{hash}, numIntra, numCross)
-	ir.LogRequestedData(topic2, [][]byte{hash}, numIntra, numCross)
+	idh, _ := NewInterceptorDebugHandler(createWorkableConfig())
+	idh.LogRequestedData(topic1, [][]byte{hash}, numIntra, numCross)
+	idh.LogRequestedData(topic2, [][]byte{hash}, numIntra, numCross)
 
-	assert.Equal(t, 0, len(ir.Query("not a topic")))
-	assert.Equal(t, 1, len(ir.Query(topic1)))
-	assert.Equal(t, 1, len(ir.Query(topic2)))
-	assert.Equal(t, 2, len(ir.Query("*")))
+	assert.Equal(t, 0, len(idh.Query("not a topic")))
+	assert.Equal(t, 1, len(idh.Query(topic1)))
+	assert.Equal(t, 1, len(idh.Query(topic2)))
+	assert.Equal(t, 2, len(idh.Query("*")))
 }
 
 func TestInterceptorResolver_GetStringEventsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	ir, _ := NewInterceptorResolver(createWorkableConfig())
-	assert.Equal(t, 0, len(ir.getStringEvents(100)))
+	idh, _ := NewInterceptorDebugHandler(createWorkableConfig())
+	assert.Equal(t, 0, len(idh.getStringEvents(100)))
 
-	ir.LogFailedToResolveData(topic, hash, nil)
-	ir.LogFailedToResolveData(topic, hash, nil)
+	idh.LogFailedToResolveData(topic, hash, nil)
+	idh.LogFailedToResolveData(topic, hash, nil)
 
-	ir.LogRequestedData(topic, [][]byte{hash}, 1, 1)
+	idh.LogRequestedData(topic, [][]byte{hash}, 1, 1)
 
-	assert.Equal(t, 2, len(ir.getStringEvents(100)))
+	assert.Equal(t, 2, len(idh.getStringEvents(100)))
 }
 
 func TestInterceptorResolver_NumPrintsShouldWork(t *testing.T) {
@@ -408,13 +404,13 @@ func TestInterceptorResolver_NumPrintsShouldWork(t *testing.T) {
 	cfg.NumResolveFailureThreshold = 1
 	cfg.NumRequestsThreshold = 1
 	cfg.DebugLineExpiration = 2
-	ir, _ := NewInterceptorResolver(cfg)
-	ir.printEventFunc = func(data string) {
+	idh, _ := NewInterceptorDebugHandler(cfg)
+	idh.printEventFunc = func(data string) {
 		atomic.AddUint32(&numPrintCalls, 1)
 	}
 
-	ir.LogFailedToResolveData(topic, hash, nil)
-	ir.LogFailedToResolveData(topic, hash, nil)
+	idh.LogFailedToResolveData(topic, hash, nil)
+	idh.LogFailedToResolveData(topic, hash, nil)
 
 	time.Sleep(time.Second * 5)
 

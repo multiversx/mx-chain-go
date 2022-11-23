@@ -30,7 +30,6 @@ type ArgTopicRequestSender struct {
 type topicRequestSender struct {
 	*baseTopicSender
 	marshaller                         marshal.Marshalizer
-	topicName                          string
 	peerListCreator                    dataRetriever.PeerListCreator
 	randomizer                         dataRetriever.IntRandomizer
 	mutNumPeersToQuery                 sync.RWMutex
@@ -52,7 +51,6 @@ func NewTopicRequestSender(args ArgTopicRequestSender) (*topicRequestSender, err
 	return &topicRequestSender{
 		baseTopicSender:                    createBaseTopicSender(args.ArgBaseTopicSender),
 		marshaller:                         args.Marshaller,
-		topicName:                          args.TopicName,
 		peerListCreator:                    args.PeerListCreator,
 		randomizer:                         args.Randomizer,
 		numIntraShardPeers:                 args.NumIntraShardPeers,
@@ -148,10 +146,10 @@ func (trs *topicRequestSender) SendOnRequestTopic(rd *dataRetriever.RequestData,
 }
 
 func (trs *topicRequestSender) callDebugHandler(originalHashes [][]byte, numSentIntra int, numSentCross int) {
-	trs.mutResolverDebugHandler.RLock()
-	defer trs.mutResolverDebugHandler.RUnlock()
+	trs.mutDebugHandler.RLock()
+	defer trs.mutDebugHandler.RUnlock()
 
-	trs.resolverDebugHandler.LogRequestedData(trs.topicName, originalHashes, numSentIntra, numSentCross)
+	trs.debugHandler.LogRequestedData(trs.topicName, originalHashes, numSentIntra, numSentCross)
 }
 
 func createIndexList(listLength int) []int {

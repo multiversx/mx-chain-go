@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
+	dataRetrieverMocks "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -84,7 +85,7 @@ func testRequestDataFromHashArray(t *testing.T, requesterType requestHandlerType
 		providedHashes := [][]byte{[]byte("hash 1"), []byte("hash 2"), []byte("hash 3")}
 		args := createMockArgBaseRequester()
 		wasCalled := false
-		args.RequestSender = &mock.TopicResolverSenderStub{
+		args.RequestSender = &dataRetrieverMocks.TopicRequestSenderStub{
 			SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData, originalHashes [][]byte) error {
 				wasCalled = true
 				b := &batch.Batch{
@@ -115,7 +116,7 @@ func testRequestDataFromReferenceAndChunk(t *testing.T, requesterType requestHan
 	providedHashes := [][]byte{providedHash}
 	args := createMockArgBaseRequester()
 	wasCalled := false
-	args.RequestSender = &mock.TopicResolverSenderStub{
+	args.RequestSender = &dataRetrieverMocks.TopicRequestSenderStub{
 		SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData, originalHashes [][]byte) error {
 			wasCalled = true
 			assert.Equal(t, providedHash, rd.Value)

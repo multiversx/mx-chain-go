@@ -24,8 +24,8 @@ func (r *requester) NumPeersToQuery() (int, int) {
 	return 0, 0
 }
 
-// SetResolverDebugHandler returns nil as it is disabled
-func (r *requester) SetResolverDebugHandler(_ dataRetriever.ResolverDebugHandler) error {
+// SetDebugHandler returns nil as it is disabled
+func (r *requester) SetDebugHandler(_ dataRetriever.DebugHandler) error {
 	return nil
 }
 

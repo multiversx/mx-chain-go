@@ -10,8 +10,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
-// InterceptorResolverDebugger is the contant string for the debugger
-const InterceptorResolverDebugger = "interceptor resolver debugger"
+// InterceptorDebugger is the constant string for the debugger
+const InterceptorDebugger = "interceptor debugger"
 
 // CreateInterceptedDebugHandler creates and applies an interceptor-resolver debug handler
 func CreateInterceptedDebugHandler(
@@ -34,7 +34,7 @@ func CreateInterceptedDebugHandler(
 		return ErrNilRequestersContainer
 	}
 
-	debugHandler, err := factory.NewInterceptorResolverDebuggerFactory(config)
+	debugHandler, err := factory.NewInterceptorDebuggerFactory(config)
 	if err != nil {
 		return err
 	}
@@ -54,7 +54,7 @@ func CreateInterceptedDebugHandler(
 	}
 
 	resolvers.Iterate(func(key string, resolver dataRetriever.Resolver) bool {
-		err = resolver.SetResolverDebugHandler(debugHandler)
+		err = resolver.SetDebugHandler(debugHandler)
 		if err != nil {
 			errFound = err
 			return false
@@ -67,7 +67,7 @@ func CreateInterceptedDebugHandler(
 	}
 
 	requesters.Iterate(func(key string, requester dataRetriever.Requester) bool {
-		err = requester.SetResolverDebugHandler(debugHandler)
+		err = requester.SetDebugHandler(debugHandler)
 		if err != nil {
 			errFound = err
 			return false
@@ -79,5 +79,5 @@ func CreateInterceptedDebugHandler(
 		return fmt.Errorf("%w while setting up debugger on resolvers", errFound)
 	}
 
-	return node.AddQueryHandler(InterceptorResolverDebugger, debugHandler)
+	return node.AddQueryHandler(InterceptorDebugger, debugHandler)
 }

@@ -21,11 +21,8 @@ type ResolverThrottler interface {
 
 // Resolver defines what a data resolver should do
 type Resolver interface {
-	RequestDataFromHash(hash []byte, epoch uint32) error
 	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
-	SetResolverDebugHandler(handler ResolverDebugHandler) error
-	SetNumPeersToQuery(intra int, cross int)
-	NumPeersToQuery() (int, int)
+	SetDebugHandler(handler DebugHandler) error
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -35,52 +32,23 @@ type Requester interface {
 	RequestDataFromHash(hash []byte, epoch uint32) error
 	SetNumPeersToQuery(intra int, cross int)
 	NumPeersToQuery() (int, int)
-	SetResolverDebugHandler(handler ResolverDebugHandler) error // TODO[Sorin]: rename this in both interface to SetDebugHandler
+	SetDebugHandler(handler DebugHandler) error
 	IsInterfaceNil() bool
-}
-
-// TrieNodesResolver defines what a trie nodes resolver should do
-type TrieNodesResolver interface {
-	Resolver
-	RequestDataFromHashArray(hashes [][]byte, epoch uint32) error
 }
 
 // HeaderResolver defines what a block header resolver should do
 type HeaderResolver interface {
 	Resolver
-	RequestDataFromNonce(nonce uint64, epoch uint32) error
-	RequestDataFromEpoch(identifier []byte) error
 	SetEpochHandler(epochHandler EpochHandler) error
-}
-
-// MiniBlocksResolver defines what a mini blocks resolver should do
-type MiniBlocksResolver interface {
-	Resolver
-	RequestDataFromHashArray(hashes [][]byte, epoch uint32) error
-}
-
-// PeerAuthenticationResolver defines what a peer authentication resolver should do
-type PeerAuthenticationResolver interface {
-	Resolver
-	RequestDataFromHashArray(hashes [][]byte, epoch uint32) error
-}
-
-// ValidatorInfoResolver defines what a validator info resolver should do
-type ValidatorInfoResolver interface {
-	Resolver
-	RequestDataFromHashArray(hashes [][]byte, epoch uint32) error
 }
 
 // TopicResolverSender defines what sending operations are allowed for a topic resolver
 type TopicResolverSender interface {
-	SendOnRequestTopic(rd *RequestData, originalHashes [][]byte) error
 	Send(buff []byte, peer core.PeerID) error
 	RequestTopic() string
 	TargetShardID() uint32
-	SetNumPeersToQuery(intra int, cross int)
-	SetResolverDebugHandler(handler ResolverDebugHandler) error
-	ResolverDebugHandler() ResolverDebugHandler
-	NumPeersToQuery() (int, int)
+	SetDebugHandler(handler DebugHandler) error
+	DebugHandler() DebugHandler
 	IsInterfaceNil() bool
 }
 
@@ -120,8 +88,8 @@ type TopicRequestSender interface {
 	NumPeersToQuery() (int, int)
 	RequestTopic() string
 	TargetShardID() uint32
-	SetResolverDebugHandler(handler ResolverDebugHandler) error
-	ResolverDebugHandler() ResolverDebugHandler
+	SetDebugHandler(handler DebugHandler) error
+	DebugHandler() DebugHandler
 	IsInterfaceNil() bool
 }
 
@@ -352,8 +320,8 @@ type WhiteListHandler interface {
 	IsInterfaceNil() bool
 }
 
-// ResolverDebugHandler defines an interface for debugging the reqested-resolved data
-type ResolverDebugHandler interface {
+// DebugHandler defines an interface for debugging the reqested-resolved data
+type DebugHandler interface {
 	LogRequestedData(topic string, hashes [][]byte, numReqIntra int, numReqCross int)
 	LogFailedToResolveData(topic string, hash []byte, err error)
 	LogSucceededToResolveData(topic string, hash []byte)

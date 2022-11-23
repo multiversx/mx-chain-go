@@ -20,8 +20,8 @@ type storageRequester struct {
 	delayBeforeGracefulClose time.Duration
 }
 
-// SetResolverDebugHandler returns nil, no debugging associated to this implementation
-func (sr *storageRequester) SetResolverDebugHandler(_ dataRetriever.ResolverDebugHandler) error {
+// SetDebugHandler returns nil, no debugging associated to this implementation
+func (sr *storageRequester) SetDebugHandler(_ dataRetriever.DebugHandler) error {
 	return nil
 }
 

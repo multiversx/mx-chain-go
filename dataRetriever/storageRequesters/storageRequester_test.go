@@ -24,7 +24,7 @@ func TestStorageRequester_ImplementedMethodsShouldNotPanic(t *testing.T) {
 	}()
 
 	sr := &storageRequester{}
-	assert.Nil(t, sr.SetResolverDebugHandler(nil))
+	assert.Nil(t, sr.SetDebugHandler(nil))
 	sr.SetNumPeersToQuery(0, 0)
 	v1, v2 := sr.NumPeersToQuery()
 	assert.Equal(t, 0, v1)

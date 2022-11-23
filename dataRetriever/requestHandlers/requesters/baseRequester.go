@@ -60,9 +60,9 @@ func (requester *baseRequester) NumPeersToQuery() (int, int) {
 	return requester.TopicRequestSender.NumPeersToQuery()
 }
 
-// SetResolverDebugHandler sets a resolver debug requester
-func (requester *baseRequester) SetResolverDebugHandler(debugHandler dataRetriever.ResolverDebugHandler) error {
-	return requester.TopicRequestSender.SetResolverDebugHandler(debugHandler)
+// SetDebugHandler sets a debug requester
+func (requester *baseRequester) SetDebugHandler(debugHandler dataRetriever.DebugHandler) error {
+	return requester.TopicRequestSender.SetDebugHandler(debugHandler)
 }
 
 func (requester *baseRequester) requestDataFromHashArray(hashes [][]byte, epoch uint32) error {

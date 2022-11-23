@@ -9,7 +9,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go-p2p/message"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	resolverDebug "github.com/ElrondNetwork/elrond-go/debug/resolver"
+	"github.com/ElrondNetwork/elrond-go/debug/handler"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
@@ -35,8 +35,8 @@ type baseTopicSender struct {
 	messenger                   dataRetriever.MessageHandler
 	topicName                   string
 	outputAntiflooder           dataRetriever.P2PAntifloodHandler
-	mutResolverDebugHandler     sync.RWMutex
-	resolverDebugHandler        dataRetriever.ResolverDebugHandler
+	mutDebugHandler             sync.RWMutex
+	debugHandler                dataRetriever.DebugHandler
 	preferredPeersHolderHandler dataRetriever.PreferredPeersHolderHandler
 	targetShardId               uint32
 }
@@ -46,7 +46,7 @@ func createBaseTopicSender(args ArgBaseTopicSender) *baseTopicSender {
 		messenger:                   args.Messenger,
 		topicName:                   args.TopicName,
 		outputAntiflooder:           args.OutputAntiflooder,
-		resolverDebugHandler:        resolverDebug.NewDisabledInterceptorResolver(),
+		debugHandler:                handler.NewDisabledInterceptorDebugHandler(),
 		preferredPeersHolderHandler: args.PreferredPeersHolder,
 		targetShardId:               args.TargetShardId,
 	}
@@ -89,23 +89,23 @@ func (baseSender *baseTopicSender) sendToConnectedPeer(topic string, buff []byte
 	return baseSender.messenger.SendToConnectedPeer(topic, buff, peer)
 }
 
-// ResolverDebugHandler returns the debug handler used in resolvers
-func (baseSender *baseTopicSender) ResolverDebugHandler() dataRetriever.ResolverDebugHandler {
-	baseSender.mutResolverDebugHandler.RLock()
-	defer baseSender.mutResolverDebugHandler.RUnlock()
+// DebugHandler returns the debug handler used in resolvers
+func (baseSender *baseTopicSender) DebugHandler() dataRetriever.DebugHandler {
+	baseSender.mutDebugHandler.RLock()
+	defer baseSender.mutDebugHandler.RUnlock()
 
-	return baseSender.resolverDebugHandler
+	return baseSender.debugHandler
 }
 
-// SetResolverDebugHandler sets the debug handler used in resolvers
-func (baseSender *baseTopicSender) SetResolverDebugHandler(handler dataRetriever.ResolverDebugHandler) error {
+// SetDebugHandler sets the debug handler used in resolvers
+func (baseSender *baseTopicSender) SetDebugHandler(handler dataRetriever.DebugHandler) error {
 	if check.IfNil(handler) {
-		return dataRetriever.ErrNilResolverDebugHandler
+		return dataRetriever.ErrNilDebugHandler
 	}
 
-	baseSender.mutResolverDebugHandler.Lock()
-	baseSender.resolverDebugHandler = handler
-	baseSender.mutResolverDebugHandler.Unlock()
+	baseSender.mutDebugHandler.Lock()
+	baseSender.debugHandler = handler
+	baseSender.mutDebugHandler.Unlock()
 
 	return nil
 }
