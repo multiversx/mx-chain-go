@@ -569,7 +569,7 @@ func applyCompatibleConfigs(log logger.Logger, configs *config.Configs) error {
 func processHistoricalBalancesMode(log logger.Logger, configs *config.Configs) {
 	configs.GeneralConfig.StoragePruning.ValidatorCleanOldEpochsData = false
 	configs.GeneralConfig.StoragePruning.ObserverCleanOldEpochsData = false
-	configs.GeneralConfig.GeneralSettings.StartInEpochEnabled = false
+	//configs.GeneralConfig.GeneralSettings.StartInEpochEnabled = false
 	configs.GeneralConfig.StoragePruning.AccountsTrieCleanOldEpochsData = false
 	configs.GeneralConfig.StateTriesConfig.AccountsStatePruningEnabled = false
 	configs.GeneralConfig.DbLookupExtensions.Enabled = true
