@@ -201,7 +201,7 @@ func (boot *MetaBootstrap) syncAccountsDBs(key []byte, id string) error {
 	case common.PeerAccountsTrieIdentifier:
 		return boot.syncValidatorAccountsState(key)
 	default:
-		return fmt.Errorf("invalid trie identifier, id %s", id)
+		return fmt.Errorf("invalid trie identifier, id: %s", id)
 	}
 }
 

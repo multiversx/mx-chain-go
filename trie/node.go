@@ -119,10 +119,11 @@ func getNodeFromDBAndDecode(n []byte, db common.DBWriteCacher, marshalizer marsh
 	if err != nil {
 		dbWithID, ok := db.(dbWriteCacherWithIdentifier)
 		if !ok {
+			log.Trace(common.GetNodeFromDBErrorString, "error", err, "key", n)
 			return nil, errors.NewGetNodeFromDBErr(n, err, "")
 		}
 
-		log.Debug(common.GetNodeFromDBErrorString, "error", err, "key", n)
+		log.Trace(common.GetNodeFromDBErrorString, "error", err, "key", n)
 		return nil, errors.NewGetNodeFromDBErr(n, err, dbWithID.GetIdentifier())
 	}
 
