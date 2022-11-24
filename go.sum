@@ -80,6 +80,8 @@ github.com/ElrondNetwork/go-libp2p-pubsub v0.6.1-rc1 h1:Nu/uwYQg/QbfoQ0uD6GahYTw
 github.com/ElrondNetwork/go-libp2p-pubsub v0.6.1-rc1/go.mod h1:pJfaShe+i5aWZx8NhSkQjvOYQYLoqPztmFUlKjToOzM=
 github.com/ElrondNetwork/protobuf v1.3.2 h1:qoCSYiO+8GtXBEZWEjw0WPcZfM3g7QuuJrwpN+y6Mvg=
 github.com/ElrondNetwork/protobuf v1.3.2/go.mod h1:SlYgWuQ5SjCEi6WLHjHCa1yvBfUnHcTbrrZtXPKa29o=
+github.com/ElrondNetwork/wasm-vm v1.5.3-0.20221124160204-d2f0f0331d06 h1:G3yNh+D2sYUweVnLGQXi31pEK2AYN1KafP8RUe/JVMk=
+github.com/ElrondNetwork/wasm-vm v1.5.3-0.20221124160204-d2f0f0331d06/go.mod h1:UWhGPIHs2RbrFgdaqGXoEozZgJWnOjX1HxfDRH/Iefc=
 github.com/ElrondNetwork/wasm-vm-v1_2 v1.2.47-0.20221110093203-b8df168c4e6a h1:5r/tzqIrEiXsUXVT07NtMWKV3PX6eX9GepMJoT19UJ0=
 github.com/ElrondNetwork/wasm-vm-v1_2 v1.2.47-0.20221110093203-b8df168c4e6a/go.mod h1:i1TIkkBwx3ss3C4balJCKQDiRpG6WOI4blhlfSf56uI=
 github.com/ElrondNetwork/wasm-vm-v1_3 v1.3.45-rc h1:4aCnmAusTmj+qtsQV+jiCpOaM2VP7p3l8SyXk0JIC8s=

@@ -109,7 +109,9 @@ func CreateHostAndInstanceBuilder(t *testing.T,
 	shardToExecutor := make(map[uint32]*mock.ExecutorMock, numberOfShards)
 	shardToHost := make(map[uint32]arwen.VMHost, numberOfShards)
 
-	net.DefaultNode.BlockchainHook.SetVMContainer(vmContainer)
+	if vmContainer != nil {
+		net.DefaultNode.BlockchainHook.SetVMContainer(vmContainer)
+	}
 
 	for shardID := uint32(0); shardID < numberOfShards; shardID++ {
 		world := worldmock.NewMockWorld()
@@ -122,7 +124,7 @@ func CreateHostAndInstanceBuilder(t *testing.T,
 
 	for shardID := uint32(0); shardID < numberOfShards; shardID++ {
 		node := net.NodesSharded[shardID][0]
-		for _, vmType := range vmContainer.Keys() {
+		for _, vmType := range node.VMContainer.Keys() {
 			host, err := node.VMContainer.Get(vmType)
 			require.NotNil(t, host)
 			require.Nil(t, err)
