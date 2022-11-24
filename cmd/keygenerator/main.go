@@ -47,6 +47,12 @@ type key struct {
 	pkBytes []byte
 }
 
+type pubKeyConverter interface {
+	Decode(humanReadable string) ([]byte, error)
+	Encode(pkBytes []byte) string
+	IsInterfaceNil() bool
+}
+
 const keysFolderPattern = "node-%d"
 const blsPubkeyLen = 96
 const txSignPubkeyLen = 32
@@ -354,7 +360,7 @@ func printKeys(validatorKeys, walletKeys, p2pKeys []key) error {
 	return errFound
 }
 
-func printSliceKeys(message string, sliceKeys []key, converter core.PubkeyConverter) error {
+func printSliceKeys(message string, sliceKeys []key, converter pubKeyConverter) error {
 	data := []string{message + "\n"}
 
 	for _, k := range sliceKeys {
@@ -371,12 +377,12 @@ func printSliceKeys(message string, sliceKeys []key, converter core.PubkeyConver
 	return nil
 }
 
-func writeKeyToStream(writer io.Writer, key key, pubkeyConverter core.PubkeyConverter) error {
+func writeKeyToStream(writer io.Writer, key key, converter pubKeyConverter) error {
 	if check.IfNilReflect(writer) {
 		return fmt.Errorf("nil writer")
 	}
 
-	pkString := pubkeyConverter.Encode(key.pkBytes)
+	pkString := converter.Encode(key.pkBytes)
 
 	blk := pem.Block{
 		Type:  "PRIVATE KEY for " + pkString,
@@ -414,7 +420,7 @@ func saveKeys(validatorKeys, walletKeys, p2pKeys []key, noSplit bool) error {
 	return errFound
 }
 
-func saveSliceKeys(baseFilenameTemplate string, keys []key, pubkeyConverter core.PubkeyConverter, noSplit bool) error {
+func saveSliceKeys(baseFilenameTemplate string, keys []key, converter pubKeyConverter, noSplit bool) error {
 	var file *os.File
 	var err error
 	for i, k := range keys {
@@ -426,7 +432,7 @@ func saveSliceKeys(baseFilenameTemplate string, keys []key, pubkeyConverter core
 			}
 		}
 
-		err = writeKeyToStream(file, k, pubkeyConverter)
+		err = writeKeyToStream(file, k, converter)
 		if err != nil {
 			return err
 		}

@@ -7,11 +7,6 @@ func NewDirectStringPubkeyConverter() *directStringPubkeyConverter {
 	return &directStringPubkeyConverter{}
 }
 
-// Len return zero
-func (converter *directStringPubkeyConverter) Len() int {
-	return 0
-}
-
 // Decode decodes the string as its representation in bytes
 func (converter *directStringPubkeyConverter) Decode(humanReadable string) ([]byte, error) {
 	return []byte(humanReadable), nil
