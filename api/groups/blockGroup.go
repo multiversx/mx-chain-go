@@ -26,7 +26,6 @@ const (
 	urlParamTokensFilter      = "tokens"
 	urlParamWithTxs           = "withTxs"
 	urlParamWithLogs          = "withLogs"
-	urlParamWithMetadata      = "withMetadata"
 )
 
 // blockFacadeHandler defines the methods to be implemented by a facade for handling block requests
@@ -236,18 +235,8 @@ func parseBlockQueryOptions(c *gin.Context) (api.BlockQueryOptions, error) {
 func parseAlteredAccountsForBlockQueryOptionsWithoutRequestType(c *gin.Context) (api.GetAlteredAccountsForBlockOptions, error) {
 	tokensFilter := c.Request.URL.Query().Get(urlParamTokensFilter)
 
-	withMetadata, err := parseBoolUrlParam(c, urlParamWithMetadata)
-	if err != nil {
-		return api.GetAlteredAccountsForBlockOptions{}, err
-	}
-
-	if withMetadata && len(tokensFilter) == 0 {
-		return api.GetAlteredAccountsForBlockOptions{}, errors.ErrIncompatibleWithMetadataParam
-	}
-
 	return api.GetAlteredAccountsForBlockOptions{
 		TokensFilter: tokensFilter,
-		WithMetadata: withMetadata,
 	}, nil
 }
 
