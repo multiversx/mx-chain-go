@@ -992,6 +992,28 @@ type RatingsStepHandler interface {
 	ConsecutiveMissedBlocksPenalty() float32
 }
 
+// NodesSetupHandler returns the nodes' configuration
+type NodesSetupHandler interface {
+	AllInitialNodes() []nodesCoordinator.GenesisNodeInfoHandler
+	InitialNodesPubKeys() map[uint32][]string
+	GetShardIDForPubKey(pubkey []byte) (uint32, error)
+	InitialEligibleNodesPubKeysForShard(shardId uint32) ([]string, error)
+	InitialNodesInfoForShard(shardId uint32) ([]nodesCoordinator.GenesisNodeInfoHandler, []nodesCoordinator.GenesisNodeInfoHandler, error)
+	InitialNodesInfo() (map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
+	GetStartTime() int64
+	GetRoundDuration() uint64
+	GetShardConsensusGroupSize() uint32
+	GetMetaConsensusGroupSize() uint32
+	NumberOfShards() uint32
+	MinNumberOfNodes() uint32
+	MinNumberOfShardNodes() uint32
+	MinNumberOfMetaNodes() uint32
+	GetHysteresis() float32
+	GetAdaptivity() bool
+	MinNumberOfNodesWithHysteresis() uint32
+	IsInterfaceNil() bool
+}
+
 // ValidatorInfoSyncer defines the method needed for validatorInfoProcessing
 type ValidatorInfoSyncer interface {
 	SyncMiniBlocks(headerHandler data.HeaderHandler) ([][]byte, data.BodyHandler, error)

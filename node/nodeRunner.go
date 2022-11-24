@@ -1405,7 +1405,7 @@ func (nr *nodeRunner) CreateManagedCoreComponents(
 		ImportDbConfig:      *nr.configs.ImportDbConfig,
 		RatingsConfig:       *nr.configs.RatingsConfig,
 		EconomicsConfig:     *nr.configs.EconomicsConfig,
-		NodesFilename:       nr.configs.ConfigurationPathsHolder.Nodes,
+		NodesConfig:         *nr.configs.NodesConfig,
 		WorkingDirectory:    nr.configs.FlagsConfig.WorkingDir,
 		ChanStopNodeProcess: chanStopNodeProcess,
 	}

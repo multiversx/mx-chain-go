@@ -455,17 +455,18 @@ func (se *stateExport) exportNodesSetupJson(validators map[uint32][]*state.Valid
 		return strings.Compare(initialNodes[i].PubKey, initialNodes[j].PubKey) < 0
 	})
 
-	genesisNodesSetupHandler := se.genesisNodesSetupHandler
+	// TODO: fix this
+	//	genesisNodesSetupHandler := se.genesisNodesSetupHandler
 	nodesSetup := &sharding.NodesSetup{
-		StartTime:                   genesisNodesSetupHandler.GetStartTime(),
-		RoundDuration:               genesisNodesSetupHandler.GetRoundDuration(),
-		ConsensusGroupSize:          genesisNodesSetupHandler.GetShardConsensusGroupSize(),
-		MinNodesPerShard:            genesisNodesSetupHandler.MinNumberOfShardNodes(),
-		MetaChainConsensusGroupSize: genesisNodesSetupHandler.GetMetaConsensusGroupSize(),
-		MetaChainMinNodes:           genesisNodesSetupHandler.MinNumberOfMetaNodes(),
-		Hysteresis:                  genesisNodesSetupHandler.GetHysteresis(),
-		Adaptivity:                  genesisNodesSetupHandler.GetAdaptivity(),
-		InitialNodes:                initialNodes,
+		//StartTime:                   genesisNodesSetupHandler.GetStartTime(),
+		//RoundDuration:               genesisNodesSetupHandler.GetRoundDuration(),
+		//ConsensusGroupSize:          genesisNodesSetupHandler.GetShardConsensusGroupSize(),
+		//MinNodesPerShard:            genesisNodesSetupHandler.MinNumberOfShardNodes(),
+		//MetaChainConsensusGroupSize: genesisNodesSetupHandler.GetMetaConsensusGroupSize(),
+		//MetaChainMinNodes:           genesisNodesSetupHandler.MinNumberOfMetaNodes(),
+		//Hysteresis:                  genesisNodesSetupHandler.GetHysteresis(),
+		//Adaptivity:                  genesisNodesSetupHandler.GetAdaptivity(),
+		//InitialNodes:                initialNodes,
 	}
 
 	nodesSetupBytes, err := json.MarshalIndent(nodesSetup, "", "  ")

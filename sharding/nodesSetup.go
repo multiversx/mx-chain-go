@@ -3,9 +3,12 @@ package sharding
 import (
 	"bytes"
 	"fmt"
+	"sort"
+	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 )
 
@@ -58,34 +61,28 @@ func (ni *nodeInfo) IsInterfaceNil() bool {
 
 // NodesSetup hold data for decoded data from json file
 type NodesSetup struct {
-	StartTime          int64  `json:"startTime"`
-	RoundDuration      uint64 `json:"roundDuration"`
-	ConsensusGroupSize uint32 `json:"consensusGroupSize"`
-	MinNodesPerShard   uint32 `json:"minNodesPerShard"`
+	NodesSetupDTO
 
-	MetaChainConsensusGroupSize uint32  `json:"metaChainConsensusGroupSize"`
-	MetaChainMinNodes           uint32  `json:"metaChainMinNodes"`
-	Hysteresis                  float32 `json:"hysteresis"`
-	Adaptivity                  bool    `json:"adaptivity"`
-
-	InitialNodes []*InitialNode `json:"initialNodes"`
-
-	genesisMaxNumShards      uint32
-	nrOfShards               uint32
-	nrOfNodes                uint32
-	nrOfMetaChainNodes       uint32
-	eligible                 map[uint32][]nodesCoordinator.GenesisNodeInfoHandler
-	waiting                  map[uint32][]nodesCoordinator.GenesisNodeInfoHandler
-	validatorPubkeyConverter core.PubkeyConverter
-	addressPubkeyConverter   core.PubkeyConverter
+	genesisMaxNumShards       uint32
+	numberOfShards            uint32
+	nrOfNodes                 uint32
+	nrOfMetaChainNodes        uint32
+	eligible                  map[uint32][]nodesCoordinator.GenesisNodeInfoHandler
+	waiting                   map[uint32][]nodesCoordinator.GenesisNodeInfoHandler
+	validatorPubkeyConverter  core.PubkeyConverter
+	addressPubkeyConverter    core.PubkeyConverter
+	currentShardConsensus     ConsensusConfiguration
+	currentMetachainConsensus ConsensusConfiguration
+	mutConfiguration          sync.RWMutex
 }
 
 // NewNodesSetup creates a new decoded nodes structure from json config file
 func NewNodesSetup(
-	nodesFilePath string,
+	nodesSetupDTO config.NodesConfig,
 	addressPubkeyConverter core.PubkeyConverter,
 	validatorPubkeyConverter core.PubkeyConverter,
 	genesisMaxNumShards uint32,
+	epochNotifier EpochNotifier,
 ) (*NodesSetup, error) {
 
 	if check.IfNil(addressPubkeyConverter) {
@@ -93,6 +90,9 @@ func NewNodesSetup(
 	}
 	if check.IfNil(validatorPubkeyConverter) {
 		return nil, fmt.Errorf("%w for validatorPubkeyConverter", ErrNilPubkeyConverter)
+	}
+	if check.IfNil(epochNotifier) {
+		return nil, ErrNilEpochNotifier
 	}
 	if genesisMaxNumShards < 1 {
 		return nil, fmt.Errorf("%w for genesisMaxNumShards", ErrInvalidMaximumNumberOfShards)
@@ -104,12 +104,49 @@ func NewNodesSetup(
 		genesisMaxNumShards:      genesisMaxNumShards,
 	}
 
-	err := core.LoadJsonFile(nodes, nodesFilePath)
-	if err != nil {
-		return nil, err
+	//var nodesSetupDTO NodesSetupDTO
+	//err := core.LoadJsonFile(&nodesSetupDTO, nodesFilePath)
+	//if err != nil {
+	//	return nil, err
+	//}
+
+	shardConsensus := make([]ConsensusConfiguration, 0, len(nodesSetupDTO.ShardConsensus))
+	for _, item := range nodesSetupDTO.ShardConsensus {
+		shardConsensus = append(shardConsensus, ConsensusConfiguration{
+			EnableEpoch:        item.EnableEpoch,
+			MinNodes:           item.MinNodes,
+			ConsensusGroupSize: item.ConsensusGroupSize,
+		})
+	}
+	metaConsensus := make([]ConsensusConfiguration, 0, len(nodesSetupDTO.MetaConsensus))
+	for _, item := range nodesSetupDTO.MetaConsensus {
+		metaConsensus = append(metaConsensus, ConsensusConfiguration{
+			EnableEpoch:        item.EnableEpoch,
+			MinNodes:           item.MinNodes,
+			ConsensusGroupSize: item.ConsensusGroupSize,
+		})
 	}
 
-	err = nodes.processConfig()
+	initialNodes := make([]*InitialNode, 0, len(nodesSetupDTO.InitialNodes))
+	for _, item := range nodesSetupDTO.InitialNodes {
+		initialNodes = append(initialNodes, &InitialNode{
+			PubKey:        item.PubKey,
+			Address:       item.Address,
+			InitialRating: item.InitialRating,
+			nodeInfo:      nodeInfo{},
+		})
+	}
+	nodes.NodesSetupDTO = NodesSetupDTO{
+		StartTime:      nodesSetupDTO.StartTime,
+		RoundDuration:  nodesSetupDTO.RoundDuration,
+		ShardConsensus: shardConsensus,
+		MetaConsensus:  metaConsensus,
+		Hysteresis:     nodesSetupDTO.Hysteresis,
+		Adaptivity:     nodesSetupDTO.Adaptivity,
+		InitialNodes:   initialNodes,
+	}
+
+	err := nodes.processConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +155,50 @@ func NewNodesSetup(
 	nodes.processShardAssignment()
 	nodes.createInitialNodesInfo()
 
+	epochNotifier.RegisterNotifyHandler(nodes)
+
 	return nodes, nil
+}
+
+// EpochConfirmed is called whenever a new epoch is confirmed
+func (ns *NodesSetup) EpochConfirmed(epoch uint32, _ uint64) {
+	ns.mutConfiguration.Lock()
+	defer ns.mutConfiguration.Unlock()
+
+	shardNewMatchingVersion := getMatchingVersion(ns.ShardConsensus, epoch)
+	metaNewMatchingVersion := getMatchingVersion(ns.MetaConsensus, epoch)
+
+	if shardNewMatchingVersion.EnableEpoch == ns.currentShardConsensus.EnableEpoch ||
+		metaNewMatchingVersion.EnableEpoch == ns.currentMetachainConsensus.EnableEpoch {
+		// nothing changed
+		return
+	}
+
+	consensusConfigDisplayFunc := func(configuration ConsensusConfiguration) string {
+		return fmt.Sprintf("[EnableEpoch=%d, MinNodes=%d, ConsensusGroupSize=%d]", configuration.EnableEpoch, configuration.MinNodes, configuration.ConsensusGroupSize)
+	}
+
+	ns.currentShardConsensus = shardNewMatchingVersion
+	ns.currentMetachainConsensus = metaNewMatchingVersion
+
+	log.Debug("nodes setup - updated configuration values",
+		"epoch", epoch,
+		"shard configuration", consensusConfigDisplayFunc(ns.currentShardConsensus),
+		"meta configuration", consensusConfigDisplayFunc(ns.currentMetachainConsensus),
+	)
+}
+
+func getMatchingVersion(configurationByEpoch []ConsensusConfiguration, epoch uint32) ConsensusConfiguration {
+	currentVersion := configurationByEpoch[0]
+	for _, versionByEpoch := range configurationByEpoch {
+		if versionByEpoch.EnableEpoch > epoch {
+			break
+		}
+
+		currentVersion = versionByEpoch
+	}
+
+	return currentVersion
 }
 
 func (ns *NodesSetup) processConfig() error {
@@ -160,34 +240,70 @@ func (ns *NodesSetup) processConfig() error {
 		ns.nrOfNodes++
 	}
 
-	if ns.ConsensusGroupSize < 1 {
-		return ErrNegativeOrZeroConsensusGroupSize
+	if len(ns.ShardConsensus) == 0 {
+		return fmt.Errorf("%w for shards", ErrMissingConsensusConfiguration)
 	}
-	if ns.MinNodesPerShard < ns.ConsensusGroupSize {
-		return ErrMinNodesPerShardSmallerThanConsensusSize
-	}
-	if ns.nrOfNodes < ns.MinNodesPerShard {
-		return ErrNodesSizeSmallerThanMinNoOfNodes
+	if len(ns.MetaConsensus) == 0 {
+		return fmt.Errorf("%w for metachain", ErrMissingConsensusConfiguration)
 	}
 
-	if ns.MetaChainConsensusGroupSize < 1 {
-		return ErrNegativeOrZeroConsensusGroupSize
-	}
-	if ns.MetaChainMinNodes < ns.MetaChainConsensusGroupSize {
-		return ErrMinNodesPerShardSmallerThanConsensusSize
+	for _, consensusConfig := range ns.ShardConsensus {
+		if consensusConfig.ConsensusGroupSize < 1 {
+			return ErrNegativeOrZeroConsensusGroupSize
+		}
+		if consensusConfig.MinNodes < consensusConfig.ConsensusGroupSize {
+			return ErrMinNodesPerShardSmallerThanConsensusSize
+		}
+		if ns.nrOfNodes < consensusConfig.MinNodes {
+			return ErrNodesSizeSmallerThanMinNoOfNodes
+		}
+		//if ns.ConsensusGroupSize < 1 {
+		//	return ErrNegativeOrZeroConsensusGroupSize
+		//}
+		//if ns.MinNodesPerShard < ns.ConsensusGroupSize {
+		//	return ErrMinNodesPerShardSmallerThanConsensusSize
+		//}
+		//if ns.nrOfNodes < ns.MinNodesPerShard {
+		//	return ErrNodesSizeSmallerThanMinNoOfNodes
+		//}
 	}
 
-	totalMinNodes := ns.MetaChainMinNodes + ns.MinNodesPerShard
-	if ns.nrOfNodes < totalMinNodes {
-		return ErrNodesSizeSmallerThanMinNoOfNodes
+	for _, consensusConfig := range ns.MetaConsensus {
+		if consensusConfig.ConsensusGroupSize < 1 {
+			return ErrNegativeOrZeroConsensusGroupSize
+		}
+		if consensusConfig.MinNodes < consensusConfig.ConsensusGroupSize {
+			return ErrMinNodesPerShardSmallerThanConsensusSize
+		}
 	}
+	//if ns.MetaChainConsensusGroupSize < 1 {
+	//	return ErrNegativeOrZeroConsensusGroupSize
+	//}
+	//if ns.MetaChainMinNodes < ns.MetaChainConsensusGroupSize {
+	//	return ErrMinNodesPerShardSmallerThanConsensusSize
+	//}
+
+	//totalMinNodes := ns.MetaChainMinNodes + ns.MinNodesPerShard
+	//if ns.nrOfNodes < totalMinNodes {
+	//	return ErrNodesSizeSmallerThanMinNoOfNodes
+	//}
+
+	sort.SliceStable(ns.ShardConsensus, func(i, j int) bool {
+		return ns.ShardConsensus[i].EnableEpoch < ns.ShardConsensus[j].EnableEpoch
+	})
+	sort.SliceStable(ns.MetaConsensus, func(i, j int) bool {
+		return ns.MetaConsensus[i].EnableEpoch < ns.MetaConsensus[j].EnableEpoch
+	})
+
+	ns.currentShardConsensus = ns.ShardConsensus[0]
+	ns.currentMetachainConsensus = ns.MetaConsensus[0]
 
 	return nil
 }
 
 func (ns *NodesSetup) processMetaChainAssigment() {
 	ns.nrOfMetaChainNodes = 0
-	for id := uint32(0); id < ns.MetaChainMinNodes; id++ {
+	for id := uint32(0); id < ns.currentMetachainConsensus.ConsensusGroupSize; id++ {
 		if ns.InitialNodes[id].pubKey != nil {
 			ns.InitialNodes[id].assignedShard = core.MetachainShardId
 			ns.InitialNodes[id].eligible = true
@@ -195,13 +311,13 @@ func (ns *NodesSetup) processMetaChainAssigment() {
 		}
 	}
 
-	hystMeta := uint32(float32(ns.MetaChainMinNodes) * ns.Hysteresis)
-	hystShard := uint32(float32(ns.MinNodesPerShard) * ns.Hysteresis)
+	hystMeta := uint32(float32(ns.currentMetachainConsensus.MinNodes) * ns.Hysteresis)
+	hystShard := uint32(float32(ns.currentShardConsensus.MinNodes) * ns.Hysteresis)
 
-	ns.nrOfShards = (ns.nrOfNodes - ns.nrOfMetaChainNodes - hystMeta) / (ns.MinNodesPerShard + hystShard)
+	ns.numberOfShards = (ns.nrOfNodes - ns.nrOfMetaChainNodes - hystMeta) / (ns.currentShardConsensus.MinNodes + hystShard)
 
-	if ns.nrOfShards > ns.genesisMaxNumShards {
-		ns.nrOfShards = ns.genesisMaxNumShards
+	if ns.numberOfShards > ns.genesisMaxNumShards {
+		ns.numberOfShards = ns.genesisMaxNumShards
 	}
 }
 
@@ -209,8 +325,8 @@ func (ns *NodesSetup) processShardAssignment() {
 	// initial implementation - as there is no other info than public key, we allocate first nodes in FIFO order to shards
 	currentShard := uint32(0)
 	countSetNodes := ns.nrOfMetaChainNodes
-	for ; currentShard < ns.nrOfShards; currentShard++ {
-		for id := countSetNodes; id < ns.nrOfMetaChainNodes+(currentShard+1)*ns.MinNodesPerShard; id++ {
+	for ; currentShard < ns.numberOfShards; currentShard++ {
+		for id := countSetNodes; id < ns.nrOfMetaChainNodes+(currentShard+1)*ns.currentShardConsensus.MinNodes; id++ {
 			// consider only nodes with valid public key
 			if ns.InitialNodes[id].pubKey != nil {
 				ns.InitialNodes[id].assignedShard = currentShard
@@ -223,8 +339,8 @@ func (ns *NodesSetup) processShardAssignment() {
 	// allocate the rest to waiting lists
 	currentShard = 0
 	for i := countSetNodes; i < ns.nrOfNodes; i++ {
-		currentShard = (currentShard + 1) % (ns.nrOfShards + 1)
-		if currentShard == ns.nrOfShards {
+		currentShard = (currentShard + 1) % (ns.numberOfShards + 1)
+		if currentShard == ns.numberOfShards {
 			currentShard = core.MetachainShardId
 		}
 
@@ -236,7 +352,7 @@ func (ns *NodesSetup) processShardAssignment() {
 }
 
 func (ns *NodesSetup) createInitialNodesInfo() {
-	nrOfShardAndMeta := ns.nrOfShards + 1
+	nrOfShardAndMeta := ns.numberOfShards + 1
 
 	ns.eligible = make(map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, nrOfShardAndMeta)
 	ns.waiting = make(map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, nrOfShardAndMeta)
@@ -320,41 +436,63 @@ func (ns *NodesSetup) InitialNodesInfoForShard(shardId uint32) ([]nodesCoordinat
 
 // NumberOfShards returns the calculated number of shards
 func (ns *NodesSetup) NumberOfShards() uint32 {
-	return ns.nrOfShards
+	return ns.numberOfShards
 }
 
 // MinNumberOfNodes returns the minimum number of nodes
 func (ns *NodesSetup) MinNumberOfNodes() uint32 {
-	return ns.nrOfShards*ns.MinNodesPerShard + ns.MetaChainMinNodes
+	ns.mutConfiguration.RLock()
+	defer ns.mutConfiguration.RUnlock()
+
+	return ns.minNumberOfNodesUnprotected()
+}
+
+func (ns *NodesSetup) minNumberOfNodesUnprotected() uint32 {
+	return ns.numberOfShards*ns.currentShardConsensus.MinNodes + ns.currentMetachainConsensus.MinNodes
 }
 
 // MinShardHysteresisNodes returns the minimum number of hysteresis nodes per shard
 func (ns *NodesSetup) MinShardHysteresisNodes() uint32 {
-	return uint32(float32(ns.MinNodesPerShard) * ns.Hysteresis)
+	ns.mutConfiguration.RLock()
+	defer ns.mutConfiguration.RUnlock()
+
+	return uint32(float32(ns.currentShardConsensus.MinNodes) * ns.Hysteresis)
 }
 
 // MinMetaHysteresisNodes returns the minimum number of hysteresis nodes in metachain
 func (ns *NodesSetup) MinMetaHysteresisNodes() uint32 {
-	return uint32(float32(ns.MetaChainMinNodes) * ns.Hysteresis)
+	ns.mutConfiguration.RLock()
+	defer ns.mutConfiguration.RUnlock()
+
+	return uint32(float32(ns.currentMetachainConsensus.MinNodes) * ns.Hysteresis)
 }
 
 // MinNumberOfNodesWithHysteresis returns the minimum number of nodes with hysteresis
 func (ns *NodesSetup) MinNumberOfNodesWithHysteresis() uint32 {
-	hystNodesMeta := ns.MinMetaHysteresisNodes()
-	hystNodesShard := ns.MinShardHysteresisNodes()
-	minNumberOfNodes := ns.MinNumberOfNodes()
+	ns.mutConfiguration.RLock()
+	defer ns.mutConfiguration.RUnlock()
 
-	return minNumberOfNodes + hystNodesMeta + ns.nrOfShards*hystNodesShard
+	hystNodesMeta := ns.currentMetachainConsensus.MinNodes
+	hystNodesShard := ns.currentShardConsensus.MinNodes
+	minNumberOfNodes := ns.minNumberOfNodesUnprotected()
+
+	return minNumberOfNodes + hystNodesMeta + ns.numberOfShards*hystNodesShard
 }
 
 // MinNumberOfShardNodes returns the minimum number of nodes per shard
 func (ns *NodesSetup) MinNumberOfShardNodes() uint32 {
-	return ns.MinNodesPerShard
+	ns.mutConfiguration.RLock()
+	defer ns.mutConfiguration.RUnlock()
+
+	return ns.currentShardConsensus.MinNodes
 }
 
 // MinNumberOfMetaNodes returns the minimum number of nodes in metachain
 func (ns *NodesSetup) MinNumberOfMetaNodes() uint32 {
-	return ns.MetaChainMinNodes
+	ns.mutConfiguration.RLock()
+	defer ns.mutConfiguration.RUnlock()
+
+	return ns.currentMetachainConsensus.MinNodes
 }
 
 // GetHysteresis returns the hysteresis value
@@ -389,12 +527,18 @@ func (ns *NodesSetup) GetRoundDuration() uint64 {
 
 // GetShardConsensusGroupSize returns the shard consensus group size
 func (ns *NodesSetup) GetShardConsensusGroupSize() uint32 {
-	return ns.ConsensusGroupSize
+	ns.mutConfiguration.RLock()
+	defer ns.mutConfiguration.RUnlock()
+
+	return ns.currentShardConsensus.ConsensusGroupSize
 }
 
 // GetMetaConsensusGroupSize returns the metachain consensus group size
 func (ns *NodesSetup) GetMetaConsensusGroupSize() uint32 {
-	return ns.MetaChainConsensusGroupSize
+	ns.mutConfiguration.RLock()
+	defer ns.mutConfiguration.RUnlock()
+
+	return ns.currentMetachainConsensus.ConsensusGroupSize
 }
 
 // IsInterfaceNil returns true if underlying object is nil

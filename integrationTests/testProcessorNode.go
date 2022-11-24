@@ -1060,12 +1060,12 @@ func CreateRatingsData() *rating.RatingsData {
 	}
 
 	ratingDataArgs := rating.RatingsDataArg{
-		Config:                   ratingsConfig,
-		ShardConsensusSize:       63,
-		MetaConsensusSize:        400,
-		ShardMinNodes:            400,
-		MetaMinNodes:             400,
-		RoundDurationMiliseconds: 6000,
+		Config:                    ratingsConfig,
+		ShardConsensusSize:        63,
+		MetaConsensusSize:         400,
+		ShardMinNodes:             400,
+		MetaMinNodes:              400,
+		RoundDurationMilliseconds: 6000,
 	}
 
 	ratingsData, _ := rating.NewRatingsData(ratingDataArgs)

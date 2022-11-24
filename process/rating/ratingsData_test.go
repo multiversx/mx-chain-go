@@ -8,6 +8,8 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -35,12 +37,23 @@ const (
 
 func createDymmyRatingsData() RatingsDataArg {
 	return RatingsDataArg{
-		Config:                   config.RatingsConfig{},
-		ShardConsensusSize:       shardConsensusSize,
-		MetaConsensusSize:        metaConsensusSize,
-		ShardMinNodes:            shardMinNodes,
-		MetaMinNodes:             metaMinNodes,
-		RoundDurationMiliseconds: roundDurationMiliseconds,
+		Config: config.RatingsConfig{},
+		NodesSetupHandler: &testscommon.NodesSetupStub{
+			GetShardConsensusGroupSizeCalled: func() uint32 {
+				return shardConsensusSize
+			},
+			GetMetaConsensusGroupSizeCalled: func() uint32 {
+				return metaConsensusSize
+			},
+			MinNumberOfMetaNodesCalled: func() uint32 {
+				return metaMinNodes
+			},
+			MinNumberOfShardNodesCalled: func() uint32 {
+				return shardMinNodes
+			},
+		},
+		RoundDurationMilliseconds: roundDurationMiliseconds,
+		EpochNotifier:             &epochNotifier.EpochNotifierStub{},
 	}
 }
 
@@ -282,11 +295,21 @@ func TestRatingsData_UnderflowErr(t *testing.T) {
 func TestRatingsData_OverflowErr(t *testing.T) {
 	t.Parallel()
 
+	getNodesSetup := func() *testscommon.NodesSetupStub {
+		return &testscommon.NodesSetupStub{}
+	}
+
 	ratingsDataArg := createDymmyRatingsData()
 	ratingsConfig := createDummyRatingsConfig()
 	ratingsDataArg.Config = ratingsConfig
-	ratingsDataArg.RoundDurationMiliseconds = 3600 * 1000
-	ratingsDataArg.MetaMinNodes = math.MaxUint32
+	nodesSetup := getNodesSetup()
+	nodesSetup.GetRoundDurationCalled = func() uint64 {
+		return 3600 * 1000
+	}
+	nodesSetup.MinNumberOfMetaNodesCalled = func() uint32 {
+		return math.MaxUint32
+	}
+	ratingsDataArg.NodesSetupHandler = nodesSetup
 	ratingsData, err := NewRatingsData(ratingsDataArg)
 
 	require.Nil(t, ratingsData)
@@ -296,9 +319,17 @@ func TestRatingsData_OverflowErr(t *testing.T) {
 	ratingsDataArg = createDymmyRatingsData()
 	ratingsConfig = createDummyRatingsConfig()
 	ratingsDataArg.Config = ratingsConfig
-	ratingsDataArg.RoundDurationMiliseconds = 3600 * 1000
-	ratingsDataArg.MetaMinNodes = math.MaxUint32
-	ratingsDataArg.MetaConsensusSize = 1
+	nodesSetup = getNodesSetup()
+	nodesSetup.GetRoundDurationCalled = func() uint64 {
+		return 3600 * 1000
+	}
+	nodesSetup.MinNumberOfMetaNodesCalled = func() uint32 {
+		return math.MaxUint32
+	}
+	nodesSetup.GetMetaConsensusGroupSizeCalled = func() uint32 {
+		return 1
+	}
+	ratingsDataArg.NodesSetupHandler = nodesSetup
 	ratingsDataArg.Config.MetaChain.ProposerValidatorImportance = float32(1) / math.MaxUint32
 	ratingsData, err = NewRatingsData(ratingsDataArg)
 
@@ -309,8 +340,14 @@ func TestRatingsData_OverflowErr(t *testing.T) {
 	ratingsDataArg = createDymmyRatingsData()
 	ratingsConfig = createDummyRatingsConfig()
 	ratingsDataArg.Config = ratingsConfig
-	ratingsDataArg.RoundDurationMiliseconds = 3600 * 1000
-	ratingsDataArg.ShardMinNodes = math.MaxUint32
+	nodesSetup = getNodesSetup()
+	nodesSetup.GetRoundDurationCalled = func() uint64 {
+		return 3600 * 1000
+	}
+	nodesSetup.MinNumberOfShardNodesCalled = func() uint32 {
+		return math.MaxUint32
+	}
+	ratingsDataArg.NodesSetupHandler = nodesSetup
 	ratingsData, err = NewRatingsData(ratingsDataArg)
 
 	require.Nil(t, ratingsData)
@@ -320,9 +357,17 @@ func TestRatingsData_OverflowErr(t *testing.T) {
 	ratingsDataArg = createDymmyRatingsData()
 	ratingsConfig = createDummyRatingsConfig()
 	ratingsDataArg.Config = ratingsConfig
-	ratingsDataArg.RoundDurationMiliseconds = 3600 * 1000
-	ratingsDataArg.ShardMinNodes = math.MaxUint32
-	ratingsDataArg.ShardConsensusSize = 1
+	nodesSetup = getNodesSetup()
+	nodesSetup.GetRoundDurationCalled = func() uint64 {
+		return 3600 * 1000
+	}
+	nodesSetup.MinNumberOfShardNodesCalled = func() uint32 {
+		return math.MaxUint32
+	}
+	nodesSetup.GetShardConsensusGroupSizeCalled = func() uint32 {
+		return 1
+	}
+	ratingsDataArg.NodesSetupHandler = nodesSetup
 	ratingsDataArg.Config.ShardChain.ProposerValidatorImportance = float32(1) / math.MaxUint32
 	ratingsData, err = NewRatingsData(ratingsDataArg)
 

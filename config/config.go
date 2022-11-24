@@ -1,6 +1,8 @@
 package config
 
-import p2pConfig "github.com/ElrondNetwork/elrond-go/p2p/config"
+import (
+	p2pConfig "github.com/ElrondNetwork/elrond-go/p2p/config"
+)
 
 // CacheConfig will map the cache configuration
 type CacheConfig struct {
@@ -569,6 +571,33 @@ type Configs struct {
 	ConfigurationPathsHolder *ConfigurationPathsHolder
 	EpochConfig              *EpochConfig
 	RoundConfig              *RoundConfig
+	NodesConfig              *NodesConfig
+}
+
+// ConsensusConfiguration holds the consensus configuration that can be used by both the shard and the metachain
+type ConsensusConfiguration struct {
+	EnableEpoch        uint32 `json:"enableEpoch"`
+	MinNodes           uint32 `json:"minNodes"`
+	ConsensusGroupSize uint32 `json:"consensusGroupSize"`
+}
+
+// NodesConfig is the data transfer object used to map the node's configuration in regard to the genesis nodes setup
+type NodesConfig struct {
+	StartTime      int64                    `json:"startTime"`
+	RoundDuration  uint64                   `json:"roundDuration"`
+	ShardConsensus []ConsensusConfiguration `json:"shardConsensusConfiguration"`
+	MetaConsensus  []ConsensusConfiguration `json:"metachainConsensusConfiguration"`
+	Hysteresis     float32                  `json:"hysteresis"`
+	Adaptivity     bool                     `json:"adaptivity"`
+
+	InitialNodes []*InitialNodeConfig `json:"initialNodes"`
+}
+
+// InitialNodeConfig holds data about a genesis node
+type InitialNodeConfig struct {
+	PubKey        string `json:"pubkey"`
+	Address       string `json:"address"`
+	InitialRating uint32 `json:"initialRating"`
 }
 
 // ConfigurationPathsHolder holds all configuration filenames and configuration paths used to start the node
