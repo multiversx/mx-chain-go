@@ -21,6 +21,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/cmd/keygenerator/converter"
 	"github.com/ElrondNetwork/elrond-go/p2p/factory"
+	"github.com/urfave/cli"
 )
 
 type cfg struct {
