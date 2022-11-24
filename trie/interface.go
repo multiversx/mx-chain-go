@@ -130,6 +130,5 @@ type StorageMarker interface {
 }
 
 type dbWriteCacherWithIdentifier interface {
-	common.DBWriteCacher
 	GetIdentifier() string
 }
