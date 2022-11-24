@@ -2,7 +2,7 @@ package sync
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/process/tree"
+	"github.com/ElrondNetwork/elrond-go-core/core/tree"
 )
 
 type hardforkExclusionHandler struct {

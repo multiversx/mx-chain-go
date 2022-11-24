@@ -4,8 +4,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/process/tree"
+	"github.com/ElrondNetwork/elrond-go-core/core/tree"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -22,20 +21,18 @@ func TestNewHardforkExclusionHandler(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		cfg := config.HardforkV2Config{
-			BlocksExceptionsByRound: []config.BlocksExceptionInterval{
-				{
-					Low:  15,
-					High: 18,
-				},
-				{
-					Low:  10,
-					High: 19,
-				},
-				{
-					Low:  17,
-					High: 22,
-				},
+		cfg := []tree.BlocksExceptionInterval{
+			{
+				Low:  15,
+				High: 18,
+			},
+			{
+				Low:  10,
+				High: 19,
+			},
+			{
+				Low:  17,
+				High: 22,
 			},
 		}
 		//             [15, 18]
