@@ -54,8 +54,9 @@ github.com/ElrondNetwork/elrond-go-core v1.1.7/go.mod h1:O9FkkTT2H9kxCzfn40TbhoC
 github.com/ElrondNetwork/elrond-go-core v1.1.13/go.mod h1:Yz8JK5sGBctw7+gU8j2mZHbzQ09Ek4XHJ4Uinq1N6nM=
 github.com/ElrondNetwork/elrond-go-core v1.1.18/go.mod h1:Yz8JK5sGBctw7+gU8j2mZHbzQ09Ek4XHJ4Uinq1N6nM=
 github.com/ElrondNetwork/elrond-go-core v1.1.19/go.mod h1:Yz8JK5sGBctw7+gU8j2mZHbzQ09Ek4XHJ4Uinq1N6nM=
-github.com/ElrondNetwork/elrond-go-core v1.1.24 h1:jamx50C1dP50uwh11EXT0+4pq0E0G3YYTK2xKEewDEk=
 github.com/ElrondNetwork/elrond-go-core v1.1.24/go.mod h1:UcZAiUqKBv3M3U6pJkYqIAx4OKubLYIc0QBVN+bY29g=
+github.com/ElrondNetwork/elrond-go-core v1.1.25 h1:jfO2TsV161bPMLbocjdNR+iy0lNKpfYwA4t5lNAFoK8=
+github.com/ElrondNetwork/elrond-go-core v1.1.25/go.mod h1:UcZAiUqKBv3M3U6pJkYqIAx4OKubLYIc0QBVN+bY29g=
 github.com/ElrondNetwork/elrond-go-crypto v1.0.0/go.mod h1:DGiR7/j1xv729Xg8SsjYaUzWXL5svMd44REXjWS/gAc=
 github.com/ElrondNetwork/elrond-go-crypto v1.2.1 h1:5wWCBEZp5SMFO2+Nal8UaJNJcG9G9J4PHNNZvQpEeUE=
 github.com/ElrondNetwork/elrond-go-crypto v1.2.1/go.mod h1:UNmpDaJjLTKxfzUcwua2R7Mh9bicw/L3ICJt5V7zqMo=
@@ -81,8 +82,8 @@ github.com/ElrondNetwork/wasm-vm-v1_2 v1.2.45-rc h1:+CcDhUEwPNnKsf9AmA+GShut9W+K
 github.com/ElrondNetwork/wasm-vm-v1_2 v1.2.45-rc/go.mod h1:i1TIkkBwx3ss3C4balJCKQDiRpG6WOI4blhlfSf56uI=
 github.com/ElrondNetwork/wasm-vm-v1_3 v1.3.45-rc h1:4aCnmAusTmj+qtsQV+jiCpOaM2VP7p3l8SyXk0JIC8s=
 github.com/ElrondNetwork/wasm-vm-v1_3 v1.3.45-rc/go.mod h1:6m4U8OM0C6Jaa6UBilPx1OJqECoz4MfyKw0pV1eAnxs=
-github.com/ElrondNetwork/wasm-vm-v1_4 v1.4.63 h1:yHvpNnFEpAJZBG8zPgk91SiEccMi5V617unCMnYNg+E=
-github.com/ElrondNetwork/wasm-vm-v1_4 v1.4.63/go.mod h1:Euz6pwRi/S9PiM0IL8aDbxhRy3jAXSf46TV9HLfvD+c=
+github.com/ElrondNetwork/wasm-vm-v1_4 v1.4.65 h1:3jTcGuZi8L3XhZ4HmkgomxKP3EKesLLyLJMxu6YUl4w=
+github.com/ElrondNetwork/wasm-vm-v1_4 v1.4.65/go.mod h1:Euz6pwRi/S9PiM0IL8aDbxhRy3jAXSf46TV9HLfvD+c=
 github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible/go.mod h1:r7JcOSlj0wfOMncg0iLm8Leh48TZaKVeNIfJntJ2wa0=
 github.com/Kubuxu/go-os-helper v0.0.1/go.mod h1:N8B+I7vPCT80IcP58r50u4+gEEcsZETFUpAzWW2ep1Y=
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=

@@ -56,10 +56,11 @@ func createMockMetaAPIProcessor(
 				return withHistory
 			},
 		},
-		ReceiptsRepository:      &testscommon.ReceiptsRepositoryStub{},
-		AddressPubkeyConverter:  &testscommon.PubkeyConverterMock{},
-		AlteredAccountsProvider: &testscommon.AlteredAccountsProviderStub{},
-		AccountsRepository:      &state.AccountsRepositoryStub{},
+		ReceiptsRepository:           &testscommon.ReceiptsRepositoryStub{},
+		AddressPubkeyConverter:       &testscommon.PubkeyConverterMock{},
+		AlteredAccountsProvider:      &testscommon.AlteredAccountsProviderStub{},
+		AccountsRepository:           &state.AccountsRepositoryStub{},
+		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 	}, nil)
 }
 
