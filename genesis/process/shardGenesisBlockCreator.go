@@ -470,7 +470,10 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		return nil, err
 	}
 
-	blockChainHookImpl.SetVMContainer(vmContainer)
+	err = blockChainHookImpl.SetVMContainer(vmContainer)
+	if err != nil {
+		return nil, err
+	}
 
 	err = builtInFuncFactory.SetPayableHandler(vmFactoryImpl.BlockChainHookImpl())
 	if err != nil {

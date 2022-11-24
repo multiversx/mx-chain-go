@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -13,8 +12,6 @@ func TestArwenBenchmark_ShouldWork(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
-
-	logger.SetLogLevel("arwen:TRACE")
 
 	testName := "fibonacci"
 	ab := NewArwenBenchmark(

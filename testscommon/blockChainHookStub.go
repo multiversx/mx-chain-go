@@ -40,7 +40,7 @@ type BlockChainHookStub struct {
 	GetSnapshotCalled                       func() int
 	RevertToSnapshotCalled                  func(snapshot int) error
 	ExecuteSmartContractCallOnOtherVMCalled func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
-	SetVMContainerCalled                    func(vmContainer process.VirtualMachinesContainer)
+	SetVMContainerCalled                    func(vmContainer process.VirtualMachinesContainer) error
 	SetCurrentHeaderCalled                  func(hdr data.HeaderHandler)
 	DeleteCompiledCodeCalled                func(codeHash []byte)
 	SaveNFTMetaDataToSystemAccountCalled    func(tx data.TransactionHandler) error
@@ -351,10 +351,11 @@ func (stub *BlockChainHookStub) ExecuteSmartContractCallOnOtherVM(input *vmcommo
 }
 
 // SetVMContainer -
-func (stub *BlockChainHookStub) SetVMContainer(vmContainer process.VirtualMachinesContainer) {
+func (stub *BlockChainHookStub) SetVMContainer(vmContainer process.VirtualMachinesContainer) error {
 	if stub.ExecuteSmartContractCallOnOtherVMCalled != nil {
-		stub.SetVMContainerCalled(vmContainer)
+		return stub.SetVMContainerCalled(vmContainer)
 	}
+	return nil
 }
 
 // FilterCodeMetadataForUpgrade -
