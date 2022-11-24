@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"crypto/rand"
 	"encoding/hex"
 	"encoding/pem"
 	"fmt"
@@ -20,8 +19,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/urfave/cli"
+	"github.com/ElrondNetwork/elrond-go/cmd/keygenerator/converter"
+	"github.com/ElrondNetwork/elrond-go/p2p/factory"
 )
 
 type cfg struct {
@@ -125,7 +124,7 @@ VERSION:
 	log = logger.GetOrCreate("keygenerator")
 
 	validatorPubKeyConverter, _ = pubkeyConverter.NewHexPubkeyConverter(blsPubkeyLen)
-	p2pPubKeyConverter          = NewP2pConverter()
+	directPubKeyConverter       = converter.NewDirectStringPubkeyConverter()
 	walletPubKeyConverter, _    = pubkeyConverter.NewBech32PubkeyConverter(txSignPubkeyLen, log)
 )
 
@@ -227,17 +226,8 @@ func generateKeys(typeKey string, numKeys int, prefix string, shardID int) ([]ke
 }
 
 func generateP2pKey(list []key) ([]key, error) {
-	privateKey, publicKey, err := libp2pCrypto.GenerateSecp256k1Key(rand.Reader)
-	if err != nil {
-		return nil, err
-	}
-
-	skBytes, err := privateKey.Raw()
-	if err != nil {
-		return nil, err
-	}
-
-	pkBytes, err := publicKey.Raw()
+	generator := factory.NewIdentityGenerator()
+	privateKeyBytes, pid, err := generator.CreateRandomP2PIdentity()
 	if err != nil {
 		return nil, err
 	}
@@ -245,8 +235,8 @@ func generateP2pKey(list []key) ([]key, error) {
 	list = append(
 		list,
 		key{
-			skBytes: skBytes,
-			pkBytes: pkBytes,
+			skBytes: privateKeyBytes,
+			pkBytes: []byte(pid.Pretty()),
 		},
 	)
 
@@ -354,7 +344,7 @@ func printKeys(validatorKeys, walletKeys, p2pKeys []key) error {
 		}
 	}
 	if len(p2pKeys) > 0 {
-		err := printSliceKeys("P2p keys:", p2pKeys, p2pPubKeyConverter)
+		err := printSliceKeys("P2p keys:", p2pKeys, directPubKeyConverter)
 		if err != nil {
 			errFound = err
 		}
@@ -414,7 +404,7 @@ func saveKeys(validatorKeys, walletKeys, p2pKeys []key, noSplit bool) error {
 		}
 	}
 	if len(p2pKeys) > 0 {
-		err := saveSliceKeys(p2pKeyFilenameTemplate, p2pKeys, p2pPubKeyConverter, noSplit)
+		err := saveSliceKeys(p2pKeyFilenameTemplate, p2pKeys, directPubKeyConverter, noSplit)
 		if err != nil {
 			errFound = err
 		}

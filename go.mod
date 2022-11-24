@@ -23,7 +23,6 @@ require (
 	github.com/gogo/protobuf v1.3.2
 	github.com/google/gops v0.3.18
 	github.com/gorilla/websocket v1.5.0
-	github.com/libp2p/go-libp2p-core v0.15.1
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/pelletier/go-toml v1.9.3
 	github.com/pkg/errors v0.9.1
