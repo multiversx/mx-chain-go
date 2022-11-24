@@ -3,7 +3,7 @@ module github.com/ElrondNetwork/elrond-go
 go 1.15
 
 require (
-	github.com/ElrondNetwork/elastic-indexer-go v1.3.1
+	github.com/ElrondNetwork/elastic-indexer-go v1.3.2
 	github.com/ElrondNetwork/elrond-go-core v1.1.25
 	github.com/ElrondNetwork/elrond-go-crypto v1.2.1
 	github.com/ElrondNetwork/elrond-go-logger v1.0.9
