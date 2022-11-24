@@ -106,7 +106,7 @@ func CreateHostAndInstanceBuilder(t *testing.T,
 	vmKey []byte) (map[uint32]arwen.VMHost, map[uint32]*mock.ExecutorMock) {
 	numberOfShards := uint32(net.NumShards)
 	shardToWorld := make(map[uint32]*worldmock.MockWorld, numberOfShards)
-	shardToInstanceBuilder := make(map[uint32]*mock.ExecutorMock, numberOfShards)
+	shardToExecutor := make(map[uint32]*mock.ExecutorMock, numberOfShards)
 	shardToHost := make(map[uint32]arwen.VMHost, numberOfShards)
 
 	net.DefaultNode.BlockchainHook.SetVMContainer(vmContainer)
@@ -116,8 +116,8 @@ func CreateHostAndInstanceBuilder(t *testing.T,
 		world.SetProvidedBlockchainHook(net.DefaultNode.BlockchainHook)
 		world.SelfShardID = shardID
 		shardToWorld[shardID] = world
-		instanceBuilderMock := mock.NewExecutorMock(world)
-		shardToInstanceBuilder[shardID] = instanceBuilderMock
+		mockExecutor := mock.NewExecutorMock(world)
+		shardToExecutor[shardID] = mockExecutor
 	}
 
 	for shardID := uint32(0); shardID < numberOfShards; shardID++ {
@@ -129,14 +129,14 @@ func CreateHostAndInstanceBuilder(t *testing.T,
 			if _, ok := host.(arwen.VMHost); !ok {
 				continue
 			}
-			host.(arwen.VMHost).Runtime().ReplaceVMExecutor(shardToInstanceBuilder[shardID])
+			host.(arwen.VMHost).Runtime().ReplaceVMExecutor(shardToExecutor[shardID])
 			err = node.VMContainer.Replace(vmKey, host)
 			require.Nil(t, err)
 			shardToHost[shardID] = host.(arwen.VMHost)
 		}
 	}
 
-	return shardToHost, shardToInstanceBuilder
+	return shardToHost, shardToExecutor
 }
 
 // RegisterAsyncCallForMockContract is resued also in some tests before async context serialization
