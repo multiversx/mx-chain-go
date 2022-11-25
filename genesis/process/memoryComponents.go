@@ -1,6 +1,7 @@
 package process
 
 import (
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -17,6 +18,7 @@ func createAccountAdapter(
 	hasher hashing.Hasher,
 	accountFactory state.AccountFactory,
 	trieStorage common.StorageManager,
+	addressConverter core.PubkeyConverter,
 ) (state.AccountsAdapter, error) {
 	tr, err := trie.NewTrie(trieStorage, marshaller, hasher, maxTrieLevelInMemory)
 	if err != nil {
@@ -31,6 +33,8 @@ func createAccountAdapter(
 		StoragePruningManager: disabled.NewDisabledStoragePruningManager(),
 		ProcessingMode:        common.Normal,
 		ProcessStatusHandler:  commonDisabled.NewProcessStatusHandler(),
+		AppStatusHandler:      commonDisabled.NewAppStatusHandler(),
+		AddressConverter:      addressConverter,
 	}
 
 	adb, err := state.NewAccountsDB(args)

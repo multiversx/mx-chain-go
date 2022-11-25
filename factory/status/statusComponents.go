@@ -4,11 +4,13 @@ import (
 	"context"
 	"fmt"
 
-	covalentFactory "github.com/ElrondNetwork/covalent-indexer-go/factory"
-	indexerFactory "github.com/ElrondNetwork/elastic-indexer-go/factory"
+	indexerFactory "github.com/ElrondNetwork/elastic-indexer-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	nodeData "github.com/ElrondNetwork/elrond-go-core/data"
+	factoryMarshalizer "github.com/ElrondNetwork/elrond-go-core/marshal/factory"
+	"github.com/ElrondNetwork/elrond-go-core/websocketOutportDriver/data"
+	wsDriverFactory "github.com/ElrondNetwork/elrond-go-core/websocketOutportDriver/factory"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/statistics"
@@ -23,48 +25,46 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/storage"
 )
-
-// TODO: move app status handler initialization here
 
 type statusComponents struct {
 	nodesCoordinator nodesCoordinator.NodesCoordinator
 	statusHandler    core.AppStatusHandler
 	outportHandler   outport.OutportHandler
 	softwareVersion  statistics.SoftwareVersionChecker
-	resourceMonitor  statistics.ResourceMonitorHandler
 	cancelFunc       func()
 }
 
 // StatusComponentsFactoryArgs redefines the arguments structure needed for the status components factory
 type StatusComponentsFactoryArgs struct {
-	Config             config.Config
-	ExternalConfig     config.ExternalConfig
-	EconomicsConfig    config.EconomicsConfig
-	ShardCoordinator   sharding.Coordinator
-	NodesCoordinator   nodesCoordinator.NodesCoordinator
-	EpochStartNotifier factory.EpochStartNotifier
-	CoreComponents     factory.CoreComponentsHolder
-	DataComponents     factory.DataComponentsHolder
-	NetworkComponents  factory.NetworkComponentsHolder
-	StateComponents    factory.StateComponentsHolder
-	IsInImportMode     bool
+	Config               config.Config
+	ExternalConfig       config.ExternalConfig
+	EconomicsConfig      config.EconomicsConfig
+	ShardCoordinator     sharding.Coordinator
+	NodesCoordinator     nodesCoordinator.NodesCoordinator
+	EpochStartNotifier   factory.EpochStartNotifier
+	CoreComponents       factory.CoreComponentsHolder
+	StatusCoreComponents factory.StatusCoreComponentsHolder
+	DataComponents       factory.DataComponentsHolder
+	NetworkComponents    factory.NetworkComponentsHolder
+	StateComponents      factory.StateComponentsHolder
+	IsInImportMode       bool
 }
 
 type statusComponentsFactory struct {
-	config             config.Config
-	externalConfig     config.ExternalConfig
-	economicsConfig    config.EconomicsConfig
-	shardCoordinator   sharding.Coordinator
-	nodesCoordinator   nodesCoordinator.NodesCoordinator
-	epochStartNotifier factory.EpochStartNotifier
-	forkDetector       process.ForkDetector
-	coreComponents     factory.CoreComponentsHolder
-	dataComponents     factory.DataComponentsHolder
-	networkComponents  factory.NetworkComponentsHolder
-	stateComponents    factory.StateComponentsHolder
-	isInImportMode     bool
+	config               config.Config
+	externalConfig       config.ExternalConfig
+	economicsConfig      config.EconomicsConfig
+	shardCoordinator     sharding.Coordinator
+	nodesCoordinator     nodesCoordinator.NodesCoordinator
+	epochStartNotifier   factory.EpochStartNotifier
+	forkDetector         process.ForkDetector
+	coreComponents       factory.CoreComponentsHolder
+	statusCoreComponents factory.StatusCoreComponentsHolder
+	dataComponents       factory.DataComponentsHolder
+	networkComponents    factory.NetworkComponentsHolder
+	stateComponents      factory.StateComponentsHolder
+	isInImportMode       bool
 }
 
 var log = logger.GetOrCreate("factory")
@@ -95,40 +95,36 @@ func NewStatusComponentsFactory(args StatusComponentsFactoryArgs) (*statusCompon
 	if check.IfNil(args.EpochStartNotifier) {
 		return nil, errors.ErrNilEpochStartNotifier
 	}
+	if check.IfNil(args.StatusCoreComponents) {
+		return nil, errors.ErrNilStatusCoreComponents
+	}
+	if check.IfNil(args.StatusCoreComponents.AppStatusHandler()) {
+		return nil, errors.ErrNilAppStatusHandler
+	}
 
 	return &statusComponentsFactory{
-		config:             args.Config,
-		externalConfig:     args.ExternalConfig,
-		economicsConfig:    args.EconomicsConfig,
-		shardCoordinator:   args.ShardCoordinator,
-		nodesCoordinator:   args.NodesCoordinator,
-		epochStartNotifier: args.EpochStartNotifier,
-		coreComponents:     args.CoreComponents,
-		dataComponents:     args.DataComponents,
-		networkComponents:  args.NetworkComponents,
-		stateComponents:    args.StateComponents,
-		isInImportMode:     args.IsInImportMode,
+		config:               args.Config,
+		externalConfig:       args.ExternalConfig,
+		economicsConfig:      args.EconomicsConfig,
+		shardCoordinator:     args.ShardCoordinator,
+		nodesCoordinator:     args.NodesCoordinator,
+		epochStartNotifier:   args.EpochStartNotifier,
+		coreComponents:       args.CoreComponents,
+		statusCoreComponents: args.StatusCoreComponents,
+		dataComponents:       args.DataComponents,
+		networkComponents:    args.NetworkComponents,
+		stateComponents:      args.StateComponents,
+		isInImportMode:       args.IsInImportMode,
 	}, nil
 }
 
 // Create will create and return the status components
 func (scf *statusComponentsFactory) Create() (*statusComponents, error) {
 	var err error
-	var resMon *statistics.ResourceMonitor
-	log.Trace("initializing stats file")
-	if scf.config.ResourceStats.Enabled {
-		resMon, err = startStatisticsMonitor(
-			&scf.config,
-			scf.coreComponents.PathHandler(),
-			core.GetShardIDString(scf.shardCoordinator.SelfId()))
-		if err != nil {
-			return nil, err
-		}
-	}
 
 	log.Trace("creating software checker structure")
 	softwareVersionCheckerFactory, err := swVersionFactory.NewSoftwareVersionFactory(
-		scf.coreComponents.StatusHandler(),
+		scf.statusCoreComponents.AppStatusHandler(),
 		scf.config.SoftwareVersionConfig,
 	)
 	if err != nil {
@@ -158,8 +154,7 @@ func (scf *statusComponentsFactory) Create() (*statusComponents, error) {
 		nodesCoordinator: scf.nodesCoordinator,
 		softwareVersion:  softwareVersionChecker,
 		outportHandler:   outportHandler,
-		statusHandler:    scf.coreComponents.StatusHandler(),
-		resourceMonitor:  resMon,
+		statusHandler:    scf.statusCoreComponents.AppStatusHandler(),
 		cancelFunc:       cancelFunc,
 	}
 
@@ -200,34 +195,36 @@ func (pc *statusComponents) Close() error {
 		log.LogIfError(pc.softwareVersion.Close())
 	}
 
-	if !check.IfNil(pc.resourceMonitor) {
-		log.LogIfError(pc.resourceMonitor.Close())
-	}
-
 	return nil
 }
 
 // createOutportDriver creates a new outport.OutportHandler which is used to register outport drivers
 // once a driver is subscribed it will receive data through the implemented outport.Driver methods
 func (scf *statusComponentsFactory) createOutportDriver() (outport.OutportHandler, error) {
+	webSocketSenderDriverFactoryArgs, err := scf.makeWebSocketDriverArgs()
+	if err != nil {
+		return nil, err
+	}
 
 	outportFactoryArgs := &outportDriverFactory.OutportFactoryArgs{
-		RetrialInterval:            common.RetrialIntervalForOutportDriver,
-		ElasticIndexerFactoryArgs:  scf.makeElasticIndexerArgs(),
-		EventNotifierFactoryArgs:   scf.makeEventNotifierArgs(),
-		CovalentIndexerFactoryArgs: scf.makeCovalentIndexerArgs(),
+		RetrialInterval:           common.RetrialIntervalForOutportDriver,
+		ElasticIndexerFactoryArgs: scf.makeElasticIndexerArgs(),
+		EventNotifierFactoryArgs:  scf.makeEventNotifierArgs(),
+		WebSocketSenderDriverFactoryArgs: outportDriverFactory.WrappedOutportDriverWebSocketSenderFactoryArgs{
+			Enabled:                                 scf.externalConfig.WebSocketConnector.Enabled,
+			OutportDriverWebSocketSenderFactoryArgs: webSocketSenderDriverFactoryArgs,
+		},
 	}
 
 	return outportDriverFactory.CreateOutport(outportFactoryArgs)
 }
 
-func (scf *statusComponentsFactory) makeElasticIndexerArgs() *indexerFactory.ArgsIndexerFactory {
+func (scf *statusComponentsFactory) makeElasticIndexerArgs() indexerFactory.ArgsIndexerFactory {
 	elasticSearchConfig := scf.externalConfig.ElasticSearchConnector
-	return &indexerFactory.ArgsIndexerFactory{
+	return indexerFactory.ArgsIndexerFactory{
 		Enabled:                  elasticSearchConfig.Enabled,
 		IndexerCacheSize:         elasticSearchConfig.IndexerCacheSize,
 		BulkRequestMaxSize:       elasticSearchConfig.BulkRequestMaxSizeInBytes,
-		ShardCoordinator:         scf.shardCoordinator,
 		Url:                      elasticSearchConfig.URL,
 		UserName:                 elasticSearchConfig.Username,
 		Password:                 elasticSearchConfig.Password,
@@ -236,11 +233,8 @@ func (scf *statusComponentsFactory) makeElasticIndexerArgs() *indexerFactory.Arg
 		AddressPubkeyConverter:   scf.coreComponents.AddressPubKeyConverter(),
 		ValidatorPubkeyConverter: scf.coreComponents.ValidatorPubKeyConverter(),
 		EnabledIndexes:           elasticSearchConfig.EnabledIndexes,
-		AccountsDB:               scf.stateComponents.AccountsAdapter(),
 		Denomination:             scf.economicsConfig.GlobalSettings.Denomination,
-		TransactionFeeCalculator: scf.coreComponents.EconomicsData(),
 		UseKibana:                elasticSearchConfig.UseKibana,
-		IsInImportDBMode:         scf.isInImportMode,
 	}
 }
 
@@ -259,34 +253,24 @@ func (scf *statusComponentsFactory) makeEventNotifierArgs() *outportDriverFactor
 	}
 }
 
-func (scf *statusComponentsFactory) makeCovalentIndexerArgs() *covalentFactory.ArgsCovalentIndexerFactory {
-	return &covalentFactory.ArgsCovalentIndexerFactory{
-		Enabled:              scf.externalConfig.CovalentConnector.Enabled,
-		URL:                  scf.externalConfig.CovalentConnector.URL,
-		RouteSendData:        scf.externalConfig.CovalentConnector.RouteSendData,
-		RouteAcknowledgeData: scf.externalConfig.CovalentConnector.RouteAcknowledgeData,
-		PubKeyConverter:      scf.coreComponents.AddressPubKeyConverter(),
-		Accounts:             scf.stateComponents.AccountsAdapter(),
-		Hasher:               scf.coreComponents.Hasher(),
-		Marshaller:           scf.coreComponents.InternalMarshalizer(),
-		ShardCoordinator:     scf.shardCoordinator,
+func (scf *statusComponentsFactory) makeWebSocketDriverArgs() (wsDriverFactory.OutportDriverWebSocketSenderFactoryArgs, error) {
+	if !scf.externalConfig.WebSocketConnector.Enabled {
+		return wsDriverFactory.OutportDriverWebSocketSenderFactoryArgs{}, nil
 	}
-}
 
-func startStatisticsMonitor(
-	generalConfig *config.Config,
-	pathManager storage.PathManagerHandler,
-	shardId string,
-) (*statistics.ResourceMonitor, error) {
-	if generalConfig.ResourceStats.RefreshIntervalInSec < 1 {
-		return nil, fmt.Errorf("invalid RefreshIntervalInSec in section [ResourceStats]. Should be an integer higher than 1")
-	}
-	resMon, err := statistics.NewResourceMonitor(generalConfig, pathManager, shardId)
+	marshaller, err := factoryMarshalizer.NewMarshalizer(scf.externalConfig.WebSocketConnector.MarshallerType)
 	if err != nil {
-		return nil, err
+		return wsDriverFactory.OutportDriverWebSocketSenderFactoryArgs{}, err
 	}
 
-	resMon.StartMonitoring()
-
-	return resMon, nil
+	return wsDriverFactory.OutportDriverWebSocketSenderFactoryArgs{
+		Marshaller: marshaller,
+		WebSocketConfig: data.WebSocketConfig{
+			URL:             scf.externalConfig.WebSocketConnector.URL,
+			WithAcknowledge: scf.externalConfig.WebSocketConnector.WithAcknowledge,
+		},
+		Uint64ByteSliceConverter: scf.coreComponents.Uint64ByteSliceConverter(),
+		Log:                      log,
+		WithAcknowledge:          scf.externalConfig.WebSocketConnector.WithAcknowledge,
+	}, nil
 }

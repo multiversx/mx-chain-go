@@ -250,21 +250,22 @@ func (bpp *basePreProcess) saveTransactionToStorage(
 	forBlock.mutTxsForBlock.RUnlock()
 
 	if txInfoFromMap == nil || txInfoFromMap.tx == nil {
-		log.Warn("basePreProcess.saveTransactionToStorage", "type", dataUnit, "txHash", txHash, "error", process.ErrMissingTransaction.Error())
+		log.Warn("basePreProcess.saveTransactionToStorage", "txHash", txHash, "dataUnit", dataUnit, "error", process.ErrMissingTransaction)
 		return
 	}
 
 	buff, err := bpp.marshalizer.Marshal(txInfoFromMap.tx)
 	if err != nil {
-		log.Warn("basePreProcess.saveTransactionToStorage", "txHash", txHash, "error", err.Error())
+		log.Warn("basePreProcess.saveTransactionToStorage: Marshal", "txHash", txHash, "error", err)
 		return
 	}
 
 	errNotCritical := store.Put(dataUnit, txHash, buff)
 	if errNotCritical != nil {
-		log.Debug("store.Put",
-			"error", errNotCritical.Error(),
+		log.Debug("basePreProcess.saveTransactionToStorage: Put",
+			"txHash", txHash,
 			"dataUnit", dataUnit,
+			"error", errNotCritical,
 		)
 	}
 }
@@ -318,7 +319,15 @@ func (bpp *basePreProcess) computeExistingAndRequestMissing(
 		}
 
 		txShardInfoObject := &txShardInfo{senderShardID: miniBlock.SenderShardID, receiverShardID: miniBlock.ReceiverShardID}
-		searchFirst := miniBlock.Type == block.InvalidBlock
+		// TODO refactor this section
+		method := process.SearchMethodJustPeek
+		if miniBlock.Type == block.InvalidBlock {
+			method = process.SearchMethodSearchFirst
+		}
+		if miniBlock.Type == block.SmartContractResultBlock {
+			method = process.SearchMethodPeekWithFallbackSearchFirst
+		}
+
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
 			txHash := miniBlock.TxHashes[j]
 
@@ -333,7 +342,7 @@ func (bpp *basePreProcess) computeExistingAndRequestMissing(
 				miniBlock.ReceiverShardID,
 				txHash,
 				txPool,
-				searchFirst)
+				method)
 
 			if err != nil {
 				txHashes = append(txHashes, txHash)
@@ -486,7 +495,6 @@ func (bpp *basePreProcess) updateGasConsumedWithGasRefundedAndGasPenalized(
 func (bpp *basePreProcess) handleProcessTransactionInit(preProcessorExecutionInfoHandler process.PreProcessorExecutionInfoHandler, txHash []byte) int {
 	snapshot := bpp.accounts.JournalLen()
 	preProcessorExecutionInfoHandler.InitProcessedTxsResults(txHash)
-	bpp.gasHandler.Reset(txHash)
 	return snapshot
 }
 

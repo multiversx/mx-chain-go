@@ -169,7 +169,7 @@ func (vm *OneSCExecutorMockVM) GasScheduleChange(_ map[string]map[string]uint64)
 }
 
 func (vm *OneSCExecutorMockVM) processAddFunc(input *vmcommon.ContractCallInput, value *big.Int) (*vmcommon.VMOutput, error) {
-	currentValueBuff, err := vm.blockchainHook.GetStorageData(input.RecipientAddr, variableA)
+	currentValueBuff, _, err := vm.blockchainHook.GetStorageData(input.RecipientAddr, variableA)
 	if err != nil {
 		return nil, err
 	}
@@ -263,7 +263,7 @@ func (vm *OneSCExecutorMockVM) processWithdrawFunc(input *vmcommon.ContractCallI
 }
 
 func (vm *OneSCExecutorMockVM) processGetFunc(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
-	currentValueBuff, err := vm.blockchainHook.GetStorageData(input.RecipientAddr, variableA)
+	currentValueBuff, _, err := vm.blockchainHook.GetStorageData(input.RecipientAddr, variableA)
 	if err != nil {
 		return nil, err
 	}

@@ -126,11 +126,15 @@ func (ws *webServer) StartHttpServer() error {
 		return err
 	}
 
-	log.Debug("starting web server",
-		"SimultaneousRequests", ws.antiFloodConfig.SimultaneousRequests,
-		"SameSourceRequests", ws.antiFloodConfig.SameSourceRequests,
-		"SameSourceResetIntervalInSec", ws.antiFloodConfig.SameSourceResetIntervalInSec,
-	)
+	if !ws.antiFloodConfig.WebServerAntifloodEnabled {
+		log.Debug("starting web server with no throttler middleware")
+	} else {
+		log.Debug("starting web server",
+			"SimultaneousRequests", ws.antiFloodConfig.SimultaneousRequests,
+			"SameSourceRequests", ws.antiFloodConfig.SameSourceRequests,
+			"SameSourceResetIntervalInSec", ws.antiFloodConfig.SameSourceResetIntervalInSec,
+		)
+	}
 
 	go ws.httpServer.Start()
 
@@ -229,24 +233,26 @@ func (ws *webServer) createMiddlewareLimiters() ([]shared.MiddlewareProcessor, e
 		middlewares = append(middlewares, responseLoggerMiddleware)
 	}
 
-	sourceLimiter, err := middleware.NewSourceThrottler(ws.antiFloodConfig.SameSourceRequests)
-	if err != nil {
-		return nil, err
+	if ws.antiFloodConfig.WebServerAntifloodEnabled {
+		sourceLimiter, err := middleware.NewSourceThrottler(ws.antiFloodConfig.SameSourceRequests)
+		if err != nil {
+			return nil, err
+		}
+
+		var ctx context.Context
+		ctx, ws.cancelFunc = context.WithCancel(context.Background())
+
+		go ws.sourceLimiterReset(ctx, sourceLimiter)
+
+		middlewares = append(middlewares, sourceLimiter)
+
+		globalLimiter, err := middleware.NewGlobalThrottler(ws.antiFloodConfig.SimultaneousRequests)
+		if err != nil {
+			return nil, err
+		}
+
+		middlewares = append(middlewares, globalLimiter)
 	}
-
-	var ctx context.Context
-	ctx, ws.cancelFunc = context.WithCancel(context.Background())
-
-	go ws.sourceLimiterReset(ctx, sourceLimiter)
-
-	middlewares = append(middlewares, sourceLimiter)
-
-	globalLimiter, err := middleware.NewGlobalThrottler(ws.antiFloodConfig.SimultaneousRequests)
-	if err != nil {
-		return nil, err
-	}
-
-	middlewares = append(middlewares, globalLimiter)
 
 	return middlewares, nil
 }

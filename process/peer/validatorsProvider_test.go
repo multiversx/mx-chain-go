@@ -532,7 +532,7 @@ func TestValidatorsProvider_CallsPopulateOnlyAfterTimeout(t *testing.T) {
 	time.Sleep(time.Millisecond)
 	assert.Equal(t, int32(0), atomic.LoadInt32(populateCacheCalled))
 
-	// outside of refreshInterval
+	// outside refreshInterval
 	time.Sleep(arg.CacheRefreshIntervalDurationInSec)
 	_ = vsp.GetLatestValidators()
 	//allow call to go through

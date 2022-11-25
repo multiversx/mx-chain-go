@@ -31,3 +31,17 @@
    #  - "disabled" - no connection watching should be made
    #  - "print" - new connection found will be printed in the log file
    ConnectionWatcherType = "disabled"
+
+   # OverridableConfigTomlValues represents an array of items to be overloaded inside config.toml, which can be helpful
+   # when performing upgrades that bring a new config toml, and certain flags need to changed.
+   # The Path indicates what value to change, while Value represents the new value represented as string. The node operator must make sure
+   # to follow the same type of the original value (ex: uint32: "37", float32: "37.0", bool: "true")
+   # File represents the file name that holds the configuration. Currently, the supported files are: config.toml, external.toml, p2p.toml and enableEpochs.toml
+   # -------------------------------
+   # Un-comment and update the following section in order to enable config values overloading
+   # -------------------------------
+   # OverridableConfigTomlValues = [
+   #    { File = "config.toml", Path = "StoragePruning.NumEpochsToKeep", Value = "4" },
+   #    { File = "config.toml", Path = "MiniBlocksStorage.Cache.Name", Value = "MiniBlocksStorage" },
+   #    { File = "external.toml", Path = "ElasticSearchConnector.UseKibana", Value = "false" }
+   #]

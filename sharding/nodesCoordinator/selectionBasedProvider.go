@@ -54,7 +54,7 @@ func (sbp *SelectionBasedProvider) add(expElList []uint32, index int64) {
 }
 
 // Get will return the consensus group based on the randomness.
-// After an item is chosen, it is added to the slice so it won't be selected again so next time a new item
+// After an item is chosen, it is added to the slice, so it won't be selected again so next time a new item
 // is needed, the index is recalculated until the validator doesn't exist in that slice
 func (sbp *SelectionBasedProvider) Get(randomness []byte, numValidators int64, expandedEligibleList []uint32) ([]uint32, error) {
 	if len(randomness) == 0 {

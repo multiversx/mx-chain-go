@@ -274,7 +274,7 @@ func (g *governanceContract) proposal(args *vmcommon.ContractCallInput) vmcommon
 }
 
 // vote casts a vote for a validator/delegation. This function receives 2 parameters and will vote with its full delegation + validator amount
-//  args.Arguments[0] - proposal reference (github commit)
+//  args.Arguments[0] - proposal reference (GitHub commit)
 //  args.Arguments[1] - vote option (yes, no, veto)
 func (g *governanceContract) vote(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if args.CallValue.Cmp(zero) != 0 {
@@ -362,8 +362,8 @@ func isStakeLocked(eei vm.SystemEI, governanceAddress []byte, address []byte) bo
 	return eei.BlockChainHook().CurrentNonce() < lastEndNonce
 }
 
-// delegateVote casts a vote from a validator run by WASM SC and delegates it to some one else. This function receives 4 parameters:
-//  args.Arguments[0] - proposal reference (github commit)
+// delegateVote casts a vote from a validator run by WASM SC and delegates it to someone else. This function receives 4 parameters:
+//  args.Arguments[0] - proposal reference (GitHub commit)
 //  args.Arguments[1] - vote option (yes, no, veto)
 //  args.Arguments[2] - delegatedTo
 //  args.Arguments[3] - balance to vote
@@ -459,7 +459,7 @@ func (g *governanceContract) getVoteSetKeyForVoteWithFunds(proposalToVote, addre
 }
 
 // voteWithFunds casts a vote taking the transaction value as input for the vote power. It receives 2 arguments:
-//  args.Arguments[0] - proposal reference (github commit)
+//  args.Arguments[0] - proposal reference (GitHub commit)
 //  args.Arguments[1] - vote option (yes, no, veto)
 func (g *governanceContract) voteWithFunds(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	err := g.eei.UseGas(g.gasCost.MetaChainSystemSCsCost.Vote)
@@ -543,7 +543,7 @@ func (g *governanceContract) voteWithFunds(args *vmcommon.ContractCallInput) vmc
 	return vmcommon.Ok
 }
 
-// claimFunds returns back the used funds for a particular proposal if they are unlocked. Accepts a single parameter:
+// claimFunds returns the used funds for a particular proposal if they are unlocked. Accepts a single parameter:
 //  args.Arguments[0] - proposal reference
 func (g *governanceContract) claimFunds(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if args.CallValue.Cmp(big.NewInt(0)) != 0 {
@@ -995,7 +995,7 @@ func (g *governanceContract) proposalExists(reference []byte) bool {
 	return len(marshaledData) > 0
 }
 
-// getValidProposal returns a proposal from storage if it exists or it is still valid/in-progress
+// getValidProposal returns a proposal from storage if it exists, or it is still valid/in-progress
 func (g *governanceContract) getValidProposal(reference []byte) (*GeneralProposal, error) {
 	proposal, err := g.getGeneralProposal(reference)
 	if err != nil {
@@ -1221,7 +1221,7 @@ func (g *governanceContract) getOrCreateVoteSet(key []byte) (*VoteSet, error) {
 	return voteData, nil
 }
 
-// getEmptyVoteSet returns a new  VoteSet instance with it's members initialised with their 0 value
+// getEmptyVoteSet returns a new  VoteSet instance with its members initialised with their 0 value
 func (g *governanceContract) getEmptyVoteSet() *VoteSet {
 	return &VoteSet{
 		UsedPower:   big.NewInt(0),

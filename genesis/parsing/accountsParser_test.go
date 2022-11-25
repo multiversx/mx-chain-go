@@ -12,7 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	coreData "github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
+	"github.com/ElrondNetwork/elrond-go-core/data/outport"
 	scrData "github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	transactionData "github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -592,10 +592,10 @@ func TestAccountsParser_setScrsTxsPool(t *testing.T) {
 		indexingDataMap[i] = indexingData
 	}
 
-	txsPoolPerShard := make(map[uint32]*indexer.Pool)
+	txsPoolPerShard := make(map[uint32]*outport.Pool)
 	for i := uint32(0); i < sharder.NumOfShards; i++ {
-		txsPoolPerShard[i] = &indexer.Pool{
-			Scrs: map[string]coreData.TransactionHandler{},
+		txsPoolPerShard[i] = &outport.Pool{
+			Scrs: map[string]coreData.TransactionHandlerWithGasUsedAndFee{},
 		}
 	}
 
@@ -641,11 +641,11 @@ func TestAccountsParser_GenerateInitialTransactionsTxsPool(t *testing.T) {
 	miniBlocks, txsPoolPerShard, err := ap.GenerateInitialTransactions(sharder, indexingDataMap)
 	require.Nil(t, err)
 
-	assert.Equal(t, 10, len(miniBlocks))
+	assert.Equal(t, 9, len(miniBlocks))
 
 	assert.Equal(t, 3, len(txsPoolPerShard))
-	assert.Equal(t, 0, len(txsPoolPerShard[0].Txs))
-	assert.Equal(t, 0, len(txsPoolPerShard[1].Txs))
+	assert.Equal(t, 1, len(txsPoolPerShard[0].Txs))
+	assert.Equal(t, 1, len(txsPoolPerShard[1].Txs))
 	assert.Equal(t, len(ibs), len(txsPoolPerShard[core.MetachainShardId].Txs))
 	assert.Equal(t, 0, len(txsPoolPerShard[0].Scrs))
 	assert.Equal(t, 0, len(txsPoolPerShard[1].Scrs))
@@ -702,7 +702,7 @@ func TestAccountsParser_GenerateInitialTransactionsVerifyTxsHashes(t *testing.T)
 
 	ap := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
 	balance := int64(1)
-	ibs := []*data.InitialAccount{}
+	ibs := make([]*data.InitialAccount, 0)
 
 	ap.SetEntireSupply(big.NewInt(int64(len(ibs)) * balance))
 	ap.SetInitialAccounts(ibs)
@@ -734,12 +734,12 @@ func TestAccountsParser_GenerateInitialTransactionsVerifyTxsHashes(t *testing.T)
 	miniBlocks, txsPoolPerShard, err := ap.GenerateInitialTransactions(sharder, indexingDataMap)
 	require.Nil(t, err)
 
-	assert.Equal(t, 5, len(miniBlocks))
+	assert.Equal(t, 4, len(miniBlocks))
 	assert.Equal(t, 2, len(txsPoolPerShard))
 	assert.Equal(t, 1, len(txsPoolPerShard[0].Txs))
 
 	for hashString, v := range txsPoolPerShard[0].Txs {
 		assert.Equal(t, txHash, []byte(hashString))
-		assert.Equal(t, tx, v)
+		assert.Equal(t, tx, v.GetTxHandler())
 	}
 }

@@ -68,8 +68,8 @@ func (mdc *managedDataComponents) Close() error {
 
 // CheckSubcomponents verifies all subcomponents
 func (mdc *managedDataComponents) CheckSubcomponents() error {
-	mdc.mutDataComponents.Lock()
-	defer mdc.mutDataComponents.Unlock()
+	mdc.mutDataComponents.RLock()
+	defer mdc.mutDataComponents.RUnlock()
 
 	if mdc.dataComponents == nil {
 		return errors.ErrNilDataComponents

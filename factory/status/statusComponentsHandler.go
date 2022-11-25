@@ -23,7 +23,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 )
 
 var _ factory.ComponentHandler = (*managedStatusComponents)(nil)
@@ -88,8 +87,8 @@ func (msc *managedStatusComponents) Close() error {
 
 // CheckSubcomponents verifies all subcomponents
 func (msc *managedStatusComponents) CheckSubcomponents() error {
-	msc.mutStatusComponents.Lock()
-	defer msc.mutStatusComponents.Unlock()
+	msc.mutStatusComponents.RLock()
+	defer msc.mutStatusComponents.RUnlock()
 
 	if msc.statusComponents == nil {
 		return errors.ErrNilStatusComponents
@@ -168,7 +167,7 @@ func (msc *managedStatusComponents) IsInterfaceNil() bool {
 func (msc *managedStatusComponents) startStatusPolling(ctx context.Context) error {
 	// TODO: inject the context to the AppStatusPolling
 	appStatusPollingHandler, err := appStatusPolling.NewAppStatusPolling(
-		msc.statusComponentsFactory.coreComponents.StatusHandler(),
+		msc.statusComponentsFactory.statusCoreComponents.AppStatusHandler(),
 		time.Duration(msc.statusComponentsFactory.config.GeneralSettings.StatusPollingIntervalSec)*time.Second,
 		log,
 	)
@@ -329,7 +328,7 @@ func registerPollProbableHighestNonce(
 }
 
 func (msc *managedStatusComponents) startMachineStatisticsPolling(ctx context.Context) error {
-	appStatusPollingHandler, err := appStatusPolling.NewAppStatusPolling(msc.statusComponentsFactory.coreComponents.StatusHandler(), time.Second, log)
+	appStatusPollingHandler, err := appStatusPolling.NewAppStatusPolling(msc.statusComponentsFactory.statusCoreComponents.AppStatusHandler(), time.Second, log)
 	if err != nil {
 		return fmt.Errorf("%w, cannot init AppStatusPolling", err)
 	}
@@ -344,7 +343,9 @@ func (msc *managedStatusComponents) startMachineStatisticsPolling(ctx context.Co
 		return err
 	}
 
-	err = registerNetStatistics(ctx, appStatusPollingHandler, msc.statusComponentsFactory.epochStartNotifier)
+	netStats := msc.statusComponentsFactory.statusCoreComponents.NetworkStatistics()
+	epochNotifier := msc.statusComponentsFactory.coreComponents.EpochNotifier()
+	err = registerNetStatistics(appStatusPollingHandler, netStats, epochNotifier)
 	if err != nil {
 		return err
 	}
@@ -367,20 +368,8 @@ func registerMemStatistics(_ context.Context, appStatusPollingHandler *appStatus
 	})
 }
 
-func registerNetStatistics(ctx context.Context, appStatusPollingHandler *appStatusPolling.AppStatusPolling, notifier nodesCoordinator.EpochStartEventNotifier) error {
-	netStats := machine.NewNetStatistics()
-	notifier.RegisterHandler(netStats.EpochStartEventHandler())
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				log.Debug("registerNetStatistics go routine is stopping...")
-				return
-			default:
-			}
-			netStats.ComputeStatistics()
-		}
-	}()
+func registerNetStatistics(appStatusPollingHandler *appStatusPolling.AppStatusPolling, netStats factory.NetworkStatisticsProvider, epochNotifier process.EpochNotifier) error {
+	epochNotifier.RegisterNotifyHandler(netStats)
 
 	return appStatusPollingHandler.RegisterPollingFunc(func(appStatusHandler core.AppStatusHandler) {
 		appStatusHandler.SetUInt64Value(common.MetricNetworkRecvBps, netStats.BpsRecv())
