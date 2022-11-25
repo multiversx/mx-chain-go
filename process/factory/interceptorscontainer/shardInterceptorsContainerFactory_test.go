@@ -401,6 +401,18 @@ func TestNewShardInterceptorsContainerFactory_NilHardforkTriggerShouldErr(t *tes
 	assert.Equal(t, process.ErrNilHardforkTrigger, err)
 }
 
+func TestNewShardInterceptorsContainerFactory_NilHardforkExclusionHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	coreComp, cryptoComp := createMockComponentHolders()
+	args := getArgumentsShard(coreComp, cryptoComp)
+	args.HardforkExclusionHandler = nil
+	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
+
+	assert.Nil(t, icf)
+	assert.Equal(t, process.ErrNilHardforkExclusionHandler, err)
+}
+
 func TestNewShardInterceptorsContainerFactory_ShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -731,5 +743,6 @@ func getArgumentsShard(
 		HeartbeatExpiryTimespanInSec: 30,
 		PeerShardMapper:              &p2pmocks.NetworkShardingCollectorStub{},
 		HardforkTrigger:              &testscommon.HardforkTriggerStub{},
+		HardforkExclusionHandler:     &testscommon.HardforkExclusionHandlerStub{},
 	}
 }

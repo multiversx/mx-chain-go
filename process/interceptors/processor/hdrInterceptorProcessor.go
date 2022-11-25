@@ -1,11 +1,13 @@
 package processor
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
@@ -15,10 +17,11 @@ var _ process.InterceptorProcessor = (*HdrInterceptorProcessor)(nil)
 // HdrInterceptorProcessor is the processor used when intercepting headers
 // (shard headers, meta headers) structs which satisfy HeaderHandler interface.
 type HdrInterceptorProcessor struct {
-	headers            dataRetriever.HeadersPool
-	blackList          process.TimeCacher
-	registeredHandlers []func(topic string, hash []byte, data interface{})
-	mutHandlers        sync.RWMutex
+	headers                  dataRetriever.HeadersPool
+	blackList                process.TimeCacher
+	registeredHandlers       []func(topic string, hash []byte, data interface{})
+	mutHandlers              sync.RWMutex
+	hardforkExclusionHandler common.HardforkExclusionHandler
 }
 
 // NewHdrInterceptorProcessor creates a new TxInterceptorProcessor instance
@@ -32,11 +35,15 @@ func NewHdrInterceptorProcessor(argument *ArgHdrInterceptorProcessor) (*HdrInter
 	if check.IfNil(argument.BlockBlackList) {
 		return nil, process.ErrNilBlackListCacher
 	}
+	if check.IfNil(argument.HardforkExclusionHandler) {
+		return nil, process.ErrNilHardforkExclusionHandler
+	}
 
 	return &HdrInterceptorProcessor{
-		headers:            argument.Headers,
-		blackList:          argument.BlockBlackList,
-		registeredHandlers: make([]func(topic string, hash []byte, data interface{}), 0),
+		headers:                  argument.Headers,
+		blackList:                argument.BlockBlackList,
+		registeredHandlers:       make([]func(topic string, hash []byte, data interface{}), 0),
+		hardforkExclusionHandler: argument.HardforkExclusionHandler,
 	}, nil
 }
 
@@ -51,6 +58,16 @@ func (hip *HdrInterceptorProcessor) Validate(data process.InterceptedData, _ cor
 	isBlackListed := hip.blackList.Has(string(interceptedHdr.Hash()))
 	if isBlackListed {
 		return process.ErrHeaderIsBlackListed
+	}
+
+	headerHandler := interceptedHdr.HeaderHandler()
+	if check.IfNil(headerHandler) {
+		return process.ErrNilHeaderHandler
+	}
+
+	round := headerHandler.GetRound()
+	if hip.hardforkExclusionHandler.IsRoundExcluded(round) {
+		return fmt.Errorf("%w, round %d", process.ErrExcludedHeader, round)
 	}
 
 	return nil

@@ -443,6 +443,18 @@ func TestNewMetaInterceptorsContainerFactory_NilHardforkTriggerShouldErr(t *test
 	assert.Equal(t, process.ErrNilHardforkTrigger, err)
 }
 
+func TestNewMetaInterceptorsContainerFactory_NilHardforkExclusionHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	coreComp, cryptoComp := createMockComponentHolders()
+	args := getArgumentsMeta(coreComp, cryptoComp)
+	args.HardforkExclusionHandler = nil
+	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
+
+	assert.Nil(t, icf)
+	assert.Equal(t, process.ErrNilHardforkExclusionHandler, err)
+}
+
 func TestNewMetaInterceptorsContainerFactory_ShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -648,5 +660,6 @@ func getArgumentsMeta(
 		HeartbeatExpiryTimespanInSec: 30,
 		PeerShardMapper:              &p2pmocks.NetworkShardingCollectorStub{},
 		HardforkTrigger:              &testscommon.HardforkTriggerStub{},
+		HardforkExclusionHandler:     &testscommon.HardforkExclusionHandlerStub{},
 	}
 }

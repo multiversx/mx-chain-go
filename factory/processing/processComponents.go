@@ -141,14 +141,15 @@ type ProcessComponentsFactoryArgs struct {
 	WorkingDir             string
 	HistoryRepo            dblookupext.HistoryRepository
 
-	Data                 factory.DataComponentsHolder
-	CoreData             factory.CoreComponentsHolder
-	Crypto               factory.CryptoComponentsHolder
-	State                factory.StateComponentsHolder
-	Network              factory.NetworkComponentsHolder
-	BootstrapComponents  factory.BootstrapComponentsHolder
-	StatusComponents     factory.StatusComponentsHolder
-	StatusCoreComponents factory.StatusCoreComponentsHolder
+	Data                     factory.DataComponentsHolder
+	CoreData                 factory.CoreComponentsHolder
+	Crypto                   factory.CryptoComponentsHolder
+	State                    factory.StateComponentsHolder
+	Network                  factory.NetworkComponentsHolder
+	BootstrapComponents      factory.BootstrapComponentsHolder
+	StatusComponents         factory.StatusComponentsHolder
+	StatusCoreComponents     factory.StatusCoreComponentsHolder
+	HardforkExclusionHandler common.HardforkExclusionHandler
 }
 
 type processComponentsFactory struct {
@@ -174,14 +175,15 @@ type processComponentsFactory struct {
 	importHandler          update.ImportHandler
 	esdtNftStorage         vmcommon.ESDTNFTStorageHandler
 
-	data                 factory.DataComponentsHolder
-	coreData             factory.CoreComponentsHolder
-	crypto               factory.CryptoComponentsHolder
-	state                factory.StateComponentsHolder
-	network              factory.NetworkComponentsHolder
-	bootstrapComponents  factory.BootstrapComponentsHolder
-	statusComponents     factory.StatusComponentsHolder
-	statusCoreComponents factory.StatusCoreComponentsHolder
+	data                     factory.DataComponentsHolder
+	coreData                 factory.CoreComponentsHolder
+	crypto                   factory.CryptoComponentsHolder
+	state                    factory.StateComponentsHolder
+	network                  factory.NetworkComponentsHolder
+	bootstrapComponents      factory.BootstrapComponentsHolder
+	statusComponents         factory.StatusComponentsHolder
+	statusCoreComponents     factory.StatusCoreComponentsHolder
+	hardforkExclusionHandler common.HardforkExclusionHandler
 }
 
 // NewProcessComponentsFactory will return a new instance of processComponentsFactory
@@ -192,32 +194,33 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 	}
 
 	return &processComponentsFactory{
-		config:                 args.Config,
-		epochConfig:            args.EpochConfig,
-		prefConfigs:            args.PrefConfigs,
-		importDBConfig:         args.ImportDBConfig,
-		accountsParser:         args.AccountsParser,
-		smartContractParser:    args.SmartContractParser,
-		gasSchedule:            args.GasSchedule,
-		nodesCoordinator:       args.NodesCoordinator,
-		data:                   args.Data,
-		coreData:               args.CoreData,
-		crypto:                 args.Crypto,
-		state:                  args.State,
-		network:                args.Network,
-		bootstrapComponents:    args.BootstrapComponents,
-		statusComponents:       args.StatusComponents,
-		requestedItemsHandler:  args.RequestedItemsHandler,
-		whiteListHandler:       args.WhiteListHandler,
-		whiteListerVerifiedTxs: args.WhiteListerVerifiedTxs,
-		maxRating:              args.MaxRating,
-		systemSCConfig:         args.SystemSCConfig,
-		version:                args.Version,
-		importStartHandler:     args.ImportStartHandler,
-		workingDir:             args.WorkingDir,
-		historyRepo:            args.HistoryRepo,
-		epochNotifier:          args.CoreData.EpochNotifier(),
-		statusCoreComponents:   args.StatusCoreComponents,
+		config:                   args.Config,
+		epochConfig:              args.EpochConfig,
+		prefConfigs:              args.PrefConfigs,
+		importDBConfig:           args.ImportDBConfig,
+		accountsParser:           args.AccountsParser,
+		smartContractParser:      args.SmartContractParser,
+		gasSchedule:              args.GasSchedule,
+		nodesCoordinator:         args.NodesCoordinator,
+		data:                     args.Data,
+		coreData:                 args.CoreData,
+		crypto:                   args.Crypto,
+		state:                    args.State,
+		network:                  args.Network,
+		bootstrapComponents:      args.BootstrapComponents,
+		statusComponents:         args.StatusComponents,
+		requestedItemsHandler:    args.RequestedItemsHandler,
+		whiteListHandler:         args.WhiteListHandler,
+		whiteListerVerifiedTxs:   args.WhiteListerVerifiedTxs,
+		maxRating:                args.MaxRating,
+		systemSCConfig:           args.SystemSCConfig,
+		version:                  args.Version,
+		importStartHandler:       args.ImportStartHandler,
+		workingDir:               args.WorkingDir,
+		historyRepo:              args.HistoryRepo,
+		epochNotifier:            args.CoreData.EpochNotifier(),
+		statusCoreComponents:     args.StatusCoreComponents,
+		hardforkExclusionHandler: args.HardforkExclusionHandler,
 	}, nil
 }
 
@@ -1585,6 +1588,7 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 		HeartbeatExpiryTimespanInSec: pcf.config.HeartbeatV2.HeartbeatExpiryTimespanInSec,
 		PeerShardMapper:              peerShardMapper,
 		HardforkTrigger:              hardforkTrigger,
+		HardforkExclusionHandler:     pcf.hardforkExclusionHandler,
 	}
 
 	interceptorContainerFactory, err := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterceptorsContainerFactoryArgs)
@@ -1633,6 +1637,7 @@ func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 		HeartbeatExpiryTimespanInSec: pcf.config.HeartbeatV2.HeartbeatExpiryTimespanInSec,
 		PeerShardMapper:              peerShardMapper,
 		HardforkTrigger:              hardforkTrigger,
+		HardforkExclusionHandler:     pcf.hardforkExclusionHandler,
 	}
 
 	interceptorContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorsContainerFactoryArgs)
@@ -1730,6 +1735,7 @@ func (pcf *processComponentsFactory) createExportFactoryHandler(
 		NumConcurrentTrieSyncers:  pcf.config.TrieSync.NumConcurrentTrieSyncers,
 		TrieSyncerVersion:         pcf.config.TrieSync.TrieSyncerVersion,
 		PeersRatingHandler:        pcf.network.PeersRatingHandler(),
+		HardforkExclusionHandler:  pcf.hardforkExclusionHandler,
 	}
 	return updateFactory.NewExportHandlerFactory(argsExporter)
 }
@@ -1882,6 +1888,9 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	}
 	if check.IfNil(args.StatusCoreComponents.AppStatusHandler()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilAppStatusHandler)
+	}
+	if check.IfNil(args.HardforkExclusionHandler) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilHardforkExclusionHandler)
 	}
 
 	return nil

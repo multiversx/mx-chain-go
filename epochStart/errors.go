@@ -325,3 +325,6 @@ var ErrNilValidatorInfoStorage = errors.New("nil validator info storage")
 
 // ErrNilTrieSyncStatistics signals that nil trie sync statistics has been provided
 var ErrNilTrieSyncStatistics = errors.New("nil trie sync statistics")
+
+// ErrNilHardforkExclusionHandler signals that a nil hardfork exclusion handler was provided
+var ErrNilHardforkExclusionHandler = errors.New("nil hardfork exclusion handler")

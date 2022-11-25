@@ -25,25 +25,26 @@ const chunksProcessorRequestInterval = time.Millisecond * 400
 const minTimespanDurationInSec = int64(1)
 
 type baseInterceptorsContainerFactory struct {
-	container              process.InterceptorsContainer
-	shardCoordinator       sharding.Coordinator
-	accounts               state.AccountsAdapter
-	store                  dataRetriever.StorageService
-	dataPool               dataRetriever.PoolsHolder
-	messenger              process.TopicHandler
-	nodesCoordinator       nodesCoordinator.NodesCoordinator
-	blockBlackList         process.TimeCacher
-	argInterceptorFactory  *interceptorFactory.ArgInterceptedDataFactory
-	globalThrottler        process.InterceptorThrottler
-	maxTxNonceDeltaAllowed int
-	antifloodHandler       process.P2PAntifloodHandler
-	whiteListHandler       process.WhiteListHandler
-	whiteListerVerifiedTxs process.WhiteListHandler
-	preferredPeersHolder   process.PreferredPeersHolderHandler
-	hasher                 hashing.Hasher
-	requestHandler         process.RequestHandler
-	peerShardMapper        process.PeerShardMapper
-	hardforkTrigger        heartbeat.HardforkTrigger
+	container                process.InterceptorsContainer
+	shardCoordinator         sharding.Coordinator
+	accounts                 state.AccountsAdapter
+	store                    dataRetriever.StorageService
+	dataPool                 dataRetriever.PoolsHolder
+	messenger                process.TopicHandler
+	nodesCoordinator         nodesCoordinator.NodesCoordinator
+	blockBlackList           process.TimeCacher
+	argInterceptorFactory    *interceptorFactory.ArgInterceptedDataFactory
+	globalThrottler          process.InterceptorThrottler
+	maxTxNonceDeltaAllowed   int
+	antifloodHandler         process.P2PAntifloodHandler
+	whiteListHandler         process.WhiteListHandler
+	whiteListerVerifiedTxs   process.WhiteListHandler
+	preferredPeersHolder     process.PreferredPeersHolderHandler
+	hasher                   hashing.Hasher
+	requestHandler           process.RequestHandler
+	peerShardMapper          process.PeerShardMapper
+	hardforkTrigger          heartbeat.HardforkTrigger
+	hardforkExclusionHandler common.HardforkExclusionHandler
 }
 
 func checkBaseParams(
@@ -63,6 +64,7 @@ func checkBaseParams(
 	requestHandler process.RequestHandler,
 	peerShardMapper process.PeerShardMapper,
 	hardforkTrigger heartbeat.HardforkTrigger,
+	hardforkExclusionHandler common.HardforkExclusionHandler,
 ) error {
 	if check.IfNil(coreComponents) {
 		return process.ErrNilCoreComponentsHolder
@@ -154,6 +156,9 @@ func checkBaseParams(
 	}
 	if check.IfNil(hardforkTrigger) {
 		return process.ErrNilHardforkTrigger
+	}
+	if check.IfNil(hardforkExclusionHandler) {
+		return process.ErrNilHardforkExclusionHandler
 	}
 
 	return nil
@@ -362,8 +367,9 @@ func (bicf *baseInterceptorsContainerFactory) generateHeaderInterceptors() error
 	}
 
 	argProcessor := &processor.ArgHdrInterceptorProcessor{
-		Headers:        bicf.dataPool.Headers(),
-		BlockBlackList: bicf.blockBlackList,
+		Headers:                  bicf.dataPool.Headers(),
+		BlockBlackList:           bicf.blockBlackList,
+		HardforkExclusionHandler: bicf.hardforkExclusionHandler,
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -492,8 +498,9 @@ func (bicf *baseInterceptorsContainerFactory) generateMetachainHeaderInterceptor
 	}
 
 	argProcessor := &processor.ArgHdrInterceptorProcessor{
-		Headers:        bicf.dataPool.Headers(),
-		BlockBlackList: bicf.blockBlackList,
+		Headers:                  bicf.dataPool.Headers(),
+		BlockBlackList:           bicf.blockBlackList,
+		HardforkExclusionHandler: bicf.hardforkExclusionHandler,
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {

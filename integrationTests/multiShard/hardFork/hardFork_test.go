@@ -21,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
 	vmFactory "github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	factoryTests "github.com/ElrondNetwork/elrond-go/testscommon/factory"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genesisMocks"
@@ -629,6 +630,7 @@ func createHardForkExporter(
 			TrieSyncerVersion:         2,
 			PeersRatingHandler:        node.PeersRatingHandler,
 			CheckNodesOnDisk:          false,
+			HardforkExclusionHandler:  &testscommon.HardforkExclusionHandlerStub{},
 		}
 
 		exportHandler, err := factory.NewExportHandlerFactory(argsExportHandler)
