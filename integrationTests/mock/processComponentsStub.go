@@ -53,7 +53,6 @@ type ProcessComponentsStub struct {
 	ProcessedMiniBlocksTrackerInternal   process.ProcessedMiniBlocksTracker
 	ReceiptsRepositoryInternal           factory.ReceiptsRepository
 	ESDTDataStorageHandlerForAPIInternal vmcommon.ESDTNFTStorageHandler
-	HardforkExclusionHandlerField        process.HardforkExclusionHandler
 }
 
 // Create -
@@ -259,11 +258,6 @@ func (pcs *ProcessComponentsStub) ReceiptsRepository() factory.ReceiptsRepositor
 // ESDTDataStorageHandlerForAPI -
 func (pcs *ProcessComponentsStub) ESDTDataStorageHandlerForAPI() vmcommon.ESDTNFTStorageHandler {
 	return pcs.ESDTDataStorageHandlerForAPIInternal
-}
-
-// HardforkExclusionHandler -
-func (pcs *ProcessComponentsStub) HardforkExclusionHandler() process.HardforkExclusionHandler {
-	return pcs.HardforkExclusionHandlerField
 }
 
 // IsInterfaceNil -

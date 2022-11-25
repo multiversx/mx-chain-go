@@ -1,8 +1,9 @@
-package sync
+package hardfork
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/tree"
+	"github.com/ElrondNetwork/elrond-go/common"
 )
 
 type hardforkExclusionHandler struct {
@@ -12,7 +13,7 @@ type hardforkExclusionHandler struct {
 // NewHardforkExclusionHandler returns a new instance of hardforkExclusionHandler
 func NewHardforkExclusionHandler(exclusionTree tree.IntervalTree) (*hardforkExclusionHandler, error) {
 	if check.IfNil(exclusionTree) {
-		return nil, ErrNilExclusionTree
+		return nil, common.ErrNilExclusionTree
 	}
 
 	return &hardforkExclusionHandler{

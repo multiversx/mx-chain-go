@@ -1,10 +1,11 @@
-package sync
+package hardfork
 
 import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/tree"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -15,7 +16,7 @@ func TestNewHardforkExclusionHandler(t *testing.T) {
 		t.Parallel()
 
 		handler, err := NewHardforkExclusionHandler(nil)
-		assert.Equal(t, ErrNilExclusionTree, err)
+		assert.Equal(t, common.ErrNilExclusionTree, err)
 		assert.True(t, check.IfNil(handler))
 	})
 	t.Run("should work", func(t *testing.T) {

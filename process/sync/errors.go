@@ -47,6 +47,3 @@ var ErrGenesisTimeMissmatch = errors.New("genesis time missmatch")
 
 // ErrHeaderNotFound signals that the needed header is not found
 var ErrHeaderNotFound = errors.New("header is not found")
-
-// ErrNilExclusionTree signals that a nil exclusion tree was provided
-var ErrNilExclusionTree = errors.New("nil exclusion tree")

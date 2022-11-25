@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/closing"
 	"github.com/ElrondNetwork/elrond-go-core/core/throttler"
+	"github.com/ElrondNetwork/elrond-go-core/core/tree"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/api/gin"
@@ -26,6 +27,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common/disabled"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/common/goroutines"
+	"github.com/ElrondNetwork/elrond-go/common/hardfork"
 	"github.com/ElrondNetwork/elrond-go/common/statistics"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
@@ -267,6 +269,12 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	configs := nr.configs
 	flagsConfig := configs.FlagsConfig
 	configurationPaths := configs.ConfigurationPathsHolder
+
+	// TODO: next prs, pass this component
+	_, err := nr.createHardforkExclusionHandler()
+	if err != nil {
+		return true, err
+	}
 
 	log.Debug("creating healthService")
 	healthService := nr.createHealthService(flagsConfig)
@@ -1504,6 +1512,21 @@ func (nr *nodeRunner) CreateManagedCryptoComponents(
 	}
 
 	return managedCryptoComponents, nil
+}
+
+func (nr *nodeRunner) createHardforkExclusionHandler() (process.HardforkExclusionHandler, error) {
+	intervals := nr.configs.GeneralConfig.HardforkV2.BlocksExceptionsByRound
+	excludedIntervals := make([]tree.BlocksExceptionInterval, 0, len(intervals))
+	for _, interval := range intervals {
+		newInterval := tree.BlocksExceptionInterval{
+			Low:  interval.Low,
+			High: interval.High,
+		}
+		excludedIntervals = append(excludedIntervals, newInterval)
+	}
+
+	excludedRoundsTree := tree.NewIntervalTree(excludedIntervals)
+	return hardfork.NewHardforkExclusionHandler(excludedRoundsTree)
 }
 
 func closeAllComponents(

@@ -292,7 +292,6 @@ type ProcessComponentsHolder interface {
 	ESDTDataStorageHandlerForAPI() vmcommon.ESDTNFTStorageHandler
 	AccountsParser() genesis.AccountsParser
 	ReceiptsRepository() ReceiptsRepository
-	HardforkExclusionHandler() process.HardforkExclusionHandler
 	IsInterfaceNil() bool
 }
 
