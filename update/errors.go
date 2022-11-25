@@ -286,3 +286,6 @@ var ErrNilStatusCoreComponentsHolder = errors.New("nil status core components ho
 
 // ErrNilAppStatusHandler signals that a nil app status handler was provided
 var ErrNilAppStatusHandler = errors.New("nil app status handler")
+
+// ErrNilAddressConverter signals that a nil address converter was provided
+var ErrNilAddressConverter = errors.New("nil address converter")

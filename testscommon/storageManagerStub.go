@@ -11,7 +11,7 @@ type StorageManagerStub struct {
 	PutInEpochWithoutCacheCalled           func([]byte, []byte, uint32) error
 	GetCalled                              func([]byte) ([]byte, error)
 	GetFromCurrentEpochCalled              func([]byte) ([]byte, error)
-	TakeSnapshotCalled                     func([]byte, []byte, []byte, *common.TrieIteratorChannels, chan []byte, common.SnapshotStatisticsHandler, uint32)
+	TakeSnapshotCalled                     func(string, []byte, []byte, *common.TrieIteratorChannels, chan []byte, common.SnapshotStatisticsHandler, uint32)
 	SetCheckpointCalled                    func([]byte, []byte, *common.TrieIteratorChannels, chan []byte, common.SnapshotStatisticsHandler)
 	GetDbThatContainsHashCalled            func([]byte) common.DBWriteCacher
 	IsPruningEnabledCalled                 func() bool
@@ -77,7 +77,7 @@ func (sms *StorageManagerStub) GetFromCurrentEpoch(key []byte) ([]byte, error) {
 
 // TakeSnapshot -
 func (sms *StorageManagerStub) TakeSnapshot(
-	address []byte,
+	address string,
 	rootHash []byte,
 	mainTrieRootHash []byte,
 	iteratorChannels *common.TrieIteratorChannels,
