@@ -1514,7 +1514,7 @@ func (nr *nodeRunner) CreateManagedCryptoComponents(
 	return managedCryptoComponents, nil
 }
 
-func (nr *nodeRunner) createHardforkExclusionHandler() (process.HardforkExclusionHandler, error) {
+func (nr *nodeRunner) createHardforkExclusionHandler() (common.HardforkExclusionHandler, error) {
 	intervals := nr.configs.GeneralConfig.HardforkV2.BlocksExceptionsByRound
 	excludedIntervals := make([]tree.BlocksExceptionInterval, 0, len(intervals))
 	for _, interval := range intervals {
