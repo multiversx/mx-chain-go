@@ -28,6 +28,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common/goroutines"
 	"github.com/ElrondNetwork/elrond-go/common/statistics"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	dbLookupFactory "github.com/ElrondNetwork/elrond-go/dblookupext/factory"
@@ -1347,7 +1348,7 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 		NetworkComponents:    networkComponents,
 		StatusCoreComponents: statusCoreComponents,
 		ChainRunType:         common.ChainRunTypeRegular,
-	},
+	}
 
 	bootstrapComponentsFactory, err := bootstrapComp.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)
 	if err != nil {

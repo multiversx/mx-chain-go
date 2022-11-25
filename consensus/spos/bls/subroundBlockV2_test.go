@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
@@ -88,7 +89,7 @@ func TestSubroundBlockV2_DoBlockJob(t *testing.T) {
 			RoundIndex: 1,
 		})
 		srV2.SetStatus(bls.SrBlock, spos.SsFinished)
-		bpm := &mock.BlockProcessorMock{}
+		bpm := &testscommon.BlockProcessorStub{}
 		err := errors.New("error")
 		bpm.CreateBlockCalled = func(header data.HeaderHandler, remainingTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
 			return header, nil, err

@@ -161,7 +161,7 @@ func (mpc *managedProcessComponents) CheckSubcomponents() error {
 	if check.IfNil(mpc.processComponents.processedMiniBlocksTracker) {
 		return process.ErrNilProcessedMiniBlocksTracker
 	}
-	if check.IfNil(m.processComponents.esdtDataStorageForApi) {
+	if check.IfNil(mpc.processComponents.esdtDataStorageForApi) {
 		return errors.ErrNilESDTDataStorage
 	}
 

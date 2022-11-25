@@ -8,7 +8,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -24,7 +23,7 @@ func TestBaseSync_sovereignChainProcessAndCommit(t *testing.T) {
 
 		errProcess := errors.New("process error")
 		boot := &baseBootstrap{
-			blockProcessor: &mock.BlockProcessorMock{
+			blockProcessor: &testscommon.BlockProcessorStub{
 				ProcessBlockCalled: func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) (data.HeaderHandler, data.BodyHandler, error) {
 					return nil, nil, errProcess
 				},
@@ -42,7 +41,7 @@ func TestBaseSync_sovereignChainProcessAndCommit(t *testing.T) {
 
 		errCommit := errors.New("commit error")
 		boot := &baseBootstrap{
-			blockProcessor: &mock.BlockProcessorMock{
+			blockProcessor: &testscommon.BlockProcessorStub{
 				ProcessBlockCalled: func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) (data.HeaderHandler, data.BodyHandler, error) {
 					return &block.Header{}, &block.Body{}, nil
 				},
@@ -62,7 +61,7 @@ func TestBaseSync_sovereignChainProcessAndCommit(t *testing.T) {
 		t.Parallel()
 
 		boot := &baseBootstrap{
-			blockProcessor: &mock.BlockProcessorMock{
+			blockProcessor: &testscommon.BlockProcessorStub{
 				ProcessBlockCalled: func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) (data.HeaderHandler, data.BodyHandler, error) {
 					return &block.Header{}, &block.Body{}, nil
 				},

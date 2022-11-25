@@ -40,7 +40,7 @@ func (bps *BlockProcessorStub) ProcessBlock(header data.HeaderHandler, body data
 		return bps.ProcessBlockCalled(header, body, haveTime)
 	}
 
-	return nil
+	return header, body, nil
 }
 
 // ProcessScheduledBlock mocks processing a scheduled block
