@@ -16,22 +16,23 @@ import (
 )
 
 const (
-	getRawMetaBlockByNoncePath       = "/raw/metablock/by-nonce/:nonce"
-	getRawMetaBlockByHashPath        = "/raw/metablock/by-hash/:hash"
-	getRawMetaBlockByRoundPath       = "/raw/metablock/by-round/:round"
-	getRawStartOfEpochMetaBlockPath  = "/raw/startofepoch/metablock/by-epoch/:epoch"
-	getRawShardBlockByNoncePath      = "/raw/shardblock/by-nonce/:nonce"
-	getRawShardBlockByHashPath       = "/raw/shardblock/by-hash/:hash"
-	getRawShardBlockByRoundPath      = "/raw/shardblock/by-round/:round"
-	getJSONMetaBlockByNoncePath      = "/json/metablock/by-nonce/:nonce"
-	getJSONMetaBlockByHashPath       = "/json/metablock/by-hash/:hash"
-	getJSONMetaBlockByRoundPath      = "/json/metablock/by-round/:round"
-	getJSONStartOfEpochMetaBlockPath = "/json/startofepoch/metablock/by-epoch/:epoch"
-	getJSONShardBlockByNoncePath     = "/json/shardblock/by-nonce/:nonce"
-	getJSONShardBlockByHashPath      = "/json/shardblock/by-hash/:hash"
-	getJSONShardBlockByRoundPath     = "/json/shardblock/by-round/:round"
-	getRawMiniBlockByHashPath        = "/raw/miniblock/by-hash/:hash/epoch/:epoch"
-	getJSONMiniBlockByHashPath       = "/json/miniblock/by-hash/:hash/epoch/:epoch"
+	getRawMetaBlockByNoncePath            = "/raw/metablock/by-nonce/:nonce"
+	getRawMetaBlockByHashPath             = "/raw/metablock/by-hash/:hash"
+	getRawMetaBlockByRoundPath            = "/raw/metablock/by-round/:round"
+	getRawStartOfEpochMetaBlockPath       = "/raw/startofepoch/metablock/by-epoch/:epoch"
+	getRawShardBlockByNoncePath           = "/raw/shardblock/by-nonce/:nonce"
+	getRawShardBlockByHashPath            = "/raw/shardblock/by-hash/:hash"
+	getRawShardBlockByRoundPath           = "/raw/shardblock/by-round/:round"
+	getJSONMetaBlockByNoncePath           = "/json/metablock/by-nonce/:nonce"
+	getJSONMetaBlockByHashPath            = "/json/metablock/by-hash/:hash"
+	getJSONMetaBlockByRoundPath           = "/json/metablock/by-round/:round"
+	getJSONStartOfEpochMetaBlockPath      = "/json/startofepoch/metablock/by-epoch/:epoch"
+	getJSONStartOfEpochValidatorsInfoPath = "/json/startofepoch/validators/by-epoch/:epoch"
+	getJSONShardBlockByNoncePath          = "/json/shardblock/by-nonce/:nonce"
+	getJSONShardBlockByHashPath           = "/json/shardblock/by-hash/:hash"
+	getJSONShardBlockByRoundPath          = "/json/shardblock/by-round/:round"
+	getRawMiniBlockByHashPath             = "/raw/miniblock/by-hash/:hash/epoch/:epoch"
+	getJSONMiniBlockByHashPath            = "/json/miniblock/by-hash/:hash/epoch/:epoch"
 )
 
 // internalBlockFacadeHandler defines the methods to be implemented by a facade for handling block requests
@@ -44,6 +45,7 @@ type internalBlockFacadeHandler interface {
 	GetInternalMetaBlockByRound(format common.ApiOutputFormat, round uint64) (interface{}, error)
 	GetInternalMiniBlockByHash(format common.ApiOutputFormat, hash string, epoch uint32) (interface{}, error)
 	GetInternalStartOfEpochMetaBlock(format common.ApiOutputFormat, epoch uint32) (interface{}, error)
+	GetInternalStartOfEpochValidatorsInfo(format common.ApiOutputFormat, epoch uint32) (interface{}, error)
 	IsInterfaceNil() bool
 }
 
@@ -144,6 +146,11 @@ func NewInternalBlockGroup(facade internalBlockFacadeHandler) (*internalBlockGro
 			Path:    getJSONMiniBlockByHashPath,
 			Method:  http.MethodGet,
 			Handler: ib.getJSONMiniBlockByHash,
+		},
+		{
+			Path:    getJSONStartOfEpochValidatorsInfoPath,
+			Method:  http.MethodGet,
+			Handler: ib.getJSONStartOfEpochValidatorsInfo,
 		},
 	}
 	ib.endpoints = endpoints
@@ -448,6 +455,24 @@ func (ib *internalBlockGroup) getJSONMiniBlockByHash(c *gin.Context) {
 	}
 
 	shared.RespondWith(c, http.StatusOK, gin.H{"miniblock": miniBlock}, "", shared.ReturnCodeSuccess)
+}
+
+func (ib *internalBlockGroup) getJSONStartOfEpochValidatorsInfo(c *gin.Context) {
+	epoch, err := getQueryParamEpoch(c)
+	if err != nil {
+		shared.RespondWithValidationError(c, errors.ErrGetBlock, errors.ErrInvalidEpoch)
+		return
+	}
+
+	start := time.Now()
+	validatorsInfo, err := ib.getFacade().GetInternalStartOfEpochValidatorsInfo(common.ApiOutputFormatJSON, epoch)
+	logging.LogAPIActionDurationIfNeeded(start, "API call: GetInternalStartOfEpochValidatorsInfo with JSON")
+	if err != nil {
+		shared.RespondWithInternalError(c, errors.ErrGetValidatorsInfo, err)
+		return
+	}
+
+	shared.RespondWith(c, http.StatusOK, gin.H{"validatorsInfo": validatorsInfo}, "", shared.ReturnCodeSuccess)
 }
 
 func (ib *internalBlockGroup) getFacade() internalBlockFacadeHandler {

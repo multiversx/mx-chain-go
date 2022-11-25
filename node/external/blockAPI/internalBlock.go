@@ -2,10 +2,12 @@ package blockAPI
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/state"
 )
 
 type internalBlockProcessor struct {
@@ -166,6 +168,102 @@ func (ibp *internalBlockProcessor) GetInternalStartOfEpochMetaBlock(format commo
 	}
 
 	return ibp.convertMetaBlockBytesByOutputFormat(format, blockBytes)
+}
+
+// GetInternalStartOfEpochValidatorsInfo wil return the epoch start validators info for the provided epoch
+func (ibp *internalBlockProcessor) GetInternalStartOfEpochValidatorsInfo(format common.ApiOutputFormat, epoch uint32) (interface{}, error) {
+	if ibp.selfShardID != core.MetachainShardId {
+		return nil, ErrMetachainOnlyEndpoint
+	}
+
+	storer, err := ibp.store.GetStorer(dataRetriever.MetaBlockUnit)
+	if err != nil {
+		return nil, err
+	}
+
+	epochStartIdentifier := core.EpochStartIdentifier(epoch)
+	blockBytes, err := storer.GetFromEpoch([]byte(epochStartIdentifier), epoch)
+	if err != nil {
+		return nil, err
+	}
+
+	metaBlock := &block.MetaBlock{}
+	err = ibp.marshalizer.Unmarshal(metaBlock, blockBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	validatorsInfo, err := ibp.getAllValidatorsInfo(metaBlock)
+	if err != nil {
+		return nil, err
+	}
+
+	return validatorsInfo, nil
+}
+
+func (ibp *internalBlockProcessor) getAllValidatorsInfo(metaBlock data.HeaderHandler) ([]*state.ShardValidatorInfo, error) {
+	allValidatorInfo := make([]*state.ShardValidatorInfo, 0)
+	for _, miniBlockHeader := range metaBlock.GetMiniBlockHeaderHandlers() {
+		hash := miniBlockHeader.GetHash()
+
+		miniBlock, err := ibp.getMiniBlockByHash(hash, metaBlock.GetEpoch())
+		if err != nil {
+			return nil, err
+		}
+
+		if miniBlock.Type != block.PeerBlock {
+			continue
+		}
+
+		validatorInfo, err := ibp.getValidatorsInfo(miniBlock)
+		if err != nil {
+			return nil, err
+		}
+
+		allValidatorInfo = append(allValidatorInfo, validatorInfo...)
+	}
+
+	return allValidatorInfo, nil
+}
+
+func (ibp *internalBlockProcessor) getValidatorsInfo(miniBlock *block.MiniBlock) ([]*state.ShardValidatorInfo, error) {
+	validatorsInfoBuff, err := ibp.store.GetAll(dataRetriever.UnsignedTransactionUnit, miniBlock.TxHashes)
+	if err != nil {
+		return nil, err
+	}
+
+	validatorsInfo := make([]*state.ShardValidatorInfo, 0)
+	for _, validatorInfoBuff := range validatorsInfoBuff {
+		shardValidatorInfo := &state.ShardValidatorInfo{}
+		err = ibp.marshalizer.Unmarshal(shardValidatorInfo, validatorInfoBuff)
+		if err != nil {
+			return nil, err
+		}
+
+		validatorsInfo = append(validatorsInfo, shardValidatorInfo)
+	}
+
+	return validatorsInfo, nil
+}
+
+func (ibp *internalBlockProcessor) getMiniBlockByHash(hash []byte, epoch uint32) (*block.MiniBlock, error) {
+	storer, err := ibp.store.GetStorer(dataRetriever.MiniBlockUnit)
+	if err != nil {
+		return nil, err
+	}
+
+	blockBytes, err := storer.GetFromEpoch(hash, epoch)
+	if err != nil {
+		return nil, err
+	}
+
+	miniBlock := &block.MiniBlock{}
+	err = ibp.marshalizer.Unmarshal(miniBlock, blockBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return miniBlock, nil
 }
 
 func (ibp *internalBlockProcessor) convertMetaBlockBytesToInternalBlock(blockBytes []byte) (*block.MetaBlock, error) {

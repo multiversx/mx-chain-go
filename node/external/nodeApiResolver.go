@@ -223,6 +223,12 @@ func (nar *nodeApiResolver) GetInternalStartOfEpochMetaBlock(format common.ApiOu
 	return nar.apiInternalBlockHandler.GetInternalStartOfEpochMetaBlock(format, epoch)
 }
 
+// GetInternalStartOfEpochValidatorsInfo will return the start of epoch validators info
+// for the specified epoch
+func (nar *nodeApiResolver) GetInternalStartOfEpochValidatorsInfo(format common.ApiOutputFormat, epoch uint32) (interface{}, error) {
+	return nar.apiInternalBlockHandler.GetInternalStartOfEpochValidatorsInfo(format, epoch)
+}
+
 // GetInternalShardBlockByHash will return a shard block by hash
 func (nar *nodeApiResolver) GetInternalShardBlockByHash(format common.ApiOutputFormat, hash string) (interface{}, error) {
 	decodedHash, err := hex.DecodeString(hash)
