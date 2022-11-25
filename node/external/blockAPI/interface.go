@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/outport"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/state"
 )
 
 // APITransactionHandler defines what a transaction handler should do
@@ -34,7 +35,7 @@ type APIInternalBlockHandler interface {
 	GetInternalMetaBlockByHash(format common.ApiOutputFormat, hash []byte) (interface{}, error)
 	GetInternalMetaBlockByRound(format common.ApiOutputFormat, round uint64) (interface{}, error)
 	GetInternalStartOfEpochMetaBlock(format common.ApiOutputFormat, epoch uint32) (interface{}, error)
-	GetInternalStartOfEpochValidatorsInfo(format common.ApiOutputFormat, epoch uint32) (interface{}, error)
+	GetInternalStartOfEpochValidatorsInfo(epoch uint32) ([]*state.ShardValidatorInfo, error)
 	GetInternalMiniBlock(format common.ApiOutputFormat, hash []byte, epoch uint32) (interface{}, error)
 	IsInterfaceNil() bool
 }

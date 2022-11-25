@@ -299,7 +299,7 @@ func (inf *initialNodeFacade) GetInternalStartOfEpochMetaBlock(_ common.ApiOutpu
 }
 
 // GetInternalStartOfEpochValidatorsInfo returns nil and error
-func (inf *initialNodeFacade) GetInternalStartOfEpochValidatorsInfo(_ common.ApiOutputFormat, _ uint32) (interface{}, error) {
+func (inf *initialNodeFacade) GetInternalStartOfEpochValidatorsInfo(_ uint32) ([]*state.ShardValidatorInfo, error) {
 	return nil, errNodeStarting
 }
 

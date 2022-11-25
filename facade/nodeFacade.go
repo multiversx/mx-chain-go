@@ -529,8 +529,8 @@ func (nf *nodeFacade) GetInternalStartOfEpochMetaBlock(format common.ApiOutputFo
 
 // GetInternalStartOfEpochValidatorsInfo wil return start of epoch validators info
 // for a specified epoch
-func (nf *nodeFacade) GetInternalStartOfEpochValidatorsInfo(format common.ApiOutputFormat, epoch uint32) (interface{}, error) {
-	return nf.apiResolver.GetInternalStartOfEpochValidatorsInfo(format, epoch)
+func (nf *nodeFacade) GetInternalStartOfEpochValidatorsInfo(epoch uint32) ([]*state.ShardValidatorInfo, error) {
+	return nf.apiResolver.GetInternalStartOfEpochValidatorsInfo(epoch)
 }
 
 // GetInternalShardBlockByHash return the shard block for a given hash

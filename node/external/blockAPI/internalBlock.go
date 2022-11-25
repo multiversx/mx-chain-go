@@ -171,7 +171,7 @@ func (ibp *internalBlockProcessor) GetInternalStartOfEpochMetaBlock(format commo
 }
 
 // GetInternalStartOfEpochValidatorsInfo wil return the epoch start validators info for the provided epoch
-func (ibp *internalBlockProcessor) GetInternalStartOfEpochValidatorsInfo(format common.ApiOutputFormat, epoch uint32) (interface{}, error) {
+func (ibp *internalBlockProcessor) GetInternalStartOfEpochValidatorsInfo(epoch uint32) ([]*state.ShardValidatorInfo, error) {
 	if ibp.selfShardID != core.MetachainShardId {
 		return nil, ErrMetachainOnlyEndpoint
 	}

@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
+	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
@@ -848,5 +849,126 @@ func TestInternalBlockProcessor_GetInternalStartOfEpochMetaBlock(t *testing.T) {
 		blk, err := ibp.GetInternalStartOfEpochMetaBlock(common.ApiOutputFormatJSON, expEpoch)
 		assert.Nil(t, err)
 		assert.Equal(t, header, blk)
+	})
+}
+
+func TestInternalBlockProcessor_GetInternalStartOfEpochValidatorsInfo(t *testing.T) {
+	t.Parallel()
+
+	expEpoch := uint32(1)
+
+	t.Run("not metachain shard, should fail", func(t *testing.T) {
+		t.Parallel()
+
+		ibp := newInternalBlockProcessor(
+			&ArgAPIBlockProcessor{
+				SelfShardID:              1,
+				Marshalizer:              &mock.MarshalizerFake{},
+				Store:                    &storageMocks.ChainStorerStub{},
+				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
+				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
+			}, nil)
+
+		blk, err := ibp.GetInternalStartOfEpochValidatorsInfo(expEpoch)
+		assert.Nil(t, blk)
+		assert.Equal(t, ErrMetachainOnlyEndpoint, err)
+	})
+
+	t.Run("fail to get from storer", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := errors.New("key not found err")
+		storerMock := &storageMocks.StorerStub{
+			GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+				return nil, expectedErr
+			},
+		}
+
+		ibp := newInternalBlockProcessor(
+			&ArgAPIBlockProcessor{
+				SelfShardID: core.MetachainShardId,
+				Marshalizer: &mock.MarshalizerFake{},
+				Store: &storageMocks.ChainStorerStub{
+					GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+						return storerMock, nil
+					},
+				},
+				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
+				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
+			}, nil)
+
+		blk, err := ibp.GetInternalStartOfEpochValidatorsInfo(expEpoch)
+		assert.Nil(t, blk)
+		assert.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		marshaller := &mock.MarshalizerFake{}
+
+		mbHeader1 := block.MiniBlockHeader{
+			Hash:            []byte("miniBlockHeaderHash1"),
+			SenderShardID:   0,
+			ReceiverShardID: 0,
+			TxCount:         2,
+			Type:            block.PeerBlock,
+		}
+		mbHeader1Bytes, _ := marshaller.Marshal(mbHeader1)
+
+		header := &block.MetaBlock{
+			Nonce: 1,
+			MiniBlockHeaders: []block.MiniBlockHeader{
+				mbHeader1,
+			},
+		}
+		headerBytes, _ := marshaller.Marshal(header)
+
+		firstRun := true
+		storerMock := &storageMocks.StorerStub{
+			GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+				if firstRun {
+					firstRun = false
+					return headerBytes, nil
+				}
+
+				return mbHeader1Bytes, nil
+			},
+		}
+
+		svi := &state.ShardValidatorInfo{
+			PublicKey:  []byte("pubkey1"),
+			ShardId:    0,
+			Index:      1,
+			TempRating: 500,
+		}
+		sviBytes, _ := marshaller.Marshal(svi)
+
+		ibp := newInternalBlockProcessor(
+			&ArgAPIBlockProcessor{
+				SelfShardID: core.MetachainShardId,
+				Marshalizer: marshaller,
+				Store: &storageMocks.ChainStorerStub{
+					GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+						return storerMock, nil
+					},
+					GetAllCalled: func(unitType dataRetriever.UnitType, keys [][]byte) (map[string][]byte, error) {
+						allData := make(map[string][]byte)
+						allData["hash1"] = sviBytes
+						return allData, nil
+					},
+				},
+				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
+				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
+			}, nil)
+
+		validatorsInfo, err := ibp.GetInternalStartOfEpochValidatorsInfo(expEpoch)
+
+		expectedValidatorsInfo := []*state.ShardValidatorInfo{
+			svi,
+		}
+
+		assert.Nil(t, err)
+		assert.Equal(t, expectedValidatorsInfo, validatorsInfo)
 	})
 }

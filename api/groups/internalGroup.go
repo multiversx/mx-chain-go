@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/api/shared/logging"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/gin-gonic/gin"
 )
 
@@ -45,7 +46,7 @@ type internalBlockFacadeHandler interface {
 	GetInternalMetaBlockByRound(format common.ApiOutputFormat, round uint64) (interface{}, error)
 	GetInternalMiniBlockByHash(format common.ApiOutputFormat, hash string, epoch uint32) (interface{}, error)
 	GetInternalStartOfEpochMetaBlock(format common.ApiOutputFormat, epoch uint32) (interface{}, error)
-	GetInternalStartOfEpochValidatorsInfo(format common.ApiOutputFormat, epoch uint32) (interface{}, error)
+	GetInternalStartOfEpochValidatorsInfo(epoch uint32) ([]*state.ShardValidatorInfo, error)
 	IsInterfaceNil() bool
 }
 
@@ -460,19 +461,19 @@ func (ib *internalBlockGroup) getJSONMiniBlockByHash(c *gin.Context) {
 func (ib *internalBlockGroup) getJSONStartOfEpochValidatorsInfo(c *gin.Context) {
 	epoch, err := getQueryParamEpoch(c)
 	if err != nil {
-		shared.RespondWithValidationError(c, errors.ErrGetBlock, errors.ErrInvalidEpoch)
+		shared.RespondWithValidationError(c, errors.ErrGetValidatorsInfo, errors.ErrInvalidEpoch)
 		return
 	}
 
 	start := time.Now()
-	validatorsInfo, err := ib.getFacade().GetInternalStartOfEpochValidatorsInfo(common.ApiOutputFormatJSON, epoch)
+	validatorsInfo, err := ib.getFacade().GetInternalStartOfEpochValidatorsInfo(epoch)
 	logging.LogAPIActionDurationIfNeeded(start, "API call: GetInternalStartOfEpochValidatorsInfo with JSON")
 	if err != nil {
 		shared.RespondWithInternalError(c, errors.ErrGetValidatorsInfo, err)
 		return
 	}
 
-	shared.RespondWith(c, http.StatusOK, gin.H{"validatorsInfo": validatorsInfo}, "", shared.ReturnCodeSuccess)
+	shared.RespondWith(c, http.StatusOK, gin.H{"validators": validatorsInfo}, "", shared.ReturnCodeSuccess)
 }
 
 func (ib *internalBlockGroup) getFacade() internalBlockFacadeHandler {
