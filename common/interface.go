@@ -335,3 +335,9 @@ type EnableEpochsHandler interface {
 
 	IsInterfaceNil() bool
 }
+
+// HardforkExclusionHandler defines what a hardfork exclusion handler can do
+type HardforkExclusionHandler interface {
+	IsRoundExcluded(round uint64) bool
+	IsInterfaceNil() bool
+}
