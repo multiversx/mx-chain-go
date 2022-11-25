@@ -784,7 +784,7 @@ func (bh *BlockChainHookImpl) ExecuteSmartContractCallOnOtherVM(input *vmcommon.
 	return vmExec.RunSmartContractCall(input)
 }
 
-// SetVMContainer sets the vm container in order to be used for sc exeuction via blockchain
+// SetVMContainer sets the vm container in order to be used for sc execution via blockchain
 func (bh *BlockChainHookImpl) SetVMContainer(vmContainer process.VirtualMachinesContainer) error {
 	if check.IfNil(vmContainer) {
 		return process.ErrNilVMContainer

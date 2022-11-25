@@ -18,6 +18,7 @@ import (
 
 var MockInitialBalance = big.NewInt(10_000_000)
 
+// InitializeMockContracts -
 func InitializeMockContracts(
 	t *testing.T,
 	net *integrationTests.TestNetwork,
@@ -26,6 +27,7 @@ func InitializeMockContracts(
 	InitializeMockContractsWithVMContainer(t, net, nil, mockSCs...)
 }
 
+// InitializeMockContractsWithVMContainer -
 func InitializeMockContractsWithVMContainer(
 	t *testing.T,
 	net *integrationTests.TestNetwork,
@@ -40,6 +42,7 @@ func InitializeMockContractsWithVMContainer(
 	}
 }
 
+// GetAddressForNewAccountOnWalletAndNode -
 func GetAddressForNewAccountOnWalletAndNode(
 	t *testing.T,
 	net *integrationTests.TestNetwork,
@@ -49,6 +52,7 @@ func GetAddressForNewAccountOnWalletAndNode(
 	return GetAddressForNewAccountOnWalletAndNodeWithVM(t, net, wallet, node, net.DefaultVM)
 }
 
+// GetAddressForNewAccountOnWalletAndNodeWithVM -
 func GetAddressForNewAccountOnWalletAndNodeWithVM(
 	t *testing.T,
 	net *integrationTests.TestNetwork,
@@ -74,6 +78,7 @@ func GetAddressForNewAccountOnWalletAndNodeWithVM(
 	return address, account
 }
 
+// SetCodeMetadata -
 func SetCodeMetadata(
 	t *testing.T,
 	codeMetadata []byte,
@@ -85,6 +90,7 @@ func SetCodeMetadata(
 	require.Nil(t, err)
 }
 
+// GetAddressForNewAccount -
 func GetAddressForNewAccount(
 	t *testing.T,
 	net *integrationTests.TestNetwork,
@@ -92,6 +98,7 @@ func GetAddressForNewAccount(
 	return GetAddressForNewAccountWithVM(t, net, node, net.DefaultVM)
 }
 
+// GetAddressForNewAccountWithVM
 func GetAddressForNewAccountWithVM(
 	t *testing.T,
 	net *integrationTests.TestNetwork,
@@ -100,6 +107,7 @@ func GetAddressForNewAccountWithVM(
 	return GetAddressForNewAccountOnWalletAndNodeWithVM(t, net, net.Wallets[node.ShardCoordinator.SelfId()], node, vmType)
 }
 
+// CreateHostAndInstanceBuilder -
 func CreateHostAndInstanceBuilder(t *testing.T,
 	net *integrationTests.TestNetwork,
 	vmContainer process.VirtualMachinesContainer,
@@ -110,7 +118,8 @@ func CreateHostAndInstanceBuilder(t *testing.T,
 	shardToHost := make(map[uint32]arwen.VMHost, numberOfShards)
 
 	if vmContainer != nil {
-		net.DefaultNode.BlockchainHook.SetVMContainer(vmContainer)
+		err := net.DefaultNode.BlockchainHook.SetVMContainer(vmContainer)
+		require.Nil(t, err)
 	}
 
 	for shardID := uint32(0); shardID < numberOfShards; shardID++ {

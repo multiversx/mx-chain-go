@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_ExecuteOnDestCtx_BlockchainHook(t *testing.T) {
+func TestExecuteOnDestCtx_BlockchainHook(t *testing.T) {
 
 	net := integrationTests.NewTestNetworkSized(t, 1, 1, 1)
 	net.Start()
