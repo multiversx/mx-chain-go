@@ -104,9 +104,7 @@ func (tdaw *trackableDataTrie) retrieveValV1(key []byte) ([]byte, uint32, error)
 // SaveKeyValue stores in dirtyData the data keys "touched"
 // It does not care if the data is really dirty as calling this check here will be sub-optimal
 func (tdaw *trackableDataTrie) SaveKeyValue(key []byte, value []byte) error {
-	lenValue := uint64(len(value))
-	lenKey := uint64(len(key))
-	if lenValue+lenKey > core.MaxLeafSize {
+	if uint64(len(value)) > core.MaxLeafSize {
 		return data.ErrLeafSizeTooBig
 	}
 
