@@ -164,6 +164,9 @@ func (m *managedProcessComponents) CheckSubcomponents() error {
 	if check.IfNil(m.processComponents.esdtDataStorageForApi) {
 		return errors.ErrNilESDTDataStorage
 	}
+	if check.IfNil(m.processComponents.hardforkExclusionHandler) {
+		return errors.ErrNilHardforkExclusionHandler
+	}
 
 	return nil
 }
@@ -610,6 +613,18 @@ func (m *managedProcessComponents) ReceiptsRepository() factory.ReceiptsReposito
 	}
 
 	return m.processComponents.receiptsRepository
+}
+
+// HardforkExclusionHandler returns the hardfork exclusion handler
+func (m *managedProcessComponents) HardforkExclusionHandler() process.HardforkExclusionHandler {
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.processComponents == nil {
+		return nil
+	}
+
+	return m.processComponents.hardforkExclusionHandler
 }
 
 // IsInterfaceNil returns true if the interface is nil

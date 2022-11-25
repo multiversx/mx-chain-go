@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/partitioning"
+	"github.com/ElrondNetwork/elrond-go-core/core/tree"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/outport"
@@ -119,6 +120,7 @@ type processComponents struct {
 	esdtDataStorageForApi        vmcommon.ESDTNFTStorageHandler
 	accountsParser               genesis.AccountsParser
 	receiptsRepository           mainFactory.ReceiptsRepository
+	hardforkExclusionHandler     process.HardforkExclusionHandler
 }
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
@@ -225,6 +227,12 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 
 // Create will create and return a struct containing process components
 func (pcf *processComponentsFactory) Create() (*processComponents, error) {
+	excludedRoundsTree := pcf.createHardforkExclusionTree()
+	hardforkExclusionHandler, err := sync.NewHardforkExclusionHandler(excludedRoundsTree)
+	if err != nil {
+		return nil, err
+	}
+
 	currentEpochProvider, err := epochProviders.CreateCurrentEpochProvider(
 		pcf.config,
 		pcf.coreData.GenesisNodesSetup().GetRoundDuration(),
@@ -699,6 +707,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		esdtDataStorageForApi:        pcf.esdtNftStorage,
 		accountsParser:               pcf.accountsParser,
 		receiptsRepository:           receiptsRepository,
+		hardforkExclusionHandler:     hardforkExclusionHandler,
 	}, nil
 }
 
@@ -1758,6 +1767,20 @@ func (pcf *processComponentsFactory) createHardforkTrigger(epochStartTrigger upd
 	}
 
 	return trigger.NewTrigger(argTrigger)
+}
+
+func (pcf *processComponentsFactory) createHardforkExclusionTree() tree.IntervalTree {
+	intervals := pcf.config.HardforkV2.BlocksExceptionsByRound
+	excludedIntervals := make([]tree.BlocksExceptionInterval, 0, len(intervals))
+	for _, interval := range intervals {
+		newInterval := tree.BlocksExceptionInterval{
+			Low:  interval.Low,
+			High: interval.High,
+		}
+		excludedIntervals = append(excludedIntervals, newInterval)
+	}
+
+	return tree.NewIntervalTree(excludedIntervals)
 }
 
 func createNetworkShardingCollector(

@@ -53,6 +53,7 @@ type ProcessComponentsMock struct {
 	ESDTDataStorageHandlerForAPIInternal vmcommon.ESDTNFTStorageHandler
 	AccountsParserInternal               genesis.AccountsParser
 	ReceiptsRepositoryInternal           factory.ReceiptsRepository
+	HardforkExclusionHandlerField        process.HardforkExclusionHandler
 }
 
 // Create -
@@ -258,6 +259,11 @@ func (pcm *ProcessComponentsMock) ESDTDataStorageHandlerForAPI() vmcommon.ESDTNF
 // ReceiptsRepository -
 func (pcm *ProcessComponentsMock) ReceiptsRepository() factory.ReceiptsRepository {
 	return pcm.ReceiptsRepositoryInternal
+}
+
+// HardforkExclusionHandler -
+func (pcm *ProcessComponentsMock) HardforkExclusionHandler() process.HardforkExclusionHandler {
+	return pcm.HardforkExclusionHandlerField
 }
 
 // IsInterfaceNil -
