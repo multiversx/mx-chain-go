@@ -529,6 +529,3 @@ var ErrNilPersistentHandler = errors.New("nil persistent handler")
 
 // ErrNilGenesisNodesSetupHandler signals that a nil genesis nodes setup handler has been provided
 var ErrNilGenesisNodesSetupHandler = errors.New("nil genesis nodes setup handler")
-
-// ErrNilHardforkExclusionHandler signals that a nil hardfork exclusion handler was provided
-var ErrNilHardforkExclusionHandler = errors.New("nil hardfork exclusion handler")
