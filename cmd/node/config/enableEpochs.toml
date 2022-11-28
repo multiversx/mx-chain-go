@@ -221,6 +221,9 @@
     # FixOldTokenLiquidityEnableEpoch represents the epoch when the fix for old token liquidity is enabled
     FixOldTokenLiquidityEnableEpoch = 1
 
+    # RuntimeMemStoreLimitEnableEpoch represents the epoch when the condition for Runtime MemStore is enabled
+    RuntimeMemStoreLimitEnableEpoch = 1
+
     # SetSenderInEeiOutputTransferEnableEpoch represents the epoch when setting the sender in eei output transfers will be enabled
     SetSenderInEeiOutputTransferEnableEpoch = 4
 
