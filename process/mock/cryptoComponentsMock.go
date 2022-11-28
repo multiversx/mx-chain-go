@@ -17,6 +17,7 @@ type CryptoComponentsMock struct {
 	BlKeyGen          crypto.KeyGenerator
 	TxKeyGen          crypto.KeyGenerator
 	PubKey            crypto.PublicKey
+	PrivKey           crypto.PrivateKey
 	mutMultiSig       sync.RWMutex
 }
 
@@ -80,6 +81,11 @@ func (ccm *CryptoComponentsMock) TxSignKeyGen() crypto.KeyGenerator {
 // PublicKey -
 func (ccm *CryptoComponentsMock) PublicKey() crypto.PublicKey {
 	return ccm.PubKey
+}
+
+// PrivateKey -
+func (ccm *CryptoComponentsMock) PrivateKey() crypto.PrivateKey {
+	return ccm.PrivKey
 }
 
 // Clone -

@@ -11,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	nodeFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/errors"
@@ -81,8 +80,8 @@ func (mcc *managedCoreComponents) Close() error {
 
 // CheckSubcomponents verifies all subcomponents
 func (mcc *managedCoreComponents) CheckSubcomponents() error {
-	mcc.mutCoreComponents.Lock()
-	defer mcc.mutCoreComponents.Unlock()
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
 
 	if mcc.coreComponents == nil {
 		return errors.ErrNilCoreComponents
@@ -110,9 +109,6 @@ func (mcc *managedCoreComponents) CheckSubcomponents() error {
 	}
 	if check.IfNil(mcc.validatorPubKeyConverter) {
 		return errors.ErrNilValidatorPublicKeyConverter
-	}
-	if check.IfNil(mcc.statusHandlersUtils) {
-		return errors.ErrNilStatusHandler
 	}
 	if check.IfNil(mcc.pathHandler) {
 		return errors.ErrNilPathHandler
@@ -268,30 +264,6 @@ func (mcc *managedCoreComponents) ValidatorPubKeyConverter() core.PubkeyConverte
 	}
 
 	return mcc.coreComponents.validatorPubKeyConverter
-}
-
-// StatusHandlerUtils returns the core components status handler utils
-func (mcc *managedCoreComponents) StatusHandlerUtils() nodeFactory.StatusHandlersUtils {
-	mcc.mutCoreComponents.RLock()
-	defer mcc.mutCoreComponents.RUnlock()
-
-	if mcc.coreComponents == nil {
-		return nil
-	}
-
-	return mcc.coreComponents.statusHandlersUtils
-}
-
-// StatusHandler returns the application status handler
-func (mcc *managedCoreComponents) StatusHandler() core.AppStatusHandler {
-	mcc.mutCoreComponents.RLock()
-	defer mcc.mutCoreComponents.RUnlock()
-
-	if mcc.coreComponents == nil {
-		return nil
-	}
-
-	return mcc.coreComponents.statusHandlersUtils.StatusHandler()
 }
 
 // PathHandler returns the core components path handler

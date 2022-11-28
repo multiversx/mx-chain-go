@@ -295,7 +295,7 @@ func (hhs *HeaderHandlerStub) SetMetaBlockHashes(_ [][]byte) error {
 }
 
 // SetEpochStartMetaHash -
-func (h *HeaderHandlerStub) SetEpochStartMetaHash(_ []byte) error {
+func (hhs *HeaderHandlerStub) SetEpochStartMetaHash(_ []byte) error {
 	return nil
 }
 

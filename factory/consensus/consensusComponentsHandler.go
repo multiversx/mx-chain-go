@@ -115,8 +115,8 @@ func (mcc *managedConsensusComponents) ConsensusGroupSize() (int, error) {
 
 // CheckSubcomponents verifies all subcomponents
 func (mcc *managedConsensusComponents) CheckSubcomponents() error {
-	mcc.mutConsensusComponents.Lock()
-	defer mcc.mutConsensusComponents.Unlock()
+	mcc.mutConsensusComponents.RLock()
+	defer mcc.mutConsensusComponents.RUnlock()
 
 	if mcc.consensusComponents == nil {
 		return errors.ErrNilConsensusComponentsHolder

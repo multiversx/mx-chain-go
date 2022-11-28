@@ -22,8 +22,8 @@ func InitChronologyHandlerMock() consensus.ChronologyHandler {
 }
 
 // InitBlockProcessorMock -
-func InitBlockProcessorMock() *BlockProcessorMock {
-	blockProcessorMock := &BlockProcessorMock{}
+func InitBlockProcessorMock() *testscommon.BlockProcessorStub {
+	blockProcessorMock := &testscommon.BlockProcessorStub{}
 	blockProcessorMock.CreateBlockCalled = func(header data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
 		emptyBlock := &block.Body{}
 		_ = header.SetRootHash([]byte{})
@@ -56,8 +56,8 @@ func InitBlockProcessorMock() *BlockProcessorMock {
 }
 
 // InitBlockProcessorHeaderV2Mock -
-func InitBlockProcessorHeaderV2Mock() *BlockProcessorMock {
-	blockProcessorMock := &BlockProcessorMock{}
+func InitBlockProcessorHeaderV2Mock() *testscommon.BlockProcessorStub {
+	blockProcessorMock := &testscommon.BlockProcessorStub{}
 	blockProcessorMock.CreateBlockCalled = func(header data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
 		emptyBlock := &block.Body{}
 		_ = header.SetRootHash([]byte{})

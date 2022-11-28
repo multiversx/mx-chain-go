@@ -56,7 +56,7 @@ VERSION:
 )
 
 // This application starts a test web socket server, initialize it, opens "/log" route and waits for
-// clients to connect. After the connection is done, it waits for the pattern message and then it sends continuously
+// clients to connect. After the connection is done, it waits for the pattern message, and then it sends continuously
 // log lines-type of messages
 func main() {
 	initCliFlags()

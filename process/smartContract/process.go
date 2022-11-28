@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -43,11 +44,7 @@ const (
 
 	// TODO: Move to vm-common.
 	upgradeFunctionName = "upgradeContract"
-
-	generalSCRIdentifier = "writeLog"
-	signalError          = "signalError"
-	completedTxEvent     = "completedTxEvent"
-	returnOkData         = "@6f6b"
+	returnOkData        = "@6f6b"
 )
 
 var zero = big.NewInt(0)
@@ -210,6 +207,8 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 }
 
 // GasScheduleChange sets the new gas schedule where it is needed
+// Warning: do not use flags in this function as it will raise backward compatibility issues because the GasScheduleChange
+// is not called on each epoch change
 func (sc *scProcessor) GasScheduleChange(gasSchedule map[string]map[string]uint64) {
 	sc.mutGasLock.Lock()
 	defer sc.mutGasLock.Unlock()
@@ -220,10 +219,6 @@ func (sc *scProcessor) GasScheduleChange(gasSchedule map[string]map[string]uint6
 	}
 
 	sc.builtInGasCosts = builtInFuncCost
-	isFixAsyncCallBackArgumentsParserFlagSet := sc.enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabled()
-	if isFixAsyncCallBackArgumentsParserFlagSet {
-		sc.builtInGasCosts[core.BuiltInFunctionMultiESDTNFTTransfer] = builtInFuncCost["ESDTNFTMultiTransfer"]
-	}
 	sc.storePerByte = gasSchedule[common.BaseOperationCost]["StorePerByte"]
 	sc.persistPerByte = gasSchedule[common.BaseOperationCost]["PersistPerByte"]
 }
@@ -1320,7 +1315,10 @@ func (sc *scProcessor) processIfErrorWithAddedLogs(acntSnd state.UserAccountHand
 
 	err := sc.accounts.RevertToSnapshot(snapshot)
 	if err != nil {
-		log.Warn("revert to snapshot", "error", err.Error())
+		if !errors.IsClosingError(err) {
+			log.Warn("revert to snapshot", "error", err.Error())
+		}
+
 		return err
 	}
 
@@ -1493,7 +1491,7 @@ func createNewLogFromSCR(txHandler data.TransactionHandler) *vmcommon.LogEntry {
 	}
 
 	newLog := &vmcommon.LogEntry{
-		Identifier: []byte(generalSCRIdentifier),
+		Identifier: []byte(core.WriteLogIdentifier),
 		Address:    txHandler.GetSndAddr(),
 		Topics:     [][]byte{txHandler.GetRcvAddr()},
 		Data:       txHandler.GetData(),
@@ -1513,7 +1511,7 @@ func createNewLogFromSCRIfError(txHandler data.TransactionHandler) *vmcommon.Log
 	}
 
 	newLog := &vmcommon.LogEntry{
-		Identifier: []byte(signalError),
+		Identifier: []byte(core.SignalErrorOperation),
 		Address:    txHandler.GetSndAddr(),
 		Topics:     [][]byte{txHandler.GetRcvAddr(), returnMessage},
 		Data:       txHandler.GetData(),
@@ -1587,7 +1585,7 @@ func (sc *scProcessor) addBackTxValues(
 	return nil
 }
 
-// DeploySmartContract processes the transaction, than deploy the smart contract into VM, final code is saved in account
+// DeploySmartContract processes the transaction, then deploy the smart contract into VM, final code is saved in account
 func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd state.UserAccountHandler) (vmcommon.ReturnCode, error) {
 	err := sc.checkTxValidity(tx)
 	if err != nil {
@@ -2365,7 +2363,7 @@ func (sc *scProcessor) createSCRForSenderAndRelayer(
 			OriginalTxHash: relayedSCR.OriginalTxHash,
 			GasPrice:       tx.GetGasPrice(),
 			CallType:       vmData.DirectCall,
-			ReturnMessage:  []byte("gas refund for relayer"),
+			ReturnMessage:  []byte(core.GasRefundForRelayerMessage),
 			OriginalSender: relayedSCR.OriginalSender,
 		}
 		gasRemaining = 0
@@ -2797,7 +2795,7 @@ func createCompleteEventLog(tx data.TransactionHandler, txHash []byte) *vmcommon
 	}
 
 	newLog := &vmcommon.LogEntry{
-		Identifier: []byte(completedTxEvent),
+		Identifier: []byte(core.CompletedTxEventIdentifier),
 		Address:    tx.GetRcvAddr(),
 		Topics:     [][]byte{prevTxHash},
 	}

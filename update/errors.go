@@ -242,9 +242,6 @@ var ErrEmptyExportFolderPath = errors.New("empty export folder path")
 // ErrNilGenesisNodesSetupHandler signals that a nil genesis nodes setup handler has been provided
 var ErrNilGenesisNodesSetupHandler = errors.New("nil genesis nodes setup handler")
 
-// ErrNilEpochNotifier signals that the provided EpochNotifier is nil
-var ErrNilEpochNotifier = errors.New("nil EpochNotifier")
-
 // ErrWrongImportedMiniBlocksMap signals that wrong imported miniBlocks map was provided
 var ErrWrongImportedMiniBlocksMap = errors.New("wrong imported miniBlocks map was provided")
 
@@ -283,3 +280,12 @@ var ErrInvalidNumConcurrentTrieSyncers = errors.New("invalid num concurrent trie
 
 // ErrNilPeersRatingHandler signals that a nil peers rating handler implementation has been provided
 var ErrNilPeersRatingHandler = errors.New("nil peers rating handler")
+
+// ErrNilStatusCoreComponentsHolder signals that a nil status core components holder was provided
+var ErrNilStatusCoreComponentsHolder = errors.New("nil status core components holder")
+
+// ErrNilAppStatusHandler signals that a nil app status handler was provided
+var ErrNilAppStatusHandler = errors.New("nil app status handler")
+
+// ErrNilAddressConverter signals that a nil address converter was provided
+var ErrNilAddressConverter = errors.New("nil address converter")

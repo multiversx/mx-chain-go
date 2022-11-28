@@ -79,16 +79,15 @@ export ALWAYS_UPDATE_CONFIGS=1
 # Always rebuild Arwen from its sources and copy the executable to the testnet folder.
 export ALWAYS_BUILD_ARWEN=1
 
+# IP of the seednode
+export SEEDNODE_IP="127.0.0.1"
+
 # Ports used by the Nodes
 export PORT_SEEDNODE="9999"
 export PORT_ORIGIN_OBSERVER="21100"
 export PORT_ORIGIN_OBSERVER_REST="10000"
 export PORT_ORIGIN_VALIDATOR="21500"
 export PORT_ORIGIN_VALIDATOR_REST="9500"
-
-# Address of the Seednode. Will be written to the p2p.toml file of the Nodes
-export P2P_SEEDNODE_ADDRESS="/ip4/127.0.0.1/tcp/$PORT_SEEDNODE/p2p/16Uiu2HAkw5SNNtSvH1zJiQ6Gc3WoGNSxiyNueRKe6fuAuh57G3Bk"
-
 
 # UI configuration profiles
 

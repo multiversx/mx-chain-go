@@ -5,12 +5,15 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
+	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/data/vm"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/debug"
+	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/ntp"
@@ -30,12 +33,16 @@ type initialNodeFacade struct {
 }
 
 // NewInitialNodeFacade is the initial implementation of the facade interface
-func NewInitialNodeFacade(apiInterface string, pprofEnabled bool) *initialNodeFacade {
+func NewInitialNodeFacade(apiInterface string, pprofEnabled bool, statusMetricsHandler external.StatusMetricsHandler) (*initialNodeFacade, error) {
+	if check.IfNil(statusMetricsHandler) {
+		return nil, facade.ErrNilStatusMetrics
+	}
+
 	return &initialNodeFacade{
 		apiInterface:         apiInterface,
-		statusMetricsHandler: NewDisabledStatusMetricsHandler(),
+		statusMetricsHandler: statusMetricsHandler,
 		pprofEnabled:         pprofEnabled,
-	}
+	}, nil
 }
 
 // GetProof -
@@ -171,6 +178,11 @@ func (inf *initialNodeFacade) GetAccount(_ string, _ api.AccountQueryOptions) (a
 	return api.AccountResponse{}, api.BlockInfo{}, errNodeStarting
 }
 
+// GetAccounts returns error
+func (inf *initialNodeFacade) GetAccounts(_ []string, _ api.AccountQueryOptions) (map[string]*api.AccountResponse, api.BlockInfo, error) {
+	return nil, api.BlockInfo{}, errNodeStarting
+}
+
 // GetCode returns nil and error
 func (inf *initialNodeFacade) GetCode(_ []byte, _ api.AccountQueryOptions) []byte {
 	return nil
@@ -186,7 +198,7 @@ func (inf *initialNodeFacade) GetHeartbeats() ([]data.PubKeyHeartbeat, error) {
 	return nil, errNodeStarting
 }
 
-// StatusMetrics will returns nil
+// StatusMetrics will return nil
 func (inf *initialNodeFacade) StatusMetrics() external.StatusMetricsHandler {
 	return inf.statusMetricsHandler
 }
@@ -236,6 +248,11 @@ func (inf *initialNodeFacade) GetPeerInfo(_ string) ([]core.QueryP2PPeerInfo, er
 	return nil, errNodeStarting
 }
 
+// GetEpochStartDataAPI returns nil and error
+func (inf *initialNodeFacade) GetEpochStartDataAPI(_ uint32) (*common.EpochStartDataAPI, error) {
+	return nil, errNodeStarting
+}
+
 // GetThrottlerForEndpoint returns nil and false
 func (inf *initialNodeFacade) GetThrottlerForEndpoint(_ string) (core.Throttler, bool) {
 	return nil, false
@@ -253,6 +270,11 @@ func (inf *initialNodeFacade) GetBlockByNonce(_ uint64, _ api.BlockQueryOptions)
 
 // GetBlockByRound returns nil and error
 func (inf *initialNodeFacade) GetBlockByRound(_ uint64, _ api.BlockQueryOptions) (*api.Block, error) {
+	return nil, errNodeStarting
+}
+
+// GetAlteredAccountsForBlock returns nil and error
+func (inf *initialNodeFacade) GetAlteredAccountsForBlock(_ api.GetAlteredAccountsForBlockOptions) ([]*outportcore.AlteredAccount, error) {
 	return nil, errNodeStarting
 }
 

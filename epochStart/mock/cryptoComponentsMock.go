@@ -10,6 +10,7 @@ import (
 
 // CryptoComponentsMock -
 type CryptoComponentsMock struct {
+	PrivKey           crypto.PrivateKey
 	PubKey            crypto.PublicKey
 	BlockSig          crypto.SingleSigner
 	TxSig             crypto.SingleSigner
@@ -18,6 +19,11 @@ type CryptoComponentsMock struct {
 	BlKeyGen          crypto.KeyGenerator
 	TxKeyGen          crypto.KeyGenerator
 	mutCrypto         sync.RWMutex
+}
+
+// PrivateKey -
+func (ccm *CryptoComponentsMock) PrivateKey() crypto.PrivateKey {
+	return ccm.PrivKey
 }
 
 // PublicKey -

@@ -124,7 +124,7 @@ func (ewl *evictionWaitingList) IsInterfaceNil() bool {
 	return ewl == nil
 }
 
-// ShouldKeepHash searches for the given hash in all of the evictionWaitingList's newHashes.
+// ShouldKeepHash searches for the given hash in all the evictionWaitingList's newHashes.
 // If the identifier is equal to oldRoot, then we should also search in oldHashes.
 func (ewl *evictionWaitingList) ShouldKeepHash(hash string, identifier state.TriePruningIdentifier) (bool, error) {
 	ewl.opMutex.RLock()

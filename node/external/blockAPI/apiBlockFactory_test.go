@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/state"
 	storageMocks "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 )
@@ -25,16 +26,19 @@ func createMockArgsAPIBlockProc() *ArgAPIBlockProcessor {
 	statusComputer, _ := txstatus.NewStatusComputer(0, mock.NewNonceHashConverterMock(), &storageMocks.ChainStorerStub{})
 
 	return &ArgAPIBlockProcessor{
-		Store:                    &storageMocks.ChainStorerStub{},
-		Marshalizer:              &mock.MarshalizerFake{},
-		Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
-		HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
-		APITransactionHandler:    &mock.TransactionAPIHandlerStub{},
-		StatusComputer:           statusComputer,
-		Hasher:                   &mock.HasherMock{},
-		AddressPubkeyConverter:   &mock.PubkeyConverterMock{},
-		LogsFacade:               &testscommon.LogsFacadeStub{},
-		ReceiptsRepository:       &testscommon.ReceiptsRepositoryStub{},
+		Store:                        &storageMocks.ChainStorerStub{},
+		Marshalizer:                  &mock.MarshalizerFake{},
+		Uint64ByteSliceConverter:     mock.NewNonceHashConverterMock(),
+		HistoryRepo:                  &dblookupext.HistoryRepositoryStub{},
+		APITransactionHandler:        &mock.TransactionAPIHandlerStub{},
+		StatusComputer:               statusComputer,
+		Hasher:                       &mock.HasherMock{},
+		AddressPubkeyConverter:       &mock.PubkeyConverterMock{},
+		LogsFacade:                   &testscommon.LogsFacadeStub{},
+		ReceiptsRepository:           &testscommon.ReceiptsRepositoryStub{},
+		AlteredAccountsProvider:      &testscommon.AlteredAccountsProviderStub{},
+		AccountsRepository:           &state.AccountsRepositoryStub{},
+		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 	}
 }
 
@@ -136,6 +140,36 @@ func TestCreateAPIBlockProcessorNilArgs(t *testing.T) {
 
 		_, err := CreateAPIBlockProcessor(arguments)
 		assert.Equal(t, errNilReceiptsRepository, err)
+	})
+
+	t.Run("NilAlteredAccountsProvider", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgsAPIBlockProc()
+		arguments.AlteredAccountsProvider = nil
+
+		_, err := CreateAPIBlockProcessor(arguments)
+		assert.Equal(t, errNilAlteredAccountsProvider, err)
+	})
+
+	t.Run("NilAccountsRepository", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgsAPIBlockProc()
+		arguments.AccountsRepository = nil
+
+		_, err := CreateAPIBlockProcessor(arguments)
+		assert.Equal(t, errNilAccountsRepository, err)
+	})
+
+	t.Run("NilScheduledTxsExecutionHandler", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgsAPIBlockProc()
+		arguments.ScheduledTxsExecutionHandler = nil
+
+		_, err := CreateAPIBlockProcessor(arguments)
+		assert.Equal(t, errNilScheduledTxsExecutionHandler, err)
 	})
 }
 

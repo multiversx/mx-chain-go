@@ -130,7 +130,7 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 }
 
 // receivedSignature method is called when a signature is received through the signature channel.
-// If the signature is valid, than the jobDone map corresponding to the node which sent it,
+// If the signature is valid, then the jobDone map corresponding to the node which sent it,
 // is set on true for the subround Signature
 func (sr *subroundSignature) receivedSignature(_ context.Context, cnsDta *consensus.Message) bool {
 	node := string(cnsDta.PubKey)

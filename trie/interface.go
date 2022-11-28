@@ -27,7 +27,7 @@ type node interface {
 	resolveCollapsed(pos byte, db common.DBWriteCacher) error
 	hashNode() ([]byte, error)
 	hashChildren() error
-	tryGet(key []byte, db common.DBWriteCacher) ([]byte, error)
+	tryGet(key []byte, depth uint32, db common.DBWriteCacher) ([]byte, uint32, error)
 	getNext(key []byte, db common.DBWriteCacher) (node, []byte, error)
 	insert(n *leafNode, db common.DBWriteCacher) (node, [][]byte, error)
 	delete(key []byte, db common.DBWriteCacher) (bool, node, [][]byte, error)
@@ -46,14 +46,15 @@ type node interface {
 	getValue() []byte
 
 	commitDirty(level byte, maxTrieLevelInMemory uint, originDb common.DBWriteCacher, targetDb common.DBWriteCacher) error
-	commitCheckpoint(originDb common.DBWriteCacher, targetDb common.DBWriteCacher, checkpointHashes CheckpointHashesHolder, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.SnapshotStatisticsHandler, idleProvider IdleNodeProvider) error
-	commitSnapshot(originDb common.DBWriteCacher, leavesChan chan core.KeyValueHolder, missingNodesChan chan []byte, ctx context.Context, stats common.SnapshotStatisticsHandler, idleProvider IdleNodeProvider) error
+	commitCheckpoint(originDb common.DBWriteCacher, targetDb common.DBWriteCacher, checkpointHashes CheckpointHashesHolder, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.TrieStatisticsHandler, idleProvider IdleNodeProvider, depthLevel int) error
+	commitSnapshot(originDb common.DBWriteCacher, leavesChan chan core.KeyValueHolder, missingNodesChan chan []byte, ctx context.Context, stats common.TrieStatisticsHandler, idleProvider IdleNodeProvider, depthLevel int) error
 
 	getMarshalizer() marshal.Marshalizer
 	setMarshalizer(marshal.Marshalizer)
 	getHasher() hashing.Hasher
 	setHasher(hashing.Hasher)
 	sizeInBytes() int
+	collectStats(handler common.TrieStatisticsHandler, depthLevel int, db common.DBWriteCacher) error
 
 	IsInterfaceNil() bool
 }
@@ -63,8 +64,8 @@ type dbWithGetFromEpoch interface {
 }
 
 type snapshotNode interface {
-	commitCheckpoint(originDb common.DBWriteCacher, targetDb common.DBWriteCacher, checkpointHashes CheckpointHashesHolder, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.SnapshotStatisticsHandler, idleProvider IdleNodeProvider) error
-	commitSnapshot(originDb common.DBWriteCacher, leavesChan chan core.KeyValueHolder, missingNodesChan chan []byte, ctx context.Context, stats common.SnapshotStatisticsHandler, idleProvider IdleNodeProvider) error
+	commitCheckpoint(originDb common.DBWriteCacher, targetDb common.DBWriteCacher, checkpointHashes CheckpointHashesHolder, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.TrieStatisticsHandler, idleProvider IdleNodeProvider, depthLevel int) error
+	commitSnapshot(originDb common.DBWriteCacher, leavesChan chan core.KeyValueHolder, missingNodesChan chan []byte, ctx context.Context, stats common.TrieStatisticsHandler, idleProvider IdleNodeProvider, depthLevel int) error
 }
 
 // RequestHandler defines the methods through which request to data can be made

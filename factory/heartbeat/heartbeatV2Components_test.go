@@ -23,6 +23,7 @@ func createMockHeartbeatV2ComponentsFactoryArgs() heartbeatComp.ArgHeartbeatV2Co
 
 	_ = bootstrapC.SetShardCoordinator(shardCoordinator)
 
+	statusCoreC := componentsMock.GetStatusCoreComponents()
 	coreC := componentsMock.GetCoreComponents()
 	networkC := componentsMock.GetNetworkComponents()
 	dataC := componentsMock.GetDataComponents(coreC, shardCoordinator)
@@ -42,12 +43,14 @@ func createMockHeartbeatV2ComponentsFactoryArgs() heartbeatComp.ArgHeartbeatV2Co
 				MinPeersThreshold:                                0.8,
 				DelayBetweenRequestsInSec:                        10,
 				MaxTimeoutInSec:                                  60,
-				DelayBetweenConnectionNotificationsInSec:         5,
+				PeerShardTimeBetweenSendsInSec:                   5,
+				PeerShardThresholdBetweenSends:                   0.1,
 				MaxMissingKeysInRequest:                          100,
 				MaxDurationPeerUnresponsiveInSec:                 10,
 				HideInactiveValidatorIntervalInSec:               60,
 				HardforkTimeBetweenSendsInSec:                    5,
 				TimeBetweenConnectionsMetricsUpdateInSec:         10,
+				TimeToReadDirectConnectionsInSec:                 15,
 				HeartbeatPool: config.CacheConfig{
 					Type:     "LRU",
 					Capacity: 1000,
@@ -64,13 +67,14 @@ func createMockHeartbeatV2ComponentsFactoryArgs() heartbeatComp.ArgHeartbeatV2Co
 				Identity:        "identity",
 			},
 		},
-		AppVersion:         "test",
-		BoostrapComponents: bootstrapC,
-		CoreComponents:     coreC,
-		DataComponents:     dataC,
-		NetworkComponents:  networkC,
-		CryptoComponents:   cryptoC,
-		ProcessComponents:  processC,
+		AppVersion:           "test",
+		BootstrapComponents:  bootstrapC,
+		CoreComponents:       coreC,
+		DataComponents:       dataC,
+		NetworkComponents:    networkC,
+		CryptoComponents:     cryptoC,
+		ProcessComponents:    processC,
+		StatusCoreComponents: statusCoreC,
 	}
 }
 
