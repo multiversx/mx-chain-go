@@ -157,11 +157,11 @@ func (a *accountDBSyncersContainerFactory) createUserAccountsSyncer(shardId uint
 			CheckNodesOnDisk:                  a.checkNodesOnDisk,
 			StorageMarker:                     storageMarker.NewTrieStorageMarker(),
 			UserAccountsSyncStatisticsHandler: statistics.NewTrieSyncStatistics(),
+			EnableEpochsHandler:               a.enableEpochsHandler,
 		},
 		ShardId:                shardId,
 		Throttler:              thr,
 		AddressPubKeyConverter: a.addressPubKeyConverter,
-		EnableEpochsHandler:    a.enableEpochsHandler,
 	}
 	accountSyncer, err := syncer.NewUserAccountsSyncer(args)
 	if err != nil {
@@ -187,6 +187,7 @@ func (a *accountDBSyncersContainerFactory) createValidatorAccountsSyncer(shardId
 			CheckNodesOnDisk:                  a.checkNodesOnDisk,
 			StorageMarker:                     storageMarker.NewTrieStorageMarker(),
 			UserAccountsSyncStatisticsHandler: statistics.NewTrieSyncStatistics(),
+			EnableEpochsHandler:               a.enableEpochsHandler,
 		},
 	}
 	accountSyncer, err := syncer.NewValidatorAccountsSyncer(args)

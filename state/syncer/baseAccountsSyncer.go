@@ -34,6 +34,7 @@ type baseAccountsSyncer struct {
 	checkNodesOnDisk                  bool
 	storageMarker                     trie.StorageMarker
 	userAccountsSyncStatisticsHandler common.SizeSyncStatisticsHandler
+	enableEpochsHandler               common.EnableEpochsHandler
 
 	trieSyncerVersion int
 	numTriesSynced    int32
@@ -52,6 +53,7 @@ type ArgsNewBaseAccountsSyncer struct {
 	Timeout                           time.Duration
 	Cacher                            storage.Cacher
 	UserAccountsSyncStatisticsHandler common.SizeSyncStatisticsHandler
+	EnableEpochsHandler               common.EnableEpochsHandler
 	MaxTrieLevelInMemory              uint
 	MaxHardCapForMissingNodes         int
 	TrieSyncerVersion                 int
@@ -77,6 +79,9 @@ func checkArgs(args ArgsNewBaseAccountsSyncer) error {
 	if check.IfNil(args.UserAccountsSyncStatisticsHandler) {
 		return state.ErrNilSyncStatisticsHandler
 	}
+	if check.IfNil(args.EnableEpochsHandler) {
+		return state.ErrNilEnableEpochsHandler
+	}
 	if args.MaxHardCapForMissingNodes < 1 {
 		return state.ErrInvalidMaxHardCapForMissingNodes
 	}
@@ -93,7 +98,7 @@ func (b *baseAccountsSyncer) syncMainTrie(
 	atomic.AddInt32(&b.numMaxTries, 1)
 
 	log.Trace("syncing main trie", "roothash", rootHash)
-	dataTrie, err := trie.NewTrie(b.trieStorageManager, b.marshalizer, b.hasher, b.maxTrieLevelInMemory)
+	dataTrie, err := trie.NewTrie(b.trieStorageManager, b.marshalizer, b.hasher, b.enableEpochsHandler, b.maxTrieLevelInMemory)
 	if err != nil {
 		return nil, err
 	}
@@ -203,7 +208,7 @@ func (b *baseAccountsSyncer) GetSyncedTries() map[string]common.Trie {
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
 
-	dataTrie, err := trie.NewTrie(b.trieStorageManager, b.marshalizer, b.hasher, b.maxTrieLevelInMemory)
+	dataTrie, err := trie.NewTrie(b.trieStorageManager, b.marshalizer, b.hasher, b.enableEpochsHandler, b.maxTrieLevelInMemory)
 	if err != nil {
 		log.Warn("error creating a new trie in baseAccountsSyncer.GetSyncedTries", "error", err)
 		return make(map[string]common.Trie)

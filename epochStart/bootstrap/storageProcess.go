@@ -251,6 +251,7 @@ func (sesb *storageEpochStartBootstrap) createStorageResolvers() error {
 		DataPacker:               dataPacker,
 		ManualEpochStartNotifier: mesn,
 		ChanGracefullyClose:      sesb.chanGracefullyClose,
+		EnableEpochsHandler:      sesb.coreComponentsHolder.EnableEpochsHandler(),
 	}
 
 	var resolversContainerFactory dataRetriever.ResolversContainerFactory

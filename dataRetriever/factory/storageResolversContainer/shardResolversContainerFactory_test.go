@@ -2,6 +2,7 @@ package storageResolversContainers_test
 
 import (
 	"errors"
+	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
 	"strings"
 	"testing"
 
@@ -211,5 +212,6 @@ func getArgumentsShard() storageResolversContainers.FactoryArgs {
 		DataPacker:               &mock.DataPackerStub{},
 		ManualEpochStartNotifier: &mock.ManualEpochStartNotifierStub{},
 		ChanGracefullyClose:      make(chan endProcess.ArgEndProcess),
+		EnableEpochsHandler:      &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 }

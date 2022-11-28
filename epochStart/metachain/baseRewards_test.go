@@ -1153,7 +1153,10 @@ func getBaseRewardsArguments() BaseRewardsCreatorArgs {
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	accCreator, _ := factory.NewAccountCreator(argsAccCreator)
-	userAccountsDB := createAccountsDB(hasher, marshalizer, accCreator, trieFactoryManager)
+	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		SwitchJailWaitingEnableEpochField: 0,
+	}
+	userAccountsDB := createAccountsDB(hasher, marshalizer, accCreator, trieFactoryManager, enableEpochsHandler)
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	shardCoordinator.CurrentShard = core.MetachainShardId
 	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
@@ -1177,10 +1180,8 @@ func getBaseRewardsArguments() BaseRewardsCreatorArgs {
 				return 63
 			},
 		},
-		UserAccountsDB: userAccountsDB,
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			SwitchJailWaitingEnableEpochField: 0,
-		},
+		UserAccountsDB:      userAccountsDB,
+		EnableEpochsHandler: enableEpochsHandler,
 	}
 }
 

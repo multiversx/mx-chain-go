@@ -503,7 +503,8 @@ func TestExecuteTransactionAndTimeToProcessChange(t *testing.T) {
 	testHasher := sha256.NewSha256()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	pubkeyConv, _ := pubkeyConverter.NewHexPubkeyConverter(32)
-	accnts := vm.CreateInMemoryShardAccountsDB()
+	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
+	accnts := vm.CreateInMemoryShardAccountsDB(enableEpochsHandler)
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(testMarshalizer)
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
 		PubkeyConverter:     pubkeyConv,
@@ -511,7 +512,7 @@ func TestExecuteTransactionAndTimeToProcessChange(t *testing.T) {
 		BuiltInFunctions:    builtInFunctions.NewBuiltInFunctionContainer(),
 		ArgumentParser:      parsers.NewCallArgsParser(),
 		ESDTTransferParser:  esdtTransferParser,
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		EnableEpochsHandler: enableEpochsHandler,
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	feeHandler := &mock.FeeHandlerStub{

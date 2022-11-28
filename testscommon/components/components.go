@@ -317,8 +317,8 @@ func GetStateFactoryArgs(coreComponents factory.CoreComponentsHolder, shardCoord
 	trieStorageManagers[trieFactory.PeerAccountTrie] = storageManagerPeer
 
 	triesHolder := state.NewDataTriesHolder()
-	trieUsers, _ := trie.NewTrie(storageManagerUser, coreComponents.InternalMarshalizer(), coreComponents.Hasher(), 5)
-	triePeers, _ := trie.NewTrie(storageManagerPeer, coreComponents.InternalMarshalizer(), coreComponents.Hasher(), 5)
+	trieUsers, _ := trie.NewTrie(storageManagerUser, coreComponents.InternalMarshalizer(), coreComponents.Hasher(), coreComponents.EnableEpochsHandler(), 5)
+	triePeers, _ := trie.NewTrie(storageManagerPeer, coreComponents.InternalMarshalizer(), coreComponents.Hasher(), coreComponents.EnableEpochsHandler(), 5)
 	triesHolder.Put([]byte(trieFactory.UserAccountTrie), trieUsers)
 	triesHolder.Put([]byte(trieFactory.PeerAccountTrie), triePeers)
 

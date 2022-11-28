@@ -6,6 +6,17 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 )
 
+// TrieNodeVersion defines the type of the trie node version
+type TrieNodeVersion uint8
+
+const (
+	// NotSpecified means that the value not populated or is not important
+	NotSpecified TrieNodeVersion = iota
+
+	// AutoBalanceEnabled is used for data tries, and only after the activation of AutoBalanceDataTriesEnableEpoch flag
+	AutoBalanceEnabled
+)
+
 // EmptyTrieHash returns the value with empty trie hash
 var EmptyTrieHash = make([]byte, 32)
 

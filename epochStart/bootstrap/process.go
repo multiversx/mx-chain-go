@@ -1062,11 +1062,11 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 			CheckNodesOnDisk:                  e.checkNodesOnDisk,
 			StorageMarker:                     storageMarker.NewTrieStorageMarker(),
 			UserAccountsSyncStatisticsHandler: e.trieSyncStatisticsProvider,
+			EnableEpochsHandler:               e.coreComponentsHolder.EnableEpochsHandler(),
 		},
 		ShardId:                e.shardCoordinator.SelfId(),
 		Throttler:              thr,
 		AddressPubKeyConverter: e.coreComponentsHolder.AddressPubKeyConverter(),
-		EnableEpochsHandler:    e.coreComponentsHolder.EnableEpochsHandler(),
 	}
 	accountsDBSyncer, err := syncer.NewUserAccountsSyncer(argsUserAccountsSyncer)
 	if err != nil {
@@ -1131,6 +1131,7 @@ func (e *epochStartBootstrap) syncValidatorAccountsState(rootHash []byte) error 
 			CheckNodesOnDisk:                  e.checkNodesOnDisk,
 			StorageMarker:                     storageMarker.NewTrieStorageMarker(),
 			UserAccountsSyncStatisticsHandler: statistics.NewTrieSyncStatistics(),
+			EnableEpochsHandler:               e.coreComponentsHolder.EnableEpochsHandler(),
 		},
 	}
 	accountsDBSyncer, err := syncer.NewValidatorAccountsSyncer(argsValidatorAccountsSyncer)

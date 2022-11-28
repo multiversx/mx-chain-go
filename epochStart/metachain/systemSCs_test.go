@@ -884,8 +884,9 @@ func createAccountsDB(
 	marshaller marshal.Marshalizer,
 	accountFactory state.AccountFactory,
 	trieStorageManager common.StorageManager,
+	enableEpochsHandler common.EnableEpochsHandler,
 ) *state.AccountsDB {
-	tr, _ := trie.NewTrie(trieStorageManager, marshaller, hasher, 5)
+	tr, _ := trie.NewTrie(trieStorageManager, marshaller, hasher, enableEpochsHandler, 5)
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(10, testscommon.NewMemDbMock(), marshaller)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
 
@@ -920,13 +921,14 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 	}
 	accCreator, _ := factory.NewAccountCreator(argsAccCreator)
 	peerAccCreator := factory.NewPeerAccountCreator()
-	userAccountsDB := createAccountsDB(hasher, marshalizer, accCreator, trieFactoryManager)
-	peerAccountsDB := createAccountsDB(hasher, marshalizer, peerAccCreator, trieFactoryManager)
 	en := forking.NewGenericEpochNotifier()
 	epochsConfig := &config.EpochConfig{
 		EnableEpochs: enableEpochsConfig,
 	}
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(epochsConfig.EnableEpochs, en)
+	userAccountsDB := createAccountsDB(hasher, marshalizer, accCreator, trieFactoryManager, enableEpochsHandler)
+	peerAccountsDB := createAccountsDB(hasher, marshalizer, peerAccCreator, trieFactoryManager, enableEpochsHandler)
+
 	argsValidatorsProcessor := peer.ArgValidatorStatisticsProcessor{
 		Marshalizer:                          marshalizer,
 		NodesCoordinator:                     &shardingMocks.NodesCoordinatorStub{},

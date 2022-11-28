@@ -29,7 +29,7 @@ type node interface {
 	hashChildren() error
 	tryGet(key []byte, depth uint32, db common.DBWriteCacher) ([]byte, uint32, error)
 	getNext(key []byte, db common.DBWriteCacher) (node, []byte, error)
-	insert(n *leafNode, db common.DBWriteCacher) (node, [][]byte, error)
+	insert(newData *dataForInsertion, db common.DBWriteCacher) (node, [][]byte, error)
 	delete(key []byte, db common.DBWriteCacher) (bool, node, [][]byte, error)
 	reduceNode(pos int) (node, bool, error)
 	isEmptyOrNil() error
@@ -44,6 +44,7 @@ type node interface {
 	getNextHashAndKey([]byte) (bool, []byte, []byte)
 	getNumNodes() common.NumNodesDTO
 	getValue() []byte
+	getVersion() (common.TrieNodeVersion, error)
 
 	commitDirty(level byte, maxTrieLevelInMemory uint, originDb common.DBWriteCacher, targetDb common.DBWriteCacher) error
 	commitCheckpoint(originDb common.DBWriteCacher, targetDb common.DBWriteCacher, checkpointHashes CheckpointHashesHolder, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.TrieStatisticsHandler, idleProvider IdleNodeProvider, depthLevel int) error
@@ -127,4 +128,11 @@ type storageManagerExtension interface {
 // StorageMarker is used to mark the given storer as synced and active
 type StorageMarker interface {
 	MarkStorerAsSyncedAndActive(storer common.StorageManager)
+}
+
+// TODO check for nil where used as *
+type dataForInsertion struct {
+	key     []byte
+	value   []byte
+	version common.TrieNodeVersion
 }

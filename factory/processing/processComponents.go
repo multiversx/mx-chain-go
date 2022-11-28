@@ -1475,6 +1475,7 @@ func (pcf *processComponentsFactory) createStorageResolversForMeta(
 		DataPacker:               dataPacker,
 		ManualEpochStartNotifier: manualEpochStartNotifier,
 		ChanGracefullyClose:      pcf.coreData.ChanStopNodeProcess(),
+		EnableEpochsHandler:      pcf.coreData.EnableEpochsHandler(),
 	}
 	resolversContainerFactory, err := storageResolversContainers.NewMetaResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {
@@ -1507,6 +1508,7 @@ func (pcf *processComponentsFactory) createStorageResolversForShard(
 		DataPacker:               dataPacker,
 		ManualEpochStartNotifier: manualEpochStartNotifier,
 		ChanGracefullyClose:      pcf.coreData.ChanStopNodeProcess(),
+		EnableEpochsHandler:      pcf.coreData.EnableEpochsHandler(),
 	}
 	resolversContainerFactory, err := storageResolversContainers.NewShardResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {

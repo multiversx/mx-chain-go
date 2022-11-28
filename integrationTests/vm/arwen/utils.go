@@ -384,7 +384,7 @@ func (context *TestContext) Close() {
 }
 
 func (context *TestContext) initAccounts() {
-	context.Accounts = vm.CreateInMemoryShardAccountsDB()
+	context.Accounts = vm.CreateInMemoryShardAccountsDB(context.EnableEpochsHandler)
 
 	context.Owner = testParticipant{}
 	context.Owner.Address, _ = hex.DecodeString("d4105de8e44aee9d4be670401cec546e5df381028e805012386a05acf76518d9")

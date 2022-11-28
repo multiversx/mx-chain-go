@@ -119,6 +119,7 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 		&hashingMocks.HasherMock{},
 		accCreator,
 		trieStorageManagers[trieFactory.UserAccountTrie],
+		coreComponents.EnableEpochsHandler(),
 	)
 	require.Nil(t, err)
 
@@ -201,8 +202,9 @@ func createAccountAdapter(
 	hasher hashing.Hasher,
 	accountFactory state.AccountFactory,
 	trieStorage common.StorageManager,
+	handler common.EnableEpochsHandler,
 ) (state.AccountsAdapter, error) {
-	tr, err := trie.NewTrie(trieStorage, marshaller, hasher, 5)
+	tr, err := trie.NewTrie(trieStorage, marshaller, hasher, handler, 5)
 	if err != nil {
 		return nil, err
 	}

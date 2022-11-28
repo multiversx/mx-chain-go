@@ -2,6 +2,7 @@ package storage
 
 import (
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
 	"sync"
 	"testing"
 	"time"
@@ -115,7 +116,7 @@ func TestWriteContinuouslyInTree(t *testing.T) {
 	trieStorage, _ := trie.CreateTrieStorageManager(storageManagerArgs, options)
 
 	maxTrieLevelInMemory := uint(5)
-	tr, _ := trie.NewTrie(trieStorage, &marshal.JsonMarshalizer{}, blake2b.NewBlake2b(), maxTrieLevelInMemory)
+	tr, _ := trie.NewTrie(trieStorage, &marshal.JsonMarshalizer{}, blake2b.NewBlake2b(), &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
 
 	defer func() {
 		_ = store.DestroyUnit()

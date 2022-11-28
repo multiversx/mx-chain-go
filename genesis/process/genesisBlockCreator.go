@@ -494,6 +494,7 @@ func (gbc *genesisBlockCreator) getNewArgForShard(shardID uint32) (ArgsGenesisBl
 		newArgument.Core.Hasher(),
 		accCreator,
 		gbc.arg.TrieStorageManagers[triesFactory.UserAccountTrie],
+		newArgument.Core.EnableEpochsHandler(),
 	)
 	if err != nil {
 		return ArgsGenesisBlockCreator{}, fmt.Errorf("'%w' while generating an in-memory accounts adapter for shard %d",

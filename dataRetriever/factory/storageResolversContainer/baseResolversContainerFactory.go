@@ -1,6 +1,7 @@
 package storageResolversContainers
 
 import (
+	"github.com/ElrondNetwork/elrond-go/errors"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -34,6 +35,7 @@ type baseResolversContainerFactory struct {
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	dataPacker               dataRetriever.DataPacker
 	manualEpochStartNotifier dataRetriever.ManualEpochStartNotifier
+	enableEpochsHandler      common.EnableEpochsHandler
 	chanGracefullyClose      chan endProcess.ArgEndProcess
 	generalConfig            config.Config
 	shardIDForTries          uint32
@@ -68,6 +70,9 @@ func (brcf *baseResolversContainerFactory) checkParams() error {
 	}
 	if check.IfNil(brcf.hasher) {
 		return dataRetriever.ErrNilHasher
+	}
+	if check.IfNil(brcf.enableEpochsHandler) {
+		return errors.ErrNilEnableEpochsHandler
 	}
 
 	return nil
@@ -200,6 +205,7 @@ func (brcf *baseResolversContainerFactory) createMiniBlocksResolver(responseTopi
 func (brcf *baseResolversContainerFactory) newImportDBTrieStorage(
 	mainStorer storage.Storer,
 	checkpointsStorer storage.Storer,
+	handler common.EnableEpochsHandler,
 ) (common.StorageManager, dataRetriever.TrieDataGetter, error) {
 	pathManager, err := storageFactory.CreatePathManager(
 		storageFactory.ArgCreatePathManager{
@@ -223,13 +229,14 @@ func (brcf *baseResolversContainerFactory) newImportDBTrieStorage(
 	}
 
 	args := trieFactory.TrieCreateArgs{
-		MainStorer:         mainStorer,
-		CheckpointsStorer:  checkpointsStorer,
-		PruningEnabled:     brcf.generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
-		CheckpointsEnabled: brcf.generalConfig.StateTriesConfig.CheckpointsEnabled,
-		MaxTrieLevelInMem:  brcf.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
-		SnapshotsEnabled:   brcf.generalConfig.StateTriesConfig.SnapshotsEnabled,
-		IdleProvider:       disabled.NewProcessStatusHandler(),
+		MainStorer:          mainStorer,
+		CheckpointsStorer:   checkpointsStorer,
+		PruningEnabled:      brcf.generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
+		CheckpointsEnabled:  brcf.generalConfig.StateTriesConfig.CheckpointsEnabled,
+		MaxTrieLevelInMem:   brcf.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
+		SnapshotsEnabled:    brcf.generalConfig.StateTriesConfig.SnapshotsEnabled,
+		IdleProvider:        disabled.NewProcessStatusHandler(),
+		EnableEpochsHandler: handler,
 	}
 	return trieFactoryInstance.Create(args)
 }

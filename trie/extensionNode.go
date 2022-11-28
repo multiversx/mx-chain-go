@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"math"
 	"strings"
 	"sync"
 
@@ -31,6 +32,7 @@ func newExtensionNode(key []byte, child node, marshalizer marshal.Marshalizer, h
 		CollapsedEn: CollapsedEn{
 			Key:          key,
 			EncodedChild: nil,
+			ChildVersion: uint32(common.NotSpecified),
 		},
 		child: child,
 		baseNode: &baseNode{
@@ -373,7 +375,7 @@ func (en *extensionNode) getNext(key []byte, db common.DBWriteCacher) (node, []b
 	return en.child, key, nil
 }
 
-func (en *extensionNode) insert(n *leafNode, db common.DBWriteCacher) (node, [][]byte, error) {
+func (en *extensionNode) insert(newData *dataForInsertion, db common.DBWriteCacher) (node, [][]byte, error) {
 	emptyHashes := make([][]byte, 0)
 	err := en.isEmptyOrNil()
 	if err != nil {
@@ -384,21 +386,21 @@ func (en *extensionNode) insert(n *leafNode, db common.DBWriteCacher) (node, [][
 		return nil, emptyHashes, err
 	}
 
-	keyMatchLen := prefixLen(n.Key, en.Key)
+	keyMatchLen := prefixLen(newData.key, en.Key)
 
 	// If the whole key matches, keep this extension node as is
 	// and only update the value.
 	if keyMatchLen == len(en.Key) {
-		return en.insertInSameEn(n, keyMatchLen, db)
+		return en.insertInSameEn(newData, keyMatchLen, db)
 	}
 
 	// Otherwise branch out at the index where they differ.
-	return en.insertInNewBn(n, keyMatchLen)
+	return en.insertInNewBn(newData, keyMatchLen)
 }
 
-func (en *extensionNode) insertInSameEn(n *leafNode, keyMatchLen int, db common.DBWriteCacher) (node, [][]byte, error) {
-	n.Key = n.Key[keyMatchLen:]
-	newNode, oldHashes, err := en.child.insert(n, db)
+func (en *extensionNode) insertInSameEn(newData *dataForInsertion, keyMatchLen int, db common.DBWriteCacher) (node, [][]byte, error) {
+	newData.key = newData.key[keyMatchLen:]
+	newNode, oldHashes, err := en.child.insert(newData, db)
 	if check.IfNil(newNode) || err != nil {
 		return nil, [][]byte{}, err
 	}
@@ -412,10 +414,16 @@ func (en *extensionNode) insertInSameEn(n *leafNode, keyMatchLen int, db common.
 		return nil, [][]byte{}, err
 	}
 
+	childVersion, err := newNode.getVersion()
+	if err != nil {
+		return nil, [][]byte{}, err
+	}
+	newEn.ChildVersion = uint32(childVersion)
+
 	return newEn, oldHashes, nil
 }
 
-func (en *extensionNode) insertInNewBn(n *leafNode, keyMatchLen int) (node, [][]byte, error) {
+func (en *extensionNode) insertInNewBn(newData *dataForInsertion, keyMatchLen int) (node, [][]byte, error) {
 	oldHash := make([][]byte, 0)
 	if !en.dirty {
 		oldHash = append(oldHash, en.hash)
@@ -427,23 +435,20 @@ func (en *extensionNode) insertInNewBn(n *leafNode, keyMatchLen int) (node, [][]
 	}
 
 	oldChildPos := en.Key[keyMatchLen]
-	newChildPos := n.Key[keyMatchLen]
+	newChildPos := newData.key[keyMatchLen]
 	if childPosOutOfRange(oldChildPos) || childPosOutOfRange(newChildPos) {
 		return nil, [][]byte{}, ErrChildPosOutOfRange
 	}
 
-	followingExtensionNode, err := newExtensionNode(en.Key[keyMatchLen+1:], en.child, en.marsh, en.hasher)
+	err = en.insertOldChildInBn(bn, oldChildPos, keyMatchLen)
 	if err != nil {
 		return nil, [][]byte{}, err
 	}
 
-	if len(followingExtensionNode.Key) < 1 {
-		bn.children[oldChildPos] = en.child
-	} else {
-		bn.children[oldChildPos] = followingExtensionNode
+	err = en.insertNewChildInBn(bn, newData, newChildPos, keyMatchLen)
+	if err != nil {
+		return nil, [][]byte{}, err
 	}
-	n.Key = n.Key[keyMatchLen+1:]
-	bn.children[newChildPos] = n
 
 	if keyMatchLen == 0 {
 		return bn, oldHash, nil
@@ -454,7 +459,51 @@ func (en *extensionNode) insertInNewBn(n *leafNode, keyMatchLen int) (node, [][]
 		return nil, [][]byte{}, err
 	}
 
+	bnVersion, err := bn.getVersion()
+	if err != nil {
+		return nil, [][]byte{}, err
+	}
+	newEn.ChildVersion = uint32(bnVersion)
+
 	return newEn, oldHash, nil
+}
+
+func (en *extensionNode) insertOldChildInBn(bn *branchNode, oldChildPos byte, keyMatchLen int) error {
+	keyReminder := en.Key[keyMatchLen+1:]
+	childVersion, err := en.child.getVersion()
+	if err != nil {
+		return err
+	}
+
+	if len(keyReminder) < 1 {
+		bn.children[oldChildPos] = en.child
+		bn.ChildrenVersion[oldChildPos] = byte(childVersion)
+
+		return nil
+	}
+
+	followingExtensionNode, err := newExtensionNode(en.Key[keyMatchLen+1:], en.child, en.marsh, en.hasher)
+	if err != nil {
+		return err
+	}
+	followingExtensionNode.ChildVersion = uint32(childVersion)
+
+	bn.children[oldChildPos] = followingExtensionNode
+	bn.ChildrenVersion[oldChildPos] = byte(childVersion)
+	return nil
+}
+
+func (en *extensionNode) insertNewChildInBn(bn *branchNode, newData *dataForInsertion, newChildPos byte, keyMatchLen int) error {
+	newData.key = newData.key[keyMatchLen+1:]
+
+	newLeaf, err := newLeafNode(newData, en.marsh, en.hasher)
+	if err != nil {
+		return err
+	}
+
+	bn.children[newChildPos] = newLeaf
+	bn.ChildrenVersion[newChildPos] = byte(newData.version)
+	return nil
 }
 
 func (en *extensionNode) delete(key []byte, db common.DBWriteCacher) (bool, node, [][]byte, error) {
@@ -484,27 +533,39 @@ func (en *extensionNode) delete(key []byte, db common.DBWriteCacher) (bool, node
 		oldHashes = append(oldHashes, en.hash)
 	}
 
-	var n node
+	newNodeVersion, err := newNode.getVersion()
+	if err != nil {
+		return false, nil, emptyHashes, err
+	}
+
+	// TODO use polymorphism instead of switch
 	switch newNode := newNode.(type) {
 	case *leafNode:
-		n, err = newLeafNode(concat(en.Key, newNode.Key...), newNode.Value, en.marsh, en.hasher)
+		newLeafData := &dataForInsertion{
+			key:     concat(en.Key, newNode.Key...),
+			value:   newNode.Value,
+			version: newNodeVersion,
+		}
+		n, err := newLeafNode(newLeafData, en.marsh, en.hasher)
 		if err != nil {
 			return false, nil, emptyHashes, err
 		}
 
 		return true, n, oldHashes, nil
 	case *extensionNode:
-		n, err = newExtensionNode(concat(en.Key, newNode.Key...), newNode.child, en.marsh, en.hasher)
+		n, err := newExtensionNode(concat(en.Key, newNode.Key...), newNode.child, en.marsh, en.hasher)
 		if err != nil {
 			return false, nil, emptyHashes, err
 		}
+		n.ChildVersion = uint32(newNodeVersion)
 
 		return true, n, oldHashes, nil
 	default:
-		n, err = newExtensionNode(en.Key, newNode, en.marsh, en.hasher)
+		n, err := newExtensionNode(en.Key, newNode, en.marsh, en.hasher)
 		if err != nil {
 			return false, nil, emptyHashes, err
 		}
+		n.ChildVersion = uint32(newNodeVersion)
 
 		return true, n, oldHashes, nil
 	}
@@ -759,6 +820,14 @@ func (en *extensionNode) collectStats(ts common.TrieStatisticsHandler, depthLeve
 
 	ts.AddExtensionNode(depthLevel, uint64(len(val)))
 	return nil
+}
+
+func (en *extensionNode) getVersion() (common.TrieNodeVersion, error) {
+	if en.ChildVersion > math.MaxUint8 {
+		return common.NotSpecified, ErrInvalidNodeVersion
+	}
+
+	return common.TrieNodeVersion(en.ChildVersion), nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -298,7 +298,7 @@ func CreateMemUnit() storage.Storer {
 }
 
 // CreateInMemoryShardAccountsDB -
-func CreateInMemoryShardAccountsDB() *state.AccountsDB {
+func CreateInMemoryShardAccountsDB(handler common.EnableEpochsHandler) *state.AccountsDB {
 	marshaller := &marshal.GogoProtoMarshalizer{}
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, database.NewMemDB(), marshaller)
 	generalCfg := config.TrieStorageManagerConfig{
@@ -317,7 +317,7 @@ func CreateInMemoryShardAccountsDB() *state.AccountsDB {
 	}
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 
-	tr, _ := trie.NewTrie(trieStorage, marshaller, testHasher, maxTrieLevelInMemory)
+	tr, _ := trie.NewTrie(trieStorage, marshaller, testHasher, handler, maxTrieLevelInMemory)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
 
 	argsAccountsDB := state.ArgsAccountsDB{
@@ -1041,12 +1041,13 @@ func CreatePreparedTxProcessorAndAccountsWithVMs(
 	enableEpochsConfig config.EnableEpochs,
 ) (*VMTestContext, error) {
 	feeAccumulator, _ := postprocess.NewFeeAccumulator()
-	accounts := CreateInMemoryShardAccountsDB()
+	epochNotifierInstance := forking.NewGenericEpochNotifier()
+	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
+	accounts := CreateInMemoryShardAccountsDB(enableEpochsHandler)
 	_, _ = CreateAccount(accounts, senderAddressBytes, senderNonce, senderBalance)
 	vmConfig := createDefaultVMConfig()
 	arwenChangeLocker := &sync.RWMutex{}
-	epochNotifierInstance := forking.NewGenericEpochNotifier()
-	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
+
 	vmContainer, blockchainHook, pool := CreateVMAndBlockchainHookAndDataPool(
 		accounts,
 		nil,
@@ -1092,15 +1093,16 @@ func CreatePreparedTxProcessorWithVMs(enableEpochs config.EnableEpochs) (*VMTest
 // CreatePreparedTxProcessorWithVMsWithShardCoordinator -
 func CreatePreparedTxProcessorWithVMsWithShardCoordinator(enableEpochsConfig config.EnableEpochs, shardCoordinator sharding.Coordinator) (*VMTestContext, error) {
 	feeAccumulator, _ := postprocess.NewFeeAccumulator()
-	accounts := CreateInMemoryShardAccountsDB()
+	epochNotifierInstance := forking.NewGenericEpochNotifier()
+	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
+	accounts := CreateInMemoryShardAccountsDB(enableEpochsHandler)
 	vmConfig := createDefaultVMConfig()
 	arwenChangeLocker := &sync.RWMutex{}
 
 	testGasSchedule := arwenConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(testGasSchedule, 1)
 	gasSchedule := mock.NewGasScheduleNotifierMock(testGasSchedule)
-	epochNotifierInstance := forking.NewGenericEpochNotifier()
-	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
+
 	vmContainer, blockchainHook, pool := CreateVMAndBlockchainHookAndDataPool(
 		accounts,
 		gasSchedule,
@@ -1152,14 +1154,15 @@ func CreateTxProcessorArwenVMWithGasSchedule(
 	enableEpochsConfig config.EnableEpochs,
 ) (*VMTestContext, error) {
 	feeAccumulator, _ := postprocess.NewFeeAccumulator()
-	accounts := CreateInMemoryShardAccountsDB()
+	epochNotifierInstance := forking.NewGenericEpochNotifier()
+	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
+	accounts := CreateInMemoryShardAccountsDB(enableEpochsHandler)
 	_, _ = CreateAccount(accounts, senderAddressBytes, senderNonce, senderBalance)
 	vmConfig := createDefaultVMConfig()
 	arwenChangeLocker := &sync.RWMutex{}
 
 	gasScheduleNotifier := mock.NewGasScheduleNotifierMock(gasScheduleMap)
-	epochNotifierInstance := forking.NewGenericEpochNotifier()
-	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
+
 	vmContainer, blockchainHook, pool := CreateVMAndBlockchainHookAndDataPool(
 		accounts,
 		gasScheduleNotifier,
@@ -1205,11 +1208,12 @@ func CreateTxProcessorArwenWithVMConfig(
 	gasSchedule map[string]map[string]uint64,
 ) (*VMTestContext, error) {
 	feeAccumulator, _ := postprocess.NewFeeAccumulator()
-	accounts := CreateInMemoryShardAccountsDB()
-	arwenChangeLocker := &sync.RWMutex{}
-	gasScheduleNotifier := mock.NewGasScheduleNotifierMock(gasSchedule)
 	epochNotifierInstance := forking.NewGenericEpochNotifier()
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
+	accounts := CreateInMemoryShardAccountsDB(enableEpochsHandler)
+	arwenChangeLocker := &sync.RWMutex{}
+	gasScheduleNotifier := mock.NewGasScheduleNotifierMock(gasSchedule)
+
 	vmContainer, blockchainHook, pool := CreateVMAndBlockchainHookAndDataPool(
 		accounts,
 		gasScheduleNotifier,
@@ -1259,7 +1263,7 @@ func CreatePreparedTxProcessorAndAccountsWithMockedVM(
 	arwenChangeLocker common.Locker,
 ) (process.TransactionProcessor, state.AccountsAdapter, error) {
 
-	accnts := CreateInMemoryShardAccountsDB()
+	accnts := CreateInMemoryShardAccountsDB(&enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 	_, _ = CreateAccount(accnts, senderAddressBytes, senderNonce, senderBalance)
 
 	txProcessor, err := CreateTxProcessorWithOneSCExecutorMockVM(accnts, vmOpGas, enableEpochs, arwenChangeLocker)
@@ -1517,13 +1521,14 @@ func CreatePreparedTxProcessorWithVMsMultiShard(selfShardID uint32, enableEpochs
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(3, selfShardID)
 
 	feeAccumulator, _ := postprocess.NewFeeAccumulator()
-	accounts := CreateInMemoryShardAccountsDB()
+	epochNotifierInstance := forking.NewGenericEpochNotifier()
+	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
+	accounts := CreateInMemoryShardAccountsDB(enableEpochsHandler)
 
 	arwenChangeLocker := &sync.RWMutex{}
 	var vmContainer process.VirtualMachinesContainer
 	var blockchainHook *hooks.BlockChainHookImpl
-	epochNotifierInstance := forking.NewGenericEpochNotifier()
-	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
+
 	if selfShardID == core.MetachainShardId {
 		vmContainer, blockchainHook = CreateVMAndBlockchainHookMeta(accounts, nil, shardCoordinator, enableEpochsConfig)
 	} else {

@@ -365,7 +365,7 @@ func TestExtensionNode_isCollapsed(t *testing.T) {
 	assert.True(t, collapsedEn.isCollapsed())
 	assert.False(t, en.isCollapsed())
 
-	collapsedEn.child, _ = newLeafNode([]byte("og"), []byte("dog"), en.marsh, en.hasher)
+	collapsedEn.child, _ = newLeafNode(getTrieDataWithDefaultVersion("og", "dog"), en.marsh, en.hasher)
 	assert.False(t, collapsedEn.isCollapsed())
 }
 
@@ -492,9 +492,8 @@ func TestExtensionNode_insert(t *testing.T) {
 
 	en, _ := getEnAndCollapsedEn()
 	key := []byte{100, 15, 5, 6}
-	n, _ := newLeafNode(key, []byte("dogs"), en.marsh, en.hasher)
 
-	newNode, _, err := en.insert(n, nil)
+	newNode, _, err := en.insert(getTrieDataWithDefaultVersion(string(key), "dogs"), nil)
 	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 
@@ -508,12 +507,11 @@ func TestExtensionNode_insertCollapsedNode(t *testing.T) {
 	db := testscommon.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
 	key := []byte{100, 15, 5, 6}
-	n, _ := newLeafNode(key, []byte("dogs"), en.marsh, en.hasher)
 
 	_ = en.setHash()
 	_ = en.commitDirty(0, 5, db, db)
 
-	newNode, _, err := collapsedEn.insert(n, db)
+	newNode, _, err := collapsedEn.insert(getTrieDataWithDefaultVersion(string(key), "dogs"), db)
 	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 
@@ -528,7 +526,6 @@ func TestExtensionNode_insertInStoredEnSameKey(t *testing.T) {
 	en, _ := getEnAndCollapsedEn()
 	enKey := []byte{100}
 	key := append(enKey, []byte{11, 12}...)
-	n, _ := newLeafNode(key, []byte("dogs"), en.marsh, en.hasher)
 
 	_ = en.commitDirty(0, 5, db, db)
 	enHash := en.getHash()
@@ -536,7 +533,7 @@ func TestExtensionNode_insertInStoredEnSameKey(t *testing.T) {
 	bnHash := bn.getHash()
 	expectedHashes := [][]byte{bnHash, enHash}
 
-	newNode, oldHashes, err := en.insert(n, db)
+	newNode, oldHashes, err := en.insert(getTrieDataWithDefaultVersion(string(key), "dogs"), db)
 	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedHashes, oldHashes)
@@ -550,12 +547,11 @@ func TestExtensionNode_insertInStoredEnDifferentKey(t *testing.T) {
 	enKey := []byte{1}
 	en, _ := newExtensionNode(enKey, bn, bn.marsh, bn.hasher)
 	nodeKey := []byte{11, 12}
-	n, _ := newLeafNode(nodeKey, []byte("dogs"), bn.marsh, bn.hasher)
 
 	_ = en.commitDirty(0, 5, db, db)
 	expectedHashes := [][]byte{en.getHash()}
 
-	newNode, oldHashes, err := en.insert(n, db)
+	newNode, oldHashes, err := en.insert(getTrieDataWithDefaultVersion(string(nodeKey), "dogs"), db)
 	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedHashes, oldHashes)
@@ -566,9 +562,8 @@ func TestExtensionNode_insertInDirtyEnSameKey(t *testing.T) {
 
 	en, _ := getEnAndCollapsedEn()
 	nodeKey := []byte{100, 11, 12}
-	n, _ := newLeafNode(nodeKey, []byte("dogs"), en.marsh, en.hasher)
 
-	newNode, oldHashes, err := en.insert(n, nil)
+	newNode, oldHashes, err := en.insert(getTrieDataWithDefaultVersion(string(nodeKey), "dogs"), nil)
 	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 	assert.Equal(t, [][]byte{}, oldHashes)
@@ -581,9 +576,8 @@ func TestExtensionNode_insertInDirtyEnDifferentKey(t *testing.T) {
 	enKey := []byte{1}
 	en, _ := newExtensionNode(enKey, bn, bn.marsh, bn.hasher)
 	nodeKey := []byte{11, 12}
-	n, _ := newLeafNode(nodeKey, []byte("dogs"), bn.marsh, bn.hasher)
 
-	newNode, oldHashes, err := en.insert(n, nil)
+	newNode, oldHashes, err := en.insert(getTrieDataWithDefaultVersion(string(nodeKey), "dogs"), nil)
 	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 	assert.Equal(t, [][]byte{}, oldHashes)
@@ -594,7 +588,7 @@ func TestExtensionNode_insertInNilNode(t *testing.T) {
 
 	var en *extensionNode
 
-	newNode, _, err := en.insert(&leafNode{}, nil)
+	newNode, _, err := en.insert(getTrieDataWithDefaultVersion("key", "val"), nil)
 	assert.Nil(t, newNode)
 	assert.True(t, errors.Is(err, ErrNilExtensionNode))
 	assert.Nil(t, newNode)

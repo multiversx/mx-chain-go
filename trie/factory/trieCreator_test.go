@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/marshallerMock"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
@@ -31,13 +32,14 @@ func getArgs() factory.TrieFactoryArgs {
 
 func getCreateArgs() factory.TrieCreateArgs {
 	return factory.TrieCreateArgs{
-		MainStorer:         testscommon.CreateMemUnit(),
-		CheckpointsStorer:  testscommon.CreateMemUnit(),
-		PruningEnabled:     false,
-		CheckpointsEnabled: false,
-		SnapshotsEnabled:   true,
-		MaxTrieLevelInMem:  5,
-		IdleProvider:       &testscommon.ProcessStatusHandlerStub{},
+		MainStorer:          testscommon.CreateMemUnit(),
+		CheckpointsStorer:   testscommon.CreateMemUnit(),
+		PruningEnabled:      false,
+		CheckpointsEnabled:  false,
+		SnapshotsEnabled:    true,
+		MaxTrieLevelInMem:   5,
+		IdleProvider:        &testscommon.ProcessStatusHandlerStub{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 }
 

@@ -19,7 +19,11 @@ import (
 
 var _ = node(&leafNode{})
 
-func newLeafNode(key, value []byte, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (*leafNode, error) {
+func newLeafNode(
+	newData *dataForInsertion,
+	marshalizer marshal.Marshalizer,
+	hasher hashing.Hasher,
+) (*leafNode, error) {
 	if check.IfNil(marshalizer) {
 		return nil, ErrNilMarshalizer
 	}
@@ -29,8 +33,9 @@ func newLeafNode(key, value []byte, marshalizer marshal.Marshalizer, hasher hash
 
 	return &leafNode{
 		CollapsedLn: CollapsedLn{
-			Key:   key,
-			Value: value,
+			Key:     newData.key,
+			Value:   newData.value,
+			Version: uint32(newData.version),
 		},
 		baseNode: &baseNode{
 			dirty:  true,
@@ -270,7 +275,7 @@ func (ln *leafNode) getNext(key []byte, _ common.DBWriteCacher) (node, []byte, e
 	}
 	return nil, nil, ErrNodeNotFound
 }
-func (ln *leafNode) insert(n *leafNode, _ common.DBWriteCacher) (node, [][]byte, error) {
+func (ln *leafNode) insert(newData *dataForInsertion, _ common.DBWriteCacher) (node, [][]byte, error) {
 	err := ln.isEmptyOrNil()
 	if err != nil {
 		return nil, [][]byte{}, fmt.Errorf("insert error %w", err)
@@ -281,15 +286,14 @@ func (ln *leafNode) insert(n *leafNode, _ common.DBWriteCacher) (node, [][]byte,
 		oldHash = append(oldHash, ln.hash)
 	}
 
-	insertedKey := n.Key
 	nodeKey := ln.Key
 
-	if bytes.Equal(insertedKey, nodeKey) {
-		return ln.insertInSameLn(n, oldHash)
+	if bytes.Equal(newData.key, nodeKey) {
+		return ln.insertInSameLn(newData, oldHash)
 	}
 
-	keyMatchLen := prefixLen(insertedKey, nodeKey)
-	bn, err := ln.insertInNewBn(n, keyMatchLen)
+	keyMatchLen := prefixLen(newData.key, nodeKey)
+	bn, err := ln.insertInNewBn(newData, keyMatchLen)
 	if err != nil {
 		return nil, [][]byte{}, err
 	}
@@ -306,36 +310,47 @@ func (ln *leafNode) insert(n *leafNode, _ common.DBWriteCacher) (node, [][]byte,
 	return newEn, oldHash, nil
 }
 
-func (ln *leafNode) insertInSameLn(n *leafNode, oldHashes [][]byte) (node, [][]byte, error) {
-	if bytes.Equal(ln.Value, n.Value) {
+func (ln *leafNode) insertInSameLn(newData *dataForInsertion, oldHashes [][]byte) (node, [][]byte, error) {
+	if bytes.Equal(ln.Value, newData.value) {
 		return nil, [][]byte{}, nil
 	}
 
-	ln.Value = n.Value
+	ln.Value = newData.value
 	ln.dirty = true
 	ln.hash = nil
 	return ln, oldHashes, nil
 }
 
-func (ln *leafNode) insertInNewBn(n *leafNode, keyMatchLen int) (node, error) {
+func (ln *leafNode) insertInNewBn(newData *dataForInsertion, keyMatchLen int) (node, error) {
 	bn, err := newBranchNode(ln.marsh, ln.hasher)
 	if err != nil {
 		return nil, err
 	}
 
 	oldChildPos := ln.Key[keyMatchLen]
-	newChildPos := n.Key[keyMatchLen]
+	newChildPos := newData.key[keyMatchLen]
 	if childPosOutOfRange(oldChildPos) || childPosOutOfRange(newChildPos) {
 		return nil, ErrChildPosOutOfRange
 	}
 
-	newLnOldChildPos, err := newLeafNode(ln.Key[keyMatchLen+1:], ln.Value, ln.marsh, ln.hasher)
+	oldLnVersion, err := ln.getVersion()
+	if err != nil {
+		return nil, err
+	}
+
+	oldLnData := &dataForInsertion{
+		key:     ln.Key[keyMatchLen+1:],
+		value:   ln.Value,
+		version: oldLnVersion,
+	}
+	newLnOldChildPos, err := newLeafNode(oldLnData, ln.marsh, ln.hasher)
 	if err != nil {
 		return nil, err
 	}
 	bn.children[oldChildPos] = newLnOldChildPos
 
-	newLnNewChildPos, err := newLeafNode(n.Key[keyMatchLen+1:], n.Value, ln.marsh, ln.hasher)
+	newData.key = newData.key[keyMatchLen+1:]
+	newLnNewChildPos, err := newLeafNode(newData, ln.marsh, ln.hasher)
 	if err != nil {
 		return nil, err
 	}
@@ -359,7 +374,18 @@ func (ln *leafNode) delete(key []byte, _ common.DBWriteCacher) (bool, node, [][]
 func (ln *leafNode) reduceNode(pos int) (node, bool, error) {
 	k := append([]byte{byte(pos)}, ln.Key...)
 
-	newLn, err := newLeafNode(k, ln.Value, ln.marsh, ln.hasher)
+	oldLnVersion, err := ln.getVersion()
+	if err != nil {
+		return nil, false, err
+	}
+
+	oldLnData := &dataForInsertion{
+		key:     k,
+		value:   ln.Value,
+		version: oldLnVersion,
+	}
+
+	newLn, err := newLeafNode(oldLnData, ln.marsh, ln.hasher)
 	if err != nil {
 		return nil, false, err
 	}
@@ -520,6 +546,11 @@ func (ln *leafNode) collectStats(ts common.TrieStatisticsHandler, depthLevel int
 
 	ts.AddLeafNode(depthLevel, uint64(len(val)))
 	return nil
+}
+
+func (ln *leafNode) getVersion() (common.TrieNodeVersion, error) {
+	// TODO modify to use appropriate flags in order to know the returned val
+	return common.NotSpecified, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

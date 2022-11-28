@@ -120,3 +120,6 @@ var ErrNilKeyBuilder = errors.New("nil key builder")
 
 // ErrNilTrieLeafParser signals that a nil trie leaf parser has been provided
 var ErrNilTrieLeafParser = errors.New("nil trie leaf parser")
+
+// ErrInvalidNodeVersion signals that an invalid node version has been provided
+var ErrInvalidNodeVersion = errors.New("invalid node version provided")

@@ -126,7 +126,7 @@ func getDefaultStateComponents(
 		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
 	}
 	trieStorage, _ := trie.NewTrieStorageManager(args)
-	tr, _ := trie.NewTrie(trieStorage, marshaller, hasher, 5)
+	tr, _ := trie.NewTrie(trieStorage, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 5)
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, testscommon.NewMemDbMock(), marshaller)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, generalCfg.PruningBufferLen)
 	argsAccCreator := state.ArgsAccountCreation{
@@ -1761,7 +1761,7 @@ func TestAccountsDB_MainTrieAutomaticallyMarksCodeUpdatesForEviction(t *testing.
 	}
 	storageManager, _ := trie.NewTrieStorageManager(args)
 	maxTrieLevelInMemory := uint(5)
-	tr, _ := trie.NewTrie(storageManager, marshaller, hasher, maxTrieLevelInMemory)
+	tr, _ := trie.NewTrie(storageManager, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 5)
 
 	argsAccountsDB := createMockAccountsDBArgs()
@@ -1850,7 +1850,7 @@ func TestAccountsDB_RemoveAccountMarksObsoleteHashesForEviction(t *testing.T) {
 		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
 	}
 	storageManager, _ := trie.NewTrieStorageManager(args)
-	tr, _ := trie.NewTrie(storageManager, marshaller, hasher, maxTrieLevelInMemory)
+	tr, _ := trie.NewTrie(storageManager, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 5)
 
 	argsAccountsDB := createMockAccountsDBArgs()
@@ -2283,7 +2283,7 @@ func TestAccountsDB_GetCode(t *testing.T) {
 		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
 	}
 	storageManager, _ := trie.NewTrieStorageManager(args)
-	tr, _ := trie.NewTrie(storageManager, marshaller, hasher, maxTrieLevelInMemory)
+	tr, _ := trie.NewTrie(storageManager, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
 	spm := disabled.NewDisabledStoragePruningManager()
 	argsAccountsDB := createMockAccountsDBArgs()
 	argsAccountsDB.Trie = tr
@@ -2679,7 +2679,7 @@ func BenchmarkAccountsDb_GetCodeEntry(b *testing.B) {
 		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
 	}
 	storageManager, _ := trie.NewTrieStorageManager(args)
-	tr, _ := trie.NewTrie(storageManager, marshaller, hasher, maxTrieLevelInMemory)
+	tr, _ := trie.NewTrie(storageManager, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
 	spm := disabled.NewDisabledStoragePruningManager()
 
 	argsAccountsDB := createMockAccountsDBArgs()
