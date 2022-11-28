@@ -9,10 +9,10 @@ require (
 	github.com/ElrondNetwork/elrond-go-logger v1.0.10
 	github.com/ElrondNetwork/elrond-go-p2p v1.0.5
 	github.com/ElrondNetwork/elrond-go-storage v1.0.2
-	github.com/ElrondNetwork/elrond-vm-common v1.3.28-0.20221128170449-9e43f6ab8956
-	github.com/ElrondNetwork/wasm-vm-v1_2 v1.2.47
-	github.com/ElrondNetwork/wasm-vm-v1_3 v1.3.47
-	github.com/ElrondNetwork/wasm-vm-v1_4 v1.4.67-0.20221128171723-58ce7ed5010f
+	github.com/ElrondNetwork/elrond-vm-common v1.3.28
+	github.com/ElrondNetwork/wasm-vm-v1_2 v1.2.48
+	github.com/ElrondNetwork/wasm-vm-v1_3 v1.3.48
+	github.com/ElrondNetwork/wasm-vm-v1_4 v1.4.68
 	github.com/beevik/ntp v0.3.0
 	github.com/davecgh/go-spew v1.1.1
 	github.com/elastic/go-elasticsearch/v7 v7.12.0
