@@ -283,6 +283,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		Config:                    ccf.ratingsConfig,
 		NodesSetupHandler:         genesisNodesConfig,
 		RoundDurationMilliseconds: genesisNodesConfig.RoundDuration,
+		EpochNotifier:             epochNotifier,
 	}
 	ratingsData, err := rating.NewRatingsData(ratingDataArgs)
 	if err != nil {

@@ -7,6 +7,7 @@ import (
 	"path"
 	"runtime/pprof"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -50,6 +51,8 @@ func CreateDefaultConfig() *config.Configs {
 	systemSCConfig, _ := common.LoadSystemSmartContractsConfig(configPathsHolder.SystemSC)
 	epochConfig, _ := common.LoadEpochConfig(configPathsHolder.Epoch)
 	roundConfig, _ := common.LoadRoundConfig(configPathsHolder.RoundActivation)
+	var nodesConfig config.NodesConfig
+	_ = core.LoadJsonFile(&nodesConfig, NodesSetupPath)
 
 	p2pConfig.KadDhtPeerDiscovery.Enabled = false
 	prefsConfig.Preferences.DestinationShardAsObserver = "0"
@@ -72,6 +75,7 @@ func CreateDefaultConfig() *config.Configs {
 	}
 	configs.ConfigurationPathsHolder = configPathsHolder
 	configs.ImportDbConfig = &config.ImportDbConfig{}
+	configs.NodesConfig = &nodesConfig
 
 	return configs
 }
