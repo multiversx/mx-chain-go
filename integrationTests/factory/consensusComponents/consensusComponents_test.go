@@ -121,6 +121,7 @@ func TestConsensusComponents_Close_ShouldWork(t *testing.T) {
 		managedStatusComponents,
 		managedProcessComponents,
 		managedStatusCoreComponents,
+		&testscommon.HardforkExclusionHandlerStub{},
 	)
 	require.Nil(t, err)
 	require.NotNil(t, managedConsensusComponents)

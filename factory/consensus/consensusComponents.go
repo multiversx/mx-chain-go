@@ -34,35 +34,37 @@ var log = logger.GetOrCreate("factory")
 
 // ConsensusComponentsFactoryArgs holds the arguments needed to create a consensus components factory
 type ConsensusComponentsFactoryArgs struct {
-	Config                config.Config
-	BootstrapRoundIndex   uint64
-	CoreComponents        factory.CoreComponentsHolder
-	NetworkComponents     factory.NetworkComponentsHolder
-	CryptoComponents      factory.CryptoComponentsHolder
-	DataComponents        factory.DataComponentsHolder
-	ProcessComponents     factory.ProcessComponentsHolder
-	StateComponents       factory.StateComponentsHolder
-	StatusComponents      factory.StatusComponentsHolder
-	StatusCoreComponents  factory.StatusCoreComponentsHolder
-	ScheduledProcessor    consensus.ScheduledProcessor
-	IsInImportMode        bool
-	ShouldDisableWatchdog bool
+	Config                   config.Config
+	BootstrapRoundIndex      uint64
+	CoreComponents           factory.CoreComponentsHolder
+	NetworkComponents        factory.NetworkComponentsHolder
+	CryptoComponents         factory.CryptoComponentsHolder
+	DataComponents           factory.DataComponentsHolder
+	ProcessComponents        factory.ProcessComponentsHolder
+	StateComponents          factory.StateComponentsHolder
+	StatusComponents         factory.StatusComponentsHolder
+	StatusCoreComponents     factory.StatusCoreComponentsHolder
+	ScheduledProcessor       consensus.ScheduledProcessor
+	IsInImportMode           bool
+	ShouldDisableWatchdog    bool
+	HardforkExclusionHandler common.HardforkExclusionHandler
 }
 
 type consensusComponentsFactory struct {
-	config                config.Config
-	bootstrapRoundIndex   uint64
-	coreComponents        factory.CoreComponentsHolder
-	networkComponents     factory.NetworkComponentsHolder
-	cryptoComponents      factory.CryptoComponentsHolder
-	dataComponents        factory.DataComponentsHolder
-	processComponents     factory.ProcessComponentsHolder
-	stateComponents       factory.StateComponentsHolder
-	statusComponents      factory.StatusComponentsHolder
-	statusCoreComponents  factory.StatusCoreComponentsHolder
-	scheduledProcessor    consensus.ScheduledProcessor
-	isInImportMode        bool
-	shouldDisableWatchdog bool
+	config                   config.Config
+	bootstrapRoundIndex      uint64
+	coreComponents           factory.CoreComponentsHolder
+	networkComponents        factory.NetworkComponentsHolder
+	cryptoComponents         factory.CryptoComponentsHolder
+	dataComponents           factory.DataComponentsHolder
+	processComponents        factory.ProcessComponentsHolder
+	stateComponents          factory.StateComponentsHolder
+	statusComponents         factory.StatusComponentsHolder
+	statusCoreComponents     factory.StatusCoreComponentsHolder
+	scheduledProcessor       consensus.ScheduledProcessor
+	isInImportMode           bool
+	shouldDisableWatchdog    bool
+	hardforkExclusionHandler common.HardforkExclusionHandler
 }
 
 type consensusComponents struct {
@@ -103,21 +105,25 @@ func NewConsensusComponentsFactory(args ConsensusComponentsFactoryArgs) (*consen
 	if check.IfNil(args.StatusCoreComponents) {
 		return nil, errors.ErrNilStatusCoreComponents
 	}
+	if check.IfNil(args.HardforkExclusionHandler) {
+		return nil, errors.ErrNilHardforkExclusionHandler
+	}
 
 	return &consensusComponentsFactory{
-		config:                args.Config,
-		bootstrapRoundIndex:   args.BootstrapRoundIndex,
-		coreComponents:        args.CoreComponents,
-		networkComponents:     args.NetworkComponents,
-		cryptoComponents:      args.CryptoComponents,
-		dataComponents:        args.DataComponents,
-		processComponents:     args.ProcessComponents,
-		stateComponents:       args.StateComponents,
-		statusComponents:      args.StatusComponents,
-		statusCoreComponents:  args.StatusCoreComponents,
-		scheduledProcessor:    args.ScheduledProcessor,
-		isInImportMode:        args.IsInImportMode,
-		shouldDisableWatchdog: args.ShouldDisableWatchdog,
+		config:                   args.Config,
+		bootstrapRoundIndex:      args.BootstrapRoundIndex,
+		coreComponents:           args.CoreComponents,
+		networkComponents:        args.NetworkComponents,
+		cryptoComponents:         args.CryptoComponents,
+		dataComponents:           args.DataComponents,
+		processComponents:        args.ProcessComponents,
+		stateComponents:          args.StateComponents,
+		statusComponents:         args.StatusComponents,
+		statusCoreComponents:     args.StatusCoreComponents,
+		scheduledProcessor:       args.ScheduledProcessor,
+		isInImportMode:           args.IsInImportMode,
+		shouldDisableWatchdog:    args.ShouldDisableWatchdog,
+		hardforkExclusionHandler: args.HardforkExclusionHandler,
 	}, nil
 }
 
@@ -483,6 +489,7 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		HistoryRepo:                  ccf.processComponents.HistoryRepository(),
 		ScheduledTxsExecutionHandler: ccf.processComponents.ScheduledTxsExecutionHandler(),
 		ProcessWaitTime:              time.Duration(ccf.config.GeneralSettings.SyncProcessTimeInMillis) * time.Millisecond,
+		HardforkExclusionHandler:     ccf.hardforkExclusionHandler,
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
@@ -617,6 +624,7 @@ func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bo
 		HistoryRepo:                  ccf.processComponents.HistoryRepository(),
 		ScheduledTxsExecutionHandler: ccf.processComponents.ScheduledTxsExecutionHandler(),
 		ProcessWaitTime:              time.Duration(ccf.config.GeneralSettings.SyncProcessTimeInMillis) * time.Millisecond,
+		HardforkExclusionHandler:     ccf.hardforkExclusionHandler,
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{

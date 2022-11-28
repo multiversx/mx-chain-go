@@ -462,6 +462,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedStatusComponents,
 		managedProcessComponents,
 		managedStatusCoreComponents,
+		hardforkExclusionHandler,
 	)
 	if err != nil {
 		return true, err
@@ -840,6 +841,7 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 	statusComponents mainFactory.StatusComponentsHolder,
 	processComponents mainFactory.ProcessComponentsHolder,
 	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
+	hardforkExclusionHandler common.HardforkExclusionHandler,
 ) (mainFactory.ConsensusComponentsHandler, error) {
 	scheduledProcessorArgs := spos.ScheduledProcessorWrapperArgs{
 		SyncTimer:                coreComponents.SyncTimer(),
@@ -853,19 +855,20 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 	}
 
 	consensusArgs := consensusComp.ConsensusComponentsFactoryArgs{
-		Config:                *nr.configs.GeneralConfig,
-		BootstrapRoundIndex:   nr.configs.FlagsConfig.BootstrapRoundIndex,
-		CoreComponents:        coreComponents,
-		NetworkComponents:     networkComponents,
-		CryptoComponents:      cryptoComponents,
-		DataComponents:        dataComponents,
-		ProcessComponents:     processComponents,
-		StateComponents:       stateComponents,
-		StatusComponents:      statusComponents,
-		StatusCoreComponents:  statusCoreComponents,
-		ScheduledProcessor:    scheduledProcessor,
-		IsInImportMode:        nr.configs.ImportDbConfig.IsImportDBMode,
-		ShouldDisableWatchdog: nr.configs.FlagsConfig.DisableConsensusWatchdog,
+		Config:                   *nr.configs.GeneralConfig,
+		BootstrapRoundIndex:      nr.configs.FlagsConfig.BootstrapRoundIndex,
+		CoreComponents:           coreComponents,
+		NetworkComponents:        networkComponents,
+		CryptoComponents:         cryptoComponents,
+		DataComponents:           dataComponents,
+		ProcessComponents:        processComponents,
+		StateComponents:          stateComponents,
+		StatusComponents:         statusComponents,
+		StatusCoreComponents:     statusCoreComponents,
+		ScheduledProcessor:       scheduledProcessor,
+		IsInImportMode:           nr.configs.ImportDbConfig.IsImportDBMode,
+		ShouldDisableWatchdog:    nr.configs.FlagsConfig.DisableConsensusWatchdog,
+		HardforkExclusionHandler: hardforkExclusionHandler,
 	}
 
 	consensusFactory, err := consensusComp.NewConsensusComponentsFactory(consensusArgs)

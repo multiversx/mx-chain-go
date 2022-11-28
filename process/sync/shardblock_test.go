@@ -215,6 +215,7 @@ func CreateShardBootstrapMockArguments() sync.ArgShardBootstrapper {
 		HistoryRepo:                  &dblookupext.HistoryRepositoryStub{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessWaitTime:              testProcessWaitTime,
+		HardforkExclusionHandler:     &testscommon.HardforkExclusionHandlerStub{},
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
@@ -465,6 +466,18 @@ func testShardWithMissingStorer(missingUnit dataRetriever.UnitType) func(t *test
 		require.NotNil(t, err)
 		require.True(t, strings.Contains(err.Error(), storage.ErrKeyNotFound.Error()))
 	}
+}
+
+func TestNewShardBootstrap_NilHardforkExclusionHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := CreateShardBootstrapMockArguments()
+	args.HardforkExclusionHandler = nil
+
+	bs, err := sync.NewShardBootstrap(args)
+
+	assert.True(t, check.IfNil(bs))
+	assert.Equal(t, process.ErrNilHardforkExclusionHandler, err)
 }
 
 func TestNewShardBootstrap_OkValsShouldWork(t *testing.T) {

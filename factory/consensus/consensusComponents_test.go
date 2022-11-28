@@ -133,6 +133,22 @@ func TestNewConsensusComponentsFactory_NilStateComponents(t *testing.T) {
 	require.Equal(t, errorsErd.ErrNilStateComponentsHolder, err)
 }
 
+func TestNewConsensusComponentsFactory_NilHardforkExclusionHandler(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	args := componentsMock.GetConsensusArgs(shardCoordinator)
+	args.HardforkExclusionHandler = nil
+
+	bcf, err := consensusComp.NewConsensusComponentsFactory(args)
+
+	require.Nil(t, bcf)
+	require.Equal(t, errorsErd.ErrNilHardforkExclusionHandler, err)
+}
+
 // ------------ Test Old Use Cases --------------------
 func TestConsensusComponentsFactory_CreateGenesisBlockNotInitializedShouldErr(t *testing.T) {
 	t.Parallel()
