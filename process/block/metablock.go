@@ -402,6 +402,10 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
+	if header.GetRound() == uint64(12229688) {
+		time.Sleep(20 * time.Hour)
+	}
+
 	return nil
 }
 
