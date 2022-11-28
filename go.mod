@@ -3,20 +3,20 @@ module github.com/ElrondNetwork/elrond-go
 go 1.17
 
 require (
-	github.com/ElrondNetwork/elastic-indexer-go v1.3.2-0.20221123150303-da37244d88f0
-	github.com/ElrondNetwork/elrond-go-core v1.1.26-0.20221123085822-f43d6bc3f56c
-	github.com/ElrondNetwork/elrond-go-crypto v1.2.2-0.20221123100725-da401911b9ad
-	github.com/ElrondNetwork/elrond-go-logger v1.0.10-0.20221123090326-b29b6e6dc1f7
-	github.com/ElrondNetwork/elrond-go-p2p v1.0.5-0.20221123103645-2ac9eaabe9c9
-	github.com/ElrondNetwork/elrond-go-storage v1.0.2-0.20221123101828-f4d5e9e92132
-	github.com/ElrondNetwork/elrond-vm-common v1.3.27-0.20221123101012-b6b037dd0d71
-	github.com/ElrondNetwork/wasm-vm-v1_2 v1.2.47-0.20221123140752-5a5a456137fb
-	github.com/ElrondNetwork/wasm-vm-v1_3 v1.3.47-0.20221123141907-2beea93473fb
-	github.com/ElrondNetwork/wasm-vm-v1_4 v1.4.66-0.20221123144442-490ef43f2ef9
+	github.com/ElrondNetwork/elastic-indexer-go v1.3.3
+	github.com/ElrondNetwork/elrond-go-core v1.1.26
+	github.com/ElrondNetwork/elrond-go-crypto v1.2.2
+	github.com/ElrondNetwork/elrond-go-logger v1.0.10
+	github.com/ElrondNetwork/elrond-go-p2p v1.0.5
+	github.com/ElrondNetwork/elrond-go-storage v1.0.2
+	github.com/ElrondNetwork/elrond-vm-common v1.3.27
+	github.com/ElrondNetwork/wasm-vm-v1_2 v1.2.47
+	github.com/ElrondNetwork/wasm-vm-v1_3 v1.3.47
+	github.com/ElrondNetwork/wasm-vm-v1_4 v1.4.66
 	github.com/beevik/ntp v0.3.0
 	github.com/davecgh/go-spew v1.1.1
 	github.com/elastic/go-elasticsearch/v7 v7.12.0
-	github.com/gin-contrib/cors v0.0.0-20190301062745-f9e10995c85a
+	github.com/gin-contrib/cors v1.4.0
 	github.com/gin-contrib/pprof v1.4.0
 	github.com/gin-gonic/gin v1.8.1
 	github.com/gizak/termui/v3 v3.1.0
@@ -170,6 +170,7 @@ require (
 	golang.org/x/text v0.4.0 // indirect
 	golang.org/x/tools v0.1.12 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
+	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
