@@ -686,7 +686,7 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 		StatusComponents:      statusComponents,
 		ScheduledProcessor:    scheduledProcessor,
 		IsInImportMode:        nr.configs.ImportDbConfig.IsImportDBMode,
-		ShouldDisableWatchdog: nr.configs.FlagsConfig.DisableConsensusWatchdog,
+		ShouldDisableWatchdog: true,
 	}
 
 	consensusFactory, err := mainFactory.NewConsensusComponentsFactory(consensusArgs)

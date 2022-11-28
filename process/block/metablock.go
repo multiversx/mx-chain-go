@@ -402,10 +402,6 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
-	if header.GetRound() == uint64(12229688) {
-		time.Sleep(20 * time.Hour)
-	}
-
 	return nil
 }
 
@@ -1274,6 +1270,11 @@ func (mp *metaProcessor) CommitBlock(
 		"round", headerHandler.GetRound(),
 		"nonce", headerHandler.GetNonce(),
 		"hash", headerHash)
+
+	if header.GetRound() == uint64(12229688) {
+		log.Info("pausing the processing", "round", header.GetRound(), "time to sleep", 24*time.Hour)
+		time.Sleep(24 * time.Hour)
+	}
 
 	notarizedHeadersHashes, errNotCritical := mp.updateCrossShardInfo(header)
 	if errNotCritical != nil {
