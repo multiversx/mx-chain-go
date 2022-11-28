@@ -144,3 +144,6 @@ var ErrNilTrieSyncer = errors.New("trie syncer is nil")
 
 // ErrNilSyncStatisticsHandler signals that a nil sync statistics handler was provided
 var ErrNilSyncStatisticsHandler = errors.New("nil sync statistics handler")
+
+// ErrNilAddressConverter signals that a nil address converter was provided
+var ErrNilAddressConverter = errors.New("nil address converter")

@@ -70,6 +70,40 @@ func DoDeploy(t *testing.T, testContext *vm.VMTestContext, pathToContract string
 	return scAddr, owner
 }
 
+// DoDeployWithCustomParams -
+func DoDeployWithCustomParams(
+	tb testing.TB,
+	testContext *vm.VMTestContext,
+	pathToContract string,
+	senderBalance *big.Int,
+	gasLimit uint64,
+	contractHexParams []string,
+) (scAddr []byte, owner []byte) {
+	owner = []byte("12345678901234567890123456789011")
+	senderNonce := uint64(0)
+	gasPrice := uint64(10)
+
+	_, _ = vm.CreateAccount(testContext.Accounts, owner, 0, senderBalance)
+
+	scCode := arwen.GetSCCode(pathToContract)
+	txData := arwen.CreateDeployTxData(scCode)
+	if len(contractHexParams) > 0 {
+		txData = strings.Join(append([]string{txData}, contractHexParams...), "@")
+	}
+	tx := vm.CreateTransaction(senderNonce, big.NewInt(0), owner, vm.CreateEmptyAddress(), gasPrice, gasLimit, []byte(txData))
+
+	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
+	require.Equal(tb, vmcommon.Ok, retCode)
+	require.Nil(tb, err)
+
+	_, err = testContext.Accounts.Commit()
+	require.Nil(tb, err)
+
+	scAddr, _ = testContext.BlockchainHook.NewAddress(owner, 0, factory.ArwenVirtualMachine)
+
+	return scAddr, owner
+}
+
 // DoDeployNoChecks -
 func DoDeployNoChecks(t *testing.T, testContext *vm.VMTestContext, pathToContract string) (scAddr []byte, owner []byte) {
 	owner = []byte("12345678901234567890123456789011")
