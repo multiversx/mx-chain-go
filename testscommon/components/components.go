@@ -79,17 +79,17 @@ func GetCoreArgs() coreComp.CoreComponentsFactoryArgs {
 		},
 		RatingsConfig:   CreateDummyRatingsConfig(),
 		EconomicsConfig: CreateDummyEconomicsConfig(),
-		NodesConfig: sharding.NodesSetupDTO{
+		NodesConfig: config.NodesConfig{
 			StartTime:     0,
 			RoundDuration: 4000,
-			ShardConsensus: []sharding.ConsensusConfiguration{
+			ShardConsensus: []config.ConsensusConfiguration{
 				{
 					EnableEpoch:        0,
 					MinNodes:           1,
 					ConsensusGroupSize: 1,
 				},
 			},
-			MetaConsensus: []sharding.ConsensusConfiguration{
+			MetaConsensus: []config.ConsensusConfiguration{
 				{
 					EnableEpoch:        0,
 					MinNodes:           1,
@@ -98,26 +98,18 @@ func GetCoreArgs() coreComp.CoreComponentsFactoryArgs {
 			},
 			Hysteresis: 0,
 			Adaptivity: false,
-			InitialNodes: []*sharding.InitialNode{
+			InitialNodes: []*config.InitialNodeConfig{
 				{
-					PubKey:  "41378f754e2c7b2745208c3ed21b151d297acdc84c3aca00b9e292cf28ec2d444771070157ea7760ed83c26f4fed387d0077e00b563a95825dac2cbc349fc0025ccf774e37b0a98ad9724d30e90f8c29b4091ccb738ed9ffc0573df776ee9ea30b3c038b55e532760ea4a8f152f2a52848020e5cee1cc537f2c2323399723081",
-					Address: "9e95a4e46da335a96845b4316251fc1bb197e1b8136d96ecc62bf6604eca9e49",
+					PubKey:  "227a5a5ec0c58171b7f4ee9ecc304ea7b176fb626741a25c967add76d6cd361d6995929f9b60a96237381091cefb1b061225e5bb930b40494a5ac9d7524fd67dfe478e5ccd80f17b093cff5722025761fb0217c39dbd5ae45e01eb5a3113be93",
+					Address: "erd1ulhw20j7jvgfgak5p05kv667k5k9f320sgef5ayxkt9784ql0zssrzyhjp",
 				},
 				{
-					PubKey:  "52f3bf5c01771f601ec2137e267319ab6716ef6ff5dfddaea48b42d955f631167f2ce19296a202bb8fd174f4e94f8c85f619df85a7f9f8de0f3768e5e6d8c48187b767deccf9829be246aa331aa86d182eb8fa28ea8a3e45d357ed1647a9be020a5569d686253a6f89e9123c7f21f302e82f67d3e3cd69cf267b9910a663ef32",
-					Address: "7a330039e77ca06bc127319fd707cc4911a80db489a39fcfb746283a05f61836",
+					PubKey:  "ef9522d654bc08ebf2725468f41a693aa7f3cf1cb93922cff1c8c81fba78274016010916f4a7e5b0855c430a724a2d0b3acd1fe8e61e37273a17d58faa8c0d3ef6b883a33ec648950469a1e9757b978d9ae662a019068a401cff56eea059fd08",
+					Address: "erd17c4fs6mz2aa2hcvva2jfxdsrdknu4220496jmswer9njznt22eds0rxlr4",
 				},
 				{
-					PubKey:  "5e91c426c5c8f5f805f86de1e0653e2ec33853772e583b88e9f0f201089d03d8570759c3c3ab610ce573493c33ba0adf954c8939dba5d5ef7f2be4e87145d8153fc5b4fb91cecb8d9b1f62e080743fbf69c8c3096bf07980bb82cb450ba9b902673373d5b671ea73620cc5bc4d36f7a0f5ca3684d4c8aa5c1b425ab2a8673140",
-					Address: "131e2e717f2d33bdf7850c12b03dfe41ea8a5e76fdd6d4f23aebe558603e746f",
-				},
-				{
-					PubKey:  "73972bf46dca59fba211c58f11b530f8e9d6392c499655ce760abc6458fd9c6b54b9676ee4b95aa32f6c254c9aad2f63a6195cd65d837a4320d7b8e915ba3a7123c8f4983b201035573c0752bb54e9021eb383b40d302447b62ea7a3790c89c47f5ab81d183f414e87611a31ff635ad22e969495356d5bc44eec7917aaad4c5e",
-					Address: "4c9e66b605882c1099088f26659692f084e41dc0dedfaedf6a6409af21c02aac",
-				},
-				{
-					PubKey:  "7391ccce066ab5674304b10220643bc64829afa626a165f1e7a6618e260fa68f8e79018ac5964f7a1b8dd419645049042e34ebe7f2772def71e6176ce9daf50a57c17ee2a7445b908fe47e8f978380fcc2654a19925bf73db2402b09dde515148081f8ca7c331fbedec689de1b7bfce6bf106e4433557c29752c12d0a009f47a",
-					Address: "90a66900634b206d20627fbaec432ebfbabeaf30b9e338af63191435e2e37022",
+					PubKey:  "e91ab494cedd4da346f47aaa1a3e792bea24fb9f6cc40d3546bc4ca36749b8bfb0164e40dbad2195a76ee0fd7fb7da075ecbf1b35a2ac20638d53ea5520644f8c16952225c48304bb202867e2d71d396bff5a5971f345bcfe32c7b6b0ca34c84",
+					Address: "erd10d2gufxesrp8g409tzxljlaefhs0rsgjle3l7nq38de59txxt8csj54cd3",
 				},
 			},
 		},
@@ -714,7 +706,10 @@ func GetNetworkComponents() factory.NetworkComponentsHolder {
 // GetDataComponents -
 func GetDataComponents(coreComponents factory.CoreComponentsHolder, shardCoordinator sharding.Coordinator) factory.DataComponentsHolder {
 	dataArgs := GetDataArgs(coreComponents, shardCoordinator)
-	dataComponentsFactory, _ := dataComp.NewDataComponentsFactory(dataArgs)
+	dataComponentsFactory, err := dataComp.NewDataComponentsFactory(dataArgs)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
 	dataComponents, _ := dataComp.NewManagedDataComponents(dataComponentsFactory)
 	_ = dataComponents.Create()
 	return dataComponents

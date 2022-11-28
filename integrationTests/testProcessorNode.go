@@ -100,6 +100,7 @@ import (
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	dblookupextMock "github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	testFactory "github.com/ElrondNetwork/elrond-go/testscommon/factory"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genesisMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
@@ -1061,10 +1062,8 @@ func CreateRatingsData() *rating.RatingsData {
 
 	ratingDataArgs := rating.RatingsDataArg{
 		Config:                    ratingsConfig,
-		ShardConsensusSize:        63,
-		MetaConsensusSize:         400,
-		ShardMinNodes:             400,
-		MetaMinNodes:              400,
+		NodesSetupHandler:         &testscommon.NodesSetupStub{},
+		EpochNotifier:             &epochNotifier.EpochNotifierStub{},
 		RoundDurationMilliseconds: 6000,
 	}
 
