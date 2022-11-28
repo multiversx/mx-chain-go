@@ -1,6 +1,7 @@
 package mock
 
 import (
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 )
 
@@ -8,6 +9,7 @@ import (
 type NodesSetupStub struct {
 	InitialNodesInfoForShardCalled            func(shardId uint32) ([]nodesCoordinator.GenesisNodeInfoHandler, []nodesCoordinator.GenesisNodeInfoHandler, error)
 	InitialNodesInfoCalled                    func() (map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
+	ExportNodesConfigCalled                   func() config.NodesConfig
 	GetStartTimeCalled                        func() int64
 	GetRoundDurationCalled                    func() uint64
 	GetShardConsensusGroupSizeCalled          func() uint32
@@ -165,6 +167,15 @@ func (n *NodesSetupStub) MinNumberOfNodesWithHysteresis() uint32 {
 		return n.MinNumberOfNodesWithHysteresisCalled()
 	}
 	return n.MinNumberOfNodes()
+}
+
+// ExportNodesConfig -
+func (n *NodesSetupStub) ExportNodesConfig() config.NodesConfig {
+	if n.ExportNodesConfigCalled != nil {
+		return n.ExportNodesConfigCalled()
+	}
+
+	return config.NodesConfig{}
 }
 
 // IsInterfaceNil -

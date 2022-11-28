@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -254,6 +255,7 @@ type GenesisNodesSetupHandler interface {
 	GetAdaptivity() bool
 	NumberOfShards() uint32
 	MinNumberOfNodes() uint32
+	ExportNodesConfig() config.NodesConfig
 	IsInterfaceNil() bool
 }
 

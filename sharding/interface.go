@@ -2,6 +2,7 @@ package sharding
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
@@ -63,6 +64,7 @@ type GenesisNodesSetupHandler interface {
 	GetHysteresis() float32
 	GetAdaptivity() bool
 	MinNumberOfNodesWithHysteresis() uint32
+	ExportNodesConfig() config.NodesConfig
 	IsInterfaceNil() bool
 }
 

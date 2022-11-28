@@ -541,6 +541,52 @@ func (ns *NodesSetup) GetMetaConsensusGroupSize() uint32 {
 	return ns.currentMetachainConsensus.ConsensusGroupSize
 }
 
+// ExportNodesConfig will create and return a nodes' configuration
+func (ns *NodesSetup) ExportNodesConfig() config.NodesConfig {
+	ns.mutConfiguration.RLock()
+	defer ns.mutConfiguration.RUnlock()
+
+	shardConsensus := ns.ShardConsensus
+	metaConsensus := ns.MetaConsensus
+
+	shardConsensusToExport := make([]config.ConsensusConfiguration, 0, len(shardConsensus))
+	for _, item := range shardConsensus {
+		shardConsensusToExport = append(shardConsensusToExport, config.ConsensusConfiguration{
+			EnableEpoch:        item.EnableEpoch,
+			MinNodes:           item.MinNodes,
+			ConsensusGroupSize: item.ConsensusGroupSize,
+		})
+	}
+	metaConsensusToExport := make([]config.ConsensusConfiguration, 0, len(metaConsensus))
+	for _, item := range metaConsensus {
+		metaConsensusToExport = append(metaConsensusToExport, config.ConsensusConfiguration{
+			EnableEpoch:        item.EnableEpoch,
+			MinNodes:           item.MinNodes,
+			ConsensusGroupSize: item.ConsensusGroupSize,
+		})
+	}
+
+	initialNodes := ns.InitialNodes
+	initialNodesToExport := make([]*config.InitialNodeConfig, 0, len(initialNodes))
+	for _, item := range initialNodes {
+		initialNodesToExport = append(initialNodesToExport, &config.InitialNodeConfig{
+			PubKey:        item.PubKey,
+			Address:       item.Address,
+			InitialRating: item.InitialRating,
+		})
+	}
+
+	return config.NodesConfig{
+		StartTime:      ns.StartTime,
+		RoundDuration:  ns.RoundDuration,
+		ShardConsensus: shardConsensusToExport,
+		MetaConsensus:  metaConsensusToExport,
+		Hysteresis:     ns.Hysteresis,
+		Adaptivity:     ns.Adaptivity,
+		InitialNodes:   initialNodesToExport,
+	}
+}
+
 // IsInterfaceNil returns true if underlying object is nil
 func (ns *NodesSetup) IsInterfaceNil() bool {
 	return ns == nil
