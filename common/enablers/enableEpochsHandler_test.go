@@ -301,6 +301,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsChangeDelegationOwnerFlagEnabled())
 		assert.True(t, handler.IsFixAsyncCallBackArgsListFlagEnabled())
 		assert.True(t, handler.IsFixOldTokenLiquidityEnabled())
+		assert.True(t, handler.IsRuntimeMemStoreLimitEnabled())
 	})
 	t.Run("flags with < should be set", func(t *testing.T) {
 		t.Parallel()
@@ -391,5 +392,6 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.False(t, handler.IsChangeDelegationOwnerFlagEnabled())
 		assert.False(t, handler.IsFixAsyncCallBackArgsListFlagEnabled())
 		assert.False(t, handler.IsFixOldTokenLiquidityEnabled())
+		assert.False(t, handler.IsRuntimeMemStoreLimitEnabled())
 	})
 }
