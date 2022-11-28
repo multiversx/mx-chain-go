@@ -86,6 +86,7 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		CheckExecuteOnReadOnlyEnableEpoch:                 70,
 		FixAsyncCallBackArgsListEnableEpoch:               71,
 		FixOldTokenLiquidityEnableEpoch:                   72,
+		RuntimeMemStoreLimitEnableEpoch:                   73,
 	}
 }
 
@@ -204,6 +205,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsCheckExecuteOnReadOnlyFlagEnabled())
 		assert.True(t, handler.IsChangeDelegationOwnerFlagEnabled())
 		assert.True(t, handler.IsFixOldTokenLiquidityEnabled())
+		assert.True(t, handler.IsRuntimeMemStoreLimitEnabled())
 	})
 	t.Run("flags with == condition should be set, along with all >=", func(t *testing.T) {
 		t.Parallel()

@@ -170,6 +170,7 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		refactorPeersMiniBlocksFlag:                 &atomic.Flag{},
 		fixAsyncCallBackArgsList:                    &atomic.Flag{},
 		fixOldTokenLiquidity:                        &atomic.Flag{},
+		runtimeMemStoreLimitFlag:                    &atomic.Flag{},
 	}
 }
 
