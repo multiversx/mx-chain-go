@@ -41,9 +41,9 @@ func TestNetworkComponents_Create_Close_ShouldWork(t *testing.T) {
 
 	time.Sleep(5 * time.Second)
 
-	err = managedNetworkComponents.Close()
-	require.Nil(t, err)
 	err = managedCryptoComponents.Close()
+	require.Nil(t, err)
+	err = managedNetworkComponents.Close()
 	require.Nil(t, err)
 	err = managedStatusCoreComponents.Close()
 	require.Nil(t, err)
