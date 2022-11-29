@@ -1145,3 +1145,9 @@ var ErrPropertyTooShort = errors.New("property too short")
 
 // ErrNilProcessDebugger signals that a nil process debugger was provided
 var ErrNilProcessDebugger = errors.New("nil process debugger")
+
+// ErrNilHardforkExclusionHandler signals that a nil hardfork exclusion handler was provided
+var ErrNilHardforkExclusionHandler = errors.New("nil hardfork exclusion handler")
+
+// ErrExcludedHeader signals that the received header is excluded
+var ErrExcludedHeader = errors.New("excluded header")

@@ -27,46 +27,48 @@ const numGoRoutines = 2000
 
 // fullSyncInterceptorsContainerFactory will handle the creation the interceptors container for shards
 type fullSyncInterceptorsContainerFactory struct {
-	container              process.InterceptorsContainer
-	shardCoordinator       sharding.Coordinator
-	accounts               state.AccountsAdapter
-	store                  dataRetriever.StorageService
-	dataPool               dataRetriever.PoolsHolder
-	messenger              process.TopicHandler
-	nodesCoordinator       nodesCoordinator.NodesCoordinator
-	blockBlackList         process.TimeCacher
-	argInterceptorFactory  *interceptorFactory.ArgInterceptedDataFactory
-	globalThrottler        process.InterceptorThrottler
-	maxTxNonceDeltaAllowed int
-	addressPubkeyConv      core.PubkeyConverter
-	whiteListHandler       update.WhiteListHandler
-	whiteListerVerifiedTxs update.WhiteListHandler
-	antifloodHandler       process.P2PAntifloodHandler
-	preferredPeersHolder   update.PreferredPeersHolderHandler
+	container                process.InterceptorsContainer
+	shardCoordinator         sharding.Coordinator
+	accounts                 state.AccountsAdapter
+	store                    dataRetriever.StorageService
+	dataPool                 dataRetriever.PoolsHolder
+	messenger                process.TopicHandler
+	nodesCoordinator         nodesCoordinator.NodesCoordinator
+	blockBlackList           process.TimeCacher
+	argInterceptorFactory    *interceptorFactory.ArgInterceptedDataFactory
+	globalThrottler          process.InterceptorThrottler
+	maxTxNonceDeltaAllowed   int
+	addressPubkeyConv        core.PubkeyConverter
+	whiteListHandler         update.WhiteListHandler
+	whiteListerVerifiedTxs   update.WhiteListHandler
+	antifloodHandler         process.P2PAntifloodHandler
+	preferredPeersHolder     update.PreferredPeersHolderHandler
+	hardforkExclusionHandler common.HardforkExclusionHandler
 }
 
 // ArgsNewFullSyncInterceptorsContainerFactory holds the arguments needed for fullSyncInterceptorsContainerFactory
 type ArgsNewFullSyncInterceptorsContainerFactory struct {
-	CoreComponents          process.CoreComponentsHolder
-	CryptoComponents        process.CryptoComponentsHolder
-	Accounts                state.AccountsAdapter
-	ShardCoordinator        sharding.Coordinator
-	NodesCoordinator        nodesCoordinator.NodesCoordinator
-	Messenger               process.TopicHandler
-	Store                   dataRetriever.StorageService
-	DataPool                dataRetriever.PoolsHolder
-	MaxTxNonceDeltaAllowed  int
-	TxFeeHandler            process.FeeHandler
-	BlockBlackList          process.TimeCacher
-	HeaderSigVerifier       process.InterceptedHeaderSigVerifier
-	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
-	SizeCheckDelta          uint32
-	ValidityAttester        process.ValidityAttester
-	EpochStartTrigger       process.EpochStartTriggerHandler
-	WhiteListHandler        update.WhiteListHandler
-	WhiteListerVerifiedTxs  update.WhiteListHandler
-	InterceptorsContainer   process.InterceptorsContainer
-	AntifloodHandler        process.P2PAntifloodHandler
+	CoreComponents           process.CoreComponentsHolder
+	CryptoComponents         process.CryptoComponentsHolder
+	Accounts                 state.AccountsAdapter
+	ShardCoordinator         sharding.Coordinator
+	NodesCoordinator         nodesCoordinator.NodesCoordinator
+	Messenger                process.TopicHandler
+	Store                    dataRetriever.StorageService
+	DataPool                 dataRetriever.PoolsHolder
+	MaxTxNonceDeltaAllowed   int
+	TxFeeHandler             process.FeeHandler
+	BlockBlackList           process.TimeCacher
+	HeaderSigVerifier        process.InterceptedHeaderSigVerifier
+	HeaderIntegrityVerifier  process.HeaderIntegrityVerifier
+	SizeCheckDelta           uint32
+	ValidityAttester         process.ValidityAttester
+	EpochStartTrigger        process.EpochStartTriggerHandler
+	WhiteListHandler         update.WhiteListHandler
+	WhiteListerVerifiedTxs   update.WhiteListHandler
+	InterceptorsContainer    process.InterceptorsContainer
+	AntifloodHandler         process.P2PAntifloodHandler
+	HardforkExclusionHandler common.HardforkExclusionHandler
 }
 
 // NewFullSyncInterceptorsContainerFactory is responsible for creating a new interceptors factory object
@@ -120,6 +122,9 @@ func NewFullSyncInterceptorsContainerFactory(
 	if check.IfNil(args.AntifloodHandler) {
 		return nil, process.ErrNilAntifloodHandler
 	}
+	if check.IfNil(args.HardforkExclusionHandler) {
+		return nil, process.ErrNilHardforkExclusionHandler
+	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
 		CoreComponents:          args.CoreComponents,
@@ -150,7 +155,8 @@ func NewFullSyncInterceptorsContainerFactory(
 		whiteListerVerifiedTxs: args.WhiteListerVerifiedTxs,
 		antifloodHandler:       args.AntifloodHandler,
 		//TODO: inject the real peers holder once we have the peers mapping before epoch bootstrap finishes
-		preferredPeersHolder: disabled.NewPreferredPeersHolder(),
+		preferredPeersHolder:     disabled.NewPreferredPeersHolder(),
+		hardforkExclusionHandler: args.HardforkExclusionHandler,
 	}
 
 	icf.globalThrottler, err = throttler.NewNumGoRoutinesThrottler(numGoRoutines)
@@ -322,8 +328,9 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneShardHeaderIntercepto
 	}
 
 	argProcessor := &processor.ArgHdrInterceptorProcessor{
-		Headers:        ficf.dataPool.Headers(),
-		BlockBlackList: ficf.blockBlackList,
+		Headers:                  ficf.dataPool.Headers(),
+		BlockBlackList:           ficf.blockBlackList,
+		HardforkExclusionHandler: ficf.hardforkExclusionHandler,
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -683,8 +690,9 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateMetachainHeaderInterce
 	}
 
 	argProcessor := &processor.ArgHdrInterceptorProcessor{
-		Headers:        ficf.dataPool.Headers(),
-		BlockBlackList: ficf.blockBlackList,
+		Headers:                  ficf.dataPool.Headers(),
+		BlockBlackList:           ficf.blockBlackList,
+		HardforkExclusionHandler: ficf.hardforkExclusionHandler,
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {

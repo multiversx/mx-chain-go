@@ -69,6 +69,7 @@ type ArgsExporter struct {
 	NumConcurrentTrieSyncers  int
 	TrieSyncerVersion         int
 	CheckNodesOnDisk          bool
+	HardforkExclusionHandler  common.HardforkExclusionHandler
 }
 
 type exportHandlerFactory struct {
@@ -107,6 +108,7 @@ type exportHandlerFactory struct {
 	numConcurrentTrieSyncers  int
 	trieSyncerVersion         int
 	checkNodesOnDisk          bool
+	hardforkExclusionHandler  common.HardforkExclusionHandler
 }
 
 // NewExportHandlerFactory creates an exporter factory
@@ -230,6 +232,9 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 	if check.IfNil(args.StatusCoreComponents.AppStatusHandler()) {
 		return nil, update.ErrNilAppStatusHandler
 	}
+	if check.IfNil(args.HardforkExclusionHandler) {
+		return nil, update.ErrNilHardforkExclusionHandler
+	}
 
 	e := &exportHandlerFactory{
 		CoreComponents:            args.CoreComponents,
@@ -265,6 +270,7 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		trieSyncerVersion:         args.TrieSyncerVersion,
 		checkNodesOnDisk:          args.CheckNodesOnDisk,
 		statusCoreComponents:      args.StatusCoreComponents,
+		hardforkExclusionHandler:  args.HardforkExclusionHandler,
 	}
 
 	return e, nil
@@ -534,26 +540,27 @@ func (e *exportHandlerFactory) prepareFolders(folder string) error {
 
 func (e *exportHandlerFactory) createInterceptors() error {
 	argsInterceptors := ArgsNewFullSyncInterceptorsContainerFactory{
-		CoreComponents:          e.CoreComponents,
-		CryptoComponents:        e.CryptoComponents,
-		Accounts:                e.accounts,
-		ShardCoordinator:        e.shardCoordinator,
-		NodesCoordinator:        e.nodesCoordinator,
-		Messenger:               e.messenger,
-		Store:                   e.storageService,
-		DataPool:                e.dataPool,
-		MaxTxNonceDeltaAllowed:  math.MaxInt32,
-		TxFeeHandler:            &disabled.FeeHandler{},
-		BlockBlackList:          cache.NewTimeCache(time.Second),
-		HeaderSigVerifier:       e.headerSigVerifier,
-		HeaderIntegrityVerifier: e.headerIntegrityVerifier,
-		SizeCheckDelta:          math.MaxUint32,
-		ValidityAttester:        e.validityAttester,
-		EpochStartTrigger:       e.epochStartTrigger,
-		WhiteListHandler:        e.whiteListHandler,
-		WhiteListerVerifiedTxs:  e.whiteListerVerifiedTxs,
-		InterceptorsContainer:   e.interceptorsContainer,
-		AntifloodHandler:        e.inputAntifloodHandler,
+		CoreComponents:           e.CoreComponents,
+		CryptoComponents:         e.CryptoComponents,
+		Accounts:                 e.accounts,
+		ShardCoordinator:         e.shardCoordinator,
+		NodesCoordinator:         e.nodesCoordinator,
+		Messenger:                e.messenger,
+		Store:                    e.storageService,
+		DataPool:                 e.dataPool,
+		MaxTxNonceDeltaAllowed:   math.MaxInt32,
+		TxFeeHandler:             &disabled.FeeHandler{},
+		BlockBlackList:           cache.NewTimeCache(time.Second),
+		HeaderSigVerifier:        e.headerSigVerifier,
+		HeaderIntegrityVerifier:  e.headerIntegrityVerifier,
+		SizeCheckDelta:           math.MaxUint32,
+		ValidityAttester:         e.validityAttester,
+		EpochStartTrigger:        e.epochStartTrigger,
+		WhiteListHandler:         e.whiteListHandler,
+		WhiteListerVerifiedTxs:   e.whiteListerVerifiedTxs,
+		InterceptorsContainer:    e.interceptorsContainer,
+		AntifloodHandler:         e.inputAntifloodHandler,
+		HardforkExclusionHandler: e.hardforkExclusionHandler,
 	}
 	fullSyncInterceptors, err := NewFullSyncInterceptorsContainerFactory(argsInterceptors)
 	if err != nil {

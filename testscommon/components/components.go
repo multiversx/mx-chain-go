@@ -400,6 +400,7 @@ func GetBootStrapFactoryArgs() bootstrapComp.BootstrapComponentsFactoryArgs {
 		FlagsConfig: config.ContextFlagsConfig{
 			ForceStartFromNetwork: false,
 		},
+		HardforkExclusionHandler: &testscommon.HardforkExclusionHandlerStub{},
 	}
 }
 
@@ -561,8 +562,9 @@ func GetProcessArgs(
 				MaxServiceFee: 100,
 			},
 		},
-		Version:     "v1.0.0",
-		HistoryRepo: &dblookupext.HistoryRepositoryStub{},
+		Version:                  "v1.0.0",
+		HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
+		HardforkExclusionHandler: &testscommon.HardforkExclusionHandlerStub{},
 	}
 }
 

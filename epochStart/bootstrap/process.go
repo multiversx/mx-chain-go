@@ -114,6 +114,7 @@ type epochStartBootstrap struct {
 	checkNodesOnDisk           bool
 	bootstrapHeartbeatSender   update.Closer
 	trieSyncStatisticsProvider common.SizeSyncStatisticsHandler
+	hardforkExclusionHandler   common.HardforkExclusionHandler
 
 	// created components
 	requestHandler            process.RequestHandler
@@ -177,6 +178,7 @@ type ArgsEpochStartBootstrap struct {
 	DataSyncerCreator          types.ScheduledDataSyncerCreator
 	ScheduledSCRsStorer        storage.Storer
 	TrieSyncStatisticsProvider common.SizeSyncStatisticsHandler
+	HardforkExclusionHandler   common.HardforkExclusionHandler
 }
 
 type dataToSync struct {
@@ -222,6 +224,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		storerScheduledSCRs:        args.ScheduledSCRsStorer,
 		shardCoordinator:           args.GenesisShardCoordinator,
 		trieSyncStatisticsProvider: args.TrieSyncStatisticsProvider,
+		hardforkExclusionHandler:   args.HardforkExclusionHandler,
 	}
 
 	whiteListCache, err := storageunit.NewCache(storageFactory.GetCacherFromConfig(epochStartProvider.generalConfig.WhiteListPool))
@@ -534,18 +537,19 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 func (e *epochStartBootstrap) createSyncers() error {
 	var err error
 	args := factoryInterceptors.ArgsEpochStartInterceptorContainer{
-		CoreComponents:          e.coreComponentsHolder,
-		CryptoComponents:        e.cryptoComponentsHolder,
-		Config:                  e.generalConfig,
-		ShardCoordinator:        e.shardCoordinator,
-		Messenger:               e.messenger,
-		DataPool:                e.dataPool,
-		WhiteListHandler:        e.whiteListHandler,
-		WhiteListerVerifiedTxs:  e.whiteListerVerifiedTxs,
-		ArgumentsParser:         e.argumentsParser,
-		HeaderIntegrityVerifier: e.headerIntegrityVerifier,
-		RequestHandler:          e.requestHandler,
-		SignaturesHandler:       e.messenger,
+		CoreComponents:           e.coreComponentsHolder,
+		CryptoComponents:         e.cryptoComponentsHolder,
+		Config:                   e.generalConfig,
+		ShardCoordinator:         e.shardCoordinator,
+		Messenger:                e.messenger,
+		DataPool:                 e.dataPool,
+		WhiteListHandler:         e.whiteListHandler,
+		WhiteListerVerifiedTxs:   e.whiteListerVerifiedTxs,
+		ArgumentsParser:          e.argumentsParser,
+		HeaderIntegrityVerifier:  e.headerIntegrityVerifier,
+		RequestHandler:           e.requestHandler,
+		SignaturesHandler:        e.messenger,
+		HardforkExclusionHandler: e.hardforkExclusionHandler,
 	}
 
 	e.interceptorContainer, err = factoryInterceptors.NewEpochStartInterceptorsContainer(args)

@@ -28,28 +28,30 @@ var log = logger.GetOrCreate("factory")
 
 // BootstrapComponentsFactoryArgs holds the arguments needed to create a botstrap components factory
 type BootstrapComponentsFactoryArgs struct {
-	Config               config.Config
-	RoundConfig          config.RoundConfig
-	PrefConfig           config.Preferences
-	ImportDbConfig       config.ImportDbConfig
-	FlagsConfig          config.ContextFlagsConfig
-	WorkingDir           string
-	CoreComponents       factory.CoreComponentsHolder
-	CryptoComponents     factory.CryptoComponentsHolder
-	NetworkComponents    factory.NetworkComponentsHolder
-	StatusCoreComponents factory.StatusCoreComponentsHolder
+	Config                   config.Config
+	RoundConfig              config.RoundConfig
+	PrefConfig               config.Preferences
+	ImportDbConfig           config.ImportDbConfig
+	FlagsConfig              config.ContextFlagsConfig
+	WorkingDir               string
+	CoreComponents           factory.CoreComponentsHolder
+	CryptoComponents         factory.CryptoComponentsHolder
+	NetworkComponents        factory.NetworkComponentsHolder
+	StatusCoreComponents     factory.StatusCoreComponentsHolder
+	HardforkExclusionHandler common.HardforkExclusionHandler
 }
 
 type bootstrapComponentsFactory struct {
-	config               config.Config
-	prefConfig           config.Preferences
-	importDbConfig       config.ImportDbConfig
-	flagsConfig          config.ContextFlagsConfig
-	workingDir           string
-	coreComponents       factory.CoreComponentsHolder
-	cryptoComponents     factory.CryptoComponentsHolder
-	networkComponents    factory.NetworkComponentsHolder
-	statusCoreComponents factory.StatusCoreComponentsHolder
+	config                   config.Config
+	prefConfig               config.Preferences
+	importDbConfig           config.ImportDbConfig
+	flagsConfig              config.ContextFlagsConfig
+	workingDir               string
+	coreComponents           factory.CoreComponentsHolder
+	cryptoComponents         factory.CryptoComponentsHolder
+	networkComponents        factory.NetworkComponentsHolder
+	statusCoreComponents     factory.StatusCoreComponentsHolder
+	hardforkExclusionHandler common.HardforkExclusionHandler
 }
 
 type bootstrapComponents struct {
@@ -88,17 +90,21 @@ func NewBootstrapComponentsFactory(args BootstrapComponentsFactoryArgs) (*bootst
 	if check.IfNil(args.StatusCoreComponents.AppStatusHandler()) {
 		return nil, errors.ErrNilAppStatusHandler
 	}
+	if check.IfNil(args.HardforkExclusionHandler) {
+		return nil, errors.ErrNilHardforkExclusionHandler
+	}
 
 	return &bootstrapComponentsFactory{
-		config:               args.Config,
-		prefConfig:           args.PrefConfig,
-		importDbConfig:       args.ImportDbConfig,
-		flagsConfig:          args.FlagsConfig,
-		workingDir:           args.WorkingDir,
-		coreComponents:       args.CoreComponents,
-		cryptoComponents:     args.CryptoComponents,
-		networkComponents:    args.NetworkComponents,
-		statusCoreComponents: args.StatusCoreComponents,
+		config:                   args.Config,
+		prefConfig:               args.PrefConfig,
+		importDbConfig:           args.ImportDbConfig,
+		flagsConfig:              args.FlagsConfig,
+		workingDir:               args.WorkingDir,
+		coreComponents:           args.CoreComponents,
+		cryptoComponents:         args.CryptoComponents,
+		networkComponents:        args.NetworkComponents,
+		statusCoreComponents:     args.StatusCoreComponents,
+		hardforkExclusionHandler: args.HardforkExclusionHandler,
 	}, nil
 }
 
@@ -201,6 +207,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		DataSyncerCreator:          dataSyncerFactory,
 		ScheduledSCRsStorer:        nil, // will be updated after sync from network
 		TrieSyncStatisticsProvider: tss,
+		HardforkExclusionHandler:   bcf.hardforkExclusionHandler,
 	}
 
 	var epochStartBootstrapper factory.EpochStartBootstrapper

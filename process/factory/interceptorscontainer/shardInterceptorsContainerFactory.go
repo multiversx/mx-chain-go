@@ -39,6 +39,7 @@ func NewShardInterceptorsContainerFactory(
 		args.RequestHandler,
 		args.PeerShardMapper,
 		args.HardforkTrigger,
+		args.HardforkExclusionHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -100,24 +101,25 @@ func NewShardInterceptorsContainerFactory(
 
 	container := containers.NewInterceptorsContainer()
 	base := &baseInterceptorsContainerFactory{
-		container:              container,
-		accounts:               args.Accounts,
-		shardCoordinator:       args.ShardCoordinator,
-		messenger:              args.Messenger,
-		store:                  args.Store,
-		dataPool:               args.DataPool,
-		nodesCoordinator:       args.NodesCoordinator,
-		argInterceptorFactory:  argInterceptorFactory,
-		blockBlackList:         args.BlockBlackList,
-		maxTxNonceDeltaAllowed: args.MaxTxNonceDeltaAllowed,
-		antifloodHandler:       args.AntifloodHandler,
-		whiteListHandler:       args.WhiteListHandler,
-		whiteListerVerifiedTxs: args.WhiteListerVerifiedTxs,
-		preferredPeersHolder:   args.PreferredPeersHolder,
-		hasher:                 args.CoreComponents.Hasher(),
-		requestHandler:         args.RequestHandler,
-		peerShardMapper:        args.PeerShardMapper,
-		hardforkTrigger:        args.HardforkTrigger,
+		container:                container,
+		accounts:                 args.Accounts,
+		shardCoordinator:         args.ShardCoordinator,
+		messenger:                args.Messenger,
+		store:                    args.Store,
+		dataPool:                 args.DataPool,
+		nodesCoordinator:         args.NodesCoordinator,
+		argInterceptorFactory:    argInterceptorFactory,
+		blockBlackList:           args.BlockBlackList,
+		maxTxNonceDeltaAllowed:   args.MaxTxNonceDeltaAllowed,
+		antifloodHandler:         args.AntifloodHandler,
+		whiteListHandler:         args.WhiteListHandler,
+		whiteListerVerifiedTxs:   args.WhiteListerVerifiedTxs,
+		preferredPeersHolder:     args.PreferredPeersHolder,
+		hasher:                   args.CoreComponents.Hasher(),
+		requestHandler:           args.RequestHandler,
+		peerShardMapper:          args.PeerShardMapper,
+		hardforkTrigger:          args.HardforkTrigger,
+		hardforkExclusionHandler: args.HardforkExclusionHandler,
 	}
 
 	icf := &shardInterceptorsContainerFactory{
