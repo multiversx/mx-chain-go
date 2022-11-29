@@ -43,7 +43,7 @@ var publicKey = make([]byte, PublicKeySize)
 
 func createDefaultWorkerArgs(appStatusHandler core.AppStatusHandler) *spos.WorkerArgs {
 	blockchainMock := &testscommon.ChainHandlerStub{}
-	blockProcessor := &mock.BlockProcessorMock{
+	blockProcessor := &testscommon.BlockProcessorStub{
 		DecodeBlockHeaderCalled: func(dta []byte) data.HeaderHandler {
 			return nil
 		},
@@ -586,7 +586,7 @@ func TestWorker_ProcessReceivedMessageComputeReceivedProposedBlockMetric(t *test
 			receivedValue = value
 		},
 	})
-	wrk.SetBlockProcessor(&mock.BlockProcessorMock{
+	wrk.SetBlockProcessor(&testscommon.BlockProcessorStub{
 		DecodeBlockHeaderCalled: func(dta []byte) data.HeaderHandler {
 			return &block.Header{
 				ChainID:         chainID,
@@ -816,7 +816,12 @@ func TestWorker_ProcessReceivedMessageTypeLimitReachedShouldErr(t *testing.T) {
 	assert.Equal(t, 1, len(wrk.ReceivedMessages()[bls.MtBlockBody]))
 	assert.Nil(t, err)
 
-	err = wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, fromConnectedPeerId)
+	err = wrk.ProcessReceivedMessage(msg, fromConnectedPeerId)
+	time.Sleep(time.Second)
+	assert.Equal(t, 1, len(wrk.ReceivedMessages()[bls.MtBlockBody]))
+	assert.True(t, errors.Is(err, spos.ErrMessageTypeLimitReached))
+
+	err = wrk.ProcessReceivedMessage(msg, fromConnectedPeerId)
 	time.Sleep(time.Second)
 	assert.Equal(t, 1, len(wrk.ReceivedMessages()[bls.MtBlockBody]))
 	assert.True(t, errors.Is(err, spos.ErrMessageTypeLimitReached))
@@ -919,7 +924,7 @@ func TestWorker_ProcessReceivedMessageWrongChainIDInProposedBlockShouldError(t *
 	t.Parallel()
 	wrk := *initWorker(&statusHandlerMock.AppStatusHandlerStub{})
 	wrk.SetBlockProcessor(
-		&mock.BlockProcessorMock{
+		&testscommon.BlockProcessorStub{
 			DecodeBlockHeaderCalled: func(dta []byte) data.HeaderHandler {
 				return &testscommon.HeaderHandlerStub{
 					CheckChainIDCalled: func(reference []byte) error {
@@ -963,7 +968,7 @@ func TestWorker_ProcessReceivedMessageWithABadOriginatorShouldErr(t *testing.T) 
 	t.Parallel()
 	wrk := *initWorker(&statusHandlerMock.AppStatusHandlerStub{})
 	wrk.SetBlockProcessor(
-		&mock.BlockProcessorMock{
+		&testscommon.BlockProcessorStub{
 			DecodeBlockHeaderCalled: func(dta []byte) data.HeaderHandler {
 				return &testscommon.HeaderHandlerStub{
 					CheckChainIDCalled: func(reference []byte) error {
@@ -1030,7 +1035,7 @@ func TestWorker_ProcessReceivedMessageOkValsShouldWork(t *testing.T) {
 	wrk, _ := spos.NewWorker(workerArgs)
 
 	wrk.SetBlockProcessor(
-		&mock.BlockProcessorMock{
+		&testscommon.BlockProcessorStub{
 			DecodeBlockHeaderCalled: func(dta []byte) data.HeaderHandler {
 				return &testscommon.HeaderHandlerStub{
 					CheckChainIDCalled: func(reference []byte) error {
@@ -1461,7 +1466,7 @@ func TestWorker_ExtendShouldWorkAfterAWhile(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker(&statusHandlerMock.AppStatusHandlerStub{})
 	executed := int32(0)
-	blockProcessor := &mock.BlockProcessorMock{
+	blockProcessor := &testscommon.BlockProcessorStub{
 		RevertCurrentBlockCalled: func() {
 			atomic.AddInt32(&executed, 1)
 		},
@@ -1486,7 +1491,7 @@ func TestWorker_ExtendShouldWork(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker(&statusHandlerMock.AppStatusHandlerStub{})
 	executed := int32(0)
-	blockProcessor := &mock.BlockProcessorMock{
+	blockProcessor := &testscommon.BlockProcessorStub{
 		RevertCurrentBlockCalled: func() {
 			atomic.AddInt32(&executed, 1)
 		},

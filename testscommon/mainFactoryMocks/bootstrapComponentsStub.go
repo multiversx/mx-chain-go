@@ -68,6 +68,12 @@ func (bcs *BootstrapComponentsStub) HeaderIntegrityVerifier() nodeFactory.Header
 	return bcs.HdrIntegrityVerifier
 }
 
+// SetShardCoordinator -
+func (bcs *BootstrapComponentsStub) SetShardCoordinator(shardCoordinator sharding.Coordinator) error {
+	bcs.ShCoordinator = shardCoordinator
+	return nil
+}
+
 // String -
 func (bcs *BootstrapComponentsStub) String() string {
 	return "BootstrapComponentsStub"

@@ -24,7 +24,6 @@ type ArgsMetricsUpdater struct {
 	HeartbeatSenderInfoProvider         HeartbeatSenderInfoProvider
 	AppStatusHandler                    core.AppStatusHandler
 	TimeBetweenConnectionsMetricsUpdate time.Duration
-	EnableEpochsHandler                 common.EnableEpochsHandler
 }
 
 type metricsUpdater struct {
@@ -34,7 +33,6 @@ type metricsUpdater struct {
 	appStatusHandler                    core.AppStatusHandler
 	timeBetweenConnectionsMetricsUpdate time.Duration
 	cancelFunc                          func()
-	enableEpochsHandler                 common.EnableEpochsHandler
 }
 
 // NewMetricsUpdater creates a new instance of type metricsUpdater
@@ -50,7 +48,6 @@ func NewMetricsUpdater(args ArgsMetricsUpdater) (*metricsUpdater, error) {
 		heartbeatSenderInfoProvider:         args.HeartbeatSenderInfoProvider,
 		appStatusHandler:                    args.AppStatusHandler,
 		timeBetweenConnectionsMetricsUpdate: args.TimeBetweenConnectionsMetricsUpdate,
-		enableEpochsHandler:                 args.EnableEpochsHandler,
 	}
 
 	args.PeerAuthenticationCacher.RegisterHandler(updater.onAddedPeerAuthenticationMessage, "metricsUpdater")
@@ -79,9 +76,6 @@ func checkArgs(args ArgsMetricsUpdater) error {
 		return fmt.Errorf("%w on TimeBetweenConnectionsMetricsUpdate, provided %d, min expected %d",
 			heartbeat.ErrInvalidTimeDuration, args.TimeBetweenConnectionsMetricsUpdate, minDuration)
 	}
-	if check.IfNil(args.EnableEpochsHandler) {
-		return heartbeat.ErrNilEnableEpochsHandler
-	}
 
 	return nil
 }
@@ -104,10 +98,6 @@ func (updater *metricsUpdater) processMetricsUpdate(ctx context.Context) {
 }
 
 func (updater *metricsUpdater) updateMetrics() {
-	if updater.shouldSkipUpdateMetrics() {
-		return
-	}
-
 	updater.updateConnectionsMetrics()
 	updater.updateSenderMetrics()
 }
@@ -162,15 +152,7 @@ func (updater *metricsUpdater) Close() error {
 }
 
 func (updater *metricsUpdater) onAddedPeerAuthenticationMessage(_ []byte, _ interface{}) {
-	if updater.shouldSkipUpdateMetrics() {
-		return
-	}
-
 	updater.appStatusHandler.SetUInt64Value(common.MetricLiveValidatorNodes, uint64(updater.peerAuthenticationCacher.Len()))
-}
-
-func (updater *metricsUpdater) shouldSkipUpdateMetrics() bool {
-	return !updater.enableEpochsHandler.IsHeartbeatDisableFlagEnabled()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

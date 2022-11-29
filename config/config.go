@@ -1,5 +1,7 @@
 package config
 
+import p2pConfig "github.com/ElrondNetwork/elrond-go/p2p/config"
+
 // CacheConfig will map the cache configuration
 type CacheConfig struct {
 	Name                 string
@@ -115,13 +117,15 @@ type HeartbeatV2Config struct {
 	MinPeersThreshold                                float32
 	DelayBetweenRequestsInSec                        int64
 	MaxTimeoutInSec                                  int64
-	DelayBetweenConnectionNotificationsInSec         int64
+	PeerShardTimeBetweenSendsInSec                   int64
+	PeerShardThresholdBetweenSends                   float64
 	MaxMissingKeysInRequest                          uint32
 	MaxDurationPeerUnresponsiveInSec                 int64
 	HideInactiveValidatorIntervalInSec               int64
 	HeartbeatPool                                    CacheConfig
 	HardforkTimeBetweenSendsInSec                    int64
 	TimeBetweenConnectionsMetricsUpdateInSec         int64
+	TimeToReadDirectConnectionsInSec                 int64
 	PeerAuthenticationTimeBetweenChecksInSec         int64
 }
 
@@ -183,8 +187,8 @@ type Config struct {
 	PeerHonesty           CacheConfig
 
 	Antiflood           AntifloodConfig
+	WebServerAntiflood  WebServerAntifloodConfig
 	ResourceStats       ResourceStatsConfig
-	Heartbeat           HeartbeatConfig
 	HeartbeatV2         HeartbeatV2Config
 	ValidatorStatistics ValidatorStatisticsConfig
 	GeneralSettings     GeneralSettingsConfig
@@ -244,16 +248,6 @@ type ResourceStatsConfig struct {
 	RefreshIntervalInSec int
 }
 
-// HeartbeatConfig will hold all heartbeat settings
-type HeartbeatConfig struct {
-	MinTimeToWaitBetweenBroadcastsInSec int
-	MaxTimeToWaitBetweenBroadcastsInSec int
-	DurationToConsiderUnresponsiveInSec int
-	HeartbeatRefreshIntervalInSec       uint32
-	HideInactiveValidatorIntervalInSec  uint32
-	HeartbeatStorage                    StorageConfig
-}
-
 // ValidatorStatisticsConfig will hold validator statistics specific settings
 type ValidatorStatisticsConfig struct {
 	CacheRefreshIntervalInSec uint32
@@ -264,6 +258,12 @@ type MaxNodesChangeConfig struct {
 	EpochEnable            uint32
 	MaxNumNodes            uint32
 	NodesToShufflePerShard uint32
+}
+
+// MultiSignerConfig defines a config tuple for a BLS multi-signer that activates in a certain epoch
+type MultiSignerConfig struct {
+	EnableEpoch uint32
+	Type        string
 }
 
 // GeneralSettingsConfig will hold the general settings for a node
@@ -314,10 +314,12 @@ type EndpointsThrottlersConfig struct {
 
 // WebServerAntifloodConfig will hold the anti-flooding parameters for the web server
 type WebServerAntifloodConfig struct {
+	WebServerAntifloodEnabled          bool
 	SimultaneousRequests               uint32
 	SameSourceRequests                 uint32
 	SameSourceResetIntervalInSec       uint32
 	TrieOperationsDeadlineMilliseconds uint32
+	GetAddressesBulkMaxSize            uint32
 	EndpointsThrottlers                []EndpointsThrottlersConfig
 }
 
@@ -356,7 +358,6 @@ type AntifloodConfig struct {
 	SlowReacting              FloodPreventerConfig
 	PeerMaxOutput             AntifloodLimitsConfig
 	Cache                     CacheConfig
-	WebServer                 WebServerAntifloodConfig
 	Topic                     TopicAntifloodConfig
 	TxAccumulator             TxAccumulatorConfig
 }
@@ -415,7 +416,7 @@ type VirtualMachineGasConfig struct {
 	MetaMaxGasPerVmQuery  uint64
 }
 
-// BuiltInFunctionsConfig holds the configuration for the built in functions
+// BuiltInFunctionsConfig holds the configuration for the built-in functions
 type BuiltInFunctionsConfig struct {
 	AutomaticCrawlerAddresses     []string
 	MaxNumAddressesInTransferRole uint32
@@ -466,6 +467,7 @@ type DebugConfig struct {
 	Antiflood           AntifloodDebugConfig
 	ShuffleOut          ShuffleOutDebugConfig
 	EpochStart          EpochStartDebugConfig
+	Process             ProcessDebugConfig
 }
 
 // HealthServiceConfig will hold health service (monitoring) configuration
@@ -507,6 +509,15 @@ type ShuffleOutDebugConfig struct {
 type EpochStartDebugConfig struct {
 	GoRoutineAnalyserEnabled     bool
 	ProcessDataTrieOnCommitEpoch bool
+}
+
+// ProcessDebugConfig will hold the process debug configuration
+type ProcessDebugConfig struct {
+	Enabled                     bool
+	GoRoutinesDump              bool
+	DebuggingLogLevel           string
+	PollingTimeInSeconds        int
+	RevertLogLevelTimeInSeconds int
 }
 
 // ApiRoutesConfig holds the configuration related to Rest API routes
@@ -554,7 +565,7 @@ type Configs struct {
 	RatingsConfig            *RatingsConfig
 	PreferencesConfig        *Preferences
 	ExternalConfig           *ExternalConfig
-	P2pConfig                *P2PConfig
+	P2pConfig                *p2pConfig.P2PConfig
 	FlagsConfig              *ContextFlagsConfig
 	ImportDbConfig           *ImportDbConfig
 	ConfigurationPathsHolder *ConfigurationPathsHolder
@@ -579,6 +590,7 @@ type ConfigurationPathsHolder struct {
 	ValidatorKey             string
 	Epoch                    string
 	RoundActivation          string
+	P2pKey                   string
 }
 
 // TrieSyncConfig represents the trie synchronization configuration area

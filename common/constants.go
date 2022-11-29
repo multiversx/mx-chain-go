@@ -26,8 +26,11 @@ const JailedList PeerType = "jailed"
 // ObserverList represents the list of peers who don't participate in consensus but will join the next epoch
 const ObserverList PeerType = "observer"
 
-// NewList -
+// NewList represents the list of peers who have stake and are pending to become eligible
 const NewList PeerType = "new"
+
+// MetachainTopicIdentifier is the identifier used in topics to define the metachain shard ID
+const MetachainTopicIdentifier = "META" // TODO - move this to elrond-go-core and change wherever we use the string value
 
 // CombinedPeerType - represents the combination of two peerTypes
 const CombinedPeerType = "%s (%s)"
@@ -60,9 +63,6 @@ const ConsensusTopic = "consensus"
 // GenesisTxSignatureString is the string used to generate genesis transaction signature as 128 hex characters
 const GenesisTxSignatureString = "GENESISGENESISGENESISGENESISGENESISGENESISGENESISGENESISGENESISG"
 
-// HeartbeatTopic is the topic used for heartbeat signaling
-const HeartbeatTopic = "heartbeat"
-
 // HeartbeatV2Topic is the topic used for heartbeatV2 signaling
 const HeartbeatV2Topic = "heartbeatV2"
 
@@ -74,15 +74,6 @@ const ConnectionTopic = "connection"
 
 // ValidatorInfoTopic is the topic used for validatorInfo signaling
 const ValidatorInfoTopic = "validatorInfo"
-
-// PathShardPlaceholder represents the placeholder for the shard ID in paths
-const PathShardPlaceholder = "[S]"
-
-// PathEpochPlaceholder represents the placeholder for the epoch number in paths
-const PathEpochPlaceholder = "[E]"
-
-// PathIdentifierPlaceholder represents the placeholder for the identifier in paths
-const PathIdentifierPlaceholder = "[I]"
 
 // MetricCurrentRound is the metric for monitoring the current round of a node
 const MetricCurrentRound = "erd_current_round"
@@ -301,7 +292,7 @@ const MetricCreatedProposedBlock = "erd_consensus_created_proposed_block"
 // MetricRedundancyLevel is the metric that specifies the redundancy level of the current node
 const MetricRedundancyLevel = "erd_redundancy_level"
 
-// MetricRedundancyIsMainActive is the metrics that specifies data about the redundancy main machine
+// MetricRedundancyIsMainActive is the metric that specifies data about the redundancy main machine
 const MetricRedundancyIsMainActive = "erd_redundancy_is_main_active"
 
 // MetricValueNA represents the value to be used when a metric is not available/applicable
@@ -324,7 +315,7 @@ const MetricRewardsTopUpGradientPoint = "erd_rewards_top_up_gradient_point"
 // MetricGasPriceModifier is the metric that specifies the gas price modifier
 const MetricGasPriceModifier = "erd_gas_price_modifier"
 
-// MetricTopUpFactor is the metric that specifies the top up factor
+// MetricTopUpFactor is the metric that specifies the top-up factor
 const MetricTopUpFactor = "erd_top_up_factor"
 
 // MetricMinTransactionVersion is the metric that specifies the minimum transaction version
@@ -372,7 +363,7 @@ const MetachainShardId = uint32(0xFFFFFFFF)
 // BaseOperationCost represents the field name for base operation costs
 const BaseOperationCost = "BaseOperationCost"
 
-// BuiltInCost represents the field name for built in operation costs
+// BuiltInCost represents the field name for built-in operation costs
 const BuiltInCost = "BuiltInCost"
 
 // MetaChainSystemSCsCost represents the field name for metachain system smart contract operation costs
@@ -392,7 +383,7 @@ const (
 	// MetricScDeployEnableEpoch represents the epoch when the deployment of smart contracts is enabled
 	MetricScDeployEnableEpoch = "erd_smart_contract_deploy_enable_epoch"
 
-	// MetricBuiltInFunctionsEnableEpoch represents the epoch when the built in functions is enabled
+	// MetricBuiltInFunctionsEnableEpoch represents the epoch when the built-in functions is enabled
 	MetricBuiltInFunctionsEnableEpoch = "erd_built_in_functions_enable_epoch"
 
 	// MetricRelayedTransactionsEnableEpoch represents the epoch when the relayed transactions is enabled
@@ -496,9 +487,6 @@ const (
 
 	// MetricWaitingListFixEnableEpoch represents the epoch when the waiting list fix is enabled
 	MetricWaitingListFixEnableEpoch = "erd_waiting_list_fix_enable_epoch"
-
-	// MetricHeartbeatDisableEpoch represents the epoch when heartbeat v1 messages stop being sent and processed
-	MetricHeartbeatDisableEpoch = "erd_heartbeat_disable_epoch"
 
 	// MetricMaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
 	MetricMaxNodesChangeEnableEpoch = "erd_max_nodes_change_enable_epoch"
@@ -683,26 +671,11 @@ const WrongConfiguration = "wrongConfiguration"
 // ImportComplete signals that a node restart will be done because the import did complete
 const ImportComplete = "importComplete"
 
-// MaxRetriesToCreateDB represents the maximum number of times to try to create DB if it failed
-const MaxRetriesToCreateDB = 10
-
-// SleepTimeBetweenCreateDBRetries represents the number of seconds to sleep between DB creates
-const SleepTimeBetweenCreateDBRetries = 5 * time.Second
-
 // DefaultStatsPath is the default path where the node stats are logged
 const DefaultStatsPath = "stats"
 
 // DefaultDBPath is the default path for nodes databases
 const DefaultDBPath = "db"
-
-// DefaultEpochString is the default folder root name for node per epoch databases
-const DefaultEpochString = "Epoch"
-
-// DefaultStaticDbString is the default name for the static databases (not changing with epoch)
-const DefaultStaticDbString = "Static"
-
-// DefaultShardString is the default folder root name for per shard databases
-const DefaultShardString = "Shard"
 
 // MetachainShardName is the string identifier of the metachain shard
 const MetachainShardName = "metachain"
@@ -744,10 +717,6 @@ const InvalidMessageBlacklistDuration = time.Second * 3600
 // PublicKeyBlacklistDuration represents the time to keep a public key in the black list if it will degrade its
 // rating to a minimum threshold due to improper messages
 const PublicKeyBlacklistDuration = time.Second * 7200
-
-// WrongP2PMessageBlacklistDuration represents the time to keep a peer id in the blacklist if it sends a message that
-// do not follow this protocol
-const WrongP2PMessageBlacklistDuration = time.Second * 7200
 
 // MaxWaitingTimeToReceiveRequestedItem represents the maximum waiting time in seconds needed to receive the requested items
 const MaxWaitingTimeToReceiveRequestedItem = 5 * time.Second
@@ -841,6 +810,30 @@ const (
 
 // MaxIndexOfTxInMiniBlock defines the maximum index of a tx inside one mini block
 const MaxIndexOfTxInMiniBlock = int32(29999)
+
+// MetricAccountsSnapshotInProgress is the metric that outputs the status of the accounts' snapshot, if it's in progress or not
+const MetricAccountsSnapshotInProgress = "erd_accounts_snapshot_in_progress"
+
+// MetricLastAccountsSnapshotDurationSec is the metric that outputs the duration in seconds of the last accounts db snapshot. If snapshot is in progress it will be set to 0
+const MetricLastAccountsSnapshotDurationSec = "erd_accounts_snapshot_last_duration_in_seconds"
+
+// MetricPeersSnapshotInProgress is the metric that outputs the status of the peers' snapshot, if it's in progress or not
+const MetricPeersSnapshotInProgress = "erd_peers_snapshot_in_progress"
+
+// MetricLastPeersSnapshotDurationSec is the metric that outputs the duration in seconds of the last peers db snapshot. If snapshot is in progress it will be set to 0
+const MetricLastPeersSnapshotDurationSec = "erd_peers_snapshot_last_duration_in_seconds"
+
+// GenesisStorageSuffix defines the storage suffix used for genesis altered data
+const GenesisStorageSuffix = "_genesis"
+
+// MetricAccountsSnapshotNumNodes is the metric that outputs the number of trie nodes written for accounts after snapshot
+const MetricAccountsSnapshotNumNodes = "erd_accounts_snapshot_num_nodes"
+
+// MetricTrieSyncNumReceivedBytes is the metric that outputs the number of bytes received for accounts during trie sync
+const MetricTrieSyncNumReceivedBytes = "erd_trie_sync_num_bytes_received"
+
+// MetricTrieSyncNumProcessedNodes is the metric that outputs the number of trie nodes processed for accounts during trie sync
+const MetricTrieSyncNumProcessedNodes = "erd_trie_sync_num_nodes_processed"
 
 // MaxMachineIDLen is the maximum machine ID length
 // TODO: move this to elrond-go-core

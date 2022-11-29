@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -40,7 +41,8 @@ func createMockMultikeyHeartbeatSenderArgs(argBase argBaseSender) argMultikeyHea
 				return true
 			},
 		},
-		shardCoordinator: createShardCoordinatorInShard(0),
+		shardCoordinator:           createShardCoordinatorInShard(0),
+		trieSyncStatisticsProvider: &testscommon.SizeSyncStatisticsHandlerStub{},
 	}
 }
 
@@ -286,7 +288,7 @@ func TestMultikeyHeartbeatSender_execute(t *testing.T) {
 		args := createMockMultikeyHeartbeatSenderArgs(createMockBaseArgs())
 		broadcastCalled := false
 		recordedMessages := make(map[core.PeerID][][]byte)
-		args.messenger = &mock.MessengerStub{
+		args.messenger = &p2pmocks.MessengerStub{
 			BroadcastCalled: func(topic string, buff []byte) {
 				assert.Equal(t, args.topic, topic)
 				recordedMessages[args.messenger.ID()] = append(recordedMessages[args.messenger.ID()], buff)
@@ -308,7 +310,7 @@ func TestMultikeyHeartbeatSender_execute(t *testing.T) {
 
 		args := createMockMultikeyHeartbeatSenderArgs(createMockBaseArgs())
 		recordedMessages := make(map[core.PeerID][][]byte)
-		args.messenger = &mock.MessengerStub{
+		args.messenger = &p2pmocks.MessengerStub{
 			BroadcastCalled: func(topic string, buff []byte) {
 				assert.Equal(t, args.topic, topic)
 				recordedMessages[args.messenger.ID()] = append(recordedMessages[args.messenger.ID()], buff)
@@ -405,7 +407,7 @@ func TestMultikeyHeartbeatSender_generateMessageBytes(t *testing.T) {
 		versionNumber := strings.Repeat("a", maxSizeInBytes+1)
 		nodeDisplayName := "a"
 		identity := "b"
-		buff, err := senderInstance.generateMessageBytes(versionNumber, nodeDisplayName, identity, 0, []byte("public key"))
+		buff, err := senderInstance.generateMessageBytes(versionNumber, nodeDisplayName, identity, 0, []byte("public key"), 0)
 
 		assert.True(t, errors.Is(err, heartbeat.ErrPropertyTooLong))
 		assert.True(t, strings.Contains(err.Error(), "versionNumber"))
@@ -420,7 +422,7 @@ func TestMultikeyHeartbeatSender_generateMessageBytes(t *testing.T) {
 		versionNumber := "a"
 		nodeDisplayName := strings.Repeat("a", maxSizeInBytes+1)
 		identity := "b"
-		buff, err := senderInstance.generateMessageBytes(versionNumber, nodeDisplayName, identity, 0, []byte("public key"))
+		buff, err := senderInstance.generateMessageBytes(versionNumber, nodeDisplayName, identity, 0, []byte("public key"), 0)
 
 		assert.True(t, errors.Is(err, heartbeat.ErrPropertyTooLong))
 		assert.True(t, strings.Contains(err.Error(), "nodeDisplayName"))
@@ -435,7 +437,7 @@ func TestMultikeyHeartbeatSender_generateMessageBytes(t *testing.T) {
 		versionNumber := "a"
 		nodeDisplayName := "b"
 		identity := strings.Repeat("a", maxSizeInBytes+1)
-		buff, err := senderInstance.generateMessageBytes(versionNumber, nodeDisplayName, identity, 0, []byte("public key"))
+		buff, err := senderInstance.generateMessageBytes(versionNumber, nodeDisplayName, identity, 0, []byte("public key"), 0)
 
 		assert.True(t, errors.Is(err, heartbeat.ErrPropertyTooLong))
 		assert.True(t, strings.Contains(err.Error(), "identity"))

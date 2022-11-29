@@ -8,7 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
+	bootstrapComp "github.com/ElrondNetwork/elrond-go/factory/bootstrap"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/factory"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/testscommon/goroutines"
@@ -29,28 +29,28 @@ func TestConsensusComponents_Close_ShouldWork(t *testing.T) {
 	factory.PrintStack()
 
 	configs := factory.CreateDefaultConfig()
-	configs.ExternalConfig.ElasticSearchConnector.Enabled = false
-
 	chanStopNodeProcess := make(chan endProcess.ArgEndProcess)
 	nr, err := node.NewNodeRunner(configs)
 	require.Nil(t, err)
 	managedCoreComponents, err := nr.CreateManagedCoreComponents(chanStopNodeProcess)
 	require.Nil(t, err)
+	managedStatusCoreComponents, err := nr.CreateManagedStatusCoreComponents(managedCoreComponents)
+	require.Nil(t, err)
 	managedCryptoComponents, err := nr.CreateManagedCryptoComponents(managedCoreComponents)
 	require.Nil(t, err)
-	managedNetworkComponents, err := nr.CreateManagedNetworkComponents(managedCoreComponents)
+	managedNetworkComponents, err := nr.CreateManagedNetworkComponents(managedCoreComponents, managedStatusCoreComponents)
 	require.Nil(t, err)
-	managedBootstrapComponents, err := nr.CreateManagedBootstrapComponents(managedCoreComponents, managedCryptoComponents, managedNetworkComponents)
+	managedBootstrapComponents, err := nr.CreateManagedBootstrapComponents(managedStatusCoreComponents, managedCoreComponents, managedCryptoComponents, managedNetworkComponents)
 	require.Nil(t, err)
-	managedDataComponents, err := nr.CreateManagedDataComponents(managedCoreComponents, managedBootstrapComponents)
+	managedDataComponents, err := nr.CreateManagedDataComponents(managedStatusCoreComponents, managedCoreComponents, managedBootstrapComponents)
 	require.Nil(t, err)
-	managedStateComponents, err := nr.CreateManagedStateComponents(managedCoreComponents, managedBootstrapComponents, managedDataComponents)
+	managedStateComponents, err := nr.CreateManagedStateComponents(managedCoreComponents, managedBootstrapComponents, managedDataComponents, managedStatusCoreComponents)
 	require.Nil(t, err)
-	nodesShufflerOut, err := mainFactory.CreateNodesShuffleOut(managedCoreComponents.GenesisNodesSetup(), configs.GeneralConfig.EpochStartConfig, managedCoreComponents.ChanStopNodeProcess())
+	nodesShufflerOut, err := bootstrapComp.CreateNodesShuffleOut(managedCoreComponents.GenesisNodesSetup(), configs.GeneralConfig.EpochStartConfig, managedCoreComponents.ChanStopNodeProcess())
 	require.Nil(t, err)
 	storer, err := managedDataComponents.StorageService().GetStorer(dataRetriever.BootstrapUnit)
 	require.Nil(t, err)
-	nodesCoordinator, err := mainFactory.CreateNodesCoordinator(
+	nodesCoordinator, err := bootstrapComp.CreateNodesCoordinator(
 		nodesShufflerOut,
 		managedCoreComponents.GenesisNodesSetup(),
 		configs.PreferencesConfig.Preferences,
@@ -71,6 +71,7 @@ func TestConsensusComponents_Close_ShouldWork(t *testing.T) {
 	)
 	require.Nil(t, err)
 	managedStatusComponents, err := nr.CreateManagedStatusComponents(
+		managedStatusCoreComponents,
 		managedCoreComponents,
 		managedNetworkComponents,
 		managedBootstrapComponents,
@@ -98,6 +99,7 @@ func TestConsensusComponents_Close_ShouldWork(t *testing.T) {
 		managedStateComponents,
 		managedDataComponents,
 		managedStatusComponents,
+		managedStatusCoreComponents,
 		gasScheduleNotifier,
 		nodesCoordinator,
 	)
@@ -116,6 +118,7 @@ func TestConsensusComponents_Close_ShouldWork(t *testing.T) {
 		managedStateComponents,
 		managedStatusComponents,
 		managedProcessComponents,
+		managedStatusCoreComponents,
 	)
 	require.Nil(t, err)
 	require.NotNil(t, managedConsensusComponents)
@@ -137,6 +140,8 @@ func TestConsensusComponents_Close_ShouldWork(t *testing.T) {
 	err = managedNetworkComponents.Close()
 	require.Nil(t, err)
 	err = managedCryptoComponents.Close()
+	require.Nil(t, err)
+	err = managedStatusCoreComponents.Close()
 	require.Nil(t, err)
 	err = managedCoreComponents.Close()
 	require.Nil(t, err)

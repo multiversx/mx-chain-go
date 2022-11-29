@@ -12,8 +12,8 @@
     Username          = ""
     Password          = ""
     # EnabledIndexes represents a slice of indexes that will be enabled for indexing. Full list is:
-    # ["rating", "transactions", "blocks", "validators", "miniblocks", "rounds", "accounts", "accountshistory", "receipts", "scresults", "accountsesdt", "accountsesdthistory", "epochinfo", "scdeploys", "tokens", "tags", "logs", "delegators", "operations", "collections"]
-    EnabledIndexes    = ["rating", "transactions", "blocks", "validators", "miniblocks", "rounds", "accounts", "accountshistory", "receipts", "scresults", "accountsesdt", "accountsesdthistory", "epochinfo", "scdeploys", "tokens", "tags", "logs", "delegators", "operations", "collections"]
+    # ["rating", "transactions", "blocks", "validators", "miniblocks", "rounds", "accounts", "accountshistory", "receipts", "scresults", "accountsesdt", "accountsesdthistory", "epochinfo", "scdeploys", "tokens", "tags", "logs", "delegators", "operations"]
+    EnabledIndexes    = ["rating", "transactions", "blocks", "validators", "miniblocks", "rounds", "accounts", "accountshistory", "receipts", "scresults", "accountsesdt", "accountsesdthistory", "epochinfo", "scdeploys", "tokens", "tags", "logs", "delegators", "operations"]
 
 # EventNotifierConnector defines settings needed to configure and launch the event notifier component
 [EventNotifierConnector]
@@ -34,13 +34,13 @@
     # Password is used to authorize an observer to push event data
     Password = ""
 
-# CovalentConnector defines settings related to covalent indexer
-[CovalentConnector]
+    # RequestTimeoutSec defines the timeout in seconds for the http client
+    RequestTimeoutSec = 60
+
+[WebSocketConnector]
     # This flag shall only be used for observer nodes
     Enabled = false
-    URL = "localhost:21111"
-    # Route used to send blocks which are encoded as binary data
-    # defined by a specific avro schema
-    RouteSendData = "/block"
-    # Route used to acknowledge sent blocks
-    RouteAcknowledgeData = "/acknowledge"
+    URL = "localhost:22111"
+    WithAcknowledge = true
+    # Currently, only "json" is supported. In the future, "gogo protobuf" could also be supported
+    MarshallerType = "json"

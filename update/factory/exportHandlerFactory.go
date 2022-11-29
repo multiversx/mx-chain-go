@@ -23,9 +23,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/cache"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	"github.com/ElrondNetwork/elrond-go/storage/timecache"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/genesis"
@@ -39,6 +39,7 @@ var log = logger.GetOrCreate("update/factory")
 type ArgsExporter struct {
 	CoreComponents            process.CoreComponentsHolder
 	CryptoComponents          process.CryptoComponentsHolder
+	StatusCoreComponents      process.StatusCoreComponentsHolder
 	HeaderValidator           epochStart.HeaderValidator
 	DataPool                  dataRetriever.PoolsHolder
 	StorageService            dataRetriever.StorageService
@@ -73,6 +74,7 @@ type ArgsExporter struct {
 type exportHandlerFactory struct {
 	CoreComponents            process.CoreComponentsHolder
 	CryptoComponents          process.CryptoComponentsHolder
+	statusCoreComponents      process.StatusCoreComponentsHolder
 	headerValidator           epochStart.HeaderValidator
 	dataPool                  dataRetriever.PoolsHolder
 	storageService            dataRetriever.StorageService
@@ -157,7 +159,11 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 	if check.IfNil(args.ExistingResolvers) {
 		return nil, update.ErrNilResolverContainer
 	}
-	if check.IfNil(args.CryptoComponents.MultiSigner()) {
+	multiSigner, err := args.CryptoComponents.GetMultiSigner(0)
+	if err != nil {
+		return nil, err
+	}
+	if check.IfNil(multiSigner) {
 		return nil, update.ErrNilMultiSigner
 	}
 	if check.IfNil(args.NodesCoordinator) {
@@ -214,9 +220,15 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 	if args.NumConcurrentTrieSyncers < 1 {
 		return nil, update.ErrInvalidNumConcurrentTrieSyncers
 	}
-	err := trie.CheckTrieSyncerVersion(args.TrieSyncerVersion)
+	err = trie.CheckTrieSyncerVersion(args.TrieSyncerVersion)
 	if err != nil {
 		return nil, err
+	}
+	if check.IfNil(args.StatusCoreComponents) {
+		return nil, update.ErrNilStatusCoreComponentsHolder
+	}
+	if check.IfNil(args.StatusCoreComponents.AppStatusHandler()) {
+		return nil, update.ErrNilAppStatusHandler
 	}
 
 	e := &exportHandlerFactory{
@@ -252,6 +264,7 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		numConcurrentTrieSyncers:  args.NumConcurrentTrieSyncers,
 		trieSyncerVersion:         args.TrieSyncerVersion,
 		checkNodesOnDisk:          args.CheckNodesOnDisk,
+		statusCoreComponents:      args.StatusCoreComponents,
 	}
 
 	return e, nil
@@ -293,7 +306,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		Finality:             process.BlockFinality,
 		PeerMiniBlocksSyncer: peerMiniBlocksSyncer,
 		RoundHandler:         e.roundHandler,
-		AppStatusHandler:     e.CoreComponents.StatusHandler(),
+		AppStatusHandler:     e.statusCoreComponents.AppStatusHandler(),
 		EnableEpochsHandler:  e.CoreComponents.EnableEpochsHandler(),
 	}
 	epochHandler, err := shardchain.NewEpochStartTrigger(&argsEpochTrigger)
@@ -531,7 +544,7 @@ func (e *exportHandlerFactory) createInterceptors() error {
 		DataPool:                e.dataPool,
 		MaxTxNonceDeltaAllowed:  math.MaxInt32,
 		TxFeeHandler:            &disabled.FeeHandler{},
-		BlockBlackList:          timecache.NewTimeCache(time.Second),
+		BlockBlackList:          cache.NewTimeCache(time.Second),
 		HeaderSigVerifier:       e.headerSigVerifier,
 		HeaderIntegrityVerifier: e.headerIntegrityVerifier,
 		SizeCheckDelta:          math.MaxUint32,
@@ -559,7 +572,7 @@ func (e *exportHandlerFactory) createInterceptors() error {
 func createStorer(storageConfig config.StorageConfig, folder string) (storage.Storer, error) {
 	dbConfig := storageFactory.GetDBFromConfig(storageConfig.DB)
 	dbConfig.FilePath = path.Join(folder, storageConfig.DB.FilePath)
-	accountsTrieStorage, err := storageUnit.NewStorageUnitFromConf(
+	accountsTrieStorage, err := storageunit.NewStorageUnitFromConf(
 		storageFactory.GetCacherFromConfig(storageConfig.Cache),
 		dbConfig,
 	)

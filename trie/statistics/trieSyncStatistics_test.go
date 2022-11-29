@@ -18,21 +18,21 @@ func TestNewTrieSyncStatistics_ShouldWork(t *testing.T) {
 	assert.False(t, check.IfNil(tss))
 }
 
-func TestTrieSyncStatistics_Received(t *testing.T) {
+func TestTrieSyncStatistics_Processed(t *testing.T) {
 	t.Parallel()
 
 	tss := NewTrieSyncStatistics()
 
-	assert.Equal(t, 0, tss.NumReceived())
+	assert.Equal(t, 0, tss.NumProcessed())
 
-	tss.AddNumReceived(2)
-	assert.Equal(t, 2, tss.NumReceived())
+	tss.AddNumProcessed(2)
+	assert.Equal(t, 2, tss.NumProcessed())
 
-	tss.AddNumReceived(4)
-	assert.Equal(t, 6, tss.NumReceived())
+	tss.AddNumProcessed(4)
+	assert.Equal(t, 6, tss.NumProcessed())
 
 	tss.Reset()
-	assert.Equal(t, 0, tss.NumReceived())
+	assert.Equal(t, 0, tss.NumProcessed())
 }
 
 func TestTrieSyncStatistics_Missing(t *testing.T) {
@@ -186,7 +186,7 @@ func TestParallelOperationsShouldNotPanic(t *testing.T) {
 			case 0:
 				tss.Reset()
 			case 1:
-				tss.AddNumReceived(1)
+				tss.AddNumProcessed(1)
 			case 2:
 				tss.AddNumBytesReceived(2)
 			case 3:
@@ -198,7 +198,7 @@ func TestParallelOperationsShouldNotPanic(t *testing.T) {
 			case 6:
 				tss.IncrementIteration()
 			case 7:
-				_ = tss.NumReceived()
+				_ = tss.NumProcessed()
 			case 8:
 				_ = tss.NumLarge()
 			case 9:

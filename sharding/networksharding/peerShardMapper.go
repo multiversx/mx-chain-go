@@ -13,7 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
+	"github.com/ElrondNetwork/elrond-go/storage/cache"
 )
 
 const maxNumPidsPerPk = 3
@@ -75,12 +75,12 @@ func NewPeerShardMapper(arg ArgPeerShardMapper) (*PeerShardMapper, error) {
 		return nil, p2p.ErrNilPreferredPeersHolder
 	}
 
-	pkPeerId, err := lrucache.NewCache(arg.PeerIdPkCache.MaxSize())
+	pkPeerId, err := cache.NewLRUCache(arg.PeerIdPkCache.MaxSize())
 	if err != nil {
 		return nil, err
 	}
 
-	peerIdSubTypeCache, err := lrucache.NewCache(arg.PeerIdPkCache.MaxSize())
+	peerIdSubTypeCache, err := cache.NewLRUCache(arg.PeerIdPkCache.MaxSize())
 	if err != nil {
 		return nil, err
 	}
@@ -258,7 +258,7 @@ func (psm *PeerShardMapper) putPublicKeyShardId(pk []byte, shardId uint32) {
 	psm.fallbackPkShardCache.Put(pk, shardId, uint32Size)
 }
 
-// PutPeerIdShardId puts the peer ID and shard ID into fallback cache in case it does not exists
+// PutPeerIdShardId puts the peer ID and shard ID into fallback cache in case it does not exist
 func (psm *PeerShardMapper) PutPeerIdShardId(pid core.PeerID, shardId uint32) {
 	psm.fallbackPidShardCache.Put([]byte(pid), shardId, uint32Size)
 	psm.preferredPeersHolder.PutShardID(pid, shardId)

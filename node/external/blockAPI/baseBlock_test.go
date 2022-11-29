@@ -22,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	storageMocks "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/require"
 )
@@ -35,7 +36,7 @@ func createBaseBlockProcessor() *baseAPIBlockProcessor {
 		marshalizer:              &mock.MarshalizerFake{},
 		uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
 		historyRepo:              &dblookupext.HistoryRepositoryStub{},
-		hasher:                   &mock.HasherFake{},
+		hasher:                   &hashingMocks.HasherMock{},
 		addressPubKeyConverter:   mock.NewPubkeyConverterMock(32),
 		txStatusComputer:         &mock.StatusComputerStub{},
 		apiTransactionHandler:    &mock.TransactionAPIHandlerStub{},
@@ -115,13 +116,13 @@ func TestBaseBlockGetIntraMiniblocksReceipts(t *testing.T) {
 		TxHashes: [][]byte{receiptHash},
 	}
 
-	receipt := &receipt.Receipt{
+	receiptObj := &receipt.Receipt{
 		Value:   big.NewInt(1000),
 		SndAddr: []byte("sndAddr"),
 		Data:    []byte("refund"),
 		TxHash:  []byte("hash"),
 	}
-	receiptBytes, _ := baseAPIBlockProc.marshalizer.Marshal(receipt)
+	receiptBytes, _ := baseAPIBlockProc.marshalizer.Marshal(receiptObj)
 
 	baseAPIBlockProc.store = genericMocks.NewChainStorerMock(0)
 	storer, _ := baseAPIBlockProc.store.GetStorer(dataRetriever.UnsignedTransactionUnit)
@@ -136,10 +137,10 @@ func TestBaseBlockGetIntraMiniblocksReceipts(t *testing.T) {
 	baseAPIBlockProc.apiTransactionHandler = &mock.TransactionAPIHandlerStub{
 		UnmarshalReceiptCalled: func(receiptBytes []byte) (*transaction.ApiReceipt, error) {
 			return &transaction.ApiReceipt{
-				Value:   receipt.Value,
-				SndAddr: baseAPIBlockProc.addressPubKeyConverter.Encode(receipt.SndAddr),
-				Data:    string(receipt.Data),
-				TxHash:  hex.EncodeToString(receipt.TxHash),
+				Value:   receiptObj.Value,
+				SndAddr: baseAPIBlockProc.addressPubKeyConverter.Encode(receiptObj.SndAddr),
+				Data:    string(receiptObj.Data),
+				TxHash:  hex.EncodeToString(receiptObj.TxHash),
 			}, nil
 		},
 	}
@@ -257,7 +258,7 @@ func TestBaseBlock_getAndAttachTxsToMbShouldIncludeLogsAsSpecified(t *testing.T)
 	processor.marshalizer = marshalizer
 	processor.store = storageService
 
-	// Setup a dummy transformer for "txBytes" -> "ApiTransactionResult" (only "Nonce" is handled)
+	// Set up a dummy transformer for "txBytes" -> "ApiTransactionResult" (only "Nonce" is handled)
 	processor.apiTransactionHandler = &mock.TransactionAPIHandlerStub{
 		UnmarshalTransactionCalled: func(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error) {
 			tx := &transaction.Transaction{}
@@ -270,7 +271,7 @@ func TestBaseBlock_getAndAttachTxsToMbShouldIncludeLogsAsSpecified(t *testing.T)
 		},
 	}
 
-	// Setup a miniblock
+	// Set up a miniblock
 	miniblockHash := []byte{0xff}
 	miniblock := &block.MiniBlock{
 		Type:     block.TxBlock,

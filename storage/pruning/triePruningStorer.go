@@ -5,8 +5,9 @@ import (
 	"encoding/hex"
 	"fmt"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/common"
-	elrondErrors "github.com/ElrondNetwork/elrond-go/errors"
+	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 const (
@@ -21,7 +22,7 @@ type triePruningStorer struct {
 }
 
 // NewTriePruningStorer will return a new instance of NewTriePruningStorer
-func NewTriePruningStorer(args *StorerArgs) (*triePruningStorer, error) {
+func NewTriePruningStorer(args StorerArgs) (*triePruningStorer, error) {
 	err := checkArgs(args)
 	if err != nil {
 		return nil, err
@@ -90,10 +91,10 @@ func (ps *triePruningStorer) PutInEpochWithoutCache(key []byte, data []byte, epo
 }
 
 // GetFromOldEpochsWithoutAddingToCache searches the old epochs for the given key without adding to the cache
-func (ps *triePruningStorer) GetFromOldEpochsWithoutAddingToCache(key []byte) ([]byte, error) {
+func (ps *triePruningStorer) GetFromOldEpochsWithoutAddingToCache(key []byte) ([]byte, core.OptionalUint32, error) {
 	v, ok := ps.cacher.Get(key)
 	if ok && !bytes.Equal([]byte(common.ActiveDBKey), key) {
-		return v.([]byte), nil
+		return v.([]byte), core.OptionalUint32{}, nil
 	}
 
 	ps.lock.RLock()
@@ -103,21 +104,25 @@ func (ps *triePruningStorer) GetFromOldEpochsWithoutAddingToCache(key []byte) ([
 	for idx := 1; idx < len(ps.activePersisters); idx++ {
 		val, err := ps.activePersisters[idx].persister.Get(key)
 		if err != nil {
-			if err == elrondErrors.ErrDBIsClosed {
+			if err == storage.ErrDBIsClosed {
 				numClosedDbs++
 			}
 
 			continue
 		}
 
-		return val, nil
+		epoch := core.OptionalUint32{
+			Value:    ps.activePersisters[idx].epoch,
+			HasValue: true,
+		}
+		return val, epoch, nil
 	}
 
 	if numClosedDbs+1 == len(ps.activePersisters) && len(ps.activePersisters) > 1 {
-		return nil, elrondErrors.ErrDBIsClosed
+		return nil, core.OptionalUint32{}, storage.ErrDBIsClosed
 	}
 
-	return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
+	return nil, core.OptionalUint32{}, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
 }
 
 // GetFromLastEpoch searches only the last epoch storer for the given key
@@ -157,4 +162,9 @@ func (ps *triePruningStorer) GetLatestStorageEpoch() (uint32, error) {
 	}
 
 	return ps.activePersisters[currentEpochIndex].epoch, nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (ps *triePruningStorer) IsInterfaceNil() bool {
+	return ps == nil
 }

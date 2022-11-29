@@ -92,7 +92,6 @@ type EnableEpochsHandlerStub struct {
 	IsSCRSizeInvariantOnBuiltInResultFlagEnabledField            bool
 	IsCheckCorrectTokenIDForTransferRoleFlagEnabledField         bool
 	IsFailExecutionOnEveryAPIErrorFlagEnabledField               bool
-	IsHeartbeatDisableFlagEnabledField                           bool
 	IsMiniBlockPartialExecutionFlagEnabledField                  bool
 	IsManagedCryptoAPIsFlagEnabledField                          bool
 	IsESDTMetadataContinuousCleanupFlagEnabledField              bool
@@ -111,6 +110,8 @@ type EnableEpochsHandlerStub struct {
 	IsSetSenderInEeiOutputTransferFlagEnabledField               bool
 	IsChangeDelegationOwnerFlagEnabledField                      bool
 	IsRefactorPeersMiniBlocksFlagEnabledField                    bool
+	IsFixAsyncCallBackArgsListFlagEnabledField                   bool
+	IsFixOldTokenLiquidityEnabledField                           bool
 }
 
 // ResetPenalizedTooMuchGasFlag -
@@ -808,14 +809,6 @@ func (stub *EnableEpochsHandlerStub) IsFailExecutionOnEveryAPIErrorFlagEnabled()
 	return stub.IsFailExecutionOnEveryAPIErrorFlagEnabledField
 }
 
-// IsHeartbeatDisableFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsHeartbeatDisableFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsHeartbeatDisableFlagEnabledField
-}
-
 // IsMiniBlockPartialExecutionFlagEnabled -
 func (stub *EnableEpochsHandlerStub) IsMiniBlockPartialExecutionFlagEnabled() bool {
 	stub.RLock()
@@ -958,6 +951,22 @@ func (stub *EnableEpochsHandlerStub) IsRefactorPeersMiniBlocksFlagEnabled() bool
 	defer stub.RUnlock()
 
 	return stub.IsRefactorPeersMiniBlocksFlagEnabledField
+}
+
+// IsFixAsyncCallBackArgsListFlagEnabled -
+func (stub *EnableEpochsHandlerStub) IsFixAsyncCallBackArgsListFlagEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsFixAsyncCallBackArgsListFlagEnabledField
+}
+
+// IsFixOldTokenLiquidityEnabled -
+func (stub *EnableEpochsHandlerStub) IsFixOldTokenLiquidityEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsFixOldTokenLiquidityEnabledField
 }
 
 // IsInterfaceNil -

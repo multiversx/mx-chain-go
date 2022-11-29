@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
+	"github.com/ElrondNetwork/elrond-go/heartbeat/sender/disabled"
 )
 
 // ArgSender represents the arguments for the sender
@@ -88,16 +89,17 @@ func NewSender(args ArgSender) (*sender, error) {
 			privKey:                   args.PrivateKey,
 			redundancyHandler:         args.RedundancyHandler,
 		},
-		baseVersionNumber:    args.BaseVersionNumber,
-		versionNumber:        args.VersionNumber,
-		nodeDisplayName:      args.NodeDisplayName,
-		identity:             args.Identity,
-		peerSubType:          args.PeerSubType,
-		currentBlockProvider: args.CurrentBlockProvider,
-		peerTypeProvider:     args.PeerTypeProvider,
-		managedPeersHolder:   args.ManagedPeersHolder,
-		shardCoordinator:     args.ShardCoordinator,
-		nodesCoordinator:     args.NodesCoordinator,
+		baseVersionNumber:          args.BaseVersionNumber,
+		versionNumber:              args.VersionNumber,
+		nodeDisplayName:            args.NodeDisplayName,
+		identity:                   args.Identity,
+		peerSubType:                args.PeerSubType,
+		currentBlockProvider:       args.CurrentBlockProvider,
+		peerTypeProvider:           args.PeerTypeProvider,
+		managedPeersHolder:         args.ManagedPeersHolder,
+		shardCoordinator:           args.ShardCoordinator,
+		nodesCoordinator:           args.NodesCoordinator,
+		trieSyncStatisticsProvider: disabled.NewTrieSyncStatisticsProvider(),
 	})
 	if err != nil {
 		return nil, err
@@ -160,12 +162,13 @@ func checkSenderArgs(args ArgSender) error {
 			privKey:                   args.PrivateKey,
 			redundancyHandler:         args.RedundancyHandler,
 		},
-		versionNumber:        args.VersionNumber,
-		nodeDisplayName:      args.NodeDisplayName,
-		identity:             args.Identity,
-		peerSubType:          args.PeerSubType,
-		currentBlockProvider: args.CurrentBlockProvider,
-		peerTypeProvider:     args.PeerTypeProvider,
+		versionNumber:              args.VersionNumber,
+		nodeDisplayName:            args.NodeDisplayName,
+		identity:                   args.Identity,
+		peerSubType:                args.PeerSubType,
+		currentBlockProvider:       args.CurrentBlockProvider,
+		peerTypeProvider:           args.PeerTypeProvider,
+		trieSyncStatisticsProvider: disabled.NewTrieSyncStatisticsProvider(),
 	}
 	err = checkHeartbeatSenderArgs(hbsArgs)
 	if err != nil {
@@ -183,15 +186,16 @@ func checkSenderArgs(args ArgSender) error {
 			privKey:                   args.PrivateKey,
 			redundancyHandler:         args.RedundancyHandler,
 		},
-		peerTypeProvider:     args.PeerTypeProvider,
-		versionNumber:        args.VersionNumber,
-		baseVersionNumber:    args.BaseVersionNumber,
-		nodeDisplayName:      args.NodeDisplayName,
-		identity:             args.Identity,
-		peerSubType:          args.PeerSubType,
-		currentBlockProvider: args.CurrentBlockProvider,
-		managedPeersHolder:   args.ManagedPeersHolder,
-		shardCoordinator:     args.ShardCoordinator,
+		peerTypeProvider:           args.PeerTypeProvider,
+		versionNumber:              args.VersionNumber,
+		baseVersionNumber:          args.BaseVersionNumber,
+		nodeDisplayName:            args.NodeDisplayName,
+		identity:                   args.Identity,
+		peerSubType:                args.PeerSubType,
+		currentBlockProvider:       args.CurrentBlockProvider,
+		managedPeersHolder:         args.ManagedPeersHolder,
+		shardCoordinator:           args.ShardCoordinator,
+		trieSyncStatisticsProvider: disabled.NewTrieSyncStatisticsProvider(),
 	}
 
 	return checkMultikeyHeartbeatSenderArgs(mhbsArgs)

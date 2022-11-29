@@ -1,9 +1,11 @@
 package mock
 
 import (
+	"errors"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-crypto"
+	cryptoCommon "github.com/ElrondNetwork/elrond-go/common/crypto"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -18,7 +20,7 @@ type CryptoComponentsMock struct {
 	PubKeyBytes             []byte
 	BlockSig                crypto.SingleSigner
 	TxSig                   crypto.SingleSigner
-	MultiSig                crypto.MultiSigner
+	MultiSigContainer       cryptoCommon.MultiSignerContainer
 	PeerSignHandler         crypto.PeerSignatureHandler
 	BlKeyGen                crypto.KeyGenerator
 	TxKeyGen                crypto.KeyGenerator
@@ -63,12 +65,33 @@ func (ccm *CryptoComponentsMock) TxSingleSigner() crypto.SingleSigner {
 	return ccm.TxSig
 }
 
-// MultiSigner -
-func (ccm *CryptoComponentsMock) MultiSigner() crypto.MultiSigner {
+// MultiSignerContainer -
+func (ccm *CryptoComponentsMock) MultiSignerContainer() cryptoCommon.MultiSignerContainer {
 	ccm.mutMultiSig.RLock()
 	defer ccm.mutMultiSig.RUnlock()
 
-	return ccm.MultiSig
+	return ccm.MultiSigContainer
+}
+
+// SetMultiSignerContainer -
+func (ccm *CryptoComponentsMock) SetMultiSignerContainer(ms cryptoCommon.MultiSignerContainer) error {
+	ccm.mutMultiSig.Lock()
+	ccm.MultiSigContainer = ms
+	ccm.mutMultiSig.Unlock()
+
+	return nil
+}
+
+// GetMultiSigner -
+func (ccm *CryptoComponentsMock) GetMultiSigner(epoch uint32) (crypto.MultiSigner, error) {
+	ccm.mutMultiSig.RLock()
+	defer ccm.mutMultiSig.RUnlock()
+
+	if ccm.MultiSigContainer == nil {
+		return nil, errors.New("nil multi sig container")
+	}
+
+	return ccm.MultiSigContainer.GetMultiSigner(epoch)
 }
 
 // PeerSignatureHandler -
@@ -77,15 +100,6 @@ func (ccm *CryptoComponentsMock) PeerSignatureHandler() crypto.PeerSignatureHand
 	defer ccm.mutMultiSig.RUnlock()
 
 	return ccm.PeerSignHandler
-}
-
-// SetMultiSigner -
-func (ccm *CryptoComponentsMock) SetMultiSigner(ms crypto.MultiSigner) error {
-	ccm.mutMultiSig.Lock()
-	ccm.MultiSig = ms
-	ccm.mutMultiSig.Unlock()
-
-	return nil
 }
 
 // BlockSignKeyGen -
@@ -123,7 +137,7 @@ func (ccm *CryptoComponentsMock) Clone() interface{} {
 		PubKeyBytes:             ccm.PubKeyBytes,
 		BlockSig:                ccm.BlockSig,
 		TxSig:                   ccm.TxSig,
-		MultiSig:                ccm.MultiSig,
+		MultiSigContainer:       ccm.MultiSigContainer,
 		PeerSignHandler:         ccm.PeerSignHandler,
 		BlKeyGen:                ccm.BlKeyGen,
 		TxKeyGen:                ccm.TxKeyGen,

@@ -136,8 +136,8 @@ func TestTopicFloodPreventer_ResetForTopic(t *testing.T) {
 
 	assert.Equal(t, uint32(2), tfp.CountForTopicAndIdentifier(topic, id))
 
-	// now call Reset so we should be able to call Accumulate again with result nil
-	// If the Reset wouldn't have been called, then the method would have errored
+	// now call Reset, so we should be able to call Accumulate again with result nil
+	// If the Reset hadn't been called, then the method would have errored
 	tfp.ResetForTopic(topic)
 
 	assert.Equal(t, uint32(0), tfp.CountForTopicAndIdentifier(topic, id))
@@ -216,18 +216,10 @@ func TestTopicFloodPreventer_MaxMessagesOnWildcardTopicWorks(t *testing.T) {
 	headersMaxMessages := uint32(100)
 	tfp.SetMaxMessagesForTopic(headersTopic+floodPreventers.WildcardCharacter, headersMaxMessages)
 
-	heartbeatTopic := "heartbeat"
-	heartbeatMaxMessages := uint32(200)
-	tfp.SetMaxMessagesForTopic(heartbeatTopic, heartbeatMaxMessages)
-
-	//testing for the the wildcard topic
+	//testing for the wildcard topic
 	assert.Equal(t, headersMaxMessages, tfp.MaxMessagesForTopic(headersTopic))
 	assert.Equal(t, headersMaxMessages, tfp.MaxMessagesForTopic(headersTopic+"suffix"))
 	assert.Equal(t, headersMaxMessages, tfp.MaxMessagesForTopic("prefix"+headersTopic))
-
-	//testing for the topic without wildcard
-	assert.Equal(t, heartbeatMaxMessages, tfp.MaxMessagesForTopic(heartbeatTopic))
-	assert.Equal(t, defaultMaxMessages, tfp.MaxMessagesForTopic(heartbeatTopic+"suffix"))
 }
 
 func TestTopicFloodPreventer_MaxMessagesOnWildcardTopicCachesTheValue(t *testing.T) {

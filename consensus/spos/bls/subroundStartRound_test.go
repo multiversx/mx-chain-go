@@ -145,7 +145,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilConsensusStateShouldFail(t *
 	assert.Equal(t, spos.ErrNilConsensusState, err)
 }
 
-func TestSubroundStartRound_NewSubroundStartRoundNilMultiSignerShouldFail(t *testing.T) {
+func TestSubroundStartRound_NewSubroundStartRoundNilMultiSignerContainerShouldFail(t *testing.T) {
 	t.Parallel()
 
 	container := mock.InitConsensusCore()
@@ -154,11 +154,11 @@ func TestSubroundStartRound_NewSubroundStartRoundNilMultiSignerShouldFail(t *tes
 	ch := make(chan bool, 1)
 
 	sr, _ := defaultSubround(consensusState, ch, container)
-	container.SetMultiSigner(nil)
+	container.SetMultiSignerContainer(nil)
 	srStartRound, err := defaultSubroundStartRoundFromSubround(sr)
 
 	assert.Nil(t, srStartRound)
-	assert.Equal(t, spos.ErrNilMultiSigner, err)
+	assert.Equal(t, spos.ErrNilMultiSignerContainer, err)
 }
 
 func TestSubroundStartRound_NewSubroundStartRoundNilRoundHandlerShouldFail(t *testing.T) {
@@ -383,24 +383,6 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnTrueWhenIsNotInTheConsen
 
 	r := srStartRound.InitCurrentRound()
 	assert.True(t, r)
-}
-
-func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenCreateErr(t *testing.T) {
-	t.Parallel()
-
-	multiSignerMock := mock.InitMultiSignerMock()
-	err := errors.New("error")
-	multiSignerMock.ResetCalled = func(pubKeys []string, index uint16) error {
-		return err
-	}
-
-	container := mock.InitConsensusCore()
-	container.SetMultiSigner(multiSignerMock)
-
-	srStartRound := *initSubroundStartRoundWithContainer(container)
-
-	r := srStartRound.InitCurrentRound()
-	assert.False(t, r)
 }
 
 func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenTimeIsOut(t *testing.T) {

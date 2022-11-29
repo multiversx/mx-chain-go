@@ -441,11 +441,6 @@ func (mock *EnableEpochsHandlerMock) IsFailExecutionOnEveryAPIErrorFlagEnabled()
 	return false
 }
 
-// IsHeartbeatDisableFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsHeartbeatDisableFlagEnabled() bool {
-	return false
-}
-
 // IsMiniBlockPartialExecutionFlagEnabled returns false
 func (mock *EnableEpochsHandlerMock) IsMiniBlockPartialExecutionFlagEnabled() bool {
 	return false
@@ -534,6 +529,16 @@ func (mock *EnableEpochsHandlerMock) IsChangeDelegationOwnerFlagEnabled() bool {
 // IsRefactorPeersMiniBlocksFlagEnabled returns false
 func (mock *EnableEpochsHandlerMock) IsRefactorPeersMiniBlocksFlagEnabled() bool {
 	return mock.IsRefactorPeersMiniBlocksFlagEnabledField
+}
+
+// IsFixAsyncCallBackArgsListFlagEnabled -
+func (mock *EnableEpochsHandlerMock) IsFixAsyncCallBackArgsListFlagEnabled() bool {
+	return false
+}
+
+// IsFixOldTokenLiquidityEnabled -
+func (mock *EnableEpochsHandlerMock) IsFixOldTokenLiquidityEnabled() bool {
+	return false
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -13,16 +13,18 @@ const maxSizeInBytes = 128
 // argHeartbeatSender represents the arguments for the heartbeat sender
 type argHeartbeatSender struct {
 	argBaseSender
-	versionNumber        string
-	nodeDisplayName      string
-	identity             string
-	peerSubType          core.P2PPeerSubType
-	currentBlockProvider heartbeat.CurrentBlockProvider
-	peerTypeProvider     heartbeat.PeerTypeProviderHandler
+	versionNumber              string
+	nodeDisplayName            string
+	identity                   string
+	peerSubType                core.P2PPeerSubType
+	currentBlockProvider       heartbeat.CurrentBlockProvider
+	peerTypeProvider           heartbeat.PeerTypeProviderHandler
+	trieSyncStatisticsProvider heartbeat.TrieSyncStatisticsProvider
 }
 
 type heartbeatSender struct {
 	commonHeartbeatSender
+	trieSyncStatisticsProvider heartbeat.TrieSyncStatisticsProvider
 }
 
 // newHeartbeatSender creates a new instance of type heartbeatSender
@@ -42,6 +44,7 @@ func newHeartbeatSender(args argHeartbeatSender) (*heartbeatSender, error) {
 			identity:             args.identity,
 			peerSubType:          args.peerSubType,
 		},
+		trieSyncStatisticsProvider: args.trieSyncStatisticsProvider,
 	}, nil
 }
 
@@ -68,6 +71,9 @@ func checkHeartbeatSenderArgs(args argHeartbeatSender) error {
 	if check.IfNil(args.peerTypeProvider) {
 		return heartbeat.ErrNilPeerTypeProvider
 	}
+	if check.IfNil(args.trieSyncStatisticsProvider) {
+		return heartbeat.ErrNilTrieSyncStatisticsProvider
+	}
 
 	return nil
 }
@@ -93,7 +99,15 @@ func (sender *heartbeatSender) execute() error {
 		return err
 	}
 
-	msgBytes, err := sender.generateMessageBytes(sender.versionNumber, sender.nodeDisplayName, sender.identity, uint32(sender.peerSubType), pkBytes)
+	trieNodesReceived := uint64(sender.trieSyncStatisticsProvider.NumProcessed())
+	msgBytes, err := sender.generateMessageBytes(
+		sender.versionNumber,
+		sender.nodeDisplayName,
+		sender.identity,
+		uint32(sender.peerSubType),
+		pkBytes,
+		trieNodesReceived,
+	)
 	if err != nil {
 		return err
 	}

@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -43,11 +44,7 @@ const (
 
 	// TODO: Move to vm-common.
 	upgradeFunctionName = "upgradeContract"
-
-	generalSCRIdentifier = "writeLog"
-	signalError          = "signalError"
-	completedTxEvent     = "completedTxEvent"
-	returnOkData         = "@6f6b"
+	returnOkData        = "@6f6b"
 )
 
 var zero = big.NewInt(0)
@@ -210,6 +207,8 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 }
 
 // GasScheduleChange sets the new gas schedule where it is needed
+// Warning: do not use flags in this function as it will raise backward compatibility issues because the GasScheduleChange
+// is not called on each epoch change
 func (sc *scProcessor) GasScheduleChange(gasSchedule map[string]map[string]uint64) {
 	sc.mutGasLock.Lock()
 	defer sc.mutGasLock.Unlock()
@@ -220,10 +219,6 @@ func (sc *scProcessor) GasScheduleChange(gasSchedule map[string]map[string]uint6
 	}
 
 	sc.builtInGasCosts = builtInFuncCost
-	isFixAsyncCallBackArgumentsParserFlagSet := sc.enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabled()
-	if isFixAsyncCallBackArgumentsParserFlagSet {
-		sc.builtInGasCosts[core.BuiltInFunctionMultiESDTNFTTransfer] = builtInFuncCost["ESDTNFTMultiTransfer"]
-	}
 	sc.storePerByte = gasSchedule[common.BaseOperationCost]["StorePerByte"]
 	sc.persistPerByte = gasSchedule[common.BaseOperationCost]["PersistPerByte"]
 }
@@ -262,7 +257,8 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	duration := sw.GetMeasurement("execute")
 
 	if duration > executeDurationAlarmThreshold {
-		log.Debug(fmt.Sprintf("scProcessor.ExecuteSmartContractTransaction(): execution took > %s", executeDurationAlarmThreshold), "sc", tx.GetRcvAddr(), "duration", duration, "returnCode", returnCode, "err", err, "data", string(tx.GetData()))
+		txHash := sc.computeTxHashUnsafe(tx)
+		log.Debug(fmt.Sprintf("scProcessor.ExecuteSmartContractTransaction(): execution took > %s", executeDurationAlarmThreshold), "tx hash", txHash, "sc", tx.GetRcvAddr(), "duration", duration, "returnCode", returnCode, "err", err, "data", string(tx.GetData()))
 	} else {
 		log.Trace("scProcessor.ExecuteSmartContractTransaction()", "sc", tx.GetRcvAddr(), "duration", duration, "returnCode", returnCode, "err", err, "data", string(tx.GetData()))
 	}
@@ -835,7 +831,8 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 	duration := sw.GetMeasurement("executeBuiltIn")
 
 	if duration > executeDurationAlarmThreshold {
-		log.Debug(fmt.Sprintf("scProcessor.ExecuteBuiltInFunction(): execution took > %s", executeDurationAlarmThreshold), "sc", tx.GetRcvAddr(), "duration", duration, "returnCode", returnCode, "err", err, "data", string(tx.GetData()))
+		txHash := sc.computeTxHashUnsafe(tx)
+		log.Debug(fmt.Sprintf("scProcessor.ExecuteBuiltInFunction(): execution took > %s", executeDurationAlarmThreshold), "tx hash", txHash, "sc", tx.GetRcvAddr(), "duration", duration, "returnCode", returnCode, "err", err, "data", string(tx.GetData()))
 	} else {
 		log.Trace("scProcessor.ExecuteBuiltInFunction()", "sc", tx.GetRcvAddr(), "duration", duration, "returnCode", returnCode, "err", err, "data", string(tx.GetData()))
 	}
@@ -1318,7 +1315,10 @@ func (sc *scProcessor) processIfErrorWithAddedLogs(acntSnd state.UserAccountHand
 
 	err := sc.accounts.RevertToSnapshot(snapshot)
 	if err != nil {
-		log.Warn("revert to snapshot", "error", err.Error())
+		if !errors.IsClosingError(err) {
+			log.Warn("revert to snapshot", "error", err.Error())
+		}
+
 		return err
 	}
 
@@ -1491,7 +1491,7 @@ func createNewLogFromSCR(txHandler data.TransactionHandler) *vmcommon.LogEntry {
 	}
 
 	newLog := &vmcommon.LogEntry{
-		Identifier: []byte(generalSCRIdentifier),
+		Identifier: []byte(core.WriteLogIdentifier),
 		Address:    txHandler.GetSndAddr(),
 		Topics:     [][]byte{txHandler.GetRcvAddr()},
 		Data:       txHandler.GetData(),
@@ -1511,7 +1511,7 @@ func createNewLogFromSCRIfError(txHandler data.TransactionHandler) *vmcommon.Log
 	}
 
 	newLog := &vmcommon.LogEntry{
-		Identifier: []byte(signalError),
+		Identifier: []byte(core.SignalErrorOperation),
 		Address:    txHandler.GetSndAddr(),
 		Topics:     [][]byte{txHandler.GetRcvAddr(), returnMessage},
 		Data:       txHandler.GetData(),
@@ -1585,7 +1585,7 @@ func (sc *scProcessor) addBackTxValues(
 	return nil
 }
 
-// DeploySmartContract processes the transaction, than deploy the smart contract into VM, final code is saved in account
+// DeploySmartContract processes the transaction, then deploy the smart contract into VM, final code is saved in account
 func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd state.UserAccountHandler) (vmcommon.ReturnCode, error) {
 	err := sc.checkTxValidity(tx)
 	if err != nil {
@@ -1600,7 +1600,8 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 	duration := sw.GetMeasurement("deploy")
 
 	if duration > executeDurationAlarmThreshold {
-		log.Debug(fmt.Sprintf("scProcessor.DeploySmartContract(): execution took > %s", executeDurationAlarmThreshold), "sc", tx.GetRcvAddr(), "duration", duration, "returnCode", returnCode, "err", err, "data", string(tx.GetData()))
+		txHash := sc.computeTxHashUnsafe(tx)
+		log.Debug(fmt.Sprintf("scProcessor.DeploySmartContract(): execution took > %s", executeDurationAlarmThreshold), "tx hash", txHash, "sc", tx.GetRcvAddr(), "duration", duration, "returnCode", returnCode, "err", err, "data", string(tx.GetData()))
 	} else {
 		log.Trace("scProcessor.DeploySmartContract()", "sc", tx.GetRcvAddr(), "duration", duration, "returnCode", returnCode, "err", err, "data", string(tx.GetData()))
 	}
@@ -2276,6 +2277,10 @@ func (sc *scProcessor) useLastTransferAsAsyncCallBackWhenNeeded(
 		return false
 	}
 
+	if sc.enableEpochsHandler.IsFixAsyncCallBackArgsListFlagEnabled() {
+		result.Data = append(result.Data, []byte("@"+core.ConvertToEvenHex(int(vmOutput.ReturnCode)))...)
+	}
+
 	addReturnDataToSCR(vmOutput, result)
 	result.CallType = vmData.AsynchronousCallBack
 	result.GasLimit, _ = core.SafeAddUint64(result.GasLimit, vmOutput.GasRemaining)
@@ -2358,7 +2363,7 @@ func (sc *scProcessor) createSCRForSenderAndRelayer(
 			OriginalTxHash: relayedSCR.OriginalTxHash,
 			GasPrice:       tx.GetGasPrice(),
 			CallType:       vmData.DirectCall,
-			ReturnMessage:  []byte("gas refund for relayer"),
+			ReturnMessage:  []byte(core.GasRefundForRelayerMessage),
 			OriginalSender: relayedSCR.OriginalSender,
 		}
 		gasRemaining = 0
@@ -2447,7 +2452,7 @@ func (sc *scProcessor) processSCOutputAccounts(
 				continue
 			}
 
-			err = acc.DataTrieTracker().SaveKeyValue(storeUpdate.Offset, storeUpdate.Data)
+			err = acc.SaveKeyValue(storeUpdate.Offset, storeUpdate.Data)
 			if err != nil {
 				log.Warn("saveKeyValue", "error", err)
 				return false, nil, err
@@ -2790,7 +2795,7 @@ func createCompleteEventLog(tx data.TransactionHandler, txHash []byte) *vmcommon
 	}
 
 	newLog := &vmcommon.LogEntry{
-		Identifier: []byte(completedTxEvent),
+		Identifier: []byte(core.CompletedTxEventIdentifier),
 		Address:    tx.GetRcvAddr(),
 		Topics:     [][]byte{prevTxHash},
 	}
@@ -2802,6 +2807,13 @@ func isReturnOKTxHandler(
 	resultTx data.TransactionHandler,
 ) bool {
 	return bytes.HasPrefix(resultTx.GetData(), []byte(returnOkData))
+}
+
+// this function should only be called for logging reasons, since it does not perform sanity checks
+func (sc *scProcessor) computeTxHashUnsafe(tx data.TransactionHandler) []byte {
+	txHash, _ := core.CalculateHash(sc.marshalizer, sc.hasher, tx)
+
+	return txHash
 }
 
 // IsPayable returns if address is payable, smart contract ca set to false

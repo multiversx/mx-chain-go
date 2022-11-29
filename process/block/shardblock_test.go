@@ -17,14 +17,14 @@ import (
 	atomicCore "github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
-	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
+	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/blockchain"
+	processOutport "github.com/ElrondNetwork/elrond-go/outport/process"
 	"github.com/ElrondNetwork/elrond-go/process"
 	blproc "github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
@@ -36,6 +36,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/outport"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
@@ -1834,9 +1835,14 @@ func TestShardProcessor_CommitBlockMarshalizerFailForHeaderShouldErr(t *testing.
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	arguments.AccountsDB[state.UserAccountsState] = accounts
 	sp, _ := blproc.NewShardProcessor(arguments)
+	expectedFirstNonce := core.OptionalUint64{
+		HasValue: false,
+	}
+	assert.Equal(t, expectedFirstNonce, sp.NonceOfFirstCommittedBlock())
 
 	err := sp.CommitBlock(hdr, body)
 	assert.Equal(t, errMarshalizer, err)
+	assert.Equal(t, expectedFirstNonce, sp.NonceOfFirstCommittedBlock())
 }
 
 func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) {
@@ -1924,12 +1930,20 @@ func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 	mockProcessHandler.SetBusyCalled = func(reason string) {
 		statusBusySet = true
 	}
+	expectedFirstNonce := core.OptionalUint64{
+		HasValue: false,
+	}
+	assert.Equal(t, expectedFirstNonce, sp.NonceOfFirstCommittedBlock())
 
 	err := sp.CommitBlock(hdr, body)
 	wg.Wait()
 	assert.True(t, atomic.LoadUint32(&putCalledNr) > 0)
 	assert.Nil(t, err)
 	assert.True(t, statusBusySet && statusIdleSet)
+
+	expectedFirstNonce.HasValue = true
+	expectedFirstNonce.Value = hdr.Nonce
+	assert.Equal(t, expectedFirstNonce, sp.NonceOfFirstCommittedBlock())
 }
 
 func TestShardProcessor_CommitBlockStorageFailsForBodyShouldWork(t *testing.T) {
@@ -2105,13 +2119,27 @@ func TestShardProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	arguments.BlockTracker = blockTrackerMock
 
 	sp, _ := blproc.NewShardProcessor(arguments)
+	debuggerMethodWasCalled := false
+	debugger := &testscommon.ProcessDebuggerStub{
+		SetLastCommittedBlockRoundCalled: func(round uint64) {
+			assert.Equal(t, hdr.Round, round)
+			debuggerMethodWasCalled = true
+		},
+	}
 
-	err := sp.ProcessBlock(hdr, body, haveTime)
+	err := sp.SetProcessDebugger(nil)
+	assert.Equal(t, process.ErrNilProcessDebugger, err)
+
+	err = sp.SetProcessDebugger(debugger)
+	assert.Nil(t, err)
+
+	err = sp.ProcessBlock(hdr, body, haveTime)
 	assert.Nil(t, err)
 	err = sp.CommitBlock(hdr, body)
 	assert.Nil(t, err)
 	assert.True(t, forkDetectorAddCalled)
 	assert.Equal(t, hdrHash, blkc.GetCurrentBlockHeaderHash())
+	assert.True(t, debuggerMethodWasCalled)
 	// this should sleep as there is an async call to display current hdr and block in CommitBlock
 	time.Sleep(time.Second)
 }
@@ -2184,9 +2212,6 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 	}
 	store := initStore()
 
-	var txsPool *indexer.Pool
-	saveBlockCalledMutex := sync.Mutex{}
-
 	blkc := createTestBlockchain()
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return prevHdr
@@ -2202,37 +2227,22 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
-	statusComponents.Outport = &testscommon.OutportStub{
-		SaveBlockCalled: func(args *indexer.ArgsSaveBlockData) {
-			saveBlockCalledMutex.Lock()
-			txsPool = args.TransactionsPool
-			saveBlockCalledMutex.Unlock()
+	called := false
+	statusComponents.Outport = &outport.OutportStub{
+		SaveBlockCalled: func(args *outportcore.ArgsSaveBlockData) {
+			called = true
 		},
 		HasDriversCalled: func() bool {
 			return true
 		},
 	}
+	arguments.OutportDataProvider = &outport.OutportDataProviderStub{
+		PrepareOutportSaveBlockDataCalled: func(_ processOutport.ArgPrepareOutportSaveBlockData) (*outportcore.ArgsSaveBlockData, error) {
+			return &outportcore.ArgsSaveBlockData{}, nil
+		}}
 
 	arguments.AccountsDB[state.UserAccountsState] = accounts
 	arguments.ForkDetector = fd
-	arguments.TxCoordinator = &mock.TransactionCoordinatorMock{
-		GetAllCurrentUsedTxsCalled: func(blockType block.Type) map[string]data.TransactionHandler {
-			switch blockType {
-			case block.TxBlock:
-				return map[string]data.TransactionHandler{
-					"tx_1": &transaction.Transaction{Nonce: 1},
-					"tx_2": &transaction.Transaction{Nonce: 2},
-				}
-			case block.SmartContractResultBlock:
-				return map[string]data.TransactionHandler{
-					"utx_1": &smartContractResult.SmartContractResult{Nonce: 1},
-					"utx_2": &smartContractResult.SmartContractResult{Nonce: 2},
-				}
-			default:
-				return nil
-			}
-		},
-	}
 	blockTrackerMock := mock.NewBlockTrackerMock(mock.NewOneShardCoordinatorMock(), createGenesisBlocks(mock.NewOneShardCoordinatorMock()))
 	blockTrackerMock.GetCrossNotarizedHeaderCalled = func(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error) {
 		return &block.MetaBlock{}, []byte("hash"), nil
@@ -2249,8 +2259,7 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 	// Wait for the index block go routine to start
 	time.Sleep(time.Second * 2)
 
-	assert.Equal(t, 2, len(txsPool.Txs))
-	assert.Equal(t, 2, len(txsPool.Scrs))
+	require.True(t, called)
 }
 
 func TestShardProcessor_CreateTxBlockBodyWithDirtyAccStateShouldReturnEmptyBody(t *testing.T) {
@@ -5040,7 +5049,7 @@ func TestShardProcessor_createMiniBlocks(t *testing.T) {
 	}
 
 	var called = &atomicCore.Flag{}
-	arguments.TxCoordinator = &mock.TransactionCoordinatorMock{
+	arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
 		AddTransactionsCalled: func(txHandlers []data.TransactionHandler, blockType block.Type) {
 			require.Equal(t, block.TxBlock, blockType)
 			require.Equal(t, txs, txHandlers)

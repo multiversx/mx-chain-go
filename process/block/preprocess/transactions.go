@@ -18,6 +18,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	elrondErr "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -794,7 +795,10 @@ func (txs *transactions) AddTxsFromMiniBlocks(miniBlocks block.MiniBlockSlice) {
 		}
 
 		txShardInfoToSet := &txShardInfo{senderShardID: mb.SenderShardID, receiverShardID: mb.ReceiverShardID}
-		searchFirst := mb.Type == block.InvalidBlock
+		method := process.SearchMethodJustPeek
+		if mb.Type == block.InvalidBlock {
+			method = process.SearchMethodSearchFirst
+		}
 
 		for _, txHash := range mb.TxHashes {
 			tx, err := process.GetTransactionHandler(
@@ -804,7 +808,7 @@ func (txs *transactions) AddTxsFromMiniBlocks(miniBlocks block.MiniBlockSlice) {
 				txs.txPool,
 				txs.storage,
 				txs.marshalizer,
-				searchFirst,
+				method,
 			)
 			if err != nil {
 				log.Debug("transactions.AddTxsFromMiniBlocks: GetTransactionHandler", "tx hash", txHash, "error", err.Error())
@@ -943,7 +947,10 @@ func (txs *transactions) computeMissingTxsHashesForMiniBlock(miniBlock *block.Mi
 		return missingTransactionsHashes
 	}
 
-	searchFirst := txs.blockType == block.InvalidBlock
+	method := process.SearchMethodJustPeek
+	if txs.blockType == block.InvalidBlock {
+		method = process.SearchMethodSearchFirst
+	}
 
 	for _, txHash := range miniBlock.TxHashes {
 		tx, _ := process.GetTransactionHandlerFromPool(
@@ -951,7 +958,7 @@ func (txs *transactions) computeMissingTxsHashesForMiniBlock(miniBlock *block.Mi
 			miniBlock.ReceiverShardID,
 			txHash,
 			txs.txPool,
-			searchFirst)
+			method)
 
 		if check.IfNil(tx) {
 			missingTransactionsHashes = append(missingTransactionsHashes, txHash)
@@ -1274,7 +1281,7 @@ func (txs *transactions) handleBadTransaction(
 ) {
 	log.Trace("bad tx", "error", err.Error(), "hash", wtx.TxHash)
 	errRevert := txs.accounts.RevertToSnapshot(snapshot)
-	if errRevert != nil {
+	if errRevert != nil && !elrondErr.IsClosingError(errRevert) {
 		log.Warn("revert to snapshot", "error", err.Error())
 	}
 

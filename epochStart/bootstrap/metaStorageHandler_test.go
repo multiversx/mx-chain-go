@@ -51,7 +51,6 @@ func TestNewMetaStorageHandler_CreateForMetaErr(t *testing.T) {
 	hasher := &hashingMocks.HasherMock{}
 	uit64Cvt := &mock.Uint64ByteSliceConverterMock{}
 	nodeTypeProvider := &nodeTypeProviderMock.NodeTypeProviderStub{}
-
 	mtStrHandler, err := NewMetaStorageHandler(gCfg, prefsConfig, coordinator, pathManager, marshalizer, hasher, 1, uit64Cvt, nodeTypeProvider)
 	assert.False(t, check.IfNil(mtStrHandler))
 	assert.Nil(t, err)
@@ -223,6 +222,7 @@ func testMetaWithMissingStorer(missingUnit dataRetriever.UnitType, atCallNumber 
 		}
 
 		err := mtStrHandler.SaveDataToStorage(components)
+		require.NotNil(t, err)
 		require.True(t, strings.Contains(err.Error(), storage.ErrKeyNotFound.Error()))
 		require.True(t, strings.Contains(err.Error(), missingUnit.String()))
 	}

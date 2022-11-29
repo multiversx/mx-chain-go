@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/common"
+	cryptoCommon "github.com/ElrondNetwork/elrond-go/common/crypto"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -241,8 +242,9 @@ type BlockProcessor interface {
 	DecodeBlockHeader(dta []byte) data.HeaderHandler
 	SetNumProcessedObj(numObj uint64)
 	RestoreBlockBodyIntoPools(body data.BodyHandler) error
-	IsInterfaceNil() bool
+	NonceOfFirstCommittedBlock() core.OptionalUint64
 	Close() error
+	IsInterfaceNil() bool
 }
 
 // ScheduledBlockProcessor is the interface for the scheduled miniBlocks execution part of the block processor
@@ -467,7 +469,7 @@ type PendingMiniBlocksHandler interface {
 type BlockChainHookHandler interface {
 	GetCode(account vmcommon.UserAccountHandler) []byte
 	GetUserAccount(address []byte) (vmcommon.UserAccountHandler, error)
-	GetStorageData(accountAddress []byte, index []byte) ([]byte, error)
+	GetStorageData(accountAddress []byte, index []byte) ([]byte, uint32, error)
 	GetBlockhash(nonce uint64) ([]byte, error)
 	LastNonce() uint64
 	LastRound() uint64
@@ -675,6 +677,7 @@ type FeeHandler interface {
 type EconomicsDataHandler interface {
 	rewardsHandler
 	feeHandler
+	SetStatusHandler(statusHandler core.AppStatusHandler) error
 	IsInterfaceNil() bool
 }
 
@@ -1119,7 +1122,6 @@ type CoreComponentsHolder interface {
 	ChainID() string
 	MinTransactionVersion() uint32
 	TxVersionChecker() TxVersionCheckerHandler
-	StatusHandler() core.AppStatusHandler
 	GenesisNodesSetup() sharding.GenesisNodesSetupHandler
 	EpochNotifier() EpochNotifier
 	ChanStopNodeProcess() chan endProcess.ArgEndProcess
@@ -1136,11 +1138,19 @@ type CryptoComponentsHolder interface {
 	BlockSignKeyGen() crypto.KeyGenerator
 	TxSingleSigner() crypto.SingleSigner
 	BlockSigner() crypto.SingleSigner
-	MultiSigner() crypto.MultiSigner
-	SetMultiSigner(ms crypto.MultiSigner) error
+	GetMultiSigner(epoch uint32) (crypto.MultiSigner, error)
+	MultiSignerContainer() cryptoCommon.MultiSignerContainer
+	SetMultiSignerContainer(ms cryptoCommon.MultiSignerContainer) error
 	PeerSignatureHandler() crypto.PeerSignatureHandler
 	PublicKey() crypto.PublicKey
+	PrivateKey() crypto.PrivateKey
 	Clone() interface{}
+	IsInterfaceNil() bool
+}
+
+// StatusCoreComponentsHolder holds the status core components
+type StatusCoreComponentsHolder interface {
+	AppStatusHandler() core.AppStatusHandler
 	IsInterfaceNil() bool
 }
 
@@ -1240,5 +1250,12 @@ type ProcessedMiniBlocksTracker interface {
 // found in peer authentication messages
 type PeerAuthenticationPayloadValidator interface {
 	ValidateTimestamp(payloadTimestamp int64) error
+	IsInterfaceNil() bool
+}
+
+// Debugger defines what a process debugger implementation should do
+type Debugger interface {
+	SetLastCommittedBlockRound(round uint64)
+	Close() error
 	IsInterfaceNil() bool
 }
