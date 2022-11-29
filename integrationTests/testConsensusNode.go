@@ -99,7 +99,7 @@ func CreateNodesWithTestConsensusNode(
 ) map[uint32][]*TestConsensusNode {
 
 	nodes := make(map[uint32][]*TestConsensusNode, nodesPerShard)
-	cp := CreateCryptoParams(nodesPerShard, numMetaNodes, maxShards)
+	cp := CreateCryptoParams(nodesPerShard, numMetaNodes, maxShards, numKeysOnEachNode)
 	keysMap := PubKeysMapFromNodesKeysMap(cp.NodesKeys)
 	validatorsMap := GenValidatorsFromPubKeys(keysMap, maxShards)
 	eligibleMap, _ := nodesCoordinator.NodesInfoToValidators(validatorsMap)

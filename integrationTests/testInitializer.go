@@ -2256,12 +2256,12 @@ func CreateCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards uint32, num
 	txKeysMap := make(map[uint32][]*TestKeyPair)
 	for shardId := uint32(0); shardId < nbShards; shardId++ {
 		for n := 0; n < nodesPerShard; n++ {
-			createAndAddKeys(keyGen, txKeyGen, shardId, nodesKeysMap, txKeysMap)
+			createAndAddKeys(keyGen, txKeyGen, shardId, nodesKeysMap, txKeysMap, numKeysOnEachNode)
 		}
 	}
 
 	for n := 0; n < nbMetaNodes; n++ {
-		createAndAddKeys(keyGen, txKeyGen, core.MetachainShardId, nodesKeysMap, txKeysMap)
+		createAndAddKeys(keyGen, txKeyGen, core.MetachainShardId, nodesKeysMap, txKeysMap, numKeysOnEachNode)
 	}
 
 	params := &CryptoParams{
