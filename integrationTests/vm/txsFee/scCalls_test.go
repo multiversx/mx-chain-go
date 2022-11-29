@@ -395,6 +395,7 @@ func prepareTestContextForEpoch460(tb testing.TB) (*vm.VMTestContext, []byte) {
 		FixOldTokenLiquidityEnableEpoch:                   unreachableEpoch,
 		SetSenderInEeiOutputTransferEnableEpoch:           unreachableEpoch,
 		RefactorPeersMiniBlocksEnableEpoch:                unreachableEpoch,
+		MaxBlockchainHookCountersEnableEpoch:              unreachableEpoch,
 	})
 	require.Nil(tb, err)
 
