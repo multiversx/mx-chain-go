@@ -9,13 +9,12 @@ require (
 	github.com/ElrondNetwork/concurrent-map v0.1.3
 	github.com/ElrondNetwork/covalent-indexer-go v1.0.6
 	github.com/ElrondNetwork/elastic-indexer-go v1.2.39
-	github.com/ElrondNetwork/elrond-go-core v1.1.19
-	github.com/ElrondNetwork/elrond-go-crypto v1.0.1
-	github.com/ElrondNetwork/elrond-go-logger v1.0.7
+	github.com/ElrondNetwork/elrond-go-core v1.1.26
+	github.com/ElrondNetwork/elrond-go-crypto v1.2.2
+	github.com/ElrondNetwork/elrond-go-logger v1.0.10
 	github.com/ElrondNetwork/elrond-vm-common v1.3.16
 	github.com/ElrondNetwork/go-libp2p-pubsub v0.6.1-rc1
 	github.com/beevik/ntp v0.3.0
-	github.com/btcsuite/btcd v0.22.0-beta
 	github.com/davecgh/go-spew v1.1.1
 	github.com/elastic/go-elasticsearch/v7 v7.12.0
 	github.com/gin-contrib/cors v0.0.0-20190301062745-f9e10995c85a
@@ -38,12 +37,12 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/shirou/gopsutil v3.21.11+incompatible
 	github.com/stretchr/testify v1.7.1
-	github.com/syndtr/goleveldb v1.0.1-0.20190318030020-c3a204f8e965
+	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7
 	github.com/urfave/cli v1.22.9
 	github.com/whyrusleeping/timecache v0.0.0-20160911033111-cfcb2f1abfee
 	github.com/yusufpapurcu/wmi v1.2.2 // indirect
-	golang.org/x/crypto v0.0.0-20220411220226-7b82a4e95df4
-	golang.org/x/net v0.0.0-20220418201149-a630d4f3e7a2
+	golang.org/x/crypto v0.3.0
+	golang.org/x/net v0.2.0
 	gopkg.in/go-playground/validator.v8 v8.18.2
 // test point 3 for custom profiler
 )
