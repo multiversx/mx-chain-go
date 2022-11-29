@@ -467,9 +467,6 @@ var ErrNilProcessStatusHandler = errors.New("nil process status handler")
 // ErrNilESDTDataStorage signals that a nil esdt data storage has been provided
 var ErrNilESDTDataStorage = errors.New("nil esdt data storage")
 
-// ErrDBIsClosed is raised when the DB is closed
-var ErrDBIsClosed = errors.New("DB is closed")
-
 // ErrNilEnableEpochsHandler signals that a nil enable epochs handler was provided
 var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
 
@@ -532,3 +529,6 @@ var ErrNilGenesisNodesSetupHandler = errors.New("nil genesis nodes setup handler
 
 // ErrNilManagedPeersHolder signals that a nil managed peers holder has been provided
 var ErrNilManagedPeersHolder = errors.New("nil managed peers holder")
+
+// ErrEmptyPeerID signals that an empty peer ID has been provided
+var ErrEmptyPeerID = errors.New("empty peer ID")

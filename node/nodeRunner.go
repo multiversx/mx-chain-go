@@ -285,14 +285,14 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
-	log.Debug("creating crypto components")
-	managedCryptoComponents, err := nr.CreateManagedCryptoComponents(managedCoreComponents)
+	log.Debug("creating network components")
+	managedNetworkComponents, err := nr.CreateManagedNetworkComponents(managedCoreComponents, managedStatusCoreComponents)
 	if err != nil {
 		return true, err
 	}
 
-	log.Debug("creating network components")
-	managedNetworkComponents, err := nr.CreateManagedNetworkComponents(managedCoreComponents, managedStatusCoreComponents)
+	log.Debug("creating crypto components")
+	managedCryptoComponents, err := nr.CreateManagedCryptoComponents(managedCoreComponents, managedNetworkComponents)
 	if err != nil {
 		return true, err
 	}
@@ -890,7 +890,7 @@ func (nr *nodeRunner) CreateManagedHeartbeatV2Components(
 	heartbeatV2Args := heartbeatComp.ArgHeartbeatV2ComponentsFactory{
 		Config:               *nr.configs.GeneralConfig,
 		Prefs:                *nr.configs.PreferencesConfig,
-		BaseVersion:        nr.configs.FlagsConfig.BaseVersion,
+		BaseVersion:          nr.configs.FlagsConfig.BaseVersion,
 		AppVersion:           nr.configs.FlagsConfig.Version,
 		BootstrapComponents:  bootstrapComponents,
 		CoreComponents:       coreComponents,
@@ -1473,6 +1473,7 @@ func (nr *nodeRunner) CreateManagedStatusCoreComponents(
 // CreateManagedCryptoComponents is the managed crypto components factory
 func (nr *nodeRunner) CreateManagedCryptoComponents(
 	coreComponents mainFactory.CoreComponentsHolder,
+	networkComponents mainFactory.NetworkComponentsHolder,
 ) (mainFactory.CryptoComponentsHandler, error) {
 	configs := nr.configs
 	validatorKeyPemFileName := configs.ConfigurationPathsHolder.ValidatorKey
@@ -1487,6 +1488,7 @@ func (nr *nodeRunner) CreateManagedCryptoComponents(
 		IsInImportMode:                       configs.ImportDbConfig.IsImportDBMode,
 		EnableEpochs:                         configs.EpochConfig.EnableEpochs,
 		NoKeyProvided:                        configs.FlagsConfig.NoKeyProvided,
+		CurrentPid:                           networkComponents.NetworkMessenger().ID(),
 	}
 
 	cryptoComponentsFactory, err := cryptoComp.NewCryptoComponentsFactory(cryptoComponentsHandlerArgs)

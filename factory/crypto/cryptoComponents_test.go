@@ -41,6 +41,20 @@ func TestNewCryptoComponentsFactory_NilPemFileShouldErr(t *testing.T) {
 	require.Equal(t, errErd.ErrNilPath, err)
 }
 
+func TestNewCryptoComponentsFactory_EmptyPeerIDShouldErr(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	coreComponents := componentsMock.GetCoreComponents()
+	args := componentsMock.GetCryptoArgs(coreComponents)
+	args.CurrentPid = ""
+	ccf, err := cryptoComp.NewCryptoComponentsFactory(args)
+	require.Nil(t, ccf)
+	require.Equal(t, errErd.ErrEmptyPeerID, err)
+}
+
 func TestCryptoComponentsFactory_CreateCryptoParamsNilKeyLoaderShouldErr(t *testing.T) {
 	t.Parallel()
 	if testing.Short() {
