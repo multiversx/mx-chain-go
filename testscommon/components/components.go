@@ -80,24 +80,7 @@ func GetCoreArgs() coreComp.CoreComponentsFactoryArgs {
 		RatingsConfig:   CreateDummyRatingsConfig(),
 		EconomicsConfig: CreateDummyEconomicsConfig(),
 		NodesConfig: config.NodesConfig{
-			StartTime:     0,
-			RoundDuration: 4000,
-			ShardConsensus: []config.ConsensusConfiguration{
-				{
-					EnableEpoch:        0,
-					MinNodes:           1,
-					ConsensusGroupSize: 1,
-				},
-			},
-			MetaConsensus: []config.ConsensusConfiguration{
-				{
-					EnableEpoch:        0,
-					MinNodes:           1,
-					ConsensusGroupSize: 1,
-				},
-			},
-			Hysteresis: 0,
-			Adaptivity: false,
+			StartTime: 0,
 			InitialNodes: []*config.InitialNodeConfig{
 				{
 					PubKey:  "227a5a5ec0c58171b7f4ee9ecc304ea7b176fb626741a25c967add76d6cd361d6995929f9b60a96237381091cefb1b061225e5bb930b40494a5ac9d7524fd67dfe478e5ccd80f17b093cff5722025761fb0217c39dbd5ae45e01eb5a3113be93",

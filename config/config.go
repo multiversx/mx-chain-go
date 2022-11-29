@@ -278,6 +278,7 @@ type GeneralSettingsConfig struct {
 	GenesisString                        string
 	GenesisMaxNumberOfShards             uint32
 	SyncProcessTimeInMillis              uint32
+	ChainParametersByEpoch               []ChainParametersByEpochConfig
 }
 
 // FacadeConfig will hold different configuration option that will be passed to the main ElrondFacade
@@ -583,13 +584,7 @@ type ConsensusConfiguration struct {
 
 // NodesConfig is the data transfer object used to map the node's configuration in regard to the genesis nodes setup
 type NodesConfig struct {
-	StartTime      int64                    `json:"startTime"`
-	RoundDuration  uint64                   `json:"roundDuration"`
-	ShardConsensus []ConsensusConfiguration `json:"shardConsensusConfiguration"`
-	MetaConsensus  []ConsensusConfiguration `json:"metachainConsensusConfiguration"`
-	Hysteresis     float32                  `json:"hysteresis"`
-	Adaptivity     bool                     `json:"adaptivity"`
-
+	StartTime    int64                `json:"startTime"`
 	InitialNodes []*InitialNodeConfig `json:"initialNodes"`
 }
 
@@ -639,4 +634,16 @@ type ResolverConfig struct {
 type PoolsCleanersConfig struct {
 	MaxRoundsToKeepUnprocessedMiniBlocks   int64
 	MaxRoundsToKeepUnprocessedTransactions int64
+}
+
+// ChainParametersByEpochConfig holds chain parameters that are configurable based on epochs
+type ChainParametersByEpochConfig struct {
+	EnableEpoch                 uint32
+	RoundDuration               uint64
+	ShardConsensusGroupSize     uint32
+	ShardMinNodes               uint32
+	MetachainConsensusGroupSize uint32
+	MetachainMinNumNodes        uint32
+	Hysteresis                  float32
+	Adaptivity                  bool
 }

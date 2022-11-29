@@ -182,6 +182,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 
 	genesisNodesConfig, err := sharding.NewNodesSetup(
 		ccf.nodesSetupConfig,
+		ccf.config.GeneralSettings.ChainParametersByEpoch,
 		addressPubkeyConverter,
 		validatorPubkeyConverter,
 		ccf.config.GeneralSettings.GenesisMaxNumberOfShards,

@@ -1,6 +1,7 @@
 package goroutines
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/common/goroutines"
@@ -78,4 +79,11 @@ func (gc *goCounter) Snapshot() (int, error) {
 	gc.snapshots = append(gc.snapshots, s)
 
 	return len(gc.snapshots) - 1, nil
+}
+
+func (gc *goCounter) PrintCurrentGoRoutines() {
+	s, _ := newSnapshot(gc.goRoutinesFetcher(), gc.filter)
+	for k, v := range s.routines {
+		fmt.Printf("key=%s\n\tvalue=%v\n=====\n", k, v)
+	}
 }

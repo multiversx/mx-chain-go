@@ -64,23 +64,17 @@ func createTestNodesSetup(shardConsensusSize uint32, minShardNodes uint32, metaC
 	}
 	ns, err := NewNodesSetup(
 		config.NodesConfig{
-			StartTime:     0,
-			RoundDuration: 0,
-			ShardConsensus: []config.ConsensusConfiguration{
-				{
-					EnableEpoch:        0,
-					MinNodes:           minShardNodes,
-					ConsensusGroupSize: shardConsensusSize,
-				},
-			},
-			MetaConsensus: []config.ConsensusConfiguration{
-				{
-					EnableEpoch:        0,
-					MinNodes:           minMetaNodes,
-					ConsensusGroupSize: metaConsensusSize,
-				},
-			},
+			StartTime:    0,
 			InitialNodes: initialNodes,
+		},
+		[]config.ChainParametersByEpochConfig{
+			{
+				EnableEpoch:                 0,
+				ShardMinNodes:               minShardNodes,
+				ShardConsensusGroupSize:     shardConsensusSize,
+				MetachainMinNumNodes:        minMetaNodes,
+				MetachainConsensusGroupSize: metaConsensusSize,
+			},
 		},
 		mock.NewPubkeyConverterMock(32),
 		mock.NewPubkeyConverterMock(96),
@@ -161,7 +155,7 @@ func TestNodesSetup_ProcessConfigInvalidConsensusGroupSizeLargerThanNumOfNodesSh
 func TestNodesSetup_ProcessConfigInvalidMetaConsensusGroupSizeLargerThanNumOfNodesShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ns, err := createTestNodesSetup(1, 1, 2, 0, 2, 3)
+	ns, err := createTestNodesSetup(1, 1, 2, 1, 2, 3)
 	require.Equal(t, ErrMinNodesPerShardSmallerThanConsensusSize, err)
 	require.Nil(t, ns)
 }
@@ -331,6 +325,7 @@ func TestNewNodesSetup_InvalidMaxNumShardsShouldErr(t *testing.T) {
 
 	ns, err := NewNodesSetup(
 		config.NodesConfig{},
+		[]config.ChainParametersByEpochConfig{},
 		mock.NewPubkeyConverterMock(32),
 		mock.NewPubkeyConverterMock(96),
 		0,

@@ -45,3 +45,6 @@ var ErrMissingConsensusConfiguration = errors.New("missing consensus configurati
 
 // ErrNilEpochNotifier signals that a nil epoch notifier has been provided
 var ErrNilEpochNotifier = errors.New("nil epoch notifier")
+
+// ErrMissingChainParameters signals that a nil chain parameters array has been provided
+var ErrMissingChainParameters = errors.New("empty chain parameters array")

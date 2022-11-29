@@ -63,6 +63,8 @@ func (ni *nodeInfo) IsInterfaceNil() bool {
 type NodesSetup struct {
 	NodesSetupDTO
 
+	chainParametersByEpoch    []config.ChainParametersByEpochConfig
+	currentChainParameters    config.ChainParametersByEpochConfig
 	genesisMaxNumShards       uint32
 	numberOfShards            uint32
 	nrOfNodes                 uint32
@@ -79,6 +81,7 @@ type NodesSetup struct {
 // NewNodesSetup creates a new decoded nodes structure from json config file
 func NewNodesSetup(
 	nodesSetupDTO config.NodesConfig,
+	chainParametersByEpoch []config.ChainParametersByEpochConfig,
 	addressPubkeyConverter core.PubkeyConverter,
 	validatorPubkeyConverter core.PubkeyConverter,
 	genesisMaxNumShards uint32,
@@ -97,34 +100,20 @@ func NewNodesSetup(
 	if genesisMaxNumShards < 1 {
 		return nil, fmt.Errorf("%w for genesisMaxNumShards", ErrInvalidMaximumNumberOfShards)
 	}
+	if len(chainParametersByEpoch) == 0 {
+		return nil, ErrMissingChainParameters
+	}
+
+	sort.SliceStable(chainParametersByEpoch, func(i, j int) bool {
+		return chainParametersByEpoch[i].EnableEpoch < chainParametersByEpoch[j].EnableEpoch
+	})
 
 	nodes := &NodesSetup{
 		addressPubkeyConverter:   addressPubkeyConverter,
 		validatorPubkeyConverter: validatorPubkeyConverter,
 		genesisMaxNumShards:      genesisMaxNumShards,
-	}
-
-	//var nodesSetupDTO NodesSetupDTO
-	//err := core.LoadJsonFile(&nodesSetupDTO, nodesFilePath)
-	//if err != nil {
-	//	return nil, err
-	//}
-
-	shardConsensus := make([]ConsensusConfiguration, 0, len(nodesSetupDTO.ShardConsensus))
-	for _, item := range nodesSetupDTO.ShardConsensus {
-		shardConsensus = append(shardConsensus, ConsensusConfiguration{
-			EnableEpoch:        item.EnableEpoch,
-			MinNodes:           item.MinNodes,
-			ConsensusGroupSize: item.ConsensusGroupSize,
-		})
-	}
-	metaConsensus := make([]ConsensusConfiguration, 0, len(nodesSetupDTO.MetaConsensus))
-	for _, item := range nodesSetupDTO.MetaConsensus {
-		metaConsensus = append(metaConsensus, ConsensusConfiguration{
-			EnableEpoch:        item.EnableEpoch,
-			MinNodes:           item.MinNodes,
-			ConsensusGroupSize: item.ConsensusGroupSize,
-		})
+		currentChainParameters:   chainParametersByEpoch[0],
+		chainParametersByEpoch:   chainParametersByEpoch,
 	}
 
 	initialNodes := make([]*InitialNode, 0, len(nodesSetupDTO.InitialNodes))
@@ -136,14 +125,14 @@ func NewNodesSetup(
 			nodeInfo:      nodeInfo{},
 		})
 	}
+
+	currentChainParameters := nodes.currentChainParameters
 	nodes.NodesSetupDTO = NodesSetupDTO{
-		StartTime:      nodesSetupDTO.StartTime,
-		RoundDuration:  nodesSetupDTO.RoundDuration,
-		ShardConsensus: shardConsensus,
-		MetaConsensus:  metaConsensus,
-		Hysteresis:     nodesSetupDTO.Hysteresis,
-		Adaptivity:     nodesSetupDTO.Adaptivity,
-		InitialNodes:   initialNodes,
+		StartTime:     nodesSetupDTO.StartTime,
+		RoundDuration: currentChainParameters.RoundDuration,
+		Hysteresis:    currentChainParameters.Hysteresis,
+		Adaptivity:    currentChainParameters.Adaptivity,
+		InitialNodes:  initialNodes,
 	}
 
 	err := nodes.processConfig()
@@ -165,8 +154,12 @@ func (ns *NodesSetup) EpochConfirmed(epoch uint32, _ uint64) {
 	ns.mutConfiguration.Lock()
 	defer ns.mutConfiguration.Unlock()
 
-	shardNewMatchingVersion := getMatchingVersion(ns.ShardConsensus, epoch)
-	metaNewMatchingVersion := getMatchingVersion(ns.MetaConsensus, epoch)
+	if ns.currentChainParameters.EnableEpoch == epoch {
+		return
+	}
+
+	shardNewMatchingVersion := getMatchingVersion(ns.chainParametersByEpoch, epoch)
+	metaNewMatchingVersion := getMatchingVersion(ns.chainParametersByEpoch, epoch)
 
 	if shardNewMatchingVersion.EnableEpoch == ns.currentShardConsensus.EnableEpoch ||
 		metaNewMatchingVersion.EnableEpoch == ns.currentMetachainConsensus.EnableEpoch {
@@ -178,8 +171,16 @@ func (ns *NodesSetup) EpochConfirmed(epoch uint32, _ uint64) {
 		return fmt.Sprintf("[EnableEpoch=%d, MinNodes=%d, ConsensusGroupSize=%d]", configuration.EnableEpoch, configuration.MinNodes, configuration.ConsensusGroupSize)
 	}
 
-	ns.currentShardConsensus = shardNewMatchingVersion
-	ns.currentMetachainConsensus = metaNewMatchingVersion
+	ns.currentShardConsensus = ConsensusConfiguration{
+		EnableEpoch:        shardNewMatchingVersion.EnableEpoch,
+		MinNodes:           shardNewMatchingVersion.ShardMinNodes,
+		ConsensusGroupSize: shardNewMatchingVersion.ShardConsensusGroupSize,
+	}
+	ns.currentMetachainConsensus = ConsensusConfiguration{
+		EnableEpoch:        metaNewMatchingVersion.EnableEpoch,
+		MinNodes:           metaNewMatchingVersion.MetachainMinNumNodes,
+		ConsensusGroupSize: metaNewMatchingVersion.MetachainConsensusGroupSize,
+	}
 
 	log.Debug("nodes setup - updated configuration values",
 		"epoch", epoch,
@@ -188,7 +189,7 @@ func (ns *NodesSetup) EpochConfirmed(epoch uint32, _ uint64) {
 	)
 }
 
-func getMatchingVersion(configurationByEpoch []ConsensusConfiguration, epoch uint32) ConsensusConfiguration {
+func getMatchingVersion(configurationByEpoch []config.ChainParametersByEpochConfig, epoch uint32) config.ChainParametersByEpochConfig {
 	currentVersion := configurationByEpoch[0]
 	for _, versionByEpoch := range configurationByEpoch {
 		if versionByEpoch.EnableEpoch > epoch {
@@ -240,43 +241,34 @@ func (ns *NodesSetup) processConfig() error {
 		ns.nrOfNodes++
 	}
 
-	if len(ns.ShardConsensus) == 0 {
-		return fmt.Errorf("%w for shards", ErrMissingConsensusConfiguration)
-	}
-	if len(ns.MetaConsensus) == 0 {
-		return fmt.Errorf("%w for metachain", ErrMissingConsensusConfiguration)
-	}
-
-	for _, consensusConfig := range ns.ShardConsensus {
-		if consensusConfig.ConsensusGroupSize < 1 {
+	for _, consensusConfig := range ns.chainParametersByEpoch {
+		if consensusConfig.ShardConsensusGroupSize < 1 {
 			return ErrNegativeOrZeroConsensusGroupSize
 		}
-		if consensusConfig.MinNodes < consensusConfig.ConsensusGroupSize {
+		if consensusConfig.ShardMinNodes < consensusConfig.ShardConsensusGroupSize {
 			return ErrMinNodesPerShardSmallerThanConsensusSize
 		}
-		if ns.nrOfNodes < consensusConfig.MinNodes {
+		if ns.nrOfNodes < consensusConfig.ShardMinNodes {
 			return ErrNodesSizeSmallerThanMinNoOfNodes
 		}
-	}
-
-	for _, consensusConfig := range ns.MetaConsensus {
-		if consensusConfig.ConsensusGroupSize < 1 {
+		if consensusConfig.MetachainMinNumNodes < 1 {
 			return ErrNegativeOrZeroConsensusGroupSize
 		}
-		if consensusConfig.MinNodes < consensusConfig.ConsensusGroupSize {
+		if consensusConfig.MetachainMinNumNodes < consensusConfig.MetachainConsensusGroupSize {
 			return ErrMinNodesPerShardSmallerThanConsensusSize
 		}
 	}
 
-	sort.SliceStable(ns.ShardConsensus, func(i, j int) bool {
-		return ns.ShardConsensus[i].EnableEpoch < ns.ShardConsensus[j].EnableEpoch
-	})
-	sort.SliceStable(ns.MetaConsensus, func(i, j int) bool {
-		return ns.MetaConsensus[i].EnableEpoch < ns.MetaConsensus[j].EnableEpoch
-	})
-
-	ns.currentShardConsensus = ns.ShardConsensus[0]
-	ns.currentMetachainConsensus = ns.MetaConsensus[0]
+	ns.currentShardConsensus = ConsensusConfiguration{
+		EnableEpoch:        ns.currentChainParameters.EnableEpoch,
+		MinNodes:           ns.currentChainParameters.ShardMinNodes,
+		ConsensusGroupSize: ns.currentChainParameters.ShardConsensusGroupSize,
+	}
+	ns.currentMetachainConsensus = ConsensusConfiguration{
+		EnableEpoch:        ns.currentChainParameters.EnableEpoch,
+		MinNodes:           ns.currentChainParameters.MetachainMinNumNodes,
+		ConsensusGroupSize: ns.currentChainParameters.MetachainConsensusGroupSize,
+	}
 
 	return nil
 }
@@ -521,30 +513,10 @@ func (ns *NodesSetup) GetMetaConsensusGroupSize() uint32 {
 	return ns.currentMetachainConsensus.ConsensusGroupSize
 }
 
-// ExportNodesConfig will create and return a nodes' configuration
+// ExportNodesConfig will create and return the nodes' configuration
 func (ns *NodesSetup) ExportNodesConfig() config.NodesConfig {
 	ns.mutConfiguration.RLock()
 	defer ns.mutConfiguration.RUnlock()
-
-	shardConsensus := ns.ShardConsensus
-	metaConsensus := ns.MetaConsensus
-
-	shardConsensusToExport := make([]config.ConsensusConfiguration, 0, len(shardConsensus))
-	for _, item := range shardConsensus {
-		shardConsensusToExport = append(shardConsensusToExport, config.ConsensusConfiguration{
-			EnableEpoch:        item.EnableEpoch,
-			MinNodes:           item.MinNodes,
-			ConsensusGroupSize: item.ConsensusGroupSize,
-		})
-	}
-	metaConsensusToExport := make([]config.ConsensusConfiguration, 0, len(metaConsensus))
-	for _, item := range metaConsensus {
-		metaConsensusToExport = append(metaConsensusToExport, config.ConsensusConfiguration{
-			EnableEpoch:        item.EnableEpoch,
-			MinNodes:           item.MinNodes,
-			ConsensusGroupSize: item.ConsensusGroupSize,
-		})
-	}
 
 	initialNodes := ns.InitialNodes
 	initialNodesToExport := make([]*config.InitialNodeConfig, 0, len(initialNodes))
@@ -557,13 +529,8 @@ func (ns *NodesSetup) ExportNodesConfig() config.NodesConfig {
 	}
 
 	return config.NodesConfig{
-		StartTime:      ns.StartTime,
-		RoundDuration:  ns.RoundDuration,
-		ShardConsensus: shardConsensusToExport,
-		MetaConsensus:  metaConsensusToExport,
-		Hysteresis:     ns.Hysteresis,
-		Adaptivity:     ns.Adaptivity,
-		InitialNodes:   initialNodesToExport,
+		StartTime:    ns.StartTime,
+		InitialNodes: initialNodesToExport,
 	}
 }
 

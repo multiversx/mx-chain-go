@@ -35,6 +35,11 @@
     # SyncProcessTimeInMillis is the value in milliseconds used when processing blocks while synchronizing blocks
     SyncProcessTimeInMillis = 12000
 
+    # ChainParametersByEpoch defines chain operation configurable values that can be modified based on epochs
+    ChainParametersByEpoch = [
+        { EnableEpoch = 0, RoundDuration = 4000, ShardConsensusGroupSize = 3, ShardMinNodes = 3, MetachainConsensusGroupSize = 3, MetachainMinNumNodes = 3, Hysteresis = 0.0, Adaptivity = false }
+    ]
+
 [Versions]
     DefaultVersion = "default"
     VersionsByEpochs = [

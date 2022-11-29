@@ -47,6 +47,20 @@ func TestTomlParser(t *testing.T) {
 	}
 
 	cfgExpected := Config{
+		GeneralSettings: GeneralSettingsConfig{
+			ChainParametersByEpoch: []ChainParametersByEpochConfig{
+				{
+					EnableEpoch:                 0,
+					RoundDuration:               4000,
+					ShardMinNodes:               3,
+					ShardConsensusGroupSize:     3,
+					MetachainMinNumNodes:        3,
+					MetachainConsensusGroupSize: 3,
+					Hysteresis:                  0.0,
+					Adaptivity:                  false,
+				},
+			},
+		},
 		MiniBlocksStorage: StorageConfig{
 			Cache: CacheConfig{
 				Capacity: uint32(txBlockBodyStorageSize),
@@ -135,6 +149,10 @@ func TestTomlParser(t *testing.T) {
 		},
 	}
 	testString := `
+[GeneralSettings]
+	ChainParametersByEpoch = [
+        { EnableEpoch = 0, RoundDuration = 4000, ShardConsensusGroupSize = 3, ShardMinNodes = 3, MetachainConsensusGroupSize = 3, MetachainMinNumNodes = 3, Hysteresis = 0.0, Adaptivity = false }
+    ]
 [MiniBlocksStorage]
     [MiniBlocksStorage.Cache]
         Capacity = ` + strconv.Itoa(txBlockBodyStorageSize) + `
