@@ -38,12 +38,12 @@ func CreateProcessorNodesWithNodesCoordinator(
 
 	ncp, nbShards := createNodesCryptoParams(rewardsAddrsAssignments)
 	cp := CreateCryptoParams(len(ncp[0]), len(ncp[core.MetachainShardId]), nbShards, 1)
-	pubKeys := PubKeysMapFromKeysMap(cp.Keys)
+	pubKeys := PubKeysMapFromNodesKeysMap(cp.NodesKeys)
 	validatorsMap := GenValidatorsFromPubKeys(pubKeys, nbShards)
 	validatorsMapForNodesCoordinator, _ := nodesCoordinator.NodesInfoToValidators(validatorsMap)
 
 	cpWaiting := CreateCryptoParams(1, 1, nbShards, 1)
-	pubKeysWaiting := PubKeysMapFromKeysMap(cpWaiting.Keys)
+	pubKeysWaiting := PubKeysMapFromNodesKeysMap(cpWaiting.NodesKeys)
 	waitingMap := GenValidatorsFromPubKeys(pubKeysWaiting, nbShards)
 	waitingMapForNodesCoordinator, _ := nodesCoordinator.NodesInfoToValidators(waitingMap)
 
@@ -107,9 +107,11 @@ func CreateProcessorNodesWithNodesCoordinator(
 				MaxShards:            numShards,
 				NodeShardId:          shardId,
 				TxSignPrivKeyShardId: shardId,
-				NodeKeys: &TestKeyPair{
-					Sk: kp.BlockSignSk,
-					Pk: kp.BlockSignPk,
+				NodeKeys: &TestNodeKeys{
+					MainKey: &TestKeyPair{
+						Sk: kp.BlockSignSk,
+						Pk: kp.BlockSignPk,
+					},
 				},
 				NodesSetup:       nodesSetup,
 				NodesCoordinator: nodesCoordinatorInstance,

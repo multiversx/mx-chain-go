@@ -78,7 +78,7 @@ func TestConsensus_BlockWithoutTwoThirdsPlusOneSignaturesOrWrongBitmapShouldNotB
 	assert.NotNil(t, body)
 	assert.NotNil(t, hdr)
 
-	pk := nodesMap[0][0].NodeKeys.Pk
+	pk := nodesMap[0][0].NodeKeys.MainKey.Pk
 	nodesMap[0][0].BroadcastBlock(body, hdr, pk)
 	time.Sleep(testBlock.StepDelay)
 

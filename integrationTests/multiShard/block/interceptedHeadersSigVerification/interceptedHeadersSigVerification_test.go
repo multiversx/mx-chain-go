@@ -61,7 +61,7 @@ func TestInterceptedShardBlockHeaderVerifiedWithCorrectConsensusGroup(t *testing
 	header, err = fillHeaderFields(nodesMap[0][0], header, singleSigner)
 	assert.Nil(t, err)
 
-	pk := nodesMap[0][0].NodeKeys.Pk
+	pk := nodesMap[0][0].NodeKeys.MainKey.Pk
 	nodesMap[0][0].BroadcastBlock(body, header, pk)
 
 	time.Sleep(broadcastDelay)
@@ -131,7 +131,7 @@ func TestInterceptedMetaBlockVerifiedWithCorrectConsensusGroup(t *testing.T) {
 		0,
 	)
 
-	pk := nodesMap[core.MetachainShardId][0].NodeKeys.Pk
+	pk := nodesMap[core.MetachainShardId][0].NodeKeys.MainKey.Pk
 	nodesMap[core.MetachainShardId][0].BroadcastBlock(body, header, pk)
 
 	time.Sleep(broadcastDelay)
@@ -205,7 +205,7 @@ func TestInterceptedShardBlockHeaderWithLeaderSignatureAndRandSeedChecks(t *test
 	header, err = fillHeaderFields(nodeToSendFrom, header, singleSigner)
 	assert.Nil(t, err)
 
-	pk := nodeToSendFrom.NodeKeys.Pk
+	pk := nodeToSendFrom.NodeKeys.MainKey.Pk
 	nodeToSendFrom.BroadcastBlock(body, header, pk)
 
 	time.Sleep(broadcastDelay)
@@ -270,7 +270,7 @@ func TestInterceptedShardHeaderBlockWithWrongPreviousRandSeedShouldNotBeAccepted
 	nonce := uint64(2)
 	body, header, _, _ := integrationTests.ProposeBlockWithConsensusSignature(0, nodesMap, round, nonce, wrongRandomness, 0)
 
-	pk := nodesMap[0][0].NodeKeys.Pk
+	pk := nodesMap[0][0].NodeKeys.MainKey.Pk
 	nodesMap[0][0].BroadcastBlock(body, header, pk)
 
 	time.Sleep(broadcastDelay)
@@ -292,7 +292,7 @@ func TestInterceptedShardHeaderBlockWithWrongPreviousRandSeedShouldNotBeAccepted
 }
 
 func fillHeaderFields(proposer *integrationTests.TestProcessorNode, hdr data.HeaderHandler, signer crypto.SingleSigner) (data.HeaderHandler, error) {
-	leaderSk := proposer.NodeKeys.Sk
+	leaderSk := proposer.NodeKeys.MainKey.Sk
 
 	randSeed, _ := signer.Sign(leaderSk, hdr.GetPrevRandSeed())
 	err := hdr.SetRandSeed(randSeed)

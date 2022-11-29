@@ -63,7 +63,7 @@ type TestConsensusNode struct {
 	BlockProcessor   *mock.BlockProcessorMock
 	ResolverFinder   dataRetriever.ResolversFinder
 	AccountsDB       *state.AccountsDB
-	NodeKeys         TestKeyPair
+	NodeKeys         *TestKeyPair
 }
 
 // NewTestConsensusNode returns a new TestConsensusNode
@@ -71,7 +71,7 @@ func NewTestConsensusNode(
 	consensusSize int,
 	roundTime uint64,
 	consensusType string,
-	nodeKeys TestKeyPair,
+	nodeKeys *TestNodeKeys,
 	eligibleMap map[uint32][]nodesCoordinator.Validator,
 	waitingMap map[uint32][]nodesCoordinator.Validator,
 	keyGen crypto.KeyGenerator,
@@ -80,7 +80,7 @@ func NewTestConsensusNode(
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
 
 	tcn := &TestConsensusNode{
-		NodeKeys:         nodeKeys,
+		NodeKeys:         nodeKeys.MainKey,
 		ShardCoordinator: shardCoordinator,
 	}
 	tcn.initNode(consensusSize, roundTime, consensusType, eligibleMap, waitingMap, keyGen)
@@ -99,19 +99,20 @@ func CreateNodesWithTestConsensusNode(
 ) map[uint32][]*TestConsensusNode {
 
 	nodes := make(map[uint32][]*TestConsensusNode, nodesPerShard)
-	cp := CreateCryptoParams(nodesPerShard, numMetaNodes, maxShards, numKeysOnEachNode)
-	keysMap := PubKeysMapFromKeysMap(cp.Keys)
+	cp := CreateCryptoParams(nodesPerShard, numMetaNodes, maxShards)
+	keysMap := PubKeysMapFromNodesKeysMap(cp.NodesKeys)
 	validatorsMap := GenValidatorsFromPubKeys(keysMap, maxShards)
 	eligibleMap, _ := nodesCoordinator.NodesInfoToValidators(validatorsMap)
 	waitingMap := make(map[uint32][]nodesCoordinator.Validator)
 	connectableNodes := make([]Connectable, 0)
 
-	for _, keysPair := range cp.Keys[0] {
+	shardID := uint32(0)
+	for _, keysPair := range cp.NodesKeys[shardID] {
 		tcn := NewTestConsensusNode(
 			consensusSize,
 			roundTime,
 			consensusType,
-			*keysPair,
+			keysPair,
 			eligibleMap,
 			waitingMap,
 			cp.KeyGen)

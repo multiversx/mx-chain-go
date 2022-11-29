@@ -1089,7 +1089,7 @@ func ProposeBlock(nodes []*TestProcessorNode, idxProposers []int, round uint64, 
 
 		body, header, _ := n.ProposeBlock(round, nonce)
 		n.WhiteListBody(nodes, body)
-		pk := n.NodeKeys.Pk
+		pk := n.NodeKeys.MainKey.Pk
 		n.BroadcastBlock(body, header, pk)
 		n.CommitBlock(body, header)
 	}
@@ -1469,7 +1469,7 @@ func CreateNodesWithFullGenesis(
 				NodeShardId:          shardId,
 				TxSignPrivKeyShardId: shardId,
 				GenesisFile:          genesisFile,
-				HardforkPk:           hardforkStarter.NodeKeys.Pk,
+				HardforkPk:           hardforkStarter.NodeKeys.MainKey.Pk,
 				EpochsConfig:         enableEpochsConfig,
 				EconomicsConfig:      economicsConfig,
 			})
@@ -1485,7 +1485,7 @@ func CreateNodesWithFullGenesis(
 			NodeShardId:          core.MetachainShardId,
 			TxSignPrivKeyShardId: 0,
 			GenesisFile:          genesisFile,
-			HardforkPk:           hardforkStarter.NodeKeys.Pk,
+			HardforkPk:           hardforkStarter.NodeKeys.MainKey.Pk,
 			EpochsConfig:         enableEpochsConfig,
 			EconomicsConfig:      economicsConfig,
 		})
@@ -1972,7 +1972,7 @@ func ProposeBlockSignalsEmptyBlock(
 	log.Info("Proposing block without commit...")
 
 	body, header, txHashes := node.ProposeBlock(round, nonce)
-	pk := node.NodeKeys.Pk
+	pk := node.NodeKeys.MainKey.Pk
 	node.BroadcastBlock(body, header, pk)
 	isEmptyBlock := len(txHashes) == 0
 
@@ -2163,8 +2163,8 @@ func ProposeAndSyncOneBlock(
 	return round, nonce
 }
 
-// PubKeysMapFromKeysMap returns a map of public keys per shard from the key pairs per shard map.
-func PubKeysMapFromKeysMap(keyPairMap map[uint32][]*TestKeyPair) map[uint32][]string {
+// PubKeysMapFromTxKeysMap returns a map of public keys per shard from the key pairs per shard map.
+func PubKeysMapFromTxKeysMap(keyPairMap map[uint32][]*TestKeyPair) map[uint32][]string {
 	keysMap := make(map[uint32][]string)
 
 	for shardId, pairList := range keyPairMap {
@@ -2177,6 +2177,36 @@ func PubKeysMapFromKeysMap(keyPairMap map[uint32][]*TestKeyPair) map[uint32][]st
 	}
 
 	return keysMap
+}
+
+// PubKeysMapFromNodesKeysMap returns a map of public keys per shard from the key pairs per shard map.
+func PubKeysMapFromNodesKeysMap(keyPairMap map[uint32][]*TestNodeKeys) map[uint32][]string {
+	keysMap := make(map[uint32][]string)
+
+	for shardId, keys := range keyPairMap {
+		addAllKeysOnShard(keysMap, shardId, keys)
+	}
+
+	return keysMap
+}
+
+func addAllKeysOnShard(m map[uint32][]string, shardID uint32, keys []*TestNodeKeys) {
+	for _, keyOfTheNode := range keys {
+		addKeysToMap(m, shardID, keyOfTheNode)
+	}
+}
+
+func addKeysToMap(m map[uint32][]string, shardID uint32, keysOfTheNode *TestNodeKeys) {
+	if len(keysOfTheNode.HandledKeys) == 0 {
+		b, _ := keysOfTheNode.MainKey.Pk.ToByteArray()
+		m[shardID] = append(m[shardID], string(b))
+		return
+	}
+
+	for _, handledKey := range keysOfTheNode.HandledKeys {
+		b, _ := handledKey.Pk.ToByteArray()
+		m[shardID] = append(m[shardID], string(b))
+	}
 }
 
 // GenValidatorsFromPubKeys generates a map of validators per shard out of public keys map
@@ -2222,21 +2252,20 @@ func CreateCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards uint32, num
 	singleSigner := TestSingleSigner
 	keyGen := signing.NewKeyGenerator(suite)
 
-	keysMap := make(map[uint32][]*TestKeyPair)
+	nodesKeysMap := make(map[uint32][]*TestNodeKeys)
 	txKeysMap := make(map[uint32][]*TestKeyPair)
-	multiKeyNodes := make(map[uint32][]*TestMultiKeyPair)
 	for shardId := uint32(0); shardId < nbShards; shardId++ {
 		for n := 0; n < nodesPerShard; n++ {
-			createAndAddKeys(keyGen, txKeyGen, shardId, keysMap, txKeysMap, multiKeyNodes, numKeysOnEachNode)
+			createAndAddKeys(keyGen, txKeyGen, shardId, nodesKeysMap, txKeysMap)
 		}
 	}
 
 	for n := 0; n < nbMetaNodes; n++ {
-		createAndAddKeys(keyGen, txKeyGen, core.MetachainShardId, keysMap, txKeysMap, multiKeyNodes, numKeysOnEachNode)
+		createAndAddKeys(keyGen, txKeyGen, core.MetachainShardId, nodesKeysMap, txKeysMap)
 	}
 
 	params := &CryptoParams{
-		Keys:         keysMap,
+		NodesKeys:    nodesKeysMap,
 		KeyGen:       keyGen,
 		SingleSigner: singleSigner,
 		TxKeyGen:     txKeyGen,
@@ -2250,9 +2279,8 @@ func createAndAddKeys(
 	keyGen crypto.KeyGenerator,
 	txKeyGen crypto.KeyGenerator,
 	shardId uint32,
-	keysMap map[uint32][]*TestKeyPair,
+	nodeKeysMap map[uint32][]*TestNodeKeys,
 	txKeysMap map[uint32][]*TestKeyPair,
-	multiKeyNodes map[uint32][]*TestMultiKeyPair,
 	numKeysOnEachNode int,
 ) {
 	kp := &TestKeyPair{}
@@ -2261,28 +2289,12 @@ func createAndAddKeys(
 	txKp := &TestKeyPair{}
 	txKp.Sk, txKp.Pk = txKeyGen.GeneratePair()
 
+	nodeKey := &TestNodeKeys{
+		MainKey: kp,
+	}
+
 	txKeysMap[shardId] = append(txKeysMap[shardId], txKp)
-	if numKeysOnEachNode == 1 {
-		// single key operation
-		keysMap[shardId] = append(keysMap[shardId], kp)
-		return
-	}
-
-	// multi key operation
-	mkp := &TestMultiKeyPair{
-		Observer:    kp,
-		HandledKeys: make([]*TestKeyPair, 0, numKeysOnEachNode),
-	}
-
-	for i := 0; i < numKeysOnEachNode; i++ {
-		validatorKp := &TestKeyPair{}
-		validatorKp.Sk, validatorKp.Pk = keyGen.GeneratePair()
-
-		mkp.HandledKeys = append(mkp.HandledKeys, validatorKp)
-		keysMap[shardId] = append(keysMap[shardId], validatorKp)
-	}
-
-	multiKeyNodes[shardId] = append(multiKeyNodes[shardId], mkp)
+	nodeKeysMap[shardId] = append(nodeKeysMap[shardId], nodeKey)
 }
 
 // CloseProcessorNodes closes the used TestProcessorNodes and advertiser
@@ -2323,7 +2335,7 @@ func SetupSyncNodesOneShardAndMeta(
 
 	for i := 0; i < numNodesMeta; i++ {
 		metaNode := NewTestProcessorNode(ArgTestProcessorNode{
-			MaxShards:            maxShards,
+			MaxShards:            maxShardsLocal,
 			NodeShardId:          core.MetachainShardId,
 			TxSignPrivKeyShardId: shardId,
 			WithSync:             true,
