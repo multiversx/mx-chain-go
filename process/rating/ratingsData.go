@@ -106,7 +106,7 @@ func NewRatingsData(args RatingsDataArg) (*RatingsData, error) {
 		return nil, err
 	}
 
-	return &RatingsData{
+	ratingData := &RatingsData{
 		startRating:                 ratingsConfig.General.StartRating,
 		maxRating:                   ratingsConfig.General.MaxRating,
 		minRating:                   ratingsConfig.General.MinRating,
@@ -117,7 +117,11 @@ func NewRatingsData(args RatingsDataArg) (*RatingsData, error) {
 		nodesSetup:                  args.NodesSetupHandler,
 		ratingsSetup:                ratingsConfig,
 		roundDurationInMilliseconds: args.RoundDurationMilliseconds,
-	}, nil
+	}
+
+	args.EpochNotifier.RegisterNotifyHandler(ratingData)
+
+	return ratingData, nil
 }
 
 // EpochConfirmed will be called whenever a new epoch is called

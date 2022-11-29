@@ -257,15 +257,6 @@ func (ns *NodesSetup) processConfig() error {
 		if ns.nrOfNodes < consensusConfig.MinNodes {
 			return ErrNodesSizeSmallerThanMinNoOfNodes
 		}
-		//if ns.ConsensusGroupSize < 1 {
-		//	return ErrNegativeOrZeroConsensusGroupSize
-		//}
-		//if ns.MinNodesPerShard < ns.ConsensusGroupSize {
-		//	return ErrMinNodesPerShardSmallerThanConsensusSize
-		//}
-		//if ns.nrOfNodes < ns.MinNodesPerShard {
-		//	return ErrNodesSizeSmallerThanMinNoOfNodes
-		//}
 	}
 
 	for _, consensusConfig := range ns.MetaConsensus {
@@ -276,17 +267,6 @@ func (ns *NodesSetup) processConfig() error {
 			return ErrMinNodesPerShardSmallerThanConsensusSize
 		}
 	}
-	//if ns.MetaChainConsensusGroupSize < 1 {
-	//	return ErrNegativeOrZeroConsensusGroupSize
-	//}
-	//if ns.MetaChainMinNodes < ns.MetaChainConsensusGroupSize {
-	//	return ErrMinNodesPerShardSmallerThanConsensusSize
-	//}
-
-	//totalMinNodes := ns.MetaChainMinNodes + ns.MinNodesPerShard
-	//if ns.nrOfNodes < totalMinNodes {
-	//	return ErrNodesSizeSmallerThanMinNoOfNodes
-	//}
 
 	sort.SliceStable(ns.ShardConsensus, func(i, j int) bool {
 		return ns.ShardConsensus[i].EnableEpoch < ns.ShardConsensus[j].EnableEpoch
