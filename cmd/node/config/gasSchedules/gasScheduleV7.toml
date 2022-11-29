@@ -691,4 +691,4 @@
 [MaxPerTransaction]
     MaxBuiltInCallsPerTx = 100
     MaxNumberOfTransfersPerTx = 100
-    MaxTrieReadsPerTx = 100
+    MaxNumberOfTrieReadsPerTx = 100

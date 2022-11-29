@@ -94,6 +94,7 @@ type BlockChainHookImpl struct {
 
 	maxBuiltInCallsPerTx      uint64
 	maxNumberOfTransfersPerTx uint64
+	maxNumberOfTrieReadsPerTx uint64
 
 	crtNumberOfBuiltInFunctionCalls uint64
 	crtNumberOfTransfers            uint64
@@ -252,6 +253,11 @@ func (bh *BlockChainHookImpl) GetUserAccount(address []byte) (vmcommon.UserAccou
 func (bh *BlockChainHookImpl) GetStorageData(accountAddress []byte, index []byte) ([]byte, uint32, error) {
 	defer stopMeasure(startMeasure("GetStorageData"))
 
+	err := bh.checkMaxReadsCounters()
+	if err != nil {
+		return nil, 0, err
+	}
+
 	userAcc, err := bh.GetUserAccount(accountAddress)
 	if err == state.ErrAccNotFound {
 		return make([]byte, 0), 0, nil
@@ -273,6 +279,16 @@ func (bh *BlockChainHookImpl) GetStorageData(accountAddress []byte, index []byte
 	}
 	log.Trace("GetStorageData ", messages...)
 	return value, trieDepth, err
+}
+
+func (bh *BlockChainHookImpl) checkMaxReadsCounters() error {
+	if bh.enableEpochsHandler.IsMaxBlockchainHookCountersFlagEnabled() {
+		bh.crtNumberOfTrieReads++
+		if bh.crtNumberOfTrieReads > bh.maxNumberOfTrieReadsPerTx {
+			return process.OutOfAPICalls
+		}
+	}
+	return nil
 }
 
 // GetBlockhash returns the header hash for a requested nonce delta
@@ -823,6 +839,7 @@ func (bh *BlockChainHookImpl) GasScheduleChange(gasSchedule map[string]map[strin
 
 	bh.maxBuiltInCallsPerTx = maxPerTransaction["MaxBuiltInCallsPerTx"]
 	bh.maxNumberOfTransfersPerTx = maxPerTransaction["MaxNumberOfTransfersPerTx"]
+	bh.maxNumberOfTrieReadsPerTx = maxPerTransaction["MaxNumberOfTrieReadsPerTx"]
 }
 
 // ResetCounters resets the state counters for the block chain hook

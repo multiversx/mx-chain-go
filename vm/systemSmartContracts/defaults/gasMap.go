@@ -85,6 +85,6 @@ func FillMaxPerTransaction() map[string]uint64 {
 	gasMap := make(map[string]uint64)
 	gasMap["MaxBuiltInCallsPerTx"] = 100
 	gasMap["MaxNumberOfTransfersPerTx"] = 100
-	gasMap["MaxTrieReadsPerTx"] = 100
+	gasMap["MaxNumberOfTrieReadsPerTx"] = 100000
 	return gasMap
 }
