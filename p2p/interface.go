@@ -99,8 +99,8 @@ type PeersRatingHandler interface {
 // PeerTopicNotifier represent an entity able to handle new notifications on a new peer on a topic
 type PeerTopicNotifier = p2p.PeerTopicNotifier
 
-// RandomP2PIdentityGenerator defines an entity that is able to generate a random p2p identity
-type RandomP2PIdentityGenerator interface {
+// IdentityGenerator represent an entity able to create a random p2p identity
+type IdentityGenerator interface {
 	CreateRandomP2PIdentity() ([]byte, core.PeerID, error)
 	IsInterfaceNil() bool
 }
