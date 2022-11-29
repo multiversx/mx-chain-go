@@ -83,8 +83,8 @@ func FillGasMapMetaChainSystemSCsCosts(value uint64) map[string]uint64 {
 // FillMaxPerTransaction -
 func FillMaxPerTransaction() map[string]uint64 {
 	gasMap := make(map[string]uint64)
-	gasMap["MaxBuiltInCallsPerTx"] = 1
-	gasMap["MaxNumberOfTransfersPerTx"] = 2
-	gasMap["MaxTrieReadsPerTx"] = 2
+	gasMap["MaxBuiltInCallsPerTx"] = 100
+	gasMap["MaxNumberOfTransfersPerTx"] = 100
+	gasMap["MaxTrieReadsPerTx"] = 100
 	return gasMap
 }
