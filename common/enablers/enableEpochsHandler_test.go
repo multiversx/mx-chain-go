@@ -86,6 +86,7 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		CheckExecuteOnReadOnlyEnableEpoch:                 70,
 		FixAsyncCallBackArgsListEnableEpoch:               71,
 		FixOldTokenLiquidityEnableEpoch:                   72,
+		MaxBlockchainHookCountersEnableEpoch:              73,
 	}
 }
 

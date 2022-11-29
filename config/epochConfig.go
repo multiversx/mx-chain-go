@@ -88,6 +88,7 @@ type EnableEpochs struct {
 	FixOldTokenLiquidityEnableEpoch                   uint32
 	SetSenderInEeiOutputTransferEnableEpoch           uint32
 	RefactorPeersMiniBlocksEnableEpoch                uint32
+	MaxBlockchainHookCountersEnableEpoch              uint32
 	BLSMultiSignerEnableEpoch                         []MultiSignerConfig
 }
 

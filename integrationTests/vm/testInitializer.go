@@ -1015,18 +1015,30 @@ func CreatePreparedTxProcessorAndAccountsWithVMs(
 }
 
 func createMockGasScheduleNotifier() *mock.GasScheduleNotifierMock {
+	return createMockGasScheduleNotifierWithCustomGasSchedule(func(gasMap arwenConfig.GasScheduleMap) {})
+}
+
+func createMockGasScheduleNotifierWithCustomGasSchedule(updateGasSchedule func(gasMap arwenConfig.GasScheduleMap)) *mock.GasScheduleNotifierMock {
 	testGasSchedule := arwenConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(testGasSchedule, 1)
+	updateGasSchedule(testGasSchedule)
 	return mock.NewGasScheduleNotifierMock(testGasSchedule)
 }
 
 // CreatePreparedTxProcessorWithVMs -
 func CreatePreparedTxProcessorWithVMs(enableEpochs config.EnableEpochs) (*VMTestContext, error) {
+	return CreatePreparedTxProcessorWithVMsAndCustomGasSchedule(enableEpochs, func(gasMap arwenConfig.GasScheduleMap) {})
+}
+
+// CreatePreparedTxProcessorWithVMs -
+func CreatePreparedTxProcessorWithVMsAndCustomGasSchedule(
+	enableEpochs config.EnableEpochs,
+	updateGasSchedule func(gasMap arwenConfig.GasScheduleMap)) (*VMTestContext, error) {
 	return CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGas(
 		enableEpochs,
 		mock.NewMultiShardsCoordinatorMock(2),
 		integrationtests.CreateMemUnit(),
-		createMockGasScheduleNotifier(),
+		createMockGasScheduleNotifierWithCustomGasSchedule(updateGasSchedule),
 	)
 }
 

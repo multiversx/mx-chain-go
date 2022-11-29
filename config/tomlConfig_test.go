@@ -759,6 +759,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			FixAsyncCallBackArgsListEnableEpoch:         56,
 			FixOldTokenLiquidityEnableEpoch:             57,
 			SetSenderInEeiOutputTransferEnableEpoch:     58,
+			MaxBlockchainHookCountersEnableEpoch:        59,
 			BLSMultiSignerEnableEpoch: []MultiSignerConfig{
 				{
 					EnableEpoch: 0,
