@@ -20,6 +20,7 @@ type PreferencesConfig struct {
 
 // OverridableConfig holds the path and the new value to be updated in the configuration
 type OverridableConfig struct {
+	File  string
 	Path  string
 	Value string
 }

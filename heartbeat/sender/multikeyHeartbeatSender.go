@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ElrondNetwork/covalent-indexer-go/process"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
@@ -21,7 +20,7 @@ type argMultikeyHeartbeatSender struct {
 	peerSubType                core.P2PPeerSubType
 	currentBlockProvider       heartbeat.CurrentBlockProvider
 	managedPeersHolder         heartbeat.ManagedPeersHolder
-	shardCoordinator           process.ShardCoordinator
+	shardCoordinator           heartbeat.ShardCoordinator
 	trieSyncStatisticsProvider heartbeat.TrieSyncStatisticsProvider
 }
 
@@ -29,7 +28,7 @@ type multikeyHeartbeatSender struct {
 	commonHeartbeatSender
 	baseVersionNumber          string
 	managedPeersHolder         heartbeat.ManagedPeersHolder
-	shardCoordinator           process.ShardCoordinator
+	shardCoordinator           heartbeat.ShardCoordinator
 	trieSyncStatisticsProvider heartbeat.TrieSyncStatisticsProvider
 }
 

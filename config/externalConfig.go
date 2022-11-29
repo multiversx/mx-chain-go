@@ -4,7 +4,7 @@ package config
 type ExternalConfig struct {
 	ElasticSearchConnector ElasticSearchConfig
 	EventNotifierConnector EventNotifierConfig
-	CovalentConnector      CovalentConfig
+	WebSocketConnector     WebSocketDriverConfig
 }
 
 // ElasticSearchConfig will hold the configuration for the elastic search
@@ -35,4 +35,12 @@ type CovalentConfig struct {
 	URL                  string
 	RouteSendData        string
 	RouteAcknowledgeData string
+}
+
+// WebSocketDriverConfig will hold the configuration for web socket driver
+type WebSocketDriverConfig struct {
+	Enabled         bool
+	WithAcknowledge bool
+	URL             string
+	MarshallerType  string
 }
