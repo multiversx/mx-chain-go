@@ -369,7 +369,7 @@ func (sc *scProcessor) executeSmartContractCall(
 	}
 
 	if sc.enableEpochsHandler.IsMaxBlockchainHookCountersFlagEnabled() {
-		sc.blockChainHook.ResetMaxCounters()
+		sc.blockChainHook.ResetCounters()
 	}
 
 	var vmOutput *vmcommon.VMOutput
@@ -849,7 +849,7 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 	acntSnd, acntDst state.UserAccountHandler,
 ) (vmcommon.ReturnCode, error) {
 	if sc.enableEpochsHandler.IsMaxBlockchainHookCountersFlagEnabled() {
-		sc.blockChainHook.ResetMaxCounters()
+		sc.blockChainHook.ResetCounters()
 	}
 
 	returnCode, vmInput, txHash, err := sc.prepareExecution(tx, acntSnd, acntDst, true)
@@ -1622,7 +1622,7 @@ func (sc *scProcessor) doDeploySmartContract(
 	acntSnd state.UserAccountHandler,
 ) (vmcommon.ReturnCode, error) {
 	if sc.enableEpochsHandler.IsMaxBlockchainHookCountersFlagEnabled() {
-		sc.blockChainHook.ResetMaxCounters()
+		sc.blockChainHook.ResetCounters()
 	}
 
 	isEmptyAddress := sc.isDestAddressEmpty(tx)

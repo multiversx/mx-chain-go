@@ -505,7 +505,7 @@ type BlockChainHookHandler interface {
 	Close() error
 	FilterCodeMetadataForUpgrade(input []byte) ([]byte, error)
 	ApplyFiltersOnCodeMetadata(codeMetadata vmcommon.CodeMetadata) vmcommon.CodeMetadata
-	ResetMaxCounters()
+	ResetCounters()
 	IsInterfaceNil() bool
 }
 

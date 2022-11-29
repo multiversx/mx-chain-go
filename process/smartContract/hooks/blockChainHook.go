@@ -87,8 +87,14 @@ type BlockChainHookImpl struct {
 
 	mapActivationEpochs map[uint32]struct{}
 
-	esdtTransferParser              vmcommon.ESDTTransferParser
-	gasSchedule                     core.GasScheduleNotifier
+	esdtTransferParser vmcommon.ESDTTransferParser
+
+	mutGasLock  sync.RWMutex
+	gasSchedule core.GasScheduleNotifier
+
+	maxBuiltInCallsPerTx      uint64
+	maxNumberOfTransfersPerTx uint64
+
 	crtNumberOfBuiltInFunctionCalls uint64
 	crtNumberOfTransfers            uint64
 	crtNumberOfTrieReads            uint64
@@ -134,6 +140,8 @@ func NewBlockChainHookImpl(
 	blockChainHookImpl.mapActivationEpochs = createMapActivationEpochs(&args.EnableEpochs)
 
 	args.EpochNotifier.RegisterNotifyHandler(blockChainHookImpl)
+
+	args.GasSchedule.RegisterNotifyHandler(blockChainHookImpl)
 
 	blockChainHookImpl.esdtTransferParser, err = parsers.NewESDTTransferParser(args.Marshalizer)
 	if err != nil {
@@ -198,7 +206,7 @@ func checkForNil(args ArgBlockChainHook) error {
 	if check.IfNil(args.EnableEpochsHandler) {
 		return process.ErrNilEnableEpochsHandler
 	}
-	if check.IfNil(args.GasSchedule) {
+	if check.IfNil(args.GasSchedule) || args.GasSchedule.LatestGasSchedule() == nil {
 		return process.ErrNilGasSchedule
 	}
 
@@ -422,26 +430,6 @@ func (bh *BlockChainHookImpl) NewAddress(creatorAddress []byte, creatorNonce uin
 func (bh *BlockChainHookImpl) ProcessBuiltInFunction(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
 	defer stopMeasure(startMeasure("ProcessBuiltInFunction"))
 
-	if bh.enableEpochsHandler.IsMaxBlockchainHookCountersFlagEnabled() {
-		gasSchedule := bh.gasSchedule.LatestGasSchedule()
-
-		maxBuiltInCallsPerTx := gasSchedule["MaxPerTransaction"]["MaxBuiltInCallsPerTx"]
-		bh.crtNumberOfBuiltInFunctionCalls++
-		if bh.crtNumberOfBuiltInFunctionCalls > maxBuiltInCallsPerTx {
-			return nil, process.OutOfAPICalls
-		}
-
-		maxNumberOfTransfersPerTx := gasSchedule["MaxPerTransaction"]["MaxNumberOfTransfersPerTx"]
-		parsedTransfer, err := bh.esdtTransferParser.ParseESDTTransfers(input.CallerAddr, input.RecipientAddr, input.Function, input.Arguments)
-		if err != nil {
-			return nil, err
-		}
-		bh.crtNumberOfTransfers += uint64(len(parsedTransfer.ESDTTransfers))
-		if bh.crtNumberOfTransfers > maxNumberOfTransfersPerTx {
-			return nil, process.OutOfAPICalls
-		}
-	}
-
 	if input == nil {
 		return nil, process.ErrNilVmInput
 	}
@@ -452,6 +440,11 @@ func (bh *BlockChainHookImpl) ProcessBuiltInFunction(input *vmcommon.ContractCal
 	}
 
 	sndAccount, dstAccount, err := bh.getUserAccounts(input)
+	if err != nil {
+		return nil, err
+	}
+
+	err = bh.checkMaxCounters(input)
 	if err != nil {
 		return nil, err
 	}
@@ -476,6 +469,24 @@ func (bh *BlockChainHookImpl) ProcessBuiltInFunction(input *vmcommon.ContractCal
 	}
 
 	return vmOutput, nil
+}
+
+func (bh *BlockChainHookImpl) checkMaxCounters(input *vmcommon.ContractCallInput) error {
+	if bh.enableEpochsHandler.IsMaxBlockchainHookCountersFlagEnabled() {
+		bh.crtNumberOfBuiltInFunctionCalls++
+		if bh.crtNumberOfBuiltInFunctionCalls > bh.maxBuiltInCallsPerTx {
+			return process.OutOfAPICalls
+		}
+
+		parsedTransfer, err := bh.esdtTransferParser.ParseESDTTransfers(input.CallerAddr, input.RecipientAddr, input.Function, input.Arguments)
+		if err == nil {
+			bh.crtNumberOfTransfers += uint64(len(parsedTransfer.ESDTTransfers))
+			if bh.crtNumberOfTransfers > bh.maxNumberOfTransfersPerTx {
+				return process.OutOfAPICalls
+			}
+		}
+	}
+	return nil
 }
 
 // SaveNFTMetaDataToSystemAccount will save NFT meta data to system account for the given transaction
@@ -800,8 +811,22 @@ func (bh *BlockChainHookImpl) EpochConfirmed(epoch uint32, _ uint64) {
 	}
 }
 
-// ResetMaxCounters resets the state counters for the block chain hook
-func (bh *BlockChainHookImpl) ResetMaxCounters() {
+// GasScheduleChange sets the new gas schedule where it is needed
+func (bh *BlockChainHookImpl) GasScheduleChange(gasSchedule map[string]map[string]uint64) {
+	bh.mutGasLock.Lock()
+	defer bh.mutGasLock.Unlock()
+
+	maxPerTransaction := gasSchedule[common.MaxPerTransaction]
+	if maxPerTransaction == nil {
+		return
+	}
+
+	bh.maxBuiltInCallsPerTx = maxPerTransaction["MaxBuiltInCallsPerTx"]
+	bh.maxNumberOfTransfersPerTx = maxPerTransaction["MaxNumberOfTransfersPerTx"]
+}
+
+// ResetCounters resets the state counters for the block chain hook
+func (bh *BlockChainHookImpl) ResetCounters() {
 	bh.crtNumberOfBuiltInFunctionCalls = 0
 	bh.crtNumberOfTransfers = 0
 	bh.crtNumberOfTrieReads = 0
