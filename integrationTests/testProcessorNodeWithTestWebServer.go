@@ -228,19 +228,20 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 	log.LogIfError(err)
 
 	argsBlockAPI := &blockAPI.ArgAPIBlockProcessor{
-		SelfShardID:              tpn.ShardCoordinator.SelfId(),
-		Store:                    tpn.Storage,
-		Marshalizer:              TestMarshalizer,
-		Uint64ByteSliceConverter: TestUint64Converter,
-		HistoryRepo:              tpn.HistoryRepository,
-		APITransactionHandler:    apiTransactionHandler,
-		StatusComputer:           statusCom,
-		Hasher:                   TestHasher,
-		AddressPubkeyConverter:   TestAddressPubkeyConverter,
-		LogsFacade:               logsFacade,
-		ReceiptsRepository:       receiptsRepository,
-		AlteredAccountsProvider:  &testscommon.AlteredAccountsProviderStub{},
-		AccountsRepository:       &state.AccountsRepositoryStub{},
+		SelfShardID:                  tpn.ShardCoordinator.SelfId(),
+		Store:                        tpn.Storage,
+		Marshalizer:                  TestMarshalizer,
+		Uint64ByteSliceConverter:     TestUint64Converter,
+		HistoryRepo:                  tpn.HistoryRepository,
+		APITransactionHandler:        apiTransactionHandler,
+		StatusComputer:               statusCom,
+		Hasher:                       TestHasher,
+		AddressPubkeyConverter:       TestAddressPubkeyConverter,
+		LogsFacade:                   logsFacade,
+		ReceiptsRepository:           receiptsRepository,
+		AlteredAccountsProvider:      &testscommon.AlteredAccountsProviderStub{},
+		AccountsRepository:           &state.AccountsRepositoryStub{},
+		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 	}
 	blockAPIHandler, err := blockAPI.CreateAPIBlockProcessor(argsBlockAPI)
 	log.LogIfError(err)
