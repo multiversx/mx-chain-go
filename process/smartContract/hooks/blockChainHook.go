@@ -59,6 +59,7 @@ type ArgBlockChainHook struct {
 	EnableEpochsHandler   common.EnableEpochsHandler
 	WorkingDir            string
 	NilCompiledSCStore    bool
+	GasSchedule           core.GasScheduleNotifier
 }
 
 // BlockChainHookImpl is a wrapper over AccountsAdapter that satisfy vmcommon.BlockchainHook interface
@@ -85,6 +86,12 @@ type BlockChainHookImpl struct {
 	nilCompiledSCStore bool
 
 	mapActivationEpochs map[uint32]struct{}
+
+	esdtTransferParser              vmcommon.ESDTTransferParser
+	gasSchedule                     core.GasScheduleNotifier
+	crtNumberOfBuiltInFunctionCalls uint64
+	crtNumberOfTransfers            uint64
+	crtNumberOfTrieReads            uint64
 }
 
 // NewBlockChainHookImpl creates a new BlockChainHookImpl instance
@@ -97,21 +104,24 @@ func NewBlockChainHookImpl(
 	}
 
 	blockChainHookImpl := &BlockChainHookImpl{
-		accounts:              args.Accounts,
-		pubkeyConv:            args.PubkeyConv,
-		storageService:        args.StorageService,
-		blockChain:            args.BlockChain,
-		shardCoordinator:      args.ShardCoordinator,
-		marshalizer:           args.Marshalizer,
-		uint64Converter:       args.Uint64Converter,
-		builtInFunctions:      args.BuiltInFunctions,
-		compiledScPool:        args.CompiledSCPool,
-		configSCStorage:       args.ConfigSCStorage,
-		workingDir:            args.WorkingDir,
-		nilCompiledSCStore:    args.NilCompiledSCStore,
-		nftStorageHandler:     args.NFTStorageHandler,
-		globalSettingsHandler: args.GlobalSettingsHandler,
-		enableEpochsHandler:   args.EnableEpochsHandler,
+		accounts:                        args.Accounts,
+		pubkeyConv:                      args.PubkeyConv,
+		storageService:                  args.StorageService,
+		blockChain:                      args.BlockChain,
+		shardCoordinator:                args.ShardCoordinator,
+		marshalizer:                     args.Marshalizer,
+		uint64Converter:                 args.Uint64Converter,
+		builtInFunctions:                args.BuiltInFunctions,
+		compiledScPool:                  args.CompiledSCPool,
+		configSCStorage:                 args.ConfigSCStorage,
+		workingDir:                      args.WorkingDir,
+		nilCompiledSCStore:              args.NilCompiledSCStore,
+		nftStorageHandler:               args.NFTStorageHandler,
+		globalSettingsHandler:           args.GlobalSettingsHandler,
+		enableEpochsHandler:             args.EnableEpochsHandler,
+		gasSchedule:                     args.GasSchedule,
+		crtNumberOfBuiltInFunctionCalls: 0,
+		crtNumberOfTrieReads:            0,
 	}
 
 	err = blockChainHookImpl.makeCompiledSCStorage()
@@ -124,6 +134,11 @@ func NewBlockChainHookImpl(
 	blockChainHookImpl.mapActivationEpochs = createMapActivationEpochs(&args.EnableEpochs)
 
 	args.EpochNotifier.RegisterNotifyHandler(blockChainHookImpl)
+
+	blockChainHookImpl.esdtTransferParser, err = parsers.NewESDTTransferParser(args.Marshalizer)
+	if err != nil {
+		return nil, err
+	}
 
 	return blockChainHookImpl, nil
 }
@@ -182,6 +197,9 @@ func checkForNil(args ArgBlockChainHook) error {
 	}
 	if check.IfNil(args.EnableEpochsHandler) {
 		return process.ErrNilEnableEpochsHandler
+	}
+	if check.IfNil(args.GasSchedule) {
+		return process.ErrNilGasSchedule
 	}
 
 	return nil
@@ -403,6 +421,26 @@ func (bh *BlockChainHookImpl) NewAddress(creatorAddress []byte, creatorNonce uin
 // ProcessBuiltInFunction is the hook through which a smart contract can execute a built-in function
 func (bh *BlockChainHookImpl) ProcessBuiltInFunction(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
 	defer stopMeasure(startMeasure("ProcessBuiltInFunction"))
+
+	if bh.enableEpochsHandler.IsMaxBlockchainHookCountersFlagEnabled() {
+		gasSchedule := bh.gasSchedule.LatestGasSchedule()
+
+		maxBuiltInCallsPerTx := gasSchedule["MaxPerTransaction"]["MaxBuiltInCallsPerTx"]
+		bh.crtNumberOfBuiltInFunctionCalls++
+		if bh.crtNumberOfBuiltInFunctionCalls > maxBuiltInCallsPerTx {
+			return nil, process.OutOfAPICalls
+		}
+
+		maxNumberOfTransfersPerTx := gasSchedule["MaxPerTransaction"]["MaxNumberOfTransfersPerTx"]
+		parsedTransfer, err := bh.esdtTransferParser.ParseESDTTransfers(input.CallerAddr, input.RecipientAddr, input.Function, input.Arguments)
+		if err != nil {
+			return nil, err
+		}
+		bh.crtNumberOfTransfers += uint64(len(parsedTransfer.ESDTTransfers))
+		if bh.crtNumberOfTransfers > maxNumberOfTransfersPerTx {
+			return nil, process.OutOfAPICalls
+		}
+	}
 
 	if input == nil {
 		return nil, process.ErrNilVmInput
@@ -760,6 +798,13 @@ func (bh *BlockChainHookImpl) EpochConfirmed(epoch uint32, _ uint64) {
 	if ok {
 		bh.ClearCompiledCodes()
 	}
+}
+
+// ResetMaxCounters resets the state counters for the block chain hook
+func (bh *BlockChainHookImpl) ResetMaxCounters() {
+	bh.crtNumberOfBuiltInFunctionCalls = 0
+	bh.crtNumberOfTransfers = 0
+	bh.crtNumberOfTrieReads = 0
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -348,6 +348,10 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 	genericEpochNotifier := forking.NewGenericEpochNotifier()
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, genericEpochNotifier)
 
+	gasSchedule := make(map[string]map[string]uint64)
+	defaults.FillGasMapInternal(gasSchedule, 1)
+	gasScheduleNotifier := mock.NewGasScheduleNotifierMock(gasSchedule)
+
 	builtInFuncs := vmcommonBuiltInFunctions.NewBuiltInFunctionContainer()
 	datapool := dataRetrieverMock.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{
@@ -367,6 +371,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		ConfigSCStorage:       *defaultStorageConfig(),
 		EpochNotifier:         genericEpochNotifier,
 		EnableEpochsHandler:   enableEpochsHandler,
+		GasSchedule:           gasScheduleNotifier,
 	}
 
 	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
@@ -388,8 +393,6 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		EnableEpochsHandler: enableEpochsHandler,
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
-	gasSchedule := make(map[string]map[string]uint64)
-	defaults.FillGasMapInternal(gasSchedule, 1)
 
 	economicsData, err := createEconomicsData(enableEpochsConfig)
 	if err != nil {
@@ -414,7 +417,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		GasHandler: &testscommon.GasHandlerStub{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
-		GasSchedule:         mock.NewGasScheduleNotifierMock(gasSchedule),
+		GasSchedule:         gasScheduleNotifier,
 		TxLogsProcessor:     &mock.TxLogsProcessorStub{},
 		EnableEpochsHandler: enableEpochsHandler,
 		VMOutputCacher:      txcache.NewDisabledCache(),
@@ -463,6 +466,7 @@ func CreateOneSCExecutorMockVM(accnts state.AccountsAdapter) vmcommon.VMExecutio
 		ConfigSCStorage:       *defaultStorageConfig(),
 		EpochNotifier:         &epochNotifier.EpochNotifierStub{},
 		EnableEpochsHandler:   &testscommon.EnableEpochsHandlerStub{},
+		GasSchedule:           createMockGasScheduleNotifier(),
 	}
 	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
 	vm, _ := mock.NewOneSCExecutorMockVM(blockChainHook, integrationtests.TestHasher)
@@ -520,6 +524,7 @@ func CreateVMAndBlockchainHookAndDataPool(
 		ConfigSCStorage:       *defaultStorageConfig(),
 		EpochNotifier:         epochNotifierInstance,
 		EnableEpochsHandler:   enableEpochsHandler,
+		GasSchedule:           gasSchedule,
 	}
 
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(integrationtests.TestMarshalizer)
@@ -598,6 +603,7 @@ func CreateVMAndBlockchainHookMeta(
 		NilCompiledSCStore:    true,
 		EpochNotifier:         globalEpochNotifier,
 		EnableEpochsHandler:   enableEpochsHandler,
+		GasSchedule:           gasSchedule,
 	}
 
 	economicsData, err := createEconomicsData(config.EnableEpochs{})

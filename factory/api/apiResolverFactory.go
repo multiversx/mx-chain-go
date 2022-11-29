@@ -371,6 +371,7 @@ func createScQueryElement(
 		EpochNotifier:         args.coreComponents.EpochNotifier(),
 		EnableEpochsHandler:   args.coreComponents.EnableEpochsHandler(),
 		NilCompiledSCStore:    true,
+		GasSchedule:           args.gasScheduleNotifier,
 	}
 
 	maxGasForVmQueries := args.generalConfig.VirtualMachine.GasConfig.ShardMaxGasPerVmQuery

@@ -418,6 +418,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		EpochNotifier:         epochNotifier,
 		EnableEpochsHandler:   enableEpochsHandler,
 		NilCompiledSCStore:    true,
+		GasSchedule:           arg.GasSchedule,
 	}
 	esdtTransferParser, err := parsers.NewESDTTransferParser(arg.Core.InternalMarshalizer())
 	if err != nil {

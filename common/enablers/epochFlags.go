@@ -83,6 +83,7 @@ type epochFlagsHolder struct {
 	refactorPeersMiniBlocksFlag                 *atomic.Flag
 	fixAsyncCallBackArgsList                    *atomic.Flag
 	fixOldTokenLiquidity                        *atomic.Flag
+	maxBlockchainHookCountersFlag               *atomic.Flag
 }
 
 func newEpochFlagsHolder() *epochFlagsHolder {
@@ -167,6 +168,7 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		refactorPeersMiniBlocksFlag:                 &atomic.Flag{},
 		fixAsyncCallBackArgsList:                    &atomic.Flag{},
 		fixOldTokenLiquidity:                        &atomic.Flag{},
+		maxBlockchainHookCountersFlag:               &atomic.Flag{},
 	}
 }
 
@@ -621,4 +623,9 @@ func (holder *epochFlagsHolder) IsFixAsyncCallBackArgsListFlagEnabled() bool {
 // IsFixOldTokenLiquidityEnabled returns true if fixOldTokenLiquidity is enabled
 func (holder *epochFlagsHolder) IsFixOldTokenLiquidityEnabled() bool {
 	return holder.fixOldTokenLiquidity.IsSet()
+}
+
+// IsMaxBlockchainHookCountersFlagEnabled returns true if maxBlockchainHookCountersFlagEnabled is enabled
+func (holder *epochFlagsHolder) IsMaxBlockchainHookCountersFlagEnabled() bool {
+	return holder.maxBlockchainHookCountersFlag.IsSet()
 }

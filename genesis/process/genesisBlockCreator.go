@@ -443,6 +443,7 @@ func (gbc *genesisBlockCreator) computeDNSAddresses(enableEpochsConfig config.En
 		EpochNotifier:         epochNotifier,
 		EnableEpochsHandler:   enableEpochsHandler,
 		NilCompiledSCStore:    true,
+		GasSchedule:           gbc.arg.GasSchedule,
 	}
 	blockChainHook, err := hooks.NewBlockChainHookImpl(argsHook)
 	if err != nil {

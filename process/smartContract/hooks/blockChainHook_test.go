@@ -62,6 +62,7 @@ func createMockBlockChainHookArgs() hooks.ArgBlockChainHook {
 		EnableEpochs: config.EnableEpochs{
 			DoNotReturnOldBlockInBlockchainHookEnableEpoch: math.MaxUint32,
 		},
+		GasSchedule: testscommon.NewGasScheduleNotifierMock(make(map[string]map[string]uint64)),
 	}
 	return arguments
 }

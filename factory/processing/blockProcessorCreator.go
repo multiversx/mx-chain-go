@@ -1155,6 +1155,7 @@ func (pcf *processComponentsFactory) createVMFactoryShard(
 		EnableEpochsHandler:   pcf.coreData.EnableEpochsHandler(),
 		NilCompiledSCStore:    false,
 		ConfigSCStorage:       configSCStorage,
+		GasSchedule:           pcf.gasSchedule,
 	}
 
 	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(argsHook)
@@ -1202,6 +1203,7 @@ func (pcf *processComponentsFactory) createVMFactoryMeta(
 		EpochNotifier:         pcf.coreData.EpochNotifier(),
 		EnableEpochsHandler:   pcf.coreData.EnableEpochsHandler(),
 		NilCompiledSCStore:    false,
+		GasSchedule:           pcf.gasSchedule,
 	}
 
 	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(argsHook)

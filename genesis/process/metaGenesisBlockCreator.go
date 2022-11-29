@@ -316,6 +316,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		EpochNotifier:         epochNotifier,
 		EnableEpochsHandler:   enableEpochsHandler,
 		NilCompiledSCStore:    true,
+		GasSchedule:           arg.GasSchedule,
 	}
 
 	pubKeyVerifier, err := disabled.NewMessageSignVerifier(arg.BlockSignKeyGen)

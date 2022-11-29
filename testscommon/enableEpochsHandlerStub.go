@@ -112,6 +112,7 @@ type EnableEpochsHandlerStub struct {
 	IsRefactorPeersMiniBlocksFlagEnabledField                    bool
 	IsFixAsyncCallBackArgsListFlagEnabledField                   bool
 	IsFixOldTokenLiquidityEnabledField                           bool
+	IsMaxBlockchainHookCountersFlagEnabledField                  bool
 }
 
 // ResetPenalizedTooMuchGasFlag -
@@ -967,6 +968,14 @@ func (stub *EnableEpochsHandlerStub) IsFixOldTokenLiquidityEnabled() bool {
 	defer stub.RUnlock()
 
 	return stub.IsFixOldTokenLiquidityEnabledField
+}
+
+// IsMaxBlockchainHookCountersFlagEnabled -
+func (stub *EnableEpochsHandlerStub) IsMaxBlockchainHookCountersFlagEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsMaxBlockchainHookCountersFlagEnabledField
 }
 
 // IsInterfaceNil -

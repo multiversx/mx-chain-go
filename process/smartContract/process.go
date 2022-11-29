@@ -368,6 +368,10 @@ func (sc *scProcessor) executeSmartContractCall(
 		return userErrorVmOutput, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(returnMessage), snapshot, vmInput.GasLocked)
 	}
 
+	if sc.enableEpochsHandler.IsMaxBlockchainHookCountersFlagEnabled() {
+		sc.blockChainHook.ResetMaxCounters()
+	}
+
 	var vmOutput *vmcommon.VMOutput
 	vmOutput, err = vmExec.RunSmartContractCall(vmInput)
 	sc.arwenChangeLocker.RUnlock()
@@ -844,6 +848,10 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 	tx data.TransactionHandler,
 	acntSnd, acntDst state.UserAccountHandler,
 ) (vmcommon.ReturnCode, error) {
+	if sc.enableEpochsHandler.IsMaxBlockchainHookCountersFlagEnabled() {
+		sc.blockChainHook.ResetMaxCounters()
+	}
+
 	returnCode, vmInput, txHash, err := sc.prepareExecution(tx, acntSnd, acntDst, true)
 	if err != nil || returnCode != vmcommon.Ok {
 		return returnCode, err
@@ -1613,6 +1621,10 @@ func (sc *scProcessor) doDeploySmartContract(
 	tx data.TransactionHandler,
 	acntSnd state.UserAccountHandler,
 ) (vmcommon.ReturnCode, error) {
+	if sc.enableEpochsHandler.IsMaxBlockchainHookCountersFlagEnabled() {
+		sc.blockChainHook.ResetMaxCounters()
+	}
+
 	isEmptyAddress := sc.isDestAddressEmpty(tx)
 	if !isEmptyAddress {
 		log.Debug("wrong transaction - not empty address", "error", process.ErrWrongTransaction.Error())

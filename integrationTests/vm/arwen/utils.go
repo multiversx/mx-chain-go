@@ -231,8 +231,9 @@ func (context *TestContext) initFeeHandlers() {
 }
 
 func (context *TestContext) initVMAndBlockchainHook() {
+	gasSchedule := mock.NewGasScheduleNotifierMock(context.GasSchedule)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:               mock.NewGasScheduleNotifierMock(context.GasSchedule),
+		GasSchedule:               gasSchedule,
 		MapDNSAddresses:           DNSAddresses,
 		Marshalizer:               marshalizer,
 		Accounts:                  context.Accounts,
@@ -278,6 +279,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 				MaxBatchSize:      100,
 			},
 		},
+		GasSchedule: gasSchedule,
 	}
 
 	vmFactoryConfig := config.VirtualMachineConfig{
