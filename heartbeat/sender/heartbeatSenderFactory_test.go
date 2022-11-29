@@ -22,17 +22,18 @@ import (
 
 func createMockHeartbeatSenderFactoryArgs() argHeartbeatSenderFactory {
 	return argHeartbeatSenderFactory{
-		argBaseSender:        createMockBaseArgs(),
-		baseVersionNumber:    "base version number",
-		versionNumber:        "version number",
-		nodeDisplayName:      "node name",
-		identity:             "identity",
-		peerSubType:          core.RegularPeer,
-		currentBlockProvider: &mock.CurrentBlockProviderStub{},
-		peerTypeProvider:     &mock.PeerTypeProviderStub{},
-		managedPeersHolder:   &testscommon.ManagedPeersHolderStub{},
-		shardCoordinator:     createShardCoordinatorInShard(0),
-		nodesCoordinator:     &shardingMocks.NodesCoordinatorStub{},
+		argBaseSender:              createMockBaseArgs(),
+		baseVersionNumber:          "base version number",
+		versionNumber:              "version number",
+		nodeDisplayName:            "node name",
+		identity:                   "identity",
+		peerSubType:                core.RegularPeer,
+		currentBlockProvider:       &mock.CurrentBlockProviderStub{},
+		peerTypeProvider:           &mock.PeerTypeProviderStub{},
+		managedPeersHolder:         &testscommon.ManagedPeersHolderStub{},
+		shardCoordinator:           createShardCoordinatorInShard(0),
+		nodesCoordinator:           &shardingMocks.NodesCoordinatorStub{},
+		trieSyncStatisticsProvider: &testscommon.SizeSyncStatisticsHandlerStub{},
 	}
 }
 

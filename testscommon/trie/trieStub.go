@@ -11,7 +11,7 @@ var errNotImplemented = errors.New("not implemented")
 
 // TrieStub -
 type TrieStub struct {
-	GetCalled                   func(key []byte) ([]byte, error)
+	GetCalled                   func(key []byte) ([]byte, uint32, error)
 	UpdateCalled                func(key, value []byte) error
 	DeleteCalled                func(key []byte) error
 	RootCalled                  func() ([]byte, error)
@@ -69,12 +69,12 @@ func (ts *TrieStub) GetAllLeavesOnChannel(leavesChannels *common.TrieIteratorCha
 }
 
 // Get -
-func (ts *TrieStub) Get(key []byte) ([]byte, error) {
+func (ts *TrieStub) Get(key []byte) ([]byte, uint32, error) {
 	if ts.GetCalled != nil {
 		return ts.GetCalled(key)
 	}
 
-	return nil, errNotImplemented
+	return nil, 0, errNotImplemented
 }
 
 // Update -

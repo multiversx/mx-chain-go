@@ -7,7 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
+	"github.com/ElrondNetwork/elrond-go-core/data/outport"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/outport/mock"
 	"github.com/ElrondNetwork/elrond-go/outport/notifier"
@@ -97,13 +97,13 @@ func TestSaveBlock(t *testing.T) {
 
 	en, _ := notifier.NewEventNotifier(args)
 
-	saveBlockData := &indexer.ArgsSaveBlockData{
+	saveBlockData := &outport.ArgsSaveBlockData{
 		HeaderHash: []byte{},
-		TransactionsPool: &indexer.Pool{
-			Txs: map[string]data.TransactionHandler{
+		TransactionsPool: &outport.Pool{
+			Txs: map[string]data.TransactionHandlerWithGasUsedAndFee{
 				"txhash1": nil,
 			},
-			Scrs: map[string]data.TransactionHandler{
+			Scrs: map[string]data.TransactionHandlerWithGasUsedAndFee{
 				"scrHash1": nil,
 			},
 			Logs: []*data.LogData{},
@@ -244,7 +244,7 @@ func TestMockFunctions(t *testing.T) {
 	err = en.SaveValidatorsPubKeys(nil, 0)
 	require.Nil(t, err)
 
-	err = en.SaveAccounts(0, nil)
+	err = en.SaveAccounts(0, nil, 0)
 	require.Nil(t, err)
 
 	err = en.Close()

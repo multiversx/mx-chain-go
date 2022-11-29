@@ -5,8 +5,6 @@ import (
 	"io"
 	"sort"
 
-	arwen14 "github.com/ElrondNetwork/wasm-vm/arwen"
-	arwenHost14 "github.com/ElrondNetwork/wasm-vm/arwen/host"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -21,6 +19,8 @@ import (
 	arwenHost12 "github.com/ElrondNetwork/wasm-vm-v1_2/arwen/host"
 	arwen13 "github.com/ElrondNetwork/wasm-vm-v1_3/arwen"
 	arwenHost13 "github.com/ElrondNetwork/wasm-vm-v1_3/arwen/host"
+	arwen14 "github.com/ElrondNetwork/wasm-vm-v1_4/arwen"
+	arwenHost14 "github.com/ElrondNetwork/wasm-vm-v1_4/arwen/host"
 )
 
 var _ process.VirtualMachinesContainerFactory = (*vmContainerFactory)(nil)

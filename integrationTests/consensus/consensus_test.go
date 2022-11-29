@@ -99,7 +99,7 @@ func startNodesWithCommitBlock(nodes []*integrationTests.TestConsensusNode, mute
 	for _, n := range nodes {
 		nCopy := n
 		n.BlockProcessor.CommitBlockCalled = func(header data.HeaderHandler, body data.BodyHandler) error {
-			nCopy.BlockProcessor.NrCommitBlockCalled++
+			nCopy.BlockProcessor.NumCommitBlockCalled++
 			_ = nCopy.ChainHandler.SetCurrentBlockHeaderAndRootHash(header, header.GetRootHash())
 
 			mutex.Lock()
@@ -132,16 +132,17 @@ func startNodesWithCommitBlock(nodes []*integrationTests.TestConsensusNode, mute
 					SyncProcessTimeInMillis: 6000,
 				},
 			},
-			BootstrapRoundIndex: 0,
-			CoreComponents:      n.Node.GetCoreComponents(),
-			NetworkComponents:   n.Node.GetNetworkComponents(),
-			CryptoComponents:    n.Node.GetCryptoComponents(),
-			DataComponents:      n.Node.GetDataComponents(),
-			ProcessComponents:   n.Node.GetProcessComponents(),
-			StateComponents:     n.Node.GetStateComponents(),
-			StatusComponents:    statusComponents,
-			ScheduledProcessor:  &consensusMocks.ScheduledProcessorStub{},
-			IsInImportMode:      n.Node.IsInImportMode(),
+			BootstrapRoundIndex:  0,
+			CoreComponents:       n.Node.GetCoreComponents(),
+			NetworkComponents:    n.Node.GetNetworkComponents(),
+			CryptoComponents:     n.Node.GetCryptoComponents(),
+			DataComponents:       n.Node.GetDataComponents(),
+			ProcessComponents:    n.Node.GetProcessComponents(),
+			StateComponents:      n.Node.GetStateComponents(),
+			StatusComponents:     statusComponents,
+			StatusCoreComponents: n.Node.GetStatusCoreComponents(),
+			ScheduledProcessor:   &consensusMocks.ScheduledProcessorStub{},
+			IsInImportMode:       n.Node.IsInImportMode(),
 		}
 
 		consensusFactory, err := consensusComp.NewConsensusComponentsFactory(consensusArgs)

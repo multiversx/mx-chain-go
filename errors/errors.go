@@ -464,6 +464,12 @@ var ErrNilTxsSender = errors.New("nil transactions sender has been provided")
 // ErrNilProcessStatusHandler signals that a nil process status handler was provided
 var ErrNilProcessStatusHandler = errors.New("nil process status handler")
 
+// ErrNilESDTDataStorage signals that a nil esdt data storage has been provided
+var ErrNilESDTDataStorage = errors.New("nil esdt data storage")
+
+// ErrDBIsClosed is raised when the DB is closed
+var ErrDBIsClosed = errors.New("DB is closed")
+
 // ErrNilEnableEpochsHandler signals that a nil enable epochs handler was provided
 var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
 
@@ -508,6 +514,21 @@ var ErrNilNetworkStatistics = errors.New("nil network statistics")
 
 // ErrNilResourceMonitor signals that a nil resource monitor was provided
 var ErrNilResourceMonitor = errors.New("nil resource monitor")
+
+// ErrNilTrieSyncStatistics signals that a nil trie sync statistics was provided
+var ErrNilTrieSyncStatistics = errors.New("nil trie sync statistics")
+
+// ErrNilAppStatusHandler signals that a nil app status handler was provided
+var ErrNilAppStatusHandler = errors.New("nil app status handler")
+
+// ErrNilStatusMetrics signals that a nil status metrics was provided
+var ErrNilStatusMetrics = errors.New("nil status metrics")
+
+// ErrNilPersistentHandler signals that a nil persistent handler was provided
+var ErrNilPersistentHandler = errors.New("nil persistent handler")
+
+// ErrNilGenesisNodesSetupHandler signals that a nil genesis nodes setup handler has been provided
+var ErrNilGenesisNodesSetupHandler = errors.New("nil genesis nodes setup handler")
 
 // ErrNilManagedPeersHolder signals that a nil managed peers holder has been provided
 var ErrNilManagedPeersHolder = errors.New("nil managed peers holder")

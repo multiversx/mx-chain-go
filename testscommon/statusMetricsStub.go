@@ -23,37 +23,62 @@ func (sms *StatusMetricsStub) StatusMetricsWithoutP2PPrometheusString() (string,
 
 // ConfigMetrics -
 func (sms *StatusMetricsStub) ConfigMetrics() (map[string]interface{}, error) {
-	return sms.ConfigMetricsCalled()
+	if sms.ConfigMetricsCalled != nil {
+		return sms.ConfigMetricsCalled()
+	}
+	return baseReturnValues()
 }
 
 // NetworkMetrics -
 func (sms *StatusMetricsStub) NetworkMetrics() (map[string]interface{}, error) {
-	return sms.NetworkMetricsCalled()
+	if sms.NetworkMetricsCalled != nil {
+		return sms.NetworkMetricsCalled()
+	}
+	return baseReturnValues()
 }
 
 // EconomicsMetrics -
 func (sms *StatusMetricsStub) EconomicsMetrics() (map[string]interface{}, error) {
-	return sms.EconomicsMetricsCalled()
+	if sms.EconomicsMetricsCalled != nil {
+		return sms.EconomicsMetricsCalled()
+	}
+	return baseReturnValues()
 }
 
 // StatusMetricsMapWithoutP2P -
 func (sms *StatusMetricsStub) StatusMetricsMapWithoutP2P() (map[string]interface{}, error) {
-	return sms.StatusMetricsMapWithoutP2PCalled()
+	if sms.StatusMetricsMapWithoutP2PCalled != nil {
+		return sms.StatusMetricsMapWithoutP2PCalled()
+	}
+	return baseReturnValues()
 }
 
 // StatusP2pMetricsMap -
 func (sms *StatusMetricsStub) StatusP2pMetricsMap() (map[string]interface{}, error) {
-	return sms.StatusP2pMetricsMapCalled()
+	if sms.StatusP2pMetricsMapCalled != nil {
+		return sms.StatusP2pMetricsMapCalled()
+	}
+	return baseReturnValues()
 }
 
 // EnableEpochsMetrics -
 func (sms *StatusMetricsStub) EnableEpochsMetrics() (map[string]interface{}, error) {
-	return sms.EnableEpochsMetricsCalled()
+	if sms.EnableEpochsMetricsCalled != nil {
+		return sms.EnableEpochsMetricsCalled()
+	}
+	return baseReturnValues()
 }
 
-// RatingsConfig -
+// RatingsMetrics -
 func (sms *StatusMetricsStub) RatingsMetrics() (map[string]interface{}, error) {
-	return sms.RatingsMetricsCalled()
+	if sms.RatingsMetricsCalled != nil {
+		return sms.RatingsMetricsCalled()
+	}
+	return baseReturnValues()
+}
+
+func baseReturnValues() (map[string]interface{}, error) {
+	return make(map[string]interface{}), nil
 }
 
 // IsInterfaceNil -

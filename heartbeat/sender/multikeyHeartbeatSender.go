@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ElrondNetwork/covalent-indexer-go/process"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
@@ -13,22 +12,24 @@ import (
 // argMultikeyHeartbeatSender represents the arguments for the heartbeat sender
 type argMultikeyHeartbeatSender struct {
 	argBaseSender
-	peerTypeProvider     heartbeat.PeerTypeProviderHandler
-	versionNumber        string
-	baseVersionNumber    string
-	nodeDisplayName      string
-	identity             string
-	peerSubType          core.P2PPeerSubType
-	currentBlockProvider heartbeat.CurrentBlockProvider
-	managedPeersHolder   heartbeat.ManagedPeersHolder
-	shardCoordinator     process.ShardCoordinator
+	peerTypeProvider           heartbeat.PeerTypeProviderHandler
+	versionNumber              string
+	baseVersionNumber          string
+	nodeDisplayName            string
+	identity                   string
+	peerSubType                core.P2PPeerSubType
+	currentBlockProvider       heartbeat.CurrentBlockProvider
+	managedPeersHolder         heartbeat.ManagedPeersHolder
+	shardCoordinator           heartbeat.ShardCoordinator
+	trieSyncStatisticsProvider heartbeat.TrieSyncStatisticsProvider
 }
 
 type multikeyHeartbeatSender struct {
 	commonHeartbeatSender
-	baseVersionNumber  string
-	managedPeersHolder heartbeat.ManagedPeersHolder
-	shardCoordinator   process.ShardCoordinator
+	baseVersionNumber          string
+	managedPeersHolder         heartbeat.ManagedPeersHolder
+	shardCoordinator           heartbeat.ShardCoordinator
+	trieSyncStatisticsProvider heartbeat.TrieSyncStatisticsProvider
 }
 
 // newMultikeyHeartbeatSender creates a new instance of type multikeyHeartbeatSender
@@ -48,9 +49,10 @@ func newMultikeyHeartbeatSender(args argMultikeyHeartbeatSender) (*multikeyHeart
 			identity:             args.identity,
 			peerSubType:          args.peerSubType,
 		},
-		baseVersionNumber:  args.baseVersionNumber,
-		managedPeersHolder: args.managedPeersHolder,
-		shardCoordinator:   args.shardCoordinator,
+		baseVersionNumber:          args.baseVersionNumber,
+		managedPeersHolder:         args.managedPeersHolder,
+		shardCoordinator:           args.shardCoordinator,
+		trieSyncStatisticsProvider: args.trieSyncStatisticsProvider,
 	}, nil
 }
 
@@ -87,6 +89,9 @@ func checkMultikeyHeartbeatSenderArgs(args argMultikeyHeartbeatSender) error {
 	if check.IfNil(args.shardCoordinator) {
 		return heartbeat.ErrNilShardCoordinator
 	}
+	if check.IfNil(args.trieSyncStatisticsProvider) {
+		return heartbeat.ErrNilTrieSyncStatisticsProvider
+	}
 
 	return nil
 }
@@ -112,12 +117,14 @@ func (sender *multikeyHeartbeatSender) execute() error {
 		return err
 	}
 
+	trieNodesReceived := uint64(sender.trieSyncStatisticsProvider.NumProcessed())
 	buff, err := sender.generateMessageBytes(
 		sender.versionNumber,
 		sender.nodeDisplayName,
 		sender.identity,
 		uint32(sender.peerSubType),
 		pkBytes,
+		trieNodesReceived,
 	)
 	if err != nil {
 		return err
@@ -166,6 +173,7 @@ func (sender *multikeyHeartbeatSender) sendMessageForKey(pkBytes []byte) error {
 		identity,
 		uint32(core.RegularPeer), // force multi key handled peers to be of type regular peers
 		pkBytes,
+		0, // hardcode this to 0, the virtual peers do not handle the trie sync
 	)
 	if err != nil {
 		return err

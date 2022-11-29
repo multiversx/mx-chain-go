@@ -165,9 +165,53 @@ func (vip *validatorInfoPreprocessor) ProcessBlockTransactions(
 	return nil
 }
 
-// SaveTxsToStorage does nothing
-func (vip *validatorInfoPreprocessor) SaveTxsToStorage(_ *block.Body) error {
+// SaveTxsToStorage saves validator info from body into storage
+func (vip *validatorInfoPreprocessor) SaveTxsToStorage(body *block.Body) error {
+	if check.IfNil(body) {
+		return process.ErrNilBlockBody
+	}
+
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		miniBlock := body.MiniBlocks[i]
+		if miniBlock.Type != block.PeerBlock {
+			continue
+		}
+
+		vip.saveValidatorInfoToStorage(miniBlock)
+	}
+
 	return nil
+}
+
+func (vip *validatorInfoPreprocessor) saveValidatorInfoToStorage(miniBlock *block.MiniBlock) {
+	for _, txHash := range miniBlock.TxHashes {
+		val, ok := vip.validatorsInfoPool.SearchFirstData(txHash)
+		if !ok {
+			log.Debug("validatorInfoPreprocessor.saveValidatorInfoToStorage: SearchFirstData: tx not found in validator info pool", "txHash", txHash)
+			continue
+		}
+
+		validatorInfo, ok := val.(*state.ShardValidatorInfo)
+		if !ok {
+			log.Warn("validatorInfoPreprocessor.saveValidatorInfoToStorage: wrong type assertion", "txHash", txHash)
+			continue
+		}
+
+		buff, err := vip.marshalizer.Marshal(validatorInfo)
+		if err != nil {
+			log.Warn("validatorInfoPreprocessor.saveValidatorInfoToStorage: Marshal", "txHash", txHash, "error", err)
+			continue
+		}
+
+		err = vip.storage.Put(dataRetriever.UnsignedTransactionUnit, txHash, buff)
+		if err != nil {
+			log.Debug("validatorInfoPreprocessor.saveValidatorInfoToStorage: Put",
+				"txHash", txHash,
+				"dataUnit", dataRetriever.UnsignedTransactionUnit,
+				"error", err,
+			)
+		}
+	}
 }
 
 // CreateBlockStarted cleans the local cache map for processed/created validators info at this round

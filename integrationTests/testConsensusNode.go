@@ -35,6 +35,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
+	testFactory "github.com/ElrondNetwork/elrond-go/testscommon/factory"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
@@ -256,9 +257,14 @@ func (tcn *TestConsensusNode) initNode(
 	stateComponents.Accounts = tcn.AccountsDB
 	stateComponents.AccountsAPI = tcn.AccountsDB
 
+	statusCoreComponents := &testFactory.StatusCoreComponentsStub{
+		AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{},
+	}
+
 	var err error
 	tcn.Node, err = node.NewNode(
 		node.WithCoreComponents(coreComponents),
+		node.WithStatusCoreComponents(statusCoreComponents),
 		node.WithCryptoComponents(cryptoComponents),
 		node.WithProcessComponents(processComponents),
 		node.WithDataComponents(dataComponents),
@@ -359,7 +365,7 @@ func (tcn *TestConsensusNode) initBlockProcessor() {
 	}
 
 	tcn.BlockProcessor.CommitBlockCalled = func(header data.HeaderHandler, body data.BodyHandler) error {
-		tcn.BlockProcessor.NrCommitBlockCalled++
+		tcn.BlockProcessor.NumCommitBlockCalled++
 		_ = tcn.ChainHandler.SetCurrentBlockHeaderAndRootHash(header, header.GetRootHash())
 		return nil
 	}

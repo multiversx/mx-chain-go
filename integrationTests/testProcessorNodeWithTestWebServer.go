@@ -5,7 +5,6 @@ import (
 	"net/http/httptest"
 	"sync"
 
-	arwenConfig "github.com/ElrondNetwork/wasm-vm/config"
 	dataTransaction "github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/api/groups"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
@@ -25,9 +24,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/txstatus"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genesisMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	datafield "github.com/ElrondNetwork/elrond-vm-common/parsers/dataField"
+	arwenConfig "github.com/ElrondNetwork/wasm-vm-v1_4/config"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
@@ -201,9 +202,8 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 	receiptsRepository := &testscommon.ReceiptsRepositoryStub{}
 
 	argsDataFieldParser := &datafield.ArgsOperationDataFieldParser{
-		AddressLength:    TestAddressPubkeyConverter.Len(),
-		Marshalizer:      TestMarshalizer,
-		ShardCoordinator: tpn.ShardCoordinator,
+		AddressLength: TestAddressPubkeyConverter.Len(),
+		Marshalizer:   TestMarshalizer,
 	}
 	dataFieldParser, err := datafield.NewOperationDataFieldParser(argsDataFieldParser)
 	log.LogIfError(err)
@@ -228,17 +228,20 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 	log.LogIfError(err)
 
 	argsBlockAPI := &blockAPI.ArgAPIBlockProcessor{
-		SelfShardID:              tpn.ShardCoordinator.SelfId(),
-		Store:                    tpn.Storage,
-		Marshalizer:              TestMarshalizer,
-		Uint64ByteSliceConverter: TestUint64Converter,
-		HistoryRepo:              tpn.HistoryRepository,
-		APITransactionHandler:    apiTransactionHandler,
-		StatusComputer:           statusCom,
-		Hasher:                   TestHasher,
-		AddressPubkeyConverter:   TestAddressPubkeyConverter,
-		LogsFacade:               logsFacade,
-		ReceiptsRepository:       receiptsRepository,
+		SelfShardID:                  tpn.ShardCoordinator.SelfId(),
+		Store:                        tpn.Storage,
+		Marshalizer:                  TestMarshalizer,
+		Uint64ByteSliceConverter:     TestUint64Converter,
+		HistoryRepo:                  tpn.HistoryRepository,
+		APITransactionHandler:        apiTransactionHandler,
+		StatusComputer:               statusCom,
+		Hasher:                       TestHasher,
+		AddressPubkeyConverter:       TestAddressPubkeyConverter,
+		LogsFacade:                   logsFacade,
+		ReceiptsRepository:           receiptsRepository,
+		AlteredAccountsProvider:      &testscommon.AlteredAccountsProviderStub{},
+		AccountsRepository:           &state.AccountsRepositoryStub{},
+		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 	}
 	blockAPIHandler, err := blockAPI.CreateAPIBlockProcessor(argsBlockAPI)
 	log.LogIfError(err)
