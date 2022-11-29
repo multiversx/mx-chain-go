@@ -180,7 +180,7 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 	isMainMachine := redundancyLevel == mainMachineRedundancyLevel
 	argsManagedPeersHolder := keysManagement.ArgsManagedPeersHolder{
 		KeyGenerator:                     blockSignKeyGen,
-		P2PIdentityGenerator:             p2pFactory.NewRandomP2PIdentityGenerator(),
+		P2PIdentityGenerator:             p2pFactory.NewIdentityGenerator(),
 		IsMainMachine:                    isMainMachine,
 		MaxRoundsWithoutReceivedMessages: redundancyLevel,
 		PrefsConfig:                      ccf.prefsConfig,

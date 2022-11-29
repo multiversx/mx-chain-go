@@ -3,7 +3,6 @@ package sender
 import (
 	"fmt"
 
-	"github.com/ElrondNetwork/covalent-indexer-go/process"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
@@ -19,7 +18,7 @@ type argHeartbeatSenderFactory struct {
 	currentBlockProvider       heartbeat.CurrentBlockProvider
 	peerTypeProvider           heartbeat.PeerTypeProviderHandler
 	managedPeersHolder         heartbeat.ManagedPeersHolder
-	shardCoordinator           process.ShardCoordinator
+	shardCoordinator           heartbeat.ShardCoordinator
 	nodesCoordinator           heartbeat.NodesCoordinator
 	trieSyncStatisticsProvider heartbeat.TrieSyncStatisticsProvider
 }
