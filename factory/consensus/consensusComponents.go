@@ -69,12 +69,13 @@ type consensusComponentsFactory struct {
 }
 
 type consensusComponents struct {
-	chronology         consensus.ChronologyHandler
-	bootstrapper       process.Bootstrapper
-	broadcastMessenger consensus.BroadcastMessenger
-	worker             factory.ConsensusWorker
-	consensusTopic     string
-	consensusGroupSize int
+	chronology           consensus.ChronologyHandler
+	bootstrapper         process.Bootstrapper
+	broadcastMessenger   consensus.BroadcastMessenger
+	worker               factory.ConsensusWorker
+	peerBlacklistHandler consensus.PeerBlacklistHandler
+	consensusTopic       string
+	consensusGroupSize   int
 }
 
 // NewConsensusComponentsFactory creates an instance of consensusComponentsFactory
@@ -192,7 +193,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		marshalizer = marshal.NewSizeCheckUnmarshalizer(marshalizer, sizeCheckDelta)
 	}
 
-	peerBlacklistHandler, err := ccf.createPeerBlacklistHandler()
+	cc.peerBlacklistHandler, err = ccf.createPeerBlacklistHandler()
 	if err != nil {
 		return nil, err
 	}
@@ -222,7 +223,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		PublicKeySize:            ccf.config.ValidatorPubkeyConverter.Length,
 		AppStatusHandler:         ccf.statusCoreComponents.AppStatusHandler(),
 		NodeRedundancyHandler:    ccf.processComponents.NodeRedundancyHandler(),
-		PeerBlacklistHandler:     peerBlacklistHandler,
+		PeerBlacklistHandler:     cc.peerBlacklistHandler,
 	}
 
 	cc.worker, err = spos.NewWorker(workerArgs)
@@ -272,7 +273,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		NodeRedundancyHandler:         ccf.processComponents.NodeRedundancyHandler(),
 		ScheduledProcessor:            ccf.scheduledProcessor,
 		MessageSigningHandler:         p2pSigningHandler,
-		PeerBlacklistHandler:          peerBlacklistHandler,
+		PeerBlacklistHandler:          cc.peerBlacklistHandler,
 		SignatureHandler:              ccf.cryptoComponents.ConsensusSigHandler(),
 	}
 
@@ -324,6 +325,10 @@ func (cc *consensusComponents) Close() error {
 		return err
 	}
 	err = cc.bootstrapper.Close()
+	if err != nil {
+		return err
+	}
+	err = cc.peerBlacklistHandler.Close()
 	if err != nil {
 		return err
 	}

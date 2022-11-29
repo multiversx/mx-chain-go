@@ -160,6 +160,7 @@ type P2PSigningHandler interface {
 type PeerBlacklistHandler interface {
 	IsPeerBlacklisted(peer core.PeerID) bool
 	BlacklistPeer(peer core.PeerID, duration time.Duration)
+	Close() error
 	IsInterfaceNil() bool
 }
 
