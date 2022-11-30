@@ -14,6 +14,7 @@ import (
 	consensusComp "github.com/ElrondNetwork/elrond-go/factory/consensus"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	consensusMocks "github.com/ElrondNetwork/elrond-go/testscommon/consensus"
 	"github.com/stretchr/testify/assert"
 )
@@ -130,17 +131,18 @@ func startNodesWithCommitBlock(nodes []*integrationTests.TestConsensusNode, mute
 					SyncProcessTimeInMillis: 6000,
 				},
 			},
-			BootstrapRoundIndex:  0,
-			CoreComponents:       n.Node.GetCoreComponents(),
-			NetworkComponents:    n.Node.GetNetworkComponents(),
-			CryptoComponents:     n.Node.GetCryptoComponents(),
-			DataComponents:       n.Node.GetDataComponents(),
-			ProcessComponents:    n.Node.GetProcessComponents(),
-			StateComponents:      n.Node.GetStateComponents(),
-			StatusComponents:     statusComponents,
-			StatusCoreComponents: n.Node.GetStatusCoreComponents(),
-			ScheduledProcessor:   &consensusMocks.ScheduledProcessorStub{},
-			IsInImportMode:       n.Node.IsInImportMode(),
+			BootstrapRoundIndex:      0,
+			CoreComponents:           n.Node.GetCoreComponents(),
+			NetworkComponents:        n.Node.GetNetworkComponents(),
+			CryptoComponents:         n.Node.GetCryptoComponents(),
+			DataComponents:           n.Node.GetDataComponents(),
+			ProcessComponents:        n.Node.GetProcessComponents(),
+			StateComponents:          n.Node.GetStateComponents(),
+			StatusComponents:         statusComponents,
+			StatusCoreComponents:     n.Node.GetStatusCoreComponents(),
+			ScheduledProcessor:       &consensusMocks.ScheduledProcessorStub{},
+			IsInImportMode:           n.Node.IsInImportMode(),
+			HardforkExclusionHandler: &testscommon.HardforkExclusionHandlerStub{},
 		}
 
 		consensusFactory, err := consensusComp.NewConsensusComponentsFactory(consensusArgs)

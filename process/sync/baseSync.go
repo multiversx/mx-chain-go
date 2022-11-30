@@ -104,12 +104,13 @@ type baseBootstrap struct {
 	networkWatcher    process.NetworkConnectionWatcher
 	getHeaderFromPool func([]byte) (data.HeaderHandler, error)
 
-	headerStore          storage.Storer
-	headerNonceHashStore storage.Storer
-	syncStarter          syncStarter
-	bootStorer           process.BootStorer
-	storageBootstrapper  process.BootstrapperFromStorage
-	currentEpochProvider process.CurrentNetworkEpochProviderHandler
+	headerStore              storage.Storer
+	headerNonceHashStore     storage.Storer
+	syncStarter              syncStarter
+	bootStorer               process.BootStorer
+	storageBootstrapper      process.BootstrapperFromStorage
+	currentEpochProvider     process.CurrentNetworkEpochProviderHandler
+	hardforkExclusionHandler common.HardforkExclusionHandler
 
 	outportHandler   outport.OutportHandler
 	accountsDBSyncer process.AccountsDBSyncer
@@ -486,6 +487,9 @@ func checkBaseBootstrapParameters(arguments ArgBaseBootstrapper) error {
 	if arguments.ProcessWaitTime < minimumProcessWaitTime {
 		return fmt.Errorf("%w, minimum is %v, provided is %v", process.ErrInvalidProcessWaitTime, minimumProcessWaitTime, arguments.ProcessWaitTime)
 	}
+	if check.IfNil(arguments.HardforkExclusionHandler) {
+		return process.ErrNilHardforkExclusionHandler
+	}
 
 	return nil
 }
@@ -845,7 +849,8 @@ func (boot *baseBootstrap) shouldAllowRollback(currHeader data.HeaderHandler, cu
 	headerWithScheduledMiniBlocks := currHeader.HasScheduledMiniBlocks()
 	headerHashDoesNotMatchWithFinalBlockHash := !bytes.Equal(currHeaderHash, finalBlockHash)
 	allowFinalBlockRollBack := (headerWithScheduledMiniBlocks || headerHashDoesNotMatchWithFinalBlockHash) && isFinalBlockRollBack && canRollbackBlock
-	allowRollBack := !isRollBackBehindFinal || allowFinalBlockRollBack
+	isRollbackForbiddenForRound := boot.hardforkExclusionHandler.IsRollbackForbidden(currHeader.GetRound())
+	allowRollBack := (!isRollBackBehindFinal || allowFinalBlockRollBack) && !isRollbackForbiddenForRound
 
 	log.Debug("baseBootstrap.shouldAllowRollback",
 		"isRollBackBehindFinal", isRollBackBehindFinal,
@@ -854,6 +859,7 @@ func (boot *baseBootstrap) shouldAllowRollback(currHeader data.HeaderHandler, cu
 		"headerHashDoesNotMatchWithFinalBlockHash", headerHashDoesNotMatchWithFinalBlockHash,
 		"allowFinalBlockRollBack", allowFinalBlockRollBack,
 		"canRollbackBlock", canRollbackBlock,
+		"isRollbackForbiddenForRound", isRollbackForbiddenForRound,
 		"allowRollBack", allowRollBack,
 	)
 

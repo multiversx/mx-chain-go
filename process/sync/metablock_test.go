@@ -89,6 +89,7 @@ func CreateMetaBootstrapMockArguments() sync.ArgMetaBootstrapper {
 		HistoryRepo:                  &dblookupext.HistoryRepositoryStub{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessWaitTime:              testProcessWaitTime,
+		HardforkExclusionHandler:     &testscommon.HardforkExclusionHandlerStub{},
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{
@@ -409,6 +410,18 @@ func testMetaWithMissingStorer(missingUnit dataRetriever.UnitType) func(t *testi
 		require.NotNil(t, err)
 		require.True(t, strings.Contains(err.Error(), storage.ErrKeyNotFound.Error()))
 	}
+}
+
+func TestNewMetaBootstrap_NilHardforkExclusionHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := CreateMetaBootstrapMockArguments()
+	args.HardforkExclusionHandler = nil
+
+	bs, err := sync.NewMetaBootstrap(args)
+
+	assert.True(t, check.IfNil(bs))
+	assert.Equal(t, process.ErrNilHardforkExclusionHandler, err)
 }
 
 func TestNewMetaBootstrap_OkValsShouldWork(t *testing.T) {

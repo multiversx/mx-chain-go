@@ -339,5 +339,6 @@ type EnableEpochsHandler interface {
 // HardforkExclusionHandler defines what a hardfork exclusion handler can do
 type HardforkExclusionHandler interface {
 	IsRoundExcluded(round uint64) bool
+	IsRollbackForbidden(round uint64) bool
 	IsInterfaceNil() bool
 }

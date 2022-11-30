@@ -67,6 +67,7 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 		historyRepo:                  arguments.HistoryRepo,
 		scheduledTxsExecutionHandler: arguments.ScheduledTxsExecutionHandler,
 		processWaitTime:              arguments.ProcessWaitTime,
+		hardforkExclusionHandler:     arguments.HardforkExclusionHandler,
 	}
 
 	if base.isInImportMode {

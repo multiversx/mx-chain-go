@@ -161,17 +161,18 @@ func GetConsensusArgs(shardCoordinator sharding.Coordinator) consensusComp.Conse
 	scheduledProcessor, _ := spos.NewScheduledProcessorWrapper(args)
 
 	return consensusComp.ConsensusComponentsFactoryArgs{
-		Config:               testscommon.GetGeneralConfig(),
-		BootstrapRoundIndex:  0,
-		CoreComponents:       coreComponents,
-		NetworkComponents:    networkComponents,
-		CryptoComponents:     cryptoComponents,
-		DataComponents:       dataComponents,
-		ProcessComponents:    processComponents,
-		StateComponents:      stateComponents,
-		StatusComponents:     statusComponents,
-		StatusCoreComponents: GetStatusCoreComponents(),
-		ScheduledProcessor:   scheduledProcessor,
+		Config:                   testscommon.GetGeneralConfig(),
+		BootstrapRoundIndex:      0,
+		CoreComponents:           coreComponents,
+		NetworkComponents:        networkComponents,
+		CryptoComponents:         cryptoComponents,
+		DataComponents:           dataComponents,
+		ProcessComponents:        processComponents,
+		StateComponents:          stateComponents,
+		StatusComponents:         statusComponents,
+		StatusCoreComponents:     GetStatusCoreComponents(),
+		ScheduledProcessor:       scheduledProcessor,
+		HardforkExclusionHandler: &testscommon.HardforkExclusionHandlerStub{},
 	}
 }
 

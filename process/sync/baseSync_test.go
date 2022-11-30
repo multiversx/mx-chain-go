@@ -251,6 +251,11 @@ func TestBaseSync_shouldAllowRollback(t *testing.T) {
 				return *firstBlockNonce
 			},
 		},
+		hardforkExclusionHandler: &testscommon.HardforkExclusionHandlerStub{
+			IsRollbackForbiddenCalled: func(round uint64) bool {
+				return round == 15
+			},
+		},
 	}
 
 	t.Run("should allow rollback nonces above final", func(t *testing.T) {
@@ -353,5 +358,17 @@ func TestBaseSync_shouldAllowRollback(t *testing.T) {
 		}
 		require.False(t, boot.shouldAllowRollback(header, finalBlockHash))
 		require.False(t, boot.shouldAllowRollback(header, notFinalBlockHash))
+	})
+
+	t.Run("should not allow rollback of a final header if its round is excluded for hardfork", func(t *testing.T) {
+		firstBlockNonce.HasValue = false
+		header := &testscommon.HeaderHandlerStub{
+			RoundField: 15,
+			HasScheduledMiniBlocksCalled: func() bool {
+				return true
+			},
+		}
+		require.False(t, boot.shouldAllowRollback(header, finalBlockHash))
+		firstBlockNonce.HasValue = true
 	})
 }
