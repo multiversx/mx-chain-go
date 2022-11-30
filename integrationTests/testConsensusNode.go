@@ -20,9 +20,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/factory/peerSignatureHandler"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
+	"github.com/ElrondNetwork/elrond-go/keysManagement"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	p2pFactory "github.com/ElrondNetwork/elrond-go/p2p/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	syncFork "github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -83,7 +85,7 @@ func NewTestConsensusNode(
 		NodeKeys:         nodeKeys.MainKey,
 		ShardCoordinator: shardCoordinator,
 	}
-	tcn.initNode(consensusSize, roundTime, consensusType, eligibleMap, waitingMap, keyGen)
+	tcn.initNode(consensusSize, roundTime, consensusType, eligibleMap, waitingMap, keyGen, nodeKeys.HandledKeys)
 
 	return tcn
 }
@@ -132,6 +134,7 @@ func (tcn *TestConsensusNode) initNode(
 	eligibleMap map[uint32][]nodesCoordinator.Validator,
 	waitingMap map[uint32][]nodesCoordinator.Validator,
 	keyGen crypto.KeyGenerator,
+	handledKeys []*TestKeyPair,
 ) {
 
 	testHasher := createHasher(consensusType)
@@ -214,6 +217,28 @@ func (tcn *TestConsensusNode) initNode(
 	networkComponents.InputAntiFlood = &mock.NilAntifloodHandler{}
 	networkComponents.PeerHonesty = &mock.PeerHonestyHandlerStub{}
 
+	argsKeysHolder := keysManagement.ArgsManagedPeersHolder{
+		KeyGenerator:                     keyGen,
+		P2PIdentityGenerator:             p2pFactory.NewIdentityGenerator(),
+		IsMainMachine:                    true,
+		MaxRoundsWithoutReceivedMessages: 10,
+		PrefsConfig:                      config.Preferences{},
+	}
+	keysHolder, _ := keysManagement.NewManagedPeersHolder(argsKeysHolder)
+
+	// adding provided handled keys
+	for _, key := range handledKeys {
+		skBytes, _ := key.Sk.ToByteArray()
+		_ = keysHolder.AddManagedPeer(skBytes)
+	}
+
+	argsKeysHandler := keysManagement.ArgsKeysHandler{
+		ManagedPeersHolder: keysHolder,
+		PrivateKey:         tcn.NodeKeys.Sk,
+		Pid:                tcn.Messenger.ID(),
+	}
+	keysHandler, _ := keysManagement.NewKeysHandler(argsKeysHandler)
+
 	cryptoComponents := GetDefaultCryptoComponents()
 	cryptoComponents.PrivKey = tcn.NodeKeys.Sk
 	cryptoComponents.PubKey = tcn.NodeKeys.Sk.GeneratePublic()
@@ -222,14 +247,7 @@ func (tcn *TestConsensusNode) initNode(
 	cryptoComponents.MultiSigContainer = cryptoMocks.NewMultiSignerContainerMock(testMultiSig)
 	cryptoComponents.BlKeyGen = keyGen
 	cryptoComponents.PeerSignHandler = peerSigHandler
-	cryptoComponents.KeysHandlerField = &testscommon.KeysHandlerStub{
-		GetHandledPrivateKeyCalled: func(pkBytes []byte) crypto.PrivateKey {
-			return tcn.NodeKeys.Sk
-		},
-		GetAssociatedPidCalled: func(pkBytes []byte) core.PeerID {
-			return tcn.Messenger.ID()
-		},
-	}
+	cryptoComponents.KeysHandlerField = keysHandler
 
 	processComponents := GetDefaultProcessComponents()
 	processComponents.ForkDetect = forkDetector

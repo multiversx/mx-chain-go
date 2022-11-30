@@ -2295,6 +2295,16 @@ func createAndAddKeys(
 
 	txKeysMap[shardId] = append(txKeysMap[shardId], txKp)
 	nodeKeysMap[shardId] = append(nodeKeysMap[shardId], nodeKey)
+	if numKeysOnEachNode == 1 {
+		return
+	}
+
+	for i := 0; i < numKeysOnEachNode; i++ {
+		validatorKp := &TestKeyPair{}
+		validatorKp.Sk, validatorKp.Pk = keyGen.GeneratePair()
+
+		nodeKey.HandledKeys = append(nodeKey.HandledKeys, validatorKp)
+	}
 }
 
 // CloseProcessorNodes closes the used TestProcessorNodes and advertiser
