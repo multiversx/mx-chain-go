@@ -96,6 +96,7 @@ type BlockChainHookImpl struct {
 	maxNumberOfTransfersPerTx uint64
 	maxNumberOfTrieReadsPerTx uint64
 
+	mutCounters                     sync.RWMutex
 	crtNumberOfBuiltInFunctionCalls uint64
 	crtNumberOfTransfers            uint64
 	crtNumberOfTrieReads            uint64
@@ -111,24 +112,22 @@ func NewBlockChainHookImpl(
 	}
 
 	blockChainHookImpl := &BlockChainHookImpl{
-		accounts:                        args.Accounts,
-		pubkeyConv:                      args.PubkeyConv,
-		storageService:                  args.StorageService,
-		blockChain:                      args.BlockChain,
-		shardCoordinator:                args.ShardCoordinator,
-		marshalizer:                     args.Marshalizer,
-		uint64Converter:                 args.Uint64Converter,
-		builtInFunctions:                args.BuiltInFunctions,
-		compiledScPool:                  args.CompiledSCPool,
-		configSCStorage:                 args.ConfigSCStorage,
-		workingDir:                      args.WorkingDir,
-		nilCompiledSCStore:              args.NilCompiledSCStore,
-		nftStorageHandler:               args.NFTStorageHandler,
-		globalSettingsHandler:           args.GlobalSettingsHandler,
-		enableEpochsHandler:             args.EnableEpochsHandler,
-		gasSchedule:                     args.GasSchedule,
-		crtNumberOfBuiltInFunctionCalls: 0,
-		crtNumberOfTrieReads:            0,
+		accounts:              args.Accounts,
+		pubkeyConv:            args.PubkeyConv,
+		storageService:        args.StorageService,
+		blockChain:            args.BlockChain,
+		shardCoordinator:      args.ShardCoordinator,
+		marshalizer:           args.Marshalizer,
+		uint64Converter:       args.Uint64Converter,
+		builtInFunctions:      args.BuiltInFunctions,
+		compiledScPool:        args.CompiledSCPool,
+		configSCStorage:       args.ConfigSCStorage,
+		workingDir:            args.WorkingDir,
+		nilCompiledSCStore:    args.NilCompiledSCStore,
+		nftStorageHandler:     args.NFTStorageHandler,
+		globalSettingsHandler: args.GlobalSettingsHandler,
+		enableEpochsHandler:   args.EnableEpochsHandler,
+		gasSchedule:           args.GasSchedule,
 	}
 
 	err = blockChainHookImpl.makeCompiledSCStorage()
@@ -253,7 +252,7 @@ func (bh *BlockChainHookImpl) GetUserAccount(address []byte) (vmcommon.UserAccou
 func (bh *BlockChainHookImpl) GetStorageData(accountAddress []byte, index []byte) ([]byte, uint32, error) {
 	defer stopMeasure(startMeasure("GetStorageData"))
 
-	err := bh.checkMaxReadsCounters()
+	err := bh.processMaxReadsCounters()
 	if err != nil {
 		return nil, 0, err
 	}
@@ -281,13 +280,19 @@ func (bh *BlockChainHookImpl) GetStorageData(accountAddress []byte, index []byte
 	return value, trieDepth, err
 }
 
-func (bh *BlockChainHookImpl) checkMaxReadsCounters() error {
-	if bh.enableEpochsHandler.IsMaxBlockchainHookCountersFlagEnabled() {
-		bh.crtNumberOfTrieReads++
-		if bh.crtNumberOfTrieReads > bh.maxNumberOfTrieReadsPerTx {
-			return process.OutOfAPICalls
-		}
+func (bh *BlockChainHookImpl) processMaxReadsCounters() error {
+	if !bh.enableEpochsHandler.IsMaxBlockchainHookCountersFlagEnabled() {
+		return nil
 	}
+
+	bh.mutCounters.Lock()
+	defer bh.mutCounters.Unlock()
+
+	bh.crtNumberOfTrieReads++
+	if bh.crtNumberOfTrieReads > bh.maxNumberOfTrieReadsPerTx {
+		return fmt.Errorf("%w too many reads", process.ErrMaxBuiltInCallsReached)
+	}
+
 	return nil
 }
 
@@ -460,7 +465,7 @@ func (bh *BlockChainHookImpl) ProcessBuiltInFunction(input *vmcommon.ContractCal
 		return nil, err
 	}
 
-	err = bh.checkMaxCounters(input)
+	err = bh.processMaxBuiltInCounters(input)
 	if err != nil {
 		return nil, err
 	}
@@ -487,21 +492,30 @@ func (bh *BlockChainHookImpl) ProcessBuiltInFunction(input *vmcommon.ContractCal
 	return vmOutput, nil
 }
 
-func (bh *BlockChainHookImpl) checkMaxCounters(input *vmcommon.ContractCallInput) error {
-	if bh.enableEpochsHandler.IsMaxBlockchainHookCountersFlagEnabled() {
-		bh.crtNumberOfBuiltInFunctionCalls++
-		if bh.crtNumberOfBuiltInFunctionCalls > bh.maxBuiltInCallsPerTx {
-			return process.OutOfAPICalls
-		}
-
-		parsedTransfer, err := bh.esdtTransferParser.ParseESDTTransfers(input.CallerAddr, input.RecipientAddr, input.Function, input.Arguments)
-		if err == nil {
-			bh.crtNumberOfTransfers += uint64(len(parsedTransfer.ESDTTransfers))
-			if bh.crtNumberOfTransfers > bh.maxNumberOfTransfersPerTx {
-				return process.OutOfAPICalls
-			}
-		}
+func (bh *BlockChainHookImpl) processMaxBuiltInCounters(input *vmcommon.ContractCallInput) error {
+	if !bh.enableEpochsHandler.IsMaxBlockchainHookCountersFlagEnabled() {
+		return nil
 	}
+
+	bh.mutCounters.Lock()
+	defer bh.mutCounters.Unlock()
+
+	bh.crtNumberOfBuiltInFunctionCalls++
+	if bh.crtNumberOfBuiltInFunctionCalls > bh.maxBuiltInCallsPerTx {
+		return fmt.Errorf("%w too many built in calls", process.ErrMaxBuiltInCallsReached)
+	}
+
+	parsedTransfer, errESDTTransfer := bh.esdtTransferParser.ParseESDTTransfers(input.CallerAddr, input.RecipientAddr, input.Function, input.Arguments)
+	if errESDTTransfer != nil {
+		// not a transfer - no need to count max transfers
+		return nil
+	}
+
+	bh.crtNumberOfTransfers += uint64(len(parsedTransfer.ESDTTransfers))
+	if bh.crtNumberOfTransfers > bh.maxNumberOfTransfersPerTx {
+		return fmt.Errorf("%w too many esdt transfers", process.ErrMaxBuiltInCallsReached)
+	}
+
 	return nil
 }
 
@@ -829,21 +843,42 @@ func (bh *BlockChainHookImpl) EpochConfirmed(epoch uint32, _ uint64) {
 
 // GasScheduleChange sets the new gas schedule where it is needed
 func (bh *BlockChainHookImpl) GasScheduleChange(gasSchedule map[string]map[string]uint64) {
-	bh.mutGasLock.Lock()
-	defer bh.mutGasLock.Unlock()
-
-	maxPerTransaction := gasSchedule[common.MaxPerTransaction]
+	maxPerTransaction := bh.getMaxPerTransactionValues(gasSchedule)
 	if maxPerTransaction == nil {
+		log.Error("maxPerTransaction definition is missing in the current gas schedule, using old values")
 		return
 	}
+
+	bh.mutCounters.Lock()
+	defer bh.mutCounters.Unlock()
 
 	bh.maxBuiltInCallsPerTx = maxPerTransaction["MaxBuiltInCallsPerTx"]
 	bh.maxNumberOfTransfersPerTx = maxPerTransaction["MaxNumberOfTransfersPerTx"]
 	bh.maxNumberOfTrieReadsPerTx = maxPerTransaction["MaxNumberOfTrieReadsPerTx"]
 }
 
+func (bh *BlockChainHookImpl) getMaxPerTransactionValues(gasSchedule map[string]map[string]uint64) map[string]uint64 {
+	bh.mutGasLock.Lock()
+	defer bh.mutGasLock.Unlock()
+
+	maxPerTransaction := gasSchedule[common.MaxPerTransaction]
+	if maxPerTransaction == nil {
+		return nil
+	}
+
+	result := make(map[string]uint64)
+	for key, value := range maxPerTransaction {
+		result[key] = value
+	}
+
+	return result
+}
+
 // ResetCounters resets the state counters for the block chain hook
 func (bh *BlockChainHookImpl) ResetCounters() {
+	bh.mutCounters.Lock()
+	defer bh.mutCounters.Unlock()
+
 	bh.crtNumberOfBuiltInFunctionCalls = 0
 	bh.crtNumberOfTransfers = 0
 	bh.crtNumberOfTrieReads = 0

@@ -373,6 +373,7 @@ func (stub *BlockChainHookStub) Close() error {
 	return nil
 }
 
+// ResetCounters -
 func (stub *BlockChainHookStub) ResetCounters() {
 	if stub.ResetCountersCalled != nil {
 		stub.ResetCountersCalled()

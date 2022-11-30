@@ -1146,5 +1146,5 @@ var ErrPropertyTooShort = errors.New("property too short")
 // ErrNilProcessDebugger signals that a nil process debugger was provided
 var ErrNilProcessDebugger = errors.New("nil process debugger")
 
-// OutOfAPICalls signals that the allowed max number of calls was reached
-var OutOfAPICalls = errors.New("max api calls reached")
+// ErrMaxBuiltInCallsReached signals that the allowed max number of calls was reached
+var ErrMaxBuiltInCallsReached = errors.New("max built in call reached")
