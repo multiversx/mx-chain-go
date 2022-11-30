@@ -208,6 +208,13 @@ var (
 		Usage: "The `filepath` for the PEM file which contains the secret keys for the validator key.",
 		Value: "./config/validatorKey.pem",
 	}
+	// allValidatorKeysPemFile defines a flag for the path to the file that hold all validator keys used in block signing
+	// managed by the current node
+	allValidatorKeysPemFile = cli.StringFlag{
+		Name:  "all-validator-keys-pem-file",
+		Usage: "The `filepath` for the PEM file which contains all the secret keys managed by the current node.",
+		Value: "./config/allValidatorsKey.pem",
+	}
 
 	// logLevel defines the logger level
 	logLevel = cli.StringFlag{
@@ -379,6 +386,7 @@ func getFlags() []cli.Flag {
 		gasScheduleConfigurationDirectory,
 		validatorKeyIndex,
 		validatorKeyPemFile,
+		allValidatorKeysPemFile,
 		port,
 		profileMode,
 		useHealthService,
@@ -452,6 +460,7 @@ func applyFlags(ctx *cli.Context, cfgs *config.Configs, flagsConfig *config.Cont
 	cfgs.ConfigurationPathsHolder.GasScheduleDirectoryName = ctx.GlobalString(gasScheduleConfigurationDirectory.Name)
 	cfgs.ConfigurationPathsHolder.SmartContracts = ctx.GlobalString(smartContractsFile.Name)
 	cfgs.ConfigurationPathsHolder.ValidatorKey = ctx.GlobalString(validatorKeyPemFile.Name)
+	cfgs.ConfigurationPathsHolder.AllValidatorKeys = ctx.GlobalString(allValidatorKeysPemFile.Name)
 	cfgs.ConfigurationPathsHolder.P2pKey = ctx.GlobalString(p2pKeyPemFile.Name)
 
 	if ctx.IsSet(startInEpoch.Name) {

@@ -40,6 +40,7 @@ const (
 // CryptoComponentsFactoryArgs holds the arguments needed for creating crypto components
 type CryptoComponentsFactoryArgs struct {
 	ValidatorKeyPemFileName              string
+	AllValidatorKeysPemFileName          string
 	SkIndex                              int
 	Config                               config.Config
 	EnableEpochs                         config.EnableEpochs
@@ -56,6 +57,7 @@ type CryptoComponentsFactoryArgs struct {
 type cryptoComponentsFactory struct {
 	consensusType                        string
 	validatorKeyPemFileName              string
+	allValidatorKeysPemFileName          string
 	skIndex                              int
 	config                               config.Config
 	enableEpochs                         config.EnableEpochs

@@ -1477,8 +1477,10 @@ func (nr *nodeRunner) CreateManagedCryptoComponents(
 ) (mainFactory.CryptoComponentsHandler, error) {
 	configs := nr.configs
 	validatorKeyPemFileName := configs.ConfigurationPathsHolder.ValidatorKey
+	allValidatorKeysPemFileName := configs.ConfigurationPathsHolder.AllValidatorKeys
 	cryptoComponentsHandlerArgs := cryptoComp.CryptoComponentsFactoryArgs{
 		ValidatorKeyPemFileName:              validatorKeyPemFileName,
+		AllValidatorKeysPemFileName:          allValidatorKeysPemFileName,
 		SkIndex:                              configs.FlagsConfig.ValidatorKeyIndex,
 		Config:                               *configs.GeneralConfig,
 		CoreComponentsHolder:                 coreComponents,
