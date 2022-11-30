@@ -9,4 +9,7 @@ var (
 	errNilP2PIdentityGenerator    = errors.New("nil p2p identity generator")
 	errInvalidValue               = errors.New("invalid value")
 	errInvalidKey                 = errors.New("invalid key")
+	errNilManagedPeersHolder      = errors.New("nil managed peers holder")
+	errNilPrivateKey              = errors.New("nil private key")
+	errEmptyPeerID                = errors.New("empty peer ID")
 )

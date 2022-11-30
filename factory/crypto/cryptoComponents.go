@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
@@ -49,6 +50,7 @@ type CryptoComponentsFactoryArgs struct {
 	IsInImportMode                       bool
 	ImportModeNoSigCheck                 bool
 	NoKeyProvided                        bool
+	CurrentPid                           core.PeerID
 }
 
 type cryptoComponentsFactory struct {
@@ -64,6 +66,7 @@ type cryptoComponentsFactory struct {
 	isInImportMode                       bool
 	importModeNoSigCheck                 bool
 	noKeyProvided                        bool
+	currentPid                           core.PeerID
 }
 
 // cryptoParams holds the node public/private key data
@@ -102,6 +105,9 @@ func NewCryptoComponentsFactory(args CryptoComponentsFactoryArgs) (*cryptoCompon
 	if args.KeyLoader == nil {
 		return nil, errors.ErrNilKeyLoader
 	}
+	if len(args.CurrentPid) == 0 {
+		return nil, errors.ErrEmptyPeerID
+	}
 
 	ccf := &cryptoComponentsFactory{
 		consensusType:                        args.Config.Consensus.Type,
@@ -116,6 +122,7 @@ func NewCryptoComponentsFactory(args CryptoComponentsFactoryArgs) (*cryptoCompon
 		importModeNoSigCheck:                 args.ImportModeNoSigCheck,
 		enableEpochs:                         args.EnableEpochs,
 		noKeyProvided:                        args.NoKeyProvided,
+		currentPid:                           args.CurrentPid,
 	}
 
 	return ccf, nil
@@ -192,6 +199,16 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 
 	log.Debug("block sign pubkey", "value", cp.publicKeyString)
 
+	argsKeysHandler := keysManagement.ArgsKeysHandler{
+		ManagedPeersHolder: managedPeersHolder,
+		PrivateKey:         cp.privateKey,
+		Pid:                ccf.currentPid,
+	}
+	keysHandler, err := keysManagement.NewKeysHandler(argsKeysHandler)
+	if err != nil {
+		return nil, err
+	}
+
 	return &cryptoComponents{
 		txSingleSigner:       txSingleSigner,
 		blockSingleSigner:    interceptSingleSigner,
@@ -201,7 +218,7 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 		txSignKeyGen:         txSignKeyGen,
 		messageSignVerifier:  messageSignVerifier,
 		managedPeersHolder:   managedPeersHolder,
-		keysHandler:          keysManagement.NewKeysHandler(),
+		keysHandler:          keysHandler,
 		cryptoParams:         *cp,
 	}, nil
 }

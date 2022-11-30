@@ -200,6 +200,7 @@ func GetCryptoArgs(coreComponents factory.CoreComponentsHolder) cryptoComp.Crypt
 		EnableEpochs: config.EnableEpochs{
 			BLSMultiSignerEnableEpoch: []config.MultiSignerConfig{{EnableEpoch: 0, Type: "no-KOSK"}},
 		},
+		CurrentPid: "pid",
 	}
 
 	return args
