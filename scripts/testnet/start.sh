@@ -18,11 +18,6 @@ prepareFolders
 buildSeednode
 buildNode
 
-if [ $ALWAYS_BUILD_ARWEN -eq 1 ]; then
-  buildArwen
-fi
-
-
 # Phase 2: generate configuration
 if [ $ALWAYS_UPDATE_CONFIGS -eq 1 ]; then
   copyConfig

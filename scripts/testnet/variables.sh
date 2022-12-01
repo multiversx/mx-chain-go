@@ -62,6 +62,8 @@ export META_VALIDATORCOUNT=3
 export META_OBSERVERCOUNT=1
 export META_CONSENSUS_SIZE=$META_VALIDATORCOUNT
 
+export MULTI_KEY_NODES=0 #set this to 1 to make all generated keys be used only by (SHARDCOUNT + 1) nodes
+
 # ALWAYS_NEW_CHAINID will generate a fresh new chain ID each time start.sh/config.sh is called
 export ALWAYS_NEW_CHAINID=1
 
@@ -75,9 +77,6 @@ export ALWAYS_NEW_APP_VERSION=0
 # Set this variable to 0 when testing bootstrap from storage or other edge cases where you do not want a fresh new config
 # each time.
 export ALWAYS_UPDATE_CONFIGS=1
-
-# Always rebuild Arwen from its sources and copy the executable to the testnet folder.
-export ALWAYS_BUILD_ARWEN=1
 
 # IP of the seednode
 export SEEDNODE_IP="127.0.0.1"
