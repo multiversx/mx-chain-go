@@ -213,7 +213,7 @@ var (
 	allValidatorKeysPemFile = cli.StringFlag{
 		Name:  "all-validator-keys-pem-file",
 		Usage: "The `filepath` for the PEM file which contains all the secret keys managed by the current node.",
-		Value: "./config/allValidatorsKey.pem",
+		Value: "./config/allValidatorsKeys.pem",
 	}
 
 	// logLevel defines the logger level

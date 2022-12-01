@@ -834,7 +834,3 @@ const MetricTrieSyncNumReceivedBytes = "erd_trie_sync_num_bytes_received"
 
 // MetricTrieSyncNumProcessedNodes is the metric that outputs the number of trie nodes processed for accounts during trie sync
 const MetricTrieSyncNumProcessedNodes = "erd_trie_sync_num_nodes_processed"
-
-// MaxMachineIDLen is the maximum machine ID length
-// TODO: move this to elrond-go-core
-const MaxMachineIDLen = 10

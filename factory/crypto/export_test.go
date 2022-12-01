@@ -3,6 +3,7 @@ package crypto
 import (
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	cryptoCommon "github.com/ElrondNetwork/elrond-go/common/crypto"
+	"github.com/ElrondNetwork/elrond-go/heartbeat"
 )
 
 // GetSkPk -
@@ -36,4 +37,9 @@ func (ccf *cryptoComponentsFactory) CreateMultiSignerContainer(
 // GetSuite -
 func (ccf *cryptoComponentsFactory) GetSuite() (crypto.Suite, error) {
 	return ccf.getSuite()
+}
+
+// GetManagedPeersHolder -
+func (cc *cryptoComponents) GetManagedPeersHolder() heartbeat.ManagedPeersHolder {
+	return cc.managedPeersHolder
 }

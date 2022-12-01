@@ -73,11 +73,12 @@ type cryptoComponentsFactory struct {
 
 // cryptoParams holds the node public/private key data
 type cryptoParams struct {
-	publicKey       crypto.PublicKey
-	privateKey      crypto.PrivateKey
-	publicKeyString string
-	publicKeyBytes  []byte
-	privateKeyBytes []byte
+	publicKey          crypto.PublicKey
+	privateKey         crypto.PrivateKey
+	publicKeyString    string
+	publicKeyBytes     []byte
+	privateKeyBytes    []byte
+	handledPrivateKeys [][]byte
 }
 
 // cryptoComponents struct holds the crypto components
@@ -125,6 +126,7 @@ func NewCryptoComponentsFactory(args CryptoComponentsFactoryArgs) (*cryptoCompon
 		enableEpochs:                         args.EnableEpochs,
 		noKeyProvided:                        args.NoKeyProvided,
 		currentPid:                           args.CurrentPid,
+		allValidatorKeysPemFileName:          args.AllValidatorKeysPemFileName,
 	}
 
 	return ccf, nil
@@ -197,6 +199,13 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 	managedPeersHolder, err := keysManagement.NewManagedPeersHolder(argsManagedPeersHolder)
 	if err != nil {
 		return nil, err
+	}
+
+	for _, skBytes := range cp.handledPrivateKeys {
+		errAddManagedPeer := managedPeersHolder.AddManagedPeer(skBytes)
+		if errAddManagedPeer != nil {
+			return nil, errAddManagedPeer
+		}
 	}
 
 	log.Debug("block sign pubkey", "value", cp.publicKeyString)
@@ -272,9 +281,23 @@ func (ccf *cryptoComponentsFactory) createCryptoParams(
 	keygen crypto.KeyGenerator,
 ) (*cryptoParams, error) {
 
-	shouldGenerateCryptoParams := ccf.isInImportMode || ccf.noKeyProvided
-	if shouldGenerateCryptoParams {
-		return ccf.generateCryptoParams(keygen)
+	handledPrivateKeys, err := ccf.processAllHandledKeys(keygen)
+	if err != nil {
+		return nil, err
+	}
+
+	if ccf.isInImportMode {
+		if len(handledPrivateKeys) > 0 {
+			return nil, fmt.Errorf("invalid node configuration: import-db mode and allValidatorsKeys.pem file provided")
+		}
+
+		return ccf.generateCryptoParams(keygen, "in import mode", handledPrivateKeys)
+	}
+	if ccf.noKeyProvided {
+		return ccf.generateCryptoParams(keygen, "with no-key flag enabled", handledPrivateKeys)
+	}
+	if len(handledPrivateKeys) > 0 {
+		return ccf.generateCryptoParams(keygen, "running with a provided allValidatorsKeys.pem", handledPrivateKeys)
 	}
 
 	return ccf.readCryptoParams(keygen)
@@ -310,15 +333,12 @@ func (ccf *cryptoComponentsFactory) readCryptoParams(keygen crypto.KeyGenerator)
 	return cp, nil
 }
 
-func (ccf *cryptoComponentsFactory) generateCryptoParams(keygen crypto.KeyGenerator) (*cryptoParams, error) {
-	var message string
-	if ccf.noKeyProvided {
-		message = "with no-key flag enabled"
-	} else {
-		message = "in import mode"
-	}
-
-	log.Warn(fmt.Sprintf("the node is %s! Will generate a fresh new BLS key", message))
+func (ccf *cryptoComponentsFactory) generateCryptoParams(
+	keygen crypto.KeyGenerator,
+	reason string,
+	handledPrivateKeys [][]byte,
+) (*cryptoParams, error) {
+	log.Warn(fmt.Sprintf("the node is %s! Will generate a fresh new BLS key", reason))
 	cp := &cryptoParams{}
 	cp.privateKey, cp.publicKey = keygen.GeneratePair()
 
@@ -330,6 +350,7 @@ func (ccf *cryptoComponentsFactory) generateCryptoParams(keygen crypto.KeyGenera
 
 	validatorKeyConverter := ccf.coreComponentsHolder.ValidatorPubKeyConverter()
 	cp.publicKeyString = validatorKeyConverter.Encode(cp.publicKeyBytes)
+	cp.handledPrivateKeys = handledPrivateKeys
 
 	return cp, nil
 }
@@ -352,6 +373,64 @@ func (ccf *cryptoComponentsFactory) getSkPk() ([]byte, []byte, error) {
 	}
 
 	return skBytes, pkBytes, nil
+}
+
+func (ccf *cryptoComponentsFactory) processAllHandledKeys(keygen crypto.KeyGenerator) ([][]byte, error) {
+	privateKeys, publicKeys, err := ccf.keyLoader.LoadAllKeys(ccf.allValidatorKeysPemFileName)
+	if err != nil {
+		log.Debug("allValidatorsKeys could not be loaded", "reason", err)
+		return make([][]byte, 0), nil
+	}
+
+	if len(privateKeys) != len(publicKeys) {
+		return nil, fmt.Errorf("key loading error for the allValidatorsKeys file: mismatch number of private and public keys")
+	}
+
+	handledPrivateKeys := make([][]byte, 0, len(privateKeys))
+	for i, pkString := range publicKeys {
+		sk := privateKeys[i]
+		processedSkBytes, errCheck := ccf.processPrivatePublicKey(keygen, sk, pkString, i)
+		if errCheck != nil {
+			return nil, errCheck
+		}
+
+		log.Debug("loaded handled node key", "public key", pkString)
+		handledPrivateKeys = append(handledPrivateKeys, processedSkBytes)
+	}
+
+	return handledPrivateKeys, nil
+}
+
+func (ccf *cryptoComponentsFactory) processPrivatePublicKey(keygen crypto.KeyGenerator, encodedSk []byte, pkString string, index int) ([]byte, error) {
+	skBytes, err := hex.DecodeString(string(encodedSk))
+	if err != nil {
+		return nil, fmt.Errorf("%w for encoded secret key, key index %d", err, index)
+	}
+
+	pkBytes, err := ccf.coreComponentsHolder.ValidatorPubKeyConverter().Decode(pkString)
+	if err != nil {
+		return nil, fmt.Errorf("%w for encoded public key %s, key index %d", err, pkString, index)
+	}
+
+	sk, err := keygen.PrivateKeyFromByteArray(skBytes)
+	if err != nil {
+		return nil, fmt.Errorf("%w secret key, key index %d", err, index)
+	}
+
+	pk := sk.GeneratePublic()
+	pkGeneratedBytes, err := pk.ToByteArray()
+	if err != nil {
+		return nil, fmt.Errorf("%w while generating public key bytes, key index %d", err, index)
+	}
+
+	if !bytes.Equal(pkGeneratedBytes, pkBytes) {
+		return nil, fmt.Errorf("public keys mismatch, read %s, generated %s, key index %d",
+			pkString, ccf.coreComponentsHolder.ValidatorPubKeyConverter().Encode(pkBytes),
+			index,
+		)
+	}
+
+	return skBytes, nil
 }
 
 // Close closes all underlying components that need closing
