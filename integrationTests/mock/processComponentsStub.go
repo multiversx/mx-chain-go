@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/update"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // ProcessComponentsStub -
@@ -52,6 +53,7 @@ type ProcessComponentsStub struct {
 	HardforkTriggerField                 factory.HardforkTrigger
 	ProcessedMiniBlocksTrackerInternal   process.ProcessedMiniBlocksTracker
 	ReceiptsRepositoryInternal           factory.ReceiptsRepository
+	ESDTDataStorageHandlerForAPIInternal vmcommon.ESDTNFTStorageHandler
 }
 
 // Create -
@@ -257,6 +259,11 @@ func (pcs *ProcessComponentsStub) ProcessedMiniBlocksTracker() process.Processed
 // ReceiptsRepository -
 func (pcs *ProcessComponentsStub) ReceiptsRepository() factory.ReceiptsRepository {
 	return pcs.ReceiptsRepositoryInternal
+}
+
+// ESDTDataStorageHandlerForAPI -
+func (pcs *ProcessComponentsStub) ESDTDataStorageHandlerForAPI() vmcommon.ESDTNFTStorageHandler {
+	return pcs.ESDTDataStorageHandlerForAPIInternal
 }
 
 // IsInterfaceNil -

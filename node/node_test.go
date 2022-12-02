@@ -528,7 +528,7 @@ func TestNode_GetESDTData(t *testing.T) {
 		},
 	}
 
-	esdtStorageStub := &mock.EsdtStorageHandlerStub{
+	esdtStorageStub := &testscommon.EsdtStorageHandlerStub{
 		GetESDTNFTTokenOnDestinationCalled: func(acnt vmcommon.UserAccountHandler, esdtTokenKey []byte, nonce uint64) (*esdt.ESDigitalToken, bool, error) {
 			return esdtData, false, nil
 		},
@@ -569,7 +569,7 @@ func TestNode_GetESDTDataForNFT(t *testing.T) {
 
 	esdtData := &esdt.ESDigitalToken{Value: big.NewInt(10)}
 
-	esdtStorageStub := &mock.EsdtStorageHandlerStub{
+	esdtStorageStub := &testscommon.EsdtStorageHandlerStub{
 		GetESDTNFTTokenOnDestinationCalled: func(acnt vmcommon.UserAccountHandler, esdtTokenKey []byte, nonce uint64) (*esdt.ESDigitalToken, bool, error) {
 			return esdtData, false, nil
 		},
@@ -614,7 +614,7 @@ func TestNode_GetAllESDTTokens(t *testing.T) {
 
 	esdtData := &esdt.ESDigitalToken{Value: big.NewInt(10)}
 
-	esdtStorageStub := &mock.EsdtStorageHandlerStub{
+	esdtStorageStub := &testscommon.EsdtStorageHandlerStub{
 		GetESDTNFTTokenOnDestinationCalled: func(acnt vmcommon.UserAccountHandler, esdtTokenKey []byte, nonce uint64) (*esdt.ESDigitalToken, bool, error) {
 			return esdtData, false, nil
 		},
@@ -809,7 +809,7 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 	nftData := &esdt.ESDigitalToken{Type: uint32(core.NonFungible), Value: big.NewInt(10), TokenMetaData: &esdt.MetaData{Nonce: nftNonce.Uint64()}}
 	marshalledNftData, _ := getMarshalizer().Marshal(nftData)
 
-	esdtStorageStub := &mock.EsdtStorageHandlerStub{
+	esdtStorageStub := &testscommon.EsdtStorageHandlerStub{
 		GetESDTNFTTokenOnDestinationCalled: func(acnt vmcommon.UserAccountHandler, esdtTokenKey []byte, nonce uint64) (*esdt.ESDigitalToken, bool, error) {
 			switch string(esdtTokenKey) {
 			case string(esdtKey):
@@ -3961,7 +3961,7 @@ func getDefaultProcessComponents() *factoryMock.ProcessComponentsMock {
 		EpochTrigger:                         &testscommon.EpochStartTriggerStub{},
 		EpochNotifier:                        &mock.EpochStartNotifierStub{},
 		ForkDetect:                           &mock.ForkDetectorMock{},
-		BlockProcess:                         &mock.BlockProcessorStub{},
+		BlockProcess:                         &testscommon.BlockProcessorStub{},
 		BlackListHdl:                         &testscommon.TimeCacheStub{},
 		BootSore:                             &mock.BootstrapStorerMock{},
 		HeaderSigVerif:                       &mock.HeaderSigVerifierStub{},
