@@ -284,6 +284,9 @@ func (bh *BlockChainHookImpl) processMaxReadsCounters() error {
 	if !bh.enableEpochsHandler.IsMaxBlockchainHookCountersFlagEnabled() {
 		return nil
 	}
+	if bh.shardCoordinator.SelfId() == core.MetachainShardId {
+		return nil
+	}
 
 	bh.mutCounters.Lock()
 	defer bh.mutCounters.Unlock()
@@ -494,6 +497,9 @@ func (bh *BlockChainHookImpl) ProcessBuiltInFunction(input *vmcommon.ContractCal
 
 func (bh *BlockChainHookImpl) processMaxBuiltInCounters(input *vmcommon.ContractCallInput) error {
 	if !bh.enableEpochsHandler.IsMaxBlockchainHookCountersFlagEnabled() {
+		return nil
+	}
+	if bh.shardCoordinator.SelfId() == core.MetachainShardId {
 		return nil
 	}
 
