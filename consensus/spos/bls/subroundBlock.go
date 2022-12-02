@@ -400,6 +400,10 @@ func (sr *subroundBlock) receivedBlockBodyAndHeader(ctx context.Context, cnsDta 
 		return false
 	}
 
+	if sr.hardforkExclusionHandler.IsRoundExcluded(sr.Header.GetRound()) {
+		return false
+	}
+
 	log.Debug("step 1: block body and header have been received",
 		"nonce", sr.Header.GetNonce(),
 		"hash", cnsDta.BlockHeaderHash)
