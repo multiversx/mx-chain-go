@@ -16,11 +16,10 @@ type peerInfo struct {
 	nodeName           string
 	nodeIdentity       string
 
-	isValidator                bool
-	nextPeerAuthenticationTime time.Time
-
 	mutChangeableData             sync.RWMutex
 	roundsWithoutReceivedMessages int
+	nextPeerAuthenticationTime    time.Time
+	isValidator                   bool
 }
 
 func (pInfo *peerInfo) incrementRoundsWithoutReceivedMessages() {

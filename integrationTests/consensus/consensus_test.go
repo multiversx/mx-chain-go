@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-crypto"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	consensusComp "github.com/ElrondNetwork/elrond-go/factory/consensus"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
@@ -26,6 +27,7 @@ const (
 var (
 	p2pBootstrapDelay      = time.Second * 5
 	testPubkeyConverter, _ = pubkeyConverter.NewHexPubkeyConverter(32)
+	log                    = logger.GetOrCreate("integrationtests/consensus")
 )
 
 func encodeAddress(address []byte) string {
@@ -47,6 +49,7 @@ func initNodesAndTest(
 	numInvalid uint32,
 	roundTime uint64,
 	consensusType string,
+	numKeysOnEachNode int,
 ) []*integrationTests.TestConsensusNode {
 
 	fmt.Println("Step 1. Setup nodes...")
@@ -57,6 +60,7 @@ func initNodesAndTest(
 		int(consensusSize),
 		roundTime,
 		consensusType,
+		numKeysOnEachNode,
 	)
 
 	for _, nodesList := range nodes {
@@ -198,14 +202,20 @@ func checkBlockProposedEveryRound(numCommBlock uint64, nonceForRoundMap map[uint
 	}
 }
 
-func runFullConsensusTest(t *testing.T, consensusType string) {
+func runFullConsensusTest(t *testing.T, consensusType string, numKeysOnEachNode int) {
 	numNodes := uint32(4)
-	consensusSize := uint32(4)
+	consensusSize := uint32(4 * numKeysOnEachNode)
 	numInvalid := uint32(0)
 	roundTime := uint64(1000)
 	numCommBlock := uint64(8)
 
-	nodes := initNodesAndTest(numNodes, consensusSize, numInvalid, roundTime, consensusType)
+	log.Info("runFullConsensusTest",
+		"numNodes", numNodes,
+		"numKeysOnEachNode", numKeysOnEachNode,
+		"consensusSize", consensusSize,
+	)
+
+	nodes := initNodesAndTest(numNodes, consensusSize, numInvalid, roundTime, consensusType, numKeysOnEachNode)
 
 	mutex := &sync.Mutex{}
 	defer func() {
@@ -227,7 +237,7 @@ func runFullConsensusTest(t *testing.T, consensusType string) {
 	go checkBlockProposedEveryRound(numCommBlock, nonceForRoundMap, mutex, chDone, t)
 
 	extraTime := uint64(2)
-	endTime := time.Duration(roundTime) * time.Duration(numCommBlock+extraTime) * time.Millisecond
+	endTime := time.Duration(roundTime)*time.Duration(numCommBlock+extraTime)*time.Millisecond + time.Second
 	select {
 	case <-chDone:
 	case <-time.After(endTime):
@@ -239,12 +249,20 @@ func runFullConsensusTest(t *testing.T, consensusType string) {
 	}
 }
 
-func TestConsensusBLSFullTest(t *testing.T) {
+func TestConsensusBLSFullTestSingleKeys(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
 
-	runFullConsensusTest(t, blsConsensusType)
+	runFullConsensusTest(t, blsConsensusType, 1)
+}
+
+func TestConsensusBLSFullTestMultiKeys(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	runFullConsensusTest(t, blsConsensusType, 5)
 }
 
 func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string) {
@@ -252,7 +270,7 @@ func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string) {
 	consensusSize := uint32(4)
 	numInvalid := uint32(2)
 	roundTime := uint64(1000)
-	nodes := initNodesAndTest(numNodes, consensusSize, numInvalid, roundTime, consensusType)
+	nodes := initNodesAndTest(numNodes, consensusSize, numInvalid, roundTime, consensusType, 1)
 
 	mutex := &sync.Mutex{}
 	defer func() {

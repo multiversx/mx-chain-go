@@ -2245,7 +2245,7 @@ func GenValidatorsFromPubKeysAndTxPubKeys(
 }
 
 // CreateCryptoParams generates the crypto parameters (key pairs, key generator and suite) for multiple nodes
-func CreateCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards uint32) *CryptoParams {
+func CreateCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards uint32, numKeysOnEachNode int) *CryptoParams {
 	txSuite := ed25519.NewEd25519()
 	txKeyGen := signing.NewKeyGenerator(txSuite)
 	suite := mcl.NewSuiteBLS12()
@@ -2256,12 +2256,12 @@ func CreateCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards uint32) *Cr
 	txKeysMap := make(map[uint32][]*TestKeyPair)
 	for shardId := uint32(0); shardId < nbShards; shardId++ {
 		for n := 0; n < nodesPerShard; n++ {
-			createAndAddKeys(keyGen, txKeyGen, shardId, nodesKeysMap, txKeysMap)
+			createAndAddKeys(keyGen, txKeyGen, shardId, nodesKeysMap, txKeysMap, numKeysOnEachNode)
 		}
 	}
 
 	for n := 0; n < nbMetaNodes; n++ {
-		createAndAddKeys(keyGen, txKeyGen, core.MetachainShardId, nodesKeysMap, txKeysMap)
+		createAndAddKeys(keyGen, txKeyGen, core.MetachainShardId, nodesKeysMap, txKeysMap, numKeysOnEachNode)
 	}
 
 	params := &CryptoParams{
@@ -2281,6 +2281,7 @@ func createAndAddKeys(
 	shardId uint32,
 	nodeKeysMap map[uint32][]*TestNodeKeys,
 	txKeysMap map[uint32][]*TestKeyPair,
+	numKeysOnEachNode int,
 ) {
 	kp := &TestKeyPair{}
 	kp.Sk, kp.Pk = keyGen.GeneratePair()
@@ -2294,6 +2295,16 @@ func createAndAddKeys(
 
 	txKeysMap[shardId] = append(txKeysMap[shardId], txKp)
 	nodeKeysMap[shardId] = append(nodeKeysMap[shardId], nodeKey)
+	if numKeysOnEachNode == 1 {
+		return
+	}
+
+	for i := 0; i < numKeysOnEachNode; i++ {
+		validatorKp := &TestKeyPair{}
+		validatorKp.Sk, validatorKp.Pk = keyGen.GeneratePair()
+
+		nodeKey.HandledKeys = append(nodeKey.HandledKeys, validatorKp)
+	}
 }
 
 // CloseProcessorNodes closes the used TestProcessorNodes and advertiser

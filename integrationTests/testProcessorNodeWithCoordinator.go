@@ -37,12 +37,12 @@ func CreateProcessorNodesWithNodesCoordinator(
 ) (map[uint32][]*TestProcessorNode, uint32) {
 
 	ncp, nbShards := createNodesCryptoParams(rewardsAddrsAssignments)
-	cp := CreateCryptoParams(len(ncp[0]), len(ncp[core.MetachainShardId]), nbShards)
+	cp := CreateCryptoParams(len(ncp[0]), len(ncp[core.MetachainShardId]), nbShards, 1)
 	pubKeys := PubKeysMapFromNodesKeysMap(cp.NodesKeys)
 	validatorsMap := GenValidatorsFromPubKeys(pubKeys, nbShards)
 	validatorsMapForNodesCoordinator, _ := nodesCoordinator.NodesInfoToValidators(validatorsMap)
 
-	cpWaiting := CreateCryptoParams(1, 1, nbShards)
+	cpWaiting := CreateCryptoParams(1, 1, nbShards, 1)
 	pubKeysWaiting := PubKeysMapFromNodesKeysMap(cpWaiting.NodesKeys)
 	waitingMap := GenValidatorsFromPubKeys(pubKeysWaiting, nbShards)
 	waitingMapForNodesCoordinator, _ := nodesCoordinator.NodesInfoToValidators(waitingMap)

@@ -70,7 +70,7 @@ func CreateNodesWithNodesCoordinatorAndTxKeys(
 	coordinatorFactory := &IndexHashedNodesCoordinatorWithRaterFactory{
 		PeerAccountListAndRatingHandler: rater,
 	}
-	cp := CreateCryptoParams(nodesPerShard, nbMetaNodes, uint32(nbShards))
+	cp := CreateCryptoParams(nodesPerShard, nbMetaNodes, uint32(nbShards), 1)
 	blsPubKeys := PubKeysMapFromNodesKeysMap(cp.NodesKeys)
 	txPubKeys := PubKeysMapFromTxKeysMap(cp.TxKeys)
 	validatorsMap := GenValidatorsFromPubKeysAndTxPubKeys(blsPubKeys, txPubKeys)
@@ -208,12 +208,12 @@ func CreateNodesWithNodesCoordinatorFactory(
 	metaConsensusGroupSize int,
 	nodesCoordinatorFactory NodesCoordinatorFactory,
 ) map[uint32][]*TestProcessorNode {
-	cp := CreateCryptoParams(nodesPerShard, nbMetaNodes, uint32(nbShards))
+	cp := CreateCryptoParams(nodesPerShard, nbMetaNodes, uint32(nbShards), 1)
 	pubKeys := PubKeysMapFromNodesKeysMap(cp.NodesKeys)
 	validatorsMap := GenValidatorsFromPubKeys(pubKeys, uint32(nbShards))
 	validatorsMapForNodesCoordinator, _ := nodesCoordinator.NodesInfoToValidators(validatorsMap)
 
-	cpWaiting := CreateCryptoParams(1, 1, uint32(nbShards))
+	cpWaiting := CreateCryptoParams(1, 1, uint32(nbShards), 1)
 	pubKeysWaiting := PubKeysMapFromNodesKeysMap(cpWaiting.NodesKeys)
 	waitingMap := GenValidatorsFromPubKeys(pubKeysWaiting, uint32(nbShards))
 	waitingMapForNodesCoordinator, _ := nodesCoordinator.NodesInfoToValidators(waitingMap)
@@ -385,7 +385,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 	signer crypto.SingleSigner,
 	keyGen crypto.KeyGenerator,
 ) map[uint32][]*TestProcessorNode {
-	cp := CreateCryptoParams(nodesPerShard, nbMetaNodes, uint32(nbShards))
+	cp := CreateCryptoParams(nodesPerShard, nbMetaNodes, uint32(nbShards), 1)
 	pubKeys := PubKeysMapFromNodesKeysMap(cp.NodesKeys)
 	validatorsMap := GenValidatorsFromPubKeys(pubKeys, uint32(nbShards))
 	validatorsMapForNodesCoordinator, _ := nodesCoordinator.NodesInfoToValidators(validatorsMap)
@@ -502,12 +502,12 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 	singleSigner crypto.SingleSigner,
 	keyGenForBlocks crypto.KeyGenerator,
 ) map[uint32][]*TestProcessorNode {
-	cp := CreateCryptoParams(nodesPerShard, nbMetaNodes, uint32(nbShards))
+	cp := CreateCryptoParams(nodesPerShard, nbMetaNodes, uint32(nbShards), 1)
 	pubKeys := PubKeysMapFromNodesKeysMap(cp.NodesKeys)
 	validatorsMap := GenValidatorsFromPubKeys(pubKeys, uint32(nbShards))
 	validatorsMapForNodesCoordinator, _ := nodesCoordinator.NodesInfoToValidators(validatorsMap)
 
-	cpWaiting := CreateCryptoParams(2, 2, uint32(nbShards))
+	cpWaiting := CreateCryptoParams(2, 2, uint32(nbShards), 1)
 	pubKeysWaiting := PubKeysMapFromNodesKeysMap(cpWaiting.NodesKeys)
 	waitingMap := GenValidatorsFromPubKeys(pubKeysWaiting, uint32(nbShards))
 	waitingMapForNodesCoordinator, _ := nodesCoordinator.NodesInfoToValidators(waitingMap)
