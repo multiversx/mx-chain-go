@@ -154,6 +154,7 @@ func (fct *factory) generateStartRoundSubround() error {
 		processingThresholdPercent,
 		fct.worker.ExecuteStoredMessages,
 		fct.worker.ResetConsensusMessages,
+		fct.hardforkExclusionHandler,
 	)
 	if err != nil {
 		return err
@@ -193,7 +194,6 @@ func (fct *factory) generateBlockSubround() error {
 		subround,
 		fct.worker.Extend,
 		processingThresholdPercent,
-		fct.hardforkExclusionHandler,
 	)
 	if err != nil {
 		return err

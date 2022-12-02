@@ -20,7 +20,6 @@ type subroundBlock struct {
 	*spos.Subround
 
 	processingThresholdPercentage int
-	hardforkExclusionHandler      common.HardforkExclusionHandler
 }
 
 // NewSubroundBlock creates a subroundBlock object
@@ -28,20 +27,15 @@ func NewSubroundBlock(
 	baseSubround *spos.Subround,
 	extend func(subroundId int),
 	processingThresholdPercentage int,
-	hardforkExclusionHandler common.HardforkExclusionHandler,
 ) (*subroundBlock, error) {
 	err := checkNewSubroundBlockParams(baseSubround)
 	if err != nil {
 		return nil, err
 	}
-	if check.IfNil(hardforkExclusionHandler) {
-		return nil, spos.ErrNilHardforkExclusionHandler
-	}
 
 	srBlock := subroundBlock{
 		Subround:                      baseSubround,
 		processingThresholdPercentage: processingThresholdPercentage,
-		hardforkExclusionHandler:      hardforkExclusionHandler,
 	}
 
 	srBlock.Job = srBlock.doBlockJob
@@ -84,10 +78,6 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 	}
 
 	if sr.IsSubroundFinished(sr.Current()) {
-		return false
-	}
-
-	if sr.hardforkExclusionHandler.IsRoundExcluded(uint64(currentRound)) {
 		return false
 	}
 
@@ -397,10 +387,6 @@ func (sr *subroundBlock) receivedBlockBodyAndHeader(ctx context.Context, cnsDta 
 	sr.Header = sr.BlockProcessor().DecodeBlockHeader(cnsDta.Header)
 
 	if sr.Data == nil || check.IfNil(sr.Body) || check.IfNil(sr.Header) {
-		return false
-	}
-
-	if sr.hardforkExclusionHandler.IsRoundExcluded(sr.Header.GetRound()) {
 		return false
 	}
 
