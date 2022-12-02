@@ -4,7 +4,11 @@ startValidators() {
   setTerminalSession "elrond-nodes"
   setTerminalLayout "tiled"
   setWorkdirForNextCommands "$TESTNETDIR/node"
-  iterateOverValidators startSingleValidator
+  if [[ $MULTI_KEY_NODES -eq 1 ]]; then
+    iterateOverValidatorsMultiKey startSingleValidator
+  else
+    iterateOverValidators startSingleValidator
+  fi
 }
 
 pauseValidators() {
@@ -44,6 +48,29 @@ iterateOverValidators() {
     fi
      (( VALIDATOR_INDEX++ ))
   done
+}
+
+iterateOverValidatorsMultiKey() {
+  local callback=$1
+  local VALIDATOR_INDEX=0
+
+  # Iterate over shards and start validators
+  (( max_shard_id=$SHARDCOUNT - 1 ))
+  for SHARD in $(seq 0 1 $max_shard_id); do
+    if [ $VALIDATOR_INDEX -ne $SKIP_VALIDATOR_IDX ]; then
+      $callback $SHARD $VALIDATOR_INDEX
+      sleep 0.5
+    fi
+    (( VALIDATOR_INDEX++ ))
+  done
+
+  # Start Metachain Validator
+  SHARD="metachain"
+  if [ $VALIDATOR_INDEX -ne $SKIP_VALIDATOR_IDX ]; then
+    $callback $SHARD $VALIDATOR_INDEX
+    sleep 0.5
+  fi
+   (( VALIDATOR_INDEX++ ))
 }
 
 startSingleValidator() {

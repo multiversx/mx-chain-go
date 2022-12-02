@@ -294,10 +294,10 @@ func (ccf *cryptoComponentsFactory) createCryptoParams(
 			return nil, fmt.Errorf("invalid node configuration: import-db mode and allValidatorsKeys.pem file provided")
 		}
 
-		return ccf.generateCryptoParams(keygen, "in import mode", handledPrivateKeys)
+		return ccf.generateCryptoParams(keygen, "in import mode", make([][]byte, 0))
 	}
 	if ccf.noKeyProvided {
-		return ccf.generateCryptoParams(keygen, "with no-key flag enabled", handledPrivateKeys)
+		return ccf.generateCryptoParams(keygen, "with no-key flag enabled", make([][]byte, 0))
 	}
 	if len(handledPrivateKeys) > 0 {
 		return ccf.generateCryptoParams(keygen, "running with a provided allValidatorsKeys.pem", handledPrivateKeys)
