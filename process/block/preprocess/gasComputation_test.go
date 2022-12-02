@@ -40,7 +40,7 @@ func TestNewGasComputation_NilEnableEpochsHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	gc, err := preprocess.NewGasComputation(
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
 		nil,
 	)

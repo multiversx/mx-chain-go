@@ -13,7 +13,6 @@ import (
 	txproc "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/guardianMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
@@ -34,8 +33,8 @@ func createMockNewMetaTxArgs() txproc.ArgsNewMetaTxProcessor {
 		TxTypeHandler:       &testscommon.TxTypeHandlerMock{},
 		EconomicsFee:        createFreeTxFeeHandler(),
 		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
-		GuardianChecker:  &guardianMocks.GuardedAccountHandlerStub{},
-		TxVersionChecker: &testscommon.TxVersionCheckerStub{},
+		GuardianChecker:     &guardianMocks.GuardedAccountHandlerStub{},
+		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
 	}
 	return args
 }

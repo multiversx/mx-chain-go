@@ -112,6 +112,17 @@ type EnableEpochsHandlerStub struct {
 	IsRefactorPeersMiniBlocksFlagEnabledField                    bool
 	IsFixAsyncCallBackArgsListFlagEnabledField                   bool
 	IsFixOldTokenLiquidityEnabledField                           bool
+	IsFreezeAccountEnabledField                                  bool
+}
+
+// IsRuntimeMemStoreLimitEnabled -
+func (stub *EnableEpochsHandlerStub) IsRuntimeMemStoreLimitEnabled() bool {
+	panic("implement me")
+}
+
+// IsSetGuardianEnabled -
+func (stub *EnableEpochsHandlerStub) IsSetGuardianEnabled() bool {
+	panic("implement me")
 }
 
 // ResetPenalizedTooMuchGasFlag -
@@ -967,6 +978,14 @@ func (stub *EnableEpochsHandlerStub) IsFixOldTokenLiquidityEnabled() bool {
 	defer stub.RUnlock()
 
 	return stub.IsFixOldTokenLiquidityEnabledField
+}
+
+// IsFreezeAccountEnabled -
+func (stub *EnableEpochsHandlerStub) IsFreezeAccountEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsFreezeAccountEnabledField
 }
 
 // IsInterfaceNil -

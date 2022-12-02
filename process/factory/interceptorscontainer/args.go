@@ -1,7 +1,6 @@
 package interceptorscontainer
 
 import (
-	"github.com/ElrondNetwork/elrond-go/config"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"

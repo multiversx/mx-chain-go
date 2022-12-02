@@ -105,8 +105,8 @@ func TestGuardedAccount_getConfiguredGuardians(t *testing.T) {
 
 		expectedErr := errors.New("expected error")
 		acc := &stateMocks.UserAccountStub{
-			RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
-				return nil, expectedErr
+			RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
+				return nil, 0, expectedErr
 			},
 		}
 
@@ -119,8 +119,8 @@ func TestGuardedAccount_getConfiguredGuardians(t *testing.T) {
 		t.Parallel()
 
 		acc := &stateMocks.UserAccountStub{
-			RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
-				return nil, nil
+			RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
+				return nil, 0, nil
 			},
 		}
 
@@ -140,8 +140,8 @@ func TestGuardedAccount_getConfiguredGuardians(t *testing.T) {
 			},
 		}
 		acc := &stateMocks.UserAccountStub{
-			RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
-				return []byte("wrongly marshalled guardians"), nil
+			RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
+				return []byte("wrongly marshalled guardians"), 0, nil
 			},
 		}
 
@@ -156,8 +156,9 @@ func TestGuardedAccount_getConfiguredGuardians(t *testing.T) {
 		expectedConfiguredGuardians := &guardians.Guardians{Slice: []*guardians.Guardian{g1}}
 
 		acc := &stateMocks.UserAccountStub{
-			RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
-				return ga.marshaller.Marshal(expectedConfiguredGuardians)
+			RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
+				val, err := ga.marshaller.Marshal(expectedConfiguredGuardians)
+				return val, 0, err
 			},
 		}
 
@@ -300,8 +301,9 @@ func TestGuardedAccount_setAccountGuardian(t *testing.T) {
 		}
 		configuredGuardians := &guardians.Guardians{Slice: []*guardians.Guardian{existingGuardian}}
 		ua := &stateMocks.UserAccountStub{
-			RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
-				return ga.marshaller.Marshal(configuredGuardians)
+			RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
+				val, err := ga.marshaller.Marshal(configuredGuardians)
+				return val, 0, err
 			},
 		}
 
@@ -319,9 +321,9 @@ func TestGuardedAccount_setAccountGuardian(t *testing.T) {
 
 		expectedValue := []byte(nil)
 		ua := &stateMocks.UserAccountStub{
-			RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
+			RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
 				expectedValue, _ = ga.marshaller.Marshal(configuredGuardians)
-				return expectedValue, nil
+				return expectedValue, 0, nil
 			},
 			AccountDataHandlerCalled: func() vmcommon.AccountDataHandler {
 				return &trie.DataTrieTrackerStub{
@@ -352,8 +354,9 @@ func TestGuardedAccount_instantSetGuardian(t *testing.T) {
 		configuredGuardians := &guardians.Guardians{Slice: []*guardians.Guardian{}}
 
 		ua := &stateMocks.UserAccountStub{
-			RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
-				return ga.marshaller.Marshal(configuredGuardians)
+			RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
+				val, err := ga.marshaller.Marshal(configuredGuardians)
+				return val, 0, err
 			},
 		}
 
@@ -369,8 +372,9 @@ func TestGuardedAccount_instantSetGuardian(t *testing.T) {
 		configuredGuardians := &guardians.Guardians{Slice: []*guardians.Guardian{activeGuardian}}
 
 		ua := &stateMocks.UserAccountStub{
-			RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
-				return ga.marshaller.Marshal(configuredGuardians)
+			RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
+				val, err := ga.marshaller.Marshal(configuredGuardians)
+				return val, 0, err
 			},
 		}
 
@@ -391,8 +395,9 @@ func TestGuardedAccount_instantSetGuardian(t *testing.T) {
 		expectedValue, _ := ga.marshaller.Marshal(&guardians.Guardians{Slice: []*guardians.Guardian{newGuardian}})
 
 		ua := &stateMocks.UserAccountStub{
-			RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
-				return ga.marshaller.Marshal(configuredGuardians)
+			RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
+				val, err := ga.marshaller.Marshal(configuredGuardians)
+				return val, 0, err
 			},
 			AccountDataHandlerCalled: func() vmcommon.AccountDataHandler {
 				return &trie.DataTrieTrackerStub{
@@ -422,8 +427,8 @@ func TestGuardedAccount_GetActiveGuardian(t *testing.T) {
 	t.Run("getConfiguredGuardians with err should err - no active", func(t *testing.T) {
 		dataTrieErr := errors.New("expected error")
 		uah := &stateMocks.UserAccountStub{
-			RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
-				return nil, dataTrieErr
+			RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
+				return nil, 0, dataTrieErr
 			},
 		}
 		activeGuardian, err := ga.GetActiveGuardian(uah)
@@ -433,8 +438,9 @@ func TestGuardedAccount_GetActiveGuardian(t *testing.T) {
 	t.Run("no guardian should return err", func(t *testing.T) {
 		configuredGuardians := &guardians.Guardians{}
 		uah := &stateMocks.UserAccountStub{
-			RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
-				return ga.marshaller.Marshal(configuredGuardians)
+			RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
+				val, err := ga.marshaller.Marshal(configuredGuardians)
+				return val, 0, err
 			},
 		}
 
@@ -449,8 +455,9 @@ func TestGuardedAccount_GetActiveGuardian(t *testing.T) {
 		}
 		configuredGuardians := &guardians.Guardians{Slice: []*guardians.Guardian{pendingGuardian}}
 		uah := &stateMocks.UserAccountStub{
-			RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
-				return ga.marshaller.Marshal(configuredGuardians)
+			RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
+				val, err := ga.marshaller.Marshal(configuredGuardians)
+				return val, 0, err
 			},
 		}
 
@@ -465,8 +472,9 @@ func TestGuardedAccount_GetActiveGuardian(t *testing.T) {
 		}
 		configuredGuardians := &guardians.Guardians{Slice: []*guardians.Guardian{activeGuardian}}
 		uah := &stateMocks.UserAccountStub{
-			RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
-				return ga.marshaller.Marshal(configuredGuardians)
+			RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
+				val, err := ga.marshaller.Marshal(configuredGuardians)
+				return val, 0, err
 			},
 		}
 
@@ -486,8 +494,9 @@ func TestGuardedAccount_GetActiveGuardian(t *testing.T) {
 
 		configuredGuardians := &guardians.Guardians{Slice: []*guardians.Guardian{activeGuardian, pendingGuardian}}
 		uah := &stateMocks.UserAccountStub{
-			RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
-				return ga.marshaller.Marshal(configuredGuardians)
+			RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
+				val, err := ga.marshaller.Marshal(configuredGuardians)
+				return val, 0, err
 			},
 		}
 
@@ -507,8 +516,9 @@ func TestGuardedAccount_GetActiveGuardian(t *testing.T) {
 
 		configuredGuardians := &guardians.Guardians{Slice: []*guardians.Guardian{activeGuardian, oldGuardian}}
 		uah := &stateMocks.UserAccountStub{
-			RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
-				return ga.marshaller.Marshal(configuredGuardians)
+			RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
+				val, err := ga.marshaller.Marshal(configuredGuardians)
+				return val, 0, err
 			},
 		}
 
@@ -604,8 +614,9 @@ func TestGuardedAccount_SetGuardian(t *testing.T) {
 	t.Run("transaction signed by current active guardian but instantSetGuardian returns error", func(t *testing.T) {
 		configuredGuardians := &guardians.Guardians{Slice: []*guardians.Guardian{g1}}
 		uah := &stateMocks.UserAccountStub{
-			RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
-				return ga.marshaller.Marshal(configuredGuardians)
+			RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
+				val, err := ga.marshaller.Marshal(configuredGuardians)
+				return val, 0, err
 			},
 		}
 		err := ga.SetGuardian(uah, newGuardianAddress, g2.Address)
@@ -620,8 +631,9 @@ func TestGuardedAccount_SetGuardian(t *testing.T) {
 		expectedNewGuardians, _ := ga.marshaller.Marshal(&guardians.Guardians{Slice: []*guardians.Guardian{newGuardian}})
 
 		uah := &stateMocks.UserAccountStub{
-			RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
-				return ga.marshaller.Marshal(configuredGuardians)
+			RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
+				val, err := ga.marshaller.Marshal(configuredGuardians)
+				return val, 0, err
 			},
 			AccountDataHandlerCalled: func() vmcommon.AccountDataHandler {
 				return &trie.DataTrieTrackerStub{
@@ -645,8 +657,9 @@ func TestGuardedAccount_SetGuardian(t *testing.T) {
 		expectedNewGuardians, _ := ga.marshaller.Marshal(&guardians.Guardians{Slice: []*guardians.Guardian{g1, newGuardian}})
 
 		uah := &stateMocks.UserAccountStub{
-			RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
-				return ga.marshaller.Marshal(configuredGuardians)
+			RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
+				val, err := ga.marshaller.Marshal(configuredGuardians)
+				return val, 0, err
 			},
 			AccountDataHandlerCalled: func() vmcommon.AccountDataHandler {
 				return &trie.DataTrieTrackerStub{
@@ -676,8 +689,8 @@ func TestGuardedAccount_HasActiveGuardian(t *testing.T) {
 	t.Run("getConfiguredGuardians with err should return false", func(t *testing.T) {
 		expectedErr := errors.New("expected error")
 		uah := &stateMocks.UserAccountStub{
-			RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
-				return nil, expectedErr
+			RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
+				return nil, 0, expectedErr
 			},
 		}
 		require.False(t, ga.HasActiveGuardian(uah))
@@ -685,8 +698,9 @@ func TestGuardedAccount_HasActiveGuardian(t *testing.T) {
 	t.Run("no guardian should return false", func(t *testing.T) {
 		configuredGuardians := &guardians.Guardians{}
 		uah := &stateMocks.UserAccountStub{
-			RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
-				return ga.marshaller.Marshal(configuredGuardians)
+			RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
+				val, err := ga.marshaller.Marshal(configuredGuardians)
+				return val, 0, err
 			},
 		}
 
@@ -699,8 +713,9 @@ func TestGuardedAccount_HasActiveGuardian(t *testing.T) {
 		}
 		configuredGuardians := &guardians.Guardians{Slice: []*guardians.Guardian{pendingGuardian}}
 		uah := &stateMocks.UserAccountStub{
-			RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
-				return ga.marshaller.Marshal(configuredGuardians)
+			RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
+				val, err := ga.marshaller.Marshal(configuredGuardians)
+				return val, 0, err
 			},
 		}
 
@@ -713,8 +728,9 @@ func TestGuardedAccount_HasActiveGuardian(t *testing.T) {
 		}
 		configuredGuardians := &guardians.Guardians{Slice: []*guardians.Guardian{activeGuardian}}
 		uah := &stateMocks.UserAccountStub{
-			RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
-				return ga.marshaller.Marshal(configuredGuardians)
+			RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
+				val, err := ga.marshaller.Marshal(configuredGuardians)
+				return val, 0, err
 			},
 		}
 
@@ -732,8 +748,9 @@ func TestGuardedAccount_HasActiveGuardian(t *testing.T) {
 
 		configuredGuardians := &guardians.Guardians{Slice: []*guardians.Guardian{activeGuardian, pendingGuardian}}
 		uah := &stateMocks.UserAccountStub{
-			RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
-				return ga.marshaller.Marshal(configuredGuardians)
+			RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
+				val, err := ga.marshaller.Marshal(configuredGuardians)
+				return val, 0, err
 			},
 		}
 
@@ -751,8 +768,9 @@ func TestGuardedAccount_HasActiveGuardian(t *testing.T) {
 
 		configuredGuardians := &guardians.Guardians{Slice: []*guardians.Guardian{activeGuardian, oldGuardian}}
 		uah := &stateMocks.UserAccountStub{
-			RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
-				return ga.marshaller.Marshal(configuredGuardians)
+			RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
+				val, err := ga.marshaller.Marshal(configuredGuardians)
+				return val, 0, err
 			},
 		}
 
@@ -773,8 +791,8 @@ func TestGuardedAccount_HasPendingGuardian(t *testing.T) {
 	t.Run("getConfiguredGuardians with err should return false", func(t *testing.T) {
 		expectedErr := errors.New("expected error")
 		uah := &stateMocks.UserAccountStub{
-			RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
-				return nil, expectedErr
+			RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
+				return nil, 0, expectedErr
 			},
 		}
 		require.False(t, ga.HasPendingGuardian(uah))
@@ -782,8 +800,9 @@ func TestGuardedAccount_HasPendingGuardian(t *testing.T) {
 	t.Run("no guardian should return false", func(t *testing.T) {
 		configuredGuardians := &guardians.Guardians{}
 		uah := &stateMocks.UserAccountStub{
-			RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
-				return ga.marshaller.Marshal(configuredGuardians)
+			RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
+				val, err := ga.marshaller.Marshal(configuredGuardians)
+				return val, 0, err
 			},
 		}
 
@@ -796,8 +815,9 @@ func TestGuardedAccount_HasPendingGuardian(t *testing.T) {
 		}
 		configuredGuardians := &guardians.Guardians{Slice: []*guardians.Guardian{pendingGuardian}}
 		uah := &stateMocks.UserAccountStub{
-			RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
-				return ga.marshaller.Marshal(configuredGuardians)
+			RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
+				val, err := ga.marshaller.Marshal(configuredGuardians)
+				return val, 0, err
 			},
 		}
 
@@ -810,8 +830,9 @@ func TestGuardedAccount_HasPendingGuardian(t *testing.T) {
 		}
 		configuredGuardians := &guardians.Guardians{Slice: []*guardians.Guardian{activeGuardian}}
 		uah := &stateMocks.UserAccountStub{
-			RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
-				return ga.marshaller.Marshal(configuredGuardians)
+			RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
+				val, err := ga.marshaller.Marshal(configuredGuardians)
+				return val, 0, err
 			},
 		}
 
@@ -829,8 +850,9 @@ func TestGuardedAccount_HasPendingGuardian(t *testing.T) {
 
 		configuredGuardians := &guardians.Guardians{Slice: []*guardians.Guardian{activeGuardian, pendingGuardian}}
 		uah := &stateMocks.UserAccountStub{
-			RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
-				return ga.marshaller.Marshal(configuredGuardians)
+			RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
+				val, err := ga.marshaller.Marshal(configuredGuardians)
+				return val, 0, err
 			},
 		}
 
@@ -848,8 +870,9 @@ func TestGuardedAccount_HasPendingGuardian(t *testing.T) {
 
 		configuredGuardians := &guardians.Guardians{Slice: []*guardians.Guardian{activeGuardian, oldGuardian}}
 		uah := &stateMocks.UserAccountStub{
-			RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
-				return ga.marshaller.Marshal(configuredGuardians)
+			RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
+				val, err := ga.marshaller.Marshal(configuredGuardians)
+				return val, 0, err
 			},
 		}
 
@@ -879,8 +902,9 @@ func TestGuardedAccount_CleanOtherThanActive(t *testing.T) {
 		ga := createGuardedAccountWithEpoch(currentEpoch)
 
 		acc := &stateMocks.UserAccountStub{
-			RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
-				return ga.marshaller.Marshal(configuredGuardians)
+			RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
+				val, err := ga.marshaller.Marshal(configuredGuardians)
+				return val, 0, err
 			},
 			AccountDataHandlerCalled: func() vmcommon.AccountDataHandler {
 				return &trie.DataTrieTrackerStub{
@@ -901,8 +925,9 @@ func TestGuardedAccount_CleanOtherThanActive(t *testing.T) {
 		expectedValue, _ := ga.marshaller.Marshal(expectedConfig)
 
 		acc := &stateMocks.UserAccountStub{
-			RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
-				return ga.marshaller.Marshal(configuredGuardians)
+			RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
+				val, err := ga.marshaller.Marshal(configuredGuardians)
+				return val, 0, err
 			},
 			AccountDataHandlerCalled: func() vmcommon.AccountDataHandler {
 				return &trie.DataTrieTrackerStub{
@@ -922,8 +947,9 @@ func TestGuardedAccount_CleanOtherThanActive(t *testing.T) {
 		ga := createGuardedAccountWithEpoch(currentEpoch)
 
 		acc := &stateMocks.UserAccountStub{
-			RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
-				return ga.marshaller.Marshal(configuredGuardians)
+			RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
+				val, err := ga.marshaller.Marshal(configuredGuardians)
+				return val, 0, err
 			},
 			AccountDataHandlerCalled: func() vmcommon.AccountDataHandler {
 				return &trie.DataTrieTrackerStub{
@@ -944,8 +970,9 @@ func TestGuardedAccount_CleanOtherThanActive(t *testing.T) {
 		ga := createGuardedAccountWithEpoch(currentEpoch)
 
 		acc := &stateMocks.UserAccountStub{
-			RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
-				return ga.marshaller.Marshal(configuredGuardians)
+			RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
+				val, err := ga.marshaller.Marshal(configuredGuardians)
+				return val, 0, err
 			},
 			AccountDataHandlerCalled: func() vmcommon.AccountDataHandler {
 				return &trie.DataTrieTrackerStub{
@@ -966,8 +993,9 @@ func TestGuardedAccount_CleanOtherThanActive(t *testing.T) {
 		ga := createGuardedAccountWithEpoch(currentEpoch)
 
 		acc := &stateMocks.UserAccountStub{
-			RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
-				return ga.marshaller.Marshal(configuredGuardians)
+			RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
+				val, err := ga.marshaller.Marshal(configuredGuardians)
+				return val, 0, err
 			},
 			AccountDataHandlerCalled: func() vmcommon.AccountDataHandler {
 				return &trie.DataTrieTrackerStub{
@@ -1005,8 +1033,8 @@ func TestGuardedAccount_GetConfiguredGuardians(t *testing.T) {
 		t.Parallel()
 
 		acc := &stateMocks.UserAccountStub{
-			RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
-				return []byte("wrong data"), nil
+			RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
+				return []byte("wrong data"), 0, nil
 			},
 		}
 		active, pending, err := ga.GetConfiguredGuardians(acc)
@@ -1019,8 +1047,8 @@ func TestGuardedAccount_GetConfiguredGuardians(t *testing.T) {
 
 		expectedErr := errors.New("expected error")
 		acc := &stateMocks.UserAccountStub{
-			RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
-				return nil, expectedErr
+			RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
+				return nil, 0, expectedErr
 			},
 		}
 		active, pending, err := ga.GetConfiguredGuardians(acc)
@@ -1031,8 +1059,9 @@ func TestGuardedAccount_GetConfiguredGuardians(t *testing.T) {
 	t.Run("one pending guardian", func(t *testing.T) {
 		configuredGuardians := &guardians.Guardians{Slice: []*guardians.Guardian{g2}}
 		acc := &stateMocks.UserAccountStub{
-			RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
-				return ga.marshaller.Marshal(configuredGuardians)
+			RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
+				val, err := ga.marshaller.Marshal(configuredGuardians)
+				return val, 0, err
 			},
 		}
 		active, pending, err := ga.GetConfiguredGuardians(acc)
@@ -1043,8 +1072,9 @@ func TestGuardedAccount_GetConfiguredGuardians(t *testing.T) {
 	t.Run("one active guardian", func(t *testing.T) {
 		configuredGuardians := &guardians.Guardians{Slice: []*guardians.Guardian{g1}}
 		acc := &stateMocks.UserAccountStub{
-			RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
-				return ga.marshaller.Marshal(configuredGuardians)
+			RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
+				val, err := ga.marshaller.Marshal(configuredGuardians)
+				return val, 0, err
 			},
 		}
 		active, pending, err := ga.GetConfiguredGuardians(acc)
@@ -1055,8 +1085,9 @@ func TestGuardedAccount_GetConfiguredGuardians(t *testing.T) {
 	t.Run("one active and one pending", func(t *testing.T) {
 		configuredGuardians := &guardians.Guardians{Slice: []*guardians.Guardian{g1, g2}}
 		acc := &stateMocks.UserAccountStub{
-			RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
-				return ga.marshaller.Marshal(configuredGuardians)
+			RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
+				val, err := ga.marshaller.Marshal(configuredGuardians)
+				return val, 0, err
 			},
 		}
 		active, pending, err := ga.GetConfiguredGuardians(acc)
@@ -1067,8 +1098,9 @@ func TestGuardedAccount_GetConfiguredGuardians(t *testing.T) {
 	t.Run("one old and one active", func(t *testing.T) {
 		configuredGuardians := &guardians.Guardians{Slice: []*guardians.Guardian{g0, g1}}
 		acc := &stateMocks.UserAccountStub{
-			RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
-				return ga.marshaller.Marshal(configuredGuardians)
+			RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
+				val, err := ga.marshaller.Marshal(configuredGuardians)
+				return val, 0, err
 			},
 		}
 		active, pending, err := ga.GetConfiguredGuardians(acc)

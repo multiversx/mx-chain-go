@@ -541,6 +541,21 @@ func (mock *EnableEpochsHandlerMock) IsFixOldTokenLiquidityEnabled() bool {
 	return false
 }
 
+// IsRuntimeMemStoreLimitEnabled returns false
+func (mock *EnableEpochsHandlerMock) IsRuntimeMemStoreLimitEnabled() bool {
+	return false
+}
+
+// IsFreezeAccountEnabled returns false
+func (mock *EnableEpochsHandlerMock) IsFreezeAccountEnabled() bool {
+	return false
+}
+
+// IsSetGuardianEnabled returns false
+func (mock *EnableEpochsHandlerMock) IsSetGuardianEnabled() bool {
+	return false
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (mock *EnableEpochsHandlerMock) IsInterfaceNil() bool {
 	return mock == nil
