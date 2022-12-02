@@ -420,11 +420,12 @@ func TestFactory_NewFactoryNilHardforkExclusionHandlerShouldFail(t *testing.T) {
 
 	consensusState := initConsensusState()
 	container := mock.InitConsensusCore()
+	worker := initWorker()
 
 	fct, err := bls.NewSubroundsFactory(
 		container,
 		consensusState,
-		nil,
+		worker,
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},

@@ -288,7 +288,6 @@ func TestSubroundBlock_NewSubroundBlockNilHardforkExclusionHandlerShouldFail(t *
 	ch := make(chan bool, 1)
 	sr, _ := defaultSubroundForSRBlock(consensusState, ch, container, &statusHandler.AppStatusHandlerStub{})
 
-	container.SetSyncTimer(nil)
 	srBlock, err := bls.NewSubroundBlock(
 		sr,
 		extend,
