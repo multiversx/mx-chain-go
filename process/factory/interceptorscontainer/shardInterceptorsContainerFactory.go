@@ -93,7 +93,6 @@ func NewShardInterceptorsContainerFactory(
 		EpochStartTrigger:            args.EpochStartTrigger,
 		WhiteListerVerifiedTxs:       args.WhiteListerVerifiedTxs,
 		ArgsParser:                   args.ArgumentsParser,
-		EnableEpochs:                 args.EnableEpochs,
 		GuardianSigVerifier:          args.GuardianSigVerifier,
 		PeerSignatureHandler:         args.PeerSignatureHandler,
 		SignaturesHandler:            args.SignaturesHandler,
@@ -182,7 +181,12 @@ func (sicf *shardInterceptorsContainerFactory) Create() (process.InterceptorsCon
 		return nil, err
 	}
 
-	err = sicf.generateDirectConnectionInfoInterceptor()
+	err = sicf.generatePeerShardInterceptor()
+	if err != nil {
+		return nil, err
+	}
+
+	err = sicf.generateValidatorInfoInterceptor()
 	if err != nil {
 		return nil, err
 	}

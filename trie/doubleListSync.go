@@ -1,7 +1,6 @@
 package trie
 
 import (
-	"bytes"
 	"context"
 	"sync"
 	"time"
@@ -14,6 +13,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
+// this value of 5 seconds yield better results in terms of network bandwidth & sync times
+// whenever we need to change this, we should run comparative benchmarks
 const deltaReRequest = 5 * int64(time.Second)
 const maxNumRequestedNodesPerBatch = 1000
 
@@ -21,6 +22,7 @@ type request struct {
 	timestamp int64
 }
 
+// TODO consider removing this implementation
 type doubleListTrieSyncer struct {
 	baseSyncTrie
 	rootFound                 bool
@@ -81,7 +83,7 @@ func NewDoubleListTrieSyncer(arg ArgTrieSyncer) (*doubleListTrieSyncer, error) {
 // so this function is treated as a large critical section. This was done so the inner processing can be done without using
 // other mutexes.
 func (d *doubleListTrieSyncer) StartSyncing(rootHash []byte, ctx context.Context) error {
-	if len(rootHash) == 0 || bytes.Equal(rootHash, EmptyTrieHash) {
+	if common.IsEmptyTrie(rootHash) {
 		return nil
 	}
 	if ctx == nil {
@@ -215,7 +217,7 @@ func (d *doubleListTrieSyncer) processExistingNodes() error {
 			return err
 		}
 
-		d.trieSyncStatistics.AddNumReceived(1)
+		d.trieSyncStatistics.AddNumProcessed(1)
 		if numBytes > core.MaxBufferSizeToSendTrieNodes {
 			d.trieSyncStatistics.AddNumLarge(1)
 		}

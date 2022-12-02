@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/guardianMocks"
@@ -81,10 +82,10 @@ func createMetaDataPools() dataRetriever.PoolsHolder {
 	return pools
 }
 
-func createMetaStore() *mock.ChainStorerMock {
-	return &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &storageStubs.StorerStub{}
+func createMetaStore() *storageStubs.ChainStorerStub {
+	return &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return &storageStubs.StorerStub{}, nil
 		},
 	}
 }
@@ -232,7 +233,7 @@ func TestNewMetaInterceptorsContainerFactory_NilMultiSignerShouldErr(t *testing.
 	t.Parallel()
 
 	coreComp, cryptoComp := createMockComponentHolders()
-	cryptoComp.MultiSig = nil
+	cryptoComp.MultiSigContainer = cryptoMocks.NewMultiSignerContainerMock(nil)
 	args := getArgumentsMeta(coreComp, cryptoComp)
 	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
@@ -604,10 +605,11 @@ func TestMetaInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	numInterceptorsPeerAuthForMetachain := 1
 	numInterceptorsHeartbeatForMetachain := 1
 	numInterceptorsShardValidatorInfoForMetachain := 1
+	numInterceptorValidatorInfo := 1
 	totalInterceptors := numInterceptorsMetablock + numInterceptorsShardHeadersForMetachain + numInterceptorsTrieNodes +
 		numInterceptorsTransactionsForMetachain + numInterceptorsUnsignedTxsForMetachain + numInterceptorsMiniBlocksForMetachain +
 		numInterceptorsRewardsTxsForMetachain + numInterceptorsPeerAuthForMetachain + numInterceptorsHeartbeatForMetachain +
-		numInterceptorsShardValidatorInfoForMetachain
+		numInterceptorsShardValidatorInfoForMetachain + numInterceptorValidatorInfo
 
 	assert.Nil(t, err)
 	assert.Equal(t, totalInterceptors, container.Len())

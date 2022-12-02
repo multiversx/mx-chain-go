@@ -77,12 +77,14 @@ func TestTrieStorageManagerWithoutSnapshot_TakeSnapshot(t *testing.T) {
 	tsm, _ := trie.NewTrieStorageManager(args)
 	ts, _ := trie.NewTrieStorageManagerWithoutSnapshot(tsm)
 
-	errChan := make(chan error, 1)
-	leavesCh := make(chan core.KeyValueHolder)
-	ts.TakeSnapshot(nil, nil, leavesCh, errChan, &trieMock.MockStatistics{}, 10)
+	iteratorChannels := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder),
+		ErrChan:    make(chan error, 1),
+	}
+	ts.TakeSnapshot("", nil, nil, iteratorChannels, nil, &trieMock.MockStatistics{}, 10)
 
 	select {
-	case <-leavesCh:
+	case <-iteratorChannels.LeavesChan:
 	default:
 		assert.Fail(t, "unclosed channel")
 	}

@@ -191,7 +191,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	}
 
 	// Aggregate sig and add it to the block
-	sig, err := sr.MultiSigner().AggregateSigs(bitmap)
+	sig, err := sr.SignatureHandler().AggregateSigs(bitmap, sr.Header.GetEpoch())
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.AggregateSigs", "error", err.Error())
 		return false
@@ -591,4 +591,9 @@ func (sr *subroundEndRound) isOutOfTime() bool {
 	}
 
 	return false
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (sr *subroundEndRound) IsInterfaceNil() bool {
+	return sr == nil
 }

@@ -5,21 +5,21 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
+	"github.com/ElrondNetwork/elrond-go/storage/database"
 	storageMock "github.com/ElrondNetwork/elrond-go/storage/mock"
 	"github.com/ElrondNetwork/elrond-go/storage/pruning"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 )
 
 // CreateTestingTriePruningStorer creates a new trie pruning storer that is used for testing
 func CreateTestingTriePruningStorer(coordinator sharding.Coordinator, notifier pruning.EpochStartNotifier) (storage.Storer, *persisterMap, error) {
-	cacheConf := storageUnit.CacheConfig{
+	cacheConf := storageunit.CacheConfig{
 		Capacity: 10,
 		Type:     "LRU",
 		Shards:   3,
 	}
-	dbConf := storageUnit.DBConfig{
+	dbConf := storageunit.DBConfig{
 		FilePath:          "path/Epoch_0/Shard_1",
 		Type:              "LvlDBSerial",
 		BatchDelaySeconds: 500,
@@ -33,7 +33,11 @@ func CreateTestingTriePruningStorer(coordinator sharding.Coordinator, notifier p
 			return persistersMap.GetPersister(path), nil
 		},
 	}
-	args := &pruning.StorerArgs{
+	epochsData := pruning.EpochArgs{
+		NumOfEpochsToKeep:     4,
+		NumOfActivePersisters: 4,
+	}
+	args := pruning.StorerArgs{
 		PruningEnabled:         true,
 		Identifier:             "id",
 		ShardCoordinator:       coordinator,
@@ -41,12 +45,12 @@ func CreateTestingTriePruningStorer(coordinator sharding.Coordinator, notifier p
 		CacheConf:              cacheConf,
 		DbPath:                 dbConf.FilePath,
 		PersisterFactory:       persisterFactory,
-		NumOfEpochsToKeep:      4,
-		NumOfActivePersisters:  4,
+		EpochsData:             epochsData,
 		Notifier:               notifier,
 		OldDataCleanerProvider: &testscommon.OldDataCleanerProviderStub{},
 		CustomDatabaseRemover:  &testscommon.CustomDatabaseRemoverStub{},
 		MaxBatchSize:           10,
+		PersistersTracker:      pruning.NewPersistersTracker(epochsData),
 	}
 
 	tps, err := pruning.NewTriePruningStorer(args)
@@ -73,7 +77,7 @@ func (pm *persisterMap) GetPersister(path string) storage.Persister {
 
 	persister, exists := pm.persisters[path]
 	if !exists {
-		persister = memorydb.New()
+		persister = database.NewMemDB()
 		pm.persisters[path] = persister
 	}
 

@@ -27,6 +27,7 @@ type coreComponentsHandler interface {
 	Uint64ByteSliceConverter() typeConverters.Uint64ByteSliceConverter
 	TxVersionChecker() process.TxVersionCheckerHandler
 	ChainID() string
+	EnableEpochsHandler() common.EnableEpochsHandler
 	IsInterfaceNil() bool
 }
 

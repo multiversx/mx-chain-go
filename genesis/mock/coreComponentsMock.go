@@ -5,21 +5,23 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 // CoreComponentsMock -
 type CoreComponentsMock struct {
-	IntMarsh            marshal.Marshalizer
-	TxMarsh             marshal.Marshalizer
-	Hash                hashing.Hasher
-	TxSignHasherField   hashing.Hasher
-	UInt64ByteSliceConv typeConverters.Uint64ByteSliceConverter
-	AddrPubKeyConv      core.PubkeyConverter
-	Chain               string
-	MinTxVersion        uint32
-	StatHandler         core.AppStatusHandler
-	TxVersionCheck      process.TxVersionCheckerHandler
+	IntMarsh                 marshal.Marshalizer
+	TxMarsh                  marshal.Marshalizer
+	Hash                     hashing.Hasher
+	TxSignHasherField        hashing.Hasher
+	UInt64ByteSliceConv      typeConverters.Uint64ByteSliceConverter
+	AddrPubKeyConv           core.PubkeyConverter
+	Chain                    string
+	MinTxVersion             uint32
+	StatHandler              core.AppStatusHandler
+	EnableEpochsHandlerField common.EnableEpochsHandler
+	TxVersionCheck           process.TxVersionCheckerHandler
 }
 
 // InternalMarshalizer -
@@ -60,6 +62,11 @@ func (ccm *CoreComponentsMock) ChainID() string {
 // MinTransactionVersion -
 func (ccm *CoreComponentsMock) MinTransactionVersion() uint32 {
 	return ccm.MinTxVersion
+}
+
+// EnableEpochsHandler -
+func (ccm *CoreComponentsMock) EnableEpochsHandler() common.EnableEpochsHandler {
+	return ccm.EnableEpochsHandlerField
 }
 
 // TxVersionChecker -

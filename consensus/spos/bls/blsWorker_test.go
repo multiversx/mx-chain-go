@@ -373,3 +373,23 @@ func TestWorker_IsMessageTypeValid(t *testing.T) {
 	ret = service.IsMessageTypeValid(666)
 	assert.False(t, ret)
 }
+
+func TestWorker_GetMaxNumOfMessageTypeAccepted(t *testing.T) {
+	t.Parallel()
+
+	service, _ := bls.NewConsensusService()
+	t.Run("message type signature", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Equal(t, bls.MaxNumOfMessageTypeSignatureAccepted, service.GetMaxNumOfMessageTypeAccepted(bls.MtSignature))
+	})
+	t.Run("other message types", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Equal(t, bls.DefaultMaxNumOfMessageTypeAccepted, service.GetMaxNumOfMessageTypeAccepted(bls.MtUnknown))
+		assert.Equal(t, bls.DefaultMaxNumOfMessageTypeAccepted, service.GetMaxNumOfMessageTypeAccepted(bls.MtBlockBody))
+		assert.Equal(t, bls.DefaultMaxNumOfMessageTypeAccepted, service.GetMaxNumOfMessageTypeAccepted(bls.MtBlockHeader))
+		assert.Equal(t, bls.DefaultMaxNumOfMessageTypeAccepted, service.GetMaxNumOfMessageTypeAccepted(bls.MtBlockBodyAndHeader))
+		assert.Equal(t, bls.DefaultMaxNumOfMessageTypeAccepted, service.GetMaxNumOfMessageTypeAccepted(bls.MtBlockHeaderFinalInfo))
+	})
+}

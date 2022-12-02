@@ -22,8 +22,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/storage/cache"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
-	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/trie/factory"
 )
 
@@ -72,6 +72,7 @@ func NewStorageEpochStartBootstrap(args ArgsStorageEpochStartBootstrap) (*storag
 // Bootstrap runs the fast bootstrap method from local storage or from import-db directory
 func (sesb *storageEpochStartBootstrap) Bootstrap() (Parameters, error) {
 	defer sesb.closeTrieComponents()
+	defer sesb.closeBootstrapHeartbeatSender()
 
 	if !sesb.generalConfig.GeneralSettings.StartInEpochEnabled {
 		return sesb.bootstrapFromLocalStorage()
@@ -206,7 +207,7 @@ func (sesb *storageEpochStartBootstrap) createStorageRequestHandler() error {
 		return err
 	}
 
-	requestedItemsHandler := timecache.NewTimeCache(timeBetweenRequests)
+	requestedItemsHandler := cache.NewTimeCache(timeBetweenRequests)
 	sesb.requestHandler, err = requestHandlers.NewResolverRequestHandler(
 		finder,
 		requestedItemsHandler,
@@ -399,18 +400,19 @@ func (sesb *storageEpochStartBootstrap) processNodesConfig(pubKey []byte) error 
 		shardId = sesb.genesisShardCoordinator.SelfId()
 	}
 	argsNewValidatorStatusSyncers := ArgsNewSyncValidatorStatus{
-		DataPool:           sesb.dataPool,
-		Marshalizer:        sesb.coreComponentsHolder.InternalMarshalizer(),
-		RequestHandler:     sesb.requestHandler,
-		ChanceComputer:     sesb.rater,
-		GenesisNodesConfig: sesb.genesisNodesConfig,
-		NodeShuffler:       sesb.nodeShuffler,
-		Hasher:             sesb.coreComponentsHolder.Hasher(),
-		PubKey:             pubKey,
-		ShardIdAsObserver:  shardId,
-		ChanNodeStop:       sesb.coreComponentsHolder.ChanStopNodeProcess(),
-		NodeTypeProvider:   sesb.coreComponentsHolder.NodeTypeProvider(),
-		IsFullArchive:      sesb.prefsConfig.FullArchive,
+		DataPool:            sesb.dataPool,
+		Marshalizer:         sesb.coreComponentsHolder.InternalMarshalizer(),
+		RequestHandler:      sesb.requestHandler,
+		ChanceComputer:      sesb.rater,
+		GenesisNodesConfig:  sesb.genesisNodesConfig,
+		NodeShuffler:        sesb.nodeShuffler,
+		Hasher:              sesb.coreComponentsHolder.Hasher(),
+		PubKey:              pubKey,
+		ShardIdAsObserver:   shardId,
+		ChanNodeStop:        sesb.coreComponentsHolder.ChanStopNodeProcess(),
+		NodeTypeProvider:    sesb.coreComponentsHolder.NodeTypeProvider(),
+		IsFullArchive:       sesb.prefsConfig.FullArchive,
+		EnableEpochsHandler: sesb.coreComponentsHolder.EnableEpochsHandler(),
 	}
 	sesb.nodesConfigHandler, err = NewSyncValidatorStatus(argsNewValidatorStatusSyncers)
 	if err != nil {
@@ -448,7 +450,7 @@ func (sesb *storageEpochStartBootstrap) processNodesConfig(pubKey []byte) error 
 // applyCurrentShardIDOnMiniblocksCopy will alter the fetched metablocks making the sender shard ID for each miniblock
 // header to  be exactly the shard ID used in the import-db process. This is necessary as to allow the miniblocks to be requested
 // on the available resolver and should be called only from this storage-base bootstrap instance.
-// This method also copies the MiniBlockHeaders slice pointer. Otherwise the node will end up stating
+// This method also copies the MiniBlockHeaders slice pointer. Otherwise, the node will end up stating
 // "start of epoch metablock mismatch"
 func (sesb *storageEpochStartBootstrap) applyCurrentShardIDOnMiniblocksCopy(metablock data.HeaderHandler) error {
 	originalMiniblocksHeaders := metablock.GetMiniBlockHeaderHandlers()

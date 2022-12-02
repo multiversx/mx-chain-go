@@ -1,15 +1,19 @@
 package syncer
 
 import (
+	"context"
+
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"golang.org/x/net/context"
+	"github.com/ElrondNetwork/elrond-go/state"
 )
 
 // TransactionsSyncHandlerMock -
 type TransactionsSyncHandlerMock struct {
 	SyncTransactionsForCalled func(miniBlocks map[string]*block.MiniBlock, epoch uint32, ctx context.Context) error
 	GetTransactionsCalled     func() (map[string]data.TransactionHandler, error)
+	GetValidatorsInfoCalled   func() (map[string]*state.ShardValidatorInfo, error)
+	ClearFieldsCalled         func()
 }
 
 // SyncTransactionsFor -
@@ -26,6 +30,21 @@ func (et *TransactionsSyncHandlerMock) GetTransactions() (map[string]data.Transa
 		return et.GetTransactionsCalled()
 	}
 	return nil, nil
+}
+
+// GetValidatorsInfo -
+func (et *TransactionsSyncHandlerMock) GetValidatorsInfo() (map[string]*state.ShardValidatorInfo, error) {
+	if et.GetValidatorsInfoCalled != nil {
+		return et.GetValidatorsInfoCalled()
+	}
+	return nil, nil
+}
+
+// ClearFields -
+func (et *TransactionsSyncHandlerMock) ClearFields() {
+	if et.ClearFieldsCalled != nil {
+		et.ClearFieldsCalled()
+	}
 }
 
 // IsInterfaceNil -

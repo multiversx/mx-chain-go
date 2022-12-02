@@ -97,9 +97,9 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 				MaxGasPriceSetGuardian: "100000",
 			},
 		},
-		PenalizedTooMuchGasEnableEpoch: 0,
-		EpochNotifier:                  &epochNotifier.EpochNotifierStub{},
-		BuiltInFunctionsCostHandler:    &mock.BuiltInCostHandlerStub{},
+		EpochNotifier:               &epochNotifier.EpochNotifierStub{},
+		EnableEpochsHandler:         &testscommon.EnableEpochsHandlerStub{},
+		BuiltInFunctionsCostHandler: &mock.BuiltInCostHandlerStub{},
 		TxVersionChecker:               &testscommon.TxVersionCheckerStub{},
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
@@ -111,7 +111,7 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 				return nil
 			},
 		},
-		StorageService:                       &mock.ChainStorerMock{},
+		StorageService:                       &storageStubs.ChainStorerStub{},
 		NodesCoordinator:                     &shardingMocks.NodesCoordinatorMock{},
 		ShardCoordinator:                     mock.NewOneShardCoordinatorMock(),
 		PubkeyConv:                           createMockPubkeyConverter(),
@@ -121,9 +121,10 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 		MaxComputableRounds:                  1000,
 		MaxConsecutiveRoundsOfRatingDecrease: 2000,
 		NodesSetup:                           &mock.NodesSetupStub{},
-		EpochNotifier:                        &epochNotifier.EpochNotifierStub{},
-		StakingV2EnableEpoch:                 5,
-		StopDecreasingValidatorRatingWhenStuckEnableEpoch: 1500,
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+			IsSwitchJailWaitingFlagEnabledField:    true,
+			IsBelowSignedThresholdFlagEnabledField: true,
+		},
 	}
 	return arguments
 }
@@ -306,7 +307,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateGetAccountReturnsInvalid(t
 
 	peerAdapter := &stateMock.AccountsStub{
 		LoadAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
-			return &mock.AccountWrapMock{}, nil
+			return &stateMock.AccountWrapMock{}, nil
 		},
 	}
 
@@ -489,7 +490,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetExistingAccountInvalidTy
 
 	adapter := getAccountsMock()
 	adapter.LoadAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
-		return &mock.AccountWrapMock{}, nil
+		return &stateMock.AccountWrapMock{}, nil
 	}
 
 	arguments := createMockArguments()
@@ -528,13 +529,13 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetHeaderError(t *testing.T
 			return &mock.HeadersCacherStub{}
 		},
 	}
-	arguments.StorageService = &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	arguments.StorageService = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) (bytes []byte, e error) {
 					return nil, getHeaderError
 				},
-			}
+			}, nil
 		},
 	}
 	arguments.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
@@ -584,13 +585,13 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCallsIncrease(t *testing.T)
 			return &mock.HeadersCacherStub{}
 		},
 	}
-	arguments.StorageService = &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	arguments.StorageService = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) (bytes []byte, e error) {
 					return nil, nil
 				},
-			}
+			}, nil
 		},
 	}
 	arguments.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
@@ -1256,13 +1257,13 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCheckForMissedBlocksErr(t *
 			return &mock.HeadersCacherStub{}
 		},
 	}
-	arguments.StorageService = &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	arguments.StorageService = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) (bytes []byte, e error) {
 					return nil, nil
 				},
-			}
+			}, nil
 		},
 	}
 	arguments.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
@@ -1331,7 +1332,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksNoMissedBlocks(t *test
 	arguments := createMockArguments()
 	arguments.Marshalizer = &mock.MarshalizerMock{}
 	arguments.DataPool = dataRetrieverMock.NewPoolsHolderStub()
-	arguments.StorageService = &mock.ChainStorerMock{}
+	arguments.StorageService = &storageStubs.ChainStorerStub{}
 	arguments.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error) {
 			computeValidatorGroupCalled = true
@@ -1382,7 +1383,8 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksMissedRoundsGreaterTha
 	arguments.PeerAdapter = peerAdapter
 	arguments.NodesCoordinator = nodesCoordinatorMock
 	arguments.MaxComputableRounds = 1
-	arguments.StopDecreasingValidatorRatingWhenStuckEnableEpoch = 2
+	enableEpochsHandler, _ := arguments.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	enableEpochsHandler.IsStopDecreasingValidatorRatingWhenStuckFlagEnabledField = false
 	arguments.MaxConsecutiveRoundsOfRatingDecrease = 4
 
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
@@ -1393,7 +1395,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksMissedRoundsGreaterTha
 	require.Equal(t, 99, validatorRating)
 
 	// Flag to stop decreasing validator rating is set, but NOT enough missed rounds to stop decreasing ratings => decrease validator rating again
-	validatorStatistics.EpochConfirmed(2, 0)
+	enableEpochsHandler.IsStopDecreasingValidatorRatingWhenStuckFlagEnabledField = true
 	err = validatorStatistics.CheckForMissedBlocks(4, 0, []byte("prev"), 0, 0)
 	require.Nil(t, err)
 	require.Equal(t, 98, validatorRating)
@@ -1416,7 +1418,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksErrOnComputeValidatorL
 	arguments := createMockArguments()
 	arguments.Marshalizer = &mock.MarshalizerMock{}
 	arguments.DataPool = dataRetrieverMock.NewPoolsHolderStub()
-	arguments.StorageService = &mock.ChainStorerMock{}
+	arguments.StorageService = &storageStubs.ChainStorerStub{}
 	arguments.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error) {
 			return nil, computeErr
@@ -1820,6 +1822,8 @@ func DoComputeMissingBlocks(
 }
 
 func TestValidatorStatisticsProcessor_GetMatchingPrevShardDataEmptySDReturnsNil(t *testing.T) {
+	t.Parallel()
+
 	arguments := createMockArguments()
 
 	currentShardData := block.ShardData{}
@@ -1832,6 +1836,8 @@ func TestValidatorStatisticsProcessor_GetMatchingPrevShardDataEmptySDReturnsNil(
 }
 
 func TestValidatorStatisticsProcessor_GetMatchingPrevShardDataNoMatch(t *testing.T) {
+	t.Parallel()
+
 	arguments := createMockArguments()
 
 	currentShardData := block.ShardData{ShardID: 1, Nonce: 10}
@@ -1844,6 +1850,8 @@ func TestValidatorStatisticsProcessor_GetMatchingPrevShardDataNoMatch(t *testing
 }
 
 func TestValidatorStatisticsProcessor_GetMatchingPrevShardDataFindsMatch(t *testing.T) {
+	t.Parallel()
+
 	arguments := createMockArguments()
 
 	currentShardData := block.ShardData{ShardID: 1, Nonce: 10}
@@ -1856,6 +1864,8 @@ func TestValidatorStatisticsProcessor_GetMatchingPrevShardDataFindsMatch(t *test
 }
 
 func TestValidatorStatisticsProcessor_UpdatePeerStateCallsPubKeyForValidator(t *testing.T) {
+	t.Parallel()
+
 	pubKeyCalled := false
 	arguments := createMockArguments()
 	arguments.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
@@ -1922,13 +1932,15 @@ func getAccountsMock() *stateMock.AccountsStub {
 }
 
 func TestValidatorStatistics_RootHashWithErrShouldReturnNil(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("nonExistingRootHash")
 	expectedErr := errors.New("invalid rootHash")
 
 	arguments := createMockArguments()
 
 	peerAdapter := getAccountsMock()
-	peerAdapter.GetAllLeavesCalled = func(_ chan core.KeyValueHolder, _ context.Context, _ []byte) error {
+	peerAdapter.GetAllLeavesCalled = func(_ *common.TrieIteratorChannels, _ context.Context, _ []byte) error {
 		return expectedErr
 	}
 	arguments.PeerAdapter = peerAdapter
@@ -1941,6 +1953,8 @@ func TestValidatorStatistics_RootHashWithErrShouldReturnNil(t *testing.T) {
 }
 
 func TestValidatorStatistics_ResetValidatorStatisticsAtNewEpoch(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("correctRootHash")
 	expectedErr := errors.New("unknown peer")
 	arguments := createMockArguments()
@@ -1953,11 +1967,12 @@ func TestValidatorStatistics_ResetValidatorStatisticsAtNewEpoch(t *testing.T) {
 	marshalizedPa0, _ := arguments.Marshalizer.Marshal(pa0)
 
 	peerAdapter := getAccountsMock()
-	peerAdapter.GetAllLeavesCalled = func(ch chan core.KeyValueHolder, _ context.Context, rootHash []byte) error {
+	peerAdapter.GetAllLeavesCalled = func(ch *common.TrieIteratorChannels, _ context.Context, rootHash []byte) error {
 		if bytes.Equal(rootHash, hash) {
 			go func() {
-				ch <- keyValStorage.NewKeyValStorage(addrBytes0, marshalizedPa0)
-				close(ch)
+				ch.LeavesChan <- keyValStorage.NewKeyValStorage(addrBytes0, marshalizedPa0)
+				close(ch.LeavesChan)
+				close(ch.ErrChan)
 			}()
 
 			return nil
@@ -1999,6 +2014,8 @@ func TestValidatorStatistics_ResetValidatorStatisticsAtNewEpoch(t *testing.T) {
 }
 
 func TestValidatorStatistics_Process(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("correctRootHash")
 	expectedErr := errors.New("error rootHash")
 	arguments := createMockArguments()
@@ -2012,12 +2029,13 @@ func TestValidatorStatistics_Process(t *testing.T) {
 	marshalizedPaMeta, _ := arguments.Marshalizer.Marshal(paMeta)
 
 	peerAdapter := getAccountsMock()
-	peerAdapter.GetAllLeavesCalled = func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
+	peerAdapter.GetAllLeavesCalled = func(ch *common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error {
 		if bytes.Equal(rootHash, hash) {
 			go func() {
-				ch <- keyValStorage.NewKeyValStorage(addrBytes0, marshalizedPa0)
-				ch <- keyValStorage.NewKeyValStorage(addrBytesMeta, marshalizedPaMeta)
-				close(ch)
+				ch.LeavesChan <- keyValStorage.NewKeyValStorage(addrBytes0, marshalizedPa0)
+				ch.LeavesChan <- keyValStorage.NewKeyValStorage(addrBytesMeta, marshalizedPaMeta)
+				close(ch.LeavesChan)
+				close(ch.ErrChan)
 			}()
 
 			return nil
@@ -2047,6 +2065,8 @@ func TestValidatorStatistics_Process(t *testing.T) {
 }
 
 func TestValidatorStatistics_GetValidatorInfoForRootHash(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("correctRootHash")
 	expectedErr := errors.New("error rootHash")
 	arguments := createMockArguments()
@@ -2054,38 +2074,67 @@ func TestValidatorStatistics_GetValidatorInfoForRootHash(t *testing.T) {
 	addrBytes0 := []byte("addr1")
 	addrBytesMeta := []byte("addrMeta")
 
-	pa0, paMeta := createPeerAccounts(addrBytes0, addrBytesMeta)
+	t.Run("should fail on getting all leaves from trie", func(t *testing.T) {
+		peerAdapter := getAccountsMock()
 
-	marshalizedPa0, _ := arguments.Marshalizer.Marshal(pa0)
-	marshalizedPaMeta, _ := arguments.Marshalizer.Marshal(paMeta)
+		expectedErr := errors.New("expected error")
+		peerAdapter.GetAllLeavesCalled = func(ch *common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error {
+			if bytes.Equal(rootHash, hash) {
+				go func() {
+					ch.ErrChan <- expectedErr
+					close(ch.LeavesChan)
+				}()
 
-	peerAdapter := getAccountsMock()
-	peerAdapter.GetAllLeavesCalled = func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
-		if bytes.Equal(rootHash, hash) {
-			go func() {
-				ch <- keyValStorage.NewKeyValStorage(addrBytes0, marshalizedPa0)
-				ch <- keyValStorage.NewKeyValStorage(addrBytesMeta, marshalizedPaMeta)
-				close(ch)
-			}()
-
-			return nil
+				return nil
+			}
+			return expectedErr
 		}
-		return expectedErr
-	}
-	arguments.PeerAdapter = peerAdapter
+		arguments.PeerAdapter = peerAdapter
 
-	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
+		validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 
-	validatorInfos, err := validatorStatistics.GetValidatorInfoForRootHash(hash)
-	assert.NotNil(t, validatorInfos)
-	assert.Nil(t, err)
-	assert.Equal(t, uint32(0), validatorInfos[0][0].ShardId)
-	compare(t, pa0, validatorInfos[0][0])
-	assert.Equal(t, core.MetachainShardId, validatorInfos[core.MetachainShardId][0].ShardId)
-	compare(t, paMeta, validatorInfos[core.MetachainShardId][0])
+		validatorInfos, err := validatorStatistics.GetValidatorInfoForRootHash(hash)
+		assert.Nil(t, validatorInfos)
+		assert.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		pa0, paMeta := createPeerAccounts(addrBytes0, addrBytesMeta)
+
+		marshalizedPa0, _ := arguments.Marshalizer.Marshal(pa0)
+		marshalizedPaMeta, _ := arguments.Marshalizer.Marshal(paMeta)
+
+		peerAdapter := getAccountsMock()
+		peerAdapter.GetAllLeavesCalled = func(ch *common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error {
+			if bytes.Equal(rootHash, hash) {
+				go func() {
+					ch.LeavesChan <- keyValStorage.NewKeyValStorage(addrBytes0, marshalizedPa0)
+					ch.LeavesChan <- keyValStorage.NewKeyValStorage(addrBytesMeta, marshalizedPaMeta)
+					close(ch.LeavesChan)
+					close(ch.ErrChan)
+				}()
+
+				return nil
+			}
+			return expectedErr
+		}
+		arguments.PeerAdapter = peerAdapter
+
+		validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
+
+		validatorInfos, err := validatorStatistics.GetValidatorInfoForRootHash(hash)
+		assert.NotNil(t, validatorInfos)
+		assert.Nil(t, err)
+		assert.Equal(t, uint32(0), validatorInfos[0][0].ShardId)
+		compare(t, pa0, validatorInfos[0][0])
+		assert.Equal(t, core.MetachainShardId, validatorInfos[core.MetachainShardId][0].ShardId)
+		compare(t, paMeta, validatorInfos[core.MetachainShardId][0])
+	})
 }
 
 func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochWithNilMapShouldErr(t *testing.T) {
+	t.Parallel()
+
 	arguments := createMockArguments()
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 
@@ -2152,6 +2201,8 @@ func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochWithNoValidatorFailu
 }
 
 func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochWithSmallValidatorFailureShouldWork(t *testing.T) {
+	t.Parallel()
+
 	arguments := createMockArguments()
 	rater := createMockRater()
 	rater.GetSignedBlocksThresholdCalled = func() float32 {
@@ -2190,6 +2241,8 @@ func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochWithSmallValidatorFa
 }
 
 func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochComputesJustEligible(t *testing.T) {
+	t.Parallel()
+
 	arguments := createMockArguments()
 	rater := createMockRater()
 	rater.GetSignedBlocksThresholdCalled = func() float32 {
@@ -2231,6 +2284,8 @@ func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochComputesJustEligible
 }
 
 func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochV2ComputesEligibleLeaving(t *testing.T) {
+	t.Parallel()
+
 	arguments := createMockArguments()
 	rater := createMockRater()
 	rater.GetSignedBlocksThresholdCalled = func() float32 {
@@ -2242,9 +2297,10 @@ func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochV2ComputesEligibleLe
 	arguments.Rater = rater
 
 	updateArgumentsWithNeeded(arguments)
+	enableEpochsHandler, _ := arguments.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
 
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
-	validatorStatistics.EpochConfirmed(10, 0)
+	enableEpochsHandler.IsStakingV2FlagEnabledForActivationEpochCompletedField = true
 
 	tempRating1 := uint32(5000)
 	tempRating2 := uint32(8000)
@@ -2274,6 +2330,8 @@ func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochV2ComputesEligibleLe
 }
 
 func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochWithLargeValidatorFailureBelowMinRatingShouldWork(t *testing.T) {
+	t.Parallel()
+
 	arguments := createMockArguments()
 	rater := createMockRater()
 	rater.GetSignedBlocksThresholdCalled = func() float32 {
@@ -2311,6 +2369,7 @@ func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochWithLargeValidatorFa
 }
 
 func TestValidatorsProvider_PeerAccoutToValidatorInfo(t *testing.T) {
+	t.Parallel()
 
 	baseRating := uint32(50)
 	rating := uint32(70)
@@ -2494,11 +2553,12 @@ func updateArgumentsWithNeeded(arguments peer.ArgValidatorStatisticsProcessor) {
 	marshalizedPaMeta, _ := arguments.Marshalizer.Marshal(paMeta)
 
 	peerAdapter := getAccountsMock()
-	peerAdapter.GetAllLeavesCalled = func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
+	peerAdapter.GetAllLeavesCalled = func(ch *common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error {
 		go func() {
-			ch <- keyValStorage.NewKeyValStorage(addrBytes0, marshalizedPa0)
-			ch <- keyValStorage.NewKeyValStorage(addrBytesMeta, marshalizedPaMeta)
-			close(ch)
+			ch.LeavesChan <- keyValStorage.NewKeyValStorage(addrBytes0, marshalizedPa0)
+			ch.LeavesChan <- keyValStorage.NewKeyValStorage(addrBytesMeta, marshalizedPaMeta)
+			close(ch.LeavesChan)
+			close(ch.ErrChan)
 		}()
 
 		return nil
@@ -2576,6 +2636,8 @@ func TestValidatorStatisticsProcessor_SaveNodesCoordinatorUpdates(t *testing.T) 
 }
 
 func TestValidatorStatisticsProcessor_getActualList(t *testing.T) {
+	t.Parallel()
+
 	eligibleList := string(common.EligibleList)
 	eligiblePeer := &mock.PeerAccountHandlerMock{
 		GetListCalled: func() string {

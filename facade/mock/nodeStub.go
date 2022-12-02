@@ -38,7 +38,9 @@ type NodeStub struct {
 	GetValueForKeyCalled                           func(address string, key string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
 	GetGuardianDataCalled                          func(address string, options api.AccountQueryOptions) (api.GuardianData, api.BlockInfo, error)
 	GetPeerInfoCalled                              func(pid string) ([]core.QueryP2PPeerInfo, error)
+	GetEpochStartDataAPICalled                     func(epoch uint32) (*common.EpochStartDataAPI, error)
 	GetUsernameCalled                              func(address string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
+	GetCodeHashCalled                              func(address string, options api.AccountQueryOptions) ([]byte, api.BlockInfo, error)
 	GetESDTDataCalled                              func(address string, key string, nonce uint64, options api.AccountQueryOptions) (*esdt.ESDigitalToken, api.BlockInfo, error)
 	GetAllESDTTokensCalled                         func(address string, options api.AccountQueryOptions, ctx context.Context) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error)
 	GetNFTTokenIDsRegisteredByAddressCalled        func(address string, options api.AccountQueryOptions, ctx context.Context) ([]string, api.BlockInfo, error)
@@ -85,6 +87,15 @@ func (ns *NodeStub) GetUsername(address string, options api.AccountQueryOptions)
 	}
 
 	return "", api.BlockInfo{}, nil
+}
+
+// GetCodeHash -
+func (ns *NodeStub) GetCodeHash(address string, options api.AccountQueryOptions) ([]byte, api.BlockInfo, error) {
+	if ns.GetCodeHashCalled != nil {
+		return ns.GetCodeHashCalled(address, options)
+	}
+
+	return nil, api.BlockInfo{}, nil
 }
 
 // GetKeyValuePairs -
@@ -199,6 +210,15 @@ func (ns *NodeStub) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
 	}
 
 	return make([]core.QueryP2PPeerInfo, 0), nil
+}
+
+// GetEpochStartDataAPI -
+func (ns *NodeStub) GetEpochStartDataAPI(epoch uint32) (*common.EpochStartDataAPI, error) {
+	if ns.GetEpochStartDataAPICalled != nil {
+		return ns.GetEpochStartDataAPICalled(epoch)
+	}
+
+	return &common.EpochStartDataAPI{}, nil
 }
 
 // GetESDTData -

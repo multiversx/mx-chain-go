@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"strings"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -205,8 +206,9 @@ func (en *extensionNode) commitCheckpoint(
 	checkpointHashes CheckpointHashesHolder,
 	leavesChan chan core.KeyValueHolder,
 	ctx context.Context,
-	stats common.SnapshotStatisticsHandler,
+	stats common.TrieStatisticsHandler,
 	idleProvider IdleNodeProvider,
+	depthLevel int,
 ) error {
 	if shouldStopIfContextDone(ctx, idleProvider) {
 		return errors.ErrContextClosing
@@ -232,21 +234,23 @@ func (en *extensionNode) commitCheckpoint(
 		return nil
 	}
 
-	err = en.child.commitCheckpoint(originDb, targetDb, checkpointHashes, leavesChan, ctx, stats, idleProvider)
+	err = en.child.commitCheckpoint(originDb, targetDb, checkpointHashes, leavesChan, ctx, stats, idleProvider, depthLevel+1)
 	if err != nil {
 		return err
 	}
 
 	checkpointHashes.Remove(hash)
-	return en.saveToStorage(targetDb, stats)
+	return en.saveToStorage(targetDb, stats, depthLevel)
 }
 
 func (en *extensionNode) commitSnapshot(
 	db common.DBWriteCacher,
 	leavesChan chan core.KeyValueHolder,
+	missingNodesChan chan []byte,
 	ctx context.Context,
-	stats common.SnapshotStatisticsHandler,
+	stats common.TrieStatisticsHandler,
 	idleProvider IdleNodeProvider,
+	depthLevel int,
 ) error {
 	if shouldStopIfContextDone(ctx, idleProvider) {
 		return errors.ErrContextClosing
@@ -258,25 +262,33 @@ func (en *extensionNode) commitSnapshot(
 	}
 
 	err = resolveIfCollapsed(en, 0, db)
+	isMissingNodeErr := false
 	if err != nil {
-		return err
+		isMissingNodeErr = strings.Contains(err.Error(), common.GetNodeFromDBErrorString)
+		if !isMissingNodeErr {
+			return err
+		}
 	}
 
-	err = en.child.commitSnapshot(db, leavesChan, ctx, stats, idleProvider)
-	if err != nil {
-		return err
+	if isMissingNodeErr {
+		treatCommitSnapshotError(err, en.EncodedChild, missingNodesChan)
+	} else {
+		err = en.child.commitSnapshot(db, leavesChan, missingNodesChan, ctx, stats, idleProvider, depthLevel+1)
+		if err != nil {
+			return err
+		}
 	}
 
-	return en.saveToStorage(db, stats)
+	return en.saveToStorage(db, stats, depthLevel)
 }
 
-func (en *extensionNode) saveToStorage(targetDb common.DBWriteCacher, stats common.SnapshotStatisticsHandler) error {
+func (en *extensionNode) saveToStorage(targetDb common.DBWriteCacher, stats common.TrieStatisticsHandler, depthLevel int) error {
 	nodeSize, err := encodeNodeAndCommitToDB(en, targetDb)
 	if err != nil {
 		return err
 	}
 
-	stats.AddSize(uint64(nodeSize))
+	stats.AddExtensionNode(depthLevel, uint64(nodeSize))
 
 	en.child = nil
 	return nil
@@ -317,26 +329,26 @@ func (en *extensionNode) isPosCollapsed(_ int) bool {
 	return en.isCollapsed()
 }
 
-func (en *extensionNode) tryGet(key []byte, db common.DBWriteCacher) (value []byte, err error) {
+func (en *extensionNode) tryGet(key []byte, currentDepth uint32, db common.DBWriteCacher) (value []byte, maxDepth uint32, err error) {
 	err = en.isEmptyOrNil()
 	if err != nil {
-		return nil, fmt.Errorf("tryGet error %w", err)
+		return nil, currentDepth, fmt.Errorf("tryGet error %w", err)
 	}
 	keyTooShort := len(key) < len(en.Key)
 	if keyTooShort {
-		return nil, nil
+		return nil, currentDepth, nil
 	}
 	keysDontMatch := !bytes.Equal(en.Key, key[:len(en.Key)])
 	if keysDontMatch {
-		return nil, nil
+		return nil, currentDepth, nil
 	}
 	key = key[len(en.Key):]
 	err = resolveIfCollapsed(en, 0, db)
 	if err != nil {
-		return nil, err
+		return nil, currentDepth, err
 	}
 
-	return en.child.tryGet(key, db)
+	return en.child.tryGet(key, currentDepth+1, db)
 }
 
 func (en *extensionNode) getNext(key []byte, db common.DBWriteCacher) (node, []byte, error) {
@@ -639,7 +651,8 @@ func (en *extensionNode) loadChildren(getNode func([]byte) (node, error)) ([][]b
 
 func (en *extensionNode) getAllLeavesOnChannel(
 	leavesChannel chan core.KeyValueHolder,
-	key []byte, db common.DBWriteCacher,
+	keyBuilder common.KeyBuilder,
+	db common.DBWriteCacher,
 	marshalizer marshal.Marshalizer,
 	chanClose chan struct{},
 	ctx context.Context,
@@ -662,8 +675,8 @@ func (en *extensionNode) getAllLeavesOnChannel(
 			return err
 		}
 
-		childKey := append(key, en.Key...)
-		err = en.child.getAllLeavesOnChannel(leavesChannel, childKey, db, marshalizer, chanClose, ctx)
+		keyBuilder.BuildKey(en.Key)
+		err = en.child.getAllLeavesOnChannel(leavesChannel, keyBuilder.Clone(), db, marshalizer, chanClose, ctx)
 		if err != nil {
 			return err
 		}
@@ -720,6 +733,31 @@ func (en *extensionNode) sizeInBytes() int {
 
 func (en *extensionNode) getValue() []byte {
 	return []byte{}
+}
+
+func (en *extensionNode) collectStats(ts common.TrieStatisticsHandler, depthLevel int, db common.DBWriteCacher) error {
+	err := en.isEmptyOrNil()
+	if err != nil {
+		return fmt.Errorf("collectStats error %w", err)
+	}
+
+	err = resolveIfCollapsed(en, 0, db)
+	if err != nil {
+		return err
+	}
+
+	err = en.child.collectStats(ts, depthLevel+1, db)
+	if err != nil {
+		return err
+	}
+
+	val, err := collapseAndEncodeNode(en)
+	if err != nil {
+		return err
+	}
+
+	ts.AddExtensionNode(depthLevel, uint64(len(val)))
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

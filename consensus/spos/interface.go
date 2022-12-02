@@ -5,10 +5,11 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
+	"github.com/ElrondNetwork/elrond-go-core/data/outport"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
+	cryptoCommon "github.com/ElrondNetwork/elrond-go/common/crypto"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/ntp"
@@ -36,8 +37,8 @@ type ConsensusCoreHandler interface {
 	Hasher() hashing.Hasher
 	// Marshalizer gets the Marshalizer stored in the ConsensusCore
 	Marshalizer() marshal.Marshalizer
-	// MultiSigner gets the MultiSigner stored in the ConsensusCore
-	MultiSigner() crypto.MultiSigner
+	// MultiSignerContainer gets the MultiSigner container from the ConsensusCore
+	MultiSignerContainer() cryptoCommon.MultiSignerContainer
 	// RoundHandler gets the RoundHandler stored in the ConsensusCore
 	RoundHandler() consensus.RoundHandler
 	// ShardCoordinator gets the ShardCoordinator stored in the ConsensusCore
@@ -62,6 +63,8 @@ type ConsensusCoreHandler interface {
 	NodeRedundancyHandler() consensus.NodeRedundancyHandler
 	// ScheduledProcessor returns the scheduled txs processor
 	ScheduledProcessor() consensus.ScheduledProcessor
+	// SignatureHandler returns the signature handler component
+	SignatureHandler() consensus.SignatureHandler
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
@@ -97,6 +100,8 @@ type ConsensusService interface {
 	IsSubroundStartRound(int) bool
 	// GetMaxMessagesInARoundPerPeer returns the maximum number of messages a peer can send per round
 	GetMaxMessagesInARoundPerPeer() uint32
+	// GetMaxNumOfMessageTypeAccepted returns the maximum number of accepted consensus message types per round, per public key
+	GetMaxNumOfMessageTypeAccepted(msgType consensus.MessageType) uint32
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
@@ -130,7 +135,7 @@ type WorkerHandler interface {
 	DisplayStatistics()
 	// ReceivedHeader method is a wired method through which worker will receive headers from network
 	ReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte)
-	//  ResetConsensusMessages resets at the start of each round all the previous consensus messages received
+	// ResetConsensusMessages resets at the start of each round all the previous consensus messages received
 	ResetConsensusMessages()
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
@@ -152,6 +157,6 @@ type HeaderSigVerifier interface {
 
 // ConsensusDataIndexer defines the actions that a consensus data indexer has to do
 type ConsensusDataIndexer interface {
-	SaveRoundsInfo(roundsInfos []*indexer.RoundInfo)
+	SaveRoundsInfo(roundsInfos []*outport.RoundInfo)
 	IsInterfaceNil() bool
 }

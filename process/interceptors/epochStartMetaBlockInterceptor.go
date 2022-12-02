@@ -135,7 +135,7 @@ func (e *epochStartMetaBlockInterceptor) SetInterceptedDebugHandler(_ process.In
 	return nil
 }
 
-// RegisterHandler will append the handler to the slice so it will be called when the epoch start meta block is fetched
+// RegisterHandler will append the handler to the slice, so it will be called when the epoch start meta block is fetched
 func (e *epochStartMetaBlockInterceptor) RegisterHandler(handler func(topic string, hash []byte, data interface{})) {
 	if handler == nil {
 		return

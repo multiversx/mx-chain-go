@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/node/filters"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	datafield "github.com/ElrondNetwork/elrond-vm-common/parsers/dataField"
 )
 
@@ -22,7 +23,7 @@ type apiTransactionResultsProcessor struct {
 	storageService         dataRetriever.StorageService
 	marshalizer            marshal.Marshalizer
 	dataFieldParser        DataFieldParser
-	selfShardID            uint32
+	shardCoordinator       sharding.Coordinator
 	refundDetector         *refundDetector
 	logsFacade             LogsFacade
 }
@@ -34,7 +35,7 @@ func newAPITransactionResultProcessor(
 	marshalizer marshal.Marshalizer,
 	txUnmarshaller *txUnmarshaller,
 	logsFacade LogsFacade,
-	selfShardID uint32,
+	shardCoordinator sharding.Coordinator,
 	dataFieldParser DataFieldParser,
 ) *apiTransactionResultsProcessor {
 	refundDetector := newRefundDetector()
@@ -45,7 +46,7 @@ func newAPITransactionResultProcessor(
 		historyRepository:      historyRepository,
 		storageService:         storageService,
 		marshalizer:            marshalizer,
-		selfShardID:            selfShardID,
+		shardCoordinator:       shardCoordinator,
 		refundDetector:         refundDetector,
 		logsFacade:             logsFacade,
 		dataFieldParser:        dataFieldParser,
@@ -84,7 +85,11 @@ func (arp *apiTransactionResultsProcessor) putReceiptInTransaction(tx *transacti
 }
 
 func (arp *apiTransactionResultsProcessor) getReceiptFromStorage(hash []byte, epoch uint32) (*transaction.ApiReceipt, error) {
-	receiptsStorer := arp.storageService.GetStorer(dataRetriever.UnsignedTransactionUnit)
+	receiptsStorer, err := arp.storageService.GetStorer(dataRetriever.UnsignedTransactionUnit)
+	if err != nil {
+		return nil, err
+	}
+
 	receiptBytes, err := receiptsStorer.GetFromEpoch(hash, epoch)
 	if err != nil {
 		return nil, err
@@ -104,7 +109,7 @@ func (arp *apiTransactionResultsProcessor) putSmartContractResultsInTransaction(
 		}
 	}
 
-	statusFilters := filters.NewStatusFilters(arp.selfShardID)
+	statusFilters := filters.NewStatusFilters(arp.shardCoordinator.SelfId())
 	statusFilters.SetStatusIfIsFailedESDTTransfer(tx)
 	return nil
 }
@@ -144,7 +149,11 @@ func (arp *apiTransactionResultsProcessor) loadLogsIntoContractResults(scrHash [
 }
 
 func (arp *apiTransactionResultsProcessor) getScrFromStorage(hash []byte, epoch uint32) (*smartContractResult.SmartContractResult, error) {
-	unsignedTxsStorer := arp.storageService.GetStorer(dataRetriever.UnsignedTransactionUnit)
+	unsignedTxsStorer, err := arp.storageService.GetStorer(dataRetriever.UnsignedTransactionUnit)
+	if err != nil {
+		return nil, err
+	}
+
 	scrBytes, err := unsignedTxsStorer.GetFromEpoch(hash, epoch)
 	if err != nil {
 		return nil, err
@@ -200,7 +209,7 @@ func (arp *apiTransactionResultsProcessor) adaptSmartContractResult(scrHash []by
 		apiSCR.OriginalSender = arp.addressPubKeyConverter.Encode(scr.OriginalSender)
 	}
 
-	res := arp.dataFieldParser.Parse(scr.Data, scr.GetSndAddr(), scr.GetRcvAddr())
+	res := arp.dataFieldParser.Parse(scr.Data, scr.GetSndAddr(), scr.GetRcvAddr(), arp.shardCoordinator.NumberOfShards())
 	apiSCR.Operation = res.Operation
 	apiSCR.Function = res.Function
 	apiSCR.ESDTValues = res.ESDTValues

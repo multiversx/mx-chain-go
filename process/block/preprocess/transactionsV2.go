@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/common"
+	elrondErr "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 )
@@ -185,7 +186,7 @@ func (txs *transactions) processTransaction(
 		log.Trace("bad tx", "error", err.Error(), "hash", txHash)
 
 		errRevert := txs.accounts.RevertToSnapshot(snapshot)
-		if errRevert != nil {
+		if errRevert != nil && !elrondErr.IsClosingError(errRevert) {
 			log.Warn("revert to snapshot", "error", errRevert.Error())
 		}
 

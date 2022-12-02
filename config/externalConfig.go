@@ -1,10 +1,10 @@
 package config
 
-// ExternalConfig will hold the configurations for external tools, such as Explorer or Elastic Search
+// ExternalConfig will hold the configurations for external tools, such as Explorer or Elasticsearch
 type ExternalConfig struct {
 	ElasticSearchConnector ElasticSearchConfig
 	EventNotifierConnector EventNotifierConfig
-	CovalentConnector      CovalentConfig
+	WebSocketConnector     WebSocketDriverConfig
 }
 
 // ElasticSearchConfig will hold the configuration for the elastic search
@@ -21,11 +21,12 @@ type ElasticSearchConfig struct {
 
 // EventNotifierConfig will hold the configuration for the events notifier driver
 type EventNotifierConfig struct {
-	Enabled          bool
-	UseAuthorization bool
-	ProxyUrl         string
-	Username         string
-	Password         string
+	Enabled           bool
+	UseAuthorization  bool
+	ProxyUrl          string
+	Username          string
+	Password          string
+	RequestTimeoutSec int
 }
 
 // CovalentConfig will hold the configurations for covalent indexer
@@ -34,4 +35,12 @@ type CovalentConfig struct {
 	URL                  string
 	RouteSendData        string
 	RouteAcknowledgeData string
+}
+
+// WebSocketDriverConfig will hold the configuration for web socket driver
+type WebSocketDriverConfig struct {
+	Enabled         bool
+	WithAcknowledge bool
+	URL             string
+	MarshallerType  string
 }

@@ -37,3 +37,8 @@ func (t *TestTrigger) SetEpoch(epoch uint32) {
 	t.epoch = epoch
 	t.metaEpoch = epoch
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (t *TestTrigger) IsInterfaceNil() bool {
+	return t == nil
+}

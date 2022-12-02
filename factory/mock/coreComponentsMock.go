@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	nodeFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/factory"
@@ -30,9 +29,6 @@ type CoreComponentsMock struct {
 	UInt64ByteSliceConv          typeConverters.Uint64ByteSliceConverter
 	AddrPubKeyConv               core.PubkeyConverter
 	ValPubKeyConv                core.PubkeyConverter
-	StatusHdlUtils               nodeFactory.StatusHandlersUtils
-	AppStatusHdl                 core.AppStatusHandler
-	mutStatus                    sync.RWMutex
 	PathHdl                      storage.PathManagerHandler
 	WatchdogTimer                core.WatchdogTimer
 	AlarmSch                     core.TimersScheduler
@@ -49,7 +45,7 @@ type CoreComponentsMock struct {
 	NodesConfig                  sharding.GenesisNodesSetupHandler
 	Shuffler                     nodesCoordinator.NodesShuffler
 	EpochChangeNotifier          process.EpochNotifier
-	RoundChangeNotifier          process.RoundNotifier
+	EnableRoundsHandlerField     process.EnableRoundsHandler
 	EpochNotifierWithConfirm     factory.EpochStartNotifierWithConfirm
 	TxVersionCheckHandler        process.TxVersionCheckerHandler
 	ChanStopProcess              chan endProcess.ArgEndProcess
@@ -57,7 +53,8 @@ type CoreComponentsMock struct {
 	NodeTypeProviderField        core.NodeTypeProviderHandler
 	ArwenChangeLockerInternal    common.Locker
 	ProcessStatusHandlerInternal common.ProcessStatusHandler
-	HardforkTriggerPubKeyField  []byte
+	HardforkTriggerPubKeyField   []byte
+	EnableEpochsHandlerField     common.EnableEpochsHandler
 }
 
 // InternalMarshalizer -
@@ -110,22 +107,6 @@ func (ccm *CoreComponentsMock) AddressPubKeyConverter() core.PubkeyConverter {
 // ValidatorPubKeyConverter -
 func (ccm *CoreComponentsMock) ValidatorPubKeyConverter() core.PubkeyConverter {
 	return ccm.ValPubKeyConv
-}
-
-// StatusHandlerUtils -
-func (ccm *CoreComponentsMock) StatusHandlerUtils() nodeFactory.StatusHandlersUtils {
-	ccm.mutStatus.RLock()
-	defer ccm.mutStatus.RUnlock()
-
-	return ccm.StatusHdlUtils
-}
-
-// StatusHandler -
-func (ccm *CoreComponentsMock) StatusHandler() core.AppStatusHandler {
-	ccm.mutStatus.RLock()
-	defer ccm.mutStatus.RUnlock()
-
-	return ccm.AppStatusHdl
 }
 
 // PathHandler -
@@ -219,9 +200,9 @@ func (ccm *CoreComponentsMock) EpochNotifier() process.EpochNotifier {
 	return ccm.EpochChangeNotifier
 }
 
-// RoundNotifier -
-func (ccm *CoreComponentsMock) RoundNotifier() process.RoundNotifier {
-	return ccm.RoundChangeNotifier
+// EnableRoundsHandler -
+func (ccm *CoreComponentsMock) EnableRoundsHandler() process.EnableRoundsHandler {
+	return ccm.EnableRoundsHandlerField
 }
 
 // EpochStartNotifierWithConfirm -
@@ -252,6 +233,11 @@ func (ccm *CoreComponentsMock) ProcessStatusHandler() common.ProcessStatusHandle
 // HardforkTriggerPubKey -
 func (ccm *CoreComponentsMock) HardforkTriggerPubKey() []byte {
 	return ccm.HardforkTriggerPubKeyField
+}
+
+// EnableEpochsHandler -
+func (ccm *CoreComponentsMock) EnableEpochsHandler() common.EnableEpochsHandler {
+	return ccm.EnableEpochsHandlerField
 }
 
 // IsInterfaceNil -

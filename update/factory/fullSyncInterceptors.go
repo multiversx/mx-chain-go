@@ -68,7 +68,6 @@ type ArgsNewFullSyncInterceptorsContainerFactory struct {
 	WhiteListerVerifiedTxs  update.WhiteListHandler
 	InterceptorsContainer   process.InterceptorsContainer
 	AntifloodHandler        process.P2PAntifloodHandler
-	EnableEpochs            config.EnableEpochs
 }
 
 // NewFullSyncInterceptorsContainerFactory is responsible for creating a new interceptors factory object
@@ -135,7 +134,6 @@ func NewFullSyncInterceptorsContainerFactory(
 		EpochStartTrigger:       args.EpochStartTrigger,
 		WhiteListerVerifiedTxs:  args.WhiteListerVerifiedTxs,
 		ArgsParser:              smartContract.NewArgumentParser(),
-		EnableEpochs:            args.EnableEpochs,
 	}
 
 	icf := &fullSyncInterceptorsContainerFactory{
@@ -249,7 +247,11 @@ func checkBaseParams(
 	if check.IfNil(cryptoComponents.BlockSigner()) {
 		return process.ErrNilSingleSigner
 	}
-	if check.IfNil(cryptoComponents.MultiSigner()) {
+	multiSigner, err := cryptoComponents.GetMultiSigner(0)
+	if err != nil {
+		return err
+	}
+	if check.IfNil(multiSigner) {
 		return process.ErrNilMultiSigVerifier
 	}
 	if check.IfNil(shardCoordinator) {

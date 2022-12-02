@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
+	"github.com/ElrondNetwork/elrond-go/heartbeat/sender/disabled"
 )
 
 // ArgSender represents the arguments for the sender
@@ -33,11 +34,13 @@ type ArgSender struct {
 	HardforkTrigger                             heartbeat.HardforkTrigger
 	HardforkTimeBetweenSends                    time.Duration
 	HardforkTriggerPubKey                       []byte
+	PeerTypeProvider                            heartbeat.PeerTypeProviderHandler
 }
 
 // sender defines the component which sends authentication and heartbeat messages
 type sender struct {
-	routineHandler *routineHandler
+	heartbeatSender *heartbeatSender
+	routineHandler  *routineHandler
 }
 
 // NewSender creates a new instance of sender
@@ -55,11 +58,11 @@ func NewSender(args ArgSender) (*sender, error) {
 			timeBetweenSends:          args.PeerAuthenticationTimeBetweenSends,
 			timeBetweenSendsWhenError: args.PeerAuthenticationTimeBetweenSendsWhenError,
 			thresholdBetweenSends:     args.PeerAuthenticationThresholdBetweenSends,
+			privKey:                   args.PrivateKey,
+			redundancyHandler:         args.RedundancyHandler,
 		},
 		nodesCoordinator:         args.NodesCoordinator,
 		peerSignatureHandler:     args.PeerSignatureHandler,
-		privKey:                  args.PrivateKey,
-		redundancyHandler:        args.RedundancyHandler,
 		hardforkTrigger:          args.HardforkTrigger,
 		hardforkTimeBetweenSends: args.HardforkTimeBetweenSends,
 		hardforkTriggerPubKey:    args.HardforkTriggerPubKey,
@@ -76,19 +79,24 @@ func NewSender(args ArgSender) (*sender, error) {
 			timeBetweenSends:          args.HeartbeatTimeBetweenSends,
 			timeBetweenSendsWhenError: args.HeartbeatTimeBetweenSendsWhenError,
 			thresholdBetweenSends:     args.HeartbeatThresholdBetweenSends,
+			privKey:                   args.PrivateKey,
+			redundancyHandler:         args.RedundancyHandler,
 		},
-		versionNumber:        args.VersionNumber,
-		nodeDisplayName:      args.NodeDisplayName,
-		identity:             args.Identity,
-		peerSubType:          args.PeerSubType,
-		currentBlockProvider: args.CurrentBlockProvider,
+		versionNumber:              args.VersionNumber,
+		nodeDisplayName:            args.NodeDisplayName,
+		identity:                   args.Identity,
+		peerSubType:                args.PeerSubType,
+		currentBlockProvider:       args.CurrentBlockProvider,
+		peerTypeProvider:           args.PeerTypeProvider,
+		trieSyncStatisticsProvider: disabled.NewTrieSyncStatisticsProvider(),
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	return &sender{
-		routineHandler: newRoutineHandler(pas, hbs, pas),
+		heartbeatSender: hbs,
+		routineHandler:  newRoutineHandler(pas, hbs, pas),
 	}, nil
 }
 
@@ -101,11 +109,11 @@ func checkSenderArgs(args ArgSender) error {
 			timeBetweenSends:          args.PeerAuthenticationTimeBetweenSends,
 			timeBetweenSendsWhenError: args.PeerAuthenticationTimeBetweenSendsWhenError,
 			thresholdBetweenSends:     args.PeerAuthenticationThresholdBetweenSends,
+			privKey:                   args.PrivateKey,
+			redundancyHandler:         args.RedundancyHandler,
 		},
 		nodesCoordinator:         args.NodesCoordinator,
 		peerSignatureHandler:     args.PeerSignatureHandler,
-		privKey:                  args.PrivateKey,
-		redundancyHandler:        args.RedundancyHandler,
 		hardforkTrigger:          args.HardforkTrigger,
 		hardforkTimeBetweenSends: args.HardforkTimeBetweenSends,
 		hardforkTriggerPubKey:    args.HardforkTriggerPubKey,
@@ -123,12 +131,16 @@ func checkSenderArgs(args ArgSender) error {
 			timeBetweenSends:          args.HeartbeatTimeBetweenSends,
 			timeBetweenSendsWhenError: args.HeartbeatTimeBetweenSendsWhenError,
 			thresholdBetweenSends:     args.HeartbeatThresholdBetweenSends,
+			privKey:                   args.PrivateKey,
+			redundancyHandler:         args.RedundancyHandler,
 		},
-		versionNumber:        args.VersionNumber,
-		nodeDisplayName:      args.NodeDisplayName,
-		identity:             args.Identity,
-		peerSubType:          args.PeerSubType,
-		currentBlockProvider: args.CurrentBlockProvider,
+		versionNumber:              args.VersionNumber,
+		nodeDisplayName:            args.NodeDisplayName,
+		identity:                   args.Identity,
+		peerSubType:                args.PeerSubType,
+		currentBlockProvider:       args.CurrentBlockProvider,
+		peerTypeProvider:           args.PeerTypeProvider,
+		trieSyncStatisticsProvider: disabled.NewTrieSyncStatisticsProvider(),
 	}
 	return checkHeartbeatSenderArgs(hbsArgs)
 }
@@ -138,6 +150,11 @@ func (sender *sender) Close() error {
 	sender.routineHandler.closeProcessLoop()
 
 	return nil
+}
+
+// GetSenderInfo will return the current sender info
+func (sender *sender) GetSenderInfo() (string, core.P2PPeerSubType, error) {
+	return sender.heartbeatSender.getSenderInfo()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

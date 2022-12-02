@@ -118,8 +118,8 @@
     # BackwardCompSaveKeyValueEnableEpoch represents the epoch when the backward compatibility for save key value error is enabled
     BackwardCompSaveKeyValueEnableEpoch = 1
 
-    # ESDTNFTCreateOnMultiShard represents the epoch when esdt nft creation is enabled on multiple shards
-    ESDTNFTCreateOnMultiShard = 1
+    # ESDTNFTCreateOnMultiShardEnableEpoch represents the epoch when esdt nft creation is enabled on multiple shards
+    ESDTNFTCreateOnMultiShardEnableEpoch = 1
 
     # MetaESDTSetEnableEpoch represents the epoch when the backward compatibility for save key value error is enabled
     MetaESDTSetEnableEpoch = 1
@@ -210,13 +210,28 @@
     CheckExecuteOnReadOnlyEnableEpoch = 1
 
     # ESDTMetadataContinuousCleanupEnableEpoch represents the epoch when esdt metadata is automatically deleted according to inshard liquidity
-    ESDTMetadataContinuousCleanupEnableEpoch = 4
-
-    # HeartbeatDisableEpoch represents the epoch when heartbeat v1 messages stop being sent and processed
-    HeartbeatDisableEpoch = 2
+    ESDTMetadataContinuousCleanupEnableEpoch = 1
 
     # MiniBlockPartialExecutionEnableEpoch represents the epoch when mini block partial execution will be enabled
-    MiniBlockPartialExecutionEnableEpoch = 3
+    MiniBlockPartialExecutionEnableEpoch = 1
+
+    # FixAsyncCallBackArgsListEnableEpoch represents the epoch when the async callback arguments lists fix will be enabled
+    FixAsyncCallBackArgsListEnableEpoch = 1
+
+    # FixOldTokenLiquidityEnableEpoch represents the epoch when the fix for old token liquidity is enabled
+    FixOldTokenLiquidityEnableEpoch = 1
+
+    # SetSenderInEeiOutputTransferEnableEpoch represents the epoch when setting the sender in eei output transfers will be enabled
+    SetSenderInEeiOutputTransferEnableEpoch = 4
+
+    # RefactorPeersMiniBlocksEnableEpoch represents the epoch when refactor of the peers mini blocks will be enabled
+    RefactorPeersMiniBlocksEnableEpoch = 5
+
+    # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
+    BLSMultiSignerEnableEpoch = [
+        { EnableEpoch = 0, Type = "no-KOSK"},
+        { EnableEpoch = 3, Type = "KOSK"}
+    ]
 
     # FreezeAccountFeatureEnableEpoch represents the epoch when the freeze account feature is enabled in the protocol
     FreezeAccountFeatureEnableEpoch = 2
@@ -232,4 +247,5 @@
     GasScheduleByEpochs = [
         { StartEpoch = 0, FileName = "gasScheduleV1.toml" },
         { StartEpoch = 1, FileName = "gasScheduleV6.toml" },
+        { StartEpoch = 5, FileName = "gasScheduleV7.toml" },
     ]

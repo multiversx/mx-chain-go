@@ -9,7 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	coreData "github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
+	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
 	scrData "github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	transactionData "github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
@@ -250,7 +250,12 @@ func (ap *accountsParser) InitialAccounts() []genesis.InitialAccountHandler {
 	return accounts
 }
 
-// InitialAccountsSplitOnAddressesShards gets the initial accounts of the nodes split on the addresses's shards
+// GenesisMintingAddress returns the encoded genesis minting address
+func (ap *accountsParser) GenesisMintingAddress() string {
+	return ap.pubkeyConverter.Encode(ap.minterAddressBytes)
+}
+
+// InitialAccountsSplitOnAddressesShards gets the initial accounts of the nodes split on the addresses' shards
 func (ap *accountsParser) InitialAccountsSplitOnAddressesShards(
 	shardCoordinator sharding.Coordinator,
 ) (map[uint32][]genesis.InitialAccountHandler, error) {
@@ -294,13 +299,13 @@ func (ap *accountsParser) GetInitialAccountsForDelegated(addressBytes []byte) []
 	return list
 }
 
-func (ap *accountsParser) createIndexerPools(shardIDs []uint32) map[uint32]*indexer.Pool {
-	txsPoolPerShard := make(map[uint32]*indexer.Pool)
+func (ap *accountsParser) createIndexerPools(shardIDs []uint32) map[uint32]*outportcore.Pool {
+	txsPoolPerShard := make(map[uint32]*outportcore.Pool)
 
 	for _, id := range shardIDs {
-		txsPoolPerShard[id] = &indexer.Pool{
-			Txs:  make(map[string]coreData.TransactionHandler),
-			Scrs: make(map[string]coreData.TransactionHandler),
+		txsPoolPerShard[id] = &outportcore.Pool{
+			Txs:  make(map[string]coreData.TransactionHandlerWithGasUsedAndFee),
+			Scrs: make(map[string]coreData.TransactionHandlerWithGasUsedAndFee),
 		}
 	}
 
@@ -362,33 +367,6 @@ func createMiniBlocks(shardIDs []uint32, blockType block.Type) []*block.MiniBloc
 	return miniBlocks
 }
 
-func (ap *accountsParser) putMintingTxsInPoolAndCreateMiniBlock(
-	txs []coreData.TransactionHandler,
-	txsPoolPerShard map[uint32]*indexer.Pool,
-) (*block.MiniBlock, error) {
-	txHashes := make([][]byte, 0, len(txs))
-	mintShardID := core.MetachainShardId
-
-	for _, tx := range txs {
-		txHash, err := core.CalculateHash(ap.marshalizer, ap.hasher, tx)
-		if err != nil {
-			return nil, err
-		}
-		txHashes = append(txHashes, txHash)
-
-		txsPoolPerShard[mintShardID].Txs[string(txHash)] = tx
-	}
-
-	miniBlock := &block.MiniBlock{
-		TxHashes:        txHashes,
-		ReceiverShardID: mintShardID,
-		SenderShardID:   mintShardID,
-		Type:            block.TxBlock,
-	}
-
-	return miniBlock, nil
-}
-
 func (ap *accountsParser) getAllTxs(
 	indexingData map[uint32]*genesis.IndexingData,
 ) []coreData.TransactionHandler {
@@ -407,7 +385,7 @@ func (ap *accountsParser) getAllTxs(
 func (ap *accountsParser) setScrsTxsPool(
 	shardCoordinator sharding.Coordinator,
 	indexingData map[uint32]*genesis.IndexingData,
-	txsPoolPerShard map[uint32]*indexer.Pool,
+	txsPoolPerShard map[uint32]*outportcore.Pool,
 ) {
 	for _, id := range indexingData {
 		for txHash, tx := range id.ScrsTxs {
@@ -420,8 +398,8 @@ func (ap *accountsParser) setScrsTxsPool(
 			}
 			scrTx.GasLimit = uint64(0)
 
-			txsPoolPerShard[senderShardID].Scrs[txHash] = scrTx
-			txsPoolPerShard[receiverShardID].Scrs[txHash] = scrTx
+			txsPoolPerShard[senderShardID].Scrs[txHash] = outportcore.NewTransactionHandlerWithGasAndFee(scrTx, 0, big.NewInt(0))
+			txsPoolPerShard[receiverShardID].Scrs[txHash] = outportcore.NewTransactionHandlerWithGasAndFee(scrTx, 0, big.NewInt(0))
 		}
 	}
 }
@@ -429,14 +407,19 @@ func (ap *accountsParser) setScrsTxsPool(
 func (ap *accountsParser) setTxsPoolAndMiniBlocks(
 	shardCoordinator sharding.Coordinator,
 	allTxs []coreData.TransactionHandler,
-	txsPoolPerShard map[uint32]*indexer.Pool,
+	txsPoolPerShard map[uint32]*outportcore.Pool,
 	miniBlocks []*block.MiniBlock,
 ) error {
-	var senderShardID uint32
 
 	for _, txHandler := range allTxs {
 		receiverShardID := shardCoordinator.ComputeId(txHandler.GetRcvAddr())
-		senderShardID = shardCoordinator.ComputeId(txHandler.GetSndAddr())
+
+		var senderShardID uint32
+		if bytes.Equal(txHandler.GetSndAddr(), ap.minterAddressBytes) {
+			senderShardID = core.MetachainShardId
+		} else {
+			senderShardID = shardCoordinator.ComputeId(txHandler.GetSndAddr())
+		}
 
 		txHash, err := core.CalculateHash(ap.marshalizer, ap.hasher, txHandler)
 		if err != nil {
@@ -450,8 +433,8 @@ func (ap *accountsParser) setTxsPoolAndMiniBlocks(
 		tx.Signature = []byte(common.GenesisTxSignatureString)
 		tx.GasLimit = uint64(0)
 
-		txsPoolPerShard[senderShardID].Txs[string(txHash)] = tx
-		txsPoolPerShard[receiverShardID].Txs[string(txHash)] = tx
+		txsPoolPerShard[senderShardID].Txs[string(txHash)] = outportcore.NewTransactionHandlerWithGasAndFee(tx, 0, big.NewInt(0))
+		txsPoolPerShard[receiverShardID].Txs[string(txHash)] = outportcore.NewTransactionHandlerWithGasAndFee(tx, 0, big.NewInt(0))
 
 		for _, miniBlock := range miniBlocks {
 			if senderShardID == miniBlock.GetSenderShardID() &&
@@ -464,38 +447,46 @@ func (ap *accountsParser) setTxsPoolAndMiniBlocks(
 	return nil
 }
 
+func getNonEmptyMiniBlocks(miniBlocks []*block.MiniBlock) []*block.MiniBlock {
+	mbs := make([]*block.MiniBlock, 0)
+
+	for _, mb := range miniBlocks {
+		if len(mb.GetTxHashes()) > 0 {
+			mbs = append(mbs, mb)
+		}
+	}
+
+	return mbs
+}
+
 // GenerateInitialTransactions will generate initial transactions pool and the miniblocks for the generated transactions
 func (ap *accountsParser) GenerateInitialTransactions(
 	shardCoordinator sharding.Coordinator,
 	indexingData map[uint32]*genesis.IndexingData,
-) ([]*block.MiniBlock, map[uint32]*indexer.Pool, error) {
+) ([]*block.MiniBlock, map[uint32]*outportcore.Pool, error) {
 	if check.IfNil(shardCoordinator) {
 		return nil, nil, genesis.ErrNilShardCoordinator
 	}
 
-	allMiniBlocks := make([]*block.MiniBlock, 0)
 	shardIDs := getShardIDs(shardCoordinator)
 	txsPoolPerShard := ap.createIndexerPools(shardIDs)
 
 	mintTxs := ap.createMintTransactions()
-	mintMiniBlock, err := ap.putMintingTxsInPoolAndCreateMiniBlock(mintTxs, txsPoolPerShard)
-	if err != nil {
-		return nil, nil, err
-	}
-	allMiniBlocks = append(allMiniBlocks, mintMiniBlock)
 
 	allTxs := ap.getAllTxs(indexingData)
+	allTxs = append(allTxs, mintTxs...)
 	miniBlocks := createMiniBlocks(shardIDs, block.TxBlock)
 
-	err = ap.setTxsPoolAndMiniBlocks(shardCoordinator, allTxs, txsPoolPerShard, miniBlocks)
+	err := ap.setTxsPoolAndMiniBlocks(shardCoordinator, allTxs, txsPoolPerShard, miniBlocks)
 	if err != nil {
 		return nil, nil, err
 	}
-	allMiniBlocks = append(allMiniBlocks, miniBlocks...)
 
 	ap.setScrsTxsPool(shardCoordinator, indexingData, txsPoolPerShard)
 
-	return allMiniBlocks, txsPoolPerShard, nil
+	miniBlocks = getNonEmptyMiniBlocks(miniBlocks)
+
+	return miniBlocks, txsPoolPerShard, nil
 }
 
 // IsInterfaceNil returns true if the underlying object is nil

@@ -49,9 +49,14 @@ func (psh *PresenterStatusHandler) GetRedundancyIsMainActive() string {
 	return psh.getFromCacheAsString(common.MetricRedundancyIsMainActive)
 }
 
-// GetShardId will return shard Id of node
+// GetShardId will return shard ID of node
 func (psh *PresenterStatusHandler) GetShardId() uint64 {
 	return psh.getFromCacheAsUint64(common.MetricShardId)
+}
+
+// GetChainID returns the chain ID
+func (psh *PresenterStatusHandler) GetChainID() string {
+	return psh.getFromCacheAsString(common.MetricChainId)
 }
 
 // GetCountConsensus will return count of how many times node was in consensus group
@@ -65,7 +70,7 @@ func (psh *PresenterStatusHandler) GetCountConsensusAcceptedBlocks() uint64 {
 	return psh.getFromCacheAsUint64(common.MetricCountConsensusAcceptedBlocks)
 }
 
-// GetCountLeader will return count of how many time node was leader in consensus group
+// GetCountLeader will return count of how many times node was leader in consensus group
 func (psh *PresenterStatusHandler) GetCountLeader() uint64 {
 	return psh.getFromCacheAsUint64(common.MetricCountLeader)
 }
@@ -75,7 +80,7 @@ func (psh *PresenterStatusHandler) GetCountAcceptedBlocks() uint64 {
 	return psh.getFromCacheAsUint64(common.MetricCountAcceptedBlocks)
 }
 
-// CheckSoftwareVersion will check if node is the latest version and will return latest stable version
+// CheckSoftwareVersion will check if node is the latest version and will return the latest stable version
 func (psh *PresenterStatusHandler) CheckSoftwareVersion() (bool, string) {
 	latestStableVersion := psh.getFromCacheAsString(common.MetricLatestTagSoftwareVersion)
 	appVersion := psh.getFromCacheAsString(common.MetricAppVersion)

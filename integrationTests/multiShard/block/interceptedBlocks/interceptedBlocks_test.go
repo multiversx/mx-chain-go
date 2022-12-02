@@ -82,7 +82,7 @@ func TestHeaderAndMiniBlocksAreRoutedCorrectly(t *testing.T) {
 }
 
 // TestMetaHeadersAreRequsted tests the metaheader request to be made towards any peer
-// The test will have 2 shards and meta, one shard node will request a metaheader and it should received it only from
+// The test will have 2 shards and meta, one shard node will request a metaheader, and it should receive it only from
 // the meta node
 func TestMetaHeadersAreRequsted(t *testing.T) {
 	if testing.Short() {
@@ -90,11 +90,26 @@ func TestMetaHeadersAreRequsted(t *testing.T) {
 	}
 
 	maxShards := uint32(2)
-
-	node1Shard0Requester := integrationTests.NewTestProcessorNode(maxShards, 0, 0)
-	node2Shard0 := integrationTests.NewTestProcessorNode(maxShards, 0, 0)
-	node3Shard1 := integrationTests.NewTestProcessorNode(maxShards, 1, 0)
-	node4Meta := integrationTests.NewTestProcessorNode(maxShards, core.MetachainShardId, 0)
+	node1Shard0Requester := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+		MaxShards:            maxShards,
+		NodeShardId:          0,
+		TxSignPrivKeyShardId: 0,
+	})
+	node2Shard0 := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+		MaxShards:            maxShards,
+		NodeShardId:          0,
+		TxSignPrivKeyShardId: 0,
+	})
+	node3Shard1 := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+		MaxShards:            maxShards,
+		NodeShardId:          1,
+		TxSignPrivKeyShardId: 0,
+	})
+	node4Meta := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+		MaxShards:            maxShards,
+		NodeShardId:          core.MetachainShardId,
+		TxSignPrivKeyShardId: 0,
+	})
 
 	nodes := []*integrationTests.TestProcessorNode{node1Shard0Requester, node2Shard0, node3Shard1, node4Meta}
 	connectableNodes := make([]integrationTests.Connectable, 0, len(nodes))
@@ -175,9 +190,21 @@ func TestMetaHeadersAreRequestedByAMetachainNode(t *testing.T) {
 
 	maxShards := uint32(2)
 
-	node1Shard0 := integrationTests.NewTestProcessorNode(maxShards, 0, 0)
-	node2MetaRequester := integrationTests.NewTestProcessorNode(maxShards, core.MetachainShardId, 0)
-	node3MetaResolver := integrationTests.NewTestProcessorNode(maxShards, core.MetachainShardId, 0)
+	node1Shard0 := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+		MaxShards:            maxShards,
+		NodeShardId:          0,
+		TxSignPrivKeyShardId: 0,
+	})
+	node2MetaRequester := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+		MaxShards:            maxShards,
+		NodeShardId:          core.MetachainShardId,
+		TxSignPrivKeyShardId: 0,
+	})
+	node3MetaResolver := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+		MaxShards:            maxShards,
+		NodeShardId:          core.MetachainShardId,
+		TxSignPrivKeyShardId: 0,
+	})
 
 	nodes := []*integrationTests.TestProcessorNode{node1Shard0, node2MetaRequester, node3MetaResolver}
 	connectableNodes := make([]integrationTests.Connectable, 0, len(nodes))

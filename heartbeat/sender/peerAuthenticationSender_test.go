@@ -22,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
 )
@@ -33,8 +34,6 @@ func createMockPeerAuthenticationSenderArgs(argBase argBaseSender) argPeerAuthen
 		argBaseSender:            argBase,
 		nodesCoordinator:         &shardingMocks.NodesCoordinatorStub{},
 		peerSignatureHandler:     &cryptoMocks.PeerSignatureHandlerStub{},
-		privKey:                  &cryptoMocks.PrivateKeyStub{},
-		redundancyHandler:        &mock.RedundancyHandlerStub{},
 		hardforkTrigger:          &testscommon.HardforkTriggerStub{},
 		hardforkTimeBetweenSends: time.Second,
 		hardforkTriggerPubKey:    providedHardforkPubKey,
@@ -44,6 +43,7 @@ func createMockPeerAuthenticationSenderArgs(argBase argBaseSender) argPeerAuthen
 func createMockPeerAuthenticationSenderArgsSemiIntegrationTests(baseArg argBaseSender) argPeerAuthenticationSender {
 	keyGen := signing.NewKeyGenerator(mcl.NewSuiteBLS12())
 	sk, _ := keyGen.GeneratePair()
+	baseArg.privKey = sk
 	singleSigner := singlesig.NewBlsSigner()
 
 	return argPeerAuthenticationSender{
@@ -61,8 +61,6 @@ func createMockPeerAuthenticationSenderArgsSemiIntegrationTests(baseArg argBaseS
 				return singleSigner.Sign(privateKey, pid)
 			},
 		},
-		privKey:                  sk,
-		redundancyHandler:        &mock.RedundancyHandlerStub{},
 		hardforkTrigger:          &testscommon.HardforkTriggerStub{},
 		hardforkTimeBetweenSends: time.Second,
 		hardforkTriggerPubKey:    providedHardforkPubKey,
@@ -79,9 +77,9 @@ func TestNewPeerAuthenticationSender(t *testing.T) {
 		argsBase.messenger = nil
 
 		args := createMockPeerAuthenticationSenderArgs(argsBase)
-		sender, err := newPeerAuthenticationSender(args)
+		senderInstance, err := newPeerAuthenticationSender(args)
 
-		assert.True(t, check.IfNil(sender))
+		assert.True(t, check.IfNil(senderInstance))
 		assert.Equal(t, heartbeat.ErrNilMessenger, err)
 	})
 	t.Run("nil nodes coordinator should error", func(t *testing.T) {
@@ -89,9 +87,9 @@ func TestNewPeerAuthenticationSender(t *testing.T) {
 
 		args := createMockPeerAuthenticationSenderArgs(createMockBaseArgs())
 		args.nodesCoordinator = nil
-		sender, err := newPeerAuthenticationSender(args)
+		senderInstance, err := newPeerAuthenticationSender(args)
 
-		assert.True(t, check.IfNil(sender))
+		assert.True(t, check.IfNil(senderInstance))
 		assert.Equal(t, heartbeat.ErrNilNodesCoordinator, err)
 	})
 	t.Run("nil peer signature handler should error", func(t *testing.T) {
@@ -99,9 +97,9 @@ func TestNewPeerAuthenticationSender(t *testing.T) {
 
 		args := createMockPeerAuthenticationSenderArgs(createMockBaseArgs())
 		args.peerSignatureHandler = nil
-		sender, err := newPeerAuthenticationSender(args)
+		senderInstance, err := newPeerAuthenticationSender(args)
 
-		assert.True(t, check.IfNil(sender))
+		assert.True(t, check.IfNil(senderInstance))
 		assert.Equal(t, heartbeat.ErrNilPeerSignatureHandler, err)
 	})
 	t.Run("nil private key should error", func(t *testing.T) {
@@ -109,9 +107,9 @@ func TestNewPeerAuthenticationSender(t *testing.T) {
 
 		args := createMockPeerAuthenticationSenderArgs(createMockBaseArgs())
 		args.privKey = nil
-		sender, err := newPeerAuthenticationSender(args)
+		senderInstance, err := newPeerAuthenticationSender(args)
 
-		assert.True(t, check.IfNil(sender))
+		assert.True(t, check.IfNil(senderInstance))
 		assert.Equal(t, heartbeat.ErrNilPrivateKey, err)
 	})
 	t.Run("nil marshaller should error", func(t *testing.T) {
@@ -121,9 +119,9 @@ func TestNewPeerAuthenticationSender(t *testing.T) {
 		argsBase.marshaller = nil
 
 		args := createMockPeerAuthenticationSenderArgs(argsBase)
-		sender, err := newPeerAuthenticationSender(args)
+		senderInstance, err := newPeerAuthenticationSender(args)
 
-		assert.True(t, check.IfNil(sender))
+		assert.True(t, check.IfNil(senderInstance))
 		assert.Equal(t, heartbeat.ErrNilMarshaller, err)
 	})
 	t.Run("empty topic should error", func(t *testing.T) {
@@ -133,9 +131,9 @@ func TestNewPeerAuthenticationSender(t *testing.T) {
 		argsBase.topic = ""
 
 		args := createMockPeerAuthenticationSenderArgs(argsBase)
-		sender, err := newPeerAuthenticationSender(args)
+		senderInstance, err := newPeerAuthenticationSender(args)
 
-		assert.True(t, check.IfNil(sender))
+		assert.True(t, check.IfNil(senderInstance))
 		assert.Equal(t, heartbeat.ErrEmptySendTopic, err)
 	})
 	t.Run("nil redundancy handler should error", func(t *testing.T) {
@@ -143,9 +141,9 @@ func TestNewPeerAuthenticationSender(t *testing.T) {
 
 		args := createMockPeerAuthenticationSenderArgs(createMockBaseArgs())
 		args.redundancyHandler = nil
-		sender, err := newPeerAuthenticationSender(args)
+		senderInstance, err := newPeerAuthenticationSender(args)
 
-		assert.True(t, check.IfNil(sender))
+		assert.True(t, check.IfNil(senderInstance))
 		assert.Equal(t, heartbeat.ErrNilRedundancyHandler, err)
 	})
 	t.Run("invalid time between sends should error", func(t *testing.T) {
@@ -155,23 +153,23 @@ func TestNewPeerAuthenticationSender(t *testing.T) {
 		argsBase.timeBetweenSends = time.Second - time.Nanosecond
 
 		args := createMockPeerAuthenticationSenderArgs(argsBase)
-		sender, err := newPeerAuthenticationSender(args)
+		senderInstance, err := newPeerAuthenticationSender(args)
 
-		assert.True(t, check.IfNil(sender))
+		assert.True(t, check.IfNil(senderInstance))
 		assert.True(t, errors.Is(err, heartbeat.ErrInvalidTimeDuration))
 		assert.True(t, strings.Contains(err.Error(), "timeBetweenSends"))
 		assert.False(t, strings.Contains(err.Error(), "timeBetweenSendsWhenError"))
 	})
-	t.Run("invalid time between sends should error", func(t *testing.T) {
+	t.Run("invalid time between sends when error should error", func(t *testing.T) {
 		t.Parallel()
 
 		argsBase := createMockBaseArgs()
 		argsBase.timeBetweenSendsWhenError = time.Second - time.Nanosecond
 
 		args := createMockPeerAuthenticationSenderArgs(argsBase)
-		sender, err := newPeerAuthenticationSender(args)
+		senderInstance, err := newPeerAuthenticationSender(args)
 
-		assert.True(t, check.IfNil(sender))
+		assert.True(t, check.IfNil(senderInstance))
 		assert.True(t, errors.Is(err, heartbeat.ErrInvalidTimeDuration))
 		assert.True(t, strings.Contains(err.Error(), "timeBetweenSendsWhenError"))
 	})
@@ -180,9 +178,9 @@ func TestNewPeerAuthenticationSender(t *testing.T) {
 
 		args := createMockPeerAuthenticationSenderArgs(createMockBaseArgs())
 		args.thresholdBetweenSends = 0.001
-		sender, err := newPeerAuthenticationSender(args)
+		senderInstance, err := newPeerAuthenticationSender(args)
 
-		assert.Nil(t, sender)
+		assert.Nil(t, senderInstance)
 		assert.True(t, errors.Is(err, heartbeat.ErrInvalidThreshold))
 		assert.True(t, strings.Contains(err.Error(), "thresholdBetweenSends"))
 	})
@@ -191,9 +189,9 @@ func TestNewPeerAuthenticationSender(t *testing.T) {
 
 		args := createMockPeerAuthenticationSenderArgs(createMockBaseArgs())
 		args.thresholdBetweenSends = 1.001
-		sender, err := newPeerAuthenticationSender(args)
+		senderInstance, err := newPeerAuthenticationSender(args)
 
-		assert.Nil(t, sender)
+		assert.Nil(t, senderInstance)
 		assert.True(t, errors.Is(err, heartbeat.ErrInvalidThreshold))
 		assert.True(t, strings.Contains(err.Error(), "thresholdBetweenSends"))
 	})
@@ -202,9 +200,9 @@ func TestNewPeerAuthenticationSender(t *testing.T) {
 
 		args := createMockPeerAuthenticationSenderArgs(createMockBaseArgs())
 		args.hardforkTrigger = nil
-		sender, err := newPeerAuthenticationSender(args)
+		senderInstance, err := newPeerAuthenticationSender(args)
 
-		assert.True(t, check.IfNil(sender))
+		assert.True(t, check.IfNil(senderInstance))
 		assert.Equal(t, heartbeat.ErrNilHardforkTrigger, err)
 	})
 	t.Run("invalid time between hardforks should error", func(t *testing.T) {
@@ -212,9 +210,9 @@ func TestNewPeerAuthenticationSender(t *testing.T) {
 
 		args := createMockPeerAuthenticationSenderArgs(createMockBaseArgs())
 		args.hardforkTimeBetweenSends = time.Second - time.Nanosecond
-		sender, err := newPeerAuthenticationSender(args)
+		senderInstance, err := newPeerAuthenticationSender(args)
 
-		assert.True(t, check.IfNil(sender))
+		assert.True(t, check.IfNil(senderInstance))
 		assert.True(t, errors.Is(err, heartbeat.ErrInvalidTimeDuration))
 		assert.True(t, strings.Contains(err.Error(), "hardforkTimeBetweenSends"))
 	})
@@ -222,9 +220,9 @@ func TestNewPeerAuthenticationSender(t *testing.T) {
 		t.Parallel()
 
 		args := createMockPeerAuthenticationSenderArgs(createMockBaseArgs())
-		sender, err := newPeerAuthenticationSender(args)
+		senderInstance, err := newPeerAuthenticationSender(args)
 
-		assert.False(t, check.IfNil(sender))
+		assert.False(t, check.IfNil(senderInstance))
 		assert.Nil(t, err)
 	})
 }
@@ -236,7 +234,7 @@ func TestPeerAuthenticationSender_execute(t *testing.T) {
 		t.Parallel()
 
 		argsBase := createMockBaseArgs()
-		argsBase.messenger = &mock.MessengerStub{
+		argsBase.messenger = &p2pmocks.MessengerStub{
 			SignCalled: func(payload []byte) ([]byte, error) {
 				return nil, expectedErr
 			},
@@ -246,9 +244,9 @@ func TestPeerAuthenticationSender_execute(t *testing.T) {
 		}
 
 		args := createMockPeerAuthenticationSenderArgs(argsBase)
-		sender, _ := newPeerAuthenticationSender(args)
+		senderInstance, _ := newPeerAuthenticationSender(args)
 
-		err, isHardforkTriggered := sender.execute()
+		err, isHardforkTriggered := senderInstance.execute()
 		assert.Equal(t, expectedErr, err)
 		assert.False(t, isHardforkTriggered)
 	})
@@ -256,7 +254,7 @@ func TestPeerAuthenticationSender_execute(t *testing.T) {
 		t.Parallel()
 
 		argsBase := createMockBaseArgs()
-		argsBase.messenger = &mock.MessengerStub{
+		argsBase.messenger = &p2pmocks.MessengerStub{
 			BroadcastCalled: func(topic string, buff []byte) {
 				assert.Fail(t, "should have not called Messenger.BroadcastCalled")
 			},
@@ -268,9 +266,9 @@ func TestPeerAuthenticationSender_execute(t *testing.T) {
 		}
 
 		args := createMockPeerAuthenticationSenderArgs(argsBase)
-		sender, _ := newPeerAuthenticationSender(args)
+		senderInstance, _ := newPeerAuthenticationSender(args)
 
-		err, isHardforkTriggered := sender.execute()
+		err, isHardforkTriggered := senderInstance.execute()
 		assert.Equal(t, expectedErr, err)
 		assert.False(t, isHardforkTriggered)
 	})
@@ -278,7 +276,7 @@ func TestPeerAuthenticationSender_execute(t *testing.T) {
 		t.Parallel()
 
 		baseArgs := createMockBaseArgs()
-		baseArgs.messenger = &mock.MessengerStub{
+		baseArgs.messenger = &p2pmocks.MessengerStub{
 			BroadcastCalled: func(topic string, buff []byte) {
 				assert.Fail(t, "should have not called Messenger.BroadcastCalled")
 			},
@@ -289,9 +287,9 @@ func TestPeerAuthenticationSender_execute(t *testing.T) {
 				return nil, expectedErr
 			},
 		}
-		sender, _ := newPeerAuthenticationSender(args)
+		senderInstance, _ := newPeerAuthenticationSender(args)
 
-		err, isHardforkTriggered := sender.execute()
+		err, isHardforkTriggered := senderInstance.execute()
 		assert.Equal(t, expectedErr, err)
 		assert.False(t, isHardforkTriggered)
 	})
@@ -300,7 +298,7 @@ func TestPeerAuthenticationSender_execute(t *testing.T) {
 
 		numCalls := 0
 		argsBase := createMockBaseArgs()
-		argsBase.messenger = &mock.MessengerStub{
+		argsBase.messenger = &p2pmocks.MessengerStub{
 			BroadcastCalled: func(topic string, buff []byte) {
 				assert.Fail(t, "should have not called Messenger.BroadcastCalled")
 			},
@@ -316,9 +314,9 @@ func TestPeerAuthenticationSender_execute(t *testing.T) {
 		}
 
 		args := createMockPeerAuthenticationSenderArgs(argsBase)
-		sender, _ := newPeerAuthenticationSender(args)
+		senderInstance, _ := newPeerAuthenticationSender(args)
 
-		err, isHardforkTriggered := sender.execute()
+		err, isHardforkTriggered := senderInstance.execute()
 		assert.Equal(t, expectedErr, err)
 		assert.False(t, isHardforkTriggered)
 	})
@@ -327,7 +325,7 @@ func TestPeerAuthenticationSender_execute(t *testing.T) {
 
 		argsBase := createMockBaseArgs()
 		broadcastCalled := false
-		argsBase.messenger = &mock.MessengerStub{
+		argsBase.messenger = &p2pmocks.MessengerStub{
 			BroadcastCalled: func(topic string, buff []byte) {
 				assert.Equal(t, argsBase.topic, topic)
 				broadcastCalled = true
@@ -335,9 +333,9 @@ func TestPeerAuthenticationSender_execute(t *testing.T) {
 		}
 
 		args := createMockPeerAuthenticationSenderArgs(argsBase)
-		sender, _ := newPeerAuthenticationSender(args)
+		senderInstance, _ := newPeerAuthenticationSender(args)
 
-		err, isHardforkTriggered := sender.execute()
+		err, isHardforkTriggered := senderInstance.execute()
 		assert.Nil(t, err)
 		assert.True(t, broadcastCalled)
 		assert.False(t, isHardforkTriggered)
@@ -353,8 +351,9 @@ func TestPeerAuthenticationSender_execute(t *testing.T) {
 		signerMessenger := ed25519SingleSig.Ed25519Signer{}
 
 		argsBase := createMockBaseArgs()
+		argsBase.privKey = skMessenger
 		var buffResulted []byte
-		messenger := &mock.MessengerStub{
+		messenger := &p2pmocks.MessengerStub{
 			BroadcastCalled: func(topic string, buff []byte) {
 				assert.Equal(t, argsBase.topic, topic)
 				buffResulted = buff
@@ -374,14 +373,14 @@ func TestPeerAuthenticationSender_execute(t *testing.T) {
 		}
 		argsBase.messenger = messenger
 		args := createMockPeerAuthenticationSenderArgsSemiIntegrationTests(argsBase)
-		sender, _ := newPeerAuthenticationSender(args)
+		senderInstance, _ := newPeerAuthenticationSender(args)
 
-		err, isHardforkTriggered := sender.execute()
+		err, isHardforkTriggered := senderInstance.execute()
 		assert.Nil(t, err)
 		assert.False(t, isHardforkTriggered)
 
-		skBytes, _ := sender.privKey.ToByteArray()
-		pkBytes, _ := sender.publicKey.ToByteArray()
+		skBytes, _ := senderInstance.privKey.ToByteArray()
+		pkBytes, _ := senderInstance.publicKey.ToByteArray()
 		log.Info("args", "pid", argsBase.messenger.ID().Pretty(), "bls sk", skBytes, "bls pk", pkBytes)
 
 		// verify the received bytes if they can be converted in a valid peer authentication message
@@ -423,7 +422,7 @@ func TestPeerAuthenticationSender_Execute(t *testing.T) {
 
 		argsBase := createMockBaseArgs()
 		wasBroadcastCalled := false
-		argsBase.messenger = &mock.MessengerStub{
+		argsBase.messenger = &p2pmocks.MessengerStub{
 			BroadcastCalled: func(topic string, buff []byte) {
 				wasBroadcastCalled = true
 			},
@@ -434,9 +433,9 @@ func TestPeerAuthenticationSender_Execute(t *testing.T) {
 				return nil, 0, errors.New("observer")
 			},
 		}
-		sender, _ := newPeerAuthenticationSender(args)
+		senderInstance, _ := newPeerAuthenticationSender(args)
 
-		sender.Execute()
+		senderInstance.Execute()
 		assert.False(t, wasBroadcastCalled)
 	})
 	t.Run("execute errors, should set the error time duration value", func(t *testing.T) {
@@ -454,15 +453,15 @@ func TestPeerAuthenticationSender_Execute(t *testing.T) {
 			},
 		}
 
-		sender, _ := newPeerAuthenticationSender(args)
-		sender.timerHandler = &mock.TimerHandlerStub{
+		senderInstance, _ := newPeerAuthenticationSender(args)
+		senderInstance.timerHandler = &mock.TimerHandlerStub{
 			CreateNewTimerCalled: func(duration time.Duration) {
 				assert.Equal(t, argsBase.timeBetweenSendsWhenError, duration)
 				wasCalled = true
 			},
 		}
 
-		sender.Execute()
+		senderInstance.Execute()
 		assert.True(t, wasCalled)
 	})
 	t.Run("execute worked, should set the normal time duration value", func(t *testing.T) {
@@ -474,8 +473,8 @@ func TestPeerAuthenticationSender_Execute(t *testing.T) {
 		argsBase.timeBetweenSends = time.Second * 2
 		args := createMockPeerAuthenticationSenderArgs(argsBase)
 
-		sender, _ := newPeerAuthenticationSender(args)
-		sender.timerHandler = &mock.TimerHandlerStub{
+		senderInstance, _ := newPeerAuthenticationSender(args)
+		senderInstance.timerHandler = &mock.TimerHandlerStub{
 			CreateNewTimerCalled: func(duration time.Duration) {
 				floatTBS := float64(argsBase.timeBetweenSends.Nanoseconds())
 				maxDuration := floatTBS + floatTBS*argsBase.thresholdBetweenSends
@@ -485,7 +484,7 @@ func TestPeerAuthenticationSender_Execute(t *testing.T) {
 			},
 		}
 
-		sender.Execute()
+		senderInstance.Execute()
 		assert.True(t, wasCalled)
 	})
 	t.Run("observer->validator->observer should work", func(t *testing.T) {
@@ -493,7 +492,7 @@ func TestPeerAuthenticationSender_Execute(t *testing.T) {
 
 		argsBase := createMockBaseArgs()
 		counterBroadcast := 0
-		argsBase.messenger = &mock.MessengerStub{
+		argsBase.messenger = &p2pmocks.MessengerStub{
 			BroadcastCalled: func(topic string, buff []byte) {
 				counterBroadcast++
 			},
@@ -511,11 +510,11 @@ func TestPeerAuthenticationSender_Execute(t *testing.T) {
 			},
 		}
 
-		sender, _ := newPeerAuthenticationSender(args)
+		senderInstance, _ := newPeerAuthenticationSender(args)
 
-		sender.Execute() // observer
-		sender.Execute() // validator
-		sender.Execute() // observer
+		senderInstance.Execute() // observer
+		senderInstance.Execute() // validator
+		senderInstance.Execute() // observer
 		assert.Equal(t, 1, counterBroadcast)
 	})
 	t.Run("execute worked, should set the hardfork time duration value", func(t *testing.T) {
@@ -530,8 +529,8 @@ func TestPeerAuthenticationSender_Execute(t *testing.T) {
 				return make([]byte, 0), true
 			},
 		}
-		sender, _ := newPeerAuthenticationSender(args)
-		sender.timerHandler = &mock.TimerHandlerStub{
+		senderInstance, _ := newPeerAuthenticationSender(args)
+		senderInstance.timerHandler = &mock.TimerHandlerStub{
 			CreateNewTimerCalled: func(duration time.Duration) {
 				floatTBH := float64(args.hardforkTimeBetweenSends.Nanoseconds())
 				maxDuration := floatTBH + floatTBH*argsBase.thresholdBetweenSends
@@ -541,7 +540,7 @@ func TestPeerAuthenticationSender_Execute(t *testing.T) {
 			},
 		}
 
-		sender.Execute()
+		senderInstance.Execute()
 		assert.True(t, wasCalled)
 	})
 }
@@ -558,10 +557,10 @@ func TestPeerAuthenticationSender_getCurrentPrivateAndPublicKeys(t *testing.T) {
 				return false
 			},
 		}
-		sender, _ := newPeerAuthenticationSender(args)
-		sk, pk := sender.getCurrentPrivateAndPublicKeys()
-		assert.True(t, sk == args.privKey)     // pointer testing
-		assert.True(t, pk == sender.publicKey) // pointer testing
+		senderInstance, _ := newPeerAuthenticationSender(args)
+		sk, pk := senderInstance.getCurrentPrivateAndPublicKeys()
+		assert.True(t, sk == args.privKey)             // pointer testing
+		assert.True(t, pk == senderInstance.publicKey) // pointer testing
 	})
 	t.Run("is redundancy node but the main machine is not active should return regular keys", func(t *testing.T) {
 		t.Parallel()
@@ -575,10 +574,10 @@ func TestPeerAuthenticationSender_getCurrentPrivateAndPublicKeys(t *testing.T) {
 				return false
 			},
 		}
-		sender, _ := newPeerAuthenticationSender(args)
-		sk, pk := sender.getCurrentPrivateAndPublicKeys()
-		assert.True(t, sk == args.privKey)     // pointer testing
-		assert.True(t, pk == sender.publicKey) // pointer testing
+		senderInstance, _ := newPeerAuthenticationSender(args)
+		sk, pk := senderInstance.getCurrentPrivateAndPublicKeys()
+		assert.True(t, sk == args.privKey)             // pointer testing
+		assert.True(t, pk == senderInstance.publicKey) // pointer testing
 	})
 	t.Run("is redundancy node but the main machine is active should return the observer keys", func(t *testing.T) {
 		t.Parallel()
@@ -596,10 +595,10 @@ func TestPeerAuthenticationSender_getCurrentPrivateAndPublicKeys(t *testing.T) {
 				return observerSk
 			},
 		}
-		sender, _ := newPeerAuthenticationSender(args)
-		sk, pk := sender.getCurrentPrivateAndPublicKeys()
+		senderInstance, _ := newPeerAuthenticationSender(args)
+		sk, pk := senderInstance.getCurrentPrivateAndPublicKeys()
 		assert.True(t, sk == args.redundancyHandler.ObserverPrivateKey()) // pointer testing
-		assert.True(t, pk == sender.observerPublicKey)                    // pointer testing
+		assert.True(t, pk == senderInstance.observerPublicKey)            // pointer testing
 	})
 	t.Run("call from multiple threads", func(t *testing.T) {
 		t.Parallel()
@@ -617,7 +616,7 @@ func TestPeerAuthenticationSender_getCurrentPrivateAndPublicKeys(t *testing.T) {
 				return false
 			},
 		}
-		sender, _ := newPeerAuthenticationSender(args)
+		senderInstance, _ := newPeerAuthenticationSender(args)
 
 		numOfThreads := 10
 		var wg sync.WaitGroup
@@ -625,9 +624,9 @@ func TestPeerAuthenticationSender_getCurrentPrivateAndPublicKeys(t *testing.T) {
 		for i := 0; i < numOfThreads; i++ {
 			go func() {
 				defer wg.Done()
-				sk, pk := sender.getCurrentPrivateAndPublicKeys()
-				assert.True(t, sk == args.privKey)     // pointer testing
-				assert.True(t, pk == sender.publicKey) // pointer testing
+				sk, pk := senderInstance.getCurrentPrivateAndPublicKeys()
+				assert.True(t, sk == args.privKey)             // pointer testing
+				assert.True(t, pk == senderInstance.publicKey) // pointer testing
 			}()
 		}
 
@@ -649,9 +648,9 @@ func TestPeerAuthenticationSender_getHardforkPayload(t *testing.T) {
 			},
 		}
 
-		sender, _ := newPeerAuthenticationSender(args)
+		senderInstance, _ := newPeerAuthenticationSender(args)
 
-		payload, isTriggered := sender.getHardforkPayload()
+		payload, isTriggered := senderInstance.getHardforkPayload()
 		assert.False(t, isTriggered)
 		assert.Equal(t, providedPayload, payload)
 	})
@@ -669,9 +668,9 @@ func TestPeerAuthenticationSender_getHardforkPayload(t *testing.T) {
 			},
 		}
 
-		sender, _ := newPeerAuthenticationSender(args)
+		senderInstance, _ := newPeerAuthenticationSender(args)
 
-		payload, isTriggered := sender.getHardforkPayload()
+		payload, isTriggered := senderInstance.getHardforkPayload()
 		assert.True(t, isTriggered)
 		assert.Equal(t, providedPayload, payload)
 	})
@@ -700,12 +699,12 @@ func TestPeerAuthenticationSender_ShouldTriggerHardfork(t *testing.T) {
 		ch <- struct{}{}
 	}()
 
-	sender, _ := newPeerAuthenticationSender(args)
+	senderInstance, _ := newPeerAuthenticationSender(args)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 	defer cancel()
 	select {
-	case <-sender.ShouldTriggerHardfork():
+	case <-senderInstance.ShouldTriggerHardfork():
 		return
 	case <-ctx.Done():
 		assert.Fail(t, "should not reach timeout")
