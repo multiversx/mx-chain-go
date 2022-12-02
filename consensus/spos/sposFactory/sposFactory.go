@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go-crypto"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/broadcast"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
@@ -23,6 +24,7 @@ func GetSubroundsFactory(
 	consensusType string,
 	appStatusHandler core.AppStatusHandler,
 	outportHandler outport.OutportHandler,
+	hardforkExclusionHandler common.HardforkExclusionHandler,
 	chainID []byte,
 	currentPid core.PeerID,
 ) (spos.SubroundsFactory, error) {
@@ -35,6 +37,7 @@ func GetSubroundsFactory(
 			chainID,
 			currentPid,
 			appStatusHandler,
+			hardforkExclusionHandler,
 		)
 		if err != nil {
 			return nil, err

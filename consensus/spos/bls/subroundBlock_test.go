@@ -44,6 +44,7 @@ func defaultSubroundBlockFromSubround(sr *spos.Subround) (bls.SubroundBlock, err
 		sr,
 		extend,
 		bls.ProcessingThresholdPercent,
+		&testscommon.HardforkExclusionHandlerStub{},
 	)
 
 	return srBlock, err
@@ -54,6 +55,7 @@ func defaultSubroundBlockWithoutErrorFromSubround(sr *spos.Subround) bls.Subroun
 		sr,
 		extend,
 		bls.ProcessingThresholdPercent,
+		&testscommon.HardforkExclusionHandlerStub{},
 	)
 
 	return srBlock
@@ -135,6 +137,7 @@ func TestSubroundBlock_NewSubroundBlockNilSubroundShouldFail(t *testing.T) {
 		nil,
 		extend,
 		bls.ProcessingThresholdPercent,
+		&testscommon.HardforkExclusionHandlerStub{},
 	)
 	assert.Nil(t, srBlock)
 	assert.Equal(t, spos.ErrNilSubround, err)
@@ -276,6 +279,26 @@ func TestSubroundBlock_NewSubroundBlockNilSyncTimerShouldFail(t *testing.T) {
 	assert.Equal(t, spos.ErrNilSyncTimer, err)
 }
 
+func TestSubroundBlock_NewSubroundBlockNilHardforkExclusionHandlerShouldFail(t *testing.T) {
+	t.Parallel()
+	container := mock.InitConsensusCore()
+
+	consensusState := initConsensusState()
+
+	ch := make(chan bool, 1)
+	sr, _ := defaultSubroundForSRBlock(consensusState, ch, container, &statusHandler.AppStatusHandlerStub{})
+
+	container.SetSyncTimer(nil)
+	srBlock, err := bls.NewSubroundBlock(
+		sr,
+		extend,
+		bls.ProcessingThresholdPercent,
+		nil,
+	)
+	assert.Nil(t, srBlock)
+	assert.Equal(t, spos.ErrNilHardforkExclusionHandler, err)
+}
+
 func TestSubroundBlock_NewSubroundBlockShouldWork(t *testing.T) {
 	t.Parallel()
 	container := mock.InitConsensusCore()
@@ -286,6 +309,37 @@ func TestSubroundBlock_NewSubroundBlockShouldWork(t *testing.T) {
 	srBlock, err := defaultSubroundBlockFromSubround(sr)
 	assert.NotNil(t, srBlock)
 	assert.Nil(t, err)
+}
+
+func TestSubroundBlock_DoBlockJobFailsDueToExcludedRound(t *testing.T) {
+	t.Parallel()
+
+	container := mock.InitConsensusCore()
+
+	consensusState := initConsensusState()
+
+	ch := make(chan bool, 1)
+	sr, _ := defaultSubroundForSRBlock(consensusState, ch, container, &statusHandler.AppStatusHandlerStub{})
+
+	srBlock, err := bls.NewSubroundBlock(
+		sr,
+		extend,
+		bls.ProcessingThresholdPercent,
+		&testscommon.HardforkExclusionHandlerStub{
+			IsRoundExcludedCalled: func(round uint64) bool {
+				return true
+			},
+		},
+	)
+	assert.NotNil(t, srBlock)
+	assert.Nil(t, err)
+
+	sr.SetSelfPubKey(sr.ConsensusGroup()[0])
+	container.SetRoundHandler(&mock.RoundHandlerMock{
+		RoundIndex: 1,
+	})
+	r := srBlock.DoBlockJob()
+	assert.False(t, r)
 }
 
 func TestSubroundBlock_DoBlockJob(t *testing.T) {

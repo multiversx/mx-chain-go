@@ -225,3 +225,6 @@ var ErrNilScheduledProcessor = errors.New("nil scheduled processor")
 
 // ErrNilSignatureHandler signals that provided signature handler is nil
 var ErrNilSignatureHandler = errors.New("nil signature handler")
+
+// ErrNilHardforkExclusionHandler signals that a nil hardfork exclusion handler was provided
+var ErrNilHardforkExclusionHandler = errors.New("nil hardfork exclusion handler")
