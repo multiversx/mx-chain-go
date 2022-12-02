@@ -51,6 +51,7 @@ func TestGetSubroundsFactory_BlsNilConsensusCoreShouldErr(t *testing.T) {
 		consensusType,
 		statusHandler,
 		indexer,
+		&testscommon.HardforkExclusionHandlerStub{},
 		chainID,
 		currentPid,
 	)
@@ -74,6 +75,7 @@ func TestGetSubroundsFactory_BlsNilStatusHandlerShouldErr(t *testing.T) {
 		consensusType,
 		nil,
 		indexer,
+		&testscommon.HardforkExclusionHandlerStub{},
 		chainID,
 		currentPid,
 	)
@@ -98,6 +100,7 @@ func TestGetSubroundsFactory_BlsShouldWork(t *testing.T) {
 		consensusType,
 		statusHandler,
 		indexer,
+		&testscommon.HardforkExclusionHandlerStub{},
 		chainID,
 		currentPid,
 	)
@@ -116,6 +119,7 @@ func TestGetSubroundsFactory_InvalidConsensusTypeShouldErr(t *testing.T) {
 		consensusType,
 		nil,
 		nil,
+		&testscommon.HardforkExclusionHandlerStub{},
 		nil,
 		currentPid,
 	)

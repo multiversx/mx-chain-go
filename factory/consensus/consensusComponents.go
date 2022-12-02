@@ -284,6 +284,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		ccf.config.Consensus.Type,
 		ccf.statusCoreComponents.AppStatusHandler(),
 		ccf.statusComponents.OutportHandler(),
+		ccf.hardforkExclusionHandler,
 		[]byte(ccf.coreComponents.ChainID()),
 		ccf.networkComponents.NetworkMessenger().ID(),
 	)

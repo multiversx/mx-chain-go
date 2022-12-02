@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	cryptoCommon "github.com/ElrondNetwork/elrond-go/common/crypto"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
@@ -150,6 +151,11 @@ func (sr *subroundStartRound) GenerateNextConsensusGroup(roundIndex int64) error
 // InitCurrentRound inits all the stuff needed in the current round
 func (sr *subroundStartRound) InitCurrentRound() bool {
 	return sr.initCurrentRound()
+}
+
+// SetHardforkExclusionHandler sets the hardfork exclusion handler in the current round
+func (sr *subroundStartRound) SetHardforkExclusionHandler(handler common.HardforkExclusionHandler) {
+	sr.hardforkExclusionHandler = handler
 }
 
 // subroundBlock
