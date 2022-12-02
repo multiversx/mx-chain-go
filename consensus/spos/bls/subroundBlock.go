@@ -67,9 +67,7 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 		return false
 	}
 
-	currentRound := sr.RoundHandler().Index()
-
-	if currentRound <= sr.getRoundInLastCommittedBlock() {
+	if sr.RoundHandler().Index() <= sr.getRoundInLastCommittedBlock() {
 		return false
 	}
 
