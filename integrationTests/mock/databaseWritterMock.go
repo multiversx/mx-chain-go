@@ -14,6 +14,10 @@ type DatabaseWriterStub struct {
 	DoMultiGetCalled    func(ids []string, index string, withSource bool, res interface{}) error
 }
 
+func (dws *DatabaseWriterStub) DoBulkRemove(_ string, _ []string) error {
+	return nil
+}
+
 //DoQueryRemove -
 func (dws *DatabaseWriterStub) DoQueryRemove(_ string, _ *bytes.Buffer) error {
 	return nil

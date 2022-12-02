@@ -795,7 +795,10 @@ func (txs *transactions) AddTxsFromMiniBlocks(miniBlocks block.MiniBlockSlice) {
 		}
 
 		txShardInfoToSet := &txShardInfo{senderShardID: mb.SenderShardID, receiverShardID: mb.ReceiverShardID}
-		searchFirst := mb.Type == block.InvalidBlock
+		method := process.SearchMethodJustPeek
+		if mb.Type == block.InvalidBlock {
+			method = process.SearchMethodSearchFirst
+		}
 
 		for _, txHash := range mb.TxHashes {
 			tx, err := process.GetTransactionHandler(
@@ -805,7 +808,7 @@ func (txs *transactions) AddTxsFromMiniBlocks(miniBlocks block.MiniBlockSlice) {
 				txs.txPool,
 				txs.storage,
 				txs.marshalizer,
-				searchFirst,
+				method,
 			)
 			if err != nil {
 				log.Debug("transactions.AddTxsFromMiniBlocks: GetTransactionHandler", "tx hash", txHash, "error", err.Error())
@@ -944,7 +947,10 @@ func (txs *transactions) computeMissingTxsHashesForMiniBlock(miniBlock *block.Mi
 		return missingTransactionsHashes
 	}
 
-	searchFirst := txs.blockType == block.InvalidBlock
+	method := process.SearchMethodJustPeek
+	if txs.blockType == block.InvalidBlock {
+		method = process.SearchMethodSearchFirst
+	}
 
 	for _, txHash := range miniBlock.TxHashes {
 		tx, _ := process.GetTransactionHandlerFromPool(
@@ -952,7 +958,7 @@ func (txs *transactions) computeMissingTxsHashesForMiniBlock(miniBlock *block.Mi
 			miniBlock.ReceiverShardID,
 			txHash,
 			txs.txPool,
-			searchFirst)
+			method)
 
 		if check.IfNil(tx) {
 			missingTransactionsHashes = append(missingTransactionsHashes, txHash)

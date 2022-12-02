@@ -903,7 +903,7 @@ func TestPatriciaMerkleTrie_GetTrieStats(t *testing.T) {
 	_ = tr.Commit()
 
 	rootHash, _ := tr.RootHash()
-	address := []byte("address")
+	address := "address"
 
 	ts, ok := tr.(common.TrieStats)
 	assert.True(t, ok)

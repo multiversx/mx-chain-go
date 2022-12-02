@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/update"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // ProcessComponentsMock -
@@ -50,6 +51,7 @@ type ProcessComponentsMock struct {
 	TxsSenderHandlerField                process.TxsSenderHandler
 	HardforkTriggerField                 factory.HardforkTrigger
 	ProcessedMiniBlocksTrackerInternal   process.ProcessedMiniBlocksTracker
+	ESDTDataStorageHandlerForAPIInternal vmcommon.ESDTNFTStorageHandler
 	AccountsParserInternal               genesis.AccountsParser
 	ReceiptsRepositoryInternal           factory.ReceiptsRepository
 }
@@ -252,6 +254,11 @@ func (pcm *ProcessComponentsMock) HardforkTrigger() factory.HardforkTrigger {
 // ProcessedMiniBlocksTracker -
 func (pcm *ProcessComponentsMock) ProcessedMiniBlocksTracker() process.ProcessedMiniBlocksTracker {
 	return pcm.ProcessedMiniBlocksTrackerInternal
+}
+
+// ESDTDataStorageHandlerForAPI -
+func (pcm *ProcessComponentsMock) ESDTDataStorageHandlerForAPI() vmcommon.ESDTNFTStorageHandler {
+	return pcm.ESDTDataStorageHandlerForAPIInternal
 }
 
 // ReceiptsRepository -
