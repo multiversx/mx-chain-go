@@ -11,12 +11,13 @@ import (
 	errErd "github.com/ElrondNetwork/elrond-go/errors"
 	cryptoComp "github.com/ElrondNetwork/elrond-go/factory/crypto"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
+	integrationTestsMock "github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	componentsMock "github.com/ElrondNetwork/elrond-go/testscommon/components"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewCryptoComponentsFactory_NiCoreComponentsHandlerShouldErr(t *testing.T) {
+func TestNewCryptoComponentsFactory_NilCoreComponentsHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -26,6 +27,22 @@ func TestNewCryptoComponentsFactory_NiCoreComponentsHandlerShouldErr(t *testing.
 	ccf, err := cryptoComp.NewCryptoComponentsFactory(args)
 	require.Nil(t, ccf)
 	require.Equal(t, errErd.ErrNilCoreComponents, err)
+}
+
+func TestNewCryptoComponentsFactory_NilValidatorPublicKeyConverterShouldErr(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	args := componentsMock.GetCryptoArgs(nil)
+	args.CoreComponentsHolder = &integrationTestsMock.CoreComponentsStub{
+		ValidatorPubKeyConverterField: nil,
+	}
+
+	ccf, err := cryptoComp.NewCryptoComponentsFactory(args)
+	require.Nil(t, ccf)
+	require.Equal(t, errErd.ErrNilPubKeyConverter, err)
 }
 
 func TestNewCryptoComponentsFactory_NilPemFileShouldErr(t *testing.T) {

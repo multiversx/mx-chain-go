@@ -62,7 +62,7 @@ type cryptoComponentsFactory struct {
 	config                               config.Config
 	enableEpochs                         config.EnableEpochs
 	prefsConfig                          config.Preferences
-	coreComponentsHolder                 factory.CoreComponentsHolder
+	validatorPubKeyConverter             core.PubkeyConverter
 	activateBLSPubKeyMessageVerification bool
 	keyLoader                            factory.KeyLoaderHandler
 	isInImportMode                       bool
@@ -102,6 +102,9 @@ func NewCryptoComponentsFactory(args CryptoComponentsFactoryArgs) (*cryptoCompon
 	if check.IfNil(args.CoreComponentsHolder) {
 		return nil, errors.ErrNilCoreComponents
 	}
+	if check.IfNil(args.CoreComponentsHolder.ValidatorPubKeyConverter()) {
+		return nil, errors.ErrNilPubKeyConverter
+	}
 	if len(args.ValidatorKeyPemFileName) == 0 {
 		return nil, errors.ErrNilPath
 	}
@@ -118,7 +121,7 @@ func NewCryptoComponentsFactory(args CryptoComponentsFactoryArgs) (*cryptoCompon
 		skIndex:                              args.SkIndex,
 		config:                               args.Config,
 		prefsConfig:                          args.PrefsConfig,
-		coreComponentsHolder:                 args.CoreComponentsHolder,
+		validatorPubKeyConverter:             args.CoreComponentsHolder.ValidatorPubKeyConverter(),
 		activateBLSPubKeyMessageVerification: args.ActivateBLSPubKeyMessageVerification,
 		keyLoader:                            args.KeyLoader,
 		isInImportMode:                       args.IsInImportMode,
@@ -327,8 +330,7 @@ func (ccf *cryptoComponentsFactory) readCryptoParams(keygen crypto.KeyGenerator)
 		}
 	}
 
-	validatorKeyConverter := ccf.coreComponentsHolder.ValidatorPubKeyConverter()
-	cp.publicKeyString = validatorKeyConverter.Encode(cp.publicKeyBytes)
+	cp.publicKeyString = ccf.validatorPubKeyConverter.Encode(cp.publicKeyBytes)
 
 	return cp, nil
 }
@@ -348,8 +350,7 @@ func (ccf *cryptoComponentsFactory) generateCryptoParams(
 		return nil, err
 	}
 
-	validatorKeyConverter := ccf.coreComponentsHolder.ValidatorPubKeyConverter()
-	cp.publicKeyString = validatorKeyConverter.Encode(cp.publicKeyBytes)
+	cp.publicKeyString = ccf.validatorPubKeyConverter.Encode(cp.publicKeyBytes)
 	cp.handledPrivateKeys = handledPrivateKeys
 
 	return cp, nil
@@ -366,8 +367,7 @@ func (ccf *cryptoComponentsFactory) getSkPk() ([]byte, []byte, error) {
 		return nil, nil, fmt.Errorf("%w for encoded secret key", err)
 	}
 
-	validatorKeyConverter := ccf.coreComponentsHolder.ValidatorPubKeyConverter()
-	pkBytes, err := validatorKeyConverter.Decode(pkString)
+	pkBytes, err := ccf.validatorPubKeyConverter.Decode(pkString)
 	if err != nil {
 		return nil, nil, fmt.Errorf("%w for encoded public key %s", err, pkString)
 	}
@@ -407,7 +407,7 @@ func (ccf *cryptoComponentsFactory) processPrivatePublicKey(keygen crypto.KeyGen
 		return nil, fmt.Errorf("%w for encoded secret key, key index %d", err, index)
 	}
 
-	pkBytes, err := ccf.coreComponentsHolder.ValidatorPubKeyConverter().Decode(pkString)
+	pkBytes, err := ccf.validatorPubKeyConverter.Decode(pkString)
 	if err != nil {
 		return nil, fmt.Errorf("%w for encoded public key %s, key index %d", err, pkString, index)
 	}
@@ -425,7 +425,8 @@ func (ccf *cryptoComponentsFactory) processPrivatePublicKey(keygen crypto.KeyGen
 
 	if !bytes.Equal(pkGeneratedBytes, pkBytes) {
 		return nil, fmt.Errorf("public keys mismatch, read %s, generated %s, key index %d",
-			pkString, ccf.coreComponentsHolder.ValidatorPubKeyConverter().Encode(pkBytes),
+			pkString,
+			ccf.validatorPubKeyConverter.Encode(pkBytes),
 			index,
 		)
 	}
