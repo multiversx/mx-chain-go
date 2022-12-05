@@ -106,3 +106,9 @@ type P2PSigningHandler interface {
 	Deserialize(messagesBytes []byte) ([]MessageP2P, error)
 	IsInterfaceNil() bool
 }
+
+// IdentityGenerator represent an entity able to create a random p2p identity
+type IdentityGenerator interface {
+	CreateRandomP2PIdentity() ([]byte, core.PeerID, error)
+	IsInterfaceNil() bool
+}
