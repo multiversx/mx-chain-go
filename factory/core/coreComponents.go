@@ -269,7 +269,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		EpochNotifier:               epochNotifier,
 		EnableEpochsHandler:         enableEpochsHandler,
 		BuiltInFunctionsCostHandler: builtInCostHandler,
-		TxVersionChecker:               txVersionChecker,
+		TxVersionChecker:            txVersionChecker,
 	}
 	economicsData, err := economics.NewEconomicsData(argsNewEconomicsData)
 	if err != nil {

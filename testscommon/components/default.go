@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
+	epochNotifierMock "github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
@@ -47,6 +48,7 @@ func GetDefaultCoreComponents() *mock.CoreComponentsMock {
 		NodesConfig:           &testscommon.NodesSetupStub{},
 		StartTime:             time.Time{},
 		NodeTypeProviderField: &nodeTypeProviderMock.NodeTypeProviderStub{},
+		EpochChangeNotifier:   &epochNotifierMock.EpochNotifierStub{},
 	}
 }
 
