@@ -144,6 +144,13 @@ func NewNodesSetup(
 	nodes.processShardAssignment()
 	nodes.createInitialNodesInfo()
 
+	log.Warn("REMOVE_ME nodes setup params",
+		"shard consensus", fmt.Sprintf("minNodes=%d;consensusSize=%d;enableEpoch=%d", nodes.currentShardConsensus.MinNodes, nodes.currentShardConsensus.ConsensusGroupSize, nodes.currentShardConsensus.EnableEpoch),
+		"meta consensus", fmt.Sprintf("minNodes=%d;consensusSize=%d;enableEpoch=%d", nodes.currentMetachainConsensus.MinNodes, nodes.currentMetachainConsensus.ConsensusGroupSize, nodes.currentMetachainConsensus.EnableEpoch),
+		"start time", nodesSetupDTO.StartTime,
+		"initial nodes count", len(nodesSetupDTO.InitialNodes),
+		"num shards", nodes.numberOfShards,
+		"nr nodes", nodes.nrOfNodes)
 	epochNotifier.RegisterNotifyHandler(nodes)
 
 	return nodes, nil
