@@ -582,7 +582,7 @@ type ConsensusConfiguration struct {
 	ConsensusGroupSize uint32 `json:"consensusGroupSize"`
 }
 
-// NodesConfig is the data transfer object used to map the node's configuration in regard to the genesis nodes setup
+// NodesConfig is the data transfer object used to map the nodes' configuration in regard to the genesis nodes setup
 type NodesConfig struct {
 	StartTime    int64                `json:"startTime"`
 	InitialNodes []*InitialNodeConfig `json:"initialNodes"`
@@ -638,12 +638,12 @@ type PoolsCleanersConfig struct {
 
 // ChainParametersByEpochConfig holds chain parameters that are configurable based on epochs
 type ChainParametersByEpochConfig struct {
-	EnableEpoch                 uint32
 	RoundDuration               uint64
+	Hysteresis                  float32
+	EnableEpoch                 uint32
 	ShardConsensusGroupSize     uint32
 	ShardMinNodes               uint32
 	MetachainConsensusGroupSize uint32
 	MetachainMinNumNodes        uint32
-	Hysteresis                  float32
 	Adaptivity                  bool
 }

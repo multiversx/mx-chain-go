@@ -85,26 +85,6 @@ func createTestNodesSetup(shardConsensusSize uint32, minShardNodes uint32, metaC
 	return ns, err
 }
 
-func initNodesConfig(ns *NodesSetup, noOfInitialNodes int) bool {
-	ns.InitialNodes = make([]*InitialNode, noOfInitialNodes)
-
-	for i := 0; i < noOfInitialNodes; i++ {
-		ns.InitialNodes[i] = &InitialNode{}
-		ns.InitialNodes[i].PubKey = pubKeys[i]
-		ns.InitialNodes[i].Address = address[i]
-	}
-
-	err := ns.processConfig()
-	if err != nil {
-		return false
-	}
-
-	ns.processMetaChainAssigment()
-	ns.processShardAssignment()
-	ns.createInitialNodesInfo()
-	return true
-}
-
 func TestNodesSetup_ProcessConfigNodesWithIncompleteDataShouldErr(t *testing.T) {
 	t.Parallel()
 

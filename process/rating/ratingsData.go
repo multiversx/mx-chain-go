@@ -126,6 +126,8 @@ func NewRatingsData(args RatingsDataArg) (*RatingsData, error) {
 
 // EpochConfirmed will be called whenever a new epoch is called
 func (rd *RatingsData) EpochConfirmed(epoch uint32, _ uint64) {
+	// TODO: maybe check if new data is the same and avoid re-computing (old consensus group size = new consensus group size, and so on)
+	// analyze if epoch subscription is done right, since this function must be called after the nodesSetupHandler's one
 	log.Debug("RatingsData - epoch confirmed", "epoch", epoch)
 
 	rd.mutConfiguration.Lock()

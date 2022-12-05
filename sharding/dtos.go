@@ -7,7 +7,7 @@ type ConsensusConfiguration struct {
 	ConsensusGroupSize uint32
 }
 
-// NodesSetupDTO is the data transfer object used to map the node's configuration in regard to the genesis nodes setup
+// NodesSetupDTO is the data transfer object used to map the nodes' configuration in regard to the genesis nodes setup
 type NodesSetupDTO struct {
 	StartTime     int64   `json:"startTime"`
 	RoundDuration uint64  `json:"roundDuration"`

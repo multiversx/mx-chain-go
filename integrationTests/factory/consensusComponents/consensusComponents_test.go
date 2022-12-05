@@ -148,8 +148,6 @@ func TestConsensusComponents_Close_ShouldWork(t *testing.T) {
 
 	time.Sleep(5 * time.Second)
 
-	gc.PrintCurrentGoRoutines()
-
 	idx, _ := gc.Snapshot()
 	diff := gc.DiffGoRoutines(idxInitial, idx)
 	require.Equal(t, 0, len(diff), fmt.Sprintf("%v", diff))
