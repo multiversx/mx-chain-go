@@ -70,7 +70,7 @@ func createTestNodesSetup(shardConsensusSize uint32, minShardNodes uint32, metaC
 		[]config.ChainParametersByEpochConfig{
 			{
 				EnableEpoch:                 0,
-				ShardMinNodes:               minShardNodes,
+				ShardMinNumNodes:            minShardNodes,
 				ShardConsensusGroupSize:     shardConsensusSize,
 				MetachainMinNumNodes:        minMetaNodes,
 				MetachainConsensusGroupSize: metaConsensusSize,

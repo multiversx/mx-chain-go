@@ -52,7 +52,7 @@ func TestTomlParser(t *testing.T) {
 				{
 					EnableEpoch:                 0,
 					RoundDuration:               4000,
-					ShardMinNodes:               3,
+					ShardMinNumNodes:            3,
 					ShardConsensusGroupSize:     3,
 					MetachainMinNumNodes:        3,
 					MetachainConsensusGroupSize: 3,
@@ -151,7 +151,7 @@ func TestTomlParser(t *testing.T) {
 	testString := `
 [GeneralSettings]
 	ChainParametersByEpoch = [
-        { EnableEpoch = 0, RoundDuration = 4000, ShardConsensusGroupSize = 3, ShardMinNodes = 3, MetachainConsensusGroupSize = 3, MetachainMinNumNodes = 3, Hysteresis = 0.0, Adaptivity = false }
+        { EnableEpoch = 0, RoundDuration = 4000, ShardConsensusGroupSize = 3, ShardMinNumNodes = 3, MetachainConsensusGroupSize = 3, MetachainMinNumNodes = 3, Hysteresis = 0.0, Adaptivity = false }
     ]
 [MiniBlocksStorage]
     [MiniBlocksStorage.Cache]

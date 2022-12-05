@@ -173,7 +173,7 @@ func GetGeneralConfig() config.Config {
 					EnableEpoch:                 0,
 					RoundDuration:               4000,
 					ShardConsensusGroupSize:     1,
-					ShardMinNodes:               1,
+					ShardMinNumNodes:            1,
 					MetachainConsensusGroupSize: 1,
 					MetachainMinNumNodes:        1,
 					Hysteresis:                  0,

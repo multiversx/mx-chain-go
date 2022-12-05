@@ -643,7 +643,7 @@ type ChainParametersByEpochConfig struct {
 	Hysteresis                  float32
 	EnableEpoch                 uint32
 	ShardConsensusGroupSize     uint32
-	ShardMinNodes               uint32
+	ShardMinNumNodes            uint32
 	MetachainConsensusGroupSize uint32
 	MetachainMinNumNodes        uint32
 	Adaptivity                  bool

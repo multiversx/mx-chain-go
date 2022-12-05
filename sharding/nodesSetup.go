@@ -173,7 +173,7 @@ func (ns *NodesSetup) EpochConfirmed(epoch uint32, _ uint64) {
 
 	ns.currentShardConsensus = ConsensusConfiguration{
 		EnableEpoch:        shardNewMatchingVersion.EnableEpoch,
-		MinNodes:           shardNewMatchingVersion.ShardMinNodes,
+		MinNodes:           shardNewMatchingVersion.ShardMinNumNodes,
 		ConsensusGroupSize: shardNewMatchingVersion.ShardConsensusGroupSize,
 	}
 	ns.currentMetachainConsensus = ConsensusConfiguration{
@@ -245,10 +245,10 @@ func (ns *NodesSetup) processConfig() error {
 		if consensusConfig.ShardConsensusGroupSize < 1 {
 			return ErrNegativeOrZeroConsensusGroupSize
 		}
-		if consensusConfig.ShardMinNodes < consensusConfig.ShardConsensusGroupSize {
+		if consensusConfig.ShardMinNumNodes < consensusConfig.ShardConsensusGroupSize {
 			return ErrMinNodesPerShardSmallerThanConsensusSize
 		}
-		if ns.nrOfNodes < consensusConfig.ShardMinNodes {
+		if ns.nrOfNodes < consensusConfig.ShardMinNumNodes {
 			return ErrNodesSizeSmallerThanMinNoOfNodes
 		}
 		if consensusConfig.MetachainMinNumNodes < 1 {
@@ -261,7 +261,7 @@ func (ns *NodesSetup) processConfig() error {
 
 	ns.currentShardConsensus = ConsensusConfiguration{
 		EnableEpoch:        ns.currentChainParameters.EnableEpoch,
-		MinNodes:           ns.currentChainParameters.ShardMinNodes,
+		MinNodes:           ns.currentChainParameters.ShardMinNumNodes,
 		ConsensusGroupSize: ns.currentChainParameters.ShardConsensusGroupSize,
 	}
 	ns.currentMetachainConsensus = ConsensusConfiguration{
