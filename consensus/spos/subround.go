@@ -6,7 +6,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 )
 
@@ -208,11 +207,6 @@ func (sr *Subround) ConsensusChannel() chan bool {
 // GetAssociatedPid returns the associated PeerID to the provided public key bytes
 func (sr *Subround) GetAssociatedPid(pkBytes []byte) core.PeerID {
 	return sr.keysHandler.GetAssociatedPid(pkBytes)
-}
-
-// GetMessageSigningPrivateKey returns the correct private key based on the provided pkBytes
-func (sr *Subround) GetMessageSigningPrivateKey(pkBytes []byte) crypto.PrivateKey {
-	return sr.keysHandler.GetHandledPrivateKey(pkBytes)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

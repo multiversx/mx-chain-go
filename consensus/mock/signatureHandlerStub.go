@@ -3,8 +3,8 @@ package mock
 // SignatureHandlerStub implements SignatureHandler interface
 type SignatureHandlerStub struct {
 	ResetCalled                              func(pubKeys []string) error
-	CreateSignatureShareCalled               func(msg []byte, index uint16, epoch uint32) ([]byte, error)
-	CreateSignatureShareWithPrivateKeyCalled func(message []byte, index uint16, epoch uint32, privateKeyBytes []byte) ([]byte, error)
+	CreateSignatureShareUsingPublicKeyCalled func(message []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error)
+	CreateSignatureUsingPublicKeyCalled      func(message []byte, publicKeyBytes []byte) ([]byte, error)
 	StoreSignatureShareCalled                func(index uint16, sig []byte) error
 	SignatureShareCalled                     func(index uint16) ([]byte, error)
 	VerifySignatureShareCalled               func(index uint16, sig []byte, msg []byte, epoch uint32) error
@@ -22,19 +22,19 @@ func (stub *SignatureHandlerStub) Reset(pubKeys []string) error {
 	return nil
 }
 
-// CreateSignatureShare -
-func (stub *SignatureHandlerStub) CreateSignatureShare(msg []byte, index uint16, epoch uint32) ([]byte, error) {
-	if stub.CreateSignatureShareCalled != nil {
-		return stub.CreateSignatureShareCalled(msg, index, epoch)
+// CreateSignatureShareUsingPublicKey -
+func (stub *SignatureHandlerStub) CreateSignatureShareUsingPublicKey(message []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
+	if stub.CreateSignatureShareUsingPublicKeyCalled != nil {
+		return stub.CreateSignatureShareUsingPublicKeyCalled(message, index, epoch, publicKeyBytes)
 	}
 
-	return []byte("sigShare"), nil
+	return make([]byte, 0), nil
 }
 
-// CreateSignatureShareWithPrivateKey -
-func (stub *SignatureHandlerStub) CreateSignatureShareWithPrivateKey(message []byte, index uint16, epoch uint32, privateKeyBytes []byte) ([]byte, error) {
-	if stub.CreateSignatureShareWithPrivateKeyCalled != nil {
-		return stub.CreateSignatureShareWithPrivateKeyCalled(message, index, epoch, privateKeyBytes)
+// CreateSignatureUsingPublicKey -
+func (stub *SignatureHandlerStub) CreateSignatureUsingPublicKey(message []byte, publicKeyBytes []byte) ([]byte, error) {
+	if stub.CreateSignatureUsingPublicKeyCalled != nil {
+		return stub.CreateSignatureUsingPublicKeyCalled(message, publicKeyBytes)
 	}
 
 	return make([]byte, 0), nil

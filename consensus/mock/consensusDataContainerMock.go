@@ -4,7 +4,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	cryptoCommon "github.com/ElrondNetwork/elrond-go/common/crypto"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
@@ -24,8 +23,6 @@ type ConsensusCoreMock struct {
 	chronologyHandler       consensus.ChronologyHandler
 	hasher                  hashing.Hasher
 	marshalizer             marshal.Marshalizer
-	blsPrivateKey           crypto.PrivateKey
-	blsSingleSigner         crypto.SingleSigner
 	multiSignerContainer    cryptoCommon.MultiSignerContainer
 	roundHandler            consensus.RoundHandler
 	shardCoordinator        sharding.Coordinator
@@ -121,11 +118,6 @@ func (ccm *ConsensusCoreMock) SetBlockchain(blockChain data.ChainHandler) {
 	ccm.blockChain = blockChain
 }
 
-// SetSingleSigner -
-func (ccm *ConsensusCoreMock) SetSingleSigner(signer crypto.SingleSigner) {
-	ccm.blsSingleSigner = signer
-}
-
 // SetBlockProcessor -
 func (ccm *ConsensusCoreMock) SetBlockProcessor(blockProcessor process.BlockProcessor) {
 	ccm.blockProcessor = blockProcessor
@@ -179,16 +171,6 @@ func (ccm *ConsensusCoreMock) SetSyncTimer(syncTimer ntp.SyncTimer) {
 // SetValidatorGroupSelector -
 func (ccm *ConsensusCoreMock) SetValidatorGroupSelector(validatorGroupSelector nodesCoordinator.NodesCoordinator) {
 	ccm.validatorGroupSelector = validatorGroupSelector
-}
-
-// PrivateKey -
-func (ccm *ConsensusCoreMock) PrivateKey() crypto.PrivateKey {
-	return ccm.blsPrivateKey
-}
-
-// SingleSigner returns the bls single signer stored in the ConsensusStore
-func (ccm *ConsensusCoreMock) SingleSigner() crypto.SingleSigner {
-	return ccm.blsSingleSigner
 }
 
 // PeerHonestyHandler -

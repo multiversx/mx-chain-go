@@ -6,19 +6,20 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	cryptoCommon "github.com/ElrondNetwork/elrond-go/common/crypto"
+	"github.com/ElrondNetwork/elrond-go/consensus"
 )
 
 // ArgsSignatureHolder defines the arguments needed to create a new signature holder component
 type ArgsSignatureHolder struct {
 	PubKeys              []string
-	PrivKeyBytes         []byte
 	MultiSignerContainer cryptoCommon.MultiSignerContainer
+	SingleSigner         crypto.SingleSigner
 	KeyGenerator         crypto.KeyGenerator
+	KeysHandler          consensus.KeysHandler
 }
 
 type signatureHolderData struct {
 	pubKeys   [][]byte
-	privKey   []byte
 	sigShares [][]byte
 	aggSig    []byte
 }
@@ -27,7 +28,9 @@ type signatureHolder struct {
 	data                 *signatureHolderData
 	mutSigningData       sync.RWMutex
 	multiSignerContainer cryptoCommon.MultiSignerContainer
+	singleSigner         crypto.SingleSigner
 	keyGen               crypto.KeyGenerator
+	keysHandler          consensus.KeysHandler
 }
 
 // NewSignatureHolder will create a new signature holder component
@@ -47,7 +50,6 @@ func NewSignatureHolder(args ArgsSignatureHolder) (*signatureHolder, error) {
 
 	data := &signatureHolderData{
 		pubKeys:   pubKeysBytes,
-		privKey:   args.PrivKeyBytes,
 		sigShares: sigShares,
 	}
 
@@ -55,7 +57,9 @@ func NewSignatureHolder(args ArgsSignatureHolder) (*signatureHolder, error) {
 		data:                 data,
 		mutSigningData:       sync.RWMutex{},
 		multiSignerContainer: args.MultiSignerContainer,
+		singleSigner:         args.SingleSigner,
 		keyGen:               args.KeyGenerator,
+		keysHandler:          args.KeysHandler,
 	}, nil
 }
 
@@ -63,8 +67,11 @@ func checkArgs(args ArgsSignatureHolder) error {
 	if check.IfNil(args.MultiSignerContainer) {
 		return ErrNilMultiSignerContainer
 	}
-	if len(args.PrivKeyBytes) == 0 {
-		return ErrNoPrivateKeySet
+	if check.IfNil(args.SingleSigner) {
+		return ErrNilSingleSigner
+	}
+	if check.IfNil(args.KeysHandler) {
+		return ErrNilKeysHandler
 	}
 	if check.IfNil(args.KeyGenerator) {
 		return ErrNilKeyGenerator
@@ -78,14 +85,11 @@ func checkArgs(args ArgsSignatureHolder) error {
 
 // Create generates a signature holder component and initializes corresponding fields
 func (sh *signatureHolder) Create(pubKeys []string) (*signatureHolder, error) {
-	sh.mutSigningData.RLock()
-	privKey := sh.data.privKey
-	sh.mutSigningData.RUnlock()
-
 	args := ArgsSignatureHolder{
 		PubKeys:              pubKeys,
-		PrivKeyBytes:         privKey,
+		KeysHandler:          sh.keysHandler,
 		MultiSignerContainer: sh.multiSignerContainer,
+		SingleSigner:         sh.singleSigner,
 		KeyGenerator:         sh.keyGen,
 	}
 	return NewSignatureHolder(args)
@@ -107,11 +111,8 @@ func (sh *signatureHolder) Reset(pubKeys []string) error {
 	sh.mutSigningData.Lock()
 	defer sh.mutSigningData.Unlock()
 
-	privKey := sh.data.privKey
-
 	data := &signatureHolderData{
 		pubKeys:   pubKeysBytes,
-		privKey:   privKey,
 		sigShares: sigShares,
 	}
 
@@ -120,19 +121,17 @@ func (sh *signatureHolder) Reset(pubKeys []string) error {
 	return nil
 }
 
-// CreateSignatureShare returns a signature over a message
-func (sh *signatureHolder) CreateSignatureShare(message []byte, selfIndex uint16, epoch uint32) ([]byte, error) {
-	sh.mutSigningData.RLock()
-	privateKeyBytes := sh.data.privKey
-	sh.mutSigningData.RUnlock()
-
-	return sh.CreateSignatureShareWithPrivateKey(message, selfIndex, epoch, privateKeyBytes)
-}
-
-// CreateSignatureShareWithPrivateKey returns a signature over a message providing the private key bytes
-func (sh *signatureHolder) CreateSignatureShareWithPrivateKey(message []byte, index uint16, epoch uint32, privateKeyBytes []byte) ([]byte, error) {
+// CreateSignatureShareUsingPublicKey returns a signature over a message using the managed private key that was selected based on the provided
+// publicKeyBytes argument
+func (sh *signatureHolder) CreateSignatureShareUsingPublicKey(message []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
 	if message == nil {
 		return nil, ErrNilMessage
+	}
+
+	privateKey := sh.keysHandler.GetHandledPrivateKey(publicKeyBytes)
+	privateKeyBytes, err := privateKey.ToByteArray()
+	if err != nil {
+		return nil, err
 	}
 
 	sh.mutSigningData.Lock()
@@ -151,6 +150,14 @@ func (sh *signatureHolder) CreateSignatureShareWithPrivateKey(message []byte, in
 	sh.data.sigShares[index] = sigShareBytes
 
 	return sigShareBytes, nil
+}
+
+// CreateSignatureUsingPublicKey returns a signature over a message using the managed private key that was selected based on the provided
+// publicKeyBytes argument
+func (sh *signatureHolder) CreateSignatureUsingPublicKey(message []byte, publicKeyBytes []byte) ([]byte, error) {
+	privateKey := sh.keysHandler.GetHandledPrivateKey(publicKeyBytes)
+
+	return sh.singleSigner.Sign(privateKey, message)
 }
 
 // VerifySignatureShare will verify the signature share based on the specified index

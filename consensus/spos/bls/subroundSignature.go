@@ -82,7 +82,12 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 			return false
 		}
 
-		signatureShare, err := sr.SignatureHandler().CreateSignatureShare(sr.GetData(), uint16(selfIndex), sr.Header.GetEpoch())
+		signatureShare, err := sr.SignatureHandler().CreateSignatureShareUsingPublicKey(
+			sr.GetData(),
+			uint16(selfIndex),
+			sr.Header.GetEpoch(),
+			[]byte(sr.SelfPubKey()),
+		)
 		if err != nil {
 			log.Debug("doSignatureJob.CreateSignatureShare", "error", err.Error())
 			return false
@@ -362,21 +367,18 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
 			continue
 		}
 
-		managedPrivateKey := sr.GetMessageSigningPrivateKey(pkBytes)
 		selfIndex, err := sr.ConsensusGroupIndex(pk)
 		if err != nil {
 			log.Warn("doSignatureJobForManagedKeys: index not found", "pk", pkBytes)
 			continue
 		}
 
-		// TODO EN-13215 merge SignatureHandler with KeysHandler
-		managedPrivateKeyBytes, err := managedPrivateKey.ToByteArray()
-		if err != nil {
-			log.Warn("doSignatureJobForManagedKeys: can not recover the private key bytes", "pk", pkBytes)
-			continue
-		}
-
-		signatureShare, err := sr.SignatureHandler().CreateSignatureShareWithPrivateKey(sr.GetData(), uint16(selfIndex), sr.Header.GetEpoch(), managedPrivateKeyBytes)
+		signatureShare, err := sr.SignatureHandler().CreateSignatureShareUsingPublicKey(
+			sr.GetData(),
+			uint16(selfIndex),
+			sr.Header.GetEpoch(),
+			pkBytes,
+		)
 		if err != nil {
 			log.Debug("doSignatureJobForManagedKeys.CreateAndAddSignatureShareForKey", "error", err.Error())
 			return false
