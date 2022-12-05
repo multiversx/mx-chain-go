@@ -200,7 +200,7 @@ func (sender *multikeyHeartbeatSender) processIfShouldSend(pk []byte) bool {
 	}
 
 	if shardID != sender.shardCoordinator.SelfId() {
-		log.Debug("processIfShouldSend: shard id does not match",
+		log.Trace("processIfShouldSend: shard id does not match",
 			"pk", pk,
 			"self shard", sender.shardCoordinator.SelfId(),
 			"pk shard", shardID)

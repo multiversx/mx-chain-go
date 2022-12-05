@@ -1477,13 +1477,15 @@ func (nr *nodeRunner) CreateManagedCryptoComponents(
 ) (mainFactory.CryptoComponentsHandler, error) {
 	configs := nr.configs
 	validatorKeyPemFileName := configs.ConfigurationPathsHolder.ValidatorKey
+	allValidatorKeysPemFileName := configs.ConfigurationPathsHolder.AllValidatorKeys
 	cryptoComponentsHandlerArgs := cryptoComp.CryptoComponentsFactoryArgs{
 		ValidatorKeyPemFileName:              validatorKeyPemFileName,
+		AllValidatorKeysPemFileName:          allValidatorKeysPemFileName,
 		SkIndex:                              configs.FlagsConfig.ValidatorKeyIndex,
 		Config:                               *configs.GeneralConfig,
 		CoreComponentsHolder:                 coreComponents,
 		ActivateBLSPubKeyMessageVerification: configs.SystemSCConfig.StakingSystemSCConfig.ActivateBLSPubKeyMessageVerification,
-		KeyLoader:                            &core.KeyLoader{},
+		KeyLoader:                            core.NewKeyLoader(),
 		ImportModeNoSigCheck:                 configs.ImportDbConfig.ImportDbNoSigCheckFlag,
 		IsInImportMode:                       configs.ImportDbConfig.IsImportDBMode,
 		EnableEpochs:                         configs.EpochConfig.EnableEpochs,

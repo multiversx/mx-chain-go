@@ -190,6 +190,8 @@ type CryptoComponentsHolder interface {
 // KeyLoaderHandler defines the loading of a key from a pem file and index
 type KeyLoaderHandler interface {
 	LoadKey(string, int) ([]byte, string, error)
+	LoadAllKeys(path string) ([][]byte, []string, error)
+	IsInterfaceNil() bool
 }
 
 // CryptoComponentsHandler defines the crypto components handler actions

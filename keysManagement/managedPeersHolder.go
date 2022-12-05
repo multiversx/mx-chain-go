@@ -11,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 )
 
@@ -164,7 +163,7 @@ func (holder *managedPeersHolder) getPeerInfo(pkBytes []byte) *peerInfo {
 }
 
 func generateRandomMachineID() string {
-	buff := make([]byte, common.MaxMachineIDLen/2)
+	buff := make([]byte, core.MaxMachineIDLen/2)
 	_, _ = rand.Read(buff)
 
 	return hex.EncodeToString(buff)

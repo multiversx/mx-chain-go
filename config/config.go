@@ -588,6 +588,7 @@ type ConfigurationPathsHolder struct {
 	Genesis                  string
 	SmartContracts           string
 	ValidatorKey             string
+	AllValidatorKeys         string
 	Epoch                    string
 	RoundActivation          string
 	P2pKey                   string
