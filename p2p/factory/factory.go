@@ -43,13 +43,12 @@ func NewPeersHolder(preferredConnectionAddresses []string) (p2p.PreferredPeersHo
 	return peersHolder.NewPeersHolder(preferredConnectionAddresses)
 }
 
-<<<<<<< HEAD
 // NewMessageVerifier will return a new instance of messages verifier
 func NewMessageVerifier(args ArgsMessageVerifier) (p2p.P2PSigningHandler, error) {
 	return messagecheck.NewMessageVerifier(args)
-=======
+}
+
 // NewIdentityGenerator creates a new identity generator
 func NewIdentityGenerator() p2p.IdentityGenerator {
 	return crypto.NewIdentityGenerator()
->>>>>>> rc/v1.4.0
 }
