@@ -44,11 +44,7 @@ const (
 
 	// TODO: Move to vm-common.
 	upgradeFunctionName = "upgradeContract"
-
-	generalSCRIdentifier = "writeLog"
-	signalError          = "signalError"
-	completedTxEvent     = "completedTxEvent"
-	returnOkData         = "@6f6b"
+	returnOkData        = "@6f6b"
 )
 
 var zero = big.NewInt(0)
@@ -1495,7 +1491,7 @@ func createNewLogFromSCR(txHandler data.TransactionHandler) *vmcommon.LogEntry {
 	}
 
 	newLog := &vmcommon.LogEntry{
-		Identifier: []byte(generalSCRIdentifier),
+		Identifier: []byte(core.WriteLogIdentifier),
 		Address:    txHandler.GetSndAddr(),
 		Topics:     [][]byte{txHandler.GetRcvAddr()},
 		Data:       txHandler.GetData(),
@@ -1515,7 +1511,7 @@ func createNewLogFromSCRIfError(txHandler data.TransactionHandler) *vmcommon.Log
 	}
 
 	newLog := &vmcommon.LogEntry{
-		Identifier: []byte(signalError),
+		Identifier: []byte(core.SignalErrorOperation),
 		Address:    txHandler.GetSndAddr(),
 		Topics:     [][]byte{txHandler.GetRcvAddr(), returnMessage},
 		Data:       txHandler.GetData(),
@@ -2367,7 +2363,7 @@ func (sc *scProcessor) createSCRForSenderAndRelayer(
 			OriginalTxHash: relayedSCR.OriginalTxHash,
 			GasPrice:       tx.GetGasPrice(),
 			CallType:       vmData.DirectCall,
-			ReturnMessage:  []byte("gas refund for relayer"),
+			ReturnMessage:  []byte(core.GasRefundForRelayerMessage),
 			OriginalSender: relayedSCR.OriginalSender,
 		}
 		gasRemaining = 0
@@ -2799,7 +2795,7 @@ func createCompleteEventLog(tx data.TransactionHandler, txHash []byte) *vmcommon
 	}
 
 	newLog := &vmcommon.LogEntry{
-		Identifier: []byte(completedTxEvent),
+		Identifier: []byte(core.CompletedTxEventIdentifier),
 		Address:    tx.GetRcvAddr(),
 		Topics:     [][]byte{prevTxHash},
 	}

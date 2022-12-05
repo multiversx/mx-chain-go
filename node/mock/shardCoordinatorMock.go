@@ -12,7 +12,7 @@ type ShardCoordinatorMock struct {
 
 // NumberOfShards -
 func (scm *ShardCoordinatorMock) NumberOfShards() uint32 {
-	panic("implement me")
+	return 1
 }
 
 // ComputeId -

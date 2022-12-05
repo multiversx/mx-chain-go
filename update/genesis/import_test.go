@@ -36,6 +36,7 @@ func TestNewStateImport(t *testing.T) {
 				Marshalizer:         &mock.MarshalizerMock{},
 				Hasher:              &mock.HasherStub{},
 				TrieStorageManagers: trieStorageManagers,
+				AddressConverter:    &testscommon.PubkeyConverterMock{},
 			},
 			exError: update.ErrNilHardforkStorer,
 		},
@@ -46,6 +47,7 @@ func TestNewStateImport(t *testing.T) {
 				Marshalizer:         nil,
 				Hasher:              &mock.HasherStub{},
 				TrieStorageManagers: trieStorageManagers,
+				AddressConverter:    &testscommon.PubkeyConverterMock{},
 			},
 			exError: update.ErrNilMarshalizer,
 		},
@@ -56,6 +58,7 @@ func TestNewStateImport(t *testing.T) {
 				Marshalizer:         &mock.MarshalizerMock{},
 				Hasher:              nil,
 				TrieStorageManagers: trieStorageManagers,
+				AddressConverter:    &testscommon.PubkeyConverterMock{},
 			},
 			exError: update.ErrNilHasher,
 		},
@@ -66,6 +69,7 @@ func TestNewStateImport(t *testing.T) {
 				Marshalizer:         &mock.MarshalizerMock{},
 				Hasher:              &mock.HasherStub{},
 				TrieStorageManagers: trieStorageManagers,
+				AddressConverter:    &testscommon.PubkeyConverterMock{},
 			},
 			exError: nil,
 		},
@@ -92,6 +96,7 @@ func TestImportAll(t *testing.T) {
 		TrieStorageManagers: trieStorageManagers,
 		ShardID:             0,
 		StorageConfig:       config.StorageConfig{},
+		AddressConverter:    &testscommon.PubkeyConverterMock{},
 	}
 
 	importState, _ := NewStateImport(args)
@@ -126,6 +131,7 @@ func TestStateImport_ImportUnFinishedMetaBlocksShouldWork(t *testing.T) {
 		TrieStorageManagers: trieStorageManagers,
 		ShardID:             0,
 		StorageConfig:       config.StorageConfig{},
+		AddressConverter:    &testscommon.PubkeyConverterMock{},
 	}
 
 	importState, _ := NewStateImport(args)

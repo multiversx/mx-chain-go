@@ -2,6 +2,7 @@ package factory
 
 import (
 	"github.com/ElrondNetwork/elrond-go-p2p/libp2p"
+	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/crypto"
 	"github.com/ElrondNetwork/elrond-go-p2p/message"
 	messagecheck "github.com/ElrondNetwork/elrond-go-p2p/messageCheck"
 	"github.com/ElrondNetwork/elrond-go-p2p/peersHolder"
@@ -42,7 +43,13 @@ func NewPeersHolder(preferredConnectionAddresses []string) (p2p.PreferredPeersHo
 	return peersHolder.NewPeersHolder(preferredConnectionAddresses)
 }
 
+<<<<<<< HEAD
 // NewMessageVerifier will return a new instance of messages verifier
 func NewMessageVerifier(args ArgsMessageVerifier) (p2p.P2PSigningHandler, error) {
 	return messagecheck.NewMessageVerifier(args)
+=======
+// NewIdentityGenerator creates a new identity generator
+func NewIdentityGenerator() p2p.IdentityGenerator {
+	return crypto.NewIdentityGenerator()
+>>>>>>> rc/v1.4.0
 }
