@@ -48,6 +48,7 @@ func InitBaseMetrics(appStatusHandler core.AppStatusHandler) error {
 	appStatusHandler.SetUInt64Value(common.MetricTrieSyncNumProcessedNodes, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricTrieSyncNumReceivedBytes, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricAccountsSnapshotInProgress, initUint)
+	appStatusHandler.SetUInt64Value(common.MetricPeersSnapshotInProgress, initUint)
 
 	appStatusHandler.SetInt64Value(common.MetricLastAccountsSnapshotDurationSec, initInt)
 	appStatusHandler.SetInt64Value(common.MetricLastPeersSnapshotDurationSec, initInt)
@@ -66,7 +67,6 @@ func InitBaseMetrics(appStatusHandler core.AppStatusHandler) error {
 	appStatusHandler.SetStringValue(common.MetricP2PCrossShardObservers, initString)
 	appStatusHandler.SetStringValue(common.MetricP2PFullHistoryObservers, initString)
 	appStatusHandler.SetStringValue(common.MetricP2PUnknownPeers, initString)
-	appStatusHandler.SetStringValue(common.MetricPeersSnapshotInProgress, initString)
 
 	appStatusHandler.SetStringValue(common.MetricInflation, initZeroString)
 	appStatusHandler.SetStringValue(common.MetricDevRewardsInEpoch, initZeroString)
