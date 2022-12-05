@@ -1107,13 +1107,6 @@ func TestAccountsDB_SnapshotStateSnapshotSameRootHash(t *testing.T) {
 	args := createMockAccountsDBArgs()
 	args.Trie = trieStub
 
-	wasCalled := false
-	args.AppStatusHandler = &statusHandler.AppStatusHandlerStub{
-		SetUInt64ValueHandler: func(key string, value uint64) {
-			wasCalled = true
-		},
-	}
-
 	adb, _ := state.NewAccountsDB(args)
 	waitForOpToFinish := time.Millisecond * 100
 
@@ -1169,8 +1162,6 @@ func TestAccountsDB_SnapshotStateSnapshotSameRootHash(t *testing.T) {
 	snapshotMutex.Lock()
 	assert.Equal(t, 5, takeSnapshotCalled)
 	snapshotMutex.Unlock()
-
-	assert.True(t, wasCalled)
 }
 
 func TestAccountsDB_SnapshotStateSkipSnapshotIfSnapshotInProgress(t *testing.T) {
