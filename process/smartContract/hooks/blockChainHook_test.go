@@ -1266,7 +1266,7 @@ func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 		args.Accounts = &stateMock.AccountsStub{
 			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 				require.Equal(t, addrSender, addressContainer)
-				return &stateMock.UserAccountStub{}, nil
+				return &stateMock.StateUserAccountHandlerStub{}, nil
 			},
 		}
 		bh, _ := hooks.NewBlockChainHookImpl(args)
@@ -1313,7 +1313,7 @@ func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 
 			LoadAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 				require.Equal(t, addrReceiver, addressContainer)
-				return &stateMock.AccountWrapMock{}, nil
+				return &stateMock.StateUserAccountHandlerStub{}, nil
 			},
 		}
 
