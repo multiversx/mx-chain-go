@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/factory"
+	"github.com/ElrondNetwork/elrond-go/testscommon/outport"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 )
 
@@ -98,6 +99,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		ReceiptsRepository:           &testscommon.ReceiptsRepositoryStub{},
+		OutportDataProvider:          &outport.OutportDataProviderStub{},
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
