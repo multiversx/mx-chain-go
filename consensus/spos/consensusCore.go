@@ -4,7 +4,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	cryptoCommon "github.com/ElrondNetwork/elrond-go/common/crypto"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
@@ -24,8 +23,6 @@ type ConsensusCore struct {
 	chronologyHandler             consensus.ChronologyHandler
 	hasher                        hashing.Hasher
 	marshalizer                   marshal.Marshalizer
-	blsPrivateKey                 crypto.PrivateKey
-	blsSingleSigner               crypto.SingleSigner
 	multiSignerContainer          cryptoCommon.MultiSignerContainer
 	roundHandler                  consensus.RoundHandler
 	shardCoordinator              sharding.Coordinator
@@ -50,8 +47,6 @@ type ConsensusCoreArgs struct {
 	ChronologyHandler             consensus.ChronologyHandler
 	Hasher                        hashing.Hasher
 	Marshalizer                   marshal.Marshalizer
-	BlsPrivateKey                 crypto.PrivateKey
-	BlsSingleSigner               crypto.SingleSigner
 	MultiSignerContainer          cryptoCommon.MultiSignerContainer
 	RoundHandler                  consensus.RoundHandler
 	ShardCoordinator              sharding.Coordinator
@@ -79,8 +74,6 @@ func NewConsensusCore(
 		chronologyHandler:             args.ChronologyHandler,
 		hasher:                        args.Hasher,
 		marshalizer:                   args.Marshalizer,
-		blsPrivateKey:                 args.BlsPrivateKey,
-		blsSingleSigner:               args.BlsSingleSigner,
 		multiSignerContainer:          args.MultiSignerContainer,
 		roundHandler:                  args.RoundHandler,
 		shardCoordinator:              args.ShardCoordinator,
@@ -172,16 +165,6 @@ func (cc *ConsensusCore) NodesCoordinator() nodesCoordinator.NodesCoordinator {
 // EpochStartRegistrationHandler returns the epoch start registration handler
 func (cc *ConsensusCore) EpochStartRegistrationHandler() epochStart.RegistrationHandler {
 	return cc.epochStartRegistrationHandler
-}
-
-// PrivateKey returns the BLS private key stored in the ConsensusStore
-func (cc *ConsensusCore) PrivateKey() crypto.PrivateKey {
-	return cc.blsPrivateKey
-}
-
-// SingleSigner returns the bls single signer stored in the ConsensusStore
-func (cc *ConsensusCore) SingleSigner() crypto.SingleSigner {
-	return cc.blsSingleSigner
 }
 
 // PeerHonestyHandler will return the peer honesty handler which will be used in subrounds

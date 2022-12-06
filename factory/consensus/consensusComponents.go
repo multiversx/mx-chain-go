@@ -247,8 +247,6 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		ChronologyHandler:             cc.chronology,
 		Hasher:                        ccf.coreComponents.Hasher(),
 		Marshalizer:                   ccf.coreComponents.InternalMarshalizer(),
-		BlsPrivateKey:                 ccf.cryptoComponents.PrivateKey(),
-		BlsSingleSigner:               ccf.cryptoComponents.BlockSigner(),
 		MultiSignerContainer:          ccf.cryptoComponents.MultiSignerContainer(),
 		RoundHandler:                  ccf.processComponents.RoundHandler(),
 		ShardCoordinator:              ccf.processComponents.ShardCoordinator(),
@@ -662,16 +660,12 @@ func (ccf *consensusComponentsFactory) createConsensusTopic(cc *consensusCompone
 }
 
 func (ccf *consensusComponentsFactory) createBlsSignatureHandler() (consensus.SignatureHandler, error) {
-	privKeyBytes, err := ccf.cryptoComponents.PrivateKey().ToByteArray()
-	if err != nil {
-		return nil, err
-	}
-
 	signatureHolderArgs := signing.ArgsSignatureHolder{
 		PubKeys:              []string{ccf.cryptoComponents.PublicKeyString()},
-		PrivKeyBytes:         privKeyBytes,
 		MultiSignerContainer: ccf.cryptoComponents.MultiSignerContainer(),
+		SingleSigner:         ccf.cryptoComponents.BlockSigner(),
 		KeyGenerator:         ccf.cryptoComponents.BlockSignKeyGen(),
+		KeysHandler:          ccf.cryptoComponents.KeysHandler(),
 	}
 
 	return signing.NewSignatureHolder(signatureHolderArgs)

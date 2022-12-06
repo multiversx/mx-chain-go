@@ -8,7 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/outport"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	cryptoCommon "github.com/ElrondNetwork/elrond-go/common/crypto"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
@@ -49,10 +48,6 @@ type ConsensusCoreHandler interface {
 	NodesCoordinator() nodesCoordinator.NodesCoordinator
 	// EpochStartRegistrationHandler gets the RegistrationHandler stored in the ConsensusCore
 	EpochStartRegistrationHandler() epochStart.RegistrationHandler
-	// PrivateKey returns the private key stored in the ConsensusStore used for randomness and leader's signature generation
-	PrivateKey() crypto.PrivateKey
-	// SingleSigner returns the single signer stored in the ConsensusStore used for randomness and leader's signature generation
-	SingleSigner() crypto.SingleSigner
 	// PeerHonestyHandler returns the peer honesty handler which will be used in subrounds
 	PeerHonestyHandler() consensus.PeerHonestyHandler
 	// HeaderSigVerifier returns the sig verifier handler which will be used in subrounds

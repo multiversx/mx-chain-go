@@ -500,9 +500,7 @@ func (sr *subroundEndRound) signBlockHeader() ([]byte, error) {
 		return nil, errGetLeader
 	}
 
-	privateKey := sr.GetMessageSigningPrivateKey([]byte(leader))
-
-	return sr.SingleSigner().Sign(privateKey, marshalizedHdr)
+	return sr.SignatureHandler().CreateSignatureForPublicKey(marshalizedHdr, []byte(leader))
 }
 
 func (sr *subroundEndRound) updateMetricsForLeader() {

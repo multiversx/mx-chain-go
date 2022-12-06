@@ -2,15 +2,15 @@ package mock
 
 // SignatureHandlerStub implements SignatureHandler interface
 type SignatureHandlerStub struct {
-	ResetCalled                              func(pubKeys []string) error
-	CreateSignatureShareCalled               func(msg []byte, index uint16, epoch uint32) ([]byte, error)
-	CreateSignatureShareWithPrivateKeyCalled func(message []byte, index uint16, epoch uint32, privateKeyBytes []byte) ([]byte, error)
-	StoreSignatureShareCalled                func(index uint16, sig []byte) error
-	SignatureShareCalled                     func(index uint16) ([]byte, error)
-	VerifySignatureShareCalled               func(index uint16, sig []byte, msg []byte, epoch uint32) error
-	AggregateSigsCalled                      func(bitmap []byte, epoch uint32) ([]byte, error)
-	SetAggregatedSigCalled                   func(_ []byte) error
-	VerifyCalled                             func(msg []byte, bitmap []byte, epoch uint32) error
+	ResetCalled                            func(pubKeys []string) error
+	CreateSignatureShareForPublicKeyCalled func(message []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error)
+	CreateSignatureForPublicKeyCalled      func(message []byte, publicKeyBytes []byte) ([]byte, error)
+	StoreSignatureShareCalled              func(index uint16, sig []byte) error
+	SignatureShareCalled                   func(index uint16) ([]byte, error)
+	VerifySignatureShareCalled             func(index uint16, sig []byte, msg []byte, epoch uint32) error
+	AggregateSigsCalled                    func(bitmap []byte, epoch uint32) ([]byte, error)
+	SetAggregatedSigCalled                 func(_ []byte) error
+	VerifyCalled                           func(msg []byte, bitmap []byte, epoch uint32) error
 }
 
 // Reset -
@@ -22,19 +22,19 @@ func (stub *SignatureHandlerStub) Reset(pubKeys []string) error {
 	return nil
 }
 
-// CreateSignatureShare -
-func (stub *SignatureHandlerStub) CreateSignatureShare(msg []byte, index uint16, epoch uint32) ([]byte, error) {
-	if stub.CreateSignatureShareCalled != nil {
-		return stub.CreateSignatureShareCalled(msg, index, epoch)
+// CreateSignatureShareForPublicKey -
+func (stub *SignatureHandlerStub) CreateSignatureShareForPublicKey(message []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
+	if stub.CreateSignatureShareForPublicKeyCalled != nil {
+		return stub.CreateSignatureShareForPublicKeyCalled(message, index, epoch, publicKeyBytes)
 	}
 
-	return []byte("sigShare"), nil
+	return make([]byte, 0), nil
 }
 
-// CreateSignatureShareWithPrivateKey -
-func (stub *SignatureHandlerStub) CreateSignatureShareWithPrivateKey(message []byte, index uint16, epoch uint32, privateKeyBytes []byte) ([]byte, error) {
-	if stub.CreateSignatureShareWithPrivateKeyCalled != nil {
-		return stub.CreateSignatureShareWithPrivateKeyCalled(message, index, epoch, privateKeyBytes)
+// CreateSignatureForPublicKey -
+func (stub *SignatureHandlerStub) CreateSignatureForPublicKey(message []byte, publicKeyBytes []byte) ([]byte, error) {
+	if stub.CreateSignatureForPublicKeyCalled != nil {
+		return stub.CreateSignatureForPublicKeyCalled(message, publicKeyBytes)
 	}
 
 	return make([]byte, 0), nil

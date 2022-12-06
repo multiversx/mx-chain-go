@@ -47,12 +47,6 @@ func ValidateConsensusCore(container ConsensusCoreHandler) error {
 	if check.IfNil(container.NodesCoordinator()) {
 		return ErrNilNodesCoordinator
 	}
-	if check.IfNil(container.PrivateKey()) {
-		return ErrNilBlsPrivateKey
-	}
-	if check.IfNil(container.SingleSigner()) {
-		return ErrNilBlsSingleSigner
-	}
 	if check.IfNil(container.GetAntiFloodHandler()) {
 		return ErrNilAntifloodHandler
 	}
