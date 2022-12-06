@@ -148,7 +148,7 @@ func TestDelegation_WithManyUsers_Claims(t *testing.T) {
 
 	gasSchedule, err := common.LoadGasScheduleConfig(integrationTests.GasSchedulePath)
 	require.Nil(t, err)
-	gasSchedule["MaxPerTransaction"]["MaxNumberOfTrieReadsPerTx"] = 10000
+	gasSchedule["MaxPerTransaction"]["MaxNumberOfTrieReadsPerTx"] = 100
 
 	context := arwen.SetupTestContextWithGasSchedule(t, gasSchedule)
 	defer context.Close()

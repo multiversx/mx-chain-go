@@ -60,6 +60,7 @@ type ArgBlockChainHook struct {
 	WorkingDir            string
 	NilCompiledSCStore    bool
 	GasSchedule           core.GasScheduleNotifier
+	Counter               BlockChainHookCounter
 }
 
 // BlockChainHookImpl is a wrapper over AccountsAdapter that satisfy vmcommon.BlockchainHook interface
@@ -75,6 +76,7 @@ type BlockChainHookImpl struct {
 	nftStorageHandler     vmcommon.SimpleESDTNFTStorageHandler
 	globalSettingsHandler vmcommon.ESDTGlobalSettingsHandler
 	enableEpochsHandler   common.EnableEpochsHandler
+	counter               BlockChainHookCounter
 
 	mutCurrentHdr sync.RWMutex
 	currentHdr    data.HeaderHandler
@@ -87,19 +89,8 @@ type BlockChainHookImpl struct {
 
 	mapActivationEpochs map[uint32]struct{}
 
-	esdtTransferParser vmcommon.ESDTTransferParser
-
 	mutGasLock  sync.RWMutex
 	gasSchedule core.GasScheduleNotifier
-
-	maxBuiltInCallsPerTx      uint64
-	maxNumberOfTransfersPerTx uint64
-	maxNumberOfTrieReadsPerTx uint64
-
-	mutCounters                     sync.RWMutex
-	crtNumberOfBuiltInFunctionCalls uint64
-	crtNumberOfTransfers            uint64
-	crtNumberOfTrieReads            uint64
 }
 
 // NewBlockChainHookImpl creates a new BlockChainHookImpl instance
@@ -128,6 +119,7 @@ func NewBlockChainHookImpl(
 		globalSettingsHandler: args.GlobalSettingsHandler,
 		enableEpochsHandler:   args.EnableEpochsHandler,
 		gasSchedule:           args.GasSchedule,
+		counter:               args.Counter,
 	}
 
 	err = blockChainHookImpl.makeCompiledSCStorage()
@@ -140,13 +132,7 @@ func NewBlockChainHookImpl(
 	blockChainHookImpl.mapActivationEpochs = createMapActivationEpochs(&args.EnableEpochs)
 
 	args.EpochNotifier.RegisterNotifyHandler(blockChainHookImpl)
-
 	args.GasSchedule.RegisterNotifyHandler(blockChainHookImpl)
-
-	blockChainHookImpl.esdtTransferParser, err = parsers.NewESDTTransferParser(args.Marshalizer)
-	if err != nil {
-		return nil, err
-	}
 
 	return blockChainHookImpl, nil
 }
@@ -208,6 +194,9 @@ func checkForNil(args ArgBlockChainHook) error {
 	}
 	if check.IfNil(args.GasSchedule) || args.GasSchedule.LatestGasSchedule() == nil {
 		return process.ErrNilGasSchedule
+	}
+	if check.IfNil(args.Counter) {
+		return ErrNilBlockchainHookCounter
 	}
 
 	return nil
@@ -288,15 +277,7 @@ func (bh *BlockChainHookImpl) processMaxReadsCounters() error {
 		return nil
 	}
 
-	bh.mutCounters.Lock()
-	defer bh.mutCounters.Unlock()
-
-	bh.crtNumberOfTrieReads++
-	if bh.crtNumberOfTrieReads > bh.maxNumberOfTrieReadsPerTx {
-		return fmt.Errorf("%w too many reads", process.ErrMaxBuiltInCallsReached)
-	}
-
-	return nil
+	return bh.counter.ProcessCrtNumberOfTrieReadsCounter()
 }
 
 // GetBlockhash returns the header hash for a requested nonce delta
@@ -503,29 +484,10 @@ func (bh *BlockChainHookImpl) processMaxBuiltInCounters(input *vmcommon.Contract
 		return nil
 	}
 
-	bh.mutCounters.Lock()
-	defer bh.mutCounters.Unlock()
-
-	bh.crtNumberOfBuiltInFunctionCalls++
-	if bh.crtNumberOfBuiltInFunctionCalls > bh.maxBuiltInCallsPerTx {
-		return fmt.Errorf("%w too many built in calls", process.ErrMaxBuiltInCallsReached)
-	}
-
-	parsedTransfer, errESDTTransfer := bh.esdtTransferParser.ParseESDTTransfers(input.CallerAddr, input.RecipientAddr, input.Function, input.Arguments)
-	if errESDTTransfer != nil {
-		// not a transfer - no need to count max transfers
-		return nil
-	}
-
-	bh.crtNumberOfTransfers += uint64(len(parsedTransfer.ESDTTransfers))
-	if bh.crtNumberOfTransfers > bh.maxNumberOfTransfersPerTx {
-		return fmt.Errorf("%w too many esdt transfers", process.ErrMaxBuiltInCallsReached)
-	}
-
-	return nil
+	return bh.counter.ProcessMaxBuiltInCounters(input)
 }
 
-// SaveNFTMetaDataToSystemAccount will save NFT meta data to system account for the given transaction
+// SaveNFTMetaDataToSystemAccount will save NFT meta-data to system account for the given transaction
 func (bh *BlockChainHookImpl) SaveNFTMetaDataToSystemAccount(tx data.TransactionHandler) error {
 	return bh.nftStorageHandler.SaveNFTMetaDataToSystemAccount(tx)
 }
@@ -855,12 +817,7 @@ func (bh *BlockChainHookImpl) GasScheduleChange(gasSchedule map[string]map[strin
 		return
 	}
 
-	bh.mutCounters.Lock()
-	defer bh.mutCounters.Unlock()
-
-	bh.maxBuiltInCallsPerTx = maxPerTransaction["MaxBuiltInCallsPerTx"]
-	bh.maxNumberOfTransfersPerTx = maxPerTransaction["MaxNumberOfTransfersPerTx"]
-	bh.maxNumberOfTrieReadsPerTx = maxPerTransaction["MaxNumberOfTrieReadsPerTx"]
+	bh.counter.SetMaximumValues(maxPerTransaction)
 }
 
 func (bh *BlockChainHookImpl) getMaxPerTransactionValues(gasSchedule map[string]map[string]uint64) map[string]uint64 {
@@ -880,14 +837,9 @@ func (bh *BlockChainHookImpl) getMaxPerTransactionValues(gasSchedule map[string]
 	return result
 }
 
-// ResetCounters resets the state counters for the block chain hook
+// ResetCounters resets the state counters for the blockchain hook
 func (bh *BlockChainHookImpl) ResetCounters() {
-	bh.mutCounters.Lock()
-	defer bh.mutCounters.Unlock()
-
-	bh.crtNumberOfBuiltInFunctionCalls = 0
-	bh.crtNumberOfTransfers = 0
-	bh.crtNumberOfTrieReads = 0
+	bh.counter.ResetCounters()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

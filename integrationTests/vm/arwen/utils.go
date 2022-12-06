@@ -286,6 +286,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 			},
 		},
 		GasSchedule: gasSchedule,
+		Counter:     &testscommon.BlockChainHookCounterStub{},
 	}
 
 	vmFactoryConfig := config.VirtualMachineConfig{

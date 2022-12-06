@@ -965,6 +965,7 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 		EnableEpochsHandler:   enableEpochsHandler,
 		NilCompiledSCStore:    true,
 		GasSchedule:           gasScheduleNotifier,
+		Counter:               &testscommon.BlockChainHookCounterStub{},
 	}
 
 	blockChainHookImpl, _ := hooks.NewBlockChainHookImpl(argsHook)

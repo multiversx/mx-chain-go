@@ -21,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/genesis/process/intermediate"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks/counters"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	factoryState "github.com/ElrondNetwork/elrond-go/state/factory"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
@@ -444,6 +445,7 @@ func (gbc *genesisBlockCreator) computeDNSAddresses(enableEpochsConfig config.En
 		EnableEpochsHandler:   enableEpochsHandler,
 		NilCompiledSCStore:    true,
 		GasSchedule:           gbc.arg.GasSchedule,
+		Counter:               counters.NewDisabledCounter(),
 	}
 	blockChainHook, err := hooks.NewBlockChainHookImpl(argsHook)
 	if err != nil {
