@@ -77,16 +77,16 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		SCRSizeInvariantOnBuiltInResultEnableEpoch:        61,
 		CheckCorrectTokenIDForTransferRoleEnableEpoch:     62,
 		FailExecutionOnEveryAPIErrorEnableEpoch:           63,
-		HeartbeatDisableEpoch:                             64,
-		MiniBlockPartialExecutionEnableEpoch:              65,
-		ManagedCryptoAPIsEnableEpoch:                      66,
-		ESDTMetadataContinuousCleanupEnableEpoch:          67,
-		DisableExecByCallerEnableEpoch:                    68,
-		RefactorContextEnableEpoch:                        69,
-		CheckFunctionArgumentEnableEpoch:                  70,
-		CheckExecuteOnReadOnlyEnableEpoch:                 71,
-		FixAsyncCallBackArgsListEnableEpoch:               72,
-		FixOldTokenLiquidityEnableEpoch:                   73,
+		MiniBlockPartialExecutionEnableEpoch:              64,
+		ManagedCryptoAPIsEnableEpoch:                      65,
+		ESDTMetadataContinuousCleanupEnableEpoch:          66,
+		DisableExecByCallerEnableEpoch:                    67,
+		RefactorContextEnableEpoch:                        68,
+		CheckFunctionArgumentEnableEpoch:                  69,
+		CheckExecuteOnReadOnlyEnableEpoch:                 70,
+		FixAsyncCallBackArgsListEnableEpoch:               71,
+		FixOldTokenLiquidityEnableEpoch:                   72,
+		RuntimeMemStoreLimitEnableEpoch:                   73,
 	}
 }
 
@@ -196,7 +196,6 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsSCRSizeInvariantOnBuiltInResultFlagEnabled())
 		assert.True(t, handler.IsCheckCorrectTokenIDForTransferRoleFlagEnabled())
 		assert.True(t, handler.IsFailExecutionOnEveryAPIErrorFlagEnabled())
-		assert.True(t, handler.IsHeartbeatDisableFlagEnabled())
 		assert.True(t, handler.IsMiniBlockPartialExecutionFlagEnabled())
 		assert.True(t, handler.IsManagedCryptoAPIsFlagEnabled())
 		assert.True(t, handler.IsESDTMetadataContinuousCleanupFlagEnabled())
@@ -206,6 +205,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsCheckExecuteOnReadOnlyFlagEnabled())
 		assert.True(t, handler.IsChangeDelegationOwnerFlagEnabled())
 		assert.True(t, handler.IsFixOldTokenLiquidityEnabled())
+		assert.True(t, handler.IsRuntimeMemStoreLimitEnabled())
 	})
 	t.Run("flags with == condition should be set, along with all >=", func(t *testing.T) {
 		t.Parallel()
@@ -291,7 +291,6 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsSCRSizeInvariantOnBuiltInResultFlagEnabled())
 		assert.True(t, handler.IsCheckCorrectTokenIDForTransferRoleFlagEnabled())
 		assert.True(t, handler.IsFailExecutionOnEveryAPIErrorFlagEnabled())
-		assert.True(t, handler.IsHeartbeatDisableFlagEnabled())
 		assert.True(t, handler.IsMiniBlockPartialExecutionFlagEnabled())
 		assert.True(t, handler.IsManagedCryptoAPIsFlagEnabled())
 		assert.True(t, handler.IsESDTMetadataContinuousCleanupFlagEnabled())
@@ -302,6 +301,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsChangeDelegationOwnerFlagEnabled())
 		assert.True(t, handler.IsFixAsyncCallBackArgsListFlagEnabled())
 		assert.True(t, handler.IsFixOldTokenLiquidityEnabled())
+		assert.True(t, handler.IsRuntimeMemStoreLimitEnabled())
 	})
 	t.Run("flags with < should be set", func(t *testing.T) {
 		t.Parallel()
@@ -382,7 +382,6 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.False(t, handler.IsSCRSizeInvariantOnBuiltInResultFlagEnabled())
 		assert.False(t, handler.IsCheckCorrectTokenIDForTransferRoleFlagEnabled())
 		assert.False(t, handler.IsFailExecutionOnEveryAPIErrorFlagEnabled())
-		assert.False(t, handler.IsHeartbeatDisableFlagEnabled())
 		assert.False(t, handler.IsMiniBlockPartialExecutionFlagEnabled())
 		assert.False(t, handler.IsManagedCryptoAPIsFlagEnabled())
 		assert.False(t, handler.IsESDTMetadataContinuousCleanupFlagEnabled())
@@ -393,5 +392,6 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.False(t, handler.IsChangeDelegationOwnerFlagEnabled())
 		assert.False(t, handler.IsFixAsyncCallBackArgsListFlagEnabled())
 		assert.False(t, handler.IsFixOldTokenLiquidityEnabled())
+		assert.False(t, handler.IsRuntimeMemStoreLimitEnabled())
 	})
 }

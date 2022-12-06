@@ -24,7 +24,7 @@ func createMockShardStorageBoostrapperArgs() ArgsBaseStorageBootstrapper {
 	argsBaseBootstrapper := ArgsBaseStorageBootstrapper{
 		BootStorer:     &mock.BoostrapStorerMock{},
 		ForkDetector:   &mock.ForkDetectorMock{},
-		BlockProcessor: &mock.BlockProcessorMock{},
+		BlockProcessor: &testscommon.BlockProcessorStub{},
 		ChainHandler:   &testscommon.ChainHandlerStub{},
 		Marshalizer:    &mock.MarshalizerMock{},
 		Store: &storageStubs.ChainStorerStub{
@@ -264,7 +264,7 @@ func TestBaseStorageBootstrapper_RestoreBlockBodyIntoPoolsShouldErrWhenRestoreBl
 			return nil, nil
 		},
 	}
-	baseArgs.BlockProcessor = &mock.BlockProcessorMock{
+	baseArgs.BlockProcessor = &testscommon.BlockProcessorStub{
 		RestoreBlockBodyIntoPoolsCalled: func(body data.BodyHandler) error {
 			return expectedError
 		},
@@ -298,7 +298,7 @@ func TestBaseStorageBootstrapper_RestoreBlockBodyIntoPoolsShouldWork(t *testing.
 			return nil, nil
 		},
 	}
-	baseArgs.BlockProcessor = &mock.BlockProcessorMock{
+	baseArgs.BlockProcessor = &testscommon.BlockProcessorStub{
 		RestoreBlockBodyIntoPoolsCalled: func(body data.BodyHandler) error {
 			return nil
 		},

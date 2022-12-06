@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"crypto/rand"
 	"encoding/hex"
 	"encoding/pem"
 	"fmt"
@@ -20,7 +19,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/ElrondNetwork/elrond-go/cmd/keygenerator/converter"
+	"github.com/ElrondNetwork/elrond-go/p2p/factory"
 	"github.com/urfave/cli"
 )
 
@@ -45,6 +45,12 @@ const noshard = -1
 type key struct {
 	skBytes []byte
 	pkBytes []byte
+}
+
+type pubKeyConverter interface {
+	Decode(humanReadable string) ([]byte, error)
+	Encode(pkBytes []byte) string
+	IsInterfaceNil() bool
 }
 
 const keysFolderPattern = "node-%d"
@@ -125,7 +131,7 @@ VERSION:
 	log = logger.GetOrCreate("keygenerator")
 
 	validatorPubKeyConverter, _ = pubkeyConverter.NewHexPubkeyConverter(blsPubkeyLen)
-	p2pPubKeyConverter          = NewP2pConverter()
+	directPubKeyConverter       = converter.NewDirectStringPubkeyConverter()
 	walletPubKeyConverter, _    = pubkeyConverter.NewBech32PubkeyConverter(txSignPubkeyLen, log)
 )
 
@@ -227,17 +233,8 @@ func generateKeys(typeKey string, numKeys int, prefix string, shardID int) ([]ke
 }
 
 func generateP2pKey(list []key) ([]key, error) {
-	privateKey, publicKey, err := libp2pCrypto.GenerateSecp256k1Key(rand.Reader)
-	if err != nil {
-		return nil, err
-	}
-
-	skBytes, err := privateKey.Raw()
-	if err != nil {
-		return nil, err
-	}
-
-	pkBytes, err := publicKey.Raw()
+	generator := factory.NewIdentityGenerator()
+	privateKeyBytes, pid, err := generator.CreateRandomP2PIdentity()
 	if err != nil {
 		return nil, err
 	}
@@ -245,8 +242,8 @@ func generateP2pKey(list []key) ([]key, error) {
 	list = append(
 		list,
 		key{
-			skBytes: skBytes,
-			pkBytes: pkBytes,
+			skBytes: privateKeyBytes,
+			pkBytes: []byte(pid.Pretty()),
 		},
 	)
 
@@ -354,7 +351,7 @@ func printKeys(validatorKeys, walletKeys, p2pKeys []key) error {
 		}
 	}
 	if len(p2pKeys) > 0 {
-		err := printSliceKeys("P2p keys:", p2pKeys, p2pPubKeyConverter)
+		err := printSliceKeys("P2p keys:", p2pKeys, directPubKeyConverter)
 		if err != nil {
 			errFound = err
 		}
@@ -363,7 +360,7 @@ func printKeys(validatorKeys, walletKeys, p2pKeys []key) error {
 	return errFound
 }
 
-func printSliceKeys(message string, sliceKeys []key, converter core.PubkeyConverter) error {
+func printSliceKeys(message string, sliceKeys []key, converter pubKeyConverter) error {
 	data := []string{message + "\n"}
 
 	for _, k := range sliceKeys {
@@ -380,12 +377,12 @@ func printSliceKeys(message string, sliceKeys []key, converter core.PubkeyConver
 	return nil
 }
 
-func writeKeyToStream(writer io.Writer, key key, pubkeyConverter core.PubkeyConverter) error {
+func writeKeyToStream(writer io.Writer, key key, converter pubKeyConverter) error {
 	if check.IfNilReflect(writer) {
 		return fmt.Errorf("nil writer")
 	}
 
-	pkString := pubkeyConverter.Encode(key.pkBytes)
+	pkString := converter.Encode(key.pkBytes)
 
 	blk := pem.Block{
 		Type:  "PRIVATE KEY for " + pkString,
@@ -414,7 +411,7 @@ func saveKeys(validatorKeys, walletKeys, p2pKeys []key, noSplit bool) error {
 		}
 	}
 	if len(p2pKeys) > 0 {
-		err := saveSliceKeys(p2pKeyFilenameTemplate, p2pKeys, p2pPubKeyConverter, noSplit)
+		err := saveSliceKeys(p2pKeyFilenameTemplate, p2pKeys, directPubKeyConverter, noSplit)
 		if err != nil {
 			errFound = err
 		}
@@ -423,7 +420,7 @@ func saveKeys(validatorKeys, walletKeys, p2pKeys []key, noSplit bool) error {
 	return errFound
 }
 
-func saveSliceKeys(baseFilenameTemplate string, keys []key, pubkeyConverter core.PubkeyConverter, noSplit bool) error {
+func saveSliceKeys(baseFilenameTemplate string, keys []key, converter pubKeyConverter, noSplit bool) error {
 	var file *os.File
 	var err error
 	for i, k := range keys {
@@ -435,7 +432,7 @@ func saveSliceKeys(baseFilenameTemplate string, keys []key, pubkeyConverter core
 			}
 		}
 
-		err = writeKeyToStream(file, k, pubkeyConverter)
+		err = writeKeyToStream(file, k, converter)
 		if err != nil {
 			return err
 		}

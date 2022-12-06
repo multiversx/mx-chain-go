@@ -57,6 +57,7 @@ func WithStatusCoreComponents(statusCoreComponents factory.StatusCoreComponentsH
 		if err != nil {
 			return err
 		}
+		n.statusCoreComponents = statusCoreComponents
 		n.closableComponents = append(n.closableComponents, statusCoreComponents)
 		return nil
 	}
@@ -154,22 +155,6 @@ func WithStatusComponents(statusComponents factory.StatusComponentsHandler) Opti
 		}
 		n.statusComponents = statusComponents
 		n.closableComponents = append(n.closableComponents, statusComponents)
-		return nil
-	}
-}
-
-// WithHeartbeatComponents sets up the Node heartbeat components
-func WithHeartbeatComponents(heartbeatComponents factory.HeartbeatComponentsHandler) Option {
-	return func(n *Node) error {
-		if check.IfNil(heartbeatComponents) {
-			return ErrNilStatusComponents
-		}
-		err := heartbeatComponents.CheckSubcomponents()
-		if err != nil {
-			return err
-		}
-		n.heartbeatComponents = heartbeatComponents
-		n.closableComponents = append(n.closableComponents, heartbeatComponents)
 		return nil
 	}
 }

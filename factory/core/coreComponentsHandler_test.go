@@ -26,7 +26,7 @@ func TestManagedCoreComponents_CreateWithInvalidArgsShouldErr(t *testing.T) {
 	require.NoError(t, err)
 	err = managedCoreComponents.Create()
 	require.Error(t, err)
-	require.Nil(t, managedCoreComponents.StatusHandler())
+	require.Nil(t, managedCoreComponents.InternalMarshalizer())
 }
 
 func TestManagedCoreComponents_CreateShouldWork(t *testing.T) {
@@ -46,7 +46,6 @@ func TestManagedCoreComponents_CreateShouldWork(t *testing.T) {
 	require.Nil(t, managedCoreComponents.Uint64ByteSliceConverter())
 	require.Nil(t, managedCoreComponents.AddressPubKeyConverter())
 	require.Nil(t, managedCoreComponents.ValidatorPubKeyConverter())
-	require.Nil(t, managedCoreComponents.StatusHandler())
 	require.Nil(t, managedCoreComponents.PathHandler())
 	require.Equal(t, "", managedCoreComponents.ChainID())
 	require.Nil(t, managedCoreComponents.AddressPubKeyConverter())
@@ -64,7 +63,6 @@ func TestManagedCoreComponents_CreateShouldWork(t *testing.T) {
 	require.NotNil(t, managedCoreComponents.Uint64ByteSliceConverter())
 	require.NotNil(t, managedCoreComponents.AddressPubKeyConverter())
 	require.NotNil(t, managedCoreComponents.ValidatorPubKeyConverter())
-	require.NotNil(t, managedCoreComponents.StatusHandler())
 	require.NotNil(t, managedCoreComponents.PathHandler())
 	require.NotEqual(t, "", managedCoreComponents.ChainID())
 	require.NotNil(t, managedCoreComponents.AddressPubKeyConverter())
@@ -84,10 +82,9 @@ func TestManagedCoreComponents_Close(t *testing.T) {
 	coreArgs := componentsMock.GetCoreArgs()
 	coreComponentsFactory, _ := coreComp.NewCoreComponentsFactory(coreArgs)
 	managedCoreComponents, _ := coreComp.NewManagedCoreComponents(coreComponentsFactory)
-	err := managedCoreComponents.Create()
+	err := managedCoreComponents.Close()
+	require.NoError(t, err)
+	err = managedCoreComponents.Create()
 	require.NoError(t, err)
 
-	err = managedCoreComponents.Close()
-	require.NoError(t, err)
-	require.Nil(t, managedCoreComponents.StatusHandler())
 }

@@ -92,7 +92,6 @@ type EnableEpochsHandlerStub struct {
 	IsSCRSizeInvariantOnBuiltInResultFlagEnabledField            bool
 	IsCheckCorrectTokenIDForTransferRoleFlagEnabledField         bool
 	IsFailExecutionOnEveryAPIErrorFlagEnabledField               bool
-	IsHeartbeatDisableFlagEnabledField                           bool
 	IsMiniBlockPartialExecutionFlagEnabledField                  bool
 	IsManagedCryptoAPIsFlagEnabledField                          bool
 	IsESDTMetadataContinuousCleanupFlagEnabledField              bool
@@ -113,6 +112,7 @@ type EnableEpochsHandlerStub struct {
 	IsRefactorPeersMiniBlocksFlagEnabledField                    bool
 	IsFixAsyncCallBackArgsListFlagEnabledField                   bool
 	IsFixOldTokenLiquidityEnabledField                           bool
+	IsRuntimeMemStoreLimitEnabledField                           bool
 }
 
 // ResetPenalizedTooMuchGasFlag -
@@ -810,14 +810,6 @@ func (stub *EnableEpochsHandlerStub) IsFailExecutionOnEveryAPIErrorFlagEnabled()
 	return stub.IsFailExecutionOnEveryAPIErrorFlagEnabledField
 }
 
-// IsHeartbeatDisableFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsHeartbeatDisableFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsHeartbeatDisableFlagEnabledField
-}
-
 // IsMiniBlockPartialExecutionFlagEnabled -
 func (stub *EnableEpochsHandlerStub) IsMiniBlockPartialExecutionFlagEnabled() bool {
 	stub.RLock()
@@ -976,6 +968,14 @@ func (stub *EnableEpochsHandlerStub) IsFixOldTokenLiquidityEnabled() bool {
 	defer stub.RUnlock()
 
 	return stub.IsFixOldTokenLiquidityEnabledField
+}
+
+// IsRuntimeMemStoreLimitEnabled -
+func (stub *EnableEpochsHandlerStub) IsRuntimeMemStoreLimitEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsRuntimeMemStoreLimitEnabledField
 }
 
 // IsInterfaceNil -

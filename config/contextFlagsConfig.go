@@ -14,7 +14,6 @@ type ContextFlagsConfig struct {
 	CleanupStorage               bool
 	UseHealthService             bool
 	SessionInfoFileOutput        string
-	EnableTxIndexing             bool
 	BootstrapRoundIndex          uint64
 	RestApiInterface             string
 	EnablePprof                  bool
@@ -26,6 +25,7 @@ type ContextFlagsConfig struct {
 	DisableConsensusWatchdog     bool
 	SerializeSnapshots           bool
 	NoKeyProvided                bool
+	OperationMode                string
 }
 
 // ImportDbConfig will hold the import-db parameters

@@ -84,9 +84,9 @@ type Node struct {
 	bootstrapComponents   mainFactory.BootstrapComponentsHolder
 	consensusComponents   mainFactory.ConsensusComponentsHolder
 	coreComponents        mainFactory.CoreComponentsHolder
+	statusCoreComponents  mainFactory.StatusCoreComponentsHolder
 	cryptoComponents      mainFactory.CryptoComponentsHolder
 	dataComponents        mainFactory.DataComponentsHolder
-	heartbeatComponents   mainFactory.HeartbeatComponentsHolder
 	heartbeatV2Components mainFactory.HeartbeatV2ComponentsHolder
 	networkComponents     mainFactory.NetworkComponentsHolder
 	processComponents     mainFactory.ProcessComponentsHolder
@@ -123,11 +123,6 @@ func NewNode(opts ...Option) (*Node, error) {
 	}
 
 	return node, nil
-}
-
-// GetAppStatusHandler will return the current status handler
-func (n *Node) GetAppStatusHandler() core.AppStatusHandler {
-	return n.coreComponents.StatusHandler()
 }
 
 // CreateShardedStores instantiate sharded cachers for Transactions and Headers
@@ -218,13 +213,16 @@ func (n *Node) GetAllIssuedESDTs(tokenType string, ctx context.Context) ([]strin
 		return nil, err
 	}
 
-	chLeaves := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+	chLeaves := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    make(chan error, 1),
+	}
 	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash, keyBuilder.NewKeyBuilder())
 	if err != nil {
 		return nil, err
 	}
 
-	for leaf := range chLeaves {
+	for leaf := range chLeaves.LeavesChan {
 		tokenName := string(leaf.Key())
 		if !strings.Contains(tokenName, "-") {
 			continue
@@ -243,6 +241,11 @@ func (n *Node) GetAllIssuedESDTs(tokenType string, ctx context.Context) ([]strin
 		if bytes.Equal(esdtToken.TokenType, []byte(tokenType)) {
 			tokens = append(tokens, tokenName)
 		}
+	}
+
+	err = common.GetErrorFromChanNonBlocking(chLeaves.ErrChan)
+	if err != nil {
+		return nil, err
 	}
 
 	if common.IsContextDone(ctx) {
@@ -286,14 +289,17 @@ func (n *Node) GetKeyValuePairs(address string, options api.AccountQueryOptions,
 		return nil, api.BlockInfo{}, err
 	}
 
-	chLeaves := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+	chLeaves := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    make(chan error, 1),
+	}
 	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash, keyBuilder.NewKeyBuilder())
 	if err != nil {
 		return nil, api.BlockInfo{}, err
 	}
 
 	mapToReturn := make(map[string]string)
-	for leaf := range chLeaves {
+	for leaf := range chLeaves.LeavesChan {
 		suffix := append(leaf.Key(), userAccount.AddressBytes()...)
 		value, errVal := leaf.ValueWithoutSuffix(suffix)
 		if errVal != nil {
@@ -302,6 +308,11 @@ func (n *Node) GetKeyValuePairs(address string, options api.AccountQueryOptions,
 		}
 
 		mapToReturn[hex.EncodeToString(leaf.Key())] = hex.EncodeToString(value)
+	}
+
+	err = common.GetErrorFromChanNonBlocking(chLeaves.ErrChan)
+	if err != nil {
+		return nil, api.BlockInfo{}, err
 	}
 
 	if common.IsContextDone(ctx) {
@@ -323,7 +334,7 @@ func (n *Node) GetValueForKey(address string, key string, options api.AccountQue
 		return "", api.BlockInfo{}, err
 	}
 
-	valueBytes, err := userAccount.RetrieveValue(keyBytes)
+	valueBytes, _, err := userAccount.RetrieveValue(keyBytes)
 	if err != nil {
 		return "", api.BlockInfo{}, fmt.Errorf("fetching value error: %w", err)
 	}
@@ -380,13 +391,16 @@ func (n *Node) getTokensIDsWithFilter(
 		return nil, api.BlockInfo{}, err
 	}
 
-	chLeaves := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+	chLeaves := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    make(chan error, 1),
+	}
 	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash, keyBuilder.NewKeyBuilder())
 	if err != nil {
 		return nil, api.BlockInfo{}, err
 	}
 
-	for leaf := range chLeaves {
+	for leaf := range chLeaves.LeavesChan {
 		tokenIdentifier := string(leaf.Key())
 		if !strings.Contains(tokenIdentifier, "-") {
 			continue
@@ -400,6 +414,11 @@ func (n *Node) getTokensIDsWithFilter(
 		if f.filter(tokenIdentifier, esdtToken) {
 			tokens = append(tokens, tokenIdentifier)
 		}
+	}
+
+	err = common.GetErrorFromChanNonBlocking(chLeaves.ErrChan)
+	if err != nil {
+		return nil, api.BlockInfo{}, err
 	}
 
 	if common.IsContextDone(ctx) {
@@ -502,13 +521,16 @@ func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions,
 		return nil, api.BlockInfo{}, err
 	}
 
-	chLeaves := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+	chLeaves := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    make(chan error, 1),
+	}
 	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash, keyBuilder.NewKeyBuilder())
 	if err != nil {
 		return nil, api.BlockInfo{}, err
 	}
 
-	for leaf := range chLeaves {
+	for leaf := range chLeaves.LeavesChan {
 		if !bytes.HasPrefix(leaf.Key(), esdtPrefix) {
 			continue
 		}
@@ -537,6 +559,11 @@ func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions,
 		}
 
 		allESDTs[tokenName] = esdtToken
+	}
+
+	err = common.GetErrorFromChanNonBlocking(chLeaves.ErrChan)
+	if err != nil {
+		return nil, api.BlockInfo{}, err
 	}
 
 	if common.IsContextDone(ctx) {
@@ -838,38 +865,16 @@ func (n *Node) GetCode(codeHash []byte, options api.AccountQueryOptions) ([]byte
 
 // GetHeartbeats returns the heartbeat status for each public key defined in genesis.json
 func (n *Node) GetHeartbeats() []heartbeatData.PubKeyHeartbeat {
-	dataMap := make(map[string]heartbeatData.PubKeyHeartbeat)
-
-	if !check.IfNil(n.heartbeatComponents) {
-		v1Monitor := n.heartbeatComponents.Monitor()
-		if !check.IfNil(v1Monitor) {
-			n.addHeartbeatDataToMap(v1Monitor.GetHeartbeats(), dataMap)
-		}
+	if check.IfNil(n.heartbeatV2Components) {
+		return make([]heartbeatData.PubKeyHeartbeat, 0)
 	}
 
-	if !check.IfNil(n.heartbeatV2Components) {
-		v2Monitor := n.heartbeatV2Components.Monitor()
-		if !check.IfNil(v2Monitor) {
-			n.addHeartbeatDataToMap(v2Monitor.GetHeartbeats(), dataMap)
-		}
+	monitor := n.heartbeatV2Components.Monitor()
+	if check.IfNil(monitor) {
+		return make([]heartbeatData.PubKeyHeartbeat, 0)
 	}
 
-	dataSlice := make([]heartbeatData.PubKeyHeartbeat, 0)
-	for _, hb := range dataMap {
-		dataSlice = append(dataSlice, hb)
-	}
-
-	sort.Slice(dataSlice, func(i, j int) bool {
-		return strings.Compare(dataSlice[i].PublicKey, dataSlice[j].PublicKey) < 0
-	})
-
-	return dataSlice
-}
-
-func (n *Node) addHeartbeatDataToMap(data []heartbeatData.PubKeyHeartbeat, dataMap map[string]heartbeatData.PubKeyHeartbeat) {
-	for _, hb := range data {
-		dataMap[hb.PublicKey] = hb
-	}
+	return monitor.GetHeartbeats()
 }
 
 // ValidatorStatisticsApi will return the statistics for all the validators from the initial nodes pub keys
@@ -1052,6 +1057,11 @@ func (n *Node) GetCoreComponents() mainFactory.CoreComponentsHolder {
 	return n.coreComponents
 }
 
+// GetStatusCoreComponents returns the status core components
+func (n *Node) GetStatusCoreComponents() mainFactory.StatusCoreComponentsHolder {
+	return n.statusCoreComponents
+}
+
 // GetCryptoComponents returns the crypto components
 func (n *Node) GetCryptoComponents() mainFactory.CryptoComponentsHolder {
 	return n.cryptoComponents
@@ -1070,11 +1080,6 @@ func (n *Node) GetBootstrapComponents() mainFactory.BootstrapComponentsHolder {
 // GetDataComponents returns the data components
 func (n *Node) GetDataComponents() mainFactory.DataComponentsHolder {
 	return n.dataComponents
-}
-
-// GetHeartbeatComponents returns the heartbeat components
-func (n *Node) GetHeartbeatComponents() mainFactory.HeartbeatComponentsHolder {
-	return n.heartbeatComponents
 }
 
 // GetHeartbeatV2Components returns the heartbeatV2 components
@@ -1128,7 +1133,14 @@ func (n *Node) Close() error {
 	}
 
 	var closeError error = nil
-	log.Debug("closing all managed components")
+
+	allComponents := make([]string, 0, len(n.closableComponents))
+	for i := len(n.closableComponents) - 1; i >= 0; i-- {
+		managedComponent := n.closableComponents[i]
+		allComponents = append(allComponents, fmt.Sprintf("%v", managedComponent))
+	}
+
+	log.Debug("closing all managed components", "all components that will be closed, in order", strings.Join(allComponents, ", "))
 	for i := len(n.closableComponents) - 1; i >= 0; i-- {
 		managedComponent := n.closableComponents[i]
 		componentName := n.getClosableComponentName(managedComponent, i)
@@ -1140,6 +1152,7 @@ func (n *Node) Close() error {
 			}
 			closeError = fmt.Errorf("%w, err: %s", closeError, err.Error())
 		}
+		log.Debug("closed", "managedComponent", componentName)
 	}
 
 	time.Sleep(time.Second * 5)
@@ -1254,7 +1267,7 @@ func (n *Node) getAccountRootHashAndVal(address []byte, accBytes []byte, key []b
 		return nil, nil, fmt.Errorf("empty dataTrie rootHash")
 	}
 
-	retrievedVal, err := userAccount.RetrieveValue(key)
+	retrievedVal, _, err := userAccount.RetrieveValue(key)
 	if err != nil {
 		return nil, nil, err
 	}

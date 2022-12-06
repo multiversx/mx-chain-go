@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	mockState "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	mockTrie "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/stretchr/testify/assert"
 )
@@ -26,6 +27,8 @@ func createMockAccountsArgs() state.ArgsAccountsDB {
 		StoragePruningManager: &mockState.StoragePruningManagerStub{},
 		ProcessingMode:        0,
 		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
+		AppStatusHandler:      &statusHandler.AppStatusHandlerStub{},
+		AddressConverter:      &testscommon.PubkeyConverterMock{},
 	}
 }
 
