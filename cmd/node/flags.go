@@ -425,12 +425,9 @@ func getFlags() []cli.Flag {
 		serializeSnapshots,
 		noKey,
 		p2pKeyPemFile,
-<<<<<<< HEAD
 		dbDirectory,
 		logsDirectory,
-=======
 		operationMode,
->>>>>>> rc/v1.4.0
 	}
 }
 

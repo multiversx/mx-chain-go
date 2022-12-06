@@ -1335,26 +1335,15 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 ) (mainFactory.BootstrapComponentsHandler, error) {
 
 	bootstrapComponentsFactoryArgs := bootstrapComp.BootstrapComponentsFactoryArgs{
-<<<<<<< HEAD
-		Config:            *nr.configs.GeneralConfig,
-		PrefConfig:        *nr.configs.PreferencesConfig,
-		ImportDbConfig:    *nr.configs.ImportDbConfig,
-		FlagsConfig:       *nr.configs.FlagsConfig,
-		WorkingDir:        nr.configs.FlagsConfig.DbDir,
-		CoreComponents:    coreComponents,
-		CryptoComponents:  cryptoComponents,
-		NetworkComponents: networkComponents,
-=======
 		Config:               *nr.configs.GeneralConfig,
 		PrefConfig:           *nr.configs.PreferencesConfig,
 		ImportDbConfig:       *nr.configs.ImportDbConfig,
 		FlagsConfig:          *nr.configs.FlagsConfig,
-		WorkingDir:           nr.configs.FlagsConfig.WorkingDir,
+		WorkingDir:           nr.configs.FlagsConfig.DbDir,
 		CoreComponents:       coreComponents,
 		CryptoComponents:     cryptoComponents,
 		NetworkComponents:    networkComponents,
 		StatusCoreComponents: statusCoreComponents,
->>>>>>> rc/v1.4.0
 	}
 
 	bootstrapComponentsFactory, err := bootstrapComp.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)
@@ -1421,19 +1410,6 @@ func (nr *nodeRunner) CreateManagedCoreComponents(
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 ) (mainFactory.CoreComponentsHandler, error) {
 	coreArgs := coreComp.CoreComponentsFactoryArgs{
-<<<<<<< HEAD
-		Config:                *nr.configs.GeneralConfig,
-		ConfigPathsHolder:     *nr.configs.ConfigurationPathsHolder,
-		EpochConfig:           *nr.configs.EpochConfig,
-		RoundConfig:           *nr.configs.RoundConfig,
-		ImportDbConfig:        *nr.configs.ImportDbConfig,
-		RatingsConfig:         *nr.configs.RatingsConfig,
-		EconomicsConfig:       *nr.configs.EconomicsConfig,
-		NodesFilename:         nr.configs.ConfigurationPathsHolder.Nodes,
-		WorkingDirectory:      nr.configs.FlagsConfig.DbDir,
-		ChanStopNodeProcess:   chanStopNodeProcess,
-		StatusHandlersFactory: statusHandlersFactory,
-=======
 		Config:              *nr.configs.GeneralConfig,
 		ConfigPathsHolder:   *nr.configs.ConfigurationPathsHolder,
 		EpochConfig:         *nr.configs.EpochConfig,
@@ -1442,9 +1418,8 @@ func (nr *nodeRunner) CreateManagedCoreComponents(
 		RatingsConfig:       *nr.configs.RatingsConfig,
 		EconomicsConfig:     *nr.configs.EconomicsConfig,
 		NodesFilename:       nr.configs.ConfigurationPathsHolder.Nodes,
-		WorkingDirectory:    nr.configs.FlagsConfig.WorkingDir,
+		WorkingDirectory:    nr.configs.FlagsConfig.DbDir,
 		ChanStopNodeProcess: chanStopNodeProcess,
->>>>>>> rc/v1.4.0
 	}
 
 	coreComponentsFactory, err := coreComp.NewCoreComponentsFactory(coreArgs)

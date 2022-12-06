@@ -252,13 +252,8 @@ func attachFileLogger(log logger.Logger, flagsConfig *config.ContextFlagsConfig)
 	var fileLogging factory.FileLoggingHandler
 	var err error
 	if flagsConfig.SaveLogFile {
-<<<<<<< HEAD
-		args := logging.ArgsFileLogging{
-			WorkingDir:      flagsConfig.LogsDir,
-=======
 		args := file.ArgsFileLogging{
-			WorkingDir:      flagsConfig.WorkingDir,
->>>>>>> rc/v1.4.0
+			WorkingDir:      flagsConfig.LogsDir,
 			DefaultLogsPath: defaultLogsPath,
 			LogFilePrefix:   logFilePrefix,
 		}
