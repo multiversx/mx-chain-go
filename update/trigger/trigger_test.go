@@ -203,7 +203,7 @@ func TestTrigger_TriggerCalledTwiceShouldErr(t *testing.T) {
 	assert.Equal(t, update.ErrTriggerAlreadyInAction, err)
 
 	select {
-	case <-trig.NotifyTriggerReceived():
+	case <-trig.NotifyTriggerReceivedV2():
 	case <-time.After(time.Second):
 		assert.Fail(t, "should have write on the notify channel")
 	}

@@ -95,3 +95,12 @@ type PeersRatingHandler interface {
 	GetTopRatedPeersFromList(peers []core.PeerID, minNumOfPeersExpected int) []core.PeerID
 	IsInterfaceNil() bool
 }
+
+// PeerTopicNotifier represent an entity able to handle new notifications on a new peer on a topic
+type PeerTopicNotifier = p2p.PeerTopicNotifier
+
+// IdentityGenerator represent an entity able to create a random p2p identity
+type IdentityGenerator interface {
+	CreateRandomP2PIdentity() ([]byte, core.PeerID, error)
+	IsInterfaceNil() bool
+}

@@ -8,7 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	nodeFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/factory"
@@ -32,8 +31,6 @@ type CoreComponentsMock struct {
 	PathHdl                      storage.PathManagerHandler
 	ChainIdCalled                func() string
 	MinTransactionVersionCalled  func() uint32
-	StatusHdlUtils               nodeFactory.StatusHandlersUtils
-	AppStatusHdl                 core.AppStatusHandler
 	WDTimer                      core.WatchdogTimer
 	Alarm                        core.TimersScheduler
 	NtpTimer                     ntp.SyncTimer
@@ -75,16 +72,6 @@ func (ccm *CoreComponentsMock) CheckSubcomponents() error {
 // VmMarshalizer -
 func (ccm *CoreComponentsMock) VmMarshalizer() marshal.Marshalizer {
 	return ccm.VmMarsh
-}
-
-// StatusHandlerUtils -
-func (ccm *CoreComponentsMock) StatusHandlerUtils() nodeFactory.StatusHandlersUtils {
-	return ccm.StatusHdlUtils
-}
-
-// StatusHandler -
-func (ccm *CoreComponentsMock) StatusHandler() core.AppStatusHandler {
-	return ccm.AppStatusHdl
 }
 
 // Watchdog -

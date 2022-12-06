@@ -51,7 +51,7 @@ func TestTrieStatistics_AddLeafNode(t *testing.T) {
 func TestTrieStatistics_AddAccountInfo(t *testing.T) {
 	t.Parallel()
 
-	address := []byte("address")
+	address := "address"
 	rootHash := []byte("rootHash")
 
 	ts := NewTrieStatistics()

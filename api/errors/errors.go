@@ -40,7 +40,7 @@ var ErrGetESDTNFTData = errors.New("get esdt nft data for account error")
 // ErrEmptyAddress signals that an empty address was provided
 var ErrEmptyAddress = errors.New("address is empty")
 
-// ErrEmptyKey signals an that empty key was provided
+// ErrEmptyKey signals that an empty key was provided
 var ErrEmptyKey = errors.New("key is empty")
 
 // ErrEmptyTokenIdentifier signals that an empty token identifier was provided
@@ -78,6 +78,9 @@ var ErrGetTransaction = errors.New("getting transaction failed")
 
 // ErrGetBlock signals an error happening when trying to fetch a block
 var ErrGetBlock = errors.New("getting block failed")
+
+// ErrGetAlteredAccountsForBlock signals an error happening when trying to fetch the altered accounts for a block
+var ErrGetAlteredAccountsForBlock = errors.New("getting altered accounts for block failed")
 
 // ErrQueryError signals a general query error
 var ErrQueryError = errors.New("query error")

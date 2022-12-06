@@ -1,6 +1,10 @@
 package economics
 
-import "math/big"
+import (
+	"math/big"
+
+	"github.com/ElrondNetwork/elrond-go-core/core"
+)
 
 // TestEconomicsData extends EconomicsData and is used in integration tests as it exposes some functions
 // that are not supposed to be used in production code
@@ -59,4 +63,9 @@ func (ted *TestEconomicsData) SetMaxInflationRate(maximumInflation float64) {
 	defer ted.mutYearSettings.Unlock()
 
 	ted.yearSettings[0].MaximumInflation = maximumInflation
+}
+
+// SetStatusHandler returns nil
+func (ted *TestEconomicsData) SetStatusHandler(_ core.AppStatusHandler) error {
+	return nil
 }

@@ -54,6 +54,13 @@ func TestInitBaseMetrics(t *testing.T) {
 		common.MetricInflation,
 		common.MetricDevRewardsInEpoch,
 		common.MetricTotalFees,
+		common.MetricAccountsSnapshotInProgress,
+		common.MetricLastAccountsSnapshotDurationSec,
+		common.MetricPeersSnapshotInProgress,
+		common.MetricLastPeersSnapshotDurationSec,
+		common.MetricAccountsSnapshotNumNodes,
+		common.MetricTrieSyncNumProcessedNodes,
+		common.MetricTrieSyncNumReceivedBytes,
 	}
 
 	keys := make(map[string]struct{})
@@ -68,16 +75,16 @@ func TestInitBaseMetrics(t *testing.T) {
 			require.Equal(t, value, initUint)
 			keys[key] = struct{}{}
 		},
-	}
-
-	sm := &statusHandler.StatusHandlersUtilsMock{
-		AppStatusHandler: ash,
+		SetInt64ValueHandler: func(key string, value int64) {
+			require.Equal(t, value, initInt)
+			keys[key] = struct{}{}
+		},
 	}
 
 	err := InitBaseMetrics(nil)
-	require.Equal(t, ErrNilStatusHandlerUtils, err)
+	require.Equal(t, ErrNilAppStatusHandler, err)
 
-	err = InitBaseMetrics(sm)
+	err = InitBaseMetrics(ash)
 	require.Nil(t, err)
 
 	require.Equal(t, len(expectedKeys), len(keys))
@@ -127,7 +134,6 @@ func TestInitConfigMetrics(t *testing.T) {
 			ESDTTransferRoleEnableEpoch:                 33,
 			BuiltInFunctionOnMetaEnableEpoch:            34,
 			WaitingListFixEnableEpoch:                   35,
-			HeartbeatDisableEpoch:                       35,
 		},
 	}
 
@@ -168,7 +174,6 @@ func TestInitConfigMetrics(t *testing.T) {
 		"erd_builtin_function_on_meta_enable_epoch":              uint32(34),
 		"erd_waiting_list_fix_enable_epoch":                      uint32(35),
 		"erd_max_nodes_change_enable_epoch":                      nil,
-		"erd_heartbeat_disable_epoch":                            uint32(35),
 		"erd_total_supply":                                       "12345",
 		"erd_hysteresis":                                         "0.100000",
 		"erd_adaptivity":                                         "true",
@@ -200,14 +205,10 @@ func TestInitConfigMetrics(t *testing.T) {
 		},
 	}
 
-	sm := &statusHandler.StatusHandlersUtilsMock{
-		AppStatusHandler: ash,
-	}
-
 	err := InitConfigMetrics(nil, cfg, economicsConfig, genesisNodesConfig)
-	require.Equal(t, ErrNilStatusHandlerUtils, err)
+	require.Equal(t, ErrNilAppStatusHandler, err)
 
-	err = InitConfigMetrics(sm, cfg, economicsConfig, genesisNodesConfig)
+	err = InitConfigMetrics(ash, cfg, economicsConfig, genesisNodesConfig)
 	require.Nil(t, err)
 
 	assert.Equal(t, len(expectedValues), len(keys))
@@ -226,7 +227,7 @@ func TestInitConfigMetrics(t *testing.T) {
 	expectedValues["erd_adaptivity"] = "false"
 	expectedValues["erd_hysteresis"] = "0.000000"
 
-	err = InitConfigMetrics(sm, cfg, economicsConfig, genesisNodesConfig)
+	err = InitConfigMetrics(ash, cfg, economicsConfig, genesisNodesConfig)
 	require.Nil(t, err)
 
 	assert.Equal(t, expectedValues["erd_adaptivity"], keys["erd_adaptivity"])
@@ -310,21 +311,17 @@ func TestInitRatingsMetrics(t *testing.T) {
 
 	ash := &statusHandler.AppStatusHandlerStub{
 		SetUInt64ValueHandler: func(key string, value uint64) {
-			keys[key] = uint64(value)
+			keys[key] = value
 		},
 		SetStringValueHandler: func(key string, value string) {
 			keys[key] = value
 		},
 	}
 
-	sm := &statusHandler.StatusHandlersUtilsMock{
-		AppStatusHandler: ash,
-	}
-
 	err := InitRatingsMetrics(nil, cfg)
-	require.Equal(t, ErrNilStatusHandlerUtils, err)
+	require.Equal(t, ErrNilAppStatusHandler, err)
 
-	err = InitRatingsMetrics(sm, cfg)
+	err = InitRatingsMetrics(ash, cfg)
 	require.Nil(t, err)
 
 	assert.Equal(t, len(expectedValues), len(keys))

@@ -2,6 +2,7 @@ package factory
 
 import (
 	"github.com/ElrondNetwork/elrond-go-p2p/libp2p"
+	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/crypto"
 	"github.com/ElrondNetwork/elrond-go-p2p/message"
 	"github.com/ElrondNetwork/elrond-go-p2p/peersHolder"
 	"github.com/ElrondNetwork/elrond-go-p2p/rating"
@@ -22,8 +23,8 @@ type LocalSyncTimer = libp2p.LocalSyncTimer
 // Message is a data holder struct
 type Message = message.Message
 
-// DirectConnectionInfo represents the data regarding a new direct connection`s info
-type DirectConnectionInfo = message.DirectConnectionInfo
+// PeerShard represents the data regarding a new direct connection`s info
+type PeerShard = message.PeerShard
 
 // ArgPeersRatingHandler is the DTO used to create a new peers rating handler
 type ArgPeersRatingHandler = rating.ArgPeersRatingHandler
@@ -36,4 +37,9 @@ func NewPeersRatingHandler(args ArgPeersRatingHandler) (p2p.PeersRatingHandler, 
 // NewPeersHolder returns a new instance of peersHolder
 func NewPeersHolder(preferredConnectionAddresses []string) (p2p.PreferredPeersHolderHandler, error) {
 	return peersHolder.NewPeersHolder(preferredConnectionAddresses)
+}
+
+// NewIdentityGenerator creates a new identity generator
+func NewIdentityGenerator() p2p.IdentityGenerator {
+	return crypto.NewIdentityGenerator()
 }

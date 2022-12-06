@@ -2794,7 +2794,7 @@ func TestValidatorStakingSC_ExecuteGetShouldOk(t *testing.T) {
 }
 
 // Test scenario
-// 1 -- will call claim from a account that does not stake -> will return error code
+// 1 -- will call claim from an account that does not stake -> will return error code
 // 2 -- will do stake and lock all the stake value and claim should return error code because all the stake value is locked
 // 3 -- will do stake and stake value will not be locked and after that claim should work
 func TestValidatorStakingSC_Claim(t *testing.T) {
