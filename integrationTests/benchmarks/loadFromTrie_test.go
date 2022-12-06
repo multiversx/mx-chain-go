@@ -61,7 +61,11 @@ func testTrieLoadTime(t *testing.T, numChildrenPerBranch int) {
 
 	for i := 1; i <= numTrieLevels; i++ {
 		tsm := getTrieStorageManager(store, marshaller, hasher)
+
+		startTime := time.Now()
 		tries := generateTriesWithMaxDepth(t, numTries, i, numChildrenPerBranch, tsm, marshaller, hasher)
+		duration := time.Since(startTime)
+		fmt.Println(fmt.Sprintf("time to generate trie of level %d, duration %v", i, duration.Seconds()))
 
 		store.ClearCache()
 
@@ -87,6 +91,7 @@ func timeTrieLoad(tries []*keyForTrie, depth int) {
 	startTime := time.Now()
 	for j := range tries {
 		_, _, _ = tries[j].tr.Get(tries[j].key)
+		tries[j] = nil
 	}
 	duration := time.Since(startTime)
 	fmt.Println(fmt.Sprintf("trie with depth %d, duration %d", depth, duration.Nanoseconds()/int64(len(tries))))
@@ -191,7 +196,7 @@ func getTrieStorageManager(store storage.Storer, marshaller marshal.Marshalizer,
 
 func getNewTrieStorage() storage.Storer {
 	batchDelaySeconds := 1
-	maxBatchSize := 100
+	maxBatchSize := 40000
 	maxOpenFiles := 10
 
 	db, _ := database.NewSerialDB("AccountsTrie", batchDelaySeconds, maxBatchSize, maxOpenFiles)
