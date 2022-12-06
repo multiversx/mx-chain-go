@@ -83,7 +83,7 @@ func TestProcessLogsSaveSupply(t *testing.T) {
 		},
 	}
 
-	wasPutCalled := false
+	putCalledNum := 0
 	marshalizer := testscommon.MarshalizerMock{}
 	suppliesStorer := &storageStubs.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
@@ -100,15 +100,19 @@ func TestProcessLogsSaveSupply(t *testing.T) {
 				return nil
 			}
 
-			supplyKey := string(token) + "-" + hex.EncodeToString(big.NewInt(2).Bytes())
+			var supplyKey string
+			if putCalledNum%2 == 0 {
+				supplyKey = string(token) + "-" + hex.EncodeToString(big.NewInt(2).Bytes())
+			} else {
+				supplyKey = string(token)
+			}
 			require.Equal(t, supplyKey, string(key))
 
 			var supplyESDT SupplyESDT
 			_ = marshalizer.Unmarshal(&supplyESDT, data)
 			require.Equal(t, big.NewInt(30), supplyESDT.Supply)
 
-			wasPutCalled = true
-
+			putCalledNum++
 			return nil
 		},
 	}
@@ -119,7 +123,7 @@ func TestProcessLogsSaveSupply(t *testing.T) {
 	err = suppliesProc.ProcessLogs(6, logs)
 	require.Nil(t, err)
 
-	require.True(t, wasPutCalled)
+	require.Equal(t, 2, putCalledNum)
 }
 
 func TestProcessLogsSaveSupplyShouldUpdateSupplyMintedAndBurned(t *testing.T) {
@@ -196,47 +200,46 @@ func TestProcessLogsSaveSupplyShouldUpdateSupplyMintedAndBurned(t *testing.T) {
 	numTimesCalled := 0
 	suppliesStorer := &storageStubs.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
-			if string(key) == "processed-block" {
+			if string(key) == processedBlockKey {
 				pbn := ProcessedBlockNonce{Nonce: 5}
 				pbnB, _ := marshalizer.Marshal(pbn)
 				return pbnB, nil
 			}
-			supplyKey := string(token) + "-" + hex.EncodeToString(big.NewInt(2).Bytes())
-			if string(key) == supplyKey {
-				val, err := membDB.Get(key)
-				if err != nil {
-					return nil, storage.ErrKeyNotFound
-				}
-				return val, nil
+
+			val, err := membDB.Get(key)
+			if err != nil {
+				return nil, storage.ErrKeyNotFound
 			}
-			return nil, storage.ErrKeyNotFound
+			return val, nil
 		},
 		PutCalled: func(key, data []byte) error {
-			supplyKey := string(token) + "-" + hex.EncodeToString(big.NewInt(2).Bytes())
-			if string(key) == supplyKey {
-				switch numTimesCalled {
-				case 0:
-					supplyEsdt := getSupplyESDT(marshalizer, data)
-					require.Equal(t, big.NewInt(testNftCreateValue), supplyEsdt.Supply)
-					require.Equal(t, big.NewInt(0), supplyEsdt.Burned)
-					require.Equal(t, big.NewInt(testNftCreateValue), supplyEsdt.Minted)
-				case 1:
-					supplyEsdt := getSupplyESDT(marshalizer, data)
-					require.Equal(t, big.NewInt(testNftCreateValue+testAddQuantityValue), supplyEsdt.Supply)
-					require.Equal(t, big.NewInt(0), supplyEsdt.Burned)
-					require.Equal(t, big.NewInt(testNftCreateValue+testAddQuantityValue), supplyEsdt.Minted)
-				case 2:
-					supplyEsdt := getSupplyESDT(marshalizer, data)
-					require.Equal(t, big.NewInt(testNftCreateValue+testAddQuantityValue-testBurnValue), supplyEsdt.Supply)
-					require.Equal(t, big.NewInt(testBurnValue), supplyEsdt.Burned)
-					require.Equal(t, big.NewInt(testNftCreateValue+testAddQuantityValue), supplyEsdt.Minted)
-				}
-
-				_ = membDB.Put(key, data)
-				numTimesCalled++
-
+			if string(key) == processedBlockKey {
 				return nil
 			}
+
+			switch numTimesCalled {
+			case 0:
+			case 1:
+				supplyEsdt := getSupplyESDT(marshalizer, data)
+				require.Equal(t, big.NewInt(testNftCreateValue), supplyEsdt.Supply)
+				require.Equal(t, big.NewInt(0), supplyEsdt.Burned)
+				require.Equal(t, big.NewInt(testNftCreateValue), supplyEsdt.Minted)
+			case 2:
+			case 3:
+				supplyEsdt := getSupplyESDT(marshalizer, data)
+				require.Equal(t, big.NewInt(testNftCreateValue+testAddQuantityValue), supplyEsdt.Supply)
+				require.Equal(t, big.NewInt(0), supplyEsdt.Burned)
+				require.Equal(t, big.NewInt(testNftCreateValue+testAddQuantityValue), supplyEsdt.Minted)
+			case 4:
+			case 5:
+				supplyEsdt := getSupplyESDT(marshalizer, data)
+				require.Equal(t, big.NewInt(testNftCreateValue+testAddQuantityValue-testBurnValue), supplyEsdt.Supply)
+				require.Equal(t, big.NewInt(testBurnValue), supplyEsdt.Burned)
+				require.Equal(t, big.NewInt(testNftCreateValue+testAddQuantityValue), supplyEsdt.Minted)
+			}
+
+			_ = membDB.Put(key, data)
+			numTimesCalled++
 
 			return nil
 		},
@@ -254,7 +257,7 @@ func TestProcessLogsSaveSupplyShouldUpdateSupplyMintedAndBurned(t *testing.T) {
 	err = suppliesProc.ProcessLogs(8, logsBurn)
 	require.Nil(t, err)
 
-	require.Equal(t, 3, numTimesCalled)
+	require.Equal(t, 6, numTimesCalled)
 }
 
 func TestProcessLogs_RevertChangesShouldWorkForRevertingMinting(t *testing.T) {
