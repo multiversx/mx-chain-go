@@ -84,12 +84,17 @@ func (pb *peerBlacklist) startSweepingTimeCache() {
 }
 
 func (pb *peerBlacklist) startSweepingPeerCache(ctx context.Context) {
+	timer := time.NewTimer(durationSweepP2PBlacklist)
+	defer timer.Stop()
+
 	for {
+		timer.Reset(durationSweepP2PBlacklist)
+
 		select {
 		case <-ctx.Done():
 			log.Debug("peerBlacklist's go routine is stopping...")
 			return
-		case <-time.After(durationSweepP2PBlacklist):
+		case <-timer.C:
 		}
 
 		pb.peerCacher.Sweep()
