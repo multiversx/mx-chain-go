@@ -173,11 +173,8 @@ type processComponentsFactory struct {
 	historyRepo            dblookupext.HistoryRepository
 	epochNotifier          process.EpochNotifier
 	importHandler          update.ImportHandler
-<<<<<<< HEAD
 	snapshotsEnabled       bool
-=======
 	esdtNftStorage         vmcommon.ESDTNFTStorageHandler
->>>>>>> rc/v1.4.0
 
 	data                 factory.DataComponentsHolder
 	coreData             factory.CoreComponentsHolder
