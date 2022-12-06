@@ -338,7 +338,7 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 		return nil, errGetLeader
 	}
 
-	randSeed, err := sr.SignatureHandler().CreateSignatureUsingPublicKey(prevRandSeed, []byte(leader))
+	randSeed, err := sr.SignatureHandler().CreateSignatureForPublicKey(prevRandSeed, []byte(leader))
 	if err != nil {
 		return nil, err
 	}

@@ -154,7 +154,7 @@ func TestSignatureHolder_Reset(t *testing.T) {
 	})
 }
 
-func TestSignatureHolder_CreateSignatureShareUsingPublicKey(t *testing.T) {
+func TestSignatureHolder_CreateSignatureShareForPublicKey(t *testing.T) {
 	t.Parallel()
 
 	selfIndex := uint16(0)
@@ -165,7 +165,7 @@ func TestSignatureHolder_CreateSignatureShareUsingPublicKey(t *testing.T) {
 		t.Parallel()
 
 		signer, _ := signing.NewSignatureHolder(createMockArgsSignatureHolder())
-		sigShare, err := signer.CreateSignatureShareUsingPublicKey(nil, selfIndex, epoch, pkBytes)
+		sigShare, err := signer.CreateSignatureShareForPublicKey(nil, selfIndex, epoch, pkBytes)
 		require.Nil(t, sigShare)
 		require.Equal(t, signing.ErrNilMessage, err)
 	})
@@ -183,7 +183,7 @@ func TestSignatureHolder_CreateSignatureShareUsingPublicKey(t *testing.T) {
 		args.MultiSignerContainer = cryptoMocks.NewMultiSignerContainerMock(multiSigner)
 
 		signer, _ := signing.NewSignatureHolder(args)
-		sigShare, err := signer.CreateSignatureShareUsingPublicKey([]byte("msg1"), selfIndex, epoch, pkBytes)
+		sigShare, err := signer.CreateSignatureShareForPublicKey([]byte("msg1"), selfIndex, epoch, pkBytes)
 		require.Nil(t, sigShare)
 		require.Equal(t, expectedErr, err)
 	})
@@ -201,7 +201,7 @@ func TestSignatureHolder_CreateSignatureShareUsingPublicKey(t *testing.T) {
 
 		signer, _ := signing.NewSignatureHolder(args)
 
-		sigShare, err := signer.CreateSignatureShareUsingPublicKey([]byte("message"), uint16(0), epoch, pkBytes)
+		sigShare, err := signer.CreateSignatureShareForPublicKey([]byte("message"), uint16(0), epoch, pkBytes)
 		require.Nil(t, sigShare)
 		require.Equal(t, expectedErr, err)
 	})
@@ -228,7 +228,7 @@ func TestSignatureHolder_CreateSignatureShareUsingPublicKey(t *testing.T) {
 		args.MultiSignerContainer = cryptoMocks.NewMultiSignerContainerMock(multiSigner)
 
 		signer, _ := signing.NewSignatureHolder(args)
-		sigShare, err := signer.CreateSignatureShareUsingPublicKey([]byte("msg1"), selfIndex, epoch, pkBytes)
+		sigShare, err := signer.CreateSignatureShareForPublicKey([]byte("msg1"), selfIndex, epoch, pkBytes)
 		require.Nil(t, err)
 		require.Equal(t, expectedSigShare, sigShare)
 		assert.True(t, getHandledPrivateKeyCalled)
@@ -636,7 +636,7 @@ func TestSignatureHolder_Verify(t *testing.T) {
 	})
 }
 
-func TestSignatureHolder_CreateSignatureUsingPublicKey(t *testing.T) {
+func TestSignatureHolder_CreateSignatureForPublicKey(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgsSignatureHolder()
@@ -659,7 +659,7 @@ func TestSignatureHolder_CreateSignatureUsingPublicKey(t *testing.T) {
 	}
 
 	signer, _ := signing.NewSignatureHolder(args)
-	sigShare, err := signer.CreateSignatureUsingPublicKey([]byte("msg1"), pkBytes)
+	sigShare, err := signer.CreateSignatureForPublicKey([]byte("msg1"), pkBytes)
 	require.Nil(t, err)
 	require.Equal(t, expectedSigShare, sigShare)
 	assert.True(t, getHandledPrivateKeyCalled)

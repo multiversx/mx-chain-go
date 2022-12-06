@@ -540,7 +540,7 @@ func TestSubroundEndRound_CheckIfSignatureIsFilled(t *testing.T) {
 	expectedSignature := []byte("signature")
 	container := mock.InitConsensusCore()
 	signatureHandler := &mock.SignatureHandlerStub{
-		CreateSignatureUsingPublicKeyCalled: func(publicKeyBytes []byte, msg []byte) ([]byte, error) {
+		CreateSignatureForPublicKeyCalled: func(publicKeyBytes []byte, msg []byte) ([]byte, error) {
 			var receivedHdr block.Header
 			_ = container.Marshalizer().Unmarshal(&receivedHdr, msg)
 			return expectedSignature, nil

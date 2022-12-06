@@ -121,9 +121,9 @@ func (sh *signatureHolder) Reset(pubKeys []string) error {
 	return nil
 }
 
-// CreateSignatureShareUsingPublicKey returns a signature over a message using the managed private key that was selected based on the provided
+// CreateSignatureShareForPublicKey returns a signature over a message using the managed private key that was selected based on the provided
 // publicKeyBytes argument
-func (sh *signatureHolder) CreateSignatureShareUsingPublicKey(message []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
+func (sh *signatureHolder) CreateSignatureShareForPublicKey(message []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
 	if message == nil {
 		return nil, ErrNilMessage
 	}
@@ -152,9 +152,9 @@ func (sh *signatureHolder) CreateSignatureShareUsingPublicKey(message []byte, in
 	return sigShareBytes, nil
 }
 
-// CreateSignatureUsingPublicKey returns a signature over a message using the managed private key that was selected based on the provided
+// CreateSignatureForPublicKey returns a signature over a message using the managed private key that was selected based on the provided
 // publicKeyBytes argument
-func (sh *signatureHolder) CreateSignatureUsingPublicKey(message []byte, publicKeyBytes []byte) ([]byte, error) {
+func (sh *signatureHolder) CreateSignatureForPublicKey(message []byte, publicKeyBytes []byte) ([]byte, error) {
 	privateKey := sh.keysHandler.GetHandledPrivateKey(publicKeyBytes)
 
 	return sh.singleSigner.Sign(privateKey, message)

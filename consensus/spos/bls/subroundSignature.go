@@ -82,14 +82,14 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 			return false
 		}
 
-		signatureShare, err := sr.SignatureHandler().CreateSignatureShareUsingPublicKey(
+		signatureShare, err := sr.SignatureHandler().CreateSignatureShareForPublicKey(
 			sr.GetData(),
 			uint16(selfIndex),
 			sr.Header.GetEpoch(),
 			[]byte(sr.SelfPubKey()),
 		)
 		if err != nil {
-			log.Debug("doSignatureJob.CreateSignatureShare", "error", err.Error())
+			log.Debug("doSignatureJob.CreateSignatureShareForPublicKey", "error", err.Error())
 			return false
 		}
 
@@ -373,14 +373,14 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
 			continue
 		}
 
-		signatureShare, err := sr.SignatureHandler().CreateSignatureShareUsingPublicKey(
+		signatureShare, err := sr.SignatureHandler().CreateSignatureShareForPublicKey(
 			sr.GetData(),
 			uint16(selfIndex),
 			sr.Header.GetEpoch(),
 			pkBytes,
 		)
 		if err != nil {
-			log.Debug("doSignatureJobForManagedKeys.CreateAndAddSignatureShareForKey", "error", err.Error())
+			log.Debug("doSignatureJobForManagedKeys.CreateSignatureShareForPublicKey", "error", err.Error())
 			return false
 		}
 
