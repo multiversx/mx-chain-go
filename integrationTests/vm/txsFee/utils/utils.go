@@ -4,8 +4,11 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"io/ioutil"
 	"math/big"
 	"math/rand"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -15,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
@@ -26,7 +30,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var protoMarshalizer = &marshal.GogoProtoMarshalizer{}
+var (
+	protoMarshalizer = &marshal.GogoProtoMarshalizer{}
+	log              = logger.GetOrCreate("integrationTests/vm/txFee/utils")
+)
 
 // DoDeploy -
 func DoDeploy(t *testing.T, testContext *vm.VMTestContext, pathToContract string) (scAddr []byte, owner []byte) {
@@ -63,6 +70,40 @@ func DoDeploy(t *testing.T, testContext *vm.VMTestContext, pathToContract string
 	return scAddr, owner
 }
 
+// DoDeployWithCustomParams -
+func DoDeployWithCustomParams(
+	tb testing.TB,
+	testContext *vm.VMTestContext,
+	pathToContract string,
+	senderBalance *big.Int,
+	gasLimit uint64,
+	contractHexParams []string,
+) (scAddr []byte, owner []byte) {
+	owner = []byte("12345678901234567890123456789011")
+	senderNonce := uint64(0)
+	gasPrice := uint64(10)
+
+	_, _ = vm.CreateAccount(testContext.Accounts, owner, 0, senderBalance)
+
+	scCode := arwen.GetSCCode(pathToContract)
+	txData := arwen.CreateDeployTxData(scCode)
+	if len(contractHexParams) > 0 {
+		txData = strings.Join(append([]string{txData}, contractHexParams...), "@")
+	}
+	tx := vm.CreateTransaction(senderNonce, big.NewInt(0), owner, vm.CreateEmptyAddress(), gasPrice, gasLimit, []byte(txData))
+
+	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
+	require.Equal(tb, vmcommon.Ok, retCode)
+	require.Nil(tb, err)
+
+	_, err = testContext.Accounts.Commit()
+	require.Nil(tb, err)
+
+	scAddr, _ = testContext.BlockchainHook.NewAddress(owner, 0, factory.ArwenVirtualMachine)
+
+	return scAddr, owner
+}
+
 // DoDeployNoChecks -
 func DoDeployNoChecks(t *testing.T, testContext *vm.VMTestContext, pathToContract string) (scAddr []byte, owner []byte) {
 	owner = []byte("12345678901234567890123456789011")
@@ -86,6 +127,43 @@ func DoDeployNoChecks(t *testing.T, testContext *vm.VMTestContext, pathToContrac
 	scAddr, _ = testContext.BlockchainHook.NewAddress(owner, 0, factory.ArwenVirtualMachine)
 
 	return scAddr, owner
+}
+
+// DoColdDeploy will deploy the SC code but won't call the constructor
+func DoColdDeploy(
+	tb testing.TB,
+	testContext *vm.VMTestContext,
+	pathToContract string,
+	senderBalance *big.Int,
+	codeMetadata string,
+) (scAddr []byte, owner []byte) {
+	owner = []byte("12345678901234567890123456789011")
+	senderNonce := uint64(0)
+
+	_, _ = vm.CreateAccount(testContext.Accounts, owner, senderNonce, senderBalance)
+	scCode := arwen.GetSCCode(pathToContract)
+	scCodeBytes, err := hex.DecodeString(scCode)
+	require.Nil(tb, err)
+
+	codeMetadataBytes, err := hex.DecodeString(codeMetadata)
+	require.Nil(tb, err)
+
+	scAddr, _ = testContext.BlockchainHook.NewAddress(owner, senderNonce, factory.ArwenVirtualMachine)
+	account, err := testContext.Accounts.LoadAccount(scAddr)
+	require.Nil(tb, err)
+
+	userAccount := account.(state.UserAccountHandler)
+	userAccount.SetOwnerAddress(owner)
+	userAccount.SetCodeMetadata(codeMetadataBytes)
+	userAccount.SetCode(scCodeBytes)
+
+	err = testContext.Accounts.SaveAccount(account)
+	require.Nil(tb, err)
+
+	_, err = testContext.Accounts.Commit()
+	require.Nil(tb, err)
+
+	return
 }
 
 // DoDeploySecond -
@@ -265,10 +343,10 @@ func ProcessSCRResult(
 }
 
 // CleanAccumulatedIntermediateTransactions -
-func CleanAccumulatedIntermediateTransactions(t *testing.T, testContext *vm.VMTestContext) {
+func CleanAccumulatedIntermediateTransactions(tb testing.TB, testContext *vm.VMTestContext) {
 	scForwarder := testContext.ScForwarder
 	mockIntermediate, ok := scForwarder.(*mock.IntermediateTransactionHandlerMock)
-	require.True(t, ok)
+	require.True(tb, ok)
 
 	mockIntermediate.Clean()
 }
@@ -298,4 +376,54 @@ func GenerateUserNameForMyDNSContract() []byte {
 			return []byte(userName)
 		}
 	}
+}
+
+// OverwriteAccountStorageWithHexFileContent applies pairs of <key,value> from provided file to the state of the provided address
+// Before applying the data it does a cleanup on the old state
+// the data from the file must be in the following format:
+//
+//hex(key1),hex(value1)
+//hex(key2),hex(value2)
+//...
+//
+// Example:
+//61750100,0000
+//61750101,0001
+func OverwriteAccountStorageWithHexFileContent(tb testing.TB, testContext *vm.VMTestContext, address []byte, pathToData string) {
+	allData, err := ioutil.ReadFile(filepath.Clean(pathToData))
+	require.Nil(tb, err)
+
+	account, err := testContext.Accounts.GetExistingAccount(address)
+	require.Nil(tb, err)
+
+	userAccount := account.(state.UserAccountHandler)
+	userAccount.SetRootHash(nil)
+	err = testContext.Accounts.SaveAccount(account)
+	require.Nil(tb, err)
+
+	lines := strings.Split(string(allData), "\n")
+	numProcessed := 0
+	for _, line := range lines {
+		split := strings.Split(line, ",")
+		if len(split) != 2 {
+			continue
+		}
+
+		key, errDecode := hex.DecodeString(strings.TrimSpace(split[0]))
+		require.Nil(tb, errDecode)
+
+		value, errDecode := hex.DecodeString(strings.TrimSpace(split[1]))
+		require.Nil(tb, errDecode)
+
+		err = userAccount.SaveKeyValue(key, value)
+		require.Nil(tb, err)
+		numProcessed++
+	}
+	log.Info("ApplyData", "total file lines", len(lines), "processed lines", numProcessed)
+
+	err = testContext.Accounts.SaveAccount(account)
+	require.Nil(tb, err)
+
+	_, err = testContext.Accounts.Commit()
+	require.Nil(tb, err)
 }

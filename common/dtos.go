@@ -1,5 +1,7 @@
 package common
 
+import "github.com/ElrondNetwork/elrond-go-core/data/outport"
+
 // GetProofResponse is a struct that stores the response of a GetProof API request
 type GetProofResponse struct {
 	Proof    [][]byte
@@ -65,4 +67,9 @@ type EpochStartDataAPI struct {
 	ScheduledRootHash string `json:"scheduledRootHash"`
 	AccumulatedFees   string `json:"accumulatedFees,omitempty"`
 	DeveloperFees     string `json:"developerFees,omitempty"`
+}
+
+// AlteredAccountsForBlockAPIResponse holds the altered accounts for a certain block
+type AlteredAccountsForBlockAPIResponse struct {
+	Accounts []*outport.AlteredAccount `json:"accounts"`
 }
