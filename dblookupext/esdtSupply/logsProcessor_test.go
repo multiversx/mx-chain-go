@@ -1,8 +1,8 @@
 package esdtSupply
 
 import (
-	"encoding/hex"
 	"math/big"
+	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -25,6 +25,24 @@ func TestProcessLogsSaveSupplyNothingInStorage(t *testing.T) {
 				Events: []*transaction.Event{
 					{
 						Identifier: []byte("something"),
+					},
+					{
+						Identifier: []byte(core.BuiltInFunctionESDTNFTCreate),
+						Topics: [][]byte{
+							token, big.NewInt(1).Bytes(), big.NewInt(10).Bytes(),
+						},
+					},
+					{
+						Identifier: []byte(core.BuiltInFunctionESDTNFTAddQuantity),
+						Topics: [][]byte{
+							token, big.NewInt(1).Bytes(), big.NewInt(50).Bytes(),
+						},
+					},
+					{
+						Identifier: []byte(core.BuiltInFunctionESDTNFTBurn),
+						Topics: [][]byte{
+							token, big.NewInt(1).Bytes(), big.NewInt(30).Bytes(),
+						},
 					},
 					{
 						Identifier: []byte(core.BuiltInFunctionESDTNFTCreate),
@@ -61,20 +79,15 @@ func TestProcessLogsSaveSupplyNothingInStorage(t *testing.T) {
 				return nil
 			}
 
-			var supplyKey string
-			if putCalledNum == 0 {
-				supplyKey = string(token) + "-" + hex.EncodeToString(big.NewInt(2).Bytes())
-			} else {
-				supplyKey = string(token)
+			isCollectionSupply := strings.Count(string(key), "-") == 1
+
+			supplyValue := int64(30)
+			if isCollectionSupply {
+				supplyValue *= 2
 			}
-
-			require.Equal(t, supplyKey, string(key))
-
 			var supplyESDT SupplyESDT
 			_ = marshalizer.Unmarshal(&supplyESDT, data)
-			require.Equal(t, big.NewInt(30), supplyESDT.Supply)
-			require.Equal(t, big.NewInt(60), supplyESDT.Minted)
-			require.Equal(t, big.NewInt(30), supplyESDT.Burned)
+			require.Equal(t, big.NewInt(supplyValue), supplyESDT.Supply)
 
 			putCalledNum++
 			return nil
@@ -85,7 +98,7 @@ func TestProcessLogsSaveSupplyNothingInStorage(t *testing.T) {
 
 	err := logsProc.processLogs(1, logs, false)
 	require.Nil(t, err)
-	require.Equal(t, 2, putCalledNum)
+	require.Equal(t, 3, putCalledNum)
 }
 
 func TestTestProcessLogsSaveSupplyExistsInStorage(t *testing.T) {
