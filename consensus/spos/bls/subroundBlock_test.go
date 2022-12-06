@@ -102,7 +102,7 @@ func createConsensusContainers() []*mock.ConsensusCoreMock {
 }
 
 func initSubroundBlockWithBlockProcessor(
-	bp *mock.BlockProcessorMock,
+	bp *testscommon.BlockProcessorStub,
 	container *mock.ConsensusCoreMock,
 ) bls.SubroundBlock {
 	blockChain := &testscommon.ChainHandlerStub{
@@ -306,7 +306,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 	assert.False(t, r)
 
 	sr.SetStatus(bls.SrBlock, spos.SsNotFinished)
-	bpm := &mock.BlockProcessorMock{}
+	bpm := &testscommon.BlockProcessorStub{}
 	err := errors.New("error")
 	bpm.CreateBlockCalled = func(header data.HeaderHandler, remainingTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
 		return header, nil, err
@@ -1032,7 +1032,7 @@ func TestSubroundBlock_ReceivedBlockComputeProcessDuration(t *testing.T) {
 
 	container := mock.InitConsensusCore()
 	receivedValue := uint64(0)
-	container.SetBlockProcessor(&mock.BlockProcessorMock{
+	container.SetBlockProcessor(&testscommon.BlockProcessorStub{
 		ProcessBlockCalled: func(_ data.HeaderHandler, _ data.BodyHandler, _ func() time.Duration) error {
 			time.Sleep(time.Duration(delay))
 			return nil
