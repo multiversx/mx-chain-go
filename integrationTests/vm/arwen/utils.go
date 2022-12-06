@@ -130,6 +130,13 @@ func SetupTestContext(t *testing.T) *TestContext {
 
 // SetupTestContextWithGasSchedulePath -
 func SetupTestContextWithGasSchedulePath(t *testing.T, gasScheduleConfigPath string) *TestContext {
+	gasSchedule, err := common.LoadGasScheduleConfig(gasScheduleConfigPath)
+	require.Nil(t, err)
+	return SetupTestContextWithGasSchedule(t, gasSchedule)
+}
+
+// SetupTestContextWithGasSchedule -
+func SetupTestContextWithGasSchedule(t *testing.T, gasSchedule map[string]map[string]uint64) *TestContext {
 	var err error
 
 	context := &TestContext{}
@@ -141,8 +148,7 @@ func SetupTestContextWithGasSchedulePath(t *testing.T, gasScheduleConfigPath str
 
 	context.initAccounts()
 
-	context.GasSchedule, err = common.LoadGasScheduleConfig(gasScheduleConfigPath)
-	require.Nil(t, err)
+	context.GasSchedule = gasSchedule
 
 	context.initFeeHandlers()
 	context.initVMAndBlockchainHook()
