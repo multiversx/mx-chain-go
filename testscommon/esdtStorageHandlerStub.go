@@ -10,12 +10,13 @@ import (
 
 // EsdtStorageHandlerStub -
 type EsdtStorageHandlerStub struct {
-	SaveESDTNFTTokenCalled                               func(senderAddress []byte, acnt vmcommon.UserAccountHandler, esdtTokenKey []byte, nonce uint64, esdtData *esdt.ESDigitalToken, isCreation bool, isReturnWithError bool) ([]byte, error)
-	GetESDTNFTTokenOnSenderCalled                        func(acnt vmcommon.UserAccountHandler, esdtTokenKey []byte, nonce uint64) (*esdt.ESDigitalToken, error)
-	GetESDTNFTTokenOnDestinationCalled                   func(acnt vmcommon.UserAccountHandler, esdtTokenKey []byte, nonce uint64) (*esdt.ESDigitalToken, bool, error)
-	WasAlreadySentToDestinationShardAndUpdateStateCalled func(tickerID []byte, nonce uint64, dstAddress []byte) (bool, error)
-	SaveNFTMetaDataToSystemAccountCalled                 func(tx data.TransactionHandler) error
-	AddToLiquiditySystemAccCalled                        func(esdtTokenKey []byte, nonce uint64, transferValue *big.Int) error
+	SaveESDTNFTTokenCalled                                    func(senderAddress []byte, acnt vmcommon.UserAccountHandler, esdtTokenKey []byte, nonce uint64, esdtData *esdt.ESDigitalToken, isCreation bool, isReturnWithError bool) ([]byte, error)
+	GetESDTNFTTokenOnSenderCalled                             func(acnt vmcommon.UserAccountHandler, esdtTokenKey []byte, nonce uint64) (*esdt.ESDigitalToken, error)
+	GetESDTNFTTokenOnDestinationCalled                        func(acnt vmcommon.UserAccountHandler, esdtTokenKey []byte, nonce uint64) (*esdt.ESDigitalToken, bool, error)
+	GetESDTNFTTokenOnDestinationWithCustomSystemAccountCalled func(accnt vmcommon.UserAccountHandler, esdtTokenKey []byte, nonce uint64, systemAccount vmcommon.UserAccountHandler) (*esdt.ESDigitalToken, bool, error)
+	WasAlreadySentToDestinationShardAndUpdateStateCalled      func(tickerID []byte, nonce uint64, dstAddress []byte) (bool, error)
+	SaveNFTMetaDataToSystemAccountCalled                      func(tx data.TransactionHandler) error
+	AddToLiquiditySystemAccCalled                             func(esdtTokenKey []byte, nonce uint64, transferValue *big.Int) error
 }
 
 // SaveESDTNFTToken -
@@ -40,6 +41,15 @@ func (e *EsdtStorageHandlerStub) GetESDTNFTTokenOnSender(acnt vmcommon.UserAccou
 func (e *EsdtStorageHandlerStub) GetESDTNFTTokenOnDestination(acnt vmcommon.UserAccountHandler, esdtTokenKey []byte, nonce uint64) (*esdt.ESDigitalToken, bool, error) {
 	if e.GetESDTNFTTokenOnDestinationCalled != nil {
 		return e.GetESDTNFTTokenOnDestinationCalled(acnt, esdtTokenKey, nonce)
+	}
+
+	return nil, false, nil
+}
+
+// GetESDTNFTTokenOnDestinationWithCustomSystemAccount -
+func (e *EsdtStorageHandlerStub) GetESDTNFTTokenOnDestinationWithCustomSystemAccount(accnt vmcommon.UserAccountHandler, esdtTokenKey []byte, nonce uint64, systemAccount vmcommon.UserAccountHandler) (*esdt.ESDigitalToken, bool, error) {
+	if e.GetESDTNFTTokenOnDestinationWithCustomSystemAccountCalled != nil {
+		return e.GetESDTNFTTokenOnDestinationWithCustomSystemAccountCalled(accnt, esdtTokenKey, nonce, systemAccount)
 	}
 
 	return nil, false, nil
