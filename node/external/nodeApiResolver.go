@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
+	"github.com/ElrondNetwork/elrond-go-core/data/outport"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/genesis"
@@ -189,6 +190,11 @@ func (nar *nodeApiResolver) GetBlockByNonce(nonce uint64, options api.BlockQuery
 // GetBlockByRound will return the block with the given round and optionally with transactions
 func (nar *nodeApiResolver) GetBlockByRound(round uint64, options api.BlockQueryOptions) (*api.Block, error) {
 	return nar.apiBlockHandler.GetBlockByRound(round, options)
+}
+
+// GetAlteredAccountsForBlock will return the altered accounts for the desired block
+func (nar *nodeApiResolver) GetAlteredAccountsForBlock(options api.GetAlteredAccountsForBlockOptions) ([]*outport.AlteredAccount, error) {
+	return nar.apiBlockHandler.GetAlteredAccountsForBlock(options)
 }
 
 // GetInternalMetaBlockByHash will return a meta block by hash

@@ -356,7 +356,7 @@ func (tcn *TestConsensusNode) initBlockProcessor() {
 	}
 
 	tcn.BlockProcessor.CommitBlockCalled = func(header data.HeaderHandler, body data.BodyHandler) error {
-		tcn.BlockProcessor.NrCommitBlockCalled++
+		tcn.BlockProcessor.NumCommitBlockCalled++
 		_ = tcn.ChainHandler.SetCurrentBlockHeaderAndRootHash(header, header.GetRootHash())
 		return nil
 	}
