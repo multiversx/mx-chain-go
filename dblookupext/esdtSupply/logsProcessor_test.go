@@ -50,6 +50,7 @@ func TestProcessLogsSaveSupplyNothingInStorage(t *testing.T) {
 		"log": nil,
 	}
 
+	putCalledNum := 0
 	marshalizer := testscommon.MarshalizerMock{}
 	storer := &storageStubs.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
@@ -60,13 +61,22 @@ func TestProcessLogsSaveSupplyNothingInStorage(t *testing.T) {
 				return nil
 			}
 
-			supplyKey := string(token) + "-" + hex.EncodeToString(big.NewInt(2).Bytes())
+			var supplyKey string
+			if putCalledNum == 0 {
+				supplyKey = string(token) + "-" + hex.EncodeToString(big.NewInt(2).Bytes())
+			} else {
+				supplyKey = string(token)
+			}
+
 			require.Equal(t, supplyKey, string(key))
 
 			var supplyESDT SupplyESDT
 			_ = marshalizer.Unmarshal(&supplyESDT, data)
 			require.Equal(t, big.NewInt(30), supplyESDT.Supply)
+			require.Equal(t, big.NewInt(60), supplyESDT.Minted)
+			require.Equal(t, big.NewInt(30), supplyESDT.Burned)
 
+			putCalledNum++
 			return nil
 		},
 	}
@@ -75,6 +85,7 @@ func TestProcessLogsSaveSupplyNothingInStorage(t *testing.T) {
 
 	err := logsProc.processLogs(1, logs, false)
 	require.Nil(t, err)
+	require.Equal(t, 2, putCalledNum)
 }
 
 func TestTestProcessLogsSaveSupplyExistsInStorage(t *testing.T) {
@@ -113,6 +124,10 @@ func TestTestProcessLogsSaveSupplyExistsInStorage(t *testing.T) {
 			return marshalizer.Marshal(supplyESDT)
 		},
 		PutCalled: func(key, data []byte) error {
+			if string(key) == processedBlockKey {
+				return nil
+			}
+
 			supplyKey := string(token)
 			require.Equal(t, supplyKey, string(key))
 
@@ -126,7 +141,7 @@ func TestTestProcessLogsSaveSupplyExistsInStorage(t *testing.T) {
 
 	logsProc := newLogsProcessor(marshalizer, storer)
 
-	err := logsProc.processLogs(0, logs, false)
+	err := logsProc.processLogs(1, logs, false)
 	require.Nil(t, err)
 }
 
