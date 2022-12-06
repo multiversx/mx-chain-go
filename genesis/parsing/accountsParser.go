@@ -447,6 +447,18 @@ func (ap *accountsParser) setTxsPoolAndMiniBlocks(
 	return nil
 }
 
+func getNonEmptyMiniBlocks(miniBlocks []*block.MiniBlock) []*block.MiniBlock {
+	mbs := make([]*block.MiniBlock, 0)
+
+	for _, mb := range miniBlocks {
+		if len(mb.GetTxHashes()) > 0 {
+			mbs = append(mbs, mb)
+		}
+	}
+
+	return mbs
+}
+
 // GenerateInitialTransactions will generate initial transactions pool and the miniblocks for the generated transactions
 func (ap *accountsParser) GenerateInitialTransactions(
 	shardCoordinator sharding.Coordinator,
@@ -471,6 +483,8 @@ func (ap *accountsParser) GenerateInitialTransactions(
 	}
 
 	ap.setScrsTxsPool(shardCoordinator, indexingData, txsPoolPerShard)
+
+	miniBlocks = getNonEmptyMiniBlocks(miniBlocks)
 
 	return miniBlocks, txsPoolPerShard, nil
 }
