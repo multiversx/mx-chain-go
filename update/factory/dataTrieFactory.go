@@ -95,6 +95,7 @@ func NewDataTrieFactory(args ArgsNewDataTrieFactory) (*dataTrieFactory, error) {
 		marshalizer:          args.Marshalizer,
 		hasher:               args.Hasher,
 		maxTrieLevelInMemory: args.MaxTrieLevelInMemory,
+		enableEpochsHandler:  args.EnableEpochsHandler,
 	}
 
 	return d, nil

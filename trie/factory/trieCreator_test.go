@@ -188,6 +188,7 @@ func testWithMissingStorer(missingUnit dataRetriever.UnitType) func(t *testing.T
 				HasherField:                  &hashingMocks.HasherMock{},
 				PathHandlerField:             &testscommon.PathManagerStub{},
 				ProcessStatusHandlerInternal: &testscommon.ProcessStatusHandlerStub{},
+				EnableEpochsHandlerField:     &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			},
 			&storageStubs.ChainStorerStub{
 				GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {

@@ -712,11 +712,13 @@ func TestExtensionNode_reduceNode(t *testing.T) {
 	t.Parallel()
 
 	marsh, hasher := getTestMarshalizerAndHasher()
-	en, _ := newExtensionNode([]byte{100, 111, 103}, nil, marsh, hasher)
+	bn, _ := getBnAndCollapsedBn(marsh, hasher)
+	en, _ := newExtensionNode([]byte{100, 111, 103}, bn, marsh, hasher)
 
 	expected := &extensionNode{CollapsedEn: CollapsedEn{Key: []byte{2, 100, 111, 103}}, baseNode: &baseNode{dirty: true}}
 	expected.marsh = en.marsh
 	expected.hasher = en.hasher
+	expected.child = en.child
 
 	n, newChildPos, err := en.reduceNode(2)
 	assert.Equal(t, expected, n)
@@ -856,7 +858,7 @@ func TestExtensionNode_newExtensionNodeOkVals(t *testing.T) {
 
 	marsh, hasher := getTestMarshalizerAndHasher()
 	key := []byte("key")
-	child := &branchNode{}
+	child, _ := getBnAndCollapsedBn(marsh, hasher)
 	en, err := newExtensionNode(key, child, marsh, hasher)
 
 	assert.Nil(t, err)

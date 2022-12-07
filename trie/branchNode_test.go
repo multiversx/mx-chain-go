@@ -102,6 +102,7 @@ func newEmptyTrie() (*patriciaMerkleTrie, *trieStorageManager) {
 		oldRoot:              make([]byte, 0),
 		maxTrieLevelInMemory: 5,
 		chanClose:            make(chan struct{}),
+		enableEpochsHandler:  &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 
 	return tr, trieStorage
