@@ -33,6 +33,9 @@ func (tsp *TestScProcessor) GetCompositeTestError() error {
 				if string(event.GetIdentifier()) == core.SignalErrorOperation {
 					returnError = wrapErrorIfNotContains(returnError, string(event.GetTopics()[1]))
 				}
+				if string(event.GetIdentifier()) == "internalVMErrors" {
+					returnError = wrapErrorIfNotContains(returnError, string(event.GetData()))
+				}
 			}
 		}
 	}
