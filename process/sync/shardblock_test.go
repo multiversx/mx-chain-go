@@ -109,8 +109,8 @@ func createFullStore() dataRetriever.StorageService {
 	return store
 }
 
-func createBlockProcessor(blk data.ChainHandler) *mock.BlockProcessorMock {
-	blockProcessorMock := &mock.BlockProcessorMock{
+func createBlockProcessor(blk data.ChainHandler) *testscommon.BlockProcessorStub {
+	blockProcessorMock := &testscommon.BlockProcessorStub{
 		ProcessBlockCalled: func(hdr data.HeaderHandler, bdy data.BodyHandler, haveTime func() time.Duration) error {
 			_ = blk.SetCurrentBlockHeaderAndRootHash(hdr.(*block.Header), hdr.GetRootHash())
 			return nil
@@ -193,7 +193,7 @@ func CreateShardBootstrapMockArguments() sync.ArgShardBootstrapper {
 		Store:                        createStore(),
 		ChainHandler:                 initBlockchain(),
 		RoundHandler:                 &mock.RoundHandlerMock{},
-		BlockProcessor:               &mock.BlockProcessorMock{},
+		BlockProcessor:               &testscommon.BlockProcessorStub{},
 		WaitTime:                     waitTime,
 		Hasher:                       &hashingMocks.HasherMock{},
 		Marshalizer:                  &mock.MarshalizerMock{},
@@ -1477,7 +1477,7 @@ func TestBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *testin
 			}, nil
 		},
 	}
-	args.BlockProcessor = &mock.BlockProcessorMock{
+	args.BlockProcessor = &testscommon.BlockProcessorStub{
 		RestoreBlockIntoPoolsCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
 			return nil
 		},
@@ -1620,7 +1620,7 @@ func TestBootstrap_RollbackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t *tes
 			}, nil
 		},
 	}
-	args.BlockProcessor = &mock.BlockProcessorMock{
+	args.BlockProcessor = &testscommon.BlockProcessorStub{
 		RestoreBlockIntoPoolsCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
 			return nil
 		},
