@@ -23,7 +23,6 @@ func createDefaultConsensusCoreArgs() *spos.ConsensusCoreArgs {
 		ChronologyHandler:             consensusCoreMock.Chronology(),
 		Hasher:                        consensusCoreMock.Hasher(),
 		Marshalizer:                   consensusCoreMock.Marshalizer(),
-		KeyGenerator:                  consensusCoreMock.KeyGenerator(),
 		MultiSignerContainer:          consensusCoreMock.MultiSignerContainer(),
 		RoundHandler:                  consensusCoreMock.RoundHandler(),
 		ShardCoordinator:              consensusCoreMock.ShardCoordinator(),
@@ -38,7 +37,7 @@ func createDefaultConsensusCoreArgs() *spos.ConsensusCoreArgs {
 		ScheduledProcessor:            scheduledProcessor,
 		MessageSigningHandler:         consensusCoreMock.MessageSigningHandler(),
 		PeerBlacklistHandler:          consensusCoreMock.PeerBlacklistHandler(),
-		SignatureHandler:              consensusCoreMock.SignatureHandler(),
+		SigningHandler:                consensusCoreMock.SigningHandler(),
 	}
 	return args
 }
@@ -165,20 +164,6 @@ func TestConsensusCore_WithNilMultiSignerShouldFail(t *testing.T) {
 
 	assert.Nil(t, consensusCore)
 	assert.Equal(t, spos.ErrNilMultiSigner, err)
-}
-
-func TestConsensusCore_WithNilKeyGeneratorShouldFail(t *testing.T) {
-	t.Parallel()
-
-	args := createDefaultConsensusCoreArgs()
-	args.KeyGenerator = nil
-
-	consensusCore, err := spos.NewConsensusCore(
-		args,
-	)
-
-	assert.Nil(t, consensusCore)
-	assert.Equal(t, spos.ErrNilKeyGenerator, err)
 }
 
 func TestConsensusCore_WithNilRoundHandlerShouldFail(t *testing.T) {

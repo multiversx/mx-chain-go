@@ -83,16 +83,16 @@ type cryptoParams struct {
 
 // cryptoComponents struct holds the crypto components
 type cryptoComponents struct {
-	txSingleSigner       crypto.SingleSigner
-	blockSingleSigner    crypto.SingleSigner
-	multiSignerContainer cryptoCommon.MultiSignerContainer
-	peerSignHandler      crypto.PeerSignatureHandler
-	blockSignKeyGen      crypto.KeyGenerator
-	txSignKeyGen         crypto.KeyGenerator
-	messageSignVerifier  vm.MessageSignVerifier
-	consensusSigHandler  consensus.SignatureHandler
-	managedPeersHolder   heartbeat.ManagedPeersHolder
-	keysHandler          consensus.KeysHandler
+	txSingleSigner          crypto.SingleSigner
+	blockSingleSigner       crypto.SingleSigner
+	multiSignerContainer    cryptoCommon.MultiSignerContainer
+	peerSignHandler         crypto.PeerSignatureHandler
+	blockSignKeyGen         crypto.KeyGenerator
+	txSignKeyGen            crypto.KeyGenerator
+	messageSignVerifier     vm.MessageSignVerifier
+	consensusSigningHandler consensus.SigningHandler
+	managedPeersHolder      heartbeat.ManagedPeersHolder
+	keysHandler             consensus.KeysHandler
 	cryptoParams
 }
 
@@ -190,17 +190,6 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 		return nil, err
 	}
 
-	signatureHolderArgs := ArgsSignatureHolder{
-		PubKeys:              []string{cp.publicKeyString},
-		PrivKeyBytes:         cp.privateKeyBytes,
-		MultiSignerContainer: multiSigner,
-		KeyGenerator:         blockSignKeyGen,
-	}
-	consensusSigHandler, err := NewSignatureHolder(signatureHolderArgs)
-	if err != nil {
-		return nil, err
-	}
-
 	// TODO: refactor the logic for isMainMachine
 	redundancyLevel := int(ccf.prefsConfig.Preferences.RedundancyLevel)
 	isMainMachine := redundancyLevel == mainMachineRedundancyLevel
@@ -235,18 +224,30 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 		return nil, err
 	}
 
+	signatureHolderArgs := ArgsSigningHandler{
+		PubKeys:              []string{cp.publicKeyString},
+		MultiSignerContainer: multiSigner,
+		KeyGenerator:         blockSignKeyGen,
+		SingleSigner:         interceptSingleSigner,
+		KeysHandler:          keysHandler,
+	}
+	consensusSigningHandler, err := NewSigningHandler(signatureHolderArgs)
+	if err != nil {
+		return nil, err
+	}
+
 	return &cryptoComponents{
-		txSingleSigner:       txSingleSigner,
-		blockSingleSigner:    interceptSingleSigner,
-		multiSignerContainer: multiSigner,
-		peerSignHandler:      peerSigHandler,
-		blockSignKeyGen:      blockSignKeyGen,
-		txSignKeyGen:         txSignKeyGen,
-		messageSignVerifier:  messageSignVerifier,
-		consensusSigHandler:  consensusSigHandler,
-		managedPeersHolder:   managedPeersHolder,
-		keysHandler:          keysHandler,
-		cryptoParams:         *cp,
+		txSingleSigner:          txSingleSigner,
+		blockSingleSigner:       interceptSingleSigner,
+		multiSignerContainer:    multiSigner,
+		peerSignHandler:         peerSigHandler,
+		blockSignKeyGen:         blockSignKeyGen,
+		txSignKeyGen:            txSignKeyGen,
+		messageSignVerifier:     messageSignVerifier,
+		consensusSigningHandler: consensusSigningHandler,
+		managedPeersHolder:      managedPeersHolder,
+		keysHandler:             keysHandler,
+		cryptoParams:            *cp,
 	}, nil
 }
 

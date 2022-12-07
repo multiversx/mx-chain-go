@@ -181,7 +181,7 @@ type CryptoComponentsHolder interface {
 	BlockSignKeyGen() crypto.KeyGenerator
 	TxSignKeyGen() crypto.KeyGenerator
 	MessageSignVerifier() vm.MessageSignVerifier
-	ConsensusSigHandler() consensus.SignatureHandler
+	ConsensusSigningHandler() consensus.SigningHandler
 	ManagedPeersHolder() heartbeat.ManagedPeersHolder
 	KeysHandler() consensus.KeysHandler
 	Clone() interface{}

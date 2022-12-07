@@ -27,7 +27,7 @@ type CryptoComponentsStub struct {
 	MsgSigVerifier          vm.MessageSignVerifier
 	ManagedPeersHolderField heartbeat.ManagedPeersHolder
 	KeysHandlerField        consensus.KeysHandler
-	SigHandler              consensus.SignatureHandler
+	SigHandler              consensus.SigningHandler
 	mutMultiSig             sync.RWMutex
 }
 
@@ -133,8 +133,8 @@ func (ccs *CryptoComponentsStub) MessageSignVerifier() vm.MessageSignVerifier {
 	return ccs.MsgSigVerifier
 }
 
-// ConsensusSigHandler -
-func (ccs *CryptoComponentsStub) ConsensusSigHandler() consensus.SignatureHandler {
+// ConsensusSigningHandler -
+func (ccs *CryptoComponentsStub) ConsensusSigningHandler() consensus.SigningHandler {
 	return ccs.SigHandler
 }
 

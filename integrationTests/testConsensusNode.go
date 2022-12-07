@@ -119,7 +119,7 @@ func CreateNodesWithTestConsensusNode(
 	multiSigner, _ := multisig.NewBLSMultisig(&mclMultiSig.BlsMultiSigner{Hasher: testHasher}, cp.KeyGen)
 	multiSignerMock := createCustomMultiSignerMock(multiSigner)
 
-	for shardID := range cp.Keys {
+	for shardID := range cp.NodesKeys {
 		for _, keysPair := range cp.NodesKeys[shardID] {
 			tcn := NewTestConsensusNode(
 				shardID,
@@ -171,7 +171,6 @@ func (tcn *TestConsensusNode) initNode(
 	keyGen crypto.KeyGenerator,
 	handledKeys []*TestKeyPair,
 ) {
-
 	testHasher := createHasher(consensusType)
 	epochStartRegistrationHandler := notifier.NewEpochStartSubscriptionHandler()
 	consensusCache, _ := cache.NewLRUCache(10000)
@@ -249,22 +248,6 @@ func (tcn *TestConsensusNode) initNode(
 		},
 	}
 
-	pubKeyBytes, _ := pubKey.ToByteArray()
-	pubKeyString := coreComponents.ValidatorPubKeyConverterField.Encode(pubKeyBytes)
-	privKeyBytes, _ := privKey.ToByteArray()
-	signatureHolderArgs := cryptoFactory.ArgsSignatureHolder{
-		PubKeys:              []string{pubKeyString},
-		PrivKeyBytes:         privKeyBytes,
-		MultiSignerContainer: multiSigContainer,
-		KeyGenerator:         keyGen,
-	}
-	sigHandler, _ := cryptoFactory.NewSignatureHolder(signatureHolderArgs)
-
-	networkComponents := GetDefaultNetworkComponents()
-	networkComponents.Messenger = tcn.Messenger
-	networkComponents.InputAntiFlood = &mock.NilAntifloodHandler{}
-	networkComponents.PeerHonesty = &mock.PeerHonestyHandlerStub{}
-
 	argsKeysHolder := keysManagement.ArgsManagedPeersHolder{
 		KeyGenerator:                     keyGen,
 		P2PIdentityGenerator:             p2pFactory.NewIdentityGenerator(),
@@ -280,12 +263,28 @@ func (tcn *TestConsensusNode) initNode(
 		_ = keysHolder.AddManagedPeer(skBytes)
 	}
 
+	pubKeyBytes, _ := pubKey.ToByteArray()
+	pubKeyString := coreComponents.ValidatorPubKeyConverterField.Encode(pubKeyBytes)
 	argsKeysHandler := keysManagement.ArgsKeysHandler{
 		ManagedPeersHolder: keysHolder,
 		PrivateKey:         tcn.NodeKeys.Sk,
 		Pid:                tcn.Messenger.ID(),
 	}
 	keysHandler, _ := keysManagement.NewKeysHandler(argsKeysHandler)
+
+	signatureHolderArgs := cryptoFactory.ArgsSigningHandler{
+		PubKeys:              []string{pubKeyString},
+		MultiSignerContainer: multiSigContainer,
+		KeyGenerator:         keyGen,
+		KeysHandler:          keysHandler,
+		SingleSigner:         TestSingleBlsSigner,
+	}
+	sigHandler, _ := cryptoFactory.NewSigningHandler(signatureHolderArgs)
+
+	networkComponents := GetDefaultNetworkComponents()
+	networkComponents.Messenger = tcn.Messenger
+	networkComponents.InputAntiFlood = &mock.NilAntifloodHandler{}
+	networkComponents.PeerHonesty = &mock.PeerHonestyHandlerStub{}
 
 	cryptoComponents := GetDefaultCryptoComponents()
 	cryptoComponents.PrivKey = privKey

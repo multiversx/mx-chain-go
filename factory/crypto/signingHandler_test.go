@@ -6,16 +6,15 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go/consensus/signing"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
 	cryptoFactory "github.com/ElrondNetwork/elrond-go/factory/crypto"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func createMockArgsSignatureHolder() cryptoFactory.ArgsSignatureHolder {
-	return cryptoFactory.ArgsSignatureHolder{
+func createMockArgsSigningHandler() cryptoFactory.ArgsSigningHandler {
+	return cryptoFactory.ArgsSigningHandler{
 		PubKeys:              []string{"pubkey1"},
 		KeysHandler:          &testscommon.KeysHandlerStub{},
 		MultiSignerContainer: &cryptoMocks.MultiSignerContainerMock{},
@@ -24,78 +23,78 @@ func createMockArgsSignatureHolder() cryptoFactory.ArgsSignatureHolder {
 	}
 }
 
-func TestNewSigner(t *testing.T) {
+func TestNewSigningHandler(t *testing.T) {
 	t.Parallel()
 
 	t.Run("nil multi signer", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockArgsSignatureHolder()
+		args := createMockArgsSigningHandler()
 		args.MultiSignerContainer = nil
 
-		signer, err := cryptoFactory.NewSignatureHolder(args)
+		signer, err := cryptoFactory.NewSigningHandler(args)
 		require.Nil(t, signer)
 		require.Equal(t, cryptoFactory.ErrNilMultiSignerContainer, err)
 	})
 	t.Run("nil single signer", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockArgsSignatureHolder()
+		args := createMockArgsSigningHandler()
 		args.SingleSigner = nil
 
-		signer, err := signing.NewSignatureHolder(args)
+		signer, err := cryptoFactory.NewSigningHandler(args)
 		require.Nil(t, signer)
-		require.Equal(t, signing.ErrNilSingleSigner, err)
+		require.Equal(t, cryptoFactory.ErrNilSingleSigner, err)
 	})
 	t.Run("nil key generator", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockArgsSignatureHolder()
+		args := createMockArgsSigningHandler()
 		args.KeyGenerator = nil
 
-		signer, err := cryptoFactory.NewSignatureHolder(args)
+		signer, err := cryptoFactory.NewSigningHandler(args)
 		require.Nil(t, signer)
 		require.Equal(t, cryptoFactory.ErrNilKeyGenerator, err)
 	})
 	t.Run("nil keys handler", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockArgsSignatureHolder()
+		args := createMockArgsSigningHandler()
 		args.KeysHandler = nil
 
-		signer, err := cryptoFactory.NewSignatureHolder(args)
+		signer, err := cryptoFactory.NewSigningHandler(args)
 		require.Nil(t, signer)
 		require.Equal(t, cryptoFactory.ErrNilKeysHandler, err)
 	})
 	t.Run("no public keys", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockArgsSignatureHolder()
+		args := createMockArgsSigningHandler()
 		args.PubKeys = []string{}
 
-		signer, err := cryptoFactory.NewSignatureHolder(args)
+		signer, err := cryptoFactory.NewSigningHandler(args)
 		require.Nil(t, signer)
 		require.Equal(t, cryptoFactory.ErrNoPublicKeySet, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockArgsSignatureHolder()
-		signer, err := cryptoFactory.NewSignatureHolder(args)
+		args := createMockArgsSigningHandler()
+		signer, err := cryptoFactory.NewSigningHandler(args)
 		require.Nil(t, err)
 		require.False(t, check.IfNil(signer))
 	})
 }
 
-func TestSignatureHolder_Create(t *testing.T) {
+func TestSigningHandler_Create(t *testing.T) {
 	t.Parallel()
 
 	t.Run("empty pubkeys in list", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockArgsSignatureHolder()
+		args := createMockArgsSigningHandler()
 
-		signer, err := cryptoFactory.NewSignatureHolder(args)
+		signer, err := cryptoFactory.NewSigningHandler(args)
 		require.Nil(t, err)
 		require.NotNil(t, signer)
 
@@ -104,13 +103,12 @@ func TestSignatureHolder_Create(t *testing.T) {
 		require.Nil(t, createdSigner)
 		require.Equal(t, cryptoFactory.ErrEmptyPubKeyString, err)
 	})
-
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockArgsSignatureHolder()
+		args := createMockArgsSigningHandler()
 
-		signer, err := cryptoFactory.NewSignatureHolder(args)
+		signer, err := cryptoFactory.NewSigningHandler(args)
 		require.Nil(t, err)
 		require.NotNil(t, signer)
 
@@ -121,41 +119,39 @@ func TestSignatureHolder_Create(t *testing.T) {
 	})
 }
 
-func TestSignatureHolder_Reset(t *testing.T) {
+func TestSigningHandler_Reset(t *testing.T) {
 	t.Parallel()
 
 	t.Run("nil public keys", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockArgsSignatureHolder()
+		args := createMockArgsSigningHandler()
 
-		signer, _ := cryptoFactory.NewSignatureHolder(args)
+		signer, _ := cryptoFactory.NewSigningHandler(args)
 		err := signer.Reset(nil)
 		require.Equal(t, cryptoFactory.ErrNilPublicKeys, err)
 	})
-
 	t.Run("empty pubkeys in list", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockArgsSignatureHolder()
+		args := createMockArgsSigningHandler()
 
-		signer, _ := cryptoFactory.NewSignatureHolder(args)
+		signer, _ := cryptoFactory.NewSigningHandler(args)
 		err := signer.Reset([]string{"pubKey1", ""})
 		require.Equal(t, cryptoFactory.ErrEmptyPubKeyString, err)
 	})
-
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockArgsSignatureHolder()
+		args := createMockArgsSigningHandler()
 
-		signer, _ := cryptoFactory.NewSignatureHolder(args)
+		signer, _ := cryptoFactory.NewSigningHandler(args)
 		err := signer.Reset([]string{"pubKey1", "pubKey2"})
 		require.Nil(t, err)
 	})
 }
 
-func TestSignatureHolder_CreateSignatureShareForPublicKey(t *testing.T) {
+func TestSigningHandler_CreateSignatureShareForPublicKey(t *testing.T) {
 	t.Parallel()
 
 	selfIndex := uint16(0)
@@ -165,7 +161,7 @@ func TestSignatureHolder_CreateSignatureShareForPublicKey(t *testing.T) {
 	t.Run("nil message", func(t *testing.T) {
 		t.Parallel()
 
-		signer, _ := cryptoFactory.NewSignatureHolder(createMockArgsSignatureHolder())
+		signer, _ := cryptoFactory.NewSigningHandler(createMockArgsSigningHandler())
 		sigShare, err := signer.CreateSignatureShareForPublicKey(nil, selfIndex, epoch, pkBytes)
 		require.Nil(t, sigShare)
 		require.Equal(t, cryptoFactory.ErrNilMessage, err)
@@ -173,7 +169,7 @@ func TestSignatureHolder_CreateSignatureShareForPublicKey(t *testing.T) {
 	t.Run("create sig share failed", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockArgsSignatureHolder()
+		args := createMockArgsSigningHandler()
 
 		expectedErr := errors.New("expected error")
 		multiSigner := &cryptoMocks.MultiSignerStub{
@@ -183,7 +179,7 @@ func TestSignatureHolder_CreateSignatureShareForPublicKey(t *testing.T) {
 		}
 		args.MultiSignerContainer = cryptoMocks.NewMultiSignerContainerMock(multiSigner)
 
-		signer, _ := cryptoFactory.NewSignatureHolder(args)
+		signer, _ := cryptoFactory.NewSigningHandler(args)
 		sigShare, err := signer.CreateSignatureShareForPublicKey([]byte("msg1"), selfIndex, epoch, pkBytes)
 		require.Nil(t, sigShare)
 		require.Equal(t, expectedErr, err)
@@ -191,7 +187,7 @@ func TestSignatureHolder_CreateSignatureShareForPublicKey(t *testing.T) {
 	t.Run("failed to get current multi signer", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockArgsSignatureHolder()
+		args := createMockArgsSigningHandler()
 
 		expectedErr := errors.New("expected error")
 		args.MultiSignerContainer = &cryptoMocks.MultiSignerContainerStub{
@@ -200,7 +196,7 @@ func TestSignatureHolder_CreateSignatureShareForPublicKey(t *testing.T) {
 			},
 		}
 
-		signer, _ := signing.NewSignatureHolder(args)
+		signer, _ := cryptoFactory.NewSigningHandler(args)
 
 		sigShare, err := signer.CreateSignatureShareForPublicKey([]byte("message"), uint16(0), epoch, pkBytes)
 		require.Nil(t, sigShare)
@@ -209,7 +205,7 @@ func TestSignatureHolder_CreateSignatureShareForPublicKey(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockArgsSignatureHolder()
+		args := createMockArgsSigningHandler()
 		getHandledPrivateKeyCalled := false
 
 		expectedSigShare := []byte("sigShare")
@@ -228,7 +224,7 @@ func TestSignatureHolder_CreateSignatureShareForPublicKey(t *testing.T) {
 		}
 		args.MultiSignerContainer = cryptoMocks.NewMultiSignerContainerMock(multiSigner)
 
-		signer, _ := cryptoFactory.NewSignatureHolder(args)
+		signer, _ := cryptoFactory.NewSigningHandler(args)
 		sigShare, err := signer.CreateSignatureShareForPublicKey([]byte("msg1"), selfIndex, epoch, pkBytes)
 		require.Nil(t, err)
 		require.Equal(t, expectedSigShare, sigShare)
@@ -236,7 +232,7 @@ func TestSignatureHolder_CreateSignatureShareForPublicKey(t *testing.T) {
 	})
 }
 
-func TestSignatureHolder_VerifySignatureShare(t *testing.T) {
+func TestSigningHandler_VerifySignatureShare(t *testing.T) {
 	t.Parallel()
 
 	ownIndex := uint16(1)
@@ -246,23 +242,21 @@ func TestSignatureHolder_VerifySignatureShare(t *testing.T) {
 	t.Run("invalid signature share", func(t *testing.T) {
 		t.Parallel()
 
-		signer, _ := cryptoFactory.NewSignatureHolder(createMockArgsSignatureHolder())
+		signer, _ := cryptoFactory.NewSigningHandler(createMockArgsSigningHandler())
 		err := signer.VerifySignatureShare(ownIndex, nil, msg, epoch)
 		require.Equal(t, cryptoFactory.ErrInvalidSignature, err)
 	})
-
 	t.Run("index out of bounds", func(t *testing.T) {
 		t.Parallel()
 
-		signer, _ := cryptoFactory.NewSignatureHolder(createMockArgsSignatureHolder())
+		signer, _ := cryptoFactory.NewSigningHandler(createMockArgsSigningHandler())
 		err := signer.VerifySignatureShare(uint16(3), []byte("sigShare"), msg, epoch)
 		require.Equal(t, cryptoFactory.ErrIndexOutOfBounds, err)
 	})
-
 	t.Run("signature share verification failed", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockArgsSignatureHolder()
+		args := createMockArgsSigningHandler()
 		args.PubKeys = []string{"pk1", "pk2"}
 
 		expectedErr := errors.New("expected error")
@@ -273,16 +267,15 @@ func TestSignatureHolder_VerifySignatureShare(t *testing.T) {
 		}
 		args.MultiSignerContainer = cryptoMocks.NewMultiSignerContainerMock(multiSigner)
 
-		signer, _ := cryptoFactory.NewSignatureHolder(args)
+		signer, _ := cryptoFactory.NewSigningHandler(args)
 
 		err := signer.VerifySignatureShare(uint16(1), []byte("sigShare"), msg, epoch)
 		require.Equal(t, expectedErr, err)
 	})
-
 	t.Run("failed to get current multi signer", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockArgsSignatureHolder()
+		args := createMockArgsSigningHandler()
 		args.PubKeys = []string{"pk1", "pk2"}
 
 		expectedErr := errors.New("expected error")
@@ -292,16 +285,15 @@ func TestSignatureHolder_VerifySignatureShare(t *testing.T) {
 			},
 		}
 
-		signer, _ := cryptoFactory.NewSignatureHolder(args)
+		signer, _ := cryptoFactory.NewSigningHandler(args)
 
 		err := signer.VerifySignatureShare(uint16(1), []byte("sigShare"), msg, epoch)
 		require.Equal(t, expectedErr, err)
 	})
-
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockArgsSignatureHolder()
+		args := createMockArgsSigningHandler()
 		args.PubKeys = []string{"pk1", "pk2"}
 
 		multiSigner := &cryptoMocks.MultiSignerStub{
@@ -311,14 +303,14 @@ func TestSignatureHolder_VerifySignatureShare(t *testing.T) {
 		}
 		args.MultiSignerContainer = cryptoMocks.NewMultiSignerContainerMock(multiSigner)
 
-		signer, _ := cryptoFactory.NewSignatureHolder(args)
+		signer, _ := cryptoFactory.NewSigningHandler(args)
 
 		err := signer.VerifySignatureShare(uint16(1), []byte("sigShare"), msg, epoch)
 		require.Nil(t, err)
 	})
 }
 
-func TestSignatureHolder_StoreSignatureShare(t *testing.T) {
+func TestSigningHandler_StoreSignatureShare(t *testing.T) {
 	t.Parallel()
 
 	ownIndex := uint16(2)
@@ -326,7 +318,7 @@ func TestSignatureHolder_StoreSignatureShare(t *testing.T) {
 	t.Run("index out of bounds", func(t *testing.T) {
 		t.Parallel()
 
-		signer, err := cryptoFactory.NewSignatureHolder(createMockArgsSignatureHolder())
+		signer, err := cryptoFactory.NewSigningHandler(createMockArgsSigningHandler())
 		require.Nil(t, err)
 
 		err = signer.StoreSignatureShare(uint16(2), []byte("sigShare"))
@@ -335,7 +327,7 @@ func TestSignatureHolder_StoreSignatureShare(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockArgsSignatureHolder()
+		args := createMockArgsSigningHandler()
 		args.PubKeys = []string{"pk1", "pk2", "pk3", "pk4"}
 
 		multiSigner := &cryptoMocks.MultiSignerStub{
@@ -345,7 +337,7 @@ func TestSignatureHolder_StoreSignatureShare(t *testing.T) {
 		}
 		args.MultiSignerContainer = cryptoMocks.NewMultiSignerContainerMock(multiSigner)
 
-		signer, _ := cryptoFactory.NewSignatureHolder(args)
+		signer, _ := cryptoFactory.NewSigningHandler(args)
 
 		sigShare := []byte("signature share")
 
@@ -358,7 +350,7 @@ func TestSignatureHolder_StoreSignatureShare(t *testing.T) {
 	})
 }
 
-func TestSignatureHolder_SignatureShare(t *testing.T) {
+func TestSigningHandler_SignatureShare(t *testing.T) {
 	t.Parallel()
 
 	t.Run("index out of bounds", func(t *testing.T) {
@@ -367,9 +359,9 @@ func TestSignatureHolder_SignatureShare(t *testing.T) {
 		index := uint16(1)
 		sigShare := []byte("sig share")
 
-		args := createMockArgsSignatureHolder()
+		args := createMockArgsSigningHandler()
 
-		signer, _ := cryptoFactory.NewSignatureHolder(args)
+		signer, _ := cryptoFactory.NewSigningHandler(args)
 
 		_ = signer.StoreSignatureShare(index, sigShare)
 
@@ -377,16 +369,15 @@ func TestSignatureHolder_SignatureShare(t *testing.T) {
 		require.Nil(t, sigShareRead)
 		require.Equal(t, cryptoFactory.ErrIndexOutOfBounds, err)
 	})
-
 	t.Run("nil element at index", func(t *testing.T) {
 		t.Parallel()
 
 		ownIndex := uint16(1)
 
-		args := createMockArgsSignatureHolder()
+		args := createMockArgsSigningHandler()
 		args.PubKeys = []string{"pk1", "pk2", "pk3", "pk4"}
 
-		signer, _ := cryptoFactory.NewSignatureHolder(args)
+		signer, _ := cryptoFactory.NewSigningHandler(args)
 
 		_ = signer.StoreSignatureShare(ownIndex, nil)
 
@@ -394,17 +385,16 @@ func TestSignatureHolder_SignatureShare(t *testing.T) {
 		require.Nil(t, sigShareRead)
 		require.Equal(t, cryptoFactory.ErrNilElement, err)
 	})
-
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
 		ownIndex := uint16(1)
 		sigShare := []byte("sig share")
 
-		args := createMockArgsSignatureHolder()
+		args := createMockArgsSigningHandler()
 		args.PubKeys = []string{"pk1", "pk2", "pk3", "pk4"}
 
-		signer, _ := cryptoFactory.NewSignatureHolder(args)
+		signer, _ := cryptoFactory.NewSigningHandler(args)
 
 		_ = signer.StoreSignatureShare(ownIndex, sigShare)
 
@@ -414,7 +404,7 @@ func TestSignatureHolder_SignatureShare(t *testing.T) {
 	})
 }
 
-func TestSignatureHolder_AggregateSigs(t *testing.T) {
+func TestSigningHandler_AggregateSigs(t *testing.T) {
 	t.Parallel()
 
 	epoch := uint32(0)
@@ -422,40 +412,38 @@ func TestSignatureHolder_AggregateSigs(t *testing.T) {
 	t.Run("nil bitmap", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockArgsSignatureHolder()
+		args := createMockArgsSigningHandler()
 		args.PubKeys = []string{"pk1", "pk2", "pk3", "pk4"}
 
-		signer, _ := cryptoFactory.NewSignatureHolder(args)
+		signer, _ := cryptoFactory.NewSigningHandler(args)
 
 		aggSig, err := signer.AggregateSigs(nil, epoch)
 		require.Nil(t, aggSig)
 		require.Equal(t, cryptoFactory.ErrNilBitmap, err)
 	})
-
 	t.Run("bitmap mismatch", func(t *testing.T) {
 		t.Parallel()
 
 		bitmap := make([]byte, 1)
 		bitmap[0] = 0x07
 
-		args := createMockArgsSignatureHolder()
+		args := createMockArgsSigningHandler()
 		args.PubKeys = []string{"pk1", "pk2", "pk3", "pk4",
 			"pk5", "pk6", "pk7", "pk8", "pk9"}
 
-		signer, _ := cryptoFactory.NewSignatureHolder(args)
+		signer, _ := cryptoFactory.NewSigningHandler(args)
 
 		aggSig, err := signer.AggregateSigs(bitmap, epoch)
 		require.Nil(t, aggSig)
 		require.Equal(t, cryptoFactory.ErrBitmapMismatch, err)
 	})
-
 	t.Run("failed to get aggregated sig", func(t *testing.T) {
 		t.Parallel()
 
 		bitmap := make([]byte, 1)
 		bitmap[0] = 0x07
 
-		args := createMockArgsSignatureHolder()
+		args := createMockArgsSigningHandler()
 		args.PubKeys = []string{"pk1", "pk2", "pk3", "pk4"}
 
 		expectedErr := errors.New("expected error")
@@ -466,7 +454,7 @@ func TestSignatureHolder_AggregateSigs(t *testing.T) {
 		}
 		args.MultiSignerContainer = cryptoMocks.NewMultiSignerContainerMock(multiSigner)
 
-		signer, _ := cryptoFactory.NewSignatureHolder(args)
+		signer, _ := cryptoFactory.NewSigningHandler(args)
 
 		for i := 0; i < len(args.PubKeys); i++ {
 			_ = signer.StoreSignatureShare(uint16(i), []byte("sigShare"))
@@ -476,14 +464,13 @@ func TestSignatureHolder_AggregateSigs(t *testing.T) {
 		require.Nil(t, aggSig)
 		require.Equal(t, expectedErr, err)
 	})
-
 	t.Run("failed to get current multi signer", func(t *testing.T) {
 		t.Parallel()
 
 		bitmap := make([]byte, 1)
 		bitmap[0] = 0x07
 
-		args := createMockArgsSignatureHolder()
+		args := createMockArgsSigningHandler()
 
 		expectedErr := errors.New("expected error")
 		args.MultiSignerContainer = &cryptoMocks.MultiSignerContainerStub{
@@ -492,20 +479,19 @@ func TestSignatureHolder_AggregateSigs(t *testing.T) {
 			},
 		}
 
-		signer, _ := cryptoFactory.NewSignatureHolder(args)
+		signer, _ := cryptoFactory.NewSigningHandler(args)
 
 		aggSig, err := signer.AggregateSigs(bitmap, epoch)
 		require.Nil(t, aggSig)
 		require.Equal(t, expectedErr, err)
 	})
-
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
 		bitmap := make([]byte, 1)
 		bitmap[0] = 0x07
 
-		args := createMockArgsSignatureHolder()
+		args := createMockArgsSigningHandler()
 		args.PubKeys = []string{"pk1", "pk2", "pk3", "pk4"}
 
 		expectedAggSig := []byte("agg sig")
@@ -518,7 +504,7 @@ func TestSignatureHolder_AggregateSigs(t *testing.T) {
 		}
 		args.MultiSignerContainer = cryptoMocks.NewMultiSignerContainerMock(multiSigner)
 
-		signer, _ := cryptoFactory.NewSignatureHolder(args)
+		signer, _ := cryptoFactory.NewSigningHandler(args)
 
 		for i := 0; i < len(args.PubKeys); i++ {
 			_ = signer.StoreSignatureShare(uint16(i), []byte("sigShare"))
@@ -530,7 +516,7 @@ func TestSignatureHolder_AggregateSigs(t *testing.T) {
 	})
 }
 
-func TestSignatureHolder_Verify(t *testing.T) {
+func TestSigningHandler_Verify(t *testing.T) {
 	t.Parallel()
 
 	message := []byte("message")
@@ -539,38 +525,36 @@ func TestSignatureHolder_Verify(t *testing.T) {
 	t.Run("verify agg sig should fail", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockArgsSignatureHolder()
+		args := createMockArgsSigningHandler()
 		args.PubKeys = []string{"pk1", "pk2", "pk3", "pk4"}
 
-		signer, _ := cryptoFactory.NewSignatureHolder(args)
+		signer, _ := cryptoFactory.NewSigningHandler(args)
 
 		err := signer.Verify(message, nil, epoch)
 		require.Equal(t, cryptoFactory.ErrNilBitmap, err)
 	})
-
 	t.Run("bitmap mismatch", func(t *testing.T) {
 		t.Parallel()
 
 		bitmap := make([]byte, 1)
 		bitmap[0] = 0x07
 
-		args := createMockArgsSignatureHolder()
+		args := createMockArgsSigningHandler()
 		args.PubKeys = []string{"pk1", "pk2", "pk3", "pk4",
 			"pk5", "pk6", "pk7", "pk8", "pk9"}
 
-		signer, _ := cryptoFactory.NewSignatureHolder(args)
+		signer, _ := cryptoFactory.NewSigningHandler(args)
 
 		err := signer.Verify(message, bitmap, epoch)
 		require.Equal(t, cryptoFactory.ErrBitmapMismatch, err)
 	})
-
 	t.Run("verify agg sig should fail", func(t *testing.T) {
 		t.Parallel()
 
 		bitmap := make([]byte, 1)
 		bitmap[0] = 0x07
 
-		args := createMockArgsSignatureHolder()
+		args := createMockArgsSigningHandler()
 		args.PubKeys = []string{"pk1", "pk2", "pk3", "pk4"}
 
 		expectedErr := errors.New("expected error")
@@ -581,19 +565,18 @@ func TestSignatureHolder_Verify(t *testing.T) {
 		}
 		args.MultiSignerContainer = cryptoMocks.NewMultiSignerContainerMock(multiSigner)
 
-		signer, _ := cryptoFactory.NewSignatureHolder(args)
+		signer, _ := cryptoFactory.NewSigningHandler(args)
 
 		err := signer.Verify(message, bitmap, epoch)
 		require.Equal(t, expectedErr, err)
 	})
-
 	t.Run("failed to get current multi signer", func(t *testing.T) {
 		t.Parallel()
 
 		bitmap := make([]byte, 1)
 		bitmap[0] = 0x07
 
-		args := createMockArgsSignatureHolder()
+		args := createMockArgsSigningHandler()
 
 		expectedErr := errors.New("expected error")
 		args.MultiSignerContainer = &cryptoMocks.MultiSignerContainerStub{
@@ -602,19 +585,18 @@ func TestSignatureHolder_Verify(t *testing.T) {
 			},
 		}
 
-		signer, _ := cryptoFactory.NewSignatureHolder(args)
+		signer, _ := cryptoFactory.NewSigningHandler(args)
 
 		err := signer.Verify(message, bitmap, epoch)
 		require.Equal(t, expectedErr, err)
 	})
-
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
 		bitmap := make([]byte, 1)
 		bitmap[0] = 0x07
 
-		args := createMockArgsSignatureHolder()
+		args := createMockArgsSigningHandler()
 		args.PubKeys = []string{"pk1", "pk2", "pk3", "pk4"}
 
 		expAggSig := []byte("aggSig")
@@ -628,7 +610,7 @@ func TestSignatureHolder_Verify(t *testing.T) {
 		}
 		args.MultiSignerContainer = cryptoMocks.NewMultiSignerContainerMock(multiSigner)
 
-		signer, _ := cryptoFactory.NewSignatureHolder(args)
+		signer, _ := cryptoFactory.NewSigningHandler(args)
 
 		_ = signer.SetAggregatedSig(expAggSig)
 
@@ -637,10 +619,10 @@ func TestSignatureHolder_Verify(t *testing.T) {
 	})
 }
 
-func TestSignatureHolder_CreateSignatureForPublicKey(t *testing.T) {
+func TestSigningHandler_CreateSignatureForPublicKey(t *testing.T) {
 	t.Parallel()
 
-	args := createMockArgsSignatureHolder()
+	args := createMockArgsSigningHandler()
 	getHandledPrivateKeyCalled := false
 	pkBytes := []byte("public key bytes")
 
@@ -659,9 +641,63 @@ func TestSignatureHolder_CreateSignatureForPublicKey(t *testing.T) {
 		},
 	}
 
-	signer, _ := signing.NewSignatureHolder(args)
+	signer, _ := cryptoFactory.NewSigningHandler(args)
 	sigShare, err := signer.CreateSignatureForPublicKey([]byte("msg1"), pkBytes)
 	require.Nil(t, err)
 	require.Equal(t, expectedSigShare, sigShare)
 	assert.True(t, getHandledPrivateKeyCalled)
+}
+
+func TestSigningHandler_VerifySingleSignature(t *testing.T) {
+	t.Parallel()
+
+	t.Run("not a valid public key should error", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := errors.New("expected error")
+		args := createMockArgsSigningHandler()
+		args.KeyGenerator = &cryptoMocks.KeyGenStub{
+			PublicKeyFromByteArrayStub: func(b []byte) (crypto.PublicKey, error) {
+				return nil, expectedErr
+			},
+		}
+
+		signer, _ := cryptoFactory.NewSigningHandler(args)
+
+		err := signer.VerifySingleSignature([]byte("pk"), []byte("msg"), []byte("sig"))
+		assert.Equal(t, expectedErr, err)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		providedPkBytes := []byte("pk")
+		providedMsg := []byte("msg")
+		providedSig := []byte("sig")
+		pk := &cryptoMocks.PublicKeyStub{}
+
+		verifyCalled := false
+		args := createMockArgsSigningHandler()
+		args.KeyGenerator = &cryptoMocks.KeyGenStub{
+			PublicKeyFromByteArrayStub: func(b []byte) (crypto.PublicKey, error) {
+				assert.Equal(t, providedPkBytes, b)
+				return pk, nil
+			},
+		}
+		args.SingleSigner = &cryptoMocks.SingleSignerStub{
+			VerifyCalled: func(public crypto.PublicKey, msg []byte, sig []byte) error {
+				assert.Equal(t, pk, public)
+				assert.Equal(t, providedMsg, msg)
+				assert.Equal(t, providedSig, sig)
+				verifyCalled = true
+
+				return nil
+			},
+		}
+
+		signer, _ := cryptoFactory.NewSigningHandler(args)
+
+		err := signer.VerifySingleSignature(providedPkBytes, providedMsg, providedSig)
+		assert.Nil(t, err)
+		assert.True(t, verifyCalled)
+	})
 }

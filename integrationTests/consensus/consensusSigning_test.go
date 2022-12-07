@@ -29,6 +29,7 @@ func initNodesWithTestSigner(
 		int(consensusSize),
 		roundTime,
 		consensusType,
+		1,
 	)
 
 	for shardID, nodesList := range nodes {

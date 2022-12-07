@@ -49,8 +49,6 @@ type ConsensusCoreHandler interface {
 	NodesCoordinator() nodesCoordinator.NodesCoordinator
 	// EpochStartRegistrationHandler gets the RegistrationHandler stored in the ConsensusCore
 	EpochStartRegistrationHandler() epochStart.RegistrationHandler
-	// KeyGenerator returns the key generator stored in the ConsensusCore
-	KeyGenerator() crypto.KeyGenerator
 	// PeerHonestyHandler returns the peer honesty handler which will be used in subrounds
 	PeerHonestyHandler() consensus.PeerHonestyHandler
 	// HeaderSigVerifier returns the sig verifier handler which will be used in subrounds
@@ -61,12 +59,12 @@ type ConsensusCoreHandler interface {
 	NodeRedundancyHandler() consensus.NodeRedundancyHandler
 	// ScheduledProcessor returns the scheduled txs processor
 	ScheduledProcessor() consensus.ScheduledProcessor
-	// MessageSignerHandler returns the p2p signing handler
+	// MessageSigningHandler returns the p2p signing handler
 	MessageSigningHandler() consensus.P2PSigningHandler
-	// PeerBlackListHandler return the peer blacklist handler
+	// PeerBlacklistHandler return the peer blacklist handler
 	PeerBlacklistHandler() consensus.PeerBlacklistHandler
-	// SignatureHandler returns the signature handler component
-	SignatureHandler() consensus.SignatureHandler
+	// SigningHandler returns the signing handler component
+	SigningHandler() consensus.SigningHandler
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }

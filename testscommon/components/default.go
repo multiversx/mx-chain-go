@@ -66,7 +66,7 @@ func GetDefaultCryptoComponents() *mock.CryptoComponentsMock {
 		BlKeyGen:          &mock.KeyGenMock{},
 		TxKeyGen:          &mock.KeyGenMock{},
 		MsgSigVerifier:    &testscommon.MessageSignVerifierMock{},
-		SigHandler:        &consensusMocks.SignatureHandlerStub{},
+		SigHandler:        &consensusMocks.SigningHandlerStub{},
 	}
 }
 

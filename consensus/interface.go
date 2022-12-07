@@ -165,11 +165,12 @@ type PeerBlacklistHandler interface {
 	IsInterfaceNil() bool
 }
 
-// SignatureHandler defines the behaviour of a component that handles signatures in consensus
-type SignatureHandler interface {
+// SigningHandler defines the behaviour of a component that handles multipart and single signatures used in consensus operations
+type SigningHandler interface {
 	Reset(pubKeys []string) error
 	CreateSignatureShareForPublicKey(message []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error)
 	CreateSignatureForPublicKey(message []byte, publicKeyBytes []byte) ([]byte, error)
+	VerifySingleSignature(publicKeyBytes []byte, message []byte, signature []byte) error
 	StoreSignatureShare(index uint16, sig []byte) error
 	SignatureShare(index uint16) ([]byte, error)
 	VerifySignatureShare(index uint16, sig []byte, msg []byte, epoch uint32) error

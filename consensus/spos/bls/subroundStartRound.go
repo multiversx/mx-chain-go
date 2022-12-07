@@ -187,7 +187,7 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 		sr.AppStatusHandler().SetStringValue(common.MetricConsensusState, "participant")
 	}
 
-	err = sr.SignatureHandler().Reset(pubKeys)
+	err = sr.SigningHandler().Reset(pubKeys)
 	if err != nil {
 		log.Debug("initCurrentRound.Reset", "error", err.Error())
 

@@ -23,7 +23,6 @@ type ConsensusCore struct {
 	chronologyHandler             consensus.ChronologyHandler
 	hasher                        hashing.Hasher
 	marshalizer                   marshal.Marshalizer
-	keyGenerator                  crypto.KeyGenerator
 	multiSignerContainer          cryptoCommon.MultiSignerContainer
 	roundHandler                  consensus.RoundHandler
 	shardCoordinator              sharding.Coordinator
@@ -38,7 +37,7 @@ type ConsensusCore struct {
 	scheduledProcessor            consensus.ScheduledProcessor
 	messageSigningHandler         consensus.P2PSigningHandler
 	peerBlacklistHandler          consensus.PeerBlacklistHandler
-	signatureHandler              consensus.SignatureHandler
+	signingHandler                consensus.SigningHandler
 }
 
 // ConsensusCoreArgs store all arguments that are needed to create a ConsensusCore object
@@ -50,7 +49,6 @@ type ConsensusCoreArgs struct {
 	ChronologyHandler             consensus.ChronologyHandler
 	Hasher                        hashing.Hasher
 	Marshalizer                   marshal.Marshalizer
-	KeyGenerator                  crypto.KeyGenerator
 	MultiSignerContainer          cryptoCommon.MultiSignerContainer
 	RoundHandler                  consensus.RoundHandler
 	ShardCoordinator              sharding.Coordinator
@@ -65,7 +63,7 @@ type ConsensusCoreArgs struct {
 	ScheduledProcessor            consensus.ScheduledProcessor
 	MessageSigningHandler         consensus.P2PSigningHandler
 	PeerBlacklistHandler          consensus.PeerBlacklistHandler
-	SignatureHandler              consensus.SignatureHandler
+	SigningHandler                consensus.SigningHandler
 }
 
 // NewConsensusCore creates a new ConsensusCore instance
@@ -80,7 +78,6 @@ func NewConsensusCore(
 		chronologyHandler:             args.ChronologyHandler,
 		hasher:                        args.Hasher,
 		marshalizer:                   args.Marshalizer,
-		keyGenerator:                  args.KeyGenerator,
 		multiSignerContainer:          args.MultiSignerContainer,
 		roundHandler:                  args.RoundHandler,
 		shardCoordinator:              args.ShardCoordinator,
@@ -95,7 +92,7 @@ func NewConsensusCore(
 		scheduledProcessor:            args.ScheduledProcessor,
 		messageSigningHandler:         args.MessageSigningHandler,
 		peerBlacklistHandler:          args.PeerBlacklistHandler,
-		signatureHandler:              args.SignatureHandler,
+		signingHandler:                args.SigningHandler,
 	}
 
 	err := ValidateConsensusCore(consensusCore)
@@ -176,11 +173,6 @@ func (cc *ConsensusCore) EpochStartRegistrationHandler() epochStart.Registration
 	return cc.epochStartRegistrationHandler
 }
 
-// KeyGenerator returns the bls key generator stored in the ConsensusCore
-func (cc *ConsensusCore) KeyGenerator() crypto.KeyGenerator {
-	return cc.keyGenerator
-}
-
 // PeerHonestyHandler will return the peer honesty handler which will be used in subrounds
 func (cc *ConsensusCore) PeerHonestyHandler() consensus.PeerHonestyHandler {
 	return cc.peerHonestyHandler
@@ -216,9 +208,9 @@ func (cc *ConsensusCore) PeerBlacklistHandler() consensus.PeerBlacklistHandler {
 	return cc.peerBlacklistHandler
 }
 
-// SignatureHandler will return the signature handler component
-func (cc *ConsensusCore) SignatureHandler() consensus.SignatureHandler {
-	return cc.signatureHandler
+// SigningHandler will return the signing handler component
+func (cc *ConsensusCore) SigningHandler() consensus.SigningHandler {
+	return cc.signingHandler
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

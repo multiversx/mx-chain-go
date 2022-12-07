@@ -25,7 +25,7 @@ type CryptoComponentsMock struct {
 	BlKeyGen                crypto.KeyGenerator
 	TxKeyGen                crypto.KeyGenerator
 	MsgSigVerifier          vm.MessageSignVerifier
-	SigHandler              consensus.SignatureHandler
+	SigHandler              consensus.SigningHandler
 	ManagedPeersHolderField heartbeat.ManagedPeersHolder
 	KeysHandlerField        consensus.KeysHandler
 	mutMultiSig             sync.RWMutex
@@ -133,8 +133,8 @@ func (ccm *CryptoComponentsMock) MessageSignVerifier() vm.MessageSignVerifier {
 	return ccm.MsgSigVerifier
 }
 
-// ConsensusSigHandler -
-func (ccm *CryptoComponentsMock) ConsensusSigHandler() consensus.SignatureHandler {
+// ConsensusSigningHandler -
+func (ccm *CryptoComponentsMock) ConsensusSigningHandler() consensus.SigningHandler {
 	return ccm.SigHandler
 }
 

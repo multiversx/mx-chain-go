@@ -283,8 +283,8 @@ func (mcc *managedCryptoComponents) MessageSignVerifier() vm.MessageSignVerifier
 	return mcc.cryptoComponents.messageSignVerifier
 }
 
-// ConsensusSigHandler returns the consensus signature handler
-func (mcc *managedCryptoComponents) ConsensusSigHandler() consensus.SignatureHandler {
+// ConsensusSigningHandler returns the consensus signing handler
+func (mcc *managedCryptoComponents) ConsensusSigningHandler() consensus.SigningHandler {
 	mcc.mutCryptoComponents.RLock()
 	defer mcc.mutCryptoComponents.RUnlock()
 
@@ -292,7 +292,7 @@ func (mcc *managedCryptoComponents) ConsensusSigHandler() consensus.SignatureHan
 		return nil
 	}
 
-	return mcc.cryptoComponents.consensusSigHandler
+	return mcc.cryptoComponents.consensusSigningHandler
 }
 
 // ManagedPeersHolder returns the managed peers holder
@@ -324,17 +324,17 @@ func (mcc *managedCryptoComponents) Clone() interface{} {
 	cryptoComp := (*cryptoComponents)(nil)
 	if mcc.cryptoComponents != nil {
 		cryptoComp = &cryptoComponents{
-			txSingleSigner:       mcc.TxSingleSigner(),
-			blockSingleSigner:    mcc.BlockSigner(),
-			multiSignerContainer: mcc.MultiSignerContainer(),
-			peerSignHandler:      mcc.PeerSignatureHandler(),
-			blockSignKeyGen:      mcc.BlockSignKeyGen(),
-			txSignKeyGen:         mcc.TxSignKeyGen(),
-			messageSignVerifier:  mcc.MessageSignVerifier(),
-			consensusSigHandler:  mcc.ConsensusSigHandler(),
-			managedPeersHolder:   mcc.ManagedPeersHolder(),
-			keysHandler:          mcc.KeysHandler(),
-			cryptoParams:         mcc.cryptoParams,
+			txSingleSigner:          mcc.TxSingleSigner(),
+			blockSingleSigner:       mcc.BlockSigner(),
+			multiSignerContainer:    mcc.MultiSignerContainer(),
+			peerSignHandler:         mcc.PeerSignatureHandler(),
+			blockSignKeyGen:         mcc.BlockSignKeyGen(),
+			txSignKeyGen:            mcc.TxSignKeyGen(),
+			messageSignVerifier:     mcc.MessageSignVerifier(),
+			consensusSigningHandler: mcc.ConsensusSigningHandler(),
+			managedPeersHolder:      mcc.ManagedPeersHolder(),
+			keysHandler:             mcc.KeysHandler(),
+			cryptoParams:            mcc.cryptoParams,
 		}
 	}
 

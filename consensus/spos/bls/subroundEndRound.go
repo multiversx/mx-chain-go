@@ -214,7 +214,7 @@ func (sr *subroundEndRound) verifyInvalidSigners(invalidSigners []byte) error {
 	}
 
 	for _, msg := range messages {
-		err := sr.verifyInvalidSigner(msg)
+		err = sr.verifyInvalidSigner(msg)
 		if err != nil {
 			return err
 		}
@@ -235,13 +235,7 @@ func (sr *subroundEndRound) verifyInvalidSigner(msg p2p.MessageP2P) error {
 		return err
 	}
 
-	pubKey, err := sr.KeyGenerator().PublicKeyFromByteArray(cnsMsg.PubKey)
-	if err != nil {
-		return err
-	}
-
-	singleSigner := sr.SingleSigner()
-	err = singleSigner.Verify(pubKey, cnsMsg.BlockHeaderHash, cnsMsg.SignatureShare)
+	err = sr.SigningHandler().VerifySingleSignature(cnsMsg.PubKey, cnsMsg.BlockHeaderHash, cnsMsg.SignatureShare)
 	if err != nil {
 		log.Debug("verifyInvalidSigner: confirmed that node provided invalid signature",
 			"pubKey", cnsMsg.PubKey,
@@ -395,20 +389,20 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 }
 
 func (sr *subroundEndRound) aggregateSigsAndHandleInvalidSigners(bitmap []byte) ([]byte, []byte, error) {
-	sig, err := sr.SignatureHandler().AggregateSigs(bitmap, sr.Header.GetEpoch())
+	sig, err := sr.SigningHandler().AggregateSigs(bitmap, sr.Header.GetEpoch())
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.AggregateSigs", "error", err.Error())
 
 		return sr.handleInvalidSignersOnAggSigFail()
 	}
 
-	err = sr.SignatureHandler().SetAggregatedSig(sig)
+	err = sr.SigningHandler().SetAggregatedSig(sig)
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.SetAggregatedSig", "error", err.Error())
 		return nil, nil, err
 	}
 
-	err = sr.SignatureHandler().Verify(sr.GetData(), bitmap, sr.Header.GetEpoch())
+	err = sr.SigningHandler().Verify(sr.GetData(), bitmap, sr.Header.GetEpoch())
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.Verify", "error", err.Error())
 
@@ -432,13 +426,13 @@ func (sr *subroundEndRound) verifyNodesOnAggSigFail() ([]string, error) {
 			continue
 		}
 
-		sigShare, err := sr.SignatureHandler().SignatureShare(uint16(i))
+		sigShare, err := sr.SigningHandler().SignatureShare(uint16(i))
 		if err != nil {
 			return nil, err
 		}
 
 		isSuccessfull := true
-		err = sr.SignatureHandler().VerifySignatureShare(uint16(i), sigShare, sr.GetData(), sr.Header.GetEpoch())
+		err = sr.SigningHandler().VerifySignatureShare(uint16(i), sigShare, sr.GetData(), sr.Header.GetEpoch())
 		if err != nil {
 			isSuccessfull = false
 
@@ -530,12 +524,12 @@ func (sr *subroundEndRound) computeAggSigOnValidNodes() ([]byte, []byte, error) 
 		return nil, nil, err
 	}
 
-	sig, err := sr.SignatureHandler().AggregateSigs(bitmap, sr.Header.GetEpoch())
+	sig, err := sr.SigningHandler().AggregateSigs(bitmap, sr.Header.GetEpoch())
 	if err != nil {
 		return nil, nil, err
 	}
 
-	err = sr.SignatureHandler().SetAggregatedSig(sig)
+	err = sr.SigningHandler().SetAggregatedSig(sig)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -785,7 +779,7 @@ func (sr *subroundEndRound) signBlockHeader() ([]byte, error) {
 		return nil, errGetLeader
 	}
 
-	return sr.SignatureHandler().CreateSignatureForPublicKey(marshalizedHdr, []byte(leader))
+	return sr.SigningHandler().CreateSignatureForPublicKey(marshalizedHdr, []byte(leader))
 }
 
 func (sr *subroundEndRound) updateMetricsForLeader() {

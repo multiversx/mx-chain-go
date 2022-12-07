@@ -19,7 +19,6 @@ func initConsensusDataContainer() *ConsensusCore {
 	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
 	chronologyHandlerMock := mock.InitChronologyHandlerMock()
 	multiSignerMock := cryptoMocks.NewMultiSigner()
-	keyGenerator := &mock.KeyGenMock{}
 	hasherMock := &hashingMocks.HasherMock{}
 	marshalizerMock := mock.MarshalizerMock{}
 	roundHandlerMock := &mock.RoundHandlerMock{}
@@ -35,7 +34,7 @@ func initConsensusDataContainer() *ConsensusCore {
 	messageSigningHandler := &mock.MessageSigningHandlerStub{}
 	peerBlacklistHandler := &mock.PeerBlacklistHandlerStub{}
 	multiSignerContainer := cryptoMocks.NewMultiSignerContainerMock(multiSignerMock)
-	signatureHandler := &mock.SignatureHandlerStub{}
+	signingHandler := &mock.SigningHandlerStub{}
 
 	return &ConsensusCore{
 		blockChain:              blockChain,
@@ -45,7 +44,6 @@ func initConsensusDataContainer() *ConsensusCore {
 		chronologyHandler:       chronologyHandlerMock,
 		hasher:                  hasherMock,
 		marshalizer:             marshalizerMock,
-		keyGenerator:            keyGenerator,
 		multiSignerContainer:    multiSignerContainer,
 		roundHandler:            roundHandlerMock,
 		shardCoordinator:        shardCoordinatorMock,
@@ -59,7 +57,7 @@ func initConsensusDataContainer() *ConsensusCore {
 		scheduledProcessor:      scheduledProcessor,
 		messageSigningHandler:   messageSigningHandler,
 		peerBlacklistHandler:    peerBlacklistHandler,
-		signatureHandler:        signatureHandler,
+		signingHandler:          signingHandler,
 	}
 }
 
@@ -254,11 +252,11 @@ func TestConsensusContainerValidator_ValidateNilSignatureHandlerShouldFail(t *te
 	t.Parallel()
 
 	container := initConsensusDataContainer()
-	container.signatureHandler = nil
+	container.signingHandler = nil
 
 	err := ValidateConsensusCore(container)
 
-	assert.Equal(t, ErrNilSignatureHandler, err)
+	assert.Equal(t, ErrNilSigningHandler, err)
 }
 
 func TestConsensusContainerValidator_ShouldWork(t *testing.T) {

@@ -258,7 +258,6 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		ChronologyHandler:             cc.chronology,
 		Hasher:                        ccf.coreComponents.Hasher(),
 		Marshalizer:                   ccf.coreComponents.InternalMarshalizer(),
-		KeyGenerator:                  ccf.cryptoComponents.BlockSignKeyGen(),
 		MultiSignerContainer:          ccf.cryptoComponents.MultiSignerContainer(),
 		RoundHandler:                  ccf.processComponents.RoundHandler(),
 		ShardCoordinator:              ccf.processComponents.ShardCoordinator(),
@@ -273,7 +272,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		ScheduledProcessor:            ccf.scheduledProcessor,
 		MessageSigningHandler:         p2pSigningHandler,
 		PeerBlacklistHandler:          cc.peerBlacklistHandler,
-		SignatureHandler:              ccf.cryptoComponents.ConsensusSigHandler(),
+		SigningHandler:                ccf.cryptoComponents.ConsensusSigningHandler(),
 	}
 
 	consensusDataContainer, err := spos.NewConsensusCore(
@@ -675,18 +674,6 @@ func (ccf *consensusComponentsFactory) createConsensusTopic(cc *consensusCompone
 	}
 
 	return ccf.networkComponents.NetworkMessenger().RegisterMessageProcessor(cc.consensusTopic, common.DefaultInterceptorsIdentifier, cc.worker)
-}
-
-func (ccf *consensusComponentsFactory) createBlsSignatureHandler() (consensus.SignatureHandler, error) {
-	signatureHolderArgs := signing.ArgsSignatureHolder{
-		PubKeys:              []string{ccf.cryptoComponents.PublicKeyString()},
-		MultiSignerContainer: ccf.cryptoComponents.MultiSignerContainer(),
-		SingleSigner:         ccf.cryptoComponents.BlockSigner(),
-		KeyGenerator:         ccf.cryptoComponents.BlockSignKeyGen(),
-		KeysHandler:          ccf.cryptoComponents.KeysHandler(),
-	}
-
-	return signing.NewSignatureHolder(signatureHolderArgs)
 }
 
 func (ccf *consensusComponentsFactory) createPeerBlacklistHandler() (consensus.PeerBlacklistHandler, error) {

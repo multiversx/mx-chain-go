@@ -23,7 +23,6 @@ type ConsensusCoreMock struct {
 	chronologyHandler       consensus.ChronologyHandler
 	hasher                  hashing.Hasher
 	marshalizer             marshal.Marshalizer
-	keyGenerator            crypto.KeyGenerator
 	multiSignerContainer    cryptoCommon.MultiSignerContainer
 	roundHandler            consensus.RoundHandler
 	shardCoordinator        sharding.Coordinator
@@ -38,7 +37,7 @@ type ConsensusCoreMock struct {
 	scheduledProcessor      consensus.ScheduledProcessor
 	messageSigningHandler   consensus.P2PSigningHandler
 	peerBlacklistHandler    consensus.PeerBlacklistHandler
-	signatureHandler        consensus.SignatureHandler
+	signingHandler          consensus.SigningHandler
 }
 
 // GetAntiFloodHandler -
@@ -176,11 +175,6 @@ func (ccm *ConsensusCoreMock) SetValidatorGroupSelector(validatorGroupSelector n
 	ccm.validatorGroupSelector = validatorGroupSelector
 }
 
-// KeyGenerator -
-func (ccm *ConsensusCoreMock) KeyGenerator() crypto.KeyGenerator {
-	return ccm.keyGenerator
-}
-
 // PeerHonestyHandler -
 func (ccm *ConsensusCoreMock) PeerHonestyHandler() consensus.PeerHonestyHandler {
 	return ccm.peerHonestyHandler
@@ -231,24 +225,19 @@ func (ccm *ConsensusCoreMock) SetMessageSigningHandler(messageSigningHandler con
 	ccm.messageSigningHandler = messageSigningHandler
 }
 
-// SetKeyGenerator -
-func (ccm *ConsensusCoreMock) SetKeyGenerator(keyGenerator crypto.KeyGenerator) {
-	ccm.keyGenerator = keyGenerator
-}
-
 // PeerBlacklistHandler will return the peer blacklist handler
 func (ccm *ConsensusCoreMock) PeerBlacklistHandler() consensus.PeerBlacklistHandler {
 	return ccm.peerBlacklistHandler
 }
 
-// SignatureHandler -
-func (ccm *ConsensusCoreMock) SignatureHandler() consensus.SignatureHandler {
-	return ccm.signatureHandler
+// SigningHandler -
+func (ccm *ConsensusCoreMock) SigningHandler() consensus.SigningHandler {
+	return ccm.signingHandler
 }
 
-// SetSignatureHandler -
-func (ccm *ConsensusCoreMock) SetSignatureHandler(signatureHandler consensus.SignatureHandler) {
-	ccm.signatureHandler = signatureHandler
+// SetSigningHandler -
+func (ccm *ConsensusCoreMock) SetSigningHandler(signingHandler consensus.SigningHandler) {
+	ccm.signingHandler = signingHandler
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

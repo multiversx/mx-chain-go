@@ -9,8 +9,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 )
 
-// ArgsSignatureHolder defines the arguments needed to create a new signature holder component
-type ArgsSignatureHolder struct {
+// ArgsSigningHandler defines the arguments needed to create a new signing handler component
+type ArgsSigningHandler struct {
 	PubKeys              []string
 	MultiSignerContainer cryptoCommon.MultiSignerContainer
 	SingleSigner         crypto.SingleSigner
@@ -24,7 +24,7 @@ type signatureHolderData struct {
 	aggSig    []byte
 }
 
-type signatureHolder struct {
+type signingHandler struct {
 	data                 *signatureHolderData
 	mutSigningData       sync.RWMutex
 	multiSignerContainer cryptoCommon.MultiSignerContainer
@@ -33,8 +33,8 @@ type signatureHolder struct {
 	keysHandler          consensus.KeysHandler
 }
 
-// NewSignatureHolder will create a new signature holder component
-func NewSignatureHolder(args ArgsSignatureHolder) (*signatureHolder, error) {
+// NewSigningHandler will create a new signing handler component
+func NewSigningHandler(args ArgsSigningHandler) (*signingHandler, error) {
 	err := checkArgs(args)
 	if err != nil {
 		return nil, err
@@ -53,7 +53,7 @@ func NewSignatureHolder(args ArgsSignatureHolder) (*signatureHolder, error) {
 		sigShares: sigShares,
 	}
 
-	return &signatureHolder{
+	return &signingHandler{
 		data:                 data,
 		mutSigningData:       sync.RWMutex{},
 		multiSignerContainer: args.MultiSignerContainer,
@@ -63,7 +63,7 @@ func NewSignatureHolder(args ArgsSignatureHolder) (*signatureHolder, error) {
 	}, nil
 }
 
-func checkArgs(args ArgsSignatureHolder) error {
+func checkArgs(args ArgsSigningHandler) error {
 	if check.IfNil(args.MultiSignerContainer) {
 		return ErrNilMultiSignerContainer
 	}
@@ -84,19 +84,19 @@ func checkArgs(args ArgsSignatureHolder) error {
 }
 
 // Create generates a signature holder component and initializes corresponding fields
-func (sh *signatureHolder) Create(pubKeys []string) (*signatureHolder, error) {
-	args := ArgsSignatureHolder{
+func (sh *signingHandler) Create(pubKeys []string) (*signingHandler, error) {
+	args := ArgsSigningHandler{
 		PubKeys:              pubKeys,
 		KeysHandler:          sh.keysHandler,
 		MultiSignerContainer: sh.multiSignerContainer,
 		SingleSigner:         sh.singleSigner,
 		KeyGenerator:         sh.keyGen,
 	}
-	return NewSignatureHolder(args)
+	return NewSigningHandler(args)
 }
 
 // Reset resets the data inside the signature holder component
-func (sh *signatureHolder) Reset(pubKeys []string) error {
+func (sh *signingHandler) Reset(pubKeys []string) error {
 	if pubKeys == nil {
 		return ErrNilPublicKeys
 	}
@@ -123,7 +123,7 @@ func (sh *signatureHolder) Reset(pubKeys []string) error {
 
 // CreateSignatureShareForPublicKey returns a signature over a message using the managed private key that was selected based on the provided
 // publicKeyBytes argument
-func (sh *signatureHolder) CreateSignatureShareForPublicKey(message []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
+func (sh *signingHandler) CreateSignatureShareForPublicKey(message []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
 	if message == nil {
 		return nil, ErrNilMessage
 	}
@@ -154,14 +154,24 @@ func (sh *signatureHolder) CreateSignatureShareForPublicKey(message []byte, inde
 
 // CreateSignatureForPublicKey returns a signature over a message using the managed private key that was selected based on the provided
 // publicKeyBytes argument
-func (sh *signatureHolder) CreateSignatureForPublicKey(message []byte, publicKeyBytes []byte) ([]byte, error) {
+func (sh *signingHandler) CreateSignatureForPublicKey(message []byte, publicKeyBytes []byte) ([]byte, error) {
 	privateKey := sh.keysHandler.GetHandledPrivateKey(publicKeyBytes)
 
 	return sh.singleSigner.Sign(privateKey, message)
 }
 
+// VerifySingleSignature returns an error if the public key bytes & message provided doesn't match with the signature
+func (sh *signingHandler) VerifySingleSignature(publicKeyBytes []byte, message []byte, signature []byte) error {
+	pk, err := sh.keyGen.PublicKeyFromByteArray(publicKeyBytes)
+	if err != nil {
+		return err
+	}
+
+	return sh.singleSigner.Verify(pk, message, signature)
+}
+
 // VerifySignatureShare will verify the signature share based on the specified index
-func (sh *signatureHolder) VerifySignatureShare(index uint16, sig []byte, message []byte, epoch uint32) error {
+func (sh *signingHandler) VerifySignatureShare(index uint16, sig []byte, message []byte, epoch uint32) error {
 	if len(sig) == 0 {
 		return ErrInvalidSignature
 	}
@@ -185,7 +195,7 @@ func (sh *signatureHolder) VerifySignatureShare(index uint16, sig []byte, messag
 }
 
 // StoreSignatureShare stores the partial signature of the signer with specified position
-func (sh *signatureHolder) StoreSignatureShare(index uint16, sig []byte) error {
+func (sh *signingHandler) StoreSignatureShare(index uint16, sig []byte) error {
 	if len(sig) == 0 {
 		return ErrInvalidSignature
 	}
@@ -203,7 +213,7 @@ func (sh *signatureHolder) StoreSignatureShare(index uint16, sig []byte) error {
 }
 
 // SignatureShare returns the partial signature set for given index
-func (sh *signatureHolder) SignatureShare(index uint16) ([]byte, error) {
+func (sh *signingHandler) SignatureShare(index uint16) ([]byte, error) {
 	sh.mutSigningData.RLock()
 	defer sh.mutSigningData.RUnlock()
 
@@ -219,7 +229,7 @@ func (sh *signatureHolder) SignatureShare(index uint16) ([]byte, error) {
 }
 
 // not concurrent safe, should be used under RLock mutex
-func (sh *signatureHolder) isIndexInBitmap(index uint16, bitmap []byte) bool {
+func (sh *signingHandler) isIndexInBitmap(index uint16, bitmap []byte) bool {
 	indexOutOfBounds := index >= uint16(len(sh.data.pubKeys))
 	if indexOutOfBounds {
 		return false
@@ -231,7 +241,7 @@ func (sh *signatureHolder) isIndexInBitmap(index uint16, bitmap []byte) bool {
 }
 
 // AggregateSigs aggregates all collected partial signatures
-func (sh *signatureHolder) AggregateSigs(bitmap []byte, epoch uint32) ([]byte, error) {
+func (sh *signingHandler) AggregateSigs(bitmap []byte, epoch uint32) ([]byte, error) {
 	if bitmap == nil {
 		return nil, ErrNilBitmap
 	}
@@ -266,7 +276,7 @@ func (sh *signatureHolder) AggregateSigs(bitmap []byte, epoch uint32) ([]byte, e
 }
 
 // SetAggregatedSig sets the aggregated signature
-func (sh *signatureHolder) SetAggregatedSig(aggSig []byte) error {
+func (sh *signingHandler) SetAggregatedSig(aggSig []byte) error {
 	sh.mutSigningData.Lock()
 	defer sh.mutSigningData.Unlock()
 
@@ -277,7 +287,7 @@ func (sh *signatureHolder) SetAggregatedSig(aggSig []byte) error {
 
 // Verify verifies the aggregated signature by checking that aggregated signature is valid with respect
 // to aggregated public keys.
-func (sh *signatureHolder) Verify(message []byte, bitmap []byte, epoch uint32) error {
+func (sh *signingHandler) Verify(message []byte, bitmap []byte, epoch uint32) error {
 	if bitmap == nil {
 		return ErrNilBitmap
 	}
@@ -324,6 +334,6 @@ func convertStringsToPubKeysBytes(pubKeys []string) ([][]byte, error) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (sh *signatureHolder) IsInterfaceNil() bool {
+func (sh *signingHandler) IsInterfaceNil() bool {
 	return sh == nil
 }
