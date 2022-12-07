@@ -218,3 +218,5 @@ func createAccountAdapter(
 
 	return adb, nil
 }
+
+//TODO: Add unit tests for createBlockProcessor method

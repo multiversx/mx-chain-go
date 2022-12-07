@@ -172,3 +172,9 @@ var ErrNilGeneralSettingsConfig = errors.New("nil general settings config")
 
 // ErrNilEpochConfig signals that a nil epoch config was provided
 var ErrNilEpochConfig = errors.New("nil epoch config")
+
+// ErrScheduledRootHashForHeaderNotFound signals that scheduled root hash for header was not found
+var ErrScheduledRootHashForHeaderNotFound = errors.New("scheduled root hash for header was not found")
+
+// ErrScheduledRootHashForHeaderWithEpochNotFound signals that scheduled root hash for header with epoch was not found
+var ErrScheduledRootHashForHeaderWithEpochNotFound = errors.New("scheduled root hash for header with epoch was not found")

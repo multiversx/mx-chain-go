@@ -109,3 +109,5 @@ func TestProcessComponents_IndexGenesisBlocks(t *testing.T) {
 	err = pcf.IndexGenesisBlocks(genesisBlocks, indexingData)
 	require.Nil(t, err)
 }
+
+//TODO: Add unit tests for createScheduledTxsExecutionHandler method
