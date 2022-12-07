@@ -3,21 +3,9 @@ module github.com/ElrondNetwork/elrond-go
 go 1.17
 
 require (
-<<<<<<< HEAD
-	github.com/ElrondNetwork/elastic-indexer-go v1.3.0
-	github.com/ElrondNetwork/elrond-go-core v1.1.24
-	github.com/ElrondNetwork/elrond-go-crypto v1.2.2-0.20221110121517-4e85e482f854
-	github.com/ElrondNetwork/elrond-go-logger v1.0.9
-	github.com/ElrondNetwork/elrond-go-p2p v1.0.4-0.20221115083446-a589f335a708
-	github.com/ElrondNetwork/elrond-go-storage v1.0.1
-	github.com/ElrondNetwork/elrond-vm-common v1.3.25
-	github.com/ElrondNetwork/wasm-vm-v1_2 v1.2.45-rc
-	github.com/ElrondNetwork/wasm-vm-v1_3 v1.3.45-rc
-	github.com/ElrondNetwork/wasm-vm-v1_4 v1.4.63
-=======
 	github.com/ElrondNetwork/elastic-indexer-go v1.3.3
 	github.com/ElrondNetwork/elrond-go-core v1.1.26
-	github.com/ElrondNetwork/elrond-go-crypto v1.2.2
+	github.com/ElrondNetwork/elrond-go-crypto v1.2.3-0.20221207123732-051e8d288918
 	github.com/ElrondNetwork/elrond-go-logger v1.0.10
 	github.com/ElrondNetwork/elrond-go-p2p v1.0.5
 	github.com/ElrondNetwork/elrond-go-storage v1.0.4
@@ -25,7 +13,6 @@ require (
 	github.com/ElrondNetwork/wasm-vm-v1_2 v1.2.48
 	github.com/ElrondNetwork/wasm-vm-v1_3 v1.3.48
 	github.com/ElrondNetwork/wasm-vm-v1_4 v1.4.68
->>>>>>> rc/v1.4.0
 	github.com/beevik/ntp v0.3.0
 	github.com/davecgh/go-spew v1.1.1
 	github.com/elastic/go-elasticsearch/v7 v7.12.0
@@ -51,7 +38,7 @@ require (
 	github.com/ElrondNetwork/concurrent-map v0.1.3 // indirect
 	github.com/benbjohnson/clock v1.3.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/btcsuite/btcd/btcec/v2 v2.2.0 // indirect
+	github.com/btcsuite/btcd/btcec/v2 v2.3.2 // indirect
 	github.com/btcsuite/btcd/btcutil v1.1.3 // indirect
 	github.com/btcsuite/btcd/chaincfg/chainhash v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect

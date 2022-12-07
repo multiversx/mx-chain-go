@@ -20,11 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/secp256k1"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-<<<<<<< HEAD
-=======
 	"github.com/ElrondNetwork/elrond-go/cmd/keygenerator/converter"
-	"github.com/ElrondNetwork/elrond-go/p2p/factory"
->>>>>>> rc/v1.4.0
 	"github.com/urfave/cli"
 )
 
@@ -237,27 +233,6 @@ func generateKeys(typeKey string, numKeys int, prefix string, shardID int) ([]ke
 	return validatorKeys, walletKeys, p2pKeys, nil
 }
 
-<<<<<<< HEAD
-=======
-func generateP2pKey(list []key) ([]key, error) {
-	generator := factory.NewIdentityGenerator()
-	privateKeyBytes, pid, err := generator.CreateRandomP2PIdentity()
-	if err != nil {
-		return nil, err
-	}
-
-	list = append(
-		list,
-		key{
-			skBytes: privateKeyBytes,
-			pkBytes: []byte(pid.Pretty()),
-		},
-	)
-
-	return list, nil
-}
-
->>>>>>> rc/v1.4.0
 func generateKey(keyGen crypto.KeyGenerator, list []key) ([]key, error) {
 	sk, pk := keyGen.GeneratePair()
 	skBytes, err := sk.ToByteArray()
