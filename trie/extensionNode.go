@@ -383,7 +383,7 @@ func (en *extensionNode) getNext(key []byte, db common.DBWriteCacher) (node, []b
 	return en.child, key, nil
 }
 
-func (en *extensionNode) insert(newData *dataForInsertion, db common.DBWriteCacher) (node, [][]byte, error) {
+func (en *extensionNode) insert(newData dataForInsertion, db common.DBWriteCacher) (node, [][]byte, error) {
 	emptyHashes := make([][]byte, 0)
 	err := en.isEmptyOrNil()
 	if err != nil {
@@ -406,7 +406,7 @@ func (en *extensionNode) insert(newData *dataForInsertion, db common.DBWriteCach
 	return en.insertInNewBn(newData, keyMatchLen)
 }
 
-func (en *extensionNode) insertInSameEn(newData *dataForInsertion, keyMatchLen int, db common.DBWriteCacher) (node, [][]byte, error) {
+func (en *extensionNode) insertInSameEn(newData dataForInsertion, keyMatchLen int, db common.DBWriteCacher) (node, [][]byte, error) {
 	newData.key = newData.key[keyMatchLen:]
 	newNode, oldHashes, err := en.child.insert(newData, db)
 	if check.IfNil(newNode) || err != nil {
@@ -425,7 +425,7 @@ func (en *extensionNode) insertInSameEn(newData *dataForInsertion, keyMatchLen i
 	return newEn, oldHashes, nil
 }
 
-func (en *extensionNode) insertInNewBn(newData *dataForInsertion, keyMatchLen int) (node, [][]byte, error) {
+func (en *extensionNode) insertInNewBn(newData dataForInsertion, keyMatchLen int) (node, [][]byte, error) {
 	oldHash := make([][]byte, 0)
 	if !en.dirty {
 		oldHash = append(oldHash, en.hash)
@@ -488,7 +488,7 @@ func (en *extensionNode) insertOldChildInBn(bn *branchNode, oldChildPos byte, ke
 	return nil
 }
 
-func (en *extensionNode) insertNewChildInBn(bn *branchNode, newData *dataForInsertion, newChildPos byte, keyMatchLen int) error {
+func (en *extensionNode) insertNewChildInBn(bn *branchNode, newData dataForInsertion, newChildPos byte, keyMatchLen int) error {
 	newData.key = newData.key[keyMatchLen+1:]
 
 	newLeaf, err := newLeafNode(newData, en.marsh, en.hasher)
@@ -530,7 +530,7 @@ func (en *extensionNode) delete(key []byte, db common.DBWriteCacher) (bool, node
 
 	switch newNode := newNode.(type) {
 	case *leafNode:
-		newLeafData := &dataForInsertion{
+		newLeafData := dataForInsertion{
 			key:     concat(en.Key, newNode.Key...),
 			value:   newNode.Value,
 			version: common.TrieNodeVersion(newNode.Version),

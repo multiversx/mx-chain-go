@@ -1,7 +1,6 @@
 package storageResolversContainers
 
 import (
-	"github.com/ElrondNetwork/elrond-go/errors"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -16,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	disabledResolvers "github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers/disabled"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/storageResolvers"
+	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"

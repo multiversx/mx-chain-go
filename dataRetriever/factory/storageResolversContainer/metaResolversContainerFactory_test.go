@@ -1,7 +1,6 @@
 package storageResolversContainers_test
 
 import (
-	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
 	"strings"
 	"testing"
 
@@ -13,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"

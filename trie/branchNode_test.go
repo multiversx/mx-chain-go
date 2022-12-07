@@ -29,8 +29,8 @@ func getTestMarshalizerAndHasher() (marshal.Marshalizer, hashing.Hasher) {
 	return marsh, hash
 }
 
-func getTrieDataWithDefaultVersion(key string, val string) *dataForInsertion {
-	return &dataForInsertion{
+func getTrieDataWithDefaultVersion(key string, val string) dataForInsertion {
+	return dataForInsertion{
 		key:     []byte(key),
 		value:   []byte(val),
 		version: common.NotSpecified,

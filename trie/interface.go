@@ -29,7 +29,7 @@ type node interface {
 	hashChildren() error
 	tryGet(key []byte, depth uint32, db common.DBWriteCacher) ([]byte, uint32, error)
 	getNext(key []byte, db common.DBWriteCacher) (node, []byte, error)
-	insert(newData *dataForInsertion, db common.DBWriteCacher) (node, [][]byte, error)
+	insert(newData dataForInsertion, db common.DBWriteCacher) (node, [][]byte, error)
 	delete(key []byte, db common.DBWriteCacher) (bool, node, [][]byte, error)
 	reduceNode(pos int) (node, bool, error)
 	isEmptyOrNil() error
@@ -130,7 +130,6 @@ type StorageMarker interface {
 	MarkStorerAsSyncedAndActive(storer common.StorageManager)
 }
 
-// TODO check for nil where used as *
 type dataForInsertion struct {
 	key     []byte
 	value   []byte

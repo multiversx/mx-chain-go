@@ -21,7 +21,7 @@ import (
 var _ = node(&leafNode{})
 
 func newLeafNode(
-	newData *dataForInsertion,
+	newData dataForInsertion,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 ) (*leafNode, error) {
@@ -276,7 +276,7 @@ func (ln *leafNode) getNext(key []byte, _ common.DBWriteCacher) (node, []byte, e
 	}
 	return nil, nil, ErrNodeNotFound
 }
-func (ln *leafNode) insert(newData *dataForInsertion, _ common.DBWriteCacher) (node, [][]byte, error) {
+func (ln *leafNode) insert(newData dataForInsertion, _ common.DBWriteCacher) (node, [][]byte, error) {
 	err := ln.isEmptyOrNil()
 	if err != nil {
 		return nil, [][]byte{}, fmt.Errorf("insert error %w", err)
@@ -311,7 +311,7 @@ func (ln *leafNode) insert(newData *dataForInsertion, _ common.DBWriteCacher) (n
 	return newEn, oldHash, nil
 }
 
-func (ln *leafNode) insertInSameLn(newData *dataForInsertion, oldHashes [][]byte) (node, [][]byte, error) {
+func (ln *leafNode) insertInSameLn(newData dataForInsertion, oldHashes [][]byte) (node, [][]byte, error) {
 	if bytes.Equal(ln.Value, newData.value) {
 		return nil, [][]byte{}, nil
 	}
@@ -323,7 +323,7 @@ func (ln *leafNode) insertInSameLn(newData *dataForInsertion, oldHashes [][]byte
 	return ln, oldHashes, nil
 }
 
-func (ln *leafNode) insertInNewBn(newData *dataForInsertion, keyMatchLen int) (node, error) {
+func (ln *leafNode) insertInNewBn(newData dataForInsertion, keyMatchLen int) (node, error) {
 	bn, err := newBranchNode(ln.marsh, ln.hasher)
 	if err != nil {
 		return nil, err
@@ -340,7 +340,7 @@ func (ln *leafNode) insertInNewBn(newData *dataForInsertion, keyMatchLen int) (n
 		return nil, err
 	}
 
-	oldLnData := &dataForInsertion{
+	oldLnData := dataForInsertion{
 		key:     ln.Key[keyMatchLen+1:],
 		value:   ln.Value,
 		version: oldLnVersion,
@@ -383,7 +383,7 @@ func (ln *leafNode) reduceNode(pos int) (node, bool, error) {
 		return nil, false, err
 	}
 
-	oldLnData := &dataForInsertion{
+	oldLnData := dataForInsertion{
 		key:     k,
 		value:   ln.Value,
 		version: oldLnVersion,
