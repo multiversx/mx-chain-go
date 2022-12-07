@@ -113,7 +113,6 @@ func (tr *patriciaMerkleTrie) Update(key, value []byte) error {
 		"val", hex.EncodeToString(value),
 	)
 
-	//TODO check correct version is set after insertion for BN and LN for insert, delete, reduceNode
 	return tr.update(key, value, tr.getNewestVersion())
 }
 
@@ -507,7 +506,6 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(
 	tr.mutOperation.RUnlock()
 
 	go func() {
-		//TODO pass the trieLeafParser to the trie leaves
 		err = newTrie.root.getAllLeavesOnChannel(
 			leavesChannels.LeavesChan,
 			keyBuilder,

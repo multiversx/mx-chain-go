@@ -27,12 +27,20 @@ func newExtensionNode(key []byte, child node, marshalizer marshal.Marshalizer, h
 	if check.IfNil(hasher) {
 		return nil, ErrNilHasher
 	}
+	if check.IfNil(child) {
+		return nil, ErrNilNode
+	}
+
+	childVersion, err := child.getVersion()
+	if err != nil {
+		return nil, err
+	}
 
 	return &extensionNode{
 		CollapsedEn: CollapsedEn{
 			Key:          key,
 			EncodedChild: nil,
-			ChildVersion: uint32(common.NotSpecified),
+			ChildVersion: uint32(childVersion),
 		},
 		child: child,
 		baseNode: &baseNode{
@@ -414,12 +422,6 @@ func (en *extensionNode) insertInSameEn(newData *dataForInsertion, keyMatchLen i
 		return nil, [][]byte{}, err
 	}
 
-	childVersion, err := newNode.getVersion()
-	if err != nil {
-		return nil, [][]byte{}, err
-	}
-	newEn.ChildVersion = uint32(childVersion)
-
 	return newEn, oldHashes, nil
 }
 
@@ -459,12 +461,6 @@ func (en *extensionNode) insertInNewBn(newData *dataForInsertion, keyMatchLen in
 		return nil, [][]byte{}, err
 	}
 
-	bnVersion, err := bn.getVersion()
-	if err != nil {
-		return nil, [][]byte{}, err
-	}
-	newEn.ChildVersion = uint32(bnVersion)
-
 	return newEn, oldHash, nil
 }
 
@@ -486,7 +482,6 @@ func (en *extensionNode) insertOldChildInBn(bn *branchNode, oldChildPos byte, ke
 	if err != nil {
 		return err
 	}
-	followingExtensionNode.ChildVersion = uint32(childVersion)
 
 	bn.children[oldChildPos] = followingExtensionNode
 	bn.ChildrenVersion[oldChildPos] = byte(childVersion)
@@ -533,18 +528,12 @@ func (en *extensionNode) delete(key []byte, db common.DBWriteCacher) (bool, node
 		oldHashes = append(oldHashes, en.hash)
 	}
 
-	newNodeVersion, err := newNode.getVersion()
-	if err != nil {
-		return false, nil, emptyHashes, err
-	}
-
-	// TODO use polymorphism instead of switch
 	switch newNode := newNode.(type) {
 	case *leafNode:
 		newLeafData := &dataForInsertion{
 			key:     concat(en.Key, newNode.Key...),
 			value:   newNode.Value,
-			version: newNodeVersion,
+			version: common.TrieNodeVersion(newNode.Version),
 		}
 		n, err := newLeafNode(newLeafData, en.marsh, en.hasher)
 		if err != nil {
@@ -557,15 +546,16 @@ func (en *extensionNode) delete(key []byte, db common.DBWriteCacher) (bool, node
 		if err != nil {
 			return false, nil, emptyHashes, err
 		}
-		n.ChildVersion = uint32(newNodeVersion)
 
 		return true, n, oldHashes, nil
+	case nil:
+		log.Warn("nil child after deleting from extension node")
+		return true, nil, oldHashes, nil
 	default:
 		n, err := newExtensionNode(en.Key, newNode, en.marsh, en.hasher)
 		if err != nil {
 			return false, nil, emptyHashes, err
 		}
-		n.ChildVersion = uint32(newNodeVersion)
 
 		return true, n, oldHashes, nil
 	}
@@ -824,6 +814,7 @@ func (en *extensionNode) collectStats(ts common.TrieStatisticsHandler, depthLeve
 
 func (en *extensionNode) getVersion() (common.TrieNodeVersion, error) {
 	if en.ChildVersion > math.MaxUint8 {
+		log.Warn("invalid trie node version for extension node", "child version", en.ChildVersion, "max version", math.MaxUint8)
 		return common.NotSpecified, ErrInvalidNodeVersion
 	}
 

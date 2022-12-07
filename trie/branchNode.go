@@ -584,10 +584,9 @@ func (bn *branchNode) delete(key []byte, db common.DBWriteCacher) (bool, node, [
 		oldHashes = append(oldHashes, bn.hash)
 	}
 
-	bn.hash = nil
-	bn.children[childPos] = newNode
-	if newNode == nil {
-		bn.EncodedChildren[childPos] = nil
+	err = bn.setNewChild(childPos, newNode)
+	if err != nil {
+		return false, nil, emptyHashes, err
 	}
 
 	numChildren, pos := getChildPosition(bn)
@@ -619,6 +618,25 @@ func (bn *branchNode) delete(key []byte, db common.DBWriteCacher) (bool, node, [
 	bn.dirty = dirty
 
 	return true, bn, oldHashes, nil
+}
+
+func (bn *branchNode) setNewChild(childPos byte, newNode node) error {
+	bn.hash = nil
+	bn.children[childPos] = newNode
+	if check.IfNil(newNode) {
+		bn.ChildrenVersion[childPos] = 0
+		bn.EncodedChildren[childPos] = nil
+
+		return nil
+	}
+
+	childVersion, err := newNode.getVersion()
+	if err != nil {
+		return err
+	}
+	bn.ChildrenVersion[childPos] = byte(childVersion)
+
+	return nil
 }
 
 func (bn *branchNode) reduceNode(pos int) (node, bool, error) {

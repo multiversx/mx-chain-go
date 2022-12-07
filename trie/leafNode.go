@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"math"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -316,6 +317,7 @@ func (ln *leafNode) insertInSameLn(newData *dataForInsertion, oldHashes [][]byte
 	}
 
 	ln.Value = newData.value
+	ln.Version = uint32(newData.version)
 	ln.dirty = true
 	ln.hash = nil
 	return ln, oldHashes, nil
@@ -348,6 +350,7 @@ func (ln *leafNode) insertInNewBn(newData *dataForInsertion, keyMatchLen int) (n
 		return nil, err
 	}
 	bn.children[oldChildPos] = newLnOldChildPos
+	bn.ChildrenVersion[oldChildPos] = byte(oldLnVersion)
 
 	newData.key = newData.key[keyMatchLen+1:]
 	newLnNewChildPos, err := newLeafNode(newData, ln.marsh, ln.hasher)
@@ -355,6 +358,7 @@ func (ln *leafNode) insertInNewBn(newData *dataForInsertion, keyMatchLen int) (n
 		return nil, err
 	}
 	bn.children[newChildPos] = newLnNewChildPos
+	bn.ChildrenVersion[newChildPos] = byte(newData.version)
 
 	return bn, nil
 }
@@ -549,8 +553,12 @@ func (ln *leafNode) collectStats(ts common.TrieStatisticsHandler, depthLevel int
 }
 
 func (ln *leafNode) getVersion() (common.TrieNodeVersion, error) {
-	// TODO modify to use appropriate flags in order to know the returned val
-	return common.NotSpecified, nil
+	if ln.Version > math.MaxUint8 {
+		log.Warn("invalid trie node version", "version", ln.Version, "max version", math.MaxUint8)
+		return common.NotSpecified, ErrInvalidNodeVersion
+	}
+
+	return common.TrieNodeVersion(ln.Version), nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
