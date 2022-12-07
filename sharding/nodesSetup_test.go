@@ -7,7 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/sharding/mock"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingmock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -67,19 +67,20 @@ func createTestNodesSetup(shardConsensusSize uint32, minShardNodes uint32, metaC
 			StartTime:    0,
 			InitialNodes: initialNodes,
 		},
-		[]config.ChainParametersByEpochConfig{
-			{
-				EnableEpoch:                 0,
-				ShardMinNumNodes:            minShardNodes,
-				ShardConsensusGroupSize:     shardConsensusSize,
-				MetachainMinNumNodes:        minMetaNodes,
-				MetachainConsensusGroupSize: metaConsensusSize,
+		&shardingmock.ChainParametersHandlerStub{
+			ChainParametersForEpochCalled: func(epoch uint32) config.ChainParametersByEpochConfig {
+				return config.ChainParametersByEpochConfig{
+					EnableEpoch:                 0,
+					ShardMinNumNodes:            minShardNodes,
+					ShardConsensusGroupSize:     shardConsensusSize,
+					MetachainMinNumNodes:        minMetaNodes,
+					MetachainConsensusGroupSize: metaConsensusSize,
+				}
 			},
 		},
 		mock.NewPubkeyConverterMock(32),
 		mock.NewPubkeyConverterMock(96),
 		genesisMaxShards,
-		&epochNotifier.EpochNotifierStub{},
 	)
 
 	return ns, err
@@ -305,11 +306,10 @@ func TestNewNodesSetup_InvalidMaxNumShardsShouldErr(t *testing.T) {
 
 	ns, err := NewNodesSetup(
 		config.NodesConfig{},
-		[]config.ChainParametersByEpochConfig{},
+		&shardingmock.ChainParametersHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
 		mock.NewPubkeyConverterMock(96),
 		0,
-		&epochNotifier.EpochNotifierStub{},
 	)
 
 	require.Nil(t, ns)

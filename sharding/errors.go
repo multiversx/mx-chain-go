@@ -40,8 +40,8 @@ var ErrNilOwnPublicKey = errors.New("nil own public key")
 // ErrNilEndOfProcessingHandler signals that a nil end of processing handler has been provided
 var ErrNilEndOfProcessingHandler = errors.New("nil end of processing handler")
 
-// ErrMissingConsensusConfiguration signals that the consensus configuration is missing
-var ErrMissingConsensusConfiguration = errors.New("missing consensus configuration")
+// ErrNilChainParametersProvider signals that a nil chain parameters provider has been given
+var ErrNilChainParametersProvider = errors.New("nil chain parameters provider")
 
 // ErrNilEpochNotifier signals that a nil epoch notifier has been provided
 var ErrNilEpochNotifier = errors.New("nil epoch notifier")

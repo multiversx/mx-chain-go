@@ -180,13 +180,21 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 
 	epochNotifier := forking.NewGenericEpochNotifier()
 
+	argsChainParametersHandler := sharding.ArgsChainParametersHolder{
+		EpochNotifier:   epochNotifier,
+		ChainParameters: ccf.config.GeneralSettings.ChainParametersByEpoch,
+	}
+	chainParametersHandler, err := sharding.NewChainParametersHolder(argsChainParametersHandler)
+	if err != nil {
+		return nil, err
+	}
+
 	genesisNodesConfig, err := sharding.NewNodesSetup(
 		ccf.nodesSetupConfig,
-		ccf.config.GeneralSettings.ChainParametersByEpoch,
+		chainParametersHandler,
 		addressPubkeyConverter,
 		validatorPubkeyConverter,
 		ccf.config.GeneralSettings.GenesisMaxNumberOfShards,
-		epochNotifier,
 	)
 	if err != nil {
 		return nil, err

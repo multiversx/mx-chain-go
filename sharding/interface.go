@@ -75,3 +75,10 @@ type EpochNotifier interface {
 	CheckEpoch(header data.HeaderHandler)
 	IsInterfaceNil() bool
 }
+
+// ChainParametersHandler defines the actions that need to be done by a component that can handle chain parameters
+type ChainParametersHandler interface {
+	CurrentChainParameters() config.ChainParametersByEpochConfig
+	ChainParametersForEpoch(epoch uint32) config.ChainParametersByEpochConfig
+	IsInterfaceNil() bool
+}

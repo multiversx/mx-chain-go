@@ -576,13 +576,6 @@ type Configs struct {
 	NodesConfig              *NodesConfig
 }
 
-// ConsensusConfiguration holds the consensus configuration that can be used by both the shard and the metachain
-type ConsensusConfiguration struct {
-	EnableEpoch        uint32 `json:"enableEpoch"`
-	MinNodes           uint32 `json:"minNodes"`
-	ConsensusGroupSize uint32 `json:"consensusGroupSize"`
-}
-
 // NodesConfig is the data transfer object used to map the nodes' configuration in regard to the genesis nodes setup
 type NodesConfig struct {
 	StartTime    int64                `json:"startTime"`
