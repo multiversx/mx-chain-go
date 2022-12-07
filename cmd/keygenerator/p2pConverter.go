@@ -61,7 +61,7 @@ func (p *p2pConverter) EncodeSlice(pkBytesSlice [][]byte) ([]string, error) {
 }
 
 // Encode encodes a byte array representing public key as peer ID string
-func (p *p2pConverter) QuietEncode(pkBytes []byte, log core.Logger) string {
+func (p *p2pConverter) SilentEncode(pkBytes []byte, log core.Logger) string {
 	pubKey, err := libp2pCrypto.UnmarshalSecp256k1PublicKey(pkBytes)
 	if err != nil {
 		log.Warn("err")

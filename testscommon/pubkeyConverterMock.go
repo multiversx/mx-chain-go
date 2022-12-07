@@ -28,8 +28,8 @@ func (pcm *PubkeyConverterMock) Encode(pkBytes []byte) (string, error) {
 	return hex.EncodeToString(pkBytes), nil
 }
 
-// Encode -
-func (pcm *PubkeyConverterMock) QuietEncode(pkBytes []byte, log core.Logger) string {
+// SilentEncode -
+func (pcm *PubkeyConverterMock) SilentEncode(pkBytes []byte, log core.Logger) string {
 	return hex.EncodeToString(pkBytes)
 }
 

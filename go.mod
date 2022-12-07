@@ -3,16 +3,16 @@ module github.com/ElrondNetwork/elrond-go
 go 1.15
 
 require (
-	github.com/ElrondNetwork/elastic-indexer-go v1.3.1-0.20221114150110-189032fd4b58
-	github.com/ElrondNetwork/elrond-go-core v1.1.25-0.20221118154022-23118a6b8f85
-	github.com/ElrondNetwork/elrond-go-crypto v1.2.1
-	github.com/ElrondNetwork/elrond-go-logger v1.0.9
-	github.com/ElrondNetwork/elrond-go-p2p v1.0.3
-	github.com/ElrondNetwork/elrond-go-storage v1.0.1
-	github.com/ElrondNetwork/elrond-vm-common v1.3.27-0.20221114154925-fe4cad79a5fa
-	github.com/ElrondNetwork/wasm-vm-v1_2 v1.2.45-rc
-	github.com/ElrondNetwork/wasm-vm-v1_3 v1.3.45-rc
-	github.com/ElrondNetwork/wasm-vm-v1_4 v1.4.63
+	github.com/ElrondNetwork/elastic-indexer-go v1.3.4
+	github.com/ElrondNetwork/elrond-go-core v1.1.27
+	github.com/ElrondNetwork/elrond-go-crypto v1.2.2
+	github.com/ElrondNetwork/elrond-go-logger v1.0.10
+	github.com/ElrondNetwork/elrond-go-p2p v1.0.5
+	github.com/ElrondNetwork/elrond-go-storage v1.0.2
+	github.com/ElrondNetwork/elrond-vm-common v1.3.29
+	github.com/ElrondNetwork/wasm-vm-v1_2 v1.2.47
+	github.com/ElrondNetwork/wasm-vm-v1_3 v1.3.47
+	github.com/ElrondNetwork/wasm-vm-v1_4 v1.4.66
 	github.com/beevik/ntp v0.3.0
 	github.com/davecgh/go-spew v1.1.1
 	github.com/elastic/go-elasticsearch/v7 v7.12.0
@@ -23,16 +23,17 @@ require (
 	github.com/gogo/protobuf v1.3.2
 	github.com/google/gops v0.3.18
 	github.com/gorilla/websocket v1.5.0
-	github.com/libp2p/go-libp2p-core v0.15.1
+	github.com/libp2p/go-libp2p v0.22.0
+	github.com/libp2p/go-libp2p-core v0.20.0
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/pelletier/go-toml v1.9.3
 	github.com/pkg/errors v0.9.1
 	github.com/shirou/gopsutil v3.21.11+incompatible
-	github.com/stretchr/testify v1.7.1
+	github.com/stretchr/testify v1.8.0
 	github.com/urfave/cli v1.22.10
 	github.com/yusufpapurcu/wmi v1.2.2 // indirect
-	golang.org/x/crypto v0.0.0-20220411220226-7b82a4e95df4
-	golang.org/x/net v0.0.0-20220418201149-a630d4f3e7a2
+	golang.org/x/crypto v0.3.0
+	golang.org/x/net v0.2.0
 	gopkg.in/go-playground/validator.v8 v8.18.2
 // test point 3 for custom profiler
 )

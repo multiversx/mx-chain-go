@@ -1301,14 +1301,11 @@ func (e *esdt) getSpecialRoles(args *vmcommon.ContractCallInput) vmcommon.Return
 		for _, role := range specialRole.Roles {
 			rolesAsString = append(rolesAsString, string(role))
 		}
-		specialRole, err := e.addressPubKeyConverter.Encode(specialRole.Address)
-		if err != nil {
-			e.eei.AddReturnMessage(err.Error())
-			return vmcommon.EncodingFailed
-		}
+
+		specialRoleAddress := e.addressPubKeyConverter.SilentEncode(specialRole.Address, log)
 
 		roles := strings.Join(rolesAsString, ",")
-		message := fmt.Sprintf("%s:%s", specialRole, roles)
+		message := fmt.Sprintf("%s:%s", specialRoleAddress, roles)
 		e.eei.Finish([]byte(message))
 	}
 

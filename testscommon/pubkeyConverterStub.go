@@ -47,8 +47,8 @@ func (pcs *PubkeyConverterStub) EncodeSlice(pkBytesSlice [][]byte) ([]string, er
 	return make([]string, 0), nil
 }
 
-// QuietEncode -
-func (pcs *PubkeyConverterStub) QuietEncode(pkBytes []byte, log core.Logger) string {
+// SilentEncode -
+func (pcs *PubkeyConverterStub) SilentEncode(pkBytes []byte, log core.Logger) string {
 	if pcs.EncodeCalled != nil {
 		return pcs.QuietEncodeCalled(pkBytes, log)
 	}
