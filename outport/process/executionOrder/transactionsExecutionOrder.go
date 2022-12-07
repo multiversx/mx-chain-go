@@ -3,6 +3,7 @@ package executionOrder
 import (
 	"encoding/hex"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	txsSort "github.com/ElrondNetwork/elrond-go-core/core/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/data"
@@ -53,14 +54,15 @@ func (s *sorter) PutExecutionOrderInTransactionPool(
 
 	// need to be sorted
 	transactionsFromMe := extractNormalTransactionsAndInvalidFromMe(pool, blockBody, header, true)
+	txsSort.SortTransactionsBySenderAndNonceWithFrontRunningProtectionExtendedTransactions(transactionsFromMe, s.hasher, header.GetPrevRandSeed())
+	startIndexTransactionsFromMe := startIndexScheduledTransactionsToMe + len(scheduledTransactionsToMe)
+
+	rewardsTxs := getRewardsTxsFromMe(pool, blockBody, header)
+	transactionsFromMe = append(transactionsFromMe, rewardsTxs...)
+	putOrderInTransactions(transactionsFromMe, startIndexTransactionsFromMe)
 
 	// scheduled from me, need to be sorted
 	scheduledTransactionsFromMe := extractNormalTransactionsAndInvalidFromMe(pool, blockBody, header, false)
-
-	txsSort.SortTransactionsBySenderAndNonceWithFrontRunningProtectionExtendedTransactions(transactionsFromMe, s.hasher, header.GetPrevRandSeed())
-	startIndexTransactionsFromMe := startIndexScheduledTransactionsToMe + len(scheduledTransactionsToMe)
-	putOrderInTransactions(transactionsFromMe, startIndexTransactionsFromMe)
-
 	txsSort.SortTransactionsBySenderAndNonceWithFrontRunningProtectionExtendedTransactions(scheduledTransactionsFromMe, s.hasher, header.GetPrevRandSeed())
 	startIndexScheduledTransactionFromMe := startIndexTransactionsFromMe + len(transactionsFromMe)
 	putOrderInTransactions(scheduledTransactionsFromMe, startIndexScheduledTransactionFromMe)
@@ -122,8 +124,7 @@ func extractNormalTransactionsAndInvalidFromMe(pool *outport.Pool, blockBody *bl
 }
 
 func extractNormalTransactionAndScrsToMe(pool *outport.Pool, blockBody *block.Body, header data.HeaderHandler, ignoreScheduled bool) []data.TransactionHandlerWithGasUsedAndFee {
-	scrsHashes := make([][]byte, 0)
-	normalTxsHashes := make([][]byte, 0)
+	grouped := make([]data.TransactionHandlerWithGasUsedAndFee, 0)
 	for mbIndex, mb := range blockBody.MiniBlocks {
 		if mb.IsScheduledMiniBlock() == ignoreScheduled || shouldIgnoreProcessedMBScheduled(header, mbIndex) {
 			continue
@@ -136,19 +137,41 @@ func extractNormalTransactionAndScrsToMe(pool *outport.Pool, blockBody *block.Bo
 
 		executedTxsHashes := extractExecutedTxHashes(mbIndex, mb.TxHashes, header)
 		if mb.Type == block.TxBlock {
-			normalTxsHashes = append(normalTxsHashes, executedTxsHashes...)
+			grouped = append(grouped, extractTxsFromMap(executedTxsHashes, pool.Txs)...)
 			continue
 		}
 		if mb.Type == block.SmartContractResultBlock {
-			scrsHashes = append(scrsHashes, executedTxsHashes...)
+			grouped = append(grouped, extractTxsFromMap(executedTxsHashes, pool.Scrs)...)
+			continue
+		}
+		if mb.Type == block.RewardsBlock {
+			grouped = append(grouped, extractTxsFromMap(executedTxsHashes, pool.Rewards)...)
 			continue
 		}
 	}
 
-	normalTxs := extractTxsFromMap(normalTxsHashes, pool.Txs)
-	smartContractResults := extractTxsFromMap(scrsHashes, pool.Scrs)
+	return grouped
+}
 
-	return append(normalTxs, smartContractResults...)
+func getRewardsTxsFromMe(pool *outport.Pool, blockBody *block.Body, header data.HeaderHandler) []data.TransactionHandlerWithGasUsedAndFee {
+	rewardsTxsHashes := make([][]byte, 0)
+	rewardsTxs := make([]data.TransactionHandlerWithGasUsedAndFee, 0)
+	if header.GetShardID() != core.MetachainShardId {
+		return rewardsTxs
+	}
+
+	for _, mb := range blockBody.MiniBlocks {
+		if mb.Type != block.RewardsBlock {
+			continue
+		}
+		isFromMe := mb.SenderShardID == header.GetShardID()
+		if !isFromMe {
+			continue
+		}
+		rewardsTxsHashes = append(rewardsTxsHashes, mb.TxHashes...)
+	}
+
+	return extractTxsFromMap(rewardsTxsHashes, pool.Rewards)
 }
 
 func extractTxsFromMap(txsHashes [][]byte, txs map[string]data.TransactionHandlerWithGasUsedAndFee) []data.TransactionHandlerWithGasUsedAndFee {
