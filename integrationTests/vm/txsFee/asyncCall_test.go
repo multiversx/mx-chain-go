@@ -13,11 +13,13 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
 	"github.com/ElrondNetwork/elrond-go/process"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	arwenConfig "github.com/ElrondNetwork/wasm-vm-v1_4/config"
 	"github.com/stretchr/testify/require"
 )
 
@@ -75,7 +77,12 @@ func TestAsyncCallShouldWork(t *testing.T) {
 }
 
 func TestMinterContractWithAsyncCalls(t *testing.T) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMsAndCustomGasSchedule(config.EnableEpochs{}, func(gasMap arwenConfig.GasScheduleMap) {
+		// if `MaxBuiltInCallsPerTx` is 200 test will fail
+		gasMap[common.MaxPerTransaction]["MaxBuiltInCallsPerTx"] = 199
+		gasMap[common.MaxPerTransaction]["MaxNumberOfTransfersPerTx"] = 100000
+		gasMap[common.MaxPerTransaction]["MaxNumberOfTrieReadsPerTx"] = 100000
+	})
 	require.Nil(t, err)
 	defer testContext.Close()
 
