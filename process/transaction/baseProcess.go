@@ -26,8 +26,8 @@ type baseTxProcessor struct {
 	marshalizer         marshal.Marshalizer
 	scProcessor         process.SmartContractProcessor
 	enableEpochsHandler common.EnableEpochsHandler
-	txVersionChecker        process.TxVersionCheckerHandler
-	guardianChecker         process.GuardianChecker
+	txVersionChecker    process.TxVersionCheckerHandler
+	guardianChecker     process.GuardianChecker
 }
 
 func (txProc *baseTxProcessor) getAccounts(
@@ -222,7 +222,7 @@ func (txProc *baseTxProcessor) verifyGuardian(tx *transaction.Transaction, accou
 	if check.IfNil(account) {
 		return nil
 	}
-	if !account.IsFrozen() {
+	if !account.IsGuarded() {
 		return nil
 	}
 

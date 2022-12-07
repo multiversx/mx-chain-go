@@ -316,7 +316,7 @@ func (ag *addressGroup) getValueForKey(c *gin.Context) {
 	shared.RespondWithSuccess(c, gin.H{"value": value, "blockInfo": blockInfo})
 }
 
-// getGuardianData returns the guardian data and frozen state for a given account
+// getGuardianData returns the guardian data and guarded state for a given account
 func (ag *addressGroup) getGuardianData(c *gin.Context) {
 	addr := c.Param("address")
 	if addr == "" {

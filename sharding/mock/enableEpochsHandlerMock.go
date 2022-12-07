@@ -546,8 +546,8 @@ func (mock *EnableEpochsHandlerMock) IsRuntimeMemStoreLimitEnabled() bool {
 	return false
 }
 
-// IsFreezeAccountEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsFreezeAccountEnabled() bool {
+// IsGuardAccountEnabled returns false
+func (mock *EnableEpochsHandlerMock) IsGuardAccountEnabled() bool {
 	return false
 }
 

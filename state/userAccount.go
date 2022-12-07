@@ -142,11 +142,11 @@ func (a *userAccount) SetCodeMetadata(codeMetadata []byte) {
 	a.CodeMetadata = codeMetadata
 }
 
-// IsFrozen returns true if the account is in frozen state
-func (a *userAccount) IsFrozen() bool {
+// IsGuarded returns true if the account is in guarded state
+func (a *userAccount) IsGuarded() bool {
 	codeMetaDataBytes := a.GetCodeMetadata()
 	codeMetaData := vmcommon.CodeMetadataFromBytes(codeMetaDataBytes)
-	return codeMetaData.Frozen
+	return codeMetaData.Guarded
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

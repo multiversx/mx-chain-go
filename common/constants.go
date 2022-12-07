@@ -595,8 +595,8 @@ const (
 	// MetricRatingsPeerHonestyUnitValue represents the peer honesty unit value
 	MetricRatingsPeerHonestyUnitValue = "erd_ratings_peerhonesty_unit_value"
 
-	// MetricFreezeAccountFeatureEnableEpoch represents the epoch when the freeze account feature is enabled
-	MetricFreezeAccountFeatureEnableEpoch = "erd_freeze_account_feature_enable_epoch"
+	// MetricGuardAccountFeatureEnableEpoch represents the epoch when the guard account feature is enabled
+	MetricGuardAccountFeatureEnableEpoch = "erd_guard_account_feature_enable_epoch"
 )
 
 const (

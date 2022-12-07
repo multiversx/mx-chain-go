@@ -84,7 +84,7 @@ type epochFlagsHolder struct {
 	fixAsyncCallBackArgsList                    *atomic.Flag
 	fixOldTokenLiquidity                        *atomic.Flag
 	runtimeMemStoreLimitFlag                    *atomic.Flag
-	freezeAccountFlag                           *atomic.Flag
+	guardAccountFlag                            *atomic.Flag
 	setGuardianFlag                             *atomic.Flag
 }
 
@@ -171,7 +171,7 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		fixAsyncCallBackArgsList:                    &atomic.Flag{},
 		fixOldTokenLiquidity:                        &atomic.Flag{},
 		runtimeMemStoreLimitFlag:                    &atomic.Flag{},
-		freezeAccountFlag:                           &atomic.Flag{},
+		guardAccountFlag:                            &atomic.Flag{},
 		setGuardianFlag:                             &atomic.Flag{},
 	}
 }
@@ -634,9 +634,9 @@ func (holder *epochFlagsHolder) IsRuntimeMemStoreLimitEnabled() bool {
 	return holder.runtimeMemStoreLimitFlag.IsSet()
 }
 
-// IsFreezeAccountEnabled returns true if freezeAccountFlag is enabled
-func (holder *epochFlagsHolder) IsFreezeAccountEnabled() bool {
-	return holder.freezeAccountFlag.IsSet()
+// IsGuardAccountEnabled returns true if GuardAccountFlag is enabled
+func (holder *epochFlagsHolder) IsGuardAccountEnabled() bool {
+	return holder.guardAccountFlag.IsSet()
 }
 
 // IsSetGuardianEnabled returns true if setGuardianFlag is enabled

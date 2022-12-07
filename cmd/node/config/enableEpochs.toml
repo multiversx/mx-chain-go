@@ -233,8 +233,8 @@
         { EnableEpoch = 3, Type = "KOSK"}
     ]
 
-    # FreezeAccountFeatureEnableEpoch represents the epoch when the freeze account feature is enabled in the protocol
-    FreezeAccountFeatureEnableEpoch = 2
+    # GuardAccountFeatureEnableEpoch represents the epoch when the guard account feature is enabled in the protocol
+    GuardAccountFeatureEnableEpoch = 2
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [

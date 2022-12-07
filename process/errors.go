@@ -1182,8 +1182,8 @@ var ErrTransactionAndAccountGuardianMismatch = errors.New("mismatch between tran
 // ErrInvalidSetGuardianEpochsDelay signals an invalid configuration for the epochs delay
 var ErrInvalidSetGuardianEpochsDelay = errors.New("incorrect setting for set guardian epochs delay")
 
-// ErrCannotReplaceFrozenAccountPendingGuardian signals that a pending guardian on a frozen account cannot be replaced
-var ErrCannotReplaceFrozenAccountPendingGuardian = errors.New("cannot replace pending guardian on frozen account")
+// ErrCannotReplaceGuardedAccountPendingGuardian signals that a pending guardian on a guarded account cannot be replaced
+var ErrCannotReplaceGuardedAccountPendingGuardian = errors.New("cannot replace pending guardian on guarded account")
 
 // ErrGasPriceTooHigh signals a too high gas price
 var ErrGasPriceTooHigh = errors.New("gas price is too high for the transaction")

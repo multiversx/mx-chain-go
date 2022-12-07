@@ -144,7 +144,7 @@ func (uam *UserAccountMock) SaveDirtyData(_ common.Trie) (map[string][]byte, err
 	return nil, nil
 }
 
-// IsFrozen -
-func (uam *UserAccountMock) IsFrozen() bool {
+// IsGuarded -
+func (uam *UserAccountMock) IsGuarded() bool {
 	return false
 }
