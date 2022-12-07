@@ -114,7 +114,7 @@ func TestMoveBalanceContractAddressDataFieldNotNilShouldConsumeGas(t *testing.T)
 	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.Nil(t, err)
-	require.Contains(t, testContext.GetCompositeTestError().Error(), "invalid contract code (not found)")
+	require.Equal(t, errors.New("invalid contract code (not found): contract not found"), testContext.GetCompositeTestError())
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)

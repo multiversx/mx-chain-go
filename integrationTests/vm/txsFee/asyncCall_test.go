@@ -119,5 +119,9 @@ func TestMinterContractWithAsyncCalls(t *testing.T) {
 	retCode, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.Nil(t, err)
-	require.Contains(t, testContext.GetCompositeTestError().Error(), process.ErrMaxBuiltInCallsReached.Error())
+
+	logs := testContext.TxsLogsProcessor.GetAllCurrentLogs()
+	event := logs[4].GetLogEvents()[1]
+	require.Equal(t, "internalVMErrors", string(event.GetIdentifier()))
+	require.Contains(t, string(event.GetData()), process.ErrMaxBuiltInCallsReached.Error())
 }
