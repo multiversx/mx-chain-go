@@ -1,11 +1,16 @@
 package factory
 
 import (
+	"errors"
+
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/outport/process"
 	"github.com/ElrondNetwork/elrond-go/outport/process/alteredaccounts"
 	"github.com/ElrondNetwork/elrond-go/outport/process/transactionsfee"
 )
+
+// ErrNilHasher signals that a nil hasher has been provided
+var ErrNilHasher = errors.New("nil hasher provided")
 
 func checkArgOutportDataProviderFactory(arg ArgOutportDataProviderFactory) error {
 	if check.IfNil(arg.AddressConverter) {
@@ -37,6 +42,9 @@ func checkArgOutportDataProviderFactory(arg ArgOutportDataProviderFactory) error
 	}
 	if check.IfNil(arg.GasConsumedProvider) {
 		return process.ErrNilGasConsumedProvider
+	}
+	if check.IfNil(arg.Hasher) {
+		return ErrNilHasher
 	}
 
 	return nil

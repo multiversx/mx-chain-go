@@ -2,11 +2,13 @@ package factory
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/outport/process"
 	"github.com/ElrondNetwork/elrond-go/outport/process/alteredaccounts"
 	"github.com/ElrondNetwork/elrond-go/outport/process/disabled"
+	"github.com/ElrondNetwork/elrond-go/outport/process/executionOrder"
 	"github.com/ElrondNetwork/elrond-go/outport/process/transactionsfee"
 	processTxs "github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -30,6 +32,7 @@ type ArgOutportDataProviderFactory struct {
 	NodesCoordinator       nodesCoordinator.NodesCoordinator
 	GasConsumedProvider    process.GasConsumedProvider
 	EconomicsData          process.EconomicsDataHandler
+	Hasher                 hashing.Hasher
 }
 
 // CreateOutportDataProvider will create a new instance of outport.DataProviderOutport
@@ -63,6 +66,11 @@ func CreateOutportDataProvider(arg ArgOutportDataProviderFactory) (outport.DataP
 		return nil, err
 	}
 
+	executionOrderHandler, err := executionOrder.NewSorter(arg.Hasher)
+	if err != nil {
+		return nil, err
+	}
+
 	return process.NewOutportDataProvider(process.ArgOutportDataProvider{
 		IsImportDBMode:           arg.IsImportDBMode,
 		ShardCoordinator:         arg.ShardCoordinator,
@@ -72,5 +80,6 @@ func CreateOutportDataProvider(arg ArgOutportDataProviderFactory) (outport.DataP
 		NodesCoordinator:         arg.NodesCoordinator,
 		GasConsumedProvider:      arg.GasConsumedProvider,
 		EconomicsData:            arg.EconomicsData,
+		ExecutionOrderHandler:    executionOrderHandler,
 	})
 }

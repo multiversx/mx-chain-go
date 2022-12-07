@@ -27,6 +27,7 @@ func createArgOutportDataProviderFactory() ArgOutportDataProviderFactory {
 		NodesCoordinator:       &shardingMocks.NodesCoordinatorMock{},
 		GasConsumedProvider:    &testscommon.GasHandlerStub{},
 		EconomicsData:          &economicsmocks.EconomicsHandlerMock{},
+		Hasher:                 &testscommon.KeccakMock{},
 	}
 }
 

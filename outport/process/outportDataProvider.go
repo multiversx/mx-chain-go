@@ -25,6 +25,7 @@ type ArgOutportDataProvider struct {
 	NodesCoordinator         nodesCoordinator.NodesCoordinator
 	GasConsumedProvider      GasConsumedProvider
 	EconomicsData            EconomicsDataHandler
+	ExecutionOrderHandler    ExecutionOrderHandler
 }
 
 // ArgPrepareOutportSaveBlockData holds the arguments needed for prepare outport save block data
@@ -46,6 +47,7 @@ type outportDataProvider struct {
 	nodesCoordinator         nodesCoordinator.NodesCoordinator
 	gasConsumedProvider      GasConsumedProvider
 	economicsData            EconomicsDataHandler
+	executionOrderHandler    ExecutionOrderHandler
 }
 
 // NewOutportDataProvider will create a new instance of outportDataProvider
@@ -59,6 +61,7 @@ func NewOutportDataProvider(arg ArgOutportDataProvider) (*outportDataProvider, e
 		nodesCoordinator:         arg.NodesCoordinator,
 		gasConsumedProvider:      arg.GasConsumedProvider,
 		economicsData:            arg.EconomicsData,
+		executionOrderHandler:    arg.ExecutionOrderHandler,
 	}, nil
 }
 
@@ -75,6 +78,11 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 	err := odp.transactionsFeeProcessor.PutFeeAndGasUsed(pool)
 	if err != nil {
 		return nil, fmt.Errorf("transactionsFeeProcessor.PutFeeAndGasUsed %w", err)
+	}
+
+	err = odp.executionOrderHandler.PutExecutionOrderInTransactionPool(pool, arg.Header, arg.Body)
+	if err != nil {
+		return nil, fmt.Errorf("executionOrderHandler.PutExecutionOrderInTransactionPool %w", err)
 	}
 
 	alteredAccounts, err := odp.alteredAccountsProvider.ExtractAlteredAccountsFromPool(pool, shared.AlteredAccountsOptions{
