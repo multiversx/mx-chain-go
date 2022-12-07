@@ -214,6 +214,7 @@ func (scf *statusComponentsFactory) createOutportDriver() (outport.OutportHandle
 			Enabled:                                 scf.externalConfig.WebSocketConnector.Enabled,
 			OutportDriverWebSocketSenderFactoryArgs: webSocketSenderDriverFactoryArgs,
 		},
+		FireHoseIndexerConfig: scf.config.FireHoseConfig,
 	}
 
 	return outportDriverFactory.CreateOutport(outportFactoryArgs)

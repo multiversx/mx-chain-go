@@ -938,3 +938,6 @@
         Capacity = 1000
         Type = "SizeLRU"
         SizeInBytes = 314572800 #300MB
+
+[FireHoseConfig]
+    Enabled = true
