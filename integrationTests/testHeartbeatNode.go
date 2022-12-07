@@ -431,10 +431,10 @@ func (thn *TestHeartbeatNode) initSender() {
 
 		PeerAuthenticationTimeBetweenSends:          timeBetweenPeerAuths,
 		PeerAuthenticationTimeBetweenSendsWhenError: timeBetweenSendsWhenError,
-		PeerAuthenticationThresholdBetweenSends:     thresholdBetweenSends,
+		PeerAuthenticationTimeThresholdBetweenSends: thresholdBetweenSends,
 		HeartbeatTimeBetweenSends:                   timeBetweenHeartbeats,
 		HeartbeatTimeBetweenSendsWhenError:          timeBetweenSendsWhenError,
-		HeartbeatThresholdBetweenSends:              thresholdBetweenSends,
+		HeartbeatTimeThresholdBetweenSends:          thresholdBetweenSends,
 		HardforkTimeBetweenSends:                    timeBetweenHardforks,
 		PeerAuthenticationTimeBetweenChecks:         time.Second * 2,
 	}
@@ -627,7 +627,7 @@ func (thn *TestHeartbeatNode) initRequestsProcessor() {
 		Epoch:                   0,
 		MinPeersThreshold:       minPeersThreshold,
 		DelayBetweenRequests:    delayBetweenRequests,
-		MaxTimeout:              maxTimeout,
+		MaxTimeoutForRequests:   maxTimeout,
 		MaxMissingKeysInRequest: maxMissingKeysInRequest,
 		Randomizer:              &random.ConcurrentSafeIntRandomizer{},
 	}
@@ -636,12 +636,12 @@ func (thn *TestHeartbeatNode) initRequestsProcessor() {
 
 func (thn *TestHeartbeatNode) initShardSender(tb testing.TB) {
 	args := sender.ArgPeerShardSender{
-		Messenger:             thn.Messenger,
-		Marshaller:            TestMarshaller,
-		ShardCoordinator:      thn.ShardCoordinator,
-		TimeBetweenSends:      5 * time.Second,
-		ThresholdBetweenSends: 0.1,
-		NodesCoordinator:      thn.NodesCoordinator,
+		Messenger:                 thn.Messenger,
+		Marshaller:                TestMarshaller,
+		ShardCoordinator:          thn.ShardCoordinator,
+		TimeBetweenSends:          5 * time.Second,
+		TimeThresholdBetweenSends: 0.1,
+		NodesCoordinator:          thn.NodesCoordinator,
 	}
 
 	var err error

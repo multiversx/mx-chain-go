@@ -18,10 +18,10 @@ type ArgSender struct {
 	HeartbeatTopic                              string
 	PeerAuthenticationTimeBetweenSends          time.Duration
 	PeerAuthenticationTimeBetweenSendsWhenError time.Duration
-	PeerAuthenticationThresholdBetweenSends     float64
+	PeerAuthenticationTimeThresholdBetweenSends float64
 	HeartbeatTimeBetweenSends                   time.Duration
 	HeartbeatTimeBetweenSendsWhenError          time.Duration
-	HeartbeatThresholdBetweenSends              float64
+	HeartbeatTimeThresholdBetweenSends          float64
 	BaseVersionNumber                           string
 	VersionNumber                               string
 	NodeDisplayName                             string
@@ -61,7 +61,7 @@ func NewSender(args ArgSender) (*sender, error) {
 			topic:                     args.PeerAuthenticationTopic,
 			timeBetweenSends:          args.PeerAuthenticationTimeBetweenSends,
 			timeBetweenSendsWhenError: args.PeerAuthenticationTimeBetweenSendsWhenError,
-			thresholdBetweenSends:     args.PeerAuthenticationThresholdBetweenSends,
+			thresholdBetweenSends:     args.PeerAuthenticationTimeThresholdBetweenSends,
 			privKey:                   args.PrivateKey,
 			redundancyHandler:         args.RedundancyHandler,
 		},
@@ -85,7 +85,7 @@ func NewSender(args ArgSender) (*sender, error) {
 			topic:                     args.HeartbeatTopic,
 			timeBetweenSends:          args.HeartbeatTimeBetweenSends,
 			timeBetweenSendsWhenError: args.HeartbeatTimeBetweenSendsWhenError,
-			thresholdBetweenSends:     args.HeartbeatThresholdBetweenSends,
+			thresholdBetweenSends:     args.HeartbeatTimeThresholdBetweenSends,
 			privKey:                   args.PrivateKey,
 			redundancyHandler:         args.RedundancyHandler,
 		},
@@ -118,7 +118,7 @@ func checkSenderArgs(args ArgSender) error {
 		topic:                     args.PeerAuthenticationTopic,
 		timeBetweenSends:          args.PeerAuthenticationTimeBetweenSends,
 		timeBetweenSendsWhenError: args.PeerAuthenticationTimeBetweenSendsWhenError,
-		thresholdBetweenSends:     args.PeerAuthenticationThresholdBetweenSends,
+		thresholdBetweenSends:     args.PeerAuthenticationTimeThresholdBetweenSends,
 		privKey:                   args.PrivateKey,
 		redundancyHandler:         args.RedundancyHandler,
 	}
@@ -158,7 +158,7 @@ func checkSenderArgs(args ArgSender) error {
 			topic:                     args.HeartbeatTopic,
 			timeBetweenSends:          args.HeartbeatTimeBetweenSends,
 			timeBetweenSendsWhenError: args.HeartbeatTimeBetweenSendsWhenError,
-			thresholdBetweenSends:     args.HeartbeatThresholdBetweenSends,
+			thresholdBetweenSends:     args.HeartbeatTimeThresholdBetweenSends,
 			privKey:                   args.PrivateKey,
 			redundancyHandler:         args.RedundancyHandler,
 		},
@@ -182,7 +182,7 @@ func checkSenderArgs(args ArgSender) error {
 			topic:                     args.HeartbeatTopic,
 			timeBetweenSends:          args.HeartbeatTimeBetweenSends,
 			timeBetweenSendsWhenError: args.HeartbeatTimeBetweenSendsWhenError,
-			thresholdBetweenSends:     args.HeartbeatThresholdBetweenSends,
+			thresholdBetweenSends:     args.HeartbeatTimeThresholdBetweenSends,
 			privKey:                   args.PrivateKey,
 			redundancyHandler:         args.RedundancyHandler,
 		},
