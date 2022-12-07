@@ -283,6 +283,18 @@ func (mcc *managedCryptoComponents) MessageSignVerifier() vm.MessageSignVerifier
 	return mcc.cryptoComponents.messageSignVerifier
 }
 
+// ConsensusSigHandler returns the consensus signature handler
+func (mcc *managedCryptoComponents) ConsensusSigHandler() consensus.SignatureHandler {
+	mcc.mutCryptoComponents.RLock()
+	defer mcc.mutCryptoComponents.RUnlock()
+
+	if mcc.cryptoComponents == nil {
+		return nil
+	}
+
+	return mcc.cryptoComponents.consensusSigHandler
+}
+
 // ManagedPeersHolder returns the managed peers holder
 func (mcc *managedCryptoComponents) ManagedPeersHolder() heartbeat.ManagedPeersHolder {
 	mcc.mutCryptoComponents.RLock()
@@ -319,6 +331,7 @@ func (mcc *managedCryptoComponents) Clone() interface{} {
 			blockSignKeyGen:      mcc.BlockSignKeyGen(),
 			txSignKeyGen:         mcc.TxSignKeyGen(),
 			messageSignVerifier:  mcc.MessageSignVerifier(),
+			consensusSigHandler:  mcc.ConsensusSigHandler(),
 			managedPeersHolder:   mcc.ManagedPeersHolder(),
 			keysHandler:          mcc.KeysHandler(),
 			cryptoParams:         mcc.cryptoParams,

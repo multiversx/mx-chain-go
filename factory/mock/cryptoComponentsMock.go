@@ -4,7 +4,7 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	cryptoCommon "github.com/ElrondNetwork/elrond-go/common/crypto"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
@@ -25,6 +25,7 @@ type CryptoComponentsMock struct {
 	BlKeyGen                crypto.KeyGenerator
 	TxKeyGen                crypto.KeyGenerator
 	MsgSigVerifier          vm.MessageSignVerifier
+	SigHandler              consensus.SignatureHandler
 	ManagedPeersHolderField heartbeat.ManagedPeersHolder
 	KeysHandlerField        consensus.KeysHandler
 	mutMultiSig             sync.RWMutex
@@ -115,6 +116,11 @@ func (ccm *CryptoComponentsMock) TxSignKeyGen() crypto.KeyGenerator {
 // MessageSignVerifier -
 func (ccm *CryptoComponentsMock) MessageSignVerifier() vm.MessageSignVerifier {
 	return ccm.MsgSigVerifier
+}
+
+// ConsensusSigHandler -
+func (ccm *CryptoComponentsMock) ConsensusSigHandler() consensus.SignatureHandler {
+	return ccm.SigHandler
 }
 
 // ManagedPeersHolder -
