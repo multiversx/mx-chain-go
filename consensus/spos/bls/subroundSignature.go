@@ -103,6 +103,7 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 			nil,
 			nil,
 			sr.CurrentPid(),
+			nil,
 		)
 
 		err = sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
@@ -166,20 +167,6 @@ func (sr *subroundSignature) receivedSignature(_ context.Context, cnsDta *consen
 	if err != nil {
 		log.Debug("receivedSignature.ConsensusGroupIndex",
 			"node", pkForLogs,
-			"error", err.Error())
-		return false
-	}
-
-	if check.IfNil(sr.Header) {
-		log.Error("receivedSignature", "error", spos.ErrNilHeader)
-		return false
-	}
-
-	err = sr.SignatureHandler().VerifySignatureShare(uint16(index), cnsDta.SignatureShare, sr.GetData(), sr.Header.GetEpoch())
-	if err != nil {
-		log.Debug("receivedSignature.VerifySignatureShare",
-			"node", pkForLogs,
-			"index", index,
 			"error", err.Error())
 		return false
 	}
