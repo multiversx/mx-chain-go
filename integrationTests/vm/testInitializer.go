@@ -40,6 +40,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks/counters"
 	syncDisabled "github.com/ElrondNetwork/elrond-go/process/sync/disabled"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
@@ -372,6 +373,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		EpochNotifier:         genericEpochNotifier,
 		EnableEpochsHandler:   enableEpochsHandler,
 		GasSchedule:           gasScheduleNotifier,
+		Counter:               &testscommon.BlockChainHookCounterStub{},
 	}
 
 	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
@@ -467,6 +469,7 @@ func CreateOneSCExecutorMockVM(accnts state.AccountsAdapter) vmcommon.VMExecutio
 		EpochNotifier:         &epochNotifier.EpochNotifierStub{},
 		EnableEpochsHandler:   &testscommon.EnableEpochsHandlerStub{},
 		GasSchedule:           createMockGasScheduleNotifier(),
+		Counter:               &testscommon.BlockChainHookCounterStub{},
 	}
 	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
 	vm, _ := mock.NewOneSCExecutorMockVM(blockChainHook, integrationtests.TestHasher)
@@ -506,6 +509,9 @@ func CreateVMAndBlockchainHookAndDataPool(
 	argsBuiltIn.AutomaticCrawlerAddresses = integrationTests.GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
 
+	esdtTransferParser, _ := parsers.NewESDTTransferParser(integrationtests.TestMarshalizer)
+	counter, _ := counters.NewUsageCounter(esdtTransferParser)
+
 	datapool := dataRetrieverMock.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{
 		Accounts:              accnts,
@@ -525,9 +531,9 @@ func CreateVMAndBlockchainHookAndDataPool(
 		EpochNotifier:         epochNotifierInstance,
 		EnableEpochsHandler:   enableEpochsHandler,
 		GasSchedule:           gasSchedule,
+		Counter:               counter,
 	}
 
-	esdtTransferParser, _ := parsers.NewESDTTransferParser(integrationtests.TestMarshalizer)
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
 	blockChainHookImpl, _ := hooks.NewBlockChainHookImpl(args)
 	argsNewVMFactory := shard.ArgVMContainerFactory{
@@ -604,6 +610,7 @@ func CreateVMAndBlockchainHookMeta(
 		EpochNotifier:         globalEpochNotifier,
 		EnableEpochsHandler:   enableEpochsHandler,
 		GasSchedule:           gasSchedule,
+		Counter:               &testscommon.BlockChainHookCounterStub{},
 	}
 
 	economicsData, err := createEconomicsData(config.EnableEpochs{})
@@ -1030,7 +1037,7 @@ func CreatePreparedTxProcessorWithVMs(enableEpochs config.EnableEpochs) (*VMTest
 	return CreatePreparedTxProcessorWithVMsAndCustomGasSchedule(enableEpochs, func(gasMap arwenConfig.GasScheduleMap) {})
 }
 
-// CreatePreparedTxProcessorWithVMs -
+// CreatePreparedTxProcessorWithVMsAndCustomGasSchedule -
 func CreatePreparedTxProcessorWithVMsAndCustomGasSchedule(
 	enableEpochs config.EnableEpochs,
 	updateGasSchedule func(gasMap arwenConfig.GasScheduleMap)) (*VMTestContext, error) {
