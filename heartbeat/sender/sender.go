@@ -182,7 +182,7 @@ func checkSenderArgs(args ArgSender) error {
 			topic:                     args.HeartbeatTopic,
 			timeBetweenSends:          args.HeartbeatTimeBetweenSends,
 			timeBetweenSendsWhenError: args.HeartbeatTimeBetweenSendsWhenError,
-			thresholdBetweenSends:     args.HeartbeatThresholdBetweenSends,
+			thresholdBetweenSends:     args.HeartbeatTimeThresholdBetweenSends,
 			privKey:                   args.PrivateKey,
 			redundancyHandler:         args.RedundancyHandler,
 		},
