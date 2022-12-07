@@ -24,8 +24,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/outport/process"
+	outportProcess "github.com/ElrondNetwork/elrond-go/outport/process"
 	"github.com/ElrondNetwork/elrond-go/outport/process/alteredaccounts/shared"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/state"
 )
 
@@ -40,21 +41,22 @@ const (
 )
 
 type baseAPIBlockProcessor struct {
-	hasDbLookupExtensions    bool
-	selfShardID              uint32
-	emptyReceiptsHash        []byte
-	store                    dataRetriever.StorageService
-	marshalizer              marshal.Marshalizer
-	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
-	historyRepo              dblookupext.HistoryRepository
-	hasher                   hashing.Hasher
-	addressPubKeyConverter   core.PubkeyConverter
-	txStatusComputer         transaction.StatusComputerHandler
-	apiTransactionHandler    APITransactionHandler
-	logsFacade               logsFacade
-	receiptsRepository       receiptsRepository
-	alteredAccountsProvider  process.AlteredAccountsProviderHandler
-	accountsRepository       state.AccountsRepository
+	hasDbLookupExtensions        bool
+	selfShardID                  uint32
+	emptyReceiptsHash            []byte
+	store                        dataRetriever.StorageService
+	marshalizer                  marshal.Marshalizer
+	uint64ByteSliceConverter     typeConverters.Uint64ByteSliceConverter
+	historyRepo                  dblookupext.HistoryRepository
+	hasher                       hashing.Hasher
+	addressPubKeyConverter       core.PubkeyConverter
+	txStatusComputer             transaction.StatusComputerHandler
+	apiTransactionHandler        APITransactionHandler
+	logsFacade                   logsFacade
+	receiptsRepository           receiptsRepository
+	alteredAccountsProvider      outportProcess.AlteredAccountsProviderHandler
+	accountsRepository           state.AccountsRepository
+	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 }
 
 var log = logger.GetOrCreate("node/blockAPI")
@@ -383,11 +385,12 @@ func attachTokensToAlteredAccount(apiAlteredAccount *outport.AlteredAccount, alt
 		}
 
 		apiAlteredAccount.Tokens = append(apiAlteredAccount.Tokens, &outport.AccountTokenData{
-			Identifier: token.Identifier,
-			Balance:    token.Balance,
-			Nonce:      token.Nonce,
-			Properties: token.Properties,
-			MetaData:   nil,
+			Identifier:     token.Identifier,
+			Balance:        token.Balance,
+			Nonce:          token.Nonce,
+			Properties:     token.Properties,
+			MetaData:       nil,
+			AdditionalData: nil,
 		})
 	}
 }
@@ -405,19 +408,28 @@ func shouldIncludeAllTokens(tokensFilter string) bool {
 }
 
 func (bap *baseAPIBlockProcessor) apiBlockToAlteredAccounts(apiBlock *api.Block, options api.GetAlteredAccountsForBlockOptions) ([]*outport.AlteredAccount, error) {
+	blockHash, err := hex.DecodeString(apiBlock.Hash)
+	if err != nil {
+		return nil, err
+	}
+
+	var blockRootHash []byte
+	blockRootHash, err = bap.scheduledTxsExecutionHandler.GetScheduledRootHashForHeaderWithEpoch(blockHash, apiBlock.Epoch)
+	if err != nil {
+		blockRootHash, err = hex.DecodeString(apiBlock.StateRootHash)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	alteredAccountsOptions := shared.AlteredAccountsOptions{
 		WithCustomAccountsRepository: true,
 		AccountsRepository:           bap.accountsRepository,
-		// TODO: AccountQueryOptions could be used like options.WithBlockNonce(..) instead of thinking what to provide
-
-		// send the block nonce as it guarantees the opening of the storer for the right epoch. Sending the block root hash
-		// would be more optimal, but there is no link between a root hash and a block, which can result in the endpoint
-		// not working
 		AccountQueryOptions: api.AccountQueryOptions{
-			BlockNonce: core.OptionalUint64{
-				HasValue: true,
-				Value:    apiBlock.Nonce,
-			},
+			BlockHash:     blockHash,
+			BlockNonce:    core.OptionalUint64{HasValue: true, Value: apiBlock.Nonce},
+			BlockRootHash: blockRootHash,
+			HintEpoch:     core.OptionalUint32{HasValue: true, Value: apiBlock.Epoch},
 		},
 	}
 

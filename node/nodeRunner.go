@@ -112,7 +112,7 @@ func (nr *nodeRunner) Start() error {
 
 	log.Info("starting node", "version", flagsConfig.Version, "pid", os.Getpid())
 
-	err = cleanupStorageIfNecessary(flagsConfig.WorkingDir, flagsConfig.CleanupStorage)
+	err = cleanupStorageIfNecessary(flagsConfig.DbDir, flagsConfig.CleanupStorage)
 	if err != nil {
 		return err
 	}
@@ -203,6 +203,7 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("fix old token liquidity"), "epoch", enableEpochs.FixOldTokenLiquidityEnableEpoch)
 	log.Debug(readEpochFor("set sender in eei output transfer"), "epoch", enableEpochs.SetSenderInEeiOutputTransferEnableEpoch)
 	log.Debug(readEpochFor("refactor peers mini blocks"), "epoch", enableEpochs.RefactorPeersMiniBlocksEnableEpoch)
+	log.Debug(readEpochFor("runtime memstore limit"), "epoch", enableEpochs.RuntimeMemStoreLimitEnableEpoch)
 	gasSchedule := configs.EpochConfig.GasSchedule
 
 	log.Debug(readEpochFor("gas schedule directories paths"), "epoch", gasSchedule.GasScheduleByEpochs)
@@ -1115,7 +1116,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 ) (mainFactory.ProcessComponentsHandler, error) {
 	configs := nr.configs
 	configurationPaths := nr.configs.ConfigurationPathsHolder
-	importStartHandler, err := trigger.NewImportStartHandler(filepath.Join(configs.FlagsConfig.WorkingDir, common.DefaultDBPath), configs.FlagsConfig.Version)
+	importStartHandler, err := trigger.NewImportStartHandler(filepath.Join(configs.FlagsConfig.DbDir, common.DefaultDBPath), configs.FlagsConfig.Version)
 	if err != nil {
 		return nil, err
 	}
@@ -1338,7 +1339,7 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 		PrefConfig:           *nr.configs.PreferencesConfig,
 		ImportDbConfig:       *nr.configs.ImportDbConfig,
 		FlagsConfig:          *nr.configs.FlagsConfig,
-		WorkingDir:           nr.configs.FlagsConfig.WorkingDir,
+		WorkingDir:           nr.configs.FlagsConfig.DbDir,
 		CoreComponents:       coreComponents,
 		CryptoComponents:     cryptoComponents,
 		NetworkComponents:    networkComponents,
@@ -1417,7 +1418,7 @@ func (nr *nodeRunner) CreateManagedCoreComponents(
 		RatingsConfig:       *nr.configs.RatingsConfig,
 		EconomicsConfig:     *nr.configs.EconomicsConfig,
 		NodesFilename:       nr.configs.ConfigurationPathsHolder.Nodes,
-		WorkingDirectory:    nr.configs.FlagsConfig.WorkingDir,
+		WorkingDirectory:    nr.configs.FlagsConfig.DbDir,
 		ChanStopNodeProcess: chanStopNodeProcess,
 	}
 

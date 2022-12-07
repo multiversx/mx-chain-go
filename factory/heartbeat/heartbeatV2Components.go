@@ -158,10 +158,10 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		HeartbeatTopic:                     heartbeatTopic,
 		PeerAuthenticationTimeBetweenSends: time.Second * time.Duration(cfg.PeerAuthenticationTimeBetweenSendsInSec),
 		PeerAuthenticationTimeBetweenSendsWhenError: time.Second * time.Duration(cfg.PeerAuthenticationTimeBetweenSendsWhenErrorInSec),
-		PeerAuthenticationThresholdBetweenSends:     cfg.PeerAuthenticationThresholdBetweenSends,
+		PeerAuthenticationTimeThresholdBetweenSends: cfg.PeerAuthenticationTimeThresholdBetweenSends,
 		HeartbeatTimeBetweenSends:                   time.Second * time.Duration(cfg.HeartbeatTimeBetweenSendsInSec),
 		HeartbeatTimeBetweenSendsWhenError:          time.Second * time.Duration(cfg.HeartbeatTimeBetweenSendsWhenErrorInSec),
-		HeartbeatThresholdBetweenSends:              cfg.HeartbeatThresholdBetweenSends,
+		HeartbeatTimeThresholdBetweenSends:          cfg.HeartbeatTimeThresholdBetweenSends,
 		VersionNumber:                               hcf.version,
 		NodeDisplayName:                             hcf.prefs.Preferences.NodeDisplayName,
 		Identity:                                    hcf.prefs.Preferences.Identity,
@@ -189,8 +189,8 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		ShardId:                 epochBootstrapParams.SelfShardID(),
 		Epoch:                   epochBootstrapParams.Epoch(),
 		MinPeersThreshold:       cfg.MinPeersThreshold,
-		DelayBetweenRequests:    time.Second * time.Duration(cfg.DelayBetweenRequestsInSec),
-		MaxTimeout:              time.Second * time.Duration(cfg.MaxTimeoutInSec),
+		DelayBetweenRequests:    time.Second * time.Duration(cfg.DelayBetweenPeerAuthenticationRequestsInSec),
+		MaxTimeoutForRequests:   time.Second * time.Duration(cfg.PeerAuthenticationMaxTimeoutForRequestsInSec),
 		MaxMissingKeysInRequest: cfg.MaxMissingKeysInRequest,
 		Randomizer:              &random.ConcurrentSafeIntRandomizer{},
 	}
@@ -200,12 +200,12 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 	}
 
 	argsPeerShardSender := sender.ArgPeerShardSender{
-		Messenger:             hcf.networkComponents.NetworkMessenger(),
-		Marshaller:            hcf.coreComponents.InternalMarshalizer(),
-		ShardCoordinator:      hcf.bootstrapComponents.ShardCoordinator(),
-		TimeBetweenSends:      time.Second * time.Duration(cfg.PeerShardTimeBetweenSendsInSec),
-		ThresholdBetweenSends: cfg.PeerShardThresholdBetweenSends,
-		NodesCoordinator:      hcf.processComponents.NodesCoordinator(),
+		Messenger:                 hcf.networkComponents.NetworkMessenger(),
+		Marshaller:                hcf.coreComponents.InternalMarshalizer(),
+		ShardCoordinator:          hcf.bootstrapComponents.ShardCoordinator(),
+		TimeBetweenSends:          time.Second * time.Duration(cfg.PeerShardTimeBetweenSendsInSec),
+		TimeThresholdBetweenSends: cfg.PeerShardTimeThresholdBetweenSends,
+		NodesCoordinator:          hcf.processComponents.NodesCoordinator(),
 	}
 	shardSender, err := sender.NewPeerShardSender(argsPeerShardSender)
 	if err != nil {

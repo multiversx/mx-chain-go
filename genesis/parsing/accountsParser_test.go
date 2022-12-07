@@ -642,7 +642,7 @@ func TestAccountsParser_GenerateInitialTransactionsTxsPool(t *testing.T) {
 	miniBlocks, txsPoolPerShard, err := ap.GenerateInitialTransactions(sharder, indexingDataMap)
 	require.Nil(t, err)
 
-	assert.Equal(t, 9, len(miniBlocks))
+	assert.Equal(t, 2, len(miniBlocks))
 
 	assert.Equal(t, 3, len(txsPoolPerShard))
 	assert.Equal(t, 1, len(txsPoolPerShard[0].Txs))
@@ -735,7 +735,7 @@ func TestAccountsParser_GenerateInitialTransactionsVerifyTxsHashes(t *testing.T)
 	miniBlocks, txsPoolPerShard, err := ap.GenerateInitialTransactions(sharder, indexingDataMap)
 	require.Nil(t, err)
 
-	assert.Equal(t, 4, len(miniBlocks))
+	assert.Equal(t, 1, len(miniBlocks))
 	assert.Equal(t, 2, len(txsPoolPerShard))
 	assert.Equal(t, 1, len(txsPoolPerShard[0].Txs))
 
