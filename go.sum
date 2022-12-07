@@ -51,12 +51,12 @@ github.com/ElrondNetwork/elastic-indexer-go v1.3.3/go.mod h1:E3VO5712GkGSGYnOTJ+
 github.com/ElrondNetwork/elrond-go-core v1.1.26 h1:5syiJMlkWlH7HHnuiOafJJzeI+oUfYqL8mXREqrFerY=
 github.com/ElrondNetwork/elrond-go-core v1.1.26/go.mod h1:N/RI++YU2M6OlnD1GSZepc1wPhI84ykRDQ1IyD3B0wk=
 github.com/ElrondNetwork/elrond-go-crypto v1.2.2/go.mod h1:MyQPKUKti7Axnx/eihhL0F2jLTalvSV/Ytv1mIxvYyM=
-github.com/ElrondNetwork/elrond-go-crypto v1.2.3-0.20221207123732-051e8d288918 h1:i2jjlTi7X4D99I3lR2WFMBEtS8yhXH+zbZYFk0L8NXU=
-github.com/ElrondNetwork/elrond-go-crypto v1.2.3-0.20221207123732-051e8d288918/go.mod h1:3nUDpYz+qPDeL1U97guDvapw353FQS9HIHsF6LCXTw4=
+github.com/ElrondNetwork/elrond-go-crypto v1.2.3-0.20221207130836-796c2dff9ad7 h1:WSrV/gZ+YJQKU46udfni6b56YnMFVJ0GpGEjO1wFbn0=
+github.com/ElrondNetwork/elrond-go-crypto v1.2.3-0.20221207130836-796c2dff9ad7/go.mod h1:04TNYc9JT+bXGFjaWf1oP7iFudRprHp5iULyQaVYMao=
 github.com/ElrondNetwork/elrond-go-logger v1.0.10 h1:2xQOWZErcHW5sl9qSRO+7mGNw+QhFhqiUlLLtOgvuuk=
 github.com/ElrondNetwork/elrond-go-logger v1.0.10/go.mod h1:+rMODFw4yQptTi5WuLUBzvl/AE26V+2YJtc52wX30Eg=
-github.com/ElrondNetwork/elrond-go-p2p v1.0.5 h1:XzuieXEKrVSQ9gKKO3sq60RRZC29IRYgmn7RsPmgUOA=
-github.com/ElrondNetwork/elrond-go-p2p v1.0.5/go.mod h1:yCdKTQWNHNKrrQAK5xx1uQT02BEiumjz88I/fk5m1f8=
+github.com/ElrondNetwork/elrond-go-p2p v1.0.6-0.20221207134639-9d392e20bd13 h1:rPsjMIOYk7HFjR9RxQ3BetGBYUs3mIdir/fDeZtTb90=
+github.com/ElrondNetwork/elrond-go-p2p v1.0.6-0.20221207134639-9d392e20bd13/go.mod h1:u/tP7HotjCwksDyK9FpVKbUgSKcwlH2+v7/Fcw9HAmk=
 github.com/ElrondNetwork/elrond-go-storage v1.0.2/go.mod h1:SRsv4hUtL1BCiQe0eADth3C0EZH9baijzIJDCUitR34=
 github.com/ElrondNetwork/elrond-go-storage v1.0.4 h1:esyXbHQvlR6m4HGeC86Nq0xAJ74+QG9EnUgfG+wQDYQ=
 github.com/ElrondNetwork/elrond-go-storage v1.0.4/go.mod h1:SRsv4hUtL1BCiQe0eADth3C0EZH9baijzIJDCUitR34=
