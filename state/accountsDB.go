@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"runtime/debug"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -129,7 +128,7 @@ func NewAccountsDB(args ArgsAccountsDB) (*AccountsDB, error) {
 		return nil, err
 	}
 
-	args.AppStatusHandler.SetStringValue(common.MetricAccountsSnapshotInProgress, strconv.FormatBool(false))
+	args.AppStatusHandler.SetUInt64Value(common.MetricAccountsSnapshotInProgress, 0)
 
 	return createAccountsDb(args), nil
 }
@@ -1238,12 +1237,12 @@ func (adb *AccountsDB) finishSnapshotOperation(
 }
 
 func (adb *AccountsDB) updateMetricsOnSnapshotStart(metrics *accountMetrics) {
-	adb.appStatusHandler.SetStringValue(metrics.snapshotInProgressKey, "true")
+	adb.appStatusHandler.SetUInt64Value(metrics.snapshotInProgressKey, 1)
 	adb.appStatusHandler.SetInt64Value(metrics.lastSnapshotDurationKey, 0)
 }
 
 func (adb *AccountsDB) updateMetricsOnSnapshotCompletion(metrics *accountMetrics, stats *snapshotStatistics) {
-	adb.appStatusHandler.SetStringValue(metrics.snapshotInProgressKey, "false")
+	adb.appStatusHandler.SetUInt64Value(metrics.snapshotInProgressKey, 0)
 	adb.appStatusHandler.SetInt64Value(metrics.lastSnapshotDurationKey, stats.GetSnapshotDuration())
 	if metrics.snapshotMessage == userTrieSnapshotMsg {
 		adb.appStatusHandler.SetUInt64Value(common.MetricAccountsSnapshotNumNodes, stats.GetSnapshotNumNodes())
