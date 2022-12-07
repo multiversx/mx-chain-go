@@ -178,3 +178,5 @@ require (
 )
 
 replace github.com/gogo/protobuf => github.com/ElrondNetwork/protobuf v1.3.2
+
+replace github.com/ElrondNetwork/wasm-vm-v1_4 v1.4.68 => github.com/ElrondNetwork/wasm-vm-v1_4 v1.4.69-0.20221206162859-f39be798721c
