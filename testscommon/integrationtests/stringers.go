@@ -84,13 +84,17 @@ func putBigIntInBuilder(builder *strings.Builder, name string, indent string, va
 }
 
 func putAddressInBuilder(builder *strings.Builder, name string, indent string, pubKeyConverter core.PubkeyConverter, slice []byte) {
+	var err error
 	address := ""
 	if len(slice) > 0 {
 		if len(slice) != pubKeyConverter.Len() {
 			// can not encode with the provided address
 			address = hex.EncodeToString(slice) + " (!)"
 		} else {
-			address = pubKeyConverter.Encode(slice)
+			address, err = pubKeyConverter.Encode(slice)
+			if err != nil {
+				return
+			}
 		}
 	}
 
