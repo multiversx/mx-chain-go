@@ -121,6 +121,10 @@ func (arp *apiTransactionResultsProcessor) putSmartContractResultsInTransactionB
 		}
 
 		scrAPI, err := arp.adaptSmartContractResult(scrHash, scr)
+		if err != nil {
+			return err
+		}
+
 		arp.loadLogsIntoContractResults(scrHash, epoch, scrAPI)
 
 		tx.SmartContractResults = append(tx.SmartContractResults, scrAPI)
