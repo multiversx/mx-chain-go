@@ -1,7 +1,6 @@
 package processing_test
 
 import (
-	"github.com/ElrondNetwork/elrond-go/common"
 	"strings"
 	"sync"
 	"testing"
@@ -10,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	dataBlock "github.com/ElrondNetwork/elrond-go-core/data/block"
 	outportCore "github.com/ElrondNetwork/elrond-go-core/data/outport"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	processComp "github.com/ElrondNetwork/elrond-go/factory/processing"
 	"github.com/ElrondNetwork/elrond-go/genesis"
