@@ -224,14 +224,14 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 		return nil, err
 	}
 
-	signatureHolderArgs := ArgsSigningHandler{
+	signingHandlerArgs := ArgsSigningHandler{
 		PubKeys:              []string{cp.publicKeyString},
 		MultiSignerContainer: multiSigner,
 		KeyGenerator:         blockSignKeyGen,
 		SingleSigner:         interceptSingleSigner,
 		KeysHandler:          keysHandler,
 	}
-	consensusSigningHandler, err := NewSigningHandler(signatureHolderArgs)
+	consensusSigningHandler, err := NewSigningHandler(signingHandlerArgs)
 	if err != nil {
 		return nil, err
 	}

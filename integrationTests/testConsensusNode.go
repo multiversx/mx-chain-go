@@ -272,14 +272,14 @@ func (tcn *TestConsensusNode) initNode(
 	}
 	keysHandler, _ := keysManagement.NewKeysHandler(argsKeysHandler)
 
-	signatureHolderArgs := cryptoFactory.ArgsSigningHandler{
+	signingHandlerArgs := cryptoFactory.ArgsSigningHandler{
 		PubKeys:              []string{pubKeyString},
 		MultiSignerContainer: multiSigContainer,
 		KeyGenerator:         keyGen,
 		KeysHandler:          keysHandler,
 		SingleSigner:         TestSingleBlsSigner,
 	}
-	sigHandler, _ := cryptoFactory.NewSigningHandler(signatureHolderArgs)
+	sigHandler, _ := cryptoFactory.NewSigningHandler(signingHandlerArgs)
 
 	networkComponents := GetDefaultNetworkComponents()
 	networkComponents.Messenger = tcn.Messenger
