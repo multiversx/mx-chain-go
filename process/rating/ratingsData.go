@@ -36,7 +36,7 @@ type RatingsData struct {
 	metaRatingsStepData         process.RatingsStepHandler
 	shardRatingsStepData        process.RatingsStepHandler
 	selectionChances            []process.SelectionChance
-	nodesSetup                  process.NodesSetupHandler
+	chainParametersHandler      process.ChainParametersHandler
 	ratingsSetup                config.RatingsConfig
 	roundDurationInMilliseconds uint64
 	mutConfiguration            sync.RWMutex
@@ -46,7 +46,7 @@ type RatingsData struct {
 type RatingsDataArg struct {
 	EpochNotifier             process.EpochNotifier
 	Config                    config.RatingsConfig
-	NodesSetupHandler         process.NodesSetupHandler
+	ChainParametersHolder     process.ChainParametersHandler
 	RoundDurationMilliseconds uint64
 }
 
@@ -55,8 +55,8 @@ func NewRatingsData(args RatingsDataArg) (*RatingsData, error) {
 	if check.IfNil(args.EpochNotifier) {
 		return nil, process.ErrNilEpochHandler
 	}
-	if check.IfNil(args.NodesSetupHandler) {
-		return nil, process.ErrNilNodesSetupHandler
+	if check.IfNil(args.ChainParametersHolder) {
+		return nil, process.ErrNilChainParametersHandler
 	}
 	ratingsConfig := args.Config
 	err := verifyRatingsConfig(ratingsConfig)
@@ -72,9 +72,10 @@ func NewRatingsData(args RatingsDataArg) (*RatingsData, error) {
 		})
 	}
 
+	currentChainParameters := args.ChainParametersHolder.CurrentChainParameters()
 	arg := computeRatingStepArg{
-		shardSize:                       args.NodesSetupHandler.MinNumberOfShardNodes(),
-		consensusSize:                   args.NodesSetupHandler.GetShardConsensusGroupSize(),
+		shardSize:                       currentChainParameters.ShardMinNumNodes,
+		consensusSize:                   currentChainParameters.ShardConsensusGroupSize,
 		roundTimeMillis:                 args.RoundDurationMilliseconds,
 		startRating:                     ratingsConfig.General.StartRating,
 		maxRating:                       ratingsConfig.General.MaxRating,
@@ -90,8 +91,8 @@ func NewRatingsData(args RatingsDataArg) (*RatingsData, error) {
 	}
 
 	arg = computeRatingStepArg{
-		shardSize:                       args.NodesSetupHandler.MinNumberOfMetaNodes(),
-		consensusSize:                   args.NodesSetupHandler.GetMetaConsensusGroupSize(),
+		shardSize:                       currentChainParameters.MetachainMinNumNodes,
+		consensusSize:                   currentChainParameters.MetachainConsensusGroupSize,
 		roundTimeMillis:                 args.RoundDurationMilliseconds,
 		startRating:                     ratingsConfig.General.StartRating,
 		maxRating:                       ratingsConfig.General.MaxRating,
@@ -114,7 +115,7 @@ func NewRatingsData(args RatingsDataArg) (*RatingsData, error) {
 		metaRatingsStepData:         metaRatingStep,
 		shardRatingsStepData:        shardRatingStep,
 		selectionChances:            chances,
-		nodesSetup:                  args.NodesSetupHandler,
+		chainParametersHandler:      args.ChainParametersHolder,
 		ratingsSetup:                ratingsConfig,
 		roundDurationInMilliseconds: args.RoundDurationMilliseconds,
 	}
@@ -133,9 +134,11 @@ func (rd *RatingsData) EpochConfirmed(epoch uint32, _ uint64) {
 	rd.mutConfiguration.Lock()
 	defer rd.mutConfiguration.Unlock()
 
+	currentChainParameters := rd.chainParametersHandler.CurrentChainParameters()
+
 	shardRatingsStepData, err := computeRatingStep(computeRatingStepArg{
-		shardSize:                       rd.nodesSetup.MinNumberOfShardNodes(),
-		consensusSize:                   rd.nodesSetup.GetShardConsensusGroupSize(),
+		shardSize:                       currentChainParameters.ShardMinNumNodes,
+		consensusSize:                   currentChainParameters.ShardConsensusGroupSize,
 		roundTimeMillis:                 rd.roundDurationInMilliseconds,
 		startRating:                     rd.ratingsSetup.General.StartRating,
 		maxRating:                       rd.ratingsSetup.General.MaxRating,
@@ -151,8 +154,8 @@ func (rd *RatingsData) EpochConfirmed(epoch uint32, _ uint64) {
 	rd.shardRatingsStepData = shardRatingsStepData
 
 	metaRatingsStepData, err := computeRatingStep(computeRatingStepArg{
-		shardSize:                       rd.nodesSetup.MinNumberOfMetaNodes(),
-		consensusSize:                   rd.nodesSetup.GetMetaConsensusGroupSize(),
+		shardSize:                       currentChainParameters.MetachainMinNumNodes,
+		consensusSize:                   currentChainParameters.MetachainConsensusGroupSize,
 		roundTimeMillis:                 rd.roundDurationInMilliseconds,
 		startRating:                     rd.ratingsSetup.General.StartRating,
 		maxRating:                       rd.ratingsSetup.General.MaxRating,
@@ -169,10 +172,10 @@ func (rd *RatingsData) EpochConfirmed(epoch uint32, _ uint64) {
 
 	log.Debug("ratings data - epoch confirmed",
 		"epoch", epoch,
-		"shard min nodes", rd.nodesSetup.MinNumberOfShardNodes(),
-		"shard consensus size", rd.nodesSetup.GetShardConsensusGroupSize(),
-		"meta min nodes", rd.nodesSetup.MinNumberOfMetaNodes(),
-		"metachain consensus size", rd.nodesSetup.GetMetaConsensusGroupSize(),
+		"shard min nodes", currentChainParameters.ShardMinNumNodes,
+		"shard consensus size", currentChainParameters.ShardConsensusGroupSize,
+		"meta min nodes", currentChainParameters.MetachainMinNumNodes,
+		"metachain consensus size", currentChainParameters.MetachainConsensusGroupSize,
 	)
 }
 

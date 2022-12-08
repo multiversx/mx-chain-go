@@ -107,6 +107,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/outport"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingmock"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
@@ -1063,7 +1064,7 @@ func CreateRatingsData() *rating.RatingsData {
 
 	ratingDataArgs := rating.RatingsDataArg{
 		Config:                    ratingsConfig,
-		NodesSetupHandler:         &testscommon.NodesSetupStub{},
+		ChainParametersHolder:     &shardingmock.ChainParametersHandlerStub{},
 		EpochNotifier:             &epochNotifier.EpochNotifierStub{},
 		RoundDurationMilliseconds: 6000,
 	}

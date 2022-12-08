@@ -290,7 +290,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	log.Trace("creating ratings data")
 	ratingDataArgs := rating.RatingsDataArg{
 		Config:                    ccf.ratingsConfig,
-		NodesSetupHandler:         genesisNodesConfig,
+		ChainParametersHolder:     chainParametersHandler,
 		RoundDurationMilliseconds: genesisNodesConfig.RoundDuration,
 		EpochNotifier:             epochNotifier,
 	}
