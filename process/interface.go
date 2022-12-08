@@ -1019,6 +1019,7 @@ type NodesSetupHandler interface {
 // ChainParametersHandler defines the actions that need to be done by a component that can handle chain parameters
 type ChainParametersHandler interface {
 	CurrentChainParameters() config.ChainParametersByEpochConfig
+	AllChainParameters() []config.ChainParametersByEpochConfig
 	ChainParametersForEpoch(epoch uint32) config.ChainParametersByEpochConfig
 	IsInterfaceNil() bool
 }

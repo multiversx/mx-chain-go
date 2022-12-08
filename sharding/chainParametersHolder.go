@@ -101,6 +101,14 @@ func (c *chainParametersHolder) CurrentChainParameters() config.ChainParametersB
 	return c.currentChainParameters
 }
 
+// AllChainParameters will return the entire slice of chain parameters configuration
+func (c *chainParametersHolder) AllChainParameters() []config.ChainParametersByEpochConfig {
+	c.mutOperations.RLock()
+	defer c.mutOperations.RUnlock()
+
+	return c.chainParameters
+}
+
 // ChainParametersForEpoch will return the corresponding chain parameters for the provided epoch
 func (c *chainParametersHolder) ChainParametersForEpoch(epoch uint32) config.ChainParametersByEpochConfig {
 	c.mutOperations.RLock()

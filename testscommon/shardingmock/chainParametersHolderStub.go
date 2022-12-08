@@ -5,6 +5,7 @@ import "github.com/ElrondNetwork/elrond-go/config"
 // ChainParametersHandlerStub -
 type ChainParametersHandlerStub struct {
 	CurrentChainParametersCalled  func() config.ChainParametersByEpochConfig
+	AllChainParametersCalled      func() []config.ChainParametersByEpochConfig
 	ChainParametersForEpochCalled func(epoch uint32) config.ChainParametersByEpochConfig
 }
 
@@ -15,6 +16,15 @@ func (stub *ChainParametersHandlerStub) CurrentChainParameters() config.ChainPar
 	}
 
 	return config.ChainParametersByEpochConfig{}
+}
+
+// AllChainParameters -
+func (stub *ChainParametersHandlerStub) AllChainParameters() []config.ChainParametersByEpochConfig {
+	if stub.AllChainParametersCalled != nil {
+		return stub.AllChainParametersCalled()
+	}
+
+	return nil
 }
 
 // ChainParametersForEpoch -

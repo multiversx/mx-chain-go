@@ -289,10 +289,12 @@ func TestChainParametersHolder_ConcurrentOperations(t *testing.T) {
 				_ = paramsHolder.CurrentChainParameters()
 			case 2:
 				_ = paramsHolder.ChainParametersForEpoch(uint32(idx))
+			case 3:
+				_ = paramsHolder.AllChainParameters()
 			}
 
 			wg.Done()
-		}(i % 3)
+		}(i % 4)
 	}
 
 	wg.Wait()

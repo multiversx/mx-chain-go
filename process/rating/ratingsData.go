@@ -35,6 +35,8 @@ type RatingsData struct {
 	signedBlocksThreshold       float32
 	metaRatingsStepData         process.RatingsStepHandler
 	shardRatingsStepData        process.RatingsStepHandler
+	shardRatingsStepsDataValues map[uint32]process.RatingsStepHandler
+	metaRatingsStepsDataValues  map[uint32]process.RatingsStepHandler
 	selectionChances            []process.SelectionChance
 	chainParametersHandler      process.ChainParametersHandler
 	ratingsSetup                config.RatingsConfig
@@ -120,63 +122,95 @@ func NewRatingsData(args RatingsDataArg) (*RatingsData, error) {
 		roundDurationInMilliseconds: args.RoundDurationMilliseconds,
 	}
 
+	err = ratingData.computeRatingStepDataMaps(args.ChainParametersHolder.AllChainParameters())
+	if err != nil {
+		return nil, err
+	}
+
 	args.EpochNotifier.RegisterNotifyHandler(ratingData)
 
 	return ratingData, nil
 }
 
+func (rd *RatingsData) computeRatingStepDataMaps(chainParamsList []config.ChainParametersByEpochConfig) error {
+	shardRatingsSteps := make(map[uint32]process.RatingsStepHandler)
+	metaRatingsSteps := make(map[uint32]process.RatingsStepHandler)
+	for _, chainParams := range chainParamsList {
+		shardRatingsStepsArgs := computeRatingStepArg{
+			shardSize:                       chainParams.ShardMinNumNodes,
+			consensusSize:                   chainParams.ShardConsensusGroupSize,
+			roundTimeMillis:                 rd.roundDurationInMilliseconds,
+			startRating:                     rd.ratingsSetup.General.StartRating,
+			maxRating:                       rd.ratingsSetup.General.MaxRating,
+			hoursToMaxRatingFromStartRating: rd.ratingsSetup.ShardChain.HoursToMaxRatingFromStartRating,
+			proposerDecreaseFactor:          rd.ratingsSetup.ShardChain.ProposerDecreaseFactor,
+			validatorDecreaseFactor:         rd.ratingsSetup.ShardChain.ValidatorDecreaseFactor,
+			consecutiveMissedBlocksPenalty:  rd.ratingsSetup.ShardChain.ConsecutiveMissedBlocksPenalty,
+			proposerValidatorImportance:     rd.ratingsSetup.ShardChain.ProposerValidatorImportance,
+		}
+		shardRatingsStepData, err := computeRatingStep(shardRatingsStepsArgs)
+		if err != nil {
+			return fmt.Errorf("%w while computing shard rating steps for epoch %d", err, chainParams.EnableEpoch)
+		}
+		shardRatingsSteps[chainParams.EnableEpoch] = shardRatingsStepData
+
+		metaRatingsStepsArgs := computeRatingStepArg{
+			shardSize:                       chainParams.MetachainMinNumNodes,
+			consensusSize:                   chainParams.MetachainConsensusGroupSize,
+			roundTimeMillis:                 rd.roundDurationInMilliseconds,
+			startRating:                     rd.ratingsSetup.General.StartRating,
+			maxRating:                       rd.ratingsSetup.General.MaxRating,
+			hoursToMaxRatingFromStartRating: rd.ratingsSetup.MetaChain.HoursToMaxRatingFromStartRating,
+			proposerDecreaseFactor:          rd.ratingsSetup.MetaChain.ProposerDecreaseFactor,
+			validatorDecreaseFactor:         rd.ratingsSetup.MetaChain.ValidatorDecreaseFactor,
+			consecutiveMissedBlocksPenalty:  rd.ratingsSetup.MetaChain.ConsecutiveMissedBlocksPenalty,
+			proposerValidatorImportance:     rd.ratingsSetup.MetaChain.ProposerValidatorImportance,
+		}
+		metaRatingsStepData, err := computeRatingStep(metaRatingsStepsArgs)
+		if err != nil {
+			return fmt.Errorf("%w while computing metachain rating steps for epoch %d", err, chainParams.EnableEpoch)
+		}
+		metaRatingsSteps[chainParams.EnableEpoch] = metaRatingsStepData
+	}
+
+	rd.shardRatingsStepsDataValues = shardRatingsSteps
+	rd.metaRatingsStepsDataValues = metaRatingsSteps
+
+	return nil
+}
+
 // EpochConfirmed will be called whenever a new epoch is called
 func (rd *RatingsData) EpochConfirmed(epoch uint32, _ uint64) {
-	// TODO: maybe check if new data is the same and avoid re-computing (old consensus group size = new consensus group size, and so on)
-	// analyze if epoch subscription is done right, since this function must be called after the nodesSetupHandler's one
 	log.Debug("RatingsData - epoch confirmed", "epoch", epoch)
 
 	rd.mutConfiguration.Lock()
 	defer rd.mutConfiguration.Unlock()
 
-	currentChainParameters := rd.chainParametersHandler.CurrentChainParameters()
-
-	shardRatingsStepData, err := computeRatingStep(computeRatingStepArg{
-		shardSize:                       currentChainParameters.ShardMinNumNodes,
-		consensusSize:                   currentChainParameters.ShardConsensusGroupSize,
-		roundTimeMillis:                 rd.roundDurationInMilliseconds,
-		startRating:                     rd.ratingsSetup.General.StartRating,
-		maxRating:                       rd.ratingsSetup.General.MaxRating,
-		hoursToMaxRatingFromStartRating: rd.ratingsSetup.ShardChain.HoursToMaxRatingFromStartRating,
-		proposerDecreaseFactor:          rd.ratingsSetup.ShardChain.ProposerDecreaseFactor,
-		validatorDecreaseFactor:         rd.ratingsSetup.ShardChain.ValidatorDecreaseFactor,
-		consecutiveMissedBlocksPenalty:  rd.ratingsSetup.ShardChain.ConsecutiveMissedBlocksPenalty,
-		proposerValidatorImportance:     rd.ratingsSetup.ShardChain.ProposerValidatorImportance,
-	})
-	if err != nil {
-		log.Error("could not update shard ratings step", "error", err)
+	for configEpoch, ratingsStep := range rd.shardRatingsStepsDataValues {
+		if configEpoch == epoch {
+			rd.shardRatingsStepData = ratingsStep
+			log.Debug("updated shard ratings step data",
+				"epoch", epoch,
+				"proposer increase rating step", ratingsStep.ProposerIncreaseRatingStep(),
+				"proposer decrease rating step", ratingsStep.ProposerDecreaseRatingStep(),
+				"validator increase rating step", ratingsStep.ValidatorIncreaseRatingStep(),
+				"validator decrease rating step", ratingsStep.ValidatorDecreaseRatingStep(),
+			)
+		}
 	}
-	rd.shardRatingsStepData = shardRatingsStepData
 
-	metaRatingsStepData, err := computeRatingStep(computeRatingStepArg{
-		shardSize:                       currentChainParameters.MetachainMinNumNodes,
-		consensusSize:                   currentChainParameters.MetachainConsensusGroupSize,
-		roundTimeMillis:                 rd.roundDurationInMilliseconds,
-		startRating:                     rd.ratingsSetup.General.StartRating,
-		maxRating:                       rd.ratingsSetup.General.MaxRating,
-		hoursToMaxRatingFromStartRating: rd.ratingsSetup.MetaChain.HoursToMaxRatingFromStartRating,
-		proposerDecreaseFactor:          rd.ratingsSetup.MetaChain.ProposerDecreaseFactor,
-		validatorDecreaseFactor:         rd.ratingsSetup.MetaChain.ValidatorDecreaseFactor,
-		consecutiveMissedBlocksPenalty:  rd.ratingsSetup.MetaChain.ConsecutiveMissedBlocksPenalty,
-		proposerValidatorImportance:     rd.ratingsSetup.MetaChain.ProposerValidatorImportance,
-	})
-	if err != nil {
-		log.Error("could not update metachain ratings step", "error", err)
+	for configEpoch, ratingsStep := range rd.metaRatingsStepsDataValues {
+		if configEpoch == epoch {
+			rd.metaRatingsStepData = ratingsStep
+			log.Debug("updated metachain ratings step data",
+				"epoch", epoch,
+				"proposer increase rating step", ratingsStep.ProposerIncreaseRatingStep(),
+				"proposer decrease rating step", ratingsStep.ProposerDecreaseRatingStep(),
+				"validator increase rating step", ratingsStep.ValidatorIncreaseRatingStep(),
+				"validator decrease rating step", ratingsStep.ValidatorDecreaseRatingStep(),
+			)
+		}
 	}
-	rd.metaRatingsStepData = metaRatingsStepData
-
-	log.Debug("ratings data - epoch confirmed",
-		"epoch", epoch,
-		"shard min nodes", currentChainParameters.ShardMinNumNodes,
-		"shard consensus size", currentChainParameters.ShardConsensusGroupSize,
-		"meta min nodes", currentChainParameters.MetachainMinNumNodes,
-		"metachain consensus size", currentChainParameters.MetachainConsensusGroupSize,
-	)
 }
 
 func verifyRatingsConfig(settings config.RatingsConfig) error {
