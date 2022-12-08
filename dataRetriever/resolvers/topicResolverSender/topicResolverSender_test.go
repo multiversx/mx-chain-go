@@ -282,6 +282,15 @@ func TestTopicResolverSender_SendOnRequestTopicShouldWorkAndNotSendToFullHistory
 			return []core.PeerID{pID2}
 		},
 	}
+	decreaseCalledCounter := 0
+	arg.PeersRatingHandler = &p2pmocks.PeersRatingHandlerStub{
+		DecreaseRatingCalled: func(pid core.PeerID) {
+			decreaseCalledCounter++
+			if !bytes.Equal(pid.Bytes(), pID1.Bytes()) && !bytes.Equal(pid.Bytes(), pID2.Bytes()) {
+				assert.Fail(t, "should be one of the provided pids")
+			}
+		},
+	}
 	trs, _ := topicResolverSender.NewTopicResolverSender(arg)
 
 	err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, defaultHashes)
@@ -289,6 +298,7 @@ func TestTopicResolverSender_SendOnRequestTopicShouldWorkAndNotSendToFullHistory
 	assert.Nil(t, err)
 	assert.True(t, sentToPid1)
 	assert.True(t, sentToPid2)
+	assert.Equal(t, 2, decreaseCalledCounter)
 }
 
 func TestTopicResolverSender_SendOnRequestTopicShouldWorkAndSendToFullHistoryNodes(t *testing.T) {
@@ -317,11 +327,19 @@ func TestTopicResolverSender_SendOnRequestTopicShouldWorkAndSendToFullHistoryNod
 			return false
 		},
 	}
+	decreaseCalledCounter := 0
+	arg.PeersRatingHandler = &p2pmocks.PeersRatingHandlerStub{
+		DecreaseRatingCalled: func(pid core.PeerID) {
+			decreaseCalledCounter++
+			assert.Equal(t, pIDfullHistory, pid)
+		},
+	}
 	trs, _ := topicResolverSender.NewTopicResolverSender(arg)
 
 	err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, defaultHashes)
 	assert.Nil(t, err)
 	assert.True(t, sentToFullHistoryPeer)
+	assert.Equal(t, 1, decreaseCalledCounter)
 }
 
 func TestTopicResolverSender_SendOnRequestTopicShouldWorkAndSendToPreferredPeers(t *testing.T) {
