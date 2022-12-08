@@ -69,6 +69,7 @@ func (s *sorter) PutExecutionOrderInTransactionPool(
 
 	setOrderSmartContractResults(pool)
 
+	prinPool(pool)
 	return nil
 }
 
@@ -98,7 +99,7 @@ func extractNormalTransactionsAndInvalidFromMe(pool *outport.Pool, blockBody *bl
 	normalTxsHashes := make([][]byte, 0)
 	invalidTxsHashes := make([][]byte, 0)
 	for mbIndex, mb := range blockBody.MiniBlocks {
-		if mb.IsScheduledMiniBlock() == ignoreScheduled || shouldIgnoreProcessedMBScheduled(header, mbIndex) {
+		if isMBScheduled(header, mbIndex) == ignoreScheduled || shouldIgnoreProcessedMBScheduled(header, mbIndex) {
 			continue
 		}
 
@@ -126,7 +127,7 @@ func extractNormalTransactionsAndInvalidFromMe(pool *outport.Pool, blockBody *bl
 func extractNormalTransactionAndScrsToMe(pool *outport.Pool, blockBody *block.Body, header data.HeaderHandler, ignoreScheduled bool) []data.TransactionHandlerWithGasUsedAndFee {
 	grouped := make([]data.TransactionHandlerWithGasUsedAndFee, 0)
 	for mbIndex, mb := range blockBody.MiniBlocks {
-		if mb.IsScheduledMiniBlock() == ignoreScheduled || shouldIgnoreProcessedMBScheduled(header, mbIndex) {
+		if isMBScheduled(header, mbIndex) == ignoreScheduled || shouldIgnoreProcessedMBScheduled(header, mbIndex) {
 			continue
 		}
 
@@ -218,4 +219,51 @@ func shouldIgnoreProcessedMBScheduled(header data.HeaderHandler, mbIndex int) bo
 	processingType := miniblockHeaders[mbIndex].GetProcessingType()
 
 	return processingType == int32(block.Processed)
+}
+
+func isMBScheduled(header data.HeaderHandler, mbIndex int) bool {
+	miniblockHeaders := header.GetMiniBlockHeaderHandlers()
+	if len(miniblockHeaders) <= mbIndex {
+		return false
+	}
+
+	processingType := miniblockHeaders[mbIndex].GetProcessingType()
+
+	return processingType == int32(block.Scheduled)
+}
+
+// TODO remove this after system test will pass
+func prinPool(pool *outport.Pool) {
+	prinMapTxs := func(txs map[string]data.TransactionHandlerWithGasUsedAndFee) {
+		for hash, tx := range txs {
+			log.Warn(hex.EncodeToString([]byte(hash)), "order", tx.GetExecutionOrder())
+		}
+	}
+
+	total := len(pool.Txs) + len(pool.Invalid) + len(pool.Scrs) + len(pool.Rewards)
+	if total > 0 {
+		log.Warn("###################################")
+	}
+
+	if len(pool.Txs) > 0 {
+		log.Warn("############### NORMAL TXS ####################")
+		prinMapTxs(pool.Txs)
+	}
+	if len(pool.Invalid) > 0 {
+		log.Warn("############### INVALID ####################")
+		prinMapTxs(pool.Invalid)
+	}
+
+	if len(pool.Scrs) > 0 {
+		log.Warn("############### SCRS ####################")
+		prinMapTxs(pool.Scrs)
+	}
+
+	if len(pool.Rewards) > 0 {
+		log.Warn("############### REWARDS ####################")
+		prinMapTxs(pool.Rewards)
+	}
+	if total > 0 {
+		log.Warn("###################################")
+	}
 }
