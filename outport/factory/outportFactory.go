@@ -1,17 +1,15 @@
 package factory
 
 import (
+	"os"
 	"time"
 
 	indexerFactory "github.com/ElrondNetwork/elastic-indexer-go/process/factory"
 	wsDriverFactory "github.com/ElrondNetwork/elrond-go-core/websocketOutportDriver/factory"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/outport/firehose"
 )
-
-var log = logger.GetOrCreate("factory")
 
 // WrappedOutportDriverWebSocketSenderFactoryArgs extends the wsDriverFactory.OutportDriverWebSocketSenderFactoryArgs structure with the Enabled field
 type WrappedOutportDriverWebSocketSenderFactoryArgs struct {
@@ -136,6 +134,10 @@ func createAndSubscribeFirehoseIndexerDriver(
 		return nil
 	}
 
-	fireHoseIndexer := firehose.NewFirehoseIndexer()
+	fireHoseIndexer, err := firehose.NewFirehoseIndexer(os.Stdout)
+	if err != nil {
+		return err
+	}
+
 	return outport.SubscribeDriver(fireHoseIndexer)
 }
