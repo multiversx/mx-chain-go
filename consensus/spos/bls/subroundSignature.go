@@ -82,7 +82,7 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 			return false
 		}
 
-		signatureShare, err := sr.SignatureHandler().CreateSignatureShareForPublicKey(
+		signatureShare, err := sr.SigningHandler().CreateSignatureShareForPublicKey(
 			sr.GetData(),
 			uint16(selfIndex),
 			sr.Header.GetEpoch(),
@@ -125,6 +125,7 @@ func (sr *subroundSignature) createAndSendSignatureMessage(signatureShare []byte
 		nil,
 		nil,
 		sr.GetAssociatedPid(pkBytes),
+		nil,
 	)
 
 	err := sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
@@ -198,21 +199,7 @@ func (sr *subroundSignature) receivedSignature(_ context.Context, cnsDta *consen
 		return false
 	}
 
-	if check.IfNil(sr.Header) {
-		log.Error("receivedSignature", "error", spos.ErrNilHeader)
-		return false
-	}
-
-	err = sr.SignatureHandler().VerifySignatureShare(uint16(index), cnsDta.SignatureShare, sr.GetData(), sr.Header.GetEpoch())
-	if err != nil {
-		log.Debug("receivedSignature.VerifySignatureShare",
-			"node", pkForLogs,
-			"index", index,
-			"error", err.Error())
-		return false
-	}
-
-	err = sr.SignatureHandler().StoreSignatureShare(uint16(index), cnsDta.SignatureShare)
+	err = sr.SigningHandler().StoreSignatureShare(uint16(index), cnsDta.SignatureShare)
 	if err != nil {
 		log.Debug("receivedSignature.StoreSignatureShare",
 			"node", pkForLogs,
@@ -373,7 +360,7 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
 			continue
 		}
 
-		signatureShare, err := sr.SignatureHandler().CreateSignatureShareForPublicKey(
+		signatureShare, err := sr.SigningHandler().CreateSignatureShareForPublicKey(
 			sr.GetData(),
 			uint16(selfIndex),
 			sr.Header.GetEpoch(),

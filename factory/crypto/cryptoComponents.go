@@ -7,7 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	disabledCrypto "github.com/ElrondNetwork/elrond-go-crypto/signing/disabled"
 	disabledSig "github.com/ElrondNetwork/elrond-go-crypto/signing/disabled/singlesig"
@@ -83,15 +83,16 @@ type cryptoParams struct {
 
 // cryptoComponents struct holds the crypto components
 type cryptoComponents struct {
-	txSingleSigner       crypto.SingleSigner
-	blockSingleSigner    crypto.SingleSigner
-	multiSignerContainer cryptoCommon.MultiSignerContainer
-	peerSignHandler      crypto.PeerSignatureHandler
-	blockSignKeyGen      crypto.KeyGenerator
-	txSignKeyGen         crypto.KeyGenerator
-	messageSignVerifier  vm.MessageSignVerifier
-	managedPeersHolder   heartbeat.ManagedPeersHolder
-	keysHandler          consensus.KeysHandler
+	txSingleSigner          crypto.SingleSigner
+	blockSingleSigner       crypto.SingleSigner
+	multiSignerContainer    cryptoCommon.MultiSignerContainer
+	peerSignHandler         crypto.PeerSignatureHandler
+	blockSignKeyGen         crypto.KeyGenerator
+	txSignKeyGen            crypto.KeyGenerator
+	messageSignVerifier     vm.MessageSignVerifier
+	consensusSigningHandler consensus.SigningHandler
+	managedPeersHolder      heartbeat.ManagedPeersHolder
+	keysHandler             consensus.KeysHandler
 	cryptoParams
 }
 
@@ -223,17 +224,30 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 		return nil, err
 	}
 
+	signingHandlerArgs := ArgsSigningHandler{
+		PubKeys:              []string{cp.publicKeyString},
+		MultiSignerContainer: multiSigner,
+		KeyGenerator:         blockSignKeyGen,
+		SingleSigner:         interceptSingleSigner,
+		KeysHandler:          keysHandler,
+	}
+	consensusSigningHandler, err := NewSigningHandler(signingHandlerArgs)
+	if err != nil {
+		return nil, err
+	}
+
 	return &cryptoComponents{
-		txSingleSigner:       txSingleSigner,
-		blockSingleSigner:    interceptSingleSigner,
-		multiSignerContainer: multiSigner,
-		peerSignHandler:      peerSigHandler,
-		blockSignKeyGen:      blockSignKeyGen,
-		txSignKeyGen:         txSignKeyGen,
-		messageSignVerifier:  messageSignVerifier,
-		managedPeersHolder:   managedPeersHolder,
-		keysHandler:          keysHandler,
-		cryptoParams:         *cp,
+		txSingleSigner:          txSingleSigner,
+		blockSingleSigner:       interceptSingleSigner,
+		multiSignerContainer:    multiSigner,
+		peerSignHandler:         peerSigHandler,
+		blockSignKeyGen:         blockSignKeyGen,
+		txSignKeyGen:            txSignKeyGen,
+		messageSignVerifier:     messageSignVerifier,
+		consensusSigningHandler: consensusSigningHandler,
+		managedPeersHolder:      managedPeersHolder,
+		keysHandler:             keysHandler,
+		cryptoParams:            *cp,
 	}, nil
 }
 
@@ -318,6 +332,11 @@ func (ccf *cryptoComponentsFactory) readCryptoParams(keygen crypto.KeyGenerator)
 		return nil, err
 	}
 
+	cp.privateKeyBytes, err = cp.privateKey.ToByteArray()
+	if err != nil {
+		return nil, err
+	}
+
 	cp.publicKey = cp.privateKey.GeneratePublic()
 	if len(readPk) > 0 {
 		cp.publicKeyBytes, err = cp.publicKey.ToByteArray()
@@ -346,6 +365,11 @@ func (ccf *cryptoComponentsFactory) generateCryptoParams(
 
 	var err error
 	cp.publicKeyBytes, err = cp.publicKey.ToByteArray()
+	if err != nil {
+		return nil, err
+	}
+
+	cp.privateKeyBytes, err = cp.privateKey.ToByteArray()
 	if err != nil {
 		return nil, err
 	}

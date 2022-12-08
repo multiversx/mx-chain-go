@@ -2,6 +2,7 @@ package spos
 
 import (
 	"context"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
@@ -58,8 +59,12 @@ type ConsensusCoreHandler interface {
 	NodeRedundancyHandler() consensus.NodeRedundancyHandler
 	// ScheduledProcessor returns the scheduled txs processor
 	ScheduledProcessor() consensus.ScheduledProcessor
-	// SignatureHandler returns the signature handler component
-	SignatureHandler() consensus.SignatureHandler
+	// MessageSigningHandler returns the p2p signing handler
+	MessageSigningHandler() consensus.P2PSigningHandler
+	// PeerBlacklistHandler return the peer blacklist handler
+	PeerBlacklistHandler() consensus.PeerBlacklistHandler
+	// SigningHandler returns the signing handler component
+	SigningHandler() consensus.SigningHandler
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
@@ -89,6 +94,8 @@ type ConsensusService interface {
 	IsMessageWithFinalInfo(consensus.MessageType) bool
 	// IsMessageTypeValid returns if the current messageType is valid
 	IsMessageTypeValid(consensus.MessageType) bool
+	// IsMessageWithInvalidSigners returns if the current messageType is with invalid signers
+	IsMessageWithInvalidSigners(consensus.MessageType) bool
 	// IsSubroundSignature returns if the current subround is about signature
 	IsSubroundSignature(int) bool
 	// IsSubroundStartRound returns if the current subround is about start round
@@ -153,5 +160,13 @@ type HeaderSigVerifier interface {
 // ConsensusDataIndexer defines the actions that a consensus data indexer has to do
 type ConsensusDataIndexer interface {
 	SaveRoundsInfo(roundsInfos []*outport.RoundInfo)
+	IsInterfaceNil() bool
+}
+
+// PeerBlackListCacher can determine if a certain peer id is blacklisted or not
+type PeerBlackListCacher interface {
+	Upsert(pid core.PeerID, span time.Duration) error
+	Has(pid core.PeerID) bool
+	Sweep()
 	IsInterfaceNil() bool
 }

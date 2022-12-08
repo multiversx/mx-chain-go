@@ -149,11 +149,28 @@ type ScheduledProcessor interface {
 	IsInterfaceNil() bool
 }
 
-// SignatureHandler defines the behaviour of a component that handles signatures in consensus
-type SignatureHandler interface {
+// P2PSigningHandler defines the behaviour of a component able to verify p2p message signature
+type P2PSigningHandler interface {
+	Verify(message p2p.MessageP2P) error
+	Serialize(messages []p2p.MessageP2P) ([]byte, error)
+	Deserialize(messagesBytes []byte) ([]p2p.MessageP2P, error)
+	IsInterfaceNil() bool
+}
+
+// PeerBlacklistHandler defines the behaviour of a component able to blacklist p2p peers
+type PeerBlacklistHandler interface {
+	IsPeerBlacklisted(peer core.PeerID) bool
+	BlacklistPeer(peer core.PeerID, duration time.Duration)
+	Close() error
+	IsInterfaceNil() bool
+}
+
+// SigningHandler defines the behaviour of a component that handles multi and single signatures used in consensus operations
+type SigningHandler interface {
 	Reset(pubKeys []string) error
 	CreateSignatureShareForPublicKey(message []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error)
 	CreateSignatureForPublicKey(message []byte, publicKeyBytes []byte) ([]byte, error)
+	VerifySingleSignature(publicKeyBytes []byte, message []byte, signature []byte) error
 	StoreSignatureShare(index uint16, sig []byte) error
 	SignatureShare(index uint16) ([]byte, error)
 	VerifySignatureShare(index uint16, sig []byte, msg []byte, epoch uint32) error

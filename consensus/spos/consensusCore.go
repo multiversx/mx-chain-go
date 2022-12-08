@@ -35,7 +35,9 @@ type ConsensusCore struct {
 	fallbackHeaderValidator       consensus.FallbackHeaderValidator
 	nodeRedundancyHandler         consensus.NodeRedundancyHandler
 	scheduledProcessor            consensus.ScheduledProcessor
-	signatureHandler              consensus.SignatureHandler
+	messageSigningHandler         consensus.P2PSigningHandler
+	peerBlacklistHandler          consensus.PeerBlacklistHandler
+	signingHandler                consensus.SigningHandler
 }
 
 // ConsensusCoreArgs store all arguments that are needed to create a ConsensusCore object
@@ -59,7 +61,9 @@ type ConsensusCoreArgs struct {
 	FallbackHeaderValidator       consensus.FallbackHeaderValidator
 	NodeRedundancyHandler         consensus.NodeRedundancyHandler
 	ScheduledProcessor            consensus.ScheduledProcessor
-	SignatureHandler              consensus.SignatureHandler
+	MessageSigningHandler         consensus.P2PSigningHandler
+	PeerBlacklistHandler          consensus.PeerBlacklistHandler
+	SigningHandler                consensus.SigningHandler
 }
 
 // NewConsensusCore creates a new ConsensusCore instance
@@ -86,7 +90,9 @@ func NewConsensusCore(
 		fallbackHeaderValidator:       args.FallbackHeaderValidator,
 		nodeRedundancyHandler:         args.NodeRedundancyHandler,
 		scheduledProcessor:            args.ScheduledProcessor,
-		signatureHandler:              args.SignatureHandler,
+		messageSigningHandler:         args.MessageSigningHandler,
+		peerBlacklistHandler:          args.PeerBlacklistHandler,
+		signingHandler:                args.SigningHandler,
 	}
 
 	err := ValidateConsensusCore(consensusCore)
@@ -192,9 +198,19 @@ func (cc *ConsensusCore) ScheduledProcessor() consensus.ScheduledProcessor {
 	return cc.scheduledProcessor
 }
 
-// SignatureHandler will return the signature handler component
-func (cc *ConsensusCore) SignatureHandler() consensus.SignatureHandler {
-	return cc.signatureHandler
+// MessageSigningHandler will return the message signing handler
+func (cc *ConsensusCore) MessageSigningHandler() consensus.P2PSigningHandler {
+	return cc.messageSigningHandler
+}
+
+// PeerBlacklistHandler will return the peer blacklist handler
+func (cc *ConsensusCore) PeerBlacklistHandler() consensus.PeerBlacklistHandler {
+	return cc.peerBlacklistHandler
+}
+
+// SigningHandler will return the signing handler component
+func (cc *ConsensusCore) SigningHandler() consensus.SigningHandler {
+	return cc.signingHandler
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

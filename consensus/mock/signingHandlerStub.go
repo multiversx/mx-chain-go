@@ -1,10 +1,11 @@
 package mock
 
-// SignatureHandlerStub implements SignatureHandler interface
-type SignatureHandlerStub struct {
+// SigningHandlerStub implements SigningHandler interface
+type SigningHandlerStub struct {
 	ResetCalled                            func(pubKeys []string) error
 	CreateSignatureShareForPublicKeyCalled func(message []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error)
 	CreateSignatureForPublicKeyCalled      func(message []byte, publicKeyBytes []byte) ([]byte, error)
+	VerifySingleSignatureCalled            func(publicKeyBytes []byte, message []byte, signature []byte) error
 	StoreSignatureShareCalled              func(index uint16, sig []byte) error
 	SignatureShareCalled                   func(index uint16) ([]byte, error)
 	VerifySignatureShareCalled             func(index uint16, sig []byte, msg []byte, epoch uint32) error
@@ -14,7 +15,7 @@ type SignatureHandlerStub struct {
 }
 
 // Reset -
-func (stub *SignatureHandlerStub) Reset(pubKeys []string) error {
+func (stub *SigningHandlerStub) Reset(pubKeys []string) error {
 	if stub.ResetCalled != nil {
 		return stub.ResetCalled(pubKeys)
 	}
@@ -23,7 +24,7 @@ func (stub *SignatureHandlerStub) Reset(pubKeys []string) error {
 }
 
 // CreateSignatureShareForPublicKey -
-func (stub *SignatureHandlerStub) CreateSignatureShareForPublicKey(message []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
+func (stub *SigningHandlerStub) CreateSignatureShareForPublicKey(message []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
 	if stub.CreateSignatureShareForPublicKeyCalled != nil {
 		return stub.CreateSignatureShareForPublicKeyCalled(message, index, epoch, publicKeyBytes)
 	}
@@ -32,7 +33,7 @@ func (stub *SignatureHandlerStub) CreateSignatureShareForPublicKey(message []byt
 }
 
 // CreateSignatureForPublicKey -
-func (stub *SignatureHandlerStub) CreateSignatureForPublicKey(message []byte, publicKeyBytes []byte) ([]byte, error) {
+func (stub *SigningHandlerStub) CreateSignatureForPublicKey(message []byte, publicKeyBytes []byte) ([]byte, error) {
 	if stub.CreateSignatureForPublicKeyCalled != nil {
 		return stub.CreateSignatureForPublicKeyCalled(message, publicKeyBytes)
 	}
@@ -40,8 +41,17 @@ func (stub *SignatureHandlerStub) CreateSignatureForPublicKey(message []byte, pu
 	return make([]byte, 0), nil
 }
 
+// VerifySingleSignature -
+func (stub *SigningHandlerStub) VerifySingleSignature(publicKeyBytes []byte, message []byte, signature []byte) error {
+	if stub.VerifySingleSignatureCalled != nil {
+		return stub.VerifySingleSignatureCalled(publicKeyBytes, message, signature)
+	}
+
+	return nil
+}
+
 // StoreSignatureShare -
-func (stub *SignatureHandlerStub) StoreSignatureShare(index uint16, sig []byte) error {
+func (stub *SigningHandlerStub) StoreSignatureShare(index uint16, sig []byte) error {
 	if stub.StoreSignatureShareCalled != nil {
 		return stub.StoreSignatureShareCalled(index, sig)
 	}
@@ -50,7 +60,7 @@ func (stub *SignatureHandlerStub) StoreSignatureShare(index uint16, sig []byte) 
 }
 
 // SignatureShare -
-func (stub *SignatureHandlerStub) SignatureShare(index uint16) ([]byte, error) {
+func (stub *SigningHandlerStub) SignatureShare(index uint16) ([]byte, error) {
 	if stub.SignatureShareCalled != nil {
 		return stub.SignatureShareCalled(index)
 	}
@@ -59,7 +69,7 @@ func (stub *SignatureHandlerStub) SignatureShare(index uint16) ([]byte, error) {
 }
 
 // VerifySignatureShare -
-func (stub *SignatureHandlerStub) VerifySignatureShare(index uint16, sig []byte, msg []byte, epoch uint32) error {
+func (stub *SigningHandlerStub) VerifySignatureShare(index uint16, sig []byte, msg []byte, epoch uint32) error {
 	if stub.VerifySignatureShareCalled != nil {
 		return stub.VerifySignatureShareCalled(index, sig, msg, epoch)
 	}
@@ -68,7 +78,7 @@ func (stub *SignatureHandlerStub) VerifySignatureShare(index uint16, sig []byte,
 }
 
 // AggregateSigs -
-func (stub *SignatureHandlerStub) AggregateSigs(bitmap []byte, epoch uint32) ([]byte, error) {
+func (stub *SigningHandlerStub) AggregateSigs(bitmap []byte, epoch uint32) ([]byte, error) {
 	if stub.AggregateSigsCalled != nil {
 		return stub.AggregateSigsCalled(bitmap, epoch)
 	}
@@ -77,7 +87,7 @@ func (stub *SignatureHandlerStub) AggregateSigs(bitmap []byte, epoch uint32) ([]
 }
 
 // SetAggregatedSig -
-func (stub *SignatureHandlerStub) SetAggregatedSig(sig []byte) error {
+func (stub *SigningHandlerStub) SetAggregatedSig(sig []byte) error {
 	if stub.SetAggregatedSigCalled != nil {
 		return stub.SetAggregatedSigCalled(sig)
 	}
@@ -86,7 +96,7 @@ func (stub *SignatureHandlerStub) SetAggregatedSig(sig []byte) error {
 }
 
 // Verify -
-func (stub *SignatureHandlerStub) Verify(msg []byte, bitmap []byte, epoch uint32) error {
+func (stub *SigningHandlerStub) Verify(msg []byte, bitmap []byte, epoch uint32) error {
 	if stub.VerifyCalled != nil {
 		return stub.VerifyCalled(msg, bitmap, epoch)
 	}
@@ -95,6 +105,6 @@ func (stub *SignatureHandlerStub) Verify(msg []byte, bitmap []byte, epoch uint32
 }
 
 // IsInterfaceNil -
-func (stub *SignatureHandlerStub) IsInterfaceNil() bool {
+func (stub *SigningHandlerStub) IsInterfaceNil() bool {
 	return stub == nil
 }

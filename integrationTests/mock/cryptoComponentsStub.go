@@ -4,7 +4,7 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	cryptoCommon "github.com/ElrondNetwork/elrond-go/common/crypto"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
@@ -27,6 +27,7 @@ type CryptoComponentsStub struct {
 	MsgSigVerifier          vm.MessageSignVerifier
 	ManagedPeersHolderField heartbeat.ManagedPeersHolder
 	KeysHandlerField        consensus.KeysHandler
+	SigHandler              consensus.SigningHandler
 	mutMultiSig             sync.RWMutex
 }
 
@@ -130,6 +131,11 @@ func (ccs *CryptoComponentsStub) TxSignKeyGen() crypto.KeyGenerator {
 // MessageSignVerifier -
 func (ccs *CryptoComponentsStub) MessageSignVerifier() vm.MessageSignVerifier {
 	return ccs.MsgSigVerifier
+}
+
+// ConsensusSigningHandler -
+func (ccs *CryptoComponentsStub) ConsensusSigningHandler() consensus.SigningHandler {
+	return ccs.SigHandler
 }
 
 // ManagedPeersHolder -

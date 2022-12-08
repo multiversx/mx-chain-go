@@ -35,7 +35,9 @@ type ConsensusCoreMock struct {
 	fallbackHeaderValidator consensus.FallbackHeaderValidator
 	nodeRedundancyHandler   consensus.NodeRedundancyHandler
 	scheduledProcessor      consensus.ScheduledProcessor
-	signatureHandler        consensus.SignatureHandler
+	messageSigningHandler   consensus.P2PSigningHandler
+	peerBlacklistHandler    consensus.PeerBlacklistHandler
+	signingHandler          consensus.SigningHandler
 }
 
 // GetAntiFloodHandler -
@@ -213,14 +215,29 @@ func (ccm *ConsensusCoreMock) SetNodeRedundancyHandler(nodeRedundancyHandler con
 	ccm.nodeRedundancyHandler = nodeRedundancyHandler
 }
 
-// SignatureHandler -
-func (ccm *ConsensusCoreMock) SignatureHandler() consensus.SignatureHandler {
-	return ccm.signatureHandler
+// MessageSigningHandler -
+func (ccm *ConsensusCoreMock) MessageSigningHandler() consensus.P2PSigningHandler {
+	return ccm.messageSigningHandler
 }
 
-// SetSignatureHandler -
-func (ccm *ConsensusCoreMock) SetSignatureHandler(signatureHandler consensus.SignatureHandler) {
-	ccm.signatureHandler = signatureHandler
+// SetMessageSigningHandler -
+func (ccm *ConsensusCoreMock) SetMessageSigningHandler(messageSigningHandler consensus.P2PSigningHandler) {
+	ccm.messageSigningHandler = messageSigningHandler
+}
+
+// PeerBlacklistHandler will return the peer blacklist handler
+func (ccm *ConsensusCoreMock) PeerBlacklistHandler() consensus.PeerBlacklistHandler {
+	return ccm.peerBlacklistHandler
+}
+
+// SigningHandler -
+func (ccm *ConsensusCoreMock) SigningHandler() consensus.SigningHandler {
+	return ccm.signingHandler
+}
+
+// SetSigningHandler -
+func (ccm *ConsensusCoreMock) SetSigningHandler(signingHandler consensus.SigningHandler) {
+	ccm.signingHandler = signingHandler
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

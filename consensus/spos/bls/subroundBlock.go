@@ -208,6 +208,7 @@ func (sr *subroundBlock) sendHeaderAndBlockBody(
 		nil,
 		nil,
 		sr.GetAssociatedPid([]byte(leader)),
+		nil,
 	)
 
 	err := sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
@@ -249,6 +250,7 @@ func (sr *subroundBlock) sendBlockBody(bodyHandler data.BodyHandler, marshalized
 		nil,
 		nil,
 		sr.GetAssociatedPid([]byte(leader)),
+		nil,
 	)
 
 	err := sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
@@ -288,6 +290,7 @@ func (sr *subroundBlock) sendBlockHeader(headerHandler data.HeaderHandler, marsh
 		nil,
 		nil,
 		sr.GetAssociatedPid([]byte(leader)),
+		nil,
 	)
 
 	err := sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
@@ -338,7 +341,7 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 		return nil, errGetLeader
 	}
 
-	randSeed, err := sr.SignatureHandler().CreateSignatureForPublicKey(prevRandSeed, []byte(leader))
+	randSeed, err := sr.SigningHandler().CreateSignatureForPublicKey(prevRandSeed, []byte(leader))
 	if err != nil {
 		return nil, err
 	}
