@@ -211,25 +211,20 @@ func extractExecutedTxHashes(mbIndex int, mbTxHashes [][]byte, header data.Heade
 }
 
 func shouldIgnoreProcessedMBScheduled(header data.HeaderHandler, mbIndex int) bool {
-	miniblockHeaders := header.GetMiniBlockHeaderHandlers()
-	if len(miniblockHeaders) <= mbIndex {
-		return false
-	}
-
-	processingType := miniblockHeaders[mbIndex].GetProcessingType()
-
-	return processingType == int32(block.Processed)
+	return getProcessingType(header, mbIndex) == int32(block.Processed)
 }
 
 func isMBScheduled(header data.HeaderHandler, mbIndex int) bool {
+	return getProcessingType(header, mbIndex) == int32(block.Scheduled)
+}
+
+func getProcessingType(header data.HeaderHandler, mbIndex int) int32 {
 	miniblockHeaders := header.GetMiniBlockHeaderHandlers()
 	if len(miniblockHeaders) <= mbIndex {
-		return false
+		return int32(block.Normal)
 	}
 
-	processingType := miniblockHeaders[mbIndex].GetProcessingType()
-
-	return processingType == int32(block.Scheduled)
+	return miniblockHeaders[mbIndex].GetProcessingType()
 }
 
 // TODO remove this after system test will pass
