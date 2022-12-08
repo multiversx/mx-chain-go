@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -30,6 +31,9 @@ type pendingMiniBlocks struct {
 	syncedAll               bool
 	requestHandler          process.RequestHandler
 	waitTimeBetweenRequests time.Duration
+	mutRequests             sync.Mutex
+	mapRequests             map[string]int
+	logChanged              bool
 }
 
 // ArgsNewPendingMiniBlocksSyncer defines the arguments needed for the sycner
@@ -67,6 +71,7 @@ func NewPendingMiniBlocksSyncer(args ArgsNewPendingMiniBlocksSyncer) (*pendingMi
 		syncedAll:               false,
 		marshalizer:             args.Marshalizer,
 		waitTimeBetweenRequests: args.RequestHandler.RequestInterval(),
+		mapRequests:             make(map[string]int),
 	}
 
 	p.pool.RegisterHandler(p.receivedMiniBlock, core.UniqueIdentifier())
@@ -132,6 +137,10 @@ func (p *pendingMiniBlocks) syncMiniBlocks(listPendingMiniBlocks []data.MiniBloc
 
 			p.requestHandler.RequestMiniBlock(shardId, []byte(hash))
 			requestedMBs++
+
+			p.mutRequests.Lock()
+			p.mapRequests[hash]++
+			p.mutRequests.Unlock()
 		}
 		p.mutPendingMb.Unlock()
 
@@ -151,6 +160,7 @@ func (p *pendingMiniBlocks) syncMiniBlocks(listPendingMiniBlocks []data.MiniBloc
 			p.mutPendingMb.Unlock()
 			return nil
 		case <-time.After(p.waitTimeBetweenRequests):
+			p.checkShouldChangeLogs()
 			continue
 		case <-ctx.Done():
 			p.mutPendingMb.Lock()
@@ -159,6 +169,31 @@ func (p *pendingMiniBlocks) syncMiniBlocks(listPendingMiniBlocks []data.MiniBloc
 			return update.ErrTimeIsOut
 		}
 	}
+}
+
+func (p *pendingMiniBlocks) checkShouldChangeLogs() {
+	p.mutRequests.Lock()
+	defer p.mutRequests.Unlock()
+
+	found := false
+	for _, counter := range p.mapRequests {
+		if counter >= 100 {
+			found = true
+		}
+	}
+
+	if !found {
+		log.Debug("no reason to change log level when requesting pending miniblocks")
+		return
+	}
+	if p.logChanged {
+		return
+	}
+
+	p.logChanged = true
+	log.Warn("can not sync pending miniblocks, changing log level")
+
+	_ = logger.SetLogLevel("*:DEBUG,etriever:TRACE,p2p:TRACE,debug:DEBUG")
 }
 
 // receivedMiniBlock is a callback function when a new miniblock was received
