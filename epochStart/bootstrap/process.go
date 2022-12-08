@@ -1269,7 +1269,7 @@ func (e *epochStartBootstrap) createHeartbeatSender() error {
 		HeartbeatTopic:                     heartbeatTopic,
 		HeartbeatTimeBetweenSends:          time.Second * time.Duration(heartbeatCfg.HeartbeatTimeBetweenSendsInSec),
 		HeartbeatTimeBetweenSendsWhenError: time.Second * time.Duration(heartbeatCfg.HeartbeatTimeBetweenSendsWhenErrorInSec),
-		HeartbeatThresholdBetweenSends:     heartbeatCfg.HeartbeatThresholdBetweenSends,
+		HeartbeatTimeThresholdBetweenSends: heartbeatCfg.HeartbeatTimeThresholdBetweenSends,
 		VersionNumber:                      e.flagsConfig.Version,
 		NodeDisplayName:                    e.prefsConfig.NodeDisplayName,
 		Identity:                           e.prefsConfig.Identity,
