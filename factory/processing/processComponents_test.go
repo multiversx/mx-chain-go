@@ -1,6 +1,7 @@
 package processing_test
 
 import (
+	"github.com/ElrondNetwork/elrond-go/common"
 	"strings"
 	"sync"
 	"testing"
@@ -21,8 +22,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// ------------ Test TestProcessComponents --------------------
-func TestProcessComponents_CloseShouldWork(t *testing.T) {
+func TestProcessComponentsFactory_CloseShouldWork(t *testing.T) {
 	t.Parallel()
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -58,7 +58,7 @@ func TestProcessComponentsFactory_CreateWithInvalidTxAccumulatorTimeExpectError(
 	require.True(t, strings.Contains(err.Error(), process.ErrInvalidValue.Error()))
 }
 
-func TestProcessComponents_IndexGenesisBlocks(t *testing.T) {
+func TestProcessComponentsFactory_IndexGenesisBlocks(t *testing.T) {
 	t.Parallel()
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -110,4 +110,43 @@ func TestProcessComponents_IndexGenesisBlocks(t *testing.T) {
 	require.Nil(t, err)
 }
 
-//TODO: Add unit tests for createScheduledTxsExecutionHandler method
+func TestProcessComponentsFactory_CreateShouldWork(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	t.Run("creating process components factory in regular chain should work", func(t *testing.T) {
+		t.Parallel()
+
+		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+		processArgs := componentsMock.GetProcessComponentsFactoryArgs(shardCoordinator)
+		pcf, _ := processComp.NewProcessComponentsFactory(processArgs)
+
+		require.NotNil(t, pcf)
+
+		pcf.SetChainRunType(common.ChainRunTypeRegular)
+
+		pc, err := pcf.Create()
+
+		assert.NotNil(t, pc)
+		assert.Nil(t, err)
+	})
+
+	t.Run("creating process components factory in sovereign chain should work", func(t *testing.T) {
+		t.Parallel()
+
+		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+		processArgs := componentsMock.GetProcessComponentsFactoryArgs(shardCoordinator)
+		pcf, _ := processComp.NewProcessComponentsFactory(processArgs)
+
+		require.NotNil(t, pcf)
+
+		pcf.SetChainRunType(common.ChainRunTypeSovereign)
+
+		pc, err := pcf.Create()
+
+		assert.NotNil(t, pc)
+		assert.Nil(t, err)
+	})
+}

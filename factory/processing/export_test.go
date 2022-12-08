@@ -1,7 +1,6 @@
 package processing
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/outport"
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -55,7 +54,7 @@ func (pcf *processComponentsFactory) IndexGenesisBlocks(genesisBlocks map[uint32
 	return pcf.indexGenesisBlocks(genesisBlocks, indexingData, map[string]*outport.AlteredAccount{})
 }
 
-// DecodeAddresses -
-func DecodeAddresses(pkConverter core.PubkeyConverter, automaticCrawlerAddressesStrings []string) ([][]byte, error) {
-	return factory.DecodeAddresses(pkConverter, automaticCrawlerAddressesStrings)
+// SetChainRunType -
+func (pcf *processComponentsFactory) SetChainRunType(chainRunType common.ChainRunType) {
+	pcf.chainRunType = chainRunType
 }
