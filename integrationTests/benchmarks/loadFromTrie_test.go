@@ -74,7 +74,7 @@ func timeTrieRecreate(tries []*keyForTrie, depth int) {
 		_, _ = tries[j].tr.Recreate(tries[j].key)
 	}
 	duration := time.Since(startTime)
-	fmt.Println(fmt.Sprintf("trie with depth %d, duration %d", depth, duration.Nanoseconds()/int64(len(tries))))
+	fmt.Printf("trie with depth %d, duration %d \n", depth, duration.Nanoseconds()/int64(len(tries)))
 }
 
 func timeTrieLoad(t *testing.T, tries []*keyForTrie, depth int) {
@@ -85,7 +85,7 @@ func timeTrieLoad(t *testing.T, tries []*keyForTrie, depth int) {
 		tries[j] = nil
 	}
 	duration := time.Since(startTime)
-	fmt.Println(fmt.Sprintf("trie with depth %d, duration %d", depth, duration.Nanoseconds()/int64(len(tries))))
+	fmt.Printf("trie with depth %d, duration %d \n", depth, duration.Nanoseconds()/int64(len(tries)))
 }
 
 type keyForTrie struct {
