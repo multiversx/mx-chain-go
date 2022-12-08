@@ -78,12 +78,16 @@ func (r *RequestHandler) CreateTrieNodeIdentifier(_ []byte, _ uint32) []byte {
 	return make([]byte, 0)
 }
 
-// RequestPeerAuthenticationsChunk does nothing
-func (r *RequestHandler) RequestPeerAuthenticationsChunk(_ uint32, _ uint32) {
-}
-
 // RequestPeerAuthenticationsByHashes does nothing
 func (r *RequestHandler) RequestPeerAuthenticationsByHashes(_ uint32, _ [][]byte) {
+}
+
+// RequestValidatorInfo does nothing
+func (r *RequestHandler) RequestValidatorInfo(_ []byte) {
+}
+
+// RequestValidatorsInfo does nothing
+func (r *RequestHandler) RequestValidatorsInfo(_ [][]byte) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

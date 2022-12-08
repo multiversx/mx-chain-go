@@ -19,9 +19,9 @@ func getAddressFromUint32(address uint32) []byte {
 }
 
 func TestMultiShardCoordinator_NewMultiShardCoordinator(t *testing.T) {
-	nrOfShards := uint32(10)
-	sr, _ := NewMultiShardCoordinator(nrOfShards, 0)
-	assert.Equal(t, nrOfShards, sr.NumberOfShards())
+	numOfShards := uint32(10)
+	sr, _ := NewMultiShardCoordinator(numOfShards, 0)
+	assert.Equal(t, numOfShards, sr.NumberOfShards())
 	expectedMask1, expectedMask2 := sr.calculateMasks()
 	actualMask1 := sr.maskHigh
 	actualMask2 := sr.maskLow
@@ -35,7 +35,7 @@ func TestMultiShardCoordinator_NewMultiShardCoordinatorInvalidNumberOfShards(t *
 	assert.Equal(t, nodesCoordinator.ErrInvalidNumberOfShards, err)
 }
 
-func TestMultiShardCoordinator_NewMultiShardCoordinatorSelfIdGraterThanNrOfShardsShouldError(t *testing.T) {
+func TestMultiShardCoordinator_NewMultiShardCoordinatorSelfIdGraterThanNumOfShardsShouldError(t *testing.T) {
 	_, err := NewMultiShardCoordinator(1, 2)
 	assert.Equal(t, nodesCoordinator.ErrInvalidShardId, err)
 }
@@ -47,9 +47,9 @@ func TestMultiShardCoordinator_NewMultiShardCoordinatorCorrectSelfId(t *testing.
 }
 
 func TestMultiShardCoordinator_ComputeIdDoesNotGenerateInvalidShards(t *testing.T) {
-	nrOfShards := uint32(10)
+	numOfShards := uint32(10)
 	selfId := uint32(0)
-	sr, _ := NewMultiShardCoordinator(nrOfShards, selfId)
+	sr, _ := NewMultiShardCoordinator(numOfShards, selfId)
 
 	for i := 0; i < 200; i++ {
 		addr := getAddressFromUint32(uint32(i))
@@ -59,9 +59,9 @@ func TestMultiShardCoordinator_ComputeIdDoesNotGenerateInvalidShards(t *testing.
 }
 
 func TestMultiShardCoordinator_ComputeId10ShardsShouldWork(t *testing.T) {
-	nrOfShards := uint32(10)
+	numOfShards := uint32(10)
 	selfId := uint32(0)
-	sr, _ := NewMultiShardCoordinator(nrOfShards, selfId)
+	sr, _ := NewMultiShardCoordinator(numOfShards, selfId)
 
 	dataSet := []struct {
 		address, shardId uint32
@@ -92,9 +92,9 @@ func TestMultiShardCoordinator_ComputeId10ShardsShouldWork(t *testing.T) {
 }
 
 func TestMultiShardCoordinator_ComputeId10ShardsBigNumbersShouldWork(t *testing.T) {
-	nrOfShards := uint32(10)
+	numOfShards := uint32(10)
 	selfId := uint32(0)
-	sr, _ := NewMultiShardCoordinator(nrOfShards, selfId)
+	sr, _ := NewMultiShardCoordinator(numOfShards, selfId)
 
 	dataSet := []struct {
 		address string
@@ -128,9 +128,9 @@ func TestMultiShardCoordinator_ComputeId10ShardsBigNumbersShouldWork(t *testing.
 }
 
 func TestMultiShardCoordinator_ComputeIdSameSuffixHasSameShard(t *testing.T) {
-	nrOfShards := uint32(2)
+	numOfShards := uint32(2)
 	selfId := uint32(0)
-	sr, _ := NewMultiShardCoordinator(nrOfShards, selfId)
+	sr, _ := NewMultiShardCoordinator(numOfShards, selfId)
 
 	dataSet := []struct {
 		address, shardId uint32

@@ -8,6 +8,7 @@ import (
 	"math"
 	"math/big"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -19,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/data/vm"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -47,14 +49,14 @@ func createMockArgAPITransactionProcessor() *ArgAPITransactionProcessor {
 		AddressPubKeyConverter:   &mock.PubkeyConverterMock{},
 		ShardCoordinator:         createShardCoordinator(),
 		HistoryRepository:        &dblookupextMock.HistoryRepositoryStub{},
-		StorageService:           &mock.ChainStorerMock{},
+		StorageService:           &storageStubs.ChainStorerStub{},
 		DataPool:                 &dataRetrieverMock.PoolsHolderMock{},
 		Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
 		FeeComputer:              &testscommon.FeeComputerStub{},
 		TxTypeHandler:            &testscommon.TxTypeHandlerMock{},
 		LogsFacade:               &testscommon.LogsFacadeStub{},
 		DataFieldParser: &testscommon.DataFieldParserStub{
-			ParseCalled: func(dataField []byte, sender, receiver []byte) *datafield.ResponseParseData {
+			ParseCalled: func(dataField []byte, sender, receiver []byte, _ uint32) *datafield.ResponseParseData {
 				return &datafield.ResponseParseData{}
 			},
 		},
@@ -346,6 +348,38 @@ func TestNode_GetTransactionFromStorage(t *testing.T) {
 	require.Nil(t, tx)
 }
 
+func TestNode_GetTransactionWithResultsFromStorageMissingStorer(t *testing.T) {
+	t.Parallel()
+
+	t.Run("missing TransactionUnit", testWithMissingStorer(dataRetriever.TransactionUnit))
+	t.Run("missing UnsignedTransactionUnit", testWithMissingStorer(dataRetriever.UnsignedTransactionUnit))
+	t.Run("missing RewardTransactionUnit", testWithMissingStorer(dataRetriever.RewardTransactionUnit))
+}
+func testWithMissingStorer(missingUnit dataRetriever.UnitType) func(t *testing.T) {
+	return func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgAPITransactionProcessor()
+		args.StorageService = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				if unitType == missingUnit {
+					return nil, fmt.Errorf("%w for %s", storage.ErrKeyNotFound, missingUnit.String())
+				}
+				return &storageStubs.StorerStub{
+					SearchFirstCalled: func(key []byte) ([]byte, error) {
+						return nil, errors.New("dummy")
+					},
+				}, nil
+			},
+		}
+
+		apiTransactionProc, _ := NewAPITransactionProcessor(args)
+		_, err := apiTransactionProc.getTransactionFromStorage([]byte("txHash"))
+		require.NotNil(t, err)
+		require.True(t, strings.Contains(err.Error(), ErrTransactionNotFound.Error()))
+	}
+}
+
 func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 	t.Parallel()
 
@@ -366,29 +400,29 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 		},
 	}
 
-	chainStorer := &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	chainStorer := &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			switch unitType {
 			case dataRetriever.TransactionUnit:
 				return &storageStubs.StorerStub{
 					GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 						return marshalizer.Marshal(tx)
 					},
-				}
+				}, nil
 			case dataRetriever.UnsignedTransactionUnit:
 				return &storageStubs.StorerStub{
 					GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 						return marshalizer.Marshal(scResult)
 					},
-				}
-			case dataRetriever.TxLogsUnit:
+				}, nil
+			case dataRetriever.RewardTransactionUnit:
 				return &storageStubs.StorerStub{
 					GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 						return nil, errors.New("dummy")
 					},
-				}
+				}, nil
 			default:
-				return nil
+				return nil, storage.ErrKeyNotFound
 			}
 		},
 	}
@@ -422,7 +456,7 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 		TxTypeHandler:            &testscommon.TxTypeHandlerMock{},
 		LogsFacade:               &testscommon.LogsFacadeStub{},
 		DataFieldParser: &testscommon.DataFieldParserStub{
-			ParseCalled: func(dataField []byte, sender, receiver []byte) *datafield.ResponseParseData {
+			ParseCalled: func(dataField []byte, sender, receiver []byte, _ uint32) *datafield.ResponseParseData {
 				return &datafield.ResponseParseData{}
 			},
 		},
@@ -797,7 +831,7 @@ func TestApiTransactionProcessor_GetTransactionsPoolForSender(t *testing.T) {
 
 	// if no tx is found in pool for a sender, it isn't an error, but return empty slice
 	newSender := "new-sender"
-	res, err  = atp.GetTransactionsPoolForSender(newSender, "")
+	res, err = atp.GetTransactionsPoolForSender(newSender, "")
 	require.NoError(t, err)
 	require.Equal(t, &common.TransactionsPoolForSenderApiResponse{
 		Transactions: []common.Transaction{},
@@ -807,7 +841,7 @@ func TestApiTransactionProcessor_GetTransactionsPoolForSender(t *testing.T) {
 func TestApiTransactionProcessor_GetLastPoolNonceForSender(t *testing.T) {
 	t.Parallel()
 
-	txHash0, txHash1, txHash2 := []byte("txHash0"), []byte("txHash1"), []byte("txHash2")
+	txHash0, txHash1, txHash2, txHash3, txHash4 := []byte("txHash0"), []byte("txHash1"), []byte("txHash2"), []byte("txHash3"), []byte("txHash4")
 	sender := "alice"
 	lastNonce := uint64(10)
 	txCacheIntraShard, _ := txcache.NewTxCache(txcache.ConfigSourceMe{
@@ -823,31 +857,15 @@ func TestApiTransactionProcessor_GetLastPoolNonceForSender(t *testing.T) {
 	txCacheIntraShard.AddTx(createTx(txHash2, sender, 3))
 	txCacheIntraShard.AddTx(createTx(txHash0, sender, 1))
 	txCacheIntraShard.AddTx(createTx(txHash1, sender, 2))
-
-	txHash3, txHash4 := []byte("txHash3"), []byte("txHash4")
-	txCacheWithMeta, _ := txcache.NewTxCache(txcache.ConfigSourceMe{
-		Name:                       "test-meta",
-		NumChunks:                  4,
-		NumBytesPerSenderThreshold: 1_048_576, // 1 MB
-		CountPerSenderThreshold:    math.MaxUint32,
-	}, &txcachemocks.TxGasHandlerMock{
-		MinimumGasMove:       1,
-		MinimumGasPrice:      1,
-		GasProcessingDivisor: 1,
-	})
-	txCacheWithMeta.AddTx(createTx(txHash3, sender, lastNonce))
-	txCacheWithMeta.AddTx(createTx(txHash4, sender, 5))
+	txCacheIntraShard.AddTx(createTx(txHash3, sender, lastNonce))
+	txCacheIntraShard.AddTx(createTx(txHash4, sender, 5))
 
 	args := createMockArgAPITransactionProcessor()
 	args.DataPool = &dataRetrieverMock.PoolsHolderStub{
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return &testscommon.ShardedDataStub{
 				ShardDataStoreCalled: func(cacheID string) storage.Cacher {
-					if len(cacheID) == 1 { // self shard
-						return txCacheIntraShard
-					}
-
-					return txCacheWithMeta
+					return txCacheIntraShard
 				},
 			}
 		},
@@ -962,11 +980,11 @@ func TestApiTransactionProcessor_GetTransactionsPoolNonceGapsForSender(t *testin
 
 	// if no tx is found in pool for a sender, it isn't an error, but return empty slice
 	newSender := "new-sender"
-	res, err  = atp.GetTransactionsPoolNonceGapsForSender(newSender)
+	res, err = atp.GetTransactionsPoolNonceGapsForSender(newSender)
 	require.NoError(t, err)
 	require.Equal(t, &common.TransactionsPoolNonceGapsForSenderApiResponse{
 		Sender: newSender,
-		Gaps: []common.NonceGapApiResponse{},
+		Gaps:   []common.NonceGapApiResponse{},
 	}, res)
 }
 
@@ -980,7 +998,7 @@ func createAPITransactionProc(t *testing.T, epoch uint32, withDbLookupExt bool) 
 		},
 	}
 	dataFieldParser := &testscommon.DataFieldParserStub{
-		ParseCalled: func(dataField []byte, sender, receiver []byte) *datafield.ResponseParseData {
+		ParseCalled: func(dataField []byte, sender, receiver []byte, _ uint32) *datafield.ResponseParseData {
 			return &datafield.ResponseParseData{}
 		},
 	}
@@ -1072,6 +1090,7 @@ func TestPrepareUnsignedTx(t *testing.T) {
 		Receiver:       "erd1qyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqsl6e0p7",
 		Sender:         "erd1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq6gq4hu",
 		OriginalSender: "",
+		CallType:       vm.DirectCallStr,
 	}
 	assert.Equal(t, scrResult1, expectedScr1)
 
@@ -1093,6 +1112,7 @@ func TestPrepareUnsignedTx(t *testing.T) {
 		Receiver:       "erd1qcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqwkh39e",
 		Sender:         "erd1q5zs2pg9q5zs2pg9q5zs2pg9q5zs2pg9q5zs2pg9q5zs2pg9q5zsrqsks3",
 		OriginalSender: "erd1qurswpc8qurswpc8qurswpc8qurswpc8qurswpc8qurswpc8qurstywtnm",
+		CallType:       vm.DirectCallStr,
 	}
 	assert.Equal(t, scrResult2, expectedScr2)
 }

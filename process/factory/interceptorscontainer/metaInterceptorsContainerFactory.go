@@ -94,7 +94,6 @@ func NewMetaInterceptorsContainerFactory(
 		HeaderIntegrityVerifier:      args.HeaderIntegrityVerifier,
 		EpochStartTrigger:            args.EpochStartTrigger,
 		ArgsParser:                   args.ArgumentsParser,
-		EnableEpochs:                 args.EnableEpochs,
 		GuardianSigVerifier:          args.GuardianSigVerifier,
 		PeerSignatureHandler:         args.PeerSignatureHandler,
 		SignaturesHandler:            args.SignaturesHandler,
@@ -183,7 +182,12 @@ func (micf *metaInterceptorsContainerFactory) Create() (process.InterceptorsCont
 		return nil, err
 	}
 
-	err = micf.generateDirectConnectionInfoInterceptor()
+	err = micf.generatePeerShardInterceptor()
+	if err != nil {
+		return nil, err
+	}
+
+	err = micf.generateValidatorInfoInterceptor()
 	if err != nil {
 		return nil, err
 	}

@@ -9,7 +9,7 @@ import (
 // BlockChainHookStub -
 type BlockChainHookStub struct {
 	NewAddressCalled                     func(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error)
-	GetStorageDataCalled                 func(accountsAddress []byte, index []byte) ([]byte, error)
+	GetStorageDataCalled                 func(accountsAddress []byte, index []byte) ([]byte, uint32, error)
 	GetBlockHashCalled                   func(nonce uint64) ([]byte, error)
 	LastNonceCalled                      func() uint64
 	LastRoundCalled                      func() uint64
@@ -65,12 +65,12 @@ func (stub *BlockChainHookStub) GetUserAccount(address []byte) (vmcommon.UserAcc
 }
 
 // GetStorageData -
-func (stub *BlockChainHookStub) GetStorageData(accountAddress []byte, index []byte) ([]byte, error) {
+func (stub *BlockChainHookStub) GetStorageData(accountAddress []byte, index []byte) ([]byte, uint32, error) {
 	if stub.GetStorageDataCalled != nil {
 		return stub.GetStorageDataCalled(accountAddress, index)
 	}
 
-	return make([]byte, 0), nil
+	return make([]byte, 0), 0, nil
 }
 
 // GetBlockhash -

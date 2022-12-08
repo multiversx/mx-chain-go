@@ -4,9 +4,13 @@ import (
 	"math/big"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/common/enablers"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/external/timemachine"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
@@ -16,12 +20,11 @@ var log = logger.GetOrCreate("node/external/timemachine/fee")
 
 type feeComputer struct {
 	txVersionChecker               process.TxVersionCheckerHandler
-	builtInFunctionsCostHandler    economics.BuiltInFunctionsCostHandler
-	economicsConfig                config.EconomicsConfig
-	penalizedTooMuchGasEnableEpoch uint32
-	gasPriceModifierEnableEpoch    uint32
-	economicsInstances             map[uint32]economicsDataWithComputeFee
-	mutex                          sync.RWMutex
+	builtInFunctionsCostHandler economics.BuiltInFunctionsCostHandler
+	economicsConfig             config.EconomicsConfig
+	economicsInstances          map[uint32]economicsDataWithComputeFee
+	enableEpochsHandler         common.EnableEpochsHandler
+	mutex                       sync.RWMutex
 }
 
 // NewFeeComputer creates a fee computer which handles historical transactions, as well
@@ -31,28 +34,22 @@ func NewFeeComputer(args ArgsNewFeeComputer) (*feeComputer, error) {
 		return nil, err
 	}
 
+	enableEpochsHandler, err := enablers.NewEnableEpochsHandler(args.EnableEpochsConfig, &timemachine.DisabledEpochNotifier{})
+	if err != nil {
+		return nil, err
+	}
+
 	computer := &feeComputer{
-		builtInFunctionsCostHandler:    args.BuiltInFunctionsCostHandler,
-		economicsConfig:                args.EconomicsConfig,
-		penalizedTooMuchGasEnableEpoch: args.PenalizedTooMuchGasEnableEpoch,
-		gasPriceModifierEnableEpoch:    args.GasPriceModifierEnableEpoch,
+		builtInFunctionsCostHandler: args.BuiltInFunctionsCostHandler,
+		economicsConfig:             args.EconomicsConfig,
 		// TODO: use a LRU cache instead
-		economicsInstances: make(map[uint32]economicsDataWithComputeFee),
+		economicsInstances:  make(map[uint32]economicsDataWithComputeFee),
+		enableEpochsHandler: enableEpochsHandler,
 		txVersionChecker:   args.TxVersionChecker,
 	}
 
 	// Create some economics data instance (but do not save them) in order to validate the arguments:
 	_, err = computer.createEconomicsInstance(0)
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = computer.createEconomicsInstance(args.PenalizedTooMuchGasEnableEpoch)
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = computer.createEconomicsInstance(args.GasPriceModifierEnableEpoch)
 	if err != nil {
 		return nil, err
 	}
@@ -100,12 +97,18 @@ func (computer *feeComputer) getOrCreateInstance(epoch uint32) (economicsDataWit
 }
 
 func (computer *feeComputer) createEconomicsInstance(epoch uint32) (economicsDataWithComputeFee, error) {
+	epochSubscriberHandler, ok := computer.enableEpochsHandler.(core.EpochSubscriberHandler)
+	if !ok {
+		return nil, external.ErrEpochSubscriberHandlerWrongTypeAssertion
+	}
+
+	epochSubscriberHandler.EpochConfirmed(epoch, 0)
+
 	args := economics.ArgsNewEconomicsData{
-		Economics:                      &computer.economicsConfig,
-		PenalizedTooMuchGasEnableEpoch: computer.penalizedTooMuchGasEnableEpoch,
-		GasPriceModifierEnableEpoch:    computer.gasPriceModifierEnableEpoch,
-		BuiltInFunctionsCostHandler:    computer.builtInFunctionsCostHandler,
-		EpochNotifier:                  &timemachine.DisabledEpochNotifier{},
+		Economics:                   &computer.economicsConfig,
+		BuiltInFunctionsCostHandler: computer.builtInFunctionsCostHandler,
+		EpochNotifier:               &timemachine.DisabledEpochNotifier{},
+		EnableEpochsHandler:         computer.enableEpochsHandler,
 		TxVersionChecker:               computer.txVersionChecker,
 	}
 
@@ -114,7 +117,7 @@ func (computer *feeComputer) createEconomicsInstance(epoch uint32) (economicsDat
 		return nil, err
 	}
 
-	economicsData.EpochConfirmed(uint32(epoch), 0)
+	economicsData.EpochConfirmed(epoch, 0)
 
 	return economicsData, nil
 }

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"testing"
 
-	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -14,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
+	arwenConfig "github.com/ElrondNetwork/wasm-vm-v1_4/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -67,17 +67,9 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 				ConfigChangeAddress: "3132333435363738393031323334353637383930313233343536373839303234",
 			},
 		},
-		EpochNotifier:          &mock.EpochNotifierStub{},
 		AddressPubKeyConverter: &mock.PubkeyConverterMock{},
-		EpochConfig: &config.EpochConfig{
-			EnableEpochs: config.EnableEpochs{
-				StakingV2EnableEpoch:               1,
-				StakeEnableEpoch:                   0,
-				DelegationSmartContractEnableEpoch: 0,
-				DelegationManagerEnableEpoch:       0,
-			},
-		},
-		ShardCoordinator: &mock.ShardCoordinatorStub{},
+		ShardCoordinator:       &mock.ShardCoordinatorStub{},
+		EnableEpochsHandler:    &testscommon.EnableEpochsHandlerStub{},
 	}
 }
 
@@ -156,17 +148,6 @@ func TestNewSystemSCFactory_NilSystemScConfig(t *testing.T) {
 
 	assert.Nil(t, scFactory)
 	assert.True(t, errors.Is(err, vm.ErrNilSystemSCConfig))
-}
-
-func TestNewSystemSCFactory_NilEpochNotifier(t *testing.T) {
-	t.Parallel()
-
-	arguments := createMockNewSystemScFactoryArgs()
-	arguments.EpochNotifier = nil
-	scFactory, err := NewSystemSCFactory(arguments)
-
-	assert.Nil(t, scFactory)
-	assert.True(t, errors.Is(err, vm.ErrNilEpochNotifier))
 }
 
 func TestNewSystemSCFactory_NilPubKeyConverter(t *testing.T) {

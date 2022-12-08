@@ -6,7 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
@@ -24,8 +24,8 @@ type interceptedDataCoreComponentsHolder interface {
 	ChainID() string
 	MinTransactionVersion() uint32
 	IsInterfaceNil() bool
-	EpochNotifier() process.EpochNotifier
 	HardforkTriggerPubKey() []byte
+	EnableEpochsHandler() common.EnableEpochsHandler
 }
 
 // interceptedDataCryptoComponentsHolder holds the crypto components required by the intercepted data factory
@@ -34,7 +34,7 @@ type interceptedDataCryptoComponentsHolder interface {
 	BlockSignKeyGen() crypto.KeyGenerator
 	TxSingleSigner() crypto.SingleSigner
 	BlockSigner() crypto.SingleSigner
-	MultiSigner() crypto.MultiSigner
+	GetMultiSigner(epoch uint32) (crypto.MultiSigner, error)
 	PublicKey() crypto.PublicKey
 	IsInterfaceNil() bool
 }
@@ -53,7 +53,6 @@ type ArgInterceptedDataFactory struct {
 	HeaderIntegrityVerifier      process.HeaderIntegrityVerifier
 	EpochStartTrigger            process.EpochStartTriggerHandler
 	ArgsParser                   process.ArgumentsParser
-	EnableEpochs                 config.EnableEpochs
 	GuardianSigVerifier          process.GuardianSigVerifier
 	PeerSignatureHandler         crypto.PeerSignatureHandler
 	SignaturesHandler            process.SignaturesHandler

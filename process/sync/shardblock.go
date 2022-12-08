@@ -83,9 +83,16 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 	base.requestMiniBlocks = boot.requestMiniBlocksFromHeaderWithNonceIfMissing
 
 	// placed in struct fields for performance reasons
-	base.headerStore = boot.store.GetStorer(dataRetriever.BlockHeaderUnit)
+	base.headerStore, err = boot.store.GetStorer(dataRetriever.BlockHeaderUnit)
+	if err != nil {
+		return nil, err
+	}
+
 	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(boot.shardCoordinator.SelfId())
-	base.headerNonceHashStore = boot.store.GetStorer(hdrNonceHashDataUnit)
+	base.headerNonceHashStore, err = boot.store.GetStorer(hdrNonceHashDataUnit)
+	if err != nil {
+		return nil, err
+	}
 
 	base.init()
 
@@ -132,9 +139,9 @@ func (boot *ShardBootstrap) StartSyncingBlocks() {
 
 // SyncBlock method actually does the synchronization. It requests the next block header from the pool
 // and if it is not found there it will be requested from the network. After the header is received,
-// it requests the block body in the same way(pool and than, if it is not found in the pool, from network).
+// it requests the block body in the same way(pool and then, if it is not found in the pool, from network).
 // If either header and body are received the ProcessBlock and CommitBlock method will be called successively.
-// These methods will execute the block and its transactions. Finally if everything works, the block will be committed
+// These methods will execute the block and its transactions. Finally, if everything works, the block will be committed
 // in the blockchain, and all this mechanism will be reiterated for the next block.
 func (boot *ShardBootstrap) SyncBlock(ctx context.Context) error {
 	err := boot.syncBlock()
@@ -151,7 +158,7 @@ func isErrGetNodeFromDB(err error) bool {
 		return false
 	}
 
-	if strings.Contains(err.Error(), errors.ErrDBIsClosed.Error()) {
+	if strings.Contains(err.Error(), storage.ErrDBIsClosed.Error()) {
 		return false
 	}
 
@@ -349,4 +356,9 @@ func (boot *ShardBootstrap) isForkTriggeredByMeta() bool {
 
 func (boot *ShardBootstrap) requestHeaderByNonce(nonce uint64) {
 	boot.requestHandler.RequestShardHeaderByNonce(boot.shardCoordinator.SelfId(), nonce)
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (boot *ShardBootstrap) IsInterfaceNil() bool {
+	return boot == nil
 }

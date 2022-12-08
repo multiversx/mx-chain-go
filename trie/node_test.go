@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	dataMock "github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/trie/keyBuilder"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -417,34 +418,6 @@ func TestKeyBytesToHex(t *testing.T) {
 	}
 }
 
-func TestHexToKeyBytes(t *testing.T) {
-	t.Parallel()
-
-	reversedHexDoeKey := []byte{5, 6, 15, 6, 4, 6, 16}
-	reversedHexDogKey := []byte{7, 6, 15, 6, 4, 6, 16}
-
-	var test = []struct {
-		key, hex []byte
-	}{
-		{reversedHexDoeKey, []byte("doe")},
-		{reversedHexDogKey, []byte("dog")},
-	}
-
-	for i := range test {
-		key, err := hexToKeyBytes(test[i].key)
-		assert.Nil(t, err)
-		assert.Equal(t, test[i].hex, key)
-	}
-}
-
-func TestHexToKeyBytesInvalidLength(t *testing.T) {
-	t.Parallel()
-
-	key, err := hexToKeyBytes([]byte{6, 4, 6, 15, 6, 5})
-	assert.Nil(t, key)
-	assert.Equal(t, ErrInvalidLength, err)
-}
-
 func TestPrefixLen(t *testing.T) {
 	t.Parallel()
 
@@ -543,14 +516,20 @@ func TestPatriciaMerkleTrie_GetAllLeavesCollapsedTrie(t *testing.T) {
 	}
 	tr.root = root
 
-	leavesChannel := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
-	err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), tr.root.getHash())
+	leavesChannel := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    make(chan error, 1),
+	}
+	err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), tr.root.getHash(), keyBuilder.NewKeyBuilder())
 	assert.Nil(t, err)
 	leaves := make(map[string][]byte)
 
-	for l := range leavesChannel {
+	for l := range leavesChannel.LeavesChan {
 		leaves[string(l.Key())] = l.Value()
 	}
+
+	err = common.GetErrorFromChanNonBlocking(leavesChannel.ErrChan)
+	assert.Nil(t, err)
 
 	assert.Equal(t, 3, len(leaves))
 	assert.Equal(t, []byte("reindeer"), leaves["doe"])

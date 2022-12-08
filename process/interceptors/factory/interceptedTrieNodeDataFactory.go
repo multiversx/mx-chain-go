@@ -3,7 +3,6 @@ package factory
 import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/trie"
 )
@@ -11,8 +10,7 @@ import (
 var _ process.InterceptedDataFactory = (*interceptedTrieNodeDataFactory)(nil)
 
 type interceptedTrieNodeDataFactory struct {
-	marshalizer marshal.Marshalizer
-	hasher      hashing.Hasher
+	hasher hashing.Hasher
 }
 
 // NewInterceptedTrieNodeDataFactory creates an instance of interceptedTrieNodeDataFactory
@@ -26,22 +24,18 @@ func NewInterceptedTrieNodeDataFactory(
 	if check.IfNil(argument.CoreComponents) {
 		return nil, process.ErrNilCoreComponentsHolder
 	}
-	if check.IfNil(argument.CoreComponents.InternalMarshalizer()) {
-		return nil, process.ErrNilMarshalizer
-	}
 	if check.IfNil(argument.CoreComponents.Hasher()) {
 		return nil, process.ErrNilHasher
 	}
 
 	return &interceptedTrieNodeDataFactory{
-		marshalizer: argument.CoreComponents.InternalMarshalizer(),
-		hasher:      argument.CoreComponents.Hasher(),
+		hasher: argument.CoreComponents.Hasher(),
 	}, nil
 }
 
 // Create creates instances of InterceptedData by unmarshalling provided buffer
 func (sidf *interceptedTrieNodeDataFactory) Create(buff []byte) (process.InterceptedData, error) {
-	return trie.NewInterceptedTrieNode(buff, sidf.marshalizer, sidf.hasher)
+	return trie.NewInterceptedTrieNode(buff, sidf.hasher)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

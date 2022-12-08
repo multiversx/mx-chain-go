@@ -23,7 +23,7 @@ func (desn *EpochStartNotifier) UnregisterHandler(_ epochStart.ActionHandler) {
 }
 
 // NotifyAllPrepare -
-func (desn *EpochStartNotifier) NotifyAllPrepare(_ data.HeaderHandler, _ data.BodyHandler) {
+func (desn *EpochStartNotifier) NotifyAllPrepare(_ data.HeaderHandler, _ data.BodyHandler, _ epochStart.ValidatorInfoCacher) {
 }
 
 // NotifyAll -

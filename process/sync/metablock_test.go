@@ -4,12 +4,15 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"reflect"
+	"strings"
 	goSync "sync"
 	"testing"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -23,14 +26,16 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/outport"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func createMetaBlockProcessor(blk data.ChainHandler) *mock.BlockProcessorMock {
-	blockProcessorMock := &mock.BlockProcessorMock{
+func createMetaBlockProcessor(blk data.ChainHandler) *testscommon.BlockProcessorStub {
+	blockProcessorMock := &testscommon.BlockProcessorStub{
 		ProcessBlockCalled: func(hdr data.HeaderHandler, bdy data.BodyHandler, haveTime func() time.Duration) error {
 			_ = blk.SetCurrentBlockHeaderAndRootHash(hdr.(*block.MetaBlock), hdr.GetRootHash())
 			return nil
@@ -52,6 +57,7 @@ func createMetaStore() dataRetriever.StorageService {
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.MetaBlockUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, generateTestUnit())
 	return store
 }
 
@@ -61,7 +67,7 @@ func CreateMetaBootstrapMockArguments() sync.ArgMetaBootstrapper {
 		Store:                        createStore(),
 		ChainHandler:                 initBlockchain(),
 		RoundHandler:                 &mock.RoundHandlerMock{},
-		BlockProcessor:               &mock.BlockProcessorMock{},
+		BlockProcessor:               &testscommon.BlockProcessorStub{},
 		WaitTime:                     waitTime,
 		Hasher:                       &hashingMocks.HasherMock{},
 		Marshalizer:                  &mock.MarshalizerMock{},
@@ -77,7 +83,7 @@ func CreateMetaBootstrapMockArguments() sync.ArgMetaBootstrapper {
 		MiniblocksProvider:           &mock.MiniBlocksProviderStub{},
 		Uint64Converter:              &mock.Uint64ByteSliceConverterMock{},
 		AppStatusHandler:             &statusHandlerMock.AppStatusHandlerStub{},
-		OutportHandler:               &testscommon.OutportStub{},
+		OutportHandler:               &outport.OutportStub{},
 		AccountsDBSyncer:             &mock.AccountsDBSyncerStub{},
 		CurrentEpochProvider:         &testscommon.CurrentEpochProviderStub{},
 		HistoryRepo:                  &dblookupext.HistoryRepositoryStub{},
@@ -105,7 +111,7 @@ func TestNewMetaBootstrap_NilPoolsHolderShouldErr(t *testing.T) {
 
 	bs, err := sync.NewMetaBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilPoolsHolder, err)
 }
 
@@ -117,7 +123,7 @@ func TestNewMetaBootstrap_NilValidatorDBShouldErr(t *testing.T) {
 
 	bs, err := sync.NewMetaBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilPeerAccountsAdapter, err)
 }
 
@@ -129,7 +135,7 @@ func TestNewMetaBootstrap_NilValidatorDBSyncerShouldErr(t *testing.T) {
 
 	bs, err := sync.NewMetaBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilAccountsDBSyncer, err)
 }
 
@@ -141,7 +147,7 @@ func TestNewMetaBootstrap_NilUserDBSyncerShouldErr(t *testing.T) {
 
 	bs, err := sync.NewMetaBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilAccountsDBSyncer, err)
 }
 
@@ -157,7 +163,7 @@ func TestNewMetaBootstrap_PoolsHolderRetNilOnHeadersShouldErr(t *testing.T) {
 
 	bs, err := sync.NewMetaBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilMetaBlocksPool, err)
 }
 
@@ -169,7 +175,7 @@ func TestNewMetaBootstrap_NilStoreShouldErr(t *testing.T) {
 
 	bs, err := sync.NewMetaBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilStore, err)
 }
 
@@ -181,7 +187,7 @@ func TestNewMetaBootstrap_NilAppStatusHandlerShouldErr(t *testing.T) {
 
 	bs, err := sync.NewMetaBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilAppStatusHandler, err)
 }
 
@@ -193,7 +199,7 @@ func TestNewMetaBootstrap_NilBlockchainShouldErr(t *testing.T) {
 
 	bs, err := sync.NewMetaBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilBlockChain, err)
 }
 
@@ -205,7 +211,7 @@ func TestNewMetaBootstrap_NilRoundHandlerShouldErr(t *testing.T) {
 
 	bs, err := sync.NewMetaBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilRoundHandler, err)
 }
 
@@ -217,7 +223,7 @@ func TestNewMetaBootstrap_NilBlockProcessorShouldErr(t *testing.T) {
 
 	bs, err := sync.NewMetaBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilBlockProcessor, err)
 }
 
@@ -229,7 +235,7 @@ func TestNewMetaBootstrap_NilHasherShouldErr(t *testing.T) {
 
 	bs, err := sync.NewMetaBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilHasher, err)
 }
 
@@ -241,7 +247,7 @@ func TestNewMetaBootstrap_NilMarshalizerShouldErr(t *testing.T) {
 
 	bs, err := sync.NewMetaBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilMarshalizer, err)
 }
 
@@ -253,7 +259,7 @@ func TestNewMetaBootstrap_NilForkDetectorShouldErr(t *testing.T) {
 
 	bs, err := sync.NewMetaBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilForkDetector, err)
 }
 
@@ -265,7 +271,7 @@ func TestNewMetaBootstrap_NilRequestHandlerShouldErr(t *testing.T) {
 
 	bs, err := sync.NewMetaBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilRequestHandler, err)
 }
 
@@ -277,7 +283,7 @@ func TestNewMetaBootstrap_NilShardCoordinatorShouldErr(t *testing.T) {
 
 	bs, err := sync.NewMetaBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
 }
 
@@ -289,7 +295,7 @@ func TestNewMetaBootstrap_NilAccountsAdapterShouldErr(t *testing.T) {
 
 	bs, err := sync.NewMetaBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilAccountsAdapter, err)
 }
 
@@ -301,7 +307,7 @@ func TestNewMetaBootstrap_NilBlackListHandlerShouldErr(t *testing.T) {
 
 	bs, err := sync.NewMetaBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilBlackListCacher, err)
 }
 
@@ -313,7 +319,7 @@ func TestNewMetaBootstrap_NilNetworkWatcherShouldErr(t *testing.T) {
 
 	bs, err := sync.NewMetaBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilNetworkWatcher, err)
 }
 
@@ -325,7 +331,7 @@ func TestNewMetaBootstrap_NilBootStorerShouldErr(t *testing.T) {
 
 	bs, err := sync.NewMetaBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilBootStorer, err)
 }
 
@@ -337,7 +343,7 @@ func TestNewMetaBootstrap_NilMiniblocksProviderShouldErr(t *testing.T) {
 
 	bs, err := sync.NewMetaBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilMiniBlocksProvider, err)
 }
 
@@ -349,7 +355,7 @@ func TestNewMetaBootstrap_NilOutportProviderShouldErr(t *testing.T) {
 
 	bs, err := sync.NewMetaBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilOutportHandler, err)
 }
 
@@ -361,7 +367,7 @@ func TestNewMetaBootstrap_NilCurrentEpochProviderShouldErr(t *testing.T) {
 
 	bs, err := sync.NewMetaBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilCurrentNetworkEpochProvider, err)
 }
 
@@ -373,8 +379,36 @@ func TestNewMetaBootstrap_InvalidProcessTimeShouldErr(t *testing.T) {
 
 	bs, err := sync.NewMetaBootstrap(args)
 
-	assert.Nil(t, bs)
+	assert.True(t, check.IfNil(bs))
 	assert.True(t, errors.Is(err, process.ErrInvalidProcessWaitTime))
+}
+
+func TestNewMetaBootstrap_MissingStorer(t *testing.T) {
+	t.Parallel()
+
+	t.Run("missing MetaBlockUnit", testMetaWithMissingStorer(dataRetriever.MetaBlockUnit))
+	t.Run("missing MetaHdrNonceHashDataUnit", testMetaWithMissingStorer(dataRetriever.MetaHdrNonceHashDataUnit))
+}
+
+func testMetaWithMissingStorer(missingUnit dataRetriever.UnitType) func(t *testing.T) {
+	return func(t *testing.T) {
+		t.Parallel()
+
+		args := CreateMetaBootstrapMockArguments()
+		args.Store = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				if unitType == missingUnit {
+					return nil, fmt.Errorf("%w for %s", storage.ErrKeyNotFound, missingUnit.String())
+				}
+				return &storageStubs.StorerStub{}, nil
+			},
+		}
+
+		bs, err := sync.NewMetaBootstrap(args)
+		assert.True(t, check.IfNil(bs))
+		require.NotNil(t, err)
+		require.True(t, strings.Contains(err.Error(), storage.ErrKeyNotFound.Error()))
+	}
 }
 
 func TestNewMetaBootstrap_OkValsShouldWork(t *testing.T) {
@@ -400,7 +434,7 @@ func TestNewMetaBootstrap_OkValsShouldWork(t *testing.T) {
 	args.IsInImportMode = true
 	bs, err := sync.NewMetaBootstrap(args)
 
-	assert.NotNil(t, bs)
+	assert.False(t, check.IfNil(bs))
 	assert.Nil(t, err)
 	assert.Equal(t, 1, wasCalled)
 	assert.False(t, bs.IsInterfaceNil())
@@ -408,54 +442,13 @@ func TestNewMetaBootstrap_OkValsShouldWork(t *testing.T) {
 
 	args.IsInImportMode = false
 	bs, err = sync.NewMetaBootstrap(args)
-	assert.NotNil(t, bs)
+	assert.False(t, check.IfNil(bs))
 	assert.Nil(t, err)
 	assert.False(t, bs.IsInImportMode())
 	assert.Equal(t, testProcessWaitTime, bs.ProcessWaitTime())
 }
 
 // ------- processing
-
-func TestMetaBootstrap_SyncBlockShouldCallRollBack(t *testing.T) {
-	t.Parallel()
-
-	args := CreateMetaBootstrapMockArguments()
-
-	hdr := block.MetaBlock{Nonce: 1, PubKeysBitmap: []byte("X")}
-
-	args.Store = createMetaStore()
-
-	blkc, _ := blockchain.NewMetaChain(&statusHandlerMock.AppStatusHandlerStub{})
-	_ = blkc.SetGenesisHeader(&block.MetaBlock{})
-	_ = blkc.SetCurrentBlockHeaderAndRootHash(&hdr, hdr.RootHash)
-	args.ChainHandler = blkc
-
-	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.CheckForkCalled = func() *process.ForkInfo {
-		return &process.ForkInfo{
-			IsDetected: true,
-			Nonce:      90,
-			Round:      90,
-			Hash:       []byte("hash"),
-		}
-	}
-	forkDetector.RemoveHeaderCalled = func(nonce uint64, hash []byte) {
-	}
-	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
-		return hdr.Nonce
-	}
-	forkDetector.ProbableHighestNonceCalled = func() uint64 {
-		return 100
-	}
-	args.ForkDetector = forkDetector
-	args.RoundHandler = initRoundHandler()
-	args.BlockProcessor = createMetaBlockProcessor(args.ChainHandler)
-
-	bs, _ := sync.NewMetaBootstrap(args)
-	r := bs.SyncBlock(context.Background())
-
-	assert.Equal(t, process.ErrNilHeadersNonceHashStorage, r)
-}
 
 func TestMetaBootstrap_ShouldReturnTimeIsOutWhenMissingHeader(t *testing.T) {
 	t.Parallel()
@@ -1034,7 +1027,7 @@ func TestMetaBootstrap_GetHeaderFromPoolShouldReturnNil(t *testing.T) {
 	hdr, _, _ := process.GetMetaHeaderFromPoolWithNonce(0, pools.HeadersCalled())
 	time.Sleep(500 * time.Millisecond)
 
-	assert.NotNil(t, bs)
+	assert.False(t, check.IfNil(bs))
 	assert.Nil(t, hdr)
 }
 
@@ -1073,7 +1066,7 @@ func TestMetaBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 	bs, _ := sync.NewMetaBootstrap(args)
 	hdr2, _, _ := process.GetMetaHeaderFromPoolWithNonce(0, pools.HeadersCalled())
 
-	assert.NotNil(t, bs)
+	assert.False(t, check.IfNil(bs))
 	assert.True(t, hdr == hdr2)
 }
 
@@ -1324,8 +1317,8 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *te
 		hdrHash = i
 	}
 	args.ChainHandler = blkc
-	args.Store = &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	args.Store = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) ([]byte, error) {
 					return prevHdrBytes, nil
@@ -1334,10 +1327,10 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *te
 					remFlags.flagHdrRemovedFromStorage = true
 					return nil
 				},
-			}
+			}, nil
 		},
 	}
-	args.BlockProcessor = &mock.BlockProcessorMock{
+	args.BlockProcessor = &testscommon.BlockProcessorStub{
 		RestoreBlockIntoPoolsCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
 			return nil
 		},
@@ -1466,8 +1459,8 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t 
 		hdrHash = nil
 	}
 	args.ChainHandler = blkc
-	args.Store = &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	args.Store = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) ([]byte, error) {
 					return prevHdrBytes, nil
@@ -1476,10 +1469,10 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t 
 					remFlags.flagHdrRemovedFromStorage = true
 					return nil
 				},
-			}
+			}, nil
 		},
 	}
-	args.BlockProcessor = &mock.BlockProcessorMock{
+	args.BlockProcessor = &testscommon.BlockProcessorStub{
 		RestoreBlockIntoPoolsCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
 			return nil
 		},

@@ -9,10 +9,10 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -41,8 +41,7 @@ type ArgsNewGovernanceContract struct {
 	DelegationMgrSCAddress      []byte
 	ValidatorSCAddress          []byte
 	InitialWhiteListedAddresses [][]byte
-	EpochNotifier               vm.EpochNotifier
-	EpochConfig                 config.EpochConfig
+	EnableEpochsHandler         common.EnableEpochsHandler
 }
 
 type governanceContract struct {
@@ -57,8 +56,7 @@ type governanceContract struct {
 	hasher                      hashing.Hasher
 	governanceConfig            config.GovernanceSystemSCConfig
 	initialWhiteListedAddresses [][]byte
-	enabledEpoch                uint32
-	flagEnabled                 atomic.Flag
+	enableEpochsHandler         common.EnableEpochsHandler
 	mutExecution                sync.RWMutex
 }
 
@@ -73,8 +71,8 @@ func NewGovernanceContract(args ArgsNewGovernanceContract) (*governanceContract,
 	if check.IfNil(args.Hasher) {
 		return nil, vm.ErrNilHasher
 	}
-	if check.IfNil(args.EpochNotifier) {
-		return nil, vm.ErrNilEpochNotifier
+	if check.IfNil(args.EnableEpochsHandler) {
+		return nil, vm.ErrNilEnableEpochsHandler
 	}
 
 	activeConfig := args.GovernanceConfig.Active
@@ -104,17 +102,14 @@ func NewGovernanceContract(args ArgsNewGovernanceContract) (*governanceContract,
 		marshalizer:            args.Marshalizer,
 		hasher:                 args.Hasher,
 		governanceConfig:       args.GovernanceConfig,
-		enabledEpoch:           args.EpochConfig.EnableEpochs.GovernanceEnableEpoch,
+		enableEpochsHandler:    args.EnableEpochsHandler,
 	}
-	log.Debug("governance: enable epoch for governance", "epoch", g.enabledEpoch)
 
 	err := g.validateInitialWhiteListedAddresses(args.InitialWhiteListedAddresses)
 	if err != nil {
 		return nil, err
 	}
 	g.initialWhiteListedAddresses = args.InitialWhiteListedAddresses
-
-	args.EpochNotifier.RegisterNotifyHandler(g)
 
 	return g, nil
 }
@@ -131,7 +126,7 @@ func (g *governanceContract) Execute(args *vmcommon.ContractCallInput) vmcommon.
 		return g.init(args)
 	}
 
-	if !g.flagEnabled.IsSet() {
+	if !g.enableEpochsHandler.IsGovernanceFlagEnabled() {
 		g.eei.AddReturnMessage("Governance SC disabled")
 		return vmcommon.UserError
 	}
@@ -279,7 +274,7 @@ func (g *governanceContract) proposal(args *vmcommon.ContractCallInput) vmcommon
 }
 
 // vote casts a vote for a validator/delegation. This function receives 2 parameters and will vote with its full delegation + validator amount
-//  args.Arguments[0] - proposal reference (github commit)
+//  args.Arguments[0] - proposal reference (GitHub commit)
 //  args.Arguments[1] - vote option (yes, no, veto)
 func (g *governanceContract) vote(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if args.CallValue.Cmp(zero) != 0 {
@@ -367,8 +362,8 @@ func isStakeLocked(eei vm.SystemEI, governanceAddress []byte, address []byte) bo
 	return eei.BlockChainHook().CurrentNonce() < lastEndNonce
 }
 
-// delegateVote casts a vote from a validator run by WASM SC and delegates it to some one else. This function receives 4 parameters:
-//  args.Arguments[0] - proposal reference (github commit)
+// delegateVote casts a vote from a validator run by WASM SC and delegates it to someone else. This function receives 4 parameters:
+//  args.Arguments[0] - proposal reference (GitHub commit)
 //  args.Arguments[1] - vote option (yes, no, veto)
 //  args.Arguments[2] - delegatedTo
 //  args.Arguments[3] - balance to vote
@@ -464,7 +459,7 @@ func (g *governanceContract) getVoteSetKeyForVoteWithFunds(proposalToVote, addre
 }
 
 // voteWithFunds casts a vote taking the transaction value as input for the vote power. It receives 2 arguments:
-//  args.Arguments[0] - proposal reference (github commit)
+//  args.Arguments[0] - proposal reference (GitHub commit)
 //  args.Arguments[1] - vote option (yes, no, veto)
 func (g *governanceContract) voteWithFunds(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	err := g.eei.UseGas(g.gasCost.MetaChainSystemSCsCost.Vote)
@@ -548,7 +543,7 @@ func (g *governanceContract) voteWithFunds(args *vmcommon.ContractCallInput) vmc
 	return vmcommon.Ok
 }
 
-// claimFunds returns back the used funds for a particular proposal if they are unlocked. Accepts a single parameter:
+// claimFunds returns the used funds for a particular proposal if they are unlocked. Accepts a single parameter:
 //  args.Arguments[0] - proposal reference
 func (g *governanceContract) claimFunds(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if args.CallValue.Cmp(big.NewInt(0)) != 0 {
@@ -1000,7 +995,7 @@ func (g *governanceContract) proposalExists(reference []byte) bool {
 	return len(marshaledData) > 0
 }
 
-// getValidProposal returns a proposal from storage if it exists or it is still valid/in-progress
+// getValidProposal returns a proposal from storage if it exists, or it is still valid/in-progress
 func (g *governanceContract) getValidProposal(reference []byte) (*GeneralProposal, error) {
 	proposal, err := g.getGeneralProposal(reference)
 	if err != nil {
@@ -1226,7 +1221,7 @@ func (g *governanceContract) getOrCreateVoteSet(key []byte) (*VoteSet, error) {
 	return voteData, nil
 }
 
-// getEmptyVoteSet returns a new  VoteSet instance with it's members initialised with their 0 value
+// getEmptyVoteSet returns a new  VoteSet instance with its members initialised with their 0 value
 func (g *governanceContract) getEmptyVoteSet() *VoteSet {
 	return &VoteSet{
 		UsedPower:   big.NewInt(0),
@@ -1435,12 +1430,6 @@ func (g *governanceContract) convertV2Config(config config.GovernanceSystemSCCon
 		MinVetoThreshold: minVeto,
 		ProposalFee:      proposalFee,
 	}, nil
-}
-
-// EpochConfirmed is called whenever a new epoch is confirmed
-func (g *governanceContract) EpochConfirmed(epoch uint32, _ uint64) {
-	g.flagEnabled.SetValue(epoch >= g.enabledEpoch)
-	log.Debug("governance contract", "enabled", g.flagEnabled.IsSet())
 }
 
 // CanUseContract returns true if contract is enabled

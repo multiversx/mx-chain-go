@@ -596,7 +596,7 @@ func (ste *scheduledTxsExecution) SaveState(headerHash []byte, scheduledInfo *pr
 
 // getScheduledInfoForHeader gets scheduled mini blocks, root hash, intermediate txs, gas and fees of the given header from storage
 func (ste *scheduledTxsExecution) getScheduledInfoForHeader(headerHash []byte, epoch core.OptionalUint32) (*process.ScheduledInfo, error) {
-	var data []byte
+	var scheduledData []byte
 	var err error
 
 	defer func() {
@@ -608,16 +608,16 @@ func (ste *scheduledTxsExecution) getScheduledInfoForHeader(headerHash []byte, e
 	}()
 
 	if epoch.HasValue {
-		data, err = ste.storer.GetFromEpoch(headerHash, epoch.Value)
+		scheduledData, err = ste.storer.GetFromEpoch(headerHash, epoch.Value)
 	} else {
-		data, err = ste.storer.Get(headerHash)
+		scheduledData, err = ste.storer.Get(headerHash)
 	}
 	if err != nil {
 		return nil, err
 	}
 
 	scheduledSCRs := &scheduled.ScheduledSCRs{}
-	err = ste.marshaller.Unmarshal(scheduledSCRs, data)
+	err = ste.marshaller.Unmarshal(scheduledSCRs, scheduledData)
 	if err != nil {
 		return nil, err
 	}

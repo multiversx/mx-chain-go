@@ -1,7 +1,6 @@
 package interceptorscontainer
 
 import (
-	"github.com/ElrondNetwork/elrond-go/config"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
@@ -34,7 +33,6 @@ type CommonInterceptorsContainerFactoryArgs struct {
 	ArgumentsParser              process.ArgumentsParser
 	PreferredPeersHolder         process.PreferredPeersHolderHandler
 	SizeCheckDelta               uint32
-	EnableEpochs                 config.EnableEpochs
 	RequestHandler               process.RequestHandler
 	GuardianSigVerifier          process.GuardianSigVerifier
 	PeerSignatureHandler         crypto.PeerSignatureHandler

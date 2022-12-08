@@ -37,12 +37,12 @@ func (psh *PresenterStatusHandler) GetRoundTime() uint64 {
 	return psh.getFromCacheAsUint64(common.MetricRoundTime)
 }
 
-// GetLiveValidatorNodes will return how many validator nodes are in blockchain
+// GetLiveValidatorNodes will return how many validator nodes are in blockchain and known by the current node to be active
 func (psh *PresenterStatusHandler) GetLiveValidatorNodes() uint64 {
 	return psh.getFromCacheAsUint64(common.MetricLiveValidatorNodes)
 }
 
-// GetConnectedNodes will return how many nodes are connected
+// GetConnectedNodes will return how many intra-shard nodes are connected
 func (psh *PresenterStatusHandler) GetConnectedNodes() uint64 {
 	return psh.getFromCacheAsUint64(common.MetricConnectedNodes)
 }
@@ -50,6 +50,11 @@ func (psh *PresenterStatusHandler) GetConnectedNodes() uint64 {
 // GetNumConnectedPeers will return how many peers are connected
 func (psh *PresenterStatusHandler) GetNumConnectedPeers() uint64 {
 	return psh.getFromCacheAsUint64(common.MetricNumConnectedPeers)
+}
+
+// GetIntraShardValidators will return how many intra-shard validator nodes are and known by the current node to be active
+func (psh *PresenterStatusHandler) GetIntraShardValidators() uint64 {
+	return psh.getFromCacheAsUint64(common.MetricNumIntraShardValidatorNodes)
 }
 
 // GetCurrentRound will return current round of node
@@ -173,4 +178,14 @@ func (psh *PresenterStatusHandler) GetEpochInfo() (uint64, uint64, int, string) 
 	epochLoadPercent := 100 - int(float64(roundsRemained)/float64(roundsPerEpoch)*100.0)
 
 	return currentRound, epochFinishRound, epochLoadPercent, remainingTime
+}
+
+// GetTrieSyncNumProcessedNodes will return the number of processed nodes during trie sync
+func (psh *PresenterStatusHandler) GetTrieSyncNumProcessedNodes() uint64 {
+	return psh.getFromCacheAsUint64(common.MetricTrieSyncNumProcessedNodes)
+}
+
+// GetTrieSyncNumBytesReceived will return the number of bytes synced during trie sync
+func (psh *PresenterStatusHandler) GetTrieSyncNumBytesReceived() uint64 {
+	return psh.getFromCacheAsUint64(common.MetricTrieSyncNumReceivedBytes)
 }

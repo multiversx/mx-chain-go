@@ -239,7 +239,7 @@ func (agc *guardedAccount) saveAccountGuardians(account vmcommon.UserAccountHand
 }
 
 func (agc *guardedAccount) getConfiguredGuardians(uah state.UserAccountHandler) (*guardians.Guardians, error) {
-	guardiansMarshalled, err := uah.RetrieveValueFromDataTrieTracker(guardianKey)
+	guardiansMarshalled, _, err := uah.RetrieveValue(guardianKey)
 	if err != nil || len(guardiansMarshalled) == 0 {
 		return &guardians.Guardians{Slice: make([]*guardians.Guardian, 0)}, nil
 	}

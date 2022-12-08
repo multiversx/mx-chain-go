@@ -1,7 +1,6 @@
 package trie
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/common"
 )
@@ -26,11 +25,13 @@ func NewTrieStorageManagerWithoutCheckpoints(tsm common.StorageManager) (*trieSt
 func (tsm *trieStorageManagerWithoutCheckpoints) SetCheckpoint(
 	_ []byte,
 	_ []byte,
-	chLeaves chan core.KeyValueHolder,
-	_ chan error,
+	iteratorChannels *common.TrieIteratorChannels,
+	_ chan []byte,
 	stats common.SnapshotStatisticsHandler,
 ) {
-	safelyCloseChan(chLeaves)
+	if iteratorChannels != nil {
+		safelyCloseChan(iteratorChannels.LeavesChan)
+	}
 	stats.SnapshotFinished()
 
 	log.Debug("trieStorageManagerWithoutCheckpoints - SetCheckpoint is disabled")

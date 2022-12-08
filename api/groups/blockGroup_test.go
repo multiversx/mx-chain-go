@@ -1,6 +1,7 @@
 package groups_test
 
 import (
+	"encoding/hex"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -8,9 +9,11 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
+	"github.com/ElrondNetwork/elrond-go-core/data/outport"
 	apiErrors "github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/groups"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
+	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -31,6 +34,14 @@ func TestNewBlockGroup(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, hg)
 	})
+}
+
+type alteredAccountsForBlockResponse struct {
+	Data struct {
+		Accounts []*outport.AlteredAccount `json:"accounts"`
+	} `json:"data"`
+	Error string `json:"error"`
+	Code  string `json:"code"`
 }
 
 type blockResponseData struct {
@@ -234,6 +245,8 @@ func getBlockRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/by-nonce/:nonce", Open: true},
 					{Name: "/by-hash/:hash", Open: true},
 					{Name: "/by-round/:round", Open: true},
+					{Name: "/altered-accounts/by-nonce/:nonce", Open: true},
+					{Name: "/altered-accounts/by-hash/:hash", Open: true},
 				},
 			},
 		},
@@ -426,6 +439,67 @@ func TestGetBlockByRound_WithBlockQueryOptionsShouldWork(t *testing.T) {
 	require.Equal(t, api.BlockQueryOptions{WithTransactions: true, WithLogs: true}, calledWithOptions)
 }
 
+func TestGetAlteredAccountsByNonce_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	expectedResponse := []*outport.AlteredAccount{
+		{
+			Address: "alice",
+			Balance: "100000",
+		},
+	}
+
+	facade := mock.FacadeStub{
+		GetAlteredAccountsForBlockCalled: func(options api.GetAlteredAccountsForBlockOptions) ([]*outport.AlteredAccount, error) {
+			require.Equal(t, api.BlockFetchTypeByNonce, options.RequestType)
+			require.Equal(t, uint64(37), options.Nonce)
+
+			return expectedResponse, nil
+		},
+	}
+
+	blockGroup, err := groups.NewBlockGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(blockGroup, "block", getBlockRoutesConfig())
+
+	response, code := httpGetAlteredAccountsForBlockBlock(ws, "/block/altered-accounts/by-nonce/37")
+	require.Equal(t, http.StatusOK, code)
+	require.Equal(t, expectedResponse, response.Data.Accounts)
+	require.Empty(t, response.Error)
+	require.Equal(t, string(shared.ReturnCodeSuccess), response.Code)
+}
+
+func TestGetAlteredAccountsByHash_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	expectedResponse := []*outport.AlteredAccount{
+		{
+			Address: "alice",
+			Balance: "100000",
+		},
+	}
+	facade := mock.FacadeStub{
+		GetAlteredAccountsForBlockCalled: func(options api.GetAlteredAccountsForBlockOptions) ([]*outport.AlteredAccount, error) {
+			require.Equal(t, api.BlockFetchTypeByHash, options.RequestType)
+			require.Equal(t, "aabb", hex.EncodeToString(options.Hash))
+
+			return expectedResponse, nil
+		},
+	}
+
+	blockGroup, err := groups.NewBlockGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(blockGroup, "block", getBlockRoutesConfig())
+
+	response, code := httpGetAlteredAccountsForBlockBlock(ws, "/block/altered-accounts/by-hash/aabb")
+	require.Equal(t, http.StatusOK, code)
+	require.Equal(t, expectedResponse, response.Data.Accounts)
+	require.Empty(t, response.Error)
+	require.Equal(t, string(shared.ReturnCodeSuccess), response.Code)
+}
+
 func httpGetBlock(ws *gin.Engine, url string) (blockResponse, int) {
 	httpRequest, _ := http.NewRequest("GET", url, nil)
 	httpResponse := httptest.NewRecorder()
@@ -434,4 +508,14 @@ func httpGetBlock(ws *gin.Engine, url string) (blockResponse, int) {
 	blockResponse := blockResponse{}
 	loadResponse(httpResponse.Body, &blockResponse)
 	return blockResponse, httpResponse.Code
+}
+
+func httpGetAlteredAccountsForBlockBlock(ws *gin.Engine, url string) (alteredAccountsForBlockResponse, int) {
+	httpRequest, _ := http.NewRequest("GET", url, nil)
+	httpResponse := httptest.NewRecorder()
+	ws.ServeHTTP(httpResponse, httpRequest)
+
+	response := alteredAccountsForBlockResponse{}
+	loadResponse(httpResponse.Body, &response)
+	return response, httpResponse.Code
 }

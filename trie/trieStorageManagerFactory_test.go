@@ -81,7 +81,7 @@ func TestTrieStorageManager_SerialFuncShadowingCallsExpectedImpl(t *testing.T) {
 		IsPruningEnabledCalled: func() bool {
 			return true
 		},
-		TakeSnapshotCalled: func(_ []byte, _ []byte, _ chan core.KeyValueHolder, _ chan error, _ common.SnapshotStatisticsHandler, _ uint32) {
+		TakeSnapshotCalled: func(_ string, _ []byte, _ []byte, _ *common.TrieIteratorChannels, _ chan []byte, _ common.SnapshotStatisticsHandler, _ uint32) {
 			assert.Fail(t, shouldNotHaveBeenCalledErr.Error())
 		},
 		GetLatestStorageEpochCalled: func() (uint32, error) {
@@ -132,11 +132,14 @@ func TestTrieStorageManager_SerialFuncShadowingCallsExpectedImpl(t *testing.T) {
 	assert.Equal(t, 4, putCalled)
 	assert.True(t, getCalled)
 
-	leavesCh := make(chan core.KeyValueHolder)
-	tsm.SetCheckpoint(nil, nil, leavesCh, make(chan error, 1), &trieMock.MockStatistics{})
+	iteratorChannels := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder),
+		ErrChan:    make(chan error, 1),
+	}
+	tsm.SetCheckpoint(nil, nil, iteratorChannels, nil, &trieMock.MockStatistics{})
 
 	select {
-	case <-leavesCh:
+	case <-iteratorChannels.LeavesChan:
 	default:
 		assert.Fail(t, "unclosed channel")
 	}
@@ -162,11 +165,14 @@ func testTsmWithoutSnapshot(
 	_ = tsm.PutInEpoch([]byte("hash"), []byte("val"), 0)
 	_ = tsm.PutInEpochWithoutCache([]byte("hash"), []byte("val"), 0)
 
-	leavesCh := make(chan core.KeyValueHolder)
-	tsm.TakeSnapshot(nil, nil, leavesCh, make(chan error, 1), &trieMock.MockStatistics{}, 10)
+	iteratorChannels := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder),
+		ErrChan:    make(chan error, 1),
+	}
+	tsm.TakeSnapshot("", nil, nil, iteratorChannels, nil, &trieMock.MockStatistics{}, 10)
 
 	select {
-	case <-leavesCh:
+	case <-iteratorChannels.LeavesChan:
 	default:
 		assert.Fail(t, "unclosed channel")
 	}

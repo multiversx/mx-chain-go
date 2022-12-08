@@ -44,7 +44,7 @@ func saveDelegationManagerConfig(testContext *vm.VMTestContext) {
 
 	managementData := &systemSmartContracts.DelegationManagement{MinDelegationAmount: big.NewInt(1)}
 	marshaledData, _ := testContext.Marshalizer.Marshal(managementData)
-	_ = userAcc.DataTrieTracker().SaveKeyValue([]byte(delegationManagementKey), marshaledData)
+	_ = userAcc.SaveKeyValue([]byte(delegationManagementKey), marshaledData)
 	_ = testContext.Accounts.SaveAccount(userAcc)
 }
 
@@ -298,7 +298,7 @@ func saveNodesConfig(t *testing.T, testContext *vm.VMTestContext, stakedNodes, m
 	}
 	nodesDataBytes, _ := protoMarshalizer.Marshal(nodesConfigData)
 
-	_ = userAccount.DataTrieTracker().SaveKeyValue([]byte("nodesConfig"), nodesDataBytes)
+	_ = userAccount.SaveKeyValue([]byte("nodesConfig"), nodesDataBytes)
 	_ = testContext.Accounts.SaveAccount(account)
 	_, _ = testContext.Accounts.Commit()
 }

@@ -20,6 +20,7 @@ type CoreComponentsMock struct {
 	Marsh                        marshal.Marshalizer
 	Hash                         hashing.Hasher
 	EpochNotifierField           process.EpochNotifier
+	EnableEpochsHandlerField     common.EnableEpochsHandler
 	TxSignHasherField            hashing.Hasher
 	UInt64ByteSliceConv          typeConverters.Uint64ByteSliceConverter
 	AddrPubKeyConv               core.PubkeyConverter
@@ -27,7 +28,6 @@ type CoreComponentsMock struct {
 	PathHdl                      storage.PathManagerHandler
 	ChainIdCalled                func() string
 	MinTransactionVersionCalled  func() uint32
-	StatusHandlerCalled          func() core.AppStatusHandler
 	GenesisNodesSetupCalled      func() sharding.GenesisNodesSetupHandler
 	TxVersionCheckField          process.TxVersionCheckerHandler
 	ChanStopNode                 chan endProcess.ArgEndProcess
@@ -132,12 +132,9 @@ func (ccm *CoreComponentsMock) EpochNotifier() process.EpochNotifier {
 	return ccm.EpochNotifierField
 }
 
-// StatusHandler -
-func (ccm *CoreComponentsMock) StatusHandler() core.AppStatusHandler {
-	if ccm.StatusHandlerCalled != nil {
-		return ccm.StatusHandlerCalled()
-	}
-	return nil
+// EnableEpochsHandler -
+func (ccm *CoreComponentsMock) EnableEpochsHandler() common.EnableEpochsHandler {
+	return ccm.EnableEpochsHandlerField
 }
 
 // GenesisNodesSetup -

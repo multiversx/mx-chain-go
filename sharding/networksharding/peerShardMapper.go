@@ -13,7 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
+	"github.com/ElrondNetwork/elrond-go/storage/cache"
 )
 
 const maxNumPidsPerPk = 3
@@ -75,12 +75,12 @@ func NewPeerShardMapper(arg ArgPeerShardMapper) (*PeerShardMapper, error) {
 		return nil, p2p.ErrNilPreferredPeersHolder
 	}
 
-	pkPeerId, err := lrucache.NewCache(arg.PeerIdPkCache.MaxSize())
+	pkPeerId, err := cache.NewLRUCache(arg.PeerIdPkCache.MaxSize())
 	if err != nil {
 		return nil, err
 	}
 
-	peerIdSubTypeCache, err := lrucache.NewCache(arg.PeerIdPkCache.MaxSize())
+	peerIdSubTypeCache, err := cache.NewLRUCache(arg.PeerIdPkCache.MaxSize())
 	if err != nil {
 		return nil, err
 	}
@@ -228,28 +228,6 @@ func (psm *PeerShardMapper) getPeerInfoSearchingPidInFallbackCache(pid core.Peer
 	}
 }
 
-// GetLastKnownPeerID returns the newest updated peer id for the given public key
-func (psm *PeerShardMapper) GetLastKnownPeerID(pk []byte) (core.PeerID, bool) {
-	objPidsQueue, found := psm.pkPeerIdCache.Get(pk)
-	if !found {
-		return "", false
-	}
-
-	pq, ok := objPidsQueue.(common.PidQueueHandler)
-	if !ok {
-		log.Warn("PeerShardMapper.GetLastKnownPeerID: the contained element should have been of type pidQueue")
-		return "", false
-	}
-
-	if pq.Len() == 0 {
-		log.Warn("PeerShardMapper.GetLastKnownPeerID: empty pidQueue element")
-		return "", false
-	}
-
-	latestPeerId := pq.Get(pq.Len() - 1)
-	return latestPeerId, true
-}
-
 // UpdatePeerIDPublicKeyPair updates the public key - peer ID pair in the corresponding maps
 // It also uses the intermediate pkPeerId cache that will prevent having thousands of peer ID's with
 // the same Elrond PK that will make the node prone to an eclipse attack
@@ -280,7 +258,7 @@ func (psm *PeerShardMapper) putPublicKeyShardId(pk []byte, shardId uint32) {
 	psm.fallbackPkShardCache.Put(pk, shardId, uint32Size)
 }
 
-// PutPeerIdShardId puts the peer ID and shard ID into fallback cache in case it does not exists
+// PutPeerIdShardId puts the peer ID and shard ID into fallback cache in case it does not exist
 func (psm *PeerShardMapper) PutPeerIdShardId(pid core.PeerID, shardId uint32) {
 	psm.fallbackPidShardCache.Put([]byte(pid), shardId, uint32Size)
 	psm.preferredPeersHolder.PutShardID(pid, shardId)

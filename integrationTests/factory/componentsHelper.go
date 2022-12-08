@@ -97,5 +97,6 @@ func createConfigurationsPathsHolder() *config.ConfigurationPathsHolder {
 		SmartContracts:           GenesisSmartContracts,
 		ValidatorKey:             ValidatorKeyPemPath,
 		ApiRoutes:                "",
+		P2pKey:                   P2pKeyPath,
 	}
 }

@@ -26,6 +26,35 @@ import (
 
 var log = logger.GetOrCreate("process")
 
+// ShardedCacheSearchMethod defines the algorithm for searching through a sharded cache
+type ShardedCacheSearchMethod byte
+
+const (
+	// SearchMethodJustPeek will make the algorithm invoke just Peek method
+	SearchMethodJustPeek ShardedCacheSearchMethod = iota
+
+	// SearchMethodSearchFirst will make the algorithm invoke just SearchFirst method
+	SearchMethodSearchFirst
+
+	// SearchMethodPeekWithFallbackSearchFirst will first try a Peek method. If the data is not found will fall back
+	// to SearchFirst method
+	SearchMethodPeekWithFallbackSearchFirst
+)
+
+// ToString converts the ShardedCacheSearchMethod to its string representation
+func (method ShardedCacheSearchMethod) ToString() string {
+	switch method {
+	case SearchMethodJustPeek:
+		return "just peek"
+	case SearchMethodSearchFirst:
+		return "search first"
+	case SearchMethodPeekWithFallbackSearchFirst:
+		return "peek with fallback to search first"
+	default:
+		return fmt.Sprintf("unknown method %d", method)
+	}
+}
+
 // GetShardHeader gets the header, which is associated with the given hash, from pool or storage
 func GetShardHeader(
 	hash []byte,
@@ -181,9 +210,9 @@ func GetMarshalizedHeaderFromStorage(
 		return nil, ErrNilStorage
 	}
 
-	hdrStore := storageService.GetStorer(blockUnit)
-	if check.IfNil(hdrStore) {
-		return nil, ErrNilHeadersStorage
+	hdrStore, err := storageService.GetStorer(blockUnit)
+	if err != nil {
+		return nil, err
 	}
 
 	buffHdr, err := hdrStore.Get(hash)
@@ -361,7 +390,7 @@ func GetTransactionHandler(
 	shardedDataCacherNotifier dataRetriever.ShardedDataCacherNotifier,
 	storageService dataRetriever.StorageService,
 	marshalizer marshal.Marshalizer,
-	searchFirst bool,
+	method ShardedCacheSearchMethod,
 ) (data.TransactionHandler, error) {
 
 	err := checkGetTransactionParamsForNil(shardedDataCacherNotifier, storageService, marshalizer)
@@ -369,7 +398,7 @@ func GetTransactionHandler(
 		return nil, err
 	}
 
-	tx, err := GetTransactionHandlerFromPool(senderShardID, destShardID, txHash, shardedDataCacherNotifier, searchFirst)
+	tx, err := GetTransactionHandlerFromPool(senderShardID, destShardID, txHash, shardedDataCacherNotifier, method)
 	if err != nil {
 		tx, err = GetTransactionHandlerFromStorage(txHash, storageService, marshalizer)
 		if err != nil {
@@ -386,30 +415,55 @@ func GetTransactionHandlerFromPool(
 	destShardID uint32,
 	txHash []byte,
 	shardedDataCacherNotifier dataRetriever.ShardedDataCacherNotifier,
-	searchFirst bool,
+	method ShardedCacheSearchMethod,
 ) (data.TransactionHandler, error) {
 
-	if shardedDataCacherNotifier == nil {
+	if check.IfNil(shardedDataCacherNotifier) {
 		return nil, ErrNilShardedDataCacherNotifier
 	}
 
-	var val interface{}
-	ok := false
-	if searchFirst {
-		val, ok = shardedDataCacherNotifier.SearchFirstData(txHash)
-		if !ok {
-			return nil, ErrTxNotFound
-		}
-	} else {
-		strCache := ShardCacherIdentifier(senderShardID, destShardID)
-		txStore := shardedDataCacherNotifier.ShardDataStore(strCache)
-		if txStore == nil {
-			return nil, ErrNilStorage
-		}
+	return getTransactionHandlerFromPool(senderShardID, destShardID, txHash, shardedDataCacherNotifier, method)
+}
 
-		val, ok = txStore.Peek(txHash)
+func getTransactionHandlerFromPool(
+	senderShardID uint32,
+	destShardID uint32,
+	txHash []byte,
+	shardedDataCacherNotifier dataRetriever.ShardedDataCacherNotifier,
+	method ShardedCacheSearchMethod,
+) (data.TransactionHandler, error) {
+	var val interface{}
+	var ok bool
+
+	if method == SearchMethodSearchFirst {
+		val, ok = shardedDataCacherNotifier.SearchFirstData(txHash)
+
+		return castDataFromCacheAsTransactionHandler(val, ok)
 	}
 
+	strCache := ShardCacherIdentifier(senderShardID, destShardID)
+	txStore := shardedDataCacherNotifier.ShardDataStore(strCache)
+	if txStore == nil {
+		return nil, ErrNilStorage
+	}
+
+	switch method {
+	case SearchMethodJustPeek:
+		val, ok = txStore.Peek(txHash)
+	case SearchMethodPeekWithFallbackSearchFirst:
+		val, ok = txStore.Peek(txHash)
+		if !ok {
+			val, ok = shardedDataCacherNotifier.SearchFirstData(txHash)
+		}
+	default:
+		return nil, fmt.Errorf("%w for provided method: %s in getTransactionHandlerFromPool",
+			ErrInvalidValue, method.ToString())
+	}
+
+	return castDataFromCacheAsTransactionHandler(val, ok)
+}
+
+func castDataFromCacheAsTransactionHandler(val interface{}, ok bool) (data.TransactionHandler, error) {
 	if !ok {
 		return nil, ErrTxNotFound
 	}
@@ -540,7 +594,7 @@ func getHeaderFromPoolWithNonce(
 			ErrMissingHeader, shardId, nonce)
 	}
 
-	//TODO what should we do when we get from pool more than one header with same nonce and shardId
+	// TODO what should we do when we get from pool more than one header with same nonce and shardId
 	return headers[len(headers)-1], hashes[len(hashes)-1], nil
 }
 
@@ -563,9 +617,9 @@ func GetHeaderHashFromStorageWithNonce(
 		return nil, ErrNilMarshalizer
 	}
 
-	headerStore := storageService.GetStorer(blockUnit)
-	if headerStore == nil {
-		return nil, ErrNilHeadersStorage
+	headerStore, err := storageService.GetStorer(blockUnit)
+	if err != nil {
+		return nil, err
 	}
 
 	nonceToByteSlice := uint64Converter.ToByteSlice(nonce)

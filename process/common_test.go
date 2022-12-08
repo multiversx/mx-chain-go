@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"math/big"
+	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -22,10 +23,12 @@ import (
 )
 
 func TestGetShardHeaderShouldErrNilCacher(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 
 	marshalizer := &mock.MarshalizerMock{}
-	storageService := &mock.ChainStorerMock{}
+	storageService := &storageStubs.ChainStorerStub{}
 
 	header, err := process.GetShardHeader(hash, nil, marshalizer, storageService)
 	assert.Nil(t, header)
@@ -33,10 +36,12 @@ func TestGetShardHeaderShouldErrNilCacher(t *testing.T) {
 }
 
 func TestGetShardHeaderShouldErrNilMarshalizer(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 
 	cacher := &mock.HeadersCacherStub{}
-	storageService := &mock.ChainStorerMock{}
+	storageService := &storageStubs.ChainStorerStub{}
 
 	header, err := process.GetShardHeader(hash, cacher, nil, storageService)
 	assert.Nil(t, header)
@@ -44,6 +49,8 @@ func TestGetShardHeaderShouldErrNilMarshalizer(t *testing.T) {
 }
 
 func TestGetShardHeaderShouldErrNilStorage(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 
 	cacher := &mock.HeadersCacherStub{}
@@ -55,6 +62,8 @@ func TestGetShardHeaderShouldErrNilStorage(t *testing.T) {
 }
 
 func TestGetShardHeaderShouldGetHeaderFromPool(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 
 	hdr := &block.Header{Nonce: 1}
@@ -64,13 +73,15 @@ func TestGetShardHeaderShouldGetHeaderFromPool(t *testing.T) {
 		},
 	}
 	marshalizer := &mock.MarshalizerMock{}
-	storageService := &mock.ChainStorerMock{}
+	storageService := &storageStubs.ChainStorerStub{}
 
 	header, _ := process.GetShardHeader(hash, cacher, marshalizer, storageService)
 	assert.Equal(t, hdr, header)
 }
 
 func TestGetShardHeaderShouldGetHeaderFromStorage(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 
 	hdr := &block.Header{Nonce: 1}
@@ -80,8 +91,8 @@ func TestGetShardHeaderShouldGetHeaderFromStorage(t *testing.T) {
 		},
 	}
 	marshalizer := &mock.MarshalizerMock{}
-	storageService := &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	storageService := &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) ([]byte, error) {
 					if bytes.Equal(key, hash) {
@@ -89,7 +100,7 @@ func TestGetShardHeaderShouldGetHeaderFromStorage(t *testing.T) {
 					}
 					return nil, errors.New("error")
 				},
-			}
+			}, nil
 		},
 	}
 
@@ -98,10 +109,12 @@ func TestGetShardHeaderShouldGetHeaderFromStorage(t *testing.T) {
 }
 
 func TestGetMetaHeaderShouldErrNilCacher(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 
 	marshalizer := &mock.MarshalizerMock{}
-	storageService := &mock.ChainStorerMock{}
+	storageService := &storageStubs.ChainStorerStub{}
 
 	header, err := process.GetMetaHeader(hash, nil, marshalizer, storageService)
 	assert.Nil(t, header)
@@ -109,10 +122,12 @@ func TestGetMetaHeaderShouldErrNilCacher(t *testing.T) {
 }
 
 func TestGetMetaHeaderShouldErrNilMarshalizer(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 
 	cacher := &mock.HeadersCacherStub{}
-	storageService := &mock.ChainStorerMock{}
+	storageService := &storageStubs.ChainStorerStub{}
 
 	header, err := process.GetMetaHeader(hash, cacher, nil, storageService)
 	assert.Nil(t, header)
@@ -120,6 +135,8 @@ func TestGetMetaHeaderShouldErrNilMarshalizer(t *testing.T) {
 }
 
 func TestGetMetaHeaderShouldErrNilStorage(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 
 	cacher := &mock.HeadersCacherStub{}
@@ -131,6 +148,8 @@ func TestGetMetaHeaderShouldErrNilStorage(t *testing.T) {
 }
 
 func TestGetMetaHeaderShouldGetHeaderFromPool(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 
 	hdr := &block.MetaBlock{Nonce: 1}
@@ -140,13 +159,15 @@ func TestGetMetaHeaderShouldGetHeaderFromPool(t *testing.T) {
 		},
 	}
 	marshalizer := &mock.MarshalizerMock{}
-	storageService := &mock.ChainStorerMock{}
+	storageService := &storageStubs.ChainStorerStub{}
 
 	header, _ := process.GetMetaHeader(hash, cacher, marshalizer, storageService)
 	assert.Equal(t, hdr, header)
 }
 
 func TestGetMetaHeaderShouldGetHeaderFromStorage(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 
 	hdr := &block.MetaBlock{Nonce: 1}
@@ -156,8 +177,8 @@ func TestGetMetaHeaderShouldGetHeaderFromStorage(t *testing.T) {
 		},
 	}
 	marshalizer := &mock.MarshalizerMock{}
-	storageService := &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	storageService := &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) ([]byte, error) {
 					if bytes.Equal(key, hash) {
@@ -165,7 +186,7 @@ func TestGetMetaHeaderShouldGetHeaderFromStorage(t *testing.T) {
 					}
 					return nil, errors.New("error")
 				},
-			}
+			}, nil
 		},
 	}
 
@@ -174,6 +195,8 @@ func TestGetMetaHeaderShouldGetHeaderFromStorage(t *testing.T) {
 }
 
 func TestGetShardHeaderFromPoolShouldErrNilCacher(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 
 	header, err := process.GetShardHeaderFromPool(hash, nil)
@@ -182,6 +205,8 @@ func TestGetShardHeaderFromPoolShouldErrNilCacher(t *testing.T) {
 }
 
 func TestGetShardHeaderFromPoolShouldErrMissingHeader(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 
 	cacher := &mock.HeadersCacherStub{
@@ -196,6 +221,8 @@ func TestGetShardHeaderFromPoolShouldErrMissingHeader(t *testing.T) {
 }
 
 func TestGetShardHeaderFromPoolShouldErrWrongTypeAssertion(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 
 	cacher := &mock.HeadersCacherStub{
@@ -210,6 +237,8 @@ func TestGetShardHeaderFromPoolShouldErrWrongTypeAssertion(t *testing.T) {
 }
 
 func TestGetShardHeaderFromPoolShouldWork(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 
 	hdr := &block.Header{Nonce: 10}
@@ -225,6 +254,8 @@ func TestGetShardHeaderFromPoolShouldWork(t *testing.T) {
 }
 
 func TestGetMetaHeaderFromPoolShouldErrNilCacher(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 
 	header, err := process.GetMetaHeaderFromPool(hash, nil)
@@ -233,6 +264,8 @@ func TestGetMetaHeaderFromPoolShouldErrNilCacher(t *testing.T) {
 }
 
 func TestGetMetaHeaderFromPoolShouldErrMissingHeader(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 
 	cacher := &mock.HeadersCacherStub{
@@ -247,6 +280,8 @@ func TestGetMetaHeaderFromPoolShouldErrMissingHeader(t *testing.T) {
 }
 
 func TestGetMetaHeaderFromPoolShouldErrWrongTypeAssertion(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 	cacher := &mock.HeadersCacherStub{
 		GetHeaderByHashCalled: func(hash []byte) (handler data.HeaderHandler, e error) {
@@ -260,6 +295,8 @@ func TestGetMetaHeaderFromPoolShouldErrWrongTypeAssertion(t *testing.T) {
 }
 
 func TestGetMetaHeaderFromPoolShouldWork(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 
 	hdr := &block.MetaBlock{Nonce: 10}
@@ -275,11 +312,13 @@ func TestGetMetaHeaderFromPoolShouldWork(t *testing.T) {
 }
 
 func TestGetHeaderFromStorageShouldWork(t *testing.T) {
+	t.Parallel()
+
 	shardHeader := &block.Header{Nonce: 42}
 	metaHeader := &block.MetaBlock{Nonce: 43}
 	marshalizer := &mock.MarshalizerMock{}
-	storageService := &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	storageService := &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) ([]byte, error) {
 					if unitType == dataRetriever.BlockHeaderUnit && bytes.Equal(key, []byte("shard")) {
@@ -290,7 +329,7 @@ func TestGetHeaderFromStorageShouldWork(t *testing.T) {
 
 					return nil, errors.New("error")
 				},
-			}
+			}, nil
 		},
 	}
 
@@ -304,9 +343,11 @@ func TestGetHeaderFromStorageShouldWork(t *testing.T) {
 }
 
 func TestGetShardHeaderFromStorageShouldErrNilCacher(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 
-	storageService := &mock.ChainStorerMock{}
+	storageService := &storageStubs.ChainStorerStub{}
 
 	header, err := process.GetShardHeaderFromStorage(hash, nil, storageService)
 	assert.Nil(t, header)
@@ -314,6 +355,8 @@ func TestGetShardHeaderFromStorageShouldErrNilCacher(t *testing.T) {
 }
 
 func TestGetShardHeaderFromStorageShouldErrNilStorage(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -323,32 +366,36 @@ func TestGetShardHeaderFromStorageShouldErrNilStorage(t *testing.T) {
 	assert.Equal(t, process.ErrNilStorage, err)
 }
 
-func TestGetShardHeaderFromStorageShouldErrNilHeadersStorage(t *testing.T) {
+func TestGetShardHeaderFromStorageShouldErrGetHeadersStorageReturnsErr(t *testing.T) {
+	t.Parallel()
 	hash := []byte("X")
 
+	expectedErr := errors.New("expected error")
 	marshalizer := &mock.MarshalizerMock{}
-	storageService := &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return nil
+	storageService := &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return nil, expectedErr
 		},
 	}
 
 	header, err := process.GetShardHeaderFromStorage(hash, marshalizer, storageService)
 	assert.Nil(t, header)
-	assert.Equal(t, process.ErrNilHeadersStorage, err)
+	assert.Equal(t, expectedErr, err)
 }
 
 func TestGetShardHeaderFromStorageShouldErrMissingHeader(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 
 	marshalizer := &mock.MarshalizerMock{}
-	storageService := &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	storageService := &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) ([]byte, error) {
 					return nil, errors.New("error")
 				},
-			}
+			}, nil
 		},
 	}
 
@@ -358,16 +405,18 @@ func TestGetShardHeaderFromStorageShouldErrMissingHeader(t *testing.T) {
 }
 
 func TestGetShardHeaderFromStorageShouldErrUnmarshalWithoutSuccess(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 
 	marshalizer := &mock.MarshalizerMock{}
-	storageService := &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	storageService := &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) ([]byte, error) {
 					return nil, nil
 				},
-			}
+			}, nil
 		},
 	}
 
@@ -377,12 +426,14 @@ func TestGetShardHeaderFromStorageShouldErrUnmarshalWithoutSuccess(t *testing.T)
 }
 
 func TestGetShardHeaderFromStorageShouldWork(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 
 	hdr := &block.Header{}
 	marshalizer := &mock.MarshalizerMock{}
-	storageService := &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	storageService := &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) ([]byte, error) {
 					if bytes.Equal(key, hash) {
@@ -390,7 +441,7 @@ func TestGetShardHeaderFromStorageShouldWork(t *testing.T) {
 					}
 					return nil, errors.New("error")
 				},
-			}
+			}, nil
 		},
 	}
 
@@ -400,9 +451,11 @@ func TestGetShardHeaderFromStorageShouldWork(t *testing.T) {
 }
 
 func TestGetMetaHeaderFromStorageShouldErrNilCacher(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 
-	storageService := &mock.ChainStorerMock{}
+	storageService := &storageStubs.ChainStorerStub{}
 
 	header, err := process.GetMetaHeaderFromStorage(hash, nil, storageService)
 	assert.Nil(t, header)
@@ -410,6 +463,8 @@ func TestGetMetaHeaderFromStorageShouldErrNilCacher(t *testing.T) {
 }
 
 func TestGetMetaHeaderFromStorageShouldErrNilStorage(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -419,32 +474,36 @@ func TestGetMetaHeaderFromStorageShouldErrNilStorage(t *testing.T) {
 	assert.Equal(t, process.ErrNilStorage, err)
 }
 
-func TestGetMetaHeaderFromStorageShouldErrNilHeadersStorage(t *testing.T) {
+func TestGetMetaHeaderFromStorageShouldErrGetHeadersStorageReturnsErr(t *testing.T) {
+	t.Parallel()
 	hash := []byte("X")
 
+	expectedErr := errors.New("expected error")
 	marshalizer := &mock.MarshalizerMock{}
-	storageService := &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return nil
+	storageService := &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return nil, expectedErr
 		},
 	}
 
 	header, err := process.GetMetaHeaderFromStorage(hash, marshalizer, storageService)
 	assert.Nil(t, header)
-	assert.Equal(t, process.ErrNilHeadersStorage, err)
+	assert.Equal(t, expectedErr, err)
 }
 
 func TestGetMetaHeaderFromStorageShouldErrMissingHeader(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 
 	marshalizer := &mock.MarshalizerMock{}
-	storageService := &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	storageService := &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) ([]byte, error) {
 					return nil, errors.New("error")
 				},
-			}
+			}, nil
 		},
 	}
 
@@ -454,16 +513,18 @@ func TestGetMetaHeaderFromStorageShouldErrMissingHeader(t *testing.T) {
 }
 
 func TestGetMetaHeaderFromStorageShouldErrUnmarshalWithoutSuccess(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 
 	marshalizer := &mock.MarshalizerMock{}
-	storageService := &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	storageService := &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) ([]byte, error) {
 					return nil, nil
 				},
-			}
+			}, nil
 		},
 	}
 
@@ -473,12 +534,14 @@ func TestGetMetaHeaderFromStorageShouldErrUnmarshalWithoutSuccess(t *testing.T) 
 }
 
 func TestGetMetaHeaderFromStorageShouldWork(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 
 	hdr := &block.MetaBlock{}
 	marshalizer := &mock.MarshalizerMock{}
-	storageService := &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	storageService := &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) ([]byte, error) {
 					if bytes.Equal(key, hash) {
@@ -486,7 +549,7 @@ func TestGetMetaHeaderFromStorageShouldWork(t *testing.T) {
 					}
 					return nil, errors.New("error")
 				},
-			}
+			}, nil
 		},
 	}
 
@@ -496,9 +559,11 @@ func TestGetMetaHeaderFromStorageShouldWork(t *testing.T) {
 }
 
 func TestGetMarshalizedHeaderFromStorageShouldErrNilMarshalizer(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 
-	storageService := &mock.ChainStorerMock{}
+	storageService := &storageStubs.ChainStorerStub{}
 
 	headerMarsh, err := process.GetMarshalizedHeaderFromStorage(dataRetriever.MetaBlockUnit, hash, nil, storageService)
 	assert.Nil(t, headerMarsh)
@@ -506,6 +571,8 @@ func TestGetMarshalizedHeaderFromStorageShouldErrNilMarshalizer(t *testing.T) {
 }
 
 func TestGetMarshalizedHeaderFromStorageShouldErrNilStorage(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -515,32 +582,36 @@ func TestGetMarshalizedHeaderFromStorageShouldErrNilStorage(t *testing.T) {
 	assert.Equal(t, process.ErrNilStorage, err)
 }
 
-func TestGetMarshalizedHeaderFromStorageShouldErrNilHeadersStorage(t *testing.T) {
+func TestGetMarshalizedHeaderFromStorageShouldErrGetHeadersStorageReturnsErr(t *testing.T) {
+	t.Parallel()
 	hash := []byte("X")
 
+	expectedErr := errors.New("expected error")
 	marshalizer := &mock.MarshalizerMock{}
-	storageService := &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return nil
+	storageService := &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return nil, expectedErr
 		},
 	}
 
 	headerMarsh, err := process.GetMarshalizedHeaderFromStorage(dataRetriever.MetaBlockUnit, hash, marshalizer, storageService)
 	assert.Nil(t, headerMarsh)
-	assert.Equal(t, process.ErrNilHeadersStorage, err)
+	assert.Equal(t, expectedErr, err)
 }
 
 func TestGetMarshalizedHeaderFromStorageShouldErrMissingHeader(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 
 	marshalizer := &mock.MarshalizerMock{}
-	storageService := &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	storageService := &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) ([]byte, error) {
 					return nil, errors.New("error")
 				},
-			}
+			}, nil
 		},
 	}
 
@@ -550,12 +621,14 @@ func TestGetMarshalizedHeaderFromStorageShouldErrMissingHeader(t *testing.T) {
 }
 
 func TestGetMarshalizedHeaderFromStorageShouldWork(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 
 	hdr := &block.Header{Nonce: 1}
 	marshalizer := &mock.MarshalizerMock{}
-	storageService := &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	storageService := &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) ([]byte, error) {
 					if bytes.Equal(key, hash) {
@@ -563,7 +636,7 @@ func TestGetMarshalizedHeaderFromStorageShouldWork(t *testing.T) {
 					}
 					return nil, errors.New("error")
 				},
-			}
+			}, nil
 		},
 	}
 
@@ -574,11 +647,13 @@ func TestGetMarshalizedHeaderFromStorageShouldWork(t *testing.T) {
 }
 
 func TestGetShardHeaderWithNonceShouldErrNilCacher(t *testing.T) {
+	t.Parallel()
+
 	nonce := uint64(1)
 	shardId := uint32(0)
 
 	marshalizer := &mock.MarshalizerMock{}
-	storageService := &mock.ChainStorerMock{}
+	storageService := &storageStubs.ChainStorerStub{}
 	uint64Converter := &mock.Uint64ByteSliceConverterMock{}
 
 	header, hash, err := process.GetShardHeaderWithNonce(
@@ -595,11 +670,13 @@ func TestGetShardHeaderWithNonceShouldErrNilCacher(t *testing.T) {
 }
 
 func TestGetShardHeaderWithNonceShouldErrNilMarshalizer(t *testing.T) {
+	t.Parallel()
+
 	nonce := uint64(1)
 	shardId := uint32(0)
 
 	cacher := &mock.HeadersCacherStub{}
-	storageService := &mock.ChainStorerMock{}
+	storageService := &storageStubs.ChainStorerStub{}
 	uint64Converter := &mock.Uint64ByteSliceConverterMock{}
 
 	header, hash, err := process.GetShardHeaderWithNonce(
@@ -616,6 +693,8 @@ func TestGetShardHeaderWithNonceShouldErrNilMarshalizer(t *testing.T) {
 }
 
 func TestGetShardHeaderWithNonceShouldErrNilStorage(t *testing.T) {
+	t.Parallel()
+
 	nonce := uint64(1)
 	shardId := uint32(0)
 
@@ -637,12 +716,14 @@ func TestGetShardHeaderWithNonceShouldErrNilStorage(t *testing.T) {
 }
 
 func TestGetShardHeaderWithNonceShouldErrNilUint64Converter(t *testing.T) {
+	t.Parallel()
+
 	nonce := uint64(1)
 	shardId := uint32(0)
 
 	cacher := &mock.HeadersCacherStub{}
 	marshalizer := &mock.MarshalizerMock{}
-	storageService := &mock.ChainStorerMock{}
+	storageService := &storageStubs.ChainStorerStub{}
 
 	header, hash, err := process.GetShardHeaderWithNonce(
 		nonce,
@@ -658,6 +739,8 @@ func TestGetShardHeaderWithNonceShouldErrNilUint64Converter(t *testing.T) {
 }
 
 func TestGetShardHeaderWithNonceShouldGetHeaderFromPool(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 	nonce := uint64(1)
 	shardId := uint32(0)
@@ -669,7 +752,7 @@ func TestGetShardHeaderWithNonceShouldGetHeaderFromPool(t *testing.T) {
 		},
 	}
 	marshalizer := &mock.MarshalizerMock{}
-	storageService := &mock.ChainStorerMock{}
+	storageService := &storageStubs.ChainStorerStub{}
 	uint64Converter := &mock.Uint64ByteSliceConverterMock{}
 
 	header, _, _ := process.GetShardHeaderWithNonce(
@@ -684,6 +767,8 @@ func TestGetShardHeaderWithNonceShouldGetHeaderFromPool(t *testing.T) {
 }
 
 func TestGetShardHeaderWithNonceShouldGetHeaderFromStorage(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 	nonce := uint64(1)
 	nonceToByte := []byte("1")
@@ -698,8 +783,8 @@ func TestGetShardHeaderWithNonceShouldGetHeaderFromStorage(t *testing.T) {
 
 	marshalizer := &mock.MarshalizerMock{}
 	marshHdr, _ := marshalizer.Marshal(hdr)
-	storageService := &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	storageService := &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) ([]byte, error) {
 					if bytes.Equal(key, nonceToByte) {
@@ -710,7 +795,7 @@ func TestGetShardHeaderWithNonceShouldGetHeaderFromStorage(t *testing.T) {
 					}
 					return nil, errors.New("error")
 				},
-			}
+			}, nil
 		},
 	}
 	uint64Converter := &mock.Uint64ByteSliceConverterMock{
@@ -735,10 +820,12 @@ func TestGetShardHeaderWithNonceShouldGetHeaderFromStorage(t *testing.T) {
 }
 
 func TestGetMetaHeaderWithNonceShouldErrNilCacher(t *testing.T) {
+	t.Parallel()
+
 	nonce := uint64(1)
 
 	marshalizer := &mock.MarshalizerMock{}
-	storageService := &mock.ChainStorerMock{}
+	storageService := &storageStubs.ChainStorerStub{}
 	uint64Converter := &mock.Uint64ByteSliceConverterMock{}
 
 	header, hash, err := process.GetMetaHeaderWithNonce(
@@ -754,10 +841,12 @@ func TestGetMetaHeaderWithNonceShouldErrNilCacher(t *testing.T) {
 }
 
 func TestGetMetaHeaderWithNonceShouldErrNilMarshalizer(t *testing.T) {
+	t.Parallel()
+
 	nonce := uint64(1)
 
 	cacher := &mock.HeadersCacherStub{}
-	storageService := &mock.ChainStorerMock{}
+	storageService := &storageStubs.ChainStorerStub{}
 	uint64Converter := &mock.Uint64ByteSliceConverterMock{}
 
 	header, hash, err := process.GetMetaHeaderWithNonce(
@@ -773,6 +862,8 @@ func TestGetMetaHeaderWithNonceShouldErrNilMarshalizer(t *testing.T) {
 }
 
 func TestGetMetaHeaderWithNonceShouldErrNilStorage(t *testing.T) {
+	t.Parallel()
+
 	nonce := uint64(1)
 
 	cacher := &mock.HeadersCacherStub{}
@@ -792,11 +883,13 @@ func TestGetMetaHeaderWithNonceShouldErrNilStorage(t *testing.T) {
 }
 
 func TestGetMetaHeaderWithNonceShouldErrNilUint64Converter(t *testing.T) {
+	t.Parallel()
+
 	nonce := uint64(1)
 
 	cacher := &mock.HeadersCacherStub{}
 	marshalizer := &mock.MarshalizerMock{}
-	storageService := &mock.ChainStorerMock{}
+	storageService := &storageStubs.ChainStorerStub{}
 
 	header, hash, err := process.GetMetaHeaderWithNonce(
 		nonce,
@@ -811,6 +904,8 @@ func TestGetMetaHeaderWithNonceShouldErrNilUint64Converter(t *testing.T) {
 }
 
 func TestGetMetaHeaderWithNonceShouldGetHeaderFromPool(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 	nonce := uint64(1)
 
@@ -821,7 +916,7 @@ func TestGetMetaHeaderWithNonceShouldGetHeaderFromPool(t *testing.T) {
 		},
 	}
 	marshalizer := &mock.MarshalizerMock{}
-	storageService := &mock.ChainStorerMock{}
+	storageService := &storageStubs.ChainStorerStub{}
 	uint64Converter := &mock.Uint64ByteSliceConverterMock{}
 
 	header, _, _ := process.GetMetaHeaderWithNonce(
@@ -835,6 +930,8 @@ func TestGetMetaHeaderWithNonceShouldGetHeaderFromPool(t *testing.T) {
 }
 
 func TestGetMetaHeaderWithNonceShouldGetHeaderFromStorage(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 	nonce := uint64(1)
 	nonceToByte := []byte("1")
@@ -847,8 +944,8 @@ func TestGetMetaHeaderWithNonceShouldGetHeaderFromStorage(t *testing.T) {
 	}
 	marshalizer := &mock.MarshalizerMock{}
 	marshHdr, _ := marshalizer.Marshal(hdr)
-	storageService := &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	storageService := &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) ([]byte, error) {
 					if bytes.Equal(key, nonceToByte) {
@@ -859,7 +956,7 @@ func TestGetMetaHeaderWithNonceShouldGetHeaderFromStorage(t *testing.T) {
 					}
 					return nil, errors.New("error")
 				},
-			}
+			}, nil
 		},
 	}
 	uint64Converter := &mock.Uint64ByteSliceConverterMock{
@@ -883,6 +980,8 @@ func TestGetMetaHeaderWithNonceShouldGetHeaderFromStorage(t *testing.T) {
 }
 
 func TestGetShardHeaderFromPoolWithNonceShouldErrNilCacher(t *testing.T) {
+	t.Parallel()
+
 	nonce := uint64(1)
 	shardId := uint32(0)
 
@@ -893,6 +992,8 @@ func TestGetShardHeaderFromPoolWithNonceShouldErrNilCacher(t *testing.T) {
 }
 
 func TestGetShardHeaderFromPoolWithNonceShouldErrMissingHashForHeaderNonceWhenShardIdHashMapIsNil(t *testing.T) {
+	t.Parallel()
+
 	nonce := uint64(1)
 	shardId := uint32(0)
 
@@ -905,6 +1006,8 @@ func TestGetShardHeaderFromPoolWithNonceShouldErrMissingHashForHeaderNonceWhenSh
 }
 
 func TestGetShardHeaderFromPoolWithNonceShouldErrMissingHashForHeaderNonceWhenLoadFromShardIdHashMapFails(t *testing.T) {
+	t.Parallel()
+
 	nonce := uint64(1)
 	shardId := uint32(0)
 
@@ -917,6 +1020,8 @@ func TestGetShardHeaderFromPoolWithNonceShouldErrMissingHashForHeaderNonceWhenLo
 }
 
 func TestGetShardHeaderFromPoolWithNonceShouldErrMissingHeader(t *testing.T) {
+	t.Parallel()
+
 	nonce := uint64(1)
 	shardId := uint32(0)
 
@@ -933,6 +1038,8 @@ func TestGetShardHeaderFromPoolWithNonceShouldErrMissingHeader(t *testing.T) {
 }
 
 func TestGetShardHeaderFromPoolWithNonceShouldErrWrongTypeAssertion(t *testing.T) {
+	t.Parallel()
+
 	nonce := uint64(1)
 	shardId := uint32(0)
 
@@ -949,6 +1056,8 @@ func TestGetShardHeaderFromPoolWithNonceShouldErrWrongTypeAssertion(t *testing.T
 }
 
 func TestGetShardHeaderFromPoolWithNonceShouldWork(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 	nonce := uint64(1)
 	shardId := uint32(0)
@@ -967,6 +1076,8 @@ func TestGetShardHeaderFromPoolWithNonceShouldWork(t *testing.T) {
 }
 
 func TestGetMetaHeaderFromPoolWithNonceShouldErrNilCacher(t *testing.T) {
+	t.Parallel()
+
 	nonce := uint64(1)
 
 	header, hash, err := process.GetMetaHeaderFromPoolWithNonce(nonce, nil)
@@ -976,6 +1087,8 @@ func TestGetMetaHeaderFromPoolWithNonceShouldErrNilCacher(t *testing.T) {
 }
 
 func TestGetMetaHeaderFromPoolWithNonceShouldErrMissingHashForHeaderNonceWhenShardIdHashMapIsNil(t *testing.T) {
+	t.Parallel()
+
 	nonce := uint64(1)
 
 	cacher := &mock.HeadersCacherStub{}
@@ -987,6 +1100,8 @@ func TestGetMetaHeaderFromPoolWithNonceShouldErrMissingHashForHeaderNonceWhenSha
 }
 
 func TestGetMetaHeaderFromPoolWithNonceShouldErrMissingHashForHeaderNonceWhenLoadFromShardIdHashMapFails(t *testing.T) {
+	t.Parallel()
+
 	nonce := uint64(1)
 
 	cacher := &mock.HeadersCacherStub{}
@@ -998,6 +1113,8 @@ func TestGetMetaHeaderFromPoolWithNonceShouldErrMissingHashForHeaderNonceWhenLoa
 }
 
 func TestGetMetaHeaderFromPoolWithNonceShouldErrMissingHeader(t *testing.T) {
+	t.Parallel()
+
 	nonce := uint64(1)
 
 	cacher := &mock.HeadersCacherStub{
@@ -1013,6 +1130,8 @@ func TestGetMetaHeaderFromPoolWithNonceShouldErrMissingHeader(t *testing.T) {
 }
 
 func TestGetMetaHeaderFromPoolWithNonceShouldErrWrongTypeAssertion(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 	nonce := uint64(1)
 
@@ -1029,6 +1148,8 @@ func TestGetMetaHeaderFromPoolWithNonceShouldErrWrongTypeAssertion(t *testing.T)
 }
 
 func TestGetMetaHeaderFromPoolWithNonceShouldWork(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 	nonce := uint64(1)
 
@@ -1046,6 +1167,8 @@ func TestGetMetaHeaderFromPoolWithNonceShouldWork(t *testing.T) {
 }
 
 func TestGetShardHeaderFromStorageWithNonceShouldErrNilStorage(t *testing.T) {
+	t.Parallel()
+
 	nonce := uint64(1)
 	shardId := uint32(0)
 
@@ -1065,10 +1188,12 @@ func TestGetShardHeaderFromStorageWithNonceShouldErrNilStorage(t *testing.T) {
 }
 
 func TestGetShardHeaderFromStorageWithNonceShouldErrNilUint64Converter(t *testing.T) {
+	t.Parallel()
+
 	nonce := uint64(1)
 	shardId := uint32(0)
 
-	storageService := &mock.ChainStorerMock{}
+	storageService := &storageStubs.ChainStorerStub{}
 	marshalizer := &mock.MarshalizerMock{}
 
 	header, hash, err := process.GetShardHeaderFromStorageWithNonce(
@@ -1084,10 +1209,12 @@ func TestGetShardHeaderFromStorageWithNonceShouldErrNilUint64Converter(t *testin
 }
 
 func TestGetShardHeaderFromStorageWithNonceShouldErrNilMarshalizer(t *testing.T) {
+	t.Parallel()
+
 	nonce := uint64(1)
 	shardId := uint32(0)
 
-	storageService := &mock.ChainStorerMock{}
+	storageService := &storageStubs.ChainStorerStub{}
 	uint64Converter := &mock.Uint64ByteSliceConverterMock{}
 
 	header, hash, err := process.GetShardHeaderFromStorageWithNonce(
@@ -1102,13 +1229,15 @@ func TestGetShardHeaderFromStorageWithNonceShouldErrNilMarshalizer(t *testing.T)
 	assert.Equal(t, process.ErrNilMarshalizer, err)
 }
 
-func TestGetShardHeaderFromStorageWithNonceShouldErrNilHeadersStorage(t *testing.T) {
+func TestGetShardHeaderFromStorageWithNonceShouldErrGetHeadersStorageReturnsErr(t *testing.T) {
+	t.Parallel()
 	nonce := uint64(1)
 	shardId := uint32(0)
 
-	storageService := &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return nil
+	expectedErr := errors.New("expected error")
+	storageService := &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return nil, expectedErr
 		},
 	}
 	uint64Converter := &mock.Uint64ByteSliceConverterMock{}
@@ -1123,20 +1252,22 @@ func TestGetShardHeaderFromStorageWithNonceShouldErrNilHeadersStorage(t *testing
 
 	assert.Nil(t, header)
 	assert.Nil(t, hash)
-	assert.Equal(t, process.ErrNilHeadersStorage, err)
+	assert.Equal(t, expectedErr, err)
 }
 
 func TestGetShardHeaderFromStorageWithNonceShouldErrMissingHashForHeaderNonce(t *testing.T) {
+	t.Parallel()
+
 	nonce := uint64(1)
 	shardId := uint32(0)
 
-	storageService := &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	storageService := &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) ([]byte, error) {
 					return nil, errors.New("error")
 				},
-			}
+			}, nil
 		},
 	}
 	uint64Converter := &mock.Uint64ByteSliceConverterMock{}
@@ -1155,13 +1286,15 @@ func TestGetShardHeaderFromStorageWithNonceShouldErrMissingHashForHeaderNonce(t 
 }
 
 func TestGetShardHeaderFromStorageWithNonceShouldErrMissingHeader(t *testing.T) {
+	t.Parallel()
+
 	nonce := uint64(1)
 	shardId := uint32(0)
 	hash := []byte("X")
 	nonceToByte := []byte("1")
 	marshalizer := &mock.MarshalizerMock{}
-	storageService := &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	storageService := &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) ([]byte, error) {
 					if bytes.Equal(key, nonceToByte) {
@@ -1169,7 +1302,7 @@ func TestGetShardHeaderFromStorageWithNonceShouldErrMissingHeader(t *testing.T) 
 					}
 					return nil, errors.New("error")
 				},
-			}
+			}, nil
 		},
 	}
 	uint64Converter := &mock.Uint64ByteSliceConverterMock{
@@ -1195,13 +1328,15 @@ func TestGetShardHeaderFromStorageWithNonceShouldErrMissingHeader(t *testing.T) 
 }
 
 func TestGetShardHeaderFromStorageWithNonceShouldErrUnmarshalWithoutSuccess(t *testing.T) {
+	t.Parallel()
+
 	nonce := uint64(1)
 	shardId := uint32(0)
 	hash := []byte("X")
 	nonceToByte := []byte("1")
 	marshalizer := &mock.MarshalizerMock{}
-	storageService := &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	storageService := &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) ([]byte, error) {
 					if bytes.Equal(key, nonceToByte) {
@@ -1212,7 +1347,7 @@ func TestGetShardHeaderFromStorageWithNonceShouldErrUnmarshalWithoutSuccess(t *t
 					}
 					return nil, errors.New("error")
 				},
-			}
+			}, nil
 		},
 	}
 	uint64Converter := &mock.Uint64ByteSliceConverterMock{
@@ -1244,8 +1379,8 @@ func initDefaultStorageServiceAndConverter(nonce uint64, hash []byte, hdr data.H
 	nonceToByte := []byte("1")
 	marshalizer := &mock.MarshalizerMock{}
 	marshHdr, _ := marshalizer.Marshal(hdr)
-	storageService := &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	storageService := &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) ([]byte, error) {
 					if bytes.Equal(key, nonceToByte) {
@@ -1256,7 +1391,7 @@ func initDefaultStorageServiceAndConverter(nonce uint64, hash []byte, hdr data.H
 					}
 					return nil, errors.New("error")
 				},
-			}
+			}, nil
 		},
 	}
 	uint64Converter := &mock.Uint64ByteSliceConverterMock{
@@ -1273,6 +1408,8 @@ func initDefaultStorageServiceAndConverter(nonce uint64, hash []byte, hdr data.H
 }
 
 func TestGetHeaderFromStorageWithNonceShouldWorkForShard(t *testing.T) {
+	t.Parallel()
+
 	nonce := uint64(1)
 	shardId := uint32(0)
 	hash := []byte("X")
@@ -1294,6 +1431,8 @@ func TestGetHeaderFromStorageWithNonceShouldWorkForShard(t *testing.T) {
 }
 
 func TestGetShardHeaderFromStorageWithNonceShouldWorkForShard(t *testing.T) {
+	t.Parallel()
+
 	nonce := uint64(1)
 	shardId := uint32(0)
 	hash := []byte("X")
@@ -1314,6 +1453,8 @@ func TestGetShardHeaderFromStorageWithNonceShouldWorkForShard(t *testing.T) {
 }
 
 func TestGetMetaHeaderFromStorageWithNonceShouldErrNilStorage(t *testing.T) {
+	t.Parallel()
+
 	nonce := uint64(1)
 
 	uint64Converter := &mock.Uint64ByteSliceConverterMock{}
@@ -1331,9 +1472,11 @@ func TestGetMetaHeaderFromStorageWithNonceShouldErrNilStorage(t *testing.T) {
 }
 
 func TestGetMetaHeaderFromStorageWithNonceShouldErrNilUint64Converter(t *testing.T) {
+	t.Parallel()
+
 	nonce := uint64(1)
 
-	storageService := &mock.ChainStorerMock{}
+	storageService := &storageStubs.ChainStorerStub{}
 	marshalizer := &mock.MarshalizerMock{}
 
 	header, hash, err := process.GetMetaHeaderFromStorageWithNonce(
@@ -1348,9 +1491,11 @@ func TestGetMetaHeaderFromStorageWithNonceShouldErrNilUint64Converter(t *testing
 }
 
 func TestGetMetaHeaderFromStorageWithNonceShouldErrNilMarshalizer(t *testing.T) {
+	t.Parallel()
+
 	nonce := uint64(1)
 
-	storageService := &mock.ChainStorerMock{}
+	storageService := &storageStubs.ChainStorerStub{}
 	uint64Converter := &mock.Uint64ByteSliceConverterMock{}
 
 	header, hash, err := process.GetMetaHeaderFromStorageWithNonce(
@@ -1364,12 +1509,14 @@ func TestGetMetaHeaderFromStorageWithNonceShouldErrNilMarshalizer(t *testing.T) 
 	assert.Equal(t, process.ErrNilMarshalizer, err)
 }
 
-func TestGetMetaHeaderFromStorageWithNonceShouldErrNilHeadersStorage(t *testing.T) {
+func TestGetMetaHeaderFromStorageWithNonceShouldErrGetHeadersStorageReturnsErr(t *testing.T) {
+	t.Parallel()
 	nonce := uint64(1)
 
-	storageService := &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return nil
+	expectedErr := errors.New("expected error")
+	storageService := &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return nil, expectedErr
 		},
 	}
 	uint64Converter := &mock.Uint64ByteSliceConverterMock{}
@@ -1383,19 +1530,21 @@ func TestGetMetaHeaderFromStorageWithNonceShouldErrNilHeadersStorage(t *testing.
 
 	assert.Nil(t, header)
 	assert.Nil(t, hash)
-	assert.Equal(t, process.ErrNilHeadersStorage, err)
+	assert.Equal(t, expectedErr, err)
 }
 
 func TestGetMetaHeaderFromStorageWithNonceShouldErrMissingHashForHeaderNonce(t *testing.T) {
+	t.Parallel()
+
 	nonce := uint64(1)
 
-	storageService := &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	storageService := &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) ([]byte, error) {
 					return nil, errors.New("error")
 				},
-			}
+			}, nil
 		},
 	}
 	uint64Converter := &mock.Uint64ByteSliceConverterMock{}
@@ -1413,12 +1562,14 @@ func TestGetMetaHeaderFromStorageWithNonceShouldErrMissingHashForHeaderNonce(t *
 }
 
 func TestGetMetaHeaderFromStorageWithNonceShouldErrMissingHeader(t *testing.T) {
+	t.Parallel()
+
 	nonce := uint64(1)
 	hash := []byte("X")
 	nonceToByte := []byte("1")
 	marshalizer := &mock.MarshalizerMock{}
-	storageService := &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	storageService := &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) ([]byte, error) {
 					if bytes.Equal(key, nonceToByte) {
@@ -1426,7 +1577,7 @@ func TestGetMetaHeaderFromStorageWithNonceShouldErrMissingHeader(t *testing.T) {
 					}
 					return nil, errors.New("error")
 				},
-			}
+			}, nil
 		},
 	}
 	uint64Converter := &mock.Uint64ByteSliceConverterMock{
@@ -1451,12 +1602,14 @@ func TestGetMetaHeaderFromStorageWithNonceShouldErrMissingHeader(t *testing.T) {
 }
 
 func TestGetMetaHeaderFromStorageWithNonceShouldErrUnmarshalWithoutSuccess(t *testing.T) {
+	t.Parallel()
+
 	nonce := uint64(1)
 	hash := []byte("X")
 	nonceToByte := []byte("1")
 	marshalizer := &mock.MarshalizerMock{}
-	storageService := &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	storageService := &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) ([]byte, error) {
 					if bytes.Equal(key, nonceToByte) {
@@ -1467,7 +1620,7 @@ func TestGetMetaHeaderFromStorageWithNonceShouldErrUnmarshalWithoutSuccess(t *te
 					}
 					return nil, errors.New("error")
 				},
-			}
+			}, nil
 		},
 	}
 	uint64Converter := &mock.Uint64ByteSliceConverterMock{
@@ -1492,14 +1645,16 @@ func TestGetMetaHeaderFromStorageWithNonceShouldErrUnmarshalWithoutSuccess(t *te
 }
 
 func TestGetMetaHeaderFromStorageWithNonceShouldWork(t *testing.T) {
+	t.Parallel()
+
 	nonce := uint64(1)
 	hash := []byte("X")
 	nonceToByte := []byte("1")
 	hdr := &block.MetaBlock{Nonce: nonce}
 	marshalizer := &mock.MarshalizerMock{}
 	marshHdr, _ := marshalizer.Marshal(hdr)
-	storageService := &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	storageService := &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) ([]byte, error) {
 					if bytes.Equal(key, nonceToByte) {
@@ -1510,7 +1665,7 @@ func TestGetMetaHeaderFromStorageWithNonceShouldWork(t *testing.T) {
 					}
 					return nil, errors.New("error")
 				},
-			}
+			}, nil
 		},
 	}
 	uint64Converter := &mock.Uint64ByteSliceConverterMock{
@@ -1535,14 +1690,16 @@ func TestGetMetaHeaderFromStorageWithNonceShouldWork(t *testing.T) {
 }
 
 func TestGetHeaderFromStorageWithNonceShouldWorkForMeta(t *testing.T) {
+	t.Parallel()
+
 	nonce := uint64(1)
 	hash := []byte("X")
 	nonceToByte := []byte("1")
 	hdr := &block.MetaBlock{Nonce: nonce}
 	marshalizer := &mock.MarshalizerMock{}
 	marshHdr, _ := marshalizer.Marshal(hdr)
-	storageService := &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	storageService := &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) ([]byte, error) {
 					if bytes.Equal(key, nonceToByte) {
@@ -1553,7 +1710,7 @@ func TestGetHeaderFromStorageWithNonceShouldWorkForMeta(t *testing.T) {
 					}
 					return nil, errors.New("error")
 				},
-			}
+			}, nil
 		},
 	}
 	uint64Converter := &mock.Uint64ByteSliceConverterMock{
@@ -1578,68 +1735,69 @@ func TestGetHeaderFromStorageWithNonceShouldWorkForMeta(t *testing.T) {
 	assert.Equal(t, hdr, header)
 }
 
-func TestGetTransactionHandlerShouldErrNilShardedDataCacherNotifier(t *testing.T) {
+func TestGetTransactionHandler_Errors(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 
-	storageService := &mock.ChainStorerMock{}
-	marshalizer := &mock.MarshalizerMock{}
-
-	tx, err := process.GetTransactionHandler(
-		0,
-		0,
-		hash,
-		nil,
-		storageService,
-		marshalizer,
-		false)
-
-	assert.Nil(t, tx)
-	assert.Equal(t, process.ErrNilShardedDataCacherNotifier, err)
-}
-
-func TestGetTransactionHandlerShouldErrNilStorage(t *testing.T) {
-	hash := []byte("X")
-
-	shardedDataCacherNotifier := testscommon.NewShardedDataStub()
-	marshalizer := &mock.MarshalizerMock{}
-
-	tx, err := process.GetTransactionHandler(
-		0,
-		0,
-		hash,
-		shardedDataCacherNotifier,
-		nil,
-		marshalizer,
-		false)
-
-	assert.Nil(t, tx)
-	assert.Equal(t, process.ErrNilStorage, err)
-}
-
-func TestGetTransactionHandlerShouldErrNilMarshalizer(t *testing.T) {
-	hash := []byte("X")
-
-	storageService := &mock.ChainStorerMock{}
+	storageService := &storageStubs.ChainStorerStub{}
+	marshaller := &mock.MarshalizerMock{}
 	shardedDataCacherNotifier := testscommon.NewShardedDataStub()
 
-	tx, err := process.GetTransactionHandler(
-		0,
-		0,
-		hash,
-		shardedDataCacherNotifier,
-		storageService,
-		nil,
-		false)
+	t.Run("errors if the sharded cacher is nil", func(t *testing.T) {
+		t.Parallel()
 
-	assert.Nil(t, tx)
-	assert.Equal(t, process.ErrNilMarshalizer, err)
+		tx, err := process.GetTransactionHandler(
+			0,
+			0,
+			hash,
+			nil,
+			storageService,
+			marshaller,
+			process.SearchMethodJustPeek)
+
+		assert.Nil(t, tx)
+		assert.Equal(t, process.ErrNilShardedDataCacherNotifier, err)
+	})
+	t.Run("errors if the storage service is nil", func(t *testing.T) {
+		t.Parallel()
+
+		tx, err := process.GetTransactionHandler(
+			0,
+			0,
+			hash,
+			shardedDataCacherNotifier,
+			nil,
+			marshaller,
+			process.SearchMethodJustPeek)
+
+		assert.Nil(t, tx)
+		assert.Equal(t, process.ErrNilStorage, err)
+	})
+	t.Run("errors if the marshaller is nil", func(t *testing.T) {
+		t.Parallel()
+
+		tx, err := process.GetTransactionHandler(
+			0,
+			0,
+			hash,
+			shardedDataCacherNotifier,
+			storageService,
+			nil,
+			process.SearchMethodJustPeek)
+
+		assert.Nil(t, tx)
+		assert.Equal(t, process.ErrNilMarshalizer, err)
+	})
 }
 
 func TestGetTransactionHandlerShouldGetTransactionFromPool(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 	txFromPool := &transaction.Transaction{Nonce: 1}
 
-	storageService := &mock.ChainStorerMock{}
+	storageService := &storageStubs.ChainStorerStub{}
 	shardedDataCacherNotifier := &testscommon.ShardedDataStub{
 		ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
 			return &testscommon.CacherStub{
@@ -1658,13 +1816,15 @@ func TestGetTransactionHandlerShouldGetTransactionFromPool(t *testing.T) {
 		shardedDataCacherNotifier,
 		storageService,
 		marshalizer,
-		false)
+		process.SearchMethodJustPeek)
 
 	assert.Nil(t, err)
 	assert.Equal(t, tx, txFromPool)
 }
 
 func TestGetTransactionHandlerShouldGetTransactionFromStorage(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 	txFromStorage := &transaction.Transaction{
 		Nonce: 1,
@@ -1673,7 +1833,7 @@ func TestGetTransactionHandlerShouldGetTransactionFromStorage(t *testing.T) {
 
 	marshalizer := &mock.MarshalizerMock{}
 	txMarsh, _ := marshalizer.Marshal(txFromStorage)
-	storageService := &mock.ChainStorerMock{
+	storageService := &storageStubs.ChainStorerStub{
 		GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
 			if bytes.Equal(key, hash) {
 				return txMarsh, nil
@@ -1698,47 +1858,66 @@ func TestGetTransactionHandlerShouldGetTransactionFromStorage(t *testing.T) {
 		shardedDataCacherNotifier,
 		storageService,
 		marshalizer,
-		false)
+		process.SearchMethodJustPeek)
 
 	assert.Nil(t, err)
 	assert.Equal(t, tx, txFromStorage)
 }
 
-func TestGetTransactionHandlerFromPoolShouldErrNilShardedDataCacherNotifier(t *testing.T) {
+func TestGetTransactionHandlerFromPool_Errors(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 
-	tx, err := process.GetTransactionHandlerFromPool(
-		0,
-		0,
-		hash,
-		nil,
-		false)
-
-	assert.Nil(t, tx)
-	assert.Equal(t, process.ErrNilShardedDataCacherNotifier, err)
-}
-
-func TestGetTransactionHandlerFromPoolShouldErrNilStorage(t *testing.T) {
-	hash := []byte("X")
-
-	shardedDataCacherNotifier := &testscommon.ShardedDataStub{
-		ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
-			return nil
-		},
+	shardedDataCacherNotifier := testscommon.NewShardedDataStub()
+	shardedDataCacherNotifier.ShardDataStoreCalled = func(cacheID string) storage.Cacher {
+		return testscommon.NewCacherMock()
 	}
 
-	tx, err := process.GetTransactionHandlerFromPool(
-		0,
-		0,
-		hash,
-		shardedDataCacherNotifier,
-		false)
+	t.Run("nil sharded cache", func(t *testing.T) {
+		tx, err := process.GetTransactionHandlerFromPool(
+			0,
+			0,
+			hash,
+			nil,
+			process.SearchMethodJustPeek)
 
-	assert.Nil(t, tx)
-	assert.Equal(t, process.ErrNilStorage, err)
+		assert.Nil(t, tx)
+		assert.Equal(t, process.ErrNilShardedDataCacherNotifier, err)
+	})
+	t.Run("invalid method", func(t *testing.T) {
+		tx, err := process.GetTransactionHandlerFromPool(
+			0,
+			0,
+			hash,
+			shardedDataCacherNotifier,
+			166)
+
+		assert.Nil(t, tx)
+		assert.True(t, errors.Is(err, process.ErrInvalidValue))
+		assert.True(t, strings.Contains(err.Error(), "invalid value"))
+		assert.True(t, strings.Contains(err.Error(), "166"))
+	})
+	t.Run("nil cache", func(t *testing.T) {
+		shardedDataCacherNotifier.ShardDataStoreCalled = func(cacheID string) storage.Cacher {
+			return nil
+		}
+
+		tx, err := process.GetTransactionHandlerFromPool(
+			0,
+			0,
+			hash,
+			shardedDataCacherNotifier,
+			process.SearchMethodJustPeek)
+
+		assert.Nil(t, tx)
+		assert.Equal(t, process.ErrNilStorage, err)
+	})
 }
 
 func TestGetTransactionHandlerFromPoolShouldErrTxNotFound(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 
 	shardedDataCacherNotifier := &testscommon.ShardedDataStub{
@@ -1756,13 +1935,15 @@ func TestGetTransactionHandlerFromPoolShouldErrTxNotFound(t *testing.T) {
 		0,
 		hash,
 		shardedDataCacherNotifier,
-		false)
+		process.SearchMethodJustPeek)
 
 	assert.Nil(t, tx)
 	assert.Equal(t, process.ErrTxNotFound, err)
 }
 
 func TestGetTransactionHandlerFromPoolShouldErrInvalidTxInPool(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 
 	shardedDataCacherNotifier := &testscommon.ShardedDataStub{
@@ -1780,13 +1961,15 @@ func TestGetTransactionHandlerFromPoolShouldErrInvalidTxInPool(t *testing.T) {
 		0,
 		hash,
 		shardedDataCacherNotifier,
-		false)
+		process.SearchMethodJustPeek)
 
 	assert.Nil(t, tx)
 	assert.Equal(t, process.ErrInvalidTxInPool, err)
 }
 
-func TestGetTransactionHandlerFromPoolShouldWork(t *testing.T) {
+func TestGetTransactionHandlerFromPoolShouldWorkWithPeek(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 	txFromPool := &transaction.Transaction{Nonce: 1}
 
@@ -1805,13 +1988,71 @@ func TestGetTransactionHandlerFromPoolShouldWork(t *testing.T) {
 		0,
 		hash,
 		shardedDataCacherNotifier,
-		false)
+		process.SearchMethodJustPeek)
 
 	assert.Nil(t, err)
 	assert.Equal(t, txFromPool, tx)
 }
 
+func TestGetTransactionHandlerFromPoolShouldWorkWithSearchFirst(t *testing.T) {
+	t.Parallel()
+
+	hash := []byte("X")
+	txFromPool := &transaction.Transaction{Nonce: 1}
+
+	shardedDataCacherNotifier := &testscommon.ShardedDataStub{
+		SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+			return txFromPool, true
+		},
+	}
+
+	tx, err := process.GetTransactionHandlerFromPool(
+		0,
+		0,
+		hash,
+		shardedDataCacherNotifier,
+		process.SearchMethodSearchFirst)
+
+	assert.Nil(t, err)
+	assert.Equal(t, txFromPool, tx)
+}
+
+func TestGetTransactionHandlerFromPoolShouldWorkWithPeekFallbackToSearchFirst(t *testing.T) {
+	t.Parallel()
+
+	hash := []byte("X")
+	txFromPool := &transaction.Transaction{Nonce: 1}
+
+	peekCalled := false
+	shardedDataCacherNotifier := &testscommon.ShardedDataStub{
+		ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
+			return &testscommon.CacherStub{
+				PeekCalled: func(key []byte) (value interface{}, ok bool) {
+					peekCalled = true
+					return nil, false
+				},
+			}
+		},
+		SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+			return txFromPool, true
+		},
+	}
+
+	tx, err := process.GetTransactionHandlerFromPool(
+		0,
+		0,
+		hash,
+		shardedDataCacherNotifier,
+		process.SearchMethodPeekWithFallbackSearchFirst)
+
+	assert.Nil(t, err)
+	assert.Equal(t, txFromPool, tx)
+	assert.True(t, peekCalled)
+}
+
 func TestGetTransactionHandlerFromStorageShouldErrNilStorage(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -1826,9 +2067,11 @@ func TestGetTransactionHandlerFromStorageShouldErrNilStorage(t *testing.T) {
 }
 
 func TestGetTransactionHandlerFromStorageShouldErrNilMarshalizer(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 
-	storageService := &mock.ChainStorerMock{}
+	storageService := &storageStubs.ChainStorerStub{}
 
 	tx, err := process.GetTransactionHandlerFromStorage(
 		hash,
@@ -1840,10 +2083,12 @@ func TestGetTransactionHandlerFromStorageShouldErrNilMarshalizer(t *testing.T) {
 }
 
 func TestGetTransactionHandlerFromStorageShouldErrWhenTxIsNotFound(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 	errExpected := errors.New("error")
 
-	storageService := &mock.ChainStorerMock{
+	storageService := &storageStubs.ChainStorerStub{
 		GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
 			return nil, errExpected
 		},
@@ -1860,10 +2105,12 @@ func TestGetTransactionHandlerFromStorageShouldErrWhenTxIsNotFound(t *testing.T)
 }
 
 func TestGetTransactionHandlerFromStorageShouldErrWhenUnmarshalFail(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 
 	marshalizer := &mock.MarshalizerMock{}
-	storageService := &mock.ChainStorerMock{
+	storageService := &storageStubs.ChainStorerStub{
 		GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
 			return nil, nil
 		},
@@ -1879,6 +2126,8 @@ func TestGetTransactionHandlerFromStorageShouldErrWhenUnmarshalFail(t *testing.T
 }
 
 func TestGetTransactionHandlerFromStorageShouldWork(t *testing.T) {
+	t.Parallel()
+
 	hash := []byte("X")
 	txFromPool := &transaction.Transaction{
 		Nonce: 1,
@@ -1887,7 +2136,7 @@ func TestGetTransactionHandlerFromStorageShouldWork(t *testing.T) {
 
 	marshalizer := &mock.MarshalizerMock{}
 	txMarsh, _ := marshalizer.Marshal(txFromPool)
-	storageService := &mock.ChainStorerMock{
+	storageService := &storageStubs.ChainStorerStub{
 		GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
 			if bytes.Equal(key, hash) {
 				return txMarsh, nil
@@ -1906,6 +2155,8 @@ func TestGetTransactionHandlerFromStorageShouldWork(t *testing.T) {
 }
 
 func TestSortHeadersByNonceShouldWork(t *testing.T) {
+	t.Parallel()
+
 	headers := []data.HeaderHandler{
 		&block.Header{Nonce: 3},
 		&block.Header{Nonce: 2},
@@ -2034,6 +2285,8 @@ func Test_IsSetGuardianCall(t *testing.T) {
 }
 
 func TestCheckIfIndexesAreOutOfBound(t *testing.T) {
+	t.Parallel()
+
 	txHashes := [][]byte{[]byte("txHash1"), []byte("txHash2"), []byte("txHash3")}
 	miniBlock := &block.MiniBlock{TxHashes: txHashes}
 
@@ -2059,6 +2312,8 @@ func TestCheckIfIndexesAreOutOfBound(t *testing.T) {
 }
 
 func TestUnmarshalHeader(t *testing.T) {
+	t.Parallel()
+
 	marshalizer := &mock.MarshalizerMock{}
 
 	shardHeaderV1 := &block.Header{Nonce: 42, EpochStartMetaHash: []byte{0xaa, 0xbb}}
@@ -2070,6 +2325,8 @@ func TestUnmarshalHeader(t *testing.T) {
 	metaHeaderBuffer, _ := marshalizer.Marshal(metaHeader)
 
 	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
 		header, err := process.UnmarshalHeader(1, marshalizer, shardHeaderV1Buffer)
 		assert.Nil(t, err)
 		assert.Equal(t, shardHeaderV1, header)
@@ -2084,6 +2341,8 @@ func TestUnmarshalHeader(t *testing.T) {
 	})
 
 	t.Run("should err", func(t *testing.T) {
+		t.Parallel()
+
 		header, err := process.UnmarshalHeader(1, marshalizer, []byte{0xb, 0xa, 0xd})
 		assert.NotNil(t, err)
 		assert.Nil(t, header)
@@ -2092,4 +2351,14 @@ func TestUnmarshalHeader(t *testing.T) {
 		assert.NotNil(t, err)
 		assert.Nil(t, header)
 	})
+}
+
+func TestShardedCacheSearchMethod_ToString(t *testing.T) {
+	t.Parallel()
+
+	assert.Equal(t, "just peek", process.SearchMethodJustPeek.ToString())
+	assert.Equal(t, "search first", process.SearchMethodSearchFirst.ToString())
+	assert.Equal(t, "peek with fallback to search first", process.SearchMethodPeekWithFallbackSearchFirst.ToString())
+	str := process.ShardedCacheSearchMethod(166).ToString()
+	assert.Equal(t, "unknown method 166", str)
 }
