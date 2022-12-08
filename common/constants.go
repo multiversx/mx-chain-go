@@ -3,6 +3,8 @@ package common
 import (
 	"math"
 	"time"
+
+	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
 // PeerType represents the type of a peer
@@ -645,6 +647,9 @@ const MetricP2PUnknownPeers = "erd_p2p_unknown_shard_peers"
 
 // MetricP2PNumConnectedPeersClassification is the metric for monitoring the number of connected peers split on the connection type
 const MetricP2PNumConnectedPeersClassification = "erd_p2p_num_connected_peers_classification"
+
+// MetricP2PPeersRating is the metric that outputs the peers ratings
+const MetricP2PPeersRating = p2p.MetricP2PPeersRating
 
 // MetricAreVMQueriesReady will hold the string representation of the boolean that indicated if the node is ready
 // to process VM queries

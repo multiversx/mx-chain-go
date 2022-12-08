@@ -120,8 +120,9 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		return nil, err
 	}
 	argsPeersRatingHandler := p2pFactory.ArgPeersRatingHandler{
-		TopRatedCache: topRatedCache,
-		BadRatedCache: badRatedCache,
+		TopRatedCache:    topRatedCache,
+		BadRatedCache:    badRatedCache,
+		AppStatusHandler: ncf.statusHandler,
 	}
 	peersRatingHandler, err := p2pFactory.NewPeersRatingHandler(argsPeersRatingHandler)
 	if err != nil {
