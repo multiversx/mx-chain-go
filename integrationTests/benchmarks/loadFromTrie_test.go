@@ -22,60 +22,41 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var charsPool = []string{"1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E"}
+var charsPool = []string{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E"}
 
 const (
 	keyLength = 32
 )
 
-func TestTrieLoadTime3LeavesPerBranch(t *testing.T) {
+func TestTrieLoadTime(t *testing.T) {
 	t.Skip()
 
-	numChildrenPerBranch := 3
-	testTrieLoadTime(t, numChildrenPerBranch)
-}
-
-func TestTrieLoadTime8LeavesPerBranch(t *testing.T) {
-	t.Skip()
-
+	numTrieLevels := 4
+	numTries := 100000
 	numChildrenPerBranch := 8
-	testTrieLoadTime(t, numChildrenPerBranch)
+	for i := 1; i <= numTrieLevels; i++ {
+		testTrieLoadTime(t, numChildrenPerBranch, numTries, i)
+	}
 }
 
-func TestTrieLoadTime15LeavesPerBranch(t *testing.T) {
-	t.Skip()
-
-	numChildrenPerBranch := 15
-	testTrieLoadTime(t, numChildrenPerBranch)
-}
-
-func testTrieLoadTime(t *testing.T, numChildrenPerBranch int) {
+func testTrieLoadTime(t *testing.T, numChildrenPerBranch int, numTries int, maxTrieLevel int) {
 	store := getNewTrieStorage()
 	defer func() {
 		_ = store.DestroyUnit()
 	}()
 	marshaller := &marshal.GogoProtoMarshalizer{}
 	hasher := blake2b.NewBlake2b()
-	numTrieLevels := 50
-	numTries := 100000
 
-	for i := 1; i <= numTrieLevels; i++ {
-		tsm := getTrieStorageManager(store, marshaller, hasher)
+	tsm := getTrieStorageManager(store, marshaller, hasher)
+	tries := generateTriesWithMaxDepth(t, numTries, maxTrieLevel, numChildrenPerBranch, tsm, marshaller, hasher)
+	store.ClearCache()
 
-		startTime := time.Now()
-		tries := generateTriesWithMaxDepth(t, numTries, i, numChildrenPerBranch, tsm, marshaller, hasher)
-		duration := time.Since(startTime)
-		fmt.Println(fmt.Sprintf("time to generate trie of level %d, duration %v", i, duration.Seconds()))
-
-		store.ClearCache()
-
-		if i == 1 {
-			timeTrieRecreate(tries, i)
-			continue
-		}
-
-		timeTrieLoad(tries, i)
+	if maxTrieLevel == 1 {
+		timeTrieRecreate(tries, maxTrieLevel)
+		return
 	}
+
+	timeTrieLoad(t, tries, maxTrieLevel)
 }
 
 func timeTrieRecreate(tries []*keyForTrie, depth int) {
@@ -87,10 +68,11 @@ func timeTrieRecreate(tries []*keyForTrie, depth int) {
 	fmt.Println(fmt.Sprintf("trie with depth %d, duration %d", depth, duration.Nanoseconds()/int64(len(tries))))
 }
 
-func timeTrieLoad(tries []*keyForTrie, depth int) {
+func timeTrieLoad(t *testing.T, tries []*keyForTrie, depth int) {
 	startTime := time.Now()
 	for j := range tries {
-		_, _, _ = tries[j].tr.Get(tries[j].key)
+		_, _, err := tries[j].tr.Get(tries[j].key)
+		require.Nil(t, err)
 		tries[j] = nil
 	}
 	duration := time.Since(startTime)
@@ -124,11 +106,13 @@ func generateTriesWithMaxDepth(
 				key: rootHash,
 				tr:  collapsedTrie,
 			}
-		} else {
-			tries[i] = &keyForTrie{
-				key: key,
-				tr:  collapsedTrie,
-			}
+
+			continue
+		}
+
+		tries[i] = &keyForTrie{
+			key: key,
+			tr:  collapsedTrie,
 		}
 	}
 
