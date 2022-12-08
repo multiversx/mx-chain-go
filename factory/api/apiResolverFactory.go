@@ -543,6 +543,7 @@ func createAPIBlockProcessorArgs(args *ApiResolverArgs, apiTransactionHandler ex
 		AlteredAccountsProvider:      alteredAccountsProvider,
 		AccountsRepository:           args.StateComponents.AccountsRepository(),
 		ScheduledTxsExecutionHandler: args.ProcessComponents.ScheduledTxsExecutionHandler(),
+		EnableEpochsHandler:          args.CoreComponents.EnableEpochsHandler(),
 	}
 
 	return blockApiArgs, nil

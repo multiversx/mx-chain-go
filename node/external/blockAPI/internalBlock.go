@@ -31,6 +31,7 @@ func newInternalBlockProcessor(arg *ArgAPIBlockProcessor, emptyReceiptsHash []by
 			hasher:                   arg.Hasher,
 			addressPubKeyConverter:   arg.AddressPubkeyConverter,
 			emptyReceiptsHash:        emptyReceiptsHash,
+			enableEpochsHandler:      arg.EnableEpochsHandler,
 		},
 	}
 }
@@ -215,7 +216,7 @@ func (ibp *internalBlockProcessor) getAllValidatorsInfo(metaBlock data.HeaderHan
 			continue
 		}
 
-		validatorInfo, err := ibp.getValidatorsInfo(miniBlock)
+		validatorInfo, err := ibp.getValidatorsInfo(miniBlock, metaBlock.GetEpoch())
 		if err != nil {
 			return nil, err
 		}
@@ -226,16 +227,28 @@ func (ibp *internalBlockProcessor) getAllValidatorsInfo(metaBlock data.HeaderHan
 	return allValidatorInfo, nil
 }
 
-func (ibp *internalBlockProcessor) getValidatorsInfo(miniBlock *block.MiniBlock) ([]*state.ShardValidatorInfo, error) {
-	validatorsInfoBuff, err := ibp.store.GetAll(dataRetriever.UnsignedTransactionUnit, miniBlock.TxHashes)
-	if err != nil {
-		return nil, err
+func (ibp *internalBlockProcessor) getValidatorsInfo(
+	miniBlock *block.MiniBlock,
+	epoch uint32,
+) ([]*state.ShardValidatorInfo, error) {
+	validatorsInfoBytes := make([][]byte, 0)
+	if epoch >= ibp.enableEpochsHandler.RefactorPeersMiniBlocksEnableEpoch() {
+		validatorsInfoBuff, err := ibp.store.GetAll(dataRetriever.UnsignedTransactionUnit, miniBlock.TxHashes)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, validatorInfoBuff := range validatorsInfoBuff {
+			validatorsInfoBytes = append(validatorsInfoBytes, validatorInfoBuff)
+		}
+	} else {
+		validatorsInfoBytes = miniBlock.TxHashes
 	}
 
 	validatorsInfo := make([]*state.ShardValidatorInfo, 0)
-	for _, validatorInfoBuff := range validatorsInfoBuff {
+	for _, validatorInfoBytes := range validatorsInfoBytes {
 		shardValidatorInfo := &state.ShardValidatorInfo{}
-		err = ibp.marshalizer.Unmarshal(shardValidatorInfo, validatorInfoBuff)
+		err := ibp.marshalizer.Unmarshal(shardValidatorInfo, validatorInfoBytes)
 		if err != nil {
 			return nil, err
 		}
