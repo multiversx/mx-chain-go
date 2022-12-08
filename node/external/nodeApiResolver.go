@@ -305,11 +305,8 @@ func (nar *nodeApiResolver) getInitialNodesPubKeysBytes(nodesInfo map[uint32][]n
 
 	for shardID, ni := range nodesInfo {
 		for i := 0; i < len(ni); i++ {
-			encodeValidatorPubKey, err := nar.validatorPubKeyConverter.Encode(ni[i].PubKeyBytes())
-			if err != nil {
-				return nil, err
-			}
-			nodesInfoPubkeys[shardID] = append(nodesInfoPubkeys[shardID], encodeValidatorPubKey)
+			validatorPubKey := nar.validatorPubKeyConverter.SilentEncode(ni[i].PubKeyBytes(), log)
+			nodesInfoPubkeys[shardID] = append(nodesInfoPubkeys[shardID], validatorPubKey)
 		}
 	}
 
