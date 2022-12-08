@@ -31,8 +31,17 @@ const (
 func TestTrieLoadTime(t *testing.T) {
 	t.Skip()
 
-	numTrieLevels := 4
+	numTrieLevels := 50
 	numTries := 100000
+	numChildrenPerBranch := 8
+	for i := 1; i <= numTrieLevels; i++ {
+		testTrieLoadTime(t, numChildrenPerBranch, numTries, i)
+	}
+}
+
+func TestTrieLoadTimeForOneLevel(t *testing.T) {
+	numTrieLevels := 1
+	numTries := 10000
 	numChildrenPerBranch := 8
 	for i := 1; i <= numTrieLevels; i++ {
 		testTrieLoadTime(t, numChildrenPerBranch, numTries, i)
