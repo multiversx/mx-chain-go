@@ -114,6 +114,8 @@ func (handler *enableEpochsHandler) EpochConfirmed(epoch uint32, _ uint64) {
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.FixAsyncCallBackArgsListEnableEpoch, handler.fixAsyncCallBackArgsList, "fixAsyncCallBackArgsList")
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.FixOldTokenLiquidityEnableEpoch, handler.fixOldTokenLiquidity, "fixOldTokenLiquidity")
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.RuntimeMemStoreLimitEnableEpoch, handler.runtimeMemStoreLimitFlag, "runtimeMemStoreLimitFlag")
+	handler.setFlagValue(epoch >= handler.enableEpochsConfig.GuardAccountFeatureEnableEpoch, handler.guardAccountFlag, "guardAccountFeatureFlag")
+	handler.setFlagValue(epoch >= handler.enableEpochsConfig.SetGuardianEnableEpoch, handler.setGuardianFlag, "setGuardianFlag")
 }
 
 func (handler *enableEpochsHandler) setFlagValue(value bool, flag *atomic.Flag, flagName string) {
