@@ -76,7 +76,7 @@ func TestSystemSCsAddressesAndSpecialAddresses(t *testing.T) {
 	genesisMintingAddress := addressEncoder.Encode(genesisMintingAddressBytes)
 	systemAccountAddress := addressEncoder.Encode(core.SystemAccountAddress)
 
-	globalSettingsAddrSh0, globalSettingsAddrSh1, globalSettingsAddrSh2 := getGlobalSettingsAddresses()
+	esdtGlobalSettingsAddresses := getGlobalSettingsAddresses()
 
 	header := []string{"Smart contract/Special address", "Address"}
 	lines := []*display.LineData{
@@ -91,9 +91,9 @@ func TestSystemSCsAddressesAndSpecialAddresses(t *testing.T) {
 		display.NewLineData(false, []string{"First delegation", firstDelegationScAddress}),
 		display.NewLineData(false, []string{"Genesis Minting Address", genesisMintingAddress}),
 		display.NewLineData(false, []string{"System Account Address", systemAccountAddress}),
-		display.NewLineData(false, []string{"ESDT Global Settings Shard 0", globalSettingsAddrSh0}),
-		display.NewLineData(false, []string{"ESDT Global Settings Shard 1", globalSettingsAddrSh1}),
-		display.NewLineData(false, []string{"ESDT Global Settings Shard 2", globalSettingsAddrSh2}),
+		display.NewLineData(false, []string{"ESDT Global Settings Shard 0", esdtGlobalSettingsAddresses[0]}),
+		display.NewLineData(false, []string{"ESDT Global Settings Shard 1", esdtGlobalSettingsAddresses[1]}),
+		display.NewLineData(false, []string{"ESDT Global Settings Shard 2", esdtGlobalSettingsAddresses[2]}),
 	}
 
 	table, _ := display.CreateTableString(header, lines)
@@ -110,12 +110,12 @@ func TestSystemSCsAddressesAndSpecialAddresses(t *testing.T) {
 	assert.Equal(t, "erd1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq6gq4hu", contractDeployScAdress)
 	assert.Equal(t, "erd17rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rcqqkhty3", genesisMintingAddress)
 	assert.Equal(t, "erd1lllllllllllllllllllllllllllllllllllllllllllllllllllsckry7t", systemAccountAddress)
-	assert.Equal(t, "erd1llllllllllllllllllllllllllllllllllllllllllllllllluqq2m3f0f", globalSettingsAddrSh0)
-	assert.Equal(t, "erd1llllllllllllllllllllllllllllllllllllllllllllllllluqsl6e366", globalSettingsAddrSh1)
-	assert.Equal(t, "erd1lllllllllllllllllllllllllllllllllllllllllllllllllupq9x7ny0", globalSettingsAddrSh2)
+	assert.Equal(t, "erd1llllllllllllllllllllllllllllllllllllllllllllllllluqq2m3f0f", esdtGlobalSettingsAddresses[0])
+	assert.Equal(t, "erd1llllllllllllllllllllllllllllllllllllllllllllllllluqsl6e366", esdtGlobalSettingsAddresses[1])
+	assert.Equal(t, "erd1lllllllllllllllllllllllllllllllllllllllllllllllllupq9x7ny0", esdtGlobalSettingsAddresses[2])
 }
 
-func getGlobalSettingsAddresses() (string, string, string) {
+func getGlobalSettingsAddresses() map[uint32]string {
 	computeAddress := func(shardID uint32) string {
 		baseSystemAccountAddress := core.SystemAccountAddress
 		globalSettingsAddress := baseSystemAccountAddress
@@ -124,5 +124,11 @@ func getGlobalSettingsAddresses() (string, string, string) {
 		return addressEncoder.Encode(globalSettingsAddress)
 	}
 
-	return computeAddress(0), computeAddress(1), computeAddress(2)
+	numShards := uint32(3)
+	addressesMap := make(map[uint32]string, numShards)
+	for i := uint32(0); i < numShards; i++ {
+		addressesMap[i] = computeAddress(i)
+	}
+
+	return addressesMap
 }
