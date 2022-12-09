@@ -57,6 +57,7 @@ type baseAPIBlockProcessor struct {
 	alteredAccountsProvider      outportProcess.AlteredAccountsProviderHandler
 	accountsRepository           state.AccountsRepository
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
+	enableEpochsHandler          common.EnableEpochsHandler
 }
 
 var log = logger.GetOrCreate("node/blockAPI")

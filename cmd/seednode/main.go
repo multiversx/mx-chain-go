@@ -14,6 +14,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/display"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	factoryMarshalizer "github.com/ElrondNetwork/elrond-go-core/marshal/factory"
+	"github.com/ElrondNetwork/elrond-go-crypto/signing"
+	"github.com/ElrondNetwork/elrond-go-crypto/signing/secp256k1"
+	secp256k1SinglerSig "github.com/ElrondNetwork/elrond-go-crypto/signing/secp256k1/singlesig"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go-logger/file"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
@@ -22,6 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/facade"
+	cryptoFactory "github.com/ElrondNetwork/elrond-go/factory/crypto"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	p2pConfig "github.com/ElrondNetwork/elrond-go/p2p/config"
 	p2pFactory "github.com/ElrondNetwork/elrond-go/p2p/factory"
@@ -195,12 +199,7 @@ func startNode(ctx *cli.Context) error {
 	}
 
 	p2pKeyPemFileName := ctx.GlobalString(p2pKeyPemFile.Name)
-	p2pKeyBytes, err := common.GetSkBytesFromP2pKey(p2pKeyPemFileName)
-	if err != nil {
-		return err
-	}
-
-	messenger, err := createNode(*p2pCfg, internalMarshalizer, p2pKeyBytes)
+	messenger, err := createNode(*p2pCfg, internalMarshalizer, p2pKeyPemFileName)
 	if err != nil {
 		return err
 	}
@@ -245,7 +244,19 @@ func loadMainConfig(filepath string) (*config.Config, error) {
 	return cfg, nil
 }
 
-func createNode(p2pConfig p2pConfig.P2PConfig, marshalizer marshal.Marshalizer, p2pKeyBytes []byte) (p2p.Messenger, error) {
+func createNode(
+	p2pConfig p2pConfig.P2PConfig,
+	marshalizer marshal.Marshalizer,
+	p2pKeyFileName string,
+) (p2p.Messenger, error) {
+	p2pSingleSigner := &secp256k1SinglerSig.Secp256k1Signer{}
+	p2pKeyGen := signing.NewKeyGenerator(secp256k1.NewSecp256k1())
+
+	p2pKey, _, err := cryptoFactory.CreateP2pKeyPair(p2pKeyFileName, p2pKeyGen, log)
+	if err != nil {
+		return nil, err
+	}
+
 	arg := p2pFactory.ArgsNetworkMessenger{
 		Marshalizer:           marshalizer,
 		ListenAddress:         p2p.ListenAddrWithIp4AndTcp,
@@ -255,7 +266,9 @@ func createNode(p2pConfig p2pConfig.P2PConfig, marshalizer marshal.Marshalizer, 
 		NodeOperationMode:     p2p.NormalOperation,
 		PeersRatingHandler:    disabled.NewDisabledPeersRatingHandler(),
 		ConnectionWatcherType: "disabled",
-		P2pPrivateKeyBytes:    p2pKeyBytes,
+		P2pPrivateKey:         p2pKey,
+		P2pSingleSigner:       p2pSingleSigner,
+		P2pKeyGenerator:       p2pKeyGen,
 	}
 
 	return p2pFactory.NewNetworkMessenger(arg)

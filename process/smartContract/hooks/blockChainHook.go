@@ -59,6 +59,8 @@ type ArgBlockChainHook struct {
 	EnableEpochsHandler   common.EnableEpochsHandler
 	WorkingDir            string
 	NilCompiledSCStore    bool
+	GasSchedule           core.GasScheduleNotifier
+	Counter               BlockChainHookCounter
 }
 
 // BlockChainHookImpl is a wrapper over AccountsAdapter that satisfy vmcommon.BlockchainHook interface
@@ -74,6 +76,7 @@ type BlockChainHookImpl struct {
 	nftStorageHandler     vmcommon.SimpleESDTNFTStorageHandler
 	globalSettingsHandler vmcommon.ESDTGlobalSettingsHandler
 	enableEpochsHandler   common.EnableEpochsHandler
+	counter               BlockChainHookCounter
 
 	mutCurrentHdr sync.RWMutex
 	currentHdr    data.HeaderHandler
@@ -85,6 +88,9 @@ type BlockChainHookImpl struct {
 	nilCompiledSCStore bool
 
 	mapActivationEpochs map[uint32]struct{}
+
+	mutGasLock  sync.RWMutex
+	gasSchedule core.GasScheduleNotifier
 }
 
 // NewBlockChainHookImpl creates a new BlockChainHookImpl instance
@@ -112,6 +118,8 @@ func NewBlockChainHookImpl(
 		nftStorageHandler:     args.NFTStorageHandler,
 		globalSettingsHandler: args.GlobalSettingsHandler,
 		enableEpochsHandler:   args.EnableEpochsHandler,
+		gasSchedule:           args.GasSchedule,
+		counter:               args.Counter,
 	}
 
 	err = blockChainHookImpl.makeCompiledSCStorage()
@@ -124,6 +132,7 @@ func NewBlockChainHookImpl(
 	blockChainHookImpl.mapActivationEpochs = createMapActivationEpochs(&args.EnableEpochs)
 
 	args.EpochNotifier.RegisterNotifyHandler(blockChainHookImpl)
+	args.GasSchedule.RegisterNotifyHandler(blockChainHookImpl)
 
 	return blockChainHookImpl, nil
 }
@@ -183,6 +192,12 @@ func checkForNil(args ArgBlockChainHook) error {
 	if check.IfNil(args.EnableEpochsHandler) {
 		return process.ErrNilEnableEpochsHandler
 	}
+	if check.IfNil(args.GasSchedule) || args.GasSchedule.LatestGasSchedule() == nil {
+		return process.ErrNilGasSchedule
+	}
+	if check.IfNil(args.Counter) {
+		return ErrNilBlockchainHookCounter
+	}
 
 	return nil
 }
@@ -226,6 +241,11 @@ func (bh *BlockChainHookImpl) GetUserAccount(address []byte) (vmcommon.UserAccou
 func (bh *BlockChainHookImpl) GetStorageData(accountAddress []byte, index []byte) ([]byte, uint32, error) {
 	defer stopMeasure(startMeasure("GetStorageData"))
 
+	err := bh.processMaxReadsCounters()
+	if err != nil {
+		return nil, 0, err
+	}
+
 	userAcc, err := bh.GetUserAccount(accountAddress)
 	if err == state.ErrAccNotFound {
 		return make([]byte, 0), 0, nil
@@ -247,6 +267,17 @@ func (bh *BlockChainHookImpl) GetStorageData(accountAddress []byte, index []byte
 	}
 	log.Trace("GetStorageData ", messages...)
 	return value, trieDepth, err
+}
+
+func (bh *BlockChainHookImpl) processMaxReadsCounters() error {
+	if !bh.enableEpochsHandler.IsMaxBlockchainHookCountersFlagEnabled() {
+		return nil
+	}
+	if bh.shardCoordinator.SelfId() == core.MetachainShardId {
+		return nil
+	}
+
+	return bh.counter.ProcessCrtNumberOfTrieReadsCounter()
 }
 
 // GetBlockhash returns the header hash for a requested nonce delta
@@ -418,6 +449,11 @@ func (bh *BlockChainHookImpl) ProcessBuiltInFunction(input *vmcommon.ContractCal
 		return nil, err
 	}
 
+	err = bh.processMaxBuiltInCounters(input)
+	if err != nil {
+		return nil, err
+	}
+
 	vmOutput, err := function.ProcessBuiltinFunction(sndAccount, dstAccount, input)
 	if err != nil {
 		return nil, err
@@ -440,7 +476,18 @@ func (bh *BlockChainHookImpl) ProcessBuiltInFunction(input *vmcommon.ContractCal
 	return vmOutput, nil
 }
 
-// SaveNFTMetaDataToSystemAccount will save NFT meta data to system account for the given transaction
+func (bh *BlockChainHookImpl) processMaxBuiltInCounters(input *vmcommon.ContractCallInput) error {
+	if !bh.enableEpochsHandler.IsMaxBlockchainHookCountersFlagEnabled() {
+		return nil
+	}
+	if bh.shardCoordinator.SelfId() == core.MetachainShardId {
+		return nil
+	}
+
+	return bh.counter.ProcessMaxBuiltInCounters(input)
+}
+
+// SaveNFTMetaDataToSystemAccount will save NFT meta-data to system account for the given transaction
 func (bh *BlockChainHookImpl) SaveNFTMetaDataToSystemAccount(tx data.TransactionHandler) error {
 	return bh.nftStorageHandler.SaveNFTMetaDataToSystemAccount(tx)
 }
@@ -760,6 +807,39 @@ func (bh *BlockChainHookImpl) EpochConfirmed(epoch uint32, _ uint64) {
 	if ok {
 		bh.ClearCompiledCodes()
 	}
+}
+
+// GasScheduleChange sets the new gas schedule where it is needed
+func (bh *BlockChainHookImpl) GasScheduleChange(gasSchedule map[string]map[string]uint64) {
+	maxPerTransaction := bh.getMaxPerTransactionValues(gasSchedule)
+	if maxPerTransaction == nil {
+		log.Error("maxPerTransaction definition is missing in the current gas schedule, using old values")
+		return
+	}
+
+	bh.counter.SetMaximumValues(maxPerTransaction)
+}
+
+func (bh *BlockChainHookImpl) getMaxPerTransactionValues(gasSchedule map[string]map[string]uint64) map[string]uint64 {
+	bh.mutGasLock.Lock()
+	defer bh.mutGasLock.Unlock()
+
+	maxPerTransaction := gasSchedule[common.MaxPerTransaction]
+	if maxPerTransaction == nil {
+		return nil
+	}
+
+	result := make(map[string]uint64)
+	for key, value := range maxPerTransaction {
+		result[key] = value
+	}
+
+	return result
+}
+
+// ResetCounters resets the state counters for the blockchain hook
+func (bh *BlockChainHookImpl) ResetCounters() {
+	bh.counter.ResetCounters()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
