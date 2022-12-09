@@ -44,39 +44,33 @@ func (s *sorter) PutExecutionOrderInTransactionPool(
 
 	// already sorted
 	transactionsToMe := extractNormalTransactionAndScrsToMe(pool, blockBody, header, true)
-	startIndexTransactionsToMe := 0
-	putOrderInTransactions(transactionsToMe, startIndexTransactionsToMe)
 
 	// scheduled to me, already sorted
 	scheduledTransactionsToMe := extractNormalTransactionAndScrsToMe(pool, blockBody, header, false)
-	startIndexScheduledTransactionsToMe := len(transactionsToMe)
-	putOrderInTransactions(scheduledTransactionsToMe, startIndexScheduledTransactionsToMe)
 
 	// need to be sorted
 	transactionsFromMe := extractNormalTransactionsAndInvalidFromMe(pool, blockBody, header, true)
 	txsSort.SortTransactionsBySenderAndNonceWithFrontRunningProtectionExtendedTransactions(transactionsFromMe, s.hasher, header.GetPrevRandSeed())
-	startIndexTransactionsFromMe := startIndexScheduledTransactionsToMe + len(scheduledTransactionsToMe)
 
 	rewardsTxs := getRewardsTxsFromMe(pool, blockBody, header)
-	transactionsFromMe = append(transactionsFromMe, rewardsTxs...)
-	putOrderInTransactions(transactionsFromMe, startIndexTransactionsFromMe)
 
 	// scheduled from me, need to be sorted
 	scheduledTransactionsFromMe := extractNormalTransactionsAndInvalidFromMe(pool, blockBody, header, false)
 	txsSort.SortTransactionsBySenderAndNonceWithFrontRunningProtectionExtendedTransactions(scheduledTransactionsFromMe, s.hasher, header.GetPrevRandSeed())
-	startIndexScheduledTransactionFromMe := startIndexTransactionsFromMe + len(transactionsFromMe)
-	putOrderInTransactions(scheduledTransactionsFromMe, startIndexScheduledTransactionFromMe)
+
+	allTransaction := append(transactionsToMe, scheduledTransactionsToMe...)
+	allTransaction = append(allTransaction, transactionsFromMe...)
+	allTransaction = append(allTransaction, rewardsTxs...)
+	allTransaction = append(allTransaction, scheduledTransactionsFromMe...)
+
+	for idx, tx := range allTransaction {
+		tx.SetExecutionOrder(idx)
+	}
 
 	setOrderSmartContractResults(pool)
 
 	prinPool(pool)
 	return nil
-}
-
-func putOrderInTransactions(txs []data.TransactionHandlerWithGasUsedAndFee, startIndex int) {
-	for idx, tx := range txs {
-		tx.SetExecutionOrder(idx + startIndex)
-	}
 }
 
 func setOrderSmartContractResults(pool *outport.Pool) {
