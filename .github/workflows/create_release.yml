@@ -5,8 +5,6 @@ on:
     branches:
       - master
       - rc/*
-  pull_request:
-    branches: [ rc/* ] # TODO remove this section, for debugging only
   workflow_dispatch:
 
 permissions:
@@ -17,7 +15,7 @@ jobs:
   build:
     strategy:
       matrix:
-        runs-on: [ubuntu-latest] # add macos-latest when builds are possible on macs
+        runs-on: [ubuntu-latest] # TODO add macos-latest when builds are possible on macs
     runs-on: ${{ matrix.runs-on }}
     name: Build
     steps:
