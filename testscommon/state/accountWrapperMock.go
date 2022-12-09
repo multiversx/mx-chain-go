@@ -22,7 +22,7 @@ type AccountWrapMock struct {
 	address           []byte
 	trackableDataTrie state.DataTrieTracker
 	Balance           *big.Int
-	frozen            bool
+	guarded           bool
 
 	SetNonceWithJournalCalled    func(nonce uint64) error           `json:"-"`
 	SetCodeHashWithJournalCalled func(codeHash []byte) error        `json:"-"`
@@ -190,7 +190,7 @@ func (awm *AccountWrapMock) GetNonce() uint64 {
 	return awm.nonce
 }
 
-// IsFrozen -
-func (awm *AccountWrapMock) IsFrozen() bool {
-	return awm.frozen
+// IsGuarded -
+func (awm *AccountWrapMock) IsGuarded() bool {
+	return awm.guarded
 }

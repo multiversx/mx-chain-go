@@ -1106,14 +1106,14 @@ func TestGetGuardianData(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		expectedGuardianData := api.GuardianData{
 			ActiveGuardian: &api.Guardian{
-				Address: "guardian1",
-				ActivationEpoch:   0,
+				Address:         "guardian1",
+				ActivationEpoch: 0,
 			},
 			PendingGuardian: &api.Guardian{
-				Address: "guardian2",
-				ActivationEpoch:   10,
+				Address:         "guardian2",
+				ActivationEpoch: 10,
 			},
-			Frozen: true,
+			Guarded: true,
 		}
 		facade := mock.FacadeStub{
 			GetGuardianDataCalled: func(address string, options api.AccountQueryOptions) (api.GuardianData, api.BlockInfo, error) {

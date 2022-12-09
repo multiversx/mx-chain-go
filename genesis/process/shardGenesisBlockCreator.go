@@ -138,7 +138,7 @@ func createGenesisConfig() config.EnableEpochs {
 		RefactorPeersMiniBlocksEnableEpoch:                unreachableEpoch,
 		DoNotReturnOldBlockInBlockchainHookEnableEpoch:    unreachableEpoch,
 		BLSMultiSignerEnableEpoch:                         blsMultiSignerEnableEpoch,
-		FreezeAccountFeatureEnableEpoch:                   unreachableEpoch,
+		GuardAccountFeatureEnableEpoch:                    unreachableEpoch,
 	}
 }
 
@@ -398,7 +398,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		EnableEpochsHandler:       enableEpochsHandler,
 		AutomaticCrawlerAddresses: [][]byte{make([]byte, 32)},
 		MaxNumNodesInTransferRole: math.MaxUint32,
-		GuardedAccountHandler:        disabledGuardian.NewDisabledGuardedAccountHandler(),
+		GuardedAccountHandler:     disabledGuardian.NewDisabledGuardedAccountHandler(),
 	}
 	builtInFuncFactory, err := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
 	if err != nil {
@@ -570,8 +570,8 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		ArgsParser:          smartContract.NewArgumentParser(),
 		ScrForwarder:        scForwarder,
 		EnableEpochsHandler: enableEpochsHandler,
-		TxVersionChecker:                      arg.Core.TxVersionChecker(),
-		GuardianChecker:                       disabledGuardian.NewDisabledGuardedAccountHandler(),
+		TxVersionChecker:    arg.Core.TxVersionChecker(),
+		GuardianChecker:     disabledGuardian.NewDisabledGuardedAccountHandler(),
 	}
 	transactionProcessor, err := transaction.NewTxProcessor(argsNewTxProcessor)
 	if err != nil {

@@ -37,7 +37,7 @@ func createMockArguments() ArgsCreateBuiltInFunctionContainer {
 			bytes.Repeat([]byte{1}, 32),
 		},
 		MaxNumNodesInTransferRole: 100,
-		GuardedAccountHandler: &guardianMocks.GuardedAccountHandlerStub{},
+		GuardedAccountHandler:     &guardianMocks.GuardedAccountHandlerStub{},
 	}
 
 	return args
@@ -87,7 +87,7 @@ func fillGasMapBuiltInCosts(value uint64) map[string]uint64 {
 	gasMap["ESDTNFTUpdateAttributes"] = value
 	gasMap["ESDTNFTMultiTransfer"] = value
 	gasMap["SetGuardian"] = value
-	gasMap["FreezeAccount"] = value
+	gasMap["GuardAccount"] = value
 
 	return gasMap
 }

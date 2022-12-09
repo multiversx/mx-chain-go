@@ -4126,19 +4126,19 @@ func TestNode_GetGuardianData(t *testing.T) {
 	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(args)
 	userAddress := coreComponents.AddressPubKeyConverter().Encode(userAddressBytes)
 	g1 := &guardians.Guardian{
-		Address: bytes.Repeat([]byte{1}, 32),
+		Address:         bytes.Repeat([]byte{1}, 32),
 		ActivationEpoch: 0,
 	}
 	g2 := &guardians.Guardian{
-		Address: bytes.Repeat([]byte{2}, 32),
+		Address:         bytes.Repeat([]byte{2}, 32),
 		ActivationEpoch: 1,
 	}
 	apiG1 := &api.Guardian{
-		Address: coreComponents.AddressPubKeyConverter().Encode(g1.Address),
+		Address:         coreComponents.AddressPubKeyConverter().Encode(g1.Address),
 		ActivationEpoch: g1.ActivationEpoch,
 	}
 	apiG2 := &api.Guardian{
-		Address: coreComponents.AddressPubKeyConverter().Encode(g2.Address),
+		Address:         coreComponents.AddressPubKeyConverter().Encode(g2.Address),
 		ActivationEpoch: g2.ActivationEpoch,
 	}
 	t.Run("error on loadUserAccountHandlerByAddress", func(t *testing.T) {
@@ -4204,7 +4204,7 @@ func TestNode_GetGuardianData(t *testing.T) {
 		require.Equal(t, api.GuardianData{
 			ActiveGuardian:  apiG1,
 			PendingGuardian: nil,
-			Frozen:          false,
+			Guarded:         false,
 		}, guardianData)
 		require.Equal(t, api.BlockInfo{}, blockInfo)
 		require.Nil(t, err)
@@ -4226,7 +4226,7 @@ func TestNode_GetGuardianData(t *testing.T) {
 		require.Equal(t, api.GuardianData{
 			ActiveGuardian:  nil,
 			PendingGuardian: apiG1,
-			Frozen:          false,
+			Guarded:         false,
 		}, guardianData)
 		require.Equal(t, api.BlockInfo{}, blockInfo)
 		require.Nil(t, err)
@@ -4248,14 +4248,14 @@ func TestNode_GetGuardianData(t *testing.T) {
 		require.Equal(t, api.GuardianData{
 			ActiveGuardian:  apiG1,
 			PendingGuardian: apiG2,
-			Frozen:          false,
+			Guarded:         false,
 		}, guardianData)
 		require.Equal(t, api.BlockInfo{}, blockInfo)
 		require.Nil(t, err)
 	})
-	t.Run("one active and one pending and account frozen", func(t *testing.T) {
+	t.Run("one active and one pending and account guarded", func(t *testing.T) {
 		acc, _ := state.NewUserAccount(userAddressBytes)
-		acc.CodeMetadata = (&vmcommon.CodeMetadata{Frozen: true}).ToBytes()
+		acc.CodeMetadata = (&vmcommon.CodeMetadata{Guarded: true}).ToBytes()
 		accDB := &stateMock.AccountsStub{
 			GetAccountWithBlockInfoCalled: func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
 				return acc, nil, nil
@@ -4287,7 +4287,7 @@ func TestNode_GetGuardianData(t *testing.T) {
 		require.Equal(t, api.GuardianData{
 			ActiveGuardian:  apiG1,
 			PendingGuardian: apiG2,
-			Frozen:          true,
+			Guarded:         true,
 		}, guardianData)
 		require.Equal(t, api.BlockInfo{}, blockInfo)
 		require.Nil(t, err)
@@ -4310,12 +4310,12 @@ func TestNode_getPendingAndActiveGuardians(t *testing.T) {
 	}
 
 	expectedG1 := &api.Guardian{
-		Address: coreComponents.AddrPubKeyConv.Encode(g1.Address),
-		ActivationEpoch:   g1.ActivationEpoch,
+		Address:         coreComponents.AddrPubKeyConv.Encode(g1.Address),
+		ActivationEpoch: g1.ActivationEpoch,
 	}
 	expectedG2 := &api.Guardian{
-		Address: coreComponents.AddrPubKeyConv.Encode(g2.Address),
-		ActivationEpoch:   g2.ActivationEpoch,
+		Address:         coreComponents.AddrPubKeyConv.Encode(g2.Address),
+		ActivationEpoch: g2.ActivationEpoch,
 	}
 
 	t.Run("get configured guardians with error should propagate error", func(t *testing.T) {

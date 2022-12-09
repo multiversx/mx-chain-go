@@ -674,8 +674,8 @@ func TestEnableEpochConfig(t *testing.T) {
 	# SetSenderInEeiOutputTransferEnableEpoch represents the epoch when setting the sender in eei output transfers will be enabled
     SetSenderInEeiOutputTransferEnableEpoch = 58
 
-	# FreezeAccountFeatureEnableEpoch represents the epoch when freeze account feature is enabled
-	FreezeAccountFeatureEnableEpoch = 10
+	# GuardAccountFeatureEnableEpoch represents the epoch when guard account feature is enabled
+	GuardAccountFeatureEnableEpoch = 10
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
@@ -767,7 +767,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			FixAsyncCallBackArgsListEnableEpoch:         56,
 			FixOldTokenLiquidityEnableEpoch:             57,
 			SetSenderInEeiOutputTransferEnableEpoch:     58,
-			FreezeAccountFeatureEnableEpoch:             10,
+			GuardAccountFeatureEnableEpoch:              10,
 			BLSMultiSignerEnableEpoch: []MultiSignerConfig{
 				{
 					EnableEpoch: 0,

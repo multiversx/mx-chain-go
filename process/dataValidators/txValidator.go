@@ -145,7 +145,7 @@ func (txv *txValidator) checkPermission(interceptedTx process.InterceptedTransac
 		return err
 	}
 
-	if account.IsFrozen() {
+	if account.IsGuarded() {
 		err = txv.checkGuardedTransaction(interceptedTx, account)
 		if err == nil {
 			return nil
@@ -159,14 +159,14 @@ func (txv *txValidator) checkPermission(interceptedTx process.InterceptedTransac
 		// block non guarded setGuardian Txs if there is a pending guardian
 		hasPendingGuardian := txv.guardianSigVerifier.HasPendingGuardian(account)
 		if process.IsSetGuardianCall(txData) && hasPendingGuardian {
-			return process.ErrCannotReplaceFrozenAccountPendingGuardian
+			return process.ErrCannotReplaceGuardedAccountPendingGuardian
 		}
 	}
 
 	return nil
 }
 
-// Setting a guardian is allowed with regular transactions on a frozen account
+// Setting a guardian is allowed with regular transactions on a guarded account
 // but in this case is set with the default epochs delay
 func checkOperationAllowedToBypassGuardian(txData []byte) error {
 	if process.IsSetGuardianCall(txData) {

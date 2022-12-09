@@ -333,7 +333,7 @@ type EnableEpochsHandler interface {
 	IsFixAsyncCallBackArgsListFlagEnabled() bool
 	IsFixOldTokenLiquidityEnabled() bool
 	IsRuntimeMemStoreLimitEnabled() bool
-	IsFreezeAccountEnabled() bool
+	IsGuardAccountEnabled() bool
 	IsSetGuardianEnabled() bool
 
 	IsInterfaceNil() bool

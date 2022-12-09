@@ -768,14 +768,14 @@ func TestNodeFacade_GetGuardianData(t *testing.T) {
 
 	expectedGuardianData := api.GuardianData{
 		ActiveGuardian: &api.Guardian{
-			Address: "guardian1",
-			ActivationEpoch:   0,
+			Address:         "guardian1",
+			ActivationEpoch: 0,
 		},
 		PendingGuardian: &api.Guardian{
-			Address: "guardian2",
-			ActivationEpoch:   10,
+			Address:         "guardian2",
+			ActivationEpoch: 10,
 		},
-		Frozen: true,
+		Guarded: true,
 	}
 	arg.Node = &mock.NodeStub{
 		GetGuardianDataCalled: func(address string, options api.AccountQueryOptions) (api.GuardianData, api.BlockInfo, error) {

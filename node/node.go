@@ -359,7 +359,7 @@ func (n *Node) GetGuardianData(address string, options api.AccountQueryOptions) 
 	return api.GuardianData{
 		ActiveGuardian:  activeGuardian,
 		PendingGuardian: pendingGuardian,
-		Frozen:          userAccount.IsFrozen(),
+		Guarded:         userAccount.IsGuarded(),
 	}, blockInfo, nil
 }
 

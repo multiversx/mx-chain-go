@@ -462,34 +462,34 @@ func TestTxValidator_checkPermission(t *testing.T) {
 	)
 	require.Nil(t, err)
 
-	t.Run("non frozen account with getTxData error should err", func(t *testing.T) {
+	t.Run("non guarded account with getTxData error should err", func(t *testing.T) {
 		inTx := getDefaultInterceptedTx()
 		inTx.TransactionCalled = func() data.TransactionHandler {
 			return nil
 		}
 		acc := &stateMock.UserAccountStub{
-			IsFrozenCalled: func() bool {
+			IsGuardedCalled: func() bool {
 				return false
 			},
 		}
 		err = txValidator.CheckPermission(inTx, acc)
 		require.Equal(t, process.ErrNilTransaction, err)
 	})
-	t.Run("non frozen account without getTxData error should allow", func(t *testing.T) {
+	t.Run("non guarded account without getTxData error should allow", func(t *testing.T) {
 		inTx := getDefaultInterceptedTx()
 		inTx.TransactionCalled = func() data.TransactionHandler {
 			return &transaction.Transaction{}
 		}
 
 		acc := &stateMock.UserAccountStub{
-			IsFrozenCalled: func() bool {
+			IsGuardedCalled: func() bool {
 				return false
 			},
 		}
 		err = txValidator.CheckPermission(inTx, acc)
 		require.Nil(t, err)
 	})
-	t.Run("frozen account with no guarded tx and no bypass permission should err", func(t *testing.T) {
+	t.Run("guarded account with no guarded tx and no bypass permission should err", func(t *testing.T) {
 		inTx := getDefaultInterceptedTx()
 		inTx.TransactionCalled = func() data.TransactionHandler {
 			return &transaction.Transaction{
@@ -497,7 +497,7 @@ func TestTxValidator_checkPermission(t *testing.T) {
 			}
 		}
 
-		acc := createDummyFrozenAccount()
+		acc := createDummyGuardedAccount()
 		txV, err := dataValidators.NewTxValidator(
 			adb,
 			shardCoordinator,
@@ -520,7 +520,7 @@ func TestTxValidator_checkPermission(t *testing.T) {
 		err = txV.CheckPermission(inTx, acc)
 		require.True(t, errors.Is(err, process.ErrOperationNotPermitted))
 	})
-	t.Run("frozen account with no guarded tx and bypass permission should allow if no pending guardian", func(t *testing.T) {
+	t.Run("guarded account with no guarded tx and bypass permission should allow if no pending guardian", func(t *testing.T) {
 		inTx := getDefaultInterceptedTx()
 		inTx.TransactionCalled = func() data.TransactionHandler {
 			return &transaction.Transaction{
@@ -528,7 +528,7 @@ func TestTxValidator_checkPermission(t *testing.T) {
 			}
 		}
 
-		acc := createDummyFrozenAccount()
+		acc := createDummyGuardedAccount()
 		txV, err := dataValidators.NewTxValidator(
 			adb,
 			shardCoordinator,
@@ -554,7 +554,7 @@ func TestTxValidator_checkPermission(t *testing.T) {
 		err = txV.CheckPermission(inTx, acc)
 		require.Nil(t, err)
 	})
-	t.Run("frozen account with no guarded tx and bypass permission with pending guardian should block", func(t *testing.T) {
+	t.Run("guarded account with no guarded tx and bypass permission with pending guardian should block", func(t *testing.T) {
 		inTx := getDefaultInterceptedTx()
 		inTx.TransactionCalled = func() data.TransactionHandler {
 			return &transaction.Transaction{
@@ -562,7 +562,7 @@ func TestTxValidator_checkPermission(t *testing.T) {
 			}
 		}
 
-		acc := createDummyFrozenAccount()
+		acc := createDummyGuardedAccount()
 		txV, err := dataValidators.NewTxValidator(
 			adb,
 			shardCoordinator,
@@ -586,9 +586,9 @@ func TestTxValidator_checkPermission(t *testing.T) {
 		require.Nil(t, err)
 
 		err = txV.CheckPermission(inTx, acc)
-		require.Equal(t, process.ErrCannotReplaceFrozenAccountPendingGuardian, err)
+		require.Equal(t, process.ErrCannotReplaceGuardedAccountPendingGuardian, err)
 	})
-	t.Run("frozen account with guarded Tx should allow", func(t *testing.T) {
+	t.Run("guarded account with guarded Tx should allow", func(t *testing.T) {
 		inTx := getDefaultInterceptedTx()
 		inTx.TransactionCalled = func() data.TransactionHandler {
 			return &transaction.Transaction{
@@ -596,7 +596,7 @@ func TestTxValidator_checkPermission(t *testing.T) {
 			}
 		}
 
-		acc := createDummyFrozenAccount()
+		acc := createDummyGuardedAccount()
 		txV, err := dataValidators.NewTxValidator(
 			adb,
 			shardCoordinator,
@@ -863,9 +863,9 @@ func getDefaultInterceptedTx() *mock.InterceptedTxHandlerStub {
 	}
 }
 
-func createDummyFrozenAccount() state.UserAccountHandler {
+func createDummyGuardedAccount() state.UserAccountHandler {
 	acc := state.NewEmptyUserAccount()
-	metadata := &vmcommon.CodeMetadata{Frozen: true}
+	metadata := &vmcommon.CodeMetadata{Guarded: true}
 	acc.SetCodeMetadata(metadata.ToBytes())
 	return acc
 }

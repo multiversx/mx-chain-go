@@ -85,7 +85,7 @@ type UserAccountHandler interface {
 	GetOwnerAddress() []byte
 	SetUserName(userName []byte)
 	GetUserName() []byte
-	IsFrozen() bool
+	IsGuarded() bool
 	vmcommon.AccountHandler
 }
 

@@ -4,15 +4,15 @@ go 1.17
 
 require (
 	github.com/ElrondNetwork/elastic-indexer-go v1.3.3
-	github.com/ElrondNetwork/elrond-go-core v1.1.27-0.20221128163152-4b8ad7af81f6
+	github.com/ElrondNetwork/elrond-go-core v1.1.27-0.20221207113027-6add1889c6e8
 	github.com/ElrondNetwork/elrond-go-crypto v1.2.2
 	github.com/ElrondNetwork/elrond-go-logger v1.0.10
 	github.com/ElrondNetwork/elrond-go-p2p v1.0.5
 	github.com/ElrondNetwork/elrond-go-storage v1.0.4
-	github.com/ElrondNetwork/elrond-vm-common v1.3.29-0.20221129104037-fa2c7a8d2b30
-	github.com/ElrondNetwork/wasm-vm-v1_2 v1.2.49-0.20221129104732-5b44c1047940
-	github.com/ElrondNetwork/wasm-vm-v1_3 v1.3.49-0.20221129105202-b9c1eb97eb0f
-	github.com/ElrondNetwork/wasm-vm-v1_4 v1.4.69-0.20221129130511-5325130db086
+	github.com/ElrondNetwork/elrond-vm-common v1.3.29-0.20221207113405-6973ba06dc58
+	github.com/ElrondNetwork/wasm-vm-v1_2 v1.2.49-0.20221207113912-5e51bac72fff
+	github.com/ElrondNetwork/wasm-vm-v1_3 v1.3.49-0.20221207114041-931b5bdf1ded
+	github.com/ElrondNetwork/wasm-vm-v1_4 v1.4.69-0.20221207114657-b4eea3cf49af
 	github.com/beevik/ntp v0.3.0
 	github.com/davecgh/go-spew v1.1.1
 	github.com/elastic/go-elasticsearch/v7 v7.12.0

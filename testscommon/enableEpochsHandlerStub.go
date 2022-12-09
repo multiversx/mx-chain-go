@@ -113,7 +113,7 @@ type EnableEpochsHandlerStub struct {
 	IsFixAsyncCallBackArgsListFlagEnabledField                   bool
 	IsFixOldTokenLiquidityEnabledField                           bool
 	IsRuntimeMemStoreLimitEnabledField                           bool
-	IsFreezeAccountEnabledField                                  bool
+	IsGuardAccountEnabledField                                   bool
 	IsSetGuardianEnabledField                                    bool
 }
 
@@ -972,12 +972,12 @@ func (stub *EnableEpochsHandlerStub) IsFixOldTokenLiquidityEnabled() bool {
 	return stub.IsFixOldTokenLiquidityEnabledField
 }
 
-// IsFreezeAccountEnabled -
-func (stub *EnableEpochsHandlerStub) IsFreezeAccountEnabled() bool {
+// IsGuardAccountEnabled -
+func (stub *EnableEpochsHandlerStub) IsGuardAccountEnabled() bool {
 	stub.RLock()
 	defer stub.RUnlock()
 
-	return stub.IsFreezeAccountEnabledField
+	return stub.IsGuardAccountEnabledField
 }
 
 // IsRuntimeMemStoreLimitEnabled -

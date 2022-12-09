@@ -33,7 +33,7 @@ type StateUserAccountHandlerStub struct {
 	GetOwnerAddressCalled       func() []byte
 	SetUserNameCalled           func(userName []byte)
 	GetUserNameCalled           func() []byte
-	IsFrozenCalled              func() bool
+	IsGuardedCalled             func() bool
 }
 
 // AddressBytes -
@@ -228,10 +228,10 @@ func (aas *StateUserAccountHandlerStub) GetUserName() []byte {
 	return nil
 }
 
-//IsFrozen -
-func (aas *StateUserAccountHandlerStub) IsFrozen() bool {
-	if aas.IsFrozenCalled != nil {
-		return aas.IsFrozenCalled()
+//IsGuarded -
+func (aas *StateUserAccountHandlerStub) IsGuarded() bool {
+	if aas.IsGuardedCalled != nil {
+		return aas.IsGuardedCalled()
 	}
 	return false
 }

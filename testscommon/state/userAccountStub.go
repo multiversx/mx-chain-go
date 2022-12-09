@@ -16,7 +16,7 @@ type UserAccountStub struct {
 	Balance                  *big.Int
 	AddToBalanceCalled       func(value *big.Int) error
 	DataTrieTrackerCalled    func() state.DataTrieTracker
-	IsFrozenCalled           func() bool
+	IsGuardedCalled          func() bool
 	AccountDataHandlerCalled func() vmcommon.AccountDataHandler
 	RetrieveValueCalled      func(_ []byte) ([]byte, uint32, error)
 }
@@ -155,10 +155,10 @@ func (u *UserAccountStub) SaveKeyValue(_ []byte, _ []byte) error {
 	return nil
 }
 
-// IsFrozen -
-func (u *UserAccountStub) IsFrozen() bool {
-	if u.IsFrozenCalled != nil {
-		return u.IsFrozenCalled()
+// IsGuarded -
+func (u *UserAccountStub) IsGuarded() bool {
+	if u.IsGuardedCalled != nil {
+		return u.IsGuardedCalled()
 	}
 	return false
 }
