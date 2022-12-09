@@ -4,6 +4,7 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/outport"
 	"github.com/ElrondNetwork/elrond-go/outport/process/alteredaccounts/shared"
 )
@@ -45,4 +46,9 @@ type ExecutionOrderHandler interface {
 		header data.HeaderHandler,
 		body data.BodyHandler,
 	) error
+	PutExecutionOrderInAPIMiniblocks(
+		mbs []*api.MiniBlock,
+		selfShardID uint32,
+		prevRandSeed []byte,
+	)
 }

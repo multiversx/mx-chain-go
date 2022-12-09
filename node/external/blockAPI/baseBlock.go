@@ -41,22 +41,23 @@ const (
 )
 
 type baseAPIBlockProcessor struct {
-	hasDbLookupExtensions        bool
-	selfShardID                  uint32
-	emptyReceiptsHash            []byte
-	store                        dataRetriever.StorageService
-	marshalizer                  marshal.Marshalizer
-	uint64ByteSliceConverter     typeConverters.Uint64ByteSliceConverter
-	historyRepo                  dblookupext.HistoryRepository
-	hasher                       hashing.Hasher
-	addressPubKeyConverter       core.PubkeyConverter
-	txStatusComputer             transaction.StatusComputerHandler
-	apiTransactionHandler        APITransactionHandler
-	logsFacade                   logsFacade
-	receiptsRepository           receiptsRepository
-	alteredAccountsProvider      outportProcess.AlteredAccountsProviderHandler
-	accountsRepository           state.AccountsRepository
-	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
+	hasDbLookupExtensions             bool
+	selfShardID                       uint32
+	emptyReceiptsHash                 []byte
+	store                             dataRetriever.StorageService
+	marshalizer                       marshal.Marshalizer
+	uint64ByteSliceConverter          typeConverters.Uint64ByteSliceConverter
+	historyRepo                       dblookupext.HistoryRepository
+	hasher                            hashing.Hasher
+	addressPubKeyConverter            core.PubkeyConverter
+	txStatusComputer                  transaction.StatusComputerHandler
+	apiTransactionHandler             APITransactionHandler
+	logsFacade                        logsFacade
+	receiptsRepository                receiptsRepository
+	alteredAccountsProvider           outportProcess.AlteredAccountsProviderHandler
+	accountsRepository                state.AccountsRepository
+	scheduledTxsExecutionHandler      process.ScheduledTxsExecutionHandler
+	transactionsExecutionOrderHandler outportProcess.ExecutionOrderHandler
 }
 
 var log = logger.GetOrCreate("node/blockAPI")

@@ -15,18 +15,19 @@ import (
 
 // ArgAPIBlockProcessor is structure that store components that are needed to create an api block processor
 type ArgAPIBlockProcessor struct {
-	SelfShardID                  uint32
-	Store                        dataRetriever.StorageService
-	Marshalizer                  marshal.Marshalizer
-	Uint64ByteSliceConverter     typeConverters.Uint64ByteSliceConverter
-	HistoryRepo                  dblookupext.HistoryRepository
-	APITransactionHandler        APITransactionHandler
-	StatusComputer               transaction.StatusComputerHandler
-	Hasher                       hashing.Hasher
-	AddressPubkeyConverter       core.PubkeyConverter
-	LogsFacade                   logsFacade
-	ReceiptsRepository           receiptsRepository
-	AlteredAccountsProvider      outportProcess.AlteredAccountsProviderHandler
-	AccountsRepository           state.AccountsRepository
-	ScheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
+	SelfShardID                       uint32
+	Store                             dataRetriever.StorageService
+	Marshalizer                       marshal.Marshalizer
+	Uint64ByteSliceConverter          typeConverters.Uint64ByteSliceConverter
+	HistoryRepo                       dblookupext.HistoryRepository
+	APITransactionHandler             APITransactionHandler
+	StatusComputer                    transaction.StatusComputerHandler
+	Hasher                            hashing.Hasher
+	AddressPubkeyConverter            core.PubkeyConverter
+	LogsFacade                        logsFacade
+	ReceiptsRepository                receiptsRepository
+	AlteredAccountsProvider           outportProcess.AlteredAccountsProviderHandler
+	AccountsRepository                state.AccountsRepository
+	ScheduledTxsExecutionHandler      process.ScheduledTxsExecutionHandler
+	TransactionsExecutionOrderHandler outportProcess.ExecutionOrderHandler
 }

@@ -23,22 +23,23 @@ func newShardApiBlockProcessor(arg *ArgAPIBlockProcessor, emptyReceiptsHash []by
 
 	return &shardAPIBlockProcessor{
 		baseAPIBlockProcessor: &baseAPIBlockProcessor{
-			hasDbLookupExtensions:        hasDbLookupExtensions,
-			selfShardID:                  arg.SelfShardID,
-			store:                        arg.Store,
-			marshalizer:                  arg.Marshalizer,
-			uint64ByteSliceConverter:     arg.Uint64ByteSliceConverter,
-			historyRepo:                  arg.HistoryRepo,
-			apiTransactionHandler:        arg.APITransactionHandler,
-			txStatusComputer:             arg.StatusComputer,
-			hasher:                       arg.Hasher,
-			addressPubKeyConverter:       arg.AddressPubkeyConverter,
-			emptyReceiptsHash:            emptyReceiptsHash,
-			logsFacade:                   arg.LogsFacade,
-			receiptsRepository:           arg.ReceiptsRepository,
-			alteredAccountsProvider:      arg.AlteredAccountsProvider,
-			accountsRepository:           arg.AccountsRepository,
-			scheduledTxsExecutionHandler: arg.ScheduledTxsExecutionHandler,
+			hasDbLookupExtensions:             hasDbLookupExtensions,
+			selfShardID:                       arg.SelfShardID,
+			store:                             arg.Store,
+			marshalizer:                       arg.Marshalizer,
+			uint64ByteSliceConverter:          arg.Uint64ByteSliceConverter,
+			historyRepo:                       arg.HistoryRepo,
+			apiTransactionHandler:             arg.APITransactionHandler,
+			txStatusComputer:                  arg.StatusComputer,
+			hasher:                            arg.Hasher,
+			addressPubKeyConverter:            arg.AddressPubkeyConverter,
+			emptyReceiptsHash:                 emptyReceiptsHash,
+			logsFacade:                        arg.LogsFacade,
+			receiptsRepository:                arg.ReceiptsRepository,
+			alteredAccountsProvider:           arg.AlteredAccountsProvider,
+			accountsRepository:                arg.AccountsRepository,
+			scheduledTxsExecutionHandler:      arg.ScheduledTxsExecutionHandler,
+			transactionsExecutionOrderHandler: arg.TransactionsExecutionOrderHandler,
 		},
 	}
 }
@@ -205,6 +206,8 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 
 	statusFilters := filters.NewStatusFilters(sbp.selfShardID)
 	statusFilters.ApplyStatusFilters(miniblocks)
+
+	sbp.transactionsExecutionOrderHandler.PutExecutionOrderInAPIMiniblocks(miniblocks, sbp.selfShardID, blockHeader.GetPrevRandSeed())
 
 	apiBlock := &api.Block{
 		Nonce:           blockHeader.GetNonce(),
