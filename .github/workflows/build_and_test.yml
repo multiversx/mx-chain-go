@@ -2,7 +2,7 @@ name: Build
 
 on:
   pull_request:
-    branches: [development]
+    branches: [rc/*]
     types: [opened, ready_for_review]
   push:
   workflow_dispatch:
@@ -33,9 +33,7 @@ jobs:
           fi
       - name: Build
         run: |
-          export ARWEN_PATH=${GITHUB_WORKSPACE}/arwen
           cd ${GITHUB_WORKSPACE}/cmd/node && go build .
           cd ${GITHUB_WORKSPACE}/cmd/keygenerator && go build .
           cd ${GITHUB_WORKSPACE}/cmd/logviewer && go build .
           cd ${GITHUB_WORKSPACE}/cmd/termui && go build .
-          cd ${GITHUB_WORKSPACE} && make arwen
