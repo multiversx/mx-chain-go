@@ -2,7 +2,7 @@ name: Build
 
 on:
   pull_request:
-    branches: [rc/*]
+    branches: [ master, rc/* ]
     types: [opened, ready_for_review]
   push:
   workflow_dispatch:
