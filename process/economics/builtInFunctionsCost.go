@@ -107,6 +107,12 @@ func (bc *builtInFunctionsCost) ComputeBuiltInCost(tx data.TransactionWithFeeHan
 	case core.BuiltInFunctionESDTNFTCreate:
 		costStorage := calculateLenOfArguments(arguments) * bc.gasConfig.BaseOperationCost.StorePerByte
 		return bc.gasConfig.BuiltInCost.ESDTNFTCreate + costStorage
+	case core.BuiltInFunctionSetGuardian:
+		return bc.gasConfig.BuiltInCost.SetGuardian
+	case core.BuiltInFunctionGuardAccount:
+		return bc.gasConfig.BuiltInCost.GuardAccount
+	case core.BuiltInFunctionUnGuardAccount:
+		return bc.gasConfig.BuiltInCost.UnGuardAccount
 	default:
 		return 0
 	}
