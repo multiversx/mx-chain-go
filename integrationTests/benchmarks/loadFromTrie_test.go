@@ -111,12 +111,7 @@ func generateTriesWithMaxDepth(
 		collapsedTrie, _ := tr.Recreate(rootHash)
 
 		if numTrieLevels == 1 {
-			tries[i] = &keyForTrie{
-				key: rootHash,
-				tr:  collapsedTrie,
-			}
-
-			continue
+			key = rootHash
 		}
 
 		tries[i] = &keyForTrie{
@@ -190,9 +185,9 @@ func getTrieStorageManager(store storage.Storer, marshaller marshal.Marshalizer,
 func getNewTrieStorage() storage.Storer {
 	batchDelaySeconds := 1
 	maxBatchSize := 40000
-	maxOpenFiles := 10
+	maxNumOpenedFiles := 10
 
-	db, _ := database.NewSerialDB("AccountsTrie", batchDelaySeconds, maxBatchSize, maxOpenFiles)
+	db, _ := database.NewSerialDB("AccountsTrie", batchDelaySeconds, maxBatchSize, maxNumOpenedFiles)
 	cacher, _ := storageunit.NewCache(storageunit.CacheConfig{
 		Type:        storageunit.SizeLRUCache,
 		Capacity:    1,
