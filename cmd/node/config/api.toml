@@ -256,7 +256,11 @@
         { Name = "/raw/miniblock/by-hash/:hash/epoch/:epoch", Open = true },
 
         # /internal/json/miniblock/by-hash/:hash will return the miniblock in JSON format based on hash for a specified epoch
-        { Name = "/json/miniblock/by-hash/:hash/epoch/:epoch", Open = true }
+        { Name = "/json/miniblock/by-hash/:hash/epoch/:epoch", Open = true },
+
+        # /internal/raw/startofepoch/validators/by-epoch/:epoch will return the start of epoch validators info in json format based on epoch
+        { Name = "/json/startofepoch/validators/by-epoch/:epoch", Open = true }
+
     ]
 
 [APIPackages.proof]
