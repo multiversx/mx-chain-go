@@ -298,6 +298,11 @@ func (inf *initialNodeFacade) GetInternalStartOfEpochMetaBlock(_ common.ApiOutpu
 	return nil, errNodeStarting
 }
 
+// GetInternalStartOfEpochValidatorsInfo returns nil and error
+func (inf *initialNodeFacade) GetInternalStartOfEpochValidatorsInfo(_ uint32) ([]*state.ShardValidatorInfo, error) {
+	return nil, errNodeStarting
+}
+
 // GetInternalShardBlockByHash return nil and error
 func (inf *initialNodeFacade) GetInternalShardBlockByHash(_ common.ApiOutputFormat, _ string) (interface{}, error) {
 	return nil, errNodeStarting
