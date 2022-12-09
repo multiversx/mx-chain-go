@@ -546,6 +546,11 @@ func (mock *EnableEpochsHandlerMock) IsRuntimeMemStoreLimitEnabled() bool {
 	return false
 }
 
+// IsMaxBlockchainHookCountersFlagEnabled -
+func (mock *EnableEpochsHandlerMock) IsMaxBlockchainHookCountersFlagEnabled() bool {
+	return false
+}
+
 // IsWipeSingleNFTLiquidityDecreaseEnabled -
 func (mock *EnableEpochsHandlerMock) IsWipeSingleNFTLiquidityDecreaseEnabled() bool {
 	return false
