@@ -273,6 +273,7 @@ type ArgTestProcessorNode struct {
 	EpochStartSubscriber    notifier.EpochStartNotifier
 	AppStatusHandler        core.AppStatusHandler
 	StatusMetrics           external.StatusMetricsHandler
+	PeersRatingHandler      p2p.PeersRatingHandler
 }
 
 // TestProcessorNode represents a container type of class used in integration tests
@@ -418,12 +419,10 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 		appStatusHandler = TestAppStatusHandler
 	}
 
-	peersRatingHandler, _ := p2pFactory.NewPeersRatingHandler(
-		p2pFactory.ArgPeersRatingHandler{
-			TopRatedCache:    testscommon.NewCacherMock(),
-			BadRatedCache:    testscommon.NewCacherMock(),
-			AppStatusHandler: appStatusHandler,
-		})
+	peersRatingHandler := args.PeersRatingHandler
+	if check.IfNil(args.PeersRatingHandler) {
+		peersRatingHandler = &p2pmocks.PeersRatingHandlerStub{}
+	}
 
 	messenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHandler)
 
@@ -456,6 +455,7 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 		BootstrapStorer:          &mock.BoostrapStorerMock{},
 		RatingsData:              args.RatingsData,
 		EpochStartNotifier:       args.EpochStartSubscriber,
+		AppStatusHandler:         appStatusHandler,
 	}
 
 	tpn.NodeKeys = args.NodeKeys

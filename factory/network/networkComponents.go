@@ -111,18 +111,27 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		return nil, err
 	}
 
-	topRatedCache, err := cache.NewLRUCache(ncf.mainConfig.PeersRatingConfig.TopRatedCacheCapacity)
+	peersRatingCfg := ncf.mainConfig.PeersRatingConfig
+	topRatedCache, err := cache.NewLRUCache(peersRatingCfg.TopRatedCacheCapacity)
 	if err != nil {
 		return nil, err
 	}
-	badRatedCache, err := cache.NewLRUCache(ncf.mainConfig.PeersRatingConfig.BadRatedCacheCapacity)
+	badRatedCache, err := cache.NewLRUCache(peersRatingCfg.BadRatedCacheCapacity)
+	if err != nil {
+		return nil, err
+	}
+	markedForRemovalCache, err := cache.NewLRUCache(peersRatingCfg.MarkedForRemovalCapacity)
 	if err != nil {
 		return nil, err
 	}
 	argsPeersRatingHandler := p2pFactory.ArgPeersRatingHandler{
-		TopRatedCache:    topRatedCache,
-		BadRatedCache:    badRatedCache,
-		AppStatusHandler: ncf.statusHandler,
+		TopRatedCache:              topRatedCache,
+		BadRatedCache:              badRatedCache,
+		MarkedForRemovalCache:      markedForRemovalCache,
+		AppStatusHandler:           ncf.statusHandler,
+		TimeWaitingForReconnection: time.Duration(peersRatingCfg.TimeWaitingForReconnectionInSec) * time.Second,
+		TimeBetweenMetricsUpdate:   time.Duration(peersRatingCfg.TimeBetweenMetricsUpdateInSec) * time.Second,
+		TimeBetweenCachersSweep:    time.Duration(peersRatingCfg.TimeBetweenCachersSweepInSec) * time.Second,
 	}
 	peersRatingHandler, err := p2pFactory.NewPeersRatingHandler(argsPeersRatingHandler)
 	if err != nil {
@@ -257,6 +266,9 @@ func (nc *networkComponents) Close() error {
 	}
 	if !check.IfNil(nc.peerHonestyHandler) {
 		log.LogIfError(nc.peerHonestyHandler.Close())
+	}
+	if !check.IfNil(nc.peersRatingHandler) {
+		log.LogIfError(nc.peersRatingHandler.Close())
 	}
 
 	if nc.netMessenger != nil {

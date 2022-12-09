@@ -485,8 +485,12 @@
     Type = "LRU"
 
 [PeersRatingConfig]
-    TopRatedCacheCapacity = 5000
-    BadRatedCacheCapacity = 5000
+    TopRatedCacheCapacity           = 5000
+    BadRatedCacheCapacity           = 5000
+    MarkedForRemovalCapacity        = 5000
+	TimeWaitingForReconnectionInSec = 300 # 5 min
+	TimeBetweenMetricsUpdateInSec   = 60  # 1 min
+	TimeBetweenCachersSweepInSec    = 60  # 1 min
 
 [PoolsCleanersConfig]
     MaxRoundsToKeepUnprocessedMiniBlocks = 300   # max number of rounds unprocessed miniblocks are kept in pool

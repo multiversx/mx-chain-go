@@ -89,6 +89,9 @@ func (mnc *managedNetworkComponents) CheckSubcomponents() error {
 	if check.IfNil(mnc.peerHonestyHandler) {
 		return errors.ErrNilPeerHonestyHandler
 	}
+	if check.IfNil(mnc.peersRatingHandler) {
+		return errors.ErrNilPeersRatingHandler
+	}
 
 	return nil
 }
