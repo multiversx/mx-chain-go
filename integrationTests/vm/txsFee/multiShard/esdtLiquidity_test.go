@@ -88,7 +88,7 @@ func TestSystemAccountLiquidityAfterNFTWipe(t *testing.T) {
 		CanWipe:      true,
 	})
 	sh0Accnt, _ := sh0Context.Accounts.LoadAccount(sh0Addr)
-	freezeTx, wipeTx := utils.CreateESDTFreezeAndWipeTxs(sh0Accnt.GetNonce(), sh0Addr, sh0Addr, tokenID, 1, 10, 1000000000)
+	freezeTx, wipeTx := utils.CreateNFTSingleFreezeAndWipeTxs(sh0Accnt.GetNonce(), sh0Addr, sh0Addr, tokenID, 1, 10, 1000000000)
 	retCode, err := metaContext.TxProcessor.ProcessTransaction(freezeTx)
 	require.NoError(t, err)
 	require.Equal(t, vmcommon.Ok, retCode)
@@ -105,7 +105,7 @@ func TestSystemAccountLiquidityAfterNFTWipe(t *testing.T) {
 
 	_, _ = sh0Context.Accounts.Commit()
 
-	// check the balances after the transfer, as well as the liquidity
+	// ensure that there is no liquidity left in the account or the system account
 
 	checkEsdtBalanceInAccountStorage(t, sh0Context, sh0Addr, tokenID, 1, big.NewInt(0))
 	utils.CheckESDTNFTBalance(t, sh0Context, core.SystemAccountAddress, tokenID, 1, big.NewInt(0))
@@ -134,7 +134,7 @@ func TestSystemAccountLiquidityAfterSFTWipe(t *testing.T) {
 		CanWipe:      true,
 	})
 	sh0Accnt, _ := sh0Context.Accounts.LoadAccount(sh0Addr)
-	freezeTx, wipeTx := utils.CreateESDTFreezeAndWipeTxs(sh0Accnt.GetNonce(), sh0Addr, sh0Addr, tokenID, 1, 10, 1000000000)
+	freezeTx, wipeTx := utils.CreateNFTSingleFreezeAndWipeTxs(sh0Accnt.GetNonce(), sh0Addr, sh0Addr, tokenID, 1, 10, 1000000000)
 	retCode, err := metaContext.TxProcessor.ProcessTransaction(freezeTx)
 	require.NoError(t, err)
 	require.Equal(t, vmcommon.Ok, retCode)

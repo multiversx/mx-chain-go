@@ -641,7 +641,7 @@ func (holder *epochFlagsHolder) IsMaxBlockchainHookCountersFlagEnabled() bool {
 	return holder.maxBlockchainHookCountersFlag.IsSet()
 }
 
-// IsWipeSingleNFTLiquidityDecreaseEnabled returns true if runtimeMemStoreLimitFlag is enabled
+// IsWipeSingleNFTLiquidityDecreaseEnabled returns true if wipeSingleNFTLiquidityDecreaseFlag is enabled
 func (holder *epochFlagsHolder) IsWipeSingleNFTLiquidityDecreaseEnabled() bool {
 	return holder.wipeSingleNFTLiquidityDecreaseFlag.IsSet()
 }

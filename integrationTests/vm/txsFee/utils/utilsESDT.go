@@ -326,8 +326,8 @@ func CreateESDTNFTBurnTx(nonce uint64, sndAddr, rcvAddr []byte, tokenIdentifier 
 	}
 }
 
-// CreateESDTFreezeAndWipeTxs -
-func CreateESDTFreezeAndWipeTxs(nonce uint64, tokenManager, addressToFreeze []byte, tokenIdentifier []byte, tokenNonce uint64, gasPrice, gasLimit uint64) (*transaction.Transaction, *transaction.Transaction) {
+// CreateNFTSingleFreezeAndWipeTxs -
+func CreateNFTSingleFreezeAndWipeTxs(nonce uint64, tokenManager, addressToFreeze []byte, tokenIdentifier []byte, tokenNonce uint64, gasPrice, gasLimit uint64) (*transaction.Transaction, *transaction.Transaction) {
 	hexEncodedToken := hex.EncodeToString(tokenIdentifier)
 	hexEncodedNonce := hex.EncodeToString(big.NewInt(int64(tokenNonce)).Bytes())
 	addressToFreezeHex := hex.EncodeToString(addressToFreeze)
