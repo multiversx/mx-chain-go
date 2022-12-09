@@ -113,6 +113,7 @@ type EnableEpochsHandlerStub struct {
 	IsFixAsyncCallBackArgsListFlagEnabledField                   bool
 	IsFixOldTokenLiquidityEnabledField                           bool
 	IsRuntimeMemStoreLimitEnabledField                           bool
+	IsWipeSingleNFTLiquidityDecreaseEnabledField                 bool
 }
 
 // ResetPenalizedTooMuchGasFlag -
@@ -976,6 +977,14 @@ func (stub *EnableEpochsHandlerStub) IsRuntimeMemStoreLimitEnabled() bool {
 	defer stub.RUnlock()
 
 	return stub.IsRuntimeMemStoreLimitEnabledField
+}
+
+// IsWipeSingleNFTLiquidityDecreaseEnabled -
+func (stub *EnableEpochsHandlerStub) IsWipeSingleNFTLiquidityDecreaseEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsWipeSingleNFTLiquidityDecreaseEnabledField
 }
 
 // IsInterfaceNil -

@@ -308,6 +308,55 @@ func CreateESDTLocalMintTx(nonce uint64, sndAddr, rcvAddr []byte, tokenIdentifie
 	}
 }
 
+// CreateESDTNFTBurnTx -
+func CreateESDTNFTBurnTx(nonce uint64, sndAddr, rcvAddr []byte, tokenIdentifier []byte, tokenNonce uint64, esdtValue *big.Int, gasPrice, gasLimit uint64) *transaction.Transaction {
+	hexEncodedToken := hex.EncodeToString(tokenIdentifier)
+	hexEncodedNonce := hex.EncodeToString(big.NewInt(int64(tokenNonce)).Bytes())
+	esdtValueEncoded := hex.EncodeToString(esdtValue.Bytes())
+	txDataField := bytes.Join([][]byte{[]byte(core.BuiltInFunctionESDTNFTBurn), []byte(hexEncodedToken), []byte(hexEncodedNonce), []byte(esdtValueEncoded)}, []byte("@"))
+
+	return &transaction.Transaction{
+		Nonce:    nonce,
+		SndAddr:  sndAddr,
+		RcvAddr:  rcvAddr,
+		GasLimit: gasLimit,
+		GasPrice: gasPrice,
+		Data:     txDataField,
+		Value:    big.NewInt(0),
+	}
+}
+
+// CreateESDTFreezeAndWipeTxs -
+func CreateESDTFreezeAndWipeTxs(nonce uint64, tokenManager, addressToFreeze []byte, tokenIdentifier []byte, tokenNonce uint64, gasPrice, gasLimit uint64) (*transaction.Transaction, *transaction.Transaction) {
+	hexEncodedToken := hex.EncodeToString(tokenIdentifier)
+	hexEncodedNonce := hex.EncodeToString(big.NewInt(int64(tokenNonce)).Bytes())
+	addressToFreezeHex := hex.EncodeToString(addressToFreeze)
+
+	txDataField := bytes.Join([][]byte{[]byte("freezeSingleNFT"), []byte(hexEncodedToken), []byte(hexEncodedNonce), []byte(addressToFreezeHex)}, []byte("@"))
+	freezeTx := &transaction.Transaction{
+		Nonce:    nonce,
+		SndAddr:  tokenManager,
+		RcvAddr:  core.ESDTSCAddress,
+		GasLimit: gasLimit,
+		GasPrice: gasPrice,
+		Data:     txDataField,
+		Value:    big.NewInt(0),
+	}
+
+	txDataField = bytes.Join([][]byte{[]byte("wipeSingleNFT"), []byte(hexEncodedToken), []byte(hexEncodedNonce), []byte(addressToFreezeHex)}, []byte("@"))
+	wipeTx := &transaction.Transaction{
+		Nonce:    nonce + 1,
+		SndAddr:  tokenManager,
+		RcvAddr:  core.ESDTSCAddress,
+		GasLimit: gasLimit,
+		GasPrice: gasPrice,
+		Data:     txDataField,
+		Value:    big.NewInt(0),
+	}
+
+	return freezeTx, wipeTx
+}
+
 func checkEsdtBalance(
 	t *testing.T,
 	testContext *vm.VMTestContext,
