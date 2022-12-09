@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	disabledCrypto "github.com/ElrondNetwork/elrond-go-crypto/signing/disabled"
 	disabledSig "github.com/ElrondNetwork/elrond-go-crypto/signing/disabled/singlesig"
@@ -76,6 +76,7 @@ type cryptoComponents struct {
 	blockSignKeyGen      crypto.KeyGenerator
 	txSignKeyGen         crypto.KeyGenerator
 	messageSignVerifier  vm.MessageSignVerifier
+	consensusSigHandler  consensus.SignatureHandler
 	cryptoParams
 }
 
@@ -164,6 +165,17 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 		return nil, err
 	}
 
+	signatureHolderArgs := ArgsSignatureHolder{
+		PubKeys:              []string{cp.publicKeyString},
+		PrivKeyBytes:         cp.privateKeyBytes,
+		MultiSignerContainer: multiSigner,
+		KeyGenerator:         blockSignKeyGen,
+	}
+	consensusSigHandler, err := NewSignatureHolder(signatureHolderArgs)
+	if err != nil {
+		return nil, err
+	}
+
 	log.Debug("block sign pubkey", "value", cp.publicKeyString)
 
 	return &cryptoComponents{
@@ -174,6 +186,7 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 		blockSignKeyGen:      blockSignKeyGen,
 		txSignKeyGen:         txSignKeyGen,
 		messageSignVerifier:  messageSignVerifier,
+		consensusSigHandler:  consensusSigHandler,
 		cryptoParams:         *cp,
 	}, nil
 }
@@ -245,6 +258,11 @@ func (ccf *cryptoComponentsFactory) readCryptoParams(keygen crypto.KeyGenerator)
 		return nil, err
 	}
 
+	cp.privateKeyBytes, err = cp.privateKey.ToByteArray()
+	if err != nil {
+		return nil, err
+	}
+
 	cp.publicKey = cp.privateKey.GeneratePublic()
 	if len(readPk) > 0 {
 		cp.publicKeyBytes, err = cp.publicKey.ToByteArray()
@@ -277,6 +295,11 @@ func (ccf *cryptoComponentsFactory) generateCryptoParams(keygen crypto.KeyGenera
 
 	var err error
 	cp.publicKeyBytes, err = cp.publicKey.ToByteArray()
+	if err != nil {
+		return nil, err
+	}
+
+	cp.privateKeyBytes, err = cp.privateKey.ToByteArray()
 	if err != nil {
 		return nil, err
 	}
