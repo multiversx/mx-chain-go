@@ -280,7 +280,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	}
 	transactionProcessor, err := transaction.NewTxProcessor(argsNewTxProcessor)
 	if err != nil {
-		return nil, errors.New("could not create transaction statisticsProcessor: " + err.Error())
+		return nil, errors.New("could not create transaction processor: " + err.Error())
 	}
 
 	scheduledTxsExecutionHandler.SetTransactionProcessor(transactionProcessor)
@@ -446,7 +446,7 @@ func (pcf *processComponentsFactory) createBlockProcessor(
 
 	shardProcessor, err := block.NewShardProcessor(argShardProcessor)
 	if err != nil {
-		return nil, errors.New("could not create block statisticsProcessor: " + err.Error())
+		return nil, errors.New("could not create shard block processor: " + err.Error())
 	}
 
 	err = pcf.attachProcessDebugger(shardProcessor, pcf.config.Debug.Process)
@@ -905,7 +905,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 
 	metaProcessor, err := block.NewMetaProcessor(arguments)
 	if err != nil {
-		return nil, errors.New("could not create block processor: " + err.Error())
+		return nil, errors.New("could not create meta block processor: " + err.Error())
 	}
 
 	err = pcf.attachProcessDebugger(metaProcessor, pcf.config.Debug.Process)
