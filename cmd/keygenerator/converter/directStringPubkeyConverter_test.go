@@ -20,7 +20,8 @@ func TestDirectStringPubkeyConverter_Encode(t *testing.T) {
 	converter := NewDirectStringPubkeyConverter()
 	testData := []byte("test data")
 
-	encoded, _ := converter.Encode(testData)
+	encoded, err := converter.Encode(testData)
+	assert.Nil(t, err)
 	assert.Equal(t, string(testData), encoded)
 }
 
