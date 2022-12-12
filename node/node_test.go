@@ -3956,7 +3956,7 @@ func getDefaultProcessComponents() *factoryMock.ProcessComponentsMock {
 			CurrentShard: 0,
 		},
 		IntContainer:                         &testscommon.InterceptorsContainerStub{},
-		ResFinder:                            &mock.ResolversFinderStub{},
+		ReqFinder:                            &dataRetrieverMock.RequestersFinderStub{},
 		RoundHandlerField:                    &testscommon.RoundHandlerMock{},
 		EpochTrigger:                         &testscommon.EpochStartTriggerStub{},
 		EpochNotifier:                        &mock.EpochStartNotifierStub{},
