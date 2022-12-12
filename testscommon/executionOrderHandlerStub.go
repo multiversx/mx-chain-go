@@ -1,7 +1,8 @@
-package mock
+package testscommon
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/outport"
 )
 
@@ -16,4 +17,13 @@ func (e *ExecutionOrderHandlerStub) PutExecutionOrderInTransactionPool(
 	_ data.BodyHandler,
 ) error {
 	return nil
+}
+
+// PutExecutionOrderInAPIMiniblocks --
+func (e *ExecutionOrderHandlerStub) PutExecutionOrderInAPIMiniblocks(
+	_ []*api.MiniBlock,
+	_ uint32,
+	_ []byte,
+) {
+	return
 }

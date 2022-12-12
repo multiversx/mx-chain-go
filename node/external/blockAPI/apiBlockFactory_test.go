@@ -26,20 +26,21 @@ func createMockArgsAPIBlockProc() *ArgAPIBlockProcessor {
 	statusComputer, _ := txstatus.NewStatusComputer(0, mock.NewNonceHashConverterMock(), &storageMocks.ChainStorerStub{})
 
 	return &ArgAPIBlockProcessor{
-		Store:                        &storageMocks.ChainStorerStub{},
-		Marshalizer:                  &mock.MarshalizerFake{},
-		Uint64ByteSliceConverter:     mock.NewNonceHashConverterMock(),
-		HistoryRepo:                  &dblookupext.HistoryRepositoryStub{},
-		APITransactionHandler:        &mock.TransactionAPIHandlerStub{},
-		StatusComputer:               statusComputer,
-		Hasher:                       &mock.HasherMock{},
-		AddressPubkeyConverter:       &mock.PubkeyConverterMock{},
-		LogsFacade:                   &testscommon.LogsFacadeStub{},
-		ReceiptsRepository:           &testscommon.ReceiptsRepositoryStub{},
-		AlteredAccountsProvider:      &testscommon.AlteredAccountsProviderStub{},
-		AccountsRepository:           &state.AccountsRepositoryStub{},
-		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
-		EnableEpochsHandler:          &testscommon.EnableEpochsHandlerStub{},
+		Store:                             &storageMocks.ChainStorerStub{},
+		Marshalizer:                       &mock.MarshalizerFake{},
+		Uint64ByteSliceConverter:          mock.NewNonceHashConverterMock(),
+		HistoryRepo:                       &dblookupext.HistoryRepositoryStub{},
+		APITransactionHandler:             &mock.TransactionAPIHandlerStub{},
+		StatusComputer:                    statusComputer,
+		Hasher:                            &mock.HasherMock{},
+		AddressPubkeyConverter:            &mock.PubkeyConverterMock{},
+		LogsFacade:                        &testscommon.LogsFacadeStub{},
+		ReceiptsRepository:                &testscommon.ReceiptsRepositoryStub{},
+		AlteredAccountsProvider:           &testscommon.AlteredAccountsProviderStub{},
+		AccountsRepository:                &state.AccountsRepositoryStub{},
+		ScheduledTxsExecutionHandler:      &testscommon.ScheduledTxsExecutionStub{},
+		EnableEpochsHandler:               &testscommon.EnableEpochsHandlerStub{},
+		TransactionsExecutionOrderHandler: &testscommon.ExecutionOrderHandlerStub{},
 	}
 }
 
