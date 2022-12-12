@@ -2,10 +2,15 @@ package nodesCoordinator
 
 import (
 	"bytes"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/sharding/mock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -215,4 +220,197 @@ func TestIndexHashedNodesCoordinator_serializableValidatorArrayToValidatorArray(
 		assert.Nil(t, err)
 		assert.True(t, sameValidators(validatorsArray, valArray))
 	}
+}
+
+func TestIndexHashedNodesCoordinator_GetNodesCoordinatorRegistry(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil storer, should fail", func(t *testing.T) {
+		t.Parallel()
+
+		nodesConfig, err := GetNodesCoordinatorRegistry([]byte("key"), nil, 1)
+		require.Nil(t, nodesConfig)
+		require.Equal(t, ErrNilBootStorer, err)
+	})
+
+	t.Run("getting from old key, should work", func(t *testing.T) {
+		t.Parallel()
+
+		nodesConfigRegistry := &NodesCoordinatorRegistry{
+			EpochsConfig: map[string]*EpochValidators{
+				"10": {
+					EligibleValidators: map[string][]*SerializableValidator{
+						"val1": {
+							{
+								PubKey: []byte("pubKey1"),
+							},
+						},
+					},
+				},
+			},
+			CurrentEpoch: 10,
+		}
+
+		storer := &mock.StorerStub{
+			GetCalled: func(key []byte) (b []byte, err error) {
+				switch {
+				case bytes.Equal(append([]byte(common.NodesCoordinatorRegistryKeyPrefix), []byte(fmt.Sprint(1))...), key):
+					return nil, errors.New("first get error")
+				default:
+					return nil, errors.New("invalid key")
+				}
+			},
+			SearchFirstCalled: func(key []byte) ([]byte, error) {
+				nodesConfigRegistryBytes, _ := json.Marshal(nodesConfigRegistry)
+				return nodesConfigRegistryBytes, nil
+			},
+		}
+
+		nodesConfig, err := GetNodesCoordinatorRegistry([]byte("key"), storer, 10)
+		require.Nil(t, err)
+		require.Equal(t, nodesConfigRegistry, nodesConfig)
+	})
+
+	t.Run("getting each key separatelly by epoch, should work", func(t *testing.T) {
+		t.Parallel()
+
+		nodesConfigRegistry := &NodesCoordinatorRegistry{
+			EpochsConfig: map[string]*EpochValidators{
+				"10": {
+					EligibleValidators: map[string][]*SerializableValidator{
+						"val1": {
+							{
+								PubKey: []byte("pubKey1"),
+							},
+						},
+					},
+				},
+			},
+			CurrentEpoch: 10,
+		}
+
+		storer := &mock.StorerStub{
+			GetCalled: func(key []byte) (b []byte, err error) {
+				switch {
+				case strings.Contains(string(key), common.NodesCoordinatorRegistryKeyPrefix):
+					nodesConfigRegistryBytes, _ := json.Marshal(nodesConfigRegistry)
+					return nodesConfigRegistryBytes, nil
+				default:
+					return nil, errors.New("invalid key")
+				}
+			},
+			SearchFirstCalled: func(key []byte) ([]byte, error) {
+				return nil, errors.New("search first failed")
+			},
+		}
+
+		nodesConfig, err := GetNodesCoordinatorRegistry([]byte("key"), storer, 10)
+		require.Nil(t, err)
+		require.Equal(t, nodesConfigRegistry, nodesConfig)
+	})
+}
+
+func TestIndexHashedNodesCoordinator_SaveNodesCoordinatorRegistry(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil nodes config, should fail", func(t *testing.T) {
+		t.Parallel()
+
+		err := SaveNodesCoordinatorRegistry(nil, &mock.StorerStub{})
+		require.Equal(t, ErrNilNodesCoordinatorRegistry, err)
+	})
+
+	t.Run("nil storer, should fail", func(t *testing.T) {
+		t.Parallel()
+
+		nodesConfigRegistry := &NodesCoordinatorRegistry{
+			CurrentEpoch: 10,
+		}
+
+		err := SaveNodesCoordinatorRegistry(nodesConfigRegistry, nil)
+		require.Equal(t, ErrNilBootStorer, err)
+	})
+
+	t.Run("failed to put into storer", func(t *testing.T) {
+		t.Parallel()
+
+		nodesConfigRegistry := &NodesCoordinatorRegistry{
+			CurrentEpoch: 10,
+			EpochsConfig: map[string]*EpochValidators{
+				"10": {
+					EligibleValidators: map[string][]*SerializableValidator{
+						"val1": {
+							{
+								PubKey: []byte("pubKey1"),
+							},
+						},
+					},
+				},
+			},
+		}
+
+		expectedErr := errors.New("expected error")
+		storer := &mock.StorerStub{
+			PutCalled: func(key, data []byte) error {
+				return expectedErr
+			},
+		}
+
+		err := SaveNodesCoordinatorRegistry(nodesConfigRegistry, storer)
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		nodesConfigRegistry := &NodesCoordinatorRegistry{
+			CurrentEpoch: 10,
+			EpochsConfig: map[string]*EpochValidators{
+				"10": {
+					EligibleValidators: map[string][]*SerializableValidator{
+						"val1": {
+							{
+								PubKey: []byte("pubKey1"),
+							},
+						},
+					},
+				},
+				"9": {
+					EligibleValidators: map[string][]*SerializableValidator{
+						"val2": {
+							{
+								PubKey: []byte("pubKey2"),
+							},
+						},
+					},
+				},
+				"8": {
+					EligibleValidators: map[string][]*SerializableValidator{
+						"val3": {
+							{
+								PubKey: []byte("pubKey3"),
+							},
+						},
+					},
+				},
+			},
+		}
+
+		putCalls := 0
+		storer := &mock.StorerStub{
+			PutCalled: func(key, data []byte) error {
+				switch {
+				case strings.Contains(string(key), common.NodesCoordinatorRegistryKeyPrefix):
+					putCalls++
+					return nil
+				default:
+					return errors.New("invalid key")
+				}
+			},
+		}
+
+		err := SaveNodesCoordinatorRegistry(nodesConfigRegistry, storer)
+		require.Nil(t, err)
+		require.Equal(t, 3, putCalls)
+	})
 }

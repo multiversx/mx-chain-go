@@ -37,48 +37,29 @@ func (ihnc *indexHashedNodesCoordinator) LoadState(key []byte) error {
 	return ihnc.baseLoadState(key)
 }
 
-func getNodesCoordinatorRegistryByRandomnessKey(
-	key []byte,
-	storer storage.Storer,
-) (*NodesCoordinatorRegistry, error) {
-	ncInternalkey := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), key...)
-	epochConfigBytes, err := storer.SearchFirst(ncInternalkey)
-	if err != nil {
-		return nil, err
-	}
-	epochConfig := &NodesCoordinatorRegistry{}
-	err = json.Unmarshal(epochConfigBytes, epochConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	return epochConfig, nil
-}
-
+// GetNodesCoordinatorRegistry will get the nodes coordinator registry from boot storage
 func GetNodesCoordinatorRegistry(
 	key []byte, // old key
 	storer storage.Storer,
 	lastEpoch uint32,
 ) (*NodesCoordinatorRegistry, error) {
+	if check.IfNil(storer) {
+		return nil, ErrNilBootStorer
+	}
+
 	minEpoch := 0
 	if lastEpoch >= nodesCoordinatorStoredEpochs {
 		minEpoch = int(lastEpoch) - nodesCoordinatorStoredEpochs + 1
 	}
 
-	firstGet := true
 	epochsConfig := make(map[string]*EpochValidators)
-	for epoch := uint32(minEpoch); epoch <= lastEpoch; epoch++ {
+	for epoch := int(lastEpoch); epoch >= minEpoch; epoch-- {
 		ncInternalkey := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), []byte(fmt.Sprint(epoch))...)
 
 		log.Debug("getting nodes coordinator config", "key", ncInternalkey)
 
 		epochConfigBytes, err := storer.Get(ncInternalkey)
 		if err != nil {
-			if !firstGet {
-				return nil, err
-			}
-			firstGet = false
-
 			return getNodesCoordinatorRegistryByRandomnessKey(key, storer)
 		}
 
@@ -99,12 +80,33 @@ func GetNodesCoordinatorRegistry(
 	}, nil
 }
 
+func getNodesCoordinatorRegistryByRandomnessKey(
+	key []byte,
+	storer storage.Storer,
+) (*NodesCoordinatorRegistry, error) {
+	ncInternalkey := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), key...)
+	epochConfigBytes, err := storer.SearchFirst(ncInternalkey)
+	if err != nil {
+		return nil, err
+	}
+	epochConfig := &NodesCoordinatorRegistry{}
+	err = json.Unmarshal(epochConfigBytes, epochConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return epochConfig, nil
+}
+
 func (ihnc *indexHashedNodesCoordinator) baseLoadState(key []byte) error {
 	ihnc.loadingFromDisk.Store(true)
 	defer ihnc.loadingFromDisk.Store(false)
 
 	lastEpoch := ihnc.getLastEpochConfig()
 	config, err := GetNodesCoordinatorRegistry(key, ihnc.bootStorer, lastEpoch)
+	if err != nil {
+		return err
+	}
 
 	ihnc.mutSavedStateKey.Lock()
 	ihnc.savedStateKey = key

@@ -2,7 +2,6 @@ package storage
 
 import (
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/genesis/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
@@ -15,7 +14,7 @@ func GetStorageManagerArgsAndOptions() (trie.NewTrieStorageManagerArgs, trie.Sto
 	storageManagerArgs := trie.NewTrieStorageManagerArgs{
 		MainStorer:        genericMocks.NewStorerMock(),
 		CheckpointsStorer: genericMocks.NewStorerMock(),
-		Marshalizer:       &mock.MarshalizerMock{},
+		Marshalizer:       &testscommon.MarshalizerMock{},
 		Hasher:            &hashingMocks.HasherMock{},
 		GeneralConfig: config.TrieStorageManagerConfig{
 			SnapshotsGoroutineNum: 2,
