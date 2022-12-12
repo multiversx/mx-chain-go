@@ -908,7 +908,7 @@
     TrieSyncerVersion         = 3
     CheckNodesOnDisk          = false
 
-[Resolvers]
+[Requesters]
     NumCrossShardPeers  = 2
     NumTotalPeers       = 3 # NumCrossShardPeers + num intra shard
     NumFullHistoryPeers = 3
