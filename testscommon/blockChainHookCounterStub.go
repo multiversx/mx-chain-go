@@ -8,6 +8,7 @@ type BlockChainHookCounterStub struct {
 	ProcessMaxBuiltInCountersCalled          func(input *vmcommon.ContractCallInput) error
 	ResetCountersCalled                      func()
 	SetMaximumValuesCalled                   func(mapsOfValues map[string]uint64)
+	GetCounterValuesCalled                   func() map[string]uint64
 }
 
 // ProcessCrtNumberOfTrieReadsCounter -
@@ -40,6 +41,15 @@ func (stub *BlockChainHookCounterStub) SetMaximumValues(mapsOfValues map[string]
 	if stub.SetMaximumValuesCalled != nil {
 		stub.SetMaximumValuesCalled(mapsOfValues)
 	}
+}
+
+// GetCounterValues -
+func (stub *BlockChainHookCounterStub) GetCounterValues() map[string]uint64 {
+	if stub.GetCounterValuesCalled != nil {
+		return stub.GetCounterValuesCalled()
+	}
+
+	return make(map[string]uint64)
 }
 
 // IsInterfaceNil -
