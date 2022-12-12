@@ -231,6 +231,8 @@ func (rd *RatingsData) EpochConfirmed(epoch uint32, _ uint64) {
 }
 
 func (rd *RatingsData) getMatchingVersion(currentEpoch uint32) ratingsStepsData {
+	// TODO: configuration slice can be sorted in a descending order and return when encountering an activation epoch older
+	// than the provided one
 	var ratingsStep ratingsStepsData
 	for _, ratingsStepConfig := range rd.ratingsStepsConfig {
 		if ratingsStepConfig.enableEpoch > currentEpoch {

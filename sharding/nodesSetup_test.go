@@ -53,9 +53,18 @@ func createAndAssignNodes(ns *NodesSetup, noOfInitialNodes int) *NodesSetup {
 	return ns
 }
 
-func createTestNodesSetup(shardConsensusSize uint32, minShardNodes uint32, metaConsensusSize uint32, minMetaNodes uint32, numInitialNodes uint32, genesisMaxShards uint32) (*NodesSetup, error) {
+type argsTestNodesSetup struct {
+	shardConsensusSize uint32
+	shardMinNodes      uint32
+	metaConsensusSize  uint32
+	metaMinNodes       uint32
+	numInitialNodes    uint32
+	genesisMaxShards   uint32
+}
+
+func createTestNodesSetup(args argsTestNodesSetup) (*NodesSetup, error) {
 	initialNodes := make([]*config.InitialNodeConfig, 0)
-	for i := 0; uint32(i) < numInitialNodes; i++ {
+	for i := 0; uint32(i) < args.numInitialNodes; i++ {
 		lookupIndex := i % len(pubKeys)
 		initialNodes = append(initialNodes, &config.InitialNodeConfig{
 			PubKey:  pubKeys[lookupIndex],
@@ -71,16 +80,16 @@ func createTestNodesSetup(shardConsensusSize uint32, minShardNodes uint32, metaC
 			ChainParametersForEpochCalled: func(epoch uint32) config.ChainParametersByEpochConfig {
 				return config.ChainParametersByEpochConfig{
 					EnableEpoch:                 0,
-					ShardMinNumNodes:            minShardNodes,
-					ShardConsensusGroupSize:     shardConsensusSize,
-					MetachainMinNumNodes:        minMetaNodes,
-					MetachainConsensusGroupSize: metaConsensusSize,
+					ShardMinNumNodes:            args.shardMinNodes,
+					ShardConsensusGroupSize:     args.shardConsensusSize,
+					MetachainMinNumNodes:        args.metaMinNodes,
+					MetachainConsensusGroupSize: args.metaConsensusSize,
 				}
 			},
 		},
 		mock.NewPubkeyConverterMock(32),
 		mock.NewPubkeyConverterMock(96),
-		genesisMaxShards,
+		args.genesisMaxShards,
 	)
 
 	return ns, err
@@ -112,7 +121,14 @@ func TestNodesSetup_ProcessConfigNodesWithIncompleteDataShouldErr(t *testing.T) 
 func TestNodesSetup_ProcessConfigInvalidConsensusGroupSizeShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ns, err := createTestNodesSetup(0, 0, 0, 0, 0, 3)
+	ns, err := createTestNodesSetup(argsTestNodesSetup{
+		shardConsensusSize: 0,
+		shardMinNodes:      0,
+		metaConsensusSize:  0,
+		metaMinNodes:       0,
+		numInitialNodes:    0,
+		genesisMaxShards:   3,
+	})
 	require.Equal(t, ErrNegativeOrZeroConsensusGroupSize, err)
 	require.Nil(t, ns)
 }
@@ -120,7 +136,14 @@ func TestNodesSetup_ProcessConfigInvalidConsensusGroupSizeShouldErr(t *testing.T
 func TestNodesSetup_ProcessConfigInvalidMetaConsensusGroupSizeShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ns, err := createTestNodesSetup(1, 1, 0, 0, 1, 3)
+	ns, err := createTestNodesSetup(argsTestNodesSetup{
+		shardConsensusSize: 1,
+		shardMinNodes:      1,
+		metaConsensusSize:  0,
+		metaMinNodes:       0,
+		numInitialNodes:    1,
+		genesisMaxShards:   3,
+	})
 	require.Equal(t, ErrNegativeOrZeroConsensusGroupSize, err)
 	require.Nil(t, ns)
 }
@@ -128,7 +151,14 @@ func TestNodesSetup_ProcessConfigInvalidMetaConsensusGroupSizeShouldErr(t *testi
 func TestNodesSetup_ProcessConfigInvalidConsensusGroupSizeLargerThanNumOfNodesShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ns, err := createTestNodesSetup(2, 0, 0, 0, 2, 3)
+	ns, err := createTestNodesSetup(argsTestNodesSetup{
+		shardConsensusSize: 2,
+		shardMinNodes:      0,
+		metaConsensusSize:  0,
+		metaMinNodes:       0,
+		numInitialNodes:    2,
+		genesisMaxShards:   3,
+	})
 	require.Equal(t, ErrMinNodesPerShardSmallerThanConsensusSize, err)
 	require.Nil(t, ns)
 }
@@ -136,7 +166,14 @@ func TestNodesSetup_ProcessConfigInvalidConsensusGroupSizeLargerThanNumOfNodesSh
 func TestNodesSetup_ProcessConfigInvalidMetaConsensusGroupSizeLargerThanNumOfNodesShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ns, err := createTestNodesSetup(1, 1, 2, 1, 2, 3)
+	ns, err := createTestNodesSetup(argsTestNodesSetup{
+		shardConsensusSize: 1,
+		shardMinNodes:      1,
+		metaConsensusSize:  2,
+		metaMinNodes:       1,
+		numInitialNodes:    2,
+		genesisMaxShards:   3,
+	})
 	require.Equal(t, ErrMinNodesPerShardSmallerThanConsensusSize, err)
 	require.Nil(t, ns)
 }
@@ -144,7 +181,14 @@ func TestNodesSetup_ProcessConfigInvalidMetaConsensusGroupSizeLargerThanNumOfNod
 func TestNodesSetup_ProcessConfigInvalidNumOfNodesSmallerThanMinNodesPerShardShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ns, err := createTestNodesSetup(2, 3, 1, 1, 2, 3)
+	ns, err := createTestNodesSetup(argsTestNodesSetup{
+		shardConsensusSize: 2,
+		shardMinNodes:      3,
+		metaConsensusSize:  1,
+		metaMinNodes:       1,
+		numInitialNodes:    2,
+		genesisMaxShards:   3,
+	})
 	require.Nil(t, ns)
 	require.Equal(t, ErrNodesSizeSmallerThanMinNoOfNodes, err)
 }
@@ -152,7 +196,14 @@ func TestNodesSetup_ProcessConfigInvalidNumOfNodesSmallerThanMinNodesPerShardSho
 func TestNodesSetup_InitialNodesPubKeysWithHysteresis(t *testing.T) {
 	t.Parallel()
 
-	ns, err := createTestNodesSetup(63, 400, 400, 400, 3000, 100)
+	ns, err := createTestNodesSetup(argsTestNodesSetup{
+		shardConsensusSize: 63,
+		shardMinNodes:      400,
+		metaConsensusSize:  400,
+		metaMinNodes:       400,
+		numInitialNodes:    3000,
+		genesisMaxShards:   100,
+	})
 	ns.Hysteresis = 0.2
 	ns.Adaptivity = false
 	require.NoError(t, err)
@@ -182,7 +233,14 @@ func TestNodesSetup_InitialNodesPubKeysWithHysteresis(t *testing.T) {
 func TestNodesSetup_InitialNodesPubKeysForShardWrongShard(t *testing.T) {
 	t.Parallel()
 
-	ns, _ := createTestNodesSetup(1, 1, 1, 1, 2, 3)
+	ns, err := createTestNodesSetup(argsTestNodesSetup{
+		shardConsensusSize: 1,
+		shardMinNodes:      1,
+		metaConsensusSize:  1,
+		metaMinNodes:       1,
+		numInitialNodes:    2,
+		genesisMaxShards:   3,
+	})
 	eligible, waiting, err := ns.InitialNodesInfoForShard(1)
 
 	require.NotNil(t, ns)
@@ -194,7 +252,14 @@ func TestNodesSetup_InitialNodesPubKeysForShardWrongShard(t *testing.T) {
 func TestNodesSetup_InitialNodesPubKeysForShardGood(t *testing.T) {
 	t.Parallel()
 
-	ns, err := createTestNodesSetup(1, 2, 1, 2, 7, 3)
+	ns, err := createTestNodesSetup(argsTestNodesSetup{
+		shardConsensusSize: 1,
+		shardMinNodes:      2,
+		metaConsensusSize:  1,
+		metaMinNodes:       2,
+		numInitialNodes:    7,
+		genesisMaxShards:   3,
+	})
 	require.NoError(t, err)
 
 	eligible, waiting, err := ns.InitialNodesInfoForShard(1)
@@ -208,7 +273,14 @@ func TestNodesSetup_InitialNodesPubKeysForShardGood(t *testing.T) {
 func TestNodesSetup_InitialNodesPubKeysForShardGoodMeta(t *testing.T) {
 	t.Parallel()
 
-	ns, err := createTestNodesSetup(1, 2, 2, 2, 7, 3)
+	ns, err := createTestNodesSetup(argsTestNodesSetup{
+		shardConsensusSize: 1,
+		shardMinNodes:      2,
+		metaConsensusSize:  2,
+		metaMinNodes:       2,
+		numInitialNodes:    7,
+		genesisMaxShards:   3,
+	})
 	require.NoError(t, err)
 	metaId := core.MetachainShardId
 	eligible, waiting, err := ns.InitialNodesInfoForShard(metaId)
@@ -222,7 +294,14 @@ func TestNodesSetup_InitialNodesPubKeysForShardGoodMeta(t *testing.T) {
 func TestNodesSetup_PublicKeyNotGood(t *testing.T) {
 	t.Parallel()
 
-	ns, err := createTestNodesSetup(1, 5, 1, 1, 6, 3)
+	ns, err := createTestNodesSetup(argsTestNodesSetup{
+		shardConsensusSize: 1,
+		shardMinNodes:      5,
+		metaConsensusSize:  1,
+		metaMinNodes:       1,
+		numInitialNodes:    6,
+		genesisMaxShards:   3,
+	})
 	require.NoError(t, err)
 
 	_, err = ns.GetShardIDForPubKey([]byte(pubKeys[0]))
@@ -234,7 +313,14 @@ func TestNodesSetup_PublicKeyNotGood(t *testing.T) {
 func TestNodesSetup_PublicKeyGood(t *testing.T) {
 	t.Parallel()
 
-	ns, err := createTestNodesSetup(1, 5, 1, 1, 6, 3)
+	ns, err := createTestNodesSetup(argsTestNodesSetup{
+		shardConsensusSize: 1,
+		shardMinNodes:      5,
+		metaConsensusSize:  1,
+		metaMinNodes:       1,
+		numInitialNodes:    6,
+		genesisMaxShards:   3,
+	})
 	require.NoError(t, err)
 
 	publicKey, _ := hex.DecodeString(pubKeys[2])
@@ -249,7 +335,14 @@ func TestNodesSetup_PublicKeyGood(t *testing.T) {
 func TestNodesSetup_ShardPublicKeyGoodMeta(t *testing.T) {
 	t.Parallel()
 
-	ns, err := createTestNodesSetup(1, 5, 1, 1, 6, 3)
+	ns, err := createTestNodesSetup(argsTestNodesSetup{
+		shardConsensusSize: 1,
+		shardMinNodes:      5,
+		metaConsensusSize:  1,
+		metaMinNodes:       1,
+		numInitialNodes:    6,
+		genesisMaxShards:   3,
+	})
 	require.NoError(t, err)
 	publicKey, _ := hex.DecodeString(pubKeys[2])
 
@@ -263,7 +356,14 @@ func TestNodesSetup_ShardPublicKeyGoodMeta(t *testing.T) {
 func TestNodesSetup_MetaPublicKeyGoodMeta(t *testing.T) {
 	t.Parallel()
 
-	ns, err := createTestNodesSetup(1, 5, 1, 1, 6, 3)
+	ns, err := createTestNodesSetup(argsTestNodesSetup{
+		shardConsensusSize: 1,
+		shardMinNodes:      5,
+		metaConsensusSize:  1,
+		metaMinNodes:       1,
+		numInitialNodes:    6,
+		genesisMaxShards:   3,
+	})
 	require.NoError(t, err)
 	metaId := core.MetachainShardId
 	publicKey, _ := hex.DecodeString(pubKeys[0])
@@ -278,7 +378,14 @@ func TestNodesSetup_MetaPublicKeyGoodMeta(t *testing.T) {
 func TestNodesSetup_MinNumberOfNodes(t *testing.T) {
 	t.Parallel()
 
-	ns, err := createTestNodesSetup(63, 400, 400, 400, 2169, 3)
+	ns, err := createTestNodesSetup(argsTestNodesSetup{
+		shardConsensusSize: 63,
+		shardMinNodes:      400,
+		metaConsensusSize:  400,
+		metaMinNodes:       400,
+		numInitialNodes:    2169,
+		genesisMaxShards:   3,
+	})
 	ns.Hysteresis = 0.2
 	ns.Adaptivity = false
 	require.NoError(t, err)
@@ -320,7 +427,14 @@ func TestNewNodesSetup_InvalidMaxNumShardsShouldErr(t *testing.T) {
 func TestNodesSetup_IfNodesWithinMaxShardLimitEquivalentDistribution(t *testing.T) {
 	t.Parallel()
 
-	ns, err := createTestNodesSetup(63, 400, 400, 400, 2169, 3)
+	ns, err := createTestNodesSetup(argsTestNodesSetup{
+		shardConsensusSize: 64,
+		shardMinNodes:      400,
+		metaConsensusSize:  400,
+		metaMinNodes:       400,
+		numInitialNodes:    2169,
+		genesisMaxShards:   3,
+	})
 	ns.Hysteresis = 0.2
 	ns.Adaptivity = false
 	require.NoError(t, err)
@@ -357,7 +471,14 @@ func TestNodesSetup_IfNodesWithinMaxShardLimitEquivalentDistribution(t *testing.
 func TestNodesSetup_NodesAboveMaxShardLimit(t *testing.T) {
 	t.Parallel()
 
-	ns, err := createTestNodesSetup(63, 400, 400, 400, 3200, 3)
+	ns, err := createTestNodesSetup(argsTestNodesSetup{
+		shardConsensusSize: 63,
+		shardMinNodes:      400,
+		metaConsensusSize:  400,
+		metaMinNodes:       400,
+		numInitialNodes:    3200,
+		genesisMaxShards:   3,
+	})
 	ns.Hysteresis = 0.2
 	ns.Adaptivity = false
 	require.NoError(t, err)
