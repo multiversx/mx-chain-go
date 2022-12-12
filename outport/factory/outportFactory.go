@@ -1,11 +1,14 @@
 package factory
 
 import (
+	"os"
 	"time"
 
 	indexerFactory "github.com/ElrondNetwork/elastic-indexer-go/process/factory"
 	wsDriverFactory "github.com/ElrondNetwork/elrond-go-core/websocketOutportDriver/factory"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/outport"
+	"github.com/ElrondNetwork/elrond-go/outport/firehose"
 )
 
 // WrappedOutportDriverWebSocketSenderFactoryArgs extends the wsDriverFactory.OutportDriverWebSocketSenderFactoryArgs structure with the Enabled field
@@ -20,6 +23,7 @@ type OutportFactoryArgs struct {
 	ElasticIndexerFactoryArgs        indexerFactory.ArgsIndexerFactory
 	EventNotifierFactoryArgs         *EventNotifierFactoryArgs
 	WebSocketSenderDriverFactoryArgs WrappedOutportDriverWebSocketSenderFactoryArgs
+	FireHoseIndexerConfig            config.FireHoseConfig
 }
 
 // CreateOutport will create a new instance of OutportHandler
@@ -53,7 +57,12 @@ func createAndSubscribeDrivers(outport outport.OutportHandler, args *OutportFact
 		return err
 	}
 
-	return createAndSubscribeWebSocketDriver(outport, args.WebSocketSenderDriverFactoryArgs)
+	err = createAndSubscribeWebSocketDriver(outport, args.WebSocketSenderDriverFactoryArgs)
+	if err != nil {
+		return err
+	}
+
+	return createAndSubscribeFirehoseIndexerDriver(outport, args.FireHoseIndexerConfig)
 }
 
 func createAndSubscribeElasticDriverIfNeeded(
@@ -115,4 +124,20 @@ func createAndSubscribeWebSocketDriver(
 	}
 
 	return outport.SubscribeDriver(wsDriver)
+}
+
+func createAndSubscribeFirehoseIndexerDriver(
+	outport outport.OutportHandler,
+	args config.FireHoseConfig,
+) error {
+	if !args.Enabled {
+		return nil
+	}
+
+	fireHoseIndexer, err := firehose.NewFirehoseIndexer(os.Stdout)
+	if err != nil {
+		return err
+	}
+
+	return outport.SubscribeDriver(fireHoseIndexer)
 }

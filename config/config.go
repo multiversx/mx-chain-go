@@ -215,6 +215,8 @@ type Config struct {
 
 	PeersRatingConfig   PeersRatingConfig
 	PoolsCleanersConfig PoolsCleanersConfig
+
+	FireHoseConfig FireHoseConfig
 }
 
 // PeersRatingConfig will hold settings related to peers rating
@@ -611,4 +613,9 @@ type ResolverConfig struct {
 type PoolsCleanersConfig struct {
 	MaxRoundsToKeepUnprocessedMiniBlocks   int64
 	MaxRoundsToKeepUnprocessedTransactions int64
+}
+
+// FireHoseConfig represents the config options used for firehose streaming integration
+type FireHoseConfig struct {
+	Enabled bool
 }

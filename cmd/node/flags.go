@@ -359,6 +359,12 @@ var (
 		Usage: "String flag for specifying the desired `operation mode`(s) of the node, resulting in altering some configuration values accordingly. Possible values are: lite-observer, full-archive, db-lookup-extension, historical-balances or `\"\"` (empty). Multiple values can be separated via ,",
 		Value: "",
 	}
+
+	// firehoseEnabled defines a flag that, if set, will enable firehose indexing
+	firehoseEnabled = cli.BoolFlag{
+		Name:  "firehose-enabled",
+		Usage: "Boolean flag for enabling firehose indexing",
+	}
 )
 
 func getFlags() []cli.Flag {
@@ -414,6 +420,7 @@ func getFlags() []cli.Flag {
 		noKey,
 		p2pKeyPemFile,
 		operationMode,
+		firehoseEnabled,
 	}
 }
 
@@ -453,6 +460,7 @@ func applyFlags(ctx *cli.Context, cfgs *config.Configs, flagsConfig *config.Cont
 	cfgs.ConfigurationPathsHolder.SmartContracts = ctx.GlobalString(smartContractsFile.Name)
 	cfgs.ConfigurationPathsHolder.ValidatorKey = ctx.GlobalString(validatorKeyPemFile.Name)
 	cfgs.ConfigurationPathsHolder.P2pKey = ctx.GlobalString(p2pKeyPemFile.Name)
+	cfgs.GeneralConfig.FireHoseConfig.Enabled = ctx.GlobalBool(firehoseEnabled.Name)
 
 	if ctx.IsSet(startInEpoch.Name) {
 		log.Debug("start in epoch is enabled")
