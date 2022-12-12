@@ -288,19 +288,16 @@ func bigInToString(input *big.Int) string {
 }
 
 // GetGenesisNodesPubKeys will return genesis nodes public keys by shard
-func (nar *nodeApiResolver) GetGenesisNodesPubKeys() (map[uint32][]string, map[uint32][]string, error) {
+func (nar *nodeApiResolver) GetGenesisNodesPubKeys() (map[uint32][]string, map[uint32][]string) {
 	eligibleNodesConfig, waitingNodesConfig := nar.genesisNodesSetupHandler.InitialNodesInfo()
 
-	eligibleNodesPubKeysBytes, errEligible := nar.getInitialNodesPubKeysBytes(eligibleNodesConfig)
-	waitingNodesPubKeysBytes, errWaiting := nar.getInitialNodesPubKeysBytes(waitingNodesConfig)
-	if errEligible != nil || errWaiting != nil {
-		return nil, nil, ErrEncodeValidatorPubKey
-	}
+	eligibleNodesPubKeysBytes := nar.getInitialNodesPubKeysBytes(eligibleNodesConfig)
+	waitingNodesPubKeysBytes := nar.getInitialNodesPubKeysBytes(waitingNodesConfig)
 
-	return eligibleNodesPubKeysBytes, waitingNodesPubKeysBytes, nil
+	return eligibleNodesPubKeysBytes, waitingNodesPubKeysBytes
 }
 
-func (nar *nodeApiResolver) getInitialNodesPubKeysBytes(nodesInfo map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) (map[uint32][]string, error) {
+func (nar *nodeApiResolver) getInitialNodesPubKeysBytes(nodesInfo map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) map[uint32][]string {
 	nodesInfoPubkeys := make(map[uint32][]string)
 
 	for shardID, ni := range nodesInfo {
@@ -310,7 +307,7 @@ func (nar *nodeApiResolver) getInitialNodesPubKeysBytes(nodesInfo map[uint32][]n
 		}
 	}
 
-	return nodesInfoPubkeys, nil
+	return nodesInfoPubkeys
 }
 
 // GetGasConfigs return currently used gas schedule config

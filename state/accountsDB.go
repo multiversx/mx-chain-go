@@ -1454,12 +1454,12 @@ func (adb *AccountsDB) GetStatsForRootHash(rootHash []byte) (common.TriesStatist
 			continue
 		}
 
-		address, err := adb.addressConverter.Encode(account.Address)
+		accountAddress, err := adb.addressConverter.Encode(account.Address)
 		if err != nil {
 			return nil, err
 		}
 
-		collectStats(tr, stats, account.RootHash, address)
+		collectStats(tr, stats, account.RootHash, accountAddress)
 	}
 
 	err = common.GetErrorFromChanNonBlocking(iteratorChannels.ErrChan)

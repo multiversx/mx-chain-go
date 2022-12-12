@@ -21,7 +21,8 @@ func TestHexAddressToBech32Address(t *testing.T) {
 	hexEncodedAddressBytes, err := hex.DecodeString(hexEncodedAddress)
 	require.NoError(t, err)
 
-	bech32Address, _ := addressEncoder.Encode(hexEncodedAddressBytes)
+	bech32Address, err := addressEncoder.Encode(hexEncodedAddressBytes)
+	require.NoError(t, err)
 	require.Equal(t, "erd14uqxan5rgucsf6537ll4vpwyc96z7us5586xhc5euv8w96rsw95sfl6a49", bech32Address)
 }
 
@@ -61,20 +62,31 @@ func computeShardID(t *testing.T, addressBech32 string, shardCoordinator shardin
 }
 
 func TestSystemSCsAddressesAndSpecialAddresses(t *testing.T) {
-	contractDeployScAdress, _ := addressEncoder.Encode(make([]byte, addressEncoder.Len()))
-	stakingScAddress, _ := addressEncoder.Encode(vm.StakingSCAddress)
-	validatorScAddress, _ := addressEncoder.Encode(vm.ValidatorSCAddress)
-	esdtScAddress, _ := addressEncoder.Encode(vm.ESDTSCAddress)
-	governanceScAddress, _ := addressEncoder.Encode(vm.GovernanceSCAddress)
-	jailingAddress, _ := addressEncoder.Encode(vm.JailingAddress)
-	endOfEpochAddress, _ := addressEncoder.Encode(vm.EndOfEpochAddress)
-	delegationManagerScAddress, _ := addressEncoder.Encode(vm.DelegationManagerSCAddress)
-	firstDelegationScAddress, _ := addressEncoder.Encode(vm.FirstDelegationSCAddress)
+	contractDeployScAdress, err := addressEncoder.Encode(make([]byte, addressEncoder.Len()))
+	require.NoError(t, err)
+	stakingScAddress, err := addressEncoder.Encode(vm.StakingSCAddress)
+	require.NoError(t, err)
+	validatorScAddress, err := addressEncoder.Encode(vm.ValidatorSCAddress)
+	require.NoError(t, err)
+	esdtScAddress, err := addressEncoder.Encode(vm.ESDTSCAddress)
+	require.NoError(t, err)
+	governanceScAddress, err := addressEncoder.Encode(vm.GovernanceSCAddress)
+	require.NoError(t, err)
+	jailingAddress, err := addressEncoder.Encode(vm.JailingAddress)
+	require.NoError(t, err)
+	endOfEpochAddress, err := addressEncoder.Encode(vm.EndOfEpochAddress)
+	require.NoError(t, err)
+	delegationManagerScAddress, err := addressEncoder.Encode(vm.DelegationManagerSCAddress)
+	require.NoError(t, err)
+	firstDelegationScAddress, err := addressEncoder.Encode(vm.FirstDelegationSCAddress)
+	require.NoError(t, err)
 
 	genesisMintingAddressBytes, err := hex.DecodeString("f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0")
 	require.NoError(t, err)
-	genesisMintingAddress, _ := addressEncoder.Encode(genesisMintingAddressBytes)
-	systemAccountAddress, _ := addressEncoder.Encode(core.SystemAccountAddress)
+	genesisMintingAddress, err := addressEncoder.Encode(genesisMintingAddressBytes)
+	require.NoError(t, err)
+	systemAccountAddress, err := addressEncoder.Encode(core.SystemAccountAddress)
+	require.NoError(t, err)
 
 	header := []string{"Smart contract/Special address", "Address"}
 	lines := []*display.LineData{

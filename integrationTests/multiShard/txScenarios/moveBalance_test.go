@@ -32,7 +32,8 @@ func TestTransaction_TransactionMoveBalanceScenarios(t *testing.T) {
 
 	// shard 1
 	bechAddrShard1 := "erd1qhmhf5grwtep3n6ynkpz5u5lxw8n2s38yuq9ge8950lc0zqlwkfs3cus7a"
-	bech32, _ := pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
+	bech32, err := pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
+	assert.Nil(t, err)
 	receiverAddress, _ := bech32.Decode(bechAddrShard1)
 
 	senderShardID := nodes[0].ShardCoordinator.ComputeId(players[0].Address)

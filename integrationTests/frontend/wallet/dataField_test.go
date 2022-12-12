@@ -73,7 +73,12 @@ func sign(tx *transaction.Transaction, signer crypto.SingleSigner, sk crypto.Pri
 	marshalizer := &marshal.JsonMarshalizer{}
 	converter, _ := pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
 
-	encodedSignerAddr, err := converter.Encode(tx.RcvAddr)
+	receiverAddress, err := converter.Encode(tx.RcvAddr)
+	if err != nil {
+		return nil, err
+	}
+
+	senderAddress, err := converter.Encode(tx.SndAddr)
 	if err != nil {
 		return nil, err
 	}
@@ -81,8 +86,8 @@ func sign(tx *transaction.Transaction, signer crypto.SingleSigner, sk crypto.Pri
 	ftx := &transaction.FrontendTransaction{
 		Nonce:            tx.Nonce,
 		Value:            tx.Value.String(),
-		Receiver:         encodedSignerAddr,
-		Sender:           encodedSignerAddr,
+		Receiver:         receiverAddress,
+		Sender:           senderAddress,
 		SenderUsername:   nil,
 		ReceiverUsername: nil,
 		GasPrice:         tx.GasPrice,

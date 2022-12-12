@@ -26,8 +26,8 @@ func TestGetEncodedAddress(t *testing.T) {
 	}
 
 	encodedAddr, err := txUnmarshalledHandler.getEncodedAddress(address)
-	require.Equal(t, expectedEncodedAddr, encodedAddr)
 	require.Nil(t, err)
+	require.Equal(t, expectedEncodedAddr, encodedAddr)
 
 	encodedAddr, err = txUnmarshalledHandler.getEncodedAddress([]byte("abc"))
 	require.Empty(t, encodedAddr)

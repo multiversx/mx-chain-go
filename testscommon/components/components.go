@@ -449,6 +449,7 @@ func GetProcessArgs(
 					Length:          32,
 					Type:            "bech32",
 					SignatureLength: 0,
+					Prefix:          "erd",
 				})
 				balance := big.NewInt(0)
 				acc1 := data.InitialAccount{

@@ -190,11 +190,11 @@ func (ts *transactionSimulator) addIntermediateTxsToResult(result *txSimData.Sim
 }
 
 func (ts *transactionSimulator) adaptSmartContractResult(scr *smartContractResult.SmartContractResult) (*transaction.ApiSmartContractResult, error) {
-	encodedRcvAddr, err := ts.addressPubKeyConverter.Encode(scr.RcvAddr)
+	rcvAddress, err := ts.addressPubKeyConverter.Encode(scr.RcvAddr)
 	if err != nil {
 		return nil, err
 	}
-	encodedSndAddr, err := ts.addressPubKeyConverter.Encode(scr.SndAddr)
+	sndAddress, err := ts.addressPubKeyConverter.Encode(scr.SndAddr)
 	if err != nil {
 		return nil, err
 	}
@@ -202,8 +202,8 @@ func (ts *transactionSimulator) adaptSmartContractResult(scr *smartContractResul
 	resScr := &transaction.ApiSmartContractResult{
 		Nonce:          scr.Nonce,
 		Value:          scr.Value,
-		RcvAddr:        encodedRcvAddr,
-		SndAddr:        encodedSndAddr,
+		RcvAddr:        rcvAddress,
+		SndAddr:        sndAddress,
 		RelayedValue:   scr.RelayedValue,
 		Code:           string(scr.Code),
 		Data:           string(scr.Data),
@@ -233,14 +233,14 @@ func (ts *transactionSimulator) adaptSmartContractResult(scr *smartContractResul
 }
 
 func (ts *transactionSimulator) adaptReceipt(rcpt *receipt.Receipt) (*transaction.ApiReceipt, error) {
-	encodedRcptSenderAddr, err := ts.addressPubKeyConverter.Encode(rcpt.SndAddr)
+	receiptSenderAddress, err := ts.addressPubKeyConverter.Encode(rcpt.SndAddr)
 	if err != nil {
 		return nil, err
 	}
 
 	return &transaction.ApiReceipt{
 		Value:   rcpt.Value,
-		SndAddr: encodedRcptSenderAddr,
+		SndAddr: receiptSenderAddress,
 		Data:    string(rcpt.Data),
 		TxHash:  hex.EncodeToString(rcpt.TxHash),
 	}, nil

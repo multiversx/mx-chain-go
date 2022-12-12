@@ -41,14 +41,14 @@ func (tu *txUnmarshaller) unmarshalReceipt(receiptBytes []byte) (*transaction.Ap
 		return nil, err
 	}
 
-	encodedSndAddr, err := tu.addressPubKeyConverter.Encode(rec.SndAddr)
+	senderAddress, err := tu.addressPubKeyConverter.Encode(rec.SndAddr)
 	if err != nil {
 		return nil, err
 	}
 
 	return &transaction.ApiReceipt{
 		Value:   rec.Value,
-		SndAddr: encodedSndAddr,
+		SndAddr: senderAddress,
 		Data:    string(rec.Data),
 		TxHash:  hex.EncodeToString(rec.TxHash),
 	}, nil
@@ -110,12 +110,12 @@ func (tu *txUnmarshaller) unmarshalTransaction(txBytes []byte, txType transactio
 }
 
 func (tu *txUnmarshaller) prepareNormalTx(tx *transaction.Transaction) (*transaction.ApiTransactionResult, error) {
-	encodedRcvAddr, err := tu.addressPubKeyConverter.Encode(tx.RcvAddr)
+	receiverAddress, err := tu.addressPubKeyConverter.Encode(tx.RcvAddr)
 	if err != nil {
 		return nil, err
 	}
 
-	encodedSndAddr, err := tu.addressPubKeyConverter.Encode(tx.SndAddr)
+	senderAddress, err := tu.addressPubKeyConverter.Encode(tx.SndAddr)
 	if err != nil {
 		return nil, err
 	}
@@ -125,9 +125,9 @@ func (tu *txUnmarshaller) prepareNormalTx(tx *transaction.Transaction) (*transac
 		Type:             string(transaction.TxTypeNormal),
 		Nonce:            tx.Nonce,
 		Value:            tx.Value.String(),
-		Receiver:         encodedRcvAddr,
+		Receiver:         receiverAddress,
 		ReceiverUsername: tx.RcvUserName,
-		Sender:           encodedSndAddr,
+		Sender:           senderAddress,
 		SenderUsername:   tx.SndUserName,
 		GasPrice:         tx.GasPrice,
 		GasLimit:         tx.GasLimit,
@@ -140,12 +140,12 @@ func (tu *txUnmarshaller) prepareNormalTx(tx *transaction.Transaction) (*transac
 }
 
 func (tu *txUnmarshaller) prepareInvalidTx(tx *transaction.Transaction) (*transaction.ApiTransactionResult, error) {
-	encodedRcvAddr, err := tu.addressPubKeyConverter.Encode(tx.RcvAddr)
+	receiverAddress, err := tu.addressPubKeyConverter.Encode(tx.RcvAddr)
 	if err != nil {
 		return nil, err
 	}
 
-	encodedSndAddr, err := tu.addressPubKeyConverter.Encode(tx.SndAddr)
+	senderAddress, err := tu.addressPubKeyConverter.Encode(tx.SndAddr)
 	if err != nil {
 		return nil, err
 	}
@@ -155,9 +155,9 @@ func (tu *txUnmarshaller) prepareInvalidTx(tx *transaction.Transaction) (*transa
 		Type:             string(transaction.TxTypeInvalid),
 		Nonce:            tx.Nonce,
 		Value:            tx.Value.String(),
-		Receiver:         encodedRcvAddr,
+		Receiver:         receiverAddress,
 		ReceiverUsername: tx.RcvUserName,
-		Sender:           encodedSndAddr,
+		Sender:           senderAddress,
 		SenderUsername:   tx.SndUserName,
 		GasPrice:         tx.GasPrice,
 		GasLimit:         tx.GasLimit,
@@ -167,7 +167,7 @@ func (tu *txUnmarshaller) prepareInvalidTx(tx *transaction.Transaction) (*transa
 }
 
 func (tu *txUnmarshaller) prepareRewardTx(tx *rewardTxData.RewardTx) (*transaction.ApiTransactionResult, error) {
-	encodedRcvAddr, err := tu.addressPubKeyConverter.Encode(tx.GetRcvAddr())
+	receiverAddress, err := tu.addressPubKeyConverter.Encode(tx.GetRcvAddr())
 	if err != nil {
 		return nil, err
 	}
@@ -179,18 +179,18 @@ func (tu *txUnmarshaller) prepareRewardTx(tx *rewardTxData.RewardTx) (*transacti
 		Epoch:       tx.GetEpoch(),
 		Value:       tx.GetValue().String(),
 		Sender:      "metachain",
-		Receiver:    encodedRcvAddr,
+		Receiver:    receiverAddress,
 		SourceShard: core.MetachainShardId,
 	}, nil
 }
 
 func (tu *txUnmarshaller) prepareUnsignedTx(tx *smartContractResult.SmartContractResult) (*transaction.ApiTransactionResult, error) {
-	encodedRcvAddr, err := tu.addressPubKeyConverter.Encode(tx.GetRcvAddr())
+	receiverAddress, err := tu.addressPubKeyConverter.Encode(tx.GetRcvAddr())
 	if err != nil {
 		return nil, err
 	}
 
-	encodedSndAddr, err := tu.addressPubKeyConverter.Encode(tx.GetSndAddr())
+	senderAddress, err := tu.addressPubKeyConverter.Encode(tx.GetSndAddr())
 	if err != nil {
 		return nil, err
 	}
@@ -200,8 +200,8 @@ func (tu *txUnmarshaller) prepareUnsignedTx(tx *smartContractResult.SmartContrac
 		Type:                    string(transaction.TxTypeUnsigned),
 		Nonce:                   tx.GetNonce(),
 		Value:                   tx.GetValue().String(),
-		Receiver:                encodedRcvAddr,
-		Sender:                  encodedSndAddr,
+		Receiver:                receiverAddress,
+		Sender:                  senderAddress,
 		GasPrice:                tx.GetGasPrice(),
 		GasLimit:                tx.GetGasLimit(),
 		Data:                    tx.GetData(),

@@ -111,13 +111,13 @@ func (dlp *delegatedListProcessor) getDelegatorsInfo(delegationSC []byte, delega
 
 		delegatorInfo.TotalAsBigInt = big.NewInt(0).Add(delegatorInfo.TotalAsBigInt, value)
 		delegatorInfo.Total = delegatorInfo.TotalAsBigInt.String()
-		econdedDelegationAddr, err := dlp.publicKeyConverter.Encode(delegationSC)
+		encodedDelegationSCAddr, err := dlp.publicKeyConverter.Encode(delegationSC)
 		if err != nil {
 			return err
 		}
 
 		delegatorInfo.DelegatedTo = append(delegatorInfo.DelegatedTo, &api.DelegatedValue{
-			DelegationScAddress: econdedDelegationAddr,
+			DelegationScAddress: encodedDelegationSCAddr,
 			Value:               value.String(),
 		})
 	}

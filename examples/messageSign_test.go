@@ -92,10 +92,10 @@ func signMessage(t *testing.T, senderSeedHex string, message string) (string, st
 	publicKeyBytes, err := publicKey.ToByteArray()
 	require.NoError(t, err)
 
-	encodedPublicKey, err := addressEncoder.Encode(publicKeyBytes)
+	publicKeyAddress, err := addressEncoder.Encode(publicKeyBytes)
 	require.NoError(t, err)
 
-	return encodedPublicKey, hex.EncodeToString(hash), hex.EncodeToString(signature)
+	return publicKeyAddress, hex.EncodeToString(hash), hex.EncodeToString(signature)
 }
 
 func computeHashForMessage(message string) []byte {

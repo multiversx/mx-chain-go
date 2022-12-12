@@ -1746,11 +1746,11 @@ func (sc *scProcessor) printScDeployed(vmOutput *vmcommon.VMOutput, tx data.Tran
 			continue
 		}
 
-		encodedScAddr, err := sc.pubkeyConv.Encode(addr)
+		scAddress, err := sc.pubkeyConv.Encode(addr)
 		if err != nil {
 			log.Debug("printScDeployed(), error occured while encoding Smart Contract Address")
 		}
-		scGenerated = append(scGenerated, encodedScAddr)
+		scGenerated = append(scGenerated, scAddress)
 	}
 
 	encodedSndAddr, err := sc.pubkeyConv.Encode(tx.GetSndAddr())

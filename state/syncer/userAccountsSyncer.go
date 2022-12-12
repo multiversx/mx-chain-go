@@ -288,12 +288,9 @@ func (u *userAccountsSyncer) printDataTrieStatistics() {
 	})
 
 	for _, trieStat := range u.largeTries {
-		encodedAddress, err := u.pubkeyCoverter.Encode(trieStat.address)
-		if err != nil {
-			log.Debug("Trie stats encoding failed")
-		}
+		trieStatAddress := u.pubkeyCoverter.SilentEncode(trieStat.address, log)
 
-		log.Debug("datatrie for "+encodedAddress,
+		log.Debug("datatrie for "+trieStatAddress,
 			"num trie nodes", trieStat.numTrieNodes,
 			"num leaves", trieStat.numLeaves,
 			"size", core.ConvertBytes(trieStat.numBytes),

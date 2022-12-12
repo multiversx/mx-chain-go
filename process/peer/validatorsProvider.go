@@ -221,10 +221,8 @@ func (vp *validatorsProvider) createValidatorApiResponseMapFromValidatorInfoMap(
 	newCache := make(map[string]*state.ValidatorApiResponse)
 	for _, validatorInfosInShard := range allNodes {
 		for _, validatorInfo := range validatorInfosInShard {
-			strKey, err := vp.pubkeyConverter.Encode(validatorInfo.PublicKey)
-			if err != nil {
-				log.Warn("validator public key encoding failed", "err", err)
-			}
+			strKey := vp.pubkeyConverter.SilentEncode(validatorInfo.PublicKey, log)
+
 			newCache[strKey] = &state.ValidatorApiResponse{
 				NumLeaderSuccess:                   validatorInfo.LeaderSuccess,
 				NumLeaderFailure:                   validatorInfo.LeaderFailure,
@@ -255,11 +253,10 @@ func (vp *validatorsProvider) aggregateLists(
 ) {
 	for shardID, shardValidators := range validatorsMap {
 		for _, val := range shardValidators {
-			encodedKey, err := vp.pubkeyConverter.Encode(val)
-			if err != nil {
-				log.Warn("shard validator public key encoding failed", "err", err)
-			}
+			encodedKey := vp.pubkeyConverter.SilentEncode(val, log)
+
 			foundInTrieValidator, ok := newCache[encodedKey]
+
 			peerType := string(currentList)
 
 			if !ok || foundInTrieValidator == nil {

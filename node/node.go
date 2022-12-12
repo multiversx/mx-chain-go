@@ -361,11 +361,11 @@ func (n *Node) GetESDTData(address, tokenID string, nonce uint64, options api.Ac
 	}
 
 	if esdtToken.TokenMetaData != nil {
-		encodeEsdtTokenCreatorAddr, err := n.coreComponents.AddressPubKeyConverter().Encode(esdtToken.TokenMetaData.Creator)
+		esdtTokenCreatorAddr, err := n.coreComponents.AddressPubKeyConverter().Encode(esdtToken.TokenMetaData.Creator)
 		if err != nil {
 			return nil, api.BlockInfo{}, err
 		}
-		esdtToken.TokenMetaData.Creator = []byte(encodeEsdtTokenCreatorAddr)
+		esdtToken.TokenMetaData.Creator = []byte(esdtTokenCreatorAddr)
 	}
 
 	return esdtToken, blockInfo, nil
@@ -558,11 +558,11 @@ func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions,
 		}
 
 		if esdtToken.TokenMetaData != nil {
-			encodeEsdtTokenCreatorAddr, err := n.coreComponents.AddressPubKeyConverter().Encode(esdtToken.TokenMetaData.Creator)
+			esdtTokenCreatorAddr, err := n.coreComponents.AddressPubKeyConverter().Encode(esdtToken.TokenMetaData.Creator)
 			if err != nil {
 				return nil, api.BlockInfo{}, err
 			}
-			esdtToken.TokenMetaData.Creator = []byte(encodeEsdtTokenCreatorAddr)
+			esdtToken.TokenMetaData.Creator = []byte(esdtTokenCreatorAddr)
 			tokenName = adjustNftTokenIdentifier(tokenName, esdtToken.TokenMetaData.Nonce)
 		}
 
@@ -983,7 +983,7 @@ func (n *Node) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
 	for _, p := range pidsFound {
 		pidInfo, err := n.createPidInfo(p)
 		if err != nil {
-			return make([]core.QueryP2PPeerInfo, 0, len(pidsFound)), nil
+			return make([]core.QueryP2PPeerInfo, 0, len(pidsFound)), err
 		}
 		peerInfoSlice = append(peerInfoSlice, pidInfo)
 	}

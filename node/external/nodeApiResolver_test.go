@@ -594,8 +594,7 @@ func TestNodeApiResolver_GetGenesisNodesPubKeys(t *testing.T) {
 		1: {expPubKey2},
 	}
 
-	el, wt, err := nar.GetGenesisNodesPubKeys()
-	assert.Nil(t, err)
+	el, wt := nar.GetGenesisNodesPubKeys()
 	assert.Equal(t, expectedEligible, el)
 	assert.Equal(t, expectedWaiting, wt)
 }

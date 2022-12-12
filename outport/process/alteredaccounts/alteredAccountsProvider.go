@@ -221,7 +221,7 @@ func (aap *alteredAccountsProvider) convertMetaData(metaData *esdt.MetaData) (*o
 		return nil, nil
 	}
 
-	creatorAddr, err := aap.addressConverter.Encode(metaData.Creator)
+	metaDataCreatorAddr, err := aap.addressConverter.Encode(metaData.Creator)
 	if err != nil {
 		return nil, err
 	}
@@ -229,7 +229,7 @@ func (aap *alteredAccountsProvider) convertMetaData(metaData *esdt.MetaData) (*o
 	return &outportcore.TokenMetaData{
 		Nonce:      metaData.Nonce,
 		Name:       string(metaData.Name),
-		Creator:    creatorAddr,
+		Creator:    metaDataCreatorAddr,
 		Royalties:  metaData.Royalties,
 		Hash:       metaData.Hash,
 		URIs:       metaData.URIs,

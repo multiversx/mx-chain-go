@@ -550,7 +550,8 @@ func TestScCallDistributeStakingRewards_ShouldWork(t *testing.T) {
 	testContext, scAddress := prepareTestContextForEpoch836(t)
 	defer testContext.Close()
 
-	pkConv, _ := pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
+	pkConv, err := pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
+	require.NoError(t, err)
 	sndAddr1, err := pkConv.Decode("erd1rkhyj0ne054upekymjafwas44v2trdykd22vcg27ap8x2hpg5u7q0296ne")
 	require.Nil(t, err)
 

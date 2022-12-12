@@ -130,7 +130,7 @@ type ApiResolver interface {
 	GetInternalMetaBlockByRound(format common.ApiOutputFormat, round uint64) (interface{}, error)
 	GetInternalStartOfEpochMetaBlock(format common.ApiOutputFormat, epoch uint32) (interface{}, error)
 	GetInternalMiniBlock(format common.ApiOutputFormat, txHash string, epoch uint32) (interface{}, error)
-	GetGenesisNodesPubKeys() (map[uint32][]string, map[uint32][]string, error)
+	GetGenesisNodesPubKeys() (map[uint32][]string, map[uint32][]string)
 	GetGenesisBalances() ([]*common.InitialAccountAPI, error)
 	GetGasConfigs() map[string]map[string]uint64
 	Close() error

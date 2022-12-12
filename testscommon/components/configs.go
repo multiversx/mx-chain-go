@@ -11,6 +11,7 @@ func GetGeneralConfig() config.Config {
 			Length:          32,
 			Type:            "bech32",
 			SignatureLength: 0,
+			Prefix:          "erd",
 		},
 		ValidatorPubkeyConverter: config.PubkeyConfig{
 			Length:          96,

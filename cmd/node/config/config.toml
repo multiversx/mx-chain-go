@@ -599,6 +599,7 @@
     Length = 32
     Type = "bech32"
     SignatureLength = 64
+    Prefix = "erd"
 
 [ValidatorPubkeyConverter]
     Length = 96

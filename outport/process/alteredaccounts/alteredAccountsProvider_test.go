@@ -261,24 +261,24 @@ func testExtractAlteredAccountsFromPoolBothSenderAndReceiverShards(t *testing.T)
 	}
 
 	shard0AddrTx0, err := args.AddressConverter.Encode([]byte("shard0 addr - tx0  "))
-	require.Contains(t, res, shard0AddrTx0)
 	require.Nil(t, err)
+	require.Contains(t, res, shard0AddrTx0)
 
 	shard0Addr2Tx0, err := args.AddressConverter.Encode([]byte("shard0 addr 2 - tx0"))
-	require.Contains(t, res, shard0Addr2Tx0)
 	require.Nil(t, err)
+	require.Contains(t, res, shard0Addr2Tx0)
 
 	shard0Addr3Tx1, err := args.AddressConverter.Encode([]byte("shard0 addr 3 - tx1"))
-	require.Contains(t, res, shard0Addr3Tx1)
 	require.Nil(t, err)
+	require.Contains(t, res, shard0Addr3Tx1)
 
 	shard0AddrTx2, err := args.AddressConverter.Encode([]byte("shard0 addr - tx2  "))
-	require.Contains(t, res, shard0AddrTx2)
 	require.Nil(t, err)
+	require.Contains(t, res, shard0AddrTx2)
 
 	shard0AddrTx3, err := args.AddressConverter.Encode([]byte("shard0 addr - tx3  "))
-	require.Contains(t, res, shard0AddrTx3)
 	require.Nil(t, err)
+	require.Contains(t, res, shard0AddrTx3)
 }
 
 func testExtractAlteredAccountsFromPoolTrieDataChecks(t *testing.T) {

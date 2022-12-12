@@ -678,7 +678,6 @@ func DisplayProcessTxDetails(
 	txHash []byte,
 	addressPubkeyConverter core.PubkeyConverter,
 ) {
-
 	var err error
 
 	if !check.IfNil(accountHandler) {
