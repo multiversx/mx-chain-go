@@ -51,14 +51,10 @@ github.com/ElrondNetwork/elastic-indexer-go v1.3.3/go.mod h1:E3VO5712GkGSGYnOTJ+
 github.com/ElrondNetwork/elrond-go-core v1.1.26 h1:5syiJMlkWlH7HHnuiOafJJzeI+oUfYqL8mXREqrFerY=
 github.com/ElrondNetwork/elrond-go-core v1.1.26/go.mod h1:N/RI++YU2M6OlnD1GSZepc1wPhI84ykRDQ1IyD3B0wk=
 github.com/ElrondNetwork/elrond-go-crypto v1.2.2/go.mod h1:MyQPKUKti7Axnx/eihhL0F2jLTalvSV/Ytv1mIxvYyM=
-github.com/ElrondNetwork/elrond-go-crypto v1.2.3-0.20221207130836-796c2dff9ad7 h1:WSrV/gZ+YJQKU46udfni6b56YnMFVJ0GpGEjO1wFbn0=
-github.com/ElrondNetwork/elrond-go-crypto v1.2.3-0.20221207130836-796c2dff9ad7/go.mod h1:04TNYc9JT+bXGFjaWf1oP7iFudRprHp5iULyQaVYMao=
 github.com/ElrondNetwork/elrond-go-crypto v1.2.3 h1:kX/xIWuQLKDvfPNSsCrFWcmNABa1h+DpbZ99RDwzCas=
 github.com/ElrondNetwork/elrond-go-crypto v1.2.3/go.mod h1:04TNYc9JT+bXGFjaWf1oP7iFudRprHp5iULyQaVYMao=
 github.com/ElrondNetwork/elrond-go-logger v1.0.10 h1:2xQOWZErcHW5sl9qSRO+7mGNw+QhFhqiUlLLtOgvuuk=
 github.com/ElrondNetwork/elrond-go-logger v1.0.10/go.mod h1:+rMODFw4yQptTi5WuLUBzvl/AE26V+2YJtc52wX30Eg=
-github.com/ElrondNetwork/elrond-go-p2p v1.0.6-0.20221207134639-9d392e20bd13 h1:rPsjMIOYk7HFjR9RxQ3BetGBYUs3mIdir/fDeZtTb90=
-github.com/ElrondNetwork/elrond-go-p2p v1.0.6-0.20221207134639-9d392e20bd13/go.mod h1:u/tP7HotjCwksDyK9FpVKbUgSKcwlH2+v7/Fcw9HAmk=
 github.com/ElrondNetwork/elrond-go-p2p v1.0.6 h1:PMUMCoox64+d29iR+EYKMYSoAwyp69kHqtECDltqZKs=
 github.com/ElrondNetwork/elrond-go-p2p v1.0.6/go.mod h1:7Z4aiKnqGk2bX181Mo9cCuC1yJJ1VDENkk8GdjOGtRc=
 github.com/ElrondNetwork/elrond-go-storage v1.0.2/go.mod h1:SRsv4hUtL1BCiQe0eADth3C0EZH9baijzIJDCUitR34=
@@ -66,8 +62,8 @@ github.com/ElrondNetwork/elrond-go-storage v1.0.4 h1:esyXbHQvlR6m4HGeC86Nq0xAJ74
 github.com/ElrondNetwork/elrond-go-storage v1.0.4/go.mod h1:SRsv4hUtL1BCiQe0eADth3C0EZH9baijzIJDCUitR34=
 github.com/ElrondNetwork/elrond-vm-common v1.3.27/go.mod h1:3GKLv9hUFYEVxoBgtaCmaZo9HMNfKN9mM/O/xX83Rbw=
 github.com/ElrondNetwork/elrond-vm-common v1.3.28/go.mod h1:3GKLv9hUFYEVxoBgtaCmaZo9HMNfKN9mM/O/xX83Rbw=
-github.com/ElrondNetwork/elrond-vm-common v1.3.30 h1:nLMORp46GcvK9qwx/Iiz+8h/MB5qlPppaX+VJikOz8I=
-github.com/ElrondNetwork/elrond-vm-common v1.3.30/go.mod h1:3GKLv9hUFYEVxoBgtaCmaZo9HMNfKN9mM/O/xX83Rbw=
+github.com/ElrondNetwork/elrond-vm-common v1.3.31 h1:xgYywTZgP3e2C61xl7QHWB39pvB7A3lEJvOXwEdCQck=
+github.com/ElrondNetwork/elrond-vm-common v1.3.31/go.mod h1:3GKLv9hUFYEVxoBgtaCmaZo9HMNfKN9mM/O/xX83Rbw=
 github.com/ElrondNetwork/protobuf v1.3.2 h1:qoCSYiO+8GtXBEZWEjw0WPcZfM3g7QuuJrwpN+y6Mvg=
 github.com/ElrondNetwork/protobuf v1.3.2/go.mod h1:SlYgWuQ5SjCEi6WLHjHCa1yvBfUnHcTbrrZtXPKa29o=
 github.com/ElrondNetwork/wasm-vm-v1_2 v1.2.48 h1:il52OCaEpYDQFRkUtlsBwBqnbpkoN9S2FAnjF4z3VHk=
