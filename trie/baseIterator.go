@@ -5,14 +5,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 )
 
-type iterator struct {
+type baseIterator struct {
 	currentNode node
 	nextNodes   []node
 	db          common.DBWriteCacher
 }
 
-// NewIterator creates a new instance of trie iterator
-func NewIterator(trie common.Trie) (*iterator, error) {
+// newBaseIterator creates a new instance of trie iterator
+func newBaseIterator(trie common.Trie) (*baseIterator, error) {
 	if check.IfNil(trie) {
 		return nil, ErrNilTrie
 	}
@@ -28,7 +28,7 @@ func NewIterator(trie common.Trie) (*iterator, error) {
 		return nil, err
 	}
 
-	return &iterator{
+	return &baseIterator{
 		currentNode: pmt.root,
 		nextNodes:   nextNodes,
 		db:          trieStorage,
@@ -36,32 +36,25 @@ func NewIterator(trie common.Trie) (*iterator, error) {
 }
 
 // HasNext returns true if there is a next node
-func (it *iterator) HasNext() bool {
+func (it *baseIterator) HasNext() bool {
 	return len(it.nextNodes) > 0
 }
 
-// Next moves the iterator to the next node
-func (it *iterator) Next() error {
+// next moves the iterator to the next node
+func (it *baseIterator) next() ([]node, error) {
 	n := it.nextNodes[0]
 
 	err := n.isEmptyOrNil()
 	if err != nil {
-		return ErrNilNode
+		return nil, ErrNilNode
 	}
 
 	it.currentNode = n
-	nextChildren, err := it.currentNode.getChildren(it.db)
-	if err != nil {
-		return err
-	}
-
-	it.nextNodes = append(it.nextNodes, nextChildren...)
-	it.nextNodes = it.nextNodes[1:]
-	return nil
+	return it.currentNode.getChildren(it.db)
 }
 
 // MarshalizedNode marshalizes the current node, and then returns the serialized node
-func (it *iterator) MarshalizedNode() ([]byte, error) {
+func (it *baseIterator) MarshalizedNode() ([]byte, error) {
 	err := it.currentNode.setHash()
 	if err != nil {
 		return nil, err
@@ -71,7 +64,7 @@ func (it *iterator) MarshalizedNode() ([]byte, error) {
 }
 
 // GetHash returns the current node hash
-func (it *iterator) GetHash() ([]byte, error) {
+func (it *baseIterator) GetHash() ([]byte, error) {
 	err := it.currentNode.setHash()
 	if err != nil {
 		return nil, err

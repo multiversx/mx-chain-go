@@ -5,6 +5,7 @@ import (
 
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/common"
+	consensusMocks "github.com/ElrondNetwork/elrond-go/consensus/mock"
 	dataRetrieverMocks "github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -66,6 +67,7 @@ func GetDefaultCryptoComponents() *mock.CryptoComponentsMock {
 		BlKeyGen:          &mock.KeyGenMock{},
 		TxKeyGen:          &mock.KeyGenMock{},
 		MsgSigVerifier:    &testscommon.MessageSignVerifierMock{},
+		SigHandler:        &consensusMocks.SignatureHandlerStub{},
 	}
 }
 
