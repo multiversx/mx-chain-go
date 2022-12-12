@@ -258,7 +258,7 @@ func TestNodesSetup_InitialNodesPubKeysForShardGood(t *testing.T) {
 		shardMinNodes:      2,
 		metaConsensusSize:  1,
 		metaMinNodes:       2,
-		numInitialNodes:    7,
+		numInitialNodes:    6,
 		genesisMaxShards:   3,
 	})
 	require.NoError(t, err)
@@ -279,7 +279,7 @@ func TestNodesSetup_InitialNodesPubKeysForShardGoodMeta(t *testing.T) {
 		shardMinNodes:      2,
 		metaConsensusSize:  2,
 		metaMinNodes:       2,
-		numInitialNodes:    7,
+		numInitialNodes:    6,
 		genesisMaxShards:   3,
 	})
 	require.NoError(t, err)
