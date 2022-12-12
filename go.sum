@@ -71,8 +71,8 @@ github.com/ElrondNetwork/wasm-vm-v1_2 v1.2.48 h1:il52OCaEpYDQFRkUtlsBwBqnbpkoN9S
 github.com/ElrondNetwork/wasm-vm-v1_2 v1.2.48/go.mod h1:xcs02SDXqF//9zFUcgzBY3jpGQKJ4AiO2pTa8ZgS6zs=
 github.com/ElrondNetwork/wasm-vm-v1_3 v1.3.48 h1:jgR6oWmbXGFDdAoPSny1ibRsm9/JRQIc/hbtl8JcYsA=
 github.com/ElrondNetwork/wasm-vm-v1_3 v1.3.48/go.mod h1:ZyuArzcU3qq34mrW06QPTU2w1xcla6tj+BcTQtcanP4=
-github.com/ElrondNetwork/wasm-vm-v1_4 v1.4.68 h1:fVasWb4cE1DbmE1Eq0yit3yu0zq6V4G5M9anEgLAZ3s=
-github.com/ElrondNetwork/wasm-vm-v1_4 v1.4.68/go.mod h1:LM/5+DfBaI36NL77Xp1XyH+8ozuGOEPJlOAaDtiKW8g=
+github.com/ElrondNetwork/wasm-vm-v1_4 v1.4.69 h1:xVTUYYtd7Z9RkSbFTiAco3hYB1t0BefqJgK6QfnxA+g=
+github.com/ElrondNetwork/wasm-vm-v1_4 v1.4.69/go.mod h1:LM/5+DfBaI36NL77Xp1XyH+8ozuGOEPJlOAaDtiKW8g=
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
 github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d/go.mod h1:3eOhrUMpNV+6aFIbp5/iudMxNCF27Vw2OZgy4xEx0Fg=
 github.com/aead/siphash v1.0.1/go.mod h1:Nywa3cDsYNNK3gaciGTWPwHt0wlpNV15vwmswBAUSII=
