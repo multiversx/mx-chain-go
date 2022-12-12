@@ -1656,3 +1656,44 @@ func TestNodeFacade_GetTransactionsPoolNonceGapsForSender(t *testing.T) {
 		require.Equal(t, expectedNonceGaps, res)
 	})
 }
+
+func TestNodeFacade_InternalValidatorsInfo(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should fail on facade error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+		expectedErr := errors.New("expected error")
+		arg.ApiResolver = &mock.ApiResolverStub{
+			GetInternalStartOfEpochValidatorsInfoCalled: func(epoch uint32) ([]*state.ShardValidatorInfo, error) {
+				return nil, expectedErr
+			},
+		}
+
+		nf, _ := NewNodeFacade(arg)
+		res, err := nf.GetInternalStartOfEpochValidatorsInfo(0)
+		require.Nil(t, res)
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+
+		wasCalled := false
+		arg.ApiResolver = &mock.ApiResolverStub{
+			GetInternalStartOfEpochValidatorsInfoCalled: func(epoch uint32) ([]*state.ShardValidatorInfo, error) {
+				wasCalled = true
+				return make([]*state.ShardValidatorInfo, 0), nil
+			},
+		}
+
+		nf, _ := NewNodeFacade(arg)
+		res, err := nf.GetInternalStartOfEpochValidatorsInfo(0)
+		require.NotNil(t, res)
+		require.Nil(t, err)
+		require.True(t, wasCalled)
+	})
+}

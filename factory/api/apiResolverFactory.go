@@ -30,6 +30,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks/counters"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/process/txstatus"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -372,6 +373,8 @@ func createScQueryElement(
 		EpochNotifier:         args.coreComponents.EpochNotifier(),
 		EnableEpochsHandler:   args.coreComponents.EnableEpochsHandler(),
 		NilCompiledSCStore:    true,
+		GasSchedule:           args.gasScheduleNotifier,
+		Counter:               counters.NewDisabledCounter(),
 	}
 
 	maxGasForVmQueries := args.generalConfig.VirtualMachine.GasConfig.ShardMaxGasPerVmQuery
@@ -535,20 +538,21 @@ func createAPIBlockProcessorArgs(args *ApiResolverArgs, apiTransactionHandler ex
 	}
 
 	blockApiArgs := &blockAPI.ArgAPIBlockProcessor{
-		SelfShardID:                       args.ProcessComponents.ShardCoordinator().SelfId(),
-		Store:                             args.DataComponents.StorageService(),
-		Marshalizer:                       args.CoreComponents.InternalMarshalizer(),
-		Uint64ByteSliceConverter:          args.CoreComponents.Uint64ByteSliceConverter(),
-		HistoryRepo:                       args.ProcessComponents.HistoryRepository(),
-		APITransactionHandler:             apiTransactionHandler,
-		StatusComputer:                    statusComputer,
-		AddressPubkeyConverter:            args.CoreComponents.AddressPubKeyConverter(),
-		Hasher:                            args.CoreComponents.Hasher(),
-		LogsFacade:                        logsFacade,
-		ReceiptsRepository:                args.ProcessComponents.ReceiptsRepository(),
-		AlteredAccountsProvider:           alteredAccountsProvider,
-		AccountsRepository:                args.StateComponents.AccountsRepository(),
-		ScheduledTxsExecutionHandler:      args.ProcessComponents.ScheduledTxsExecutionHandler(),
+		SelfShardID:                  args.ProcessComponents.ShardCoordinator().SelfId(),
+		Store:                        args.DataComponents.StorageService(),
+		Marshalizer:                  args.CoreComponents.InternalMarshalizer(),
+		Uint64ByteSliceConverter:     args.CoreComponents.Uint64ByteSliceConverter(),
+		HistoryRepo:                  args.ProcessComponents.HistoryRepository(),
+		APITransactionHandler:        apiTransactionHandler,
+		StatusComputer:               statusComputer,
+		AddressPubkeyConverter:       args.CoreComponents.AddressPubKeyConverter(),
+		Hasher:                       args.CoreComponents.Hasher(),
+		LogsFacade:                   logsFacade,
+		ReceiptsRepository:           args.ProcessComponents.ReceiptsRepository(),
+		AlteredAccountsProvider:      alteredAccountsProvider,
+		AccountsRepository:           args.StateComponents.AccountsRepository(),
+		ScheduledTxsExecutionHandler: args.ProcessComponents.ScheduledTxsExecutionHandler(),
+		EnableEpochsHandler:          args.CoreComponents.EnableEpochsHandler(),
 		TransactionsExecutionOrderHandler: transactionsExecutionOrderHandler,
 	}
 

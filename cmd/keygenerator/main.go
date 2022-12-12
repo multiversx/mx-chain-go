@@ -18,9 +18,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
+	"github.com/ElrondNetwork/elrond-go-crypto/signing/secp256k1"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/cmd/keygenerator/converter"
-	"github.com/ElrondNetwork/elrond-go/p2p/factory"
 	"github.com/urfave/cli"
 )
 
@@ -189,6 +189,7 @@ func generateKeys(typeKey string, numKeys int, prefix string, shardID int) ([]ke
 
 	blockSigningGenerator := signing.NewKeyGenerator(mcl.NewSuiteBLS12())
 	txSigningGenerator := signing.NewKeyGenerator(ed25519.NewEd25519())
+	p2pKeyGenerator := signing.NewKeyGenerator(secp256k1.NewSecp256k1())
 
 	for i := 0; i < numKeys; i++ {
 		switch typeKey {
@@ -203,7 +204,7 @@ func generateKeys(typeKey string, numKeys int, prefix string, shardID int) ([]ke
 				return nil, nil, nil, err
 			}
 		case p2pType:
-			p2pKeys, err = generateP2pKey(p2pKeys)
+			p2pKeys, err = generateKey(p2pKeyGenerator, p2pKeys)
 			if err != nil {
 				return nil, nil, nil, err
 			}
@@ -230,24 +231,6 @@ func generateKeys(typeKey string, numKeys int, prefix string, shardID int) ([]ke
 	}
 
 	return validatorKeys, walletKeys, p2pKeys, nil
-}
-
-func generateP2pKey(list []key) ([]key, error) {
-	generator := factory.NewIdentityGenerator()
-	privateKeyBytes, pid, err := generator.CreateRandomP2PIdentity()
-	if err != nil {
-		return nil, err
-	}
-
-	list = append(
-		list,
-		key{
-			skBytes: privateKeyBytes,
-			pkBytes: []byte(pid.Pretty()),
-		},
-	)
-
-	return list, nil
 }
 
 func generateKey(keyGen crypto.KeyGenerator, list []key) ([]key, error) {
