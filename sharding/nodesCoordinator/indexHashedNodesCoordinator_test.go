@@ -191,6 +191,8 @@ func TestNewIndexHashedNodesCoordinator_NilSelfPublicKeyShouldErr(t *testing.T) 
 }
 
 func TestNewIndexHashedNodesCoordinator_NilCacherShouldErr(t *testing.T) {
+	t.Parallel()
+
 	arguments := createArguments()
 	arguments.ConsensusGroupCache = nil
 	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
