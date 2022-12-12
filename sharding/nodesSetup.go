@@ -194,7 +194,7 @@ func (ns *NodesSetup) processConfig() error {
 
 func (ns *NodesSetup) processMetaChainAssigment() {
 	ns.nrOfMetaChainNodes = 0
-	for id := uint32(0); id < ns.genesisChainParameters.MetachainConsensusGroupSize; id++ {
+	for id := uint32(0); id < ns.genesisChainParameters.MetachainMinNumNodes; id++ {
 		if ns.InitialNodes[id].pubKey != nil {
 			ns.InitialNodes[id].assignedShard = core.MetachainShardId
 			ns.InitialNodes[id].eligible = true
@@ -332,10 +332,6 @@ func (ns *NodesSetup) NumberOfShards() uint32 {
 
 // MinNumberOfNodes returns the minimum number of nodes
 func (ns *NodesSetup) MinNumberOfNodes() uint32 {
-	return ns.computeMinNumberOfNodes()
-}
-
-func (ns *NodesSetup) computeMinNumberOfNodes() uint32 {
 	return ns.numberOfShards*ns.genesisChainParameters.ShardMinNumNodes + ns.genesisChainParameters.MetachainMinNumNodes
 }
 
@@ -351,9 +347,9 @@ func (ns *NodesSetup) MinMetaHysteresisNodes() uint32 {
 
 // MinNumberOfNodesWithHysteresis returns the minimum number of nodes with hysteresis
 func (ns *NodesSetup) MinNumberOfNodesWithHysteresis() uint32 {
-	hystNodesMeta := ns.genesisChainParameters.MetachainMinNumNodes
-	hystNodesShard := ns.genesisChainParameters.ShardMinNumNodes
-	minNumberOfNodes := ns.computeMinNumberOfNodes()
+	hystNodesMeta := ns.MinMetaHysteresisNodes()
+	hystNodesShard := ns.MinShardHysteresisNodes()
+	minNumberOfNodes := ns.MinNumberOfNodes()
 
 	return minNumberOfNodes + hystNodesMeta + ns.numberOfShards*hystNodesShard
 }
