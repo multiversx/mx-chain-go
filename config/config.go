@@ -221,7 +221,6 @@ type Config struct {
 type PeersRatingConfig struct {
 	TopRatedCacheCapacity           int
 	BadRatedCacheCapacity           int
-	MarkedForRemovalCapacity        int
 	TimeWaitingForReconnectionInSec int64
 	TimeBetweenMetricsUpdateInSec   int64
 	TimeBetweenCachersSweepInSec    int64

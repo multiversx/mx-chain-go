@@ -168,7 +168,7 @@ func TestPeersRatingAndCachersCleanup(t *testing.T) {
 	maliciousNode.Close()
 
 	// sleep enough so malicious node gets removed
-	time.Sleep(time.Second * 15)
+	time.Sleep(time.Second * 18)
 	peerRatingsMap = getRatingsMapFromMetric(t, requesterNode)
 	_, exists = peerRatingsMap[maliciousNode.Messenger.ID().Pretty()]
 	require.False(t, exists)
@@ -188,7 +188,6 @@ func createNodeWithPeersRatingHandler(shardID uint32, numShards uint32, cfg conf
 		p2pFactory.ArgPeersRatingHandler{
 			TopRatedCache:              testscommon.NewCacherMock(),
 			BadRatedCache:              testscommon.NewCacherMock(),
-			MarkedForRemovalCache:      testscommon.NewCacherMock(),
 			AppStatusHandler:           appStatusHandler,
 			TimeWaitingForReconnection: time.Duration(cfg.TimeWaitingForReconnectionInSec) * time.Second,
 			TimeBetweenMetricsUpdate:   time.Duration(cfg.TimeBetweenMetricsUpdateInSec) * time.Second,

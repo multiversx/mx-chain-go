@@ -282,7 +282,6 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 		PeersRatingConfig: config.PeersRatingConfig{
 			TopRatedCacheCapacity:           1000,
 			BadRatedCacheCapacity:           1000,
-			MarkedForRemovalCapacity:        1000,
 			TimeWaitingForReconnectionInSec: 300,
 			TimeBetweenMetricsUpdateInSec:   60,
 			TimeBetweenCachersSweepInSec:    60,

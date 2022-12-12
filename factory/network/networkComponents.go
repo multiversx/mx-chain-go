@@ -120,14 +120,9 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 	if err != nil {
 		return nil, err
 	}
-	markedForRemovalCache, err := cache.NewLRUCache(peersRatingCfg.MarkedForRemovalCapacity)
-	if err != nil {
-		return nil, err
-	}
 	argsPeersRatingHandler := p2pFactory.ArgPeersRatingHandler{
 		TopRatedCache:              topRatedCache,
 		BadRatedCache:              badRatedCache,
-		MarkedForRemovalCache:      markedForRemovalCache,
 		AppStatusHandler:           ncf.statusHandler,
 		TimeWaitingForReconnection: time.Duration(peersRatingCfg.TimeWaitingForReconnectionInSec) * time.Second,
 		TimeBetweenMetricsUpdate:   time.Duration(peersRatingCfg.TimeBetweenMetricsUpdateInSec) * time.Second,
