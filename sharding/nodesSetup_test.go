@@ -182,7 +182,7 @@ func TestNodesSetup_InitialNodesPubKeysWithHysteresis(t *testing.T) {
 func TestNodesSetup_InitialNodesPubKeysForShardWrongShard(t *testing.T) {
 	t.Parallel()
 
-	ns, _ := createTestNodesSetup(1, 1, 1, 1, 1, 3)
+	ns, _ := createTestNodesSetup(1, 1, 1, 1, 2, 3)
 	eligible, waiting, err := ns.InitialNodesInfoForShard(1)
 
 	require.NotNil(t, ns)

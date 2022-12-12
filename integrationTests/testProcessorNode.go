@@ -1064,7 +1064,7 @@ func CreateRatingsData() *rating.RatingsData {
 
 	ratingDataArgs := rating.RatingsDataArg{
 		Config:                    ratingsConfig,
-		ChainParametersHolder:     &shardingmock.ChainParametersHandlerStub{},
+		ChainParametersHolder:     &shardingmock.ChainParametersHolderMock{},
 		EpochNotifier:             &epochNotifier.EpochNotifierStub{},
 		RoundDurationMilliseconds: 6000,
 	}

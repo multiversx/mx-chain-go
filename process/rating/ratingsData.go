@@ -114,6 +114,7 @@ func NewRatingsData(args RatingsDataArg) (*RatingsData, error) {
 		return nil, err
 	}
 
+	// TODO: make sure we have a configuration for epoch 0. Return error otherwise
 	ratingsConfigValue := ratingsStepsData{
 		enableEpoch:          args.EpochNotifier.CurrentEpoch(),
 		shardRatingsStepData: shardRatingStep,
@@ -145,6 +146,8 @@ func NewRatingsData(args RatingsDataArg) (*RatingsData, error) {
 func (rd *RatingsData) computeRatingStepConfig(chainParamsList []config.ChainParametersByEpochConfig) error {
 	ratingsStepsConfig := make([]ratingsStepsData, 0)
 	for _, chainParams := range chainParamsList {
+		// TODO: extract a new function:
+		// func (rd *RatingsData) computeRatingStepsData(chainParams config.ChainParametersByEpochConfig) (shardRatingStepsData ratingStepsData, metaRatingsStepData ratingsStepData)
 		shardRatingsStepsArgs := computeRatingStepArg{
 			shardSize:                       chainParams.ShardMinNumNodes,
 			consensusSize:                   chainParams.ShardConsensusGroupSize,

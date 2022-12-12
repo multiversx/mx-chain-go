@@ -52,6 +52,7 @@ func validateArgs(args ArgsChainParametersHolder) error {
 		return ErrMissingChainParameters
 	}
 
+	// TODO: extract the checks to a validateChainParameters function
 	for idx, chainParameters := range args.ChainParameters {
 		if chainParameters.ShardConsensusGroupSize < 1 {
 			return fmt.Errorf("%w for chain parameters with index %d", ErrNegativeOrZeroConsensusGroupSize, idx)
@@ -106,6 +107,7 @@ func (c *chainParametersHolder) AllChainParameters() []config.ChainParametersByE
 	c.mutOperations.RLock()
 	defer c.mutOperations.RUnlock()
 
+	// TODO: return a copy of the object
 	return c.chainParameters
 }
 

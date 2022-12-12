@@ -74,7 +74,7 @@ type NodesSetup struct {
 
 // NewNodesSetup creates a new decoded nodes structure from json config file
 func NewNodesSetup(
-	nodesSetupDTO config.NodesConfig,
+	nodesConfig config.NodesConfig,
 	chainParametersProvider ChainParametersHandler,
 	addressPubkeyConverter core.PubkeyConverter,
 	validatorPubkeyConverter core.PubkeyConverter,
@@ -100,8 +100,8 @@ func NewNodesSetup(
 		genesisChainParameters:   chainParametersProvider.ChainParametersForEpoch(0),
 	}
 
-	initialNodes := make([]*InitialNode, 0, len(nodesSetupDTO.InitialNodes))
-	for _, item := range nodesSetupDTO.InitialNodes {
+	initialNodes := make([]*InitialNode, 0, len(nodesConfig.InitialNodes))
+	for _, item := range nodesConfig.InitialNodes {
 		initialNodes = append(initialNodes, &InitialNode{
 			PubKey:        item.PubKey,
 			Address:       item.Address,
@@ -112,7 +112,7 @@ func NewNodesSetup(
 
 	genesisChainParameters := nodes.genesisChainParameters
 	nodes.NodesSetupDTO = NodesSetupDTO{
-		StartTime:     nodesSetupDTO.StartTime,
+		StartTime:     nodesConfig.StartTime,
 		RoundDuration: genesisChainParameters.RoundDuration,
 		Hysteresis:    genesisChainParameters.Hysteresis,
 		Adaptivity:    genesisChainParameters.Adaptivity,
@@ -185,7 +185,10 @@ func (ns *NodesSetup) processConfig() error {
 	if ns.genesisChainParameters.MetachainMinNumNodes < ns.genesisChainParameters.MetachainConsensusGroupSize {
 		return ErrMinNodesPerShardSmallerThanConsensusSize
 	}
-
+	totalMinNodes := ns.genesisChainParameters.MetachainMinNumNodes + ns.genesisChainParameters.ShardMinNumNodes
+	if ns.nrOfNodes < totalMinNodes {
+		return ErrNodesSizeSmallerThanMinNoOfNodes
+	}
 	return nil
 }
 
