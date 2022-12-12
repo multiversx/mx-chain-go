@@ -39,3 +39,12 @@ var ErrNilOwnPublicKey = errors.New("nil own public key")
 
 // ErrNilEndOfProcessingHandler signals that a nil end of processing handler has been provided
 var ErrNilEndOfProcessingHandler = errors.New("nil end of processing handler")
+
+// ErrNilChainParametersProvider signals that a nil chain parameters provider has been given
+var ErrNilChainParametersProvider = errors.New("nil chain parameters provider")
+
+// ErrNilEpochNotifier signals that a nil epoch notifier has been provided
+var ErrNilEpochNotifier = errors.New("nil epoch notifier")
+
+// ErrMissingChainParameters signals that a nil chain parameters array has been provided
+var ErrMissingChainParameters = errors.New("empty chain parameters array")

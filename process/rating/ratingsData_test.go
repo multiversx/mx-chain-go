@@ -8,6 +8,8 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingmock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -35,12 +37,23 @@ const (
 
 func createDymmyRatingsData() RatingsDataArg {
 	return RatingsDataArg{
-		Config:                   config.RatingsConfig{},
-		ShardConsensusSize:       shardConsensusSize,
-		MetaConsensusSize:        metaConsensusSize,
-		ShardMinNodes:            shardMinNodes,
-		MetaMinNodes:             metaMinNodes,
-		RoundDurationMiliseconds: roundDurationMiliseconds,
+		Config: config.RatingsConfig{},
+		ChainParametersHolder: &shardingmock.ChainParametersHandlerStub{
+			CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
+				return config.ChainParametersByEpochConfig{
+					RoundDuration:               4000,
+					Hysteresis:                  0.2,
+					EnableEpoch:                 0,
+					ShardConsensusGroupSize:     shardConsensusSize,
+					ShardMinNumNodes:            shardMinNodes,
+					MetachainConsensusGroupSize: metaConsensusSize,
+					MetachainMinNumNodes:        metaMinNodes,
+					Adaptivity:                  false,
+				}
+			},
+		},
+		RoundDurationMilliseconds: roundDurationMiliseconds,
+		EpochNotifier:             &epochNotifier.EpochNotifierStub{},
 	}
 }
 
@@ -282,11 +295,33 @@ func TestRatingsData_UnderflowErr(t *testing.T) {
 func TestRatingsData_OverflowErr(t *testing.T) {
 	t.Parallel()
 
+	getBaseChainParams := func() config.ChainParametersByEpochConfig {
+		return config.ChainParametersByEpochConfig{
+			RoundDuration:               4000,
+			Hysteresis:                  0.2,
+			EnableEpoch:                 0,
+			ShardConsensusGroupSize:     5,
+			ShardMinNumNodes:            7,
+			MetachainConsensusGroupSize: 7,
+			MetachainMinNumNodes:        7,
+			Adaptivity:                  false,
+		}
+	}
+	getChainParametersHandler := func(cfg config.ChainParametersByEpochConfig) *shardingmock.ChainParametersHandlerStub {
+		return &shardingmock.ChainParametersHandlerStub{
+			CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
+				return cfg
+			},
+		}
+	}
+
 	ratingsDataArg := createDymmyRatingsData()
 	ratingsConfig := createDummyRatingsConfig()
 	ratingsDataArg.Config = ratingsConfig
-	ratingsDataArg.RoundDurationMiliseconds = 3600 * 1000
-	ratingsDataArg.MetaMinNodes = math.MaxUint32
+	chainParams := getBaseChainParams()
+	chainParams.RoundDuration = 3600 * 1000
+	chainParams.MetachainMinNumNodes = math.MaxUint32
+	ratingsDataArg.ChainParametersHolder = getChainParametersHandler(chainParams)
 	ratingsData, err := NewRatingsData(ratingsDataArg)
 
 	require.Nil(t, ratingsData)
@@ -296,9 +331,11 @@ func TestRatingsData_OverflowErr(t *testing.T) {
 	ratingsDataArg = createDymmyRatingsData()
 	ratingsConfig = createDummyRatingsConfig()
 	ratingsDataArg.Config = ratingsConfig
-	ratingsDataArg.RoundDurationMiliseconds = 3600 * 1000
-	ratingsDataArg.MetaMinNodes = math.MaxUint32
-	ratingsDataArg.MetaConsensusSize = 1
+	chainParams = getBaseChainParams()
+	chainParams.RoundDuration = 3600 * 1000
+	chainParams.MetachainMinNumNodes = math.MaxUint32
+	chainParams.MetachainConsensusGroupSize = 1
+	ratingsDataArg.ChainParametersHolder = getChainParametersHandler(chainParams)
 	ratingsDataArg.Config.MetaChain.ProposerValidatorImportance = float32(1) / math.MaxUint32
 	ratingsData, err = NewRatingsData(ratingsDataArg)
 
@@ -309,8 +346,10 @@ func TestRatingsData_OverflowErr(t *testing.T) {
 	ratingsDataArg = createDymmyRatingsData()
 	ratingsConfig = createDummyRatingsConfig()
 	ratingsDataArg.Config = ratingsConfig
-	ratingsDataArg.RoundDurationMiliseconds = 3600 * 1000
-	ratingsDataArg.ShardMinNodes = math.MaxUint32
+	chainParams = getBaseChainParams()
+	chainParams.RoundDuration = 3600 * 1000
+	chainParams.ShardMinNumNodes = math.MaxUint32
+	ratingsDataArg.ChainParametersHolder = getChainParametersHandler(chainParams)
 	ratingsData, err = NewRatingsData(ratingsDataArg)
 
 	require.Nil(t, ratingsData)
@@ -320,9 +359,11 @@ func TestRatingsData_OverflowErr(t *testing.T) {
 	ratingsDataArg = createDymmyRatingsData()
 	ratingsConfig = createDummyRatingsConfig()
 	ratingsDataArg.Config = ratingsConfig
-	ratingsDataArg.RoundDurationMiliseconds = 3600 * 1000
-	ratingsDataArg.ShardMinNodes = math.MaxUint32
-	ratingsDataArg.ShardConsensusSize = 1
+	chainParams = getBaseChainParams()
+	chainParams.RoundDuration = 3600 * 1000
+	chainParams.ShardMinNumNodes = math.MaxUint32
+	chainParams.ShardConsensusGroupSize = 1
+	ratingsDataArg.ChainParametersHolder = getChainParametersHandler(chainParams)
 	ratingsDataArg.Config.ShardChain.ProposerValidatorImportance = float32(1) / math.MaxUint32
 	ratingsData, err = NewRatingsData(ratingsDataArg)
 

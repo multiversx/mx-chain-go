@@ -220,6 +220,14 @@ func readConfigs(ctx *cli.Context, log logger.Logger) (*config.Configs, error) {
 	}
 	log.Debug("config", "file", configurationPaths.RoundActivation)
 
+	var nodesSetup config.NodesConfig
+	configurationPaths.Nodes = ctx.GlobalString(nodesFile.Name)
+	err = core.LoadJsonFile(&nodesSetup, configurationPaths.Nodes)
+	if err != nil {
+		return nil, err
+	}
+	log.Debug("config", "file", configurationPaths.Nodes)
+
 	if ctx.IsSet(port.Name) {
 		p2pConfig.Node.Port = ctx.GlobalString(port.Name)
 	}
@@ -245,6 +253,7 @@ func readConfigs(ctx *cli.Context, log logger.Logger) (*config.Configs, error) {
 		ConfigurationPathsHolder: configurationPaths,
 		EpochConfig:              epochConfig,
 		RoundConfig:              roundConfig,
+		NodesConfig:              &nodesSetup,
 	}, nil
 }
 

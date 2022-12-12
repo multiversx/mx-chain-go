@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -437,12 +438,12 @@ func (se *stateExport) exportValidatorInfo(key string, validatorInfo *state.Shar
 
 func (se *stateExport) exportNodesSetupJson(validators map[uint32][]*state.ValidatorInfo) error {
 	acceptedListsForExport := []common.PeerType{common.EligibleList, common.WaitingList, common.JailedList}
-	initialNodes := make([]*sharding.InitialNode, 0)
+	initialNodes := make([]*config.InitialNodeConfig, 0)
 
 	for _, validatorsInShard := range validators {
 		for _, validator := range validatorsInShard {
 			if shouldExportValidator(validator, acceptedListsForExport) {
-				initialNodes = append(initialNodes, &sharding.InitialNode{
+				initialNodes = append(initialNodes, &config.InitialNodeConfig{
 					PubKey:        se.validatorPubKeyConverter.Encode(validator.GetPublicKey()),
 					Address:       se.addressPubKeyConverter.Encode(validator.GetRewardAddress()),
 					InitialRating: validator.GetRating(),
@@ -455,20 +456,10 @@ func (se *stateExport) exportNodesSetupJson(validators map[uint32][]*state.Valid
 		return strings.Compare(initialNodes[i].PubKey, initialNodes[j].PubKey) < 0
 	})
 
-	genesisNodesSetupHandler := se.genesisNodesSetupHandler
-	nodesSetup := &sharding.NodesSetup{
-		StartTime:                   genesisNodesSetupHandler.GetStartTime(),
-		RoundDuration:               genesisNodesSetupHandler.GetRoundDuration(),
-		ConsensusGroupSize:          genesisNodesSetupHandler.GetShardConsensusGroupSize(),
-		MinNodesPerShard:            genesisNodesSetupHandler.MinNumberOfShardNodes(),
-		MetaChainConsensusGroupSize: genesisNodesSetupHandler.GetMetaConsensusGroupSize(),
-		MetaChainMinNodes:           genesisNodesSetupHandler.MinNumberOfMetaNodes(),
-		Hysteresis:                  genesisNodesSetupHandler.GetHysteresis(),
-		Adaptivity:                  genesisNodesSetupHandler.GetAdaptivity(),
-		InitialNodes:                initialNodes,
-	}
+	exportedNodesConfig := se.genesisNodesSetupHandler.ExportNodesConfig()
+	exportedNodesConfig.InitialNodes = initialNodes
 
-	nodesSetupBytes, err := json.MarshalIndent(nodesSetup, "", "  ")
+	nodesSetupBytes, err := json.MarshalIndent(exportedNodesConfig, "", "  ")
 	if err != nil {
 		return err
 	}

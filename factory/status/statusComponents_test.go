@@ -94,7 +94,24 @@ func TestNewStatusComponents_InvalidRoundDurationShouldErr(t *testing.T) {
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	coreArgs := componentsMock.GetCoreArgs()
-	coreArgs.NodesFilename = "../mock/testdata/nodesSetupMockInvalidRound.json"
+	coreArgs.Config.GeneralSettings.ChainParametersByEpoch[0].RoundDuration = 500
+	coreArgs.NodesConfig = config.NodesConfig{
+		StartTime: 0,
+		InitialNodes: []*config.InitialNodeConfig{
+			{
+				PubKey:  "227a5a5ec0c58171b7f4ee9ecc304ea7b176fb626741a25c967add76d6cd361d6995929f9b60a96237381091cefb1b061225e5bb930b40494a5ac9d7524fd67dfe478e5ccd80f17b093cff5722025761fb0217c39dbd5ae45e01eb5a3113be93",
+				Address: "erd1ulhw20j7jvgfgak5p05kv667k5k9f320sgef5ayxkt9784ql0zssrzyhjp",
+			},
+			{
+				PubKey:  "ef9522d654bc08ebf2725468f41a693aa7f3cf1cb93922cff1c8c81fba78274016010916f4a7e5b0855c430a724a2d0b3acd1fe8e61e37273a17d58faa8c0d3ef6b883a33ec648950469a1e9757b978d9ae662a019068a401cff56eea059fd08",
+				Address: "erd17c4fs6mz2aa2hcvva2jfxdsrdknu4220496jmswer9njznt22eds0rxlr4",
+			},
+			{
+				PubKey:  "e91ab494cedd4da346f47aaa1a3e792bea24fb9f6cc40d3546bc4ca36749b8bfb0164e40dbad2195a76ee0fd7fb7da075ecbf1b35a2ac20638d53ea5520644f8c16952225c48304bb202867e2d71d396bff5a5971f345bcfe32c7b6b0ca34c84",
+				Address: "erd10d2gufxesrp8g409tzxljlaefhs0rsgjle3l7nq38de59txxt8csj54cd3",
+			},
+		},
+	}
 	coreComponentsFactory, _ := coreComp.NewCoreComponentsFactory(coreArgs)
 	coreComponents, err := coreComp.NewManagedCoreComponents(coreComponentsFactory)
 	require.Nil(t, err)

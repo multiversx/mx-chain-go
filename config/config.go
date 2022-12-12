@@ -1,6 +1,8 @@
 package config
 
-import p2pConfig "github.com/ElrondNetwork/elrond-go/p2p/config"
+import (
+	p2pConfig "github.com/ElrondNetwork/elrond-go/p2p/config"
+)
 
 // CacheConfig will map the cache configuration
 type CacheConfig struct {
@@ -276,6 +278,7 @@ type GeneralSettingsConfig struct {
 	GenesisString                        string
 	GenesisMaxNumberOfShards             uint32
 	SyncProcessTimeInMillis              uint32
+	ChainParametersByEpoch               []ChainParametersByEpochConfig
 }
 
 // FacadeConfig will hold different configuration option that will be passed to the main ElrondFacade
@@ -570,6 +573,20 @@ type Configs struct {
 	ConfigurationPathsHolder *ConfigurationPathsHolder
 	EpochConfig              *EpochConfig
 	RoundConfig              *RoundConfig
+	NodesConfig              *NodesConfig
+}
+
+// NodesConfig is the data transfer object used to map the nodes' configuration in regard to the genesis nodes setup
+type NodesConfig struct {
+	StartTime    int64                `json:"startTime"`
+	InitialNodes []*InitialNodeConfig `json:"initialNodes"`
+}
+
+// InitialNodeConfig holds data about a genesis node
+type InitialNodeConfig struct {
+	PubKey        string `json:"pubkey"`
+	Address       string `json:"address"`
+	InitialRating uint32 `json:"initialRating"`
 }
 
 // ConfigurationPathsHolder holds all configuration filenames and configuration paths used to start the node
@@ -611,4 +628,16 @@ type ResolverConfig struct {
 type PoolsCleanersConfig struct {
 	MaxRoundsToKeepUnprocessedMiniBlocks   int64
 	MaxRoundsToKeepUnprocessedTransactions int64
+}
+
+// ChainParametersByEpochConfig holds chain parameters that are configurable based on epochs
+type ChainParametersByEpochConfig struct {
+	RoundDuration               uint64
+	Hysteresis                  float32
+	EnableEpoch                 uint32
+	ShardConsensusGroupSize     uint32
+	ShardMinNumNodes            uint32
+	MetachainConsensusGroupSize uint32
+	MetachainMinNumNodes        uint32
+	Adaptivity                  bool
 }

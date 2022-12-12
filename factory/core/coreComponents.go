@@ -53,7 +53,7 @@ type CoreComponentsFactoryArgs struct {
 	RatingsConfig       config.RatingsConfig
 	EconomicsConfig     config.EconomicsConfig
 	ImportDbConfig      config.ImportDbConfig
-	NodesFilename       string
+	NodesConfig         config.NodesConfig
 	WorkingDirectory    string
 	ChanStopNodeProcess chan endProcess.ArgEndProcess
 }
@@ -67,7 +67,7 @@ type coreComponentsFactory struct {
 	ratingsConfig       config.RatingsConfig
 	economicsConfig     config.EconomicsConfig
 	importDbConfig      config.ImportDbConfig
-	nodesFilename       string
+	nodesSetupConfig    config.NodesConfig
 	workingDir          string
 	chanStopNodeProcess chan endProcess.ArgEndProcess
 }
@@ -121,7 +121,7 @@ func NewCoreComponentsFactory(args CoreComponentsFactoryArgs) (*coreComponentsFa
 		economicsConfig:     args.EconomicsConfig,
 		workingDir:          args.WorkingDirectory,
 		chanStopNodeProcess: args.ChanStopNodeProcess,
-		nodesFilename:       args.NodesFilename,
+		nodesSetupConfig:    args.NodesConfig,
 	}, nil
 }
 
@@ -178,8 +178,20 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	syncer.StartSyncingTime()
 	log.Debug("NTP average clock offset", "value", syncer.ClockOffset())
 
+	epochNotifier := forking.NewGenericEpochNotifier()
+
+	argsChainParametersHandler := sharding.ArgsChainParametersHolder{
+		EpochNotifier:   epochNotifier,
+		ChainParameters: ccf.config.GeneralSettings.ChainParametersByEpoch,
+	}
+	chainParametersHandler, err := sharding.NewChainParametersHolder(argsChainParametersHandler)
+	if err != nil {
+		return nil, err
+	}
+
 	genesisNodesConfig, err := sharding.NewNodesSetup(
-		ccf.nodesFilename,
+		ccf.nodesSetupConfig,
+		chainParametersHandler,
 		addressPubkeyConverter,
 		validatorPubkeyConverter,
 		ccf.config.GeneralSettings.GenesisMaxNumberOfShards,
@@ -209,8 +221,6 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		"formatted", startTime.Format("Mon Jan 2 15:04:05 MST 2006"),
 		"seconds", startTime.Unix())
 
-	log.Debug("config", "file", ccf.nodesFilename)
-
 	genesisTime := time.Unix(genesisNodesConfig.StartTime, 0)
 	roundHandler, err := round.NewRound(
 		genesisTime,
@@ -229,7 +239,6 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, err
 	}
 
-	epochNotifier := forking.NewGenericEpochNotifier()
 	enableRoundsHandler, err := enablers.NewEnableRoundsHandler(ccf.roundConfig)
 	if err != nil {
 		return nil, err
@@ -280,12 +289,10 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 
 	log.Trace("creating ratings data")
 	ratingDataArgs := rating.RatingsDataArg{
-		Config:                   ccf.ratingsConfig,
-		ShardConsensusSize:       genesisNodesConfig.ConsensusGroupSize,
-		MetaConsensusSize:        genesisNodesConfig.MetaChainConsensusGroupSize,
-		ShardMinNodes:            genesisNodesConfig.MinNodesPerShard,
-		MetaMinNodes:             genesisNodesConfig.MetaChainMinNodes,
-		RoundDurationMiliseconds: genesisNodesConfig.RoundDuration,
+		Config:                    ccf.ratingsConfig,
+		ChainParametersHolder:     chainParametersHandler,
+		RoundDurationMilliseconds: genesisNodesConfig.RoundDuration,
+		EpochNotifier:             epochNotifier,
 	}
 	ratingsData, err := rating.NewRatingsData(ratingDataArgs)
 	if err != nil {

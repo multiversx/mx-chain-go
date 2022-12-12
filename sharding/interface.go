@@ -1,6 +1,11 @@
 package sharding
 
-import "github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
+import (
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+)
 
 // Coordinator defines what a shard state coordinator should hold
 type Coordinator interface {
@@ -59,5 +64,21 @@ type GenesisNodesSetupHandler interface {
 	GetHysteresis() float32
 	GetAdaptivity() bool
 	MinNumberOfNodesWithHysteresis() uint32
+	ExportNodesConfig() config.NodesConfig
+	IsInterfaceNil() bool
+}
+
+// EpochNotifier can notify upon an epoch change and provide the current epoch
+type EpochNotifier interface {
+	RegisterNotifyHandler(handler vmcommon.EpochSubscriberHandler)
+	CurrentEpoch() uint32
+	CheckEpoch(header data.HeaderHandler)
+	IsInterfaceNil() bool
+}
+
+// ChainParametersHandler defines the actions that need to be done by a component that can handle chain parameters
+type ChainParametersHandler interface {
+	CurrentChainParameters() config.ChainParametersByEpochConfig
+	ChainParametersForEpoch(epoch uint32) config.ChainParametersByEpochConfig
 	IsInterfaceNil() bool
 }
