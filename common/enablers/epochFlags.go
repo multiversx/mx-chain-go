@@ -87,6 +87,7 @@ type epochFlagsHolder struct {
 	fixOldTokenLiquidity                        *atomic.Flag
 	runtimeMemStoreLimitFlag                    *atomic.Flag
 	maxBlockchainHookCountersFlag               *atomic.Flag
+	wipeSingleNFTLiquidityDecreaseFlag          *atomic.Flag
 }
 
 func newEpochFlagsHolder() *epochFlagsHolder {
@@ -173,6 +174,7 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		fixOldTokenLiquidity:                        &atomic.Flag{},
 		runtimeMemStoreLimitFlag:                    &atomic.Flag{},
 		maxBlockchainHookCountersFlag:               &atomic.Flag{},
+		wipeSingleNFTLiquidityDecreaseFlag:          &atomic.Flag{},
 	}
 }
 
@@ -637,4 +639,9 @@ func (holder *epochFlagsHolder) IsRuntimeMemStoreLimitEnabled() bool {
 // IsMaxBlockchainHookCountersFlagEnabled returns true if maxBlockchainHookCountersFlagEnabled is enabled
 func (holder *epochFlagsHolder) IsMaxBlockchainHookCountersFlagEnabled() bool {
 	return holder.maxBlockchainHookCountersFlag.IsSet()
+}
+
+// IsWipeSingleNFTLiquidityDecreaseEnabled returns true if wipeSingleNFTLiquidityDecreaseFlag is enabled
+func (holder *epochFlagsHolder) IsWipeSingleNFTLiquidityDecreaseEnabled() bool {
+	return holder.wipeSingleNFTLiquidityDecreaseFlag.IsSet()
 }
