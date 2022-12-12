@@ -241,6 +241,7 @@ func TestNodesSetup_InitialNodesPubKeysForShardWrongShard(t *testing.T) {
 		numInitialNodes:    2,
 		genesisMaxShards:   3,
 	})
+	require.NoError(t, err)
 	eligible, waiting, err := ns.InitialNodesInfoForShard(1)
 
 	require.NotNil(t, ns)
