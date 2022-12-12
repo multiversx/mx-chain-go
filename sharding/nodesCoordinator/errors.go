@@ -108,3 +108,6 @@ var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
 
 // ErrNilValidatorInfoCacher signals that a nil value for the validator info cacher has been provided
 var ErrNilValidatorInfoCacher = errors.New("validator info cacher is nil")
+
+// ErrNilNodesCoordinatorRegistry signals that a nil node coordinator registry has been provided
+var ErrNilNodesCoordinatorRegistry = errors.New("nil nodes coordinator registry")

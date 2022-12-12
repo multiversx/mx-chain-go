@@ -3,6 +3,8 @@ package bootstrap
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"strconv"
 	"testing"
 
@@ -79,8 +81,10 @@ func TestGetLastBootstrapData(t *testing.T) {
 
 				bootstrapDataBytes, _ := json.Marshal(bootstrapData)
 				return bootstrapDataBytes, nil
+			case bytes.Equal(append([]byte(common.NodesCoordinatorRegistryKeyPrefix), []byte(fmt.Sprint(10))...), key):
+				return nil, errors.New("first get error")
 			default:
-				return nil, nil
+				return nil, errors.New("invalid key")
 			}
 		},
 		SearchFirstCalled: func(key []byte) ([]byte, error) {

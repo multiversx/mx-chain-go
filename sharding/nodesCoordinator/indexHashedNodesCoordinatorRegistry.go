@@ -37,6 +37,24 @@ func (ihnc *indexHashedNodesCoordinator) LoadState(key []byte) error {
 	return ihnc.baseLoadState(key)
 }
 
+func getNodesCoordinatorRegistryByRandomnessKey(
+	key []byte,
+	storer storage.Storer,
+) (*NodesCoordinatorRegistry, error) {
+	ncInternalkey := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), key...)
+	epochConfigBytes, err := storer.SearchFirst(ncInternalkey)
+	if err != nil {
+		return nil, err
+	}
+	epochConfig := &NodesCoordinatorRegistry{}
+	err = json.Unmarshal(epochConfigBytes, epochConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return epochConfig, nil
+}
+
 func GetNodesCoordinatorRegistry(
 	key []byte, // old key
 	storer storage.Storer,
@@ -47,8 +65,8 @@ func GetNodesCoordinatorRegistry(
 		minEpoch = int(lastEpoch) - nodesCoordinatorStoredEpochs + 1
 	}
 
+	firstGet := true
 	epochsConfig := make(map[string]*EpochValidators)
-	currentEpoch := uint32(minEpoch)
 	for epoch := uint32(minEpoch); epoch <= lastEpoch; epoch++ {
 		ncInternalkey := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), []byte(fmt.Sprint(epoch))...)
 
@@ -56,19 +74,12 @@ func GetNodesCoordinatorRegistry(
 
 		epochConfigBytes, err := storer.Get(ncInternalkey)
 		if err != nil {
-			// try old key
-			ncInternalkey = append([]byte(common.NodesCoordinatorRegistryKeyPrefix), key...)
-			epochConfigBytes, err = storer.SearchFirst(ncInternalkey)
-			if err != nil {
+			if !firstGet {
 				return nil, err
 			}
-			epochConfig := &NodesCoordinatorRegistry{}
-			err = json.Unmarshal(epochConfigBytes, epochConfig)
-			if err != nil {
-				return nil, err
-			}
+			firstGet = false
 
-			return epochConfig, nil
+			return getNodesCoordinatorRegistryByRandomnessKey(key, storer)
 		}
 
 		epochConfig := &NodesCoordinatorRegistry{}
@@ -80,12 +91,11 @@ func GetNodesCoordinatorRegistry(
 		for epoch, config := range epochConfig.EpochsConfig {
 			epochsConfig[epoch] = config
 		}
-		currentEpoch = epoch
 	}
 
 	return &NodesCoordinatorRegistry{
 		EpochsConfig: epochsConfig,
-		CurrentEpoch: currentEpoch,
+		CurrentEpoch: lastEpoch,
 	}, nil
 }
 
@@ -172,15 +182,13 @@ func SaveNodesCoordinatorRegistry(
 	if check.IfNil(storer) {
 		return ErrNilBootStorer
 	}
-	// TODO: return err here
 	if nodesConfig == nil {
-		return nil
+		return ErrNilNodesCoordinatorRegistry
 	}
 
 	for epoch, config := range nodesConfig.EpochsConfig {
 		epochsConfig := make(map[string]*EpochValidators)
 		epochsConfig[epoch] = config
-		// TODO: change this
 		currentEpoch, err := strconv.ParseUint(epoch, 10, 32)
 		if err != nil {
 			return err
