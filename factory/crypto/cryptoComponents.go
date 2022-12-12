@@ -183,7 +183,7 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 	}
 
 	p2pKeyGenerator := signing.NewKeyGenerator(secp256k1.NewSecp256k1())
-	p2pCryptoParams, err := ccf.createP2pCryptoParams(p2pKeyGenerator)
+	p2pCryptoParamsInstance, err := ccf.createP2pCryptoParams(p2pKeyGenerator)
 	if err != nil {
 		return nil, err
 	}
@@ -212,7 +212,7 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 		messageSignVerifier:  messageSignVerifier,
 		consensusSigHandler:  consensusSigHandler,
 		cryptoParams:         *cp,
-		p2pCryptoParams:      *p2pCryptoParams,
+		p2pCryptoParams:      *p2pCryptoParamsInstance,
 		p2pSingleSigner:      p2pSingleSigner,
 	}, nil
 }
