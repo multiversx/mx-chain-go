@@ -91,6 +91,7 @@ type EpochStartConfig struct {
 	MaxShuffledOutRestartThreshold    float64
 	MinNumConnectedPeersToStart       int
 	MinNumOfPeersToConsiderBlockValid int
+	NumNodesConfigEpochsToStore       uint32
 }
 
 // BlockSizeThrottleConfig will hold the configuration for adaptive block size throttle

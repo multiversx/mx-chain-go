@@ -22,7 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/blockchain"
 	factoryDataPool "github.com/ElrondNetwork/elrond-go/dataRetriever/factory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/requestersContainer"
+	requesterscontainer "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/requestersContainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
@@ -734,6 +734,7 @@ func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) ([]*block.MiniBl
 		NodeTypeProvider:    e.coreComponentsHolder.NodeTypeProvider(),
 		IsFullArchive:       e.prefsConfig.FullArchive,
 		EnableEpochsHandler: e.coreComponentsHolder.EnableEpochsHandler(),
+		NumStoredEpochs:     e.generalConfig.EpochStartConfig.NumNodesConfigEpochsToStore,
 	}
 
 	e.nodesConfigHandler, err = NewSyncValidatorStatus(argsNewValidatorStatusSyncers)

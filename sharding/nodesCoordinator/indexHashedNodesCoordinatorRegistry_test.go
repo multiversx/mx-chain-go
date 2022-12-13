@@ -156,7 +156,7 @@ func TestIndexHashedNodesCooridinator_nodesCoordinatorToRegistryLimitNumEpochsIn
 	nc := nodesCoordinator.nodesConfig
 
 	require.Equal(t, nodesCoordinator.currentEpoch, ncr.CurrentEpoch)
-	require.Equal(t, nodesCoordinatorStoredEpochs, len(ncr.EpochsConfig))
+	require.Equal(t, numStoredEpochs, len(ncr.EpochsConfig))
 
 	for epochStr := range ncr.EpochsConfig {
 		epoch, err := strconv.Atoi(epochStr)
@@ -228,7 +228,7 @@ func TestIndexHashedNodesCoordinator_GetNodesCoordinatorRegistry(t *testing.T) {
 	t.Run("nil storer, should fail", func(t *testing.T) {
 		t.Parallel()
 
-		nodesConfig, err := GetNodesCoordinatorRegistry([]byte("key"), nil, 1)
+		nodesConfig, err := GetNodesCoordinatorRegistry([]byte("key"), nil, 1, numStoredEpochs)
 		require.Nil(t, nodesConfig)
 		require.Equal(t, ErrNilBootStorer, err)
 	})
@@ -266,7 +266,7 @@ func TestIndexHashedNodesCoordinator_GetNodesCoordinatorRegistry(t *testing.T) {
 			},
 		}
 
-		nodesConfig, err := GetNodesCoordinatorRegistry([]byte("key"), storer, 10)
+		nodesConfig, err := GetNodesCoordinatorRegistry([]byte("key"), storer, 10, numStoredEpochs)
 		require.Nil(t, err)
 		require.Equal(t, nodesConfigRegistry, nodesConfig)
 	})
@@ -304,7 +304,7 @@ func TestIndexHashedNodesCoordinator_GetNodesCoordinatorRegistry(t *testing.T) {
 			},
 		}
 
-		nodesConfig, err := GetNodesCoordinatorRegistry([]byte("key"), storer, 10)
+		nodesConfig, err := GetNodesCoordinatorRegistry([]byte("key"), storer, 10, numStoredEpochs)
 		require.Nil(t, err)
 		require.Equal(t, nodesConfigRegistry, nodesConfig)
 	})

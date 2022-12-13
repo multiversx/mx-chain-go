@@ -42,14 +42,15 @@ func GetNodesCoordinatorRegistry(
 	key []byte, // old key
 	storer storage.Storer,
 	lastEpoch uint32,
+	numStoredEpochs uint32,
 ) (*NodesCoordinatorRegistry, error) {
 	if check.IfNil(storer) {
 		return nil, ErrNilBootStorer
 	}
 
 	minEpoch := 0
-	if lastEpoch >= nodesCoordinatorStoredEpochs {
-		minEpoch = int(lastEpoch) - nodesCoordinatorStoredEpochs + 1
+	if lastEpoch >= numStoredEpochs {
+		minEpoch = int(lastEpoch) - int(numStoredEpochs) + 1
 	}
 
 	epochsConfig := make(map[string]*EpochValidators)
@@ -103,7 +104,7 @@ func (ihnc *indexHashedNodesCoordinator) baseLoadState(key []byte) error {
 	defer ihnc.loadingFromDisk.Store(false)
 
 	lastEpoch := ihnc.getLastEpochConfig()
-	config, err := GetNodesCoordinatorRegistry(key, ihnc.bootStorer, lastEpoch)
+	config, err := GetNodesCoordinatorRegistry(key, ihnc.bootStorer, lastEpoch, ihnc.numStoredEpochs)
 	if err != nil {
 		return err
 	}
@@ -160,8 +161,8 @@ func (ihnc *indexHashedNodesCoordinator) NodesCoordinatorToRegistry() *NodesCoor
 
 	minEpoch := 0
 	lastEpoch := ihnc.getLastEpochConfig()
-	if lastEpoch >= nodesCoordinatorStoredEpochs {
-		minEpoch = int(lastEpoch) - nodesCoordinatorStoredEpochs + 1
+	if lastEpoch >= ihnc.numStoredEpochs {
+		minEpoch = int(lastEpoch) - int(ihnc.numStoredEpochs) + 1
 	}
 
 	for epoch := uint32(minEpoch); epoch <= lastEpoch; epoch++ {

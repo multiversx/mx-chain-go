@@ -46,7 +46,7 @@ func (ihnc *indexHashedNodesCoordinator) SetNodesConfigFromValidatorsInfo(epoch 
 		return err
 	}
 
-	ihnc.removeOlderEpochs(epoch, nodesCoordinatorStoredEpochs)
+	ihnc.removeOlderEpochs(epoch, ihnc.numStoredEpochs)
 
 	return nil
 }

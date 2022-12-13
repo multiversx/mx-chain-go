@@ -307,5 +307,6 @@ func getSyncValidatorStatusArgs() ArgsNewSyncValidatorStatus {
 		NodeTypeProvider:    &nodeTypeProviderMock.NodeTypeProviderStub{},
 		IsFullArchive:       false,
 		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		NumStoredEpochs:     4,
 	}
 }

@@ -60,6 +60,7 @@ func GetGeneralConfig() config.Config {
 			RoundsPerEpoch:                    10,
 			MinNumConnectedPeersToStart:       2,
 			MinNumOfPeersToConsiderBlockValid: 2,
+			NumNodesConfigEpochsToStore:       4,
 		},
 		WhiteListPool:          getLRUCacheConfig(),
 		WhiteListerVerifiedTxs: getLRUCacheConfig(),

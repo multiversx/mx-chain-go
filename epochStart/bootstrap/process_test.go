@@ -158,6 +158,7 @@ func createMockEpochStartBootstrapArgs(
 			EpochStartConfig: config.EpochStartConfig{
 				MinNumConnectedPeersToStart:       2,
 				MinNumOfPeersToConsiderBlockValid: 2,
+				NumNodesConfigEpochsToStore:       4,
 			},
 			StoragePruning: config.StoragePruningConfig{
 				Enabled:                     true,
