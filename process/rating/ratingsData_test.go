@@ -130,6 +130,46 @@ func TestNewRatingsData_NilChainParametersHolder(t *testing.T) {
 	assert.True(t, errors.Is(err, process.ErrNilChainParametersHandler))
 }
 
+func TestNewRatingsData_MissingConfigurationForEpoch0(t *testing.T) {
+	t.Parallel()
+
+	ratingsDataArg := createDummyRatingsData()
+	ratingsDataArg.Config = createDummyRatingsConfig()
+	ratingsDataArg.ChainParametersHolder = &shardingmock.ChainParametersHandlerStub{
+		CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
+			return config.ChainParametersByEpochConfig{
+				RoundDuration:               4000,
+				Hysteresis:                  0.2,
+				EnableEpoch:                 37,
+				ShardConsensusGroupSize:     shardConsensusSize,
+				ShardMinNumNodes:            shardMinNodes,
+				MetachainConsensusGroupSize: metaConsensusSize,
+				MetachainMinNumNodes:        metaMinNodes,
+				Adaptivity:                  false,
+			}
+		},
+		AllChainParametersCalled: func() []config.ChainParametersByEpochConfig {
+			return []config.ChainParametersByEpochConfig{
+				{
+					RoundDuration:               4000,
+					Hysteresis:                  0.2,
+					EnableEpoch:                 37,
+					ShardConsensusGroupSize:     shardConsensusSize,
+					ShardMinNumNodes:            shardMinNodes,
+					MetachainConsensusGroupSize: metaConsensusSize,
+					MetachainMinNumNodes:        metaMinNodes,
+					Adaptivity:                  false,
+				},
+			}
+		},
+	}
+
+	ratingsData, err := NewRatingsData(ratingsDataArg)
+
+	assert.Nil(t, ratingsData)
+	assert.True(t, errors.Is(err, process.ErrMissingConfigurationForEpochZero))
+}
+
 func TestRatingsData_RatingsDataMinGreaterMaxShouldErr(t *testing.T) {
 	t.Parallel()
 

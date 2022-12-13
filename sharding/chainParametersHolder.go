@@ -34,6 +34,11 @@ func NewChainParametersHolder(args ArgsChainParametersHolder) (*chainParametersH
 		return chainParameters[i].EnableEpoch > chainParameters[j].EnableEpoch
 	})
 
+	earliestChainParams := chainParameters[len(chainParameters)-1]
+	if earliestChainParams.EnableEpoch != 0 {
+		return nil, ErrMissingConfigurationForEpochZero
+	}
+
 	currentParams, err := getMatchingChainParametersUnprotected(args.EpochNotifier.CurrentEpoch(), args.ChainParameters)
 	if err != nil {
 		return nil, err
@@ -73,18 +78,6 @@ func validateChainParameters(chainParametersConfig []config.ChainParametersByEpo
 		if chainParameters.MetachainMinNumNodes < chainParameters.MetachainConsensusGroupSize {
 			return fmt.Errorf("%w for chain parameters with index %d", ErrMinNodesPerShardSmallerThanConsensusSize, idx)
 		}
-	}
-
-	doesConfigForEpochZeroExist := false
-	for _, chainParams := range chainParametersConfig {
-		if chainParams.EnableEpoch == 0 {
-			doesConfigForEpochZeroExist = true
-			break
-		}
-	}
-
-	if !doesConfigForEpochZeroExist {
-		return fmt.Errorf("%w while creating chainParametersHolde", ErrMissingConfigurationForEpochZero)
 	}
 
 	return nil
@@ -131,9 +124,7 @@ func (c *chainParametersHolder) AllChainParameters() []config.ChainParametersByE
 	defer c.mutOperations.RUnlock()
 
 	chainParametersCopy := make([]config.ChainParametersByEpochConfig, len(c.chainParameters))
-	for idx, chainParameterForEpoch := range c.chainParameters {
-		chainParametersCopy[idx] = chainParameterForEpoch
-	}
+	copy(chainParametersCopy, c.chainParameters)
 
 	return chainParametersCopy
 }
