@@ -230,6 +230,9 @@
     # RefactorPeersMiniBlocksEnableEpoch represents the epoch when refactor of the peers mini blocks will be enabled
     RefactorPeersMiniBlocksEnableEpoch = 5
 
+    # MaxBlockchainHookCountersEnableEpoch represents the epoch when the max blockchainhook counters are enabled
+	MaxBlockchainHookCountersEnableEpoch = 1
+
     # DynamicGasCostForDataTrieStorageLoadEnableEpoch represents the epoch when dynamic gas cost for data trie storage load will be enabled
     DynamicGasCostForDataTrieStorageLoadEnableEpoch = 6
 

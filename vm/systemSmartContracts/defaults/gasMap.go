@@ -10,6 +10,8 @@ func FillGasMapInternal(gasMap map[string]map[string]uint64, value uint64) map[s
 	gasMap[common.BuiltInCost] = FillGasMapBuiltInCosts(value)
 	gasMap[common.MetaChainSystemSCsCost] = FillGasMapMetaChainSystemSCsCosts(value)
 
+	gasMap[common.MaxPerTransaction] = FillMaxPerTransaction()
+
 	return gasMap
 }
 
@@ -75,5 +77,14 @@ func FillGasMapMetaChainSystemSCsCosts(value uint64) map[string]uint64 {
 	gasMap["ValidatorToDelegation"] = value
 	gasMap["FixWaitingListSize"] = value
 
+	return gasMap
+}
+
+// FillMaxPerTransaction -
+func FillMaxPerTransaction() map[string]uint64 {
+	gasMap := make(map[string]uint64)
+	gasMap["MaxBuiltInCallsPerTx"] = 100
+	gasMap["MaxNumberOfTransfersPerTx"] = 100
+	gasMap["MaxNumberOfTrieReadsPerTx"] = 100000
 	return gasMap
 }

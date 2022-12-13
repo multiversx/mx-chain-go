@@ -688,6 +688,11 @@
     MaxMemoryGrowDelta = 1
     MaxMemoryGrow = 10
 
+[MaxPerTransaction]
+    MaxBuiltInCallsPerTx = 100
+    MaxNumberOfTransfersPerTx = 100
+    MaxNumberOfTrieReadsPerTx = 100
+
 # A, B and C are the coefficients for a quadratic func. Separate variables are used for the
 # sign of each coefficient, 0 meaning + and 1 meaning -
 # The current values for the coefficients were computed based on benchmarking
