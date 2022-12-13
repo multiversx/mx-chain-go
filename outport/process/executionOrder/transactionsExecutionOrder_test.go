@@ -3,9 +3,11 @@ package executionOrder
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/outport"
+	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
@@ -47,7 +49,7 @@ func TestAddExecutionOrderInTransactionPool(t *testing.T) {
 		ShardID:      1,
 	}
 
-	txHashToMe, txHashFromMe, invalidTxHash := []byte("toMe"), []byte("fromMe"), []byte("invalid")
+	txHashToMe, txHashFromMe, invalidTxHash, rewardTxHash := []byte("toMe"), []byte("fromMe"), []byte("invalid"), []byte("reward")
 	scrHashToMe, scrHashFromMe, scrHashIntra := []byte("scrHashToMe"), []byte("scrHashFromMe"), []byte("scrHashIntra")
 	blockBody := &block.Body{
 		MiniBlocks: []*block.MiniBlock{
@@ -81,6 +83,12 @@ func TestAddExecutionOrderInTransactionPool(t *testing.T) {
 				Type:            block.SmartContractResultBlock,
 				TxHashes:        [][]byte{scrHashToMe},
 			},
+			{
+				SenderShardID:   core.MetachainShardId,
+				ReceiverShardID: 1,
+				Type:            block.RewardsBlock,
+				TxHashes:        [][]byte{rewardTxHash},
+			},
 		},
 	}
 
@@ -100,7 +108,9 @@ func TestAddExecutionOrderInTransactionPool(t *testing.T) {
 				OriginalTxHash: txHashToMe,
 			}},
 		},
-		Rewards: map[string]data.TransactionHandlerWithGasUsedAndFee{},
+		Rewards: map[string]data.TransactionHandlerWithGasUsedAndFee{
+			string(rewardTxHash): &outport.TransactionHandlerWithGasAndFee{TransactionHandler: &rewardTx.RewardTx{}},
+		},
 		Invalid: map[string]data.TransactionHandlerWithGasUsedAndFee{
 			string(invalidTxHash): &outport.TransactionHandlerWithGasAndFee{TransactionHandler: &transaction.Transaction{Nonce: 5}},
 		},
@@ -119,7 +129,7 @@ func TestAddExecutionOrderInTransactionPool(t *testing.T) {
 			},
 			string(txHashFromMe): &outport.TransactionHandlerWithGasAndFee{
 				TransactionHandler: &transaction.Transaction{Nonce: 2},
-				ExecutionOrder:     2,
+				ExecutionOrder:     3,
 			},
 		},
 		Scrs: map[string]data.TransactionHandlerWithGasUsedAndFee{
@@ -142,11 +152,16 @@ func TestAddExecutionOrderInTransactionPool(t *testing.T) {
 				ExecutionOrder: 0,
 			},
 		},
-		Rewards: map[string]data.TransactionHandlerWithGasUsedAndFee{},
+		Rewards: map[string]data.TransactionHandlerWithGasUsedAndFee{
+			string(rewardTxHash): &outport.TransactionHandlerWithGasAndFee{
+				TransactionHandler: &rewardTx.RewardTx{},
+				ExecutionOrder:     2,
+			},
+		},
 		Invalid: map[string]data.TransactionHandlerWithGasUsedAndFee{
 			string(invalidTxHash): &outport.TransactionHandlerWithGasAndFee{
 				TransactionHandler: &transaction.Transaction{Nonce: 5},
-				ExecutionOrder:     3,
+				ExecutionOrder:     4,
 			},
 		},
 		Receipts: map[string]data.TransactionHandlerWithGasUsedAndFee{},

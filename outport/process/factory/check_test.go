@@ -75,5 +75,9 @@ func TestCheckArgCreateOutportDataProvider(t *testing.T) {
 	require.Equal(t, transactionsfee.ErrNilTransactionFeeCalculator, checkArgOutportDataProviderFactory(arg))
 
 	arg = createArgOutportDataProviderFactory()
+	arg.Hasher = nil
+	require.Equal(t, process.ErrNilHasher, checkArgOutportDataProviderFactory(arg))
+
+	arg = createArgOutportDataProviderFactory()
 	require.Nil(t, checkArgOutportDataProviderFactory(arg))
 }

@@ -2,6 +2,7 @@ package executionOrder
 
 import (
 	"encoding/hex"
+	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -21,6 +22,7 @@ type sorter struct {
 	hasher hashing.Hasher
 }
 
+// NewSorter will create a new instance of sorter
 func NewSorter(hasher hashing.Hasher) (*sorter, error) {
 	if check.IfNil(hasher) {
 		return nil, process.ErrNilHasher
@@ -31,6 +33,7 @@ func NewSorter(hasher hashing.Hasher) (*sorter, error) {
 	}, nil
 }
 
+// PutExecutionOrderInTransactionPool will put the execution order for every transaction and smart contract result
 func (s *sorter) PutExecutionOrderInTransactionPool(
 	pool *outport.Pool,
 	header data.HeaderHandler,
@@ -43,19 +46,25 @@ func (s *sorter) PutExecutionOrderInTransactionPool(
 	}
 
 	// already sorted
-	transactionsToMe := extractNormalTransactionAndScrsToMe(pool, blockBody, header, true)
-
-	// scheduled to me, already sorted
-	scheduledTransactionsToMe := extractNormalTransactionAndScrsToMe(pool, blockBody, header, false)
+	transactionsToMe, scheduledTransactionsToMe, err := extractNormalTransactionAndScrsToMe(pool, blockBody, header)
+	if err != nil {
+		return err
+	}
 
 	// need to be sorted
-	transactionsFromMe := extractNormalTransactionsAndInvalidFromMe(pool, blockBody, header, true)
+	transactionsFromMe, scheduledTransactionsFromMe, err := extractNormalTransactionsAndInvalidFromMe(pool, blockBody, header)
+	if err != nil {
+		return err
+	}
+
 	txsSort.SortTransactionsBySenderAndNonceWithFrontRunningProtectionExtendedTransactions(transactionsFromMe, s.hasher, header.GetPrevRandSeed())
 
-	rewardsTxs := getRewardsTxsFromMe(pool, blockBody, header)
+	rewardsTxs, err := getRewardsTxsFromMe(pool, blockBody, header)
+	if err != nil {
+		return err
+	}
 
 	// scheduled from me, need to be sorted
-	scheduledTransactionsFromMe := extractNormalTransactionsAndInvalidFromMe(pool, blockBody, header, false)
 	txsSort.SortTransactionsBySenderAndNonceWithFrontRunningProtectionExtendedTransactions(scheduledTransactionsFromMe, s.hasher, header.GetPrevRandSeed())
 
 	allTransaction := append(transactionsToMe, scheduledTransactionsToMe...)
@@ -69,7 +78,7 @@ func (s *sorter) PutExecutionOrderInTransactionPool(
 
 	setOrderSmartContractResults(pool)
 
-	prinPool(pool)
+	printPool(pool)
 	return nil
 }
 
@@ -89,11 +98,26 @@ func setOrderSmartContractResults(pool *outport.Pool) {
 	}
 }
 
-func extractNormalTransactionsAndInvalidFromMe(pool *outport.Pool, blockBody *block.Body, header data.HeaderHandler, ignoreScheduled bool) []data.TransactionHandlerWithGasUsedAndFee {
-	normalTxsHashes := make([][]byte, 0)
-	invalidTxsHashes := make([][]byte, 0)
+func extractNormalTransactionsAndInvalidFromMe(pool *outport.Pool, blockBody *block.Body, header data.HeaderHandler) ([]data.TransactionHandlerWithGasUsedAndFee, []data.TransactionHandlerWithGasUsedAndFee, error) {
+	transactionsFromMe := make([]data.TransactionHandlerWithGasUsedAndFee, 0)
+	scheduledTransactionsFromMe := make([]data.TransactionHandlerWithGasUsedAndFee, 0)
+
+	appendTxs := func(mbIndex int, txs []data.TransactionHandlerWithGasUsedAndFee) {
+		if isMBScheduled(header, mbIndex) {
+			scheduledTransactionsFromMe = append(scheduledTransactionsFromMe, txs...)
+			return
+		}
+		transactionsFromMe = append(transactionsFromMe, txs...)
+	}
+
+	var err error
+	var txs []data.TransactionHandlerWithGasUsedAndFee
 	for mbIndex, mb := range blockBody.MiniBlocks {
-		if isMBScheduled(header, mbIndex) == ignoreScheduled || shouldIgnoreProcessedMBScheduled(header, mbIndex) {
+		if err != nil {
+			return nil, nil, err
+		}
+
+		if shouldIgnoreProcessedMBScheduled(header, mbIndex) {
 			continue
 		}
 
@@ -103,25 +127,40 @@ func extractNormalTransactionsAndInvalidFromMe(pool *outport.Pool, blockBody *bl
 		}
 
 		if mb.Type == block.TxBlock {
-			normalTxsHashes = append(normalTxsHashes, mb.TxHashes...)
+			txs, err = extractTxsFromMap(mb.TxHashes, pool.Txs)
+			appendTxs(mbIndex, txs)
 			continue
 		}
 		if mb.Type == block.InvalidBlock {
-			invalidTxsHashes = append(invalidTxsHashes, mb.TxHashes...)
+			txs, err = extractTxsFromMap(mb.TxHashes, pool.Invalid)
+			appendTxs(mbIndex, txs)
 			continue
 		}
 	}
 
-	normalTxs := extractTxsFromMap(normalTxsHashes, pool.Txs)
-	invalidTxs := extractTxsFromMap(invalidTxsHashes, pool.Invalid)
-
-	return append(normalTxs, invalidTxs...)
+	return transactionsFromMe, scheduledTransactionsFromMe, nil
 }
 
-func extractNormalTransactionAndScrsToMe(pool *outport.Pool, blockBody *block.Body, header data.HeaderHandler, ignoreScheduled bool) []data.TransactionHandlerWithGasUsedAndFee {
-	grouped := make([]data.TransactionHandlerWithGasUsedAndFee, 0)
+func extractNormalTransactionAndScrsToMe(pool *outport.Pool, blockBody *block.Body, header data.HeaderHandler) ([]data.TransactionHandlerWithGasUsedAndFee, []data.TransactionHandlerWithGasUsedAndFee, error) {
+	transactionsToMe := make([]data.TransactionHandlerWithGasUsedAndFee, 0)
+	scheduledTransactionsToMe := make([]data.TransactionHandlerWithGasUsedAndFee, 0)
+
+	appendTxs := func(mbIndex int, txs []data.TransactionHandlerWithGasUsedAndFee) {
+		if isMBScheduled(header, mbIndex) {
+			scheduledTransactionsToMe = append(scheduledTransactionsToMe, txs...)
+			return
+		}
+		transactionsToMe = append(transactionsToMe, txs...)
+	}
+
+	var err error
+	var txs []data.TransactionHandlerWithGasUsedAndFee
 	for mbIndex, mb := range blockBody.MiniBlocks {
-		if isMBScheduled(header, mbIndex) == ignoreScheduled || shouldIgnoreProcessedMBScheduled(header, mbIndex) {
+		if err != nil {
+			return nil, nil, err
+		}
+
+		if shouldIgnoreProcessedMBScheduled(header, mbIndex) {
 			continue
 		}
 
@@ -132,35 +171,34 @@ func extractNormalTransactionAndScrsToMe(pool *outport.Pool, blockBody *block.Bo
 
 		executedTxsHashes := extractExecutedTxHashes(mbIndex, mb.TxHashes, header)
 		if mb.Type == block.TxBlock {
-			grouped = append(grouped, extractTxsFromMap(executedTxsHashes, pool.Txs)...)
+			txs, err = extractTxsFromMap(executedTxsHashes, pool.Txs)
+			appendTxs(mbIndex, txs)
 			continue
 		}
 		if mb.Type == block.SmartContractResultBlock {
-			grouped = append(grouped, extractTxsFromMap(executedTxsHashes, pool.Scrs)...)
+			txs, err = extractTxsFromMap(executedTxsHashes, pool.Scrs)
+			appendTxs(mbIndex, txs)
 			continue
 		}
 		if mb.Type == block.RewardsBlock {
-			grouped = append(grouped, extractTxsFromMap(executedTxsHashes, pool.Rewards)...)
+			txs, err = extractTxsFromMap(executedTxsHashes, pool.Rewards)
+			appendTxs(mbIndex, txs)
 			continue
 		}
 	}
 
-	return grouped
+	return transactionsToMe, scheduledTransactionsToMe, nil
 }
 
-func getRewardsTxsFromMe(pool *outport.Pool, blockBody *block.Body, header data.HeaderHandler) []data.TransactionHandlerWithGasUsedAndFee {
+func getRewardsTxsFromMe(pool *outport.Pool, blockBody *block.Body, header data.HeaderHandler) ([]data.TransactionHandlerWithGasUsedAndFee, error) {
 	rewardsTxsHashes := make([][]byte, 0)
 	rewardsTxs := make([]data.TransactionHandlerWithGasUsedAndFee, 0)
 	if header.GetShardID() != core.MetachainShardId {
-		return rewardsTxs
+		return rewardsTxs, nil
 	}
 
 	for _, mb := range blockBody.MiniBlocks {
 		if mb.Type != block.RewardsBlock {
-			continue
-		}
-		isFromMe := mb.SenderShardID == header.GetShardID()
-		if !isFromMe {
 			continue
 		}
 		rewardsTxsHashes = append(rewardsTxsHashes, mb.TxHashes...)
@@ -169,18 +207,17 @@ func getRewardsTxsFromMe(pool *outport.Pool, blockBody *block.Body, header data.
 	return extractTxsFromMap(rewardsTxsHashes, pool.Rewards)
 }
 
-func extractTxsFromMap(txsHashes [][]byte, txs map[string]data.TransactionHandlerWithGasUsedAndFee) []data.TransactionHandlerWithGasUsedAndFee {
+func extractTxsFromMap(txsHashes [][]byte, txs map[string]data.TransactionHandlerWithGasUsedAndFee) ([]data.TransactionHandlerWithGasUsedAndFee, error) {
 	result := make([]data.TransactionHandlerWithGasUsedAndFee, 0, len(txsHashes))
 	for _, txHash := range txsHashes {
 		tx, found := txs[string(txHash)]
 		if !found {
-			log.Warn("extractTxsFromMap cannot find transaction in pool", "txHash", hex.EncodeToString(txHash))
-			continue
+			return nil, fmt.Errorf("cannot find transaction in pool, txHash: %s", hex.EncodeToString(txHash))
 		}
 		result = append(result, tx)
 	}
 
-	return result
+	return result, nil
 }
 
 func extractExecutedTxHashes(mbIndex int, mbTxHashes [][]byte, header data.HeaderHandler) [][]byte {
@@ -192,16 +229,7 @@ func extractExecutedTxHashes(mbIndex int, mbTxHashes [][]byte, header data.Heade
 	firstProcessed := miniblockHeaders[mbIndex].GetIndexOfFirstTxProcessed()
 	lastProcessed := miniblockHeaders[mbIndex].GetIndexOfLastTxProcessed()
 
-	executedTxHashes := make([][]byte, 0)
-	for txIndex, txHash := range mbTxHashes {
-		if int32(txIndex) < firstProcessed || int32(txIndex) > lastProcessed {
-			continue
-		}
-
-		executedTxHashes = append(executedTxHashes, txHash)
-	}
-
-	return executedTxHashes
+	return mbTxHashes[firstProcessed : lastProcessed+1]
 }
 
 func shouldIgnoreProcessedMBScheduled(header data.HeaderHandler, mbIndex int) bool {
@@ -222,8 +250,8 @@ func getProcessingType(header data.HeaderHandler, mbIndex int) int32 {
 }
 
 // TODO remove this after system test will pass
-func prinPool(pool *outport.Pool) {
-	prinMapTxs := func(txs map[string]data.TransactionHandlerWithGasUsedAndFee) {
+func printPool(pool *outport.Pool) {
+	printMapTxs := func(txs map[string]data.TransactionHandlerWithGasUsedAndFee) {
 		for hash, tx := range txs {
 			log.Warn(hex.EncodeToString([]byte(hash)), "order", tx.GetExecutionOrder())
 		}
@@ -236,21 +264,21 @@ func prinPool(pool *outport.Pool) {
 
 	if len(pool.Txs) > 0 {
 		log.Warn("############### NORMAL TXS ####################")
-		prinMapTxs(pool.Txs)
+		printMapTxs(pool.Txs)
 	}
 	if len(pool.Invalid) > 0 {
 		log.Warn("############### INVALID ####################")
-		prinMapTxs(pool.Invalid)
+		printMapTxs(pool.Invalid)
 	}
 
 	if len(pool.Scrs) > 0 {
 		log.Warn("############### SCRS ####################")
-		prinMapTxs(pool.Scrs)
+		printMapTxs(pool.Scrs)
 	}
 
 	if len(pool.Rewards) > 0 {
 		log.Warn("############### REWARDS ####################")
-		prinMapTxs(pool.Rewards)
+		printMapTxs(pool.Rewards)
 	}
 	if total > 0 {
 		log.Warn("###################################")

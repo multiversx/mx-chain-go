@@ -16,3 +16,6 @@ var errNilHeaderHandler = errors.New("nil header handler")
 
 // errNilBodyHandler signal that provided body handler is nil
 var errNilBodyHandler = errors.New("nil body handler")
+
+// ErrNilHasher signals that a nil hasher has been provided
+var ErrNilHasher = errors.New("nil hasher provided")
