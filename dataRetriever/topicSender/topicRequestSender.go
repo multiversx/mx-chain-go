@@ -193,6 +193,7 @@ func (trs *topicRequestSender) sendOnTopic(
 		if err != nil {
 			continue
 		}
+		trs.peersRatingHandler.DecreaseRating(peer)
 
 		logData = append(logData, peerType)
 		logData = append(logData, peer.Pretty())
