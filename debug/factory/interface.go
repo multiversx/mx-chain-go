@@ -1,7 +1,7 @@
 package factory
 
-// InterceptorResolverDebugHandler hold information about requested and received information
-type InterceptorResolverDebugHandler interface {
+// InterceptorDebugHandler hold information about requested and received information
+type InterceptorDebugHandler interface {
 	LogRequestedData(topic string, hashes [][]byte, numReqIntra int, numReqCross int)
 	LogReceivedHashes(topic string, hashes [][]byte)
 	LogProcessedHashes(topic string, hashes [][]byte, err error)

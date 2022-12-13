@@ -263,7 +263,8 @@ type ProcessComponentsHolder interface {
 	NodesCoordinator() nodesCoordinator.NodesCoordinator
 	ShardCoordinator() sharding.Coordinator
 	InterceptorsContainer() process.InterceptorsContainer
-	ResolversFinder() dataRetriever.ResolversFinder
+	ResolversContainer() dataRetriever.ResolversContainer
+	RequestersFinder() dataRetriever.RequestersFinder
 	RoundHandler() consensus.RoundHandler
 	EpochStartTrigger() epochStart.TriggerHandler
 	EpochStartNotifier() EpochStartNotifier
