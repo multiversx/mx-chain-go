@@ -55,8 +55,8 @@ github.com/ElrondNetwork/elrond-go-crypto v1.2.3 h1:kX/xIWuQLKDvfPNSsCrFWcmNABa1
 github.com/ElrondNetwork/elrond-go-crypto v1.2.3/go.mod h1:04TNYc9JT+bXGFjaWf1oP7iFudRprHp5iULyQaVYMao=
 github.com/ElrondNetwork/elrond-go-logger v1.0.10 h1:2xQOWZErcHW5sl9qSRO+7mGNw+QhFhqiUlLLtOgvuuk=
 github.com/ElrondNetwork/elrond-go-logger v1.0.10/go.mod h1:+rMODFw4yQptTi5WuLUBzvl/AE26V+2YJtc52wX30Eg=
-github.com/ElrondNetwork/elrond-go-p2p v1.0.6-0.20221212110349-18c9e38776d8 h1:9BSF3dFl9QdIwdDcsUjuZ2IHopDNw0Qjig/RDbsWzKo=
-github.com/ElrondNetwork/elrond-go-p2p v1.0.6-0.20221212110349-18c9e38776d8/go.mod h1:yCdKTQWNHNKrrQAK5xx1uQT02BEiumjz88I/fk5m1f8=
+github.com/ElrondNetwork/elrond-go-p2p v1.0.7-0.20221213133940-94fa53a3397e h1:fghMW4SmHqK7Z1c81e0wJ81zE6BcLza/ULu2/LpoznE=
+github.com/ElrondNetwork/elrond-go-p2p v1.0.7-0.20221213133940-94fa53a3397e/go.mod h1:7Z4aiKnqGk2bX181Mo9cCuC1yJJ1VDENkk8GdjOGtRc=
 github.com/ElrondNetwork/elrond-go-storage v1.0.2/go.mod h1:SRsv4hUtL1BCiQe0eADth3C0EZH9baijzIJDCUitR34=
 github.com/ElrondNetwork/elrond-go-storage v1.0.4 h1:esyXbHQvlR6m4HGeC86Nq0xAJ74+QG9EnUgfG+wQDYQ=
 github.com/ElrondNetwork/elrond-go-storage v1.0.4/go.mod h1:SRsv4hUtL1BCiQe0eADth3C0EZH9baijzIJDCUitR34=
