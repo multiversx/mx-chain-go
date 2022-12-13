@@ -142,6 +142,8 @@ func startNodeRunner(c *cli.Context, log logger.Logger, version string) error {
 		log.LogIfError(err)
 	}
 
+	common.CloseCSV()
+
 	return err
 }
 

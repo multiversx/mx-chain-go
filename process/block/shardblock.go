@@ -188,6 +188,8 @@ func (sp *shardProcessor) ProcessBlock(
 	sp.epochNotifier.CheckEpoch(headerHandler)
 	sp.requestHandler.SetEpoch(headerHandler.GetEpoch())
 
+	common.SetHeaderData(headerHandler.GetTimeStamp(), headerHandler.GetShardID())
+
 	err = sp.checkScheduledRootHash(headerHandler)
 	if err != nil {
 		return err
@@ -870,6 +872,8 @@ func (sp *shardProcessor) CommitBlock(
 	headerHandler data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 ) error {
+	common.WriteCSV()
+
 	var err error
 	sp.processStatusHandler.SetBusy("shardProcessor.CommitBlock")
 	defer func() {

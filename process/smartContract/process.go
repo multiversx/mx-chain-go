@@ -424,6 +424,8 @@ func (sc *scProcessor) isInformativeTxHandler(txHandler data.TransactionHandler)
 }
 
 func (sc *scProcessor) printBlockchainHookCounters(tx data.TransactionHandler) {
+	common.OutputTxCounters(tx, sc.blockChainHook.GetCounterValues(), sc.computeTxHashUnsafe(tx))
+
 	if logCounters.GetLevel() > logger.LogTrace {
 		return
 	}
