@@ -4,7 +4,7 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	cryptoCommon "github.com/ElrondNetwork/elrond-go/common/crypto"
 	"github.com/ElrondNetwork/elrond-go/vm"
 )
@@ -13,6 +13,9 @@ import (
 type CryptoComponentsMock struct {
 	PubKey            crypto.PublicKey
 	PrivKey           crypto.PrivateKey
+	P2pPubKey         crypto.PublicKey
+	P2pPrivKey        crypto.PrivateKey
+	P2pSig            crypto.SingleSigner
 	PubKeyString      string
 	PrivKeyBytes      []byte
 	PubKeyBytes       []byte
@@ -22,6 +25,7 @@ type CryptoComponentsMock struct {
 	PeerSignHandler   crypto.PeerSignatureHandler
 	BlKeyGen          crypto.KeyGenerator
 	TxKeyGen          crypto.KeyGenerator
+	P2PKeyGen         crypto.KeyGenerator
 	MsgSigVerifier    vm.MessageSignVerifier
 	mutMultiSig       sync.RWMutex
 }
@@ -34,6 +38,21 @@ func (ccm *CryptoComponentsMock) PublicKey() crypto.PublicKey {
 // PrivateKey -
 func (ccm *CryptoComponentsMock) PrivateKey() crypto.PrivateKey {
 	return ccm.PrivKey
+}
+
+// P2pPrivateKey -
+func (ccm *CryptoComponentsMock) P2pPrivateKey() crypto.PrivateKey {
+	return ccm.P2pPrivKey
+}
+
+// P2pPublicKey -
+func (ccm *CryptoComponentsMock) P2pPublicKey() crypto.PublicKey {
+	return ccm.P2pPubKey
+}
+
+// P2pSingleSigner -
+func (ccm *CryptoComponentsMock) P2pSingleSigner() crypto.SingleSigner {
+	return ccm.P2pSig
 }
 
 // PublicKeyString -
@@ -108,6 +127,11 @@ func (ccm *CryptoComponentsMock) TxSignKeyGen() crypto.KeyGenerator {
 	return ccm.TxKeyGen
 }
 
+// P2pKeyGen -
+func (ccm *CryptoComponentsMock) P2pKeyGen() crypto.KeyGenerator {
+	return ccm.P2PKeyGen
+}
+
 // MessageSignVerifier -
 func (ccm *CryptoComponentsMock) MessageSignVerifier() vm.MessageSignVerifier {
 	return ccm.MsgSigVerifier
@@ -127,6 +151,7 @@ func (ccm *CryptoComponentsMock) Clone() interface{} {
 		PeerSignHandler:   ccm.PeerSignHandler,
 		BlKeyGen:          ccm.BlKeyGen,
 		TxKeyGen:          ccm.TxKeyGen,
+		P2PKeyGen:         ccm.P2PKeyGen,
 		MsgSigVerifier:    ccm.MsgSigVerifier,
 		mutMultiSig:       sync.RWMutex{},
 	}

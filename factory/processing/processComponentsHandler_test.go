@@ -59,8 +59,8 @@ func testManagedProcessComponentsCreateShouldWork(t *testing.T, shardID uint32, 
 
 	shardCoordinator.CurrentShard = core.MetachainShardId
 	dataComponents := componentsMock.GetDataComponents(coreComponents, shardCoordinator)
-	networkComponents := componentsMock.GetNetworkComponents()
 	cryptoComponents := componentsMock.GetCryptoComponents(coreComponents)
+	networkComponents := componentsMock.GetNetworkComponents(cryptoComponents)
 	stateComponents := componentsMock.GetStateComponents(coreComponents, shardCoordinator)
 	processArgs := componentsMock.GetProcessArgs(
 		shardCoordinator,
