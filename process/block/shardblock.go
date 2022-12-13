@@ -2,6 +2,7 @@ package block
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"math/big"
 	"time"
@@ -203,6 +204,10 @@ func (sp *shardProcessor) ProcessBlock(
 	header, ok := headerHandler.(data.ShardHeaderHandler)
 	if !ok {
 		return process.ErrWrongTypeAssertion
+	}
+
+	if header.GetNonce() >= 1000 {
+		return errors.New("testing-forced error shard block")
 	}
 
 	body, ok := bodyHandler.(*block.Body)
