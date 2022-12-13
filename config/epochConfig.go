@@ -89,6 +89,7 @@ type EnableEpochs struct {
 	RuntimeMemStoreLimitEnableEpoch                   uint32
 	SetSenderInEeiOutputTransferEnableEpoch           uint32
 	RefactorPeersMiniBlocksEnableEpoch                uint32
+	DynamicGasCostForDataTrieStorageLoadEnableEpoch   uint32
 	BLSMultiSignerEnableEpoch                         []MultiSignerConfig
 }
 

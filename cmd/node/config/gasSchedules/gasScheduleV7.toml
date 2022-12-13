@@ -687,3 +687,14 @@
     LocalsUnmetered = 100
     MaxMemoryGrowDelta = 1
     MaxMemoryGrow = 10
+
+# A, B and C are the coefficients for a quadratic func. Separate variables are used for the
+# sign of each coefficient, 0 meaning + and 1 meaning -
+# The current values for the coefficients were computed based on benchmarking
+[DynamicStorageLoad]
+    A = 687
+    SignOfA = 0
+    B = 30483
+    SignOfB = 0
+    C = 15883
+    SignOfC = 1
