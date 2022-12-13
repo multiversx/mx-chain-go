@@ -608,6 +608,7 @@ func createHardForkExporter(
 			WhiteListerVerifiedTxs:   node.WhiteListerVerifiedTxs,
 			InterceptorsContainer:    node.InterceptorsContainer,
 			ExistingResolvers:        node.ResolversContainer,
+			ExistingRequesters:       node.RequestersContainer,
 			NodesCoordinator:         node.NodesCoordinator,
 			HeaderSigVerifier:        node.HeaderSigVerifier,
 			HeaderIntegrityVerifier:  node.HeaderIntegrityVerifier,

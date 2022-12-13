@@ -100,6 +100,14 @@ type PeersRatingHandler interface {
 // PeerTopicNotifier represent an entity able to handle new notifications on a new peer on a topic
 type PeerTopicNotifier = p2p.PeerTopicNotifier
 
+// P2PSigningHandler defines the behaviour of a component able to verify p2p message signature
+type P2PSigningHandler interface {
+	Verify(message MessageP2P) error
+	Serialize(messages []MessageP2P) ([]byte, error)
+	Deserialize(messagesBytes []byte) ([]MessageP2P, error)
+	IsInterfaceNil() bool
+}
+
 // IdentityGenerator represent an entity able to create a random p2p identity
 type IdentityGenerator interface {
 	CreateRandomP2PIdentity() ([]byte, core.PeerID, error)

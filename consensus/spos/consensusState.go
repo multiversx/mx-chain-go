@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 )
 
@@ -23,6 +24,9 @@ type ConsensusState struct {
 
 	receivedHeaders    []data.HeaderHandler
 	mutReceivedHeaders sync.RWMutex
+
+	receivedMessagesWithSignature    map[string]p2p.MessageP2P
+	mutReceivedMessagesWithSignature sync.RWMutex
 
 	RoundIndex                  int64
 	RoundTimeStamp              time.Time
@@ -63,6 +67,7 @@ func (cns *ConsensusState) ResetConsensusState() {
 	cns.Data = nil
 
 	cns.initReceivedHeaders()
+	cns.initReceivedMessagesWithSig()
 
 	cns.RoundCanceled = false
 	cns.ExtendedCalled = false
@@ -76,6 +81,12 @@ func (cns *ConsensusState) initReceivedHeaders() {
 	cns.mutReceivedHeaders.Lock()
 	cns.receivedHeaders = make([]data.HeaderHandler, 0)
 	cns.mutReceivedHeaders.Unlock()
+}
+
+func (cns *ConsensusState) initReceivedMessagesWithSig() {
+	cns.mutReceivedMessagesWithSignature.Lock()
+	cns.receivedMessagesWithSignature = make(map[string]p2p.MessageP2P)
+	cns.mutReceivedMessagesWithSignature.Unlock()
 }
 
 // AddReceivedHeader append the provided header to the inner received headers list
@@ -92,6 +103,22 @@ func (cns *ConsensusState) GetReceivedHeaders() []data.HeaderHandler {
 	cns.mutReceivedHeaders.RUnlock()
 
 	return receivedHeaders
+}
+
+// AddMessageWithSignature will add the p2p message to received list of messages
+func (cns *ConsensusState) AddMessageWithSignature(key string, message p2p.MessageP2P) {
+	cns.mutReceivedMessagesWithSignature.Lock()
+	cns.receivedMessagesWithSignature[key] = message
+	cns.mutReceivedMessagesWithSignature.Unlock()
+}
+
+// GetMessageWithSignature will get the p2p message based on key
+func (cns *ConsensusState) GetMessageWithSignature(key string) (p2p.MessageP2P, bool) {
+	cns.mutReceivedMessagesWithSignature.RLock()
+	defer cns.mutReceivedMessagesWithSignature.RUnlock()
+
+	val, ok := cns.receivedMessagesWithSignature[key]
+	return val, ok
 }
 
 // IsNodeLeaderInCurrentRound method checks if the given node is leader in the current round
