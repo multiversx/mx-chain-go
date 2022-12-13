@@ -1556,23 +1556,13 @@ func DisplayAndStartNodes(nodes []*TestProcessorNode) {
 		pkTxBuff, _ := n.OwnAccount.PkTxSign.ToByteArray()
 		pkNode := n.NodesCoordinator.GetOwnPublicKey()
 
-		encodedPkNode, err := TestValidatorPubkeyConverter.Encode(pkNode)
-		if err != nil {
-			log.Info(fmt.Sprintf("Encoding failed for Shard ID: %v, pkNode: %s ",
-				n.ShardCoordinator.SelfId(),
-				encodedPkNode))
-		}
+		encodedPkNode := TestValidatorPubkeyConverter.SilentEncode(pkNode, log)
 
 		log.Info(fmt.Sprintf("Shard ID: %v, pkNode: %s",
 			n.ShardCoordinator.SelfId(),
 			encodedPkNode))
 
-		encodedPkTxBuff, err := TestAddressPubkeyConverter.Encode(pkTxBuff)
-		if err != nil {
-			log.Info(fmt.Sprintf("Encoding failed for Shard ID: %v, pkNode: %s ",
-				n.ShardCoordinator.SelfId(),
-				encodedPkTxBuff))
-		}
+		encodedPkTxBuff := TestAddressPubkeyConverter.SilentEncode(pkTxBuff, log)
 
 		log.Info(fmt.Sprintf("skTx: %s, pkTx: %s",
 			hex.EncodeToString(skTxBuff),

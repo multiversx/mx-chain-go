@@ -12,12 +12,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/process"
 	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
+
+var log = logger.GetOrCreate("process/txSimulator")
 
 // ArgsTxSimulator holds the arguments required for creating a new transaction simulator
 type ArgsTxSimulator struct {
@@ -217,16 +220,10 @@ func (ts *transactionSimulator) adaptSmartContractResult(scr *smartContractResul
 	}
 
 	if scr.OriginalSender != nil {
-		resScr.OriginalSender, err = ts.addressPubKeyConverter.Encode(scr.OriginalSender)
-		if err != nil {
-			return nil, err
-		}
+		resScr.OriginalSender = ts.addressPubKeyConverter.SilentEncode(scr.OriginalSender, log)
 	}
 	if scr.RelayerAddr != nil {
-		resScr.RelayerAddr, err = ts.addressPubKeyConverter.Encode(scr.RelayerAddr)
-		if err != nil {
-			return nil, err
-		}
+		resScr.RelayerAddr = ts.addressPubKeyConverter.SilentEncode(scr.RelayerAddr, log)
 	}
 
 	return resScr, nil
