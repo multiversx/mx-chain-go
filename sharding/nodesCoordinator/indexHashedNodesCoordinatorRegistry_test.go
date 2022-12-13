@@ -78,8 +78,6 @@ func validatorsEqualSerializableValidators(validators []Validator, sValidators [
 }
 
 func TestIndexHashedNodesCoordinator_LoadStateAfterSave(t *testing.T) {
-	t.Parallel()
-
 	args := createArguments()
 	nodesCoordinator, _ := NewIndexHashedNodesCoordinator(args)
 
@@ -102,8 +100,6 @@ func TestIndexHashedNodesCoordinator_LoadStateAfterSave(t *testing.T) {
 }
 
 func TestIndexHashedNodesCooridinator_nodesCoordinatorToRegistry(t *testing.T) {
-	t.Parallel()
-
 	args := createArguments()
 	nodesCoordinator, _ := NewIndexHashedNodesCoordinator(args)
 
@@ -138,8 +134,6 @@ func TestIndexHashedNodesCoordinator_registryToNodesCoordinator(t *testing.T) {
 }
 
 func TestIndexHashedNodesCooridinator_nodesCoordinatorToRegistryLimitNumEpochsInRegistry(t *testing.T) {
-	t.Parallel()
-
 	args := createArguments()
 	args.Epoch = 100
 	nodesCoordinator, _ := NewIndexHashedNodesCoordinator(args)
@@ -173,8 +167,6 @@ func TestIndexHashedNodesCooridinator_nodesCoordinatorToRegistryLimitNumEpochsIn
 }
 
 func TestIndexHashedNodesCoordinator_epochNodesConfigToEpochValidators(t *testing.T) {
-	t.Parallel()
-
 	args := createArguments()
 	nc, _ := NewIndexHashedNodesCoordinator(args)
 
@@ -199,8 +191,6 @@ func TestIndexHashedNodesCoordinator_epochValidatorsToEpochNodesConfig(t *testin
 }
 
 func TestIndexHashedNodesCoordinator_validatorArrayToSerializableValidatorArray(t *testing.T) {
-	t.Parallel()
-
 	validatorsMap := createDummyNodesMap(5, 2, "dummy")
 
 	for _, validatorsArray := range validatorsMap {
@@ -210,8 +200,6 @@ func TestIndexHashedNodesCoordinator_validatorArrayToSerializableValidatorArray(
 }
 
 func TestIndexHashedNodesCoordinator_serializableValidatorsMapToValidatorsMap(t *testing.T) {
-	t.Parallel()
-
 	validatorsMap := createDummyNodesMap(5, 2, "dummy")
 	sValidatorsMap := make(map[string][]*SerializableValidator)
 
@@ -224,8 +212,6 @@ func TestIndexHashedNodesCoordinator_serializableValidatorsMapToValidatorsMap(t 
 }
 
 func TestIndexHashedNodesCoordinator_serializableValidatorArrayToValidatorArray(t *testing.T) {
-	t.Parallel()
-
 	validatorsMap := createDummyNodesMap(5, 2, "dummy")
 
 	for _, validatorsArray := range validatorsMap {
