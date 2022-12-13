@@ -2207,10 +2207,7 @@ func (e *esdt) isAddressValid(addressBytes []byte) bool {
 		return false
 	}
 
-	encodedAddress, err := e.addressPubKeyConverter.Encode(addressBytes)
-	if err != nil {
-		return false
-	}
+	encodedAddress := e.addressPubKeyConverter.SilentEncode(addressBytes, log)
 
 	return encodedAddress != ""
 }

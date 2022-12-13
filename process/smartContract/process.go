@@ -1746,17 +1746,12 @@ func (sc *scProcessor) printScDeployed(vmOutput *vmcommon.VMOutput, tx data.Tran
 			continue
 		}
 
-		scAddress, err := sc.pubkeyConv.Encode(addr)
-		if err != nil {
-			log.Debug("printScDeployed(), error occured while encoding Smart Contract Address")
-		}
+		scAddress := sc.pubkeyConv.SilentEncode(addr, log)
+
 		scGenerated = append(scGenerated, scAddress)
 	}
 
-	encodedSndAddr, err := sc.pubkeyConv.Encode(tx.GetSndAddr())
-	if err != nil {
-		log.Debug("printScDeployed(), error occured while encoding Sender Address")
-	}
+	encodedSndAddr := sc.pubkeyConv.SilentEncode(tx.GetSndAddr(), log)
 
 	log.Debug("SmartContract deployed",
 		"owner", encodedSndAddr,
@@ -2565,10 +2560,7 @@ func (sc *scProcessor) updateSmartContractCode(
 		},
 	}
 
-	encodedOutputAccountAddr, err := sc.pubkeyConv.Encode(outputAccount.Address)
-	if err != nil {
-		return err
-	}
+	encodedOutputAccountAddr := sc.pubkeyConv.SilentEncode(outputAccount.Address, log)
 
 	if isDeployment {
 		// At this point, we are under the condition "noExistingOwner"

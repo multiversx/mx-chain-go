@@ -41,10 +41,7 @@ func (tu *txUnmarshaller) unmarshalReceipt(receiptBytes []byte) (*transaction.Ap
 		return nil, err
 	}
 
-	senderAddress, err := tu.addressPubKeyConverter.Encode(rec.SndAddr)
-	if err != nil {
-		return nil, err
-	}
+	senderAddress := tu.addressPubKeyConverter.SilentEncode(rec.SndAddr, log)
 
 	return &transaction.ApiReceipt{
 		Value:   rec.Value,
@@ -211,28 +208,20 @@ func (tu *txUnmarshaller) prepareUnsignedTx(tx *smartContractResult.SmartContrac
 		OriginalTransactionHash: hex.EncodeToString(tx.GetOriginalTxHash()),
 		ReturnMessage:           string(tx.GetReturnMessage()),
 		CallType:                tx.CallType.ToString(),
+		RelayerAddress:          tu.getEncodedAddress(tx.GetRelayerAddr()),
 		RelayedValue:            bigIntToStr(tx.GetRelayedValue()),
-	}
-
-	txResult.OriginalSender, err = tu.getEncodedAddress(tx.GetOriginalSender())
-	if err != nil {
-		return nil, err
-	}
-
-	txResult.RelayerAddress, err = tu.getEncodedAddress(tx.GetRelayerAddr())
-	if err != nil {
-		return nil, err
+		OriginalSender:          tu.getEncodedAddress(tx.GetOriginalSender()),
 	}
 
 	return txResult, nil
 }
 
-func (tu *txUnmarshaller) getEncodedAddress(address []byte) (string, error) {
+func (tu *txUnmarshaller) getEncodedAddress(address []byte) string {
 	if len(address) == tu.addressPubKeyConverter.Len() {
-		return tu.addressPubKeyConverter.Encode(address)
+		return tu.addressPubKeyConverter.SilentEncode(address, log)
 	}
 
-	return "", nil
+	return ""
 }
 
 func bigIntToStr(value *big.Int) string {

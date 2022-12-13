@@ -678,8 +678,6 @@ func DisplayProcessTxDetails(
 	txHash []byte,
 	addressPubkeyConverter core.PubkeyConverter,
 ) {
-	var err error
-
 	if !check.IfNil(accountHandler) {
 		account, ok := accountHandler.(state.UserAccountHandler)
 		if ok {
@@ -697,16 +695,14 @@ func DisplayProcessTxDetails(
 		return
 	}
 
-	receiver := ""
+	receiverAddress := ""
 	if len(txHandler.GetRcvAddr()) == addressPubkeyConverter.Len() {
-		receiver, err = addressPubkeyConverter.Encode(txHandler.GetRcvAddr())
-		log.Debug("DisplayProcessTxDetails(), error occured while encoding receiver address ", "error", err)
+		receiverAddress = addressPubkeyConverter.SilentEncode(txHandler.GetRcvAddr(), log)
 	}
 
-	sender := ""
+	senderAddress := ""
 	if len(txHandler.GetSndAddr()) == addressPubkeyConverter.Len() {
-		sender, err = addressPubkeyConverter.Encode(txHandler.GetSndAddr())
-		log.Debug("DisplayProcessTxDetails(), error occured while encoding sender address ", "error", err)
+		senderAddress = addressPubkeyConverter.SilentEncode(txHandler.GetSndAddr(), log)
 	}
 
 	log.Trace("executing transaction",
@@ -716,8 +712,8 @@ func DisplayProcessTxDetails(
 		"gas limit", txHandler.GetGasLimit(),
 		"gas price", txHandler.GetGasPrice(),
 		"data", hex.EncodeToString(txHandler.GetData()),
-		"sender", sender,
-		"receiver", receiver)
+		"sender", senderAddress,
+		"receiver", receiverAddress)
 }
 
 // IsAllowedToSaveUnderKey returns if saving key-value in data tries under given key is allowed

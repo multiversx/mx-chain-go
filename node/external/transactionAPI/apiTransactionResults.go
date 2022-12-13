@@ -120,10 +120,7 @@ func (arp *apiTransactionResultsProcessor) putSmartContractResultsInTransactionB
 			return fmt.Errorf("%w: %v, hash = %s", errCannotLoadContractResults, err, hex.EncodeToString(scrHash))
 		}
 
-		scrAPI, err := arp.adaptSmartContractResult(scrHash, scr)
-		if err != nil {
-			return err
-		}
+		scrAPI := arp.adaptSmartContractResult(scrHash, scr)
 
 		arp.loadLogsIntoContractResults(scrHash, epoch, scrAPI)
 
@@ -171,7 +168,7 @@ func (arp *apiTransactionResultsProcessor) getScrFromStorage(hash []byte, epoch 
 	return scr, nil
 }
 
-func (arp *apiTransactionResultsProcessor) adaptSmartContractResult(scrHash []byte, scr *smartContractResult.SmartContractResult) (*transaction.ApiSmartContractResult, error) {
+func (arp *apiTransactionResultsProcessor) adaptSmartContractResult(scrHash []byte, scr *smartContractResult.SmartContractResult) *transaction.ApiSmartContractResult {
 	var err error
 
 	isRefund := arp.refundDetector.isRefund(refundDetectorInput{
@@ -199,31 +196,19 @@ func (arp *apiTransactionResultsProcessor) adaptSmartContractResult(scrHash []by
 	}
 
 	if len(scr.SndAddr) == arp.addressPubKeyConverter.Len() {
-		apiSCR.SndAddr, err = arp.addressPubKeyConverter.Encode(scr.SndAddr)
-		if err != nil {
-			return nil, err
-		}
+		apiSCR.SndAddr = arp.addressPubKeyConverter.SilentEncode(scr.SndAddr, log)
 	}
 
 	if len(scr.RcvAddr) == arp.addressPubKeyConverter.Len() {
-		apiSCR.RcvAddr, err = arp.addressPubKeyConverter.Encode(scr.RcvAddr)
-		if err != nil {
-			return nil, err
-		}
+		apiSCR.RcvAddr = arp.addressPubKeyConverter.SilentEncode(scr.RcvAddr, log)
 	}
 
 	if len(scr.RelayerAddr) == arp.addressPubKeyConverter.Len() {
-		apiSCR.RelayerAddr, err = arp.addressPubKeyConverter.Encode(scr.RelayerAddr)
-		if err != nil {
-			return nil, err
-		}
+		apiSCR.RelayerAddr = arp.addressPubKeyConverter.SilentEncode(scr.RelayerAddr, log)
 	}
 
 	if len(scr.OriginalSender) == arp.addressPubKeyConverter.Len() {
-		apiSCR.OriginalSender, err = arp.addressPubKeyConverter.Encode(scr.OriginalSender)
-		if err != nil {
-			return nil, err
-		}
+		apiSCR.OriginalSender = arp.addressPubKeyConverter.SilentEncode(scr.OriginalSender, log)
 	}
 
 	res := arp.dataFieldParser.Parse(scr.Data, scr.GetSndAddr(), scr.GetRcvAddr(), arp.shardCoordinator.NumberOfShards())
@@ -233,11 +218,11 @@ func (arp *apiTransactionResultsProcessor) adaptSmartContractResult(scrHash []by
 	apiSCR.Tokens = res.Tokens
 	apiSCR.Receivers, err = arp.addressPubKeyConverter.EncodeSlice(res.Receivers)
 	if err != nil {
-		return nil, err
+		log.Warn("bech32PubkeyConverter.EncodeSlice() failed while decoding apiSCR.Receivers with", "err", err, "hash", scrHash)
 	}
 
 	apiSCR.ReceiversShardIDs = res.ReceiversShardID
 	apiSCR.IsRelayed = res.IsRelayed
 
-	return apiSCR, nil
+	return apiSCR
 }

@@ -111,10 +111,7 @@ func (aap *alteredAccountsProvider) processMarkedAccountData(
 	options shared.AlteredAccountsOptions,
 ) error {
 	addressBytes := []byte(addressStr)
-	encodedAddress, err := aap.addressConverter.Encode(addressBytes)
-	if err != nil {
-		return err
-	}
+	encodedAddress := aap.addressConverter.SilentEncode(addressBytes, log)
 
 	userAccount, err := aap.loadUserAccount(addressBytes, options)
 	if err != nil {

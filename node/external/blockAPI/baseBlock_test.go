@@ -137,9 +137,7 @@ func TestBaseBlockGetIntraMiniblocksReceipts(t *testing.T) {
 	baseAPIBlockProc.apiTransactionHandler = &mock.TransactionAPIHandlerStub{
 		UnmarshalReceiptCalled: func(receiptBytes []byte) (*transaction.ApiReceipt, error) {
 			encodedSndAddrReceiptObj, err := baseAPIBlockProc.addressPubKeyConverter.Encode(receiptObj.SndAddr)
-			if err != nil {
-				return nil, err
-			}
+			require.NoError(t, err)
 
 			return &transaction.ApiReceipt{
 				Value:   receiptObj.Value,

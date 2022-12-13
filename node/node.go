@@ -365,6 +365,7 @@ func (n *Node) GetESDTData(address, tokenID string, nonce uint64, options api.Ac
 		if err != nil {
 			return nil, api.BlockInfo{}, err
 		}
+
 		esdtToken.TokenMetaData.Creator = []byte(esdtTokenCreatorAddr)
 	}
 
