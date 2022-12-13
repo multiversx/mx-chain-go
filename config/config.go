@@ -219,8 +219,11 @@ type Config struct {
 
 // PeersRatingConfig will hold settings related to peers rating
 type PeersRatingConfig struct {
-	TopRatedCacheCapacity int
-	BadRatedCacheCapacity int
+	TopRatedCacheCapacity           int
+	BadRatedCacheCapacity           int
+	TimeWaitingForReconnectionInSec int64
+	TimeBetweenMetricsUpdateInSec   int64
+	TimeBetweenCachersSweepInSec    int64
 }
 
 // LogsConfig will hold settings related to the logging sub-system
