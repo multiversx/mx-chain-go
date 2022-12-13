@@ -11,19 +11,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/state"
 )
 
 var headerVersion = []byte("1")
-
-// ArgsSovereignBlockProcessor holds all dependencies required by the process data factory in order to create
-//// new instances of sovereign block processor
-type ArgsSovereignBlockProcessor struct {
-	ArgShardProcessor
-	ValidatorStatisticsProcessor process.ValidatorStatisticsProcessor
-}
 
 type sovereignBlockProcessor struct {
 	*shardProcessor
@@ -32,21 +24,20 @@ type sovereignBlockProcessor struct {
 }
 
 // NewSovereignBlockProcessor creates a new sovereign block processor
-func NewSovereignBlockProcessor(arguments ArgsSovereignBlockProcessor) (*sovereignBlockProcessor, error) {
-	sp, err := NewShardProcessor(arguments.ArgShardProcessor)
-	if err != nil {
-		return nil, err
+func NewSovereignBlockProcessor(
+	shardProcessor *shardProcessor,
+	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
+	peerStatePruningQueueSize uint,
+) (*sovereignBlockProcessor, error) {
+
+	sbp := &sovereignBlockProcessor{
+		shardProcessor:               shardProcessor,
+		validatorStatisticsProcessor: validatorStatisticsProcessor,
 	}
 
-	sovereign := &sovereignBlockProcessor{
-		shardProcessor:               sp,
-		validatorStatisticsProcessor: arguments.ValidatorStatisticsProcessor,
-	}
+	sbp.peerStatePruningQueue = queue.NewSliceQueue(peerStatePruningQueueSize)
 
-	sovereign.scheduledTxsExecutionHandler = &disabled.ScheduledTxsExecutionHandler{}
-	sovereign.peerStatePruningQueue = queue.NewSliceQueue(arguments.Config.StateTriesConfig.PeerStatePruningQueueSize)
-
-	return sovereign, nil
+	return sbp, nil
 }
 
 // CreateNewHeader creates a new header

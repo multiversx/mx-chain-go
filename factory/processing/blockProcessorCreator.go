@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	metachainEpochStart "github.com/ElrondNetwork/elrond-go/epochStart/metachain"
+	customErrors "github.com/ElrondNetwork/elrond-go/errors"
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	processDisabled "github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
@@ -68,6 +69,7 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 		return pcf.newShardBlockProcessor(
 			requestHandler,
 			forkDetector,
+			validatorStatisticsProcessor,
 			epochStartTrigger,
 			bootStorer,
 			headerValidator,
@@ -106,6 +108,7 @@ var log = logger.GetOrCreate("factory")
 func (pcf *processComponentsFactory) newShardBlockProcessor(
 	requestHandler process.RequestHandler,
 	forkDetector process.ForkDetector,
+	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
 	epochStartTrigger process.EpochStartTriggerHandler,
 	bootStorer process.BootStorer,
 	headerValidator process.HeaderConstructionValidator,
@@ -277,7 +280,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	}
 	transactionProcessor, err := transaction.NewTxProcessor(argsNewTxProcessor)
 	if err != nil {
-		return nil, errors.New("could not create transaction statisticsProcessor: " + err.Error())
+		return nil, errors.New("could not create transaction processor: " + err.Error())
 	}
 
 	scheduledTxsExecutionHandler.SetTransactionProcessor(transactionProcessor)
@@ -418,16 +421,8 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		ReceiptsRepository:           receiptsRepository,
 		OutportDataProvider:          outportDataProvider,
 	}
-	arguments := block.ArgShardProcessor{
-		ArgBaseProcessor: argumentsBaseProcessor,
-	}
 
-	blockProcessor, err := block.NewShardProcessor(arguments)
-	if err != nil {
-		return nil, errors.New("could not create block statisticsProcessor: " + err.Error())
-	}
-
-	err = pcf.attachProcessDebugger(blockProcessor, pcf.config.Debug.Process)
+	blockProcessor, err := pcf.createBlockProcessor(argumentsBaseProcessor, validatorStatisticsProcessor)
 	if err != nil {
 		return nil, err
 	}
@@ -439,6 +434,38 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	}
 
 	return blockProcessorComponents, nil
+}
+
+func (pcf *processComponentsFactory) createBlockProcessor(
+	argumentsBaseProcessor block.ArgBaseProcessor,
+	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
+) (process.BlockProcessor, error) {
+	argShardProcessor := block.ArgShardProcessor{
+		ArgBaseProcessor: argumentsBaseProcessor,
+	}
+
+	shardProcessor, err := block.NewShardProcessor(argShardProcessor)
+	if err != nil {
+		return nil, errors.New("could not create shard block processor: " + err.Error())
+	}
+
+	err = pcf.attachProcessDebugger(shardProcessor, pcf.config.Debug.Process)
+	if err != nil {
+		return nil, err
+	}
+
+	switch pcf.chainRunType {
+	case common.ChainRunTypeRegular:
+		return shardProcessor, nil
+	case common.ChainRunTypeSovereign:
+		return block.NewSovereignBlockProcessor(
+			shardProcessor,
+			validatorStatisticsProcessor,
+			argShardProcessor.Config.StateTriesConfig.PeerStatePruningQueueSize,
+		)
+	default:
+		return nil, fmt.Errorf("%w type %v", customErrors.ErrUnimplementedChainRunType, pcf.chainRunType)
+	}
 }
 
 func (pcf *processComponentsFactory) newMetaBlockProcessor(
@@ -878,7 +905,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 
 	metaProcessor, err := block.NewMetaProcessor(arguments)
 	if err != nil {
-		return nil, errors.New("could not create block processor: " + err.Error())
+		return nil, errors.New("could not create meta block processor: " + err.Error())
 	}
 
 	err = pcf.attachProcessDebugger(metaProcessor, pcf.config.Debug.Process)

@@ -35,35 +35,77 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	pcf, err := processComp.NewProcessComponentsFactory(componentsMock.GetProcessComponentsFactoryArgs(shardCoordinator))
-	require.NoError(t, err)
-	require.NotNil(t, pcf)
+	t.Run("new block processor creator for shard in regular chain should work", func(t *testing.T) {
+		t.Parallel()
 
-	_, err = pcf.Create()
-	require.NoError(t, err)
+		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+		pcf, err := processComp.NewProcessComponentsFactory(componentsMock.GetProcessComponentsFactoryArgs(shardCoordinator))
+		require.NoError(t, err)
+		require.NotNil(t, pcf)
 
-	bp, vmFactoryForSimulate, err := pcf.NewBlockProcessor(
-		&testscommon.RequestHandlerStub{},
-		&mock.ForkDetectorStub{},
-		&mock.EpochStartTriggerStub{},
-		&mock.BoostrapStorerStub{},
-		&mock.ValidatorStatisticsProcessorStub{},
-		&mock.HeaderValidatorStub{},
-		&mock.BlockTrackerStub{},
-		&mock.PendingMiniBlocksHandlerStub{},
-		&txsimulator.ArgsTxSimulator{
-			VMOutputCacher: txcache.NewDisabledCache(),
-		},
-		&sync.RWMutex{},
-		&testscommon.ScheduledTxsExecutionStub{},
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&testscommon.ReceiptsRepositoryStub{},
-	)
+		pcf.SetChainRunType(common.ChainRunTypeRegular)
 
-	require.NoError(t, err)
-	require.NotNil(t, bp)
-	require.NotNil(t, vmFactoryForSimulate)
+		_, err = pcf.Create()
+		require.NoError(t, err)
+
+		bp, vmFactoryForSimulate, err := pcf.NewBlockProcessor(
+			&testscommon.RequestHandlerStub{},
+			&mock.ForkDetectorStub{},
+			&mock.EpochStartTriggerStub{},
+			&mock.BoostrapStorerStub{},
+			&mock.ValidatorStatisticsProcessorStub{},
+			&mock.HeaderValidatorStub{},
+			&mock.BlockTrackerStub{},
+			&mock.PendingMiniBlocksHandlerStub{},
+			&txsimulator.ArgsTxSimulator{
+				VMOutputCacher: txcache.NewDisabledCache(),
+			},
+			&sync.RWMutex{},
+			&testscommon.ScheduledTxsExecutionStub{},
+			&testscommon.ProcessedMiniBlocksTrackerStub{},
+			&testscommon.ReceiptsRepositoryStub{},
+		)
+
+		require.NoError(t, err)
+		require.NotNil(t, bp)
+		require.NotNil(t, vmFactoryForSimulate)
+	})
+
+	t.Run("new block processor creator for shard in sovereign chain should work", func(t *testing.T) {
+		t.Parallel()
+
+		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+		pcf, err := processComp.NewProcessComponentsFactory(componentsMock.GetProcessComponentsFactoryArgs(shardCoordinator))
+		require.NoError(t, err)
+		require.NotNil(t, pcf)
+
+		pcf.SetChainRunType(common.ChainRunTypeSovereign)
+
+		_, err = pcf.Create()
+		require.NoError(t, err)
+
+		bp, vmFactoryForSimulate, err := pcf.NewBlockProcessor(
+			&testscommon.RequestHandlerStub{},
+			&mock.ForkDetectorStub{},
+			&mock.EpochStartTriggerStub{},
+			&mock.BoostrapStorerStub{},
+			&mock.ValidatorStatisticsProcessorStub{},
+			&mock.HeaderValidatorStub{},
+			&mock.BlockTrackerStub{},
+			&mock.PendingMiniBlocksHandlerStub{},
+			&txsimulator.ArgsTxSimulator{
+				VMOutputCacher: txcache.NewDisabledCache(),
+			},
+			&sync.RWMutex{},
+			&testscommon.ScheduledTxsExecutionStub{},
+			&testscommon.ProcessedMiniBlocksTrackerStub{},
+			&testscommon.ReceiptsRepositoryStub{},
+		)
+
+		require.NoError(t, err)
+		require.NotNil(t, bp)
+		require.NotNil(t, vmFactoryForSimulate)
+	})
 }
 
 func Test_newBlockProcessorCreatorForMeta(t *testing.T) {

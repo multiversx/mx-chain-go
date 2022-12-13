@@ -38,6 +38,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/checking"
 	processGenesis "github.com/ElrondNetwork/elrond-go/genesis/process"
+	processDisabled "github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -540,19 +541,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		Marshalizer:            pcf.coreData.InternalMarshalizer(),
 	}
 
-	scheduledSCRSStorer, err := pcf.data.StorageService().GetStorer(dataRetriever.ScheduledSCRsUnit)
-	if err != nil {
-		return nil, err
-	}
-
-	scheduledTxsExecutionHandler, err := preprocess.NewScheduledTxsExecution(
-		&disabled.TxProcessor{},
-		&disabled.TxCoordinator{},
-		scheduledSCRSStorer,
-		pcf.coreData.InternalMarshalizer(),
-		pcf.coreData.Hasher(),
-		pcf.bootstrapComponents.ShardCoordinator(),
-	)
+	scheduledTxsExecutionHandler, err := pcf.createScheduledTxsExecutionHandler()
 	if err != nil {
 		return nil, err
 	}
@@ -704,6 +693,29 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		accountsParser:               pcf.accountsParser,
 		receiptsRepository:           receiptsRepository,
 	}, nil
+}
+
+func (pcf *processComponentsFactory) createScheduledTxsExecutionHandler() (process.ScheduledTxsExecutionHandler, error) {
+	switch pcf.chainRunType {
+	case common.ChainRunTypeRegular:
+		scheduledSCRSStorer, err := pcf.data.StorageService().GetStorer(dataRetriever.ScheduledSCRsUnit)
+		if err != nil {
+			return nil, err
+		}
+
+		return preprocess.NewScheduledTxsExecution(
+			&disabled.TxProcessor{},
+			&disabled.TxCoordinator{},
+			scheduledSCRSStorer,
+			pcf.coreData.InternalMarshalizer(),
+			pcf.coreData.Hasher(),
+			pcf.bootstrapComponents.ShardCoordinator(),
+		)
+	case common.ChainRunTypeSovereign:
+		return &processDisabled.ScheduledTxsExecutionHandler{}, nil
+	default:
+		return nil, fmt.Errorf("%w type %v", customErrors.ErrUnimplementedChainRunType, pcf.chainRunType)
+	}
 }
 
 func (pcf *processComponentsFactory) newValidatorStatisticsProcessor() (process.ValidatorStatisticsProcessor, error) {
