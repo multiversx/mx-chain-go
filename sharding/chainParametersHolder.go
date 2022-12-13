@@ -29,12 +29,18 @@ func NewChainParametersHolder(args ArgsChainParametersHolder) (*chainParametersH
 	}
 
 	chainParameters := args.ChainParameters
+	// sort the config values in descending order
 	sort.SliceStable(chainParameters, func(i, j int) bool {
-		return chainParameters[i].EnableEpoch < chainParameters[j].EnableEpoch
+		return chainParameters[i].EnableEpoch > chainParameters[j].EnableEpoch
 	})
 
+	currentParams, err := getMatchingChainParametersUnprotected(args.EpochNotifier.CurrentEpoch(), args.ChainParameters)
+	if err != nil {
+		return nil, err
+	}
+
 	paramsHolder := &chainParametersHolder{
-		currentChainParameters: args.ChainParameters[0],
+		currentChainParameters: currentParams,
 		chainParameters:        args.ChainParameters,
 	}
 
@@ -47,13 +53,14 @@ func validateArgs(args ArgsChainParametersHolder) error {
 	if check.IfNil(args.EpochNotifier) {
 		return ErrNilEpochNotifier
 	}
-
 	if len(args.ChainParameters) == 0 {
 		return ErrMissingChainParameters
 	}
+	return validateChainParameters(args.ChainParameters)
+}
 
-	// TODO: extract the checks to a validateChainParameters function
-	for idx, chainParameters := range args.ChainParameters {
+func validateChainParameters(chainParametersConfig []config.ChainParametersByEpochConfig) error {
+	for idx, chainParameters := range chainParametersConfig {
 		if chainParameters.ShardConsensusGroupSize < 1 {
 			return fmt.Errorf("%w for chain parameters with index %d", ErrNegativeOrZeroConsensusGroupSize, idx)
 		}
@@ -68,6 +75,18 @@ func validateArgs(args ArgsChainParametersHolder) error {
 		}
 	}
 
+	doesConfigForEpochZeroExist := false
+	for _, chainParams := range chainParametersConfig {
+		if chainParams.EnableEpoch == 0 {
+			doesConfigForEpochZeroExist = true
+			break
+		}
+	}
+
+	if !doesConfigForEpochZeroExist {
+		return fmt.Errorf("%w while creating chainParametersHolde", ErrMissingConfigurationForEpochZero)
+	}
+
 	return nil
 }
 
@@ -76,7 +95,11 @@ func (c *chainParametersHolder) EpochConfirmed(epoch uint32, _ uint64) {
 	c.mutOperations.Lock()
 	defer c.mutOperations.Unlock()
 
-	matchingVersionForNewEpoch := c.getMatchingChainParametersUnprotected(epoch)
+	matchingVersionForNewEpoch, err := getMatchingChainParametersUnprotected(epoch, c.chainParameters)
+	if err != nil {
+		log.Error("chainParametersHolder.EpochConfirmed: %w for epoch %d", err, epoch)
+		return
+	}
 	if matchingVersionForNewEpoch.EnableEpoch == c.currentChainParameters.EnableEpoch {
 		return
 	}
@@ -107,29 +130,31 @@ func (c *chainParametersHolder) AllChainParameters() []config.ChainParametersByE
 	c.mutOperations.RLock()
 	defer c.mutOperations.RUnlock()
 
-	// TODO: return a copy of the object
-	return c.chainParameters
+	chainParametersCopy := make([]config.ChainParametersByEpochConfig, len(c.chainParameters))
+	for idx, chainParameterForEpoch := range c.chainParameters {
+		chainParametersCopy[idx] = chainParameterForEpoch
+	}
+
+	return chainParametersCopy
 }
 
 // ChainParametersForEpoch will return the corresponding chain parameters for the provided epoch
-func (c *chainParametersHolder) ChainParametersForEpoch(epoch uint32) config.ChainParametersByEpochConfig {
+func (c *chainParametersHolder) ChainParametersForEpoch(epoch uint32) (config.ChainParametersByEpochConfig, error) {
 	c.mutOperations.RLock()
 	defer c.mutOperations.RUnlock()
 
-	return c.getMatchingChainParametersUnprotected(epoch)
+	return getMatchingChainParametersUnprotected(epoch, c.chainParameters)
 }
 
-func (c *chainParametersHolder) getMatchingChainParametersUnprotected(epoch uint32) config.ChainParametersByEpochConfig {
-	chainParametersForEpoch := c.chainParameters[0]
-	for _, chainParams := range c.chainParameters {
-		if chainParams.EnableEpoch > epoch {
-			break
+func getMatchingChainParametersUnprotected(epoch uint32, configValues []config.ChainParametersByEpochConfig) (config.ChainParametersByEpochConfig, error) {
+	for _, chainParams := range configValues {
+		if chainParams.EnableEpoch <= epoch {
+			return chainParams, nil
 		}
-
-		chainParametersForEpoch = chainParams
 	}
 
-	return chainParametersForEpoch
+	// should never reach this code, as the config values are checked on the constructor
+	return config.ChainParametersByEpochConfig{}, ErrNoMatchingConfigurationFound
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

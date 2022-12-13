@@ -1148,3 +1148,9 @@ var ErrPropertyTooShort = errors.New("property too short")
 
 // ErrNilProcessDebugger signals that a nil process debugger was provided
 var ErrNilProcessDebugger = errors.New("nil process debugger")
+
+// ErrMissingConfigurationForEpochZero signals that the provided configuration doesn't include anything for epoch 0
+var ErrMissingConfigurationForEpochZero = errors.New("missing configuration for epoch 0")
+
+// ErrEmptyChainParametersConfiguration signals that an empty chain parameters configuration has been provided
+var ErrEmptyChainParametersConfiguration = errors.New("empty chain parameters configuration")

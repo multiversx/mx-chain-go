@@ -31,10 +31,10 @@ var (
 	}
 )
 
-func createAndAssignNodes(ns *NodesSetup, noOfInitialNodes int) *NodesSetup {
-	ns.InitialNodes = make([]*InitialNode, noOfInitialNodes)
+func createAndAssignNodes(ns *NodesSetup, numInitialNodes int) *NodesSetup {
+	ns.InitialNodes = make([]*InitialNode, numInitialNodes)
 
-	for i := 0; i < noOfInitialNodes; i++ {
+	for i := 0; i < numInitialNodes; i++ {
 		lookupIndex := i % len(pubKeys)
 		ns.InitialNodes[i] = &InitialNode{}
 		ns.InitialNodes[i].PubKey = pubKeys[lookupIndex]
@@ -77,14 +77,14 @@ func createTestNodesSetup(args argsTestNodesSetup) (*NodesSetup, error) {
 			InitialNodes: initialNodes,
 		},
 		&shardingmock.ChainParametersHandlerStub{
-			ChainParametersForEpochCalled: func(epoch uint32) config.ChainParametersByEpochConfig {
+			ChainParametersForEpochCalled: func(epoch uint32) (config.ChainParametersByEpochConfig, error) {
 				return config.ChainParametersByEpochConfig{
 					EnableEpoch:                 0,
 					ShardMinNumNodes:            args.shardMinNodes,
 					ShardConsensusGroupSize:     args.shardConsensusSize,
 					MetachainMinNumNodes:        args.metaMinNodes,
 					MetachainConsensusGroupSize: args.metaConsensusSize,
-				}
+				}, nil
 			},
 		},
 		mock.NewPubkeyConverterMock(32),

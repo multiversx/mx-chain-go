@@ -113,6 +113,16 @@ func TestNewChainParametersHolder(t *testing.T) {
 		require.Contains(t, err.Error(), "index 1")
 	})
 
+	t.Run("no config for epoch 0", func(t *testing.T) {
+		t.Parallel()
+
+		args := getDummyArgs()
+		args.ChainParameters[0].EnableEpoch = 37
+		paramsHolder, err := NewChainParametersHolder(args)
+		require.True(t, check.IfNil(paramsHolder))
+		require.ErrorIs(t, err, ErrMissingConfigurationForEpochZero)
+	})
+
 	t.Run("should work and have the data ready", func(t *testing.T) {
 		t.Parallel()
 
@@ -129,7 +139,7 @@ func TestNewChainParametersHolder(t *testing.T) {
 
 		currentValue := paramsHolder.chainParameters[0]
 		for i := 1; i < len(paramsHolder.chainParameters); i++ {
-			require.Less(t, currentValue.EnableEpoch, paramsHolder.chainParameters[i].EnableEpoch)
+			require.Less(t, paramsHolder.chainParameters[i].EnableEpoch, currentValue.EnableEpoch)
 			currentValue = paramsHolder.chainParameters[i]
 		}
 
@@ -158,15 +168,15 @@ func TestChainParametersHolder_ChainParametersForEpoch(t *testing.T) {
 			EpochNotifier:   &epochNotifier.EpochNotifierStub{},
 		})
 
-		res := paramsHolder.ChainParametersForEpoch(0)
+		res, _ := paramsHolder.ChainParametersForEpoch(0)
 		require.Equal(t, uint32(5), res.ShardConsensusGroupSize)
 		require.Equal(t, uint32(7), res.MetachainConsensusGroupSize)
 
-		res = paramsHolder.ChainParametersForEpoch(1)
+		res, _ = paramsHolder.ChainParametersForEpoch(1)
 		require.Equal(t, uint32(5), res.ShardConsensusGroupSize)
 		require.Equal(t, uint32(7), res.MetachainConsensusGroupSize)
 
-		res = paramsHolder.ChainParametersForEpoch(3700)
+		res, _ = paramsHolder.ChainParametersForEpoch(3700)
 		require.Equal(t, uint32(5), res.ShardConsensusGroupSize)
 		require.Equal(t, uint32(7), res.MetachainConsensusGroupSize)
 	})
@@ -204,7 +214,7 @@ func TestChainParametersHolder_ChainParametersForEpoch(t *testing.T) {
 		})
 
 		for i := 0; i < 200; i++ {
-			res := paramsHolder.ChainParametersForEpoch(uint32(i))
+			res, _ := paramsHolder.ChainParametersForEpoch(uint32(i))
 			if i < 10 {
 				require.Equal(t, uint32(5), res.ShardConsensusGroupSize)
 				require.Equal(t, uint32(7), res.MetachainConsensusGroupSize)
@@ -257,6 +267,34 @@ func TestChainParametersHolder_CurrentChainParameters(t *testing.T) {
 	require.Equal(t, uint32(50), paramsHolder.CurrentChainParameters().ShardConsensusGroupSize)
 }
 
+func TestChainParametersHolder_AllChainParameters(t *testing.T) {
+	t.Parallel()
+
+	params := []config.ChainParametersByEpochConfig{
+		{
+			EnableEpoch:                 0,
+			ShardConsensusGroupSize:     5,
+			ShardMinNumNodes:            7,
+			MetachainConsensusGroupSize: 7,
+			MetachainMinNumNodes:        7,
+		},
+		{
+			EnableEpoch:                 10,
+			ShardConsensusGroupSize:     50,
+			ShardMinNumNodes:            70,
+			MetachainConsensusGroupSize: 70,
+			MetachainMinNumNodes:        70,
+		},
+	}
+
+	paramsHolder, _ := NewChainParametersHolder(ArgsChainParametersHolder{
+		ChainParameters: params,
+		EpochNotifier:   &epochNotifier.EpochNotifierStub{},
+	})
+
+	require.Equal(t, params, paramsHolder.AllChainParameters())
+}
+
 func TestChainParametersHolder_ConcurrentOperations(t *testing.T) {
 	chainParams := make([]config.ChainParametersByEpochConfig, 0)
 	for i := uint32(0); i <= 100; i += 5 {
@@ -288,7 +326,7 @@ func TestChainParametersHolder_ConcurrentOperations(t *testing.T) {
 			case 1:
 				_ = paramsHolder.CurrentChainParameters()
 			case 2:
-				_ = paramsHolder.ChainParametersForEpoch(uint32(idx))
+				_, _ = paramsHolder.ChainParametersForEpoch(uint32(idx))
 			case 3:
 				_ = paramsHolder.AllChainParameters()
 			}
