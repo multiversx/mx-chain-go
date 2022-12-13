@@ -97,7 +97,7 @@ func (c *chainParametersHolder) EpochConfirmed(epoch uint32, _ uint64) {
 
 	matchingVersionForNewEpoch, err := getMatchingChainParametersUnprotected(epoch, c.chainParameters)
 	if err != nil {
-		log.Error("chainParametersHolder.EpochConfirmed: %w for epoch %d", err, epoch)
+		log.Error("chainParametersHolder.EpochConfirmed: cannot get matching chain parameters", "epoch", epoch, "error", err)
 		return
 	}
 	if matchingVersionForNewEpoch.EnableEpoch == c.currentChainParameters.EnableEpoch {

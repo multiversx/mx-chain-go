@@ -1154,3 +1154,6 @@ var ErrMissingConfigurationForEpochZero = errors.New("missing configuration for 
 
 // ErrEmptyChainParametersConfiguration signals that an empty chain parameters configuration has been provided
 var ErrEmptyChainParametersConfiguration = errors.New("empty chain parameters configuration")
+
+// ErrNoMatchingConfigForProvidedEpoch signals that there is no matching configuration for the provided epoch
+var ErrNoMatchingConfigForProvidedEpoch = errors.New("no matching configuration")
