@@ -67,9 +67,9 @@ func (s *sorter) PutExecutionOrderInTransactionPool(
 	// scheduled from me, need to be sorted
 	txsSort.SortTransactionsBySenderAndNonceWithFrontRunningProtectionExtendedTransactions(scheduledTransactionsFromMe, s.hasher, header.GetPrevRandSeed())
 
-	allTransaction := append(transactionsToMe, scheduledTransactionsToMe...)
-	allTransaction = append(allTransaction, transactionsFromMe...)
+	allTransaction := append(transactionsToMe, transactionsFromMe...)
 	allTransaction = append(allTransaction, rewardsTxs...)
+	allTransaction = append(allTransaction, scheduledTransactionsToMe...)
 	allTransaction = append(allTransaction, scheduledTransactionsFromMe...)
 
 	for idx, tx := range allTransaction {
