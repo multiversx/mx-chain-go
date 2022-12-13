@@ -14,7 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing"
+	"github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519/singlesig"
 	"github.com/stretchr/testify/require"
@@ -183,7 +183,7 @@ func getPubkeyOfAddress(t *testing.T, address string) []byte {
 }
 
 func computeTransactionSignature(t *testing.T, senderSeedHex string, tx *transaction.Transaction) []byte {
-	keyGenerator := signing.NewKeyGenerator(signingCryptoSuite)
+	keyGenerator := crypto.NewKeyGenerator(signingCryptoSuite)
 
 	senderSeed, err := hex.DecodeString(senderSeedHex)
 	require.Nil(t, err)

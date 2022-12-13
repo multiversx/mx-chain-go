@@ -1,6 +1,6 @@
 package crypto
 
-import crypto "github.com/ElrondNetwork/elrond-go-crypto"
+import "github.com/ElrondNetwork/elrond-go-crypto"
 
 // MultiSignerContainer defines the container for different versioned multiSigner instances
 type MultiSignerContainer interface {

@@ -1,6 +1,6 @@
 package cryptoMocks
 
-import crypto "github.com/ElrondNetwork/elrond-go-crypto"
+import "github.com/ElrondNetwork/elrond-go-crypto"
 
 // MultiSignerContainerMock -
 type MultiSignerContainerMock struct {

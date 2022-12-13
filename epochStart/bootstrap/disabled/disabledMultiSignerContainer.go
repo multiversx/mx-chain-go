@@ -1,6 +1,6 @@
 package disabled
 
-import crypto "github.com/ElrondNetwork/elrond-go-crypto"
+import "github.com/ElrondNetwork/elrond-go-crypto"
 
 type disabledMultiSignerContainer struct {
 	multiSigner crypto.MultiSigner

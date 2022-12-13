@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
 	mclsig "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/singlesig"
 	"github.com/stretchr/testify/require"
@@ -22,7 +21,7 @@ MGQ1YTAzZTkxNWYxZTIxZg==
 `
 
 var blsSigner = &mclsig.BlsSingleSigner{}
-var keyGen = signing.NewKeyGenerator(&mcl.SuiteBLS12{})
+var keyGen = crypto.NewKeyGenerator(&mcl.SuiteBLS12{})
 
 func TestBLSSigning(t *testing.T) {
 	privateKey, publicKey, publicKeyAsHex := loadSkPk(t)

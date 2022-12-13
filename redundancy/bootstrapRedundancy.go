@@ -2,7 +2,7 @@ package redundancy
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	crypto "github.com/ElrondNetwork/elrond-go-crypto"
+	"github.com/ElrondNetwork/elrond-go-crypto"
 )
 
 type bootstrapNodeRedundancy struct {

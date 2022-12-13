@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/stretchr/testify/assert"
@@ -164,7 +163,7 @@ func TestInterceptedShardBlockHeaderWithLeaderSignatureAndRandSeedChecks(t *test
 	consensusGroupSize := 3
 
 	singleSigner := integrationTests.TestSingleBlsSigner
-	keyGen := signing.NewKeyGenerator(mcl.NewSuiteBLS12())
+	keyGen := crypto.NewKeyGenerator(mcl.NewSuiteBLS12())
 	// create map of shard - testNodeProcessors for metachain and shard chain
 	nodesMap := integrationTests.CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 		nodesPerShard,
@@ -236,7 +235,7 @@ func TestInterceptedShardHeaderBlockWithWrongPreviousRandSeedShouldNotBeAccepted
 	consensusGroupSize := 3
 
 	singleSigner := integrationTests.TestSingleBlsSigner
-	keyGen := signing.NewKeyGenerator(mcl.NewSuiteBLS12())
+	keyGen := crypto.NewKeyGenerator(mcl.NewSuiteBLS12())
 	// create map of shard - testNodeProcessors for metachain and shard chain
 	nodesMap := integrationTests.CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 		nodesPerShard,
