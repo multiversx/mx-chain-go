@@ -7,7 +7,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
 	llsig "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/multisig"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/multisig"
@@ -20,7 +19,7 @@ func createKeysAndMultiSignerBls(
 	suite crypto.Suite,
 ) ([][]byte, [][]byte, crypto.MultiSigner) {
 
-	kg := signing.NewKeyGenerator(suite)
+	kg := crypto.NewKeyGenerator(suite)
 	privKeys := make([][]byte, grSize)
 	pubKeys := make([][]byte, grSize)
 

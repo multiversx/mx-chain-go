@@ -5,8 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
-	crypto "github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing"
+	"github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
@@ -132,8 +131,8 @@ func createNodesCryptoParams(rewardsAddrsAssignments map[uint32][]uint32) (map[u
 	suiteBlock := mcl.NewSuiteBLS12()
 	suiteTx := ed25519.NewEd25519()
 
-	blockSignKeyGen := signing.NewKeyGenerator(suiteBlock)
-	txSignKeyGen := signing.NewKeyGenerator(suiteTx)
+	blockSignKeyGen := crypto.NewKeyGenerator(suiteBlock)
+	txSignKeyGen := crypto.NewKeyGenerator(suiteTx)
 
 	// we need to first precompute the num shard ID
 	for shardID := range rewardsAddrsAssignments {

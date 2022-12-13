@@ -10,7 +10,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/batch"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing"
+	"github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/mock"
@@ -301,7 +301,7 @@ func TestAssignShardForPubKeyWhenNotSpecifiedShouldReturnSameShardForSameKey(t *
 func TestShardAssignment(t *testing.T) {
 	t.Skip()
 
-	keyGen := signing.NewKeyGenerator(mcl.NewSuiteBLS12())
+	keyGen := crypto.NewKeyGenerator(mcl.NewSuiteBLS12())
 	generatePubKey := func() []byte {
 		_, pk := keyGen.GeneratePair()
 		pkB, _ := pk.ToByteArray()

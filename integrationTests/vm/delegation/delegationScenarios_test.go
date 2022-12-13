@@ -17,7 +17,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
 	mclsig "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/singlesig"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
@@ -428,7 +427,7 @@ func TestDelegationSystemMultipleDelegationContractsAndSameBlsKeysShouldNotWork(
 	}
 
 	// add same BLS keys to all delegation contracts
-	keyGen := signing.NewKeyGenerator(mcl.NewSuiteBLS12())
+	keyGen := crypto.NewKeyGenerator(mcl.NewSuiteBLS12())
 	signer := mclsig.NewBlsSigner()
 
 	pubKeys := make([][]byte, totalNumNodes)
@@ -1400,7 +1399,7 @@ func addNodesTxData(blsKeys, sigs [][]byte) string {
 }
 
 func getBlsKeysAndSignatures(msg []byte, num int) ([][]byte, [][]byte) {
-	keyGen := signing.NewKeyGenerator(mcl.NewSuiteBLS12())
+	keyGen := crypto.NewKeyGenerator(mcl.NewSuiteBLS12())
 	signer := mclsig.NewBlsSigner()
 
 	pubKeys := make([][]byte, num)

@@ -23,8 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	crypto "github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing"
+	"github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -1857,7 +1856,7 @@ func GenerateSkAndPkInShard(
 	shardId uint32,
 ) (crypto.PrivateKey, crypto.PublicKey, crypto.KeyGenerator) {
 	suite := ed25519.NewEd25519()
-	keyGen := signing.NewKeyGenerator(suite)
+	keyGen := crypto.NewKeyGenerator(suite)
 	sk, pk := keyGen.GeneratePair()
 
 	if shardId == core.MetachainShardId {
@@ -2115,8 +2114,8 @@ func generateValidTx(
 
 	cryptoComponents := GetDefaultCryptoComponents()
 	cryptoComponents.TxSig = TestSingleSigner
-	cryptoComponents.TxKeyGen = signing.NewKeyGenerator(ed25519.NewEd25519())
-	cryptoComponents.BlKeyGen = signing.NewKeyGenerator(ed25519.NewEd25519())
+	cryptoComponents.TxKeyGen = crypto.NewKeyGenerator(ed25519.NewEd25519())
+	cryptoComponents.BlKeyGen = crypto.NewKeyGenerator(ed25519.NewEd25519())
 
 	stateComponents := GetDefaultStateComponents()
 	stateComponents.Accounts = accnts
@@ -2219,10 +2218,10 @@ func GenValidatorsFromPubKeysAndTxPubKeys(
 // CreateCryptoParams generates the crypto parameters (key pairs, key generator and suite) for multiple nodes
 func CreateCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards uint32) *CryptoParams {
 	txSuite := ed25519.NewEd25519()
-	txKeyGen := signing.NewKeyGenerator(txSuite)
+	txKeyGen := crypto.NewKeyGenerator(txSuite)
 	suite := mcl.NewSuiteBLS12()
 	singleSigner := TestSingleSigner
-	keyGen := signing.NewKeyGenerator(suite)
+	keyGen := crypto.NewKeyGenerator(suite)
 
 	txKeysMap := make(map[uint32][]*TestKeyPair)
 	keysMap := make(map[uint32][]*TestKeyPair)

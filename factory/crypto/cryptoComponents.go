@@ -7,7 +7,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	disabledCrypto "github.com/ElrondNetwork/elrond-go-crypto/signing/disabled"
 	disabledSig "github.com/ElrondNetwork/elrond-go-crypto/signing/disabled/singlesig"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519"
@@ -117,13 +116,13 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 		return nil, err
 	}
 
-	blockSignKeyGen := signing.NewKeyGenerator(suite)
+	blockSignKeyGen := crypto.NewKeyGenerator(suite)
 	cp, err := ccf.createCryptoParams(blockSignKeyGen)
 	if err != nil {
 		return nil, err
 	}
 
-	txSignKeyGen := signing.NewKeyGenerator(ed25519.NewEd25519())
+	txSignKeyGen := crypto.NewKeyGenerator(ed25519.NewEd25519())
 	txSingleSigner := &singlesig.Ed25519Signer{}
 	processingSingleSigner, err := ccf.createSingleSigner(false)
 	if err != nil {

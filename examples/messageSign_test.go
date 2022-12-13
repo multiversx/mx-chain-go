@@ -7,7 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/display"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/keccak"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing"
+	"github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519"
 	"github.com/stretchr/testify/require"
 )
@@ -74,7 +74,7 @@ func checkSignature(address string, message string, signature string) error {
 }
 
 func signMessage(t *testing.T, senderSeedHex string, message string) (string, string, string) {
-	keyGenerator := signing.NewKeyGenerator(signingCryptoSuite)
+	keyGenerator := crypto.NewKeyGenerator(signingCryptoSuite)
 
 	senderSeed, err := hex.DecodeString(senderSeedHex)
 	require.Nil(t, err)
@@ -105,7 +105,7 @@ func computeHashForMessage(message string) []byte {
 func checkMessageSignature(address string, message string, signature []byte) error {
 	hash := computeHashForMessage(message)
 	suite := ed25519.NewEd25519()
-	keyGen := signing.NewKeyGenerator(suite)
+	keyGen := crypto.NewKeyGenerator(suite)
 
 	addressBytes, err := addressEncoder.Decode(address)
 	if err != nil {

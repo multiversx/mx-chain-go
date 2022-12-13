@@ -3,7 +3,7 @@ package disabled
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-crypto/signing"
+	"github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
 	"github.com/stretchr/testify/assert"
 )
@@ -12,7 +12,7 @@ func TestMessageSignVerifier_Verify(t *testing.T) {
 	t.Parallel()
 
 	suite := mcl.NewSuiteBLS12()
-	keygen := signing.NewKeyGenerator(suite)
+	keygen := crypto.NewKeyGenerator(suite)
 
 	sv, _ := NewMessageSignVerifier(keygen)
 

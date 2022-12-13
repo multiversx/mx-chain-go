@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/config"
 	errErd "github.com/ElrondNetwork/elrond-go/errors"
 	cryptoComp "github.com/ElrondNetwork/elrond-go/factory/crypto"
@@ -252,7 +251,7 @@ func TestCryptoComponentsFactory_CreateMultiSignerOK(t *testing.T) {
 	require.Nil(t, err)
 
 	suite, _ := ccf.GetSuite()
-	blockSignKeyGen := signing.NewKeyGenerator(suite)
+	blockSignKeyGen := crypto.NewKeyGenerator(suite)
 
 	multiSigner, err := ccf.CreateMultiSignerContainer(blockSignKeyGen, false)
 	require.Nil(t, err)
@@ -307,7 +306,7 @@ func TestCryptoComponentsFactory_CreateCryptoParamsInvalidPrivateKeyByteArraySho
 	ccf, _ := cryptoComp.NewCryptoComponentsFactory(args)
 
 	suite, _ := ccf.GetSuite()
-	blockSignKeyGen := signing.NewKeyGenerator(suite)
+	blockSignKeyGen := crypto.NewKeyGenerator(suite)
 
 	cryptoParams, err := ccf.CreateCryptoParams(blockSignKeyGen)
 	require.Nil(t, cryptoParams)
@@ -328,7 +327,7 @@ func TestCryptoComponentsFactory_CreateCryptoParamsLoadKeysFailShouldErr(t *test
 	ccf, _ := cryptoComp.NewCryptoComponentsFactory(args)
 
 	suite, _ := ccf.GetSuite()
-	blockSignKeyGen := signing.NewKeyGenerator(suite)
+	blockSignKeyGen := crypto.NewKeyGenerator(suite)
 
 	cryptoParams, err := ccf.CreateCryptoParams(blockSignKeyGen)
 	require.Nil(t, cryptoParams)
@@ -346,7 +345,7 @@ func TestCryptoComponentsFactory_CreateCryptoParamsOK(t *testing.T) {
 	ccf, _ := cryptoComp.NewCryptoComponentsFactory(args)
 
 	suite, _ := ccf.GetSuite()
-	blockSignKeyGen := signing.NewKeyGenerator(suite)
+	blockSignKeyGen := crypto.NewKeyGenerator(suite)
 
 	cryptoParams, err := ccf.CreateCryptoParams(blockSignKeyGen)
 	require.Nil(t, err)

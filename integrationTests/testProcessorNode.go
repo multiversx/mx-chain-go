@@ -25,8 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	crypto "github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing"
+	"github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519"
 	ed25519SingleSig "github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519/singlesig"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
@@ -152,7 +151,7 @@ var TestValidatorPubkeyConverter, _ = pubkeyConverter.NewHexPubkeyConverter(96)
 var TestMultiSig = cryptoMocks.NewMultiSigner()
 
 // TestKeyGenForAccounts represents a mock key generator for balances
-var TestKeyGenForAccounts = signing.NewKeyGenerator(ed25519.NewEd25519())
+var TestKeyGenForAccounts = crypto.NewKeyGenerator(ed25519.NewEd25519())
 
 // TestUint64Converter represents an uint64 to byte slice converter
 var TestUint64Converter = uint64ByteSlice.NewBigEndianConverter()
@@ -448,7 +447,7 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 		BootstrapStorer:          &mock.BoostrapStorerMock{},
 		RatingsData:              args.RatingsData,
 		EpochStartNotifier:       args.EpochStartSubscriber,
-		GuardedAccountHandler:   &guardianMocks.GuardedAccountHandlerStub{},
+		GuardedAccountHandler:    &guardianMocks.GuardedAccountHandlerStub{},
 	}
 
 	tpn.NodeKeys = args.NodeKeys
@@ -744,7 +743,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 		EpochNotifier:             tpn.EpochNotifier,
 		EnableEpochsHandler:       tpn.EnableEpochsHandler,
 		MaxNumNodesInTransferRole: 100,
-		GuardedAccountHandler:      tpn.GuardedAccountHandler,
+		GuardedAccountHandler:     tpn.GuardedAccountHandler,
 	}
 	argsBuiltIn.AutomaticCrawlerAddresses = GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
@@ -932,7 +931,7 @@ func (tpn *TestProcessorNode) initEconomicsData(economicsConfig *config.Economic
 		EpochNotifier:               tpn.EpochNotifier,
 		EnableEpochsHandler:         tpn.EnableEpochsHandler,
 		BuiltInFunctionsCostHandler: &mock.BuiltInCostHandlerStub{},
-		TxVersionChecker:               &testscommon.TxVersionCheckerStub{},
+		TxVersionChecker:            &testscommon.TxVersionCheckerStub{},
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
 	tpn.EconomicsData = economics.NewTestEconomicsData(economicsData)
@@ -1162,7 +1161,7 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 			HeartbeatExpiryTimespanInSec: 30,
 			PeerShardMapper:              tpn.PeerShardMapper,
 			HardforkTrigger:              tpn.HardforkTrigger,
-			GuardianSigVerifier:     bootstrapComponents.GuardianSigVerifierField,
+			GuardianSigVerifier:          bootstrapComponents.GuardianSigVerifierField,
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorContainerFactoryArgs)
 
@@ -1228,7 +1227,7 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 			HeartbeatExpiryTimespanInSec: 30,
 			PeerShardMapper:              tpn.PeerShardMapper,
 			HardforkTrigger:              tpn.HardforkTrigger,
-			GuardianSigVerifier:     bootstrapComponents.GuardianSigVerifierField,
+			GuardianSigVerifier:          bootstrapComponents.GuardianSigVerifierField,
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(shardIntereptorContainerFactoryArgs)
 
@@ -1387,7 +1386,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		EpochNotifier:             tpn.EpochNotifier,
 		EnableEpochsHandler:       tpn.EnableEpochsHandler,
 		MaxNumNodesInTransferRole: 100,
-		GuardedAccountHandler:      tpn.GuardedAccountHandler,
+		GuardedAccountHandler:     tpn.GuardedAccountHandler,
 	}
 	argsBuiltIn.AutomaticCrawlerAddresses = GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
@@ -1501,8 +1500,8 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		ArgsParser:          tpn.ArgsParser,
 		ScrForwarder:        tpn.ScrForwarder,
 		EnableEpochsHandler: tpn.EnableEpochsHandler,
-		GuardianChecker:                &guardianMocks.GuardedAccountHandlerStub{},
-		TxVersionChecker:               &testscommon.TxVersionCheckerStub{},
+		GuardianChecker:     &guardianMocks.GuardedAccountHandlerStub{},
+		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
 	}
 	tpn.TxProcessor, _ = transaction.NewTxProcessor(argsNewTxProcessor)
 	scheduledSCRsStorer, _ := tpn.Storage.GetStorer(dataRetriever.ScheduledSCRsUnit)
@@ -1602,7 +1601,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		EpochNotifier:             tpn.EpochNotifier,
 		EnableEpochsHandler:       tpn.EnableEpochsHandler,
 		MaxNumNodesInTransferRole: 100,
-		GuardedAccountHandler:      tpn.GuardedAccountHandler,
+		GuardedAccountHandler:     tpn.GuardedAccountHandler,
 	}
 	argsBuiltIn.AutomaticCrawlerAddresses = GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
@@ -1627,7 +1626,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 	var signVerifier vm.MessageSignVerifier
 	if tpn.UseValidVmBlsSigVerifier {
 		signVerifier, _ = vmProcess.NewMessageSigVerifier(
-			signing.NewKeyGenerator(mcl.NewSuiteBLS12()),
+			crypto.NewKeyGenerator(mcl.NewSuiteBLS12()),
 			mclsig.NewBlsSigner(),
 		)
 	} else {
@@ -1741,8 +1740,8 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		TxTypeHandler:       txTypeHandler,
 		EconomicsFee:        tpn.EconomicsData,
 		EnableEpochsHandler: tpn.EnableEpochsHandler,
-		GuardianChecker:                       &guardianMocks.GuardedAccountHandlerStub{},
-		TxVersionChecker:                      &testscommon.TxVersionCheckerStub{},
+		GuardianChecker:     &guardianMocks.GuardedAccountHandlerStub{},
+		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
 	}
 	tpn.TxProcessor, _ = transaction.NewMetaTxProcessor(argsNewMetaTxProc)
 	scheduledSCRsStorer, _ := tpn.Storage.GetStorer(dataRetriever.ScheduledSCRsUnit)

@@ -14,8 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
-	crypto "github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing"
+	"github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -187,8 +186,8 @@ func generateKeys(typeKey string, numKeys int, prefix string, shardID int) ([]ke
 	p2pKeys := make([]key, 0)
 	var err error
 
-	blockSigningGenerator := signing.NewKeyGenerator(mcl.NewSuiteBLS12())
-	txSigningGenerator := signing.NewKeyGenerator(ed25519.NewEd25519())
+	blockSigningGenerator := crypto.NewKeyGenerator(mcl.NewSuiteBLS12())
+	txSigningGenerator := crypto.NewKeyGenerator(ed25519.NewEd25519())
 
 	for i := 0; i < numKeys; i++ {
 		switch typeKey {
