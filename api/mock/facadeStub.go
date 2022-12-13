@@ -64,6 +64,7 @@ type FacadeStub struct {
 	GetInternalMetaBlockByHashCalled            func(format common.ApiOutputFormat, hash string) (interface{}, error)
 	GetInternalMetaBlockByRoundCalled           func(format common.ApiOutputFormat, round uint64) (interface{}, error)
 	GetInternalStartOfEpochMetaBlockCalled      func(format common.ApiOutputFormat, epoch uint32) (interface{}, error)
+	GetInternalStartOfEpochValidatorsInfoCalled func(epoch uint32) ([]*state.ShardValidatorInfo, error)
 	GetInternalMiniBlockByHashCalled            func(format common.ApiOutputFormat, txHash string, epoch uint32) (interface{}, error)
 	GetTotalStakedValueHandler                  func() (*api.StakeValues, error)
 	GetAllIssuedESDTsCalled                     func(tokenType string) ([]string, error)
@@ -522,6 +523,15 @@ func (f *FacadeStub) GetTransactionsPoolNonceGapsForSender(sender string) (*comm
 func (f *FacadeStub) GetGasConfigs() (map[string]map[string]uint64, error) {
 	if f.GetGasConfigsCalled != nil {
 		return f.GetGasConfigsCalled()
+	}
+
+	return nil, nil
+}
+
+// GetInternalStartOfEpochValidatorsInfo -
+func (f *FacadeStub) GetInternalStartOfEpochValidatorsInfo(epoch uint32) ([]*state.ShardValidatorInfo, error) {
+	if f.GetInternalStartOfEpochValidatorsInfoCalled != nil {
+		return f.GetInternalStartOfEpochValidatorsInfoCalled(epoch)
 	}
 
 	return nil, nil

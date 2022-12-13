@@ -33,6 +33,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks/counters"
 	"github.com/ElrondNetwork/elrond-go/process/throttle"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
@@ -1137,6 +1138,11 @@ func (pcf *processComponentsFactory) createVMFactoryShard(
 	nftStorageHandler vmcommon.SimpleESDTNFTStorageHandler,
 	globalSettingsHandler vmcommon.ESDTGlobalSettingsHandler,
 ) (process.VirtualMachinesContainerFactory, error) {
+	counter, err := counters.NewUsageCounter(esdtTransferParser)
+	if err != nil {
+		return nil, err
+	}
+
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:              accounts,
 		PubkeyConv:            pcf.coreData.AddressPubKeyConverter(),
@@ -1155,6 +1161,8 @@ func (pcf *processComponentsFactory) createVMFactoryShard(
 		EnableEpochsHandler:   pcf.coreData.EnableEpochsHandler(),
 		NilCompiledSCStore:    false,
 		ConfigSCStorage:       configSCStorage,
+		GasSchedule:           pcf.gasSchedule,
+		Counter:               counter,
 	}
 
 	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(argsHook)
@@ -1202,6 +1210,8 @@ func (pcf *processComponentsFactory) createVMFactoryMeta(
 		EpochNotifier:         pcf.coreData.EpochNotifier(),
 		EnableEpochsHandler:   pcf.coreData.EnableEpochsHandler(),
 		NilCompiledSCStore:    false,
+		GasSchedule:           pcf.gasSchedule,
+		Counter:               counters.NewDisabledCounter(),
 	}
 
 	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(argsHook)
