@@ -1302,8 +1302,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 		InputAntifloodHandler:      &mock.NilAntifloodHandler{},
 		OutputAntifloodHandler:     &mock.NilAntifloodHandler{},
 		NumConcurrentResolvingJobs: 10,
-		PreferredPeersHolder:       &p2pmocks.PeersHolderStub{},
-		PeersRatingHandler: tpn.PeersRatingHandler,
+		PreferredPeersHolder:       preferredPeersHolder,
 		PayloadValidator:           payloadValidator,
 	}
 
