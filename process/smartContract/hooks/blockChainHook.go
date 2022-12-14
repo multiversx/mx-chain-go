@@ -266,7 +266,10 @@ func (bh *BlockChainHookImpl) GetStorageData(accountAddress []byte, index []byte
 		messages = append(messages, err)
 	}
 	log.Trace("GetStorageData ", messages...)
-	return value, trieDepth, err
+
+	// returning nil here ensures backwards compatibility as the error wasn't taken into account by the previous versions
+	// of the vm. Now, the VM take into account this error so the processMaxReadsCounters call can stop the execution of the contract
+	return value, trieDepth, nil
 }
 
 func (bh *BlockChainHookImpl) processMaxReadsCounters() error {
