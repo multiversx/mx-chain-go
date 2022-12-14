@@ -2980,6 +2980,7 @@ func GetDefaultCoreComponents() *mock.CoreComponentsStub {
 		TxVersionCheckField:          versioning.NewTxVersionChecker(MinTransactionVersion),
 		ProcessStatusHandlerInternal: &testscommon.ProcessStatusHandlerStub{},
 		EnableEpochsHandlerField:     enableEpochsHandler,
+		ChainParametersHandlerField:  &shardingmock.ChainParametersHandlerStub{},
 	}
 }
 

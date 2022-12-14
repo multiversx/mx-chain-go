@@ -419,25 +419,31 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 	for shardId, validatorList := range validatorsMap {
 		consensusCache, _ := cache.NewLRUCache(10000)
 		argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-			ShardConsensusGroupSize: shardConsensusGroupSize,
-			MetaConsensusGroupSize:  metaConsensusGroupSize,
-			Marshalizer:             TestMarshalizer,
-			Hasher:                  TestHasher,
-			Shuffler:                nodeShuffler,
-			BootStorer:              bootStorer,
-			EpochStartNotifier:      epochStartSubscriber,
-			ShardIDAsObserver:       shardId,
-			NbShards:                uint32(nbShards),
-			EligibleNodes:           validatorsMapForNodesCoordinator,
-			WaitingNodes:            make(map[uint32][]nodesCoordinator.Validator),
-			SelfPublicKey:           []byte(strconv.Itoa(int(shardId))),
-			ConsensusGroupCache:     consensusCache,
-			ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
-			ChanStopNode:            endProcess.GetDummyEndProcessChannel(),
-			NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
-			IsFullArchive:           false,
-			EnableEpochsHandler:     &testscommon.EnableEpochsHandlerStub{},
-			ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
+			ChainParametersHandler: &shardingmock.ChainParametersHandlerStub{
+				CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
+					return config.ChainParametersByEpochConfig{
+						ShardConsensusGroupSize:     uint32(shardConsensusGroupSize),
+						MetachainConsensusGroupSize: uint32(metaConsensusGroupSize),
+					}
+				},
+			},
+			Marshalizer:         TestMarshalizer,
+			Hasher:              TestHasher,
+			Shuffler:            nodeShuffler,
+			BootStorer:          bootStorer,
+			EpochStartNotifier:  epochStartSubscriber,
+			ShardIDAsObserver:   shardId,
+			NbShards:            uint32(nbShards),
+			EligibleNodes:       validatorsMapForNodesCoordinator,
+			WaitingNodes:        make(map[uint32][]nodesCoordinator.Validator),
+			SelfPublicKey:       []byte(strconv.Itoa(int(shardId))),
+			ConsensusGroupCache: consensusCache,
+			ShuffledOutHandler:  &mock.ShuffledOutHandlerStub{},
+			ChanStopNode:        endProcess.GetDummyEndProcessChannel(),
+			NodeTypeProvider:    &nodeTypeProviderMock.NodeTypeProviderStub{},
+			IsFullArchive:       false,
+			EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+			ValidatorInfoCacher: &vic.ValidatorInfoCacherStub{},
 		}
 		nodesCoordinatorInstance, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 
@@ -534,25 +540,31 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 		bootStorer := CreateMemUnit()
 		lruCache, _ := cache.NewLRUCache(10000)
 		argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-			ShardConsensusGroupSize: shardConsensusGroupSize,
-			MetaConsensusGroupSize:  metaConsensusGroupSize,
-			Marshalizer:             TestMarshalizer,
-			Hasher:                  TestHasher,
-			Shuffler:                nodeShuffler,
-			EpochStartNotifier:      epochStartSubscriber,
-			BootStorer:              bootStorer,
-			ShardIDAsObserver:       shardId,
-			NbShards:                uint32(nbShards),
-			EligibleNodes:           validatorsMapForNodesCoordinator,
-			WaitingNodes:            waitingMapForNodesCoordinator,
-			SelfPublicKey:           []byte(strconv.Itoa(int(shardId))),
-			ConsensusGroupCache:     lruCache,
-			ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
-			ChanStopNode:            endProcess.GetDummyEndProcessChannel(),
-			NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
-			IsFullArchive:           false,
-			EnableEpochsHandler:     &testscommon.EnableEpochsHandlerStub{},
-			ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
+			ChainParametersHandler: &shardingmock.ChainParametersHandlerStub{
+				CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
+					return config.ChainParametersByEpochConfig{
+						ShardConsensusGroupSize:     uint32(shardConsensusGroupSize),
+						MetachainConsensusGroupSize: uint32(metaConsensusGroupSize),
+					}
+				},
+			},
+			Marshalizer:         TestMarshalizer,
+			Hasher:              TestHasher,
+			Shuffler:            nodeShuffler,
+			EpochStartNotifier:  epochStartSubscriber,
+			BootStorer:          bootStorer,
+			ShardIDAsObserver:   shardId,
+			NbShards:            uint32(nbShards),
+			EligibleNodes:       validatorsMapForNodesCoordinator,
+			WaitingNodes:        waitingMapForNodesCoordinator,
+			SelfPublicKey:       []byte(strconv.Itoa(int(shardId))),
+			ConsensusGroupCache: lruCache,
+			ShuffledOutHandler:  &mock.ShuffledOutHandlerStub{},
+			ChanStopNode:        endProcess.GetDummyEndProcessChannel(),
+			NodeTypeProvider:    &nodeTypeProviderMock.NodeTypeProviderStub{},
+			IsFullArchive:       false,
+			EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+			ValidatorInfoCacher: &vic.ValidatorInfoCacherStub{},
 		}
 		nodesCoord, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 

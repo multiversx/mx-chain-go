@@ -71,8 +71,7 @@ type epochNodesConfig struct {
 type indexHashedNodesCoordinator struct {
 	shardIDAsObserver             uint32
 	currentEpoch                  uint32
-	shardConsensusGroupSize       int
-	metaConsensusGroupSize        int
+	chainParametersHandler        ChainParametersHandler
 	numTotalEligible              uint64
 	selfPubKey                    []byte
 	savedStateKey                 []byte
@@ -129,8 +128,7 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		nodesConfig:                   nodesConfig,
 		currentEpoch:                  arguments.Epoch,
 		savedStateKey:                 savedKey,
-		shardConsensusGroupSize:       arguments.ShardConsensusGroupSize,
-		metaConsensusGroupSize:        arguments.MetaConsensusGroupSize,
+		chainParametersHandler:        arguments.ChainParametersHandler,
 		consensusGroupCacher:          arguments.ConsensusGroupCache,
 		shardIDAsObserver:             arguments.ShardIDAsObserver,
 		shuffledOutHandler:            arguments.ShuffledOutHandler,
@@ -181,8 +179,8 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 }
 
 func checkArguments(arguments ArgNodesCoordinator) error {
-	if arguments.ShardConsensusGroupSize < 1 || arguments.MetaConsensusGroupSize < 1 {
-		return ErrInvalidConsensusGroupSize
+	if check.IfNil(arguments.ChainParametersHandler) {
+		return ErrNilChainParametersHandler
 	}
 	if arguments.NbShards < 1 {
 		return ErrInvalidNumberOfShards
@@ -250,15 +248,16 @@ func (ihnc *indexHashedNodesCoordinator) setNodesPerShards(
 		return ErrNilInputNodesMap
 	}
 
+	currentChainParameters := ihnc.chainParametersHandler.CurrentChainParameters()
 	nodesList := eligible[core.MetachainShardId]
-	if len(nodesList) < ihnc.metaConsensusGroupSize {
+	if len(nodesList) < int(currentChainParameters.MetachainConsensusGroupSize) {
 		return ErrSmallMetachainEligibleListSize
 	}
 
 	numTotalEligible := uint64(len(nodesList))
 	for shardId := uint32(0); shardId < uint32(len(eligible)-1); shardId++ {
 		nbNodesShard := len(eligible[shardId])
-		if nbNodesShard < ihnc.shardConsensusGroupSize {
+		if nbNodesShard < int(currentChainParameters.ShardConsensusGroupSize) {
 			return ErrSmallShardEligibleListSize
 		}
 		numTotalEligible += uint64(nbNodesShard)
@@ -1042,11 +1041,12 @@ func (ihnc *indexHashedNodesCoordinator) computeShardForSelfPublicKey(nodesConfi
 func (ihnc *indexHashedNodesCoordinator) ConsensusGroupSize(
 	shardID uint32,
 ) int {
+	currentChainParameters := ihnc.chainParametersHandler.CurrentChainParameters()
 	if shardID == core.MetachainShardId {
-		return ihnc.metaConsensusGroupSize
+		return int(currentChainParameters.MetachainConsensusGroupSize)
 	}
 
-	return ihnc.shardConsensusGroupSize
+	return int(currentChainParameters.ShardConsensusGroupSize)
 }
 
 // GetNumTotalEligible returns the number of total eligible accross all shards from current setup

@@ -55,6 +55,7 @@ type CoreComponentsMock struct {
 	ProcessStatusHandlerInternal common.ProcessStatusHandler
 	HardforkTriggerPubKeyField   []byte
 	EnableEpochsHandlerField     common.EnableEpochsHandler
+	ChainParametersHandlerField  process.ChainParametersHandler
 }
 
 // InternalMarshalizer -
@@ -238,6 +239,11 @@ func (ccm *CoreComponentsMock) HardforkTriggerPubKey() []byte {
 // EnableEpochsHandler -
 func (ccm *CoreComponentsMock) EnableEpochsHandler() common.EnableEpochsHandler {
 	return ccm.EnableEpochsHandlerField
+}
+
+// ChainParametersHandler -
+func (ccm *CoreComponentsMock) ChainParametersHandler() process.ChainParametersHandler {
+	return ccm.ChainParametersHandlerField
 }
 
 // IsInterfaceNil -

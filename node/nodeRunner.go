@@ -372,6 +372,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedCoreComponents.NodeTypeProvider(),
 		managedCoreComponents.EnableEpochsHandler(),
 		managedDataComponents.Datapool().CurrentEpochValidatorInfo(),
+		managedCoreComponents.ChainParametersHandler(),
 	)
 	if err != nil {
 		return true, err

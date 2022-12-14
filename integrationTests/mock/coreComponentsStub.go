@@ -53,6 +53,7 @@ type CoreComponentsStub struct {
 	ProcessStatusHandlerInternal       common.ProcessStatusHandler
 	HardforkTriggerPubKeyField         []byte
 	EnableEpochsHandlerField           common.EnableEpochsHandler
+	ChainParametersHandlerField        process.ChainParametersHandler
 }
 
 // Create -
@@ -251,6 +252,11 @@ func (ccs *CoreComponentsStub) HardforkTriggerPubKey() []byte {
 // EnableEpochsHandler -
 func (ccs *CoreComponentsStub) EnableEpochsHandler() common.EnableEpochsHandler {
 	return ccs.EnableEpochsHandlerField
+}
+
+// ChainParametersHandler -
+func (ccs *CoreComponentsStub) ChainParametersHandler() process.ChainParametersHandler {
+	return ccs.ChainParametersHandlerField
 }
 
 // IsInterfaceNil -

@@ -107,6 +107,7 @@ type coreComponents struct {
 	processStatusHandler          common.ProcessStatusHandler
 	hardforkTriggerPubKey         []byte
 	enableEpochsHandler           common.EnableEpochsHandler
+	chainParametersHandler        process.ChainParametersHandler
 }
 
 // NewCoreComponentsFactory initializes the factory which is responsible to creating core components
@@ -361,6 +362,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		processStatusHandler:          statusHandler.NewProcessStatusHandler(),
 		hardforkTriggerPubKey:         pubKeyBytes,
 		enableEpochsHandler:           enableEpochsHandler,
+		chainParametersHandler:        chainParametersHandler,
 	}, nil
 }
 

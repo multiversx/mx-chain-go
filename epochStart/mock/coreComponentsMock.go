@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingmock"
 )
 
 // CoreComponentsMock -
@@ -34,6 +35,7 @@ type CoreComponentsMock struct {
 	NodeTypeProviderField        core.NodeTypeProviderHandler
 	ProcessStatusHandlerInstance common.ProcessStatusHandler
 	HardforkTriggerPubKeyField   []byte
+	ChainParametersHandlerField  process.ChainParametersHandler
 	mutCore                      sync.RWMutex
 }
 
@@ -153,6 +155,15 @@ func (ccm *CoreComponentsMock) ProcessStatusHandler() common.ProcessStatusHandle
 // HardforkTriggerPubKey -
 func (ccm *CoreComponentsMock) HardforkTriggerPubKey() []byte {
 	return ccm.HardforkTriggerPubKeyField
+}
+
+// ChainParametersHandler -
+func (ccm *CoreComponentsMock) ChainParametersHandler() process.ChainParametersHandler {
+	if ccm.ChainParametersHandlerField != nil {
+		return ccm.ChainParametersHandlerField
+	}
+
+	return &shardingmock.ChainParametersHolderMock{}
 }
 
 // IsInterfaceNil -
