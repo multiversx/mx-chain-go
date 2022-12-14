@@ -48,3 +48,9 @@ var ErrNilEpochNotifier = errors.New("nil epoch notifier")
 
 // ErrMissingChainParameters signals that a nil chain parameters array has been provided
 var ErrMissingChainParameters = errors.New("empty chain parameters array")
+
+// ErrMissingConfigurationForEpochZero signals that no configuration for epoch 0 exists
+var ErrMissingConfigurationForEpochZero = errors.New("missing configuration for epoch 0")
+
+// ErrNoMatchingConfigurationFound signals that no matching configuration is found
+var ErrNoMatchingConfigurationFound = errors.New("no matching configuration found")

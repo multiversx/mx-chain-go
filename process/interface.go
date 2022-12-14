@@ -1020,7 +1020,7 @@ type NodesSetupHandler interface {
 type ChainParametersHandler interface {
 	CurrentChainParameters() config.ChainParametersByEpochConfig
 	AllChainParameters() []config.ChainParametersByEpochConfig
-	ChainParametersForEpoch(epoch uint32) config.ChainParametersByEpochConfig
+	ChainParametersForEpoch(epoch uint32) (config.ChainParametersByEpochConfig, error)
 	IsInterfaceNil() bool
 }
 

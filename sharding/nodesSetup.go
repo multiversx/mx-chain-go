@@ -93,11 +93,16 @@ func NewNodesSetup(
 		return nil, fmt.Errorf("%w for genesisMaxNumShards", ErrInvalidMaximumNumberOfShards)
 	}
 
+	genesisParams, err := chainParametersProvider.ChainParametersForEpoch(0)
+	if err != nil {
+		return nil, fmt.Errorf("NewNodesSetup: %w while fetching parameters for epoch 0", err)
+	}
+
 	nodes := &NodesSetup{
 		addressPubkeyConverter:   addressPubkeyConverter,
 		validatorPubkeyConverter: validatorPubkeyConverter,
 		genesisMaxNumShards:      genesisMaxNumShards,
-		genesisChainParameters:   chainParametersProvider.ChainParametersForEpoch(0),
+		genesisChainParameters:   genesisParams,
 	}
 
 	initialNodes := make([]*InitialNode, 0, len(nodesConfig.InitialNodes))
@@ -119,7 +124,7 @@ func NewNodesSetup(
 		InitialNodes:  initialNodes,
 	}
 
-	err := nodes.processConfig()
+	err = nodes.processConfig()
 	if err != nil {
 		return nil, err
 	}

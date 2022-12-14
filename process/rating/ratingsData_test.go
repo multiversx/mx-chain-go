@@ -28,14 +28,14 @@ const (
 	signedBlocksThreshold          = 0.025
 	consecutiveMissedBlocksPenalty = 1.1
 
-	shardMinNodes            = 6
-	shardConsensusSize       = 3
-	metaMinNodes             = 6
-	metaConsensusSize        = 6
-	roundDurationMiliseconds = 6000
+	shardMinNodes             = 6
+	shardConsensusSize        = 3
+	metaMinNodes              = 6
+	metaConsensusSize         = 6
+	roundDurationMilliseconds = 6000
 )
 
-func createDymmyRatingsData() RatingsDataArg {
+func createDummyRatingsData() RatingsDataArg {
 	return RatingsDataArg{
 		Config: config.RatingsConfig{},
 		ChainParametersHolder: &shardingmock.ChainParametersHandlerStub{
@@ -51,8 +51,22 @@ func createDymmyRatingsData() RatingsDataArg {
 					Adaptivity:                  false,
 				}
 			},
+			AllChainParametersCalled: func() []config.ChainParametersByEpochConfig {
+				return []config.ChainParametersByEpochConfig{
+					{
+						RoundDuration:               4000,
+						Hysteresis:                  0.2,
+						EnableEpoch:                 0,
+						ShardConsensusGroupSize:     shardConsensusSize,
+						ShardMinNumNodes:            shardMinNodes,
+						MetachainConsensusGroupSize: metaConsensusSize,
+						MetachainMinNumNodes:        metaMinNodes,
+						Adaptivity:                  false,
+					},
+				}
+			},
 		},
-		RoundDurationMilliseconds: roundDurationMiliseconds,
+		RoundDurationMilliseconds: roundDurationMilliseconds,
 		EpochNotifier:             &epochNotifier.EpochNotifierStub{},
 	}
 }
@@ -92,10 +106,74 @@ func createDummyRatingsConfig() config.RatingsConfig {
 	}
 }
 
+func TestNewRatingsData_NilEpochNotifier(t *testing.T) {
+	t.Parallel()
+
+	ratingsDataArg := createDummyRatingsData()
+	ratingsDataArg.EpochNotifier = nil
+
+	ratingsData, err := NewRatingsData(ratingsDataArg)
+
+	assert.Nil(t, ratingsData)
+	assert.True(t, errors.Is(err, process.ErrNilEpochNotifier))
+}
+
+func TestNewRatingsData_NilChainParametersHolder(t *testing.T) {
+	t.Parallel()
+
+	ratingsDataArg := createDummyRatingsData()
+	ratingsDataArg.ChainParametersHolder = nil
+
+	ratingsData, err := NewRatingsData(ratingsDataArg)
+
+	assert.Nil(t, ratingsData)
+	assert.True(t, errors.Is(err, process.ErrNilChainParametersHandler))
+}
+
+func TestNewRatingsData_MissingConfigurationForEpoch0(t *testing.T) {
+	t.Parallel()
+
+	ratingsDataArg := createDummyRatingsData()
+	ratingsDataArg.Config = createDummyRatingsConfig()
+	ratingsDataArg.ChainParametersHolder = &shardingmock.ChainParametersHandlerStub{
+		CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
+			return config.ChainParametersByEpochConfig{
+				RoundDuration:               4000,
+				Hysteresis:                  0.2,
+				EnableEpoch:                 37,
+				ShardConsensusGroupSize:     shardConsensusSize,
+				ShardMinNumNodes:            shardMinNodes,
+				MetachainConsensusGroupSize: metaConsensusSize,
+				MetachainMinNumNodes:        metaMinNodes,
+				Adaptivity:                  false,
+			}
+		},
+		AllChainParametersCalled: func() []config.ChainParametersByEpochConfig {
+			return []config.ChainParametersByEpochConfig{
+				{
+					RoundDuration:               4000,
+					Hysteresis:                  0.2,
+					EnableEpoch:                 37,
+					ShardConsensusGroupSize:     shardConsensusSize,
+					ShardMinNumNodes:            shardMinNodes,
+					MetachainConsensusGroupSize: metaConsensusSize,
+					MetachainMinNumNodes:        metaMinNodes,
+					Adaptivity:                  false,
+				},
+			}
+		},
+	}
+
+	ratingsData, err := NewRatingsData(ratingsDataArg)
+
+	assert.Nil(t, ratingsData)
+	assert.True(t, errors.Is(err, process.ErrMissingConfigurationForEpochZero))
+}
+
 func TestRatingsData_RatingsDataMinGreaterMaxShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ratingsDataArg := createDymmyRatingsData()
+	ratingsDataArg := createDummyRatingsData()
 	ratingsConfig := createDummyRatingsConfig()
 	ratingsConfig.General.MinRating = 10
 	ratingsConfig.General.MaxRating = 8
@@ -110,7 +188,7 @@ func TestRatingsData_RatingsDataMinGreaterMaxShouldErr(t *testing.T) {
 func TestRatingsData_RatingsDataMinSmallerThanOne(t *testing.T) {
 	t.Parallel()
 
-	ratingsDataArg := createDymmyRatingsData()
+	ratingsDataArg := createDummyRatingsData()
 	ratingsConfig := createDummyRatingsConfig()
 	ratingsConfig.General.MinRating = 0
 	ratingsConfig.General.MaxRating = 8
@@ -124,7 +202,7 @@ func TestRatingsData_RatingsDataMinSmallerThanOne(t *testing.T) {
 func TestRatingsData_RatingsStartGreaterMaxShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ratingsDataArg := createDymmyRatingsData()
+	ratingsDataArg := createDummyRatingsData()
 	ratingsConfig := createDummyRatingsConfig()
 	ratingsConfig.General.MinRating = 10
 	ratingsConfig.General.MaxRating = 100
@@ -139,7 +217,7 @@ func TestRatingsData_RatingsStartGreaterMaxShouldErr(t *testing.T) {
 func TestRatingsData_RatingsStartLowerMinShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ratingsDataArg := createDymmyRatingsData()
+	ratingsDataArg := createDummyRatingsData()
 	ratingsConfig := createDummyRatingsConfig()
 	ratingsConfig.General.MinRating = 10
 	ratingsConfig.General.MaxRating = 100
@@ -154,7 +232,7 @@ func TestRatingsData_RatingsStartLowerMinShouldErr(t *testing.T) {
 func TestRatingsData_RatingsSignedBlocksThresholdNotBetweenZeroAndOneShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ratingsDataArg := createDymmyRatingsData()
+	ratingsDataArg := createDummyRatingsData()
 	ratingsConfig := createDummyRatingsConfig()
 	ratingsConfig.General.SignedBlocksThreshold = -0.1
 	ratingsDataArg.Config = ratingsConfig
@@ -174,7 +252,7 @@ func TestRatingsData_RatingsSignedBlocksThresholdNotBetweenZeroAndOneShouldErr(t
 func TestRatingsData_RatingsConsecutiveMissedBlocksPenaltyLowerThanOneShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ratingsDataArg := createDymmyRatingsData()
+	ratingsDataArg := createDummyRatingsData()
 	ratingsConfig := createDummyRatingsConfig()
 	ratingsConfig.MetaChain.ConsecutiveMissedBlocksPenalty = 0.9
 	ratingsDataArg.Config = ratingsConfig
@@ -197,7 +275,7 @@ func TestRatingsData_RatingsConsecutiveMissedBlocksPenaltyLowerThanOneShouldErr(
 func TestRatingsData_HoursToMaxRatingFromStartRatingZeroErr(t *testing.T) {
 	t.Parallel()
 
-	ratingsDataArg := createDymmyRatingsData()
+	ratingsDataArg := createDummyRatingsData()
 	ratingsConfig := createDummyRatingsConfig()
 	ratingsConfig.MetaChain.HoursToMaxRatingFromStartRating = 0
 	ratingsDataArg.Config = ratingsConfig
@@ -210,7 +288,7 @@ func TestRatingsData_HoursToMaxRatingFromStartRatingZeroErr(t *testing.T) {
 func TestRatingsData_PositiveDecreaseRatingsStepsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ratingsDataArg := createDymmyRatingsData()
+	ratingsDataArg := createDummyRatingsData()
 	ratingsConfig := createDummyRatingsConfig()
 	ratingsConfig.MetaChain.ProposerDecreaseFactor = -0.5
 	ratingsDataArg.Config = ratingsConfig
@@ -251,7 +329,7 @@ func TestRatingsData_PositiveDecreaseRatingsStepsShouldErr(t *testing.T) {
 func TestRatingsData_UnderflowErr(t *testing.T) {
 	t.Parallel()
 
-	ratingsDataArg := createDymmyRatingsData()
+	ratingsDataArg := createDummyRatingsData()
 	ratingsConfig := createDummyRatingsConfig()
 	ratingsConfig.MetaChain.ProposerDecreaseFactor = math.MinInt32
 	ratingsDataArg.Config = ratingsConfig
@@ -261,7 +339,7 @@ func TestRatingsData_UnderflowErr(t *testing.T) {
 	require.True(t, errors.Is(err, process.ErrOverflow))
 	require.True(t, strings.Contains(err.Error(), "proposerDecrease"))
 
-	ratingsDataArg = createDymmyRatingsData()
+	ratingsDataArg = createDummyRatingsData()
 	ratingsConfig = createDummyRatingsConfig()
 	ratingsConfig.MetaChain.ValidatorDecreaseFactor = math.MinInt32
 	ratingsDataArg.Config = ratingsConfig
@@ -271,7 +349,7 @@ func TestRatingsData_UnderflowErr(t *testing.T) {
 	require.True(t, errors.Is(err, process.ErrOverflow))
 	require.True(t, strings.Contains(err.Error(), "validatorDecrease"))
 
-	ratingsDataArg = createDymmyRatingsData()
+	ratingsDataArg = createDummyRatingsData()
 	ratingsConfig = createDummyRatingsConfig()
 	ratingsConfig.ShardChain.ProposerDecreaseFactor = math.MinInt32
 	ratingsDataArg.Config = ratingsConfig
@@ -281,7 +359,7 @@ func TestRatingsData_UnderflowErr(t *testing.T) {
 	require.True(t, errors.Is(err, process.ErrOverflow))
 	require.True(t, strings.Contains(err.Error(), "proposerDecrease"))
 
-	ratingsDataArg = createDymmyRatingsData()
+	ratingsDataArg = createDummyRatingsData()
 	ratingsConfig = createDummyRatingsConfig()
 	ratingsConfig.ShardChain.ValidatorDecreaseFactor = math.MinInt32
 	ratingsDataArg.Config = ratingsConfig
@@ -290,6 +368,65 @@ func TestRatingsData_UnderflowErr(t *testing.T) {
 	require.Nil(t, ratingsData)
 	require.True(t, errors.Is(err, process.ErrOverflow))
 	require.True(t, strings.Contains(err.Error(), "validatorDecrease"))
+}
+
+func TestRatingsData_EpochConfirmed(t *testing.T) {
+	t.Parallel()
+
+	chainParams := make([]config.ChainParametersByEpochConfig, 0)
+	for i := uint32(0); i <= 10; i += 5 {
+		chainParams = append(chainParams, config.ChainParametersByEpochConfig{
+			RoundDuration:               4000,
+			Hysteresis:                  0.2,
+			EnableEpoch:                 i,
+			ShardConsensusGroupSize:     shardConsensusSize,
+			ShardMinNumNodes:            shardMinNodes,
+			MetachainConsensusGroupSize: metaConsensusSize,
+			MetachainMinNumNodes:        metaMinNodes,
+			Adaptivity:                  false,
+		})
+	}
+	chainParamsHandler := &shardingmock.ChainParametersHandlerStub{
+		AllChainParametersCalled: func() []config.ChainParametersByEpochConfig {
+			return chainParams
+		},
+		CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
+			return chainParams[0]
+		},
+	}
+	ratingsDataArg := createDummyRatingsData()
+	ratingsDataArg.Config = createDummyRatingsConfig()
+	ratingsDataArg.ChainParametersHolder = chainParamsHandler
+	rd, err := NewRatingsData(ratingsDataArg)
+	require.NoError(t, err)
+	require.NotNil(t, rd)
+
+	// ensure that the configs are stored in descending order
+	currentConfig := rd.ratingsStepsConfig[0]
+	for i := 1; i < len(rd.ratingsStepsConfig); i++ {
+		require.Less(t, rd.ratingsStepsConfig[i].enableEpoch, currentConfig.enableEpoch)
+		currentConfig = rd.ratingsStepsConfig[i]
+	}
+
+	require.Equal(t, uint32(0), rd.currentRatingsStepData.enableEpoch)
+
+	rd.EpochConfirmed(4, 0)
+	require.Equal(t, uint32(0), rd.currentRatingsStepData.enableEpoch)
+
+	rd.EpochConfirmed(5, 0)
+	require.Equal(t, uint32(5), rd.currentRatingsStepData.enableEpoch)
+
+	rd.EpochConfirmed(9, 0)
+	require.Equal(t, uint32(5), rd.currentRatingsStepData.enableEpoch)
+
+	rd.EpochConfirmed(10, 0)
+	require.Equal(t, uint32(10), rd.currentRatingsStepData.enableEpoch)
+
+	rd.EpochConfirmed(11, 0)
+	require.Equal(t, uint32(10), rd.currentRatingsStepData.enableEpoch)
+
+	rd.EpochConfirmed(429, 0)
+	require.Equal(t, uint32(10), rd.currentRatingsStepData.enableEpoch)
 }
 
 func TestRatingsData_OverflowErr(t *testing.T) {
@@ -315,7 +452,7 @@ func TestRatingsData_OverflowErr(t *testing.T) {
 		}
 	}
 
-	ratingsDataArg := createDymmyRatingsData()
+	ratingsDataArg := createDummyRatingsData()
 	ratingsConfig := createDummyRatingsConfig()
 	ratingsDataArg.Config = ratingsConfig
 	chainParams := getBaseChainParams()
@@ -328,7 +465,7 @@ func TestRatingsData_OverflowErr(t *testing.T) {
 	require.True(t, errors.Is(err, process.ErrOverflow))
 	require.True(t, strings.Contains(err.Error(), "proposerIncrease"))
 
-	ratingsDataArg = createDymmyRatingsData()
+	ratingsDataArg = createDummyRatingsData()
 	ratingsConfig = createDummyRatingsConfig()
 	ratingsDataArg.Config = ratingsConfig
 	chainParams = getBaseChainParams()
@@ -343,7 +480,7 @@ func TestRatingsData_OverflowErr(t *testing.T) {
 	require.True(t, errors.Is(err, process.ErrOverflow))
 	require.True(t, strings.Contains(err.Error(), "validatorIncrease"))
 
-	ratingsDataArg = createDymmyRatingsData()
+	ratingsDataArg = createDummyRatingsData()
 	ratingsConfig = createDummyRatingsConfig()
 	ratingsDataArg.Config = ratingsConfig
 	chainParams = getBaseChainParams()
@@ -356,7 +493,7 @@ func TestRatingsData_OverflowErr(t *testing.T) {
 	require.True(t, errors.Is(err, process.ErrOverflow))
 	require.True(t, strings.Contains(err.Error(), "proposerIncrease"))
 
-	ratingsDataArg = createDymmyRatingsData()
+	ratingsDataArg = createDummyRatingsData()
 	ratingsConfig = createDummyRatingsConfig()
 	ratingsDataArg.Config = ratingsConfig
 	chainParams = getBaseChainParams()
@@ -375,7 +512,7 @@ func TestRatingsData_OverflowErr(t *testing.T) {
 func TestRatingsData_IncreaseLowerThanZeroErr(t *testing.T) {
 	t.Parallel()
 
-	ratingsDataArg := createDymmyRatingsData()
+	ratingsDataArg := createDummyRatingsData()
 	ratingsConfig := createDummyRatingsConfig()
 	ratingsDataArg.Config = ratingsConfig
 	ratingsDataArg.Config.MetaChain.HoursToMaxRatingFromStartRating = math.MaxUint32
@@ -385,7 +522,7 @@ func TestRatingsData_IncreaseLowerThanZeroErr(t *testing.T) {
 	require.True(t, errors.Is(err, process.ErrIncreaseStepLowerThanOne))
 	require.True(t, strings.Contains(err.Error(), "proposerIncrease"))
 
-	ratingsDataArg = createDymmyRatingsData()
+	ratingsDataArg = createDummyRatingsData()
 	ratingsConfig = createDummyRatingsConfig()
 	ratingsDataArg.Config = ratingsConfig
 	ratingsDataArg.Config.MetaChain.HoursToMaxRatingFromStartRating = 2
@@ -400,7 +537,7 @@ func TestRatingsData_IncreaseLowerThanZeroErr(t *testing.T) {
 func TestRatingsData_RatingsCorrectValues(t *testing.T) {
 	t.Parallel()
 
-	ratingsDataArg := createDymmyRatingsData()
+	ratingsDataArg := createDummyRatingsData()
 	minRating := uint32(1)
 	maxRating := uint32(10000)
 	startRating := uint32(4000)

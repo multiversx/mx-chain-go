@@ -6,7 +6,7 @@ import "github.com/ElrondNetwork/elrond-go/config"
 type ChainParametersHandlerStub struct {
 	CurrentChainParametersCalled  func() config.ChainParametersByEpochConfig
 	AllChainParametersCalled      func() []config.ChainParametersByEpochConfig
-	ChainParametersForEpochCalled func(epoch uint32) config.ChainParametersByEpochConfig
+	ChainParametersForEpochCalled func(epoch uint32) (config.ChainParametersByEpochConfig, error)
 }
 
 // CurrentChainParameters -
@@ -28,12 +28,12 @@ func (stub *ChainParametersHandlerStub) AllChainParameters() []config.ChainParam
 }
 
 // ChainParametersForEpoch -
-func (stub *ChainParametersHandlerStub) ChainParametersForEpoch(epoch uint32) config.ChainParametersByEpochConfig {
+func (stub *ChainParametersHandlerStub) ChainParametersForEpoch(epoch uint32) (config.ChainParametersByEpochConfig, error) {
 	if stub.ChainParametersForEpochCalled != nil {
 		return stub.ChainParametersForEpochCalled(epoch)
 	}
 
-	return config.ChainParametersByEpochConfig{}
+	return config.ChainParametersByEpochConfig{}, nil
 }
 
 // IsInterfaceNil -

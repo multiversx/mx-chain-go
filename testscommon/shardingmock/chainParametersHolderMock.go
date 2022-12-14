@@ -32,8 +32,8 @@ func (c *ChainParametersHolderMock) AllChainParameters() []config.ChainParameter
 }
 
 // ChainParametersForEpoch -
-func (c *ChainParametersHolderMock) ChainParametersForEpoch(_ uint32) config.ChainParametersByEpochConfig {
-	return testChainParams
+func (c *ChainParametersHolderMock) ChainParametersForEpoch(_ uint32) (config.ChainParametersByEpochConfig, error) {
+	return testChainParams, nil
 }
 
 // IsInterfaceNil -
