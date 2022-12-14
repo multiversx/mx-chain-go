@@ -1,6 +1,7 @@
 package sharding
 
 import (
+	"fmt"
 	"sync"
 	"testing"
 
@@ -292,7 +293,9 @@ func TestChainParametersHolder_AllChainParameters(t *testing.T) {
 		EpochNotifier:   &epochNotifier.EpochNotifierStub{},
 	})
 
-	require.Equal(t, params, paramsHolder.AllChainParameters())
+	returnedAllChainsParameters := paramsHolder.AllChainParameters()
+	require.Equal(t, params, returnedAllChainsParameters)
+	require.NotEqual(t, fmt.Sprintf("%p", returnedAllChainsParameters), fmt.Sprintf("%p", paramsHolder.chainParameters))
 }
 
 func TestChainParametersHolder_ConcurrentOperations(t *testing.T) {

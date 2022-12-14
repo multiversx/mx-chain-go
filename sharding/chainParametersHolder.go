@@ -34,6 +34,11 @@ func NewChainParametersHolder(args ArgsChainParametersHolder) (*chainParametersH
 		return chainParameters[i].EnableEpoch > chainParameters[j].EnableEpoch
 	})
 
+	earliestChainParams := chainParameters[len(chainParameters)-1]
+	if earliestChainParams.EnableEpoch != 0 {
+		return nil, ErrMissingConfigurationForEpochZero
+	}
+
 	currentParams, err := getMatchingChainParametersUnprotected(args.EpochNotifier.CurrentEpoch(), args.ChainParameters)
 	if err != nil {
 		return nil, err
@@ -75,18 +80,6 @@ func validateChainParameters(chainParametersConfig []config.ChainParametersByEpo
 		}
 	}
 
-	doesConfigForEpochZeroExist := false
-	for _, chainParams := range chainParametersConfig {
-		if chainParams.EnableEpoch == 0 {
-			doesConfigForEpochZeroExist = true
-			break
-		}
-	}
-
-	if !doesConfigForEpochZeroExist {
-		return fmt.Errorf("%w while creating chainParametersHolde", ErrMissingConfigurationForEpochZero)
-	}
-
 	return nil
 }
 
@@ -97,7 +90,7 @@ func (c *chainParametersHolder) EpochConfirmed(epoch uint32, _ uint64) {
 
 	matchingVersionForNewEpoch, err := getMatchingChainParametersUnprotected(epoch, c.chainParameters)
 	if err != nil {
-		log.Error("chainParametersHolder.EpochConfirmed: %w for epoch %d", err, epoch)
+		log.Error("chainParametersHolder.EpochConfirmed: cannot get matching chain parameters", "epoch", epoch, "error", err)
 		return
 	}
 	if matchingVersionForNewEpoch.EnableEpoch == c.currentChainParameters.EnableEpoch {
@@ -131,9 +124,7 @@ func (c *chainParametersHolder) AllChainParameters() []config.ChainParametersByE
 	defer c.mutOperations.RUnlock()
 
 	chainParametersCopy := make([]config.ChainParametersByEpochConfig, len(c.chainParameters))
-	for idx, chainParameterForEpoch := range c.chainParameters {
-		chainParametersCopy[idx] = chainParameterForEpoch
-	}
+	copy(chainParametersCopy, c.chainParameters)
 
 	return chainParametersCopy
 }

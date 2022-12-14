@@ -214,14 +214,19 @@ func (rd *RatingsData) computeRatingStepsConfigForParams(chainParams config.Chai
 	}, nil
 }
 
-// EpochConfirmed will be called whenever a new epoch is called
+// EpochConfirmed will be called whenever a new epoch is confirmed
 func (rd *RatingsData) EpochConfirmed(epoch uint32, _ uint64) {
 	log.Debug("RatingsData - epoch confirmed", "epoch", epoch)
 
 	rd.mutConfiguration.Lock()
 	defer rd.mutConfiguration.Unlock()
 
-	newVersion := rd.getMatchingVersion(epoch)
+	newVersion, err := rd.getMatchingVersion(epoch)
+	if err != nil {
+		log.Error("RatingsData.EpochConfirmed - cannot get matching version", "epoch", epoch, "error", err)
+		return
+	}
+
 	if rd.currentRatingsStepData.enableEpoch == newVersion.enableEpoch {
 		return
 	}
@@ -245,16 +250,16 @@ func (rd *RatingsData) EpochConfirmed(epoch uint32, _ uint64) {
 	)
 }
 
-func (rd *RatingsData) getMatchingVersion(epoch uint32) ratingsStepsData {
+func (rd *RatingsData) getMatchingVersion(epoch uint32) (ratingsStepsData, error) {
 	// the config values are sorted in descending order, so the matching version is the first one whose enable epoch is less or equal than the provided epoch
 	for _, ratingsStepConfig := range rd.ratingsStepsConfig {
 		if ratingsStepConfig.enableEpoch <= epoch {
-			return ratingsStepConfig
+			return ratingsStepConfig, nil
 		}
 	}
 
 	// the code should never reach this point, since the config values are checked on the constructor
-	return rd.currentRatingsStepData
+	return ratingsStepsData{}, process.ErrNoMatchingConfigForProvidedEpoch
 }
 
 func verifyRatingsConfig(settings config.RatingsConfig) error {
