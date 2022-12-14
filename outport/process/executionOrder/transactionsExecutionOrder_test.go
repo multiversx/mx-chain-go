@@ -23,6 +23,9 @@ func newArgStorer() ArgSorter {
 		Hasher:     testscommon.KeccakMock{},
 		Marshaller: testscommon.MarshalizerMock{},
 		MbsStorer:  testscommon.CreateMemUnit(),
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+			IsFrontRunningProtectionFlagEnabledField: true,
+		},
 	}
 }
 
@@ -45,6 +48,12 @@ func TestNewSorter(t *testing.T) {
 	arg.MbsStorer = nil
 	s, err = NewSorter(arg)
 	require.Equal(t, processOut.ErrNilStorer, err)
+	require.Nil(t, s)
+
+	arg = newArgStorer()
+	arg.EnableEpochsHandler = nil
+	s, err = NewSorter(arg)
+	require.Equal(t, processOut.ErrNilEnableEpochsHandler, err)
 	require.Nil(t, s)
 
 	arg = newArgStorer()

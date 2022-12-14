@@ -936,6 +936,7 @@ func (pcf *processComponentsFactory) createOutportDataProvider(
 		IsImportDBMode:         pcf.importDBConfig.IsImportDBMode,
 		Hasher:                 pcf.coreData.Hasher(),
 		MbsStorer:              mbsStorer,
+		EnableEpochsHandler:    pcf.coreData.EnableEpochsHandler(),
 	})
 }
 

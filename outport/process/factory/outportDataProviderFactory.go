@@ -4,6 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/outport/process"
 	"github.com/ElrondNetwork/elrond-go/outport/process/alteredaccounts"
@@ -34,6 +35,7 @@ type ArgOutportDataProviderFactory struct {
 	EconomicsData          process.EconomicsDataHandler
 	Hasher                 hashing.Hasher
 	MbsStorer              storage.Storer
+	EnableEpochsHandler    common.EnableEpochsHandler
 }
 
 // CreateOutportDataProvider will create a new instance of outport.DataProviderOutport
@@ -68,9 +70,10 @@ func CreateOutportDataProvider(arg ArgOutportDataProviderFactory) (outport.DataP
 	}
 
 	argSorter := executionOrder.ArgSorter{
-		Hasher:     arg.Hasher,
-		Marshaller: arg.Marshaller,
-		MbsStorer:  arg.MbsStorer,
+		Hasher:              arg.Hasher,
+		Marshaller:          arg.Marshaller,
+		MbsStorer:           arg.MbsStorer,
+		EnableEpochsHandler: arg.EnableEpochsHandler,
 	}
 	executionOrderHandler, err := executionOrder.NewSorter(argSorter)
 	if err != nil {

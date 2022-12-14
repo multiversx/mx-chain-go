@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	processOut "github.com/ElrondNetwork/elrond-go/outport/process"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -21,16 +22,18 @@ import (
 
 // ArgSorter holds the arguments needed for creating a new instance of sorter
 type ArgSorter struct {
-	Hasher     hashing.Hasher
-	Marshaller marshal.Marshalizer
-	MbsStorer  storage.Storer
+	Hasher              hashing.Hasher
+	Marshaller          marshal.Marshalizer
+	MbsStorer           storage.Storer
+	EnableEpochsHandler common.EnableEpochsHandler
 }
 
 var log = logger.GetOrCreate("outport/process/executionOrder")
 
 type sorter struct {
-	mbsGetter mbsGetter
-	hasher    hashing.Hasher
+	mbsGetter           mbsGetter
+	hasher              hashing.Hasher
+	enableEpochsHandler common.EnableEpochsHandler
 }
 
 // NewSorter will create a new instance of sorter
@@ -44,10 +47,14 @@ func NewSorter(arg ArgSorter) (*sorter, error) {
 	if check.IfNil(arg.MbsStorer) {
 		return nil, processOut.ErrNilStorer
 	}
+	if check.IfNil(arg.EnableEpochsHandler) {
+		return nil, process.ErrNilEnableEpochsHandler
+	}
 
 	return &sorter{
-		mbsGetter: newMiniblocksGetter(arg.MbsStorer, arg.Marshaller),
-		hasher:    arg.Hasher,
+		mbsGetter:           newMiniblocksGetter(arg.MbsStorer, arg.Marshaller),
+		hasher:              arg.Hasher,
+		enableEpochsHandler: arg.EnableEpochsHandler,
 	}, nil
 }
 
@@ -76,7 +83,7 @@ func (s *sorter) PutExecutionOrderInTransactionPool(
 		return err
 	}
 
-	txsSort.SortTransactionsBySenderAndNonceWithFrontRunningProtectionExtendedTransactions(transactionsFromMe, s.hasher, header.GetPrevRandSeed())
+	s.sortTransactions(transactionsFromMe, header)
 
 	rewardsTxs, err := getRewardsTxsFromMe(pool, blockBody, header)
 	if err != nil {
@@ -84,7 +91,7 @@ func (s *sorter) PutExecutionOrderInTransactionPool(
 	}
 
 	// scheduled from me, need to be sorted
-	txsSort.SortTransactionsBySenderAndNonceWithFrontRunningProtectionExtendedTransactions(scheduledTransactionsFromMe, s.hasher, header.GetPrevRandSeed())
+	s.sortTransactions(scheduledTransactionsFromMe, header)
 
 	allTransaction := append(transactionsToMe, transactionsFromMe...)
 	allTransaction = append(allTransaction, rewardsTxs...)
@@ -99,6 +106,14 @@ func (s *sorter) PutExecutionOrderInTransactionPool(
 
 	printPool(pool)
 	return nil
+}
+
+func (s *sorter) sortTransactions(transactions []data.TransactionHandlerWithGasUsedAndFee, header data.HeaderHandler) {
+	if s.enableEpochsHandler.IsFrontRunningProtectionFlagEnabled() {
+		txsSort.SortTransactionsBySenderAndNonceWithFrontRunningProtectionExtendedTransactions(transactions, s.hasher, header.GetPrevRandSeed())
+	} else {
+		txsSort.SortTransactionsBySenderAndNonceExtendedTransactions(transactions)
+	}
 }
 
 func setOrderSmartContractResults(pool *outport.Pool) {
@@ -124,7 +139,7 @@ func (s *sorter) extractNormalTransactionsAndInvalidFromMe(pool *outport.Pool, b
 	for mbIndex, mb := range blockBody.MiniBlocks {
 		var err error
 		var txs []data.TransactionHandlerWithGasUsedAndFee
-		if shouldIgnoreProcessedMBScheduled(header, mbIndex) {
+		if isScheduledMBProcessed(header, mbIndex) {
 			continue
 		}
 
@@ -144,7 +159,7 @@ func (s *sorter) extractNormalTransactionsAndInvalidFromMe(pool *outport.Pool, b
 			return nil, nil, err
 		}
 
-		if isMBScheduled(header, mbIndex) {
+		if isScheduledMBNotProcessed(header, mbIndex) {
 			scheduledTransactionsFromMe = append(scheduledTransactionsFromMe, txs...)
 		} else {
 			transactionsFromMe = append(transactionsFromMe, txs...)
@@ -190,7 +205,7 @@ func extractNormalTransactionAndScrsToMe(pool *outport.Pool, blockBody *block.Bo
 	for mbIndex, mb := range blockBody.MiniBlocks {
 		var err error
 		var txs []data.TransactionHandlerWithGasUsedAndFee
-		if shouldIgnoreProcessedMBScheduled(header, mbIndex) {
+		if isScheduledMBProcessed(header, mbIndex) {
 			continue
 		}
 
@@ -213,7 +228,7 @@ func extractNormalTransactionAndScrsToMe(pool *outport.Pool, blockBody *block.Bo
 			return nil, nil, err
 		}
 
-		if isMBScheduled(header, mbIndex) {
+		if isScheduledMBNotProcessed(header, mbIndex) {
 			scheduledTransactionsToMe = append(scheduledTransactionsToMe, txs...)
 		} else {
 			transactionsToMe = append(transactionsToMe, txs...)
@@ -265,11 +280,11 @@ func extractExecutedTxHashes(mbIndex int, mbTxHashes [][]byte, header data.Heade
 	return mbTxHashes[firstProcessed : lastProcessed+1]
 }
 
-func shouldIgnoreProcessedMBScheduled(header data.HeaderHandler, mbIndex int) bool {
+func isScheduledMBProcessed(header data.HeaderHandler, mbIndex int) bool {
 	return getProcessingType(header, mbIndex) == int32(block.Processed)
 }
 
-func isMBScheduled(header data.HeaderHandler, mbIndex int) bool {
+func isScheduledMBNotProcessed(header data.HeaderHandler, mbIndex int) bool {
 	return getProcessingType(header, mbIndex) == int32(block.Scheduled)
 }
 

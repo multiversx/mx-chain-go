@@ -29,6 +29,7 @@ func createArgOutportDataProviderFactory() ArgOutportDataProviderFactory {
 		EconomicsData:          &economicsmocks.EconomicsHandlerMock{},
 		Hasher:                 &testscommon.KeccakMock{},
 		MbsStorer:              &genericMocks.StorerMock{},
+		EnableEpochsHandler:    &testscommon.EnableEpochsHandlerStub{},
 	}
 }
 
