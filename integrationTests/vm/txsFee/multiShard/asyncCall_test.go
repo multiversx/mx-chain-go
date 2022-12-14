@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -21,15 +22,19 @@ func TestAsyncCallShouldWork(t *testing.T) {
 		t.Skip("cannot run with -race -short; requires Arwen fix")
 	}
 
-	testContextFirstContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{})
+	enableEpochs := config.EnableEpochs{
+		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
+	}
+
+	testContextFirstContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, enableEpochs)
 	require.Nil(t, err)
 	defer testContextFirstContract.Close()
 
-	testContextSecondContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{})
+	testContextSecondContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, enableEpochs)
 	require.Nil(t, err)
 	defer testContextSecondContract.Close()
 
-	testContextSender, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, config.EnableEpochs{})
+	testContextSender, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, enableEpochs)
 	require.Nil(t, err)
 	defer testContextSender.Close()
 

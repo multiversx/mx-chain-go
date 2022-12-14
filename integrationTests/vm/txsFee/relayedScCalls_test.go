@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -18,7 +19,9 @@ import (
 )
 
 func TestRelayedScCallShouldWork(t *testing.T) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
+		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
+	})
 	require.Nil(t, err)
 	defer testContext.Close()
 

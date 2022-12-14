@@ -19,6 +19,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
@@ -57,10 +58,11 @@ func prepareTestContextForEpoch836(tb testing.TB) (*vm.VMTestContext, []byte) {
 
 	testContext, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGas(
 		config.EnableEpochs{
-			GovernanceEnableEpoch:                   unreachableEpoch,
-			WaitingListFixEnableEpoch:               unreachableEpoch,
-			SetSenderInEeiOutputTransferEnableEpoch: unreachableEpoch,
-			RefactorPeersMiniBlocksEnableEpoch:      unreachableEpoch,
+			GovernanceEnableEpoch:                           unreachableEpoch,
+			WaitingListFixEnableEpoch:                       unreachableEpoch,
+			SetSenderInEeiOutputTransferEnableEpoch:         unreachableEpoch,
+			RefactorPeersMiniBlocksEnableEpoch:              unreachableEpoch,
+			DynamicGasCostForDataTrieStorageLoadEnableEpoch: unreachableEpoch,
 		},
 		mock.NewMultiShardsCoordinatorMock(2),
 		db,
@@ -85,7 +87,9 @@ func prepareTestContextForEpoch836(tb testing.TB) (*vm.VMTestContext, []byte) {
 }
 
 func TestScCallShouldWork(t *testing.T) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
+		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
+	})
 	require.Nil(t, err)
 	defer testContext.Close()
 
