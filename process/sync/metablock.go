@@ -182,7 +182,7 @@ func (boot *MetaBootstrap) setLastEpochStartRound() {
 func (boot *MetaBootstrap) SyncBlock(ctx context.Context) error {
 	err := boot.syncBlock()
 	if errors.IsGetNodeFromDBError(err) {
-		getNodeErr, ok := err.(*errors.GetNodeFromDBErr)
+		getNodeErr, ok := err.(*errors.GetNodeFromDBErrWithKey)
 		if !ok {
 			return err
 		}
@@ -195,6 +195,7 @@ func (boot *MetaBootstrap) SyncBlock(ctx context.Context) error {
 }
 
 func (boot *MetaBootstrap) syncAccountsDBs(key []byte, id string) error {
+	// TODO: refactor this in order to avoid treatment based on identifier
 	switch id {
 	case common.AccountsTrieIdentifier:
 		return boot.syncUserAccountsState(key)

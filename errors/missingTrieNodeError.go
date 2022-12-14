@@ -25,16 +25,16 @@ func IsGetNodeFromDBError(err error) bool {
 	return false
 }
 
-// GetNodeFromDBErr defines a custom error for trie get node
-type GetNodeFromDBErr struct {
+// GetNodeFromDBErrWithKey defines a custom error for trie get node
+type GetNodeFromDBErrWithKey struct {
 	getErr       error
 	key          []byte
 	dbIdentifier string
 }
 
-// NewGetNodeFromDBErr will create a new instance of GetNodeFromDBErr
-func NewGetNodeFromDBErr(key []byte, err error, id string) *GetNodeFromDBErr {
-	return &GetNodeFromDBErr{
+// NewGetNodeFromDBErrWithKey will create a new instance of GetNodeFromDBErr
+func NewGetNodeFromDBErrWithKey(key []byte, err error, id string) *GetNodeFromDBErrWithKey {
+	return &GetNodeFromDBErrWithKey{
 		getErr:       err,
 		key:          key,
 		dbIdentifier: id,
@@ -42,7 +42,7 @@ func NewGetNodeFromDBErr(key []byte, err error, id string) *GetNodeFromDBErr {
 }
 
 // Error returns the error as string
-func (e *GetNodeFromDBErr) Error() string {
+func (e *GetNodeFromDBErrWithKey) Error() string {
 	return fmt.Sprintf(
 		"%s: %s for key %v",
 		common.GetNodeFromDBErrorString,
@@ -52,11 +52,11 @@ func (e *GetNodeFromDBErr) Error() string {
 }
 
 // GetKey will return the key that generated the error
-func (e *GetNodeFromDBErr) GetKey() []byte {
+func (e *GetNodeFromDBErrWithKey) GetKey() []byte {
 	return e.key
 }
 
-// GetIdentifier will return the db corresponding to the db
-func (e *GetNodeFromDBErr) GetIdentifier() string {
+// GetIdentifier will return the db identifier corresponding to the db
+func (e *GetNodeFromDBErrWithKey) GetIdentifier() string {
 	return e.dbIdentifier
 }
