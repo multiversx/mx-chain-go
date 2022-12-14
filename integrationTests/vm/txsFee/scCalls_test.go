@@ -61,6 +61,7 @@ func prepareTestContextForEpoch836(tb testing.TB) (*vm.VMTestContext, []byte) {
 			WaitingListFixEnableEpoch:               unreachableEpoch,
 			SetSenderInEeiOutputTransferEnableEpoch: unreachableEpoch,
 			RefactorPeersMiniBlocksEnableEpoch:      unreachableEpoch,
+			MaxBlockchainHookCountersEnableEpoch:    unreachableEpoch,
 		},
 		mock.NewMultiShardsCoordinatorMock(2),
 		db,
