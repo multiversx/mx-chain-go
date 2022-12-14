@@ -14,6 +14,7 @@ func (e *ExecutionOrderHandlerStub) PutExecutionOrderInTransactionPool(
 	_ *outport.Pool,
 	_ data.HeaderHandler,
 	_ data.BodyHandler,
+	_ data.HeaderHandler,
 ) error {
 	return nil
 }

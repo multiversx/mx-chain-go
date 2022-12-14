@@ -15,7 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 )
 
-// ArgOutportDataProvider  holds the arguments needed for creating a new instance of outportDataProvider
+// ArgOutportDataProvider holds the arguments needed for creating a new instance of outportDataProvider
 type ArgOutportDataProvider struct {
 	IsImportDBMode           bool
 	ShardCoordinator         sharding.Coordinator
@@ -33,6 +33,7 @@ type ArgPrepareOutportSaveBlockData struct {
 	HeaderHash             []byte
 	Header                 data.HeaderHandler
 	Body                   data.BodyHandler
+	PreviousHeader         data.HeaderHandler
 	RewardsTxs             map[string]data.TransactionHandler
 	NotarizedHeadersHashes []string
 }
@@ -80,7 +81,7 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 		return nil, fmt.Errorf("transactionsFeeProcessor.PutFeeAndGasUsed %w", err)
 	}
 
-	err = odp.executionOrderHandler.PutExecutionOrderInTransactionPool(pool, arg.Header, arg.Body)
+	err = odp.executionOrderHandler.PutExecutionOrderInTransactionPool(pool, arg.Header, arg.Body, arg.PreviousHeader)
 	if err != nil {
 		return nil, fmt.Errorf("executionOrderHandler.PutExecutionOrderInTransactionPool %w", err)
 	}

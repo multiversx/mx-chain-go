@@ -11,19 +11,43 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	processOut "github.com/ElrondNetwork/elrond-go/outport/process"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/require"
 )
 
+func newArgStorer() ArgSorter {
+	return ArgSorter{
+		Hasher:     testscommon.KeccakMock{},
+		Marshaller: testscommon.MarshalizerMock{},
+		MbsStorer:  testscommon.CreateMemUnit(),
+	}
+}
+
 func TestNewSorter(t *testing.T) {
 	t.Parallel()
 
-	s, err := NewSorter(nil)
+	arg := newArgStorer()
+	arg.Hasher = nil
+	s, err := NewSorter(arg)
 	require.Equal(t, process.ErrNilHasher, err)
 	require.Nil(t, s)
 
-	s, err = NewSorter(&testscommon.HasherStub{})
+	arg = newArgStorer()
+	arg.Marshaller = nil
+	s, err = NewSorter(arg)
+	require.Equal(t, process.ErrNilMarshalizer, err)
+	require.Nil(t, s)
+
+	arg = newArgStorer()
+	arg.MbsStorer = nil
+	s, err = NewSorter(arg)
+	require.Equal(t, processOut.ErrNilStorer, err)
+	require.Nil(t, s)
+
+	arg = newArgStorer()
+	s, err = NewSorter(arg)
 	require.Nil(t, err)
 	require.NotNil(t, s)
 }
@@ -42,7 +66,9 @@ func TestAddExecutionOrderInTransactionPool(t *testing.T) {
 		},
 	}
 
-	s, _ := NewSorter(hasher)
+	arg := newArgStorer()
+	arg.Hasher = hasher
+	s, _ := NewSorter(arg)
 
 	header := &block.Header{
 		PrevRandSeed: []byte(randomness),
@@ -118,7 +144,7 @@ func TestAddExecutionOrderInTransactionPool(t *testing.T) {
 		Logs:     nil,
 	}
 
-	err := s.PutExecutionOrderInTransactionPool(pool, header, blockBody)
+	err := s.PutExecutionOrderInTransactionPool(pool, header, blockBody, &block.Header{})
 	require.Nil(t, err)
 
 	require.Equal(t, &outport.Pool{
@@ -183,7 +209,9 @@ func TestAddExecutionOrderInTransactionPoolFromMeTransactionAndScheduled(t *test
 		},
 	}
 
-	s, _ := NewSorter(hasher)
+	arg := newArgStorer()
+	arg.Hasher = hasher
+	s, _ := NewSorter(arg)
 
 	marshalizer := &marshal.GogoProtoMarshalizer{}
 
@@ -223,7 +251,7 @@ func TestAddExecutionOrderInTransactionPoolFromMeTransactionAndScheduled(t *test
 		},
 	}
 
-	err := s.PutExecutionOrderInTransactionPool(pool, header, blockBody)
+	err := s.PutExecutionOrderInTransactionPool(pool, header, blockBody, &block.Header{})
 	require.Nil(t, err)
 
 	require.Equal(t, &outport.Pool{

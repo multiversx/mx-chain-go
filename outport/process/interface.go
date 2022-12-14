@@ -44,5 +44,6 @@ type ExecutionOrderHandler interface {
 		pool *outport.Pool,
 		header data.HeaderHandler,
 		body data.BodyHandler,
+		prevHeader data.HeaderHandler,
 	) error
 }

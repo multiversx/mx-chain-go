@@ -33,6 +33,7 @@ type ArgOutportDataProviderFactory struct {
 	GasConsumedProvider    process.GasConsumedProvider
 	EconomicsData          process.EconomicsDataHandler
 	Hasher                 hashing.Hasher
+	MbsStorer              storage.Storer
 }
 
 // CreateOutportDataProvider will create a new instance of outport.DataProviderOutport
@@ -66,7 +67,12 @@ func CreateOutportDataProvider(arg ArgOutportDataProviderFactory) (outport.DataP
 		return nil, err
 	}
 
-	executionOrderHandler, err := executionOrder.NewSorter(arg.Hasher)
+	argSorter := executionOrder.ArgSorter{
+		Hasher:     arg.Hasher,
+		Marshaller: arg.Marshaller,
+		MbsStorer:  arg.MbsStorer,
+	}
+	executionOrderHandler, err := executionOrder.NewSorter(argSorter)
 	if err != nil {
 		return nil, err
 	}
