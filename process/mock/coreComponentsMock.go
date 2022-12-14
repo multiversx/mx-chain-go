@@ -37,6 +37,7 @@ type CoreComponentsMock struct {
 	NodeTypeProviderField       core.NodeTypeProviderHandler
 	EconomicsDataField          process.EconomicsDataHandler
 	ProcessStatusHandlerField   common.ProcessStatusHandler
+	ChainParametersHandlerField process.ChainParametersHandler
 	HardforkTriggerPubKeyField  []byte
 }
 
@@ -78,6 +79,11 @@ func (ccm *CoreComponentsMock) TxSignHasher() hashing.Hasher {
 // Uint64ByteSliceConverter -
 func (ccm *CoreComponentsMock) Uint64ByteSliceConverter() typeConverters.Uint64ByteSliceConverter {
 	return ccm.UInt64ByteSliceConv
+}
+
+// ChainParametersHandler -
+func (ccm *CoreComponentsMock) ChainParametersHandler() process.ChainParametersHandler {
+	return ccm.ChainParametersHandlerField
 }
 
 // AddressPubKeyConverter -
