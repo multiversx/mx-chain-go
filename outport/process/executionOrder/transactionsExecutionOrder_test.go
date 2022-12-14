@@ -14,6 +14,7 @@ import (
 	processOut "github.com/ElrondNetwork/elrond-go/outport/process"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/require"
 )
 
@@ -263,6 +264,110 @@ func TestAddExecutionOrderInTransactionPoolFromMeTransactionAndScheduled(t *test
 			string(secondTxHash): &outport.TransactionHandlerWithGasAndFee{
 				TransactionHandler: &transaction.Transaction{Nonce: 2},
 				ExecutionOrder:     1,
+			},
+		},
+	}, pool)
+}
+
+func TestAddExecutionOrderInTransactionPoolFromMeTransactionAndScheduledInvalid(t *testing.T) {
+	t.Parallel()
+
+	randomness := "randomness"
+	hasher := &testscommon.HasherStub{
+		ComputeCalled: func(s string) []byte {
+			if s == randomness {
+				return []byte{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}
+			}
+
+			return []byte(s)
+		},
+	}
+
+	marshalizer := &marshal.GogoProtoMarshalizer{}
+
+	arg := newArgStorer()
+	arg.Hasher = hasher
+	arg.Marshaller = marshalizer
+	scheduledInvalidTxHash := []byte("scheduledInvalidTx")
+	arg.MbsStorer = &storage.StorerStub{
+		GetCalled: func(key []byte) ([]byte, error) {
+			mb := &block.MiniBlock{
+				TxHashes: [][]byte{scheduledInvalidTxHash},
+			}
+			return marshalizer.Marshal(mb)
+		},
+	}
+	s, _ := NewSorter(arg)
+
+	mbhr := &block.MiniBlockHeaderReserved{
+		ExecutionType: block.ProcessingType(1),
+	}
+
+	scheduledMBHash := []byte("scheduled")
+	mbhrBytes, _ := marshalizer.Marshal(mbhr)
+	header := &block.Header{
+		PrevRandSeed: []byte(randomness),
+		ShardID:      1,
+	}
+	prevHeader := &block.Header{
+		PrevRandSeed: []byte(randomness),
+		ShardID:      1,
+		MiniBlockHeaders: []block.MiniBlockHeader{
+			{
+				Type:            block.TxBlock,
+				SenderShardID:   1,
+				ReceiverShardID: 1,
+			},
+			{
+				Hash:            scheduledMBHash,
+				Reserved:        mbhrBytes,
+				SenderShardID:   1,
+				ReceiverShardID: 1,
+			},
+		},
+	}
+
+	firstTxHash, secondTxHash := []byte("t1"), []byte("t2")
+	blockBody := &block.Body{
+		MiniBlocks: []*block.MiniBlock{
+			{
+				SenderShardID:   1,
+				ReceiverShardID: 1,
+				Type:            block.TxBlock,
+				TxHashes:        [][]byte{secondTxHash},
+			},
+			{
+				SenderShardID:   1,
+				ReceiverShardID: 1,
+				Type:            block.InvalidBlock,
+				TxHashes:        [][]byte{firstTxHash, scheduledInvalidTxHash},
+			},
+		},
+	}
+
+	pool := &outport.Pool{
+		Txs: map[string]data.TransactionHandlerWithGasUsedAndFee{
+			string(secondTxHash): &outport.TransactionHandlerWithGasAndFee{TransactionHandler: &transaction.Transaction{Nonce: 2}},
+		},
+		Invalid: map[string]data.TransactionHandlerWithGasUsedAndFee{
+			string(firstTxHash): &outport.TransactionHandlerWithGasAndFee{TransactionHandler: &transaction.Transaction{Nonce: 1}},
+		},
+	}
+
+	err := s.PutExecutionOrderInTransactionPool(pool, header, blockBody, prevHeader)
+	require.Nil(t, err)
+
+	require.Equal(t, &outport.Pool{
+		Txs: map[string]data.TransactionHandlerWithGasUsedAndFee{
+			string(secondTxHash): &outport.TransactionHandlerWithGasAndFee{
+				TransactionHandler: &transaction.Transaction{Nonce: 2},
+				ExecutionOrder:     1,
+			},
+		},
+		Invalid: map[string]data.TransactionHandlerWithGasUsedAndFee{
+			string(firstTxHash): &outport.TransactionHandlerWithGasAndFee{
+				TransactionHandler: &transaction.Transaction{Nonce: 1},
+				ExecutionOrder:     0,
 			},
 		},
 	}, pool)
