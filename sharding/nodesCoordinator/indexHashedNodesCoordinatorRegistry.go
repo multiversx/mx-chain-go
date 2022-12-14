@@ -61,6 +61,7 @@ func GetNodesCoordinatorRegistry(
 
 		epochConfigBytes, err := storer.Get(ncInternalkey)
 		if err != nil {
+			log.Debug("failed to get nodes coordinator config", "key", ncInternalkey)
 			return getNodesCoordinatorRegistryByRandomnessKey(key, storer)
 		}
 
@@ -86,6 +87,9 @@ func getNodesCoordinatorRegistryByRandomnessKey(
 	storer storage.Storer,
 ) (*NodesCoordinatorRegistry, error) {
 	ncInternalkey := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), key...)
+
+	log.Debug("getting nodes coordinator config by randomness", "key", ncInternalkey)
+
 	epochConfigBytes, err := storer.SearchFirst(ncInternalkey)
 	if err != nil {
 		return nil, err
