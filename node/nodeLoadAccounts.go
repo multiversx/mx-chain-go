@@ -10,7 +10,22 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/holders"
 	"github.com/ElrondNetwork/elrond-go/state"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
+
+func (n *Node) loadSystemAccountWithOptions(options api.AccountQueryOptions) (vmcommon.UserAccountHandler, api.BlockInfo, error) {
+	userAccount, blockInfo, err := n.loadUserAccountHandlerByPubKey(core.SystemAccountAddress, options)
+	if err != nil {
+		return nil, api.BlockInfo{}, err
+	}
+
+	userAccountVmCommon, ok := userAccount.(vmcommon.UserAccountHandler)
+	if !ok {
+		return nil, api.BlockInfo{}, ErrCannotCastUserAccountHandlerToVmCommonUserAccountHandler
+	}
+
+	return userAccountVmCommon, blockInfo, nil
+}
 
 func (n *Node) loadUserAccountHandlerByAddress(address string, options api.AccountQueryOptions) (state.UserAccountHandler, api.BlockInfo, error) {
 	pubKey, err := n.decodeAddressToPubKey(address)

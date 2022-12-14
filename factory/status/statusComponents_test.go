@@ -101,7 +101,7 @@ func TestNewStatusComponents_InvalidRoundDurationShouldErr(t *testing.T) {
 	require.NotNil(t, coreComponents)
 	err = coreComponents.Create()
 	require.Nil(t, err)
-	networkComponents := componentsMock.GetNetworkComponents()
+	networkComponents := componentsMock.GetNetworkComponents(componentsMock.GetCryptoComponents(coreComponents))
 	dataComponents := componentsMock.GetDataComponents(coreComponents, shardCoordinator)
 	stateComponents := componentsMock.GetStateComponents(coreComponents, shardCoordinator)
 
