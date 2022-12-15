@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/outport"
-	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -120,37 +119,6 @@ func (s *sorter) sortTransactions(transactions []data.TransactionHandlerWithGasU
 	} else {
 		txsSort.SortTransactionsBySenderAndNonceExtendedTransactions(transactions)
 	}
-}
-
-func setOrderSmartContractResults(pool *outport.Pool, scheduledMbsFromPreviousBlock []*block.MiniBlock) []string {
-	scheduledExecutedTxsPrevBlockMap := make(map[string]struct{})
-	for _, mb := range scheduledMbsFromPreviousBlock {
-		for _, txHash := range mb.TxHashes {
-			scheduledExecutedTxsPrevBlockMap[string(txHash)] = struct{}{}
-		}
-	}
-
-	scheduledExecutedSCRsPrevBlock := make([]string, 0)
-	for scrHash, scrHandler := range pool.Scrs {
-		scr, ok := scrHandler.GetTxHandler().(*smartContractResult.SmartContractResult)
-		if !ok {
-			continue
-		}
-
-		_, originalTxWasScheduledExecuted := scheduledExecutedTxsPrevBlockMap[string(scr.OriginalTxHash)]
-		if originalTxWasScheduledExecuted {
-			scheduledExecutedSCRsPrevBlock = append(scheduledExecutedSCRsPrevBlock, scrHash)
-		}
-
-		tx, found := pool.Txs[string(scr.OriginalTxHash)]
-		if !found {
-			continue
-		}
-
-		scrHandler.SetExecutionOrder(tx.GetExecutionOrder())
-	}
-
-	return scheduledExecutedSCRsPrevBlock
 }
 
 func (s *sorter) extractNormalTransactionsAndInvalidFromMe(

@@ -22,7 +22,7 @@ func newMiniblocksGetter(storer storage.Storer, marshaller marshal.Marshalizer) 
 // GetScheduledMBs will return the scheduled miniblocks
 func (bg *miniblockGetter) GetScheduledMBs(currentHeader, prevHeader data.HeaderHandler) ([]*block.MiniBlock, error) {
 	scheduledMbs := make([]*block.MiniBlock, 0)
-	if !shouldFetchFromStorageMbs(currentHeader) {
+	if !shouldProcessPrevHeaderMiniblocks(currentHeader) {
 		return scheduledMbs, nil
 	}
 
@@ -43,7 +43,7 @@ func (bg *miniblockGetter) GetScheduledMBs(currentHeader, prevHeader data.Header
 	return scheduledMbs, nil
 }
 
-func shouldFetchFromStorageMbs(currentHeader data.HeaderHandler) bool {
+func shouldProcessPrevHeaderMiniblocks(currentHeader data.HeaderHandler) bool {
 	for _, mb := range currentHeader.GetMiniBlockHeaderHandlers() {
 		mbType := mb.GetTypeInt32()
 		if mbType == int32(block.InvalidBlock) || mbType == int32(block.SmartContractResultBlock) {
