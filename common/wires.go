@@ -153,12 +153,8 @@ func OutputTxCounters(tx data.TransactionHandler, countersMap map[string]uint64,
 	}
 
 	needToWrite = true
-	method := "<unknown>"
 	splts := strings.Split(string(tx.GetData()), "@")
-	if len(splts) > 1 {
-		method = splts[0]
-	}
-	method = processMethod(method, splts)
+	method := processMethod(splts)
 
 	_, _ = buf.WriteString(fmt.Sprintf(`"%d","%x","%s","%s"`,
 		currentShardID, txHash, receiver, method))
@@ -166,7 +162,8 @@ func OutputTxCounters(tx data.TransactionHandler, countersMap map[string]uint64,
 	_, _ = buf.WriteString("\n")
 }
 
-func processMethod(method string, splts []string) string {
+func processMethod(splts []string) string {
+	method := splts[0]
 	if method == "ESDTNFTTransfer" {
 		return processESDTNFTTransfer(method, splts)
 	}
