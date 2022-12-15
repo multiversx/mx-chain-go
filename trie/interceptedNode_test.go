@@ -176,5 +176,5 @@ func TestInterceptedTrieNode_SizeInBytes(t *testing.T) {
 	t.Parallel()
 
 	interceptedNode, _ := trie.NewInterceptedTrieNode(getDefaultInterceptedTrieNodeParameters())
-	assert.Equal(t, 150, interceptedNode.SizeInBytes())
+	assert.Equal(t, 131, interceptedNode.SizeInBytes())
 }

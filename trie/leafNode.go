@@ -350,7 +350,7 @@ func (ln *leafNode) insertInNewBn(newData dataForInsertion, keyMatchLen int) (no
 		return nil, err
 	}
 	bn.children[oldChildPos] = newLnOldChildPos
-	bn.ChildrenVersion[oldChildPos] = byte(oldLnVersion)
+	bn.setVersionForChild(oldLnVersion, oldChildPos)
 
 	newData.key = newData.key[keyMatchLen+1:]
 	newLnNewChildPos, err := newLeafNode(newData, ln.marsh, ln.hasher)
@@ -358,7 +358,7 @@ func (ln *leafNode) insertInNewBn(newData dataForInsertion, keyMatchLen int) (no
 		return nil, err
 	}
 	bn.children[newChildPos] = newLnNewChildPos
-	bn.ChildrenVersion[newChildPos] = byte(newData.version)
+	bn.setVersionForChild(newData.version, newChildPos)
 
 	return bn, nil
 }

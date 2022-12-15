@@ -470,11 +470,10 @@ func (en *extensionNode) insertOldChildInBn(bn *branchNode, oldChildPos byte, ke
 	if err != nil {
 		return err
 	}
+	bn.setVersionForChild(childVersion, oldChildPos)
 
 	if len(keyReminder) < 1 {
 		bn.children[oldChildPos] = en.child
-		bn.ChildrenVersion[oldChildPos] = byte(childVersion)
-
 		return nil
 	}
 
@@ -484,7 +483,6 @@ func (en *extensionNode) insertOldChildInBn(bn *branchNode, oldChildPos byte, ke
 	}
 
 	bn.children[oldChildPos] = followingExtensionNode
-	bn.ChildrenVersion[oldChildPos] = byte(childVersion)
 	return nil
 }
 
@@ -497,7 +495,7 @@ func (en *extensionNode) insertNewChildInBn(bn *branchNode, newData dataForInser
 	}
 
 	bn.children[newChildPos] = newLeaf
-	bn.ChildrenVersion[newChildPos] = byte(newData.version)
+	bn.setVersionForChild(newData.version, newChildPos)
 	return nil
 }
 
