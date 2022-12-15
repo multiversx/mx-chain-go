@@ -370,7 +370,7 @@ func (si *stateImport) importDataTrie(identifier string, shID uint32, keys [][]b
 			err = update.ErrKeyTypeMismatch
 			break
 		}
-		// TODO how will this work for a partially migrated trie?
+		// TODO this will not work for a partially migrated trie
 		err = dataTrie.Update(address, value)
 		if err != nil {
 			break

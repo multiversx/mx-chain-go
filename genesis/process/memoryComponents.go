@@ -17,9 +17,9 @@ func createAccountAdapter(
 	hasher hashing.Hasher,
 	accountFactory state.AccountFactory,
 	trieStorage common.StorageManager,
-	handler common.EnableEpochsHandler,
+	enableEpochsHandler common.EnableEpochsHandler,
 ) (state.AccountsAdapter, error) {
-	tr, err := trie.NewTrie(trieStorage, marshaller, hasher, handler, maxTrieLevelInMemory)
+	tr, err := trie.NewTrie(trieStorage, marshaller, hasher, enableEpochsHandler, maxTrieLevelInMemory)
 	if err != nil {
 		return nil, err
 	}

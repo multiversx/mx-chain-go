@@ -965,12 +965,12 @@ func (bn *branchNode) getVersion() (common.TrieNodeVersion, error) {
 	index := 0
 	var nodeVersion byte
 	for i := range bn.children {
+		index++
 		if bn.children[i] == nil && len(bn.EncodedChildren[i]) == 0 {
 			continue
 		}
 
 		nodeVersion = bn.ChildrenVersion[i]
-		index++
 		break
 	}
 

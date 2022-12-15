@@ -548,16 +548,18 @@ func (en *extensionNode) delete(key []byte, db common.DBWriteCacher) (bool, node
 		}
 
 		return true, n, oldHashes, nil
-	case nil:
-		log.Warn("nil child after deleting from extension node")
-		return true, nil, oldHashes, nil
-	default:
+	case *branchNode:
 		n, err := newExtensionNode(en.Key, newNode, en.marsh, en.hasher)
 		if err != nil {
 			return false, nil, emptyHashes, err
 		}
 
 		return true, n, oldHashes, nil
+	case nil:
+		log.Warn("nil child after deleting from extension node")
+		return true, nil, oldHashes, nil
+	default:
+		return false, nil, oldHashes, ErrInvalidNode
 	}
 }
 
