@@ -54,25 +54,33 @@ func GetNodesCoordinatorRegistry(
 	}
 
 	epochsConfig := make(map[string]*EpochValidators)
-	for epoch := int(lastEpoch); epoch >= minEpoch; epoch-- {
-		ncInternalkey := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), []byte(fmt.Sprint(epoch))...)
 
+	ncInternalkey := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), []byte(fmt.Sprint(lastEpoch))...)
+	log.Debug("getting nodes coordinator config", "key", ncInternalkey)
+
+	epochConfigBytes, err := storer.Get(ncInternalkey)
+	if err != nil {
+		log.Debug("failed to get nodes coordinator config", "key", ncInternalkey)
+		return getNodesCoordinatorRegistryByRandomnessKey(key, storer)
+	}
+
+	err = updateEpochsConfig(epochsConfig, epochConfigBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	for epoch := int(lastEpoch) - 1; epoch >= minEpoch; epoch-- {
+		ncInternalkey := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), []byte(fmt.Sprint(epoch))...)
 		log.Debug("getting nodes coordinator config", "key", ncInternalkey)
 
 		epochConfigBytes, err := storer.Get(ncInternalkey)
 		if err != nil {
-			log.Debug("failed to get nodes coordinator config", "key", ncInternalkey)
-			return getNodesCoordinatorRegistryByRandomnessKey(key, storer)
-		}
-
-		epochConfig := &NodesCoordinatorRegistry{}
-		err = json.Unmarshal(epochConfigBytes, epochConfig)
-		if err != nil {
 			return nil, err
 		}
 
-		for epoch, config := range epochConfig.EpochsConfig {
-			epochsConfig[epoch] = config
+		err = updateEpochsConfig(epochsConfig, epochConfigBytes)
+		if err != nil {
+			return nil, err
 		}
 	}
 
@@ -80,6 +88,20 @@ func GetNodesCoordinatorRegistry(
 		EpochsConfig: epochsConfig,
 		CurrentEpoch: lastEpoch,
 	}, nil
+}
+
+func updateEpochsConfig(epochsConfig map[string]*EpochValidators, epochConfig []byte) error {
+	registry := &NodesCoordinatorRegistry{}
+	err := json.Unmarshal(epochConfig, registry)
+	if err != nil {
+		return err
+	}
+
+	for epoch, config := range registry.EpochsConfig {
+		epochsConfig[epoch] = config
+	}
+
+	return nil
 }
 
 func getNodesCoordinatorRegistryByRandomnessKey(
