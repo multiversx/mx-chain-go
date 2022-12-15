@@ -81,10 +81,13 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 		return nil, fmt.Errorf("transactionsFeeProcessor.PutFeeAndGasUsed %w", err)
 	}
 
-	err = odp.executionOrderHandler.PutExecutionOrderInTransactionPool(pool, arg.Header, arg.Body, arg.PreviousHeader)
+	scheduledExecutedSCRsHashesPrevBlock, scheduledExecutedInvalidTxsHashesPrevBlock, err := odp.executionOrderHandler.PutExecutionOrderInTransactionPool(pool, arg.Header, arg.Body, arg.PreviousHeader)
 	if err != nil {
 		return nil, fmt.Errorf("executionOrderHandler.PutExecutionOrderInTransactionPool %w", err)
 	}
+
+	pool.ScheduledExecutedInvalidTxsHashesPrevBlock = scheduledExecutedInvalidTxsHashesPrevBlock
+	pool.ScheduledExecutedSCRSHashesPrevBlock = scheduledExecutedSCRsHashesPrevBlock
 
 	alteredAccounts, err := odp.alteredAccountsProvider.ExtractAlteredAccountsFromPool(pool, shared.AlteredAccountsOptions{
 		WithAdditionalOutportData: true,

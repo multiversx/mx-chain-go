@@ -20,9 +20,13 @@ func newMiniblocksGetter(storer storage.Storer, marshaller marshal.Marshalizer) 
 }
 
 // GetScheduledMBs will return the scheduled miniblocks
-func (bg *miniblockGetter) GetScheduledMBs(header data.HeaderHandler) ([]*block.MiniBlock, error) {
+func (bg *miniblockGetter) GetScheduledMBs(currentHeader, prevHeader data.HeaderHandler) ([]*block.MiniBlock, error) {
 	scheduledMbs := make([]*block.MiniBlock, 0)
-	for _, mbHeader := range header.GetMiniBlockHeaderHandlers() {
+	if !shouldFetchFromStorageMbs(currentHeader) {
+		return scheduledMbs, nil
+	}
+
+	for _, mbHeader := range prevHeader.GetMiniBlockHeaderHandlers() {
 		isScheduled := mbHeader.GetProcessingType() == int32(block.Scheduled)
 		if !isScheduled {
 			continue
@@ -37,6 +41,16 @@ func (bg *miniblockGetter) GetScheduledMBs(header data.HeaderHandler) ([]*block.
 	}
 
 	return scheduledMbs, nil
+}
+
+func shouldFetchFromStorageMbs(currentHeader data.HeaderHandler) bool {
+	for _, mb := range currentHeader.GetMiniBlockHeaderHandlers() {
+		mbType := mb.GetTypeInt32()
+		if mbType == int32(block.InvalidBlock) || mbType == int32(block.SmartContractResultBlock) {
+			return true
+		}
+	}
+	return false
 }
 
 func (bg *miniblockGetter) getMBByHash(mbHash []byte) (*block.MiniBlock, error) {

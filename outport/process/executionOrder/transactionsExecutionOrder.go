@@ -64,30 +64,35 @@ func (s *sorter) PutExecutionOrderInTransactionPool(
 	header data.HeaderHandler,
 	body data.BodyHandler,
 	prevHeader data.HeaderHandler,
-) error {
+) ([]string, []string, error) {
 	blockBody, ok := body.(*block.Body)
 	if !ok {
 		log.Warn("s.PutExecutionOrderInTransactionPool cannot cast BodyHandler to *Body")
-		return nil
+		return nil, nil, nil
+	}
+
+	scheduledMbsFromPreviousBlock, err := s.mbsGetter.GetScheduledMBs(header, prevHeader)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	// already sorted
 	transactionsToMe, scheduledTransactionsToMe, err := extractNormalTransactionAndScrsToMe(pool, blockBody, header)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	// need to be sorted
-	transactionsFromMe, scheduledTransactionsFromMe, err := s.extractNormalTransactionsAndInvalidFromMe(pool, blockBody, header, prevHeader)
+	transactionsFromMe, scheduledTransactionsFromMe, scheduledExecutedInvalidTxsHashesPrevBlock, err := s.extractNormalTransactionsAndInvalidFromMe(pool, blockBody, header, scheduledMbsFromPreviousBlock)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	s.sortTransactions(transactionsFromMe, header)
 
 	rewardsTxs, err := getRewardsTxsFromMe(pool, blockBody, header)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	// scheduled from me, need to be sorted
@@ -102,10 +107,11 @@ func (s *sorter) PutExecutionOrderInTransactionPool(
 		tx.SetExecutionOrder(idx)
 	}
 
-	setOrderSmartContractResults(pool)
+	scheduledExecutedSCRSHashesPrevBlock := setOrderSmartContractResults(pool, scheduledMbsFromPreviousBlock)
 
 	printPool(pool)
-	return nil
+
+	return scheduledExecutedSCRSHashesPrevBlock, scheduledExecutedInvalidTxsHashesPrevBlock, nil
 }
 
 func (s *sorter) sortTransactions(transactions []data.TransactionHandlerWithGasUsedAndFee, header data.HeaderHandler) {
@@ -116,29 +122,48 @@ func (s *sorter) sortTransactions(transactions []data.TransactionHandlerWithGasU
 	}
 }
 
-func setOrderSmartContractResults(pool *outport.Pool) {
-	for _, scrHandler := range pool.Scrs {
+func setOrderSmartContractResults(pool *outport.Pool, scheduledMbsFromPreviousBlock []*block.MiniBlock) []string {
+	scheduledExecutedTxsPrevBlockMap := make(map[string]struct{})
+	for _, mb := range scheduledMbsFromPreviousBlock {
+		for _, txHash := range mb.TxHashes {
+			scheduledExecutedTxsPrevBlockMap[string(txHash)] = struct{}{}
+		}
+	}
+
+	scheduledExecutedSCRsPrevBlock := make([]string, 0)
+	for scrHash, scrHandler := range pool.Scrs {
 		scr, ok := scrHandler.GetTxHandler().(*smartContractResult.SmartContractResult)
 		if !ok {
 			continue
 		}
 
-		tx, found := pool.Txs[string(scr.OriginalTxHash)]
+		originalTxHash := string(scr.OriginalTxHash)
+		_, originalTxWasScheduledExecuted := scheduledExecutedTxsPrevBlockMap[originalTxHash]
+		if originalTxWasScheduledExecuted {
+			scheduledExecutedSCRsPrevBlock = append(scheduledExecutedSCRsPrevBlock, scrHash)
+		}
+
+		tx, found := pool.Txs[originalTxHash]
 		if !found {
 			continue
 		}
 
 		scrHandler.SetExecutionOrder(tx.GetExecutionOrder())
 	}
+
+	return scheduledExecutedSCRsPrevBlock
 }
 
-func (s *sorter) extractNormalTransactionsAndInvalidFromMe(pool *outport.Pool, blockBody *block.Body, header data.HeaderHandler, prevHeader data.HeaderHandler) ([]data.TransactionHandlerWithGasUsedAndFee, []data.TransactionHandlerWithGasUsedAndFee, error) {
+func (s *sorter) extractNormalTransactionsAndInvalidFromMe(
+	pool *outport.Pool, blockBody *block.Body, header data.HeaderHandler, scheduledMbsFromPreviousBlock []*block.MiniBlock,
+) ([]data.TransactionHandlerWithGasUsedAndFee, []data.TransactionHandlerWithGasUsedAndFee, []string, error) {
 	transactionsFromMe := make([]data.TransactionHandlerWithGasUsedAndFee, 0)
 	scheduledTransactionsFromMe := make([]data.TransactionHandlerWithGasUsedAndFee, 0)
 
+	scheduledExecutedInvalidTxsHashesPrevBlock := make([]string, 0)
 	for mbIndex, mb := range blockBody.MiniBlocks {
-		var err error
 		var txs []data.TransactionHandlerWithGasUsedAndFee
+		var err error
 		if isScheduledMBProcessed(header, mbIndex) {
 			continue
 		}
@@ -152,11 +177,13 @@ func (s *sorter) extractNormalTransactionsAndInvalidFromMe(pool *outport.Pool, b
 			txs, err = extractTxsFromMap(mb.TxHashes, pool.Txs)
 		}
 		if mb.Type == block.InvalidBlock {
-			txs, err = s.getInvalidTxsExecutedInCurrentBlock(prevHeader, mb, pool)
+			var scheduledExecutedInvalidTxsHashesCurrentMB []string
+			txs, scheduledExecutedInvalidTxsHashesCurrentMB, err = s.getInvalidTxsExecutedInCurrentBlock(scheduledMbsFromPreviousBlock, mb, pool)
+			scheduledExecutedInvalidTxsHashesPrevBlock = append(scheduledExecutedInvalidTxsHashesPrevBlock, scheduledExecutedInvalidTxsHashesCurrentMB...)
 		}
 
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 
 		if isScheduledMBNotProcessed(header, mbIndex) {
@@ -166,17 +193,13 @@ func (s *sorter) extractNormalTransactionsAndInvalidFromMe(pool *outport.Pool, b
 		}
 	}
 
-	return transactionsFromMe, scheduledTransactionsFromMe, nil
+	return transactionsFromMe, scheduledTransactionsFromMe, scheduledExecutedInvalidTxsHashesPrevBlock, nil
 }
 
-func (s *sorter) getInvalidTxsExecutedInCurrentBlock(prevHeader data.HeaderHandler, mb *block.MiniBlock, pool *outport.Pool) ([]data.TransactionHandlerWithGasUsedAndFee, error) {
-	scheduledMbsFromPreviousBlock, err := s.mbsGetter.GetScheduledMBs(prevHeader)
-	if err != nil {
-		return nil, err
-	}
-
+func (s *sorter) getInvalidTxsExecutedInCurrentBlock(scheduledMbsFromPreviousBlock []*block.MiniBlock, mb *block.MiniBlock, pool *outport.Pool) ([]data.TransactionHandlerWithGasUsedAndFee, []string, error) {
 	if len(scheduledMbsFromPreviousBlock) == 0 {
-		return extractTxsFromMap(mb.TxHashes, pool.Invalid)
+		txs, err := extractTxsFromMap(mb.TxHashes, pool.Invalid)
+		return txs, []string{}, err
 	}
 
 	allScheduledTxs := make(map[string]struct{})
@@ -186,16 +209,19 @@ func (s *sorter) getInvalidTxsExecutedInCurrentBlock(prevHeader data.HeaderHandl
 		}
 	}
 
+	scheduledExecutedInvalidTxsHashesPrevBlock := make([]string, 0)
 	invalidTxHashes := make([][]byte, 0)
 	for _, hash := range mb.TxHashes {
 		_, found := allScheduledTxs[string(hash)]
 		if found {
+			scheduledExecutedInvalidTxsHashesPrevBlock = append(scheduledExecutedInvalidTxsHashesPrevBlock, string(hash))
 			continue
 		}
 		invalidTxHashes = append(invalidTxHashes, hash)
 	}
 
-	return extractTxsFromMap(invalidTxHashes, pool.Invalid)
+	txs, err := extractTxsFromMap(invalidTxHashes, pool.Invalid)
+	return txs, scheduledExecutedInvalidTxsHashesPrevBlock, err
 }
 
 func extractNormalTransactionAndScrsToMe(pool *outport.Pool, blockBody *block.Body, header data.HeaderHandler) ([]data.TransactionHandlerWithGasUsedAndFee, []data.TransactionHandlerWithGasUsedAndFee, error) {

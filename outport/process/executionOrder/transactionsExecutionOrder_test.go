@@ -154,7 +154,7 @@ func TestAddExecutionOrderInTransactionPool(t *testing.T) {
 		Logs:     nil,
 	}
 
-	err := s.PutExecutionOrderInTransactionPool(pool, header, blockBody, &block.Header{})
+	_, _, err := s.PutExecutionOrderInTransactionPool(pool, header, blockBody, &block.Header{})
 	require.Nil(t, err)
 
 	require.Equal(t, &outport.Pool{
@@ -261,7 +261,7 @@ func TestAddExecutionOrderInTransactionPoolFromMeTransactionAndScheduled(t *test
 		},
 	}
 
-	err := s.PutExecutionOrderInTransactionPool(pool, header, blockBody, &block.Header{})
+	_, _, err := s.PutExecutionOrderInTransactionPool(pool, header, blockBody, &block.Header{})
 	require.Nil(t, err)
 
 	require.Equal(t, &outport.Pool{
@@ -298,10 +298,11 @@ func TestAddExecutionOrderInTransactionPoolFromMeTransactionAndScheduledInvalid(
 	arg.Hasher = hasher
 	arg.Marshaller = marshalizer
 	scheduledInvalidTxHash := []byte("scheduledInvalidTx")
+	scheduledTx := []byte("scheduledTx")
 	arg.MbsStorer = &storage.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
 			mb := &block.MiniBlock{
-				TxHashes: [][]byte{scheduledInvalidTxHash},
+				TxHashes: [][]byte{scheduledInvalidTxHash, scheduledTx},
 			}
 			return marshalizer.Marshal(mb)
 		},
@@ -313,10 +314,16 @@ func TestAddExecutionOrderInTransactionPoolFromMeTransactionAndScheduledInvalid(
 	}
 
 	scheduledMBHash := []byte("scheduled")
+	scrHash := []byte("scrHash")
 	mbhrBytes, _ := marshalizer.Marshal(mbhr)
 	header := &block.Header{
 		PrevRandSeed: []byte(randomness),
 		ShardID:      1,
+		MiniBlockHeaders: []block.MiniBlockHeader{
+			{
+				Type: block.InvalidBlock,
+			},
+		},
 	}
 	prevHeader := &block.Header{
 		PrevRandSeed: []byte(randomness),
@@ -351,6 +358,12 @@ func TestAddExecutionOrderInTransactionPoolFromMeTransactionAndScheduledInvalid(
 				Type:            block.InvalidBlock,
 				TxHashes:        [][]byte{firstTxHash, scheduledInvalidTxHash},
 			},
+			{
+				SenderShardID:   1,
+				ReceiverShardID: 1,
+				Type:            block.SmartContractResultBlock,
+				TxHashes:        [][]byte{scrHash},
+			},
 		},
 	}
 
@@ -361,11 +374,16 @@ func TestAddExecutionOrderInTransactionPoolFromMeTransactionAndScheduledInvalid(
 		Invalid: map[string]data.TransactionHandlerWithGasUsedAndFee{
 			string(firstTxHash): &outport.TransactionHandlerWithGasAndFee{TransactionHandler: &transaction.Transaction{Nonce: 1}},
 		},
+		Scrs: map[string]data.TransactionHandlerWithGasUsedAndFee{
+			string(scrHash): &outport.TransactionHandlerWithGasAndFee{TransactionHandler: &smartContractResult.SmartContractResult{
+				Nonce:          3,
+				OriginalTxHash: scheduledTx,
+			}},
+		},
 	}
 
-	err := s.PutExecutionOrderInTransactionPool(pool, header, blockBody, prevHeader)
+	scrsHashes, invalidTxsHashes, err := s.PutExecutionOrderInTransactionPool(pool, header, blockBody, prevHeader)
 	require.Nil(t, err)
-
 	require.Equal(t, &outport.Pool{
 		Txs: map[string]data.TransactionHandlerWithGasUsedAndFee{
 			string(secondTxHash): &outport.TransactionHandlerWithGasAndFee{
@@ -379,5 +397,17 @@ func TestAddExecutionOrderInTransactionPoolFromMeTransactionAndScheduledInvalid(
 				ExecutionOrder:     0,
 			},
 		},
+		Scrs: map[string]data.TransactionHandlerWithGasUsedAndFee{
+			string(scrHash): &outport.TransactionHandlerWithGasAndFee{
+				TransactionHandler: &smartContractResult.SmartContractResult{
+					Nonce:          3,
+					OriginalTxHash: scheduledTx,
+				},
+				ExecutionOrder: 0,
+			},
+		},
 	}, pool)
+
+	require.Equal(t, []string{string(scrHash)}, scrsHashes)
+	require.Equal(t, []string{string(scheduledInvalidTxHash)}, invalidTxsHashes)
 }

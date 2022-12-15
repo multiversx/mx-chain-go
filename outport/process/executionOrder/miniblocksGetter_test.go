@@ -19,7 +19,7 @@ func TestMiniblockGetter_GetScheduledMBs(t *testing.T) {
 	mbhrBytes, _ := marshalizer.Marshal(mbhr)
 
 	mbHash1, mbHash2, scheduledMbHash := []byte("mb1"), []byte("mb2"), []byte("scheduled")
-	header := &block.Header{
+	headerPrevHeader := &block.Header{
 		MiniBlockHeaders: []block.MiniBlockHeader{
 			{
 				Hash: mbHash1,
@@ -34,10 +34,18 @@ func TestMiniblockGetter_GetScheduledMBs(t *testing.T) {
 		},
 	}
 
+	header := &block.Header{
+		MiniBlockHeaders: []block.MiniBlockHeader{
+			{
+				Type: block.InvalidBlock,
+			},
+		},
+	}
+
 	storer := &storage.StorerStub{}
 	mbsG := newMiniblocksGetter(storer, marshalizer)
 
-	scheduledMbs, err := mbsG.GetScheduledMBs(header)
+	scheduledMbs, err := mbsG.GetScheduledMBs(header, headerPrevHeader)
 	require.Nil(t, err)
 	require.Equal(t, 1, len(scheduledMbs))
 }

@@ -45,5 +45,5 @@ type ExecutionOrderHandler interface {
 		header data.HeaderHandler,
 		body data.BodyHandler,
 		prevHeader data.HeaderHandler,
-	) error
+	) ([]string, []string, error)
 }

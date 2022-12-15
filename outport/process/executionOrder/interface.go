@@ -6,5 +6,5 @@ import (
 )
 
 type mbsGetter interface {
-	GetScheduledMBs(header data.HeaderHandler) ([]*block.MiniBlock, error)
+	GetScheduledMBs(currentHeader, prevHeader data.HeaderHandler) ([]*block.MiniBlock, error)
 }
