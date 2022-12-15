@@ -137,13 +137,12 @@ func setOrderSmartContractResults(pool *outport.Pool, scheduledMbsFromPreviousBl
 			continue
 		}
 
-		originalTxHash := string(scr.OriginalTxHash)
-		_, originalTxWasScheduledExecuted := scheduledExecutedTxsPrevBlockMap[originalTxHash]
+		_, originalTxWasScheduledExecuted := scheduledExecutedTxsPrevBlockMap[string(scr.OriginalTxHash)]
 		if originalTxWasScheduledExecuted {
 			scheduledExecutedSCRsPrevBlock = append(scheduledExecutedSCRsPrevBlock, scrHash)
 		}
 
-		tx, found := pool.Txs[originalTxHash]
+		tx, found := pool.Txs[string(scr.OriginalTxHash)]
 		if !found {
 			continue
 		}
