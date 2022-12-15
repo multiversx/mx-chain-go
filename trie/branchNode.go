@@ -28,12 +28,10 @@ func newBranchNode(marshalizer marshal.Marshalizer, hasher hashing.Hasher) (*bra
 
 	var children [nrOfChildren]node
 	encChildren := make([][]byte, nrOfChildren)
-	childrenVersion := make([]byte, nrOfChildren)
 
 	return &branchNode{
 		CollapsedBn: CollapsedBn{
 			EncodedChildren: encChildren,
-			ChildrenVersion: childrenVersion,
 		},
 		children: children,
 		baseNode: &baseNode{
@@ -42,6 +40,20 @@ func newBranchNode(marshalizer marshal.Marshalizer, hasher hashing.Hasher) (*bra
 			hasher: hasher,
 		},
 	}, nil
+}
+
+func (bn *branchNode) setVersionForChild(version common.TrieNodeVersion, childPos byte) {
+	sliceNotInitialized := len(bn.ChildrenVersion) == 0
+
+	if version == common.NotSpecified && sliceNotInitialized {
+		return
+	}
+
+	if sliceNotInitialized {
+		bn.ChildrenVersion = make([]byte, nrOfChildren)
+	}
+
+	bn.ChildrenVersion[int(childPos)] = byte(version)
 }
 
 func (bn *branchNode) getHash() []byte {
@@ -545,7 +557,7 @@ func (bn *branchNode) modifyNodeAfterInsert(modifiedHashes [][]byte, childPos by
 	}
 
 	bn.children[childPos] = newNode
-	bn.ChildrenVersion[childPos] = byte(childVersion)
+	bn.setVersionForChild(childVersion, childPos)
 	bn.dirty = true
 	bn.hash = nil
 
@@ -624,7 +636,7 @@ func (bn *branchNode) setNewChild(childPos byte, newNode node) error {
 	bn.hash = nil
 	bn.children[childPos] = newNode
 	if check.IfNil(newNode) {
-		bn.ChildrenVersion[childPos] = 0
+		bn.setVersionForChild(0, childPos)
 		bn.EncodedChildren[childPos] = nil
 
 		return nil
@@ -634,7 +646,7 @@ func (bn *branchNode) setNewChild(childPos byte, newNode node) error {
 	if err != nil {
 		return err
 	}
-	bn.ChildrenVersion[childPos] = byte(childVersion)
+	bn.setVersionForChild(childVersion, childPos)
 
 	return nil
 }
@@ -962,6 +974,10 @@ func (bn *branchNode) collectStats(ts common.TrieStatisticsHandler, depthLevel i
 }
 
 func (bn *branchNode) getVersion() (common.TrieNodeVersion, error) {
+	if len(bn.ChildrenVersion) == 0 {
+		return common.NotSpecified, nil
+	}
+
 	index := 0
 	var nodeVersion byte
 	for i := range bn.children {

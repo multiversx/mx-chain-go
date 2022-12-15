@@ -136,7 +136,6 @@ func (tr *patriciaMerkleTrie) UpdateWithVersion(key []byte, value []byte, versio
 	)
 
 	return tr.update(key, value, version)
-
 }
 
 func (tr *patriciaMerkleTrie) update(key []byte, value []byte, version common.TrieNodeVersion) error {
