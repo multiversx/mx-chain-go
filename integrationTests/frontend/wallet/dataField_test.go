@@ -12,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/stretchr/testify/assert"
@@ -20,7 +19,7 @@ import (
 
 func TestTxDataFieldContainingUTF8Characters(t *testing.T) {
 	suite := ed25519.NewEd25519()
-	keyGen := signing.NewKeyGenerator(suite)
+	keyGen := crypto.NewKeyGenerator(suite)
 	singleSigner := integrationTests.TestSingleSigner
 
 	sk, pk := keyGen.GeneratePair()

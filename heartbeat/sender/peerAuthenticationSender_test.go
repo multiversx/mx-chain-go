@@ -12,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/batch"
 	"github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519"
 	ed25519SingleSig "github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519/singlesig"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
@@ -41,7 +40,7 @@ func createMockPeerAuthenticationSenderArgs(argBase argBaseSender) argPeerAuthen
 }
 
 func createMockPeerAuthenticationSenderArgsSemiIntegrationTests(baseArg argBaseSender) argPeerAuthenticationSender {
-	keyGen := signing.NewKeyGenerator(mcl.NewSuiteBLS12())
+	keyGen := crypto.NewKeyGenerator(mcl.NewSuiteBLS12())
 	sk, _ := keyGen.GeneratePair()
 	baseArg.privKey = sk
 	singleSigner := singlesig.NewBlsSigner()
@@ -346,7 +345,7 @@ func TestPeerAuthenticationSender_execute(t *testing.T) {
 		startTime := time.Now()
 		// use the Elrond defined ed25519 operations instead of the secp256k1 implemented in the "real" network messenger,
 		// should work with both
-		keyGen := signing.NewKeyGenerator(ed25519.NewEd25519())
+		keyGen := crypto.NewKeyGenerator(ed25519.NewEd25519())
 		skMessenger, pkMessenger := keyGen.GeneratePair()
 		signerMessenger := ed25519SingleSig.Ed25519Signer{}
 

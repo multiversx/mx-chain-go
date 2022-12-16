@@ -12,8 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	txStruct "github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	crypto "github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing"
+	"github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519/singlesig"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -92,7 +91,7 @@ func TestGuardedTxSigVerifier_IsInterfaceNil(t *testing.T) {
 
 func TestGuardedTxSigVerifier_VerifyGuardianSignature(t *testing.T) {
 	suite := ed25519.NewEd25519()
-	keyGenerator := signing.NewKeyGenerator(suite)
+	keyGenerator := crypto.NewKeyGenerator(suite)
 	privateKeyGuardian, publicKeyGuardian := keyGenerator.GeneratePair()
 	privateKeyOwner, publicKeyOwner := keyGenerator.GeneratePair()
 	pubKeyGuardianBytes, _ := publicKeyGuardian.ToByteArray()

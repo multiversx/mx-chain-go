@@ -37,6 +37,7 @@ dmitri.shuralyov.com/gpu/mtl v0.0.0-20190408044501-666a987793e9/go.mod h1:H6x//7
 dmitri.shuralyov.com/html/belt v0.0.0-20180602232347-f7d459c86be0/go.mod h1:JLBrvjyP0v+ecvNYvCpyZgu5/xkfAUhi6wJj28eUfSU=
 dmitri.shuralyov.com/service/change v0.0.0-20181023043359-a85b471d5412/go.mod h1:a1inKt/atXimZ4Mv927x+r7UpyzRUf4emIoiiSC2TN4=
 dmitri.shuralyov.com/state v0.0.0-20180228185332-28bcc343414c/go.mod h1:0PRwlb0D6DFvNNtx+9ybjezNCa8XF0xaYcETyp6rHWU=
+filippo.io/edwards25519 v1.0.0/go.mod h1:N1IkdkCkiLB6tki+MYJoSx2JTY9NUlxZE7eHn5EwJns=
 git.apache.org/thrift.git v0.0.0-20180902110319-2566ecd5d999/go.mod h1:fPE2ZNJGynbRyZ4dJvy6G277gSllfV2HJqblrnkyeyg=
 github.com/AndreasBriese/bbloom v0.0.0-20190306092124-e2d15f34fcf9/go.mod h1:bOvUY6CB00SOBii9/FifXqc0awNKxLFCL/+pkDPuyl8=
 github.com/AndreasBriese/bbloom v0.0.0-20190825152654-46b345b51c96/go.mod h1:bOvUY6CB00SOBii9/FifXqc0awNKxLFCL/+pkDPuyl8=
@@ -51,8 +52,9 @@ github.com/ElrondNetwork/elastic-indexer-go v1.3.3/go.mod h1:E3VO5712GkGSGYnOTJ+
 github.com/ElrondNetwork/elrond-go-core v1.1.26/go.mod h1:N/RI++YU2M6OlnD1GSZepc1wPhI84ykRDQ1IyD3B0wk=
 github.com/ElrondNetwork/elrond-go-core v1.1.27-0.20221207113027-6add1889c6e8 h1:iYFJrSgKmyRDFkDFBXABqs7UwjrGeA0b5Nit9xmogzk=
 github.com/ElrondNetwork/elrond-go-core v1.1.27-0.20221207113027-6add1889c6e8/go.mod h1:N/RI++YU2M6OlnD1GSZepc1wPhI84ykRDQ1IyD3B0wk=
-github.com/ElrondNetwork/elrond-go-crypto v1.2.2 h1:Q59dZUeyibuskq5vjgk3ng/87ifOcd9YZMTnlYJAuIU=
 github.com/ElrondNetwork/elrond-go-crypto v1.2.2/go.mod h1:MyQPKUKti7Axnx/eihhL0F2jLTalvSV/Ytv1mIxvYyM=
+github.com/ElrondNetwork/elrond-go-crypto v1.2.4-0.20221212134904-9faa0161e5dc h1:BpKdjLY05fH/Y80s4n5vqIR73hSuZp4zFlL8+TAUWp4=
+github.com/ElrondNetwork/elrond-go-crypto v1.2.4-0.20221212134904-9faa0161e5dc/go.mod h1:niLdPSYjcIzucSj2yMy+yq3KEW0jjFCfvTBOMQphmXk=
 github.com/ElrondNetwork/elrond-go-logger v1.0.10 h1:2xQOWZErcHW5sl9qSRO+7mGNw+QhFhqiUlLLtOgvuuk=
 github.com/ElrondNetwork/elrond-go-logger v1.0.10/go.mod h1:+rMODFw4yQptTi5WuLUBzvl/AE26V+2YJtc52wX30Eg=
 github.com/ElrondNetwork/elrond-go-p2p v1.0.5 h1:XzuieXEKrVSQ9gKKO3sq60RRZC29IRYgmn7RsPmgUOA=
@@ -65,12 +67,12 @@ github.com/ElrondNetwork/elrond-vm-common v1.3.29-0.20221207113405-6973ba06dc58 
 github.com/ElrondNetwork/elrond-vm-common v1.3.29-0.20221207113405-6973ba06dc58/go.mod h1:vBVpGtyb7ZerSqX/EOtUIGBGK9VtogmjwAmjAWCnCSw=
 github.com/ElrondNetwork/protobuf v1.3.2 h1:qoCSYiO+8GtXBEZWEjw0WPcZfM3g7QuuJrwpN+y6Mvg=
 github.com/ElrondNetwork/protobuf v1.3.2/go.mod h1:SlYgWuQ5SjCEi6WLHjHCa1yvBfUnHcTbrrZtXPKa29o=
-github.com/ElrondNetwork/wasm-vm-v1_2 v1.2.49-0.20221207113912-5e51bac72fff h1:o10OzmXIsvUuj2oJx2tOdSeZCBkrcCvRm0Wb6kr+XRk=
-github.com/ElrondNetwork/wasm-vm-v1_2 v1.2.49-0.20221207113912-5e51bac72fff/go.mod h1:FT0hOm/rl6tHtD5CxXmX8mpds/ePJu4bkUP5FtaccBA=
-github.com/ElrondNetwork/wasm-vm-v1_3 v1.3.49-0.20221207114041-931b5bdf1ded h1:AA/9h/bBpnci8BiIHL45aw6Fj8FmWtqwXA2XOunYr7g=
-github.com/ElrondNetwork/wasm-vm-v1_3 v1.3.49-0.20221207114041-931b5bdf1ded/go.mod h1:d1MOr0Pj2fbhEY+s11fymAJ1zh1NIgelPEbb2JYUFeM=
-github.com/ElrondNetwork/wasm-vm-v1_4 v1.4.69-0.20221207114657-b4eea3cf49af h1:ZKnMeXgqnMVY72OB4nrg6soOm/YAnOvKq3U7WLK85s4=
-github.com/ElrondNetwork/wasm-vm-v1_4 v1.4.69-0.20221207114657-b4eea3cf49af/go.mod h1:ULGc4UkHCZ7s3/6Jl8dncbUYSWmGQ4ey+0/cmjJ4jhU=
+github.com/ElrondNetwork/wasm-vm-v1_2 v1.2.49-0.20221213075903-473826256396 h1:f2FK3XFIySd2qhON8Q2IBB47ZCTO4AD+BYMPSKoVg6M=
+github.com/ElrondNetwork/wasm-vm-v1_2 v1.2.49-0.20221213075903-473826256396/go.mod h1:VF3fx+63lmKVkINjn2NkY4pb5s47ZcsiqP8U2AnnnZM=
+github.com/ElrondNetwork/wasm-vm-v1_3 v1.3.49-0.20221213080744-6f0dfc0d2d8e h1:R8qyNLa9HINdYiUX+MCbJ3xWWqXT3K/lQ8mTQuENz3g=
+github.com/ElrondNetwork/wasm-vm-v1_3 v1.3.49-0.20221213080744-6f0dfc0d2d8e/go.mod h1:HSy/wfbfbEqEyxuMNiDBqDzYnKhcKDNhte7HEzYHIbw=
+github.com/ElrondNetwork/wasm-vm-v1_4 v1.4.69-0.20221213080907-de31f5655d76 h1:8cLs/YMhQq+uKpEW/rN3W9v65yb3T4G4B/Kls9563UU=
+github.com/ElrondNetwork/wasm-vm-v1_4 v1.4.69-0.20221213080907-de31f5655d76/go.mod h1:OUoPdsZVaMbwSnsnBAKKVVzmUeXW1fSsahfgEUdq+Hc=
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
 github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d/go.mod h1:3eOhrUMpNV+6aFIbp5/iudMxNCF27Vw2OZgy4xEx0Fg=
 github.com/aead/siphash v1.0.1/go.mod h1:Nywa3cDsYNNK3gaciGTWPwHt0wlpNV15vwmswBAUSII=

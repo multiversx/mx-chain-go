@@ -14,8 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go-core/display"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	crypto "github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing"
+	"github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/singlesig"
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -115,7 +114,7 @@ func NewTestHeartbeatNode(
 	p2pConfig p2pConfig.P2PConfig,
 	heartbeatExpiryTimespanInSec int64,
 ) *TestHeartbeatNode {
-	keygen := signing.NewKeyGenerator(mcl.NewSuiteBLS12())
+	keygen := crypto.NewKeyGenerator(mcl.NewSuiteBLS12())
 	sk, pk := keygen.GeneratePair()
 
 	pksBytes := make(map[uint32][]byte, maxShards)
@@ -208,7 +207,7 @@ func NewTestHeartbeatNodeWithCoordinator(
 	coordinator nodesCoordinator.NodesCoordinator,
 	keys TestKeyPair,
 ) *TestHeartbeatNode {
-	keygen := signing.NewKeyGenerator(mcl.NewSuiteBLS12())
+	keygen := crypto.NewKeyGenerator(mcl.NewSuiteBLS12())
 	singleSigner := singlesig.NewBlsSigner()
 
 	peerSigHandler := &cryptoMocks.PeerSignatureHandlerStub{
@@ -805,7 +804,7 @@ func (thn *TestHeartbeatNode) IsInterfaceNil() bool {
 
 func createCryptoPair() TestKeyPair {
 	suite := mcl.NewSuiteBLS12()
-	keyGen := signing.NewKeyGenerator(suite)
+	keyGen := crypto.NewKeyGenerator(suite)
 
 	kp := TestKeyPair{}
 	kp.Sk, kp.Pk = keyGen.GeneratePair()
