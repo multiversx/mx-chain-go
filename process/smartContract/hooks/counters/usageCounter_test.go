@@ -49,9 +49,24 @@ func TestUsageCounter_ProcessCrtNumberOfTrieReadsCounter(t *testing.T) {
 	assert.ErrorIs(t, counter.ProcessCrtNumberOfTrieReadsCounter(), process.ErrMaxBuiltInCallsReached) // counter is now 4, error signalled
 	assert.ErrorIs(t, counter.ProcessCrtNumberOfTrieReadsCounter(), process.ErrMaxBuiltInCallsReached) // counter is now 5, error signalled
 
+	countersMap := counter.GetCounterValues()
+	expectedMap := map[string]uint64{
+		crtBuiltinCalls: 0,
+		crtTransfers:    0,
+		crtTrieReads:    5,
+	}
+	assert.Equal(t, expectedMap, countersMap)
+
 	counter.ResetCounters()
 
 	assert.Nil(t, counter.ProcessCrtNumberOfTrieReadsCounter()) // counter is now 1
+	countersMap = counter.GetCounterValues()
+	expectedMap = map[string]uint64{
+		crtBuiltinCalls: 0,
+		crtTransfers:    0,
+		crtTrieReads:    1,
+	}
+	assert.Equal(t, expectedMap, countersMap)
 }
 
 func TestUsageCounter_ProcessMaxBuiltInCounters(t *testing.T) {
@@ -71,9 +86,24 @@ func TestUsageCounter_ProcessMaxBuiltInCounters(t *testing.T) {
 		assert.ErrorIs(t, counter.ProcessMaxBuiltInCounters(vmInput), process.ErrMaxBuiltInCallsReached) // counter is now 4, error signalled
 		assert.ErrorIs(t, counter.ProcessMaxBuiltInCounters(vmInput), process.ErrMaxBuiltInCallsReached) // counter is now 5, error signalled
 
+		countersMap := counter.GetCounterValues()
+		expectedMap := map[string]uint64{
+			crtBuiltinCalls: 5,
+			crtTransfers:    0,
+			crtTrieReads:    0,
+		}
+		assert.Equal(t, expectedMap, countersMap)
+
 		counter.ResetCounters()
 
 		assert.Nil(t, counter.ProcessMaxBuiltInCounters(vmInput)) // counter is now 1
+		countersMap = counter.GetCounterValues()
+		expectedMap = map[string]uint64{
+			crtBuiltinCalls: 1,
+			crtTransfers:    0,
+			crtTrieReads:    0,
+		}
+		assert.Equal(t, expectedMap, countersMap)
 	})
 	t.Run("number of transfers exceeded", func(t *testing.T) {
 		t.Parallel()
@@ -96,9 +126,23 @@ func TestUsageCounter_ProcessMaxBuiltInCounters(t *testing.T) {
 		assert.Nil(t, counter.ProcessMaxBuiltInCounters(vmInput))                                        // counter is now 6
 		assert.ErrorIs(t, counter.ProcessMaxBuiltInCounters(vmInput), process.ErrMaxBuiltInCallsReached) // counter is now 8, error signalled
 		assert.ErrorIs(t, counter.ProcessMaxBuiltInCounters(vmInput), process.ErrMaxBuiltInCallsReached) // counter is now 10, error signalled
+		countersMap := counter.GetCounterValues()
+		expectedMap := map[string]uint64{
+			crtBuiltinCalls: 5,
+			crtTransfers:    10,
+			crtTrieReads:    0,
+		}
+		assert.Equal(t, expectedMap, countersMap)
 
 		counter.ResetCounters()
 
 		assert.Nil(t, counter.ProcessMaxBuiltInCounters(vmInput)) // counter is now 2
+		countersMap = counter.GetCounterValues()
+		expectedMap = map[string]uint64{
+			crtBuiltinCalls: 1,
+			crtTransfers:    2,
+			crtTrieReads:    0,
+		}
+		assert.Equal(t, expectedMap, countersMap)
 	})
 }
