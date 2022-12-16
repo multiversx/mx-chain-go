@@ -179,10 +179,11 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	log.Debug("NTP average clock offset", "value", syncer.ClockOffset())
 
 	epochNotifier := forking.NewGenericEpochNotifier()
+	epochStartHandlerWithConfirm := notifier.NewEpochStartSubscriptionHandler()
 
 	argsChainParametersHandler := sharding.ArgsChainParametersHolder{
-		EpochNotifier:   epochNotifier,
-		ChainParameters: ccf.config.GeneralSettings.ChainParametersByEpoch,
+		EpochStartEventNotifier: epochStartHandlerWithConfirm,
+		ChainParameters:         ccf.config.GeneralSettings.ChainParametersByEpoch,
 	}
 	chainParametersHandler, err := sharding.NewChainParametersHolder(argsChainParametersHandler)
 	if err != nil {

@@ -596,6 +596,8 @@ const (
 const (
 	// StorerOrder defines the order of storers to be notified of a start of epoch event
 	StorerOrder = iota
+	// ChainParametersOrder defines the order in which ChainParameters is notified of a start of epoch event
+	ChainParametersOrder
 	// NodesCoordinatorOrder defines the order in which NodesCoordinator is notified of a start of epoch event
 	NodesCoordinatorOrder
 	// ConsensusOrder defines the order in which Consensus is notified of a start of epoch event

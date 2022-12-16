@@ -46,9 +46,7 @@ type randHashShuffler struct {
 	// when reinitialization of node in new shard is implemented
 	shuffleBetweenShards bool
 
-	currentChainParameters config.ChainParametersByEpochConfig
-	//shardHysteresis         uint32
-	//metaHysteresis          uint32
+	currentChainParameters  config.ChainParametersByEpochConfig
 	activeNodesConfig       config.MaxNodesChangeConfig
 	availableNodesConfigs   []config.MaxNodesChangeConfig
 	mutShufflerParams       sync.RWMutex
