@@ -6,6 +6,8 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 )
 
@@ -17,8 +19,8 @@ type chainParametersHolder struct {
 
 // ArgsChainParametersHolder holds the arguments needed for creating a new chainParametersHolder
 type ArgsChainParametersHolder struct {
-	EpochNotifier   EpochNotifier
-	ChainParameters []config.ChainParametersByEpochConfig
+	EpochStartEventNotifier EpochStartEventNotifier
+	ChainParameters         []config.ChainParametersByEpochConfig
 }
 
 // NewChainParametersHolder returns a new instance of chainParametersHolder
@@ -39,24 +41,19 @@ func NewChainParametersHolder(args ArgsChainParametersHolder) (*chainParametersH
 		return nil, ErrMissingConfigurationForEpochZero
 	}
 
-	currentParams, err := getMatchingChainParametersUnprotected(args.EpochNotifier.CurrentEpoch(), args.ChainParameters)
-	if err != nil {
-		return nil, err
-	}
-
 	paramsHolder := &chainParametersHolder{
-		currentChainParameters: currentParams,
+		currentChainParameters: earliestChainParams, // will be updated on the epoch notifier handlers
 		chainParameters:        args.ChainParameters,
 	}
 
-	args.EpochNotifier.RegisterNotifyHandler(paramsHolder)
+	args.EpochStartEventNotifier.RegisterHandler(paramsHolder)
 
 	return paramsHolder, nil
 }
 
 func validateArgs(args ArgsChainParametersHolder) error {
-	if check.IfNil(args.EpochNotifier) {
-		return ErrNilEpochNotifier
+	if check.IfNil(args.EpochStartEventNotifier) {
+		return ErrNilEpochStartEventNotifier
 	}
 	if len(args.ChainParameters) == 0 {
 		return ErrMissingChainParameters
@@ -83,8 +80,21 @@ func validateChainParameters(chainParametersConfig []config.ChainParametersByEpo
 	return nil
 }
 
-// EpochConfirmed is called at each epoch change event
-func (c *chainParametersHolder) EpochConfirmed(epoch uint32, _ uint64) {
+// EpochStartAction is called when a new epoch is confirmed
+func (c *chainParametersHolder) EpochStartAction(header data.HeaderHandler) {
+	c.handleEpochChange(header.GetEpoch())
+}
+
+// EpochStartPrepare is called when a new epoch is observed, but not yet confirmed. No action is required on this component
+func (c *chainParametersHolder) EpochStartPrepare(_ data.HeaderHandler, _ data.BodyHandler) {
+}
+
+// NotifyOrder returns the notification order for a start of epoch event
+func (c *chainParametersHolder) NotifyOrder() uint32 {
+	return common.ChainParametersOrder
+}
+
+func (c *chainParametersHolder) handleEpochChange(epoch uint32) {
 	c.mutOperations.Lock()
 	defer c.mutOperations.Unlock()
 
