@@ -223,13 +223,13 @@ func TestAddExecutionOrderInTransactionPoolFromMeTransactionAndScheduled(t *test
 	arg.Hasher = hasher
 	s, _ := NewSorter(arg)
 
-	marshalizer := &marshal.GogoProtoMarshalizer{}
+	marshaller := &marshal.GogoProtoMarshalizer{}
 
 	mbhr := &block.MiniBlockHeaderReserved{
 		ExecutionType: block.ProcessingType(1),
 	}
 
-	mbhrBytes, _ := marshalizer.Marshal(mbhr)
+	mbhrBytes, _ := marshaller.Marshal(mbhr)
 	header := &block.Header{
 		PrevRandSeed: []byte(randomness),
 		ShardID:      1,
@@ -292,11 +292,11 @@ func TestAddExecutionOrderInTransactionPoolFromMeTransactionAndScheduledInvalid(
 		},
 	}
 
-	marshalizer := &marshal.GogoProtoMarshalizer{}
+	marshaller := &marshal.GogoProtoMarshalizer{}
 
 	arg := newArgStorer()
 	arg.Hasher = hasher
-	arg.Marshaller = marshalizer
+	arg.Marshaller = marshaller
 	scheduledInvalidTxHash := []byte("scheduledInvalidTx")
 	scheduledTx := []byte("scheduledTx")
 	arg.MbsStorer = &storage.StorerStub{
@@ -304,7 +304,7 @@ func TestAddExecutionOrderInTransactionPoolFromMeTransactionAndScheduledInvalid(
 			mb := &block.MiniBlock{
 				TxHashes: [][]byte{scheduledInvalidTxHash, scheduledTx},
 			}
-			return marshalizer.Marshal(mb)
+			return marshaller.Marshal(mb)
 		},
 	}
 	s, _ := NewSorter(arg)
@@ -315,7 +315,7 @@ func TestAddExecutionOrderInTransactionPoolFromMeTransactionAndScheduledInvalid(
 
 	scheduledMBHash := []byte("scheduled")
 	scrHash := []byte("scrHash")
-	mbhrBytes, _ := marshalizer.Marshal(mbhr)
+	mbhrBytes, _ := marshaller.Marshal(mbhr)
 	header := &block.Header{
 		PrevRandSeed: []byte(randomness),
 		ShardID:      1,

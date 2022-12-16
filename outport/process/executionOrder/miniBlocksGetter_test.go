@@ -12,11 +12,11 @@ import (
 func TestMiniblockGetter_GetScheduledMBs(t *testing.T) {
 	t.Parallel()
 
-	marshalizer := &marshal.GogoProtoMarshalizer{}
+	marshaller := &marshal.GogoProtoMarshalizer{}
 	mbhr := &block.MiniBlockHeaderReserved{
 		ExecutionType: block.ProcessingType(1),
 	}
-	mbhrBytes, _ := marshalizer.Marshal(mbhr)
+	mbhrBytes, _ := marshaller.Marshal(mbhr)
 
 	mbHash1, mbHash2, scheduledMbHash := []byte("mb1"), []byte("mb2"), []byte("scheduled")
 	headerPrevHeader := &block.Header{
@@ -43,7 +43,7 @@ func TestMiniblockGetter_GetScheduledMBs(t *testing.T) {
 	}
 
 	storer := &storage.StorerStub{}
-	mbsG := newMiniblocksGetter(storer, marshalizer)
+	mbsG := newMiniblocksGetter(storer, marshaller)
 
 	scheduledMbs, err := mbsG.GetScheduledMBs(header, headerPrevHeader)
 	require.Nil(t, err)

@@ -7,20 +7,20 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-type miniblockGetter struct {
+type miniBlocksGetter struct {
 	storer     storage.Storer
 	marshaller marshal.Marshalizer
 }
 
-func newMiniblocksGetter(storer storage.Storer, marshaller marshal.Marshalizer) *miniblockGetter {
-	return &miniblockGetter{
+func newMiniblocksGetter(storer storage.Storer, marshaller marshal.Marshalizer) *miniBlocksGetter {
+	return &miniBlocksGetter{
 		storer:     storer,
 		marshaller: marshaller,
 	}
 }
 
 // GetScheduledMBs will return the scheduled miniblocks
-func (bg *miniblockGetter) GetScheduledMBs(currentHeader, prevHeader data.HeaderHandler) ([]*block.MiniBlock, error) {
+func (bg *miniBlocksGetter) GetScheduledMBs(currentHeader, prevHeader data.HeaderHandler) ([]*block.MiniBlock, error) {
 	scheduledMbs := make([]*block.MiniBlock, 0)
 	if !shouldProcessPrevHeaderMiniblocks(currentHeader) {
 		return scheduledMbs, nil
@@ -45,15 +45,15 @@ func (bg *miniblockGetter) GetScheduledMBs(currentHeader, prevHeader data.Header
 
 func shouldProcessPrevHeaderMiniblocks(currentHeader data.HeaderHandler) bool {
 	for _, mb := range currentHeader.GetMiniBlockHeaderHandlers() {
-		mbType := mb.GetTypeInt32()
-		if mbType == int32(block.InvalidBlock) || mbType == int32(block.SmartContractResultBlock) {
+		mbType := block.Type(mb.GetTypeInt32())
+		if mbType == block.InvalidBlock || mbType == block.SmartContractResultBlock {
 			return true
 		}
 	}
 	return false
 }
 
-func (bg *miniblockGetter) getMBByHash(mbHash []byte) (*block.MiniBlock, error) {
+func (bg *miniBlocksGetter) getMBByHash(mbHash []byte) (*block.MiniBlock, error) {
 	mbBytes, err := bg.storer.Get(mbHash)
 	if err != nil {
 		return nil, err
@@ -61,6 +61,9 @@ func (bg *miniblockGetter) getMBByHash(mbHash []byte) (*block.MiniBlock, error) 
 
 	mb := &block.MiniBlock{}
 	err = bg.marshaller.Unmarshal(mb, mbBytes)
+	if err != nil {
+		return nil, err
+	}
 
-	return mb, err
+	return mb, nil
 }
