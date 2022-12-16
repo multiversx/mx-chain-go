@@ -51,7 +51,7 @@ const (
 )
 
 const (
-	numNoncesToPrint = 10
+	numNoncesToPrint = 1000
 	crtBuiltinCalls  = "CrtBuiltInCallsPerTx"
 	crtTransfers     = "CrtNumberOfTransfersPerTx"
 	crtTrieReads     = "CrtNumberOfTrieReadsPerTx"
