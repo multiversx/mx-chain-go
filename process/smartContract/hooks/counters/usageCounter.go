@@ -3,6 +3,7 @@ package counters
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -19,6 +20,7 @@ const (
 	crtBuiltinCalls = "CrtBuiltInCallsPerTx"
 	crtTransfers    = "CrtNumberOfTransfersPerTx"
 	crtTrieReads    = "CrtNumberOfTrieReadsPerTx"
+	crtDuration     = "Duration"
 )
 
 type usageCounter struct {
@@ -29,6 +31,7 @@ type usageCounter struct {
 	crtNumberOfBuiltInFunctionCalls uint64
 	crtNumberOfTransfers            uint64
 	crtNumberOfTrieReads            uint64
+	startTime                       time.Time
 
 	esdtTransferParser vmcommon.ESDTTransferParser
 }
@@ -91,6 +94,7 @@ func (counter *usageCounter) ResetCounters() {
 	counter.crtNumberOfBuiltInFunctionCalls = 0
 	counter.crtNumberOfTransfers = 0
 	counter.crtNumberOfTrieReads = 0
+	counter.startTime = time.Now()
 }
 
 // SetMaximumValues will set the maximum values that the counters can achieve before errors will be signaled
@@ -121,6 +125,7 @@ func (counter *usageCounter) GetCounterValues() map[string]uint64 {
 		crtBuiltinCalls: counter.crtNumberOfBuiltInFunctionCalls,
 		crtTransfers:    counter.crtNumberOfTransfers,
 		crtTrieReads:    counter.crtNumberOfTrieReads,
+		crtDuration:     uint64(time.Since(counter.startTime)),
 	}
 
 	return values

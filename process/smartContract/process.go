@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"math"
 	"math/big"
 	"sort"
 	"strings"
@@ -16,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	vmData "github.com/ElrondNetwork/elrond-go-core/data/vm"
+	"github.com/ElrondNetwork/elrond-go-core/display"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -34,7 +36,6 @@ var _ process.SmartContractResultProcessor = (*scProcessor)(nil)
 var _ process.SmartContractProcessor = (*scProcessor)(nil)
 
 var log = logger.GetOrCreate("process/smartcontract")
-var logCounters = logger.GetOrCreate("process/smartcontract.blockchainHookCounters")
 
 const maxTotalSCRsSize = 3 * (1 << 18) // 768KB
 
@@ -48,6 +49,31 @@ const (
 	upgradeFunctionName = "upgradeContract"
 	returnOkData        = "@6f6b"
 )
+
+const (
+	numNoncesToPrint = 10
+	crtBuiltinCalls  = "CrtBuiltInCallsPerTx"
+	crtTransfers     = "CrtNumberOfTransfersPerTx"
+	crtTrieReads     = "CrtNumberOfTrieReadsPerTx"
+	crtDuration      = "Duration"
+)
+
+type record struct {
+	compareValue     uint64
+	numTriesAccesses uint64
+	numTransfers     uint64
+	numBuiltin       uint64
+	duration         time.Duration
+	txHash           []byte
+}
+
+var mut = sync.Mutex{}
+var numTop = 100
+var topTries = make(map[string]*record)
+var topBuiltin = make(map[string]*record)
+var topTransfers = make(map[string]*record)
+var topTime = make(map[string]*record)
+var crtNonce = uint64(0)
 
 var zero = big.NewInt(0)
 
@@ -424,20 +450,104 @@ func (sc *scProcessor) isInformativeTxHandler(txHandler data.TransactionHandler)
 }
 
 func (sc *scProcessor) printBlockchainHookCounters(tx data.TransactionHandler) {
-	common.OutputTxCounters(tx, sc.blockChainHook.GetCounterValues(), sc.computeTxHashUnsafe(tx))
+	mut.Lock()
+	defer mut.Unlock()
 
-	if logCounters.GetLevel() > logger.LogTrace {
+	if crtNonce == 0 {
+		crtNonce = sc.blockChainHook.LastNonce()
+	}
+
+	txHash := sc.computeTxHashUnsafe(tx)
+
+	sc.processMax(string(txHash))
+
+	if crtNonce+numNoncesToPrint < sc.blockChainHook.LastNonce() {
+		crtNonce = sc.blockChainHook.LastNonce()
+		sc.printMax()
+	}
+}
+
+func (sc *scProcessor) processMax(txHash string) {
+	counters := sc.blockChainHook.GetCounterValues()
+
+	numBuiltinCalls := counters[crtBuiltinCalls]
+	sc.updateMap(topBuiltin, numBuiltinCalls, txHash, counters)
+
+	numTransfers := counters[crtTransfers]
+	sc.updateMap(topTransfers, numTransfers, txHash, counters)
+
+	numTrieReads := counters[crtTrieReads]
+	sc.updateMap(topTries, numTrieReads, txHash, counters)
+
+	nanoDuration := counters[crtDuration]
+	sc.updateMap(topTime, nanoDuration, txHash, counters)
+}
+
+func (sc *scProcessor) updateMap(m map[string]*record, value uint64, txHash string, counters map[string]uint64) {
+	rec := &record{
+		compareValue:     value,
+		numTriesAccesses: counters[crtTrieReads],
+		numTransfers:     counters[crtTransfers],
+		numBuiltin:       counters[crtBuiltinCalls],
+		duration:         time.Duration(counters[crtDuration]),
+		txHash:           []byte(txHash),
+	}
+
+	m[txHash] = rec
+	if len(m) < numTop {
 		return
 	}
 
-	logCounters.Trace("blockchain hook counters",
-		"counters", sc.getBlockchainHookCountersString(),
-		"tx hash", sc.computeTxHashUnsafe(tx),
-		"receiver", sc.pubkeyConv.Encode(tx.GetRcvAddr()),
-		"sender", sc.pubkeyConv.Encode(tx.GetSndAddr()),
-		"value", tx.GetValue().String(),
-		"data", tx.GetData(),
-	)
+	minKey := ""
+	minVal := uint64(math.MaxUint64)
+	for key, recInstance := range m {
+		if minVal > recInstance.compareValue {
+			minVal = recInstance.compareValue
+			minKey = key
+		}
+	}
+
+	delete(m, minKey)
+}
+
+func (sc *scProcessor) printMax() {
+	messageBody := "============= Blockchain hook counters =============\n"
+	messageBody += "Top tries accesses:\n" + sc.createTable(topTries)
+	messageBody += "\nTop builtin function calls:\n" + sc.createTable(topBuiltin)
+	messageBody += "\nTop transfers:\n" + sc.createTable(topTransfers)
+	messageBody += "\nTop execution time:\n" + sc.createTable(topTime)
+
+	log.Warn(messageBody)
+}
+
+func (sc *scProcessor) createTable(m map[string]*record) string {
+	records := make([]*record, 0, len(m))
+	for _, rec := range m {
+		records = append(records, rec)
+	}
+	sort.Slice(records, func(i, j int) bool {
+		return records[i].compareValue > records[j].compareValue
+	})
+
+	lines := make([]*display.LineData, 0, len(records))
+	for _, rec := range records {
+		ld := &display.LineData{
+			Values: []string{
+				hex.EncodeToString(rec.txHash),
+				fmt.Sprintf("%d", rec.numTriesAccesses),
+				fmt.Sprintf("%d", rec.numBuiltin),
+				fmt.Sprintf("%d", rec.numTransfers),
+				fmt.Sprintf("%v", rec.duration),
+			},
+			HorizontalRuleAfter: false,
+		}
+
+		lines = append(lines, ld)
+	}
+
+	tbl, _ := display.CreateTableString([]string{"Tx hash", "Num tries access", "Num builtin calls", "Num transfers", "Execution duration"}, lines)
+
+	return tbl
 }
 
 func (sc *scProcessor) getBlockchainHookCountersString() string {
