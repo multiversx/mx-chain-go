@@ -642,7 +642,7 @@
     MinNumConnectedPeersToStart       = 2
     MinNumOfPeersToConsiderBlockValid = 2
 
-    # NumNodesConfigEpochsToStore defines the number of epoch nodes config to keep in storage
+    # NumNodesConfigEpochsToStore defines the number of epochs nodes config to keep in storage
     NumNodesConfigEpochsToStore = 4
 
 # ResourceStats, if enabled, will output in a folder called "stats"

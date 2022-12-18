@@ -88,7 +88,7 @@ func TestIndexHashedNodesCoordinator_LoadStateAfterSave(t *testing.T) {
 	assert.Nil(t, err)
 
 	delete(nodesCoordinator.nodesConfig, 0)
-	err = nodesCoordinator.LoadState(key)
+	err = nodesCoordinator.LoadState(key, 0)
 	assert.Nil(t, err)
 
 	actualConfig := nodesCoordinator.nodesConfig[0]
@@ -291,6 +291,9 @@ func TestIndexHashedNodesCoordinator_GetNodesCoordinatorRegistry(t *testing.T) {
 
 		storer := &mock.StorerStub{
 			GetCalled: func(key []byte) (b []byte, err error) {
+				return nil, errors.New("get failed")
+			},
+			SearchFirstCalled: func(key []byte) ([]byte, error) {
 				switch {
 				case strings.Contains(string(key), common.NodesCoordinatorRegistryKeyPrefix):
 					nodesConfigRegistryBytes, _ := json.Marshal(nodesConfigRegistry)
@@ -298,9 +301,6 @@ func TestIndexHashedNodesCoordinator_GetNodesCoordinatorRegistry(t *testing.T) {
 				default:
 					return nil, errors.New("invalid key")
 				}
-			},
-			SearchFirstCalled: func(key []byte) ([]byte, error) {
-				return nil, errors.New("search first failed")
 			},
 		}
 

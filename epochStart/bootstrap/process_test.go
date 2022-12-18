@@ -23,6 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/types"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -730,7 +731,13 @@ func testBoostrapByStartInEpochFlag(t *testing.T, startInEpochEnabled bool) {
 		GetMostRecentStorageUnitCalled: func(config config.DBConfig) (storage.Storer, error) {
 			return &storageMocks.StorerStub{
 				GetCalled: func(key []byte) ([]byte, error) {
-					return nodesCoordBytes, nil
+					bt := bootstrapStorage.BootstrapData{
+						LastHeader: bootstrapStorage.BootstrapHeaderInfo{
+							Epoch: 1,
+						},
+					}
+					btBytes, _ := json.Marshal(bt)
+					return btBytes, nil
 				},
 				SearchFirstCalled: func(key []byte) ([]byte, error) {
 					return nodesCoordBytes, nil

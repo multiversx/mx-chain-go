@@ -65,10 +65,13 @@ func TestGetLastBootstrapData(t *testing.T) {
 	roundBytes, _ := json.Marshal(&roundNum)
 	nodesCoordinatorConfigKey := []byte("key")
 
-	nodesConfigRegistry := nodesCoordinator.NodesCoordinatorRegistry{
+	nodesConfigRegistry := &nodesCoordinator.NodesCoordinatorRegistry{
 		CurrentEpoch: 10,
 	}
-	bootstrapData := bootstrapStorage.BootstrapData{
+	bootstrapData := &bootstrapStorage.BootstrapData{
+		LastHeader: bootstrapStorage.BootstrapHeaderInfo{
+			Epoch: 10,
+		},
 		NodesCoordinatorConfigKey: nodesCoordinatorConfigKey,
 	}
 
@@ -81,13 +84,15 @@ func TestGetLastBootstrapData(t *testing.T) {
 
 				bootstrapDataBytes, _ := json.Marshal(bootstrapData)
 				return bootstrapDataBytes, nil
-			case bytes.Equal(append([]byte(common.NodesCoordinatorRegistryKeyPrefix), []byte(fmt.Sprint(10))...), key):
-				return nil, errors.New("first get error")
 			default:
 				return nil, errors.New("invalid key")
 			}
 		},
 		SearchFirstCalled: func(key []byte) ([]byte, error) {
+			if bytes.Equal(append([]byte(common.NodesCoordinatorRegistryKeyPrefix), []byte(fmt.Sprint(10))...), key) {
+				return nil, errors.New("search first error")
+			}
+
 			nodesConfigRegistryBytes, _ := json.Marshal(nodesConfigRegistry)
 			return nodesConfigRegistryBytes, nil
 		},
@@ -95,8 +100,8 @@ func TestGetLastBootstrapData(t *testing.T) {
 
 	bootData, nodesRegistry, err := epochStartProvider.getLastBootstrapData(storer)
 	assert.Nil(t, err)
-	assert.Equal(t, &bootstrapData, bootData)
-	assert.Equal(t, &nodesConfigRegistry, nodesRegistry)
+	assert.Equal(t, bootstrapData, bootData)
+	assert.Equal(t, nodesConfigRegistry, nodesRegistry)
 }
 
 func TestCheckIfShuffledOut_ValidatorIsInWaitingList(t *testing.T) {

@@ -33,8 +33,8 @@ type NodesCoordinatorRegistry struct {
 // TODO: add proto marshalizer for these package - replace all json marshalizers
 
 // LoadState loads the nodes coordinator state from the used boot storage
-func (ihnc *indexHashedNodesCoordinator) LoadState(key []byte) error {
-	return ihnc.baseLoadState(key)
+func (ihnc *indexHashedNodesCoordinator) LoadState(key []byte, epoch uint32) error {
+	return ihnc.baseLoadState(key, epoch)
 }
 
 // GetNodesCoordinatorRegistry will get the nodes coordinator registry from boot storage
@@ -58,7 +58,7 @@ func GetNodesCoordinatorRegistry(
 	ncInternalkey := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), []byte(fmt.Sprint(lastEpoch))...)
 	log.Debug("getting nodes coordinator config", "key", ncInternalkey)
 
-	epochConfigBytes, err := storer.Get(ncInternalkey)
+	epochConfigBytes, err := storer.SearchFirst(ncInternalkey)
 	if err != nil {
 		log.Debug("failed to get nodes coordinator config", "key", ncInternalkey)
 		return getNodesCoordinatorRegistryByRandomnessKey(key, storer)
@@ -73,7 +73,7 @@ func GetNodesCoordinatorRegistry(
 		ncInternalkey := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), []byte(fmt.Sprint(epoch))...)
 		log.Debug("getting nodes coordinator config", "key", ncInternalkey)
 
-		epochConfigBytes, err := storer.Get(ncInternalkey)
+		epochConfigBytes, err := storer.SearchFirst(ncInternalkey)
 		if err != nil {
 			return nil, err
 		}
@@ -125,11 +125,10 @@ func getNodesCoordinatorRegistryByRandomnessKey(
 	return epochConfig, nil
 }
 
-func (ihnc *indexHashedNodesCoordinator) baseLoadState(key []byte) error {
+func (ihnc *indexHashedNodesCoordinator) baseLoadState(key []byte, lastEpoch uint32) error {
 	ihnc.loadingFromDisk.Store(true)
 	defer ihnc.loadingFromDisk.Store(false)
 
-	lastEpoch := ihnc.getLastEpochConfig()
 	config, err := GetNodesCoordinatorRegistry(key, ihnc.bootStorer, lastEpoch, ihnc.numStoredEpochs)
 	if err != nil {
 		return err

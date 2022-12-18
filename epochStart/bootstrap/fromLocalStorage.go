@@ -258,7 +258,7 @@ func (e *epochStartBootstrap) getLastBootstrapData(storer storage.Storer) (*boot
 	}
 
 	numEpochsToSave := e.generalConfig.EpochStartConfig.NumNodesConfigEpochsToStore
-	config, err := nodesCoordinator.GetNodesCoordinatorRegistry(bootstrapData.NodesCoordinatorConfigKey, storer, e.baseData.lastEpoch, numEpochsToSave)
+	config, err := nodesCoordinator.GetNodesCoordinatorRegistry(bootstrapData.NodesCoordinatorConfigKey, storer, bootstrapData.LastHeader.GetEpoch(), numEpochsToSave)
 	if err != nil {
 		return nil, nil, err
 	}

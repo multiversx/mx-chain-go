@@ -22,7 +22,7 @@ type NodesCoordinator interface {
 	PublicKeysSelector
 	ComputeConsensusGroup(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []Validator, err error)
 	GetValidatorWithPublicKey(publicKey []byte) (validator Validator, shardId uint32, err error)
-	LoadState(key []byte) error
+	LoadState(key []byte, epoch uint32) error
 	GetSavedStateKey() []byte
 	ShardIdForEpoch(epoch uint32) (uint32, error)
 	ShuffleOutForEpoch(_ uint32)
