@@ -58,10 +58,9 @@ func TestTxDataFieldContainingUTF8Characters(t *testing.T) {
 		Version:  version,
 	}
 
-	sig1, err := sign(tx1, singleSigner, sk)
-	assert.Nil(t, err)
-	sig2, err := sign(tx2, singleSigner, sk)
-	assert.Nil(t, err)
+	sig1 := sign(tx1, singleSigner, sk)
+
+	sig2 := sign(tx2, singleSigner, sk)
 
 	fmt.Println("sig1: " + hex.EncodeToString(sig1))
 	fmt.Println("sig2: " + hex.EncodeToString(sig2))
@@ -69,19 +68,13 @@ func TestTxDataFieldContainingUTF8Characters(t *testing.T) {
 	assert.NotEqual(t, sig1, sig2)
 }
 
-func sign(tx *transaction.Transaction, signer crypto.SingleSigner, sk crypto.PrivateKey) ([]byte, error) {
+func sign(tx *transaction.Transaction, signer crypto.SingleSigner, sk crypto.PrivateKey) []byte {
 	marshalizer := &marshal.JsonMarshalizer{}
 	converter, _ := pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
 
-	receiverAddress, err := converter.Encode(tx.RcvAddr)
-	if err != nil {
-		return nil, err
-	}
+	receiverAddress, _ := converter.Encode(tx.RcvAddr)
 
-	senderAddress, err := converter.Encode(tx.SndAddr)
-	if err != nil {
-		return nil, err
-	}
+	senderAddress, _ := converter.Encode(tx.SndAddr)
 
 	ftx := &transaction.FrontendTransaction{
 		Nonce:            tx.Nonce,
@@ -104,5 +97,5 @@ func sign(tx *transaction.Transaction, signer crypto.SingleSigner, sk crypto.Pri
 
 	signature, _ := signer.Sign(sk, buff)
 
-	return signature, nil
+	return signature
 }

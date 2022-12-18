@@ -20,7 +20,7 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
-var log = logger.GetOrCreate("node")
+var log = logger.GetOrCreate("node/external")
 
 // ArgNodeApiResolver represents the DTO structure used in the NewNodeApiResolver constructor
 type ArgNodeApiResolver struct {

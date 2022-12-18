@@ -169,8 +169,6 @@ func (arp *apiTransactionResultsProcessor) getScrFromStorage(hash []byte, epoch 
 }
 
 func (arp *apiTransactionResultsProcessor) adaptSmartContractResult(scrHash []byte, scr *smartContractResult.SmartContractResult) *transaction.ApiSmartContractResult {
-	var err error
-
 	isRefund := arp.refundDetector.isRefund(refundDetectorInput{
 		Value:         scr.Value.String(),
 		Data:          scr.Data,
@@ -216,9 +214,11 @@ func (arp *apiTransactionResultsProcessor) adaptSmartContractResult(scrHash []by
 	apiSCR.Function = res.Function
 	apiSCR.ESDTValues = res.ESDTValues
 	apiSCR.Tokens = res.Tokens
+
+	var err error
 	apiSCR.Receivers, err = arp.addressPubKeyConverter.EncodeSlice(res.Receivers)
 	if err != nil {
-		log.Warn("bech32PubkeyConverter.EncodeSlice() failed while decoding apiSCR.Receivers with", "err", err, "hash", scrHash)
+		log.Warn("bech32PubkeyConverter.EncodeSlice() failed while encoding apiSCR.Receivers with", "err", err, "hash", scrHash)
 	}
 
 	apiSCR.ReceiversShardIDs = res.ReceiversShardID

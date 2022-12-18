@@ -97,7 +97,7 @@ func (tu *txUnmarshaller) unmarshalTransaction(txBytes []byte, txType transactio
 	apiTx.Tokens = res.Tokens
 	apiTx.Receivers, err = tu.addressPubKeyConverter.EncodeSlice(res.Receivers)
 	if err != nil {
-		return nil, err
+		log.Warn("bech32PubkeyConverter.EncodeSlice() failed while encoding apiSCR.Receivers with", "err", err)
 	}
 
 	apiTx.ReceiversShardIDs = res.ReceiversShardID
@@ -107,15 +107,8 @@ func (tu *txUnmarshaller) unmarshalTransaction(txBytes []byte, txType transactio
 }
 
 func (tu *txUnmarshaller) prepareNormalTx(tx *transaction.Transaction) (*transaction.ApiTransactionResult, error) {
-	receiverAddress, err := tu.addressPubKeyConverter.Encode(tx.RcvAddr)
-	if err != nil {
-		return nil, err
-	}
-
-	senderAddress, err := tu.addressPubKeyConverter.Encode(tx.SndAddr)
-	if err != nil {
-		return nil, err
-	}
+	receiverAddress := tu.addressPubKeyConverter.SilentEncode(tx.RcvAddr, log)
+	senderAddress := tu.addressPubKeyConverter.SilentEncode(tx.SndAddr, log)
 
 	return &transaction.ApiTransactionResult{
 		Tx:               tx,
@@ -137,15 +130,8 @@ func (tu *txUnmarshaller) prepareNormalTx(tx *transaction.Transaction) (*transac
 }
 
 func (tu *txUnmarshaller) prepareInvalidTx(tx *transaction.Transaction) (*transaction.ApiTransactionResult, error) {
-	receiverAddress, err := tu.addressPubKeyConverter.Encode(tx.RcvAddr)
-	if err != nil {
-		return nil, err
-	}
-
-	senderAddress, err := tu.addressPubKeyConverter.Encode(tx.SndAddr)
-	if err != nil {
-		return nil, err
-	}
+	receiverAddress := tu.addressPubKeyConverter.SilentEncode(tx.RcvAddr, log)
+	senderAddress := tu.addressPubKeyConverter.SilentEncode(tx.SndAddr, log)
 
 	return &transaction.ApiTransactionResult{
 		Tx:               tx,
@@ -164,10 +150,7 @@ func (tu *txUnmarshaller) prepareInvalidTx(tx *transaction.Transaction) (*transa
 }
 
 func (tu *txUnmarshaller) prepareRewardTx(tx *rewardTxData.RewardTx) (*transaction.ApiTransactionResult, error) {
-	receiverAddress, err := tu.addressPubKeyConverter.Encode(tx.GetRcvAddr())
-	if err != nil {
-		return nil, err
-	}
+	receiverAddress := tu.addressPubKeyConverter.SilentEncode(tx.GetRcvAddr(), log)
 
 	return &transaction.ApiTransactionResult{
 		Tx:          tx,
@@ -182,15 +165,8 @@ func (tu *txUnmarshaller) prepareRewardTx(tx *rewardTxData.RewardTx) (*transacti
 }
 
 func (tu *txUnmarshaller) prepareUnsignedTx(tx *smartContractResult.SmartContractResult) (*transaction.ApiTransactionResult, error) {
-	receiverAddress, err := tu.addressPubKeyConverter.Encode(tx.GetRcvAddr())
-	if err != nil {
-		return nil, err
-	}
-
-	senderAddress, err := tu.addressPubKeyConverter.Encode(tx.GetSndAddr())
-	if err != nil {
-		return nil, err
-	}
+	receiverAddress := tu.addressPubKeyConverter.SilentEncode(tx.GetRcvAddr(), log)
+	senderAddress := tu.addressPubKeyConverter.SilentEncode(tx.GetSndAddr(), log)
 
 	txResult := &transaction.ApiTransactionResult{
 		Tx:                      tx,

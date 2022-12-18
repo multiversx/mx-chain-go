@@ -447,10 +447,12 @@ func (se *stateExport) exportNodesSetupJson(validators map[uint32][]*state.Valid
 				if err != nil {
 					return nil
 				}
+
 				rewardAddress, err := se.addressPubKeyConverter.Encode(validator.GetRewardAddress())
 				if err != nil {
 					return nil
 				}
+
 				initialNodes = append(initialNodes, &sharding.InitialNode{
 					PubKey:        pubKey,
 					Address:       rewardAddress,

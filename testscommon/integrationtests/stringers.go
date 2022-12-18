@@ -10,12 +10,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 )
 
 const asciiSpace = byte(' ')
 const asciiTab = byte('\t')
 const asciiLineFeed = byte('\r')
 const asciiNewLine = byte('\n')
+
+var log = logger.GetOrCreate("stringers")
 
 // TransactionHandlerToString will convert the transaction data slice provided to string
 func TransactionHandlerToString(pubKeyConverter core.PubkeyConverter, txHandlers ...data.TransactionHandler) string {
@@ -84,16 +87,16 @@ func putBigIntInBuilder(builder *strings.Builder, name string, indent string, va
 }
 
 func putAddressInBuilder(builder *strings.Builder, name string, indent string, pubKeyConverter core.PubkeyConverter, slice []byte) {
-	var err error
 	address := ""
 	if len(slice) > 0 {
 		if len(slice) != pubKeyConverter.Len() {
 			// can not encode with the provided address
 			address = hex.EncodeToString(slice) + " (!)"
 		} else {
+			var err error
 			address, err = pubKeyConverter.Encode(slice)
 			if err != nil {
-				return
+				log.Warn("bech32PubkeyConverter.Encode() error", "err", err)
 			}
 		}
 	}

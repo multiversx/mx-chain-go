@@ -910,12 +910,7 @@ func (n *Node) EncodeAddressPubkey(pk []byte) (string, error) {
 		return "", fmt.Errorf("%w for addressPubkeyConverter", ErrNilPubkeyConverter)
 	}
 
-	encodedAddrPubKey, err := n.coreComponents.AddressPubKeyConverter().Encode(pk)
-	if err != nil {
-		return "", err
-	}
-
-	return encodedAddrPubKey, nil
+	return n.coreComponents.AddressPubKeyConverter().Encode(pk)
 }
 
 // DecodeAddressPubkey will try to decode the provided address public key string
@@ -984,7 +979,7 @@ func (n *Node) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
 	for _, p := range pidsFound {
 		pidInfo, err := n.createPidInfo(p)
 		if err != nil {
-			return make([]core.QueryP2PPeerInfo, 0, len(pidsFound)), err
+			return nil, err
 		}
 		peerInfoSlice = append(peerInfoSlice, pidInfo)
 	}

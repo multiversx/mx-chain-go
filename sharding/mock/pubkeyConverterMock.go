@@ -30,13 +30,13 @@ func (pcm *PubkeyConverterMock) Encode(pkBytes []byte) (string, error) {
 
 // EncodeSlice -
 func (pcm *PubkeyConverterMock) EncodeSlice(pkBytesSlice [][]byte) ([]string, error) {
-	decodedSlice := make([]string, 0)
+	encodedSlice := make([]string, 0)
 
 	for _, pkBytes := range pkBytesSlice {
-		decodedSlice = append(decodedSlice, hex.EncodeToString(pkBytes))
+		encodedSlice = append(encodedSlice, hex.EncodeToString(pkBytes))
 	}
 
-	return decodedSlice, nil
+	return encodedSlice, nil
 }
 
 // SilentEncode -

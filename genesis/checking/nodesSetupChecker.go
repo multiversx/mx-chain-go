@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 )
@@ -15,6 +16,8 @@ import (
 const minimumAcceptedNodePrice = 0
 
 var zero = big.NewInt(0)
+
+var log = logger.GetOrCreate("genesis")
 
 type nodeSetupChecker struct {
 	accountsParser           genesis.AccountsParser
@@ -81,13 +84,10 @@ func (nsc *nodeSetupChecker) Check(initialNodes []nodesCoordinator.GenesisNodeIn
 
 func (nsc *nodeSetupChecker) checkGenesisNodes(initialNodes []nodesCoordinator.GenesisNodeInfoHandler) error {
 	for _, node := range initialNodes {
-		validatorPubkeyEncodedAddr, err := nsc.validatorPubkeyConverter.Encode(node.PubKeyBytes())
+		err := nsc.keyGenerator.CheckPublicKeyValid(node.PubKeyBytes())
 		if err != nil {
-			return err
-		}
+			validatorPubkeyEncodedAddr := nsc.validatorPubkeyConverter.SilentEncode(node.PubKeyBytes(), log)
 
-		err = nsc.keyGenerator.CheckPublicKeyValid(node.PubKeyBytes())
-		if err != nil {
 			return fmt.Errorf("%w for node's public key `%s`, error: %s",
 				genesis.ErrInvalidPubKey,
 				validatorPubkeyEncodedAddr,
@@ -116,15 +116,12 @@ func (nsc *nodeSetupChecker) traverseInitialNodesSubtractingStakedValue(
 	delegated map[string]*delegationAddress,
 ) error {
 	for _, initialNode := range initialNodes {
-		validatorPubkeyEncodedAddr, err := nsc.validatorPubkeyConverter.Encode(initialNode.PubKeyBytes())
+		err := nsc.subtractStakedValue(initialNode.AddressBytes(), initialAccounts, delegated)
 		if err != nil {
-			return err
-		}
+			validatorPubkeyEncoded := nsc.validatorPubkeyConverter.SilentEncode(initialNode.PubKeyBytes(), log)
 
-		err = nsc.subtractStakedValue(initialNode.AddressBytes(), initialAccounts, delegated)
-		if err != nil {
 			return fmt.Errorf("'%w' while processing node pubkey %s",
-				err, validatorPubkeyEncodedAddr)
+				err, validatorPubkeyEncoded)
 		}
 	}
 

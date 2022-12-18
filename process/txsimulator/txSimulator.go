@@ -230,10 +230,7 @@ func (ts *transactionSimulator) adaptSmartContractResult(scr *smartContractResul
 }
 
 func (ts *transactionSimulator) adaptReceipt(rcpt *receipt.Receipt) (*transaction.ApiReceipt, error) {
-	receiptSenderAddress, err := ts.addressPubKeyConverter.Encode(rcpt.SndAddr)
-	if err != nil {
-		return nil, err
-	}
+	receiptSenderAddress := ts.addressPubKeyConverter.SilentEncode(rcpt.SndAddr, log)
 
 	return &transaction.ApiReceipt{
 		Value:   rcpt.Value,
