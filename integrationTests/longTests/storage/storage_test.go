@@ -9,7 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/testscommon/storage"
+	storageManagerMock "github.com/ElrondNetwork/elrond-go/testscommon/storageManager"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/stretchr/testify/assert"
 )
@@ -105,7 +105,7 @@ func TestWriteContinuouslyInTree(t *testing.T) {
 	nbTxsWrite := 1000000
 	testStorage := integrationTests.NewTestStorage()
 	store := testStorage.CreateStorageLevelDB()
-	storageManagerArgs, options := storage.GetStorageManagerArgsAndOptions()
+	storageManagerArgs, options := storageManagerMock.GetStorageManagerArgsAndOptions()
 	storageManagerArgs.MainStorer = store
 	storageManagerArgs.Marshalizer = &marshal.JsonMarshalizer{}
 	storageManagerArgs.Hasher = blake2b.NewBlake2b()

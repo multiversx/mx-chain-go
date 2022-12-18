@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/sharding/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -251,7 +251,7 @@ func TestIndexHashedNodesCoordinator_GetNodesCoordinatorRegistry(t *testing.T) {
 			CurrentEpoch: 10,
 		}
 
-		storer := &mock.StorerStub{
+		storer := &storage.StorerStub{
 			GetCalled: func(key []byte) (b []byte, err error) {
 				switch {
 				case bytes.Equal(append([]byte(common.NodesCoordinatorRegistryKeyPrefix), []byte(fmt.Sprint(1))...), key):
@@ -289,7 +289,7 @@ func TestIndexHashedNodesCoordinator_GetNodesCoordinatorRegistry(t *testing.T) {
 			CurrentEpoch: 10,
 		}
 
-		storer := &mock.StorerStub{
+		storer := &storage.StorerStub{
 			GetCalled: func(key []byte) (b []byte, err error) {
 				return nil, errors.New("get failed")
 			},
@@ -316,7 +316,7 @@ func TestIndexHashedNodesCoordinator_SaveNodesCoordinatorRegistry(t *testing.T) 
 	t.Run("nil nodes config, should fail", func(t *testing.T) {
 		t.Parallel()
 
-		err := SaveNodesCoordinatorRegistry(nil, &mock.StorerStub{})
+		err := SaveNodesCoordinatorRegistry(nil, &storage.StorerStub{})
 		require.Equal(t, ErrNilNodesCoordinatorRegistry, err)
 	})
 
@@ -350,7 +350,7 @@ func TestIndexHashedNodesCoordinator_SaveNodesCoordinatorRegistry(t *testing.T) 
 		}
 
 		expectedErr := errors.New("expected error")
-		storer := &mock.StorerStub{
+		storer := &storage.StorerStub{
 			PutCalled: func(key, data []byte) error {
 				return expectedErr
 			},
@@ -397,7 +397,7 @@ func TestIndexHashedNodesCoordinator_SaveNodesCoordinatorRegistry(t *testing.T) 
 		}
 
 		putCalls := 0
-		storer := &mock.StorerStub{
+		storer := &storage.StorerStub{
 			PutCalled: func(key, data []byte) error {
 				switch {
 				case strings.Contains(string(key), common.NodesCoordinatorRegistryKeyPrefix):

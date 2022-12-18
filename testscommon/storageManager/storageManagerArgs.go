@@ -1,4 +1,4 @@
-package storage
+package storageManagerMock
 
 import (
 	"github.com/ElrondNetwork/elrond-go/config"
