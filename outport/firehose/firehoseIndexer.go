@@ -5,8 +5,12 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/firehose"
 	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/outport"
 )
@@ -46,8 +50,48 @@ func (fi *firehoseIndexer) SaveBlock(args *outportcore.ArgsSaveBlockData) error 
 	if err != nil {
 		return fmt.Errorf("could not write %s prefix , err: %w", beginBlockPrefix, err)
 	}
+	firehoseBlock := &firehose.FirehoseBlock{
+		HeaderHash: args.HeaderHash,
+	}
 
-	_, err = fmt.Fprintf(fi.writer, "%s %s %d %s %s %d %d\n",
+	headerType := core.GetHeaderType(args.Header)
+	marshaller := &marshal.GogoProtoMarshalizer{}
+
+	var headerBytes []byte
+	switch headerType {
+	case core.MetaHeader:
+		metaHdr, castOk := args.Header.(*block.MetaBlock)
+		if !castOk {
+
+		}
+		headerBytes, err = marshaller.Marshal(metaHdr)
+	case core.ShardHeaderV1:
+		shardHdrV1, castOk := args.Header.(*block.Header)
+		if !castOk {
+
+		}
+		headerBytes, err = marshaller.Marshal(shardHdrV1)
+	case core.ShardHeaderV2:
+		shardHdrV2, castOk := args.Header.(*block.HeaderV2)
+		if !castOk {
+
+		}
+		headerBytes, err = marshaller.Marshal(shardHdrV2)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	firehoseBlock.HeaderType = string(headerType)
+	firehoseBlock.HeaderBytes = headerBytes
+
+	marshalledBlock, err := marshaller.Marshal(firehoseBlock)
+	if err != nil {
+		return err
+	}
+
+	_, err = fmt.Fprintf(fi.writer, "%s %s %d %s %s %d %d %x\n",
 		firehosePrefix,
 		endBlockPrefix,
 		args.Header.GetNonce(),
@@ -55,6 +99,7 @@ func (fi *firehoseIndexer) SaveBlock(args *outportcore.ArgsSaveBlockData) error 
 		hex.EncodeToString(args.Header.GetPrevHash()),
 		args.Header.GetTimeStamp(),
 		0, // num transactions, implementation will follow
+		marshalledBlock,
 	)
 	if err != nil {
 		return fmt.Errorf("could not write %s prefix , err: %w", endBlockPrefix, err)
