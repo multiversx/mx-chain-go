@@ -372,6 +372,9 @@ const MetaChainSystemSCsCost = "MetaChainSystemSCsCost"
 // ElrondAPICost represents the field name of the Elrond SC API (EEI) gas costs
 const ElrondAPICost = "ElrondAPICost"
 
+// MaxPerTransaction represents the field name of max counts per transaction in block chain hook
+const MaxPerTransaction = "MaxPerTransaction"
+
 // AsyncCallStepField is the field name for the gas cost for any of the two steps required to execute an async call
 const AsyncCallStepField = "AsyncCallStep"
 

@@ -130,6 +130,13 @@ func SetupTestContext(t *testing.T) *TestContext {
 
 // SetupTestContextWithGasSchedulePath -
 func SetupTestContextWithGasSchedulePath(t *testing.T, gasScheduleConfigPath string) *TestContext {
+	gasSchedule, err := common.LoadGasScheduleConfig(gasScheduleConfigPath)
+	require.Nil(t, err)
+	return SetupTestContextWithGasSchedule(t, gasSchedule)
+}
+
+// SetupTestContextWithGasSchedule -
+func SetupTestContextWithGasSchedule(t *testing.T, gasSchedule map[string]map[string]uint64) *TestContext {
 	var err error
 
 	context := &TestContext{}
@@ -141,8 +148,7 @@ func SetupTestContextWithGasSchedulePath(t *testing.T, gasScheduleConfigPath str
 
 	context.initAccounts()
 
-	context.GasSchedule, err = common.LoadGasScheduleConfig(gasScheduleConfigPath)
-	require.Nil(t, err)
+	context.GasSchedule = gasSchedule
 
 	context.initFeeHandlers()
 	context.initVMAndBlockchainHook()
@@ -231,8 +237,9 @@ func (context *TestContext) initFeeHandlers() {
 }
 
 func (context *TestContext) initVMAndBlockchainHook() {
+	gasSchedule := mock.NewGasScheduleNotifierMock(context.GasSchedule)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:               mock.NewGasScheduleNotifierMock(context.GasSchedule),
+		GasSchedule:               gasSchedule,
 		MapDNSAddresses:           DNSAddresses,
 		Marshalizer:               marshalizer,
 		Accounts:                  context.Accounts,
@@ -278,6 +285,8 @@ func (context *TestContext) initVMAndBlockchainHook() {
 				MaxBatchSize:      100,
 			},
 		},
+		GasSchedule: gasSchedule,
+		Counter:     &testscommon.BlockChainHookCounterStub{},
 	}
 
 	vmFactoryConfig := config.VirtualMachineConfig{

@@ -22,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
+	requesterscontainer "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/requestersContainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
@@ -96,7 +97,8 @@ type TestHeartbeatNode struct {
 	WhiteListHandler             process.WhiteListHandler
 	Storage                      dataRetriever.StorageService
 	ResolversContainer           dataRetriever.ResolversContainer
-	ResolverFinder               dataRetriever.ResolversFinder
+	RequestersContainer          dataRetriever.RequestersContainer
+	RequestersFinder             dataRetriever.RequestersFinder
 	RequestHandler               process.RequestHandler
 	RequestedItemsHandler        dataRetriever.RequestedItemsHandler
 	RequestsProcessor            update.Closer
@@ -380,7 +382,7 @@ func (thn *TestHeartbeatNode) InitTestHeartbeatNode(tb testing.TB, minPeersWaiti
 	thn.initStorage()
 	thn.initDataPools()
 	thn.initRequestedItemsHandler()
-	thn.initResolvers()
+	thn.initResolversAndRequesters()
 	thn.initInterceptors()
 	thn.initShardSender(tb)
 	thn.initCrossShardPeerTopicNotifier(tb)
@@ -442,13 +444,13 @@ func (thn *TestHeartbeatNode) initSender() {
 	thn.Sender, _ = sender.NewSender(argsSender)
 }
 
-func (thn *TestHeartbeatNode) initResolvers() {
+func (thn *TestHeartbeatNode) initResolversAndRequesters() {
 	dataPacker, _ := partitioning.NewSimpleDataPacker(TestMarshaller)
 
 	_ = thn.Messenger.CreateTopic(common.ConsensusTopic+thn.ShardCoordinator.CommunicationIdentifier(thn.ShardCoordinator.SelfId()), true)
 
 	payloadValidator, _ := validator.NewPeerAuthenticationPayloadValidator(thn.heartbeatExpiryTimespanInSec)
-	resolverContainerFactory := resolverscontainer.FactoryArgs{
+	resolverContainerFactoryArgs := resolverscontainer.FactoryArgs{
 		ShardCoordinator:         thn.ShardCoordinator,
 		Messenger:                thn.Messenger,
 		Store:                    thn.Storage,
@@ -461,26 +463,38 @@ func (thn *TestHeartbeatNode) initResolvers() {
 				return &trieMock.TrieStub{}
 			},
 		},
-		SizeCheckDelta:              100,
-		InputAntifloodHandler:       &mock.NilAntifloodHandler{},
-		OutputAntifloodHandler:      &mock.NilAntifloodHandler{},
-		NumConcurrentResolvingJobs:  10,
-		CurrentNetworkEpochProvider: &mock.CurrentNetworkEpochProviderStub{},
-		PreferredPeersHolder:        &p2pmocks.PeersHolderStub{},
-		ResolverConfig: config.ResolverConfig{
+		SizeCheckDelta:             100,
+		InputAntifloodHandler:      &mock.NilAntifloodHandler{},
+		OutputAntifloodHandler:     &mock.NilAntifloodHandler{},
+		NumConcurrentResolvingJobs: 10,
+		PreferredPeersHolder:       &p2pmocks.PeersHolderStub{},
+		PayloadValidator:           payloadValidator,
+	}
+
+	requestersContainerFactoryArgs := requesterscontainer.FactoryArgs{
+		RequesterConfig: config.RequesterConfig{
 			NumCrossShardPeers:  2,
 			NumTotalPeers:       3,
-			NumFullHistoryPeers: 3,
-		},
-		PeersRatingHandler: &p2pmocks.PeersRatingHandlerStub{},
-		PayloadValidator:   payloadValidator,
+			NumFullHistoryPeers: 3},
+		ShardCoordinator:            thn.ShardCoordinator,
+		Messenger:                   thn.Messenger,
+		Marshaller:                  TestMarshaller,
+		Uint64ByteSliceConverter:    TestUint64Converter,
+		OutputAntifloodHandler:      &mock.NilAntifloodHandler{},
+		CurrentNetworkEpochProvider: &mock.CurrentNetworkEpochProviderStub{},
+		PreferredPeersHolder:        &p2pmocks.PeersHolderStub{},
+		PeersRatingHandler:          &p2pmocks.PeersRatingHandlerStub{},
+		SizeCheckDelta:              0,
 	}
 
 	if thn.ShardCoordinator.SelfId() == core.MetachainShardId {
-		thn.createMetaResolverContainer(resolverContainerFactory)
+		thn.createMetaResolverContainer(resolverContainerFactoryArgs)
+		thn.createMetaRequestersContainer(requestersContainerFactoryArgs)
 	} else {
-		thn.createShardResolverContainer(resolverContainerFactory)
+		thn.createShardResolverContainer(resolverContainerFactoryArgs)
+		thn.createShardRequestersContainer(requestersContainerFactoryArgs)
 	}
+	thn.createRequestHandler()
 }
 
 func (thn *TestHeartbeatNode) createMetaResolverContainer(args resolverscontainer.FactoryArgs) {
@@ -489,8 +503,6 @@ func (thn *TestHeartbeatNode) createMetaResolverContainer(args resolverscontaine
 	var err error
 	thn.ResolversContainer, err = resolversContainerFactory.Create()
 	log.LogIfError(err)
-
-	thn.createRequestHandler()
 }
 
 func (thn *TestHeartbeatNode) createShardResolverContainer(args resolverscontainer.FactoryArgs) {
@@ -499,14 +511,28 @@ func (thn *TestHeartbeatNode) createShardResolverContainer(args resolverscontain
 	var err error
 	thn.ResolversContainer, err = resolversContainerFactory.Create()
 	log.LogIfError(err)
+}
 
-	thn.createRequestHandler()
+func (thn *TestHeartbeatNode) createMetaRequestersContainer(args requesterscontainer.FactoryArgs) {
+	requestersContainerFactory, _ := requesterscontainer.NewMetaRequestersContainerFactory(args)
+
+	var err error
+	thn.RequestersContainer, err = requestersContainerFactory.Create()
+	log.LogIfError(err)
+}
+
+func (thn *TestHeartbeatNode) createShardRequestersContainer(args requesterscontainer.FactoryArgs) {
+	requestersContainerFactory, _ := requesterscontainer.NewShardRequestersContainerFactory(args)
+
+	var err error
+	thn.RequestersContainer, err = requestersContainerFactory.Create()
+	log.LogIfError(err)
 }
 
 func (thn *TestHeartbeatNode) createRequestHandler() {
-	thn.ResolverFinder, _ = containers.NewResolversFinder(thn.ResolversContainer, thn.ShardCoordinator)
+	thn.RequestersFinder, _ = containers.NewRequestersFinder(thn.RequestersContainer, thn.ShardCoordinator)
 	thn.RequestHandler, _ = requestHandlers.NewResolverRequestHandler(
-		thn.ResolverFinder,
+		thn.RequestersFinder,
 		thn.RequestedItemsHandler,
 		thn.WhiteListHandler,
 		100,
@@ -801,6 +827,7 @@ func (thn *TestHeartbeatNode) Close() {
 	_ = thn.Sender.Close()
 	_ = thn.PeerAuthInterceptor.Close()
 	_ = thn.RequestsProcessor.Close()
+	_ = thn.RequestersContainer.Close()
 	_ = thn.ResolversContainer.Close()
 	_ = thn.ShardSender.Close()
 	_ = thn.Messenger.Close()

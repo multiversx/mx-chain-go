@@ -39,6 +39,7 @@ func newShardApiBlockProcessor(arg *ArgAPIBlockProcessor, emptyReceiptsHash []by
 			alteredAccountsProvider:      arg.AlteredAccountsProvider,
 			accountsRepository:           arg.AccountsRepository,
 			scheduledTxsExecutionHandler: arg.ScheduledTxsExecutionHandler,
+			enableEpochsHandler:          arg.EnableEpochsHandler,
 		},
 	}
 }

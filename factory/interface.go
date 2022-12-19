@@ -172,6 +172,9 @@ type CryptoParamsHolder interface {
 // CryptoComponentsHolder holds the crypto components
 type CryptoComponentsHolder interface {
 	CryptoParamsHolder
+	P2pPublicKey() crypto.PublicKey
+	P2pPrivateKey() crypto.PrivateKey
+	P2pSingleSigner() crypto.SingleSigner
 	TxSingleSigner() crypto.SingleSigner
 	BlockSigner() crypto.SingleSigner
 	SetMultiSignerContainer(container cryptoCommon.MultiSignerContainer) error
@@ -180,6 +183,7 @@ type CryptoComponentsHolder interface {
 	PeerSignatureHandler() crypto.PeerSignatureHandler
 	BlockSignKeyGen() crypto.KeyGenerator
 	TxSignKeyGen() crypto.KeyGenerator
+	P2pKeyGen() crypto.KeyGenerator
 	MessageSignVerifier() vm.MessageSignVerifier
 	ConsensusSigningHandler() consensus.SigningHandler
 	ManagedPeersHolder() heartbeat.ManagedPeersHolder
@@ -264,7 +268,8 @@ type ProcessComponentsHolder interface {
 	NodesCoordinator() nodesCoordinator.NodesCoordinator
 	ShardCoordinator() sharding.Coordinator
 	InterceptorsContainer() process.InterceptorsContainer
-	ResolversFinder() dataRetriever.ResolversFinder
+	ResolversContainer() dataRetriever.ResolversContainer
+	RequestersFinder() dataRetriever.RequestersFinder
 	RoundHandler() consensus.RoundHandler
 	EpochStartTrigger() epochStart.TriggerHandler
 	EpochStartNotifier() EpochStartNotifier

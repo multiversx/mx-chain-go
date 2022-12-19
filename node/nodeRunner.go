@@ -112,7 +112,7 @@ func (nr *nodeRunner) Start() error {
 
 	log.Info("starting node", "version", flagsConfig.Version, "pid", os.Getpid())
 
-	err = cleanupStorageIfNecessary(flagsConfig.WorkingDir, flagsConfig.CleanupStorage)
+	err = cleanupStorageIfNecessary(flagsConfig.DbDir, flagsConfig.CleanupStorage)
 	if err != nil {
 		return err
 	}
@@ -204,6 +204,7 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("set sender in eei output transfer"), "epoch", enableEpochs.SetSenderInEeiOutputTransferEnableEpoch)
 	log.Debug(readEpochFor("refactor peers mini blocks"), "epoch", enableEpochs.RefactorPeersMiniBlocksEnableEpoch)
 	log.Debug(readEpochFor("runtime memstore limit"), "epoch", enableEpochs.RuntimeMemStoreLimitEnableEpoch)
+	log.Debug(readEpochFor("max blockchainhook counters"), "epoch", enableEpochs.MaxBlockchainHookCountersEnableEpoch)
 	gasSchedule := configs.EpochConfig.GasSchedule
 
 	log.Debug(readEpochFor("gas schedule directories paths"), "epoch", gasSchedule.GasScheduleByEpochs)
@@ -286,14 +287,15 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
-	log.Debug("creating network components")
-	managedNetworkComponents, err := nr.CreateManagedNetworkComponents(managedCoreComponents, managedStatusCoreComponents)
+	log.Debug("creating crypto components")
+	managedCryptoComponents, err := nr.CreateManagedCryptoComponents(managedCoreComponents)
 	if err != nil {
 		return true, err
 	}
 
-	log.Debug("creating crypto components")
-	managedCryptoComponents, err := nr.CreateManagedCryptoComponents(managedCoreComponents, managedNetworkComponents)
+	//TODO(JLS) fix creation of components + order of closing
+	log.Debug("creating network components")
+	managedNetworkComponents, err := nr.CreateManagedNetworkComponents(managedCoreComponents, managedStatusCoreComponents, managedCryptoComponents)
 	if err != nil {
 		return true, err
 	}
@@ -1117,7 +1119,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 ) (mainFactory.ProcessComponentsHandler, error) {
 	configs := nr.configs
 	configurationPaths := nr.configs.ConfigurationPathsHolder
-	importStartHandler, err := trigger.NewImportStartHandler(filepath.Join(configs.FlagsConfig.WorkingDir, common.DefaultDBPath), configs.FlagsConfig.Version)
+	importStartHandler, err := trigger.NewImportStartHandler(filepath.Join(configs.FlagsConfig.DbDir, common.DefaultDBPath), configs.FlagsConfig.Version)
 	if err != nil {
 		return nil, err
 	}
@@ -1340,7 +1342,7 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 		PrefConfig:           *nr.configs.PreferencesConfig,
 		ImportDbConfig:       *nr.configs.ImportDbConfig,
 		FlagsConfig:          *nr.configs.FlagsConfig,
-		WorkingDir:           nr.configs.FlagsConfig.WorkingDir,
+		WorkingDir:           nr.configs.FlagsConfig.DbDir,
 		CoreComponents:       coreComponents,
 		CryptoComponents:     cryptoComponents,
 		NetworkComponents:    networkComponents,
@@ -1369,6 +1371,7 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 func (nr *nodeRunner) CreateManagedNetworkComponents(
 	coreComponents mainFactory.CoreComponentsHolder,
 	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
+	cryptoComponents mainFactory.CryptoComponentsHolder,
 ) (mainFactory.NetworkComponentsHandler, error) {
 	networkComponentsFactoryArgs := networkComp.NetworkComponentsFactoryArgs{
 		P2pConfig:             *nr.configs.P2pConfig,
@@ -1381,7 +1384,7 @@ func (nr *nodeRunner) CreateManagedNetworkComponents(
 		BootstrapWaitTime:     common.TimeToWaitForP2PBootstrap,
 		NodeOperationMode:     p2p.NormalOperation,
 		ConnectionWatcherType: nr.configs.PreferencesConfig.Preferences.ConnectionWatcherType,
-		P2pKeyPemFileName:     nr.configs.ConfigurationPathsHolder.P2pKey,
+		CryptoComponents:      cryptoComponents,
 	}
 	if nr.configs.ImportDbConfig.IsImportDBMode {
 		networkComponentsFactoryArgs.BootstrapWaitTime = 0
@@ -1419,7 +1422,7 @@ func (nr *nodeRunner) CreateManagedCoreComponents(
 		RatingsConfig:       *nr.configs.RatingsConfig,
 		EconomicsConfig:     *nr.configs.EconomicsConfig,
 		NodesFilename:       nr.configs.ConfigurationPathsHolder.Nodes,
-		WorkingDirectory:    nr.configs.FlagsConfig.WorkingDir,
+		WorkingDirectory:    nr.configs.FlagsConfig.DbDir,
 		ChanStopNodeProcess: chanStopNodeProcess,
 	}
 
@@ -1474,7 +1477,6 @@ func (nr *nodeRunner) CreateManagedStatusCoreComponents(
 // CreateManagedCryptoComponents is the managed crypto components factory
 func (nr *nodeRunner) CreateManagedCryptoComponents(
 	coreComponents mainFactory.CoreComponentsHolder,
-	networkComponents mainFactory.NetworkComponentsHolder,
 ) (mainFactory.CryptoComponentsHandler, error) {
 	configs := nr.configs
 	validatorKeyPemFileName := configs.ConfigurationPathsHolder.ValidatorKey
@@ -1491,7 +1493,7 @@ func (nr *nodeRunner) CreateManagedCryptoComponents(
 		IsInImportMode:                       configs.ImportDbConfig.IsImportDBMode,
 		EnableEpochs:                         configs.EpochConfig.EnableEpochs,
 		NoKeyProvided:                        configs.FlagsConfig.NoKeyProvided,
-		CurrentPid:                           networkComponents.NetworkMessenger().ID(),
+		P2pKeyPemFileName:                    configs.ConfigurationPathsHolder.P2pKey,
 	}
 
 	cryptoComponentsFactory, err := cryptoComp.NewCryptoComponentsFactory(cryptoComponentsHandlerArgs)

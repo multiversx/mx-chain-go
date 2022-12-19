@@ -34,16 +34,18 @@ func TestNetworkComponents_Create_Close_ShouldWork(t *testing.T) {
 	require.Nil(t, err)
 	managedStatusCoreComponents, err := nr.CreateManagedStatusCoreComponents(managedCoreComponents)
 	require.Nil(t, err)
-	managedNetworkComponents, err := nr.CreateManagedNetworkComponents(managedCoreComponents, managedStatusCoreComponents)
+	//TODO(JLS) fix creation of components
+	managedCryptoComponents, err := nr.CreateManagedCryptoComponents(managedCoreComponents)
 	require.Nil(t, err)
-	managedCryptoComponents, err := nr.CreateManagedCryptoComponents(managedCoreComponents, managedNetworkComponents)
+	managedNetworkComponents, err := nr.CreateManagedNetworkComponents(managedCoreComponents, managedStatusCoreComponents, managedCryptoComponents)
 	require.Nil(t, err)
+	require.NotNil(t, managedNetworkComponents)
 
 	time.Sleep(5 * time.Second)
 
-	err = managedCryptoComponents.Close()
-	require.Nil(t, err)
 	err = managedNetworkComponents.Close()
+	require.Nil(t, err)
+	err = managedCryptoComponents.Close()
 	require.Nil(t, err)
 	err = managedStatusCoreComponents.Close()
 	require.Nil(t, err)

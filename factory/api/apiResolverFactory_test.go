@@ -21,9 +21,9 @@ func TestCreateApiResolver(t *testing.T) {
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
 	coreComponents := componentsMock.GetCoreComponents()
-	networkComponents := componentsMock.GetNetworkComponents()
-	dataComponents := componentsMock.GetDataComponents(coreComponents, shardCoordinator)
 	cryptoComponents := componentsMock.GetCryptoComponents(coreComponents)
+	networkComponents := componentsMock.GetNetworkComponents(cryptoComponents)
+	dataComponents := componentsMock.GetDataComponents(coreComponents, shardCoordinator)
 	stateComponents := componentsMock.GetStateComponents(coreComponents, shardCoordinator)
 	processComponents := componentsMock.GetProcessComponents(shardCoordinator, coreComponents, networkComponents, dataComponents, cryptoComponents, stateComponents)
 	argsB := componentsMock.GetBootStrapFactoryArgs()
