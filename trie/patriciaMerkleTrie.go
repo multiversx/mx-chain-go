@@ -133,10 +133,10 @@ func (tr *patriciaMerkleTrie) UpdateWithVersion(key []byte, value []byte, versio
 func (tr *patriciaMerkleTrie) update(key []byte, value []byte, version common.TrieNodeVersion) error {
 	hexKey := keyBytesToHex(key)
 	if len(value) != 0 {
-		newData := dataForInsertion{
-			key:     hexKey,
-			value:   value,
-			version: version,
+		newData := common.TrieData{
+			Key:     hexKey,
+			Value:   value,
+			Version: version,
 		}
 
 		if tr.root == nil {

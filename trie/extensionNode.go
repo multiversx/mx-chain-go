@@ -383,7 +383,7 @@ func (en *extensionNode) getNext(key []byte, db common.DBWriteCacher) (node, []b
 	return en.child, key, nil
 }
 
-func (en *extensionNode) insert(newData dataForInsertion, db common.DBWriteCacher) (node, [][]byte, error) {
+func (en *extensionNode) insert(newData common.TrieData, db common.DBWriteCacher) (node, [][]byte, error) {
 	emptyHashes := make([][]byte, 0)
 	err := en.isEmptyOrNil()
 	if err != nil {
@@ -394,7 +394,7 @@ func (en *extensionNode) insert(newData dataForInsertion, db common.DBWriteCache
 		return nil, emptyHashes, err
 	}
 
-	keyMatchLen := prefixLen(newData.key, en.Key)
+	keyMatchLen := prefixLen(newData.Key, en.Key)
 
 	// If the whole key matches, keep this extension node as is
 	// and only update the value.
@@ -406,8 +406,8 @@ func (en *extensionNode) insert(newData dataForInsertion, db common.DBWriteCache
 	return en.insertInNewBn(newData, keyMatchLen)
 }
 
-func (en *extensionNode) insertInSameEn(newData dataForInsertion, keyMatchLen int, db common.DBWriteCacher) (node, [][]byte, error) {
-	newData.key = newData.key[keyMatchLen:]
+func (en *extensionNode) insertInSameEn(newData common.TrieData, keyMatchLen int, db common.DBWriteCacher) (node, [][]byte, error) {
+	newData.Key = newData.Key[keyMatchLen:]
 	newNode, oldHashes, err := en.child.insert(newData, db)
 	if check.IfNil(newNode) || err != nil {
 		return nil, [][]byte{}, err
@@ -425,7 +425,7 @@ func (en *extensionNode) insertInSameEn(newData dataForInsertion, keyMatchLen in
 	return newEn, oldHashes, nil
 }
 
-func (en *extensionNode) insertInNewBn(newData dataForInsertion, keyMatchLen int) (node, [][]byte, error) {
+func (en *extensionNode) insertInNewBn(newData common.TrieData, keyMatchLen int) (node, [][]byte, error) {
 	oldHash := make([][]byte, 0)
 	if !en.dirty {
 		oldHash = append(oldHash, en.hash)
@@ -437,7 +437,7 @@ func (en *extensionNode) insertInNewBn(newData dataForInsertion, keyMatchLen int
 	}
 
 	oldChildPos := en.Key[keyMatchLen]
-	newChildPos := newData.key[keyMatchLen]
+	newChildPos := newData.Key[keyMatchLen]
 	if childPosOutOfRange(oldChildPos) || childPosOutOfRange(newChildPos) {
 		return nil, [][]byte{}, ErrChildPosOutOfRange
 	}
@@ -486,8 +486,8 @@ func (en *extensionNode) insertOldChildInBn(bn *branchNode, oldChildPos byte, ke
 	return nil
 }
 
-func (en *extensionNode) insertNewChildInBn(bn *branchNode, newData dataForInsertion, newChildPos byte, keyMatchLen int) error {
-	newData.key = newData.key[keyMatchLen+1:]
+func (en *extensionNode) insertNewChildInBn(bn *branchNode, newData common.TrieData, newChildPos byte, keyMatchLen int) error {
+	newData.Key = newData.Key[keyMatchLen+1:]
 
 	newLeaf, err := newLeafNode(newData, en.marsh, en.hasher)
 	if err != nil {
@@ -495,7 +495,7 @@ func (en *extensionNode) insertNewChildInBn(bn *branchNode, newData dataForInser
 	}
 
 	bn.children[newChildPos] = newLeaf
-	bn.setVersionForChild(newData.version, newChildPos)
+	bn.setVersionForChild(newData.Version, newChildPos)
 	return nil
 }
 
@@ -528,10 +528,10 @@ func (en *extensionNode) delete(key []byte, db common.DBWriteCacher) (bool, node
 
 	switch newNode := newNode.(type) {
 	case *leafNode:
-		newLeafData := dataForInsertion{
-			key:     concat(en.Key, newNode.Key...),
-			value:   newNode.Value,
-			version: common.TrieNodeVersion(newNode.Version),
+		newLeafData := common.TrieData{
+			Key:     concat(en.Key, newNode.Key...),
+			Value:   newNode.Value,
+			Version: common.TrieNodeVersion(newNode.Version),
 		}
 		n, err := newLeafNode(newLeafData, en.marsh, en.hasher)
 		if err != nil {
