@@ -233,7 +233,8 @@ func checkArguments(args ArgNodesCoordinator) error {
 	return nil
 }
 
-// getNodesConfig has to be used under mutex
+// getNodesConfig will try to get nodesConfig from map, if it doesn't success, it will try to get it from nodes config cache
+// it has to be used under mutex
 func (ihnc *indexHashedNodesCoordinator) getNodesConfig(epoch uint32) (*epochNodesConfig, bool) {
 	nodesConfig, ok := ihnc.nodesConfig[epoch]
 	if ok {
@@ -245,18 +246,24 @@ func (ihnc *indexHashedNodesCoordinator) getNodesConfig(epoch uint32) (*epochNod
 		return nil, ok
 	}
 
-	ncBytes, ok := value.([]byte)
+	registryBytes, ok := value.([]byte)
 	if !ok {
 		return nil, ok
 	}
 
-	nc := &epochNodesConfig{}
-	err := json.Unmarshal(ncBytes, nc)
+	registry := &NodesCoordinatorRegistry{}
+	err := json.Unmarshal(registryBytes, registry)
 	if err != nil {
 		return nil, false
 	}
 
-	return nodesConfig, ok
+	nc, err := ihnc.registryToNodesCoordinator(registry)
+	if err != nil {
+		return nil, false
+	}
+
+	epochNodesConfig, ok := nc[epoch]
+	return epochNodesConfig, ok
 }
 
 // setNodesPerShards loads the distribution of nodes per shard into the nodes management component
@@ -310,7 +317,7 @@ func (ihnc *indexHashedNodesCoordinator) setNodesPerShards(
 	}
 
 	ihnc.nodesConfig[epoch] = nodesConfig
-	ncBytes, err := json.Marshal(nodesConfig)
+	ncBytes, err := epochNodesConfigToRegistryBytes(epoch, nodesConfig)
 	if err != nil {
 		return err
 	}
@@ -367,7 +374,7 @@ func (ihnc *indexHashedNodesCoordinator) ComputeConsensusGroup(
 	}
 
 	ihnc.mutNodesConfig.RLock()
-	nodesConfig, ok := ihnc.nodesConfig[epoch]
+	nodesConfig, ok := ihnc.getNodesConfig(epoch)
 	if ok {
 		if shardID >= nodesConfig.nbShards && shardID != core.MetachainShardId {
 			log.Warn("shardID is not ok", "shardID", shardID, "nbShards", nodesConfig.nbShards)
@@ -468,7 +475,7 @@ func (ihnc *indexHashedNodesCoordinator) GetAllEligibleValidatorsPublicKeys(epoc
 	validatorsPubKeys := make(map[uint32][][]byte)
 
 	ihnc.mutNodesConfig.RLock()
-	nodesConfig, ok := ihnc.nodesConfig[epoch]
+	nodesConfig, ok := ihnc.getNodesConfig(epoch)
 	ihnc.mutNodesConfig.RUnlock()
 
 	if !ok {
@@ -492,7 +499,7 @@ func (ihnc *indexHashedNodesCoordinator) GetAllWaitingValidatorsPublicKeys(epoch
 	validatorsPubKeys := make(map[uint32][][]byte)
 
 	ihnc.mutNodesConfig.RLock()
-	nodesConfig, ok := ihnc.nodesConfig[epoch]
+	nodesConfig, ok := ihnc.getNodesConfig(epoch)
 	ihnc.mutNodesConfig.RUnlock()
 
 	if !ok {
@@ -516,7 +523,7 @@ func (ihnc *indexHashedNodesCoordinator) GetAllLeavingValidatorsPublicKeys(epoch
 	validatorsPubKeys := make(map[uint32][][]byte)
 
 	ihnc.mutNodesConfig.RLock()
-	nodesConfig, ok := ihnc.nodesConfig[epoch]
+	nodesConfig, ok := ihnc.getNodesConfig(epoch)
 	ihnc.mutNodesConfig.RUnlock()
 
 	if !ok {
@@ -548,7 +555,7 @@ func (ihnc *indexHashedNodesCoordinator) GetValidatorsIndexes(
 	}
 
 	ihnc.mutNodesConfig.RLock()
-	nodesConfig := ihnc.nodesConfig[epoch]
+	nodesConfig, _ := ihnc.getNodesConfig(epoch)
 	ihnc.mutNodesConfig.RUnlock()
 
 	for _, pubKey := range publicKeys {
@@ -611,7 +618,7 @@ func (ihnc *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 	}
 
 	ihnc.mutNodesConfig.RLock()
-	previousConfig := ihnc.nodesConfig[ihnc.currentEpoch]
+	previousConfig, _ := ihnc.getNodesConfig(ihnc.currentEpoch)
 	if previousConfig == nil {
 		log.Error("previous nodes config is nil")
 		ihnc.mutNodesConfig.RUnlock()
@@ -895,7 +902,7 @@ func (ihnc *indexHashedNodesCoordinator) GetSavedStateKey() []byte {
 // otherwise error
 func (ihnc *indexHashedNodesCoordinator) ShardIdForEpoch(epoch uint32) (uint32, error) {
 	ihnc.mutNodesConfig.RLock()
-	nodesConfig, ok := ihnc.nodesConfig[epoch]
+	nodesConfig, ok := ihnc.getNodesConfig(epoch)
 	ihnc.mutNodesConfig.RUnlock()
 
 	if !ok {
@@ -910,7 +917,7 @@ func (ihnc *indexHashedNodesCoordinator) ShuffleOutForEpoch(epoch uint32) {
 	log.Debug("shuffle out called for", "epoch", epoch)
 
 	ihnc.mutNodesConfig.Lock()
-	nodesConfig := ihnc.nodesConfig[epoch]
+	nodesConfig, _ := ihnc.getNodesConfig(epoch)
 	ihnc.mutNodesConfig.Unlock()
 
 	if nodesConfig == nil {
@@ -1032,7 +1039,7 @@ func (ihnc *indexHashedNodesCoordinator) createPublicKeyToValidatorMap(
 func (ihnc *indexHashedNodesCoordinator) computeShardForSelfPublicKey(nodesConfig *epochNodesConfig) (uint32, bool) {
 	pubKey := ihnc.selfPubKey
 	selfShard := ihnc.shardIDAsObserver
-	epNodesConfig, ok := ihnc.nodesConfig[ihnc.currentEpoch]
+	epNodesConfig, ok := ihnc.getNodesConfig(ihnc.currentEpoch)
 	if ok {
 		log.Trace("computeShardForSelfPublicKey found existing config",
 			"shard", epNodesConfig.shardID,

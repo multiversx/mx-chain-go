@@ -202,6 +202,16 @@ func (ihnc *indexHashedNodesCoordinator) NodesCoordinatorToRegistry() *NodesCoor
 	return registry
 }
 
+func epochNodesConfigToRegistryBytes(epoch uint32, nodesConfig *epochNodesConfig) ([]byte, error) {
+	registry := &NodesCoordinatorRegistry{
+		CurrentEpoch: epoch,
+		EpochsConfig: make(map[string]*EpochValidators),
+	}
+	registry.EpochsConfig[fmt.Sprint(epoch)] = epochNodesConfigToEpochValidators(nodesConfig)
+
+	return json.Marshal(registry)
+}
+
 // SaveNodesCoordinatorRegistry will save the nodes coordinator registry to storage
 func SaveNodesCoordinatorRegistry(
 	nodesConfig *NodesCoordinatorRegistry,
