@@ -7,6 +7,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
+// TODO: refactor to align these constants with db filepath identifier
+
 // UserAccountTrie represents the use account identifier
 const UserAccountTrie = "userAccount"
 
