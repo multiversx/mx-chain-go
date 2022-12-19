@@ -407,8 +407,6 @@ func saveSliceKeys(baseFilenameTemplate string, keys []key, converter pubKeyConv
 	var file *os.File
 	var err error
 	for i, k := range keys {
-		log.Warn(hex.EncodeToString(k.pkBytes))
-
 		shouldCreateFile := !noSplit || i == 0
 		if shouldCreateFile {
 			file, err = generateFile(i, len(keys), noSplit, baseFilenameTemplate)
