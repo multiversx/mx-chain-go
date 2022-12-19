@@ -229,6 +229,9 @@ func checkArguments(args ArgNodesCoordinator) error {
 	if args.NumStoredEpochs < minStoredEpochs {
 		return ErrInvalidNumberOfStoredEpochs
 	}
+	if check.IfNilReflect(args.NodesConfigCache) {
+		return ErrNilNodesConfigCacher
+	}
 
 	return nil
 }

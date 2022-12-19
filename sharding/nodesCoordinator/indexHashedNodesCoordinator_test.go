@@ -3,6 +3,7 @@ package nodesCoordinator
 import (
 	"bytes"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"runtime"
@@ -218,6 +219,15 @@ func TestNewIndexHashedNodesCoordinator_InvalidNumStoredEpochsShouldErr(t *testi
 	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
 
 	require.Equal(t, ErrInvalidNumberOfStoredEpochs, err)
+	require.Nil(t, ihnc)
+}
+
+func TestNewIndexHashedNodesCoordinator_NilNodesConfigCacherShouldErr(t *testing.T) {
+	arguments := createArguments()
+	arguments.NodesConfigCache = nil
+	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
+
+	require.Equal(t, ErrNilNodesConfigCacher, err)
 	require.Nil(t, ihnc)
 }
 
@@ -2468,5 +2478,121 @@ func TestIndexHashedNodesCoordinator_GetShardValidatorInfoData(t *testing.T) {
 
 		shardValidatorInfo, _ := ihnc.getShardValidatorInfoData(txHash, 0)
 		require.Equal(t, svi, shardValidatorInfo)
+	})
+}
+
+func TestIndexHashedNodesCoordinator_GetNodesConfig(t *testing.T) {
+	t.Parallel()
+
+	t.Run("will find in nodesConfig", func(t *testing.T) {
+		t.Parallel()
+
+		args := createArguments()
+		ihnc, _ := NewIndexHashedNodesCoordinator(args)
+
+		nc, ok := ihnc.getNodesConfig(0)
+		require.True(t, ok)
+		require.NotNil(t, nc)
+	})
+
+	t.Run("will not find in nodes config cacher", func(t *testing.T) {
+		t.Parallel()
+
+		epoch := uint32(2)
+
+		args := createArguments()
+		args.NodesConfigCache = &mock.NodesCoordinatorCacheMock{
+			GetCalled: func(key []byte) (value interface{}, ok bool) {
+				require.Equal(t, []byte(fmt.Sprint(epoch)), key)
+
+				return nil, false
+			},
+		}
+		ihnc, _ := NewIndexHashedNodesCoordinator(args)
+
+		nc, ok := ihnc.getNodesConfig(epoch)
+		require.False(t, ok)
+		require.Nil(t, nc)
+	})
+
+	t.Run("will find in nodes config cacher, but failed to cast to byte array", func(t *testing.T) {
+		t.Parallel()
+
+		type testStruct struct{}
+		epoch := uint32(2)
+
+		args := createArguments()
+		args.NodesConfigCache = &mock.NodesCoordinatorCacheMock{
+			GetCalled: func(key []byte) (value interface{}, ok bool) {
+				require.Equal(t, []byte(fmt.Sprint(epoch)), key)
+
+				return testStruct{}, true
+			},
+		}
+		ihnc, _ := NewIndexHashedNodesCoordinator(args)
+
+		nc, ok := ihnc.getNodesConfig(epoch)
+		require.False(t, ok)
+		require.Nil(t, nc)
+	})
+
+	t.Run("will find in nodes config cacher, but failed to unmarshal byte array", func(t *testing.T) {
+		t.Parallel()
+
+		epoch := uint32(2)
+
+		args := createArguments()
+		args.NodesConfigCache = &mock.NodesCoordinatorCacheMock{
+			GetCalled: func(key []byte) (value interface{}, ok bool) {
+				require.Equal(t, []byte(fmt.Sprint(epoch)), key)
+
+				return []byte("epoch nodes config data"), true
+			},
+		}
+		ihnc, _ := NewIndexHashedNodesCoordinator(args)
+
+		nc, ok := ihnc.getNodesConfig(epoch)
+		require.False(t, ok)
+		require.Nil(t, nc)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		epoch := uint32(2)
+
+		args := createArguments()
+		args.NodesConfigCache = &mock.NodesCoordinatorCacheMock{
+			GetCalled: func(key []byte) (value interface{}, ok bool) {
+				require.Equal(t, []byte(fmt.Sprint(epoch)), key)
+
+				registry := &NodesCoordinatorRegistry{
+					EpochsConfig: map[string]*EpochValidators{
+						"2": {
+							EligibleValidators: map[string][]*SerializableValidator{
+								"0": {
+									&SerializableValidator{
+										PubKey: []byte("pubkey1"),
+									},
+								},
+								"1": {
+									&SerializableValidator{
+										PubKey: []byte("pubkey2"),
+									},
+								},
+							},
+						},
+					},
+					CurrentEpoch: 2,
+				}
+				registryBytes, _ := json.Marshal(registry)
+				return registryBytes, true
+			},
+		}
+		ihnc, _ := NewIndexHashedNodesCoordinator(args)
+
+		nc, ok := ihnc.getNodesConfig(epoch)
+		require.True(t, ok)
+		require.NotNil(t, nc)
 	})
 }
