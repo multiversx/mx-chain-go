@@ -123,6 +123,7 @@ func createArguments() ArgNodesCoordinator {
 		},
 		ValidatorInfoCacher: &vic.ValidatorInfoCacherStub{},
 		NumStoredEpochs:     numStoredEpochs,
+		NodesConfigCache:    &mock.NodesCoordinatorCacheMock{},
 	}
 	return arguments
 }
@@ -292,6 +293,7 @@ func TestIndexHashedNodesCoordinator_OkValShouldWork(t *testing.T) {
 		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
 		ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 		NumStoredEpochs:         numStoredEpochs,
+		NodesConfigCache:        &mock.NodesCoordinatorCacheMock{},
 	}
 
 	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
@@ -353,6 +355,7 @@ func TestIndexHashedNodesCoordinator_NewCoordinatorTooFewNodesShouldErr(t *testi
 		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
 		ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 		NumStoredEpochs:         numStoredEpochs,
+		NodesConfigCache:        &mock.NodesCoordinatorCacheMock{},
 	}
 	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
 
@@ -428,6 +431,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup1ValidatorShouldRetur
 		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
 		ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 		NumStoredEpochs:         numStoredEpochs,
+		NodesConfigCache:        &mock.NodesCoordinatorCacheMock{},
 	}
 	ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
 	list2, err := ihnc.ComputeConsensusGroup([]byte("randomness"), 0, 0, 0)
@@ -489,6 +493,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup400of400For10locksNoM
 		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
 		ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 		NumStoredEpochs:         numStoredEpochs,
+		NodesConfigCache:        &mock.NodesCoordinatorCacheMock{},
 	}
 
 	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
@@ -578,6 +583,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup400of400For10BlocksMe
 		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
 		ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 		NumStoredEpochs:         numStoredEpochs,
+		NodesConfigCache:        &mock.NodesCoordinatorCacheMock{},
 	}
 
 	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
@@ -650,6 +656,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup63of400TestEqualSameP
 		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
 		ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 		NumStoredEpochs:         numStoredEpochs,
+		NodesConfigCache:        &mock.NodesCoordinatorCacheMock{},
 	}
 
 	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
@@ -715,6 +722,7 @@ func BenchmarkIndexHashedGroupSelector_ComputeValidatorsGroup21of400(b *testing.
 		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
 		ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 		NumStoredEpochs:         numStoredEpochs,
+		NodesConfigCache:        &mock.NodesCoordinatorCacheMock{},
 	}
 	ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
 
@@ -789,6 +797,7 @@ func runBenchmark(consensusGroupCache Cacher, consensusGroupSize int, nodesMap m
 		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
 		ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 		NumStoredEpochs:         numStoredEpochs,
+		NodesConfigCache:        &mock.NodesCoordinatorCacheMock{},
 	}
 	ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
 
@@ -840,6 +849,7 @@ func computeMemoryRequirements(consensusGroupCache Cacher, consensusGroupSize in
 		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
 		ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 		NumStoredEpochs:         numStoredEpochs,
+		NodesConfigCache:        &mock.NodesCoordinatorCacheMock{},
 	}
 	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
 	require.Nil(b, err)
@@ -981,6 +991,7 @@ func TestIndexHashedNodesCoordinator_GetValidatorWithPublicKeyShouldWork(t *test
 		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
 		ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 		NumStoredEpochs:         numStoredEpochs,
+		NodesConfigCache:        &mock.NodesCoordinatorCacheMock{},
 	}
 	ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
 
@@ -1066,6 +1077,7 @@ func TestIndexHashedGroupSelector_GetAllEligibleValidatorsPublicKeys(t *testing.
 		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
 		ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 		NumStoredEpochs:         numStoredEpochs,
+		NodesConfigCache:        &mock.NodesCoordinatorCacheMock{},
 	}
 
 	ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
@@ -1146,6 +1158,7 @@ func TestIndexHashedGroupSelector_GetAllWaitingValidatorsPublicKeys(t *testing.T
 		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
 		ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 		NumStoredEpochs:         numStoredEpochs,
+		NodesConfigCache:        &mock.NodesCoordinatorCacheMock{},
 	}
 
 	ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
@@ -1508,6 +1521,7 @@ func TestIndexHashedNodesCoordinator_EpochStart_EligibleSortedAscendingByIndex(t
 		},
 		ValidatorInfoCacher: dataPool.NewCurrentEpochValidatorInfoPool(),
 		NumStoredEpochs:     numStoredEpochs,
+		NodesConfigCache:    &mock.NodesCoordinatorCacheMock{},
 	}
 
 	ihnc, err := NewIndexHashedNodesCoordinator(arguments)

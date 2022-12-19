@@ -33,4 +33,5 @@ type ArgNodesCoordinator struct {
 	EnableEpochsHandler     common.EnableEpochsHandler
 	ValidatorInfoCacher     epochStart.ValidatorInfoCacher
 	NumStoredEpochs         uint32
+	NodesConfigCache        Cacher
 }

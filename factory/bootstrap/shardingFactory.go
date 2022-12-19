@@ -171,6 +171,11 @@ func CreateNodesCoordinator(
 		return nil, err
 	}
 
+	nodesConfigCache, err := cache.NewLRUCache(25000)
+	if err != nil {
+		return nil, err
+	}
+
 	shuffledOutHandler, err := sharding.NewShuffledOutTrigger(pubKeyBytes, currentShardID, nodeShufflerOut.EndOfProcessingHandler)
 	if err != nil {
 		return nil, err
@@ -199,6 +204,7 @@ func CreateNodesCoordinator(
 		EnableEpochsHandler:     enableEpochsHandler,
 		ValidatorInfoCacher:     validatorInfoCacher,
 		NumStoredEpochs:         numStoredEpochs,
+		NodesConfigCache:        nodesConfigCache,
 	}
 
 	baseNodesCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)

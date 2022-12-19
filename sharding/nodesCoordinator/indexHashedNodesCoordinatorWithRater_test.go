@@ -98,6 +98,7 @@ func TestIndexHashedGroupSelectorWithRater_OkValShouldWork(t *testing.T) {
 		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
 		ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 		NumStoredEpochs:         numStoredEpochs,
+		NodesConfigCache:        &mock.NodesCoordinatorCacheMock{},
 	}
 	nc, err := NewIndexHashedNodesCoordinator(arguments)
 	assert.Nil(t, err)
@@ -195,6 +196,7 @@ func BenchmarkIndexHashedGroupSelectorWithRater_ComputeValidatorsGroup63of400(b 
 		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
 		ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 		NumStoredEpochs:         numStoredEpochs,
+		NodesConfigCache:        &mock.NodesCoordinatorCacheMock{},
 	}
 	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
 	require.Nil(b, err)
@@ -271,6 +273,7 @@ func Test_ComputeValidatorsGroup63of400(t *testing.T) {
 		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
 		ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 		NumStoredEpochs:         numStoredEpochs,
+		NodesConfigCache:        &mock.NodesCoordinatorCacheMock{},
 	}
 	ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
 	numRounds := uint64(1000000)
@@ -347,6 +350,7 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
 		ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 		NumStoredEpochs:         numStoredEpochs,
+		NodesConfigCache:        &mock.NodesCoordinatorCacheMock{},
 	}
 	nc, _ := NewIndexHashedNodesCoordinator(arguments)
 	ihnc, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
@@ -402,6 +406,7 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
 		ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 		NumStoredEpochs:         numStoredEpochs,
+		NodesConfigCache:        &mock.NodesCoordinatorCacheMock{},
 	}
 	nc, _ := NewIndexHashedNodesCoordinator(arguments)
 	ihnc, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
@@ -471,6 +476,7 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldWork(t
 		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
 		ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 		NumStoredEpochs:         numStoredEpochs,
+		NodesConfigCache:        &mock.NodesCoordinatorCacheMock{},
 	}
 	nc, _ := NewIndexHashedNodesCoordinator(arguments)
 	ihnc, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
@@ -557,6 +563,7 @@ func TestIndexHashedGroupSelectorWithRater_GetAllEligibleValidatorsPublicKeys(t 
 		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
 		ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 		NumStoredEpochs:         numStoredEpochs,
+		NodesConfigCache:        &mock.NodesCoordinatorCacheMock{},
 	}
 
 	nc, err := NewIndexHashedNodesCoordinator(arguments)
@@ -865,6 +872,7 @@ func BenchmarkIndexHashedWithRaterGroupSelector_ComputeValidatorsGroup21of400(b 
 		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
 		ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 		NumStoredEpochs:         numStoredEpochs,
+		NodesConfigCache:        &mock.NodesCoordinatorCacheMock{},
 	}
 	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
 	require.Nil(b, err)

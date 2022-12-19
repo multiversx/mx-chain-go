@@ -2,6 +2,7 @@ package nodesCoordinator
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"sort"
 	"sync"
@@ -95,6 +96,7 @@ type indexHashedNodesCoordinator struct {
 	enableEpochsHandler           common.EnableEpochsHandler
 	validatorInfoCacher           epochStart.ValidatorInfoCacher
 	numStoredEpochs               uint32
+	nodesConfigCacher             Cacher
 }
 
 // NewIndexHashedNodesCoordinator creates a new index hashed group selector
@@ -141,6 +143,7 @@ func NewIndexHashedNodesCoordinator(args ArgNodesCoordinator) (*indexHashedNodes
 		enableEpochsHandler:           args.EnableEpochsHandler,
 		validatorInfoCacher:           args.ValidatorInfoCacher,
 		numStoredEpochs:               args.NumStoredEpochs,
+		nodesConfigCacher:             args.NodesConfigCache,
 	}
 
 	ihnc.loadingFromDisk.Store(false)
@@ -230,6 +233,32 @@ func checkArguments(args ArgNodesCoordinator) error {
 	return nil
 }
 
+// getNodesConfig has to be used under mutex
+func (ihnc *indexHashedNodesCoordinator) getNodesConfig(epoch uint32) (*epochNodesConfig, bool) {
+	nodesConfig, ok := ihnc.nodesConfig[epoch]
+	if ok {
+		return nodesConfig, ok
+	}
+
+	value, ok := ihnc.nodesConfigCacher.Get([]byte(fmt.Sprint(epoch)))
+	if !ok {
+		return nil, ok
+	}
+
+	ncBytes, ok := value.([]byte)
+	if !ok {
+		return nil, ok
+	}
+
+	nc := &epochNodesConfig{}
+	err := json.Unmarshal(ncBytes, nc)
+	if err != nil {
+		return nil, false
+	}
+
+	return nodesConfig, ok
+}
+
 // setNodesPerShards loads the distribution of nodes per shard into the nodes management component
 func (ihnc *indexHashedNodesCoordinator) setNodesPerShards(
 	eligible map[uint32][]Validator,
@@ -240,7 +269,7 @@ func (ihnc *indexHashedNodesCoordinator) setNodesPerShards(
 	ihnc.mutNodesConfig.Lock()
 	defer ihnc.mutNodesConfig.Unlock()
 
-	nodesConfig, ok := ihnc.nodesConfig[epoch]
+	nodesConfig, ok := ihnc.getNodesConfig(epoch)
 	if !ok {
 		log.Debug("Did not find nodesConfig", "epoch", epoch)
 		nodesConfig = &epochNodesConfig{}
@@ -281,6 +310,12 @@ func (ihnc *indexHashedNodesCoordinator) setNodesPerShards(
 	}
 
 	ihnc.nodesConfig[epoch] = nodesConfig
+	ncBytes, err := json.Marshal(nodesConfig)
+	if err != nil {
+		return err
+	}
+	ihnc.nodesConfigCacher.Put([]byte(fmt.Sprint(epoch)), ncBytes, len(ncBytes))
+
 	ihnc.numTotalEligible = numTotalEligible
 	ihnc.setNodeType(isCurrentNodeValidator)
 
