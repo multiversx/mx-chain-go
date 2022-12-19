@@ -1106,11 +1106,6 @@ func TestAccountsDB_SnapshotStateSnapshotSameRootHash(t *testing.T) {
 	}
 	args := createMockAccountsDBArgs()
 	args.Trie = trieStub
-	args.AppStatusHandler = &statusHandler.AppStatusHandlerStub{
-		SetUInt64ValueHandler: func(key string, value uint64) {
-			assert.Equal(t, common.MetricAccountsSnapshotNumNodes, key)
-		},
-	}
 
 	adb, _ := state.NewAccountsDB(args)
 	waitForOpToFinish := time.Millisecond * 100

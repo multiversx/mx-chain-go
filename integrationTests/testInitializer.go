@@ -158,6 +158,9 @@ func CreateMessengerWithKadDht(initialAddr string) p2p.Messenger {
 		NodeOperationMode:     p2p.NormalOperation,
 		PeersRatingHandler:    &p2pmocks.PeersRatingHandlerStub{},
 		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
+		P2pPrivateKey:         mock.NewPrivateKeyMock(),
+		P2pSingleSigner:       &mock.SignerMock{},
+		P2pKeyGenerator:       &mock.KeyGenMock{},
 	}
 
 	libP2PMes, err := p2pFactory.NewNetworkMessenger(arg)
@@ -177,6 +180,9 @@ func CreateMessengerFromConfig(p2pConfig p2pConfig.P2PConfig) p2p.Messenger {
 		NodeOperationMode:     p2p.NormalOperation,
 		PeersRatingHandler:    &p2pmocks.PeersRatingHandlerStub{},
 		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
+		P2pPrivateKey:         mock.NewPrivateKeyMock(),
+		P2pSingleSigner:       &mock.SignerMock{},
+		P2pKeyGenerator:       &mock.KeyGenMock{},
 	}
 
 	if p2pConfig.Sharding.AdditionalConnections.MaxFullHistoryObservers > 0 {
@@ -201,6 +207,9 @@ func CreateMessengerFromConfigWithPeersRatingHandler(p2pConfig p2pConfig.P2PConf
 		NodeOperationMode:     p2p.NormalOperation,
 		PeersRatingHandler:    peersRatingHandler,
 		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
+		P2pPrivateKey:         mock.NewPrivateKeyMock(),
+		P2pSingleSigner:       &mock.SignerMock{},
+		P2pKeyGenerator:       &mock.KeyGenMock{},
 	}
 
 	if p2pConfig.Sharding.AdditionalConnections.MaxFullHistoryObservers > 0 {
@@ -2025,7 +2034,7 @@ func getMissingTxsForNode(n *TestProcessorNode, generatedTxHashes [][]byte) [][]
 }
 
 func requestMissingTransactions(n *TestProcessorNode, shardResolver uint32, neededTxs [][]byte) {
-	txResolver, _ := n.ResolverFinder.CrossShardResolver(procFactory.TransactionTopic, shardResolver)
+	txResolver, _ := n.RequestersFinder.CrossShardRequester(procFactory.TransactionTopic, shardResolver)
 
 	for i := 0; i < len(neededTxs); i++ {
 		_ = txResolver.RequestDataFromHash(neededTxs[i], 0)
