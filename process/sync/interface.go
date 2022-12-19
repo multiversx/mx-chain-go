@@ -29,3 +29,9 @@ type syncStarter interface {
 type forkDetector interface {
 	computeFinalCheckpoint()
 }
+
+// getKeyHandler defines the behaviour of a component that can provide a trie node key and identifier
+type getKeyHandler interface {
+	GetKey() []byte
+	GetIdentifier() string
+}
