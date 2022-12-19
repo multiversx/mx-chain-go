@@ -349,6 +349,7 @@ func TestGuardedAccount_instantSetGuardian(t *testing.T) {
 		ActivationEpoch: 20,
 	}
 	txGuardianAddress := []byte("guardian address")
+	guardianServiceUID := []byte("testID")
 
 	t.Run("getActiveGuardianErr with err (no active guardian) should error", func(t *testing.T) {
 		configuredGuardians := &guardians.Guardians{Slice: []*guardians.Guardian{}}
@@ -360,7 +361,7 @@ func TestGuardedAccount_instantSetGuardian(t *testing.T) {
 			},
 		}
 
-		err := ga.instantSetGuardian(ua, newGuardian.Address, txGuardianAddress)
+		err := ga.instantSetGuardian(ua, newGuardian.Address, txGuardianAddress, guardianServiceUID)
 		require.Equal(t, process.ErrAccountHasNoActiveGuardian, err)
 	})
 	t.Run("tx signed by different than active guardian should err", func(t *testing.T) {
@@ -378,17 +379,19 @@ func TestGuardedAccount_instantSetGuardian(t *testing.T) {
 			},
 		}
 
-		err := ga.instantSetGuardian(ua, newGuardian.Address, txGuardianAddress)
+		err := ga.instantSetGuardian(ua, newGuardian.Address, txGuardianAddress, guardianServiceUID)
 		require.Equal(t, process.ErrTransactionAndAccountGuardianMismatch, err)
 	})
 	t.Run("immediately set the guardian if setGuardian tx is signed by active guardian", func(t *testing.T) {
 		activeGuardian := &guardians.Guardian{
 			Address:         txGuardianAddress,
 			ActivationEpoch: 1,
+			ServiceUID:      guardianServiceUID,
 		}
 		newGuardian := &guardians.Guardian{
 			Address:         []byte("new guardian address"),
 			ActivationEpoch: currentEpoch,
+			ServiceUID:      []byte("testServiceID2"),
 		}
 
 		configuredGuardians := &guardians.Guardians{Slice: []*guardians.Guardian{activeGuardian}}
@@ -409,7 +412,7 @@ func TestGuardedAccount_instantSetGuardian(t *testing.T) {
 				}
 			}}
 
-		err := ga.instantSetGuardian(ua, newGuardian.Address, txGuardianAddress)
+		err := ga.instantSetGuardian(ua, newGuardian.Address, txGuardianAddress, newGuardian.ServiceUID)
 		require.Nil(t, err)
 	})
 }
@@ -597,18 +600,22 @@ func TestGuardedAccount_getPendingGuardian(t *testing.T) {
 func TestGuardedAccount_SetGuardian(t *testing.T) {
 	currentEpoch := uint32(10)
 	ga := createGuardedAccountWithEpoch(currentEpoch)
+	guardianServiceUID := []byte("testID")
+	initialServiceUID := []byte("test2ID")
 	g1 := &guardians.Guardian{
 		Address:         []byte("guardian address 1"),
 		ActivationEpoch: currentEpoch - 2,
+		ServiceUID:      initialServiceUID,
 	}
 	g2 := &guardians.Guardian{
 		Address:         []byte("guardian address 2"),
 		ActivationEpoch: currentEpoch - 1,
+		ServiceUID:      initialServiceUID,
 	}
 	newGuardianAddress := []byte("new guardian address")
 
 	t.Run("invalid user account handler should err", func(t *testing.T) {
-		err := ga.SetGuardian(nil, newGuardianAddress, g1.Address)
+		err := ga.SetGuardian(nil, newGuardianAddress, g1.Address, guardianServiceUID)
 		require.Equal(t, process.ErrWrongTypeAssertion, err)
 	})
 	t.Run("transaction signed by current active guardian but instantSetGuardian returns error", func(t *testing.T) {
@@ -619,7 +626,7 @@ func TestGuardedAccount_SetGuardian(t *testing.T) {
 				return val, 0, err
 			},
 		}
-		err := ga.SetGuardian(uah, newGuardianAddress, g2.Address)
+		err := ga.SetGuardian(uah, newGuardianAddress, g2.Address, guardianServiceUID)
 		require.Equal(t, process.ErrTransactionAndAccountGuardianMismatch, err)
 	})
 	t.Run("instantly set guardian if tx signed by current active guardian", func(t *testing.T) {
@@ -627,6 +634,7 @@ func TestGuardedAccount_SetGuardian(t *testing.T) {
 		newGuardian := &guardians.Guardian{
 			Address:         newGuardianAddress,
 			ActivationEpoch: currentEpoch,
+			ServiceUID:      guardianServiceUID,
 		}
 		expectedNewGuardians, _ := ga.marshaller.Marshal(&guardians.Guardians{Slice: []*guardians.Guardian{newGuardian}})
 
@@ -645,14 +653,36 @@ func TestGuardedAccount_SetGuardian(t *testing.T) {
 				}
 			},
 		}
-		err := ga.SetGuardian(uah, newGuardianAddress, g1.Address)
+		err := ga.SetGuardian(uah, newGuardianAddress, g1.Address, guardianServiceUID)
 		require.Nil(t, err)
+	})
+	t.Run("nil guardian serviceUID should err", func(t *testing.T) {
+		configuredGuardians := &guardians.Guardians{Slice: []*guardians.Guardian{g1}}
+		saveKeyValueCalled := false
+		uah := &stateMocks.UserAccountStub{
+			RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
+				val, err := ga.marshaller.Marshal(configuredGuardians)
+				return val, 0, err
+			},
+			AccountDataHandlerCalled: func() vmcommon.AccountDataHandler {
+				return &trie.DataTrieTrackerStub{
+					SaveKeyValueCalled: func(_ []byte, _ []byte) error {
+						saveKeyValueCalled = true
+						return nil
+					},
+				}
+			},
+		}
+		err := ga.SetGuardian(uah, newGuardianAddress, g1.Address, nil)
+		require.False(t, saveKeyValueCalled)
+		require.Equal(t, process.ErrNilGuardianServiceUID, err)
 	})
 	t.Run("tx not signed by active guardian sets guardian with delay", func(t *testing.T) {
 		configuredGuardians := &guardians.Guardians{Slice: []*guardians.Guardian{g1}}
 		newGuardian := &guardians.Guardian{
 			Address:         newGuardianAddress,
 			ActivationEpoch: currentEpoch + ga.guardianActivationEpochsDelay,
+			ServiceUID:      guardianServiceUID,
 		}
 		expectedNewGuardians, _ := ga.marshaller.Marshal(&guardians.Guardians{Slice: []*guardians.Guardian{g1, newGuardian}})
 
@@ -671,7 +701,7 @@ func TestGuardedAccount_SetGuardian(t *testing.T) {
 				}
 			},
 		}
-		err := ga.SetGuardian(uah, newGuardianAddress, nil)
+		err := ga.SetGuardian(uah, newGuardianAddress, nil, guardianServiceUID)
 		require.Nil(t, err)
 	})
 }

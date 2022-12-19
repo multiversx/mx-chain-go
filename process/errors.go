@@ -1185,5 +1185,8 @@ var ErrInvalidSetGuardianEpochsDelay = errors.New("incorrect setting for set gua
 // ErrCannotReplaceGuardedAccountPendingGuardian signals that a pending guardian on a guarded account cannot be replaced
 var ErrCannotReplaceGuardedAccountPendingGuardian = errors.New("cannot replace pending guardian on guarded account")
 
+// ErrNilGuardianServiceUID signals that a nil guardian service identifier was provided
+var ErrNilGuardianServiceUID = errors.New("nil guardian service unique identifier")
+
 // ErrGasPriceTooHigh signals a too high gas price
 var ErrGasPriceTooHigh = errors.New("gas price is too high for the transaction")
