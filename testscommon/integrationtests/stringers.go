@@ -96,7 +96,7 @@ func putAddressInBuilder(builder *strings.Builder, name string, indent string, p
 			var err error
 			address, err = pubKeyConverter.Encode(slice)
 			if err != nil {
-				log.Warn("bech32PubkeyConverter.Encode() error", "err", err)
+				log.Warn("bech32PubkeyConverter.Encode() while encoding slice error", "err", hex.EncodeToString([]byte(err.Error())))
 			}
 		}
 	}

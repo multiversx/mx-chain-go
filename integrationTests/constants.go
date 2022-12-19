@@ -8,4 +8,4 @@ const ShardTopic = "shard"
 const GlobalTopic = "global"
 
 // AddressPrefix is a global testing const
-const addressPrefix = "erd"
+const AddressHrp = "erd"

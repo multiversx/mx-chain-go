@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	consensusComp "github.com/ElrondNetwork/elrond-go/factory/consensus"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
@@ -17,6 +18,8 @@ import (
 	consensusMocks "github.com/ElrondNetwork/elrond-go/testscommon/consensus"
 	"github.com/stretchr/testify/assert"
 )
+
+var log = logger.GetOrCreate("integrationtests")
 
 const (
 	consensusTimeBetweenRounds = time.Second
@@ -61,10 +64,7 @@ func initNodesAndTest(
 	)
 
 	for shardID, nodesList := range nodes {
-		err := displayAndStartNodes(shardID, nodesList)
-		if err != nil {
-			return nil, err
-		}
+		displayAndStartNodes(shardID, nodesList)
 	}
 
 	time.Sleep(p2pBootstrapDelay)
@@ -312,15 +312,12 @@ func TestConsensusBLSNotEnoughValidators(t *testing.T) {
 	runConsensusWithNotEnoughValidators(t, blsConsensusType)
 }
 
-func displayAndStartNodes(shardID uint32, nodes []*integrationTests.TestConsensusNode) error {
+func displayAndStartNodes(shardID uint32, nodes []*integrationTests.TestConsensusNode) {
 	for _, n := range nodes {
 		skBuff, _ := n.NodeKeys.Sk.ToByteArray()
 		pkBuff, _ := n.NodeKeys.Pk.ToByteArray()
 
-		encodedNodePkBuff, err := testPubkeyConverter.Encode(pkBuff)
-		if err != nil {
-			return err
-		}
+		encodedNodePkBuff := testPubkeyConverter.SilentEncode(pkBuff, log)
 
 		fmt.Printf("Shard ID: %v, sk: %s, pk: %s\n",
 			shardID,
@@ -328,5 +325,4 @@ func displayAndStartNodes(shardID uint32, nodes []*integrationTests.TestConsensu
 			encodedNodePkBuff,
 		)
 	}
-	return nil
 }

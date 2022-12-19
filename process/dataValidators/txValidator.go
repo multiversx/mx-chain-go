@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors/processor"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -12,6 +13,8 @@ import (
 )
 
 var _ process.TxValidator = (*txValidator)(nil)
+
+var log = logger.GetOrCreate("process/dataValidators")
 
 // txValidator represents a tx handler validator that doesn't check the validity of provided txHandler
 type txValidator struct {
@@ -72,10 +75,7 @@ func (txv *txValidator) CheckTxValidity(interceptedTx process.TxValidatorHandler
 
 	senderAddress := interceptedTx.SenderAddress()
 
-	encodedSenderAddr, err := txv.pubkeyConverter.Encode(senderAddress)
-	if err != nil {
-		return err
-	}
+	encodedSenderAddr := txv.pubkeyConverter.SilentEncode(senderAddress, log)
 
 	accountHandler, err := txv.accounts.GetExistingAccount(senderAddress)
 	if err != nil {

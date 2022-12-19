@@ -1103,10 +1103,7 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(
 		log.Info("indexGenesisBlocks(): indexer.SaveBlock", "hash", genesisBlockHash)
 
 		// manually add the genesis minting address as it is not exist in the trie
-		genesisAddress, err := pcf.accountsParser.GenesisMintingAddress()
-		if err != nil {
-			return nil
-		}
+		genesisAddress := pcf.accountsParser.GenesisMintingAddress()
 
 		alteredAccounts[genesisAddress] = &outport.AlteredAccount{
 			Address: genesisAddress,

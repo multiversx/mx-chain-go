@@ -32,7 +32,7 @@ func TestNewPubkeyConverter_Bech32ShouldWork(t *testing.T) {
 		config.PubkeyConfig{
 			Length: 32,
 			Type:   "bech32",
-			Prefix: "erd",
+			Hrp:    "erd",
 		},
 	)
 

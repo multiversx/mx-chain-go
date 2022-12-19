@@ -41,7 +41,7 @@ const minedWalletPrefixKeys = "mined-wallet"
 const nopattern = "nopattern"
 const desiredpattern = "[0-f]+"
 const noshard = -1
-const pubkeyPrefix = "erd"
+const pubkeyHrp = "erd"
 
 type key struct {
 	skBytes []byte
@@ -133,7 +133,7 @@ VERSION:
 
 	validatorPubKeyConverter, _ = pubkeyConverter.NewHexPubkeyConverter(blsPubkeyLen)
 	directPubKeyConverter       = converter.NewDirectStringPubkeyConverter()
-	walletPubKeyConverter, _    = pubkeyConverter.NewBech32PubkeyConverter(txSignPubkeyLen, pubkeyPrefix)
+	walletPubKeyConverter, _    = pubkeyConverter.NewBech32PubkeyConverter(txSignPubkeyLen, pubkeyHrp)
 )
 
 func main() {

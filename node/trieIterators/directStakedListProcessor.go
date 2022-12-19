@@ -6,11 +6,14 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/trie/keyBuilder"
 	"github.com/ElrondNetwork/elrond-go/vm"
 )
+
+var log = logger.GetOrCreate("trieIterators")
 
 type directStakedListProcessor struct {
 	*commonStakingProcessor
@@ -80,10 +83,8 @@ func (dslp *directStakedListProcessor) getAllStakedAccounts(validatorAccount sta
 
 		baseStaked := big.NewInt(0).Set(info.totalStakedValue)
 		baseStaked.Sub(baseStaked, info.topUpValue)
-		encodedLeafKey, err := dslp.publicKeyConverter.Encode(leafKey)
-		if err != nil {
-			return nil, err
-		}
+		encodedLeafKey := dslp.publicKeyConverter.SilentEncode(leafKey, log)
+
 		val := &api.DirectStakedValue{
 			Address:    encodedLeafKey,
 			BaseStaked: baseStaked.String(),

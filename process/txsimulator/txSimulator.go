@@ -193,14 +193,8 @@ func (ts *transactionSimulator) addIntermediateTxsToResult(result *txSimData.Sim
 }
 
 func (ts *transactionSimulator) adaptSmartContractResult(scr *smartContractResult.SmartContractResult) (*transaction.ApiSmartContractResult, error) {
-	rcvAddress, err := ts.addressPubKeyConverter.Encode(scr.RcvAddr)
-	if err != nil {
-		return nil, err
-	}
-	sndAddress, err := ts.addressPubKeyConverter.Encode(scr.SndAddr)
-	if err != nil {
-		return nil, err
-	}
+	rcvAddress := ts.addressPubKeyConverter.SilentEncode(scr.RcvAddr, log)
+	sndAddress := ts.addressPubKeyConverter.SilentEncode(scr.SndAddr, log)
 
 	resScr := &transaction.ApiSmartContractResult{
 		Nonce:          scr.Nonce,

@@ -220,7 +220,7 @@ func (aap *alteredAccountsProvider) convertMetaData(metaData *esdt.MetaData) (*o
 
 	metaDataCreatorAddr, err := aap.addressConverter.Encode(metaData.Creator)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w while encoding metadata creator", err)
 	}
 
 	return &outportcore.TokenMetaData{

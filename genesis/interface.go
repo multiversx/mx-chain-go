@@ -31,7 +31,7 @@ type DelegationResult struct {
 type AccountsParser interface {
 	InitialAccountsSplitOnAddressesShards(shardCoordinator sharding.Coordinator) (map[uint32][]InitialAccountHandler, error)
 	InitialAccounts() []InitialAccountHandler
-	GenesisMintingAddress() (string, error)
+	GenesisMintingAddress() string
 	GetTotalStakedForDelegationAddress(delegationAddress string) *big.Int
 	GetInitialAccountsForDelegated(addressBytes []byte) []InitialAccountHandler
 	GenerateInitialTransactions(shardCoordinator sharding.Coordinator, initialIndexingData map[uint32]*IndexingData) ([]*block.MiniBlock, map[uint32]*outport.Pool, error)

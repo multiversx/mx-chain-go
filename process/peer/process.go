@@ -365,10 +365,7 @@ func (vs *validatorStatistics) UpdatePeerState(header data.MetaHeaderHandler, ca
 		return nil, err
 	}
 
-	encodedLeaderPk, err := vs.pubkeyConv.Encode(consensusGroup[0].PubKey())
-	if err != nil {
-		return nil, err
-	}
+	encodedLeaderPk := vs.pubkeyConv.SilentEncode(consensusGroup[0].PubKey(), log)
 
 	leaderPK := core.GetTrimmedPk(encodedLeaderPk)
 	log.Trace("Increasing for leader", "leader", leaderPK, "round", previousHeader.GetRound())
@@ -778,10 +775,7 @@ func (vs *validatorStatistics) computeDecrease(
 		swInner.Start("loadPeerAccount")
 		leaderPeerAcc, err := vs.loadPeerAccount(consensusGroup[0].PubKey())
 
-		encodedLeaderPk, err := vs.pubkeyConv.Encode(consensusGroup[0].PubKey())
-		if err != nil {
-			return err
-		}
+		encodedLeaderPk := vs.pubkeyConv.SilentEncode(consensusGroup[0].PubKey(), log)
 		leaderPK := core.GetTrimmedPk(encodedLeaderPk)
 		swInner.Stop("loadPeerAccount")
 		if err != nil {

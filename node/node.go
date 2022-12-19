@@ -361,10 +361,7 @@ func (n *Node) GetESDTData(address, tokenID string, nonce uint64, options api.Ac
 	}
 
 	if esdtToken.TokenMetaData != nil {
-		esdtTokenCreatorAddr, err := n.coreComponents.AddressPubKeyConverter().Encode(esdtToken.TokenMetaData.Creator)
-		if err != nil {
-			return nil, api.BlockInfo{}, err
-		}
+		esdtTokenCreatorAddr := n.coreComponents.AddressPubKeyConverter().SilentEncode(esdtToken.TokenMetaData.Creator, log)
 
 		esdtToken.TokenMetaData.Creator = []byte(esdtTokenCreatorAddr)
 	}
@@ -1129,16 +1126,16 @@ func (n *Node) createPidInfo(p core.PeerID) (core.QueryP2PPeerInfo, error) {
 		IsBlacklisted: n.peerDenialEvaluator.IsDenied(p),
 	}
 
-	var err error
 	peerInfo := n.processComponents.PeerShardMapper().GetPeerInfo(p)
 	result.PeerType = peerInfo.PeerType.String()
 	result.PeerSubType = peerInfo.PeerSubType.String()
 	if len(peerInfo.PkBytes) == 0 {
 		result.Pk = ""
 	} else {
+		var err error
 		result.Pk, err = n.coreComponents.ValidatorPubKeyConverter().Encode(peerInfo.PkBytes)
 		if err != nil {
-			return core.QueryP2PPeerInfo{}, err
+			return core.QueryP2PPeerInfo{}, fmt.Errorf("%w while encoding public key for creating peer id info %s", err, hex.EncodeToString(peerInfo.PkBytes))
 		}
 	}
 

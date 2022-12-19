@@ -21,7 +21,7 @@ func NewPubkeyConverter(config config.PubkeyConfig) (core.PubkeyConverter, error
 	case HexFormat:
 		return pubkeyConverter.NewHexPubkeyConverter(config.Length)
 	case Bech32Format:
-		return pubkeyConverter.NewBech32PubkeyConverter(config.Length, config.Prefix)
+		return pubkeyConverter.NewBech32PubkeyConverter(config.Length, config.Hrp)
 	default:
 		return nil, fmt.Errorf("%w unrecognized type %s", state.ErrInvalidPubkeyConverterType, config.Type)
 	}
