@@ -131,7 +131,7 @@ VERSION:
 	log = logger.GetOrCreate("keygenerator")
 
 	validatorPubKeyConverter, _ = pubkeyConverter.NewHexPubkeyConverter(blsPubkeyLen)
-	directPubKeyConverter       = converter.NewDirectStringPubkeyConverter()
+	pidPubKeyConverter          = converter.NewPidPubkeyConverter()
 	walletPubKeyConverter, _    = pubkeyConverter.NewBech32PubkeyConverter(txSignPubkeyLen, log)
 )
 
@@ -334,7 +334,7 @@ func printKeys(validatorKeys, walletKeys, p2pKeys []key) error {
 		}
 	}
 	if len(p2pKeys) > 0 {
-		err := printSliceKeys("P2p keys:", p2pKeys, directPubKeyConverter)
+		err := printSliceKeys("P2p keys:", p2pKeys, pidPubKeyConverter)
 		if err != nil {
 			errFound = err
 		}
@@ -394,7 +394,7 @@ func saveKeys(validatorKeys, walletKeys, p2pKeys []key, noSplit bool) error {
 		}
 	}
 	if len(p2pKeys) > 0 {
-		err := saveSliceKeys(p2pKeyFilenameTemplate, p2pKeys, directPubKeyConverter, noSplit)
+		err := saveSliceKeys(p2pKeyFilenameTemplate, p2pKeys, pidPubKeyConverter, noSplit)
 		if err != nil {
 			errFound = err
 		}
@@ -407,6 +407,8 @@ func saveSliceKeys(baseFilenameTemplate string, keys []key, converter pubKeyConv
 	var file *os.File
 	var err error
 	for i, k := range keys {
+		log.Warn(hex.EncodeToString(k.pkBytes))
+
 		shouldCreateFile := !noSplit || i == 0
 		if shouldCreateFile {
 			file, err = generateFile(i, len(keys), noSplit, baseFilenameTemplate)
