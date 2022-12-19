@@ -113,15 +113,7 @@ func (tr *patriciaMerkleTrie) Update(key, value []byte) error {
 		"val", hex.EncodeToString(value),
 	)
 
-	return tr.update(key, value, tr.getNewestVersion())
-}
-
-func (tr *patriciaMerkleTrie) getNewestVersion() common.TrieNodeVersion {
-	if tr.enableEpochsHandler.IsAutoBalanceDataTriesEnabled() {
-		return common.AutoBalanceEnabled
-	}
-
-	return common.NotSpecified
+	return tr.update(key, value, common.NotSpecified)
 }
 
 // UpdateWithVersion does the same thing as Update, but the new leaf that is created will be of the specified version
