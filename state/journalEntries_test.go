@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
@@ -175,8 +176,12 @@ func TestJournalEntryAccountCreation_RevertUpdatesTheTrie(t *testing.T) {
 func TestNewJournalEntryDataTrieUpdates_NilAccountShouldErr(t *testing.T) {
 	t.Parallel()
 
-	trieUpdates := make(map[string][]byte)
-	trieUpdates["a"] = []byte("b")
+	trieUpdates := make([]common.TrieData, 0)
+	trieUpdates = append(trieUpdates, common.TrieData{
+		Key:     []byte("a"),
+		Value:   []byte("b"),
+		Version: 0,
+	})
 	entry, err := state.NewJournalEntryDataTrieUpdates(trieUpdates, nil)
 
 	assert.True(t, check.IfNil(entry))
@@ -186,7 +191,7 @@ func TestNewJournalEntryDataTrieUpdates_NilAccountShouldErr(t *testing.T) {
 func TestNewJournalEntryDataTrieUpdates_EmptyTrieUpdatesShouldErr(t *testing.T) {
 	t.Parallel()
 
-	trieUpdates := make(map[string][]byte)
+	trieUpdates := make([]common.TrieData, 0)
 	args := state.ArgsAccountCreation{
 		Hasher:              &hashingMocks.HasherMock{},
 		Marshaller:          &marshallerMock.MarshalizerMock{},
@@ -202,8 +207,12 @@ func TestNewJournalEntryDataTrieUpdates_EmptyTrieUpdatesShouldErr(t *testing.T) 
 func TestNewJournalEntryDataTrieUpdates_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	trieUpdates := make(map[string][]byte)
-	trieUpdates["a"] = []byte("b")
+	trieUpdates := make([]common.TrieData, 0)
+	trieUpdates = append(trieUpdates, common.TrieData{
+		Key:     []byte("a"),
+		Value:   []byte("b"),
+		Version: 0,
+	})
 	args := state.ArgsAccountCreation{
 		Hasher:              &hashingMocks.HasherMock{},
 		Marshaller:          &marshallerMock.MarshalizerMock{},
@@ -221,8 +230,12 @@ func TestJournalEntryDataTrieUpdates_RevertFailsWhenUpdateFails(t *testing.T) {
 
 	expectedErr := errors.New("error")
 
-	trieUpdates := make(map[string][]byte)
-	trieUpdates["a"] = []byte("b")
+	trieUpdates := make([]common.TrieData, 0)
+	trieUpdates = append(trieUpdates, common.TrieData{
+		Key:     []byte("a"),
+		Value:   []byte("b"),
+		Version: 0,
+	})
 	accnt := stateMock.NewAccountWrapMock(nil)
 
 	tr := &trieMock.TrieStub{
@@ -244,8 +257,12 @@ func TestJournalEntryDataTrieUpdates_RevertFailsWhenAccountRootFails(t *testing.
 
 	expectedErr := errors.New("error")
 
-	trieUpdates := make(map[string][]byte)
-	trieUpdates["a"] = []byte("b")
+	trieUpdates := make([]common.TrieData, 0)
+	trieUpdates = append(trieUpdates, common.TrieData{
+		Key:     []byte("a"),
+		Value:   []byte("b"),
+		Version: 0,
+	})
 	accnt := stateMock.NewAccountWrapMock(nil)
 
 	tr := &trieMock.TrieStub{
@@ -271,8 +288,12 @@ func TestJournalEntryDataTrieUpdates_RevertShouldWork(t *testing.T) {
 	updateWasCalled := false
 	rootWasCalled := false
 
-	trieUpdates := make(map[string][]byte)
-	trieUpdates["a"] = []byte("b")
+	trieUpdates := make([]common.TrieData, 0)
+	trieUpdates = append(trieUpdates, common.TrieData{
+		Key:     []byte("a"),
+		Value:   []byte("b"),
+		Version: 0,
+	})
 	accnt := stateMock.NewAccountWrapMock(nil)
 
 	tr := &trieMock.TrieStub{

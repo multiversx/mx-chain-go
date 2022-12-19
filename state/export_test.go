@@ -84,6 +84,6 @@ func (tdaw *trackableDataTrie) DirtyData() map[string][]byte {
 }
 
 // SaveDirtyData -
-func (a *userAccount) SaveDirtyData(trie common.Trie) (map[string][]byte, error) {
+func (a *userAccount) SaveDirtyData(trie common.Trie) ([]common.TrieData, error) {
 	return a.dataTrieTracker.SaveDirtyData(trie)
 }

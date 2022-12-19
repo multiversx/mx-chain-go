@@ -53,7 +53,7 @@ func (ba *baseAccount) SaveKeyValue(key []byte, value []byte) error {
 }
 
 // SaveDirtyData triggers SaveDirtyData form the underlying trackableDataTrie
-func (ba *baseAccount) SaveDirtyData(trie common.Trie) (map[string][]byte, error) {
+func (ba *baseAccount) SaveDirtyData(trie common.Trie) ([]common.TrieData, error) {
 	if check.IfNil(ba.dataTrieTracker) {
 		return nil, ErrNilTrackableDataTrie
 	}
