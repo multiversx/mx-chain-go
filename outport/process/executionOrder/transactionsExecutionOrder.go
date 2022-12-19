@@ -129,7 +129,7 @@ func (s *sorter) sortTransactions(transactions []data.TransactionHandlerWithGasU
 
 func (s *sorter) extractTransactionsGroupedFromMe(
 	pool *outport.Pool, blockBody *block.Body, header data.HeaderHandler, scheduledMbsFromPreviousBlock []*block.MiniBlock,
-) (resultsTransactionsFromMe, error) {
+) (*resultsTransactionsFromMe, error) {
 	transactionsFromMe := make([]data.TransactionHandlerWithGasUsedAndFee, 0)
 	scheduledTransactionsFromMe := make([]data.TransactionHandlerWithGasUsedAndFee, 0)
 
@@ -156,7 +156,7 @@ func (s *sorter) extractTransactionsGroupedFromMe(
 		}
 
 		if err != nil {
-			return resultsTransactionsFromMe{}, err
+			return nil, err
 		}
 
 		if isScheduledMBNotProcessed(header, mbIndex) {
@@ -166,7 +166,7 @@ func (s *sorter) extractTransactionsGroupedFromMe(
 		}
 	}
 
-	return resultsTransactionsFromMe{
+	return &resultsTransactionsFromMe{
 		transactionsFromMe:                         transactionsFromMe,
 		scheduledTransactionsFromMe:                scheduledTransactionsFromMe,
 		scheduledExecutedInvalidTxsHashesPrevBlock: scheduledExecutedInvalidTxsHashesPrevBlock,
