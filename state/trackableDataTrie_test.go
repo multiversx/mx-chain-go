@@ -558,8 +558,7 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 			GetCalled: func(key []byte) ([]byte, uint32, error) {
 				return nil, 0, nil
 			},
-			UpdateCalled: func(key, value []byte) error {
-				assert.Nil(t, value)
+			DeleteCalled: func(key []byte) error {
 				assert.Equal(t, hasher.Compute(string(expectedKey)), key)
 				updateCalled = true
 				return nil
