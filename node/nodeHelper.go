@@ -113,7 +113,8 @@ func CreateNode(
 	err = nodeDebugFactory.CreateInterceptedDebugHandler(
 		nd,
 		processComponents.InterceptorsContainer(),
-		processComponents.ResolversFinder(),
+		processComponents.ResolversContainer(),
+		processComponents.RequestersFinder(),
 		config.Debug.InterceptorResolver,
 	)
 	if err != nil {

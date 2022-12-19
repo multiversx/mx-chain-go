@@ -211,7 +211,7 @@ type Config struct {
 	Versions              VersionsConfig
 	Logs                  LogsConfig
 	TrieSync              TrieSyncConfig
-	Resolvers             ResolverConfig
+	Requesters            RequesterConfig
 	VMOutputCacher        CacheConfig
 
 	PeersRatingConfig   PeersRatingConfig
@@ -601,8 +601,8 @@ type TrieSyncConfig struct {
 	CheckNodesOnDisk          bool
 }
 
-// ResolverConfig represents the config options to be used when setting up the resolver instances
-type ResolverConfig struct {
+// RequesterConfig represents the config options to be used when setting up the requester instances
+type RequesterConfig struct {
 	NumCrossShardPeers  uint32
 	NumTotalPeers       uint32
 	NumFullHistoryPeers uint32
