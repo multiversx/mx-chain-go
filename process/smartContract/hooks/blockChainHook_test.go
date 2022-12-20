@@ -2180,6 +2180,25 @@ func TestBlockChainHookImpl_ResetCounters(t *testing.T) {
 	assert.True(t, resetCalled)
 }
 
+func TestBlockChainHookImpl_GetCounterValues(t *testing.T) {
+	t.Parallel()
+
+	countersMap := map[string]uint64{
+		"value": 37,
+	}
+	args := createMockBlockChainHookArgs()
+	args.Counter = &testscommon.BlockChainHookCounterStub{
+		GetCounterValuesCalled: func() map[string]uint64 {
+			return countersMap
+		},
+	}
+
+	bh, _ := hooks.NewBlockChainHookImpl(args)
+	m := bh.GetCounterValues()
+
+	assert.Equal(t, fmt.Sprintf("%p", m), fmt.Sprintf("%p", countersMap)) // pointer testing
+}
+
 func TestBlockChainHookImpl_GasScheduleChange(t *testing.T) {
 	t.Parallel()
 

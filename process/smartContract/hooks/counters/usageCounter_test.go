@@ -53,9 +53,24 @@ func TestUsageCounter_ProcessCrtNumberOfTrieReadsCounter(t *testing.T) {
 		assert.Equal(t, "max calls reached: too many reads from trie", err.Error())
 	})
 
+	countersMap := counter.GetCounterValues()
+	expectedMap := map[string]uint64{
+		crtBuiltinCalls: 0,
+		crtTransfers:    0,
+		crtTrieReads:    5,
+	}
+	assert.Equal(t, expectedMap, countersMap)
+
 	counter.ResetCounters()
 
 	assert.Nil(t, counter.ProcessCrtNumberOfTrieReadsCounter()) // counter is now 1
+	countersMap = counter.GetCounterValues()
+	expectedMap = map[string]uint64{
+		crtBuiltinCalls: 0,
+		crtTransfers:    0,
+		crtTrieReads:    1,
+	}
+	assert.Equal(t, expectedMap, countersMap)
 }
 
 func TestUsageCounter_ProcessMaxBuiltInCounters(t *testing.T) {
@@ -79,9 +94,24 @@ func TestUsageCounter_ProcessMaxBuiltInCounters(t *testing.T) {
 			assert.Equal(t, "max calls reached: too many built-in functions calls", err.Error())
 		})
 
+		countersMap := counter.GetCounterValues()
+		expectedMap := map[string]uint64{
+			crtBuiltinCalls: 5,
+			crtTransfers:    0,
+			crtTrieReads:    0,
+		}
+		assert.Equal(t, expectedMap, countersMap)
+
 		counter.ResetCounters()
 
 		assert.Nil(t, counter.ProcessMaxBuiltInCounters(vmInput)) // counter is now 1
+		countersMap = counter.GetCounterValues()
+		expectedMap = map[string]uint64{
+			crtBuiltinCalls: 1,
+			crtTransfers:    0,
+			crtTrieReads:    0,
+		}
+		assert.Equal(t, expectedMap, countersMap)
 	})
 	t.Run("number of transfers exceeded", func(t *testing.T) {
 		t.Parallel()
@@ -109,8 +139,23 @@ func TestUsageCounter_ProcessMaxBuiltInCounters(t *testing.T) {
 			assert.Equal(t, "max calls reached: too many ESDT transfers", err.Error())
 		})
 
+		countersMap := counter.GetCounterValues()
+		expectedMap := map[string]uint64{
+			crtBuiltinCalls: 5,
+			crtTransfers:    10,
+			crtTrieReads:    0,
+		}
+		assert.Equal(t, expectedMap, countersMap)
+
 		counter.ResetCounters()
 
 		assert.Nil(t, counter.ProcessMaxBuiltInCounters(vmInput)) // counter is now 2
+		countersMap = counter.GetCounterValues()
+		expectedMap = map[string]uint64{
+			crtBuiltinCalls: 1,
+			crtTransfers:    2,
+			crtTrieReads:    0,
+		}
+		assert.Equal(t, expectedMap, countersMap)
 	})
 }

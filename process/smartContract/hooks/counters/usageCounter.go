@@ -16,6 +16,9 @@ const (
 	maxBuiltinCalls = "MaxBuiltInCallsPerTx"
 	maxTransfers    = "MaxNumberOfTransfersPerTx"
 	maxTrieReads    = "MaxNumberOfTrieReadsPerTx"
+	crtBuiltinCalls = "CrtBuiltInCallsPerTx"
+	crtTransfers    = "CrtNumberOfTransfersPerTx"
+	crtTrieReads    = "CrtNumberOfTrieReadsPerTx"
 )
 
 type usageCounter struct {
@@ -85,12 +88,6 @@ func (counter *usageCounter) ResetCounters() {
 	counter.mutCounters.Lock()
 	defer counter.mutCounters.Unlock()
 
-	log.Trace("BlockChainHookImpl.ResetCounters",
-		"crtNumberOfBuiltInFunctionCalls", counter.crtNumberOfBuiltInFunctionCalls,
-		"crtNumberOfTransfers", counter.crtNumberOfTransfers,
-		"crtNumberOfTrieReads", counter.crtNumberOfTrieReads,
-	)
-
 	counter.crtNumberOfBuiltInFunctionCalls = 0
 	counter.crtNumberOfTransfers = 0
 	counter.crtNumberOfTrieReads = 0
@@ -113,6 +110,20 @@ func readValue(mapsOfValues map[string]uint64, identifier string) uint64 {
 	}
 
 	return value
+}
+
+// GetCounterValues returns the current counter values
+func (counter *usageCounter) GetCounterValues() map[string]uint64 {
+	counter.mutCounters.RLock()
+	defer counter.mutCounters.RUnlock()
+
+	values := map[string]uint64{
+		crtBuiltinCalls: counter.crtNumberOfBuiltInFunctionCalls,
+		crtTransfers:    counter.crtNumberOfTransfers,
+		crtTrieReads:    counter.crtNumberOfTrieReads,
+	}
+
+	return values
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
