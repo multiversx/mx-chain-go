@@ -1412,6 +1412,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		GasSchedule:           gasSchedule,
 		Counter:               counter,
 	}
+
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
 	blockChainHookImpl, _ := hooks.NewBlockChainHookImpl(argsHook)
 	tpn.EnableEpochs.FailExecutionOnEveryAPIErrorEnableEpoch = 1
@@ -1425,7 +1426,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		EnableEpochsHandler: tpn.EnableEpochsHandler,
 		ArwenChangeLocker:   tpn.ArwenChangeLocker,
 		ESDTTransferParser:  esdtTransferParser,
-		Hasher:              tpn.Node.GetCoreComponents().Hasher(),
+		Hasher:              TestHasher,
 	}
 	vmFactory, _ := shard.NewVMContainerFactory(argsNewVMFactory)
 

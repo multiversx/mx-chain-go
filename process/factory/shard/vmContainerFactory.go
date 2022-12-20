@@ -99,6 +99,7 @@ func NewVMContainerFactory(args ArgVMContainerFactory) (*vmContainerFactory, err
 		container:           nil,
 		arwenChangeLocker:   args.ArwenChangeLocker,
 		esdtTransferParser:  args.ESDTTransferParser,
+		hasher:              args.Hasher,
 	}
 
 	vmf.arwenVersions = args.Config.ArwenVersions
@@ -324,6 +325,7 @@ func (vmf *vmContainerFactory) createInProcessArwenVMV14() (vmcommon.VMExecution
 		TimeOutForSCExecutionInMilliseconds: vmf.config.TimeOutForSCExecutionInMilliseconds,
 		EpochNotifier:                       vmf.epochNotifier,
 		EnableEpochsHandler:                 vmf.enableEpochsHandler,
+		Hasher:                              vmf.hasher,
 	}
 	return arwenHost14.NewArwenVM(vmf.blockChainHook, hostParameters)
 }

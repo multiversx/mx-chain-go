@@ -12,7 +12,7 @@ require (
 	github.com/ElrondNetwork/elrond-vm-common v1.3.31
 	github.com/ElrondNetwork/wasm-vm-v1_2 v1.2.48
 	github.com/ElrondNetwork/wasm-vm-v1_3 v1.3.48
-	github.com/ElrondNetwork/wasm-vm-v1_4 v1.4.70-0.20221219150452-85a00f297966
+	github.com/ElrondNetwork/wasm-vm-v1_4 v1.4.70-0.20221220091427-e43052768f7a
 	github.com/beevik/ntp v0.3.0
 	github.com/davecgh/go-spew v1.1.1
 	github.com/elastic/go-elasticsearch/v7 v7.12.0

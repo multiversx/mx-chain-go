@@ -70,8 +70,8 @@ github.com/ElrondNetwork/wasm-vm-v1_2 v1.2.48 h1:il52OCaEpYDQFRkUtlsBwBqnbpkoN9S
 github.com/ElrondNetwork/wasm-vm-v1_2 v1.2.48/go.mod h1:xcs02SDXqF//9zFUcgzBY3jpGQKJ4AiO2pTa8ZgS6zs=
 github.com/ElrondNetwork/wasm-vm-v1_3 v1.3.48 h1:jgR6oWmbXGFDdAoPSny1ibRsm9/JRQIc/hbtl8JcYsA=
 github.com/ElrondNetwork/wasm-vm-v1_3 v1.3.48/go.mod h1:ZyuArzcU3qq34mrW06QPTU2w1xcla6tj+BcTQtcanP4=
-github.com/ElrondNetwork/wasm-vm-v1_4 v1.4.70-0.20221219150452-85a00f297966 h1:x3s4apSoTNpZgQulfjahPogZXAxHazYzqoTs8sMcf1A=
-github.com/ElrondNetwork/wasm-vm-v1_4 v1.4.70-0.20221219150452-85a00f297966/go.mod h1:OEiI/SDFp+o5nvXVEI/rPQUeJCW59JhNRaT7/4IgHK8=
+github.com/ElrondNetwork/wasm-vm-v1_4 v1.4.70-0.20221220091427-e43052768f7a h1:EtzEhjQDfq2jywCB+RxW9yiNL4OL3o1I8zCqRDypWWA=
+github.com/ElrondNetwork/wasm-vm-v1_4 v1.4.70-0.20221220091427-e43052768f7a/go.mod h1:xBhcyIzZvxH2gJbeS01I7brxHM9g0HgjhNRrzn0xWuo=
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
 github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d/go.mod h1:3eOhrUMpNV+6aFIbp5/iudMxNCF27Vw2OZgy4xEx0Fg=
 github.com/aead/siphash v1.0.1/go.mod h1:Nywa3cDsYNNK3gaciGTWPwHt0wlpNV15vwmswBAUSII=
