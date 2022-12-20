@@ -1,4 +1,4 @@
-package mandosConverter
+package scenariosConverter
 
 import (
 	"bytes"
@@ -17,32 +17,32 @@ import (
 
 var errReturnCodeNotOk = errors.New("returnCode is not 0(Ok)")
 
-// CreateAccountsFromMandosAccs uses mandosAccounts to populate the AccountsAdapter
-func CreateAccountsFromMandosAccs(tc *vm.VMTestContext, mandosUserAccounts []*mge.TestAccount) error {
-	for _, mandosAcc := range mandosUserAccounts {
-		acc, err := tc.Accounts.LoadAccount(mandosAcc.GetAddress())
+// CreateAccountsFromScenariosAccs uses scenariosAccounts to populate the AccountsAdapter
+func CreateAccountsFromScenariosAccs(tc *vm.VMTestContext, scenariosUserAccounts []*mge.TestAccount) error {
+	for _, scenariosAcc := range scenariosUserAccounts {
+		acc, err := tc.Accounts.LoadAccount(scenariosAcc.GetAddress())
 		if err != nil {
 			return err
 		}
 		account := acc.(state.UserAccountHandler)
-		account.IncreaseNonce(mandosAcc.GetNonce())
-		err = account.AddToBalance(mandosAcc.GetBalance())
+		account.IncreaseNonce(scenariosAcc.GetNonce())
+		err = account.AddToBalance(scenariosAcc.GetBalance())
 		if err != nil {
 			return err
 		}
 
-		mandosAccStorage := mandosAcc.GetStorage()
-		for key, value := range mandosAccStorage {
+		scenariosAccStorage := scenariosAcc.GetStorage()
+		for key, value := range scenariosAccStorage {
 			err = account.SaveKeyValue([]byte(key), value)
 			if err != nil {
 				return err
 			}
 		}
 
-		accountCode := mandosAcc.GetCode()
+		accountCode := scenariosAcc.GetCode()
 		if len(accountCode) != 0 {
 			account.SetCode(accountCode)
-			ownerAddress := mandosAcc.GetOwner()
+			ownerAddress := scenariosAcc.GetOwner()
 			account.SetOwnerAddress(ownerAddress)
 			account.SetCodeMetadata([]byte{0, 0})
 		}
@@ -59,27 +59,27 @@ func CreateAccountsFromMandosAccs(tc *vm.VMTestContext, mandosUserAccounts []*mg
 	return nil
 }
 
-// CreateTransactionsFromMandosTxs converts mandos transactions intro trasnsactions that can be processed by the txProcessor
-func CreateTransactionsFromMandosTxs(mandosTxs []*mge.Transaction) (transactions []*transaction.Transaction) {
+// CreateTransactionsFromScenariosTxs converts scenarios transactions intro trasnsactions that can be processed by the txProcessor
+func CreateTransactionsFromScenariosTxs(scenariosTxs []*mge.Transaction) (transactions []*transaction.Transaction) {
 	var data []byte
 	transactions = make([]*transaction.Transaction, 0)
 
-	for _, mandosTx := range mandosTxs {
-		gasLimit, gasPrice := mandosTx.GetGasLimitAndPrice()
-		esdtTransfers := mandosTx.GetESDTTransfers()
-		endpointName := mandosTx.GetCallFunction()
-		args := mandosTx.GetCallArguments()
+	for _, scenariosTx := range scenariosTxs {
+		gasLimit, gasPrice := scenariosTx.GetGasLimitAndPrice()
+		esdtTransfers := scenariosTx.GetESDTTransfers()
+		endpointName := scenariosTx.GetCallFunction()
+		args := scenariosTx.GetCallArguments()
 		if len(esdtTransfers) != 0 {
-			data = mgutil.CreateMultiTransferData(mandosTx.GetReceiverAddress(), esdtTransfers, endpointName, args)
+			data = mgutil.CreateMultiTransferData(scenariosTx.GetReceiverAddress(), esdtTransfers, endpointName, args)
 		} else {
 			data = createData(endpointName, args)
 		}
 
 		tx := vm.CreateTransaction(
-			mandosTx.GetNonce(),
-			mandosTx.GetCallValue(),
-			mandosTx.GetSenderAddress(),
-			mandosTx.GetReceiverAddress(),
+			scenariosTx.GetNonce(),
+			scenariosTx.GetCallValue(),
+			scenariosTx.GetSenderAddress(),
+			scenariosTx.GetReceiverAddress(),
 			gasPrice,
 			gasLimit,
 			data)
@@ -91,11 +91,11 @@ func CreateTransactionsFromMandosTxs(mandosTxs []*mge.Transaction) (transactions
 	return transactions
 }
 
-// DeploySCsFromMandosDeployTxs deploys all smartContracts correspondent to "scDeploy" in a mandos test, then replaces with the correct computed address in all the transactions.
-func DeploySCsFromMandosDeployTxs(testContext *vm.VMTestContext, deployMandosTxs []*mge.Transaction) ([][]byte, error) {
+// DeploySCsFromScenariosDeployTxs deploys all smartContracts correspondent to "scDeploy" in a scenarios test, then replaces with the correct computed address in all the transactions.
+func DeploySCsFromScenariosDeployTxs(testContext *vm.VMTestContext, deployScenariosTxs []*mge.Transaction) ([][]byte, error) {
 	newScAddresses := make([][]byte, 0)
-	for _, deployMandosTransaction := range deployMandosTxs {
-		deployedScAddress, err := deploySC(testContext, deployMandosTransaction)
+	for _, deployScenariosTransaction := range deployScenariosTxs {
+		deployedScAddress, err := deploySC(testContext, deployScenariosTransaction)
 		if err != nil {
 			return newScAddresses, err
 		}
@@ -104,13 +104,13 @@ func DeploySCsFromMandosDeployTxs(testContext *vm.VMTestContext, deployMandosTxs
 	return newScAddresses, nil
 }
 
-// ReplaceMandosScAddressesWithNewScAddresses corrects the Mandos SC Addresses, with the new Addresses obtained from deploying the SCs
-func ReplaceMandosScAddressesWithNewScAddresses(deployedScAccounts []*mge.TestAccount, newScAddresses [][]byte, mandosTxs []*mge.Transaction) {
+// ReplaceScenariosScAddressesWithNewScAddresses corrects the Scenarios SC Addresses, with the new Addresses obtained from deploying the SCs
+func ReplaceScenariosScAddressesWithNewScAddresses(deployedScAccounts []*mge.TestAccount, newScAddresses [][]byte, scenariosTxs []*mge.Transaction) {
 	for _, newScAddr := range newScAddresses {
 		addressToBeReplaced := deployedScAccounts[0].GetAddress()
-		for _, mandosTx := range mandosTxs {
-			if bytes.Equal(mandosTx.GetReceiverAddress(), addressToBeReplaced) {
-				mandosTx.WithReceiverAddress(newScAddr)
+		for _, scenariosTx := range scenariosTxs {
+			if bytes.Equal(scenariosTx.GetReceiverAddress(), addressToBeReplaced) {
+				scenariosTx.WithReceiverAddress(newScAddr)
 			}
 		}
 		deployedScAccounts = deployedScAccounts[1:]
@@ -126,10 +126,10 @@ func createData(functionName string, arguments [][]byte) []byte {
 	return builder.ToBytes()
 }
 
-func deploySC(testContext *vm.VMTestContext, deployMandosTx *mge.Transaction) (scAddress []byte, err error) {
-	gasLimit, gasPrice := deployMandosTx.GetGasLimitAndPrice()
-	ownerAddr := deployMandosTx.GetSenderAddress()
-	deployData := deployMandosTx.GetDeployData()
+func deploySC(testContext *vm.VMTestContext, deployScenariosTx *mge.Transaction) (scAddress []byte, err error) {
+	gasLimit, gasPrice := deployScenariosTx.GetGasLimitAndPrice()
+	ownerAddr := deployScenariosTx.GetSenderAddress()
+	deployData := deployScenariosTx.GetDeployData()
 
 	ownerAcc, err := testContext.Accounts.LoadAccount(ownerAddr)
 	if err != nil {
