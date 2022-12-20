@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
@@ -162,6 +163,7 @@ func TestMetaStorageHandler_saveDataToStorage(t *testing.T) {
 	components := &ComponentsNeededForBootstrap{
 		EpochStartMetaBlock: &block.MetaBlock{Nonce: 3},
 		PreviousEpochStart:  &block.MetaBlock{Nonce: 2},
+		NodesConfig:         &nodesCoordinator.NodesCoordinatorRegistry{},
 	}
 
 	err := mtStrHandler.SaveDataToStorage(components)

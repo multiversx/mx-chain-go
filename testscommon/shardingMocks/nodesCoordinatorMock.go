@@ -241,7 +241,7 @@ func (ncm *NodesCoordinatorMock) GetOwnPublicKey() []byte {
 }
 
 // LoadState -
-func (ncm *NodesCoordinatorMock) LoadState(_ []byte) error {
+func (ncm *NodesCoordinatorMock) LoadState(_ []byte, _ uint32) error {
 	return nil
 }
 

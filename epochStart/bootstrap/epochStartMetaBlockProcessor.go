@@ -22,6 +22,7 @@ const durationBetweenReRequests = 1 * time.Second
 const durationBetweenCheckingNumConnectedPeers = 500 * time.Millisecond
 const minNumPeersToConsiderMetaBlockValid = 1
 const minNumConnectedPeers = 1
+const minNumEpochsToStore = 1
 
 var _ process.InterceptorProcessor = (*epochStartMetaBlockProcessor)(nil)
 

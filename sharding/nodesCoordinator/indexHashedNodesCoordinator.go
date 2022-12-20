@@ -29,10 +29,8 @@ var _ PublicKeysSelector = (*indexHashedNodesCoordinator)(nil)
 const (
 	keyFormat               = "%s_%v_%v_%v"
 	defaultSelectionChances = uint32(1)
+	minStoredEpochs         = uint32(1)
 )
-
-// TODO: move this to config parameters
-const nodesCoordinatorStoredEpochs = 4
 
 type validatorWithShardID struct {
 	validator Validator
@@ -96,20 +94,21 @@ type indexHashedNodesCoordinator struct {
 	nodeTypeProvider              NodeTypeProviderHandler
 	enableEpochsHandler           common.EnableEpochsHandler
 	validatorInfoCacher           epochStart.ValidatorInfoCacher
+	numStoredEpochs               uint32
 }
 
 // NewIndexHashedNodesCoordinator creates a new index hashed group selector
-func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashedNodesCoordinator, error) {
-	err := checkArguments(arguments)
+func NewIndexHashedNodesCoordinator(args ArgNodesCoordinator) (*indexHashedNodesCoordinator, error) {
+	err := checkArguments(args)
 	if err != nil {
 		return nil, err
 	}
 
-	nodesConfig := make(map[uint32]*epochNodesConfig, nodesCoordinatorStoredEpochs)
+	nodesConfig := make(map[uint32]*epochNodesConfig, args.NumStoredEpochs)
 
-	nodesConfig[arguments.Epoch] = &epochNodesConfig{
-		nbShards:    arguments.NbShards,
-		shardID:     arguments.ShardIDAsObserver,
+	nodesConfig[args.Epoch] = &epochNodesConfig{
+		nbShards:    args.NbShards,
+		shardID:     args.ShardIDAsObserver,
 		eligibleMap: make(map[uint32][]Validator),
 		waitingMap:  make(map[uint32][]Validator),
 		selectors:   make(map[uint32]RandomSelector),
@@ -117,36 +116,37 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		newList:     make([]Validator, 0),
 	}
 
-	savedKey := arguments.Hasher.Compute(string(arguments.SelfPublicKey))
+	savedKey := args.Hasher.Compute(string(args.SelfPublicKey))
 
 	ihnc := &indexHashedNodesCoordinator{
-		marshalizer:                   arguments.Marshalizer,
-		hasher:                        arguments.Hasher,
-		shuffler:                      arguments.Shuffler,
-		epochStartRegistrationHandler: arguments.EpochStartNotifier,
-		bootStorer:                    arguments.BootStorer,
-		selfPubKey:                    arguments.SelfPublicKey,
+		marshalizer:                   args.Marshalizer,
+		hasher:                        args.Hasher,
+		shuffler:                      args.Shuffler,
+		epochStartRegistrationHandler: args.EpochStartNotifier,
+		bootStorer:                    args.BootStorer,
+		selfPubKey:                    args.SelfPublicKey,
 		nodesConfig:                   nodesConfig,
-		currentEpoch:                  arguments.Epoch,
+		currentEpoch:                  args.Epoch,
 		savedStateKey:                 savedKey,
-		shardConsensusGroupSize:       arguments.ShardConsensusGroupSize,
-		metaConsensusGroupSize:        arguments.MetaConsensusGroupSize,
-		consensusGroupCacher:          arguments.ConsensusGroupCache,
-		shardIDAsObserver:             arguments.ShardIDAsObserver,
-		shuffledOutHandler:            arguments.ShuffledOutHandler,
-		startEpoch:                    arguments.StartEpoch,
+		shardConsensusGroupSize:       args.ShardConsensusGroupSize,
+		metaConsensusGroupSize:        args.MetaConsensusGroupSize,
+		consensusGroupCacher:          args.ConsensusGroupCache,
+		shardIDAsObserver:             args.ShardIDAsObserver,
+		shuffledOutHandler:            args.ShuffledOutHandler,
+		startEpoch:                    args.StartEpoch,
 		publicKeyToValidatorMap:       make(map[string]*validatorWithShardID),
-		chanStopNode:                  arguments.ChanStopNode,
-		nodeTypeProvider:              arguments.NodeTypeProvider,
-		isFullArchive:                 arguments.IsFullArchive,
-		enableEpochsHandler:           arguments.EnableEpochsHandler,
-		validatorInfoCacher:           arguments.ValidatorInfoCacher,
+		chanStopNode:                  args.ChanStopNode,
+		nodeTypeProvider:              args.NodeTypeProvider,
+		isFullArchive:                 args.IsFullArchive,
+		enableEpochsHandler:           args.EnableEpochsHandler,
+		validatorInfoCacher:           args.ValidatorInfoCacher,
+		numStoredEpochs:               args.NumStoredEpochs,
 	}
 
 	ihnc.loadingFromDisk.Store(false)
 
 	ihnc.nodesCoordinatorHelper = ihnc
-	err = ihnc.setNodesPerShards(arguments.EligibleNodes, arguments.WaitingNodes, nil, arguments.Epoch)
+	err = ihnc.setNodesPerShards(args.EligibleNodes, args.WaitingNodes, nil, args.Epoch)
 	if err != nil {
 		return nil, err
 	}
@@ -157,15 +157,15 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		log.Error("saving initial nodes coordinator config failed",
 			"error", err.Error())
 	}
-	log.Info("new nodes config is set for epoch", "epoch", arguments.Epoch)
-	currentNodesConfig := ihnc.nodesConfig[arguments.Epoch]
+	log.Info("new nodes config is set for epoch", "epoch", args.Epoch)
+	currentNodesConfig := ihnc.nodesConfig[args.Epoch]
 	if currentNodesConfig == nil {
-		return nil, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, arguments.Epoch)
+		return nil, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, args.Epoch)
 	}
 
-	currentConfig := nodesConfig[arguments.Epoch]
+	currentConfig := nodesConfig[args.Epoch]
 	if currentConfig == nil {
-		return nil, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, arguments.Epoch)
+		return nil, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, args.Epoch)
 	}
 
 	displayNodesConfiguration(
@@ -180,48 +180,51 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 	return ihnc, nil
 }
 
-func checkArguments(arguments ArgNodesCoordinator) error {
-	if arguments.ShardConsensusGroupSize < 1 || arguments.MetaConsensusGroupSize < 1 {
+func checkArguments(args ArgNodesCoordinator) error {
+	if args.ShardConsensusGroupSize < 1 || args.MetaConsensusGroupSize < 1 {
 		return ErrInvalidConsensusGroupSize
 	}
-	if arguments.NbShards < 1 {
+	if args.NbShards < 1 {
 		return ErrInvalidNumberOfShards
 	}
-	if arguments.ShardIDAsObserver >= arguments.NbShards && arguments.ShardIDAsObserver != core.MetachainShardId {
+	if args.ShardIDAsObserver >= args.NbShards && args.ShardIDAsObserver != core.MetachainShardId {
 		return ErrInvalidShardId
 	}
-	if check.IfNil(arguments.Hasher) {
+	if check.IfNil(args.Hasher) {
 		return ErrNilHasher
 	}
-	if len(arguments.SelfPublicKey) == 0 {
+	if len(args.SelfPublicKey) == 0 {
 		return ErrNilPubKey
 	}
-	if check.IfNil(arguments.Shuffler) {
+	if check.IfNil(args.Shuffler) {
 		return ErrNilShuffler
 	}
-	if check.IfNil(arguments.BootStorer) {
+	if check.IfNil(args.BootStorer) {
 		return ErrNilBootStorer
 	}
-	if check.IfNilReflect(arguments.ConsensusGroupCache) {
+	if check.IfNilReflect(args.ConsensusGroupCache) {
 		return ErrNilCacher
 	}
-	if check.IfNil(arguments.Marshalizer) {
+	if check.IfNil(args.Marshalizer) {
 		return ErrNilMarshalizer
 	}
-	if check.IfNil(arguments.ShuffledOutHandler) {
+	if check.IfNil(args.ShuffledOutHandler) {
 		return ErrNilShuffledOutHandler
 	}
-	if check.IfNil(arguments.NodeTypeProvider) {
+	if check.IfNil(args.NodeTypeProvider) {
 		return ErrNilNodeTypeProvider
 	}
-	if nil == arguments.ChanStopNode {
+	if nil == args.ChanStopNode {
 		return ErrNilNodeStopChannel
 	}
-	if check.IfNil(arguments.EnableEpochsHandler) {
+	if check.IfNil(args.EnableEpochsHandler) {
 		return ErrNilEnableEpochsHandler
 	}
-	if check.IfNil(arguments.ValidatorInfoCacher) {
+	if check.IfNil(args.ValidatorInfoCacher) {
 		return ErrNilValidatorInfoCacher
+	}
+	if args.NumStoredEpochs < minStoredEpochs {
+		return ErrInvalidNumberOfStoredEpochs
 	}
 
 	return nil
@@ -821,7 +824,7 @@ func (ihnc *indexHashedNodesCoordinator) handleErrorLog(err error, message strin
 // NodeCoordinator has to get the nodes assignment to shards using the shuffler.
 func (ihnc *indexHashedNodesCoordinator) EpochStartAction(hdr data.HeaderHandler) {
 	newEpoch := hdr.GetEpoch()
-	epochToRemove := int32(newEpoch) - nodesCoordinatorStoredEpochs
+	epochToRemove := int32(newEpoch) - int32(ihnc.numStoredEpochs)
 	needToRemove := epochToRemove >= 0
 	ihnc.currentEpoch = newEpoch
 

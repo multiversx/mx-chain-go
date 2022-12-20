@@ -16,7 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	factoryDataPool "github.com/ElrondNetwork/elrond-go/dataRetriever/factory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/storageRequestersContainer"
+	storagerequesterscontainer "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/storageRequestersContainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
@@ -413,6 +413,7 @@ func (sesb *storageEpochStartBootstrap) processNodesConfig(pubKey []byte) error 
 		NodeTypeProvider:    sesb.coreComponentsHolder.NodeTypeProvider(),
 		IsFullArchive:       sesb.prefsConfig.FullArchive,
 		EnableEpochsHandler: sesb.coreComponentsHolder.EnableEpochsHandler(),
+		NumStoredEpochs:     sesb.generalConfig.EpochStartConfig.NumNodesConfigEpochsToStore,
 	}
 	sesb.nodesConfigHandler, err = NewSyncValidatorStatus(argsNewValidatorStatusSyncers)
 	if err != nil {

@@ -23,6 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/types"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -42,7 +43,7 @@ import (
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	storageMocks "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon/syncer"
-	"github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
+	validatorInfoCacherStub "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
 	"github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -158,6 +159,7 @@ func createMockEpochStartBootstrapArgs(
 			EpochStartConfig: config.EpochStartConfig{
 				MinNumConnectedPeersToStart:       2,
 				MinNumOfPeersToConsiderBlockValid: 2,
+				NumNodesConfigEpochsToStore:       4,
 			},
 			StoragePruning: config.StoragePruningConfig{
 				Enabled:                     true,
@@ -701,6 +703,7 @@ func testBoostrapByStartInEpochFlag(t *testing.T, startInEpochEnabled bool) {
 	pksBytes := createPkBytes(args.GenesisNodesConfig.NumberOfShards())
 
 	nodesCoord := &nodesCoordinator.NodesCoordinatorRegistry{
+		CurrentEpoch: epoch,
 		EpochsConfig: map[string]*nodesCoordinator.EpochValidators{
 			strconv.Itoa(int(epoch)): {
 				EligibleValidators: map[string][]*nodesCoordinator.SerializableValidator{
@@ -728,7 +731,13 @@ func testBoostrapByStartInEpochFlag(t *testing.T, startInEpochEnabled bool) {
 		GetMostRecentStorageUnitCalled: func(config config.DBConfig) (storage.Storer, error) {
 			return &storageMocks.StorerStub{
 				GetCalled: func(key []byte) ([]byte, error) {
-					return nodesCoordBytes, nil
+					bt := bootstrapStorage.BootstrapData{
+						LastHeader: bootstrapStorage.BootstrapHeaderInfo{
+							Epoch: 1,
+						},
+					}
+					btBytes, _ := json.Marshal(bt)
+					return btBytes, nil
 				},
 				SearchFirstCalled: func(key []byte) ([]byte, error) {
 					return nodesCoordBytes, nil

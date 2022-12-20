@@ -25,7 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon/storage"
+	storageManagerMock "github.com/ElrondNetwork/elrond-go/testscommon/storageManager"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -1136,7 +1136,7 @@ func getBaseRewardsArguments() BaseRewardsCreatorArgs {
 	hasher := sha256.NewSha256()
 	marshalizer := &marshal.GogoProtoMarshalizer{}
 
-	storageManagerArgs, options := storage.GetStorageManagerArgsAndOptions()
+	storageManagerArgs, options := storageManagerMock.GetStorageManagerArgsAndOptions()
 	storageManagerArgs.Marshalizer = marshalizer
 	storageManagerArgs.Hasher = hasher
 

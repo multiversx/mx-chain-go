@@ -21,7 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
-	storageManager "github.com/ElrondNetwork/elrond-go/testscommon/storage"
+	storageManager "github.com/ElrondNetwork/elrond-go/testscommon/storageManager"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"

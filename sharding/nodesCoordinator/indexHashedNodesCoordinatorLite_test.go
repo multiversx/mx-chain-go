@@ -140,7 +140,7 @@ func TestIndexHashedNodesCoordinator_SetNodesConfigFromValidatorsInfoMultipleEpo
 	assert.True(t, ok)
 	verifyEligibleValidators(t, validatorsInfo2, epochConfig.eligibleMap)
 
-	err = ihnc.SetNodesConfigFromValidatorsInfo(epoch+nodesCoordinatorStoredEpochs, randomness, validatorsInfo1)
+	err = ihnc.SetNodesConfigFromValidatorsInfo(epoch+numStoredEpochs, randomness, validatorsInfo1)
 	assert.Nil(t, err)
 
 	_, ok = ihnc.nodesConfig[epoch]

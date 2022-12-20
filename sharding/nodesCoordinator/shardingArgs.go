@@ -32,4 +32,5 @@ type ArgNodesCoordinator struct {
 	IsFullArchive           bool
 	EnableEpochsHandler     common.EnableEpochsHandler
 	ValidatorInfoCacher     epochStart.ValidatorInfoCacher
+	NumStoredEpochs         uint32
 }

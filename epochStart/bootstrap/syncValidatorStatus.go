@@ -51,6 +51,7 @@ type ArgsNewSyncValidatorStatus struct {
 	NodeTypeProvider    NodeTypeProviderHandler
 	IsFullArchive       bool
 	EnableEpochsHandler common.EnableEpochsHandler
+	NumStoredEpochs     uint32
 }
 
 // NewSyncValidatorStatus creates a new validator status process component
@@ -130,6 +131,7 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 		IsFullArchive:           args.IsFullArchive,
 		EnableEpochsHandler:     args.EnableEpochsHandler,
 		ValidatorInfoCacher:     s.dataPool.CurrentEpochValidatorInfo(),
+		NumStoredEpochs:         args.NumStoredEpochs,
 	}
 	baseNodesCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argsNodesCoordinator)
 	if err != nil {

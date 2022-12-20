@@ -27,6 +27,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	storageCommon "github.com/ElrondNetwork/elrond-go/testscommon/storage"
+	storageManagerMock "github.com/ElrondNetwork/elrond-go/testscommon/storageManager"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/update"
@@ -48,7 +49,7 @@ func createMockArgument(
 	entireSupply *big.Int,
 ) ArgsGenesisBlockCreator {
 
-	storageManagerArgs, options := storageCommon.GetStorageManagerArgsAndOptions()
+	storageManagerArgs, options := storageManagerMock.GetStorageManagerArgsAndOptions()
 	storageManager, _ := trie.CreateTrieStorageManager(storageManagerArgs, options)
 
 	trieStorageManagers := make(map[string]common.StorageManager)
