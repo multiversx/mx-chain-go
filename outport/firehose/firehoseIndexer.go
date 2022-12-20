@@ -63,14 +63,14 @@ func (fi *firehoseIndexer) SaveBlock(args *outportcore.ArgsSaveBlockData) error 
 
 	switch header := args.Header.(type) {
 	case *block.MetaBlock:
-		headerBytes, err = fi.marshaller.Marshal(header)
 		headerType = core.MetaHeader
+		headerBytes, err = fi.marshaller.Marshal(header)
 	case *block.Header:
-		headerBytes, err = fi.marshaller.Marshal(header)
 		headerType = core.ShardHeaderV1
-	case *block.HeaderV2:
 		headerBytes, err = fi.marshaller.Marshal(header)
+	case *block.HeaderV2:
 		headerType = core.ShardHeaderV2
+		headerBytes, err = fi.marshaller.Marshal(header)
 	default:
 		return errInvalidHeaderType
 	}
