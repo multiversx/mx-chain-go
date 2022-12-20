@@ -1111,8 +1111,7 @@ func TestEsdt_ExecuteToggleFreezeShouldWorkWithRealBech32Address(t *testing.T) {
 	args := createMockArgumentsForESDT()
 	eei := createDefaultEei()
 
-	bech32C := testscommon.RealWorldBech32PubkeyConverter
-	args.AddressPubKeyConverter = bech32C
+	args.AddressPubKeyConverter = testscommon.RealWorldBech32PubkeyConverter
 
 	tokensMap := map[string][]byte{}
 	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
@@ -1125,7 +1124,7 @@ func TestEsdt_ExecuteToggleFreezeShouldWorkWithRealBech32Address(t *testing.T) {
 	args.Eei = eei
 
 	addressToFreezeBech32 := "erd158tgst07d6rt93td6nh5cd2mmpfhtp7hr24l4wfgtlggqpnp6kjsnpvdqj"
-	addressToFreeze, err := bech32C.Decode(addressToFreezeBech32)
+	addressToFreeze, err := args.AddressPubKeyConverter.Decode(addressToFreezeBech32)
 	assert.NoError(t, err)
 
 	e, _ := NewESDTSmartContract(args)
@@ -1159,8 +1158,7 @@ func TestEsdt_ExecuteToggleFreezeShouldFailWithBech32Converter(t *testing.T) {
 	args := createMockArgumentsForESDT()
 	eei := createDefaultEei()
 
-	bech32C := testscommon.RealWorldBech32PubkeyConverter
-	args.AddressPubKeyConverter = bech32C
+	args.AddressPubKeyConverter = testscommon.RealWorldBech32PubkeyConverter
 
 	tokensMap := map[string][]byte{}
 	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
@@ -2474,13 +2472,11 @@ func TestEsdt_GetSpecialRolesShouldWork(t *testing.T) {
 	eei := createDefaultEei()
 	args.Eei = eei
 
-	bech32C := testscommon.RealWorldBech32PubkeyConverter
-
 	addr1 := "erd1kzzv2uw97q5k9mt458qk3q9u3cwhwqykvyk598q2f6wwx7gvrd9s8kszxk"
-	addr1Bytes, _ := bech32C.Decode(addr1)
+	addr1Bytes, _ := testscommon.RealWorldBech32PubkeyConverter.Decode(addr1)
 
 	addr2 := "erd1e7n8rzxdtl2n2fl6mrsg4l7stp2elxhfy6l9p7eeafspjhhrjq7qk05usw"
-	addr2Bytes, _ := bech32C.Decode(addr2)
+	addr2Bytes, _ := testscommon.RealWorldBech32PubkeyConverter.Decode(addr2)
 
 	specialRoles := []*ESDTRoles{
 		{
@@ -2507,7 +2503,7 @@ func TestEsdt_GetSpecialRolesShouldWork(t *testing.T) {
 	eei.storageUpdate[string(eei.scAddress)] = tokensMap
 	args.Eei = eei
 
-	args.AddressPubKeyConverter = bech32C
+	args.AddressPubKeyConverter = testscommon.RealWorldBech32PubkeyConverter
 
 	e, _ := NewESDTSmartContract(args)
 
@@ -2529,16 +2525,14 @@ func TestEsdt_UnsetSpecialRoleWithRemoveEntryFromSpecialRoles(t *testing.T) {
 	eei := createDefaultEei()
 	args.Eei = eei
 
-	bech32C := testscommon.RealWorldBech32PubkeyConverter
-
 	owner := "erd1e7n8rzxdtl2n2fl6mrsg4l7stp2elxhfy6l9p7eeafspjhhrjq7qk05usw"
-	ownerBytes, _ := bech32C.Decode(owner)
+	ownerBytes, _ := testscommon.RealWorldBech32PubkeyConverter.Decode(owner)
 
 	addr1 := "erd1kzzv2uw97q5k9mt458qk3q9u3cwhwqykvyk598q2f6wwx7gvrd9s8kszxk"
-	addr1Bytes, _ := bech32C.Decode(addr1)
+	addr1Bytes, _ := testscommon.RealWorldBech32PubkeyConverter.Decode(addr1)
 
 	addr2 := "erd1rsq30t33aqeg8cuc3q4kfnx0jukzsx52yfua92r233zhhmndl3uszcs5qj"
-	addr2Bytes, _ := bech32C.Decode(addr2)
+	addr2Bytes, _ := testscommon.RealWorldBech32PubkeyConverter.Decode(addr2)
 
 	specialRoles := []*ESDTRoles{
 		{
@@ -2566,7 +2560,7 @@ func TestEsdt_UnsetSpecialRoleWithRemoveEntryFromSpecialRoles(t *testing.T) {
 	eei.storageUpdate[string(eei.scAddress)] = tokensMap
 	args.Eei = eei
 
-	args.AddressPubKeyConverter = bech32C
+	args.AddressPubKeyConverter = testscommon.RealWorldBech32PubkeyConverter
 
 	e, _ := NewESDTSmartContract(args)
 

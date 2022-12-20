@@ -62,21 +62,21 @@ func (tu *txUnmarshaller) unmarshalTransaction(txBytes []byte, txType transactio
 		if err != nil {
 			return nil, err
 		}
-		apiTx, err = tu.prepareNormalTx(&tx)
+		apiTx = tu.prepareNormalTx(&tx)
 	case transaction.TxTypeInvalid:
 		var tx transaction.Transaction
 		err = tu.marshalizer.Unmarshal(&tx, txBytes)
 		if err != nil {
 			return nil, err
 		}
-		apiTx, err = tu.prepareInvalidTx(&tx)
+		apiTx = tu.prepareInvalidTx(&tx)
 	case transaction.TxTypeReward:
 		var tx rewardTxData.RewardTx
 		err = tu.marshalizer.Unmarshal(&tx, txBytes)
 		if err != nil {
 			return nil, err
 		}
-		apiTx, err = tu.prepareRewardTx(&tx)
+		apiTx = tu.prepareRewardTx(&tx)
 
 	case transaction.TxTypeUnsigned:
 		var tx smartContractResult.SmartContractResult
@@ -84,7 +84,7 @@ func (tu *txUnmarshaller) unmarshalTransaction(txBytes []byte, txType transactio
 		if err != nil {
 			return nil, err
 		}
-		apiTx, err = tu.prepareUnsignedTx(&tx)
+		apiTx = tu.prepareUnsignedTx(&tx)
 	}
 	if err != nil {
 		return nil, err
@@ -106,7 +106,7 @@ func (tu *txUnmarshaller) unmarshalTransaction(txBytes []byte, txType transactio
 	return apiTx, nil
 }
 
-func (tu *txUnmarshaller) prepareNormalTx(tx *transaction.Transaction) (*transaction.ApiTransactionResult, error) {
+func (tu *txUnmarshaller) prepareNormalTx(tx *transaction.Transaction) *transaction.ApiTransactionResult {
 	receiverAddress := tu.addressPubKeyConverter.SilentEncode(tx.RcvAddr, log)
 	senderAddress := tu.addressPubKeyConverter.SilentEncode(tx.SndAddr, log)
 
@@ -126,10 +126,10 @@ func (tu *txUnmarshaller) prepareNormalTx(tx *transaction.Transaction) (*transac
 		Options:          tx.Options,
 		Version:          tx.Version,
 		ChainID:          string(tx.ChainID),
-	}, nil
+	}
 }
 
-func (tu *txUnmarshaller) prepareInvalidTx(tx *transaction.Transaction) (*transaction.ApiTransactionResult, error) {
+func (tu *txUnmarshaller) prepareInvalidTx(tx *transaction.Transaction) *transaction.ApiTransactionResult {
 	receiverAddress := tu.addressPubKeyConverter.SilentEncode(tx.RcvAddr, log)
 	senderAddress := tu.addressPubKeyConverter.SilentEncode(tx.SndAddr, log)
 
@@ -146,10 +146,10 @@ func (tu *txUnmarshaller) prepareInvalidTx(tx *transaction.Transaction) (*transa
 		GasLimit:         tx.GasLimit,
 		Data:             tx.Data,
 		Signature:        hex.EncodeToString(tx.Signature),
-	}, nil
+	}
 }
 
-func (tu *txUnmarshaller) prepareRewardTx(tx *rewardTxData.RewardTx) (*transaction.ApiTransactionResult, error) {
+func (tu *txUnmarshaller) prepareRewardTx(tx *rewardTxData.RewardTx) *transaction.ApiTransactionResult {
 	receiverAddress := tu.addressPubKeyConverter.SilentEncode(tx.GetRcvAddr(), log)
 
 	return &transaction.ApiTransactionResult{
@@ -161,10 +161,10 @@ func (tu *txUnmarshaller) prepareRewardTx(tx *rewardTxData.RewardTx) (*transacti
 		Sender:      "metachain",
 		Receiver:    receiverAddress,
 		SourceShard: core.MetachainShardId,
-	}, nil
+	}
 }
 
-func (tu *txUnmarshaller) prepareUnsignedTx(tx *smartContractResult.SmartContractResult) (*transaction.ApiTransactionResult, error) {
+func (tu *txUnmarshaller) prepareUnsignedTx(tx *smartContractResult.SmartContractResult) *transaction.ApiTransactionResult {
 	receiverAddress := tu.addressPubKeyConverter.SilentEncode(tx.GetRcvAddr(), log)
 	senderAddress := tu.addressPubKeyConverter.SilentEncode(tx.GetSndAddr(), log)
 
@@ -189,7 +189,7 @@ func (tu *txUnmarshaller) prepareUnsignedTx(tx *smartContractResult.SmartContrac
 		OriginalSender:          tu.getEncodedAddress(tx.GetOriginalSender()),
 	}
 
-	return txResult, nil
+	return txResult
 }
 
 func (tu *txUnmarshaller) getEncodedAddress(address []byte) string {

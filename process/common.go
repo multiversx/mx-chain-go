@@ -695,15 +695,8 @@ func DisplayProcessTxDetails(
 		return
 	}
 
-	receiverAddress := ""
-	if len(txHandler.GetRcvAddr()) == addressPubkeyConverter.Len() {
-		receiverAddress = addressPubkeyConverter.SilentEncode(txHandler.GetRcvAddr(), log)
-	}
-
-	senderAddress := ""
-	if len(txHandler.GetSndAddr()) == addressPubkeyConverter.Len() {
-		senderAddress = addressPubkeyConverter.SilentEncode(txHandler.GetSndAddr(), log)
-	}
+	receiverAddress, _ := addressPubkeyConverter.Encode(txHandler.GetRcvAddr())
+	senderAddress, _ := addressPubkeyConverter.Encode(txHandler.GetSndAddr())
 
 	log.Trace("executing transaction",
 		"txHash", txHash,

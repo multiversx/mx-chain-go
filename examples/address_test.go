@@ -128,19 +128,19 @@ func TestSystemSCsAddressesAndSpecialAddresses(t *testing.T) {
 }
 
 func getGlobalSettingsAddresses() map[uint32]string {
-	computeAddress := func(shardID uint32) (string, error) {
-		baseSystemAccountAddress := core.SystemAccountAddress
-		globalSettingsAddress := baseSystemAccountAddress
-		globalSettingsAddress[len(globalSettingsAddress)-1] = uint8(shardID)
-
-		return addressEncoder.Encode(globalSettingsAddress)
-	}
-
 	numShards := uint32(3)
 	addressesMap := make(map[uint32]string, numShards)
 	for i := uint32(0); i < numShards; i++ {
-		addressesMap[i], _ = computeAddress(i)
+		addressesMap[i], _ = computeGlobalSettingsAddr(i)
 	}
 
 	return addressesMap
+}
+
+func computeGlobalSettingsAddr(shardID uint32) (string, error) {
+	baseSystemAccountAddress := core.SystemAccountAddress
+	globalSettingsAddress := baseSystemAccountAddress
+	globalSettingsAddress[len(globalSettingsAddress)-1] = uint8(shardID)
+
+	return addressEncoder.Encode(globalSettingsAddress)
 }

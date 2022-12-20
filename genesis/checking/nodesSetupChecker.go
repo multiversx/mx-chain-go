@@ -17,7 +17,7 @@ const minimumAcceptedNodePrice = 0
 
 var zero = big.NewInt(0)
 
-var log = logger.GetOrCreate("genesis")
+var log = logger.GetOrCreate("genesis/checking")
 
 type nodeSetupChecker struct {
 	accountsParser           genesis.AccountsParser

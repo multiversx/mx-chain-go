@@ -160,10 +160,7 @@ func (ts *transactionSimulator) addIntermediateTxsToResult(result *txSimData.Sim
 		if !ok {
 			continue
 		}
-		scResults[hex.EncodeToString([]byte(hash))], err = ts.adaptSmartContractResult(scr)
-		if err != nil {
-			return err
-		}
+		scResults[hex.EncodeToString([]byte(hash))] = ts.adaptSmartContractResult(scr)
 	}
 	result.ScResults = scResults
 
@@ -182,17 +179,14 @@ func (ts *transactionSimulator) addIntermediateTxsToResult(result *txSimData.Sim
 		if !ok {
 			continue
 		}
-		receipts[hex.EncodeToString([]byte(hash))], err = ts.adaptReceipt(rcpt)
-		if err != nil {
-			return err
-		}
+		receipts[hex.EncodeToString([]byte(hash))] = ts.adaptReceipt(rcpt)
 	}
 	result.Receipts = receipts
 
 	return nil
 }
 
-func (ts *transactionSimulator) adaptSmartContractResult(scr *smartContractResult.SmartContractResult) (*transaction.ApiSmartContractResult, error) {
+func (ts *transactionSimulator) adaptSmartContractResult(scr *smartContractResult.SmartContractResult) *transaction.ApiSmartContractResult {
 	rcvAddress := ts.addressPubKeyConverter.SilentEncode(scr.RcvAddr, log)
 	sndAddress := ts.addressPubKeyConverter.SilentEncode(scr.SndAddr, log)
 
@@ -216,14 +210,15 @@ func (ts *transactionSimulator) adaptSmartContractResult(scr *smartContractResul
 	if scr.OriginalSender != nil {
 		resScr.OriginalSender = ts.addressPubKeyConverter.SilentEncode(scr.OriginalSender, log)
 	}
+
 	if scr.RelayerAddr != nil {
 		resScr.RelayerAddr = ts.addressPubKeyConverter.SilentEncode(scr.RelayerAddr, log)
 	}
 
-	return resScr, nil
+	return resScr
 }
 
-func (ts *transactionSimulator) adaptReceipt(rcpt *receipt.Receipt) (*transaction.ApiReceipt, error) {
+func (ts *transactionSimulator) adaptReceipt(rcpt *receipt.Receipt) *transaction.ApiReceipt {
 	receiptSenderAddress := ts.addressPubKeyConverter.SilentEncode(rcpt.SndAddr, log)
 
 	return &transaction.ApiReceipt{
@@ -231,7 +226,7 @@ func (ts *transactionSimulator) adaptReceipt(rcpt *receipt.Receipt) (*transactio
 		SndAddr: receiptSenderAddress,
 		Data:    string(rcpt.Data),
 		TxHash:  hex.EncodeToString(rcpt.TxHash),
-	}, nil
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -102,10 +102,8 @@ func (atp *apiTransactionProcessor) GetTransaction(txHash string, withResults bo
 }
 
 func (atp *apiTransactionProcessor) doGetTransaction(hash []byte, withResults bool) (*transaction.ApiTransactionResult, error) {
-	tx, err := atp.optionallyGetTransactionFromPool(hash)
-	if err != nil {
-		return nil, err
-	}
+	tx := atp.optionallyGetTransactionFromPool(hash)
+
 	if tx != nil {
 		return tx, nil
 	}
@@ -170,10 +168,7 @@ func (atp *apiTransactionProcessor) GetTransactionsPool(fields string) (*common.
 		return nil, err
 	}
 
-	transactions.SmartContractResults, err = atp.getUnsignedTransactionsFromPool(requestedFieldsHandler)
-	if err != nil {
-		return nil, err
-	}
+	transactions.SmartContractResults = atp.getUnsignedTransactionsFromPool(requestedFieldsHandler)
 
 	return transactions, nil
 }
@@ -242,11 +237,8 @@ func (atp *apiTransactionProcessor) GetTransactionsPoolNonceGapsForSender(sender
 	}, nil
 }
 
-func (atp *apiTransactionProcessor) extractRequestedTxInfoFromObj(txObj interface{}, txType transaction.TxType, txHash []byte, requestedFieldsHandler fieldsHandler) (common.Transaction, error) {
-	txResult, err := atp.getApiResultFromObj(txObj, txType)
-	if err != nil {
-		return common.Transaction{}, err
-	}
+func (atp *apiTransactionProcessor) extractRequestedTxInfoFromObj(txObj interface{}, txType transaction.TxType, txHash []byte, requestedFieldsHandler fieldsHandler) common.Transaction {
+	txResult := atp.getApiResultFromObj(txObj, txType)
 
 	wrappedTx := &txcache.WrappedTransaction{
 		Tx:     txResult.Tx,
@@ -255,7 +247,7 @@ func (atp *apiTransactionProcessor) extractRequestedTxInfoFromObj(txObj interfac
 
 	requestedTxInfo := atp.extractRequestedTxInfo(wrappedTx, requestedFieldsHandler)
 
-	return requestedTxInfo, nil
+	return requestedTxInfo
 }
 
 func (atp *apiTransactionProcessor) getRegularTransactionsFromPool(requestedFieldsHandler fieldsHandler) ([]common.Transaction, error) {
@@ -267,10 +259,7 @@ func (atp *apiTransactionProcessor) getRegularTransactionsFromPool(requestedFiel
 			continue
 		}
 
-		tx, err := atp.extractRequestedTxInfoFromObj(txObj, transaction.TxTypeNormal, key, requestedFieldsHandler)
-		if err != nil {
-			return nil, err
-		}
+		tx := atp.extractRequestedTxInfoFromObj(txObj, transaction.TxTypeNormal, key, requestedFieldsHandler)
 
 		regularTxs[idx] = tx
 	}
@@ -287,10 +276,7 @@ func (atp *apiTransactionProcessor) getRewardTransactionsFromPool(requestedField
 			continue
 		}
 
-		tx, err := atp.extractRequestedTxInfoFromObj(txObj, transaction.TxTypeReward, key, requestedFieldsHandler)
-		if err != nil {
-			return nil, err
-		}
+		tx := atp.extractRequestedTxInfoFromObj(txObj, transaction.TxTypeReward, key, requestedFieldsHandler)
 
 		rewardTxs[idx] = tx
 	}
@@ -298,7 +284,7 @@ func (atp *apiTransactionProcessor) getRewardTransactionsFromPool(requestedField
 	return rewardTxs, nil
 }
 
-func (atp *apiTransactionProcessor) getUnsignedTransactionsFromPool(requestedFieldsHandler fieldsHandler) ([]common.Transaction, error) {
+func (atp *apiTransactionProcessor) getUnsignedTransactionsFromPool(requestedFieldsHandler fieldsHandler) []common.Transaction {
 	unsignedTxKeys := atp.dataPool.UnsignedTransactions().Keys()
 	unsignedTxs := make([]common.Transaction, len(unsignedTxKeys))
 	for idx, key := range unsignedTxKeys {
@@ -307,15 +293,12 @@ func (atp *apiTransactionProcessor) getUnsignedTransactionsFromPool(requestedFie
 			continue
 		}
 
-		tx, err := atp.extractRequestedTxInfoFromObj(txObj, transaction.TxTypeUnsigned, key, requestedFieldsHandler)
-		if err != nil {
-			return nil, err
-		}
+		tx := atp.extractRequestedTxInfoFromObj(txObj, transaction.TxTypeUnsigned, key, requestedFieldsHandler)
 
 		unsignedTxs[idx] = tx
 	}
 
-	return unsignedTxs, nil
+	return unsignedTxs
 }
 
 func (atp *apiTransactionProcessor) extractRequestedTxInfo(wrappedTx *txcache.WrappedTransaction, requestedFieldsHandler fieldsHandler) common.Transaction {
@@ -404,26 +387,23 @@ func (atp *apiTransactionProcessor) extractNonceGaps(sender string, senderShard 
 	return nonceGaps, nil
 }
 
-func (atp *apiTransactionProcessor) optionallyGetTransactionFromPool(hash []byte) (*transaction.ApiTransactionResult, error) {
+func (atp *apiTransactionProcessor) optionallyGetTransactionFromPool(hash []byte) *transaction.ApiTransactionResult {
 	txObj, txType, found := atp.getTxObjFromDataPool(hash)
 	if !found {
-		return nil, nil
+		return nil
 	}
 
 	return atp.getApiResultFromObj(txObj, txType)
 }
 
-func (atp *apiTransactionProcessor) getApiResultFromObj(txObj interface{}, txType transaction.TxType) (*transaction.ApiTransactionResult, error) {
-	tx, err := atp.castObjToTransaction(txObj, txType)
-	if err != nil {
-		return nil, err
-	}
+func (atp *apiTransactionProcessor) getApiResultFromObj(txObj interface{}, txType transaction.TxType) *transaction.ApiTransactionResult {
+	tx := atp.castObjToTransaction(txObj, txType)
 
 	tx.SourceShard = atp.shardCoordinator.ComputeId(tx.Tx.GetSndAddr())
 	tx.DestinationShard = atp.shardCoordinator.ComputeId(tx.Tx.GetRcvAddr())
 	tx.Status = transaction.TxStatusPending
 
-	return tx, nil
+	return tx
 }
 
 // computeTimestampForRound will return the timestamp for the given round
@@ -641,7 +621,7 @@ func (atp *apiTransactionProcessor) getTxBytesFromStorageByEpoch(hash []byte, ep
 	return nil, transaction.TxTypeInvalid, false
 }
 
-func (atp *apiTransactionProcessor) castObjToTransaction(txObj interface{}, txType transaction.TxType) (*transaction.ApiTransactionResult, error) {
+func (atp *apiTransactionProcessor) castObjToTransaction(txObj interface{}, txType transaction.TxType) *transaction.ApiTransactionResult {
 	switch txType {
 	case transaction.TxTypeNormal:
 		if tx, ok := txObj.(*transaction.Transaction); ok {
@@ -662,7 +642,7 @@ func (atp *apiTransactionProcessor) castObjToTransaction(txObj interface{}, txTy
 	}
 
 	log.Warn("castObjToTransaction() unexpected: unknown txType", "txType", txType)
-	return &transaction.ApiTransactionResult{Type: string(transaction.TxTypeInvalid)}, nil
+	return &transaction.ApiTransactionResult{Type: string(transaction.TxTypeInvalid)}
 }
 
 // UnmarshalTransaction will try to unmarshal the transaction bytes based on the transaction type

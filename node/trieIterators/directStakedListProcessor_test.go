@@ -131,19 +131,19 @@ func TestDirectStakedListProc_GetDelegatorsListShouldWork(t *testing.T) {
 	directStakedList, err := dslp.GetDirectStakedList(context.Background())
 	require.Nil(t, err)
 	require.Equal(t, 2, len(directStakedList))
-	encodedValidator1PubKey, err := arg.PublicKeyConverter.Encode(validators[0])
+	encodedValidator0PubKey, err := arg.PublicKeyConverter.Encode(validators[0])
 	require.Nil(t, err)
-	encodedValidator2PubKey, err := arg.PublicKeyConverter.Encode(validators[1])
+	encodedValidator1PubKey, err := arg.PublicKeyConverter.Encode(validators[1])
 	require.Nil(t, err)
 
 	expectedDirectStake1 := api.DirectStakedValue{
-		Address:    encodedValidator1PubKey,
+		Address:    encodedValidator0PubKey,
 		BaseStaked: "9",
 		TopUp:      "1",
 		Total:      "10",
 	}
 	expectedDirectStake2 := api.DirectStakedValue{
-		Address:    encodedValidator2PubKey,
+		Address:    encodedValidator1PubKey,
 		BaseStaked: "18",
 		TopUp:      "2",
 		Total:      "20",

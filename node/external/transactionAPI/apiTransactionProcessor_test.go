@@ -1079,8 +1079,7 @@ func TestPrepareUnsignedTx(t *testing.T) {
 	n.txUnmarshaller.addressPubKeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(addrSize, "erd")
 	n.addressPubKeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(addrSize, "erd")
 
-	scrResult1, err := n.txUnmarshaller.prepareUnsignedTx(scr1)
-	assert.Nil(t, err)
+	scrResult1 := n.txUnmarshaller.prepareUnsignedTx(scr1)
 	expectedScr1 := &transaction.ApiTransactionResult{
 		Tx:             scr1,
 		Nonce:          1,
@@ -1101,8 +1100,7 @@ func TestPrepareUnsignedTx(t *testing.T) {
 		OriginalSender: bytes.Repeat([]byte{7}, addrSize),
 	}
 
-	scrResult2, err := n.txUnmarshaller.prepareUnsignedTx(scr2)
-	assert.Nil(t, err)
+	scrResult2 := n.txUnmarshaller.prepareUnsignedTx(scr2)
 	expectedScr2 := &transaction.ApiTransactionResult{
 		Tx:             scr2,
 		Nonce:          3,

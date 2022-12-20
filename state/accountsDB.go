@@ -1344,6 +1344,7 @@ func (adb *AccountsDB) snapshotUserAccountDataTrie(
 			ErrChan:    iteratorChannels.ErrChan,
 		}
 		if isSnapshot {
+			// TODO: TakeSnapshot should receive address as byte array and encode them before printing
 			address := adb.addressConverter.SilentEncode(account.Address, log)
 			adb.mainTrie.GetStorageManager().TakeSnapshot(address, account.RootHash, mainTrieRootHash, iteratorChannelsForDataTries, missingNodesChannel, stats, epoch)
 			continue
@@ -1457,7 +1458,7 @@ func (adb *AccountsDB) GetStatsForRootHash(rootHash []byte) (common.TriesStatist
 		if err != nil {
 			return nil, err
 		}
-
+		//TODO: collectStats should receive accountAddress as byte array
 		collectStats(tr, stats, account.RootHash, accountAddress)
 	}
 

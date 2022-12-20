@@ -193,21 +193,10 @@ func (arp *apiTransactionResultsProcessor) adaptSmartContractResult(scrHash []by
 		IsRefund:       isRefund,
 	}
 
-	if len(scr.SndAddr) == arp.addressPubKeyConverter.Len() {
-		apiSCR.SndAddr = arp.addressPubKeyConverter.SilentEncode(scr.SndAddr, log)
-	}
-
-	if len(scr.RcvAddr) == arp.addressPubKeyConverter.Len() {
-		apiSCR.RcvAddr = arp.addressPubKeyConverter.SilentEncode(scr.RcvAddr, log)
-	}
-
-	if len(scr.RelayerAddr) == arp.addressPubKeyConverter.Len() {
-		apiSCR.RelayerAddr = arp.addressPubKeyConverter.SilentEncode(scr.RelayerAddr, log)
-	}
-
-	if len(scr.OriginalSender) == arp.addressPubKeyConverter.Len() {
-		apiSCR.OriginalSender = arp.addressPubKeyConverter.SilentEncode(scr.OriginalSender, log)
-	}
+	apiSCR.SndAddr, _ = arp.addressPubKeyConverter.Encode(scr.SndAddr)
+	apiSCR.RcvAddr, _ = arp.addressPubKeyConverter.Encode(scr.RcvAddr)
+	apiSCR.RelayerAddr, _ = arp.addressPubKeyConverter.Encode(scr.RelayerAddr)
+	apiSCR.OriginalSender, _ = arp.addressPubKeyConverter.Encode(scr.OriginalSender)
 
 	res := arp.dataFieldParser.Parse(scr.Data, scr.GetSndAddr(), scr.GetRcvAddr(), arp.shardCoordinator.NumberOfShards())
 	apiSCR.Operation = res.Operation
