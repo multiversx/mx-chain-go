@@ -6,7 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/storageRequesters"
+	storagerequesters "github.com/ElrondNetwork/elrond-go/dataRetriever/storageRequesters"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 )
 
@@ -36,6 +36,7 @@ func NewShardRequestersContainerFactory(
 		shardIDForTries:          args.ShardIDForTries,
 		chainID:                  args.ChainID,
 		workingDir:               args.WorkingDirectory,
+		snapshotsEnabled:         args.SnapshotsEnabled,
 	}
 
 	err := base.checkParams()
