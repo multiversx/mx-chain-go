@@ -63,11 +63,11 @@ type NodesCoordinatorHelper interface {
 	GetChance(uint32) uint32
 }
 
-//ChanceComputer provides chance computation capabilities based on a rating
+// ChanceComputer provides chance computation capabilities based on a rating
 type ChanceComputer interface {
-	//GetChance returns the chances for the rating
+	// GetChance returns the chances for the rating
 	GetChance(uint32) uint32
-	//IsInterfaceNil verifies if the interface is nil
+	// IsInterfaceNil verifies if the interface is nil
 	IsInterfaceNil() bool
 }
 
@@ -79,6 +79,8 @@ type Cacher interface {
 	Put(key []byte, value interface{}, sizeInBytes int) (evicted bool)
 	// Get looks up a key's value from the cache.
 	Get(key []byte) (value interface{}, ok bool)
+	// IsInterfaceNil verifies if the interface is nil
+	IsInterfaceNil() bool
 }
 
 // ShuffledOutHandler defines the methods needed for the computation of a shuffled out event

@@ -3,7 +3,6 @@ package nodesCoordinator
 import (
 	"bytes"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"runtime"
@@ -1805,6 +1804,16 @@ func TestIndexHashedNodesCoordinator_GetConsensusWhitelistedNodesAfterRevertToEp
 		}
 	}
 
+	nodesEpoch0, err := ihnc.GetAllEligibleValidatorsPublicKeys(0)
+	require.Nil(t, err)
+
+	// add also epoch0 into all nodes list since we are getting also from storage
+	for _, nodesList := range nodesEpoch0 {
+		for _, nodeKey := range nodesList {
+			allNodesList = append(allNodesList, string(nodeKey))
+		}
+	}
+
 	whitelistedNodes, err := ihnc.GetConsensusWhitelistedNodes(1)
 	require.Nil(t, err)
 	require.Greater(t, len(whitelistedNodes), 0)
@@ -2536,26 +2545,6 @@ func TestIndexHashedNodesCoordinator_GetNodesConfig(t *testing.T) {
 		require.Nil(t, nc)
 	})
 
-	t.Run("will find in nodes config cacher, but failed to unmarshal byte array", func(t *testing.T) {
-		t.Parallel()
-
-		epoch := uint32(2)
-
-		args := createArguments()
-		args.NodesConfigCache = &mock.NodesCoordinatorCacheMock{
-			GetCalled: func(key []byte) (value interface{}, ok bool) {
-				require.Equal(t, []byte(fmt.Sprint(epoch)), key)
-
-				return []byte("epoch nodes config data"), true
-			},
-		}
-		ihnc, _ := NewIndexHashedNodesCoordinator(args)
-
-		nc, ok := ihnc.getNodesConfig(epoch)
-		require.False(t, ok)
-		require.Nil(t, nc)
-	})
-
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -2566,27 +2555,7 @@ func TestIndexHashedNodesCoordinator_GetNodesConfig(t *testing.T) {
 			GetCalled: func(key []byte) (value interface{}, ok bool) {
 				require.Equal(t, []byte(fmt.Sprint(epoch)), key)
 
-				registry := &NodesCoordinatorRegistry{
-					EpochsConfig: map[string]*EpochValidators{
-						"2": {
-							EligibleValidators: map[string][]*SerializableValidator{
-								"0": {
-									&SerializableValidator{
-										PubKey: []byte("pubkey1"),
-									},
-								},
-								"1": {
-									&SerializableValidator{
-										PubKey: []byte("pubkey2"),
-									},
-								},
-							},
-						},
-					},
-					CurrentEpoch: 2,
-				}
-				registryBytes, _ := json.Marshal(registry)
-				return registryBytes, true
+				return &epochNodesConfig{}, true
 			},
 		}
 		ihnc, _ := NewIndexHashedNodesCoordinator(args)

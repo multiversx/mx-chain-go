@@ -229,44 +229,53 @@ func checkArguments(args ArgNodesCoordinator) error {
 	if args.NumStoredEpochs < minStoredEpochs {
 		return ErrInvalidNumberOfStoredEpochs
 	}
-	if check.IfNilReflect(args.NodesConfigCache) {
+	if check.IfNil(args.NodesConfigCache) {
 		return ErrNilNodesConfigCacher
 	}
 
 	return nil
 }
 
-// getNodesConfig will try to get nodesConfig from map, if it doesn't success, it will try to get it from nodes config cache
+// getNodesConfig will try to get nodesConfig from map, if it doesn't succeed, it will try to get it from nodes config cache
 // it has to be used under mutex
 func (ihnc *indexHashedNodesCoordinator) getNodesConfig(epoch uint32) (*epochNodesConfig, bool) {
-	nodesConfig, ok := ihnc.nodesConfig[epoch]
+	nc, ok := ihnc.nodesConfig[epoch]
 	if ok {
-		return nodesConfig, ok
+		return nc, ok
 	}
 
 	value, ok := ihnc.nodesConfigCacher.Get([]byte(fmt.Sprint(epoch)))
-	if !ok {
-		return nil, ok
+	if ok {
+		enc, ok := value.(*epochNodesConfig)
+		if ok {
+			return enc, ok
+		}
 	}
 
-	registryBytes, ok := value.([]byte)
-	if !ok {
-		return nil, ok
+	ncInternalkey := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), []byte(fmt.Sprint(epoch))...)
+	epochConfigBytes, err := ihnc.bootStorer.SearchFirst(ncInternalkey)
+	if err != nil {
+		return nil, false
 	}
 
 	registry := &NodesCoordinatorRegistry{}
-	err := json.Unmarshal(registryBytes, registry)
+	err = json.Unmarshal(epochConfigBytes, registry)
 	if err != nil {
 		return nil, false
 	}
 
-	nc, err := ihnc.registryToNodesCoordinator(registry)
+	nodesConfig, err := ihnc.registryToNodesCoordinator(registry)
 	if err != nil {
 		return nil, false
 	}
 
-	epochNodesConfig, ok := nc[epoch]
-	return epochNodesConfig, ok
+	nodesConfigEpoch, ok := nodesConfig[epoch]
+	if !ok {
+		return nil, ok
+	}
+	ihnc.nodesConfigCacher.Put([]byte(fmt.Sprint(epoch)), nodesConfigEpoch, 0)
+
+	return nodesConfigEpoch, ok
 }
 
 // setNodesPerShards loads the distribution of nodes per shard into the nodes management component
@@ -320,11 +329,6 @@ func (ihnc *indexHashedNodesCoordinator) setNodesPerShards(
 	}
 
 	ihnc.nodesConfig[epoch] = nodesConfig
-	ncBytes, err := epochNodesConfigToRegistryBytes(epoch, nodesConfig)
-	if err != nil {
-		return err
-	}
-	ihnc.nodesConfigCacher.Put([]byte(fmt.Sprint(epoch)), ncBytes, len(ncBytes))
 
 	ihnc.numTotalEligible = numTotalEligible
 	ihnc.setNodeType(isCurrentNodeValidator)
@@ -1042,7 +1046,7 @@ func (ihnc *indexHashedNodesCoordinator) createPublicKeyToValidatorMap(
 func (ihnc *indexHashedNodesCoordinator) computeShardForSelfPublicKey(nodesConfig *epochNodesConfig) (uint32, bool) {
 	pubKey := ihnc.selfPubKey
 	selfShard := ihnc.shardIDAsObserver
-	epNodesConfig, ok := ihnc.getNodesConfig(ihnc.currentEpoch)
+	epNodesConfig, ok := ihnc.nodesConfig[ihnc.currentEpoch]
 	if ok {
 		log.Trace("computeShardForSelfPublicKey found existing config",
 			"shard", epNodesConfig.shardID,
