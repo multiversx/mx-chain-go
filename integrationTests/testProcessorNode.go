@@ -849,7 +849,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 			EnableEpochsHandler: tpn.EnableEpochsHandler,
 			ArwenChangeLocker:   tpn.ArwenChangeLocker,
 			ESDTTransferParser:  esdtTransferParser,
-			Hasher:              tpn.Node.GetCoreComponents().Hasher(),
+			Hasher:              TestHasher,
 		}
 		vmFactory, _ = shard.NewVMContainerFactory(argsNewVMFactory)
 	}
