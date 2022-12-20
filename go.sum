@@ -70,8 +70,8 @@ github.com/ElrondNetwork/wasm-vm-v1_2 v1.2.48 h1:il52OCaEpYDQFRkUtlsBwBqnbpkoN9S
 github.com/ElrondNetwork/wasm-vm-v1_2 v1.2.48/go.mod h1:xcs02SDXqF//9zFUcgzBY3jpGQKJ4AiO2pTa8ZgS6zs=
 github.com/ElrondNetwork/wasm-vm-v1_3 v1.3.48 h1:jgR6oWmbXGFDdAoPSny1ibRsm9/JRQIc/hbtl8JcYsA=
 github.com/ElrondNetwork/wasm-vm-v1_3 v1.3.48/go.mod h1:ZyuArzcU3qq34mrW06QPTU2w1xcla6tj+BcTQtcanP4=
-github.com/ElrondNetwork/wasm-vm-v1_4 v1.4.70-0.20221216172910-fa3f52e6498f h1:soVSu4C2kKEN+49/3/bhnHah/IRad/LqU+nb4Lv1wnQ=
-github.com/ElrondNetwork/wasm-vm-v1_4 v1.4.70-0.20221216172910-fa3f52e6498f/go.mod h1:xBhcyIzZvxH2gJbeS01I7brxHM9g0HgjhNRrzn0xWuo=
+github.com/ElrondNetwork/wasm-vm-v1_4 v1.4.70-0.20221219150452-85a00f297966 h1:x3s4apSoTNpZgQulfjahPogZXAxHazYzqoTs8sMcf1A=
+github.com/ElrondNetwork/wasm-vm-v1_4 v1.4.70-0.20221219150452-85a00f297966/go.mod h1:OEiI/SDFp+o5nvXVEI/rPQUeJCW59JhNRaT7/4IgHK8=
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
 github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d/go.mod h1:3eOhrUMpNV+6aFIbp5/iudMxNCF27Vw2OZgy4xEx0Fg=
 github.com/aead/siphash v1.0.1/go.mod h1:Nywa3cDsYNNK3gaciGTWPwHt0wlpNV15vwmswBAUSII=
@@ -338,8 +338,9 @@ github.com/hashicorp/go-multierror v1.1.1 h1:H5DkEtf6CXdFp0N0Em5UCwQpXMWke8IA0+l
 github.com/hashicorp/go-multierror v1.1.1/go.mod h1:iw975J/qwKPdAO1clOe2L8331t/9/fmwbPZ6JB6eMoM=
 github.com/hashicorp/golang-lru v0.5.0/go.mod h1:/m3WP610KZHVQ1SGc6re/UDhFvYD7pJ4Ao+sR/qLZy8=
 github.com/hashicorp/golang-lru v0.5.1/go.mod h1:/m3WP610KZHVQ1SGc6re/UDhFvYD7pJ4Ao+sR/qLZy8=
-github.com/hashicorp/golang-lru v0.5.4 h1:YDjusn29QI/Das2iO9M0BHnIbxPeyuCHsjMW+lJfyTc=
 github.com/hashicorp/golang-lru v0.5.4/go.mod h1:iADmTwqILo4mZ8BN3D2Q6+9jd8WM5uGBxy+E8yxSoD4=
+github.com/hashicorp/golang-lru v0.6.0 h1:uL2shRDx7RTrOrTCUZEGP/wJUFiUI8QT6E7z5o8jga4=
+github.com/hashicorp/golang-lru v0.6.0/go.mod h1:iADmTwqILo4mZ8BN3D2Q6+9jd8WM5uGBxy+E8yxSoD4=
 github.com/hashicorp/hcl v1.0.0/go.mod h1:E5yfLk+7swimpb2L/Alb/PJmXilQ/rhwaUYs4T20WEQ=
 github.com/herumi/bls-go-binary v1.0.0 h1:PRPF6vPd35zyDy+tp86HwNnGdufCH2lZL0wZGxYvkRs=
 github.com/herumi/bls-go-binary v1.0.0/go.mod h1:O4Vp1AfR4raRGwFeQpr9X/PQtncEicMoOe6BQt1oX0Y=
