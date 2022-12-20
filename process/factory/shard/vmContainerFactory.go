@@ -15,12 +15,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	arwen12 "github.com/ElrondNetwork/wasm-vm-v1_2/arwen"
-	arwenHost12 "github.com/ElrondNetwork/wasm-vm-v1_2/arwen/host"
-	arwen13 "github.com/ElrondNetwork/wasm-vm-v1_3/arwen"
-	arwenHost13 "github.com/ElrondNetwork/wasm-vm-v1_3/arwen/host"
-	arwen14 "github.com/ElrondNetwork/wasm-vm-v1_4/arwen"
-	arwenHost14 "github.com/ElrondNetwork/wasm-vm-v1_4/arwen/host"
+	wasm12 "github.com/ElrondNetwork/wasm-vm-v1_2/arwen"
+	wasmVMHost12 "github.com/ElrondNetwork/wasm-vm-v1_2/arwen/host"
+	wasm13 "github.com/ElrondNetwork/wasm-vm-v1_3/arwen"
+	wasmVMHost13 "github.com/ElrondNetwork/wasm-vm-v1_3/arwen/host"
+	wasm14 "github.com/ElrondNetwork/wasm-vm-v1_4/arwen"
+	wasmVMHost14 "github.com/ElrondNetwork/wasm-vm-v1_4/arwen/host"
 )
 
 var _ process.VirtualMachinesContainerFactory = (*vmContainerFactory)(nil)
@@ -37,8 +37,8 @@ type vmContainerFactory struct {
 	epochNotifier       process.EpochNotifier
 	enableEpochsHandler vmcommon.EnableEpochsHandler
 	container           process.VirtualMachinesContainer
-	arwenVersions       []config.ArwenVersionByEpoch
-	arwenChangeLocker   common.Locker
+	wasmVMVersions      []config.WasmVMVersionByEpoch
+	wasmVMChangeLocker  common.Locker
 	esdtTransferParser  vmcommon.ESDTTransferParser
 }
 
@@ -49,7 +49,7 @@ type ArgVMContainerFactory struct {
 	GasSchedule         core.GasScheduleNotifier
 	EpochNotifier       process.EpochNotifier
 	EnableEpochsHandler vmcommon.EnableEpochsHandler
-	ArwenChangeLocker   common.Locker
+	WasmVMChangeLocker  common.Locker
 	ESDTTransferParser  vmcommon.ESDTTransferParser
 	BuiltInFunctions    vmcommon.BuiltInFunctionContainer
 	BlockChainHook      process.BlockChainHookHandler
@@ -66,7 +66,7 @@ func NewVMContainerFactory(args ArgVMContainerFactory) (*vmContainerFactory, err
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
 	}
-	if check.IfNilReflect(args.ArwenChangeLocker) {
+	if check.IfNilReflect(args.WasmVMChangeLocker) {
 		return nil, process.ErrNilLocker
 	}
 	if check.IfNil(args.ESDTTransferParser) {
@@ -91,13 +91,13 @@ func NewVMContainerFactory(args ArgVMContainerFactory) (*vmContainerFactory, err
 		epochNotifier:       args.EpochNotifier,
 		enableEpochsHandler: args.EnableEpochsHandler,
 		container:           nil,
-		arwenChangeLocker:   args.ArwenChangeLocker,
+		wasmVMChangeLocker:  args.WasmVMChangeLocker,
 		esdtTransferParser:  args.ESDTTransferParser,
 	}
 
-	vmf.arwenVersions = args.Config.ArwenVersions
-	vmf.sortArwenVersions()
-	err := vmf.validateArwenVersions()
+	vmf.wasmVMVersions = args.Config.WasmVMVersions
+	vmf.sortWasmVMVersions()
+	err := vmf.validateWasmVMVersions()
 	if err != nil {
 		return nil, err
 	}
@@ -105,19 +105,19 @@ func NewVMContainerFactory(args ArgVMContainerFactory) (*vmContainerFactory, err
 	return vmf, nil
 }
 
-func (vmf *vmContainerFactory) sortArwenVersions() {
-	sort.Slice(vmf.arwenVersions, func(i, j int) bool {
-		return vmf.arwenVersions[i].StartEpoch < vmf.arwenVersions[j].StartEpoch
+func (vmf *vmContainerFactory) sortWasmVMVersions() {
+	sort.Slice(vmf.wasmVMVersions, func(i, j int) bool {
+		return vmf.wasmVMVersions[i].StartEpoch < vmf.wasmVMVersions[j].StartEpoch
 	})
 }
 
-func (vmf *vmContainerFactory) validateArwenVersions() error {
-	if len(vmf.arwenVersions) == 0 {
+func (vmf *vmContainerFactory) validateWasmVMVersions() error {
+	if len(vmf.wasmVMVersions) == 0 {
 		return ErrEmptyVersionsByEpochsList
 	}
 
 	currentEpoch := uint32(0)
-	for idx, ver := range vmf.arwenVersions {
+	for idx, ver := range vmf.wasmVMVersions {
 		if idx == 0 && ver.StartEpoch != 0 {
 			return fmt.Errorf("%w first version should start on epoch 0",
 				ErrInvalidVersionOnEpochValues)
@@ -142,17 +142,17 @@ func (vmf *vmContainerFactory) validateArwenVersions() error {
 func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error) {
 	container := containers.NewVirtualMachinesContainer()
 
-	vmf.arwenChangeLocker.Lock()
+	vmf.wasmVMChangeLocker.Lock()
 	version := vmf.getMatchingVersion(vmf.epochNotifier.CurrentEpoch())
-	currentVM, err := vmf.createArwenVM(version)
+	currentVM, err := vmf.createWasmVM(version)
 	if err != nil {
-		vmf.arwenChangeLocker.Unlock()
+		vmf.wasmVMChangeLocker.Unlock()
 		return nil, err
 	}
 
-	err = container.Add(factory.ArwenVirtualMachine, currentVM)
+	err = container.Add(factory.WasmVirtualMachine, currentVM)
 	if err != nil {
-		vmf.arwenChangeLocker.Unlock()
+		vmf.wasmVMChangeLocker.Unlock()
 		return nil, err
 	}
 
@@ -160,7 +160,7 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 	// in order to replace, from within the container, the VM instances that
 	// become out-of-date after specific epochs.
 	vmf.container = container
-	vmf.arwenChangeLocker.Unlock()
+	vmf.wasmVMChangeLocker.Unlock()
 
 	vmf.epochNotifier.RegisterNotifyHandler(vmf)
 	vmf.gasSchedule.RegisterNotifyHandler(vmf)
@@ -204,42 +204,42 @@ func (vmf *vmContainerFactory) GasScheduleChange(gasSchedule map[string]map[stri
 
 // EpochConfirmed updates the VM version in the container, depending on the epoch
 func (vmf *vmContainerFactory) EpochConfirmed(epoch uint32, _ uint64) {
-	vmf.ensureCorrectArwenVersion(epoch)
+	vmf.ensureCorrectWasmVMVersion(epoch)
 }
 
-func (vmf *vmContainerFactory) ensureCorrectArwenVersion(epoch uint32) {
+func (vmf *vmContainerFactory) ensureCorrectWasmVMVersion(epoch uint32) {
 	newVersion := vmf.getMatchingVersion(epoch)
-	currentArwenVM, err := vmf.container.Get(factory.ArwenVirtualMachine)
+	currentWasmVM, err := vmf.container.Get(factory.WasmVirtualMachine)
 	if err != nil {
-		logVMContainerFactory.Error("cannot retrieve Arwen VM from container", "epoch", epoch, "error", err)
+		logVMContainerFactory.Error("cannot retrieve Wasm VM from container", "epoch", epoch, "error", err)
 		return
 	}
 
-	if !vmf.shouldReplaceArwenInstance(newVersion, currentArwenVM) {
+	if !vmf.shouldReplaceWasmVMInstance(newVersion, currentWasmVM) {
 		return
 	}
 
-	vmf.arwenChangeLocker.Lock()
-	defer vmf.arwenChangeLocker.Unlock()
+	vmf.wasmVMChangeLocker.Lock()
+	defer vmf.wasmVMChangeLocker.Unlock()
 
-	vmf.closePreviousVM(currentArwenVM)
-	newArwenVM, err := vmf.createArwenVM(newVersion)
+	vmf.closePreviousVM(currentWasmVM)
+	newWasmVM, err := vmf.createWasmVM(newVersion)
 	if err != nil {
-		logVMContainerFactory.Error("cannot replace Arwen VM", "epoch", epoch, "error", err)
+		logVMContainerFactory.Error("cannot replace Wasm VM", "epoch", epoch, "error", err)
 		return
 	}
 
-	err = vmf.container.Replace(factory.ArwenVirtualMachine, newArwenVM)
+	err = vmf.container.Replace(factory.WasmVirtualMachine, newWasmVM)
 	if err != nil {
-		logVMContainerFactory.Error("cannot replace Arwen VM", "epoch", epoch, "error", err)
+		logVMContainerFactory.Error("cannot replace Wasm VM", "epoch", epoch, "error", err)
 		return
 	}
 
-	logVMContainerFactory.Debug("Arwen VM replaced", "epoch", epoch)
+	logVMContainerFactory.Debug("Wasm VM replaced", "epoch", epoch)
 }
 
-func (vmf *vmContainerFactory) shouldReplaceArwenInstance(
-	newVersion config.ArwenVersionByEpoch,
+func (vmf *vmContainerFactory) shouldReplaceWasmVMInstance(
+	newVersion config.WasmVMVersionByEpoch,
 	currentVM vmcommon.VMExecutionHandler,
 ) bool {
 	specificVersionRequired := newVersion.Version != "*"
@@ -248,8 +248,8 @@ func (vmf *vmContainerFactory) shouldReplaceArwenInstance(
 	return specificVersionRequired && differentVersion
 }
 
-func (vmf *vmContainerFactory) createArwenVM(version config.ArwenVersionByEpoch) (vmcommon.VMExecutionHandler, error) {
-	currentVM, err := vmf.createInProcessArwenVMByVersion(version)
+func (vmf *vmContainerFactory) createWasmVM(version config.WasmVMVersionByEpoch) (vmcommon.VMExecutionHandler, error) {
+	currentVM, err := vmf.createInProcessWasmVMByVersion(version)
 	if err != nil {
 		return nil, err
 	}
@@ -257,11 +257,11 @@ func (vmf *vmContainerFactory) createArwenVM(version config.ArwenVersionByEpoch)
 	return currentVM, nil
 }
 
-func (vmf *vmContainerFactory) getMatchingVersion(epoch uint32) config.ArwenVersionByEpoch {
-	matchingVersion := vmf.arwenVersions[len(vmf.arwenVersions)-1]
-	for idx := 0; idx < len(vmf.arwenVersions)-1; idx++ {
-		crtVer := vmf.arwenVersions[idx]
-		nextVer := vmf.arwenVersions[idx+1]
+func (vmf *vmContainerFactory) getMatchingVersion(epoch uint32) config.WasmVMVersionByEpoch {
+	matchingVersion := vmf.wasmVMVersions[len(vmf.wasmVMVersions)-1]
+	for idx := 0; idx < len(vmf.wasmVMVersions)-1; idx++ {
+		crtVer := vmf.wasmVMVersions[idx]
+		nextVer := vmf.wasmVMVersions[idx+1]
 		if crtVer.StartEpoch <= epoch && epoch < nextVer.StartEpoch {
 			return crtVer
 		}
@@ -270,45 +270,45 @@ func (vmf *vmContainerFactory) getMatchingVersion(epoch uint32) config.ArwenVers
 	return matchingVersion
 }
 
-func (vmf *vmContainerFactory) createInProcessArwenVMByVersion(version config.ArwenVersionByEpoch) (vmcommon.VMExecutionHandler, error) {
-	logVMContainerFactory.Debug("createInProcessArwenVM", "version", version)
+func (vmf *vmContainerFactory) createInProcessWasmVMByVersion(version config.WasmVMVersionByEpoch) (vmcommon.VMExecutionHandler, error) {
+	logVMContainerFactory.Debug("createInProcessWasmVMByVersion", "version", version)
 	switch version.Version {
 	case "v1.2":
-		return vmf.createInProcessArwenVMV12()
+		return vmf.createInProcessWasmVMV12()
 	case "v1.3":
-		return vmf.createInProcessArwenVMV13()
+		return vmf.createInProcessWasmVMV13()
 	default:
-		return vmf.createInProcessArwenVMV14()
+		return vmf.createInProcessWasmVMV14()
 	}
 }
 
-func (vmf *vmContainerFactory) createInProcessArwenVMV12() (vmcommon.VMExecutionHandler, error) {
-	hostParameters := &arwen12.VMHostParameters{
-		VMType:                   factory.ArwenVirtualMachine,
+func (vmf *vmContainerFactory) createInProcessWasmVMV12() (vmcommon.VMExecutionHandler, error) {
+	hostParameters := &wasm12.VMHostParameters{
+		VMType:                   factory.WasmVirtualMachine,
 		BlockGasLimit:            vmf.blockGasLimit,
 		GasSchedule:              vmf.gasSchedule.LatestGasSchedule(),
 		ProtocolBuiltinFunctions: vmf.builtinFunctions.Keys(),
 		ElrondProtectedKeyPrefix: []byte(core.ElrondProtectedKeyPrefix),
 		EnableEpochsHandler:      vmf.enableEpochsHandler,
 	}
-	return arwenHost12.NewArwenVM(vmf.blockChainHook, hostParameters)
+	return wasmVMHost12.NewArwenVM(vmf.blockChainHook, hostParameters) //TODO rename this on other repos
 }
 
-func (vmf *vmContainerFactory) createInProcessArwenVMV13() (vmcommon.VMExecutionHandler, error) {
-	hostParameters := &arwen13.VMHostParameters{
-		VMType:                   factory.ArwenVirtualMachine,
+func (vmf *vmContainerFactory) createInProcessWasmVMV13() (vmcommon.VMExecutionHandler, error) {
+	hostParameters := &wasm13.VMHostParameters{
+		VMType:                   factory.WasmVirtualMachine,
 		BlockGasLimit:            vmf.blockGasLimit,
 		GasSchedule:              vmf.gasSchedule.LatestGasSchedule(),
 		BuiltInFuncContainer:     vmf.builtinFunctions,
 		ElrondProtectedKeyPrefix: []byte(core.ElrondProtectedKeyPrefix),
 		EnableEpochsHandler:      vmf.enableEpochsHandler,
 	}
-	return arwenHost13.NewArwenVM(vmf.blockChainHook, hostParameters)
+	return wasmVMHost13.NewArwenVM(vmf.blockChainHook, hostParameters) //TODO rename this on other repos
 }
 
-func (vmf *vmContainerFactory) createInProcessArwenVMV14() (vmcommon.VMExecutionHandler, error) {
-	hostParameters := &arwen14.VMHostParameters{
-		VMType:                              factory.ArwenVirtualMachine,
+func (vmf *vmContainerFactory) createInProcessWasmVMV14() (vmcommon.VMExecutionHandler, error) {
+	hostParameters := &wasm14.VMHostParameters{
+		VMType:                              factory.WasmVirtualMachine,
 		BlockGasLimit:                       vmf.blockGasLimit,
 		GasSchedule:                         vmf.gasSchedule.LatestGasSchedule(),
 		BuiltInFuncContainer:                vmf.builtinFunctions,
@@ -319,7 +319,7 @@ func (vmf *vmContainerFactory) createInProcessArwenVMV14() (vmcommon.VMExecution
 		EpochNotifier:                       vmf.epochNotifier,
 		EnableEpochsHandler:                 vmf.enableEpochsHandler,
 	}
-	return arwenHost14.NewArwenVM(vmf.blockChainHook, hostParameters)
+	return wasmVMHost14.NewArwenVM(vmf.blockChainHook, hostParameters) //TODO rename this on other repos
 }
 
 func (vmf *vmContainerFactory) closePreviousVM(vm vmcommon.VMExecutionHandler) {

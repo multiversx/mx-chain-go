@@ -26,7 +26,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/trie/statistics"
 	"github.com/ElrondNetwork/elrond-go/trie/storageMarker"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
-	arwenConfig "github.com/ElrondNetwork/wasm-vm-v1_4/config"
+	wasmConfig "github.com/ElrondNetwork/wasm-vm-v1_4/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -280,7 +280,7 @@ func testNodeRequestInterceptTrieNodesWithMessengerNotSyncingShouldErr(t *testin
 }
 
 func createTestGasMap() map[string]map[string]uint64 {
-	gasSchedule := arwenConfig.MakeGasMapForTests()
+	gasSchedule := wasmConfig.MakeGasMapForTests()
 	gasSchedule = defaults.FillGasMapInternal(gasSchedule, 1)
 
 	return gasSchedule

@@ -518,8 +518,8 @@ func (mcc *managedCoreComponents) NodeTypeProvider() core.NodeTypeProviderHandle
 	return mcc.coreComponents.nodeTypeProvider
 }
 
-// ArwenChangeLocker returns the arwen change locker
-func (mcc *managedCoreComponents) ArwenChangeLocker() common.Locker {
+// WasmVMChangeLocker returns the wasm VM change locker
+func (mcc *managedCoreComponents) WasmVMChangeLocker() common.Locker {
 	mcc.mutCoreComponents.RLock()
 	defer mcc.mutCoreComponents.RUnlock()
 
@@ -527,7 +527,7 @@ func (mcc *managedCoreComponents) ArwenChangeLocker() common.Locker {
 		return nil
 	}
 
-	return mcc.coreComponents.arwenChangeLocker
+	return mcc.coreComponents.wasmVMChangeLocker
 }
 
 // ProcessStatusHandler returns the process status handler

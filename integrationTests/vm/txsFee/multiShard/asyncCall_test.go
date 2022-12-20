@@ -16,9 +16,9 @@ import (
 )
 
 func TestAsyncCallShouldWork(t *testing.T) {
-	// TODO reinstate test after Arwen pointer fix
+	// TODO reinstate test after Wasm VM pointer fix
 	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Arwen fix")
+		t.Skip("cannot run with -race -short; requires Wasm VM fix")
 	}
 
 	testContextFirstContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{})

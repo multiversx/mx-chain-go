@@ -14,14 +14,9 @@ source "$ELRONDTESTNETSCRIPTSDIR/include/tools.sh"
 
 prepareFolders
 
-# Phase 1: build Seednode, Node and Arwen executables
+# Phase 1: build seednode and node executables
 buildSeednode
 buildNode
-
-if [ $ALWAYS_BUILD_ARWEN -eq 1 ]; then
-  buildArwen
-fi
-
 
 # Phase 2: generate configuration
 if [ $ALWAYS_UPDATE_CONFIGS -eq 1 ]; then

@@ -9,8 +9,8 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/wasm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
 )
@@ -35,9 +35,9 @@ func TestRelayedSCDeployShouldWork(t *testing.T) {
 
 	_, _ = vm.CreateAccount(testContextRelayer.Accounts, relayerAddr, 0, big.NewInt(50000))
 
-	contractPath := "../../arwen/testdata/misc/fib_arwen/output/fib_arwen.wasm"
-	scCode := arwen.GetSCCode(contractPath)
-	userTx := vm.CreateTransaction(0, big.NewInt(0), sndAddr, vm.CreateEmptyAddress(), gasPrice, gasLimit, []byte(arwen.CreateDeployTxData(scCode)))
+	contractPath := "../../wasm/testdata/misc/fib_wasm/output/fib_wasm.wasm"
+	scCode := wasm.GetSCCode(contractPath)
+	userTx := vm.CreateTransaction(0, big.NewInt(0), sndAddr, vm.CreateEmptyAddress(), gasPrice, gasLimit, []byte(wasm.CreateDeployTxData(scCode)))
 
 	rtxData := utils.PrepareRelayerTxData(userTx)
 	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))

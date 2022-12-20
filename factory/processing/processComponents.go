@@ -586,7 +586,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		blockTracker,
 		pendingMiniBlocksHandler,
 		txSimulatorProcessorArgs,
-		pcf.coreData.ArwenChangeLocker(),
+		pcf.coreData.WasmVMChangeLocker(),
 		scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker,
 		receiptsRepository,

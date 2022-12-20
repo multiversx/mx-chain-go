@@ -118,10 +118,10 @@ func deploySc(t *testing.T, nodes []*integrationTests.TestProcessorNode) []byte 
 	require.Nil(t, err)
 
 	node := nodes[0]
-	scAddress, err := node.BlockchainHook.NewAddress(node.OwnAccount.Address, node.OwnAccount.Nonce, factory.ArwenVirtualMachine)
+	scAddress, err := node.BlockchainHook.NewAddress(node.OwnAccount.Address, node.OwnAccount.Nonce, factory.WasmVirtualMachine)
 	require.Nil(t, err)
 
-	integrationTests.DeployScTx(nodes, 0, hex.EncodeToString(scCode), factory.ArwenVirtualMachine, "001000000000")
+	integrationTests.DeployScTx(nodes, 0, hex.EncodeToString(scCode), factory.WasmVirtualMachine, "001000000000")
 
 	return scAddress
 }

@@ -7,7 +7,7 @@ updates:
   open-pull-requests-limit: 10
   target-branch: development
   ignore:
-  - dependency-name: github.com/ElrondNetwork/arwen-wasm-vm
+  - dependency-name: github.com/ElrondNetwork/wasm-vm
     versions:
     - 1.1.2
     - 1.2.0

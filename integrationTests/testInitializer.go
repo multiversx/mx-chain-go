@@ -65,7 +65,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
-	arwenConfig "github.com/ElrondNetwork/wasm-vm-v1_4/config"
+	wasmConfig "github.com/ElrondNetwork/wasm-vm-v1_4/config"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
@@ -614,7 +614,7 @@ func CreateFullGenesisBlocks(
 	smartContractParser genesis.InitialSmartContractParser,
 	enableEpochsConfig config.EnableEpochs,
 ) map[uint32]data.HeaderHandler {
-	gasSchedule := arwenConfig.MakeGasMapForTests()
+	gasSchedule := wasmConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasSchedule, 1)
 
 	coreComponents := GetDefaultCoreComponents()
@@ -648,7 +648,7 @@ func CreateFullGenesisBlocks(
 		GasSchedule:       mock.NewGasScheduleNotifierMock(gasSchedule),
 		TxLogsProcessor:   &mock.TxLogsProcessorStub{},
 		VirtualMachineConfig: config.VirtualMachineConfig{
-			ArwenVersions: []config.ArwenVersionByEpoch{
+			WasmVMVersions: []config.WasmVMVersionByEpoch{
 				{StartEpoch: 0, Version: "*"},
 			},
 		},
@@ -726,7 +726,7 @@ func CreateGenesisMetaBlock(
 	economics process.EconomicsDataHandler,
 	enableEpochsConfig config.EnableEpochs,
 ) data.MetaHeaderHandler {
-	gasSchedule := arwenConfig.MakeGasMapForTests()
+	gasSchedule := wasmConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasSchedule, 1)
 
 	coreComponents := GetDefaultCoreComponents()
@@ -753,7 +753,7 @@ func CreateGenesisMetaBlock(
 		GasSchedule:         mock.NewGasScheduleNotifierMock(gasSchedule),
 		TxLogsProcessor:     &mock.TxLogsProcessorStub{},
 		VirtualMachineConfig: config.VirtualMachineConfig{
-			ArwenVersions: []config.ArwenVersionByEpoch{
+			WasmVMVersions: []config.WasmVMVersionByEpoch{
 				{StartEpoch: 0, Version: "*"},
 			},
 		},
@@ -2291,14 +2291,14 @@ func SetupSyncNodesOneShardAndMeta(
 	numNodesMeta int,
 ) ([]*TestProcessorNode, []int) {
 
-	maxShards := uint32(1)
+	maxShardsLocal := uint32(1)
 	shardId := uint32(0)
 
 	var nodes []*TestProcessorNode
 	var connectableNodes []Connectable
 	for i := 0; i < numNodesPerShard; i++ {
 		shardNode := NewTestProcessorNode(ArgTestProcessorNode{
-			MaxShards:            maxShards,
+			MaxShards:            maxShardsLocal,
 			NodeShardId:          shardId,
 			TxSignPrivKeyShardId: shardId,
 			WithSync:             true,
@@ -2310,7 +2310,7 @@ func SetupSyncNodesOneShardAndMeta(
 
 	for i := 0; i < numNodesMeta; i++ {
 		metaNode := NewTestProcessorNode(ArgTestProcessorNode{
-			MaxShards:            maxShards,
+			MaxShards:            maxShardsLocal,
 			NodeShardId:          core.MetachainShardId,
 			TxSignPrivKeyShardId: shardId,
 			WithSync:             true,

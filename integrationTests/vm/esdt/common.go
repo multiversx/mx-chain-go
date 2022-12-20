@@ -12,7 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	testVm "github.com/ElrondNetwork/elrond-go/integrationTests/vm"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/wasm"
 	"github.com/ElrondNetwork/elrond-go/process"
 	vmFactory "github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -102,15 +102,15 @@ func DeployNonPayableSmartContractFromNode(
 	round *uint64,
 	fileName string,
 ) []byte {
-	scCode := arwen.GetSCCode(fileName)
-	scAddress, _ := nodes[idDeployer].BlockchainHook.NewAddress(nodes[idDeployer].OwnAccount.Address, nodes[idDeployer].OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
+	scCode := wasm.GetSCCode(fileName)
+	scAddress, _ := nodes[idDeployer].BlockchainHook.NewAddress(nodes[idDeployer].OwnAccount.Address, nodes[idDeployer].OwnAccount.Nonce, vmFactory.WasmVirtualMachine)
 
 	integrationTests.CreateAndSendTransaction(
 		nodes[idDeployer],
 		nodes,
 		big.NewInt(0),
 		testVm.CreateEmptyAddress(),
-		arwen.CreateDeployTxDataNonPayable(scCode),
+		wasm.CreateDeployTxDataNonPayable(scCode),
 		integrationTests.AdditionalGasLimit,
 	)
 

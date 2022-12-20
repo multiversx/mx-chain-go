@@ -24,7 +24,7 @@ func TestTransaction_TransactionSCScenarios(t *testing.T) {
 
 	net.Increment()
 
-	scPath := "./../../vm/arwen/testdata/counter/counter.wasm"
+	scPath := "./../../vm/wasm/testdata/counter/counter.wasm"
 	scCode, err := ioutil.ReadFile(scPath)
 
 	if err != nil {
@@ -36,7 +36,7 @@ func TestTransaction_TransactionSCScenarios(t *testing.T) {
 	scCodeMetadataString := "0000"
 	builder := txDataBuilder.NewBuilder().
 		Bytes(scCode).
-		Bytes(factory.ArwenVirtualMachine).
+		Bytes(factory.WasmVirtualMachine).
 		Str(scCodeMetadataString)
 	txData := builder.ToBytes()
 

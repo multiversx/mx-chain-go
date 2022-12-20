@@ -380,7 +380,7 @@ func setBalanceToTrie(arg ArgsGenesisBlockCreator, accnt genesis.InitialAccountH
 }
 
 func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpochsConfig config.EnableEpochs) (*genesisProcessors, error) {
-	genesisArwenLocker := &sync.RWMutex{} // use a local instance as to not run in concurrent issues when doing bootstrap
+	genesisWasmVMLocker := &sync.RWMutex{} // use a local instance as to not run in concurrent issues when doing bootstrap
 	epochNotifier := forking.NewGenericEpochNotifier()
 	enableEpochsHandler, err := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifier)
 	if err != nil {
@@ -440,7 +440,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		BlockChainHook:      blockChainHookImpl,
 		EpochNotifier:       epochNotifier,
 		EnableEpochsHandler: enableEpochsHandler,
-		ArwenChangeLocker:   genesisArwenLocker,
+		WasmVMChangeLocker:  genesisWasmVMLocker,
 		ESDTTransferParser:  esdtTransferParser,
 		BuiltInFunctions:    argsHook.BuiltInFunctions,
 	}
@@ -539,7 +539,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		EnableEpochsHandler: enableEpochsHandler,
 		IsGenesisProcessing: true,
 		VMOutputCacher:      txcache.NewDisabledCache(),
-		ArwenChangeLocker:   genesisArwenLocker,
+		WasmVMChangeLocker:  genesisWasmVMLocker,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
@@ -657,7 +657,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		EconomicsFee:             arg.Economics,
 		BlockChainHook:           vmFactoryImpl.BlockChainHookImpl(),
 		BlockChain:               arg.Data.Blockchain(),
-		ArwenChangeLocker:        genesisArwenLocker,
+		WasmVMChangeLocker:       genesisWasmVMLocker,
 		Bootstrapper:             syncDisabled.NewDisabledBootstrapper(),
 		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
 	}

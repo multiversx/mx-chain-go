@@ -103,7 +103,7 @@ type coreComponents struct {
 	chanStopNodeProcess           chan endProcess.ArgEndProcess
 	nodeTypeProvider              core.NodeTypeProviderHandler
 	encodedAddressLen             uint32
-	arwenChangeLocker             common.Locker
+	wasmVMChangeLocker            common.Locker
 	processStatusHandler          common.ProcessStatusHandler
 	hardforkTriggerPubKey         []byte
 	enableEpochsHandler           common.EnableEpochsHandler
@@ -240,13 +240,13 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, err
 	}
 
-	arwenChangeLocker := &sync.RWMutex{}
+	wasmVMChangeLocker := &sync.RWMutex{}
 	gasScheduleConfigurationFolderName := ccf.configPathsHolder.GasScheduleDirectoryName
 	argsGasScheduleNotifier := forking.ArgsNewGasScheduleNotifier{
-		GasScheduleConfig: ccf.epochConfig.GasSchedule,
-		ConfigDir:         gasScheduleConfigurationFolderName,
-		EpochNotifier:     epochNotifier,
-		ArwenChangeLocker: arwenChangeLocker,
+		GasScheduleConfig:  ccf.epochConfig.GasSchedule,
+		ConfigDir:          gasScheduleConfigurationFolderName,
+		EpochNotifier:      epochNotifier,
+		WasmVMChangeLocker: wasmVMChangeLocker,
 	}
 	gasScheduleNotifier, err := forking.NewGasScheduleNotifier(argsGasScheduleNotifier)
 	if err != nil {
@@ -353,7 +353,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		chanStopNodeProcess:           ccf.chanStopNodeProcess,
 		encodedAddressLen:             computeEncodedAddressLen(addressPubkeyConverter),
 		nodeTypeProvider:              nodeTypeProvider,
-		arwenChangeLocker:             arwenChangeLocker,
+		wasmVMChangeLocker:            wasmVMChangeLocker,
 		processStatusHandler:          statusHandler.NewProcessStatusHandler(),
 		hardforkTriggerPubKey:         pubKeyBytes,
 		enableEpochsHandler:           enableEpochsHandler,

@@ -30,7 +30,7 @@ func createMockArgumentsForSCQuery() ArgsNewSCQueryService {
 		EconomicsFee:             &mock.FeeHandlerStub{},
 		BlockChainHook:           &testscommon.BlockChainHookStub{},
 		BlockChain:               &testscommon.ChainHandlerStub{},
-		ArwenChangeLocker:        &sync.RWMutex{},
+		WasmVMChangeLocker:       &sync.RWMutex{},
 		Bootstrapper:             &mock.BootstrapperStub{},
 		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
 	}
@@ -80,11 +80,11 @@ func TestNewSCQueryService_NilBLockChainHookShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilBlockChainHook, err)
 }
 
-func TestNewSCQueryService_NilArwenLockerShouldErr(t *testing.T) {
+func TestNewSCQueryService_NilWasmVMLockerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForSCQuery()
-	args.ArwenChangeLocker = nil
+	args.WasmVMChangeLocker = nil
 	target, err := NewSCQueryService(args)
 
 	assert.Nil(t, target)
@@ -742,7 +742,7 @@ func TestNewSCQueryService_CloseShouldWork(t *testing.T) {
 		EconomicsFee:             &mock.FeeHandlerStub{},
 		BlockChainHook:           &testscommon.BlockChainHookStub{},
 		BlockChain:               &testscommon.ChainHandlerStub{},
-		ArwenChangeLocker:        &sync.RWMutex{},
+		WasmVMChangeLocker:       &sync.RWMutex{},
 		Bootstrapper:             &mock.BootstrapperStub{},
 		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
 	}

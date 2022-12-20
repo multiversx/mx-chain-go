@@ -20,8 +20,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	testVm "github.com/ElrondNetwork/elrond-go/integrationTests/vm"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
 	esdtCommon "github.com/ElrondNetwork/elrond-go/integrationTests/vm/esdt"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/wasm"
 	"github.com/ElrondNetwork/elrond-go/process"
 	vmFactory "github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
@@ -434,15 +434,15 @@ func TestScSendsEsdtToUserWithMessage(t *testing.T) {
 
 	// deploy the smart contract
 
-	vaultScCode := arwen.GetSCCode("../testdata/vaultV1.wasm")
-	vaultScAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
+	vaultScCode := wasm.GetSCCode("../testdata/vaultV1.wasm")
+	vaultScAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.WasmVirtualMachine)
 
 	integrationTests.CreateAndSendTransaction(
 		nodes[0],
 		nodes,
 		big.NewInt(0),
 		testVm.CreateEmptyAddress(),
-		arwen.CreateDeployTxData(vaultScCode),
+		wasm.CreateDeployTxData(vaultScCode),
 		integrationTests.AdditionalGasLimit,
 	)
 
@@ -550,15 +550,15 @@ func TestESDTcallsSC(t *testing.T) {
 	}
 
 	// deploy the smart contract
-	scCode := arwen.GetSCCode("../testdata/crowdfunding-esdt.wasm")
-	scAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
+	scCode := wasm.GetSCCode("../testdata/crowdfunding-esdt.wasm")
+	scAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.WasmVirtualMachine)
 
 	integrationTests.CreateAndSendTransaction(
 		nodes[0],
 		nodes,
 		big.NewInt(0),
 		testVm.CreateEmptyAddress(),
-		arwen.CreateDeployTxData(scCode)+"@"+
+		wasm.CreateDeployTxData(scCode)+"@"+
 			hex.EncodeToString(big.NewInt(1000).Bytes())+"@"+
 			hex.EncodeToString(big.NewInt(1000).Bytes())+"@"+
 			hex.EncodeToString([]byte(tokenIdentifier)),
@@ -649,15 +649,15 @@ func TestScCallsScWithEsdtIntraShard(t *testing.T) {
 
 	// deploy the smart contracts
 
-	vaultCode := arwen.GetSCCode("../testdata/vaultV1.wasm")
-	vault, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
+	vaultCode := wasm.GetSCCode("../testdata/vaultV1.wasm")
+	vault, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.WasmVirtualMachine)
 
 	integrationTests.CreateAndSendTransaction(
 		nodes[0],
 		nodes,
 		big.NewInt(0),
 		testVm.CreateEmptyAddress(),
-		arwen.CreateDeployTxData(vaultCode),
+		wasm.CreateDeployTxData(vaultCode),
 		integrationTests.AdditionalGasLimit,
 	)
 
@@ -665,15 +665,15 @@ func TestScCallsScWithEsdtIntraShard(t *testing.T) {
 	_, err := nodes[0].AccntState.GetExistingAccount(vault)
 	require.Nil(t, err)
 
-	forwarderCode := arwen.GetSCCode("../testdata/forwarder-raw.wasm")
-	forwarder, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
+	forwarderCode := wasm.GetSCCode("../testdata/forwarder-raw.wasm")
+	forwarder, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.WasmVirtualMachine)
 
 	integrationTests.CreateAndSendTransaction(
 		nodes[0],
 		nodes,
 		big.NewInt(0),
 		testVm.CreateEmptyAddress(),
-		arwen.CreateDeployTxData(forwarderCode),
+		wasm.CreateDeployTxData(forwarderCode),
 		integrationTests.AdditionalGasLimit,
 	)
 
@@ -802,15 +802,15 @@ func TestCallbackPaymentEgld(t *testing.T) {
 
 	// deploy the smart contracts
 
-	vaultCode := arwen.GetSCCode("../testdata/vaultV1.wasm")
-	secondScAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
+	vaultCode := wasm.GetSCCode("../testdata/vaultV1.wasm")
+	secondScAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.WasmVirtualMachine)
 
 	integrationTests.CreateAndSendTransaction(
 		nodes[0],
 		nodes,
 		big.NewInt(0),
 		testVm.CreateEmptyAddress(),
-		arwen.CreateDeployTxData(vaultCode),
+		wasm.CreateDeployTxData(vaultCode),
 		integrationTests.AdditionalGasLimit,
 	)
 
@@ -818,15 +818,15 @@ func TestCallbackPaymentEgld(t *testing.T) {
 	_, err := nodes[0].AccntState.GetExistingAccount(secondScAddress)
 	require.Nil(t, err)
 
-	forwarderCode := arwen.GetSCCode("../testdata/forwarder-raw.wasm")
-	forwarder, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
+	forwarderCode := wasm.GetSCCode("../testdata/forwarder-raw.wasm")
+	forwarder, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.WasmVirtualMachine)
 
 	integrationTests.CreateAndSendTransaction(
 		nodes[0],
 		nodes,
 		big.NewInt(0),
 		testVm.CreateEmptyAddress(),
-		arwen.CreateDeployTxData(forwarderCode),
+		wasm.CreateDeployTxData(forwarderCode),
 		integrationTests.AdditionalGasLimit,
 	)
 
@@ -912,15 +912,15 @@ func TestScCallsScWithEsdtCrossShard(t *testing.T) {
 
 	// deploy the smart contracts
 
-	vaultCode := arwen.GetSCCode("../testdata/vaultV1.wasm")
-	secondScAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
+	vaultCode := wasm.GetSCCode("../testdata/vaultV1.wasm")
+	secondScAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.WasmVirtualMachine)
 
 	integrationTests.CreateAndSendTransaction(
 		nodes[0],
 		nodes,
 		big.NewInt(0),
 		testVm.CreateEmptyAddress(),
-		arwen.CreateDeployTxData(vaultCode),
+		wasm.CreateDeployTxData(vaultCode),
 		integrationTests.AdditionalGasLimit,
 	)
 
@@ -928,14 +928,14 @@ func TestScCallsScWithEsdtCrossShard(t *testing.T) {
 	_, err := nodes[0].AccntState.GetExistingAccount(secondScAddress)
 	require.Nil(t, err)
 
-	forwarderCode := arwen.GetSCCode("../testdata/forwarder-raw.wasm")
-	forwarder, _ := nodes[2].BlockchainHook.NewAddress(nodes[2].OwnAccount.Address, nodes[2].OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
+	forwarderCode := wasm.GetSCCode("../testdata/forwarder-raw.wasm")
+	forwarder, _ := nodes[2].BlockchainHook.NewAddress(nodes[2].OwnAccount.Address, nodes[2].OwnAccount.Nonce, vmFactory.WasmVirtualMachine)
 	integrationTests.CreateAndSendTransaction(
 		nodes[2],
 		nodes,
 		big.NewInt(0),
 		testVm.CreateEmptyAddress(),
-		arwen.CreateDeployTxData(forwarderCode),
+		wasm.CreateDeployTxData(forwarderCode),
 		integrationTests.AdditionalGasLimit,
 	)
 
@@ -1032,15 +1032,15 @@ func TestScCallsScWithEsdtIntraShard_SecondScRefusesPayment(t *testing.T) {
 
 	// deploy the smart contracts
 
-	secondScCode := arwen.GetSCCode("../testdata/second-contract.wasm")
-	secondScAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
+	secondScCode := wasm.GetSCCode("../testdata/second-contract.wasm")
+	secondScAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.WasmVirtualMachine)
 
 	integrationTests.CreateAndSendTransaction(
 		nodes[0],
 		nodes,
 		big.NewInt(0),
 		testVm.CreateEmptyAddress(),
-		arwen.CreateDeployTxDataNonPayable(secondScCode)+"@"+
+		wasm.CreateDeployTxDataNonPayable(secondScCode)+"@"+
 			hex.EncodeToString([]byte(tokenIdentifier)),
 		integrationTests.AdditionalGasLimit,
 	)
@@ -1049,15 +1049,15 @@ func TestScCallsScWithEsdtIntraShard_SecondScRefusesPayment(t *testing.T) {
 	_, err := nodes[0].AccntState.GetExistingAccount(secondScAddress)
 	require.Nil(t, err)
 
-	firstScCode := arwen.GetSCCode("../testdata/first-contract.wasm")
-	firstScAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
+	firstScCode := wasm.GetSCCode("../testdata/first-contract.wasm")
+	firstScAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.WasmVirtualMachine)
 
 	integrationTests.CreateAndSendTransaction(
 		nodes[0],
 		nodes,
 		big.NewInt(0),
 		testVm.CreateEmptyAddress(),
-		arwen.CreateDeployTxDataNonPayable(firstScCode)+"@"+
+		wasm.CreateDeployTxDataNonPayable(firstScCode)+"@"+
 			hex.EncodeToString([]byte(tokenIdentifier))+"@"+
 			hex.EncodeToString(secondScAddress),
 		integrationTests.AdditionalGasLimit,
@@ -1124,15 +1124,15 @@ func TestScACallsScBWithExecOnDestESDT_TxPending(t *testing.T) {
 
 	// deploy smart contracts
 
-	callerScCode := arwen.GetSCCode("../testdata/exec-on-dest-caller.wasm")
-	callerScAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
+	callerScCode := wasm.GetSCCode("../testdata/exec-on-dest-caller.wasm")
+	callerScAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.WasmVirtualMachine)
 
 	integrationTests.CreateAndSendTransaction(
 		nodes[0],
 		nodes,
 		big.NewInt(0),
 		testVm.CreateEmptyAddress(),
-		arwen.CreateDeployTxDataNonPayable(callerScCode),
+		wasm.CreateDeployTxDataNonPayable(callerScCode),
 		integrationTests.AdditionalGasLimit,
 	)
 
@@ -1140,15 +1140,15 @@ func TestScACallsScBWithExecOnDestESDT_TxPending(t *testing.T) {
 	_, err := nodes[0].AccntState.GetExistingAccount(callerScAddress)
 	require.Nil(t, err)
 
-	receiverScCode := arwen.GetSCCode("../testdata/exec-on-dest-receiver.wasm")
-	receiverScAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
+	receiverScCode := wasm.GetSCCode("../testdata/exec-on-dest-receiver.wasm")
+	receiverScAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.WasmVirtualMachine)
 
 	integrationTests.CreateAndSendTransaction(
 		nodes[0],
 		nodes,
 		big.NewInt(0),
 		testVm.CreateEmptyAddress(),
-		arwen.CreateDeployTxDataNonPayable(receiverScCode)+"@"+
+		wasm.CreateDeployTxDataNonPayable(receiverScCode)+"@"+
 			hex.EncodeToString([]byte(tokenIdentifier)),
 		integrationTests.AdditionalGasLimit,
 	)
@@ -1281,15 +1281,15 @@ func TestScACallsScBWithExecOnDestScAPerformsAsyncCall_NoCallbackInScB(t *testin
 	tokenIssuer := nodes[0]
 
 	// deploy parent contract
-	callerScCode := arwen.GetSCCode("../testdata/parent.wasm")
-	callerScAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
+	callerScCode := wasm.GetSCCode("../testdata/parent.wasm")
+	callerScAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.WasmVirtualMachine)
 
 	integrationTests.CreateAndSendTransaction(
 		nodes[0],
 		nodes,
 		big.NewInt(0),
 		testVm.CreateEmptyAddress(),
-		arwen.CreateDeployTxDataNonPayable(callerScCode),
+		wasm.CreateDeployTxDataNonPayable(callerScCode),
 		integrationTests.AdditionalGasLimit,
 	)
 
@@ -1299,7 +1299,7 @@ func TestScACallsScBWithExecOnDestScAPerformsAsyncCall_NoCallbackInScB(t *testin
 	require.Nil(t, err)
 
 	// deploy child contract by calling deployChildContract endpoint
-	receiverScCode := arwen.GetSCCode("../testdata/child.wasm")
+	receiverScCode := wasm.GetSCCode("../testdata/child.wasm")
 	txDeployData := txDataBuilder.NewBuilder()
 	txDeployData.Func("deployChildContract").Str(receiverScCode)
 
@@ -1423,15 +1423,15 @@ func TestExecOnDestWithTokenTransferFromScAtoScBWithIntermediaryExecOnDest_NotEn
 	esdtCommon.CheckAddressHasTokens(t, tokenIssuer.OwnAccount.Address, nodes, []byte(tokenIdentifier), 0, initialSupply)
 
 	// deploy smart contracts
-	mapperScCode := arwen.GetSCCode("../testdata/mapper.wasm")
-	mapperScAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
+	mapperScCode := wasm.GetSCCode("../testdata/mapper.wasm")
+	mapperScAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.WasmVirtualMachine)
 
 	integrationTests.CreateAndSendTransaction(
 		nodes[0],
 		nodes,
 		big.NewInt(0),
 		testVm.CreateEmptyAddress(),
-		arwen.CreateDeployTxDataNonPayable(mapperScCode),
+		wasm.CreateDeployTxDataNonPayable(mapperScCode),
 		integrationTests.AdditionalGasLimit,
 	)
 
@@ -1440,15 +1440,15 @@ func TestExecOnDestWithTokenTransferFromScAtoScBWithIntermediaryExecOnDest_NotEn
 	_, err := nodes[0].AccntState.GetExistingAccount(mapperScAddress)
 	require.Nil(t, err)
 
-	senderScCode := arwen.GetSCCode("../testdata/sender.wasm")
-	senderScAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
+	senderScCode := wasm.GetSCCode("../testdata/sender.wasm")
+	senderScAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.WasmVirtualMachine)
 
 	integrationTests.CreateAndSendTransaction(
 		nodes[0],
 		nodes,
 		big.NewInt(0),
 		testVm.CreateEmptyAddress(),
-		arwen.CreateDeployTxDataNonPayable(senderScCode),
+		wasm.CreateDeployTxDataNonPayable(senderScCode),
 		integrationTests.AdditionalGasLimit,
 	)
 	time.Sleep(time.Second)
@@ -1473,15 +1473,15 @@ func TestExecOnDestWithTokenTransferFromScAtoScBWithIntermediaryExecOnDest_NotEn
 	_, err = nodes[0].AccntState.GetExistingAccount(senderScAddress)
 	require.Nil(t, err)
 
-	receiverScCode := arwen.GetSCCode("../testdata/receiver.wasm")
-	receiverScAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
+	receiverScCode := wasm.GetSCCode("../testdata/receiver.wasm")
+	receiverScAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.WasmVirtualMachine)
 
 	integrationTests.CreateAndSendTransaction(
 		nodes[0],
 		nodes,
 		big.NewInt(0),
 		testVm.CreateEmptyAddress(),
-		arwen.CreateDeployTxDataNonPayable(receiverScCode)+"@"+
+		wasm.CreateDeployTxDataNonPayable(receiverScCode)+"@"+
 			hex.EncodeToString([]byte(tokenIdentifier))+"@"+
 			hex.EncodeToString(senderScAddress),
 		integrationTests.AdditionalGasLimit,
@@ -1638,15 +1638,15 @@ func TestExecOnDestWithTokenTransferFromScAtoScBWithScCall_GasUsedMismatch(t *te
 	esdtCommon.CheckAddressHasTokens(t, tokenIssuer.OwnAccount.Address, nodes, []byte(tokenIdentifier), 0, initialSupplyWEGLD)
 
 	// deploy smart contracts
-	mapperScCode := arwen.GetSCCode("../testdata/mapperA.wasm")
-	mapperScAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
+	mapperScCode := wasm.GetSCCode("../testdata/mapperA.wasm")
+	mapperScAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.WasmVirtualMachine)
 
 	integrationTests.CreateAndSendTransaction(
 		nodes[0],
 		nodes,
 		big.NewInt(0),
 		testVm.CreateEmptyAddress(),
-		arwen.CreateDeployTxDataNonPayable(mapperScCode),
+		wasm.CreateDeployTxDataNonPayable(mapperScCode),
 		integrationTests.AdditionalGasLimit,
 	)
 
@@ -1655,15 +1655,15 @@ func TestExecOnDestWithTokenTransferFromScAtoScBWithScCall_GasUsedMismatch(t *te
 	_, err := nodes[0].AccntState.GetExistingAccount(mapperScAddress)
 	require.Nil(t, err)
 
-	senderScCode := arwen.GetSCCode("../testdata/senderA.wasm")
-	senderScAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
+	senderScCode := wasm.GetSCCode("../testdata/senderA.wasm")
+	senderScAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.WasmVirtualMachine)
 
 	integrationTests.CreateAndSendTransaction(
 		nodes[0],
 		nodes,
 		big.NewInt(0),
 		testVm.CreateEmptyAddress(),
-		arwen.CreateDeployTxDataNonPayable(senderScCode),
+		wasm.CreateDeployTxDataNonPayable(senderScCode),
 		integrationTests.AdditionalGasLimit,
 	)
 	time.Sleep(time.Second)
@@ -1688,15 +1688,15 @@ func TestExecOnDestWithTokenTransferFromScAtoScBWithScCall_GasUsedMismatch(t *te
 	_, err = nodes[0].AccntState.GetExistingAccount(senderScAddress)
 	require.Nil(t, err)
 
-	receiverScCode := arwen.GetSCCode("../testdata/receiverA.wasm")
-	receiverScAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
+	receiverScCode := wasm.GetSCCode("../testdata/receiverA.wasm")
+	receiverScAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.WasmVirtualMachine)
 
 	integrationTests.CreateAndSendTransaction(
 		nodes[0],
 		nodes,
 		big.NewInt(0),
 		testVm.CreateEmptyAddress(),
-		arwen.CreateDeployTxDataNonPayable(receiverScCode)+"@"+
+		wasm.CreateDeployTxDataNonPayable(receiverScCode)+"@"+
 			hex.EncodeToString([]byte(tokenIdentifier))+"@"+
 			hex.EncodeToString(senderScAddress)+"@01@01@01@01@01",
 		integrationTests.AdditionalGasLimit,
@@ -1707,15 +1707,15 @@ func TestExecOnDestWithTokenTransferFromScAtoScBWithScCall_GasUsedMismatch(t *te
 	_, err = nodes[0].AccntState.GetExistingAccount(receiverScAddress)
 	require.Nil(t, err)
 
-	receiverScCodeWEGLD := arwen.GetSCCode("../testdata/receiverA.wasm")
-	receiverScAddressWEGLD, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
+	receiverScCodeWEGLD := wasm.GetSCCode("../testdata/receiverA.wasm")
+	receiverScAddressWEGLD, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.WasmVirtualMachine)
 
 	integrationTests.CreateAndSendTransaction(
 		nodes[0],
 		nodes,
 		big.NewInt(0),
 		testVm.CreateEmptyAddress(),
-		arwen.CreateDeployTxDataNonPayable(receiverScCodeWEGLD)+"@"+
+		wasm.CreateDeployTxDataNonPayable(receiverScCodeWEGLD)+"@"+
 			hex.EncodeToString([]byte(tokenIdentifierWEGLD))+"@"+
 			hex.EncodeToString(senderScAddress)+"@01@01@01@01@01",
 		integrationTests.AdditionalGasLimit,
@@ -2233,15 +2233,15 @@ func TestScCallsScWithEsdtCrossShard_SecondScRefusesPayment(t *testing.T) {
 
 	// deploy the smart contracts
 
-	secondScCode := arwen.GetSCCode("../testdata/second-contract.wasm")
-	secondScAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
+	secondScCode := wasm.GetSCCode("../testdata/second-contract.wasm")
+	secondScAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.WasmVirtualMachine)
 
 	integrationTests.CreateAndSendTransaction(
 		nodes[0],
 		nodes,
 		big.NewInt(0),
 		testVm.CreateEmptyAddress(),
-		arwen.CreateDeployTxDataNonPayable(secondScCode)+"@"+
+		wasm.CreateDeployTxDataNonPayable(secondScCode)+"@"+
 			hex.EncodeToString([]byte(tokenIdentifier)),
 		integrationTests.AdditionalGasLimit,
 	)
@@ -2250,14 +2250,14 @@ func TestScCallsScWithEsdtCrossShard_SecondScRefusesPayment(t *testing.T) {
 	_, err := nodes[0].AccntState.GetExistingAccount(secondScAddress)
 	require.Nil(t, err)
 
-	firstScCode := arwen.GetSCCode("../testdata/first-contract.wasm")
-	firstScAddress, _ := nodes[2].BlockchainHook.NewAddress(nodes[2].OwnAccount.Address, nodes[2].OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
+	firstScCode := wasm.GetSCCode("../testdata/first-contract.wasm")
+	firstScAddress, _ := nodes[2].BlockchainHook.NewAddress(nodes[2].OwnAccount.Address, nodes[2].OwnAccount.Nonce, vmFactory.WasmVirtualMachine)
 	integrationTests.CreateAndSendTransaction(
 		nodes[2],
 		nodes,
 		big.NewInt(0),
 		testVm.CreateEmptyAddress(),
-		arwen.CreateDeployTxDataNonPayable(firstScCode)+"@"+
+		wasm.CreateDeployTxDataNonPayable(firstScCode)+"@"+
 			hex.EncodeToString([]byte(tokenIdentifier))+"@"+
 			hex.EncodeToString(secondScAddress),
 		integrationTests.AdditionalGasLimit,
@@ -2392,18 +2392,18 @@ func multiTransferFromSC(t *testing.T, numOfShards int) {
 	esdtCommon.CheckAddressHasTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdentifier, 0, initialSupply)
 
 	// deploy the smart contract
-	scCode := arwen.GetSCCode("../testdata/multi-transfer-esdt.wasm")
+	scCode := wasm.GetSCCode("../testdata/multi-transfer-esdt.wasm")
 	scAddress, _ := tokenIssuer.BlockchainHook.NewAddress(
 		tokenIssuer.OwnAccount.Address,
 		tokenIssuer.OwnAccount.Nonce,
-		vmFactory.ArwenVirtualMachine)
+		vmFactory.WasmVirtualMachine)
 
 	integrationTests.CreateAndSendTransaction(
 		ownerNode,
 		nodes,
 		big.NewInt(0),
 		testVm.CreateEmptyAddress(),
-		arwen.CreateDeployTxData(scCode)+"@"+hex.EncodeToString(tokenIdentifier),
+		wasm.CreateDeployTxData(scCode)+"@"+hex.EncodeToString(tokenIdentifier),
 		integrationTests.AdditionalGasLimit,
 	)
 

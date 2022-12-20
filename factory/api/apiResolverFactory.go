@@ -424,7 +424,7 @@ func createScQueryElement(
 			GasSchedule:         args.gasScheduleNotifier,
 			EpochNotifier:       args.coreComponents.EpochNotifier(),
 			EnableEpochsHandler: args.coreComponents.EnableEpochsHandler(),
-			ArwenChangeLocker:   args.coreComponents.ArwenChangeLocker(),
+			WasmVMChangeLocker:  args.coreComponents.WasmVMChangeLocker(),
 			ESDTTransferParser:  esdtTransferParser,
 		}
 
@@ -455,7 +455,7 @@ func createScQueryElement(
 		EconomicsFee:             args.coreComponents.EconomicsData(),
 		BlockChainHook:           vmFactory.BlockChainHookImpl(),
 		BlockChain:               args.dataComponents.Blockchain(),
-		ArwenChangeLocker:        args.coreComponents.ArwenChangeLocker(),
+		WasmVMChangeLocker:       args.coreComponents.WasmVMChangeLocker(),
 		Bootstrapper:             args.bootstrapper,
 		AllowExternalQueriesChan: args.allowVMQueriesChan,
 		MaxGasLimitPerQuery:      maxGasForVmQueries,

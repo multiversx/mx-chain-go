@@ -114,7 +114,7 @@ func (vmc *virtualMachinesContainer) Keys() [][]byte {
 	return keysBytes
 }
 
-// Close closes the items in the container (meaningful for Arwen out-of-process)
+// Close closes the items in the container (meaningful for Wasm VM out-of-process)
 func (vmc *virtualMachinesContainer) Close() error {
 	var err error
 	for _, item := range vmc.objects.Values() {

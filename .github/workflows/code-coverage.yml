@@ -35,7 +35,7 @@ jobs:
           fi
       - name: Run unit tests
         run: |
-          export ARWEN_PATH=${GITHUB_WORKSPACE}/arwen
+          export WASM_PATH=${GITHUB_WORKSPACE}/wasm
           make test-coverage
 
       - name: Upload coverage

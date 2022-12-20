@@ -20,7 +20,7 @@ func TestShouldProcessMultipleERC20ContractsInSingleShard(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	scCode, err := ioutil.ReadFile("../../../vm/arwen/testdata/erc20-c-03/wrc20_arwen.wasm")
+	scCode, err := ioutil.ReadFile("../../../vm/wasm/testdata/erc20-c-03/wrc20_wasm.wasm")
 	assert.Nil(t, err)
 
 	maxShards := uint32(1)
@@ -68,7 +68,7 @@ func TestShouldProcessMultipleERC20ContractsInSingleShard(t *testing.T) {
 	integrationTests.MintAllNodes(nodes, initialVal)
 	integrationTests.MintAllPlayers(nodes, players, initialVal)
 
-	integrationTests.DeployScTx(nodes, idxProposer, hex.EncodeToString(scCode), factory.ArwenVirtualMachine, "001000000000")
+	integrationTests.DeployScTx(nodes, idxProposer, hex.EncodeToString(scCode), factory.WasmVirtualMachine, "001000000000")
 	time.Sleep(block.StepDelay)
 	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, []int{idxProposer}, round, nonce)
 

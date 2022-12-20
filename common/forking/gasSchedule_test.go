@@ -27,9 +27,9 @@ func createGasScheduleNotifierArgs() ArgsNewGasScheduleNotifier {
 					FileName:   "gasScheduleV2.toml",
 				},
 			}},
-		ConfigDir:         "../../cmd/node/config/gasSchedules",
-		EpochNotifier:     NewGenericEpochNotifier(),
-		ArwenChangeLocker: &sync.RWMutex{},
+		ConfigDir:          "../../cmd/node/config/gasSchedules",
+		EpochNotifier:      NewGenericEpochNotifier(),
+		WasmVMChangeLocker: &sync.RWMutex{},
 	}
 }
 
@@ -200,9 +200,9 @@ func testGasScheduleNotifierDeadlock(t *testing.T) {
 	go func() {
 		time.Sleep(time.Millisecond * 10)
 
-		args.ArwenChangeLocker.Lock()
+		args.WasmVMChangeLocker.Lock()
 		_ = g.LatestGasSchedule()
-		args.ArwenChangeLocker.Unlock()
+		args.WasmVMChangeLocker.Unlock()
 
 		close(chFinish)
 	}()

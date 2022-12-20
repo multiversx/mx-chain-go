@@ -51,7 +51,7 @@ type CoreComponentsMock struct {
 	ChanStopProcess              chan endProcess.ArgEndProcess
 	StartTime                    time.Time
 	NodeTypeProviderField        core.NodeTypeProviderHandler
-	ArwenChangeLockerInternal    common.Locker
+	WasmVMChangeLockerInternal   common.Locker
 	ProcessStatusHandlerInternal common.ProcessStatusHandler
 	HardforkTriggerPubKeyField   []byte
 	EnableEpochsHandlerField     common.EnableEpochsHandler
@@ -220,9 +220,9 @@ func (ccm *CoreComponentsMock) NodeTypeProvider() core.NodeTypeProviderHandler {
 	return ccm.NodeTypeProviderField
 }
 
-// ArwenChangeLocker -
-func (ccm *CoreComponentsMock) ArwenChangeLocker() common.Locker {
-	return ccm.ArwenChangeLockerInternal
+// WasmVMChangeLocker -
+func (ccm *CoreComponentsMock) WasmVMChangeLocker() common.Locker {
+	return ccm.WasmVMChangeLockerInternal
 }
 
 // ProcessStatusHandler -

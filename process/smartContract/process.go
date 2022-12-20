@@ -62,7 +62,7 @@ type scProcessor struct {
 	argsParser         process.ArgumentsParser
 	esdtTransferParser vmcommon.ESDTTransferParser
 	builtInFunctions   vmcommon.BuiltInFunctionContainer
-	arwenChangeLocker  common.Locker
+	wasmVMChangeLocker common.Locker
 
 	enableEpochsHandler common.EnableEpochsHandler
 	badTxForwarder      process.IntermediateTransactionHandler
@@ -102,7 +102,7 @@ type ArgsNewSmartContractProcessor struct {
 	EnableEpochsHandler common.EnableEpochsHandler
 	BadTxForwarder      process.IntermediateTransactionHandler
 	VMOutputCacher      storage.Cacher
-	ArwenChangeLocker   common.Locker
+	WasmVMChangeLocker  common.Locker
 	IsGenesisProcessing bool
 }
 
@@ -159,7 +159,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 	if check.IfNil(args.BadTxForwarder) {
 		return nil, process.ErrNilBadTxHandler
 	}
-	if check.IfNilReflect(args.ArwenChangeLocker) {
+	if check.IfNilReflect(args.WasmVMChangeLocker) {
 		return nil, process.ErrNilLocker
 	}
 	if check.IfNil(args.VMOutputCacher) {
@@ -191,7 +191,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		badTxForwarder:      args.BadTxForwarder,
 		builtInFunctions:    args.BuiltInFunctions,
 		isGenesisProcessing: args.IsGenesisProcessing,
-		arwenChangeLocker:   args.ArwenChangeLocker,
+		wasmVMChangeLocker:  args.WasmVMChangeLocker,
 		vmOutputCacher:      args.VMOutputCacher,
 		storePerByte:        baseOperationCost["StorePerByte"],
 		persistPerByte:      baseOperationCost["PersistPerByte"],
@@ -357,14 +357,14 @@ func (sc *scProcessor) executeSmartContractCall(
 		return nil, process.ErrNilSCDestAccount
 	}
 
-	sc.arwenChangeLocker.RLock()
+	sc.wasmVMChangeLocker.RLock()
 
 	userErrorVmOutput := &vmcommon.VMOutput{
 		ReturnCode: vmcommon.UserError,
 	}
 	vmExec, err := findVMByScAddress(sc.vmContainer, vmInput.RecipientAddr)
 	if err != nil {
-		sc.arwenChangeLocker.RUnlock()
+		sc.wasmVMChangeLocker.RUnlock()
 		returnMessage := "cannot get vm from address"
 		log.Trace("get vm from address error", "error", err.Error())
 		return userErrorVmOutput, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(returnMessage), snapshot, vmInput.GasLocked)
@@ -375,7 +375,7 @@ func (sc *scProcessor) executeSmartContractCall(
 
 	var vmOutput *vmcommon.VMOutput
 	vmOutput, err = vmExec.RunSmartContractCall(vmInput)
-	sc.arwenChangeLocker.RUnlock()
+	sc.wasmVMChangeLocker.RUnlock()
 	if err != nil {
 		log.Debug("run smart contract call error", "error", err.Error())
 		return userErrorVmOutput, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
@@ -1698,16 +1698,16 @@ func (sc *scProcessor) doDeploySmartContract(
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot, 0)
 	}
 
-	sc.arwenChangeLocker.RLock()
+	sc.wasmVMChangeLocker.RLock()
 	vmExec, err := sc.vmContainer.Get(vmType)
 	if err != nil {
-		sc.arwenChangeLocker.RUnlock()
+		sc.wasmVMChangeLocker.RUnlock()
 		log.Trace("VM not found", "error", err.Error())
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
 	}
 
 	vmOutput, err = vmExec.RunSmartContractCreate(vmInput)
-	sc.arwenChangeLocker.RUnlock()
+	sc.wasmVMChangeLocker.RUnlock()
 	if err != nil {
 		log.Debug("VM error", "error", err.Error())
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
@@ -2578,7 +2578,7 @@ func (sc *scProcessor) updateSmartContractCode(
 		return err
 	}
 
-	// This check is desirable (not required though) since currently both Arwen and IELE send the code in the output account even for "regular" execution
+	// This check is desirable (not required though) since currently both Wasm VM and IELE send the code in the output account even for "regular" execution
 	sameCode := bytes.Equal(outputAccount.Code, sc.accounts.GetCode(stateAccount.GetCodeHash()))
 	sameCodeMetadata := bytes.Equal(outputAccountCodeMetadataBytes, stateAccount.GetCodeMetadata())
 	if sameCode && sameCodeMetadata {

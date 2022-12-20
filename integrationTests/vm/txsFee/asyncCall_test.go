@@ -1,7 +1,7 @@
 //go:build !race
 // +build !race
 
-// TODO remove build condition above to allow -race -short, after Arwen fix
+// TODO remove build condition above to allow -race -short, after Wasm VM fix
 
 package txsFee
 
@@ -19,7 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
 	"github.com/ElrondNetwork/elrond-go/process"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	arwenConfig "github.com/ElrondNetwork/wasm-vm-v1_4/config"
+	wasmConfig "github.com/ElrondNetwork/wasm-vm-v1_4/config"
 	"github.com/stretchr/testify/require"
 )
 
@@ -77,7 +77,7 @@ func TestAsyncCallShouldWork(t *testing.T) {
 }
 
 func TestMinterContractWithAsyncCalls(t *testing.T) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMsAndCustomGasSchedule(config.EnableEpochs{}, func(gasMap arwenConfig.GasScheduleMap) {
+	testContext, err := vm.CreatePreparedTxProcessorWithVMsAndCustomGasSchedule(config.EnableEpochs{}, func(gasMap wasmConfig.GasScheduleMap) {
 		// if `MaxBuiltInCallsPerTx` is 200 test will fail
 		gasMap[common.MaxPerTransaction]["MaxBuiltInCallsPerTx"] = 199
 		gasMap[common.MaxPerTransaction]["MaxNumberOfTransfersPerTx"] = 100000

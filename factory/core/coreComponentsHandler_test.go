@@ -50,7 +50,7 @@ func TestManagedCoreComponents_CreateShouldWork(t *testing.T) {
 	require.Equal(t, "", managedCoreComponents.ChainID())
 	require.Nil(t, managedCoreComponents.AddressPubKeyConverter())
 	require.Nil(t, managedCoreComponents.EnableRoundsHandler())
-	require.Nil(t, managedCoreComponents.ArwenChangeLocker())
+	require.Nil(t, managedCoreComponents.WasmVMChangeLocker())
 	require.Nil(t, managedCoreComponents.ProcessStatusHandler())
 	require.True(t, len(managedCoreComponents.HardforkTriggerPubKey()) == 0)
 
@@ -67,7 +67,7 @@ func TestManagedCoreComponents_CreateShouldWork(t *testing.T) {
 	require.NotEqual(t, "", managedCoreComponents.ChainID())
 	require.NotNil(t, managedCoreComponents.AddressPubKeyConverter())
 	require.NotNil(t, managedCoreComponents.EnableRoundsHandler())
-	require.NotNil(t, managedCoreComponents.ArwenChangeLocker())
+	require.NotNil(t, managedCoreComponents.WasmVMChangeLocker())
 	require.NotNil(t, managedCoreComponents.ProcessStatusHandler())
 	expectedBytes, _ := managedCoreComponents.ValidatorPubKeyConverter().Decode(componentsMock.DummyPk)
 	require.Equal(t, expectedBytes, managedCoreComponents.HardforkTriggerPubKey())

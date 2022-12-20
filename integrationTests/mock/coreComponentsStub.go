@@ -49,7 +49,7 @@ type CoreComponentsStub struct {
 	GenesisTimeField                   time.Time
 	TxVersionCheckField                process.TxVersionCheckerHandler
 	NodeTypeProviderField              core.NodeTypeProviderHandler
-	ArwenChangeLockerInternal          common.Locker
+	WasmVMChangeLockerInternal         common.Locker
 	ProcessStatusHandlerInternal       common.ProcessStatusHandler
 	HardforkTriggerPubKeyField         []byte
 	EnableEpochsHandlerField           common.EnableEpochsHandler
@@ -228,9 +228,9 @@ func (ccs *CoreComponentsStub) NodeTypeProvider() core.NodeTypeProviderHandler {
 	return ccs.NodeTypeProviderField
 }
 
-// ArwenChangeLocker -
-func (ccs *CoreComponentsStub) ArwenChangeLocker() common.Locker {
-	return ccs.ArwenChangeLockerInternal
+// WasmVMChangeLocker -
+func (ccs *CoreComponentsStub) WasmVMChangeLocker() common.Locker {
+	return ccs.WasmVMChangeLockerInternal
 }
 
 // ProcessStatusHandler -
