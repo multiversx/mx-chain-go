@@ -98,8 +98,6 @@ func (s *sorter) PutExecutionOrderInTransactionPool(
 
 	scheduledExecutedSCRSHashesPrevBlock := setOrderSmartContractResults(pool, scheduledMbsFromPreviousBlock, resultsTxsToMe.scrsToMe)
 
-	printPool(pool)
-
 	return scheduledExecutedSCRSHashesPrevBlock, resultTxsFromMe.scheduledExecutedInvalidTxsHashesPrevBlock, nil
 }
 
@@ -298,40 +296,4 @@ func getProcessingType(header data.HeaderHandler, mbIndex int) int32 {
 	}
 
 	return miniblockHeaders[mbIndex].GetProcessingType()
-}
-
-// TODO remove this after system test will pass
-func printPool(pool *outport.Pool) {
-	printMapTxs := func(txs map[string]data.TransactionHandlerWithGasUsedAndFee) {
-		for hash, tx := range txs {
-			log.Warn(hex.EncodeToString([]byte(hash)), "order", tx.GetExecutionOrder())
-		}
-	}
-
-	total := len(pool.Txs) + len(pool.Invalid) + len(pool.Scrs) + len(pool.Rewards)
-	if total > 0 {
-		log.Warn("###################################")
-	}
-
-	if len(pool.Txs) > 0 {
-		log.Warn("############### NORMAL TXS ####################")
-		printMapTxs(pool.Txs)
-	}
-	if len(pool.Invalid) > 0 {
-		log.Warn("############### INVALID ####################")
-		printMapTxs(pool.Invalid)
-	}
-
-	if len(pool.Scrs) > 0 {
-		log.Warn("############### SCRS ####################")
-		printMapTxs(pool.Scrs)
-	}
-
-	if len(pool.Rewards) > 0 {
-		log.Warn("############### REWARDS ####################")
-		printMapTxs(pool.Rewards)
-	}
-	if total > 0 {
-		log.Warn("###################################")
-	}
 }
