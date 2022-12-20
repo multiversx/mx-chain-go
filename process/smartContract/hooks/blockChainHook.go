@@ -270,9 +270,6 @@ func (bh *BlockChainHookImpl) GetStorageData(accountAddress []byte, index []byte
 }
 
 func (bh *BlockChainHookImpl) processMaxReadsCounters() error {
-	//if !bh.enableEpochsHandler.IsMaxBlockchainHookCountersFlagEnabled() {
-	//	return nil
-	//}
 	if bh.shardCoordinator.SelfId() == core.MetachainShardId {
 		return nil
 	}
@@ -477,9 +474,6 @@ func (bh *BlockChainHookImpl) ProcessBuiltInFunction(input *vmcommon.ContractCal
 }
 
 func (bh *BlockChainHookImpl) processMaxBuiltInCounters(input *vmcommon.ContractCallInput) error {
-	// if !bh.enableEpochsHandler.IsMaxBlockchainHookCountersFlagEnabled() {
-	//	return nil
-	//}
 	if bh.shardCoordinator.SelfId() == core.MetachainShardId {
 		return nil
 	}

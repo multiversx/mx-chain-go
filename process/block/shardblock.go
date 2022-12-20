@@ -870,8 +870,6 @@ func (sp *shardProcessor) CommitBlock(
 	headerHandler data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 ) error {
-	// common.WriteCSV()
-
 	var err error
 	sp.processStatusHandler.SetBusy("shardProcessor.CommitBlock")
 	defer func() {
