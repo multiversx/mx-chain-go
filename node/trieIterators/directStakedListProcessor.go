@@ -83,7 +83,10 @@ func (dslp *directStakedListProcessor) getAllStakedAccounts(validatorAccount sta
 
 		baseStaked := big.NewInt(0).Set(info.totalStakedValue)
 		baseStaked.Sub(baseStaked, info.topUpValue)
-		encodedLeafKey := dslp.publicKeyConverter.SilentEncode(leafKey, log)
+		encodedLeafKey, err := dslp.publicKeyConverter.Encode(leafKey)
+		if err != nil {
+			return nil, err
+		}
 
 		val := &api.DirectStakedValue{
 			Address:    encodedLeafKey,
