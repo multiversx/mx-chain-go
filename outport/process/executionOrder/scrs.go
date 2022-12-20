@@ -7,7 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 )
 
-func setOrderSmartContractResults(pool *outport.Pool, scheduledMbsFromPreviousBlock []*block.MiniBlock) []string {
+func setOrderSmartContractResults(pool *outport.Pool, scheduledMbsFromPreviousBlock []*block.MiniBlock, scrsToMe map[string]data.TransactionHandlerWithGasUsedAndFee) []string {
 	scheduledExecutedTxsPrevBlockMap := make(map[string]struct{})
 	for _, mb := range scheduledMbsFromPreviousBlock {
 		for _, txHash := range mb.TxHashes {
@@ -16,7 +16,7 @@ func setOrderSmartContractResults(pool *outport.Pool, scheduledMbsFromPreviousBl
 	}
 
 	scheduledExecutedSCRsPrevBlock := make([]string, 0)
-	scrsWithNoTxInCurrentShard := make(map[string][]data.TransactionHandlerWithGasUsedAndFee)
+	scrsWithNoTxInCurrentShard := make(map[string]map[string]data.TransactionHandlerWithGasUsedAndFee)
 	for scrHash, scrHandler := range pool.Scrs {
 		scr, ok := scrHandler.GetTxHandler().(*smartContractResult.SmartContractResult)
 		if !ok {
@@ -30,29 +30,29 @@ func setOrderSmartContractResults(pool *outport.Pool, scheduledMbsFromPreviousBl
 
 		tx, found := pool.Txs[string(scr.OriginalTxHash)]
 		if !found {
-			groupScrsWithNoTxInCurrentShard(scrsWithNoTxInCurrentShard, string(scr.OriginalTxHash), scrHandler)
+			groupScrsWithNoTxInCurrentShard(scrsWithNoTxInCurrentShard, string(scr.OriginalTxHash), scrHandler, scrHash)
 			continue
 		}
 
 		scrHandler.SetExecutionOrder(tx.GetExecutionOrder())
 	}
 
-	setExecutionOrderScrsWithNoTxInCurrentShard(scrsWithNoTxInCurrentShard)
+	setExecutionOrderScrsWithNoTxInCurrentShard(scrsWithNoTxInCurrentShard, scrsToMe)
 
 	return scheduledExecutedSCRsPrevBlock
 }
 
-func groupScrsWithNoTxInCurrentShard(scrsWithNoTxInCurrentShard map[string][]data.TransactionHandlerWithGasUsedAndFee, originalTxHash string, scrHandler data.TransactionHandlerWithGasUsedAndFee) {
+func groupScrsWithNoTxInCurrentShard(scrsWithNoTxInCurrentShard map[string]map[string]data.TransactionHandlerWithGasUsedAndFee, originalTxHash string, scrHandler data.TransactionHandlerWithGasUsedAndFee, scrHash string) {
 	_, ok := scrsWithNoTxInCurrentShard[originalTxHash]
 	if !ok {
-		scrsWithNoTxInCurrentShard[originalTxHash] = make([]data.TransactionHandlerWithGasUsedAndFee, 0)
+		scrsWithNoTxInCurrentShard[originalTxHash] = make(map[string]data.TransactionHandlerWithGasUsedAndFee, 0)
 	}
 
-	scrsWithNoTxInCurrentShard[originalTxHash] = append(scrsWithNoTxInCurrentShard[originalTxHash], scrHandler)
+	scrsWithNoTxInCurrentShard[originalTxHash][scrHash] = scrHandler
 }
 
-func setExecutionOrderScrsWithNoTxInCurrentShard(scrs map[string][]data.TransactionHandlerWithGasUsedAndFee) {
-	for _, scrsGrouped := range scrs {
+func setExecutionOrderScrsWithNoTxInCurrentShard(groupedScrsByOriginalTxHash map[string]map[string]data.TransactionHandlerWithGasUsedAndFee, scrsToMe map[string]data.TransactionHandlerWithGasUsedAndFee) {
+	for _, scrsGrouped := range groupedScrsByOriginalTxHash {
 		maxOrder := 0
 		for _, scr := range scrsGrouped {
 			if maxOrder < scr.GetExecutionOrder() {
@@ -60,7 +60,12 @@ func setExecutionOrderScrsWithNoTxInCurrentShard(scrs map[string][]data.Transact
 			}
 		}
 
-		for _, scr := range scrsGrouped {
+		for scrHash, scr := range scrsGrouped {
+			_, isSCRToMe := scrsToMe[scrHash]
+			if isSCRToMe {
+				continue
+			}
+
 			scr.SetExecutionOrder(maxOrder)
 		}
 	}
