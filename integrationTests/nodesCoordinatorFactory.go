@@ -45,16 +45,6 @@ func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgInd
 	pubKeyBytes, _ := keys.Pk.ToByteArray()
 
 	nodeShufflerArgs := &nodesCoordinator.NodesShufflerArgs{
-		ChainParametersHandler: &shardingmock.ChainParametersHandlerStub{
-			CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
-				return config.ChainParametersByEpochConfig{
-					ShardMinNumNodes:     uint32(arg.nodesPerShard),
-					MetachainMinNumNodes: uint32(arg.nbMetaNodes),
-					Hysteresis:           hysteresis,
-					Adaptivity:           adaptivity,
-				}
-			},
-		},
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
 		EnableEpochsHandler:  &testscommon.EnableEpochsHandlerStub{},
@@ -62,11 +52,15 @@ func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgInd
 	nodeShuffler, _ := nodesCoordinator.NewHashValidatorsShuffler(nodeShufflerArgs)
 	argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
 		ChainParametersHandler: &shardingmock.ChainParametersHandlerStub{
-			CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
+			ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
 				return config.ChainParametersByEpochConfig{
+					ShardMinNumNodes:            uint32(arg.nodesPerShard),
+					MetachainMinNumNodes:        uint32(arg.nbMetaNodes),
+					Hysteresis:                  hysteresis,
+					Adaptivity:                  adaptivity,
 					ShardConsensusGroupSize:     uint32(arg.shardConsensusGroupSize),
 					MetachainConsensusGroupSize: uint32(arg.metaConsensusGroupSize),
-				}
+				}, nil
 			},
 		},
 		Marshalizer:         TestMarshalizer,
@@ -111,16 +105,6 @@ func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinato
 	pubKeyBytes, _ := keys.Pk.ToByteArray()
 
 	shufflerArgs := &nodesCoordinator.NodesShufflerArgs{
-		ChainParametersHandler: &shardingmock.ChainParametersHandlerStub{
-			CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
-				return config.ChainParametersByEpochConfig{
-					ShardMinNumNodes:     uint32(arg.nodesPerShard),
-					MetachainMinNumNodes: uint32(arg.nbMetaNodes),
-					Hysteresis:           hysteresis,
-					Adaptivity:           adaptivity,
-				}
-			},
-		},
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
 		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
@@ -131,11 +115,15 @@ func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinato
 	nodeShuffler, _ := nodesCoordinator.NewHashValidatorsShuffler(shufflerArgs)
 	argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
 		ChainParametersHandler: &shardingmock.ChainParametersHandlerStub{
-			CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
+			ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
 				return config.ChainParametersByEpochConfig{
+					ShardMinNumNodes:            uint32(arg.nodesPerShard),
+					MetachainMinNumNodes:        uint32(arg.nbMetaNodes),
+					Hysteresis:                  hysteresis,
+					Adaptivity:                  adaptivity,
 					ShardConsensusGroupSize:     uint32(arg.shardConsensusGroupSize),
 					MetachainConsensusGroupSize: uint32(arg.metaConsensusGroupSize),
-				}
+				}, nil
 			},
 		},
 		Marshalizer:         TestMarshalizer,

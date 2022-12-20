@@ -393,16 +393,6 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 	nodesMap := make(map[uint32][]*TestProcessorNode)
 
 	shufflerArgs := &nodesCoordinator.NodesShufflerArgs{
-		ChainParametersHandler: &shardingmock.ChainParametersHandlerStub{
-			CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
-				return config.ChainParametersByEpochConfig{
-					ShardMinNumNodes:     uint32(nodesPerShard),
-					MetachainMinNumNodes: uint32(nbMetaNodes),
-					Hysteresis:           hysteresis,
-					Adaptivity:           adaptivity,
-				}
-			},
-		},
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
 		EnableEpochsHandler:  &testscommon.EnableEpochsHandlerStub{},
@@ -420,11 +410,15 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 		consensusCache, _ := cache.NewLRUCache(10000)
 		argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
 			ChainParametersHandler: &shardingmock.ChainParametersHandlerStub{
-				CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
+				ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
 					return config.ChainParametersByEpochConfig{
 						ShardConsensusGroupSize:     uint32(shardConsensusGroupSize),
+						ShardMinNumNodes:            uint32(nodesPerShard),
 						MetachainConsensusGroupSize: uint32(metaConsensusGroupSize),
-					}
+						MetachainMinNumNodes:        uint32(nbMetaNodes),
+						Hysteresis:                  hysteresis,
+						Adaptivity:                  adaptivity,
+					}, nil
 				},
 			},
 			Marshalizer:         TestMarshalizer,
@@ -541,11 +535,11 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 		lruCache, _ := cache.NewLRUCache(10000)
 		argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
 			ChainParametersHandler: &shardingmock.ChainParametersHandlerStub{
-				CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
+				ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
 					return config.ChainParametersByEpochConfig{
 						ShardConsensusGroupSize:     uint32(shardConsensusGroupSize),
 						MetachainConsensusGroupSize: uint32(metaConsensusGroupSize),
-					}
+					}, nil
 				},
 			},
 			Marshalizer:         TestMarshalizer,

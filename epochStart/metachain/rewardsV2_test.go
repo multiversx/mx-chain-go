@@ -707,7 +707,7 @@ func TestNewRewardsCreatorV2_computeBaseRewardsPerNode(t *testing.T) {
 
 	for shardID := range shardMap {
 		rwd.mapBaseRewardsPerBlockPerValidator[shardID] = big.NewInt(0).Set(baseRewardPerBlock)
-		cnsSize := big.NewInt(0).SetInt64(int64(args.NodesConfigProvider.ConsensusGroupSize(shardID)))
+		cnsSize := big.NewInt(0).SetInt64(int64(args.NodesConfigProvider.ConsensusGroupSize(shardID, 0)))
 		rwd.mapBaseRewardsPerBlockPerValidator[shardID].Div(rwd.mapBaseRewardsPerBlockPerValidator[shardID], cnsSize)
 	}
 
@@ -768,7 +768,7 @@ func TestNewRewardsCreatorV2_computeRewardsPerNode(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, rwd)
 
-	nodesRewardInfo, accumulatedDust := rwd.computeRewardsPerNode(vInfo)
+	nodesRewardInfo, accumulatedDust := rwd.computeRewardsPerNode(vInfo, 0)
 
 	// dust should be really small, checking against  baseRewards/1mil
 	limit := core.GetApproximatePercentageOfValue(rewardsForBlocks, 0.000001)
@@ -1062,7 +1062,7 @@ func TestNewRewardsCreatorV35_computeRewardsPer3200NodesWithDifferentTopups(t *t
 			}
 
 			rwd, _ := NewRewardsCreatorV2(setupResult.RewardsCreatorArgsV2)
-			nodesRewardInfo, _ = rwd.computeRewardsPerNode(vInfo)
+			nodesRewardInfo, _ = rwd.computeRewardsPerNode(vInfo, 0)
 
 			currentRewardInfo := nodesRewardInfo[0][0]
 
@@ -1169,7 +1169,7 @@ func TestNewRewardsCreatorV2_computeRewardsPer3200NodesWithDifferentTopups(t *te
 			}
 
 			rwd, _ := NewRewardsCreatorV2(setupResult.RewardsCreatorArgsV2)
-			nodesRewardInfo, _ = rwd.computeRewardsPerNode(vInfo)
+			nodesRewardInfo, _ = rwd.computeRewardsPerNode(vInfo, 0)
 
 			currentRewardInfo := nodesRewardInfo[0][0]
 
@@ -1291,7 +1291,7 @@ func computeRewardsAndDust(nbEligiblePerShard uint32, args SetupRewardsResult, t
 	rwd, _ := NewRewardsCreatorV2(args.RewardsCreatorArgsV2)
 
 	var dust *big.Int
-	nodesRewardInfo, dust = rwd.computeRewardsPerNode(vInfo)
+	nodesRewardInfo, dust = rwd.computeRewardsPerNode(vInfo, 0)
 	return nodesRewardInfo, dust
 }
 
@@ -1878,8 +1878,8 @@ func createDefaultValidatorInfo(
 	proposerFeesPerNode uint32,
 	nbBlocksPerShard uint32,
 ) map[uint32][]*state.ValidatorInfo {
-	cGrShard := uint32(nodesConfigProvider.ConsensusGroupSize(0))
-	cGrMeta := uint32(nodesConfigProvider.ConsensusGroupSize(core.MetachainShardId))
+	cGrShard := uint32(nodesConfigProvider.ConsensusGroupSize(0, 0))
+	cGrMeta := uint32(nodesConfigProvider.ConsensusGroupSize(core.MetachainShardId, 0))
 	nbBlocksSelectedNodeInShard := nbBlocksPerShard * cGrShard / eligibleNodesPerShard
 	nbBlocksSelectedNodeInMeta := nbBlocksPerShard * cGrMeta / eligibleNodesPerShard
 

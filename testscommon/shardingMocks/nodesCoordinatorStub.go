@@ -15,7 +15,7 @@ type NodesCoordinatorStub struct {
 	GetAllValidatorsPublicKeysCalled         func() (map[uint32][][]byte, error)
 	GetAllWaitingValidatorsPublicKeysCalled  func(_ uint32) (map[uint32][][]byte, error)
 	GetAllEligibleValidatorsPublicKeysCalled func(epoch uint32) (map[uint32][][]byte, error)
-	ConsensusGroupSizeCalled                 func(shardID uint32) int
+	ConsensusGroupSizeCalled                 func(shardID uint32, epoch uint32) int
 	ComputeConsensusGroupCalled              func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error)
 	EpochStartPrepareCalled                  func(metaHdr data.HeaderHandler, body data.BodyHandler)
 }
@@ -110,9 +110,9 @@ func (ncm *NodesCoordinatorStub) ComputeConsensusGroup(
 }
 
 // ConsensusGroupSize -
-func (ncm *NodesCoordinatorStub) ConsensusGroupSize(shardID uint32) int {
+func (ncm *NodesCoordinatorStub) ConsensusGroupSize(shardID uint32, epoch uint32) int {
 	if ncm.ConsensusGroupSizeCalled != nil {
-		return ncm.ConsensusGroupSizeCalled(shardID)
+		return ncm.ConsensusGroupSizeCalled(shardID, epoch)
 	}
 	return 1
 }

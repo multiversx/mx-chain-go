@@ -18,10 +18,9 @@ var _ NodesShuffler = (*randHashShuffler)(nil)
 
 // NodesShufflerArgs defines the arguments required to create a nodes shuffler
 type NodesShufflerArgs struct {
-	ShuffleBetweenShards   bool
-	MaxNodesEnableConfig   []config.MaxNodesChangeConfig
-	EnableEpochsHandler    common.EnableEpochsHandler
-	ChainParametersHandler ChainParametersHandler
+	ShuffleBetweenShards bool
+	MaxNodesEnableConfig []config.MaxNodesChangeConfig
+	EnableEpochsHandler  common.EnableEpochsHandler
 }
 
 type shuffleNodesArg struct {
@@ -46,7 +45,6 @@ type randHashShuffler struct {
 	// when reinitialization of node in new shard is implemented
 	shuffleBetweenShards bool
 
-	currentChainParameters  config.ChainParametersByEpochConfig
 	activeNodesConfig       config.MaxNodesChangeConfig
 	availableNodesConfigs   []config.MaxNodesChangeConfig
 	mutShufflerParams       sync.RWMutex
@@ -65,9 +63,6 @@ func NewHashValidatorsShuffler(args *NodesShufflerArgs) (*randHashShuffler, erro
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, ErrNilEnableEpochsHandler
 	}
-	if check.IfNil(args.ChainParametersHandler) {
-		return nil, ErrNilChainParametersHandler
-	}
 	var configs []config.MaxNodesChangeConfig
 
 	log.Debug("hashValidatorShuffler: enable epoch for max nodes change", "epoch", args.MaxNodesEnableConfig)
@@ -76,13 +71,11 @@ func NewHashValidatorsShuffler(args *NodesShufflerArgs) (*randHashShuffler, erro
 		copy(configs, args.MaxNodesEnableConfig)
 	}
 
-	currentChainParameters := args.ChainParametersHandler.CurrentChainParameters()
 	log.Debug("Shuffler created", "shuffleBetweenShards", args.ShuffleBetweenShards)
 	rxs := &randHashShuffler{
-		currentChainParameters: currentChainParameters,
-		shuffleBetweenShards:   args.ShuffleBetweenShards,
-		availableNodesConfigs:  configs,
-		enableEpochsHandler:    args.EnableEpochsHandler,
+		shuffleBetweenShards:  args.ShuffleBetweenShards,
+		availableNodesConfigs: configs,
+		enableEpochsHandler:   args.EnableEpochsHandler,
 	}
 
 	if rxs.shuffleBetweenShards {
@@ -113,7 +106,9 @@ func NewHashValidatorsShuffler(args *NodesShufflerArgs) (*randHashShuffler, erro
 //              execute the shard merge
 //          c)  No change in the number of shards then nothing extra needs to be done
 func (rhs *randHashShuffler) UpdateNodeLists(args ArgsUpdateNodes) (*ResUpdateNodes, error) {
-	rhs.UpdateShufflerConfig(args.Epoch)
+	chainParameters := args.ChainParameters
+
+	rhs.UpdateShufflerConfig(args.Epoch, chainParameters)
 	eligibleAfterReshard := copyValidatorMap(args.Eligible)
 	waitingAfterReshard := copyValidatorMap(args.Waiting)
 
@@ -121,6 +116,7 @@ func (rhs *randHashShuffler) UpdateNodeLists(args ArgsUpdateNodes) (*ResUpdateNo
 	totalLeavingNum := len(args.AdditionalLeaving) + len(args.UnStakeLeaving)
 
 	newNbShards := rhs.computeNewShards(
+		chainParameters,
 		args.Eligible,
 		args.Waiting,
 		len(args.NewNodes),
@@ -129,10 +125,10 @@ func (rhs *randHashShuffler) UpdateNodeLists(args ArgsUpdateNodes) (*ResUpdateNo
 	)
 
 	rhs.mutShufflerParams.RLock()
-	canSplit := rhs.currentChainParameters.Adaptivity && newNbShards > args.NbShards
-	canMerge := rhs.currentChainParameters.Adaptivity && newNbShards < args.NbShards
-	nodesPerShard := rhs.currentChainParameters.ShardMinNumNodes
-	nodesMeta := rhs.currentChainParameters.MetachainMinNumNodes
+	canSplit := chainParameters.Adaptivity && newNbShards > args.NbShards
+	canMerge := chainParameters.Adaptivity && newNbShards < args.NbShards
+	nodesPerShard := chainParameters.ShardMinNumNodes
+	nodesMeta := chainParameters.MetachainMinNumNodes
 	rhs.mutShufflerParams.RUnlock()
 
 	if canSplit {
@@ -409,6 +405,7 @@ func computeMinNumberOfNodes(eligible map[uint32][]Validator, waiting map[uint32
 
 // computeNewShards determines the new number of shards based on the number of nodes in the network
 func (rhs *randHashShuffler) computeNewShards(
+	chainParameters config.ChainParametersByEpochConfig,
 	eligible map[uint32][]Validator,
 	waiting map[uint32][]Validator,
 	numNewNodes int,
@@ -426,10 +423,10 @@ func (rhs *randHashShuffler) computeNewShards(
 	nodesNewEpoch := uint32(nbEligible + nbWaiting + numNewNodes - numLeavingNodes)
 
 	rhs.mutShufflerParams.RLock()
-	maxNodesMeta := rhs.currentChainParameters.MetachainMinNumNodes + rhs.metaHysteresis()
-	maxNodesShard := rhs.currentChainParameters.ShardMinNumNodes + rhs.shardHysteresis()
+	maxNodesMeta := chainParameters.MetachainMinNumNodes + rhs.metaHysteresis(chainParameters)
+	maxNodesShard := chainParameters.ShardMinNumNodes + rhs.shardHysteresis(chainParameters)
 	nodesForSplit := (nbShards+1)*maxNodesShard + maxNodesMeta
-	nodesForMerge := nbShards*rhs.currentChainParameters.ShardMinNumNodes + rhs.currentChainParameters.MetachainMinNumNodes
+	nodesForMerge := nbShards*chainParameters.ShardMinNumNodes + chainParameters.MetachainMinNumNodes
 	rhs.mutShufflerParams.RUnlock()
 
 	nbShardsNew := nbShards
@@ -447,12 +444,12 @@ func (rhs *randHashShuffler) computeNewShards(
 	return nbShardsNew
 }
 
-func (rhs *randHashShuffler) metaHysteresis() uint32 {
-	return uint32(rhs.currentChainParameters.Hysteresis * float32(rhs.currentChainParameters.MetachainMinNumNodes))
+func (rhs *randHashShuffler) metaHysteresis(chainParameters config.ChainParametersByEpochConfig) uint32 {
+	return uint32(chainParameters.Hysteresis * float32(chainParameters.MetachainMinNumNodes))
 }
 
-func (rhs *randHashShuffler) shardHysteresis() uint32 {
-	return uint32(rhs.currentChainParameters.Hysteresis * float32(rhs.currentChainParameters.ShardMinNumNodes))
+func (rhs *randHashShuffler) shardHysteresis(chainParameters config.ChainParametersByEpochConfig) uint32 {
+	return uint32(chainParameters.Hysteresis * float32(chainParameters.ShardMinNumNodes))
 }
 
 // shuffleOutNodes shuffles the list of eligible validators in each shard and returns the map of shuffled out
@@ -740,10 +737,10 @@ func sortKeys(nodes map[uint32][]Validator) []uint32 {
 }
 
 // UpdateShufflerConfig updates the shuffler config according to the current epoch.
-func (rhs *randHashShuffler) UpdateShufflerConfig(epoch uint32) {
+func (rhs *randHashShuffler) UpdateShufflerConfig(epoch uint32, chainParameters config.ChainParametersByEpochConfig) {
 	rhs.mutShufflerParams.Lock()
 	defer rhs.mutShufflerParams.Unlock()
-	rhs.activeNodesConfig.NodesToShufflePerShard = rhs.currentChainParameters.ShardMinNumNodes
+	rhs.activeNodesConfig.NodesToShufflePerShard = chainParameters.ShardMinNumNodes
 	for _, maxNodesConfig := range rhs.availableNodesConfigs {
 		if epoch >= maxNodesConfig.EpochEnable {
 			rhs.activeNodesConfig = maxNodesConfig

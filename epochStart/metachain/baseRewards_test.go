@@ -996,10 +996,11 @@ func TestBaseRewardsCreator_fillBaseRewardsPerBlockPerNode(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, rwd)
 
+	epoch := uint32(0)
 	baseRewardsPerNode := big.NewInt(1000000)
-	rwd.fillBaseRewardsPerBlockPerNode(baseRewardsPerNode)
-	consensusShard := args.NodesConfigProvider.ConsensusGroupSize(0)
-	consensusMeta := args.NodesConfigProvider.ConsensusGroupSize(core.MetachainShardId)
+	rwd.fillBaseRewardsPerBlockPerNode(baseRewardsPerNode, epoch)
+	consensusShard := args.NodesConfigProvider.ConsensusGroupSize(0, epoch)
+	consensusMeta := args.NodesConfigProvider.ConsensusGroupSize(core.MetachainShardId, epoch)
 	expectedRewardPerNodeInShard := big.NewInt(0).Div(baseRewardsPerNode, big.NewInt(int64(consensusShard)))
 	expectedRewardPerNodeInMeta := big.NewInt(0).Div(baseRewardsPerNode, big.NewInt(int64(consensusMeta)))
 
@@ -1158,7 +1159,7 @@ func getBaseRewardsArguments() BaseRewardsCreatorArgs {
 		DataPool:                      dataRetrieverMock.NewPoolsHolderMock(),
 		ProtocolSustainabilityAddress: "11", // string hex => 17 decimal
 		NodesConfigProvider: &shardingMocks.NodesCoordinatorStub{
-			ConsensusGroupSizeCalled: func(shardID uint32) int {
+			ConsensusGroupSizeCalled: func(shardID uint32, _ uint32) int {
 				if shardID == core.MetachainShardId {
 					return 400
 				}

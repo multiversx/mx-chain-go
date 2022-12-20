@@ -94,7 +94,7 @@ func (n *nodesCoordinator) GetConsensusWhitelistedNodes(_ uint32) (map[string]st
 }
 
 // ConsensusGroupSize -
-func (n *nodesCoordinator) ConsensusGroupSize(uint32) int {
+func (n *nodesCoordinator) ConsensusGroupSize(uint32, uint32) int {
 	return 0
 }
 

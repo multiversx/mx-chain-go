@@ -238,7 +238,9 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 	// apply consensus group size on the input antiflooder just before consensus creation topic
 	ccf.networkComponents.InputAntiFloodHandler().ApplyConsensusSize(
 		ccf.processComponents.NodesCoordinator().ConsensusGroupSize(
-			ccf.processComponents.ShardCoordinator().SelfId()),
+			ccf.processComponents.ShardCoordinator().SelfId(),
+			ccf.coreComponents.EpochNotifier().CurrentEpoch(),
+		),
 	)
 	err = ccf.createConsensusTopic(cc)
 	if err != nil {

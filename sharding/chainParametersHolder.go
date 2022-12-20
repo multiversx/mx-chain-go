@@ -3,6 +3,7 @@ package sharding
 import (
 	"fmt"
 	"sort"
+	"strings"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -48,7 +49,21 @@ func NewChainParametersHolder(args ArgsChainParametersHolder) (*chainParametersH
 
 	args.EpochStartEventNotifier.RegisterHandler(paramsHolder)
 
+	logInitialConfiguration(args.ChainParameters)
+
 	return paramsHolder, nil
+}
+
+func logInitialConfiguration(chainParameters []config.ChainParametersByEpochConfig) {
+	logMessage := "initialized chainParametersHolder with the values:\n"
+	logLines := make([]string, 0)
+	for _, params := range chainParameters {
+		logLines = append(logLines, fmt.Sprintf("\tenable epoch=%d, round duration=%d, hysteresis=%.2f, shard consensus group size=%d, shard min nodes=%d, meta consensus group size=%d, meta min nodes=%d, adaptivity=%v",
+			params.EnableEpoch, params.RoundDuration, params.Hysteresis, params.ShardConsensusGroupSize, params.ShardMinNumNodes, params.MetachainConsensusGroupSize, params.MetachainMinNumNodes, params.Adaptivity))
+	}
+
+	logMessage += strings.Join(logLines, "\n")
+	log.Debug(logMessage)
 }
 
 func validateArgs(args ArgsChainParametersHolder) error {

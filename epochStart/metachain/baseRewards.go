@@ -430,15 +430,15 @@ func (brc *baseRewardsCreator) finalizeMiniBlocks(miniBlocks block.MiniBlockSlic
 	return finalMiniBlocks
 }
 
-func (brc *baseRewardsCreator) fillBaseRewardsPerBlockPerNode(baseRewardsPerNode *big.Int) {
+func (brc *baseRewardsCreator) fillBaseRewardsPerBlockPerNode(baseRewardsPerNode *big.Int, epoch uint32) {
 	brc.mapBaseRewardsPerBlockPerValidator = make(map[uint32]*big.Int)
 	for i := uint32(0); i < brc.shardCoordinator.NumberOfShards(); i++ {
-		consensusSize := big.NewInt(int64(brc.nodesConfigProvider.ConsensusGroupSize(i)))
+		consensusSize := big.NewInt(int64(brc.nodesConfigProvider.ConsensusGroupSize(i, epoch)))
 		brc.mapBaseRewardsPerBlockPerValidator[i] = big.NewInt(0).Div(baseRewardsPerNode, consensusSize)
 		log.Debug("baseRewardsPerBlockPerValidator", "shardID", i, "value", brc.mapBaseRewardsPerBlockPerValidator[i].String())
 	}
 
-	consensusSize := big.NewInt(int64(brc.nodesConfigProvider.ConsensusGroupSize(core.MetachainShardId)))
+	consensusSize := big.NewInt(int64(brc.nodesConfigProvider.ConsensusGroupSize(core.MetachainShardId, epoch)))
 	brc.mapBaseRewardsPerBlockPerValidator[core.MetachainShardId] = big.NewInt(0).Div(baseRewardsPerNode, consensusSize)
 	log.Debug("baseRewardsPerBlockPerValidator", "shardID", core.MetachainShardId, "value", brc.mapBaseRewardsPerBlockPerValidator[core.MetachainShardId].String())
 }

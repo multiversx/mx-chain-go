@@ -106,7 +106,7 @@ func (rc *rewardsCreatorV2) CreateRewardsMiniBlocks(
 		return nil, err
 	}
 
-	nodesRewardInfo, dustFromRewardsPerNode := rc.computeRewardsPerNode(validatorsInfo)
+	nodesRewardInfo, dustFromRewardsPerNode := rc.computeRewardsPerNode(validatorsInfo, metaBlock.GetEpoch())
 	log.Debug("arithmetic difference from dust rewards per node", "value", dustFromRewardsPerNode)
 
 	dust, err := rc.addValidatorRewardsToMiniBlocks(metaBlock, miniBlocks, nodesRewardInfo)
@@ -263,6 +263,7 @@ func (rc *rewardsCreatorV2) IsInterfaceNil() bool {
 
 func (rc *rewardsCreatorV2) computeRewardsPerNode(
 	validatorsInfo map[uint32][]*state.ValidatorInfo,
+	epoch uint32,
 ) (map[uint32][]*nodeRewardsData, *big.Int) {
 
 	var baseRewardsPerBlock *big.Int
@@ -288,7 +289,7 @@ func (rc *rewardsCreatorV2) computeRewardsPerNode(
 		"baseRewards", baseRewards.String(),
 		"topUpRewards", topUpRewards.String())
 
-	rc.fillBaseRewardsPerBlockPerNode(baseRewardsPerBlock)
+	rc.fillBaseRewardsPerBlockPerNode(baseRewardsPerBlock, epoch)
 
 	accumulatedDust := big.NewInt(0)
 	dust := rc.computeBaseRewardsPerNode(nodesRewardInfo, baseRewards)

@@ -1153,7 +1153,7 @@ func (vs *validatorStatistics) decreaseAll(
 	}
 
 	log.Debug("ValidatorStatistics decreasing all", "shardID", shardID, "missedRounds", missedRounds)
-	consensusGroupSize := vs.nodesCoordinator.ConsensusGroupSize(shardID)
+	consensusGroupSize := vs.nodesCoordinator.ConsensusGroupSize(shardID, epoch)
 	validators, err := vs.nodesCoordinator.GetAllEligibleValidatorsPublicKeys(epoch)
 	if err != nil {
 		return err
