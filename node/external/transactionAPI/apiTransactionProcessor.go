@@ -103,7 +103,6 @@ func (atp *apiTransactionProcessor) GetTransaction(txHash string, withResults bo
 
 func (atp *apiTransactionProcessor) doGetTransaction(hash []byte, withResults bool) (*transaction.ApiTransactionResult, error) {
 	tx := atp.optionallyGetTransactionFromPool(hash)
-
 	if tx != nil {
 		return tx, nil
 	}
