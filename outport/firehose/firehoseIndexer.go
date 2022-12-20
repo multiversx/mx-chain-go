@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/firehose"
@@ -24,7 +25,8 @@ const (
 )
 
 type firehoseIndexer struct {
-	writer io.Writer
+	writer     io.Writer
+	marshaller marshal.Marshalizer
 }
 
 // NewFirehoseIndexer creates a new firehose instance which outputs block information
@@ -34,12 +36,17 @@ func NewFirehoseIndexer(writer io.Writer) (outport.Driver, error) {
 	}
 
 	return &firehoseIndexer{
-		writer: writer,
+		writer:     writer,
+		marshaller: &marshal.GogoProtoMarshalizer{},
 	}, nil
 }
 
 // SaveBlock will write on stdout relevant block information for firehose
 func (fi *firehoseIndexer) SaveBlock(args *outportcore.ArgsSaveBlockData) error {
+	if check.IfNil(args.Header) {
+		return errNilHeader
+	}
+
 	log.Debug("firehose: saving block", "nonce", args.Header.GetNonce(), "hash", args.HeaderHash)
 
 	_, err := fmt.Fprintf(fi.writer, "%s %s %d\n",
@@ -50,55 +57,45 @@ func (fi *firehoseIndexer) SaveBlock(args *outportcore.ArgsSaveBlockData) error 
 	if err != nil {
 		return fmt.Errorf("could not write %s prefix , err: %w", beginBlockPrefix, err)
 	}
-	firehoseBlock := &firehose.FirehoseBlock{
-		HeaderHash: args.HeaderHash,
-	}
-
-	headerType := core.GetHeaderType(args.Header)
-	marshaller := &marshal.GogoProtoMarshalizer{}
 
 	var headerBytes []byte
-	switch headerType {
-	case core.MetaHeader:
-		metaHdr, castOk := args.Header.(*block.MetaBlock)
-		if !castOk {
+	var headerType core.HeaderType
 
-		}
-		headerBytes, err = marshaller.Marshal(metaHdr)
-	case core.ShardHeaderV1:
-		shardHdrV1, castOk := args.Header.(*block.Header)
-		if !castOk {
-
-		}
-		headerBytes, err = marshaller.Marshal(shardHdrV1)
-	case core.ShardHeaderV2:
-		shardHdrV2, castOk := args.Header.(*block.HeaderV2)
-		if !castOk {
-
-		}
-		headerBytes, err = marshaller.Marshal(shardHdrV2)
+	switch header := args.Header.(type) {
+	case *block.MetaBlock:
+		headerBytes, err = fi.marshaller.Marshal(header)
+		headerType = core.MetaHeader
+	case *block.Header:
+		headerBytes, err = fi.marshaller.Marshal(header)
+		headerType = core.ShardHeaderV1
+	case *block.HeaderV2:
+		headerBytes, err = fi.marshaller.Marshal(header)
+		headerType = core.ShardHeaderV2
+	default:
+		return errInvalidHeaderType
 	}
 
 	if err != nil {
 		return err
 	}
 
-	firehoseBlock.HeaderType = string(headerType)
-	firehoseBlock.HeaderBytes = headerBytes
+	firehoseBlock := &firehose.FirehoseBlock{
+		HeaderHash:  args.HeaderHash,
+		HeaderType:  string(headerType),
+		HeaderBytes: headerBytes,
+	}
 
-	marshalledBlock, err := marshaller.Marshal(firehoseBlock)
+	marshalledBlock, err := fi.marshaller.Marshal(firehoseBlock)
 	if err != nil {
 		return err
 	}
 
-	_, err = fmt.Fprintf(fi.writer, "%s %s %d %s %s %d %d %x\n",
+	_, err = fmt.Fprintf(fi.writer, "%s %s %d %s %d %x\n",
 		firehosePrefix,
 		endBlockPrefix,
 		args.Header.GetNonce(),
-		hex.EncodeToString(args.HeaderHash),
 		hex.EncodeToString(args.Header.GetPrevHash()),
 		args.Header.GetTimeStamp(),
-		0, // num transactions, implementation will follow
 		marshalledBlock,
 	)
 	if err != nil {
