@@ -11,6 +11,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/firehose"
 	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
+	"github.com/ElrondNetwork/elrond-go-core/data/receipt"
+	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/outport"
@@ -23,6 +26,15 @@ const (
 	beginBlockPrefix = "BLOCK_BEGIN"
 	endBlockPrefix   = "BLOCK_END"
 )
+
+type txPool struct {
+	transactions        map[string]*firehose.TxWithFee
+	smartContractResult map[string]*firehose.SCRWithFee
+	rewards             map[string]*rewardTx.RewardTx
+	receipts            map[string]*receipt.Receipt
+	invalidTxs          map[string]*firehose.TxWithFee
+	logs                []*transaction.Log
+}
 
 type firehoseIndexer struct {
 	writer     io.Writer
@@ -58,31 +70,26 @@ func (fi *firehoseIndexer) SaveBlock(args *outportcore.ArgsSaveBlockData) error 
 		return fmt.Errorf("could not write %s prefix , err: %w", beginBlockPrefix, err)
 	}
 
-	var headerBytes []byte
-	var headerType core.HeaderType
-
-	switch header := args.Header.(type) {
-	case *block.MetaBlock:
-		headerType = core.MetaHeader
-		headerBytes, err = fi.marshaller.Marshal(header)
-	case *block.Header:
-		headerType = core.ShardHeaderV1
-		headerBytes, err = fi.marshaller.Marshal(header)
-	case *block.HeaderV2:
-		headerType = core.ShardHeaderV2
-		headerBytes, err = fi.marshaller.Marshal(header)
-	default:
-		return errInvalidHeaderType
+	headerBytes, headerType, err := fi.getHeaderBytes(args.Header)
+	if err != nil {
+		return err
 	}
 
+	pool, err := getTxPool(args.TransactionsPool)
 	if err != nil {
 		return err
 	}
 
 	firehoseBlock := &firehose.FirehoseBlock{
-		HeaderHash:  args.HeaderHash,
-		HeaderType:  string(headerType),
-		HeaderBytes: headerBytes,
+		HeaderHash:          args.HeaderHash,
+		HeaderType:          string(headerType),
+		HeaderBytes:         headerBytes,
+		Transactions:        pool.transactions,
+		SmartContractResult: pool.smartContractResult,
+		Rewards:             pool.rewards,
+		Receipts:            pool.receipts,
+		Logs:                pool.logs,
+		InvalidTxs:          pool.invalidTxs,
 	}
 
 	marshalledBlock, err := fi.marshaller.Marshal(firehoseBlock)
@@ -103,6 +110,28 @@ func (fi *firehoseIndexer) SaveBlock(args *outportcore.ArgsSaveBlockData) error 
 	}
 
 	return nil
+}
+
+func (fi *firehoseIndexer) getHeaderBytes(headerHandler data.HeaderHandler) ([]byte, core.HeaderType, error) {
+	var err error
+	var headerBytes []byte
+	var headerType core.HeaderType
+
+	switch header := headerHandler.(type) {
+	case *block.MetaBlock:
+		headerType = core.MetaHeader
+		headerBytes, err = fi.marshaller.Marshal(header)
+	case *block.Header:
+		headerType = core.ShardHeaderV1
+		headerBytes, err = fi.marshaller.Marshal(header)
+	case *block.HeaderV2:
+		headerType = core.ShardHeaderV2
+		headerBytes, err = fi.marshaller.Marshal(header)
+	default:
+		return nil, "", errInvalidHeaderType
+	}
+
+	return headerBytes, headerType, err
 }
 
 // RevertIndexedBlock does nothing
