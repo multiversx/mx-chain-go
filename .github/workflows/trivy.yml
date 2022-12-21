@@ -10,8 +10,8 @@ permissions:
   contents: read
 
 jobs:
-  build:
-    name: Build
+  trivy:
+    name: Run trivy scanner
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout code
@@ -24,4 +24,4 @@ jobs:
           ignore-unfixed: true
           format: 'sarif'
           output: 'trivy-results.sarif'
-          severity: 'CRITICAL'
+          severity: 'CRITICAL,HIGH'
