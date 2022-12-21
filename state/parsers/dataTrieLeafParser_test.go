@@ -2,10 +2,10 @@ package parsers
 
 import (
 	"encoding/hex"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/state/dataTrieValue"
 	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
