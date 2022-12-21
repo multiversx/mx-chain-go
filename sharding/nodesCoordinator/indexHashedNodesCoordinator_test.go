@@ -2564,4 +2564,55 @@ func TestIndexHashedNodesCoordinator_GetNodesConfig(t *testing.T) {
 		require.True(t, ok)
 		require.NotNil(t, nc)
 	})
+
+	t.Run("should work will old epochs", func(t *testing.T) {
+		t.Parallel()
+
+		epochKey := []byte(fmt.Sprint(1))
+
+		args := createArguments()
+		args.ValidatorInfoCacher = dataPool.NewCurrentEpochValidatorInfoPool()
+		args.BootStorer = genericMocks.NewStorerMockWithEpoch(1)
+
+		wasCalled := false
+		args.NodesConfigCache = &mock.NodesCoordinatorCacheMock{
+			PutCalled: func(key []byte, value interface{}, sieInBytes int) (evicted bool) {
+				require.Equal(t, epochKey, key)
+				wasCalled = true
+
+				return true
+			},
+		}
+		ihnc, _ := NewIndexHashedNodesCoordinator(args)
+
+		eligibleMap := createDummyNodesMap(10, 3, "eligible")
+		_ = ihnc.setNodesPerShards(eligibleMap, map[uint32][]Validator{}, map[uint32][]Validator{}, 1)
+		_ = ihnc.setNodesPerShards(eligibleMap, map[uint32][]Validator{}, map[uint32][]Validator{}, 2)
+		_ = ihnc.setNodesPerShards(eligibleMap, map[uint32][]Validator{}, map[uint32][]Validator{}, 3)
+		_ = ihnc.setNodesPerShards(eligibleMap, map[uint32][]Validator{}, map[uint32][]Validator{}, 4)
+
+		epochNodesConfig, ok := ihnc.getNodesConfig(1)
+		require.True(t, ok)
+		require.NotNil(t, epochNodesConfig)
+
+		err := ihnc.saveState([]byte("key"))
+		require.Nil(t, err)
+
+		epochNodesConfig, ok = ihnc.nodesConfig[2]
+		require.True(t, ok)
+		require.NotNil(t, epochNodesConfig)
+
+		ihnc.removeOlderEpochs(4, 3)
+
+		epochNodesConfig, ok = ihnc.nodesConfig[1]
+		require.False(t, ok)
+		require.Nil(t, epochNodesConfig)
+
+		// will manage to get it from storage
+		epochNodesConfig, ok = ihnc.getNodesConfig(1)
+		require.True(t, ok)
+		require.NotNil(t, epochNodesConfig)
+
+		require.True(t, wasCalled)
+	})
 }
