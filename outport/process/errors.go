@@ -16,3 +16,12 @@ var errNilHeaderHandler = errors.New("nil header handler")
 
 // errNilBodyHandler signal that provided body handler is nil
 var errNilBodyHandler = errors.New("nil body handler")
+
+// ErrNilHasher signals that a nil hasher has been provided
+var ErrNilHasher = errors.New("nil hasher provided")
+
+// ErrNilStorer is raised when a nil storer has been provided
+var ErrNilStorer = errors.New("nil storer")
+
+// ErrNilEnableEpochsHandler signals that a nil enable epochs handler has been provided
+var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
