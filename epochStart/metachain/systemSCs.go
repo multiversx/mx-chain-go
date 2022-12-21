@@ -521,7 +521,7 @@ func (s *systemSCProcessor) getEligibleNodesKeyMapOfType(
 ) map[uint32][][]byte {
 	eligibleNodesKeys := make(map[uint32][][]byte)
 	for shardID, validatorsInfoSlice := range validatorsInfo {
-		eligibleNodesKeys[shardID] = make([][]byte, 0, s.nodesConfigProvider.ConsensusGroupSize(shardID, epoch))
+		eligibleNodesKeys[shardID] = make([][]byte, 0, s.nodesConfigProvider.ConsensusGroupSize(shardID, epoch-1))
 		for _, validatorInfo := range validatorsInfoSlice {
 			if vInfo.WasEligibleInCurrentEpoch(validatorInfo) {
 				eligibleNodesKeys[shardID] = append(eligibleNodesKeys[shardID], validatorInfo.PublicKey)
