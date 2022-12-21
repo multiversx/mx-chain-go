@@ -1871,12 +1871,13 @@ func TestIndexHashedNodesCoordinator_GetConsensusWhitelistedNodesAfterRevertToEp
 func TestIndexHashedNodesCoordinator_ConsensusGroupSize(t *testing.T) {
 	t.Parallel()
 
+	shardConsensusGroupSize, metaConsensusGroupSize := 1, 1
 	arguments := createArguments()
 	arguments.ChainParametersHandler = &shardingmock.ChainParametersHandlerStub{
 		CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
 			return config.ChainParametersByEpochConfig{
-				ShardConsensusGroupSize:     1,
-				MetachainConsensusGroupSize: 1,
+				ShardConsensusGroupSize:     uint32(shardConsensusGroupSize),
+				MetachainConsensusGroupSize: uint32(metaConsensusGroupSize),
 			}
 		},
 	}
@@ -1886,8 +1887,8 @@ func TestIndexHashedNodesCoordinator_ConsensusGroupSize(t *testing.T) {
 	consensusSizeShard := ihnc.ConsensusGroupSize(0)
 	consensusSizeMeta := ihnc.ConsensusGroupSize(core.MetachainShardId)
 
-	require.Equal(t, 1, consensusSizeShard)
-	require.Equal(t, 1, consensusSizeMeta)
+	require.Equal(t, shardConsensusGroupSize, consensusSizeShard)
+	require.Equal(t, metaConsensusGroupSize, consensusSizeMeta)
 }
 
 func TestIndexHashedNodesCoordinator_GetNumTotalEligible(t *testing.T) {
