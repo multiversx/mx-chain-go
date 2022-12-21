@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common/statistics/machine"
+	"github.com/ElrondNetwork/elrond-go/common/statistics/osLevel"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/load"
@@ -145,6 +146,12 @@ func GetRuntimeStatistics() []interface{} {
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
 
+	osLevelMemStatsString := ""
+	osLevelMemStats, err := osLevel.ReadCurrentMemStats()
+	if err != nil {
+		osLevelMemStatsString = osLevelMemStats.String()
+	}
+
 	return []interface{}{
 		"timestamp", time.Now().Unix(),
 		"num go", runtime.NumGoroutine(),
@@ -155,6 +162,7 @@ func GetRuntimeStatistics() []interface{} {
 		"heap num objs", memStats.HeapObjects,
 		"sys mem", core.ConvertBytes(memStats.Sys),
 		"num GC", memStats.NumGC,
+		"os level stats", osLevelMemStatsString,
 	}
 }
 
