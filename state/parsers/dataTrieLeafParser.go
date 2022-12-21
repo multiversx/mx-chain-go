@@ -37,7 +37,7 @@ func (tlp *dataTrieLeafParser) ParseLeaf(trieKey []byte, trieVal []byte) (core.K
 	if tlp.enableEpochsHandler.IsAutoBalanceDataTriesEnabled() {
 		data := &dataTrieValue.TrieLeafData{}
 		err := tlp.marshaller.Unmarshal(data, trieVal)
-		if err == nil {
+		if err == nil && !isEmptyTrieData(data) {
 			return keyValStorage.NewKeyValStorage(data.Key, data.Value), nil
 		}
 	}
@@ -49,6 +49,18 @@ func (tlp *dataTrieLeafParser) ParseLeaf(trieKey []byte, trieVal []byte) (core.K
 	}
 
 	return keyValStorage.NewKeyValStorage(trieKey, value), nil
+}
+
+func isEmptyTrieData(data *dataTrieValue.TrieLeafData) bool {
+	if data == nil {
+		return true
+	}
+
+	if len(data.Value) == 0 && len(data.Key) == 0 && len(data.Address) == 0 {
+		return true
+	}
+
+	return false
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
