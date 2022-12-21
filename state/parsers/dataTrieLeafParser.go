@@ -51,6 +51,7 @@ func (tlp *dataTrieLeafParser) ParseLeaf(trieKey []byte, trieVal []byte) (core.K
 	return keyValStorage.NewKeyValStorage(trieKey, value), nil
 }
 
+// TODO remove this after proper marshaller fix
 func isEmptyTrieData(data *dataTrieValue.TrieLeafData) bool {
 	if data == nil {
 		return true
