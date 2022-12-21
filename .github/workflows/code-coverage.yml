@@ -35,7 +35,6 @@ jobs:
           fi
       - name: Run unit tests
         run: |
-          export WASM_PATH=${GITHUB_WORKSPACE}/wasm
           make test-coverage
 
       - name: Upload coverage

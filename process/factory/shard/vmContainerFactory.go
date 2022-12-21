@@ -15,11 +15,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	wasm12 "github.com/ElrondNetwork/wasm-vm-v1_2/arwen"
+	wasmvm12 "github.com/ElrondNetwork/wasm-vm-v1_2/arwen"
 	wasmVMHost12 "github.com/ElrondNetwork/wasm-vm-v1_2/arwen/host"
-	wasm13 "github.com/ElrondNetwork/wasm-vm-v1_3/arwen"
+	wasmvm13 "github.com/ElrondNetwork/wasm-vm-v1_3/arwen"
 	wasmVMHost13 "github.com/ElrondNetwork/wasm-vm-v1_3/arwen/host"
-	wasm14 "github.com/ElrondNetwork/wasm-vm-v1_4/arwen"
+	wasmvm14 "github.com/ElrondNetwork/wasm-vm-v1_4/arwen"
 	wasmVMHost14 "github.com/ElrondNetwork/wasm-vm-v1_4/arwen/host"
 )
 
@@ -283,7 +283,7 @@ func (vmf *vmContainerFactory) createInProcessWasmVMByVersion(version config.Was
 }
 
 func (vmf *vmContainerFactory) createInProcessWasmVMV12() (vmcommon.VMExecutionHandler, error) {
-	hostParameters := &wasm12.VMHostParameters{
+	hostParameters := &wasmvm12.VMHostParameters{
 		VMType:                   factory.WasmVirtualMachine,
 		BlockGasLimit:            vmf.blockGasLimit,
 		GasSchedule:              vmf.gasSchedule.LatestGasSchedule(),
@@ -295,7 +295,7 @@ func (vmf *vmContainerFactory) createInProcessWasmVMV12() (vmcommon.VMExecutionH
 }
 
 func (vmf *vmContainerFactory) createInProcessWasmVMV13() (vmcommon.VMExecutionHandler, error) {
-	hostParameters := &wasm13.VMHostParameters{
+	hostParameters := &wasmvm13.VMHostParameters{
 		VMType:                   factory.WasmVirtualMachine,
 		BlockGasLimit:            vmf.blockGasLimit,
 		GasSchedule:              vmf.gasSchedule.LatestGasSchedule(),
@@ -307,7 +307,7 @@ func (vmf *vmContainerFactory) createInProcessWasmVMV13() (vmcommon.VMExecutionH
 }
 
 func (vmf *vmContainerFactory) createInProcessWasmVMV14() (vmcommon.VMExecutionHandler, error) {
-	hostParameters := &wasm14.VMHostParameters{
+	hostParameters := &wasmvm14.VMHostParameters{
 		VMType:                              factory.WasmVirtualMachine,
 		BlockGasLimit:                       vmf.blockGasLimit,
 		GasSchedule:                         vmf.gasSchedule.LatestGasSchedule(),
