@@ -11,49 +11,51 @@ type trieStatistics struct {
 	address  string
 	rootHash []byte
 
+	maxTrieDepth   uint32
 	branchNodes    *nodesStatistics
 	extensionNodes *nodesStatistics
 	leafNodes      *nodesStatistics
 }
 
 type nodesStatistics struct {
-	nodesSize     uint64
-	nodesPerLevel []uint32
+	nodesSize uint64
+	numNodes  uint64
 }
 
 // NewTrieStatistics creates a new instance of trieStatistics
 func NewTrieStatistics() *trieStatistics {
 	return &trieStatistics{
-		address:  "",
-		rootHash: nil,
+		address:      "",
+		rootHash:     nil,
+		maxTrieDepth: 0,
 		branchNodes: &nodesStatistics{
-			nodesSize:     0,
-			nodesPerLevel: make([]uint32, 0),
+			nodesSize: 0,
+			numNodes:  0,
 		},
 		extensionNodes: &nodesStatistics{
-			nodesSize:     0,
-			nodesPerLevel: make([]uint32, 0),
+			nodesSize: 0,
+			numNodes:  0,
 		},
 		leafNodes: &nodesStatistics{
-			nodesSize:     0,
-			nodesPerLevel: make([]uint32, 0),
+			nodesSize: 0,
+			numNodes:  0,
 		},
 	}
 }
 
 // AddBranchNode will add the given level and size to the branch nodes statistics
 func (ts *trieStatistics) AddBranchNode(level int, size uint64) {
-	collectNodeStatistics(level, size, ts.branchNodes)
+	ts.collectNodeStatistics(level, size, ts.branchNodes)
 }
 
 // AddExtensionNode will add the given level and size to the extension nodes statistics
 func (ts *trieStatistics) AddExtensionNode(level int, size uint64) {
-	collectNodeStatistics(level, size, ts.extensionNodes)
+	ts.collectNodeStatistics(level, size, ts.extensionNodes)
 }
 
 // AddLeafNode will add the given level and size to the leaf nodes statistics
 func (ts *trieStatistics) AddLeafNode(level int, size uint64) {
-	collectNodeStatistics(level, size, ts.leafNodes)
+	ts.collectNodeStatistics(level, size, ts.leafNodes)
 }
 
 // AddAccountInfo will add the address and rootHash to  the collected statistics
@@ -62,64 +64,32 @@ func (ts *trieStatistics) AddAccountInfo(address string, rootHash []byte) {
 	ts.rootHash = rootHash
 }
 
-func collectNodeStatistics(level int, size uint64, nodeStats *nodesStatistics) {
-	numLevels := len(nodeStats.nodesPerLevel)
-	for i := numLevels; i <= level; i++ {
-		nodeStats.nodesPerLevel = append(nodeStats.nodesPerLevel, 0)
-	}
-
-	nodeStats.nodesPerLevel[level]++
+func (ts *trieStatistics) collectNodeStatistics(level int, size uint64, nodeStats *nodesStatistics) {
+	nodeStats.numNodes++
 	nodeStats.nodesSize += size
+
+	if uint32(level) > ts.maxTrieDepth {
+		ts.maxTrieDepth = uint32(level)
+	}
 }
 
 // GetTrieStats returns a DTO that contains all the collected info about the trie
 func (ts *trieStatistics) GetTrieStats() *TrieStatsDTO {
-	numLevelsWithBranches := len(ts.branchNodes.nodesPerLevel)
-	numLevelsWithExtensions := len(ts.extensionNodes.nodesPerLevel)
-	numLevelsWithLeaves := len(ts.leafNodes.nodesPerLevel)
-
-	maxTrieDepth := numLevelsWithBranches
-	if numLevelsWithExtensions > maxTrieDepth {
-		maxTrieDepth = numLevelsWithExtensions
-	}
-	if numLevelsWithLeaves > maxTrieDepth {
-		maxTrieDepth = numLevelsWithLeaves
-	}
-
-	totalNumNodesPerLevel := make([]uint32, 0)
-	totalNumNodes := uint64(0)
-	for i := 0; i < maxTrieDepth; i++ {
-		nodesPerLevel := uint32(0)
-
-		if i < numLevelsWithBranches {
-			nodesPerLevel += ts.branchNodes.nodesPerLevel[i]
-		}
-		if i < numLevelsWithExtensions {
-			nodesPerLevel += ts.extensionNodes.nodesPerLevel[i]
-		}
-		if i < numLevelsWithLeaves {
-			nodesPerLevel += ts.leafNodes.nodesPerLevel[i]
-		}
-
-		totalNumNodesPerLevel = append(totalNumNodesPerLevel, nodesPerLevel)
-		totalNumNodes += uint64(nodesPerLevel)
-	}
-
 	totalNodesSize := ts.branchNodes.nodesSize + ts.extensionNodes.nodesSize + ts.leafNodes.nodesSize
+	totalNumNodes := ts.branchNodes.numNodes + ts.extensionNodes.numNodes + ts.leafNodes.numNodes
 
 	return &TrieStatsDTO{
-		Address:               ts.address,
-		RootHash:              ts.rootHash,
-		NumBranchesPerLevel:   ts.branchNodes.nodesPerLevel,
-		NumExtensionsPerLevel: ts.extensionNodes.nodesPerLevel,
-		NumLeavesPerLevel:     ts.leafNodes.nodesPerLevel,
-		TotalNumNodesPerLevel: totalNumNodesPerLevel,
-		TotalNumNodes:         totalNumNodes,
-		BranchNodesSize:       ts.branchNodes.nodesSize,
-		ExtensionNodesSize:    ts.extensionNodes.nodesSize,
-		LeafNodesSize:         ts.leafNodes.nodesSize,
-		TotalNodesSize:        totalNodesSize,
-		MaxTrieDepth:          uint32(maxTrieDepth),
+		Address:            ts.address,
+		RootHash:           ts.rootHash,
+		TotalNodesSize:     totalNodesSize,
+		TotalNumNodes:      totalNumNodes,
+		MaxTrieDepth:       ts.maxTrieDepth,
+		BranchNodesSize:    ts.branchNodes.nodesSize,
+		NumBranchNodes:     ts.branchNodes.numNodes,
+		ExtensionNodesSize: ts.extensionNodes.nodesSize,
+		NumExtensionNodes:  ts.extensionNodes.numNodes,
+		LeafNodesSize:      ts.leafNodes.nodesSize,
+		NumLeafNodes:       ts.leafNodes.numNodes,
 	}
 }
 
@@ -131,14 +101,12 @@ type TrieStatsDTO struct {
 	TotalNumNodes  uint64
 	MaxTrieDepth   uint32
 
-	TotalNumNodesPerLevel []uint32
-	NumBranchesPerLevel   []uint32
-	NumExtensionsPerLevel []uint32
-	NumLeavesPerLevel     []uint32
-
 	BranchNodesSize    uint64
+	NumBranchNodes     uint64
 	ExtensionNodesSize uint64
+	NumExtensionNodes  uint64
 	LeafNodesSize      uint64
+	NumLeafNodes       uint64
 }
 
 // ToString returns the collected statistics as a string array
@@ -152,9 +120,8 @@ func (tsd *TrieStatsDTO) ToString() []string {
 	stats = append(stats, fmt.Sprintf("branch nodes size %v,", core.ConvertBytes(tsd.BranchNodesSize)))
 	stats = append(stats, fmt.Sprintf("extension nodes size %v,", core.ConvertBytes(tsd.ExtensionNodesSize)))
 	stats = append(stats, fmt.Sprintf("leaf nodes size %v,", core.ConvertBytes(tsd.LeafNodesSize)))
-	stats = append(stats, fmt.Sprintf("total nodes per level %v,", tsd.TotalNumNodesPerLevel))
-	stats = append(stats, fmt.Sprintf("num branches per level %v,", tsd.NumBranchesPerLevel))
-	stats = append(stats, fmt.Sprintf("num extensions per level %v,", tsd.NumExtensionsPerLevel))
-	stats = append(stats, fmt.Sprintf("num leaves per level %v", tsd.NumLeavesPerLevel))
+	stats = append(stats, fmt.Sprintf("num branches  %v,", tsd.NumBranchNodes))
+	stats = append(stats, fmt.Sprintf("num extensions  %v,", tsd.NumExtensionNodes))
+	stats = append(stats, fmt.Sprintf("num leaves  %v", tsd.NumLeafNodes))
 	return stats
 }
