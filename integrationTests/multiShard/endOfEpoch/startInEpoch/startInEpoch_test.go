@@ -34,6 +34,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/scheduledDataSyncer"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingmock"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
@@ -221,6 +222,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	coreComponents.NodeTypeProviderField = &nodeTypeProviderMock.NodeTypeProviderStub{}
 	coreComponents.ChanStopNodeProcessField = endProcess.GetDummyEndProcessChannel()
 	coreComponents.HardforkTriggerPubKeyField = []byte("provided hardfork pub key")
+	coreComponents.ChainParametersHandlerField = &shardingmock.ChainParametersHandlerStub{}
 
 	argsBootstrapHandler := bootstrap.ArgsEpochStartBootstrap{
 		CryptoComponentsHolder: cryptoComponents,

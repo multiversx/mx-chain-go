@@ -1160,6 +1160,7 @@ type CoreComponentsHolder interface {
 	ProcessStatusHandler() common.ProcessStatusHandler
 	HardforkTriggerPubKey() []byte
 	EnableEpochsHandler() common.EnableEpochsHandler
+	ChainParametersHandler() ChainParametersHandler
 	IsInterfaceNil() bool
 }
 

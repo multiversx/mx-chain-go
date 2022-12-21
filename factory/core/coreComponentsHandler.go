@@ -146,6 +146,9 @@ func (mcc *managedCoreComponents) CheckSubcomponents() error {
 	if check.IfNil(mcc.enableEpochsHandler) {
 		return errors.ErrNilEnableEpochsHandler
 	}
+	if check.IfNil(mcc.chainParametersHandler) {
+		return errors.ErrNilChainParametersHandler
+	}
 	if len(mcc.chainID) == 0 {
 		return errors.ErrInvalidChainID
 	}
@@ -564,6 +567,18 @@ func (mcc *managedCoreComponents) EnableEpochsHandler() common.EnableEpochsHandl
 	}
 
 	return mcc.coreComponents.enableEpochsHandler
+}
+
+// ChainParametersHandler returns the chain parameters handler
+func (mcc *managedCoreComponents) ChainParametersHandler() process.ChainParametersHandler {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return nil
+	}
+
+	return mcc.coreComponents.chainParametersHandler
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

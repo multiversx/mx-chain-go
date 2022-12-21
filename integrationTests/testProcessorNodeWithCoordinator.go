@@ -9,11 +9,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage/cache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingmock"
 	vic "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
 )
 
@@ -60,21 +62,27 @@ func CreateProcessorNodesWithNodesCoordinator(
 		for i, v := range validatorList {
 			lruCache, _ := cache.NewLRUCache(10000)
 			argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-				ShardConsensusGroupSize: shardConsensusGroupSize,
-				MetaConsensusGroupSize:  metaConsensusGroupSize,
-				Marshalizer:             TestMarshalizer,
-				Hasher:                  TestHasher,
-				ShardIDAsObserver:       shardId,
-				NbShards:                numShards,
-				EligibleNodes:           validatorsMapForNodesCoordinator,
-				WaitingNodes:            waitingMapForNodesCoordinator,
-				SelfPublicKey:           v.PubKeyBytes(),
-				ConsensusGroupCache:     lruCache,
-				ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
-				ChanStopNode:            endProcess.GetDummyEndProcessChannel(),
-				IsFullArchive:           false,
-				EnableEpochsHandler:     &testscommon.EnableEpochsHandlerStub{},
-				ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
+				ChainParametersHandler: &shardingmock.ChainParametersHandlerStub{
+					CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
+						return config.ChainParametersByEpochConfig{
+							ShardConsensusGroupSize:     uint32(shardConsensusGroupSize),
+							MetachainConsensusGroupSize: uint32(metaConsensusGroupSize),
+						}
+					},
+				},
+				Marshalizer:         TestMarshalizer,
+				Hasher:              TestHasher,
+				ShardIDAsObserver:   shardId,
+				NbShards:            numShards,
+				EligibleNodes:       validatorsMapForNodesCoordinator,
+				WaitingNodes:        waitingMapForNodesCoordinator,
+				SelfPublicKey:       v.PubKeyBytes(),
+				ConsensusGroupCache: lruCache,
+				ShuffledOutHandler:  &mock.ShuffledOutHandlerStub{},
+				ChanStopNode:        endProcess.GetDummyEndProcessChannel(),
+				IsFullArchive:       false,
+				EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+				ValidatorInfoCacher: &vic.ValidatorInfoCacherStub{},
 			}
 
 			nodesCoordinatorInstance, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)

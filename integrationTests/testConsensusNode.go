@@ -41,6 +41,7 @@ import (
 	testFactory "github.com/ElrondNetwork/elrond-go/testscommon/factory"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingmock"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	vic "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
@@ -51,7 +52,6 @@ const (
 	signatureSize    = 48
 	publicKeySize    = 96
 	maxShards        = 1
-	nodeShardId      = 0
 )
 
 var testPubkeyConverter, _ = pubkeyConverter.NewHexPubkeyConverter(32)
@@ -334,22 +334,28 @@ func (tcn *TestConsensusNode) initNodesCoordinator(
 	cache storage.Cacher,
 ) {
 	argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-		ShardConsensusGroupSize: consensusSize,
-		MetaConsensusGroupSize:  consensusSize,
-		Marshalizer:             TestMarshalizer,
-		Hasher:                  hasher,
-		Shuffler:                &shardingMocks.NodeShufflerMock{},
-		EpochStartNotifier:      epochStartRegistrationHandler,
-		BootStorer:              CreateMemUnit(),
-		NbShards:                maxShards,
-		EligibleNodes:           eligibleMap,
-		WaitingNodes:            waitingMap,
-		SelfPublicKey:           pkBytes,
-		ConsensusGroupCache:     cache,
-		ShuffledOutHandler:      &elrondShardingMocks.ShuffledOutHandlerStub{},
-		ChanStopNode:            endProcess.GetDummyEndProcessChannel(),
-		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
-		IsFullArchive:           false,
+		ChainParametersHandler: &shardingmock.ChainParametersHandlerStub{
+			CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
+				return config.ChainParametersByEpochConfig{
+					ShardConsensusGroupSize:     uint32(consensusSize),
+					MetachainConsensusGroupSize: uint32(consensusSize),
+				}
+			},
+		},
+		Marshalizer:         TestMarshalizer,
+		Hasher:              hasher,
+		Shuffler:            &shardingMocks.NodeShufflerMock{},
+		EpochStartNotifier:  epochStartRegistrationHandler,
+		BootStorer:          CreateMemUnit(),
+		NbShards:            maxShards,
+		EligibleNodes:       eligibleMap,
+		WaitingNodes:        waitingMap,
+		SelfPublicKey:       pkBytes,
+		ConsensusGroupCache: cache,
+		ShuffledOutHandler:  &elrondShardingMocks.ShuffledOutHandlerStub{},
+		ChanStopNode:        endProcess.GetDummyEndProcessChannel(),
+		NodeTypeProvider:    &nodeTypeProviderMock.NodeTypeProviderStub{},
+		IsFullArchive:       false,
 		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
 			IsWaitingListFixFlagEnabledField: true,
 		},
