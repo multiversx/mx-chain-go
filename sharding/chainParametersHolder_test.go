@@ -8,7 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/sharding/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochstartmock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -17,7 +17,7 @@ func TestNewChainParametersHolder(t *testing.T) {
 
 	getDummyArgs := func() ArgsChainParametersHolder {
 		return ArgsChainParametersHolder{
-			EpochStartEventNotifier: &mock.EpochStartNotifierStub{},
+			EpochStartEventNotifier: &epochstartmock.EpochStartNotifierStub{},
 			ChainParameters: []config.ChainParametersByEpochConfig{
 				{
 					EnableEpoch:                 0,
@@ -167,7 +167,7 @@ func TestChainParametersHolder_ChainParametersForEpoch(t *testing.T) {
 
 		paramsHolder, _ := NewChainParametersHolder(ArgsChainParametersHolder{
 			ChainParameters:         params,
-			EpochStartEventNotifier: &mock.EpochStartNotifierStub{},
+			EpochStartEventNotifier: &epochstartmock.EpochStartNotifierStub{},
 		})
 
 		res, _ := paramsHolder.ChainParametersForEpoch(0)
@@ -212,7 +212,7 @@ func TestChainParametersHolder_ChainParametersForEpoch(t *testing.T) {
 
 		paramsHolder, _ := NewChainParametersHolder(ArgsChainParametersHolder{
 			ChainParameters:         params,
-			EpochStartEventNotifier: &mock.EpochStartNotifierStub{},
+			EpochStartEventNotifier: &epochstartmock.EpochStartNotifierStub{},
 		})
 
 		for i := 0; i < 200; i++ {
@@ -253,7 +253,7 @@ func TestChainParametersHolder_CurrentChainParameters(t *testing.T) {
 
 	paramsHolder, _ := NewChainParametersHolder(ArgsChainParametersHolder{
 		ChainParameters:         params,
-		EpochStartEventNotifier: &mock.EpochStartNotifierStub{},
+		EpochStartEventNotifier: &epochstartmock.EpochStartNotifierStub{},
 	})
 
 	paramsHolder.EpochStartAction(&block.MetaBlock{Epoch: 0})
@@ -291,7 +291,7 @@ func TestChainParametersHolder_AllChainParameters(t *testing.T) {
 
 	paramsHolder, _ := NewChainParametersHolder(ArgsChainParametersHolder{
 		ChainParameters:         params,
-		EpochStartEventNotifier: &mock.EpochStartNotifierStub{},
+		EpochStartEventNotifier: &epochstartmock.EpochStartNotifierStub{},
 	})
 
 	returnedAllChainsParameters := paramsHolder.AllChainParameters()
@@ -316,7 +316,7 @@ func TestChainParametersHolder_ConcurrentOperations(t *testing.T) {
 
 	paramsHolder, _ := NewChainParametersHolder(ArgsChainParametersHolder{
 		ChainParameters:         chainParams,
-		EpochStartEventNotifier: &mock.EpochStartNotifierStub{},
+		EpochStartEventNotifier: &epochstartmock.EpochStartNotifierStub{},
 	})
 
 	numOperations := 500
