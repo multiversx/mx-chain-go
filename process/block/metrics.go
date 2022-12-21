@@ -322,5 +322,5 @@ func saveEpochStartEconomicsMetrics(statusHandler core.AppStatusHandler, epochSt
 	statusHandler.SetStringValue(common.MetricInflation, economics.TotalNewlyMinted.String())
 	statusHandler.SetStringValue(common.MetricTotalFees, epochStartMetaBlock.AccumulatedFeesInEpoch.String())
 	statusHandler.SetStringValue(common.MetricDevRewardsInEpoch, epochStartMetaBlock.DevFeesInEpoch.String())
-	statusHandler.SetUInt64Value(common.MetricEpochForEconomicsData, uint64(epochStartMetaBlock.Epoch))
+	statusHandler.SetUInt64Value(common.MetricEpochForEconomicsData, uint64(epochStartMetaBlock.Epoch-1))
 }
