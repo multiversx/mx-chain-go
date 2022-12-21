@@ -1,10 +1,9 @@
 package sharding
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // Coordinator defines what a shard state coordinator should hold
@@ -68,11 +67,10 @@ type GenesisNodesSetupHandler interface {
 	IsInterfaceNil() bool
 }
 
-// EpochNotifier can notify upon an epoch change and provide the current epoch
-type EpochNotifier interface {
-	RegisterNotifyHandler(handler vmcommon.EpochSubscriberHandler)
-	CurrentEpoch() uint32
-	CheckEpoch(header data.HeaderHandler)
+// EpochStartEventNotifier provides Register and Unregister functionality for the end of epoch events
+type EpochStartEventNotifier interface {
+	RegisterHandler(handler epochStart.ActionHandler)
+	UnregisterHandler(handler epochStart.ActionHandler)
 	IsInterfaceNil() bool
 }
 

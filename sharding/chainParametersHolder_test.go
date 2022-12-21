@@ -6,8 +6,9 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochstartmock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -16,7 +17,7 @@ func TestNewChainParametersHolder(t *testing.T) {
 
 	getDummyArgs := func() ArgsChainParametersHolder {
 		return ArgsChainParametersHolder{
-			EpochNotifier: &epochNotifier.EpochNotifierStub{},
+			EpochStartEventNotifier: &epochstartmock.EpochStartNotifierStub{},
 			ChainParameters: []config.ChainParametersByEpochConfig{
 				{
 					EnableEpoch:                 0,
@@ -32,15 +33,15 @@ func TestNewChainParametersHolder(t *testing.T) {
 		}
 	}
 
-	t.Run("nil epoch notifier", func(t *testing.T) {
+	t.Run("nil epoch start event notifier", func(t *testing.T) {
 		t.Parallel()
 
 		args := getDummyArgs()
-		args.EpochNotifier = nil
+		args.EpochStartEventNotifier = nil
 
 		paramsHolder, err := NewChainParametersHolder(args)
 		require.True(t, check.IfNil(paramsHolder))
-		require.Equal(t, ErrNilEpochNotifier, err)
+		require.Equal(t, ErrNilEpochStartEventNotifier, err)
 	})
 
 	t.Run("empty chain parameters", func(t *testing.T) {
@@ -165,8 +166,8 @@ func TestChainParametersHolder_ChainParametersForEpoch(t *testing.T) {
 		}
 
 		paramsHolder, _ := NewChainParametersHolder(ArgsChainParametersHolder{
-			ChainParameters: params,
-			EpochNotifier:   &epochNotifier.EpochNotifierStub{},
+			ChainParameters:         params,
+			EpochStartEventNotifier: &epochstartmock.EpochStartNotifierStub{},
 		})
 
 		res, _ := paramsHolder.ChainParametersForEpoch(0)
@@ -210,8 +211,8 @@ func TestChainParametersHolder_ChainParametersForEpoch(t *testing.T) {
 		}
 
 		paramsHolder, _ := NewChainParametersHolder(ArgsChainParametersHolder{
-			ChainParameters: params,
-			EpochNotifier:   &epochNotifier.EpochNotifierStub{},
+			ChainParameters:         params,
+			EpochStartEventNotifier: &epochstartmock.EpochStartNotifierStub{},
 		})
 
 		for i := 0; i < 200; i++ {
@@ -251,20 +252,20 @@ func TestChainParametersHolder_CurrentChainParameters(t *testing.T) {
 	}
 
 	paramsHolder, _ := NewChainParametersHolder(ArgsChainParametersHolder{
-		ChainParameters: params,
-		EpochNotifier:   &epochNotifier.EpochNotifierStub{},
+		ChainParameters:         params,
+		EpochStartEventNotifier: &epochstartmock.EpochStartNotifierStub{},
 	})
 
-	paramsHolder.EpochConfirmed(0, 0)
+	paramsHolder.EpochStartAction(&block.MetaBlock{Epoch: 0})
 	require.Equal(t, uint32(5), paramsHolder.CurrentChainParameters().ShardConsensusGroupSize)
 
-	paramsHolder.EpochConfirmed(3, 0)
+	paramsHolder.EpochStartAction(&block.MetaBlock{Epoch: 3})
 	require.Equal(t, uint32(5), paramsHolder.CurrentChainParameters().ShardConsensusGroupSize)
 
-	paramsHolder.EpochConfirmed(10, 0)
+	paramsHolder.EpochStartAction(&block.MetaBlock{Epoch: 10})
 	require.Equal(t, uint32(50), paramsHolder.CurrentChainParameters().ShardConsensusGroupSize)
 
-	paramsHolder.EpochConfirmed(999, 0)
+	paramsHolder.EpochStartAction(&block.MetaBlock{Epoch: 999})
 	require.Equal(t, uint32(50), paramsHolder.CurrentChainParameters().ShardConsensusGroupSize)
 }
 
@@ -289,8 +290,8 @@ func TestChainParametersHolder_AllChainParameters(t *testing.T) {
 	}
 
 	paramsHolder, _ := NewChainParametersHolder(ArgsChainParametersHolder{
-		ChainParameters: params,
-		EpochNotifier:   &epochNotifier.EpochNotifierStub{},
+		ChainParameters:         params,
+		EpochStartEventNotifier: &epochstartmock.EpochStartNotifierStub{},
 	})
 
 	returnedAllChainsParameters := paramsHolder.AllChainParameters()
@@ -314,8 +315,8 @@ func TestChainParametersHolder_ConcurrentOperations(t *testing.T) {
 	}
 
 	paramsHolder, _ := NewChainParametersHolder(ArgsChainParametersHolder{
-		ChainParameters: chainParams,
-		EpochNotifier:   &epochNotifier.EpochNotifierStub{},
+		ChainParameters:         chainParams,
+		EpochStartEventNotifier: &epochstartmock.EpochStartNotifierStub{},
 	})
 
 	numOperations := 500
@@ -325,7 +326,7 @@ func TestChainParametersHolder_ConcurrentOperations(t *testing.T) {
 		go func(idx int) {
 			switch idx {
 			case 0:
-				paramsHolder.EpochConfirmed(uint32(idx), 0)
+				paramsHolder.EpochStartAction(&block.MetaBlock{Epoch: uint32(idx)})
 			case 1:
 				_ = paramsHolder.CurrentChainParameters()
 			case 2:

@@ -179,10 +179,11 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	log.Debug("NTP average clock offset", "value", syncer.ClockOffset())
 
 	epochNotifier := forking.NewGenericEpochNotifier()
+	epochStartHandlerWithConfirm := notifier.NewEpochStartSubscriptionHandler()
 
 	argsChainParametersHandler := sharding.ArgsChainParametersHolder{
-		EpochNotifier:   epochNotifier,
-		ChainParameters: ccf.config.GeneralSettings.ChainParametersByEpoch,
+		EpochStartEventNotifier: epochStartHandlerWithConfirm,
+		ChainParameters:         ccf.config.GeneralSettings.ChainParametersByEpoch,
 	}
 	chainParametersHandler, err := sharding.NewChainParametersHolder(argsChainParametersHandler)
 	if err != nil {
@@ -305,13 +306,10 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	}
 
 	argsNodesShuffler := &nodesCoordinator.NodesShufflerArgs{
-		NodesShard:           genesisNodesConfig.MinNumberOfShardNodes(),
-		NodesMeta:            genesisNodesConfig.MinNumberOfMetaNodes(),
-		Hysteresis:           genesisNodesConfig.GetHysteresis(),
-		Adaptivity:           genesisNodesConfig.GetAdaptivity(),
-		ShuffleBetweenShards: true,
-		MaxNodesEnableConfig: ccf.epochConfig.EnableEpochs.MaxNodesChangeEnableEpoch,
-		EnableEpochsHandler:  enableEpochsHandler,
+		ChainParametersHandler: chainParametersHandler,
+		ShuffleBetweenShards:   true,
+		MaxNodesEnableConfig:   ccf.epochConfig.EnableEpochs.MaxNodesChangeEnableEpoch,
+		EnableEpochsHandler:    enableEpochsHandler,
 	}
 
 	nodesShuffler, err := nodesCoordinator.NewHashValidatorsShuffler(argsNodesShuffler)

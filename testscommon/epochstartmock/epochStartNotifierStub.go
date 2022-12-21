@@ -1,4 +1,4 @@
-package mock
+package epochstartmock
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/data"

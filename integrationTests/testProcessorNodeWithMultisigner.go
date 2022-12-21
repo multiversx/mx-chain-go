@@ -32,6 +32,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingmock"
 	vic "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
 )
 
@@ -392,10 +393,16 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 	nodesMap := make(map[uint32][]*TestProcessorNode)
 
 	shufflerArgs := &nodesCoordinator.NodesShufflerArgs{
-		NodesShard:           uint32(nodesPerShard),
-		NodesMeta:            uint32(nbMetaNodes),
-		Hysteresis:           hysteresis,
-		Adaptivity:           adaptivity,
+		ChainParametersHandler: &shardingmock.ChainParametersHandlerStub{
+			CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
+				return config.ChainParametersByEpochConfig{
+					ShardMinNumNodes:     uint32(nodesPerShard),
+					MetachainMinNumNodes: uint32(nbMetaNodes),
+					Hysteresis:           hysteresis,
+					Adaptivity:           adaptivity,
+				}
+			},
+		},
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
 		EnableEpochsHandler:  &testscommon.EnableEpochsHandlerStub{},

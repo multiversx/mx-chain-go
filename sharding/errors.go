@@ -43,8 +43,8 @@ var ErrNilEndOfProcessingHandler = errors.New("nil end of processing handler")
 // ErrNilChainParametersProvider signals that a nil chain parameters provider has been given
 var ErrNilChainParametersProvider = errors.New("nil chain parameters provider")
 
-// ErrNilEpochNotifier signals that a nil epoch notifier has been provided
-var ErrNilEpochNotifier = errors.New("nil epoch notifier")
+// ErrNilEpochStartEventNotifier signals that a nil epoch start event notifier has been provided
+var ErrNilEpochStartEventNotifier = errors.New("nil epoch start event notifier")
 
 // ErrMissingChainParameters signals that a nil chain parameters array has been provided
 var ErrMissingChainParameters = errors.New("empty chain parameters array")

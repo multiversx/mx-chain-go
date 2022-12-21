@@ -108,3 +108,6 @@ var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
 
 // ErrNilValidatorInfoCacher signals that a nil value for the validator info cacher has been provided
 var ErrNilValidatorInfoCacher = errors.New("validator info cacher is nil")
+
+// ErrNilChainParametersHandler signals that a nil chain parameters handler has been provided
+var ErrNilChainParametersHandler = errors.New("nil chain parameters handler")

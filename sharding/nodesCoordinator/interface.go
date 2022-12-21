@@ -3,6 +3,7 @@ package nodesCoordinator
 import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/state"
 )
@@ -51,7 +52,6 @@ type PublicKeysSelector interface {
 
 // NodesShuffler provides shuffling functionality for nodes
 type NodesShuffler interface {
-	UpdateParams(numNodesShard uint32, numNodesMeta uint32, hysteresis float32, adaptivity bool)
 	UpdateNodeLists(args ArgsUpdateNodes) (*ResUpdateNodes, error)
 	IsInterfaceNil() bool
 }
@@ -129,4 +129,12 @@ type EpochsConfigUpdateHandler interface {
 	NodesCoordinator
 	SetNodesConfigFromValidatorsInfo(epoch uint32, randomness []byte, validatorsInfo []*state.ShardValidatorInfo) error
 	IsEpochInConfig(epoch uint32) bool
+}
+
+// ChainParametersHandler defines the actions that need to be done by a component that can handle chain parameters
+type ChainParametersHandler interface {
+	CurrentChainParameters() config.ChainParametersByEpochConfig
+	AllChainParameters() []config.ChainParametersByEpochConfig
+	ChainParametersForEpoch(epoch uint32) (config.ChainParametersByEpochConfig, error)
+	IsInterfaceNil() bool
 }

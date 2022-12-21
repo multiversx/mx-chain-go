@@ -5,12 +5,14 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingmock"
 	vic "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
 )
 
@@ -43,10 +45,16 @@ func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgInd
 	pubKeyBytes, _ := keys.Pk.ToByteArray()
 
 	nodeShufflerArgs := &nodesCoordinator.NodesShufflerArgs{
-		NodesShard:           uint32(arg.nodesPerShard),
-		NodesMeta:            uint32(arg.nbMetaNodes),
-		Hysteresis:           hysteresis,
-		Adaptivity:           adaptivity,
+		ChainParametersHandler: &shardingmock.ChainParametersHandlerStub{
+			CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
+				return config.ChainParametersByEpochConfig{
+					ShardMinNumNodes:     uint32(arg.nodesPerShard),
+					MetachainMinNumNodes: uint32(arg.nbMetaNodes),
+					Hysteresis:           hysteresis,
+					Adaptivity:           adaptivity,
+				}
+			},
+		},
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
 		EnableEpochsHandler:  &testscommon.EnableEpochsHandlerStub{},
@@ -97,10 +105,16 @@ func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinato
 	pubKeyBytes, _ := keys.Pk.ToByteArray()
 
 	shufflerArgs := &nodesCoordinator.NodesShufflerArgs{
-		NodesShard:           uint32(arg.nodesPerShard),
-		NodesMeta:            uint32(arg.nbMetaNodes),
-		Hysteresis:           hysteresis,
-		Adaptivity:           adaptivity,
+		ChainParametersHandler: &shardingmock.ChainParametersHandlerStub{
+			CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
+				return config.ChainParametersByEpochConfig{
+					ShardMinNumNodes:     uint32(arg.nodesPerShard),
+					MetachainMinNumNodes: uint32(arg.nbMetaNodes),
+					Hysteresis:           hysteresis,
+					Adaptivity:           adaptivity,
+				}
+			},
+		},
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
 		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{

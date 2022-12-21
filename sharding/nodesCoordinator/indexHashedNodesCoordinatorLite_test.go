@@ -86,8 +86,12 @@ func TestIndexHashedNodesCoordinator_SetNodesConfigFromValidatorsInfo(t *testing
 	arguments := createArguments()
 
 	shufflerArgs := &NodesShufflerArgs{
-		NodesShard:          3,
-		NodesMeta:           3,
+		ChainParametersHandler: testChainParametersCreator{
+			numNodesShards: 3,
+			numNodesMeta:   3,
+			hysteresis:     hysteresis,
+			adaptivity:     adaptivity,
+		}.build(),
 		EnableEpochsHandler: &mock.EnableEpochsHandlerMock{},
 	}
 	nodeShuffler, _ := NewHashValidatorsShuffler(shufflerArgs)
@@ -110,8 +114,10 @@ func TestIndexHashedNodesCoordinator_SetNodesConfigFromValidatorsInfoMultipleEpo
 	arguments := createArguments()
 
 	shufflerArgs := &NodesShufflerArgs{
-		NodesShard:          3,
-		NodesMeta:           3,
+		ChainParametersHandler: testChainParametersCreator{
+			numNodesShards: 3,
+			numNodesMeta:   3,
+		}.build(),
 		EnableEpochsHandler: &mock.EnableEpochsHandlerMock{},
 	}
 	nodeShuffler, _ := NewHashValidatorsShuffler(shufflerArgs)
