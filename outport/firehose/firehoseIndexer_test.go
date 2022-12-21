@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestFirehoseIndexer_SaveBlock(t *testing.T) {
+func TestFirehoseIndexer_SaveBlockHeader(t *testing.T) {
 	t.Parallel()
 
 	protoMarshaller := &marshal.GogoProtoMarshalizer{}
