@@ -120,8 +120,8 @@ func (tsd *TrieStatsDTO) ToString() []string {
 	stats = append(stats, fmt.Sprintf("branch nodes size %v,", core.ConvertBytes(tsd.BranchNodesSize)))
 	stats = append(stats, fmt.Sprintf("extension nodes size %v,", core.ConvertBytes(tsd.ExtensionNodesSize)))
 	stats = append(stats, fmt.Sprintf("leaf nodes size %v,", core.ConvertBytes(tsd.LeafNodesSize)))
-	stats = append(stats, fmt.Sprintf("num branches  %v,", tsd.NumBranchNodes))
-	stats = append(stats, fmt.Sprintf("num extensions  %v,", tsd.NumExtensionNodes))
-	stats = append(stats, fmt.Sprintf("num leaves  %v", tsd.NumLeafNodes))
+	stats = append(stats, fmt.Sprintf("num branches %v,", tsd.NumBranchNodes))
+	stats = append(stats, fmt.Sprintf("num extensions %v,", tsd.NumExtensionNodes))
+	stats = append(stats, fmt.Sprintf("num leaves %v", tsd.NumLeafNodes))
 	return stats
 }
