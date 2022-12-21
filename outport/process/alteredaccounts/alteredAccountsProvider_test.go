@@ -80,6 +80,31 @@ func TestNewAlteredAccountsProvider(t *testing.T) {
 	})
 }
 
+func TestGetAlteredAccountFromUserAccount(t *testing.T) {
+	t.Parallel()
+
+	args := getMockArgs()
+	args.AddressConverter = &testscommon.PubkeyConverterMock{}
+	aap, _ := NewAlteredAccountsProvider(args)
+
+	userAccount := &state.UserAccountStub{
+		Balance:          big.NewInt(1000),
+		DeveloperRewards: big.NewInt(100),
+		Owner:            []byte("owner"),
+		UserName:         []byte("contract"),
+		Address:          []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+	}
+	res := aap.getAlteredAccountFromUserAccounts("addr", userAccount)
+
+	require.Equal(t, &outportcore.AlteredAccount{
+		Address:          "addr",
+		Balance:          "1000",
+		DeveloperRewards: "100",
+		CurrentOwner:     "6f776e6572",
+		UserName:         "contract",
+	}, res)
+}
+
 func TestAlteredAccountsProvider_ExtractAlteredAccountsFromPool(t *testing.T) {
 	t.Parallel()
 
@@ -1201,4 +1226,20 @@ func getMockArgs() ArgsAlteredAccountsProvider {
 		AccountsDB:             &state.AccountsStub{},
 		EsdtDataStorageHandler: &testscommon.EsdtStorageHandlerStub{},
 	}
+}
+
+type myStruct struct {
+	message string
+}
+
+func (m myStruct) String() string {
+	return "belesti-magarul"
+}
+
+func TestSomething(t *testing.T) {
+	a := myStruct{
+		message: "esti un magar",
+	}
+
+	fmt.Printf("%s", a)
 }

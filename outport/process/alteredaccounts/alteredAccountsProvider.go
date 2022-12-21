@@ -118,11 +118,8 @@ func (aap *alteredAccountsProvider) processMarkedAccountData(
 		return fmt.Errorf("%w while loading account when computing altered accounts. address: %s", err, encodedAddress)
 	}
 
-	alteredAccounts[encodedAddress] = &outportcore.AlteredAccount{
-		Address: encodedAddress,
-		Balance: userAccount.GetBalance().String(),
-		Nonce:   userAccount.GetNonce(),
-	}
+	alteredAccounts[encodedAddress] = aap.getAlteredAccountFromUserAccounts(encodedAddress, userAccount)
+
 	if options.WithAdditionalOutportData {
 		alteredAccounts[encodedAddress].AdditionalData = &outportcore.AdditionalAccountData{
 			IsSender:       markedAccount.isSender,
@@ -138,6 +135,25 @@ func (aap *alteredAccountsProvider) processMarkedAccountData(
 	}
 
 	return nil
+}
+
+func (aap *alteredAccountsProvider) getAlteredAccountFromUserAccounts(userEncodedAddress string, userAccount state.UserAccountHandler) *outportcore.AlteredAccount {
+	alteredAccount := &outportcore.AlteredAccount{
+		Address:  userEncodedAddress,
+		Balance:  userAccount.GetBalance().String(),
+		Nonce:    userAccount.GetNonce(),
+		UserName: string(userAccount.GetUserName()),
+	}
+
+	if core.IsSmartContractAddress(userAccount.AddressBytes()) {
+		alteredAccount.CurrentOwner = aap.addressConverter.Encode(userAccount.GetOwnerAddress())
+	}
+	developerRewards := userAccount.GetDeveloperReward()
+	if developerRewards != nil {
+		alteredAccount.DeveloperRewards = developerRewards.String()
+	}
+
+	return alteredAccount
 }
 
 func (aap *alteredAccountsProvider) loadUserAccount(addressBytes []byte, options shared.AlteredAccountsOptions) (state.UserAccountHandler, error) {
