@@ -12,6 +12,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 )
 
+type txPool struct {
+	transactions        map[string]*firehose.TxWithFee
+	smartContractResult map[string]*firehose.SCRWithFee
+	rewards             map[string]*rewardTx.RewardTx
+	receipts            map[string]*receipt.Receipt
+	invalidTxs          map[string]*firehose.TxWithFee
+	logs                map[string]*transaction.Log
+}
+
 func getTxPool(transactionsPool *outportcore.Pool) (*txPool, error) {
 	if transactionsPool == nil {
 		return &txPool{}, nil
@@ -52,6 +61,14 @@ func getTxPool(transactionsPool *outportcore.Pool) (*txPool, error) {
 	}, nil
 }
 
+func getFirehoseFreeInfo(txHandler data.TransactionHandlerWithGasUsedAndFee) *firehose.FeeInfo {
+	return &firehose.FeeInfo{
+		GasUsed:        txHandler.GetGasUsed(),
+		Fee:            txHandler.GetFee(),
+		InitialPaidFee: txHandler.GetInitialPaidFee(),
+	}
+}
+
 func getTxs(txs map[string]data.TransactionHandlerWithGasUsedAndFee) (map[string]*firehose.TxWithFee, error) {
 	ret := make(map[string]*firehose.TxWithFee, len(txs))
 
@@ -90,19 +107,22 @@ func getScrs(scrs map[string]data.TransactionHandlerWithGasUsedAndFee) (map[stri
 
 func getRewards(rewards map[string]data.TransactionHandlerWithGasUsedAndFee) (map[string]*rewardTx.RewardTx, error) {
 	ret := make(map[string]*rewardTx.RewardTx, len(rewards))
+
 	for hash, txHandler := range rewards {
 		tx, castOk := txHandler.GetTxHandler().(*rewardTx.RewardTx)
 		if !castOk {
-			return nil, fmt.Errorf("%w, hash: %s", errCannotCastRewards, hash)
+			return nil, fmt.Errorf("%w, hash: %s", errCannotCastReward, hash)
 		}
 
 		ret[hash] = tx
 	}
+
 	return ret, nil
 }
 
 func getReceipts(receipts map[string]data.TransactionHandlerWithGasUsedAndFee) (map[string]*receipt.Receipt, error) {
 	ret := make(map[string]*receipt.Receipt, len(receipts))
+
 	for hash, receiptHandler := range receipts {
 		tx, castOk := receiptHandler.GetTxHandler().(*receipt.Receipt)
 		if !castOk {
@@ -111,19 +131,21 @@ func getReceipts(receipts map[string]data.TransactionHandlerWithGasUsedAndFee) (
 
 		ret[hash] = tx
 	}
+
 	return ret, nil
 }
 
-func getLogs(logs []*data.LogData) ([]*transaction.Log, error) {
-	ret := make([]*transaction.Log, len(logs))
-	for idx, logHandler := range logs {
+func getLogs(logs []*data.LogData) (map[string]*transaction.Log, error) {
+	ret := make(map[string]*transaction.Log, len(logs))
+
+	for _, logHandler := range logs {
 		eventHandlers := logHandler.GetLogEvents()
 		events, err := getEvents(eventHandlers)
 		if err != nil {
 			return nil, fmt.Errorf("%w, hash: %s", err, logHandler.TxHash)
 		}
 
-		ret[idx] = &transaction.Log{
+		ret[logHandler.TxHash] = &transaction.Log{
 			Address: logHandler.GetAddress(),
 			Events:  events,
 		}
@@ -144,12 +166,4 @@ func getEvents(eventHandlers []data.EventHandler) ([]*transaction.Event, error) 
 	}
 
 	return events, nil
-}
-
-func getFirehoseFreeInfo(txHandler data.TransactionHandlerWithGasUsedAndFee) *firehose.FeeInfo {
-	return &firehose.FeeInfo{
-		GasUsed:        txHandler.GetGasUsed(),
-		Fee:            txHandler.GetFee(),
-		InitialPaidFee: txHandler.GetInitialPaidFee(),
-	}
 }

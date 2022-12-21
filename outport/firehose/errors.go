@@ -12,7 +12,7 @@ var errCannotCastTransaction = errors.New("cannot cast transaction")
 
 var errCannotCastSCR = errors.New("cannot cast smart contract result")
 
-var errCannotCastRewards = errors.New("cannot cast reward transaction")
+var errCannotCastReward = errors.New("cannot cast reward transaction")
 
 var errCannotCastReceipt = errors.New("cannot cast receipt transaction")
 

@@ -11,9 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/firehose"
 	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
-	"github.com/ElrondNetwork/elrond-go-core/data/receipt"
-	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/outport"
@@ -26,15 +23,6 @@ const (
 	beginBlockPrefix = "BLOCK_BEGIN"
 	endBlockPrefix   = "BLOCK_END"
 )
-
-type txPool struct {
-	transactions        map[string]*firehose.TxWithFee
-	smartContractResult map[string]*firehose.SCRWithFee
-	rewards             map[string]*rewardTx.RewardTx
-	receipts            map[string]*receipt.Receipt
-	invalidTxs          map[string]*firehose.TxWithFee
-	logs                []*transaction.Log
-}
 
 type firehoseIndexer struct {
 	writer     io.Writer

@@ -11,6 +11,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/firehose"
 	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
+	"github.com/ElrondNetwork/elrond-go-core/data/receipt"
+	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
+	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -35,9 +38,9 @@ func TestFirehoseIndexer_SaveBlockTxPool(t *testing.T) {
 	txs := []*outportcore.TransactionHandlerWithGasAndFee{
 		{
 			FeeInfo: outportcore.FeeInfo{
-				GasUsed:        100,
-				Fee:            big.NewInt(100),
-				InitialPaidFee: big.NewInt(200),
+				GasUsed:        111,
+				Fee:            big.NewInt(111),
+				InitialPaidFee: big.NewInt(111),
 			},
 			TransactionHandler: &transaction.Transaction{
 				Nonce: 1,
@@ -46,9 +49,9 @@ func TestFirehoseIndexer_SaveBlockTxPool(t *testing.T) {
 		},
 		{
 			FeeInfo: outportcore.FeeInfo{
-				GasUsed:        220,
-				Fee:            big.NewInt(340),
-				InitialPaidFee: big.NewInt(500),
+				GasUsed:        222,
+				Fee:            big.NewInt(222),
+				InitialPaidFee: big.NewInt(222),
 			},
 			TransactionHandler: &transaction.Transaction{
 				Nonce: 2,
@@ -56,6 +59,75 @@ func TestFirehoseIndexer_SaveBlockTxPool(t *testing.T) {
 			},
 		},
 	}
+
+	scrs := []*outportcore.TransactionHandlerWithGasAndFee{
+		{
+			FeeInfo: outportcore.FeeInfo{
+				GasUsed:        333,
+				Fee:            big.NewInt(333),
+				InitialPaidFee: big.NewInt(333),
+			},
+			TransactionHandler: &smartContractResult.SmartContractResult{
+				Nonce: 3,
+				Data:  []byte("data3"),
+			},
+		},
+	}
+
+	rewards := []*outportcore.TransactionHandlerWithGasAndFee{
+		{
+			TransactionHandler: &rewardTx.RewardTx{
+				Epoch: 4,
+				Value: big.NewInt(4),
+			},
+		},
+	}
+
+	invalidTxs := []*outportcore.TransactionHandlerWithGasAndFee{
+		{
+			FeeInfo: outportcore.FeeInfo{
+				GasUsed:        444,
+				Fee:            big.NewInt(444),
+				InitialPaidFee: big.NewInt(444),
+			},
+			TransactionHandler: &transaction.Transaction{
+				Nonce: 4,
+				Data:  []byte("data4"),
+			},
+		},
+	}
+
+	receipts := []*outportcore.TransactionHandlerWithGasAndFee{
+		{
+			TransactionHandler: &receipt.Receipt{
+				Value: big.NewInt(44),
+				Data:  []byte("data5"),
+			},
+		},
+		{
+			TransactionHandler: &receipt.Receipt{
+				SndAddr: []byte("sndr"),
+			},
+		},
+	}
+
+	logs := []*data.LogData{
+		{
+			LogHandler: &transaction.Log{
+				Address: []byte("addr"),
+				Events: []*transaction.Event{
+					{
+						Identifier: []byte("id1"),
+					},
+					{
+						Identifier: []byte("id2"),
+					},
+				},
+			},
+			TxHash: "txHash8",
+		},
+	}
+
 	argsSaveBlock := &outportcore.ArgsSaveBlockData{
 		HeaderHash: headerHashShardV1,
 		Header:     shardHeaderV1,
@@ -64,11 +136,21 @@ func TestFirehoseIndexer_SaveBlockTxPool(t *testing.T) {
 				"txHash1": txs[0],
 				"txHash2": txs[1],
 			},
-			Scrs:     nil,
-			Rewards:  nil,
-			Invalid:  nil,
-			Receipts: nil,
-			Logs:     nil,
+			Scrs: map[string]data.TransactionHandlerWithGasUsedAndFee{
+				"txHash3": scrs[0],
+			},
+			Rewards: map[string]data.TransactionHandlerWithGasUsedAndFee{
+				"txHash4": rewards[0],
+			},
+
+			Invalid: map[string]data.TransactionHandlerWithGasUsedAndFee{
+				"txHash5": invalidTxs[0],
+			},
+			Receipts: map[string]data.TransactionHandlerWithGasUsedAndFee{
+				"txHash6": receipts[0],
+				"txHash7": receipts[1],
+			},
+			Logs: logs,
 		},
 	}
 
@@ -93,6 +175,36 @@ func TestFirehoseIndexer_SaveBlockTxPool(t *testing.T) {
 					InitialPaidFee: txs[1].InitialPaidFee,
 				},
 			},
+		},
+		SmartContractResult: map[string]*firehose.SCRWithFee{
+			"txHash3": {
+				SmartContractResult: scrs[0].TransactionHandler.(*smartContractResult.SmartContractResult),
+				FeeInfo: &firehose.FeeInfo{
+					GasUsed:        scrs[0].GasUsed,
+					Fee:            scrs[0].Fee,
+					InitialPaidFee: scrs[0].InitialPaidFee,
+				},
+			},
+		},
+		Rewards: map[string]*rewardTx.RewardTx{
+			"txHash4": rewards[0].TransactionHandler.(*rewardTx.RewardTx),
+		},
+		InvalidTxs: map[string]*firehose.TxWithFee{
+			"txHash5": {
+				Transaction: invalidTxs[0].TransactionHandler.(*transaction.Transaction),
+				FeeInfo: &firehose.FeeInfo{
+					GasUsed:        invalidTxs[0].GasUsed,
+					Fee:            invalidTxs[0].Fee,
+					InitialPaidFee: invalidTxs[0].InitialPaidFee,
+				},
+			},
+		},
+		Receipts: map[string]*receipt.Receipt{
+			"txHash6": receipts[0].TransactionHandler.(*receipt.Receipt),
+			"txHash7": receipts[1].TransactionHandler.(*receipt.Receipt),
+		},
+		Logs: map[string]*transaction.Log{
+			"txHash8": logs[0].LogHandler.(*transaction.Log),
 		},
 	}
 	marshalledFirehoseBlock, err := protoMarshaller.Marshal(firehoseBlock)
