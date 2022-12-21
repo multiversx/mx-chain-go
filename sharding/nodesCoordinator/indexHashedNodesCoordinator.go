@@ -253,7 +253,7 @@ func (ihnc *indexHashedNodesCoordinator) getNodesConfig(epoch uint32) (*epochNod
 	}
 
 	ncInternalkey := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), []byte(fmt.Sprint(epoch))...)
-	epochConfigBytes, err := ihnc.bootStorer.SearchFirst(ncInternalkey)
+	epochConfigBytes, err := ihnc.bootStorer.GetFromEpoch(ncInternalkey, epoch)
 	if err != nil {
 		return nil, false
 	}
