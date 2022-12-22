@@ -197,6 +197,11 @@ func (mp *metaProcessor) ProcessBlock(
 		return process.ErrNilHaveTimeHandler
 	}
 
+	if headerHandler.GetEpoch() >= 3 && headerHandler.GetEpoch() < 8 {
+		log.Debug("Do not process block from epoch 4 to 8")
+		return process.ErrTimeIsOut
+	}
+
 	mp.processStatusHandler.SetBusy("metaProcessor.ProcessBlock")
 	defer mp.processStatusHandler.SetIdle()
 
