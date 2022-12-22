@@ -22,6 +22,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/cache"
 )
 
+const consensusGroupCacheSize = 25000
+const nodesConfigCacheSize = 10
+
 // CreateShardCoordinator is the shard coordinator factory
 func CreateShardCoordinator(
 	nodesConfig sharding.GenesisNodesSetupHandler,
@@ -166,7 +169,12 @@ func CreateNodesCoordinator(
 		return nil, err
 	}
 
-	consensusGroupCache, err := cache.NewLRUCache(25000)
+	consensusGroupCache, err := cache.NewLRUCache(consensusGroupCacheSize)
+	if err != nil {
+		return nil, err
+	}
+
+	nodesConfigCache, err := cache.NewLRUCache(nodesConfigCacheSize)
 	if err != nil {
 		return nil, err
 	}
@@ -199,6 +207,7 @@ func CreateNodesCoordinator(
 		EnableEpochsHandler:     enableEpochsHandler,
 		ValidatorInfoCacher:     validatorInfoCacher,
 		NumStoredEpochs:         numStoredEpochs,
+		NodesConfigCache:        nodesConfigCache,
 	}
 
 	baseNodesCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)

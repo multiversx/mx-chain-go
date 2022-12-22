@@ -23,6 +23,7 @@ import (
 )
 
 const consensusGroupCacheSize = 50
+const nodesConfigCacheSize = 10
 
 type syncValidatorStatus struct {
 	miniBlocksSyncer    epochStart.PendingMiniBlocksSyncHandler
@@ -109,6 +110,11 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 		return nil, err
 	}
 
+	nodesConfigCache, err := cache.NewLRUCache(nodesConfigCacheSize)
+	if err != nil {
+		return nil, err
+	}
+
 	s.memDB = disabled.CreateMemUnit()
 
 	argsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
@@ -132,6 +138,7 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 		EnableEpochsHandler:     args.EnableEpochsHandler,
 		ValidatorInfoCacher:     s.dataPool.CurrentEpochValidatorInfo(),
 		NumStoredEpochs:         args.NumStoredEpochs,
+		NodesConfigCache:        nodesConfigCache,
 	}
 	baseNodesCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argsNodesCoordinator)
 	if err != nil {

@@ -114,3 +114,6 @@ var ErrNilNodesCoordinatorRegistry = errors.New("nil nodes coordinator registry"
 
 // ErrInvalidNumberOfStoredEpochs signals that an invalid number of stored epochs has been provided
 var ErrInvalidNumberOfStoredEpochs = errors.New("invalid number of stored epochs")
+
+// ErrNilNodesConfigCacher signals that a nil value for the nodes config cacher has been provided
+var ErrNilNodesConfigCacher = errors.New("nodes config cacher is nil")
