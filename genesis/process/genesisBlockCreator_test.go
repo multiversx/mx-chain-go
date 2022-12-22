@@ -28,7 +28,6 @@ import (
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	storageCommon "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/ElrondNetwork/elrond-go/trie"
-	"github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/update"
 	updateMock "github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
@@ -52,8 +51,8 @@ func createMockArgument(
 	storageManager, _ := trie.CreateTrieStorageManager(storageManagerArgs, options)
 
 	trieStorageManagers := make(map[string]common.StorageManager)
-	trieStorageManagers[factory.UserAccountTrie] = storageManager
-	trieStorageManagers[factory.PeerAccountTrie] = storageManager
+	trieStorageManagers[dataRetriever.UserAccountsUnit.String()] = storageManager
+	trieStorageManagers[dataRetriever.PeerAccountsUnit.String()] = storageManager
 
 	arg := ArgsGenesisBlockCreator{
 		GenesisTime:   0,
@@ -146,7 +145,7 @@ func createMockArgument(
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
 		factoryState.NewAccountCreator(),
-		trieStorageManagers[factory.UserAccountTrie],
+		trieStorageManagers[dataRetriever.UserAccountsUnit.String()],
 	)
 	require.Nil(t, err)
 

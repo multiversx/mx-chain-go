@@ -35,3 +35,7 @@ type getKeyHandler interface {
 	GetKey() []byte
 	GetIdentifier() string
 }
+
+type dbStorerWithIdentifier interface {
+	GetIdentifier() string
+}

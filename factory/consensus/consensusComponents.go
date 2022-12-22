@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/signing"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -24,7 +25,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/sync/storageBootstrap"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state/syncer"
-	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/trie/statistics"
 	"github.com/ElrondNetwork/elrond-go/trie/storageMarker"
 	"github.com/ElrondNetwork/elrond-go/update"
@@ -516,7 +516,7 @@ func (ccf *consensusComponentsFactory) createArgsBaseAccountsSyncer(trieStorageM
 }
 
 func (ccf *consensusComponentsFactory) createValidatorAccountsSyncer() (process.AccountsDBSyncer, error) {
-	trieStorageManager, ok := ccf.stateComponents.TrieStorageManagers()[trieFactory.PeerAccountTrie]
+	trieStorageManager, ok := ccf.stateComponents.TrieStorageManagers()[dataRetriever.PeerAccountsUnit.String()]
 	if !ok {
 		return nil, errors.ErrNilTrieStorageManager
 	}
@@ -528,7 +528,7 @@ func (ccf *consensusComponentsFactory) createValidatorAccountsSyncer() (process.
 }
 
 func (ccf *consensusComponentsFactory) createUserAccountsSyncer() (process.AccountsDBSyncer, error) {
-	trieStorageManager, ok := ccf.stateComponents.TrieStorageManagers()[trieFactory.UserAccountTrie]
+	trieStorageManager, ok := ccf.stateComponents.TrieStorageManagers()[dataRetriever.UserAccountsUnit.String()]
 	if !ok {
 		return nil, errors.ErrNilTrieStorageManager
 	}

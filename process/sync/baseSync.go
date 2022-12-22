@@ -21,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/sync/storageBootstrap/metricsLoader"
@@ -123,6 +124,9 @@ type baseBootstrap struct {
 	isInImportMode               bool
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	processWaitTime              time.Duration
+
+	userAccountsStorerIdentifier string
+	peerAccountsStorerIdentifier string
 }
 
 // setRequestedHeaderNonce method sets the header nonce requested by the sync mechanism
@@ -1121,6 +1125,31 @@ func (boot *baseBootstrap) waitForMiniBlocks() error {
 	case <-time.After(boot.waitTime):
 		return process.ErrTimeIsOut
 	}
+}
+
+func (boot *baseBootstrap) setAccountsStorerIdentifiers() error {
+	userStorer, err := boot.store.GetStorer(dataRetriever.UserAccountsUnit)
+	if err != nil {
+		return err
+	}
+	dbWithID, ok := userStorer.(dbStorerWithIdentifier)
+	if !ok {
+		return errors.ErrWrongTypeAssertion
+	}
+	boot.userAccountsStorerIdentifier = dbWithID.GetIdentifier()
+
+	peerStorer, err := boot.store.GetStorer(dataRetriever.PeerAccountsUnit)
+	if err != nil {
+		return err
+	}
+	dbPeerWithID, ok := peerStorer.(dbStorerWithIdentifier)
+	if !ok {
+		return errors.ErrWrongTypeAssertion
+	}
+
+	boot.peerAccountsStorerIdentifier = dbPeerWithID.GetIdentifier()
+
+	return nil
 }
 
 func (boot *baseBootstrap) init() {

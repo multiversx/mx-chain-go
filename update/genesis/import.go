@@ -16,11 +16,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	commonDisabled "github.com/ElrondNetwork/elrond-go/common/disabled"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/state/factory"
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/disabled"
 	"github.com/ElrondNetwork/elrond-go/trie"
-	triesFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
@@ -286,9 +286,9 @@ func (si *stateImport) getTrie(shardID uint32, accType Type) (common.Trie, error
 		return trieForShard, nil
 	}
 
-	trieStorageManager := si.trieStorageManagers[triesFactory.UserAccountTrie]
+	trieStorageManager := si.trieStorageManagers[dataRetriever.PeerAccountsUnit.String()]
 	if accType == ValidatorAccount {
-		trieStorageManager = si.trieStorageManagers[triesFactory.PeerAccountTrie]
+		trieStorageManager = si.trieStorageManagers[dataRetriever.PeerAccountsUnit.String()]
 	}
 
 	trieForShard, err := trie.NewTrie(trieStorageManager, si.marshalizer, si.hasher, maxTrieLevelInMemory)
@@ -323,7 +323,7 @@ func (si *stateImport) importDataTrie(identifier string, shID uint32, keys [][]b
 		return fmt.Errorf("%w wanted a roothash", update.ErrWrongTypeAssertion)
 	}
 
-	dataTrie, err := trie.NewTrie(si.trieStorageManagers[triesFactory.UserAccountTrie], si.marshalizer, si.hasher, maxTrieLevelInMemory)
+	dataTrie, err := trie.NewTrie(si.trieStorageManagers[dataRetriever.UserAccountsUnit.String()], si.marshalizer, si.hasher, maxTrieLevelInMemory)
 	if err != nil {
 		return err
 	}

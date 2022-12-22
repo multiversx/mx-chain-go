@@ -8,7 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -108,6 +107,11 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 		return nil, err
 	}
 
+	err = base.setAccountsStorerIdentifiers()
+	if err != nil {
+		return nil, err
+	}
+
 	base.init()
 
 	return &boot, nil
@@ -195,11 +199,12 @@ func (boot *MetaBootstrap) SyncBlock(ctx context.Context) error {
 }
 
 func (boot *MetaBootstrap) syncAccountsDBs(key []byte, id string) error {
+
 	// TODO: refactor this in order to avoid treatment based on identifier
 	switch id {
-	case common.AccountsTrieIdentifier:
+	case boot.userAccountsStorerIdentifier:
 		return boot.syncUserAccountsState(key)
-	case common.PeerAccountsTrieIdentifier:
+	case boot.peerAccountsStorerIdentifier:
 		return boot.syncValidatorAccountsState(key)
 	default:
 		return fmt.Errorf("invalid trie identifier, id: %s", id)

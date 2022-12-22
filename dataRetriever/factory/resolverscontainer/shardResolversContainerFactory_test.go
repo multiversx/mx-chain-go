@@ -19,7 +19,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
-	triesFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -90,8 +89,8 @@ func createStoreForShard() dataRetriever.StorageService {
 
 func createTriesHolderForShard() common.TriesHolder {
 	triesHolder := state.NewDataTriesHolder()
-	triesHolder.Put([]byte(triesFactory.UserAccountTrie), &trieMock.TrieStub{})
-	triesHolder.Put([]byte(triesFactory.PeerAccountTrie), &trieMock.TrieStub{})
+	triesHolder.Put([]byte(dataRetriever.UserAccountsUnit.String()), &trieMock.TrieStub{})
+	triesHolder.Put([]byte(dataRetriever.PeerAccountsUnit.String()), &trieMock.TrieStub{})
 	return triesHolder
 }
 
