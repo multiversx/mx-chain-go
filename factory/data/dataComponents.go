@@ -86,6 +86,7 @@ func NewDataComponentsFactory(args DataComponentsFactoryArgs) (*dataComponentsFa
 		epochStartNotifier:            args.EpochStartNotifier,
 		currentEpoch:                  args.CurrentEpoch,
 		createTrieEpochRootHashStorer: args.CreateTrieEpochRootHashStorer,
+		snapshotsEnabled:              args.SnapshotsEnabled,
 	}, nil
 }
 

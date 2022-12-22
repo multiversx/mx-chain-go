@@ -21,10 +21,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/epochProviders"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/requestersContainer"
+	requesterscontainer "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/requestersContainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
 	disabledResolversContainer "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer/disabled"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/storageRequestersContainer"
+	storagerequesterscontainer "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/storageRequestersContainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
@@ -223,6 +223,7 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		historyRepo:            args.HistoryRepo,
 		epochNotifier:          args.CoreData.EpochNotifier(),
 		statusCoreComponents:   args.StatusCoreComponents,
+		snapshotsEnabled:       args.SnapshotsEnabled,
 	}, nil
 }
 
