@@ -145,8 +145,9 @@ func (aap *alteredAccountsProvider) getAlteredAccountFromUserAccounts(userEncode
 		UserName: string(userAccount.GetUserName()),
 	}
 
-	if core.IsSmartContractAddress(userAccount.AddressBytes()) {
-		alteredAccount.CurrentOwner = aap.addressConverter.Encode(userAccount.GetOwnerAddress())
+	ownerAddressBytes := userAccount.GetOwnerAddress()
+	if core.IsSmartContractAddress(userAccount.AddressBytes()) && len(ownerAddressBytes) == aap.addressConverter.Len() {
+		alteredAccount.CurrentOwner = aap.addressConverter.Encode(ownerAddressBytes)
 	}
 	developerRewards := userAccount.GetDeveloperReward()
 	if developerRewards != nil {
