@@ -233,6 +233,9 @@
     # MaxBlockchainHookCountersEnableEpoch represents the epoch when the max blockchainhook counters are enabled
 	MaxBlockchainHookCountersEnableEpoch = 1
 
+    # WipeSingleNFTLiquidityDecreaseEnableEpoch represents the epoch when the system account liquidity is decreased for wipeSingleNFT as well
+    WipeSingleNFTLiquidityDecreaseEnableEpoch = 5
+
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [
         { EnableEpoch = 0, Type = "no-KOSK"},

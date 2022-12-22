@@ -842,6 +842,11 @@ func (bh *BlockChainHookImpl) ResetCounters() {
 	bh.counter.ResetCounters()
 }
 
+// GetCounterValues returns the current counter values
+func (bh *BlockChainHookImpl) GetCounterValues() map[string]uint64 {
+	return bh.counter.GetCounterValues()
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (bh *BlockChainHookImpl) IsInterfaceNil() bool {
 	return bh == nil
