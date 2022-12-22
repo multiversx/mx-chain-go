@@ -32,21 +32,22 @@ const (
 
 // MemStats is the DTO holding the memory status for the current process
 type MemStats struct {
-	VmPeak   uint64
-	VmSize   uint64
-	VmLck    uint64
-	VmPin    uint64
-	VmHWM    uint64
-	VmRSS    uint64
-	RssAnon  uint64
-	RssFile  uint64
-	RssShmem uint64
-	VmData   uint64
-	VmStk    uint64
-	VmExe    uint64
-	VmLib    uint64
-	VmPTE    uint64
-	VmSwap   uint64
+	fieldsSet bool
+	VmPeak    uint64
+	VmSize    uint64
+	VmLck     uint64
+	VmPin     uint64
+	VmHWM     uint64
+	VmRSS     uint64
+	RssAnon   uint64
+	RssFile   uint64
+	RssShmem  uint64
+	VmData    uint64
+	VmStk     uint64
+	VmExe     uint64
+	VmLib     uint64
+	VmPTE     uint64
+	VmSwap    uint64
 }
 
 // String will convert the values stored in a one line string value
@@ -91,6 +92,10 @@ func parseResponse(buff string) (*MemStats, error) {
 		}
 	}
 
+	if !memStats.fieldsSet {
+		return nil, errUnparsableData
+	}
+
 	return memStats, nil
 }
 
@@ -100,6 +105,7 @@ func parseLine(line string, memStats *MemStats) error {
 		return nil
 	}
 
+	fieldSet := true
 	var err error
 	switch lineComponents[0] {
 	case vmPeakName:
@@ -132,18 +138,34 @@ func parseLine(line string, memStats *MemStats) error {
 		memStats.VmPTE, err = parseValue(lineComponents)
 	case vmSwapName:
 		memStats.VmSwap, err = parseValue(lineComponents)
+	default:
+		fieldSet = false
 	}
+
+	memStats.fieldsSet = memStats.fieldsSet || fieldSet
 
 	return err
 }
 
 func splitComponents(line string) []string {
 	lineComponents := strings.Split(line, " ")
-	filteredComponents := make([]string, 0, len(lineComponents))
-	for _, comp := range lineComponents {
-		comp = strings.Trim(comp, "\r\t: ")
-		if len(comp) > 0 {
-			filteredComponents = append(filteredComponents, comp)
+	filteredComponents := make([]string, 0)
+	for _, component := range lineComponents {
+		subcomponents := strings.Split(component, "\t")
+		subcomponents = filterSubComponents(subcomponents)
+
+		filteredComponents = append(filteredComponents, subcomponents...)
+	}
+
+	return filteredComponents
+}
+
+func filterSubComponents(subcomponents []string) []string {
+	filteredComponents := make([]string, 0, len(subcomponents))
+	for _, subComp := range subcomponents {
+		subComp = strings.Trim(subComp, "\r\t: ")
+		if len(subComp) > 0 {
+			filteredComponents = append(filteredComponents, subComp)
 		}
 	}
 
@@ -152,13 +174,13 @@ func splitComponents(line string) []string {
 
 func parseValue(lineComponents []string) (uint64, error) {
 	if len(lineComponents) != 3 {
-		return 0, fmt.Errorf("invalid string, wrong number of components for %s", strings.Join(lineComponents, " "))
+		return 0, fmt.Errorf("%w, invalid string for %s", errWrongNumberOfComponents, strings.Join(lineComponents, " "))
 	}
 
 	valueString := lineComponents[idxValue]
 	val, err := strconv.Atoi(valueString)
 	if err != nil {
-		return 0, fmt.Errorf("%w invalid string for %s", err, strings.Join(lineComponents, " "))
+		return 0, fmt.Errorf("%w, invalid string for %s", err, strings.Join(lineComponents, " "))
 	}
 
 	return uint64(val) * kbSize, nil

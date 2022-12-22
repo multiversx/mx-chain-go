@@ -146,13 +146,14 @@ func GetRuntimeStatistics() []interface{} {
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
 
-	osLevelMemStatsString := ""
+	osLevelMetrics := make([]interface{}, 0)
 	osLevelMemStats, err := osLevel.ReadCurrentMemStats()
-	if err != nil {
-		osLevelMemStatsString = osLevelMemStats.String()
+	if err == nil {
+		osLevelMetrics = append(osLevelMetrics, "os level stats")
+		osLevelMetrics = append(osLevelMetrics, "{"+osLevelMemStats.String()+"}")
 	}
 
-	return []interface{}{
+	statistics := []interface{}{
 		"timestamp", time.Now().Unix(),
 		"num go", runtime.NumGoroutine(),
 		"heap alloc", core.ConvertBytes(memStats.HeapAlloc),
@@ -162,8 +163,10 @@ func GetRuntimeStatistics() []interface{} {
 		"heap num objs", memStats.HeapObjects,
 		"sys mem", core.ConvertBytes(memStats.Sys),
 		"num GC", memStats.NumGC,
-		"os level stats", osLevelMemStatsString,
 	}
+	statistics = append(statistics, osLevelMetrics...)
+
+	return statistics
 }
 
 // LogStatistics generates and saves the statistic data in the logs
