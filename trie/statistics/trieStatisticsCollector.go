@@ -77,9 +77,9 @@ func (tsc *trieStatisticsCollector) Print() {
 		"total num branches", tsc.numTotalBranches,
 		"total num extensions", tsc.numTotalExtensions,
 		"total num leaves", tsc.numTotalLeaves,
-		"total size branches", tsc.totalSizeBranches,
-		"total size extensions", tsc.totalSizeExtensions,
-		"total size leaves", tsc.totalSizeLeaves,
+		"total size branches", core.ConvertBytes(tsc.totalSizeBranches),
+		"total size extensions", core.ConvertBytes(tsc.totalSizeExtensions),
+		"total size leaves", core.ConvertBytes(tsc.totalSizeLeaves),
 		triesBySize, getOrderedTries(tsc.triesBySize),
 		triesByDepth, getOrderedTries(tsc.triesByDepth),
 	)
