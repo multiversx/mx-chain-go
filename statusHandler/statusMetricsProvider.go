@@ -110,6 +110,19 @@ func (sm *statusMetrics) Close() {
 
 // StatusMetricsMapWithoutP2P will return the non-p2p metrics in a map
 func (sm *statusMetrics) StatusMetricsMapWithoutP2P() (map[string]interface{}, error) {
+	metrics, err := sm.getMetricsWithoutP2P()
+	if err != nil {
+		return nil, err
+	}
+
+	// remove these metrics, since they are computed at call time and would return 0 otherwise
+	delete(metrics, common.MetricNoncesPassedInCurrentEpoch)
+	delete(metrics, common.MetricRoundsPassedInCurrentEpoch)
+
+	return metrics, nil
+}
+
+func (sm *statusMetrics) getMetricsWithoutP2P() (map[string]interface{}, error) {
 	return sm.getMetricsWithKeyFilterMutexProtected(func(input string) bool {
 		return !strings.Contains(input, "_p2p_")
 	}), nil
@@ -160,7 +173,7 @@ func (sm *statusMetrics) getMetricsWithKeyFilterMutexProtected(filterFunc func(i
 
 // StatusMetricsWithoutP2PPrometheusString returns the metrics in a string format which respects prometheus style
 func (sm *statusMetrics) StatusMetricsWithoutP2PPrometheusString() (string, error) {
-	metrics, err := sm.StatusMetricsMapWithoutP2P()
+	metrics, err := sm.getMetricsWithoutP2P()
 	if err != nil {
 		return "", err
 	}

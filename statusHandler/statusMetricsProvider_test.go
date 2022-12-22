@@ -260,6 +260,28 @@ func TestStatusMetrics_NetworkMetrics(t *testing.T) {
 	})
 }
 
+func TestStatusMetrics_StatusMetricsMapWithoutP2P(t *testing.T) {
+	t.Parallel()
+
+	sm := statusHandler.NewStatusMetrics()
+
+	sm.SetUInt64Value(common.MetricCurrentRound, 100)
+	sm.SetUInt64Value(common.MetricRoundAtEpochStart, 200)
+	sm.SetUInt64Value(common.MetricNonce, 300)
+	sm.SetStringValue(common.MetricAppVersion, "400")
+	sm.SetUInt64Value(common.MetricRoundsPassedInCurrentEpoch, 95)
+	sm.SetUInt64Value(common.MetricNoncesPassedInCurrentEpoch, 1)
+
+	res, _ := sm.StatusMetricsMapWithoutP2P()
+
+	require.Equal(t, uint64(100), res[common.MetricCurrentRound])
+	require.Equal(t, uint64(200), res[common.MetricRoundAtEpochStart])
+	require.Equal(t, uint64(300), res[common.MetricNonce])
+	require.Equal(t, "400", res[common.MetricAppVersion])
+	require.NotContains(t, res, common.MetricRoundsPassedInCurrentEpoch)
+	require.NotContains(t, res, common.MetricNoncesPassedInCurrentEpoch)
+}
+
 func TestStatusMetrics_EnableEpochMetrics(t *testing.T) {
 	t.Parallel()
 
