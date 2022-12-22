@@ -2565,7 +2565,7 @@ func TestIndexHashedNodesCoordinator_GetNodesConfig(t *testing.T) {
 		require.NotNil(t, nc)
 	})
 
-	t.Run("should work will old epochs", func(t *testing.T) {
+	t.Run("should work with old epochs", func(t *testing.T) {
 		t.Parallel()
 
 		epochKey := []byte(fmt.Sprint(1))
