@@ -29,13 +29,6 @@ func TestParseResponse(t *testing.T) {
 		assert.Nil(t, memStats)
 		assert.Equal(t, errUnparsableData, err)
 	})
-	t.Run("unparsable data", func(t *testing.T) {
-		t.Parallel()
-
-		memStats, err := parseResponse("unparsable data")
-		assert.Nil(t, memStats)
-		assert.Equal(t, errUnparsableData, err)
-	})
 	t.Run("invalid line should error", func(t *testing.T) {
 		t.Parallel()
 
