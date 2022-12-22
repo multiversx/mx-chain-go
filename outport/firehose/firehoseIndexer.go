@@ -109,6 +109,28 @@ func (fi *firehoseIndexer) SaveBlock(args *outportcore.ArgsSaveBlockData) error 
 	return nil
 }
 
+func (fi *firehoseIndexer) getHeaderBytes(headerHandler data.HeaderHandler) ([]byte, core.HeaderType, error) {
+	var err error
+	var headerBytes []byte
+	var headerType core.HeaderType
+
+	switch header := headerHandler.(type) {
+	case *block.MetaBlock:
+		headerType = core.MetaHeader
+		headerBytes, err = fi.marshaller.Marshal(header)
+	case *block.Header:
+		headerType = core.ShardHeaderV1
+		headerBytes, err = fi.marshaller.Marshal(header)
+	case *block.HeaderV2:
+		headerType = core.ShardHeaderV2
+		headerBytes, err = fi.marshaller.Marshal(header)
+	default:
+		return nil, "", errInvalidHeaderType
+	}
+
+	return headerBytes, headerType, err
+}
+
 func getBody(bodyHandler data.BodyHandler) (*block.Body, error) {
 	if check.IfNil(bodyHandler) {
 		return &block.Body{}, nil
@@ -158,28 +180,6 @@ func getTokens(tokens []*outportcore.AccountTokenData) []*alteredAccount.Account
 	}
 
 	return ret
-}
-
-func (fi *firehoseIndexer) getHeaderBytes(headerHandler data.HeaderHandler) ([]byte, core.HeaderType, error) {
-	var err error
-	var headerBytes []byte
-	var headerType core.HeaderType
-
-	switch header := headerHandler.(type) {
-	case *block.MetaBlock:
-		headerType = core.MetaHeader
-		headerBytes, err = fi.marshaller.Marshal(header)
-	case *block.Header:
-		headerType = core.ShardHeaderV1
-		headerBytes, err = fi.marshaller.Marshal(header)
-	case *block.HeaderV2:
-		headerType = core.ShardHeaderV2
-		headerBytes, err = fi.marshaller.Marshal(header)
-	default:
-		return nil, "", errInvalidHeaderType
-	}
-
-	return headerBytes, headerType, err
 }
 
 // RevertIndexedBlock does nothing
