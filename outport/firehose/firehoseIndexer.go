@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/alteredAccount"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/firehose"
 	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
@@ -68,16 +69,24 @@ func (fi *firehoseIndexer) SaveBlock(args *outportcore.ArgsSaveBlockData) error 
 		return err
 	}
 
+	body, err := getBody(args.Body)
+	if err != nil {
+		return fmt.Errorf("%w, header hash: %s", err, hex.EncodeToString(args.HeaderHash))
+	}
+
 	firehoseBlock := &firehose.FirehoseBlock{
-		HeaderHash:          args.HeaderHash,
-		HeaderType:          string(headerType),
-		HeaderBytes:         headerBytes,
-		Transactions:        pool.transactions,
-		SmartContractResult: pool.smartContractResult,
-		Rewards:             pool.rewards,
-		Receipts:            pool.receipts,
-		Logs:                pool.logs,
-		InvalidTxs:          pool.invalidTxs,
+		HeaderBytes:          headerBytes,
+		HeaderType:           string(headerType),
+		HeaderHash:           args.HeaderHash,
+		Body:                 getBodyOrNilIfEmpty(body),
+		AlteredAccounts:      getAlteredAccounts(args.AlteredAccounts),
+		Transactions:         pool.transactions,
+		SmartContractResult:  pool.smartContractResult,
+		Rewards:              pool.rewards,
+		Receipts:             pool.receipts,
+		InvalidTxs:           pool.invalidTxs,
+		Logs:                 pool.logs,
+		SignersIndicesBitmap: args.SignersIndexes,
 	}
 
 	marshalledBlock, err := fi.marshaller.Marshal(firehoseBlock)
@@ -98,6 +107,57 @@ func (fi *firehoseIndexer) SaveBlock(args *outportcore.ArgsSaveBlockData) error 
 	}
 
 	return nil
+}
+
+func getBody(bodyHandler data.BodyHandler) (*block.Body, error) {
+	if check.IfNil(bodyHandler) {
+		return &block.Body{}, nil
+	}
+
+	body, castOk := bodyHandler.(*block.Body)
+	if !castOk {
+		return nil, errCannotCastBlockBody
+	}
+
+	return body, nil
+}
+
+func getBodyOrNilIfEmpty(body *block.Body) *block.Body {
+	if len(body.MiniBlocks) == 0 {
+		return nil
+	}
+
+	return body
+}
+
+func getAlteredAccounts(accounts map[string]*outportcore.AlteredAccount) []*alteredAccount.AlteredAccount {
+	ret := make([]*alteredAccount.AlteredAccount, 0, len(accounts))
+
+	for _, acc := range accounts {
+		ret = append(ret, &alteredAccount.AlteredAccount{
+			Address: acc.Address,
+			Nonce:   acc.Nonce,
+			Balance: acc.Balance,
+			Tokens:  getTokens(acc.Tokens),
+		})
+	}
+
+	return ret
+}
+
+func getTokens(tokens []*outportcore.AccountTokenData) []*alteredAccount.AccountTokenData {
+	ret := make([]*alteredAccount.AccountTokenData, len(tokens))
+
+	for idx, token := range tokens {
+		ret[idx] = &alteredAccount.AccountTokenData{
+			Nonce:      token.Nonce,
+			Identifier: token.Identifier,
+			Balance:    token.Balance,
+			Properties: token.Properties,
+		}
+	}
+
+	return ret
 }
 
 func (fi *firehoseIndexer) getHeaderBytes(headerHandler data.HeaderHandler) ([]byte, core.HeaderType, error) {

@@ -17,3 +17,5 @@ var errCannotCastReward = errors.New("cannot cast reward transaction")
 var errCannotCastReceipt = errors.New("cannot cast receipt transaction")
 
 var errCannotCastEvent = errors.New("cannot cast event")
+
+var errCannotCastBlockBody = errors.New("cannot cast block body")
