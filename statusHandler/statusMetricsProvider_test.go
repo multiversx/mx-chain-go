@@ -147,6 +147,25 @@ func TestStatusMetrics_StatusMetricsWithoutP2PPrometheusStringShouldPutCorrectSh
 	assert.True(t, strings.Contains(strRes, expectedMetricOutput))
 }
 
+func TestStatusMetrics_StatusMetricsWithoutP2PPrometheusStringShouldComputeRoundsAndNoncesPassedInEpoch(t *testing.T) {
+	t.Parallel()
+
+	shardID := uint32(2)
+	sm := statusHandler.NewStatusMetrics()
+	sm.SetUInt64Value(common.MetricRoundsPassedInCurrentEpoch, 0)
+	sm.SetUInt64Value(common.MetricNoncesPassedInCurrentEpoch, 0)
+	sm.SetUInt64Value(common.MetricShardId, uint64(shardID))
+	sm.SetUInt64Value(common.MetricRoundAtEpochStart, 100)
+	sm.SetUInt64Value(common.MetricCurrentRound, 137)
+	sm.SetUInt64Value(common.MetricNonceAtEpochStart, 100)
+	sm.SetUInt64Value(common.MetricNonce, 138)
+
+	strRes, _ := sm.StatusMetricsWithoutP2PPrometheusString()
+
+	assert.Contains(t, strRes, `erd_rounds_passed_in_current_epoch{erd_shard_id="2"} 37`)
+	assert.Contains(t, strRes, `erd_nonces_passed_in_current_epoch{erd_shard_id="2"} 38`)
+}
+
 func TestStatusMetrics_NetworkConfig(t *testing.T) {
 	t.Parallel()
 
