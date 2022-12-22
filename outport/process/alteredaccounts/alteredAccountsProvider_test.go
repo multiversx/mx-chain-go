@@ -84,7 +84,7 @@ func TestGetAlteredAccountFromUserAccount(t *testing.T) {
 	t.Parallel()
 
 	args := getMockArgs()
-	args.AddressConverter = &testscommon.PubkeyConverterMock{}
+	args.AddressConverter = testscommon.NewPubkeyConverterMock(5)
 	aap, _ := NewAlteredAccountsProvider(args)
 
 	userAccount := &state.UserAccountStub{
@@ -102,6 +102,20 @@ func TestGetAlteredAccountFromUserAccount(t *testing.T) {
 		DeveloperRewards: "100",
 		CurrentOwner:     "6f776e6572",
 		UserName:         "contract",
+	}, res)
+
+	userAccount = &state.UserAccountStub{
+		Balance:          big.NewInt(5000),
+		DeveloperRewards: big.NewInt(5000),
+		Owner:            []byte("own"),
+		Address:          []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+	}
+	res = aap.getAlteredAccountFromUserAccounts("addr", userAccount)
+
+	require.Equal(t, &outportcore.AlteredAccount{
+		Address:          "addr",
+		Balance:          "5000",
+		DeveloperRewards: "5000",
 	}, res)
 }
 
