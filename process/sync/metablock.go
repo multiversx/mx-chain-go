@@ -107,11 +107,6 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 		return nil, err
 	}
 
-	err = base.setAccountsStorerIdentifiers()
-	if err != nil {
-		return nil, err
-	}
-
 	base.init()
 
 	return &boot, nil
@@ -199,6 +194,10 @@ func (boot *MetaBootstrap) SyncBlock(ctx context.Context) error {
 }
 
 func (boot *MetaBootstrap) syncAccountsDBs(key []byte, id string) error {
+	err := boot.setAccountsStorerIdentifiers()
+	if err != nil {
+		return err
+	}
 
 	// TODO: refactor this in order to avoid treatment based on identifier
 	switch id {

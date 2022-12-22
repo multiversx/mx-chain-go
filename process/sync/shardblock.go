@@ -92,11 +92,6 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 		return nil, err
 	}
 
-	err = base.setAccountsStorerIdentifiers()
-	if err != nil {
-		return nil, err
-	}
-
 	base.init()
 
 	return &boot, nil
