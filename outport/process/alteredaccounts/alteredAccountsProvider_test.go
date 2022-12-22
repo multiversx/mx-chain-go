@@ -1227,19 +1227,3 @@ func getMockArgs() ArgsAlteredAccountsProvider {
 		EsdtDataStorageHandler: &testscommon.EsdtStorageHandlerStub{},
 	}
 }
-
-type myStruct struct {
-	message string
-}
-
-func (m myStruct) String() string {
-	return "belesti-magarul"
-}
-
-func TestSomething(t *testing.T) {
-	a := myStruct{
-		message: "esti un magar",
-	}
-
-	fmt.Printf("%s", a)
-}
