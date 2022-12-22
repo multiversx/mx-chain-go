@@ -916,6 +916,10 @@ func (pcf *processComponentsFactory) createOutportDataProvider(
 	if err != nil {
 		return nil, err
 	}
+	mbsStorer, err := pcf.data.StorageService().GetStorer(dataRetriever.MiniBlockUnit)
+	if err != nil {
+		return nil, err
+	}
 
 	return factoryOutportProvider.CreateOutportDataProvider(factoryOutportProvider.ArgOutportDataProviderFactory{
 		HasDrivers:             pcf.statusComponents.OutportHandler().HasDrivers(),
@@ -930,6 +934,9 @@ func (pcf *processComponentsFactory) createOutportDataProvider(
 		GasConsumedProvider:    gasConsumedProvider,
 		EconomicsData:          pcf.coreData.EconomicsData(),
 		IsImportDBMode:         pcf.importDBConfig.IsImportDBMode,
+		Hasher:                 pcf.coreData.Hasher(),
+		MbsStorer:              mbsStorer,
+		EnableEpochsHandler:    pcf.coreData.EnableEpochsHandler(),
 	})
 }
 
