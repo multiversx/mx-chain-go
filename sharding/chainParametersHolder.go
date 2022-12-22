@@ -56,7 +56,7 @@ func NewChainParametersHolder(args ArgsChainParametersHolder) (*chainParametersH
 
 func logInitialConfiguration(chainParameters []config.ChainParametersByEpochConfig) {
 	logMessage := "initialized chainParametersHolder with the values:\n"
-	logLines := make([]string, 0)
+	logLines := make([]string, 0, len(chainParameters))
 	for _, params := range chainParameters {
 		logLines = append(logLines, fmt.Sprintf("\tenable epoch=%d, round duration=%d, hysteresis=%.2f, shard consensus group size=%d, shard min nodes=%d, meta consensus group size=%d, meta min nodes=%d, adaptivity=%v",
 			params.EnableEpoch, params.RoundDuration, params.Hysteresis, params.ShardConsensusGroupSize, params.ShardMinNumNodes, params.MetachainConsensusGroupSize, params.MetachainMinNumNodes, params.Adaptivity))

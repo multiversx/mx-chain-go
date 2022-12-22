@@ -206,8 +206,8 @@ func (ncm *NodesCoordinatorMock) ComputeConsensusGroup(
 	return validatorsGroup, nil
 }
 
-// ConsensusGroupSize -
-func (ncm *NodesCoordinatorMock) ConsensusGroupSize(shardId uint32, epoch uint32) int {
+// ConsensusGroupSizeForShardAndEpoch -
+func (ncm *NodesCoordinatorMock) ConsensusGroupSizeForShardAndEpoch(shardId uint32, epoch uint32) int {
 	if ncm.ConsensusGroupSizeCalled != nil {
 		return ncm.ConsensusGroupSizeCalled(shardId, epoch)
 	}

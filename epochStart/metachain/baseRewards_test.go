@@ -999,8 +999,8 @@ func TestBaseRewardsCreator_fillBaseRewardsPerBlockPerNode(t *testing.T) {
 	epoch := uint32(0)
 	baseRewardsPerNode := big.NewInt(1000000)
 	rwd.fillBaseRewardsPerBlockPerNode(baseRewardsPerNode, epoch)
-	consensusShard := args.NodesConfigProvider.ConsensusGroupSize(0, epoch)
-	consensusMeta := args.NodesConfigProvider.ConsensusGroupSize(core.MetachainShardId, epoch)
+	consensusShard := args.NodesConfigProvider.ConsensusGroupSizeForShardAndEpoch(0, epoch)
+	consensusMeta := args.NodesConfigProvider.ConsensusGroupSizeForShardAndEpoch(core.MetachainShardId, epoch)
 	expectedRewardPerNodeInShard := big.NewInt(0).Div(baseRewardsPerNode, big.NewInt(int64(consensusShard)))
 	expectedRewardPerNodeInMeta := big.NewInt(0).Div(baseRewardsPerNode, big.NewInt(int64(consensusMeta)))
 

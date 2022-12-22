@@ -353,7 +353,7 @@ func (ihnc *indexHashedNodesCoordinator) ComputeConsensusGroup(
 		return validators, nil
 	}
 
-	consensusSize := ihnc.ConsensusGroupSize(shardID, epoch)
+	consensusSize := ihnc.ConsensusGroupSizeForShardAndEpoch(shardID, epoch)
 	randomness = []byte(fmt.Sprintf("%d-%s", round, randomness))
 
 	log.Debug("computeValidatorsGroup",
@@ -616,7 +616,8 @@ func (ihnc *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 
 	chainParamsForEpoch, err := ihnc.chainParametersHandler.ChainParametersForEpoch(newEpoch)
 	if err != nil {
-		log.Warn("indexHashedNodesCoordinator.EpochStartPrepare: could not compute chain params for epoch", "epoch", newEpoch, "error", err)
+		log.Warn("indexHashedNodesCoordinator.EpochStartPrepare: could not compute chain params for epoch. "+
+			"Will use the current chain parameters", "epoch", newEpoch, "error", err)
 		chainParamsForEpoch = ihnc.chainParametersHandler.CurrentChainParameters()
 	}
 	shufflerArgs := ArgsUpdateNodes{
@@ -1046,8 +1047,8 @@ func (ihnc *indexHashedNodesCoordinator) computeShardForSelfPublicKey(nodesConfi
 	return selfShard, false
 }
 
-// ConsensusGroupSize returns the consensus group size for a specific shard
-func (ihnc *indexHashedNodesCoordinator) ConsensusGroupSize(
+// ConsensusGroupSizeForShardAndEpoch returns the consensus group size for a specific shard in a given epoch
+func (ihnc *indexHashedNodesCoordinator) ConsensusGroupSizeForShardAndEpoch(
 	shardID uint32,
 	epoch uint32,
 ) int {
@@ -1056,7 +1057,8 @@ func (ihnc *indexHashedNodesCoordinator) ConsensusGroupSize(
 
 	currentChainParameters, err := ihnc.chainParametersHandler.ChainParametersForEpoch(epoch)
 	if err != nil {
-		log.Warn("indexHashedNodesCoordinator.ConsensusGroupSize: cannot get chain parameters for epoch", "epoch", ihnc.currentEpoch, "error", err)
+		log.Warn("indexHashedNodesCoordinator.ConsensusGroupSizeForShardAndEpoch: could not compute chain params for epoch. "+
+			"Will use the current chain parameters", "epoch", ihnc.currentEpoch, "error", err)
 		currentChainParameters = ihnc.chainParametersHandler.CurrentChainParameters()
 	}
 

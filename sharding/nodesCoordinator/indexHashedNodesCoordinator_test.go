@@ -1828,8 +1828,11 @@ func TestIndexHashedNodesCoordinator_GetConsensusWhitelistedNodesAfterRevertToEp
 func TestIndexHashedNodesCoordinator_ConsensusGroupSize(t *testing.T) {
 	t.Parallel()
 
+	testEpoch := uint32(37)
 	shardConsensusGroupSize, metaConsensusGroupSize := 1, 1
 	arguments := createArguments()
+	arguments.Epoch = testEpoch - 1
+	numTimesChainParametersForEpochWasCalled := 0
 	arguments.ChainParametersHandler = &shardingmock.ChainParametersHandlerStub{
 		CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
 			return config.ChainParametersByEpochConfig{
@@ -1837,7 +1840,14 @@ func TestIndexHashedNodesCoordinator_ConsensusGroupSize(t *testing.T) {
 				MetachainConsensusGroupSize: uint32(metaConsensusGroupSize),
 			}
 		},
-		ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
+		ChainParametersForEpochCalled: func(epoch uint32) (config.ChainParametersByEpochConfig, error) {
+			if numTimesChainParametersForEpochWasCalled == 0 {
+				require.Equal(t, testEpoch-1, epoch)
+			} else {
+				require.Equal(t, testEpoch, epoch)
+			}
+			numTimesChainParametersForEpochWasCalled++
+
 			return config.ChainParametersByEpochConfig{
 				ShardConsensusGroupSize:     1,
 				MetachainConsensusGroupSize: 1,
@@ -1847,11 +1857,14 @@ func TestIndexHashedNodesCoordinator_ConsensusGroupSize(t *testing.T) {
 	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
 	require.Nil(t, err)
 
-	consensusSizeShard := ihnc.ConsensusGroupSize(0, 0)
-	consensusSizeMeta := ihnc.ConsensusGroupSize(core.MetachainShardId, 0)
+	consensusSizeShard := ihnc.ConsensusGroupSizeForShardAndEpoch(0, testEpoch)
+	consensusSizeMeta := ihnc.ConsensusGroupSizeForShardAndEpoch(core.MetachainShardId, testEpoch)
 
 	require.Equal(t, shardConsensusGroupSize, consensusSizeShard)
 	require.Equal(t, metaConsensusGroupSize, consensusSizeMeta)
+
+	// consensus group size from chain parameters should have been called once from the constructor, once for shard and once for meta
+	require.Equal(t, 3, numTimesChainParametersForEpochWasCalled)
 }
 
 func TestIndexHashedNodesCoordinator_GetNumTotalEligible(t *testing.T) {

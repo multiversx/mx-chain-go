@@ -109,8 +109,8 @@ func (ncm *NodesCoordinatorStub) ComputeConsensusGroup(
 	return list, nil
 }
 
-// ConsensusGroupSize -
-func (ncm *NodesCoordinatorStub) ConsensusGroupSize(shardID uint32, epoch uint32) int {
+// ConsensusGroupSizeForShardAndEpoch -
+func (ncm *NodesCoordinatorStub) ConsensusGroupSizeForShardAndEpoch(shardID uint32, epoch uint32) int {
 	if ncm.ConsensusGroupSizeCalled != nil {
 		return ncm.ConsensusGroupSizeCalled(shardID, epoch)
 	}

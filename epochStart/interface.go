@@ -129,7 +129,7 @@ type StartOfEpochMetaSyncer interface {
 
 // NodesConfigProvider will provide the necessary information for start in epoch economics block creation
 type NodesConfigProvider interface {
-	ConsensusGroupSize(shardID uint32, epoch uint32) int
+	ConsensusGroupSizeForShardAndEpoch(shardID uint32, epoch uint32) int
 	IsInterfaceNil() bool
 }
 
