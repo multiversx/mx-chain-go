@@ -398,7 +398,7 @@ func (tr *patriciaMerkleTrie) GetSerializedNodes(rootHash []byte, maxBuffToSend 
 		return nil, 0, err
 	}
 
-	it, err := NewIterator(newTr)
+	it, err := NewDFSIterator(newTr)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -655,7 +655,7 @@ func (tr *patriciaMerkleTrie) GetOldRoot() []byte {
 }
 
 // GetTrieStats will collect and return the statistics for the given rootHash
-func (tr *patriciaMerkleTrie) GetTrieStats(address []byte, rootHash []byte) (*statistics.TrieStatsDTO, error) {
+func (tr *patriciaMerkleTrie) GetTrieStats(address string, rootHash []byte) (*statistics.TrieStatsDTO, error) {
 	tr.mutOperation.RLock()
 	newTrie, err := tr.recreate(rootHash, tr.trieStorage)
 	if err != nil {

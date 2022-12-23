@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
+	"github.com/ElrondNetwork/elrond-go-core/data/outport"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/genesis"
@@ -15,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
+	"github.com/ElrondNetwork/elrond-go/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -191,6 +193,11 @@ func (nar *nodeApiResolver) GetBlockByRound(round uint64, options api.BlockQuery
 	return nar.apiBlockHandler.GetBlockByRound(round, options)
 }
 
+// GetAlteredAccountsForBlock will return the altered accounts for the desired block
+func (nar *nodeApiResolver) GetAlteredAccountsForBlock(options api.GetAlteredAccountsForBlockOptions) ([]*outport.AlteredAccount, error) {
+	return nar.apiBlockHandler.GetAlteredAccountsForBlock(options)
+}
+
 // GetInternalMetaBlockByHash will return a meta block by hash
 func (nar *nodeApiResolver) GetInternalMetaBlockByHash(format common.ApiOutputFormat, hash string) (interface{}, error) {
 	decodedHash, err := hex.DecodeString(hash)
@@ -215,6 +222,12 @@ func (nar *nodeApiResolver) GetInternalMetaBlockByRound(format common.ApiOutputF
 // for the specified epoch
 func (nar *nodeApiResolver) GetInternalStartOfEpochMetaBlock(format common.ApiOutputFormat, epoch uint32) (interface{}, error) {
 	return nar.apiInternalBlockHandler.GetInternalStartOfEpochMetaBlock(format, epoch)
+}
+
+// GetInternalStartOfEpochValidatorsInfo will return the start of epoch validators info
+// for the specified epoch
+func (nar *nodeApiResolver) GetInternalStartOfEpochValidatorsInfo(epoch uint32) ([]*state.ShardValidatorInfo, error) {
+	return nar.apiInternalBlockHandler.GetInternalStartOfEpochValidatorsInfo(epoch)
 }
 
 // GetInternalShardBlockByHash will return a shard block by hash

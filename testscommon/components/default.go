@@ -5,18 +5,19 @@ import (
 
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/common"
+	consensusMocks "github.com/ElrondNetwork/elrond-go/consensus/mock"
+	dataRetrieverMocks "github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
-	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
+	dataRetrieverTests "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/marshallerMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
-	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
@@ -39,7 +40,6 @@ func GetDefaultCoreComponents() *mock.CoreComponentsMock {
 		MinTransactionVersionCalled: func() uint32 {
 			return 1
 		},
-		AppStatusHdl:          &statusHandlerMock.AppStatusHandlerStub{},
 		WatchdogTimer:         &testscommon.WatchdogMock{},
 		AlarmSch:              &testscommon.AlarmSchedulerStub{},
 		NtpSyncTimer:          &testscommon.SyncTimerStub{},
@@ -58,6 +58,9 @@ func GetDefaultCryptoComponents() *mock.CryptoComponentsMock {
 	return &mock.CryptoComponentsMock{
 		PubKey:            &mock.PublicKeyMock{},
 		PrivKey:           &mock.PrivateKeyStub{},
+		P2pPubKey:         &mock.PublicKeyMock{},
+		P2pPrivKey:        mock.NewP2pPrivateKeyMock(),
+		P2pSig:            &mock.SinglesignMock{},
 		PubKeyString:      "pubKey",
 		PrivKeyBytes:      []byte("privKey"),
 		PubKeyBytes:       []byte("pubKey"),
@@ -67,7 +70,9 @@ func GetDefaultCryptoComponents() *mock.CryptoComponentsMock {
 		PeerSignHandler:   &mock.PeerSignatureHandler{},
 		BlKeyGen:          &mock.KeyGenMock{},
 		TxKeyGen:          &mock.KeyGenMock{},
+		P2PKeyGen:         &mock.KeyGenMock{},
 		MsgSigVerifier:    &testscommon.MessageSignVerifierMock{},
+		SigHandler:        &consensusMocks.SignatureHandlerStub{},
 	}
 }
 
@@ -100,7 +105,7 @@ func GetDefaultDataComponents() *mock.DataComponentsMock {
 	return &mock.DataComponentsMock{
 		Blkc:              &testscommon.ChainHandlerStub{},
 		Storage:           &storage.ChainStorerStub{},
-		DataPool:          &dataRetrieverMock.PoolsHolderMock{},
+		DataPool:          &dataRetrieverTests.PoolsHolderMock{},
 		MiniBlockProvider: &mock.MiniBlocksProviderStub{},
 	}
 }
@@ -111,12 +116,13 @@ func GetDefaultProcessComponents(shardCoordinator sharding.Coordinator) *mock.Pr
 		NodesCoord:               &shardingMocks.NodesCoordinatorMock{},
 		ShardCoord:               shardCoordinator,
 		IntContainer:             &testscommon.InterceptorsContainerStub{},
-		ResFinder:                &mock.ResolversFinderStub{},
+		ResContainer:             &dataRetrieverMocks.ResolversContainerStub{},
+		ReqFinder:                &dataRetrieverTests.RequestersFinderStub{},
 		RoundHandlerField:        &testscommon.RoundHandlerMock{},
 		EpochTrigger:             &testscommon.EpochStartTriggerStub{},
 		EpochNotifier:            &mock.EpochStartNotifierStub{},
 		ForkDetect:               &mock.ForkDetectorMock{},
-		BlockProcess:             &mock.BlockProcessorStub{},
+		BlockProcess:             &testscommon.BlockProcessorStub{},
 		BlackListHdl:             &testscommon.TimeCacheStub{},
 		BootSore:                 &mock.BootstrapStorerMock{},
 		HeaderSigVerif:           &mock.HeaderSigVerifierStub{},

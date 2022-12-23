@@ -898,6 +898,7 @@ func createAccountsDB(
 		ProcessingMode:        common.Normal,
 		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
 		AppStatusHandler:      &statusHandlerMock.AppStatusHandlerStub{},
+		AddressConverter:      &testscommon.PubkeyConverterMock{},
 	}
 	adb, _ := state.NewAccountsDB(args)
 	return adb
@@ -946,6 +947,15 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 
 	blockChain, _ := blockchain.NewMetaChain(&statusHandlerMock.AppStatusHandlerStub{})
 	testDataPool := dataRetrieverMock.NewPoolsHolderMock()
+
+	gasSchedule := arwenConfig.MakeGasMapForTests()
+	defaults.FillGasMapInternal(gasSchedule, 1)
+	signVerifer, _ := disabled.NewMessageSignVerifier(&cryptoMocks.KeyGenStub{})
+
+	gasScheduleNotifier := testscommon.NewGasScheduleNotifierMock(gasSchedule)
+
+	nodesSetup := &mock.NodesSetupStub{}
+
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:              userAccountsDB,
 		PubkeyConv:            &mock.PubkeyConverterMock{},
@@ -962,13 +972,9 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 		EpochNotifier:         en,
 		EnableEpochsHandler:   enableEpochsHandler,
 		NilCompiledSCStore:    true,
+		GasSchedule:           gasScheduleNotifier,
+		Counter:               &testscommon.BlockChainHookCounterStub{},
 	}
-
-	gasSchedule := arwenConfig.MakeGasMapForTests()
-	defaults.FillGasMapInternal(gasSchedule, 1)
-	signVerifer, _ := disabled.NewMessageSignVerifier(&cryptoMocks.KeyGenStub{})
-
-	nodesSetup := &mock.NodesSetupStub{}
 
 	blockChainHookImpl, _ := hooks.NewBlockChainHookImpl(argsHook)
 	argsNewVMContainerFactory := metaProcess.ArgsNewVMContainerFactory{
@@ -976,7 +982,7 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 		PubkeyConv:          argsHook.PubkeyConv,
 		Economics:           createEconomicsData(),
 		MessageSignVerifier: signVerifer,
-		GasSchedule:         testscommon.NewGasScheduleNotifierMock(gasSchedule),
+		GasSchedule:         gasScheduleNotifier,
 		NodesConfigProvider: nodesSetup,
 		Hasher:              hasher,
 		Marshalizer:         marshalizer,

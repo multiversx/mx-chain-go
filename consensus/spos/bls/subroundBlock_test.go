@@ -102,7 +102,7 @@ func createConsensusContainers() []*mock.ConsensusCoreMock {
 }
 
 func initSubroundBlockWithBlockProcessor(
-	bp *mock.BlockProcessorMock,
+	bp *testscommon.BlockProcessorStub,
 	container *mock.ConsensusCoreMock,
 ) bls.SubroundBlock {
 	blockChain := &testscommon.ChainHandlerStub{
@@ -306,7 +306,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 	assert.False(t, r)
 
 	sr.SetStatus(bls.SrBlock, spos.SsNotFinished)
-	bpm := &mock.BlockProcessorMock{}
+	bpm := &testscommon.BlockProcessorStub{}
 	err := errors.New("error")
 	bpm.CreateBlockCalled = func(header data.HeaderHandler, remainingTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
 		return header, nil, err
@@ -476,6 +476,7 @@ func createConsensusMessage(header *block.Header, body *block.Body, leader []byt
 		nil,
 		nil,
 		currentPid,
+		nil,
 	)
 }
 
@@ -500,6 +501,7 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 		nil,
 		nil,
 		currentPid,
+		nil,
 	)
 	sr.Body = &block.Body{}
 	r := sr.ReceivedBlockBody(cnsMsg)
@@ -537,6 +539,7 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 		nil,
 		nil,
 		currentPid,
+		nil,
 	)
 	r = sr.ReceivedBlockHeader(cnsMsg)
 	assert.False(t, r)
@@ -588,6 +591,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenBodyAndHeaderAre
 		nil,
 		nil,
 		currentPid,
+		nil,
 	)
 	assert.False(t, sr.ProcessReceivedBlock(cnsMsg))
 }
@@ -619,6 +623,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockFail
 		nil,
 		nil,
 		currentPid,
+		nil,
 	)
 	sr.Header = hdr
 	sr.Body = blkBody
@@ -646,6 +651,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockRetu
 		nil,
 		nil,
 		currentPid,
+		nil,
 	)
 	sr.Header = hdr
 	sr.Body = blkBody
@@ -682,6 +688,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnTrue(t *testing.T) {
 			nil,
 			nil,
 			currentPid,
+			nil,
 		)
 		sr.Header = hdr
 		sr.Body = blkBody
@@ -1032,7 +1039,7 @@ func TestSubroundBlock_ReceivedBlockComputeProcessDuration(t *testing.T) {
 
 	container := mock.InitConsensusCore()
 	receivedValue := uint64(0)
-	container.SetBlockProcessor(&mock.BlockProcessorMock{
+	container.SetBlockProcessor(&testscommon.BlockProcessorStub{
 		ProcessBlockCalled: func(_ data.HeaderHandler, _ data.BodyHandler, _ func() time.Duration) error {
 			time.Sleep(time.Duration(delay))
 			return nil
@@ -1060,6 +1067,7 @@ func TestSubroundBlock_ReceivedBlockComputeProcessDuration(t *testing.T) {
 		nil,
 		nil,
 		currentPid,
+		nil,
 	)
 	sr.Header = hdr
 	sr.Body = blkBody

@@ -21,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/genesis/process/intermediate"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks/counters"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	factoryState "github.com/ElrondNetwork/elrond-go/state/factory"
@@ -115,6 +116,7 @@ func (gbc *genesisBlockCreator) createHardForkImportHandler() error {
 		ShardID:             gbc.arg.ShardCoordinator.SelfId(),
 		StorageConfig:       gbc.arg.HardForkConfig.ImportStateStorageConfig,
 		TrieStorageManagers: gbc.arg.TrieStorageManagers,
+		AddressConverter:    gbc.arg.Core.AddressPubKeyConverter(),
 		EnableEpochsHandler: gbc.arg.Core.EnableEpochsHandler(),
 	}
 	importHandler, err := hardfork.NewStateImport(argsHardForkImport)
@@ -444,6 +446,8 @@ func (gbc *genesisBlockCreator) computeDNSAddresses(enableEpochsConfig config.En
 		EpochNotifier:         epochNotifier,
 		EnableEpochsHandler:   enableEpochsHandler,
 		NilCompiledSCStore:    true,
+		GasSchedule:           gbc.arg.GasSchedule,
+		Counter:               counters.NewDisabledCounter(),
 	}
 	blockChainHook, err := hooks.NewBlockChainHookImpl(argsHook)
 	if err != nil {
@@ -494,6 +498,7 @@ func (gbc *genesisBlockCreator) getNewArgForShard(shardID uint32) (ArgsGenesisBl
 		newArgument.Core.Hasher(),
 		accCreator,
 		gbc.arg.TrieStorageManagers[triesFactory.UserAccountTrie],
+		gbc.arg.Core.AddressPubKeyConverter(),
 	)
 	if err != nil {
 		return ArgsGenesisBlockCreator{}, fmt.Errorf("'%w' while generating an in-memory accounts adapter for shard %d",

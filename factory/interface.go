@@ -25,6 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	heartbeatData "github.com/ElrondNetwork/elrond-go/heartbeat/data"
+	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -36,6 +37,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/vm"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // EpochStartNotifier defines which actions should be done for handling new epoch's events
@@ -106,8 +108,6 @@ type CoreComponentsHolder interface {
 	Uint64ByteSliceConverter() typeConverters.Uint64ByteSliceConverter
 	AddressPubKeyConverter() core.PubkeyConverter
 	ValidatorPubKeyConverter() core.PubkeyConverter
-	StatusHandlerUtils() factory.StatusHandlersUtils
-	StatusHandler() core.AppStatusHandler
 	PathHandler() storage.PathManagerHandler
 	Watchdog() core.WatchdogTimer
 	AlarmScheduler() core.TimersScheduler
@@ -147,6 +147,9 @@ type StatusCoreComponentsHolder interface {
 	ResourceMonitor() ResourceMonitor
 	NetworkStatistics() NetworkStatisticsProvider
 	TrieSyncStatistics() TrieSyncStatisticsProvider
+	AppStatusHandler() core.AppStatusHandler
+	StatusMetrics() external.StatusMetricsHandler
+	PersistentStatusHandler() PersistentStatusHandler
 	IsInterfaceNil() bool
 }
 
@@ -168,6 +171,9 @@ type CryptoParamsHolder interface {
 // CryptoComponentsHolder holds the crypto components
 type CryptoComponentsHolder interface {
 	CryptoParamsHolder
+	P2pPublicKey() crypto.PublicKey
+	P2pPrivateKey() crypto.PrivateKey
+	P2pSingleSigner() crypto.SingleSigner
 	TxSingleSigner() crypto.SingleSigner
 	BlockSigner() crypto.SingleSigner
 	SetMultiSignerContainer(container cryptoCommon.MultiSignerContainer) error
@@ -176,7 +182,9 @@ type CryptoComponentsHolder interface {
 	PeerSignatureHandler() crypto.PeerSignatureHandler
 	BlockSignKeyGen() crypto.KeyGenerator
 	TxSignKeyGen() crypto.KeyGenerator
+	P2pKeyGen() crypto.KeyGenerator
 	MessageSignVerifier() vm.MessageSignVerifier
+	ConsensusSigHandler() consensus.SignatureHandler
 	Clone() interface{}
 	IsInterfaceNil() bool
 }
@@ -255,7 +263,8 @@ type ProcessComponentsHolder interface {
 	NodesCoordinator() nodesCoordinator.NodesCoordinator
 	ShardCoordinator() sharding.Coordinator
 	InterceptorsContainer() process.InterceptorsContainer
-	ResolversFinder() dataRetriever.ResolversFinder
+	ResolversContainer() dataRetriever.ResolversContainer
+	RequestersFinder() dataRetriever.RequestersFinder
 	RoundHandler() consensus.RoundHandler
 	EpochStartTrigger() epochStart.TriggerHandler
 	EpochStartNotifier() EpochStartNotifier
@@ -286,6 +295,7 @@ type ProcessComponentsHolder interface {
 	TxsSenderHandler() process.TxsSenderHandler
 	HardforkTrigger() HardforkTrigger
 	ProcessedMiniBlocksTracker() process.ProcessedMiniBlocksTracker
+	ESDTDataStorageHandlerForAPI() vmcommon.ESDTNFTStorageHandler
 	AccountsParser() genesis.AccountsParser
 	ReceiptsRepository() ReceiptsRepository
 	IsInterfaceNil() bool
@@ -519,4 +529,10 @@ type TrieSyncStatisticsProvider interface {
 	IncrementIteration()
 	ProcessingTime() time.Duration
 	NumIterations() int
+}
+
+// PersistentStatusHandler defines a persistent status handler
+type PersistentStatusHandler interface {
+	core.AppStatusHandler
+	SetStorage(store storage.Storer) error
 }

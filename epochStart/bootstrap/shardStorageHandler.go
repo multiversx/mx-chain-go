@@ -84,7 +84,7 @@ func (ssh *shardStorageHandler) CloseStorageService() {
 	}
 }
 
-// SaveDataToStorage will save the fetched data to storage so it will be used by the storage bootstrap component
+// SaveDataToStorage will save the fetched data to storage, so it will be used by the storage bootstrap component
 func (ssh *shardStorageHandler) SaveDataToStorage(components *ComponentsNeededForBootstrap, notarizedShardHeader data.HeaderHandler, withScheduled bool) error {
 	bootStorer, err := ssh.storageService.GetStorer(dataRetriever.BootstrapUnit)
 	if err != nil {
