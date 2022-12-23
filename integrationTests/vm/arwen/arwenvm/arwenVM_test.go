@@ -505,7 +505,7 @@ func TestExecuteTransactionAndTimeToProcessChange(t *testing.T) {
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	pubkeyConv, _ := pubkeyConverter.NewHexPubkeyConverter(32)
 	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
-	accnts := vm.CreateInMemoryShardAccountsDB(enableEpochsHandler)
+	accnts := integrationtests.CreateInMemoryShardAccountsDB()
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(testMarshalizer)
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
 		PubkeyConverter:     pubkeyConv,

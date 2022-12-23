@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/database"
 	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder/disabled"
 	"github.com/stretchr/testify/require"
@@ -104,7 +105,7 @@ func generateTriesWithMaxDepth(
 ) []*keyForTrie {
 	tries := make([]*keyForTrie, numTries)
 	for i := 0; i < numTries; i++ {
-		tr, _ := trie.NewTrie(storage, marshaller, hasher, 2)
+		tr, _ := trie.NewTrie(storage, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 2)
 		key := insertKeysIntoTrie(t, tr, numTrieLevels, numChildrenPerBranch)
 
 		rootHash, _ := tr.RootHash()
