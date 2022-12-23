@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
 	outportProcess "github.com/ElrondNetwork/elrond-go/outport/process"
@@ -29,4 +30,5 @@ type ArgAPIBlockProcessor struct {
 	AlteredAccountsProvider      outportProcess.AlteredAccountsProviderHandler
 	AccountsRepository           state.AccountsRepository
 	ScheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
+	EnableEpochsHandler          common.EnableEpochsHandler
 }

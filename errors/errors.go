@@ -68,6 +68,9 @@ var ErrNilBlockProcessor = errors.New("block processor is nil")
 // ErrNilBlockSigner signals the nil block signer was provided
 var ErrNilBlockSigner = errors.New("nil block signer")
 
+// ErrNilP2pSigner signals the nil p2p signer was provided
+var ErrNilP2pSigner = errors.New("nil p2p single signer")
+
 // ErrNilBlockSignKeyGen is raised when a valid block sign key generator is expected but nil used
 var ErrNilBlockSignKeyGen = errors.New("block sign key generator is nil")
 
@@ -269,8 +272,11 @@ var ErrNilPendingMiniBlocksHandler = errors.New("nil pending miniBlocks handler"
 // ErrNilPoolsHolder signals that a nil pools holder was provided
 var ErrNilPoolsHolder = errors.New("nil pools holder")
 
-// ErrNilPrivateKey signals that a nil provate key was provided
+// ErrNilPrivateKey signals that a nil private key was provided
 var ErrNilPrivateKey = errors.New("nil private key")
+
+// ErrNilP2pPrivateKey signals that a nil p2p private key was provided
+var ErrNilP2pPrivateKey = errors.New("nil p2p private key")
 
 // ErrNilProcessComponents signals that a nil process components instance was provided
 var ErrNilProcessComponents = errors.New("nil process components")
@@ -283,6 +289,9 @@ var ErrNilPubKeyConverter = errors.New("nil public key converter")
 
 // ErrNilPublicKey signals that a nil public key was provided
 var ErrNilPublicKey = errors.New("nil public key")
+
+// ErrNilP2pPublicKey signals that a nil p2p public key was provided
+var ErrNilP2pPublicKey = errors.New("nil p2p public key")
 
 // ErrNilRater signals that a nil rater was provided
 var ErrNilRater = errors.New("nil rater")
@@ -361,6 +370,9 @@ var ErrNilTxSigner = errors.New("nil transaction signer")
 
 // ErrNilTxSignKeyGen signals that a nil transaction signer key generator was provided
 var ErrNilTxSignKeyGen = errors.New("nil transaction signing key generator")
+
+// ErrNilP2pKeyGen signals that a nil p2p key generator was provided
+var ErrNilP2pKeyGen = errors.New("nil p2p key generator")
 
 // ErrNilTxSignMarshalizer signals that a nil transaction sign marshalizer was provided
 var ErrNilTxSignMarshalizer = errors.New("nil transaction marshalizer")
