@@ -377,12 +377,14 @@ func (n *Node) getPendingAndActiveGuardians(
 		activeGuardian = &api.Guardian{
 			Address:         n.coreComponents.AddressPubKeyConverter().Encode(active.Address),
 			ActivationEpoch: active.ActivationEpoch,
+			ServiceUID:      string(active.ServiceUID),
 		}
 	}
 	if pending != nil {
 		pendingGuardian = &api.Guardian{
 			Address:         n.coreComponents.AddressPubKeyConverter().Encode(pending.Address),
 			ActivationEpoch: pending.ActivationEpoch,
+			ServiceUID:      string(pending.ServiceUID),
 		}
 	}
 

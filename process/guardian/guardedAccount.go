@@ -115,19 +115,24 @@ func (agc *guardedAccount) HasPendingGuardian(uah state.UserAccountHandler) bool
 }
 
 // SetGuardian sets a guardian for an account
-func (agc *guardedAccount) SetGuardian(uah vmcommon.UserAccountHandler, guardianAddress []byte, txGuardianAddress []byte) error {
+func (agc *guardedAccount) SetGuardian(uah vmcommon.UserAccountHandler, guardianAddress []byte, txGuardianAddress []byte, guardianServiceUID []byte) error {
 	stateUserAccount, ok := uah.(state.UserAccountHandler)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
 
+	if len(guardianServiceUID) == 0 {
+		return process.ErrNilGuardianServiceUID
+	}
+
 	if len(txGuardianAddress) > 0 {
-		return agc.instantSetGuardian(stateUserAccount, guardianAddress, txGuardianAddress)
+		return agc.instantSetGuardian(stateUserAccount, guardianAddress, txGuardianAddress, guardianServiceUID)
 	}
 
 	guardian := &guardians.Guardian{
 		Address:         guardianAddress,
 		ActivationEpoch: agc.currentEpoch + agc.guardianActivationEpochsDelay,
+		ServiceUID:      guardianServiceUID,
 	}
 
 	return agc.setAccountGuardian(stateUserAccount, guardian)
@@ -173,6 +178,7 @@ func (agc *guardedAccount) instantSetGuardian(
 	uah state.UserAccountHandler,
 	guardianAddress []byte,
 	txGuardianAddress []byte,
+	guardianServiceUID []byte,
 ) error {
 	accountGuardians, err := agc.getConfiguredGuardians(uah)
 	if err != nil {
@@ -192,6 +198,7 @@ func (agc *guardedAccount) instantSetGuardian(
 	guardian := &guardians.Guardian{
 		Address:         guardianAddress,
 		ActivationEpoch: agc.currentEpoch,
+		ServiceUID:      guardianServiceUID,
 	}
 
 	accountGuardians.Slice = []*guardians.Guardian{guardian}
