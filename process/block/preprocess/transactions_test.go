@@ -445,7 +445,12 @@ func TestTxsPreProcessor_GetTransactionFromPool(t *testing.T) {
 	dataPool := initDataPool()
 	txs := createGoodPreprocessor(dataPool)
 	txHash := []byte("tx2_hash")
-	tx, _ := process.GetTransactionHandlerFromPool(1, 1, txHash, dataPool.Transactions(), false)
+	tx, _ := process.GetTransactionHandlerFromPool(
+		1,
+		1,
+		txHash,
+		dataPool.Transactions(),
+		process.SearchMethodJustPeek)
 	assert.NotNil(t, txs)
 	assert.NotNil(t, tx)
 	assert.Equal(t, uint64(10), tx.(*transaction.Transaction).Nonce)
