@@ -91,8 +91,8 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 	dataComponents, _ := dataComp.NewManagedDataComponents(dataComponentsFactory)
 	_ = dataComponents.Create()
 
-	networkComponents := componentsMock.GetNetworkComponents()
 	cryptoComponents := componentsMock.GetCryptoComponents(coreComponents)
+	networkComponents := componentsMock.GetNetworkComponents(cryptoComponents)
 
 	storageManagerArgs, options := storageManager.GetStorageManagerArgsAndOptions()
 	storageManagerArgs.Marshalizer = coreComponents.InternalMarshalizer()

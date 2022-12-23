@@ -132,9 +132,9 @@ func GetStatusCoreArgs(coreComponents factory.CoreComponentsHolder) statusCore.S
 // GetConsensusArgs -
 func GetConsensusArgs(shardCoordinator sharding.Coordinator) consensusComp.ConsensusComponentsFactoryArgs {
 	coreComponents := GetCoreComponents()
-	networkComponents := GetNetworkComponents()
-	stateComponents := GetStateComponents(coreComponents, shardCoordinator)
 	cryptoComponents := GetCryptoComponents(coreComponents)
+	networkComponents := GetNetworkComponents(cryptoComponents)
+	stateComponents := GetStateComponents(coreComponents, shardCoordinator)
 	dataComponents := GetDataComponents(coreComponents, shardCoordinator)
 	processComponents := GetProcessComponents(
 		shardCoordinator,
@@ -292,6 +292,8 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 
 	appStatusHandler := statusHandlerMock.NewAppStatusHandlerMock()
 
+	cryptoCompMock := GetDefaultCryptoComponents()
+
 	return networkComp.NetworkComponentsFactoryArgs{
 		P2pConfig:     p2pCfg,
 		MainConfig:    mainConfig,
@@ -312,6 +314,7 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 		},
 		Syncer:            &p2pFactory.LocalSyncTimer{},
 		NodeOperationMode: p2p.NormalOperation,
+		CryptoComponents:  cryptoCompMock,
 	}
 }
 
@@ -360,9 +363,9 @@ func GetStateFactoryArgs(coreComponents factory.CoreComponentsHolder, shardCoord
 // GetProcessComponentsFactoryArgs -
 func GetProcessComponentsFactoryArgs(shardCoordinator sharding.Coordinator) processComp.ProcessComponentsFactoryArgs {
 	coreComponents := GetCoreComponents()
-	networkComponents := GetNetworkComponents()
-	dataComponents := GetDataComponents(coreComponents, shardCoordinator)
 	cryptoComponents := GetCryptoComponents(coreComponents)
+	networkComponents := GetNetworkComponents(cryptoComponents)
+	dataComponents := GetDataComponents(coreComponents, shardCoordinator)
 	stateComponents := GetStateComponents(coreComponents, shardCoordinator)
 	processArgs := GetProcessArgs(
 		shardCoordinator,
@@ -378,8 +381,8 @@ func GetProcessComponentsFactoryArgs(shardCoordinator sharding.Coordinator) proc
 //GetBootStrapFactoryArgs -
 func GetBootStrapFactoryArgs() bootstrapComp.BootstrapComponentsFactoryArgs {
 	coreComponents := GetCoreComponents()
-	networkComponents := GetNetworkComponents()
 	cryptoComponents := GetCryptoComponents(coreComponents)
+	networkComponents := GetNetworkComponents(cryptoComponents)
 	statusCoreComponents := GetStatusCoreComponents()
 	return bootstrapComp.BootstrapComponentsFactoryArgs{
 		Config:               testscommon.GetGeneralConfig(),
@@ -620,9 +623,9 @@ func GetStatusComponents(
 // GetStatusComponentsFactoryArgsAndProcessComponents -
 func GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator sharding.Coordinator) (statusComp.StatusComponentsFactoryArgs, factory.ProcessComponentsHolder) {
 	coreComponents := GetCoreComponents()
-	networkComponents := GetNetworkComponents()
-	dataComponents := GetDataComponents(coreComponents, shardCoordinator)
 	cryptoComponents := GetCryptoComponents(coreComponents)
+	networkComponents := GetNetworkComponents(cryptoComponents)
+	dataComponents := GetDataComponents(coreComponents, shardCoordinator)
 	stateComponents := GetStateComponents(coreComponents, shardCoordinator)
 	processComponents := GetProcessComponents(
 		shardCoordinator,
@@ -662,8 +665,9 @@ func GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator shardin
 }
 
 // GetNetworkComponents -
-func GetNetworkComponents() factory.NetworkComponentsHolder {
+func GetNetworkComponents(cryptoComp factory.CryptoComponentsHolder) factory.NetworkComponentsHolder {
 	networkArgs := GetNetworkFactoryArgs()
+	networkArgs.CryptoComponents = cryptoComp
 	networkComponentsFactory, _ := networkComp.NewNetworkComponentsFactory(networkArgs)
 	networkComponents, _ := networkComp.NewManagedNetworkComponents(networkComponentsFactory)
 
