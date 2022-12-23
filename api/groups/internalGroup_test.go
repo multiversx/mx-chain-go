@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/mock"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -66,6 +67,14 @@ type internalMiniBlockResponse struct {
 	Data  internalMiniBlockResponseData `json:"data"`
 	Error string                        `json:"error"`
 	Code  string                        `json:"code"`
+}
+
+type internalValidatorsInfoResponse struct {
+	Data struct {
+		ValidatorsInfo []*state.ShardValidatorInfo `json:"validators"`
+	} `json:"data"`
+	Error string `json:"error"`
+	Code  string `json:"code"`
 }
 
 func TestNewInternalBlockGroup(t *testing.T) {
@@ -1492,6 +1501,95 @@ func TestGetInternalMiniBlockByHash_ShouldWork(t *testing.T) {
 	assert.Equal(t, expectedOutput, response.Data.Block)
 }
 
+func TestGetInternalStartOfEpochValidatorsInfo(t *testing.T) {
+	t.Parallel()
+
+	t.Run("no epoch param should fail", func(t *testing.T) {
+		t.Parallel()
+
+		facade := mock.FacadeStub{
+			GetInternalStartOfEpochValidatorsInfoCalled: func(epoch uint32) ([]*state.ShardValidatorInfo, error) {
+				return make([]*state.ShardValidatorInfo, 0), nil
+			},
+		}
+
+		blockGroup, err := groups.NewInternalBlockGroup(&facade)
+		require.NoError(t, err)
+
+		ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
+
+		req, _ := http.NewRequest("GET", "/internal/json/startofepoch/validators/by-epoch/aaa", nil)
+		resp := httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		response := internalValidatorsInfoResponse{}
+		loadResponse(resp.Body, &response)
+		assert.Equal(t, http.StatusBadRequest, resp.Code)
+		assert.True(t, strings.Contains(response.Error, apiErrors.ErrGetValidatorsInfo.Error()))
+	})
+
+	t.Run("facade error should fail", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := errors.New("facade error")
+		facade := mock.FacadeStub{
+			GetInternalStartOfEpochValidatorsInfoCalled: func(epoch uint32) ([]*state.ShardValidatorInfo, error) {
+				return nil, expectedErr
+			},
+		}
+
+		blockGroup, err := groups.NewInternalBlockGroup(&facade)
+		require.NoError(t, err)
+
+		ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
+
+		req, _ := http.NewRequest("GET", "/internal/json/startofepoch/validators/by-epoch/1", nil)
+		resp := httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		response := internalValidatorsInfoResponse{}
+		loadResponse(resp.Body, &response)
+
+		assert.Equal(t, http.StatusInternalServerError, resp.Code)
+		assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		expectedOutput := []*state.ShardValidatorInfo{
+			{
+				PublicKey:  []byte("pubkey1"),
+				ShardId:    0,
+				Index:      1,
+				TempRating: 500,
+			},
+		}
+
+		facade := mock.FacadeStub{
+			GetInternalStartOfEpochValidatorsInfoCalled: func(epoch uint32) ([]*state.ShardValidatorInfo, error) {
+				return expectedOutput, nil
+			},
+		}
+
+		blockGroup, err := groups.NewInternalBlockGroup(&facade)
+		require.NoError(t, err)
+
+		ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
+
+		req, _ := http.NewRequest("GET", "/internal/json/startofepoch/validators/by-epoch/1", nil)
+		resp := httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		response := internalValidatorsInfoResponse{}
+		loadResponse(resp.Body, &response)
+		assert.Equal(t, http.StatusOK, resp.Code)
+
+		assert.Equal(t, expectedOutput, response.Data.ValidatorsInfo)
+	})
+
+}
+
 func getInternalBlockRoutesConfig() config.ApiRoutesConfig {
 	return config.ApiRoutesConfig{
 		APIPackages: map[string]config.APIPackageConfig{
@@ -1513,6 +1611,7 @@ func getInternalBlockRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/json/shardblock/by-hash/:hash", Open: true},
 					{Name: "/json/shardblock/by-round/:round", Open: true},
 					{Name: "/json/miniblock/by-hash/:hash/epoch/:epoch", Open: true},
+					{Name: "/json/startofepoch/validators/by-epoch/:epoch", Open: true},
 				},
 			},
 		},

@@ -27,6 +27,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
+	"github.com/ElrondNetwork/elrond-go-crypto/signing/secp256k1"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -158,6 +159,9 @@ func CreateMessengerWithKadDht(initialAddr string) p2p.Messenger {
 		NodeOperationMode:     p2p.NormalOperation,
 		PeersRatingHandler:    &p2pmocks.PeersRatingHandlerStub{},
 		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
+		P2pPrivateKey:         mock.NewPrivateKeyMock(),
+		P2pSingleSigner:       &mock.SignerMock{},
+		P2pKeyGenerator:       &mock.KeyGenMock{},
 	}
 
 	libP2PMes, err := p2pFactory.NewNetworkMessenger(arg)
@@ -177,6 +181,9 @@ func CreateMessengerFromConfig(p2pConfig p2pConfig.P2PConfig) p2p.Messenger {
 		NodeOperationMode:     p2p.NormalOperation,
 		PeersRatingHandler:    &p2pmocks.PeersRatingHandlerStub{},
 		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
+		P2pPrivateKey:         mock.NewPrivateKeyMock(),
+		P2pSingleSigner:       &mock.SignerMock{},
+		P2pKeyGenerator:       &mock.KeyGenMock{},
 	}
 
 	if p2pConfig.Sharding.AdditionalConnections.MaxFullHistoryObservers > 0 {
@@ -201,6 +208,9 @@ func CreateMessengerFromConfigWithPeersRatingHandler(p2pConfig p2pConfig.P2PConf
 		NodeOperationMode:     p2p.NormalOperation,
 		PeersRatingHandler:    peersRatingHandler,
 		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
+		P2pPrivateKey:         mock.NewPrivateKeyMock(),
+		P2pSingleSigner:       &mock.SignerMock{},
+		P2pKeyGenerator:       &mock.KeyGenMock{},
 	}
 
 	if p2pConfig.Sharding.AdditionalConnections.MaxFullHistoryObservers > 0 {
@@ -2027,7 +2037,7 @@ func getMissingTxsForNode(n *TestProcessorNode, generatedTxHashes [][]byte) [][]
 }
 
 func requestMissingTransactions(n *TestProcessorNode, shardResolver uint32, neededTxs [][]byte) {
-	txResolver, _ := n.ResolverFinder.CrossShardResolver(procFactory.TransactionTopic, shardResolver)
+	txResolver, _ := n.RequestersFinder.CrossShardRequester(procFactory.TransactionTopic, shardResolver)
 
 	for i := 0; i < len(neededTxs); i++ {
 		_ = txResolver.RequestDataFromHash(neededTxs[i], 0)
@@ -2251,6 +2261,8 @@ func CreateCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards uint32, num
 	suite := mcl.NewSuiteBLS12()
 	singleSigner := TestSingleSigner
 	keyGen := signing.NewKeyGenerator(suite)
+	p2pSuite := secp256k1.NewSecp256k1()
+	p2pKeyGen := signing.NewKeyGenerator(p2pSuite)
 
 	nodesKeysMap := make(map[uint32][]*TestNodeKeys)
 	txKeysMap := make(map[uint32][]*TestKeyPair)
@@ -2267,6 +2279,7 @@ func CreateCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards uint32, num
 	params := &CryptoParams{
 		NodesKeys:    nodesKeysMap,
 		KeyGen:       keyGen,
+		P2PKeyGen:    p2pKeyGen,
 		SingleSigner: singleSigner,
 		TxKeyGen:     txKeyGen,
 		TxKeys:       txKeysMap,

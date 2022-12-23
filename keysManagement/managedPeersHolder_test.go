@@ -15,28 +15,39 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/keysManagement/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	"github.com/stretchr/testify/assert"
 )
 
 var (
-	p2pPrivateKey   = []byte("p2p private key")
-	pid             = core.PeerID("pid")
+	p2pPrivateKey = []byte("p2p private key")
+
 	skBytes0        = []byte("private key 0")
 	skBytes1        = []byte("private key 1")
 	pkBytes0        = []byte("public key 0")
 	pkBytes1        = []byte("public key 1")
 	defaultName     = "default node name"
 	defaultIdentity = "default node identity"
+	p2pPkHex        = "03ca8ec5bd3b84d05e59d5c9cecd548059106649d9e3465f628498628732ab23c9"
+	p2pPidString    = "16Uiu2HAmSHgyTYyawhsZv9opxTHX77vKjoPeGkyCYS5fYVMssHjN"
+	pid, _          = core.NewPeerID(p2pPidString)
 )
 
 func createMockArgsManagedPeersHolder() ArgsManagedPeersHolder {
 	return ArgsManagedPeersHolder{
 		KeyGenerator: createMockKeyGenerator(),
-		P2PIdentityGenerator: &mock.IdentityGeneratorStub{
-			CreateRandomP2PIdentityCalled: func() ([]byte, core.PeerID, error) {
-				return p2pPrivateKey, pid, nil
+		P2PKeyGenerator: &cryptoMocks.KeyGenStub{
+			GeneratePairStub: func() (crypto.PrivateKey, crypto.PublicKey) {
+				return &cryptoMocks.PrivateKeyStub{
+						ToByteArrayStub: func() ([]byte, error) {
+							return []byte("p2p private key"), nil
+						},
+					},
+					&cryptoMocks.PublicKeyStub{
+						ToByteArrayStub: func() ([]byte, error) {
+							return hex.DecodeString(p2pPkHex)
+						},
+					}
 			},
 		},
 		IsMainMachine:                    true,
@@ -92,17 +103,19 @@ func TestNewManagedPeersHolder(t *testing.T) {
 		args.KeyGenerator = nil
 		holder, err := NewManagedPeersHolder(args)
 
-		assert.Equal(t, errNilKeyGenerator, err)
+		assert.ErrorIs(t, err, errNilKeyGenerator)
+		assert.Contains(t, err.Error(), "for args.KeyGenerator")
 		assert.True(t, check.IfNil(holder))
 	})
-	t.Run("nil identity generator should error", func(t *testing.T) {
+	t.Run("nil p2p key generator should error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgsManagedPeersHolder()
-		args.P2PIdentityGenerator = nil
+		args.P2PKeyGenerator = nil
 		holder, err := NewManagedPeersHolder(args)
 
-		assert.Equal(t, errNilP2PIdentityGenerator, err)
+		assert.ErrorIs(t, err, errNilKeyGenerator)
+		assert.Contains(t, err.Error(), "for args.P2PKeyGenerator")
 		assert.True(t, check.IfNil(holder))
 	})
 	t.Run("invalid MaxRoundsWithoutReceivedMessages should error", func(t *testing.T) {
@@ -186,11 +199,15 @@ func TestManagedPeersHolder_AddManagedPeer(t *testing.T) {
 
 		assert.True(t, errors.Is(err, expectedErr))
 	})
-	t.Run("identity creation errors", func(t *testing.T) {
+	t.Run("p2p key generation returns an invalid private key creation errors", func(t *testing.T) {
 		args := createMockArgsManagedPeersHolder()
-		args.P2PIdentityGenerator = &mock.IdentityGeneratorStub{
-			CreateRandomP2PIdentityCalled: func() ([]byte, core.PeerID, error) {
-				return nil, "", expectedErr
+		args.P2PKeyGenerator = &cryptoMocks.KeyGenStub{
+			GeneratePairStub: func() (crypto.PrivateKey, crypto.PublicKey) {
+				return &cryptoMocks.PrivateKeyStub{
+					ToByteArrayStub: func() ([]byte, error) {
+						return nil, expectedErr
+					},
+				}, &cryptoMocks.PublicKeyStub{}
 			},
 		}
 

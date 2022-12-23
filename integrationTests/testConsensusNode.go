@@ -27,7 +27,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	p2pFactory "github.com/ElrondNetwork/elrond-go/p2p/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	syncFork "github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -58,6 +57,20 @@ const (
 
 var testPubkeyConverter, _ = pubkeyConverter.NewHexPubkeyConverter(32)
 
+// ArgsTestConsensusNode represents the arguments for the test consensus node constructor(s)
+type ArgsTestConsensusNode struct {
+	ShardID       uint32
+	ConsensusSize int
+	RoundTime     uint64
+	ConsensusType string
+	NodeKeys      *TestNodeKeys
+	EligibleMap   map[uint32][]nodesCoordinator.Validator
+	WaitingMap    map[uint32][]nodesCoordinator.Validator
+	KeyGen        crypto.KeyGenerator
+	P2PKeyGen     crypto.KeyGenerator
+	MultiSigner   *cryptoMocks.MultisignerMock
+}
+
 // TestConsensusNode represents a structure used in integration tests used for consensus tests
 type TestConsensusNode struct {
 	Node             *node.Node
@@ -66,33 +79,23 @@ type TestConsensusNode struct {
 	ShardCoordinator sharding.Coordinator
 	ChainHandler     data.ChainHandler
 	BlockProcessor   *mock.BlockProcessorMock
-	ResolverFinder   dataRetriever.ResolversFinder
+	RequestersFinder dataRetriever.RequestersFinder
 	AccountsDB       *state.AccountsDB
 	NodeKeys         *TestKeyPair
-	MultiSigner      cryptoMocks.MultisignerMock
+	MultiSigner      *cryptoMocks.MultisignerMock
 }
 
 // NewTestConsensusNode returns a new TestConsensusNode
-func NewTestConsensusNode(
-	shardID uint32,
-	consensusSize int,
-	roundTime uint64,
-	consensusType string,
-	nodeKeys *TestNodeKeys,
-	eligibleMap map[uint32][]nodesCoordinator.Validator,
-	waitingMap map[uint32][]nodesCoordinator.Validator,
-	keyGen crypto.KeyGenerator,
-	multiSigner cryptoMocks.MultisignerMock,
-) *TestConsensusNode {
+func NewTestConsensusNode(args ArgsTestConsensusNode) *TestConsensusNode {
 
-	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, shardID)
+	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, args.ShardID)
 
 	tcn := &TestConsensusNode{
-		NodeKeys:         nodeKeys.MainKey,
+		NodeKeys:         args.NodeKeys.MainKey,
 		ShardCoordinator: shardCoordinator,
-		MultiSigner:      multiSigner,
+		MultiSigner:      args.MultiSigner,
 	}
-	tcn.initNode(consensusSize, roundTime, consensusType, eligibleMap, waitingMap, keyGen, nodeKeys.HandledKeys)
+	tcn.initNode(args)
 
 	return tcn
 }
@@ -121,17 +124,20 @@ func CreateNodesWithTestConsensusNode(
 
 	for shardID := range cp.NodesKeys {
 		for _, keysPair := range cp.NodesKeys[shardID] {
-			tcn := NewTestConsensusNode(
-				shardID,
-				consensusSize,
-				roundTime,
-				consensusType,
-				keysPair,
-				eligibleMap,
-				waitingMap,
-				cp.KeyGen,
-				multiSignerMock,
-			)
+			args := ArgsTestConsensusNode{
+				ShardID:       shardID,
+				ConsensusSize: consensusSize,
+				RoundTime:     roundTime,
+				ConsensusType: consensusType,
+				NodeKeys:      keysPair,
+				EligibleMap:   eligibleMap,
+				WaitingMap:    waitingMap,
+				KeyGen:        cp.KeyGen,
+				P2PKeyGen:     cp.P2PKeyGen,
+				MultiSigner:   multiSignerMock,
+			}
+
+			tcn := NewTestConsensusNode(args)
 			nodes[nodeShardId] = append(nodes[nodeShardId], tcn)
 			connectableNodes[shardID] = append(connectableNodes[shardID], tcn)
 		}
@@ -144,8 +150,8 @@ func CreateNodesWithTestConsensusNode(
 	return nodes
 }
 
-func createCustomMultiSignerMock(multiSigner crypto.MultiSigner) cryptoMocks.MultisignerMock {
-	multiSignerMock := cryptoMocks.MultisignerMock{}
+func createCustomMultiSignerMock(multiSigner crypto.MultiSigner) *cryptoMocks.MultisignerMock {
+	multiSignerMock := &cryptoMocks.MultisignerMock{}
 	multiSignerMock.CreateSignatureShareCalled = func(privateKeyBytes, message []byte) ([]byte, error) {
 		return multiSigner.CreateSignatureShare(privateKeyBytes, message)
 	}
@@ -162,21 +168,13 @@ func createCustomMultiSignerMock(multiSigner crypto.MultiSigner) cryptoMocks.Mul
 	return multiSignerMock
 }
 
-func (tcn *TestConsensusNode) initNode(
-	consensusSize int,
-	roundTime uint64,
-	consensusType string,
-	eligibleMap map[uint32][]nodesCoordinator.Validator,
-	waitingMap map[uint32][]nodesCoordinator.Validator,
-	keyGen crypto.KeyGenerator,
-	handledKeys []*TestKeyPair,
-) {
-	testHasher := createHasher(consensusType)
+func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
+	testHasher := createHasher(args.ConsensusType)
 	epochStartRegistrationHandler := notifier.NewEpochStartSubscriptionHandler()
 	consensusCache, _ := cache.NewLRUCache(10000)
 	pkBytes, _ := tcn.NodeKeys.Pk.ToByteArray()
 
-	tcn.initNodesCoordinator(consensusSize, testHasher, epochStartRegistrationHandler, eligibleMap, waitingMap, pkBytes, consensusCache)
+	tcn.initNodesCoordinator(args.ConsensusSize, testHasher, epochStartRegistrationHandler, args.EligibleMap, args.WaitingMap, pkBytes, consensusCache)
 	tcn.Messenger = CreateMessengerWithNoDiscovery()
 	tcn.initBlockChain(testHasher)
 	tcn.initBlockProcessor()
@@ -189,7 +187,7 @@ func (tcn *TestConsensusNode) initNode(
 	roundHandler, _ := round.NewRound(
 		time.Unix(startTime, 0),
 		syncer.CurrentTime(),
-		time.Millisecond*time.Duration(roundTime),
+		time.Millisecond*time.Duration(args.RoundTime),
 		syncer,
 		0)
 
@@ -218,12 +216,12 @@ func (tcn *TestConsensusNode) initNode(
 		startTime,
 	)
 
-	tcn.initResolverFinder()
+	tcn.initRequestersFinder()
 
 	peerSigCache, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000})
-	peerSigHandler, _ := peerSignatureHandler.NewPeerSignatureHandler(peerSigCache, TestSingleBlsSigner, keyGen)
+	peerSigHandler, _ := peerSignatureHandler.NewPeerSignatureHandler(peerSigCache, TestSingleBlsSigner, args.KeyGen)
 
-	multiSigContainer := cryptoMocks.NewMultiSignerContainerMock(&tcn.MultiSigner)
+	multiSigContainer := cryptoMocks.NewMultiSignerContainerMock(tcn.MultiSigner)
 	privKey := tcn.NodeKeys.Sk
 	pubKey := tcn.NodeKeys.Sk.GeneratePublic()
 
@@ -241,16 +239,16 @@ func (tcn *TestConsensusNode) initNode(
 	coreComponents.GenesisTimeField = time.Unix(startTime, 0)
 	coreComponents.GenesisNodesSetupField = &testscommon.NodesSetupStub{
 		GetShardConsensusGroupSizeCalled: func() uint32 {
-			return uint32(consensusSize)
+			return uint32(args.ConsensusSize)
 		},
 		GetMetaConsensusGroupSizeCalled: func() uint32 {
-			return uint32(consensusSize)
+			return uint32(args.ConsensusSize)
 		},
 	}
 
 	argsKeysHolder := keysManagement.ArgsManagedPeersHolder{
-		KeyGenerator:                     keyGen,
-		P2PIdentityGenerator:             p2pFactory.NewIdentityGenerator(),
+		KeyGenerator:                     args.KeyGen,
+		P2PKeyGenerator:                  args.P2PKeyGen,
 		IsMainMachine:                    true,
 		MaxRoundsWithoutReceivedMessages: 10,
 		PrefsConfig:                      config.Preferences{},
@@ -258,7 +256,7 @@ func (tcn *TestConsensusNode) initNode(
 	keysHolder, _ := keysManagement.NewManagedPeersHolder(argsKeysHolder)
 
 	// adding provided handled keys
-	for _, key := range handledKeys {
+	for _, key := range args.NodeKeys.HandledKeys {
 		skBytes, _ := key.Sk.ToByteArray()
 		_ = keysHolder.AddManagedPeer(skBytes)
 	}
@@ -275,7 +273,7 @@ func (tcn *TestConsensusNode) initNode(
 	signingHandlerArgs := cryptoFactory.ArgsSigningHandler{
 		PubKeys:              []string{pubKeyString},
 		MultiSignerContainer: multiSigContainer,
-		KeyGenerator:         keyGen,
+		KeyGenerator:         args.KeyGen,
 		KeysHandler:          keysHandler,
 		SingleSigner:         TestSingleBlsSigner,
 	}
@@ -292,7 +290,7 @@ func (tcn *TestConsensusNode) initNode(
 	cryptoComponents.BlockSig = TestSingleBlsSigner
 	cryptoComponents.TxSig = TestSingleSigner
 	cryptoComponents.MultiSigContainer = multiSigContainer
-	cryptoComponents.BlKeyGen = keyGen
+	cryptoComponents.BlKeyGen = args.KeyGen
 	cryptoComponents.PeerSignHandler = peerSigHandler
 	cryptoComponents.SigHandler = sigHandler
 	cryptoComponents.KeysHandlerField = keysHandler
@@ -302,7 +300,7 @@ func (tcn *TestConsensusNode) initNode(
 	processComponents.ShardCoord = tcn.ShardCoordinator
 	processComponents.NodesCoord = tcn.NodesCoordinator
 	processComponents.BlockProcess = tcn.BlockProcessor
-	processComponents.ResFinder = tcn.ResolverFinder
+	processComponents.ReqFinder = tcn.RequestersFinder
 	processComponents.EpochTrigger = epochStartTrigger
 	processComponents.EpochNotifier = epochStartRegistrationHandler
 	processComponents.BlackListHdl = &testscommon.TimeCacheStub{}
@@ -337,9 +335,9 @@ func (tcn *TestConsensusNode) initNode(
 		node.WithDataComponents(dataComponents),
 		node.WithStateComponents(stateComponents),
 		node.WithNetworkComponents(networkComponents),
-		node.WithRoundDuration(roundTime),
-		node.WithConsensusGroupSize(consensusSize),
-		node.WithConsensusType(consensusType),
+		node.WithRoundDuration(args.RoundTime),
+		node.WithConsensusGroupSize(args.ConsensusSize),
+		node.WithConsensusType(args.ConsensusType),
 		node.WithGenesisTime(time.Unix(startTime, 0)),
 		node.WithValidatorSignatureSize(signatureSize),
 		node.WithPublicKeySize(publicKeySize),
@@ -451,19 +449,19 @@ func (tcn *TestConsensusNode) initBlockProcessor() {
 	tcn.BlockProcessor.Marshalizer = TestMarshalizer
 }
 
-func (tcn *TestConsensusNode) initResolverFinder() {
-	hdrResolver := &mock.HeaderResolverStub{}
-	mbResolver := &mock.MiniBlocksResolverStub{}
-	tcn.ResolverFinder = &mock.ResolversFinderStub{
-		IntraShardResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, e error) {
+func (tcn *TestConsensusNode) initRequestersFinder() {
+	hdrRequester := &dataRetrieverMock.HeaderRequesterStub{}
+	mbRequester := &dataRetrieverMock.HashSliceRequesterStub{}
+	tcn.RequestersFinder = &dataRetrieverMock.RequestersFinderStub{
+		IntraShardRequesterCalled: func(baseTopic string) (resolver dataRetriever.Requester, e error) {
 			if baseTopic == factory.MiniBlocksTopic {
-				return mbResolver, nil
+				return mbRequester, nil
 			}
 			return nil, nil
 		},
-		CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, err error) {
+		CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Requester, err error) {
 			if baseTopic == factory.ShardBlocksTopic {
-				return hdrResolver, nil
+				return hdrRequester, nil
 			}
 			return nil, nil
 		},

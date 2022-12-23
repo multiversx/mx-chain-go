@@ -3,6 +3,8 @@ package config
 // ContextFlagsConfig will keep the values for the cli.Context flags
 type ContextFlagsConfig struct {
 	WorkingDir                   string
+	DbDir                        string
+	LogsDir                      string
 	EnableGops                   bool
 	SaveLogFile                  bool
 	EnableLogCorrelation         bool

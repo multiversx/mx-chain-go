@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
+	"github.com/ElrondNetwork/elrond-go/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -221,6 +222,12 @@ func (nar *nodeApiResolver) GetInternalMetaBlockByRound(format common.ApiOutputF
 // for the specified epoch
 func (nar *nodeApiResolver) GetInternalStartOfEpochMetaBlock(format common.ApiOutputFormat, epoch uint32) (interface{}, error) {
 	return nar.apiInternalBlockHandler.GetInternalStartOfEpochMetaBlock(format, epoch)
+}
+
+// GetInternalStartOfEpochValidatorsInfo will return the start of epoch validators info
+// for the specified epoch
+func (nar *nodeApiResolver) GetInternalStartOfEpochValidatorsInfo(epoch uint32) ([]*state.ShardValidatorInfo, error) {
+	return nar.apiInternalBlockHandler.GetInternalStartOfEpochValidatorsInfo(epoch)
 }
 
 // GetInternalShardBlockByHash will return a shard block by hash
