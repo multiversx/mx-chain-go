@@ -17,6 +17,9 @@ import (
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	processDisabled "github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
+	"github.com/ElrondNetwork/elrond-go/outport"
+	processOutport "github.com/ElrondNetwork/elrond-go/outport/process"
+	factoryOutportProvider "github.com/ElrondNetwork/elrond-go/outport/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/postprocess"
@@ -30,6 +33,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks/counters"
 	"github.com/ElrondNetwork/elrond-go/process/throttle"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
@@ -374,6 +378,11 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
+	outportDataProvider, err := pcf.createOutportDataProvider(txCoordinator, gasHandler)
+	if err != nil {
+		return nil, err
+	}
+
 	scheduledTxsExecutionHandler.SetTransactionCoordinator(txCoordinator)
 
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
@@ -385,6 +394,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		DataComponents:               pcf.data,
 		BootstrapComponents:          pcf.bootstrapComponents,
 		StatusComponents:             pcf.statusComponents,
+		StatusCoreComponents:         pcf.statusCoreComponents,
 		Config:                       pcf.config,
 		Version:                      pcf.version,
 		AccountsDB:                   accountsDb,
@@ -407,6 +417,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		ScheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
 		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
 		ReceiptsRepository:           receiptsRepository,
+		OutportDataProvider:          outportDataProvider,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
@@ -784,6 +795,11 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
+	outportDataProvider, err := pcf.createOutportDataProvider(txCoordinator, gasHandler)
+	if err != nil {
+		return nil, err
+	}
+
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
 	accountsDb[state.UserAccountsState] = pcf.state.AccountsAdapter()
 	accountsDb[state.PeerAccountsState] = pcf.state.PeerAccounts()
@@ -793,6 +809,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		DataComponents:               pcf.data,
 		BootstrapComponents:          pcf.bootstrapComponents,
 		StatusComponents:             pcf.statusComponents,
+		StatusCoreComponents:         pcf.statusCoreComponents,
 		Config:                       pcf.config,
 		Version:                      pcf.version,
 		AccountsDB:                   accountsDb,
@@ -815,6 +832,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		ScheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
 		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
 		ReceiptsRepository:           receiptsRepository,
+		OutportDataProvider:          outportDataProvider,
 	}
 
 	esdtOwnerAddress, err := pcf.coreData.AddressPubKeyConverter().Decode(pcf.systemSCConfig.ESDTSystemSCConfig.OwnerAddress)
@@ -888,6 +906,38 @@ func (pcf *processComponentsFactory) attachProcessDebugger(
 	}
 
 	return processor.SetProcessDebugger(processDebugger)
+}
+
+func (pcf *processComponentsFactory) createOutportDataProvider(
+	txCoordinator process.TransactionCoordinator,
+	gasConsumedProvider processOutport.GasConsumedProvider,
+) (outport.DataProviderOutport, error) {
+	txsStorer, err := pcf.data.StorageService().GetStorer(dataRetriever.TransactionUnit)
+	if err != nil {
+		return nil, err
+	}
+	mbsStorer, err := pcf.data.StorageService().GetStorer(dataRetriever.MiniBlockUnit)
+	if err != nil {
+		return nil, err
+	}
+
+	return factoryOutportProvider.CreateOutportDataProvider(factoryOutportProvider.ArgOutportDataProviderFactory{
+		HasDrivers:             pcf.statusComponents.OutportHandler().HasDrivers(),
+		AddressConverter:       pcf.coreData.AddressPubKeyConverter(),
+		AccountsDB:             pcf.state.AccountsAdapter(),
+		Marshaller:             pcf.coreData.InternalMarshalizer(),
+		EsdtDataStorageHandler: pcf.esdtNftStorage,
+		TransactionsStorer:     txsStorer,
+		ShardCoordinator:       pcf.bootstrapComponents.ShardCoordinator(),
+		TxCoordinator:          txCoordinator,
+		NodesCoordinator:       pcf.nodesCoordinator,
+		GasConsumedProvider:    gasConsumedProvider,
+		EconomicsData:          pcf.coreData.EconomicsData(),
+		IsImportDBMode:         pcf.importDBConfig.IsImportDBMode,
+		Hasher:                 pcf.coreData.Hasher(),
+		MbsStorer:              mbsStorer,
+		EnableEpochsHandler:    pcf.coreData.EnableEpochsHandler(),
+	})
 }
 
 func (pcf *processComponentsFactory) createShardTxSimulatorProcessor(
@@ -1095,6 +1145,11 @@ func (pcf *processComponentsFactory) createVMFactoryShard(
 	nftStorageHandler vmcommon.SimpleESDTNFTStorageHandler,
 	globalSettingsHandler vmcommon.ESDTGlobalSettingsHandler,
 ) (process.VirtualMachinesContainerFactory, error) {
+	counter, err := counters.NewUsageCounter(esdtTransferParser)
+	if err != nil {
+		return nil, err
+	}
+
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:              accounts,
 		PubkeyConv:            pcf.coreData.AddressPubKeyConverter(),
@@ -1113,6 +1168,8 @@ func (pcf *processComponentsFactory) createVMFactoryShard(
 		EnableEpochsHandler:   pcf.coreData.EnableEpochsHandler(),
 		NilCompiledSCStore:    false,
 		ConfigSCStorage:       configSCStorage,
+		GasSchedule:           pcf.gasSchedule,
+		Counter:               counter,
 	}
 
 	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(argsHook)
@@ -1160,6 +1217,8 @@ func (pcf *processComponentsFactory) createVMFactoryMeta(
 		EpochNotifier:         pcf.coreData.EpochNotifier(),
 		EnableEpochsHandler:   pcf.coreData.EnableEpochsHandler(),
 		NilCompiledSCStore:    false,
+		GasSchedule:           pcf.gasSchedule,
+		Counter:               counters.NewDisabledCounter(),
 	}
 
 	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(argsHook)

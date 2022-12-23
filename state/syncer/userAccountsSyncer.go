@@ -94,6 +94,7 @@ func NewUserAccountsSyncer(args ArgsNewUserAccountsSyncer) (*userAccountsSyncer,
 		checkNodesOnDisk:                  args.CheckNodesOnDisk,
 		storageMarker:                     args.StorageMarker,
 		userAccountsSyncStatisticsHandler: args.UserAccountsSyncStatisticsHandler,
+		appStatusHandler:                  args.AppStatusHandler,
 		enableEpochsHandler:               args.EnableEpochsHandler,
 	}
 
@@ -120,7 +121,7 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 		cancel()
 	}()
 
-	go u.printStatistics(ctx)
+	go u.printStatisticsAndUpdateMetrics(ctx)
 
 	mainTrie, err := u.syncMainTrie(rootHash, factory.AccountTrieNodesTopic, ctx)
 	if err != nil {

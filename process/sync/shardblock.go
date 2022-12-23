@@ -139,9 +139,9 @@ func (boot *ShardBootstrap) StartSyncingBlocks() {
 
 // SyncBlock method actually does the synchronization. It requests the next block header from the pool
 // and if it is not found there it will be requested from the network. After the header is received,
-// it requests the block body in the same way(pool and than, if it is not found in the pool, from network).
+// it requests the block body in the same way(pool and then, if it is not found in the pool, from network).
 // If either header and body are received the ProcessBlock and CommitBlock method will be called successively.
-// These methods will execute the block and its transactions. Finally if everything works, the block will be committed
+// These methods will execute the block and its transactions. Finally, if everything works, the block will be committed
 // in the blockchain, and all this mechanism will be reiterated for the next block.
 func (boot *ShardBootstrap) SyncBlock(ctx context.Context) error {
 	err := boot.syncBlock()

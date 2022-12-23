@@ -109,16 +109,16 @@ type SoftwareVersionConfig struct {
 type HeartbeatV2Config struct {
 	PeerAuthenticationTimeBetweenSendsInSec          int64
 	PeerAuthenticationTimeBetweenSendsWhenErrorInSec int64
-	PeerAuthenticationThresholdBetweenSends          float64
+	PeerAuthenticationTimeThresholdBetweenSends      float64
 	HeartbeatTimeBetweenSendsInSec                   int64
 	HeartbeatTimeBetweenSendsWhenErrorInSec          int64
-	HeartbeatThresholdBetweenSends                   float64
+	HeartbeatTimeThresholdBetweenSends               float64
 	HeartbeatExpiryTimespanInSec                     int64
 	MinPeersThreshold                                float32
-	DelayBetweenRequestsInSec                        int64
-	MaxTimeoutInSec                                  int64
+	DelayBetweenPeerAuthenticationRequestsInSec      int64
+	PeerAuthenticationMaxTimeoutForRequestsInSec     int64
 	PeerShardTimeBetweenSendsInSec                   int64
-	PeerShardThresholdBetweenSends                   float64
+	PeerShardTimeThresholdBetweenSends               float64
 	MaxMissingKeysInRequest                          uint32
 	MaxDurationPeerUnresponsiveInSec                 int64
 	HideInactiveValidatorIntervalInSec               int64
@@ -210,7 +210,7 @@ type Config struct {
 	Versions              VersionsConfig
 	Logs                  LogsConfig
 	TrieSync              TrieSyncConfig
-	Resolvers             ResolverConfig
+	Requesters            RequesterConfig
 	VMOutputCacher        CacheConfig
 
 	PeersRatingConfig   PeersRatingConfig
@@ -318,6 +318,7 @@ type WebServerAntifloodConfig struct {
 	SameSourceRequests                 uint32
 	SameSourceResetIntervalInSec       uint32
 	TrieOperationsDeadlineMilliseconds uint32
+	GetAddressesBulkMaxSize            uint32
 	EndpointsThrottlers                []EndpointsThrottlersConfig
 }
 
@@ -414,7 +415,7 @@ type VirtualMachineGasConfig struct {
 	MetaMaxGasPerVmQuery  uint64
 }
 
-// BuiltInFunctionsConfig holds the configuration for the built in functions
+// BuiltInFunctionsConfig holds the configuration for the built-in functions
 type BuiltInFunctionsConfig struct {
 	AutomaticCrawlerAddresses     []string
 	MaxNumAddressesInTransferRole uint32
@@ -511,10 +512,11 @@ type EpochStartDebugConfig struct {
 
 // ProcessDebugConfig will hold the process debug configuration
 type ProcessDebugConfig struct {
-	Enabled              bool
-	GoRoutinesDump       bool
-	DebuggingLogLevel    string
-	PollingTimeInSeconds int
+	Enabled                     bool
+	GoRoutinesDump              bool
+	DebuggingLogLevel           string
+	PollingTimeInSeconds        int
+	RevertLogLevelTimeInSeconds int
 }
 
 // ApiRoutesConfig holds the configuration related to Rest API routes
@@ -598,8 +600,8 @@ type TrieSyncConfig struct {
 	CheckNodesOnDisk          bool
 }
 
-// ResolverConfig represents the config options to be used when setting up the resolver instances
-type ResolverConfig struct {
+// RequesterConfig represents the config options to be used when setting up the requester instances
+type RequesterConfig struct {
 	NumCrossShardPeers  uint32
 	NumTotalPeers       uint32
 	NumFullHistoryPeers uint32

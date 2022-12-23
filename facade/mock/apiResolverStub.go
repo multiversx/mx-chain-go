@@ -4,10 +4,12 @@ import (
 	"context"
 
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
+	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -22,6 +24,7 @@ type ApiResolverStub struct {
 	GetBlockByHashCalled                        func(hash string, options api.BlockQueryOptions) (*api.Block, error)
 	GetBlockByNonceCalled                       func(nonce uint64, options api.BlockQueryOptions) (*api.Block, error)
 	GetBlockByRoundCalled                       func(round uint64, options api.BlockQueryOptions) (*api.Block, error)
+	GetAlteredAccountsForBlockCalled            func(options api.GetAlteredAccountsForBlockOptions) ([]*outportcore.AlteredAccount, error)
 	GetTransactionHandler                       func(hash string, withEvents bool) (*transaction.ApiTransactionResult, error)
 	GetInternalShardBlockByNonceCalled          func(format common.ApiOutputFormat, nonce uint64) (interface{}, error)
 	GetInternalShardBlockByHashCalled           func(format common.ApiOutputFormat, hash string) (interface{}, error)
@@ -31,6 +34,7 @@ type ApiResolverStub struct {
 	GetInternalMetaBlockByRoundCalled           func(format common.ApiOutputFormat, round uint64) (interface{}, error)
 	GetInternalMiniBlockCalled                  func(format common.ApiOutputFormat, hash string, epoch uint32) (interface{}, error)
 	GetInternalStartOfEpochMetaBlockCalled      func(format common.ApiOutputFormat, epoch uint32) (interface{}, error)
+	GetInternalStartOfEpochValidatorsInfoCalled func(epoch uint32) ([]*state.ShardValidatorInfo, error)
 	GetGenesisNodesPubKeysCalled                func() (map[uint32][]string, map[uint32][]string)
 	GetTransactionsPoolCalled                   func(fields string) (*common.TransactionsPoolAPIResponse, error)
 	GetGenesisBalancesCalled                    func() ([]*common.InitialAccountAPI, error)
@@ -71,6 +75,15 @@ func (ars *ApiResolverStub) GetBlockByNonce(nonce uint64, options api.BlockQuery
 func (ars *ApiResolverStub) GetBlockByRound(round uint64, options api.BlockQueryOptions) (*api.Block, error) {
 	if ars.GetBlockByRoundCalled != nil {
 		return ars.GetBlockByRoundCalled(round, options)
+	}
+
+	return nil, nil
+}
+
+// GetAlteredAccountsForBlock -
+func (ars *ApiResolverStub) GetAlteredAccountsForBlock(options api.GetAlteredAccountsForBlockOptions) ([]*outportcore.AlteredAccount, error) {
+	if ars.GetAlteredAccountsForBlockCalled != nil {
+		return ars.GetAlteredAccountsForBlockCalled(options)
 	}
 
 	return nil, nil
@@ -254,6 +267,15 @@ func (ars *ApiResolverStub) GetGasConfigs() map[string]map[string]uint64 {
 	}
 
 	return nil
+}
+
+// GetInternalStartOfEpochValidatorsInfo -
+func (ars *ApiResolverStub) GetInternalStartOfEpochValidatorsInfo(epoch uint32) ([]*state.ShardValidatorInfo, error) {
+	if ars.GetInternalStartOfEpochValidatorsInfoCalled != nil {
+		return ars.GetInternalStartOfEpochValidatorsInfoCalled(epoch)
+	}
+
+	return nil, nil
 }
 
 // Close -

@@ -39,6 +39,7 @@ var log = logger.GetOrCreate("update/factory")
 type ArgsExporter struct {
 	CoreComponents            process.CoreComponentsHolder
 	CryptoComponents          process.CryptoComponentsHolder
+	StatusCoreComponents      process.StatusCoreComponentsHolder
 	HeaderValidator           epochStart.HeaderValidator
 	DataPool                  dataRetriever.PoolsHolder
 	StorageService            dataRetriever.StorageService
@@ -47,6 +48,7 @@ type ArgsExporter struct {
 	Messenger                 p2p.Messenger
 	ActiveAccountsDBs         map[state.AccountsDbIdentifier]state.AccountsAdapter
 	ExistingResolvers         dataRetriever.ResolversContainer
+	ExistingRequesters        dataRetriever.RequestersContainer
 	ExportFolder              string
 	ExportTriesStorageConfig  config.StorageConfig
 	ExportStateStorageConfig  config.StorageConfig
@@ -73,6 +75,7 @@ type ArgsExporter struct {
 type exportHandlerFactory struct {
 	CoreComponents            process.CoreComponentsHolder
 	CryptoComponents          process.CryptoComponentsHolder
+	statusCoreComponents      process.StatusCoreComponentsHolder
 	headerValidator           epochStart.HeaderValidator
 	dataPool                  dataRetriever.PoolsHolder
 	storageService            dataRetriever.StorageService
@@ -89,6 +92,7 @@ type exportHandlerFactory struct {
 	whiteListerVerifiedTxs    process.WhiteListHandler
 	interceptorsContainer     process.InterceptorsContainer
 	existingResolvers         dataRetriever.ResolversContainer
+	existingRequesters        dataRetriever.RequestersContainer
 	epochStartTrigger         epochStart.TriggerHandler
 	accounts                  state.AccountsAdapter
 	nodesCoordinator          nodesCoordinator.NodesCoordinator
@@ -96,6 +100,7 @@ type exportHandlerFactory struct {
 	headerIntegrityVerifier   process.HeaderIntegrityVerifier
 	validityAttester          process.ValidityAttester
 	resolverContainer         dataRetriever.ResolversContainer
+	requestersContainer       dataRetriever.RequestersContainer
 	inputAntifloodHandler     process.P2PAntifloodHandler
 	outputAntifloodHandler    process.P2PAntifloodHandler
 	roundHandler              process.RoundHandler
@@ -156,6 +161,9 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 	}
 	if check.IfNil(args.ExistingResolvers) {
 		return nil, update.ErrNilResolverContainer
+	}
+	if check.IfNil(args.ExistingRequesters) {
+		return nil, update.ErrNilRequestersContainer
 	}
 	multiSigner, err := args.CryptoComponents.GetMultiSigner(0)
 	if err != nil {
@@ -222,6 +230,12 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 	if err != nil {
 		return nil, err
 	}
+	if check.IfNil(args.StatusCoreComponents) {
+		return nil, update.ErrNilStatusCoreComponentsHolder
+	}
+	if check.IfNil(args.StatusCoreComponents.AppStatusHandler()) {
+		return nil, update.ErrNilAppStatusHandler
+	}
 
 	e := &exportHandlerFactory{
 		CoreComponents:            args.CoreComponents,
@@ -241,6 +255,7 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		whiteListHandler:          args.WhiteListHandler,
 		whiteListerVerifiedTxs:    args.WhiteListerVerifiedTxs,
 		existingResolvers:         args.ExistingResolvers,
+		existingRequesters:        args.ExistingRequesters,
 		accounts:                  args.ActiveAccountsDBs[state.UserAccountsState],
 		nodesCoordinator:          args.NodesCoordinator,
 		headerSigVerifier:         args.HeaderSigVerifier,
@@ -256,6 +271,7 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		numConcurrentTrieSyncers:  args.NumConcurrentTrieSyncers,
 		trieSyncerVersion:         args.TrieSyncerVersion,
 		checkNodesOnDisk:          args.CheckNodesOnDisk,
+		statusCoreComponents:      args.StatusCoreComponents,
 	}
 
 	return e, nil
@@ -269,7 +285,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	}
 
 	// TODO reuse the debugger when the one used for regular resolvers & interceptors will be moved inside the status components
-	debugger, errNotCritical := factory.NewInterceptorResolverDebuggerFactory(e.interceptorDebugConfig)
+	debugger, errNotCritical := factory.NewInterceptorDebuggerFactory(e.interceptorDebugConfig)
 	if errNotCritical != nil {
 		log.Warn("error creating hardfork debugger", "error", errNotCritical)
 	}
@@ -297,7 +313,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		Finality:             process.BlockFinality,
 		PeerMiniBlocksSyncer: peerMiniBlocksSyncer,
 		RoundHandler:         e.roundHandler,
-		AppStatusHandler:     e.CoreComponents.StatusHandler(),
+		AppStatusHandler:     e.statusCoreComponents.AppStatusHandler(),
 		EnableEpochsHandler:  e.CoreComponents.EnableEpochsHandler(),
 	}
 	epochHandler, err := shardchain.NewEpochStartTrigger(&argsEpochTrigger)
@@ -342,7 +358,6 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		NumConcurrentResolvingJobs: 100,
 		InputAntifloodHandler:      e.inputAntifloodHandler,
 		OutputAntifloodHandler:     e.outputAntifloodHandler,
-		PeersRatingHandler:         e.peersRatingHandler,
 	}
 	resolversFactory, err := NewResolversContainerFactory(argsResolvers)
 	if err != nil {
@@ -354,9 +369,35 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	}
 
 	e.resolverContainer.Iterate(func(key string, resolver dataRetriever.Resolver) bool {
-		errNotCritical = resolver.SetResolverDebugHandler(debugger)
+		errNotCritical = resolver.SetDebugHandler(debugger)
 		if errNotCritical != nil {
 			log.Warn("error setting debugger", "resolver", key, "error", errNotCritical)
+		}
+
+		return true
+	})
+
+	argsRequesters := ArgsRequestersContainerFactory{
+		ShardCoordinator:       e.shardCoordinator,
+		Messenger:              e.messenger,
+		Marshaller:             e.CoreComponents.InternalMarshalizer(),
+		ExistingRequesters:     e.existingRequesters,
+		OutputAntifloodHandler: e.outputAntifloodHandler,
+		PeersRatingHandler:     e.peersRatingHandler,
+	}
+	requestersFactory, err := NewRequestersContainerFactory(argsRequesters)
+	if err != nil {
+		return nil, err
+	}
+	e.requestersContainer, err = requestersFactory.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	e.requestersContainer.Iterate(func(key string, requester dataRetriever.Requester) bool {
+		errNotCritical = requester.SetDebugHandler(debugger)
+		if errNotCritical != nil {
+			log.Warn("error setting debugger", "requester", key, "error", errNotCritical)
 		}
 
 		return true

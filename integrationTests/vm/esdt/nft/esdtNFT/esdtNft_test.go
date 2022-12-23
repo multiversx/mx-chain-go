@@ -332,7 +332,7 @@ func TestESDTNonFungibleTokenTransferSelfShard(t *testing.T) {
 		1,
 	)
 
-	// check that the creator doesn't has the token data in trie anymore
+	// check that the creator doesn't have the token data in trie anymore
 	nftMetaData.Quantity = 0
 	nft.CheckNftData(
 		t,
@@ -630,7 +630,7 @@ func TestESDTSemiFungibleTokenTransferToSystemScAddressShouldReceiveBack(t *test
 		1,
 	)
 
-	nftMetaData.Quantity = initialQuantity + quantityToAdd // should have the same quantity like before transferring
+	nftMetaData.Quantity = initialQuantity + quantityToAdd // should have the same quantity as before transferring
 	nft.CheckNftData(
 		t,
 		nodes[0].OwnAccount.Address,

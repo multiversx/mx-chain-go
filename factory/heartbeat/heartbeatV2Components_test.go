@@ -23,10 +23,11 @@ func createMockHeartbeatV2ComponentsFactoryArgs() heartbeatComp.ArgHeartbeatV2Co
 
 	_ = bootstrapC.SetShardCoordinator(shardCoordinator)
 
+	statusCoreC := componentsMock.GetStatusCoreComponents()
 	coreC := componentsMock.GetCoreComponents()
-	networkC := componentsMock.GetNetworkComponents()
-	dataC := componentsMock.GetDataComponents(coreC, shardCoordinator)
 	cryptoC := componentsMock.GetCryptoComponents(coreC)
+	networkC := componentsMock.GetNetworkComponents(cryptoC)
+	dataC := componentsMock.GetDataComponents(coreC, shardCoordinator)
 	stateC := componentsMock.GetStateComponents(coreC, shardCoordinator)
 	processC := componentsMock.GetProcessComponents(shardCoordinator, coreC, networkC, dataC, cryptoC, stateC)
 	return heartbeatComp.ArgHeartbeatV2ComponentsFactory{
@@ -34,16 +35,16 @@ func createMockHeartbeatV2ComponentsFactoryArgs() heartbeatComp.ArgHeartbeatV2Co
 			HeartbeatV2: config.HeartbeatV2Config{
 				PeerAuthenticationTimeBetweenSendsInSec:          1,
 				PeerAuthenticationTimeBetweenSendsWhenErrorInSec: 1,
-				PeerAuthenticationThresholdBetweenSends:          0.1,
+				PeerAuthenticationTimeThresholdBetweenSends:      0.1,
 				HeartbeatTimeBetweenSendsInSec:                   1,
 				HeartbeatTimeBetweenSendsWhenErrorInSec:          1,
-				HeartbeatThresholdBetweenSends:                   0.1,
+				HeartbeatTimeThresholdBetweenSends:               0.1,
 				HeartbeatExpiryTimespanInSec:                     30,
 				MinPeersThreshold:                                0.8,
-				DelayBetweenRequestsInSec:                        10,
-				MaxTimeoutInSec:                                  60,
+				DelayBetweenPeerAuthenticationRequestsInSec:      10,
+				PeerAuthenticationMaxTimeoutForRequestsInSec:     60,
 				PeerShardTimeBetweenSendsInSec:                   5,
-				PeerShardThresholdBetweenSends:                   0.1,
+				PeerShardTimeThresholdBetweenSends:               0.1,
 				MaxMissingKeysInRequest:                          100,
 				MaxDurationPeerUnresponsiveInSec:                 10,
 				HideInactiveValidatorIntervalInSec:               60,
@@ -66,13 +67,14 @@ func createMockHeartbeatV2ComponentsFactoryArgs() heartbeatComp.ArgHeartbeatV2Co
 				Identity:        "identity",
 			},
 		},
-		AppVersion:          "test",
-		BootstrapComponents: bootstrapC,
-		CoreComponents:      coreC,
-		DataComponents:      dataC,
-		NetworkComponents:   networkC,
-		CryptoComponents:    cryptoC,
-		ProcessComponents:   processC,
+		AppVersion:           "test",
+		BootstrapComponents:  bootstrapC,
+		CoreComponents:       coreC,
+		DataComponents:       dataC,
+		NetworkComponents:    networkC,
+		CryptoComponents:     cryptoC,
+		ProcessComponents:    processC,
+		StatusCoreComponents: statusCoreC,
 	}
 }
 

@@ -12,7 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/stretchr/testify/assert"
@@ -78,13 +78,13 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 	chanDone1, chanDone2 := wireUpHandler(nRequester, hdr1, hdr2)
 
 	//request header from pool
-	res, err := nRequester.ResolverFinder.CrossShardResolver(factory.ShardBlocksTopic, core.MetachainShardId)
+	requester, err := nRequester.RequestersFinder.CrossShardRequester(factory.ShardBlocksTopic, core.MetachainShardId)
 	assert.Nil(t, err)
-	hdrResolver := res.(*resolvers.HeaderResolver)
-	_ = hdrResolver.RequestDataFromNonce(0, 0)
+	hdrRequester := requester.(requestHandlers.HeaderRequester)
+	_ = hdrRequester.RequestDataFromNonce(0, 0)
 
 	//request header that is stored
-	_ = hdrResolver.RequestDataFromNonce(1, 0)
+	_ = hdrRequester.RequestDataFromNonce(1, 0)
 
 	testChansShouldReadBoth(t, chanDone1, chanDone2)
 }
@@ -147,13 +147,13 @@ func TestNode_InterceptedHeaderWithWrongChainIDShouldBeDiscarded(t *testing.T) {
 	chanDone1, chanDone2 := wireUpHandler(nRequester, hdr1, hdr2)
 
 	//request header from pool
-	res, err := nRequester.ResolverFinder.CrossShardResolver(factory.ShardBlocksTopic, core.MetachainShardId)
+	requester, err := nRequester.RequestersFinder.CrossShardRequester(factory.ShardBlocksTopic, core.MetachainShardId)
 	assert.Nil(t, err)
-	hdrResolver := res.(*resolvers.HeaderResolver)
-	_ = hdrResolver.RequestDataFromNonce(0, 0)
+	hdrRequester := requester.(requestHandlers.HeaderRequester)
+	_ = hdrRequester.RequestDataFromNonce(0, 0)
 
 	//request header that is stored
-	_ = hdrResolver.RequestDataFromNonce(1, 0)
+	_ = hdrRequester.RequestDataFromNonce(1, 0)
 
 	testChansShouldReadNone(t, chanDone1, chanDone2)
 }

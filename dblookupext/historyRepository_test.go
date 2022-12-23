@@ -719,7 +719,7 @@ func TestHistoryRepository_ConcurrentlyRecordAndNotarizeSameBlockMultipleTimes(t
 	}()
 
 	go func() {
-		// Receive less notifications (to test more aggressively)
+		// Receive fewer notifications (to test more aggressively)
 		for i := 0; i < 50; i++ {
 			repo.OnNotarizedBlocks(core.MetachainShardId, []data.HeaderHandler{metablock}, [][]byte{[]byte("metablockFoo")})
 		}

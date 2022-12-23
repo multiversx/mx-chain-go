@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/config/overridableConfig"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/urfave/cli"
 	// test point 1 for custom profiler
@@ -94,6 +95,11 @@ func startNodeRunner(c *cli.Context, log logger.Logger, version string) error {
 	cfgs, errCfg := readConfigs(c, log)
 	if errCfg != nil {
 		return errCfg
+	}
+
+	errCfgOverride := overridableConfig.OverrideConfigValues(cfgs.PreferencesConfig.Preferences.OverridableConfigTomlValues, cfgs)
+	if errCfgOverride != nil {
+		return errCfgOverride
 	}
 
 	if !check.IfNil(fileLogging) {
@@ -247,7 +253,7 @@ func attachFileLogger(log logger.Logger, flagsConfig *config.ContextFlagsConfig)
 	var err error
 	if flagsConfig.SaveLogFile {
 		args := file.ArgsFileLogging{
-			WorkingDir:      flagsConfig.WorkingDir,
+			WorkingDir:      flagsConfig.LogsDir,
 			DefaultLogsPath: defaultLogsPath,
 			LogFilePrefix:   logFilePrefix,
 		}

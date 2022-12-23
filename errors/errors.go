@@ -68,6 +68,9 @@ var ErrNilBlockProcessor = errors.New("block processor is nil")
 // ErrNilBlockSigner signals the nil block signer was provided
 var ErrNilBlockSigner = errors.New("nil block signer")
 
+// ErrNilP2pSigner signals the nil p2p signer was provided
+var ErrNilP2pSigner = errors.New("nil p2p single signer")
+
 // ErrNilBlockSignKeyGen is raised when a valid block sign key generator is expected but nil used
 var ErrNilBlockSignKeyGen = errors.New("block sign key generator is nil")
 
@@ -269,8 +272,11 @@ var ErrNilPendingMiniBlocksHandler = errors.New("nil pending miniBlocks handler"
 // ErrNilPoolsHolder signals that a nil pools holder was provided
 var ErrNilPoolsHolder = errors.New("nil pools holder")
 
-// ErrNilPrivateKey signals that a nil provate key was provided
+// ErrNilPrivateKey signals that a nil private key was provided
 var ErrNilPrivateKey = errors.New("nil private key")
+
+// ErrNilP2pPrivateKey signals that a nil p2p private key was provided
+var ErrNilP2pPrivateKey = errors.New("nil p2p private key")
 
 // ErrNilProcessComponents signals that a nil process components instance was provided
 var ErrNilProcessComponents = errors.New("nil process components")
@@ -283,6 +289,9 @@ var ErrNilPubKeyConverter = errors.New("nil public key converter")
 
 // ErrNilPublicKey signals that a nil public key was provided
 var ErrNilPublicKey = errors.New("nil public key")
+
+// ErrNilP2pPublicKey signals that a nil p2p public key was provided
+var ErrNilP2pPublicKey = errors.New("nil p2p public key")
 
 // ErrNilRater signals that a nil rater was provided
 var ErrNilRater = errors.New("nil rater")
@@ -299,8 +308,11 @@ var ErrNilRequestedItemHandler = errors.New("nil requested item handler")
 // ErrNilRequestHandler signals that a nil request handler was provided
 var ErrNilRequestHandler = errors.New("nil request handler")
 
-// ErrNilResolversFinder signals that a nil resolver finder was provided
-var ErrNilResolversFinder = errors.New("nil resolvers finder")
+// ErrNilRequestersFinder signals that a nil requesters finder was provided
+var ErrNilRequestersFinder = errors.New("nil requesters finder")
+
+// ErrNilResolversContainer signals that a nil resolvers container was provided
+var ErrNilResolversContainer = errors.New("nil resolvers container")
 
 // ErrNilRoundHandler signals that a nil roundHandler was provided
 var ErrNilRoundHandler = errors.New("nil roundHandler")
@@ -361,6 +373,9 @@ var ErrNilTxSigner = errors.New("nil transaction signer")
 
 // ErrNilTxSignKeyGen signals that a nil transaction signer key generator was provided
 var ErrNilTxSignKeyGen = errors.New("nil transaction signing key generator")
+
+// ErrNilP2pKeyGen signals that a nil p2p key generator was provided
+var ErrNilP2pKeyGen = errors.New("nil p2p key generator")
 
 // ErrNilTxSignMarshalizer signals that a nil transaction sign marshalizer was provided
 var ErrNilTxSignMarshalizer = errors.New("nil transaction marshalizer")
@@ -464,6 +479,12 @@ var ErrNilTxsSender = errors.New("nil transactions sender has been provided")
 // ErrNilProcessStatusHandler signals that a nil process status handler was provided
 var ErrNilProcessStatusHandler = errors.New("nil process status handler")
 
+// ErrNilESDTDataStorage signals that a nil esdt data storage has been provided
+var ErrNilESDTDataStorage = errors.New("nil esdt data storage")
+
+// ErrDBIsClosed is raised when the DB is closed
+var ErrDBIsClosed = errors.New("DB is closed")
+
 // ErrNilEnableEpochsHandler signals that a nil enable epochs handler was provided
 var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
 
@@ -511,3 +532,15 @@ var ErrNilResourceMonitor = errors.New("nil resource monitor")
 
 // ErrNilTrieSyncStatistics signals that a nil trie sync statistics was provided
 var ErrNilTrieSyncStatistics = errors.New("nil trie sync statistics")
+
+// ErrNilAppStatusHandler signals that a nil app status handler was provided
+var ErrNilAppStatusHandler = errors.New("nil app status handler")
+
+// ErrNilStatusMetrics signals that a nil status metrics was provided
+var ErrNilStatusMetrics = errors.New("nil status metrics")
+
+// ErrNilPersistentHandler signals that a nil persistent handler was provided
+var ErrNilPersistentHandler = errors.New("nil persistent handler")
+
+// ErrNilGenesisNodesSetupHandler signals that a nil genesis nodes setup handler has been provided
+var ErrNilGenesisNodesSetupHandler = errors.New("nil genesis nodes setup handler")

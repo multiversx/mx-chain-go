@@ -37,6 +37,7 @@ type ArgsNewStateImport struct {
 	StorageConfig       config.StorageConfig
 	TrieStorageManagers map[string]common.StorageManager
 	HardforkStorer      update.HardforkStorer
+	AddressConverter    core.PubkeyConverter
 	EnableEpochsHandler common.EnableEpochsHandler
 }
 
@@ -56,6 +57,7 @@ type stateImport struct {
 	shardID             uint32
 	storageConfig       config.StorageConfig
 	trieStorageManagers map[string]common.StorageManager
+	addressConverter    core.PubkeyConverter
 	enableEpochsHandler common.EnableEpochsHandler
 }
 
@@ -72,6 +74,9 @@ func NewStateImport(args ArgsNewStateImport) (*stateImport, error) {
 	}
 	if check.IfNil(args.HardforkStorer) {
 		return nil, update.ErrNilHardforkStorer
+	}
+	if check.IfNil(args.AddressConverter) {
+		return nil, update.ErrNilAddressConverter
 	}
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, errors.ErrNilEnableEpochsHandler
@@ -91,6 +96,7 @@ func NewStateImport(args ArgsNewStateImport) (*stateImport, error) {
 		storageConfig:                args.StorageConfig,
 		shardID:                      args.ShardID,
 		hardforkStorer:               args.HardforkStorer,
+		addressConverter:             args.AddressConverter,
 		enableEpochsHandler:          args.EnableEpochsHandler,
 	}
 
@@ -420,6 +426,7 @@ func (si *stateImport) getAccountsDB(accType Type, shardID uint32) (state.Accoun
 				ProcessingMode:        common.Normal,
 				ProcessStatusHandler:  commonDisabled.NewProcessStatusHandler(),
 				AppStatusHandler:      commonDisabled.NewAppStatusHandler(),
+				AddressConverter:      si.addressConverter,
 			}
 			accountsDB, errCreate := state.NewAccountsDB(argsAccountDB)
 			if errCreate != nil {
@@ -444,6 +451,7 @@ func (si *stateImport) getAccountsDB(accType Type, shardID uint32) (state.Accoun
 		ProcessingMode:        common.Normal,
 		ProcessStatusHandler:  commonDisabled.NewProcessStatusHandler(),
 		AppStatusHandler:      commonDisabled.NewAppStatusHandler(),
+		AddressConverter:      si.addressConverter,
 	}
 	accountsDB, err = state.NewAccountsDB(argsAccountDB)
 	si.accountDBsMap[shardID] = accountsDB

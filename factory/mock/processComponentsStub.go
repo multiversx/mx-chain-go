@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/update"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // ProcessComponentsMock -
@@ -18,7 +19,8 @@ type ProcessComponentsMock struct {
 	NodesCoord                           nodesCoordinator.NodesCoordinator
 	ShardCoord                           sharding.Coordinator
 	IntContainer                         process.InterceptorsContainer
-	ResFinder                            dataRetriever.ResolversFinder
+	ResContainer                         dataRetriever.ResolversContainer
+	ReqFinder                            dataRetriever.RequestersFinder
 	RoundHandlerField                    consensus.RoundHandler
 	EpochTrigger                         epochStart.TriggerHandler
 	EpochNotifier                        factory.EpochStartNotifier
@@ -49,6 +51,7 @@ type ProcessComponentsMock struct {
 	TxsSenderHandlerField                process.TxsSenderHandler
 	HardforkTriggerField                 factory.HardforkTrigger
 	ProcessedMiniBlocksTrackerInternal   process.ProcessedMiniBlocksTracker
+	ESDTDataStorageHandlerForAPIInternal vmcommon.ESDTNFTStorageHandler
 	AccountsParserInternal               genesis.AccountsParser
 	ReceiptsRepositoryInternal           factory.ReceiptsRepository
 }
@@ -83,9 +86,14 @@ func (pcm *ProcessComponentsMock) InterceptorsContainer() process.InterceptorsCo
 	return pcm.IntContainer
 }
 
-// ResolversFinder -
-func (pcm *ProcessComponentsMock) ResolversFinder() dataRetriever.ResolversFinder {
-	return pcm.ResFinder
+// ResolversContainer -
+func (pcm *ProcessComponentsMock) ResolversContainer() dataRetriever.ResolversContainer {
+	return pcm.ResContainer
+}
+
+// RequestersFinder -
+func (pcm *ProcessComponentsMock) RequestersFinder() dataRetriever.RequestersFinder {
+	return pcm.ReqFinder
 }
 
 // RoundHandler -
@@ -218,7 +226,7 @@ func (pcm *ProcessComponentsMock) CurrentEpochProvider() process.CurrentNetworkE
 	return pcm.CurrentEpochProviderInternal
 }
 
-// GenesisAccounts -
+// AccountsParser -
 func (pcm *ProcessComponentsMock) AccountsParser() genesis.AccountsParser {
 	return pcm.AccountsParserInternal
 }
@@ -246,6 +254,11 @@ func (pcm *ProcessComponentsMock) HardforkTrigger() factory.HardforkTrigger {
 // ProcessedMiniBlocksTracker -
 func (pcm *ProcessComponentsMock) ProcessedMiniBlocksTracker() process.ProcessedMiniBlocksTracker {
 	return pcm.ProcessedMiniBlocksTrackerInternal
+}
+
+// ESDTDataStorageHandlerForAPI -
+func (pcm *ProcessComponentsMock) ESDTDataStorageHandlerForAPI() vmcommon.ESDTNFTStorageHandler {
+	return pcm.ESDTDataStorageHandlerForAPIInternal
 }
 
 // ReceiptsRepository -

@@ -9,15 +9,18 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/watchdog"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go-storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/common/disabled"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/consensus/blacklist"
 	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
-	"github.com/ElrondNetwork/elrond-go/consensus/signing"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/errors"
-	factory "github.com/ElrondNetwork/elrond-go/factory"
+	"github.com/ElrondNetwork/elrond-go/factory"
+	p2pFactory "github.com/ElrondNetwork/elrond-go/p2p/factory"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/process/sync/storageBootstrap"
@@ -31,6 +34,8 @@ import (
 
 var log = logger.GetOrCreate("factory")
 
+const defaultSpan = 300 * time.Second
+
 // ConsensusComponentsFactoryArgs holds the arguments needed to create a consensus components factory
 type ConsensusComponentsFactoryArgs struct {
 	Config                config.Config
@@ -42,6 +47,7 @@ type ConsensusComponentsFactoryArgs struct {
 	ProcessComponents     factory.ProcessComponentsHolder
 	StateComponents       factory.StateComponentsHolder
 	StatusComponents      factory.StatusComponentsHolder
+	StatusCoreComponents  factory.StatusCoreComponentsHolder
 	ScheduledProcessor    consensus.ScheduledProcessor
 	IsInImportMode        bool
 	ShouldDisableWatchdog bool
@@ -57,18 +63,20 @@ type consensusComponentsFactory struct {
 	processComponents     factory.ProcessComponentsHolder
 	stateComponents       factory.StateComponentsHolder
 	statusComponents      factory.StatusComponentsHolder
+	statusCoreComponents  factory.StatusCoreComponentsHolder
 	scheduledProcessor    consensus.ScheduledProcessor
 	isInImportMode        bool
 	shouldDisableWatchdog bool
 }
 
 type consensusComponents struct {
-	chronology         consensus.ChronologyHandler
-	bootstrapper       process.Bootstrapper
-	broadcastMessenger consensus.BroadcastMessenger
-	worker             factory.ConsensusWorker
-	consensusTopic     string
-	consensusGroupSize int
+	chronology           consensus.ChronologyHandler
+	bootstrapper         process.Bootstrapper
+	broadcastMessenger   consensus.BroadcastMessenger
+	worker               factory.ConsensusWorker
+	peerBlacklistHandler consensus.PeerBlacklistHandler
+	consensusTopic       string
+	consensusGroupSize   int
 }
 
 // NewConsensusComponentsFactory creates an instance of consensusComponentsFactory
@@ -97,6 +105,9 @@ func NewConsensusComponentsFactory(args ConsensusComponentsFactoryArgs) (*consen
 	if check.IfNil(args.ScheduledProcessor) {
 		return nil, errors.ErrNilScheduledProcessor
 	}
+	if check.IfNil(args.StatusCoreComponents) {
+		return nil, errors.ErrNilStatusCoreComponents
+	}
 
 	return &consensusComponentsFactory{
 		config:                args.Config,
@@ -108,6 +119,7 @@ func NewConsensusComponentsFactory(args ConsensusComponentsFactoryArgs) (*consen
 		processComponents:     args.ProcessComponents,
 		stateComponents:       args.StateComponents,
 		statusComponents:      args.StatusComponents,
+		statusCoreComponents:  args.StatusCoreComponents,
 		scheduledProcessor:    args.ScheduledProcessor,
 		isInImportMode:        args.IsInImportMode,
 		shouldDisableWatchdog: args.ShouldDisableWatchdog,
@@ -182,6 +194,11 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		marshalizer = marshal.NewSizeCheckUnmarshalizer(marshalizer, sizeCheckDelta)
 	}
 
+	cc.peerBlacklistHandler, err = ccf.createPeerBlacklistHandler()
+	if err != nil {
+		return nil, err
+	}
+
 	workerArgs := &spos.WorkerArgs{
 		ConsensusService:         consensusService,
 		BlockChain:               ccf.dataComponents.Blockchain(),
@@ -205,8 +222,9 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		PoolAdder:                ccf.dataComponents.Datapool().MiniBlocks(),
 		SignatureSize:            ccf.config.ValidatorPubkeyConverter.SignatureLength,
 		PublicKeySize:            ccf.config.ValidatorPubkeyConverter.Length,
-		AppStatusHandler:         ccf.coreComponents.StatusHandler(),
+		AppStatusHandler:         ccf.statusCoreComponents.AppStatusHandler(),
 		NodeRedundancyHandler:    ccf.processComponents.NodeRedundancyHandler(),
+		PeerBlacklistHandler:     cc.peerBlacklistHandler,
 	}
 
 	cc.worker, err = spos.NewWorker(workerArgs)
@@ -227,7 +245,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		return nil, err
 	}
 
-	signatureHandler, err := ccf.createBlsSignatureHandler()
+	p2pSigningHandler, err := ccf.createP2pSigningHandler()
 	if err != nil {
 		return nil, err
 	}
@@ -242,6 +260,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		Marshalizer:                   ccf.coreComponents.InternalMarshalizer(),
 		BlsPrivateKey:                 ccf.cryptoComponents.PrivateKey(),
 		BlsSingleSigner:               ccf.cryptoComponents.BlockSigner(),
+		KeyGenerator:                  ccf.cryptoComponents.BlockSignKeyGen(),
 		MultiSignerContainer:          ccf.cryptoComponents.MultiSignerContainer(),
 		RoundHandler:                  ccf.processComponents.RoundHandler(),
 		ShardCoordinator:              ccf.processComponents.ShardCoordinator(),
@@ -254,7 +273,9 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		FallbackHeaderValidator:       ccf.processComponents.FallbackHeaderValidator(),
 		NodeRedundancyHandler:         ccf.processComponents.NodeRedundancyHandler(),
 		ScheduledProcessor:            ccf.scheduledProcessor,
-		SignatureHandler:              signatureHandler,
+		MessageSigningHandler:         p2pSigningHandler,
+		PeerBlacklistHandler:          cc.peerBlacklistHandler,
+		SignatureHandler:              ccf.cryptoComponents.ConsensusSigHandler(),
 	}
 
 	consensusDataContainer, err := spos.NewConsensusCore(
@@ -269,7 +290,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		consensusState,
 		cc.worker,
 		ccf.config.Consensus.Type,
-		ccf.coreComponents.StatusHandler(),
+		ccf.statusCoreComponents.AppStatusHandler(),
 		ccf.statusComponents.OutportHandler(),
 		[]byte(ccf.coreComponents.ChainID()),
 		ccf.networkComponents.NetworkMessenger().ID(),
@@ -308,6 +329,10 @@ func (cc *consensusComponents) Close() error {
 	if err != nil {
 		return err
 	}
+	err = cc.peerBlacklistHandler.Close()
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -334,7 +359,7 @@ func (ccf *consensusComponentsFactory) createChronology() (consensus.ChronologyH
 		RoundHandler:     ccf.processComponents.RoundHandler(),
 		SyncTimer:        ccf.coreComponents.SyncTimer(),
 		Watchdog:         wd,
-		AppStatusHandler: ccf.coreComponents.StatusHandler(),
+		AppStatusHandler: ccf.statusCoreComponents.AppStatusHandler(),
 	}
 	chronologyHandler, err := chronology.NewChronology(chronologyArg)
 	if err != nil {
@@ -431,7 +456,7 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		MiniblocksProvider:           ccf.dataComponents.MiniBlocksProvider(),
 		EpochNotifier:                ccf.coreComponents.EpochNotifier(),
 		ProcessedMiniBlocksTracker:   ccf.processComponents.ProcessedMiniBlocksTracker(),
-		AppStatusHandler:             ccf.coreComponents.StatusHandler(),
+		AppStatusHandler:             ccf.statusCoreComponents.AppStatusHandler(),
 	}
 
 	argsShardStorageBootstrapper := storageBootstrap.ArgsShardStorageBootstrapper{
@@ -468,7 +493,7 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		EpochHandler:                 ccf.processComponents.EpochStartTrigger(),
 		MiniblocksProvider:           ccf.dataComponents.MiniBlocksProvider(),
 		Uint64Converter:              ccf.coreComponents.Uint64ByteSliceConverter(),
-		AppStatusHandler:             ccf.coreComponents.StatusHandler(),
+		AppStatusHandler:             ccf.statusCoreComponents.AppStatusHandler(),
 		OutportHandler:               ccf.statusComponents.OutportHandler(),
 		AccountsDBSyncer:             accountsDBSyncer,
 		CurrentEpochProvider:         ccf.processComponents.CurrentEpochProvider(),
@@ -504,6 +529,7 @@ func (ccf *consensusComponentsFactory) createArgsBaseAccountsSyncer(trieStorageM
 		CheckNodesOnDisk:                  ccf.config.TrieSync.CheckNodesOnDisk,
 		StorageMarker:                     storageMarker.NewTrieStorageMarker(),
 		UserAccountsSyncStatisticsHandler: statistics.NewTrieSyncStatistics(),
+		AppStatusHandler:                  disabled.NewAppStatusHandler(),
 		EnableEpochsHandler:               ccf.coreComponents.EnableEpochsHandler(),
 	}
 }
@@ -559,7 +585,7 @@ func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bo
 		MiniblocksProvider:           ccf.dataComponents.MiniBlocksProvider(),
 		EpochNotifier:                ccf.coreComponents.EpochNotifier(),
 		ProcessedMiniBlocksTracker:   ccf.processComponents.ProcessedMiniBlocksTracker(),
-		AppStatusHandler:             ccf.coreComponents.StatusHandler(),
+		AppStatusHandler:             ccf.statusCoreComponents.AppStatusHandler(),
 	}
 
 	argsMetaStorageBootstrapper := storageBootstrap.ArgsMetaStorageBootstrapper{
@@ -602,7 +628,7 @@ func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bo
 		EpochHandler:                 ccf.processComponents.EpochStartTrigger(),
 		MiniblocksProvider:           ccf.dataComponents.MiniBlocksProvider(),
 		Uint64Converter:              ccf.coreComponents.Uint64ByteSliceConverter(),
-		AppStatusHandler:             ccf.coreComponents.StatusHandler(),
+		AppStatusHandler:             ccf.statusCoreComponents.AppStatusHandler(),
 		OutportHandler:               ccf.statusComponents.OutportHandler(),
 		AccountsDBSyncer:             accountsDBSyncer,
 		CurrentEpochProvider:         ccf.processComponents.CurrentEpochProvider(),
@@ -649,20 +675,26 @@ func (ccf *consensusComponentsFactory) createConsensusTopic(cc *consensusCompone
 	return ccf.networkComponents.NetworkMessenger().RegisterMessageProcessor(cc.consensusTopic, common.DefaultInterceptorsIdentifier, cc.worker)
 }
 
-func (ccf *consensusComponentsFactory) createBlsSignatureHandler() (consensus.SignatureHandler, error) {
-	privKeyBytes, err := ccf.cryptoComponents.PrivateKey().ToByteArray()
+func (ccf *consensusComponentsFactory) createPeerBlacklistHandler() (consensus.PeerBlacklistHandler, error) {
+	cache := timecache.NewTimeCache(defaultSpan)
+	peerCacher, err := timecache.NewPeerTimeCache(cache)
 	if err != nil {
 		return nil, err
 	}
-
-	signatureHolderArgs := signing.ArgsSignatureHolder{
-		PubKeys:              []string{ccf.cryptoComponents.PublicKeyString()},
-		PrivKeyBytes:         privKeyBytes,
-		MultiSignerContainer: ccf.cryptoComponents.MultiSignerContainer(),
-		KeyGenerator:         ccf.cryptoComponents.BlockSignKeyGen(),
+	blacklistArgs := blacklist.PeerBlackListArgs{
+		PeerCacher: peerCacher,
 	}
 
-	return signing.NewSignatureHolder(signatureHolderArgs)
+	return blacklist.NewPeerBlacklist(blacklistArgs)
+}
+
+func (ccf *consensusComponentsFactory) createP2pSigningHandler() (consensus.P2PSigningHandler, error) {
+	p2pSignerArgs := p2pFactory.ArgsMessageVerifier{
+		Marshaller: ccf.coreComponents.InternalMarshalizer(),
+		P2PSigner:  ccf.networkComponents.NetworkMessenger(),
+	}
+
+	return p2pFactory.NewMessageVerifier(p2pSignerArgs)
 }
 
 func (ccf *consensusComponentsFactory) addCloserInstances(closers ...update.Closer) error {
@@ -701,6 +733,9 @@ func (ccf *consensusComponentsFactory) checkArgs() error {
 	hardforkTrigger := ccf.processComponents.HardforkTrigger()
 	if check.IfNil(hardforkTrigger) {
 		return errors.ErrNilHardforkTrigger
+	}
+	if check.IfNil(ccf.statusCoreComponents.AppStatusHandler()) {
+		return errors.ErrNilAppStatusHandler
 	}
 
 	return nil

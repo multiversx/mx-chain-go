@@ -300,6 +300,64 @@ func TestNodeFacade_GetAccount(t *testing.T) {
 	assert.True(t, getAccountCalled)
 }
 
+func TestNodeFacade_GetAccounts(t *testing.T) {
+	t.Parallel()
+
+	t.Run("too many addresses in bulk", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+		arg.WsAntifloodConfig.GetAddressesBulkMaxSize = 1
+		nf, _ := NewNodeFacade(arg)
+
+		resp, blockInfo, err := nf.GetAccounts([]string{"test1", "test2"}, api.AccountQueryOptions{})
+		assert.Nil(t, resp)
+		assert.Empty(t, blockInfo)
+		assert.Error(t, err)
+		assert.Equal(t, "too many addresses in the bulk request (provided: 2, maximum: 1)", err.Error())
+	})
+
+	t.Run("node responds with error, should err", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := errors.New("expected error")
+		node := &mock.NodeStub{}
+		node.GetAccountCalled = func(address string, _ api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
+			return api.AccountResponse{}, api.BlockInfo{}, expectedErr
+		}
+
+		arg := createMockArguments()
+		arg.Node = node
+		arg.WsAntifloodConfig.GetAddressesBulkMaxSize = 2
+		nf, _ := NewNodeFacade(arg)
+
+		resp, blockInfo, err := nf.GetAccounts([]string{"test"}, api.AccountQueryOptions{})
+		assert.Nil(t, resp)
+		assert.Empty(t, blockInfo)
+		assert.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		expectedAcount := api.AccountResponse{Address: "test"}
+		node := &mock.NodeStub{}
+		node.GetAccountCalled = func(address string, _ api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
+			return expectedAcount, api.BlockInfo{}, nil
+		}
+
+		arg := createMockArguments()
+		arg.Node = node
+		arg.WsAntifloodConfig.GetAddressesBulkMaxSize = 1
+		nf, _ := NewNodeFacade(arg)
+
+		resp, blockInfo, err := nf.GetAccounts([]string{"test"}, api.AccountQueryOptions{})
+		assert.NoError(t, err)
+		assert.Empty(t, blockInfo)
+		assert.Equal(t, &expectedAcount, resp["test"])
+	})
+}
+
 func TestNodeFacade_GetUsername(t *testing.T) {
 	t.Parallel()
 
@@ -1596,5 +1654,46 @@ func TestNodeFacade_GetTransactionsPoolNonceGapsForSender(t *testing.T) {
 		res, err := nf.GetTransactionsPoolNonceGapsForSender(expectedSender)
 		require.NoError(t, err)
 		require.Equal(t, expectedNonceGaps, res)
+	})
+}
+
+func TestNodeFacade_InternalValidatorsInfo(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should fail on facade error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+		expectedErr := errors.New("expected error")
+		arg.ApiResolver = &mock.ApiResolverStub{
+			GetInternalStartOfEpochValidatorsInfoCalled: func(epoch uint32) ([]*state.ShardValidatorInfo, error) {
+				return nil, expectedErr
+			},
+		}
+
+		nf, _ := NewNodeFacade(arg)
+		res, err := nf.GetInternalStartOfEpochValidatorsInfo(0)
+		require.Nil(t, res)
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+
+		wasCalled := false
+		arg.ApiResolver = &mock.ApiResolverStub{
+			GetInternalStartOfEpochValidatorsInfoCalled: func(epoch uint32) ([]*state.ShardValidatorInfo, error) {
+				wasCalled = true
+				return make([]*state.ShardValidatorInfo, 0), nil
+			},
+		}
+
+		nf, _ := NewNodeFacade(arg)
+		res, err := nf.GetInternalStartOfEpochValidatorsInfo(0)
+		require.NotNil(t, res)
+		require.Nil(t, err)
+		require.True(t, wasCalled)
 	})
 }

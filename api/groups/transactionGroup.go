@@ -186,7 +186,7 @@ type TxResponse struct {
 	Timestamp   uint64 `json:"timestamp"`
 }
 
-// simulateTransaction will receive a transaction from the client and will simulate it's execution and return the results
+// simulateTransaction will receive a transaction from the client and will simulate its execution and return the results
 func (tg *transactionGroup) simulateTransaction(c *gin.Context) {
 	var gtx = SendTxRequest{}
 	err := c.ShouldBindJSON(&gtx)

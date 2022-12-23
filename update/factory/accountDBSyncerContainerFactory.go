@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/common/disabled"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state/syncer"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -157,6 +158,7 @@ func (a *accountDBSyncersContainerFactory) createUserAccountsSyncer(shardId uint
 			CheckNodesOnDisk:                  a.checkNodesOnDisk,
 			StorageMarker:                     storageMarker.NewTrieStorageMarker(),
 			UserAccountsSyncStatisticsHandler: statistics.NewTrieSyncStatistics(),
+			AppStatusHandler:                  disabled.NewAppStatusHandler(),
 			EnableEpochsHandler:               a.enableEpochsHandler,
 		},
 		ShardId:                shardId,
@@ -187,6 +189,7 @@ func (a *accountDBSyncersContainerFactory) createValidatorAccountsSyncer(shardId
 			CheckNodesOnDisk:                  a.checkNodesOnDisk,
 			StorageMarker:                     storageMarker.NewTrieStorageMarker(),
 			UserAccountsSyncStatisticsHandler: statistics.NewTrieSyncStatistics(),
+			AppStatusHandler:                  disabled.NewAppStatusHandler(),
 			EnableEpochsHandler:               a.enableEpochsHandler,
 		},
 	}

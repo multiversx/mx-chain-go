@@ -34,6 +34,7 @@ type baseAccountsSyncer struct {
 	checkNodesOnDisk                  bool
 	storageMarker                     trie.StorageMarker
 	userAccountsSyncStatisticsHandler common.SizeSyncStatisticsHandler
+	appStatusHandler                  core.AppStatusHandler
 	enableEpochsHandler               common.EnableEpochsHandler
 
 	trieSyncerVersion int
@@ -53,6 +54,7 @@ type ArgsNewBaseAccountsSyncer struct {
 	Timeout                           time.Duration
 	Cacher                            storage.Cacher
 	UserAccountsSyncStatisticsHandler common.SizeSyncStatisticsHandler
+	AppStatusHandler                  core.AppStatusHandler
 	EnableEpochsHandler               common.EnableEpochsHandler
 	MaxTrieLevelInMemory              uint
 	MaxHardCapForMissingNodes         int
@@ -78,6 +80,9 @@ func checkArgs(args ArgsNewBaseAccountsSyncer) error {
 	}
 	if check.IfNil(args.UserAccountsSyncStatisticsHandler) {
 		return state.ErrNilSyncStatisticsHandler
+	}
+	if check.IfNil(args.AppStatusHandler) {
+		return state.ErrNilAppStatusHandler
 	}
 	if check.IfNil(args.EnableEpochsHandler) {
 		return state.ErrNilEnableEpochsHandler
@@ -134,7 +139,7 @@ func (b *baseAccountsSyncer) syncMainTrie(
 	return dataTrie.Recreate(rootHash)
 }
 
-func (b *baseAccountsSyncer) printStatistics(ctx context.Context) {
+func (b *baseAccountsSyncer) printStatisticsAndUpdateMetrics(ctx context.Context) {
 	lastDataReceived := uint64(0)
 	peakDataReceived := uint64(0)
 	startedSync := time.Now()
@@ -159,6 +164,7 @@ func (b *baseAccountsSyncer) printStatistics(ctx context.Context) {
 				"average processing speed", averageSpeed,
 			)
 			b.userAccountsSyncStatisticsHandler.Reset()
+			b.updateMetrics()
 			return
 		case <-time.After(timeBetweenStatisticsPrints):
 			bytesReceivedDelta := b.userAccountsSyncStatisticsHandler.NumBytesReceived() - lastDataReceived
@@ -186,8 +192,15 @@ func (b *baseAccountsSyncer) printStatistics(ctx context.Context) {
 				"iterations", b.userAccountsSyncStatisticsHandler.NumIterations(),
 				"CPU time", b.userAccountsSyncStatisticsHandler.ProcessingTime(),
 				"processing speed", speed)
+
+			b.updateMetrics()
 		}
 	}
+}
+
+func (b *baseAccountsSyncer) updateMetrics() {
+	b.appStatusHandler.SetUInt64Value(common.MetricTrieSyncNumProcessedNodes, uint64(b.userAccountsSyncStatisticsHandler.NumProcessed()))
+	b.appStatusHandler.SetUInt64Value(common.MetricTrieSyncNumReceivedBytes, b.userAccountsSyncStatisticsHandler.NumBytesReceived())
 }
 
 func convertBytesPerIntervalToSpeed(bytes uint64, interval time.Duration) string {
