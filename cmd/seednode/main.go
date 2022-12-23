@@ -14,7 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/display"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	factoryMarshalizer "github.com/ElrondNetwork/elrond-go-core/marshal/factory"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/secp256k1"
 	secp256k1SinglerSig "github.com/ElrondNetwork/elrond-go-crypto/signing/secp256k1/singlesig"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -250,7 +250,7 @@ func createNode(
 	p2pKeyFileName string,
 ) (p2p.Messenger, error) {
 	p2pSingleSigner := &secp256k1SinglerSig.Secp256k1Signer{}
-	p2pKeyGen := signing.NewKeyGenerator(secp256k1.NewSecp256k1())
+	p2pKeyGen := crypto.NewKeyGenerator(secp256k1.NewSecp256k1())
 
 	p2pKey, _, err := cryptoFactory.CreateP2pKeyPair(p2pKeyFileName, p2pKeyGen, log)
 	if err != nil {

@@ -5,7 +5,6 @@ import (
 	"runtime/debug"
 
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/secp256k1"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/p2p/factory"
@@ -20,7 +19,7 @@ type pidPubkeyConverter struct {
 // NewPidPubkeyConverter creates a new instance of a public key converter that can handle conversions involving core.PeerID string representations
 func NewPidPubkeyConverter() *pidPubkeyConverter {
 	return &pidPubkeyConverter{
-		keyGen: signing.NewKeyGenerator(secp256k1.NewSecp256k1()),
+		keyGen: crypto.NewKeyGenerator(secp256k1.NewSecp256k1()),
 	}
 }
 

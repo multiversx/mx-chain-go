@@ -180,7 +180,7 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 		return nil, err
 	}
 
-	p2pKeyGenerator := signing.NewKeyGenerator(secp256k1.NewSecp256k1())
+	p2pKeyGenerator := crypto.NewKeyGenerator(secp256k1.NewSecp256k1())
 	p2pCryptoParams, err := ccf.createP2pCryptoParams(p2pKeyGenerator)
 	if err != nil {
 		return nil, err
