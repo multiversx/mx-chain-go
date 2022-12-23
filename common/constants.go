@@ -315,7 +315,7 @@ const MetricRewardsTopUpGradientPoint = "erd_rewards_top_up_gradient_point"
 // MetricGasPriceModifier is the metric that specifies the gas price modifier
 const MetricGasPriceModifier = "erd_gas_price_modifier"
 
-// MetricTopUpFactor is the metric that specifies the top up factor
+// MetricTopUpFactor is the metric that specifies the top-up factor
 const MetricTopUpFactor = "erd_top_up_factor"
 
 // MetricMinTransactionVersion is the metric that specifies the minimum transaction version
@@ -363,7 +363,7 @@ const MetachainShardId = uint32(0xFFFFFFFF)
 // BaseOperationCost represents the field name for base operation costs
 const BaseOperationCost = "BaseOperationCost"
 
-// BuiltInCost represents the field name for built in operation costs
+// BuiltInCost represents the field name for built-in operation costs
 const BuiltInCost = "BuiltInCost"
 
 // MetaChainSystemSCsCost represents the field name for metachain system smart contract operation costs
@@ -371,6 +371,9 @@ const MetaChainSystemSCsCost = "MetaChainSystemSCsCost"
 
 // ElrondAPICost represents the field name of the Elrond SC API (EEI) gas costs
 const ElrondAPICost = "ElrondAPICost"
+
+// MaxPerTransaction represents the field name of max counts per transaction in block chain hook
+const MaxPerTransaction = "MaxPerTransaction"
 
 // AsyncCallStepField is the field name for the gas cost for any of the two steps required to execute an async call
 const AsyncCallStepField = "AsyncCallStep"
@@ -383,7 +386,7 @@ const (
 	// MetricScDeployEnableEpoch represents the epoch when the deployment of smart contracts is enabled
 	MetricScDeployEnableEpoch = "erd_smart_contract_deploy_enable_epoch"
 
-	// MetricBuiltInFunctionsEnableEpoch represents the epoch when the built in functions is enabled
+	// MetricBuiltInFunctionsEnableEpoch represents the epoch when the built-in functions is enabled
 	MetricBuiltInFunctionsEnableEpoch = "erd_built_in_functions_enable_epoch"
 
 	// MetricRelayedTransactionsEnableEpoch represents the epoch when the relayed transactions is enabled
@@ -718,6 +721,13 @@ const InvalidMessageBlacklistDuration = time.Second * 3600
 // rating to a minimum threshold due to improper messages
 const PublicKeyBlacklistDuration = time.Second * 7200
 
+// WrongP2PMessageBlacklistDuration represents the time to keep a peer id in the blacklist if it sends a message that
+// do not follow this protocol
+const WrongP2PMessageBlacklistDuration = time.Second * 7200
+
+// InvalidSigningBlacklistDuration defines the time to keep a peer id in blacklist if it signs a message with invalid signature
+const InvalidSigningBlacklistDuration = time.Second * 7200
+
 // MaxWaitingTimeToReceiveRequestedItem represents the maximum waiting time in seconds needed to receive the requested items
 const MaxWaitingTimeToReceiveRequestedItem = 5 * time.Second
 
@@ -811,13 +821,13 @@ const (
 // MaxIndexOfTxInMiniBlock defines the maximum index of a tx inside one mini block
 const MaxIndexOfTxInMiniBlock = int32(29999)
 
-// MetricAccountsSnapshotInProgress is the metric that outputs the status of the accounts snapshot, if it's in progress or not
+// MetricAccountsSnapshotInProgress is the metric that outputs the status of the accounts' snapshot, if it's in progress or not
 const MetricAccountsSnapshotInProgress = "erd_accounts_snapshot_in_progress"
 
 // MetricLastAccountsSnapshotDurationSec is the metric that outputs the duration in seconds of the last accounts db snapshot. If snapshot is in progress it will be set to 0
 const MetricLastAccountsSnapshotDurationSec = "erd_accounts_snapshot_last_duration_in_seconds"
 
-// MetricPeersSnapshotInProgress is the metric that outputs the status of the peers snapshot, if it's in progress or not
+// MetricPeersSnapshotInProgress is the metric that outputs the status of the peers' snapshot, if it's in progress or not
 const MetricPeersSnapshotInProgress = "erd_peers_snapshot_in_progress"
 
 // MetricLastPeersSnapshotDurationSec is the metric that outputs the duration in seconds of the last peers db snapshot. If snapshot is in progress it will be set to 0
@@ -828,3 +838,9 @@ const GenesisStorageSuffix = "_genesis"
 
 // MetricAccountsSnapshotNumNodes is the metric that outputs the number of trie nodes written for accounts after snapshot
 const MetricAccountsSnapshotNumNodes = "erd_accounts_snapshot_num_nodes"
+
+// MetricTrieSyncNumReceivedBytes is the metric that outputs the number of bytes received for accounts during trie sync
+const MetricTrieSyncNumReceivedBytes = "erd_trie_sync_num_bytes_received"
+
+// MetricTrieSyncNumProcessedNodes is the metric that outputs the number of trie nodes processed for accounts during trie sync
+const MetricTrieSyncNumProcessedNodes = "erd_trie_sync_num_nodes_processed"

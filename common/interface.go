@@ -58,7 +58,7 @@ type TrieLeafParser interface {
 
 // TrieStats is used to collect the trie statistics for the given rootHash
 type TrieStats interface {
-	GetTrieStats(address []byte, rootHash []byte) (*statistics.TrieStatsDTO, error)
+	GetTrieStats(address string, rootHash []byte) (*statistics.TrieStatsDTO, error)
 }
 
 // KeyBuilder is used for building trie keys as you traverse the trie
@@ -83,7 +83,7 @@ type StorageManager interface {
 	Put(key []byte, val []byte) error
 	PutInEpoch(key []byte, val []byte, epoch uint32) error
 	PutInEpochWithoutCache(key []byte, val []byte, epoch uint32) error
-	TakeSnapshot(address []byte, rootHash []byte, mainTrieRootHash []byte, iteratorChannels *TrieIteratorChannels, missingNodesChan chan []byte, stats SnapshotStatisticsHandler, epoch uint32)
+	TakeSnapshot(address string, rootHash []byte, mainTrieRootHash []byte, iteratorChannels *TrieIteratorChannels, missingNodesChan chan []byte, stats SnapshotStatisticsHandler, epoch uint32)
 	SetCheckpoint(rootHash []byte, mainTrieRootHash []byte, iteratorChannels *TrieIteratorChannels, missingNodesChan chan []byte, stats SnapshotStatisticsHandler)
 	GetLatestStorageEpoch() (uint32, error)
 	IsPruningEnabled() bool
@@ -168,7 +168,7 @@ type TrieStatisticsHandler interface {
 	AddBranchNode(level int, size uint64)
 	AddExtensionNode(level int, size uint64)
 	AddLeafNode(level int, size uint64)
-	AddAccountInfo(address []byte, rootHash []byte)
+	AddAccountInfo(address string, rootHash []byte)
 	GetTrieStats() *statistics.TrieStatsDTO
 }
 
@@ -339,6 +339,9 @@ type EnableEpochsHandler interface {
 	IsRefactorPeersMiniBlocksFlagEnabled() bool
 	IsFixAsyncCallBackArgsListFlagEnabled() bool
 	IsFixOldTokenLiquidityEnabled() bool
+	IsRuntimeMemStoreLimitEnabled() bool
+	IsMaxBlockchainHookCountersFlagEnabled() bool
+	IsWipeSingleNFTLiquidityDecreaseEnabled() bool
 	IsAutoBalanceDataTriesEnabled() bool
 
 	IsInterfaceNil() bool

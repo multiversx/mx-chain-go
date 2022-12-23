@@ -50,8 +50,8 @@ func TestManagedProcessComponents_CreateShouldWork(t *testing.T) {
 
 	shardCoordinator.CurrentShard = core.MetachainShardId
 	dataComponents := componentsMock.GetDataComponents(coreComponents, shardCoordinator)
-	networkComponents := componentsMock.GetNetworkComponents()
 	cryptoComponents := componentsMock.GetCryptoComponents(coreComponents)
+	networkComponents := componentsMock.GetNetworkComponents(cryptoComponents)
 	stateComponents := componentsMock.GetStateComponents(coreComponents, shardCoordinator)
 	processArgs := componentsMock.GetProcessArgs(
 		shardCoordinator,
@@ -70,7 +70,8 @@ func TestManagedProcessComponents_CreateShouldWork(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, check.IfNil(managedProcessComponents.NodesCoordinator()))
 	require.True(t, check.IfNil(managedProcessComponents.InterceptorsContainer()))
-	require.True(t, check.IfNil(managedProcessComponents.ResolversFinder()))
+	require.True(t, check.IfNil(managedProcessComponents.ResolversContainer()))
+	require.True(t, check.IfNil(managedProcessComponents.RequestersFinder()))
 	require.True(t, check.IfNil(managedProcessComponents.RoundHandler()))
 	require.True(t, check.IfNil(managedProcessComponents.ForkDetector()))
 	require.True(t, check.IfNil(managedProcessComponents.BlockProcessor()))
@@ -106,7 +107,8 @@ func TestManagedProcessComponents_CreateShouldWork(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, check.IfNil(managedProcessComponents.NodesCoordinator()))
 	require.False(t, check.IfNil(managedProcessComponents.InterceptorsContainer()))
-	require.False(t, check.IfNil(managedProcessComponents.ResolversFinder()))
+	require.False(t, check.IfNil(managedProcessComponents.ResolversContainer()))
+	require.False(t, check.IfNil(managedProcessComponents.RequestersFinder()))
 	require.False(t, check.IfNil(managedProcessComponents.RoundHandler()))
 	require.False(t, check.IfNil(managedProcessComponents.ForkDetector()))
 	require.False(t, check.IfNil(managedProcessComponents.BlockProcessor()))

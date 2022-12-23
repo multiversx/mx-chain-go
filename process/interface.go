@@ -17,7 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/common"
 	cryptoCommon "github.com/ElrondNetwork/elrond-go/common/crypto"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
@@ -242,8 +242,9 @@ type BlockProcessor interface {
 	DecodeBlockHeader(dta []byte) data.HeaderHandler
 	SetNumProcessedObj(numObj uint64)
 	RestoreBlockBodyIntoPools(body data.BodyHandler) error
-	IsInterfaceNil() bool
+	NonceOfFirstCommittedBlock() core.OptionalUint64
 	Close() error
+	IsInterfaceNil() bool
 }
 
 // ScheduledBlockProcessor is the interface for the scheduled miniBlocks execution part of the block processor
@@ -504,6 +505,8 @@ type BlockChainHookHandler interface {
 	Close() error
 	FilterCodeMetadataForUpgrade(input []byte) ([]byte, error)
 	ApplyFiltersOnCodeMetadata(codeMetadata vmcommon.CodeMetadata) vmcommon.CodeMetadata
+	ResetCounters()
+	GetCounterValues() map[string]uint64
 	IsInterfaceNil() bool
 }
 
@@ -676,6 +679,7 @@ type FeeHandler interface {
 type EconomicsDataHandler interface {
 	rewardsHandler
 	feeHandler
+	SetStatusHandler(statusHandler core.AppStatusHandler) error
 	IsInterfaceNil() bool
 }
 
@@ -1120,7 +1124,6 @@ type CoreComponentsHolder interface {
 	ChainID() string
 	MinTransactionVersion() uint32
 	TxVersionChecker() TxVersionCheckerHandler
-	StatusHandler() core.AppStatusHandler
 	GenesisNodesSetup() sharding.GenesisNodesSetupHandler
 	EpochNotifier() EpochNotifier
 	ChanStopNodeProcess() chan endProcess.ArgEndProcess
@@ -1144,6 +1147,12 @@ type CryptoComponentsHolder interface {
 	PublicKey() crypto.PublicKey
 	PrivateKey() crypto.PrivateKey
 	Clone() interface{}
+	IsInterfaceNil() bool
+}
+
+// StatusCoreComponentsHolder holds the status core components
+type StatusCoreComponentsHolder interface {
+	AppStatusHandler() core.AppStatusHandler
 	IsInterfaceNil() bool
 }
 

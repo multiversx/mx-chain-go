@@ -8,7 +8,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
+	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 )
 
@@ -44,7 +44,7 @@ func NewOutport(retrialInterval time.Duration) (*outport, error) {
 }
 
 // SaveBlock will save block for every driver
-func (o *outport) SaveBlock(args *indexer.ArgsSaveBlockData) {
+func (o *outport) SaveBlock(args *outportcore.ArgsSaveBlockData) {
 	o.mutex.RLock()
 	defer o.mutex.RUnlock()
 
@@ -59,25 +59,25 @@ func (o *outport) monitorCompletionOnDriver(function string, driver Driver) chan
 	o.logHandler(logger.LogDebug, "outport.monitorCompletionOnDriver starting",
 		"function", function, "driver", driverString(driver), "message counter", counter)
 	ch := make(chan struct{})
-	go func() {
+	go func(startTime time.Time) {
 		timer := time.NewTimer(o.timeForDriverCall)
 
 		select {
 		case <-ch:
 			o.logHandler(logger.LogDebug, "outport.monitorCompletionOnDriver ended",
-				"function", function, "driver", driverString(driver), "message counter", counter)
+				"function", function, "driver", driverString(driver), "message counter", counter, "time", time.Since(startTime))
 		case <-timer.C:
 			o.logHandler(logger.LogWarning, "outport.monitorCompletionOnDriver took too long",
 				"function", function, "driver", driverString(driver), "message counter", counter, "time", o.timeForDriverCall)
 		}
 
 		timer.Stop()
-	}()
+	}(time.Now())
 
 	return ch
 }
 
-func (o *outport) saveBlockBlocking(args *indexer.ArgsSaveBlockData, driver Driver) {
+func (o *outport) saveBlockBlocking(args *outportcore.ArgsSaveBlockData, driver Driver) {
 	ch := o.monitorCompletionOnDriver("saveBlockBlocking", driver)
 	defer close(ch)
 
@@ -139,7 +139,7 @@ func (o *outport) revertIndexedBlockBlocking(header data.HeaderHandler, body dat
 }
 
 // SaveRoundsInfo will save rounds information for every driver
-func (o *outport) SaveRoundsInfo(roundsInfo []*indexer.RoundInfo) {
+func (o *outport) SaveRoundsInfo(roundsInfo []*outportcore.RoundInfo) {
 	o.mutex.RLock()
 	defer o.mutex.RUnlock()
 
@@ -148,7 +148,7 @@ func (o *outport) SaveRoundsInfo(roundsInfo []*indexer.RoundInfo) {
 	}
 }
 
-func (o *outport) saveRoundsInfoBlocking(roundsInfo []*indexer.RoundInfo, driver Driver) {
+func (o *outport) saveRoundsInfoBlocking(roundsInfo []*outportcore.RoundInfo, driver Driver) {
 	ch := o.monitorCompletionOnDriver("saveRoundsInfoBlocking", driver)
 	defer close(ch)
 
@@ -201,7 +201,7 @@ func (o *outport) saveValidatorsPubKeysBlocking(validatorsPubKeys map[uint32][][
 }
 
 // SaveValidatorsRating will save validators rating for every driver
-func (o *outport) SaveValidatorsRating(indexID string, infoRating []*indexer.ValidatorRatingInfo) {
+func (o *outport) SaveValidatorsRating(indexID string, infoRating []*outportcore.ValidatorRatingInfo) {
 	o.mutex.RLock()
 	defer o.mutex.RUnlock()
 
@@ -210,7 +210,7 @@ func (o *outport) SaveValidatorsRating(indexID string, infoRating []*indexer.Val
 	}
 }
 
-func (o *outport) saveValidatorsRatingBlocking(indexID string, infoRating []*indexer.ValidatorRatingInfo, driver Driver) {
+func (o *outport) saveValidatorsRatingBlocking(indexID string, infoRating []*outportcore.ValidatorRatingInfo, driver Driver) {
 	ch := o.monitorCompletionOnDriver("saveValidatorsRatingBlocking", driver)
 	defer close(ch)
 
@@ -232,21 +232,21 @@ func (o *outport) saveValidatorsRatingBlocking(indexID string, infoRating []*ind
 }
 
 // SaveAccounts will save accounts  for every driver
-func (o *outport) SaveAccounts(blockTimestamp uint64, acc []data.UserAccountHandler) {
+func (o *outport) SaveAccounts(blockTimestamp uint64, acc map[string]*outportcore.AlteredAccount, shardID uint32) {
 	o.mutex.RLock()
 	defer o.mutex.RUnlock()
 
 	for _, driver := range o.drivers {
-		o.saveAccountsBlocking(blockTimestamp, acc, driver)
+		o.saveAccountsBlocking(blockTimestamp, acc, shardID, driver)
 	}
 }
 
-func (o *outport) saveAccountsBlocking(blockTimestamp uint64, acc []data.UserAccountHandler, driver Driver) {
+func (o *outport) saveAccountsBlocking(blockTimestamp uint64, acc map[string]*outportcore.AlteredAccount, shardID uint32, driver Driver) {
 	ch := o.monitorCompletionOnDriver("saveAccountsBlocking", driver)
 	defer close(ch)
 
 	for {
-		err := driver.SaveAccounts(blockTimestamp, acc)
+		err := driver.SaveAccounts(blockTimestamp, acc, shardID)
 		if err == nil {
 			return
 		}

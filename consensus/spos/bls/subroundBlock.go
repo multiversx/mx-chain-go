@@ -196,6 +196,7 @@ func (sr *subroundBlock) sendHeaderAndBlockBody(
 		nil,
 		nil,
 		sr.CurrentPid(),
+		nil,
 	)
 
 	err := sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
@@ -231,6 +232,7 @@ func (sr *subroundBlock) sendBlockBody(bodyHandler data.BodyHandler, marshalized
 		nil,
 		nil,
 		sr.CurrentPid(),
+		nil,
 	)
 
 	err := sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
@@ -264,6 +266,7 @@ func (sr *subroundBlock) sendBlockHeader(headerHandler data.HeaderHandler, marsh
 		nil,
 		nil,
 		sr.CurrentPid(),
+		nil,
 	)
 
 	err := sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
@@ -447,7 +450,7 @@ func (sr *subroundBlock) receivedBlockBody(ctx context.Context, cnsDta *consensu
 }
 
 // receivedBlockHeader method is called when a block header is received through the block header channel.
-// If the block header is valid, than the validatorRoundStates map corresponding to the node which sent it,
+// If the block header is valid, then the validatorRoundStates map corresponding to the node which sent it,
 // is set on true for the subround Block
 func (sr *subroundBlock) receivedBlockHeader(ctx context.Context, cnsDta *consensus.Message) bool {
 	node := string(cnsDta.PubKey)

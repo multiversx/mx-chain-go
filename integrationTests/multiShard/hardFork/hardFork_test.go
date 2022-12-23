@@ -23,7 +23,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
+	factoryTests "github.com/ElrondNetwork/elrond-go/testscommon/factory"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genesisMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/update/factory"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	arwenConfig "github.com/ElrondNetwork/wasm-vm-v1_4/config"
@@ -571,17 +573,22 @@ func createHardForkExporter(
 		cryptoComponents.BlKeyGen = node.OwnAccount.KeygenBlockSign
 		cryptoComponents.TxKeyGen = node.OwnAccount.KeygenTxSign
 
+		statusCoreComponents := &factoryTests.StatusCoreComponentsStub{
+			AppStatusHandlerField: &statusHandler.AppStatusHandlerStub{},
+		}
+
 		argsExportHandler := factory.ArgsExporter{
-			CoreComponents:    coreComponents,
-			CryptoComponents:  cryptoComponents,
-			HeaderValidator:   node.HeaderValidator,
-			DataPool:          node.DataPool,
-			StorageService:    node.Storage,
-			RequestHandler:    node.RequestHandler,
-			ShardCoordinator:  node.ShardCoordinator,
-			Messenger:         node.Messenger,
-			ActiveAccountsDBs: accountsDBs,
-			ExportFolder:      node.ExportFolder,
+			CoreComponents:       coreComponents,
+			CryptoComponents:     cryptoComponents,
+			StatusCoreComponents: statusCoreComponents,
+			HeaderValidator:      node.HeaderValidator,
+			DataPool:             node.DataPool,
+			StorageService:       node.Storage,
+			RequestHandler:       node.RequestHandler,
+			ShardCoordinator:     node.ShardCoordinator,
+			Messenger:            node.Messenger,
+			ActiveAccountsDBs:    accountsDBs,
+			ExportFolder:         node.ExportFolder,
 			ExportTriesStorageConfig: config.StorageConfig{
 				Cache: config.CacheConfig{
 					Capacity: 10000,
@@ -603,6 +610,7 @@ func createHardForkExporter(
 			WhiteListerVerifiedTxs:   node.WhiteListerVerifiedTxs,
 			InterceptorsContainer:    node.InterceptorsContainer,
 			ExistingResolvers:        node.ResolversContainer,
+			ExistingRequesters:       node.RequestersContainer,
 			NodesCoordinator:         node.NodesCoordinator,
 			HeaderSigVerifier:        node.HeaderSigVerifier,
 			HeaderIntegrityVerifier:  node.HeaderIntegrityVerifier,

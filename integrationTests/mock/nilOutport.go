@@ -2,7 +2,7 @@ package mock
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
+	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
 	"github.com/ElrondNetwork/elrond-go/outport"
 )
 
@@ -14,7 +14,7 @@ func NewNilOutport() *nilOutport {
 }
 
 // SaveBlock -
-func (n *nilOutport) SaveBlock(_ *indexer.ArgsSaveBlockData) {
+func (n *nilOutport) SaveBlock(_ *outportcore.ArgsSaveBlockData) {
 }
 
 // RevertIndexedBlock -
@@ -22,7 +22,7 @@ func (n *nilOutport) RevertIndexedBlock(_ data.HeaderHandler, _ data.BodyHandler
 }
 
 // SaveRoundsInfo -
-func (n *nilOutport) SaveRoundsInfo(_ []*indexer.RoundInfo) {
+func (n *nilOutport) SaveRoundsInfo(_ []*outportcore.RoundInfo) {
 }
 
 // SaveValidatorsPubKeys -
@@ -30,11 +30,11 @@ func (n *nilOutport) SaveValidatorsPubKeys(_ map[uint32][][]byte, _ uint32) {
 }
 
 // SaveValidatorsRating -
-func (n *nilOutport) SaveValidatorsRating(_ string, _ []*indexer.ValidatorRatingInfo) {
+func (n *nilOutport) SaveValidatorsRating(_ string, _ []*outportcore.ValidatorRatingInfo) {
 }
 
 // SaveAccounts -
-func (n *nilOutport) SaveAccounts(_ uint64, _ []data.UserAccountHandler) {
+func (n *nilOutport) SaveAccounts(_ uint64, _ map[string]*outportcore.AlteredAccount, _ uint32) {
 }
 
 // FinalizedBlock -

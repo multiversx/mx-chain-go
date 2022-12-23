@@ -19,7 +19,7 @@ func (stub *LogsFacadeStub) GetLog(logKey []byte, epoch uint32) (*transaction.Ap
 	return nil, nil
 }
 
-// IncludeLogsInTransactions
+// IncludeLogsInTransactions -
 func (stub *LogsFacadeStub) IncludeLogsInTransactions(txs []*transaction.ApiTransactionResult, logsKeys [][]byte, epoch uint32) error {
 	if stub.IncludeLogsInTransactionsCalled != nil {
 		return stub.IncludeLogsInTransactionsCalled(txs, logsKeys, epoch)

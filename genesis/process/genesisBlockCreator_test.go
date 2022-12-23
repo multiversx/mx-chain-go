@@ -155,6 +155,7 @@ func createMockArgument(
 		&hashingMocks.HasherMock{},
 		accCreator,
 		trieStorageManagers[factory.UserAccountTrie],
+		&testscommon.PubkeyConverterMock{},
 	)
 	require.Nil(t, err)
 

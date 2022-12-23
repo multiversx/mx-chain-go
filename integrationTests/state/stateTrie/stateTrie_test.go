@@ -142,7 +142,7 @@ func TestAccountsDB_GetJournalizedAccountReturnExistingAccntShouldWork(t *testin
 }
 
 func TestAccountsDB_GetJournalizedAccountReturnNotFoundAccntShouldWork(t *testing.T) {
-	// test when the account does not exists
+	// test when the account does not exist
 	t.Parallel()
 
 	adr, _, adb := integrationTests.GenerateAddressJournalAccountAccountsDB()
@@ -1073,6 +1073,7 @@ func createAccounts(
 		ProcessingMode:        common.Normal,
 		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
 		AppStatusHandler:      &statusHandler.AppStatusHandlerStub{},
+		AddressConverter:      &testscommon.PubkeyConverterMock{},
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 
@@ -2423,6 +2424,7 @@ func createAccountsDBTestSetup() *state.AccountsDB {
 		ProcessingMode:        common.Normal,
 		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
 		AppStatusHandler:      &statusHandler.AppStatusHandlerStub{},
+		AddressConverter:      &testscommon.PubkeyConverterMock{},
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 

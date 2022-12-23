@@ -1,7 +1,7 @@
 
 # Contributing to elrond-go
 
-If you are unfamiliar with the workflow of contributing to github, you can refer to this [this article](https://github.com/firstcontributions/first-contributions/blob/master/README.md)
+If you are unfamiliar with the workflow of contributing to GitHub, you can refer to [this article](https://github.com/firstcontributions/first-contributions/blob/master/README.md)
 
 ## External contributions 
 

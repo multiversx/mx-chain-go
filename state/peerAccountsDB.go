@@ -20,7 +20,7 @@ func NewPeerAccountsDB(args ArgsAccountsDB) (*PeerAccountsDB, error) {
 		AccountsDB: createAccountsDb(args),
 	}
 
-	args.AppStatusHandler.SetStringValue(common.MetricPeersSnapshotInProgress, "false")
+	args.AppStatusHandler.SetUInt64Value(common.MetricPeersSnapshotInProgress, 0)
 
 	return adb, nil
 }
@@ -68,7 +68,7 @@ func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
 	}
 	adb.updateMetricsOnSnapshotStart(peerAccountsMetrics)
 
-	trieStorageManager.TakeSnapshot(nil, rootHash, rootHash, iteratorChannels, missingNodesChannel, stats, epoch)
+	trieStorageManager.TakeSnapshot("", rootHash, rootHash, iteratorChannels, missingNodesChannel, stats, epoch)
 
 	go adb.syncMissingNodes(missingNodesChannel, stats, adb.trieSyncer)
 
