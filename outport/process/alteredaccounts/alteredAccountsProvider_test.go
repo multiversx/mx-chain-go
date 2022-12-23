@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/outport/process/alteredaccounts/shared"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/marshallerMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -777,7 +778,7 @@ func testExtractAlteredAccountsFromPoolAddressHasMultipleNfts(t *testing.T) {
 			return nil, false, nil
 		},
 	}
-	marshaller := testscommon.MarshalizerMock{}
+	marshaller := marshallerMock.MarshalizerMock{}
 	args.AccountsDB = &state.AccountsStub{
 		LoadAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
 			trieMock := trie.DataTrieTrackerStub{

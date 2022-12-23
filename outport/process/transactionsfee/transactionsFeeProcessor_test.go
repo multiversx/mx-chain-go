@@ -12,12 +12,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/outport/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/marshallerMock"
 	"github.com/stretchr/testify/require"
 )
 
 func prepareMockArg() ArgTransactionsFeeProcessor {
 	return ArgTransactionsFeeProcessor{
-		Marshaller:         testscommon.MarshalizerMock{},
+		Marshaller:         marshallerMock.MarshalizerMock{},
 		TransactionsStorer: genericMocks.NewStorerMock(),
 		ShardCoordinator:   &testscommon.ShardsCoordinatorMock{},
 		TxFeeCalculator:    &mock.EconomicsHandlerMock{},

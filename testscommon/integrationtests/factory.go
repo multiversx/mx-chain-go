@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
@@ -74,11 +75,11 @@ func CreateStorer(parentDir string) storage.Storer {
 
 // CreateInMemoryShardAccountsDB -
 func CreateInMemoryShardAccountsDB() *state.AccountsDB {
-	return CreateAccountsDB(CreateMemUnit())
+	return CreateAccountsDB(CreateMemUnit(), &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 }
 
 // CreateAccountsDB -
-func CreateAccountsDB(db storage.Storer) *state.AccountsDB {
+func CreateAccountsDB(db storage.Storer, enableEpochs common.EnableEpochsHandler) *state.AccountsDB {
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, database.NewMemDB(), TestMarshalizer)
 	generalCfg := config.TrieStorageManagerConfig{
 		PruningBufferLen:      1000,
@@ -100,10 +101,16 @@ func CreateAccountsDB(db storage.Storer) *state.AccountsDB {
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
 
 	argsAccountsDB := state.ArgsAccountsDB{
-		Trie:                  tr,
-		Hasher:                TestHasher,
-		Marshaller:            TestMarshalizer,
-		AccountFactory:        &TestAccountFactory{},
+		Trie:       tr,
+		Hasher:     TestHasher,
+		Marshaller: TestMarshalizer,
+		AccountFactory: &TestAccountFactory{
+			args: state.ArgsAccountCreation{
+				Hasher:              TestHasher,
+				Marshaller:          TestMarshalizer,
+				EnableEpochsHandler: enableEpochs,
+			},
+		},
 		StoragePruningManager: spm,
 		ProcessingMode:        common.Normal,
 		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},

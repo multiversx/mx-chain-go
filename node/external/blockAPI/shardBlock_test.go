@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/marshallerMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/state"
 	storageMocks "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
@@ -596,7 +597,7 @@ func TestShardAPIBlockProcessor_GetAlteredAccountsForBlock(t *testing.T) {
 	t.Run("get altered account by block hash - should work", func(t *testing.T) {
 		t.Parallel()
 
-		marshaller := &testscommon.MarshalizerMock{}
+		marshaller := &marshallerMock.MarshalizerMock{}
 		headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 		mbHash := []byte("mb-hash")
 		txHash0, txHash1 := []byte("tx-hash-0"), []byte("tx-hash-1")

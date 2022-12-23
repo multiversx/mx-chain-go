@@ -14,6 +14,8 @@ import (
 	processOut "github.com/ElrondNetwork/elrond-go/outport/process"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
+	"github.com/ElrondNetwork/elrond-go/testscommon/marshallerMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/require"
 )
@@ -21,9 +23,9 @@ import (
 func newArgStorer() ArgSorter {
 	return ArgSorter{
 		Hasher:     testscommon.KeccakMock{},
-		Marshaller: testscommon.MarshalizerMock{},
+		Marshaller: marshallerMock.MarshalizerMock{},
 		MbsStorer:  testscommon.CreateMemUnit(),
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFrontRunningProtectionFlagEnabledField: true,
 		},
 	}

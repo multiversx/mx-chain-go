@@ -8,7 +8,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/outport/process/transactionsfee"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/marshallerMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/stretchr/testify/require"
@@ -19,7 +21,7 @@ func createArgOutportDataProviderFactory() ArgOutportDataProviderFactory {
 		HasDrivers:             false,
 		AddressConverter:       &testscommon.PubkeyConverterMock{},
 		AccountsDB:             &state.AccountsStub{},
-		Marshaller:             &testscommon.MarshalizerMock{},
+		Marshaller:             &marshallerMock.MarshalizerMock{},
 		EsdtDataStorageHandler: &testscommon.EsdtStorageHandlerStub{},
 		TransactionsStorer:     &genericMocks.StorerMock{},
 		ShardCoordinator:       &testscommon.ShardsCoordinatorMock{},
@@ -29,7 +31,7 @@ func createArgOutportDataProviderFactory() ArgOutportDataProviderFactory {
 		EconomicsData:          &economicsmocks.EconomicsHandlerMock{},
 		Hasher:                 &testscommon.KeccakMock{},
 		MbsStorer:              &genericMocks.StorerMock{},
-		EnableEpochsHandler:    &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 }
 

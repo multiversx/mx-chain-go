@@ -1068,12 +1068,12 @@ func CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGas(
 	gasScheduleNotifier core.GasScheduleNotifier,
 ) (*VMTestContext, error) {
 	feeAccumulator, _ := postprocess.NewFeeAccumulator()
-	accounts := integrationtests.CreateAccountsDB(db)
+	epochNotifierInstance := forking.NewGenericEpochNotifier()
+	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
+	accounts := integrationtests.CreateAccountsDB(db, enableEpochsHandler)
 	vmConfig := createDefaultVMConfig()
 	arwenChangeLocker := &sync.RWMutex{}
 
-	epochNotifierInstance := forking.NewGenericEpochNotifier()
-	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
 	chainHandler := &testscommon.ChainHandlerStub{}
 
 	vmContainer, blockchainHook, pool := CreateVMAndBlockchainHookAndDataPool(

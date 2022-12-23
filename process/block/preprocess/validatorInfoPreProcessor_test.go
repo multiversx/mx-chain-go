@@ -540,11 +540,11 @@ func TestValidatorInfoPreprocessor_SaveTxsToStorageShouldWork(t *testing.T) {
 
 	vip, _ := NewValidatorInfoPreprocessor(
 		&hashingMocks.HasherMock{},
-		&testscommon.MarshalizerMock{},
+		&marshallerMock.MarshalizerMock{},
 		&testscommon.BlockSizeComputationStub{},
 		tdp.ValidatorsInfo(),
 		storer,
-		&testscommon.EnableEpochsHandlerStub{},
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	err := vip.SaveTxsToStorage(nil)

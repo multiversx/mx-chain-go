@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/marshallerMock"
 	storageMocks "github.com/ElrondNetwork/elrond-go/testscommon/storage"
@@ -50,7 +51,7 @@ func createMockInternalBlockProcessor(
 					return false
 				},
 			},
-			EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+			EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		}, nil)
 }
 
@@ -69,7 +70,7 @@ func TestInternalBlockProcessor_ConvertShardBlockBytesToInternalBlockShouldFail(
 				},
 			},
 			HistoryRepo:         &dblookupext.HistoryRepositoryStub{},
-			EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+			EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		}, nil)
 
 	wrongBytes := []byte{0, 1, 2}
@@ -86,7 +87,7 @@ func TestInternalBlockProcessor_ConvertShardBlockBytesToInternalBlockShouldWork(
 		&ArgAPIBlockProcessor{
 			Marshalizer:         &marshallerMock.MarshalizerMock{},
 			HistoryRepo:         &dblookupext.HistoryRepositoryStub{},
-			EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+			EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		}, nil)
 
 	header := &block.Header{
@@ -337,7 +338,7 @@ func TestInternalBlockProcessor_ConvertMetaBlockBytesToInternalBlock_ShouldFail(
 				},
 			},
 			HistoryRepo:         &dblookupext.HistoryRepositoryStub{},
-			EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+			EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		}, nil)
 
 	wrongBytes := []byte{0, 1, 2}
@@ -354,7 +355,7 @@ func TestInternalBlockProcessor_ConvertMetaBlockBytesToInternalBlockShouldWork(t
 		&ArgAPIBlockProcessor{
 			Marshalizer:         &marshallerMock.MarshalizerMock{},
 			HistoryRepo:         &dblookupext.HistoryRepositoryStub{},
-			EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+			EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		}, nil)
 
 	header := &block.MetaBlock{
@@ -614,7 +615,7 @@ func TestInternalBlockProcessor_GetInternalMiniBlockByHash(t *testing.T) {
 				},
 				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
 				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
-				EnableEpochsHandler:      &testscommon.EnableEpochsHandlerStub{},
+				EnableEpochsHandler:      &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			}, nil)
 
 		blk, err := ibp.GetInternalMiniBlock(common.ApiOutputFormatJSON, []byte("invalidHash"), 1)
@@ -643,7 +644,7 @@ func TestInternalBlockProcessor_GetInternalMiniBlockByHash(t *testing.T) {
 				},
 				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
 				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
-				EnableEpochsHandler:      &testscommon.EnableEpochsHandlerStub{},
+				EnableEpochsHandler:      &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			}, nil)
 
 		blk, err := ibp.GetInternalMiniBlock(common.ApiOutputFormatJSON, []byte("invalidHash"), 1)
@@ -672,7 +673,7 @@ func TestInternalBlockProcessor_GetInternalMiniBlockByHash(t *testing.T) {
 				},
 				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
 				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
-				EnableEpochsHandler:      &testscommon.EnableEpochsHandlerStub{},
+				EnableEpochsHandler:      &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			}, nil)
 
 		blk, err := ibp.GetInternalMiniBlock(common.ApiOutputFormatJSON, []byte("invalidHash"), 1)
@@ -706,7 +707,7 @@ func TestInternalBlockProcessor_GetInternalMiniBlockByHash(t *testing.T) {
 				},
 				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
 				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
-				EnableEpochsHandler:      &testscommon.EnableEpochsHandlerStub{},
+				EnableEpochsHandler:      &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			}, nil)
 
 		blk, err := ibp.GetInternalMiniBlock(common.ApiOutputFormatProto, miniBlockHash, 1)
@@ -741,7 +742,7 @@ func TestInternalBlockProcessor_GetInternalMiniBlockByHash(t *testing.T) {
 				},
 				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
 				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
-				EnableEpochsHandler:      &testscommon.EnableEpochsHandlerStub{},
+				EnableEpochsHandler:      &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			}, nil)
 
 		blk, err := ibp.GetInternalMiniBlock(common.ApiOutputFormatJSON, miniBlockHash, expEpoch)
@@ -770,7 +771,7 @@ func TestInternalBlockProcessor_GetInternalStartOfEpochMetaBlock(t *testing.T) {
 				Store:                    &storageMocks.ChainStorerStub{},
 				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
 				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
-				EnableEpochsHandler:      &testscommon.EnableEpochsHandlerStub{},
+				EnableEpochsHandler:      &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			}, nil)
 
 		blk, err := ibp.GetInternalStartOfEpochMetaBlock(common.ApiOutputFormatJSON, expEpoch)
@@ -799,7 +800,7 @@ func TestInternalBlockProcessor_GetInternalStartOfEpochMetaBlock(t *testing.T) {
 				},
 				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
 				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
-				EnableEpochsHandler:      &testscommon.EnableEpochsHandlerStub{},
+				EnableEpochsHandler:      &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			}, nil)
 
 		blk, err := ibp.GetInternalStartOfEpochMetaBlock(common.ApiOutputFormatJSON, expEpoch)
@@ -828,7 +829,7 @@ func TestInternalBlockProcessor_GetInternalStartOfEpochMetaBlock(t *testing.T) {
 				},
 				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
 				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
-				EnableEpochsHandler:      &testscommon.EnableEpochsHandlerStub{},
+				EnableEpochsHandler:      &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			}, nil)
 
 		blk, err := ibp.GetInternalStartOfEpochMetaBlock(common.ApiOutputFormatProto, expEpoch)
@@ -857,7 +858,7 @@ func TestInternalBlockProcessor_GetInternalStartOfEpochMetaBlock(t *testing.T) {
 				},
 				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
 				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
-				EnableEpochsHandler:      &testscommon.EnableEpochsHandlerStub{},
+				EnableEpochsHandler:      &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			}, nil)
 
 		blk, err := ibp.GetInternalStartOfEpochMetaBlock(common.ApiOutputFormatJSON, expEpoch)
@@ -881,7 +882,7 @@ func TestInternalBlockProcessor_GetInternalStartOfEpochValidatorsInfo(t *testing
 				Store:                    &storageMocks.ChainStorerStub{},
 				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
 				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
-				EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+				EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 					IsRefactorPeersMiniBlocksFlagEnabledField: true,
 				},
 			}, nil)
@@ -912,7 +913,7 @@ func TestInternalBlockProcessor_GetInternalStartOfEpochValidatorsInfo(t *testing
 				},
 				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
 				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
-				EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+				EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 					IsRefactorPeersMiniBlocksFlagEnabledField: true,
 				},
 			}, nil)
@@ -986,7 +987,7 @@ func TestInternalBlockProcessor_GetInternalStartOfEpochValidatorsInfo(t *testing
 				},
 				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
 				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
-				EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+				EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 					RefactorPeersMiniBlocksEnableEpochField: 5,
 				},
 			}, nil)
@@ -1071,7 +1072,7 @@ func TestInternalBlockProcessor_GetInternalStartOfEpochValidatorsInfo(t *testing
 				},
 				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
 				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
-				EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+				EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 					RefactorPeersMiniBlocksEnableEpochField: 5,
 				},
 			}, nil)

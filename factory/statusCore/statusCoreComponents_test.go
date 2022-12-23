@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	componentsMock "github.com/ElrondNetwork/elrond-go/testscommon/components"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/marshallerMock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -75,7 +76,7 @@ func TestNewStatusCoreComponentsFactory(t *testing.T) {
 		coreComp := &mock.CoreComponentsStub{
 			EconomicsDataField:            &economicsmocks.EconomicsHandlerStub{},
 			GenesisNodesSetupField:        &testscommon.NodesSetupStub{},
-			InternalMarshalizerField:      &testscommon.MarshalizerStub{},
+			InternalMarshalizerField:      &marshallerMock.MarshalizerStub{},
 			Uint64ByteSliceConverterField: nil,
 		}
 

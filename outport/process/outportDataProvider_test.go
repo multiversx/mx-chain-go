@@ -8,13 +8,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/outport/process/transactionsfee"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/marshallerMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/require"
 )
 
 func createArgOutportDataProvider() ArgOutportDataProvider {
 	txsFeeProc, _ := transactionsfee.NewTransactionsFeeProcessor(transactionsfee.ArgTransactionsFeeProcessor{
-		Marshaller:         &testscommon.MarshalizerMock{},
+		Marshaller:         &marshallerMock.MarshalizerMock{},
 		TransactionsStorer: &genericMocks.StorerMock{},
 		ShardCoordinator:   &testscommon.ShardsCoordinatorMock{},
 		TxFeeCalculator:    &mock.EconomicsHandlerMock{},

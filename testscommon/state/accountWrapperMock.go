@@ -27,7 +27,6 @@ type AccountWrapMock struct {
 	address           []byte
 	Balance           *big.Int
 	trackableDataTrie state.DataTrieTracker
-	Balance           *big.Int
 
 	SetNonceWithJournalCalled    func(nonce uint64) error           `json:"-"`
 	SetCodeHashWithJournalCalled func(codeHash []byte) error        `json:"-"`
