@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
-	triesFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -151,7 +150,7 @@ func (mrcf *metaResolversContainerFactory) AddShardTrieNodeResolvers(container d
 		identifierTrieNodes := factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(idx)
 		resolver, err := mrcf.createTrieNodesResolver(
 			identifierTrieNodes,
-			triesFactory.UserAccountTrie,
+			dataRetriever.UserAccountsUnit.String(),
 			mrcf.numCrossShardPeers,
 			mrcf.numTotalPeers-mrcf.numCrossShardPeers,
 			idx,
@@ -310,7 +309,7 @@ func (mrcf *metaResolversContainerFactory) generateTrieNodesResolvers() error {
 	identifierTrieNodes := factory.AccountTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
 	resolver, err := mrcf.createTrieNodesResolver(
 		identifierTrieNodes,
-		triesFactory.UserAccountTrie,
+		dataRetriever.UserAccountsUnit.String(),
 		0,
 		mrcf.numTotalPeers,
 		core.MetachainShardId,
@@ -325,7 +324,7 @@ func (mrcf *metaResolversContainerFactory) generateTrieNodesResolvers() error {
 	identifierTrieNodes = factory.ValidatorTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
 	resolver, err = mrcf.createTrieNodesResolver(
 		identifierTrieNodes,
-		triesFactory.PeerAccountTrie,
+		dataRetriever.PeerAccountsUnit.String(),
 		0,
 		mrcf.numTotalPeers,
 		core.MetachainShardId,

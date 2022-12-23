@@ -59,7 +59,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/cache"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
-	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	trieStatistics "github.com/ElrondNetwork/elrond-go/trie/statistics"
 	"github.com/ElrondNetwork/elrond-go/trie/storageMarker"
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
@@ -600,7 +599,7 @@ func getUserAccountSyncer(
 	processComponents mainFactory.ProcessComponentsHolder,
 ) (process.AccountsDBSyncer, error) {
 	maxTrieLevelInMemory := config.StateTriesConfig.MaxStateTrieLevelInMemory
-	userTrie := stateComponents.TriesContainer().Get([]byte(trieFactory.UserAccountTrie))
+	userTrie := stateComponents.TriesContainer().Get([]byte(dataRetriever.UserAccountsUnit.String()))
 	storageManager := userTrie.GetStorageManager()
 
 	thr, err := throttler.NewNumGoRoutinesThrottler(int32(config.TrieSync.NumConcurrentTrieSyncers))
@@ -633,7 +632,7 @@ func getValidatorAccountSyncer(
 	processComponents mainFactory.ProcessComponentsHolder,
 ) (process.AccountsDBSyncer, error) {
 	maxTrieLevelInMemory := config.StateTriesConfig.MaxPeerTrieLevelInMemory
-	peerTrie := stateComponents.TriesContainer().Get([]byte(trieFactory.PeerAccountTrie))
+	peerTrie := stateComponents.TriesContainer().Get([]byte(dataRetriever.PeerAccountsUnit.String()))
 	storageManager := peerTrie.GetStorageManager()
 
 	args := syncer.ArgsNewValidatorAccountsSyncer{

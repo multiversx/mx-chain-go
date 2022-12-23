@@ -7,14 +7,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-// TODO: refactor to align these constants with db filepath identifier
-
-// UserAccountTrie represents the use account identifier
-const UserAccountTrie = "userAccount"
-
-// PeerAccountTrie represents the peer account identifier
-const PeerAccountTrie = "peerAccount"
-
 // TrieFactoryArgs holds the arguments for creating a trie factory
 type TrieFactoryArgs struct {
 	Marshalizer              marshal.Marshalizer

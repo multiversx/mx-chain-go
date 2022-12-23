@@ -21,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/sync/storageBootstrap/metricsLoader"
@@ -1121,6 +1122,19 @@ func (boot *baseBootstrap) waitForMiniBlocks() error {
 	case <-time.After(boot.waitTime):
 		return process.ErrTimeIsOut
 	}
+}
+
+func (boot *baseBootstrap) getStorerIdentifier(unitType dataRetriever.UnitType) (string, error) {
+	storer, err := boot.store.GetStorer(unitType)
+	if err != nil {
+		return "", err
+	}
+	dbWithID, ok := storer.(dbStorerWithIdentifier)
+	if !ok {
+		return "", errors.ErrWrongTypeAssertion
+	}
+
+	return dbWithID.GetIdentifier(), nil
 }
 
 func (boot *baseBootstrap) init() {

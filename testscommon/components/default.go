@@ -5,6 +5,7 @@ import (
 
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -17,7 +18,6 @@ import (
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
-	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 )
 
 // GetDefaultCoreComponents -
@@ -85,9 +85,9 @@ func GetDefaultStateComponents() *testscommon.StateComponentsMock {
 		Accounts: &stateMock.AccountsStub{},
 		Tries:    &trieMock.TriesHolderStub{},
 		StorageManagers: map[string]common.StorageManager{
-			"0":                         &testscommon.StorageManagerStub{},
-			trieFactory.UserAccountTrie: &testscommon.StorageManagerStub{},
-			trieFactory.PeerAccountTrie: &testscommon.StorageManagerStub{},
+			"0":                                     &testscommon.StorageManagerStub{},
+			dataRetriever.UserAccountsUnit.String(): &testscommon.StorageManagerStub{},
+			dataRetriever.PeerAccountsUnit.String(): &testscommon.StorageManagerStub{},
 		},
 	}
 }

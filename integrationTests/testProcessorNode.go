@@ -110,7 +110,6 @@ import (
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
-	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/trie/keyBuilder"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
@@ -525,15 +524,15 @@ func (tpn *TestProcessorNode) initAccountDBsWithPruningStorer() {
 	tpn.TrieContainer = state.NewDataTriesHolder()
 	var stateTrie common.Trie
 	tpn.AccntState, stateTrie = CreateAccountsDB(UserAccount, trieStorageManager)
-	tpn.TrieContainer.Put([]byte(trieFactory.UserAccountTrie), stateTrie)
+	tpn.TrieContainer.Put([]byte(dataRetriever.UserAccountsUnit.String()), stateTrie)
 
 	var peerTrie common.Trie
 	tpn.PeerState, peerTrie = CreateAccountsDB(ValidatorAccount, trieStorageManager)
-	tpn.TrieContainer.Put([]byte(trieFactory.PeerAccountTrie), peerTrie)
+	tpn.TrieContainer.Put([]byte(dataRetriever.PeerAccountsUnit.String()), peerTrie)
 
 	tpn.TrieStorageManagers = make(map[string]common.StorageManager)
-	tpn.TrieStorageManagers[trieFactory.UserAccountTrie] = trieStorageManager
-	tpn.TrieStorageManagers[trieFactory.PeerAccountTrie] = trieStorageManager
+	tpn.TrieStorageManagers[dataRetriever.UserAccountsUnit.String()] = trieStorageManager
+	tpn.TrieStorageManagers[dataRetriever.PeerAccountsUnit.String()] = trieStorageManager
 }
 
 func (tpn *TestProcessorNode) initAccountDBs(store storage.Storer) {
@@ -541,15 +540,15 @@ func (tpn *TestProcessorNode) initAccountDBs(store storage.Storer) {
 	tpn.TrieContainer = state.NewDataTriesHolder()
 	var stateTrie common.Trie
 	tpn.AccntState, stateTrie = CreateAccountsDB(UserAccount, trieStorageManager)
-	tpn.TrieContainer.Put([]byte(trieFactory.UserAccountTrie), stateTrie)
+	tpn.TrieContainer.Put([]byte(dataRetriever.UserAccountsUnit.String()), stateTrie)
 
 	var peerTrie common.Trie
 	tpn.PeerState, peerTrie = CreateAccountsDB(ValidatorAccount, trieStorageManager)
-	tpn.TrieContainer.Put([]byte(trieFactory.PeerAccountTrie), peerTrie)
+	tpn.TrieContainer.Put([]byte(dataRetriever.PeerAccountsUnit.String()), peerTrie)
 
 	tpn.TrieStorageManagers = make(map[string]common.StorageManager)
-	tpn.TrieStorageManagers[trieFactory.UserAccountTrie] = trieStorageManager
-	tpn.TrieStorageManagers[trieFactory.PeerAccountTrie] = trieStorageManager
+	tpn.TrieStorageManagers[dataRetriever.UserAccountsUnit.String()] = trieStorageManager
+	tpn.TrieStorageManagers[dataRetriever.PeerAccountsUnit.String()] = trieStorageManager
 }
 
 func (tpn *TestProcessorNode) initValidatorStatistics() {
@@ -3064,9 +3063,9 @@ func GetDefaultStateComponents() *testscommon.StateComponentsMock {
 		AccountsRepo: &stateMock.AccountsRepositoryStub{},
 		Tries:        &trieMock.TriesHolderStub{},
 		StorageManagers: map[string]common.StorageManager{
-			"0":                         &testscommon.StorageManagerStub{},
-			trieFactory.UserAccountTrie: &testscommon.StorageManagerStub{},
-			trieFactory.PeerAccountTrie: &testscommon.StorageManagerStub{},
+			"0":                                     &testscommon.StorageManagerStub{},
+			dataRetriever.UserAccountsUnit.String(): &testscommon.StorageManagerStub{},
+			dataRetriever.PeerAccountsUnit.String(): &testscommon.StorageManagerStub{},
 		},
 	}
 }

@@ -128,7 +128,7 @@ func (scf *stateComponentsFactory) Create() (*stateComponents, error) {
 
 func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.TriesHolder) (state.AccountsAdapter, state.AccountsAdapter, state.AccountsRepository, error) {
 	accountFactory := factoryState.NewAccountCreator()
-	merkleTrie := triesContainer.Get([]byte(trieFactory.UserAccountTrie))
+	merkleTrie := triesContainer.Get([]byte(dataRetriever.UserAccountsUnit.String()))
 	storagePruning, err := scf.newStoragePruningManager()
 	if err != nil {
 		return nil, nil, nil, err
@@ -192,7 +192,7 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 
 func (scf *stateComponentsFactory) createPeerAdapter(triesContainer common.TriesHolder) (state.AccountsAdapter, error) {
 	accountFactory := factoryState.NewPeerAccountCreator()
-	merkleTrie := triesContainer.Get([]byte(trieFactory.PeerAccountTrie))
+	merkleTrie := triesContainer.Get([]byte(dataRetriever.PeerAccountsUnit.String()))
 	storagePruning, err := scf.newStoragePruningManager()
 	if err != nil {
 		return nil, err

@@ -27,7 +27,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
-	triesFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/update"
 	hardfork "github.com/ElrondNetwork/elrond-go/update/genesis"
 	hardForkProcess "github.com/ElrondNetwork/elrond-go/update/process"
@@ -481,7 +480,7 @@ func (gbc *genesisBlockCreator) getNewArgForShard(shardID uint32) (ArgsGenesisBl
 		newArgument.Core.InternalMarshalizer(),
 		newArgument.Core.Hasher(),
 		factoryState.NewAccountCreator(),
-		gbc.arg.TrieStorageManagers[triesFactory.UserAccountTrie],
+		gbc.arg.TrieStorageManagers[dataRetriever.UserAccountsUnit.String()],
 	)
 	if err != nil {
 		return ArgsGenesisBlockCreator{}, fmt.Errorf("'%w' while generating an in-memory accounts adapter for shard %d",

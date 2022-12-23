@@ -107,6 +107,8 @@ func createFullStore() dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.ReceiptsUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.ScheduledSCRsUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.UserAccountsUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.PeerAccountsUnit, generateTestUnit())
 	return store
 }
 
@@ -1739,7 +1741,8 @@ func TestBootstrap_GetTxBodyHavingHashNotFoundInCacherOrStorageShouldRetEmptySli
 	args.Store = createFullStore()
 	args.Store.AddStorer(dataRetriever.TransactionUnit, txBlockUnit)
 
-	bs, _ := sync.NewShardBootstrap(args)
+	bs, err := sync.NewShardBootstrap(args)
+	require.Nil(t, err)
 	gotMbsAndHashes, _ := bs.GetMiniBlocks(requestedHash)
 
 	assert.Equal(t, 0, len(gotMbsAndHashes))

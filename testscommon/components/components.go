@@ -13,6 +13,7 @@ import (
 	commonFactory "github.com/ElrondNetwork/elrond-go/common/factory"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	bootstrapComp "github.com/ElrondNetwork/elrond-go/factory/bootstrap"
@@ -40,7 +41,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/trie"
-	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
 	arwenConfig "github.com/ElrondNetwork/wasm-vm-v1_4/config"
 	"github.com/stretchr/testify/require"
@@ -334,14 +334,14 @@ func GetStateFactoryArgs(coreComponents factory.CoreComponentsHolder, shardCoord
 	storageManagerPeer, _ := trie.NewTrieStorageManagerWithoutPruning(tsm)
 
 	trieStorageManagers := make(map[string]common.StorageManager)
-	trieStorageManagers[trieFactory.UserAccountTrie] = storageManagerUser
-	trieStorageManagers[trieFactory.PeerAccountTrie] = storageManagerPeer
+	trieStorageManagers[dataRetriever.UserAccountsUnit.String()] = storageManagerUser
+	trieStorageManagers[dataRetriever.PeerAccountsUnit.String()] = storageManagerPeer
 
 	triesHolder := state.NewDataTriesHolder()
 	trieUsers, _ := trie.NewTrie(storageManagerUser, coreComponents.InternalMarshalizer(), coreComponents.Hasher(), 5)
 	triePeers, _ := trie.NewTrie(storageManagerPeer, coreComponents.InternalMarshalizer(), coreComponents.Hasher(), 5)
-	triesHolder.Put([]byte(trieFactory.UserAccountTrie), trieUsers)
-	triesHolder.Put([]byte(trieFactory.PeerAccountTrie), triePeers)
+	triesHolder.Put([]byte(dataRetriever.UserAccountsUnit.String()), trieUsers)
+	triesHolder.Put([]byte(dataRetriever.PeerAccountsUnit.String()), triePeers)
 
 	stateComponentsFactoryArgs := stateComp.StateComponentsFactoryArgs{
 		Config:           GetGeneralConfig(),

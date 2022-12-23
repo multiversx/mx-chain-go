@@ -25,6 +25,7 @@ import (
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -39,7 +40,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/trie"
-	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -1574,7 +1574,7 @@ func TestStatePruningIsBuffered(t *testing.T) {
 	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 
 	rootHash := shardNode.BlockChain.GetCurrentBlockHeader().GetRootHash()
-	stateTrie := shardNode.TrieContainer.Get([]byte(trieFactory.UserAccountTrie))
+	stateTrie := shardNode.TrieContainer.Get([]byte(dataRetriever.UserAccountsUnit.String()))
 
 	delayRounds := 10
 	for i := 0; i < delayRounds; i++ {
@@ -1764,7 +1764,7 @@ func testNodeStateCheckpointSnapshotAndPruning(
 	prunedRootHashes [][]byte,
 ) {
 
-	stateTrie := node.TrieContainer.Get([]byte(trieFactory.UserAccountTrie))
+	stateTrie := node.TrieContainer.Get([]byte(dataRetriever.UserAccountsUnit.String()))
 	assert.Equal(t, 6, len(checkpointsRootHashes))
 	for i := range checkpointsRootHashes {
 		tr, err := stateTrie.Recreate(checkpointsRootHashes[i])
@@ -1945,7 +1945,7 @@ func checkCodeConsistency(
 ) {
 	for code := range codeMap {
 		codeHash := integrationTests.TestHasher.Compute(code)
-		tr := shardNode.TrieContainer.Get([]byte(trieFactory.UserAccountTrie))
+		tr := shardNode.TrieContainer.Get([]byte(dataRetriever.UserAccountsUnit.String()))
 
 		if codeMap[code] != 0 {
 			val, _, err := tr.Get(codeHash)
