@@ -60,7 +60,7 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 	blockTracker process.BlockTracker,
 	pendingMiniBlocksHandler process.PendingMiniBlocksHandler,
 	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
-	arwenChangeLocker common.Locker,
+	wasmVMChangeLocker common.Locker,
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler,
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
 	receiptsRepository mainFactory.ReceiptsRepository,
@@ -75,7 +75,7 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 			blockTracker,
 			pcf.smartContractParser,
 			txSimulatorProcessorArgs,
-			arwenChangeLocker,
+			wasmVMChangeLocker,
 			scheduledTxsExecutionHandler,
 			processedMiniBlocksTracker,
 			receiptsRepository,
@@ -92,7 +92,7 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 			blockTracker,
 			pendingMiniBlocksHandler,
 			txSimulatorProcessorArgs,
-			arwenChangeLocker,
+			wasmVMChangeLocker,
 			scheduledTxsExecutionHandler,
 			processedMiniBlocksTracker,
 			receiptsRepository,
@@ -113,7 +113,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	blockTracker process.BlockTracker,
 	smartContractParser genesis.InitialSmartContractParser,
 	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
-	arwenChangeLocker common.Locker,
+	wasmVMChangeLocker common.Locker,
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler,
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
 	receiptsRepository mainFactory.ReceiptsRepository,
@@ -143,7 +143,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		pcf.state.AccountsAdapter(),
 		builtInFuncFactory.BuiltInFunctionContainer(),
 		esdtTransferParser,
-		arwenChangeLocker,
+		wasmVMChangeLocker,
 		pcf.config.SmartContractsStorage,
 		builtInFuncFactory.NFTStorageHandler(),
 		builtInFuncFactory.ESDTGlobalSettingsHandler(),
@@ -243,7 +243,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		BadTxForwarder:      badTxInterim,
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 		VMOutputCacher:      txcache.NewDisabledCache(),
-		ArwenChangeLocker:   arwenChangeLocker,
+		WasmVMChangeLocker:  wasmVMChangeLocker,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
@@ -283,7 +283,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 
 	scheduledTxsExecutionHandler.SetTransactionProcessor(transactionProcessor)
 
-	vmFactoryTxSimulator, err := pcf.createShardTxSimulatorProcessor(txSimulatorProcessorArgs, argsNewScProcessor, argsNewTxProcessor, esdtTransferParser, arwenChangeLocker, mapDNSAddresses)
+	vmFactoryTxSimulator, err := pcf.createShardTxSimulatorProcessor(txSimulatorProcessorArgs, argsNewScProcessor, argsNewTxProcessor, esdtTransferParser, wasmVMChangeLocker, mapDNSAddresses)
 	if err != nil {
 		return nil, err
 	}
@@ -452,7 +452,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	blockTracker process.BlockTracker,
 	pendingMiniBlocksHandler process.PendingMiniBlocksHandler,
 	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
-	arwenChangeLocker common.Locker,
+	wasmVMChangeLocker common.Locker,
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler,
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
 	receiptsRepository mainFactory.ReceiptsRepository,
@@ -562,7 +562,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		BadTxForwarder:      badTxForwarder,
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 		VMOutputCacher:      txcache.NewDisabledCache(),
-		ArwenChangeLocker:   arwenChangeLocker,
+		WasmVMChangeLocker:  wasmVMChangeLocker,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
@@ -938,7 +938,7 @@ func (pcf *processComponentsFactory) createShardTxSimulatorProcessor(
 	scProcArgs smartContract.ArgsNewSmartContractProcessor,
 	txProcArgs transaction.ArgsNewTxProcessor,
 	esdtTransferParser vmcommon.ESDTTransferParser,
-	arwenChangeLocker common.Locker,
+	wasmVMChangeLocker common.Locker,
 	mapDNSAddresses map[string]struct{},
 ) (process.VirtualMachinesContainerFactory, error) {
 	readOnlyAccountsDB, err := txsimulator.NewReadOnlyAccountsDB(pcf.state.AccountsAdapterAPI())
@@ -969,7 +969,7 @@ func (pcf *processComponentsFactory) createShardTxSimulatorProcessor(
 		readOnlyAccountsDB,
 		builtInFuncFactory.BuiltInFunctionContainer(),
 		esdtTransferParser,
-		arwenChangeLocker,
+		wasmVMChangeLocker,
 		smartContractStorageSimulate,
 		builtInFuncFactory.NFTStorageHandler(),
 		builtInFuncFactory.ESDTGlobalSettingsHandler(),
@@ -1133,7 +1133,7 @@ func (pcf *processComponentsFactory) createVMFactoryShard(
 	accounts state.AccountsAdapter,
 	builtInFuncs vmcommon.BuiltInFunctionContainer,
 	esdtTransferParser vmcommon.ESDTTransferParser,
-	arwenChangeLocker common.Locker,
+	wasmVMChangeLocker common.Locker,
 	configSCStorage config.StorageConfig,
 	nftStorageHandler vmcommon.SimpleESDTNFTStorageHandler,
 	globalSettingsHandler vmcommon.ESDTGlobalSettingsHandler,
@@ -1178,7 +1178,7 @@ func (pcf *processComponentsFactory) createVMFactoryShard(
 		GasSchedule:         pcf.gasSchedule,
 		EpochNotifier:       pcf.coreData.EpochNotifier(),
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
-		ArwenChangeLocker:   arwenChangeLocker,
+		WasmVMChangeLocker:  wasmVMChangeLocker,
 		ESDTTransferParser:  esdtTransferParser,
 	}
 

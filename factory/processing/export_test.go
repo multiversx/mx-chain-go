@@ -1,7 +1,6 @@
 package processing
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/outport"
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -23,7 +22,7 @@ func (pcf *processComponentsFactory) NewBlockProcessor(
 	blockTracker process.BlockTracker,
 	pendingMiniBlocksHandler process.PendingMiniBlocksHandler,
 	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
-	arwenChangeLocker common.Locker,
+	wasmVMChangeLocker common.Locker,
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler,
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
 	receiptsRepository factory.ReceiptsRepository,
@@ -38,7 +37,7 @@ func (pcf *processComponentsFactory) NewBlockProcessor(
 		blockTracker,
 		pendingMiniBlocksHandler,
 		txSimulatorProcessorArgs,
-		arwenChangeLocker,
+		wasmVMChangeLocker,
 		scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker,
 		receiptsRepository,
@@ -53,9 +52,4 @@ func (pcf *processComponentsFactory) NewBlockProcessor(
 // IndexGenesisBlocks -
 func (pcf *processComponentsFactory) IndexGenesisBlocks(genesisBlocks map[uint32]data.HeaderHandler, indexingData map[uint32]*genesis.IndexingData) error {
 	return pcf.indexGenesisBlocks(genesisBlocks, indexingData, map[string]*outport.AlteredAccount{})
-}
-
-// DecodeAddresses -
-func DecodeAddresses(pkConverter core.PubkeyConverter, automaticCrawlerAddressesStrings []string) ([][]byte, error) {
-	return factory.DecodeAddresses(pkConverter, automaticCrawlerAddressesStrings)
 }

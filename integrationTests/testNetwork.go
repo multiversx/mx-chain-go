@@ -432,7 +432,7 @@ func (net *TestNetwork) initDefaults() {
 	net.DefaultNode = net.Nodes[0]
 	net.DefaultGasPrice = MinTxGasPrice
 	net.DefaultGasSchedule = nil
-	net.DefaultVM = factory.ArwenVirtualMachine
+	net.DefaultVM = factory.WasmVirtualMachine
 
 	defaultNodeShardID := net.DefaultNode.ShardCoordinator.SelfId()
 	net.MinGasLimit = MinTxGasLimit

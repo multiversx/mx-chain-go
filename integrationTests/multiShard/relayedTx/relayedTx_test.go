@@ -10,7 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/wasm"
 	"github.com/ElrondNetwork/elrond-go/process"
 	vmFactory "github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
@@ -97,15 +97,15 @@ func TestRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(t *testing
 
 	ownerNode := nodes[0]
 	initialSupply := "00" + hex.EncodeToString(big.NewInt(100000000000).Bytes())
-	scCode := arwen.GetSCCode("../../vm/arwen/testdata/erc20-c-03/wrc20_arwen.wasm")
-	scAddress, _ := ownerNode.BlockchainHook.NewAddress(ownerNode.OwnAccount.Address, ownerNode.OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
+	scCode := wasm.GetSCCode("../../vm/wasm/testdata/erc20-c-03/wrc20_wasm.wasm")
+	scAddress, _ := ownerNode.BlockchainHook.NewAddress(ownerNode.OwnAccount.Address, ownerNode.OwnAccount.Nonce, vmFactory.WasmVirtualMachine)
 
 	integrationTests.CreateAndSendTransactionWithGasLimit(
 		nodes[0],
 		big.NewInt(0),
 		20000,
 		make([]byte, 32),
-		[]byte(arwen.CreateDeployTxData(scCode)+"@"+initialSupply),
+		[]byte(wasm.CreateDeployTxData(scCode)+"@"+initialSupply),
 		integrationTests.ChainID,
 		integrationTests.MinTransactionVersion,
 	)
@@ -278,8 +278,8 @@ func TestRelayedTransactionInMultiShardEnvironmentWithAttestationContract(t *tes
 	nonce++
 
 	ownerNode := nodes[0]
-	scCode := arwen.GetSCCode("attestation.wasm")
-	scAddress, _ := ownerNode.BlockchainHook.NewAddress(ownerNode.OwnAccount.Address, ownerNode.OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
+	scCode := wasm.GetSCCode("attestation.wasm")
+	scAddress, _ := ownerNode.BlockchainHook.NewAddress(ownerNode.OwnAccount.Address, ownerNode.OwnAccount.Nonce, vmFactory.WasmVirtualMachine)
 
 	registerValue := big.NewInt(100)
 	integrationTests.CreateAndSendTransactionWithGasLimit(
@@ -287,7 +287,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithAttestationContract(t *tes
 		big.NewInt(0),
 		200000,
 		make([]byte, 32),
-		[]byte(arwen.CreateDeployTxData(scCode)+"@"+hex.EncodeToString(registerValue.Bytes())+"@"+hex.EncodeToString(relayer.Address)+"@"+"ababab"),
+		[]byte(wasm.CreateDeployTxData(scCode)+"@"+hex.EncodeToString(registerValue.Bytes())+"@"+hex.EncodeToString(relayer.Address)+"@"+"ababab"),
 		integrationTests.ChainID,
 		integrationTests.MinTransactionVersion,
 	)

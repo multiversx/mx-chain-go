@@ -392,13 +392,13 @@ type VirtualMachineServicesConfig struct {
 
 // VirtualMachineConfig holds configuration for a Virtual Machine service
 type VirtualMachineConfig struct {
-	ArwenVersions                       []ArwenVersionByEpoch
+	WasmVMVersions                      []WasmVMVersionByEpoch
 	TimeOutForSCExecutionInMilliseconds uint32
 	WasmerSIGSEGVPassthrough            bool
 }
 
-// ArwenVersionByEpoch represents the Arwen version to be used starting with an epoch
-type ArwenVersionByEpoch struct {
+// WasmVMVersionByEpoch represents the Wasm VM version to be used starting with an epoch
+type WasmVMVersionByEpoch struct {
 	StartEpoch uint32
 	Version    string
 }

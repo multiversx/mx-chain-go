@@ -429,7 +429,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		BadTxForwarder:      badTxForwarder,
 		EnableEpochsHandler: enableEpochsHandler,
 		IsGenesisProcessing: true,
-		ArwenChangeLocker:   &sync.RWMutex{}, // local Locker as to not interfere with the rest of the components
+		WasmVMChangeLocker:  &sync.RWMutex{}, // local Locker as to not interfere with the rest of the components
 		VMOutputCacher:      txcache.NewDisabledCache(),
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
@@ -531,7 +531,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		EconomicsFee:             arg.Economics,
 		BlockChainHook:           virtualMachineFactory.BlockChainHookImpl(),
 		BlockChain:               arg.Data.Blockchain(),
-		ArwenChangeLocker:        &sync.RWMutex{},
+		WasmVMChangeLocker:       &sync.RWMutex{},
 		Bootstrapper:             syncDisabled.NewDisabledBootstrapper(),
 		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
 	}

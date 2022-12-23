@@ -83,10 +83,10 @@ func TestConsensusComponents_Close_ShouldWork(t *testing.T) {
 	require.Nil(t, err)
 
 	argsGasScheduleNotifier := forking.ArgsNewGasScheduleNotifier{
-		GasScheduleConfig: configs.EpochConfig.GasSchedule,
-		ConfigDir:         configs.ConfigurationPathsHolder.GasScheduleDirectoryName,
-		EpochNotifier:     managedCoreComponents.EpochNotifier(),
-		ArwenChangeLocker: managedCoreComponents.ArwenChangeLocker(),
+		GasScheduleConfig:  configs.EpochConfig.GasSchedule,
+		ConfigDir:          configs.ConfigurationPathsHolder.GasScheduleDirectoryName,
+		EpochNotifier:      managedCoreComponents.EpochNotifier(),
+		WasmVMChangeLocker: managedCoreComponents.WasmVMChangeLocker(),
 	}
 	gasScheduleNotifier, err := forking.NewGasScheduleNotifier(argsGasScheduleNotifier)
 	require.Nil(t, err)

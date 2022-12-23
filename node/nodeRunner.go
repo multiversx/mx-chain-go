@@ -394,10 +394,10 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	}
 
 	argsGasScheduleNotifier := forking.ArgsNewGasScheduleNotifier{
-		GasScheduleConfig: configs.EpochConfig.GasSchedule,
-		ConfigDir:         configurationPaths.GasScheduleDirectoryName,
-		EpochNotifier:     managedCoreComponents.EpochNotifier(),
-		ArwenChangeLocker: managedCoreComponents.ArwenChangeLocker(),
+		GasScheduleConfig:  configs.EpochConfig.GasSchedule,
+		ConfigDir:          configurationPaths.GasScheduleDirectoryName,
+		EpochNotifier:      managedCoreComponents.EpochNotifier(),
+		WasmVMChangeLocker: managedCoreComponents.WasmVMChangeLocker(),
 	}
 	gasScheduleNotifier, err := forking.NewGasScheduleNotifier(argsGasScheduleNotifier)
 	if err != nil {

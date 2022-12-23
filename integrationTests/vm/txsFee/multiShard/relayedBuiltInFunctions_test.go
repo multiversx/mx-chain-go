@@ -15,9 +15,9 @@ import (
 )
 
 func TestRelayedBuiltInFunctionExecuteOnRelayerAndDstShardShouldWork(t *testing.T) {
-	// TODO reinstate test after Arwen pointer fix
+	// TODO reinstate test after Wasm VM pointer fix
 	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Arwen fix")
+		t.Skip("cannot run with -race -short; requires Wasm VM fix")
 	}
 
 	testContextRelayer, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(
@@ -36,7 +36,7 @@ func TestRelayedBuiltInFunctionExecuteOnRelayerAndDstShardShouldWork(t *testing.
 	require.Nil(t, err)
 	defer testContextInner.Close()
 
-	pathToContract := "../../arwen/testdata/counter/output/counter.wasm"
+	pathToContract := "../../wasm/testdata/counter/output/counter.wasm"
 	scAddr, owner := utils.DoDeploy(t, testContextInner, pathToContract)
 	gasAndFees := getZeroGasAndFees()
 	testContextInner.TxFeeHandler.CreateBlockStarted(gasAndFees)

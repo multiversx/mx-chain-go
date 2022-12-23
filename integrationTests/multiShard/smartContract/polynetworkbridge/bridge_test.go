@@ -74,7 +74,7 @@ func TestBridgeSetupAndBurn(t *testing.T) {
 	scAddressBytes, _ := blockChainHook.NewAddress(
 		ownerNode.OwnAccount.Address,
 		ownerNode.OwnAccount.Nonce,
-		factory.ArwenVirtualMachine,
+		factory.WasmVirtualMachine,
 	)
 
 	scCode, err := ioutil.ReadFile(tokenManagerPath)
@@ -85,7 +85,7 @@ func TestBridgeSetupAndBurn(t *testing.T) {
 	scCodeString := hex.EncodeToString(scCode)
 	scCodeMetadataString := "0000"
 
-	deploymentData := scCodeString + "@" + hex.EncodeToString(factory.ArwenVirtualMachine) + "@" + scCodeMetadataString
+	deploymentData := scCodeString + "@" + hex.EncodeToString(factory.WasmVirtualMachine) + "@" + scCodeMetadataString
 
 	integrationTests.CreateAndSendTransaction(
 		ownerNode,

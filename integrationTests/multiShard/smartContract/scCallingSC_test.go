@@ -162,7 +162,7 @@ func TestScDeployAndChangeScOwner(t *testing.T) {
 
 	// deploy the smart contracts
 	firstSCAddress := putDeploySCToDataPool(
-		"../../vm/arwen/testdata/counter/counter.wasm",
+		"../../vm/wasm/testdata/counter/counter.wasm",
 		firstSCOwner,
 		0,
 		big.NewInt(50),
@@ -272,7 +272,7 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 	nodes[0].OwnAccount.Nonce += 1
 	// deploy the smart contracts
 	firstSCAddress := putDeploySCToDataPool(
-		"../../vm/arwen/testdata/counter/counter.wasm",
+		"../../vm/wasm/testdata/counter/counter.wasm",
 		firstSCOwner,
 		0,
 		big.NewInt(50),
@@ -992,7 +992,7 @@ func putDeploySCToDataPool(
 
 	blockChainHook := nodes[0].BlockchainHook
 
-	scAddressBytes, _ := blockChainHook.NewAddress(pubkey, nonce, factory.ArwenVirtualMachine)
+	scAddressBytes, _ := blockChainHook.NewAddress(pubkey, nonce, factory.WasmVirtualMachine)
 
 	tx := &transaction.Transaction{
 		Nonce:    nonce,
@@ -1001,7 +1001,7 @@ func putDeploySCToDataPool(
 		SndAddr:  pubkey,
 		GasPrice: nodes[0].EconomicsData.GetMinGasPrice(),
 		GasLimit: gasLimit,
-		Data:     []byte(scCodeString + "@" + hex.EncodeToString(factory.ArwenVirtualMachine) + "@" + scCodeMetadataString + initArgs),
+		Data:     []byte(scCodeString + "@" + hex.EncodeToString(factory.WasmVirtualMachine) + "@" + scCodeMetadataString + initArgs),
 		ChainID:  integrationTests.ChainID,
 	}
 	txHash, _ := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, tx)

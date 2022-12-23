@@ -105,8 +105,8 @@ func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
 		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
 			IsSCDeployFlagEnabledField: true,
 		},
-		ArwenChangeLocker: &sync.RWMutex{},
-		VMOutputCacher:    txcache.NewDisabledCache(),
+		WasmVMChangeLocker: &sync.RWMutex{},
+		VMOutputCacher:     txcache.NewDisabledCache(),
 	}
 }
 
@@ -338,7 +338,7 @@ func TestNewSmartContractProcessor_NilLockerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockSmartContractProcessorArguments()
-	arguments.ArwenChangeLocker = nil
+	arguments.WasmVMChangeLocker = nil
 	sc, err := NewSmartContractProcessor(arguments)
 
 	require.Nil(t, sc)

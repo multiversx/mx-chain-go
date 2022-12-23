@@ -10,7 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
 	"github.com/ElrondNetwork/elrond-go/process"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	arwenConfig "github.com/ElrondNetwork/wasm-vm-v1_4/config"
+	wasmConfig "github.com/ElrondNetwork/wasm-vm-v1_4/config"
 	"github.com/stretchr/testify/require"
 )
 
@@ -71,7 +71,7 @@ func TestMultiESDTTransferShouldWork(t *testing.T) {
 
 func TestMultiESDTTransferFailsBecauseOfMaxLimit(t *testing.T) {
 	testContext, err := vm.CreatePreparedTxProcessorWithVMsAndCustomGasSchedule(config.EnableEpochs{},
-		func(gasMap arwenConfig.GasScheduleMap) {
+		func(gasMap wasmConfig.GasScheduleMap) {
 			gasMap[common.MaxPerTransaction]["MaxNumberOfTransfersPerTx"] = 1
 		})
 	require.Nil(t, err)

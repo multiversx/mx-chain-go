@@ -129,7 +129,7 @@ type CoreComponentsHolder interface {
 	TxVersionChecker() process.TxVersionCheckerHandler
 	EncodedAddressLen() uint32
 	NodeTypeProvider() core.NodeTypeProviderHandler
-	ArwenChangeLocker() common.Locker
+	WasmVMChangeLocker() common.Locker
 	ProcessStatusHandler() common.ProcessStatusHandler
 	HardforkTriggerPubKey() []byte
 	EnableEpochsHandler() common.EnableEpochsHandler

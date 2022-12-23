@@ -120,7 +120,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
-	arwenConfig "github.com/ElrondNetwork/wasm-vm-v1_4/config"
+	wasmConfig "github.com/ElrondNetwork/wasm-vm-v1_4/config"
 )
 
 var zero = big.NewInt(0)
@@ -306,7 +306,7 @@ type TestProcessorNode struct {
 	ResolversContainer    dataRetriever.ResolversContainer
 	ResolverFinder        dataRetriever.ResolversFinder
 	RequestHandler        process.RequestHandler
-	ArwenChangeLocker     common.Locker
+	WasmVMChangeLocker    common.Locker
 
 	InterimProcContainer   process.IntermediateProcessorContainer
 	TxProcessor            process.TransactionProcessor
@@ -436,7 +436,7 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 		HistoryRepository:        &dblookupextMock.HistoryRepositoryStub{},
 		EpochNotifier:            genericEpochNotifier,
 		EnableEpochsHandler:      enableEpochsHandler,
-		ArwenChangeLocker:        &sync.RWMutex{},
+		WasmVMChangeLocker:       &sync.RWMutex{},
 		TransactionLogProcessor:  logsProcessor,
 		Bootstrapper:             mock.NewTestBootstrapperMock(),
 		PeersRatingHandler:       peersRatingHandler,
@@ -668,7 +668,7 @@ func (tpn *TestProcessorNode) initTestNodeWithArgs(args ArgTestProcessorNode) {
 	}
 	tpn.initInterceptors(strPk)
 
-	gasMap := arwenConfig.MakeGasMapForTests()
+	gasMap := wasmConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasMap, 1)
 	if args.GasScheduleMap != nil {
 		gasMap = args.GasScheduleMap
@@ -685,7 +685,7 @@ func (tpn *TestProcessorNode) initTestNodeWithArgs(args ArgTestProcessorNode) {
 			EconomicsFee:             tpn.EconomicsData,
 			BlockChainHook:           tpn.BlockchainHook,
 			BlockChain:               tpn.BlockChain,
-			ArwenChangeLocker:        tpn.ArwenChangeLocker,
+			WasmVMChangeLocker:       tpn.WasmVMChangeLocker,
 			Bootstrapper:             tpn.Bootstrapper,
 			AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
 		}
@@ -847,7 +847,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 			GasSchedule:         gasSchedule,
 			EpochNotifier:       tpn.EpochNotifier,
 			EnableEpochsHandler: tpn.EnableEpochsHandler,
-			ArwenChangeLocker:   tpn.ArwenChangeLocker,
+			WasmVMChangeLocker:  tpn.WasmVMChangeLocker,
 			ESDTTransferParser:  esdtTransferParser,
 		}
 		vmFactory, _ = shard.NewVMContainerFactory(argsNewVMFactory)
@@ -861,7 +861,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 		EconomicsFee:             tpn.EconomicsData,
 		BlockChainHook:           vmFactory.BlockChainHookImpl(),
 		BlockChain:               tpn.BlockChain,
-		ArwenChangeLocker:        tpn.ArwenChangeLocker,
+		WasmVMChangeLocker:       tpn.WasmVMChangeLocker,
 		Bootstrapper:             tpn.Bootstrapper,
 		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
 	}
@@ -878,7 +878,7 @@ func (tpn *TestProcessorNode) InitializeProcessors(gasMap map[string]map[string]
 		EconomicsFee:             tpn.EconomicsData,
 		BlockChainHook:           tpn.BlockchainHook,
 		BlockChain:               tpn.BlockChain,
-		ArwenChangeLocker:        tpn.ArwenChangeLocker,
+		WasmVMChangeLocker:       tpn.WasmVMChangeLocker,
 		Bootstrapper:             tpn.Bootstrapper,
 		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
 	}
@@ -1422,7 +1422,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		BuiltInFunctions:    argsHook.BuiltInFunctions,
 		EpochNotifier:       tpn.EpochNotifier,
 		EnableEpochsHandler: tpn.EnableEpochsHandler,
-		ArwenChangeLocker:   tpn.ArwenChangeLocker,
+		WasmVMChangeLocker:  tpn.WasmVMChangeLocker,
 		ESDTTransferParser:  esdtTransferParser,
 	}
 	vmFactory, _ := shard.NewVMContainerFactory(argsNewVMFactory)
@@ -1474,7 +1474,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		BadTxForwarder:      badBlocksHandler,
 		EnableEpochsHandler: tpn.EnableEpochsHandler,
 		VMOutputCacher:      txcache.NewDisabledCache(),
-		ArwenChangeLocker:   tpn.ArwenChangeLocker,
+		WasmVMChangeLocker:  tpn.WasmVMChangeLocker,
 	}
 	sc, _ := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	tpn.ScProcessor = smartContract.NewTestScProcessor(sc)
@@ -1721,7 +1721,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		BadTxForwarder:      badBlocksHandler,
 		EnableEpochsHandler: tpn.EnableEpochsHandler,
 		VMOutputCacher:      txcache.NewDisabledCache(),
-		ArwenChangeLocker:   tpn.ArwenChangeLocker,
+		WasmVMChangeLocker:  tpn.WasmVMChangeLocker,
 	}
 	scProcessor, _ := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	tpn.ScProcessor = smartContract.NewTestScProcessor(scProcessor)
@@ -2203,7 +2203,7 @@ func (tpn *TestProcessorNode) initNode() {
 	coreComponents.SyncTimerField = &mock.SyncTimerMock{}
 	coreComponents.EnableEpochsHandlerField = tpn.EnableEpochsHandler
 	coreComponents.EpochNotifierField = tpn.EpochNotifier
-	coreComponents.ArwenChangeLockerInternal = tpn.ArwenChangeLocker
+	coreComponents.WasmVMChangeLockerInternal = tpn.WasmVMChangeLocker
 	hardforkPubKeyBytes, _ := coreComponents.ValidatorPubKeyConverterField.Decode(hardforkPubKey)
 	coreComponents.HardforkTriggerPubKeyField = hardforkPubKeyBytes
 
@@ -3186,7 +3186,7 @@ func createTxsSender(shardCoordinator storage.ShardCoordinator, messenger txsSen
 
 func getDefaultVMConfig() *config.VirtualMachineConfig {
 	return &config.VirtualMachineConfig{
-		ArwenVersions: []config.ArwenVersionByEpoch{
+		WasmVMVersions: []config.WasmVMVersionByEpoch{
 			{StartEpoch: 0, Version: "*"},
 		},
 	}

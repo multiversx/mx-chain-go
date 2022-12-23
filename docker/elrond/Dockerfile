@@ -8,7 +8,7 @@ RUN GO111MODULE=on go mod vendor
 #Elrond node
 WORKDIR /go/elrond-go/cmd/node
 RUN go build -i -v -ldflags="-X main.appVersion=$(git describe --tags --long --dirty)"
-RUN cp /go/pkg/mod/github.com/!elrond!network/arwen-wasm-vm@$(cat /go/elrond-go/go.mod | grep arwen-wasm-vm | sed 's/.* //' | tail -n 1)/wasmer/libwasmer_linux_amd64.so /lib/libwasmer_linux_amd64.so
+RUN cp /go/pkg/mod/github.com/!elrond!network/wasm-vm@$(cat /go/elrond-go/go.mod | grep wasm-vm | sed 's/.* //' | tail -n 1)/wasmer/libwasmer_linux_amd64.so /lib/libwasmer_linux_amd64.so
 
 WORKDIR /go/elrond-go/cmd/node
 # ===== SECOND STAGE ======

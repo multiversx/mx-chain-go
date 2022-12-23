@@ -1,7 +1,7 @@
 //go:build !race
 // +build !race
 
-// TODO remove build condition above to allow -race -short, after Arwen fix
+// TODO remove build condition above to allow -race -short, after Wasm VM fix
 
 package txsFee
 
@@ -27,7 +27,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	arwenConfig "github.com/ElrondNetwork/wasm-vm-v1_4/config"
+	wasmConfig "github.com/ElrondNetwork/wasm-vm-v1_4/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -48,9 +48,9 @@ func prepareTestContextForEpoch836(tb testing.TB) (*vm.VMTestContext, []byte) {
 		GasScheduleConfig: config.GasScheduleConfig{
 			GasScheduleByEpochs: []config.GasScheduleByEpochs{cfg},
 		},
-		ConfigDir:         gasScheduleDir,
-		EpochNotifier:     forking.NewGenericEpochNotifier(),
-		ArwenChangeLocker: &sync.RWMutex{},
+		ConfigDir:          gasScheduleDir,
+		EpochNotifier:      forking.NewGenericEpochNotifier(),
+		WasmVMChangeLocker: &sync.RWMutex{},
 	}
 	gasScheduleNotifier, err := forking.NewGasScheduleNotifier(argsGasScheduleNotifier)
 	require.Nil(tb, err)
@@ -72,11 +72,11 @@ func prepareTestContextForEpoch836(tb testing.TB) (*vm.VMTestContext, []byte) {
 	scAddress, _ := utils.DoColdDeploy(
 		tb,
 		testContext,
-		"../arwen/testdata/distributeRewards/code.wasm",
+		"../wasm/testdata/distributeRewards/code.wasm",
 		senderBalance,
 		"0100",
 	)
-	utils.OverwriteAccountStorageWithHexFileContent(tb, testContext, scAddress, "../arwen/testdata/distributeRewards/data.hex")
+	utils.OverwriteAccountStorageWithHexFileContent(tb, testContext, scAddress, "../wasm/testdata/distributeRewards/data.hex")
 	utils.CleanAccumulatedIntermediateTransactions(tb, testContext)
 
 	db.ClearCache()
@@ -89,7 +89,7 @@ func TestScCallShouldWork(t *testing.T) {
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, _ := utils.DoDeploy(t, testContext, "../arwen/testdata/counter/output/counter.wasm")
+	scAddress, _ := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm")
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	sndAddr := []byte("12345678901234567890123456789112")
@@ -162,7 +162,7 @@ func TestScCallInvalidMethodToCallShouldConsumeGas(t *testing.T) {
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, _ := utils.DoDeploy(t, testContext, "../arwen/testdata/counter/output/counter.wasm")
+	scAddress, _ := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm")
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	sndAddr := []byte("12345678901234567890123456789112")
@@ -196,7 +196,7 @@ func TestScCallInsufficientGasLimitShouldNotConsumeGas(t *testing.T) {
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, _ := utils.DoDeploy(t, testContext, "../arwen/testdata/counter/output/counter.wasm")
+	scAddress, _ := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm")
 
 	sndAddr := []byte("12345678901234567890123456789112")
 	senderBalance := big.NewInt(100000)
@@ -231,7 +231,7 @@ func TestScCallOutOfGasShouldConsumeGas(t *testing.T) {
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, _ := utils.DoDeploy(t, testContext, "../arwen/testdata/counter/output/counter.wasm")
+	scAddress, _ := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm")
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	sndAddr := []byte("12345678901234567890123456789112")
@@ -267,7 +267,7 @@ func TestScCallAndGasChangeShouldWork(t *testing.T) {
 
 	mockGasSchedule := testContext.GasSchedule.(*mock.GasScheduleNotifierMock)
 
-	scAddress, _ := utils.DoDeploy(t, testContext, "../arwen/testdata/counter/output/counter.wasm")
+	scAddress, _ := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm")
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	sndAddr := []byte("12345678901234567890123456789112")
@@ -288,8 +288,8 @@ func TestScCallAndGasChangeShouldWork(t *testing.T) {
 		require.Nil(t, errCommit)
 	}
 
-	newGasSchedule := arwenConfig.MakeGasMapForTests()
-	newGasSchedule["WASMOpcodeCost"] = arwenConfig.FillGasMap_WASMOpcodeValues(2)
+	newGasSchedule := wasmConfig.MakeGasMapForTests()
+	newGasSchedule["WASMOpcodeCost"] = wasmConfig.FillGasMap_WASMOpcodeValues(2)
 	mockGasSchedule.ChangeGasSchedule(newGasSchedule)
 
 	for idx := uint64(0); idx < numIterations; idx++ {
@@ -344,7 +344,7 @@ func TestESDTScCallAndGasChangeShouldWork(t *testing.T) {
 	}
 
 	mockGasSchedule := testContext.GasSchedule.(*mock.GasScheduleNotifierMock)
-	testGasSchedule := arwenConfig.MakeGasMapForTests()
+	testGasSchedule := wasmConfig.MakeGasMapForTests()
 	newGasSchedule := defaults.FillGasMapInternal(testGasSchedule, 1)
 	newGasSchedule["BuiltInCost"][core.BuiltInFunctionESDTTransfer] = 2
 	newGasSchedule["ElrondAPICost"]["TransferValue"] = 2
@@ -406,12 +406,12 @@ func prepareTestContextForEpoch460(tb testing.TB) (*vm.VMTestContext, []byte) {
 	scAddress, _ := utils.DoDeployWithCustomParams(
 		tb,
 		testContext,
-		"../arwen/testdata/buyNFTCall/code.wasm",
+		"../wasm/testdata/buyNFTCall/code.wasm",
 		senderBalance,
 		gasLimit,
 		params,
 	)
-	utils.OverwriteAccountStorageWithHexFileContent(tb, testContext, scAddress, "../arwen/testdata/buyNFTCall/data.hex")
+	utils.OverwriteAccountStorageWithHexFileContent(tb, testContext, scAddress, "../wasm/testdata/buyNFTCall/data.hex")
 	utils.CleanAccumulatedIntermediateTransactions(tb, testContext)
 
 	return testContext, scAddress

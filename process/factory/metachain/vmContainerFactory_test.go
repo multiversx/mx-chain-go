@@ -18,7 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/vm"
-	arwenConfig "github.com/ElrondNetwork/wasm-vm-v1_4/config"
+	wasmConfig "github.com/ElrondNetwork/wasm-vm-v1_4/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -358,7 +358,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 }
 
 func makeGasSchedule() core.GasScheduleNotifier {
-	gasSchedule := arwenConfig.MakeGasMapForTests()
+	gasSchedule := wasmConfig.MakeGasMapForTests()
 	FillGasMapInternal(gasSchedule, 1)
 	return testscommon.NewGasScheduleNotifierMock(gasSchedule)
 }

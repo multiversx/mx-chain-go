@@ -393,14 +393,14 @@ func GetGeneralConfig() config.Config {
 		},
 		VirtualMachine: config.VirtualMachineServicesConfig{
 			Execution: config.VirtualMachineConfig{
-				ArwenVersions: []config.ArwenVersionByEpoch{
+				WasmVMVersions: []config.WasmVMVersionByEpoch{
 					{StartEpoch: 0, Version: "*"},
 				},
 			},
 			Querying: config.QueryVirtualMachineConfig{
 				NumConcurrentVMs: 1,
 				VirtualMachineConfig: config.VirtualMachineConfig{
-					ArwenVersions: []config.ArwenVersionByEpoch{
+					WasmVMVersions: []config.WasmVMVersionByEpoch{
 						{StartEpoch: 0, Version: "*"},
 					},
 				},

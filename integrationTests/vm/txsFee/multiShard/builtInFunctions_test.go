@@ -32,9 +32,9 @@ func getZeroGasAndFees() scheduled.GasAndFees {
 // 3. Do a ClaimDeveloperReward (cross shard call , the transaction will be executed on the source shard and the destination shard)
 // 4. Execute SCR from context destination on context source ( the new owner will receive the developer rewards)
 func TestBuiltInFunctionExecuteOnSourceAndDestinationShouldWork(t *testing.T) {
-	// TODO reinstate test after Arwen pointer fix
+	// TODO reinstate test after Wasm VM pointer fix
 	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Arwen fix")
+		t.Skip("cannot run with -race -short; requires Wasm VM fix")
 	}
 
 	testContextSource, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(
@@ -53,7 +53,7 @@ func TestBuiltInFunctionExecuteOnSourceAndDestinationShouldWork(t *testing.T) {
 	require.Nil(t, err)
 	defer testContextDst.Close()
 
-	pathToContract := "../../arwen/testdata/counter/output/counter.wasm"
+	pathToContract := "../../wasm/testdata/counter/output/counter.wasm"
 	scAddr, owner := utils.DoDeploy(t, testContextDst, pathToContract)
 	require.Equal(t, uint32(1), testContextDst.ShardCoordinator.ComputeId(scAddr))
 	require.Equal(t, uint32(1), testContextDst.ShardCoordinator.ComputeId(owner))
