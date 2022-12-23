@@ -603,9 +603,10 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 
 	log.Debug("preparing to index block", "hash", headerHash, "nonce", header.GetNonce(), "round", header.GetRound())
 	argSaveBlock, err := sp.outportDataProvider.PrepareOutportSaveBlockData(processOutport.ArgPrepareOutportSaveBlockData{
-		HeaderHash: headerHash,
-		Header:     header,
-		Body:       body,
+		HeaderHash:     headerHash,
+		Header:         header,
+		Body:           body,
+		PreviousHeader: lastBlockHeader,
 	})
 	if err != nil {
 		log.Warn("shardProcessor.indexBlockIfNeeded cannot prepare argSaveBlock", "error", err.Error())

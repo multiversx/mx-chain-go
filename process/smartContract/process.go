@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -33,6 +34,7 @@ var _ process.SmartContractResultProcessor = (*scProcessor)(nil)
 var _ process.SmartContractProcessor = (*scProcessor)(nil)
 
 var log = logger.GetOrCreate("process/smartcontract")
+var logCounters = logger.GetOrCreate("process/smartcontract.blockchainHookCounters")
 
 const maxTotalSCRsSize = 3 * (1 << 18) // 768KB
 
@@ -369,6 +371,7 @@ func (sc *scProcessor) executeSmartContractCall(
 	}
 
 	sc.blockChainHook.ResetCounters()
+	defer sc.printBlockchainHookCounters(tx)
 
 	var vmOutput *vmcommon.VMOutput
 	vmOutput, err = vmExec.RunSmartContractCall(vmInput)
@@ -418,6 +421,43 @@ func (sc *scProcessor) isInformativeTxHandler(txHandler data.TransactionHandler)
 
 	_, err = sc.builtInFunctions.Get(function)
 	return err != nil
+}
+
+func (sc *scProcessor) printBlockchainHookCounters(tx data.TransactionHandler) {
+	if logCounters.GetLevel() > logger.LogTrace {
+		return
+	}
+
+	logCounters.Trace("blockchain hook counters",
+		"counters", sc.getBlockchainHookCountersString(),
+		"tx hash", sc.computeTxHashUnsafe(tx),
+		"receiver", sc.pubkeyConv.Encode(tx.GetRcvAddr()),
+		"sender", sc.pubkeyConv.Encode(tx.GetSndAddr()),
+		"value", tx.GetValue().String(),
+		"data", tx.GetData(),
+	)
+}
+
+func (sc *scProcessor) getBlockchainHookCountersString() string {
+	counters := sc.blockChainHook.GetCounterValues()
+	keys := make([]string, len(counters))
+
+	idx := 0
+	for key := range counters {
+		keys[idx] = key
+		idx++
+	}
+
+	sort.Slice(keys, func(i, j int) bool {
+		return keys[i] < keys[j]
+	})
+
+	lines := make([]string, 0, len(counters))
+	for _, key := range keys {
+		lines = append(lines, fmt.Sprintf("%s: %d", key, counters[key]))
+	}
+
+	return strings.Join(lines, ", ")
 }
 
 func (sc *scProcessor) cleanInformativeOnlySCRs(scrs []data.TransactionHandler) ([]data.TransactionHandler, []*vmcommon.LogEntry) {
@@ -847,6 +887,7 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 	acntSnd, acntDst state.UserAccountHandler,
 ) (vmcommon.ReturnCode, error) {
 	sc.blockChainHook.ResetCounters()
+	defer sc.printBlockchainHookCounters(tx)
 
 	returnCode, vmInput, txHash, err := sc.prepareExecution(tx, acntSnd, acntDst, true)
 	if err != nil || returnCode != vmcommon.Ok {
@@ -890,7 +931,7 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 	}
 
 	if vmInput.CallType == vmData.AsynchronousCallBack {
-		// in case of asynchronous callback - the process of built in function is a must
+		// in case of asynchronous callback - the process of built-in function is a must
 		snapshot = sc.accounts.JournalLen()
 	}
 
@@ -1618,6 +1659,7 @@ func (sc *scProcessor) doDeploySmartContract(
 	acntSnd state.UserAccountHandler,
 ) (vmcommon.ReturnCode, error) {
 	sc.blockChainHook.ResetCounters()
+	defer sc.printBlockchainHookCounters(tx)
 
 	isEmptyAddress := sc.isDestAddressEmpty(tx)
 	if !isEmptyAddress {
