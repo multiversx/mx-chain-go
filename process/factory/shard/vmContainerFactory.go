@@ -7,6 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -40,6 +41,7 @@ type vmContainerFactory struct {
 	arwenVersions       []config.ArwenVersionByEpoch
 	arwenChangeLocker   common.Locker
 	esdtTransferParser  vmcommon.ESDTTransferParser
+	hasher              hashing.Hasher
 }
 
 // ArgVMContainerFactory defines the arguments needed to the new VM factory
@@ -53,6 +55,7 @@ type ArgVMContainerFactory struct {
 	ESDTTransferParser  vmcommon.ESDTTransferParser
 	BuiltInFunctions    vmcommon.BuiltInFunctionContainer
 	BlockChainHook      process.BlockChainHookHandler
+	Hasher              hashing.Hasher
 }
 
 // NewVMContainerFactory is responsible for creating a new virtual machine factory object
@@ -78,6 +81,9 @@ func NewVMContainerFactory(args ArgVMContainerFactory) (*vmContainerFactory, err
 	if check.IfNil(args.BlockChainHook) {
 		return nil, process.ErrNilBlockChainHook
 	}
+	if check.IfNil(args.Hasher) {
+		return nil, process.ErrNilHasher
+	}
 
 	cryptoHook := hooks.NewVMCryptoHook()
 
@@ -93,6 +99,7 @@ func NewVMContainerFactory(args ArgVMContainerFactory) (*vmContainerFactory, err
 		container:           nil,
 		arwenChangeLocker:   args.ArwenChangeLocker,
 		esdtTransferParser:  args.ESDTTransferParser,
+		hasher:              args.Hasher,
 	}
 
 	vmf.arwenVersions = args.Config.ArwenVersions
@@ -318,6 +325,7 @@ func (vmf *vmContainerFactory) createInProcessArwenVMV14() (vmcommon.VMExecution
 		TimeOutForSCExecutionInMilliseconds: vmf.config.TimeOutForSCExecutionInMilliseconds,
 		EpochNotifier:                       vmf.epochNotifier,
 		EnableEpochsHandler:                 vmf.enableEpochsHandler,
+		Hasher:                              vmf.hasher,
 	}
 	return arwenHost14.NewArwenVM(vmf.blockChainHook, hostParameters)
 }

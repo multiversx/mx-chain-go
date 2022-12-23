@@ -289,7 +289,7 @@ func TestScCallAndGasChangeShouldWork(t *testing.T) {
 	}
 
 	newGasSchedule := arwenConfig.MakeGasMapForTests()
-	newGasSchedule["WASMOpcodeCost"] = arwenConfig.FillGasMap_WASMOpcodeValues(2)
+	newGasSchedule["WASMOpcodeCost"] = arwenConfig.FillGasMapWASMOpcodeValues(2)
 	mockGasSchedule.ChangeGasSchedule(newGasSchedule)
 
 	for idx := uint64(0); idx < numIterations; idx++ {
