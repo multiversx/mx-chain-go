@@ -124,9 +124,6 @@ type baseBootstrap struct {
 	isInImportMode               bool
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	processWaitTime              time.Duration
-
-	userAccountsStorerIdentifier string
-	peerAccountsStorerIdentifier string
 }
 
 // setRequestedHeaderNonce method sets the header nonce requested by the sync mechanism
@@ -1127,29 +1124,17 @@ func (boot *baseBootstrap) waitForMiniBlocks() error {
 	}
 }
 
-func (boot *baseBootstrap) setAccountsStorerIdentifiers() error {
-	userStorer, err := boot.store.GetStorer(dataRetriever.UserAccountsUnit)
+func (boot *baseBootstrap) getStorerIdentifier(unitType dataRetriever.UnitType) (string, error) {
+	storer, err := boot.store.GetStorer(unitType)
 	if err != nil {
-		return err
+		return "", err
 	}
-	dbWithID, ok := userStorer.(dbStorerWithIdentifier)
+	dbWithID, ok := storer.(dbStorerWithIdentifier)
 	if !ok {
-		return errors.ErrWrongTypeAssertion
-	}
-	boot.userAccountsStorerIdentifier = dbWithID.GetIdentifier()
-
-	peerStorer, err := boot.store.GetStorer(dataRetriever.PeerAccountsUnit)
-	if err != nil {
-		return err
-	}
-	dbPeerWithID, ok := peerStorer.(dbStorerWithIdentifier)
-	if !ok {
-		return errors.ErrWrongTypeAssertion
+		return "", errors.ErrWrongTypeAssertion
 	}
 
-	boot.peerAccountsStorerIdentifier = dbPeerWithID.GetIdentifier()
-
-	return nil
+	return dbWithID.GetIdentifier(), nil
 }
 
 func (boot *baseBootstrap) init() {
