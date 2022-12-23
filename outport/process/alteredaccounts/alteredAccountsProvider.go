@@ -121,10 +121,7 @@ func (aap *alteredAccountsProvider) processMarkedAccountData(
 	alteredAccounts[encodedAddress] = aap.getAlteredAccountFromUserAccounts(encodedAddress, userAccount)
 
 	if options.WithAdditionalOutportData {
-		alteredAccounts[encodedAddress].AdditionalData = &outportcore.AdditionalAccountData{
-			IsSender:       markedAccount.isSender,
-			BalanceChanged: markedAccount.balanceChanged,
-		}
+		aap.addAdditionalDataInAlteredAccount(alteredAccounts[encodedAddress], userAccount, markedAccount)
 	}
 
 	for _, tokenData := range markedAccount.tokens {
@@ -137,21 +134,28 @@ func (aap *alteredAccountsProvider) processMarkedAccountData(
 	return nil
 }
 
-func (aap *alteredAccountsProvider) getAlteredAccountFromUserAccounts(userEncodedAddress string, userAccount state.UserAccountHandler) *outportcore.AlteredAccount {
-	alteredAccount := &outportcore.AlteredAccount{
-		Address:  userEncodedAddress,
-		Balance:  userAccount.GetBalance().String(),
-		Nonce:    userAccount.GetNonce(),
-		UserName: string(userAccount.GetUserName()),
+func (aap *alteredAccountsProvider) addAdditionalDataInAlteredAccount(alteredAccount *outportcore.AlteredAccount, userAccount state.UserAccountHandler, markedAccount *markedAlteredAccount) {
+	alteredAccount.AdditionalData = &outportcore.AdditionalAccountData{
+		IsSender:       markedAccount.isSender,
+		BalanceChanged: markedAccount.balanceChanged,
+		UserName:       string(userAccount.GetUserName()),
 	}
 
 	ownerAddressBytes := userAccount.GetOwnerAddress()
 	if core.IsSmartContractAddress(userAccount.AddressBytes()) && len(ownerAddressBytes) == aap.addressConverter.Len() {
-		alteredAccount.CurrentOwner = aap.addressConverter.Encode(ownerAddressBytes)
+		alteredAccount.AdditionalData.CurrentOwner = aap.addressConverter.Encode(ownerAddressBytes)
 	}
 	developerRewards := userAccount.GetDeveloperReward()
 	if developerRewards != nil {
-		alteredAccount.DeveloperRewards = developerRewards.String()
+		alteredAccount.AdditionalData.DeveloperRewards = developerRewards.String()
+	}
+}
+
+func (aap *alteredAccountsProvider) getAlteredAccountFromUserAccounts(userEncodedAddress string, userAccount state.UserAccountHandler) *outportcore.AlteredAccount {
+	alteredAccount := &outportcore.AlteredAccount{
+		Address: userEncodedAddress,
+		Balance: userAccount.GetBalance().String(),
+		Nonce:   userAccount.GetNonce(),
 	}
 
 	return alteredAccount

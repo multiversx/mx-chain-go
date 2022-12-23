@@ -94,14 +94,21 @@ func TestGetAlteredAccountFromUserAccount(t *testing.T) {
 		UserName:         []byte("contract"),
 		Address:          []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 	}
-	res := aap.getAlteredAccountFromUserAccounts("addr", userAccount)
+
+	res := &outportcore.AlteredAccount{
+		Address: "addr",
+		Balance: "1000",
+	}
+	aap.addAdditionalDataInAlteredAccount(res, userAccount, &markedAlteredAccount{})
 
 	require.Equal(t, &outportcore.AlteredAccount{
-		Address:          "addr",
-		Balance:          "1000",
-		DeveloperRewards: "100",
-		CurrentOwner:     "6f776e6572",
-		UserName:         "contract",
+		Address: "addr",
+		Balance: "1000",
+		AdditionalData: &outportcore.AdditionalAccountData{
+			DeveloperRewards: "100",
+			CurrentOwner:     "6f776e6572",
+			UserName:         "contract",
+		},
 	}, res)
 
 	userAccount = &state.UserAccountStub{
@@ -110,12 +117,19 @@ func TestGetAlteredAccountFromUserAccount(t *testing.T) {
 		Owner:            []byte("own"),
 		Address:          []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 	}
-	res = aap.getAlteredAccountFromUserAccounts("addr", userAccount)
+
+	res = &outportcore.AlteredAccount{
+		Address: "addr",
+		Balance: "5000",
+	}
+	aap.addAdditionalDataInAlteredAccount(res, userAccount, &markedAlteredAccount{})
 
 	require.Equal(t, &outportcore.AlteredAccount{
-		Address:          "addr",
-		Balance:          "5000",
-		DeveloperRewards: "5000",
+		Address: "addr",
+		Balance: "5000",
+		AdditionalData: &outportcore.AdditionalAccountData{
+			DeveloperRewards: "5000",
+		},
 	}, res)
 }
 
