@@ -1187,6 +1187,7 @@ func (pcf *processComponentsFactory) createVMFactoryShard(
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 		ArwenChangeLocker:   arwenChangeLocker,
 		ESDTTransferParser:  esdtTransferParser,
+		Hasher:              pcf.coreData.Hasher(),
 	}
 
 	return shard.NewVMContainerFactory(argsNewVMFactory)
