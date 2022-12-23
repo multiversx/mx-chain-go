@@ -19,7 +19,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var log = logger.GetOrCreate("integrationtests")
+var log = logger.GetOrCreate("integrationtests/consensus")
 
 const (
 	consensusTimeBetweenRounds = time.Second

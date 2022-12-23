@@ -131,16 +131,18 @@ func getGlobalSettingsAddresses() map[uint32]string {
 	numShards := uint32(3)
 	addressesMap := make(map[uint32]string, numShards)
 	for i := uint32(0); i < numShards; i++ {
-		addressesMap[i], _ = computeGlobalSettingsAddr(i)
+		addressesMap[i] = computeGlobalSettingsAddr(i)
 	}
 
 	return addressesMap
 }
 
-func computeGlobalSettingsAddr(shardID uint32) (string, error) {
+func computeGlobalSettingsAddr(shardID uint32) string {
 	baseSystemAccountAddress := core.SystemAccountAddress
 	globalSettingsAddress := baseSystemAccountAddress
 	globalSettingsAddress[len(globalSettingsAddress)-1] = uint8(shardID)
 
-	return addressEncoder.Encode(globalSettingsAddress)
+	computedAddress, _ := addressEncoder.Encode(globalSettingsAddress)
+
+	return computedAddress
 }
