@@ -27,6 +27,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
+	"github.com/ElrondNetwork/elrond-go-crypto/signing/secp256k1"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -2260,6 +2261,8 @@ func CreateCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards uint32, num
 	suite := mcl.NewSuiteBLS12()
 	singleSigner := TestSingleSigner
 	keyGen := signing.NewKeyGenerator(suite)
+	p2pSuite := secp256k1.NewSecp256k1()
+	p2pKeyGen := signing.NewKeyGenerator(p2pSuite)
 
 	nodesKeysMap := make(map[uint32][]*TestNodeKeys)
 	txKeysMap := make(map[uint32][]*TestKeyPair)
@@ -2276,6 +2279,7 @@ func CreateCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards uint32, num
 	params := &CryptoParams{
 		NodesKeys:    nodesKeysMap,
 		KeyGen:       keyGen,
+		P2PKeyGen:    p2pKeyGen,
 		SingleSigner: singleSigner,
 		TxKeyGen:     txKeyGen,
 		TxKeys:       txKeysMap,

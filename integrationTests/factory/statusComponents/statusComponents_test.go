@@ -37,7 +37,6 @@ func TestStatusComponents_Create_Close_ShouldWork(t *testing.T) {
 	require.Nil(t, err)
 	managedStatusCoreComponents, err := nr.CreateManagedStatusCoreComponents(managedCoreComponents)
 	require.Nil(t, err)
-	//TODO(JLS) fix creation of components + check order of closing
 	managedCryptoComponents, err := nr.CreateManagedCryptoComponents(managedCoreComponents)
 	require.Nil(t, err)
 	managedNetworkComponents, err := nr.CreateManagedNetworkComponents(managedCoreComponents, managedStatusCoreComponents, managedCryptoComponents)

@@ -31,7 +31,7 @@ func createMockArgsKeysHandler() ArgsKeysHandler {
 				}
 			},
 		},
-		Pid: "pid",
+		Pid: pid,
 	}
 }
 
@@ -96,7 +96,7 @@ func TestNewKeysHandler(t *testing.T) {
 		assert.False(t, check.IfNil(handler))
 		assert.Nil(t, err)
 		assert.Equal(t, testPublicKeyBytes, handler.publicKeyBytes)
-		assert.Equal(t, core.PeerID("pid"), handler.pid)
+		assert.Equal(t, pid, handler.pid)
 		assert.False(t, check.IfNil(handler.privateKey))
 		assert.False(t, check.IfNil(handler.managedPeersHolder))
 		assert.False(t, check.IfNil(handler.privateKey))

@@ -293,7 +293,6 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
-	//TODO(JLS) fix creation of components + order of closing
 	log.Debug("creating network components")
 	managedNetworkComponents, err := nr.CreateManagedNetworkComponents(managedCoreComponents, managedStatusCoreComponents, managedCryptoComponents)
 	if err != nil {

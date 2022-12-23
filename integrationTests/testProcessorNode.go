@@ -240,6 +240,7 @@ type TestNodeKeys struct {
 // CryptoParams holds crypto parameters
 type CryptoParams struct {
 	KeyGen       crypto.KeyGenerator
+	P2PKeyGen    crypto.KeyGenerator
 	NodesKeys    map[uint32][]*TestNodeKeys
 	SingleSigner crypto.SingleSigner
 	TxKeyGen     crypto.KeyGenerator

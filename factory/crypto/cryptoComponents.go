@@ -88,17 +88,18 @@ type cryptoParams struct {
 type p2pCryptoParams struct {
 	p2pPublicKey  crypto.PublicKey
 	p2pPrivateKey crypto.PrivateKey
-	pid           core.PeerID
 }
 
 // cryptoComponents struct holds the crypto components
 type cryptoComponents struct {
 	txSingleSigner          crypto.SingleSigner
 	blockSingleSigner       crypto.SingleSigner
+	p2pSingleSigner         crypto.SingleSigner
 	multiSignerContainer    cryptoCommon.MultiSignerContainer
 	peerSignHandler         crypto.PeerSignatureHandler
 	blockSignKeyGen         crypto.KeyGenerator
 	txSignKeyGen            crypto.KeyGenerator
+	p2pKeyGen               crypto.KeyGenerator
 	messageSignVerifier     vm.MessageSignVerifier
 	consensusSigningHandler consensus.SigningHandler
 	managedPeersHolder      heartbeat.ManagedPeersHolder
@@ -123,9 +124,6 @@ func NewCryptoComponentsFactory(args CryptoComponentsFactoryArgs) (*cryptoCompon
 	if args.KeyLoader == nil {
 		return nil, errors.ErrNilKeyLoader
 	}
-	if len(args.CurrentPid) == 0 {
-		return nil, errors.ErrEmptyPeerID
-	}
 
 	ccf := &cryptoComponentsFactory{
 		consensusType:                        args.Config.Consensus.Type,
@@ -141,7 +139,6 @@ func NewCryptoComponentsFactory(args CryptoComponentsFactoryArgs) (*cryptoCompon
 		enableEpochs:                         args.EnableEpochs,
 		noKeyProvided:                        args.NoKeyProvided,
 		p2pKeyPemFileName:                    args.P2pKeyPemFileName,
-		currentPid:                           args.CurrentPid,
 		allValidatorKeysPemFileName:          args.AllValidatorKeysPemFileName,
 	}
 
@@ -215,7 +212,7 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 	isMainMachine := redundancyLevel == mainMachineRedundancyLevel
 	argsManagedPeersHolder := keysManagement.ArgsManagedPeersHolder{
 		KeyGenerator:                     blockSignKeyGen,
-		P2PIdentityGenerator:             p2pFactory.NewIdentityGenerator(),
+		P2PKeyGenerator:                  p2pKeyGenerator,
 		IsMainMachine:                    isMainMachine,
 		MaxRoundsWithoutReceivedMessages: redundancyLevel,
 		PrefsConfig:                      ccf.prefsConfig,
@@ -234,10 +231,15 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 
 	log.Debug("block sign pubkey", "value", cp.publicKeyString)
 
+	currentPid, err := p2pFactory.ConvertPublicKeyToPeerID(p2pCryptoParamsInstance.p2pPublicKey)
+	if err != nil {
+		return nil, err
+	}
+
 	argsKeysHandler := keysManagement.ArgsKeysHandler{
 		ManagedPeersHolder: managedPeersHolder,
 		PrivateKey:         cp.privateKey,
-		Pid:                ccf.currentPid,
+		Pid:                currentPid,
 	}
 	keysHandler, err := keysManagement.NewKeysHandler(argsKeysHandler)
 	if err != nil {

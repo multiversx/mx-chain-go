@@ -13,7 +13,6 @@ import (
 
 // CryptoComponentsMock -
 type CryptoComponentsMock struct {
-	// TODO(JLS) check these
 	PubKey                  crypto.PublicKey
 	PrivKey                 crypto.PrivateKey
 	P2pPubKey               crypto.PublicKey

@@ -17,16 +17,17 @@ type CryptoComponentsStub struct {
 	PrivKey                 crypto.PrivateKey
 	P2pPubKey               crypto.PublicKey
 	P2pPrivKey              crypto.PrivateKey
-	P2pSig                  crypto.SingleSignerPubKeyString            string
 	PrivKeyBytes            []byte
 	PubKeyBytes             []byte
+	PubKeyString            string
 	BlockSig                crypto.SingleSigner
 	TxSig                   crypto.SingleSigner
+	P2pSig                  crypto.SingleSigner
 	MultiSigContainer       cryptoCommon.MultiSignerContainer
 	PeerSignHandler         crypto.PeerSignatureHandler
 	BlKeyGen                crypto.KeyGenerator
 	TxKeyGen                crypto.KeyGenerator
-	P2PKeyGencrypto.KeyGenerator
+	P2PKeyGen               crypto.KeyGenerator
 	MsgSigVerifier          vm.MessageSignVerifier
 	ManagedPeersHolderField heartbeat.ManagedPeersHolder
 	KeysHandlerField        consensus.KeysHandler
@@ -175,9 +176,9 @@ func (ccs *CryptoComponentsStub) KeysHandler() consensus.KeysHandler {
 func (ccs *CryptoComponentsStub) Clone() interface{} {
 	return &CryptoComponentsStub{
 		PubKey:                  ccs.PubKey,
-		P2pPubKey:         ccs.P2pPubKey,
+		P2pPubKey:               ccs.P2pPubKey,
 		PrivKey:                 ccs.PrivKey,
-		P2pPrivKey:        ccs.P2pPrivKey,
+		P2pPrivKey:              ccs.P2pPrivKey,
 		PubKeyString:            ccs.PubKeyString,
 		PrivKeyBytes:            ccs.PrivKeyBytes,
 		PubKeyBytes:             ccs.PubKeyBytes,
@@ -187,7 +188,7 @@ func (ccs *CryptoComponentsStub) Clone() interface{} {
 		PeerSignHandler:         ccs.PeerSignHandler,
 		BlKeyGen:                ccs.BlKeyGen,
 		TxKeyGen:                ccs.TxKeyGen,
-		P2PKeyGen:         ccs.P2PKeyGen,
+		P2PKeyGen:               ccs.P2PKeyGen,
 		MsgSigVerifier:          ccs.MsgSigVerifier,
 		ManagedPeersHolderField: ccs.ManagedPeersHolderField,
 		KeysHandlerField:        ccs.KeysHandlerField,

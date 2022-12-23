@@ -12,6 +12,7 @@ import (
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/p2p/factory"
 )
 
 const minRoundsWithoutReceivedMessages = -1
@@ -23,7 +24,7 @@ type managedPeersHolder struct {
 	data                             map[string]*peerInfo
 	pids                             map[core.PeerID]struct{}
 	keyGenerator                     crypto.KeyGenerator
-	p2pIdentityGenerator             P2PIdentityGenerator
+	p2pKeyGenerator                  crypto.KeyGenerator
 	isMainMachine                    bool
 	maxRoundsWithoutReceivedMessages int
 	defaultName                      string
@@ -33,7 +34,7 @@ type managedPeersHolder struct {
 // ArgsManagedPeersHolder represents the argument for the managed peers holder
 type ArgsManagedPeersHolder struct {
 	KeyGenerator                     crypto.KeyGenerator
-	P2PIdentityGenerator             P2PIdentityGenerator
+	P2PKeyGenerator                  crypto.KeyGenerator
 	IsMainMachine                    bool
 	MaxRoundsWithoutReceivedMessages int
 	PrefsConfig                      config.Preferences
@@ -55,7 +56,7 @@ func NewManagedPeersHolder(args ArgsManagedPeersHolder) (*managedPeersHolder, er
 		data:                             dataMap,
 		pids:                             make(map[core.PeerID]struct{}),
 		keyGenerator:                     args.KeyGenerator,
-		p2pIdentityGenerator:             args.P2PIdentityGenerator,
+		p2pKeyGenerator:                  args.P2PKeyGenerator,
 		isMainMachine:                    args.IsMainMachine,
 		maxRoundsWithoutReceivedMessages: args.MaxRoundsWithoutReceivedMessages,
 		defaultName:                      args.PrefsConfig.Preferences.NodeDisplayName,
@@ -67,10 +68,10 @@ func NewManagedPeersHolder(args ArgsManagedPeersHolder) (*managedPeersHolder, er
 
 func checkManagedPeersHolderArgs(args ArgsManagedPeersHolder) error {
 	if check.IfNil(args.KeyGenerator) {
-		return errNilKeyGenerator
+		return fmt.Errorf("%w for args.KeyGenerator", errNilKeyGenerator)
 	}
-	if check.IfNil(args.P2PIdentityGenerator) {
-		return errNilP2PIdentityGenerator
+	if check.IfNil(args.P2PKeyGenerator) {
+		return fmt.Errorf("%w for args.P2PKeyGenerator", errNilKeyGenerator)
 	}
 	if args.MaxRoundsWithoutReceivedMessages < minRoundsWithoutReceivedMessages {
 		return fmt.Errorf("%w for MaxRoundsWithoutReceivedMessages, minimum %d, got %d",
@@ -117,7 +118,14 @@ func (holder *managedPeersHolder) AddManagedPeer(privateKeyBytes []byte) error {
 		return fmt.Errorf("%w for provided bytes %s", err, hex.EncodeToString(privateKeyBytes))
 	}
 
-	p2pPrivateKeyBytes, pid, err := holder.p2pIdentityGenerator.CreateRandomP2PIdentity()
+	p2pPrivateKey, p2pPublicKey := holder.p2pKeyGenerator.GeneratePair()
+
+	p2pPrivateKeyBytes, err := p2pPrivateKey.ToByteArray()
+	if err != nil {
+		return err
+	}
+
+	pid, err := factory.ConvertPublicKeyToPeerID(p2pPublicKey)
 	if err != nil {
 		return err
 	}

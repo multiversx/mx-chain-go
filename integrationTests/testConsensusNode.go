@@ -27,7 +27,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	p2pFactory "github.com/ElrondNetwork/elrond-go/p2p/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	syncFork "github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -82,6 +81,7 @@ func NewTestConsensusNode(
 	eligibleMap map[uint32][]nodesCoordinator.Validator,
 	waitingMap map[uint32][]nodesCoordinator.Validator,
 	keyGen crypto.KeyGenerator,
+	p2pKeyGen crypto.KeyGenerator,
 	multiSigner cryptoMocks.MultisignerMock,
 ) *TestConsensusNode {
 
@@ -92,7 +92,16 @@ func NewTestConsensusNode(
 		ShardCoordinator: shardCoordinator,
 		MultiSigner:      multiSigner,
 	}
-	tcn.initNode(consensusSize, roundTime, consensusType, eligibleMap, waitingMap, keyGen, nodeKeys.HandledKeys)
+	tcn.initNode(
+		consensusSize,
+		roundTime,
+		consensusType,
+		eligibleMap,
+		waitingMap,
+		keyGen,
+		p2pKeyGen,
+		nodeKeys.HandledKeys,
+	)
 
 	return tcn
 }
@@ -130,6 +139,7 @@ func CreateNodesWithTestConsensusNode(
 				eligibleMap,
 				waitingMap,
 				cp.KeyGen,
+				cp.P2PKeyGen,
 				multiSignerMock,
 			)
 			nodes[nodeShardId] = append(nodes[nodeShardId], tcn)
@@ -169,6 +179,7 @@ func (tcn *TestConsensusNode) initNode(
 	eligibleMap map[uint32][]nodesCoordinator.Validator,
 	waitingMap map[uint32][]nodesCoordinator.Validator,
 	keyGen crypto.KeyGenerator,
+	p2pKeyGen crypto.KeyGenerator,
 	handledKeys []*TestKeyPair,
 ) {
 	testHasher := createHasher(consensusType)
@@ -250,7 +261,7 @@ func (tcn *TestConsensusNode) initNode(
 
 	argsKeysHolder := keysManagement.ArgsManagedPeersHolder{
 		KeyGenerator:                     keyGen,
-		P2PIdentityGenerator:             p2pFactory.NewIdentityGenerator(),
+		P2PKeyGenerator:                  p2pKeyGen,
 		IsMainMachine:                    true,
 		MaxRoundsWithoutReceivedMessages: 10,
 		PrefsConfig:                      config.Preferences{},
