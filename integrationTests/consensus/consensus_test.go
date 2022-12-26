@@ -227,7 +227,7 @@ func runFullConsensusTest(t *testing.T, consensusType string) {
 	go checkBlockProposedEveryRound(numCommBlock, nonceForRoundMap, mutex, chDone, t)
 
 	extraTime := uint64(2)
-	endTime := time.Duration(roundTime) * time.Duration(numCommBlock+extraTime) * time.Millisecond
+	endTime := time.Duration(roundTime)*time.Duration(numCommBlock+extraTime)*time.Millisecond + time.Minute
 	select {
 	case <-chDone:
 	case <-time.After(endTime):
