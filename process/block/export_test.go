@@ -428,9 +428,8 @@ func (bp *baseProcessor) UpdateState(
 	rootHash []byte,
 	prevRootHash []byte,
 	accounts state.AccountsAdapter,
-	statePruningQueue core.Queue,
 ) {
-	bp.updateStateStorage(finalHeader, rootHash, prevRootHash, accounts, statePruningQueue)
+	bp.updateStateStorage(finalHeader, rootHash, prevRootHash, accounts)
 }
 
 func GasAndFeesDelta(initialGasAndFees, finalGasAndFees scheduled.GasAndFees) scheduled.GasAndFees {

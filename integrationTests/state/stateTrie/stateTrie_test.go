@@ -1525,7 +1525,7 @@ func TestTriePruningWhenBlockIsFinal(t *testing.T) {
 	require.True(t, errors.Is(err, trie.ErrKeyNotFound))
 }
 
-func TestStatePruningIsBuffered(t *testing.T) {
+func TestStatePruningIsNotBuffered(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -1541,7 +1541,6 @@ func TestStatePruningIsBuffered(t *testing.T) {
 	)
 
 	shardNode := nodes[0]
-
 	idxProposers := make([]int, numOfShards+1)
 	for i := 0; i < numOfShards; i++ {
 		idxProposers[i] = i * nodesPerShard
@@ -1556,10 +1555,7 @@ func TestStatePruningIsBuffered(t *testing.T) {
 		}
 	}()
 
-	sendValue := big.NewInt(5)
-	receiverAddress := []byte("12345678901234567890123456789012")
 	initialVal := big.NewInt(10000000000)
-
 	integrationTests.MintAllNodes(nodes, initialVal)
 
 	round := uint64(0)
@@ -1571,41 +1567,52 @@ func TestStatePruningIsBuffered(t *testing.T) {
 
 	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 
-	rootHash := shardNode.BlockChain.GetCurrentBlockHeader().GetRootHash()
-	stateTrie := shardNode.TrieContainer.Get([]byte(trieFactory.UserAccountTrie))
-
-	delayRounds := 10
-	for i := 0; i < delayRounds; i++ {
-		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
-	}
-
-	numRounds := 10
-	for i := 0; i < numRounds; i++ {
-		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
-
-		for _, node := range nodes {
-			integrationTests.CreateAndSendTransaction(node, nodes, sendValue, receiverAddress, "", integrationTests.AdditionalGasLimit)
+	delayRounds := 5
+	for j := 0; j < 8; j++ {
+		// alter the shardNode's state by placing the value0 variable inside it's data trie
+		alterState(t, shardNode, nodes, []byte("key"), []byte("value0"))
+		for i := 0; i < delayRounds; i++ {
+			round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 		}
-		time.Sleep(integrationTests.StepDelay)
+		checkTrieCanBeRecreated(t, shardNode)
 
-		tr, err := stateTrie.Recreate(rootHash)
-		require.Nil(t, err)
-		require.NotNil(t, tr)
-	}
-
-	numDelayRounds := 10
-	for i := 0; i < numDelayRounds; i++ {
-		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
-
-		for _, node := range nodes {
-			integrationTests.CreateAndSendTransaction(node, nodes, sendValue, receiverAddress, "", integrationTests.AdditionalGasLimit)
+		// alter the shardNode's state by placing the value1 variable inside it's data trie
+		alterState(t, shardNode, nodes, []byte("key"), []byte("value1"))
+		for i := 0; i < delayRounds; i++ {
+			round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 		}
-		time.Sleep(integrationTests.StepDelay)
+		checkTrieCanBeRecreated(t, shardNode)
 	}
+}
 
-	tr, err := stateTrie.Recreate(rootHash)
-	require.Nil(t, tr)
-	require.NotNil(t, err)
+func alterState(tb testing.TB, node *integrationTests.TestProcessorNode, nodes []*integrationTests.TestProcessorNode, key []byte, value []byte) {
+	shardID := node.ShardCoordinator.SelfId()
+	for _, n := range nodes {
+		if n.ShardCoordinator.SelfId() != shardID {
+			continue
+		}
+
+		account, err := n.AccntState.LoadAccount(node.OwnAccount.Address)
+		assert.Nil(tb, err)
+
+		userAccount := account.(state.UserAccountHandler)
+		err = userAccount.DataTrieTracker().SaveKeyValue(key, value)
+		assert.Nil(tb, err)
+
+		err = n.AccntState.SaveAccount(userAccount)
+		assert.Nil(tb, err)
+
+		_, err = n.AccntState.Commit()
+		assert.Nil(tb, err)
+	}
+}
+
+func checkTrieCanBeRecreated(tb testing.TB, node *integrationTests.TestProcessorNode) {
+	stateTrie := node.TrieContainer.Get([]byte(trieFactory.UserAccountTrie))
+	roothash := node.BlockChain.GetCurrentBlockRootHash()
+	tr, err := stateTrie.Recreate(roothash)
+	require.Nil(tb, err)
+	require.NotNil(tb, tr)
 }
 
 func TestSnapshotOnEpochChange(t *testing.T) {

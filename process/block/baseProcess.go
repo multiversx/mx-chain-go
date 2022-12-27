@@ -1369,7 +1369,6 @@ func (bp *baseProcessor) updateStateStorage(
 	currRootHash []byte,
 	prevRootHash []byte,
 	accounts state.AccountsAdapter,
-	statePruningQueue core.Queue,
 ) {
 	if !accounts.IsPruningEnabled() {
 		return
@@ -1387,13 +1386,8 @@ func (bp *baseProcessor) updateStateStorage(
 		return
 	}
 
-	rootHashToBePruned := statePruningQueue.Add(prevRootHash)
-	if len(rootHashToBePruned) == 0 {
-		return
-	}
-
-	accounts.CancelPrune(rootHashToBePruned, state.NewRoot)
-	accounts.PruneTrie(rootHashToBePruned, state.OldRoot, bp.getPruningHandler(finalHeader.GetNonce()))
+	accounts.CancelPrune(prevRootHash, state.NewRoot)
+	accounts.PruneTrie(prevRootHash, state.OldRoot, bp.getPruningHandler(finalHeader.GetNonce()))
 }
 
 // RevertCurrentBlock reverts the current block for cleanup failed process

@@ -15,7 +15,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/keyValStorage"
-	"github.com/ElrondNetwork/elrond-go-core/core/queue"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
@@ -1952,7 +1951,10 @@ func TestBaseProcessor_updateState(t *testing.T) {
 	numHeaders := 5
 	headers := make([]block.Header, numHeaders)
 	for i := 0; i < numHeaders; i++ {
-		headers[i] = block.Header{Nonce: uint64(i), RootHash: []byte(strconv.Itoa(i))}
+		headers[i] = block.Header{
+			Nonce:    uint64(i),
+			RootHash: []byte(strconv.Itoa(i)),
+		}
 	}
 
 	hdrStore := &storageStubs.StorerStub{
@@ -1996,8 +1998,6 @@ func TestBaseProcessor_updateState(t *testing.T) {
 	}
 	sp, _ := blproc.NewShardProcessor(arguments)
 
-	pruningQueue := queue.NewSliceQueue(uint(numHeaders - 1))
-
 	prevRootHash := []byte("rootHash")
 	for i := range headers {
 		sp.UpdateState(
@@ -2005,18 +2005,20 @@ func TestBaseProcessor_updateState(t *testing.T) {
 			headers[i].RootHash,
 			prevRootHash,
 			arguments.AccountsDB[state.UserAccountsState],
-			pruningQueue,
 		)
 		prevRootHash = headers[i].RootHash
 
-		if i < numHeaders-1 {
-			assert.Equal(t, 0, len(pruneRootHash))
-			assert.Equal(t, 0, len(cancelPruneRootHash))
+		if i == 0 {
+			assert.Equal(t, []byte("rootHash"), pruneRootHash)
+			assert.Equal(t, []byte("rootHash"), cancelPruneRootHash)
+		} else {
+			assert.Equal(t, []byte(strconv.Itoa(i-1)), pruneRootHash)
+			assert.Equal(t, []byte(strconv.Itoa(i-1)), cancelPruneRootHash)
 		}
 	}
 
-	assert.Equal(t, []byte("rootHash"), pruneRootHash)
-	assert.Equal(t, []byte("rootHash"), cancelPruneRootHash)
+	assert.Equal(t, []byte(strconv.Itoa(len(headers)-2)), pruneRootHash)
+	assert.Equal(t, []byte(strconv.Itoa(len(headers)-2)), cancelPruneRootHash)
 }
 
 func TestBaseProcessor_ProcessScheduledBlockShouldFail(t *testing.T) {
@@ -2828,19 +2830,15 @@ func TestMetaProcessor_RestoreBlockBodyIntoPoolsShouldWork(t *testing.T) {
 func TestBaseProcessor_getPruningHandler(t *testing.T) {
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-	arguments.Config = config.Config{
-		StateTriesConfig: config.StateTriesConfig{
-			UserStatePruningQueueSize: 6,
-		},
-	}
+	arguments.Config = config.Config{}
 	bp, _ := blproc.NewShardProcessor(arguments)
 
 	bp.SetLastRestartNonce(1)
-	ph := bp.GetPruningHandler(12)
+	ph := bp.GetPruningHandler(10)
 	assert.False(t, ph.IsPruningEnabled())
 
 	bp.SetLastRestartNonce(1)
-	ph = bp.GetPruningHandler(13)
+	ph = bp.GetPruningHandler(11)
 	assert.False(t, ph.IsPruningEnabled())
 
 	bp.SetLastRestartNonce(1)
@@ -2851,11 +2849,7 @@ func TestBaseProcessor_getPruningHandler(t *testing.T) {
 func TestBaseProcessor_getPruningHandlerSetsDefaulPruningDelay(t *testing.T) {
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-	arguments.Config = config.Config{
-		StateTriesConfig: config.StateTriesConfig{
-			UserStatePruningQueueSize: 4,
-		},
-	}
+	arguments.Config = config.Config{}
 	bp, _ := blproc.NewShardProcessor(arguments)
 
 	bp.SetLastRestartNonce(0)
