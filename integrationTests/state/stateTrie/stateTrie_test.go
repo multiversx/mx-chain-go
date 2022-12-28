@@ -23,8 +23,10 @@ import (
 	dataTx "github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -1585,6 +1587,75 @@ func TestStatePruningIsNotBuffered(t *testing.T) {
 	}
 }
 
+func TestStatePruningIsNotBufferedOnConsecutiveBlocks(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	numOfShards := 1
+	nodesPerShard := 1
+	numMetachainNodes := 1
+
+	nodes := integrationTests.CreateNodes(
+		numOfShards,
+		nodesPerShard,
+		numMetachainNodes,
+	)
+
+	shardNode := nodes[0]
+	idxProposers := make([]int, numOfShards+1)
+	for i := 0; i < numOfShards; i++ {
+		idxProposers[i] = i * nodesPerShard
+	}
+	idxProposers[numOfShards] = numOfShards * nodesPerShard
+
+	integrationTests.DisplayAndStartNodes(nodes)
+
+	defer func() {
+		for _, n := range nodes {
+			n.Close()
+		}
+	}()
+
+	initialVal := big.NewInt(10000000000)
+	integrationTests.MintAllNodes(nodes, initialVal)
+
+	round := uint64(0)
+	nonce := uint64(0)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+
+	time.Sleep(integrationTests.StepDelay)
+
+	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+
+	// TODO - remove L1633-L1644
+	logger.SetLogLevel("*:DEBUG")
+
+	fargs := core.ArgCreateFileArgument{
+		Directory:     "",
+		Prefix:        "log",
+		FileExtension: "log",
+	}
+
+	f, _ := core.CreateFile(fargs)
+	defer f.Close()
+
+	logger.AddLogObserver(f, &logger.PlainFormatter{})
+
+	for j := 0; j < 30; j++ {
+		// alter the shardNode's state by placing the value0 variable inside it's data trie
+		alterState(t, shardNode, nodes, []byte("key"), []byte("value0"))
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+		checkTrieCanBeRecreated(t, shardNode)
+
+		// alter the shardNode's state by placing the value1 variable inside it's data trie
+		alterState(t, shardNode, nodes, []byte("key"), []byte("value1"))
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+		checkTrieCanBeRecreated(t, shardNode)
+	}
+}
+
 func alterState(tb testing.TB, node *integrationTests.TestProcessorNode, nodes []*integrationTests.TestProcessorNode, key []byte, value []byte) {
 	shardID := node.ShardCoordinator.SelfId()
 	for _, n := range nodes {
@@ -1608,9 +1679,30 @@ func alterState(tb testing.TB, node *integrationTests.TestProcessorNode, nodes [
 }
 
 func checkTrieCanBeRecreated(tb testing.TB, node *integrationTests.TestProcessorNode) {
+	if node.ShardCoordinator.SelfId() == core.MetachainShardId {
+		return
+	}
+
 	stateTrie := node.TrieContainer.Get([]byte(trieFactory.UserAccountTrie))
 	roothash := node.BlockChain.GetCurrentBlockRootHash()
 	tr, err := stateTrie.Recreate(roothash)
+	require.Nil(tb, err)
+	require.NotNil(tb, tr)
+
+	_, _, finalRoothash := node.BlockChain.GetFinalBlockInfo()
+	tr, err = stateTrie.Recreate(finalRoothash)
+	require.Nil(tb, err)
+	require.NotNil(tb, tr)
+
+	currentBlockHeader := node.BlockChain.GetCurrentBlockHeader()
+	prevHeaderHash := currentBlockHeader.GetPrevHash()
+	hdrBytes, err := node.Storage.Get(dataRetriever.BlockHeaderUnit, prevHeaderHash)
+	require.Nil(tb, err)
+	hdr := &block.Header{}
+	err = integrationTests.TestMarshalizer.Unmarshal(hdr, hdrBytes)
+	require.Nil(tb, err)
+
+	tr, err = stateTrie.Recreate(hdr.GetRootHash())
 	require.Nil(tb, err)
 	require.NotNil(tb, tr)
 }
