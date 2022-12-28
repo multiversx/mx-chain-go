@@ -390,7 +390,9 @@ func TestGenerateAndSendBulkTransactions_ShouldWork(t *testing.T) {
 func getDefaultCryptoComponents() *factoryMock.CryptoComponentsMock {
 	return &factoryMock.CryptoComponentsMock{
 		PubKey:            &mock.PublicKeyMock{},
+		P2pPubKey:         &mock.PublicKeyMock{},
 		PrivKey:           &mock.PrivateKeyStub{},
+		P2pPrivKey:        &mock.PrivateKeyStub{},
 		PubKeyString:      "pubKey",
 		PrivKeyBytes:      []byte("privKey"),
 		PubKeyBytes:       []byte("pubKey"),
@@ -400,6 +402,7 @@ func getDefaultCryptoComponents() *factoryMock.CryptoComponentsMock {
 		PeerSignHandler:   &mock.PeerSignatureHandler{},
 		BlKeyGen:          &mock.KeyGenMock{},
 		TxKeyGen:          &mock.KeyGenMock{},
+		P2PKeyGen:         &mock.KeyGenMock{},
 		MsgSigVerifier:    &testscommon.MessageSignVerifierMock{},
 	}
 }

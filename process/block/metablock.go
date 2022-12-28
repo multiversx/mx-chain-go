@@ -626,6 +626,7 @@ func (mp *metaProcessor) indexBlock(
 		Body:                   body,
 		RewardsTxs:             rewardsTxs,
 		NotarizedHeadersHashes: notarizedHeadersHashes,
+		PreviousHeader:         lastMetaBlock,
 	})
 	if err != nil {
 		log.Warn("metaProcessor.indexBlock cannot prepare argSaveBlock", "error", err.Error())

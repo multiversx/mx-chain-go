@@ -113,6 +113,8 @@ type EnableEpochsHandlerStub struct {
 	IsFixAsyncCallBackArgsListFlagEnabledField                   bool
 	IsFixOldTokenLiquidityEnabledField                           bool
 	IsRuntimeMemStoreLimitEnabledField                           bool
+	IsMaxBlockchainHookCountersFlagEnabledField                  bool
+	IsWipeSingleNFTLiquidityDecreaseEnabledField                 bool
 	IsGuardAccountEnabledField                                   bool
 	IsSetGuardianEnabledField                                    bool
 }
@@ -972,20 +974,36 @@ func (stub *EnableEpochsHandlerStub) IsFixOldTokenLiquidityEnabled() bool {
 	return stub.IsFixOldTokenLiquidityEnabledField
 }
 
-// IsGuardAccountEnabled -
-func (stub *EnableEpochsHandlerStub) IsGuardAccountEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsGuardAccountEnabledField
-}
-
 // IsRuntimeMemStoreLimitEnabled -
 func (stub *EnableEpochsHandlerStub) IsRuntimeMemStoreLimitEnabled() bool {
 	stub.RLock()
 	defer stub.RUnlock()
 
 	return stub.IsRuntimeMemStoreLimitEnabledField
+}
+
+// IsMaxBlockchainHookCountersFlagEnabled -
+func (stub *EnableEpochsHandlerStub) IsMaxBlockchainHookCountersFlagEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsMaxBlockchainHookCountersFlagEnabledField
+}
+
+// IsWipeSingleNFTLiquidityDecreaseEnabled -
+func (stub *EnableEpochsHandlerStub) IsWipeSingleNFTLiquidityDecreaseEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsWipeSingleNFTLiquidityDecreaseEnabledField
+}
+
+// IsGuardAccountEnabled -
+func (stub *EnableEpochsHandlerStub) IsGuardAccountEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsGuardAccountEnabledField
 }
 
 // IsSetGuardianEnabled -

@@ -4,7 +4,7 @@ import (
 	"crypto/rand"
 
 	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 )
 
 // PublicKeyMock -
@@ -15,6 +15,16 @@ type PublicKeyMock struct {
 // PrivateKeyMock -
 type PrivateKeyMock struct {
 	privKey []byte
+}
+
+// NewPrivateKeyMock -
+func NewPrivateKeyMock() *PrivateKeyMock {
+	buff := make([]byte, 32)
+	_, _ = rand.Read(buff)
+
+	return &PrivateKeyMock{
+		privKey: buff,
+	}
 }
 
 // KeyGenMock -
