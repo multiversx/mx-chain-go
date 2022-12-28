@@ -43,11 +43,15 @@ func TestUsageCounter_ProcessCrtNumberOfTrieReadsCounter(t *testing.T) {
 	counter, _ := NewUsageCounter(&testscommon.ESDTTransferParserStub{})
 	counter.SetMaximumValues(generateMapsOfValues(3))
 
-	assert.Nil(t, counter.ProcessCrtNumberOfTrieReadsCounter())                                        // counter is now 1
-	assert.Nil(t, counter.ProcessCrtNumberOfTrieReadsCounter())                                        // counter is now 2
-	assert.Nil(t, counter.ProcessCrtNumberOfTrieReadsCounter())                                        // counter is now 3
-	assert.ErrorIs(t, counter.ProcessCrtNumberOfTrieReadsCounter(), process.ErrMaxBuiltInCallsReached) // counter is now 4, error signalled
-	assert.ErrorIs(t, counter.ProcessCrtNumberOfTrieReadsCounter(), process.ErrMaxBuiltInCallsReached) // counter is now 5, error signalled
+	assert.Nil(t, counter.ProcessCrtNumberOfTrieReadsCounter())                                 // counter is now 1
+	assert.Nil(t, counter.ProcessCrtNumberOfTrieReadsCounter())                                 // counter is now 2
+	assert.Nil(t, counter.ProcessCrtNumberOfTrieReadsCounter())                                 // counter is now 3
+	assert.ErrorIs(t, counter.ProcessCrtNumberOfTrieReadsCounter(), process.ErrMaxCallsReached) // counter is now 4, error signalled
+	err := counter.ProcessCrtNumberOfTrieReadsCounter()                                         // counter is now 5, error signalled
+	assert.ErrorIs(t, err, process.ErrMaxCallsReached)
+	t.Run("backwards compatibility on error message string", func(t *testing.T) {
+		assert.Equal(t, "max calls reached: too many reads from trie", err.Error())
+	})
 
 	countersMap := counter.GetCounterValues()
 	expectedMap := map[string]uint64{
@@ -80,11 +84,15 @@ func TestUsageCounter_ProcessMaxBuiltInCounters(t *testing.T) {
 
 		vmInput := &vmcommon.ContractCallInput{}
 
-		assert.Nil(t, counter.ProcessMaxBuiltInCounters(vmInput))                                        // counter is now 1
-		assert.Nil(t, counter.ProcessMaxBuiltInCounters(vmInput))                                        // counter is now 2
-		assert.Nil(t, counter.ProcessMaxBuiltInCounters(vmInput))                                        // counter is now 3
-		assert.ErrorIs(t, counter.ProcessMaxBuiltInCounters(vmInput), process.ErrMaxBuiltInCallsReached) // counter is now 4, error signalled
-		assert.ErrorIs(t, counter.ProcessMaxBuiltInCounters(vmInput), process.ErrMaxBuiltInCallsReached) // counter is now 5, error signalled
+		assert.Nil(t, counter.ProcessMaxBuiltInCounters(vmInput))                                 // counter is now 1
+		assert.Nil(t, counter.ProcessMaxBuiltInCounters(vmInput))                                 // counter is now 2
+		assert.Nil(t, counter.ProcessMaxBuiltInCounters(vmInput))                                 // counter is now 3
+		assert.ErrorIs(t, counter.ProcessMaxBuiltInCounters(vmInput), process.ErrMaxCallsReached) // counter is now 4, error signalled
+		err := counter.ProcessMaxBuiltInCounters(vmInput)                                         // counter is now 5, error signalled
+		assert.ErrorIs(t, err, process.ErrMaxCallsReached)
+		t.Run("backwards compatibility on error message string", func(t *testing.T) {
+			assert.Equal(t, "max calls reached: too many built-in functions calls", err.Error())
+		})
 
 		countersMap := counter.GetCounterValues()
 		expectedMap := map[string]uint64{
@@ -121,11 +129,16 @@ func TestUsageCounter_ProcessMaxBuiltInCounters(t *testing.T) {
 
 		vmInput := &vmcommon.ContractCallInput{}
 
-		assert.Nil(t, counter.ProcessMaxBuiltInCounters(vmInput))                                        // counter is now 2
-		assert.Nil(t, counter.ProcessMaxBuiltInCounters(vmInput))                                        // counter is now 4
-		assert.Nil(t, counter.ProcessMaxBuiltInCounters(vmInput))                                        // counter is now 6
-		assert.ErrorIs(t, counter.ProcessMaxBuiltInCounters(vmInput), process.ErrMaxBuiltInCallsReached) // counter is now 8, error signalled
-		assert.ErrorIs(t, counter.ProcessMaxBuiltInCounters(vmInput), process.ErrMaxBuiltInCallsReached) // counter is now 10, error signalled
+		assert.Nil(t, counter.ProcessMaxBuiltInCounters(vmInput))                                 // counter is now 2
+		assert.Nil(t, counter.ProcessMaxBuiltInCounters(vmInput))                                 // counter is now 4
+		assert.Nil(t, counter.ProcessMaxBuiltInCounters(vmInput))                                 // counter is now 6
+		assert.ErrorIs(t, counter.ProcessMaxBuiltInCounters(vmInput), process.ErrMaxCallsReached) // counter is now 8, error signalled
+		err := counter.ProcessMaxBuiltInCounters(vmInput)                                         // counter is now 10, error signalled
+		assert.ErrorIs(t, err, process.ErrMaxCallsReached)
+		t.Run("backwards compatibility on error message string", func(t *testing.T) {
+			assert.Equal(t, "max calls reached: too many ESDT transfers", err.Error())
+		})
+
 		countersMap := counter.GetCounterValues()
 		expectedMap := map[string]uint64{
 			crtBuiltinCalls: 5,
