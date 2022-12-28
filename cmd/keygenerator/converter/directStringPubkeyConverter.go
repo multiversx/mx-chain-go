@@ -13,8 +13,8 @@ func (converter *directStringPubkeyConverter) Decode(humanReadable string) ([]by
 }
 
 // Encode encodes a byte array in its string representation
-func (converter *directStringPubkeyConverter) Encode(pkBytes []byte) string {
-	return string(pkBytes)
+func (converter *directStringPubkeyConverter) Encode(pkBytes []byte) (string, error) {
+	return string(pkBytes), nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -3,8 +3,8 @@ module github.com/ElrondNetwork/elrond-go
 go 1.17
 
 require (
-	github.com/ElrondNetwork/elastic-indexer-go v1.3.3
-	github.com/ElrondNetwork/elrond-go-core v1.1.26
+	github.com/ElrondNetwork/elastic-indexer-go v1.3.4
+	github.com/ElrondNetwork/elrond-go-core v1.1.27
 	github.com/ElrondNetwork/elrond-go-crypto v1.2.3
 	github.com/ElrondNetwork/elrond-go-logger v1.0.10
 	github.com/ElrondNetwork/elrond-go-p2p v1.0.6
@@ -69,7 +69,7 @@ require (
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/hashicorp/errwrap v1.0.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
-	github.com/hashicorp/golang-lru v0.5.4 // indirect
+	github.com/hashicorp/golang-lru v0.6.0 // indirect
 	github.com/herumi/bls-go-binary v1.0.0 // indirect
 	github.com/huin/goupnp v1.0.3 // indirect
 	github.com/ipfs/go-cid v0.2.0 // indirect

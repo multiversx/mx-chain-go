@@ -38,6 +38,7 @@ func (facade *logsFacade) GetLog(logKey []byte, epoch uint32) (*transaction.ApiL
 	}
 
 	apiResource := facade.converter.txLogToApiResource(logKey, txLog)
+
 	return apiResource, nil
 }
 

@@ -48,6 +48,7 @@ type PubkeyConfig struct {
 	Length          int
 	Type            string
 	SignatureLength int
+	Hrp             string
 }
 
 // TypeConfig will map the string type configuration

@@ -111,7 +111,7 @@ func (aap *alteredAccountsProvider) processMarkedAccountData(
 	options shared.AlteredAccountsOptions,
 ) error {
 	addressBytes := []byte(addressStr)
-	encodedAddress := aap.addressConverter.Encode(addressBytes)
+	encodedAddress := aap.addressConverter.SilentEncode(addressBytes, log)
 
 	userAccount, err := aap.loadUserAccount(addressBytes, options)
 	if err != nil {
@@ -189,12 +189,17 @@ func (aap *alteredAccountsProvider) addTokensDataForMarkedAccount(
 		return nil
 	}
 
+	metaData, err := aap.convertMetaData(esdtToken.TokenMetaData)
+	if err != nil {
+		return err
+	}
+
 	accountTokenData := &outportcore.AccountTokenData{
 		Identifier: tokenID,
 		Balance:    esdtToken.Value.String(),
 		Nonce:      nonce,
 		Properties: string(esdtToken.Properties),
-		MetaData:   aap.convertMetaData(esdtToken.TokenMetaData),
+		MetaData:   metaData,
 	}
 	if options.WithAdditionalOutportData {
 		accountTokenData.AdditionalData = &outportcore.AdditionalAccountTokenData{
@@ -208,20 +213,25 @@ func (aap *alteredAccountsProvider) addTokensDataForMarkedAccount(
 	return nil
 }
 
-func (aap *alteredAccountsProvider) convertMetaData(metaData *esdt.MetaData) *outportcore.TokenMetaData {
+func (aap *alteredAccountsProvider) convertMetaData(metaData *esdt.MetaData) (*outportcore.TokenMetaData, error) {
 	if metaData == nil {
-		return nil
+		return nil, nil
+	}
+
+	metaDataCreatorAddr, err := aap.addressConverter.Encode(metaData.Creator)
+	if err != nil {
+		return nil, fmt.Errorf("%w while encoding metadata creator", err)
 	}
 
 	return &outportcore.TokenMetaData{
 		Nonce:      metaData.Nonce,
 		Name:       string(metaData.Name),
-		Creator:    aap.addressConverter.Encode(metaData.Creator),
+		Creator:    metaDataCreatorAddr,
 		Royalties:  metaData.Royalties,
 		Hash:       metaData.Hash,
 		URIs:       metaData.URIs,
 		Attributes: metaData.Attributes,
-	}
+	}, nil
 }
 
 func (aap *alteredAccountsProvider) extractAddressesWithBalanceChange(

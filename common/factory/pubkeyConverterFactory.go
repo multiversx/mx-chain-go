@@ -5,12 +5,9 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/state"
 )
-
-var log = logger.GetOrCreate("state/factory")
 
 // HexFormat defines the hex format for the pubkey converter
 const HexFormat = "hex"
@@ -24,7 +21,7 @@ func NewPubkeyConverter(config config.PubkeyConfig) (core.PubkeyConverter, error
 	case HexFormat:
 		return pubkeyConverter.NewHexPubkeyConverter(config.Length)
 	case Bech32Format:
-		return pubkeyConverter.NewBech32PubkeyConverter(config.Length, log)
+		return pubkeyConverter.NewBech32PubkeyConverter(config.Length, config.Hrp)
 	default:
 		return nil, fmt.Errorf("%w unrecognized type %s", state.ErrInvalidPubkeyConverterType, config.Type)
 	}

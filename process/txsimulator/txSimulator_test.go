@@ -224,7 +224,7 @@ func getTxSimulatorArgs() ArgsTxSimulator {
 	return ArgsTxSimulator{
 		TransactionProcessor:      &testscommon.TxProcessorStub{},
 		IntermediateProcContainer: &mock.IntermProcessorContainerStub{},
-		AddressPubKeyConverter:    &mock.PubkeyConverterMock{},
+		AddressPubKeyConverter:    &testscommon.PubkeyConverterMock{},
 		ShardCoordinator:          mock.NewMultiShardsCoordinatorMock(2),
 		VMOutputCacher:            txcache.NewDisabledCache(),
 		Marshalizer:               &mock.MarshalizerMock{},

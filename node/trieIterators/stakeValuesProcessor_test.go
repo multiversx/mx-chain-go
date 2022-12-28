@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -33,7 +34,7 @@ func createMockArgs() ArgTrieIteratorProcessor {
 	return ArgTrieIteratorProcessor{
 		Accounts:           createAccountsWrapper(),
 		QueryService:       &mock.SCQueryServiceStub{},
-		PublicKeyConverter: &mock.PubkeyConverterMock{},
+		PublicKeyConverter: &testscommon.PubkeyConverterMock{},
 	}
 }
 
@@ -344,7 +345,7 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue(t *testing.T) {
 			}
 		},
 	}
-	arg.PublicKeyConverter = mock.NewPubkeyConverterMock(10)
+	arg.PublicKeyConverter = testscommon.NewPubkeyConverterMock(10)
 	totalStakedProc, _ := NewTotalStakedValueProcessor(arg)
 
 	stakeValues, err := totalStakedProc.GetTotalStakedValue(context.Background())

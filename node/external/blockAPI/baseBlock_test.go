@@ -37,7 +37,7 @@ func createBaseBlockProcessor() *baseAPIBlockProcessor {
 		uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
 		historyRepo:              &dblookupext.HistoryRepositoryStub{},
 		hasher:                   &hashingMocks.HasherMock{},
-		addressPubKeyConverter:   mock.NewPubkeyConverterMock(32),
+		addressPubKeyConverter:   testscommon.NewPubkeyConverterMock(32),
 		txStatusComputer:         &mock.StatusComputerStub{},
 		apiTransactionHandler:    &mock.TransactionAPIHandlerStub{},
 		logsFacade:               &testscommon.LogsFacadeStub{},
@@ -136,9 +136,12 @@ func TestBaseBlockGetIntraMiniblocksReceipts(t *testing.T) {
 
 	baseAPIBlockProc.apiTransactionHandler = &mock.TransactionAPIHandlerStub{
 		UnmarshalReceiptCalled: func(receiptBytes []byte) (*transaction.ApiReceipt, error) {
+			encodedSndAddrReceiptObj, err := baseAPIBlockProc.addressPubKeyConverter.Encode(receiptObj.SndAddr)
+			require.NoError(t, err)
+
 			return &transaction.ApiReceipt{
 				Value:   receiptObj.Value,
-				SndAddr: baseAPIBlockProc.addressPubKeyConverter.Encode(receiptObj.SndAddr),
+				SndAddr: encodedSndAddrReceiptObj,
 				Data:    string(receiptObj.Data),
 				TxHash:  hex.EncodeToString(receiptObj.TxHash),
 			}, nil

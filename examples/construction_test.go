@@ -7,7 +7,6 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/mock"
 	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
@@ -20,7 +19,7 @@ import (
 )
 
 var (
-	addressEncoder, _  = pubkeyConverter.NewBech32PubkeyConverter(32, &mock.LoggerMock{})
+	addressEncoder, _  = pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
 	signingMarshalizer = &marshal.JsonMarshalizer{}
 	signer             = &singlesig.Ed25519Signer{}
 	signingCryptoSuite = ed25519.NewEd25519()

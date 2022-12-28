@@ -208,7 +208,7 @@ func TestGenerateAndSendBulkTransactions_InvalidReceiverAddressShouldErr(t *test
 	}
 	expectedErr := errors.New("expected error")
 	coreComponents := getDefaultCoreComponents()
-	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+	coreComponents.AddrPubKeyConv = &testscommon.PubkeyConverterStub{
 		DecodeCalled: func(humanReadable string) ([]byte, error) {
 			if len(humanReadable) == 0 {
 				return nil, expectedErr

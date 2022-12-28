@@ -50,7 +50,7 @@ func createMockSigner() crypto.SingleSigner {
 }
 
 func createMockPubkeyConverter() core.PubkeyConverter {
-	return mock.NewPubkeyConverterMock(32)
+	return testscommon.NewPubkeyConverterMock(32)
 }
 
 func createMockFeeHandler() process.FeeHandler {

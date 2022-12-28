@@ -21,7 +21,7 @@ func createMockArgsPendingTransactionProcessor() ArgsPendingTransactionProcessor
 		TxProcessor:      &testscommon.TxProcessorMock{},
 		RwdTxProcessor:   &testscommon.RewardTxProcessorMock{},
 		ScrTxProcessor:   &testscommon.SCProcessorMock{},
-		PubKeyConv:       &mock.PubkeyConverterStub{},
+		PubKeyConv:       &testscommon.PubkeyConverterStub{},
 		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
 	}
 }
@@ -45,7 +45,7 @@ func TestPendingTransactionProcessor_ProcessTransactionsDstMe(t *testing.T) {
 	addr4 := []byte("addr4")
 	addr5 := []byte("addr5")
 	args := createMockArgsPendingTransactionProcessor()
-	args.PubKeyConv = &mock.PubkeyConverterStub{}
+	args.PubKeyConv = &testscommon.PubkeyConverterStub{}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {

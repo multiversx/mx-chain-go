@@ -464,7 +464,12 @@ func (gbc *genesisBlockCreator) computeDNSAddresses(enableEpochsConfig config.En
 		}
 
 		dnsSC.AddAddressBytes(scResultingAddress)
-		dnsSC.AddAddress(gbc.arg.Core.AddressPubKeyConverter().Encode(scResultingAddress))
+
+		encodedSCResultingAddress, err := gbc.arg.Core.AddressPubKeyConverter().Encode(scResultingAddress)
+		if err != nil {
+			return err
+		}
+		dnsSC.AddAddress(encodedSCResultingAddress)
 	}
 
 	return nil

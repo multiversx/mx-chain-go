@@ -47,8 +47,8 @@ import (
 
 const MaxGasLimitPerBlock = uint64(100000)
 
-func createMockPubkeyConverter() *mock.PubkeyConverterMock {
-	return mock.NewPubkeyConverterMock(32)
+func createMockPubkeyConverter() *testscommon.PubkeyConverterMock {
+	return testscommon.NewPubkeyConverterMock(32)
 }
 
 // ------- NewShardProcessor

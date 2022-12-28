@@ -86,7 +86,7 @@ func TestNewDataPoolFromConfig_BadConfigShouldErr(t *testing.T) {
 	require.Nil(t, holder)
 	fmt.Println(err)
 	require.NotNil(t, err)
-	require.True(t, strings.Contains(err.Error(), "Must provide a positive size while creating the cache for the miniblocks"))
+	require.True(t, strings.Contains(err.Error(), "must provide a positive size while creating the cache for the miniblocks"))
 
 	args = getGoodArgs()
 	args.Config.PeerBlockBodyDataPool.Capacity = 0
@@ -94,7 +94,7 @@ func TestNewDataPoolFromConfig_BadConfigShouldErr(t *testing.T) {
 	require.Nil(t, holder)
 	fmt.Println(err)
 	require.NotNil(t, err)
-	require.True(t, strings.Contains(err.Error(), "Must provide a positive size while creating the cache for the peer mini block body"))
+	require.True(t, strings.Contains(err.Error(), "must provide a positive size while creating the cache for the peer mini block body"))
 
 	args = getGoodArgs()
 	args.Config.TrieSyncStorage.Capacity = 0

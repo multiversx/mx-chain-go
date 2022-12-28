@@ -19,6 +19,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
@@ -551,7 +552,8 @@ func TestScCallDistributeStakingRewards_ShouldWork(t *testing.T) {
 	testContext, scAddress := prepareTestContextForEpoch836(t)
 	defer testContext.Close()
 
-	pkConv, _ := pubkeyConverter.NewBech32PubkeyConverter(32, log)
+	pkConv, err := pubkeyConverter.NewBech32PubkeyConverter(32, integrationTests.AddressHrp)
+	require.NoError(t, err)
 	sndAddr1, err := pkConv.Decode("erd1rkhyj0ne054upekymjafwas44v2trdykd22vcg27ap8x2hpg5u7q0296ne")
 	require.Nil(t, err)
 

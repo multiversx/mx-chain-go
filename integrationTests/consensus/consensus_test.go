@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	consensusComp "github.com/ElrondNetwork/elrond-go/factory/consensus"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
@@ -17,6 +18,8 @@ import (
 	consensusMocks "github.com/ElrondNetwork/elrond-go/testscommon/consensus"
 	"github.com/stretchr/testify/assert"
 )
+
+var log = logger.GetOrCreate("integrationtests/consensus")
 
 const (
 	consensusTimeBetweenRounds = time.Second
@@ -48,7 +51,7 @@ func initNodesAndTest(
 	numInvalid uint32,
 	roundTime uint64,
 	consensusType string,
-) map[uint32][]*integrationTests.TestConsensusNode {
+) (map[uint32][]*integrationTests.TestConsensusNode, error) {
 
 	fmt.Println("Step 1. Setup nodes...")
 
@@ -93,7 +96,7 @@ func initNodesAndTest(
 		}
 	}
 
-	return nodes
+	return nodes, nil
 }
 
 func startNodesWithCommitBlock(nodes []*integrationTests.TestConsensusNode, mutex *sync.Mutex, nonceForRoundMap map[uint64]uint64, totalCalled *int) error {
@@ -210,7 +213,10 @@ func runFullConsensusTest(t *testing.T, consensusType string) {
 	roundTime := uint64(1000)
 	numCommBlock := uint64(8)
 
-	nodes := initNodesAndTest(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, consensusType)
+	nodes, err := initNodesAndTest(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, consensusType)
+	if err != nil {
+		assert.Nil(t, err)
+	}
 
 	defer func() {
 		for shardID := range nodes {
@@ -263,7 +269,10 @@ func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string) {
 	consensusSize := uint32(4)
 	numInvalid := uint32(2)
 	roundTime := uint64(1000)
-	nodes := initNodesAndTest(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, consensusType)
+	nodes, err := initNodesAndTest(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, consensusType)
+	if err != nil {
+		assert.Nil(t, err)
+	}
 
 	defer func() {
 		for shardID := range nodes {
@@ -308,10 +317,12 @@ func displayAndStartNodes(shardID uint32, nodes []*integrationTests.TestConsensu
 		skBuff, _ := n.NodeKeys.Sk.ToByteArray()
 		pkBuff, _ := n.NodeKeys.Pk.ToByteArray()
 
+		encodedNodePkBuff := testPubkeyConverter.SilentEncode(pkBuff, log)
+
 		fmt.Printf("Shard ID: %v, sk: %s, pk: %s\n",
 			shardID,
 			hex.EncodeToString(skBuff),
-			testPubkeyConverter.Encode(pkBuff),
+			encodedNodePkBuff,
 		)
 	}
 }

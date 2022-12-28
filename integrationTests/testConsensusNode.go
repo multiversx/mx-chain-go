@@ -246,7 +246,7 @@ func (tcn *TestConsensusNode) initNode(
 	}
 
 	pubKeyBytes, _ := pubKey.ToByteArray()
-	pubKeyString := coreComponents.ValidatorPubKeyConverterField.Encode(pubKeyBytes)
+	pubKeyString := coreComponents.ValidatorPubKeyConverterField.SilentEncode(pubKeyBytes, log)
 	privKeyBytes, _ := privKey.ToByteArray()
 	signatureHolderArgs := cryptoFactory.ArgsSignatureHolder{
 		PubKeys:              []string{pubKeyString},

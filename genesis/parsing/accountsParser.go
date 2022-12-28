@@ -15,11 +15,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/data"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
+
+var log = logger.GetOrCreate("genesis/parsing")
 
 // accountsParser hold data for initial accounts decoded data from json file
 type accountsParser struct {
@@ -252,7 +255,7 @@ func (ap *accountsParser) InitialAccounts() []genesis.InitialAccountHandler {
 
 // GenesisMintingAddress returns the encoded genesis minting address
 func (ap *accountsParser) GenesisMintingAddress() string {
-	return ap.pubkeyConverter.Encode(ap.minterAddressBytes)
+	return ap.pubkeyConverter.SilentEncode(ap.minterAddressBytes, log)
 }
 
 // InitialAccountsSplitOnAddressesShards gets the initial accounts of the nodes split on the addresses' shards

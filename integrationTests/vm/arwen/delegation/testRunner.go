@@ -103,7 +103,12 @@ func RunDelegationStressTest(
 	}
 
 	delegationAddr, err := node.BlockchainHook.NewAddress(node.OwnAccount.Address, node.OwnAccount.Nonce, []byte{5, 0})
-	log.Debug("delegation contract", "address", integrationTests.TestAddressPubkeyConverter.Encode(delegationAddr))
+	encodedDelegationAddr, err := integrationTests.TestAddressPubkeyConverter.Encode(delegationAddr)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Debug("delegation contract", "address", encodedDelegationAddr)
 
 	err = deployDelegationSC(node, delegationFilename)
 	if err != nil {

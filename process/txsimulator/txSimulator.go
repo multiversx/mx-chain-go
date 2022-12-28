@@ -12,12 +12,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/process"
 	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
+
+var log = logger.GetOrCreate("process/txSimulator")
 
 // ArgsTxSimulator holds the arguments required for creating a new transaction simulator
 type ArgsTxSimulator struct {
@@ -184,11 +187,14 @@ func (ts *transactionSimulator) addIntermediateTxsToResult(result *txSimData.Sim
 }
 
 func (ts *transactionSimulator) adaptSmartContractResult(scr *smartContractResult.SmartContractResult) *transaction.ApiSmartContractResult {
+	rcvAddress := ts.addressPubKeyConverter.SilentEncode(scr.RcvAddr, log)
+	sndAddress := ts.addressPubKeyConverter.SilentEncode(scr.SndAddr, log)
+
 	resScr := &transaction.ApiSmartContractResult{
 		Nonce:          scr.Nonce,
 		Value:          scr.Value,
-		RcvAddr:        ts.addressPubKeyConverter.Encode(scr.RcvAddr),
-		SndAddr:        ts.addressPubKeyConverter.Encode(scr.SndAddr),
+		RcvAddr:        rcvAddress,
+		SndAddr:        sndAddress,
 		RelayedValue:   scr.RelayedValue,
 		Code:           string(scr.Code),
 		Data:           string(scr.Data),
@@ -202,19 +208,22 @@ func (ts *transactionSimulator) adaptSmartContractResult(scr *smartContractResul
 	}
 
 	if scr.OriginalSender != nil {
-		resScr.OriginalSender = ts.addressPubKeyConverter.Encode(scr.OriginalSender)
+		resScr.OriginalSender = ts.addressPubKeyConverter.SilentEncode(scr.OriginalSender, log)
 	}
+
 	if scr.RelayerAddr != nil {
-		resScr.RelayerAddr = ts.addressPubKeyConverter.Encode(scr.RelayerAddr)
+		resScr.RelayerAddr = ts.addressPubKeyConverter.SilentEncode(scr.RelayerAddr, log)
 	}
 
 	return resScr
 }
 
 func (ts *transactionSimulator) adaptReceipt(rcpt *receipt.Receipt) *transaction.ApiReceipt {
+	receiptSenderAddress := ts.addressPubKeyConverter.SilentEncode(rcpt.SndAddr, log)
+
 	return &transaction.ApiReceipt{
 		Value:   rcpt.Value,
-		SndAddr: ts.addressPubKeyConverter.Encode(rcpt.SndAddr),
+		SndAddr: receiptSenderAddress,
 		Data:    string(rcpt.Data),
 		TxHash:  hex.EncodeToString(rcpt.TxHash),
 	}
