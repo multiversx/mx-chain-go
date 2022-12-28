@@ -53,6 +53,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/integrationtests"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
@@ -534,6 +535,7 @@ func CreateVMAndBlockchainHookAndDataPool(
 		Counter:               counter,
 	}
 
+	hasher := &hashingMocks.HasherMock{}
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
 	blockChainHookImpl, _ := hooks.NewBlockChainHookImpl(args)
 	argsNewVMFactory := shard.ArgVMContainerFactory{
@@ -546,6 +548,7 @@ func CreateVMAndBlockchainHookAndDataPool(
 		EnableEpochsHandler: enableEpochsHandler,
 		ArwenChangeLocker:   arwenChangeLocker,
 		ESDTTransferParser:  esdtTransferParser,
+		Hasher:              hasher,
 	}
 	vmFactory, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	if err != nil {
