@@ -83,6 +83,9 @@ var ErrNilTrieDataGetter = errors.New("nil trie data getter provided")
 // ErrNilResolverContainer signals that a nil resolver container was provided
 var ErrNilResolverContainer = errors.New("nil resolver container")
 
+// ErrNilRequestersContainer signals that a nil requesters container was provided
+var ErrNilRequestersContainer = errors.New("nil requesters container")
+
 // ErrNilCacher signals that nil cacher was provided
 var ErrNilCacher = errors.New("nil cacher")
 
@@ -286,6 +289,9 @@ var ErrNilStatusCoreComponentsHolder = errors.New("nil status core components ho
 
 // ErrNilAppStatusHandler signals that a nil app status handler was provided
 var ErrNilAppStatusHandler = errors.New("nil app status handler")
+
+// ErrNilAddressConverter signals that a nil address converter was provided
+var ErrNilAddressConverter = errors.New("nil address converter")
 
 // ErrNilHardforkExclusionHandler signals that a nil hardfork exclusion handler was provided
 var ErrNilHardforkExclusionHandler = errors.New("nil hardfork exclusion handler")

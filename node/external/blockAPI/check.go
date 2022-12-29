@@ -15,6 +15,7 @@ var (
 	errNilAlteredAccountsProvider      = errors.New("nil altered accounts provider")
 	errNilAccountsRepository           = errors.New("nil accounts repository")
 	errNilScheduledTxsExecutionHandler = errors.New("nil scheduled txs execution handler")
+	errNilEnableEpochsHandler          = errors.New("nil enable epochs handler")
 )
 
 func checkNilArg(arg *ArgAPIBlockProcessor) error {
@@ -56,6 +57,9 @@ func checkNilArg(arg *ArgAPIBlockProcessor) error {
 	}
 	if check.IfNil(arg.ScheduledTxsExecutionHandler) {
 		return errNilScheduledTxsExecutionHandler
+	}
+	if check.IfNil(arg.EnableEpochsHandler) {
+		return errNilEnableEpochsHandler
 	}
 
 	return nil

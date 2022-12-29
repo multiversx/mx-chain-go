@@ -9,7 +9,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/stretchr/testify/assert"
@@ -90,8 +90,8 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 	}, core.UniqueIdentifier())
 
 	//Step 4. request tx block body
-	txBlockBodyRequester, _ := nRequester.ResolverFinder.IntraShardResolver(factory.MiniBlocksTopic)
-	miniBlockRequester := txBlockBodyRequester.(dataRetriever.MiniBlocksResolver)
+	txBlockBodyRequester, _ := nRequester.RequestersFinder.IntraShardRequester(factory.MiniBlocksTopic)
+	miniBlockRequester := txBlockBodyRequester.(requestHandlers.HashSliceRequester)
 	miniBlockHashes[0] = txBlockBodyHash
 	nRequester.WhiteListHandler.Add(miniBlockHashes)
 	_ = miniBlockRequester.RequestDataFromHashArray(miniBlockHashes, 0)

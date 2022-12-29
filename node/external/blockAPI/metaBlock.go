@@ -38,6 +38,7 @@ func newMetaApiBlockProcessor(arg *ArgAPIBlockProcessor, emptyReceiptsHash []byt
 			alteredAccountsProvider:      arg.AlteredAccountsProvider,
 			accountsRepository:           arg.AccountsRepository,
 			scheduledTxsExecutionHandler: arg.ScheduledTxsExecutionHandler,
+			enableEpochsHandler:          arg.EnableEpochsHandler,
 		},
 	}
 }

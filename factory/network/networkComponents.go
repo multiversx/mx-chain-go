@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/debug/antiflood"
@@ -38,7 +37,7 @@ type NetworkComponentsFactoryArgs struct {
 	BootstrapWaitTime     time.Duration
 	NodeOperationMode     p2p.NodeOperation
 	ConnectionWatcherType string
-	P2pKeyPemFileName     string
+	CryptoComponents      factory.CryptoComponentsHolder
 }
 
 type networkComponentsFactory struct {
@@ -53,7 +52,7 @@ type networkComponentsFactory struct {
 	bootstrapWaitTime     time.Duration
 	nodeOperationMode     p2p.NodeOperation
 	connectionWatcherType string
-	p2pKeyPemFileName     string
+	cryptoComponents      factory.CryptoComponentsHolder
 }
 
 // networkComponents struct holds the network components
@@ -87,6 +86,9 @@ func NewNetworkComponentsFactory(
 	if check.IfNil(args.Syncer) {
 		return nil, errors.ErrNilSyncTimer
 	}
+	if check.IfNil(args.CryptoComponents) {
+		return nil, errors.ErrNilCryptoComponentsHolder
+	}
 
 	return &networkComponentsFactory{
 		p2pConfig:             args.P2pConfig,
@@ -100,7 +102,7 @@ func NewNetworkComponentsFactory(
 		preferredPeersSlices:  args.PreferredPeersSlices,
 		nodeOperationMode:     args.NodeOperationMode,
 		connectionWatcherType: args.ConnectionWatcherType,
-		p2pKeyPemFileName:     args.P2pKeyPemFileName,
+		cryptoComponents:      args.CryptoComponents,
 	}, nil
 }
 
@@ -128,11 +130,6 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		return nil, err
 	}
 
-	p2pPrivateKeyBytes, err := common.GetSkBytesFromP2pKey(ncf.p2pKeyPemFileName)
-	if err != nil {
-		return nil, err
-	}
-
 	arg := p2pFactory.ArgsNetworkMessenger{
 		Marshalizer:           ncf.marshalizer,
 		ListenAddress:         ncf.listenAddress,
@@ -142,7 +139,9 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		NodeOperationMode:     ncf.nodeOperationMode,
 		PeersRatingHandler:    peersRatingHandler,
 		ConnectionWatcherType: ncf.connectionWatcherType,
-		P2pPrivateKeyBytes:    p2pPrivateKeyBytes,
+		P2pPrivateKey:         ncf.cryptoComponents.P2pPrivateKey(),
+		P2pSingleSigner:       ncf.cryptoComponents.P2pSingleSigner(),
+		P2pKeyGenerator:       ncf.cryptoComponents.P2pKeyGen(),
 	}
 	netMessenger, err := p2pFactory.NewNetworkMessenger(arg)
 	if err != nil {

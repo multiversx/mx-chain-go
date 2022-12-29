@@ -28,6 +28,7 @@ func createArgOutportDataProvider() ArgOutportDataProvider {
 		GasConsumedProvider:      &testscommon.GasHandlerStub{},
 		EconomicsData:            &mock.EconomicsHandlerMock{},
 		ShardCoordinator:         &testscommon.ShardsCoordinatorMock{},
+		ExecutionOrderHandler:    &mock.ExecutionOrderHandlerStub{},
 	}
 }
 

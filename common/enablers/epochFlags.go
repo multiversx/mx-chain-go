@@ -1,6 +1,8 @@
 package enablers
 
-import "github.com/ElrondNetwork/elrond-go-core/core/atomic"
+import (
+	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
+)
 
 type epochFlagsHolder struct {
 	scDeployFlag                                *atomic.Flag
@@ -83,6 +85,9 @@ type epochFlagsHolder struct {
 	refactorPeersMiniBlocksFlag                 *atomic.Flag
 	fixAsyncCallBackArgsList                    *atomic.Flag
 	fixOldTokenLiquidity                        *atomic.Flag
+	runtimeMemStoreLimitFlag                    *atomic.Flag
+	maxBlockchainHookCountersFlag               *atomic.Flag
+	wipeSingleNFTLiquidityDecreaseFlag          *atomic.Flag
 }
 
 func newEpochFlagsHolder() *epochFlagsHolder {
@@ -167,6 +172,9 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		refactorPeersMiniBlocksFlag:                 &atomic.Flag{},
 		fixAsyncCallBackArgsList:                    &atomic.Flag{},
 		fixOldTokenLiquidity:                        &atomic.Flag{},
+		runtimeMemStoreLimitFlag:                    &atomic.Flag{},
+		maxBlockchainHookCountersFlag:               &atomic.Flag{},
+		wipeSingleNFTLiquidityDecreaseFlag:          &atomic.Flag{},
 	}
 }
 
@@ -621,4 +629,19 @@ func (holder *epochFlagsHolder) IsFixAsyncCallBackArgsListFlagEnabled() bool {
 // IsFixOldTokenLiquidityEnabled returns true if fixOldTokenLiquidity is enabled
 func (holder *epochFlagsHolder) IsFixOldTokenLiquidityEnabled() bool {
 	return holder.fixOldTokenLiquidity.IsSet()
+}
+
+// IsRuntimeMemStoreLimitEnabled returns true if runtimeMemStoreLimitFlag is enabled
+func (holder *epochFlagsHolder) IsRuntimeMemStoreLimitEnabled() bool {
+	return holder.runtimeMemStoreLimitFlag.IsSet()
+}
+
+// IsMaxBlockchainHookCountersFlagEnabled returns true if maxBlockchainHookCountersFlagEnabled is enabled
+func (holder *epochFlagsHolder) IsMaxBlockchainHookCountersFlagEnabled() bool {
+	return holder.maxBlockchainHookCountersFlag.IsSet()
+}
+
+// IsWipeSingleNFTLiquidityDecreaseEnabled returns true if wipeSingleNFTLiquidityDecreaseFlag is enabled
+func (holder *epochFlagsHolder) IsWipeSingleNFTLiquidityDecreaseEnabled() bool {
+	return holder.wipeSingleNFTLiquidityDecreaseFlag.IsSet()
 }
