@@ -27,6 +27,9 @@ func createArgOutportDataProviderFactory() ArgOutportDataProviderFactory {
 		NodesCoordinator:       &shardingMocks.NodesCoordinatorMock{},
 		GasConsumedProvider:    &testscommon.GasHandlerStub{},
 		EconomicsData:          &economicsmocks.EconomicsHandlerMock{},
+		Hasher:                 &testscommon.KeccakMock{},
+		MbsStorer:              &genericMocks.StorerMock{},
+		EnableEpochsHandler:    &testscommon.EnableEpochsHandlerStub{},
 	}
 }
 
@@ -72,6 +75,10 @@ func TestCheckArgCreateOutportDataProvider(t *testing.T) {
 	arg = createArgOutportDataProviderFactory()
 	arg.EconomicsData = nil
 	require.Equal(t, transactionsfee.ErrNilTransactionFeeCalculator, checkArgOutportDataProviderFactory(arg))
+
+	arg = createArgOutportDataProviderFactory()
+	arg.Hasher = nil
+	require.Equal(t, process.ErrNilHasher, checkArgOutportDataProviderFactory(arg))
 
 	arg = createArgOutportDataProviderFactory()
 	require.Nil(t, checkArgOutportDataProviderFactory(arg))

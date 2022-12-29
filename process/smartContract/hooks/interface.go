@@ -8,5 +8,6 @@ type BlockChainHookCounter interface {
 	ProcessMaxBuiltInCounters(input *vmcommon.ContractCallInput) error
 	ResetCounters()
 	SetMaximumValues(mapsOfValues map[string]uint64)
+	GetCounterValues() map[string]uint64
 	IsInterfaceNil() bool
 }
