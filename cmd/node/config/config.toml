@@ -674,7 +674,7 @@
     CheckpointRoundsModulus = 100
     CheckpointsEnabled = false
     SnapshotsEnabled = true
-    AccountsStatePruningEnabled = true
+    AccountsStatePruningEnabled = false
     PeerStatePruningEnabled = true
     MaxStateTrieLevelInMemory = 5
     MaxPeerTrieLevelInMemory = 5
