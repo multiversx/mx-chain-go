@@ -23,7 +23,6 @@ import (
 	dataTx "github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -35,7 +34,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager"
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
@@ -1051,7 +1049,11 @@ func createAccounts(
 	store, _ := storageUnit.NewStorageUnit(cache, persist)
 	evictionWaitListSize := uint(100)
 
-	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
+	ewlArgs := evictionWaitingList.MemoryEvictionWaitingListArgs{
+		RootHashesSize: evictionWaitListSize,
+		HashesSize:     evictionWaitListSize * 100,
+	}
+	ewl, _ := evictionWaitingList.NewMemoryEvictionWaitingList(ewlArgs)
 	args := getNewTrieStorageManagerArgs()
 	args.MainStorer = store
 	trieStorage, _ := trie.NewTrieStorageManager(args)
@@ -1628,20 +1630,6 @@ func TestStatePruningIsNotBufferedOnConsecutiveBlocks(t *testing.T) {
 	time.Sleep(integrationTests.StepDelay)
 
 	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
-
-	// TODO - remove L1633-L1644
-	logger.SetLogLevel("*:DEBUG")
-
-	fargs := core.ArgCreateFileArgument{
-		Directory:     "",
-		Prefix:        "log",
-		FileExtension: "log",
-	}
-
-	f, _ := core.CreateFile(fargs)
-	defer f.Close()
-
-	logger.AddLogObserver(f, &logger.PlainFormatter{})
 
 	for j := 0; j < 30; j++ {
 		// alter the shardNode's state by placing the value0 variable inside it's data trie
@@ -2491,7 +2479,11 @@ func createAccountsDBTestSetup() *state.AccountsDB {
 		SnapshotsGoroutineNum: 1,
 	}
 	evictionWaitListSize := uint(100)
-	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
+	ewlArgs := evictionWaitingList.MemoryEvictionWaitingListArgs{
+		RootHashesSize: evictionWaitListSize,
+		HashesSize:     evictionWaitListSize * 100,
+	}
+	ewl, _ := evictionWaitingList.NewMemoryEvictionWaitingList(ewlArgs)
 	args := getNewTrieStorageManagerArgs()
 	args.GeneralConfig = generalCfg
 	trieStorage, _ := trie.NewTrieStorageManager(args)

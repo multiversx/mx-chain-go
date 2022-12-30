@@ -287,7 +287,11 @@ func CreateMemUnit() storage.Storer {
 // CreateInMemoryShardAccountsDB -
 func CreateInMemoryShardAccountsDB() *state.AccountsDB {
 	marshaller := &marshal.GogoProtoMarshalizer{}
-	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), marshaller)
+	ewlArgs := evictionWaitingList.MemoryEvictionWaitingListArgs{
+		RootHashesSize: 100,
+		HashesSize:     10000,
+	}
+	ewl, _ := evictionWaitingList.NewMemoryEvictionWaitingList(ewlArgs)
 	generalCfg := config.TrieStorageManagerConfig{
 		PruningBufferLen:      1000,
 		SnapshotsBufferLen:    10,

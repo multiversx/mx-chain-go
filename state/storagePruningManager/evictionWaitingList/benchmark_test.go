@@ -5,33 +5,19 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/hashing/blake2b"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/require"
 )
 
 var testHasher = blake2b.NewBlake2b()
-var testHashes map[string]common.ModifiedHashes
-var roothashes []string
+var testHashes map[string]*rootHashData
+var rootHashes []string
 var hashes [][]byte
 
 func initTestHashes() {
 	if testHashes == nil {
-		testHashes, roothashes, hashes = generateTestHashes(10000, 100)
+		testHashes, rootHashes, hashes = generateTestHashes(10000, 100)
 	}
-}
-
-func initEWL() *evictionWaitingList {
-	initTestHashes()
-	ewl, _ := NewEvictionWaitingList(100000, testscommon.NewMemDbMock(), &marshal.GogoProtoMarshalizer{})
-
-	for _, roothash := range roothashes {
-		_ = ewl.Put([]byte(roothash), testHashes[roothash])
-	}
-
-	return ewl
 }
 
 func initMemoryEWL() *memoryEvictionWaitingList {
@@ -42,29 +28,32 @@ func initMemoryEWL() *memoryEvictionWaitingList {
 	}
 	ewl, _ := NewMemoryEvictionWaitingList(args)
 
-	for _, roothash := range roothashes {
-		_ = ewl.Put([]byte(roothash), testHashes[roothash])
+	for _, roothash := range rootHashes {
+		_ = ewl.Put([]byte(roothash), testHashes[roothash].hashes)
 	}
 
 	return ewl
 }
 
-func generateTestHashes(numRoothashes int, numHashesOnRoothash int) (map[string]common.ModifiedHashes, []string, [][]byte) {
+func generateTestHashes(numRoothashes int, numHashesOnRoothash int) (map[string]*rootHashData, []string, [][]byte) {
 	counter := 0
-	results := make(map[string]common.ModifiedHashes, numRoothashes)
+	results := make(map[string]*rootHashData, numRoothashes)
 	resultsRoothashes := make([]string, 0, numRoothashes)
 	resultsHashes := make([][]byte, 0, numRoothashes*numHashesOnRoothash)
 	for i := 0; i < numRoothashes; i++ {
 		rootHash := string(intToHash(counter))
 		counter++
 
-		var newHashes common.ModifiedHashes
+		var newHashes [][]byte
 		newHashes, counter = generateHashes(counter, numHashesOnRoothash)
-		for h := range newHashes {
-			resultsHashes = append(resultsHashes, []byte(h))
+		for _, h := range newHashes {
+			resultsHashes = append(resultsHashes, h)
 		}
 
-		results[rootHash] = newHashes
+		results[rootHash] = &rootHashData{
+			numReferences: 1,
+			hashes:        newHashes,
+		}
 
 		resultsRoothashes = append(resultsRoothashes, rootHash)
 	}
@@ -79,36 +68,17 @@ func intToHash(value int) []byte {
 	return testHasher.Compute(string(buff))
 }
 
-func generateHashes(counter int, numHashesOnRoothash int) (common.ModifiedHashes, int) {
-	result := make(map[string]struct{}, numHashesOnRoothash)
+func generateHashes(counter int, numHashesOnRoothash int) ([][]byte, int) {
+	result := make([][]byte, numHashesOnRoothash)
 
 	for i := 0; i < numHashesOnRoothash; i++ {
 		hash := intToHash(counter)
 		counter++
 
-		result[string(hash)] = struct{}{}
+		result[i] = hash
 	}
 
 	return result, counter
-}
-
-func BenchmarkEvictionWaitingList_Put(b *testing.B) {
-	localEwl, err := NewEvictionWaitingList(10000, testscommon.NewMemDbMock(), &marshal.GogoProtoMarshalizer{})
-	require.Nil(b, err)
-	initTestHashes()
-	b.ResetTimer()
-
-	b.StopTimer()
-	for i := 0; i < b.N; i++ {
-		idx := i % len(roothashes)
-		roothash := roothashes[idx]
-		modifiedHashes := testHashes[roothash]
-
-		b.StartTimer()
-		err = localEwl.Put([]byte(roothash), modifiedHashes)
-		b.StopTimer()
-		require.Nil(b, err)
-	}
 }
 
 func BenchmarkMemoryEvictionWaitingList_Put(b *testing.B) {
@@ -123,33 +93,14 @@ func BenchmarkMemoryEvictionWaitingList_Put(b *testing.B) {
 
 	b.StopTimer()
 	for i := 0; i < b.N; i++ {
-		idx := i % len(roothashes)
-		roothash := roothashes[idx]
-		modifiedHashes := testHashes[roothash]
+		idx := i % len(rootHashes)
+		roothash := rootHashes[idx]
+		modifiedHashes := testHashes[roothash].hashes
 
 		b.StartTimer()
 		err = ewl.Put([]byte(roothash), modifiedHashes)
 		b.StopTimer()
 		require.Nil(b, err)
-	}
-}
-
-func BenchmarkEvictionWaitingList_Evict(b *testing.B) {
-	ewl := initEWL()
-	b.ResetTimer()
-
-	b.StopTimer()
-	for i := 0; i < b.N; i++ {
-		idx := i % len(roothashes)
-		roothash := roothashes[idx]
-
-		b.StartTimer()
-		evicted, err := ewl.Evict([]byte(roothash))
-		b.StopTimer()
-		require.Nil(b, err)
-		require.True(b, len(evicted) > 0)
-
-		_ = ewl.Put([]byte(roothash), testHashes[roothash])
 	}
 }
 
@@ -159,8 +110,8 @@ func BenchmarkMemoryEvictionWaitingList_Evict(b *testing.B) {
 
 	b.StopTimer()
 	for i := 0; i < b.N; i++ {
-		idx := i % len(roothashes)
-		roothash := roothashes[idx]
+		idx := i % len(rootHashes)
+		roothash := rootHashes[idx]
 
 		b.StartTimer()
 		evicted, err := ewl.Evict([]byte(roothash))
@@ -168,23 +119,7 @@ func BenchmarkMemoryEvictionWaitingList_Evict(b *testing.B) {
 		require.Nil(b, err)
 		require.True(b, len(evicted) > 0)
 
-		_ = ewl.Put([]byte(roothash), testHashes[roothash])
-	}
-}
-
-func BenchmarkEvictionWaitingList_ShouldKeep(b *testing.B) {
-	ewl := initEWL()
-	b.ResetTimer()
-
-	b.StopTimer()
-	for i := 0; i < b.N; i++ {
-		idx := i % len(hashes)
-		hash := hashes[idx]
-
-		b.StartTimer()
-		_, err := ewl.ShouldKeepHash(string(hash), state.TriePruningIdentifier(i%2))
-		b.StopTimer()
-		require.Nil(b, err)
+		_ = ewl.Put([]byte(roothash), testHashes[roothash].hashes)
 	}
 }
 

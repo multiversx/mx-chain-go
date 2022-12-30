@@ -103,7 +103,11 @@ func getDefaultStateComponents(
 	}
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 	tr, _ := trie.NewTrie(trieStorage, marshaller, hasher, 5)
-	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, testscommon.NewMemDbMock(), marshaller)
+	ewlArgs := evictionWaitingList.MemoryEvictionWaitingListArgs{
+		RootHashesSize: 100,
+		HashesSize:     10000,
+	}
+	ewl, _ := evictionWaitingList.NewMemoryEvictionWaitingList(ewlArgs)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, generalCfg.PruningBufferLen)
 
 	argsAccountsDB := state.ArgsAccountsDB{
@@ -1645,7 +1649,7 @@ func TestAccountsDB_MainTrieAutomaticallyMarksCodeUpdatesForEviction(t *testing.
 
 	marshaller := &testscommon.MarshalizerMock{}
 	hasher := &hashingMocks.HasherMock{}
-	ewl := stateMock.NewEvictionWaitingList(100, testscommon.NewMemDbMock(), marshaller)
+	ewl := stateMock.NewEvictionWaitingListMock(100)
 	args := trie.NewTrieStorageManagerArgs{
 		MainStorer:             testscommon.CreateMemUnit(),
 		CheckpointsStorer:      testscommon.CreateMemUnit(),
@@ -1730,7 +1734,7 @@ func TestAccountsDB_RemoveAccountMarksObsoleteHashesForEviction(t *testing.T) {
 	marshaller := &testscommon.MarshalizerMock{}
 	hasher := &hashingMocks.HasherMock{}
 
-	ewl := stateMock.NewEvictionWaitingList(100, testscommon.NewMemDbMock(), marshaller)
+	ewl := stateMock.NewEvictionWaitingListMock(100)
 	args := trie.NewTrieStorageManagerArgs{
 		MainStorer:             testscommon.CreateMemUnit(),
 		CheckpointsStorer:      testscommon.CreateMemUnit(),
@@ -2284,7 +2288,11 @@ func TestAccountsDB_Close(t *testing.T) {
 	}
 	marshaller := &testscommon.MarshalizerMock{}
 	hasher := &hashingMocks.HasherMock{}
-	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, testscommon.NewMemDbMock(), marshaller)
+	ewlArgs := evictionWaitingList.MemoryEvictionWaitingListArgs{
+		RootHashesSize: 100,
+		HashesSize:     10000,
+	}
+	ewl, _ := evictionWaitingList.NewMemoryEvictionWaitingList(ewlArgs)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
 
 	argsAccountsDB := createMockAccountsDBArgs()

@@ -172,8 +172,8 @@ type AccountsDBImporter interface {
 
 // DBRemoveCacher is used to cache keys that will be deleted from the database
 type DBRemoveCacher interface {
-	Put([]byte, common.ModifiedHashes) error
-	Evict([]byte) (common.ModifiedHashes, error)
+	Put([]byte, [][]byte) error
+	Evict([]byte) ([][]byte, error)
 	ShouldKeepHash(hash string, identifier TriePruningIdentifier) (bool, error)
 	IsInterfaceNil() bool
 	Close() error
