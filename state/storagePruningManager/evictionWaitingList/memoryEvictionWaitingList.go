@@ -162,7 +162,7 @@ func (mewl *memoryEvictionWaitingList) Evict(rootHash []byte) ([][]byte, error) 
 
 	if rhData.numReferences <= 1 {
 		delete(mewl.cache, string(rootHash))
-		defer mewl.removeFromReversedCache(rootHash, rhData.hashes)
+		mewl.removeFromReversedCache(rootHash, rhData.hashes)
 
 		return rhData.hashes, nil
 	}
