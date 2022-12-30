@@ -46,9 +46,7 @@ func generateTestHashes(numRoothashes int, numHashesOnRoothash int) (map[string]
 
 		var newHashes [][]byte
 		newHashes, counter = generateHashes(counter, numHashesOnRoothash)
-		for _, h := range newHashes {
-			resultsHashes = append(resultsHashes, h)
-		}
+		resultsHashes = append(resultsHashes, newHashes...)
 
 		results[rootHash] = &rootHashData{
 			numReferences: 1,
