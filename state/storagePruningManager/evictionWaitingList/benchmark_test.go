@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/hashing/blake2b"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/stretchr/testify/require"
 )
@@ -44,9 +45,11 @@ func generateTestHashes(numRoothashes int, numHashesOnRoothash int) (map[string]
 		rootHash := string(intToHash(counter))
 		counter++
 
-		var newHashes [][]byte
+		var newHashes common.ModifiedHashes
 		newHashes, counter = generateHashes(counter, numHashesOnRoothash)
-		resultsHashes = append(resultsHashes, newHashes...)
+		for h := range newHashes {
+			resultsHashes = append(resultsHashes, []byte(h))
+		}
 
 		results[rootHash] = &rootHashData{
 			numReferences: 1,
@@ -66,14 +69,14 @@ func intToHash(value int) []byte {
 	return testHasher.Compute(string(buff))
 }
 
-func generateHashes(counter int, numHashesOnRoothash int) ([][]byte, int) {
-	result := make([][]byte, numHashesOnRoothash)
+func generateHashes(counter int, numHashesOnRoothash int) (common.ModifiedHashes, int) {
+	result := make(map[string]struct{}, numHashesOnRoothash)
 
 	for i := 0; i < numHashesOnRoothash; i++ {
 		hash := intToHash(counter)
 		counter++
 
-		result[i] = hash
+		result[string(hash)] = struct{}{}
 	}
 
 	return result, counter

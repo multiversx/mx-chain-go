@@ -7,6 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/state"
 )
 
@@ -24,7 +25,7 @@ type MemoryEvictionWaitingListArgs struct {
 
 type rootHashData struct {
 	numReferences uint
-	hashes        [][]byte
+	hashes        common.ModifiedHashes
 }
 
 // memoryEvictionWaitingList is a structure that caches keys that need to be removed from a certain database.
@@ -56,7 +57,7 @@ func NewMemoryEvictionWaitingList(args MemoryEvictionWaitingListArgs) (*memoryEv
 }
 
 // Put stores the given hashes in the eviction waiting list, in the position given by the root hash
-func (mewl *memoryEvictionWaitingList) Put(rootHash []byte, hashes [][]byte) error {
+func (mewl *memoryEvictionWaitingList) Put(rootHash []byte, hashes common.ModifiedHashes) error {
 	mewl.opMutex.Lock()
 	defer mewl.opMutex.Unlock()
 
@@ -76,7 +77,7 @@ func (mewl *memoryEvictionWaitingList) Put(rootHash []byte, hashes [][]byte) err
 	return nil
 }
 
-func (mewl *memoryEvictionWaitingList) putInCache(rootHash []byte, hashes [][]byte) {
+func (mewl *memoryEvictionWaitingList) putInCache(rootHash []byte, hashes common.ModifiedHashes) {
 	rhData, ok := mewl.cache[string(rootHash)]
 	if !ok {
 		mewl.cache[string(rootHash)] = &rootHashData{
@@ -101,14 +102,14 @@ func (mewl *memoryEvictionWaitingList) cachesFull() bool {
 	return false
 }
 
-func (mewl *memoryEvictionWaitingList) putInReversedCache(rootHash []byte, hashes [][]byte) {
-	for _, hash := range hashes {
-		info, existing := mewl.reversedCache[string(hash)]
+func (mewl *memoryEvictionWaitingList) putInReversedCache(rootHash []byte, hashes common.ModifiedHashes) {
+	for hash := range hashes {
+		info, existing := mewl.reversedCache[hash]
 		if !existing {
 			info = &hashInfo{
 				roothashes: [][]byte{rootHash},
 			}
-			mewl.reversedCache[string(hash)] = info
+			mewl.reversedCache[hash] = info
 			continue
 		}
 
@@ -130,9 +131,9 @@ func (mewl *memoryEvictionWaitingList) index(info *hashInfo, roothash []byte) in
 	return -1
 }
 
-func (mewl *memoryEvictionWaitingList) removeFromReversedCache(rootHash []byte, hashes [][]byte) {
-	for _, hash := range hashes {
-		info, ok := mewl.reversedCache[string(hash)]
+func (mewl *memoryEvictionWaitingList) removeFromReversedCache(rootHash []byte, hashes common.ModifiedHashes) {
+	for hash := range hashes {
+		info, ok := mewl.reversedCache[hash]
 		if !ok {
 			continue
 		}
@@ -142,7 +143,7 @@ func (mewl *memoryEvictionWaitingList) removeFromReversedCache(rootHash []byte, 
 		}
 
 		if len(info.roothashes) == 1 {
-			delete(mewl.reversedCache, string(hash))
+			delete(mewl.reversedCache, hash)
 			continue
 		}
 
@@ -151,13 +152,13 @@ func (mewl *memoryEvictionWaitingList) removeFromReversedCache(rootHash []byte, 
 }
 
 // Evict returns and removes from the waiting list all the hashes from the position given by the root hash
-func (mewl *memoryEvictionWaitingList) Evict(rootHash []byte) ([][]byte, error) {
+func (mewl *memoryEvictionWaitingList) Evict(rootHash []byte) (common.ModifiedHashes, error) {
 	mewl.opMutex.Lock()
 	defer mewl.opMutex.Unlock()
 
 	rhData, ok := mewl.cache[string(rootHash)]
 	if !ok {
-		return make([][]byte, 0), nil
+		return make(common.ModifiedHashes, 0), nil
 	}
 
 	if rhData.numReferences <= 1 {
@@ -169,7 +170,7 @@ func (mewl *memoryEvictionWaitingList) Evict(rootHash []byte) ([][]byte, error) 
 
 	rhData.numReferences--
 
-	return make([][]byte, 0), nil
+	return make(common.ModifiedHashes, 0), nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

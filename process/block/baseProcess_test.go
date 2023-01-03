@@ -2006,15 +2006,11 @@ func TestBaseProcessor_updateState(t *testing.T) {
 			prevRootHash,
 			arguments.AccountsDB[state.UserAccountsState],
 		)
-		prevRootHash = headers[i].RootHash
 
-		if i == 0 {
-			assert.Equal(t, []byte("rootHash"), pruneRootHash)
-			assert.Equal(t, []byte("rootHash"), cancelPruneRootHash)
-		} else {
-			assert.Equal(t, []byte(strconv.Itoa(i-1)), pruneRootHash)
-			assert.Equal(t, []byte(strconv.Itoa(i-1)), cancelPruneRootHash)
-		}
+		assert.Equal(t, prevRootHash, pruneRootHash)
+		assert.Equal(t, prevRootHash, cancelPruneRootHash)
+
+		prevRootHash = headers[i].RootHash
 	}
 
 	assert.Equal(t, []byte(strconv.Itoa(len(headers)-2)), pruneRootHash)

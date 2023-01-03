@@ -7,6 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/stretchr/testify/assert"
 )
@@ -53,17 +54,17 @@ func TestMemoryEvictionWaitingList_Put(t *testing.T) {
 
 	mewl, _ := NewMemoryEvictionWaitingList(getDefaultArgsForMemoryEvictionWaitingList())
 
-	hashesMap := &rootHashData{
-		numReferences: 1,
-		hashes:        [][]byte{[]byte("hash1"), []byte("hash2")},
+	hashesMap := common.ModifiedHashes{
+		"hash1": {},
+		"hash2": {},
 	}
 	root := []byte("root")
 
-	err := mewl.Put(root, hashesMap.hashes)
+	err := mewl.Put(root, hashesMap)
 
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(mewl.cache))
-	assert.Equal(t, hashesMap, mewl.cache[string(root)])
+	assert.Equal(t, hashesMap, mewl.cache[string(root)].hashes)
 }
 
 func TestMemoryEvictionWaitingList_PutMultiple(t *testing.T) {
@@ -74,9 +75,9 @@ func TestMemoryEvictionWaitingList_PutMultiple(t *testing.T) {
 	args.HashesSize = 10000
 	mewl, _ := NewMemoryEvictionWaitingList(args)
 
-	hashesMap := &rootHashData{
-		numReferences: 1,
-		hashes:        [][]byte{[]byte("hash0"), []byte("hash1")},
+	hashesMap := common.ModifiedHashes{
+		"hash0": {},
+		"hash1": {},
 	}
 	roots := [][]byte{
 		[]byte("root0"),
@@ -88,13 +89,13 @@ func TestMemoryEvictionWaitingList_PutMultiple(t *testing.T) {
 	}
 
 	for i := range roots {
-		err := mewl.Put(roots[i], hashesMap.hashes)
+		err := mewl.Put(roots[i], hashesMap)
 		assert.Nil(t, err)
 	}
 
 	assert.Equal(t, 0, len(mewl.cache)) // 2 resets
-	_ = mewl.Put(roots[0], hashesMap.hashes)
-	assert.Equal(t, hashesMap, mewl.cache[string(roots[0])])
+	_ = mewl.Put(roots[0], hashesMap)
+	assert.Equal(t, hashesMap, mewl.cache[string(roots[0])].hashes)
 }
 
 func TestMemoryEvictionWaitingList_PutMultipleCleanDB(t *testing.T) {
@@ -105,9 +106,10 @@ func TestMemoryEvictionWaitingList_PutMultipleCleanDB(t *testing.T) {
 	args.HashesSize = 2
 	mewl, _ := NewMemoryEvictionWaitingList(args)
 
-	hashesMap := &rootHashData{
-		numReferences: 1,
-		hashes:        [][]byte{[]byte("hash0"), []byte("hash1"), []byte("hash2")},
+	hashesMap := common.ModifiedHashes{
+		"hash0": {},
+		"hash1": {},
+		"hash2": {},
 	}
 	roots := [][]byte{
 		[]byte("root0"),
@@ -117,7 +119,7 @@ func TestMemoryEvictionWaitingList_PutMultipleCleanDB(t *testing.T) {
 	}
 
 	for i := range roots {
-		err := mewl.Put(roots[i], hashesMap.hashes)
+		err := mewl.Put(roots[i], hashesMap)
 		assert.Nil(t, err)
 	}
 
@@ -129,18 +131,18 @@ func TestMemoryEvictionWaitingList_Evict(t *testing.T) {
 
 	mewl, _ := NewMemoryEvictionWaitingList(getDefaultArgsForMemoryEvictionWaitingList())
 
-	expectedHashesMap := &rootHashData{
-		numReferences: 1,
-		hashes:        [][]byte{[]byte("hash1"), []byte("hash2")},
+	expectedHashesMap := common.ModifiedHashes{
+		"hash1": {},
+		"hash2": {},
 	}
 	root1 := []byte("root1")
 
-	_ = mewl.Put(root1, expectedHashesMap.hashes)
+	_ = mewl.Put(root1, expectedHashesMap)
 
 	evicted, err := mewl.Evict([]byte("root1"))
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(mewl.cache))
-	assert.Equal(t, expectedHashesMap.hashes, evicted)
+	assert.Equal(t, expectedHashesMap, evicted)
 }
 
 func TestMemoryEvictionWaitingList_EvictFromDB(t *testing.T) {
@@ -150,9 +152,9 @@ func TestMemoryEvictionWaitingList_EvictFromDB(t *testing.T) {
 	args.RootHashesSize = 4
 	mewl, _ := NewMemoryEvictionWaitingList(args)
 
-	hashesMap := &rootHashData{
-		numReferences: 1,
-		hashes:        [][]byte{[]byte("hash0"), []byte("hash1")},
+	hashesMap := common.ModifiedHashes{
+		"hash0": {},
+		"hash1": {},
 	}
 	roots := [][]byte{
 		[]byte("root0"),
@@ -161,12 +163,12 @@ func TestMemoryEvictionWaitingList_EvictFromDB(t *testing.T) {
 	}
 
 	for i := range roots {
-		_ = mewl.Put(roots[i], hashesMap.hashes)
+		_ = mewl.Put(roots[i], hashesMap)
 	}
 
 	vals, err := mewl.Evict(roots[2])
 	assert.Nil(t, err)
-	assert.Equal(t, hashesMap.hashes, vals)
+	assert.Equal(t, hashesMap, vals)
 }
 
 func TestMemoryEvictionWaitingList_ShouldKeepHash(t *testing.T) {
@@ -174,9 +176,9 @@ func TestMemoryEvictionWaitingList_ShouldKeepHash(t *testing.T) {
 
 	mewl, _ := NewMemoryEvictionWaitingList(getDefaultArgsForMemoryEvictionWaitingList())
 
-	hashesMap := &rootHashData{
-		numReferences: 1,
-		hashes:        [][]byte{[]byte("hash0"), []byte("hash1")},
+	hashesMap := common.ModifiedHashes{
+		"hash0": {},
+		"hash1": {},
 	}
 	roots := [][]byte{
 		{1, 2, 3, 4, 5, 0},
@@ -185,7 +187,7 @@ func TestMemoryEvictionWaitingList_ShouldKeepHash(t *testing.T) {
 	}
 
 	for i := range roots {
-		_ = mewl.Put(roots[i], hashesMap.hashes)
+		_ = mewl.Put(roots[i], hashesMap)
 	}
 
 	present, err := mewl.ShouldKeepHash("hash0", 1)
@@ -198,9 +200,9 @@ func TestMemoryEvictionWaitingList_ShouldKeepHashShouldReturnFalse(t *testing.T)
 
 	mewl, _ := NewMemoryEvictionWaitingList(getDefaultArgsForMemoryEvictionWaitingList())
 
-	hashesMap := &rootHashData{
-		numReferences: 1,
-		hashes:        [][]byte{[]byte("hash0"), []byte("hash1")},
+	hashesMap := common.ModifiedHashes{
+		"hash0": {},
+		"hash1": {},
 	}
 	roots := [][]byte{
 		{1, 2, 3, 4, 5, 0},
@@ -208,7 +210,7 @@ func TestMemoryEvictionWaitingList_ShouldKeepHashShouldReturnFalse(t *testing.T)
 	}
 
 	for i := range roots {
-		_ = mewl.Put(roots[i], hashesMap.hashes)
+		_ = mewl.Put(roots[i], hashesMap)
 	}
 
 	present, err := mewl.ShouldKeepHash("hash2", 1)
@@ -221,9 +223,9 @@ func TestMemoryEvictionWaitingList_ShouldKeepHashShouldReturnTrueIfPresentInOldH
 
 	mewl, _ := NewMemoryEvictionWaitingList(getDefaultArgsForMemoryEvictionWaitingList())
 
-	hashesMap := &rootHashData{
-		numReferences: 1,
-		hashes:        [][]byte{[]byte("hash0"), []byte("hash1")},
+	hashesMap := common.ModifiedHashes{
+		"hash0": {},
+		"hash1": {},
 	}
 	roots := [][]byte{
 		{1, 2, 3, 4, 5, 0},
@@ -231,7 +233,7 @@ func TestMemoryEvictionWaitingList_ShouldKeepHashShouldReturnTrueIfPresentInOldH
 	}
 
 	for i := range roots {
-		_ = mewl.Put(roots[i], hashesMap.hashes)
+		_ = mewl.Put(roots[i], hashesMap)
 	}
 
 	present, err := mewl.ShouldKeepHash("hash0", 0)
@@ -252,22 +254,22 @@ func TestMemoryEvictionWaitingList_ShouldKeepHashSearchInDb(t *testing.T) {
 	root3 := []byte{1, 2, 3, 4, 5, 1}
 	root4 := []byte{1, 2, 3, 4, 5, 1}
 
-	hashesMapSlice := []*rootHashData{
+	hashesMapSlice := []common.ModifiedHashes{
 		{
-			numReferences: 1,
-			hashes:        [][]byte{[]byte("hash2"), []byte("hash3")},
+			"hash2": {},
+			"hash3": {},
 		},
 		{
-			numReferences: 1,
-			hashes:        [][]byte{[]byte("hash4"), []byte("hash5")},
+			"hash4": {},
+			"hash5": {},
 		},
 		{
-			numReferences: 1,
-			hashes:        [][]byte{[]byte("hash0"), []byte("hash1")},
+			"hash0": {},
+			"hash1": {},
 		},
 		{
-			numReferences: 1,
-			hashes:        [][]byte{[]byte("hash-1"), []byte("hash-2")},
+			"hash-1": {},
+			"hash-2": {},
 		},
 	}
 
@@ -279,7 +281,7 @@ func TestMemoryEvictionWaitingList_ShouldKeepHashSearchInDb(t *testing.T) {
 	}
 
 	for i := range roots {
-		_ = mewl.Put(roots[i], hashesMapSlice[i].hashes)
+		_ = mewl.Put(roots[i], hashesMapSlice[i])
 	}
 
 	present, err := mewl.ShouldKeepHash("hash-1", 1)
@@ -292,12 +294,12 @@ func TestMemoryEvictionWaitingList_ShouldKeepHashInvalidKey(t *testing.T) {
 
 	mewl, _ := NewMemoryEvictionWaitingList(getDefaultArgsForMemoryEvictionWaitingList())
 
-	hashesMap := &rootHashData{
-		numReferences: 1,
-		hashes:        [][]byte{[]byte("hash0"), []byte("hash1")},
+	hashesMap := common.ModifiedHashes{
+		"hash0": {},
+		"hash1": {},
 	}
 
-	_ = mewl.Put([]byte{}, hashesMap.hashes)
+	_ = mewl.Put([]byte{}, hashesMap)
 
 	present, err := mewl.ShouldKeepHash("hash0", 1)
 	assert.False(t, present)
@@ -319,13 +321,16 @@ func TestMemoryEvictionWaitingList_RemoveFromInversedCache(t *testing.T) {
 	roothash2 := "roothash2"
 	roothash3 := "roothash3"
 	hash := "hash"
+	modified := common.ModifiedHashes{
+		hash: struct{}{},
+	}
 
 	mewl, _ := NewMemoryEvictionWaitingList(getDefaultArgsForMemoryEvictionWaitingList())
 	mewl.reversedCache[hash] = &hashInfo{
 		roothashes: [][]byte{[]byte(roothash1), []byte(roothash2), []byte(roothash3)},
 	}
 
-	mewl.removeFromReversedCache([]byte(roothash1), [][]byte{[]byte(hash)})
+	mewl.removeFromReversedCache([]byte(roothash1), modified)
 	info := mewl.reversedCache[hash]
 	assert.Equal(t,
 		&hashInfo{
@@ -333,7 +338,7 @@ func TestMemoryEvictionWaitingList_RemoveFromInversedCache(t *testing.T) {
 		},
 		info)
 
-	mewl.removeFromReversedCache([]byte(roothash3), [][]byte{[]byte(hash)})
+	mewl.removeFromReversedCache([]byte(roothash3), modified)
 	info = mewl.reversedCache[hash]
 	assert.Equal(t,
 		&hashInfo{
@@ -341,7 +346,7 @@ func TestMemoryEvictionWaitingList_RemoveFromInversedCache(t *testing.T) {
 		},
 		info)
 
-	mewl.removeFromReversedCache([]byte(roothash3), [][]byte{[]byte(hash)})
+	mewl.removeFromReversedCache([]byte(roothash3), modified)
 	info = mewl.reversedCache[hash]
 	assert.Equal(t,
 		&hashInfo{
@@ -349,7 +354,7 @@ func TestMemoryEvictionWaitingList_RemoveFromInversedCache(t *testing.T) {
 		},
 		info)
 
-	mewl.removeFromReversedCache([]byte(roothash2), [][]byte{[]byte(hash)})
+	mewl.removeFromReversedCache([]byte(roothash2), modified)
 	info, exists := mewl.reversedCache[hash]
 	assert.Nil(t, info)
 	assert.False(t, exists)

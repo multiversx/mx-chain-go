@@ -76,25 +76,13 @@ func (spm *storagePruningManager) markForEviction(
 
 	rootHash = append(rootHash, byte(identifier))
 
-	newHashesSlice := mapToByteSlice(hashes)
-	err := spm.dbEvictionWaitingList.Put(rootHash, newHashesSlice)
+	err := spm.dbEvictionWaitingList.Put(rootHash, hashes)
 	if err != nil {
 		return err
 	}
 
 	logMapWithTrace("MarkForEviction "+string(identifier), "hash", hashes)
 	return nil
-}
-
-func mapToByteSlice(hashesMap map[string]struct{}) [][]byte {
-	newHashesSlice := make([][]byte, len(hashesMap))
-	i := 0
-	for key := range hashesMap {
-		newHashesSlice[i] = []byte(key)
-		i++
-	}
-
-	return newHashesSlice
 }
 
 func removeDuplicatedKeys(oldHashes map[string]struct{}, newHashes map[string]struct{}) {
@@ -226,8 +214,8 @@ func (spm *storagePruningManager) removeFromDb(
 		log.Debug("trieStorageManager.removeFromDb", sw.GetMeasurements()...)
 	}()
 
-	for _, key := range hashes {
-		shouldKeepHash, errShouldKeep := spm.dbEvictionWaitingList.ShouldKeepHash(string(key), identifier)
+	for key := range hashes {
+		shouldKeepHash, errShouldKeep := spm.dbEvictionWaitingList.ShouldKeepHash(key, identifier)
 		if errShouldKeep != nil {
 			return errShouldKeep
 		}
@@ -235,8 +223,9 @@ func (spm *storagePruningManager) removeFromDb(
 			continue
 		}
 
+		hash := []byte(key)
 		log.Trace("remove hash from trie db", "hash", key)
-		errRemove := tsm.Remove(key)
+		errRemove := tsm.Remove(hash)
 		if errRemove != nil {
 			return errRemove
 		}

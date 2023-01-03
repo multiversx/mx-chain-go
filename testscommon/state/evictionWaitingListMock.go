@@ -1,18 +1,16 @@
 package state
 
 import (
-	"bytes"
 	"errors"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/state"
 )
 
-// EvictionWaitingListMock is a structure that caches keys that need to be removed from a certain database.
-// If the cache is full, the keys will be stored in the underlying database. Writing at the same key in
-// cacher and db will overwrite the previous values.
+// EvictionWaitingListMock is a mock implementation of state.DBRemoveCacher
 type EvictionWaitingListMock struct {
-	Cache     map[string][][]byte
+	Cache     map[string]common.ModifiedHashes
 	CacheSize uint
 	OpMutex   sync.RWMutex
 }
@@ -20,13 +18,13 @@ type EvictionWaitingListMock struct {
 // NewEvictionWaitingListMock creates a new instance of evictionWaitingList
 func NewEvictionWaitingListMock(size uint) *EvictionWaitingListMock {
 	return &EvictionWaitingListMock{
-		Cache:     make(map[string][][]byte),
+		Cache:     make(map[string]common.ModifiedHashes),
 		CacheSize: size,
 	}
 }
 
 // Put stores the given hashes in the eviction waiting list, in the position given by the root hash
-func (ewl *EvictionWaitingListMock) Put(rootHash []byte, hashes [][]byte) error {
+func (ewl *EvictionWaitingListMock) Put(rootHash []byte, hashes common.ModifiedHashes) error {
 	ewl.OpMutex.Lock()
 	defer ewl.OpMutex.Unlock()
 
@@ -39,7 +37,7 @@ func (ewl *EvictionWaitingListMock) Put(rootHash []byte, hashes [][]byte) error 
 }
 
 // Evict returns and removes from the waiting list all the hashes from the position given by the root hash
-func (ewl *EvictionWaitingListMock) Evict(rootHash []byte) ([][]byte, error) {
+func (ewl *EvictionWaitingListMock) Evict(rootHash []byte) (common.ModifiedHashes, error) {
 	ewl.OpMutex.Lock()
 	defer ewl.OpMutex.Unlock()
 
@@ -73,8 +71,8 @@ func (ewl *EvictionWaitingListMock) ShouldKeepHash(hash string, identifier state
 
 		hashes := ewl.Cache[key]
 
-		for _, h := range hashes {
-			if bytes.Equal(h, []byte(hash)) {
+		for h := range hashes {
+			if h == hash {
 				return true, nil
 			}
 		}
