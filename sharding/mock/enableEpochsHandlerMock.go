@@ -551,6 +551,11 @@ func (mock *EnableEpochsHandlerMock) IsMaxBlockchainHookCountersFlagEnabled() bo
 	return false
 }
 
+// IsWipeSingleNFTLiquidityDecreaseEnabled -
+func (mock *EnableEpochsHandlerMock) IsWipeSingleNFTLiquidityDecreaseEnabled() bool {
+	return false
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (mock *EnableEpochsHandlerMock) IsInterfaceNil() bool {
 	return mock == nil
