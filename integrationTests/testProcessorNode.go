@@ -40,6 +40,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/requestersContainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
@@ -81,6 +82,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks/counters"
 	processSync "github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/process/track"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
@@ -303,7 +305,8 @@ type TestProcessorNode struct {
 	BlockTracker          process.BlockTracker
 	InterceptorsContainer process.InterceptorsContainer
 	ResolversContainer    dataRetriever.ResolversContainer
-	ResolverFinder        dataRetriever.ResolversFinder
+	RequestersContainer   dataRetriever.RequestersContainer
+	RequestersFinder      dataRetriever.RequestersFinder
 	RequestHandler        process.RequestHandler
 	ArwenChangeLocker     common.Locker
 
@@ -654,6 +657,7 @@ func (tpn *TestProcessorNode) initTestNodeWithArgs(args ArgTestProcessorNode) {
 	tpn.initRatingsData()
 	tpn.initRequestedItemsHandler()
 	tpn.initResolvers()
+	tpn.initRequesters()
 	tpn.initValidatorStatistics()
 	tpn.initGenesisBlocks(args)
 	tpn.initBlockTracker()
@@ -763,6 +767,8 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 		EpochNotifier:         tpn.EpochNotifier,
 		EnableEpochsHandler:   tpn.EnableEpochsHandler,
 		NilCompiledSCStore:    true,
+		GasSchedule:           gasSchedule,
+		Counter:               counters.NewDisabledCounter(),
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
@@ -1265,27 +1271,20 @@ func (tpn *TestProcessorNode) initResolvers() {
 	payloadValidator, _ := validator.NewPeerAuthenticationPayloadValidator(60)
 
 	resolverContainerFactory := resolverscontainer.FactoryArgs{
-		ShardCoordinator:            tpn.ShardCoordinator,
-		Messenger:                   tpn.Messenger,
-		Store:                       tpn.Storage,
-		Marshalizer:                 TestMarshalizer,
-		DataPools:                   tpn.DataPool,
-		Uint64ByteSliceConverter:    TestUint64Converter,
-		DataPacker:                  dataPacker,
-		TriesContainer:              tpn.TrieContainer,
-		SizeCheckDelta:              100,
-		InputAntifloodHandler:       &mock.NilAntifloodHandler{},
-		OutputAntifloodHandler:      &mock.NilAntifloodHandler{},
-		NumConcurrentResolvingJobs:  10,
-		CurrentNetworkEpochProvider: &mock.CurrentNetworkEpochProviderStub{},
-		PreferredPeersHolder:        &p2pmocks.PeersHolderStub{},
-		ResolverConfig: config.ResolverConfig{
-			NumCrossShardPeers:  2,
-			NumTotalPeers:       3,
-			NumFullHistoryPeers: 3,
-		},
-		PeersRatingHandler: tpn.PeersRatingHandler,
-		PayloadValidator:   payloadValidator,
+		ShardCoordinator:           tpn.ShardCoordinator,
+		Messenger:                  tpn.Messenger,
+		Store:                      tpn.Storage,
+		Marshalizer:                TestMarshalizer,
+		DataPools:                  tpn.DataPool,
+		Uint64ByteSliceConverter:   TestUint64Converter,
+		DataPacker:                 dataPacker,
+		TriesContainer:             tpn.TrieContainer,
+		SizeCheckDelta:             100,
+		InputAntifloodHandler:      &mock.NilAntifloodHandler{},
+		OutputAntifloodHandler:     &mock.NilAntifloodHandler{},
+		NumConcurrentResolvingJobs: 10,
+		PreferredPeersHolder:       &p2pmocks.PeersHolderStub{},
+		PayloadValidator:           payloadValidator,
 	}
 
 	var err error
@@ -1294,32 +1293,63 @@ func (tpn *TestProcessorNode) initResolvers() {
 
 		tpn.ResolversContainer, err = resolversContainerFactory.Create()
 		log.LogIfError(err)
-
-		tpn.ResolverFinder, _ = containers.NewResolversFinder(tpn.ResolversContainer, tpn.ShardCoordinator)
-		tpn.RequestHandler, _ = requestHandlers.NewResolverRequestHandler(
-			tpn.ResolverFinder,
-			tpn.RequestedItemsHandler,
-			tpn.WhiteListHandler,
-			100,
-			tpn.ShardCoordinator.SelfId(),
-			time.Second,
-		)
 	} else {
 		resolversContainerFactory, _ := resolverscontainer.NewShardResolversContainerFactory(resolverContainerFactory)
 
 		tpn.ResolversContainer, err = resolversContainerFactory.Create()
 		log.LogIfError(err)
-
-		tpn.ResolverFinder, _ = containers.NewResolversFinder(tpn.ResolversContainer, tpn.ShardCoordinator)
-		tpn.RequestHandler, _ = requestHandlers.NewResolverRequestHandler(
-			tpn.ResolverFinder,
-			tpn.RequestedItemsHandler,
-			tpn.WhiteListHandler,
-			100,
-			tpn.ShardCoordinator.SelfId(),
-			time.Second,
-		)
 	}
+}
+
+func (tpn *TestProcessorNode) initRequesters() {
+	requestersContainerFactoryArgs := requesterscontainer.FactoryArgs{
+		RequesterConfig: config.RequesterConfig{
+			NumCrossShardPeers:  2,
+			NumTotalPeers:       3,
+			NumFullHistoryPeers: 3,
+		},
+		ShardCoordinator:            tpn.ShardCoordinator,
+		Messenger:                   tpn.Messenger,
+		Marshaller:                  TestMarshaller,
+		Uint64ByteSliceConverter:    TestUint64Converter,
+		OutputAntifloodHandler:      &mock.NilAntifloodHandler{},
+		CurrentNetworkEpochProvider: &mock.CurrentNetworkEpochProviderStub{},
+		PreferredPeersHolder:        &p2pmocks.PeersHolderStub{},
+		PeersRatingHandler:          &p2pmocks.PeersRatingHandlerStub{},
+		SizeCheckDelta:              0,
+	}
+
+	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
+		tpn.createMetaRequestersContainer(requestersContainerFactoryArgs)
+	} else {
+		tpn.createShardRequestersContainer(requestersContainerFactoryArgs)
+	}
+
+	tpn.RequestersFinder, _ = containers.NewRequestersFinder(tpn.RequestersContainer, tpn.ShardCoordinator)
+	tpn.RequestHandler, _ = requestHandlers.NewResolverRequestHandler(
+		tpn.RequestersFinder,
+		tpn.RequestedItemsHandler,
+		tpn.WhiteListHandler,
+		100,
+		tpn.ShardCoordinator.SelfId(),
+		time.Second,
+	)
+}
+
+func (tpn *TestProcessorNode) createMetaRequestersContainer(args requesterscontainer.FactoryArgs) {
+	requestersContainerFactory, _ := requesterscontainer.NewMetaRequestersContainerFactory(args)
+
+	var err error
+	tpn.RequestersContainer, err = requestersContainerFactory.Create()
+	log.LogIfError(err)
+}
+
+func (tpn *TestProcessorNode) createShardRequestersContainer(args requesterscontainer.FactoryArgs) {
+	requestersContainerFactory, _ := requesterscontainer.NewShardRequestersContainerFactory(args)
+
+	var err error
+	tpn.RequestersContainer, err = requestersContainerFactory.Create()
+	log.LogIfError(err)
 }
 
 func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]uint64, vmConfig *config.VirtualMachineConfig) {
@@ -1387,6 +1417,10 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		log.LogIfError(err)
 	}
 
+	esdtTransferParser, _ := parsers.NewESDTTransferParser(TestMarshalizer)
+	counter, err := counters.NewUsageCounter(esdtTransferParser)
+	log.LogIfError(err)
+
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:              tpn.AccntState,
 		PubkeyConv:            TestAddressPubkeyConverter,
@@ -1403,8 +1437,9 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		EpochNotifier:         tpn.EpochNotifier,
 		EnableEpochsHandler:   tpn.EnableEpochsHandler,
 		NilCompiledSCStore:    true,
+		GasSchedule:           gasSchedule,
+		Counter:               counter,
 	}
-	esdtTransferParser, _ := parsers.NewESDTTransferParser(TestMarshalizer)
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
 	blockChainHookImpl, _ := hooks.NewBlockChainHookImpl(argsHook)
 	tpn.EnableEpochs.FailExecutionOnEveryAPIErrorEnableEpoch = 1
@@ -1421,7 +1456,6 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 	}
 	vmFactory, _ := shard.NewVMContainerFactory(argsNewVMFactory)
 
-	var err error
 	tpn.VMContainer, err = vmFactory.Create()
 	if err != nil {
 		panic(err)
@@ -1609,6 +1643,8 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		EpochNotifier:         tpn.EpochNotifier,
 		EnableEpochsHandler:   tpn.EnableEpochsHandler,
 		NilCompiledSCStore:    true,
+		GasSchedule:           gasSchedule,
+		Counter:               counters.NewDisabledCounter(),
 	}
 
 	var signVerifier vm.MessageSignVerifier
@@ -2209,7 +2245,7 @@ func (tpn *TestProcessorNode) initNode() {
 
 	processComponents := GetDefaultProcessComponents()
 	processComponents.BlockProcess = tpn.BlockProcessor
-	processComponents.ResFinder = tpn.ResolverFinder
+	processComponents.ReqFinder = tpn.RequestersFinder
 	processComponents.HeaderIntegrVerif = tpn.HeaderIntegrityVerifier
 	processComponents.HeaderSigVerif = tpn.HeaderSigVerifier
 	processComponents.BlackListHdl = tpn.BlockBlackListHandler
@@ -2270,7 +2306,8 @@ func (tpn *TestProcessorNode) initNode() {
 	err = nodeDebugFactory.CreateInterceptedDebugHandler(
 		tpn.Node,
 		tpn.InterceptorsContainer,
-		tpn.ResolverFinder,
+		tpn.ResolversContainer,
+		tpn.RequestersFinder,
 		config.InterceptorResolverDebugConfig{
 			Enabled:                    true,
 			CacheSize:                  1000,
@@ -2782,7 +2819,7 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 
 	processComponents := GetDefaultProcessComponents()
 	processComponents.BlockProcess = tpn.BlockProcessor
-	processComponents.ResFinder = tpn.ResolverFinder
+	processComponents.ReqFinder = tpn.RequestersFinder
 	processComponents.HeaderIntegrVerif = tpn.HeaderIntegrityVerifier
 	processComponents.HeaderSigVerif = tpn.HeaderSigVerifier
 	processComponents.BlackListHdl = tpn.BlockBlackListHandler
@@ -2821,16 +2858,16 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 	hbv2Config := config.HeartbeatV2Config{
 		PeerAuthenticationTimeBetweenSendsInSec:          5,
 		PeerAuthenticationTimeBetweenSendsWhenErrorInSec: 1,
-		PeerAuthenticationThresholdBetweenSends:          0.1,
+		PeerAuthenticationTimeThresholdBetweenSends:      0.1,
 		HeartbeatTimeBetweenSendsInSec:                   2,
 		HeartbeatTimeBetweenSendsWhenErrorInSec:          1,
-		HeartbeatThresholdBetweenSends:                   0.1,
+		HeartbeatTimeThresholdBetweenSends:               0.1,
 		HeartbeatExpiryTimespanInSec:                     300,
 		MinPeersThreshold:                                0.8,
-		DelayBetweenRequestsInSec:                        10,
-		MaxTimeoutInSec:                                  60,
+		DelayBetweenPeerAuthenticationRequestsInSec:      10,
+		PeerAuthenticationMaxTimeoutForRequestsInSec:     60,
 		PeerShardTimeBetweenSendsInSec:                   5,
-		PeerShardThresholdBetweenSends:                   0.1,
+		PeerShardTimeThresholdBetweenSends:               0.1,
 		MaxMissingKeysInRequest:                          100,
 		MaxDurationPeerUnresponsiveInSec:                 10,
 		HideInactiveValidatorIntervalInSec:               60,
@@ -2994,7 +3031,7 @@ func GetDefaultProcessComponents() *mock.ProcessComponentsStub {
 			CurrentShard: 0,
 		},
 		IntContainer:             &testscommon.InterceptorsContainerStub{},
-		ResFinder:                &mock.ResolversFinderStub{},
+		ReqFinder:                &dataRetrieverMock.RequestersFinderStub{},
 		RoundHandlerField:        &testscommon.RoundHandlerMock{},
 		EpochTrigger:             &testscommon.EpochStartTriggerStub{},
 		EpochNotifier:            &mock.EpochStartNotifierStub{},

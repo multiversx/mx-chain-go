@@ -36,7 +36,7 @@ type trieStorageManager struct {
 }
 
 type snapshotsQueueEntry struct {
-	address          []byte
+	address          string
 	rootHash         []byte
 	mainTrieRootHash []byte
 	iteratorChannels *common.TrieIteratorChannels
@@ -320,7 +320,7 @@ func (tsm *trieStorageManager) GetLatestStorageEpoch() (uint32, error) {
 // TakeSnapshot creates a new snapshot, or if there is another snapshot or checkpoint in progress,
 // it adds this snapshot in the queue.
 func (tsm *trieStorageManager) TakeSnapshot(
-	address []byte,
+	address string,
 	rootHash []byte,
 	mainTrieRootHash []byte,
 	iteratorChannels *common.TrieIteratorChannels,
