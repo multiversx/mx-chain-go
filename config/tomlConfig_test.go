@@ -672,6 +672,9 @@ func TestEnableEpochConfig(t *testing.T) {
 	# MaxBlockchainHookCountersEnableEpoch represents the epoch when the max blockchainhook counters are enabled
 	MaxBlockchainHookCountersEnableEpoch = 59
 
+    # WipeSingleNFTLiquidityDecreaseEnableEpoch represents the epoch when the system account liquidity is decreased for wipeSingleNFT as well
+    WipeSingleNFTLiquidityDecreaseEnableEpoch = 60
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -763,6 +766,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			FixOldTokenLiquidityEnableEpoch:             57,
 			SetSenderInEeiOutputTransferEnableEpoch:     58,
 			MaxBlockchainHookCountersEnableEpoch:        59,
+			WipeSingleNFTLiquidityDecreaseEnableEpoch:   60,
 			BLSMultiSignerEnableEpoch: []MultiSignerConfig{
 				{
 					EnableEpoch: 0,
