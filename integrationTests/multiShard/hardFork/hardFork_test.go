@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -22,9 +21,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
 	vmFactory "github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
+	factoryTests "github.com/ElrondNetwork/elrond-go/testscommon/factory"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genesisMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/update/factory"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
+	arwenConfig "github.com/ElrondNetwork/wasm-vm-v1_4/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -564,21 +567,26 @@ func createHardForkExporter(
 		cryptoComponents := integrationTests.GetDefaultCryptoComponents()
 		cryptoComponents.BlockSig = node.OwnAccount.BlockSingleSigner
 		cryptoComponents.TxSig = node.OwnAccount.SingleSigner
-		cryptoComponents.MultiSig = node.MultiSigner
+		cryptoComponents.MultiSigContainer = cryptoMocks.NewMultiSignerContainerMock(node.MultiSigner)
 		cryptoComponents.BlKeyGen = node.OwnAccount.KeygenBlockSign
 		cryptoComponents.TxKeyGen = node.OwnAccount.KeygenTxSign
 
+		statusCoreComponents := &factoryTests.StatusCoreComponentsStub{
+			AppStatusHandlerField: &statusHandler.AppStatusHandlerStub{},
+		}
+
 		argsExportHandler := factory.ArgsExporter{
-			CoreComponents:    coreComponents,
-			CryptoComponents:  cryptoComponents,
-			HeaderValidator:   node.HeaderValidator,
-			DataPool:          node.DataPool,
-			StorageService:    node.Storage,
-			RequestHandler:    node.RequestHandler,
-			ShardCoordinator:  node.ShardCoordinator,
-			Messenger:         node.Messenger,
-			ActiveAccountsDBs: accountsDBs,
-			ExportFolder:      node.ExportFolder,
+			CoreComponents:       coreComponents,
+			CryptoComponents:     cryptoComponents,
+			StatusCoreComponents: statusCoreComponents,
+			HeaderValidator:      node.HeaderValidator,
+			DataPool:             node.DataPool,
+			StorageService:       node.Storage,
+			RequestHandler:       node.RequestHandler,
+			ShardCoordinator:     node.ShardCoordinator,
+			Messenger:            node.Messenger,
+			ActiveAccountsDBs:    accountsDBs,
+			ExportFolder:         node.ExportFolder,
 			ExportTriesStorageConfig: config.StorageConfig{
 				Cache: config.CacheConfig{
 					Capacity: 10000,
@@ -671,7 +679,8 @@ func verifyIfAddedShardHeadersAreWithNewEpoch(
 			assert.Fail(t, "metablock should have been in current block header")
 		}
 
-		shardHDrStorage := node.Storage.GetStorer(dataRetriever.BlockHeaderUnit)
+		shardHDrStorage, err := node.Storage.GetStorer(dataRetriever.BlockHeaderUnit)
+		assert.Nil(t, err)
 		for _, shardInfo := range currentMetaHdr.ShardInfo {
 			header, err := node.DataPool.Headers().GetHeaderByHash(shardInfo.HeaderHash)
 			if err == nil {

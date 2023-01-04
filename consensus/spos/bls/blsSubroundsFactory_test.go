@@ -13,7 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
 	"github.com/ElrondNetwork/elrond-go/outport"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	testscommonOutport "github.com/ElrondNetwork/elrond-go/testscommon/outport"
 	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
@@ -275,13 +275,13 @@ func TestFactory_NewFactoryNilMarshalizerShouldFail(t *testing.T) {
 	assert.Equal(t, spos.ErrNilMarshalizer, err)
 }
 
-func TestFactory_NewFactoryNilMultiSignerShouldFail(t *testing.T) {
+func TestFactory_NewFactoryNilMultiSignerContainerShouldFail(t *testing.T) {
 	t.Parallel()
 
 	consensusState := initConsensusState()
 	container := mock.InitConsensusCore()
 	worker := initWorker()
-	container.SetMultiSigner(nil)
+	container.SetMultiSignerContainer(nil)
 
 	fct, err := bls.NewSubroundsFactory(
 		container,
@@ -293,7 +293,7 @@ func TestFactory_NewFactoryNilMultiSignerShouldFail(t *testing.T) {
 	)
 
 	assert.Nil(t, fct)
-	assert.Equal(t, spos.ErrNilMultiSigner, err)
+	assert.Equal(t, spos.ErrNilMultiSignerContainer, err)
 }
 
 func TestFactory_NewFactoryNilRoundHandlerShouldFail(t *testing.T) {
@@ -539,7 +539,7 @@ func TestFactory_GenerateSubroundsShouldWork(t *testing.T) {
 	container := mock.InitConsensusCore()
 	container.SetChronology(chrm)
 	fct := *initFactoryWithContainer(container)
-	fct.SetOutportHandler(&testscommon.OutportStub{})
+	fct.SetOutportHandler(&testscommonOutport.OutportStub{})
 
 	err := fct.GenerateSubrounds()
 	assert.Nil(t, err)
@@ -563,7 +563,7 @@ func TestFactory_SetIndexerShouldWork(t *testing.T) {
 	container := mock.InitConsensusCore()
 	fct := *initFactoryWithContainer(container)
 
-	outportHandler := &testscommon.OutportStub{}
+	outportHandler := &testscommonOutport.OutportStub{}
 	fct.SetOutportHandler(outportHandler)
 
 	assert.Equal(t, outportHandler, fct.Outport())

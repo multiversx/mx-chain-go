@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"strings"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -11,14 +12,22 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/outport"
+	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
+	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/api/shared/logging"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
+	outportProcess "github.com/ElrondNetwork/elrond-go/outport/process"
+	"github.com/ElrondNetwork/elrond-go/outport/process/alteredaccounts/shared"
+	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/state"
 )
 
 // BlockStatus is the status of a block
@@ -32,19 +41,23 @@ const (
 )
 
 type baseAPIBlockProcessor struct {
-	hasDbLookupExtensions    bool
-	selfShardID              uint32
-	emptyReceiptsHash        []byte
-	store                    dataRetriever.StorageService
-	marshalizer              marshal.Marshalizer
-	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
-	historyRepo              dblookupext.HistoryRepository
-	hasher                   hashing.Hasher
-	addressPubKeyConverter   core.PubkeyConverter
-	txStatusComputer         transaction.StatusComputerHandler
-	apiTransactionHandler    APITransactionHandler
-	logsFacade               logsFacade
-	receiptsRepository       receiptsRepository
+	hasDbLookupExtensions        bool
+	selfShardID                  uint32
+	emptyReceiptsHash            []byte
+	store                        dataRetriever.StorageService
+	marshalizer                  marshal.Marshalizer
+	uint64ByteSliceConverter     typeConverters.Uint64ByteSliceConverter
+	historyRepo                  dblookupext.HistoryRepository
+	hasher                       hashing.Hasher
+	addressPubKeyConverter       core.PubkeyConverter
+	txStatusComputer             transaction.StatusComputerHandler
+	apiTransactionHandler        APITransactionHandler
+	logsFacade                   logsFacade
+	receiptsRepository           receiptsRepository
+	alteredAccountsProvider      outportProcess.AlteredAccountsProviderHandler
+	accountsRepository           state.AccountsRepository
+	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
+	enableEpochsHandler          common.EnableEpochsHandler
 }
 
 var log = logger.GetOrCreate("node/blockAPI")
@@ -168,7 +181,11 @@ func (bap *baseAPIBlockProcessor) getAndAttachTxsToMbByEpoch(
 }
 
 func (bap *baseAPIBlockProcessor) getReceiptsFromMiniblock(miniblock *block.MiniBlock, epoch uint32) ([]*transaction.ApiReceipt, error) {
-	storer := bap.store.GetStorer(dataRetriever.UnsignedTransactionUnit)
+	storer, err := bap.store.GetStorer(dataRetriever.UnsignedTransactionUnit)
+	if err != nil {
+		return nil, err
+	}
+
 	start := time.Now()
 	marshalledReceipts, err := storer.GetBulkFromEpoch(miniblock.TxHashes, epoch)
 	if err != nil {
@@ -198,7 +215,11 @@ func (bap *baseAPIBlockProcessor) getTxsFromMiniblock(
 	firstProcessedTxIndex int32,
 	lastProcessedTxIndex int32,
 ) ([]*transaction.ApiTransactionResult, error) {
-	storer := bap.store.GetStorer(unit)
+	storer, err := bap.store.GetStorer(unit)
+	if err != nil {
+		return nil, err
+	}
+
 	start := time.Now()
 
 	executedTxHashes := extractExecutedTxHashes(miniblock.TxHashes, firstProcessedTxIndex, lastProcessedTxIndex)
@@ -244,12 +265,20 @@ func (bap *baseAPIBlockProcessor) getFromStorer(unit dataRetriever.UnitType, key
 		return nil, err
 	}
 
-	storer := bap.store.GetStorer(unit)
+	storer, err := bap.store.GetStorer(unit)
+	if err != nil {
+		return nil, err
+	}
+
 	return storer.GetFromEpoch(key, epoch)
 }
 
 func (bap *baseAPIBlockProcessor) getFromStorerWithEpoch(unit dataRetriever.UnitType, key []byte, epoch uint32) ([]byte, error) {
-	storer := bap.store.GetStorer(unit)
+	storer, err := bap.store.GetStorer(unit)
+	if err != nil {
+		return nil, err
+	}
+
 	return storer.GetFromEpoch(key, epoch)
 }
 
@@ -328,4 +357,229 @@ func bigIntToStr(value *big.Int) string {
 	}
 
 	return value.String()
+}
+
+func alteredAccountsMapToAPIResponse(alteredAccounts map[string]*outport.AlteredAccount, tokensFilter string) []*outport.AlteredAccount {
+	response := make([]*outport.AlteredAccount, 0, len(alteredAccounts))
+
+	for address, altAccount := range alteredAccounts {
+		apiAlteredAccount := &outport.AlteredAccount{
+			Address: address,
+			Balance: altAccount.Balance,
+			Nonce:   altAccount.Nonce,
+		}
+
+		if len(tokensFilter) > 0 {
+			attachTokensToAlteredAccount(apiAlteredAccount, altAccount, tokensFilter)
+		}
+
+		response = append(response, apiAlteredAccount)
+	}
+
+	return response
+}
+
+func attachTokensToAlteredAccount(apiAlteredAccount *outport.AlteredAccount, altAccount *outport.AlteredAccount, tokensFilter string) {
+	for _, token := range altAccount.Tokens {
+		if !shouldAddTokenToResult(token.Identifier, tokensFilter) {
+			continue
+		}
+
+		apiAlteredAccount.Tokens = append(apiAlteredAccount.Tokens, &outport.AccountTokenData{
+			Identifier:     token.Identifier,
+			Balance:        token.Balance,
+			Nonce:          token.Nonce,
+			Properties:     token.Properties,
+			MetaData:       nil,
+			AdditionalData: nil,
+		})
+	}
+}
+
+func shouldAddTokenToResult(tokenIdentifier string, tokensFilter string) bool {
+	if shouldIncludeAllTokens(tokensFilter) {
+		return true
+	}
+
+	return strings.Contains(tokensFilter, tokenIdentifier)
+}
+
+func shouldIncludeAllTokens(tokensFilter string) bool {
+	return tokensFilter == "*" || tokensFilter == "all"
+}
+
+func (bap *baseAPIBlockProcessor) apiBlockToAlteredAccounts(apiBlock *api.Block, options api.GetAlteredAccountsForBlockOptions) ([]*outport.AlteredAccount, error) {
+	blockHash, err := hex.DecodeString(apiBlock.Hash)
+	if err != nil {
+		return nil, err
+	}
+
+	var blockRootHash []byte
+	blockRootHash, err = bap.scheduledTxsExecutionHandler.GetScheduledRootHashForHeaderWithEpoch(blockHash, apiBlock.Epoch)
+	if err != nil {
+		blockRootHash, err = hex.DecodeString(apiBlock.StateRootHash)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	alteredAccountsOptions := shared.AlteredAccountsOptions{
+		WithCustomAccountsRepository: true,
+		AccountsRepository:           bap.accountsRepository,
+		AccountQueryOptions: api.AccountQueryOptions{
+			BlockHash:     blockHash,
+			BlockNonce:    core.OptionalUint64{HasValue: true, Value: apiBlock.Nonce},
+			BlockRootHash: blockRootHash,
+			HintEpoch:     core.OptionalUint32{HasValue: true, Value: apiBlock.Epoch},
+		},
+	}
+
+	// TODO: might refactor, so altered accounts component could only need a slice of addresses instead of a tx pool
+	outportPool, err := bap.apiBlockToOutportPool(apiBlock)
+	if err != nil {
+		return nil, err
+	}
+	alteredAccounts, err := bap.alteredAccountsProvider.ExtractAlteredAccountsFromPool(outportPool, alteredAccountsOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	alteredAccountsAPI := alteredAccountsMapToAPIResponse(alteredAccounts, options.TokensFilter)
+	return alteredAccountsAPI, nil
+}
+
+func (bap *baseAPIBlockProcessor) apiBlockToOutportPool(apiBlock *api.Block) (*outport.Pool, error) {
+	pool := &outport.Pool{
+		Txs:     make(map[string]data.TransactionHandlerWithGasUsedAndFee),
+		Scrs:    make(map[string]data.TransactionHandlerWithGasUsedAndFee),
+		Invalid: make(map[string]data.TransactionHandlerWithGasUsedAndFee),
+		Rewards: make(map[string]data.TransactionHandlerWithGasUsedAndFee),
+		Logs:    make([]*data.LogData, 0),
+	}
+
+	var err error
+	for _, miniBlock := range apiBlock.MiniBlocks {
+		for _, tx := range miniBlock.Transactions {
+			err = bap.addTxToPool(tx, pool)
+			if err != nil {
+				return nil, err
+			}
+
+			err = bap.addLogsToPool(tx, pool)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return pool, nil
+}
+
+func (bap *baseAPIBlockProcessor) addLogsToPool(tx *transaction.ApiTransactionResult, pool *outport.Pool) error {
+	if tx.Logs == nil {
+		return nil
+	}
+
+	logAddressBytes, err := bap.addressPubKeyConverter.Decode(tx.Logs.Address)
+	if err != nil {
+		return fmt.Errorf("error while decoding the log's address. address=%s, error=%s", tx.Logs.Address, err.Error())
+	}
+
+	logsEvents := make([]*transaction.Event, 0)
+	for _, logEvent := range tx.Logs.Events {
+		eventAddressBytes, err := bap.addressPubKeyConverter.Decode(logEvent.Address)
+		if err != nil {
+			return fmt.Errorf("error while decoding the event's address. address=%s, error=%s", logEvent.Address, err.Error())
+		}
+
+		logsEvents = append(logsEvents, &transaction.Event{
+			Address:    eventAddressBytes,
+			Identifier: []byte(logEvent.Identifier),
+			Topics:     logEvent.Topics,
+			Data:       logEvent.Data,
+		})
+	}
+
+	pool.Logs = append(pool.Logs, &data.LogData{
+		LogHandler: &transaction.Log{
+			Address: logAddressBytes,
+			Events:  logsEvents,
+		},
+		TxHash: tx.Hash,
+	})
+
+	return nil
+}
+
+func (bap *baseAPIBlockProcessor) addTxToPool(tx *transaction.ApiTransactionResult, pool *outport.Pool) error {
+	senderBytes, err := bap.addressPubKeyConverter.Decode(tx.Sender)
+	if err != nil && tx.Type != string(transaction.TxTypeReward) {
+		return fmt.Errorf("error while decoding the sender address. address=%s, error=%s", tx.Sender, err.Error())
+	}
+	receiverBytes, err := bap.addressPubKeyConverter.Decode(tx.Receiver)
+	if err != nil {
+		return fmt.Errorf("error while decoding the receiver address. address=%s, error=%s", tx.Receiver, err.Error())
+	}
+
+	zeroBigInt := big.NewInt(0)
+	txValueString := tx.Value
+	if len(txValueString) == 0 {
+		txValueString = "0"
+	}
+	txValue, ok := big.NewInt(0).SetString(txValueString, 10)
+	if !ok {
+		return fmt.Errorf("cannot convert tx value to big int. Value=%s", tx.Value)
+	}
+
+	switch tx.Type {
+	case string(transaction.TxTypeNormal):
+		pool.Txs[tx.Hash] = outport.NewTransactionHandlerWithGasAndFee(
+			&transaction.Transaction{
+				SndAddr: senderBytes,
+				RcvAddr: receiverBytes,
+				Value:   txValue,
+			},
+			0,
+			zeroBigInt,
+		)
+	case string(transaction.TxTypeUnsigned):
+		pool.Scrs[tx.Hash] = outport.NewTransactionHandlerWithGasAndFee(
+			&smartContractResult.SmartContractResult{
+				SndAddr: senderBytes,
+				RcvAddr: receiverBytes,
+				Value:   txValue,
+			},
+			0,
+			zeroBigInt,
+		)
+	case string(transaction.TxTypeInvalid):
+		pool.Invalid[tx.Hash] = outport.NewTransactionHandlerWithGasAndFee(
+			&transaction.Transaction{
+				SndAddr: senderBytes,
+				// do not set the receiver since the cost is only on sender's side in case of invalid txs
+				Value: txValue,
+			},
+			0,
+			zeroBigInt,
+		)
+	case string(transaction.TxTypeReward):
+		pool.Rewards[tx.Hash] = outport.NewTransactionHandlerWithGasAndFee(
+			&rewardTx.RewardTx{
+				RcvAddr: receiverBytes,
+				Value:   txValue,
+			},
+			0,
+			zeroBigInt,
+		)
+	}
+
+	return nil
+}
+
+func createAlteredBlockHash(hash []byte) []byte {
+	alteredHash := make([]byte, 0)
+	alteredHash = append(alteredHash, hash...)
+	alteredHash = append(alteredHash, []byte(common.GenesisStorageSuffix)...)
+
+	return alteredHash
 }

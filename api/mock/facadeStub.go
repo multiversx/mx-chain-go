@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
+	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/data/vm"
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -25,6 +26,7 @@ type FacadeStub struct {
 	GetHeartbeatsHandler       func() ([]data.PubKeyHeartbeat, error)
 	GetBalanceCalled           func(address string, options api.AccountQueryOptions) (*big.Int, api.BlockInfo, error)
 	GetAccountCalled           func(address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error)
+	GetAccountsCalled          func(addresses []string, options api.AccountQueryOptions) (map[string]*api.AccountResponse, api.BlockInfo, error)
 	GenerateTransactionHandler func(sender string, receiver string, value *big.Int, code string) (*transaction.Transaction, error)
 	GetTransactionHandler      func(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
 	CreateTransactionHandler   func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64,
@@ -43,6 +45,7 @@ type FacadeStub struct {
 	GetEpochStartDataAPICalled                  func(epoch uint32) (*common.EpochStartDataAPI, error)
 	GetThrottlerForEndpointCalled               func(endpoint string) (core.Throttler, bool)
 	GetUsernameCalled                           func(address string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
+	GetCodeHashCalled                           func(address string, options api.AccountQueryOptions) ([]byte, api.BlockInfo, error)
 	GetKeyValuePairsCalled                      func(address string, options api.AccountQueryOptions) (map[string]string, api.BlockInfo, error)
 	SimulateTransactionExecutionHandler         func(tx *transaction.Transaction) (*txSimData.SimulationResults, error)
 	GetESDTDataCalled                           func(address string, key string, nonce uint64, options api.AccountQueryOptions) (*esdt.ESDigitalToken, api.BlockInfo, error)
@@ -52,6 +55,7 @@ type FacadeStub struct {
 	GetNFTTokenIDsRegisteredByAddressCalled     func(address string, options api.AccountQueryOptions) ([]string, api.BlockInfo, error)
 	GetBlockByHashCalled                        func(hash string, options api.BlockQueryOptions) (*api.Block, error)
 	GetBlockByNonceCalled                       func(nonce uint64, options api.BlockQueryOptions) (*api.Block, error)
+	GetAlteredAccountsForBlockCalled            func(options api.GetAlteredAccountsForBlockOptions) ([]*outportcore.AlteredAccount, error)
 	GetBlockByRoundCalled                       func(round uint64, options api.BlockQueryOptions) (*api.Block, error)
 	GetInternalShardBlockByNonceCalled          func(format common.ApiOutputFormat, nonce uint64) (interface{}, error)
 	GetInternalShardBlockByHashCalled           func(format common.ApiOutputFormat, hash string) (interface{}, error)
@@ -60,6 +64,7 @@ type FacadeStub struct {
 	GetInternalMetaBlockByHashCalled            func(format common.ApiOutputFormat, hash string) (interface{}, error)
 	GetInternalMetaBlockByRoundCalled           func(format common.ApiOutputFormat, round uint64) (interface{}, error)
 	GetInternalStartOfEpochMetaBlockCalled      func(format common.ApiOutputFormat, epoch uint32) (interface{}, error)
+	GetInternalStartOfEpochValidatorsInfoCalled func(epoch uint32) ([]*state.ShardValidatorInfo, error)
 	GetInternalMiniBlockByHashCalled            func(format common.ApiOutputFormat, txHash string, epoch uint32) (interface{}, error)
 	GetTotalStakedValueHandler                  func() (*api.StakeValues, error)
 	GetAllIssuedESDTsCalled                     func(tokenType string) ([]string, error)
@@ -131,6 +136,15 @@ func (f *FacadeStub) GetUsername(address string, options api.AccountQueryOptions
 	}
 
 	return "", api.BlockInfo{}, nil
+}
+
+// GetCodeHash -
+func (f *FacadeStub) GetCodeHash(address string, options api.AccountQueryOptions) ([]byte, api.BlockInfo, error) {
+	if f.GetCodeHashCalled != nil {
+		return f.GetCodeHashCalled(address, options)
+	}
+
+	return nil, api.BlockInfo{}, nil
 }
 
 // GetThrottlerForEndpoint -
@@ -242,6 +256,15 @@ func (f *FacadeStub) GetAllIssuedESDTs(tokenType string) ([]string, error) {
 // GetAccount -
 func (f *FacadeStub) GetAccount(address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
 	return f.GetAccountCalled(address, options)
+}
+
+// GetAccounts -
+func (f *FacadeStub) GetAccounts(addresses []string, options api.AccountQueryOptions) (map[string]*api.AccountResponse, api.BlockInfo, error) {
+	if f.GetAccountsCalled != nil {
+		return f.GetAccountsCalled(addresses, options)
+	}
+
+	return nil, api.BlockInfo{}, nil
 }
 
 // CreateTransaction is  mock implementation of a handler's CreateTransaction method
@@ -371,6 +394,14 @@ func (f *FacadeStub) GetBlockByRound(round uint64, options api.BlockQueryOptions
 	return nil, nil
 }
 
+// GetAlteredAccountsForBlock -
+func (f *FacadeStub) GetAlteredAccountsForBlock(options api.GetAlteredAccountsForBlockOptions) ([]*outportcore.AlteredAccount, error) {
+	if f.GetAlteredAccountsForBlockCalled != nil {
+		return f.GetAlteredAccountsForBlockCalled(options)
+	}
+	return nil, nil
+}
+
 // GetInternalMetaBlockByNonce -
 func (f *FacadeStub) GetInternalMetaBlockByNonce(format common.ApiOutputFormat, nonce uint64) (interface{}, error) {
 	if f.GetInternalMetaBlockByNonceCalled != nil {
@@ -492,6 +523,15 @@ func (f *FacadeStub) GetTransactionsPoolNonceGapsForSender(sender string) (*comm
 func (f *FacadeStub) GetGasConfigs() (map[string]map[string]uint64, error) {
 	if f.GetGasConfigsCalled != nil {
 		return f.GetGasConfigsCalled()
+	}
+
+	return nil, nil
+}
+
+// GetInternalStartOfEpochValidatorsInfo -
+func (f *FacadeStub) GetInternalStartOfEpochValidatorsInfo(epoch uint32) ([]*state.ShardValidatorInfo, error) {
+	if f.GetInternalStartOfEpochValidatorsInfoCalled != nil {
+		return f.GetInternalStartOfEpochValidatorsInfoCalled(epoch)
 	}
 
 	return nil, nil

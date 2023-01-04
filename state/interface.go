@@ -4,7 +4,6 @@ import (
 	"context"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go/common"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -18,7 +17,7 @@ type AccountFactory interface {
 
 // Updater set a new value for a key, implemented by trie
 type Updater interface {
-	Get(key []byte) ([]byte, error)
+	Get(key []byte) ([]byte, uint32, error)
 	Update(key, value []byte) error
 	IsInterfaceNil() bool
 }
@@ -72,9 +71,9 @@ type UserAccountHandler interface {
 	SetRootHash([]byte)
 	GetRootHash() []byte
 	SetDataTrie(trie common.Trie)
-	DataTrie() common.Trie
-	DataTrieTracker() DataTrieTracker
-	RetrieveValueFromDataTrieTracker(key []byte) ([]byte, error)
+	DataTrie() common.DataTrieHandler
+	RetrieveValue(key []byte) ([]byte, uint32, error)
+	SaveKeyValue(key []byte, value []byte) error
 	AddToBalance(value *big.Int) error
 	SubFromBalance(value *big.Int) error
 	GetBalance() *big.Int
@@ -91,12 +90,11 @@ type UserAccountHandler interface {
 
 // DataTrieTracker models what how to manipulate data held by a SC account
 type DataTrieTracker interface {
-	ClearDataCaches()
-	DirtyData() map[string][]byte
-	RetrieveValue(key []byte) ([]byte, error)
+	RetrieveValue(key []byte) ([]byte, uint32, error)
 	SaveKeyValue(key []byte, value []byte) error
 	SetDataTrie(tr common.Trie)
-	DataTrie() common.Trie
+	DataTrie() common.DataTrieHandler
+	SaveDirtyData(common.Trie) (map[string][]byte, error)
 	IsInterfaceNil() bool
 }
 
@@ -121,12 +119,19 @@ type AccountsAdapter interface {
 	SnapshotState(rootHash []byte)
 	SetStateCheckpoint(rootHash []byte)
 	IsPruningEnabled() bool
-	GetAllLeaves(leavesChannel chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error
+	GetAllLeaves(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error
 	RecreateAllTries(rootHash []byte) (map[string]common.Trie, error)
 	GetTrie(rootHash []byte) (common.Trie, error)
 	GetStackDebugFirstEntry() []byte
-	StartSnapshotIfNeeded()
+	SetSyncer(syncer AccountsDBSyncer) error
+	StartSnapshotIfNeeded() error
 	Close() error
+	IsInterfaceNil() bool
+}
+
+// AccountsDBSyncer defines the methods for the accounts db syncer
+type AccountsDBSyncer interface {
+	SyncAccounts(rootHash []byte) error
 	IsInterfaceNil() bool
 }
 
@@ -158,8 +163,8 @@ type baseAccountHandler interface {
 	SetRootHash([]byte)
 	GetRootHash() []byte
 	SetDataTrie(trie common.Trie)
-	DataTrie() common.Trie
-	DataTrieTracker() DataTrieTracker
+	DataTrie() common.DataTrieHandler
+	SaveDirtyData(trie common.Trie) (map[string][]byte, error)
 	IsInterfaceNil() bool
 }
 

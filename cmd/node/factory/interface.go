@@ -5,11 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 // HeaderSigVerifierHandler is the interface needed to check that a header's signature is correct
@@ -56,18 +52,4 @@ type FileLoggingHandler interface {
 	ChangeFileLifeSpan(newDuration time.Duration, newSizeInMB uint64) error
 	Close() error
 	IsInterfaceNil() bool
-}
-
-// StatusHandlersUtils provides some functionality for statusHandlers
-// TODO: find a better naming
-type StatusHandlersUtils interface {
-	StatusHandler() core.AppStatusHandler
-	Metrics() external.StatusMetricsHandler
-	UpdateStorerAndMetricsForPersistentHandler(store storage.Storer) error
-	IsInterfaceNil() bool
-}
-
-// StatusHandlerUtilsFactory is the factory for statusHandler utils
-type StatusHandlerUtilsFactory interface {
-	Create(marshalizer marshal.Marshalizer, converter typeConverters.Uint64ByteSliceConverter) (StatusHandlersUtils, error)
 }

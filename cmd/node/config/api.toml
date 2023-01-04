@@ -40,11 +40,17 @@
         # /address/:address will return data about a given account
         { Name = "/:address", Open = true },
 
+        # /address/bulk will return the state of the accounts provided in the bulk
+        { Name = "/bulk", Open = true },
+
         # /address/:address/balance will return the balance of a given account
         { Name = "/:address/balance", Open = true },
 
         # /address/:address/username will return the username of a given account
         { Name = "/:address/username", Open = true },
+
+        # /address/:address/code-hash will return the code hash of a given account
+        { Name = "/:address/code-hash", Open = true },
 
         # /address/:address/keys will return all the key-value pairs of a given account
         { Name = "/:address/keys", Open = true },
@@ -194,6 +200,12 @@
 
         # /block/by-round/:round will return the block in JSON format based on round
         { Name = "/by-round/:round", Open = true },
+
+        # /altered-accounts/by-nonce/:nonce will return the altered accounts of a block with the provided nonce
+        { Name = "/altered-accounts/by-nonce/:nonce", Open = true },
+
+        # /altered-accounts/by-hash/:hash will return the altered accounts of a block with the provided hash
+        { Name = "/altered-accounts/by-hash/:hash", Open = true }
     ]
 
 [APIPackages.internal]
@@ -244,7 +256,11 @@
         { Name = "/raw/miniblock/by-hash/:hash/epoch/:epoch", Open = true },
 
         # /internal/json/miniblock/by-hash/:hash will return the miniblock in JSON format based on hash for a specified epoch
-        { Name = "/json/miniblock/by-hash/:hash/epoch/:epoch", Open = true }
+        { Name = "/json/miniblock/by-hash/:hash/epoch/:epoch", Open = true },
+
+        # /internal/raw/startofepoch/validators/by-epoch/:epoch will return the start of epoch validators info in json format based on epoch
+        { Name = "/json/startofepoch/validators/by-epoch/:epoch", Open = true }
+
     ]
 
 [APIPackages.proof]

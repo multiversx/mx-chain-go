@@ -18,7 +18,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
+	"github.com/ElrondNetwork/elrond-go-crypto/signing/secp256k1"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/cmd/keygenerator/converter"
 	"github.com/urfave/cli"
 )
 
@@ -33,6 +35,7 @@ type cfg struct {
 
 const validatorType = "validator"
 const walletType = "wallet"
+const p2pType = "p2p"
 const bothType = "both"
 const minedWalletPrefixKeys = "mined-wallet"
 const nopattern = "nopattern"
@@ -42,6 +45,12 @@ const noshard = -1
 type key struct {
 	skBytes []byte
 	pkBytes []byte
+}
+
+type pubKeyConverter interface {
+	Decode(humanReadable string) ([]byte, error)
+	Encode(pkBytes []byte) string
+	IsInterfaceNil() bool
 }
 
 const keysFolderPattern = "node-%d"
@@ -76,9 +85,10 @@ VERSION:
 	keyType = cli.StringFlag{
 		Name: "key-type",
 		Usage: fmt.Sprintf(
-			"What kind of keys should generate. Available options: %s, %s, %s, %s",
+			"What kind of keys should generate. Available options: %s, %s, %s, %s, %s",
 			validatorType,
 			walletType,
+			p2pType,
 			bothType,
 			minedWalletPrefixKeys),
 		Value:       "validator",
@@ -116,10 +126,12 @@ VERSION:
 
 	walletKeyFilenameTemplate    = "walletKey%s.pem"
 	validatorKeyFilenameTemplate = "validatorKey%s.pem"
+	p2pKeyFilenameTemplate       = "p2pKey%s.pem"
 
 	log = logger.GetOrCreate("keygenerator")
 
 	validatorPubKeyConverter, _ = pubkeyConverter.NewHexPubkeyConverter(blsPubkeyLen)
+	pidPubKeyConverter          = converter.NewPidPubkeyConverter()
 	walletPubKeyConverter, _    = pubkeyConverter.NewBech32PubkeyConverter(txSignPubkeyLen, log)
 )
 
@@ -157,60 +169,68 @@ func main() {
 }
 
 func process() error {
-	validatorKeys, walletKeys, err := generateKeys(argsConfig.keyType, argsConfig.numKeys, argsConfig.prefixPattern, argsConfig.shardIDByte)
+	validatorKeys, walletKeys, p2pKeys, err := generateKeys(argsConfig.keyType, argsConfig.numKeys, argsConfig.prefixPattern, argsConfig.shardIDByte)
 	if err != nil {
 		return err
 	}
 
-	return outputKeys(validatorKeys, walletKeys, argsConfig.consoleOut, argsConfig.noSplit)
+	return outputKeys(validatorKeys, walletKeys, p2pKeys, argsConfig.consoleOut, argsConfig.noSplit)
 }
 
-func generateKeys(typeKey string, numKeys int, prefix string, shardID int) ([]key, []key, error) {
+func generateKeys(typeKey string, numKeys int, prefix string, shardID int) ([]key, []key, []key, error) {
 	if numKeys < 1 {
-		return nil, nil, fmt.Errorf("number of keys should be a number greater or equal to 1")
+		return nil, nil, nil, fmt.Errorf("number of keys should be a number greater or equal to 1")
 	}
 
 	validatorKeys := make([]key, 0)
 	walletKeys := make([]key, 0)
+	p2pKeys := make([]key, 0)
 	var err error
 
 	blockSigningGenerator := signing.NewKeyGenerator(mcl.NewSuiteBLS12())
 	txSigningGenerator := signing.NewKeyGenerator(ed25519.NewEd25519())
+	p2pKeyGenerator := signing.NewKeyGenerator(secp256k1.NewSecp256k1())
 
 	for i := 0; i < numKeys; i++ {
 		switch typeKey {
 		case validatorType:
 			validatorKeys, err = generateKey(blockSigningGenerator, validatorKeys)
 			if err != nil {
-				return nil, nil, err
+				return nil, nil, nil, err
 			}
 		case walletType:
 			walletKeys, err = generateKey(txSigningGenerator, walletKeys)
 			if err != nil {
-				return nil, nil, err
+				return nil, nil, nil, err
 			}
+		case p2pType:
+			p2pKeys, err = generateKey(p2pKeyGenerator, p2pKeys)
+			if err != nil {
+				return nil, nil, nil, err
+			}
+		// TODO: change this behaviour, maybe list of options instead of both type
 		case bothType:
 			validatorKeys, err = generateKey(blockSigningGenerator, validatorKeys)
 			if err != nil {
-				return nil, nil, err
+				return nil, nil, nil, err
 			}
 
 			walletKeys, err = generateKey(txSigningGenerator, walletKeys)
 			if err != nil {
-				return nil, nil, err
+				return nil, nil, nil, err
 			}
 
 		case minedWalletPrefixKeys:
 			walletKeys, err = generateMinedWalletKeys(txSigningGenerator, walletKeys, prefix, shardID)
 			if err != nil {
-				return nil, nil, err
+				return nil, nil, nil, err
 			}
 		default:
-			return nil, nil, fmt.Errorf("unknown key type %s", argsConfig.keyType)
+			return nil, nil, nil, fmt.Errorf("unknown key type %s", argsConfig.keyType)
 		}
 	}
 
-	return validatorKeys, walletKeys, nil
+	return validatorKeys, walletKeys, p2pKeys, nil
 }
 
 func generateKey(keyGen crypto.KeyGenerator, list []key) ([]key, error) {
@@ -284,18 +304,19 @@ func keyInShard(keyBytes []byte, shardID byte) bool {
 func outputKeys(
 	validatorKeys []key,
 	walletKeys []key,
+	p2pKeys []key,
 	consoleOut bool,
 	noSplit bool,
 ) error {
 	if consoleOut {
-		return printKeys(validatorKeys, walletKeys)
+		return printKeys(validatorKeys, walletKeys, p2pKeys)
 	}
 
-	return saveKeys(validatorKeys, walletKeys, noSplit)
+	return saveKeys(validatorKeys, walletKeys, p2pKeys, noSplit)
 }
 
-func printKeys(validatorKeys []key, walletKeys []key) error {
-	if len(validatorKeys)+len(walletKeys) == 0 {
+func printKeys(validatorKeys, walletKeys, p2pKeys []key) error {
+	if len(validatorKeys)+len(walletKeys)+len(p2pKeys) == 0 {
 		return fmt.Errorf("internal error: no keys to print")
 	}
 
@@ -312,11 +333,17 @@ func printKeys(validatorKeys []key, walletKeys []key) error {
 			errFound = err
 		}
 	}
+	if len(p2pKeys) > 0 {
+		err := printSliceKeys("P2p keys:", p2pKeys, pidPubKeyConverter)
+		if err != nil {
+			errFound = err
+		}
+	}
 
 	return errFound
 }
 
-func printSliceKeys(message string, sliceKeys []key, converter core.PubkeyConverter) error {
+func printSliceKeys(message string, sliceKeys []key, converter pubKeyConverter) error {
 	data := []string{message + "\n"}
 
 	for _, k := range sliceKeys {
@@ -333,12 +360,12 @@ func printSliceKeys(message string, sliceKeys []key, converter core.PubkeyConver
 	return nil
 }
 
-func writeKeyToStream(writer io.Writer, key key, pubkeyConverter core.PubkeyConverter) error {
+func writeKeyToStream(writer io.Writer, key key, converter pubKeyConverter) error {
 	if check.IfNilReflect(writer) {
 		return fmt.Errorf("nil writer")
 	}
 
-	pkString := pubkeyConverter.Encode(key.pkBytes)
+	pkString := converter.Encode(key.pkBytes)
 
 	blk := pem.Block{
 		Type:  "PRIVATE KEY for " + pkString,
@@ -348,8 +375,8 @@ func writeKeyToStream(writer io.Writer, key key, pubkeyConverter core.PubkeyConv
 	return pem.Encode(writer, &blk)
 }
 
-func saveKeys(validatorKeys []key, walletKeys []key, noSplit bool) error {
-	if len(validatorKeys)+len(walletKeys) == 0 {
+func saveKeys(validatorKeys, walletKeys, p2pKeys []key, noSplit bool) error {
+	if len(validatorKeys)+len(walletKeys)+len(p2pKeys) == 0 {
 		return fmt.Errorf("internal error: no keys to save")
 	}
 
@@ -366,11 +393,17 @@ func saveKeys(validatorKeys []key, walletKeys []key, noSplit bool) error {
 			errFound = err
 		}
 	}
+	if len(p2pKeys) > 0 {
+		err := saveSliceKeys(p2pKeyFilenameTemplate, p2pKeys, pidPubKeyConverter, noSplit)
+		if err != nil {
+			errFound = err
+		}
+	}
 
 	return errFound
 }
 
-func saveSliceKeys(baseFilenameTemplate string, keys []key, pubkeyConverter core.PubkeyConverter, noSplit bool) error {
+func saveSliceKeys(baseFilenameTemplate string, keys []key, converter pubKeyConverter, noSplit bool) error {
 	var file *os.File
 	var err error
 	for i, k := range keys {
@@ -382,7 +415,7 @@ func saveSliceKeys(baseFilenameTemplate string, keys []key, pubkeyConverter core
 			}
 		}
 
-		err = writeKeyToStream(file, k, pubkeyConverter)
+		err = writeKeyToStream(file, k, converter)
 		if err != nil {
 			return err
 		}

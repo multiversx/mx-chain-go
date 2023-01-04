@@ -10,7 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
+	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/outport"
@@ -170,7 +170,7 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 
 	sr.indexRoundIfNeeded(pubKeys)
 
-	selfIndex, err := sr.SelfConsensusGroupIndex()
+	_, err = sr.SelfConsensusGroupIndex()
 	if err != nil {
 		log.Debug("not in consensus group")
 		sr.AppStatusHandler().SetStringValue(common.MetricConsensusState, "not in consensus group")
@@ -181,7 +181,7 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 		sr.AppStatusHandler().SetStringValue(common.MetricConsensusState, "participant")
 	}
 
-	err = sr.MultiSigner().Reset(pubKeys, uint16(selfIndex))
+	err = sr.SignatureHandler().Reset(pubKeys)
 	if err != nil {
 		log.Debug("initCurrentRound.Reset", "error", err.Error())
 
@@ -249,7 +249,7 @@ func (sr *subroundStartRound) indexRoundIfNeeded(pubKeys []string) {
 
 	round := sr.RoundHandler().Index()
 
-	roundInfo := &indexer.RoundInfo{
+	roundInfo := &outportcore.RoundInfo{
 		Index:            uint64(round),
 		SignersIndexes:   signersIndexes,
 		BlockWasProposed: false,
@@ -258,7 +258,7 @@ func (sr *subroundStartRound) indexRoundIfNeeded(pubKeys []string) {
 		Timestamp:        time.Duration(sr.RoundTimeStamp.Unix()),
 	}
 
-	sr.outportHandler.SaveRoundsInfo([]*indexer.RoundInfo{roundInfo})
+	sr.outportHandler.SaveRoundsInfo([]*outportcore.RoundInfo{roundInfo})
 }
 
 func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int64) error {

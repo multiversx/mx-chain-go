@@ -1,7 +1,6 @@
 package testscommon
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/common"
 )
 
@@ -12,8 +11,8 @@ type StorageManagerStub struct {
 	PutInEpochWithoutCacheCalled           func([]byte, []byte, uint32) error
 	GetCalled                              func([]byte) ([]byte, error)
 	GetFromCurrentEpochCalled              func([]byte) ([]byte, error)
-	TakeSnapshotCalled                     func([]byte, []byte, chan core.KeyValueHolder, chan error, common.SnapshotStatisticsHandler, uint32)
-	SetCheckpointCalled                    func([]byte, []byte, chan core.KeyValueHolder, chan error, common.SnapshotStatisticsHandler)
+	TakeSnapshotCalled                     func(string, []byte, []byte, *common.TrieIteratorChannels, chan []byte, common.SnapshotStatisticsHandler, uint32)
+	SetCheckpointCalled                    func([]byte, []byte, *common.TrieIteratorChannels, chan []byte, common.SnapshotStatisticsHandler)
 	GetDbThatContainsHashCalled            func([]byte) common.DBWriteCacher
 	IsPruningEnabledCalled                 func() bool
 	IsPruningBlockedCalled                 func() bool
@@ -78,15 +77,16 @@ func (sms *StorageManagerStub) GetFromCurrentEpoch(key []byte) ([]byte, error) {
 
 // TakeSnapshot -
 func (sms *StorageManagerStub) TakeSnapshot(
+	address string,
 	rootHash []byte,
 	mainTrieRootHash []byte,
-	leavesChan chan core.KeyValueHolder,
-	errChan chan error,
+	iteratorChannels *common.TrieIteratorChannels,
+	missingNodesChan chan []byte,
 	stats common.SnapshotStatisticsHandler,
 	epoch uint32,
 ) {
 	if sms.TakeSnapshotCalled != nil {
-		sms.TakeSnapshotCalled(rootHash, mainTrieRootHash, leavesChan, errChan, stats, epoch)
+		sms.TakeSnapshotCalled(address, rootHash, mainTrieRootHash, iteratorChannels, missingNodesChan, stats, epoch)
 	}
 }
 
@@ -94,12 +94,12 @@ func (sms *StorageManagerStub) TakeSnapshot(
 func (sms *StorageManagerStub) SetCheckpoint(
 	rootHash []byte,
 	mainTrieRootHash []byte,
-	leavesChan chan core.KeyValueHolder,
-	errChan chan error,
+	iteratorChannels *common.TrieIteratorChannels,
+	missingNodesChan chan []byte,
 	stats common.SnapshotStatisticsHandler,
 ) {
 	if sms.SetCheckpointCalled != nil {
-		sms.SetCheckpointCalled(rootHash, mainTrieRootHash, leavesChan, errChan, stats)
+		sms.SetCheckpointCalled(rootHash, mainTrieRootHash, iteratorChannels, missingNodesChan, stats)
 	}
 }
 

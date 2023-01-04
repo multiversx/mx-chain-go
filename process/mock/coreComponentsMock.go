@@ -30,6 +30,7 @@ type CoreComponentsMock struct {
 	GenesisNodesSetupCalled     func() sharding.GenesisNodesSetupHandler
 	TxVersionCheckField         process.TxVersionCheckerHandler
 	EpochNotifierField          process.EpochNotifier
+	EnableEpochsHandlerField    common.EnableEpochsHandler
 	RoundField                  consensus.RoundHandler
 	StatusField                 core.AppStatusHandler
 	ChanStopNode                chan endProcess.ArgEndProcess
@@ -128,14 +129,14 @@ func (ccm *CoreComponentsMock) EpochNotifier() process.EpochNotifier {
 	return ccm.EpochNotifierField
 }
 
+// EnableEpochsHandler -
+func (ccm *CoreComponentsMock) EnableEpochsHandler() common.EnableEpochsHandler {
+	return ccm.EnableEpochsHandlerField
+}
+
 // RoundHandler -
 func (ccm *CoreComponentsMock) RoundHandler() consensus.RoundHandler {
 	return ccm.RoundField
-}
-
-// StatusHandler -
-func (ccm *CoreComponentsMock) StatusHandler() core.AppStatusHandler {
-	return ccm.StatusField
 }
 
 // NodeTypeProvider -

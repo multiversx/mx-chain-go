@@ -9,7 +9,7 @@ import (
 // BlockChainHookStub -
 type BlockChainHookStub struct {
 	NewAddressCalled                     func(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error)
-	GetStorageDataCalled                 func(accountsAddress []byte, index []byte) ([]byte, error)
+	GetStorageDataCalled                 func(accountsAddress []byte, index []byte) ([]byte, uint32, error)
 	GetBlockHashCalled                   func(nonce uint64) ([]byte, error)
 	LastNonceCalled                      func() uint64
 	LastRoundCalled                      func() uint64
@@ -44,6 +44,8 @@ type BlockChainHookStub struct {
 	CloseCalled                          func() error
 	FilterCodeMetadataForUpgradeCalled   func(input []byte) ([]byte, error)
 	ApplyFiltersOnCodeMetadataCalled     func(codeMetadata vmcommon.CodeMetadata) vmcommon.CodeMetadata
+	ResetCountersCalled                  func()
+	GetCounterValuesCalled               func() map[string]uint64
 }
 
 // GetCode -
@@ -65,12 +67,12 @@ func (stub *BlockChainHookStub) GetUserAccount(address []byte) (vmcommon.UserAcc
 }
 
 // GetStorageData -
-func (stub *BlockChainHookStub) GetStorageData(accountAddress []byte, index []byte) ([]byte, error) {
+func (stub *BlockChainHookStub) GetStorageData(accountAddress []byte, index []byte) ([]byte, uint32, error) {
 	if stub.GetStorageDataCalled != nil {
 		return stub.GetStorageDataCalled(accountAddress, index)
 	}
 
-	return make([]byte, 0), nil
+	return make([]byte, 0), 0, nil
 }
 
 // GetBlockhash -
@@ -370,6 +372,22 @@ func (stub *BlockChainHookStub) Close() error {
 	}
 
 	return nil
+}
+
+// ResetCounters -
+func (stub *BlockChainHookStub) ResetCounters() {
+	if stub.ResetCountersCalled != nil {
+		stub.ResetCountersCalled()
+	}
+}
+
+// GetCounterValues -
+func (stub *BlockChainHookStub) GetCounterValues() map[string]uint64 {
+	if stub.GetCounterValuesCalled != nil {
+		return stub.GetCounterValuesCalled()
+	}
+
+	return make(map[string]uint64)
 }
 
 // IsInterfaceNil -

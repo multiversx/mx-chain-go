@@ -1,6 +1,8 @@
 package groups_test
 
 import (
+	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -135,6 +137,16 @@ type usernameResponseData struct {
 
 type usernameResponse struct {
 	Data  usernameResponseData `json:"data"`
+	Error string               `json:"error"`
+	Code  string               `json:"code"`
+}
+
+type codeHashResponseData struct {
+	CodeHash string `json:"codeHash"`
+}
+
+type codeHashResponse struct {
+	Data  codeHashResponseData `json:"data"`
 	Error string               `json:"error"`
 	Code  string               `json:"code"`
 }
@@ -343,6 +355,88 @@ func TestGetValueForKey_ShouldWork(t *testing.T) {
 	assert.Equal(t, testValue, valueForKeyResponseObj.Data.Value)
 }
 
+func TestGetAccounts(t *testing.T) {
+	t.Parallel()
+
+	t.Run("wrong request, should err", func(t *testing.T) {
+		t.Parallel()
+
+		addrGroup, _ := groups.NewAddressGroup(&mock.FacadeStub{})
+
+		ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
+
+		invalidRequest := []byte("{invalid json}")
+		req, _ := http.NewRequest("POST", "/address/bulk", bytes.NewBuffer(invalidRequest))
+		resp := httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		response := shared.GenericAPIResponse{}
+		loadResponse(resp.Body, &response)
+		require.NotEmpty(t, response.Error)
+		require.Equal(t, shared.ReturnCodeRequestError, response.Code)
+	})
+
+	t.Run("facade error, should err", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := errors.New("expected error")
+		facade := &mock.FacadeStub{
+			GetAccountsCalled: func(_ []string, _ api.AccountQueryOptions) (map[string]*api.AccountResponse, api.BlockInfo, error) {
+				return nil, api.BlockInfo{}, expectedErr
+			},
+		}
+		addrGroup, _ := groups.NewAddressGroup(facade)
+
+		ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
+
+		req, _ := http.NewRequest("POST", "/address/bulk", bytes.NewBuffer([]byte(`["erd1", "erd1"]`)))
+		resp := httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		response := shared.GenericAPIResponse{}
+		loadResponse(resp.Body, &response)
+		require.NotEmpty(t, response.Error)
+		require.Equal(t, shared.ReturnCodeInternalError, response.Code)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		expectedAccounts := map[string]*api.AccountResponse{
+			"erd1alice": {
+				Address: "erd1alice",
+				Balance: "100000000000000",
+				Nonce:   37,
+			},
+		}
+		facade := &mock.FacadeStub{
+			GetAccountsCalled: func(_ []string, _ api.AccountQueryOptions) (map[string]*api.AccountResponse, api.BlockInfo, error) {
+				return expectedAccounts, api.BlockInfo{}, nil
+			},
+		}
+		addrGroup, _ := groups.NewAddressGroup(facade)
+
+		ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
+
+		req, _ := http.NewRequest("POST", "/address/bulk", bytes.NewBuffer([]byte(`["erd1", "erd1"]`)))
+		resp := httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		type responseType struct {
+			Data struct {
+				Accounts map[string]*api.AccountResponse `json:"accounts"`
+			} `json:"data"`
+			Error string            `json:"error"`
+			Code  shared.ReturnCode `json:"code"`
+		}
+		response := responseType{}
+		loadResponse(resp.Body, &response)
+		require.Empty(t, response.Error)
+		require.Equal(t, shared.ReturnCodeSuccess, response.Code)
+		require.Equal(t, expectedAccounts, response.Data.Accounts)
+	})
+}
+
 func TestGetUsername_NodeFailsShouldError(t *testing.T) {
 	t.Parallel()
 
@@ -393,6 +487,59 @@ func TestGetUsername_ShouldWork(t *testing.T) {
 	loadResponse(resp.Body, &usernameResponseObj)
 	assert.Equal(t, http.StatusOK, resp.Code)
 	assert.Equal(t, testUsername, usernameResponseObj.Data.Username)
+}
+
+func TestGetCodeHash_NodeFailsShouldError(t *testing.T) {
+	t.Parallel()
+
+	testAddress := "address"
+	expectedErr := errors.New("expected error")
+	facade := mock.FacadeStub{
+		GetCodeHashCalled: func(_ string, _ api.AccountQueryOptions) ([]byte, api.BlockInfo, error) {
+			return nil, api.BlockInfo{}, expectedErr
+		},
+	}
+
+	addrGroup, err := groups.NewAddressGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
+
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/code-hash", testAddress), nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	codeHashResponseObj := codeHashResponse{}
+	loadResponse(resp.Body, &codeHashResponseObj)
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+	assert.True(t, strings.Contains(codeHashResponseObj.Error, expectedErr.Error()))
+}
+
+func TestGetCodeHash_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	testAddress := "address"
+	testCodeHash := []byte("value")
+	expectedResponseCodeHash := base64.StdEncoding.EncodeToString(testCodeHash)
+	facade := mock.FacadeStub{
+		GetCodeHashCalled: func(_ string, _ api.AccountQueryOptions) ([]byte, api.BlockInfo, error) {
+			return testCodeHash, api.BlockInfo{}, nil
+		},
+	}
+
+	addrGroup, err := groups.NewAddressGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
+
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/code-hash", testAddress), nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	codeHashResponseObj := codeHashResponse{}
+	loadResponse(resp.Body, &codeHashResponseObj)
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Equal(t, expectedResponseCodeHash, codeHashResponseObj.Data.CodeHash)
 }
 
 func TestGetAccount_FailWhenFacadeStubGetAccountFails(t *testing.T) {
@@ -612,7 +759,7 @@ func TestGetESDTNFTData_ShouldWork(t *testing.T) {
 		GetESDTDataCalled: func(_ string, _ string, _ uint64, _ api.AccountQueryOptions) (*esdt.ESDigitalToken, api.BlockInfo, error) {
 			return &esdt.ESDigitalToken{
 				Value:         big.NewInt(100),
-				Properties:    []byte(testProperties),
+				Properties:    testProperties,
 				TokenMetaData: &esdt.MetaData{Nonce: testNonce, Creator: []byte(testAddress)}}, api.BlockInfo{}, nil
 		},
 	}
@@ -1032,8 +1179,10 @@ func getAddressRoutesConfig() config.ApiRoutesConfig {
 			"address": {
 				Routes: []config.RouteConfig{
 					{Name: "/:address", Open: true},
+					{Name: "/bulk", Open: true},
 					{Name: "/:address/balance", Open: true},
 					{Name: "/:address/username", Open: true},
+					{Name: "/:address/code-hash", Open: true},
 					{Name: "/:address/keys", Open: true},
 					{Name: "/:address/key/:key", Open: true},
 					{Name: "/:address/esdt", Open: true},

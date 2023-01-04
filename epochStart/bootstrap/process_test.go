@@ -36,11 +36,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/scheduledDataSyncer"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	storageMocks "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon/syncer"
+	"github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
 	"github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -75,12 +77,11 @@ func createComponentsForEpochStart() (*mock.CoreComponentsMock, *mock.CryptoComp
 			NodeTypeProviderField:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 			ProcessStatusHandlerInstance: &testscommon.ProcessStatusHandlerStub{},
 			HardforkTriggerPubKeyField:   []byte("provided hardfork pub key"),
-			StatusHandlerCalled: func() core.AppStatusHandler {
-				return &statusHandlerMock.AppStatusHandlerStub{}
-			},
+			EnableEpochsHandlerField:     &testscommon.EnableEpochsHandlerStub{},
 		},
 		&mock.CryptoComponentsMock{
 			PubKey:          &cryptoMocks.PublicKeyStub{},
+			PrivKey:         &cryptoMocks.PrivateKeyStub{},
 			BlockSig:        &cryptoMocks.SignerStub{},
 			TxSig:           &cryptoMocks.SignerStub{},
 			BlKeyGen:        &cryptoMocks.KeyGenStub{},
@@ -98,7 +99,11 @@ func createMockEpochStartBootstrapArgs(
 		ScheduledSCRsStorer:    genericMocks.NewStorerMock(),
 		CoreComponentsHolder:   coreMock,
 		CryptoComponentsHolder: cryptoMock,
-		Messenger:              &mock.MessengerStub{},
+		Messenger: &p2pmocks.MessengerStub{
+			ConnectedPeersCalled: func() []core.PeerID {
+				return []core.PeerID{"peer0", "peer1", "peer2", "peer3", "peer4", "peer5"}
+			},
+		},
 		GeneralConfig: config.Config{
 			MiniBlocksStorage:                  generalCfg.MiniBlocksStorage,
 			PeerBlockBodyStorage:               generalCfg.PeerBlockBodyStorage,
@@ -119,7 +124,6 @@ func createMockEpochStartBootstrapArgs(
 			PeerAccountsTrieStorage:            generalCfg.PeerAccountsTrieStorage,
 			AccountsTrieCheckpointsStorage:     generalCfg.AccountsTrieCheckpointsStorage,
 			PeerAccountsTrieCheckpointsStorage: generalCfg.PeerAccountsTrieCheckpointsStorage,
-			Heartbeat:                          generalCfg.Heartbeat,
 			HeartbeatV2:                        generalCfg.HeartbeatV2,
 			Hardfork:                           generalCfg.Hardfork,
 			EvictionWaitingList: config.EvictionWaitingListConfig{
@@ -220,6 +224,7 @@ func createMockEpochStartBootstrapArgs(
 		FlagsConfig: config.ContextFlagsConfig{
 			ForceStartFromNetwork: false,
 		},
+		TrieSyncStatisticsProvider: &testscommon.SizeSyncStatisticsHandlerStub{},
 	}
 }
 
@@ -405,6 +410,16 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 		epochStartProvider, err := NewEpochStartBootstrap(args)
 		require.Nil(t, epochStartProvider)
 		require.True(t, errors.Is(err, epochStart.ErrNilPubkeyConverter))
+	})
+	t.Run("nil trieSyncStatistics", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockEpochStartBootstrapArgs(createComponentsForEpochStart())
+		args.TrieSyncStatisticsProvider = nil
+
+		epochStartProvider, err := NewEpochStartBootstrap(args)
+		require.Nil(t, epochStartProvider)
+		require.True(t, errors.Is(err, epochStart.ErrNilTrieSyncStatistics))
 	})
 	t.Run("nil roundHandler", func(t *testing.T) {
 		t.Parallel()
@@ -918,6 +933,7 @@ func TestCreateSyncers(t *testing.T) {
 	epochStartProvider.whiteListHandler = &testscommon.WhiteListHandlerStub{}
 	epochStartProvider.whiteListerVerifiedTxs = &testscommon.WhiteListHandlerStub{}
 	epochStartProvider.requestHandler = &testscommon.RequestHandlerStub{}
+	epochStartProvider.storageService = &storageMocks.ChainStorerStub{}
 
 	err := epochStartProvider.createSyncers()
 	assert.Nil(t, err)
@@ -1647,7 +1663,7 @@ func TestRequestAndProcessing(t *testing.T) {
 		args.GenesisNodesConfig = getNodesConfigMock(1)
 
 		expectedErr := errors.New("expected error")
-		args.Messenger = &mock.MessengerStub{
+		args.Messenger = &p2pmocks.MessengerStub{
 			CreateTopicCalled: func(topic string, identifier bool) error {
 				return expectedErr
 			},
@@ -1755,6 +1771,9 @@ func TestRequestAndProcessing(t *testing.T) {
 			HeadersCalled: func() dataRetriever.HeadersPool {
 				return &mock.HeadersCacherStub{}
 			},
+			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
+				return &validatorInfoCacherStub.ValidatorInfoCacherStub{}
+			},
 		}
 		epochStartProvider.requestHandler = &testscommon.RequestHandlerStub{}
 		epochStartProvider.miniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{}
@@ -1821,6 +1840,9 @@ func TestRequestAndProcessing(t *testing.T) {
 			},
 			HeadersCalled: func() dataRetriever.HeadersPool {
 				return &mock.HeadersCacherStub{}
+			},
+			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
+				return &validatorInfoCacherStub.ValidatorInfoCacherStub{}
 			},
 		}
 		epochStartProvider.requestHandler = &testscommon.RequestHandlerStub{}
@@ -1976,6 +1998,9 @@ func TestEpochStartBootstrap_WithDisabledShardIDAsObserver(t *testing.T) {
 		},
 		TrieNodesCalled: func() storage.Cacher {
 			return testscommon.NewCacherStub()
+		},
+		CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
+			return &validatorInfoCacherStub.ValidatorInfoCacherStub{}
 		},
 	}
 	epochStartProvider.requestHandler = &testscommon.RequestHandlerStub{}

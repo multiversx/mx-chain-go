@@ -532,7 +532,7 @@ func TestValidatorsProvider_CallsPopulateOnlyAfterTimeout(t *testing.T) {
 	time.Sleep(time.Millisecond)
 	assert.Equal(t, int32(0), atomic.LoadInt32(populateCacheCalled))
 
-	// outside of refreshInterval
+	// outside refreshInterval
 	time.Sleep(arg.CacheRefreshIntervalDurationInSec)
 	_ = vsp.GetLatestValidators()
 	//allow call to go through
@@ -624,7 +624,7 @@ func TestValidatorsProvider_DoesntCallUpdateUpdateCacheWithoutRequests(t *testin
 }
 func createMockValidatorInfo() *state.ValidatorInfo {
 	initialInfo := &state.ValidatorInfo{
-		PublicKey:                  []byte("a1"),
+		PublicKey:                  []byte("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
 		ShardId:                    0,
 		List:                       "eligible",
 		Index:                      1,
@@ -641,6 +641,17 @@ func createMockValidatorInfo() *state.ValidatorInfo {
 		TotalValidatorFailure:      40,
 		NumSelectedInSuccessBlocks: 5,
 		AccumulatedFees:            big.NewInt(100),
+	}
+	return initialInfo
+}
+
+func createMockShardValidatorInfo() *state.ShardValidatorInfo {
+	initialInfo := &state.ShardValidatorInfo{
+		PublicKey:  bytes.Repeat([]byte("a"), 96),
+		ShardId:    0,
+		List:       "eligible",
+		Index:      1,
+		TempRating: 100,
 	}
 	return initialInfo
 }

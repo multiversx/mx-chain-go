@@ -5,14 +5,14 @@ import (
 	"errors"
 	"math/big"
 
-	mge "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/mandos-go/elrondgo-exporter"
-	mgutil "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/mandos-go/util"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	mge "github.com/ElrondNetwork/wasm-vm-v1_4/mandos-go/elrondgo-exporter"
+	mgutil "github.com/ElrondNetwork/wasm-vm-v1_4/mandos-go/util"
 )
 
 var errReturnCodeNotOk = errors.New("returnCode is not 0(Ok)")
@@ -33,7 +33,7 @@ func CreateAccountsFromMandosAccs(tc *vm.VMTestContext, mandosUserAccounts []*mg
 
 		mandosAccStorage := mandosAcc.GetStorage()
 		for key, value := range mandosAccStorage {
-			err = account.DataTrieTracker().SaveKeyValue([]byte(key), value)
+			err = account.SaveKeyValue([]byte(key), value)
 			if err != nil {
 				return err
 			}

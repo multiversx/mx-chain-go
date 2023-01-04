@@ -14,12 +14,14 @@ import (
 	chainData "github.com/ElrondNetwork/elrond-go-core/data"
 	apiData "github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
+	"github.com/ElrondNetwork/elrond-go-core/data/outport"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/data/vm"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/debug"
+	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/ntp"
@@ -84,17 +86,9 @@ func NewNodeFacade(arg ArgNodeFacade) (*nodeFacade, error) {
 	if len(arg.ApiRoutesConfig.APIPackages) == 0 {
 		return nil, ErrNoApiRoutesConfig
 	}
-	if arg.WsAntifloodConfig.SimultaneousRequests == 0 {
-		return nil, fmt.Errorf("%w, SimultaneousRequests should not be 0", ErrInvalidValue)
-	}
-	if arg.WsAntifloodConfig.SameSourceRequests == 0 {
-		return nil, fmt.Errorf("%w, SameSourceRequests should not be 0", ErrInvalidValue)
-	}
-	if arg.WsAntifloodConfig.SameSourceResetIntervalInSec == 0 {
-		return nil, fmt.Errorf("%w, SameSourceResetIntervalInSec should not be 0", ErrInvalidValue)
-	}
-	if arg.WsAntifloodConfig.TrieOperationsDeadlineMilliseconds == 0 {
-		return nil, fmt.Errorf("%w, TrieOperationsDeadlineMilliseconds should not be 0", ErrInvalidValue)
+	err := checkWebserverAntifloodConfig(arg.WsAntifloodConfig)
+	if err != nil {
+		return nil, err
 	}
 	if check.IfNil(arg.AccountsState) {
 		return nil, ErrNilAccountState
@@ -124,6 +118,27 @@ func NewNodeFacade(arg ArgNodeFacade) (*nodeFacade, error) {
 	nf.ctx, nf.cancelFunc = context.WithCancel(context.Background())
 
 	return nf, nil
+}
+
+func checkWebserverAntifloodConfig(cfg config.WebServerAntifloodConfig) error {
+	if !cfg.WebServerAntifloodEnabled {
+		return nil
+	}
+
+	if cfg.SimultaneousRequests == 0 {
+		return fmt.Errorf("%w, SimultaneousRequests should not be 0", ErrInvalidValue)
+	}
+	if cfg.SameSourceRequests == 0 {
+		return fmt.Errorf("%w, SameSourceRequests should not be 0", ErrInvalidValue)
+	}
+	if cfg.SameSourceResetIntervalInSec == 0 {
+		return fmt.Errorf("%w, SameSourceResetIntervalInSec should not be 0", ErrInvalidValue)
+	}
+	if cfg.TrieOperationsDeadlineMilliseconds == 0 {
+		return fmt.Errorf("%w, TrieOperationsDeadlineMilliseconds should not be 0", ErrInvalidValue)
+	}
+
+	return nil
 }
 
 func computeEndpointsNumGoRoutinesThrottlers(webServerAntiFloodConfig config.WebServerAntifloodConfig) map[string]core.Throttler {
@@ -173,6 +188,11 @@ func (nf *nodeFacade) GetBalance(address string, options apiData.AccountQueryOpt
 // GetUsername gets the username for a specified address
 func (nf *nodeFacade) GetUsername(address string, options apiData.AccountQueryOptions) (string, apiData.BlockInfo, error) {
 	return nf.node.GetUsername(address, options)
+}
+
+// GetCodeHash gets the code hash for a specified address
+func (nf *nodeFacade) GetCodeHash(address string, options apiData.AccountQueryOptions) ([]byte, apiData.BlockInfo, error) {
+	return nf.node.GetCodeHash(address, options)
 }
 
 // GetValueForKey gets the value for a key in a given address
@@ -239,8 +259,11 @@ func (nf *nodeFacade) GetAllIssuedESDTs(tokenType string) ([]string, error) {
 }
 
 func (nf *nodeFacade) getContextForApiTrieRangeOperations() (context.Context, context.CancelFunc) {
-	timeout := time.Duration(nf.wsAntifloodConfig.TrieOperationsDeadlineMilliseconds) * time.Millisecond
+	if !nf.wsAntifloodConfig.WebServerAntifloodEnabled {
+		return context.WithCancel(context.Background())
+	}
 
+	timeout := time.Duration(nf.wsAntifloodConfig.TrieOperationsDeadlineMilliseconds) * time.Millisecond
 	return context.WithTimeout(context.Background(), timeout)
 }
 
@@ -330,6 +353,36 @@ func (nf *nodeFacade) GetAccount(address string, options apiData.AccountQueryOpt
 	code, _ := nf.node.GetCode(codeHash, options)
 	accountResponse.Code = hex.EncodeToString(code)
 	return accountResponse, blockInfo, nil
+}
+
+// GetAccounts returns the state of the provided addresses
+func (nf *nodeFacade) GetAccounts(addresses []string, options apiData.AccountQueryOptions) (map[string]*apiData.AccountResponse, apiData.BlockInfo, error) {
+	numAddresses := uint32(len(addresses))
+	// TODO: check if Antiflood is enabled before applying this constraint (EN-13278)
+	maxBulkSize := nf.wsAntifloodConfig.GetAddressesBulkMaxSize
+	if numAddresses > maxBulkSize {
+		return nil, apiData.BlockInfo{}, fmt.Errorf("%w (provided: %d, maximum: %d)", ErrTooManyAddressesInBulk, numAddresses, maxBulkSize)
+	}
+
+	response := make(map[string]*apiData.AccountResponse)
+	var blockInfo apiData.BlockInfo
+
+	for _, address := range addresses {
+		accountResponse, blockInfoForAccount, err := nf.node.GetAccount(address, options)
+		if err != nil {
+			return nil, apiData.BlockInfo{}, err
+		}
+
+		blockInfo = blockInfoForAccount
+
+		codeHash := accountResponse.CodeHash
+		code, _ := nf.node.GetCode(codeHash, options)
+		accountResponse.Code = hex.EncodeToString(code)
+
+		response[address] = &accountResponse
+	}
+
+	return response, blockInfo, nil
 }
 
 // GetHeartbeats returns the heartbeat status for each public key from initial list or later joined to the network
@@ -423,6 +476,10 @@ func (nf *nodeFacade) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
 
 // GetThrottlerForEndpoint returns the throttler for a given endpoint if found
 func (nf *nodeFacade) GetThrottlerForEndpoint(endpoint string) (core.Throttler, bool) {
+	if !nf.wsAntifloodConfig.WebServerAntifloodEnabled {
+		return disabled.NewThrottler(), true
+	}
+
 	throttlerForEndpoint, ok := nf.endpointsThrottlers[endpoint]
 	isThrottlerOk := ok && throttlerForEndpoint != nil
 
@@ -444,6 +501,11 @@ func (nf *nodeFacade) GetBlockByRound(round uint64, options apiData.BlockQueryOp
 	return nf.apiResolver.GetBlockByRound(round, options)
 }
 
+// GetAlteredAccountsForBlock returns the altered accounts for a given block
+func (nf *nodeFacade) GetAlteredAccountsForBlock(options apiData.GetAlteredAccountsForBlockOptions) ([]*outport.AlteredAccount, error) {
+	return nf.apiResolver.GetAlteredAccountsForBlock(options)
+}
+
 // GetInternalMetaBlockByHash return the meta block for a given hash
 func (nf *nodeFacade) GetInternalMetaBlockByHash(format common.ApiOutputFormat, hash string) (interface{}, error) {
 	return nf.apiResolver.GetInternalMetaBlockByHash(format, hash)
@@ -459,10 +521,16 @@ func (nf *nodeFacade) GetInternalMetaBlockByRound(format common.ApiOutputFormat,
 	return nf.apiResolver.GetInternalMetaBlockByRound(format, round)
 }
 
-// GetInternalStartOfEpochMetaBlock wil return start of epoch meta block
+// GetInternalStartOfEpochMetaBlock will return start of epoch meta block
 // for a specified epoch
 func (nf *nodeFacade) GetInternalStartOfEpochMetaBlock(format common.ApiOutputFormat, epoch uint32) (interface{}, error) {
 	return nf.apiResolver.GetInternalStartOfEpochMetaBlock(format, epoch)
+}
+
+// GetInternalStartOfEpochValidatorsInfo will return start of epoch validators info
+// for a specified epoch
+func (nf *nodeFacade) GetInternalStartOfEpochValidatorsInfo(epoch uint32) ([]*state.ShardValidatorInfo, error) {
+	return nf.apiResolver.GetInternalStartOfEpochValidatorsInfo(epoch)
 }
 
 // GetInternalShardBlockByHash return the shard block for a given hash
@@ -485,7 +553,7 @@ func (nf *nodeFacade) GetInternalMiniBlockByHash(format common.ApiOutputFormat, 
 	return nf.apiResolver.GetInternalMiniBlock(format, txHash, epoch)
 }
 
-// Close will cleanup started go routines
+// Close will clean up started go routines
 func (nf *nodeFacade) Close() error {
 	log.LogIfError(nf.apiResolver.Close())
 

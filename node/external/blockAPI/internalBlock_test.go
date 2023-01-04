@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
+	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
@@ -29,9 +30,9 @@ func createMockInternalBlockProcessor(
 		&ArgAPIBlockProcessor{
 			SelfShardID: shardID,
 			Marshalizer: &mock.MarshalizerFake{},
-			Store: &mock.ChainStorerMock{
-				GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-					return storerMock
+			Store: &storageMocks.ChainStorerStub{
+				GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+					return storerMock, nil
 				},
 				GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
 					if withKey {
@@ -49,6 +50,7 @@ func createMockInternalBlockProcessor(
 					return false
 				},
 			},
+			EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
 		}, nil)
 }
 
@@ -66,7 +68,8 @@ func TestInternalBlockProcessor_ConvertShardBlockBytesToInternalBlockShouldFail(
 					return expectedErr
 				},
 			},
-			HistoryRepo: &dblookupext.HistoryRepositoryStub{},
+			HistoryRepo:         &dblookupext.HistoryRepositoryStub{},
+			EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
 		}, nil)
 
 	wrongBytes := []byte{0, 1, 2}
@@ -81,8 +84,9 @@ func TestInternalBlockProcessor_ConvertShardBlockBytesToInternalBlockShouldWork(
 
 	ibp := newInternalBlockProcessor(
 		&ArgAPIBlockProcessor{
-			Marshalizer: &testscommon.MarshalizerMock{},
-			HistoryRepo: &dblookupext.HistoryRepositoryStub{},
+			Marshalizer:         &testscommon.MarshalizerMock{},
+			HistoryRepo:         &dblookupext.HistoryRepositoryStub{},
+			EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
 		}, nil)
 
 	header := &block.Header{
@@ -155,6 +159,26 @@ func TestInternalBlockProcessor_GetInternalShardBlockShouldFail(t *testing.T) {
 		storerMock,
 		true,
 	)
+
+	t.Run("storer not found", func(t *testing.T) {
+		t.Parallel()
+
+		ibpTmp := createMockInternalBlockProcessor(
+			0,
+			headerHash,
+			storerMock,
+			true,
+		)
+		ibpTmp.store = &storageMocks.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return nil, expectedErr
+			},
+		}
+		ibpTmp.hasDbLookupExtensions = true
+		blk, err := ibpTmp.GetInternalShardBlockByHash(common.ApiOutputFormatJSON, headerHash)
+		assert.Nil(t, blk)
+		assert.Equal(t, expectedErr, err)
+	})
 
 	t.Run("provided hash not in storer", func(t *testing.T) {
 		t.Parallel()
@@ -312,7 +336,8 @@ func TestInternalBlockProcessor_ConvertMetaBlockBytesToInternalBlock_ShouldFail(
 					return expectedErr
 				},
 			},
-			HistoryRepo: &dblookupext.HistoryRepositoryStub{},
+			HistoryRepo:         &dblookupext.HistoryRepositoryStub{},
+			EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
 		}, nil)
 
 	wrongBytes := []byte{0, 1, 2}
@@ -327,8 +352,9 @@ func TestInternalBlockProcessor_ConvertMetaBlockBytesToInternalBlockShouldWork(t
 
 	ibp := newInternalBlockProcessor(
 		&ArgAPIBlockProcessor{
-			Marshalizer: &testscommon.MarshalizerMock{},
-			HistoryRepo: &dblookupext.HistoryRepositoryStub{},
+			Marshalizer:         &testscommon.MarshalizerMock{},
+			HistoryRepo:         &dblookupext.HistoryRepositoryStub{},
+			EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
 		}, nil)
 
 	header := &block.MetaBlock{
@@ -401,6 +427,26 @@ func TestInternalBlockProcessor_GetInternalMetaBlockShouldFail(t *testing.T) {
 		storerMock,
 		true,
 	)
+
+	t.Run("storer not found", func(t *testing.T) {
+		t.Parallel()
+
+		ibpTmp := createMockInternalBlockProcessor(
+			core.MetachainShardId,
+			headerHash,
+			storerMock,
+			true,
+		)
+		ibpTmp.store = &storageMocks.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return nil, expectedErr
+			},
+		}
+		ibpTmp.hasDbLookupExtensions = true
+		blk, err := ibpTmp.GetInternalMetaBlockByHash(common.ApiOutputFormatJSON, []byte("invalidHash"))
+		assert.Nil(t, blk)
+		assert.Equal(t, expectedErr, err)
+	})
 
 	t.Run("provided hash not in storer", func(t *testing.T) {
 		t.Parallel()
@@ -553,6 +599,29 @@ func TestInternalBlockProcessor_GetInternalMiniBlockByHash(t *testing.T) {
 	txHash := []byte("dummyhash")
 	expEpoch := uint32(1)
 
+	t.Run("storer not found", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := errors.New("key not found err")
+		ibp := newInternalBlockProcessor(
+			&ArgAPIBlockProcessor{
+				SelfShardID: 1,
+				Marshalizer: &mock.MarshalizerFake{},
+				Store: &storageMocks.ChainStorerStub{
+					GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+						return nil, expectedErr
+					},
+				},
+				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
+				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
+				EnableEpochsHandler:      &testscommon.EnableEpochsHandlerStub{},
+			}, nil)
+
+		blk, err := ibp.GetInternalMiniBlock(common.ApiOutputFormatJSON, []byte("invalidHash"), 1)
+		assert.Nil(t, blk)
+		assert.Equal(t, expectedErr, err)
+	})
+
 	t.Run("provided hash not in storer", func(t *testing.T) {
 		t.Parallel()
 
@@ -567,13 +636,43 @@ func TestInternalBlockProcessor_GetInternalMiniBlockByHash(t *testing.T) {
 			&ArgAPIBlockProcessor{
 				SelfShardID: 1,
 				Marshalizer: &mock.MarshalizerFake{},
-				Store: &mock.ChainStorerMock{
-					GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-						return storerMock
+				Store: &storageMocks.ChainStorerStub{
+					GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+						return storerMock, nil
 					},
 				},
 				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
 				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
+				EnableEpochsHandler:      &testscommon.EnableEpochsHandlerStub{},
+			}, nil)
+
+		blk, err := ibp.GetInternalMiniBlock(common.ApiOutputFormatJSON, []byte("invalidHash"), 1)
+		assert.Nil(t, blk)
+		assert.Equal(t, expectedErr, err)
+	})
+
+	t.Run("provided hash not in storer", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := errors.New("key not found err")
+		storerMock := &storageMocks.StorerStub{
+			GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+				return nil, expectedErr
+			},
+		}
+
+		ibp := newInternalBlockProcessor(
+			&ArgAPIBlockProcessor{
+				SelfShardID: 1,
+				Marshalizer: &mock.MarshalizerFake{},
+				Store: &storageMocks.ChainStorerStub{
+					GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+						return storerMock, nil
+					},
+				},
+				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
+				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
+				EnableEpochsHandler:      &testscommon.EnableEpochsHandlerStub{},
 			}, nil)
 
 		blk, err := ibp.GetInternalMiniBlock(common.ApiOutputFormatJSON, []byte("invalidHash"), 1)
@@ -600,13 +699,14 @@ func TestInternalBlockProcessor_GetInternalMiniBlockByHash(t *testing.T) {
 			&ArgAPIBlockProcessor{
 				SelfShardID: 1,
 				Marshalizer: &mock.MarshalizerFake{},
-				Store: &mock.ChainStorerMock{
-					GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-						return storerMock
+				Store: &storageMocks.ChainStorerStub{
+					GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+						return storerMock, nil
 					},
 				},
 				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
 				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
+				EnableEpochsHandler:      &testscommon.EnableEpochsHandlerStub{},
 			}, nil)
 
 		blk, err := ibp.GetInternalMiniBlock(common.ApiOutputFormatProto, miniBlockHash, 1)
@@ -634,13 +734,14 @@ func TestInternalBlockProcessor_GetInternalMiniBlockByHash(t *testing.T) {
 			&ArgAPIBlockProcessor{
 				SelfShardID: 1,
 				Marshalizer: &mock.MarshalizerFake{},
-				Store: &mock.ChainStorerMock{
-					GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-						return storerMock
+				Store: &storageMocks.ChainStorerStub{
+					GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+						return storerMock, nil
 					},
 				},
 				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
 				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
+				EnableEpochsHandler:      &testscommon.EnableEpochsHandlerStub{},
 			}, nil)
 
 		blk, err := ibp.GetInternalMiniBlock(common.ApiOutputFormatJSON, miniBlockHash, expEpoch)
@@ -666,9 +767,10 @@ func TestInternalBlockProcessor_GetInternalStartOfEpochMetaBlock(t *testing.T) {
 			&ArgAPIBlockProcessor{
 				SelfShardID:              1,
 				Marshalizer:              &mock.MarshalizerFake{},
-				Store:                    &mock.ChainStorerMock{},
+				Store:                    &storageMocks.ChainStorerStub{},
 				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
 				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
+				EnableEpochsHandler:      &testscommon.EnableEpochsHandlerStub{},
 			}, nil)
 
 		blk, err := ibp.GetInternalStartOfEpochMetaBlock(common.ApiOutputFormatJSON, expEpoch)
@@ -690,13 +792,14 @@ func TestInternalBlockProcessor_GetInternalStartOfEpochMetaBlock(t *testing.T) {
 			&ArgAPIBlockProcessor{
 				SelfShardID: core.MetachainShardId,
 				Marshalizer: &mock.MarshalizerFake{},
-				Store: &mock.ChainStorerMock{
-					GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-						return storerMock
+				Store: &storageMocks.ChainStorerStub{
+					GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+						return storerMock, nil
 					},
 				},
 				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
 				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
+				EnableEpochsHandler:      &testscommon.EnableEpochsHandlerStub{},
 			}, nil)
 
 		blk, err := ibp.GetInternalStartOfEpochMetaBlock(common.ApiOutputFormatJSON, expEpoch)
@@ -718,13 +821,14 @@ func TestInternalBlockProcessor_GetInternalStartOfEpochMetaBlock(t *testing.T) {
 			&ArgAPIBlockProcessor{
 				SelfShardID: core.MetachainShardId,
 				Marshalizer: &mock.MarshalizerFake{},
-				Store: &mock.ChainStorerMock{
-					GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-						return storerMock
+				Store: &storageMocks.ChainStorerStub{
+					GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+						return storerMock, nil
 					},
 				},
 				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
 				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
+				EnableEpochsHandler:      &testscommon.EnableEpochsHandlerStub{},
 			}, nil)
 
 		blk, err := ibp.GetInternalStartOfEpochMetaBlock(common.ApiOutputFormatProto, expEpoch)
@@ -746,17 +850,239 @@ func TestInternalBlockProcessor_GetInternalStartOfEpochMetaBlock(t *testing.T) {
 			&ArgAPIBlockProcessor{
 				SelfShardID: core.MetachainShardId,
 				Marshalizer: &mock.MarshalizerFake{},
-				Store: &mock.ChainStorerMock{
-					GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-						return storerMock
+				Store: &storageMocks.ChainStorerStub{
+					GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+						return storerMock, nil
 					},
 				},
 				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
 				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
+				EnableEpochsHandler:      &testscommon.EnableEpochsHandlerStub{},
 			}, nil)
 
 		blk, err := ibp.GetInternalStartOfEpochMetaBlock(common.ApiOutputFormatJSON, expEpoch)
 		assert.Nil(t, err)
 		assert.Equal(t, header, blk)
+	})
+}
+
+func TestInternalBlockProcessor_GetInternalStartOfEpochValidatorsInfo(t *testing.T) {
+	t.Parallel()
+
+	expEpoch := uint32(1)
+
+	t.Run("not metachain shard, should fail", func(t *testing.T) {
+		t.Parallel()
+
+		ibp := newInternalBlockProcessor(
+			&ArgAPIBlockProcessor{
+				SelfShardID:              1,
+				Marshalizer:              &mock.MarshalizerFake{},
+				Store:                    &storageMocks.ChainStorerStub{},
+				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
+				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
+				EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+					IsRefactorPeersMiniBlocksFlagEnabledField: true,
+				},
+			}, nil)
+
+		blk, err := ibp.GetInternalStartOfEpochValidatorsInfo(expEpoch)
+		assert.Nil(t, blk)
+		assert.Equal(t, ErrMetachainOnlyEndpoint, err)
+	})
+
+	t.Run("fail to get from storer", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := errors.New("key not found err")
+		storerMock := &storageMocks.StorerStub{
+			GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+				return nil, expectedErr
+			},
+		}
+
+		ibp := newInternalBlockProcessor(
+			&ArgAPIBlockProcessor{
+				SelfShardID: core.MetachainShardId,
+				Marshalizer: &mock.MarshalizerFake{},
+				Store: &storageMocks.ChainStorerStub{
+					GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+						return storerMock, nil
+					},
+				},
+				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
+				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
+				EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+					IsRefactorPeersMiniBlocksFlagEnabledField: true,
+				},
+			}, nil)
+
+		blk, err := ibp.GetInternalStartOfEpochValidatorsInfo(expEpoch)
+		assert.Nil(t, blk)
+		assert.Equal(t, expectedErr, err)
+	})
+
+	t.Run("without refactor peers miniblock activated, should work", func(t *testing.T) {
+		t.Parallel()
+
+		marshaller := &mock.MarshalizerFake{}
+
+		mbHeader1Hash := []byte("miniBlockHeaderHash1")
+		mbHeader1 := block.MiniBlockHeader{
+			Hash:            mbHeader1Hash,
+			SenderShardID:   0,
+			ReceiverShardID: 0,
+			TxCount:         2,
+			Type:            block.PeerBlock,
+		}
+
+		svi := &state.ShardValidatorInfo{
+			PublicKey:  []byte("pubkey1"),
+			ShardId:    0,
+			Index:      1,
+			TempRating: 500,
+		}
+		sviBytes, _ := marshaller.Marshal(svi)
+
+		txHashes := [][]byte{sviBytes}
+		mb1 := block.MiniBlock{
+			TxHashes:        txHashes,
+			ReceiverShardID: 1,
+			SenderShardID:   1,
+			Type:            block.PeerBlock,
+		}
+		mb1Bytes, _ := marshaller.Marshal(mb1)
+
+		header := &block.MetaBlock{
+			Nonce: 1,
+			Epoch: 1,
+			MiniBlockHeaders: []block.MiniBlockHeader{
+				mbHeader1,
+			},
+		}
+		headerBytes, _ := marshaller.Marshal(header)
+
+		firstRun := true
+		storerMock := &storageMocks.StorerStub{
+			GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+				if firstRun {
+					firstRun = false
+					return headerBytes, nil
+				}
+
+				require.Equal(t, mbHeader1Hash, key)
+				return mb1Bytes, nil
+			},
+		}
+
+		ibp := newInternalBlockProcessor(
+			&ArgAPIBlockProcessor{
+				SelfShardID: core.MetachainShardId,
+				Marshalizer: marshaller,
+				Store: &storageMocks.ChainStorerStub{
+					GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+						return storerMock, nil
+					},
+				},
+				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
+				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
+				EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+					RefactorPeersMiniBlocksEnableEpochField: 5,
+				},
+			}, nil)
+
+		validatorsInfo, err := ibp.GetInternalStartOfEpochValidatorsInfo(expEpoch)
+
+		expectedValidatorsInfo := []*state.ShardValidatorInfo{
+			svi,
+		}
+
+		assert.Nil(t, err)
+		assert.Equal(t, expectedValidatorsInfo, validatorsInfo)
+	})
+
+	t.Run("with refactor peers miniblock activated, should work", func(t *testing.T) {
+		t.Parallel()
+
+		marshaller := &mock.MarshalizerFake{}
+
+		mbHeader1Hash := []byte("miniBlockHeaderHash1")
+		mbHeader1 := block.MiniBlockHeader{
+			Hash:            mbHeader1Hash,
+			SenderShardID:   0,
+			ReceiverShardID: 0,
+			TxCount:         2,
+			Type:            block.PeerBlock,
+		}
+
+		txHashes := [][]byte{[]byte("txHash1")}
+		mb1 := block.MiniBlock{
+			TxHashes:        txHashes,
+			ReceiverShardID: 1,
+			SenderShardID:   1,
+			Type:            block.PeerBlock,
+		}
+		mb1Bytes, _ := marshaller.Marshal(mb1)
+
+		header := &block.MetaBlock{
+			Nonce: 1,
+			Epoch: 5,
+			MiniBlockHeaders: []block.MiniBlockHeader{
+				mbHeader1,
+			},
+		}
+		headerBytes, _ := marshaller.Marshal(header)
+
+		firstRun := true
+		storerMock := &storageMocks.StorerStub{
+			GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+				if firstRun {
+					firstRun = false
+					return headerBytes, nil
+				}
+
+				require.Equal(t, mbHeader1Hash, key)
+				return mb1Bytes, nil
+			},
+		}
+
+		svi := &state.ShardValidatorInfo{
+			PublicKey:  []byte("pubkey1"),
+			ShardId:    0,
+			Index:      1,
+			TempRating: 500,
+		}
+		sviBytes, _ := marshaller.Marshal(svi)
+
+		ibp := newInternalBlockProcessor(
+			&ArgAPIBlockProcessor{
+				SelfShardID: core.MetachainShardId,
+				Marshalizer: marshaller,
+				Store: &storageMocks.ChainStorerStub{
+					GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+						return storerMock, nil
+					},
+					GetAllCalled: func(unitType dataRetriever.UnitType, keys [][]byte) (map[string][]byte, error) {
+						require.Equal(t, txHashes, keys)
+						allData := make(map[string][]byte)
+						allData["hash1"] = sviBytes
+						return allData, nil
+					},
+				},
+				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
+				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
+				EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+					RefactorPeersMiniBlocksEnableEpochField: 5,
+				},
+			}, nil)
+
+		validatorsInfo, err := ibp.GetInternalStartOfEpochValidatorsInfo(expEpoch)
+
+		expectedValidatorsInfo := []*state.ShardValidatorInfo{
+			svi,
+		}
+
+		assert.Nil(t, err)
+		assert.Equal(t, expectedValidatorsInfo, validatorsInfo)
 	})
 }

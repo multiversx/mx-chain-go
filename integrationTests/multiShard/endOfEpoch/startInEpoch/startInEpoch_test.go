@@ -27,7 +27,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	epochNotifierMock "github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
@@ -59,10 +59,18 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	numNodesPerShard := 3
 	numMetachainNodes := 3
 
-	nodes := integrationTests.CreateNodes(
+	enableEpochsConfig := config.EnableEpochs{
+		StakingV2EnableEpoch:                 integrationTests.UnreachableEpoch,
+		ScheduledMiniBlocksEnableEpoch:       integrationTests.UnreachableEpoch,
+		MiniBlockPartialExecutionEnableEpoch: integrationTests.UnreachableEpoch,
+		RefactorPeersMiniBlocksEnableEpoch:   integrationTests.UnreachableEpoch,
+	}
+
+	nodes := integrationTests.CreateNodesWithEnableEpochs(
 		numOfShards,
 		numNodesPerShard,
 		numMetachainNodes,
+		enableEpochsConfig,
 	)
 
 	roundsPerEpoch := uint64(10)
@@ -179,7 +187,11 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
 
-	nodeToJoinLate := integrationTests.NewTestProcessorNode(uint32(numOfShards), shardID, shardID)
+	nodeToJoinLate := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+		MaxShards:            uint32(numOfShards),
+		NodeShardId:          shardID,
+		TxSignPrivKeyShardId: shardID,
+	})
 	messenger := integrationTests.CreateMessengerWithNoDiscovery()
 	time.Sleep(integrationTests.P2pBootstrapDelay)
 	nodeToJoinLate.Messenger = messenger
@@ -246,6 +258,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		FlagsConfig: config.ContextFlagsConfig{
 			ForceStartFromNetwork: false,
 		},
+		TrieSyncStatisticsProvider: &testscommon.SizeSyncStatisticsHandlerStub{},
 	}
 
 	epochStartBootstrap, err := bootstrap.NewEpochStartBootstrap(argsBootstrapHandler)
@@ -267,6 +280,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 			EpochStartNotifier:            notifier.NewEpochStartSubscriptionHandler(),
 			NodeTypeProvider:              &nodeTypeProviderMock.NodeTypeProviderStub{},
 			CurrentEpoch:                  0,
+			StorageType:                   factory.ProcessStorageService,
 			CreateTrieEpochRootHashStorer: false,
 		},
 	)
@@ -275,7 +289,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	assert.NoError(t, err)
 	assert.NotNil(t, storageServiceShard)
 
-	bootstrapUnit := storageServiceShard.GetStorer(dataRetriever.BootstrapUnit)
+	bootstrapUnit, _ := storageServiceShard.GetStorer(dataRetriever.BootstrapUnit)
 	assert.NotNil(t, bootstrapUnit)
 
 	bootstrapStorer, err := bootstrapStorage.NewBootstrapStorer(integrationTests.TestMarshalizer, bootstrapUnit)
@@ -341,14 +355,14 @@ func getBootstrapper(shardID uint32, baseArgs storageBootstrap.ArgsBaseStorageBo
 
 func getGeneralConfig() config.Config {
 	generalConfig := testscommon.GetGeneralConfig()
-	generalConfig.MiniBlocksStorage.DB.Type = string(storageUnit.LvlDBSerial)
-	generalConfig.ShardHdrNonceHashStorage.DB.Type = string(storageUnit.LvlDBSerial)
-	generalConfig.MetaBlockStorage.DB.Type = string(storageUnit.LvlDBSerial)
-	generalConfig.MetaHdrNonceHashStorage.DB.Type = string(storageUnit.LvlDBSerial)
-	generalConfig.BlockHeaderStorage.DB.Type = string(storageUnit.LvlDBSerial)
-	generalConfig.BootstrapStorage.DB.Type = string(storageUnit.LvlDBSerial)
-	generalConfig.ReceiptsStorage.DB.Type = string(storageUnit.LvlDBSerial)
-	generalConfig.ScheduledSCRsStorage.DB.Type = string(storageUnit.LvlDBSerial)
+	generalConfig.MiniBlocksStorage.DB.Type = string(storageunit.LvlDBSerial)
+	generalConfig.ShardHdrNonceHashStorage.DB.Type = string(storageunit.LvlDBSerial)
+	generalConfig.MetaBlockStorage.DB.Type = string(storageunit.LvlDBSerial)
+	generalConfig.MetaHdrNonceHashStorage.DB.Type = string(storageunit.LvlDBSerial)
+	generalConfig.BlockHeaderStorage.DB.Type = string(storageunit.LvlDBSerial)
+	generalConfig.BootstrapStorage.DB.Type = string(storageunit.LvlDBSerial)
+	generalConfig.ReceiptsStorage.DB.Type = string(storageunit.LvlDBSerial)
+	generalConfig.ScheduledSCRsStorage.DB.Type = string(storageunit.LvlDBSerial)
 
 	return generalConfig
 }

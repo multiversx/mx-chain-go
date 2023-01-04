@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/trie/keyBuilder"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
@@ -134,6 +135,11 @@ func (se *stateExport) ExportAll(epoch uint32) error {
 		return err
 	}
 
+	err = se.exportAllValidatorsInfo()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -152,6 +158,23 @@ func (se *stateExport) exportAllTransactions() error {
 	}
 
 	return se.hardforkStorer.FinishedIdentifier(TransactionsIdentifier)
+}
+
+func (se *stateExport) exportAllValidatorsInfo() error {
+	toExportValidatorsInfo, err := se.stateSyncer.GetAllValidatorsInfo()
+	if err != nil {
+		return err
+	}
+
+	log.Debug("Starting export for validators info", "len", len(toExportValidatorsInfo))
+	for key, validatorInfo := range toExportValidatorsInfo {
+		errExport := se.exportValidatorInfo(key, validatorInfo)
+		if errExport != nil {
+			return errExport
+		}
+	}
+
+	return se.hardforkStorer.FinishedIdentifier(ValidatorsInfoIdentifier)
 }
 
 func (se *stateExport) exportAllMiniBlocks() error {
@@ -270,15 +293,18 @@ func (se *stateExport) exportTrie(key string, trie common.Trie) error {
 		return err
 	}
 
-	leavesChannel := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
-	err = trie.GetAllLeavesOnChannel(leavesChannel, context.Background(), rootHash)
+	leavesChannels := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    make(chan error, 1),
+	}
+	err = trie.GetAllLeavesOnChannel(leavesChannels, context.Background(), rootHash, keyBuilder.NewKeyBuilder())
 	if err != nil {
 		return err
 	}
 
 	if accType == ValidatorAccount {
 		var validatorData map[uint32][]*state.ValidatorInfo
-		validatorData, err = getValidatorDataFromLeaves(leavesChannel, se.shardCoordinator, se.marshalizer)
+		validatorData, err = getValidatorDataFromLeaves(leavesChannels, se.shardCoordinator, se.marshalizer)
 		if err != nil {
 			return err
 		}
@@ -306,7 +332,7 @@ func (se *stateExport) exportTrie(key string, trie common.Trie) error {
 	}
 
 	if accType == DataTrie {
-		return se.exportDataTries(leavesChannel, accType, shId, identifier)
+		return se.exportDataTries(leavesChannels, accType, shId, identifier)
 	}
 
 	log.Debug("exporting trie",
@@ -314,16 +340,16 @@ func (se *stateExport) exportTrie(key string, trie common.Trie) error {
 		"root hash", rootHash,
 	)
 
-	return se.exportAccountLeaves(leavesChannel, accType, shId, identifier)
+	return se.exportAccountLeaves(leavesChannels, accType, shId, identifier)
 }
 
 func (se *stateExport) exportDataTries(
-	leavesChannel chan core.KeyValueHolder,
+	leavesChannels *common.TrieIteratorChannels,
 	accType Type,
 	shId uint32,
 	identifier string,
 ) error {
-	for leaf := range leavesChannel {
+	for leaf := range leavesChannels.LeavesChan {
 		keyToExport := CreateAccountKey(accType, shId, leaf.Key())
 		err := se.hardforkStorer.Write(identifier, []byte(keyToExport), leaf.Value())
 		if err != nil {
@@ -331,21 +357,21 @@ func (se *stateExport) exportDataTries(
 		}
 	}
 
-	err := se.hardforkStorer.FinishedIdentifier(identifier)
+	err := common.GetErrorFromChanNonBlocking(leavesChannels.ErrChan)
 	if err != nil {
 		return err
 	}
 
-	return nil
+	return se.hardforkStorer.FinishedIdentifier(identifier)
 }
 
 func (se *stateExport) exportAccountLeaves(
-	leavesChannel chan core.KeyValueHolder,
+	leavesChannels *common.TrieIteratorChannels,
 	accType Type,
 	shId uint32,
 	identifier string,
 ) error {
-	for leaf := range leavesChannel {
+	for leaf := range leavesChannels.LeavesChan {
 		keyToExport := CreateAccountKey(accType, shId, leaf.Key())
 		err := se.hardforkStorer.Write(identifier, []byte(keyToExport), leaf.Value())
 		if err != nil {
@@ -353,12 +379,12 @@ func (se *stateExport) exportAccountLeaves(
 		}
 	}
 
-	err := se.hardforkStorer.FinishedIdentifier(identifier)
+	err := common.GetErrorFromChanNonBlocking(leavesChannels.ErrChan)
 	if err != nil {
 		return err
 	}
 
-	return nil
+	return se.hardforkStorer.FinishedIdentifier(identifier)
 }
 
 func (se *stateExport) exportMBs(key string, mb *block.MiniBlock) error {
@@ -386,6 +412,22 @@ func (se *stateExport) exportTx(key string, tx data.TransactionHandler) error {
 	keyToSave := CreateTransactionKey(key, tx)
 
 	err = se.hardforkStorer.Write(TransactionsIdentifier, []byte(keyToSave), marshaledData)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (se *stateExport) exportValidatorInfo(key string, validatorInfo *state.ShardValidatorInfo) error {
+	marshaledData, err := json.Marshal(validatorInfo)
+	if err != nil {
+		return err
+	}
+
+	keyToSave := CreateValidatorInfoKey(key)
+
+	err = se.hardforkStorer.Write(ValidatorsInfoIdentifier, []byte(keyToSave), marshaledData)
 	if err != nil {
 		return err
 	}

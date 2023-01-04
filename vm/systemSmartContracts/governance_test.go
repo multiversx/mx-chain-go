@@ -8,6 +8,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
@@ -34,12 +35,14 @@ func createMockGovernanceArgs() ArgsNewGovernanceContract {
 				MinVetoThreshold: "50",
 			},
 		},
-		Marshalizer:                 &mock.MarshalizerMock{},
-		Hasher:                      &hashingMocks.HasherMock{},
-		GovernanceSCAddress:         vm.GovernanceSCAddress,
-		DelegationMgrSCAddress:      vm.DelegationManagerSCAddress,
-		ValidatorSCAddress:          vm.ValidatorSCAddress,
-		EpochNotifier:               &mock.EpochNotifierStub{},
+		Marshalizer:            &mock.MarshalizerMock{},
+		Hasher:                 &hashingMocks.HasherMock{},
+		GovernanceSCAddress:    vm.GovernanceSCAddress,
+		DelegationMgrSCAddress: vm.DelegationManagerSCAddress,
+		ValidatorSCAddress:     vm.ValidatorSCAddress,
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+			IsGovernanceFlagEnabledField: true,
+		},
 		InitialWhiteListedAddresses: [][]byte{vm.GovernanceSCAddress},
 	}
 }
@@ -89,15 +92,15 @@ func TestNewGovernanceContract_NilHasherShouldErr(t *testing.T) {
 	require.Equal(t, vm.ErrNilHasher, err)
 }
 
-func TestNewGovernanceContract_NilEpochNotifierShouldErr(t *testing.T) {
+func TestNewGovernanceContract_NilEnableEpochsHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockGovernanceArgs()
-	args.EpochNotifier = nil
+	args.EnableEpochsHandler = nil
 
 	gsc, err := NewGovernanceContract(args)
 	require.Nil(t, gsc)
-	require.Equal(t, vm.ErrNilEpochNotifier, err)
+	require.Equal(t, vm.ErrNilEnableEpochsHandler, err)
 }
 
 func TestNewGovernanceContract_ZeroBaseProposerCostShouldErr(t *testing.T) {
@@ -228,15 +231,16 @@ func TestGovernanceContract_ExecuteInitV2(t *testing.T) {
 	t.Parallel()
 
 	args := createMockGovernanceArgs()
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
 	gsc, _ := NewGovernanceContract(args)
 
 	callInput := createVMInput(big.NewInt(0), "initV2", vm.GovernanceSCAddress, []byte("addr2"), nil)
 
-	gsc.flagEnabled.Reset()
+	enableEpochsHandler.IsGovernanceFlagEnabledField = false
 	retCode := gsc.Execute(callInput)
 	require.Equal(t, vmcommon.UserError, retCode)
 
-	_ = gsc.flagEnabled.SetReturningPrevious()
+	enableEpochsHandler.IsGovernanceFlagEnabledField = true
 
 	retCode = gsc.Execute(callInput)
 	require.Equal(t, vmcommon.Ok, retCode)
@@ -1894,7 +1898,6 @@ func TestGovernanceContract_HardForkProposalInvalidCommitLength(t *testing.T) {
 			return nil
 		},
 	}
-	args.EpochConfig.EnableEpochs.GovernanceEnableEpoch = 0
 	gsc, _ := NewGovernanceContract(args)
 
 	callInputArgs := [][]byte{

@@ -18,7 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
+	"github.com/ElrondNetwork/elrond-go/storage/cache"
 )
 
 const prefixHeaderAlarm = "header_"
@@ -98,7 +98,7 @@ func NewDelayedBlockBroadcaster(args *ArgsDelayedBlockBroadcaster) (*delayedBloc
 		return nil, spos.ErrNilAlarmScheduler
 	}
 
-	cacheHeaders, err := lrucache.NewCache(sizeHeadersCache)
+	cacheHeaders, err := cache.NewLRUCache(sizeHeadersCache)
 	if err != nil {
 		return nil, err
 	}
@@ -649,7 +649,7 @@ func (dbb *delayedBlockBroadcaster) interceptedHeader(_ string, headerHash []byt
 
 		if sameHeader {
 			dbb.valHeaderBroadcastData = append(dbb.valHeaderBroadcastData[:i], dbb.valHeaderBroadcastData[i+1:]...)
-			// leader has broadcast the header so we can cancel the header alarm
+			// leader has already broadcast the header, so we can cancel the header alarm
 			alarmID := prefixHeaderAlarm + hex.EncodeToString(headerHash)
 			alarmsToCancel = append(alarmsToCancel, alarmID)
 			log.Trace("delayedBlockBroadcaster.interceptedHeader: leader has broadcast header, validator cancelling alarm",

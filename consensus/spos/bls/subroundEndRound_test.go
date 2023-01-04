@@ -6,9 +6,10 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
@@ -67,7 +68,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilSubroundShouldFail(t *testing.T)
 		&statusHandler.AppStatusHandlerStub{},
 	)
 
-	assert.Nil(t, srEndRound)
+	assert.True(t, check.IfNil(srEndRound))
 	assert.Equal(t, spos.ErrNilSubround, err)
 }
 
@@ -102,7 +103,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockChainShouldFail(t *testing.
 		&statusHandler.AppStatusHandlerStub{},
 	)
 
-	assert.Nil(t, srEndRound)
+	assert.True(t, check.IfNil(srEndRound))
 	assert.Equal(t, spos.ErrNilBlockChain, err)
 }
 
@@ -137,7 +138,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockProcessorShouldFail(t *test
 		&statusHandler.AppStatusHandlerStub{},
 	)
 
-	assert.Nil(t, srEndRound)
+	assert.True(t, check.IfNil(srEndRound))
 	assert.Equal(t, spos.ErrNilBlockProcessor, err)
 }
 
@@ -173,11 +174,11 @@ func TestSubroundEndRound_NewSubroundEndRoundNilConsensusStateShouldFail(t *test
 		&statusHandler.AppStatusHandlerStub{},
 	)
 
-	assert.Nil(t, srEndRound)
+	assert.True(t, check.IfNil(srEndRound))
 	assert.Equal(t, spos.ErrNilConsensusState, err)
 }
 
-func TestSubroundEndRound_NewSubroundEndRoundNilMultisignerShouldFail(t *testing.T) {
+func TestSubroundEndRound_NewSubroundEndRoundNilMultiSignerContainerShouldFail(t *testing.T) {
 	t.Parallel()
 
 	container := mock.InitConsensusCore()
@@ -199,7 +200,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilMultisignerShouldFail(t *testing
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 	)
-	container.SetMultiSigner(nil)
+	container.SetMultiSignerContainer(nil)
 	srEndRound, err := bls.NewSubroundEndRound(
 		sr,
 		extend,
@@ -208,8 +209,8 @@ func TestSubroundEndRound_NewSubroundEndRoundNilMultisignerShouldFail(t *testing
 		&statusHandler.AppStatusHandlerStub{},
 	)
 
-	assert.Nil(t, srEndRound)
-	assert.Equal(t, spos.ErrNilMultiSigner, err)
+	assert.True(t, check.IfNil(srEndRound))
+	assert.Equal(t, spos.ErrNilMultiSignerContainer, err)
 }
 
 func TestSubroundEndRound_NewSubroundEndRoundNilRoundHandlerShouldFail(t *testing.T) {
@@ -243,7 +244,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilRoundHandlerShouldFail(t *testin
 		&statusHandler.AppStatusHandlerStub{},
 	)
 
-	assert.Nil(t, srEndRound)
+	assert.True(t, check.IfNil(srEndRound))
 	assert.Equal(t, spos.ErrNilRoundHandler, err)
 }
 
@@ -278,7 +279,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilSyncTimerShouldFail(t *testing.T
 		&statusHandler.AppStatusHandlerStub{},
 	)
 
-	assert.Nil(t, srEndRound)
+	assert.True(t, check.IfNil(srEndRound))
 	assert.Equal(t, spos.ErrNilSyncTimer, err)
 }
 
@@ -313,7 +314,7 @@ func TestSubroundEndRound_NewSubroundEndRoundShouldWork(t *testing.T) {
 		&statusHandler.AppStatusHandlerStub{},
 	)
 
-	assert.NotNil(t, srEndRound)
+	assert.False(t, check.IfNil(srEndRound))
 	assert.Nil(t, err)
 }
 
@@ -321,12 +322,14 @@ func TestSubroundEndRound_DoEndRoundJobErrAggregatingSigShouldFail(t *testing.T)
 	t.Parallel()
 	container := mock.InitConsensusCore()
 	sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
-	multiSignerMock := mock.InitMultiSignerMock()
-	multiSignerMock.AggregateSigsCalled = func(bitmap []byte) ([]byte, error) {
-		return nil, crypto.ErrNilHasher
-	}
 
-	container.SetMultiSigner(multiSignerMock)
+	signatureHandler := &mock.SignatureHandlerStub{
+		AggregateSigsCalled: func(bitmap []byte, epoch uint32) ([]byte, error) {
+			return nil, crypto.ErrNilHasher
+		},
+	}
+	container.SetSignatureHandler(signatureHandler)
+
 	sr.Header = &block.Header{}
 
 	sr.SetSelfPubKey("A")
@@ -854,7 +857,7 @@ func TestSubroundEndRound_IsOutOfTimeShouldReturnFalse(t *testing.T) {
 func TestSubroundEndRound_IsOutOfTimeShouldReturnTrue(t *testing.T) {
 	t.Parallel()
 
-	// update roundHandler's mock so it will calculate for real the duration
+	// update roundHandler's mock, so it will calculate for real the duration
 	container := mock.InitConsensusCore()
 	roundHandler := mock.RoundHandlerMock{RemainingTimeCalled: func(startTime time.Time, maxTime time.Duration) time.Duration {
 		currentTime := time.Now()

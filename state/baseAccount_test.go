@@ -19,15 +19,6 @@ func TestBaseAccount_AddressContainer(t *testing.T) {
 	assert.Equal(t, address, ba.AddressBytes())
 }
 
-func TestBaseAccount_DataTrieTracker(t *testing.T) {
-	t.Parallel()
-
-	tracker := &trieMock.DataTrieTrackerStub{}
-
-	ba := state.NewEmptyBaseAccount(nil, tracker)
-	assert.Equal(t, tracker, ba.DataTrieTracker())
-}
-
 func TestBaseAccount_DataTrie(t *testing.T) {
 	t.Parallel()
 

@@ -8,7 +8,6 @@ import (
 	"math/big"
 	"testing"
 
-	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -34,6 +33,7 @@ import (
 	updateMock "github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	arwenConfig "github.com/ElrondNetwork/wasm-vm-v1_4/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -59,18 +59,19 @@ func createMockArgument(
 		GenesisTime:   0,
 		StartEpochNum: 0,
 		Core: &mock.CoreComponentsMock{
-			IntMarsh:            &mock.MarshalizerMock{},
-			TxMarsh:             &mock.MarshalizerMock{},
-			Hash:                &hashingMocks.HasherMock{},
-			UInt64ByteSliceConv: &mock.Uint64ByteSliceConverterMock{},
-			AddrPubKeyConv:      mock.NewPubkeyConverterMock(32),
-			Chain:               "chainID",
-			MinTxVersion:        1,
+			IntMarsh:                 &mock.MarshalizerMock{},
+			TxMarsh:                  &mock.MarshalizerMock{},
+			Hash:                     &hashingMocks.HasherMock{},
+			UInt64ByteSliceConv:      &mock.Uint64ByteSliceConverterMock{},
+			AddrPubKeyConv:           mock.NewPubkeyConverterMock(32),
+			Chain:                    "chainID",
+			MinTxVersion:             1,
+			EnableEpochsHandlerField: &testscommon.EnableEpochsHandlerStub{},
 		},
 		Data: &mock.DataComponentsMock{
-			Storage: &mock.ChainStorerStub{
-				GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-					return genericMocks.NewStorerMock()
+			Storage: &storageCommon.ChainStorerStub{
+				GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+					return genericMocks.NewStorerMock(), nil
 				},
 			},
 			Blkc:     &testscommon.ChainHandlerStub{},
@@ -146,6 +147,7 @@ func createMockArgument(
 		&hashingMocks.HasherMock{},
 		factoryState.NewAccountCreator(),
 		trieStorageManagers[factory.UserAccountTrie],
+		&testscommon.PubkeyConverterMock{},
 	)
 	require.Nil(t, err)
 

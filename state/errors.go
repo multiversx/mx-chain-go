@@ -8,23 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 )
 
-// ErrMissingTrie is an error-compatible struct holding the root hash of the trie that is missing
-type ErrMissingTrie struct {
-	rootHash []byte
-}
-
-// ------- ErrMissingTrie
-
-// NewErrMissingTrie returns a new instantiated struct
-func NewErrMissingTrie(rootHash []byte) *ErrMissingTrie {
-	return &ErrMissingTrie{rootHash: rootHash}
-}
-
-// Error returns the error as string
-func (e *ErrMissingTrie) Error() string {
-	return "trie was not found for hash " + hex.EncodeToString(e.rootHash)
-}
-
 // ErrAccountNotFoundAtBlock is an error-compatible struct holding the block info at which an account was not found
 type ErrAccountNotFoundAtBlock struct {
 	BlockInfo common.BlockInfo
@@ -144,6 +127,9 @@ var ErrNilRootHash = errors.New("nil root hash")
 // ErrNilProcessStatusHandler signals that a nil process status handler was provided
 var ErrNilProcessStatusHandler = errors.New("nil process status handler")
 
+// ErrNilAppStatusHandler signals that a nil app status handler was provided
+var ErrNilAppStatusHandler = errors.New("nil app status handler")
+
 // ErrNilBlockInfo signals that a nil block info was provided
 var ErrNilBlockInfo = errors.New("nil block info")
 
@@ -152,3 +138,12 @@ var ErrNilBlockInfoProvider = errors.New("nil block info provider")
 
 // ErrFunctionalityNotImplemented signals that the functionality has not been implemented yet
 var ErrFunctionalityNotImplemented = errors.New("functionality not implemented yet")
+
+// ErrNilTrieSyncer signals that the trie syncer is nil
+var ErrNilTrieSyncer = errors.New("trie syncer is nil")
+
+// ErrNilSyncStatisticsHandler signals that a nil sync statistics handler was provided
+var ErrNilSyncStatisticsHandler = errors.New("nil sync statistics handler")
+
+// ErrNilAddressConverter signals that a nil address converter was provided
+var ErrNilAddressConverter = errors.New("nil address converter")

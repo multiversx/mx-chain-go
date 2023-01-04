@@ -11,7 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 )
 
 var log = logger.GetOrCreate("statusHandler/persister")
@@ -38,7 +38,7 @@ func NewPersistentStatusHandler(
 	}
 
 	psh := new(PersistentStatusHandler)
-	psh.store = storageUnit.NewNilStorer()
+	psh.store = storageunit.NewNilStorer()
 	psh.uint64ByteSliceConverter = uint64ByteSliceConverter
 	psh.marshalizer = marshalizer
 	psh.persistentMetrics = &sync.Map{}
@@ -66,6 +66,7 @@ func (psh *PersistentStatusHandler) initMap() {
 	psh.persistentMetrics.Store(common.MetricDevRewardsInEpoch, zeroString)
 	psh.persistentMetrics.Store(common.MetricInflation, zeroString)
 	psh.persistentMetrics.Store(common.MetricEpochForEconomicsData, initUint)
+	psh.persistentMetrics.Store(common.MetricAccountsSnapshotNumNodes, initUint)
 }
 
 // SetStorage will set storage for persistent status handler
@@ -129,7 +130,7 @@ func (psh *PersistentStatusHandler) SetUInt64Value(key string, value uint64) {
 
 	psh.persistentMetrics.Store(key, value)
 
-	//metrics will be saved in storage every time when a block is committed successfully
+	// metrics will be saved in storage every time when a block is committed successfully
 	if key != common.MetricNonce {
 		return
 	}

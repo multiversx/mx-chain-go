@@ -12,7 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
-	"github.com/ElrondNetwork/elrond-go/p2p/message"
+	"github.com/ElrondNetwork/elrond-go/p2p/factory"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -133,7 +133,7 @@ func TestNewPeerShardSender(t *testing.T) {
 		numOfCalls := uint32(0)
 		args.Messenger = &p2pmocks.MessengerStub{
 			BroadcastCalled: func(topic string, buff []byte) {
-				shardInfo := &message.PeerShard{}
+				shardInfo := &factory.PeerShard{}
 				err := args.Marshaller.Unmarshal(shardInfo, buff)
 				assert.Nil(t, err)
 				assert.Equal(t, expectedShard, shardInfo.ShardId)

@@ -4,8 +4,6 @@ import (
 	"sync"
 	"testing"
 
-	ipcNodePart1p2 "github.com/ElrondNetwork/arwen-wasm-vm/v1_2/ipc/nodepart"
-	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
@@ -15,8 +13,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
+	ipcNodePart1p2 "github.com/ElrondNetwork/wasm-vm-v1_2/ipc/nodepart"
+	arwenConfig "github.com/ElrondNetwork/wasm-vm-v1_4/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -35,15 +36,16 @@ func makeVMConfig() config.VirtualMachineConfig {
 func createMockVMAccountsArguments() ArgVMContainerFactory {
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(&mock.MarshalizerMock{})
 	return ArgVMContainerFactory{
-		Config:             makeVMConfig(),
-		BlockGasLimit:      10000,
-		GasSchedule:        testscommon.NewGasScheduleNotifierMock(arwenConfig.MakeGasMapForTests()),
-		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
-		EpochConfig:        config.EnableEpochs{},
-		ArwenChangeLocker:  &sync.RWMutex{},
-		ESDTTransferParser: esdtTransferParser,
-		BuiltInFunctions:   vmcommonBuiltInFunctions.NewBuiltInFunctionContainer(),
-		BlockChainHook:     &testscommon.BlockChainHookStub{},
+		Config:              makeVMConfig(),
+		BlockGasLimit:       10000,
+		GasSchedule:         testscommon.NewGasScheduleNotifierMock(arwenConfig.MakeGasMapForTests()),
+		EpochNotifier:       &epochNotifier.EpochNotifierStub{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		ArwenChangeLocker:   &sync.RWMutex{},
+		ESDTTransferParser:  esdtTransferParser,
+		BuiltInFunctions:    vmcommonBuiltInFunctions.NewBuiltInFunctionContainer(),
+		BlockChainHook:      &testscommon.BlockChainHookStub{},
+		Hasher:              &hashingMocks.HasherMock{},
 	}
 }
 
@@ -91,6 +93,17 @@ func TestNewVMContainerFactory_NilEpochNotifierShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilEpochNotifier, err)
 }
 
+func TestNewVMContainerFactory_NilEnableEpochsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockVMAccountsArguments()
+	args.EnableEpochsHandler = nil
+	vmf, err := NewVMContainerFactory(args)
+
+	assert.Nil(t, vmf)
+	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
+}
+
 func TestNewVMContainerFactory_NilBuiltinFunctionsShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -111,6 +124,17 @@ func TestNewVMContainerFactory_NilBlockChainHookShouldErr(t *testing.T) {
 
 	assert.Nil(t, vmf)
 	assert.Equal(t, process.ErrNilBlockChainHook, err)
+}
+
+func TestNewVMContainerFactory_NilHasherShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockVMAccountsArguments()
+	args.Hasher = nil
+	vmf, err := NewVMContainerFactory(args)
+
+	assert.Nil(t, vmf)
+	assert.Equal(t, process.ErrNilHasher, err)
 }
 
 func TestNewVMContainerFactory_OkValues(t *testing.T) {

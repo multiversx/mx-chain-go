@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"strings"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -293,8 +294,9 @@ func (bn *branchNode) commitCheckpoint(
 	checkpointHashes CheckpointHashesHolder,
 	leavesChan chan core.KeyValueHolder,
 	ctx context.Context,
-	stats common.SnapshotStatisticsHandler,
+	stats common.TrieStatisticsHandler,
 	idleProvider IdleNodeProvider,
+	depthLevel int,
 ) error {
 	if shouldStopIfContextDone(ctx, idleProvider) {
 		return errors.ErrContextClosing
@@ -325,22 +327,24 @@ func (bn *branchNode) commitCheckpoint(
 			continue
 		}
 
-		err = bn.children[i].commitCheckpoint(originDb, targetDb, checkpointHashes, leavesChan, ctx, stats, idleProvider)
+		err = bn.children[i].commitCheckpoint(originDb, targetDb, checkpointHashes, leavesChan, ctx, stats, idleProvider, depthLevel+1)
 		if err != nil {
 			return err
 		}
 	}
 
 	checkpointHashes.Remove(hash)
-	return bn.saveToStorage(targetDb, stats)
+	return bn.saveToStorage(targetDb, stats, depthLevel)
 }
 
 func (bn *branchNode) commitSnapshot(
 	db common.DBWriteCacher,
 	leavesChan chan core.KeyValueHolder,
+	missingNodesChan chan []byte,
 	ctx context.Context,
-	stats common.SnapshotStatisticsHandler,
+	stats common.TrieStatisticsHandler,
 	idleProvider IdleNodeProvider,
+	depthLevel int,
 ) error {
 	if shouldStopIfContextDone(ctx, idleProvider) {
 		return errors.ErrContextClosing
@@ -354,6 +358,10 @@ func (bn *branchNode) commitSnapshot(
 	for i := range bn.children {
 		err = resolveIfCollapsed(bn, byte(i), db)
 		if err != nil {
+			if strings.Contains(err.Error(), common.GetNodeFromDBErrorString) {
+				treatCommitSnapshotError(err, bn.EncodedChildren[i], missingNodesChan)
+				continue
+			}
 			return err
 		}
 
@@ -361,22 +369,22 @@ func (bn *branchNode) commitSnapshot(
 			continue
 		}
 
-		err = bn.children[i].commitSnapshot(db, leavesChan, ctx, stats, idleProvider)
+		err = bn.children[i].commitSnapshot(db, leavesChan, missingNodesChan, ctx, stats, idleProvider, depthLevel+1)
 		if err != nil {
 			return err
 		}
 	}
 
-	return bn.saveToStorage(db, stats)
+	return bn.saveToStorage(db, stats, depthLevel)
 }
 
-func (bn *branchNode) saveToStorage(targetDb common.DBWriteCacher, stats common.SnapshotStatisticsHandler) error {
+func (bn *branchNode) saveToStorage(targetDb common.DBWriteCacher, stats common.TrieStatisticsHandler, depthLevel int) error {
 	nodeSize, err := encodeNodeAndCommitToDB(bn, targetDb)
 	if err != nil {
 		return err
 	}
 
-	stats.AddSize(uint64(nodeSize))
+	stats.AddBranchNode(depthLevel, uint64(nodeSize))
 
 	bn.removeChildrenPointers()
 	return nil
@@ -434,28 +442,28 @@ func (bn *branchNode) isPosCollapsed(pos int) bool {
 	return bn.children[pos] == nil && len(bn.EncodedChildren[pos]) != 0
 }
 
-func (bn *branchNode) tryGet(key []byte, db common.DBWriteCacher) (value []byte, err error) {
+func (bn *branchNode) tryGet(key []byte, currentDepth uint32, db common.DBWriteCacher) (value []byte, maxDepth uint32, err error) {
 	err = bn.isEmptyOrNil()
 	if err != nil {
-		return nil, fmt.Errorf("tryGet error %w", err)
+		return nil, currentDepth, fmt.Errorf("tryGet error %w", err)
 	}
 	if len(key) == 0 {
-		return nil, nil
+		return nil, currentDepth, nil
 	}
 	childPos := key[firstByte]
 	if childPosOutOfRange(childPos) {
-		return nil, ErrChildPosOutOfRange
+		return nil, currentDepth, ErrChildPosOutOfRange
 	}
 	key = key[1:]
 	err = resolveIfCollapsed(bn, childPos, db)
 	if err != nil {
-		return nil, err
+		return nil, currentDepth, err
 	}
 	if bn.children[childPos] == nil {
-		return nil, nil
+		return nil, currentDepth, nil
 	}
 
-	return bn.children[childPos].tryGet(key, db)
+	return bn.children[childPos].tryGet(key, currentDepth+1, db)
 }
 
 func (bn *branchNode) getNext(key []byte, db common.DBWriteCacher) (node, []byte, error) {
@@ -773,7 +781,8 @@ func (bn *branchNode) loadChildren(getNode func([]byte) (node, error)) ([][]byte
 
 func (bn *branchNode) getAllLeavesOnChannel(
 	leavesChannel chan core.KeyValueHolder,
-	key []byte, db common.DBWriteCacher,
+	keyBuilder common.KeyBuilder,
+	db common.DBWriteCacher,
 	marshalizer marshal.Marshalizer,
 	chanClose chan struct{},
 	ctx context.Context,
@@ -801,8 +810,9 @@ func (bn *branchNode) getAllLeavesOnChannel(
 				continue
 			}
 
-			childKey := append(key, byte(i))
-			err = bn.children[i].getAllLeavesOnChannel(leavesChannel, childKey, db, marshalizer, chanClose, ctx)
+			clonedKeyBuilder := keyBuilder.Clone()
+			clonedKeyBuilder.BuildKey([]byte{byte(i)})
+			err = bn.children[i].getAllLeavesOnChannel(leavesChannel, clonedKeyBuilder, db, marshalizer, chanClose, ctx)
 			if err != nil {
 				return err
 			}
@@ -901,6 +911,37 @@ func (bn *branchNode) sizeInBytes() int {
 
 func (bn *branchNode) getValue() []byte {
 	return []byte{}
+}
+
+func (bn *branchNode) collectStats(ts common.TrieStatisticsHandler, depthLevel int, db common.DBWriteCacher) error {
+	err := bn.isEmptyOrNil()
+	if err != nil {
+		return fmt.Errorf("collectStats error %w", err)
+	}
+
+	for i := range bn.children {
+		err = resolveIfCollapsed(bn, byte(i), db)
+		if err != nil {
+			return err
+		}
+
+		if bn.children[i] == nil {
+			continue
+		}
+
+		err = bn.children[i].collectStats(ts, depthLevel+1, db)
+		if err != nil {
+			return err
+		}
+	}
+
+	val, err := collapseAndEncodeNode(bn)
+	if err != nil {
+		return err
+	}
+
+	ts.AddBranchNode(depthLevel, uint64(len(val)))
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

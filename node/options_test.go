@@ -276,7 +276,7 @@ func TestWithESDTNFTStorageHandler(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		esdtStorer := &mock.EsdtStorageHandlerStub{
+		esdtStorer := &testscommon.EsdtStorageHandlerStub{
 			GetESDTNFTTokenOnDestinationCalled: func(_ vmcommon.UserAccountHandler, _ []byte, _ uint64) (*esdt.ESDigitalToken, bool, error) {
 				return nil, true, nil
 			},

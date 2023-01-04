@@ -5,9 +5,9 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/receipt"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/process"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -17,14 +17,13 @@ import (
 
 // minGasPrice = 1, gasPerDataByte = 1, minGasLimit = 1
 func TestMoveBalanceSelfShouldWorkAndConsumeTxFeeWhenAllFlagsAreDisabled(t *testing.T) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(
-		config.EnableEpochs{
-			PenalizedTooMuchGasEnableEpoch:   100,
-			BuiltInFunctionOnMetaEnableEpoch: 100,
-			SCDeployEnableEpoch:              100,
-			MetaProtectionEnableEpoch:        100,
-			RelayedTransactionsEnableEpoch:   100,
-		})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
+		PenalizedTooMuchGasEnableEpoch:   100,
+		BuiltInFunctionOnMetaEnableEpoch: 100,
+		SCDeployEnableEpoch:              100,
+		MetaProtectionEnableEpoch:        100,
+		RelayedTransactionsEnableEpoch:   100,
+	})
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -56,25 +55,17 @@ func TestMoveBalanceSelfShouldWorkAndConsumeTxFeeWhenAllFlagsAreDisabled(t *test
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
 	require.Equal(t, big.NewInt(50), accumulatedFees)
-
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, false, testContext.TxsLogsProcessor)
-	testIndexer.SaveTransaction(tx, block.TxBlock, nil)
-
-	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, uint64(5), indexerTx.GasUsed)
-	require.Equal(t, "50", indexerTx.Fee)
 }
 
 // minGasPrice = 1, gasPerDataByte = 1, minGasLimit = 1
 func TestMoveBalanceAllFlagsDisabledLessBalanceThanGasLimitMulGasPrice(t *testing.T) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(
-		config.EnableEpochs{
-			PenalizedTooMuchGasEnableEpoch: 100,
-			BuiltInFunctionsEnableEpoch:    100,
-			SCDeployEnableEpoch:            100,
-			MetaProtectionEnableEpoch:      100,
-			RelayedTransactionsEnableEpoch: 100,
-		})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
+		PenalizedTooMuchGasEnableEpoch: integrationTests.UnreachableEpoch,
+		BuiltInFunctionsEnableEpoch:    integrationTests.UnreachableEpoch,
+		SCDeployEnableEpoch:            integrationTests.UnreachableEpoch,
+		MetaProtectionEnableEpoch:      integrationTests.UnreachableEpoch,
+		RelayedTransactionsEnableEpoch: integrationTests.UnreachableEpoch,
+	})
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -131,11 +122,4 @@ func TestMoveBalanceSelfShouldWorkAndConsumeTxFeeWhenSomeFlagsAreDisabled(t *tes
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
 	require.Equal(t, big.NewInt(50), accumulatedFees)
-
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, false, testContext.TxsLogsProcessor)
-	testIndexer.SaveTransaction(tx, block.TxBlock, nil)
-
-	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, uint64(5), indexerTx.GasUsed)
-	require.Equal(t, "50", indexerTx.Fee)
 }

@@ -12,7 +12,7 @@ import (
 var _ consensus.SubroundHandler = (*Subround)(nil)
 
 // Subround struct contains the needed data for one Subround and the Subround properties. It defines a Subround
-// with it's properties (it's ID, next Subround ID, it's duration, it's name) and also it has some handler functions
+// with its properties (its ID, next Subround ID, its duration, its name) and also it has some handler functions
 // which should be set. Job function will be the main function of this Subround, Extend function will handle the overtime
 // situation of the Subround and Check function will decide if in this Subround the consensus is achieved
 type Subround struct {

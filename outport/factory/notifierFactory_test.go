@@ -13,14 +13,15 @@ import (
 
 func createMockNotifierFactoryArgs() *factory.EventNotifierFactoryArgs {
 	return &factory.EventNotifierFactoryArgs{
-		Enabled:          true,
-		UseAuthorization: true,
-		ProxyUrl:         "http://localhost:5000",
-		Username:         "",
-		Password:         "",
-		Marshaller:       &testscommon.MarshalizerMock{},
-		Hasher:           &hashingMocks.HasherMock{},
-		PubKeyConverter:  &testscommon.PubkeyConverterMock{},
+		Enabled:           true,
+		UseAuthorization:  true,
+		ProxyUrl:          "http://localhost:5000",
+		Username:          "",
+		Password:          "",
+		RequestTimeoutSec: 1,
+		Marshaller:        &testscommon.MarshalizerMock{},
+		Hasher:            &hashingMocks.HasherMock{},
+		PubKeyConverter:   &testscommon.PubkeyConverterMock{},
 	}
 }
 

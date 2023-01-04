@@ -18,8 +18,10 @@ import (
 
 const (
 	getAccountPath            = "/:address"
+	getAccountsPath           = "/bulk"
 	getBalancePath            = "/:address/balance"
 	getUsernamePath           = "/:address/username"
+	getCodeHashPath           = "/:address/code-hash"
 	getKeysPath               = "/:address/keys"
 	getKeyPath                = "/:address/key/:key"
 	getESDTTokensPath         = "/:address/esdt"
@@ -40,8 +42,10 @@ const (
 type addressFacadeHandler interface {
 	GetBalance(address string, options api.AccountQueryOptions) (*big.Int, api.BlockInfo, error)
 	GetUsername(address string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
+	GetCodeHash(address string, options api.AccountQueryOptions) ([]byte, api.BlockInfo, error)
 	GetValueForKey(address string, key string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
 	GetAccount(address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error)
+	GetAccounts(addresses []string, options api.AccountQueryOptions) (map[string]*api.AccountResponse, api.BlockInfo, error)
 	GetESDTData(address string, key string, nonce uint64, options api.AccountQueryOptions) (*esdt.ESDigitalToken, api.BlockInfo, error)
 	GetESDTsRoles(address string, options api.AccountQueryOptions) (map[string][]string, api.BlockInfo, error)
 	GetNFTTokenIDsRegisteredByAddress(address string, options api.AccountQueryOptions) ([]string, api.BlockInfo, error)
@@ -94,6 +98,11 @@ func NewAddressGroup(facade addressFacadeHandler) (*addressGroup, error) {
 			Handler: ag.getAccount,
 		},
 		{
+			Path:    getAccountsPath,
+			Method:  http.MethodPost,
+			Handler: ag.getAccounts,
+		},
+		{
 			Path:    getBalancePath,
 			Method:  http.MethodGet,
 			Handler: ag.getBalance,
@@ -102,6 +111,11 @@ func NewAddressGroup(facade addressFacadeHandler) (*addressGroup, error) {
 			Path:    getUsernamePath,
 			Method:  http.MethodGet,
 			Handler: ag.getUsername,
+		},
+		{
+			Path:    getCodeHashPath,
+			Method:  http.MethodGet,
+			Handler: ag.getCodeHash,
 		},
 		{
 			Path:    getKeyPath,
@@ -149,7 +163,7 @@ func NewAddressGroup(facade addressFacadeHandler) (*addressGroup, error) {
 	return ag, nil
 }
 
-// addressGroup returns a response containing information about the account correlated with provided address
+// getAccount returns a response containing information about the account correlated with provided address
 func (ag *addressGroup) getAccount(c *gin.Context) {
 	addr := c.Param("address")
 	if addr == "" {
@@ -171,6 +185,30 @@ func (ag *addressGroup) getAccount(c *gin.Context) {
 
 	accountResponse.Address = addr
 	shared.RespondWithSuccess(c, gin.H{"account": accountResponse, "blockInfo": blockInfo})
+}
+
+// getAccounts returns the state of the provided addresses on the specified block
+func (ag *addressGroup) getAccounts(c *gin.Context) {
+	var addresses []string
+	err := c.ShouldBindJSON(&addresses)
+	if err != nil {
+		shared.RespondWithValidationError(c, errors.ErrValidation, err)
+		return
+	}
+
+	options, err := extractAccountQueryOptions(c)
+	if err != nil {
+		shared.RespondWithValidationError(c, errors.ErrCouldNotGetAccount, err)
+		return
+	}
+
+	accountsResponse, blockInfo, err := ag.getFacade().GetAccounts(addresses, options)
+	if err != nil {
+		shared.RespondWithInternalError(c, errors.ErrCouldNotGetAccount, err)
+		return
+	}
+
+	shared.RespondWithSuccess(c, gin.H{"accounts": accountsResponse, "blockInfo": blockInfo})
 }
 
 // getBalance returns the balance for the address parameter
@@ -217,6 +255,29 @@ func (ag *addressGroup) getUsername(c *gin.Context) {
 	}
 
 	shared.RespondWithSuccess(c, gin.H{"username": userName, "blockInfo": blockInfo})
+}
+
+// getCodeHash returns the code hash for the address parameter
+func (ag *addressGroup) getCodeHash(c *gin.Context) {
+	addr := c.Param("address")
+	if addr == "" {
+		shared.RespondWithValidationError(c, errors.ErrGetCodeHash, errors.ErrEmptyAddress)
+		return
+	}
+
+	options, err := parseAccountQueryOptions(c)
+	if err != nil {
+		shared.RespondWithValidationError(c, errors.ErrGetCodeHash, errors.ErrBadUrlParams)
+		return
+	}
+
+	codeHash, blockInfo, err := ag.getFacade().GetCodeHash(addr, options)
+	if err != nil {
+		shared.RespondWithInternalError(c, errors.ErrGetCodeHash, err)
+		return
+	}
+
+	shared.RespondWithSuccess(c, gin.H{"codeHash": codeHash, "blockInfo": blockInfo})
 }
 
 // getValueForKey returns the value for the given address and key

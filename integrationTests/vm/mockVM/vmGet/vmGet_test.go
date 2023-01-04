@@ -27,7 +27,7 @@ import (
 func TestVmGetShouldReturnValue(t *testing.T) {
 	accnts, destinationAddressBytes, expectedValueForVar := deploySmartContract(t)
 
-	mockVM := vm.CreateOneSCExecutorMockVM(accnts, config.EnableEpochs{})
+	mockVM := vm.CreateOneSCExecutorMockVM(accnts)
 	vmContainer := &mock.VMContainerMock{
 		GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
 			return mockVM, nil

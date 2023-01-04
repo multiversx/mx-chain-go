@@ -1,27 +1,33 @@
 package factory
 
 import (
+	"errors"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
+	cryptoCommon "github.com/ElrondNetwork/elrond-go/common/crypto"
 	"github.com/ElrondNetwork/elrond-go/vm"
 )
 
 // CryptoComponentsMock -
 type CryptoComponentsMock struct {
-	PubKey          crypto.PublicKey
-	PrivKey         crypto.PrivateKey
-	PubKeyString    string
-	PrivKeyBytes    []byte
-	PubKeyBytes     []byte
-	BlockSig        crypto.SingleSigner
-	TxSig           crypto.SingleSigner
-	MultiSig        crypto.MultiSigner
-	PeerSignHandler crypto.PeerSignatureHandler
-	BlKeyGen        crypto.KeyGenerator
-	TxKeyGen        crypto.KeyGenerator
-	MsgSigVerifier  vm.MessageSignVerifier
-	mutMultiSig     sync.RWMutex
+	PubKey            crypto.PublicKey
+	PrivKey           crypto.PrivateKey
+	P2pPubKey         crypto.PublicKey
+	P2pPrivKey        crypto.PrivateKey
+	P2pSig            crypto.SingleSigner
+	PubKeyString      string
+	PrivKeyBytes      []byte
+	PubKeyBytes       []byte
+	BlockSig          crypto.SingleSigner
+	TxSig             crypto.SingleSigner
+	MultiSigContainer cryptoCommon.MultiSignerContainer
+	PeerSignHandler   crypto.PeerSignatureHandler
+	BlKeyGen          crypto.KeyGenerator
+	TxKeyGen          crypto.KeyGenerator
+	P2PKeyGen         crypto.KeyGenerator
+	MsgSigVerifier    vm.MessageSignVerifier
+	mutMultiSig       sync.RWMutex
 }
 
 // Create -
@@ -49,6 +55,21 @@ func (ccm *CryptoComponentsMock) PrivateKey() crypto.PrivateKey {
 	return ccm.PrivKey
 }
 
+// P2pPrivateKey -
+func (ccm *CryptoComponentsMock) P2pPrivateKey() crypto.PrivateKey {
+	return ccm.P2pPrivKey
+}
+
+// P2pPublicKey -
+func (ccm *CryptoComponentsMock) P2pPublicKey() crypto.PublicKey {
+	return ccm.P2pPubKey
+}
+
+// P2pSingleSigner -
+func (ccm *CryptoComponentsMock) P2pSingleSigner() crypto.SingleSigner {
+	return ccm.P2pSig
+}
+
 // PublicKeyString -
 func (ccm *CryptoComponentsMock) PublicKeyString() string {
 	return ccm.PubKeyString
@@ -74,12 +95,33 @@ func (ccm *CryptoComponentsMock) TxSingleSigner() crypto.SingleSigner {
 	return ccm.TxSig
 }
 
-// MultiSigner -
-func (ccm *CryptoComponentsMock) MultiSigner() crypto.MultiSigner {
+// MultiSignerContainer -
+func (ccm *CryptoComponentsMock) MultiSignerContainer() cryptoCommon.MultiSignerContainer {
 	ccm.mutMultiSig.RLock()
 	defer ccm.mutMultiSig.RUnlock()
 
-	return ccm.MultiSig
+	return ccm.MultiSigContainer
+}
+
+// SetMultiSignerContainer -
+func (ccm *CryptoComponentsMock) SetMultiSignerContainer(ms cryptoCommon.MultiSignerContainer) error {
+	ccm.mutMultiSig.Lock()
+	ccm.MultiSigContainer = ms
+	ccm.mutMultiSig.Unlock()
+
+	return nil
+}
+
+// GetMultiSigner -
+func (ccm *CryptoComponentsMock) GetMultiSigner(epoch uint32) (crypto.MultiSigner, error) {
+	ccm.mutMultiSig.RLock()
+	defer ccm.mutMultiSig.RUnlock()
+
+	if ccm.MultiSigContainer == nil {
+		return nil, errors.New("nil multi sig container")
+	}
+
+	return ccm.MultiSigContainer.GetMultiSigner(epoch)
 }
 
 // PeerSignatureHandler -
@@ -88,15 +130,6 @@ func (ccm *CryptoComponentsMock) PeerSignatureHandler() crypto.PeerSignatureHand
 	defer ccm.mutMultiSig.RUnlock()
 
 	return ccm.PeerSignHandler
-}
-
-// SetMultiSigner -
-func (ccm *CryptoComponentsMock) SetMultiSigner(ms crypto.MultiSigner) error {
-	ccm.mutMultiSig.Lock()
-	ccm.MultiSig = ms
-	ccm.mutMultiSig.Unlock()
-
-	return nil
 }
 
 // BlockSignKeyGen -
@@ -109,6 +142,11 @@ func (ccm *CryptoComponentsMock) TxSignKeyGen() crypto.KeyGenerator {
 	return ccm.TxKeyGen
 }
 
+// P2pKeyGen -
+func (ccm *CryptoComponentsMock) P2pKeyGen() crypto.KeyGenerator {
+	return ccm.P2PKeyGen
+}
+
 // MessageSignVerifier -
 func (ccm *CryptoComponentsMock) MessageSignVerifier() vm.MessageSignVerifier {
 	return ccm.MsgSigVerifier
@@ -117,19 +155,22 @@ func (ccm *CryptoComponentsMock) MessageSignVerifier() vm.MessageSignVerifier {
 // Clone -
 func (ccm *CryptoComponentsMock) Clone() interface{} {
 	return &CryptoComponentsMock{
-		PubKey:          ccm.PubKey,
-		PrivKey:         ccm.PrivKey,
-		PubKeyString:    ccm.PubKeyString,
-		PrivKeyBytes:    ccm.PrivKeyBytes,
-		PubKeyBytes:     ccm.PubKeyBytes,
-		BlockSig:        ccm.BlockSig,
-		TxSig:           ccm.TxSig,
-		MultiSig:        ccm.MultiSig,
-		PeerSignHandler: ccm.PeerSignHandler,
-		BlKeyGen:        ccm.BlKeyGen,
-		TxKeyGen:        ccm.TxKeyGen,
-		MsgSigVerifier:  ccm.MsgSigVerifier,
-		mutMultiSig:     sync.RWMutex{},
+		PubKey:            ccm.PubKey,
+		P2pPubKey:         ccm.P2pPubKey,
+		PrivKey:           ccm.PrivKey,
+		P2pPrivKey:        ccm.P2pPrivKey,
+		PubKeyString:      ccm.PubKeyString,
+		PrivKeyBytes:      ccm.PrivKeyBytes,
+		PubKeyBytes:       ccm.PubKeyBytes,
+		BlockSig:          ccm.BlockSig,
+		TxSig:             ccm.TxSig,
+		MultiSigContainer: ccm.MultiSigContainer,
+		PeerSignHandler:   ccm.PeerSignHandler,
+		BlKeyGen:          ccm.BlKeyGen,
+		TxKeyGen:          ccm.TxKeyGen,
+		P2PKeyGen:         ccm.P2PKeyGen,
+		MsgSigVerifier:    ccm.MsgSigVerifier,
+		mutMultiSig:       sync.RWMutex{},
 	}
 }
 

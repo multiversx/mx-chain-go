@@ -8,7 +8,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/p2p/message"
+	p2pFactory "github.com/ElrondNetwork/elrond-go/p2p/factory"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/stretchr/testify/assert"
 )
@@ -17,7 +17,7 @@ const providedShard = "5"
 
 func createMockArgInterceptedPeerShard() ArgInterceptedPeerShard {
 	marshaller := &marshal.GogoProtoMarshalizer{}
-	msg := &message.PeerShard{
+	msg := &p2pFactory.PeerShard{
 		ShardId: providedShard,
 	}
 	msgBuff, _ := marshaller.Marshal(msg)
@@ -87,7 +87,7 @@ func TestInterceptedPeerShard_CheckValidity(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgInterceptedPeerShard()
-		msg := &message.PeerShard{
+		msg := &p2pFactory.PeerShard{
 			ShardId: "invalid shard",
 		}
 		msgBuff, _ := args.Marshaller.Marshal(msg)

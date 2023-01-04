@@ -50,7 +50,7 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 		return nil, err
 	}
 
-	txUnmarshalerAndPreparer := newTransactionUnmarshaller(args.Marshalizer, args.AddressPubKeyConverter, args.DataFieldParser)
+	txUnmarshalerAndPreparer := newTransactionUnmarshaller(args.Marshalizer, args.AddressPubKeyConverter, args.DataFieldParser, args.ShardCoordinator)
 	txResultsProc := newAPITransactionResultProcessor(
 		args.AddressPubKeyConverter,
 		args.HistoryRepository,
@@ -58,7 +58,7 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 		args.Marshalizer,
 		txUnmarshalerAndPreparer,
 		args.LogsFacade,
-		args.ShardCoordinator.SelfId(),
+		args.ShardCoordinator,
 		args.DataFieldParser,
 	)
 
@@ -570,19 +570,31 @@ func (atp *apiTransactionProcessor) getUnsignedTxObjFromDataPool(hash []byte) (i
 
 func (atp *apiTransactionProcessor) getTxBytesFromStorage(hash []byte) ([]byte, transaction.TxType, bool) {
 	store := atp.storageService
-	txsStorer := store.GetStorer(dataRetriever.TransactionUnit)
+	txsStorer, err := store.GetStorer(dataRetriever.TransactionUnit)
+	if err != nil {
+		return nil, transaction.TxTypeInvalid, false
+	}
+
 	txBytes, err := txsStorer.SearchFirst(hash)
 	if err == nil {
 		return txBytes, transaction.TxTypeNormal, true
 	}
 
-	rewardTxsStorer := store.GetStorer(dataRetriever.RewardTransactionUnit)
+	rewardTxsStorer, err := store.GetStorer(dataRetriever.RewardTransactionUnit)
+	if err != nil {
+		return nil, transaction.TxTypeInvalid, false
+	}
+
 	txBytes, err = rewardTxsStorer.SearchFirst(hash)
 	if err == nil {
 		return txBytes, transaction.TxTypeReward, true
 	}
 
-	unsignedTxsStorer := store.GetStorer(dataRetriever.UnsignedTransactionUnit)
+	unsignedTxsStorer, err := store.GetStorer(dataRetriever.UnsignedTransactionUnit)
+	if err != nil {
+		return nil, transaction.TxTypeInvalid, false
+	}
+
 	txBytes, err = unsignedTxsStorer.SearchFirst(hash)
 	if err == nil {
 		return txBytes, transaction.TxTypeUnsigned, true
@@ -593,19 +605,31 @@ func (atp *apiTransactionProcessor) getTxBytesFromStorage(hash []byte) ([]byte, 
 
 func (atp *apiTransactionProcessor) getTxBytesFromStorageByEpoch(hash []byte, epoch uint32) ([]byte, transaction.TxType, bool) {
 	store := atp.storageService
-	txsStorer := store.GetStorer(dataRetriever.TransactionUnit)
+	txsStorer, err := store.GetStorer(dataRetriever.TransactionUnit)
+	if err != nil {
+		return nil, transaction.TxTypeInvalid, false
+	}
+
 	txBytes, err := txsStorer.GetFromEpoch(hash, epoch)
 	if err == nil {
 		return txBytes, transaction.TxTypeNormal, true
 	}
 
-	rewardTxsStorer := store.GetStorer(dataRetriever.RewardTransactionUnit)
+	rewardTxsStorer, err := store.GetStorer(dataRetriever.RewardTransactionUnit)
+	if err != nil {
+		return nil, transaction.TxTypeInvalid, false
+	}
+
 	txBytes, err = rewardTxsStorer.GetFromEpoch(hash, epoch)
 	if err == nil {
 		return txBytes, transaction.TxTypeReward, true
 	}
 
-	unsignedTxsStorer := store.GetStorer(dataRetriever.UnsignedTransactionUnit)
+	unsignedTxsStorer, err := store.GetStorer(dataRetriever.UnsignedTransactionUnit)
+	if err != nil {
+		return nil, transaction.TxTypeInvalid, false
+	}
+
 	txBytes, err = unsignedTxsStorer.GetFromEpoch(hash, epoch)
 	if err == nil {
 		return txBytes, transaction.TxTypeUnsigned, true

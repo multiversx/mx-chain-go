@@ -210,9 +210,9 @@ func GetMarshalizedHeaderFromStorage(
 		return nil, ErrNilStorage
 	}
 
-	hdrStore := storageService.GetStorer(blockUnit)
-	if check.IfNil(hdrStore) {
-		return nil, ErrNilHeadersStorage
+	hdrStore, err := storageService.GetStorer(blockUnit)
+	if err != nil {
+		return nil, err
 	}
 
 	buffHdr, err := hdrStore.Get(hash)
@@ -594,7 +594,7 @@ func getHeaderFromPoolWithNonce(
 			ErrMissingHeader, shardId, nonce)
 	}
 
-	//TODO what should we do when we get from pool more than one header with same nonce and shardId
+	// TODO what should we do when we get from pool more than one header with same nonce and shardId
 	return headers[len(headers)-1], hashes[len(hashes)-1], nil
 }
 
@@ -617,9 +617,9 @@ func GetHeaderHashFromStorageWithNonce(
 		return nil, ErrNilMarshalizer
 	}
 
-	headerStore := storageService.GetStorer(blockUnit)
-	if headerStore == nil {
-		return nil, ErrNilHeadersStorage
+	headerStore, err := storageService.GetStorer(blockUnit)
+	if err != nil {
+		return nil, err
 	}
 
 	nonceToByteSlice := uint64Converter.ToByteSlice(nonce)

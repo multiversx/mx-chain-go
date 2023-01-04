@@ -6,12 +6,12 @@ import (
 	"strings"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
@@ -22,20 +22,16 @@ const doubledTransactionsFoundButFlagActive = "double transactions found but thi
 
 // ArgsPrintDoubleTransactionsDetector is the argument DTO structure used in the NewPrintDoubleTransactionsDetector function
 type ArgsPrintDoubleTransactionsDetector struct {
-	Marshaller    marshal.Marshalizer
-	Hasher        hashing.Hasher
-	EpochNotifier process.EpochNotifier
-
-	AddFailedRelayedTxToInvalidMBsDisableEpoch uint32
+	Marshaller          marshal.Marshalizer
+	Hasher              hashing.Hasher
+	EnableEpochsHandler common.EnableEpochsHandler
 }
 
 type printDoubleTransactionsDetector struct {
-	marshaller marshal.Marshalizer
-	hasher     hashing.Hasher
-	logger     logger.Logger
-
-	addFailedRelayedTxToInvalidMBsDisableEpoch uint32
-	flagAddFailedRelayedTxToInvalidMBs         atomic.Flag
+	marshaller          marshal.Marshalizer
+	hasher              hashing.Hasher
+	logger              logger.Logger
+	enableEpochsHandler common.EnableEpochsHandler
 }
 
 // NewPrintDoubleTransactionsDetector creates a new instance of printDoubleTransactionsDetector
@@ -46,13 +42,11 @@ func NewPrintDoubleTransactionsDetector(args ArgsPrintDoubleTransactionsDetector
 	}
 
 	detector := &printDoubleTransactionsDetector{
-		marshaller: args.Marshaller,
-		hasher:     args.Hasher,
-		addFailedRelayedTxToInvalidMBsDisableEpoch: args.AddFailedRelayedTxToInvalidMBsDisableEpoch,
-		logger: log,
+		marshaller:          args.Marshaller,
+		hasher:              args.Hasher,
+		enableEpochsHandler: args.EnableEpochsHandler,
+		logger:              log,
 	}
-
-	args.EpochNotifier.RegisterNotifyHandler(detector)
 
 	return detector, nil
 }
@@ -64,8 +58,8 @@ func checkArgsPrintDoubleTransactionsDetector(args ArgsPrintDoubleTransactionsDe
 	if check.IfNil(args.Hasher) {
 		return process.ErrNilHasher
 	}
-	if check.IfNil(args.EpochNotifier) {
-		return process.ErrNilEpochNotifier
+	if check.IfNil(args.EnableEpochsHandler) {
+		return process.ErrNilEnableEpochsHandler
 	}
 
 	return nil
@@ -106,19 +100,12 @@ func (detector *printDoubleTransactionsDetector) ProcessBlockBody(body *block.Bo
 		detector.logger.Debug(noDoubledTransactionsFoundMessage)
 		return
 	}
-	if detector.flagAddFailedRelayedTxToInvalidMBs.IsSet() {
+	if detector.enableEpochsHandler.IsAddFailedRelayedTxToInvalidMBsFlag() {
 		detector.logger.Debug(doubledTransactionsFoundButFlagActive)
 		return
 	}
 
 	detector.logger.Error(printReportHeader + printReport.String())
-}
-
-// EpochConfirmed is called whenever a new epoch is confirmed
-func (detector *printDoubleTransactionsDetector) EpochConfirmed(epoch uint32, _ uint64) {
-	detector.flagAddFailedRelayedTxToInvalidMBs.SetValue(epoch < detector.addFailedRelayedTxToInvalidMBsDisableEpoch)
-	log.Debug("printDoubleTransactionsDetector: add failed relayed tx to invalid miniblocks",
-		"enabled", detector.flagAddFailedRelayedTxToInvalidMBs.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

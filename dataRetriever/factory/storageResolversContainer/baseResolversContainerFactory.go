@@ -112,7 +112,10 @@ func (brcf *baseResolversContainerFactory) createTxResolver(
 	unit dataRetriever.UnitType,
 ) (dataRetriever.Resolver, error) {
 
-	txStorer := brcf.store.GetStorer(unit)
+	txStorer, err := brcf.store.GetStorer(unit)
+	if err != nil {
+		return nil, err
+	}
 
 	arg := storageResolvers.ArgSliceResolver{
 		Messenger:                brcf.messenger,
@@ -171,7 +174,10 @@ func (brcf *baseResolversContainerFactory) generateMiniBlocksResolvers() error {
 }
 
 func (brcf *baseResolversContainerFactory) createMiniBlocksResolver(responseTopic string) (dataRetriever.Resolver, error) {
-	miniBlocksStorer := brcf.store.GetStorer(dataRetriever.MiniBlockUnit)
+	miniBlocksStorer, err := brcf.store.GetStorer(dataRetriever.MiniBlockUnit)
+	if err != nil {
+		return nil, err
+	}
 
 	arg := storageResolvers.ArgSliceResolver{
 		Messenger:                brcf.messenger,
@@ -233,4 +239,29 @@ func (brcf *baseResolversContainerFactory) generatePeerAuthenticationResolver() 
 	peerAuthResolver := disabledResolvers.NewDisabledPeerAuthenticatorResolver()
 
 	return brcf.container.Add(identifierPeerAuth, peerAuthResolver)
+}
+
+func (brcf *baseResolversContainerFactory) generateValidatorInfoResolver() error {
+	validatorInfoStorer, err := brcf.store.GetStorer(dataRetriever.UnsignedTransactionUnit)
+	if err != nil {
+		return err
+	}
+
+	identifierValidatorInfo := common.ValidatorInfoTopic
+	arg := storageResolvers.ArgSliceResolver{
+		Messenger:                brcf.messenger,
+		ResponseTopicName:        identifierValidatorInfo,
+		Storage:                  validatorInfoStorer,
+		DataPacker:               brcf.dataPacker,
+		Marshalizer:              brcf.marshalizer,
+		ManualEpochStartNotifier: brcf.manualEpochStartNotifier,
+		ChanGracefullyClose:      brcf.chanGracefullyClose,
+		DelayBeforeGracefulClose: defaultBeforeGracefulClose,
+	}
+	validatorInfoResolver, err := storageResolvers.NewSliceResolver(arg)
+	if err != nil {
+		return err
+	}
+
+	return brcf.container.Add(identifierValidatorInfo, validatorInfoResolver)
 }

@@ -23,9 +23,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/cache"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	"github.com/ElrondNetwork/elrond-go/storage/timecache"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/genesis"
@@ -39,6 +39,7 @@ var log = logger.GetOrCreate("update/factory")
 type ArgsExporter struct {
 	CoreComponents            process.CoreComponentsHolder
 	CryptoComponents          process.CryptoComponentsHolder
+	StatusCoreComponents      process.StatusCoreComponentsHolder
 	HeaderValidator           epochStart.HeaderValidator
 	DataPool                  dataRetriever.PoolsHolder
 	StorageService            dataRetriever.StorageService
@@ -64,7 +65,6 @@ type ArgsExporter struct {
 	RoundHandler              process.RoundHandler
 	PeersRatingHandler        dataRetriever.PeersRatingHandler
 	InterceptorDebugConfig    config.InterceptorResolverDebugConfig
-	EnableSignTxWithHashEpoch uint32
 	MaxHardCapForMissingNodes int
 	NumConcurrentTrieSyncers  int
 	TrieSyncerVersion         int
@@ -74,6 +74,7 @@ type ArgsExporter struct {
 type exportHandlerFactory struct {
 	CoreComponents            process.CoreComponentsHolder
 	CryptoComponents          process.CryptoComponentsHolder
+	statusCoreComponents      process.StatusCoreComponentsHolder
 	headerValidator           epochStart.HeaderValidator
 	dataPool                  dataRetriever.PoolsHolder
 	storageService            dataRetriever.StorageService
@@ -102,7 +103,6 @@ type exportHandlerFactory struct {
 	roundHandler              process.RoundHandler
 	peersRatingHandler        dataRetriever.PeersRatingHandler
 	interceptorDebugConfig    config.InterceptorResolverDebugConfig
-	enableSignTxWithHashEpoch uint32
 	maxHardCapForMissingNodes int
 	numConcurrentTrieSyncers  int
 	trieSyncerVersion         int
@@ -159,7 +159,11 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 	if check.IfNil(args.ExistingResolvers) {
 		return nil, update.ErrNilResolverContainer
 	}
-	if check.IfNil(args.CryptoComponents.MultiSigner()) {
+	multiSigner, err := args.CryptoComponents.GetMultiSigner(0)
+	if err != nil {
+		return nil, err
+	}
+	if check.IfNil(multiSigner) {
 		return nil, update.ErrNilMultiSigner
 	}
 	if check.IfNil(args.NodesCoordinator) {
@@ -210,18 +214,21 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 	if check.IfNil(args.CoreComponents.TxSignHasher()) {
 		return nil, update.ErrNilHasher
 	}
-	if check.IfNil(args.CoreComponents.EpochNotifier()) {
-		return nil, update.ErrNilEpochNotifier
-	}
 	if args.MaxHardCapForMissingNodes < 1 {
 		return nil, update.ErrInvalidMaxHardCapForMissingNodes
 	}
 	if args.NumConcurrentTrieSyncers < 1 {
 		return nil, update.ErrInvalidNumConcurrentTrieSyncers
 	}
-	err := trie.CheckTrieSyncerVersion(args.TrieSyncerVersion)
+	err = trie.CheckTrieSyncerVersion(args.TrieSyncerVersion)
 	if err != nil {
 		return nil, err
+	}
+	if check.IfNil(args.StatusCoreComponents) {
+		return nil, update.ErrNilStatusCoreComponentsHolder
+	}
+	if check.IfNil(args.StatusCoreComponents.AppStatusHandler()) {
+		return nil, update.ErrNilAppStatusHandler
 	}
 
 	e := &exportHandlerFactory{
@@ -253,13 +260,12 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		roundHandler:              args.RoundHandler,
 		peersRatingHandler:        args.PeersRatingHandler,
 		interceptorDebugConfig:    args.InterceptorDebugConfig,
-		enableSignTxWithHashEpoch: args.EnableSignTxWithHashEpoch,
 		maxHardCapForMissingNodes: args.MaxHardCapForMissingNodes,
 		numConcurrentTrieSyncers:  args.NumConcurrentTrieSyncers,
 		trieSyncerVersion:         args.TrieSyncerVersion,
 		checkNodesOnDisk:          args.CheckNodesOnDisk,
+		statusCoreComponents:      args.StatusCoreComponents,
 	}
-	log.Debug("exportHandlerFactory: enable epoch for transaction signed with tx hash", "epoch", e.enableSignTxWithHashEpoch)
 
 	return e, nil
 }
@@ -278,8 +284,9 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	}
 
 	argsPeerMiniBlocksSyncer := shardchain.ArgPeerMiniBlockSyncer{
-		MiniBlocksPool: e.dataPool.MiniBlocks(),
-		Requesthandler: e.requestHandler,
+		MiniBlocksPool:     e.dataPool.MiniBlocks(),
+		ValidatorsInfoPool: e.dataPool.ValidatorsInfo(),
+		RequestHandler:     e.requestHandler,
 	}
 	peerMiniBlocksSyncer, err := shardchain.NewPeerMiniBlockSyncer(argsPeerMiniBlocksSyncer)
 	if err != nil {
@@ -299,7 +306,8 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		Finality:             process.BlockFinality,
 		PeerMiniBlocksSyncer: peerMiniBlocksSyncer,
 		RoundHandler:         e.roundHandler,
-		AppStatusHandler:     e.CoreComponents.StatusHandler(),
+		AppStatusHandler:     e.statusCoreComponents.AppStatusHandler(),
+		EnableEpochsHandler:  e.CoreComponents.EnableEpochsHandler(),
 	}
 	epochHandler, err := shardchain.NewEpochStartTrigger(&argsEpochTrigger)
 	if err != nil {
@@ -410,8 +418,13 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		return nil, err
 	}
 
+	storer, err := e.storageService.GetStorer(dataRetriever.MiniBlockUnit)
+	if err != nil {
+		return nil, err
+	}
+
 	argsMiniBlockSyncer := sync.ArgsNewPendingMiniBlocksSyncer{
-		Storage:        e.storageService.GetStorer(dataRetriever.MiniBlockUnit),
+		Storage:        storer,
 		Cache:          e.dataPool.MiniBlocks(),
 		Marshalizer:    e.CoreComponents.InternalMarshalizer(),
 		RequestHandler: e.requestHandler,
@@ -424,7 +437,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	argsPendingTransactions := sync.ArgsNewTransactionsSyncer{
 		DataPools:      e.dataPool,
 		Storages:       e.storageService,
-		Marshalizer:    e.CoreComponents.InternalMarshalizer(),
+		Marshaller:     e.CoreComponents.InternalMarshalizer(),
 		RequestHandler: e.requestHandler,
 	}
 	epochStartTransactionsSyncer, err := sync.NewTransactionsSyncer(argsPendingTransactions)
@@ -521,27 +534,26 @@ func (e *exportHandlerFactory) prepareFolders(folder string) error {
 
 func (e *exportHandlerFactory) createInterceptors() error {
 	argsInterceptors := ArgsNewFullSyncInterceptorsContainerFactory{
-		CoreComponents:            e.CoreComponents,
-		CryptoComponents:          e.CryptoComponents,
-		Accounts:                  e.accounts,
-		ShardCoordinator:          e.shardCoordinator,
-		NodesCoordinator:          e.nodesCoordinator,
-		Messenger:                 e.messenger,
-		Store:                     e.storageService,
-		DataPool:                  e.dataPool,
-		MaxTxNonceDeltaAllowed:    math.MaxInt32,
-		TxFeeHandler:              &disabled.FeeHandler{},
-		BlockBlackList:            timecache.NewTimeCache(time.Second),
-		HeaderSigVerifier:         e.headerSigVerifier,
-		HeaderIntegrityVerifier:   e.headerIntegrityVerifier,
-		SizeCheckDelta:            math.MaxUint32,
-		ValidityAttester:          e.validityAttester,
-		EpochStartTrigger:         e.epochStartTrigger,
-		WhiteListHandler:          e.whiteListHandler,
-		WhiteListerVerifiedTxs:    e.whiteListerVerifiedTxs,
-		InterceptorsContainer:     e.interceptorsContainer,
-		AntifloodHandler:          e.inputAntifloodHandler,
-		EnableSignTxWithHashEpoch: e.enableSignTxWithHashEpoch,
+		CoreComponents:          e.CoreComponents,
+		CryptoComponents:        e.CryptoComponents,
+		Accounts:                e.accounts,
+		ShardCoordinator:        e.shardCoordinator,
+		NodesCoordinator:        e.nodesCoordinator,
+		Messenger:               e.messenger,
+		Store:                   e.storageService,
+		DataPool:                e.dataPool,
+		MaxTxNonceDeltaAllowed:  math.MaxInt32,
+		TxFeeHandler:            &disabled.FeeHandler{},
+		BlockBlackList:          cache.NewTimeCache(time.Second),
+		HeaderSigVerifier:       e.headerSigVerifier,
+		HeaderIntegrityVerifier: e.headerIntegrityVerifier,
+		SizeCheckDelta:          math.MaxUint32,
+		ValidityAttester:        e.validityAttester,
+		EpochStartTrigger:       e.epochStartTrigger,
+		WhiteListHandler:        e.whiteListHandler,
+		WhiteListerVerifiedTxs:  e.whiteListerVerifiedTxs,
+		InterceptorsContainer:   e.interceptorsContainer,
+		AntifloodHandler:        e.inputAntifloodHandler,
 	}
 	fullSyncInterceptors, err := NewFullSyncInterceptorsContainerFactory(argsInterceptors)
 	if err != nil {
@@ -560,7 +572,7 @@ func (e *exportHandlerFactory) createInterceptors() error {
 func createStorer(storageConfig config.StorageConfig, folder string) (storage.Storer, error) {
 	dbConfig := storageFactory.GetDBFromConfig(storageConfig.DB)
 	dbConfig.FilePath = path.Join(folder, storageConfig.DB.FilePath)
-	accountsTrieStorage, err := storageUnit.NewStorageUnitFromConf(
+	accountsTrieStorage, err := storageunit.NewStorageUnitFromConf(
 		storageFactory.GetCacherFromConfig(storageConfig.Cache),
 		dbConfig,
 	)

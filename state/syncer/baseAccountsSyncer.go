@@ -12,27 +12,29 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/common/statistics"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/trie"
 )
 
 type baseAccountsSyncer struct {
-	hasher                    hashing.Hasher
-	marshalizer               marshal.Marshalizer
-	dataTries                 map[string]struct{}
-	mutex                     sync.Mutex
-	trieStorageManager        common.StorageManager
-	requestHandler            trie.RequestHandler
-	timeoutHandler            trie.TimeoutHandler
-	shardId                   uint32
-	cacher                    storage.Cacher
-	rootHash                  []byte
-	maxTrieLevelInMemory      uint
-	name                      string
-	maxHardCapForMissingNodes int
-	checkNodesOnDisk          bool
+	hasher                            hashing.Hasher
+	marshalizer                       marshal.Marshalizer
+	dataTries                         map[string]struct{}
+	mutex                             sync.Mutex
+	trieStorageManager                common.StorageManager
+	requestHandler                    trie.RequestHandler
+	timeoutHandler                    trie.TimeoutHandler
+	shardId                           uint32
+	cacher                            storage.Cacher
+	rootHash                          []byte
+	maxTrieLevelInMemory              uint
+	name                              string
+	maxHardCapForMissingNodes         int
+	checkNodesOnDisk                  bool
+	storageMarker                     trie.StorageMarker
+	userAccountsSyncStatisticsHandler common.SizeSyncStatisticsHandler
+	appStatusHandler                  core.AppStatusHandler
 
 	trieSyncerVersion int
 	numTriesSynced    int32
@@ -43,16 +45,19 @@ const timeBetweenStatisticsPrints = time.Second * 2
 
 // ArgsNewBaseAccountsSyncer defines the arguments needed for the new account syncer
 type ArgsNewBaseAccountsSyncer struct {
-	Hasher                    hashing.Hasher
-	Marshalizer               marshal.Marshalizer
-	TrieStorageManager        common.StorageManager
-	RequestHandler            trie.RequestHandler
-	Timeout                   time.Duration
-	Cacher                    storage.Cacher
-	MaxTrieLevelInMemory      uint
-	MaxHardCapForMissingNodes int
-	TrieSyncerVersion         int
-	CheckNodesOnDisk          bool
+	Hasher                            hashing.Hasher
+	Marshalizer                       marshal.Marshalizer
+	TrieStorageManager                common.StorageManager
+	StorageMarker                     trie.StorageMarker
+	RequestHandler                    trie.RequestHandler
+	Timeout                           time.Duration
+	Cacher                            storage.Cacher
+	UserAccountsSyncStatisticsHandler common.SizeSyncStatisticsHandler
+	AppStatusHandler                  core.AppStatusHandler
+	MaxTrieLevelInMemory              uint
+	MaxHardCapForMissingNodes         int
+	TrieSyncerVersion                 int
+	CheckNodesOnDisk                  bool
 }
 
 func checkArgs(args ArgsNewBaseAccountsSyncer) error {
@@ -71,6 +76,12 @@ func checkArgs(args ArgsNewBaseAccountsSyncer) error {
 	if check.IfNil(args.Cacher) {
 		return state.ErrNilCacher
 	}
+	if check.IfNil(args.UserAccountsSyncStatisticsHandler) {
+		return state.ErrNilSyncStatisticsHandler
+	}
+	if check.IfNil(args.AppStatusHandler) {
+		return state.ErrNilAppStatusHandler
+	}
 	if args.MaxHardCapForMissingNodes < 1 {
 		return state.ErrInvalidMaxHardCapForMissingNodes
 	}
@@ -81,7 +92,6 @@ func checkArgs(args ArgsNewBaseAccountsSyncer) error {
 func (b *baseAccountsSyncer) syncMainTrie(
 	rootHash []byte,
 	trieTopic string,
-	ssh common.SizeSyncStatisticsHandler,
 	ctx context.Context,
 ) (common.Trie, error) {
 	b.rootHash = rootHash
@@ -102,7 +112,7 @@ func (b *baseAccountsSyncer) syncMainTrie(
 		Hasher:                    b.hasher,
 		ShardId:                   b.shardId,
 		Topic:                     trieTopic,
-		TrieSyncStatistics:        ssh,
+		TrieSyncStatistics:        b.userAccountsSyncStatisticsHandler,
 		TimeoutHandler:            b.timeoutHandler,
 		MaxHardCapForMissingNodes: b.maxHardCapForMissingNodes,
 		CheckNodesOnDisk:          b.checkNodesOnDisk,
@@ -124,7 +134,7 @@ func (b *baseAccountsSyncer) syncMainTrie(
 	return dataTrie.Recreate(rootHash)
 }
 
-func (b *baseAccountsSyncer) printStatistics(ssh common.SizeSyncStatisticsHandler, ctx context.Context) {
+func (b *baseAccountsSyncer) printStatisticsAndUpdateMetrics(ctx context.Context) {
 	lastDataReceived := uint64(0)
 	peakDataReceived := uint64(0)
 	startedSync := time.Now()
@@ -134,28 +144,29 @@ func (b *baseAccountsSyncer) printStatistics(ssh common.SizeSyncStatisticsHandle
 			peakSpeed := convertBytesPerIntervalToSpeed(peakDataReceived, timeBetweenStatisticsPrints)
 			finishedSync := time.Now()
 			totalSyncDuration := finishedSync.Sub(startedSync)
-			averageSpeed := convertBytesPerIntervalToSpeed(ssh.NumBytesReceived(), totalSyncDuration)
+			averageSpeed := convertBytesPerIntervalToSpeed(b.userAccountsSyncStatisticsHandler.NumBytesReceived(), totalSyncDuration)
 
 			log.Info("finished trie sync",
 				"name", b.name,
 				"time elapsed", totalSyncDuration.Truncate(time.Second),
-				"num processed", ssh.NumReceived(),
-				"num large nodes", ssh.NumLarge(),
-				"num missing", ssh.NumMissing(),
-				"state data size", core.ConvertBytes(ssh.NumBytesReceived()),
-				"total iterations", ssh.NumIterations(),
-				"total CPU time", ssh.ProcessingTime(),
+				"num processed", b.userAccountsSyncStatisticsHandler.NumProcessed(),
+				"num large nodes", b.userAccountsSyncStatisticsHandler.NumLarge(),
+				"num missing", b.userAccountsSyncStatisticsHandler.NumMissing(),
+				"state data size", core.ConvertBytes(b.userAccountsSyncStatisticsHandler.NumBytesReceived()),
+				"total iterations", b.userAccountsSyncStatisticsHandler.NumIterations(),
+				"total CPU time", b.userAccountsSyncStatisticsHandler.ProcessingTime(),
 				"peak processing speed", peakSpeed,
 				"average processing speed", averageSpeed,
 			)
-			log.Debug("trie sync node statistics", statistics.GetRuntimeStatistics()...)
+			b.userAccountsSyncStatisticsHandler.Reset()
+			b.updateMetrics()
 			return
 		case <-time.After(timeBetweenStatisticsPrints):
-			bytesReceivedDelta := ssh.NumBytesReceived() - lastDataReceived
-			if ssh.NumBytesReceived() < lastDataReceived {
+			bytesReceivedDelta := b.userAccountsSyncStatisticsHandler.NumBytesReceived() - lastDataReceived
+			if b.userAccountsSyncStatisticsHandler.NumBytesReceived() < lastDataReceived {
 				bytesReceivedDelta = 0
 			}
-			lastDataReceived = ssh.NumBytesReceived()
+			lastDataReceived = b.userAccountsSyncStatisticsHandler.NumBytesReceived()
 
 			speed := convertBytesPerIntervalToSpeed(bytesReceivedDelta, timeBetweenStatisticsPrints)
 			if peakDataReceived < bytesReceivedDelta {
@@ -165,20 +176,26 @@ func (b *baseAccountsSyncer) printStatistics(ssh common.SizeSyncStatisticsHandle
 			log.Info("trie sync in progress",
 				"name", b.name,
 				"time elapsed", time.Since(startedSync).Truncate(time.Second),
-				"num tries currently syncing", ssh.NumTries(),
-				"num processed", ssh.NumReceived(),
-				"num large nodes", ssh.NumLarge(),
-				"num missing", ssh.NumMissing(),
+				"num tries currently syncing", b.userAccountsSyncStatisticsHandler.NumTries(),
+				"num processed", b.userAccountsSyncStatisticsHandler.NumProcessed(),
+				"num large nodes", b.userAccountsSyncStatisticsHandler.NumLarge(),
+				"num missing", b.userAccountsSyncStatisticsHandler.NumMissing(),
 				"num tries synced", fmt.Sprintf("%d/%d", atomic.LoadInt32(&b.numTriesSynced), atomic.LoadInt32(&b.numMaxTries)),
 				"intercepted trie nodes cache size", core.ConvertBytes(b.cacher.SizeInBytesContained()),
 				"num of intercepted trie nodes", b.cacher.Len(),
-				"state data size", core.ConvertBytes(ssh.NumBytesReceived()),
-				"iterations", ssh.NumIterations(),
-				"CPU time", ssh.ProcessingTime(),
+				"state data size", core.ConvertBytes(b.userAccountsSyncStatisticsHandler.NumBytesReceived()),
+				"iterations", b.userAccountsSyncStatisticsHandler.NumIterations(),
+				"CPU time", b.userAccountsSyncStatisticsHandler.ProcessingTime(),
 				"processing speed", speed)
-			log.Debug("trie sync node statistics", statistics.GetRuntimeStatistics()...)
+
+			b.updateMetrics()
 		}
 	}
+}
+
+func (b *baseAccountsSyncer) updateMetrics() {
+	b.appStatusHandler.SetUInt64Value(common.MetricTrieSyncNumProcessedNodes, uint64(b.userAccountsSyncStatisticsHandler.NumProcessed()))
+	b.appStatusHandler.SetUInt64Value(common.MetricTrieSyncNumReceivedBytes, b.userAccountsSyncStatisticsHandler.NumBytesReceived())
 }
 
 func convertBytesPerIntervalToSpeed(bytes uint64, interval time.Duration) string {

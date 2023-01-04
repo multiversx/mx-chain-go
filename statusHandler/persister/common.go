@@ -1,6 +1,6 @@
 package persister
 
-// GetUint64 will try to convert an interface type in a uint64
+// GetUint64 will try to convert an interface type in an uint64
 // in case of failure wil return 0
 func GetUint64(data interface{}) uint64 {
 	value, ok := data.(uint64)

@@ -12,9 +12,13 @@ var _ state.UserAccountHandler = (*UserAccountStub)(nil)
 
 // UserAccountStub -
 type UserAccountStub struct {
-	Balance               *big.Int
-	AddToBalanceCalled    func(value *big.Int) error
-	DataTrieTrackerCalled func() state.DataTrieTracker
+	Balance             *big.Int
+	DeveloperRewards    *big.Int
+	UserName            []byte
+	Owner               []byte
+	Address             []byte
+	AddToBalanceCalled  func(value *big.Int) error
+	RetrieveValueCalled func(_ []byte) ([]byte, uint32, error)
 }
 
 // HasNewCode -
@@ -28,7 +32,7 @@ func (u *UserAccountStub) SetUserName(_ []byte) {
 
 // GetUserName -
 func (u *UserAccountStub) GetUserName() []byte {
-	return nil
+	return u.UserName
 }
 
 // AddToBalance -
@@ -61,7 +65,7 @@ func (u *UserAccountStub) AddToDeveloperReward(*big.Int) {
 
 // GetDeveloperReward -
 func (u *UserAccountStub) GetDeveloperReward() *big.Int {
-	return nil
+	return u.DeveloperRewards
 }
 
 // ChangeOwnerAddress -
@@ -76,12 +80,12 @@ func (u *UserAccountStub) SetOwnerAddress([]byte) {
 
 // GetOwnerAddress -
 func (u *UserAccountStub) GetOwnerAddress() []byte {
-	return nil
+	return u.Owner
 }
 
 // AddressBytes -
 func (u *UserAccountStub) AddressBytes() []byte {
-	return nil
+	return u.Address
 }
 
 //IncreaseNonce -
@@ -133,21 +137,27 @@ func (u *UserAccountStub) SetDataTrie(_ common.Trie) {
 }
 
 // DataTrie -
-func (u *UserAccountStub) DataTrie() common.Trie {
+func (u *UserAccountStub) DataTrie() common.DataTrieHandler {
 	return nil
 }
 
-// RetrieveValueFromDataTrieTracker -
-func (u *UserAccountStub) RetrieveValueFromDataTrieTracker(_ []byte) ([]byte, error) {
-	return nil, nil
-}
-
-// DataTrieTracker -
-func (u *UserAccountStub) DataTrieTracker() state.DataTrieTracker {
-	if u.DataTrieTrackerCalled != nil {
-		return u.DataTrieTrackerCalled()
+// RetrieveValue -
+func (u *UserAccountStub) RetrieveValue(key []byte) ([]byte, uint32, error) {
+	if u.RetrieveValueCalled != nil {
+		return u.RetrieveValueCalled(key)
 	}
+
+	return nil, 0, nil
+}
+
+// SaveKeyValue -
+func (u *UserAccountStub) SaveKeyValue(_ []byte, _ []byte) error {
 	return nil
+}
+
+// SaveDirtyData -
+func (u *UserAccountStub) SaveDirtyData(_ common.Trie) (map[string][]byte, error) {
+	return nil, nil
 }
 
 // IsInterfaceNil -

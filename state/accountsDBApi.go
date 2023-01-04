@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/holders"
@@ -75,8 +74,14 @@ func (accountsDB *accountsDBApi) doRecreateTrieWithBlockInfo(newBlockInfo common
 	return newBlockInfo, nil
 }
 
-// StartSnapshotIfNeeded does nothing for this implementation
-func (accountsDB *accountsDBApi) StartSnapshotIfNeeded() {
+// SetSyncer returns nil for this implementation
+func (accountsDB *accountsDBApi) SetSyncer(_ AccountsDBSyncer) error {
+	return nil
+}
+
+// StartSnapshotIfNeeded returns nil for this implementation
+func (accountsDB *accountsDBApi) StartSnapshotIfNeeded() error {
+	return nil
 }
 
 // GetExistingAccount will call the inner accountsAdapter method after trying to recreate the trie
@@ -191,13 +196,13 @@ func (accountsDB *accountsDBApi) IsPruningEnabled() bool {
 }
 
 // GetAllLeaves will call the inner accountsAdapter method after trying to recreate the trie
-func (accountsDB *accountsDBApi) GetAllLeaves(leavesChannel chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
+func (accountsDB *accountsDBApi) GetAllLeaves(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error {
 	_, err := accountsDB.recreateTrieIfNecessary()
 	if err != nil {
 		return err
 	}
 
-	return accountsDB.innerAccountsAdapter.GetAllLeaves(leavesChannel, ctx, rootHash)
+	return accountsDB.innerAccountsAdapter.GetAllLeaves(leavesChannels, ctx, rootHash)
 }
 
 // RecreateAllTries is a not permitted operation in this implementation and thus, will return an error
