@@ -991,12 +991,19 @@ func TestBaseRewardsCreator_finalizeMiniBlocksEmptyMbsAreRemoved(t *testing.T) {
 func TestBaseRewardsCreator_fillBaseRewardsPerBlockPerNode(t *testing.T) {
 	t.Parallel()
 
+	// should work for epoch 0 even if this is a bad input
+	testFillBaseRewardsPerBlockPerNode(t, 0)
+
+	// should work for an epoch higher than 0
+	testFillBaseRewardsPerBlockPerNode(t, 1)
+}
+
+func testFillBaseRewardsPerBlockPerNode(t *testing.T, epoch uint32) {
 	args := getBaseRewardsArguments()
 	rwd, err := NewBaseRewardsCreator(args)
 	require.Nil(t, err)
 	require.NotNil(t, rwd)
 
-	epoch := uint32(0)
 	baseRewardsPerNode := big.NewInt(1000000)
 	rwd.fillBaseRewardsPerBlockPerNode(baseRewardsPerNode, epoch)
 	consensusShard := args.NodesConfigProvider.ConsensusGroupSizeForShardAndEpoch(0, epoch)

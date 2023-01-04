@@ -1052,13 +1052,10 @@ func (ihnc *indexHashedNodesCoordinator) ConsensusGroupSizeForShardAndEpoch(
 	shardID uint32,
 	epoch uint32,
 ) int {
-	ihnc.mutNodesConfig.RLock()
-	defer ihnc.mutNodesConfig.RUnlock()
-
 	currentChainParameters, err := ihnc.chainParametersHandler.ChainParametersForEpoch(epoch)
 	if err != nil {
 		log.Warn("indexHashedNodesCoordinator.ConsensusGroupSizeForShardAndEpoch: could not compute chain params for epoch. "+
-			"Will use the current chain parameters", "epoch", ihnc.currentEpoch, "error", err)
+			"Will use the current chain parameters", "epoch", epoch, "error", err)
 		currentChainParameters = ihnc.chainParametersHandler.CurrentChainParameters()
 	}
 
