@@ -57,7 +57,7 @@ func isEmptyTrieData(data *dataTrieValue.TrieLeafData) bool {
 		return true
 	}
 
-	if len(data.Value) == 0 && len(data.Key) == 0 && len(data.Address) == 0 {
+	if len(data.Value) == 0 || len(data.Key) == 0 || len(data.Address) == 0 {
 		return true
 	}
 
