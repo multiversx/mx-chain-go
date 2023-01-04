@@ -34,7 +34,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager"
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
@@ -1658,7 +1658,7 @@ func alterState(tb testing.TB, node *integrationTests.TestProcessorNode, nodes [
 		assert.Nil(tb, err)
 
 		userAccount := account.(state.UserAccountHandler)
-		err = userAccount.DataTrieTracker().SaveKeyValue(key, value)
+		err = userAccount.SaveKeyValue(key, value)
 		assert.Nil(tb, err)
 
 		err = n.AccntState.SaveAccount(userAccount)
