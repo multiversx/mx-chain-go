@@ -23,7 +23,7 @@ type txPool struct {
 
 func getTxPool(transactionsPool *outportcore.Pool) (*txPool, error) {
 	if transactionsPool == nil {
-		return &txPool{}, nil
+		return nil, errNilTxPool
 	}
 
 	txs, err := getTxs(transactionsPool.Txs)

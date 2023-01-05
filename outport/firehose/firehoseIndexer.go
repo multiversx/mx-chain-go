@@ -66,7 +66,7 @@ func (fi *firehoseIndexer) SaveBlock(args *outportcore.ArgsSaveBlockData) error 
 
 	pool, err := getTxPool(args.TransactionsPool)
 	if err != nil {
-		return err
+		return fmt.Errorf("getTxPool error: %w, header hash %s", err, hex.EncodeToString(args.HeaderHash))
 	}
 
 	body, err := getBody(args.Body)

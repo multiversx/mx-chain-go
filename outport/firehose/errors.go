@@ -18,6 +18,6 @@ var errCannotCastReceipt = errors.New("cannot cast receipt transaction")
 
 var errCannotCastEvent = errors.New("cannot cast event")
 
-var errCannotCastBlockBody = errors.New("cannot cast block body")
+var errNilTxPool = errors.New("received nil transaction pool")
 
 var errNilBlockBody = errors.New("nil block body")
