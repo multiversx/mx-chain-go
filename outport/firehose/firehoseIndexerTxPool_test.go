@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -19,6 +20,22 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/require"
 )
+
+func TestFirehoseIndexer_SaveBlockNilTxPool(t *testing.T) {
+	t.Parallel()
+
+	fi, _ := NewFirehoseIndexer(&testscommon.IoWriterStub{})
+
+	headerHash := []byte("hash")
+	argsSaveBlock := &outportcore.ArgsSaveBlockData{
+		HeaderHash:       headerHash,
+		Header:           &block.Header{},
+		TransactionsPool: nil,
+	}
+	err := fi.SaveBlock(argsSaveBlock)
+	require.True(t, strings.Contains(err.Error(), errNilTxPool.Error()))
+	require.True(t, strings.Contains(err.Error(), hex.EncodeToString(headerHash)))
+}
 
 func TestFirehoseIndexer_SaveBlockTxPool(t *testing.T) {
 	t.Parallel()
