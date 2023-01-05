@@ -14,7 +14,27 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestFirehoseIndexer_SaveBlock(t *testing.T) {
+func TestNewFirehoseIndexer(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil io writer, should return error", func(t *testing.T) {
+		t.Parallel()
+
+		fi, err := NewFirehoseIndexer(nil)
+		require.Nil(t, fi)
+		require.Equal(t, errNilWriter, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		fi, err := NewFirehoseIndexer(&testscommon.IoWriterStub{})
+		require.Nil(t, err)
+		require.NotNil(t, fi)
+	})
+}
+
+func TestFirehoseIndexer_SaveBlockHeader(t *testing.T) {
 	t.Parallel()
 
 	protoMarshaller := &marshal.GogoProtoMarshalizer{}
@@ -62,7 +82,6 @@ func TestFirehoseIndexer_SaveBlock(t *testing.T) {
 				case 1:
 					require.Equal(t, []byte("FIRE BLOCK_BEGIN 1\n"), p)
 				case 2:
-
 					require.Equal(t, []byte(fmt.Sprintf("FIRE BLOCK_END 1 %s 100 %x\n",
 						hex.EncodeToString(metaBlockHeader.PrevHash),
 						marshalledFirehoseBlock)), p)
@@ -74,7 +93,11 @@ func TestFirehoseIndexer_SaveBlock(t *testing.T) {
 		}
 
 		fi, _ := NewFirehoseIndexer(ioWriter)
-		err = fi.SaveBlock(&outportcore.ArgsSaveBlockData{HeaderHash: headerHashMeta, Header: metaBlockHeader})
+		err = fi.SaveBlock(&outportcore.ArgsSaveBlockData{
+			HeaderHash:       headerHashMeta,
+			Header:           metaBlockHeader,
+			TransactionsPool: &outportcore.Pool{},
+		})
 		require.Nil(t, err)
 	})
 
@@ -106,7 +129,6 @@ func TestFirehoseIndexer_SaveBlock(t *testing.T) {
 				case 1:
 					require.Equal(t, []byte("FIRE BLOCK_BEGIN 2\n"), p)
 				case 2:
-
 					require.Equal(t, []byte(fmt.Sprintf("FIRE BLOCK_END 2 %s 200 %x\n",
 						hex.EncodeToString(shardHeaderV1.PrevHash),
 						marshalledFirehoseBlock)), p)
@@ -118,7 +140,11 @@ func TestFirehoseIndexer_SaveBlock(t *testing.T) {
 		}
 
 		fi, _ := NewFirehoseIndexer(ioWriter)
-		err = fi.SaveBlock(&outportcore.ArgsSaveBlockData{HeaderHash: headerHashShardV1, Header: shardHeaderV1})
+		err = fi.SaveBlock(&outportcore.ArgsSaveBlockData{
+			HeaderHash:       headerHashShardV1,
+			Header:           shardHeaderV1,
+			TransactionsPool: &outportcore.Pool{},
+		})
 		require.Nil(t, err)
 	})
 
@@ -152,7 +178,6 @@ func TestFirehoseIndexer_SaveBlock(t *testing.T) {
 				case 1:
 					require.Equal(t, []byte("FIRE BLOCK_BEGIN 3\n"), p)
 				case 2:
-
 					require.Equal(t, []byte(fmt.Sprintf("FIRE BLOCK_END 3 %s 300 %x\n",
 						hex.EncodeToString(shardHeaderV2.Header.PrevHash),
 						marshalledFirehoseBlock)), p)
@@ -164,7 +189,11 @@ func TestFirehoseIndexer_SaveBlock(t *testing.T) {
 		}
 
 		fi, _ := NewFirehoseIndexer(ioWriter)
-		err = fi.SaveBlock(&outportcore.ArgsSaveBlockData{HeaderHash: headerHashShardV2, Header: shardHeaderV2})
+		err = fi.SaveBlock(&outportcore.ArgsSaveBlockData{
+			HeaderHash:       headerHashShardV2,
+			Header:           shardHeaderV2,
+			TransactionsPool: &outportcore.Pool{},
+		})
 		require.Nil(t, err)
 	})
 }

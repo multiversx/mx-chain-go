@@ -58,31 +58,26 @@ func (fi *firehoseIndexer) SaveBlock(args *outportcore.ArgsSaveBlockData) error 
 		return fmt.Errorf("could not write %s prefix , err: %w", beginBlockPrefix, err)
 	}
 
-	var headerBytes []byte
-	var headerType core.HeaderType
-
-	switch header := args.Header.(type) {
-	case *block.MetaBlock:
-		headerType = core.MetaHeader
-		headerBytes, err = fi.marshaller.Marshal(header)
-	case *block.Header:
-		headerType = core.ShardHeaderV1
-		headerBytes, err = fi.marshaller.Marshal(header)
-	case *block.HeaderV2:
-		headerType = core.ShardHeaderV2
-		headerBytes, err = fi.marshaller.Marshal(header)
-	default:
-		return errInvalidHeaderType
-	}
-
+	headerBytes, headerType, err := fi.getHeaderBytes(args.Header)
 	if err != nil {
 		return err
 	}
 
+	pool, err := getTxPool(args.TransactionsPool)
+	if err != nil {
+		return fmt.Errorf("getTxPool error: %w, header hash %s", err, hex.EncodeToString(args.HeaderHash))
+	}
+
 	firehoseBlock := &firehose.FirehoseBlock{
-		HeaderHash:  args.HeaderHash,
-		HeaderType:  string(headerType),
-		HeaderBytes: headerBytes,
+		HeaderHash:          args.HeaderHash,
+		HeaderType:          string(headerType),
+		HeaderBytes:         headerBytes,
+		Transactions:        pool.transactions,
+		SmartContractResult: pool.smartContractResult,
+		Rewards:             pool.rewards,
+		Receipts:            pool.receipts,
+		Logs:                pool.logs,
+		InvalidTxs:          pool.invalidTxs,
 	}
 
 	marshalledBlock, err := fi.marshaller.Marshal(firehoseBlock)
@@ -103,6 +98,28 @@ func (fi *firehoseIndexer) SaveBlock(args *outportcore.ArgsSaveBlockData) error 
 	}
 
 	return nil
+}
+
+func (fi *firehoseIndexer) getHeaderBytes(headerHandler data.HeaderHandler) ([]byte, core.HeaderType, error) {
+	var err error
+	var headerBytes []byte
+	var headerType core.HeaderType
+
+	switch header := headerHandler.(type) {
+	case *block.MetaBlock:
+		headerType = core.MetaHeader
+		headerBytes, err = fi.marshaller.Marshal(header)
+	case *block.Header:
+		headerType = core.ShardHeaderV1
+		headerBytes, err = fi.marshaller.Marshal(header)
+	case *block.HeaderV2:
+		headerType = core.ShardHeaderV2
+		headerBytes, err = fi.marshaller.Marshal(header)
+	default:
+		return nil, "", errInvalidHeaderType
+	}
+
+	return headerBytes, headerType, err
 }
 
 // RevertIndexedBlock does nothing
