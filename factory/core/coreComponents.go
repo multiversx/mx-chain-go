@@ -307,10 +307,9 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	}
 
 	argsNodesShuffler := &nodesCoordinator.NodesShufflerArgs{
-		ChainParametersHandler: chainParametersHandler,
-		ShuffleBetweenShards:   true,
-		MaxNodesEnableConfig:   ccf.epochConfig.EnableEpochs.MaxNodesChangeEnableEpoch,
-		EnableEpochsHandler:    enableEpochsHandler,
+		ShuffleBetweenShards: true,
+		MaxNodesEnableConfig: ccf.epochConfig.EnableEpochs.MaxNodesChangeEnableEpoch,
+		EnableEpochsHandler:  enableEpochsHandler,
 	}
 
 	nodesShuffler, err := nodesCoordinator.NewHashValidatorsShuffler(argsNodesShuffler)

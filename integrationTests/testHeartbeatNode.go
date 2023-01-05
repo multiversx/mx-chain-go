@@ -287,11 +287,11 @@ func CreateNodesWithTestHeartbeatNode(
 	for shardId, validatorList := range validatorsMap {
 		argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
 			ChainParametersHandler: &shardingmock.ChainParametersHandlerStub{
-				CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
+				ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
 					return config.ChainParametersByEpochConfig{
 						ShardConsensusGroupSize:     uint32(shardConsensusGroupSize),
 						MetachainConsensusGroupSize: uint32(metaConsensusGroupSize),
-					}
+					}, nil
 				},
 			},
 			Marshalizer:         TestMarshalizer,
@@ -339,11 +339,11 @@ func CreateNodesWithTestHeartbeatNode(
 
 			argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
 				ChainParametersHandler: &shardingmock.ChainParametersHandlerStub{
-					CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
+					ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
 						return config.ChainParametersByEpochConfig{
 							ShardConsensusGroupSize:     uint32(shardConsensusGroupSize),
 							MetachainConsensusGroupSize: uint32(metaConsensusGroupSize),
-						}
+						}, nil
 					},
 				},
 				Marshalizer:         TestMarshalizer,

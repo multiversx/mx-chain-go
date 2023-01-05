@@ -24,7 +24,7 @@ type NodesCoordinatorMock struct {
 	GetValidatorWithPublicKeyCalled          func(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error)
 	GetAllEligibleValidatorsPublicKeysCalled func(epoch uint32) (map[uint32][][]byte, error)
 	GetAllWaitingValidatorsPublicKeysCalled  func() (map[uint32][][]byte, error)
-	ConsensusGroupSizeCalled                 func(uint32) int
+	ConsensusGroupSizeCalled                 func(uint32, uint32) int
 	GetValidatorsIndexesCalled               func(publicKeys []string, epoch uint32) ([]uint64, error)
 }
 
@@ -206,10 +206,10 @@ func (ncm *NodesCoordinatorMock) ComputeConsensusGroup(
 	return validatorsGroup, nil
 }
 
-// ConsensusGroupSize -
-func (ncm *NodesCoordinatorMock) ConsensusGroupSize(shardId uint32) int {
+// ConsensusGroupSizeForShardAndEpoch -
+func (ncm *NodesCoordinatorMock) ConsensusGroupSizeForShardAndEpoch(shardId uint32, epoch uint32) int {
 	if ncm.ConsensusGroupSizeCalled != nil {
-		return ncm.ConsensusGroupSizeCalled(shardId)
+		return ncm.ConsensusGroupSizeCalled(shardId, epoch)
 	}
 	return 1
 }

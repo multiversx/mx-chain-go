@@ -63,11 +63,11 @@ func CreateProcessorNodesWithNodesCoordinator(
 			lruCache, _ := cache.NewLRUCache(10000)
 			argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
 				ChainParametersHandler: &shardingmock.ChainParametersHandlerStub{
-					CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
+					ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
 						return config.ChainParametersByEpochConfig{
 							ShardConsensusGroupSize:     uint32(shardConsensusGroupSize),
 							MetachainConsensusGroupSize: uint32(metaConsensusGroupSize),
-						}
+						}, nil
 					},
 				},
 				Marshalizer:         TestMarshalizer,

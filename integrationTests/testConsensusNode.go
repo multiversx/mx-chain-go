@@ -335,11 +335,11 @@ func (tcn *TestConsensusNode) initNodesCoordinator(
 ) {
 	argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
 		ChainParametersHandler: &shardingmock.ChainParametersHandlerStub{
-			CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
+			ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
 				return config.ChainParametersByEpochConfig{
 					ShardConsensusGroupSize:     uint32(consensusSize),
 					MetachainConsensusGroupSize: uint32(consensusSize),
-				}
+				}, nil
 			},
 		},
 		Marshalizer:         TestMarshalizer,

@@ -248,7 +248,11 @@ func (ihnc *indexHashedNodesCoordinator) setNodesPerShards(
 		return ErrNilInputNodesMap
 	}
 
-	currentChainParameters := ihnc.chainParametersHandler.CurrentChainParameters()
+	currentChainParameters, err := ihnc.chainParametersHandler.ChainParametersForEpoch(epoch)
+	if err != nil {
+		return err
+	}
+
 	nodesList := eligible[core.MetachainShardId]
 	if len(nodesList) < int(currentChainParameters.MetachainConsensusGroupSize) {
 		return ErrSmallMetachainEligibleListSize
@@ -263,7 +267,6 @@ func (ihnc *indexHashedNodesCoordinator) setNodesPerShards(
 		numTotalEligible += uint64(nbNodesShard)
 	}
 
-	var err error
 	var isCurrentNodeValidator bool
 	// nbShards holds number of shards without meta
 	nodesConfig.nbShards = uint32(len(eligible) - 1)
@@ -350,7 +353,7 @@ func (ihnc *indexHashedNodesCoordinator) ComputeConsensusGroup(
 		return validators, nil
 	}
 
-	consensusSize := ihnc.ConsensusGroupSize(shardID)
+	consensusSize := ihnc.ConsensusGroupSizeForShardAndEpoch(shardID, epoch)
 	randomness = []byte(fmt.Sprintf("%d-%s", round, randomness))
 
 	log.Debug("computeValidatorsGroup",
@@ -611,7 +614,14 @@ func (ihnc *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 	unStakeLeavingList := ihnc.createSortedListFromMap(newNodesConfig.leavingMap)
 	additionalLeavingList := ihnc.createSortedListFromMap(additionalLeavingMap)
 
+	chainParamsForEpoch, err := ihnc.chainParametersHandler.ChainParametersForEpoch(newEpoch)
+	if err != nil {
+		log.Warn("indexHashedNodesCoordinator.EpochStartPrepare: could not compute chain params for epoch. "+
+			"Will use the current chain parameters", "epoch", newEpoch, "error", err)
+		chainParamsForEpoch = ihnc.chainParametersHandler.CurrentChainParameters()
+	}
 	shufflerArgs := ArgsUpdateNodes{
+		ChainParameters:   chainParamsForEpoch,
 		Eligible:          newNodesConfig.eligibleMap,
 		Waiting:           newNodesConfig.waitingMap,
 		NewNodes:          newNodesConfig.newList,
@@ -1037,11 +1047,18 @@ func (ihnc *indexHashedNodesCoordinator) computeShardForSelfPublicKey(nodesConfi
 	return selfShard, false
 }
 
-// ConsensusGroupSize returns the consensus group size for a specific shard
-func (ihnc *indexHashedNodesCoordinator) ConsensusGroupSize(
+// ConsensusGroupSizeForShardAndEpoch returns the consensus group size for a specific shard in a given epoch
+func (ihnc *indexHashedNodesCoordinator) ConsensusGroupSizeForShardAndEpoch(
 	shardID uint32,
+	epoch uint32,
 ) int {
-	currentChainParameters := ihnc.chainParametersHandler.CurrentChainParameters()
+	currentChainParameters, err := ihnc.chainParametersHandler.ChainParametersForEpoch(epoch)
+	if err != nil {
+		log.Warn("indexHashedNodesCoordinator.ConsensusGroupSizeForShardAndEpoch: could not compute chain params for epoch. "+
+			"Will use the current chain parameters", "epoch", epoch, "error", err)
+		currentChainParameters = ihnc.chainParametersHandler.CurrentChainParameters()
+	}
+
 	if shardID == core.MetachainShardId {
 		return int(currentChainParameters.MetachainConsensusGroupSize)
 	}

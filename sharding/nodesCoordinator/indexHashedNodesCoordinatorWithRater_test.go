@@ -67,12 +67,6 @@ func TestIndexHashedGroupSelectorWithRater_OkValShouldWork(t *testing.T) {
 	eligibleMap := createDummyNodesMap(3, 1, "waiting")
 	waitingMap := make(map[uint32][]Validator)
 	shufflerArgs := &NodesShufflerArgs{
-		ChainParametersHandler: testChainParametersCreator{
-			numNodesShards: 3,
-			numNodesMeta:   3,
-			hysteresis:     hysteresis,
-			adaptivity:     adaptivity,
-		}.build(),
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
 		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
@@ -173,12 +167,6 @@ func BenchmarkIndexHashedGroupSelectorWithRater_ComputeValidatorsGroup63of400(b 
 	eligibleMap[core.MetachainShardId] = listMeta
 
 	shufflerArgs := &NodesShufflerArgs{
-		ChainParametersHandler: testChainParametersCreator{
-			numNodesShards: 400,
-			numNodesMeta:   1,
-			hysteresis:     hysteresis,
-			adaptivity:     adaptivity,
-		}.build(),
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
 		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
@@ -256,12 +244,6 @@ func Test_ComputeValidatorsGroup63of400(t *testing.T) {
 	eligibleMap[0] = list
 	eligibleMap[core.MetachainShardId] = listMeta
 	shufflerArgs := &NodesShufflerArgs{
-		ChainParametersHandler: testChainParametersCreator{
-			numNodesShards: shardSize,
-			numNodesMeta:   1,
-			hysteresis:     hysteresis,
-			adaptivity:     adaptivity,
-		}.build(),
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
 		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
@@ -337,12 +319,6 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 	eligibleMap[0] = list
 	eligibleMap[core.MetachainShardId] = list
 	sufflerArgs := &NodesShufflerArgs{
-		ChainParametersHandler: testChainParametersCreator{
-			numNodesShards: 1,
-			numNodesMeta:   1,
-			hysteresis:     hysteresis,
-			adaptivity:     adaptivity,
-		}.build(),
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
 		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
@@ -399,12 +375,6 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 	eligibleMap[core.MetachainShardId] = list
 
 	shufflerArgs := &NodesShufflerArgs{
-		ChainParametersHandler: testChainParametersCreator{
-			numNodesShards: 1,
-			numNodesMeta:   1,
-			hysteresis:     hysteresis,
-			adaptivity:     adaptivity,
-		}.build(),
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
 		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
@@ -471,12 +441,6 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldWork(t
 	waitingMap := make(map[uint32][]Validator)
 
 	shufflerArgs := &NodesShufflerArgs{
-		ChainParametersHandler: testChainParametersCreator{
-			numNodesShards: 3,
-			numNodesMeta:   3,
-			hysteresis:     hysteresis,
-			adaptivity:     adaptivity,
-		}.build(),
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
 		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
@@ -564,12 +528,6 @@ func TestIndexHashedGroupSelectorWithRater_GetAllEligibleValidatorsPublicKeys(t 
 	waitingMap := make(map[uint32][]Validator)
 
 	shufflerArgs := &NodesShufflerArgs{
-		ChainParametersHandler: testChainParametersCreator{
-			numNodesShards: 3,
-			numNodesMeta:   3,
-			hysteresis:     hysteresis,
-			adaptivity:     adaptivity,
-		}.build(),
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
 		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
@@ -882,12 +840,6 @@ func BenchmarkIndexHashedWithRaterGroupSelector_ComputeValidatorsGroup21of400(b 
 	eligibleMap[0] = list
 	eligibleMap[core.MetachainShardId] = listMeta
 	shufflerArgs := &NodesShufflerArgs{
-		ChainParametersHandler: testChainParametersCreator{
-			numNodesShards: 400,
-			numNodesMeta:   1,
-			hysteresis:     hysteresis,
-			adaptivity:     adaptivity,
-		}.build(),
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
 		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
