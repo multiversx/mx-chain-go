@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data/alteredAccount"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/firehose"
 	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
@@ -196,4 +197,119 @@ func TestFirehoseIndexer_SaveBlockHeader(t *testing.T) {
 		})
 		require.Nil(t, err)
 	})
+}
+
+func TestFirehoseIndexer_SaveBlockBody(t *testing.T) {
+	t.Parallel()
+
+	protoMarshaller := &marshal.GogoProtoMarshalizer{}
+
+	shardHeaderV1 := &block.Header{
+		Nonce:     2,
+		PrevHash:  []byte("prevHashV1"),
+		TimeStamp: 200,
+	}
+	marshalledHeader, err := protoMarshaller.Marshal(shardHeaderV1)
+	require.Nil(t, err)
+
+	headerHashShardV1 := []byte("headerHashShardV1")
+	argsSaveBlock := &outportcore.ArgsSaveBlockData{
+		HeaderHash:       headerHashShardV1,
+		Header:           shardHeaderV1,
+		SignersIndexes:   []uint64{1, 2, 3},
+		TransactionsPool: &outportcore.Pool{},
+		Body: &block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				{
+					ReceiverShardID: 0,
+					SenderShardID:   2,
+				},
+				{
+					ReceiverShardID: 2,
+					SenderShardID:   1,
+				},
+			},
+		},
+		AlteredAccounts: map[string]*outportcore.AlteredAccount{
+			"erd1abc": {
+				Nonce:   1,
+				Address: "erd1abc",
+				Balance: "100",
+			},
+			"erd1def": {
+				Nonce:   2,
+				Address: "erd1def",
+				Balance: "200",
+				Tokens: []*outportcore.AccountTokenData{
+					{
+						Nonce:      4,
+						Identifier: "id1",
+						Balance:    "321",
+					},
+					{
+						Nonce:      1,
+						Identifier: "id2",
+						Balance:    "123",
+					},
+				},
+			},
+		},
+	}
+
+	firehoseBlock := &firehose.FirehoseBlock{
+		HeaderHash:     headerHashShardV1,
+		HeaderType:     string(core.ShardHeaderV1),
+		HeaderBytes:    marshalledHeader,
+		SignersIndexes: argsSaveBlock.SignersIndexes,
+		AlteredAccounts: []*alteredAccount.AlteredAccount{
+			{
+				Address: "erd1abc",
+				Nonce:   1,
+				Balance: "100",
+			},
+			{
+				Address: "erd1def",
+				Nonce:   2,
+				Balance: "200",
+				Tokens: []*alteredAccount.AccountTokenData{
+					{
+						Nonce:      4,
+						Identifier: "id1",
+						Balance:    "321",
+					},
+					{
+						Nonce:      1,
+						Identifier: "id2",
+						Balance:    "123",
+					},
+				},
+			},
+		},
+		Body: argsSaveBlock.Body.(*block.Body),
+	}
+	marshalledFirehoseBlock, err := protoMarshaller.Marshal(firehoseBlock)
+	require.Nil(t, err)
+
+	ioWriterCalledCt := 0
+	ioWriter := &testscommon.IoWriterStub{
+		WriteCalled: func(p []byte) (n int, err error) {
+			ioWriterCalledCt++
+			switch ioWriterCalledCt {
+			case 1:
+				require.Equal(t, []byte("FIRE BLOCK_BEGIN 2\n"), p)
+			case 2:
+
+				require.Equal(t, []byte(fmt.Sprintf("FIRE BLOCK_END 2 %s 200 %x\n",
+					hex.EncodeToString(shardHeaderV1.PrevHash),
+					marshalledFirehoseBlock)), p)
+			default:
+				require.Fail(t, "should not write again")
+			}
+			return 0, nil
+		},
+	}
+
+	fi, _ := NewFirehoseIndexer(ioWriter)
+	err = fi.SaveBlock(argsSaveBlock)
+	require.Nil(t, err)
 }

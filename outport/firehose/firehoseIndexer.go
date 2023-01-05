@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/alteredAccount"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/firehose"
 	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
@@ -68,16 +69,24 @@ func (fi *firehoseIndexer) SaveBlock(args *outportcore.ArgsSaveBlockData) error 
 		return fmt.Errorf("getTxPool error: %w, header hash %s", err, hex.EncodeToString(args.HeaderHash))
 	}
 
+	body, err := getBody(args.Body)
+	if err != nil && err != errNilBlockBody {
+		return fmt.Errorf("%w, header hash: %s", err, hex.EncodeToString(args.HeaderHash))
+	}
+
 	firehoseBlock := &firehose.FirehoseBlock{
-		HeaderHash:          args.HeaderHash,
-		HeaderType:          string(headerType),
 		HeaderBytes:         headerBytes,
+		HeaderType:          string(headerType),
+		HeaderHash:          args.HeaderHash,
+		Body:                body,
+		AlteredAccounts:     getAlteredAccounts(args.AlteredAccounts),
 		Transactions:        pool.transactions,
 		SmartContractResult: pool.smartContractResult,
 		Rewards:             pool.rewards,
 		Receipts:            pool.receipts,
-		Logs:                pool.logs,
 		InvalidTxs:          pool.invalidTxs,
+		Logs:                pool.logs,
+		SignersIndexes:      args.SignersIndexes,
 	}
 
 	marshalledBlock, err := fi.marshaller.Marshal(firehoseBlock)
@@ -120,6 +129,51 @@ func (fi *firehoseIndexer) getHeaderBytes(headerHandler data.HeaderHandler) ([]b
 	}
 
 	return headerBytes, headerType, err
+}
+
+func getBody(bodyHandler data.BodyHandler) (*block.Body, error) {
+	if check.IfNil(bodyHandler) {
+		return nil, errNilBlockBody
+	}
+
+	body, castOk := bodyHandler.(*block.Body)
+	if !castOk {
+		return nil, errCannotCastBlockBody
+	}
+
+	return body, nil
+}
+
+func getAlteredAccounts(accounts map[string]*outportcore.AlteredAccount) []*alteredAccount.AlteredAccount {
+	ret := make([]*alteredAccount.AlteredAccount, len(accounts))
+
+	idx := 0
+	for _, acc := range accounts {
+		ret[idx] = &alteredAccount.AlteredAccount{
+			Address: acc.Address,
+			Nonce:   acc.Nonce,
+			Balance: acc.Balance,
+			Tokens:  getTokens(acc.Tokens),
+		}
+		idx++
+	}
+
+	return ret
+}
+
+func getTokens(tokens []*outportcore.AccountTokenData) []*alteredAccount.AccountTokenData {
+	ret := make([]*alteredAccount.AccountTokenData, len(tokens))
+
+	for idx, token := range tokens {
+		ret[idx] = &alteredAccount.AccountTokenData{
+			Nonce:      token.Nonce,
+			Identifier: token.Identifier,
+			Balance:    token.Balance,
+			Properties: token.Properties,
+		}
+	}
+
+	return ret
 }
 
 // RevertIndexedBlock does nothing
