@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -33,6 +34,7 @@ type ApiResolverStub struct {
 	GetInternalMetaBlockByRoundCalled           func(format common.ApiOutputFormat, round uint64) (interface{}, error)
 	GetInternalMiniBlockCalled                  func(format common.ApiOutputFormat, hash string, epoch uint32) (interface{}, error)
 	GetInternalStartOfEpochMetaBlockCalled      func(format common.ApiOutputFormat, epoch uint32) (interface{}, error)
+	GetInternalStartOfEpochValidatorsInfoCalled func(epoch uint32) ([]*state.ShardValidatorInfo, error)
 	GetGenesisNodesPubKeysCalled                func() (map[uint32][]string, map[uint32][]string)
 	GetTransactionsPoolCalled                   func(fields string) (*common.TransactionsPoolAPIResponse, error)
 	GetGenesisBalancesCalled                    func() ([]*common.InitialAccountAPI, error)
@@ -265,6 +267,15 @@ func (ars *ApiResolverStub) GetGasConfigs() map[string]map[string]uint64 {
 	}
 
 	return nil
+}
+
+// GetInternalStartOfEpochValidatorsInfo -
+func (ars *ApiResolverStub) GetInternalStartOfEpochValidatorsInfo(epoch uint32) ([]*state.ShardValidatorInfo, error) {
+	if ars.GetInternalStartOfEpochValidatorsInfoCalled != nil {
+		return ars.GetInternalStartOfEpochValidatorsInfoCalled(epoch)
+	}
+
+	return nil, nil
 }
 
 // Close -

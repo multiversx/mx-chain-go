@@ -8,33 +8,9 @@ import (
 
 // ResolverStub -
 type ResolverStub struct {
-	RequestDataFromHashCalled     func(hash []byte, epoch uint32) error
-	ProcessReceivedMessageCalled  func(message p2p.MessageP2P) error
-	SetNumPeersToQueryCalled      func(intra int, cross int)
-	NumPeersToQueryCalled         func() (int, int)
-	SetResolverDebugHandlerCalled func(handler dataRetriever.ResolverDebugHandler) error
-	CloseCalled                   func() error
-}
-
-// SetNumPeersToQuery -
-func (rs *ResolverStub) SetNumPeersToQuery(intra int, cross int) {
-	if rs.SetNumPeersToQueryCalled != nil {
-		rs.SetNumPeersToQueryCalled(intra, cross)
-	}
-}
-
-// NumPeersToQuery -
-func (rs *ResolverStub) NumPeersToQuery() (int, int) {
-	if rs.NumPeersToQueryCalled != nil {
-		return rs.NumPeersToQueryCalled()
-	}
-
-	return 2, 2
-}
-
-// RequestDataFromHash -
-func (rs *ResolverStub) RequestDataFromHash(hash []byte, epoch uint32) error {
-	return rs.RequestDataFromHashCalled(hash, epoch)
+	ProcessReceivedMessageCalled func(message p2p.MessageP2P) error
+	SetDebugHandlerCalled        func(handler dataRetriever.DebugHandler) error
+	CloseCalled                  func() error
 }
 
 // ProcessReceivedMessage -
@@ -42,10 +18,10 @@ func (rs *ResolverStub) ProcessReceivedMessage(message p2p.MessageP2P, _ core.Pe
 	return rs.ProcessReceivedMessageCalled(message)
 }
 
-// SetResolverDebugHandler -
-func (rs *ResolverStub) SetResolverDebugHandler(handler dataRetriever.ResolverDebugHandler) error {
-	if rs.SetResolverDebugHandlerCalled != nil {
-		return rs.SetResolverDebugHandlerCalled(handler)
+// SetDebugHandler -
+func (rs *ResolverStub) SetDebugHandler(handler dataRetriever.DebugHandler) error {
+	if rs.SetDebugHandlerCalled != nil {
+		return rs.SetDebugHandlerCalled(handler)
 	}
 
 	return nil

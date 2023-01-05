@@ -64,7 +64,7 @@ type TestConsensusNode struct {
 	ShardCoordinator sharding.Coordinator
 	ChainHandler     data.ChainHandler
 	BlockProcessor   *mock.BlockProcessorMock
-	ResolverFinder   dataRetriever.ResolversFinder
+	RequestersFinder dataRetriever.RequestersFinder
 	AccountsDB       *state.AccountsDB
 	NodeKeys         TestKeyPair
 	MultiSigner      cryptoMocks.MultisignerMock
@@ -215,7 +215,7 @@ func (tcn *TestConsensusNode) initNode(
 		startTime,
 	)
 
-	tcn.initResolverFinder()
+	tcn.initRequestersFinder()
 
 	peerSigCache, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000})
 	peerSigHandler, _ := peerSignatureHandler.NewPeerSignatureHandler(peerSigCache, TestSingleBlsSigner, keyGen)
@@ -271,7 +271,7 @@ func (tcn *TestConsensusNode) initNode(
 	processComponents.ShardCoord = tcn.ShardCoordinator
 	processComponents.NodesCoord = tcn.NodesCoordinator
 	processComponents.BlockProcess = tcn.BlockProcessor
-	processComponents.ResFinder = tcn.ResolverFinder
+	processComponents.ReqFinder = tcn.RequestersFinder
 	processComponents.EpochTrigger = epochStartTrigger
 	processComponents.EpochNotifier = epochStartRegistrationHandler
 	processComponents.BlackListHdl = &testscommon.TimeCacheStub{}
@@ -431,19 +431,19 @@ func (tcn *TestConsensusNode) initBlockProcessor() {
 	tcn.BlockProcessor.Marshalizer = TestMarshalizer
 }
 
-func (tcn *TestConsensusNode) initResolverFinder() {
-	hdrResolver := &mock.HeaderResolverStub{}
-	mbResolver := &mock.MiniBlocksResolverStub{}
-	tcn.ResolverFinder = &mock.ResolversFinderStub{
-		IntraShardResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, e error) {
+func (tcn *TestConsensusNode) initRequestersFinder() {
+	hdrRequester := &dataRetrieverMock.HeaderRequesterStub{}
+	mbRequester := &dataRetrieverMock.HashSliceRequesterStub{}
+	tcn.RequestersFinder = &dataRetrieverMock.RequestersFinderStub{
+		IntraShardRequesterCalled: func(baseTopic string) (resolver dataRetriever.Requester, e error) {
 			if baseTopic == factory.MiniBlocksTopic {
-				return mbResolver, nil
+				return mbRequester, nil
 			}
 			return nil, nil
 		},
-		CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, err error) {
+		CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Requester, err error) {
 			if baseTopic == factory.ShardBlocksTopic {
-				return hdrResolver, nil
+				return hdrRequester, nil
 			}
 			return nil, nil
 		},
