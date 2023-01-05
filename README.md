@@ -1,6 +1,6 @@
 <div style="text-align:center">
   <img
-  src="https://raw.githubusercontent.com/multiversx/mx-chain-go/master/multiversx.svg"
+  src="https://raw.githubusercontent.com/multiversx/mx-chain-go/master/multiversx-logo.svg"
   alt="MultiversX">
 </div>
 <br>
