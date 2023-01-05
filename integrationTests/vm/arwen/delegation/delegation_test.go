@@ -146,7 +146,11 @@ func TestDelegation_WithManyUsers_Claims(t *testing.T) {
 	numUsers := 100
 	stakePerUser := totalStaked / numUsers
 
-	context := arwen.SetupTestContext(t)
+	gasSchedule, err := common.LoadGasScheduleConfig(integrationTests.GasSchedulePath)
+	require.Nil(t, err)
+	gasSchedule["MaxPerTransaction"]["MaxNumberOfTrieReadsPerTx"] = 100
+
+	context := arwen.SetupTestContextWithGasSchedule(t, gasSchedule)
 	defer context.Close()
 
 	context.InitAdditionalParticipants(numUsers)

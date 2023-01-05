@@ -89,8 +89,11 @@ func (m *managedProcessComponents) CheckSubcomponents() error {
 	if check.IfNil(m.processComponents.interceptorsContainer) {
 		return errors.ErrNilInterceptorsContainer
 	}
-	if check.IfNil(m.processComponents.resolversFinder) {
-		return errors.ErrNilResolversFinder
+	if check.IfNil(m.processComponents.resolversContainer) {
+		return errors.ErrNilResolversContainer
+	}
+	if check.IfNil(m.processComponents.requestersFinder) {
+		return errors.ErrNilRequestersFinder
 	}
 	if check.IfNil(m.processComponents.roundHandler) {
 		return errors.ErrNilRoundHandler
@@ -204,8 +207,8 @@ func (m *managedProcessComponents) InterceptorsContainer() process.InterceptorsC
 	return m.processComponents.interceptorsContainer
 }
 
-// ResolversFinder returns the resolvers finder
-func (m *managedProcessComponents) ResolversFinder() dataRetriever.ResolversFinder {
+// ResolversContainer returns the resolvers container
+func (m *managedProcessComponents) ResolversContainer() dataRetriever.ResolversContainer {
 	m.mutProcessComponents.RLock()
 	defer m.mutProcessComponents.RUnlock()
 
@@ -213,7 +216,19 @@ func (m *managedProcessComponents) ResolversFinder() dataRetriever.ResolversFind
 		return nil
 	}
 
-	return m.processComponents.resolversFinder
+	return m.processComponents.resolversContainer
+}
+
+// RequestersFinder returns the requesters finder
+func (m *managedProcessComponents) RequestersFinder() dataRetriever.RequestersFinder {
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.processComponents == nil {
+		return nil
+	}
+
+	return m.processComponents.requestersFinder
 }
 
 // RoundHandler returns the roundHandler

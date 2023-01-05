@@ -22,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/blockchain"
 	factoryDataPool "github.com/ElrondNetwork/elrond-go/dataRetriever/factory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/requestersContainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
@@ -491,6 +492,11 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 
 	e.trieContainer = triesContainer
 	e.trieStorageManagers = trieStorageManagers
+
+	err = e.createResolversContainer()
+	if err != nil {
+		return err
+	}
 
 	err = e.createRequestHandler()
 	if err != nil {
@@ -1149,7 +1155,7 @@ func (e *epochStartBootstrap) syncValidatorAccountsState(rootHash []byte) error 
 	return nil
 }
 
-func (e *epochStartBootstrap) createRequestHandler() error {
+func (e *epochStartBootstrap) createResolversContainer() error {
 	dataPacker, err := partitioning.NewSimpleDataPacker(e.coreComponentsHolder.InternalMarshalizer())
 	if err != nil {
 		return err
@@ -1166,23 +1172,20 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 	//  this one should only be used before determining the correct shard where the node should reside
 	log.Debug("epochStartBootstrap.createRequestHandler", "shard", e.shardCoordinator.SelfId())
 	resolversContainerArgs := resolverscontainer.FactoryArgs{
-		ShardCoordinator:            e.shardCoordinator,
-		Messenger:                   e.messenger,
-		Store:                       storageService,
-		Marshalizer:                 e.coreComponentsHolder.InternalMarshalizer(),
-		DataPools:                   e.dataPool,
-		Uint64ByteSliceConverter:    uint64ByteSlice.NewBigEndianConverter(),
-		NumConcurrentResolvingJobs:  10,
-		DataPacker:                  dataPacker,
-		TriesContainer:              e.trieContainer,
-		SizeCheckDelta:              0,
-		InputAntifloodHandler:       disabled.NewAntiFloodHandler(),
-		OutputAntifloodHandler:      disabled.NewAntiFloodHandler(),
-		CurrentNetworkEpochProvider: disabled.NewCurrentNetworkEpochProviderHandler(),
-		PreferredPeersHolder:        disabled.NewPreferredPeersHolder(),
-		ResolverConfig:              e.generalConfig.Resolvers,
-		PeersRatingHandler:          disabled.NewDisabledPeersRatingHandler(),
-		PayloadValidator:            payloadValidator,
+		ShardCoordinator:           e.shardCoordinator,
+		Messenger:                  e.messenger,
+		Store:                      storageService,
+		Marshalizer:                e.coreComponentsHolder.InternalMarshalizer(),
+		DataPools:                  e.dataPool,
+		Uint64ByteSliceConverter:   uint64ByteSlice.NewBigEndianConverter(),
+		NumConcurrentResolvingJobs: 10,
+		DataPacker:                 dataPacker,
+		TriesContainer:             e.trieContainer,
+		SizeCheckDelta:             0,
+		InputAntifloodHandler:      disabled.NewAntiFloodHandler(),
+		OutputAntifloodHandler:     disabled.NewAntiFloodHandler(),
+		PreferredPeersHolder:       disabled.NewPreferredPeersHolder(),
+		PayloadValidator:           payloadValidator,
 	}
 	resolverFactory, err := resolverscontainer.NewMetaResolversContainerFactory(resolversContainerArgs)
 	if err != nil {
@@ -1194,12 +1197,38 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 		return err
 	}
 
-	err = resolverFactory.AddShardTrieNodeResolvers(container)
+	return resolverFactory.AddShardTrieNodeResolvers(container)
+}
+
+func (e *epochStartBootstrap) createRequestHandler() error {
+	requestersContainerArgs := requesterscontainer.FactoryArgs{
+		RequesterConfig:             e.generalConfig.Requesters,
+		ShardCoordinator:            e.shardCoordinator,
+		Messenger:                   e.messenger,
+		Marshaller:                  e.coreComponentsHolder.InternalMarshalizer(),
+		Uint64ByteSliceConverter:    uint64ByteSlice.NewBigEndianConverter(),
+		OutputAntifloodHandler:      disabled.NewAntiFloodHandler(),
+		CurrentNetworkEpochProvider: disabled.NewCurrentNetworkEpochProviderHandler(),
+		PreferredPeersHolder:        disabled.NewPreferredPeersHolder(),
+		PeersRatingHandler:          disabled.NewDisabledPeersRatingHandler(),
+		SizeCheckDelta:              0,
+	}
+	requestersFactory, err := requesterscontainer.NewMetaRequestersContainerFactory(requestersContainerArgs)
 	if err != nil {
 		return err
 	}
 
-	finder, err := containers.NewResolversFinder(container, e.shardCoordinator)
+	container, err := requestersFactory.Create()
+	if err != nil {
+		return err
+	}
+
+	err = requestersFactory.AddShardTrieNodeRequesters(container)
+	if err != nil {
+		return err
+	}
+
+	finder, err := containers.NewRequestersFinder(container, e.shardCoordinator)
 	if err != nil {
 		return err
 	}
