@@ -20,4 +20,6 @@ var errCannotCastEvent = errors.New("cannot cast event")
 
 var errNilTxPool = errors.New("received nil transaction pool")
 
+var errCannotCastBlockBody = errors.New("cannot cast block body")
+
 var errNilBlockBody = errors.New("nil block body")

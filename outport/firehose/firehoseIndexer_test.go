@@ -214,9 +214,10 @@ func TestFirehoseIndexer_SaveBlockBody(t *testing.T) {
 
 	headerHashShardV1 := []byte("headerHashShardV1")
 	argsSaveBlock := &outportcore.ArgsSaveBlockData{
-		HeaderHash:     headerHashShardV1,
-		Header:         shardHeaderV1,
-		SignersIndexes: []uint64{1, 2, 3},
+		HeaderHash:       headerHashShardV1,
+		Header:           shardHeaderV1,
+		SignersIndexes:   []uint64{1, 2, 3},
+		TransactionsPool: &outportcore.Pool{},
 		Body: &block.Body{
 			MiniBlocks: []*block.MiniBlock{
 				{
