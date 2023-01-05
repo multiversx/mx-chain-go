@@ -70,23 +70,23 @@ func (fi *firehoseIndexer) SaveBlock(args *outportcore.ArgsSaveBlockData) error 
 	}
 
 	body, err := getBody(args.Body)
-	if err != nil {
+	if err != nil && err != errNilBlockBody {
 		return fmt.Errorf("%w, header hash: %s", err, hex.EncodeToString(args.HeaderHash))
 	}
 
 	firehoseBlock := &firehose.FirehoseBlock{
-		HeaderBytes:          headerBytes,
-		HeaderType:           string(headerType),
-		HeaderHash:           args.HeaderHash,
-		Body:                 getBodyOrNilIfEmpty(body),
-		AlteredAccounts:      getAlteredAccounts(args.AlteredAccounts),
-		Transactions:         pool.transactions,
-		SmartContractResult:  pool.smartContractResult,
-		Rewards:              pool.rewards,
-		Receipts:             pool.receipts,
-		InvalidTxs:           pool.invalidTxs,
-		Logs:                 pool.logs,
-		SignersIndicesBitmap: args.SignersIndexes,
+		HeaderBytes:         headerBytes,
+		HeaderType:          string(headerType),
+		HeaderHash:          args.HeaderHash,
+		Body:                body,
+		AlteredAccounts:     getAlteredAccounts(args.AlteredAccounts),
+		Transactions:        pool.transactions,
+		SmartContractResult: pool.smartContractResult,
+		Rewards:             pool.rewards,
+		Receipts:            pool.receipts,
+		InvalidTxs:          pool.invalidTxs,
+		Logs:                pool.logs,
+		SignersIndexes:      args.SignersIndexes,
 	}
 
 	marshalledBlock, err := fi.marshaller.Marshal(firehoseBlock)
@@ -133,7 +133,7 @@ func (fi *firehoseIndexer) getHeaderBytes(headerHandler data.HeaderHandler) ([]b
 
 func getBody(bodyHandler data.BodyHandler) (*block.Body, error) {
 	if check.IfNil(bodyHandler) {
-		return &block.Body{}, nil
+		return nil, errNilBlockBody
 	}
 
 	body, castOk := bodyHandler.(*block.Body)
@@ -144,24 +144,18 @@ func getBody(bodyHandler data.BodyHandler) (*block.Body, error) {
 	return body, nil
 }
 
-func getBodyOrNilIfEmpty(body *block.Body) *block.Body {
-	if len(body.MiniBlocks) == 0 {
-		return nil
-	}
-
-	return body
-}
-
 func getAlteredAccounts(accounts map[string]*outportcore.AlteredAccount) []*alteredAccount.AlteredAccount {
-	ret := make([]*alteredAccount.AlteredAccount, 0, len(accounts))
+	ret := make([]*alteredAccount.AlteredAccount, len(accounts))
 
+	idx := 0
 	for _, acc := range accounts {
-		ret = append(ret, &alteredAccount.AlteredAccount{
+		ret[idx] = &alteredAccount.AlteredAccount{
 			Address: acc.Address,
 			Nonce:   acc.Nonce,
 			Balance: acc.Balance,
 			Tokens:  getTokens(acc.Tokens),
-		})
+		}
+		idx++
 	}
 
 	return ret

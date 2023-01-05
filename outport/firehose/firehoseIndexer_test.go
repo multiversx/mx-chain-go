@@ -227,10 +227,10 @@ func TestFirehoseIndexer_SaveBlockBody(t *testing.T) {
 	}
 
 	firehoseBlock := &firehose.FirehoseBlock{
-		HeaderHash:           headerHashShardV1,
-		HeaderType:           string(core.ShardHeaderV1),
-		HeaderBytes:          marshalledHeader,
-		SignersIndicesBitmap: argsSaveBlock.SignersIndexes,
+		HeaderHash:     headerHashShardV1,
+		HeaderType:     string(core.ShardHeaderV1),
+		HeaderBytes:    marshalledHeader,
+		SignersIndexes: argsSaveBlock.SignersIndexes,
 		AlteredAccounts: []*alteredAccount.AlteredAccount{
 			{
 				Address: "erd1abc",
