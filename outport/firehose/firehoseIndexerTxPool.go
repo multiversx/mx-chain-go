@@ -61,7 +61,7 @@ func getTxPool(transactionsPool *outportcore.Pool) (*txPool, error) {
 	}, nil
 }
 
-func getFirehoseFreeInfo(txHandler data.TransactionHandlerWithGasUsedAndFee) *firehose.FeeInfo {
+func getFirehoseFeeInfo(txHandler data.TransactionHandlerWithGasUsedAndFee) *firehose.FeeInfo {
 	return &firehose.FeeInfo{
 		GasUsed:        txHandler.GetGasUsed(),
 		Fee:            txHandler.GetFee(),
@@ -80,7 +80,7 @@ func getTxs(txs map[string]data.TransactionHandlerWithGasUsedAndFee) (map[string
 
 		ret[txHash] = &firehose.TxWithFee{
 			Transaction: tx,
-			FeeInfo:     getFirehoseFreeInfo(txHandler),
+			FeeInfo:     getFirehoseFeeInfo(txHandler),
 		}
 	}
 
@@ -98,7 +98,7 @@ func getScrs(scrs map[string]data.TransactionHandlerWithGasUsedAndFee) (map[stri
 
 		ret[scrHash] = &firehose.SCRWithFee{
 			SmartContractResult: tx,
-			FeeInfo:             getFirehoseFreeInfo(txHandler),
+			FeeInfo:             getFirehoseFeeInfo(txHandler),
 		}
 	}
 
