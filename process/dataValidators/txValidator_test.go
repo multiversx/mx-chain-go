@@ -86,7 +86,6 @@ func TestNewTxValidator_NilAccountsShouldErr(t *testing.T) {
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
-		&guardianMocks.GuardianSigVerifierStub{},
 		&testscommon.TxVersionCheckerStub{},
 		maxNonceDeltaAllowed,
 	)
@@ -105,7 +104,6 @@ func TestNewTxValidator_NilShardCoordinatorShouldErr(t *testing.T) {
 		nil,
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
-		&guardianMocks.GuardianSigVerifierStub{},
 		&testscommon.TxVersionCheckerStub{},
 		maxNonceDeltaAllowed,
 	)
@@ -125,7 +123,6 @@ func TestTxValidator_NewValidatorNilWhiteListHandlerShouldErr(t *testing.T) {
 		shardCoordinator,
 		nil,
 		mock.NewPubkeyConverterMock(32),
-		&guardianMocks.GuardianSigVerifierStub{},
 		&testscommon.TxVersionCheckerStub{},
 		maxNonceDeltaAllowed,
 	)
@@ -145,32 +142,12 @@ func TestNewTxValidator_NilPubkeyConverterShouldErr(t *testing.T) {
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
 		nil,
-		&guardianMocks.GuardianSigVerifierStub{},
 		&testscommon.TxVersionCheckerStub{},
 		maxNonceDeltaAllowed,
 	)
 
 	assert.Nil(t, txValidator)
 	assert.True(t, errors.Is(err, process.ErrNilPubkeyConverter))
-}
-
-func TestNewTxValidator_NilGuardianSigVerifierShouldErr(t *testing.T) {
-	t.Parallel()
-
-	adb := getAccAdapter(0, big.NewInt(0))
-	shardCoordinator := createMockCoordinator("_", 0)
-	maxNonceDeltaAllowed := 100
-	txValidator, err := dataValidators.NewTxValidator(
-		adb,
-		shardCoordinator,
-		&testscommon.WhiteListHandlerStub{},
-		mock.NewPubkeyConverterMock(32),
-		nil,
-		&testscommon.TxVersionCheckerStub{},
-		maxNonceDeltaAllowed,
-	)
-	assert.Nil(t, txValidator)
-	assert.True(t, errors.Is(err, process.ErrNilGuardianSigVerifier))
 }
 
 func TestNewTxValidator_NilTxVersionCheckerShouldErr(t *testing.T) {
@@ -184,7 +161,6 @@ func TestNewTxValidator_NilTxVersionCheckerShouldErr(t *testing.T) {
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
-		&guardianMocks.GuardianSigVerifierStub{},
 		nil,
 		maxNonceDeltaAllowed,
 	)
@@ -203,7 +179,6 @@ func TestNewTxValidator_ShouldWork(t *testing.T) {
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
-		&guardianMocks.GuardianSigVerifierStub{},
 		&testscommon.TxVersionCheckerStub{},
 		maxNonceDeltaAllowed,
 	)
@@ -227,7 +202,6 @@ func TestTxValidator_CheckTxValidityTxCrossShardShouldWork(t *testing.T) {
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
-		&guardianMocks.GuardianSigVerifierStub{},
 		&testscommon.TxVersionCheckerStub{},
 		maxNonceDeltaAllowed,
 	)
@@ -254,7 +228,6 @@ func TestTxValidator_CheckTxValidityAccountNonceIsGreaterThanTxNonceShouldReturn
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
-		&guardianMocks.GuardianSigVerifierStub{},
 		&testscommon.TxVersionCheckerStub{},
 		maxNonceDeltaAllowed,
 	)
@@ -282,7 +255,6 @@ func TestTxValidator_CheckTxValidityTxNonceIsTooHigh(t *testing.T) {
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
-		&guardianMocks.GuardianSigVerifierStub{},
 		&testscommon.TxVersionCheckerStub{},
 		maxNonceDeltaAllowed,
 	)
@@ -312,7 +284,6 @@ func TestTxValidator_CheckTxValidityAccountBalanceIsLessThanTxTotalValueShouldRe
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
-		&guardianMocks.GuardianSigVerifierStub{},
 		&testscommon.TxVersionCheckerStub{},
 		maxNonceDeltaAllowed,
 	)
@@ -341,7 +312,6 @@ func TestTxValidator_CheckTxValidityAccountNotExitsShouldReturnFalse(t *testing.
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
-		&guardianMocks.GuardianSigVerifierStub{},
 		&testscommon.TxVersionCheckerStub{},
 		maxNonceDeltaAllowed,
 	)
@@ -372,7 +342,6 @@ func TestTxValidator_CheckTxValidityAccountNotExitsButWhiteListedShouldReturnTru
 			},
 		},
 		mock.NewPubkeyConverterMock(32),
-		&guardianMocks.GuardianSigVerifierStub{},
 		&testscommon.TxVersionCheckerStub{},
 		maxNonceDeltaAllowed,
 	)
@@ -408,7 +377,6 @@ func TestTxValidator_CheckTxValidityWrongAccountTypeShouldReturnFalse(t *testing
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
-		&guardianMocks.GuardianSigVerifierStub{},
 		&testscommon.TxVersionCheckerStub{},
 		maxNonceDeltaAllowed,
 	)
@@ -434,7 +402,6 @@ func TestTxValidator_CheckTxValidityTxIsOkShouldReturnTrue(t *testing.T) {
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
-		&guardianMocks.GuardianSigVerifierStub{},
 		&testscommon.TxVersionCheckerStub{},
 		maxNonceDeltaAllowed,
 	)
@@ -456,7 +423,6 @@ func TestTxValidator_checkPermission(t *testing.T) {
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
-		&guardianMocks.GuardianSigVerifierStub{},
 		&testscommon.TxVersionCheckerStub{},
 		maxNonceDeltaAllowed,
 	)
@@ -503,11 +469,6 @@ func TestTxValidator_checkPermission(t *testing.T) {
 			shardCoordinator,
 			&testscommon.WhiteListHandlerStub{},
 			mock.NewPubkeyConverterMock(32),
-			&guardianMocks.GuardianSigVerifierStub{
-				VerifyGuardianSignatureCalled: func(account vmcommon.UserAccountHandler, inTx process.InterceptedTransactionHandler) error {
-					return errors.New("error")
-				},
-			},
 			&testscommon.TxVersionCheckerStub{
 				IsGuardedTransactionCalled: func(tx *transaction.Transaction) bool {
 					return false
@@ -534,14 +495,6 @@ func TestTxValidator_checkPermission(t *testing.T) {
 			shardCoordinator,
 			&testscommon.WhiteListHandlerStub{},
 			mock.NewPubkeyConverterMock(32),
-			&guardianMocks.GuardianSigVerifierStub{
-				VerifyGuardianSignatureCalled: func(account vmcommon.UserAccountHandler, inTx process.InterceptedTransactionHandler) error {
-					return errors.New("error")
-				},
-				HasPendingGuardianCalled: func(uah state.UserAccountHandler) bool {
-					return false
-				},
-			},
 			&testscommon.TxVersionCheckerStub{
 				IsGuardedTransactionCalled: func(tx *transaction.Transaction) bool {
 					return false
@@ -568,14 +521,6 @@ func TestTxValidator_checkPermission(t *testing.T) {
 			shardCoordinator,
 			&testscommon.WhiteListHandlerStub{},
 			mock.NewPubkeyConverterMock(32),
-			&guardianMocks.GuardianSigVerifierStub{
-				VerifyGuardianSignatureCalled: func(account vmcommon.UserAccountHandler, inTx process.InterceptedTransactionHandler) error {
-					return errors.New("error")
-				},
-				HasPendingGuardianCalled: func(uah state.UserAccountHandler) bool {
-					return true
-				},
-			},
 			&testscommon.TxVersionCheckerStub{
 				IsGuardedTransactionCalled: func(tx *transaction.Transaction) bool {
 					return false
@@ -602,11 +547,6 @@ func TestTxValidator_checkPermission(t *testing.T) {
 			shardCoordinator,
 			&testscommon.WhiteListHandlerStub{},
 			mock.NewPubkeyConverterMock(32),
-			&guardianMocks.GuardianSigVerifierStub{
-				VerifyGuardianSignatureCalled: func(account vmcommon.UserAccountHandler, inTx process.InterceptedTransactionHandler) error {
-					return nil
-				},
-			},
 			&testscommon.TxVersionCheckerStub{
 				IsGuardedTransactionCalled: func(tx *transaction.Transaction) bool {
 					return true
@@ -630,7 +570,6 @@ func TestTxValidator_checkGuardedTransaction(t *testing.T) {
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
-		&guardianMocks.GuardianSigVerifierStub{},
 		&testscommon.TxVersionCheckerStub{},
 		maxNonceDeltaAllowed,
 	)
@@ -666,7 +605,6 @@ func TestTxValidator_checkGuardedTransaction(t *testing.T) {
 			shardCoordinator,
 			&testscommon.WhiteListHandlerStub{},
 			mock.NewPubkeyConverterMock(32),
-			&guardianMocks.GuardianSigVerifierStub{},
 			&testscommon.TxVersionCheckerStub{
 				IsGuardedTransactionCalled: func(tx *transaction.Transaction) bool {
 					return false
@@ -691,7 +629,6 @@ func TestTxValidator_checkGuardedTransaction(t *testing.T) {
 			shardCoordinator,
 			&testscommon.WhiteListHandlerStub{},
 			mock.NewPubkeyConverterMock(32),
-			&guardianMocks.GuardianSigVerifierStub{},
 			&testscommon.TxVersionCheckerStub{
 				IsGuardedTransactionCalled: func(tx *transaction.Transaction) bool {
 					return true
@@ -718,11 +655,6 @@ func TestTxValidator_checkGuardedTransaction(t *testing.T) {
 			shardCoordinator,
 			&testscommon.WhiteListHandlerStub{},
 			mock.NewPubkeyConverterMock(32),
-			&guardianMocks.GuardianSigVerifierStub{
-				VerifyGuardianSignatureCalled: func(account vmcommon.UserAccountHandler, inTx process.InterceptedTransactionHandler) error {
-					return expectedSigVerifyError
-				},
-			},
 			&testscommon.TxVersionCheckerStub{
 				IsGuardedTransactionCalled: func(tx *transaction.Transaction) bool {
 					return true
@@ -747,11 +679,6 @@ func TestTxValidator_checkGuardedTransaction(t *testing.T) {
 			shardCoordinator,
 			&testscommon.WhiteListHandlerStub{},
 			mock.NewPubkeyConverterMock(32),
-			&guardianMocks.GuardianSigVerifierStub{
-				VerifyGuardianSignatureCalled: func(account vmcommon.UserAccountHandler, inTx process.InterceptedTransactionHandler) error {
-					return nil
-				},
-			},
 			&testscommon.TxVersionCheckerStub{
 				IsGuardedTransactionCalled: func(tx *transaction.Transaction) bool {
 					return true
@@ -830,7 +757,6 @@ func TestTxValidator_IsInterfaceNil(t *testing.T) {
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
-		&guardianMocks.GuardianSigVerifierStub{},
 		&testscommon.TxVersionCheckerStub{},
 		100,
 	)

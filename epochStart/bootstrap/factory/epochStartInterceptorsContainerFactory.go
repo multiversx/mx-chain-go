@@ -40,7 +40,6 @@ type ArgsEpochStartInterceptorContainer struct {
 	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
 	RequestHandler          process.RequestHandler
 	SignaturesHandler       process.SignaturesHandler
-	GuardianSigVerifier     process.GuardianSigVerifier
 }
 
 // NewEpochStartInterceptorsContainer will return a real interceptors container factory, but with many disabled components
@@ -53,9 +52,6 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 	}
 	if check.IfNil(args.CoreComponents.AddressPubKeyConverter()) {
 		return nil, epochStart.ErrNilPubkeyConverter
-	}
-	if check.IfNil(args.GuardianSigVerifier) {
-		return nil, epochStart.ErrNilGuardianSigVerifier
 	}
 
 	cryptoComponents := args.CryptoComponents.Clone().(process.CryptoComponentsHolder)
@@ -106,7 +102,6 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 		HeartbeatExpiryTimespanInSec: args.Config.HeartbeatV2.HeartbeatExpiryTimespanInSec,
 		PeerShardMapper:              peerShardMapper,
 		HardforkTrigger:              hardforkTrigger,
-		GuardianSigVerifier:          args.GuardianSigVerifier,
 	}
 
 	interceptorsContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(containerFactoryArgs)

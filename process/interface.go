@@ -1240,13 +1240,6 @@ type InterceptedSignedTransactionHandler interface {
 	GetTxMessageForSignatureVerification() ([]byte, error)
 }
 
-// GuardianSigVerifier allows the verification of the guardian signatures for guarded transactions
-type GuardianSigVerifier interface {
-	VerifyGuardianSignature(inTx InterceptedTransactionHandler) error
-	HasPendingGuardian(uah state.UserAccountHandler) bool
-	IsInterfaceNil() bool
-}
-
 // GuardianChecker can check an account guardian
 type GuardianChecker interface {
 	GetActiveGuardian(handler vmcommon.UserAccountHandler) ([]byte, error)

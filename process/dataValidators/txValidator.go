@@ -19,7 +19,6 @@ type txValidator struct {
 	shardCoordinator     sharding.Coordinator
 	whiteListHandler     process.WhiteListHandler
 	pubKeyConverter      core.PubkeyConverter
-	guardianSigVerifier  process.GuardianSigVerifier
 	txVersionChecker     process.TxVersionCheckerHandler
 	maxNonceDeltaAllowed int
 }
@@ -30,7 +29,6 @@ func NewTxValidator(
 	shardCoordinator sharding.Coordinator,
 	whiteListHandler process.WhiteListHandler,
 	pubKeyConverter core.PubkeyConverter,
-	guardianSigVerifier process.GuardianSigVerifier,
 	txVersionChecker process.TxVersionCheckerHandler,
 	maxNonceDeltaAllowed int,
 ) (*txValidator, error) {
@@ -46,9 +44,6 @@ func NewTxValidator(
 	if check.IfNil(pubKeyConverter) {
 		return nil, fmt.Errorf("%w in NewTxValidator", process.ErrNilPubkeyConverter)
 	}
-	if check.IfNil(guardianSigVerifier) {
-		return nil, process.ErrNilGuardianSigVerifier
-	}
 	if check.IfNil(txVersionChecker) {
 		return nil, process.ErrNilTransactionVersionChecker
 	}
@@ -59,7 +54,6 @@ func NewTxValidator(
 		whiteListHandler:     whiteListHandler,
 		maxNonceDeltaAllowed: maxNonceDeltaAllowed,
 		pubKeyConverter:      pubKeyConverter,
-		guardianSigVerifier:  guardianSigVerifier,
 		txVersionChecker:     txVersionChecker,
 	}, nil
 }

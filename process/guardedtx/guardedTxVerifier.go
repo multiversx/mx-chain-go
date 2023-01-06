@@ -1,8 +1,6 @@
 package guardedtx
 
 import (
-	"fmt"
-
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
@@ -53,37 +51,6 @@ func NewGuardedTxSigVerifier(args GuardedTxSigVerifierArgs) (*guardedTxSigVerifi
 		marshaller:      args.Marshaller,
 		keyGen:          args.KeyGen,
 	}, nil
-}
-
-// VerifyGuardianSignature verifies the guardian signature over the guarded transaction
-func (gtx *guardedTxSigVerifier) VerifyGuardianSignature(inTx process.InterceptedTransactionHandler) error {
-	txHandler := inTx.Transaction()
-	if check.IfNil(txHandler) {
-		return process.ErrNilTransaction
-	}
-
-	guardedTxHandler, ok := txHandler.(data.GuardedTransactionHandler)
-	if !ok {
-		return process.ErrWrongTypeAssertion
-	}
-
-	guardianAddress := guardedTxHandler.GetGuardianAddr()
-	guardianPubKey, err := gtx.guardianPubKyeFromBytes(guardianAddress)
-	if err != nil {
-		return err
-	}
-
-	inSignedTx, ok := inTx.(process.InterceptedSignedTransactionHandler)
-	if !ok {
-		return fmt.Errorf("%w to InterceptedSignedTransactionHandler", process.ErrWrongTypeAssertion)
-	}
-
-	msgForSigVerification, err := inSignedTx.GetTxMessageForSignatureVerification()
-	if err != nil {
-		return err
-	}
-
-	return gtx.sigVerifier.Verify(guardianPubKey, msgForSigVerification, guardedTxHandler.GetGuardianSignature())
 }
 
 // HasPendingGuardian true if the given account has a pending guardian set

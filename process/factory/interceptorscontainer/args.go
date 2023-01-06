@@ -34,7 +34,6 @@ type CommonInterceptorsContainerFactoryArgs struct {
 	PreferredPeersHolder         process.PreferredPeersHolderHandler
 	SizeCheckDelta               uint32
 	RequestHandler               process.RequestHandler
-	GuardianSigVerifier          process.GuardianSigVerifier
 	PeerSignatureHandler         crypto.PeerSignatureHandler
 	SignaturesHandler            process.SignaturesHandler
 	HeartbeatExpiryTimespanInSec int64
