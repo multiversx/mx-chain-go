@@ -89,7 +89,7 @@ func TestCreateAndAddLogEntryForWithdraw(t *testing.T) {
 		},
 		1,
 		false,
-		[][]byte{[]byte("fund-id-1"), []byte("fund-id-1")},
+		[][]byte{[]byte("fund-id-1"), []byte("fund-id-2")},
 	)
 
 	require.Equal(t, &vmcommon.LogEntry{
