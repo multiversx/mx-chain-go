@@ -723,7 +723,6 @@ func (n *Node) commonTransactionValidation(
 		n.processComponents.ShardCoordinator(),
 		whiteListRequest,
 		n.coreComponents.AddressPubKeyConverter(),
-		n.bootstrapComponents.GuardianSigVerifier(),
 		n.coreComponents.TxVersionChecker(),
 		common.MaxTxNonceDeltaAllowed,
 	)

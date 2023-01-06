@@ -114,7 +114,6 @@ type epochStartBootstrap struct {
 	checkNodesOnDisk           bool
 	bootstrapHeartbeatSender   update.Closer
 	trieSyncStatisticsProvider common.SizeSyncStatisticsHandler
-	guardianSigVerifier        process.GuardianSigVerifier
 
 	// created components
 	requestHandler            process.RequestHandler
@@ -178,7 +177,6 @@ type ArgsEpochStartBootstrap struct {
 	DataSyncerCreator          types.ScheduledDataSyncerCreator
 	ScheduledSCRsStorer        storage.Storer
 	TrieSyncStatisticsProvider common.SizeSyncStatisticsHandler
-	GuardianSigVerifier        process.GuardianSigVerifier
 }
 
 type dataToSync struct {
@@ -224,7 +222,6 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		storerScheduledSCRs:        args.ScheduledSCRsStorer,
 		shardCoordinator:           args.GenesisShardCoordinator,
 		trieSyncStatisticsProvider: args.TrieSyncStatisticsProvider,
-		guardianSigVerifier:        args.GuardianSigVerifier,
 	}
 
 	whiteListCache, err := storageunit.NewCache(storageFactory.GetCacherFromConfig(epochStartProvider.generalConfig.WhiteListPool))
@@ -549,7 +546,6 @@ func (e *epochStartBootstrap) createSyncers() error {
 		HeaderIntegrityVerifier: e.headerIntegrityVerifier,
 		RequestHandler:          e.requestHandler,
 		SignaturesHandler:       e.messenger,
-		GuardianSigVerifier:     e.guardianSigVerifier,
 	}
 
 	e.interceptorContainer, err = factoryInterceptors.NewEpochStartInterceptorsContainer(args)

@@ -15,7 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/block"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/guardedtx"
 	"github.com/ElrondNetwork/elrond-go/process/guardian"
 	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
@@ -64,7 +63,6 @@ type bootstrapComponents struct {
 	versionedHeaderFactory  nodeFactory.VersionedHeaderFactory
 	headerIntegrityVerifier nodeFactory.HeaderIntegrityVerifierHandler
 	guardedAccountHandler   process.GuardedAccountHandler
-	guardianSigVerifier     process.GuardianSigVerifier
 }
 
 // NewBootstrapComponentsFactory creates an instance of bootstrapComponentsFactory
@@ -190,11 +188,6 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		return nil, err
 	}
 
-	guardianSigVerifier, err := bcf.newGuardianSigVerifier(guardedAccountHandler)
-	if err != nil {
-		return nil, err
-	}
-
 	epochStartBootstrapArgs := bootstrap.ArgsEpochStartBootstrap{
 		CoreComponentsHolder:       bcf.coreComponents,
 		CryptoComponentsHolder:     bcf.cryptoComponents,
@@ -217,7 +210,6 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		DataSyncerCreator:          dataSyncerFactory,
 		ScheduledSCRsStorer:        nil, // will be updated after sync from network
 		TrieSyncStatisticsProvider: tss,
-		GuardianSigVerifier:        guardianSigVerifier,
 	}
 
 	var epochStartBootstrapper factory.EpochStartBootstrapper
@@ -273,21 +265,8 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		headerVersionHandler:    headerVersionHandler,
 		headerIntegrityVerifier: headerIntegrityVerifier,
 		versionedHeaderFactory:  versionedHeaderFactory,
-		guardianSigVerifier:     guardianSigVerifier,
 		guardedAccountHandler:   guardedAccountHandler,
 	}, nil
-}
-
-func (bcf *bootstrapComponentsFactory) newGuardianSigVerifier(guardedAccountHandler process.GuardedAccountHandler) (process.GuardianSigVerifier, error) {
-	argGuardianSigVerifier := guardedtx.GuardedTxSigVerifierArgs{
-		SigVerifier:     bcf.cryptoComponents.TxSingleSigner(),
-		GuardianChecker: guardedAccountHandler,
-		PubKeyConverter: bcf.coreComponents.AddressPubKeyConverter(),
-		Marshaller:      bcf.coreComponents.TxMarshalizer(),
-		KeyGen:          bcf.cryptoComponents.TxSignKeyGen(),
-	}
-
-	return guardedtx.NewGuardedTxSigVerifier(argGuardianSigVerifier)
 }
 
 func (bcf *bootstrapComponentsFactory) createHeaderFactory(handler nodeFactory.HeaderVersionHandler, shardID uint32) (nodeFactory.VersionedHeaderFactory, error) {

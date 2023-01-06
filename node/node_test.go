@@ -4500,7 +4500,6 @@ func getDefaultBootstrapComponents() *mainFactoryMocks.BootstrapComponentsStub {
 		NodeRole:                   "",
 		ShCoordinator:              &mock.ShardCoordinatorMock{},
 		HdrIntegrityVerifier:       &mock.HeaderIntegrityVerifierStub{},
-		GuardianSigVerifierField:   &guardianMocks.GuardianSigVerifierStub{},
 		GuardedAccountHandlerField: &guardianMocks.GuardedAccountHandlerStub{},
 	}
 }

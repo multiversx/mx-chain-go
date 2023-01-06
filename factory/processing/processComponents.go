@@ -1585,7 +1585,6 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 		HeartbeatExpiryTimespanInSec: pcf.config.HeartbeatV2.HeartbeatExpiryTimespanInSec,
 		PeerShardMapper:              peerShardMapper,
 		HardforkTrigger:              hardforkTrigger,
-		GuardianSigVerifier:          pcf.bootstrapComponents.GuardianSigVerifier(),
 	}
 
 	interceptorContainerFactory, err := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterceptorsContainerFactoryArgs)
@@ -1634,7 +1633,6 @@ func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 		HeartbeatExpiryTimespanInSec: pcf.config.HeartbeatV2.HeartbeatExpiryTimespanInSec,
 		PeerShardMapper:              peerShardMapper,
 		HardforkTrigger:              hardforkTrigger,
-		GuardianSigVerifier:          pcf.bootstrapComponents.GuardianSigVerifier(),
 	}
 
 	interceptorContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorsContainerFactoryArgs)
@@ -1884,9 +1882,6 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	}
 	if check.IfNil(args.StatusCoreComponents.AppStatusHandler()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilAppStatusHandler)
-	}
-	if check.IfNil(args.BootstrapComponents.GuardianSigVerifier()) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilGuardianSigVerifier)
 	}
 
 	return nil
