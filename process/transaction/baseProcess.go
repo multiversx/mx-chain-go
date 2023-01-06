@@ -218,6 +218,31 @@ func (txProc *baseTxProcessor) VerifyTransaction(tx *transaction.Transaction) er
 	return txProc.checkTxValues(tx, senderAccount, receiverAccount, false)
 }
 
+// Setting a guardian is allowed with regular transactions on a guarded account
+// but in this case is set with the default epochs delay
+func checkOperationAllowedToBypassGuardian(txData []byte) error {
+	if process.IsSetGuardianCall(txData) {
+		return nil
+	}
+
+	return process.ErrOperationNotPermitted
+}
+
+func (txProc *baseTxProcessor) checkGuardedAccountUnguardedTxPermission(txData []byte, account state.UserAccountHandler) error {
+	err := checkOperationAllowedToBypassGuardian(txData)
+	if err != nil {
+		return err
+	}
+
+	// block non guarded setGuardian Txs if there is a pending guardian
+	hasPendingGuardian := txProc.guardianChecker.HasPendingGuardian(account)
+	if process.IsSetGuardianCall(txData) && hasPendingGuardian {
+		return process.ErrCannotReplaceGuardedAccountPendingGuardian
+	}
+
+	return nil
+}
+
 func (txProc *baseTxProcessor) verifyGuardian(tx *transaction.Transaction, account state.UserAccountHandler) error {
 	if check.IfNil(account) {
 		return nil
@@ -227,7 +252,7 @@ func (txProc *baseTxProcessor) verifyGuardian(tx *transaction.Transaction, accou
 	}
 
 	if !txProc.txVersionChecker.IsGuardedTransaction(tx) {
-		return nil
+		return txProc.checkGuardedAccountUnguardedTxPermission(tx.GetData(), account)
 	}
 
 	acc, ok := account.(vmcommon.UserAccountHandler)

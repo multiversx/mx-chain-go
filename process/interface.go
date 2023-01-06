@@ -1242,7 +1242,7 @@ type InterceptedSignedTransactionHandler interface {
 
 // GuardianSigVerifier allows the verification of the guardian signatures for guarded transactions
 type GuardianSigVerifier interface {
-	VerifyGuardianSignature(account vmcommon.UserAccountHandler, inTx InterceptedTransactionHandler) error
+	VerifyGuardianSignature(inTx InterceptedTransactionHandler) error
 	HasPendingGuardian(uah state.UserAccountHandler) bool
 	IsInterfaceNil() bool
 }

@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/state"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // GuardedTxSigVerifierArgs holds the argument to instantiate a guarded tx signature verifier
@@ -57,12 +56,7 @@ func NewGuardedTxSigVerifier(args GuardedTxSigVerifierArgs) (*guardedTxSigVerifi
 }
 
 // VerifyGuardianSignature verifies the guardian signature over the guarded transaction
-func (gtx *guardedTxSigVerifier) VerifyGuardianSignature(account vmcommon.UserAccountHandler, inTx process.InterceptedTransactionHandler) error {
-	guardianPubKey, err := gtx.GetGuardianPublicKey(account)
-	if err != nil {
-		return err
-	}
-
+func (gtx *guardedTxSigVerifier) VerifyGuardianSignature(inTx process.InterceptedTransactionHandler) error {
 	txHandler := inTx.Transaction()
 	if check.IfNil(txHandler) {
 		return process.ErrNilTransaction
@@ -71,6 +65,12 @@ func (gtx *guardedTxSigVerifier) VerifyGuardianSignature(account vmcommon.UserAc
 	guardedTxHandler, ok := txHandler.(data.GuardedTransactionHandler)
 	if !ok {
 		return process.ErrWrongTypeAssertion
+	}
+
+	guardianAddress := guardedTxHandler.GetGuardianAddr()
+	guardianPubKey, err := gtx.guardianPubKyeFromBytes(guardianAddress)
+	if err != nil {
+		return err
 	}
 
 	inSignedTx, ok := inTx.(process.InterceptedSignedTransactionHandler)
@@ -86,20 +86,6 @@ func (gtx *guardedTxSigVerifier) VerifyGuardianSignature(account vmcommon.UserAc
 	return gtx.sigVerifier.Verify(guardianPubKey, msgForSigVerification, guardedTxHandler.GetGuardianSignature())
 }
 
-// GetGuardianPublicKey returns the guardian public key for the given account
-func (gtx *guardedTxSigVerifier) GetGuardianPublicKey(account vmcommon.UserAccountHandler) (crypto.PublicKey, error) {
-	guardianPubKeyBytes, err := gtx.guardianChecker.GetActiveGuardian(account)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(guardianPubKeyBytes) == 0 {
-		return nil, process.ErrNilGuardianPublicKey
-	}
-
-	return gtx.keyGen.PublicKeyFromByteArray(guardianPubKeyBytes)
-}
-
 // HasPendingGuardian true if the given account has a pending guardian set
 func (gtx *guardedTxSigVerifier) HasPendingGuardian(uah state.UserAccountHandler) bool {
 	return gtx.guardianChecker.HasPendingGuardian(uah)
@@ -108,4 +94,13 @@ func (gtx *guardedTxSigVerifier) HasPendingGuardian(uah state.UserAccountHandler
 // IsInterfaceNil returns nil if the receiver is nil
 func (gtx *guardedTxSigVerifier) IsInterfaceNil() bool {
 	return gtx == nil
+}
+
+// guardianPubKyeFromBytes returns the guardian public key for the given account
+func (gtx *guardedTxSigVerifier) guardianPubKyeFromBytes(guardianPubKeyBytes []byte) (crypto.PublicKey, error) {
+	if len(guardianPubKeyBytes) == 0 {
+		return nil, process.ErrNilGuardianPublicKey
+	}
+
+	return gtx.keyGen.PublicKeyFromByteArray(guardianPubKeyBytes)
 }

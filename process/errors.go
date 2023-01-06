@@ -528,6 +528,12 @@ var ErrInvalidExtraGasLimitGuardedTx = errors.New("invalid extra gas limit for g
 // ErrInvalidMaxGasPriceSetGuardian signals that an invalid maximum gas price has been provided in the config file
 var ErrInvalidMaxGasPriceSetGuardian = errors.New("invalid maximum gas price for set guardian")
 
+// ErrGuardianAddressNotExpected signals that the guardian address is not expected
+var ErrGuardianAddressNotExpected = errors.New("guardian address not expected")
+
+// ErrGuardianSignatureNotExpected signals that the guardian signature is not expected
+var ErrGuardianSignatureNotExpected = errors.New("guardian signature not expected")
+
 // ErrInvalidMinimumGasLimitForTx signals that an invalid minimum gas limit for transactions has been read from config file
 var ErrInvalidMinimumGasLimitForTx = errors.New("invalid minimum gas limit for transactions")
 
