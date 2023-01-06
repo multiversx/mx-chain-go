@@ -30,9 +30,12 @@ func (d *delegation) createAndAddLogEntryForWithdraw(
 	delegator *DelegatorData,
 	numUsers uint64,
 	wasDeleted bool,
+	withdrawFundKeys [][]byte,
 ) {
 	activeFund := d.getFundForLogEntry(delegator.ActiveFund)
-	d.createAndAddLogEntryCustom(function, address, actualUserUnBond.Bytes(), activeFund.Bytes(), big.NewInt(0).SetUint64(numUsers).Bytes(), globalFund.TotalActive.Bytes(), boolToSlice(wasDeleted))
+	topics := append([][]byte{}, actualUserUnBond.Bytes(), activeFund.Bytes(), big.NewInt(0).SetUint64(numUsers).Bytes(), globalFund.TotalActive.Bytes(), boolToSlice(wasDeleted))
+	topics = append(topics, withdrawFundKeys...)
+	d.createAndAddLogEntryCustom(function, address, topics...)
 }
 
 func (d *delegation) createAndAddLogEntryForDelegate(
@@ -112,7 +115,7 @@ func (d *delegation) createLogEventsForChangeOwner(
 	}
 
 	d.createAndAddLogEntryForDelegate(args, big.NewInt(0), globalFund, ownerDelegatorData, dStatus, false)
-	d.createAndAddLogEntryForWithdraw(withdraw, args.CallerAddr, big.NewInt(0), globalFund, ownerDelegatorData, d.numUsers(), true)
+	d.createAndAddLogEntryForWithdraw(withdraw, args.CallerAddr, big.NewInt(0), globalFund, ownerDelegatorData, d.numUsers(), true, nil)
 }
 
 func boolToSlice(b bool) []byte {
