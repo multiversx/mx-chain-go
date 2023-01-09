@@ -18,8 +18,7 @@ The go implementation for the MultiversX protocol
 
 ## Installation and running
 
-In order to join the network as an observer or as a validator, the required steps to **build from source and setup explicitly** are explained below. 
-Alternatively, in order to use the Docker Image, jump to [Using the Docker Image](#using-the-docker-image).
+In order to join the network as an observer or as a validator, the required steps to **build from source and setup explicitly** are explained below.
 
 ### Step 1: install & configure go:
 The installation of go should proceed as shown in official golang installation guide https://golang.org/doc/install . In order to run the node, minimum golang version should be 1.17.6.
@@ -49,7 +48,7 @@ $ ./keygenerator
 
 ### Start the node 
 #### Step 4a: Join MultiversX testnet:
-Follow the steps outlined [here](https://docs.multiversx.com/validators/mx-chain-scripts/config-scripts/). This is because in order to join the testnet you need a specific node configuration.
+Follow the steps outlined [here](https://docs.multiversx.com/validators/nodes-scripts/config-scripts/). This is because in order to join the testnet you need a specific node configuration.
 ______
 OR
 ______
