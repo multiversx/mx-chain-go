@@ -1,7 +1,7 @@
 package txcache
 
 import (
-	"github.com/multiversx/mx-chain-go-storage/types"
+	"github.com/multiversx/mx-chain-storage-go/types"
 )
 
 var _ types.Cacher = (*DisabledCache)(nil)
