@@ -20,7 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
+	"github.com/ElrondNetwork/elrond-go-core/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/enablers"
@@ -48,6 +48,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	"github.com/ElrondNetwork/elrond-go/testscommon/integrationtests"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -64,7 +65,7 @@ const DummyCodeMetadataHex = "0102"
 const maxGasLimit = 100000000000
 
 var marshalizer = &marshal.GogoProtoMarshalizer{}
-var hasher = sha256.NewSha256()
+var hasher = blake2b.NewBlake2b()
 var oneShardCoordinator = mock.NewMultiShardsCoordinatorMock(2)
 var pkConverter, _ = pubkeyConverter.NewHexPubkeyConverter(32)
 
@@ -133,6 +134,13 @@ func SetupTestContext(t *testing.T) *TestContext {
 
 // SetupTestContextWithGasSchedulePath -
 func SetupTestContextWithGasSchedulePath(t *testing.T, gasScheduleConfigPath string) *TestContext {
+	gasSchedule, err := common.LoadGasScheduleConfig(gasScheduleConfigPath)
+	require.Nil(t, err)
+	return SetupTestContextWithGasSchedule(t, gasSchedule)
+}
+
+// SetupTestContextWithGasSchedule -
+func SetupTestContextWithGasSchedule(t *testing.T, gasSchedule map[string]map[string]uint64) *TestContext {
 	var err error
 
 	context := &TestContext{}
@@ -146,8 +154,7 @@ func SetupTestContextWithGasSchedulePath(t *testing.T, gasScheduleConfigPath str
 
 	context.initAccounts()
 
-	context.GasSchedule, err = common.LoadGasScheduleConfig(gasScheduleConfigPath)
-	require.Nil(t, err)
+	context.GasSchedule = gasSchedule
 
 	context.initFeeHandlers()
 	context.initVMAndBlockchainHook()
@@ -236,8 +243,9 @@ func (context *TestContext) initFeeHandlers() {
 }
 
 func (context *TestContext) initVMAndBlockchainHook() {
+	gasSchedule := mock.NewGasScheduleNotifierMock(context.GasSchedule)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:               mock.NewGasScheduleNotifierMock(context.GasSchedule),
+		GasSchedule:               gasSchedule,
 		MapDNSAddresses:           DNSAddresses,
 		Marshalizer:               marshalizer,
 		Accounts:                  context.Accounts,
@@ -283,6 +291,8 @@ func (context *TestContext) initVMAndBlockchainHook() {
 				MaxBatchSize:      100,
 			},
 		},
+		GasSchedule: gasSchedule,
+		Counter:     &testscommon.BlockChainHookCounterStub{},
 	}
 
 	vmFactoryConfig := config.VirtualMachineConfig{
@@ -303,6 +313,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		EnableEpochsHandler: context.EnableEpochsHandler,
 		ArwenChangeLocker:   context.ArwenChangeLocker,
 		ESDTTransferParser:  esdtTransferParser,
+		Hasher:              hasher,
 	}
 	vmFactory, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	require.Nil(context.T, err)
@@ -392,7 +403,7 @@ func (context *TestContext) Close() {
 }
 
 func (context *TestContext) initAccounts() {
-	context.Accounts = vm.CreateInMemoryShardAccountsDB()
+	context.Accounts = integrationtests.CreateInMemoryShardAccountsDB()
 
 	context.Owner = testParticipant{}
 	context.Owner.Address, _ = hex.DecodeString("d4105de8e44aee9d4be670401cec546e5df381028e805012386a05acf76518d9")

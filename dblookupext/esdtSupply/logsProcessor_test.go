@@ -1,8 +1,8 @@
 package esdtSupply
 
 import (
-	"encoding/hex"
 	"math/big"
+	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -29,6 +29,24 @@ func TestProcessLogsSaveSupplyNothingInStorage(t *testing.T) {
 					{
 						Identifier: []byte(core.BuiltInFunctionESDTNFTCreate),
 						Topics: [][]byte{
+							token, big.NewInt(1).Bytes(), big.NewInt(10).Bytes(),
+						},
+					},
+					{
+						Identifier: []byte(core.BuiltInFunctionESDTNFTAddQuantity),
+						Topics: [][]byte{
+							token, big.NewInt(1).Bytes(), big.NewInt(50).Bytes(),
+						},
+					},
+					{
+						Identifier: []byte(core.BuiltInFunctionESDTNFTBurn),
+						Topics: [][]byte{
+							token, big.NewInt(1).Bytes(), big.NewInt(30).Bytes(),
+						},
+					},
+					{
+						Identifier: []byte(core.BuiltInFunctionESDTNFTCreate),
+						Topics: [][]byte{
 							token, big.NewInt(2).Bytes(), big.NewInt(10).Bytes(),
 						},
 					},
@@ -50,6 +68,7 @@ func TestProcessLogsSaveSupplyNothingInStorage(t *testing.T) {
 		"log": nil,
 	}
 
+	putCalledNum := 0
 	marshalizer := testscommon.MarshalizerMock{}
 	storer := &storageStubs.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
@@ -60,13 +79,17 @@ func TestProcessLogsSaveSupplyNothingInStorage(t *testing.T) {
 				return nil
 			}
 
-			supplyKey := string(token) + "-" + hex.EncodeToString(big.NewInt(2).Bytes())
-			require.Equal(t, supplyKey, string(key))
+			isCollectionSupply := strings.Count(string(key), "-") == 1
 
+			supplyValue := int64(30)
+			if isCollectionSupply {
+				supplyValue *= 2
+			}
 			var supplyESDT SupplyESDT
 			_ = marshalizer.Unmarshal(&supplyESDT, data)
-			require.Equal(t, big.NewInt(30), supplyESDT.Supply)
+			require.Equal(t, big.NewInt(supplyValue), supplyESDT.Supply)
 
+			putCalledNum++
 			return nil
 		},
 	}
@@ -75,6 +98,7 @@ func TestProcessLogsSaveSupplyNothingInStorage(t *testing.T) {
 
 	err := logsProc.processLogs(1, logs, false)
 	require.Nil(t, err)
+	require.Equal(t, 3, putCalledNum)
 }
 
 func TestTestProcessLogsSaveSupplyExistsInStorage(t *testing.T) {
@@ -113,6 +137,10 @@ func TestTestProcessLogsSaveSupplyExistsInStorage(t *testing.T) {
 			return marshalizer.Marshal(supplyESDT)
 		},
 		PutCalled: func(key, data []byte) error {
+			if string(key) == processedBlockKey {
+				return nil
+			}
+
 			supplyKey := string(token)
 			require.Equal(t, supplyKey, string(key))
 
@@ -126,7 +154,7 @@ func TestTestProcessLogsSaveSupplyExistsInStorage(t *testing.T) {
 
 	logsProc := newLogsProcessor(marshalizer, storer)
 
-	err := logsProc.processLogs(0, logs, false)
+	err := logsProc.processLogs(1, logs, false)
 	require.Nil(t, err)
 }
 

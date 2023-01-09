@@ -608,6 +608,7 @@ func getUserAccountSyncerArgs(node *integrationTests.TestProcessorNode, version 
 			TrieSyncerVersion:                 version,
 			StorageMarker:                     storageMarker.NewTrieStorageMarker(),
 			UserAccountsSyncStatisticsHandler: statistics.NewTrieSyncStatistics(),
+			AppStatusHandler:                  integrationTests.TestAppStatusHandler,
 		},
 		ShardId:                0,
 		Throttler:              thr,

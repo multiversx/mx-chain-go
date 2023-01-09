@@ -248,8 +248,9 @@ type BlockProcessor interface {
 	DecodeBlockHeader(dta []byte) data.HeaderHandler
 	SetNumProcessedObj(numObj uint64)
 	RestoreBlockBodyIntoPools(body data.BodyHandler) error
-	IsInterfaceNil() bool
+	NonceOfFirstCommittedBlock() core.OptionalUint64
 	Close() error
+	IsInterfaceNil() bool
 }
 
 // SmartContractProcessorFull is the main interface for smart contract result execution engine
@@ -516,6 +517,8 @@ type BlockChainHookHandler interface {
 	Close() error
 	FilterCodeMetadataForUpgrade(input []byte) ([]byte, error)
 	ApplyFiltersOnCodeMetadata(codeMetadata vmcommon.CodeMetadata) vmcommon.CodeMetadata
+	ResetCounters()
+	GetCounterValues() map[string]uint64
 	IsInterfaceNil() bool
 	IsBuiltinFunctionName(functionName string) bool
 }
@@ -689,6 +692,7 @@ type FeeHandler interface {
 type EconomicsDataHandler interface {
 	rewardsHandler
 	feeHandler
+	SetStatusHandler(statusHandler core.AppStatusHandler) error
 	IsInterfaceNil() bool
 }
 
@@ -1141,7 +1145,6 @@ type CoreComponentsHolder interface {
 	ChainID() string
 	MinTransactionVersion() uint32
 	TxVersionChecker() TxVersionCheckerHandler
-	StatusHandler() core.AppStatusHandler
 	GenesisNodesSetup() sharding.GenesisNodesSetupHandler
 	EpochNotifier() EpochNotifier
 	ChanStopNodeProcess() chan endProcess.ArgEndProcess
@@ -1165,6 +1168,12 @@ type CryptoComponentsHolder interface {
 	PublicKey() crypto.PublicKey
 	PrivateKey() crypto.PrivateKey
 	Clone() interface{}
+	IsInterfaceNil() bool
+}
+
+// StatusCoreComponentsHolder holds the status core components
+type StatusCoreComponentsHolder interface {
+	AppStatusHandler() core.AppStatusHandler
 	IsInterfaceNil() bool
 }
 

@@ -84,6 +84,7 @@ type Node struct {
 	bootstrapComponents   mainFactory.BootstrapComponentsHolder
 	consensusComponents   mainFactory.ConsensusComponentsHolder
 	coreComponents        mainFactory.CoreComponentsHolder
+	statusCoreComponents  mainFactory.StatusCoreComponentsHolder
 	cryptoComponents      mainFactory.CryptoComponentsHolder
 	dataComponents        mainFactory.DataComponentsHolder
 	heartbeatV2Components mainFactory.HeartbeatV2ComponentsHolder
@@ -122,11 +123,6 @@ func NewNode(opts ...Option) (*Node, error) {
 	}
 
 	return node, nil
-}
-
-// GetAppStatusHandler will return the current status handler
-func (n *Node) GetAppStatusHandler() core.AppStatusHandler {
-	return n.coreComponents.StatusHandler()
 }
 
 // CreateShardedStores instantiate sharded cachers for Transactions and Headers
@@ -358,8 +354,13 @@ func (n *Node) GetESDTData(address, tokenID string, nonce uint64, options api.Ac
 		return nil, api.BlockInfo{}, ErrCannotCastUserAccountHandlerToVmCommonUserAccountHandler
 	}
 
+	systemAccount, blockInfo, err := n.loadSystemAccountWithOptions(options)
+	if err != nil {
+		return nil, api.BlockInfo{}, err
+	}
+
 	esdtTokenKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + tokenID)
-	esdtToken, _, err := n.esdtStorageHandler.GetESDTNFTTokenOnDestination(userAccountVmCommon, esdtTokenKey, nonce)
+	esdtToken, _, err := n.esdtStorageHandler.GetESDTNFTTokenOnDestinationWithCustomSystemAccount(userAccountVmCommon, esdtTokenKey, nonce, systemAccount)
 	if err != nil {
 		return nil, api.BlockInfo{}, err
 	}
@@ -512,6 +513,11 @@ func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions,
 		return nil, api.BlockInfo{}, err
 	}
 
+	systemAccount, blockInfo, err := n.loadSystemAccountWithOptions(options)
+	if err != nil {
+		return nil, api.BlockInfo{}, err
+	}
+
 	allESDTs := make(map[string]*esdt.ESDigitalToken)
 	if check.IfNil(userAccount.DataTrie()) {
 		return allESDTs, api.BlockInfo{}, nil
@@ -551,7 +557,7 @@ func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions,
 		tokenID, nonce := common.ExtractTokenIDAndNonceFromTokenStorageKey([]byte(tokenName))
 
 		esdtTokenKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + string(tokenID))
-		esdtToken, _, err = n.esdtStorageHandler.GetESDTNFTTokenOnDestination(userAccountVmCommon, esdtTokenKey, nonce)
+		esdtToken, _, err = n.esdtStorageHandler.GetESDTNFTTokenOnDestinationWithCustomSystemAccount(userAccountVmCommon, esdtTokenKey, nonce, systemAccount)
 		if err != nil {
 			log.Warn("cannot get ESDT token", "token name", tokenName, "error", err)
 			continue
@@ -1059,6 +1065,11 @@ func prepareEpochStartDataResponse(header data.HeaderHandler) *common.EpochStart
 // GetCoreComponents returns the core components
 func (n *Node) GetCoreComponents() mainFactory.CoreComponentsHolder {
 	return n.coreComponents
+}
+
+// GetStatusCoreComponents returns the status core components
+func (n *Node) GetStatusCoreComponents() mainFactory.StatusCoreComponentsHolder {
+	return n.statusCoreComponents
 }
 
 // GetCryptoComponents returns the crypto components

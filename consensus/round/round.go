@@ -47,7 +47,7 @@ func NewRound(
 	return &rnd, nil
 }
 
-// UpdateRound updates the index and the time stamp of the round depending of the genesis time and the current time given
+// UpdateRound updates the index and the time stamp of the round depending on the genesis time and the current time given
 func (rnd *round) UpdateRound(genesisTimeStamp time.Time, currentTimeStamp time.Time) {
 	delta := currentTimeStamp.Sub(genesisTimeStamp).Nanoseconds()
 

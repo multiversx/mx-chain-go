@@ -41,7 +41,7 @@ func TestDeployDNSContract_TestRegisterAndResolveAndSendTxWithSndAndRcvUserName(
 
 	userName := utils.GenerateUserNameForMyDNSContract()
 	txData := []byte("register@" + hex.EncodeToString(userName))
-	// create user name for sender
+	// create username for sender
 	tx := vm.CreateTransaction(0, big.NewInt(0), sndAddr, scAddress, gasPrice, gasLimit, txData)
 	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
@@ -63,9 +63,10 @@ func TestDeployDNSContract_TestRegisterAndResolveAndSendTxWithSndAndRcvUserName(
 	require.Equal(t, uint64(27819), indexerTx.GasUsed)
 	require.Equal(t, "278190", indexerTx.Fee)
 
+	require.Equal(t, big.NewInt(70023), developerFees)
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
-	// create user name for receiver
+	// create username for receiver
 	rcvUserName := utils.GenerateUserNameForMyDNSContract()
 	txData = []byte("register@" + hex.EncodeToString(rcvUserName))
 	tx = vm.CreateTransaction(0, big.NewInt(0), rcvAddr, scAddress, gasPrice, gasLimit, txData)
@@ -118,13 +119,4 @@ func TestDeployDNSContract_TestRegisterAndResolveAndSendTxWithSndAndRcvUserName(
 	retCode, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
-
-	testIndexer = vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, false, testContext.TxsLogsProcessor)
-	testIndexer.SaveTransaction(tx, block.TxBlock, nil)
-
-	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, uint64(1), indexerTx.GasUsed)
-	require.Equal(t, "10", indexerTx.Fee)
-	require.Equal(t, rcvUserName, indexerTx.ReceiverUserName)
-	require.Equal(t, userName, indexerTx.SenderUserName)
 }

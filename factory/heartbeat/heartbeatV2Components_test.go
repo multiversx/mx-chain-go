@@ -23,10 +23,11 @@ func createMockHeartbeatV2ComponentsFactoryArgs() heartbeatComp.ArgHeartbeatV2Co
 
 	_ = bootstrapC.SetShardCoordinator(shardCoordinator)
 
+	statusCoreC := componentsMock.GetStatusCoreComponents()
 	coreC := componentsMock.GetCoreComponents()
-	networkC := componentsMock.GetNetworkComponents()
-	dataC := componentsMock.GetDataComponents(coreC, shardCoordinator)
 	cryptoC := componentsMock.GetCryptoComponents(coreC)
+	networkC := componentsMock.GetNetworkComponents(cryptoC)
+	dataC := componentsMock.GetDataComponents(coreC, shardCoordinator)
 	stateC := componentsMock.GetStateComponents(coreC, shardCoordinator)
 	processC := componentsMock.GetProcessComponents(shardCoordinator, coreC, networkC, dataC, cryptoC, stateC)
 	return heartbeatComp.ArgHeartbeatV2ComponentsFactory{
@@ -66,13 +67,14 @@ func createMockHeartbeatV2ComponentsFactoryArgs() heartbeatComp.ArgHeartbeatV2Co
 				Identity:        "identity",
 			},
 		},
-		AppVersion:          "test",
-		BootstrapComponents: bootstrapC,
-		CoreComponents:      coreC,
-		DataComponents:      dataC,
-		NetworkComponents:   networkC,
-		CryptoComponents:    cryptoC,
-		ProcessComponents:   processC,
+		AppVersion:           "test",
+		BootstrapComponents:  bootstrapC,
+		CoreComponents:       coreC,
+		DataComponents:       dataC,
+		NetworkComponents:    networkC,
+		CryptoComponents:     cryptoC,
+		ProcessComponents:    processC,
+		StatusCoreComponents: statusCoreC,
 	}
 }
 

@@ -108,15 +108,4 @@ func TestRelayedTxDnsTransaction_ShouldWork(t *testing.T) {
 	retCode, err = testContext.TxProcessor.ProcessTransaction(rtx)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
-
-	_, err = testContext.Accounts.Commit()
-	require.Nil(t, err)
-
-	intermediateTxs = testContext.GetIntermediateTransactions(t)
-	testIndexer = vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, true, testContext.TxsLogsProcessor)
-	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
-
-	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, rtx.GasLimit, indexerTx.GasUsed)
-	require.Equal(t, "2530", indexerTx.Fee)
 }

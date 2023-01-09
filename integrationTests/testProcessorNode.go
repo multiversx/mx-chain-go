@@ -81,6 +81,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks/counters"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/processProxy"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/scrCommon"
 	processSync "github.com/ElrondNetwork/elrond-go/process/sync"
@@ -102,8 +103,10 @@ import (
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	dblookupextMock "github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
+	testFactory "github.com/ElrondNetwork/elrond-go/testscommon/factory"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genesisMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/outport"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
@@ -775,6 +778,8 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 		EpochNotifier:         tpn.EpochNotifier,
 		EnableEpochsHandler:   tpn.EnableEpochsHandler,
 		NilCompiledSCStore:    true,
+		GasSchedule:           gasSchedule,
+		Counter:               counters.NewDisabledCounter(),
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
@@ -858,6 +863,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 			EnableEpochsHandler: tpn.EnableEpochsHandler,
 			ArwenChangeLocker:   tpn.ArwenChangeLocker,
 			ESDTTransferParser:  esdtTransferParser,
+			Hasher:              TestHasher,
 		}
 		vmFactory, _ = shard.NewVMContainerFactory(argsNewVMFactory)
 	}
@@ -1398,6 +1404,10 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		log.LogIfError(err)
 	}
 
+	esdtTransferParser, _ := parsers.NewESDTTransferParser(TestMarshalizer)
+	counter, err := counters.NewUsageCounter(esdtTransferParser)
+	log.LogIfError(err)
+
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:              tpn.AccntState,
 		PubkeyConv:            TestAddressPubkeyConverter,
@@ -1414,8 +1424,10 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		EpochNotifier:         tpn.EpochNotifier,
 		EnableEpochsHandler:   tpn.EnableEpochsHandler,
 		NilCompiledSCStore:    true,
+		GasSchedule:           gasSchedule,
+		Counter:               counter,
 	}
-	esdtTransferParser, _ := parsers.NewESDTTransferParser(TestMarshalizer)
+
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
 	blockChainHookImpl, _ := hooks.NewBlockChainHookImpl(argsHook)
 	tpn.EnableEpochs.FailExecutionOnEveryAPIErrorEnableEpoch = 1
@@ -1429,10 +1441,10 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		EnableEpochsHandler: tpn.EnableEpochsHandler,
 		ArwenChangeLocker:   tpn.ArwenChangeLocker,
 		ESDTTransferParser:  esdtTransferParser,
+		Hasher:              TestHasher,
 	}
 	vmFactory, _ := shard.NewVMContainerFactory(argsNewVMFactory)
 
-	var err error
 	tpn.VMContainer, err = vmFactory.Create()
 	if err != nil {
 		panic(err)
@@ -1622,6 +1634,8 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		EpochNotifier:         tpn.EpochNotifier,
 		EnableEpochsHandler:   tpn.EnableEpochsHandler,
 		NilCompiledSCStore:    true,
+		GasSchedule:           gasSchedule,
+		Counter:               counters.NewDisabledCounter(),
 	}
 
 	var signVerifier vm.MessageSignVerifier
@@ -1954,19 +1968,24 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		},
 	}
 
+	statusCoreComponents := &testFactory.StatusCoreComponentsStub{
+		AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{},
+	}
+
 	argumentsBase := block.ArgBaseProcessor{
-		CoreComponents:      coreComponents,
-		DataComponents:      dataComponents,
-		BootstrapComponents: bootstrapComponents,
-		StatusComponents:    statusComponents,
-		Config:              triesConfig,
-		AccountsDB:          accountsDb,
-		ForkDetector:        tpn.ForkDetector,
-		NodesCoordinator:    tpn.NodesCoordinator,
-		FeeHandler:          tpn.FeeAccumulator,
-		RequestHandler:      tpn.RequestHandler,
-		BlockChainHook:      tpn.BlockchainHook,
-		HeaderValidator:     tpn.HeaderValidator,
+		CoreComponents:       coreComponents,
+		DataComponents:       dataComponents,
+		BootstrapComponents:  bootstrapComponents,
+		StatusComponents:     statusComponents,
+		StatusCoreComponents: statusCoreComponents,
+		Config:               triesConfig,
+		AccountsDB:           accountsDb,
+		ForkDetector:         tpn.ForkDetector,
+		NodesCoordinator:     tpn.NodesCoordinator,
+		FeeHandler:           tpn.FeeAccumulator,
+		RequestHandler:       tpn.RequestHandler,
+		BlockChainHook:       tpn.BlockchainHook,
+		HeaderValidator:      tpn.HeaderValidator,
 		BootStorer: &mock.BoostrapStorerMock{
 			PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
 				return nil
@@ -1979,6 +1998,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		ReceiptsRepository:           &testscommon.ReceiptsRepositoryStub{},
+		OutportDataProvider:          &outport.OutportDataProviderStub{},
 	}
 
 	if check.IfNil(tpn.EpochStartNotifier) {
@@ -2625,9 +2645,8 @@ func (tpn *TestProcessorNode) GetMetaHeader(nonce uint64) (*dataBlock.MetaBlock,
 func (tpn *TestProcessorNode) SyncNode(nonce uint64) error {
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		return tpn.syncMetaNode(nonce)
-	} else {
-		return tpn.syncShardNode(nonce)
 	}
+	return tpn.syncShardNode(nonce)
 }
 
 func (tpn *TestProcessorNode) syncShardNode(nonce uint64) error {
@@ -2817,7 +2836,12 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 
 	processComponents.HardforkTriggerField = tpn.HardforkTrigger
 
+	statusCoreComponents := &testFactory.StatusCoreComponentsStub{
+		AppStatusHandlerField: TestAppStatusHandler,
+	}
+
 	err = tpn.Node.ApplyOptions(
+		node.WithStatusCoreComponents(statusCoreComponents),
 		node.WithCryptoComponents(cryptoComponents),
 		node.WithProcessComponents(processComponents),
 	)
@@ -2847,6 +2871,7 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 			Capacity: 1000,
 			Shards:   1,
 		},
+		TimeToReadDirectConnectionsInSec: 5,
 	}
 
 	hbv2FactoryArgs := heartbeatComp.ArgHeartbeatV2ComponentsFactory{
@@ -2856,12 +2881,13 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 				PublicKeyToListenFrom: hardforkPubKey,
 			},
 		},
-		BootstrapComponents: tpn.Node.GetBootstrapComponents(),
-		CoreComponents:      tpn.Node.GetCoreComponents(),
-		DataComponents:      tpn.Node.GetDataComponents(),
-		NetworkComponents:   tpn.Node.GetNetworkComponents(),
-		CryptoComponents:    tpn.Node.GetCryptoComponents(),
-		ProcessComponents:   tpn.Node.GetProcessComponents(),
+		BootstrapComponents:  tpn.Node.GetBootstrapComponents(),
+		CoreComponents:       tpn.Node.GetCoreComponents(),
+		DataComponents:       tpn.Node.GetDataComponents(),
+		NetworkComponents:    tpn.Node.GetNetworkComponents(),
+		CryptoComponents:     tpn.Node.GetCryptoComponents(),
+		ProcessComponents:    tpn.Node.GetProcessComponents(),
+		StatusCoreComponents: tpn.Node.GetStatusCoreComponents(),
 	}
 
 	heartbeatV2Factory, err := heartbeatComp.NewHeartbeatV2ComponentsFactory(hbv2FactoryArgs)

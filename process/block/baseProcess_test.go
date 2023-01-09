@@ -43,8 +43,10 @@ import (
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	"github.com/ElrondNetwork/elrond-go/testscommon/factory"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/outport"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
@@ -79,21 +81,26 @@ func createArgBaseProcessor(
 		},
 	}
 
+	statusCoreComponents := &factory.StatusCoreComponentsStub{
+		AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{},
+	}
+
 	return blproc.ArgBaseProcessor{
-		CoreComponents:      coreComponents,
-		DataComponents:      dataComponents,
-		BootstrapComponents: bootstrapComponents,
-		StatusComponents:    statusComponents,
-		Config:              config.Config{},
-		AccountsDB:          accountsDb,
-		ForkDetector:        &mock.ForkDetectorMock{},
-		NodesCoordinator:    nodesCoordinator,
-		FeeHandler:          &mock.FeeAccumulatorStub{},
-		RequestHandler:      &testscommon.RequestHandlerStub{},
-		BlockChainHook:      &testscommon.BlockChainHookStub{},
-		TxCoordinator:       &mock.TransactionCoordinatorMock{},
-		EpochStartTrigger:   &mock.EpochStartTriggerStub{},
-		HeaderValidator:     headerValidator,
+		CoreComponents:       coreComponents,
+		DataComponents:       dataComponents,
+		BootstrapComponents:  bootstrapComponents,
+		StatusComponents:     statusComponents,
+		StatusCoreComponents: statusCoreComponents,
+		Config:               config.Config{},
+		AccountsDB:           accountsDb,
+		ForkDetector:         &mock.ForkDetectorMock{},
+		NodesCoordinator:     nodesCoordinator,
+		FeeHandler:           &mock.FeeAccumulatorStub{},
+		RequestHandler:       &testscommon.RequestHandlerStub{},
+		BlockChainHook:       &testscommon.BlockChainHookStub{},
+		TxCoordinator:        &testscommon.TransactionCoordinatorMock{},
+		EpochStartTrigger:    &mock.EpochStartTriggerStub{},
+		HeaderValidator:      headerValidator,
 		BootStorer: &mock.BoostrapStorerMock{
 			PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
 				return nil
@@ -105,6 +112,7 @@ func createArgBaseProcessor(
 		HistoryRepository:              &dblookupext.HistoryRepositoryStub{},
 		GasHandler:                     &mock.GasHandlerMock{},
 		ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
+		OutportDataProvider:            &outport.OutportDataProviderStub{},
 		ScheduledMiniBlocksEnableEpoch: 2,
 		ProcessedMiniBlocksTracker:     &testscommon.ProcessedMiniBlocksTrackerStub{},
 		ReceiptsRepository:             &testscommon.ReceiptsRepositoryStub{},
@@ -389,7 +397,7 @@ func createComponentHolderMocks() (
 	}
 
 	statusComponents := &mock.StatusComponentsMock{
-		Outport: &testscommon.OutportStub{},
+		Outport: &outport.OutportStub{},
 	}
 
 	return coreComponents, dataComponents, boostrapComponents, statusComponents
@@ -676,9 +684,19 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
-				coreCompCopy := *coreComponents
-				coreCompCopy.StatusField = nil
-				return createArgBaseProcessor(&coreCompCopy, dataComponents, bootstrapComponents, statusComponents)
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.StatusCoreComponents = nil
+				return args
+			},
+			expectedErr: process.ErrNilStatusCoreComponentsHolder,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.StatusCoreComponents = &factory.StatusCoreComponentsStub{
+					AppStatusHandlerField: nil,
+				}
+				return args
 			},
 			expectedErr: process.ErrNilAppStatusHandler,
 		},
@@ -1038,7 +1056,7 @@ func TestBaseProcessor_RemoveHeadersBehindNonceFromPools(t *testing.T) {
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 	dataComponents.DataPool = dataPool
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-	arguments.TxCoordinator = &mock.TransactionCoordinatorMock{
+	arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
 		RemoveBlockDataFromPoolCalled: func(body *block.Body) error {
 			removeFromDataPoolWasCalled = true
 			return nil
@@ -2914,7 +2932,7 @@ func TestMetaProcessor_RestoreBlockBodyIntoPoolsShouldErrWhenRestoreBlockDataFro
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 	dataComponents.Storage = initStore()
 	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-	arguments.TxCoordinator = &mock.TransactionCoordinatorMock{
+	arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
 		RestoreBlockDataFromStorageCalled: func(body *block.Body) (int, error) {
 			return 0, expectedError
 		},
@@ -2931,7 +2949,7 @@ func TestMetaProcessor_RestoreBlockBodyIntoPoolsShouldWork(t *testing.T) {
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 	dataComponents.Storage = initStore()
 	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-	arguments.TxCoordinator = &mock.TransactionCoordinatorMock{
+	arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
 		RestoreBlockDataFromStorageCalled: func(body *block.Body) (int, error) {
 			return 1, nil
 		},
@@ -2949,6 +2967,9 @@ func TestBaseProcessor_getPruningHandler(t *testing.T) {
 		StateTriesConfig: config.StateTriesConfig{
 			UserStatePruningQueueSize: 6,
 		},
+	}
+	arguments.StatusCoreComponents = &factory.StatusCoreComponentsStub{
+		AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{},
 	}
 	bp, _ := blproc.NewShardProcessor(arguments)
 
@@ -3017,4 +3038,52 @@ func TestBaseProcessor_checkConstructionStateAndIndexesCorrectness(t *testing.T)
 	_ = mbh.SetIndexOfLastTxProcessed(int32(mbh.TxCount) - 1)
 	err = bp.CheckConstructionStateAndIndexesCorrectness(mbh)
 	assert.Nil(t, err)
+}
+
+func TestBaseProcessor_ConcurrentCallsNonceOfFirstCommittedBlock(t *testing.T) {
+	t.Parallel()
+
+	arguments := CreateMockArguments(createComponentHolderMocks())
+	bp, _ := blproc.NewShardProcessor(arguments)
+
+	numCalls := 1000
+	wg := &sync.WaitGroup{}
+	wg.Add(numCalls)
+
+	mutValuesRead := sync.Mutex{}
+	values := make(map[uint64]int)
+	noValues := 0
+	lastValRead := uint64(0)
+
+	for i := 0; i < numCalls; i++ {
+		go func(idx int) {
+			time.Sleep(time.Millisecond * 10)
+
+			switch idx % 2 {
+			case 0:
+				val := bp.NonceOfFirstCommittedBlock()
+
+				mutValuesRead.Lock()
+				if val.HasValue {
+					values[val.Value]++
+					lastValRead = val.Value
+				} else {
+					noValues++
+				}
+				mutValuesRead.Unlock()
+			case 1:
+				bp.SetNonceOfFirstCommittedBlock(uint64(idx))
+			}
+
+			wg.Done()
+		}(i)
+	}
+
+	wg.Wait()
+
+	mutValuesRead.Lock()
+	defer mutValuesRead.Unlock()
+
+	assert.True(t, len(values) <= 1) // we can have the situation when all reads are done before the first set
+	assert.Equal(t, numCalls/2, values[lastValRead]+noValues)
 }

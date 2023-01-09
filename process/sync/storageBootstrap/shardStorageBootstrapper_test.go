@@ -81,7 +81,7 @@ func TestShardStorageBootstrapper_LoadFromStorageShouldWork(t *testing.T) {
 					return nil
 				},
 			},
-			BlockProcessor: &mock.BlockProcessorMock{},
+			BlockProcessor: &testscommon.BlockProcessorStub{},
 			ChainHandler: &testscommon.ChainHandlerStub{
 				GetGenesisHeaderCalled: func() data.HeaderHandler {
 					return nil

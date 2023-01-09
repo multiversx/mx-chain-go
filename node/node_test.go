@@ -47,6 +47,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	factoryTests "github.com/ElrondNetwork/elrond-go/testscommon/factory"
 	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
@@ -527,8 +528,8 @@ func TestNode_GetESDTData(t *testing.T) {
 		},
 	}
 
-	esdtStorageStub := &mock.EsdtStorageHandlerStub{
-		GetESDTNFTTokenOnDestinationCalled: func(acnt vmcommon.UserAccountHandler, esdtTokenKey []byte, nonce uint64) (*esdt.ESDigitalToken, bool, error) {
+	esdtStorageStub := &testscommon.EsdtStorageHandlerStub{
+		GetESDTNFTTokenOnDestinationWithCustomSystemAccountCalled: func(acnt vmcommon.UserAccountHandler, esdtTokenKey []byte, nonce uint64, _ vmcommon.UserAccountHandler) (*esdt.ESDigitalToken, bool, error) {
 			return esdtData, false, nil
 		},
 	}
@@ -568,8 +569,8 @@ func TestNode_GetESDTDataForNFT(t *testing.T) {
 
 	esdtData := &esdt.ESDigitalToken{Value: big.NewInt(10)}
 
-	esdtStorageStub := &mock.EsdtStorageHandlerStub{
-		GetESDTNFTTokenOnDestinationCalled: func(acnt vmcommon.UserAccountHandler, esdtTokenKey []byte, nonce uint64) (*esdt.ESDigitalToken, bool, error) {
+	esdtStorageStub := &testscommon.EsdtStorageHandlerStub{
+		GetESDTNFTTokenOnDestinationWithCustomSystemAccountCalled: func(acnt vmcommon.UserAccountHandler, esdtTokenKey []byte, nonce uint64, _ vmcommon.UserAccountHandler) (*esdt.ESDigitalToken, bool, error) {
 			return esdtData, false, nil
 		},
 	}
@@ -613,8 +614,8 @@ func TestNode_GetAllESDTTokens(t *testing.T) {
 
 	esdtData := &esdt.ESDigitalToken{Value: big.NewInt(10)}
 
-	esdtStorageStub := &mock.EsdtStorageHandlerStub{
-		GetESDTNFTTokenOnDestinationCalled: func(acnt vmcommon.UserAccountHandler, esdtTokenKey []byte, nonce uint64) (*esdt.ESDigitalToken, bool, error) {
+	esdtStorageStub := &testscommon.EsdtStorageHandlerStub{
+		GetESDTNFTTokenOnDestinationWithCustomSystemAccountCalled: func(acnt vmcommon.UserAccountHandler, esdtTokenKey []byte, nonce uint64, _ vmcommon.UserAccountHandler) (*esdt.ESDigitalToken, bool, error) {
 			return esdtData, false, nil
 		},
 	}
@@ -808,8 +809,8 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 	nftData := &esdt.ESDigitalToken{Type: uint32(core.NonFungible), Value: big.NewInt(10), TokenMetaData: &esdt.MetaData{Nonce: nftNonce.Uint64()}}
 	marshalledNftData, _ := getMarshalizer().Marshal(nftData)
 
-	esdtStorageStub := &mock.EsdtStorageHandlerStub{
-		GetESDTNFTTokenOnDestinationCalled: func(acnt vmcommon.UserAccountHandler, esdtTokenKey []byte, nonce uint64) (*esdt.ESDigitalToken, bool, error) {
+	esdtStorageStub := &testscommon.EsdtStorageHandlerStub{
+		GetESDTNFTTokenOnDestinationWithCustomSystemAccountCalled: func(acnt vmcommon.UserAccountHandler, esdtTokenKey []byte, nonce uint64, _ vmcommon.UserAccountHandler) (*esdt.ESDigitalToken, bool, error) {
 			switch string(esdtTokenKey) {
 			case string(esdtKey):
 				return esdtData, false, nil
@@ -2993,20 +2994,20 @@ func TestNode_AppStatusHandlersShouldIncrement(t *testing.T) {
 	metricKey := common.MetricCurrentRound
 	incrementCalled := make(chan bool, 1)
 
-	appStatusHandlerStub := statusHandlerMock.AppStatusHandlerStub{
+	appStatusHandlerStub := &statusHandlerMock.AppStatusHandlerStub{
 		IncrementHandler: func(key string) {
 			incrementCalled <- true
 		},
 	}
 
-	coreComponents := getDefaultCoreComponents()
-	coreComponents.AppStatusHdl = &appStatusHandlerStub
+	statusCoreComp := &factoryTests.StatusCoreComponentsStub{
+		AppStatusHandlerField: appStatusHandlerStub,
+	}
 
-	n, _ := node.NewNode(
-		node.WithCoreComponents(coreComponents))
-	asf := n.GetAppStatusHandler()
+	_, _ = node.NewNode(
+		node.WithStatusCoreComponents(statusCoreComp))
 
-	asf.Increment(metricKey)
+	appStatusHandlerStub.Increment(metricKey)
 
 	select {
 	case <-incrementCalled:
@@ -3021,20 +3022,20 @@ func TestNode_AppStatusHandlerShouldDecrement(t *testing.T) {
 	metricKey := common.MetricCurrentRound
 	decrementCalled := make(chan bool, 1)
 
-	appStatusHandlerStub := statusHandlerMock.AppStatusHandlerStub{
+	appStatusHandlerStub := &statusHandlerMock.AppStatusHandlerStub{
 		DecrementHandler: func(key string) {
 			decrementCalled <- true
 		},
 	}
 
-	coreComponents := getDefaultCoreComponents()
-	coreComponents.AppStatusHdl = &appStatusHandlerStub
+	statusCoreComp := &factoryTests.StatusCoreComponentsStub{
+		AppStatusHandlerField: appStatusHandlerStub,
+	}
 
-	n, _ := node.NewNode(
-		node.WithCoreComponents(coreComponents))
-	asf := n.GetAppStatusHandler()
+	_, _ = node.NewNode(
+		node.WithStatusCoreComponents(statusCoreComp))
 
-	asf.Decrement(metricKey)
+	appStatusHandlerStub.Decrement(metricKey)
 
 	select {
 	case <-decrementCalled:
@@ -3049,20 +3050,20 @@ func TestNode_AppStatusHandlerShouldSetInt64Value(t *testing.T) {
 	metricKey := common.MetricCurrentRound
 	setInt64ValueCalled := make(chan bool, 1)
 
-	appStatusHandlerStub := statusHandlerMock.AppStatusHandlerStub{
+	appStatusHandlerStub := &statusHandlerMock.AppStatusHandlerStub{
 		SetInt64ValueHandler: func(key string, value int64) {
 			setInt64ValueCalled <- true
 		},
 	}
 
-	coreComponents := getDefaultCoreComponents()
-	coreComponents.AppStatusHdl = &appStatusHandlerStub
+	statusCoreComp := &factoryTests.StatusCoreComponentsStub{
+		AppStatusHandlerField: appStatusHandlerStub,
+	}
 
-	n, _ := node.NewNode(
-		node.WithCoreComponents(coreComponents))
-	asf := n.GetAppStatusHandler()
+	_, _ = node.NewNode(
+		node.WithStatusCoreComponents(statusCoreComp))
 
-	asf.SetInt64Value(metricKey, int64(1))
+	appStatusHandlerStub.SetInt64Value(metricKey, int64(1))
 
 	select {
 	case <-setInt64ValueCalled:
@@ -3077,20 +3078,20 @@ func TestNode_AppStatusHandlerShouldSetUInt64Value(t *testing.T) {
 	metricKey := common.MetricCurrentRound
 	setUInt64ValueCalled := make(chan bool, 1)
 
-	appStatusHandlerStub := statusHandlerMock.AppStatusHandlerStub{
+	appStatusHandlerStub := &statusHandlerMock.AppStatusHandlerStub{
 		SetUInt64ValueHandler: func(key string, value uint64) {
 			setUInt64ValueCalled <- true
 		},
 	}
 
-	coreComponents := getDefaultCoreComponents()
-	coreComponents.AppStatusHdl = &appStatusHandlerStub
+	statusCoreComp := &factoryTests.StatusCoreComponentsStub{
+		AppStatusHandlerField: appStatusHandlerStub,
+	}
 
-	n, _ := node.NewNode(
-		node.WithCoreComponents(coreComponents))
-	asf := n.GetAppStatusHandler()
+	_, _ = node.NewNode(
+		node.WithStatusCoreComponents(statusCoreComp))
 
-	asf.SetUInt64Value(metricKey, uint64(1))
+	appStatusHandlerStub.SetUInt64Value(metricKey, uint64(1))
 
 	select {
 	case <-setUInt64ValueCalled:
@@ -3932,7 +3933,6 @@ func getDefaultCoreComponents() *nodeMockFactory.CoreComponentsMock {
 		MinTransactionVersionCalled: func() uint32 {
 			return 1
 		},
-		AppStatusHdl:          &statusHandlerMock.AppStatusHandlerStub{},
 		WDTimer:               &testscommon.WatchdogMock{},
 		Alarm:                 &testscommon.AlarmSchedulerStub{},
 		NtpTimer:              &testscommon.SyncTimerStub{},
@@ -3961,7 +3961,7 @@ func getDefaultProcessComponents() *factoryMock.ProcessComponentsMock {
 		EpochTrigger:                         &testscommon.EpochStartTriggerStub{},
 		EpochNotifier:                        &mock.EpochStartNotifierStub{},
 		ForkDetect:                           &mock.ForkDetectorMock{},
-		BlockProcess:                         &mock.BlockProcessorStub{},
+		BlockProcess:                         &testscommon.BlockProcessorStub{},
 		BlackListHdl:                         &testscommon.TimeCacheStub{},
 		BootSore:                             &mock.BootstrapStorerMock{},
 		HeaderSigVerif:                       &mock.HeaderSigVerifierStub{},

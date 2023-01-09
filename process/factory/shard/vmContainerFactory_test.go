@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	ipcNodePart1p2 "github.com/ElrondNetwork/wasm-vm-v1_2/ipc/nodepart"
@@ -44,6 +45,7 @@ func createMockVMAccountsArguments() ArgVMContainerFactory {
 		ESDTTransferParser:  esdtTransferParser,
 		BuiltInFunctions:    vmcommonBuiltInFunctions.NewBuiltInFunctionContainer(),
 		BlockChainHook:      &testscommon.BlockChainHookStub{},
+		Hasher:              &hashingMocks.HasherMock{},
 	}
 }
 
@@ -122,6 +124,17 @@ func TestNewVMContainerFactory_NilBlockChainHookShouldErr(t *testing.T) {
 
 	assert.Nil(t, vmf)
 	assert.Equal(t, process.ErrNilBlockChainHook, err)
+}
+
+func TestNewVMContainerFactory_NilHasherShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockVMAccountsArguments()
+	args.Hasher = nil
+	vmf, err := NewVMContainerFactory(args)
+
+	assert.Nil(t, vmf)
+	assert.Equal(t, process.ErrNilHasher, err)
 }
 
 func TestNewVMContainerFactory_OkValues(t *testing.T) {

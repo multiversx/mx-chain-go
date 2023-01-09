@@ -100,7 +100,7 @@ func TestAntifloodingForLargerPeriodOfTime(t *testing.T) {
 	}()
 
 	//the network has 8 peers (check integrationTests.CreateFixedNetworkOf7Peers function)
-	//nodes 2, 4, 6 decide to flood the network but they will keep their messages/sec under the threshold
+	//nodes 2, 4, 6 decide to flood the network, but they will keep their messages/sec under the threshold
 	topic := "test_topic"
 	idxGoodPeers := []int{0, 1, 3, 5, 7}
 	idxBadPeers := []int{2, 4, 6}

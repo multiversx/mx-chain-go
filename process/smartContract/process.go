@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -34,6 +35,7 @@ var _ process.SmartContractResultProcessor = (*scProcessor)(nil)
 var _ process.SmartContractProcessor = (*scProcessor)(nil)
 
 var log = logger.GetOrCreate("process/smartcontract")
+var logCounters = logger.GetOrCreate("process/smartcontract.blockchainHookCounters")
 
 const maxTotalSCRsSize = 3 * (1 << 18) // 768KB
 
@@ -45,11 +47,7 @@ const (
 
 	// TODO: Move to vm-common.
 	upgradeFunctionName = "upgradeContract"
-
-	generalSCRIdentifier = "writeLog"
-	signalError          = "signalError"
-	completedTxEvent     = "completedTxEvent"
-	returnOkData         = "@6f6b"
+	returnOkData        = "@6f6b"
 )
 
 var zero = big.NewInt(0)
@@ -305,7 +303,7 @@ func (sc *scProcessor) doExecuteSmartContractTransaction(
 
 	snapshot := sc.accounts.JournalLen()
 
-	vmOutput, err := sc.executeSmartContractCall(vmInput, tx, txHash, snapshot, acntSnd, acntDst)
+	vmOutput, err := sc.executeSmartContractCall(vmInput, tx, txHash, snapshot, acntSnd, acntDst, nil)
 	if err != nil {
 		return returnCode, err
 	}
@@ -335,6 +333,7 @@ func (sc *scProcessor) executeSmartContractCall(
 	txHash []byte,
 	snapshot int,
 	acntSnd, acntDst state.UserAccountHandler,
+	prevVmOutput *vmcommon.VMOutput,
 ) (*vmcommon.VMOutput, error) {
 	if check.IfNil(acntDst) {
 		return nil, process.ErrNilSCDestAccount
@@ -353,6 +352,9 @@ func (sc *scProcessor) executeSmartContractCall(
 		return userErrorVmOutput, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(returnMessage), snapshot, vmInput.GasLocked)
 	}
 
+	sc.blockChainHook.ResetCounters()
+	defer sc.printBlockchainHookCounters(tx)
+
 	var vmOutput *vmcommon.VMOutput
 	vmOutput, err = vmExec.RunSmartContractCall(vmInput)
 
@@ -369,7 +371,7 @@ func (sc *scProcessor) executeSmartContractCall(
 	vmOutput.GasRemaining += vmInput.GasLocked
 
 	if vmOutput.ReturnCode != vmcommon.Ok {
-		return userErrorVmOutput, sc.processIfErrorWithAddedLogs(acntSnd, txHash, tx, vmOutput.ReturnCode.String(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked, vmOutput.Logs)
+		return userErrorVmOutput, sc.processIfErrorWithAddedLogs(acntSnd, txHash, tx, vmOutput.ReturnCode.String(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked, prevVmOutput, vmOutput.Logs)
 	}
 	acntSnd, err = sc.reloadLocalAccount(acntSnd) // nolint
 	if err != nil {
@@ -401,6 +403,43 @@ func (sc *scProcessor) isInformativeTxHandler(txHandler data.TransactionHandler)
 
 	_, err = sc.builtInFunctions.Get(function)
 	return err != nil
+}
+
+func (sc *scProcessor) printBlockchainHookCounters(tx data.TransactionHandler) {
+	if logCounters.GetLevel() > logger.LogTrace {
+		return
+	}
+
+	logCounters.Trace("blockchain hook counters",
+		"counters", sc.getBlockchainHookCountersString(),
+		"tx hash", sc.computeTxHashUnsafe(tx),
+		"receiver", sc.pubkeyConv.Encode(tx.GetRcvAddr()),
+		"sender", sc.pubkeyConv.Encode(tx.GetSndAddr()),
+		"value", tx.GetValue().String(),
+		"data", tx.GetData(),
+	)
+}
+
+func (sc *scProcessor) getBlockchainHookCountersString() string {
+	counters := sc.blockChainHook.GetCounterValues()
+	keys := make([]string, len(counters))
+
+	idx := 0
+	for key := range counters {
+		keys[idx] = key
+		idx++
+	}
+
+	sort.Slice(keys, func(i, j int) bool {
+		return keys[i] < keys[j]
+	})
+
+	lines := make([]string, 0, len(counters))
+	for _, key := range keys {
+		lines = append(lines, fmt.Sprintf("%s: %d", key, counters[key]))
+	}
+
+	return strings.Join(lines, ", ")
 }
 
 func (sc *scProcessor) cleanInformativeOnlySCRs(scrs []data.TransactionHandler) ([]data.TransactionHandler, []*vmcommon.LogEntry) {
@@ -829,6 +868,9 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 	tx data.TransactionHandler,
 	acntSnd, acntDst state.UserAccountHandler,
 ) (vmcommon.ReturnCode, error) {
+	sc.blockChainHook.ResetCounters()
+	defer sc.printBlockchainHookCounters(tx)
+
 	returnCode, vmInput, txHash, err := sc.prepareExecution(tx, acntSnd, acntDst, true)
 	if err != nil || returnCode != vmcommon.Ok {
 		return returnCode, err
@@ -871,7 +913,7 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 	}
 
 	if vmInput.CallType == vmData.AsynchronousCallBack {
-		// in case of asynchronous callback - the process of built in function is a must
+		// in case of asynchronous callback - the process of built-in function is a must
 		snapshot = sc.accounts.JournalLen()
 	}
 
@@ -968,7 +1010,7 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 }
 
 func mergeVMOutputLogs(newVMOutput *vmcommon.VMOutput, vmOutput *vmcommon.VMOutput) {
-	if len(vmOutput.Logs) == 0 {
+	if vmOutput == nil || len(vmOutput.Logs) == 0 {
 		return
 	}
 
@@ -1055,7 +1097,7 @@ func (sc *scProcessor) treatExecutionAfterBuiltInFunc(
 		return true, userErrorVmOutput, newVMInput, sc.ProcessIfError(acntSnd, vmInput.CurrentTxHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
 	}
 
-	newVMOutput, err := sc.executeSmartContractCall(newVMInput, tx, newVMInput.CurrentTxHash, snapshot, acntSnd, newDestSC)
+	newVMOutput, err := sc.executeSmartContractCall(newVMInput, tx, newVMInput.CurrentTxHash, snapshot, acntSnd, newDestSC, vmOutput)
 	if err != nil {
 		return true, userErrorVmOutput, newVMInput, err
 	}
@@ -1287,7 +1329,7 @@ func (sc *scProcessor) ProcessIfError(
 	snapshot int,
 	gasLocked uint64,
 ) error {
-	return sc.processIfErrorWithAddedLogs(acntSnd, txHash, tx, returnCode, returnMessage, snapshot, gasLocked, nil)
+	return sc.processIfErrorWithAddedLogs(acntSnd, txHash, tx, returnCode, returnMessage, snapshot, gasLocked, nil, nil)
 }
 
 func (sc *scProcessor) processIfErrorWithAddedLogs(acntSnd state.UserAccountHandler,
@@ -1297,6 +1339,7 @@ func (sc *scProcessor) processIfErrorWithAddedLogs(acntSnd state.UserAccountHand
 	returnMessage []byte,
 	snapshot int,
 	gasLocked uint64,
+	prevVmOutput *vmcommon.VMOutput,
 	internalVMLogs []*vmcommon.LogEntry,
 ) error {
 	sc.vmOutputCacher.Put(txHash, &vmcommon.VMOutput{
@@ -1345,6 +1388,10 @@ func (sc *scProcessor) processIfErrorWithAddedLogs(acntSnd state.UserAccountHand
 	}
 
 	processIfErrorLogs := make([]*vmcommon.LogEntry, 0)
+	if prevVmOutput != nil && len(prevVmOutput.Logs) > 0 {
+		processIfErrorLogs = append(processIfErrorLogs, prevVmOutput.Logs...)
+	}
+
 	processIfErrorLogs = append(processIfErrorLogs, userErrorLog)
 	if relayerLog != nil {
 		processIfErrorLogs = append(processIfErrorLogs, relayerLog)
@@ -1482,7 +1529,7 @@ func createNewLogFromSCR(txHandler data.TransactionHandler) *vmcommon.LogEntry {
 	}
 
 	newLog := &vmcommon.LogEntry{
-		Identifier: []byte(generalSCRIdentifier),
+		Identifier: []byte(core.WriteLogIdentifier),
 		Address:    txHandler.GetSndAddr(),
 		Topics:     [][]byte{txHandler.GetRcvAddr()},
 		Data:       txHandler.GetData(),
@@ -1502,7 +1549,7 @@ func createNewLogFromSCRIfError(txHandler data.TransactionHandler) *vmcommon.Log
 	}
 
 	newLog := &vmcommon.LogEntry{
-		Identifier: []byte(signalError),
+		Identifier: []byte(core.SignalErrorOperation),
 		Address:    txHandler.GetSndAddr(),
 		Topics:     [][]byte{txHandler.GetRcvAddr(), returnMessage},
 		Data:       txHandler.GetData(),
@@ -1576,7 +1623,7 @@ func (sc *scProcessor) addBackTxValues(
 	return nil
 }
 
-// DeploySmartContract processes the transaction, than deploy the smart contract into VM, final code is saved in account
+// DeploySmartContract processes the transaction, then deploy the smart contract into VM, final code is saved in account
 func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd state.UserAccountHandler) (vmcommon.ReturnCode, error) {
 	err := sc.checkTxValidity(tx)
 	if err != nil {
@@ -1604,6 +1651,9 @@ func (sc *scProcessor) doDeploySmartContract(
 	tx data.TransactionHandler,
 	acntSnd state.UserAccountHandler,
 ) (vmcommon.ReturnCode, error) {
+	sc.blockChainHook.ResetCounters()
+	defer sc.printBlockchainHookCounters(tx)
+
 	isEmptyAddress := sc.isDestAddressEmpty(tx)
 	if !isEmptyAddress {
 		log.Debug("wrong transaction - not empty address", "error", process.ErrWrongTransaction.Error())
@@ -1663,7 +1713,7 @@ func (sc *scProcessor) doDeploySmartContract(
 	}
 	vmOutput.GasRemaining += vmInput.GasLocked
 	if vmOutput.ReturnCode != vmcommon.Ok {
-		return vmcommon.UserError, sc.processIfErrorWithAddedLogs(acntSnd, txHash, tx, vmOutput.ReturnCode.String(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked, vmOutput.Logs)
+		return vmcommon.UserError, sc.processIfErrorWithAddedLogs(acntSnd, txHash, tx, vmOutput.ReturnCode.String(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked, nil, vmOutput.Logs)
 	}
 
 	err = sc.gasConsumedChecks(tx, vmInput.GasProvided, vmInput.GasLocked, vmOutput)
@@ -2362,7 +2412,7 @@ func (sc *scProcessor) createSCRForSenderAndRelayer(
 			OriginalTxHash: relayedSCR.OriginalTxHash,
 			GasPrice:       tx.GetGasPrice(),
 			CallType:       vmData.DirectCall,
-			ReturnMessage:  []byte("gas refund for relayer"),
+			ReturnMessage:  []byte(core.GasRefundForRelayerMessage),
 			OriginalSender: relayedSCR.OriginalSender,
 		}
 		gasRemaining = 0
@@ -2797,7 +2847,7 @@ func createCompleteEventLog(tx data.TransactionHandler, txHash []byte) *vmcommon
 	}
 
 	newLog := &vmcommon.LogEntry{
-		Identifier: []byte(completedTxEvent),
+		Identifier: []byte(core.CompletedTxEventIdentifier),
 		Address:    tx.GetRcvAddr(),
 		Topics:     [][]byte{prevTxHash},
 	}

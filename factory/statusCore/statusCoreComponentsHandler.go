@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
+	"github.com/ElrondNetwork/elrond-go/node/external"
 )
 
 var _ factory.ComponentHandler = (*managedStatusCoreComponents)(nil)
@@ -82,6 +84,15 @@ func (mscc *managedStatusCoreComponents) CheckSubcomponents() error {
 	if check.IfNil(mscc.trieSyncStatistics) {
 		return errors.ErrNilTrieSyncStatistics
 	}
+	if check.IfNil(mscc.appStatusHandler) {
+		return errors.ErrNilAppStatusHandler
+	}
+	if check.IfNil(mscc.statusMetrics) {
+		return errors.ErrNilStatusMetrics
+	}
+	if check.IfNil(mscc.persistentHandler) {
+		return errors.ErrNilPersistentHandler
+	}
 
 	return nil
 }
@@ -120,6 +131,42 @@ func (mscc *managedStatusCoreComponents) TrieSyncStatistics() factory.TrieSyncSt
 	}
 
 	return mscc.statusCoreComponents.trieSyncStatistics
+}
+
+// AppStatusHandler returns the app status handler instance
+func (mscc *managedStatusCoreComponents) AppStatusHandler() core.AppStatusHandler {
+	mscc.mutCoreComponents.RLock()
+	defer mscc.mutCoreComponents.RUnlock()
+
+	if mscc.statusCoreComponents == nil {
+		return nil
+	}
+
+	return mscc.statusCoreComponents.appStatusHandler
+}
+
+// StatusMetrics returns the status metrics instance
+func (mscc *managedStatusCoreComponents) StatusMetrics() external.StatusMetricsHandler {
+	mscc.mutCoreComponents.RLock()
+	defer mscc.mutCoreComponents.RUnlock()
+
+	if mscc.statusCoreComponents == nil {
+		return nil
+	}
+
+	return mscc.statusCoreComponents.statusMetrics
+}
+
+// PersistentStatusHandler returns the persistent handler instance
+func (mscc *managedStatusCoreComponents) PersistentStatusHandler() factory.PersistentStatusHandler {
+	mscc.mutCoreComponents.RLock()
+	defer mscc.mutCoreComponents.RUnlock()
+
+	if mscc.statusCoreComponents == nil {
+		return nil
+	}
+
+	return mscc.statusCoreComponents.persistentHandler
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

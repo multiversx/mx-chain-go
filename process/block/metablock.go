@@ -14,10 +14,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/headerVersionData"
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	processOutport "github.com/ElrondNetwork/elrond-go/outport/process"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
@@ -28,7 +28,7 @@ const firstHeaderNonce = uint64(1)
 
 var _ process.BlockProcessor = (*metaProcessor)(nil)
 
-// metaProcessor implements metaProcessor interface and actually it tries to execute block
+// metaProcessor implements metaProcessor interface, and actually it tries to execute block
 type metaProcessor struct {
 	*baseProcessor
 	scToProtocol                 process.SmartContractToProtocolHandler
@@ -113,7 +113,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		nodesCoordinator:              arguments.NodesCoordinator,
 		uint64Converter:               arguments.CoreComponents.Uint64ByteSliceConverter(),
 		requestHandler:                arguments.RequestHandler,
-		appStatusHandler:              arguments.CoreComponents.StatusHandler(),
+		appStatusHandler:              arguments.StatusCoreComponents.AppStatusHandler(),
 		blockChainHook:                arguments.BlockChainHook,
 		txCoordinator:                 arguments.TxCoordinator,
 		epochStartTrigger:             arguments.EpochStartTrigger,
@@ -143,6 +143,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		processedMiniBlocksTracker:    arguments.ProcessedMiniBlocksTracker,
 		receiptsRepository:            arguments.ReceiptsRepository,
 		processDebugger:               processDebugger,
+		outportDataProvider:           arguments.OutportDataProvider,
 	}
 
 	mp := metaProcessor{
@@ -620,75 +621,22 @@ func (mp *metaProcessor) indexBlock(
 	}
 
 	log.Debug("preparing to index block", "hash", headerHash, "nonce", metaBlock.GetNonce(), "round", metaBlock.GetRound())
-
-	pool := &indexer.Pool{
-		Txs:     mp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock),
-		Scrs:    mp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock),
-		Rewards: rewardsTxs,
-		Logs:    mp.txCoordinator.GetAllCurrentLogs(),
-	}
-
-	publicKeys, err := mp.nodesCoordinator.GetConsensusValidatorsPublicKeys(
-		metaBlock.GetPrevRandSeed(), metaBlock.GetRound(), core.MetachainShardId, metaBlock.GetEpoch(),
-	)
-	if err != nil {
-		log.Debug("indexBlock: GetConsensusValidatorsPublicKeys",
-			"hash", headerHash,
-			"epoch", metaBlock.GetEpoch(),
-			"error", err.Error())
-		return
-	}
-
-	epoch := metaBlock.GetEpoch()
-	shardCoordinatorShardID := mp.shardCoordinator.SelfId()
-	nodesCoordinatorShardID, err := mp.nodesCoordinator.ShardIdForEpoch(epoch)
-	if err != nil {
-		log.Debug("indexBlock",
-			"epoch", epoch,
-			"error", err.Error())
-		return
-	}
-
-	if shardCoordinatorShardID != nodesCoordinatorShardID {
-		log.Debug("indexBlock",
-			"epoch", epoch,
-			"shardCoordinator.ShardID", shardCoordinatorShardID,
-			"nodesCoordinator.ShardID", nodesCoordinatorShardID)
-		return
-	}
-
-	signersIndexes, err := mp.nodesCoordinator.GetValidatorsIndexes(publicKeys, epoch)
-	if err != nil {
-		log.Debug("indexBlock: GetValidatorsIndexes",
-			"hash", headerHash,
-			"epoch", metaBlock.GetEpoch(),
-			"error", err.Error())
-		return
-	}
-
-	gasProvidedInHeader := mp.baseProcessor.gasConsumedProvider.TotalGasProvidedWithScheduled()
-	gasPenalizedInHeader := mp.baseProcessor.gasConsumedProvider.TotalGasPenalized()
-	gasRefundedInHeader := mp.baseProcessor.gasConsumedProvider.TotalGasRefunded()
-	maxGasInHeader := mp.baseProcessor.economicsData.MaxGasLimitPerBlock(mp.shardCoordinator.SelfId())
-
-	args := &indexer.ArgsSaveBlockData{
-		HeaderHash:     headerHash,
-		Body:           body,
-		Header:         metaBlock,
-		SignersIndexes: signersIndexes,
-		HeaderGasConsumption: indexer.HeaderGasConsumption{
-			GasProvided:    gasProvidedInHeader,
-			GasRefunded:    gasRefundedInHeader,
-			GasPenalized:   gasPenalizedInHeader,
-			MaxGasPerBlock: maxGasInHeader,
-		},
+	argSaveBlock, err := mp.outportDataProvider.PrepareOutportSaveBlockData(processOutport.ArgPrepareOutportSaveBlockData{
+		HeaderHash:             headerHash,
+		Header:                 metaBlock,
+		Body:                   body,
+		RewardsTxs:             rewardsTxs,
 		NotarizedHeadersHashes: notarizedHeadersHashes,
-		TransactionsPool:       pool,
+		PreviousHeader:         lastMetaBlock,
+	})
+	if err != nil {
+		log.Warn("metaProcessor.indexBlock cannot prepare argSaveBlock", "error", err.Error())
+		return
 	}
-	mp.outportHandler.SaveBlock(args)
+	mp.outportHandler.SaveBlock(argSaveBlock)
 	log.Debug("indexed block", "hash", headerHash, "nonce", metaBlock.GetNonce(), "round", metaBlock.GetRound())
 
-	indexRoundInfo(mp.outportHandler, mp.nodesCoordinator, core.MetachainShardId, metaBlock, lastMetaBlock, signersIndexes)
+	indexRoundInfo(mp.outportHandler, mp.nodesCoordinator, core.MetachainShardId, metaBlock, lastMetaBlock, argSaveBlock.SignersIndexes)
 
 	if metaBlock.GetNonce() != 1 && !metaBlock.IsStartOfEpochBlock() {
 		return
@@ -1276,7 +1224,7 @@ func (mp *metaProcessor) CommitBlock(
 		"round", headerHandler.GetRound(),
 		"nonce", headerHandler.GetNonce(),
 		"hash", headerHash)
-
+	mp.setNonceOfFirstCommittedBlock(headerHandler.GetNonce())
 	mp.updateLastCommittedInDebugger(headerHandler.GetRound())
 
 	notarizedHeadersHashes, errNotCritical := mp.updateCrossShardInfo(header)

@@ -50,6 +50,7 @@ func NewValidatorAccountsSyncer(args ArgsNewValidatorAccountsSyncer) (*validator
 		checkNodesOnDisk:                  args.CheckNodesOnDisk,
 		storageMarker:                     args.StorageMarker,
 		userAccountsSyncStatisticsHandler: statistics.NewTrieSyncStatistics(),
+		appStatusHandler:                  args.AppStatusHandler,
 	}
 
 	u := &validatorAccountsSyncer{
@@ -72,7 +73,7 @@ func (v *validatorAccountsSyncer) SyncAccounts(rootHash []byte) error {
 		cancel()
 	}()
 
-	go v.printStatistics(ctx)
+	go v.printStatisticsAndUpdateMetrics(ctx)
 
 	mainTrie, err := v.syncMainTrie(rootHash, factory.ValidatorTrieNodesTopic, ctx)
 	if err != nil {

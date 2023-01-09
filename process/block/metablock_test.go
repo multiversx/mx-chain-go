@@ -27,7 +27,9 @@ import (
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	"github.com/ElrondNetwork/elrond-go/testscommon/factory"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/outport"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
@@ -73,7 +75,7 @@ func createMockComponentHolders() (
 	}
 
 	statusComponents := &mock.StatusComponentsMock{
-		Outport: &testscommon.OutportStub{},
+		Outport: &outport.OutportStub{},
 	}
 
 	return coreComponents, dataComponents, boostrapComponents, statusComponents
@@ -111,22 +113,27 @@ func createMockMetaArguments(
 		},
 	}
 
+	statusCoreComponents := &factory.StatusCoreComponentsStub{
+		AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{},
+	}
+
 	arguments := blproc.ArgMetaProcessor{
 		ArgBaseProcessor: blproc.ArgBaseProcessor{
-			CoreComponents:      coreComponents,
-			DataComponents:      dataComponents,
-			BootstrapComponents: bootstrapComponents,
-			StatusComponents:    statusComponents,
-			AccountsDB:          accountsDb,
-			ForkDetector:        &mock.ForkDetectorMock{},
-			NodesCoordinator:    shardingMocks.NewNodesCoordinatorMock(),
-			FeeHandler:          &mock.FeeAccumulatorStub{},
-			RequestHandler:      &testscommon.RequestHandlerStub{},
-			BlockChainHook:      &testscommon.BlockChainHookStub{},
-			TxCoordinator:       &mock.TransactionCoordinatorMock{},
-			EpochStartTrigger:   &mock.EpochStartTriggerStub{},
-			HeaderValidator:     headerValidator,
-			GasHandler:          &mock.GasHandlerMock{},
+			CoreComponents:       coreComponents,
+			DataComponents:       dataComponents,
+			BootstrapComponents:  bootstrapComponents,
+			StatusComponents:     statusComponents,
+			StatusCoreComponents: statusCoreComponents,
+			AccountsDB:           accountsDb,
+			ForkDetector:         &mock.ForkDetectorMock{},
+			NodesCoordinator:     shardingMocks.NewNodesCoordinatorMock(),
+			FeeHandler:           &mock.FeeAccumulatorStub{},
+			RequestHandler:       &testscommon.RequestHandlerStub{},
+			BlockChainHook:       &testscommon.BlockChainHookStub{},
+			TxCoordinator:        &testscommon.TransactionCoordinatorMock{},
+			EpochStartTrigger:    &mock.EpochStartTriggerStub{},
+			HeaderValidator:      headerValidator,
+			GasHandler:           &mock.GasHandlerMock{},
 			BootStorer: &mock.BoostrapStorerMock{
 				PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
 					return nil
@@ -138,6 +145,7 @@ func createMockMetaArguments(
 			ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 			ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 			ReceiptsRepository:           &testscommon.ReceiptsRepositoryStub{},
+			OutportDataProvider:          &outport.OutportDataProviderStub{},
 		},
 		SCToProtocol:                 &mock.SCToProtocolStub{},
 		PendingMiniBlocksHandler:     &mock.PendingMiniBlocksHandlerStub{},
@@ -831,8 +839,14 @@ func TestMetaProcessor_CommitBlockMarshalizerFailForHeaderShouldErr(t *testing.T
 	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	arguments.AccountsDB[state.UserAccountsState] = accounts
 	mp, _ := blproc.NewMetaProcessor(arguments)
+	expectedFirstNonce := core.OptionalUint64{
+		HasValue: false,
+	}
+	assert.Equal(t, expectedFirstNonce, mp.NonceOfFirstCommittedBlock())
 	err := mp.CommitBlock(hdr, body)
+
 	assert.Equal(t, errMarshalizer, err)
+	assert.Equal(t, expectedFirstNonce, mp.NonceOfFirstCommittedBlock())
 }
 
 func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldNotReturnError(t *testing.T) {
@@ -903,11 +917,19 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldNotReturnError(t *t
 	}
 
 	mp.SetHdrForCurrentBlock([]byte("hdr_hash1"), &block.Header{}, true)
+	expectedFirstNonce := core.OptionalUint64{
+		HasValue: false,
+	}
+	assert.Equal(t, expectedFirstNonce, mp.NonceOfFirstCommittedBlock())
 	err := mp.CommitBlock(hdr, body)
 	wg.Wait()
 	assert.True(t, wasCalled)
 	assert.Nil(t, err)
 	assert.True(t, statusBusySet && statusIdleSet)
+
+	expectedFirstNonce.HasValue = true
+	expectedFirstNonce.Value = hdr.Nonce
+	assert.Equal(t, expectedFirstNonce, mp.NonceOfFirstCommittedBlock())
 }
 
 func TestMetaProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
@@ -2500,7 +2522,7 @@ func TestMetaProcessor_CreateMiniBlocksDestMe(t *testing.T) {
 		return cs
 	}
 
-	txCoordinator := &mock.TransactionCoordinatorMock{
+	txCoordinator := &testscommon.TransactionCoordinatorMock{
 		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (slices block.MiniBlockSlice, u uint32, b bool, err error) {
 			return block.MiniBlockSlice{expectedMiniBlock1}, 0, true, nil
 		},
@@ -2667,7 +2689,7 @@ func TestMetaProcessor_VerifyCrossShardMiniBlocksDstMe(t *testing.T) {
 		return cs
 	}
 
-	txCoordinator := &mock.TransactionCoordinatorMock{
+	txCoordinator := &testscommon.TransactionCoordinatorMock{
 		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (slices block.MiniBlockSlice, u uint32, b bool, err error) {
 			return block.MiniBlockSlice{miniBlock1}, 0, true, nil
 		},
@@ -2789,7 +2811,7 @@ func TestMetaProcessor_CreateBlockCreateHeaderProcessBlock(t *testing.T) {
 		return cs
 	}
 
-	txCoordinator := &mock.TransactionCoordinatorMock{
+	txCoordinator := &testscommon.TransactionCoordinatorMock{
 		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (slices block.MiniBlockSlice, u uint32, b bool, err error) {
 			return block.MiniBlockSlice{miniBlock1}, 0, true, nil
 		},
@@ -2935,7 +2957,7 @@ func TestMetaProcessor_CreateAndProcessBlockCallsProcessAfterFirstEpoch(t *testi
 		return cs
 	}
 
-	txCoordinator := &mock.TransactionCoordinatorMock{
+	txCoordinator := &testscommon.TransactionCoordinatorMock{
 		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (slices block.MiniBlockSlice, u uint32, b bool, err error) {
 			return block.MiniBlockSlice{miniBlock1}, 0, true, nil
 		},

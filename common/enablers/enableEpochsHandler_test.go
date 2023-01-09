@@ -86,6 +86,9 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		CheckExecuteOnReadOnlyEnableEpoch:                 70,
 		FixAsyncCallBackArgsListEnableEpoch:               71,
 		FixOldTokenLiquidityEnableEpoch:                   72,
+		RuntimeMemStoreLimitEnableEpoch:                   73,
+		MaxBlockchainHookCountersEnableEpoch:              74,
+		WipeSingleNFTLiquidityDecreaseEnableEpoch:         75,
 	}
 }
 
@@ -204,6 +207,8 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsCheckExecuteOnReadOnlyFlagEnabled())
 		assert.True(t, handler.IsChangeDelegationOwnerFlagEnabled())
 		assert.True(t, handler.IsFixOldTokenLiquidityEnabled())
+		assert.True(t, handler.IsRuntimeMemStoreLimitEnabled())
+		assert.True(t, handler.IsMaxBlockchainHookCountersFlagEnabled())
 	})
 	t.Run("flags with == condition should be set, along with all >=", func(t *testing.T) {
 		t.Parallel()
@@ -299,6 +304,9 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsChangeDelegationOwnerFlagEnabled())
 		assert.True(t, handler.IsFixAsyncCallBackArgsListFlagEnabled())
 		assert.True(t, handler.IsFixOldTokenLiquidityEnabled())
+		assert.True(t, handler.IsRuntimeMemStoreLimitEnabled())
+		assert.True(t, handler.IsMaxBlockchainHookCountersFlagEnabled())
+		assert.True(t, handler.IsWipeSingleNFTLiquidityDecreaseEnabled())
 	})
 	t.Run("flags with < should be set", func(t *testing.T) {
 		t.Parallel()
@@ -389,5 +397,8 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.False(t, handler.IsChangeDelegationOwnerFlagEnabled())
 		assert.False(t, handler.IsFixAsyncCallBackArgsListFlagEnabled())
 		assert.False(t, handler.IsFixOldTokenLiquidityEnabled())
+		assert.False(t, handler.IsRuntimeMemStoreLimitEnabled())
+		assert.False(t, handler.IsMaxBlockchainHookCountersFlagEnabled())
+		assert.False(t, handler.IsWipeSingleNFTLiquidityDecreaseEnabled())
 	})
 }

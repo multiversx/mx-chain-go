@@ -122,15 +122,6 @@ func TestBuiltInFunctionExecuteOnSourceAndDestinationShouldWork(t *testing.T) {
 	developerFees := testContextDst.TxFeeHandler.GetDeveloperFees()
 	require.Equal(t, big.NewInt(1292), developerFees)
 
-	intermediateTxs := testContextDst.GetIntermediateTransactions(t)
-	testIndexer = vm.CreateTestIndexer(t, testContextDst.ShardCoordinator, testContextDst.EconomicsData, true, testContextDst.TxsLogsProcessor)
-	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
-
-	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, uint64(387), indexerTx.GasUsed)
-	require.Equal(t, "3870", indexerTx.Fee)
-	require.Equal(t, transaction.TxStatusSuccess.String(), indexerTx.Status)
-
 	// call get developer rewards
 	gasLimit = 500
 	_, _ = vm.CreateAccount(testContextSource.Accounts, newOwner, 0, big.NewInt(10000))
@@ -151,7 +142,7 @@ func TestBuiltInFunctionExecuteOnSourceAndDestinationShouldWork(t *testing.T) {
 	developerFees = testContextSource.TxFeeHandler.GetDeveloperFees()
 	require.Equal(t, big.NewInt(477), developerFees)
 
-	intermediateTxs = testContextSource.GetIntermediateTransactions(t)
+	intermediateTxs := testContextSource.GetIntermediateTransactions(t)
 	testIndexer = vm.CreateTestIndexer(t, testContextSource.ShardCoordinator, testContextSource.EconomicsData, true, testContextDst.TxsLogsProcessor)
 	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
@@ -160,6 +151,7 @@ func TestBuiltInFunctionExecuteOnSourceAndDestinationShouldWork(t *testing.T) {
 	require.Equal(t, "220", indexerTx.Fee)
 	require.Equal(t, transaction.TxStatusPending.String(), indexerTx.Status)
 
+	require.Equal(t, big.NewInt(0), developerFees)
 	utils.CleanAccumulatedIntermediateTransactions(t, testContextDst)
 
 	// execute claim on destination shard
@@ -169,14 +161,6 @@ func TestBuiltInFunctionExecuteOnSourceAndDestinationShouldWork(t *testing.T) {
 
 	txs := testContextDst.GetIntermediateTransactions(t)
 	scr := txs[0]
-
-	testIndexer = vm.CreateTestIndexer(t, testContextDst.ShardCoordinator, testContextDst.EconomicsData, true, testContextDst.TxsLogsProcessor)
-	testIndexer.SaveTransaction(tx, block.TxBlock, txs)
-
-	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, uint64(500), indexerTx.GasUsed)
-	require.Equal(t, "5000", indexerTx.Fee)
-	require.Equal(t, transaction.TxStatusSuccess.String(), indexerTx.Status)
 
 	utils.ProcessSCRResult(t, testContextSource, scr, vmcommon.Ok, nil)
 

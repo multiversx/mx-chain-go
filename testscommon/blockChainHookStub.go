@@ -44,6 +44,8 @@ type BlockChainHookStub struct {
 	CloseCalled                          func() error
 	FilterCodeMetadataForUpgradeCalled   func(input []byte) ([]byte, error)
 	ApplyFiltersOnCodeMetadataCalled     func(codeMetadata vmcommon.CodeMetadata) vmcommon.CodeMetadata
+	ResetCountersCalled                  func()
+	GetCounterValuesCalled               func() map[string]uint64
 	IsBuiltinFunctionNameCalled          func(functionName string)
 	IsPausedCalled                       func(_ []byte) bool
 	IsLimitedTransferCalled              func(_ []byte) bool
@@ -363,6 +365,22 @@ func (stub *BlockChainHookStub) Close() error {
 	}
 
 	return nil
+}
+
+// ResetCounters -
+func (stub *BlockChainHookStub) ResetCounters() {
+	if stub.ResetCountersCalled != nil {
+		stub.ResetCountersCalled()
+	}
+}
+
+// GetCounterValues -
+func (stub *BlockChainHookStub) GetCounterValues() map[string]uint64 {
+	if stub.GetCounterValuesCalled != nil {
+		return stub.GetCounterValuesCalled()
+	}
+
+	return make(map[string]uint64)
 }
 
 // IsInterfaceNil -

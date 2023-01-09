@@ -15,7 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
-	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
@@ -38,7 +37,6 @@ func GetDefaultCoreComponents() *mock.CoreComponentsMock {
 		MinTransactionVersionCalled: func() uint32 {
 			return 1
 		},
-		AppStatusHdl:          &statusHandlerMock.AppStatusHandlerStub{},
 		WatchdogTimer:         &testscommon.WatchdogMock{},
 		AlarmSch:              &testscommon.AlarmSchedulerStub{},
 		NtpSyncTimer:          &testscommon.SyncTimerStub{},
@@ -57,6 +55,9 @@ func GetDefaultCryptoComponents() *mock.CryptoComponentsMock {
 	return &mock.CryptoComponentsMock{
 		PubKey:            &mock.PublicKeyMock{},
 		PrivKey:           &mock.PrivateKeyStub{},
+		P2pPubKey:         &mock.PublicKeyMock{},
+		P2pPrivKey:        mock.NewP2pPrivateKeyMock(),
+		P2pSig:            &mock.SinglesignMock{},
 		PubKeyString:      "pubKey",
 		PrivKeyBytes:      []byte("privKey"),
 		PubKeyBytes:       []byte("pubKey"),
@@ -66,6 +67,7 @@ func GetDefaultCryptoComponents() *mock.CryptoComponentsMock {
 		PeerSignHandler:   &mock.PeerSignatureHandler{},
 		BlKeyGen:          &mock.KeyGenMock{},
 		TxKeyGen:          &mock.KeyGenMock{},
+		P2PKeyGen:         &mock.KeyGenMock{},
 		MsgSigVerifier:    &testscommon.MessageSignVerifierMock{},
 	}
 }
@@ -115,7 +117,7 @@ func GetDefaultProcessComponents(shardCoordinator sharding.Coordinator) *mock.Pr
 		EpochTrigger:             &testscommon.EpochStartTriggerStub{},
 		EpochNotifier:            &mock.EpochStartNotifierStub{},
 		ForkDetect:               &mock.ForkDetectorMock{},
-		BlockProcess:             &mock.BlockProcessorStub{},
+		BlockProcess:             &testscommon.BlockProcessorStub{},
 		BlackListHdl:             &testscommon.TimeCacheStub{},
 		BootSore:                 &mock.BootstrapStorerMock{},
 		HeaderSigVerif:           &mock.HeaderSigVerifierStub{},

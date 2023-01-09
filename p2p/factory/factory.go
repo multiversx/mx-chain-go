@@ -1,7 +1,10 @@
 package factory
 
 import (
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-p2p/libp2p"
+	p2pCrypto "github.com/ElrondNetwork/elrond-go-p2p/libp2p/crypto"
 	"github.com/ElrondNetwork/elrond-go-p2p/message"
 	"github.com/ElrondNetwork/elrond-go-p2p/peersHolder"
 	"github.com/ElrondNetwork/elrond-go-p2p/rating"
@@ -36,4 +39,9 @@ func NewPeersRatingHandler(args ArgPeersRatingHandler) (p2p.PeersRatingHandler, 
 // NewPeersHolder returns a new instance of peersHolder
 func NewPeersHolder(preferredConnectionAddresses []string) (p2p.PreferredPeersHolderHandler, error) {
 	return peersHolder.NewPeersHolder(preferredConnectionAddresses)
+}
+
+// ConvertPublicKeyToPeerID will convert a public key to core.PeerID
+func ConvertPublicKeyToPeerID(pk crypto.PublicKey) (core.PeerID, error) {
+	return p2pCrypto.ConvertPublicKeyToPeerID(pk)
 }
