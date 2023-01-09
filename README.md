@@ -184,7 +184,7 @@ Please make sure your contributions adhere to our coding guidelines:
  - Code must be documented adhering to the official Go [commentary](https://golang.org/doc/effective_go.html#commentary) guidelines.
  - Pull requests need to be based on and opened against the master branch.
  - Commit messages should be prefixed with the package(s) they modify.
-    - E.g. "core/indexer: fixed a typo"
+    - E.g. "outport/process: fixed a typo"
 
-Please see the [documentation](https://docs.multiversx.com/) for more details on the MultiversX projects.
+Please see the [documentation](https://docs.multiversx.com/) for more details on the MultiversX protocol.
 
