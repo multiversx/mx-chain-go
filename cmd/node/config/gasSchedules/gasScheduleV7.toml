@@ -693,13 +693,15 @@
     MaxNumberOfTransfersPerTx = 100
     MaxNumberOfTrieReadsPerTx = 100
 
-# A, B and C are the coefficients for a quadratic func. Separate variables are used for the
+# Quadratic, Linear and Constant are the coefficients for a quadratic func. Separate variables are used for the
 # sign of each coefficient, 0 meaning + and 1 meaning -
-# The current values for the coefficients were computed based on benchmarking
+# The current values for the coefficients were computed based on benchmarking.
+# For the given coefficients, the minimum of the function must not be lower than MinimumGasCost
 [DynamicStorageLoad]
-    A = 687
-    SignOfA = 0
-    B = 30483
-    SignOfB = 0
-    C = 15883
-    SignOfC = 1
+    QuadraticCoefficient = 687
+    SignOfQuadratic = 0
+    LinearCoefficient = 30483
+    SignOfLinear = 0
+    ConstantCoefficient = 15883
+    SignOfConstant = 1
+    MinimumGasCost = 10000
