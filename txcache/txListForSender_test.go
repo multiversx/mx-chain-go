@@ -4,8 +4,8 @@ import (
 	"math"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-storage/testscommon/txcachemocks"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go-storage/testscommon/txcachemocks"
 	"github.com/stretchr/testify/require"
 )
 

@@ -3,8 +3,8 @@ package txcache
 import (
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
-	"github.com/ElrondNetwork/elrond-go-storage/txcache/maps"
+	"github.com/multiversx/mx-chain-core-go/core/atomic"
+	"github.com/multiversx/mx-chain-go-storage/txcache/maps"
 )
 
 const numberOfScoreChunks = uint32(100)
