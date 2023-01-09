@@ -114,6 +114,7 @@ type EnableEpochsHandlerStub struct {
 	IsFixOldTokenLiquidityEnabledField                           bool
 	IsRuntimeMemStoreLimitEnabledField                           bool
 	IsMaxBlockchainHookCountersFlagEnabledField                  bool
+	IsWipeSingleNFTLiquidityDecreaseEnabledField                 bool
 	IsDynamicGasCostForDataTrieStorageLoadEnabledField           bool
 }
 
@@ -994,6 +995,14 @@ func (stub *EnableEpochsHandlerStub) IsDynamicGasCostForDataTrieStorageLoadEnabl
 	defer stub.RUnlock()
 
 	return stub.IsMaxBlockchainHookCountersFlagEnabledField
+}
+
+// IsWipeSingleNFTLiquidityDecreaseEnabled -
+func (stub *EnableEpochsHandlerStub) IsWipeSingleNFTLiquidityDecreaseEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsWipeSingleNFTLiquidityDecreaseEnabledField
 }
 
 // IsInterfaceNil -

@@ -551,6 +551,11 @@ func (mock *EnableEpochsHandlerMock) IsMaxBlockchainHookCountersFlagEnabled() bo
 	return false
 }
 
+// IsWipeSingleNFTLiquidityDecreaseEnabled -
+func (mock *EnableEpochsHandlerMock) IsWipeSingleNFTLiquidityDecreaseEnabled() bool {
+	return false
+}
+
 // IsDynamicGasCostForDataTrieStorageLoadEnabled -
 func (mock *EnableEpochsHandlerMock) IsDynamicGasCostForDataTrieStorageLoadEnabled() bool {
 	return false

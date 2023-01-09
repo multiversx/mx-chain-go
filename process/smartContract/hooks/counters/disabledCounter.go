@@ -26,6 +26,11 @@ func (counter *disabledCounter) ResetCounters() {}
 // SetMaximumValues does nothing
 func (counter *disabledCounter) SetMaximumValues(_ map[string]uint64) {}
 
+// GetCounterValues returns an empty map
+func (counter *disabledCounter) GetCounterValues() map[string]uint64 {
+	return make(map[string]uint64)
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (counter *disabledCounter) IsInterfaceNil() bool {
 	return counter == nil
