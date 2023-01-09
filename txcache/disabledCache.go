@@ -1,7 +1,7 @@
 package txcache
 
 import (
-	"github.com/ElrondNetwork/elrond-go-storage/types"
+	"github.com/multiversx/mx-chain-go-storage/types"
 )
 
 var _ types.Cacher = (*DisabledCache)(nil)
