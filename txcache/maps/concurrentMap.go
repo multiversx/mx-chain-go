@@ -5,7 +5,7 @@ import (
 )
 
 // This implementation is a simplified version of:
-// https://github.com/ElrondNetwork/concurrent-map, which is based on:
+// https://github.com/multiversx/concurrent-map, which is based on:
 // https://github.com/orcaman/concurrent-map
 
 // ConcurrentMap is a thread safe map of type string:Anything.
