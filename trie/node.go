@@ -119,7 +119,7 @@ func getNodeFromDBAndDecode(n []byte, db common.DBWriteCacher, marshalizer marsh
 	if err != nil {
 		dbWithID, ok := db.(dbWriteCacherWithIdentifier)
 		if !ok {
-			log.Warn("wrong type assertion on", common.GetNodeFromDBErrorString, "error", err, "key", n)
+			log.Trace("wrong type assertion on", common.GetNodeFromDBErrorString, "error", err, "key", n)
 			return nil, errors.NewGetNodeFromDBErrWithKey(n, err, "")
 		}
 
