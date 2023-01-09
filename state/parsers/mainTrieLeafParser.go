@@ -3,6 +3,7 @@ package parsers
 import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/keyValStorage"
+	"github.com/ElrondNetwork/elrond-go/common"
 )
 
 type mainTrieLeafParser struct {
@@ -14,7 +15,7 @@ func NewMainTrieLeafParser() *mainTrieLeafParser {
 }
 
 // ParseLeaf returns the given key an value as a KeyValStorage
-func (tlp *mainTrieLeafParser) ParseLeaf(trieKey []byte, trieVal []byte) (core.KeyValueHolder, error) {
+func (tlp *mainTrieLeafParser) ParseLeaf(trieKey []byte, trieVal []byte, _ common.TrieNodeVersion) (core.KeyValueHolder, error) {
 	return keyValStorage.NewKeyValStorage(trieKey, trieVal), nil
 }
 

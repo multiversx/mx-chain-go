@@ -482,7 +482,12 @@ func (ln *leafNode) getAllLeavesOnChannel(
 		return err
 	}
 
-	trieLeaf, err := trieLeafParser.ParseLeaf(nodeKey, ln.Value)
+	version, err := ln.getVersion()
+	if err != nil {
+		return err
+	}
+
+	trieLeaf, err := trieLeafParser.ParseLeaf(nodeKey, ln.Value, version)
 	if err != nil {
 		return err
 	}

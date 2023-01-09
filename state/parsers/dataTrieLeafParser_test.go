@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/state/dataTrieValue"
 	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
@@ -54,7 +55,7 @@ func TestTrieLeafParser_ParseLeaf(t *testing.T) {
 		suffix := append(key, address...)
 		tlp, _ := NewDataTrieLeafParser(address, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 
-		keyVal, err := tlp.ParseLeaf(key, append(val, suffix...))
+		keyVal, err := tlp.ParseLeaf(key, append(val, suffix...), common.NotSpecified)
 		assert.Nil(t, err)
 		assert.Equal(t, key, keyVal.Key())
 		assert.Equal(t, val, keyVal.Value())
@@ -72,7 +73,7 @@ func TestTrieLeafParser_ParseLeaf(t *testing.T) {
 		}
 		tlp, _ := NewDataTrieLeafParser(address, &marshallerMock.MarshalizerMock{}, enableEpochsHandler)
 
-		keyVal, err := tlp.ParseLeaf(key, append(val, suffix...))
+		keyVal, err := tlp.ParseLeaf(key, append(val, suffix...), common.NotSpecified)
 		assert.Nil(t, err)
 		assert.Equal(t, key, keyVal.Key())
 		assert.Equal(t, val, keyVal.Value())
@@ -97,7 +98,7 @@ func TestTrieLeafParser_ParseLeaf(t *testing.T) {
 		}
 		tlp, _ := NewDataTrieLeafParser(address, marshaller, enableEpochsHandler)
 
-		keyVal, err := tlp.ParseLeaf(hasher.Compute(string(key)), serializedLeafData)
+		keyVal, err := tlp.ParseLeaf(hasher.Compute(string(key)), serializedLeafData, common.AutoBalanceEnabled)
 		assert.Nil(t, err)
 		assert.Equal(t, key, keyVal.Key())
 		assert.Equal(t, val, keyVal.Value())
@@ -121,7 +122,7 @@ func TestTrieLeafParser_ParseLeaf(t *testing.T) {
 		}
 		tlp, _ := NewDataTrieLeafParser(addrBytes, marshaller, enableEpochsHandler)
 
-		keyVal, err := tlp.ParseLeaf(keyBytes, valWithAppendedData)
+		keyVal, err := tlp.ParseLeaf(keyBytes, valWithAppendedData, common.NotSpecified)
 		assert.Nil(t, err)
 		assert.Equal(t, keyBytes, keyVal.Key())
 		assert.Equal(t, valBytes, keyVal.Value())
