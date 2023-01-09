@@ -5,9 +5,9 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-go-storage/common"
-	"github.com/multiversx/mx-chain-go-storage/monitoring"
-	"github.com/multiversx/mx-chain-go-storage/types"
+	"github.com/multiversx/mx-chain-storage-go/common"
+	"github.com/multiversx/mx-chain-storage-go/monitoring"
+	"github.com/multiversx/mx-chain-storage-go/types"
 )
 
 var _ types.Cacher = (*TxCache)(nil)
