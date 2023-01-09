@@ -2,7 +2,7 @@ package txcache
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
-	"github.com/multiversx/mx-chain-go-storage/txcache/maps"
+	"github.com/multiversx/mx-chain-storage-go/txcache/maps"
 )
 
 // txByHashMap is a new map-like structure for holding and accessing transactions by txHash

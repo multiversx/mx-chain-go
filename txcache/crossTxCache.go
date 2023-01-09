@@ -1,8 +1,8 @@
 package txcache
 
 import (
-	"github.com/multiversx/mx-chain-go-storage/immunitycache"
-	"github.com/multiversx/mx-chain-go-storage/types"
+	"github.com/multiversx/mx-chain-storage-go/immunitycache"
+	"github.com/multiversx/mx-chain-storage-go/types"
 )
 
 var _ types.Cacher = (*CrossTxCache)(nil)
