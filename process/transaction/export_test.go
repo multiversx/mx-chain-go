@@ -87,11 +87,3 @@ func (inTx *InterceptedTransaction) CheckMaxGasPrice() error {
 func (txProc *txProcessor) VerifyGuardian(tx *transaction.Transaction, account state.UserAccountHandler) error {
 	return txProc.verifyGuardian(tx, account)
 }
-
-func (txProc *txProcessor) CheckGuardedAccountUnguardedTxPermissions(txData []byte, account state.UserAccountHandler) error {
-	return txProc.checkGuardedAccountUnguardedTxPermission(txData, account)
-}
-
-func CheckOperationAllowedToBypassGuardian(txData []byte) error {
-	return checkOperationAllowedToBypassGuardian(txData)
-}

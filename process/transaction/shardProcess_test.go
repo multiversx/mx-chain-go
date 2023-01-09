@@ -29,7 +29,6 @@ import (
 	"github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func generateRandomByteSlice(size int) []byte {
@@ -3240,23 +3239,4 @@ func TestTxProcessor_ExecuteFailingRelayedTxShouldNotHaveNegativeFee(t *testing.
 	err := execTx.ExecuteFailedRelayedTransaction(&userTx, tx.SndAddr, tx.Value, tx.Nonce, &tx, txHash, "")
 	assert.Nil(t, err)
 	assert.False(t, negativeCost)
-}
-
-func Test_checkOperationAllowedToBypassGuardian(t *testing.T) {
-	t.Run("operations not allowed to bypass", func(t *testing.T) {
-		txData := []byte("#@!")
-		require.Equal(t, process.ErrOperationNotPermitted, txproc.CheckOperationAllowedToBypassGuardian(txData))
-		txData = []byte(nil)
-		require.Equal(t, process.ErrOperationNotPermitted, txproc.CheckOperationAllowedToBypassGuardian(txData))
-		txData = []byte("SomeOtherFunction@")
-		require.Equal(t, process.ErrOperationNotPermitted, txproc.CheckOperationAllowedToBypassGuardian(txData))
-	})
-	t.Run("setGuardian data field (non builtin call) not allowed", func(t *testing.T) {
-		txData := []byte("setGuardian")
-		require.Equal(t, process.ErrOperationNotPermitted, txproc.CheckOperationAllowedToBypassGuardian(txData))
-	})
-	t.Run("set guardian builtin call allowed to bypass", func(t *testing.T) {
-		txData := []byte("SetGuardian@")
-		require.Nil(t, txproc.CheckOperationAllowedToBypassGuardian(txData))
-	})
 }
