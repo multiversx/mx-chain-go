@@ -79,7 +79,11 @@ func CreateInMemoryShardAccountsDB() *state.AccountsDB {
 
 // CreateAccountsDB -
 func CreateAccountsDB(db storage.Storer) *state.AccountsDB {
-	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, database.NewMemDB(), TestMarshalizer)
+	ewlArgs := evictionWaitingList.MemoryEvictionWaitingListArgs{
+		RootHashesSize: 100,
+		HashesSize:     10000,
+	}
+	ewl, _ := evictionWaitingList.NewMemoryEvictionWaitingList(ewlArgs)
 	generalCfg := config.TrieStorageManagerConfig{
 		PruningBufferLen:      1000,
 		SnapshotsBufferLen:    10,

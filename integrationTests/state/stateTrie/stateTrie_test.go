@@ -25,6 +25,7 @@ import (
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -33,7 +34,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager"
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/database"
 	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
@@ -1050,7 +1050,11 @@ func createAccounts(
 	store, _ := storageunit.NewStorageUnit(cache, persist)
 	evictionWaitListSize := uint(100)
 
-	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, database.NewMemDB(), integrationTests.TestMarshalizer)
+	ewlArgs := evictionWaitingList.MemoryEvictionWaitingListArgs{
+		RootHashesSize: evictionWaitListSize,
+		HashesSize:     evictionWaitListSize * 100,
+	}
+	ewl, _ := evictionWaitingList.NewMemoryEvictionWaitingList(ewlArgs)
 	args := getNewTrieStorageManagerArgs()
 	args.MainStorer = store
 	trieStorage, _ := trie.NewTrieStorageManager(args)
@@ -1528,7 +1532,7 @@ func TestTriePruningWhenBlockIsFinal(t *testing.T) {
 	require.True(t, errors.Is(err, trie.ErrKeyNotFound))
 }
 
-func TestStatePruningIsBuffered(t *testing.T) {
+func TestStatePruningIsNotBuffered(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -1544,7 +1548,6 @@ func TestStatePruningIsBuffered(t *testing.T) {
 	)
 
 	shardNode := nodes[0]
-
 	idxProposers := make([]int, numOfShards+1)
 	for i := 0; i < numOfShards; i++ {
 		idxProposers[i] = i * nodesPerShard
@@ -1559,10 +1562,7 @@ func TestStatePruningIsBuffered(t *testing.T) {
 		}
 	}()
 
-	sendValue := big.NewInt(5)
-	receiverAddress := []byte("12345678901234567890123456789012")
 	initialVal := big.NewInt(10000000000)
-
 	integrationTests.MintAllNodes(nodes, initialVal)
 
 	round := uint64(0)
@@ -1574,41 +1574,128 @@ func TestStatePruningIsBuffered(t *testing.T) {
 
 	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 
-	rootHash := shardNode.BlockChain.GetCurrentBlockHeader().GetRootHash()
-	stateTrie := shardNode.TrieContainer.Get([]byte(trieFactory.UserAccountTrie))
-
-	delayRounds := 10
-	for i := 0; i < delayRounds; i++ {
-		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
-	}
-
-	numRounds := 10
-	for i := 0; i < numRounds; i++ {
-		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
-
-		for _, node := range nodes {
-			integrationTests.CreateAndSendTransaction(node, nodes, sendValue, receiverAddress, "", integrationTests.AdditionalGasLimit)
+	delayRounds := 5
+	for j := 0; j < 8; j++ {
+		// alter the shardNode's state by placing the value0 variable inside it's data trie
+		alterState(t, shardNode, nodes, []byte("key"), []byte("value0"))
+		for i := 0; i < delayRounds; i++ {
+			round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 		}
-		time.Sleep(integrationTests.StepDelay)
+		checkTrieCanBeRecreated(t, shardNode)
 
-		tr, err := stateTrie.Recreate(rootHash)
-		require.Nil(t, err)
-		require.NotNil(t, tr)
-	}
-
-	numDelayRounds := 10
-	for i := 0; i < numDelayRounds; i++ {
-		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
-
-		for _, node := range nodes {
-			integrationTests.CreateAndSendTransaction(node, nodes, sendValue, receiverAddress, "", integrationTests.AdditionalGasLimit)
+		// alter the shardNode's state by placing the value1 variable inside it's data trie
+		alterState(t, shardNode, nodes, []byte("key"), []byte("value1"))
+		for i := 0; i < delayRounds; i++ {
+			round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 		}
-		time.Sleep(integrationTests.StepDelay)
+		checkTrieCanBeRecreated(t, shardNode)
+	}
+}
+
+func TestStatePruningIsNotBufferedOnConsecutiveBlocks(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
 	}
 
-	tr, err := stateTrie.Recreate(rootHash)
-	require.Nil(t, tr)
-	require.NotNil(t, err)
+	numOfShards := 1
+	nodesPerShard := 1
+	numMetachainNodes := 1
+
+	nodes := integrationTests.CreateNodes(
+		numOfShards,
+		nodesPerShard,
+		numMetachainNodes,
+	)
+
+	shardNode := nodes[0]
+	idxProposers := make([]int, numOfShards+1)
+	for i := 0; i < numOfShards; i++ {
+		idxProposers[i] = i * nodesPerShard
+	}
+	idxProposers[numOfShards] = numOfShards * nodesPerShard
+
+	integrationTests.DisplayAndStartNodes(nodes)
+
+	defer func() {
+		for _, n := range nodes {
+			n.Close()
+		}
+	}()
+
+	initialVal := big.NewInt(10000000000)
+	integrationTests.MintAllNodes(nodes, initialVal)
+
+	round := uint64(0)
+	nonce := uint64(0)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+
+	time.Sleep(integrationTests.StepDelay)
+
+	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+
+	for j := 0; j < 30; j++ {
+		// alter the shardNode's state by placing the value0 variable inside it's data trie
+		alterState(t, shardNode, nodes, []byte("key"), []byte("value0"))
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+		checkTrieCanBeRecreated(t, shardNode)
+
+		// alter the shardNode's state by placing the value1 variable inside it's data trie
+		alterState(t, shardNode, nodes, []byte("key"), []byte("value1"))
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+		checkTrieCanBeRecreated(t, shardNode)
+	}
+}
+
+func alterState(tb testing.TB, node *integrationTests.TestProcessorNode, nodes []*integrationTests.TestProcessorNode, key []byte, value []byte) {
+	shardID := node.ShardCoordinator.SelfId()
+	for _, n := range nodes {
+		if n.ShardCoordinator.SelfId() != shardID {
+			continue
+		}
+
+		account, err := n.AccntState.LoadAccount(node.OwnAccount.Address)
+		assert.Nil(tb, err)
+
+		userAccount := account.(state.UserAccountHandler)
+		err = userAccount.SaveKeyValue(key, value)
+		assert.Nil(tb, err)
+
+		err = n.AccntState.SaveAccount(userAccount)
+		assert.Nil(tb, err)
+
+		_, err = n.AccntState.Commit()
+		assert.Nil(tb, err)
+	}
+}
+
+func checkTrieCanBeRecreated(tb testing.TB, node *integrationTests.TestProcessorNode) {
+	if node.ShardCoordinator.SelfId() == core.MetachainShardId {
+		return
+	}
+
+	stateTrie := node.TrieContainer.Get([]byte(trieFactory.UserAccountTrie))
+	roothash := node.BlockChain.GetCurrentBlockRootHash()
+	tr, err := stateTrie.Recreate(roothash)
+	require.Nil(tb, err)
+	require.NotNil(tb, tr)
+
+	_, _, finalRoothash := node.BlockChain.GetFinalBlockInfo()
+	tr, err = stateTrie.Recreate(finalRoothash)
+	require.Nil(tb, err)
+	require.NotNil(tb, tr)
+
+	currentBlockHeader := node.BlockChain.GetCurrentBlockHeader()
+	prevHeaderHash := currentBlockHeader.GetPrevHash()
+	hdrBytes, err := node.Storage.Get(dataRetriever.BlockHeaderUnit, prevHeaderHash)
+	require.Nil(tb, err)
+	hdr := &block.Header{}
+	err = integrationTests.TestMarshalizer.Unmarshal(hdr, hdrBytes)
+	require.Nil(tb, err)
+
+	tr, err = stateTrie.Recreate(hdr.GetRootHash())
+	require.Nil(tb, err)
+	require.NotNil(tb, tr)
 }
 
 func TestSnapshotOnEpochChange(t *testing.T) {
@@ -2395,7 +2482,11 @@ func createAccountsDBTestSetup() *state.AccountsDB {
 		SnapshotsGoroutineNum: 1,
 	}
 	evictionWaitListSize := uint(100)
-	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, database.NewMemDB(), integrationTests.TestMarshalizer)
+	ewlArgs := evictionWaitingList.MemoryEvictionWaitingListArgs{
+		RootHashesSize: evictionWaitListSize,
+		HashesSize:     evictionWaitListSize * 100,
+	}
+	ewl, _ := evictionWaitingList.NewMemoryEvictionWaitingList(ewlArgs)
 	args := getNewTrieStorageManagerArgs()
 	args.GeneralConfig = generalCfg
 	trieStorage, _ := trie.NewTrieStorageManager(args)
