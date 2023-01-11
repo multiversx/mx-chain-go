@@ -885,7 +885,11 @@ func createAccountsDB(
 	trieStorageManager common.StorageManager,
 ) *state.AccountsDB {
 	tr, _ := trie.NewTrie(trieStorageManager, marshaller, hasher, 5)
-	ewl, _ := evictionWaitingList.NewEvictionWaitingList(10, testscommon.NewMemDbMock(), marshaller)
+	ewlArgs := evictionWaitingList.MemoryEvictionWaitingListArgs{
+		RootHashesSize: 100,
+		HashesSize:     10000,
+	}
+	ewl, _ := evictionWaitingList.NewMemoryEvictionWaitingList(ewlArgs)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
 
 	args := state.ArgsAccountsDB{
