@@ -8,9 +8,9 @@ require (
 	github.com/ElrondNetwork/elrond-go-crypto v1.2.3
 	github.com/ElrondNetwork/elrond-go-logger v1.0.10
 	github.com/ElrondNetwork/elrond-go-p2p v1.0.8
-	github.com/ElrondNetwork/elrond-go-storage v1.0.4
-	github.com/ElrondNetwork/elrond-vm-common v1.3.25-0.20221031090629-9e11c6cd2149
-	github.com/ElrondNetwork/wasm-vm v1.5.3-0.20221027144136-555e72b5c0d6
+	github.com/ElrondNetwork/elrond-go-storage v1.0.5
+	github.com/ElrondNetwork/elrond-vm-common v1.3.32
+	github.com/ElrondNetwork/wasm-vm v1.5.3-0.20230110142632-95fcb06c2796
 	github.com/ElrondNetwork/wasm-vm-v1_2 v1.2.48
 	github.com/ElrondNetwork/wasm-vm-v1_3 v1.3.48
 	github.com/ElrondNetwork/wasm-vm-v1_4 v1.4.71
@@ -37,6 +37,7 @@ require (
 require (
 	github.com/ElrondNetwork/big-int-util v0.1.0 // indirect
 	github.com/ElrondNetwork/concurrent-map v0.1.3 // indirect
+	github.com/awalterschulze/gographviz v2.0.3+incompatible // indirect
 	github.com/benbjohnson/clock v1.3.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.3.2 // indirect
@@ -70,7 +71,7 @@ require (
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/hashicorp/errwrap v1.0.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
-	github.com/hashicorp/golang-lru v0.5.4 // indirect
+	github.com/hashicorp/golang-lru v0.6.0 // indirect
 	github.com/herumi/bls-go-binary v1.0.0 // indirect
 	github.com/huin/goupnp v1.0.3 // indirect
 	github.com/ipfs/go-cid v0.2.0 // indirect
