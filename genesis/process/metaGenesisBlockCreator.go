@@ -42,7 +42,6 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
-	"github.com/prometheus/common/log"
 )
 
 const unreachableEpoch = ^uint32(0)
