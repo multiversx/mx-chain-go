@@ -20,7 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
+	"github.com/ElrondNetwork/elrond-go-core/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/enablers"
@@ -63,7 +63,7 @@ const DummyCodeMetadataHex = "0102"
 const maxGasLimit = 100000000000
 
 var marshalizer = &marshal.GogoProtoMarshalizer{}
-var hasher = sha256.NewSha256()
+var hasher = blake2b.NewBlake2b()
 var oneShardCoordinator = mock.NewMultiShardsCoordinatorMock(2)
 var pkConverter, _ = pubkeyConverter.NewHexPubkeyConverter(32)
 
@@ -307,6 +307,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		EnableEpochsHandler: context.EnableEpochsHandler,
 		WasmVMChangeLocker:  context.WasmVMChangeLocker,
 		ESDTTransferParser:  esdtTransferParser,
+		Hasher:              hasher,
 	}
 	vmFactory, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	require.Nil(context.T, err)

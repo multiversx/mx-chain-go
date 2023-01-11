@@ -443,6 +443,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		WasmVMChangeLocker:  genesisWasmVMLocker,
 		ESDTTransferParser:  esdtTransferParser,
 		BuiltInFunctions:    argsHook.BuiltInFunctions,
+		Hasher:              arg.Core.Hasher(),
 	}
 	vmFactoryImpl, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	if err != nil {

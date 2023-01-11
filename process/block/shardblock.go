@@ -8,7 +8,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/queue"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/headerVersionData"
@@ -26,8 +25,7 @@ var _ process.BlockProcessor = (*shardProcessor)(nil)
 
 const (
 	timeBetweenCheckForEpochStart = 100 * time.Millisecond
-	pruningDelayMultiplier        = 2
-	defaultPruningDelay           = 10
+	pruningDelay                  = 10
 )
 
 type createAndProcessMiniBlocksDestMeInfo struct {
@@ -47,11 +45,9 @@ type createAndProcessMiniBlocksDestMeInfo struct {
 // shardProcessor implements shardProcessor interface, and actually it tries to execute block
 type shardProcessor struct {
 	*baseProcessor
-	metaBlockFinality uint32
-	chRcvAllMetaHdrs  chan bool
-
-	userStatePruningQueue core.Queue
-	processStatusHandler  common.ProcessStatusHandler
+	metaBlockFinality    uint32
+	chRcvAllMetaHdrs     chan bool
+	processStatusHandler common.ProcessStatusHandler
 }
 
 // NewShardProcessor creates a new shardProcessor object
@@ -73,13 +69,6 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	genesisHdr := arguments.DataComponents.Blockchain().GetGenesisHeader()
 	if check.IfNil(genesisHdr) {
 		return nil, fmt.Errorf("%w for genesis header in DataComponents.Blockchain", process.ErrNilHeaderHandler)
-	}
-
-	pruningQueueSize := arguments.Config.StateTriesConfig.UserStatePruningQueueSize
-	pruningDelay := uint32(pruningQueueSize * pruningDelayMultiplier)
-	if pruningDelay < defaultPruningDelay {
-		log.Warn("using default pruning delay", "user state pruning queue size", pruningQueueSize)
-		pruningDelay = defaultPruningDelay
 	}
 
 	processDebugger, err := createDisabledProcessDebugger()
@@ -152,7 +141,6 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	headersPool.RegisterHandler(sp.receivedMetaBlock)
 
 	sp.metaBlockFinality = process.BlockFinality
-	sp.userStatePruningQueue = queue.NewSliceQueue(arguments.Config.StateTriesConfig.UserStatePruningQueueSize)
 
 	return &sp, nil
 }
@@ -603,9 +591,10 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 
 	log.Debug("preparing to index block", "hash", headerHash, "nonce", header.GetNonce(), "round", header.GetRound())
 	argSaveBlock, err := sp.outportDataProvider.PrepareOutportSaveBlockData(processOutport.ArgPrepareOutportSaveBlockData{
-		HeaderHash: headerHash,
-		Header:     header,
-		Body:       body,
+		HeaderHash:     headerHash,
+		Header:         header,
+		Body:           body,
+		PreviousHeader: lastBlockHeader,
 	})
 	if err != nil {
 		log.Warn("shardProcessor.indexBlockIfNeeded cannot prepare argSaveBlock", "error", err.Error())
@@ -1189,7 +1178,6 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 			headerRootHashForPruning,
 			prevHeaderRootHashForPruning,
 			sp.accountsDB[state.UserAccountsState],
-			sp.userStatePruningQueue,
 		)
 
 		sp.setFinalizedHeaderHashInIndexer(header.GetPrevHash())
