@@ -3,9 +3,9 @@ package heartbeat_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/errors"
-	heartbeatComp "github.com/ElrondNetwork/elrond-go/factory/heartbeat"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/errors"
+	heartbeatComp "github.com/multiversx/mx-chain-go/factory/heartbeat"
 	"github.com/stretchr/testify/assert"
 )
 

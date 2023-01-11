@@ -3,9 +3,9 @@ package process
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/outport"
-	"github.com/ElrondNetwork/elrond-go/outport/process/alteredaccounts/shared"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-go/outport/process/alteredaccounts/shared"
 )
 
 // AlteredAccountsProviderHandler defines the functionality needed for provisioning of altered accounts when indexing data

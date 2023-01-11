@@ -1,7 +1,7 @@
 
-# Elrond SeedNode CLI
+# MultiversX SeedNode CLI
 
-The **Elrond SeedNode** exposes the following Command Line Interface:
+The **MultiversX SeedNode** exposes the following Command Line Interface:
 
 ```
 $ seednode --help
@@ -12,7 +12,7 @@ USAGE:
    seednode [global options]
    
 AUTHOR:
-   The Elrond Team <contact@elrond.com>
+   The MultiversX Team <contact@multiversx.com>
    
 GLOBAL OPTIONS:
    --port [p2p port]     The [p2p port] number on which the application will start. Can use single values such as `0, 10230, 15670` or range of ports such as `5000-10000` (default: "10000")

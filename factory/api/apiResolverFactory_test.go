@@ -3,14 +3,14 @@ package api_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/factory/api"
-	"github.com/ElrondNetwork/elrond-go/factory/bootstrap"
-	"github.com/ElrondNetwork/elrond-go/factory/mock"
-	"github.com/ElrondNetwork/elrond-go/process/sync/disabled"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	componentsMock "github.com/ElrondNetwork/elrond-go/testscommon/components"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/factory/api"
+	"github.com/multiversx/mx-chain-go/factory/bootstrap"
+	"github.com/multiversx/mx-chain-go/factory/mock"
+	"github.com/multiversx/mx-chain-go/process/sync/disabled"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/stretchr/testify/require"
 )
 

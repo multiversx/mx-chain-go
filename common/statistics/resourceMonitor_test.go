@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"testing"
 
-	stats "github.com/ElrondNetwork/elrond-go/common/statistics"
-	"github.com/ElrondNetwork/elrond-go/common/statistics/disabled"
-	"github.com/ElrondNetwork/elrond-go/config"
+	stats "github.com/multiversx/mx-chain-go/common/statistics"
+	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/stretchr/testify/assert"
 )
 

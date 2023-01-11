@@ -1,8 +1,8 @@
 package peer
 
 import (
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 // bootstrapPeerTypeProvider implements PeerTypeProviderHandler interface

@@ -3,7 +3,7 @@ package Benchmark_TestEllipticCurveScalarMultP224
 import (
 	"testing"
 
-	mc "github.com/ElrondNetwork/elrond-go/integrationTests/vm/wasm/wasmvm/scenariosConverter"
+	mc "github.com/multiversx/mx-chain-go/integrationTests/vm/wasm/wasmvm/scenariosConverter"
 )
 
 func TestScenariosConverter_EllipticCurves(t *testing.T) {

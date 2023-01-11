@@ -3,9 +3,9 @@ package core_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/config"
-	coreComp "github.com/ElrondNetwork/elrond-go/factory/core"
-	componentsMock "github.com/ElrondNetwork/elrond-go/testscommon/components"
+	"github.com/multiversx/mx-chain-go/config"
+	coreComp "github.com/multiversx/mx-chain-go/factory/core"
+	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/stretchr/testify/require"
 )
 

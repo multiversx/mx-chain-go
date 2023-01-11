@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 
-export ELRONDTESTNETSCRIPTSDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+export MULTIVERSXTESTNETSCRIPTSDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 export TESTNETMODE=$1
 export EXTRA=$2
 
-source "$ELRONDTESTNETSCRIPTSDIR/variables.sh"
-source "$ELRONDTESTNETSCRIPTSDIR/include/config.sh"
-source "$ELRONDTESTNETSCRIPTSDIR/include/build.sh"
-source "$ELRONDTESTNETSCRIPTSDIR/include/validators.sh"
-source "$ELRONDTESTNETSCRIPTSDIR/include/observers.sh"
-source "$ELRONDTESTNETSCRIPTSDIR/include/tools.sh"
+source "$MULTIVERSXTESTNETSCRIPTSDIR/variables.sh"
+source "$MULTIVERSXTESTNETSCRIPTSDIR/include/config.sh"
+source "$MULTIVERSXTESTNETSCRIPTSDIR/include/build.sh"
+source "$MULTIVERSXTESTNETSCRIPTSDIR/include/validators.sh"
+source "$MULTIVERSXTESTNETSCRIPTSDIR/include/observers.sh"
+source "$MULTIVERSXTESTNETSCRIPTSDIR/include/tools.sh"
 
 prepareFolders
 
@@ -34,14 +34,14 @@ fi
 
 # Phase 3: start the Seednode
 startSeednode
-showTerminalSession "elrond-tools"
+showTerminalSession "multiversx-tools"
 echo "Waiting for the Seednode to start ($SEEDNODE_DELAY s)..."
 sleep $SEEDNODE_DELAY
 
 # Phase 4: start the Observer Nodes and Validator Nodes
 startObservers
 startValidators
-showTerminalSession "elrond-nodes"
+showTerminalSession "multiversx-nodes"
 echo "Waiting for the Nodes to start ($NODE_DELAY s)..."
 sleep $NODE_DELAY
 

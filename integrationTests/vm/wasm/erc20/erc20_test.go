@@ -6,7 +6,7 @@ package erc20
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/wasm"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	"github.com/stretchr/testify/require"
 )
 

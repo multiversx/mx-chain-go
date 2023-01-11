@@ -3,14 +3,14 @@ package factory
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/outport/process"
-	"github.com/ElrondNetwork/elrond-go/outport/process/alteredaccounts"
-	"github.com/ElrondNetwork/elrond-go/outport/process/transactionsfee"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/state"
+	"github.com/multiversx/mx-chain-go/outport/process"
+	"github.com/multiversx/mx-chain-go/outport/process/alteredaccounts"
+	"github.com/multiversx/mx-chain-go/outport/process/transactionsfee"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/stretchr/testify/require"
 )
 
