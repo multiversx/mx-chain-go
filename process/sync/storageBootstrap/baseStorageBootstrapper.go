@@ -420,14 +420,11 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 }
 
 func getBootInfosLastEpoch(bootInfos []bootstrapStorage.BootstrapData) uint32 {
-	var lastEpoch uint32
-
-	for i := len(bootInfos) - 1; i >= 0; i-- {
-		lastEpoch = bootInfos[i].GetLastHeader().Epoch
-		break
+	if len(bootInfos) == 0 {
+		return 0
 	}
 
-	return lastEpoch
+	return bootInfos[len(bootInfos)-1].GetLastHeader().Epoch
 }
 
 func (st *storageBootstrapper) cleanupStorage(headerInfo bootstrapStorage.BootstrapHeaderInfo) {
