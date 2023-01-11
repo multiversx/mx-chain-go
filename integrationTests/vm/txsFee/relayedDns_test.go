@@ -10,7 +10,6 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
@@ -52,14 +51,6 @@ func TestRelayedTxDnsTransaction_ShouldWork(t *testing.T) {
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	intermediateTxs := testContext.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, true, testContext.TxsLogsProcessor)
-	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
-
-	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, uint64(500257), indexerTx.GasUsed)
-	require.Equal(t, "5002570", indexerTx.Fee)
-
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	ret := vm.GetVmOutput(nil, testContext.Accounts, scAddress, "resolve", sndAddrUserName)
@@ -85,14 +76,6 @@ func TestRelayedTxDnsTransaction_ShouldWork(t *testing.T) {
 	ret = vm.GetVmOutput(nil, testContext.Accounts, scAddress, "resolve", rcvAddrUserName)
 	dnsUserNameAddr = ret.ReturnData[0]
 	require.Equal(t, rcvAddr, dnsUserNameAddr)
-
-	intermediateTxs = testContext.GetIntermediateTransactions(t)
-	testIndexer = vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, true, testContext.TxsLogsProcessor)
-	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
-
-	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, uint64(500257), indexerTx.GasUsed)
-	require.Equal(t, "5002570", indexerTx.Fee)
 
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 

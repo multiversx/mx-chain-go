@@ -19,6 +19,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
@@ -55,7 +56,7 @@ func prepareTestContextForEpoch836(tb testing.TB) (*vm.VMTestContext, []byte) {
 	gasScheduleNotifier, err := forking.NewGasScheduleNotifier(argsGasScheduleNotifier)
 	require.Nil(tb, err)
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGas(
+	testContext, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGasAndRoundConfig(
 		config.EnableEpochs{
 			GovernanceEnableEpoch:                   unreachableEpoch,
 			WaitingListFixEnableEpoch:               unreachableEpoch,
@@ -66,6 +67,7 @@ func prepareTestContextForEpoch836(tb testing.TB) (*vm.VMTestContext, []byte) {
 		mock.NewMultiShardsCoordinatorMock(2),
 		db,
 		gasScheduleNotifier,
+		integrationTests.GetDefaultRoundsConfig(),
 	)
 	require.Nil(tb, err)
 

@@ -6,9 +6,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
@@ -83,14 +81,6 @@ func TestBuiltInFunctionExecuteOnSourceAndDestinationShouldWork(t *testing.T) {
 	accumulatedFees := testContextDst.TxFeeHandler.GetAccumulatedFees()
 	require.Equal(t, big.NewInt(10000), accumulatedFees)
 
-	testIndexer := vm.CreateTestIndexer(t, testContextDst.ShardCoordinator, testContextDst.EconomicsData, false, testContextDst.TxsLogsProcessor)
-	testIndexer.SaveTransaction(tx, block.TxBlock, nil)
-
-	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, uint64(1000), indexerTx.GasUsed)
-	require.Equal(t, "10000", indexerTx.Fee)
-	require.Equal(t, transaction.TxStatusSuccess.String(), indexerTx.Status)
-
 	utils.CleanAccumulatedIntermediateTransactions(t, testContextDst)
 
 	// do a sc call intra shard
@@ -141,15 +131,6 @@ func TestBuiltInFunctionExecuteOnSourceAndDestinationShouldWork(t *testing.T) {
 
 	developerFees = testContextSource.TxFeeHandler.GetDeveloperFees()
 	require.Equal(t, big.NewInt(477), developerFees)
-
-	intermediateTxs := testContextSource.GetIntermediateTransactions(t)
-	testIndexer = vm.CreateTestIndexer(t, testContextSource.ShardCoordinator, testContextSource.EconomicsData, true, testContextDst.TxsLogsProcessor)
-	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
-
-	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, uint64(22), indexerTx.GasUsed)
-	require.Equal(t, "220", indexerTx.Fee)
-	require.Equal(t, transaction.TxStatusPending.String(), indexerTx.Status)
 
 	require.Equal(t, big.NewInt(0), developerFees)
 	utils.CleanAccumulatedIntermediateTransactions(t, testContextDst)

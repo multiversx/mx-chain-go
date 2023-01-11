@@ -6,8 +6,6 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
@@ -87,13 +85,4 @@ func TestRelayedBuiltInFunctionExecuteOnRelayerAndDstShardShouldWork(t *testing.
 
 	expectedRelayerBalance = big.NewInt(4610)
 	utils.TestAccount(t, testContextRelayer.Accounts, relayerAddr, 1, expectedRelayerBalance)
-
-	intermediateTxs := testContextInner.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContextInner.ShardCoordinator, testContextInner.EconomicsData, true, testContextInner.TxsLogsProcessor)
-	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
-
-	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, uint64(1039), indexerTx.GasUsed)
-	require.Equal(t, "10390", indexerTx.Fee)
-	require.Equal(t, transaction.TxStatusSuccess.String(), indexerTx.Status)
 }

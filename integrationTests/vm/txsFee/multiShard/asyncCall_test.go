@@ -187,14 +187,6 @@ func TestAsyncCallDisabled(t *testing.T) {
 
 	require.Equal(t, big.NewInt(120), testContextSender.TxFeeHandler.GetAccumulatedFees())
 
-	testIndexer := vm.CreateTestIndexer(t, testContextSender.ShardCoordinator, testContextSender.EconomicsData, false, testContextSender.TxsLogsProcessor)
-	testIndexer.SaveTransaction(tx, block.TxBlock, nil)
-
-	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, uint64(12), indexerTx.GasUsed)
-	require.Equal(t, "120", indexerTx.Fee)
-	require.Equal(t, transaction.TxStatusPending.String(), indexerTx.Status)
-
 	utils.TestAccount(t, testContextSender.Accounts, senderAddr, 1, big.NewInt(950000000))
 
 	// execute on the destination shard

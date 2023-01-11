@@ -2,6 +2,7 @@ package arwenvm
 
 import (
 	"math/big"
+	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
@@ -9,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
 	"github.com/ElrondNetwork/wasm-vm/arwen"
+	"github.com/ElrondNetwork/wasm-vm/executor"
 	contextmock "github.com/ElrondNetwork/wasm-vm/mock/context"
 	worldmock "github.com/ElrondNetwork/wasm-vm/mock/world"
 	"github.com/ElrondNetwork/wasm-vm/testcommon"
@@ -16,6 +18,9 @@ import (
 )
 
 var MockInitialBalance = big.NewInt(10_000_000)
+
+// WalletAddressPrefix is the prefix of any smart contract address used for testing.
+var WalletAddressPrefix = []byte("..........")
 
 func InitializeMockContracts(
 	t *testing.T,
@@ -72,10 +77,23 @@ func GetAddressForNewAccount(
 	return GetAddressForNewAccountOnWalletAndNode(t, net, net.Wallets[node.ShardCoordinator.SelfId()], node)
 }
 
-func CreateHostAndInstanceBuilder(t *testing.T, net *integrationTests.TestNetwork, vmKey []byte) (map[uint32]arwen.VMHost, map[uint32]*contextmock.InstanceBuilderMock) {
+// MakeTestWalletAddress generates a new wallet address to be used for
+// testing based on the given identifier.
+func MakeTestWalletAddress(identifier string) []byte {
+	return makeTestAddress(WalletAddressPrefix, identifier)
+}
+
+func makeTestAddress(prefix []byte, identifier string) []byte {
+	numberOfTrailingDots := arwen.AddressSize - len(arwen.SCAddressPrefix) - len(identifier)
+	leftBytes := arwen.SCAddressPrefix
+	rightBytes := []byte(identifier + strings.Repeat(".", numberOfTrailingDots))
+	return append(leftBytes, rightBytes...)
+}
+
+func CreateHostAndInstanceBuilder(t *testing.T, net *integrationTests.TestNetwork, vmKey []byte) (map[uint32]arwen.VMHost, map[uint32]*contextmock.ExecutorMock) {
 	numberOfShards := uint32(net.NumShards)
 	shardToWorld := make(map[uint32]*worldmock.MockWorld, numberOfShards)
-	shardToInstanceBuilder := make(map[uint32]*contextmock.InstanceBuilderMock, numberOfShards)
+	shardToInstanceBuilder := make(map[uint32]*contextmock.ExecutorMock, numberOfShards)
 	shardToHost := make(map[uint32]arwen.VMHost, numberOfShards)
 
 	for shardID := uint32(0); shardID < numberOfShards; shardID++ {
@@ -83,8 +101,8 @@ func CreateHostAndInstanceBuilder(t *testing.T, net *integrationTests.TestNetwor
 		world.SetProvidedBlockchainHook(net.DefaultNode.BlockchainHook)
 		world.SelfShardID = shardID
 		shardToWorld[shardID] = world
-		instanceBuilderMock := contextmock.NewInstanceBuilderMock(world)
-		shardToInstanceBuilder[shardID] = instanceBuilderMock
+		instanceBuilderMock, _ := contextmock.NewExecutorMockFactory(world).CreateExecutor(executor.ExecutorFactoryArgs{})
+		shardToInstanceBuilder[shardID] = instanceBuilderMock.(*contextmock.ExecutorMock)
 	}
 
 	for shardID := uint32(0); shardID < numberOfShards; shardID++ {
@@ -92,7 +110,7 @@ func CreateHostAndInstanceBuilder(t *testing.T, net *integrationTests.TestNetwor
 		host, err := node.VMContainer.Get(factory.ArwenVirtualMachine)
 		require.NotNil(t, host)
 		require.Nil(t, err)
-		host.(arwen.VMHost).Runtime().ReplaceInstanceBuilder(shardToInstanceBuilder[shardID])
+		host.(arwen.VMHost).Runtime().ReplaceVMExecutor(shardToInstanceBuilder[shardID])
 		err = node.VMContainer.Replace(vmKey, host)
 		require.Nil(t, err)
 		shardToHost[shardID] = host.(arwen.VMHost)

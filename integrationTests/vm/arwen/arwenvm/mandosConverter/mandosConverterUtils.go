@@ -16,6 +16,8 @@ import (
 
 var log = logger.GetOrCreate("mandosConverte")
 
+const InvalidBenchmarkTxPos = -1
+
 // CheckAccounts will verify if mandosAccounts correspond to AccountsAdapter accounts
 func CheckAccounts(t *testing.T, accAdapter state.AccountsAdapter, mandosAccounts []*mge.TestAccount) {
 	for _, mandosAcc := range mandosAccounts {
@@ -97,7 +99,7 @@ func BenchmarkMandosSpecificTx(b *testing.B, mandosTestPath string) {
 		return
 	}
 	defer testContext.Close()
-	if benchmarkTxPos == mge.InvalidBenchmarkTxPos {
+	if benchmarkTxPos == InvalidBenchmarkTxPos {
 		log.Trace("no transactions marked for benchmarking")
 	}
 	if len(transactions) > 1 {
@@ -117,19 +119,19 @@ func BenchmarkMandosSpecificTx(b *testing.B, mandosTestPath string) {
 func SetStateFromMandosTest(mandosTestPath string) (testContext *vm.VMTestContext, transactions []*transaction.Transaction, bechmarkTxPos int, err error) {
 	stateAndBenchmarkInfo, err := mge.GetAccountsAndTransactionsFromMandos(mandosTestPath)
 	if err != nil {
-		return nil, nil, mge.InvalidBenchmarkTxPos, err
+		return nil, nil, InvalidBenchmarkTxPos, err
 	}
 	testContext, err = vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	if err != nil {
-		return nil, nil, mge.InvalidBenchmarkTxPos, err
+		return nil, nil, InvalidBenchmarkTxPos, err
 	}
 	err = CreateAccountsFromMandosAccs(testContext, stateAndBenchmarkInfo.Accs)
 	if err != nil {
-		return nil, nil, mge.InvalidBenchmarkTxPos, err
+		return nil, nil, InvalidBenchmarkTxPos, err
 	}
 	newAddresses, err := DeploySCsFromMandosDeployTxs(testContext, stateAndBenchmarkInfo.DeployTxs)
 	if err != nil {
-		return nil, nil, mge.InvalidBenchmarkTxPos, err
+		return nil, nil, InvalidBenchmarkTxPos, err
 	}
 	ReplaceMandosScAddressesWithNewScAddresses(stateAndBenchmarkInfo.DeployedAccs, newAddresses, stateAndBenchmarkInfo.Txs)
 	transactions = CreateTransactionsFromMandosTxs(stateAndBenchmarkInfo.Txs)

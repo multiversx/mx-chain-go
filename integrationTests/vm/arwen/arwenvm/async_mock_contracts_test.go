@@ -7,7 +7,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-vm-common/txDataBuilder"
-	"github.com/ElrondNetwork/wasm-vm/arwen"
 	"github.com/ElrondNetwork/wasm-vm/mock/contracts"
 	"github.com/ElrondNetwork/wasm-vm/testcommon"
 	test "github.com/ElrondNetwork/wasm-vm/testcommon"
@@ -85,8 +84,8 @@ func testMockContract_CrossShard(t *testing.T, asyncCallType []byte) {
 	parentAddress, _ := GetAddressForNewAccount(t, net, net.NodesSharded[0][0])
 	childAddress, _ := GetAddressForNewAccount(t, net, net.NodesSharded[1][0])
 
-	thirdPartyAddress := arwen.MakeTestWalletAddress("thirdPartyAddress")
-	vaultAddress := arwen.MakeTestWalletAddress("vaultAddress")
+	thirdPartyAddress := MakeTestWalletAddress("thirdPartyAddress")
+	vaultAddress := MakeTestWalletAddress("vaultAddress")
 
 	testConfig := &testcommon.TestConfig{
 		ParentBalance: 20,

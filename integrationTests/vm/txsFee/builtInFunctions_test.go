@@ -99,14 +99,6 @@ func TestBuildInFunctionChangeOwnerCallShouldWork(t *testing.T) {
 
 	developerFees := testContext.TxFeeHandler.GetDeveloperFees()
 	require.Equal(t, big.NewInt(915), developerFees)
-
-	intermediateTxs := testContext.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, true, testContext.TxsLogsProcessor)
-	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
-
-	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, uint64(1000), indexerTx.GasUsed)
-	require.Equal(t, "10000", indexerTx.Fee)
 }
 
 func TestBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(t *testing.T) {

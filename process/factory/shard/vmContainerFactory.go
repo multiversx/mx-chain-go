@@ -24,7 +24,6 @@ import (
 	arwenHost14 "github.com/ElrondNetwork/wasm-vm-v1_4/arwen/host"
 	arwen15 "github.com/ElrondNetwork/wasm-vm/arwen"
 	arwenHost15 "github.com/ElrondNetwork/wasm-vm/arwen/host"
-	wasmer1 "github.com/ElrondNetwork/wasm-vm/wasmer"
 )
 
 var _ process.VirtualMachinesContainerFactory = (*vmContainerFactory)(nil)
@@ -331,7 +330,6 @@ func (vmf *vmContainerFactory) createInProcessArwenVMV14() (vmcommon.VMExecution
 		TimeOutForSCExecutionInMilliseconds: vmf.config.TimeOutForSCExecutionInMilliseconds,
 		EpochNotifier:                       vmf.epochNotifier,
 		EnableEpochsHandler:                 vmf.enableEpochsHandler,
-		Hasher:                              vmf.hasher,
 	}
 	return arwenHost14.NewArwenVM(vmf.blockChainHook, hostParameters)
 }
@@ -351,10 +349,7 @@ func (vmf *vmContainerFactory) createInProcessArwenVMV15() (vmcommon.VMExecution
 		EnableEpochsHandler:                 vmf.enableEpochsHandler,
 	}
 
-	// TODO the "executor" parameter is temporary;
-	// it will not be needed after an upcoming refactor in the VM
-	executor := wasmer1.NewExecutor()
-	return arwenHost15.NewArwenVM(vmf.blockChainHook, executor, hostParameters)
+	return arwenHost15.NewArwenVM(vmf.blockChainHook, hostParameters)
 }
 
 func (vmf *vmContainerFactory) closePreviousVM(vm vmcommon.VMExecutionHandler) {
