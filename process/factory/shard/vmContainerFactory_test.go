@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 	ipcNodePart1p2 "github.com/multiversx/mx-chain-vm-v1_2-go/ipc/nodepart"
@@ -44,6 +45,7 @@ func createMockVMAccountsArguments() ArgVMContainerFactory {
 		ESDTTransferParser:  esdtTransferParser,
 		BuiltInFunctions:    vmcommonBuiltInFunctions.NewBuiltInFunctionContainer(),
 		BlockChainHook:      &testscommon.BlockChainHookStub{},
+		Hasher:              &hashingMocks.HasherMock{},
 	}
 }
 
@@ -122,6 +124,17 @@ func TestNewVMContainerFactory_NilBlockChainHookShouldErr(t *testing.T) {
 
 	assert.Nil(t, vmf)
 	assert.Equal(t, process.ErrNilBlockChainHook, err)
+}
+
+func TestNewVMContainerFactory_NilHasherShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockVMAccountsArguments()
+	args.Hasher = nil
+	vmf, err := NewVMContainerFactory(args)
+
+	assert.Nil(t, vmf)
+	assert.Equal(t, process.ErrNilHasher, err)
 }
 
 func TestNewVMContainerFactory_OkValues(t *testing.T) {

@@ -13,21 +13,33 @@ var log = logger.GetOrCreate("trieStatistics")
 const numTriesToPrint = 10
 
 type trieStatisticsCollector struct {
-	numNodes     uint64
-	numDataTries uint64
-	triesSize    uint64
-	triesBySize  []*TrieStatsDTO
-	triesByDepth []*TrieStatsDTO
+	numNodes            uint64
+	numDataTries        uint64
+	triesSize           uint64
+	numTotalLeaves      uint64
+	numTotalExtensions  uint64
+	numTotalBranches    uint64
+	totalSizeLeaves     uint64
+	totalSizeExtensions uint64
+	totalSizeBranches   uint64
+	triesBySize         []*TrieStatsDTO
+	triesByDepth        []*TrieStatsDTO
 }
 
 // NewTrieStatisticsCollector creates a new instance of trieStatisticsCollector
 func NewTrieStatisticsCollector() *trieStatisticsCollector {
 	return &trieStatisticsCollector{
-		numNodes:     0,
-		numDataTries: 0,
-		triesSize:    0,
-		triesBySize:  make([]*TrieStatsDTO, numTriesToPrint),
-		triesByDepth: make([]*TrieStatsDTO, numTriesToPrint),
+		numNodes:            0,
+		numDataTries:        0,
+		triesSize:           0,
+		numTotalLeaves:      0,
+		numTotalExtensions:  0,
+		numTotalBranches:    0,
+		totalSizeLeaves:     0,
+		totalSizeExtensions: 0,
+		totalSizeBranches:   0,
+		triesBySize:         make([]*TrieStatsDTO, numTriesToPrint),
+		triesByDepth:        make([]*TrieStatsDTO, numTriesToPrint),
 	}
 }
 
@@ -42,6 +54,13 @@ func (tsc *trieStatisticsCollector) Add(trieStats *TrieStatsDTO) {
 	tsc.triesSize += trieStats.TotalNodesSize
 	tsc.numDataTries++
 
+	tsc.numTotalBranches += trieStats.NumBranchNodes
+	tsc.numTotalExtensions += trieStats.NumExtensionNodes
+	tsc.numTotalLeaves += trieStats.NumLeafNodes
+	tsc.totalSizeBranches += trieStats.BranchNodesSize
+	tsc.totalSizeExtensions += trieStats.ExtensionNodesSize
+	tsc.totalSizeLeaves += trieStats.LeafNodesSize
+
 	insertInSortedArray(tsc.triesBySize, trieStats, isLessSize)
 	insertInSortedArray(tsc.triesByDepth, trieStats, isLessDeep)
 }
@@ -55,6 +74,12 @@ func (tsc *trieStatisticsCollector) Print() {
 		"num of nodes", tsc.numNodes,
 		"total size", core.ConvertBytes(tsc.triesSize),
 		"num tries", tsc.numDataTries,
+		"total num branches", tsc.numTotalBranches,
+		"total num extensions", tsc.numTotalExtensions,
+		"total num leaves", tsc.numTotalLeaves,
+		"total size branches", core.ConvertBytes(tsc.totalSizeBranches),
+		"total size extensions", core.ConvertBytes(tsc.totalSizeExtensions),
+		"total size leaves", core.ConvertBytes(tsc.totalSizeLeaves),
 		triesBySize, getOrderedTries(tsc.triesBySize),
 		triesByDepth, getOrderedTries(tsc.triesByDepth),
 	)

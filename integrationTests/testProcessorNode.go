@@ -849,6 +849,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 			EnableEpochsHandler: tpn.EnableEpochsHandler,
 			WasmVMChangeLocker:  tpn.WasmVMChangeLocker,
 			ESDTTransferParser:  esdtTransferParser,
+			Hasher:              TestHasher,
 		}
 		vmFactory, _ = shard.NewVMContainerFactory(argsNewVMFactory)
 	}
@@ -1411,6 +1412,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		GasSchedule:           gasSchedule,
 		Counter:               counter,
 	}
+
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
 	blockChainHookImpl, _ := hooks.NewBlockChainHookImpl(argsHook)
 	tpn.EnableEpochs.FailExecutionOnEveryAPIErrorEnableEpoch = 1
@@ -1424,6 +1426,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		EnableEpochsHandler: tpn.EnableEpochsHandler,
 		WasmVMChangeLocker:  tpn.WasmVMChangeLocker,
 		ESDTTransferParser:  esdtTransferParser,
+		Hasher:              TestHasher,
 	}
 	vmFactory, _ := shard.NewVMContainerFactory(argsNewVMFactory)
 
@@ -1937,10 +1940,8 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 
 	triesConfig := config.Config{
 		StateTriesConfig: config.StateTriesConfig{
-			SnapshotsEnabled:          true,
-			CheckpointRoundsModulus:   stateCheckpointModulus,
-			UserStatePruningQueueSize: uint(5),
-			PeerStatePruningQueueSize: uint(3),
+			SnapshotsEnabled:        true,
+			CheckpointRoundsModulus: stateCheckpointModulus,
 		},
 	}
 
@@ -2621,9 +2622,8 @@ func (tpn *TestProcessorNode) GetMetaHeader(nonce uint64) (*dataBlock.MetaBlock,
 func (tpn *TestProcessorNode) SyncNode(nonce uint64) error {
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		return tpn.syncMetaNode(nonce)
-	} else {
-		return tpn.syncShardNode(nonce)
 	}
+	return tpn.syncShardNode(nonce)
 }
 
 func (tpn *TestProcessorNode) syncShardNode(nonce uint64) error {

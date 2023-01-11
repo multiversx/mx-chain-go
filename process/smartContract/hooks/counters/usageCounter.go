@@ -52,7 +52,7 @@ func (counter *usageCounter) ProcessCrtNumberOfTrieReadsCounter() error {
 
 	counter.crtNumberOfTrieReads++
 	if counter.crtNumberOfTrieReads > counter.maxNumberOfTrieReadsPerTx {
-		return fmt.Errorf("%w too many reads", process.ErrMaxBuiltInCallsReached)
+		return fmt.Errorf("%w: too many reads from trie", process.ErrMaxCallsReached)
 	}
 
 	return nil
@@ -66,7 +66,7 @@ func (counter *usageCounter) ProcessMaxBuiltInCounters(input *vmcommon.ContractC
 
 	counter.crtNumberOfBuiltInFunctionCalls++
 	if counter.crtNumberOfBuiltInFunctionCalls > counter.maxBuiltInCallsPerTx {
-		return fmt.Errorf("%w too many built in calls", process.ErrMaxBuiltInCallsReached)
+		return fmt.Errorf("%w: too many built-in functions calls", process.ErrMaxCallsReached)
 	}
 
 	parsedTransfer, errESDTTransfer := counter.esdtTransferParser.ParseESDTTransfers(input.CallerAddr, input.RecipientAddr, input.Function, input.Arguments)
@@ -77,7 +77,7 @@ func (counter *usageCounter) ProcessMaxBuiltInCounters(input *vmcommon.ContractC
 
 	counter.crtNumberOfTransfers += uint64(len(parsedTransfer.ESDTTransfers))
 	if counter.crtNumberOfTransfers > counter.maxNumberOfTransfersPerTx {
-		return fmt.Errorf("%w too many esdt transfers", process.ErrMaxBuiltInCallsReached)
+		return fmt.Errorf("%w: too many ESDT transfers", process.ErrMaxCallsReached)
 	}
 
 	return nil

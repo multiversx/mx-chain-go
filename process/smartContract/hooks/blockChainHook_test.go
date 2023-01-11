@@ -355,7 +355,7 @@ func TestBlockChainHookImpl_GetStorageData(t *testing.T) {
 		require.Equal(t, []byte{}, storageData)
 		require.Nil(t, err)
 	})
-	t.Run("cannot retrieve account value should error", func(t *testing.T) {
+	t.Run("cannot retrieve account value should return nil error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockBlockChainHookArgs()
@@ -384,7 +384,7 @@ func TestBlockChainHookImpl_GetStorageData(t *testing.T) {
 		bh, _ := hooks.NewBlockChainHookImpl(args)
 		storageData, _, err := bh.GetStorageData(address, index)
 		require.Nil(t, storageData)
-		require.Equal(t, expectedErr, err)
+		require.Nil(t, err)
 	})
 	t.Run("get existing account errors should error", func(t *testing.T) {
 		t.Parallel()

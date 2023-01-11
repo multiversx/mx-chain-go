@@ -80,6 +80,59 @@ func TestNewAlteredAccountsProvider(t *testing.T) {
 	})
 }
 
+func TestGetAlteredAccountFromUserAccount(t *testing.T) {
+	t.Parallel()
+
+	args := getMockArgs()
+	args.AddressConverter = testscommon.NewPubkeyConverterMock(5)
+	aap, _ := NewAlteredAccountsProvider(args)
+
+	userAccount := &state.UserAccountStub{
+		Balance:          big.NewInt(1000),
+		DeveloperRewards: big.NewInt(100),
+		Owner:            []byte("owner"),
+		UserName:         []byte("contract"),
+		Address:          []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+	}
+
+	res := &outportcore.AlteredAccount{
+		Address: "addr",
+		Balance: "1000",
+	}
+	aap.addAdditionalDataInAlteredAccount(res, userAccount, &markedAlteredAccount{})
+
+	require.Equal(t, &outportcore.AlteredAccount{
+		Address: "addr",
+		Balance: "1000",
+		AdditionalData: &outportcore.AdditionalAccountData{
+			DeveloperRewards: "100",
+			CurrentOwner:     "6f776e6572",
+			UserName:         "contract",
+		},
+	}, res)
+
+	userAccount = &state.UserAccountStub{
+		Balance:          big.NewInt(5000),
+		DeveloperRewards: big.NewInt(5000),
+		Owner:            []byte("own"),
+		Address:          []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+	}
+
+	res = &outportcore.AlteredAccount{
+		Address: "addr",
+		Balance: "5000",
+	}
+	aap.addAdditionalDataInAlteredAccount(res, userAccount, &markedAlteredAccount{})
+
+	require.Equal(t, &outportcore.AlteredAccount{
+		Address: "addr",
+		Balance: "5000",
+		AdditionalData: &outportcore.AdditionalAccountData{
+			DeveloperRewards: "5000",
+		},
+	}, res)
+}
+
 func TestAlteredAccountsProvider_ExtractAlteredAccountsFromPool(t *testing.T) {
 	t.Parallel()
 

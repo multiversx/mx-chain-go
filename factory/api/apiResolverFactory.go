@@ -426,6 +426,7 @@ func createScQueryElement(
 			EnableEpochsHandler: args.coreComponents.EnableEpochsHandler(),
 			WasmVMChangeLocker:  args.coreComponents.WasmVMChangeLocker(),
 			ESDTTransferParser:  esdtTransferParser,
+			Hasher:              args.coreComponents.Hasher(),
 		}
 
 		log.Debug("apiResolver: enable epoch for sc deploy", "epoch", args.epochConfig.EnableEpochs.SCDeployEnableEpoch)

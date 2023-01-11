@@ -7,6 +7,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
@@ -40,6 +41,7 @@ type vmContainerFactory struct {
 	wasmVMVersions      []config.WasmVMVersionByEpoch
 	wasmVMChangeLocker  common.Locker
 	esdtTransferParser  vmcommon.ESDTTransferParser
+	hasher              hashing.Hasher
 }
 
 // ArgVMContainerFactory defines the arguments needed to the new VM factory
@@ -53,6 +55,7 @@ type ArgVMContainerFactory struct {
 	ESDTTransferParser  vmcommon.ESDTTransferParser
 	BuiltInFunctions    vmcommon.BuiltInFunctionContainer
 	BlockChainHook      process.BlockChainHookHandler
+	Hasher              hashing.Hasher
 }
 
 // NewVMContainerFactory is responsible for creating a new virtual machine factory object
@@ -78,6 +81,9 @@ func NewVMContainerFactory(args ArgVMContainerFactory) (*vmContainerFactory, err
 	if check.IfNil(args.BlockChainHook) {
 		return nil, process.ErrNilBlockChainHook
 	}
+	if check.IfNil(args.Hasher) {
+		return nil, process.ErrNilHasher
+	}
 
 	cryptoHook := hooks.NewVMCryptoHook()
 
@@ -93,6 +99,7 @@ func NewVMContainerFactory(args ArgVMContainerFactory) (*vmContainerFactory, err
 		container:           nil,
 		wasmVMChangeLocker:  args.WasmVMChangeLocker,
 		esdtTransferParser:  args.ESDTTransferParser,
+		hasher:              args.Hasher,
 	}
 
 	vmf.wasmVMVersions = args.Config.WasmVMVersions
@@ -318,6 +325,7 @@ func (vmf *vmContainerFactory) createInProcessWasmVMV14() (vmcommon.VMExecutionH
 		TimeOutForSCExecutionInMilliseconds: vmf.config.TimeOutForSCExecutionInMilliseconds,
 		EpochNotifier:                       vmf.epochNotifier,
 		EnableEpochsHandler:                 vmf.enableEpochsHandler,
+		Hasher:                              vmf.hasher,
 	}
 	return wasmVMHost14.NewArwenVM(vmf.blockChainHook, hostParameters) //TODO rename this on other repos
 }

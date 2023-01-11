@@ -5,11 +5,14 @@ import (
 	"fmt"
 	"testing"
 
+	logger "github.com/multiversx/mx-chain-logger-go"
 	stats "github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/stretchr/testify/assert"
 )
+
+var log = logger.GetOrCreate("common/statistics.test")
 
 func generateMockConfig() config.Config {
 	return config.Config{
@@ -63,6 +66,7 @@ func TestResourceMonitor_GenerateStatisticsShouldPass(t *testing.T) {
 	statistics := resourceMonitor.GenerateStatistics()
 
 	assert.NotNil(t, statistics)
+	log.Info("sample statistics", statistics...)
 }
 
 func TestResourceMonitor_SaveStatisticsShouldNotPanic(t *testing.T) {

@@ -27,7 +27,6 @@ import (
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	config2 "github.com/multiversx/mx-chain-vm-v1_3-go/config"
 	wasmConfig "github.com/multiversx/mx-chain-vm-v1_4-go/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -62,6 +61,7 @@ func prepareTestContextForEpoch836(tb testing.TB) (*vm.VMTestContext, []byte) {
 			WaitingListFixEnableEpoch:               unreachableEpoch,
 			SetSenderInEeiOutputTransferEnableEpoch: unreachableEpoch,
 			RefactorPeersMiniBlocksEnableEpoch:      unreachableEpoch,
+			MaxBlockchainHookCountersEnableEpoch:    unreachableEpoch,
 		},
 		mock.NewMultiShardsCoordinatorMock(2),
 		db,
@@ -290,7 +290,7 @@ func TestScCallAndGasChangeShouldWork(t *testing.T) {
 	}
 
 	newGasSchedule := wasmConfig.MakeGasMapForTests()
-	newGasSchedule["WASMOpcodeCost"] = config2.FillGasMap_WASMOpcodeValues(2)
+	newGasSchedule["WASMOpcodeCost"] = wasmConfig.FillGasMapWASMOpcodeValues(2)
 	mockGasSchedule.ChangeGasSchedule(newGasSchedule)
 
 	for idx := uint64(0); idx < numIterations; idx++ {

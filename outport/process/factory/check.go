@@ -38,6 +38,15 @@ func checkArgOutportDataProviderFactory(arg ArgOutportDataProviderFactory) error
 	if check.IfNil(arg.GasConsumedProvider) {
 		return process.ErrNilGasConsumedProvider
 	}
+	if check.IfNil(arg.Hasher) {
+		return process.ErrNilHasher
+	}
+	if check.IfNil(arg.MbsStorer) {
+		return process.ErrNilStorer
+	}
+	if check.IfNil(arg.EnableEpochsHandler) {
+		return process.ErrNilEnableEpochsHandler
+	}
 
 	return nil
 }

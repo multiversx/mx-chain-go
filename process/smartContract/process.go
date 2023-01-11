@@ -322,7 +322,7 @@ func (sc *scProcessor) doExecuteSmartContractTransaction(
 
 	snapshot := sc.accounts.JournalLen()
 
-	vmOutput, err := sc.executeSmartContractCall(vmInput, tx, txHash, snapshot, acntSnd, acntDst)
+	vmOutput, err := sc.executeSmartContractCall(vmInput, tx, txHash, snapshot, acntSnd, acntDst, nil)
 	if err != nil {
 		return returnCode, err
 	}
@@ -352,6 +352,7 @@ func (sc *scProcessor) executeSmartContractCall(
 	txHash []byte,
 	snapshot int,
 	acntSnd, acntDst state.UserAccountHandler,
+	prevVmOutput *vmcommon.VMOutput,
 ) (*vmcommon.VMOutput, error) {
 	if check.IfNil(acntDst) {
 		return nil, process.ErrNilSCDestAccount
@@ -388,7 +389,7 @@ func (sc *scProcessor) executeSmartContractCall(
 	vmOutput.GasRemaining += vmInput.GasLocked
 
 	if vmOutput.ReturnCode != vmcommon.Ok {
-		return userErrorVmOutput, sc.processIfErrorWithAddedLogs(acntSnd, txHash, tx, vmOutput.ReturnCode.String(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked, vmOutput.Logs)
+		return userErrorVmOutput, sc.processIfErrorWithAddedLogs(acntSnd, txHash, tx, vmOutput.ReturnCode.String(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked, prevVmOutput, vmOutput.Logs)
 	}
 
 	acntSnd, err = sc.reloadLocalAccount(acntSnd) // nolint
@@ -1024,7 +1025,7 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 }
 
 func mergeVMOutputLogs(newVMOutput *vmcommon.VMOutput, vmOutput *vmcommon.VMOutput) {
-	if len(vmOutput.Logs) == 0 {
+	if vmOutput == nil || len(vmOutput.Logs) == 0 {
 		return
 	}
 
@@ -1111,7 +1112,7 @@ func (sc *scProcessor) treatExecutionAfterBuiltInFunc(
 		return true, userErrorVmOutput, newVMInput, sc.ProcessIfError(acntSnd, vmInput.CurrentTxHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
 	}
 
-	newVMOutput, err := sc.executeSmartContractCall(newVMInput, tx, newVMInput.CurrentTxHash, snapshot, acntSnd, newDestSC)
+	newVMOutput, err := sc.executeSmartContractCall(newVMInput, tx, newVMInput.CurrentTxHash, snapshot, acntSnd, newDestSC, vmOutput)
 	if err != nil {
 		return true, userErrorVmOutput, newVMInput, err
 	}
@@ -1341,7 +1342,7 @@ func (sc *scProcessor) ProcessIfError(
 	snapshot int,
 	gasLocked uint64,
 ) error {
-	return sc.processIfErrorWithAddedLogs(acntSnd, txHash, tx, returnCode, returnMessage, snapshot, gasLocked, nil)
+	return sc.processIfErrorWithAddedLogs(acntSnd, txHash, tx, returnCode, returnMessage, snapshot, gasLocked, nil, nil)
 }
 
 func (sc *scProcessor) processIfErrorWithAddedLogs(acntSnd state.UserAccountHandler,
@@ -1351,6 +1352,7 @@ func (sc *scProcessor) processIfErrorWithAddedLogs(acntSnd state.UserAccountHand
 	returnMessage []byte,
 	snapshot int,
 	gasLocked uint64,
+	prevVmOutput *vmcommon.VMOutput,
 	internalVMLogs []*vmcommon.LogEntry,
 ) error {
 	sc.vmOutputCacher.Put(txHash, &vmcommon.VMOutput{
@@ -1399,6 +1401,10 @@ func (sc *scProcessor) processIfErrorWithAddedLogs(acntSnd state.UserAccountHand
 	}
 
 	processIfErrorLogs := make([]*vmcommon.LogEntry, 0)
+	if prevVmOutput != nil && len(prevVmOutput.Logs) > 0 {
+		processIfErrorLogs = append(processIfErrorLogs, prevVmOutput.Logs...)
+	}
+
 	processIfErrorLogs = append(processIfErrorLogs, userErrorLog)
 	if relayerLog != nil {
 		processIfErrorLogs = append(processIfErrorLogs, relayerLog)
@@ -1720,7 +1726,7 @@ func (sc *scProcessor) doDeploySmartContract(
 	}
 	vmOutput.GasRemaining += vmInput.GasLocked
 	if vmOutput.ReturnCode != vmcommon.Ok {
-		return vmcommon.UserError, sc.processIfErrorWithAddedLogs(acntSnd, txHash, tx, vmOutput.ReturnCode.String(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked, vmOutput.Logs)
+		return vmcommon.UserError, sc.processIfErrorWithAddedLogs(acntSnd, txHash, tx, vmOutput.ReturnCode.String(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked, nil, vmOutput.Logs)
 	}
 
 	err = sc.gasConsumedChecks(tx, vmInput.GasProvided, vmInput.GasLocked, vmOutput)

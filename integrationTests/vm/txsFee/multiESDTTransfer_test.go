@@ -99,5 +99,5 @@ func TestMultiESDTTransferFailsBecauseOfMaxLimit(t *testing.T) {
 	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.NotNil(t, err)
 	require.Equal(t, vmcommon.UserError, retCode)
-	require.Contains(t, testContext.GetCompositeTestError().Error(), process.ErrMaxBuiltInCallsReached.Error())
+	require.Contains(t, testContext.GetCompositeTestError().Error(), process.ErrMaxCallsReached.Error())
 }

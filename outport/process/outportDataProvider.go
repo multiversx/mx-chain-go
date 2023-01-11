@@ -15,7 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 )
 
-// ArgOutportDataProvider  holds the arguments needed for creating a new instance of outportDataProvider
+// ArgOutportDataProvider holds the arguments needed for creating a new instance of outportDataProvider
 type ArgOutportDataProvider struct {
 	IsImportDBMode           bool
 	ShardCoordinator         sharding.Coordinator
@@ -25,6 +25,7 @@ type ArgOutportDataProvider struct {
 	NodesCoordinator         nodesCoordinator.NodesCoordinator
 	GasConsumedProvider      GasConsumedProvider
 	EconomicsData            EconomicsDataHandler
+	ExecutionOrderHandler    ExecutionOrderHandler
 }
 
 // ArgPrepareOutportSaveBlockData holds the arguments needed for prepare outport save block data
@@ -32,6 +33,7 @@ type ArgPrepareOutportSaveBlockData struct {
 	HeaderHash             []byte
 	Header                 data.HeaderHandler
 	Body                   data.BodyHandler
+	PreviousHeader         data.HeaderHandler
 	RewardsTxs             map[string]data.TransactionHandler
 	NotarizedHeadersHashes []string
 }
@@ -46,6 +48,7 @@ type outportDataProvider struct {
 	nodesCoordinator         nodesCoordinator.NodesCoordinator
 	gasConsumedProvider      GasConsumedProvider
 	economicsData            EconomicsDataHandler
+	executionOrderHandler    ExecutionOrderHandler
 }
 
 // NewOutportDataProvider will create a new instance of outportDataProvider
@@ -59,6 +62,7 @@ func NewOutportDataProvider(arg ArgOutportDataProvider) (*outportDataProvider, e
 		nodesCoordinator:         arg.NodesCoordinator,
 		gasConsumedProvider:      arg.GasConsumedProvider,
 		economicsData:            arg.EconomicsData,
+		executionOrderHandler:    arg.ExecutionOrderHandler,
 	}, nil
 }
 
@@ -76,6 +80,14 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 	if err != nil {
 		return nil, fmt.Errorf("transactionsFeeProcessor.PutFeeAndGasUsed %w", err)
 	}
+
+	scheduledExecutedSCRsHashesPrevBlock, scheduledExecutedInvalidTxsHashesPrevBlock, err := odp.executionOrderHandler.PutExecutionOrderInTransactionPool(pool, arg.Header, arg.Body, arg.PreviousHeader)
+	if err != nil {
+		return nil, fmt.Errorf("executionOrderHandler.PutExecutionOrderInTransactionPool %w", err)
+	}
+
+	pool.ScheduledExecutedInvalidTxsHashesPrevBlock = scheduledExecutedInvalidTxsHashesPrevBlock
+	pool.ScheduledExecutedSCRSHashesPrevBlock = scheduledExecutedSCRsHashesPrevBlock
 
 	alteredAccounts, err := odp.alteredAccountsProvider.ExtractAlteredAccountsFromPool(pool, shared.AlteredAccountsOptions{
 		WithAdditionalOutportData: true,

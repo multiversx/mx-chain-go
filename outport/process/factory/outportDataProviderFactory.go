@@ -2,11 +2,14 @@ package factory
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/outport/process"
 	"github.com/multiversx/mx-chain-go/outport/process/alteredaccounts"
 	"github.com/multiversx/mx-chain-go/outport/process/disabled"
+	"github.com/multiversx/mx-chain-go/outport/process/executionOrder"
 	"github.com/multiversx/mx-chain-go/outport/process/transactionsfee"
 	processTxs "github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -30,6 +33,9 @@ type ArgOutportDataProviderFactory struct {
 	NodesCoordinator       nodesCoordinator.NodesCoordinator
 	GasConsumedProvider    process.GasConsumedProvider
 	EconomicsData          process.EconomicsDataHandler
+	Hasher                 hashing.Hasher
+	MbsStorer              storage.Storer
+	EnableEpochsHandler    common.EnableEpochsHandler
 }
 
 // CreateOutportDataProvider will create a new instance of outport.DataProviderOutport
@@ -63,6 +69,17 @@ func CreateOutportDataProvider(arg ArgOutportDataProviderFactory) (outport.DataP
 		return nil, err
 	}
 
+	argSorter := executionOrder.ArgSorter{
+		Hasher:              arg.Hasher,
+		Marshaller:          arg.Marshaller,
+		MbsStorer:           arg.MbsStorer,
+		EnableEpochsHandler: arg.EnableEpochsHandler,
+	}
+	executionOrderHandler, err := executionOrder.NewSorter(argSorter)
+	if err != nil {
+		return nil, err
+	}
+
 	return process.NewOutportDataProvider(process.ArgOutportDataProvider{
 		IsImportDBMode:           arg.IsImportDBMode,
 		ShardCoordinator:         arg.ShardCoordinator,
@@ -72,5 +89,6 @@ func CreateOutportDataProvider(arg ArgOutportDataProviderFactory) (outport.DataP
 		NodesCoordinator:         arg.NodesCoordinator,
 		GasConsumedProvider:      arg.GasConsumedProvider,
 		EconomicsData:            arg.EconomicsData,
+		ExecutionOrderHandler:    executionOrderHandler,
 	})
 }
