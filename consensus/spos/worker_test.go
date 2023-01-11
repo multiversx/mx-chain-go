@@ -580,6 +580,41 @@ func TestWorker_ProcessReceivedMessageNodeNotInEligibleListShouldErr(t *testing.
 func TestWorker_ProcessReceivedMessageComputeReceivedProposedBlockMetric(t *testing.T) {
 	t.Parallel()
 
+	t.Run("normal operation", func(t *testing.T) {
+		t.Parallel()
+
+		roundDuration := time.Millisecond * 1000
+		delay := time.Millisecond * 430
+		roundStartTimeStamp := time.Now()
+
+		receivedValue := testWorkerProcessReceivedMessageComputeReceivedProposedBlockMetric(roundStartTimeStamp, delay, roundDuration)
+
+		minimumExpectedValue := uint64(delay * 100 / roundDuration)
+		assert.True(t,
+			receivedValue >= minimumExpectedValue,
+			fmt.Sprintf("minimum expected was %d, got %d", minimumExpectedValue, receivedValue),
+		)
+	})
+	t.Run("time.Since returns negative value", func(t *testing.T) {
+		// test the edgecase when the returned NTP time stored in the round handler is
+		// slightly advanced when comparing with time.Now.
+		t.Parallel()
+
+		roundDuration := time.Millisecond * 1000
+		delay := time.Millisecond * 430
+		roundStartTimeStamp := time.Now().Add(time.Minute)
+
+		receivedValue := testWorkerProcessReceivedMessageComputeReceivedProposedBlockMetric(roundStartTimeStamp, delay, roundDuration)
+
+		assert.Zero(t, receivedValue)
+	})
+}
+
+func testWorkerProcessReceivedMessageComputeReceivedProposedBlockMetric(
+	roundStartTimeStamp time.Time,
+	delay time.Duration,
+	roundDuration time.Duration,
+) uint64 {
 	receivedValue := uint64(0)
 	wrk := *initWorker(&statusHandlerMock.AppStatusHandlerStub{
 		SetUInt64ValueHandler: func(key string, value uint64) {
@@ -599,9 +634,7 @@ func TestWorker_ProcessReceivedMessageComputeReceivedProposedBlockMetric(t *test
 			return nil
 		},
 	})
-	roundDuration := time.Millisecond * 1000
-	delay := time.Millisecond * 430
-	roundStartTimeStamp := time.Now()
+
 	wrk.SetRoundHandler(&mock.RoundHandlerMock{
 		RoundIndex: 0,
 		TimeDurationCalled: func() time.Duration {
@@ -639,11 +672,7 @@ func TestWorker_ProcessReceivedMessageComputeReceivedProposedBlockMetric(t *test
 	}
 	_ = wrk.ProcessReceivedMessage(msg, "")
 
-	minimumExpectedValue := uint64(delay * 100 / roundDuration)
-	assert.True(t,
-		receivedValue >= minimumExpectedValue,
-		fmt.Sprintf("minimum expected was %d, got %d", minimumExpectedValue, receivedValue),
-	)
+	return receivedValue
 }
 
 func TestWorker_ProcessReceivedMessageInconsistentChainIDInConsensusMessageShouldErr(t *testing.T) {

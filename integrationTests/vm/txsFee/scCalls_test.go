@@ -61,6 +61,7 @@ func prepareTestContextForEpoch836(tb testing.TB) (*vm.VMTestContext, []byte) {
 			WaitingListFixEnableEpoch:               unreachableEpoch,
 			SetSenderInEeiOutputTransferEnableEpoch: unreachableEpoch,
 			RefactorPeersMiniBlocksEnableEpoch:      unreachableEpoch,
+			MaxBlockchainHookCountersEnableEpoch:    unreachableEpoch,
 		},
 		mock.NewMultiShardsCoordinatorMock(2),
 		db,
@@ -289,7 +290,7 @@ func TestScCallAndGasChangeShouldWork(t *testing.T) {
 	}
 
 	newGasSchedule := wasmConfig.MakeGasMapForTests()
-	newGasSchedule["WASMOpcodeCost"] = wasmConfig.FillGasMap_WASMOpcodeValues(2)
+	newGasSchedule["WASMOpcodeCost"] = wasmConfig.FillGasMapWASMOpcodeValues(2)
 	mockGasSchedule.ChangeGasSchedule(newGasSchedule)
 
 	for idx := uint64(0); idx < numIterations; idx++ {

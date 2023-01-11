@@ -3,16 +3,16 @@ module github.com/ElrondNetwork/elrond-go
 go 1.17
 
 require (
-	github.com/ElrondNetwork/elastic-indexer-go v1.3.3
-	github.com/ElrondNetwork/elrond-go-core v1.1.26
+	github.com/ElrondNetwork/elastic-indexer-go v1.3.6
+	github.com/ElrondNetwork/elrond-go-core v1.1.29
 	github.com/ElrondNetwork/elrond-go-crypto v1.2.3
 	github.com/ElrondNetwork/elrond-go-logger v1.0.10
 	github.com/ElrondNetwork/elrond-go-p2p v1.0.8
 	github.com/ElrondNetwork/elrond-go-storage v1.0.4
-	github.com/ElrondNetwork/elrond-vm-common v1.3.31
+	github.com/ElrondNetwork/elrond-vm-common v1.3.32
 	github.com/ElrondNetwork/wasm-vm-v1_2 v1.2.48
 	github.com/ElrondNetwork/wasm-vm-v1_3 v1.3.48
-	github.com/ElrondNetwork/wasm-vm-v1_4 v1.4.69
+	github.com/ElrondNetwork/wasm-vm-v1_4 v1.4.71
 	github.com/beevik/ntp v0.3.0
 	github.com/davecgh/go-spew v1.1.1
 	github.com/elastic/go-elasticsearch/v7 v7.12.0
@@ -27,7 +27,7 @@ require (
 	github.com/pelletier/go-toml v1.9.3
 	github.com/pkg/errors v0.9.1
 	github.com/shirou/gopsutil v3.21.11+incompatible
-	github.com/stretchr/testify v1.8.0
+	github.com/stretchr/testify v1.8.1
 	github.com/urfave/cli v1.22.10
 	golang.org/x/crypto v0.3.0
 	gopkg.in/go-playground/validator.v8 v8.18.2
