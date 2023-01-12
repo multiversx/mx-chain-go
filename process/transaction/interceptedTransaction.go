@@ -389,14 +389,7 @@ func (inTx *InterceptedTransaction) VerifyGuardianSig(tx *transaction.Transactio
 	}
 
 	if !inTx.txVersionChecker.IsGuardedTransaction(tx) {
-		if len(tx.GetGuardianAddr()) > 0 {
-			return fmt.Errorf("%w without guardian signature", process.ErrGuardianAddressNotExpected)
-		}
-		if len(tx.GetGuardianSignature()) > 0 {
-			return fmt.Errorf("%w without guardian signature", process.ErrGuardianSignatureNotExpected)
-		}
-
-		return nil
+		return verifyConsistencyForNotGuardedTx(tx)
 	}
 
 	guardianPubKey, err := inTx.keyGen.PublicKeyFromByteArray(tx.GuardianAddr)
@@ -405,6 +398,17 @@ func (inTx *InterceptedTransaction) VerifyGuardianSig(tx *transaction.Transactio
 	}
 
 	return inTx.singleSigner.Verify(guardianPubKey, txMessageForSigVerification, tx.GuardianSignature)
+}
+
+func verifyConsistencyForNotGuardedTx(tx *transaction.Transaction) error {
+	if len(tx.GetGuardianAddr()) > 0 {
+		return process.ErrGuardianAddressNotExpected
+	}
+	if len(tx.GetGuardianSignature()) > 0 {
+		return process.ErrGuardianSignatureNotExpected
+	}
+
+	return nil
 }
 
 func (inTx *InterceptedTransaction) getTxMessageForGivenTx(tx *transaction.Transaction) ([]byte, error) {
