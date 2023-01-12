@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -144,7 +145,9 @@ func DeployAndExecuteERC20WithBigInt(
 		ownerAddressBytes,
 		ownerBalance,
 		gasSchedule,
-		config.EnableEpochs{},
+		config.EnableEpochs{
+			MaxBlockchainHookCountersEnableEpoch: integrationTests.UnreachableEpoch,
+		},
 	)
 	if err != nil {
 		return nil, err

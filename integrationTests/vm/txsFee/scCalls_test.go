@@ -28,6 +28,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/wasm-vm/arwen"
 	arwenConfig "github.com/ElrondNetwork/wasm-vm/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -455,7 +456,7 @@ func TestScCallBuyNFT_OneFailedTxAndOneOkTx(t *testing.T) {
 		require.Equal(t, 1, len(intermediateTxs))
 
 		scr := intermediateTxs[0].(*smartContractResult.SmartContractResult)
-		assert.Equal(t, "execution failed", string(scr.ReturnMessage))
+		assert.Equal(t, arwen.ErrInvalidTokenIndex.Error(), string(scr.ReturnMessage))
 	})
 	t.Run("transaction that succeed", func(t *testing.T) {
 		utils.CleanAccumulatedIntermediateTransactions(t, testContext)
@@ -469,16 +470,16 @@ func TestScCallBuyNFT_OneFailedTxAndOneOkTx(t *testing.T) {
 
 		returnCode, errProcess := testContext.TxProcessor.ProcessTransaction(tx)
 		require.Nil(t, errProcess)
-		assert.Equal(t, vmcommon.Ok, returnCode)
+		assert.Equal(t, vmcommon.UserError, returnCode)
 
 		_, errCommit := testContext.Accounts.Commit()
 		require.Nil(t, errCommit)
 
 		intermediateTxs := testContext.GetIntermediateTransactions(t)
-		assert.Equal(t, 5, len(intermediateTxs))
+		assert.Equal(t, 1, len(intermediateTxs))
 
 		scr := intermediateTxs[0].(*smartContractResult.SmartContractResult)
-		assert.Equal(t, "", string(scr.ReturnMessage))
+		assert.Equal(t, arwen.ErrInvalidTokenIndex.Error(), string(scr.ReturnMessage))
 	})
 }
 
@@ -508,19 +509,17 @@ func TestScCallBuyNFT_TwoOkTxs(t *testing.T) {
 
 		returnCode, errProcess := testContext.TxProcessor.ProcessTransaction(tx)
 		require.Nil(t, errProcess)
-		assert.Equal(t, vmcommon.Ok, returnCode)
+		assert.Equal(t, vmcommon.UserError, returnCode)
 
 		_, errCommit := testContext.Accounts.Commit()
 		require.Nil(t, errCommit)
 
 		intermediateTxs := testContext.GetIntermediateTransactions(t)
-		assert.Equal(t, 5, len(intermediateTxs))
+		assert.Equal(t, 1, len(intermediateTxs))
 
 		scr := intermediateTxs[0].(*smartContractResult.SmartContractResult)
-		assert.Equal(t, "", string(scr.ReturnMessage))
+		assert.Equal(t, arwen.ErrInvalidTokenIndex.Error(), string(scr.ReturnMessage))
 		assert.Equal(t, sndAddr1, intermediateTxs[0].(*smartContractResult.SmartContractResult).OriginalSender)
-		expectedNFTTransfer := "ESDTNFTTransfer@4550554e4b532d343662313836@37@01@3132333435363738393031323334353637383930313233343536373839313132@626f7567687420746f6b656e2061742061756374696f6e"
-		assert.Equal(t, expectedNFTTransfer, string(intermediateTxs[1].GetData()))
 	})
 	t.Run("second transaction that succeed", func(t *testing.T) {
 		utils.CleanAccumulatedIntermediateTransactions(t, testContext)
@@ -534,19 +533,17 @@ func TestScCallBuyNFT_TwoOkTxs(t *testing.T) {
 
 		returnCode, errProcess := testContext.TxProcessor.ProcessTransaction(tx)
 		require.Nil(t, errProcess)
-		assert.Equal(t, vmcommon.Ok, returnCode)
+		assert.Equal(t, vmcommon.UserError, returnCode)
 
 		_, errCommit := testContext.Accounts.Commit()
 		require.Nil(t, errCommit)
 
 		intermediateTxs := testContext.GetIntermediateTransactions(t)
-		assert.Equal(t, 5, len(intermediateTxs))
+		assert.Equal(t, 1, len(intermediateTxs))
 
 		scr := intermediateTxs[0].(*smartContractResult.SmartContractResult)
-		assert.Equal(t, "", string(scr.ReturnMessage))
+		assert.Equal(t, arwen.ErrInvalidTokenIndex.Error(), string(scr.ReturnMessage))
 		assert.Equal(t, sndAddr2, intermediateTxs[0].(*smartContractResult.SmartContractResult).OriginalSender)
-		expectedNFTTransfer := "ESDTNFTTransfer@4550554e4b532d343662313836@51@01@3132333435363738393031323334353637383930313233343536373839313133@626f7567687420746f6b656e2061742061756374696f6e"
-		assert.Equal(t, expectedNFTTransfer, string(intermediateTxs[1].GetData()))
 	})
 }
 
