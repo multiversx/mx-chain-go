@@ -39,7 +39,6 @@ func NewMetaInterceptorsContainerFactory(
 		args.WhiteListerVerifiedTxs,
 		args.PreferredPeersHolder,
 		args.RequestHandler,
-		args.GuardianSigVerifier,
 		args.PeerShardMapper,
 		args.HardforkTrigger,
 	)
@@ -94,7 +93,6 @@ func NewMetaInterceptorsContainerFactory(
 		HeaderIntegrityVerifier:      args.HeaderIntegrityVerifier,
 		EpochStartTrigger:            args.EpochStartTrigger,
 		ArgsParser:                   args.ArgumentsParser,
-		GuardianSigVerifier:          args.GuardianSigVerifier,
 		PeerSignatureHandler:         args.PeerSignatureHandler,
 		SignaturesHandler:            args.SignaturesHandler,
 		HeartbeatExpiryTimespanInSec: args.HeartbeatExpiryTimespanInSec,

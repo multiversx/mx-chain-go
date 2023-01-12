@@ -5,7 +5,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -20,7 +19,6 @@ type txValidator struct {
 	shardCoordinator     sharding.Coordinator
 	whiteListHandler     process.WhiteListHandler
 	pubKeyConverter      core.PubkeyConverter
-	guardianSigVerifier  process.GuardianSigVerifier
 	txVersionChecker     process.TxVersionCheckerHandler
 	maxNonceDeltaAllowed int
 }
@@ -31,7 +29,6 @@ func NewTxValidator(
 	shardCoordinator sharding.Coordinator,
 	whiteListHandler process.WhiteListHandler,
 	pubKeyConverter core.PubkeyConverter,
-	guardianSigVerifier process.GuardianSigVerifier,
 	txVersionChecker process.TxVersionCheckerHandler,
 	maxNonceDeltaAllowed int,
 ) (*txValidator, error) {
@@ -47,9 +44,6 @@ func NewTxValidator(
 	if check.IfNil(pubKeyConverter) {
 		return nil, fmt.Errorf("%w in NewTxValidator", process.ErrNilPubkeyConverter)
 	}
-	if check.IfNil(guardianSigVerifier) {
-		return nil, process.ErrNilGuardianSigVerifier
-	}
 	if check.IfNil(txVersionChecker) {
 		return nil, process.ErrNilTransactionVersionChecker
 	}
@@ -60,7 +54,6 @@ func NewTxValidator(
 		whiteListHandler:     whiteListHandler,
 		maxNonceDeltaAllowed: maxNonceDeltaAllowed,
 		pubKeyConverter:      pubKeyConverter,
-		guardianSigVerifier:  guardianSigVerifier,
 		txVersionChecker:     txVersionChecker,
 	}, nil
 }
@@ -100,11 +93,6 @@ func (txv *txValidator) checkAccount(
 		return err
 	}
 
-	err = txv.checkPermission(interceptedTx, account)
-	if err != nil {
-		return err
-	}
-
 	return txv.checkBalance(interceptedTx, account)
 }
 
@@ -134,71 +122,6 @@ func (txv *txValidator) checkBalance(interceptedTx process.InterceptedTransactio
 			txFee,
 			accountBalance,
 		)
-	}
-
-	return nil
-}
-
-func (txv *txValidator) checkPermission(interceptedTx process.InterceptedTransactionHandler, account state.UserAccountHandler) error {
-	txData, err := getTxData(interceptedTx)
-	if err != nil {
-		return err
-	}
-
-	if account.IsGuarded() {
-		err = txv.checkGuardedTransaction(interceptedTx, account)
-		if err == nil {
-			return nil
-		}
-
-		err = checkOperationAllowedToBypassGuardian(txData)
-		if err != nil {
-			return err
-		}
-
-		// block non guarded setGuardian Txs if there is a pending guardian
-		hasPendingGuardian := txv.guardianSigVerifier.HasPendingGuardian(account)
-		if process.IsSetGuardianCall(txData) && hasPendingGuardian {
-			return process.ErrCannotReplaceGuardedAccountPendingGuardian
-		}
-	}
-
-	return nil
-}
-
-// Setting a guardian is allowed with regular transactions on a guarded account
-// but in this case is set with the default epochs delay
-func checkOperationAllowedToBypassGuardian(txData []byte) error {
-	if process.IsSetGuardianCall(txData) {
-		return nil
-	}
-
-	return process.ErrOperationNotPermitted
-}
-
-func (txv *txValidator) checkGuardedTransaction(interceptedTx process.InterceptedTransactionHandler, account state.UserAccountHandler) error {
-	txHandler := interceptedTx.Transaction()
-	if check.IfNil(txHandler) {
-		return process.ErrNilTransaction
-	}
-
-	tx, ok := txHandler.(*transaction.Transaction)
-	if !ok {
-		return fmt.Errorf("%w on transaction handler", process.ErrWrongTypeAssertion)
-	}
-
-	if !txv.txVersionChecker.IsGuardedTransaction(tx) {
-		return fmt.Errorf("%w without guardian signature", process.ErrOperationNotPermitted)
-	}
-
-	vmUserAccount, ok := account.(vmcommon.UserAccountHandler)
-	if !ok {
-		return fmt.Errorf("%w on account", process.ErrWrongTypeAssertion)
-	}
-
-	errGuardianSignature := txv.guardianSigVerifier.VerifyGuardianSignature(vmUserAccount, interceptedTx)
-	if errGuardianSignature != nil {
-		return fmt.Errorf("%w due to error in signature verification %s", process.ErrOperationNotPermitted, errGuardianSignature.Error())
 	}
 
 	return nil

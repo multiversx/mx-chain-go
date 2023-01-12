@@ -1113,8 +1113,6 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 	cryptoComponents.BlKeyGen = tpn.OwnAccount.KeygenBlockSign
 	cryptoComponents.TxKeyGen = tpn.OwnAccount.KeygenTxSign
 
-	bootstrapComponents := getDefaultBootstrapComponents(tpn.ShardCoordinator)
-
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		argsEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
 			GenesisTime: tpn.RoundHandler.TimeStamp(),
@@ -1164,7 +1162,6 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 			HeartbeatExpiryTimespanInSec: 30,
 			PeerShardMapper:              tpn.PeerShardMapper,
 			HardforkTrigger:              tpn.HardforkTrigger,
-			GuardianSigVerifier:          bootstrapComponents.GuardianSigVerifierField,
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorContainerFactoryArgs)
 
@@ -1230,7 +1227,6 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 			HeartbeatExpiryTimespanInSec: 30,
 			PeerShardMapper:              tpn.PeerShardMapper,
 			HardforkTrigger:              tpn.HardforkTrigger,
-			GuardianSigVerifier:          bootstrapComponents.GuardianSigVerifierField,
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(shardIntereptorContainerFactoryArgs)
 
@@ -3141,7 +3137,6 @@ func getDefaultBootstrapComponents(shardCoordinator sharding.Coordinator) *mainF
 		HdrVersionHandler:          headerVersionHandler,
 		VersionedHdrFactory:        versionedHeaderFactory,
 		HdrIntegrityVerifier:       &mock.HeaderIntegrityVerifierStub{},
-		GuardianSigVerifierField:   &guardianMocks.GuardianSigVerifierStub{},
 		GuardedAccountHandlerField: &guardianMocks.GuardedAccountHandlerStub{},
 	}
 }

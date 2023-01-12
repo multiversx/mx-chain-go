@@ -528,6 +528,12 @@ var ErrInvalidExtraGasLimitGuardedTx = errors.New("invalid extra gas limit for g
 // ErrInvalidMaxGasPriceSetGuardian signals that an invalid maximum gas price has been provided in the config file
 var ErrInvalidMaxGasPriceSetGuardian = errors.New("invalid maximum gas price for set guardian")
 
+// ErrGuardianSignatureNotExpected signals that the guardian signature is not expected
+var ErrGuardianSignatureNotExpected = errors.New("guardian signature not expected")
+
+// ErrGuardianAddressNotExpected signals that the guardian address is not expected
+var ErrGuardianAddressNotExpected = errors.New("guardian address not expected")
+
 // ErrInvalidMinimumGasLimitForTx signals that an invalid minimum gas limit for transactions has been read from config file
 var ErrInvalidMinimumGasLimitForTx = errors.New("invalid minimum gas limit for transactions")
 
@@ -1158,12 +1164,6 @@ var ErrMaxBuiltInCallsReached = errors.New("max built in call reached")
 // ErrNilGuardianChecker signals that a nil guardian checker was provided
 var ErrNilGuardianChecker = errors.New("nil guardian checker")
 
-// ErrNilGuardianPublicKey signals that a nil guardian public key was provided
-var ErrNilGuardianPublicKey = errors.New("nil guardian public key")
-
-// ErrNilGuardianSigVerifier signals that a nil signature verifier was provided
-var ErrNilGuardianSigVerifier = errors.New("nil guardian signature verifier")
-
 // ErrAccountHasNoGuardianSet signals that the account has no guardians set
 var ErrAccountHasNoGuardianSet = errors.New("account has no guardian set")
 
@@ -1178,6 +1178,9 @@ var ErrNilGuardedAccountHandler = errors.New("nil guarded account handler")
 
 // ErrOperationNotPermitted signals that operation is not permitted
 var ErrOperationNotPermitted = errors.New("operation in account not permitted")
+
+// ErrTransactionNotExecutable signals that a transaction is not executable and gas will not be consumed
+var ErrTransactionNotExecutable = errors.New("transaction is not executable and gas will not be consumed")
 
 // ErrTransactionAndAccountGuardianMismatch signals a mismatch between the guardian on the account and the one on the transaction
 var ErrTransactionAndAccountGuardianMismatch = errors.New("mismatch between transaction guardian and configured account guardian")

@@ -152,17 +152,19 @@ func createRelayedV2(relayedTx *transaction.Transaction, args [][]byte) (*transa
 		return nil, process.ErrInvalidArguments
 	}
 	tx := &transaction.Transaction{
-		Nonce:     big.NewInt(0).SetBytes(args[1]).Uint64(),
-		Value:     big.NewInt(0),
-		RcvAddr:   args[0],
-		SndAddr:   relayedTx.RcvAddr,
-		GasPrice:  relayedTx.GasPrice,
-		GasLimit:  0, // the user had to sign a transaction with 0 gasLimit - as all gasLimit is coming from the relayer
-		Data:      args[2],
-		ChainID:   relayedTx.ChainID,
-		Version:   relayedTx.Version,
-		Signature: args[3],
-		Options:   relayedTx.Options,
+		Nonce:             big.NewInt(0).SetBytes(args[1]).Uint64(),
+		Value:             big.NewInt(0),
+		RcvAddr:           args[0],
+		SndAddr:           relayedTx.RcvAddr,
+		GasPrice:          relayedTx.GasPrice,
+		GasLimit:          0, // the user had to sign a transaction with 0 gasLimit - as all gasLimit is coming from the relayer
+		Data:              args[2],
+		ChainID:           relayedTx.ChainID,
+		Version:           relayedTx.Version,
+		Signature:         args[3],
+		Options:           relayedTx.Options,
+		GuardianAddr:      nil,
+		GuardianSignature: nil,
 	}
 
 	return tx, nil
@@ -178,6 +180,11 @@ func (inTx *InterceptedTransaction) CheckValidity() error {
 	whiteListedVerified := inTx.whiteListerVerifiedTxs.IsWhiteListed(inTx)
 	if !whiteListedVerified {
 		err = inTx.verifySig(inTx.tx)
+		if err != nil {
+			return err
+		}
+
+		err = inTx.VerifyGuardianSig(inTx.tx)
 		if err != nil {
 			return err
 		}
@@ -217,6 +224,11 @@ func (inTx *InterceptedTransaction) verifyIfRelayedTxV2(tx *transaction.Transact
 	}
 
 	err = inTx.verifySig(userTx)
+	if err != nil {
+		return err
+	}
+
+	err = inTx.VerifyGuardianSig(userTx)
 	if err != nil {
 		return err
 	}
@@ -262,6 +274,11 @@ func (inTx *InterceptedTransaction) verifyIfRelayedTx(tx *transaction.Transactio
 	}
 
 	err = inTx.verifySig(userTx)
+	if err != nil {
+		return err
+	}
+
+	err = inTx.VerifyGuardianSig(userTx)
 	if err != nil {
 		return err
 	}
@@ -362,6 +379,36 @@ func (inTx *InterceptedTransaction) verifySig(tx *transaction.Transaction) error
 	}
 
 	return inTx.singleSigner.Verify(senderPubKey, txMessageForSigVerification, tx.Signature)
+}
+
+// VerifyGuardianSig verifies if the guardian signature is valid
+func (inTx *InterceptedTransaction) VerifyGuardianSig(tx *transaction.Transaction) error {
+	txMessageForSigVerification, err := inTx.getTxMessageForGivenTx(tx)
+	if err != nil {
+		return err
+	}
+
+	if !inTx.txVersionChecker.IsGuardedTransaction(tx) {
+		return verifyConsistencyForNotGuardedTx(tx)
+	}
+
+	guardianPubKey, err := inTx.keyGen.PublicKeyFromByteArray(tx.GuardianAddr)
+	if err != nil {
+		return err
+	}
+
+	return inTx.singleSigner.Verify(guardianPubKey, txMessageForSigVerification, tx.GuardianSignature)
+}
+
+func verifyConsistencyForNotGuardedTx(tx *transaction.Transaction) error {
+	if len(tx.GetGuardianAddr()) > 0 {
+		return process.ErrGuardianAddressNotExpected
+	}
+	if len(tx.GetGuardianSignature()) > 0 {
+		return process.ErrGuardianSignatureNotExpected
+	}
+
+	return nil
 }
 
 func (inTx *InterceptedTransaction) getTxMessageForGivenTx(tx *transaction.Transaction) ([]byte, error) {

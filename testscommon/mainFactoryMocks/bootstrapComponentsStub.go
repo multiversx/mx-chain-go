@@ -18,7 +18,6 @@ type BootstrapComponentsStub struct {
 	VersionedHdrFactory        nodeFactory.VersionedHeaderFactory
 	HdrIntegrityVerifier       nodeFactory.HeaderIntegrityVerifierHandler
 	GuardedAccountHandlerField process.GuardedAccountHandler
-	GuardianSigVerifierField   process.GuardianSigVerifier
 }
 
 // Create -
@@ -75,11 +74,6 @@ func (bcs *BootstrapComponentsStub) HeaderIntegrityVerifier() nodeFactory.Header
 func (bcs *BootstrapComponentsStub) SetShardCoordinator(shardCoordinator sharding.Coordinator) error {
 	bcs.ShCoordinator = shardCoordinator
 	return nil
-}
-
-// GuardianSigVerifier -
-func (bcs *BootstrapComponentsStub) GuardianSigVerifier() process.GuardianSigVerifier {
-	return bcs.GuardianSigVerifierField
 }
 
 // GuardedAccountHandler -

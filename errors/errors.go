@@ -541,6 +541,3 @@ var ErrNilPersistentHandler = errors.New("nil persistent handler")
 
 // ErrNilGenesisNodesSetupHandler signals that a nil genesis nodes setup handler has been provided
 var ErrNilGenesisNodesSetupHandler = errors.New("nil genesis nodes setup handler")
-
-// ErrNilGuardianSigVerifier signals that a nil guardian signature verifier was provided
-var ErrNilGuardianSigVerifier = errors.New("nil guardian signature verifier")

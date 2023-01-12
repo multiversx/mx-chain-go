@@ -489,7 +489,6 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneTxInterceptor(topic s
 		ficf.shardCoordinator,
 		ficf.whiteListHandler,
 		ficf.addressPubkeyConv,
-		ficf.argInterceptorFactory.GuardianSigVerifier,
 		ficf.argInterceptorFactory.CoreComponents.TxVersionChecker(),
 		ficf.maxTxNonceDeltaAllowed,
 	)

@@ -37,7 +37,6 @@ func NewShardInterceptorsContainerFactory(
 		args.WhiteListerVerifiedTxs,
 		args.PreferredPeersHolder,
 		args.RequestHandler,
-		args.GuardianSigVerifier,
 		args.PeerShardMapper,
 		args.HardforkTrigger,
 	)
@@ -93,7 +92,6 @@ func NewShardInterceptorsContainerFactory(
 		EpochStartTrigger:            args.EpochStartTrigger,
 		WhiteListerVerifiedTxs:       args.WhiteListerVerifiedTxs,
 		ArgsParser:                   args.ArgumentsParser,
-		GuardianSigVerifier:          args.GuardianSigVerifier,
 		PeerSignatureHandler:         args.PeerSignatureHandler,
 		SignaturesHandler:            args.SignaturesHandler,
 		HeartbeatExpiryTimespanInSec: args.HeartbeatExpiryTimespanInSec,

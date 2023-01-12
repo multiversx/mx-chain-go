@@ -1774,3 +1774,89 @@ func TestInterceptedTransaction_checkMaxGasPrice(t *testing.T) {
 		require.Equal(t, process.ErrGasPriceTooHigh, errMaxGasPrice)
 	})
 }
+
+func TestInterceptedTransaction_VerifyGuardianSig(t *testing.T) {
+	t.Parallel()
+
+	txVersionChecker := testscommon.TxVersionCheckerStub{
+		IsGuardedTransactionCalled: func(tx *dataTransaction.Transaction) bool {
+			return true
+		},
+	}
+	feeHandler := &economicsmocks.EconomicsHandlerStub{
+		MaxGasPriceSetGuardianCalled: func() uint64 {
+			return 1000
+		},
+	}
+	tx := dataTransaction.Transaction{
+		Data:              []byte("some data"),
+		GuardianAddr:      []byte("guardian addr"),
+		GuardianSignature: []byte("guardian signature"),
+	}
+
+	t.Run("get data for signing with error", func(t *testing.T) {
+		tx := tx
+		txVersionChecker := txVersionChecker
+		txVersionChecker.IsSignedWithHashCalled = func(tx *dataTransaction.Transaction) bool {
+			return true
+		}
+		inTx, err := createInterceptedTxWithTxFeeHandlerAndVersionChecker(&tx, feeHandler, &txVersionChecker)
+		require.Nil(t, err)
+		err = inTx.VerifyGuardianSig(&tx)
+		require.Equal(t, process.ErrTransactionSignedWithHashIsNotEnabled, err)
+	})
+	t.Run("nil guardian sig", func(t *testing.T) {
+		tx := tx
+		tx.GuardianSignature = nil
+		inTx, err := createInterceptedTxWithTxFeeHandlerAndVersionChecker(&tx, feeHandler, &txVersionChecker)
+		require.Nil(t, err)
+
+		err = inTx.VerifyGuardianSig(&tx)
+		require.Equal(t, errSignerMockVerifySigFails, err)
+	})
+	t.Run("normal TX with not empty guardian address", func(t *testing.T) {
+		tx := tx
+		tx.GuardianAddr = []byte("guardian addr")
+		txVersionChecker := txVersionChecker
+		txVersionChecker.IsGuardedTransactionCalled = func(tx *dataTransaction.Transaction) bool {
+			return false
+		}
+		inTx, err := createInterceptedTxWithTxFeeHandlerAndVersionChecker(&tx, feeHandler, &txVersionChecker)
+		require.Nil(t, err)
+
+		err = inTx.VerifyGuardianSig(&tx)
+		require.True(t, errors.Is(err, process.ErrGuardianAddressNotExpected))
+	})
+	t.Run("normal TX with guardian sig", func(t *testing.T) {
+		tx := tx
+		tx.GuardianAddr = nil
+		tx.GuardianSignature = []byte("guardian signature")
+		txVersionChecker := txVersionChecker
+		txVersionChecker.IsGuardedTransactionCalled = func(tx *dataTransaction.Transaction) bool {
+			return false
+		}
+		inTx, err := createInterceptedTxWithTxFeeHandlerAndVersionChecker(&tx, feeHandler, &txVersionChecker)
+		require.Nil(t, err)
+
+		err = inTx.VerifyGuardianSig(&tx)
+		require.True(t, errors.Is(err, process.ErrGuardianSignatureNotExpected))
+	})
+	t.Run("wrong guardian sig", func(t *testing.T) {
+		tx := tx
+		tx.GuardianSignature = sigBad
+		inTx, err := createInterceptedTxWithTxFeeHandlerAndVersionChecker(&tx, feeHandler, &txVersionChecker)
+		require.Nil(t, err)
+
+		err = inTx.VerifyGuardianSig(&tx)
+		require.Equal(t, errSignerMockVerifySigFails, err)
+	})
+	t.Run("correct guardian sig", func(t *testing.T) {
+		tx := tx
+		tx.GuardianSignature = sigOk
+		inTx, err := createInterceptedTxWithTxFeeHandlerAndVersionChecker(&tx, feeHandler, &txVersionChecker)
+		require.Nil(t, err)
+
+		err = inTx.VerifyGuardianSig(&tx)
+		require.Nil(t, err)
+	})
+}

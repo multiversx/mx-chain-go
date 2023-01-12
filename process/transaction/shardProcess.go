@@ -161,11 +161,6 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 		return 0, err
 	}
 
-	err = txProc.verifyGuardian(tx, acntSnd)
-	if err != nil {
-		return 0, err
-	}
-
 	txHash, err := core.CalculateHash(txProc.marshalizer, txProc.hasher, tx)
 	if err != nil {
 		return 0, err

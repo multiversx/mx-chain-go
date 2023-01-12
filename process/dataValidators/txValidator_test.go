@@ -4,19 +4,16 @@ import (
 	"errors"
 	"math/big"
 	"strconv"
-	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/receipt"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/dataValidators"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/guardianMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
@@ -86,7 +83,6 @@ func TestNewTxValidator_NilAccountsShouldErr(t *testing.T) {
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
-		&guardianMocks.GuardianSigVerifierStub{},
 		&testscommon.TxVersionCheckerStub{},
 		maxNonceDeltaAllowed,
 	)
@@ -105,7 +101,6 @@ func TestNewTxValidator_NilShardCoordinatorShouldErr(t *testing.T) {
 		nil,
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
-		&guardianMocks.GuardianSigVerifierStub{},
 		&testscommon.TxVersionCheckerStub{},
 		maxNonceDeltaAllowed,
 	)
@@ -125,7 +120,6 @@ func TestTxValidator_NewValidatorNilWhiteListHandlerShouldErr(t *testing.T) {
 		shardCoordinator,
 		nil,
 		mock.NewPubkeyConverterMock(32),
-		&guardianMocks.GuardianSigVerifierStub{},
 		&testscommon.TxVersionCheckerStub{},
 		maxNonceDeltaAllowed,
 	)
@@ -145,32 +139,12 @@ func TestNewTxValidator_NilPubkeyConverterShouldErr(t *testing.T) {
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
 		nil,
-		&guardianMocks.GuardianSigVerifierStub{},
 		&testscommon.TxVersionCheckerStub{},
 		maxNonceDeltaAllowed,
 	)
 
 	assert.Nil(t, txValidator)
 	assert.True(t, errors.Is(err, process.ErrNilPubkeyConverter))
-}
-
-func TestNewTxValidator_NilGuardianSigVerifierShouldErr(t *testing.T) {
-	t.Parallel()
-
-	adb := getAccAdapter(0, big.NewInt(0))
-	shardCoordinator := createMockCoordinator("_", 0)
-	maxNonceDeltaAllowed := 100
-	txValidator, err := dataValidators.NewTxValidator(
-		adb,
-		shardCoordinator,
-		&testscommon.WhiteListHandlerStub{},
-		mock.NewPubkeyConverterMock(32),
-		nil,
-		&testscommon.TxVersionCheckerStub{},
-		maxNonceDeltaAllowed,
-	)
-	assert.Nil(t, txValidator)
-	assert.True(t, errors.Is(err, process.ErrNilGuardianSigVerifier))
 }
 
 func TestNewTxValidator_NilTxVersionCheckerShouldErr(t *testing.T) {
@@ -184,7 +158,6 @@ func TestNewTxValidator_NilTxVersionCheckerShouldErr(t *testing.T) {
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
-		&guardianMocks.GuardianSigVerifierStub{},
 		nil,
 		maxNonceDeltaAllowed,
 	)
@@ -203,7 +176,6 @@ func TestNewTxValidator_ShouldWork(t *testing.T) {
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
-		&guardianMocks.GuardianSigVerifierStub{},
 		&testscommon.TxVersionCheckerStub{},
 		maxNonceDeltaAllowed,
 	)
@@ -227,7 +199,6 @@ func TestTxValidator_CheckTxValidityTxCrossShardShouldWork(t *testing.T) {
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
-		&guardianMocks.GuardianSigVerifierStub{},
 		&testscommon.TxVersionCheckerStub{},
 		maxNonceDeltaAllowed,
 	)
@@ -254,7 +225,6 @@ func TestTxValidator_CheckTxValidityAccountNonceIsGreaterThanTxNonceShouldReturn
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
-		&guardianMocks.GuardianSigVerifierStub{},
 		&testscommon.TxVersionCheckerStub{},
 		maxNonceDeltaAllowed,
 	)
@@ -282,7 +252,6 @@ func TestTxValidator_CheckTxValidityTxNonceIsTooHigh(t *testing.T) {
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
-		&guardianMocks.GuardianSigVerifierStub{},
 		&testscommon.TxVersionCheckerStub{},
 		maxNonceDeltaAllowed,
 	)
@@ -312,7 +281,6 @@ func TestTxValidator_CheckTxValidityAccountBalanceIsLessThanTxTotalValueShouldRe
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
-		&guardianMocks.GuardianSigVerifierStub{},
 		&testscommon.TxVersionCheckerStub{},
 		maxNonceDeltaAllowed,
 	)
@@ -341,7 +309,6 @@ func TestTxValidator_CheckTxValidityAccountNotExitsShouldReturnFalse(t *testing.
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
-		&guardianMocks.GuardianSigVerifierStub{},
 		&testscommon.TxVersionCheckerStub{},
 		maxNonceDeltaAllowed,
 	)
@@ -372,7 +339,6 @@ func TestTxValidator_CheckTxValidityAccountNotExitsButWhiteListedShouldReturnTru
 			},
 		},
 		mock.NewPubkeyConverterMock(32),
-		&guardianMocks.GuardianSigVerifierStub{},
 		&testscommon.TxVersionCheckerStub{},
 		maxNonceDeltaAllowed,
 	)
@@ -408,7 +374,6 @@ func TestTxValidator_CheckTxValidityWrongAccountTypeShouldReturnFalse(t *testing
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
-		&guardianMocks.GuardianSigVerifierStub{},
 		&testscommon.TxVersionCheckerStub{},
 		maxNonceDeltaAllowed,
 	)
@@ -434,7 +399,6 @@ func TestTxValidator_CheckTxValidityTxIsOkShouldReturnTrue(t *testing.T) {
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
-		&guardianMocks.GuardianSigVerifierStub{},
 		&testscommon.TxVersionCheckerStub{},
 		maxNonceDeltaAllowed,
 	)
@@ -445,343 +409,6 @@ func TestTxValidator_CheckTxValidityTxIsOkShouldReturnTrue(t *testing.T) {
 
 	result := txValidator.CheckTxValidity(txValidatorHandler)
 	assert.Nil(t, result)
-}
-
-func TestTxValidator_checkPermission(t *testing.T) {
-	adb := getAccAdapter(0, big.NewInt(0))
-	shardCoordinator := createMockCoordinator("_", 0)
-	maxNonceDeltaAllowed := 100
-	txValidator, err := dataValidators.NewTxValidator(
-		adb,
-		shardCoordinator,
-		&testscommon.WhiteListHandlerStub{},
-		mock.NewPubkeyConverterMock(32),
-		&guardianMocks.GuardianSigVerifierStub{},
-		&testscommon.TxVersionCheckerStub{},
-		maxNonceDeltaAllowed,
-	)
-	require.Nil(t, err)
-
-	t.Run("non guarded account with getTxData error should err", func(t *testing.T) {
-		inTx := getDefaultInterceptedTx()
-		inTx.TransactionCalled = func() data.TransactionHandler {
-			return nil
-		}
-		acc := &stateMock.UserAccountStub{
-			IsGuardedCalled: func() bool {
-				return false
-			},
-		}
-		err = txValidator.CheckPermission(inTx, acc)
-		require.Equal(t, process.ErrNilTransaction, err)
-	})
-	t.Run("non guarded account without getTxData error should allow", func(t *testing.T) {
-		inTx := getDefaultInterceptedTx()
-		inTx.TransactionCalled = func() data.TransactionHandler {
-			return &transaction.Transaction{}
-		}
-
-		acc := &stateMock.UserAccountStub{
-			IsGuardedCalled: func() bool {
-				return false
-			},
-		}
-		err = txValidator.CheckPermission(inTx, acc)
-		require.Nil(t, err)
-	})
-	t.Run("guarded account with no guarded tx and no bypass permission should err", func(t *testing.T) {
-		inTx := getDefaultInterceptedTx()
-		inTx.TransactionCalled = func() data.TransactionHandler {
-			return &transaction.Transaction{
-				Data: []byte("dummy data"),
-			}
-		}
-
-		acc := createDummyGuardedAccount()
-		txV, err := dataValidators.NewTxValidator(
-			adb,
-			shardCoordinator,
-			&testscommon.WhiteListHandlerStub{},
-			mock.NewPubkeyConverterMock(32),
-			&guardianMocks.GuardianSigVerifierStub{
-				VerifyGuardianSignatureCalled: func(account vmcommon.UserAccountHandler, inTx process.InterceptedTransactionHandler) error {
-					return errors.New("error")
-				},
-			},
-			&testscommon.TxVersionCheckerStub{
-				IsGuardedTransactionCalled: func(tx *transaction.Transaction) bool {
-					return false
-				},
-			},
-			maxNonceDeltaAllowed,
-		)
-		require.Nil(t, err)
-
-		err = txV.CheckPermission(inTx, acc)
-		require.True(t, errors.Is(err, process.ErrOperationNotPermitted))
-	})
-	t.Run("guarded account with no guarded tx and bypass permission should allow if no pending guardian", func(t *testing.T) {
-		inTx := getDefaultInterceptedTx()
-		inTx.TransactionCalled = func() data.TransactionHandler {
-			return &transaction.Transaction{
-				Data: []byte("SetGuardian@..."),
-			}
-		}
-
-		acc := createDummyGuardedAccount()
-		txV, err := dataValidators.NewTxValidator(
-			adb,
-			shardCoordinator,
-			&testscommon.WhiteListHandlerStub{},
-			mock.NewPubkeyConverterMock(32),
-			&guardianMocks.GuardianSigVerifierStub{
-				VerifyGuardianSignatureCalled: func(account vmcommon.UserAccountHandler, inTx process.InterceptedTransactionHandler) error {
-					return errors.New("error")
-				},
-				HasPendingGuardianCalled: func(uah state.UserAccountHandler) bool {
-					return false
-				},
-			},
-			&testscommon.TxVersionCheckerStub{
-				IsGuardedTransactionCalled: func(tx *transaction.Transaction) bool {
-					return false
-				},
-			},
-			maxNonceDeltaAllowed,
-		)
-		require.Nil(t, err)
-
-		err = txV.CheckPermission(inTx, acc)
-		require.Nil(t, err)
-	})
-	t.Run("guarded account with no guarded tx and bypass permission with pending guardian should block", func(t *testing.T) {
-		inTx := getDefaultInterceptedTx()
-		inTx.TransactionCalled = func() data.TransactionHandler {
-			return &transaction.Transaction{
-				Data: []byte("SetGuardian@..."),
-			}
-		}
-
-		acc := createDummyGuardedAccount()
-		txV, err := dataValidators.NewTxValidator(
-			adb,
-			shardCoordinator,
-			&testscommon.WhiteListHandlerStub{},
-			mock.NewPubkeyConverterMock(32),
-			&guardianMocks.GuardianSigVerifierStub{
-				VerifyGuardianSignatureCalled: func(account vmcommon.UserAccountHandler, inTx process.InterceptedTransactionHandler) error {
-					return errors.New("error")
-				},
-				HasPendingGuardianCalled: func(uah state.UserAccountHandler) bool {
-					return true
-				},
-			},
-			&testscommon.TxVersionCheckerStub{
-				IsGuardedTransactionCalled: func(tx *transaction.Transaction) bool {
-					return false
-				},
-			},
-			maxNonceDeltaAllowed,
-		)
-		require.Nil(t, err)
-
-		err = txV.CheckPermission(inTx, acc)
-		require.Equal(t, process.ErrCannotReplaceGuardedAccountPendingGuardian, err)
-	})
-	t.Run("guarded account with guarded Tx should allow", func(t *testing.T) {
-		inTx := getDefaultInterceptedTx()
-		inTx.TransactionCalled = func() data.TransactionHandler {
-			return &transaction.Transaction{
-				Data: []byte("dummy data"),
-			}
-		}
-
-		acc := createDummyGuardedAccount()
-		txV, err := dataValidators.NewTxValidator(
-			adb,
-			shardCoordinator,
-			&testscommon.WhiteListHandlerStub{},
-			mock.NewPubkeyConverterMock(32),
-			&guardianMocks.GuardianSigVerifierStub{
-				VerifyGuardianSignatureCalled: func(account vmcommon.UserAccountHandler, inTx process.InterceptedTransactionHandler) error {
-					return nil
-				},
-			},
-			&testscommon.TxVersionCheckerStub{
-				IsGuardedTransactionCalled: func(tx *transaction.Transaction) bool {
-					return true
-				},
-			},
-			maxNonceDeltaAllowed,
-		)
-		require.Nil(t, err)
-
-		err = txV.CheckPermission(inTx, acc)
-		require.Nil(t, err)
-	})
-}
-
-func TestTxValidator_checkGuardedTransaction(t *testing.T) {
-	adb := getAccAdapter(0, big.NewInt(0))
-	shardCoordinator := createMockCoordinator("_", 0)
-	maxNonceDeltaAllowed := 100
-	txValidator, err := dataValidators.NewTxValidator(
-		adb,
-		shardCoordinator,
-		&testscommon.WhiteListHandlerStub{},
-		mock.NewPubkeyConverterMock(32),
-		&guardianMocks.GuardianSigVerifierStub{},
-		&testscommon.TxVersionCheckerStub{},
-		maxNonceDeltaAllowed,
-	)
-	require.Nil(t, err)
-
-	t.Run("nil tx should err", func(t *testing.T) {
-		inTx := getDefaultInterceptedTx()
-		inTx.TransactionCalled = func() data.TransactionHandler {
-			return nil
-		}
-		acc := &stateMock.UserAccountStub{}
-		err = txValidator.CheckGuardedTransaction(inTx, acc)
-		require.Equal(t, process.ErrNilTransaction, err)
-	})
-	t.Run("invalid transaction should fail", func(t *testing.T) {
-		inTx := getDefaultInterceptedTx()
-		inTx.TransactionCalled = func() data.TransactionHandler {
-			return &receipt.Receipt{}
-		}
-		acc := &stateMock.UserAccountStub{}
-		err = txValidator.CheckGuardedTransaction(inTx, acc)
-		require.True(t, errors.Is(err, process.ErrWrongTypeAssertion))
-	})
-	t.Run("not guarded Tx should err", func(t *testing.T) {
-		inTx := getDefaultInterceptedTx()
-		inTx.TransactionCalled = func() data.TransactionHandler {
-			return &transaction.Transaction{}
-		}
-		acc := &stateMock.UserAccountStub{}
-
-		txV, err := dataValidators.NewTxValidator(
-			adb,
-			shardCoordinator,
-			&testscommon.WhiteListHandlerStub{},
-			mock.NewPubkeyConverterMock(32),
-			&guardianMocks.GuardianSigVerifierStub{},
-			&testscommon.TxVersionCheckerStub{
-				IsGuardedTransactionCalled: func(tx *transaction.Transaction) bool {
-					return false
-				},
-			},
-			maxNonceDeltaAllowed,
-		)
-		require.Nil(t, err)
-		err = txV.CheckGuardedTransaction(inTx, acc)
-		require.True(t, errors.Is(err, process.ErrOperationNotPermitted))
-	})
-	t.Run("non user account should err", func(t *testing.T) {
-		inTx := getDefaultInterceptedTx()
-		inTx.TransactionCalled = func() data.TransactionHandler {
-			return &transaction.Transaction{}
-		}
-
-		var acc state.UserAccountHandler
-
-		txV, err := dataValidators.NewTxValidator(
-			adb,
-			shardCoordinator,
-			&testscommon.WhiteListHandlerStub{},
-			mock.NewPubkeyConverterMock(32),
-			&guardianMocks.GuardianSigVerifierStub{},
-			&testscommon.TxVersionCheckerStub{
-				IsGuardedTransactionCalled: func(tx *transaction.Transaction) bool {
-					return true
-				},
-			},
-			maxNonceDeltaAllowed,
-		)
-		require.Nil(t, err)
-		err = txV.CheckGuardedTransaction(inTx, acc)
-		require.True(t, errors.Is(err, process.ErrWrongTypeAssertion))
-	})
-	t.Run("invalid guardian signature should err", func(t *testing.T) {
-		inTx := getDefaultInterceptedTx()
-		inTx.TransactionCalled = func() data.TransactionHandler {
-			return &transaction.Transaction{}
-		}
-
-		acc := state.NewEmptyUserAccount()
-
-		expectedSigVerifyError := errors.New("expected error")
-
-		txV, err := dataValidators.NewTxValidator(
-			adb,
-			shardCoordinator,
-			&testscommon.WhiteListHandlerStub{},
-			mock.NewPubkeyConverterMock(32),
-			&guardianMocks.GuardianSigVerifierStub{
-				VerifyGuardianSignatureCalled: func(account vmcommon.UserAccountHandler, inTx process.InterceptedTransactionHandler) error {
-					return expectedSigVerifyError
-				},
-			},
-			&testscommon.TxVersionCheckerStub{
-				IsGuardedTransactionCalled: func(tx *transaction.Transaction) bool {
-					return true
-				},
-			},
-			maxNonceDeltaAllowed,
-		)
-		require.Nil(t, err)
-		err = txV.CheckGuardedTransaction(inTx, acc)
-		require.True(t, errors.Is(err, process.ErrOperationNotPermitted))
-		require.True(t, strings.Contains(err.Error(), expectedSigVerifyError.Error()))
-	})
-	t.Run("valid signed guarded tx OK", func(t *testing.T) {
-		inTx := getDefaultInterceptedTx()
-		inTx.TransactionCalled = func() data.TransactionHandler {
-			return &transaction.Transaction{}
-		}
-
-		acc := state.NewEmptyUserAccount()
-		txV, err := dataValidators.NewTxValidator(
-			adb,
-			shardCoordinator,
-			&testscommon.WhiteListHandlerStub{},
-			mock.NewPubkeyConverterMock(32),
-			&guardianMocks.GuardianSigVerifierStub{
-				VerifyGuardianSignatureCalled: func(account vmcommon.UserAccountHandler, inTx process.InterceptedTransactionHandler) error {
-					return nil
-				},
-			},
-			&testscommon.TxVersionCheckerStub{
-				IsGuardedTransactionCalled: func(tx *transaction.Transaction) bool {
-					return true
-				},
-			},
-			maxNonceDeltaAllowed,
-		)
-		require.Nil(t, err)
-		err = txV.CheckGuardedTransaction(inTx, acc)
-		require.Nil(t, err)
-	})
-}
-
-func Test_checkOperationAllowedToBypassGuardian(t *testing.T) {
-	t.Run("operations not allowed to bypass", func(t *testing.T) {
-		txData := []byte("#@!")
-		require.Equal(t, process.ErrOperationNotPermitted, dataValidators.CheckOperationAllowedToBypassGuardian(txData))
-		txData = []byte(nil)
-		require.Equal(t, process.ErrOperationNotPermitted, dataValidators.CheckOperationAllowedToBypassGuardian(txData))
-		txData = []byte("SomeOtherFunction@")
-		require.Equal(t, process.ErrOperationNotPermitted, dataValidators.CheckOperationAllowedToBypassGuardian(txData))
-	})
-	t.Run("setGuardian data field (non builtin call) not allowed", func(t *testing.T) {
-		txData := []byte("setGuardian")
-		require.Equal(t, process.ErrOperationNotPermitted, dataValidators.CheckOperationAllowedToBypassGuardian(txData))
-	})
-	t.Run("set guardian builtin call allowed to bypass", func(t *testing.T) {
-		txData := []byte("SetGuardian@")
-		require.Nil(t, dataValidators.CheckOperationAllowedToBypassGuardian(txData))
-	})
 }
 
 func Test_getTxData(t *testing.T) {
@@ -830,7 +457,6 @@ func TestTxValidator_IsInterfaceNil(t *testing.T) {
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
-		&guardianMocks.GuardianSigVerifierStub{},
 		&testscommon.TxVersionCheckerStub{},
 		100,
 	)

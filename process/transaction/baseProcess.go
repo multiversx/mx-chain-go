@@ -125,14 +125,12 @@ func (txProc *baseTxProcessor) checkTxValues(
 	if check.IfNil(acntSnd) {
 		return nil
 	}
-
 	if acntSnd.GetNonce() < tx.Nonce {
 		return process.ErrHigherNonceInTransaction
 	}
 	if acntSnd.GetNonce() > tx.Nonce {
 		return process.ErrLowerNonceInTransaction
 	}
-
 	err = txProc.economicsFee.CheckValidityTxValues(tx)
 	if err != nil {
 		return err
@@ -165,6 +163,11 @@ func (txProc *baseTxProcessor) checkTxValues(
 	cost := big.NewInt(0).Add(txFee, tx.Value)
 	if acntSnd.GetBalance().Cmp(cost) < 0 {
 		return process.ErrInsufficientFunds
+	}
+
+	err = txProc.verifyGuardian(tx, acntSnd)
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -218,6 +221,31 @@ func (txProc *baseTxProcessor) VerifyTransaction(tx *transaction.Transaction) er
 	return txProc.checkTxValues(tx, senderAccount, receiverAccount, false)
 }
 
+// Setting a guardian is allowed with regular transactions on a guarded account
+// but in this case is set with the default epochs delay
+func checkOperationAllowedToBypassGuardian(txData []byte) error {
+	if process.IsSetGuardianCall(txData) {
+		return nil
+	}
+
+	return fmt.Errorf("%w, not allowed to bypass guardian", process.ErrTransactionNotExecutable)
+}
+
+func (txProc *baseTxProcessor) checkGuardedAccountUnguardedTxPermission(txData []byte, account state.UserAccountHandler) error {
+	err := checkOperationAllowedToBypassGuardian(txData)
+	if err != nil {
+		return err
+	}
+
+	// block non guarded setGuardian Txs if there is a pending guardian
+	hasPendingGuardian := txProc.guardianChecker.HasPendingGuardian(account)
+	if process.IsSetGuardianCall(txData) && hasPendingGuardian {
+		return fmt.Errorf("%w, %s", process.ErrTransactionNotExecutable, process.ErrCannotReplaceGuardedAccountPendingGuardian.Error())
+	}
+
+	return nil
+}
+
 func (txProc *baseTxProcessor) verifyGuardian(tx *transaction.Transaction, account state.UserAccountHandler) error {
 	if check.IfNil(account) {
 		return nil
@@ -225,23 +253,22 @@ func (txProc *baseTxProcessor) verifyGuardian(tx *transaction.Transaction, accou
 	if !account.IsGuarded() {
 		return nil
 	}
-
 	if !txProc.txVersionChecker.IsGuardedTransaction(tx) {
-		return nil
+		return txProc.checkGuardedAccountUnguardedTxPermission(tx.GetData(), account)
 	}
 
 	acc, ok := account.(vmcommon.UserAccountHandler)
 	if !ok {
-		return process.ErrWrongTypeAssertion
+		return fmt.Errorf("%w, %s", process.ErrTransactionNotExecutable, process.ErrWrongTypeAssertion.Error())
 	}
 
 	guardian, err := txProc.guardianChecker.GetActiveGuardian(acc)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w, %s", process.ErrTransactionNotExecutable, err.Error())
 	}
 
 	if !bytes.Equal(guardian, tx.GuardianAddr) {
-		return process.ErrTransactionAndAccountGuardianMismatch
+		return fmt.Errorf("%w, %s", process.ErrTransactionNotExecutable, process.ErrTransactionAndAccountGuardianMismatch.Error())
 	}
 
 	return nil

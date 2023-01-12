@@ -53,7 +53,6 @@ type ArgInterceptedDataFactory struct {
 	HeaderIntegrityVerifier      process.HeaderIntegrityVerifier
 	EpochStartTrigger            process.EpochStartTriggerHandler
 	ArgsParser                   process.ArgumentsParser
-	GuardianSigVerifier          process.GuardianSigVerifier
 	PeerSignatureHandler         crypto.PeerSignatureHandler
 	SignaturesHandler            process.SignaturesHandler
 	HeartbeatExpiryTimespanInSec int64

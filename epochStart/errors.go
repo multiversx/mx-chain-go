@@ -325,6 +325,3 @@ var ErrNilValidatorInfoStorage = errors.New("nil validator info storage")
 
 // ErrNilTrieSyncStatistics signals that nil trie sync statistics has been provided
 var ErrNilTrieSyncStatistics = errors.New("nil trie sync statistics")
-
-// ErrNilGuardianSigVerifier signals that a nil guardian signature verifier was provided
-var ErrNilGuardianSigVerifier = errors.New("nil guardian signature verifier")
