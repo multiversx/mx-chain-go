@@ -1179,6 +1179,9 @@ var ErrNilGuardedAccountHandler = errors.New("nil guarded account handler")
 // ErrOperationNotPermitted signals that operation is not permitted
 var ErrOperationNotPermitted = errors.New("operation in account not permitted")
 
+// ErrTransactionNotExecutable signals that a transaction is not executable and gas will not be consumed
+var ErrTransactionNotExecutable = errors.New("transaction is not executable and gas will not be consumed")
+
 // ErrTransactionAndAccountGuardianMismatch signals a mismatch between the guardian on the account and the one on the transaction
 var ErrTransactionAndAccountGuardianMismatch = errors.New("mismatch between transaction guardian and configured account guardian")
 
