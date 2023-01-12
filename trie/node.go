@@ -3,6 +3,7 @@ package trie
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
@@ -119,7 +120,7 @@ func getNodeFromDBAndDecode(n []byte, db common.DBWriteCacher, marshalizer marsh
 	if err != nil {
 		dbWithID, ok := db.(dbWriteCacherWithIdentifier)
 		if !ok {
-			log.Trace("wrong type assertion on", common.GetNodeFromDBErrorString, "error", err, "key", n)
+			log.Trace(common.GetNodeFromDBErrorString, "error", err, "key", n, "db type", fmt.Sprintf("%T", db))
 			return nil, errors.NewGetNodeFromDBErrWithKey(n, err, "")
 		}
 

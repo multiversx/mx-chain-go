@@ -1083,6 +1083,10 @@ func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool, random
 	)
 
 	if err != nil {
+		if elrondErr.IsGetNodeFromDBError(err) {
+			return nil, err
+		}
+
 		log.Debug("createAndProcessMiniBlocksFromMe", "error", err.Error())
 		return make(block.MiniBlockSlice, 0), nil
 	}
