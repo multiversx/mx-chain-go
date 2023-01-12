@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/genesis"
+	"github.com/multiversx/mx-chain-go/genesis"
 )
 
 // InitialAccount provides information about one entry in the genesis file

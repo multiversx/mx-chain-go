@@ -12,8 +12,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/sharding/mock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -191,6 +192,7 @@ func createHashShufflerInter() (*randHashShuffler, error) {
 		Hysteresis:           hysteresis,
 		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: true,
+		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
 		EnableEpochs: config.EnableEpochs{
 			StakingV4EnableEpoch:                     443,
 			StakingV4DistributeAuctionToWaitingEpoch: 444,
@@ -213,6 +215,7 @@ func createHashShufflerIntraShards() (*randHashShuffler, error) {
 			StakingV4EnableEpoch:                     443,
 			StakingV4DistributeAuctionToWaitingEpoch: 444,
 		},
+		EnableEpochsHandler: &mock.EnableEpochsHandlerMock{},
 	}
 	shuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 
@@ -1108,6 +1111,7 @@ func TestNewHashValidatorsShuffler(t *testing.T) {
 		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
+		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
 	}
 	shuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	assert.Nil(t, err)
@@ -1198,6 +1202,7 @@ func TestRandHashShuffler_UpdateParams(t *testing.T) {
 		availableNodesConfigs:                    nil,
 		stakingV4EnableEpoch:                     443,
 		stakingV4DistributeAuctionToWaitingEpoch: 444,
+		enableEpochsHandler:                      &mock.EnableEpochsHandlerMock{},
 	}
 
 	shuffler.UpdateParams(
@@ -1262,6 +1267,7 @@ func TestRandHashShuffler_UpdateNodeListsWithUnstakeLeavingRemovesFromEligible(t
 		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
+		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
 	}
 
 	shuffler, err := NewHashValidatorsShuffler(shufflerArgs)
@@ -1338,6 +1344,9 @@ func testUpdateNodesAndCheckNumLeaving(t *testing.T, beforeFix bool) {
 		EnableEpochs: config.EnableEpochs{
 			WaitingListFixEnableEpoch: uint32(waitingListFixEnableEpoch),
 		},
+		EnableEpochsHandler: &mock.EnableEpochsHandlerMock{
+			WaitingListFixEnableEpochField: uint32(waitingListFixEnableEpoch),
+		},
 	}
 
 	shuffler, err := NewHashValidatorsShuffler(shufflerArgs)
@@ -1407,8 +1416,8 @@ func testUpdateNodeListsAndCheckWaitingList(t *testing.T, beforeFix bool) {
 				NodesToShufflePerShard: uint32(numNodesToShuffle),
 			},
 		},
-		EnableEpochs: config.EnableEpochs{
-			WaitingListFixEnableEpoch: uint32(waitingListFixEnableEpoch),
+		EnableEpochsHandler: &mock.EnableEpochsHandlerMock{
+			WaitingListFixEnableEpochField: uint32(waitingListFixEnableEpoch),
 		},
 	}
 
@@ -1463,6 +1472,7 @@ func TestRandHashShuffler_UpdateNodeListsWithUnstakeLeavingRemovesFromWaiting(t 
 		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
+		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
 	}
 
 	shuffler, err := NewHashValidatorsShuffler(shufflerArgs)
@@ -1505,6 +1515,7 @@ func TestRandHashShuffler_UpdateNodeListsWithNonExistentUnstakeLeavingDoesNotRem
 		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
+		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
 	}
 	shuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(t, err)
@@ -1556,6 +1567,7 @@ func TestRandHashShuffler_UpdateNodeListsWithRangeOnMaps(t *testing.T) {
 			Adaptivity:           adaptivity,
 			ShuffleBetweenShards: shuffle,
 			MaxNodesEnableConfig: nil,
+			EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
 		}
 
 		shuffler, err := NewHashValidatorsShuffler(shufflerArgs)
@@ -2394,6 +2406,7 @@ func TestRandHashShuffler_UpdateNodeLists_All(t *testing.T) {
 			StakingV4EnableEpoch:                     443,
 			StakingV4DistributeAuctionToWaitingEpoch: 444,
 		},
+		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
 	}
 	shuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(t, err)
@@ -2497,6 +2510,7 @@ func TestRandHashShuffler_UpdateNodeLists_WithNewNodes_NoWaiting(t *testing.T) {
 		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
+		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
 	}
 
 	shuffler, err := NewHashValidatorsShuffler(shufflerArgs)
@@ -2557,6 +2571,7 @@ func TestRandHashShuffler_UpdateNodeLists_WithNewNodes_NilOrEmptyWaiting(t *test
 		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
+		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
 	}
 	shuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(t, err)
@@ -2744,6 +2759,7 @@ func TestRandHashShuffler_UpdateNodeLists_WithNewNodes_WithWaiting_WithLeaving(t
 			StakingV4EnableEpoch:                     443,
 			StakingV4DistributeAuctionToWaitingEpoch: 444,
 		},
+		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
 	}
 	shuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(t, err)
@@ -2971,6 +2987,7 @@ func TestRandHashShuffler_sortConfigs(t *testing.T) {
 			Adaptivity:           adaptivity,
 			ShuffleBetweenShards: shuffleBetweenShards,
 			MaxNodesEnableConfig: shuffledConfigs,
+			EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
 		}
 		shuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 		require.Nil(t, err)
@@ -2989,6 +3006,7 @@ func TestRandHashShuffler_UpdateShufflerConfig(t *testing.T) {
 		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: orderedConfigs,
+		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
 	}
 	shuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(t, err)

@@ -1,30 +1,33 @@
 package testscommon
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 // StorageManagerStub -
 type StorageManagerStub struct {
-	PutCalled                       func([]byte, []byte) error
-	PutInEpochCalled                func([]byte, []byte, uint32) error
-	GetCalled                       func([]byte) ([]byte, error)
-	GetFromCurrentEpochCalled       func([]byte) ([]byte, error)
-	TakeSnapshotCalled              func([]byte, []byte, chan core.KeyValueHolder, common.SnapshotStatisticsHandler, uint32)
-	SetCheckpointCalled             func([]byte, []byte, chan core.KeyValueHolder, common.SnapshotStatisticsHandler)
-	GetDbThatContainsHashCalled     func([]byte) common.DBWriteCacher
-	IsPruningEnabledCalled          func() bool
-	IsPruningBlockedCalled          func() bool
-	EnterPruningBufferingModeCalled func()
-	ExitPruningBufferingModeCalled  func()
-	AddDirtyCheckpointHashesCalled  func([]byte, common.ModifiedHashes) bool
-	RemoveFromCurrentEpochCalled    func([]byte) error
-	RemoveCalled                    func([]byte) error
-	IsInterfaceNilCalled            func() bool
-	SetEpochForPutOperationCalled   func(uint32)
-	ShouldTakeSnapshotCalled        func() bool
-	GetLatestStorageEpochCalled     func() (uint32, error)
+	PutCalled                              func([]byte, []byte) error
+	PutInEpochCalled                       func([]byte, []byte, uint32) error
+	PutInEpochWithoutCacheCalled           func([]byte, []byte, uint32) error
+	GetCalled                              func([]byte) ([]byte, error)
+	GetFromCurrentEpochCalled              func([]byte) ([]byte, error)
+	TakeSnapshotCalled                     func(string, []byte, []byte, *common.TrieIteratorChannels, chan []byte, common.SnapshotStatisticsHandler, uint32)
+	SetCheckpointCalled                    func([]byte, []byte, *common.TrieIteratorChannels, chan []byte, common.SnapshotStatisticsHandler)
+	GetDbThatContainsHashCalled            func([]byte) common.DBWriteCacher
+	IsPruningEnabledCalled                 func() bool
+	IsPruningBlockedCalled                 func() bool
+	EnterPruningBufferingModeCalled        func()
+	ExitPruningBufferingModeCalled         func()
+	AddDirtyCheckpointHashesCalled         func([]byte, common.ModifiedHashes) bool
+	RemoveFromCurrentEpochCalled           func([]byte) error
+	RemoveCalled                           func([]byte) error
+	IsInterfaceNilCalled                   func() bool
+	SetEpochForPutOperationCalled          func(uint32)
+	ShouldTakeSnapshotCalled               func() bool
+	GetLatestStorageEpochCalled            func() (uint32, error)
+	IsClosedCalled                         func() bool
+	RemoveFromCheckpointHashesHolderCalled func([]byte)
+	GetBaseTrieStorageManagerCalled        func() common.StorageManager
 }
 
 // Put -
@@ -40,6 +43,15 @@ func (sms *StorageManagerStub) Put(key []byte, val []byte) error {
 func (sms *StorageManagerStub) PutInEpoch(key []byte, val []byte, epoch uint32) error {
 	if sms.PutInEpochCalled != nil {
 		return sms.PutInEpochCalled(key, val, epoch)
+	}
+
+	return nil
+}
+
+// PutInEpochWithoutCache -
+func (sms *StorageManagerStub) PutInEpochWithoutCache(key []byte, val []byte, epoch uint32) error {
+	if sms.PutInEpochWithoutCacheCalled != nil {
+		return sms.PutInEpochWithoutCacheCalled(key, val, epoch)
 	}
 
 	return nil
@@ -64,16 +76,30 @@ func (sms *StorageManagerStub) GetFromCurrentEpoch(key []byte) ([]byte, error) {
 }
 
 // TakeSnapshot -
-func (sms *StorageManagerStub) TakeSnapshot(rootHash []byte, mainTrieRootHash []byte, leavesChan chan core.KeyValueHolder, stats common.SnapshotStatisticsHandler, epoch uint32) {
+func (sms *StorageManagerStub) TakeSnapshot(
+	address string,
+	rootHash []byte,
+	mainTrieRootHash []byte,
+	iteratorChannels *common.TrieIteratorChannels,
+	missingNodesChan chan []byte,
+	stats common.SnapshotStatisticsHandler,
+	epoch uint32,
+) {
 	if sms.TakeSnapshotCalled != nil {
-		sms.TakeSnapshotCalled(rootHash, mainTrieRootHash, leavesChan, stats, epoch)
+		sms.TakeSnapshotCalled(address, rootHash, mainTrieRootHash, iteratorChannels, missingNodesChan, stats, epoch)
 	}
 }
 
 // SetCheckpoint -
-func (sms *StorageManagerStub) SetCheckpoint(rootHash []byte, mainTrieRootHash []byte, leavesChan chan core.KeyValueHolder, stats common.SnapshotStatisticsHandler) {
+func (sms *StorageManagerStub) SetCheckpoint(
+	rootHash []byte,
+	mainTrieRootHash []byte,
+	iteratorChannels *common.TrieIteratorChannels,
+	missingNodesChan chan []byte,
+	stats common.SnapshotStatisticsHandler,
+) {
 	if sms.SetCheckpointCalled != nil {
-		sms.SetCheckpointCalled(rootHash, mainTrieRootHash, leavesChan, stats)
+		sms.SetCheckpointCalled(rootHash, mainTrieRootHash, iteratorChannels, missingNodesChan, stats)
 	}
 }
 
@@ -160,6 +186,31 @@ func (sms *StorageManagerStub) GetLatestStorageEpoch() (uint32, error) {
 
 // Close -
 func (sms *StorageManagerStub) Close() error {
+	return nil
+}
+
+// IsClosed -
+func (sms *StorageManagerStub) IsClosed() bool {
+	if sms.IsClosedCalled != nil {
+		return sms.IsClosedCalled()
+	}
+
+	return false
+}
+
+// RemoveFromCheckpointHashesHolder -
+func (sms *StorageManagerStub) RemoveFromCheckpointHashesHolder(hash []byte) {
+	if sms.RemoveFromCheckpointHashesHolderCalled != nil {
+		sms.RemoveFromCheckpointHashesHolderCalled(hash)
+	}
+}
+
+// GetBaseTrieStorageManager -
+func (sms *StorageManagerStub) GetBaseTrieStorageManager() common.StorageManager {
+	if sms.GetBaseTrieStorageManagerCalled != nil {
+		return sms.GetBaseTrieStorageManagerCalled()
+	}
+
 	return nil
 }
 

@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/display"
-	"github.com/ElrondNetwork/elrond-go-core/hashing/keccak"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519"
+	"github.com/multiversx/mx-chain-core-go/display"
+	"github.com/multiversx/mx-chain-core-go/hashing/keccak"
+	"github.com/multiversx/mx-chain-crypto-go/signing"
+	"github.com/multiversx/mx-chain-crypto-go/signing/ed25519"
 	"github.com/stretchr/testify/require"
 )
 
@@ -30,7 +30,7 @@ const elrondSignedMessagePrefix = "\x17Elrond Signed Message:\n"
 var messageSigningHasher = keccak.NewKeccak()
 
 func TestVerifyMessageSignatureFromLedger(t *testing.T) {
-	// these field values were obtained by using Elrond App for Ledger
+	// these field values were obtained by using MultiversX App for Ledger
 	address := "erd19pht2w242wcj0x9gq3us86dtjrrfe3wk8ffh5nhdemf0mce6hsmsupxzlq"
 	message := "test message"
 	signature := "ec7a27cb4b23641ae62e3ea96d5858c8142e20d79a6e1710037d1c27b0d138d7452a98da93c036b2b47ee587d4cb4af6ae24c358f3f5f74f85580f45e072280b"

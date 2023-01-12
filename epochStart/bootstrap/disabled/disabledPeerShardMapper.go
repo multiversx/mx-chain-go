@@ -1,6 +1,6 @@
 package disabled
 
-import "github.com/ElrondNetwork/elrond-go-core/core"
+import "github.com/multiversx/mx-chain-core-go/core"
 
 // peerShardMapper represents the disabled structure of peerShardMapper
 type peerShardMapper struct {
@@ -12,8 +12,8 @@ func NewPeerShardMapper() *peerShardMapper {
 }
 
 // GetLastKnownPeerID returns nothing
-func (p *peerShardMapper) GetLastKnownPeerID(_ []byte) (*core.PeerID, bool) {
-	return nil, false
+func (p *peerShardMapper) GetLastKnownPeerID(_ []byte) (core.PeerID, bool) {
+	return "", false
 }
 
 // UpdatePeerIDPublicKeyPair does nothing

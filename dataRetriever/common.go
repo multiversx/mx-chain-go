@@ -1,8 +1,8 @@
 package dataRetriever
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/process/factory"
 )
 
 // SetEpochHandlerToHdrResolver sets the epoch handler to the metablock hdr resolver
@@ -35,4 +35,13 @@ func GetHdrNonceHashDataUnit(shard uint32) UnitType {
 	}
 
 	return ShardHdrNonceHashDataUnit + UnitType(shard)
+}
+
+// GetHeadersDataUnit gets the unit for block headers, by shard
+func GetHeadersDataUnit(shard uint32) UnitType {
+	if shard == core.MetachainShardId {
+		return MetaBlockUnit
+	}
+
+	return BlockHeaderUnit
 }

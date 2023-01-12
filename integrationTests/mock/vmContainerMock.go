@@ -1,6 +1,6 @@
 package mock
 
-import vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+import vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 
 // VMContainerMock -
 type VMContainerMock struct {
@@ -70,7 +70,7 @@ func (vmc *VMContainerMock) Keys() [][]byte {
 }
 
 // Close -
-func (V *VMContainerMock) Close() error {
+func (vmc *VMContainerMock) Close() error {
 	return nil
 }
 

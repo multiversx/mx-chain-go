@@ -7,14 +7,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-crypto"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/state"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -32,30 +31,29 @@ func TestScDeploy(t *testing.T) {
 	penalizedTooMuchGasEnableEpoch := uint32(0)
 	roundsPerEpoch := uint64(10)
 
-	enableEpochs := config.EnableEpochs{
-		BuiltInFunctionsEnableEpoch:              builtinEnableEpoch,
-		SCDeployEnableEpoch:                      deployEnableEpoch,
-		RelayedTransactionsEnableEpoch:           relayedTxEnableEpoch,
-		PenalizedTooMuchGasEnableEpoch:           penalizedTooMuchGasEnableEpoch,
-		StakingV4InitEnableEpoch:                 integrationTests.StakingV4InitEpoch,
-		StakingV4EnableEpoch:                     integrationTests.StakingV4Epoch,
-		StakingV4DistributeAuctionToWaitingEpoch: integrationTests.StakingV4DistributeAuctionToWaiting,
-	}
+	enableEpochs := integrationTests.CreateEnableEpochsConfig()
+	enableEpochs.BuiltInFunctionOnMetaEnableEpoch = builtinEnableEpoch
+	enableEpochs.SCDeployEnableEpoch = deployEnableEpoch
+	enableEpochs.RelayedTransactionsEnableEpoch = relayedTxEnableEpoch
+	enableEpochs.PenalizedTooMuchGasEnableEpoch = penalizedTooMuchGasEnableEpoch
+	enableEpochs.StakingV4InitEnableEpoch = integrationTests.StakingV4InitEpoch
+	enableEpochs.StakingV4EnableEpoch = integrationTests.StakingV4Epoch
+	enableEpochs.StakingV4DistributeAuctionToWaitingEpoch = integrationTests.StakingV4DistributeAuctionToWaiting
 
-	shardNode := integrationTests.NewTestProcessorNodeWithEnableEpochs(
-		1,
-		0,
-		0,
-		enableEpochs,
-	)
+	shardNode := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+		MaxShards:            1,
+		NodeShardId:          0,
+		TxSignPrivKeyShardId: 0,
+		EpochsConfig:         &enableEpochs,
+	})
 	shardNode.EpochStartTrigger.SetRoundsPerEpoch(roundsPerEpoch)
 
-	metaNode := integrationTests.NewTestProcessorNodeWithEnableEpochs(
-		1,
-		core.MetachainShardId,
-		0,
-		enableEpochs,
-	)
+	metaNode := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+		MaxShards:            1,
+		NodeShardId:          core.MetachainShardId,
+		TxSignPrivKeyShardId: 0,
+		EpochsConfig:         &enableEpochs,
+	})
 	metaNode.EpochStartTrigger.SetRoundsPerEpoch(roundsPerEpoch)
 
 	nodes := []*integrationTests.TestProcessorNode{
@@ -123,10 +121,10 @@ func deploySc(t *testing.T, nodes []*integrationTests.TestProcessorNode) []byte 
 	require.Nil(t, err)
 
 	node := nodes[0]
-	scAddress, err := node.BlockchainHook.NewAddress(node.OwnAccount.Address, node.OwnAccount.Nonce, factory.ArwenVirtualMachine)
+	scAddress, err := node.BlockchainHook.NewAddress(node.OwnAccount.Address, node.OwnAccount.Nonce, factory.WasmVirtualMachine)
 	require.Nil(t, err)
 
-	integrationTests.DeployScTx(nodes, 0, hex.EncodeToString(scCode), factory.ArwenVirtualMachine, "001000000000")
+	integrationTests.DeployScTx(nodes, 0, hex.EncodeToString(scCode), factory.WasmVirtualMachine, "001000000000")
 
 	return scAddress
 }

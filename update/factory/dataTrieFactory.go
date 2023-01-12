@@ -3,19 +3,22 @@ package factory
 import (
 	"path"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/state"
-	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	"github.com/ElrondNetwork/elrond-go/trie"
-	"github.com/ElrondNetwork/elrond-go/update"
-	"github.com/ElrondNetwork/elrond-go/update/genesis"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	commonDisabled "github.com/multiversx/mx-chain-go/common/disabled"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage/database"
+	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
+	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-go/trie"
+	"github.com/multiversx/mx-chain-go/trie/hashesHolder/disabled"
+	"github.com/multiversx/mx-chain-go/update"
+	"github.com/multiversx/mx-chain-go/update/genesis"
 )
 
 // ArgsNewDataTrieFactory is the argument structure for the new data trie factory
@@ -53,15 +56,30 @@ func NewDataTrieFactory(args ArgsNewDataTrieFactory) (*dataTrieFactory, error) {
 
 	dbConfig := storageFactory.GetDBFromConfig(args.StorageConfig.DB)
 	dbConfig.FilePath = path.Join(args.SyncFolder, args.StorageConfig.DB.FilePath)
-	accountsTrieStorage, err := storageUnit.NewStorageUnitFromConf(
+	accountsTrieStorage, err := storageunit.NewStorageUnitFromConf(
 		storageFactory.GetCacherFromConfig(args.StorageConfig.Cache),
 		dbConfig,
 	)
 	if err != nil {
 		return nil, err
 	}
-
-	trieStorage, err := trie.NewTrieStorageManagerWithoutPruning(accountsTrieStorage)
+	tsmArgs := trie.NewTrieStorageManagerArgs{
+		MainStorer:        accountsTrieStorage,
+		CheckpointsStorer: database.NewMemDB(),
+		Marshalizer:       args.Marshalizer,
+		Hasher:            args.Hasher,
+		GeneralConfig: config.TrieStorageManagerConfig{
+			SnapshotsGoroutineNum: 2,
+		},
+		CheckpointHashesHolder: disabled.NewDisabledCheckpointHashesHolder(),
+		IdleProvider:           commonDisabled.NewProcessStatusHandler(),
+	}
+	options := trie.StorageManagerOptions{
+		PruningEnabled:     false,
+		SnapshotsEnabled:   false,
+		CheckpointsEnabled: false,
+	}
+	trieStorage, err := trie.CreateTrieStorageManager(tsmArgs, options)
 	if err != nil {
 		return nil, err
 	}

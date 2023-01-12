@@ -1,15 +1,17 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/factory"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/update"
+	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dblookupext"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/genesis"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/update"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // ProcessComponentsStub -
@@ -43,11 +45,14 @@ type ProcessComponentsStub struct {
 	ImportStartHandlerInternal           update.ImportStartHandler
 	RequestedItemsHandlerInternal        dataRetriever.RequestedItemsHandler
 	NodeRedundancyHandlerInternal        consensus.NodeRedundancyHandler
+	AccountsParserInternal               genesis.AccountsParser
 	CurrentEpochProviderInternal         process.CurrentNetworkEpochProviderHandler
 	ScheduledTxsExecutionHandlerInternal process.ScheduledTxsExecutionHandler
 	TxsSenderHandlerField                process.TxsSenderHandler
 	HardforkTriggerField                 factory.HardforkTrigger
 	ProcessedMiniBlocksTrackerInternal   process.ProcessedMiniBlocksTracker
+	ReceiptsRepositoryInternal           factory.ReceiptsRepository
+	ESDTDataStorageHandlerForAPIInternal vmcommon.ESDTNFTStorageHandler
 }
 
 // Create -
@@ -210,6 +215,11 @@ func (pcs *ProcessComponentsStub) NodeRedundancyHandler() consensus.NodeRedundan
 	return pcs.NodeRedundancyHandlerInternal
 }
 
+// AccountsParser -
+func (pcs *ProcessComponentsStub) AccountsParser() genesis.AccountsParser {
+	return pcs.AccountsParserInternal
+}
+
 // CurrentEpochProvider -
 func (pcs *ProcessComponentsStub) CurrentEpochProvider() process.CurrentNetworkEpochProviderHandler {
 	return pcs.CurrentEpochProviderInternal
@@ -238,6 +248,16 @@ func (pcs *ProcessComponentsStub) HardforkTrigger() factory.HardforkTrigger {
 // ProcessedMiniBlocksTracker -
 func (pcs *ProcessComponentsStub) ProcessedMiniBlocksTracker() process.ProcessedMiniBlocksTracker {
 	return pcs.ProcessedMiniBlocksTrackerInternal
+}
+
+// ReceiptsRepository -
+func (pcs *ProcessComponentsStub) ReceiptsRepository() factory.ReceiptsRepository {
+	return pcs.ReceiptsRepositoryInternal
+}
+
+// ESDTDataStorageHandlerForAPI -
+func (pcs *ProcessComponentsStub) ESDTDataStorageHandlerForAPI() vmcommon.ESDTNFTStorageHandler {
+	return pcs.ESDTDataStorageHandlerForAPIInternal
 }
 
 // IsInterfaceNil -

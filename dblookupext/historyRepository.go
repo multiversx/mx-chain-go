@@ -1,4 +1,4 @@
-//go:generate protoc -I=. -I=$GOPATH/src -I=$GOPATH/src/github.com/ElrondNetwork/protobuf/protobuf  --gogoslick_out=. miniblockMetadata.proto
+//go:generate protoc -I=. -I=$GOPATH/src -I=$GOPATH/src/github.com/multiversx/protobuf/protobuf  --gogoslick_out=. miniblockMetadata.proto
 
 package dblookupext
 
@@ -6,19 +6,20 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/container"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/dblookupext/esdtSupply"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/container"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common/logging"
+	"github.com/multiversx/mx-chain-go/dblookupext/esdtSupply"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/cache"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("dblookupext")
@@ -98,7 +99,7 @@ func NewHistoryRepository(arguments HistoryRepositoryArguments) (*historyReposit
 	}
 
 	hashToEpochIndex := newHashToEpochIndex(arguments.EpochByHashStorer, arguments.Marshalizer)
-	deduplicationCacheForInsertMiniblockMetadata, _ := lrucache.NewCache(sizeOfDeduplicationCache)
+	deduplicationCacheForInsertMiniblockMetadata, _ := cache.NewLRUCache(sizeOfDeduplicationCache)
 
 	eventsHashesToTxHashIndex := newEventsHashesByTxHash(arguments.EventsHashesByTxHashStorer, arguments.Marshalizer)
 
@@ -127,11 +128,12 @@ func (hr *historyRepository) RecordBlock(blockHeaderHash []byte,
 	blockBody data.BodyHandler,
 	scrResultsFromPool map[string]data.TransactionHandler,
 	receiptsFromPool map[string]data.TransactionHandler,
+	createdIntraShardMiniBlocks []*block.MiniBlock,
 	logs []*data.LogData) error {
 	hr.recordBlockMutex.Lock()
 	defer hr.recordBlockMutex.Unlock()
 
-	log.Trace("RecordBlock()", "nonce", blockHeader.GetNonce(), "blockHeaderHash", blockHeaderHash, "header type", fmt.Sprintf("%T", blockHeader))
+	log.Debug("RecordBlock()", "nonce", blockHeader.GetNonce(), "blockHeaderHash", blockHeaderHash, "header type", fmt.Sprintf("%T", blockHeader))
 
 	body, ok := blockBody.(*block.Body)
 	if !ok {
@@ -152,7 +154,17 @@ func (hr *historyRepository) RecordBlock(blockHeaderHash []byte,
 
 		err = hr.recordMiniblock(blockHeaderHash, blockHeader, miniblock, epoch)
 		if err != nil {
+			logging.LogErrAsErrorExceptAsDebugIfClosingError(log, err, "cannot record miniblock",
+				"type", miniblock.Type, "error", err)
 			continue
+		}
+	}
+
+	for _, miniBlock := range createdIntraShardMiniBlocks {
+		err = hr.recordMiniblock(blockHeaderHash, blockHeader, miniBlock, epoch)
+		if err != nil {
+			logging.LogErrAsErrorExceptAsDebugIfClosingError(log, err, "cannot record in shard miniblock",
+				"type", miniBlock.Type, "error", err)
 		}
 	}
 
@@ -215,7 +227,8 @@ func (hr *historyRepository) recordMiniblock(blockHeaderHash []byte, blockHeader
 	for _, txHash := range miniblock.TxHashes {
 		errPut := hr.miniblockHashByTxHashIndex.Put(txHash, miniblockHash)
 		if errPut != nil {
-			log.Warn("miniblockHashByTxHashIndex.Put()", "txHash", txHash, "err", errPut)
+			logging.LogErrAsWarnExceptAsDebugIfClosingError(log, errPut, "miniblockHashByTxHashIndex.Put()",
+				"txHash", txHash, "err", errPut)
 			continue
 		}
 	}
@@ -446,7 +459,8 @@ func (hr *historyRepository) consumePendingNotificationsNoLock(pendingMap *conta
 		patchMetadataFunc(metadata, notificationTyped)
 		err = hr.putMiniblockMetadata(miniblockHash, metadata)
 		if err != nil {
-			log.Error("consumePendingNotificationsNoLock(): cannot put miniblock metadata", "miniblockHash", miniblockHash, "err", err)
+			logging.LogErrAsErrorExceptAsDebugIfClosingError(log, err, "consumePendingNotificationsNoLock(): cannot put miniblock metadata",
+				"miniblockHash", miniblockHash, "err", err)
 			continue
 		}
 

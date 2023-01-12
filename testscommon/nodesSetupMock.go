@@ -1,7 +1,7 @@
 package testscommon
 
 import (
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 )
 
 // NodesSetupStub -

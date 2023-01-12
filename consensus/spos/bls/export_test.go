@@ -4,21 +4,23 @@ import (
 	"context"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	crypto "github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/ntp"
-	"github.com/ElrondNetwork/elrond-go/outport"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
+	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/ntp"
+	"github.com/multiversx/mx-chain-go/outport"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 )
 
 const ProcessingThresholdPercent = processingThresholdPercent
+const DefaultMaxNumOfMessageTypeAccepted = defaultMaxNumOfMessageTypeAccepted
+const MaxNumOfMessageTypeSignatureAccepted = maxNumOfMessageTypeSignatureAccepted
 
 // factory
 
@@ -61,8 +63,8 @@ func (fct *factory) Marshalizer() marshal.Marshalizer {
 }
 
 // MultiSigner gets the multi signer object
-func (fct *factory) MultiSigner() crypto.MultiSigner {
-	return fct.consensusCore.MultiSigner()
+func (fct *factory) MultiSignerContainer() cryptoCommon.MultiSignerContainer {
+	return fct.consensusCore.MultiSignerContainer()
 }
 
 // RoundHandler gets the roundHandler object

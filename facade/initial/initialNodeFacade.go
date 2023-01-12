@@ -4,19 +4,22 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data/api"
-	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-core/data/vm"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/debug"
-	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
-	"github.com/ElrondNetwork/elrond-go/node/external"
-	"github.com/ElrondNetwork/elrond-go/ntp"
-	"github.com/ElrondNetwork/elrond-go/process"
-	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
-	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/multiversx/mx-chain-core-go/data/esdt"
+	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/data/vm"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/debug"
+	"github.com/multiversx/mx-chain-go/facade"
+	"github.com/multiversx/mx-chain-go/heartbeat/data"
+	"github.com/multiversx/mx-chain-go/node/external"
+	"github.com/multiversx/mx-chain-go/ntp"
+	"github.com/multiversx/mx-chain-go/process"
+	txSimData "github.com/multiversx/mx-chain-go/process/txsimulator/data"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 var errNodeStarting = errors.New("node is starting")
@@ -30,12 +33,16 @@ type initialNodeFacade struct {
 }
 
 // NewInitialNodeFacade is the initial implementation of the facade interface
-func NewInitialNodeFacade(apiInterface string, pprofEnabled bool) *initialNodeFacade {
+func NewInitialNodeFacade(apiInterface string, pprofEnabled bool, statusMetricsHandler external.StatusMetricsHandler) (*initialNodeFacade, error) {
+	if check.IfNil(statusMetricsHandler) {
+		return nil, facade.ErrNilStatusMetrics
+	}
+
 	return &initialNodeFacade{
 		apiInterface:         apiInterface,
-		statusMetricsHandler: NewDisabledStatusMetricsHandler(),
+		statusMetricsHandler: statusMetricsHandler,
 		pprofEnabled:         pprofEnabled,
-	}
+	}, nil
 }
 
 // GetProof -
@@ -74,38 +81,43 @@ func (inf *initialNodeFacade) RestApiInterface() string {
 }
 
 // GetBalance returns nil and error
-func (inf *initialNodeFacade) GetBalance(_ string) (*big.Int, error) {
-	return nil, errNodeStarting
+func (inf *initialNodeFacade) GetBalance(_ string, _ api.AccountQueryOptions) (*big.Int, api.BlockInfo, error) {
+	return nil, api.BlockInfo{}, errNodeStarting
 }
 
 // GetUsername returns empty string and error
-func (inf *initialNodeFacade) GetUsername(_ string) (string, error) {
-	return emptyString, errNodeStarting
+func (inf *initialNodeFacade) GetUsername(_ string, _ api.AccountQueryOptions) (string, api.BlockInfo, error) {
+	return emptyString, api.BlockInfo{}, errNodeStarting
+}
+
+// GetCodeHash returns empty string and error
+func (inf *initialNodeFacade) GetCodeHash(_ string, _ api.AccountQueryOptions) ([]byte, api.BlockInfo, error) {
+	return nil, api.BlockInfo{}, errNodeStarting
 }
 
 // GetValueForKey returns an empty string and error
-func (inf *initialNodeFacade) GetValueForKey(_ string, _ string) (string, error) {
-	return emptyString, errNodeStarting
+func (inf *initialNodeFacade) GetValueForKey(_ string, _ string, _ api.AccountQueryOptions) (string, api.BlockInfo, error) {
+	return emptyString, api.BlockInfo{}, errNodeStarting
 }
 
 // GetESDTBalance returns empty strings and error
-func (inf *initialNodeFacade) GetESDTBalance(_ string, _ string) (string, string, error) {
-	return emptyString, emptyString, errNodeStarting
+func (inf *initialNodeFacade) GetESDTBalance(_ string, _ string, _ api.AccountQueryOptions) (string, string, api.BlockInfo, error) {
+	return emptyString, emptyString, api.BlockInfo{}, errNodeStarting
 }
 
 // GetAllESDTTokens returns nil and error
-func (inf *initialNodeFacade) GetAllESDTTokens(_ string) (map[string]*esdt.ESDigitalToken, error) {
-	return nil, errNodeStarting
+func (inf *initialNodeFacade) GetAllESDTTokens(_ string, _ api.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error) {
+	return nil, api.BlockInfo{}, errNodeStarting
 }
 
 // GetNFTTokenIDsRegisteredByAddress returns nil and error
-func (inf *initialNodeFacade) GetNFTTokenIDsRegisteredByAddress(_ string) ([]string, error) {
-	return nil, errNodeStarting
+func (inf *initialNodeFacade) GetNFTTokenIDsRegisteredByAddress(_ string, _ api.AccountQueryOptions) ([]string, api.BlockInfo, error) {
+	return nil, api.BlockInfo{}, errNodeStarting
 }
 
 // GetESDTsWithRole returns nil and error
-func (inf *initialNodeFacade) GetESDTsWithRole(_ string, _ string) ([]string, error) {
-	return nil, errNodeStarting
+func (inf *initialNodeFacade) GetESDTsWithRole(_ string, _ string, _ api.AccountQueryOptions) ([]string, api.BlockInfo, error) {
+	return nil, api.BlockInfo{}, errNodeStarting
 }
 
 // CreateTransaction return nil and error
@@ -167,12 +179,17 @@ func (inf *initialNodeFacade) ComputeTransactionGasLimit(_ *transaction.Transact
 }
 
 // GetAccount returns nil and error
-func (inf *initialNodeFacade) GetAccount(_ string) (api.AccountResponse, error) {
-	return api.AccountResponse{}, errNodeStarting
+func (inf *initialNodeFacade) GetAccount(_ string, _ api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
+	return api.AccountResponse{}, api.BlockInfo{}, errNodeStarting
+}
+
+// GetAccounts returns error
+func (inf *initialNodeFacade) GetAccounts(_ []string, _ api.AccountQueryOptions) (map[string]*api.AccountResponse, api.BlockInfo, error) {
+	return nil, api.BlockInfo{}, errNodeStarting
 }
 
 // GetCode returns nil and error
-func (inf *initialNodeFacade) GetCode(_ []byte) []byte {
+func (inf *initialNodeFacade) GetCode(_ []byte, _ api.AccountQueryOptions) []byte {
 	return nil
 }
 
@@ -186,7 +203,7 @@ func (inf *initialNodeFacade) GetHeartbeats() ([]data.PubKeyHeartbeat, error) {
 	return nil, errNodeStarting
 }
 
-// StatusMetrics will returns nil
+// StatusMetrics will return nil
 func (inf *initialNodeFacade) StatusMetrics() external.StatusMetricsHandler {
 	return inf.statusMetricsHandler
 }
@@ -236,23 +253,33 @@ func (inf *initialNodeFacade) GetPeerInfo(_ string) ([]core.QueryP2PPeerInfo, er
 	return nil, errNodeStarting
 }
 
+// GetEpochStartDataAPI returns nil and error
+func (inf *initialNodeFacade) GetEpochStartDataAPI(_ uint32) (*common.EpochStartDataAPI, error) {
+	return nil, errNodeStarting
+}
+
 // GetThrottlerForEndpoint returns nil and false
 func (inf *initialNodeFacade) GetThrottlerForEndpoint(_ string) (core.Throttler, bool) {
 	return nil, false
 }
 
 // GetBlockByHash return nil and error
-func (inf *initialNodeFacade) GetBlockByHash(_ string, _ bool) (*api.Block, error) {
+func (inf *initialNodeFacade) GetBlockByHash(_ string, _ api.BlockQueryOptions) (*api.Block, error) {
 	return nil, errNodeStarting
 }
 
 // GetBlockByNonce returns nil and error
-func (inf *initialNodeFacade) GetBlockByNonce(_ uint64, _ bool) (*api.Block, error) {
+func (inf *initialNodeFacade) GetBlockByNonce(_ uint64, _ api.BlockQueryOptions) (*api.Block, error) {
 	return nil, errNodeStarting
 }
 
 // GetBlockByRound returns nil and error
-func (inf *initialNodeFacade) GetBlockByRound(_ uint64, _ bool) (*api.Block, error) {
+func (inf *initialNodeFacade) GetBlockByRound(_ uint64, _ api.BlockQueryOptions) (*api.Block, error) {
+	return nil, errNodeStarting
+}
+
+// GetAlteredAccountsForBlock returns nil and error
+func (inf *initialNodeFacade) GetAlteredAccountsForBlock(_ api.GetAlteredAccountsForBlockOptions) ([]*outportcore.AlteredAccount, error) {
 	return nil, errNodeStarting
 }
 
@@ -271,8 +298,13 @@ func (inf *initialNodeFacade) GetInternalMetaBlockByRound(_ common.ApiOutputForm
 	return nil, errNodeStarting
 }
 
-// GetInternalStartOfEpochMetaBlockByEpoch returns nil and error
-func (inf *initialNodeFacade) GetInternalStartOfEpochMetaBlock(format common.ApiOutputFormat, epoch uint32) (interface{}, error) {
+// GetInternalStartOfEpochMetaBlock returns nil and error
+func (inf *initialNodeFacade) GetInternalStartOfEpochMetaBlock(_ common.ApiOutputFormat, _ uint32) (interface{}, error) {
+	return nil, errNodeStarting
+}
+
+// GetInternalStartOfEpochValidatorsInfo returns nil and error
+func (inf *initialNodeFacade) GetInternalStartOfEpochValidatorsInfo(_ uint32) ([]*state.ShardValidatorInfo, error) {
 	return nil, errNodeStarting
 }
 
@@ -302,8 +334,8 @@ func (inf *initialNodeFacade) Close() error {
 }
 
 // GetKeyValuePairs nil map
-func (inf *initialNodeFacade) GetKeyValuePairs(_ string) (map[string]string, error) {
-	return nil, errNodeStarting
+func (inf *initialNodeFacade) GetKeyValuePairs(_ string, _ api.AccountQueryOptions) (map[string]string, api.BlockInfo, error) {
+	return nil, api.BlockInfo{}, errNodeStarting
 }
 
 // GetDirectStakedList returns empty slice
@@ -317,13 +349,13 @@ func (inf *initialNodeFacade) GetDelegatorsList() ([]*api.Delegator, error) {
 }
 
 // GetESDTData returns nil and error
-func (inf *initialNodeFacade) GetESDTData(_ string, _ string, _ uint64) (*esdt.ESDigitalToken, error) {
-	return nil, errNodeStarting
+func (inf *initialNodeFacade) GetESDTData(_ string, _ string, _ uint64, _ api.AccountQueryOptions) (*esdt.ESDigitalToken, api.BlockInfo, error) {
+	return nil, api.BlockInfo{}, errNodeStarting
 }
 
 // GetESDTsRoles return nil and error
-func (inf *initialNodeFacade) GetESDTsRoles(_ string) (map[string][]string, error) {
-	return nil, errNodeStarting
+func (inf *initialNodeFacade) GetESDTsRoles(_ string, _ api.AccountQueryOptions) (map[string][]string, api.BlockInfo, error) {
+	return nil, api.BlockInfo{}, errNodeStarting
 }
 
 // GetAllIssuedESDTs returns nil and error
@@ -341,8 +373,33 @@ func (inf *initialNodeFacade) GetGenesisNodesPubKeys() (map[uint32][]string, map
 	return nil, nil, errNodeStarting
 }
 
+// GetGenesisBalances returns nil and error
+func (inf *initialNodeFacade) GetGenesisBalances() ([]*common.InitialAccountAPI, error) {
+	return nil, errNodeStarting
+}
+
 // GetTransactionsPool returns a nil structure and error
-func (inf *initialNodeFacade) GetTransactionsPool() (*common.TransactionsPoolAPIResponse, error) {
+func (inf *initialNodeFacade) GetTransactionsPool(_ string) (*common.TransactionsPoolAPIResponse, error) {
+	return nil, errNodeStarting
+}
+
+// GetLastPoolNonceForSender returns nonce 0 and error
+func (inf *initialNodeFacade) GetLastPoolNonceForSender(_ string) (uint64, error) {
+	return 0, errNodeStarting
+}
+
+// GetTransactionsPoolNonceGapsForSender returns a nil structure and error
+func (inf *initialNodeFacade) GetTransactionsPoolNonceGapsForSender(_ string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
+	return nil, errNodeStarting
+}
+
+// GetTransactionsPoolForSender returns a nil structure and error
+func (inf *initialNodeFacade) GetTransactionsPoolForSender(_, _ string) (*common.TransactionsPoolForSenderApiResponse, error) {
+	return nil, errNodeStarting
+}
+
+// GetGasConfigs return a nil map and error
+func (inf *initialNodeFacade) GetGasConfigs() (map[string]map[string]uint64, error) {
 	return nil, errNodeStarting
 }
 

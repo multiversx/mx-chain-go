@@ -1,5 +1,7 @@
 package config
 
+import p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
+
 // CacheConfig will map the cache configuration
 type CacheConfig struct {
 	Name                 string
@@ -111,24 +113,19 @@ type HeartbeatV2Config struct {
 	HeartbeatTimeBetweenSendsInSec                   int64
 	HeartbeatTimeBetweenSendsWhenErrorInSec          int64
 	HeartbeatThresholdBetweenSends                   float64
-	MaxNumOfPeerAuthenticationInResponse             int
 	HeartbeatExpiryTimespanInSec                     int64
 	MinPeersThreshold                                float32
 	DelayBetweenRequestsInSec                        int64
 	MaxTimeoutInSec                                  int64
-	DelayBetweenConnectionNotificationsInSec         int64
+	PeerShardTimeBetweenSendsInSec                   int64
+	PeerShardThresholdBetweenSends                   float64
 	MaxMissingKeysInRequest                          uint32
 	MaxDurationPeerUnresponsiveInSec                 int64
 	HideInactiveValidatorIntervalInSec               int64
-	PeerAuthenticationPool                           PeerAuthenticationPoolConfig
 	HeartbeatPool                                    CacheConfig
 	HardforkTimeBetweenSendsInSec                    int64
-}
-
-// PeerAuthenticationPoolConfig will hold the configuration for peer authentication pool
-type PeerAuthenticationPoolConfig struct {
-	DefaultSpanInSec int
-	CacheExpiryInSec int
+	TimeBetweenConnectionsMetricsUpdateInSec         int64
+	TimeToReadDirectConnectionsInSec                 int64
 }
 
 // Config will hold the entire application configuration parameters
@@ -170,6 +167,7 @@ type Config struct {
 	WhiteListPool               CacheConfig
 	WhiteListerVerifiedTxs      CacheConfig
 	SmartContractDataPool       CacheConfig
+	ValidatorInfoPool           CacheConfig
 	TrieSyncStorage             TrieSyncStorageConfig
 	EpochStartConfig            EpochStartConfig
 	AddressPubkeyConverter      PubkeyConfig
@@ -188,8 +186,8 @@ type Config struct {
 	PeerHonesty           CacheConfig
 
 	Antiflood           AntifloodConfig
+	WebServerAntiflood  WebServerAntifloodConfig
 	ResourceStats       ResourceStatsConfig
-	Heartbeat           HeartbeatConfig
 	HeartbeatV2         HeartbeatV2Config
 	ValidatorStatistics ValidatorStatisticsConfig
 	GeneralSettings     GeneralSettingsConfig
@@ -215,7 +213,8 @@ type Config struct {
 	Resolvers             ResolverConfig
 	VMOutputCacher        CacheConfig
 
-	PeersRatingConfig PeersRatingConfig
+	PeersRatingConfig   PeersRatingConfig
+	PoolsCleanersConfig PoolsCleanersConfig
 	SoftAuctionConfig SoftAuctionConfig
 }
 
@@ -249,16 +248,6 @@ type ResourceStatsConfig struct {
 	RefreshIntervalInSec int
 }
 
-// HeartbeatConfig will hold all heartbeat settings
-type HeartbeatConfig struct {
-	MinTimeToWaitBetweenBroadcastsInSec int
-	MaxTimeToWaitBetweenBroadcastsInSec int
-	DurationToConsiderUnresponsiveInSec int
-	HeartbeatRefreshIntervalInSec       uint32
-	HideInactiveValidatorIntervalInSec  uint32
-	HeartbeatStorage                    StorageConfig
-}
-
 // ValidatorStatisticsConfig will hold validator statistics specific settings
 type ValidatorStatisticsConfig struct {
 	CacheRefreshIntervalInSec uint32
@@ -269,6 +258,12 @@ type MaxNodesChangeConfig struct {
 	EpochEnable            uint32
 	MaxNumNodes            uint32
 	NodesToShufflePerShard uint32
+}
+
+// MultiSignerConfig defines a config tuple for a BLS multi-signer that activates in a certain epoch
+type MultiSignerConfig struct {
+	EnableEpoch uint32
+	Type        string
 }
 
 // GeneralSettingsConfig will hold the general settings for a node
@@ -284,7 +279,7 @@ type GeneralSettingsConfig struct {
 	SyncProcessTimeInMillis              uint32
 }
 
-// FacadeConfig will hold different configuration option that will be passed to the main ElrondFacade
+// FacadeConfig will hold different configuration option that will be passed to the node facade
 type FacadeConfig struct {
 	RestApiInterface string
 	PprofEnabled     bool
@@ -294,12 +289,11 @@ type FacadeConfig struct {
 type StateTriesConfig struct {
 	CheckpointRoundsModulus     uint
 	CheckpointsEnabled          bool
+	SnapshotsEnabled            bool
 	AccountsStatePruningEnabled bool
 	PeerStatePruningEnabled     bool
 	MaxStateTrieLevelInMemory   uint
 	MaxPeerTrieLevelInMemory    uint
-	UserStatePruningQueueSize   uint
-	PeerStatePruningQueueSize   uint
 }
 
 // TrieStorageManagerConfig will hold config information about trie storage manager
@@ -318,10 +312,12 @@ type EndpointsThrottlersConfig struct {
 
 // WebServerAntifloodConfig will hold the anti-flooding parameters for the web server
 type WebServerAntifloodConfig struct {
+	WebServerAntifloodEnabled          bool
 	SimultaneousRequests               uint32
 	SameSourceRequests                 uint32
 	SameSourceResetIntervalInSec       uint32
 	TrieOperationsDeadlineMilliseconds uint32
+	GetAddressesBulkMaxSize            uint32
 	EndpointsThrottlers                []EndpointsThrottlersConfig
 }
 
@@ -360,7 +356,6 @@ type AntifloodConfig struct {
 	SlowReacting              FloodPreventerConfig
 	PeerMaxOutput             AntifloodLimitsConfig
 	Cache                     CacheConfig
-	WebServer                 WebServerAntifloodConfig
 	Topic                     TopicAntifloodConfig
 	TxAccumulator             TxAccumulatorConfig
 }
@@ -396,13 +391,13 @@ type VirtualMachineServicesConfig struct {
 
 // VirtualMachineConfig holds configuration for a Virtual Machine service
 type VirtualMachineConfig struct {
-	ArwenVersions                       []ArwenVersionByEpoch
+	WasmVMVersions                      []WasmVMVersionByEpoch
 	TimeOutForSCExecutionInMilliseconds uint32
 	WasmerSIGSEGVPassthrough            bool
 }
 
-// ArwenVersionByEpoch represents the Arwen version to be used starting with an epoch
-type ArwenVersionByEpoch struct {
+// WasmVMVersionByEpoch represents the Wasm VM version to be used starting with an epoch
+type WasmVMVersionByEpoch struct {
 	StartEpoch uint32
 	Version    string
 }
@@ -419,9 +414,10 @@ type VirtualMachineGasConfig struct {
 	MetaMaxGasPerVmQuery  uint64
 }
 
-// BuiltInFunctionsConfig holds the configuration for the built in functions
+// BuiltInFunctionsConfig holds the configuration for the built-in functions
 type BuiltInFunctionsConfig struct {
-	AutomaticCrawlerAddress string
+	AutomaticCrawlerAddresses     []string
+	MaxNumAddressesInTransferRole uint32
 }
 
 // HardforkConfig holds the configuration for the hardfork trigger
@@ -469,6 +465,7 @@ type DebugConfig struct {
 	Antiflood           AntifloodDebugConfig
 	ShuffleOut          ShuffleOutDebugConfig
 	EpochStart          EpochStartDebugConfig
+	Process             ProcessDebugConfig
 }
 
 // HealthServiceConfig will hold health service (monitoring) configuration
@@ -510,6 +507,15 @@ type ShuffleOutDebugConfig struct {
 type EpochStartDebugConfig struct {
 	GoRoutineAnalyserEnabled     bool
 	ProcessDataTrieOnCommitEpoch bool
+}
+
+// ProcessDebugConfig will hold the process debug configuration
+type ProcessDebugConfig struct {
+	Enabled                     bool
+	GoRoutinesDump              bool
+	DebuggingLogLevel           string
+	PollingTimeInSeconds        int
+	RevertLogLevelTimeInSeconds int
 }
 
 // ApiRoutesConfig holds the configuration related to Rest API routes
@@ -557,7 +563,7 @@ type Configs struct {
 	RatingsConfig            *RatingsConfig
 	PreferencesConfig        *Preferences
 	ExternalConfig           *ExternalConfig
-	P2pConfig                *P2PConfig
+	P2pConfig                *p2pConfig.P2PConfig
 	FlagsConfig              *ContextFlagsConfig
 	ImportDbConfig           *ImportDbConfig
 	ConfigurationPathsHolder *ConfigurationPathsHolder
@@ -582,6 +588,7 @@ type ConfigurationPathsHolder struct {
 	ValidatorKey             string
 	Epoch                    string
 	RoundActivation          string
+	P2pKey                   string
 }
 
 // TrieSyncConfig represents the trie synchronization configuration area
@@ -589,6 +596,7 @@ type TrieSyncConfig struct {
 	NumConcurrentTrieSyncers  int
 	MaxHardCapForMissingNodes int
 	TrieSyncerVersion         int
+	CheckNodesOnDisk          bool
 }
 
 // ResolverConfig represents the config options to be used when setting up the resolver instances
@@ -596,6 +604,12 @@ type ResolverConfig struct {
 	NumCrossShardPeers  uint32
 	NumTotalPeers       uint32
 	NumFullHistoryPeers uint32
+}
+
+// PoolsCleanersConfig represents the config options to be used by the pools cleaners
+type PoolsCleanersConfig struct {
+	MaxRoundsToKeepUnprocessedMiniBlocks   int64
+	MaxRoundsToKeepUnprocessedTransactions int64
 }
 
 // SoftAuctionConfig represents the config options for soft auction selecting used in staking v4

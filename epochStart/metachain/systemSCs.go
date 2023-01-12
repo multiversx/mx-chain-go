@@ -5,19 +5,24 @@ import (
 	"math"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/vm"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/atomic"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	vInfo "github.com/multiversx/mx-chain-go/common/validatorInfo"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
+	"github.com/multiversx/mx-chain-go/vm"
+	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // ArgsNewEpochStartSystemSCProcessing defines the arguments structure for the end of epoch system sc processor
@@ -30,7 +35,6 @@ type ArgsNewEpochStartSystemSCProcessing struct {
 	ValidatorInfoCreator epochStart.ValidatorInfoCreator
 	ChanceComputer       nodesCoordinator.ChanceComputer
 	ShardCoordinator     sharding.Coordinator
-	EpochConfig          config.EpochConfig
 
 	EndOfEpochCallerAddress []byte
 	StakingSCAddress        []byte
@@ -42,6 +46,7 @@ type ArgsNewEpochStartSystemSCProcessing struct {
 	StakingDataProvider          epochStart.StakingDataProvider
 	AuctionListSelector          epochStart.AuctionListSelector
 	MaxNodesChangeConfigProvider epochStart.MaxNodesChangeConfigProvider
+	EnableEpochsHandler          common.EnableEpochsHandler
 }
 
 type systemSCProcessor struct {
@@ -56,6 +61,8 @@ type systemSCProcessor struct {
 	flagBuiltInOnMetaEnabled atomic.Flag
 	flagInitStakingV4Enabled atomic.Flag
 	flagStakingV4Enabled     atomic.Flag
+
+	enableEpochsHandler common.EnableEpochsHandler
 }
 
 // NewSystemSCProcessor creates the end of epoch system smart contract processor
@@ -71,6 +78,9 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 	if err != nil {
 		return nil, err
 	}
+	if check.IfNil(args.EnableEpochsHandler) {
+		return nil, epochStart.ErrNilEnableEpochsHandler
+	}
 
 	s := &systemSCProcessor{
 		legacySystemSCProcessor:  legacy,
@@ -78,11 +88,8 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 		builtInOnMetaEnableEpoch: args.EpochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
 		stakingV4EnableEpoch:     args.EpochConfig.EnableEpochs.StakingV4EnableEpoch,
 		auctionListSelector:      args.AuctionListSelector,
+		enableEpochsHandler:      args.EnableEpochsHandler,
 	}
-
-	log.Debug("systemSC: enable epoch for governanceV2 init", "epoch", s.governanceEnableEpoch)
-	log.Debug("systemSC: enable epoch for create NFT on meta", "epoch", s.builtInOnMetaEnableEpoch)
-	log.Debug("systemSC: enable epoch for staking v4", "epoch", s.stakingV4EnableEpoch)
 
 	args.EpochNotifier.RegisterNotifyHandler(s)
 	return s, nil

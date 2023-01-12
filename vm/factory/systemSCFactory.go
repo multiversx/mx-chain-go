@@ -3,17 +3,17 @@ package factory
 import (
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/vm"
-	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	"github.com/mitchellh/mapstructure"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/vm"
+	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("vm/factory")
@@ -27,11 +27,10 @@ type systemSCFactory struct {
 	marshalizer            marshal.Marshalizer
 	hasher                 hashing.Hasher
 	systemSCConfig         *config.SystemSmartContractsConfig
-	epochNotifier          vm.EpochNotifier
 	systemSCsContainer     vm.SystemSCContainer
 	addressPubKeyConverter core.PubkeyConverter
-	epochConfig            *config.EpochConfig
 	shardCoordinator       sharding.Coordinator
+	enableEpochsHandler    common.EnableEpochsHandler
 	nodesCoordinator       vm.NodesCoordinator
 }
 
@@ -45,10 +44,9 @@ type ArgsNewSystemSCFactory struct {
 	Marshalizer            marshal.Marshalizer
 	Hasher                 hashing.Hasher
 	SystemSCConfig         *config.SystemSmartContractsConfig
-	EpochNotifier          vm.EpochNotifier
 	AddressPubKeyConverter core.PubkeyConverter
-	EpochConfig            *config.EpochConfig
 	ShardCoordinator       sharding.Coordinator
+	EnableEpochsHandler    common.EnableEpochsHandler
 	NodesCoordinator       vm.NodesCoordinator
 }
 
@@ -75,14 +73,14 @@ func NewSystemSCFactory(args ArgsNewSystemSCFactory) (*systemSCFactory, error) {
 	if args.SystemSCConfig == nil {
 		return nil, fmt.Errorf("%w in NewSystemSCFactory", vm.ErrNilSystemSCConfig)
 	}
-	if check.IfNil(args.EpochNotifier) {
-		return nil, fmt.Errorf("%w in NewSystemSCFactory", vm.ErrNilEpochNotifier)
-	}
 	if check.IfNil(args.AddressPubKeyConverter) {
 		return nil, fmt.Errorf("%w in NewSystemSCFactory", vm.ErrNilAddressPubKeyConverter)
 	}
 	if check.IfNil(args.ShardCoordinator) {
 		return nil, fmt.Errorf("%w in NewSystemSCFactory", vm.ErrNilShardCoordinator)
+	}
+	if check.IfNil(args.EnableEpochsHandler) {
+		return nil, fmt.Errorf("%w in NewSystemSCFactory", vm.ErrNilEnableEpochsHandler)
 	}
 	if check.IfNil(args.NodesCoordinator) {
 		return nil, fmt.Errorf("%w in NewSystemSCFactory", vm.ErrNilNodesCoordinator)
@@ -96,10 +94,9 @@ func NewSystemSCFactory(args ArgsNewSystemSCFactory) (*systemSCFactory, error) {
 		hasher:                 args.Hasher,
 		systemSCConfig:         args.SystemSCConfig,
 		economics:              args.Economics,
-		epochNotifier:          args.EpochNotifier,
 		addressPubKeyConverter: args.AddressPubKeyConverter,
-		epochConfig:            args.EpochConfig,
 		shardCoordinator:       args.ShardCoordinator,
+		enableEpochsHandler:    args.EnableEpochsHandler,
 		nodesCoordinator:       args.NodesCoordinator,
 	}
 
@@ -184,8 +181,7 @@ func (scf *systemSCFactory) createStakingContract() (vm.SystemSmartContract, err
 		EndOfEpochAccessAddr: vm.EndOfEpochAddress,
 		GasCost:              scf.gasCost,
 		Marshalizer:          scf.marshalizer,
-		EpochNotifier:        scf.epochNotifier,
-		EpochConfig:          *scf.epochConfig,
+		EnableEpochsHandler:  scf.enableEpochsHandler,
 	}
 	staking, err := systemSmartContracts.NewStakingSmartContract(argsStaking)
 	return staking, err
@@ -193,23 +189,21 @@ func (scf *systemSCFactory) createStakingContract() (vm.SystemSmartContract, err
 
 func (scf *systemSCFactory) createValidatorContract() (vm.SystemSmartContract, error) {
 	args := systemSmartContracts.ArgsValidatorSmartContract{
-		Eei:                      scf.systemEI,
-		SigVerifier:              scf.sigVerifier,
-		StakingSCConfig:          scf.systemSCConfig.StakingSystemSCConfig,
-		StakingSCAddress:         vm.StakingSCAddress,
-		EndOfEpochAddress:        vm.EndOfEpochAddress,
-		ValidatorSCAddress:       vm.ValidatorSCAddress,
-		GasCost:                  scf.gasCost,
-		Marshalizer:              scf.marshalizer,
-		GenesisTotalSupply:       scf.economics.GenesisTotalSupply(),
-		EpochNotifier:            scf.epochNotifier,
-		MinDeposit:               scf.systemSCConfig.DelegationManagerSystemSCConfig.MinCreationDeposit,
-		DelegationMgrEnableEpoch: scf.epochConfig.EnableEpochs.DelegationManagerEnableEpoch,
-		DelegationMgrSCAddress:   vm.DelegationManagerSCAddress,
-		GovernanceSCAddress:      vm.GovernanceSCAddress,
-		EpochConfig:              *scf.epochConfig,
-		ShardCoordinator:         scf.shardCoordinator,
-		NodesCoordinator:         scf.nodesCoordinator,
+		Eei:                    scf.systemEI,
+		SigVerifier:            scf.sigVerifier,
+		StakingSCConfig:        scf.systemSCConfig.StakingSystemSCConfig,
+		StakingSCAddress:       vm.StakingSCAddress,
+		EndOfEpochAddress:      vm.EndOfEpochAddress,
+		ValidatorSCAddress:     vm.ValidatorSCAddress,
+		GasCost:                scf.gasCost,
+		Marshalizer:            scf.marshalizer,
+		GenesisTotalSupply:     scf.economics.GenesisTotalSupply(),
+		MinDeposit:             scf.systemSCConfig.DelegationManagerSystemSCConfig.MinCreationDeposit,
+		DelegationMgrSCAddress: vm.DelegationManagerSCAddress,
+		GovernanceSCAddress:    vm.GovernanceSCAddress,
+		ShardCoordinator:       scf.shardCoordinator,
+		EnableEpochsHandler:    scf.enableEpochsHandler,
+		NodesCoordinator:       scf.nodesCoordinator,
 	}
 	validatorSC, err := systemSmartContracts.NewValidatorSmartContract(args)
 	return validatorSC, err
@@ -223,10 +217,9 @@ func (scf *systemSCFactory) createESDTContract() (vm.SystemSmartContract, error)
 		Marshalizer:            scf.marshalizer,
 		Hasher:                 scf.hasher,
 		ESDTSCConfig:           scf.systemSCConfig.ESDTSystemSCConfig,
-		EpochNotifier:          scf.epochNotifier,
 		AddressPubKeyConverter: scf.addressPubKeyConverter,
 		EndOfEpochSCAddress:    vm.EndOfEpochAddress,
-		EpochConfig:            *scf.epochConfig,
+		EnableEpochsHandler:    scf.enableEpochsHandler,
 	}
 	esdt, err := systemSmartContracts.NewESDTSmartContract(argsESDT)
 	return esdt, err
@@ -247,8 +240,7 @@ func (scf *systemSCFactory) createGovernanceContract() (vm.SystemSmartContract, 
 		GovernanceSCAddress:         vm.GovernanceSCAddress,
 		DelegationMgrSCAddress:      vm.DelegationManagerSCAddress,
 		ValidatorSCAddress:          vm.ValidatorSCAddress,
-		EpochNotifier:               scf.epochNotifier,
-		EpochConfig:                 *scf.epochConfig,
+		EnableEpochsHandler:         scf.enableEpochsHandler,
 		InitialWhiteListedAddresses: [][]byte{firstWhitelistAddress},
 	}
 	governance, err := systemSmartContracts.NewGovernanceContract(argsGovernance)
@@ -271,11 +263,10 @@ func (scf *systemSCFactory) createDelegationContract() (vm.SystemSmartContract, 
 		ValidatorSCAddress:     vm.ValidatorSCAddress,
 		GasCost:                scf.gasCost,
 		Marshalizer:            scf.marshalizer,
-		EpochNotifier:          scf.epochNotifier,
 		EndOfEpochAddress:      vm.EndOfEpochAddress,
 		GovernanceSCAddress:    vm.GovernanceSCAddress,
-		EpochConfig:            *scf.epochConfig,
 		AddTokensAddress:       addTokensAddress,
+		EnableEpochsHandler:    scf.enableEpochsHandler,
 	}
 	delegation, err := systemSmartContracts.NewDelegationSystemSC(argsDelegation)
 	return delegation, err
@@ -297,8 +288,7 @@ func (scf *systemSCFactory) createDelegationManagerContract() (vm.SystemSmartCon
 		ConfigChangeAddress:    configChangeAddres,
 		GasCost:                scf.gasCost,
 		Marshalizer:            scf.marshalizer,
-		EpochNotifier:          scf.epochNotifier,
-		EpochConfig:            *scf.epochConfig,
+		EnableEpochsHandler:    scf.enableEpochsHandler,
 	}
 	delegationManager, err := systemSmartContracts.NewDelegationManagerSystemSC(argsDelegationManager)
 	return delegationManager, err

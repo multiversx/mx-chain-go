@@ -4,9 +4,9 @@ import (
 	"context"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/common"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/multiversx/mx-chain-go/common"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // AccountFactory creates an account of different types
@@ -17,7 +17,7 @@ type AccountFactory interface {
 
 // Updater set a new value for a key, implemented by trie
 type Updater interface {
-	Get(key []byte) ([]byte, error)
+	Get(key []byte) ([]byte, uint32, error)
 	Update(key, value []byte) error
 	IsInterfaceNil() bool
 }
@@ -71,9 +71,9 @@ type UserAccountHandler interface {
 	SetRootHash([]byte)
 	GetRootHash() []byte
 	SetDataTrie(trie common.Trie)
-	DataTrie() common.Trie
-	DataTrieTracker() DataTrieTracker
-	RetrieveValueFromDataTrieTracker(key []byte) ([]byte, error)
+	DataTrie() common.DataTrieHandler
+	RetrieveValue(key []byte) ([]byte, uint32, error)
+	SaveKeyValue(key []byte, value []byte) error
 	AddToBalance(value *big.Int) error
 	SubFromBalance(value *big.Int) error
 	GetBalance() *big.Int
@@ -90,12 +90,11 @@ type UserAccountHandler interface {
 
 // DataTrieTracker models what how to manipulate data held by a SC account
 type DataTrieTracker interface {
-	ClearDataCaches()
-	DirtyData() map[string][]byte
-	RetrieveValue(key []byte) ([]byte, error)
+	RetrieveValue(key []byte) ([]byte, uint32, error)
 	SaveKeyValue(key []byte, value []byte) error
 	SetDataTrie(tr common.Trie)
-	DataTrie() common.Trie
+	DataTrie() common.DataTrieHandler
+	SaveDirtyData(common.Trie) (map[string][]byte, error)
 	IsInterfaceNil() bool
 }
 
@@ -114,15 +113,33 @@ type AccountsAdapter interface {
 	GetCode(codeHash []byte) []byte
 	RootHash() ([]byte, error)
 	RecreateTrie(rootHash []byte) error
+	RecreateTrieFromEpoch(options common.RootHashHolder) error
 	PruneTrie(rootHash []byte, identifier TriePruningIdentifier, handler PruningHandler)
 	CancelPrune(rootHash []byte, identifier TriePruningIdentifier)
 	SnapshotState(rootHash []byte)
 	SetStateCheckpoint(rootHash []byte)
 	IsPruningEnabled() bool
-	GetAllLeaves(leavesChannel chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error
+	GetAllLeaves(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error
 	RecreateAllTries(rootHash []byte) (map[string]common.Trie, error)
 	GetTrie(rootHash []byte) (common.Trie, error)
 	GetStackDebugFirstEntry() []byte
+	SetSyncer(syncer AccountsDBSyncer) error
+	StartSnapshotIfNeeded() error
+	Close() error
+	IsInterfaceNil() bool
+}
+
+// AccountsDBSyncer defines the methods for the accounts db syncer
+type AccountsDBSyncer interface {
+	SyncAccounts(rootHash []byte) error
+	IsInterfaceNil() bool
+}
+
+// AccountsRepository handles the defined execution based on the query options
+type AccountsRepository interface {
+	GetAccountWithBlockInfo(address []byte, options api.AccountQueryOptions) (vmcommon.AccountHandler, common.BlockInfo, error)
+	GetCodeWithBlockInfo(codeHash []byte, options api.AccountQueryOptions) ([]byte, common.BlockInfo, error)
+	GetCurrentStateAccountsWrapper() AccountsAdapterAPI
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -146,8 +163,8 @@ type baseAccountHandler interface {
 	SetRootHash([]byte)
 	GetRootHash() []byte
 	SetDataTrie(trie common.Trie)
-	DataTrie() common.Trie
-	DataTrieTracker() DataTrieTracker
+	DataTrie() common.DataTrieHandler
+	SaveDirtyData(trie common.Trie) (map[string][]byte, error)
 	IsInterfaceNil() bool
 }
 
@@ -186,6 +203,19 @@ type StoragePruningManager interface {
 // PruningHandler defines different options for pruning
 type PruningHandler interface {
 	IsPruningEnabled() bool
+}
+
+// BlockInfoProvider defines the behavior of a struct able to provide the block information used in state tries
+type BlockInfoProvider interface {
+	GetBlockInfo() common.BlockInfo
+	IsInterfaceNil() bool
+}
+
+// AccountsAdapterAPI defines the extension of the AccountsAdapter that should be used in API calls
+type AccountsAdapterAPI interface {
+	AccountsAdapter
+	GetAccountWithBlockInfo(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error)
+	GetCodeWithBlockInfo(codeHash []byte, options common.RootHashHolder) ([]byte, common.BlockInfo, error)
 }
 
 // ShardValidatorsInfoMapHandler shall be used to manage operations inside

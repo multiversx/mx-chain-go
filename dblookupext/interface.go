@@ -1,8 +1,9 @@
 package dblookupext
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/dblookupext/esdtSupply"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/dblookupext/esdtSupply"
 )
 
 // HistoryRepositoryFactory can create new instances of HistoryRepository
@@ -18,6 +19,7 @@ type HistoryRepository interface {
 		blockBody data.BodyHandler,
 		scrResultsFromPool map[string]data.TransactionHandler,
 		receiptsFromPool map[string]data.TransactionHandler,
+		createdIntraShardMiniBlocks []*block.MiniBlock,
 		logs []*data.LogData) error
 	OnNotarizedBlocks(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte)
 	GetMiniblockMetadataByTxHash(hash []byte) (*MiniblockMetadata, error)

@@ -4,23 +4,23 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/versioning"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/process/factory/interceptorscontainer"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
-	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
-	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
+	"github.com/multiversx/mx-chain-core-go/core/versioning"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
+	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
+	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
+	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
+	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -86,15 +86,15 @@ func createShardDataPools() dataRetriever.PoolsHolder {
 	return pools
 }
 
-func createShardStore() *mock.ChainStorerMock {
-	return &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &storageStubs.StorerStub{}
+func createShardStore() *storageStubs.ChainStorerStub {
+	return &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return &storageStubs.StorerStub{}, nil
 		},
 	}
 }
 
-//------- NewInterceptorsContainerFactory
+// ------- NewInterceptorsContainerFactory
 func TestNewShardInterceptorsContainerFactory_NilAccountsAdapter(t *testing.T) {
 	t.Parallel()
 
@@ -269,7 +269,7 @@ func TestNewShardInterceptorsContainerFactory_NilMultiSignerShouldErr(t *testing
 	t.Parallel()
 
 	coreComp, cryptoComp := createMockComponentHolders()
-	cryptoComp.MultiSig = nil
+	cryptoComp.MultiSigContainer = cryptoMocks.NewMultiSignerContainerMock(nil)
 	args := getArgumentsShard(coreComp, cryptoComp)
 	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
 
@@ -425,7 +425,7 @@ func TestNewShardInterceptorsContainerFactory_ShouldWorkWithSizeCheck(t *testing
 	assert.Nil(t, err)
 }
 
-//------- Create
+// ------- Create
 
 func TestShardInterceptorsContainerFactory_CreateTopicCreationTxFailsShouldErr(t *testing.T) {
 	t.Parallel()
@@ -659,9 +659,10 @@ func TestShardInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	numInterceptorPeerAuth := 1
 	numInterceptorHeartbeat := 1
 	numInterceptorsShardValidatorInfo := 1
+	numInterceptorValidatorInfo := 1
 	totalInterceptors := numInterceptorTxs + numInterceptorsUnsignedTxs + numInterceptorsRewardTxs +
 		numInterceptorHeaders + numInterceptorMiniBlocks + numInterceptorMetachainHeaders + numInterceptorTrieNodes +
-		numInterceptorPeerAuth + numInterceptorHeartbeat + numInterceptorsShardValidatorInfo
+		numInterceptorPeerAuth + numInterceptorHeartbeat + numInterceptorsShardValidatorInfo + numInterceptorValidatorInfo
 
 	assert.Nil(t, err)
 	assert.Equal(t, totalInterceptors, container.Len())
@@ -684,13 +685,15 @@ func createMockComponentHolders() (*mock.CoreComponentsMock, *mock.CryptoCompone
 		EpochNotifierField:         &epochNotifier.EpochNotifierStub{},
 		TxVersionCheckField:        versioning.NewTxVersionChecker(1),
 		HardforkTriggerPubKeyField: providedHardforkPubKey,
+		EnableEpochsHandlerField:   &testscommon.EnableEpochsHandlerStub{},
 	}
+	multiSigner := cryptoMocks.NewMultiSigner()
 	cryptoComponents := &mock.CryptoComponentsMock{
-		BlockSig: &mock.SignerMock{},
-		TxSig:    &mock.SignerMock{},
-		MultiSig: cryptoMocks.NewMultiSigner(21),
-		BlKeyGen: &mock.SingleSignKeyGenMock{},
-		TxKeyGen: &mock.SingleSignKeyGenMock{},
+		BlockSig:          &mock.SignerMock{},
+		TxSig:             &mock.SignerMock{},
+		MultiSigContainer: cryptoMocks.NewMultiSignerContainerMock(multiSigner),
+		BlKeyGen:          &mock.SingleSignKeyGenMock{},
+		TxKeyGen:          &mock.SingleSignKeyGenMock{},
 	}
 
 	return coreComponents, cryptoComponents
@@ -711,7 +714,7 @@ func getArgumentsShard(
 		DataPool:                     createShardDataPools(),
 		MaxTxNonceDeltaAllowed:       maxTxNonceDeltaAllowed,
 		TxFeeHandler:                 &mock.FeeHandlerStub{},
-		BlockBlackList:               &mock.BlackListHandlerStub{},
+		BlockBlackList:               &testscommon.TimeCacheStub{},
 		HeaderSigVerifier:            &mock.HeaderSigVerifierStub{},
 		HeaderIntegrityVerifier:      &mock.HeaderIntegrityVerifierStub{},
 		SizeCheckDelta:               0,

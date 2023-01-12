@@ -5,20 +5,20 @@ import (
 	"crypto/rand"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/database"
+	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -67,14 +67,15 @@ func createMockEpochStartCreatorArguments() ArgsNewEpochStartData {
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	startHeaders := createGenesisBlocks(shardCoordinator)
 	argsNewEpochStartData := ArgsNewEpochStartData{
-		Marshalizer:       &mock.MarshalizerMock{},
-		Hasher:            &mock.HasherStub{},
-		Store:             createMetaStore(),
-		DataPool:          dataRetrieverMock.NewPoolsHolderStub(),
-		BlockTracker:      mock.NewBlockTrackerMock(shardCoordinator, startHeaders),
-		ShardCoordinator:  shardCoordinator,
-		EpochStartTrigger: &mock.EpochStartTriggerStub{},
-		RequestHandler:    &testscommon.RequestHandlerStub{},
+		Marshalizer:         &mock.MarshalizerMock{},
+		Hasher:              &mock.HasherStub{},
+		Store:               createMetaStore(),
+		DataPool:            dataRetrieverMock.NewPoolsHolderStub(),
+		BlockTracker:        mock.NewBlockTrackerMock(shardCoordinator, startHeaders),
+		ShardCoordinator:    shardCoordinator,
+		EpochStartTrigger:   &mock.EpochStartTriggerStub{},
+		RequestHandler:      &testscommon.RequestHandlerStub{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
 	}
 	return argsNewEpochStartData
 }
@@ -83,9 +84,9 @@ func createMemUnit() storage.Storer {
 	capacity := uint32(10)
 	shards := uint32(1)
 	sizeInBytes := uint64(0)
-	cache, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: capacity, Shards: shards, SizeInBytes: sizeInBytes})
-	persist, _ := memorydb.NewlruDB(100000)
-	unit, _ := storageUnit.NewStorageUnit(cache, persist)
+	cache, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: capacity, Shards: shards, SizeInBytes: sizeInBytes})
+	persist, _ := database.NewlruDB(100000)
+	unit, _ := storageunit.NewStorageUnit(cache, persist)
 
 	return unit
 }
@@ -173,6 +174,17 @@ func TestEpochStartData_NilRequestHandler(t *testing.T) {
 	esd, err := NewEpochStartData(arguments)
 	require.Nil(t, esd)
 	require.Equal(t, process.ErrNilRequestHandler, err)
+}
+
+func TestEpochStartData_NilEnableEpochsHandler(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockEpochStartCreatorArguments()
+	arguments.EnableEpochsHandler = nil
+
+	esd, err := NewEpochStartData(arguments)
+	require.Nil(t, esd)
+	require.Equal(t, process.ErrNilEnableEpochsHandler, err)
 }
 
 func TestVerifyEpochStartDataForMetablock_NotEpochStartBlock(t *testing.T) {
@@ -345,7 +357,7 @@ func TestMetaProcessor_CreateEpochStartFromMetaBlockShouldWork(t *testing.T) {
 		return cs
 	}
 	arguments.DataPool = dPool
-	metaHdrStorage := arguments.Store.GetStorer(dataRetriever.MetaBlockUnit)
+	metaHdrStorage, _ := arguments.Store.GetStorer(dataRetriever.MetaBlockUnit)
 	meta1 := &block.MetaBlock{Nonce: 100}
 
 	var hdrs []block.MiniBlockHeader
@@ -400,7 +412,7 @@ func TestMetaProcessor_CreateEpochStartFromMetaBlockEdgeCaseChecking(t *testing.
 	blockTracker := mock.NewBlockTrackerMock(arguments.ShardCoordinator, startHeaders)
 
 	mbHashes := [][]byte{[]byte("mb_hash1"), []byte("mb_hash2"), []byte("mb_hash3"), []byte("mb_hash4")}
-	metaHdrStorage := arguments.Store.GetStorer(dataRetriever.MetaBlockUnit)
+	metaHdrStorage, _ := arguments.Store.GetStorer(dataRetriever.MetaBlockUnit)
 	var mbHdrs1 []block.MiniBlockHeader
 	mbHdrs1 = append(mbHdrs1, block.MiniBlockHeader{
 		Hash:            mbHashes[0],
@@ -569,7 +581,9 @@ func Test_initIndexesOfProcessedTxs(t *testing.T) {
 	miniBlockHeaders["mbHash1"] = mbh1
 	miniBlockHeaders["mbHash2"] = mbh2
 
-	initIndexesOfProcessedTxs(miniBlockHeaders, 0)
+	arguments := createMockEpochStartCreatorArguments()
+	epoch, _ := NewEpochStartData(arguments)
+	epoch.initIndexesOfProcessedTxs(miniBlockHeaders, 0)
 
 	mbh := miniBlockHeaders["mbHash1"]
 	assert.Equal(t, int32(1), mbh.GetIndexOfFirstTxProcessed())
@@ -622,7 +636,10 @@ func Test_computeStillPendingInShardHeader(t *testing.T) {
 	miniBlockHeaders[string(mbHash3)] = mbh3
 
 	assert.Equal(t, 2, len(miniBlockHeaders))
-	computeStillPendingInShardHeader(shardHdr, miniBlockHeaders, 0)
+
+	arguments := createMockEpochStartCreatorArguments()
+	epoch, _ := NewEpochStartData(arguments)
+	epoch.computeStillPendingInShardHeader(shardHdr, miniBlockHeaders, 0)
 	assert.Equal(t, 1, len(miniBlockHeaders))
 
 	_, ok := miniBlockHeaders[string(mbHash2)]
@@ -633,4 +650,104 @@ func Test_computeStillPendingInShardHeader(t *testing.T) {
 
 	assert.Equal(t, newIndexOfFirstTxProcessed, mbh.GetIndexOfFirstTxProcessed())
 	assert.Equal(t, newIndexOfLastTxProcessed, mbh.GetIndexOfLastTxProcessed())
+}
+
+func Test_updateIndexesOfProcessedTxsEdgeCaseWithIndex0(t *testing.T) {
+	t.Parallel()
+
+	reserved := block.MiniBlockHeaderReserved{
+		ExecutionType:           block.Normal,
+		IndexOfFirstTxProcessed: -1,
+		IndexOfLastTxProcessed:  -1,
+	}
+	reservedBytes, err := reserved.Marshal()
+	assert.Nil(t, err)
+
+	mbHeader := block.MiniBlockHeader{
+		TxCount:  132,
+		Reserved: reservedBytes,
+	}
+	miniblockHeaders := make(map[string]block.MiniBlockHeader)
+	mbHash := "mb hash"
+
+	reserved = block.MiniBlockHeaderReserved{
+		ExecutionType:           block.Normal,
+		State:                   block.PartialExecuted,
+		IndexOfFirstTxProcessed: 0,
+		IndexOfLastTxProcessed:  0,
+	}
+	reservedBytes, err = reserved.Marshal()
+	assert.Nil(t, err)
+
+	shardMiniblockHeader := &block.MiniBlockHeader{
+		Hash:            []byte(mbHash),
+		SenderShardID:   1,
+		ReceiverShardID: 2,
+		TxCount:         132,
+		Type:            block.TxBlock,
+		Reserved:        reservedBytes,
+	}
+
+	arguments := createMockEpochStartCreatorArguments()
+	epoch, _ := NewEpochStartData(arguments)
+	epoch.updateIndexesOfProcessedTxs(mbHeader, shardMiniblockHeader, mbHash, 2, miniblockHeaders)
+
+	require.Equal(t, 1, len(miniblockHeaders))
+	processedMbHeader, found := miniblockHeaders[mbHash]
+	require.True(t, found)
+	assert.True(t, len(processedMbHeader.Reserved) > 0)
+	assert.Equal(t, int32(0), processedMbHeader.GetIndexOfFirstTxProcessed())
+	assert.Equal(t, int32(0), processedMbHeader.GetIndexOfLastTxProcessed())
+}
+
+func Test_setIndexOfFirstAndLastTxProcessedShouldNotSetReserved(t *testing.T) {
+	t.Parallel()
+
+	partialExecutionEnableEpoch := uint32(5)
+
+	arguments := createMockEpochStartCreatorArguments()
+	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+		MiniBlockPartialExecutionEnableEpochField: partialExecutionEnableEpoch,
+	}
+	arguments.EpochStartTrigger = &mock.EpochStartTriggerStub{
+		IsEpochStartCalled: func() bool {
+			return true
+		},
+		EpochCalled: func() uint32 {
+			return partialExecutionEnableEpoch - 1
+		},
+	}
+
+	mbHeader := &block.MiniBlockHeader{}
+
+	epoch, _ := NewEpochStartData(arguments)
+	epoch.setIndexOfFirstAndLastTxProcessed(mbHeader, 1, 2)
+
+	require.Nil(t, mbHeader.GetReserved())
+}
+
+func Test_setIndexOfFirstAndLastTxProcessedShouldSetReserved(t *testing.T) {
+	t.Parallel()
+
+	partialExecutionEnableEpoch := uint32(5)
+
+	arguments := createMockEpochStartCreatorArguments()
+	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+		MiniBlockPartialExecutionEnableEpochField: partialExecutionEnableEpoch,
+	}
+	arguments.EpochStartTrigger = &mock.EpochStartTriggerStub{
+		IsEpochStartCalled: func() bool {
+			return true
+		},
+		EpochCalled: func() uint32 {
+			return partialExecutionEnableEpoch
+		},
+	}
+
+	mbHeader := &block.MiniBlockHeader{}
+
+	epoch, _ := NewEpochStartData(arguments)
+	epoch.setIndexOfFirstAndLastTxProcessed(mbHeader, 1, 2)
+
+	require.NotNil(t, mbHeader.GetReserved())
 }

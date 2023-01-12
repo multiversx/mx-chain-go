@@ -10,13 +10,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/hashing/keccak"
-	"github.com/ElrondNetwork/elrond-go/genesis"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/relayedTx"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/state"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/multiversx/mx-chain-core-go/hashing/keccak"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/genesis"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/integrationTests/multiShard/relayedTx"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/state"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -250,7 +252,7 @@ func checkUserNamesAreSetCorrectly(
 			assert.Equal(t, userNames[i], string(userAcc.GetUserName()))
 
 			bech32c := integrationTests.TestAddressPubkeyConverter
-			usernameReportedByNode, err := node.Node.GetUsername(bech32c.Encode(player.Address))
+			usernameReportedByNode, _, err := node.Node.GetUsername(bech32c.Encode(player.Address), api.AccountQueryOptions{})
 			require.NoError(t, err)
 			require.Equal(t, userNames[i], usernameReportedByNode)
 		}
@@ -298,7 +300,7 @@ func checkUserNamesAreDeleted(
 			dnsAcc, _ := acnt.(state.UserAccountHandler)
 
 			keyFromTrie := "value_state" + string(keccak.NewKeccak().Compute(userName))
-			value, err := dnsAcc.DataTrie().Get([]byte(keyFromTrie))
+			value, _, err := dnsAcc.DataTrie().(common.Trie).Get([]byte(keyFromTrie))
 			assert.Nil(t, err)
 			assert.Nil(t, value)
 		}

@@ -13,3 +13,6 @@ var ErrAddressLengthNotCorrect = errors.New("address length is not correct")
 
 // ErrVMTypeLengthIsNotCorrect signals that the vm type length is not correct
 var ErrVMTypeLengthIsNotCorrect = errors.New("vm type length is not correct")
+
+// ErrNilBlockchainHookCounter signals that a nil blockchain hook counter was provided
+var ErrNilBlockchainHookCounter = errors.New("nil blockchain hook counter")

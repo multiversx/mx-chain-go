@@ -1,8 +1,8 @@
 package testscommon
 
 import (
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 // StateComponentsMock -
@@ -10,6 +10,7 @@ type StateComponentsMock struct {
 	PeersAcc        state.AccountsAdapter
 	Accounts        state.AccountsAdapter
 	AccountsAPI     state.AccountsAdapter
+	AccountsRepo    state.AccountsRepository
 	Tries           common.TriesHolder
 	StorageManagers map[string]common.StorageManager
 }
@@ -42,6 +43,11 @@ func (scm *StateComponentsMock) AccountsAdapter() state.AccountsAdapter {
 // AccountsAdapterAPI -
 func (scm *StateComponentsMock) AccountsAdapterAPI() state.AccountsAdapter {
 	return scm.AccountsAPI
+}
+
+// AccountsRepository -
+func (scm *StateComponentsMock) AccountsRepository() state.AccountsRepository {
+	return scm.AccountsRepo
 }
 
 // TriesContainer -

@@ -7,14 +7,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/storage"
 )
 
 type trieNodeInfo struct {
@@ -22,6 +22,7 @@ type trieNodeInfo struct {
 	received bool
 }
 
+// TODO consider removing this implementation
 type trieSyncer struct {
 	baseSyncTrie
 	rootFound                 bool
@@ -48,13 +49,14 @@ const maxNewMissingAddedPerTurn = 10
 type ArgTrieSyncer struct {
 	Marshalizer               marshal.Marshalizer
 	Hasher                    hashing.Hasher
-	DB                        common.DBWriteCacher
+	DB                        common.StorageManager
 	RequestHandler            RequestHandler
 	InterceptedNodes          storage.Cacher
 	ShardId                   uint32
 	Topic                     string
 	TrieSyncStatistics        common.SizeSyncStatisticsHandler
 	MaxHardCapForMissingNodes int
+	CheckNodesOnDisk          bool
 	TimeoutHandler            TimeoutHandler
 }
 
@@ -65,10 +67,15 @@ func NewTrieSyncer(arg ArgTrieSyncer) (*trieSyncer, error) {
 		return nil, err
 	}
 
+	stsm, err := NewSyncTrieStorageManager(arg.DB)
+	if err != nil {
+		return nil, err
+	}
+
 	ts := &trieSyncer{
 		requestHandler:            arg.RequestHandler,
 		interceptedNodesCacher:    arg.InterceptedNodes,
-		db:                        arg.DB,
+		db:                        stsm,
 		marshalizer:               arg.Marshalizer,
 		hasher:                    arg.Hasher,
 		nodesForTrie:              make(map[string]trieNodeInfo),
@@ -118,7 +125,7 @@ func checkArguments(arg ArgTrieSyncer) error {
 
 // StartSyncing completes the trie, asking for missing trie nodes on the network
 func (ts *trieSyncer) StartSyncing(rootHash []byte, ctx context.Context) error {
-	if len(rootHash) == 0 || bytes.Equal(rootHash, EmptyTrieHash) {
+	if common.IsEmptyTrie(rootHash) {
 		return nil
 	}
 	if ctx == nil {
@@ -268,7 +275,7 @@ func (ts *trieSyncer) addNew(nextNodes []node) bool {
 		nodeInfo, ok := ts.nodesForTrie[nextHash]
 		if !ok || !nodeInfo.received {
 			newElement = true
-			ts.trieSyncStatistics.AddNumReceived(1)
+			ts.trieSyncStatistics.AddNumProcessed(1)
 			ts.nodesForTrie[nextHash] = trieNodeInfo{
 				trieNode: nextNode,
 				received: true,
@@ -341,10 +348,6 @@ func trieNode(
 	n, ok := data.(*InterceptedTrieNode)
 	if !ok {
 		return nil, ErrWrongTypeAssertion
-	}
-
-	if n.node != nil {
-		return n.node, nil
 	}
 
 	decodedNode, err := decodeNode(n.GetSerialized(), marshalizer, hasher)

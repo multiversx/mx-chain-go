@@ -3,12 +3,12 @@ package heartbeat
 import (
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/heartbeat"
-	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/heartbeat"
+	"github.com/multiversx/mx-chain-go/process"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 const uint32Size = 4
@@ -22,27 +22,17 @@ type ArgBaseInterceptedHeartbeat struct {
 	Marshaller marshal.Marshalizer
 }
 
-// ArgInterceptedHeartbeat is the argument used in the intercepted heartbeat constructor
-type ArgInterceptedHeartbeat struct {
-	ArgBaseInterceptedHeartbeat
-	PeerId core.PeerID
-}
-
 // interceptedHeartbeat is a wrapper over HeartbeatV2
 type interceptedHeartbeat struct {
 	heartbeat heartbeat.HeartbeatV2
 	payload   heartbeat.Payload
-	peerId    core.PeerID
 }
 
 // NewInterceptedHeartbeat tries to create a new intercepted heartbeat instance
-func NewInterceptedHeartbeat(arg ArgInterceptedHeartbeat) (*interceptedHeartbeat, error) {
-	err := checkBaseArg(arg.ArgBaseInterceptedHeartbeat)
+func NewInterceptedHeartbeat(arg ArgBaseInterceptedHeartbeat) (*interceptedHeartbeat, error) {
+	err := checkBaseArg(arg)
 	if err != nil {
 		return nil, err
-	}
-	if len(arg.PeerId) == 0 {
-		return nil, process.ErrEmptyPeerID
 	}
 
 	hb, payload, err := createHeartbeat(arg.Marshaller, arg.DataBuff)
@@ -53,7 +43,6 @@ func NewInterceptedHeartbeat(arg ArgInterceptedHeartbeat) (*interceptedHeartbeat
 	intercepted := &interceptedHeartbeat{
 		heartbeat: *hb,
 		payload:   *payload,
-		peerId:    arg.PeerId,
 	}
 
 	return intercepted, nil
@@ -107,6 +96,10 @@ func (ihb *interceptedHeartbeat) CheckValidity() error {
 	if ihb.heartbeat.PeerSubType != uint32(core.RegularPeer) && ihb.heartbeat.PeerSubType != uint32(core.FullHistoryObserver) {
 		return process.ErrInvalidPeerSubType
 	}
+	err = verifyPropertyMinMaxLen(publicKeyProperty, ihb.heartbeat.Pubkey)
+	if err != nil {
+		return err
+	}
 
 	log.Trace("interceptedHeartbeat received valid data")
 
@@ -130,19 +123,19 @@ func (ihb *interceptedHeartbeat) Type() string {
 
 // Identifiers returns the identifiers used in requests
 func (ihb *interceptedHeartbeat) Identifiers() [][]byte {
-	return [][]byte{ihb.peerId.Bytes()}
+	return [][]byte{[]byte(ihb.String())}
 }
 
 // String returns the most important fields as string
 func (ihb *interceptedHeartbeat) String() string {
-	return fmt.Sprintf("pid=%s, version=%s, name=%s, identity=%s, nonce=%d, subtype=%d, payload=%s",
-		ihb.peerId.Pretty(),
+	return fmt.Sprintf("version=%s, name=%s, identity=%s, nonce=%d, subtype=%d, payload=%s, pk=%s",
 		ihb.heartbeat.VersionNumber,
 		ihb.heartbeat.NodeDisplayName,
 		ihb.heartbeat.Identity,
 		ihb.heartbeat.Nonce,
 		ihb.heartbeat.PeerSubType,
-		logger.DisplayByteSlice(ihb.heartbeat.Payload))
+		logger.DisplayByteSlice(ihb.heartbeat.Payload),
+		logger.DisplayByteSlice(ihb.heartbeat.Pubkey))
 }
 
 // Message returns the heartbeat message

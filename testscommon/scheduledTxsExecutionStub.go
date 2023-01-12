@@ -5,36 +5,37 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
-	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/scheduled"
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 // ScheduledTxsExecutionStub -
 type ScheduledTxsExecutionStub struct {
-	InitCalled                          func()
-	AddScheduledTxCalled                func([]byte, data.TransactionHandler) bool
-	AddScheduledMiniBlocksCalled        func(miniBlocks block.MiniBlockSlice)
-	ExecuteCalled                       func([]byte) error
-	ExecuteAllCalled                    func(func() time.Duration) error
-	GetScheduledIntermediateTxsCalled   func() map[block.Type][]data.TransactionHandler
-	GetScheduledMiniBlocksCalled        func() block.MiniBlockSlice
-	SetScheduledInfoCalled              func(scheduledInfo *process.ScheduledInfo)
-	GetScheduledRootHashForHeaderCalled func(headerHash []byte) ([]byte, error)
-	RollBackToBlockCalled               func(headerHash []byte) error
-	GetScheduledRootHashCalled          func() []byte
-	GetScheduledGasAndFeesCalled        func() scheduled.GasAndFees
-	SetScheduledRootHashCalled          func([]byte)
-	SetScheduledGasAndFeesCalled        func(gasAndFees scheduled.GasAndFees)
-	SetTransactionProcessorCalled       func(process.TransactionProcessor)
-	SetTransactionCoordinatorCalled     func(process.TransactionCoordinator)
-	HaveScheduledTxsCalled              func() bool
-	SaveStateIfNeededCalled             func(headerHash []byte)
-	SaveStateCalled                     func(headerHash []byte, scheduledInfo *process.ScheduledInfo)
-	LoadStateCalled                     func(headerHash []byte)
-	IsScheduledTxCalled                 func([]byte) bool
-	IsMiniBlockExecutedCalled           func([]byte) bool
+	InitCalled                                   func()
+	AddScheduledTxCalled                         func([]byte, data.TransactionHandler) bool
+	AddScheduledMiniBlocksCalled                 func(miniBlocks block.MiniBlockSlice)
+	ExecuteCalled                                func([]byte) error
+	ExecuteAllCalled                             func(func() time.Duration) error
+	GetScheduledIntermediateTxsCalled            func() map[block.Type][]data.TransactionHandler
+	GetScheduledMiniBlocksCalled                 func() block.MiniBlockSlice
+	SetScheduledInfoCalled                       func(scheduledInfo *process.ScheduledInfo)
+	GetScheduledRootHashForHeaderCalled          func(headerHash []byte) ([]byte, error)
+	GetScheduledRootHashForHeaderWithEpochCalled func(headerHash []byte, epoch uint32) ([]byte, error)
+	RollBackToBlockCalled                        func(headerHash []byte) error
+	GetScheduledRootHashCalled                   func() []byte
+	GetScheduledGasAndFeesCalled                 func() scheduled.GasAndFees
+	SetScheduledRootHashCalled                   func([]byte)
+	SetScheduledGasAndFeesCalled                 func(gasAndFees scheduled.GasAndFees)
+	SetTransactionProcessorCalled                func(process.TransactionProcessor)
+	SetTransactionCoordinatorCalled              func(process.TransactionCoordinator)
+	HaveScheduledTxsCalled                       func() bool
+	SaveStateIfNeededCalled                      func(headerHash []byte)
+	SaveStateCalled                              func(headerHash []byte, scheduledInfo *process.ScheduledInfo)
+	LoadStateCalled                              func(headerHash []byte)
+	IsScheduledTxCalled                          func([]byte) bool
+	IsMiniBlockExecutedCalled                    func([]byte) bool
 }
 
 // Init -
@@ -110,6 +111,14 @@ func (stes *ScheduledTxsExecutionStub) SetScheduledInfo(scheduledInfo *process.S
 	if stes.SetScheduledInfoCalled != nil {
 		stes.SetScheduledInfoCalled(scheduledInfo)
 	}
+}
+
+// GetScheduledRootHashForHeaderWithEpoch -
+func (stes *ScheduledTxsExecutionStub) GetScheduledRootHashForHeaderWithEpoch(headerHash []byte, epoch uint32) ([]byte, error) {
+	if stes.GetScheduledRootHashForHeaderWithEpochCalled != nil {
+		return stes.GetScheduledRootHashForHeaderWithEpochCalled(headerHash, epoch)
+	}
+	return nil, errors.New("scheduled root hash for header not found")
 }
 
 // GetScheduledRootHashForHeader -

@@ -1,10 +1,10 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go-core/core"
+import "github.com/multiversx/mx-chain-core-go/core"
 
 // PeerShardMapperStub -
 type PeerShardMapperStub struct {
-	GetLastKnownPeerIDCalled        func(pk []byte) (*core.PeerID, bool)
+	GetLastKnownPeerIDCalled        func(pk []byte) (core.PeerID, bool)
 	GetPeerInfoCalled               func(pid core.PeerID) core.P2PPeerInfo
 	UpdatePeerIdPublicKeyCalled     func(pid core.PeerID, pk []byte)
 	UpdatePublicKeyShardIdCalled    func(pk []byte, shardId uint32)
@@ -14,12 +14,12 @@ type PeerShardMapperStub struct {
 }
 
 // GetLastKnownPeerID -
-func (psms *PeerShardMapperStub) GetLastKnownPeerID(pk []byte) (*core.PeerID, bool) {
+func (psms *PeerShardMapperStub) GetLastKnownPeerID(pk []byte) (core.PeerID, bool) {
 	if psms.GetLastKnownPeerIDCalled != nil {
 		return psms.GetLastKnownPeerIDCalled(pk)
 	}
 
-	return nil, false
+	return "", false
 }
 
 // GetPeerInfo -

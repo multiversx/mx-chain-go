@@ -1,11 +1,11 @@
 package factory
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/heartbeat"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/heartbeat"
 )
 
 type interceptedHeartbeatDataFactory struct {
@@ -30,12 +30,9 @@ func NewInterceptedHeartbeatDataFactory(arg ArgInterceptedDataFactory) (*interce
 
 // Create creates instances of InterceptedData by unmarshalling provided buffer
 func (ihdf *interceptedHeartbeatDataFactory) Create(buff []byte) (process.InterceptedData, error) {
-	arg := heartbeat.ArgInterceptedHeartbeat{
-		ArgBaseInterceptedHeartbeat: heartbeat.ArgBaseInterceptedHeartbeat{
-			DataBuff:   buff,
-			Marshaller: ihdf.marshalizer,
-		},
-		PeerId: ihdf.peerID,
+	arg := heartbeat.ArgBaseInterceptedHeartbeat{
+		DataBuff:   buff,
+		Marshaller: ihdf.marshalizer,
 	}
 
 	return heartbeat.NewInterceptedHeartbeat(arg)

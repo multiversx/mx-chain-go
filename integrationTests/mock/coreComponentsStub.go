@@ -3,20 +3,19 @@ package mock
 import (
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
-	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	nodeFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/factory"
-	"github.com/ElrondNetwork/elrond-go/ntp"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/ntp"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/storage"
 )
 
 // CoreComponentsStub -
@@ -32,7 +31,6 @@ type CoreComponentsStub struct {
 	PathHandlerField                   storage.PathManagerHandler
 	ChainIdCalled                      func() string
 	MinTransactionVersionCalled        func() uint32
-	StatusHandlerUtilsField            nodeFactory.StatusHandlersUtils
 	StatusHandlerField                 core.AppStatusHandler
 	WatchdogField                      core.WatchdogTimer
 	AlarmSchedulerField                core.TimersScheduler
@@ -45,15 +43,16 @@ type CoreComponentsStub struct {
 	GenesisNodesSetupField             sharding.GenesisNodesSetupHandler
 	NodesShufflerField                 nodesCoordinator.NodesShuffler
 	EpochNotifierField                 process.EpochNotifier
-	RoundNotifierField                 process.RoundNotifier
+	EnableRoundsHandlerField           process.EnableRoundsHandler
 	EpochStartNotifierWithConfirmField factory.EpochStartNotifierWithConfirm
 	ChanStopNodeProcessField           chan endProcess.ArgEndProcess
 	GenesisTimeField                   time.Time
 	TxVersionCheckField                process.TxVersionCheckerHandler
 	NodeTypeProviderField              core.NodeTypeProviderHandler
-	ArwenChangeLockerInternal          common.Locker
+	WasmVMChangeLockerInternal         common.Locker
 	ProcessStatusHandlerInternal       common.ProcessStatusHandler
 	HardforkTriggerPubKeyField         []byte
+	EnableEpochsHandlerField           common.EnableEpochsHandler
 }
 
 // Create -
@@ -74,16 +73,6 @@ func (ccs *CoreComponentsStub) CheckSubcomponents() error {
 // VmMarshalizer -
 func (ccs *CoreComponentsStub) VmMarshalizer() marshal.Marshalizer {
 	return ccs.VmMarshalizerField
-}
-
-// StatusHandlerUtils -
-func (ccs *CoreComponentsStub) StatusHandlerUtils() nodeFactory.StatusHandlersUtils {
-	return ccs.StatusHandlerUtilsField
-}
-
-// StatusHandler -
-func (ccs *CoreComponentsStub) StatusHandler() core.AppStatusHandler {
-	return ccs.StatusHandlerField
 }
 
 // Watchdog -
@@ -142,9 +131,9 @@ func (ccs *CoreComponentsStub) EpochNotifier() process.EpochNotifier {
 	return ccs.EpochNotifierField
 }
 
-// RoundNotifier -
-func (ccs *CoreComponentsStub) RoundNotifier() process.RoundNotifier {
-	return ccs.RoundNotifierField
+// EnableRoundsHandler -
+func (ccs *CoreComponentsStub) EnableRoundsHandler() process.EnableRoundsHandler {
+	return ccs.EnableRoundsHandlerField
 }
 
 // EpochStartNotifierWithConfirm -
@@ -239,9 +228,9 @@ func (ccs *CoreComponentsStub) NodeTypeProvider() core.NodeTypeProviderHandler {
 	return ccs.NodeTypeProviderField
 }
 
-// ArwenChangeLocker -
-func (ccs *CoreComponentsStub) ArwenChangeLocker() common.Locker {
-	return ccs.ArwenChangeLockerInternal
+// WasmVMChangeLocker -
+func (ccs *CoreComponentsStub) WasmVMChangeLocker() common.Locker {
+	return ccs.WasmVMChangeLockerInternal
 }
 
 // ProcessStatusHandler -
@@ -257,6 +246,11 @@ func (ccs *CoreComponentsStub) String() string {
 // HardforkTriggerPubKey -
 func (ccs *CoreComponentsStub) HardforkTriggerPubKey() []byte {
 	return ccs.HardforkTriggerPubKeyField
+}
+
+// EnableEpochsHandler -
+func (ccs *CoreComponentsStub) EnableEpochsHandler() common.EnableEpochsHandler {
+	return ccs.EnableEpochsHandlerField
 }
 
 // IsInterfaceNil -

@@ -5,10 +5,10 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 var errNilValue = errors.New("nil value provided")
@@ -169,7 +169,7 @@ func (vm *OneSCExecutorMockVM) GasScheduleChange(_ map[string]map[string]uint64)
 }
 
 func (vm *OneSCExecutorMockVM) processAddFunc(input *vmcommon.ContractCallInput, value *big.Int) (*vmcommon.VMOutput, error) {
-	currentValueBuff, err := vm.blockchainHook.GetStorageData(input.RecipientAddr, variableA)
+	currentValueBuff, _, err := vm.blockchainHook.GetStorageData(input.RecipientAddr, variableA)
 	if err != nil {
 		return nil, err
 	}
@@ -263,7 +263,7 @@ func (vm *OneSCExecutorMockVM) processWithdrawFunc(input *vmcommon.ContractCallI
 }
 
 func (vm *OneSCExecutorMockVM) processGetFunc(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
-	currentValueBuff, err := vm.blockchainHook.GetStorageData(input.RecipientAddr, variableA)
+	currentValueBuff, _, err := vm.blockchainHook.GetStorageData(input.RecipientAddr, variableA)
 	if err != nil {
 		return nil, err
 	}

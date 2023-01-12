@@ -3,9 +3,9 @@ package bootstrap
 import (
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 )
 
 const baseErrorMessage = "error with epoch start bootstrapper arguments"
@@ -52,6 +52,9 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 	}
 	if check.IfNil(args.CoreComponentsHolder.PathHandler()) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilPathManager)
+	}
+	if check.IfNil(args.TrieSyncStatisticsProvider) {
+		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilTrieSyncStatistics)
 	}
 	if args.GenesisNodesConfig == nil {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilGenesisNodesConfig)

@@ -6,20 +6,20 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/cache"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 const maxNumPidsPerPk = 3
 const uint32Size = 4
 const defaultShardId = uint32(0)
+const indexNotFound = -1
 
 var log = logger.GetOrCreate("sharding/networksharding")
 var peerLog = logger.GetOrCreate("sharding/networksharding/peerlog")
@@ -43,8 +43,6 @@ type PeerShardMapper struct {
 	peerIdSubTypeCache       storage.Cacher
 	mutUpdatePeerIdPublicKey sync.RWMutex
 
-	mutEpoch             sync.RWMutex
-	epoch                uint32
 	nodesCoordinator     nodesCoordinator.NodesCoordinator
 	preferredPeersHolder p2p.PreferredPeersHolderHandler
 }
@@ -56,7 +54,6 @@ type ArgPeerShardMapper struct {
 	FallbackPidShardCache storage.Cacher
 	NodesCoordinator      nodesCoordinator.NodesCoordinator
 	PreferredPeersHolder  p2p.PreferredPeersHolderHandler
-	StartEpoch            uint32
 }
 
 // NewPeerShardMapper creates a new peerShardMapper instance
@@ -78,17 +75,15 @@ func NewPeerShardMapper(arg ArgPeerShardMapper) (*PeerShardMapper, error) {
 		return nil, p2p.ErrNilPreferredPeersHolder
 	}
 
-	pkPeerId, err := lrucache.NewCache(arg.PeerIdPkCache.MaxSize())
+	pkPeerId, err := cache.NewLRUCache(arg.PeerIdPkCache.MaxSize())
 	if err != nil {
 		return nil, err
 	}
 
-	peerIdSubTypeCache, err := lrucache.NewCache(arg.PeerIdPkCache.MaxSize())
+	peerIdSubTypeCache, err := cache.NewLRUCache(arg.PeerIdPkCache.MaxSize())
 	if err != nil {
 		return nil, err
 	}
-
-	log.Debug("peerShardMapper epoch", "epoch", arg.StartEpoch)
 
 	return &PeerShardMapper{
 		peerIdPkCache:         arg.PeerIdPkCache,
@@ -98,7 +93,6 @@ func NewPeerShardMapper(arg ArgPeerShardMapper) (*PeerShardMapper, error) {
 		peerIdSubTypeCache:    peerIdSubTypeCache,
 		nodesCoordinator:      arg.NodesCoordinator,
 		preferredPeersHolder:  arg.PreferredPeersHolder,
-		epoch:                 arg.StartEpoch,
 	}, nil
 }
 
@@ -234,34 +228,9 @@ func (psm *PeerShardMapper) getPeerInfoSearchingPidInFallbackCache(pid core.Peer
 	}
 }
 
-// GetLastKnownPeerID returns the newest updated peer id for the given public key
-func (psm *PeerShardMapper) GetLastKnownPeerID(pk []byte) (*core.PeerID, bool) {
-	psm.mutUpdatePeerIdPublicKey.RLock()
-	defer psm.mutUpdatePeerIdPublicKey.RUnlock()
-
-	objPidsQueue, found := psm.pkPeerIdCache.Get(pk)
-	if !found {
-		return nil, false
-	}
-
-	pq, ok := objPidsQueue.(*pidQueue)
-	if !ok {
-		log.Warn("PeerShardMapper.GetLastKnownPeerID: the contained element should have been of type pidQueue")
-		return nil, false
-	}
-
-	if len(pq.data) == 0 {
-		log.Warn("PeerShardMapper.GetLastKnownPeerID: empty pidQueue element")
-		return nil, false
-	}
-
-	latestPeerId := &pq.data[len(pq.data)-1]
-	return latestPeerId, true
-}
-
 // UpdatePeerIDPublicKeyPair updates the public key - peer ID pair in the corresponding maps
 // It also uses the intermediate pkPeerId cache that will prevent having thousands of peer ID's with
-// the same Elrond PK that will make the node prone to an eclipse attack
+// the same MultiversX PK that will make the node prone to an eclipse attack
 func (psm *PeerShardMapper) UpdatePeerIDPublicKeyPair(pid core.PeerID, pk []byte) {
 	isNew := psm.updatePeerIDPublicKey(pid, pk)
 	if isNew {
@@ -271,7 +240,7 @@ func (psm *PeerShardMapper) UpdatePeerIDPublicKeyPair(pid core.PeerID, pk []byte
 
 // UpdatePeerIDInfo updates the public keys and the shard ID for the peer ID in the corresponding maps
 // It also uses the intermediate pkPeerId cache that will prevent having thousands of peer ID's with
-// the same Elrond PK that will make the node prone to an eclipse attack
+// the same MultiversX PK that will make the node prone to an eclipse attack
 func (psm *PeerShardMapper) UpdatePeerIDInfo(pid core.PeerID, pk []byte, shardID uint32) {
 	isNew := psm.updatePeerIDPublicKey(pid, pk)
 	if isNew {
@@ -289,7 +258,7 @@ func (psm *PeerShardMapper) putPublicKeyShardId(pk []byte, shardId uint32) {
 	psm.fallbackPkShardCache.Put(pk, shardId, uint32Size)
 }
 
-// PutPeerIdShardId puts the peer ID and shard ID into fallback cache in case it does not exists
+// PutPeerIdShardId puts the peer ID and shard ID into fallback cache in case it does not exist
 func (psm *PeerShardMapper) PutPeerIdShardId(pid core.PeerID, shardId uint32) {
 	psm.fallbackPidShardCache.Put([]byte(pid), shardId, uint32Size)
 	psm.preferredPeersHolder.PutShardID(pid, shardId)
@@ -306,36 +275,36 @@ func (psm *PeerShardMapper) updatePeerIDPublicKey(pid core.PeerID, pk []byte) bo
 	objPidsQueue, found := psm.pkPeerIdCache.Get(pk)
 	if !found {
 		psm.peerIdPkCache.Put([]byte(pid), pk, len(pk))
-		pq := newPidQueue()
-		pq.push(pid)
+		pq := common.NewPidQueue()
+		pq.Push(pid)
 		psm.pkPeerIdCache.Put(pk, pq, len(pk))
 
 		return isNew
 	}
 
-	pq, ok := objPidsQueue.(*pidQueue)
+	pq, ok := objPidsQueue.(common.PidQueueHandler)
 	if !ok {
 		log.Warn("PeerShardMapper.UpdatePeerIdPublicKey: the contained element should have been of type pidQueue")
 
 		return isNew
 	}
 
-	idxPid := pq.indexOf(pid)
+	idxPid := pq.IndexOf(pid)
 	if idxPid != indexNotFound {
-		pq.promote(idxPid)
+		pq.Promote(idxPid)
 		psm.peerIdPkCache.Put([]byte(pid), pk, len(pk))
 
 		return isNew
 	}
 
-	pq.push(pid)
-	for len(pq.data) > maxNumPidsPerPk {
-		evictedPid := pq.pop()
+	pq.Push(pid)
+	for pq.Len() > maxNumPidsPerPk {
+		evictedPid := pq.Pop()
 
 		psm.peerIdPkCache.Remove([]byte(evictedPid))
 		psm.fallbackPidShardCache.Remove([]byte(evictedPid))
 	}
-	psm.pkPeerIdCache.Put(pk, pq, pq.dataSizeInBytes())
+	psm.pkPeerIdCache.Put(pk, pq, pq.DataSizeInBytes())
 	psm.peerIdPkCache.Put([]byte(pid), pk, len(pk))
 
 	return isNew
@@ -359,49 +328,25 @@ func (psm *PeerShardMapper) removePidAssociation(pid core.PeerID) []byte {
 		return oldPkBuff
 	}
 
-	pq, ok := objPidsQueue.(*pidQueue)
+	pq, ok := objPidsQueue.(common.PidQueueHandler)
 	if !ok {
 		psm.pkPeerIdCache.Remove(oldPkBuff)
 		return oldPkBuff
 	}
 
-	pq.remove(pid)
-	if len(pq.data) == 0 {
+	pq.Remove(pid)
+	if pq.Len() == 0 {
 		psm.pkPeerIdCache.Remove(oldPkBuff)
 		return oldPkBuff
 	}
 
-	psm.pkPeerIdCache.Put(oldPkBuff, pq, pq.dataSizeInBytes())
+	psm.pkPeerIdCache.Put(oldPkBuff, pq, pq.DataSizeInBytes())
 	return oldPkBuff
 }
 
 // PutPeerIdSubType puts the peerIdSubType search map containing peer IDs and peer subtypes
 func (psm *PeerShardMapper) PutPeerIdSubType(pid core.PeerID, peerSubType core.P2PPeerSubType) {
 	psm.peerIdSubTypeCache.Put([]byte(pid), peerSubType, uint32Size)
-}
-
-// EpochStartAction is the method called whenever an action needs to be undertaken in respect to the epoch change
-func (psm *PeerShardMapper) EpochStartAction(hdr data.HeaderHandler) {
-	if check.IfNil(hdr) {
-		log.Warn("nil header on PeerShardMapper.EpochStartAction")
-		return
-	}
-	log.Trace("PeerShardMapper.EpochStartAction event", "epoch", hdr.GetEpoch())
-
-	psm.mutEpoch.Lock()
-	psm.epoch = hdr.GetEpoch()
-	log.Debug("peerShardMapper epoch", "epoch", psm.epoch)
-	psm.mutEpoch.Unlock()
-}
-
-// EpochStartPrepare is the method called whenever an action needs to be undertaken in respect to the epoch preparation change
-func (psm *PeerShardMapper) EpochStartPrepare(metaHdr data.HeaderHandler, _ data.BodyHandler) {
-	if check.IfNil(metaHdr) {
-		log.Warn("nil header on PeerShardMapper.EpochStartPrepare")
-		return
-	}
-
-	log.Trace("PeerShardMapper.EpochStartPrepare event", "epoch", metaHdr.GetEpoch())
 }
 
 // NotifyOrder returns the notification order of this component

@@ -1,7 +1,7 @@
 //go:build !race
 // +build !race
 
-// TODO remove build condition above to allow -race -short, after Arwen fix
+// TODO remove build condition above to allow -race -short, after Wasm VM fix
 
 package txsFee
 
@@ -10,12 +10,12 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
+	"github.com/multiversx/mx-chain-go/process"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
 )
 
@@ -70,14 +70,6 @@ func TestAsyncESDTCallShouldWork(t *testing.T) {
 	expectedAccumulatedFees := big.NewInt(5000000)
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
 	require.Equal(t, expectedAccumulatedFees, accumulatedFees)
-
-	intermediateTxs := testContext.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, true, testContext.TxsLogsProcessor)
-	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
-
-	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, tx.GasLimit, indexerTx.GasUsed)
-	require.Equal(t, "5000000", indexerTx.Fee)
 }
 
 func TestAsyncESDTCallSecondScRefusesPayment(t *testing.T) {
@@ -132,14 +124,6 @@ func TestAsyncESDTCallSecondScRefusesPayment(t *testing.T) {
 	expectedAccumulatedFees := big.NewInt(4000010)
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
 	require.Equal(t, expectedAccumulatedFees, accumulatedFees)
-
-	intermediateTxs := testContext.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, true, testContext.TxsLogsProcessor)
-	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
-
-	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, uint64(400001), indexerTx.GasUsed)
-	require.Equal(t, "4000010", indexerTx.Fee)
 }
 
 func TestAsyncESDTCallsOutOfGas(t *testing.T) {
@@ -193,14 +177,6 @@ func TestAsyncESDTCallsOutOfGas(t *testing.T) {
 	expectedAccumulatedFees := big.NewInt(20000)
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
 	require.Equal(t, expectedAccumulatedFees, accumulatedFees)
-
-	intermediateTxs := testContext.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, false, testContext.TxsLogsProcessor)
-	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
-
-	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, tx.GasLimit, indexerTx.GasUsed)
-	require.Equal(t, "20000", indexerTx.Fee)
 }
 
 func TestAsyncMultiTransferOnCallback(t *testing.T) {
@@ -396,4 +372,105 @@ func TestAsyncMultiTransferOnCallAndOnCallback(t *testing.T) {
 
 	utils.CheckESDTNFTBalance(t, testContext, forwarderAddr, sftTokenID, 2, halfBalance)
 	utils.CheckESDTNFTBalance(t, testContext, forwarderAddr, sftTokenID, 3, halfBalance)
+}
+
+func TestSendNFTToContractWith0Function(t *testing.T) {
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	require.Nil(t, err)
+	defer testContext.Close()
+
+	ownerAddr := []byte("12345678901234567890123456789010")
+	sftTokenID := []byte("SFT-123456")
+	sftNonce := uint64(1)
+	sftBalance := big.NewInt(1000)
+
+	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, ownerAddr, big.NewInt(1000000000), sftTokenID, sftNonce, sftBalance)
+	utils.CheckESDTNFTBalance(t, testContext, ownerAddr, sftTokenID, sftNonce, sftBalance)
+
+	gasPrice := uint64(10)
+	ownerAccount, _ := testContext.Accounts.LoadAccount(ownerAddr)
+	deployGasLimit := uint64(1000000)
+	txGasLimit := uint64(1000000)
+
+	vaultAddr := utils.DoDeploySecond(t,
+		testContext,
+		"../esdt/testdata/vault-managed-api.wasm",
+		ownerAccount,
+		gasPrice,
+		deployGasLimit,
+		nil,
+		big.NewInt(0),
+	)
+
+	// send the tokens to vault
+	ownerAccount, _ = testContext.Accounts.LoadAccount(ownerAddr)
+	tx := utils.CreateESDTNFTTransferTx(
+		ownerAccount.GetNonce(),
+		ownerAddr,
+		vaultAddr,
+		sftTokenID,
+		sftNonce,
+		sftBalance,
+		gasPrice,
+		txGasLimit,
+		"",
+	)
+	tx.Data = append(tx.Data, []byte("@")...)
+	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
+	require.Equal(t, vmcommon.Ok, retCode)
+	require.Nil(t, err)
+
+	_, err = testContext.Accounts.Commit()
+	require.Nil(t, err)
+}
+
+func TestSendNFTToContractWith0FunctionNonPayable(t *testing.T) {
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	require.Nil(t, err)
+	defer testContext.Close()
+
+	ownerAddr := []byte("12345678901234567890123456789010")
+	sftTokenID := []byte("SFT-123456")
+	sftNonce := uint64(1)
+	sftBalance := big.NewInt(1000)
+
+	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, ownerAddr, big.NewInt(1000000000), sftTokenID, sftNonce, sftBalance)
+	utils.CheckESDTNFTBalance(t, testContext, ownerAddr, sftTokenID, sftNonce, sftBalance)
+
+	gasPrice := uint64(10)
+	ownerAccount, _ := testContext.Accounts.LoadAccount(ownerAddr)
+	deployGasLimit := uint64(1000000)
+	txGasLimit := uint64(1000000)
+
+	vaultAddr := utils.DoDeployWithMetadata(t,
+		testContext,
+		"../esdt/testdata/vault-managed-api.wasm",
+		ownerAccount,
+		gasPrice,
+		deployGasLimit,
+		[]byte("0000"),
+		nil,
+		big.NewInt(0),
+	)
+
+	// send the tokens to vault
+	ownerAccount, _ = testContext.Accounts.LoadAccount(ownerAddr)
+	tx := utils.CreateESDTNFTTransferTx(
+		ownerAccount.GetNonce(),
+		ownerAddr,
+		vaultAddr,
+		sftTokenID,
+		sftNonce,
+		sftBalance,
+		gasPrice,
+		txGasLimit,
+		"",
+	)
+	tx.Data = append(tx.Data, []byte("@")...)
+	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.Equal(t, process.ErrFailedTransaction, err)
+
+	_, err = testContext.Accounts.Commit()
+	require.Nil(t, err)
 }

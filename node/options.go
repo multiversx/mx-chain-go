@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/factory"
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/p2p"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // WithBootstrapComponents sets up the Node bootstrap components
@@ -43,6 +43,22 @@ func WithCoreComponents(coreComponents factory.CoreComponentsHandler) Option {
 		}
 		n.coreComponents = coreComponents
 		n.closableComponents = append(n.closableComponents, coreComponents)
+		return nil
+	}
+}
+
+// WithStatusCoreComponents sets up the Node status core components
+func WithStatusCoreComponents(statusCoreComponents factory.StatusCoreComponentsHandler) Option {
+	return func(n *Node) error {
+		if check.IfNil(statusCoreComponents) {
+			return ErrNilStatusCoreComponents
+		}
+		err := statusCoreComponents.CheckSubcomponents()
+		if err != nil {
+			return err
+		}
+		n.statusCoreComponents = statusCoreComponents
+		n.closableComponents = append(n.closableComponents, statusCoreComponents)
 		return nil
 	}
 }
@@ -139,22 +155,6 @@ func WithStatusComponents(statusComponents factory.StatusComponentsHandler) Opti
 		}
 		n.statusComponents = statusComponents
 		n.closableComponents = append(n.closableComponents, statusComponents)
-		return nil
-	}
-}
-
-// WithHeartbeatComponents sets up the Node heartbeat components
-func WithHeartbeatComponents(heartbeatComponents factory.HeartbeatComponentsHandler) Option {
-	return func(n *Node) error {
-		if check.IfNil(heartbeatComponents) {
-			return ErrNilStatusComponents
-		}
-		err := heartbeatComponents.CheckSubcomponents()
-		if err != nil {
-			return err
-		}
-		n.heartbeatComponents = heartbeatComponents
-		n.closableComponents = append(n.closableComponents, heartbeatComponents)
 		return nil
 	}
 }

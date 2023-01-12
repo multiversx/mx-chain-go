@@ -9,36 +9,38 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
-	"github.com/ElrondNetwork/elrond-go/vm"
-	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
+	"github.com/multiversx/mx-chain-go/vm"
+	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 )
 
 func createMockArgumentsNewStakingToPeer() ArgStakingToPeer {
 	return ArgStakingToPeer{
-		PubkeyConv:         mock.NewPubkeyConverterMock(32),
-		Hasher:             &hashingMocks.HasherMock{},
-		Marshalizer:        &mock.MarshalizerStub{},
-		PeerState:          &stateMock.AccountsStub{},
-		BaseState:          &stateMock.AccountsStub{},
-		ArgParser:          &mock.ArgumentParserMock{},
-		CurrTxs:            &mock.TxForCurrentBlockStub{},
-		RatingsData:        &mock.RatingsInfoMock{},
-		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
-		StakingV4InitEpoch: 444,
+		PubkeyConv:  mock.NewPubkeyConverterMock(32),
+		Hasher:      &hashingMocks.HasherMock{},
+		Marshalizer: &mock.MarshalizerStub{},
+		PeerState:   &stateMock.AccountsStub{},
+		BaseState:   &stateMock.AccountsStub{},
+		ArgParser:   &mock.ArgumentParserMock{},
+		CurrTxs:     &mock.TxForCurrentBlockStub{},
+		RatingsData: &mock.RatingsInfoMock{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+			IsStakeFlagEnabledField:                 true,
+			IsValidatorToDelegationFlagEnabledField: true,
+		},
 	}
 }
 
@@ -130,6 +132,17 @@ func TestNewStakingToPeerNilCurrentBlockHeaderShouldErr(t *testing.T) {
 	stp, err := NewStakingToPeer(arguments)
 	assert.Nil(t, stp)
 	assert.Equal(t, process.ErrNilTxForCurrentBlockHandler, err)
+}
+
+func TestNewStakingToPeerNilEnableEpochsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockArgumentsNewStakingToPeer()
+	arguments.EnableEpochsHandler = nil
+
+	stp, err := NewStakingToPeer(arguments)
+	assert.Nil(t, stp)
+	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
 }
 
 func TestNewStakingToPeer_ShouldWork(t *testing.T) {
@@ -303,7 +316,7 @@ func TestStakingToPeer_UpdateProtocolCannotSetRewardAddressShouldErr(t *testing.
 		return userAcc, nil
 	}
 	retData, _ := json.Marshal(&stakingData)
-	_ = userAcc.DataTrieTracker().SaveKeyValue(offset, retData)
+	_ = userAcc.SaveKeyValue(offset, retData)
 
 	arguments.BaseState = baseState
 	arguments.ArgParser = argParser
@@ -358,7 +371,7 @@ func TestStakingToPeer_UpdateProtocolEmptyDataShouldNotAddToTrie(t *testing.T) {
 	baseState.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		return userAcc, nil
 	}
-	_ = userAcc.DataTrieTracker().SaveKeyValue(offset, nil)
+	_ = userAcc.SaveKeyValue(offset, nil)
 
 	arguments.BaseState = baseState
 	arguments.ArgParser = argParser
@@ -426,7 +439,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountShouldErr(t *testing.T) {
 		return userAcc, nil
 	}
 	retData, _ := json.Marshal(&stakingData)
-	_ = userAcc.DataTrieTracker().SaveKeyValue(offset, retData)
+	_ = userAcc.SaveKeyValue(offset, retData)
 
 	arguments.BaseState = baseState
 	arguments.ArgParser = argParser
@@ -489,7 +502,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountNonceShouldErr(t *testing.
 		return userAcc, nil
 	}
 	retData, _ := json.Marshal(&stakingData)
-	_ = userAcc.DataTrieTracker().SaveKeyValue(offset, retData)
+	_ = userAcc.SaveKeyValue(offset, retData)
 
 	arguments.BaseState = baseState
 	arguments.ArgParser = argParser
@@ -555,7 +568,7 @@ func TestStakingToPeer_UpdateProtocol(t *testing.T) {
 		return userAcc, nil
 	}
 	retData, _ := json.Marshal(&stakingData)
-	_ = userAcc.DataTrieTracker().SaveKeyValue(offset, retData)
+	_ = userAcc.SaveKeyValue(offset, retData)
 
 	arguments.BaseState = baseState
 	stp, _ := NewStakingToPeer(arguments)
@@ -614,7 +627,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveUnStakedNonceShouldErr(t *testing
 		return userAcc, nil
 	}
 	retData, _ := json.Marshal(&stakingData)
-	_ = userAcc.DataTrieTracker().SaveKeyValue(offset, retData)
+	_ = userAcc.SaveKeyValue(offset, retData)
 
 	arguments.BaseState = baseState
 	arguments.ArgParser = argParser

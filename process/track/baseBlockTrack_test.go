@@ -6,22 +6,23 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/process"
-	processBlock "github.com/ElrondNetwork/elrond-go/process/block"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/process/track"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/process"
+	processBlock "github.com/multiversx/mx-chain-go/process/block"
+	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/process/track"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/database"
+	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -85,9 +86,9 @@ func initStore() *dataRetriever.ChainStorer {
 }
 
 func generateStorageUnit() storage.Storer {
-	memDB := memorydb.New()
+	memDB := database.NewMemDB()
 
-	storer, _ := storageUnit.NewStorageUnit(
+	storer, _ := storageunit.NewStorageUnit(
 		generateTestCache(),
 		memDB,
 	)
@@ -96,7 +97,7 @@ func generateStorageUnit() storage.Storer {
 }
 
 func generateTestCache() storage.Cacher {
-	cache, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000, Shards: 1, SizeInBytes: 0})
+	cache, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000, Shards: 1, SizeInBytes: 0})
 	return cache
 }
 
@@ -222,7 +223,7 @@ func TestNewBlockTrack_ShouldErrCheckTrackerNilParameters(t *testing.T) {
 	mbt, err := track.NewMetaBlockTrack(metaArguments)
 
 	assert.NotNil(t, err)
-	assert.Nil(t, mbt)
+	assert.True(t, check.IfNil(mbt))
 }
 
 func TestNewBlockTrack_ShouldErrNilPoolsHolder(t *testing.T) {
@@ -240,7 +241,7 @@ func TestNewBlockTrack_ShouldErrNilPoolsHolder(t *testing.T) {
 	mbt, err := track.NewMetaBlockTrack(metaArguments)
 
 	assert.Equal(t, process.ErrNilPoolsHolder, err)
-	assert.Nil(t, mbt)
+	assert.True(t, check.IfNil(mbt))
 }
 
 func TestNewBlockTrack_ShouldErrNilHeadersDataPool(t *testing.T) {
@@ -266,7 +267,7 @@ func TestNewBlockTrack_ShouldErrNilHeadersDataPool(t *testing.T) {
 	mbt, err := track.NewShardBlockTrack(metaArguments)
 
 	assert.Equal(t, process.ErrNilHeadersDataPool, err)
-	assert.Nil(t, mbt)
+	assert.True(t, check.IfNil(mbt))
 }
 
 func TestNewBlockTrack_ShouldErrNilEconomicsData(t *testing.T) {
@@ -284,7 +285,7 @@ func TestNewBlockTrack_ShouldErrNilEconomicsData(t *testing.T) {
 	mbt, err := track.NewShardBlockTrack(metaArguments)
 
 	assert.Equal(t, process.ErrNilEconomicsData, err)
-	assert.Nil(t, mbt)
+	assert.True(t, check.IfNil(mbt))
 }
 
 func TestNewBlockTrack_ShouldErrNotarizedHeadersSliceIsNil(t *testing.T) {
@@ -302,7 +303,7 @@ func TestNewBlockTrack_ShouldErrNotarizedHeadersSliceIsNil(t *testing.T) {
 	mbt, err := track.NewMetaBlockTrack(metaArguments)
 
 	assert.Equal(t, process.ErrNotarizedHeadersSliceIsNil, err)
-	assert.Nil(t, mbt)
+	assert.True(t, check.IfNil(mbt))
 }
 
 func TestNewBlockTrack_ShouldWork(t *testing.T) {
@@ -318,7 +319,7 @@ func TestNewBlockTrack_ShouldWork(t *testing.T) {
 	mbt, err := track.NewShardBlockTrack(metaArguments)
 
 	assert.Nil(t, err)
-	assert.NotNil(t, mbt)
+	assert.False(t, check.IfNil(mbt))
 }
 
 func TestGetSelfHeaders_ShouldReturnEmptySliceWhenErrWrongTypeAssertion(t *testing.T) {

@@ -7,17 +7,17 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/api/groups"
-	"github.com/ElrondNetwork/elrond-go/api/middleware"
-	"github.com/ElrondNetwork/elrond-go/api/shared"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/api/groups"
+	"github.com/multiversx/mx-chain-go/api/middleware"
+	"github.com/multiversx/mx-chain-go/api/shared"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/facade"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("api/gin")
@@ -126,11 +126,15 @@ func (ws *webServer) StartHttpServer() error {
 		return err
 	}
 
-	log.Debug("starting web server",
-		"SimultaneousRequests", ws.antiFloodConfig.SimultaneousRequests,
-		"SameSourceRequests", ws.antiFloodConfig.SameSourceRequests,
-		"SameSourceResetIntervalInSec", ws.antiFloodConfig.SameSourceResetIntervalInSec,
-	)
+	if !ws.antiFloodConfig.WebServerAntifloodEnabled {
+		log.Debug("starting web server with no throttler middleware")
+	} else {
+		log.Debug("starting web server",
+			"SimultaneousRequests", ws.antiFloodConfig.SimultaneousRequests,
+			"SameSourceRequests", ws.antiFloodConfig.SameSourceRequests,
+			"SameSourceResetIntervalInSec", ws.antiFloodConfig.SameSourceResetIntervalInSec,
+		)
+	}
 
 	go ws.httpServer.Start()
 
@@ -229,24 +233,26 @@ func (ws *webServer) createMiddlewareLimiters() ([]shared.MiddlewareProcessor, e
 		middlewares = append(middlewares, responseLoggerMiddleware)
 	}
 
-	sourceLimiter, err := middleware.NewSourceThrottler(ws.antiFloodConfig.SameSourceRequests)
-	if err != nil {
-		return nil, err
+	if ws.antiFloodConfig.WebServerAntifloodEnabled {
+		sourceLimiter, err := middleware.NewSourceThrottler(ws.antiFloodConfig.SameSourceRequests)
+		if err != nil {
+			return nil, err
+		}
+
+		var ctx context.Context
+		ctx, ws.cancelFunc = context.WithCancel(context.Background())
+
+		go ws.sourceLimiterReset(ctx, sourceLimiter)
+
+		middlewares = append(middlewares, sourceLimiter)
+
+		globalLimiter, err := middleware.NewGlobalThrottler(ws.antiFloodConfig.SimultaneousRequests)
+		if err != nil {
+			return nil, err
+		}
+
+		middlewares = append(middlewares, globalLimiter)
 	}
-
-	var ctx context.Context
-	ctx, ws.cancelFunc = context.WithCancel(context.Background())
-
-	go ws.sourceLimiterReset(ctx, sourceLimiter)
-
-	middlewares = append(middlewares, sourceLimiter)
-
-	globalLimiter, err := middleware.NewGlobalThrottler(ws.antiFloodConfig.SimultaneousRequests)
-	if err != nil {
-		return nil, err
-	}
-
-	middlewares = append(middlewares, globalLimiter)
 
 	return middlewares, nil
 }

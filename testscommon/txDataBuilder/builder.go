@@ -4,8 +4,8 @@ import (
 	"encoding/hex"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // TxDataBuilder constructs a string to be used for transaction arguments
@@ -169,6 +169,11 @@ func (builder *TxDataBuilder) MultiTransferESDTNFT(destinationAddress []byte, tr
 // BurnESDT appends to the data string all the elements required to burn ESDT tokens.
 func (builder *TxDataBuilder) BurnESDT(token string, value int64) *TxDataBuilder {
 	return builder.Func(core.BuiltInFunctionESDTBurn).Str(token).Int64(value)
+}
+
+// LocalBurnESDT appends to the data string all the elements required to local burn ESDT tokens.
+func (builder *TxDataBuilder) LocalBurnESDT(token string, value int64) *TxDataBuilder {
+	return builder.Func(core.BuiltInFunctionESDTLocalBurn).Str(token).Int64(value)
 }
 
 // CanFreeze appends "canFreeze" followed by the provided boolean value.

@@ -1,9 +1,9 @@
 package smartContract
 
 import (
-	"github.com/ElrondNetwork/elrond-go/process"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/ElrondNetwork/elrond-vm-common/parsers"
+	"github.com/multiversx/mx-chain-go/process"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 )
 
 type argumentParser struct {
@@ -30,6 +30,11 @@ func NewArgumentParser() *argumentParser {
 // ParseCallData returns parsed data for contract calls
 func (a *argumentParser) ParseCallData(data string) (string, [][]byte, error) {
 	return a.callParser.ParseData(data)
+}
+
+// ParseArguments returns parsed data for contract calls
+func (a *argumentParser) ParseArguments(data string) ([][]byte, error) {
+	return a.callParser.ParseArguments(data)
 }
 
 // ParseDeployData returns parsed data for deploy data

@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/display"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/vm"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/display"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -77,6 +77,8 @@ func TestSystemSCsAddressesAndSpecialAddresses(t *testing.T) {
 	genesisMintingAddress := addressEncoder.Encode(genesisMintingAddressBytes)
 	systemAccountAddress := addressEncoder.Encode(core.SystemAccountAddress)
 
+	esdtGlobalSettingsAddresses := getGlobalSettingsAddresses()
+
 	header := []string{"Smart contract/Special address", "Address"}
 	lines := []*display.LineData{
 		display.NewLineData(false, []string{"Contract deploy", contractDeployScAdress}),
@@ -91,6 +93,9 @@ func TestSystemSCsAddressesAndSpecialAddresses(t *testing.T) {
 		display.NewLineData(false, []string{"Genesis Minting Address", genesisMintingAddress}),
 		display.NewLineData(false, []string{"System Account Address", systemAccountAddress}),
 		display.NewLineData(false, []string{"Liquid staking", liquidStakingSCAddress}),
+		display.NewLineData(false, []string{"ESDT Global Settings Shard 0", esdtGlobalSettingsAddresses[0]}),
+		display.NewLineData(false, []string{"ESDT Global Settings Shard 1", esdtGlobalSettingsAddresses[1]}),
+		display.NewLineData(false, []string{"ESDT Global Settings Shard 2", esdtGlobalSettingsAddresses[2]}),
 	}
 
 	table, _ := display.CreateTableString(header, lines)
@@ -108,4 +113,25 @@ func TestSystemSCsAddressesAndSpecialAddresses(t *testing.T) {
 	assert.Equal(t, "erd17rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rcqqkhty3", genesisMintingAddress)
 	assert.Equal(t, "erd1lllllllllllllllllllllllllllllllllllllllllllllllllllsckry7t", systemAccountAddress)
 	assert.Equal(t, "erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq9lllsm6xupm", liquidStakingSCAddress)
+	assert.Equal(t, "erd1llllllllllllllllllllllllllllllllllllllllllllllllluqq2m3f0f", esdtGlobalSettingsAddresses[0])
+	assert.Equal(t, "erd1llllllllllllllllllllllllllllllllllllllllllllllllluqsl6e366", esdtGlobalSettingsAddresses[1])
+	assert.Equal(t, "erd1lllllllllllllllllllllllllllllllllllllllllllllllllupq9x7ny0", esdtGlobalSettingsAddresses[2])
+}
+
+func getGlobalSettingsAddresses() map[uint32]string {
+	computeAddress := func(shardID uint32) string {
+		baseSystemAccountAddress := core.SystemAccountAddress
+		globalSettingsAddress := baseSystemAccountAddress
+		globalSettingsAddress[len(globalSettingsAddress)-1] = uint8(shardID)
+
+		return addressEncoder.Encode(globalSettingsAddress)
+	}
+
+	numShards := uint32(3)
+	addressesMap := make(map[uint32]string, numShards)
+	for i := uint32(0); i < numShards; i++ {
+		addressesMap[i] = computeAddress(i)
+	}
+
+	return addressesMap
 }

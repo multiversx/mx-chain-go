@@ -1,7 +1,7 @@
 package defaults
 
 import (
-	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 // FillGasMapInternal -
@@ -9,6 +9,8 @@ func FillGasMapInternal(gasMap map[string]map[string]uint64, value uint64) map[s
 	gasMap[common.BaseOperationCost] = FillGasMapBaseOperationCosts(value)
 	gasMap[common.BuiltInCost] = FillGasMapBuiltInCosts(value)
 	gasMap[common.MetaChainSystemSCsCost] = FillGasMapMetaChainSystemSCsCosts(value)
+
+	gasMap[common.MaxPerTransaction] = FillMaxPerTransaction()
 
 	return gasMap
 }
@@ -76,5 +78,14 @@ func FillGasMapMetaChainSystemSCsCosts(value uint64) map[string]uint64 {
 	gasMap["FixWaitingListSize"] = value
 	gasMap["LiquidStakingOps"] = value
 
+	return gasMap
+}
+
+// FillMaxPerTransaction -
+func FillMaxPerTransaction() map[string]uint64 {
+	gasMap := make(map[string]uint64)
+	gasMap["MaxBuiltInCallsPerTx"] = 100
+	gasMap["MaxNumberOfTransfersPerTx"] = 100
+	gasMap["MaxNumberOfTrieReadsPerTx"] = 100000
 	return gasMap
 }

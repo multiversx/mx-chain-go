@@ -4,10 +4,9 @@ import (
 	"context"
 	"errors"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/state"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/state"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 var errNotImplemented = errors.New("not implemented")
@@ -25,17 +24,40 @@ type AccountsStub struct {
 	RevertToSnapshotCalled        func(snapshot int) error
 	RootHashCalled                func() ([]byte, error)
 	RecreateTrieCalled            func(rootHash []byte) error
+	RecreateTrieFromEpochCalled   func(options common.RootHashHolder) error
 	PruneTrieCalled               func(rootHash []byte, identifier state.TriePruningIdentifier, handler state.PruningHandler)
 	CancelPruneCalled             func(rootHash []byte, identifier state.TriePruningIdentifier)
 	SnapshotStateCalled           func(rootHash []byte)
 	SetStateCheckpointCalled      func(rootHash []byte)
 	IsPruningEnabledCalled        func() bool
-	GetAllLeavesCalled            func(leavesChannel chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error
+	GetAllLeavesCalled            func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error
 	RecreateAllTriesCalled        func(rootHash []byte) (map[string]common.Trie, error)
 	GetCodeCalled                 func([]byte) []byte
 	GetTrieCalled                 func([]byte) (common.Trie, error)
 	GetStackDebugFirstEntryCalled func() []byte
+	GetAccountWithBlockInfoCalled func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error)
+	GetCodeWithBlockInfoCalled    func(codeHash []byte, options common.RootHashHolder) ([]byte, common.BlockInfo, error)
 	CloseCalled                   func() error
+	SetSyncerCalled               func(syncer state.AccountsDBSyncer) error
+	StartSnapshotIfNeededCalled   func() error
+}
+
+// SetSyncer -
+func (as *AccountsStub) SetSyncer(syncer state.AccountsDBSyncer) error {
+	if as.SetSyncerCalled != nil {
+		return as.SetSyncerCalled(syncer)
+	}
+
+	return nil
+}
+
+// StartSnapshotIfNeeded -
+func (as *AccountsStub) StartSnapshotIfNeeded() error {
+	if as.StartSnapshotIfNeededCalled != nil {
+		return as.StartSnapshotIfNeededCalled()
+	}
+
+	return nil
 }
 
 // GetTrie -
@@ -80,9 +102,9 @@ func (as *AccountsStub) SaveAccount(account vmcommon.AccountHandler) error {
 }
 
 // GetAllLeaves -
-func (as *AccountsStub) GetAllLeaves(leavesChannel chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
+func (as *AccountsStub) GetAllLeaves(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error {
 	if as.GetAllLeavesCalled != nil {
-		return as.GetAllLeavesCalled(leavesChannel, ctx, rootHash)
+		return as.GetAllLeavesCalled(leavesChannels, ctx, rootHash)
 	}
 	return nil
 }
@@ -159,6 +181,15 @@ func (as *AccountsStub) RecreateTrie(rootHash []byte) error {
 	return errNotImplemented
 }
 
+// RecreateTrieFromEpoch -
+func (as *AccountsStub) RecreateTrieFromEpoch(options common.RootHashHolder) error {
+	if as.RecreateTrieFromEpochCalled != nil {
+		return as.RecreateTrieFromEpochCalled(options)
+	}
+
+	return errNotImplemented
+}
+
 // PruneTrie -
 func (as *AccountsStub) PruneTrie(rootHash []byte, identifier state.TriePruningIdentifier, handler state.PruningHandler) {
 	as.PruneTrieCalled(rootHash, identifier, handler)
@@ -210,6 +241,24 @@ func (as *AccountsStub) GetStackDebugFirstEntry() []byte {
 	}
 
 	return nil
+}
+
+// GetAccountWithBlockInfo -
+func (as *AccountsStub) GetAccountWithBlockInfo(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
+	if as.GetAccountWithBlockInfoCalled != nil {
+		return as.GetAccountWithBlockInfoCalled(address, options)
+	}
+
+	return nil, nil, nil
+}
+
+// GetCodeWithBlockInfo -
+func (as *AccountsStub) GetCodeWithBlockInfo(codeHash []byte, options common.RootHashHolder) ([]byte, common.BlockInfo, error) {
+	if as.GetCodeWithBlockInfoCalled != nil {
+		return as.GetCodeWithBlockInfoCalled(codeHash, options)
+	}
+
+	return nil, nil, nil
 }
 
 // Close -

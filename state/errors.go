@@ -3,23 +3,28 @@ package state
 import (
 	"encoding/hex"
 	"errors"
+	"fmt"
+
+	"github.com/multiversx/mx-chain-go/common"
 )
 
-// ErrMissingTrie is an error-compatible struct holding the root hash of the trie that is missing
-type ErrMissingTrie struct {
-	rootHash []byte
+// ErrAccountNotFoundAtBlock is an error-compatible struct holding the block info at which an account was not found
+type ErrAccountNotFoundAtBlock struct {
+	BlockInfo common.BlockInfo
 }
 
-// ------- ErrMissingTrie
-
-// NewErrMissingTrie  returns a new instantiated struct
-func NewErrMissingTrie(rootHash []byte) *ErrMissingTrie {
-	return &ErrMissingTrie{rootHash: rootHash}
+// NewErrAccountNotFoundAtBlock returns a new error (custom struct)
+func NewErrAccountNotFoundAtBlock(blockInfo common.BlockInfo) *ErrAccountNotFoundAtBlock {
+	return &ErrAccountNotFoundAtBlock{BlockInfo: blockInfo}
 }
 
 // Error returns the error as string
-func (e *ErrMissingTrie) Error() string {
-	return "trie was not found for hash " + hex.EncodeToString(e.rootHash)
+func (e *ErrAccountNotFoundAtBlock) Error() string {
+	return fmt.Sprintf("account was not found at block: nonce = %d, hash = %s, rootHash = %s",
+		e.BlockInfo.GetNonce(),
+		hex.EncodeToString(e.BlockInfo.GetHash()),
+		hex.EncodeToString(e.BlockInfo.GetRootHash()),
+	)
 }
 
 // ErrNilAccountsAdapter defines the error when trying to revert on nil accounts
@@ -119,11 +124,29 @@ var ErrInvalidKey = errors.New("invalid key")
 // ErrNilRootHash signals that a nil root hash was provided
 var ErrNilRootHash = errors.New("nil root hash")
 
-// ErrNilChainHandler signals that a nil chain handler was provided
-var ErrNilChainHandler = errors.New("nil chain handler")
-
 // ErrNilProcessStatusHandler signals that a nil process status handler was provided
 var ErrNilProcessStatusHandler = errors.New("nil process status handler")
+
+// ErrNilAppStatusHandler signals that a nil app status handler was provided
+var ErrNilAppStatusHandler = errors.New("nil app status handler")
+
+// ErrNilBlockInfo signals that a nil block info was provided
+var ErrNilBlockInfo = errors.New("nil block info")
+
+// ErrNilBlockInfoProvider signals that a nil block info provider was provided
+var ErrNilBlockInfoProvider = errors.New("nil block info provider")
+
+// ErrFunctionalityNotImplemented signals that the functionality has not been implemented yet
+var ErrFunctionalityNotImplemented = errors.New("functionality not implemented yet")
+
+// ErrNilTrieSyncer signals that the trie syncer is nil
+var ErrNilTrieSyncer = errors.New("trie syncer is nil")
+
+// ErrNilSyncStatisticsHandler signals that a nil sync statistics handler was provided
+var ErrNilSyncStatisticsHandler = errors.New("nil sync statistics handler")
+
+// ErrNilAddressConverter signals that a nil address converter was provided
+var ErrNilAddressConverter = errors.New("nil address converter")
 
 // ErrNilValidatorInfo signals that a nil value for the validator info has been provided
 var ErrNilValidatorInfo = errors.New("validator info is nil")

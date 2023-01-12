@@ -13,18 +13,19 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	apiErrors "github.com/ElrondNetwork/elrond-go/api/errors"
-	"github.com/ElrondNetwork/elrond-go/api/groups"
-	"github.com/ElrondNetwork/elrond-go/api/mock"
-	"github.com/ElrondNetwork/elrond-go/api/shared"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/debug"
-	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
-	"github.com/ElrondNetwork/elrond-go/node/external"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/gin-gonic/gin"
+	"github.com/multiversx/mx-chain-core-go/core"
+	apiErrors "github.com/multiversx/mx-chain-go/api/errors"
+	"github.com/multiversx/mx-chain-go/api/groups"
+	"github.com/multiversx/mx-chain-go/api/mock"
+	"github.com/multiversx/mx-chain-go/api/shared"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/debug"
+	"github.com/multiversx/mx-chain-go/heartbeat/data"
+	"github.com/multiversx/mx-chain-go/node/external"
+	"github.com/multiversx/mx-chain-go/statusHandler"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -58,6 +59,13 @@ type statusResponse struct {
 type queryResponse struct {
 	generalResponse
 	Result []string `json:"result"`
+}
+
+type epochStartResponse struct {
+	Data struct {
+		common.EpochStartDataAPI `json:"epochStart"`
+	} `json:"data"`
+	generalResponse
 }
 
 func init() {
@@ -387,6 +395,66 @@ func TestPeerInfo_PeerInfoShouldWork(t *testing.T) {
 	assert.NotNil(t, responseInfo["info"])
 }
 
+func TestEpochStartData_FacadeErrorsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("expected error")
+	facade := mock.FacadeStub{
+		GetEpochStartDataAPICalled: func(epoch uint32) (*common.EpochStartDataAPI, error) {
+			return nil, expectedErr
+		},
+	}
+
+	nodeGroup, err := groups.NewNodeGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(nodeGroup, "node", getNodeRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/node/epoch-start/4", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := &shared.GenericAPIResponse{}
+	loadResponse(resp.Body, response)
+
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+	assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
+}
+
+func TestEpochStartData_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	expectedEpochStartData := &common.EpochStartDataAPI{
+		Nonce:     1,
+		Round:     2,
+		Shard:     3,
+		Timestamp: 4,
+	}
+
+	facade := mock.FacadeStub{
+		GetEpochStartDataAPICalled: func(epoch uint32) (*common.EpochStartDataAPI, error) {
+			return expectedEpochStartData, nil
+		},
+	}
+
+	nodeGroup, err := groups.NewNodeGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(nodeGroup, "node", getNodeRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/node/epoch-start/3", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := &epochStartResponse{}
+	loadResponse(resp.Body, response)
+
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Equal(t, "", response.Error)
+
+	require.Equal(t, *expectedEpochStartData, response.Data.EpochStartDataAPI)
+}
+
 func TestPrometheusMetrics_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
 	expectedErr := errors.New("i am an error")
 
@@ -466,6 +534,7 @@ func getNodeRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/p2pstatus", Open: true},
 					{Name: "/debug", Open: true},
 					{Name: "/peerinfo", Open: true},
+					{Name: "/epoch-start/:epoch", Open: true},
 				},
 			},
 		},

@@ -1,11 +1,11 @@
 package nodesCoordinator
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/state"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/state"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // Validator defines a node that can be allocated to a shard for participation in a consensus group as validator
@@ -67,7 +67,7 @@ type NodesCoordinatorHelper interface {
 
 //ChanceComputer provides chance computation capabilities based on a rating
 type ChanceComputer interface {
-	//GetChance returns the chances for the the rating
+	//GetChance returns the chances for the rating
 	GetChance(uint32) uint32
 	//IsInterfaceNil verifies if the interface is nil
 	IsInterfaceNil() bool

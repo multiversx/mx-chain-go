@@ -4,10 +4,9 @@ import (
 	"io"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/heartbeat/process"
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/update"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/update"
 )
 
 // P2PMessenger defines a subset of the p2p.Messenger interface
@@ -56,7 +55,6 @@ type HardforkTrigger interface {
 	Trigger(epoch uint32, withEarlyEndOfEpoch bool) error
 	CreateData() []byte
 	AddCloser(closer update.Closer) error
-	NotifyTriggerReceived() <-chan struct{}
 	NotifyTriggerReceivedV2() <-chan struct{}
 	IsSelfTrigger() bool
 	IsInterfaceNil() bool
@@ -67,13 +65,6 @@ type Throttler interface {
 	CanProcess() bool
 	StartProcessing()
 	EndProcessing()
-	IsInterfaceNil() bool
-}
-
-// HeartbeatHandler defines the behavior of a heartbeat handler
-type HeartbeatHandler interface {
-	Monitor() *process.Monitor
-	Sender() *process.Sender
 	IsInterfaceNil() bool
 }
 

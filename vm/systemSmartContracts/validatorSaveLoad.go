@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/common"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-go/common"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 func (v *validatorSC) setConfig(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -111,7 +111,7 @@ func (v *validatorSC) getOrCreateRegistrationData(key []byte) (*ValidatorDataV2,
 }
 
 func (v *validatorSC) saveRegistrationData(key []byte, validator *ValidatorDataV2) error {
-	if !v.flagEnableTopUp.IsSet() {
+	if !v.enableEpochsHandler.IsStakingV2FlagEnabled() {
 		return v.saveRegistrationDataV1(key, validator)
 	}
 

@@ -6,12 +6,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/update"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/update"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var _ update.StateSyncer = (*syncState)(nil)
@@ -210,6 +211,11 @@ func (ss *syncState) GetAllTries() (map[string]common.Trie, error) {
 // GetAllTransactions returns the synced transactions
 func (ss *syncState) GetAllTransactions() (map[string]data.TransactionHandler, error) {
 	return ss.transactions.GetTransactions()
+}
+
+// GetAllValidatorsInfo returns the synced validators info
+func (ss *syncState) GetAllValidatorsInfo() (map[string]*state.ShardValidatorInfo, error) {
+	return ss.transactions.GetValidatorsInfo()
 }
 
 // GetAllMiniBlocks returns the synced miniblocks

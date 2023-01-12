@@ -3,11 +3,11 @@ package txstatus
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/stretchr/testify/require"
 )
 
@@ -179,7 +179,7 @@ func TestStatusComputer_SetStatusIfIsRewardReverted(t *testing.T) {
 	headerHash := []byte("hash-1")
 	headerNonce := uint64(10)
 	nonceBytes := uint64Converter.ToByteSlice(headerNonce)
-	_ = chainStorer.HdrNonce.Put(nonceBytes, headerHash)
+	_ = chainStorer.MetaHdrNonce.Put(nonceBytes, headerHash)
 	statusComputer, err = NewStatusComputer(common.MetachainShardId, uint64Converter, chainStorer)
 	require.Nil(t, err)
 
@@ -194,7 +194,7 @@ func TestStatusComputer_SetStatusIfIsRewardReverted(t *testing.T) {
 	headerHash = []byte("hash-2")
 	headerNonce = uint64(12)
 	nonceBytes = uint64Converter.ToByteSlice(headerNonce)
-	_ = chainStorer.HdrNonce.Put(nonceBytes, headerHash)
+	_ = chainStorer.MetaHdrNonce.Put(nonceBytes, headerHash)
 	statusComputer, err = NewStatusComputer(0, uint64Converter, chainStorer)
 	require.Nil(t, err)
 
@@ -209,7 +209,7 @@ func TestStatusComputer_SetStatusIfIsRewardReverted(t *testing.T) {
 	headerHash = []byte("hash-3")
 	headerNonce = uint64(12)
 	nonceBytes = uint64Converter.ToByteSlice(headerNonce)
-	_ = chainStorer.HdrNonce.Put(nonceBytes, headerHash)
+	_ = chainStorer.MetaHdrNonce.Put(nonceBytes, headerHash)
 	statusComputer, err = NewStatusComputer(common.MetachainShardId, uint64Converter, chainStorer)
 	require.Nil(t, err)
 

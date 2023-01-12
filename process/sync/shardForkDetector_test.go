@@ -3,10 +3,12 @@ package sync_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/process/sync"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/process/sync"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -15,11 +17,11 @@ func TestNewShardForkDetector_NilRoundHandlerShouldErr(t *testing.T) {
 
 	sfd, err := sync.NewShardForkDetector(
 		nil,
-		&mock.BlackListHandlerStub{},
+		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
 		0,
 	)
-	assert.Nil(t, sfd)
+	assert.True(t, check.IfNil(sfd))
 	assert.Equal(t, process.ErrNilRoundHandler, err)
 }
 
@@ -32,7 +34,7 @@ func TestNewShardForkDetector_NilBlackListShouldErr(t *testing.T) {
 		&mock.BlockTrackerMock{},
 		0,
 	)
-	assert.Nil(t, sfd)
+	assert.True(t, check.IfNil(sfd))
 	assert.Equal(t, process.ErrNilBlackListCacher, err)
 }
 
@@ -41,11 +43,11 @@ func TestNewShardForkDetector_NilBlockTrackerShouldErr(t *testing.T) {
 
 	sfd, err := sync.NewShardForkDetector(
 		&mock.RoundHandlerMock{},
-		&mock.BlackListHandlerStub{},
+		&testscommon.TimeCacheStub{},
 		nil,
 		0,
 	)
-	assert.Nil(t, sfd)
+	assert.True(t, check.IfNil(sfd))
 	assert.Equal(t, process.ErrNilBlockTracker, err)
 }
 
@@ -54,12 +56,12 @@ func TestNewShardForkDetector_OkParamsShouldWork(t *testing.T) {
 
 	sfd, err := sync.NewShardForkDetector(
 		&mock.RoundHandlerMock{},
-		&mock.BlackListHandlerStub{},
+		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
 		0,
 	)
 	assert.Nil(t, err)
-	assert.NotNil(t, sfd)
+	assert.False(t, check.IfNil(sfd))
 
 	assert.Equal(t, uint64(0), sfd.LastCheckpointNonce())
 	assert.Equal(t, uint64(0), sfd.LastCheckpointRound())
@@ -73,7 +75,7 @@ func TestShardForkDetector_AddHeaderNilHeaderShouldErr(t *testing.T) {
 	roundHandlerMock := &mock.RoundHandlerMock{RoundIndex: 100}
 	bfd, _ := sync.NewShardForkDetector(
 		roundHandlerMock,
-		&mock.BlackListHandlerStub{},
+		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
 		0,
 	)
@@ -87,7 +89,7 @@ func TestShardForkDetector_AddHeaderNilHashShouldErr(t *testing.T) {
 	roundHandlerMock := &mock.RoundHandlerMock{RoundIndex: 100}
 	bfd, _ := sync.NewShardForkDetector(
 		roundHandlerMock,
-		&mock.BlackListHandlerStub{},
+		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
 		0,
 	)
@@ -103,7 +105,7 @@ func TestShardForkDetector_AddHeaderNotPresentShouldWork(t *testing.T) {
 	roundHandlerMock := &mock.RoundHandlerMock{RoundIndex: 1}
 	bfd, _ := sync.NewShardForkDetector(
 		roundHandlerMock,
-		&mock.BlackListHandlerStub{},
+		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
 		0,
 	)
@@ -125,7 +127,7 @@ func TestShardForkDetector_AddHeaderPresentShouldAppend(t *testing.T) {
 	roundHandlerMock := &mock.RoundHandlerMock{RoundIndex: 1}
 	bfd, _ := sync.NewShardForkDetector(
 		roundHandlerMock,
-		&mock.BlackListHandlerStub{},
+		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
 		0,
 	)
@@ -147,7 +149,7 @@ func TestShardForkDetector_AddHeaderWithProcessedBlockShouldSetCheckpoint(t *tes
 	roundHandlerMock := &mock.RoundHandlerMock{RoundIndex: 73}
 	bfd, _ := sync.NewShardForkDetector(
 		roundHandlerMock,
-		&mock.BlackListHandlerStub{},
+		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
 		0,
 	)
@@ -164,7 +166,7 @@ func TestShardForkDetector_AddHeaderPresentShouldNotRewriteState(t *testing.T) {
 	roundHandlerMock := &mock.RoundHandlerMock{RoundIndex: 1}
 	bfd, _ := sync.NewShardForkDetector(
 		roundHandlerMock,
-		&mock.BlackListHandlerStub{},
+		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
 		0,
 	)
@@ -185,7 +187,7 @@ func TestShardForkDetector_AddHeaderHigherNonceThanRoundShouldErr(t *testing.T) 
 	roundHandlerMock := &mock.RoundHandlerMock{RoundIndex: 100}
 	bfd, _ := sync.NewShardForkDetector(
 		roundHandlerMock,
-		&mock.BlackListHandlerStub{},
+		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
 		0,
 	)

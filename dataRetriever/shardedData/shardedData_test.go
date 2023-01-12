@@ -8,15 +8,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/stretchr/testify/assert"
 )
 
 var timeoutWaitForWaitGroups = time.Second * 2
 
-var defaultTestConfig = storageUnit.CacheConfig{
+var defaultTestConfig = storageunit.CacheConfig{
 	Capacity:    75000,
 	SizeInBytes: 104857600,
 	Shards:      1,
@@ -25,7 +25,7 @@ var defaultTestConfig = storageUnit.CacheConfig{
 func TestNewShardedData_BadConfigShouldErr(t *testing.T) {
 	t.Parallel()
 
-	cacheConfigBad := storageUnit.CacheConfig{
+	cacheConfigBad := storageunit.CacheConfig{
 		Capacity: 0,
 	}
 

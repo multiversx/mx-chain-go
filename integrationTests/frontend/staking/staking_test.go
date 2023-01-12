@@ -6,14 +6,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	ed25519SingleSig "github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519/singlesig"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/singlesig"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/vm"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/vm"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -38,8 +36,8 @@ func TestSignatureOnStaking(t *testing.T) {
 	require.Nil(t, err)
 
 	stakingWalletAccount := &integrationTests.TestWalletAccount{
-		SingleSigner:      &ed25519SingleSig.Ed25519Signer{},
-		BlockSingleSigner: &singlesig.BlsSingleSigner{},
+		SingleSigner:      integrationTests.TestSingleSigner,
+		BlockSingleSigner: integrationTests.TestSingleBlsSigner,
 		SkTxSign:          skStaking,
 		PkTxSign:          pkStaking,
 		PkTxSignBytes:     pkBuff,

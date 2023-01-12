@@ -71,9 +71,6 @@ var ErrNilStorageService = errors.New("nil storage service")
 // ErrNilRequestHandler signals that nil request handler has been provided
 var ErrNilRequestHandler = errors.New("nil request handler")
 
-// ErrNilMetaBlockStorage signals that nil metablocks storage has been provided
-var ErrNilMetaBlockStorage = errors.New("nil metablocks storage")
-
 // ErrNilMetaBlocksPool signals that nil metablock pools holder has been provided
 var ErrNilMetaBlocksPool = errors.New("nil metablocks pool")
 
@@ -82,12 +79,6 @@ var ErrNilValidatorInfoProcessor = errors.New("nil validator info processor")
 
 // ErrNilUint64Converter signals that nil uint64 converter has been provided
 var ErrNilUint64Converter = errors.New("nil uint64 converter")
-
-// ErrNilTriggerStorage signals that nil meta header storage has been provided
-var ErrNilTriggerStorage = errors.New("nil trigger storage")
-
-// ErrNilMetaNonceHashStorage signals that nil meta header nonce hash storage has been provided
-var ErrNilMetaNonceHashStorage = errors.New("nil meta nonce hash storage")
 
 // ErrValidatorMiniBlockHashDoesNotMatch signals that created and received validatorInfo miniblock hash does not match
 var ErrValidatorMiniBlockHashDoesNotMatch = errors.New("validatorInfo miniblock hash does not match")
@@ -131,17 +122,23 @@ var ErrNilNodesConfigProvider = errors.New("nil nodes config provider")
 // ErrNotEpochStartBlock signals that block is not of type epoch start
 var ErrNotEpochStartBlock = errors.New("not epoch start block")
 
-// ErrNilShardHeaderStorage signals that shard header storage is nil
-var ErrNilShardHeaderStorage = errors.New("nil shard header storage")
-
 // ErrValidatorInfoMiniBlocksNumDoesNotMatch signals that number of created and received validatorInfo miniblocks is not equal
 var ErrValidatorInfoMiniBlocksNumDoesNotMatch = errors.New("number of created and received validatorInfo miniblocks missmatch")
 
 // ErrNilValidatorInfo signals that a nil value for the validatorInfo has been provided
 var ErrNilValidatorInfo = errors.New("validator info is nil")
 
-// ErrNilMetaBlock signals that a nil metablock has been provided
-var ErrNilMetaBlock = errors.New("nil metablock")
+// ErrNilValidatorsInfoPool signals that a nil value for the validatorsInfoPool has been provided
+var ErrNilValidatorsInfoPool = errors.New("validators info pool is nil")
+
+// ErrNilCurrentEpochValidatorsInfoPool signals that a nil value for the currentEpochValidatorsInfoPool has been provided
+var ErrNilCurrentEpochValidatorsInfoPool = errors.New("current epoch validators info pool is nil")
+
+// ErrNilMetaBlock signals that a nil meta block has been provided
+var ErrNilMetaBlock = errors.New("nil meta block")
+
+// ErrNilBlockBody signals that a nil block body has been provided
+var ErrNilBlockBody = errors.New("nil block body")
 
 // ErrNilMiniBlockPool signals that a nil mini blocks pool was used
 var ErrNilMiniBlockPool = errors.New("nil mini block pool")
@@ -263,7 +260,7 @@ var ErrNilStakingDataProvider = errors.New("nil staking data provider")
 // ErrNilDataTrie signals that a nil data trie was provided
 var ErrNilDataTrie = errors.New("nil data trie")
 
-// ErrInvalidMinNodePrice signals that the minimum node price is invalid (e.g negative, not a number, etc)
+// ErrInvalidMinNodePrice signals that the minimum node price is invalid (e.g. negative, not a number, etc)
 var ErrInvalidMinNodePrice = errors.New("minimum node price is invalid")
 
 // ErrNilEconomicsDataProvider signals that the economics data provider is nil
@@ -322,6 +319,15 @@ var ErrNilScheduledTxsHandler = errors.New("nil scheduled transactions handler")
 
 // ErrNilScheduledDataSyncerFactory signals that a nil scheduled data syncer factory was provided
 var ErrNilScheduledDataSyncerFactory = errors.New("nil scheduled data syncer factory")
+
+// ErrNilEnableEpochsHandler signals that a nil enable epochs handler has been provided
+var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
+
+// ErrNilValidatorInfoStorage signals that nil validator info storage has been provided
+var ErrNilValidatorInfoStorage = errors.New("nil validator info storage")
+
+// ErrNilTrieSyncStatistics signals that nil trie sync statistics has been provided
+var ErrNilTrieSyncStatistics = errors.New("nil trie sync statistics")
 
 // ErrCouldNotInitLiquidStakingSystemSC signals that liquid staking system sc init failed
 var ErrCouldNotInitLiquidStakingSystemSC = errors.New("could not init liquid staking system sc")

@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 
 # Prepare the configuration files for a testnet:
-#		Build the elrond-deploy-go binary and run it
+#		Build the mx-chain-deploy-go binary and run it
 #		Copy the generated files to the testnet folder
 #		Copy configuration for the seednode, nodes, proxy and txgen into the testnet folder
 
-export ELRONDTESTNETSCRIPTSDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+export MULTIVERSXTESTNETSCRIPTSDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
-source "$ELRONDTESTNETSCRIPTSDIR/variables.sh"
-source "$ELRONDTESTNETSCRIPTSDIR/include/config.sh"
-source "$ELRONDTESTNETSCRIPTSDIR/include/build.sh"
+source "$MULTIVERSXTESTNETSCRIPTSDIR/variables.sh"
+source "$MULTIVERSXTESTNETSCRIPTSDIR/include/config.sh"
+source "$MULTIVERSXTESTNETSCRIPTSDIR/include/build.sh"
 
 prepareFolders
 

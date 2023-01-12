@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/heartbeat"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/multiversx/mx-chain-go/heartbeat"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -62,6 +62,7 @@ func TestNewInterceptedHeartbeatDataFactory(t *testing.T) {
 			Identity:        "identity",
 			Nonce:           10,
 			PeerSubType:     0,
+			Pubkey:          []byte("public key"),
 		}
 		marshaledHeartbeat, err := marshaller.Marshal(hb)
 		assert.Nil(t, err)

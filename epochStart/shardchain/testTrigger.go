@@ -1,6 +1,6 @@
 package shardchain
 
-import "github.com/ElrondNetwork/elrond-go/epochStart"
+import "github.com/multiversx/mx-chain-go/epochStart"
 
 // TestTrigger extends start of epoch trigger and is used in integration tests as it exposes some functions
 // that are not supposed to be used in production code
@@ -36,4 +36,9 @@ func (t *TestTrigger) GetRoundsPerEpoch() uint64 {
 func (t *TestTrigger) SetEpoch(epoch uint32) {
 	t.epoch = epoch
 	t.metaEpoch = epoch
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (t *TestTrigger) IsInterfaceNil() bool {
+	return t == nil
 }

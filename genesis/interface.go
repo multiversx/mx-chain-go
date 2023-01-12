@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 // DelegationType defines the constant used when checking if a smart contract is of delegation type
@@ -31,9 +31,10 @@ type DelegationResult struct {
 type AccountsParser interface {
 	InitialAccountsSplitOnAddressesShards(shardCoordinator sharding.Coordinator) (map[uint32][]InitialAccountHandler, error)
 	InitialAccounts() []InitialAccountHandler
+	GenesisMintingAddress() string
 	GetTotalStakedForDelegationAddress(delegationAddress string) *big.Int
 	GetInitialAccountsForDelegated(addressBytes []byte) []InitialAccountHandler
-	GenerateInitialTransactions(shardCoordinator sharding.Coordinator, initialIndexingData map[uint32]*IndexingData) ([]*block.MiniBlock, map[uint32]*indexer.Pool, error)
+	GenerateInitialTransactions(shardCoordinator sharding.Coordinator, initialIndexingData map[uint32]*IndexingData) ([]*block.MiniBlock, map[uint32]*outport.Pool, error)
 	IsInterfaceNil() bool
 }
 
@@ -65,7 +66,7 @@ type DelegationDataHandler interface {
 	IsInterfaceNil() bool
 }
 
-// InitialSmartContractHandler represents the interface that describes the the initial smart contract
+// InitialSmartContractHandler represents the interface that describes the initial smart contract
 type InitialSmartContractHandler interface {
 	GetOwner() string
 	OwnerBytes() []byte

@@ -5,34 +5,43 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"math"
 	"math/big"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	coreMock "github.com/ElrondNetwork/elrond-go-core/core/mock"
-	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
-	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/node/mock"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
-	dblookupextMock "github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
-	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
-	datafield "github.com/ElrondNetwork/elrond-vm-common/parsers/dataField"
+	"github.com/multiversx/mx-chain-core-go/core"
+	coreMock "github.com/multiversx/mx-chain-core-go/core/mock"
+	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/data/vm"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dblookupext"
+	"github.com/multiversx/mx-chain-go/node/mock"
+	"github.com/multiversx/mx-chain-go/process"
+	processMocks "github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/txcache"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	dblookupextMock "github.com/multiversx/mx-chain-go/testscommon/dblookupext"
+	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
+	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
+	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
+	datafield "github.com/multiversx/mx-chain-vm-common-go/parsers/dataField"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func createMockArgAPIBlockProcessor() *ArgAPITransactionProcessor {
+func createMockArgAPITransactionProcessor() *ArgAPITransactionProcessor {
 	return &ArgAPITransactionProcessor{
 		RoundDuration:            0,
 		GenesisTime:              time.Time{},
@@ -40,11 +49,14 @@ func createMockArgAPIBlockProcessor() *ArgAPITransactionProcessor {
 		AddressPubKeyConverter:   &mock.PubkeyConverterMock{},
 		ShardCoordinator:         createShardCoordinator(),
 		HistoryRepository:        &dblookupextMock.HistoryRepositoryStub{},
-		StorageService:           &mock.ChainStorerMock{},
+		StorageService:           &storageStubs.ChainStorerStub{},
 		DataPool:                 &dataRetrieverMock.PoolsHolderMock{},
 		Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
+		FeeComputer:              &testscommon.FeeComputerStub{},
+		TxTypeHandler:            &testscommon.TxTypeHandlerMock{},
+		LogsFacade:               &testscommon.LogsFacadeStub{},
 		DataFieldParser: &testscommon.DataFieldParserStub{
-			ParseCalled: func(dataField []byte, sender, receiver []byte) *datafield.ResponseParseData {
+			ParseCalled: func(dataField []byte, sender, receiver []byte, _ uint32) *datafield.ResponseParseData {
 				return &datafield.ResponseParseData{}
 			},
 		},
@@ -64,7 +76,7 @@ func TestNewAPITransactionProcessor(t *testing.T) {
 	t.Run("NilMarshalizer", func(t *testing.T) {
 		t.Parallel()
 
-		arguments := createMockArgAPIBlockProcessor()
+		arguments := createMockArgAPITransactionProcessor()
 		arguments.Marshalizer = nil
 
 		_, err := NewAPITransactionProcessor(arguments)
@@ -74,7 +86,7 @@ func TestNewAPITransactionProcessor(t *testing.T) {
 	t.Run("NilDataPool", func(t *testing.T) {
 		t.Parallel()
 
-		arguments := createMockArgAPIBlockProcessor()
+		arguments := createMockArgAPITransactionProcessor()
 		arguments.DataPool = nil
 
 		_, err := NewAPITransactionProcessor(arguments)
@@ -84,7 +96,7 @@ func TestNewAPITransactionProcessor(t *testing.T) {
 	t.Run("NilHistoryRepository", func(t *testing.T) {
 		t.Parallel()
 
-		arguments := createMockArgAPIBlockProcessor()
+		arguments := createMockArgAPITransactionProcessor()
 		arguments.HistoryRepository = nil
 
 		_, err := NewAPITransactionProcessor(arguments)
@@ -94,7 +106,7 @@ func TestNewAPITransactionProcessor(t *testing.T) {
 	t.Run("NilShardCoordinator", func(t *testing.T) {
 		t.Parallel()
 
-		arguments := createMockArgAPIBlockProcessor()
+		arguments := createMockArgAPITransactionProcessor()
 		arguments.ShardCoordinator = nil
 
 		_, err := NewAPITransactionProcessor(arguments)
@@ -104,7 +116,7 @@ func TestNewAPITransactionProcessor(t *testing.T) {
 	t.Run("NilPubKeyConverter", func(t *testing.T) {
 		t.Parallel()
 
-		arguments := createMockArgAPIBlockProcessor()
+		arguments := createMockArgAPITransactionProcessor()
 		arguments.AddressPubKeyConverter = nil
 
 		_, err := NewAPITransactionProcessor(arguments)
@@ -114,7 +126,7 @@ func TestNewAPITransactionProcessor(t *testing.T) {
 	t.Run("NilStorageService", func(t *testing.T) {
 		t.Parallel()
 
-		arguments := createMockArgAPIBlockProcessor()
+		arguments := createMockArgAPITransactionProcessor()
 		arguments.StorageService = nil
 
 		_, err := NewAPITransactionProcessor(arguments)
@@ -124,17 +136,47 @@ func TestNewAPITransactionProcessor(t *testing.T) {
 	t.Run("NilUint64Converter", func(t *testing.T) {
 		t.Parallel()
 
-		arguments := createMockArgAPIBlockProcessor()
+		arguments := createMockArgAPITransactionProcessor()
 		arguments.Uint64ByteSliceConverter = nil
 
 		_, err := NewAPITransactionProcessor(arguments)
 		require.Equal(t, process.ErrNilUint64Converter, err)
 	})
 
+	t.Run("NilTxFeeComputer", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgAPITransactionProcessor()
+		arguments.FeeComputer = nil
+
+		_, err := NewAPITransactionProcessor(arguments)
+		require.Equal(t, ErrNilFeeComputer, err)
+	})
+
+	t.Run("NilTypeHandler", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgAPITransactionProcessor()
+		arguments.TxTypeHandler = nil
+
+		_, err := NewAPITransactionProcessor(arguments)
+		require.Equal(t, process.ErrNilTxTypeHandler, err)
+	})
+
+	t.Run("NilLogsFacade", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgAPITransactionProcessor()
+		arguments.LogsFacade = nil
+
+		_, err := NewAPITransactionProcessor(arguments)
+		require.Equal(t, ErrNilLogsFacade, err)
+	})
+
 	t.Run("NilDataFieldParser", func(t *testing.T) {
 		t.Parallel()
 
-		arguments := createMockArgAPIBlockProcessor()
+		arguments := createMockArgAPITransactionProcessor()
 		arguments.DataFieldParser = nil
 
 		_, err := NewAPITransactionProcessor(arguments)
@@ -306,6 +348,38 @@ func TestNode_GetTransactionFromStorage(t *testing.T) {
 	require.Nil(t, tx)
 }
 
+func TestNode_GetTransactionWithResultsFromStorageMissingStorer(t *testing.T) {
+	t.Parallel()
+
+	t.Run("missing TransactionUnit", testWithMissingStorer(dataRetriever.TransactionUnit))
+	t.Run("missing UnsignedTransactionUnit", testWithMissingStorer(dataRetriever.UnsignedTransactionUnit))
+	t.Run("missing RewardTransactionUnit", testWithMissingStorer(dataRetriever.RewardTransactionUnit))
+}
+func testWithMissingStorer(missingUnit dataRetriever.UnitType) func(t *testing.T) {
+	return func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgAPITransactionProcessor()
+		args.StorageService = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				if unitType == missingUnit {
+					return nil, fmt.Errorf("%w for %s", storage.ErrKeyNotFound, missingUnit.String())
+				}
+				return &storageStubs.StorerStub{
+					SearchFirstCalled: func(key []byte) ([]byte, error) {
+						return nil, errors.New("dummy")
+					},
+				}, nil
+			},
+		}
+
+		apiTransactionProc, _ := NewAPITransactionProcessor(args)
+		_, err := apiTransactionProc.getTransactionFromStorage([]byte("txHash"))
+		require.NotNil(t, err)
+		require.True(t, strings.Contains(err.Error(), ErrTransactionNotFound.Error()))
+	}
+}
+
 func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 	t.Parallel()
 
@@ -326,38 +400,45 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 		},
 	}
 
-	chainStorer := &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	chainStorer := &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			switch unitType {
 			case dataRetriever.TransactionUnit:
 				return &storageStubs.StorerStub{
 					GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 						return marshalizer.Marshal(tx)
 					},
-				}
+				}, nil
 			case dataRetriever.UnsignedTransactionUnit:
 				return &storageStubs.StorerStub{
 					GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 						return marshalizer.Marshal(scResult)
 					},
-				}
-			case dataRetriever.TxLogsUnit:
+				}, nil
+			case dataRetriever.RewardTransactionUnit:
 				return &storageStubs.StorerStub{
 					GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 						return nil, errors.New("dummy")
 					},
-				}
+				}, nil
 			default:
-				return nil
+				return nil, storage.ErrKeyNotFound
 			}
 		},
 	}
+
 	historyRepo := &dblookupextMock.HistoryRepositoryStub{
 		GetMiniblockMetadataByTxHashCalled: func(hash []byte) (*dblookupext.MiniblockMetadata, error) {
 			return &dblookupext.MiniblockMetadata{}, nil
 		},
 		GetEventsHashesByTxHashCalled: func(hash []byte, epoch uint32) (*dblookupext.ResultsHashesByTxHash, error) {
 			return resultHashesByTxHash, nil
+		},
+	}
+
+	feeComputer := &testscommon.FeeComputerStub{
+		ComputeTransactionFeeCalled: func(tx *transaction.ApiTransactionResult) *big.Int {
+			return big.NewInt(1000)
 		},
 	}
 
@@ -371,8 +452,11 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 		StorageService:           chainStorer,
 		DataPool:                 dataRetrieverMock.NewPoolsHolderMock(),
 		Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
+		FeeComputer:              feeComputer,
+		TxTypeHandler:            &testscommon.TxTypeHandlerMock{},
+		LogsFacade:               &testscommon.LogsFacadeStub{},
 		DataFieldParser: &testscommon.DataFieldParserStub{
-			ParseCalled: func(dataField []byte, sender, receiver []byte) *datafield.ResponseParseData {
+			ParseCalled: func(dataField []byte, sender, receiver []byte, _ uint32) *datafield.ResponseParseData {
 				return &datafield.ResponseParseData{}
 			},
 		},
@@ -380,14 +464,17 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 	apiTransactionProc, _ := NewAPITransactionProcessor(args)
 
 	expectedTx := &transaction.ApiTransactionResult{
-		Tx:            &transaction.Transaction{Nonce: tx.Nonce, RcvAddr: tx.RcvAddr, SndAddr: tx.SndAddr, Value: tx.Value},
-		Nonce:         tx.Nonce,
-		Receiver:      hex.EncodeToString(tx.RcvAddr),
-		Sender:        hex.EncodeToString(tx.SndAddr),
-		Status:        transaction.TxStatusSuccess,
-		MiniBlockType: block.TxBlock.String(),
-		Type:          "normal",
-		Value:         "<nil>",
+		Tx:                          &transaction.Transaction{Nonce: tx.Nonce, RcvAddr: tx.RcvAddr, SndAddr: tx.SndAddr, Value: tx.Value},
+		Hash:                        "747848617368",
+		ProcessingTypeOnSource:      process.MoveBalance.String(),
+		ProcessingTypeOnDestination: process.MoveBalance.String(),
+		Nonce:                       tx.Nonce,
+		Receiver:                    hex.EncodeToString(tx.RcvAddr),
+		Sender:                      hex.EncodeToString(tx.SndAddr),
+		Status:                      transaction.TxStatusSuccess,
+		MiniBlockType:               block.TxBlock.String(),
+		Type:                        string(transaction.TxTypeNormal),
+		Value:                       "<nil>",
 		SmartContractResults: []*transaction.ApiSmartContractResult{
 			{
 				Hash:           hex.EncodeToString(scResultHash),
@@ -395,7 +482,8 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 				Receivers:      []string{},
 			},
 		},
-		Receivers: []string{},
+		InitiallyPaidFee: "1000",
+		Receivers:        []string{},
 	}
 
 	apiTx, err := apiTransactionProc.GetTransaction(txHash, true)
@@ -460,7 +548,7 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	headerHash := []byte("hash")
 	headerNonce := uint64(1)
 	nonceBytes := n.uint64ByteSliceConverter.ToByteSlice(headerNonce)
-	_ = chainStorer.HdrNonce.Put(nonceBytes, headerHash)
+	_ = chainStorer.MetaHdrNonce.Put(nonceBytes, headerHash)
 	txD := &rewardTx.RewardTx{Round: 42, RcvAddr: []byte("alice")}
 	_ = chainStorer.Rewards.PutWithMarshalizer([]byte("d"), txD, internalMarshalizer)
 	setupGetMiniblockMetadataByTxHash(historyRepo, block.RewardsBlock, core.MetachainShardId, 1, 42, headerHash, headerNonce)
@@ -533,7 +621,7 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	headerHash = []byte("hash")
 	headerNonce = uint64(1)
 	nonceBytes = n.uint64ByteSliceConverter.ToByteSlice(headerNonce)
-	_ = chainStorer.HdrNonce.Put(nonceBytes, headerHash)
+	_ = chainStorer.MetaHdrNonce.Put(nonceBytes, headerHash)
 	txH := &rewardTx.RewardTx{Round: 50, RcvAddr: []byte("alice")}
 	_ = chainStorer.Rewards.PutWithMarshalizer([]byte("h"), txH, n.marshalizer)
 	setupGetMiniblockMetadataByTxHash(historyRepo, block.RewardsBlock, core.MetachainShardId, 1, 42, wrongHeaderHash, headerNonce)
@@ -583,12 +671,15 @@ func TestApiTransactionProcessor_GetTransactionsPool(t *testing.T) {
 	expectedTxs := [][]byte{txHash0, txHash1}
 	expectedScrs := [][]byte{txHash2}
 	expectedRwds := [][]byte{txHash3}
-	args := createMockArgAPIBlockProcessor()
+	args := createMockArgAPITransactionProcessor()
 	args.DataPool = &dataRetrieverMock.PoolsHolderStub{
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return &testscommon.ShardedDataStub{
 				KeysCalled: func() [][]byte {
 					return expectedTxs
+				},
+				SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+					return createTx(key, "alice", 1).Tx, true
 				},
 			}
 		},
@@ -597,12 +688,18 @@ func TestApiTransactionProcessor_GetTransactionsPool(t *testing.T) {
 				KeysCalled: func() [][]byte {
 					return expectedScrs
 				},
+				SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+					return &smartContractResult.SmartContractResult{}, true
+				},
 			}
 		},
 		RewardTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return &testscommon.ShardedDataStub{
 				KeysCalled: func() [][]byte {
 					return expectedRwds
+				},
+				SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+					return &rewardTx.RewardTx{}, true
 				},
 			}
 		},
@@ -611,11 +708,284 @@ func TestApiTransactionProcessor_GetTransactionsPool(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, atp)
 
-	res, err := atp.GetTransactionsPool()
+	res, err := atp.GetTransactionsPool("")
 	require.NoError(t, err)
-	require.Equal(t, []string{hex.EncodeToString(txHash0), hex.EncodeToString(txHash1)}, res.RegularTransactions)
-	require.Equal(t, []string{hex.EncodeToString(txHash2)}, res.SmartContractResults)
-	require.Equal(t, []string{hex.EncodeToString(txHash3)}, res.Rewards)
+
+	regularTxs := []common.Transaction{
+		{
+			TxFields: map[string]interface{}{
+				"hash": hex.EncodeToString(txHash0),
+			},
+		},
+		{
+			TxFields: map[string]interface{}{
+				"hash": hex.EncodeToString(txHash1),
+			},
+		},
+	}
+	require.Equal(t, regularTxs, res.RegularTransactions)
+
+	scrTxs := []common.Transaction{
+		{
+			TxFields: map[string]interface{}{
+				"hash": hex.EncodeToString(txHash2),
+			},
+		},
+	}
+	require.Equal(t, scrTxs, res.SmartContractResults)
+
+	rewardTxs := []common.Transaction{
+		{
+			TxFields: map[string]interface{}{
+				"hash": hex.EncodeToString(txHash3),
+			},
+		},
+	}
+	require.Equal(t, rewardTxs, res.Rewards)
+}
+
+func createTx(hash []byte, sender string, nonce uint64) *txcache.WrappedTransaction {
+	tx := &transaction.Transaction{
+		SndAddr: []byte(sender),
+		Nonce:   nonce,
+	}
+
+	return &txcache.WrappedTransaction{
+		Tx:     tx,
+		TxHash: hash,
+		Size:   128,
+	}
+}
+
+func TestApiTransactionProcessor_GetTransactionsPoolForSender(t *testing.T) {
+	t.Parallel()
+
+	txHash0, txHash1, txHash2 := []byte("txHash0"), []byte("txHash1"), []byte("txHash2")
+	sender := "alice"
+	txCacheIntraShard, _ := txcache.NewTxCache(txcache.ConfigSourceMe{
+		Name:                       "test",
+		NumChunks:                  4,
+		NumBytesPerSenderThreshold: 1_048_576, // 1 MB
+		CountPerSenderThreshold:    math.MaxUint32,
+	}, &txcachemocks.TxGasHandlerMock{
+		MinimumGasMove:       1,
+		MinimumGasPrice:      1,
+		GasProcessingDivisor: 1,
+	})
+	txCacheIntraShard.AddTx(createTx(txHash2, sender, 3))
+	txCacheIntraShard.AddTx(createTx(txHash0, sender, 1))
+	txCacheIntraShard.AddTx(createTx(txHash1, sender, 2))
+
+	txHash3, txHash4 := []byte("txHash3"), []byte("txHash4")
+	txCacheWithMeta, _ := txcache.NewTxCache(txcache.ConfigSourceMe{
+		Name:                       "test-meta",
+		NumChunks:                  4,
+		NumBytesPerSenderThreshold: 1_048_576, // 1 MB
+		CountPerSenderThreshold:    math.MaxUint32,
+	}, &txcachemocks.TxGasHandlerMock{
+		MinimumGasMove:       1,
+		MinimumGasPrice:      1,
+		GasProcessingDivisor: 1,
+	})
+	txCacheWithMeta.AddTx(createTx(txHash3, sender, 4))
+	txCacheWithMeta.AddTx(createTx(txHash4, sender, 5))
+
+	args := createMockArgAPITransactionProcessor()
+	args.DataPool = &dataRetrieverMock.PoolsHolderStub{
+		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+			return &testscommon.ShardedDataStub{
+				ShardDataStoreCalled: func(cacheID string) storage.Cacher {
+					if len(cacheID) == 1 { // self shard
+						return txCacheIntraShard
+					}
+
+					return txCacheWithMeta
+				},
+			}
+		},
+	}
+	args.AddressPubKeyConverter = &mock.PubkeyConverterStub{
+		DecodeCalled: func(humanReadable string) ([]byte, error) {
+			return []byte(humanReadable), nil
+		},
+		EncodeCalled: func(pkBytes []byte) string {
+			return string(pkBytes)
+		},
+	}
+	args.ShardCoordinator = &processMocks.ShardCoordinatorStub{
+		NumberOfShardsCalled: func() uint32 {
+			return 1
+		},
+	}
+	atp, err := NewAPITransactionProcessor(args)
+	require.NoError(t, err)
+	require.NotNil(t, atp)
+
+	res, err := atp.GetTransactionsPoolForSender(sender, "sender")
+	require.NoError(t, err)
+	expectedHashes := []string{hex.EncodeToString(txHash0), hex.EncodeToString(txHash1), hex.EncodeToString(txHash2), hex.EncodeToString(txHash3), hex.EncodeToString(txHash4)}
+	for i, tx := range res.Transactions {
+		require.Equal(t, expectedHashes[i], tx.TxFields[hashField])
+		require.Equal(t, sender, tx.TxFields["sender"])
+	}
+
+	// if no tx is found in pool for a sender, it isn't an error, but return empty slice
+	newSender := "new-sender"
+	res, err = atp.GetTransactionsPoolForSender(newSender, "")
+	require.NoError(t, err)
+	require.Equal(t, &common.TransactionsPoolForSenderApiResponse{
+		Transactions: []common.Transaction{},
+	}, res)
+}
+
+func TestApiTransactionProcessor_GetLastPoolNonceForSender(t *testing.T) {
+	t.Parallel()
+
+	txHash0, txHash1, txHash2, txHash3, txHash4 := []byte("txHash0"), []byte("txHash1"), []byte("txHash2"), []byte("txHash3"), []byte("txHash4")
+	sender := "alice"
+	lastNonce := uint64(10)
+	txCacheIntraShard, _ := txcache.NewTxCache(txcache.ConfigSourceMe{
+		Name:                       "test",
+		NumChunks:                  4,
+		NumBytesPerSenderThreshold: 1_048_576, // 1 MB
+		CountPerSenderThreshold:    math.MaxUint32,
+	}, &txcachemocks.TxGasHandlerMock{
+		MinimumGasMove:       1,
+		MinimumGasPrice:      1,
+		GasProcessingDivisor: 1,
+	})
+	txCacheIntraShard.AddTx(createTx(txHash2, sender, 3))
+	txCacheIntraShard.AddTx(createTx(txHash0, sender, 1))
+	txCacheIntraShard.AddTx(createTx(txHash1, sender, 2))
+	txCacheIntraShard.AddTx(createTx(txHash3, sender, lastNonce))
+	txCacheIntraShard.AddTx(createTx(txHash4, sender, 5))
+
+	args := createMockArgAPITransactionProcessor()
+	args.DataPool = &dataRetrieverMock.PoolsHolderStub{
+		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+			return &testscommon.ShardedDataStub{
+				ShardDataStoreCalled: func(cacheID string) storage.Cacher {
+					return txCacheIntraShard
+				},
+			}
+		},
+	}
+	args.AddressPubKeyConverter = &mock.PubkeyConverterStub{
+		DecodeCalled: func(humanReadable string) ([]byte, error) {
+			return []byte(humanReadable), nil
+		},
+		EncodeCalled: func(pkBytes []byte) string {
+			return string(pkBytes)
+		},
+	}
+	args.ShardCoordinator = &processMocks.ShardCoordinatorStub{
+		NumberOfShardsCalled: func() uint32 {
+			return 1
+		},
+	}
+	atp, err := NewAPITransactionProcessor(args)
+	require.NoError(t, err)
+	require.NotNil(t, atp)
+
+	res, err := atp.GetLastPoolNonceForSender(sender)
+	require.NoError(t, err)
+	require.Equal(t, lastNonce, res)
+}
+
+func TestApiTransactionProcessor_GetTransactionsPoolNonceGapsForSender(t *testing.T) {
+	t.Parallel()
+
+	txHash0, txHash1, txHash2, txHash3, txHash4 := []byte("txHash0"), []byte("txHash1"), []byte("txHash2"), []byte("txHash3"), []byte("txHash4")
+	sender := "alice"
+	txCacheIntraShard, _ := txcache.NewTxCache(txcache.ConfigSourceMe{
+		Name:                       "test",
+		NumChunks:                  4,
+		NumBytesPerSenderThreshold: 1_048_576, // 1 MB
+		CountPerSenderThreshold:    math.MaxUint32,
+	}, &txcachemocks.TxGasHandlerMock{
+		MinimumGasMove:       1,
+		MinimumGasPrice:      1,
+		GasProcessingDivisor: 1,
+	})
+
+	txCacheWithMeta, _ := txcache.NewTxCache(txcache.ConfigSourceMe{
+		Name:                       "test-meta",
+		NumChunks:                  4,
+		NumBytesPerSenderThreshold: 1_048_576, // 1 MB
+		CountPerSenderThreshold:    math.MaxUint32,
+	}, &txcachemocks.TxGasHandlerMock{
+		MinimumGasMove:       1,
+		MinimumGasPrice:      1,
+		GasProcessingDivisor: 1,
+	})
+
+	// expected nonce gaps: 3-3, 5-7
+	lastNonceBeforeGap1 := uint64(2)
+	firstNonceAfterGap1 := uint64(4)
+	lastNonceBeforeGap2 := uint64(5)
+	firstNonceAfterGap2 := uint64(9)
+	txCacheIntraShard.AddTx(createTx(txHash0, sender, 1))
+	txCacheIntraShard.AddTx(createTx(txHash1, sender, lastNonceBeforeGap1))
+	txCacheIntraShard.AddTx(createTx(txHash2, sender, firstNonceAfterGap1))
+	txCacheIntraShard.AddTx(createTx(txHash3, sender, lastNonceBeforeGap2))
+	txCacheIntraShard.AddTx(createTx(txHash4, sender, firstNonceAfterGap2))
+
+	args := createMockArgAPITransactionProcessor()
+	args.DataPool = &dataRetrieverMock.PoolsHolderStub{
+		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+			return &testscommon.ShardedDataStub{
+				ShardDataStoreCalled: func(cacheID string) storage.Cacher {
+					if len(cacheID) == 1 { // self shard
+						return txCacheIntraShard
+					}
+
+					return txCacheWithMeta
+				},
+			}
+		},
+	}
+	args.AddressPubKeyConverter = &mock.PubkeyConverterStub{
+		DecodeCalled: func(humanReadable string) ([]byte, error) {
+			return []byte(humanReadable), nil
+		},
+		EncodeCalled: func(pkBytes []byte) string {
+			return string(pkBytes)
+		},
+	}
+	args.ShardCoordinator = &processMocks.ShardCoordinatorStub{
+		NumberOfShardsCalled: func() uint32 {
+			return 1
+		},
+	}
+	atp, err := NewAPITransactionProcessor(args)
+	require.NoError(t, err)
+	require.NotNil(t, atp)
+
+	expectedResponse := &common.TransactionsPoolNonceGapsForSenderApiResponse{
+		Sender: sender,
+		Gaps: []common.NonceGapApiResponse{
+			{
+				From: lastNonceBeforeGap1 + 1,
+				To:   firstNonceAfterGap1 - 1,
+			},
+			{
+				From: lastNonceBeforeGap2 + 1,
+				To:   firstNonceAfterGap2 - 1,
+			},
+		},
+	}
+	res, err := atp.GetTransactionsPoolNonceGapsForSender(sender)
+	require.NoError(t, err)
+	require.Equal(t, expectedResponse, res)
+
+	// if no tx is found in pool for a sender, it isn't an error, but return empty slice
+	newSender := "new-sender"
+	res, err = atp.GetTransactionsPoolNonceGapsForSender(newSender)
+	require.NoError(t, err)
+	require.Equal(t, &common.TransactionsPoolNonceGapsForSenderApiResponse{
+		Sender: newSender,
+		Gaps:   []common.NonceGapApiResponse{},
+	}, res)
 }
 
 func createAPITransactionProc(t *testing.T, epoch uint32, withDbLookupExt bool) (*apiTransactionProcessor, *genericMocks.ChainStorerMock, *dataRetrieverMock.PoolsHolderMock, *dblookupextMock.HistoryRepositoryStub) {
@@ -628,7 +998,7 @@ func createAPITransactionProc(t *testing.T, epoch uint32, withDbLookupExt bool) 
 		},
 	}
 	dataFieldParser := &testscommon.DataFieldParserStub{
-		ParseCalled: func(dataField []byte, sender, receiver []byte) *datafield.ResponseParseData {
+		ParseCalled: func(dataField []byte, sender, receiver []byte, _ uint32) *datafield.ResponseParseData {
 			return &datafield.ResponseParseData{}
 		},
 	}
@@ -643,6 +1013,9 @@ func createAPITransactionProc(t *testing.T, epoch uint32, withDbLookupExt bool) 
 		StorageService:           chainStorer,
 		DataPool:                 dataPool,
 		Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
+		FeeComputer:              &testscommon.FeeComputerStub{},
+		TxTypeHandler:            &testscommon.TxTypeHandlerMock{},
+		LogsFacade:               &testscommon.LogsFacadeStub{},
 		DataFieldParser:          dataFieldParser,
 	}
 	apiTransactionProc, err := NewAPITransactionProcessor(args)
@@ -717,6 +1090,7 @@ func TestPrepareUnsignedTx(t *testing.T) {
 		Receiver:       "erd1qyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqsl6e0p7",
 		Sender:         "erd1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq6gq4hu",
 		OriginalSender: "",
+		CallType:       vm.DirectCallStr,
 	}
 	assert.Equal(t, scrResult1, expectedScr1)
 
@@ -738,6 +1112,7 @@ func TestPrepareUnsignedTx(t *testing.T) {
 		Receiver:       "erd1qcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqwkh39e",
 		Sender:         "erd1q5zs2pg9q5zs2pg9q5zs2pg9q5zs2pg9q5zs2pg9q5zs2pg9q5zsrqsks3",
 		OriginalSender: "erd1qurswpc8qurswpc8qurswpc8qurswpc8qurswpc8qurswpc8qurstywtnm",
+		CallType:       vm.DirectCallStr,
 	}
 	assert.Equal(t, scrResult2, expectedScr2)
 }
@@ -763,4 +1138,104 @@ func getTime(t *testing.T, timestamp string) time.Time {
 	tm := time.Unix(i, 0)
 
 	return tm
+}
+
+func TestApiTransactionProcessor_GetTransactionPopulatesComputedFields(t *testing.T) {
+	dataPool := dataRetrieverMock.NewPoolsHolderMock()
+	feeComputer := &testscommon.FeeComputerStub{}
+	txTypeHandler := &testscommon.TxTypeHandlerMock{}
+
+	arguments := createMockArgAPITransactionProcessor()
+	arguments.DataPool = dataPool
+	arguments.FeeComputer = feeComputer
+	arguments.TxTypeHandler = txTypeHandler
+
+	processor, err := NewAPITransactionProcessor(arguments)
+	require.Nil(t, err)
+	require.NotNil(t, processor)
+
+	t.Run("InitiallyPaidFee", func(t *testing.T) {
+		feeComputer.ComputeTransactionFeeCalled = func(tx *transaction.ApiTransactionResult) *big.Int {
+			return big.NewInt(1000)
+		}
+
+		dataPool.Transactions().AddData([]byte{0, 0}, &transaction.Transaction{Nonce: 7, SndAddr: []byte("alice"), RcvAddr: []byte("bob")}, 42, "1")
+		tx, err := processor.GetTransaction("0000", true)
+
+		require.Nil(t, err)
+		require.Equal(t, "1000", tx.InitiallyPaidFee)
+	})
+
+	t.Run("InitiallyPaidFee (missing on unsigned transaction)", func(t *testing.T) {
+		feeComputer.ComputeTransactionFeeCalled = func(tx *transaction.ApiTransactionResult) *big.Int {
+			return big.NewInt(1000)
+		}
+
+		scr := &smartContractResult.SmartContractResult{GasLimit: 0, Data: []byte("@ok"), Value: big.NewInt(0)}
+		dataPool.UnsignedTransactions().AddData([]byte{0, 1}, scr, 42, "foo")
+		tx, err := processor.GetTransaction("0001", true)
+
+		require.Nil(t, err)
+		require.Equal(t, "", tx.InitiallyPaidFee)
+	})
+
+	t.Run("ProcessingType", func(t *testing.T) {
+		txTypeHandler.ComputeTransactionTypeCalled = func(data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+			return process.MoveBalance, process.SCDeployment
+		}
+
+		dataPool.Transactions().AddData([]byte{0, 2}, &transaction.Transaction{Nonce: 7, SndAddr: []byte("alice"), RcvAddr: []byte("bob")}, 42, "1")
+		tx, err := processor.GetTransaction("0002", true)
+
+		require.Nil(t, err)
+		require.Equal(t, process.MoveBalance.String(), tx.ProcessingTypeOnSource)
+		require.Equal(t, process.SCDeployment.String(), tx.ProcessingTypeOnDestination)
+	})
+
+	t.Run("IsRefund (false)", func(t *testing.T) {
+		scr := &smartContractResult.SmartContractResult{GasLimit: 0, Data: []byte("@ok"), Value: big.NewInt(0)}
+		dataPool.UnsignedTransactions().AddData([]byte{0, 3}, scr, 42, "foo")
+		tx, err := processor.GetTransaction("0003", true)
+
+		require.Nil(t, err)
+		require.Equal(t, false, tx.IsRefund)
+	})
+
+	t.Run("IsRefund (true)", func(t *testing.T) {
+		scr := &smartContractResult.SmartContractResult{GasLimit: 0, Data: []byte("@6f6b"), Value: big.NewInt(500)}
+		dataPool.UnsignedTransactions().AddData([]byte{0, 4}, scr, 42, "foo")
+		tx, err := processor.GetTransaction("0004", true)
+
+		require.Nil(t, err)
+		require.Equal(t, true, tx.IsRefund)
+	})
+}
+
+func TestApiTransactionProcessor_PopulateComputedFields(t *testing.T) {
+	feeComputer := &testscommon.FeeComputerStub{}
+	txTypeHandler := &testscommon.TxTypeHandlerMock{}
+
+	arguments := createMockArgAPITransactionProcessor()
+	arguments.Marshalizer = &marshal.GogoProtoMarshalizer{}
+	arguments.FeeComputer = feeComputer
+	arguments.TxTypeHandler = txTypeHandler
+
+	processor, err := NewAPITransactionProcessor(arguments)
+	require.Nil(t, err)
+	require.NotNil(t, processor)
+
+	txTypeHandler.ComputeTransactionTypeCalled = func(data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+		return process.MoveBalance, process.SCDeployment
+	}
+
+	feeComputer.ComputeTransactionFeeCalled = func(tx *transaction.ApiTransactionResult) *big.Int {
+		return big.NewInt(1000)
+	}
+
+	apiTx := &transaction.ApiTransactionResult{Type: string(transaction.TxTypeNormal)}
+	processor.PopulateComputedFields(apiTx)
+
+	require.Equal(t, "MoveBalance", apiTx.ProcessingTypeOnSource)
+	require.Equal(t, "SCDeployment", apiTx.ProcessingTypeOnDestination)
+	require.Equal(t, "1000", apiTx.InitiallyPaidFee)
 }
