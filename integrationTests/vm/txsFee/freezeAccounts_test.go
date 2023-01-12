@@ -361,7 +361,8 @@ func TestFreezeAccountsSendingFundsWhileProtectedAndNotProtected(t *testing.T) {
 	testPendingGuardian(t, testContext, userAddress, true, nil, nil)
 
 	err = transferFunds(testContext, userAddress, big.NewInt(transferValue), receiverAddress)
-	require.Equal(t, process.ErrOperationNotPermitted, err)
+	require.ErrorIs(t, err, process.ErrTransactionNotExecutable)
+	require.Contains(t, err.Error(), "not allowed to bypass guardian")
 	require.Equal(t, big.NewInt(transferValue*3), getBalance(testContext, receiverAddress))
 
 	// userAddress can send funds while protected with the guardian address
@@ -371,6 +372,13 @@ func TestFreezeAccountsSendingFundsWhileProtectedAndNotProtected(t *testing.T) {
 
 	// userAddress can not send funds while protected with a wrong guardian address
 	err = transferFundsWithGuardian(testContext, userAddress, big.NewInt(transferValue), receiverAddress, wrongGuardianAddress)
-	require.Equal(t, process.ErrTransactionAndAccountGuardianMismatch, err)
+	require.ErrorIs(t, err, process.ErrTransactionNotExecutable)
+	require.Contains(t, err.Error(), "mismatch between transaction guardian and configured account guardian")
+	require.Equal(t, big.NewInt(transferValue*4), getBalance(testContext, receiverAddress))
+
+	// userAddress can not send funds while protected with an empty guardian address
+	err = transferFundsWithGuardian(testContext, userAddress, big.NewInt(transferValue), receiverAddress, nil)
+	require.ErrorIs(t, err, process.ErrTransactionNotExecutable)
+	require.Contains(t, err.Error(), "mismatch between transaction guardian and configured account guardian")
 	require.Equal(t, big.NewInt(transferValue*4), getBalance(testContext, receiverAddress))
 }
