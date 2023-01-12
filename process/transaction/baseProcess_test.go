@@ -1,7 +1,9 @@
 package transaction
 
 import (
+	"errors"
 	"math/big"
+	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
@@ -19,15 +21,15 @@ import (
 func Test_checkOperationAllowedToBypassGuardian(t *testing.T) {
 	t.Run("operations not allowed to bypass", func(t *testing.T) {
 		txData := []byte("#@!")
-		require.Equal(t, process.ErrOperationNotPermitted, checkOperationAllowedToBypassGuardian(txData))
+		require.True(t, errors.Is(checkOperationAllowedToBypassGuardian(txData), process.ErrTransactionNotExecutable))
 		txData = []byte(nil)
-		require.Equal(t, process.ErrOperationNotPermitted, checkOperationAllowedToBypassGuardian(txData))
+		require.True(t, errors.Is(checkOperationAllowedToBypassGuardian(txData), process.ErrTransactionNotExecutable))
 		txData = []byte("SomeOtherFunction@")
-		require.Equal(t, process.ErrOperationNotPermitted, checkOperationAllowedToBypassGuardian(txData))
+		require.True(t, errors.Is(checkOperationAllowedToBypassGuardian(txData), process.ErrTransactionNotExecutable))
 	})
 	t.Run("setGuardian data field (non builtin call) not allowed", func(t *testing.T) {
 		txData := []byte("setGuardian")
-		require.Equal(t, process.ErrOperationNotPermitted, checkOperationAllowedToBypassGuardian(txData))
+		require.True(t, errors.Is(checkOperationAllowedToBypassGuardian(txData), process.ErrTransactionNotExecutable))
 	})
 	t.Run("set guardian builtin call allowed to bypass", func(t *testing.T) {
 		txData := []byte("SetGuardian@")
@@ -59,13 +61,13 @@ func Test_checkGuardedAccountUnguardedTxPermission(t *testing.T) {
 		guardianChecker:  &guardianMocks.GuardedAccountHandlerStub{},
 	}
 
-	account:= &stateMock.UserAccountStub{}
+	account := &stateMock.UserAccountStub{}
 
 	t.Run("nil txData", func(t *testing.T) {
-		require.Equal(t, process.ErrOperationNotPermitted, baseProc.checkGuardedAccountUnguardedTxPermission(nil, account))
+		require.True(t, errors.Is(baseProc.checkGuardedAccountUnguardedTxPermission(nil, account), process.ErrTransactionNotExecutable))
 	})
 	t.Run("empty txData", func(t *testing.T) {
-		require.Equal(t, process.ErrOperationNotPermitted, baseProc.checkGuardedAccountUnguardedTxPermission([]byte(""), account))
+		require.True(t, errors.Is(baseProc.checkGuardedAccountUnguardedTxPermission([]byte(""), account), process.ErrTransactionNotExecutable))
 	})
 	t.Run("nil account", func(t *testing.T) {
 		txData := []byte("SetGuardian@")
@@ -73,7 +75,7 @@ func Test_checkGuardedAccountUnguardedTxPermission(t *testing.T) {
 	})
 	t.Run("setGuardian data field (non builtin call) not allowed", func(t *testing.T) {
 		txData := []byte("setGuardian")
-		require.Equal(t, process.ErrOperationNotPermitted, baseProc.checkGuardedAccountUnguardedTxPermission(txData, account))
+		require.True(t, errors.Is(baseProc.checkGuardedAccountUnguardedTxPermission(txData, account), process.ErrTransactionNotExecutable))
 	})
 	t.Run("set guardian builtin call allowed to bypass", func(t *testing.T) {
 		txData := []byte("SetGuardian@")
@@ -81,12 +83,15 @@ func Test_checkGuardedAccountUnguardedTxPermission(t *testing.T) {
 	})
 	t.Run("set guardian builtin call with pending guardian not allowed", func(t *testing.T) {
 		txData := []byte("SetGuardian@")
-		baseProc :=	baseProc
+		baseProc := baseProc
 		baseProc.guardianChecker = &guardianMocks.GuardedAccountHandlerStub{
 			HasPendingGuardianCalled: func(uah state.UserAccountHandler) bool {
 				return true
 			},
 		}
-		require.Equal(t, process.ErrCannotReplaceGuardedAccountPendingGuardian, baseProc.checkGuardedAccountUnguardedTxPermission(txData, account))
+
+		err := baseProc.checkGuardedAccountUnguardedTxPermission(txData, account)
+		require.True(t, errors.Is(err, process.ErrTransactionNotExecutable))
+		require.True(t, strings.Contains(err.Error(), process.ErrCannotReplaceGuardedAccountPendingGuardian.Error()))
 	})
 }
