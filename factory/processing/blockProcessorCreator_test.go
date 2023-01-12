@@ -91,8 +91,8 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 	dataComponents, _ := dataComp.NewManagedDataComponents(dataComponentsFactory)
 	_ = dataComponents.Create()
 
-	networkComponents := componentsMock.GetNetworkComponents()
 	cryptoComponents := componentsMock.GetCryptoComponents(coreComponents)
+	networkComponents := componentsMock.GetNetworkComponents(cryptoComponents)
 
 	storageManagerArgs, options := storageManager.GetStorageManagerArgsAndOptions()
 	storageManagerArgs.Marshalizer = coreComponents.InternalMarshalizer()
@@ -140,10 +140,10 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 				},
 			}
 		},
-		AccountsAdapterAPICalled: func() state.AccountsAdapter {
+		AccountsAdapterCalled: func() state.AccountsAdapter {
 			return accounts
 		},
-		AccountsAdapterCalled: func() state.AccountsAdapter {
+		AccountsAdapterAPICalled: func() state.AccountsAdapter {
 			return accounts
 		},
 		TriesContainerCalled: func() common.TriesHolder {
@@ -218,6 +218,7 @@ func createAccountAdapter(
 		ProcessingMode:        common.Normal,
 		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
 		AppStatusHandler:      &statusHandler.AppStatusHandlerStub{},
+		AddressConverter:      &testscommon.PubkeyConverterMock{},
 	}
 	adb, err := state.NewAccountsDB(args)
 	if err != nil {

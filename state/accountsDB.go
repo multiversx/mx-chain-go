@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"runtime/debug"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -102,6 +101,7 @@ type AccountsDB struct {
 	loadCodeMeasurements     *loadingMeasurements
 	processStatusHandler     common.ProcessStatusHandler
 	appStatusHandler         core.AppStatusHandler
+	addressConverter         core.PubkeyConverter
 
 	stackDebug []byte
 }
@@ -119,6 +119,7 @@ type ArgsAccountsDB struct {
 	ShouldSerializeSnapshots bool
 	ProcessStatusHandler     common.ProcessStatusHandler
 	AppStatusHandler         core.AppStatusHandler
+	AddressConverter         core.PubkeyConverter
 }
 
 // NewAccountsDB creates a new account manager
@@ -128,7 +129,7 @@ func NewAccountsDB(args ArgsAccountsDB) (*AccountsDB, error) {
 		return nil, err
 	}
 
-	args.AppStatusHandler.SetStringValue(common.MetricAccountsSnapshotInProgress, strconv.FormatBool(false))
+	args.AppStatusHandler.SetUInt64Value(common.MetricAccountsSnapshotInProgress, 0)
 
 	return createAccountsDb(args), nil
 }
@@ -153,6 +154,7 @@ func createAccountsDb(args ArgsAccountsDB) *AccountsDB {
 		processStatusHandler:     args.ProcessStatusHandler,
 		appStatusHandler:         args.AppStatusHandler,
 		isSnapshotInProgress:     atomic.Flag{},
+		addressConverter:         args.AddressConverter,
 	}
 }
 
@@ -177,6 +179,9 @@ func checkArgsAccountsDB(args ArgsAccountsDB) error {
 	}
 	if check.IfNil(args.AppStatusHandler) {
 		return ErrNilAppStatusHandler
+	}
+	if check.IfNil(args.AddressConverter) {
+		return ErrNilAddressConverter
 	}
 
 	return nil
@@ -520,7 +525,7 @@ func (adb *AccountsDB) loadDataTrie(accountHandler baseAccountHandler, mainTrie 
 
 	dataTrie, err := mainTrie.Recreate(accountHandler.GetRootHash())
 	if err != nil {
-		return NewErrMissingTrie(accountHandler.GetRootHash())
+		return fmt.Errorf("trie was not found for hash, rootHash = %s, err = %w", hex.EncodeToString(accountHandler.GetRootHash()), err)
 	}
 
 	accountHandler.SetDataTrie(dataTrie)
@@ -1158,7 +1163,7 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 	go func() {
 		stats.NewSnapshotStarted()
 
-		trieStorageManager.TakeSnapshot(nil, rootHash, rootHash, iteratorChannels, missingNodesChannel, stats, epoch)
+		trieStorageManager.TakeSnapshot("", rootHash, rootHash, iteratorChannels, missingNodesChannel, stats, epoch)
 		adb.snapshotUserAccountDataTrie(true, rootHash, iteratorChannels, missingNodesChannel, stats, epoch)
 
 		stats.SnapshotFinished()
@@ -1239,12 +1244,12 @@ func (adb *AccountsDB) finishSnapshotOperation(
 }
 
 func (adb *AccountsDB) updateMetricsOnSnapshotStart(metrics *accountMetrics) {
-	adb.appStatusHandler.SetStringValue(metrics.snapshotInProgressKey, "true")
+	adb.appStatusHandler.SetUInt64Value(metrics.snapshotInProgressKey, 1)
 	adb.appStatusHandler.SetInt64Value(metrics.lastSnapshotDurationKey, 0)
 }
 
 func (adb *AccountsDB) updateMetricsOnSnapshotCompletion(metrics *accountMetrics, stats *snapshotStatistics) {
-	adb.appStatusHandler.SetStringValue(metrics.snapshotInProgressKey, "false")
+	adb.appStatusHandler.SetUInt64Value(metrics.snapshotInProgressKey, 0)
 	adb.appStatusHandler.SetInt64Value(metrics.lastSnapshotDurationKey, stats.GetSnapshotDuration())
 	if metrics.snapshotMessage == userTrieSnapshotMsg {
 		adb.appStatusHandler.SetUInt64Value(common.MetricAccountsSnapshotNumNodes, stats.GetSnapshotNumNodes())
@@ -1346,7 +1351,8 @@ func (adb *AccountsDB) snapshotUserAccountDataTrie(
 			ErrChan:    iteratorChannels.ErrChan,
 		}
 		if isSnapshot {
-			adb.mainTrie.GetStorageManager().TakeSnapshot(account.Address, account.RootHash, mainTrieRootHash, iteratorChannelsForDataTries, missingNodesChannel, stats, epoch)
+			address := adb.addressConverter.Encode(account.Address)
+			adb.mainTrie.GetStorageManager().TakeSnapshot(address, account.RootHash, mainTrieRootHash, iteratorChannelsForDataTries, missingNodesChannel, stats, epoch)
 			continue
 		}
 
@@ -1431,7 +1437,7 @@ func (adb *AccountsDB) GetStatsForRootHash(rootHash []byte) (common.TriesStatist
 		return nil, fmt.Errorf("invalid trie, type is %T", mainTrie)
 	}
 
-	collectStats(tr, stats, rootHash, nil)
+	collectStats(tr, stats, rootHash, "")
 
 	iteratorChannels := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, leavesChannelSize),
@@ -1460,7 +1466,8 @@ func (adb *AccountsDB) GetStatsForRootHash(rootHash []byte) (common.TriesStatist
 			continue
 		}
 
-		collectStats(tr, stats, account.RootHash, account.Address)
+		address := adb.addressConverter.Encode(account.Address)
+		collectStats(tr, stats, account.RootHash, address)
 	}
 
 	err = common.GetErrorFromChanNonBlocking(iteratorChannels.ErrChan)
@@ -1471,7 +1478,7 @@ func (adb *AccountsDB) GetStatsForRootHash(rootHash []byte) (common.TriesStatist
 	return stats, nil
 }
 
-func collectStats(tr common.TrieStats, stats common.TriesStatisticsCollector, rootHash []byte, address []byte) {
+func collectStats(tr common.TrieStats, stats common.TriesStatisticsCollector, rootHash []byte, address string) {
 	trieStats, err := tr.GetTrieStats(address, rootHash)
 	if err != nil {
 		log.Error(err.Error())

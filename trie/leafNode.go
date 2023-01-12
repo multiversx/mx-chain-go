@@ -21,7 +21,7 @@ import (
 var _ = node(&leafNode{})
 
 func newLeafNode(
-	newData dataForInsertion,
+	newData common.TrieData,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 ) (*leafNode, error) {
@@ -34,9 +34,9 @@ func newLeafNode(
 
 	return &leafNode{
 		CollapsedLn: CollapsedLn{
-			Key:     newData.key,
-			Value:   newData.value,
-			Version: uint32(newData.version),
+			Key:     newData.Key,
+			Value:   newData.Value,
+			Version: uint32(newData.Version),
 		},
 		baseNode: &baseNode{
 			dirty:  true,
@@ -276,7 +276,7 @@ func (ln *leafNode) getNext(key []byte, _ common.DBWriteCacher) (node, []byte, e
 	}
 	return nil, nil, ErrNodeNotFound
 }
-func (ln *leafNode) insert(newData dataForInsertion, _ common.DBWriteCacher) (node, [][]byte, error) {
+func (ln *leafNode) insert(newData common.TrieData, _ common.DBWriteCacher) (node, [][]byte, error) {
 	err := ln.isEmptyOrNil()
 	if err != nil {
 		return nil, [][]byte{}, fmt.Errorf("insert error %w", err)
@@ -289,11 +289,11 @@ func (ln *leafNode) insert(newData dataForInsertion, _ common.DBWriteCacher) (no
 
 	nodeKey := ln.Key
 
-	if bytes.Equal(newData.key, nodeKey) {
+	if bytes.Equal(newData.Key, nodeKey) {
 		return ln.insertInSameLn(newData, oldHash)
 	}
 
-	keyMatchLen := prefixLen(newData.key, nodeKey)
+	keyMatchLen := prefixLen(newData.Key, nodeKey)
 	bn, err := ln.insertInNewBn(newData, keyMatchLen)
 	if err != nil {
 		return nil, [][]byte{}, err
@@ -311,26 +311,26 @@ func (ln *leafNode) insert(newData dataForInsertion, _ common.DBWriteCacher) (no
 	return newEn, oldHash, nil
 }
 
-func (ln *leafNode) insertInSameLn(newData dataForInsertion, oldHashes [][]byte) (node, [][]byte, error) {
-	if bytes.Equal(ln.Value, newData.value) {
+func (ln *leafNode) insertInSameLn(newData common.TrieData, oldHashes [][]byte) (node, [][]byte, error) {
+	if bytes.Equal(ln.Value, newData.Value) {
 		return nil, [][]byte{}, nil
 	}
 
-	ln.Value = newData.value
-	ln.Version = uint32(newData.version)
+	ln.Value = newData.Value
+	ln.Version = uint32(newData.Version)
 	ln.dirty = true
 	ln.hash = nil
 	return ln, oldHashes, nil
 }
 
-func (ln *leafNode) insertInNewBn(newData dataForInsertion, keyMatchLen int) (node, error) {
+func (ln *leafNode) insertInNewBn(newData common.TrieData, keyMatchLen int) (node, error) {
 	bn, err := newBranchNode(ln.marsh, ln.hasher)
 	if err != nil {
 		return nil, err
 	}
 
 	oldChildPos := ln.Key[keyMatchLen]
-	newChildPos := newData.key[keyMatchLen]
+	newChildPos := newData.Key[keyMatchLen]
 	if childPosOutOfRange(oldChildPos) || childPosOutOfRange(newChildPos) {
 		return nil, ErrChildPosOutOfRange
 	}
@@ -340,10 +340,10 @@ func (ln *leafNode) insertInNewBn(newData dataForInsertion, keyMatchLen int) (no
 		return nil, err
 	}
 
-	oldLnData := dataForInsertion{
-		key:     ln.Key[keyMatchLen+1:],
-		value:   ln.Value,
-		version: oldLnVersion,
+	oldLnData := common.TrieData{
+		Key:     ln.Key[keyMatchLen+1:],
+		Value:   ln.Value,
+		Version: oldLnVersion,
 	}
 	newLnOldChildPos, err := newLeafNode(oldLnData, ln.marsh, ln.hasher)
 	if err != nil {
@@ -352,13 +352,13 @@ func (ln *leafNode) insertInNewBn(newData dataForInsertion, keyMatchLen int) (no
 	bn.children[oldChildPos] = newLnOldChildPos
 	bn.setVersionForChild(oldLnVersion, oldChildPos)
 
-	newData.key = newData.key[keyMatchLen+1:]
+	newData.Key = newData.Key[keyMatchLen+1:]
 	newLnNewChildPos, err := newLeafNode(newData, ln.marsh, ln.hasher)
 	if err != nil {
 		return nil, err
 	}
 	bn.children[newChildPos] = newLnNewChildPos
-	bn.setVersionForChild(newData.version, newChildPos)
+	bn.setVersionForChild(newData.Version, newChildPos)
 
 	return bn, nil
 }
@@ -383,10 +383,10 @@ func (ln *leafNode) reduceNode(pos int) (node, bool, error) {
 		return nil, false, err
 	}
 
-	oldLnData := dataForInsertion{
-		key:     k,
-		value:   ln.Value,
-		version: oldLnVersion,
+	oldLnData := common.TrieData{
+		Key:     k,
+		Value:   ln.Value,
+		Version: oldLnVersion,
 	}
 
 	newLn, err := newLeafNode(oldLnData, ln.marsh, ln.hasher)
@@ -482,7 +482,12 @@ func (ln *leafNode) getAllLeavesOnChannel(
 		return err
 	}
 
-	trieLeaf, err := trieLeafParser.ParseLeaf(nodeKey, ln.Value)
+	version, err := ln.getVersion()
+	if err != nil {
+		return err
+	}
+
+	trieLeaf, err := trieLeafParser.ParseLeaf(nodeKey, ln.Value, version)
 	if err != nil {
 		return err
 	}

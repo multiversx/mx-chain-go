@@ -489,22 +489,22 @@ func (bn *branchNode) getNext(key []byte, db common.DBWriteCacher) (node, []byte
 	return bn.children[childPos], key, nil
 }
 
-func (bn *branchNode) insert(newData dataForInsertion, db common.DBWriteCacher) (node, [][]byte, error) {
+func (bn *branchNode) insert(newData common.TrieData, db common.DBWriteCacher) (node, [][]byte, error) {
 	emptyHashes := make([][]byte, 0)
 	err := bn.isEmptyOrNil()
 	if err != nil {
 		return nil, emptyHashes, fmt.Errorf("insert error %w", err)
 	}
 
-	if len(newData.key) == 0 {
+	if len(newData.Key) == 0 {
 		return nil, emptyHashes, ErrValueTooShort
 	}
-	childPos := newData.key[firstByte]
+	childPos := newData.Key[firstByte]
 	if childPosOutOfRange(childPos) {
 		return nil, emptyHashes, ErrChildPosOutOfRange
 	}
 
-	newData.key = newData.key[1:]
+	newData.Key = newData.Key[1:]
 	err = resolveIfCollapsed(bn, childPos, db)
 	if err != nil {
 		return nil, emptyHashes, err
@@ -517,7 +517,7 @@ func (bn *branchNode) insert(newData dataForInsertion, db common.DBWriteCacher) 
 	return bn.insertOnExistingChild(newData, childPos, db)
 }
 
-func (bn *branchNode) insertOnNilChild(newData dataForInsertion, childPos byte) (node, [][]byte, error) {
+func (bn *branchNode) insertOnNilChild(newData common.TrieData, childPos byte) (node, [][]byte, error) {
 	newLn, err := newLeafNode(newData, bn.marsh, bn.hasher)
 	if err != nil {
 		return nil, [][]byte{}, err
@@ -532,7 +532,7 @@ func (bn *branchNode) insertOnNilChild(newData dataForInsertion, childPos byte) 
 	return bn, modifiedHashes, nil
 }
 
-func (bn *branchNode) insertOnExistingChild(newData dataForInsertion, childPos byte, db common.DBWriteCacher) (node, [][]byte, error) {
+func (bn *branchNode) insertOnExistingChild(newData common.TrieData, childPos byte, db common.DBWriteCacher) (node, [][]byte, error) {
 	newNode, modifiedHashes, err := bn.children[childPos].insert(newData, db)
 	if check.IfNil(newNode) || err != nil {
 		return nil, [][]byte{}, err

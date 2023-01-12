@@ -29,11 +29,11 @@ func getTestMarshalizerAndHasher() (marshal.Marshalizer, hashing.Hasher) {
 	return marsh, hash
 }
 
-func getTrieDataWithDefaultVersion(key string, val string) dataForInsertion {
-	return dataForInsertion{
-		key:     []byte(key),
-		value:   []byte(val),
-		version: common.NotSpecified,
+func getTrieDataWithDefaultVersion(key string, val string) common.TrieData {
+	return common.TrieData{
+		Key:     []byte(key),
+		Value:   []byte(val),
+		Version: common.NotSpecified,
 	}
 }
 
@@ -118,7 +118,7 @@ func initTrie() *patriciaMerkleTrie {
 }
 
 func getEncodedTrieNodesAndHashes(tr common.Trie) ([][]byte, [][]byte) {
-	it, _ := NewIterator(tr)
+	it, _ := NewDFSIterator(tr)
 	encNode, _ := it.MarshalizedNode()
 
 	nodes := make([][]byte, 0)

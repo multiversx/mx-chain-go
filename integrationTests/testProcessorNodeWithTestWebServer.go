@@ -23,7 +23,9 @@ import (
 	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
 	"github.com/ElrondNetwork/elrond-go/process/txstatus"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genesisMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	datafield "github.com/ElrondNetwork/elrond-vm-common/parsers/dataField"
@@ -201,9 +203,8 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 	receiptsRepository := &testscommon.ReceiptsRepositoryStub{}
 
 	argsDataFieldParser := &datafield.ArgsOperationDataFieldParser{
-		AddressLength:    TestAddressPubkeyConverter.Len(),
-		Marshalizer:      TestMarshalizer,
-		ShardCoordinator: tpn.ShardCoordinator,
+		AddressLength: TestAddressPubkeyConverter.Len(),
+		Marshalizer:   TestMarshalizer,
 	}
 	dataFieldParser, err := datafield.NewOperationDataFieldParser(argsDataFieldParser)
 	log.LogIfError(err)
@@ -228,17 +229,21 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 	log.LogIfError(err)
 
 	argsBlockAPI := &blockAPI.ArgAPIBlockProcessor{
-		SelfShardID:              tpn.ShardCoordinator.SelfId(),
-		Store:                    tpn.Storage,
-		Marshalizer:              TestMarshalizer,
-		Uint64ByteSliceConverter: TestUint64Converter,
-		HistoryRepo:              tpn.HistoryRepository,
-		APITransactionHandler:    apiTransactionHandler,
-		StatusComputer:           statusCom,
-		Hasher:                   TestHasher,
-		AddressPubkeyConverter:   TestAddressPubkeyConverter,
-		LogsFacade:               logsFacade,
-		ReceiptsRepository:       receiptsRepository,
+		SelfShardID:                  tpn.ShardCoordinator.SelfId(),
+		Store:                        tpn.Storage,
+		Marshalizer:                  TestMarshalizer,
+		Uint64ByteSliceConverter:     TestUint64Converter,
+		HistoryRepo:                  tpn.HistoryRepository,
+		APITransactionHandler:        apiTransactionHandler,
+		StatusComputer:               statusCom,
+		Hasher:                       TestHasher,
+		AddressPubkeyConverter:       TestAddressPubkeyConverter,
+		LogsFacade:                   logsFacade,
+		ReceiptsRepository:           receiptsRepository,
+		AlteredAccountsProvider:      &testscommon.AlteredAccountsProviderStub{},
+		AccountsRepository:           &state.AccountsRepositoryStub{},
+		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
+		EnableEpochsHandler:          &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	blockAPIHandler, err := blockAPI.CreateAPIBlockProcessor(argsBlockAPI)
 	log.LogIfError(err)

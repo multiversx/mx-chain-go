@@ -153,7 +153,7 @@ func (u *UserAccountStub) SaveKeyValue(_ []byte, _ []byte) error {
 }
 
 // SaveDirtyData -
-func (u *UserAccountStub) SaveDirtyData(_ common.Trie) (map[string][]byte, error) {
+func (u *UserAccountStub) SaveDirtyData(_ common.Trie) ([]common.TrieData, error) {
 	return nil, nil
 }
 

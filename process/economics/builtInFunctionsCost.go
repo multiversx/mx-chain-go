@@ -76,7 +76,7 @@ func (bc *builtInFunctionsCost) GasScheduleChange(gasSchedule map[string]map[str
 	bc.gasConfig = newGasConfig
 }
 
-// ComputeBuiltInCost will compute built in function cost
+// ComputeBuiltInCost will compute built-in function cost
 func (bc *builtInFunctionsCost) ComputeBuiltInCost(tx data.TransactionWithFeeHandler) uint64 {
 	function, arguments, err := bc.argsParser.ParseCallData(string(tx.GetData()))
 	if err != nil {

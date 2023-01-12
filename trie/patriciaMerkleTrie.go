@@ -113,15 +113,7 @@ func (tr *patriciaMerkleTrie) Update(key, value []byte) error {
 		"val", hex.EncodeToString(value),
 	)
 
-	return tr.update(key, value, tr.getNewestVersion())
-}
-
-func (tr *patriciaMerkleTrie) getNewestVersion() common.TrieNodeVersion {
-	if tr.enableEpochsHandler.IsAutoBalanceDataTriesEnabled() {
-		return common.AutoBalanceEnabled
-	}
-
-	return common.NotSpecified
+	return tr.update(key, value, common.NotSpecified)
 }
 
 // UpdateWithVersion does the same thing as Update, but the new leaf that is created will be of the specified version
@@ -141,10 +133,10 @@ func (tr *patriciaMerkleTrie) UpdateWithVersion(key []byte, value []byte, versio
 func (tr *patriciaMerkleTrie) update(key []byte, value []byte, version common.TrieNodeVersion) error {
 	hexKey := keyBytesToHex(key)
 	if len(value) != 0 {
-		newData := dataForInsertion{
-			key:     hexKey,
-			value:   value,
-			version: version,
+		newData := common.TrieData{
+			Key:     hexKey,
+			Value:   value,
+			Version: version,
 		}
 
 		if tr.root == nil {
@@ -424,7 +416,7 @@ func (tr *patriciaMerkleTrie) GetSerializedNodes(rootHash []byte, maxBuffToSend 
 		return nil, 0, err
 	}
 
-	it, err := NewIterator(newTr)
+	it, err := NewDFSIterator(newTr)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -680,7 +672,7 @@ func (tr *patriciaMerkleTrie) GetOldRoot() []byte {
 }
 
 // GetTrieStats will collect and return the statistics for the given rootHash
-func (tr *patriciaMerkleTrie) GetTrieStats(address []byte, rootHash []byte) (*statistics.TrieStatsDTO, error) {
+func (tr *patriciaMerkleTrie) GetTrieStats(address string, rootHash []byte) (*statistics.TrieStatsDTO, error) {
 	tr.mutOperation.RLock()
 	newTrie, err := tr.recreate(rootHash, tr.trieStorage)
 	if err != nil {

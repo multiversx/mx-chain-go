@@ -17,6 +17,13 @@ const (
 	AutoBalanceEnabled
 )
 
+// TrieData holds the data that will be inserted into the trie
+type TrieData struct {
+	Key     []byte
+	Value   []byte
+	Version TrieNodeVersion
+}
+
 // EmptyTrieHash returns the value with empty trie hash
 var EmptyTrieHash = make([]byte, 32)
 

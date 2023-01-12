@@ -29,7 +29,7 @@ type node interface {
 	hashChildren() error
 	tryGet(key []byte, depth uint32, db common.DBWriteCacher) ([]byte, uint32, error)
 	getNext(key []byte, db common.DBWriteCacher) (node, []byte, error)
-	insert(newData dataForInsertion, db common.DBWriteCacher) (node, [][]byte, error)
+	insert(newData common.TrieData, db common.DBWriteCacher) (node, [][]byte, error)
 	delete(key []byte, db common.DBWriteCacher) (bool, node, [][]byte, error)
 	reduceNode(pos int) (node, bool, error)
 	isEmptyOrNil() error
@@ -128,10 +128,4 @@ type storageManagerExtension interface {
 // StorageMarker is used to mark the given storer as synced and active
 type StorageMarker interface {
 	MarkStorerAsSyncedAndActive(storer common.StorageManager)
-}
-
-type dataForInsertion struct {
-	key     []byte
-	value   []byte
-	version common.TrieNodeVersion
 }

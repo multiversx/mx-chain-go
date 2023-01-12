@@ -80,9 +80,6 @@ func createComponentsForEpochStart() (*mock.CoreComponentsMock, *mock.CryptoComp
 			ProcessStatusHandlerInstance: &testscommon.ProcessStatusHandlerStub{},
 			HardforkTriggerPubKeyField:   []byte("provided hardfork pub key"),
 			EnableEpochsHandlerField:     &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-			StatusHandlerCalled: func() core.AppStatusHandler {
-				return &statusHandlerMock.AppStatusHandlerStub{}
-			},
 		},
 		&mock.CryptoComponentsMock{
 			PubKey:          &cryptoMocks.PublicKeyStub{},
@@ -196,7 +193,7 @@ func createMockEpochStartBootstrapArgs(
 				Capacity: 10,
 				Shards:   10,
 			},
-			Resolvers: generalCfg.Resolvers,
+			Requesters: generalCfg.Requesters,
 		},
 		EconomicsData: &economicsmocks.EconomicsHandlerStub{
 			MinGasPriceCalled: func() uint64 {

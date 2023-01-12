@@ -1,6 +1,7 @@
 package state
 
 import (
+	"fmt"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
@@ -123,9 +124,9 @@ func (tdaw *trackableDataTrie) DataTrie() common.DataTrieHandler {
 }
 
 // SaveDirtyData saved the dirty data to the trie
-func (tdaw *trackableDataTrie) SaveDirtyData(mainTrie common.Trie) (map[string][]byte, error) {
+func (tdaw *trackableDataTrie) SaveDirtyData(mainTrie common.Trie) ([]common.TrieData, error) {
 	if len(tdaw.dirtyData) == 0 {
-		return map[string][]byte{}, nil
+		return make([]common.TrieData, 0), nil
 	}
 
 	if check.IfNil(tdaw.tr) {
@@ -137,15 +138,20 @@ func (tdaw *trackableDataTrie) SaveDirtyData(mainTrie common.Trie) (map[string][
 		tdaw.tr = newDataTrie
 	}
 
-	if tdaw.enableEpochsHandler.IsAutoBalanceDataTriesEnabled() {
-		return tdaw.updateTrieWithAutoBalancing()
+	dtr, ok := tdaw.tr.(dataTrie)
+	if !ok {
+		return nil, fmt.Errorf("invalid trie, type is %T", tdaw.tr)
 	}
 
-	return tdaw.updateTrieV1()
+	if tdaw.enableEpochsHandler.IsAutoBalanceDataTriesEnabled() {
+		return tdaw.updateTrieWithAutoBalancing(dtr)
+	}
+
+	return tdaw.updateTrieV1(dtr)
 }
 
-func (tdaw *trackableDataTrie) updateTrieV1() (map[string][]byte, error) {
-	oldValues := make(map[string][]byte)
+func (tdaw *trackableDataTrie) updateTrieV1(selfDataTrie dataTrie) ([]common.TrieData, error) {
+	oldValues := make([]common.TrieData, 0)
 
 	for key, val := range tdaw.dirtyData {
 		oldVal, _, err := tdaw.tr.Get([]byte(key))
@@ -153,7 +159,12 @@ func (tdaw *trackableDataTrie) updateTrieV1() (map[string][]byte, error) {
 			return nil, err
 		}
 
-		oldValues[key] = oldVal
+		oldEntry := common.TrieData{
+			Key:     []byte(key),
+			Value:   oldVal,
+			Version: common.NotSpecified,
+		}
+		oldValues = append(oldValues, oldEntry)
 
 		var identifier []byte
 		if len(val) != 0 {
@@ -162,7 +173,7 @@ func (tdaw *trackableDataTrie) updateTrieV1() (map[string][]byte, error) {
 
 		valueWithAppendedData := append(val, identifier...)
 
-		err = tdaw.tr.Update([]byte(key), valueWithAppendedData)
+		err = selfDataTrie.UpdateWithVersion([]byte(key), valueWithAppendedData, common.NotSpecified)
 		if err != nil {
 			return nil, err
 		}
@@ -172,18 +183,18 @@ func (tdaw *trackableDataTrie) updateTrieV1() (map[string][]byte, error) {
 	return oldValues, nil
 }
 
-func (tdaw *trackableDataTrie) updateTrieWithAutoBalancing() (map[string][]byte, error) {
-	oldValues := make(map[string][]byte)
+func (tdaw *trackableDataTrie) updateTrieWithAutoBalancing(dtr dataTrie) ([]common.TrieData, error) {
+	oldValues := make([]common.TrieData, 0)
 
 	for key, val := range tdaw.dirtyData {
-		oldKey, oldVal, err := tdaw.getOldKeyAndValWithCleanup(key)
+		oldEntry, err := tdaw.getOldKeyAndValWithCleanup(key)
 		if err != nil {
 			return nil, err
 		}
 
-		oldValues[string(oldKey)] = oldVal
+		oldValues = append(oldValues, oldEntry)
 
-		err = tdaw.updateValInTrie([]byte(key), val)
+		err = tdaw.updateValInTrie([]byte(key), val, dtr)
 		if err != nil {
 			return nil, err
 		}
@@ -193,34 +204,46 @@ func (tdaw *trackableDataTrie) updateTrieWithAutoBalancing() (map[string][]byte,
 	return oldValues, nil
 }
 
-func (tdaw *trackableDataTrie) getOldKeyAndValWithCleanup(key string) ([]byte, []byte, error) {
+func (tdaw *trackableDataTrie) getOldKeyAndValWithCleanup(key string) (common.TrieData, error) {
 	hashedKey := tdaw.hasher.Compute(key)
 
 	oldVal, _, err := tdaw.tr.Get(hashedKey)
 	if err == nil && len(oldVal) != 0 {
-		return hashedKey, oldVal, nil
+		return common.TrieData{
+			Key:     hashedKey,
+			Value:   oldVal,
+			Version: common.AutoBalanceEnabled,
+		}, nil
 	}
 
 	oldVal, _, err = tdaw.tr.Get([]byte(key))
 	if err != nil {
-		return nil, nil, err
+		return common.TrieData{}, err
 	}
 
 	if len(oldVal) == 0 {
-		return hashedKey, oldVal, nil
+		return common.TrieData{
+			Key:     hashedKey,
+			Value:   nil,
+			Version: common.NotSpecified,
+		}, nil
 	}
 
 	err = tdaw.tr.Delete([]byte(key))
 	if err != nil {
-		return nil, nil, err
+		return common.TrieData{}, err
 	}
 
-	return []byte(key), oldVal, nil
+	return common.TrieData{
+		Key:     []byte(key),
+		Value:   oldVal,
+		Version: common.NotSpecified,
+	}, nil
 }
 
-func (tdaw *trackableDataTrie) updateValInTrie(key []byte, val []byte) error {
+func (tdaw *trackableDataTrie) updateValInTrie(key []byte, val []byte, selfDataTrie dataTrie) error {
 	if len(val) == 0 {
-		return tdaw.tr.Update(tdaw.hasher.Compute(string(key)), val)
+		return tdaw.tr.Delete(tdaw.hasher.Compute(string(key)))
 	}
 
 	trieVal := &dataTrieValue.TrieLeafData{
@@ -234,7 +257,7 @@ func (tdaw *trackableDataTrie) updateValInTrie(key []byte, val []byte) error {
 		return err
 	}
 
-	return tdaw.tr.Update(tdaw.hasher.Compute(string(key)), serializedTrieVal)
+	return selfDataTrie.UpdateWithVersion(tdaw.hasher.Compute(string(key)), serializedTrieVal, common.AutoBalanceEnabled)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

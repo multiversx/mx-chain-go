@@ -1,9 +1,12 @@
 package parsers
 
 import (
+	"encoding/hex"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/state/dataTrieValue"
 	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
@@ -52,7 +55,7 @@ func TestTrieLeafParser_ParseLeaf(t *testing.T) {
 		suffix := append(key, address...)
 		tlp, _ := NewDataTrieLeafParser(address, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 
-		keyVal, err := tlp.ParseLeaf(key, append(val, suffix...))
+		keyVal, err := tlp.ParseLeaf(key, append(val, suffix...), common.NotSpecified)
 		assert.Nil(t, err)
 		assert.Equal(t, key, keyVal.Key())
 		assert.Equal(t, val, keyVal.Value())
@@ -70,7 +73,7 @@ func TestTrieLeafParser_ParseLeaf(t *testing.T) {
 		}
 		tlp, _ := NewDataTrieLeafParser(address, &marshallerMock.MarshalizerMock{}, enableEpochsHandler)
 
-		keyVal, err := tlp.ParseLeaf(key, append(val, suffix...))
+		keyVal, err := tlp.ParseLeaf(key, append(val, suffix...), common.NotSpecified)
 		assert.Nil(t, err)
 		assert.Equal(t, key, keyVal.Key())
 		assert.Equal(t, val, keyVal.Value())
@@ -95,9 +98,33 @@ func TestTrieLeafParser_ParseLeaf(t *testing.T) {
 		}
 		tlp, _ := NewDataTrieLeafParser(address, marshaller, enableEpochsHandler)
 
-		keyVal, err := tlp.ParseLeaf(hasher.Compute(string(key)), serializedLeafData)
+		keyVal, err := tlp.ParseLeaf(hasher.Compute(string(key)), serializedLeafData, common.AutoBalanceEnabled)
 		assert.Nil(t, err)
 		assert.Equal(t, key, keyVal.Key())
 		assert.Equal(t, val, keyVal.Value())
+	})
+
+	t.Run("unmarshall bytes with appended data should not return empty data", func(t *testing.T) {
+		t.Parallel()
+
+		marshaller := &marshal.GogoProtoMarshalizer{}
+
+		keyBytes := []byte("eth")
+		valBytes := []byte("0xA2AA67319062488CAFfc7E52802a3308cAF78a54")
+		addrBytes, err := hex.DecodeString("b080fe7e47edd5f32b619a7a439a0174ebda49ac27a5b112dd685470ae008001")
+		assert.Nil(t, err)
+
+		valWithAppendedData := append(valBytes, keyBytes...)
+		valWithAppendedData = append(valWithAppendedData, addrBytes...)
+
+		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsAutoBalanceDataTriesEnabledField: true,
+		}
+		tlp, _ := NewDataTrieLeafParser(addrBytes, marshaller, enableEpochsHandler)
+
+		keyVal, err := tlp.ParseLeaf(keyBytes, valWithAppendedData, common.NotSpecified)
+		assert.Nil(t, err)
+		assert.Equal(t, keyBytes, keyVal.Key())
+		assert.Equal(t, valBytes, keyVal.Value())
 	})
 }

@@ -141,7 +141,7 @@ func (uam *UserAccountMock) GetUserName() []byte {
 }
 
 // SaveDirtyData -
-func (uam *UserAccountMock) SaveDirtyData(_ common.Trie) (map[string][]byte, error) {
+func (uam *UserAccountMock) SaveDirtyData(_ common.Trie) ([]common.TrieData, error) {
 	return nil, nil
 }
 

@@ -95,7 +95,7 @@ type DataTrieTracker interface {
 	SaveKeyValue(key []byte, value []byte) error
 	SetDataTrie(tr common.Trie)
 	DataTrie() common.DataTrieHandler
-	SaveDirtyData(common.Trie) (map[string][]byte, error)
+	SaveDirtyData(common.Trie) ([]common.TrieData, error)
 	IsInterfaceNil() bool
 }
 
@@ -165,7 +165,7 @@ type baseAccountHandler interface {
 	GetRootHash() []byte
 	SetDataTrie(trie common.Trie)
 	DataTrie() common.DataTrieHandler
-	SaveDirtyData(trie common.Trie) (map[string][]byte, error)
+	SaveDirtyData(trie common.Trie) ([]common.TrieData, error)
 	IsInterfaceNil() bool
 }
 
@@ -217,4 +217,10 @@ type AccountsAdapterAPI interface {
 	AccountsAdapter
 	GetAccountWithBlockInfo(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error)
 	GetCodeWithBlockInfo(codeHash []byte, options common.RootHashHolder) ([]byte, common.BlockInfo, error)
+}
+
+type dataTrie interface {
+	common.Trie
+
+	UpdateWithVersion(key []byte, value []byte, version common.TrieNodeVersion) error
 }
