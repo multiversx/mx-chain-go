@@ -1,11 +1,15 @@
 package guardian
 
 import (
+	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/guardians"
+	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
@@ -1158,6 +1162,47 @@ func TestGuardedAccount_IsInterfaceNil(t *testing.T) {
 
 	ga, _ = NewGuardedAccount(&testscommon.MarshalizerMock{}, &epochNotifier.EpochNotifierStub{}, 10)
 	require.False(t, check.IfNil(ga))
+}
+
+func TestGuardedAccount_EpochConcurrency(t *testing.T) {
+	t.Parallel()
+
+	marshaller := &testscommon.MarshalizerMock{}
+	currentEpoch := uint32(0)
+	en := forking.NewGenericEpochNotifier()
+	ga, _ := NewGuardedAccount(marshaller, en, 2)
+	ctx := context.Background()
+	go func() {
+		epochTime := time.Millisecond
+		timer := time.NewTimer(epochTime)
+		defer timer.Stop()
+
+		for {
+			timer.Reset(epochTime)
+			select {
+			case <-timer.C:
+				hdr := &block.Header{
+					Epoch: currentEpoch,
+				}
+				en.CheckEpoch(hdr)
+				currentEpoch++
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
+	uah := &stateMocks.UserAccountStub{
+		AccountDataHandlerCalled: func() vmcommon.AccountDataHandler {
+			return &trie.DataTrieTrackerStub{
+				SaveKeyValueCalled: func(key []byte, value []byte) error {
+					return nil
+				},
+			}
+		},
+	}
+	err := ga.SetGuardian(uah, []byte("guardian address"), nil, []byte("uuid"))
+	require.Nil(t, err)
 }
 
 func createGuardedAccountWithEpoch(epoch uint32) *guardedAccount {
