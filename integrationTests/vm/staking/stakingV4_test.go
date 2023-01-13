@@ -88,7 +88,7 @@ func remove(slice [][]byte, elem []byte) [][]byte {
 
 func unStake(t *testing.T, owner []byte, accountsDB state.AccountsAdapter, marshaller marshal.Marshalizer, stake *big.Int) {
 	validatorSC := stakingcommon.LoadUserAccount(accountsDB, vm.ValidatorSCAddress)
-	ownerStoredData, err := validatorSC.DataTrieTracker().RetrieveValue(owner)
+	ownerStoredData, _, err := validatorSC.RetrieveValue(owner)
 	require.Nil(t, err)
 
 	validatorData := &systemSmartContracts.ValidatorDataV2{}
@@ -97,7 +97,7 @@ func unStake(t *testing.T, owner []byte, accountsDB state.AccountsAdapter, marsh
 
 	validatorData.TotalStakeValue.Sub(validatorData.TotalStakeValue, stake)
 	marshaledData, _ := marshaller.Marshal(validatorData)
-	err = validatorSC.DataTrieTracker().SaveKeyValue(owner, marshaledData)
+	err = validatorSC.SaveKeyValue(owner, marshaledData)
 	require.Nil(t, err)
 
 	err = accountsDB.SaveAccount(validatorSC)

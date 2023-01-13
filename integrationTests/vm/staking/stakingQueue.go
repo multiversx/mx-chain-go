@@ -87,7 +87,7 @@ func (tmp *TestMetaProcessor) getWaitingListKeys() [][]byte {
 		Length:        0,
 		LastJailedKey: make([]byte, 0),
 	}
-	marshaledData, _ := stakingSCAcc.DataTrieTracker().RetrieveValue([]byte("waitingList"))
+	marshaledData, _, _ := stakingSCAcc.RetrieveValue([]byte("waitingList"))
 	if len(marshaledData) == 0 {
 		return nil
 	}
