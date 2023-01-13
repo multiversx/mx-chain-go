@@ -43,10 +43,6 @@ type stakingSC struct {
 	mutExecution             sync.RWMutex
 	minNodePrice             *big.Int
 	enableEpochsHandler      common.EnableEpochsHandler
-
-	flagStakingV4      atomic.Flag
-	flagStakingV4Init  atomic.Flag
-	stakingV4InitEpoch uint32
 }
 
 // ArgsNewStakingSmartContract holds the arguments needed to create a StakingSmartContract
@@ -115,7 +111,6 @@ func NewStakingSmartContract(
 		walletAddressLen:         len(args.StakingAccessAddr),
 		minNodePrice:             minStakeValue,
 		enableEpochsHandler:      args.EnableEpochsHandler,
-		stakingV4InitEpoch:       args.EpochConfig.EnableEpochs.StakingV4InitEnableEpoch,
 	}
 
 	var conversionOk bool
@@ -228,7 +223,7 @@ func (s *stakingSC) numSpareNodes() int64 {
 }
 
 func (s *stakingSC) canStake() bool {
-	if s.flagStakingV4.IsSet() {
+	if s.enableEpochsHandler.IsStakingV4Started() {
 		return true
 	}
 
@@ -557,7 +552,7 @@ func (s *stakingSC) activeStakingFor(stakingData *StakedDataV2_0) {
 }
 
 func (s *stakingSC) processStake(blsKey []byte, registrationData *StakedDataV2_0, addFirst bool) error {
-	if s.flagStakingV4.IsSet() {
+	if s.enableEpochsHandler.IsStakingV4Started() {
 		return s.processStakeV2(registrationData)
 	}
 
@@ -577,7 +572,7 @@ func (s *stakingSC) processStakeV2(registrationData *StakedDataV2_0) error {
 }
 
 func (s *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if s.flagStakingV4.IsSet() {
+	if s.enableEpochsHandler.IsStakingV4Started() {
 		return s.unStakeV2(args)
 	}
 
@@ -901,7 +896,7 @@ func (s *stakingSC) getBLSKeyStatus(args *vmcommon.ContractCallInput) vmcommon.R
 }
 
 func (s *stakingSC) getTotalNumberOfRegisteredNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !s.flagStakingV2.IsSet() {
+	if !s.enableEpochsHandler.IsStakingV2FlagEnabled() {
 		s.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError
 	}
@@ -1140,33 +1135,6 @@ func (s *stakingSC) checkValidatorFunds(
 	mapCheckedOwners[string(owner)] = validatorInfo
 
 	return validatorInfo, nil
-}
-
-// EpochConfirmed is called whenever a new epoch is confirmed
-func (s *stakingSC) EpochConfirmed(epoch uint32, _ uint64) {
-	s.flagEnableStaking.SetValue(epoch >= s.enableStakingEpoch)
-	log.Debug("stakingSC: stake/unstake/unbond", "enabled", s.flagEnableStaking.IsSet())
-
-	s.flagStakingV2.SetValue(epoch >= s.stakingV2Epoch)
-	log.Debug("stakingSC: set owner", "enabled", s.flagStakingV2.IsSet())
-
-	s.flagCorrectLastUnjailed.SetValue(epoch >= s.correctLastUnjailedEpoch)
-	log.Debug("stakingSC: correct last unjailed", "enabled", s.flagCorrectLastUnjailed.IsSet())
-
-	s.flagValidatorToDelegation.SetValue(epoch >= s.validatorToDelegationEnableEpoch)
-	log.Debug("stakingSC: validator to delegation", "enabled", s.flagValidatorToDelegation.IsSet())
-
-	s.flagCorrectFirstQueued.SetValue(epoch >= s.correctFirstQueuedEpoch)
-	log.Debug("stakingSC: correct first queued", "enabled", s.flagCorrectFirstQueued.IsSet())
-
-	s.flagCorrectJailedNotUnstakedEmptyQueue.SetValue(epoch >= s.correctJailedNotUnstakedEmptyQueueEpoch)
-	log.Debug("stakingSC: correct jailed not unstaked with empty queue", "enabled", s.flagCorrectJailedNotUnstakedEmptyQueue.IsSet())
-
-	s.flagStakingV4Init.SetValue(epoch == s.stakingV4InitEpoch)
-	log.Debug("stakingSC: staking v4 init", "enabled", s.flagStakingV4Init.IsSet())
-
-	s.flagStakingV4.SetValue(epoch >= s.stakingV4InitEpoch)
-	log.Debug("stakingSC: staking v4", "enabled", s.flagStakingV4.IsSet())
 }
 
 // CanUseContract returns true if contract can be used

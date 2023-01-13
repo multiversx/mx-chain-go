@@ -155,6 +155,14 @@ func createDelegationContractAndEEI() (*delegation, *vmContext) {
 	args.DelegationSCConfig.MaxServiceFee = 10000
 	args.DelegationSCConfig.MinServiceFee = 0
 	d, _ := NewDelegationSystemSC(args)
+
+	managementData := &DelegationManagement{
+		MinDeposit:          big.NewInt(10),
+		MinDelegationAmount: big.NewInt(10),
+	}
+	marshaledData, _ := d.marshalizer.Marshal(managementData)
+	eei.SetStorageForAddress(d.delegationMgrSCAddress, []byte(delegationManagementKey), marshaledData)
+
 	return d, eei
 }
 
@@ -4899,42 +4907,6 @@ func TestDelegationSystemSC_ExecuteChangeOwner(t *testing.T) {
 	assert.Equal(t, []byte(withdraw), eei.logs[1].Identifier)
 	assert.Equal(t, []byte("second123"), eei.logs[1].Address)
 	assert.Equal(t, boolToSlice(true), eei.logs[1].Topics[4])
-}
-
-func createDelegationContractAndEEI() (*delegation, *vmContext) {
-	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{
-			CurrentEpochCalled: func() uint32 {
-				return 2
-			},
-		},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
-	systemSCContainerStub := &mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
-		return &mock.SystemSCStub{ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-			return vmcommon.Ok
-		}}, nil
-	}}
-
-	_ = eei.SetSystemSCContainer(systemSCContainerStub)
-
-	args.Eei = eei
-	args.DelegationSCConfig.MaxServiceFee = 10000
-	args.DelegationSCConfig.MinServiceFee = 0
-	d, _ := NewDelegationSystemSC(args)
-
-	managementData := &DelegationManagement{
-		MinDeposit:          big.NewInt(10),
-		MinDelegationAmount: big.NewInt(10),
-	}
-	marshaledData, _ := d.marshalizer.Marshal(managementData)
-	eei.SetStorageForAddress(d.delegationMgrSCAddress, []byte(delegationManagementKey), marshaledData)
-
-	return d, eei
 }
 
 func TestDelegation_FailsIfESDTTransfers(t *testing.T) {

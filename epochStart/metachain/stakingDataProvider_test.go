@@ -25,7 +25,7 @@ import (
 )
 
 const stakingV4EInitEnableEpoch = 444
-const stakingV4EnableEpoch = 444
+const stakingV4EnableEpoch = 445
 
 func createStakingDataProviderArgs() StakingDataProviderArgs {
 	return StakingDataProviderArgs{

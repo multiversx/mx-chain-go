@@ -10,7 +10,6 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
@@ -53,8 +52,6 @@ type validatorSC struct {
 	governanceSCAddress    []byte
 	shardCoordinator       sharding.Coordinator
 	enableEpochsHandler    common.EnableEpochsHandler
-	stakeLimitsEnableEpoch uint32
-	flagStakeLimits        atomic.Flag
 	nodesCoordinator       vm.NodesCoordinator
 	totalStakeLimit        *big.Int
 	nodeLimitPercentage    float64
@@ -174,7 +171,6 @@ func NewValidatorSmartContract(
 		governanceSCAddress:    args.GovernanceSCAddress,
 		shardCoordinator:       args.ShardCoordinator,
 		enableEpochsHandler:    args.EnableEpochsHandler,
-		stakeLimitsEnableEpoch: args.EpochConfig.EnableEpochs.StakeLimitsEnableEpoch,
 		nodeLimitPercentage:    args.StakingSCConfig.NodeLimitPercentage,
 		nodesCoordinator:       args.NodesCoordinator,
 	}
@@ -915,7 +911,7 @@ func (v *validatorSC) checkAllGivenKeysAreUnStaked(registrationData *ValidatorDa
 }
 
 func (v *validatorSC) isStakeTooHigh(registrationData *ValidatorDataV2) bool {
-	if !v.flagStakeLimits.IsSet() {
+	if !v.enableEpochsHandler.IsStakeLimitsEnabled() {
 		return false
 	}
 
@@ -923,7 +919,7 @@ func (v *validatorSC) isStakeTooHigh(registrationData *ValidatorDataV2) bool {
 }
 
 func (v *validatorSC) isNumberOfNodesTooHigh(registrationData *ValidatorDataV2) bool {
-	if !v.flagStakeLimits.IsSet() {
+	if !v.enableEpochsHandler.IsStakeLimitsEnabled() {
 		return false
 	}
 

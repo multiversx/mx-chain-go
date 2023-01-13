@@ -10,7 +10,6 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -47,20 +46,18 @@ const conversionBase = 10
 const metaESDT = "MetaESDT"
 
 type esdt struct {
-	eei                        vm.SystemEI
-	gasCost                    vm.GasCost
-	baseIssuingCost            *big.Int
-	ownerAddress               []byte // do not use this in functions. Should use e.getEsdtOwner()
-	esdtSCAddress              []byte
-	endOfEpochSCAddress        []byte
-	marshalizer                marshal.Marshalizer
-	hasher                     hashing.Hasher
-	mutExecution               sync.RWMutex
-	addressPubKeyConverter     core.PubkeyConverter
-	enableEpochsHandler        common.EnableEpochsHandler
-	esdtOnMetachainEnableEpoch uint32
-	flagESDTOnMeta             atomic.Flag
-	delegationTicker           string
+	eei                    vm.SystemEI
+	gasCost                vm.GasCost
+	baseIssuingCost        *big.Int
+	ownerAddress           []byte // do not use this in functions. Should use e.getEsdtOwner()
+	esdtSCAddress          []byte
+	endOfEpochSCAddress    []byte
+	marshalizer            marshal.Marshalizer
+	hasher                 hashing.Hasher
+	mutExecution           sync.RWMutex
+	addressPubKeyConverter core.PubkeyConverter
+	enableEpochsHandler    common.EnableEpochsHandler
+	delegationTicker       string
 }
 
 // ArgsNewESDTSmartContract defines the arguments needed for the esdt contract
@@ -110,15 +107,14 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 		baseIssuingCost: baseIssuingCost,
 		// we should have called pubkeyConverter.Decode here instead of a byte slice cast. Since that change would break
 		// backwards compatibility, the fix was carried in the epochStart/metachain/systemSCs.go
-		ownerAddress:               []byte(args.ESDTSCConfig.OwnerAddress),
-		esdtSCAddress:              args.ESDTSCAddress,
-		hasher:                     args.Hasher,
-		marshalizer:                args.Marshalizer,
-		endOfEpochSCAddress:        args.EndOfEpochSCAddress,
-		addressPubKeyConverter:     args.AddressPubKeyConverter,
-		enableEpochsHandler:        args.EnableEpochsHandler,
-		esdtOnMetachainEnableEpoch: args.EpochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
-		delegationTicker:           args.ESDTSCConfig.DelegationTicker,
+		ownerAddress:           []byte(args.ESDTSCConfig.OwnerAddress),
+		esdtSCAddress:          args.ESDTSCAddress,
+		hasher:                 args.Hasher,
+		marshalizer:            args.Marshalizer,
+		endOfEpochSCAddress:    args.EndOfEpochSCAddress,
+		addressPubKeyConverter: args.AddressPubKeyConverter,
+		enableEpochsHandler:    args.EnableEpochsHandler,
+		delegationTicker:       args.ESDTSCConfig.DelegationTicker,
 	}, nil
 }
 
@@ -229,7 +225,7 @@ func (e *esdt) init(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 }
 
 func (e *esdt) initDelegationESDTOnMeta(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !e.flagESDTOnMeta.IsSet() {
+	if !e.enableEpochsHandler.IsBuiltInFunctionOnMetaFlagEnabled() {
 		e.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.FunctionNotFound
 	}

@@ -94,6 +94,8 @@ type epochFlagsHolder struct {
 	stakingV4DistributeAuctionToWaitingFlag     *atomic.Flag
 	stakingQueueEnabledFlag                     *atomic.Flag
 	initLiquidStakingFlag                       *atomic.Flag
+	liquidStakingFlag                           *atomic.Flag
+	stakingV4StartedFlag                        *atomic.Flag
 }
 
 func newEpochFlagsHolder() *epochFlagsHolder {
@@ -187,6 +189,8 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		stakingV4DistributeAuctionToWaitingFlag:     &atomic.Flag{},
 		stakingQueueEnabledFlag:                     &atomic.Flag{},
 		initLiquidStakingFlag:                       &atomic.Flag{},
+		liquidStakingFlag:                           &atomic.Flag{},
+		stakingV4StartedFlag:                        &atomic.Flag{},
 	}
 }
 
@@ -686,4 +690,14 @@ func (holder *epochFlagsHolder) IsInitLiquidStakingEnabled() bool {
 // IsStakingQueueEnabled returns true if stakingQueueEnabledFlag is enabled
 func (holder *epochFlagsHolder) IsStakingQueueEnabled() bool {
 	return holder.stakingQueueEnabledFlag.IsSet()
+}
+
+// IsLiquidStakingEnabled returns true if liquidStakingFlag is enabled
+func (holder *epochFlagsHolder) IsLiquidStakingEnabled() bool {
+	return holder.liquidStakingFlag.IsSet()
+}
+
+// IsStakingV4Started returns true if liquidStakingFlag is enabled
+func (holder *epochFlagsHolder) IsStakingV4Started() bool {
+	return holder.stakingV4StartedFlag.IsSet()
 }

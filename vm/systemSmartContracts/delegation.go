@@ -60,8 +60,6 @@ type delegation struct {
 	minStakeValue          *big.Int
 	enableEpochsHandler    common.EnableEpochsHandler
 	mutExecution           sync.RWMutex
-	liquidStakingEnableEpoch                        uint32
-	flagLiquidStaking                               atomic.Flag
 }
 
 // ArgsNewDelegation defines the arguments to create the delegation smart contract
@@ -132,7 +130,6 @@ func NewDelegationSystemSC(args ArgsNewDelegation) (*delegation, error) {
 		governanceSCAddr:       args.GovernanceSCAddress,
 		addTokensAddr:          args.AddTokensAddress,
 		enableEpochsHandler:    args.EnableEpochsHandler,
-		liquidStakingEnableEpoch:                        args.EpochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
 	}
 
 	var okValue bool
@@ -1911,7 +1908,7 @@ func (d *delegation) computeAndUpdateRewards(callerAddress []byte, delegator *De
 			delegator.RewardsCheckpoint = currentEpoch + 1
 		}
 		// nothing to calculate as no active funds - all were computed before
-		if d.flagLiquidStaking.IsSet() {
+		if d.enableEpochsHandler.IsLiquidStakingEnabled() {
 			delegator.RewardsCheckpoint = currentEpoch + 1
 		}
 		return nil
@@ -2858,7 +2855,7 @@ func (d *delegation) addTokens(args *vmcommon.ContractCallInput) vmcommon.Return
 }
 
 func (d *delegation) basicCheckForLiquidStaking(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !d.flagLiquidStaking.IsSet() {
+	if !d.enableEpochsHandler.IsLiquidStakingEnabled() {
 		d.eei.AddReturnMessage(args.Function + " is an unknown function")
 		return vmcommon.UserError
 	}

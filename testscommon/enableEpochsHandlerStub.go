@@ -123,6 +123,8 @@ type EnableEpochsHandlerStub struct {
 	IsStakingV4DistributeAuctionToWaitingEnabledField            bool
 	IsInitLiquidStakingEnabledField                              bool
 	IsStakingQueueEnabledField                                   bool
+	IsLiquidStakingEnabledField                                  bool
+	IsStakingV4StartedField                                      bool
 }
 
 // ResetPenalizedTooMuchGasFlag -
@@ -1050,6 +1052,22 @@ func (stub *EnableEpochsHandlerStub) IsStakingQueueEnabled() bool {
 	defer stub.RUnlock()
 
 	return stub.IsStakingQueueEnabledField
+}
+
+// IsLiquidStakingEnabled -
+func (stub *EnableEpochsHandlerStub) IsLiquidStakingEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsLiquidStakingEnabledField
+}
+
+// IsStakingV4Started -
+func (stub *EnableEpochsHandlerStub) IsStakingV4Started() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsStakingV4StartedField
 }
 
 // IsInterfaceNil -

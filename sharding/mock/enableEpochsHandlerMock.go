@@ -586,6 +586,16 @@ func (mock *EnableEpochsHandlerMock) IsStakingQueueEnabled() bool {
 	return false
 }
 
+// IsLiquidStakingEnabled -
+func (mock *EnableEpochsHandlerMock) IsLiquidStakingEnabled() bool {
+	return false
+}
+
+// IsStakingV4Started -
+func (mock *EnableEpochsHandlerMock) IsStakingV4Started() bool {
+	return false
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (mock *EnableEpochsHandlerMock) IsInterfaceNil() bool {
 	return mock == nil
