@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
+	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/keyValStorage"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
@@ -123,7 +123,7 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 			IsSwitchJailWaitingFlagEnabledField:    true,
 			IsBelowSignedThresholdFlagEnabledField: true,
 		},
-		StakingV4EnableEpoch:                              444,
+		StakingV4EnableEpoch: 444,
 	}
 	return arguments
 }

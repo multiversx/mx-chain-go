@@ -1,10 +1,10 @@
 package integrationTests
 
 import (
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon/stakingcommon"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon/stakingcommon"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // ProcessSCOutputAccounts will save account changes in accounts db from vmOutput

@@ -1,6 +1,6 @@
 package disabled
 
-import "github.com/ElrondNetwork/elrond-go/state"
+import "github.com/multiversx/mx-chain-go/state"
 
 type auctionListSelector struct {
 }
