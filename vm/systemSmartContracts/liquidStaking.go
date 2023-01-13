@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/vm"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -31,6 +32,7 @@ type liquidStaking struct {
 	mutExecution             sync.RWMutex
 	liquidStakingEnableEpoch uint32
 	flagLiquidStaking        atomic.Flag
+	enableEpochsHandler      common.EnableEpochsHandler
 }
 
 // ArgsNewLiquidStaking defines the arguments to create the liquid staking smart contract
@@ -42,6 +44,7 @@ type ArgsNewLiquidStaking struct {
 	Marshalizer            marshal.Marshalizer
 	Hasher                 hashing.Hasher
 	EpochNotifier          vm.EpochNotifier
+	EnableEpochsHandler    common.EnableEpochsHandler
 }
 
 // TODO: resolve errors if multi transfer from metachain fails. should it return - restore position or should remain at destination

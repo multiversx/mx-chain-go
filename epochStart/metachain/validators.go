@@ -185,10 +185,10 @@ func createShardValidatorInfo(validator state.ValidatorInfoHandler) *state.Shard
 
 // VerifyValidatorInfoMiniBlocks verifies if received validator info mini blocks are correct
 func (vic *validatorInfoCreator) VerifyValidatorInfoMiniBlocks(
-	miniblocks []*block.MiniBlock,
+	miniBlocks []*block.MiniBlock,
 	validatorsInfo state.ShardValidatorsInfoMapHandler,
 ) error {
-	if len(miniblocks) == 0 {
+	if len(miniBlocks) == 0 {
 		return epochStart.ErrNilMiniblocks
 	}
 

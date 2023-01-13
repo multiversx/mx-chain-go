@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/stakingcommon"
 	"github.com/stretchr/testify/require"
 )
@@ -46,8 +47,10 @@ func createFullAuctionListSelectorArgs(maxNodesChangeConfig []config.MaxNodesCha
 	epochNotifier := forking.NewGenericEpochNotifier()
 	nodesConfigProvider, _ := notifier.NewNodesConfigProvider(epochNotifier, maxNodesChangeConfig)
 
-	argsSystemSC, _ := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
-	argsSystemSC.StakingDataProvider.EpochConfirmed(stakingV4EnableEpoch, 0)
+	argsSystemSC, _ := createFullArgumentsForSystemSCProcessing(config.EnableEpochs{}, createMemUnit())
+	epochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
+		EpochField: stakingV4EnableEpoch,
+	})
 	argsSystemSC.MaxNodesChangeConfigProvider = nodesConfigProvider
 	return AuctionListSelectorArgs{
 		ShardCoordinator:             argsSystemSC.ShardCoordinator,

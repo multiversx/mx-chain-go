@@ -301,8 +301,7 @@ func (scf *systemSCFactory) createLiquidStakingContract() (vm.SystemSmartContrac
 		GasCost:                scf.gasCost,
 		Marshalizer:            scf.marshalizer,
 		Hasher:                 scf.hasher,
-		EpochNotifier:          scf.epochNotifier,
-		EpochConfig:            *scf.epochConfig,
+		EnableEpochsHandler:    scf.enableEpochsHandler,
 	}
 	liquidStaking, err := systemSmartContracts.NewLiquidStakingSystemSC(argsLiquidStaking)
 	return liquidStaking, err
