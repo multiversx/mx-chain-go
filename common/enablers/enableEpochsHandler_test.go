@@ -216,7 +216,9 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsStakeLimitsEnabled())
 		assert.False(t, handler.IsStakingV4InitEnabled()) // epoch == limit
 		assert.True(t, handler.IsStakingV4Enabled())
-		assert.True(t, handler.IsStakingV4DistributeAuctionToWaitingFlagEnabled())
+		assert.True(t, handler.IsStakingV4DistributeAuctionToWaitingEnabled())
+		assert.False(t, handler.IsStakingQueueEnabled())
+		assert.False(t, handler.IsInitLiquidStakingEnabled())
 	})
 	t.Run("flags with == condition should be set, along with all >=", func(t *testing.T) {
 		t.Parallel()
@@ -228,6 +230,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		cfg.GovernanceEnableEpoch = epoch
 		cfg.CorrectLastUnjailedEnableEpoch = epoch
 		cfg.StakingV4InitEnableEpoch = epoch
+		cfg.BuiltInFunctionOnMetaEnableEpoch = epoch
 
 		handler, _ := NewEnableEpochsHandler(cfg, &epochNotifier.EpochNotifierStub{})
 		require.False(t, check.IfNil(handler))
@@ -319,7 +322,9 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsStakeLimitsEnabled())
 		assert.True(t, handler.IsStakingV4InitEnabled())
 		assert.True(t, handler.IsStakingV4Enabled())
-		assert.True(t, handler.IsStakingV4DistributeAuctionToWaitingFlagEnabled())
+		assert.True(t, handler.IsStakingV4DistributeAuctionToWaitingEnabled())
+		assert.False(t, handler.IsStakingQueueEnabled())
+		assert.True(t, handler.IsInitLiquidStakingEnabled())
 	})
 	t.Run("flags with < should be set", func(t *testing.T) {
 		t.Parallel()
@@ -416,6 +421,8 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.False(t, handler.IsStakeLimitsEnabled())
 		assert.False(t, handler.IsStakingV4InitEnabled())
 		assert.False(t, handler.IsStakingV4Enabled())
-		assert.False(t, handler.IsStakingV4DistributeAuctionToWaitingFlagEnabled())
+		assert.False(t, handler.IsStakingV4DistributeAuctionToWaitingEnabled())
+		assert.True(t, handler.IsStakingQueueEnabled())
+		assert.False(t, handler.IsInitLiquidStakingEnabled())
 	})
 }

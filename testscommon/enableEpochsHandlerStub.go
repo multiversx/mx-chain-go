@@ -120,7 +120,9 @@ type EnableEpochsHandlerStub struct {
 	IsStakeLimitsFlagEnabledField                                bool
 	IsStakingV4InitFlagEnabledField                              bool
 	IsStakingV4FlagEnabledField                                  bool
-	IsStakingV4DistributeAuctionToWaitingFlagEnabledField        bool
+	IsStakingV4DistributeAuctionToWaitingEnabledField            bool
+	IsInitLiquidStakingEnabledField                              bool
+	IsStakingQueueEnabledField                                   bool
 }
 
 // ResetPenalizedTooMuchGasFlag -
@@ -1026,12 +1028,28 @@ func (stub *EnableEpochsHandlerStub) IsStakingV4Enabled() bool {
 	return stub.IsStakingV4FlagEnabledField
 }
 
-// IsStakingV4DistributeAuctionToWaitingFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsStakingV4DistributeAuctionToWaitingFlagEnabled() bool {
+// IsStakingV4DistributeAuctionToWaitingEnabled -
+func (stub *EnableEpochsHandlerStub) IsStakingV4DistributeAuctionToWaitingEnabled() bool {
 	stub.RLock()
 	defer stub.RUnlock()
 
-	return stub.IsStakingV4DistributeAuctionToWaitingFlagEnabledField
+	return stub.IsStakingV4DistributeAuctionToWaitingEnabledField
+}
+
+// IsInitLiquidStakingEnabled -
+func (stub *EnableEpochsHandlerStub) IsInitLiquidStakingEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsInitLiquidStakingEnabledField
+}
+
+// IsStakingQueueEnabled -
+func (stub *EnableEpochsHandlerStub) IsStakingQueueEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsStakingQueueEnabledField
 }
 
 // IsInterfaceNil -

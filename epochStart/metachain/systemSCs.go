@@ -5,23 +5,16 @@ import (
 	"math"
 	"math/big"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
-	vInfo "github.com/multiversx/mx-chain-go/common/validatorInfo"
-	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/multiversx/mx-chain-go/vm"
-	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
@@ -57,11 +50,6 @@ type systemSCProcessor struct {
 	builtInOnMetaEnableEpoch uint32
 	stakingV4EnableEpoch     uint32
 
-	flagGovernanceEnabled    atomic.Flag
-	flagBuiltInOnMetaEnabled atomic.Flag
-	flagInitStakingV4Enabled atomic.Flag
-	flagStakingV4Enabled     atomic.Flag
-
 	enableEpochsHandler common.EnableEpochsHandler
 }
 
@@ -83,12 +71,9 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 	}
 
 	s := &systemSCProcessor{
-		legacySystemSCProcessor:  legacy,
-		governanceEnableEpoch:    args.EpochConfig.EnableEpochs.GovernanceEnableEpoch,
-		builtInOnMetaEnableEpoch: args.EpochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
-		stakingV4EnableEpoch:     args.EpochConfig.EnableEpochs.StakingV4EnableEpoch,
-		auctionListSelector:      args.AuctionListSelector,
-		enableEpochsHandler:      args.EnableEpochsHandler,
+		legacySystemSCProcessor: legacy,
+		auctionListSelector:     args.AuctionListSelector,
+		enableEpochsHandler:     args.EnableEpochsHandler,
 	}
 
 	args.EpochNotifier.RegisterNotifyHandler(s)
@@ -111,14 +96,14 @@ func (s *systemSCProcessor) processWithNewFlags(
 	validatorsInfoMap state.ShardValidatorsInfoMapHandler,
 	header data.HeaderHandler,
 ) error {
-	if s.flagGovernanceEnabled.IsSet() {
+	if s.enableEpochsHandler.IsGovernanceFlagEnabledForCurrentEpoch() {
 		err := s.updateToGovernanceV2()
 		if err != nil {
 			return err
 		}
 	}
 
-	if s.flagBuiltInOnMetaEnabled.IsSet() {
+	if s.enableEpochsHandler.IsInitLiquidStakingEnabled() {
 		tokenID, err := s.initTokenOnMeta()
 		if err != nil {
 			return err
@@ -130,14 +115,14 @@ func (s *systemSCProcessor) processWithNewFlags(
 		}
 	}
 
-	if s.flagInitStakingV4Enabled.IsSet() {
+	if s.enableEpochsHandler.IsStakingV4InitEnabled() {
 		err := s.stakeNodesFromQueue(validatorsInfoMap, math.MaxUint32, header.GetNonce(), common.AuctionList)
 		if err != nil {
 			return err
 		}
 	}
 
-	if s.flagStakingV4Enabled.IsSet() {
+	if s.enableEpochsHandler.IsStakingV4Enabled() {
 		err := s.prepareStakingDataForEligibleNodes(validatorsInfoMap)
 		if err != nil {
 			return err
@@ -299,16 +284,4 @@ func (s *systemSCProcessor) IsInterfaceNil() bool {
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (s *systemSCProcessor) EpochConfirmed(epoch uint32, _ uint64) {
 	s.legacyEpochConfirmed(epoch)
-
-	s.flagGovernanceEnabled.SetValue(epoch == s.governanceEnableEpoch)
-	log.Debug("systemProcessor: governanceV2", "enabled", s.flagGovernanceEnabled.IsSet())
-
-	s.flagBuiltInOnMetaEnabled.SetValue(epoch == s.builtInOnMetaEnableEpoch)
-	log.Debug("systemProcessor: create NFT on meta", "enabled", s.flagBuiltInOnMetaEnabled.IsSet())
-
-	s.flagInitStakingV4Enabled.SetValue(epoch == s.stakingV4InitEnableEpoch)
-	log.Debug("systemProcessor: init staking v4", "enabled", s.flagInitStakingV4Enabled.IsSet())
-
-	s.flagStakingV4Enabled.SetValue(epoch >= s.stakingV4EnableEpoch)
-	log.Debug("systemProcessor: staking v4", "enabled", s.flagStakingV4Enabled.IsSet())
 }

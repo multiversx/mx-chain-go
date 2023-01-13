@@ -120,6 +120,8 @@ func (handler *enableEpochsHandler) EpochConfirmed(epoch uint32, _ uint64) {
 	handler.setFlagValue(epoch == handler.enableEpochsConfig.StakingV4InitEnableEpoch, handler.stakingV4InitFlag, "stakingV4InitFlag")
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.StakingV4EnableEpoch, handler.stakingV4Flag, "stakingV4Flag")
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.StakingV4DistributeAuctionToWaitingEpoch, handler.stakingV4DistributeAuctionToWaitingFlag, "stakingV4DistributeAuctionToWaitingFlag")
+	handler.setFlagValue(epoch == handler.enableEpochsConfig.BuiltInFunctionOnMetaEnableEpoch, handler.initLiquidStakingFlag, "initLiquidStakingFlag")
+	handler.setFlagValue(epoch < handler.enableEpochsConfig.StakingV4InitEnableEpoch, handler.stakingQueueEnabledFlag, "stakingQueueEnabledFlag")
 }
 
 func (handler *enableEpochsHandler) setFlagValue(value bool, flag *atomic.Flag, flagName string) {
