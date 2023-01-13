@@ -9,30 +9,30 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
-	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon/trie"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
-	"github.com/ElrondNetwork/elrond-vm-common/parsers"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/atomic"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/esdt"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
+	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
+	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
+	"github.com/multiversx/mx-chain-go/testscommon/trie"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
+	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -1764,7 +1764,7 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 	nonce := uint64(0)
 	emptyESDTData := &esdt.ESDigitalToken{Value: big.NewInt(0)}
 	expectedErr := errors.New("expected error")
-	completeEsdtTokenKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + string(token))
+	completeEsdtTokenKey := []byte(core.ProtectedKeyPrefix + core.ESDTKeyIdentifier + string(token))
 	testESDTData := &esdt.ESDigitalToken{
 		Type:       uint32(core.Fungible),
 		Value:      big.NewInt(1),
@@ -2233,7 +2233,7 @@ func TestBlockChainHookImpl_IsPaused(t *testing.T) {
 
 	args := createMockBlockChainHookArgs()
 	isPausedCalled := false
-	expectedTokenKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + "token ID")
+	expectedTokenKey := []byte(core.ProtectedKeyPrefix + core.ESDTKeyIdentifier + "token ID")
 	args.GlobalSettingsHandler = &testscommon.ESDTGlobalSettingsHandlerStub{
 		IsPausedCalled: func(esdtTokenKey []byte) bool {
 			isPausedCalled = true
@@ -2252,7 +2252,7 @@ func TestBlockChainHookImpl_IsLimitedTransfer(t *testing.T) {
 
 	args := createMockBlockChainHookArgs()
 	isLimitedTransferCalled := false
-	expectedTokenKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + "token ID")
+	expectedTokenKey := []byte(core.ProtectedKeyPrefix + core.ESDTKeyIdentifier + "token ID")
 	args.GlobalSettingsHandler = &testscommon.ESDTGlobalSettingsHandlerStub{
 		IsLimitedTransferCalled: func(esdtTokenKey []byte) bool {
 			isLimitedTransferCalled = true

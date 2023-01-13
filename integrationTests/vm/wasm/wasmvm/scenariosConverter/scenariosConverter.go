@@ -5,14 +5,14 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	mge "github.com/ElrondNetwork/wasm-vm-v1_4/mandos-go/elrondgo-exporter"
-	mgutil "github.com/ElrondNetwork/wasm-vm-v1_4/mandos-go/util"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm"
+	"github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	mge "github.com/multiversx/mx-chain-vm-v1_4-go/mandos-go/elrondgo-exporter"
+	mgutil "github.com/multiversx/mx-chain-vm-v1_4-go/mandos-go/util"
 )
 
 var errReturnCodeNotOk = errors.New("returnCode is not 0(Ok)")

@@ -1,6 +1,6 @@
 package config
 
-import p2pConfig "github.com/ElrondNetwork/elrond-go/p2p/config"
+import p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
 
 // CacheConfig will map the cache configuration
 type CacheConfig struct {
@@ -278,7 +278,7 @@ type GeneralSettingsConfig struct {
 	SyncProcessTimeInMillis              uint32
 }
 
-// FacadeConfig will hold different configuration option that will be passed to the main ElrondFacade
+// FacadeConfig will hold different configuration option that will be passed to the node facade
 type FacadeConfig struct {
 	RestApiInterface string
 	PprofEnabled     bool

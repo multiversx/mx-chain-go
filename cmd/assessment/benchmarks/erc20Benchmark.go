@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/wasm/wasmvm"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm/wasmvm"
 )
 
 // ArgErc20Benchmark is the erc20 type benchmark argument used in constructor

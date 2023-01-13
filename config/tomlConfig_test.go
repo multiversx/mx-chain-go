@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"testing"
 
-	p2pConfig "github.com/ElrondNetwork/elrond-go/p2p/config"
+	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
 	"github.com/pelletier/go-toml"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

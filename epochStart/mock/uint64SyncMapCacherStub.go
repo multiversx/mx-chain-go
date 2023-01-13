@@ -1,7 +1,7 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 )
 
 // Uint64SyncMapCacherStub -

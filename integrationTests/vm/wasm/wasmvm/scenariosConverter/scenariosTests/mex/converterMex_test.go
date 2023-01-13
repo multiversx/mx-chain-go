@@ -3,7 +3,7 @@ package Benchmark_ScenariosConverter_Mex
 import (
 	"testing"
 
-	mc "github.com/ElrondNetwork/elrond-go/integrationTests/vm/wasm/wasmvm/scenariosConverter"
+	mc "github.com/multiversx/mx-chain-go/integrationTests/vm/wasm/wasmvm/scenariosConverter"
 )
 
 func TestScenariosConverter_MexState(t *testing.T) {

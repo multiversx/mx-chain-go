@@ -5,7 +5,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 // statusMetrics will handle displaying at /node/details all metrics already collected for other status handlers

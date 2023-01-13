@@ -1,6 +1,6 @@
-#include "../elrond/context.h"
-#include "../elrond/test_utils.h"
-#include "../elrond/args.h"
+#include "../chain/context.h"
+#include "../chain/test_utils.h"
+#include "../chain/args.h"
 
 byte childGeneratedAddress[32] = {};
 byte childCode[5000] = {};

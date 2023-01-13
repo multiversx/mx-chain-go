@@ -5,23 +5,23 @@ import (
 	"io"
 	"sort"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	wasmvm12 "github.com/ElrondNetwork/wasm-vm-v1_2/arwen"
-	wasmVMHost12 "github.com/ElrondNetwork/wasm-vm-v1_2/arwen/host"
-	wasmvm13 "github.com/ElrondNetwork/wasm-vm-v1_3/arwen"
-	wasmVMHost13 "github.com/ElrondNetwork/wasm-vm-v1_3/arwen/host"
-	wasmvm14 "github.com/ElrondNetwork/wasm-vm-v1_4/arwen"
-	wasmVMHost14 "github.com/ElrondNetwork/wasm-vm-v1_4/arwen/host"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/process/factory/containers"
+	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	wasmvm12 "github.com/multiversx/mx-chain-vm-v1_2-go/arwen"
+	wasmVMHost12 "github.com/multiversx/mx-chain-vm-v1_2-go/arwen/host"
+	wasmvm13 "github.com/multiversx/mx-chain-vm-v1_3-go/arwen"
+	wasmVMHost13 "github.com/multiversx/mx-chain-vm-v1_3-go/arwen/host"
+	wasmvm14 "github.com/multiversx/mx-chain-vm-v1_4-go/arwen"
+	wasmVMHost14 "github.com/multiversx/mx-chain-vm-v1_4-go/arwen/host"
 )
 
 var _ process.VirtualMachinesContainerFactory = (*vmContainerFactory)(nil)
@@ -295,7 +295,7 @@ func (vmf *vmContainerFactory) createInProcessWasmVMV12() (vmcommon.VMExecutionH
 		BlockGasLimit:            vmf.blockGasLimit,
 		GasSchedule:              vmf.gasSchedule.LatestGasSchedule(),
 		ProtocolBuiltinFunctions: vmf.builtinFunctions.Keys(),
-		ElrondProtectedKeyPrefix: []byte(core.ElrondProtectedKeyPrefix),
+		ProtectedKeyPrefix:       []byte(core.ProtectedKeyPrefix),
 		EnableEpochsHandler:      vmf.enableEpochsHandler,
 	}
 	return wasmVMHost12.NewArwenVM(vmf.blockChainHook, hostParameters) //TODO rename this on other repos
@@ -303,12 +303,12 @@ func (vmf *vmContainerFactory) createInProcessWasmVMV12() (vmcommon.VMExecutionH
 
 func (vmf *vmContainerFactory) createInProcessWasmVMV13() (vmcommon.VMExecutionHandler, error) {
 	hostParameters := &wasmvm13.VMHostParameters{
-		VMType:                   factory.WasmVirtualMachine,
-		BlockGasLimit:            vmf.blockGasLimit,
-		GasSchedule:              vmf.gasSchedule.LatestGasSchedule(),
-		BuiltInFuncContainer:     vmf.builtinFunctions,
-		ElrondProtectedKeyPrefix: []byte(core.ElrondProtectedKeyPrefix),
-		EnableEpochsHandler:      vmf.enableEpochsHandler,
+		VMType:               factory.WasmVirtualMachine,
+		BlockGasLimit:        vmf.blockGasLimit,
+		GasSchedule:          vmf.gasSchedule.LatestGasSchedule(),
+		BuiltInFuncContainer: vmf.builtinFunctions,
+		ProtectedKeyPrefix:   []byte(core.ProtectedKeyPrefix),
+		EnableEpochsHandler:  vmf.enableEpochsHandler,
 	}
 	return wasmVMHost13.NewArwenVM(vmf.blockChainHook, hostParameters) //TODO rename this on other repos
 }
@@ -319,7 +319,7 @@ func (vmf *vmContainerFactory) createInProcessWasmVMV14() (vmcommon.VMExecutionH
 		BlockGasLimit:                       vmf.blockGasLimit,
 		GasSchedule:                         vmf.gasSchedule.LatestGasSchedule(),
 		BuiltInFuncContainer:                vmf.builtinFunctions,
-		ElrondProtectedKeyPrefix:            []byte(core.ElrondProtectedKeyPrefix),
+		ProtectedKeyPrefix:                  []byte(core.ProtectedKeyPrefix),
 		ESDTTransferParser:                  vmf.esdtTransferParser,
 		WasmerSIGSEGVPassthrough:            vmf.config.WasmerSIGSEGVPassthrough,
 		TimeOutForSCExecutionInMilliseconds: vmf.config.TimeOutForSCExecutionInMilliseconds,

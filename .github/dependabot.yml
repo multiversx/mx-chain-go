@@ -7,7 +7,7 @@ updates:
   open-pull-requests-limit: 10
   target-branch: development
   ignore:
-  - dependency-name: github.com/ElrondNetwork/wasm-vm
+  - dependency-name: github.com/multiversx/mx-chain-vm-go
     versions:
     - 1.1.2
     - 1.2.0
@@ -21,7 +21,7 @@ updates:
     versions:
     - 1.4.3
     - 1.5.1
-  - dependency-name: github.com/ElrondNetwork/elastic-indexer-go
+  - dependency-name: github.com/multiversx/mx-chain-es-indexer-go
     versions:
     - 1.0.3
   - dependency-name: github.com/google/gops

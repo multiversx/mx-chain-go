@@ -1,7 +1,7 @@
-#include "elrond/context.h"
-#include "elrond/bigInt.h"
-#include "elrond/crypto.h"
-#include "elrond/util.h"
+#include "chain/context.h"
+#include "chain/bigInt.h"
+#include "chain/crypto.h"
+#include "chain/util.h"
 
 // global data used in functions, will be statically allocated to WebAssembly memory
 byte sender[32]          = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};

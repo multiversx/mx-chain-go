@@ -3,8 +3,8 @@ package trie
 import (
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/testscommon"
 )
 
 func (ts *trieSyncer) trieNodeIntercepted(hash []byte, val interface{}) {

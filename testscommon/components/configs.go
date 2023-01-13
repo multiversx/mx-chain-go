@@ -1,7 +1,7 @@
 package components
 
 import (
-	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/multiversx/mx-chain-go/config"
 )
 
 // GetGeneralConfig -

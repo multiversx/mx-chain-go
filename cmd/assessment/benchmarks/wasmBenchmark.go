@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/wasm/wasmvm"
-	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
-	wasmConfig "github.com/ElrondNetwork/wasm-vm-v1_4/config"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm/wasmvm"
+	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
+	wasmConfig "github.com/multiversx/mx-chain-vm-v1_4-go/config"
 )
 
 // ArgWasmBenchmark is the wasm type benchmark argument used in constructor
