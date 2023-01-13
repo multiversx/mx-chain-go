@@ -88,6 +88,10 @@ type epochFlagsHolder struct {
 	runtimeMemStoreLimitFlag                    *atomic.Flag
 	maxBlockchainHookCountersFlag               *atomic.Flag
 	wipeSingleNFTLiquidityDecreaseFlag          *atomic.Flag
+	stakeLimitsFlag                             *atomic.Flag
+	stakingV4InitFlag                           *atomic.Flag
+	stakingV4Flag                               *atomic.Flag
+	stakingV4DistributeAuctionToWaitingFlag     *atomic.Flag
 }
 
 func newEpochFlagsHolder() *epochFlagsHolder {
@@ -175,6 +179,10 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		runtimeMemStoreLimitFlag:                    &atomic.Flag{},
 		maxBlockchainHookCountersFlag:               &atomic.Flag{},
 		wipeSingleNFTLiquidityDecreaseFlag:          &atomic.Flag{},
+		stakeLimitsFlag:                             &atomic.Flag{},
+		stakingV4InitFlag:                           &atomic.Flag{},
+		stakingV4Flag:                               &atomic.Flag{},
+		stakingV4DistributeAuctionToWaitingFlag:     &atomic.Flag{},
 	}
 }
 
@@ -644,4 +652,24 @@ func (holder *epochFlagsHolder) IsMaxBlockchainHookCountersFlagEnabled() bool {
 // IsWipeSingleNFTLiquidityDecreaseEnabled returns true if wipeSingleNFTLiquidityDecreaseFlag is enabled
 func (holder *epochFlagsHolder) IsWipeSingleNFTLiquidityDecreaseEnabled() bool {
 	return holder.wipeSingleNFTLiquidityDecreaseFlag.IsSet()
+}
+
+// IsStakeLimitsEnabled returns true if stakeLimitsFlag is enabled
+func (holder *epochFlagsHolder) IsStakeLimitsEnabled() bool {
+	return holder.stakeLimitsFlag.IsSet()
+}
+
+// IsStakingV4InitEnabled returns true if stakingV4InitFlag is enabled
+func (holder *epochFlagsHolder) IsStakingV4InitEnabled() bool {
+	return holder.stakingV4InitFlag.IsSet()
+}
+
+// IsStakingV4Enabled returns true if stakingV4Flag is enabled
+func (holder *epochFlagsHolder) IsStakingV4Enabled() bool {
+	return holder.stakingV4Flag.IsSet()
+}
+
+// IsStakingV4DistributeAuctionToWaitingFlagEnabled returns true if stakeLimitsFlag is enabled
+func (holder *epochFlagsHolder) IsStakingV4DistributeAuctionToWaitingFlagEnabled() bool {
+	return holder.stakingV4DistributeAuctionToWaitingFlag.IsSet()
 }

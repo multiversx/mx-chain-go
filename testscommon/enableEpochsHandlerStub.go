@@ -1,6 +1,8 @@
 package testscommon
 
-import "sync"
+import (
+	"sync"
+)
 
 // EnableEpochsHandlerStub -
 type EnableEpochsHandlerStub struct {
@@ -115,6 +117,10 @@ type EnableEpochsHandlerStub struct {
 	IsRuntimeMemStoreLimitEnabledField                           bool
 	IsMaxBlockchainHookCountersFlagEnabledField                  bool
 	IsWipeSingleNFTLiquidityDecreaseEnabledField                 bool
+	IsStakeLimitsFlagEnabledField                                bool
+	IsStakingV4InitFlagEnabledField                              bool
+	IsStakingV4FlagEnabledField                                  bool
+	IsStakingV4DistributeAuctionToWaitingFlagEnabledField        bool
 }
 
 // ResetPenalizedTooMuchGasFlag -
@@ -994,6 +1000,38 @@ func (stub *EnableEpochsHandlerStub) IsWipeSingleNFTLiquidityDecreaseEnabled() b
 	defer stub.RUnlock()
 
 	return stub.IsWipeSingleNFTLiquidityDecreaseEnabledField
+}
+
+// IsStakeLimitsEnabled -
+func (stub *EnableEpochsHandlerStub) IsStakeLimitsEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsStakeLimitsFlagEnabledField
+}
+
+// IsStakingV4InitEnabled -
+func (stub *EnableEpochsHandlerStub) IsStakingV4InitEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsStakingV4InitFlagEnabledField
+}
+
+// IsStakingV4Enabled -
+func (stub *EnableEpochsHandlerStub) IsStakingV4Enabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsStakingV4FlagEnabledField
+}
+
+// IsStakingV4DistributeAuctionToWaitingFlagEnabled -
+func (stub *EnableEpochsHandlerStub) IsStakingV4DistributeAuctionToWaitingFlagEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsStakingV4DistributeAuctionToWaitingFlagEnabledField
 }
 
 // IsInterfaceNil -

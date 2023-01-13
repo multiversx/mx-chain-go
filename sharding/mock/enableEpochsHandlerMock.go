@@ -556,6 +556,26 @@ func (mock *EnableEpochsHandlerMock) IsWipeSingleNFTLiquidityDecreaseEnabled() b
 	return false
 }
 
+// IsStakeLimitsEnabled -
+func (mock *EnableEpochsHandlerMock) IsStakeLimitsEnabled() bool {
+	return false
+}
+
+// IsStakingV4InitEnabled -
+func (mock *EnableEpochsHandlerMock) IsStakingV4InitEnabled() bool {
+	return false
+}
+
+// IsStakingV4Enabled -
+func (mock *EnableEpochsHandlerMock) IsStakingV4Enabled() bool {
+	return false
+}
+
+// IsStakingV4DistributeAuctionToWaitingFlagEnabled -
+func (mock *EnableEpochsHandlerMock) IsStakingV4DistributeAuctionToWaitingFlagEnabled() bool {
+	return false
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (mock *EnableEpochsHandlerMock) IsInterfaceNil() bool {
 	return mock == nil

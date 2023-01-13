@@ -22,6 +22,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -67,6 +68,8 @@ type legacySystemSCProcessor struct {
 	flagESDTEnabled                atomic.Flag
 	flagSaveJailedAlwaysEnabled    atomic.Flag
 	flagStakingQueueEnabled        atomic.Flag
+
+	enableEpochsHandler common.EnableEpochsHandler
 }
 
 func newLegacySystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*legacySystemSCProcessor, error) {
@@ -101,6 +104,7 @@ func newLegacySystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*lega
 		saveJailedAlwaysEnableEpoch:  args.EpochConfig.EnableEpochs.SaveJailedAlwaysEnableEpoch,
 		stakingV4InitEnableEpoch:     args.EpochConfig.EnableEpochs.StakingV4InitEnableEpoch,
 		maxNodesChangeConfigProvider: args.MaxNodesChangeConfigProvider,
+		enableEpochsHandler:          args.EnableEpochsHandler,
 	}
 
 	log.Debug("legacySystemSC: enable epoch for switch jail waiting", "epoch", legacy.switchEnableEpoch)
@@ -154,6 +158,9 @@ func checkLegacyArgs(args ArgsNewEpochStartSystemSCProcessing) error {
 	}
 	if check.IfNil(args.MaxNodesChangeConfigProvider) {
 		return epochStart.ErrNilMaxNodesChangeConfigProvider
+	}
+	if check.IfNil(args.EnableEpochsHandler) {
+		return process.ErrNilEnableEpochsHandler
 	}
 	if len(args.ESDTOwnerAddressBytes) == 0 {
 		return epochStart.ErrEmptyESDTOwnerAddress
@@ -1012,12 +1019,15 @@ func (s *legacySystemSCProcessor) getArgumentsForSetOwnerFunctionality(userValid
 		return nil, err
 	}
 
-	chLeaves := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
-	err = userValidatorAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, context.Background(), rootHash)
+	leavesChannels := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    make(chan error, 1),
+	}
+	err = userValidatorAccount.DataTrie().GetAllLeavesOnChannel(leavesChannels, context.Background(), rootHash, keyBuilder.NewKeyBuilder())
 	if err != nil {
 		return nil, err
 	}
-	for leaf := range chLeaves {
+	for leaf := range leavesChannels.LeavesChan {
 		validatorData := &systemSmartContracts.ValidatorDataV2{}
 		value, errTrim := leaf.ValueWithoutSuffix(append(leaf.Key(), vm.ValidatorSCAddress...))
 		if errTrim != nil {

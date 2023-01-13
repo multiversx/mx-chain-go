@@ -3,10 +3,9 @@ package genesis
 import (
 	"math/big"
 
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/sharding"
+
 	"github.com/multiversx/mx-chain-go/state"
 )
 

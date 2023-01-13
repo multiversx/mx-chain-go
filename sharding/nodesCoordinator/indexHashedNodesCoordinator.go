@@ -287,7 +287,6 @@ func (ihnc *indexHashedNodesCoordinator) setNodesPerShards(
 	nodesConfig.waitingMap = waiting
 	nodesConfig.leavingMap = leaving
 	nodesConfig.shuffledOutMap = shuffledOut
-	nodesConfig.shardID, isValidator = ihnc.computeShardForSelfPublicKey(nodesConfig)
 	nodesConfig.shardID, isCurrentNodeValidator = ihnc.computeShardForSelfPublicKey(nodesConfig)
 	nodesConfig.selectors, err = ihnc.createSelectors(nodesConfig)
 	if err != nil {

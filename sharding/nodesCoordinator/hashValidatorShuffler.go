@@ -34,6 +34,7 @@ type shuffleNodesArg struct {
 	unstakeLeaving                          []Validator
 	additionalLeaving                       []Validator
 	newNodes                                []Validator
+	auction                                 []Validator
 	randomness                              []byte
 	distributor                             ValidatorsDistributor
 	nodesMeta                               uint32

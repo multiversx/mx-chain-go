@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
@@ -173,10 +174,10 @@ func NewValidatorSmartContract(
 		governanceSCAddress:    args.GovernanceSCAddress,
 		shardCoordinator:       args.ShardCoordinator,
 		enableEpochsHandler:    args.EnableEpochsHandler,
-		stakeLimitsEnableEpoch:           args.EpochConfig.EnableEpochs.StakeLimitsEnableEpoch,
-		nodeLimitPercentage:              args.StakingSCConfig.NodeLimitPercentage,
-		nodesCoordinator:                 args.NodesCoordinator,
-	},
+		stakeLimitsEnableEpoch: args.EpochConfig.EnableEpochs.StakeLimitsEnableEpoch,
+		nodeLimitPercentage:    args.StakingSCConfig.NodeLimitPercentage,
+		nodesCoordinator:       args.NodesCoordinator,
+	}
 
 	reg.totalStakeLimit = core.GetIntTrimmedPercentageOfValue(args.GenesisTotalSupply, args.StakingSCConfig.StakeLimitPercentage)
 	if reg.totalStakeLimit.Cmp(baseConfig.NodePrice) < 0 {

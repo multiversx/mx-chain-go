@@ -28,7 +28,7 @@ func (e *EpochValidatorInfoCreatorStub) CreateValidatorInfoMiniBlocks(validatorI
 }
 
 // VerifyValidatorInfoMiniBlocks -
-func (e *EpochValidatorInfoCreatorStub) VerifyValidatorInfoMiniBlocks(miniblocks []*block.MiniBlock, validatorsInfo state.ShardValidatorsInfoMapHandler) error {
+func (e *EpochValidatorInfoCreatorStub) VerifyValidatorInfoMiniBlocks(miniBlocks []*block.MiniBlock, validatorsInfo state.ShardValidatorsInfoMapHandler) error {
 	if e.VerifyValidatorInfoMiniBlocksCalled != nil {
 		return e.VerifyValidatorInfoMiniBlocksCalled(miniBlocks, validatorsInfo)
 	}

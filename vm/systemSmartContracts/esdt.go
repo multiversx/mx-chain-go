@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -59,6 +60,7 @@ type esdt struct {
 	enableEpochsHandler        common.EnableEpochsHandler
 	esdtOnMetachainEnableEpoch uint32
 	flagESDTOnMeta             atomic.Flag
+	delegationTicker           string
 }
 
 // ArgsNewESDTSmartContract defines the arguments needed for the esdt contract
@@ -109,7 +111,7 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 		// we should have called pubkeyConverter.Decode here instead of a byte slice cast. Since that change would break
 		// backwards compatibility, the fix was carried in the epochStart/metachain/systemSCs.go
 		ownerAddress:               []byte(args.ESDTSCConfig.OwnerAddress),
-		eSDTSCAddress:              args.ESDTSCAddress,
+		esdtSCAddress:              args.ESDTSCAddress,
 		hasher:                     args.Hasher,
 		marshalizer:                args.Marshalizer,
 		endOfEpochSCAddress:        args.EndOfEpochSCAddress,
@@ -1127,7 +1129,7 @@ func (e *esdt) saveTokenAndSendForAll(token *ESDTDataV2, tokenID []byte, builtIn
 	}
 
 	esdtTransferData := builtInCall + "@" + hex.EncodeToString(tokenID)
-	e.eei.SendGlobalSettingToAll(e.eSDTSCAddress, []byte(esdtTransferData))
+	e.eei.SendGlobalSettingToAll(e.esdtSCAddress, []byte(esdtTransferData))
 
 	return vmcommon.Ok
 }
@@ -1182,7 +1184,7 @@ func (e *esdt) addBurnRoleAndSendToAllShards(token *ESDTDataV2, tokenID []byte) 
 	token.SpecialRoles = append(token.SpecialRoles, burnForAllRole)
 
 	esdtTransferData := vmcommon.BuiltInFunctionESDTSetBurnRoleForAll + "@" + hex.EncodeToString(tokenID)
-	e.eei.SendGlobalSettingToAll(e.eSDTSCAddress, []byte(esdtTransferData))
+	e.eei.SendGlobalSettingToAll(e.esdtSCAddress, []byte(esdtTransferData))
 }
 
 func (e *esdt) configChange(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -1856,7 +1858,7 @@ func (e *esdt) sendNewTransferRoleAddressToSystemAccount(token []byte, address [
 	}
 
 	esdtTransferData := vmcommon.BuiltInFunctionESDTTransferRoleAddAddress + "@" + hex.EncodeToString(token) + "@" + hex.EncodeToString(address)
-	e.eei.SendGlobalSettingToAll(e.eSDTSCAddress, []byte(esdtTransferData))
+	e.eei.SendGlobalSettingToAll(e.esdtSCAddress, []byte(esdtTransferData))
 }
 
 func (e *esdt) deleteTransferRoleAddressFromSystemAccount(token []byte, address []byte) {
@@ -1866,7 +1868,7 @@ func (e *esdt) deleteTransferRoleAddressFromSystemAccount(token []byte, address 
 	}
 
 	esdtTransferData := vmcommon.BuiltInFunctionESDTTransferRoleDeleteAddress + "@" + hex.EncodeToString(token) + "@" + hex.EncodeToString(address)
-	e.eei.SendGlobalSettingToAll(e.eSDTSCAddress, []byte(esdtTransferData))
+	e.eei.SendGlobalSettingToAll(e.esdtSCAddress, []byte(esdtTransferData))
 }
 
 func (e *esdt) sendAllTransferRoleAddresses(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -1902,7 +1904,7 @@ func (e *esdt) sendAllTransferRoleAddresses(args *vmcommon.ContractCallInput) vm
 		return vmcommon.UserError
 	}
 
-	e.eei.SendGlobalSettingToAll(e.eSDTSCAddress, []byte(esdtTransferData))
+	e.eei.SendGlobalSettingToAll(e.esdtSCAddress, []byte(esdtTransferData))
 
 	return vmcommon.Ok
 }

@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
@@ -54,7 +55,7 @@ type ArgValidatorStatisticsProcessor struct {
 	GenesisNonce                         uint64
 	RatingEnableEpoch                    uint32
 	EnableEpochsHandler                  common.EnableEpochsHandler
-	StakingV4EnableEpoch                              uint32
+	StakingV4EnableEpoch                 uint32
 }
 
 type validatorStatistics struct {
@@ -75,8 +76,8 @@ type validatorStatistics struct {
 	ratingEnableEpoch                    uint32
 	lastFinalizedRootHash                []byte
 	enableEpochsHandler                  common.EnableEpochsHandler
-	flagStakingV4                                     atomic.Flag
-	stakingV4EnableEpoch                              uint32
+	flagStakingV4                        atomic.Flag
+	stakingV4EnableEpoch                 uint32
 }
 
 // NewValidatorStatisticsProcessor instantiates a new validatorStatistics structure responsible for keeping account of
@@ -137,7 +138,7 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 		maxConsecutiveRoundsOfRatingDecrease: arguments.MaxConsecutiveRoundsOfRatingDecrease,
 		genesisNonce:                         arguments.GenesisNonce,
 		enableEpochsHandler:                  arguments.EnableEpochsHandler,
-		stakingV4EnableEpoch:                              arguments.StakingV4EnableEpoch,
+		stakingV4EnableEpoch:                 arguments.StakingV4EnableEpoch,
 	}
 
 	err := vs.saveInitialState(arguments.NodesSetup)
@@ -440,10 +441,10 @@ func (vs *validatorStatistics) RootHash() ([]byte, error) {
 }
 
 func (vs *validatorStatistics) getValidatorDataFromLeaves(
-	leavesChannel chan core.KeyValueHolder,
+	leavesChannels *common.TrieIteratorChannels,
 ) (state.ShardValidatorsInfoMapHandler, error) {
 	validators := state.NewShardValidatorsInfoMap()
-	for pa := range leavesChannel {
+	for pa := range leavesChannels.LeavesChan {
 		peerAccount, err := vs.unmarshalPeer(pa.Value())
 		if err != nil {
 			return nil, err
