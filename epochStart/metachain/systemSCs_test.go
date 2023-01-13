@@ -26,9 +26,8 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/dataPool"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
+	"github.com/multiversx/mx-chain-go/epochStart/notifier"
 	"github.com/multiversx/mx-chain-go/genesis/process/disabled"
-	"github.com/multiversx/mx-chain-go/process"
-	economicsHandler "github.com/multiversx/mx-chain-go/process/economics"
 	vmFactory "github.com/multiversx/mx-chain-go/process/factory"
 	metaProcess "github.com/multiversx/mx-chain-go/process/factory/metachain"
 	"github.com/multiversx/mx-chain-go/process/peer"
@@ -43,8 +42,8 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
-	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/stakingcommon"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/storage"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
@@ -743,6 +742,9 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 	userAccountsDB := createAccountsDB(hasher, marshalizer, factory.NewAccountCreator(), trieFactoryManager)
 	peerAccountsDB := createAccountsDB(hasher, marshalizer, factory.NewPeerAccountCreator(), trieFactoryManager)
 	en := forking.NewGenericEpochNotifier()
+	enableEpochsConfig.StakeLimitsEnableEpoch = 10
+	enableEpochsConfig.StakingV4InitEnableEpoch = 444
+	enableEpochsConfig.StakingV4EnableEpoch = 445
 	epochsConfig := &config.EpochConfig{
 		EnableEpochs: enableEpochsConfig,
 	}
@@ -766,27 +768,12 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 	vCreator, _ := peer.NewValidatorStatisticsProcessor(argsValidatorsProcessor)
 
 	blockChain, _ := blockchain.NewMetaChain(&statusHandlerMock.AppStatusHandlerStub{})
-	gasSchedule := arwenConfig.MakeGasMapForTests()
-	gasScheduleNotifier := mock.NewGasScheduleNotifierMock(gasSchedule)
-	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:     gasScheduleNotifier,
-		MapDNSAddresses: make(map[string]struct{}),
-		Marshalizer:     marshalizer,
-		Accounts:        userAccountsDB,
-		ShardCoordinator: &mock.ShardCoordinatorStub{SelfIdCalled: func() uint32 {
-			return core.MetachainShardId
-		}},
-		EpochNotifier: &epochNotifier.EpochNotifierStub{},
-	}
-	builtInFuncs, _, _, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
-
+	gasSchedule := wasmConfig.MakeGasMapForTests()
+	gasScheduleNotifier := testscommon.NewGasScheduleNotifierMock(gasSchedule)
 	testDataPool := dataRetrieverMock.NewPoolsHolderMock()
 
-	gasSchedule := wasmConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasSchedule, 1)
 	signVerifer, _ := disabled.NewMessageSignVerifier(&cryptoMocks.KeyGenStub{})
-
-	gasScheduleNotifier := testscommon.NewGasScheduleNotifierMock(gasSchedule)
 
 	nodesSetup := &mock.NodesSetupStub{}
 
@@ -799,7 +786,7 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 		Marshalizer:           marshalizer,
 		Uint64Converter:       &mock.Uint64ByteSliceConverterMock{},
 		NFTStorageHandler:     &testscommon.SimpleNFTStorageHandlerStub{},
-		BuiltInFunctions:      builtInFuncs,
+		BuiltInFunctions:      vmcommonBuiltInFunctions.NewBuiltInFunctionContainer(),
 		DataPool:              testDataPool,
 		GlobalSettingsHandler: &testscommon.ESDTGlobalSettingsHandlerStub{},
 		CompiledSCPool:        testDataPool.SmartContracts(),
@@ -811,9 +798,6 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 	}
 
 	defaults.FillGasMapInternal(gasSchedule, 1)
-	signVerifer, _ := disabled.NewMessageSignVerifier(&cryptoMocks.KeyGenStub{})
-
-	nodesSetup := &mock.NodesSetupStub{}
 
 	blockChainHookImpl, _ := hooks.NewBlockChainHookImpl(argsHook)
 	argsNewVMContainerFactory := metaProcess.ArgsNewVMContainerFactory{
@@ -869,10 +853,7 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 		ChanceComputer:      &mock.ChanceComputerStub{},
 		ShardCoordinator:    &mock.ShardCoordinatorStub{},
 		EnableEpochsHandler: enableEpochsHandler,
-		StakeLimitsEnableEpoch:             10,
-		StakingV4InitEnableEpoch:           444,
-		StakingV4EnableEpoch:               445,
-		NodesCoordinator: &shardingMocks.NodesCoordinatorStub{},
+		NodesCoordinator:    &shardingMocks.NodesCoordinatorStub{},
 	}
 	metaVmFactory, _ := metaProcess.NewVMContainerFactory(argsNewVMContainerFactory)
 
@@ -923,18 +904,10 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 				return 63
 			},
 		},
-		ShardCoordinator:      shardCoordinator,
-		ESDTOwnerAddressBytes: bytes.Repeat([]byte{1}, 32),
-		EpochConfig: config.EpochConfig{
-			EnableEpochs: config.EnableEpochs{
-				StakingV2EnableEpoch:     1000000,
-				ESDTEnableEpoch:          1000000,
-				StakingV4InitEnableEpoch: 444,
-				StakingV4EnableEpoch:     445,
-			},
-		},
+		ShardCoordinator:             shardCoordinator,
+		ESDTOwnerAddressBytes:        bytes.Repeat([]byte{1}, 32),
 		MaxNodesChangeConfigProvider: nodesConfigProvider,
-		EnableEpochsHandler:   enableEpochsHandler,
+		EnableEpochsHandler:          enableEpochsHandler,
 	}
 	return args, metaVmFactory.SystemSmartContractContainer()
 }
@@ -947,7 +920,6 @@ func TestSystemSCProcessor_ProcessSystemSmartContractInitDelegationMgr(t *testin
 	}, createMemUnit())
 	s, _ := NewSystemSCProcessor(args)
 
-	_ = s.flagDelegationEnabled.SetReturningPrevious()
 	validatorsInfo := state.NewShardValidatorsInfoMap()
 	err := s.ProcessSystemSmartContract(validatorsInfo, &block.Header{})
 	assert.Nil(t, err)
@@ -1133,11 +1105,12 @@ func getTotalNumberOfRegisteredNodes(t *testing.T, s *systemSCProcessor) int {
 func TestSystemSCProcessor_ProcessSystemSmartContractMaxNodesStakedFromQueueOwnerNotSet(t *testing.T) {
 	t.Parallel()
 
+	maxNodesChangeConfig := []config.MaxNodesChangeConfig{{EpochEnable: 10, MaxNumNodes: 10}}
 	args, _ := createFullArgumentsForSystemSCProcessing(config.EnableEpochs{
-		StakingV2EnableEpoch: 10,
+		MaxNodesChangeEnableEpoch: maxNodesChangeConfig,
+		StakingV2EnableEpoch:      10,
 	}, createMemUnit())
-	args.MaxNodesEnableConfig = []config.MaxNodesChangeConfig{{EpochEnable: 10, MaxNumNodes: 10}}
-	args.MaxNodesChangeConfigProvider = nodesConfigProvider
+	args.MaxNodesChangeConfigProvider, _ = notifier.NewNodesConfigProvider(args.EpochNotifier, maxNodesChangeConfig)
 	s, _ := NewSystemSCProcessor(args)
 
 	prepareStakingContractWithData(
@@ -1762,7 +1735,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractJailAndUnStake(t *testing.T
 func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Init(t *testing.T) {
 	t.Parallel()
 
-	args, _ := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
+	args, _ := createFullArgumentsForSystemSCProcessing(config.EnableEpochs{}, createMemUnit())
 	s, _ := NewSystemSCProcessor(args)
 
 	owner1 := []byte("owner1")
@@ -1799,7 +1772,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Init(t *testing.T)
 	_ = validatorsInfo.Add(createValidatorInfo(owner1ListPubKeysStaked[1], common.WaitingList, owner1, 0))
 	_ = validatorsInfo.Add(createValidatorInfo(owner2ListPubKeysStaked[0], common.EligibleList, owner2, 1))
 
-	s.EpochConfirmed(args.EpochConfig.EnableEpochs.StakingV4InitEnableEpoch, 0)
+	s.EpochConfirmed(stakingV4EInitEnableEpoch, 0)
 	err := s.ProcessSystemSmartContract(validatorsInfo, &block.Header{})
 	require.Nil(t, err)
 
@@ -1827,7 +1800,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Init(t *testing.T)
 func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4EnabledCannotPrepareStakingData(t *testing.T) {
 	t.Parallel()
 
-	args, _ := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
+	args, _ := createFullArgumentsForSystemSCProcessing(config.EnableEpochs{}, createMemUnit())
 
 	errProcessStakingData := errors.New("error processing staking data")
 	args.StakingDataProvider = &stakingcommon.StakingDataProviderStub{
@@ -1845,7 +1818,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4EnabledCannotPrepa
 	_ = validatorsInfo.Add(createValidatorInfo(ownerStakedKeys[1], common.AuctionList, owner, 0))
 
 	s, _ := NewSystemSCProcessor(args)
-	s.EpochConfirmed(args.EpochConfig.EnableEpochs.StakingV4EnableEpoch, 0)
+	s.EpochConfirmed(stakingV4EnableEpoch, 0)
 
 	err := s.ProcessSystemSmartContract(validatorsInfo, &block.Header{})
 	require.Equal(t, errProcessStakingData, err)
@@ -1854,7 +1827,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4EnabledCannotPrepa
 func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Enabled(t *testing.T) {
 	t.Parallel()
 
-	args, _ := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
+	args, _ := createFullArgumentsForSystemSCProcessing(config.EnableEpochs{}, createMemUnit())
 	nodesConfigProvider, _ := notifier.NewNodesConfigProvider(args.EpochNotifier, []config.MaxNodesChangeConfig{{MaxNumNodes: 8}})
 	argsAuctionListSelector := AuctionListSelectorArgs{
 		ShardCoordinator:             args.ShardCoordinator,
@@ -1920,7 +1893,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Enabled(t *testing
 	_ = validatorsInfo.Add(createValidatorInfo(owner7StakedKeys[1], common.EligibleList, owner7, 2))
 
 	s, _ := NewSystemSCProcessor(args)
-	args.EpochNotifier.CheckEpoch(&block.Header{Epoch: args.EpochConfig.EnableEpochs.StakingV4EnableEpoch})
+	args.EpochNotifier.CheckEpoch(&block.Header{Epoch: stakingV4EnableEpoch})
 	err := s.ProcessSystemSmartContract(validatorsInfo, &block.Header{PrevRandSeed: []byte("pubKey7")})
 	require.Nil(t, err)
 
@@ -2017,7 +1990,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Enabled(t *testing
 func TestSystemSCProcessor_LegacyEpochConfirmedCorrectMaxNumNodesAfterNodeRestart(t *testing.T) {
 	t.Parallel()
 
-	args, _ := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
+	args, _ := createFullArgumentsForSystemSCProcessing(config.EnableEpochs{}, createMemUnit())
 	nodesConfigEpoch0 := config.MaxNodesChangeConfig{
 		EpochEnable:            0,
 		MaxNumNodes:            36,
