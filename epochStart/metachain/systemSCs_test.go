@@ -745,6 +745,7 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 	enableEpochsConfig.StakeLimitsEnableEpoch = 10
 	enableEpochsConfig.StakingV4InitEnableEpoch = 444
 	enableEpochsConfig.StakingV4EnableEpoch = 445
+	enableEpochsConfig.BuiltInFunctionOnMetaEnableEpoch = 400
 	epochsConfig := &config.EpochConfig{
 		EnableEpochs: enableEpochsConfig,
 	}
@@ -1153,7 +1154,7 @@ func TestSystemSCProcessor_ESDTInitShouldWork(t *testing.T) {
 	require.Equal(t, 4, len(initialContractConfig))
 	require.Equal(t, []byte("aaaaaa"), initialContractConfig[0])
 
-	err = s.ProcessSystemSmartContract(nil, &block.Header{Nonce: 1, Epoch: 1})
+	err = s.ProcessSystemSmartContract(state.NewShardValidatorsInfoMap(), &block.Header{Nonce: 1, Epoch: 1})
 
 	require.Nil(t, err)
 
@@ -1772,7 +1773,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Init(t *testing.T)
 	_ = validatorsInfo.Add(createValidatorInfo(owner1ListPubKeysStaked[1], common.WaitingList, owner1, 0))
 	_ = validatorsInfo.Add(createValidatorInfo(owner2ListPubKeysStaked[0], common.EligibleList, owner2, 1))
 
-	s.EpochConfirmed(stakingV4EInitEnableEpoch, 0)
+	args.EpochNotifier.CheckEpoch(&block.Header{Epoch: stakingV4EInitEnableEpoch})
 	err := s.ProcessSystemSmartContract(validatorsInfo, &block.Header{})
 	require.Nil(t, err)
 
@@ -1990,7 +1991,9 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Enabled(t *testing
 func TestSystemSCProcessor_LegacyEpochConfirmedCorrectMaxNumNodesAfterNodeRestart(t *testing.T) {
 	t.Parallel()
 
-	args, _ := createFullArgumentsForSystemSCProcessing(config.EnableEpochs{}, createMemUnit())
+	args, _ := createFullArgumentsForSystemSCProcessing(config.EnableEpochs{
+		StakingV2EnableEpoch: 100,
+	}, createMemUnit())
 	nodesConfigEpoch0 := config.MaxNodesChangeConfig{
 		EpochEnable:            0,
 		MaxNumNodes:            36,
