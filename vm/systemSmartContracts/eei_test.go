@@ -277,12 +277,9 @@ func TestVmContext_ProcessBuiltInFunction(t *testing.T) {
 		},
 	}
 
-	vmCtx, _ := NewVMContext(
-		blockChainHook,
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	argsVMContext := createArgsVMContext()
+	argsVMContext.BlockChainHook = blockChainHook
+	vmCtx, _ := NewVMContext(argsVMContext)
 
 	vmOutput, err := vmCtx.ProcessBuiltInFunction(vm.LiquidStakingSCAddress, vm.LiquidStakingSCAddress, "function", [][]byte{})
 	assert.Nil(t, vmOutput)

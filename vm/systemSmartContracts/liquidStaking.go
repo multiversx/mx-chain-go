@@ -9,7 +9,6 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -24,15 +23,13 @@ const nonceAttributesPrefix = "n"
 const attributesNoncePrefix = "a"
 
 type liquidStaking struct {
-	eei                      vm.SystemEI
-	liquidStakingSCAddress   []byte
-	gasCost                  vm.GasCost
-	marshalizer              marshal.Marshalizer
-	hasher                   hashing.Hasher
-	mutExecution             sync.RWMutex
-	liquidStakingEnableEpoch uint32
-	flagLiquidStaking        atomic.Flag
-	enableEpochsHandler      common.EnableEpochsHandler
+	eei                    vm.SystemEI
+	liquidStakingSCAddress []byte
+	gasCost                vm.GasCost
+	marshalizer            marshal.Marshalizer
+	hasher                 hashing.Hasher
+	mutExecution           sync.RWMutex
+	enableEpochsHandler    common.EnableEpochsHandler
 }
 
 // ArgsNewLiquidStaking defines the arguments to create the liquid staking smart contract
@@ -43,7 +40,6 @@ type ArgsNewLiquidStaking struct {
 	GasCost                vm.GasCost
 	Marshalizer            marshal.Marshalizer
 	Hasher                 hashing.Hasher
-	EpochNotifier          vm.EpochNotifier
 	EnableEpochsHandler    common.EnableEpochsHandler
 }
 
@@ -64,18 +60,18 @@ func NewLiquidStakingSystemSC(args ArgsNewLiquidStaking) (*liquidStaking, error)
 	if check.IfNil(args.Hasher) {
 		return nil, vm.ErrNilHasher
 	}
+	if check.IfNil(args.EnableEpochsHandler) {
+		return nil, vm.ErrNilEnableEpochsHandler
+	}
 
 	l := &liquidStaking{
-		eei:                      args.Eei,
-		liquidStakingSCAddress:   args.LiquidStakingSCAddress,
-		gasCost:                  args.GasCost,
-		marshalizer:              args.Marshalizer,
-		hasher:                   args.Hasher,
-		liquidStakingEnableEpoch: args.EpochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
+		eei:                    args.Eei,
+		liquidStakingSCAddress: args.LiquidStakingSCAddress,
+		gasCost:                args.GasCost,
+		marshalizer:            args.Marshalizer,
+		hasher:                 args.Hasher,
+		enableEpochsHandler:    args.EnableEpochsHandler,
 	}
-	log.Debug("liquid staking: enable epoch", "epoch", l.liquidStakingEnableEpoch)
-
-	args.EpochNotifier.RegisterNotifyHandler(l)
 
 	return l, nil
 }
@@ -90,7 +86,7 @@ func (l *liquidStaking) Execute(args *vmcommon.ContractCallInput) vmcommon.Retur
 		l.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
-	if !l.flagLiquidStaking.IsSet() {
+	if !l.enableEpochsHandler.IsLiquidStakingEnabled() {
 		l.eei.AddReturnMessage("liquid staking contract is not enabled")
 		return vmcommon.UserError
 	}
@@ -571,15 +567,9 @@ func (l *liquidStaking) SetNewGasCost(gasCost vm.GasCost) {
 	l.mutExecution.Unlock()
 }
 
-// EpochConfirmed is called whenever a new epoch is confirmed
-func (l *liquidStaking) EpochConfirmed(epoch uint32, _ uint64) {
-	l.flagLiquidStaking.SetValue(epoch >= l.liquidStakingEnableEpoch)
-	log.Debug("liquid staking system sc", "enabled", l.flagLiquidStaking.IsSet())
-}
-
 // CanUseContract returns true if contract can be used
 func (l *liquidStaking) CanUseContract() bool {
-	return l.flagLiquidStaking.IsSet()
+	return l.enableEpochsHandler.IsLiquidStakingEnabled()
 }
 
 // IsInterfaceNil returns true if underlying object is nil

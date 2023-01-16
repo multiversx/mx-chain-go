@@ -45,6 +45,7 @@ func createMockArgumentsForESDT() ArgsNewESDTSmartContract {
 			IsESDTNFTCreateOnMultiShardFlagEnabledField:     true,
 			IsESDTTransferRoleFlagEnabledField:              true,
 			IsESDTMetadataContinuousCleanupFlagEnabledField: true,
+			IsLiquidStakingEnabledField:                     true,
 		},
 	}
 }
@@ -4352,19 +4353,19 @@ func TestEsdt_CheckRolesOnMetaESDT(t *testing.T) {
 func TestEsdt_ExecuteInitDelegationESDT(t *testing.T) {
 	t.Parallel()
 
+	enableEpochsHandler := &testscommon.EnableEpochsHandlerStub{
+		IsDelegationSmartContractFlagEnabledField: true,
+		IsESDTFlagEnabledField:                    true,
+		IsBuiltInFunctionOnMetaFlagEnabledField:   false,
+	}
+
 	args := createMockArgumentsForESDT()
 	args.ESDTSCAddress = vm.ESDTSCAddress
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{
-			CurrentEpochCalled: func() uint32 {
-				return 2
-			},
-		},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	args.EnableEpochsHandler = enableEpochsHandler
+
+	argsVMContext := createArgsVMContext()
+	argsVMContext.EnableEpochsHandler = enableEpochsHandler
+	eei, _ := NewVMContext(argsVMContext)
 	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)
 
@@ -4378,13 +4379,12 @@ func TestEsdt_ExecuteInitDelegationESDT(t *testing.T) {
 	}
 
 	eei.returnMessage = ""
-	e.flagESDTOnMeta.Reset()
 	returnCode := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.FunctionNotFound, returnCode)
 	assert.Equal(t, eei.returnMessage, "invalid method to call")
 
 	eei.returnMessage = ""
-	e.flagESDTOnMeta.SetValue(true)
+	enableEpochsHandler.IsBuiltInFunctionOnMetaFlagEnabledField = true
 	returnCode = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, "only system address can call this")

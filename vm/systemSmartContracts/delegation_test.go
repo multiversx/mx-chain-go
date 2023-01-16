@@ -53,6 +53,7 @@ func createMockArgumentsForDelegation() ArgsNewDelegation {
 			IsComputeRewardCheckpointFlagEnabledField:              true,
 			IsValidatorToDelegationFlagEnabledField:                true,
 			IsReDelegateBelowMinCheckFlagEnabledField:              true,
+			IsLiquidStakingEnabledField:                            true,
 		},
 	}
 }
@@ -4921,17 +4922,18 @@ func TestDelegation_FailsIfESDTTransfers(t *testing.T) {
 }
 
 func TestDelegation_BasicCheckForLiquidStaking(t *testing.T) {
+	enableEpochsHandler := &testscommon.EnableEpochsHandlerStub{IsLiquidStakingEnabledField: false, IsDelegationSmartContractFlagEnabledField: true}
 	d, eei := createDelegationContractAndEEI()
+	d.enableEpochsHandler = enableEpochsHandler
 
 	vmInput := getDefaultVmInputForFunc("claimDelegatedPosition", make([][]byte, 0))
 
-	d.flagLiquidStaking.Reset()
 	returnCode := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, vmInput.Function+" is an unknown function")
 
 	eei.returnMessage = ""
-	d.flagLiquidStaking.SetValue(true)
+	enableEpochsHandler.IsLiquidStakingEnabledField = true
 	returnCode = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, "only liquid staking sc can call this function")
