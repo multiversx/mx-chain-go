@@ -1,8 +1,8 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	txSimData "github.com/multiversx/mx-chain-go/process/txsimulator/data"
 )
 
 // TxExecutionSimulatorStub -

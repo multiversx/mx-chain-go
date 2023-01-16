@@ -1,7 +1,7 @@
 package topicResolverSender
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/multiversx/mx-chain-core-go/core"
 )
 
 const TopicRequestSuffix = topicRequestSuffix

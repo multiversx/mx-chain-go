@@ -1,8 +1,8 @@
 package bootstrap
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/errors"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/errors"
 )
 
 type sovereignChainEpochStartBootstrap struct {

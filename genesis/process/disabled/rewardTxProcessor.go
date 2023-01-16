@@ -1,7 +1,7 @@
 package disabled
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
+	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
 )
 
 // RewardTxProcessor implements the RewardTransactionProcessor interface but does nothing as it is disabled

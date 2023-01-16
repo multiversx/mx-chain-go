@@ -3,8 +3,8 @@ package sync_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/sync"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/sync"
 	"github.com/stretchr/testify/assert"
 )
 

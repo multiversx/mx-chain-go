@@ -1,6 +1,6 @@
 package sync
 
-import "github.com/ElrondNetwork/elrond-go/process"
+import "github.com/multiversx/mx-chain-go/process"
 
 // SovereignChainShardBootstrap implements the bootstrap mechanism
 type SovereignChainShardBootstrap struct {

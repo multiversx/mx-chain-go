@@ -5,14 +5,13 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/queue"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/state"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var headerVersion = []byte("1")
@@ -20,22 +19,18 @@ var headerVersion = []byte("1")
 type sovereignBlockProcessor struct {
 	*shardProcessor
 	validatorStatisticsProcessor process.ValidatorStatisticsProcessor
-	peerStatePruningQueue        core.Queue
 }
 
 // NewSovereignBlockProcessor creates a new sovereign block processor
 func NewSovereignBlockProcessor(
 	shardProcessor *shardProcessor,
 	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
-	peerStatePruningQueueSize uint,
 ) (*sovereignBlockProcessor, error) {
 
 	sbp := &sovereignBlockProcessor{
 		shardProcessor:               shardProcessor,
 		validatorStatisticsProcessor: validatorStatisticsProcessor,
 	}
-
-	sbp.peerStatePruningQueue = queue.NewSliceQueue(peerStatePruningQueueSize)
 
 	return sbp, nil
 }
@@ -434,7 +429,6 @@ func (s *sovereignBlockProcessor) updateState(lastHdr *block.HeaderWithValidator
 		lastHdr.GetRootHash(),
 		prevBlock.GetRootHash(),
 		s.accountsDB[state.UserAccountsState],
-		s.userStatePruningQueue,
 	)
 
 	s.updateStateStorage(
@@ -442,7 +436,6 @@ func (s *sovereignBlockProcessor) updateState(lastHdr *block.HeaderWithValidator
 		lastHdr.GetValidatorStatsRootHash(),
 		validatorInfo.GetValidatorStatsRootHash(),
 		s.accountsDB[state.PeerAccountsState],
-		s.peerStatePruningQueue,
 	)
 
 	s.setFinalizedHeaderHashInIndexer(lastHdr.GetPrevHash())
