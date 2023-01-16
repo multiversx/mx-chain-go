@@ -17,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
@@ -60,9 +61,8 @@ func createMockStakingScArgumentsWithSystemScAddresses(
 			IsCorrectFirstQueuedFlagEnabledField:                 true,
 			IsCorrectJailedNotUnStakedEmptyQueueFlagEnabledField: true,
 			IsValidatorToDelegationFlagEnabledField:              true,
-			StakingV4InitEnableEpoch : false,
-			StakingV4EnableEpoch: false,
-
+			IsStakingV4FlagEnabledField:                          false,
+			IsStakingV4InitFlagEnabledField:                      false,
 		},
 	}
 }
@@ -95,6 +95,17 @@ func CreateVmContractCallInput() *vmcommon.ContractCallInput {
 		},
 		RecipientAddr: []byte("rcpntaddr"),
 		Function:      "something",
+	}
+}
+
+func createArgsVMContext() VMContextArgs {
+	return VMContextArgs{
+		BlockChainHook:      &mock.BlockChainHookStub{},
+		CryptoHook:          hooks.NewVMCryptoHook(),
+		InputParser:         &mock.ArgumentParserMock{},
+		ValidatorAccountsDB: &stateMock.AccountsStub{},
+		ChanceComputer:      &mock.RaterMock{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
 	}
 }
 
@@ -993,15 +1004,20 @@ func TestStakingSc_ExecuteIsStaked(t *testing.T) {
 func TestStakingSc_StakeWithStakingV4(t *testing.T) {
 	t.Parallel()
 
+	enableEpochsHandler := &testscommon.EnableEpochsHandlerStub{IsStakingV2FlagEnabledField: true}
+
 	args := createMockStakingScArguments()
 	stakingAccessAddress := []byte("stakingAccessAddress")
 	args.StakingAccessAddr = stakingAccessAddress
 	args.StakingSCConfig.MaxNumberOfNodesForStake = 4
-	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
+	args.EnableEpochsHandler = enableEpochsHandler
+
+	argsVMContext := createArgsVMContext()
+	argsVMContext.EnableEpochsHandler = enableEpochsHandler
+	eei, _ := NewVMContext(argsVMContext)
 	args.Eei = eei
 
 	stakingSmartContract, _ := NewStakingSmartContract(args)
-	stakingSmartContract.flagStakingV2.SetValue(true)
 
 	for i := 0; i < 10; i++ {
 		idxStr := strconv.Itoa(i)
@@ -1021,7 +1037,7 @@ func TestStakingSc_StakeWithStakingV4(t *testing.T) {
 	doUnStake(t, stakingSmartContract, stakingAccessAddress, []byte("addr0"), []byte("addr0"), vmcommon.Ok)
 	requireRegisteredNodes(t, stakingSmartContract, eei, 4, 5)
 
-	stakingSmartContract.EpochConfirmed(args.EpochConfig.EnableEpochs.StakingV4InitEnableEpoch, 0)
+	enableEpochsHandler.IsStakingV4StartedField = true
 	for i := 5; i < 10; i++ {
 		idxStr := strconv.Itoa(i)
 		addr := []byte("addr" + idxStr)
@@ -1044,23 +1060,27 @@ func TestStakingSc_StakeWithStakingV4(t *testing.T) {
 func TestStakingSc_UnStakeNodeFromWaitingListAfterStakingV4ShouldError(t *testing.T) {
 	t.Parallel()
 
+	enableEpochsHandler := &testscommon.EnableEpochsHandlerStub{IsStakingV2FlagEnabledField: true}
+
 	args := createMockStakingScArguments()
 	stakingAccessAddress := []byte("stakingAccessAddress")
 	args.StakingAccessAddr = stakingAccessAddress
 	args.StakingSCConfig.MaxNumberOfNodesForStake = 2
-	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
+	args.EnableEpochsHandler = enableEpochsHandler
+
+	argsVMContext := createArgsVMContext()
+	argsVMContext.EnableEpochsHandler = enableEpochsHandler
+	eei, _ := NewVMContext(argsVMContext)
 	args.Eei = eei
 
 	stakingSmartContract, _ := NewStakingSmartContract(args)
-	stakingSmartContract.flagStakingV2.SetValue(true)
 
 	doStake(t, stakingSmartContract, stakingAccessAddress, []byte("address0"), []byte("address0"))
 	doStake(t, stakingSmartContract, stakingAccessAddress, []byte("address1"), []byte("address1"))
 	doStake(t, stakingSmartContract, stakingAccessAddress, []byte("address2"), []byte("address2"))
 	requireRegisteredNodes(t, stakingSmartContract, eei, 2, 1)
 
-	stakingSmartContract.EpochConfirmed(args.EpochConfig.EnableEpochs.StakingV4InitEnableEpoch, 0)
-
+	enableEpochsHandler.IsStakingV4StartedField = true
 	eei.returnMessage = ""
 	doUnStake(t, stakingSmartContract, stakingAccessAddress, []byte("address2"), []byte("address2"), vmcommon.ExecutionFailed)
 	require.Equal(t, eei.returnMessage, vm.ErrWaitingListDisabled.Error())
@@ -3379,12 +3399,25 @@ func TestStakingSc_fixMissingNodeAddOneNodeOnly(t *testing.T) {
 func TestStakingSC_StakingV4Flags(t *testing.T) {
 	t.Parallel()
 
-	args := createMockStakingScArguments()
-	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
-	args.Eei = eei
+	enableEpochsHandler := &testscommon.EnableEpochsHandlerStub{
+		IsStakeFlagEnabledField:                              true,
+		IsCorrectLastUnJailedFlagEnabledField:                true,
+		IsCorrectFirstQueuedFlagEnabledField:                 true,
+		IsCorrectJailedNotUnStakedEmptyQueueFlagEnabledField: true,
+		IsSwitchJailWaitingFlagEnabledField:                  true,
+		IsValidatorToDelegationFlagEnabledField:              true,
+		IsStakingV4InitFlagEnabledField:                      true,
+		IsStakingV4StartedField:                              true,
+		IsStakingV2FlagEnabledField:                          true,
+	}
+	argsVMContext := createArgsVMContext()
+	argsVMContext.EnableEpochsHandler = enableEpochsHandler
+	eei, _ := NewVMContext(argsVMContext)
 
+	args := createMockStakingScArguments()
+	args.Eei = eei
+	args.EnableEpochsHandler = enableEpochsHandler
 	stakingSmartContract, _ := NewStakingSmartContract(args)
-	stakingSmartContract.EpochConfirmed(args.EpochConfig.EnableEpochs.StakingV4InitEnableEpoch, 0)
 
 	// Functions which are not allowed starting STAKING V4 INIT
 	arguments := CreateVmContractCallInput()
@@ -3436,7 +3469,7 @@ func TestStakingSC_StakingV4Flags(t *testing.T) {
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.True(t, strings.Contains(eei.returnMessage, "can be called by endOfEpochAccess address only"))
 
-	stakingSmartContract.EpochConfirmed(args.EpochConfig.EnableEpochs.StakingV4EnableEpoch, 0)
+	enableEpochsHandler.IsStakingV4InitFlagEnabledField = false
 	// All functions from above are not allowed anymore starting STAKING V4 epoch
 	eei.CleanCache()
 	arguments.Function = "getQueueIndex"
