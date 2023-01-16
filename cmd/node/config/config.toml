@@ -449,7 +449,7 @@
     SizeInBytes = 31457280  #30MB
     Shards = 4
 
-#PublicKeyPeerId represents the main cache used to map Elrond block signing public keys to their associated peer id's.
+#PublicKeyPeerId represents the main cache used to map MultiversX block signing public keys to their associated peer id's.
 [PublicKeyPeerId]
     Name = "PublicKeyPeerId"
     Capacity = 30000
@@ -681,7 +681,7 @@
     [VirtualMachine.Execution]
         TimeOutForSCExecutionInMilliseconds = 10000 # 10 seconds = 10000 milliseconds
         WasmerSIGSEGVPassthrough            = false # must be false for release
-        ArwenVersions = [
+        WasmVMVersions = [
             { StartEpoch = 0, Version = "v1.3" },
             { StartEpoch = 1, Version = "v1.4" },
         ]
@@ -690,7 +690,7 @@
         NumConcurrentVMs = 1
         TimeOutForSCExecutionInMilliseconds = 10000 # 10 seconds = 10000 milliseconds
         WasmerSIGSEGVPassthrough            = false # must be false for release
-        ArwenVersions = [
+        WasmVMVersions = [
             { StartEpoch = 0, Version = "v1.3" },
             { StartEpoch = 1, Version = "v1.4" },
         ]
@@ -814,7 +814,7 @@
     FolderPath = "health-records"
 
 [SoftwareVersionConfig]
-    StableTagLocation = "https://api.github.com/repos/ElrondNetwork/elrond-go/releases/latest"
+    StableTagLocation = "https://api.github.com/repos/multiversx/mx-chain-go/releases/latest"
     PollingIntervalInMinutes = 65
 
 [LogsAndEvents]

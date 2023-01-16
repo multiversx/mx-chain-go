@@ -4,8 +4,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/trie/statistics"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/trie/statistics"
 )
 
 type snapshotStatistics struct {

@@ -1,7 +1,7 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/outport"
+	"github.com/multiversx/mx-chain-go/outport"
 )
 
 // StatusComponentsMock -

@@ -1,7 +1,7 @@
 package trie
 
 import (
-	"github.com/ElrondNetwork/elrond-go/trie/statistics"
+	"github.com/multiversx/mx-chain-go/trie/statistics"
 )
 
 // MockStatistics -

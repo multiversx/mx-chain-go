@@ -12,7 +12,7 @@ generateForNode() {
     HELP="
 # Node CLI
 
-The **Elrond Node** exposes the following Command Line Interface:
+The **MultiversX Node** exposes the following Command Line Interface:
 $(code)
 \$ node --help
 
@@ -38,9 +38,9 @@ $(code)
 
 generateForTermUi() {
     HELP="
-# Elrond TermUI CLI
+# MultiversX TermUI CLI
 
-The **Elrond Term UI** exposes the following Command Line Interface:
+The **MultiversX Term UI** exposes the following Command Line Interface:
 $(code)
 \$ termui --help
 
@@ -54,7 +54,7 @@ generateForLogViewer() {
     HELP="
 # Logviewer App
 
-The **Elrond Logviewer App** exposes the following Command Line Interface:
+The **MultiversX Logviewer App** exposes the following Command Line Interface:
 $(code)
 \$ logviewer --help
 
@@ -66,9 +66,9 @@ $(code)
 
 generateForSeedNode() {
     HELP="
-# Elrond SeedNode CLI
+# MultiversX SeedNode CLI
 
-The **Elrond SeedNode** exposes the following Command Line Interface:
+The **MultiversX SeedNode** exposes the following Command Line Interface:
 $(code)
 \$ seednode --help
 

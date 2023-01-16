@@ -1,7 +1,7 @@
 package mock
 
 import (
-	heartbeatData "github.com/ElrondNetwork/elrond-go/heartbeat/data"
+	heartbeatData "github.com/multiversx/mx-chain-go/heartbeat/data"
 )
 
 // HeartbeatMonitorStub -

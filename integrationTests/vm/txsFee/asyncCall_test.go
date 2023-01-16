@@ -1,7 +1,7 @@
 //go:build !race
 // +build !race
 
-// TODO remove build condition above to allow -race -short, after Arwen fix
+// TODO remove build condition above to allow -race -short, after Wasm VM fix
 
 package txsFee
 
@@ -11,15 +11,15 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
-	"github.com/ElrondNetwork/elrond-go/process"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	arwenConfig "github.com/ElrondNetwork/wasm-vm-v1_4/config"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/scheduled"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
+	"github.com/multiversx/mx-chain-go/process"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	wasmConfig "github.com/multiversx/mx-chain-vm-v1_4-go/config"
 	"github.com/stretchr/testify/require"
 )
 
@@ -77,7 +77,7 @@ func TestAsyncCallShouldWork(t *testing.T) {
 }
 
 func TestMinterContractWithAsyncCalls(t *testing.T) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMsAndCustomGasSchedule(config.EnableEpochs{}, func(gasMap arwenConfig.GasScheduleMap) {
+	testContext, err := vm.CreatePreparedTxProcessorWithVMsAndCustomGasSchedule(config.EnableEpochs{}, func(gasMap wasmConfig.GasScheduleMap) {
 		// if `MaxBuiltInCallsPerTx` is 200 test will fail
 		gasMap[common.MaxPerTransaction]["MaxBuiltInCallsPerTx"] = 199
 		gasMap[common.MaxPerTransaction]["MaxNumberOfTransfersPerTx"] = 100000

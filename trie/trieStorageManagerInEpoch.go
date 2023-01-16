@@ -3,9 +3,9 @@ package trie
 import (
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/errors"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/errors"
 )
 
 // numEpochsToVerify needs to be at least 2 due to a snapshotting edge-case.

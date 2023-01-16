@@ -3,10 +3,10 @@ package data_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/config"
-	dataComp "github.com/ElrondNetwork/elrond-go/factory/data"
-	"github.com/ElrondNetwork/elrond-go/factory/mock"
-	componentsMock "github.com/ElrondNetwork/elrond-go/testscommon/components"
+	"github.com/multiversx/mx-chain-go/config"
+	dataComp "github.com/multiversx/mx-chain-go/factory/data"
+	"github.com/multiversx/mx-chain-go/factory/mock"
+	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/stretchr/testify/require"
 )
 

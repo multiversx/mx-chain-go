@@ -5,9 +5,9 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/esdt"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/stretchr/testify/require"
 )
 
@@ -44,7 +44,7 @@ func TestDecodeTokenFromProtoBytes(t *testing.T) {
 }
 
 func computeStorageKey(tokenIdentifier string, tokenNonce uint64) string {
-	key := []byte(core.ElrondProtectedKeyPrefix)
+	key := []byte(core.ProtectedKeyPrefix)
 	key = append(key, core.ESDTKeyIdentifier...)
 	key = append(key, []byte(tokenIdentifier)...)
 
