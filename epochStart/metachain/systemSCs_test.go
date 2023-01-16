@@ -1991,9 +1991,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Enabled(t *testing
 func TestSystemSCProcessor_LegacyEpochConfirmedCorrectMaxNumNodesAfterNodeRestart(t *testing.T) {
 	t.Parallel()
 
-	args, _ := createFullArgumentsForSystemSCProcessing(config.EnableEpochs{
-		StakingV2EnableEpoch: 100,
-	}, createMemUnit())
+	args, _ := createFullArgumentsForSystemSCProcessing(config.EnableEpochs{}, createMemUnit())
 	nodesConfigEpoch0 := config.MaxNodesChangeConfig{
 		EpochEnable:            0,
 		MaxNumNodes:            36,
@@ -2017,7 +2015,7 @@ func TestSystemSCProcessor_LegacyEpochConfirmedCorrectMaxNumNodesAfterNodeRestar
 			nodesConfigEpoch6,
 		})
 	args.MaxNodesChangeConfigProvider = nodesConfigProvider
-
+	args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{IsStakingV2FlagEnabledField: true}
 	validatorsInfoMap := state.NewShardValidatorsInfoMap()
 	s, _ := NewSystemSCProcessor(args)
 
