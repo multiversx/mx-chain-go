@@ -895,7 +895,7 @@ func TestApiTransactionProcessor_GetLastPoolNonceForSender(t *testing.T) {
 func TestApiTransactionProcessor_GetTransactionsPoolNonceGapsForSender(t *testing.T) {
 	t.Parallel()
 
-	txHash0, txHash1, txHash2, txHash3, txHash4 := []byte("txHash0"), []byte("txHash1"), []byte("txHash2"), []byte("txHash3"), []byte("txHash4")
+	txHash1, txHash2, txHash3, txHash4 := []byte("txHash1"), []byte("txHash2"), []byte("txHash3"), []byte("txHash4")
 	sender := "alice"
 	txCacheIntraShard, _ := txcache.NewTxCache(txcache.ConfigSourceMe{
 		Name:                       "test",
@@ -919,13 +919,13 @@ func TestApiTransactionProcessor_GetTransactionsPoolNonceGapsForSender(t *testin
 		GasProcessingDivisor: 1,
 	})
 
-	// expected nonce gaps: 3-3, 5-7
-	lastNonceBeforeGap1 := uint64(2)
-	firstNonceAfterGap1 := uint64(4)
-	lastNonceBeforeGap2 := uint64(5)
-	firstNonceAfterGap2 := uint64(9)
-	txCacheIntraShard.AddTx(createTx(txHash0, sender, 1))
-	txCacheIntraShard.AddTx(createTx(txHash1, sender, lastNonceBeforeGap1))
+	accountNonce := uint64(20)
+	// expected nonce gaps: 21-31, 33-33, 36-38
+	firstNonceInPool := uint64(32)
+	firstNonceAfterGap1 := uint64(34)
+	lastNonceBeforeGap2 := uint64(35)
+	firstNonceAfterGap2 := uint64(39)
+	txCacheIntraShard.AddTx(createTx(txHash1, sender, firstNonceInPool))
 	txCacheIntraShard.AddTx(createTx(txHash2, sender, firstNonceAfterGap1))
 	txCacheIntraShard.AddTx(createTx(txHash3, sender, lastNonceBeforeGap2))
 	txCacheIntraShard.AddTx(createTx(txHash4, sender, firstNonceAfterGap2))
@@ -965,7 +965,11 @@ func TestApiTransactionProcessor_GetTransactionsPoolNonceGapsForSender(t *testin
 		Sender: sender,
 		Gaps: []common.NonceGapApiResponse{
 			{
-				From: lastNonceBeforeGap1 + 1,
+				From: accountNonce + 1,
+				To:   firstNonceInPool - 1,
+			},
+			{
+				From: firstNonceInPool + 1,
 				To:   firstNonceAfterGap1 - 1,
 			},
 			{
@@ -974,13 +978,13 @@ func TestApiTransactionProcessor_GetTransactionsPoolNonceGapsForSender(t *testin
 			},
 		},
 	}
-	res, err := atp.GetTransactionsPoolNonceGapsForSender(sender)
+	res, err := atp.GetTransactionsPoolNonceGapsForSender(sender, accountNonce)
 	require.NoError(t, err)
 	require.Equal(t, expectedResponse, res)
 
 	// if no tx is found in pool for a sender, it isn't an error, but return empty slice
 	newSender := "new-sender"
-	res, err = atp.GetTransactionsPoolNonceGapsForSender(newSender)
+	res, err = atp.GetTransactionsPoolNonceGapsForSender(newSender, 0)
 	require.NoError(t, err)
 	require.Equal(t, &common.TransactionsPoolNonceGapsForSenderApiResponse{
 		Sender: newSender,

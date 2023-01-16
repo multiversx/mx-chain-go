@@ -1618,8 +1618,13 @@ func TestNodeFacade_GetTransactionsPoolNonceGapsForSender(t *testing.T) {
 
 		arg := createMockArguments()
 		expectedErr := errors.New("expected error")
+		arg.Node = &mock.NodeStub{
+			GetAccountCalled: func(address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
+				return api.AccountResponse{}, api.BlockInfo{}, nil
+			},
+		}
 		arg.ApiResolver = &mock.ApiResolverStub{
-			GetTransactionsPoolNonceGapsForSenderCalled: func(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
+			GetTransactionsPoolNonceGapsForSenderCalled: func(sender string, senderAccountNonce uint64) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
 				return nil, expectedErr
 			},
 		}
@@ -1644,8 +1649,15 @@ func TestNodeFacade_GetTransactionsPoolNonceGapsForSender(t *testing.T) {
 				},
 			},
 		}
+		providedNonce := uint64(10)
+		arg.Node = &mock.NodeStub{
+			GetAccountCalled: func(address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
+				return api.AccountResponse{Nonce: providedNonce}, api.BlockInfo{}, nil
+			},
+		}
 		arg.ApiResolver = &mock.ApiResolverStub{
-			GetTransactionsPoolNonceGapsForSenderCalled: func(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
+			GetTransactionsPoolNonceGapsForSenderCalled: func(sender string, senderAccountNonce uint64) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
+				assert.Equal(t, providedNonce, senderAccountNonce)
 				return expectedNonceGaps, nil
 			},
 		}
