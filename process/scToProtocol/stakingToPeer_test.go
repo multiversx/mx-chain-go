@@ -651,8 +651,14 @@ func TestStakingToPeer_UpdatePeerState(t *testing.T) {
 		},
 	}
 
+	enableEpochsHandler := &testscommon.EnableEpochsHandlerStub{
+		IsStakeFlagEnabledField:                 true,
+		IsValidatorToDelegationFlagEnabledField: true,
+	}
+
 	arguments := createMockArgumentsNewStakingToPeer()
 	arguments.PeerState = peerAccountsDB
+	arguments.EnableEpochsHandler = enableEpochsHandler
 	stp, _ := NewStakingToPeer(arguments)
 
 	stakingData := systemSmartContracts.StakedDataV2_0{
@@ -682,13 +688,13 @@ func TestStakingToPeer_UpdatePeerState(t *testing.T) {
 	assert.True(t, bytes.Equal(stakingData.RewardAddress, peerAccount.GetRewardAddress()))
 	assert.Equal(t, string(common.NewList), peerAccount.GetList())
 
-	stp.EpochConfirmed(arguments.StakingV4InitEpoch, 0)
+	enableEpochsHandler.IsStakingV4FlagEnabledField = true
 	err = stp.updatePeerState(stakingData, blsPubKey, nonce)
 	assert.NoError(t, err)
 	assert.True(t, bytes.Equal(blsPubKey, peerAccount.GetBLSPublicKey()))
 	assert.True(t, bytes.Equal(stakingData.RewardAddress, peerAccount.GetRewardAddress()))
 	assert.Equal(t, string(common.AuctionList), peerAccount.GetList())
-	stp.EpochConfirmed(0, 0)
+	enableEpochsHandler.IsStakingV4FlagEnabledField = false
 
 	stakingData.UnStakedNonce = 11
 	_ = stp.updatePeerState(stakingData, blsPubKey, stakingData.UnStakedNonce)
@@ -708,11 +714,11 @@ func TestStakingToPeer_UpdatePeerState(t *testing.T) {
 	_ = stp.updatePeerState(stakingData, blsPubKey, stakingData.UnJailedNonce)
 	assert.Equal(t, string(common.NewList), peerAccount.GetList())
 
-	stp.EpochConfirmed(arguments.StakingV4InitEpoch, 0)
+	enableEpochsHandler.IsStakingV4FlagEnabledField = true
 	err = stp.updatePeerState(stakingData, blsPubKey, stakingData.UnJailedNonce)
 	assert.NoError(t, err)
 	assert.Equal(t, string(common.AuctionList), peerAccount.GetList())
-	stp.EpochConfirmed(0, 0)
+	enableEpochsHandler.IsStakingV4FlagEnabledField = false
 
 	stakingData.UnStakedNonce = 15
 	_ = stp.updatePeerState(stakingData, blsPubKey, stakingData.UnStakedNonce)

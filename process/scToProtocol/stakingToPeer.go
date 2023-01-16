@@ -53,8 +53,6 @@ type stakingToPeer struct {
 	unJailRating        uint32
 	jailRating          uint32
 	enableEpochsHandler common.EnableEpochsHandler
-	stakingV4InitEpoch  uint32
-	flagStakingV4       atomic.Flag
 }
 
 // NewStakingToPeer creates the component which moves from staking sc state to peer state
@@ -76,7 +74,6 @@ func NewStakingToPeer(args ArgStakingToPeer) (*stakingToPeer, error) {
 		unJailRating:        args.RatingsData.StartRating(),
 		jailRating:          args.RatingsData.MinRating(),
 		enableEpochsHandler: args.EnableEpochsHandler,
-		stakingV4InitEpoch:               args.StakingV4InitEpoch,
 	}
 
 	return st, nil
@@ -327,7 +324,7 @@ func (stp *stakingToPeer) updatePeerState(
 	}
 
 	newNodesList := common.NewList
-	if stp.flagStakingV4.IsSet() {
+	if stp.enableEpochsHandler.IsStakingV4Enabled() {
 		newNodesList = common.AuctionList
 	}
 
@@ -418,18 +415,6 @@ func (stp *stakingToPeer) getAllModifiedStates(body *block.Body) ([]string, erro
 	}
 
 	return affectedStates, nil
-}
-
-// EpochConfirmed is called whenever a new epoch is confirmed
-func (stp *stakingToPeer) EpochConfirmed(epoch uint32, _ uint64) {
-	stp.flagStaking.SetValue(epoch >= stp.stakeEnableEpoch)
-	log.Debug("stakingToPeer: stake", "enabled", stp.flagStaking.IsSet())
-
-	stp.flagValidatorToDelegation.SetValue(epoch >= stp.validatorToDelegationEnableEpoch)
-	log.Debug("stakingToPeer: validator to delegation", "enabled", stp.flagValidatorToDelegation.IsSet())
-
-	stp.flagStakingV4.SetValue(epoch >= stp.stakingV4InitEpoch)
-	log.Debug("stakingToPeer: staking v4 init", "enabled", stp.flagStakingV4.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
