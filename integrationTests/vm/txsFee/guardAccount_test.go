@@ -247,9 +247,8 @@ func testPendingGuardian(
 	testGuardianData(tb, pending, shouldBeNil, expectedAddress, expectedUUID)
 }
 
-func TestFreezeAccountsShouldErrorIfInstantSetIsDoneOnANotProtectedAccount(t *testing.T) {
+func TestGuardAccount_ShouldErrorIfInstantSetIsDoneOnANotProtectedAccount(t *testing.T) {
 	testContext := prepareTestContextForFreezeAccounts(t)
-
 	defer testContext.Close()
 
 	uuid := []byte("uuid")
@@ -267,9 +266,8 @@ func TestFreezeAccountsShouldErrorIfInstantSetIsDoneOnANotProtectedAccount(t *te
 	testNoGuardianIsSet(t, testContext, userAddress)
 }
 
-func TestFreezeAccountsShouldSetGuardianOnANotProtectedAccount(t *testing.T) {
+func TestGuardAccount_ShouldSetGuardianOnANotProtectedAccount(t *testing.T) {
 	testContext := prepareTestContextForFreezeAccounts(t)
-
 	defer testContext.Close()
 
 	uuid := []byte("uuid")
@@ -306,9 +304,8 @@ func TestFreezeAccountsShouldSetGuardianOnANotProtectedAccount(t *testing.T) {
 	assert.Equal(t, vmcommon.Ok, returnCode)
 }
 
-func TestFreezeAccountsSendingFundsWhileProtectedAndNotProtected(t *testing.T) {
+func TestGuardAccount_SendingFundsWhileProtectedAndNotProtected(t *testing.T) {
 	testContext := prepareTestContextForFreezeAccounts(t)
-
 	defer testContext.Close()
 
 	uuid := []byte("uuid")
@@ -327,6 +324,12 @@ func TestFreezeAccountsSendingFundsWhileProtectedAndNotProtected(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, big.NewInt(transferValue), getBalance(testContext, receiverAddress))
 
+	// userAddress can not send funds while not protected with a guardian address
+	err = transferFundsWithGuardian(testContext, userAddress, big.NewInt(transferValue), receiverAddress, guardianAddress)
+	require.ErrorIs(t, err, process.ErrTransactionNotExecutable)
+	require.Contains(t, err.Error(), "guarded transaction not expected")
+	require.Equal(t, big.NewInt(transferValue), getBalance(testContext, receiverAddress))
+
 	// userAddress can send funds while it just added a guardian
 	returnCode, err := setGuardian(testContext, userAddress, guardianAddress, uuid, delayedSetGuardian)
 	assert.Nil(t, err)
@@ -337,6 +340,12 @@ func TestFreezeAccountsSendingFundsWhileProtectedAndNotProtected(t *testing.T) {
 
 	err = transferFunds(testContext, userAddress, big.NewInt(transferValue), receiverAddress)
 	require.Nil(t, err)
+	require.Equal(t, big.NewInt(transferValue*2), getBalance(testContext, receiverAddress))
+
+	// userAddress can not send funds while not protected with a guardian address
+	err = transferFundsWithGuardian(testContext, userAddress, big.NewInt(transferValue), receiverAddress, guardianAddress)
+	require.ErrorIs(t, err, process.ErrTransactionNotExecutable)
+	require.Contains(t, err.Error(), "guarded transaction not expected")
 	require.Equal(t, big.NewInt(transferValue*2), getBalance(testContext, receiverAddress))
 
 	// delay epoch pasts, the pending guardian is now active (but not activated), userAddress can send funds
