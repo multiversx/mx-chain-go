@@ -250,10 +250,15 @@ func (txProc *baseTxProcessor) verifyGuardian(tx *transaction.Transaction, accou
 	if check.IfNil(account) {
 		return nil
 	}
+	isTransactionGuarded := txProc.txVersionChecker.IsGuardedTransaction(tx)
 	if !account.IsGuarded() {
+		if isTransactionGuarded {
+			return fmt.Errorf("%w, %s", process.ErrTransactionNotExecutable, process.ErrGuardedTransactionNotExpected.Error())
+		}
+
 		return nil
 	}
-	if !txProc.txVersionChecker.IsGuardedTransaction(tx) {
+	if !isTransactionGuarded {
 		return txProc.checkGuardedAccountUnguardedTxPermission(tx.GetData(), account)
 	}
 

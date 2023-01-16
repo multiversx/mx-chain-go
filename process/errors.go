@@ -1176,9 +1176,6 @@ var ErrAccountHasNoPendingGuardian = errors.New("account has no pending guardian
 // ErrNilGuardedAccountHandler signals that a nil guarded account handler was provided
 var ErrNilGuardedAccountHandler = errors.New("nil guarded account handler")
 
-// ErrOperationNotPermitted signals that operation is not permitted
-var ErrOperationNotPermitted = errors.New("operation in account not permitted")
-
 // ErrTransactionNotExecutable signals that a transaction is not executable and gas will not be consumed
 var ErrTransactionNotExecutable = errors.New("transaction is not executable and gas will not be consumed")
 
@@ -1196,3 +1193,6 @@ var ErrNilGuardianServiceUID = errors.New("nil guardian service unique identifie
 
 // ErrGasPriceTooHigh signals a too high gas price
 var ErrGasPriceTooHigh = errors.New("gas price is too high for the transaction")
+
+// ErrGuardedTransactionNotExpected signals that a guarded transaction was received for processing but the account is not guarded
+var ErrGuardedTransactionNotExpected = errors.New("guarded transaction not expected")
