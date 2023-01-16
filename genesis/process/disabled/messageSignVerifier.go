@@ -1,9 +1,9 @@
 package disabled
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go/genesis"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/genesis"
 )
 
 // MessageSignVerifier represents the message verifier that accepts any message, sign, pk tuple

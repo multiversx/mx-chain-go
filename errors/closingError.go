@@ -3,7 +3,7 @@ package errors
 import (
 	"strings"
 
-	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/multiversx/mx-chain-go/storage"
 )
 
 // IsClosingError returns true if the provided error is used whenever the node is in the closing process
