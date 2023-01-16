@@ -10,6 +10,7 @@ import (
 	economicsHandler "github.com/multiversx/mx-chain-go/process/economics"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
@@ -273,6 +274,7 @@ func CreateEconomicsData() process.EconomicsDataHandler {
 		},
 		EpochNotifier:               &epochNotifier.EpochNotifierStub{},
 		BuiltInFunctionsCostHandler: &mock.BuiltInCostHandlerStub{},
+		EnableEpochsHandler:         &testscommon.EnableEpochsHandlerStub{},
 	}
 	economicsData, _ := economicsHandler.NewEconomicsData(argsNewEconomicsData)
 	return economicsData
