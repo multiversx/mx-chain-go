@@ -1,7 +1,7 @@
 package cryptoMocks
 
 import (
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	"github.com/multiversx/mx-chain-crypto-go"
 )
 
 // ScalarMock represents a mock implementation of a Scalar

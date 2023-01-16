@@ -1,6 +1,6 @@
 package testscommon
 
-import vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+import vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 
 // BlockChainHookCounterStub -
 type BlockChainHookCounterStub struct {

@@ -4,11 +4,11 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/config"
-	errorsErd "github.com/ElrondNetwork/elrond-go/errors"
-	coreComp "github.com/ElrondNetwork/elrond-go/factory/core"
-	"github.com/ElrondNetwork/elrond-go/state"
-	componentsMock "github.com/ElrondNetwork/elrond-go/testscommon/components"
+	"github.com/multiversx/mx-chain-go/config"
+	errorsErd "github.com/multiversx/mx-chain-go/errors"
+	coreComp "github.com/multiversx/mx-chain-go/factory/core"
+	"github.com/multiversx/mx-chain-go/state"
+	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/stretchr/testify/require"
 )
 

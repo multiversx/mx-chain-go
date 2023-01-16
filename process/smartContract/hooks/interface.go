@@ -1,6 +1,6 @@
 package hooks
 
-import vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+import vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 
 // BlockChainHookCounter defines the operations of a blockchain hook counter handler
 type BlockChainHookCounter interface {
