@@ -69,8 +69,8 @@ github.com/ElrondNetwork/elrond-vm-common v1.1.0/go.mod h1:w3i6f8uiuRkE68Ie/gebR
 github.com/ElrondNetwork/elrond-vm-common v1.3.25-0.20221027135829-abf3f6b8b9f2/go.mod h1:seROQuR7RJCoCS7mgRXVAlvjztltY1c+UroAgWr/USE=
 github.com/ElrondNetwork/elrond-vm-common v1.3.27/go.mod h1:3GKLv9hUFYEVxoBgtaCmaZo9HMNfKN9mM/O/xX83Rbw=
 github.com/ElrondNetwork/elrond-vm-common v1.3.28/go.mod h1:3GKLv9hUFYEVxoBgtaCmaZo9HMNfKN9mM/O/xX83Rbw=
-github.com/ElrondNetwork/elrond-vm-common v1.3.31-0.20230111103627-9c0e7efb9d97 h1:2if8ud2ixxYYuWwxTZXFmDim/4PbJt2BPyG+m+GS+/8=
-github.com/ElrondNetwork/elrond-vm-common v1.3.31-0.20230111103627-9c0e7efb9d97/go.mod h1:3GKLv9hUFYEVxoBgtaCmaZo9HMNfKN9mM/O/xX83Rbw=
+github.com/ElrondNetwork/elrond-vm-common v1.3.33-0.20230116093107-7cae15bdda26 h1:Ws4spkOFhNTdX6b19h9er0yM8Ynwes//0QISel14BN4=
+github.com/ElrondNetwork/elrond-vm-common v1.3.33-0.20230116093107-7cae15bdda26/go.mod h1:3GKLv9hUFYEVxoBgtaCmaZo9HMNfKN9mM/O/xX83Rbw=
 github.com/ElrondNetwork/protobuf v1.3.2 h1:qoCSYiO+8GtXBEZWEjw0WPcZfM3g7QuuJrwpN+y6Mvg=
 github.com/ElrondNetwork/protobuf v1.3.2/go.mod h1:SlYgWuQ5SjCEi6WLHjHCa1yvBfUnHcTbrrZtXPKa29o=
 github.com/ElrondNetwork/wasm-vm v1.5.3-0.20230111114610-290c848e8730 h1:YbLlVFrVtMlkVZ7lTdPgg/xNPOdH2E0/7uHcNqpbF0M=

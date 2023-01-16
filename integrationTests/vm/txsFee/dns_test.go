@@ -54,7 +54,6 @@ func TestDeployDNSContract_TestRegisterAndResolveAndSendTxWithSndAndRcvUserName(
 	developerFees := testContext.TxFeeHandler.GetDeveloperFees()
 	require.Equal(t, big.NewInt(27775), developerFees)
 
-	require.Equal(t, big.NewInt(70023), developerFees)
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	// create username for receiver

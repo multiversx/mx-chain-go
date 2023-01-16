@@ -132,7 +132,6 @@ func TestBuiltInFunctionExecuteOnSourceAndDestinationShouldWork(t *testing.T) {
 	developerFees = testContextSource.TxFeeHandler.GetDeveloperFees()
 	require.Equal(t, big.NewInt(477), developerFees)
 
-	require.Equal(t, big.NewInt(0), developerFees)
 	utils.CleanAccumulatedIntermediateTransactions(t, testContextDst)
 
 	// execute claim on destination shard
