@@ -129,11 +129,13 @@ func (agc *guardedAccount) SetGuardian(uah vmcommon.UserAccountHandler, guardian
 		return agc.instantSetGuardian(stateUserAccount, guardianAddress, txGuardianAddress, guardianServiceUID)
 	}
 
+	agc.mutEpoch.RLock()
 	guardian := &guardians.Guardian{
 		Address:         guardianAddress,
 		ActivationEpoch: agc.currentEpoch + agc.guardianActivationEpochsDelay,
 		ServiceUID:      guardianServiceUID,
 	}
+	agc.mutEpoch.RUnlock()
 
 	return agc.setAccountGuardian(stateUserAccount, guardian)
 }
@@ -195,11 +197,13 @@ func (agc *guardedAccount) instantSetGuardian(
 	}
 
 	// immediately set the new guardian
+	agc.mutEpoch.RLock()
 	guardian := &guardians.Guardian{
 		Address:         guardianAddress,
 		ActivationEpoch: agc.currentEpoch,
 		ServiceUID:      guardianServiceUID,
 	}
+	agc.mutEpoch.RUnlock()
 
 	accountGuardians.Slice = []*guardians.Guardian{guardian}
 	accHandler, ok := uah.(vmcommon.UserAccountHandler)
