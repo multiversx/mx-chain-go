@@ -65,6 +65,7 @@ func createMockArgumentsForValidatorSCWithSystemScAddresses(
 			IsUnBondTokensV2FlagEnabledField:        true,
 			IsValidatorToDelegationFlagEnabledField: true,
 			IsDoubleKeyProtectionFlagEnabledField:   true,
+			IsStakeLimitsFlagEnabledField:           true,
 		},
 		NodesCoordinator: &mock.NodesCoordinatorStub{},
 	}
@@ -5259,17 +5260,16 @@ func TestStakingValidatorSC_MergeValidatorData(t *testing.T) {
 func TestStakingValidatorSC_MergeValidatorDataTooMuchStake(t *testing.T) {
 	t.Parallel()
 
-	blockChainHook := &mock.BlockChainHookStub{
-		CurrentNonceCalled: func() uint64 {
-			return 100000
-		},
+	enableEpochsHandler := &testscommon.EnableEpochsHandlerStub{
+		IsStakingV2FlagEnabledField: false,
 	}
-	atArgParser := parsers.NewCallArgsParser()
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &stateMock.AccountsStub{}, &mock.RaterMock{})
+	argsVMContext := createArgsVMContext()
+	argsVMContext.InputParser = parsers.NewCallArgsParser()
+	argsVMContext.EnableEpochsHandler = enableEpochsHandler
+	eei, _ := NewVMContext(argsVMContext)
 
 	argsStaking := createMockStakingScArguments()
 	argsStaking.Eei = eei
-	argsStaking.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
 	stakingSc, _ := NewStakingSmartContract(argsStaking)
 	eei.SetSCAddress([]byte("addr"))
 	_ = eei.SetSystemSCContainer(&mock.SystemSCContainerStub{GetCalled: func(key []byte) (contract vm.SystemSmartContract, err error) {
@@ -5308,17 +5308,16 @@ func TestStakingValidatorSC_MergeValidatorDataTooMuchStake(t *testing.T) {
 func TestStakingValidatorSC_MergeValidatorDataTooMuchNodes(t *testing.T) {
 	t.Parallel()
 
-	blockChainHook := &mock.BlockChainHookStub{
-		CurrentNonceCalled: func() uint64 {
-			return 100000
-		},
+	enableEpochsHandler := &testscommon.EnableEpochsHandlerStub{
+		IsStakingV2FlagEnabledField: false,
 	}
-	atArgParser := parsers.NewCallArgsParser()
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &stateMock.AccountsStub{}, &mock.RaterMock{})
+	argsVMContext := createArgsVMContext()
+	argsVMContext.InputParser = parsers.NewCallArgsParser()
+	argsVMContext.EnableEpochsHandler = enableEpochsHandler
+	eei, _ := NewVMContext(argsVMContext)
 
 	argsStaking := createMockStakingScArguments()
 	argsStaking.Eei = eei
-	argsStaking.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
 	stakingSc, _ := NewStakingSmartContract(argsStaking)
 	eei.SetSCAddress([]byte("addr"))
 	_ = eei.SetSystemSCContainer(&mock.SystemSCContainerStub{GetCalled: func(key []byte) (contract vm.SystemSmartContract, err error) {
