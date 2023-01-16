@@ -415,9 +415,9 @@ func (atp *apiTransactionProcessor) appendGapFromAccountNonceIfNeeded(
 	}
 
 	nonceDif := firstNonceInPool - senderAccountNonce
-	if nonceDif > 1 {
+	if nonceDif >= 1 {
 		nonceGap := common.NonceGapApiResponse{
-			From: senderAccountNonce + 1,
+			From: senderAccountNonce,
 			To:   firstNonceInPool - 1,
 		}
 		*nonceGaps = append(*nonceGaps, nonceGap)

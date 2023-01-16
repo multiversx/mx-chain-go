@@ -965,7 +965,7 @@ func TestApiTransactionProcessor_GetTransactionsPoolNonceGapsForSender(t *testin
 		Sender: sender,
 		Gaps: []common.NonceGapApiResponse{
 			{
-				From: accountNonce + 1,
+				From: accountNonce,
 				To:   firstNonceInPool - 1,
 			},
 			{
