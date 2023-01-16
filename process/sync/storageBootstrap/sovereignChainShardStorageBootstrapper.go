@@ -1,6 +1,6 @@
 package storageBootstrap
 
-import "github.com/ElrondNetwork/elrond-go/process"
+import "github.com/multiversx/mx-chain-go/process"
 
 type sovereignChainShardStorageBootstrapper struct {
 	*shardStorageBootstrapper

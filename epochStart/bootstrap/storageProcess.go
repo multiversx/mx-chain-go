@@ -25,7 +25,6 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
-	"github.com/multiversx/mx-chain-go/trie/factory"
 	trieFactory "github.com/multiversx/mx-chain-go/trie/factory"
 )
 

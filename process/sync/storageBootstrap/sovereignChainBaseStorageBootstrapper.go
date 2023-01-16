@@ -1,8 +1,8 @@
 package storageBootstrap
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 )
 
 func (st *storageBootstrapper) sovereignChainGetScheduledRootHash(headerFromStorage data.HeaderHandler, _ []byte) []byte {

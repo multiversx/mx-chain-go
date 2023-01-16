@@ -462,7 +462,6 @@ func (pcf *processComponentsFactory) createBlockProcessor(
 		return block.NewSovereignBlockProcessor(
 			shardProcessor,
 			validatorStatisticsProcessor,
-			argShardProcessor.Config.StateTriesConfig.PeerStatePruningQueueSize,
 		)
 	default:
 		return nil, fmt.Errorf("%w type %v", customErrors.ErrUnimplementedChainRunType, pcf.chainRunType)
