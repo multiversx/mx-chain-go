@@ -15,7 +15,7 @@ enum VoteValueType {
 }
 
 message GeneralProposal {
-    bytes  IssuerAddress  = 1 [(gogoproto.jsontag) = "IssuerAddress"];
+    uint64 Nonce          = 1 [(gogoproto.jsontag) = "Nonce"];
     bytes  CommitHash     = 2 [(gogoproto.jsontag) = "CommitHash"];
     uint64 StartVoteNonce = 3 [(gogoproto.jsontag) = "StartVoteNonce"];
     uint64 EndVoteNonce   = 4 [(gogoproto.jsontag) = "EndVoteNonce"];
@@ -24,7 +24,8 @@ message GeneralProposal {
     bytes  Veto           = 7 [(gogoproto.jsontag) = "Veto", (gogoproto.casttypewith) = "math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster"];
     bytes  Abstain        = 8 [(gogoproto.jsontag) = "Abstain", (gogoproto.casttypewith) = "math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster"];
     bool   Passed         = 9 [(gogoproto.jsontag) = "Passed"];
-    bool   Closed         = 12 [(gogoproto.jsontag) = "Closed"];
+    bool   Closed         = 10 [(gogoproto.jsontag) = "Closed"];
+    bytes  IssuerAddress  = 11 [(gogoproto.jsontag) = "IssuerAddress"];
 }
 
 message GovernanceConfig {
@@ -40,4 +41,8 @@ message GovernanceConfigV2 {
     bytes MinPassThreshold = 2 [(gogoproto.jsontag) = "MinPassThreshold", (gogoproto.casttypewith) = "math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster"];
     bytes MinVetoThreshold = 3 [(gogoproto.jsontag) = "MinVetoThreshold", (gogoproto.casttypewith) = "math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster"];
     bytes ProposalFee      = 4 [(gogoproto.jsontag) = "ProposalFee", (gogoproto.casttypewith) = "math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster"];
+}
+
+message OngoingVotedList {
+    repeated uint64 ProposalNonces = 1 [(gogoproto.jsontag) = "ProposalNonces"];
 }

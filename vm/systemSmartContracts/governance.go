@@ -135,8 +135,6 @@ func (g *governanceContract) Execute(args *vmcommon.ContractCallInput) vmcommon.
 		return g.vote(args)
 	case "delegateVote":
 		return g.delegateVote(args)
-	case "claimFunds":
-		return g.claimFunds(args)
 	case "changeConfig":
 		return g.changeConfig(args)
 	case "closeProposal":
@@ -231,6 +229,7 @@ func (g *governanceContract) proposal(args *vmcommon.ContractCallInput) vmcommon
 		Yes:            big.NewInt(0),
 		No:             big.NewInt(0),
 		Veto:           big.NewInt(0),
+		Abstain:        big.NewInt(0),
 		Passed:         false,
 		Votes:          make([][]byte, 0),
 	}
@@ -425,54 +424,6 @@ func (g *governanceContract) getVoteSetKeyForVoteWithFunds(proposalToVote, addre
 	key := append(proposalToVote, address...)
 	key = append([]byte(fundsLockPrefix), key...)
 	return key
-}
-
-// claimFunds returns the used funds for a particular proposal if they are unlocked. Accepts a single parameter:
-//  args.Arguments[0] - proposal reference
-func (g *governanceContract) claimFunds(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if args.CallValue.Cmp(big.NewInt(0)) != 0 {
-		g.eei.AddReturnMessage("invalid callValue, should be 0")
-		return vmcommon.UserError
-	}
-	err := g.eei.UseGas(g.gasCost.MetaChainSystemSCsCost.Claim)
-	if err != nil {
-		g.eei.AddReturnMessage("not enough gas")
-		return vmcommon.OutOfGas
-	}
-
-	if len(args.Arguments) != 1 {
-		g.eei.AddReturnMessage("invalid number of arguments, expected 1")
-		return vmcommon.FunctionWrongSignature
-	}
-
-	endNonce := g.getEndNonceForProposal(args.Arguments[0])
-	currentNonce := g.eei.BlockChainHook().CurrentNonce()
-
-	if endNonce > currentNonce {
-		g.eei.AddReturnMessage("your funds are still locked")
-		return vmcommon.UserError
-	}
-
-	voteKey := g.getVoteSetKeyForVoteWithFunds(args.Arguments[0], args.CallerAddr)
-	currentVoteSet, err := g.getOrCreateVoteSet(voteKey)
-	if err != nil {
-		g.eei.AddReturnMessage(err.Error())
-		return vmcommon.ExecutionFailed
-	}
-	if currentVoteSet.UsedBalance.Cmp(zero) <= 0 {
-		g.eei.AddReturnMessage("no funds to claim for this proposal")
-		return vmcommon.UserError
-	}
-
-	g.eei.SetStorage(voteKey, nil)
-
-	err = g.eei.Transfer(args.CallerAddr, g.governanceSCAddress, currentVoteSet.UsedBalance, nil, 0)
-	if err != nil {
-		g.eei.AddReturnMessage("transfer error on claimFunds function")
-		return vmcommon.ExecutionFailed
-	}
-
-	return vmcommon.Ok
 }
 
 // changeConfig allows the owner to change the configuration for requesting proposals
