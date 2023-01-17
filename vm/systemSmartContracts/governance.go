@@ -323,7 +323,7 @@ func (g *governanceContract) proposal(args *vmcommon.ContractCallInput) vmcommon
 }
 
 // vote casts a vote for a validator/delegation. This function receives 2 parameters and will vote with its full delegation + validator amount
-//  args.Arguments[0] - nonce - it is smaller than a github commit
+//  args.Arguments[0] - reference
 //  args.Arguments[1] - vote option (yes, no, veto, abstain)
 func (g *governanceContract) vote(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if args.CallValue.Cmp(zero) != 0 {
@@ -358,80 +358,23 @@ func (g *governanceContract) vote(args *vmcommon.ContractCallInput) vmcommon.Ret
 		return vmcommon.UserError
 	}
 
-	err = g.updateUserVotes(voterAddress, big.NewInt(0).SetBytes(proposalToVote).Uint64())
+	err = g.addUserVote(
+		voterAddress,
+		big.NewInt(0).SetBytes(proposalToVote).Uint64(),
+		voteOption,
+		totalVotingPower,
+		proposal,
+		true)
 	if err != nil {
 		g.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
-
-	err = g.addNewVote(voteOption, totalVotingPower, proposal)
-	if err != nil {
-		g.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
-	}
-	g.lockStake(voterAddress, proposal.EndVoteNonce)
 
 	return vmcommon.Ok
 }
 
-func (g *governanceContract) updateUserVotes(address []byte, nonce uint64) error {
-
-	return nil
-}
-
-func (g *governanceContract) saveUserVotes(address []byte, votedList *OngoingVotedList) error {
-	marshaledData, err := g.marshalizer.Marshal(votedList)
-	if err != nil {
-		return err
-	}
-	g.eei.SetStorage(address, marshaledData)
-
-	return nil
-}
-
-func (g *governanceContract) getUserVotes(address []byte) (*OngoingVotedList, error) {
-	onGoingList := &OngoingVotedList{
-		ProposalNonces: make([]uint64, 0),
-	}
-	marshaledData := g.eei.GetStorage(address)
-	if len(marshaledData) == 0 {
-		return onGoingList, nil
-	}
-
-	err := g.marshalizer.Unmarshal(onGoingList, marshaledData)
-	if err != nil {
-		return nil, err
-	}
-
-	return onGoingList, nil
-}
-
-func (g *governanceContract) lockStake(address []byte, endNonce uint64) {
-	stakeLockKey := append([]byte(stakeLockPrefix), address...)
-	lastData := g.eei.GetStorage(stakeLockKey)
-	lastEndNonce := uint64(0)
-	if len(lastData) > 0 {
-		lastEndNonce = big.NewInt(0).SetBytes(lastData).Uint64()
-	}
-
-	if lastEndNonce < endNonce {
-		g.eei.SetStorage(stakeLockKey, big.NewInt(0).SetUint64(endNonce).Bytes())
-	}
-}
-
-func isStakeLocked(eei vm.SystemEI, governanceAddress []byte, address []byte) bool {
-	stakeLockKey := append([]byte(stakeLockPrefix), address...)
-	lastData := eei.GetStorageFromAddress(governanceAddress, stakeLockKey)
-	if len(lastData) == 0 {
-		return false
-	}
-
-	lastEndNonce := big.NewInt(0).SetBytes(lastData).Uint64()
-	return eei.BlockChainHook().CurrentNonce() < lastEndNonce
-}
-
 // delegateVote casts a vote from a validator run by WASM SC and delegates it to someone else. This function receives 4 parameters:
-//  args.Arguments[0] - proposal reference (GitHub commit)
+//  args.Arguments[0] - proposal reference - nonce of proposal
 //  args.Arguments[1] - vote option (yes, no, veto)
 //  args.Arguments[2] - delegatedTo
 //  args.Arguments[3] - balance to vote
@@ -509,6 +452,114 @@ func (g *governanceContract) delegateVote(args *vmcommon.ContractCallInput) vmco
 	g.lockStake(voterAddress, proposal.EndVoteNonce)
 
 	return vmcommon.Ok
+}
+
+func (g *governanceContract) getDelegatedContractInfo(scAddress []byte) (*DelegatedSCVoteInfo, error) {
+	scVoteInfo := &DelegatedSCVoteInfo{
+		TotalPower: big.NewInt(0),
+		UsedPower:  big.NewInt(0),
+	}
+}
+
+func (g *governanceContract) addUserVote(
+	address []byte,
+	nonce uint64,
+	voteOption VoteValueType,
+	totalVotingPower *big.Int,
+	proposal *GeneralProposal,
+	direct bool,
+) error {
+	userVoteList, err := g.getUserVotes(address)
+	if err != nil {
+		return err
+	}
+
+	if direct {
+		userVoteList.Direct, err = addNewNonce(userVoteList.Direct, nonce)
+		if err != nil {
+			return err
+		}
+	} else {
+		userVoteList.Delegated, err = addNewNonce(userVoteList.Delegated, nonce)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = g.addNewVote(voteOption, totalVotingPower, proposal)
+	if err != nil {
+		return err
+	}
+
+	err = g.saveUserVotes(address, userVoteList)
+	if err != nil {
+		return err
+	}
+
+	g.lockStake(address, proposal.EndVoteNonce)
+
+	return nil
+}
+
+func addNewNonce(nonceList []uint64, newNonce uint64) ([]uint64, error) {
+	for _, nonce := range nonceList {
+		if newNonce == nonce {
+			return nil, vm.ErrDoubleVote
+		}
+	}
+
+	return nonceList, nil
+}
+
+func (g *governanceContract) saveUserVotes(address []byte, votedList *OngoingVotedList) error {
+	marshaledData, err := g.marshalizer.Marshal(votedList)
+	if err != nil {
+		return err
+	}
+	g.eei.SetStorage(address, marshaledData)
+
+	return nil
+}
+
+func (g *governanceContract) getUserVotes(address []byte) (*OngoingVotedList, error) {
+	onGoingList := &OngoingVotedList{
+		ProposalNonces: make([]uint64, 0),
+	}
+	marshaledData := g.eei.GetStorage(address)
+	if len(marshaledData) == 0 {
+		return onGoingList, nil
+	}
+
+	err := g.marshalizer.Unmarshal(onGoingList, marshaledData)
+	if err != nil {
+		return nil, err
+	}
+
+	return onGoingList, nil
+}
+
+func (g *governanceContract) lockStake(address []byte, endNonce uint64) {
+	stakeLockKey := append([]byte(stakeLockPrefix), address...)
+	lastData := g.eei.GetStorage(stakeLockKey)
+	lastEndNonce := uint64(0)
+	if len(lastData) > 0 {
+		lastEndNonce = big.NewInt(0).SetBytes(lastData).Uint64()
+	}
+
+	if lastEndNonce < endNonce {
+		g.eei.SetStorage(stakeLockKey, big.NewInt(0).SetUint64(endNonce).Bytes())
+	}
+}
+
+func isStakeLocked(eei vm.SystemEI, governanceAddress []byte, address []byte) bool {
+	stakeLockKey := append([]byte(stakeLockPrefix), address...)
+	lastData := eei.GetStorageFromAddress(governanceAddress, stakeLockKey)
+	if len(lastData) == 0 {
+		return false
+	}
+
+	lastEndNonce := big.NewInt(0).SetBytes(lastData).Uint64()
+	return eei.BlockChainHook().CurrentNonce() < lastEndNonce
 }
 
 func (g *governanceContract) getMinValueToVote() (*big.Int, error) {

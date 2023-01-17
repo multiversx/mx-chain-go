@@ -68,6 +68,7 @@ type GeneralProposal struct {
 	Passed         bool          `protobuf:"varint,9,opt,name=Passed,proto3" json:"Passed"`
 	Closed         bool          `protobuf:"varint,10,opt,name=Closed,proto3" json:"Closed"`
 	IssuerAddress  []byte        `protobuf:"bytes,11,opt,name=IssuerAddress,proto3" json:"IssuerAddress"`
+	ProposalCost   *math_big.Int
 }
 
 func (m *GeneralProposal) Reset()      { *m = GeneralProposal{} }
@@ -246,11 +247,17 @@ func (m *GovernanceConfig) GetProposalFee() *math_big.Int {
 	return nil
 }
 
+type DelegatedSCVoteInfo struct {
+	TotalPower *math_big.Int `protobuf:"bytes,1,opt,name=MinQuorum,proto3,casttypewith=math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster" json:"MinQuorum"`
+	UsedPower  *math_big.Int `protobuf:"bytes,2,opt,name=MinPassThreshold,proto3,casttypewith=math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster" json:"MinPassThreshold"`
+}
+
 type GovernanceConfigV2 struct {
-	MinQuorum        *math_big.Int `protobuf:"bytes,1,opt,name=MinQuorum,proto3,casttypewith=math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster" json:"MinQuorum"`
-	MinPassThreshold *math_big.Int `protobuf:"bytes,2,opt,name=MinPassThreshold,proto3,casttypewith=math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster" json:"MinPassThreshold"`
-	MinVetoThreshold *math_big.Int `protobuf:"bytes,3,opt,name=MinVetoThreshold,proto3,casttypewith=math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster" json:"MinVetoThreshold"`
-	ProposalFee      *math_big.Int `protobuf:"bytes,4,opt,name=ProposalFee,proto3,casttypewith=math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster" json:"ProposalFee"`
+	MinQuorum         *math_big.Int `protobuf:"bytes,1,opt,name=MinQuorum,proto3,casttypewith=math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster" json:"MinQuorum"`
+	MinPassThreshold  *math_big.Int `protobuf:"bytes,2,opt,name=MinPassThreshold,proto3,casttypewith=math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster" json:"MinPassThreshold"`
+	MinVetoThreshold  *math_big.Int `protobuf:"bytes,3,opt,name=MinVetoThreshold,proto3,casttypewith=math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster" json:"MinVetoThreshold"`
+	ProposalFee       *math_big.Int `protobuf:"bytes,4,opt,name=ProposalFee,proto3,casttypewith=math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster" json:"ProposalFee"`
+	LastProposalNonce uint64
 }
 
 func (m *GovernanceConfigV2) Reset()      { *m = GovernanceConfigV2{} }
@@ -311,6 +318,8 @@ func (m *GovernanceConfigV2) GetProposalFee() *math_big.Int {
 
 type OngoingVotedList struct {
 	ProposalNonces []uint64 `protobuf:"varint,1,rep,packed,name=ProposalNonces,proto3" json:"ProposalNonces"`
+	Direct         []uint64
+	Delegated      []uint64
 }
 
 func (m *OngoingVotedList) Reset()      { *m = OngoingVotedList{} }
