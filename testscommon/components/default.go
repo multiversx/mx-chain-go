@@ -6,7 +6,7 @@ import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-go/common"
 	consensusMocks "github.com/multiversx/mx-chain-go/consensus/mock"
-	dataRetrieverMocks "github.com/multiversx/mx-chain-go/dataRetriever/mock"
+	dataRetrieverMock "github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/multiversx/mx-chain-go/factory/mock"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -115,7 +115,7 @@ func GetDefaultProcessComponents(shardCoordinator sharding.Coordinator) *mock.Pr
 		NodesCoord:               &shardingMocks.NodesCoordinatorMock{},
 		ShardCoord:               shardCoordinator,
 		IntContainer:             &testscommon.InterceptorsContainerStub{},
-		ResContainer:             &dataRetrieverTests.ResolversContainerStub{},
+		ResContainer:             &dataRetrieverMock.ResolversContainerStub{},
 		ReqFinder:                &dataRetrieverTests.RequestersFinderStub{},
 		RoundHandlerField:        &testscommon.RoundHandlerMock{},
 		EpochTrigger:             &testscommon.EpochStartTriggerStub{},
