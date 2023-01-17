@@ -231,7 +231,7 @@
     RefactorPeersMiniBlocksEnableEpoch = 2
 
     # MaxBlockchainHookCountersEnableEpoch represents the epoch when the max blockchainhook counters are enabled
-	MaxBlockchainHookCountersEnableEpoch = 2
+    MaxBlockchainHookCountersEnableEpoch = 2
 
     # WipeSingleNFTLiquidityDecreaseEnableEpoch represents the epoch when the system account liquidity is decreased for wipeSingleNFT as well
     WipeSingleNFTLiquidityDecreaseEnableEpoch = 2

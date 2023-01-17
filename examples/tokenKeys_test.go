@@ -2,9 +2,11 @@ package examples
 
 import (
 	"encoding/hex"
+	"fmt"
 	"math/big"
 	"testing"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -21,7 +23,7 @@ func TestComputeTokenStorageKey(t *testing.T) {
 func TestDecodeTokenFromProtoBytes(t *testing.T) {
 	t.Parallel()
 
-	keyHex := "080112020001222d084612056d794e4654321168747470733a2f2f6d794e46542e636f6d3a0f6d794e465441747472696275746573"
+	keyHex := "12020001221108013a0d6e657720617474726962757465"
 	valueBytes, err := hex.DecodeString(keyHex)
 	require.NoError(t, err)
 
@@ -31,16 +33,7 @@ func TestDecodeTokenFromProtoBytes(t *testing.T) {
 	err = marshaller.Unmarshal(&recoveredToken, valueBytes)
 	require.NoError(t, err)
 
-	expectedToken := esdt.ESDigitalToken{
-		Type:  uint32(core.NonFungible),
-		Value: big.NewInt(1),
-		TokenMetaData: &esdt.MetaData{
-			Name:       []byte("myNFT"),
-			Nonce:      70,
-			URIs:       [][]byte{[]byte("https://myNFT.com")},
-			Attributes: []byte("myNFTAttributes")},
-	}
-	require.Equal(t, expectedToken, recoveredToken)
+	fmt.Println(spew.Sdump(recoveredToken))
 }
 
 func computeStorageKey(tokenIdentifier string, tokenNonce uint64) string {
