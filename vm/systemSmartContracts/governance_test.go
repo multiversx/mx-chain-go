@@ -3,6 +3,8 @@ package systemSmartContracts
 import (
 	"bytes"
 	"errors"
+	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
+	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	"math/big"
 	"testing"
 
@@ -17,8 +19,16 @@ import (
 )
 
 func createMockGovernanceArgs() ArgsNewGovernanceContract {
+	eei := createEEIWithBlockchainHook(&mock.BlockChainHookStub{CurrentEpochCalled: func() uint32 {
+		return 2
+	}})
+
+	return createArgsWithEEI(eei)
+}
+
+func createArgsWithEEI(eei vm.SystemEI) ArgsNewGovernanceContract {
 	return ArgsNewGovernanceContract{
-		Eei:     &mock.SystemEIStub{},
+		Eei:     eei,
 		GasCost: vm.GasCost{},
 		GovernanceConfig: config.GovernanceSystemSCConfig{
 			V1: config.GovernanceSystemSCConfigV1{
@@ -44,6 +54,42 @@ func createMockGovernanceArgs() ArgsNewGovernanceContract {
 			IsGovernanceFlagEnabledField: true,
 		},
 	}
+}
+
+func createEEIWithBlockchainHook(blockchainHook vm.BlockchainHook) vm.ContextHandler {
+	eei, _ := NewVMContext(VMContextArgs{
+		BlockChainHook:      blockchainHook,
+		CryptoHook:          hooks.NewVMCryptoHook(),
+		InputParser:         &mock.ArgumentParserMock{},
+		ValidatorAccountsDB: &stateMock.AccountsStub{},
+		ChanceComputer:      &mock.RaterMock{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+	})
+	systemSCContainerStub := &mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
+		return &mock.SystemSCStub{ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+			return vmcommon.Ok
+		}}, nil
+	}}
+	_ = eei.SetSystemSCContainer(systemSCContainerStub)
+
+	return eei
+}
+
+func createContractWithMockArguments() *governanceContract {
+	args := createMockGovernanceArgs()
+	gsc, _ := NewGovernanceContract(args)
+	gsc.initV2(&vmcommon.ContractCallInput{VMInput: vmcommon.VMInput{CallerAddr: gsc.governanceSCAddress}})
+	return gsc
+}
+
+func createContractBlockChainHookStub() (*governanceContract, *mock.BlockChainHookStub, vm.ContextHandler) {
+	blockChainHook := &mock.BlockChainHookStub{CurrentEpochCalled: func() uint32 {
+		return 2
+	}}
+	eei := createEEIWithBlockchainHook(blockChainHook)
+	gsc, _ := NewGovernanceContract(createArgsWithEEI(eei))
+	gsc.initV2(&vmcommon.ContractCallInput{VMInput: vmcommon.VMInput{CallerAddr: gsc.governanceSCAddress}})
+	return gsc, blockChainHook, eei
 }
 
 func createVMInput(callValue *big.Int, funcName string, callerAddr, recipientAddr []byte, arguments [][]byte) *vmcommon.ContractCallInput {
@@ -206,7 +252,7 @@ func TestGovernanceContract_ExecuteInitV2MarshalError(t *testing.T) {
 	gsc, _ := NewGovernanceContract(args)
 	callInput := createVMInput(big.NewInt(0), "initV2", vm.GovernanceSCAddress, vm.GovernanceSCAddress, nil)
 	retCode := gsc.Execute(callInput)
-	require.Equal(t, vmcommon.ExecutionFailed, retCode)
+	require.Equal(t, vmcommon.UserError, retCode)
 }
 
 func TestGovernanceContract_ExecuteInitV2(t *testing.T) {
@@ -233,10 +279,9 @@ func TestGovernanceContract_ProposalWrongCallValue(t *testing.T) {
 	t.Parallel()
 
 	args := createMockGovernanceArgs()
-	args.GovernanceConfig.Active.ProposalCost = "10"
-
 	gsc, _ := NewGovernanceContract(args)
-	callInput := createVMInput(big.NewInt(9), "proposal", vm.GovernanceSCAddress, []byte("addr1"), nil)
+	gsc.initV2(&vmcommon.ContractCallInput{VMInput: vmcommon.VMInput{CallerAddr: gsc.governanceSCAddress}})
+	callInput := createVMInput(big.NewInt(9), "proposal", vm.GovernanceSCAddress, []byte("addr1"), [][]byte{{1}, {1}, {1}})
 	retCode := gsc.Execute(callInput)
 	require.Equal(t, vmcommon.OutOfFunds, retCode)
 }
@@ -286,20 +331,6 @@ func TestGovernanceContract_ProposalInvalidReferenceLength(t *testing.T) {
 	t.Parallel()
 
 	args := createMockGovernanceArgs()
-	args.Eei = &mock.SystemEIStub{
-		GetStorageCalled: func(key []byte) []byte {
-			return []byte("storage item")
-		},
-	}
-	args.Marshalizer = &mock.MarshalizerStub{
-		UnmarshalCalled: func(obj interface{}, buff []byte) error {
-			whitelistProposal, proposalOk := obj.(*GeneralProposal)
-			if proposalOk {
-				whitelistProposal.Passed = true
-			}
-			return nil
-		},
-	}
 	gsc, _ := NewGovernanceContract(args)
 	callInputArgs := [][]byte{
 		[]byte("arg1"),
@@ -352,9 +383,8 @@ func TestGovernanceContract_ProposalOK(t *testing.T) {
 
 	proposalIdentifier := bytes.Repeat([]byte("a"), commitHashLength)
 
-	args := createMockGovernanceArgs()
-	args.Eei = createMockStorer(vm.GovernanceSCAddress, proposalIdentifier, nil)
-	gsc, _ := NewGovernanceContract(args)
+	gsc := createContractWithMockArguments()
+
 	callInputArgs := [][]byte{
 		proposalIdentifier,
 		[]byte("1"),
@@ -398,46 +428,29 @@ func TestGovernanceContract_ValidatorVoteNotEnoughGas(t *testing.T) {
 func TestGovernanceContract_ValidatorVoteInvalidProposal(t *testing.T) {
 	t.Parallel()
 
-	returnMessage := ""
 	callerAddress := []byte("address")
 	proposalIdentifier := bytes.Repeat([]byte("a"), commitHashLength)
-
-	args := createMockGovernanceArgs()
-
 	generalProposal := &GeneralProposal{
 		CommitHash:     proposalIdentifier,
 		StartVoteNonce: 10,
 		EndVoteNonce:   15,
 	}
-	args.Eei = &mock.SystemEIStub{
-		GetStorageCalled: func(key []byte) []byte {
-			if bytes.Equal(key, append([]byte(proposalPrefix), proposalIdentifier...)) {
-				proposalBytes, _ := args.Marshalizer.Marshal(generalProposal)
-				return proposalBytes
-			}
 
-			return nil
-		},
-		BlockChainHookCalled: func() vm.BlockchainHook {
-			return &mock.BlockChainHookStub{
-				CurrentNonceCalled: func() uint64 {
-					return 16
-				},
-			}
-		},
-		AddReturnMessageCalled: func(msg string) {
-			returnMessage = msg
-		},
-	}
 	voteArgs := [][]byte{
 		proposalIdentifier,
 		[]byte("yes"),
 	}
-	gsc, _ := NewGovernanceContract(args)
+	gsc, blockchainHook, eei := createContractBlockChainHookStub()
+	blockchainHook.CurrentNonceCalled = func() uint64 {
+		return 16
+	}
+
+	_ = gsc.saveGeneralProposal(proposalIdentifier, generalProposal)
+
 	callInput := createVMInput(big.NewInt(0), "vote", callerAddress, vm.GovernanceSCAddress, voteArgs)
 	retCode := gsc.Execute(callInput)
 	require.Equal(t, vmcommon.UserError, retCode)
-	require.Equal(t, vm.ErrVotedForAnExpiredProposal.Error(), returnMessage)
+	require.Equal(t, eei.GetReturnMessage(), vm.ErrVotedForAnExpiredProposal.Error())
 }
 
 func TestGovernanceContract_ValidatorVoteInvalidVote(t *testing.T) {

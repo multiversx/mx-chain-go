@@ -887,8 +887,13 @@ func (g *governanceContract) saveDelegatedContractInfo(
 
 // getConfig returns the current system smart contract configuration
 func (g *governanceContract) getConfig() (*GovernanceConfigV2, error) {
-	marshaledData := g.eei.GetStorage([]byte(governanceConfigKey))
 	scConfig := &GovernanceConfigV2{}
+
+	marshaledData := g.eei.GetStorage([]byte(governanceConfigKey))
+	if len(marshaledData) == 0 {
+		return nil, vm.ErrElementNotFound
+	}
+
 	err := g.marshalizer.Unmarshal(scConfig, marshaledData)
 	if err != nil {
 		return nil, err
