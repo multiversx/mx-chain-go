@@ -7,12 +7,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/esdt"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
 	"github.com/stretchr/testify/require"
 )
 
@@ -49,7 +49,7 @@ func CreateAccountWithESDTBalance(
 	esdtDataBytes, err := protoMarshalizer.Marshal(esdtData)
 	require.Nil(t, err)
 
-	key := append([]byte(core.ElrondProtectedKeyPrefix), []byte(core.ESDTKeyIdentifier)...)
+	key := append([]byte(core.ProtectedKeyPrefix), []byte(core.ESDTKeyIdentifier)...)
 	key = append(key, tokenIdentifier...)
 	if esdtNonce > 0 {
 		key = append(key, big.NewInt(0).SetUint64(esdtNonce).Bytes()...)
@@ -118,7 +118,7 @@ func SetESDTRoles(
 	userAccount, ok := account.(state.UserAccountHandler)
 	require.True(t, ok)
 
-	key := append([]byte(core.ElrondProtectedKeyPrefix), append([]byte(core.ESDTRoleIdentifier), []byte(core.ESDTKeyIdentifier)...)...)
+	key := append([]byte(core.ProtectedKeyPrefix), append([]byte(core.ESDTRoleIdentifier), []byte(core.ESDTKeyIdentifier)...)...)
 	key = append(key, tokenIdentifier...)
 
 	if len(roles) == 0 {
@@ -159,7 +159,7 @@ func SetLastNFTNonce(
 	userAccount, ok := account.(state.UserAccountHandler)
 	require.True(t, ok)
 
-	key := append([]byte(core.ElrondProtectedKeyPrefix), []byte(core.ESDTNFTLatestNonceIdentifier)...)
+	key := append([]byte(core.ProtectedKeyPrefix), []byte(core.ESDTNFTLatestNonceIdentifier)...)
 	key = append(key, tokenIdentifier...)
 
 	err = userAccount.SaveKeyValue(key, big.NewInt(int64(lastNonce)).Bytes())

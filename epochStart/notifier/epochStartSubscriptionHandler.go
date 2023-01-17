@@ -4,8 +4,8 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/epochStart"
 )
 
 // EpochStartNotifier defines which actions should be done for handling new epoch's events

@@ -1,7 +1,7 @@
 package presenter
 
 import (
-	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 // GetNumTxInBlock will return how many transactions are in block

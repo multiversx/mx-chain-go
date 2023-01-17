@@ -20,8 +20,8 @@ message ESDTDataV1 {
     bool   Upgradable               = 10 [(gogoproto.jsontag) = "CanUpgrade"];
     bool   CanChangeOwner           = 11 [(gogoproto.jsontag) = "CanChangeOwner"];
     bool   IsPaused                 = 12 [(gogoproto.jsontag) = "IsPaused"];
-    bytes  MintedValue              = 13 [(gogoproto.jsontag) = "MintedValue", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go-core/data.BigIntCaster"];
-    bytes  BurntValue               = 14 [(gogoproto.jsontag) = "BurntValue", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go-core/data.BigIntCaster"];
+    bytes  MintedValue              = 13 [(gogoproto.jsontag) = "MintedValue", (gogoproto.casttypewith) = "math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster"];
+    bytes  BurntValue               = 14 [(gogoproto.jsontag) = "BurntValue", (gogoproto.casttypewith) = "math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster"];
     uint32 NumDecimals              = 15 [(gogoproto.jsontag) = "NumDecimals"];
     bool   CanAddSpecialRoles       = 16 [(gogoproto.jsontag) = "CanAddSpecialRoles"];
     bool   NFTCreateStopped         = 17 [(gogoproto.jsontag) = "NFTCreateStopped"];
@@ -43,8 +43,8 @@ message ESDTDataV2 {
     bool   Upgradable               = 10 [(gogoproto.jsontag) = "CanUpgrade"];
     bool   CanChangeOwner           = 11 [(gogoproto.jsontag) = "CanChangeOwner"];
     bool   IsPaused                 = 12 [(gogoproto.jsontag) = "IsPaused"];
-    bytes  MintedValue              = 13 [(gogoproto.jsontag) = "MintedValue", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go-core/data.BigIntCaster"];
-    bytes  BurntValue               = 14 [(gogoproto.jsontag) = "BurntValue", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go-core/data.BigIntCaster"];
+    bytes  MintedValue              = 13 [(gogoproto.jsontag) = "MintedValue", (gogoproto.casttypewith) = "math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster"];
+    bytes  BurntValue               = 14 [(gogoproto.jsontag) = "BurntValue", (gogoproto.casttypewith) = "math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster"];
     uint32 NumDecimals              = 15 [(gogoproto.jsontag) = "NumDecimals"];
     bool   CanAddSpecialRoles       = 16 [(gogoproto.jsontag) = "CanAddSpecialRoles"];
     bool   NFTCreateStopped         = 17 [(gogoproto.jsontag) = "NFTCreateStopped"];
@@ -61,7 +61,7 @@ message ESDTRoles {
 
 message ESDTConfig {
     bytes OwnerAddress        = 1 [(gogoproto.jsontag) = "OwnerAddress"];
-    bytes BaseIssuingCost     = 2 [(gogoproto.jsontag) = "BaseIssuingCost", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go-core/data.BigIntCaster"];
+    bytes BaseIssuingCost     = 2 [(gogoproto.jsontag) = "BaseIssuingCost", (gogoproto.casttypewith) = "math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster"];
     uint32 MinTokenNameLength = 3 [(gogoproto.jsontag) = "MinTokenNameLength"];
     uint32 MaxTokenNameLength = 4 [(gogoproto.jsontag) = "MaxTokenNameLength"];
 }
