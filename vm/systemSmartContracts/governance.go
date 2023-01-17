@@ -4,7 +4,6 @@ package systemSmartContracts
 import (
 	"bytes"
 	"fmt"
-	"math"
 	"math/big"
 	"sync"
 
@@ -323,7 +322,7 @@ func (g *governanceContract) proposal(args *vmcommon.ContractCallInput) vmcommon
 }
 
 // vote casts a vote for a validator/delegation. This function receives 2 parameters and will vote with its full delegation + validator amount
-//  args.Arguments[0] - reference
+//  args.Arguments[0] - reference - nonce as string
 //  args.Arguments[1] - vote option (yes, no, veto, abstain)
 func (g *governanceContract) vote(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if args.CallValue.Cmp(zero) != 0 {
@@ -339,19 +338,13 @@ func (g *governanceContract) vote(args *vmcommon.ContractCallInput) vmcommon.Ret
 		g.eei.AddReturnMessage("invalid number of arguments, expected 2")
 		return vmcommon.FunctionWrongSignature
 	}
+	if core.IsSmartContractAddress(args.CallerAddr) {
+		g.eei.AddReturnMessage("only SC can call this")
+		return vmcommon.UserError
+	}
 
 	voterAddress := args.CallerAddr
 	proposalToVote := args.Arguments[0]
-	proposal, err := g.getValidProposal(proposalToVote)
-	if err != nil {
-		g.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
-	}
-	voteOption, err := g.castVoteType(string(args.Arguments[1]))
-	if err != nil {
-		g.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
-	}
 	totalVotingPower, err := g.computeVotingPowerFromTotalStake(voterAddress)
 	if err != nil {
 		g.eei.AddReturnMessage(err.Error())
@@ -360,10 +353,10 @@ func (g *governanceContract) vote(args *vmcommon.ContractCallInput) vmcommon.Ret
 
 	err = g.addUserVote(
 		voterAddress,
-		big.NewInt(0).SetBytes(proposalToVote).Uint64(),
-		voteOption,
+		proposalToVote,
+		string(args.Arguments[1]),
 		totalVotingPower,
-		proposal,
+		proposalToVote,
 		true)
 	if err != nil {
 		g.eei.AddReturnMessage(err.Error())
@@ -396,79 +389,94 @@ func (g *governanceContract) delegateVote(args *vmcommon.ContractCallInput) vmco
 		g.eei.AddReturnMessage("only SC can call this")
 		return vmcommon.UserError
 	}
-	if len(args.Arguments[3]) != len(args.CallerAddr) {
+	voter := args.Arguments[3]
+	if len(voter) != len(args.CallerAddr) {
 		g.eei.AddReturnMessage("invalid delegator address")
 		return vmcommon.UserError
 	}
 
-	voterAddress := args.CallerAddr
 	proposalToVote := args.Arguments[0]
-	proposal, err := g.getValidProposal(proposalToVote)
-	if err != nil {
-		g.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
-	}
-	voteOption, err := g.castVoteType(string(args.Arguments[1]))
+	votePower, err := g.updateDelegatedContractInfo(args.CallerAddr, proposalToVote, args.Arguments[2])
 	if err != nil {
 		g.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
 
-	votePower, err := g.computeVotingPower(big.NewInt(0).SetBytes(args.Arguments[2]))
+	err = g.addUserVote(
+		voter,
+		proposalToVote,
+		string(args.Arguments[1]),
+		votePower,
+		proposalToVote,
+		false)
 	if err != nil {
 		g.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
-	delegatedTo := args.Arguments[3]
-
-	currentVote := &VoteDetails{
-		Value:       voteOption,
-		Power:       votePower,
-		DelegatedTo: delegatedTo,
-		Balance:     big.NewInt(0),
-	}
-
-	totalVotingPower, err := g.computeValidatorVotingPower(voterAddress)
-	if err != nil {
-		g.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
-	}
-
-	currentVoteSet, err := g.getOrCreateVoteSet(append(proposalToVote, voterAddress...))
-	if err != nil {
-		g.eei.AddReturnMessage(err.Error())
-		return vmcommon.ExecutionFailed
-	}
-	if totalVotingPower.Cmp(big.NewInt(0).Add(votePower, currentVoteSet.UsedPower)) < 0 {
-		g.eei.AddReturnMessage("not enough voting power to cast this vote")
-		return vmcommon.UserError
-	}
-
-	err = g.addNewVote(currentVote, currentVoteSet, proposal)
-	if err != nil {
-		g.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
-	}
-	g.lockStake(voterAddress, proposal.EndVoteNonce)
 
 	return vmcommon.Ok
 }
 
-func (g *governanceContract) getDelegatedContractInfo(scAddress []byte) (*DelegatedSCVoteInfo, error) {
-	scVoteInfo := &DelegatedSCVoteInfo{
-		TotalPower: big.NewInt(0),
-		UsedPower:  big.NewInt(0),
+func (g *governanceContract) updateDelegatedContractInfo(scAddress []byte, reference []byte, balance []byte) (*big.Int, error) {
+	scVoteInfo, err := g.getDelegatedContractInfo(scAddress, reference)
+	if err != nil {
+		return nil, err
 	}
+	votePower, err := g.computeVotingPower(big.NewInt(0).SetBytes(balance))
+	if err != nil {
+		return nil, err
+	}
+
+	scVoteInfo.UsedPower.Add(scVoteInfo.UsedPower, votePower)
+	if scVoteInfo.TotalPower.Cmp(scVoteInfo.UsedPower) < 0 {
+		return nil, fmt.Errorf("not enough voting power to cast this vote")
+	}
+	err = g.saveDelegatedContractInfo(scAddress, scVoteInfo, reference)
+	if err != nil {
+		return nil, err
+	}
+
+	return votePower, nil
 }
 
 func (g *governanceContract) addUserVote(
 	address []byte,
-	nonce uint64,
-	voteOption VoteValueType,
+	nonceAsBytes []byte,
+	vote string,
 	totalVotingPower *big.Int,
-	proposal *GeneralProposal,
+	proposalToVote []byte,
 	direct bool,
 ) error {
+	nonce, err := nonceFromBytes(nonceAsBytes)
+	if err != nil {
+		return err
+	}
+
+	err = g.updateUserVoteList(address, nonce.Uint64(), direct)
+	if err != nil {
+		return err
+	}
+
+	voteOption, err := g.castVoteType(vote)
+	if err != nil {
+		return err
+	}
+
+	proposal, err := g.getValidProposal(proposalToVote)
+	if err != nil {
+		return err
+	}
+
+	err = g.addNewVote(voteOption, totalVotingPower, proposal)
+	if err != nil {
+		return err
+	}
+
+	g.lockStake(address, proposal.EndVoteNonce)
+	return g.saveGeneralProposal(proposalToVote, proposal)
+}
+
+func (g *governanceContract) updateUserVoteList(address []byte, nonce uint64, direct bool) error {
 	userVoteList, err := g.getUserVotes(address)
 	if err != nil {
 		return err
@@ -486,19 +494,7 @@ func (g *governanceContract) addUserVote(
 		}
 	}
 
-	err = g.addNewVote(voteOption, totalVotingPower, proposal)
-	if err != nil {
-		return err
-	}
-
-	err = g.saveUserVotes(address, userVoteList)
-	if err != nil {
-		return err
-	}
-
-	g.lockStake(address, proposal.EndVoteNonce)
-
-	return nil
+	return g.saveUserVotes(address, userVoteList)
 }
 
 func addNewNonce(nonceList []uint64, newNonce uint64) ([]uint64, error) {
@@ -511,33 +507,7 @@ func addNewNonce(nonceList []uint64, newNonce uint64) ([]uint64, error) {
 	return nonceList, nil
 }
 
-func (g *governanceContract) saveUserVotes(address []byte, votedList *OngoingVotedList) error {
-	marshaledData, err := g.marshalizer.Marshal(votedList)
-	if err != nil {
-		return err
-	}
-	g.eei.SetStorage(address, marshaledData)
-
-	return nil
-}
-
-func (g *governanceContract) getUserVotes(address []byte) (*OngoingVotedList, error) {
-	onGoingList := &OngoingVotedList{
-		ProposalNonces: make([]uint64, 0),
-	}
-	marshaledData := g.eei.GetStorage(address)
-	if len(marshaledData) == 0 {
-		return onGoingList, nil
-	}
-
-	err := g.marshalizer.Unmarshal(onGoingList, marshaledData)
-	if err != nil {
-		return nil, err
-	}
-
-	return onGoingList, nil
-}
-
+//TODO: I would delete lockStake - if we put a voting period less than 10 epochs, we do not need this.
 func (g *governanceContract) lockStake(address []byte, endNonce uint64) {
 	stakeLockKey := append([]byte(stakeLockPrefix), address...)
 	lastData := g.eei.GetStorage(stakeLockKey)
@@ -617,19 +587,13 @@ func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmc
 		return vmcommon.UserError
 	}
 
-	return vmcommon.Ok
-}
-
-// getConfig returns the current system smart contract configuration
-func (g *governanceContract) getConfig() (*GovernanceConfigV2, error) {
-	marshaledData := g.eei.GetStorage([]byte(governanceConfigKey))
-	scConfig := &GovernanceConfigV2{}
-	err := g.marshalizer.Unmarshal(scConfig, marshaledData)
+	err = g.eei.Transfer(args.RecipientAddr, args.CallerAddr, generalProposal.ProposalCost, nil, 0)
 	if err != nil {
-		return nil, err
+		g.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
 	}
 
-	return scConfig, nil
+	return vmcommon.Ok
 }
 
 // getValidatorVotingPower returns the total voting power for a validator. Un-staked nodes are not
@@ -663,57 +627,6 @@ func (g *governanceContract) getValidatorVotingPower(args *vmcommon.ContractCall
 	g.eei.Finish(votingPower.Bytes())
 
 	return vmcommon.Ok
-}
-
-// saveGeneralProposal saves a proposal into the storage
-func (g *governanceContract) saveGeneralProposal(reference []byte, generalProposal *GeneralProposal) error {
-	marshaledData, err := g.marshalizer.Marshal(generalProposal)
-	if err != nil {
-		return err
-	}
-	key := append([]byte(proposalPrefix), reference...)
-	g.eei.SetStorage(key, marshaledData)
-
-	return nil
-}
-
-func (g *governanceContract) getEndNonceForProposal(reference []byte) uint64 {
-	proposal, err := g.getGeneralProposal(reference)
-	if err == vm.ErrProposalNotFound {
-		return 0
-	}
-
-	if err != nil {
-		return math.MaxUint64
-	}
-
-	return proposal.EndVoteNonce
-}
-
-// getGeneralProposal returns a proposal from storage
-func (g *governanceContract) getGeneralProposal(reference []byte) (*GeneralProposal, error) {
-	commitHash := g.eei.GetStorage(reference)
-	key := append([]byte(proposalPrefix), commitHash...)
-	marshaledData := g.eei.GetStorage(key)
-
-	if len(marshaledData) == 0 {
-		return nil, vm.ErrProposalNotFound
-	}
-
-	generalProposal := &GeneralProposal{}
-	err := g.marshalizer.Unmarshal(generalProposal, marshaledData)
-	if err != nil {
-		return nil, err
-	}
-
-	return generalProposal, nil
-}
-
-// proposalExists returns true if a proposal already exists
-func (g *governanceContract) proposalExists(reference []byte) bool {
-	key := append([]byte(proposalPrefix), reference...)
-	marshaledData := g.eei.GetStorage(key)
-	return len(marshaledData) > 0
 }
 
 // getValidProposal returns a proposal from storage if it exists, or it is still valid/in-progress
@@ -761,34 +674,6 @@ func (g *governanceContract) computeVotingPower(value *big.Int) (*big.Int, error
 	}
 
 	return big.NewInt(0).Sqrt(value), nil
-}
-
-// computeAccountLeveledPower takes a value and some voter data and returns the voting power of that value in
-//  the following way: the power of all votes combined has to be sqrt(sum(allVoteWithFunds)). So, the new
-//  vote will have a smaller power depending on how much existed previously
-func (g *governanceContract) computeAccountLeveledPower(value *big.Int, voteData *VoteSet) (*big.Int, error) {
-	previousAccountPower, err := g.computeVotingPower(voteData.UsedBalance)
-	if err != nil {
-		return nil, err
-	}
-
-	fullAccountBalance := big.NewInt(0).Add(voteData.UsedBalance, value)
-	newAccountPower, err := g.computeVotingPower(fullAccountBalance)
-	if err != nil {
-		return nil, err
-	}
-
-	return big.NewInt(0).Sub(newAccountPower, previousAccountPower), nil
-}
-
-// isValidVoteString checks if a certain string represents a valid vote string
-func (g *governanceContract) isValidVoteString(vote string) bool {
-	switch vote {
-	case yesString, noString, vetoString, abstainString:
-		return true
-	default:
-		return false
-	}
 }
 
 // castVoteType casts a valid string vote passed as an argument to the actual mapped value
@@ -860,6 +745,35 @@ func (g *governanceContract) computeVotingPowerFromTotalStake(address []byte) (*
 	return votingPower, nil
 }
 
+// computeEndResults computes if a proposal has passed or not based on votes accumulated
+func (g *governanceContract) computeEndResults(proposal *GeneralProposal) error {
+	baseConfig, err := g.getConfig()
+	if err != nil {
+		return err
+	}
+
+	totalVotes := big.NewInt(0).Add(proposal.Yes, proposal.No)
+	totalVotes.Add(totalVotes, proposal.Veto)
+
+	if totalVotes.Cmp(baseConfig.MinQuorum) == -1 {
+		proposal.Passed = false
+		return nil
+	}
+
+	if proposal.Veto.Cmp(baseConfig.MinVetoThreshold) >= 0 {
+		proposal.Passed = false
+		return nil
+	}
+
+	if proposal.Yes.Cmp(baseConfig.MinPassThreshold) >= 0 && proposal.Yes.Cmp(proposal.No) == 1 {
+		proposal.Passed = true
+		return nil
+	}
+
+	proposal.Passed = false
+	return nil
+}
+
 func (g *governanceContract) getActiveFundForDelegator(delegationAddress []byte, address []byte) (*big.Int, error) {
 	dData := &DelegatorData{
 		UnClaimedRewards:      big.NewInt(0),
@@ -904,13 +818,129 @@ func (g *governanceContract) getTotalStake(validatorAddress []byte) (*big.Int, e
 	return validatorData.TotalStakeValue, nil
 }
 
+func (g *governanceContract) saveUserVotes(address []byte, votedList *OngoingVotedList) error {
+	marshaledData, err := g.marshalizer.Marshal(votedList)
+	if err != nil {
+		return err
+	}
+	g.eei.SetStorage(address, marshaledData)
+
+	return nil
+}
+
+func (g *governanceContract) getUserVotes(address []byte) (*OngoingVotedList, error) {
+	onGoingList := &OngoingVotedList{
+		ProposalNonces: make([]uint64, 0),
+	}
+	marshaledData := g.eei.GetStorage(address)
+	if len(marshaledData) == 0 {
+		return onGoingList, nil
+	}
+
+	err := g.marshalizer.Unmarshal(onGoingList, marshaledData)
+	if err != nil {
+		return nil, err
+	}
+
+	return onGoingList, nil
+}
+
+func (g *governanceContract) getDelegatedContractInfo(scAddress []byte, reference []byte) (*DelegatedSCVoteInfo, error) {
+	scVoteInfo := &DelegatedSCVoteInfo{
+		TotalPower: big.NewInt(0),
+		UsedPower:  big.NewInt(0),
+	}
+
+	marshalledData := g.eei.GetStorage(append(scAddress, reference...))
+	if len(marshalledData) > 0 {
+		err := g.marshalizer.Unmarshal(scVoteInfo, marshalledData)
+		if err != nil {
+			return nil, err
+		}
+
+		return scVoteInfo, nil
+	}
+
+	totalVotingPower, err := g.computeVotingPowerFromTotalStake(scAddress)
+	if err != nil {
+		return nil, err
+	}
+	scVoteInfo.TotalPower.Set(totalVotingPower)
+
+	return scVoteInfo, nil
+}
+
+func (g *governanceContract) saveDelegatedContractInfo(
+	scAddress []byte,
+	scVoteInfo *DelegatedSCVoteInfo,
+	reference []byte,
+) error {
+	marshalledData, err := g.marshalizer.Marshal(scVoteInfo)
+	if err != nil {
+		return err
+	}
+
+	g.eei.SetStorage(append(scAddress, reference...), marshalledData)
+	return nil
+}
+
+// getConfig returns the current system smart contract configuration
+func (g *governanceContract) getConfig() (*GovernanceConfigV2, error) {
+	marshaledData := g.eei.GetStorage([]byte(governanceConfigKey))
+	scConfig := &GovernanceConfigV2{}
+	err := g.marshalizer.Unmarshal(scConfig, marshaledData)
+	if err != nil {
+		return nil, err
+	}
+
+	return scConfig, nil
+}
+
+// saveGeneralProposal saves a proposal into the storage
+func (g *governanceContract) saveGeneralProposal(reference []byte, generalProposal *GeneralProposal) error {
+	marshaledData, err := g.marshalizer.Marshal(generalProposal)
+	if err != nil {
+		return err
+	}
+	key := append([]byte(proposalPrefix), reference...)
+	g.eei.SetStorage(key, marshaledData)
+
+	return nil
+}
+
+// getGeneralProposal returns a proposal from storage
+func (g *governanceContract) getGeneralProposal(reference []byte) (*GeneralProposal, error) {
+	commitHash := g.eei.GetStorage(reference)
+	key := append([]byte(proposalPrefix), commitHash...)
+	marshaledData := g.eei.GetStorage(key)
+
+	if len(marshaledData) == 0 {
+		return nil, vm.ErrProposalNotFound
+	}
+
+	generalProposal := &GeneralProposal{}
+	err := g.marshalizer.Unmarshal(generalProposal, marshaledData)
+	if err != nil {
+		return nil, err
+	}
+
+	return generalProposal, nil
+}
+
+// proposalExists returns true if a proposal already exists
+func (g *governanceContract) proposalExists(reference []byte) bool {
+	key := append([]byte(proposalPrefix), reference...)
+	marshaledData := g.eei.GetStorage(key)
+	return len(marshaledData) > 0
+}
+
 // startEndNonceFromArguments converts the nonce string arguments to uint64
 func (g *governanceContract) startEndNonceFromArguments(argStart []byte, argEnd []byte) (uint64, uint64, error) {
-	startVoteNonce, err := g.nonceFromBytes(argStart)
+	startVoteNonce, err := nonceFromBytes(argStart)
 	if err != nil {
 		return 0, 0, err
 	}
-	endVoteNonce, err := g.nonceFromBytes(argEnd)
+	endVoteNonce, err := nonceFromBytes(argEnd)
 	if err != nil {
 		return 0, 0, err
 	}
@@ -924,7 +954,7 @@ func (g *governanceContract) startEndNonceFromArguments(argStart []byte, argEnd 
 }
 
 // nonceFromBytes converts a byte array to a big.Int. Returns ErrInvalidStartEndVoteNonce for invalid values
-func (g *governanceContract) nonceFromBytes(nonce []byte) (*big.Int, error) {
+func nonceFromBytes(nonce []byte) (*big.Int, error) {
 	voteNonce, okConvert := big.NewInt(0).SetString(string(nonce), conversionBase)
 	if !okConvert {
 		return nil, vm.ErrInvalidStartEndVoteNonce
@@ -934,35 +964,6 @@ func (g *governanceContract) nonceFromBytes(nonce []byte) (*big.Int, error) {
 	}
 
 	return voteNonce, nil
-}
-
-// computeEndResults computes if a proposal has passed or not based on votes accumulated
-func (g *governanceContract) computeEndResults(proposal *GeneralProposal) error {
-	baseConfig, err := g.getConfig()
-	if err != nil {
-		return err
-	}
-
-	totalVotes := big.NewInt(0).Add(proposal.Yes, proposal.No)
-	totalVotes.Add(totalVotes, proposal.Veto)
-
-	if totalVotes.Cmp(baseConfig.MinQuorum) == -1 {
-		proposal.Passed = false
-		return nil
-	}
-
-	if proposal.Veto.Cmp(baseConfig.MinVetoThreshold) >= 0 {
-		proposal.Passed = false
-		return nil
-	}
-
-	if proposal.Yes.Cmp(baseConfig.MinPassThreshold) >= 0 && proposal.Yes.Cmp(proposal.No) == 1 {
-		proposal.Passed = true
-		return nil
-	}
-
-	proposal.Passed = false
-	return nil
 }
 
 // convertV2Config converts the passed config file to the correct V2 typed GovernanceConfig
