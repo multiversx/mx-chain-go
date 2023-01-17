@@ -830,7 +830,8 @@ func (g *governanceContract) saveUserVotes(address []byte, votedList *OngoingVot
 
 func (g *governanceContract) getUserVotes(address []byte) (*OngoingVotedList, error) {
 	onGoingList := &OngoingVotedList{
-		ProposalNonces: make([]uint64, 0),
+		Direct:    make([]uint64, 0),
+		Delegated: make([]uint64, 0),
 	}
 	marshaledData := g.eei.GetStorage(address)
 	if len(marshaledData) == 0 {
