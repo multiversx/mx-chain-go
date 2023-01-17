@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/directoryhandler"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
@@ -182,7 +183,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 
 	nodesCoordinatorRegistryFactory, err := nodesCoordinator.NewNodesCoordinatorRegistryFactory(
 		bcf.coreComponents.InternalMarshalizer(),
-		bcf.epochConfig.EnableEpochs.StakingV4EnableEpoch,
+		bcf.coreComponents.EnableEpochsHandler().StakingV4EnableEpoch(),
 	)
 	if err != nil {
 		return nil, err

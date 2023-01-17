@@ -130,8 +130,8 @@ func TestBootstrapComponentsFactory_CreateEpochStartBootstrapCreationFail(t *tes
 	coreComponents := componentsMock.GetDefaultCoreComponents()
 	args.CoreComponents = coreComponents
 
-	bcf, _ := bootstrap.NewBootstrapComponentsFactory(args)
-
+	bcf, err := bootstrap.NewBootstrapComponentsFactory(args)
+	_ = err
 	coreComponents.RatingHandler = nil
 	bc, err := bcf.Create()
 
