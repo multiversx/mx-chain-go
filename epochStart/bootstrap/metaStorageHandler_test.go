@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -159,16 +160,8 @@ func testMetaWithMissingStorer(missingUnit dataRetriever.UnitType, atCallNumber 
 			_ = os.RemoveAll("./Epoch_0")
 		}()
 
-		gCfg := testscommon.GetGeneralConfig()
-		prefsConfig := config.PreferencesConfig{}
-		coordinator := &mock.ShardCoordinatorStub{}
-		pathManager := &testscommon.PathManagerStub{}
-		marshalizer := &mock.MarshalizerMock{}
-		hasher := &hashingMocks.HasherMock{}
-		uit64Cvt := &mock.Uint64ByteSliceConverterMock{}
-		nodeTypeProvider := &nodeTypeProviderMock.NodeTypeProviderStub{}
-
-		mtStrHandler, _ := NewMetaStorageHandler(gCfg, prefsConfig, coordinator, pathManager, marshalizer, hasher, 1, uit64Cvt, nodeTypeProvider)
+		args := createStorageHandlerArgs()
+		mtStrHandler, _ := NewMetaStorageHandler(args)
 		counter := 0
 		mtStrHandler.storageService = &storageStubs.ChainStorerStub{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {

@@ -92,6 +92,11 @@ func (mock *EnableEpochsHandlerMock) MiniBlockPartialExecutionEnableEpoch() uint
 	return 0
 }
 
+// StakingV4EnableEpoch -
+func (mock *EnableEpochsHandlerMock) StakingV4EnableEpoch() uint32 {
+	return 0
+}
+
 // RefactorPeersMiniBlocksEnableEpoch returns 0
 func (mock *EnableEpochsHandlerMock) RefactorPeersMiniBlocksEnableEpoch() uint32 {
 	return mock.RefactorPeersMiniBlocksEnableEpochField

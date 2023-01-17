@@ -26,6 +26,7 @@ type EnableEpochsHandlerStub struct {
 	StorageAPICostOptimizationEnableEpochField                   uint32
 	MiniBlockPartialExecutionEnableEpochField                    uint32
 	RefactorPeersMiniBlocksEnableEpochField                      uint32
+	StakingV4EnableEpochField                                    uint32
 	IsSCDeployFlagEnabledField                                   bool
 	IsBuiltInFunctionsFlagEnabledField                           bool
 	IsRelayedTransactionsFlagEnabledField                        bool
@@ -1068,6 +1069,14 @@ func (stub *EnableEpochsHandlerStub) IsStakingV4Started() bool {
 	defer stub.RUnlock()
 
 	return stub.IsStakingV4StartedField
+}
+
+// StakingV4EnableEpoch -
+func (stub *EnableEpochsHandlerStub) StakingV4EnableEpoch() uint32 {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.StakingV4EnableEpochField
 }
 
 // IsInterfaceNil -

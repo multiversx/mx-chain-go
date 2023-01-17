@@ -22,10 +22,11 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/process"
 	vmFactory "github.com/multiversx/mx-chain-go/process/factory"
-	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/stakingcommon"
+	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	arwenConfig "github.com/multiversx/mx-chain-vm-v1_4-go/config"
@@ -137,7 +138,7 @@ func newTestMetaProcessor(
 		stakingDataProvider,
 	)
 
-	txCoordinator := &mock.TransactionCoordinatorMock{}
+	txCoordinator := &testscommon.TransactionCoordinatorMock{}
 	epochStartTrigger := createEpochStartTrigger(coreComponents, dataComponents.StorageService())
 
 	eligible, _ := nc.GetAllEligibleValidatorsPublicKeys(0)
@@ -209,7 +210,7 @@ func saveNodesConfig(
 func createGasScheduleNotifier() core.GasScheduleNotifier {
 	gasSchedule := arwenConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasSchedule, 1)
-	return mock.NewGasScheduleNotifierMock(gasSchedule)
+	return testscommon.NewGasScheduleNotifierMock(gasSchedule)
 }
 
 func createEpochStartTrigger(
@@ -226,7 +227,7 @@ func createEpochStartTrigger(
 		Storage:            storageService,
 		Marshalizer:        coreComponents.InternalMarshalizer(),
 		Hasher:             coreComponents.Hasher(),
-		AppStatusHandler:   coreComponents.StatusHandler(),
+		AppStatusHandler:   &statusHandlerMock.AppStatusHandlerStub{},
 	}
 
 	epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsEpochStart)

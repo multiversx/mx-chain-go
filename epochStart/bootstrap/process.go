@@ -733,7 +733,6 @@ func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) ([]*block.MiniBl
 		IsFullArchive:                   e.prefsConfig.FullArchive,
 		EnableEpochsHandler:             e.coreComponentsHolder.EnableEpochsHandler(),
 		NodesCoordinatorRegistryFactory: e.nodesCoordinatorRegistryFactory,
-		StakingV4EnableEpoch:            e.enableEpochs.StakingV4EnableEpoch,
 	}
 
 	e.nodesConfigHandler, err = NewSyncValidatorStatus(argsNewValidatorStatusSyncers)
@@ -1175,22 +1174,22 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 	//  this one should only be used before determining the correct shard where the node should reside
 	log.Debug("epochStartBootstrap.createRequestHandler", "shard", e.shardCoordinator.SelfId())
 	resolversContainerArgs := resolverscontainer.FactoryArgs{
-		ShardCoordinator:                     e.shardCoordinator,
-		Messenger:                            e.messenger,
-		Store:                                storageService,
-		Marshalizer:                          e.coreComponentsHolder.InternalMarshalizer(),
-		DataPools:                            e.dataPool,
-		Uint64ByteSliceConverter:             uint64ByteSlice.NewBigEndianConverter(),
-		NumConcurrentResolvingJobs:           10,
-		DataPacker:                           dataPacker,
-		TriesContainer:                       e.trieContainer,
-		SizeCheckDelta:                       0,
-		InputAntifloodHandler:                disabled.NewAntiFloodHandler(),
-		OutputAntifloodHandler:               disabled.NewAntiFloodHandler(),
-		CurrentNetworkEpochProvider:          disabled.NewCurrentNetworkEpochProviderHandler(),
-		PreferredPeersHolder:                 disabled.NewPreferredPeersHolder(),
-		ResolverConfig:                       e.generalConfig.Resolvers,
-		PeersRatingHandler:                   disabled.NewDisabledPeersRatingHandler(),
+		ShardCoordinator:            e.shardCoordinator,
+		Messenger:                   e.messenger,
+		Store:                       storageService,
+		Marshalizer:                 e.coreComponentsHolder.InternalMarshalizer(),
+		DataPools:                   e.dataPool,
+		Uint64ByteSliceConverter:    uint64ByteSlice.NewBigEndianConverter(),
+		NumConcurrentResolvingJobs:  10,
+		DataPacker:                  dataPacker,
+		TriesContainer:              e.trieContainer,
+		SizeCheckDelta:              0,
+		InputAntifloodHandler:       disabled.NewAntiFloodHandler(),
+		OutputAntifloodHandler:      disabled.NewAntiFloodHandler(),
+		CurrentNetworkEpochProvider: disabled.NewCurrentNetworkEpochProviderHandler(),
+		PreferredPeersHolder:        disabled.NewPreferredPeersHolder(),
+		ResolverConfig:              e.generalConfig.Resolvers,
+		PeersRatingHandler:          disabled.NewDisabledPeersRatingHandler(),
 		PayloadValidator:            payloadValidator,
 	}
 	resolverFactory, err := resolverscontainer.NewMetaResolversContainerFactory(resolversContainerArgs)

@@ -10,17 +10,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
-	"github.com/multiversx/mx-chain-core-go/hashing"
-	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
-	"github.com/multiversx/mx-chain-go/sharding"
-	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/factory"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
@@ -38,15 +32,17 @@ func NewShardStorageHandler(args StorageHandlerArgs) (*shardStorageHandler, erro
 
 	epochStartNotifier := &disabled.EpochStartNotifier{}
 	storageFactory, err := factory.NewStorageServiceFactory(
-		&args.GeneralConfig,
-		&args.PreferencesConfig,
-		args.ShardCoordinator,
-		args.PathManagerHandler,
-		epochStartNotifier,
-		args.NodeTypeProvider,
-		args.CurrentEpoch,
-		factory.BootstrapStorageService,
-		false,
+		factory.StorageServiceFactoryArgs{
+			Config:                        args.GeneralConfig,
+			PrefsConfig:                   args.PreferencesConfig,
+			ShardCoordinator:              args.ShardCoordinator,
+			PathManager:                   args.PathManagerHandler,
+			EpochStartNotifier:            epochStartNotifier,
+			NodeTypeProvider:              args.NodeTypeProvider,
+			CurrentEpoch:                  args.CurrentEpoch,
+			StorageType:                   factory.BootstrapStorageService,
+			CreateTrieEpochRootHashStorer: false,
+		},
 	)
 	if err != nil {
 		return nil, err

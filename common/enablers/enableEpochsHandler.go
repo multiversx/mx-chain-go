@@ -221,6 +221,11 @@ func (handler *enableEpochsHandler) RefactorPeersMiniBlocksEnableEpoch() uint32 
 	return handler.enableEpochsConfig.RefactorPeersMiniBlocksEnableEpoch
 }
 
+// StakingV4EnableEpoch returns the epoch when stakingV4 becomes active
+func (handler *enableEpochsHandler) StakingV4EnableEpoch() uint32 {
+	return handler.enableEpochsConfig.StakingV4EnableEpoch
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (handler *enableEpochsHandler) IsInterfaceNil() bool {
 	return handler == nil

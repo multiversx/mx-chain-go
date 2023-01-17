@@ -215,6 +215,7 @@ type Config struct {
 
 	PeersRatingConfig   PeersRatingConfig
 	PoolsCleanersConfig PoolsCleanersConfig
+
 	SoftAuctionConfig SoftAuctionConfig
 }
 

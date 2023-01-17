@@ -36,7 +36,6 @@ type ArgStakingToPeer struct {
 	CurrTxs             dataRetriever.TransactionCacher
 	RatingsData         process.RatingsInfoHandler
 	EnableEpochsHandler common.EnableEpochsHandler
-	StakingV4InitEpoch  uint32
 }
 
 // stakingToPeer defines the component which will translate changes from staking SC state

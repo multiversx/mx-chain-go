@@ -96,13 +96,13 @@ func createMockEpochStartBootstrapArgs(
 ) ArgsEpochStartBootstrap {
 	generalCfg := testscommon.GetGeneralConfig()
 	return ArgsEpochStartBootstrap{
-		ScheduledSCRsStorer:             genericMocks.NewStorerMock(),
-		CoreComponentsHolder:            coreMock,
-		CryptoComponentsHolder:          cryptoMock,
-		Messenger:                       &p2pmocks.MessengerStub{
+		ScheduledSCRsStorer:    genericMocks.NewStorerMock(),
+		CoreComponentsHolder:   coreMock,
+		CryptoComponentsHolder: cryptoMock,
+		Messenger: &p2pmocks.MessengerStub{
 			ConnectedPeersCalled: func() []core.PeerID {
 				return []core.PeerID{"peer0", "peer1", "peer2", "peer3", "peer4", "peer5"}
-			},},
+			}},
 		NodesCoordinatorRegistryFactory: &shardingMocks.NodesCoordinatorRegistryFactoryMock{},
 		GeneralConfig: config.Config{
 			MiniBlocksStorage:                  generalCfg.MiniBlocksStorage,
@@ -198,7 +198,6 @@ func createMockEpochStartBootstrapArgs(
 				return 1
 			},
 		},
-		EnableEpochs:               config.EnableEpochs{StakingV4EnableEpoch: 444},
 		GenesisNodesConfig:         &mock.NodesSetupStub{},
 		GenesisShardCoordinator:    mock.NewMultipleShardsCoordinatorMock(),
 		Rater:                      &mock.RaterStub{},
