@@ -303,7 +303,7 @@ func (se *stateExport) exportTrie(key string, trie common.Trie) error {
 	}
 
 	if accType == ValidatorAccount {
-		validatorData, err := getValidatorDataFromLeaves(leavesChannel, se.marshalizer)
+		validatorData, err := getValidatorDataFromLeaves(leavesChannels, se.marshalizer)
 		if err != nil {
 			return err
 		}

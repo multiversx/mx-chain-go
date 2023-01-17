@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/peer"
 	"github.com/multiversx/mx-chain-go/process/smartContract/builtInFunctions"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
+	"github.com/multiversx/mx-chain-go/process/smartContract/hooks/counters"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
@@ -55,28 +56,22 @@ func createSystemSCProcessor(
 	auctionListSelector, _ := metachain.NewAuctionListSelector(argsAuctionListSelector)
 
 	args := metachain.ArgsNewEpochStartSystemSCProcessing{
-		SystemVM:                systemVM,
-		UserAccountsDB:          stateComponents.AccountsAdapter(),
-		PeerAccountsDB:          stateComponents.PeerAccounts(),
-		Marshalizer:             coreComponents.InternalMarshalizer(),
-		StartRating:             initialRating,
-		ValidatorInfoCreator:    validatorStatisticsProcessor,
-		EndOfEpochCallerAddress: vm.EndOfEpochAddress,
-		StakingSCAddress:        vm.StakingSCAddress,
-		ChanceComputer:          &epochStartMock.ChanceComputerStub{},
-		EpochNotifier:           coreComponents.EpochNotifier(),
-		GenesisNodesConfig:      &mock.NodesSetupStub{},
-		StakingDataProvider:     stakingDataProvider,
-		NodesConfigProvider:     nc,
-		ShardCoordinator:        shardCoordinator,
-		ESDTOwnerAddressBytes:   bytes.Repeat([]byte{1}, 32),
-		EpochConfig: config.EpochConfig{
-			EnableEpochs: config.EnableEpochs{
-				StakingV4InitEnableEpoch:  stakingV4InitEpoch,
-				StakingV4EnableEpoch:      stakingV4EnableEpoch,
-				MaxNodesChangeEnableEpoch: maxNodesConfig,
-			},
-		},
+		SystemVM:                     systemVM,
+		UserAccountsDB:               stateComponents.AccountsAdapter(),
+		PeerAccountsDB:               stateComponents.PeerAccounts(),
+		Marshalizer:                  coreComponents.InternalMarshalizer(),
+		StartRating:                  initialRating,
+		ValidatorInfoCreator:         validatorStatisticsProcessor,
+		EndOfEpochCallerAddress:      vm.EndOfEpochAddress,
+		StakingSCAddress:             vm.StakingSCAddress,
+		ChanceComputer:               &epochStartMock.ChanceComputerStub{},
+		EpochNotifier:                coreComponents.EpochNotifier(),
+		GenesisNodesConfig:           &mock.NodesSetupStub{},
+		StakingDataProvider:          stakingDataProvider,
+		NodesConfigProvider:          nc,
+		ShardCoordinator:             shardCoordinator,
+		ESDTOwnerAddressBytes:        bytes.Repeat([]byte{1}, 32),
+		EnableEpochsHandler:          coreComponents.EnableEpochsHandler(),
 		MaxNodesChangeConfigProvider: maxNodesChangeConfigProvider,
 		AuctionListSelector:          auctionListSelector,
 	}
@@ -121,8 +116,7 @@ func createValidatorStatisticsProcessor(
 		NodesSetup:                           &mock.NodesSetupStub{},
 		MaxComputableRounds:                  1,
 		MaxConsecutiveRoundsOfRatingDecrease: 2000,
-		EpochNotifier:                        coreComponents.EpochNotifier(),
-		StakingV2EnableEpoch:                 0,
+		EnableEpochsHandler:                  coreComponents.EnableEpochsHandler(),
 		StakingV4EnableEpoch:                 stakingV4EnableEpoch,
 	}
 	validatorStatisticsProcessor, _ := peer.NewValidatorStatisticsProcessor(argsValidatorsProcessor)
@@ -137,14 +131,20 @@ func createBlockChainHook(
 	gasScheduleNotifier core.GasScheduleNotifier,
 ) process.BlockChainHookHandler {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:      gasScheduleNotifier,
-		MapDNSAddresses:  make(map[string]struct{}),
-		Marshalizer:      coreComponents.InternalMarshalizer(),
-		Accounts:         accountsAdapter,
-		ShardCoordinator: shardCoordinator,
-		EpochNotifier:    coreComponents.EpochNotifier(),
+		GasSchedule:               gasScheduleNotifier,
+		MapDNSAddresses:           make(map[string]struct{}),
+		Marshalizer:               coreComponents.InternalMarshalizer(),
+		Accounts:                  accountsAdapter,
+		ShardCoordinator:          shardCoordinator,
+		EpochNotifier:             coreComponents.EpochNotifier(),
+		EnableEpochsHandler:       coreComponents.EnableEpochsHandler(),
+		AutomaticCrawlerAddresses: [][]byte{core.SystemAccountAddress},
+		MaxNumNodesInTransferRole: 1,
 	}
-	builtInFunctionsContainer, _, _, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
+
+	builtInFunctionsContainer, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
+	_ = builtInFunctionsContainer.CreateBuiltInFunctionContainer()
+	builtInFunctionsContainer.BuiltInFunctionContainer()
 
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:              accountsAdapter,
@@ -155,15 +155,19 @@ func createBlockChainHook(
 		Marshalizer:           coreComponents.InternalMarshalizer(),
 		Uint64Converter:       coreComponents.Uint64ByteSliceConverter(),
 		NFTStorageHandler:     &testscommon.SimpleNFTStorageHandlerStub{},
-		BuiltInFunctions:      builtInFunctionsContainer,
+		BuiltInFunctions:      builtInFunctionsContainer.BuiltInFunctionContainer(),
 		DataPool:              dataComponents.Datapool(),
 		CompiledSCPool:        dataComponents.Datapool().SmartContracts(),
 		EpochNotifier:         coreComponents.EpochNotifier(),
 		GlobalSettingsHandler: &vmcommonMock.GlobalSettingsHandlerStub{},
 		NilCompiledSCStore:    true,
+		EnableEpochsHandler:   coreComponents.EnableEpochsHandler(),
+		GasSchedule:           gasScheduleNotifier,
+		Counter:               counters.NewDisabledCounter(),
 	}
 
-	blockChainHook, _ := hooks.NewBlockChainHookImpl(argsHook)
+	blockChainHook, err := hooks.NewBlockChainHookImpl(argsHook)
+	_ = err
 	return blockChainHook
 }
 
@@ -229,15 +233,9 @@ func createVMContainerFactory(
 		},
 		ValidatorAccountsDB: peerAccounts,
 		ChanceComputer:      coreComponents.Rater(),
-		EpochNotifier:       coreComponents.EpochNotifier(),
-		EpochConfig: &config.EpochConfig{
-			EnableEpochs: config.EnableEpochs{
-				StakingV4InitEnableEpoch: stakingV4InitEpoch,
-				StakingV4EnableEpoch:     stakingV4EnableEpoch,
-			},
-		},
-		ShardCoordinator: shardCoordinator,
-		NodesCoordinator: nc,
+		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
+		ShardCoordinator:    shardCoordinator,
+		NodesCoordinator:    nc,
 	}
 
 	metaVmFactory, _ := metaProcess.NewVMContainerFactory(argsNewVMContainerFactory)

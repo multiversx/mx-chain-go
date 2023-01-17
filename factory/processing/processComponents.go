@@ -374,7 +374,9 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		CacheRefreshIntervalDurationInSec: cacheRefreshDuration,
 		ValidatorStatistics:               validatorStatisticsProcessor,
 		MaxRating:                         pcf.maxRating,
-		PubKeyConverter:                   pcf.coreData.ValidatorPubKeyConverter(),
+		ValidatorPubKeyConverter:          pcf.coreData.ValidatorPubKeyConverter(),
+		AddressPubKeyConverter:            pcf.coreData.AddressPubKeyConverter(),
+		AuctionListSelector:               pcf.auctionListSelectorAPI,
 	}
 
 	validatorsProvider, err := peer.NewValidatorsProvider(argVSP)
@@ -600,25 +602,6 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	cacheRefreshDuration := time.Duration(pcf.config.ValidatorStatistics.CacheRefreshIntervalInSec) * time.Second
-	argVSP := peer.ArgValidatorsProvider{
-		NodesCoordinator:                  pcf.nodesCoordinator,
-		StartEpoch:                        startEpochNum,
-		EpochStartEventNotifier:           pcf.coreData.EpochStartNotifierWithConfirm(),
-		CacheRefreshIntervalDurationInSec: cacheRefreshDuration,
-		ValidatorStatistics:               validatorStatisticsProcessor,
-		StakingDataProvider:               pcf.stakingDataProviderAPI,
-		MaxRating:                         pcf.maxRating,
-		ValidatorPubKeyConverter:          pcf.coreData.ValidatorPubKeyConverter(),
-		AddressPubKeyConverter:            pcf.coreData.AddressPubKeyConverter(),
-		AuctionListSelector:               pcf.auctionListSelectorAPI,
-	}
-
-	validatorsProvider, err := peer.NewValidatorsProvider(argVSP)
-	if err != nil {
-		return nil, err
-	}
-
 	conversionBase := 10
 	genesisNodePrice, ok := big.NewInt(0).SetString(pcf.systemSCConfig.StakingSystemSCConfig.GenesisNodePrice, conversionBase)
 	if !ok {
@@ -755,7 +738,7 @@ func (pcf *processComponentsFactory) newValidatorStatisticsProcessor() (process.
 		RatingEnableEpoch:                    ratingEnabledEpoch,
 		GenesisNonce:                         pcf.data.Blockchain().GetGenesisHeader().GetNonce(),
 		EnableEpochsHandler:                  pcf.coreData.EnableEpochsHandler(),
-		StakingV4EnableEpoch:                              pcf.epochConfig.EnableEpochs.StakingV4EnableEpoch,
+		StakingV4EnableEpoch:                 pcf.epochConfig.EnableEpochs.StakingV4EnableEpoch,
 	}
 
 	validatorStatisticsProcessor, err := peer.NewValidatorStatisticsProcessor(arguments)

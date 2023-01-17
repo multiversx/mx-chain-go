@@ -108,6 +108,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/outport"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/stakingcommon"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
@@ -460,11 +461,6 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 		BootstrapStorer:          &mock.BoostrapStorerMock{},
 		RatingsData:              args.RatingsData,
 		EpochStartNotifier:       args.EpochStartSubscriber,
-		EnableEpochs: config.EnableEpochs{
-			StakingV4InitEnableEpoch:                 StakingV4InitEpoch,
-			StakingV4EnableEpoch:                     StakingV4Epoch,
-			StakingV4DistributeAuctionToWaitingEpoch: StakingV4DistributeAuctionToWaiting,
-		},
 	}
 
 	tpn.NodeKeys = args.NodeKeys
@@ -853,14 +849,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 			ChanceComputer:      tpn.NodesCoordinator,
 			ShardCoordinator:    tpn.ShardCoordinator,
 			EnableEpochsHandler: tpn.EnableEpochsHandler,
-			EpochConfig: &config.EpochConfig{
-				EnableEpochs: config.EnableEpochs{
-					StakingV4EnableEpoch:                     StakingV4Epoch,
-					StakingV4InitEnableEpoch:                 StakingV4InitEpoch,
-					StakingV4DistributeAuctionToWaitingEpoch: StakingV4DistributeAuctionToWaiting,
-				},
-			},
-			NodesCoordinator: tpn.NodesCoordinator,
+			NodesCoordinator:    tpn.NodesCoordinator,
 		}
 		tpn.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
 			EpochField: tpn.EnableEpochs.DelegationSmartContractEnableEpoch,
@@ -1717,7 +1706,6 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		EnableEpochsHandler: tpn.EnableEpochsHandler,
 		NodesCoordinator:    tpn.NodesCoordinator,
 	}
-	argsVMContainerFactory.EpochConfig.EnableEpochs.StakingV4EnableEpoch = StakingV4Epoch
 	vmFactory, _ := metaProcess.NewVMContainerFactory(argsVMContainerFactory)
 
 	tpn.VMContainer, _ = vmFactory.Create()
@@ -2086,7 +2074,6 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			CurrTxs:             tpn.DataPool.CurrentBlockTxs(),
 			RatingsData:         tpn.RatingsData,
 			EnableEpochsHandler: tpn.EnableEpochsHandler,
-			StakingV4InitEpoch:  StakingV4InitEpoch,
 		}
 		scToProtocolInstance, _ := scToProtocol.NewStakingToPeer(argsStakingToPeer)
 
@@ -2185,33 +2172,24 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		auctionListSelector, _ := metachain.NewAuctionListSelector(argsAuctionListSelector)
 
 		argsEpochSystemSC := metachain.ArgsNewEpochStartSystemSCProcessing{
-			SystemVM:                systemVM,
-			UserAccountsDB:          tpn.AccntState,
-			PeerAccountsDB:          tpn.PeerState,
-			Marshalizer:             TestMarshalizer,
-			StartRating:             tpn.RatingsData.StartRating(),
-			ValidatorInfoCreator:    tpn.ValidatorStatisticsProcessor,
-			EndOfEpochCallerAddress: vm.EndOfEpochAddress,
-			StakingSCAddress:        vm.StakingSCAddress,
-			ChanceComputer:          tpn.NodesCoordinator,
-			EpochNotifier:           tpn.EpochNotifier,
-			GenesisNodesConfig:      tpn.NodesSetup,
-			StakingDataProvider:     stakingDataProvider,
-			NodesConfigProvider:     tpn.NodesCoordinator,
-			ShardCoordinator:        tpn.ShardCoordinator,
-			ESDTOwnerAddressBytes:   vm.EndOfEpochAddress,
-			EnableEpochsHandler:     tpn.EnableEpochsHandler,
+			SystemVM:                     systemVM,
+			UserAccountsDB:               tpn.AccntState,
+			PeerAccountsDB:               tpn.PeerState,
+			Marshalizer:                  TestMarshalizer,
+			StartRating:                  tpn.RatingsData.StartRating(),
+			ValidatorInfoCreator:         tpn.ValidatorStatisticsProcessor,
+			EndOfEpochCallerAddress:      vm.EndOfEpochAddress,
+			StakingSCAddress:             vm.StakingSCAddress,
+			ChanceComputer:               tpn.NodesCoordinator,
+			EpochNotifier:                tpn.EpochNotifier,
+			GenesisNodesConfig:           tpn.NodesSetup,
+			StakingDataProvider:          stakingDataProvider,
+			NodesConfigProvider:          tpn.NodesCoordinator,
+			ShardCoordinator:             tpn.ShardCoordinator,
+			ESDTOwnerAddressBytes:        vm.EndOfEpochAddress,
+			EnableEpochsHandler:          tpn.EnableEpochsHandler,
 			AuctionListSelector:          auctionListSelector,
 			MaxNodesChangeConfigProvider: maxNodesChangeConfigProvider,
-			EpochConfig: config.EpochConfig{
-				EnableEpochs: config.EnableEpochs{
-					StakingV2EnableEpoch:                     StakingV2Epoch,
-					StakingV4InitEnableEpoch:                 StakingV4InitEpoch,
-					StakingV4EnableEpoch:                     StakingV4Epoch,
-					StakingV4DistributeAuctionToWaitingEpoch: StakingV4DistributeAuctionToWaiting,
-					ESDTEnableEpoch:                          0,
-				},
-			},
 		}
 		epochStartSystemSCProcessor, _ := metachain.NewSystemSCProcessor(argsEpochSystemSC)
 		tpn.EpochStartSystemSCProcessor = epochStartSystemSCProcessor

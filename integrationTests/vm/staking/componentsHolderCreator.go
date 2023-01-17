@@ -12,7 +12,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/common/forking"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
 	"github.com/multiversx/mx-chain-go/epochStart/notifier"
@@ -31,10 +33,14 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/outport"
 	"github.com/multiversx/mx-chain-go/testscommon/stakingcommon"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/multiversx/mx-chain-go/trie"
+	"github.com/multiversx/mx-chain-go/trie/hashesHolder"
 )
+
+const hashSize = 32
 
 func createComponentHolders(numOfShards uint32) (
 	factory.CoreComponentsHolder,
@@ -53,6 +59,16 @@ func createComponentHolders(numOfShards uint32) (
 }
 
 func createCoreComponents() factory.CoreComponentsHolder {
+	epochNotifier := forking.NewGenericEpochNotifier()
+	configEnableEpochs := config.EnableEpochs{
+		StakingV4EnableEpoch:                     stakingV4EnableEpoch,
+		StakingV4InitEnableEpoch:                 stakingV4InitEpoch,
+		StakingV4DistributeAuctionToWaitingEpoch: stakingV4DistributeAuctionToWaitingEpoch,
+		RefactorPeersMiniBlocksEnableEpoch:       integrationTests.UnreachableEpoch,
+	}
+
+	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(configEnableEpochs, epochNotifier)
+
 	return &integrationMocks.CoreComponentsStub{
 		InternalMarshalizerField:           &marshal.GogoProtoMarshalizer{},
 		HasherField:                        sha256.NewSha256(),
@@ -60,13 +76,15 @@ func createCoreComponents() factory.CoreComponentsHolder {
 		StatusHandlerField:                 statusHandler.NewStatusMetrics(),
 		RoundHandlerField:                  &mock.RoundHandlerMock{RoundTimeDuration: time.Second},
 		EpochStartNotifierWithConfirmField: notifier.NewEpochStartSubscriptionHandler(),
-		EpochNotifierField:                 forking.NewGenericEpochNotifier(),
+		EpochNotifierField:                 epochNotifier,
 		RaterField:                         &testscommon.RaterMock{Chance: 5},
 		AddressPubKeyConverterField:        testscommon.NewPubkeyConverterMock(addressLength),
 		EconomicsDataField:                 stakingcommon.CreateEconomicsData(),
 		ChanStopNodeProcessField:           endProcess.GetDummyEndProcessChannel(),
 		NodeTypeProviderField:              nodetype.NewNodeTypeProvider(core.NodeTypeValidator),
 		ProcessStatusHandlerInternal:       statusHandler.NewProcessStatusHandler(),
+		EnableEpochsHandlerField:           enableEpochsHandler,
+		EnableRoundsHandlerField:           &testscommon.EnableRoundsHandlerStub{},
 	}
 }
 
@@ -75,7 +93,7 @@ func createDataComponents(coreComponents factory.CoreComponentsHolder, numOfShar
 	genesisBlockHash, _ := coreComponents.InternalMarshalizer().Marshal(genesisBlock)
 	genesisBlockHash = coreComponents.Hasher().Compute(string(genesisBlockHash))
 
-	blockChain, _ := blockchain.NewMetaChain(coreComponents.StatusHandler())
+	blockChain, _ := blockchain.NewMetaChain(&statusHandlerMock.AppStatusHandlerStub{})
 	_ = blockChain.SetGenesisHeader(createGenesisMetaBlock())
 	blockChain.SetGenesisHeaderHash(genesisBlockHash)
 
@@ -122,19 +140,36 @@ func createBootstrapComponents(
 
 func createStatusComponents() factory.StatusComponentsHolder {
 	return &integrationMocks.StatusComponentsStub{
-		Outport:          &testscommon.OutportStub{},
+		Outport:          &outport.OutportStub{},
 		AppStatusHandler: &statusHandlerMock.AppStatusHandlerStub{},
 	}
 }
 
 func createStateComponents(coreComponents factory.CoreComponentsHolder) factory.StateComponentsHandler {
-	trieFactoryManager, _ := trie.NewTrieStorageManagerWithoutPruning(integrationTests.CreateMemUnit())
+	tsmArgs := getNewTrieStorageManagerArgs(coreComponents)
+	tsm, _ := trie.NewTrieStorageManager(tsmArgs)
+	trieFactoryManager, _ := trie.NewTrieStorageManagerWithoutPruning(tsm)
 	userAccountsDB := createAccountsDB(coreComponents, stateFactory.NewAccountCreator(), trieFactoryManager)
 	peerAccountsDB := createAccountsDB(coreComponents, stateFactory.NewPeerAccountCreator(), trieFactoryManager)
+
+	_ = userAccountsDB.SetSyncer(&mock.AccountsDBSyncerStub{})
+	_ = peerAccountsDB.SetSyncer(&mock.AccountsDBSyncerStub{})
 
 	return &testscommon.StateComponentsMock{
 		PeersAcc: peerAccountsDB,
 		Accounts: userAccountsDB,
+	}
+}
+
+func getNewTrieStorageManagerArgs(coreComponents factory.CoreComponentsHolder) trie.NewTrieStorageManagerArgs {
+	return trie.NewTrieStorageManagerArgs{
+		MainStorer:             testscommon.CreateMemUnit(),
+		CheckpointsStorer:      testscommon.CreateMemUnit(),
+		Marshalizer:            coreComponents.InternalMarshalizer(),
+		Hasher:                 coreComponents.Hasher(),
+		GeneralConfig:          config.TrieStorageManagerConfig{SnapshotsGoroutineNum: 1},
+		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10, hashSize),
+		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
 	}
 }
 
@@ -144,9 +179,13 @@ func createAccountsDB(
 	trieStorageManager common.StorageManager,
 ) *state.AccountsDB {
 	tr, _ := trie.NewTrie(trieStorageManager, coreComponents.InternalMarshalizer(), coreComponents.Hasher(), 5)
-	ewl, _ := evictionWaitingList.NewEvictionWaitingList(10, testscommon.NewMemDbMock(), coreComponents.InternalMarshalizer())
-	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
 
+	argsEvictionWaitingList := evictionWaitingList.MemoryEvictionWaitingListArgs{
+		RootHashesSize: 10,
+		HashesSize:     hashSize,
+	}
+	ewl, _ := evictionWaitingList.NewMemoryEvictionWaitingList(argsEvictionWaitingList)
+	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
 	argsAccountsDb := state.ArgsAccountsDB{
 		Trie:                  tr,
 		Hasher:                coreComponents.Hasher(),
@@ -155,6 +194,8 @@ func createAccountsDB(
 		StoragePruningManager: spm,
 		ProcessingMode:        common.Normal,
 		ProcessStatusHandler:  coreComponents.ProcessStatusHandler(),
+		AppStatusHandler:      &statusHandlerMock.AppStatusHandlerStub{},
+		AddressConverter:      coreComponents.AddressPubKeyConverter(),
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDb)
 	return adb

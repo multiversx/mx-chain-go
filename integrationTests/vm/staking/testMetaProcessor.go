@@ -42,6 +42,7 @@ func NewTestMetaProcessor(
 		stateComponents,
 	)
 
+	bootStrapStorer, _ := dataComponents.StorageService().GetStorer(dataRetriever.BootstrapUnit)
 	nc := createNodesCoordinator(
 		eligibleMap,
 		waitingMap,
@@ -51,7 +52,7 @@ func NewTestMetaProcessor(
 		shardConsensusGroupSize,
 		metaConsensusGroupSize,
 		coreComponents,
-		dataComponents.StorageService().GetStorer(dataRetriever.BootstrapUnit),
+		bootStrapStorer,
 		bootstrapComponents.NodesCoordinatorRegistryFactory(),
 		maxNodesConfig,
 	)

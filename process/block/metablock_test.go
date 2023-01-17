@@ -3181,7 +3181,6 @@ func TestMetaProcessor_ProcessEpochStartMetaBlock(t *testing.T) {
 			StakingV2EnableEpochField: 10,
 		}
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-		arguments.RewardsV2EnableEpoch = 10
 		arguments.ValidatorStatisticsProcessor = &testscommon.ValidatorStatisticsProcessorStub{}
 
 		wasCalled := false
@@ -3345,8 +3344,6 @@ func TestMetaProcessor_CreateEpochStartBodyShouldFail(t *testing.T) {
 
 func TestMetaProcessor_CreateEpochStartBodyShouldWork(t *testing.T) {
 	t.Parallel()
-
-	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 
 	expectedValidatorsInfo := state.NewShardValidatorsInfoMap()
 	_ = expectedValidatorsInfo.Add(
@@ -3585,8 +3582,7 @@ func TestMetaProcessor_getAllMarshalledTxs(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockMetaArguments(createMockComponentHolders())
-
-	arguments.EpochRewardsCreator = &mock.EpochRewardsCreatorStub{
+	arguments.EpochRewardsCreator = &testscommon.RewardsCreatorStub{
 		CreateMarshalledDataCalled: func(body *block.Body) map[string][][]byte {
 			marshalledData := make(map[string][][]byte)
 			for _, miniBlock := range body.MiniBlocks {
@@ -3599,7 +3595,7 @@ func TestMetaProcessor_getAllMarshalledTxs(t *testing.T) {
 		},
 	}
 
-	arguments.EpochValidatorInfoCreator = &mock.EpochValidatorInfoCreatorStub{
+	arguments.EpochValidatorInfoCreator = &testscommon.EpochValidatorInfoCreatorStub{
 		CreateMarshalledDataCalled: func(body *block.Body) map[string][][]byte {
 			marshalledData := make(map[string][][]byte)
 			for _, miniBlock := range body.MiniBlocks {

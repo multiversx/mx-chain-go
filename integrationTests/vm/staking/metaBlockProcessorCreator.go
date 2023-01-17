@@ -24,6 +24,10 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
+	factory2 "github.com/multiversx/mx-chain-go/testscommon/factory"
+	"github.com/multiversx/mx-chain-go/testscommon/integrationtests"
+	"github.com/multiversx/mx-chain-go/testscommon/outport"
+	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
 
 func createMetaBlockProcessor(
@@ -57,9 +61,10 @@ func createMetaBlockProcessor(
 	accountsDb[state.UserAccountsState] = stateComponents.AccountsAdapter()
 	accountsDb[state.PeerAccountsState] = stateComponents.PeerAccounts()
 
+	bootStrapStorer, _ := dataComponents.StorageService().GetStorer(dataRetriever.BootstrapUnit)
 	bootStorer, _ := bootstrapStorage.NewBootstrapStorer(
 		coreComponents.InternalMarshalizer(),
-		dataComponents.StorageService().GetStorer(dataRetriever.BootstrapUnit),
+		bootStrapStorer,
 	)
 
 	headerValidator := createHeaderValidator(coreComponents)
@@ -68,10 +73,13 @@ func createMetaBlockProcessor(
 
 	args := blproc.ArgMetaProcessor{
 		ArgBaseProcessor: blproc.ArgBaseProcessor{
-			CoreComponents:                 coreComponents,
-			DataComponents:                 dataComponents,
-			BootstrapComponents:            bootstrapComponents,
-			StatusComponents:               statusComponents,
+			CoreComponents:      coreComponents,
+			DataComponents:      dataComponents,
+			BootstrapComponents: bootstrapComponents,
+			StatusComponents:    statusComponents,
+			StatusCoreComponents: &factory2.StatusCoreComponentsStub{
+				AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{},
+			},
 			AccountsDB:                     accountsDb,
 			ForkDetector:                   &integrationMocks.ForkDetectorStub{},
 			NodesCoordinator:               nc,
@@ -81,18 +89,19 @@ func createMetaBlockProcessor(
 			TxCoordinator:                  txCoordinator,
 			EpochStartTrigger:              epochStartHandler,
 			HeaderValidator:                headerValidator,
-			GasHandler:                     &mock.GasHandlerMock{},
 			BootStorer:                     bootStorer,
 			BlockTracker:                   blockTracker,
 			BlockSizeThrottler:             &mock.BlockSizeThrottlerStub{},
 			HistoryRepository:              &dblookupext.HistoryRepositoryStub{},
-			EpochNotifier:                  coreComponents.EpochNotifier(),
-			RoundNotifier:                  &mock.RoundNotifierStub{},
-			ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
-			ScheduledMiniBlocksEnableEpoch: 10000,
+			EnableRoundsHandler:            coreComponents.EnableRoundsHandler(),
 			VMContainersFactory:            metaVMFactory,
 			VmContainer:                    vmContainer,
+			GasHandler:                     &mock.GasHandlerMock{},
+			ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
+			ScheduledMiniBlocksEnableEpoch: 10000,
 			ProcessedMiniBlocksTracker:     processedMb.NewProcessedMiniBlocksTracker(),
+			OutportDataProvider:            &outport.OutportDataProviderStub{},
+			ReceiptsRepository:             &testscommon.ReceiptsRepositoryStub{},
 		},
 		SCToProtocol:             stakingToPeer,
 		PendingMiniBlocksHandler: &mock.PendingMiniBlocksHandlerStub{},
@@ -117,12 +126,16 @@ func createValidatorInfoCreator(
 	dataComponents factory.DataComponentsHolder,
 	shardCoordinator sharding.Coordinator,
 ) process.EpochStartValidatorInfoCreator {
+	mbStorer, _ := dataComponents.StorageService().GetStorer(dataRetriever.MiniBlockUnit)
+
 	args := metachain.ArgsNewValidatorInfoCreator{
-		ShardCoordinator: shardCoordinator,
-		MiniBlockStorage: dataComponents.StorageService().GetStorer(dataRetriever.MiniBlockUnit),
-		Hasher:           coreComponents.Hasher(),
-		Marshalizer:      coreComponents.InternalMarshalizer(),
-		DataPool:         dataComponents.Datapool(),
+		ShardCoordinator:     shardCoordinator,
+		MiniBlockStorage:     mbStorer,
+		Hasher:               coreComponents.Hasher(),
+		Marshalizer:          coreComponents.InternalMarshalizer(),
+		DataPool:             dataComponents.Datapool(),
+		EnableEpochsHandler:  coreComponents.EnableEpochsHandler(),
+		ValidatorInfoStorage: integrationtests.CreateMemUnit(),
 	}
 
 	valInfoCreator, _ := metachain.NewValidatorInfoCreator(args)
@@ -137,15 +150,16 @@ func createEpochStartDataCreator(
 	blockTracker process.BlockTracker,
 ) process.EpochStartDataCreator {
 	argsEpochStartDataCreator := metachain.ArgsNewEpochStartData{
-		Marshalizer:       coreComponents.InternalMarshalizer(),
-		Hasher:            coreComponents.Hasher(),
-		Store:             dataComponents.StorageService(),
-		DataPool:          dataComponents.Datapool(),
-		BlockTracker:      blockTracker,
-		ShardCoordinator:  shardCoordinator,
-		EpochStartTrigger: epochStartTrigger,
-		RequestHandler:    &testscommon.RequestHandlerStub{},
-		GenesisEpoch:      0,
+		Marshalizer:         coreComponents.InternalMarshalizer(),
+		Hasher:              coreComponents.Hasher(),
+		Store:               dataComponents.StorageService(),
+		DataPool:            dataComponents.Datapool(),
+		BlockTracker:        blockTracker,
+		ShardCoordinator:    shardCoordinator,
+		EpochStartTrigger:   epochStartTrigger,
+		RequestHandler:      &testscommon.RequestHandlerStub{},
+		GenesisEpoch:        0,
+		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
 	}
 	epochStartDataCreator, _ := metachain.NewEpochStartData(argsEpochStartDataCreator)
 	return epochStartDataCreator
@@ -214,16 +228,15 @@ func createSCToProtocol(
 	txCacher dataRetriever.TransactionCacher,
 ) process.SmartContractToProtocolHandler {
 	args := scToProtocol.ArgStakingToPeer{
-		PubkeyConv:         coreComponents.AddressPubKeyConverter(),
-		Hasher:             coreComponents.Hasher(),
-		Marshalizer:        coreComponents.InternalMarshalizer(),
-		PeerState:          stateComponents.PeerAccounts(),
-		BaseState:          stateComponents.AccountsAdapter(),
-		ArgParser:          smartContract.NewArgumentParser(),
-		CurrTxs:            txCacher,
-		RatingsData:        &mock.RatingsInfoMock{},
-		EpochNotifier:      coreComponents.EpochNotifier(),
-		StakingV4InitEpoch: stakingV4InitEpoch,
+		PubkeyConv:          coreComponents.AddressPubKeyConverter(),
+		Hasher:              coreComponents.Hasher(),
+		Marshalizer:         coreComponents.InternalMarshalizer(),
+		PeerState:           stateComponents.PeerAccounts(),
+		BaseState:           stateComponents.AccountsAdapter(),
+		ArgParser:           smartContract.NewArgumentParser(),
+		CurrTxs:             txCacher,
+		RatingsData:         &mock.RatingsInfoMock{},
+		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
 	}
 	stakingToPeer, _ := scToProtocol.NewStakingToPeer(args)
 	return stakingToPeer

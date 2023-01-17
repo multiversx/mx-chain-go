@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/storage/lrucache"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever/dataPool"
 	"github.com/multiversx/mx-chain-go/factory"
 	integrationMocks "github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -47,9 +48,9 @@ func createNodesCoordinator(
 			StakingV4EnableEpoch:                     stakingV4EnableEpoch,
 			StakingV4DistributeAuctionToWaitingEpoch: stakingV4DistributeAuctionToWaitingEpoch,
 		},
+		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
 	}
 	nodeShuffler, _ := nodesCoordinator.NewHashValidatorsShuffler(shufflerArgs)
-
 	cache, _ := lrucache.NewCache(10000)
 	argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
 		ShardConsensusGroupSize:         shardConsensusGroupSize,
@@ -71,11 +72,12 @@ func createNodesCoordinator(
 		StakingV4EnableEpoch:            stakingV4EnableEpoch,
 		NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
 		NodeTypeProvider:                coreComponents.NodeTypeProvider(),
+		EnableEpochsHandler:             coreComponents.EnableEpochsHandler(),
+		ValidatorInfoCacher:             dataPool.NewCurrentEpochValidatorInfoPool(),
 	}
 
 	baseNodesCoordinator, _ := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 	nodesCoord, _ := nodesCoordinator.NewIndexHashedNodesCoordinatorWithRater(baseNodesCoordinator, coreComponents.Rater())
-
 	return nodesCoord
 }
 

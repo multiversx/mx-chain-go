@@ -13,7 +13,9 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
 	metachainEpochStart "github.com/multiversx/mx-chain-go/epochStart/metachain"
+	"github.com/multiversx/mx-chain-go/epochStart/notifier"
 	mainFactory "github.com/multiversx/mx-chain-go/factory"
+	factoryDisabled "github.com/multiversx/mx-chain-go/factory/disabled"
 	"github.com/multiversx/mx-chain-go/genesis"
 	processDisabled "github.com/multiversx/mx-chain-go/genesis/process/disabled"
 	"github.com/multiversx/mx-chain-go/outport"
@@ -217,12 +219,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
-	txFeeHandler, err := postprocess.NewFeeAccumulator()
-	if err != nil {
-		return nil, err
-	}
-	enableEpochs := pcf.epochConfig.EnableEpochs
-
+	txFeeHandler := postprocess.NewFeeAccumulator()
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:         vmContainer,
 		ArgsParser:          argsParser,
@@ -539,10 +536,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
-	txFeeHandler, err := postprocess.NewFeeAccumulator()
-	if err != nil {
-		return nil, err
-	}
+	txFeeHandler := postprocess.NewFeeAccumulator()
 	enableEpochs := pcf.epochConfig.EnableEpochs
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:         vmContainer,
@@ -693,8 +687,6 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		CurrTxs:             pcf.data.Datapool().CurrentBlockTxs(),
 		RatingsData:         pcf.coreData.RatingsData(),
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
-		StakeEnableEpoch:    pcf.epochConfig.EnableEpochs.StakeEnableEpoch,
-		StakingV4InitEpoch:  pcf.epochConfig.EnableEpochs.StakingV4InitEnableEpoch,
 	}
 	smartContractToProtocol, err := scToProtocol.NewStakingToPeer(argsStaking)
 	if err != nil {
@@ -907,14 +899,12 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		ChanceComputer:               pcf.coreData.Rater(),
 		EpochNotifier:                pcf.coreData.EpochNotifier(),
 		GenesisNodesConfig:           pcf.coreData.GenesisNodesSetup(),
-		MaxNodesEnableConfig:         enableEpochs.MaxNodesChangeEnableEpoch,
 		StakingDataProvider:          stakingDataProvider,
 		NodesConfigProvider:          pcf.nodesCoordinator,
 		ShardCoordinator:             pcf.bootstrapComponents.ShardCoordinator(),
 		ESDTOwnerAddressBytes:        esdtOwnerAddress,
 		EnableEpochsHandler:          pcf.coreData.EnableEpochsHandler(),
 		MaxNodesChangeConfigProvider: maxNodesChangeConfigProvider,
-		EpochConfig:                  pcf.epochConfig,
 		AuctionListSelector:          auctionListSelector,
 	}
 

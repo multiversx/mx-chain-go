@@ -56,9 +56,9 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/stakingcommon"
 	testStorage "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
-	"github.com/multiversx/mx-chain-go/testscommon/stakingcommon"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/trie/hashesHolder"
@@ -705,13 +705,6 @@ func CreateFullGenesisBlocks(
 				return false
 			},
 		},
-		EpochConfig: &config.EpochConfig{
-			EnableEpochs: enableEpochsConfig,
-			StakeLimitsEnableEpoch:             10,
-			StakingV2EnableEpoch:               StakingV2Epoch,
-			StakingV4EnableEpoch:               StakingV4Epoch,
-			StakingV4InitEnableEpoch:           StakingV4Epoch - 1,
-		},
 	}
 
 	genesisProcessor, _ := genesisProcess.NewGenesisBlockCreator(argsGenesis)
@@ -812,13 +805,6 @@ func CreateGenesisMetaBlock(
 		BlockSignKeyGen:    &mock.KeyGenMock{},
 		ImportStartHandler: &mock.ImportStartHandlerStub{},
 		GenesisNodePrice:   big.NewInt(1000),
-		EpochConfig: &config.EpochConfig{
-			EnableEpochs: enableEpochsConfig,
-			StakeLimitsEnableEpoch:             10,
-			StakingV2EnableEpoch:               StakingV2Epoch,
-			StakingV4InitEnableEpoch:           StakingV4Epoch - 1,
-			StakingV4EnableEpoch:               StakingV4Epoch,
-		},
 	}
 
 	if shardCoordinator.SelfId() != core.MetachainShardId {
