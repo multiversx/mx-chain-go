@@ -698,10 +698,10 @@
 # The current values for the coefficients were computed based on benchmarking.
 # For the given coefficients, the minimum of the function must not be lower than MinimumGasCost
 [DynamicStorageLoad]
-    QuadraticCoefficient = 687
+    QuadraticCoefficient = 688
     SignOfQuadratic = 0
-    LinearCoefficient = 30483
+    LinearCoefficient = 31858
     SignOfLinear = 0
-    ConstantCoefficient = 15883
-    SignOfConstant = 1
+    ConstantCoefficient = 15287
+    SignOfConstant = 0
     MinimumGasCost = 10000
