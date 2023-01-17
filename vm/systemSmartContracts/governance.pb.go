@@ -68,7 +68,7 @@ type GeneralProposal struct {
 	Passed         bool          `protobuf:"varint,9,opt,name=Passed,proto3" json:"Passed"`
 	Closed         bool          `protobuf:"varint,10,opt,name=Closed,proto3" json:"Closed"`
 	IssuerAddress  []byte        `protobuf:"bytes,11,opt,name=IssuerAddress,proto3" json:"IssuerAddress"`
-	ProposalCost   *math_big.Int
+	ProposalCost   *math_big.Int `protobuf:"bytes,12,opt,name=ProposalCost,proto3,casttypewith=math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster" json:"ProposalCost"`
 }
 
 func (m *GeneralProposal) Reset()      { *m = GeneralProposal{} }
@@ -176,6 +176,13 @@ func (m *GeneralProposal) GetIssuerAddress() []byte {
 	return nil
 }
 
+func (m *GeneralProposal) GetProposalCost() *math_big.Int {
+	if m != nil {
+		return m.ProposalCost
+	}
+	return nil
+}
+
 type GovernanceConfig struct {
 	NumNodes         int64         `protobuf:"varint,1,opt,name=NumNodes,proto3" json:"NumNodes"`
 	MinQuorum        int32         `protobuf:"varint,2,opt,name=MinQuorum,proto3" json:"MinQuorum"`
@@ -247,17 +254,12 @@ func (m *GovernanceConfig) GetProposalFee() *math_big.Int {
 	return nil
 }
 
-type DelegatedSCVoteInfo struct {
-	TotalPower *math_big.Int `protobuf:"bytes,1,opt,name=MinQuorum,proto3,casttypewith=math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster" json:"MinQuorum"`
-	UsedPower  *math_big.Int `protobuf:"bytes,2,opt,name=MinPassThreshold,proto3,casttypewith=math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster" json:"MinPassThreshold"`
-}
-
 type GovernanceConfigV2 struct {
 	MinQuorum         *math_big.Int `protobuf:"bytes,1,opt,name=MinQuorum,proto3,casttypewith=math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster" json:"MinQuorum"`
 	MinPassThreshold  *math_big.Int `protobuf:"bytes,2,opt,name=MinPassThreshold,proto3,casttypewith=math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster" json:"MinPassThreshold"`
 	MinVetoThreshold  *math_big.Int `protobuf:"bytes,3,opt,name=MinVetoThreshold,proto3,casttypewith=math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster" json:"MinVetoThreshold"`
 	ProposalFee       *math_big.Int `protobuf:"bytes,4,opt,name=ProposalFee,proto3,casttypewith=math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster" json:"ProposalFee"`
-	LastProposalNonce uint64
+	LastProposalNonce uint64        `protobuf:"varint,5,opt,name=LastProposalNonce,proto3" json:"LastProposalNonce"`
 }
 
 func (m *GovernanceConfigV2) Reset()      { *m = GovernanceConfigV2{} }
@@ -316,10 +318,16 @@ func (m *GovernanceConfigV2) GetProposalFee() *math_big.Int {
 	return nil
 }
 
+func (m *GovernanceConfigV2) GetLastProposalNonce() uint64 {
+	if m != nil {
+		return m.LastProposalNonce
+	}
+	return 0
+}
+
 type OngoingVotedList struct {
-	ProposalNonces []uint64 `protobuf:"varint,1,rep,packed,name=ProposalNonces,proto3" json:"ProposalNonces"`
-	Direct         []uint64
-	Delegated      []uint64
+	Direct    []uint64 `protobuf:"varint,1,rep,packed,name=Direct,proto3" json:"Direct"`
+	Delegated []uint64 `protobuf:"varint,2,rep,packed,name=Delegated,proto3" json:"Delegated"`
 }
 
 func (m *OngoingVotedList) Reset()      { *m = OngoingVotedList{} }
@@ -350,9 +358,63 @@ func (m *OngoingVotedList) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_OngoingVotedList proto.InternalMessageInfo
 
-func (m *OngoingVotedList) GetProposalNonces() []uint64 {
+func (m *OngoingVotedList) GetDirect() []uint64 {
 	if m != nil {
-		return m.ProposalNonces
+		return m.Direct
+	}
+	return nil
+}
+
+func (m *OngoingVotedList) GetDelegated() []uint64 {
+	if m != nil {
+		return m.Delegated
+	}
+	return nil
+}
+
+type DelegatedSCVoteInfo struct {
+	TotalPower *math_big.Int `protobuf:"bytes,1,opt,name=TotalPower,proto3,casttypewith=math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster" json:"TotalPower"`
+	UsedPower  *math_big.Int `protobuf:"bytes,2,opt,name=UsedPower,proto3,casttypewith=math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster" json:"UsedPower"`
+}
+
+func (m *DelegatedSCVoteInfo) Reset()      { *m = DelegatedSCVoteInfo{} }
+func (*DelegatedSCVoteInfo) ProtoMessage() {}
+func (*DelegatedSCVoteInfo) Descriptor() ([]byte, []int) {
+	return fileDescriptor_e18a03da5266c714, []int{4}
+}
+func (m *DelegatedSCVoteInfo) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *DelegatedSCVoteInfo) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *DelegatedSCVoteInfo) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_DelegatedSCVoteInfo.Merge(m, src)
+}
+func (m *DelegatedSCVoteInfo) XXX_Size() int {
+	return m.Size()
+}
+func (m *DelegatedSCVoteInfo) XXX_DiscardUnknown() {
+	xxx_messageInfo_DelegatedSCVoteInfo.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_DelegatedSCVoteInfo proto.InternalMessageInfo
+
+func (m *DelegatedSCVoteInfo) GetTotalPower() *math_big.Int {
+	if m != nil {
+		return m.TotalPower
+	}
+	return nil
+}
+
+func (m *DelegatedSCVoteInfo) GetUsedPower() *math_big.Int {
+	if m != nil {
+		return m.UsedPower
 	}
 	return nil
 }
@@ -363,58 +425,67 @@ func init() {
 	proto.RegisterType((*GovernanceConfig)(nil), "proto.GovernanceConfig")
 	proto.RegisterType((*GovernanceConfigV2)(nil), "proto.GovernanceConfigV2")
 	proto.RegisterType((*OngoingVotedList)(nil), "proto.OngoingVotedList")
+	proto.RegisterType((*DelegatedSCVoteInfo)(nil), "proto.DelegatedSCVoteInfo")
 }
 
 func init() { proto.RegisterFile("governance.proto", fileDescriptor_e18a03da5266c714) }
 
 var fileDescriptor_e18a03da5266c714 = []byte{
-	// 734 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xbc, 0x55, 0xbd, 0x6e, 0xdb, 0x3a,
-	0x14, 0x36, 0xfd, 0x17, 0x87, 0xf9, 0xb9, 0xba, 0x44, 0x06, 0xe1, 0x0e, 0x62, 0xe0, 0xc9, 0xb8,
-	0x17, 0xb6, 0x81, 0xdb, 0x02, 0x01, 0xda, 0xa5, 0x91, 0x91, 0xa6, 0x01, 0x1a, 0x25, 0x51, 0x02,
-	0xa3, 0x2d, 0x50, 0x14, 0xb4, 0xc5, 0xc8, 0x02, 0x2c, 0x32, 0x10, 0xa9, 0x20, 0xe9, 0xd4, 0xb5,
-	0x5b, 0x9f, 0xa0, 0x73, 0xd1, 0x27, 0xe9, 0x98, 0x31, 0x93, 0xda, 0x28, 0x4b, 0xab, 0x29, 0x7d,
-	0x83, 0x42, 0xf4, 0xaf, 0xec, 0xa0, 0x93, 0xd1, 0x89, 0x3c, 0xdf, 0xa1, 0xbe, 0xf3, 0x89, 0xe7,
-	0xf0, 0x1c, 0xa8, 0xb9, 0xfc, 0x9c, 0x06, 0x8c, 0xb0, 0x2e, 0x6d, 0x9c, 0x05, 0x5c, 0x72, 0x54,
-	0x52, 0xcb, 0x3f, 0x75, 0xd7, 0x93, 0xbd, 0xb0, 0xd3, 0xe8, 0x72, 0xbf, 0xe9, 0x72, 0x97, 0x37,
-	0x15, 0xdc, 0x09, 0x4f, 0x95, 0xa5, 0x0c, 0xb5, 0x1b, 0x7c, 0x55, 0xfd, 0x59, 0x82, 0x7f, 0xed,
-	0x52, 0x46, 0x03, 0xd2, 0x3f, 0x0c, 0xf8, 0x19, 0x17, 0xa4, 0x8f, 0x30, 0x2c, 0x59, 0x9c, 0x75,
-	0xa9, 0x0e, 0x36, 0x41, 0xad, 0x68, 0x2e, 0x27, 0x11, 0x1e, 0x00, 0xf6, 0x60, 0x41, 0x0d, 0x08,
-	0x5b, 0xdc, 0xf7, 0x3d, 0xf9, 0x8c, 0x88, 0x9e, 0x9e, 0xdf, 0x04, 0xb5, 0x55, 0x73, 0x3d, 0x89,
-	0xf0, 0x14, 0x6a, 0x4f, 0xed, 0xd1, 0x23, 0xb8, 0x7e, 0x2c, 0x49, 0x20, 0xdb, 0x5c, 0xd2, 0x01,
-	0x73, 0x41, 0x31, 0xa3, 0x24, 0xc2, 0x33, 0x1e, 0x7b, 0xc6, 0x46, 0x0f, 0xe1, 0xea, 0x0e, 0x73,
-	0x26, 0x5f, 0x16, 0xd5, 0x97, 0x5a, 0x12, 0xe1, 0x0c, 0x6e, 0x67, 0x2c, 0xd4, 0x81, 0x85, 0x97,
-	0x54, 0xe8, 0x25, 0x25, 0xed, 0x30, 0x89, 0x70, 0x6a, 0x7e, 0xfe, 0x8a, 0x77, 0x7c, 0x22, 0x7b,
-	0xcd, 0x8e, 0xe7, 0x36, 0xf6, 0x98, 0x7c, 0x3c, 0x75, 0x55, 0x7e, 0xd8, 0x97, 0xde, 0x39, 0x0d,
-	0xc4, 0x45, 0xd3, 0xbf, 0xa8, 0x77, 0x7b, 0xc4, 0x63, 0xf5, 0x2e, 0x0f, 0x68, 0xdd, 0xe5, 0x4d,
-	0x87, 0x48, 0xd2, 0x30, 0x3d, 0x77, 0x8f, 0xc9, 0x16, 0x11, 0x92, 0x06, 0x76, 0xca, 0x86, 0xde,
-	0xc0, 0xbc, 0xc5, 0xf5, 0xb2, 0x0a, 0x71, 0x90, 0x44, 0x38, 0x6f, 0xf1, 0xc5, 0x45, 0xc8, 0x5b,
-	0x1c, 0x51, 0x58, 0x6c, 0x53, 0xc9, 0xf5, 0x25, 0x15, 0xe2, 0x28, 0x89, 0xb0, 0xb2, 0x17, 0x17,
-	0x44, 0xd1, 0x21, 0x06, 0x97, 0xb6, 0x3b, 0x42, 0x12, 0x8f, 0xe9, 0x15, 0x15, 0xe9, 0x24, 0x89,
-	0xf0, 0x08, 0x5a, 0x5c, 0xb0, 0x11, 0x23, 0xaa, 0xc2, 0xf2, 0x21, 0x11, 0x82, 0x3a, 0xfa, 0xf2,
-	0x26, 0xa8, 0x55, 0x4c, 0x98, 0x44, 0x78, 0x88, 0xd8, 0xc3, 0x35, 0x3d, 0xd3, 0xea, 0xf3, 0xf4,
-	0x0c, 0x9c, 0x9c, 0x19, 0x20, 0xf6, 0x70, 0x45, 0x5b, 0x70, 0x6d, 0x4f, 0x88, 0x90, 0x06, 0xdb,
-	0x8e, 0x13, 0x50, 0x21, 0xf4, 0x15, 0xa5, 0xfe, 0xef, 0x24, 0xc2, 0x59, 0x87, 0x9d, 0x35, 0xab,
-	0x3f, 0xf2, 0x50, 0xdb, 0x1d, 0x3f, 0x9f, 0x16, 0x67, 0xa7, 0x9e, 0x8b, 0x6a, 0xb0, 0x62, 0x85,
-	0xbe, 0xc5, 0x1d, 0x2a, 0x54, 0xdd, 0x17, 0xcc, 0xd5, 0x24, 0xc2, 0x63, 0xcc, 0x1e, 0xef, 0xd0,
-	0x7f, 0x70, 0x79, 0xdf, 0x63, 0x47, 0x21, 0x0f, 0x42, 0x5f, 0x15, 0x7f, 0xc9, 0x5c, 0x4b, 0x22,
-	0x3c, 0x01, 0xed, 0xc9, 0x16, 0x3d, 0x81, 0xda, 0xbe, 0xc7, 0xd2, 0xbf, 0x3a, 0xe9, 0x05, 0x54,
-	0xf4, 0x78, 0xdf, 0x51, 0xc5, 0x5f, 0x32, 0x37, 0x92, 0x08, 0xcf, 0xf9, 0xec, 0x39, 0x64, 0xc8,
-	0x90, 0x66, 0x6a, 0xc2, 0x50, 0xcc, 0x30, 0x64, 0x7c, 0xf6, 0x1c, 0x82, 0xde, 0xc2, 0x95, 0xd1,
-	0xdb, 0x7e, 0x4a, 0xe9, 0xf0, 0x51, 0xbc, 0x48, 0x22, 0x3c, 0x0d, 0x2f, 0x2e, 0xd1, 0xd3, 0xac,
-	0xd5, 0x8f, 0x45, 0x88, 0x66, 0xef, 0xba, 0xfd, 0x3f, 0x92, 0xd3, 0x77, 0x08, 0x94, 0xa0, 0x76,
-	0xe6, 0x0e, 0x17, 0x27, 0x67, 0x2a, 0x19, 0xef, 0xc1, 0x3d, 0xd9, 0x18, 0xb4, 0xaf, 0xd7, 0xf7,
-	0x65, 0x63, 0x71, 0x22, 0xe6, 0xd3, 0x3a, 0xd4, 0x92, 0xcd, 0x6b, 0x21, 0xa3, 0x25, 0xe3, 0x5b,
-	0xac, 0x96, 0xdf, 0x16, 0x48, 0xf1, 0x4f, 0x16, 0x88, 0x05, 0xb5, 0x03, 0xe6, 0x72, 0x8f, 0xb9,
-	0x69, 0xf7, 0x76, 0x9e, 0x7b, 0x42, 0xa6, 0xf3, 0x62, 0x74, 0x44, 0xb5, 0xf3, 0xf4, 0x45, 0x16,
-	0x46, 0xf3, 0x22, 0xeb, 0xb1, 0x67, 0xec, 0x7f, 0xb7, 0xe0, 0x5a, 0x4a, 0xd4, 0x26, 0xfd, 0x90,
-	0x9e, 0x5c, 0x9e, 0x51, 0xb4, 0xa4, 0x46, 0x81, 0x96, 0x43, 0xe5, 0xb4, 0x5f, 0x6b, 0x00, 0x55,
-	0x06, 0x6d, 0x55, 0xcb, 0xa3, 0x95, 0x71, 0xe7, 0xd3, 0x0a, 0xa6, 0x75, 0x75, 0x63, 0xe4, 0xae,
-	0x6f, 0x8c, 0xdc, 0xdd, 0x8d, 0x01, 0xde, 0xc5, 0x06, 0xf8, 0x14, 0x1b, 0xe0, 0x4b, 0x6c, 0x80,
-	0xab, 0xd8, 0x00, 0xd7, 0xb1, 0x01, 0xbe, 0xc5, 0x06, 0xf8, 0x1e, 0x1b, 0xb9, 0xbb, 0xd8, 0x00,
-	0x1f, 0x6e, 0x8d, 0xdc, 0xd5, 0xad, 0x91, 0xbb, 0xbe, 0x35, 0x72, 0xaf, 0x36, 0xc4, 0xa5, 0x90,
-	0xd4, 0x3f, 0xf6, 0x49, 0x20, 0x5b, 0x9c, 0xc9, 0x80, 0x74, 0xa5, 0xe8, 0x94, 0xd5, 0x80, 0x7d,
-	0xf0, 0x2b, 0x00, 0x00, 0xff, 0xff, 0xa3, 0x17, 0xda, 0x44, 0xaa, 0x07, 0x00, 0x00,
+	// 855 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xbc, 0x56, 0xcd, 0x6f, 0x23, 0x35,
+	0x14, 0x8f, 0xf3, 0xd5, 0xd6, 0x4d, 0x97, 0x59, 0xb3, 0x48, 0x23, 0x0e, 0xe3, 0x2a, 0xa7, 0x08,
+	0xd4, 0x44, 0x02, 0xa4, 0x95, 0xe0, 0xc2, 0x26, 0xbb, 0x2c, 0x95, 0x76, 0xb3, 0xdd, 0x69, 0x09,
+	0x2c, 0x12, 0x42, 0x4e, 0xc6, 0x9d, 0x8c, 0x94, 0xb1, 0x2b, 0xdb, 0xd9, 0x0f, 0x24, 0x24, 0x0e,
+	0x5c, 0xb8, 0xf1, 0x67, 0x20, 0xfe, 0x12, 0x8e, 0x3d, 0xf6, 0x34, 0xd0, 0xe4, 0x02, 0x73, 0xea,
+	0x9f, 0x80, 0xec, 0x99, 0xcc, 0x47, 0xb3, 0xe2, 0x34, 0xe2, 0x64, 0xbf, 0xdf, 0xb3, 0x7f, 0xef,
+	0xcd, 0xfb, 0xf0, 0x1b, 0x68, 0xf9, 0xfc, 0x25, 0x15, 0x8c, 0xb0, 0x19, 0xed, 0x5f, 0x08, 0xae,
+	0x38, 0x6a, 0x99, 0xe5, 0xfd, 0x23, 0x3f, 0x50, 0xf3, 0xe5, 0xb4, 0x3f, 0xe3, 0xe1, 0xc0, 0xe7,
+	0x3e, 0x1f, 0x18, 0x78, 0xba, 0x3c, 0x37, 0x92, 0x11, 0xcc, 0x2e, 0xb9, 0xd5, 0xbd, 0x69, 0xc3,
+	0x77, 0x1e, 0x53, 0x46, 0x05, 0x59, 0x9c, 0x08, 0x7e, 0xc1, 0x25, 0x59, 0x20, 0x0c, 0x5b, 0x63,
+	0xce, 0x66, 0xd4, 0x06, 0x87, 0xa0, 0xd7, 0x1c, 0xee, 0xc5, 0x11, 0x4e, 0x00, 0x37, 0x59, 0x50,
+	0x1f, 0xc2, 0x11, 0x0f, 0xc3, 0x40, 0x7d, 0x49, 0xe4, 0xdc, 0xae, 0x1f, 0x82, 0x5e, 0x67, 0x78,
+	0x27, 0x8e, 0x70, 0x01, 0x75, 0x0b, 0x7b, 0xf4, 0x29, 0xbc, 0x73, 0xaa, 0x88, 0x50, 0x13, 0xae,
+	0x68, 0xc2, 0xdc, 0x30, 0xcc, 0x28, 0x8e, 0xf0, 0x2d, 0x8d, 0x7b, 0x4b, 0x46, 0x9f, 0xc0, 0xce,
+	0x23, 0xe6, 0xe5, 0x37, 0x9b, 0xe6, 0xa6, 0x15, 0x47, 0xb8, 0x84, 0xbb, 0x25, 0x09, 0x4d, 0x61,
+	0xe3, 0x05, 0x95, 0x76, 0xcb, 0xb8, 0x76, 0x12, 0x47, 0x58, 0x8b, 0xbf, 0xff, 0x89, 0x1f, 0x85,
+	0x44, 0xcd, 0x07, 0xd3, 0xc0, 0xef, 0x1f, 0x33, 0xf5, 0x59, 0x21, 0x54, 0xe1, 0x72, 0xa1, 0x82,
+	0x97, 0x54, 0xc8, 0xd7, 0x83, 0xf0, 0xf5, 0xd1, 0x6c, 0x4e, 0x02, 0x76, 0x34, 0xe3, 0x82, 0x1e,
+	0xf9, 0x7c, 0xe0, 0x11, 0x45, 0xfa, 0xc3, 0xc0, 0x3f, 0x66, 0x6a, 0x44, 0xa4, 0xa2, 0xc2, 0xd5,
+	0x6c, 0xe8, 0x7b, 0x58, 0x1f, 0x73, 0xbb, 0x6d, 0x4c, 0x3c, 0x8b, 0x23, 0x5c, 0x1f, 0xf3, 0xea,
+	0x2c, 0xd4, 0xc7, 0x1c, 0x51, 0xd8, 0x9c, 0x50, 0xc5, 0xed, 0x1d, 0x63, 0xe2, 0x79, 0x1c, 0x61,
+	0x23, 0x57, 0x67, 0xc4, 0xd0, 0x21, 0x06, 0x77, 0x1e, 0x4c, 0xa5, 0x22, 0x01, 0xb3, 0x77, 0x8d,
+	0xa5, 0xb3, 0x38, 0xc2, 0x1b, 0xa8, 0x3a, 0x63, 0x1b, 0x46, 0xd4, 0x85, 0xed, 0x13, 0x22, 0x25,
+	0xf5, 0xec, 0xbd, 0x43, 0xd0, 0xdb, 0x1d, 0xc2, 0x38, 0xc2, 0x29, 0xe2, 0xa6, 0xab, 0x3e, 0x33,
+	0x5a, 0x70, 0x7d, 0x06, 0xe6, 0x67, 0x12, 0xc4, 0x4d, 0x57, 0x74, 0x1f, 0x1e, 0x1c, 0x4b, 0xb9,
+	0xa4, 0xe2, 0x81, 0xe7, 0x09, 0x2a, 0xa5, 0xbd, 0x6f, 0xbc, 0xbf, 0x1b, 0x47, 0xb8, 0xac, 0x70,
+	0xcb, 0x22, 0xfa, 0x11, 0x76, 0x36, 0xb5, 0x3e, 0xe2, 0x52, 0xd9, 0x1d, 0x73, 0xef, 0x85, 0x2e,
+	0xa9, 0x22, 0x5e, 0xdd, 0xa7, 0x97, 0x68, 0xbb, 0xff, 0xd4, 0xa1, 0xf5, 0x38, 0xeb, 0xde, 0x11,
+	0x67, 0xe7, 0x81, 0x8f, 0x7a, 0x70, 0x77, 0xbc, 0x0c, 0xc7, 0xdc, 0xa3, 0xd2, 0xb4, 0x5d, 0x63,
+	0xd8, 0x89, 0x23, 0x9c, 0x61, 0x6e, 0xb6, 0x43, 0x1f, 0xc2, 0xbd, 0xa7, 0x01, 0x7b, 0xbe, 0xe4,
+	0x62, 0x19, 0x9a, 0xde, 0x6b, 0x0d, 0x0f, 0xe2, 0x08, 0xe7, 0xa0, 0x9b, 0x6f, 0xd1, 0xe7, 0xd0,
+	0x7a, 0x1a, 0x30, 0x1d, 0xd4, 0xb3, 0xb9, 0xa0, 0x72, 0xce, 0x17, 0x9e, 0xe9, 0xbd, 0xd6, 0xf0,
+	0x5e, 0x1c, 0xe1, 0x2d, 0x9d, 0xbb, 0x85, 0xa4, 0x0c, 0xba, 0x50, 0x72, 0x86, 0x66, 0x89, 0xa1,
+	0xa4, 0x73, 0xb7, 0x10, 0xf4, 0x03, 0xdc, 0xdf, 0x7c, 0xff, 0x17, 0x94, 0xa6, 0x3d, 0xf9, 0x4d,
+	0x1c, 0xe1, 0x22, 0x5c, 0x5d, 0xb0, 0x8b, 0xac, 0xdd, 0x75, 0x13, 0xa2, 0xdb, 0xb1, 0x9e, 0x7c,
+	0x84, 0x54, 0x31, 0x86, 0xc0, 0x38, 0x34, 0x29, 0xc5, 0xb0, 0x3a, 0x77, 0x0a, 0xc9, 0xf8, 0x05,
+	0xbc, 0x25, 0x1b, 0xc9, 0xeb, 0xf9, 0xdd, 0xdb, 0xb2, 0x51, 0x9d, 0x13, 0xdb, 0x69, 0x4d, 0x7d,
+	0x29, 0xe7, 0xb5, 0x51, 0xf2, 0xa5, 0xa4, 0xab, 0xd6, 0x97, 0xff, 0x2c, 0x90, 0xe6, 0xff, 0x58,
+	0x20, 0x68, 0x04, 0xef, 0x3e, 0x21, 0x52, 0x6d, 0xa0, 0x64, 0xc6, 0xb4, 0xcc, 0x8c, 0x79, 0x2f,
+	0x8e, 0xf0, 0xb6, 0xd2, 0xdd, 0x86, 0xba, 0x33, 0x68, 0x3d, 0x63, 0x3e, 0x0f, 0x98, 0xaf, 0x27,
+	0x90, 0xf7, 0x24, 0x90, 0x4a, 0xbf, 0x60, 0x0f, 0x03, 0x41, 0x67, 0xca, 0x06, 0x87, 0x8d, 0x5e,
+	0x33, 0x79, 0xc1, 0x12, 0xc4, 0x4d, 0x57, 0xdd, 0xca, 0x0f, 0xe9, 0x82, 0xfa, 0x44, 0x51, 0x5d,
+	0x08, 0xfa, 0x98, 0x69, 0xe5, 0x0c, 0x74, 0xf3, 0x6d, 0xf7, 0xe7, 0x3a, 0x7c, 0x37, 0x93, 0x4e,
+	0x47, 0xda, 0xd2, 0x31, 0x3b, 0xe7, 0xe8, 0x15, 0x84, 0x67, 0x5c, 0x91, 0xc5, 0x09, 0x7f, 0x45,
+	0x45, 0x5a, 0xcc, 0x5f, 0xeb, 0x61, 0x9c, 0xa3, 0xd5, 0xc5, 0xae, 0x40, 0xaa, 0x9b, 0xe8, 0x2b,
+	0x49, 0xbd, 0xc4, 0x6e, 0x3d, 0x6f, 0xa2, 0x0c, 0xac, 0xb0, 0x89, 0x32, 0xce, 0x0f, 0xee, 0xc3,
+	0x03, 0xfd, 0xe9, 0x13, 0xb2, 0x58, 0xd2, 0xb3, 0x37, 0x17, 0x14, 0xed, 0x98, 0x51, 0x6f, 0xd5,
+	0x50, 0x5b, 0xcf, 0x63, 0x0b, 0xa0, 0xdd, 0x64, 0x6c, 0x5a, 0x75, 0xb4, 0x9f, 0x4d, 0x36, 0xab,
+	0x31, 0x1c, 0x5f, 0x5e, 0x3b, 0xb5, 0xab, 0x6b, 0xa7, 0x76, 0x73, 0xed, 0x80, 0x9f, 0x56, 0x0e,
+	0xf8, 0x6d, 0xe5, 0x80, 0x3f, 0x56, 0x0e, 0xb8, 0x5c, 0x39, 0xe0, 0x6a, 0xe5, 0x80, 0xbf, 0x56,
+	0x0e, 0xf8, 0x7b, 0xe5, 0xd4, 0x6e, 0x56, 0x0e, 0xf8, 0x75, 0xed, 0xd4, 0x2e, 0xd7, 0x4e, 0xed,
+	0x6a, 0xed, 0xd4, 0xbe, 0xbd, 0x27, 0xdf, 0x48, 0x45, 0xc3, 0xd3, 0x90, 0x08, 0x35, 0xe2, 0x4c,
+	0x09, 0x32, 0x53, 0x72, 0xda, 0x36, 0x3f, 0x50, 0x1f, 0xff, 0x1b, 0x00, 0x00, 0xff, 0xff, 0xc4,
+	0x54, 0x31, 0xee, 0x8a, 0x09, 0x00, 0x00,
 }
 
 func (x VoteValueType) String() string {
@@ -487,6 +558,12 @@ func (this *GeneralProposal) Equal(that interface{}) bool {
 	}
 	if !bytes.Equal(this.IssuerAddress, that1.IssuerAddress) {
 		return false
+	}
+	{
+		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
+		if !__caster.Equal(this.ProposalCost, that1.ProposalCost) {
+			return false
+		}
 	}
 	return true
 }
@@ -572,6 +649,9 @@ func (this *GovernanceConfigV2) Equal(that interface{}) bool {
 			return false
 		}
 	}
+	if this.LastProposalNonce != that1.LastProposalNonce {
+		return false
+	}
 	return true
 }
 func (this *OngoingVotedList) Equal(that interface{}) bool {
@@ -593,11 +673,52 @@ func (this *OngoingVotedList) Equal(that interface{}) bool {
 	} else if this == nil {
 		return false
 	}
-	if len(this.ProposalNonces) != len(that1.ProposalNonces) {
+	if len(this.Direct) != len(that1.Direct) {
 		return false
 	}
-	for i := range this.ProposalNonces {
-		if this.ProposalNonces[i] != that1.ProposalNonces[i] {
+	for i := range this.Direct {
+		if this.Direct[i] != that1.Direct[i] {
+			return false
+		}
+	}
+	if len(this.Delegated) != len(that1.Delegated) {
+		return false
+	}
+	for i := range this.Delegated {
+		if this.Delegated[i] != that1.Delegated[i] {
+			return false
+		}
+	}
+	return true
+}
+func (this *DelegatedSCVoteInfo) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*DelegatedSCVoteInfo)
+	if !ok {
+		that2, ok := that.(DelegatedSCVoteInfo)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	{
+		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
+		if !__caster.Equal(this.TotalPower, that1.TotalPower) {
+			return false
+		}
+	}
+	{
+		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
+		if !__caster.Equal(this.UsedPower, that1.UsedPower) {
 			return false
 		}
 	}
@@ -607,7 +728,7 @@ func (this *GeneralProposal) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 15)
+	s := make([]string, 0, 16)
 	s = append(s, "&systemSmartContracts.GeneralProposal{")
 	s = append(s, "Nonce: "+fmt.Sprintf("%#v", this.Nonce)+",\n")
 	s = append(s, "CommitHash: "+fmt.Sprintf("%#v", this.CommitHash)+",\n")
@@ -620,6 +741,7 @@ func (this *GeneralProposal) GoString() string {
 	s = append(s, "Passed: "+fmt.Sprintf("%#v", this.Passed)+",\n")
 	s = append(s, "Closed: "+fmt.Sprintf("%#v", this.Closed)+",\n")
 	s = append(s, "IssuerAddress: "+fmt.Sprintf("%#v", this.IssuerAddress)+",\n")
+	s = append(s, "ProposalCost: "+fmt.Sprintf("%#v", this.ProposalCost)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -641,12 +763,13 @@ func (this *GovernanceConfigV2) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 8)
+	s := make([]string, 0, 9)
 	s = append(s, "&systemSmartContracts.GovernanceConfigV2{")
 	s = append(s, "MinQuorum: "+fmt.Sprintf("%#v", this.MinQuorum)+",\n")
 	s = append(s, "MinPassThreshold: "+fmt.Sprintf("%#v", this.MinPassThreshold)+",\n")
 	s = append(s, "MinVetoThreshold: "+fmt.Sprintf("%#v", this.MinVetoThreshold)+",\n")
 	s = append(s, "ProposalFee: "+fmt.Sprintf("%#v", this.ProposalFee)+",\n")
+	s = append(s, "LastProposalNonce: "+fmt.Sprintf("%#v", this.LastProposalNonce)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -654,9 +777,21 @@ func (this *OngoingVotedList) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 5)
+	s := make([]string, 0, 6)
 	s = append(s, "&systemSmartContracts.OngoingVotedList{")
-	s = append(s, "ProposalNonces: "+fmt.Sprintf("%#v", this.ProposalNonces)+",\n")
+	s = append(s, "Direct: "+fmt.Sprintf("%#v", this.Direct)+",\n")
+	s = append(s, "Delegated: "+fmt.Sprintf("%#v", this.Delegated)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *DelegatedSCVoteInfo) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 6)
+	s = append(s, "&systemSmartContracts.DelegatedSCVoteInfo{")
+	s = append(s, "TotalPower: "+fmt.Sprintf("%#v", this.TotalPower)+",\n")
+	s = append(s, "UsedPower: "+fmt.Sprintf("%#v", this.UsedPower)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -688,6 +823,17 @@ func (m *GeneralProposal) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	{
+		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
+		size := __caster.Size(m.ProposalCost)
+		i -= size
+		if _, err := __caster.MarshalTo(m.ProposalCost, dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintGovernance(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x62
 	if len(m.IssuerAddress) > 0 {
 		i -= len(m.IssuerAddress)
 		copy(dAtA[i:], m.IssuerAddress)
@@ -858,6 +1004,11 @@ func (m *GovernanceConfigV2) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	if m.LastProposalNonce != 0 {
+		i = encodeVarintGovernance(dAtA, i, uint64(m.LastProposalNonce))
+		i--
+		dAtA[i] = 0x28
+	}
 	{
 		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 		size := __caster.Size(m.ProposalFee)
@@ -925,10 +1076,10 @@ func (m *OngoingVotedList) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if len(m.ProposalNonces) > 0 {
-		dAtA2 := make([]byte, len(m.ProposalNonces)*10)
+	if len(m.Delegated) > 0 {
+		dAtA2 := make([]byte, len(m.Delegated)*10)
 		var j1 int
-		for _, num := range m.ProposalNonces {
+		for _, num := range m.Delegated {
 			for num >= 1<<7 {
 				dAtA2[j1] = uint8(uint64(num)&0x7f | 0x80)
 				num >>= 7
@@ -941,8 +1092,71 @@ func (m *OngoingVotedList) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		copy(dAtA[i:], dAtA2[:j1])
 		i = encodeVarintGovernance(dAtA, i, uint64(j1))
 		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Direct) > 0 {
+		dAtA4 := make([]byte, len(m.Direct)*10)
+		var j3 int
+		for _, num := range m.Direct {
+			for num >= 1<<7 {
+				dAtA4[j3] = uint8(uint64(num)&0x7f | 0x80)
+				num >>= 7
+				j3++
+			}
+			dAtA4[j3] = uint8(num)
+			j3++
+		}
+		i -= j3
+		copy(dAtA[i:], dAtA4[:j3])
+		i = encodeVarintGovernance(dAtA, i, uint64(j3))
+		i--
 		dAtA[i] = 0xa
 	}
+	return len(dAtA) - i, nil
+}
+
+func (m *DelegatedSCVoteInfo) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DelegatedSCVoteInfo) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *DelegatedSCVoteInfo) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	{
+		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
+		size := __caster.Size(m.UsedPower)
+		i -= size
+		if _, err := __caster.MarshalTo(m.UsedPower, dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintGovernance(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x12
+	{
+		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
+		size := __caster.Size(m.TotalPower)
+		i -= size
+		if _, err := __caster.MarshalTo(m.TotalPower, dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintGovernance(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0xa
 	return len(dAtA) - i, nil
 }
 
@@ -1006,6 +1220,11 @@ func (m *GeneralProposal) Size() (n int) {
 	if l > 0 {
 		n += 1 + l + sovGovernance(uint64(l))
 	}
+	{
+		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
+		l = __caster.Size(m.ProposalCost)
+		n += 1 + l + sovGovernance(uint64(l))
+	}
 	return n
 }
 
@@ -1061,6 +1280,9 @@ func (m *GovernanceConfigV2) Size() (n int) {
 		l = __caster.Size(m.ProposalFee)
 		n += 1 + l + sovGovernance(uint64(l))
 	}
+	if m.LastProposalNonce != 0 {
+		n += 1 + sovGovernance(uint64(m.LastProposalNonce))
+	}
 	return n
 }
 
@@ -1070,12 +1292,38 @@ func (m *OngoingVotedList) Size() (n int) {
 	}
 	var l int
 	_ = l
-	if len(m.ProposalNonces) > 0 {
+	if len(m.Direct) > 0 {
 		l = 0
-		for _, e := range m.ProposalNonces {
+		for _, e := range m.Direct {
 			l += sovGovernance(uint64(e))
 		}
 		n += 1 + sovGovernance(uint64(l)) + l
+	}
+	if len(m.Delegated) > 0 {
+		l = 0
+		for _, e := range m.Delegated {
+			l += sovGovernance(uint64(e))
+		}
+		n += 1 + sovGovernance(uint64(l)) + l
+	}
+	return n
+}
+
+func (m *DelegatedSCVoteInfo) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	{
+		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
+		l = __caster.Size(m.TotalPower)
+		n += 1 + l + sovGovernance(uint64(l))
+	}
+	{
+		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
+		l = __caster.Size(m.UsedPower)
+		n += 1 + l + sovGovernance(uint64(l))
 	}
 	return n
 }
@@ -1102,6 +1350,7 @@ func (this *GeneralProposal) String() string {
 		`Passed:` + fmt.Sprintf("%v", this.Passed) + `,`,
 		`Closed:` + fmt.Sprintf("%v", this.Closed) + `,`,
 		`IssuerAddress:` + fmt.Sprintf("%v", this.IssuerAddress) + `,`,
+		`ProposalCost:` + fmt.Sprintf("%v", this.ProposalCost) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -1129,6 +1378,7 @@ func (this *GovernanceConfigV2) String() string {
 		`MinPassThreshold:` + fmt.Sprintf("%v", this.MinPassThreshold) + `,`,
 		`MinVetoThreshold:` + fmt.Sprintf("%v", this.MinVetoThreshold) + `,`,
 		`ProposalFee:` + fmt.Sprintf("%v", this.ProposalFee) + `,`,
+		`LastProposalNonce:` + fmt.Sprintf("%v", this.LastProposalNonce) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -1138,7 +1388,19 @@ func (this *OngoingVotedList) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&OngoingVotedList{`,
-		`ProposalNonces:` + fmt.Sprintf("%v", this.ProposalNonces) + `,`,
+		`Direct:` + fmt.Sprintf("%v", this.Direct) + `,`,
+		`Delegated:` + fmt.Sprintf("%v", this.Delegated) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *DelegatedSCVoteInfo) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&DelegatedSCVoteInfo{`,
+		`TotalPower:` + fmt.Sprintf("%v", this.TotalPower) + `,`,
+		`UsedPower:` + fmt.Sprintf("%v", this.UsedPower) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -1495,6 +1757,44 @@ func (m *GeneralProposal) Unmarshal(dAtA []byte) error {
 			m.IssuerAddress = append(m.IssuerAddress[:0], dAtA[iNdEx:postIndex]...)
 			if m.IssuerAddress == nil {
 				m.IssuerAddress = []byte{}
+			}
+			iNdEx = postIndex
+		case 12:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ProposalCost", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGovernance
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			{
+				__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
+				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				} else {
+					m.ProposalCost = tmp
+				}
 			}
 			iNdEx = postIndex
 		default:
@@ -1869,6 +2169,25 @@ func (m *GovernanceConfigV2) Unmarshal(dAtA []byte) error {
 				}
 			}
 			iNdEx = postIndex
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LastProposalNonce", wireType)
+			}
+			m.LastProposalNonce = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGovernance
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.LastProposalNonce |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := skipGovernance(dAtA[iNdEx:])
@@ -1939,7 +2258,7 @@ func (m *OngoingVotedList) Unmarshal(dAtA []byte) error {
 						break
 					}
 				}
-				m.ProposalNonces = append(m.ProposalNonces, v)
+				m.Direct = append(m.Direct, v)
 			} else if wireType == 2 {
 				var packedLen int
 				for shift := uint(0); ; shift += 7 {
@@ -1974,8 +2293,8 @@ func (m *OngoingVotedList) Unmarshal(dAtA []byte) error {
 					}
 				}
 				elementCount = count
-				if elementCount != 0 && len(m.ProposalNonces) == 0 {
-					m.ProposalNonces = make([]uint64, 0, elementCount)
+				if elementCount != 0 && len(m.Direct) == 0 {
+					m.Direct = make([]uint64, 0, elementCount)
 				}
 				for iNdEx < postIndex {
 					var v uint64
@@ -1993,11 +2312,216 @@ func (m *OngoingVotedList) Unmarshal(dAtA []byte) error {
 							break
 						}
 					}
-					m.ProposalNonces = append(m.ProposalNonces, v)
+					m.Direct = append(m.Direct, v)
 				}
 			} else {
-				return fmt.Errorf("proto: wrong wireType = %d for field ProposalNonces", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Direct", wireType)
 			}
+		case 2:
+			if wireType == 0 {
+				var v uint64
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowGovernance
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					v |= uint64(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				m.Delegated = append(m.Delegated, v)
+			} else if wireType == 2 {
+				var packedLen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowGovernance
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					packedLen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if packedLen < 0 {
+					return ErrInvalidLengthGovernance
+				}
+				postIndex := iNdEx + packedLen
+				if postIndex < 0 {
+					return ErrInvalidLengthGovernance
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				var elementCount int
+				var count int
+				for _, integer := range dAtA[iNdEx:postIndex] {
+					if integer < 128 {
+						count++
+					}
+				}
+				elementCount = count
+				if elementCount != 0 && len(m.Delegated) == 0 {
+					m.Delegated = make([]uint64, 0, elementCount)
+				}
+				for iNdEx < postIndex {
+					var v uint64
+					for shift := uint(0); ; shift += 7 {
+						if shift >= 64 {
+							return ErrIntOverflowGovernance
+						}
+						if iNdEx >= l {
+							return io.ErrUnexpectedEOF
+						}
+						b := dAtA[iNdEx]
+						iNdEx++
+						v |= uint64(b&0x7F) << shift
+						if b < 0x80 {
+							break
+						}
+					}
+					m.Delegated = append(m.Delegated, v)
+				}
+			} else {
+				return fmt.Errorf("proto: wrong wireType = %d for field Delegated", wireType)
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipGovernance(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *DelegatedSCVoteInfo) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowGovernance
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DelegatedSCVoteInfo: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DelegatedSCVoteInfo: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TotalPower", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGovernance
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			{
+				__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
+				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				} else {
+					m.TotalPower = tmp
+				}
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UsedPower", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGovernance
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			{
+				__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
+				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				} else {
+					m.UsedPower = tmp
+				}
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipGovernance(dAtA[iNdEx:])
