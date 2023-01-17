@@ -1,6 +1,6 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
+import "github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 
 // NodesListSplitterStub -
 type NodesListSplitterStub struct {

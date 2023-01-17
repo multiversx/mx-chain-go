@@ -7,14 +7,14 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	vmData "github.com/ElrondNetwork/elrond-go-core/data/vm"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/process"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/ElrondNetwork/elrond-vm-common/parsers"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	vmData "github.com/multiversx/mx-chain-core-go/data/vm"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/process"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 )
 
 var _ process.SCQueryService = (*SCQueryService)(nil)
@@ -28,7 +28,7 @@ type SCQueryService struct {
 	blockChain               data.ChainHandler
 	numQueries               int
 	gasForQuery              uint64
-	arwenChangeLocker        common.Locker
+	wasmVMChangeLocker       common.Locker
 	bootstrapper             process.Bootstrapper
 	allowExternalQueriesChan chan struct{}
 }
@@ -39,7 +39,7 @@ type ArgsNewSCQueryService struct {
 	EconomicsFee             process.FeeHandler
 	BlockChainHook           process.BlockChainHookHandler
 	BlockChain               data.ChainHandler
-	ArwenChangeLocker        common.Locker
+	WasmVMChangeLocker       common.Locker
 	Bootstrapper             process.Bootstrapper
 	AllowExternalQueriesChan chan struct{}
 	MaxGasLimitPerQuery      uint64
@@ -61,7 +61,7 @@ func NewSCQueryService(
 	if check.IfNil(args.BlockChain) {
 		return nil, process.ErrNilBlockChain
 	}
-	if check.IfNilReflect(args.ArwenChangeLocker) {
+	if check.IfNilReflect(args.WasmVMChangeLocker) {
 		return nil, process.ErrNilLocker
 	}
 	if check.IfNil(args.Bootstrapper) {
@@ -80,7 +80,7 @@ func NewSCQueryService(
 		economicsFee:             args.EconomicsFee,
 		blockChain:               args.BlockChain,
 		blockChainHook:           args.BlockChainHook,
-		arwenChangeLocker:        args.ArwenChangeLocker,
+		wasmVMChangeLocker:       args.WasmVMChangeLocker,
 		bootstrapper:             args.Bootstrapper,
 		gasForQuery:              gasForQuery,
 		allowExternalQueriesChan: args.AllowExternalQueriesChan,
@@ -133,17 +133,17 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 
 	service.blockChainHook.SetCurrentHeader(service.blockChain.GetCurrentBlockHeader())
 
-	service.arwenChangeLocker.RLock()
+	service.wasmVMChangeLocker.RLock()
 	vm, err := findVMByScAddress(service.vmContainer, query.ScAddress)
 	if err != nil {
-		service.arwenChangeLocker.RUnlock()
+		service.wasmVMChangeLocker.RUnlock()
 		return nil, err
 	}
 
 	query = prepareScQuery(query)
 	vmInput := service.createVMCallInput(query, gasPrice)
 	vmOutput, err := vm.RunSmartContractCall(vmInput)
-	service.arwenChangeLocker.RUnlock()
+	service.wasmVMChangeLocker.RUnlock()
 	if err != nil {
 		return nil, err
 	}

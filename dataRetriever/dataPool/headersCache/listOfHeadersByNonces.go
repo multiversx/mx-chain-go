@@ -4,7 +4,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/multiversx/mx-chain-core-go/data"
 )
 
 type listOfHeadersByNonces map[uint64]timestampedListOfHeaders

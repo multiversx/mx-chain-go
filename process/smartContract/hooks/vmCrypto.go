@@ -1,8 +1,8 @@
 package hooks
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/hashing/keccak"
-	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
+	"github.com/multiversx/mx-chain-core-go/hashing/keccak"
+	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
 	"golang.org/x/crypto/ripemd160" //nolint TODO:deprecated
 )
 
