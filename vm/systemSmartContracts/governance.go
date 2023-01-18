@@ -492,6 +492,7 @@ func addNewNonce(nonceList []uint64, newNonce uint64) ([]uint64, error) {
 		}
 	}
 
+	nonceList = append(nonceList, newNonce)
 	return nonceList, nil
 }
 
@@ -672,9 +673,6 @@ func (g *governanceContract) computeVotingPowerFromTotalStake(address []byte) (*
 	if err != nil {
 		return nil, err
 	}
-	if totalStake == nil {
-		totalStake = big.NewInt(0)
-	}
 
 	dContractList, err := getDelegationContractList(g.eei, g.marshalizer, g.delegationMgrSCAddress)
 	if err != nil {
@@ -734,15 +732,12 @@ func (g *governanceContract) computeEndResults(proposal *GeneralProposal) error 
 }
 
 func (g *governanceContract) getActiveFundForDelegator(delegationAddress []byte, address []byte) (*big.Int, error) {
-	dData := &DelegatorData{
-		UnClaimedRewards:      big.NewInt(0),
-		TotalCumulatedRewards: big.NewInt(0),
-	}
 	marshaledData := g.eei.GetStorageFromAddress(delegationAddress, address)
 	if len(marshaledData) == 0 {
 		return big.NewInt(0), nil
 	}
 
+	dData := &DelegatorData{}
 	err := g.marshalizer.Unmarshal(dData, marshaledData)
 	if err != nil {
 		return nil, err
