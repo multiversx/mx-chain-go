@@ -4,7 +4,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 	"time"
@@ -43,8 +42,8 @@ func (sctp *sovereignChainTransactions) ProcessBlockTransactions(
 
 // CreateAndProcessMiniBlocks creates miniBlocks from selected transactions
 func (sctp *sovereignChainTransactions) CreateAndProcessMiniBlocks(haveTime func() bool, randomness []byte) (block.MiniBlockSlice, error) {
-	//TODO: Replace this value with the real one
-	gasBandwidth := integrationTests.MaxGasLimitPerBlock
+	//TODO: Check if this value of 2x is ok, as we have here normal + scheduled txs
+	gasBandwidth := sctp.economicsFee.MaxGasLimitPerBlock(sctp.shardCoordinator.SelfId()) * 2.0
 
 	startTime := time.Now()
 
