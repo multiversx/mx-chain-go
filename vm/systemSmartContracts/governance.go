@@ -137,8 +137,8 @@ func (g *governanceContract) Execute(args *vmcommon.ContractCallInput) vmcommon.
 		return g.changeConfig(args)
 	case "closeProposal":
 		return g.closeProposal(args)
-	case "getValidatorVotingPower":
-		return g.getValidatorVotingPower(args)
+	case "getVotingPower":
+		return g.getVotingPower(args)
 	}
 
 	g.eei.AddReturnMessage("invalid method to call")
@@ -584,9 +584,8 @@ func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmc
 	return vmcommon.Ok
 }
 
-// getValidatorVotingPower returns the total voting power for a validator. Un-staked nodes are not
-//  taken into consideration
-func (g *governanceContract) getValidatorVotingPower(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+// getVotingPower returns the total voting power
+func (g *governanceContract) getVotingPower(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if args.CallValue.Cmp(zero) != 0 {
 		g.eei.AddReturnMessage(vm.TransactionValueMustBeZero)
 		return vmcommon.UserError
@@ -597,16 +596,16 @@ func (g *governanceContract) getValidatorVotingPower(args *vmcommon.ContractCall
 		return vmcommon.OutOfGas
 	}
 	if len(args.Arguments) != 1 {
-		g.eei.AddReturnMessage("function accepts only one argument, the validator address")
+		g.eei.AddReturnMessage("function accepts only one argument")
 		return vmcommon.FunctionWrongSignature
 	}
 	validatorAddress := args.Arguments[0]
 	if len(validatorAddress) != len(args.CallerAddr) {
-		g.eei.AddReturnMessage("invalid argument - validator address")
+		g.eei.AddReturnMessage("invalid address")
 		return vmcommon.UserError
 	}
 
-	votingPower, err := g.computeValidatorVotingPower(validatorAddress)
+	votingPower, err := g.computeVotingPowerFromTotalStake(validatorAddress)
 	if err != nil {
 		g.eei.AddReturnMessage(err.Error())
 		return vmcommon.ExecutionFailed
@@ -667,26 +666,11 @@ func (g *governanceContract) castVoteType(vote string) (VoteValueType, error) {
 	}
 }
 
-// computeValidatorVotingPower returns the total voting power of a validator
-func (g *governanceContract) computeValidatorVotingPower(validatorAddress []byte) (*big.Int, error) {
-	totalStake, err := g.getTotalStake(validatorAddress)
-	if err != nil {
-		return nil, fmt.Errorf("could not return total stake for the provided address, thus cannot compute voting power")
-	}
-
-	votingPower, err := g.computeVotingPower(totalStake)
-	if err != nil {
-		return nil, fmt.Errorf("could not return total stake for the provided address, thus cannot compute voting power")
-	}
-
-	return votingPower, nil
-}
-
 // function iterates over all delegation contracts and verifies balances of the given account and makes a sum of it
 func (g *governanceContract) computeVotingPowerFromTotalStake(address []byte) (*big.Int, error) {
 	totalStake, err := g.getTotalStake(address)
-	if err != nil && err != vm.ErrEmptyStorage {
-		return nil, fmt.Errorf("could not return total stake for the provided address, thus cannot compute voting power")
+	if err != nil {
+		return nil, err
 	}
 	if totalStake == nil {
 		totalStake = big.NewInt(0)
@@ -781,7 +765,7 @@ func (g *governanceContract) getActiveFundForDelegator(delegationAddress []byte,
 func (g *governanceContract) getTotalStake(validatorAddress []byte) (*big.Int, error) {
 	marshaledData := g.eei.GetStorageFromAddress(g.validatorSCAddress, validatorAddress)
 	if len(marshaledData) == 0 {
-		return nil, vm.ErrEmptyStorage
+		return big.NewInt(0), nil
 	}
 
 	validatorData := &ValidatorDataV2{}
