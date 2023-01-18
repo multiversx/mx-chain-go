@@ -20,10 +20,11 @@ const versionFunction = "version"
 
 // ArgDeployProcessor is the argument used to create a deployProcessor instance
 type ArgDeployProcessor struct {
-	Executor       genesis.TxExecutionProcessor
-	PubkeyConv     core.PubkeyConverter
-	BlockchainHook process.BlockChainHookHandler
-	QueryService   external.SCQueryService
+	Executor         genesis.TxExecutionProcessor
+	PubkeyConv       core.PubkeyConverter
+	AddressGenerator genesis.AddressGenerator
+	BlockchainHook   process.BlockChainHookHandler
+	QueryService     external.SCQueryService
 }
 
 type deployProcessor struct {
@@ -40,6 +41,9 @@ func NewDeployProcessor(arg ArgDeployProcessor) (*deployProcessor, error) {
 	if check.IfNil(arg.PubkeyConv) {
 		return nil, genesis.ErrNilPubkeyConverter
 	}
+	if check.IfNil(arg.AddressGenerator) {
+		return nil, genesis.ErrNilAddressGenerator
+	}
 	if check.IfNil(arg.BlockchainHook) {
 		return nil, process.ErrNilBlockChainHook
 	}
@@ -50,6 +54,7 @@ func NewDeployProcessor(arg ArgDeployProcessor) (*deployProcessor, error) {
 	base := &baseDeploy{
 		TxExecutionProcessor: arg.Executor,
 		pubkeyConv:           arg.PubkeyConv,
+		addressGenerator:     arg.AddressGenerator,
 		blockchainHook:       arg.BlockchainHook,
 		emptyAddress:         make([]byte, arg.PubkeyConv.Len()),
 		getScCodeAsHex:       getSCCodeAsHex,

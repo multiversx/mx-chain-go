@@ -15,10 +15,11 @@ import (
 
 type baseDeploy struct {
 	genesis.TxExecutionProcessor
-	pubkeyConv     core.PubkeyConverter
-	blockchainHook process.BlockChainHookHandler
-	emptyAddress   []byte
-	getScCodeAsHex func(filename string) (string, error)
+	pubkeyConv       core.PubkeyConverter
+	addressGenerator genesis.AddressGenerator
+	blockchainHook   process.BlockChainHookHandler
+	emptyAddress     []byte
+	getScCodeAsHex   func(filename string) (string, error)
 }
 
 func (dp *baseDeploy) deployForOneAddress(
@@ -32,7 +33,7 @@ func (dp *baseDeploy) deployForOneAddress(
 		return nil, err
 	}
 
-	scResultingAddressBytes, err := dp.blockchainHook.NewAddress(
+	scResultingAddressBytes, err := dp.addressGenerator.NewAddress(
 		ownerAddress,
 		nonce,
 		sc.VmTypeBytes(),

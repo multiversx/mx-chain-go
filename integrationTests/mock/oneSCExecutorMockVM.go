@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -38,20 +39,22 @@ var variableA = []byte("a")
 // }
 //-------------------------------------
 type OneSCExecutorMockVM struct {
-	blockchainHook  vmcommon.BlockchainHook
-	hasher          hashing.Hasher
-	GasForOperation uint64
+	blockchainHook   vmcommon.BlockchainHook
+	addressGenerator genesis.AddressGenerator
+	hasher           hashing.Hasher
+	GasForOperation  uint64
 }
 
 // NewOneSCExecutorMockVM -
-func NewOneSCExecutorMockVM(blockchainHook vmcommon.BlockchainHook, hasher hashing.Hasher) (*OneSCExecutorMockVM, error) {
+func NewOneSCExecutorMockVM(blockchainHook vmcommon.BlockchainHook, addressGenerator genesis.AddressGenerator, hasher hashing.Hasher) (*OneSCExecutorMockVM, error) {
 	if blockchainHook == nil || hasher == nil {
 		return nil, errNilValue
 	}
 
 	vm := &OneSCExecutorMockVM{
-		blockchainHook: blockchainHook,
-		hasher:         hasher,
+		blockchainHook:   blockchainHook,
+		addressGenerator: addressGenerator,
+		hasher:           hasher,
 	}
 
 	return vm, nil
@@ -84,7 +87,7 @@ func (vm *OneSCExecutorMockVM) RunSmartContractCreate(input *vmcommon.ContractCr
 		return nil, err
 	}
 
-	newSCAddr, err := vm.blockchainHook.NewAddress(input.CallerAddr, senderACcount.GetNonce(), factory.InternalTestingVM)
+	newSCAddr, err := vm.addressGenerator.NewAddress(input.CallerAddr, senderACcount.GetNonce(), factory.InternalTestingVM)
 	if err != nil {
 		return nil, err
 	}

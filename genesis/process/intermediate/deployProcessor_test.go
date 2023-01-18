@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	coreMock "github.com/ElrondNetwork/elrond-go-core/core/mock"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/data"
 	"github.com/ElrondNetwork/elrond-go/genesis/mock"
@@ -19,10 +20,11 @@ import (
 
 func createMockDeployArg() ArgDeployProcessor {
 	return ArgDeployProcessor{
-		Executor:       &mock.TxExecutionProcessorStub{},
-		PubkeyConv:     mock.NewPubkeyConverterMock(32),
-		BlockchainHook: &testscommon.BlockChainHookStub{},
-		QueryService:   &mock.QueryServiceStub{},
+		Executor:         &mock.TxExecutionProcessorStub{},
+		PubkeyConv:       mock.NewPubkeyConverterMock(32),
+		AddressGenerator: &coreMock.AddressGeneratorStub{},
+		BlockchainHook:   &testscommon.BlockChainHookStub{},
+		QueryService:     &mock.QueryServiceStub{},
 	}
 }
 
@@ -124,7 +126,7 @@ func TestDeployProcessor_DeployNewAddressFailsShouldErr(t *testing.T) {
 
 	expectedErr := fmt.Errorf("expected error")
 	arg := createMockDeployArg()
-	arg.BlockchainHook = &testscommon.BlockChainHookStub{
+	arg.AddressGenerator = &testscommon.BlockChainHookStub{
 		NewAddressCalled: func(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error) {
 			return nil, expectedErr
 		},

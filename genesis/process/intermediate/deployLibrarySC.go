@@ -17,6 +17,7 @@ type ArgDeployLibrarySC struct {
 	Executor         genesis.TxExecutionProcessor
 	PubkeyConv       core.PubkeyConverter
 	BlockchainHook   process.BlockChainHookHandler
+	AddressGenerator genesis.AddressGenerator
 	ShardCoordinator sharding.Coordinator
 }
 
@@ -35,6 +36,9 @@ func NewDeployLibrarySC(arg ArgDeployLibrarySC) (*deployLibrarySC, error) {
 	if check.IfNil(arg.PubkeyConv) {
 		return nil, genesis.ErrNilPubkeyConverter
 	}
+	if check.IfNil(arg.AddressGenerator) {
+		return nil, genesis.ErrNilAddressGenerator
+	}
 	if check.IfNil(arg.BlockchainHook) {
 		return nil, process.ErrNilBlockChainHook
 	}
@@ -45,6 +49,7 @@ func NewDeployLibrarySC(arg ArgDeployLibrarySC) (*deployLibrarySC, error) {
 	base := &baseDeploy{
 		TxExecutionProcessor: arg.Executor,
 		pubkeyConv:           arg.PubkeyConv,
+		addressGenerator:     arg.AddressGenerator,
 		blockchainHook:       arg.BlockchainHook,
 		emptyAddress:         make([]byte, arg.PubkeyConv.Len()),
 		getScCodeAsHex:       getSCCodeAsHex,

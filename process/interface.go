@@ -495,7 +495,6 @@ type BlockChainHookHandler interface {
 	CurrentTimeStamp() uint64
 	CurrentRandomSeed() []byte
 	CurrentEpoch() uint32
-	NewAddress(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error)
 	ProcessBuiltInFunction(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
 	SaveNFTMetaDataToSystemAccount(tx data.TransactionHandler) error
 	GetShardOfAddress(address []byte) uint32
