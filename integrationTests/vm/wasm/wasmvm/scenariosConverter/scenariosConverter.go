@@ -11,8 +11,8 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	mge "github.com/multiversx/mx-chain-vm-v1_4-go/mandos-go/elrondgo-exporter"
-	mgutil "github.com/multiversx/mx-chain-vm-v1_4-go/mandos-go/util"
+	mge "github.com/multiversx/mx-chain-vm-v1_4-go/scenarios/elrondgo-exporter"
+	mgutil "github.com/multiversx/mx-chain-vm-v1_4-go/scenarios/util"
 )
 
 var errReturnCodeNotOk = errors.New("returnCode is not 0(Ok)")
