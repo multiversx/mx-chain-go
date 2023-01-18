@@ -675,6 +675,9 @@ func TestEnableEpochConfig(t *testing.T) {
     # WipeSingleNFTLiquidityDecreaseEnableEpoch represents the epoch when the system account liquidity is decreased for wipeSingleNFT as well
     WipeSingleNFTLiquidityDecreaseEnableEpoch = 60
 
+    # AlwaysSaveTokenMetaDataEnableEpoch represents the epoch when the token metadata is always saved
+    AlwaysSaveTokenMetaDataEnableEpoch = 61
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -767,6 +770,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			SetSenderInEeiOutputTransferEnableEpoch:     58,
 			MaxBlockchainHookCountersEnableEpoch:        59,
 			WipeSingleNFTLiquidityDecreaseEnableEpoch:   60,
+			AlwaysSaveTokenMetaDataEnableEpoch:          61,
 			BLSMultiSignerEnableEpoch: []MultiSignerConfig{
 				{
 					EnableEpoch: 0,
