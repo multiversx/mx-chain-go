@@ -323,7 +323,7 @@ func (stp *stakingToPeer) updatePeerState(
 	}
 
 	newNodesList := common.NewList
-	if stp.enableEpochsHandler.IsStakingV4Enabled() {
+	if stp.enableEpochsHandler.IsStakingV4Started() {
 		newNodesList = common.AuctionList
 	}
 

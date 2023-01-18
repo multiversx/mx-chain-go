@@ -235,7 +235,7 @@ func (tcm *TransactionCoordinatorMock) GetAllIntermediateTxs() map[block.Type]ma
 // AddTxsFromMiniBlocks -
 func (tcm *TransactionCoordinatorMock) AddTxsFromMiniBlocks(miniBlocks block.MiniBlockSlice) {
 	if tcm.AddTxsFromMiniBlocksCalled == nil {
-		tcm.miniBlocks = miniBlocks
+		tcm.miniBlocks = append(tcm.miniBlocks, miniBlocks...)
 		return
 	}
 
