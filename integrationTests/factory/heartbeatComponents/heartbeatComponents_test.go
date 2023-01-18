@@ -68,6 +68,8 @@ func TestHeartbeatComponents_Close_ShouldWork(t *testing.T) {
 		managedCoreComponents.NodeTypeProvider(),
 		managedCoreComponents.EnableEpochsHandler(),
 		managedDataComponents.Datapool().CurrentEpochValidatorInfo(),
+		managedBootstrapComponents.NodesCoordinatorRegistryFactory(),
+		configs.EpochConfig.EnableEpochs.StakingV4EnableEpoch,
 	)
 	require.Nil(t, err)
 	managedStatusComponents, err := nr.CreateManagedStatusComponents(

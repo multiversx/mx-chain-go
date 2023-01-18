@@ -131,7 +131,7 @@ func TestBootstrapComponentsFactory_CreateEpochStartBootstrapCreationFail(t *tes
 	args.CoreComponents = coreComponents
 
 	bcf, err := bootstrap.NewBootstrapComponentsFactory(args)
-	_ = err
+	require.Nil(t, err)
 	coreComponents.RatingHandler = nil
 	bc, err := bcf.Create()
 
