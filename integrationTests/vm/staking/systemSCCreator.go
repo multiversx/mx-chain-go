@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/metachain"
@@ -81,15 +82,13 @@ func createSystemSCProcessor(
 }
 
 func createStakingDataProvider(
-	epochNotifier process.EpochNotifier,
+	enableEpochsHandler common.EnableEpochsHandler,
 	systemVM vmcommon.VMExecutionHandler,
 ) epochStart.StakingDataProvider {
 	argsStakingDataProvider := metachain.StakingDataProviderArgs{
-		EpochNotifier:            epochNotifier,
-		SystemVM:                 systemVM,
-		MinNodePrice:             strconv.Itoa(nodePrice),
-		StakingV4InitEnableEpoch: stakingV4InitEpoch,
-		StakingV4EnableEpoch:     stakingV4EnableEpoch,
+		EnableEpochsHandler: enableEpochsHandler,
+		SystemVM:            systemVM,
+		MinNodePrice:        strconv.Itoa(nodePrice),
 	}
 	stakingSCProvider, _ := metachain.NewStakingDataProvider(argsStakingDataProvider)
 

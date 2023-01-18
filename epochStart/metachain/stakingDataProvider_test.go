@@ -17,7 +17,6 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/vm"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
@@ -29,11 +28,9 @@ const stakingV4EnableEpoch = 445
 
 func createStakingDataProviderArgs() StakingDataProviderArgs {
 	return StakingDataProviderArgs{
-		EpochNotifier:            &epochNotifier.EpochNotifierStub{},
-		SystemVM:                 &mock.VMExecutionHandlerStub{},
-		MinNodePrice:             "2500",
-		StakingV4InitEnableEpoch: stakingV4EInitEnableEpoch,
-		StakingV4EnableEpoch:     stakingV4EnableEpoch,
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		SystemVM:            &mock.VMExecutionHandlerStub{},
+		MinNodePrice:        "2500",
 	}
 }
 
@@ -50,10 +47,10 @@ func TestNewStakingDataProvider_NilInputPointersShouldErr(t *testing.T) {
 
 	t.Run("nil epoch notifier", func(t *testing.T) {
 		args := createStakingDataProviderArgs()
-		args.EpochNotifier = nil
+		args.EnableEpochsHandler = nil
 		sdp, err := NewStakingDataProvider(args)
 		assert.True(t, check.IfNil(sdp))
-		assert.Equal(t, epochStart.ErrNilEpochStartNotifier, err)
+		assert.Equal(t, vm.ErrNilEnableEpochsHandler, err)
 	})
 
 	t.Run("should work", func(t *testing.T) {
@@ -274,7 +271,7 @@ func TestStakingDataProvider_ComputeUnQualifiedNodesWithStakingV4ReceivedNewList
 	_ = valInfo.Add(v2)
 
 	sdp := createStakingDataProviderAndUpdateCache(t, valInfo, big.NewInt(0))
-	sdp.EpochConfirmed(stakingV4EnableEpoch, 0)
+	sdp.enableEpochsHandler = &testscommon.EnableEpochsHandlerStub{IsStakingV4FlagEnabledField: true}
 
 	keysToUnStake, ownersWithNotEnoughFunds, err := sdp.ComputeUnQualifiedNodes(valInfo)
 	require.Error(t, err)
@@ -337,7 +334,7 @@ func TestStakingDataProvider_ComputeUnQualifiedNodesWithOwnerNotEnoughFundsWithS
 	_ = valInfo.Add(v1)
 
 	sdp := createStakingDataProviderAndUpdateCache(t, valInfo, big.NewInt(0))
-	sdp.EpochConfirmed(stakingV4EnableEpoch, 0)
+	sdp.enableEpochsHandler = &testscommon.EnableEpochsHandlerStub{IsStakingV4FlagEnabledField: true}
 
 	sdp.cache[owner].blsKeys = append(sdp.cache[owner].blsKeys, []byte("newKey"))
 	sdp.cache[owner].totalStaked = big.NewInt(2500)
@@ -531,7 +528,7 @@ func TestCheckAndFillOwnerValidatorAuctionData(t *testing.T) {
 		t.Parallel()
 		args := createStakingDataProviderArgs()
 		sdp, _ := NewStakingDataProvider(args)
-		sdp.EpochConfirmed(stakingV4EInitEnableEpoch, 0)
+		sdp.enableEpochsHandler = &testscommon.EnableEpochsHandlerStub{IsStakingV4StartedField: true}
 
 		owner := []byte("owner")
 		ownerData := &ownerStats{numStakedNodes: 3, numActiveNodes: 3}
@@ -554,7 +551,7 @@ func TestSelectKeysToUnStake(t *testing.T) {
 		t.Parallel()
 		args := createStakingDataProviderArgs()
 		sdp, _ := NewStakingDataProvider(args)
-		sdp.EpochConfirmed(stakingV4EnableEpoch, 0)
+		sdp.enableEpochsHandler = &testscommon.EnableEpochsHandlerStub{IsStakingV4FlagEnabledField: true}
 
 		sortedKeys := map[string][][]byte{
 			string(common.AuctionList): {[]byte("pk0")},
@@ -568,7 +565,7 @@ func TestSelectKeysToUnStake(t *testing.T) {
 		t.Parallel()
 		args := createStakingDataProviderArgs()
 		sdp, _ := NewStakingDataProvider(args)
-		sdp.EpochConfirmed(stakingV4EnableEpoch, 0)
+		sdp.enableEpochsHandler = &testscommon.EnableEpochsHandlerStub{IsStakingV4FlagEnabledField: true}
 
 		sortedKeys := map[string][][]byte{
 			string(common.AuctionList):  {[]byte("pk0")},
@@ -584,7 +581,7 @@ func TestSelectKeysToUnStake(t *testing.T) {
 		t.Parallel()
 		args := createStakingDataProviderArgs()
 		sdp, _ := NewStakingDataProvider(args)
-		sdp.EpochConfirmed(stakingV4EnableEpoch, 0)
+		sdp.enableEpochsHandler = &testscommon.EnableEpochsHandlerStub{IsStakingV4FlagEnabledField: true}
 
 		sortedKeys := map[string][][]byte{
 			string(common.AuctionList):  {[]byte("pk0")},
@@ -600,7 +597,7 @@ func TestSelectKeysToUnStake(t *testing.T) {
 		t.Parallel()
 		args := createStakingDataProviderArgs()
 		sdp, _ := NewStakingDataProvider(args)
-		sdp.EpochConfirmed(stakingV4EnableEpoch, 0)
+		sdp.enableEpochsHandler = &testscommon.EnableEpochsHandlerStub{IsStakingV4FlagEnabledField: true}
 
 		sortedKeys := map[string][][]byte{
 			string(common.AuctionList):  {[]byte("pk0")},

@@ -862,10 +862,9 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 	systemVM, _ := vmContainer.Get(vmFactory.SystemVirtualMachine)
 
 	argsStakingDataProvider := StakingDataProviderArgs{
-		EpochNotifier:        en,
-		SystemVM:             systemVM,
-		MinNodePrice:         "1000",
-		StakingV4EnableEpoch: stakingV4EnableEpoch,
+		EnableEpochsHandler: enableEpochsHandler,
+		SystemVM:            systemVM,
+		MinNodePrice:        "1000",
 	}
 	stakingSCProvider, _ := NewStakingDataProvider(argsStakingDataProvider)
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(3, core.MetachainShardId)

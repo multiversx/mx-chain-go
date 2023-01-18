@@ -125,7 +125,7 @@ func newTestMetaProcessor(
 		stateComponents.PeerAccounts(),
 	)
 	stakingDataProvider := createStakingDataProvider(
-		coreComponents.EpochNotifier(),
+		coreComponents.EnableEpochsHandler(),
 		systemVM,
 	)
 	scp := createSystemSCProcessor(
