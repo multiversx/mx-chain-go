@@ -1,7 +1,7 @@
 //go:build !race
 // +build !race
 
-// TODO remove build condition above to allow -race -short, after Arwen fix
+// TODO remove build condition above to allow -race -short, after Wasm VM fix
 
 package txsFee
 
@@ -12,23 +12,23 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common/forking"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/testscommon/integrationtests"
-	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
-	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	arwenConfig "github.com/ElrondNetwork/wasm-vm-v1_4/config"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-go/common/forking"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/integrationTests/mock"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/testscommon/integrationtests"
+	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
+	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	wasmConfig "github.com/multiversx/mx-chain-vm-v1_4-go/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -49,19 +49,20 @@ func prepareTestContextForEpoch836(tb testing.TB) (*vm.VMTestContext, []byte) {
 		GasScheduleConfig: config.GasScheduleConfig{
 			GasScheduleByEpochs: []config.GasScheduleByEpochs{cfg},
 		},
-		ConfigDir:         gasScheduleDir,
-		EpochNotifier:     forking.NewGenericEpochNotifier(),
-		ArwenChangeLocker: &sync.RWMutex{},
+		ConfigDir:          gasScheduleDir,
+		EpochNotifier:      forking.NewGenericEpochNotifier(),
+		WasmVMChangeLocker: &sync.RWMutex{},
 	}
 	gasScheduleNotifier, err := forking.NewGasScheduleNotifier(argsGasScheduleNotifier)
 	require.Nil(tb, err)
 
 	testContext, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGas(
 		config.EnableEpochs{
-			GovernanceEnableEpoch:                           unreachableEpoch,
-			WaitingListFixEnableEpoch:                       unreachableEpoch,
-			SetSenderInEeiOutputTransferEnableEpoch:         unreachableEpoch,
-			RefactorPeersMiniBlocksEnableEpoch:              unreachableEpoch,
+			GovernanceEnableEpoch:                   		 unreachableEpoch,
+			WaitingListFixEnableEpoch:               		 unreachableEpoch,
+			SetSenderInEeiOutputTransferEnableEpoch: 		 unreachableEpoch,
+			RefactorPeersMiniBlocksEnableEpoch:      		 unreachableEpoch,
+			MaxBlockchainHookCountersEnableEpoch:    		 unreachableEpoch,
 			DynamicGasCostForDataTrieStorageLoadEnableEpoch: unreachableEpoch,
 		},
 		mock.NewMultiShardsCoordinatorMock(2),
@@ -74,11 +75,11 @@ func prepareTestContextForEpoch836(tb testing.TB) (*vm.VMTestContext, []byte) {
 	scAddress, _ := utils.DoColdDeploy(
 		tb,
 		testContext,
-		"../arwen/testdata/distributeRewards/code.wasm",
+		"../wasm/testdata/distributeRewards/code.wasm",
 		senderBalance,
 		"0100",
 	)
-	utils.OverwriteAccountStorageWithHexFileContent(tb, testContext, scAddress, "../arwen/testdata/distributeRewards/data.hex")
+	utils.OverwriteAccountStorageWithHexFileContent(tb, testContext, scAddress, "../wasm/testdata/distributeRewards/data.hex")
 	utils.CleanAccumulatedIntermediateTransactions(tb, testContext)
 
 	db.ClearCache()
@@ -93,7 +94,7 @@ func TestScCallShouldWork(t *testing.T) {
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, _ := utils.DoDeploy(t, testContext, "../arwen/testdata/counter/output/counter.wasm")
+	scAddress, _ := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm")
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	sndAddr := []byte("12345678901234567890123456789112")
@@ -166,7 +167,7 @@ func TestScCallInvalidMethodToCallShouldConsumeGas(t *testing.T) {
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, _ := utils.DoDeploy(t, testContext, "../arwen/testdata/counter/output/counter.wasm")
+	scAddress, _ := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm")
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	sndAddr := []byte("12345678901234567890123456789112")
@@ -200,7 +201,7 @@ func TestScCallInsufficientGasLimitShouldNotConsumeGas(t *testing.T) {
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, _ := utils.DoDeploy(t, testContext, "../arwen/testdata/counter/output/counter.wasm")
+	scAddress, _ := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm")
 
 	sndAddr := []byte("12345678901234567890123456789112")
 	senderBalance := big.NewInt(100000)
@@ -235,7 +236,7 @@ func TestScCallOutOfGasShouldConsumeGas(t *testing.T) {
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, _ := utils.DoDeploy(t, testContext, "../arwen/testdata/counter/output/counter.wasm")
+	scAddress, _ := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm")
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	sndAddr := []byte("12345678901234567890123456789112")
@@ -271,7 +272,7 @@ func TestScCallAndGasChangeShouldWork(t *testing.T) {
 
 	mockGasSchedule := testContext.GasSchedule.(*mock.GasScheduleNotifierMock)
 
-	scAddress, _ := utils.DoDeploy(t, testContext, "../arwen/testdata/counter/output/counter.wasm")
+	scAddress, _ := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm")
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	sndAddr := []byte("12345678901234567890123456789112")
@@ -292,8 +293,8 @@ func TestScCallAndGasChangeShouldWork(t *testing.T) {
 		require.Nil(t, errCommit)
 	}
 
-	newGasSchedule := arwenConfig.MakeGasMapForTests()
-	newGasSchedule["WASMOpcodeCost"] = arwenConfig.FillGasMap_WASMOpcodeValues(2)
+	newGasSchedule := wasmConfig.MakeGasMapForTests()
+	newGasSchedule["WASMOpcodeCost"] = wasmConfig.FillGasMapWASMOpcodeValues(2)
 	mockGasSchedule.ChangeGasSchedule(newGasSchedule)
 
 	for idx := uint64(0); idx < numIterations; idx++ {
@@ -348,7 +349,7 @@ func TestESDTScCallAndGasChangeShouldWork(t *testing.T) {
 	}
 
 	mockGasSchedule := testContext.GasSchedule.(*mock.GasScheduleNotifierMock)
-	testGasSchedule := arwenConfig.MakeGasMapForTests()
+	testGasSchedule := wasmConfig.MakeGasMapForTests()
 	newGasSchedule := defaults.FillGasMapInternal(testGasSchedule, 1)
 	newGasSchedule["BuiltInCost"][core.BuiltInFunctionESDTTransfer] = 2
 	newGasSchedule["ElrondAPICost"]["TransferValue"] = 2
@@ -410,12 +411,12 @@ func prepareTestContextForEpoch460(tb testing.TB) (*vm.VMTestContext, []byte) {
 	scAddress, _ := utils.DoDeployWithCustomParams(
 		tb,
 		testContext,
-		"../arwen/testdata/buyNFTCall/code.wasm",
+		"../wasm/testdata/buyNFTCall/code.wasm",
 		senderBalance,
 		gasLimit,
 		params,
 	)
-	utils.OverwriteAccountStorageWithHexFileContent(tb, testContext, scAddress, "../arwen/testdata/buyNFTCall/data.hex")
+	utils.OverwriteAccountStorageWithHexFileContent(tb, testContext, scAddress, "../wasm/testdata/buyNFTCall/data.hex")
 	utils.CleanAccumulatedIntermediateTransactions(tb, testContext)
 
 	return testContext, scAddress

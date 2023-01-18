@@ -4,12 +4,12 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/batch"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
-	dataRetrieverMocks "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/batch"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
+	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
+	dataRetrieverStub "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -85,7 +85,7 @@ func testRequestDataFromHashArray(t *testing.T, requesterType requestHandlerType
 		providedHashes := [][]byte{[]byte("hash 1"), []byte("hash 2"), []byte("hash 3")}
 		args := createMockArgBaseRequester()
 		wasCalled := false
-		args.RequestSender = &dataRetrieverMocks.TopicRequestSenderStub{
+		args.RequestSender = &dataRetrieverStub.TopicRequestSenderStub{
 			SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData, originalHashes [][]byte) error {
 				wasCalled = true
 				b := &batch.Batch{
@@ -116,7 +116,7 @@ func testRequestDataFromReferenceAndChunk(t *testing.T, requesterType requestHan
 	providedHashes := [][]byte{providedHash}
 	args := createMockArgBaseRequester()
 	wasCalled := false
-	args.RequestSender = &dataRetrieverMocks.TopicRequestSenderStub{
+	args.RequestSender = &dataRetrieverStub.TopicRequestSenderStub{
 		SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData, originalHashes [][]byte) error {
 			wasCalled = true
 			assert.Equal(t, providedHash, rd.Value)

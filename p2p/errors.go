@@ -3,7 +3,7 @@ package p2p
 import (
 	"errors"
 
-	p2p "github.com/ElrondNetwork/elrond-go-p2p"
+	p2p "github.com/multiversx/mx-chain-p2p-go"
 )
 
 // ErrNilMessage signals that a nil message has been received

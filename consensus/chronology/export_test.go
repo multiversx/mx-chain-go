@@ -3,7 +3,7 @@ package chronology
 import (
 	"context"
 
-	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus"
 )
 
 func (chr *chronology) StartRound() {
