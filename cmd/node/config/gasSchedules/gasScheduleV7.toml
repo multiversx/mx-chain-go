@@ -40,6 +40,7 @@
     UnstakeTokens         = 5000000
     UnbondTokens          = 5000000
     FixWaitingListSize    = 500000000
+    LiquidStakingOps      = 10000000
 
 [BaseOperationCost]
     StorePerByte      = 10000

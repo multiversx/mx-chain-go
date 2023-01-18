@@ -358,32 +358,6 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	startEpochNum := pcf.bootstrapComponents.EpochBootstrapParams().Epoch()
-	if startEpochNum == 0 {
-		err = pcf.indexGenesisBlocks(genesisBlocks, initialTxs, genesisAccounts)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	cacheRefreshDuration := time.Duration(pcf.config.ValidatorStatistics.CacheRefreshIntervalInSec) * time.Second
-	argVSP := peer.ArgValidatorsProvider{
-		NodesCoordinator:                  pcf.nodesCoordinator,
-		StartEpoch:                        startEpochNum,
-		EpochStartEventNotifier:           pcf.coreData.EpochStartNotifierWithConfirm(),
-		CacheRefreshIntervalDurationInSec: cacheRefreshDuration,
-		ValidatorStatistics:               validatorStatisticsProcessor,
-		MaxRating:                         pcf.maxRating,
-		ValidatorPubKeyConverter:          pcf.coreData.ValidatorPubKeyConverter(),
-		AddressPubKeyConverter:            pcf.coreData.AddressPubKeyConverter(),
-		AuctionListSelector:               pcf.auctionListSelectorAPI,
-	}
-
-	validatorsProvider, err := peer.NewValidatorsProvider(argVSP)
-	if err != nil {
-		return nil, err
-	}
-
 	epochStartTrigger, err := pcf.newEpochStartTrigger(requestHandler)
 	if err != nil {
 		return nil, err
@@ -598,6 +572,33 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		processedMiniBlocksTracker,
 		receiptsRepository,
 	)
+	if err != nil {
+		return nil, err
+	}
+
+	startEpochNum := pcf.bootstrapComponents.EpochBootstrapParams().Epoch()
+	if startEpochNum == 0 {
+		err = pcf.indexGenesisBlocks(genesisBlocks, initialTxs, genesisAccounts)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	cacheRefreshDuration := time.Duration(pcf.config.ValidatorStatistics.CacheRefreshIntervalInSec) * time.Second
+	argVSP := peer.ArgValidatorsProvider{
+		NodesCoordinator:                  pcf.nodesCoordinator,
+		StartEpoch:                        startEpochNum,
+		EpochStartEventNotifier:           pcf.coreData.EpochStartNotifierWithConfirm(),
+		CacheRefreshIntervalDurationInSec: cacheRefreshDuration,
+		ValidatorStatistics:               validatorStatisticsProcessor,
+		MaxRating:                         pcf.maxRating,
+		ValidatorPubKeyConverter:          pcf.coreData.ValidatorPubKeyConverter(),
+		AddressPubKeyConverter:            pcf.coreData.AddressPubKeyConverter(),
+		AuctionListSelector:               pcf.auctionListSelectorAPI,
+		StakingDataProvider:               pcf.stakingDataProviderAPI,
+	}
+
+	validatorsProvider, err := peer.NewValidatorsProvider(argVSP)
 	if err != nil {
 		return nil, err
 	}

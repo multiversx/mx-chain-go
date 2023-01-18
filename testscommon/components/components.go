@@ -522,8 +522,9 @@ func GetProcessArgs(
 		ImportStartHandler:     &testscommon.ImportStartHandlerStub{},
 		SystemSCConfig: &config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
-				BaseIssuingCost: "1000",
-				OwnerAddress:    "erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c",
+				DelegationTicker: "DEL",
+				BaseIssuingCost:  "1000",
+				OwnerAddress:     "erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c",
 			},
 			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
 				V1: config.GovernanceSystemSCConfigV1{
@@ -553,6 +554,8 @@ func GetProcessArgs(
 				MaxNumberOfNodesForStake:             10,
 				ActivateBLSPubKeyMessageVerification: false,
 				MinUnstakeTokensValue:                "1",
+				StakeLimitPercentage:                 100,
+				NodeLimitPercentage:                  100,
 			},
 			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
 				MinCreationDeposit:  "100",
@@ -810,7 +813,7 @@ func FillGasMapMetaChainSystemSCsCosts(value uint64) map[string]uint64 {
 	gasMap["GetAllNodeStates"] = value
 	gasMap["ValidatorToDelegation"] = value
 	gasMap["FixWaitingListSize"] = value
-
+	gasMap["LiquidStakingOps"] = value
 	return gasMap
 }
 
