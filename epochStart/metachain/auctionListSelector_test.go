@@ -48,7 +48,7 @@ func createFullAuctionListSelectorArgs(maxNodesChangeConfig []config.MaxNodesCha
 	nodesConfigProvider, _ := notifier.NewNodesConfigProvider(epochNotifier, maxNodesChangeConfig)
 
 	argsSystemSC, _ := createFullArgumentsForSystemSCProcessing(config.EnableEpochs{}, createMemUnit())
-	epochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
+	argsSystemSC.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
 		EpochField: stakingV4EnableEpoch,
 	})
 	argsSystemSC.MaxNodesChangeConfigProvider = nodesConfigProvider

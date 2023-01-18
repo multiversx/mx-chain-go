@@ -187,7 +187,7 @@ func (f *FacadeStub) GetBalance(address string, options api.AccountQueryOptions)
 		return f.GetBalanceCalled(address, options)
 	}
 
-	return nil, nil
+	return nil, api.BlockInfo{}, nil
 }
 
 // GetValueForKey is the mock implementation of a handler's GetValueForKey method
@@ -263,12 +263,12 @@ func (f *FacadeStub) GetAllIssuedESDTs(tokenType string) ([]string, error) {
 }
 
 // GetAccount -
-func (f *FacadeStub) GetAccount(address string) (api.AccountResponse, error) {
-	if f.GetAccountHandler != nil {
-		return f.GetAccountHandler(address)
+func (f *FacadeStub) GetAccount(address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
+	if f.GetAccountCalled != nil {
+		return f.GetAccountCalled(address, options)
 	}
 
-	return api.AccountResponse{}, nil
+	return api.AccountResponse{}, api.BlockInfo{}, nil
 }
 
 // GetAccounts -
