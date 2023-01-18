@@ -123,7 +123,6 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 			IsSwitchJailWaitingFlagEnabledField:    true,
 			IsBelowSignedThresholdFlagEnabledField: true,
 		},
-		StakingV4EnableEpoch: 444,
 	}
 	return arguments
 }
@@ -2698,6 +2697,22 @@ func TestValidatorStatisticsProcessor_SaveNodesCoordinatorUpdatesWithStakingV4(t
 			return mapNodes, nil
 		},
 	}
+	stakingV4EnableEpochCalledCt := 0
+	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+		IsStakingV4EnabledCalled: func() bool {
+			stakingV4EnableEpochCalledCt++
+			switch stakingV4EnableEpochCalledCt {
+			case 1:
+				return false
+			case 2:
+				return true
+			default:
+				require.Fail(t, "should only call this twice")
+			}
+
+			return false
+		},
+	}
 
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 	nodeForcedToRemain, err := validatorStatistics.SaveNodesCoordinatorUpdates(0)
@@ -2708,7 +2723,7 @@ func TestValidatorStatisticsProcessor_SaveNodesCoordinatorUpdatesWithStakingV4(t
 
 	ctSaveAccount.Reset()
 	ctLoadAccount.Reset()
-	validatorStatistics.EpochConfirmed(arguments.StakingV4EnableEpoch, 0)
+
 	nodeForcedToRemain, err = validatorStatistics.SaveNodesCoordinatorUpdates(0)
 	require.Nil(t, err)
 	require.False(t, nodeForcedToRemain)

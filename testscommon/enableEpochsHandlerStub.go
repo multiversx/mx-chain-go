@@ -126,6 +126,7 @@ type EnableEpochsHandlerStub struct {
 	IsStakingQueueEnabledField                                   bool
 	IsLiquidStakingEnabledField                                  bool
 	IsStakingV4StartedField                                      bool
+	IsStakingV4EnabledCalled                                     func() bool
 }
 
 // ResetPenalizedTooMuchGasFlag -
@@ -1027,6 +1028,10 @@ func (stub *EnableEpochsHandlerStub) IsStakingV4InitEnabled() bool {
 func (stub *EnableEpochsHandlerStub) IsStakingV4Enabled() bool {
 	stub.RLock()
 	defer stub.RUnlock()
+
+	if stub.IsStakingV4EnabledCalled != nil {
+		return stub.IsStakingV4EnabledCalled()
+	}
 
 	return stub.IsStakingV4FlagEnabledField
 }

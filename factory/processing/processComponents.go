@@ -738,7 +738,6 @@ func (pcf *processComponentsFactory) newValidatorStatisticsProcessor() (process.
 		RatingEnableEpoch:                    ratingEnabledEpoch,
 		GenesisNonce:                         pcf.data.Blockchain().GetGenesisHeader().GetNonce(),
 		EnableEpochsHandler:                  pcf.coreData.EnableEpochsHandler(),
-		StakingV4EnableEpoch:                 pcf.epochConfig.EnableEpochs.StakingV4EnableEpoch,
 	}
 
 	validatorStatisticsProcessor, err := peer.NewValidatorStatisticsProcessor(arguments)

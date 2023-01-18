@@ -593,7 +593,6 @@ func (tpn *TestProcessorNode) initValidatorStatistics() {
 		NodesSetup:                           tpn.NodesSetup,
 		GenesisNonce:                         tpn.BlockChain.GetGenesisHeader().GetNonce(),
 		EnableEpochsHandler:                  tpn.EnableEpochsHandler,
-		StakingV4EnableEpoch:                 StakingV4Epoch,
 	}
 
 	tpn.ValidatorStatisticsProcessor, _ = peer.NewValidatorStatisticsProcessor(arguments)

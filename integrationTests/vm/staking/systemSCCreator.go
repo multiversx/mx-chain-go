@@ -116,7 +116,6 @@ func createValidatorStatisticsProcessor(
 		MaxComputableRounds:                  1,
 		MaxConsecutiveRoundsOfRatingDecrease: 2000,
 		EnableEpochsHandler:                  coreComponents.EnableEpochsHandler(),
-		StakingV4EnableEpoch:                 stakingV4EnableEpoch,
 	}
 	validatorStatisticsProcessor, _ := peer.NewValidatorStatisticsProcessor(argsValidatorsProcessor)
 	return validatorStatisticsProcessor

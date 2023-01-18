@@ -9,7 +9,6 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
@@ -55,7 +54,6 @@ type ArgValidatorStatisticsProcessor struct {
 	GenesisNonce                         uint64
 	RatingEnableEpoch                    uint32
 	EnableEpochsHandler                  common.EnableEpochsHandler
-	StakingV4EnableEpoch                 uint32
 }
 
 type validatorStatistics struct {
@@ -76,8 +74,6 @@ type validatorStatistics struct {
 	ratingEnableEpoch                    uint32
 	lastFinalizedRootHash                []byte
 	enableEpochsHandler                  common.EnableEpochsHandler
-	flagStakingV4                        atomic.Flag
-	stakingV4EnableEpoch                 uint32
 }
 
 // NewValidatorStatisticsProcessor instantiates a new validatorStatistics structure responsible for keeping account of
@@ -138,7 +134,6 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 		maxConsecutiveRoundsOfRatingDecrease: arguments.MaxConsecutiveRoundsOfRatingDecrease,
 		genesisNonce:                         arguments.GenesisNonce,
 		enableEpochsHandler:                  arguments.EnableEpochsHandler,
-		stakingV4EnableEpoch:                 arguments.StakingV4EnableEpoch,
 	}
 
 	err := vs.saveInitialState(arguments.NodesSetup)
@@ -188,7 +183,7 @@ func (vs *validatorStatistics) saveNodesCoordinatorUpdates(epoch uint32) (bool, 
 	}
 	nodeForcedToRemain = nodeForcedToRemain || tmpNodeForcedToRemain
 
-	if vs.flagStakingV4.IsSet() {
+	if vs.enableEpochsHandler.IsStakingV4Enabled() {
 		nodesMap, err = vs.nodesCoordinator.GetAllShuffledOutValidatorsPublicKeys(epoch)
 		if err != nil {
 			return false, err
@@ -1243,10 +1238,4 @@ func (vs *validatorStatistics) LastFinalizedRootHash() []byte {
 	vs.mutValidatorStatistics.RLock()
 	defer vs.mutValidatorStatistics.RUnlock()
 	return vs.lastFinalizedRootHash
-}
-
-// EpochConfirmed is called whenever a new epoch is confirmed
-func (vs *validatorStatistics) EpochConfirmed(epoch uint32, _ uint64) {
-	vs.flagStakingV4.SetValue(epoch >= vs.stakingV4EnableEpoch)
-	log.Debug("validatorStatistics: staking v4", "enabled", vs.flagStakingV4.IsSet())
 }
