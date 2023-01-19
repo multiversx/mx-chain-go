@@ -556,6 +556,11 @@ func (mock *EnableEpochsHandlerMock) IsWipeSingleNFTLiquidityDecreaseEnabled() b
 	return false
 }
 
+// IsAlwaysSaveTokenMetaDataEnabled -
+func (mock *EnableEpochsHandlerMock) IsAlwaysSaveTokenMetaDataEnabled() bool {
+	return false
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (mock *EnableEpochsHandlerMock) IsInterfaceNil() bool {
 	return mock == nil

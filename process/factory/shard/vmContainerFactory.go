@@ -20,8 +20,8 @@ import (
 	wasmVMHost12 "github.com/multiversx/mx-chain-vm-v1_2-go/arwen/host"
 	wasmvm13 "github.com/multiversx/mx-chain-vm-v1_3-go/arwen"
 	wasmVMHost13 "github.com/multiversx/mx-chain-vm-v1_3-go/arwen/host"
-	wasmvm14 "github.com/multiversx/mx-chain-vm-v1_4-go/arwen"
-	wasmVMHost14 "github.com/multiversx/mx-chain-vm-v1_4-go/arwen/host"
+	wasmvm14 "github.com/multiversx/mx-chain-vm-v1_4-go/vmhost"
+	wasmVMHost14 "github.com/multiversx/mx-chain-vm-v1_4-go/vmhost/host"
 )
 
 var _ process.VirtualMachinesContainerFactory = (*vmContainerFactory)(nil)
@@ -327,7 +327,7 @@ func (vmf *vmContainerFactory) createInProcessWasmVMV14() (vmcommon.VMExecutionH
 		EnableEpochsHandler:                 vmf.enableEpochsHandler,
 		Hasher:                              vmf.hasher,
 	}
-	return wasmVMHost14.NewArwenVM(vmf.blockChainHook, hostParameters) //TODO rename this on other repos
+	return wasmVMHost14.NewVMHost(vmf.blockChainHook, hostParameters)
 }
 
 func (vmf *vmContainerFactory) closePreviousVM(vm vmcommon.VMExecutionHandler) {
