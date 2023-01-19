@@ -804,7 +804,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 						MinPassThreshold: "50",
 						MinVetoThreshold: "50",
 					},
-					FirstWhitelistedAddress: DelegationManagerConfigChangeAddress,
+					ChangeConfigAddress: DelegationManagerConfigChangeAddress,
 				},
 				StakingSystemSCConfig: config.StakingSystemSCConfig{
 					GenesisNodePrice:                     "1000",
@@ -1679,7 +1679,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 					MinPassThreshold: "50",
 					MinVetoThreshold: "50",
 				},
-				FirstWhitelistedAddress: DelegationManagerConfigChangeAddress,
+				ChangeConfigAddress: DelegationManagerConfigChangeAddress,
 			},
 			StakingSystemSCConfig: config.StakingSystemSCConfig{
 				GenesisNodePrice:                     "1000",

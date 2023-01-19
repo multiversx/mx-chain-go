@@ -994,7 +994,7 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 					MinPassThreshold: "50",
 					MinVetoThreshold: "50",
 				},
-				FirstWhitelistedAddress: "3132333435363738393031323334353637383930313233343536373839303234",
+				ChangeConfigAddress: "3132333435363738393031323334353637383930313233343536373839303234",
 			},
 			StakingSystemSCConfig: config.StakingSystemSCConfig{
 				GenesisNodePrice:                     "1000",

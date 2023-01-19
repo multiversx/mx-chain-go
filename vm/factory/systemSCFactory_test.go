@@ -36,13 +36,20 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 				OwnerAddress:    "aaaaaa",
 			},
 			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
+				V1: config.GovernanceSystemSCConfigV1{
+					NumNodes:         3,
+					MinPassThreshold: 1,
+					MinQuorum:        2,
+					MinVetoThreshold: 2,
+					ProposalCost:     "100",
+				},
 				Active: config.GovernanceSystemSCConfigActive{
 					ProposalCost:     "500",
 					MinQuorum:        "50",
 					MinPassThreshold: "50",
 					MinVetoThreshold: "50",
 				},
-				FirstWhitelistedAddress: "3132333435363738393031323334353637383930313233343536373839303234",
+				ChangeConfigAddress: "3132333435363738393031323334353637383930313233343536373839303234",
 			},
 			StakingSystemSCConfig: config.StakingSystemSCConfig{
 				GenesisNodePrice:                     "1000",

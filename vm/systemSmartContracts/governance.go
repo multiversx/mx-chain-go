@@ -36,6 +36,8 @@ type ArgsNewGovernanceContract struct {
 	GovernanceSCAddress    []byte
 	DelegationMgrSCAddress []byte
 	ValidatorSCAddress     []byte
+	ConfigChangeAddress    []byte
+	UnBondPeriodInEpochs   uint32
 	EnableEpochsHandler    common.EnableEpochsHandler
 }
 
@@ -47,9 +49,11 @@ type governanceContract struct {
 	governanceSCAddress    []byte
 	delegationMgrSCAddress []byte
 	validatorSCAddress     []byte
+	changeConfigAddress    []byte
 	marshalizer            marshal.Marshalizer
 	hasher                 hashing.Hasher
 	governanceConfig       config.GovernanceSystemSCConfig
+	unBondPeriodInEpochs   uint32
 	enableEpochsHandler    common.EnableEpochsHandler
 	mutExecution           sync.RWMutex
 }
@@ -69,8 +73,7 @@ func NewGovernanceContract(args ArgsNewGovernanceContract) (*governanceContract,
 		return nil, vm.ErrNilEnableEpochsHandler
 	}
 
-	activeConfig := args.GovernanceConfig.Active
-	baseProposalCost, okConvert := big.NewInt(0).SetString(activeConfig.ProposalCost, conversionBase)
+	baseProposalCost, okConvert := big.NewInt(0).SetString(args.GovernanceConfig.V1.ProposalCost, conversionBase)
 	if !okConvert || baseProposalCost.Cmp(zero) < 0 {
 		return nil, vm.ErrInvalidBaseIssuingCost
 	}
@@ -83,6 +86,9 @@ func NewGovernanceContract(args ArgsNewGovernanceContract) (*governanceContract,
 	}
 	if len(args.GovernanceSCAddress) < 1 {
 		return nil, fmt.Errorf("%w for governance sc address", vm.ErrInvalidAddress)
+	}
+	if len(args.ConfigChangeAddress) < 1 {
+		return nil, fmt.Errorf("%w for change config address", vm.ErrInvalidAddress)
 	}
 
 	g := &governanceContract{
@@ -97,6 +103,8 @@ func NewGovernanceContract(args ArgsNewGovernanceContract) (*governanceContract,
 		hasher:                 args.Hasher,
 		governanceConfig:       args.GovernanceConfig,
 		enableEpochsHandler:    args.EnableEpochsHandler,
+		unBondPeriodInEpochs:   args.UnBondPeriodInEpochs,
+		changeConfigAddress:    args.ConfigChangeAddress,
 	}
 
 	return g, nil
@@ -189,7 +197,7 @@ func (g *governanceContract) initV2(args *vmcommon.ContractCallInput) vmcommon.R
 
 // changeConfig allows the owner to change the configuration for requesting proposals
 func (g *governanceContract) changeConfig(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !bytes.Equal(g.ownerAddress, args.CallerAddr) {
+	if !bytes.Equal(g.changeConfigAddress, args.CallerAddr) {
 		g.eei.AddReturnMessage("changeConfig can be called only by owner")
 		return vmcommon.UserError
 	}
@@ -937,6 +945,9 @@ func (g *governanceContract) startEndNonceFromArguments(argStart []byte, argEnd 
 
 	currentNonce := g.eei.BlockChainHook().CurrentNonce()
 	if currentNonce > startVoteNonce.Uint64() || startVoteNonce.Uint64() > endVoteNonce.Uint64() {
+		return 0, 0, vm.ErrInvalidStartEndVoteNonce
+	}
+	if endVoteNonce.Uint64()-startVoteNonce.Uint64() >= uint64(g.unBondPeriodInEpochs) {
 		return 0, 0, vm.ErrInvalidStartEndVoteNonce
 	}
 

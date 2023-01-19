@@ -219,6 +219,11 @@ func (scf *systemSCFactory) createESDTContract() (vm.SystemSmartContract, error)
 }
 
 func (scf *systemSCFactory) createGovernanceContract() (vm.SystemSmartContract, error) {
+	configChangeAddress, err := scf.addressPubKeyConverter.Decode(scf.systemSCConfig.GovernanceSystemSCConfig.ChangeConfigAddress)
+	if err != nil {
+		return nil, fmt.Errorf("%w for DelegationManagerSystemSCConfig.ConfigChangeAddress in systemSCFactory", vm.ErrInvalidAddress)
+	}
+
 	argsGovernance := systemSmartContracts.ArgsNewGovernanceContract{
 		Eei:                    scf.systemEI,
 		GasCost:                scf.gasCost,
@@ -229,6 +234,8 @@ func (scf *systemSCFactory) createGovernanceContract() (vm.SystemSmartContract, 
 		DelegationMgrSCAddress: vm.DelegationManagerSCAddress,
 		ValidatorSCAddress:     vm.ValidatorSCAddress,
 		EnableEpochsHandler:    scf.enableEpochsHandler,
+		UnBondPeriodInEpochs:   scf.systemSCConfig.StakingSystemSCConfig.UnBondPeriodInEpochs,
+		ConfigChangeAddress:    configChangeAddress,
 	}
 	governance, err := systemSmartContracts.NewGovernanceContract(argsGovernance)
 	return governance, err
