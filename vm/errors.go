@@ -252,3 +252,6 @@ var ErrNotEnoughStakeToVote = errors.New("not enough stake/delegate to vote")
 
 // ErrNotEnoughVotingPower signals that there is not enough voting power to cast the vote
 var ErrNotEnoughVotingPower = errors.New("not enough voting power to cast this vote")
+
+// ErrProposalWasNotFunded signals that proposal was not funded
+var ErrProposalWasNotFunded = errors.New("proposal was not funded")
