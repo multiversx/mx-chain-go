@@ -147,7 +147,7 @@ func createStatusComponents() factory.StatusComponentsHolder {
 
 func createStateComponents(coreComponents factory.CoreComponentsHolder) factory.StateComponentsHandler {
 	tsmArgs := getNewTrieStorageManagerArgs(coreComponents)
-	tsm, _ := trie.NewTrieStorageManager(tsmArgs)
+	tsm, _ := trie.CreateTrieStorageManager(tsmArgs, trie.StorageManagerOptions{})
 	trieFactoryManager, _ := trie.NewTrieStorageManagerWithoutPruning(tsm)
 	userAccountsDB := createAccountsDB(coreComponents, stateFactory.NewAccountCreator(), trieFactoryManager)
 	peerAccountsDB := createAccountsDB(coreComponents, stateFactory.NewPeerAccountCreator(), trieFactoryManager)

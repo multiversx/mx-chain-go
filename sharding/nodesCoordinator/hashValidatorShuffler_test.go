@@ -2406,7 +2406,7 @@ func TestRandHashShuffler_UpdateNodeLists_All(t *testing.T) {
 			StakingV4EnableEpoch:                     443,
 			StakingV4DistributeAuctionToWaitingEpoch: 444,
 		},
-		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
+		EnableEpochsHandler: &mock.EnableEpochsHandlerMock{},
 	}
 	shuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(t, err)
@@ -2759,7 +2759,7 @@ func TestRandHashShuffler_UpdateNodeLists_WithNewNodes_WithWaiting_WithLeaving(t
 			StakingV4EnableEpoch:                     443,
 			StakingV4DistributeAuctionToWaitingEpoch: 444,
 		},
-		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
+		EnableEpochsHandler: &mock.EnableEpochsHandlerMock{},
 	}
 	shuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(t, err)

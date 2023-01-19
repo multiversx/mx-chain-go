@@ -78,7 +78,7 @@ func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgInd
 		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
 			RefactorPeersMiniBlocksEnableEpochField: UnreachableEpoch,
 		},
-		ValidatorInfoCacher: &vic.ValidatorInfoCacherStub{},
+		ValidatorInfoCacher:             &vic.ValidatorInfoCacherStub{},
 		NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
 		StakingV4EnableEpoch:            StakingV4Epoch,
 	}
@@ -143,7 +143,7 @@ func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinato
 			IsWaitingListFixFlagEnabledField:        true,
 			RefactorPeersMiniBlocksEnableEpochField: UnreachableEpoch,
 		},
-		ValidatorInfoCacher: &vic.ValidatorInfoCacherStub{},
+		ValidatorInfoCacher:             &vic.ValidatorInfoCacherStub{},
 		NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
 	}
 

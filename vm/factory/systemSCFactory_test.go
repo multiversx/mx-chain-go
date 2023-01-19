@@ -73,7 +73,7 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 		AddressPubKeyConverter: &mock.PubkeyConverterMock{},
 		ShardCoordinator:       &mock.ShardCoordinatorStub{},
 		EnableEpochsHandler:    &testscommon.EnableEpochsHandlerStub{},
-		NodesCoordinator: &mock.NodesCoordinatorStub{},
+		NodesCoordinator:       &mock.NodesCoordinatorStub{},
 	}
 }
 
