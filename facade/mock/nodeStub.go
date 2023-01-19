@@ -128,11 +128,11 @@ func (ns *NodeStub) DecodeAddressPubkey(pk string) ([]byte, error) {
 
 // GetBalance -
 func (ns *NodeStub) GetBalance(address string, options api.AccountQueryOptions) (*big.Int, api.BlockInfo, error) {
-	if ns.GetBalanceHandler != nil {
+	if ns.GetBalanceCalled != nil {
 		return ns.GetBalanceCalled(address, options)
 	}
 
-	return nil, nil
+	return nil, api.BlockInfo{}, nil
 }
 
 // CreateTransaction -
@@ -171,11 +171,11 @@ func (ns *NodeStub) SendBulkTransactions(txs []*transaction.Transaction) (uint64
 
 // GetAccount -
 func (ns *NodeStub) GetAccount(address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
-	if ns.GetAccountHandler != nil {
+	if ns.GetAccountCalled != nil {
 		return ns.GetAccountCalled(address, options)
 	}
 
-	return api.AccountResponse{}, nil
+	return api.AccountResponse{}, api.BlockInfo{}, nil
 }
 
 // GetCode -
