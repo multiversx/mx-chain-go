@@ -85,11 +85,28 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 	validatorsInfoMap state.ShardValidatorsInfoMapHandler,
 	header data.HeaderHandler,
 ) error {
-	err := s.processLegacy(validatorsInfoMap, header.GetNonce(), header.GetEpoch())
+	err := checkNilInputValues(validatorsInfoMap, header)
+	if err != nil {
+		return err
+	}
+
+	err = s.processLegacy(validatorsInfoMap, header.GetNonce(), header.GetEpoch())
 	if err != nil {
 		return err
 	}
 	return s.processWithNewFlags(validatorsInfoMap, header)
+}
+
+func checkNilInputValues(validatorsInfoMap state.ShardValidatorsInfoMapHandler, header data.HeaderHandler) error {
+	if check.IfNil(header) {
+		return process.ErrNilHeaderHandler
+	}
+	if validatorsInfoMap == nil {
+		return fmt.Errorf("systemSCProcessor.ProcessSystemSmartContract : %w, header nonce: %d ",
+			errNilValidatorsInfoMap, header.GetNonce())
+	}
+
+	return nil
 }
 
 func (s *systemSCProcessor) processWithNewFlags(

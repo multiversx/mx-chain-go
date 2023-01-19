@@ -8,6 +8,7 @@ import (
 	"math"
 	"math/big"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -28,6 +29,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
 	"github.com/multiversx/mx-chain-go/epochStart/notifier"
 	"github.com/multiversx/mx-chain-go/genesis/process/disabled"
+	"github.com/multiversx/mx-chain-go/process"
 	vmFactory "github.com/multiversx/mx-chain-go/process/factory"
 	metaProcess "github.com/multiversx/mx-chain-go/process/factory/metachain"
 	"github.com/multiversx/mx-chain-go/process/peer"
@@ -2074,6 +2076,31 @@ func TestSystemSCProcessor_LegacyEpochConfirmedCorrectMaxNumNodesAfterNodeRestar
 	err = s.processLegacy(validatorsInfoMap, 21, 21)
 	require.Nil(t, err)
 	require.Equal(t, nodesConfigEpoch6.MaxNumNodes, s.maxNodes)
+}
+
+func TestSystemSCProcessor_ProcessSystemSmartContractNilInputValues(t *testing.T) {
+	t.Parallel()
+
+	args, _ := createFullArgumentsForSystemSCProcessing(config.EnableEpochs{}, createMemUnit())
+	s, _ := NewSystemSCProcessor(args)
+
+	t.Run("nil validators info map, expect error", func(t *testing.T) {
+		t.Parallel()
+
+		blockHeader := &block.Header{Nonce: 4}
+		err := s.ProcessSystemSmartContract(nil, blockHeader)
+		require.True(t, strings.Contains(err.Error(), errNilValidatorsInfoMap.Error()))
+		require.True(t, strings.Contains(err.Error(), fmt.Sprintf("%d", blockHeader.GetNonce())))
+	})
+
+	t.Run("nil header, expect error", func(t *testing.T) {
+		t.Parallel()
+
+		validatorsInfoMap := state.NewShardValidatorsInfoMap()
+		err := s.ProcessSystemSmartContract(validatorsInfoMap, nil)
+		require.Equal(t, process.ErrNilHeaderHandler, err)
+	})
+
 }
 
 func requireTopUpPerNodes(t *testing.T, s epochStart.StakingDataProvider, stakedPubKeys [][]byte, topUp *big.Int) {
