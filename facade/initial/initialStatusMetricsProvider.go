@@ -28,12 +28,12 @@ func (provider *initialStatusMetricsProvider) BootstrapMetrics() (map[string]int
 
 // StatusMetricsMapWithoutP2P returns an empty map and the error which specifies that the node is starting
 func (provider *initialStatusMetricsProvider) StatusMetricsMapWithoutP2P() (map[string]interface{}, error) {
-	return getReturnValues()
+	return getEmptyReturnValues()
 }
 
 // StatusP2pMetricsMap returns an empty map and the error which specifies that the node is starting
 func (provider *initialStatusMetricsProvider) StatusP2pMetricsMap() (map[string]interface{}, error) {
-	return getReturnValues()
+	return getEmptyReturnValues()
 }
 
 // StatusMetricsWithoutP2PPrometheusString returns an empty string and the error which specifies that the node is starting
@@ -43,31 +43,31 @@ func (provider *initialStatusMetricsProvider) StatusMetricsWithoutP2PPrometheusS
 
 // EconomicsMetrics returns an empty map and the error which specifies that the node is starting
 func (provider *initialStatusMetricsProvider) EconomicsMetrics() (map[string]interface{}, error) {
-	return getReturnValues()
+	return getEmptyReturnValues()
 }
 
 // ConfigMetrics returns an empty map and the error which specifies that the node is starting
 func (provider *initialStatusMetricsProvider) ConfigMetrics() (map[string]interface{}, error) {
-	return getReturnValues()
+	return getEmptyReturnValues()
 }
 
 // EnableEpochsMetrics returns an empty map and the error which specifies that the node is starting
 func (provider *initialStatusMetricsProvider) EnableEpochsMetrics() (map[string]interface{}, error) {
-	return getReturnValues()
+	return getEmptyReturnValues()
 }
 
 // NetworkMetrics returns an empty map and the error which specifies that the node is starting
 func (provider *initialStatusMetricsProvider) NetworkMetrics() (map[string]interface{}, error) {
-	return getReturnValues()
+	return getEmptyReturnValues()
 }
 
 // RatingsMetrics returns an empty map and the error which specifies that the node is starting
 func (provider *initialStatusMetricsProvider) RatingsMetrics() (map[string]interface{}, error) {
-	return getReturnValues()
+	return getEmptyReturnValues()
 }
 
-// StatusMetricsMapWithoutP2P returns an empty map and the error which specifies that the node is starting
-func getReturnValues() (map[string]interface{}, error) {
+// getEmptyReturnValues returns an empty map and the error which specifies that the node is starting
+func getEmptyReturnValues() (map[string]interface{}, error) {
 	return map[string]interface{}{}, errNodeStarting
 }
 

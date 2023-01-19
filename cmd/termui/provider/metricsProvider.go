@@ -64,27 +64,25 @@ func (smp *StatusMetricsProvider) StartUpdatingData() {
 }
 
 func (smp *StatusMetricsProvider) updateMetrics() {
-	metricsMap, err := smp.loadMetricsFromApi(statusMetricsUrlSuffix)
-	if err != nil {
-		log.Debug("fetch status from API",
-			"error", err.Error())
-	} else {
-		smp.applyMetricsToPresenter(metricsMap)
-	}
+	smp.fetchAndApplyMetrics(statusMetricsUrlSuffix)
+	smp.fetchAndApplyMetrics(bootstrapStatusMetricsUrlSuffix)
+}
 
-	metricsMap, err = smp.loadMetricsFromApi(bootstrapStatusMetricsUrlSuffix)
+func (smp *StatusMetricsProvider) fetchAndApplyMetrics(metricsPath string) {
+	metricsMap, err := smp.loadMetricsFromApi(metricsPath)
 	if err != nil {
-		log.Debug("fetch bootstrap status from API",
+		log.Debug("fetch from API",
+			"path", metricsPath,
 			"error", err.Error())
 	} else {
 		smp.applyMetricsToPresenter(metricsMap)
 	}
 }
 
-func (smp *StatusMetricsProvider) loadMetricsFromApi(path string) (map[string]interface{}, error) {
+func (smp *StatusMetricsProvider) loadMetricsFromApi(metricsPath string) (map[string]interface{}, error) {
 	client := http.Client{}
 
-	statusMetricsUrl := smp.nodeAddress + path
+	statusMetricsUrl := smp.nodeAddress + metricsPath
 	resp, err := client.Get(statusMetricsUrl)
 	if err != nil {
 		return nil, err
