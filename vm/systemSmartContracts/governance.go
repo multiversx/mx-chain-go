@@ -234,6 +234,7 @@ func (g *governanceContract) changeConfig(args *vmcommon.ContractCallInput) vmco
 	scConfig.MinPassThreshold = minPass
 	scConfig.ProposalFee = proposalFee
 
+	g.baseProposalCost.Set(proposalFee)
 	err = g.saveConfig(scConfig)
 	if err != nil {
 		g.eei.AddReturnMessage(err.Error())
@@ -260,7 +261,7 @@ func (g *governanceContract) proposal(args *vmcommon.ContractCallInput) vmcommon
 		return vmcommon.UserError
 	}
 	if args.CallValue.Cmp(generalConfig.ProposalFee) != 0 {
-		g.eei.AddReturnMessage("invalid proposal cost, expected " + generalConfig.ProposalFee.String())
+		g.eei.AddReturnMessage("invalid value provided, expected " + generalConfig.ProposalFee.String())
 		return vmcommon.OutOfFunds
 	}
 
