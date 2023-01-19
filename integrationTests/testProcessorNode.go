@@ -800,7 +800,6 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 					},
 					Active: config.GovernanceSystemSCConfigActive{
 						ProposalCost:     "500",
-						MinProposalFund:  "50",
 						MinQuorum:        "50",
 						MinPassThreshold: "50",
 						MinVetoThreshold: "50",
@@ -1679,7 +1678,6 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 				},
 				Active: config.GovernanceSystemSCConfigActive{
 					ProposalCost:     "500",
-					MinProposalFund:  "50",
 					MinQuorum:        "50",
 					MinPassThreshold: "50",
 					MinVetoThreshold: "50",

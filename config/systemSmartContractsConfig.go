@@ -45,7 +45,6 @@ type GovernanceSystemSCConfigV1 struct {
 //  system smart contract once it activates
 type GovernanceSystemSCConfigActive struct {
 	ProposalCost     string
-	MinProposalFund  string
 	MinQuorum        string
 	MinPassThreshold string
 	MinVetoThreshold string

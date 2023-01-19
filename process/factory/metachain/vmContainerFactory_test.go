@@ -44,7 +44,6 @@ func createVmContainerMockArgument(gasSchedule core.GasScheduleNotifier) ArgsNew
 				},
 				Active: config.GovernanceSystemSCConfigActive{
 					ProposalCost:     "500",
-					MinProposalFund:  "50",
 					MinQuorum:        "50",
 					MinPassThreshold: "50",
 					MinVetoThreshold: "50",
@@ -308,7 +307,6 @@ func TestVmContainerFactory_Create(t *testing.T) {
 				},
 				Active: config.GovernanceSystemSCConfigActive{
 					ProposalCost:     "500",
-					MinProposalFund:  "50",
 					MinQuorum:        "50",
 					MinPassThreshold: "50",
 					MinVetoThreshold: "50",

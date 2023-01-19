@@ -41,7 +41,6 @@ func createArgsWithEEI(eei vm.SystemEI) ArgsNewGovernanceContract {
 			},
 			Active: config.GovernanceSystemSCConfigActive{
 				ProposalCost:     "500",
-				MinProposalFund:  "50",
 				MinQuorum:        "50",
 				MinPassThreshold: "50",
 				MinVetoThreshold: "50",
@@ -726,9 +725,15 @@ func TestGovernanceContract_VoteInvalidVote(t *testing.T) {
 func TestGovernanceContract_VoteTwice(t *testing.T) {
 	t.Parallel()
 
+	gsc, blockchainHook, eei := createGovernanceBlockChainHookStubContextHandler()
+	blockchainHook.CurrentNonceCalled = func() uint64 {
+		return 12
+	}
+
 	callerAddress := bytes.Repeat([]byte{2}, 32)
 	proposalIdentifier := []byte("aaaaaaaaa")
 	generalProposal := &GeneralProposal{
+		ProposalCost:   gsc.baseProposalCost,
 		CommitHash:     proposalIdentifier,
 		StartVoteNonce: 10,
 		EndVoteNonce:   15,
@@ -741,10 +746,6 @@ func TestGovernanceContract_VoteTwice(t *testing.T) {
 	voteArgs := [][]byte{
 		[]byte("1"),
 		[]byte("yes"),
-	}
-	gsc, blockchainHook, eei := createGovernanceBlockChainHookStubContextHandler()
-	blockchainHook.CurrentNonceCalled = func() uint64 {
-		return 12
 	}
 
 	nonce, _ := nonceFromBytes(voteArgs[0])
@@ -819,6 +820,7 @@ func TestGovernanceContract_DelegateVoteMoreErrors(t *testing.T) {
 	callerAddress := bytes.Repeat([]byte{2}, 32)
 	proposalIdentifier := []byte("aaaaaaaaa")
 	generalProposal := &GeneralProposal{
+		ProposalCost:   gsc.baseProposalCost,
 		CommitHash:     proposalIdentifier,
 		StartVoteNonce: 10,
 		EndVoteNonce:   15,

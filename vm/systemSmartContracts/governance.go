@@ -904,15 +904,6 @@ func (g *governanceContract) getValidProposal(nonce *big.Int) (*GeneralProposal,
 		return nil, vm.ErrVotedForAnExpiredProposal
 	}
 
-	generalConfig, err := g.getConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	if proposal.ProposalCost.Cmp(generalConfig.ProposalFee) < 0 {
-		return nil, vm.ErrProposalWasNotFunded
-	}
-
 	return proposal, nil
 }
 
@@ -994,17 +985,12 @@ func (g *governanceContract) convertV2Config(config config.GovernanceSystemSCCon
 	if !success {
 		return nil, vm.ErrIncorrectConfig
 	}
-	minProposalFund, success := big.NewInt(0).SetString(config.Active.MinProposalFund, conversionBase)
-	if !success {
-		return nil, vm.ErrIncorrectConfig
-	}
 
 	return &GovernanceConfigV2{
 		MinQuorum:        minQuorum,
 		MinPassThreshold: minPass,
 		MinVetoThreshold: minVeto,
 		ProposalFee:      proposalFee,
-		MinProposalFund:  minProposalFund,
 	}, nil
 }
 

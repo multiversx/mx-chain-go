@@ -535,7 +535,6 @@ func GetProcessArgs(
 				},
 				Active: config.GovernanceSystemSCConfigActive{
 					ProposalCost:     "500",
-					MinProposalFund:  "50",
 					MinQuorum:        "50",
 					MinPassThreshold: "50",
 					MinVetoThreshold: "50",
