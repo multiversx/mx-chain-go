@@ -2038,7 +2038,7 @@ func getMissingTxsForNode(n *TestProcessorNode, generatedTxHashes [][]byte) [][]
 }
 
 func requestMissingTransactions(n *TestProcessorNode, shardResolver uint32, neededTxs [][]byte) {
-	txResolver, _ := n.ResolverFinder.CrossShardResolver(procFactory.TransactionTopic, shardResolver)
+	txResolver, _ := n.RequestersFinder.CrossShardRequester(procFactory.TransactionTopic, shardResolver)
 
 	for i := 0; i < len(neededTxs); i++ {
 		_ = txResolver.RequestDataFromHash(neededTxs[i], 0)
