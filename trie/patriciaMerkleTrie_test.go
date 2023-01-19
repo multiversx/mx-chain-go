@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/holders"
 	"github.com/ElrondNetwork/elrond-go/config"
+	errorsCommon "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/state/parsers"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
@@ -112,6 +113,16 @@ func TestNewTrieWithNilHasher(t *testing.T) {
 
 	assert.Nil(t, tr)
 	assert.Equal(t, trie.ErrNilHasher, err)
+}
+
+func TestNewTrieWithNilEnableEpochsHandler(t *testing.T) {
+	t.Parallel()
+
+	trieStorage, marshalizer, hasher, _, maxTrieLevelInMemory := getDefaultTrieParameters()
+	tr, err := trie.NewTrie(trieStorage, marshalizer, hasher, nil, maxTrieLevelInMemory)
+
+	assert.Nil(t, tr)
+	assert.Equal(t, errorsCommon.ErrNilEnableEpochsHandler, err)
 }
 
 func TestNewTrieWithInvalidMaxTrieLevelInMemory(t *testing.T) {

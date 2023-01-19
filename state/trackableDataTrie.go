@@ -183,8 +183,10 @@ func (tdaw *trackableDataTrie) updateTrieV1(selfDataTrie dataTrie) ([]common.Tri
 	return oldValues, nil
 }
 
+// TODO refactor to make the migration more generic. This code should be able to migrate between specified versions.
+
 func (tdaw *trackableDataTrie) updateTrieWithAutoBalancing(dtr dataTrie) ([]common.TrieData, error) {
-	oldValues := make([]common.TrieData, 0)
+	oldValues := make([]common.TrieData, len(tdaw.dirtyData))
 
 	for key, val := range tdaw.dirtyData {
 		oldEntry, err := tdaw.getOldKeyAndValWithCleanup(key)
@@ -194,7 +196,7 @@ func (tdaw *trackableDataTrie) updateTrieWithAutoBalancing(dtr dataTrie) ([]comm
 
 		oldValues = append(oldValues, oldEntry)
 
-		err = tdaw.updateValInTrie([]byte(key), val, dtr)
+		err = tdaw.updateValInTrieWithAutoBalancing([]byte(key), val, dtr)
 		if err != nil {
 			return nil, err
 		}
@@ -241,7 +243,7 @@ func (tdaw *trackableDataTrie) getOldKeyAndValWithCleanup(key string) (common.Tr
 	}, nil
 }
 
-func (tdaw *trackableDataTrie) updateValInTrie(key []byte, val []byte, selfDataTrie dataTrie) error {
+func (tdaw *trackableDataTrie) updateValInTrieWithAutoBalancing(key []byte, val []byte, selfDataTrie dataTrie) error {
 	if len(val) == 0 {
 		return tdaw.tr.Delete(tdaw.hasher.Compute(string(key)))
 	}

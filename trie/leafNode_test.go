@@ -3,6 +3,8 @@ package trie
 import (
 	"context"
 	"errors"
+	"github.com/ElrondNetwork/elrond-go/common"
+	"math"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -739,4 +741,40 @@ func TestLeafNode_getValue(t *testing.T) {
 
 	ln := getLn(getTestMarshalizerAndHasher())
 	assert.Equal(t, ln.Value, ln.getValue())
+}
+
+func TestLeafNode_getVersion(t *testing.T) {
+	t.Parallel()
+
+	t.Run("invalid node version", func(t *testing.T) {
+		t.Parallel()
+
+		ln := getLn(getTestMarshalizerAndHasher())
+		ln.Version = math.MaxUint8 + 1
+
+		version, err := ln.getVersion()
+		assert.Equal(t, common.NotSpecified, version)
+		assert.Equal(t, ErrInvalidNodeVersion, err)
+	})
+
+	t.Run("NotSpecified version", func(t *testing.T) {
+		t.Parallel()
+
+		ln := getLn(getTestMarshalizerAndHasher())
+
+		version, err := ln.getVersion()
+		assert.Equal(t, common.NotSpecified, version)
+		assert.Nil(t, err)
+	})
+
+	t.Run("AutoBalanceEnabled version", func(t *testing.T) {
+		t.Parallel()
+
+		ln := getLn(getTestMarshalizerAndHasher())
+		ln.Version = uint32(common.AutoBalanceEnabled)
+
+		version, err := ln.getVersion()
+		assert.Equal(t, common.AutoBalanceEnabled, version)
+		assert.Nil(t, err)
+	})
 }

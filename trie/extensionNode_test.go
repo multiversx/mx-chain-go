@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"math"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/data/mock"
@@ -1053,4 +1054,40 @@ func TestExtensionNode_commitSnapshotDbIsClosing(t *testing.T) {
 	err := collapsedEn.commitSnapshot(db, nil, missingNodesChan, context.Background(), statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(missingNodesChan))
+}
+
+func TestExtensionNode_getVersion(t *testing.T) {
+	t.Parallel()
+
+	t.Run("invalid node version", func(t *testing.T) {
+		t.Parallel()
+
+		en, _ := getEnAndCollapsedEn()
+		en.ChildVersion = math.MaxUint8 + 1
+
+		version, err := en.getVersion()
+		assert.Equal(t, common.NotSpecified, version)
+		assert.Equal(t, ErrInvalidNodeVersion, err)
+	})
+
+	t.Run("NotSpecified version", func(t *testing.T) {
+		t.Parallel()
+
+		en, _ := getEnAndCollapsedEn()
+
+		version, err := en.getVersion()
+		assert.Equal(t, common.NotSpecified, version)
+		assert.Nil(t, err)
+	})
+
+	t.Run("AutoBalanceEnabled version", func(t *testing.T) {
+		t.Parallel()
+
+		en, _ := getEnAndCollapsedEn()
+		en.ChildVersion = uint32(common.AutoBalanceEnabled)
+
+		version, err := en.getVersion()
+		assert.Equal(t, common.AutoBalanceEnabled, version)
+		assert.Nil(t, err)
+	})
 }

@@ -1402,6 +1402,62 @@ func TestBranchNode_commitSnapshotDbIsClosing(t *testing.T) {
 	assert.Equal(t, 0, len(missingNodesChan))
 }
 
+func TestBranchNode_getVersion(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil ChildrenVersion", func(t *testing.T) {
+		t.Parallel()
+
+		bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
+
+		version, err := bn.getVersion()
+		assert.Equal(t, common.NotSpecified, version)
+		assert.Nil(t, err)
+	})
+
+	t.Run("NotSpecified for all children", func(t *testing.T) {
+		t.Parallel()
+
+		bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
+		bn.ChildrenVersion = make([]byte, nrOfChildren)
+		bn.ChildrenVersion[2] = byte(common.NotSpecified)
+		bn.ChildrenVersion[6] = byte(common.NotSpecified)
+		bn.ChildrenVersion[13] = byte(common.NotSpecified)
+
+		version, err := bn.getVersion()
+		assert.Equal(t, common.NotSpecified, version)
+		assert.Nil(t, err)
+	})
+
+	t.Run("one child with autoBalanceEnabled", func(t *testing.T) {
+		t.Parallel()
+
+		bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
+		bn.ChildrenVersion = make([]byte, nrOfChildren)
+		bn.ChildrenVersion[2] = byte(common.NotSpecified)
+		bn.ChildrenVersion[6] = byte(common.AutoBalanceEnabled)
+		bn.ChildrenVersion[13] = byte(common.NotSpecified)
+
+		version, err := bn.getVersion()
+		assert.Equal(t, common.NotSpecified, version)
+		assert.Nil(t, err)
+	})
+
+	t.Run("AutoBalanceEnabled for all children", func(t *testing.T) {
+		t.Parallel()
+
+		bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
+		bn.ChildrenVersion = make([]byte, nrOfChildren)
+		bn.ChildrenVersion[2] = byte(common.AutoBalanceEnabled)
+		bn.ChildrenVersion[6] = byte(common.AutoBalanceEnabled)
+		bn.ChildrenVersion[13] = byte(common.AutoBalanceEnabled)
+
+		version, err := bn.getVersion()
+		assert.Equal(t, common.AutoBalanceEnabled, version)
+		assert.Nil(t, err)
+	})
+}
+
 func TestBranchNode_getValueReturnsEmptyByteSlice(t *testing.T) {
 	t.Parallel()
 
