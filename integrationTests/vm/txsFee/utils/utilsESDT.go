@@ -67,6 +67,53 @@ func CreateAccountWithESDTBalance(
 	require.Nil(t, err)
 }
 
+// CreateAccountWithNFT -
+func CreateAccountWithNFT(
+	t *testing.T,
+	accnts state.AccountsAdapter,
+	pubKey []byte,
+	egldValue *big.Int,
+	tokenIdentifier []byte,
+	attributes []byte,
+) {
+	account, err := accnts.LoadAccount(pubKey)
+	require.Nil(t, err)
+
+	userAccount, ok := account.(state.UserAccountHandler)
+	require.True(t, ok)
+
+	userAccount.IncreaseNonce(0)
+	err = userAccount.AddToBalance(egldValue)
+	require.Nil(t, err)
+
+	esdtData := &esdt.ESDigitalToken{
+		Value:      big.NewInt(1),
+		Properties: []byte{},
+		TokenMetaData: &esdt.MetaData{
+			Nonce:      1,
+			Attributes: attributes,
+		},
+	}
+
+	esdtDataBytes, err := protoMarshalizer.Marshal(esdtData)
+	require.Nil(t, err)
+
+	key := append([]byte(core.ProtectedKeyPrefix), []byte(core.ESDTKeyIdentifier)...)
+	key = append(key, tokenIdentifier...)
+	key = append(key, big.NewInt(0).SetUint64(1).Bytes()...)
+
+	err = userAccount.SaveKeyValue(key, esdtDataBytes)
+	require.Nil(t, err)
+
+	err = accnts.SaveAccount(account)
+	require.Nil(t, err)
+
+	saveNewTokenOnSystemAccount(t, accnts, key, esdtData)
+
+	_, err = accnts.Commit()
+	require.Nil(t, err)
+}
+
 func saveNewTokenOnSystemAccount(t *testing.T, accnts state.AccountsAdapter, tokenKey []byte, esdtData *esdt.ESDigitalToken) {
 	esdtDataOnSystemAcc := esdtData
 	esdtDataOnSystemAcc.Properties = nil
@@ -270,8 +317,8 @@ func CheckESDTBalance(t *testing.T, testContext *vm.VMTestContext, addr []byte, 
 }
 
 // CheckESDTNFTBalance -
-func CheckESDTNFTBalance(t *testing.T, testContext *vm.VMTestContext, addr []byte, tokenIdentifier []byte, esdtNonce uint64, expectedBalance *big.Int) {
-	checkEsdtBalance(t, testContext, addr, tokenIdentifier, esdtNonce, expectedBalance)
+func CheckESDTNFTBalance(tb testing.TB, testContext *vm.VMTestContext, addr []byte, tokenIdentifier []byte, esdtNonce uint64, expectedBalance *big.Int) {
+	checkEsdtBalance(tb, testContext, addr, tokenIdentifier, esdtNonce, expectedBalance)
 }
 
 // CreateESDTLocalBurnTx -
@@ -358,7 +405,7 @@ func CreateNFTSingleFreezeAndWipeTxs(nonce uint64, tokenManager, addressToFreeze
 }
 
 func checkEsdtBalance(
-	t *testing.T,
+	tb testing.TB,
 	testContext *vm.VMTestContext,
 	addr []byte,
 	tokenIdentifier []byte,
@@ -366,6 +413,33 @@ func checkEsdtBalance(
 	expectedBalance *big.Int,
 ) {
 	esdtData, err := testContext.BlockchainHook.GetESDTToken(addr, tokenIdentifier, esdtNonce)
-	require.Nil(t, err)
-	require.Equal(t, expectedBalance, esdtData.Value)
+	require.Nil(tb, err)
+	require.Equal(tb, expectedBalance, esdtData.Value)
+}
+
+// CreateESDTNFTUpdateAttributesTx -
+func CreateESDTNFTUpdateAttributesTx(
+	nonce uint64,
+	sndAddr []byte,
+	tokenIdentifier []byte,
+	gasPrice uint64,
+	gasLimit uint64,
+	newAttributes []byte,
+) *transaction.Transaction {
+
+	txData := txDataBuilder.NewBuilder()
+	txData.Func(core.BuiltInFunctionESDTNFTUpdateAttributes)
+	txData.Bytes(tokenIdentifier)
+	txData.Int64(1)
+	txData.Bytes(newAttributes)
+
+	return &transaction.Transaction{
+		Nonce:    nonce,
+		SndAddr:  sndAddr,
+		RcvAddr:  sndAddr, // receiver = sender for ESDTNFTUpdateAttributes
+		GasLimit: gasLimit,
+		GasPrice: gasPrice,
+		Data:     txData.ToBytes(),
+		Value:    big.NewInt(0),
+	}
 }
