@@ -193,7 +193,7 @@ func TestNodeStatus_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
 	assert.Equal(t, expectedErr.Error(), response.Error)
 }
 
-func TestNodeBootstrapStatus_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
+func TestBootstrapStatus_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
 	expectedErr := errors.New("i am an error")
 
 	facade := mock.FacadeStub{
@@ -221,6 +221,35 @@ func TestNodeBootstrapStatus_ShouldReturnErrorIfFacadeReturnsError(t *testing.T)
 	loadResponse(resp.Body, response)
 
 	assert.Equal(t, expectedErr.Error(), response.Error)
+}
+
+func TestBootstrapStatusMetrics_ShouldWork(t *testing.T) {
+	statusMetricsProvider := statusHandler.NewStatusMetrics()
+	statusMetricsProvider.SetUInt64Value(common.MetricTrieSyncNumReceivedBytes, uint64(100))
+	statusMetricsProvider.SetUInt64Value(common.MetricTrieSyncNumProcessedNodes, uint64(150))
+
+	facade := mock.FacadeStub{}
+	facade.StatusMetricsHandler = func() external.StatusMetricsHandler {
+		return statusMetricsProvider
+	}
+
+	nodeGroup, err := groups.NewNodeGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(nodeGroup, "node", getNodeRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/node/bootstrapstatus", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	respBytes, _ := ioutil.ReadAll(resp.Body)
+	respStr := string(respBytes)
+	assert.Equal(t, resp.Code, http.StatusOK)
+
+	keysFound := strings.Contains(respStr, common.MetricTrieSyncNumReceivedBytes) && strings.Contains(respStr, common.MetricTrieSyncNumProcessedNodes)
+	assert.True(t, keysFound)
+	valuesFound := strings.Contains(respStr, "100") && strings.Contains(respStr, "150")
+	assert.True(t, valuesFound)
 }
 
 func TestStatusMetrics_ShouldDisplayNonP2pMetrics(t *testing.T) {
@@ -287,35 +316,6 @@ func TestP2PStatusMetrics_ShouldDisplayNonP2pMetrics(t *testing.T) {
 	assert.True(t, keyAndValueFoundInResponse)
 
 	assert.False(t, strings.Contains(respStr, key))
-}
-
-func TestBootstrapStatusMetrics_ShouldWork(t *testing.T) {
-	statusMetricsProvider := statusHandler.NewStatusMetrics()
-	statusMetricsProvider.SetUInt64Value(common.MetricTrieSyncNumReceivedBytes, uint64(100))
-	statusMetricsProvider.SetUInt64Value(common.MetricTrieSyncNumProcessedNodes, uint64(150))
-
-	facade := mock.FacadeStub{}
-	facade.StatusMetricsHandler = func() external.StatusMetricsHandler {
-		return statusMetricsProvider
-	}
-
-	nodeGroup, err := groups.NewNodeGroup(&facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(nodeGroup, "node", getNodeRoutesConfig())
-
-	req, _ := http.NewRequest("GET", "/node/bootstrapstatus", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	respBytes, _ := ioutil.ReadAll(resp.Body)
-	respStr := string(respBytes)
-	assert.Equal(t, resp.Code, http.StatusOK)
-
-	keysFound := strings.Contains(respStr, common.MetricTrieSyncNumReceivedBytes) && strings.Contains(respStr, common.MetricTrieSyncNumProcessedNodes)
-	assert.True(t, keysFound)
-	valuesFound := strings.Contains(respStr, "100") && strings.Contains(respStr, "150")
-	assert.True(t, valuesFound)
 }
 
 func TestQueryDebug_GetQueryErrorsShouldErr(t *testing.T) {

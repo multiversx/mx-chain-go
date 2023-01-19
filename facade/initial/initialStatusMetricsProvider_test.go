@@ -34,12 +34,12 @@ func TestNewInitialStatusMetricsProvider(t *testing.T) {
 			"key-2": uint64(15),
 			"key-3": uint64(20),
 		}
-		realStatusMetricsProvider := &testscommon.StatusMetricsStub{
+		statusMetricsProvider := &testscommon.StatusMetricsStub{
 			BootstrapMetricsCalled: func() (map[string]interface{}, error) {
 				return providedMetrics, nil
 			},
 		}
-		provider, err := NewInitialStatusMetricsProvider(realStatusMetricsProvider)
+		provider, err := NewInitialStatusMetricsProvider(statusMetricsProvider)
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(provider))
 
