@@ -238,19 +238,6 @@ func TestSystemSCFactory_CreateWithBadDelegationManagerConfigChangeAddressShould
 	assert.True(t, errors.Is(err, vm.ErrInvalidAddress))
 }
 
-func TestSystemSCFactory_CreateWithFirstWhiteListAddressShouldError(t *testing.T) {
-	t.Parallel()
-
-	arguments := createMockNewSystemScFactoryArgs()
-	arguments.SystemSCConfig.GovernanceSystemSCConfig.FirstWhitelistedAddress = "not a hex string"
-	scFactory, _ := NewSystemSCFactory(arguments)
-
-	container, err := scFactory.Create()
-
-	assert.True(t, check.IfNil(container))
-	assert.True(t, errors.Is(err, vm.ErrInvalidAddress))
-}
-
 func TestSystemSCFactory_Create(t *testing.T) {
 	t.Parallel()
 

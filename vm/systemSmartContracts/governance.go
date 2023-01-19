@@ -379,14 +379,14 @@ func (g *governanceContract) delegateVote(args *vmcommon.ContractCallInput) vmco
 		g.eei.AddReturnMessage("only SC can call this")
 		return vmcommon.UserError
 	}
-	voter := args.Arguments[3]
+	voter := args.Arguments[2]
 	if len(voter) != len(args.CallerAddr) {
 		g.eei.AddReturnMessage("invalid delegator address")
 		return vmcommon.UserError
 	}
 
 	proposalToVote := args.Arguments[0]
-	votePower, err := g.updateDelegatedContractInfo(args.CallerAddr, proposalToVote, args.Arguments[2])
+	votePower, err := g.updateDelegatedContractInfo(args.CallerAddr, proposalToVote, args.Arguments[3])
 	if err != nil {
 		g.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -418,7 +418,7 @@ func (g *governanceContract) updateDelegatedContractInfo(scAddress []byte, refer
 
 	scVoteInfo.UsedPower.Add(scVoteInfo.UsedPower, votePower)
 	if scVoteInfo.TotalPower.Cmp(scVoteInfo.UsedPower) < 0 {
-		return nil, fmt.Errorf("not enough voting power to cast this vote")
+		return nil, vm.ErrNotEnoughVotingPower
 	}
 	err = g.saveDelegatedContractInfo(scAddress, scVoteInfo, reference)
 	if err != nil {
@@ -609,7 +609,7 @@ func (g *governanceContract) getVotingPower(args *vmcommon.ContractCallInput) vm
 	votingPower, err := g.computeVotingPowerFromTotalStake(validatorAddress)
 	if err != nil {
 		g.eei.AddReturnMessage(err.Error())
-		return vmcommon.ExecutionFailed
+		return vmcommon.UserError
 	}
 
 	g.eei.Finish(votingPower.Bytes())
@@ -643,8 +643,8 @@ func (g *governanceContract) computeVotingPower(value *big.Int) (*big.Int, error
 		return nil, err
 	}
 
-	if value.Cmp(minValue) <= 0 {
-		return nil, fmt.Errorf("not enough stake/delegate to vote")
+	if value.Cmp(minValue) < 0 {
+		return nil, vm.ErrNotEnoughStakeToVote
 	}
 
 	//TODO: decide whether quadratic or not

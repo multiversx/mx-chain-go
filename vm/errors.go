@@ -1,6 +1,8 @@
 package vm
 
-import "errors"
+import (
+	"errors"
+)
 
 // ErrUnknownSystemSmartContract signals that there is no system smart contract on the provided address
 var ErrUnknownSystemSmartContract = errors.New("missing system smart contract on selected address")
@@ -242,8 +244,11 @@ var ErrNilShardCoordinator = errors.New("nil shard coordinator")
 // ErrProposalNotFound signals that the storage is empty for given key
 var ErrProposalNotFound = errors.New("proposal was not found in storage")
 
-// ErrInvalidNumOfInitialWhiteListedAddress signals that 0 initial whiteListed addresses were provided to the governance contract
-var ErrInvalidNumOfInitialWhiteListedAddress = errors.New("0 initial whiteListed addresses provided to the governance contract")
-
 // ErrNilEnableEpochsHandler signals that a nil enable epochs handler has been provided
 var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
+
+// ErrNotEnoughStakeToVote signals that the stake/delegation is not enough to vote
+var ErrNotEnoughStakeToVote = errors.New("not enough stake/delegate to vote")
+
+// ErrNotEnoughVotingPower signals that there is not enough voting power to cast the vote
+var ErrNotEnoughVotingPower = errors.New("not enough voting power to cast this vote")
