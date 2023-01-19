@@ -67,4 +67,5 @@ type ArgsGenesisBlockCreator struct {
 	GenesisString    string
 	// created components
 	importHandler update.ImportHandler
+	ChainRunType  common.ChainRunType
 }

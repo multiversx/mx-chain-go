@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/multiversx/mx-chain-go/common"
 	"math"
 	"math/big"
 	"reflect"
@@ -540,6 +541,7 @@ func createPreProcessorContainer() process.PreProcessorsContainer {
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		common.ChainRunTypeRegular,
 	)
 	container, _ := preFactory.Create()
 
@@ -635,6 +637,7 @@ func createPreProcessorContainerWithDataPool(
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		common.ChainRunTypeRegular,
 	)
 	container, _ := preFactory.Create()
 
@@ -903,6 +906,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		common.ChainRunTypeRegular,
 	)
 	container, _ := preFactory.Create()
 
@@ -1087,6 +1091,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNilPreP
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		common.ChainRunTypeRegular,
 	)
 	container, _ := preFactory.Create()
 
@@ -1195,6 +1200,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		common.ChainRunTypeRegular,
 	)
 	container, _ := preFactory.Create()
 
@@ -1732,6 +1738,7 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		common.ChainRunTypeRegular,
 	)
 	container, _ := preFactory.Create()
 
@@ -1858,6 +1865,7 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		common.ChainRunTypeRegular,
 	)
 	container, _ := preFactory.Create()
 
@@ -1997,6 +2005,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		common.ChainRunTypeRegular,
 	)
 	container, _ := preFactory.Create()
 
@@ -2137,6 +2146,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		common.ChainRunTypeRegular,
 	)
 	container, _ := preFactory.Create()
 

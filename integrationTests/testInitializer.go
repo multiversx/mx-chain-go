@@ -705,6 +705,7 @@ func CreateFullGenesisBlocks(
 		EpochConfig: &config.EpochConfig{
 			EnableEpochs: enableEpochsConfig,
 		},
+		ChainRunType: common.ChainRunTypeRegular,
 	}
 
 	genesisProcessor, _ := genesisProcess.NewGenesisBlockCreator(argsGenesis)
@@ -805,6 +806,7 @@ func CreateGenesisMetaBlock(
 		EpochConfig: &config.EpochConfig{
 			EnableEpochs: enableEpochsConfig,
 		},
+		ChainRunType: common.ChainRunTypeRegular,
 	}
 
 	if shardCoordinator.SelfId() != core.MetachainShardId {

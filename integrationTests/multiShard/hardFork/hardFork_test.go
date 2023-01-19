@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"github.com/multiversx/mx-chain-go/common"
 	"math/big"
 	"path"
 	"path/filepath"
@@ -486,6 +487,7 @@ func hardForkImport(
 					DelegationSmartContractEnableEpoch: 0,
 				},
 			},
+			ChainRunType: common.ChainRunTypeRegular,
 		}
 
 		genesisProcessor, err := process.NewGenesisBlockCreator(argsGenesis)

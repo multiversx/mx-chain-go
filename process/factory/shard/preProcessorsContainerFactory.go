@@ -1,6 +1,7 @@
 package shard
 
 import (
+	"fmt"
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/block"
@@ -8,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	customErrors "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/factory/containers"
@@ -39,6 +41,7 @@ type preProcessorsContainerFactory struct {
 	txTypeHandler                process.TxTypeHandler
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	processedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
+	chainRunType                 common.ChainRunType
 }
 
 // NewPreProcessorsContainerFactory is responsible for creating a new preProcessors factory object
@@ -64,6 +67,7 @@ func NewPreProcessorsContainerFactory(
 	txTypeHandler process.TxTypeHandler,
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler,
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
+	chainRunType common.ChainRunType,
 ) (*preProcessorsContainerFactory, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -152,6 +156,7 @@ func NewPreProcessorsContainerFactory(
 		txTypeHandler:                txTypeHandler,
 		scheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker:   processedMiniBlocksTracker,
+		chainRunType:                 chainRunType,
 	}, nil
 }
 
@@ -225,9 +230,23 @@ func (ppcm *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 		ProcessedMiniBlocksTracker:   ppcm.processedMiniBlocksTracker,
 	}
 
-	txPreprocessor, err := preprocess.NewTransactionPreprocessor(args)
+	return ppcm.createTransactionPreprocessor(args)
+}
 
-	return txPreprocessor, err
+func (ppcm *preProcessorsContainerFactory) createTransactionPreprocessor(args preprocess.ArgsTransactionPreProcessor) (process.PreProcessor, error) {
+	txPreprocessor, err := preprocess.NewTransactionPreprocessor(args)
+	if err != nil {
+		return nil, err
+	}
+
+	switch ppcm.chainRunType {
+	case common.ChainRunTypeRegular:
+		return txPreprocessor, nil
+	case common.ChainRunTypeSovereign:
+		return preprocess.NewSovereignChainTransactionPreprocessor(txPreprocessor)
+	default:
+		return nil, fmt.Errorf("%w type %v", customErrors.ErrUnimplementedChainRunType, ppcm.chainRunType)
+	}
 }
 
 func (ppcm *preProcessorsContainerFactory) createSmartContractResultPreProcessor() (process.PreProcessor, error) {

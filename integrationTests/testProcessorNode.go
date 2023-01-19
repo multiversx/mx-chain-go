@@ -1534,6 +1534,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		txTypeHandler,
 		scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker,
+		common.ChainRunTypeRegular,
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 

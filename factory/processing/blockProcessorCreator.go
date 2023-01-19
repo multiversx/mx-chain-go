@@ -335,6 +335,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		txTypeHandler,
 		scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker,
+		pcf.chainRunType,
 	)
 	if err != nil {
 		return nil, err
