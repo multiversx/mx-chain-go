@@ -33,8 +33,8 @@
    ConnectionWatcherType = "disabled"
 
    # OverridableConfigTomlValues represents an array of items to be overloaded inside other configuration files, which can be helpful
-   # sp that certain config values need to remain the same during upgrades.
-   # (for example, an Elasticsearch user wants that external.toml->ElasticSearchConnector.Enabled to remain true all the time, while the default
+   # so that certain config values need to remain the same during upgrades.
+   # (for example, an Elasticsearch user wants external.toml->ElasticSearchConnector.Enabled to remain true all the time during upgrades, while the default
    # configuration of the node has the false value)
    # The Path indicates what value to change, while Value represents the new value in string format. The node operator must make sure
    # to follow the same type of the original value (ex: uint32: "37", float32: "37.0", bool: "true")
