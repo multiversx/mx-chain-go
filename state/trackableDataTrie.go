@@ -188,18 +188,21 @@ func (tdaw *trackableDataTrie) updateTrieV1(selfDataTrie dataTrie) ([]common.Tri
 func (tdaw *trackableDataTrie) updateTrieWithAutoBalancing(dtr dataTrie) ([]common.TrieData, error) {
 	oldValues := make([]common.TrieData, len(tdaw.dirtyData))
 
+	index := 0
 	for key, val := range tdaw.dirtyData {
 		oldEntry, err := tdaw.getOldKeyAndValWithCleanup(key)
 		if err != nil {
 			return nil, err
 		}
 
-		oldValues = append(oldValues, oldEntry)
+		oldValues[index] = oldEntry
 
 		err = tdaw.updateValInTrieWithAutoBalancing([]byte(key), val, dtr)
 		if err != nil {
 			return nil, err
 		}
+
+		index++
 	}
 
 	tdaw.dirtyData = make(map[string][]byte)

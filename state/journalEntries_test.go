@@ -239,7 +239,7 @@ func TestJournalEntryDataTrieUpdates_RevertFailsWhenUpdateFails(t *testing.T) {
 	accnt := stateMock.NewAccountWrapMock(nil)
 
 	tr := &trieMock.TrieStub{
-		UpdateCalled: func(key, value []byte) error {
+		UpdateWithVersionCalled: func(key, value []byte, version common.TrieNodeVersion) error {
 			return expectedErr
 		},
 	}
@@ -266,7 +266,7 @@ func TestJournalEntryDataTrieUpdates_RevertFailsWhenAccountRootFails(t *testing.
 	accnt := stateMock.NewAccountWrapMock(nil)
 
 	tr := &trieMock.TrieStub{
-		UpdateCalled: func(key, value []byte) error {
+		UpdateWithVersionCalled: func(key, value []byte, version common.TrieNodeVersion) error {
 			return nil
 		},
 		RootCalled: func() ([]byte, error) {
@@ -297,7 +297,7 @@ func TestJournalEntryDataTrieUpdates_RevertShouldWork(t *testing.T) {
 	accnt := stateMock.NewAccountWrapMock(nil)
 
 	tr := &trieMock.TrieStub{
-		UpdateCalled: func(key, value []byte) error {
+		UpdateWithVersionCalled: func(key, value []byte, version common.TrieNodeVersion) error {
 			updateWasCalled = true
 			return nil
 		},
