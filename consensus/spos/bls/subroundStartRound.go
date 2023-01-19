@@ -288,7 +288,9 @@ func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int64) error
 		return err
 	}
 
-	log.Trace("consensus group is formed by next validators:",
+	consensusGroupSizeForEpoch := sr.NodesCoordinator().ConsensusGroupSizeForShardAndEpoch(shardId, currentHeader.GetEpoch())
+
+	log.Trace("consensus group is formed by the following validators:",
 		"round", roundIndex)
 
 	for i := 0; i < len(nextConsensusGroup); i++ {
@@ -296,6 +298,7 @@ func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int64) error
 	}
 
 	sr.SetConsensusGroup(nextConsensusGroup)
+	sr.SetConsensusGroupSize(consensusGroupSizeForEpoch)
 
 	return nil
 }
