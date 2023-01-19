@@ -124,8 +124,8 @@ func (smp *StatusMetricsProvider) setPresenterValue(key string, value interface{
 }
 
 func formatUrlAddress(address string) string {
-	httpPrefix := "https://"
-	if !strings.HasPrefix(address, httpPrefix) {
+	httpPrefix := "http://"
+	if !strings.HasPrefix(address, "http") {
 		address = httpPrefix + address
 	}
 

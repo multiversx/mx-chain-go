@@ -222,24 +222,27 @@
     FixOldTokenLiquidityEnableEpoch = 1
 
     # RuntimeMemStoreLimitEnableEpoch represents the epoch when the condition for Runtime MemStore is enabled
-    RuntimeMemStoreLimitEnableEpoch = 1
+    RuntimeMemStoreLimitEnableEpoch = 2
 
     # SetSenderInEeiOutputTransferEnableEpoch represents the epoch when setting the sender in eei output transfers will be enabled
-    SetSenderInEeiOutputTransferEnableEpoch = 4
+    SetSenderInEeiOutputTransferEnableEpoch = 2
 
     # RefactorPeersMiniBlocksEnableEpoch represents the epoch when refactor of the peers mini blocks will be enabled
-    RefactorPeersMiniBlocksEnableEpoch = 5
+    RefactorPeersMiniBlocksEnableEpoch = 2
 
     # MaxBlockchainHookCountersEnableEpoch represents the epoch when the max blockchainhook counters are enabled
-	MaxBlockchainHookCountersEnableEpoch = 1
+    MaxBlockchainHookCountersEnableEpoch = 2
 
     # WipeSingleNFTLiquidityDecreaseEnableEpoch represents the epoch when the system account liquidity is decreased for wipeSingleNFT as well
-    WipeSingleNFTLiquidityDecreaseEnableEpoch = 5
+    WipeSingleNFTLiquidityDecreaseEnableEpoch = 2
+
+    # AlwaysSaveTokenMetaDataEnableEpoch represents the epoch when the token metadata is always saved
+    AlwaysSaveTokenMetaDataEnableEpoch = 2
 
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [
         { EnableEpoch = 0, Type = "no-KOSK"},
-        { EnableEpoch = 3, Type = "KOSK"}
+        { EnableEpoch = 2, Type = "KOSK"}
     ]
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
@@ -253,5 +256,5 @@
     GasScheduleByEpochs = [
         { StartEpoch = 0, FileName = "gasScheduleV1.toml" },
         { StartEpoch = 1, FileName = "gasScheduleV6.toml" },
-        { StartEpoch = 5, FileName = "gasScheduleV7.toml" },
+        { StartEpoch = 2, FileName = "gasScheduleV7.toml" },
     ]
