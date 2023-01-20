@@ -19,7 +19,6 @@ import (
 
 const governanceConfigKey = "governanceConfig"
 const proposalPrefix = "p_"
-const stakeLockPrefix = "s_"
 const yesString = "yes"
 const noString = "no"
 const vetoString = "veto"
@@ -469,7 +468,6 @@ func (g *governanceContract) addUserVote(
 		return err
 	}
 
-	g.lockStake(address, proposal.EndVoteNonce)
 	return g.saveGeneralProposal(proposal.CommitHash, proposal)
 }
 
@@ -503,31 +501,6 @@ func addNewNonce(nonceList []uint64, newNonce uint64) ([]uint64, error) {
 
 	nonceList = append(nonceList, newNonce)
 	return nonceList, nil
-}
-
-//TODO: I would delete lockStake - if we put a voting period less than 10 epochs, we do not need this.
-func (g *governanceContract) lockStake(address []byte, endNonce uint64) {
-	stakeLockKey := append([]byte(stakeLockPrefix), address...)
-	lastData := g.eei.GetStorage(stakeLockKey)
-	lastEndNonce := uint64(0)
-	if len(lastData) > 0 {
-		lastEndNonce = big.NewInt(0).SetBytes(lastData).Uint64()
-	}
-
-	if lastEndNonce < endNonce {
-		g.eei.SetStorage(stakeLockKey, big.NewInt(0).SetUint64(endNonce).Bytes())
-	}
-}
-
-func isStakeLocked(eei vm.SystemEI, governanceAddress []byte, address []byte) bool {
-	stakeLockKey := append([]byte(stakeLockPrefix), address...)
-	lastData := eei.GetStorageFromAddress(governanceAddress, stakeLockKey)
-	if len(lastData) == 0 {
-		return false
-	}
-
-	lastEndNonce := big.NewInt(0).SetBytes(lastData).Uint64()
-	return eei.BlockChainHook().CurrentNonce() < lastEndNonce
 }
 
 func (g *governanceContract) getMinValueToVote() (*big.Int, error) {
@@ -656,7 +629,6 @@ func (g *governanceContract) computeVotingPower(value *big.Int) (*big.Int, error
 		return nil, vm.ErrNotEnoughStakeToVote
 	}
 
-	//TODO: decide whether quadratic or not
 	return big.NewInt(0).Sqrt(value), nil
 }
 
