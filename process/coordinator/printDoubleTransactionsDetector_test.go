@@ -3,12 +3,12 @@ package coordinator
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
-	"github.com/ElrondNetwork/elrond-go/testscommon/marshallerMock"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/stretchr/testify/assert"
 )
 

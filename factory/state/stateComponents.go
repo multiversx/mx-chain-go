@@ -3,19 +3,19 @@ package state
 import (
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	chainData "github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/factory"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/state"
-	factoryState "github.com/ElrondNetwork/elrond-go/state/factory"
-	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager"
-	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/evictionWaitingList"
-	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	chainData "github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/state"
+	factoryState "github.com/multiversx/mx-chain-go/state/factory"
+	"github.com/multiversx/mx-chain-go/state/storagePruningManager"
+	"github.com/multiversx/mx-chain-go/state/storagePruningManager/evictionWaitingList"
+	trieFactory "github.com/multiversx/mx-chain-go/trie/factory"
 )
 
 // TODO: merge this with data components
@@ -43,7 +43,7 @@ type stateComponentsFactory struct {
 	chainHandler             chainData.ChainHandler
 }
 
-// stateComponents struct holds the state components of the Elrond protocol
+// stateComponents struct holds the state components of the MultiversX protocol
 type stateComponents struct {
 	peerAccounts        state.AccountsAdapter
 	accountsAdapter     state.AccountsAdapter

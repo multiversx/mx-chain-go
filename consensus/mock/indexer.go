@@ -1,6 +1,6 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go-core/data/outport"
+import "github.com/multiversx/mx-chain-core-go/data/outport"
 
 // IndexerMock is a mock implementation fot the Indexer interface
 type IndexerMock struct{}

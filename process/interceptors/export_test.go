@@ -1,6 +1,6 @@
 package interceptors
 
-import "github.com/ElrondNetwork/elrond-go/process"
+import "github.com/multiversx/mx-chain-go/process"
 
 // Topic -
 func (mdi *MultiDataInterceptor) Topic() string {

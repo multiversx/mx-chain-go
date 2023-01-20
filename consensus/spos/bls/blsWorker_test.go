@@ -3,10 +3,10 @@ package bls_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/stretchr/testify/assert"
 )
 

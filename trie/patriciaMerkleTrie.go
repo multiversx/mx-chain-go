@@ -7,14 +7,14 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/trie/statistics"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/trie/statistics"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("trie")

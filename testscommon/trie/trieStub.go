@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 var errNotImplemented = errors.New("not implemented")

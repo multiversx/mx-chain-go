@@ -5,11 +5,11 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/cache"
-	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/cache"
+	"github.com/multiversx/mx-chain-go/storage/storageunit"
 )
 
 const cacheSize = 10

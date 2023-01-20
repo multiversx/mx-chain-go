@@ -3,9 +3,9 @@ package sync
 import (
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/update"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/update"
 )
 
 // GetDataFromStorage searches for data from storage

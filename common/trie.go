@@ -3,7 +3,7 @@ package common
 import (
 	"bytes"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/multiversx/mx-chain-core-go/core"
 )
 
 // EmptyTrieHash returns the value with empty trie hash

@@ -1,12 +1,14 @@
 package state
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/marshallerMock"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
+	"github.com/multiversx/mx-chain-vm-common-go"
 )
+
+// TODO: move all the mocks from the mock package to testscommon
 
 // AccountsFactoryStub -
 type AccountsFactoryStub struct {

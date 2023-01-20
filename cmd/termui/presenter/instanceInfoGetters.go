@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 // GetAppVersion will return application version

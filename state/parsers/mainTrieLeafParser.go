@@ -1,8 +1,8 @@
 package parsers
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/keyValStorage"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/keyValStorage"
 )
 
 type mainTrieLeafParser struct {
