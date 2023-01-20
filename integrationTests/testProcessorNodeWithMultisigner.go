@@ -230,10 +230,13 @@ func CreateNodesWithNodesCoordinatorFactory(
 	}
 
 	epochsConfig := config.EnableEpochs{
-		StakingV2EnableEpoch:                 UnreachableEpoch,
-		ScheduledMiniBlocksEnableEpoch:       UnreachableEpoch,
-		MiniBlockPartialExecutionEnableEpoch: UnreachableEpoch,
-		RefactorPeersMiniBlocksEnableEpoch:   UnreachableEpoch,
+		StakingV2EnableEpoch:                     UnreachableEpoch,
+		ScheduledMiniBlocksEnableEpoch:           UnreachableEpoch,
+		MiniBlockPartialExecutionEnableEpoch:     UnreachableEpoch,
+		RefactorPeersMiniBlocksEnableEpoch:       UnreachableEpoch,
+		StakingV4EnableEpoch:                     UnreachableEpoch,
+		StakingV4InitEnableEpoch:                 UnreachableEpoch,
+		StakingV4DistributeAuctionToWaitingEpoch: UnreachableEpoch,
 	}
 
 	nodesMap := make(map[uint32][]*TestProcessorNode)

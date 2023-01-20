@@ -3326,5 +3326,8 @@ func GetDefaultEnableEpochsConfig() *config.EnableEpochs {
 		ScheduledMiniBlocksEnableEpoch:              UnreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch:        UnreachableEpoch,
 		FailExecutionOnEveryAPIErrorEnableEpoch:     UnreachableEpoch,
+		StakingV4InitEnableEpoch:                    UnreachableEpoch,
+		StakingV4EnableEpoch:                        UnreachableEpoch,
+		StakingV4DistributeAuctionToWaitingEpoch:    UnreachableEpoch,
 	}
 }

@@ -60,10 +60,13 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	numMetachainNodes := 3
 
 	enableEpochsConfig := config.EnableEpochs{
-		StakingV2EnableEpoch:                 integrationTests.UnreachableEpoch,
-		ScheduledMiniBlocksEnableEpoch:       integrationTests.UnreachableEpoch,
-		MiniBlockPartialExecutionEnableEpoch: integrationTests.UnreachableEpoch,
-		RefactorPeersMiniBlocksEnableEpoch:   integrationTests.UnreachableEpoch,
+		StakingV2EnableEpoch:                     integrationTests.UnreachableEpoch,
+		ScheduledMiniBlocksEnableEpoch:           integrationTests.UnreachableEpoch,
+		MiniBlockPartialExecutionEnableEpoch:     integrationTests.UnreachableEpoch,
+		RefactorPeersMiniBlocksEnableEpoch:       integrationTests.UnreachableEpoch,
+		StakingV4InitEnableEpoch:                 integrationTests.UnreachableEpoch,
+		StakingV4EnableEpoch:                     integrationTests.UnreachableEpoch,
+		StakingV4DistributeAuctionToWaitingEpoch: integrationTests.UnreachableEpoch,
 	}
 
 	nodes := integrationTests.CreateNodesWithEnableEpochs(

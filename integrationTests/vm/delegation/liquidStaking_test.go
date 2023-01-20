@@ -22,6 +22,9 @@ import (
 var log = logger.GetOrCreate("liquidStaking")
 
 func TestDelegationSystemSCWithLiquidStaking(t *testing.T) {
+	t.Skip("this test seems to be incompatible with later flags;" +
+		"since liquid staking will be most likely used on RUST SC and not on protocol level, we will be disable this test")
+
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}

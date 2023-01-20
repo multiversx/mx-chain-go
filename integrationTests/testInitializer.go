@@ -705,6 +705,9 @@ func CreateFullGenesisBlocks(
 				return false
 			},
 		},
+		EpochConfig: &config.EpochConfig{
+			EnableEpochs: enableEpochsConfig,
+		},
 	}
 
 	genesisProcessor, _ := genesisProcess.NewGenesisBlockCreator(argsGenesis)
@@ -1454,6 +1457,9 @@ func CreateNodesWithFullGenesis(
 
 	enableEpochsConfig := GetDefaultEnableEpochsConfig()
 	enableEpochsConfig.StakingV2EnableEpoch = UnreachableEpoch
+	enableEpochsConfig.StakingV4InitEnableEpoch = UnreachableEpoch
+	enableEpochsConfig.StakingV4EnableEpoch = UnreachableEpoch
+	enableEpochsConfig.StakingV4DistributeAuctionToWaitingEpoch = UnreachableEpoch
 
 	economicsConfig := createDefaultEconomicsConfig()
 	economicsConfig.GlobalSettings.YearSettings = append(
@@ -1522,6 +1528,9 @@ func CreateNodesWithCustomStateCheckpointModulus(
 
 	enableEpochsConfig := GetDefaultEnableEpochsConfig()
 	enableEpochsConfig.StakingV2EnableEpoch = UnreachableEpoch
+	enableEpochsConfig.StakingV4InitEnableEpoch = UnreachableEpoch
+	enableEpochsConfig.StakingV4EnableEpoch = UnreachableEpoch
+	enableEpochsConfig.StakingV4DistributeAuctionToWaitingEpoch = UnreachableEpoch
 
 	scm := &IntWrapper{
 		Value: stateCheckpointModulus,
