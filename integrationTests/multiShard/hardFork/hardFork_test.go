@@ -440,9 +440,9 @@ func hardForkImport(
 					},
 					Active: config.GovernanceSystemSCConfigActive{
 						ProposalCost:     "500",
-						MinQuorum:        "50",
-						MinPassThreshold: "50",
-						MinVetoThreshold: "50",
+						MinQuorum:        0.5,
+						MinPassThreshold: 0.5,
+						MinVetoThreshold: 0.5,
 					},
 					ChangeConfigAddress: integrationTests.DelegationManagerConfigChangeAddress,
 				},

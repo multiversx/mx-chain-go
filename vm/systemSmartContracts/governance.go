@@ -305,6 +305,7 @@ func (g *governanceContract) proposal(args *vmcommon.ContractCallInput) vmcommon
 		No:             big.NewInt(0),
 		Veto:           big.NewInt(0),
 		Abstain:        big.NewInt(0),
+		QuorumStake:    big.NewInt(0),
 		Passed:         false,
 		ProposalCost:   generalConfig.ProposalFee,
 		Nonce:          nextNonce,
@@ -344,7 +345,7 @@ func (g *governanceContract) vote(args *vmcommon.ContractCallInput) vmcommon.Ret
 
 	voterAddress := args.CallerAddr
 	proposalToVote := args.Arguments[0]
-	totalVotingPower, err := g.computeVotingPowerFromTotalStake(voterAddress)
+	totalStake, totalVotingPower, err := g.computeTotalStakeAndVotingPower(voterAddress)
 	if err != nil {
 		g.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -355,6 +356,7 @@ func (g *governanceContract) vote(args *vmcommon.ContractCallInput) vmcommon.Ret
 		proposalToVote,
 		string(args.Arguments[1]),
 		totalVotingPower,
+		totalStake,
 		true)
 	if err != nil {
 		g.eei.AddReturnMessage(err.Error())
@@ -394,7 +396,15 @@ func (g *governanceContract) delegateVote(args *vmcommon.ContractCallInput) vmco
 	}
 
 	proposalToVote := args.Arguments[0]
-	votePower, err := g.updateDelegatedContractInfo(args.CallerAddr, proposalToVote, args.Arguments[3])
+	userStake := big.NewInt(0).SetBytes(args.Arguments[3])
+
+	scDelegatedVoteInfo, votePower, err := g.computeDelegatedVotePower(args.CallerAddr, proposalToVote, userStake)
+	if err != nil {
+		g.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	err = g.updateDelegatedContractInfo(args.CallerAddr, proposalToVote, scDelegatedVoteInfo, userStake, votePower)
 	if err != nil {
 		g.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -405,6 +415,7 @@ func (g *governanceContract) delegateVote(args *vmcommon.ContractCallInput) vmco
 		proposalToVote,
 		string(args.Arguments[1]),
 		votePower,
+		userStake,
 		false)
 	if err != nil {
 		g.eei.AddReturnMessage(err.Error())
@@ -414,26 +425,40 @@ func (g *governanceContract) delegateVote(args *vmcommon.ContractCallInput) vmco
 	return vmcommon.Ok
 }
 
-func (g *governanceContract) updateDelegatedContractInfo(scAddress []byte, reference []byte, balance []byte) (*big.Int, error) {
+func (g *governanceContract) computeDelegatedVotePower(
+	scAddress []byte,
+	reference []byte,
+	balance *big.Int,
+) (*DelegatedSCVoteInfo, *big.Int, error) {
 	scVoteInfo, err := g.getDelegatedContractInfo(scAddress, reference)
 	if err != nil {
-		return nil, err
-	}
-	votePower, err := g.computeVotingPower(big.NewInt(0).SetBytes(balance))
-	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
+	totalPower := big.NewInt(0).Set(scVoteInfo.TotalPower)
+	votePower := big.NewInt(0).Mul(totalPower, balance)
+	votePower.Div(votePower, scVoteInfo.TotalStake)
+	return scVoteInfo, votePower, nil
+}
+
+func (g *governanceContract) updateDelegatedContractInfo(
+	scAddress []byte,
+	reference []byte,
+	scVoteInfo *DelegatedSCVoteInfo,
+	balance *big.Int,
+	votePower *big.Int,
+) error {
 	scVoteInfo.UsedPower.Add(scVoteInfo.UsedPower, votePower)
 	if scVoteInfo.TotalPower.Cmp(scVoteInfo.UsedPower) < 0 {
-		return nil, vm.ErrNotEnoughVotingPower
-	}
-	err = g.saveDelegatedContractInfo(scAddress, scVoteInfo, reference)
-	if err != nil {
-		return nil, err
+		return vm.ErrNotEnoughVotingPower
 	}
 
-	return votePower, nil
+	scVoteInfo.UsedStake.Add(scVoteInfo.UsedStake, balance)
+	if scVoteInfo.TotalStake.Cmp(scVoteInfo.TotalStake) < 0 {
+		return vm.ErrNotEnoughVotingPower
+	}
+
+	return g.saveDelegatedContractInfo(scAddress, scVoteInfo, reference)
 }
 
 func (g *governanceContract) addUserVote(
@@ -441,6 +466,7 @@ func (g *governanceContract) addUserVote(
 	nonceAsBytes []byte,
 	vote string,
 	totalVotingPower *big.Int,
+	totalStake *big.Int,
 	direct bool,
 ) error {
 	nonce, err := nonceFromBytes(nonceAsBytes)
@@ -468,6 +494,7 @@ func (g *governanceContract) addUserVote(
 		return err
 	}
 
+	proposal.QuorumStake.Add(proposal.QuorumStake, totalStake)
 	return g.saveGeneralProposal(proposal.CommitHash, proposal)
 }
 
@@ -588,7 +615,7 @@ func (g *governanceContract) getVotingPower(args *vmcommon.ContractCallInput) vm
 		return vmcommon.UserError
 	}
 
-	votingPower, err := g.computeVotingPowerFromTotalStake(validatorAddress)
+	_, votingPower, err := g.computeTotalStakeAndVotingPower(validatorAddress)
 	if err != nil {
 		g.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -649,27 +676,27 @@ func (g *governanceContract) castVoteType(vote string) (VoteValueType, error) {
 }
 
 // function iterates over all delegation contracts and verifies balances of the given account and makes a sum of it
-func (g *governanceContract) computeVotingPowerFromTotalStake(address []byte) (*big.Int, error) {
+func (g *governanceContract) computeTotalStakeAndVotingPower(address []byte) (*big.Int, *big.Int, error) {
 	totalStake, err := g.getTotalStake(address)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	dContractList, err := getDelegationContractList(g.eei, g.marshalizer, g.delegationMgrSCAddress)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	err = g.eei.UseGas(g.gasCost.MetaChainSystemSCsCost.Get * uint64(len(dContractList.Addresses)))
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	var activeDelegated *big.Int
 	for _, contract := range dContractList.Addresses {
 		activeDelegated, err = g.getActiveFundForDelegator(contract, address)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		totalStake.Add(totalStake, activeDelegated)
@@ -677,10 +704,10 @@ func (g *governanceContract) computeVotingPowerFromTotalStake(address []byte) (*
 
 	votingPower, err := g.computeVotingPower(totalStake)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return votingPower, nil
+	return totalStake, votingPower, nil
 }
 
 // computeEndResults computes if a proposal has passed or not based on votes accumulated
@@ -689,6 +716,8 @@ func (g *governanceContract) computeEndResults(proposal *GeneralProposal) error 
 	if err != nil {
 		return err
 	}
+
+	// core.GetIntTrimmedPercentageOfValue(totalRewards, e.rewardsHandler.ProtocolSustainabilityPercentage())
 
 	totalVotes := big.NewInt(0).Add(proposal.Yes, proposal.No)
 	totalVotes.Add(totalVotes, proposal.Veto)
@@ -785,6 +814,8 @@ func (g *governanceContract) getDelegatedContractInfo(scAddress []byte, referenc
 	scVoteInfo := &DelegatedSCVoteInfo{
 		TotalPower: big.NewInt(0),
 		UsedPower:  big.NewInt(0),
+		TotalStake: big.NewInt(0),
+		UsedStake:  big.NewInt(0),
 	}
 
 	marshalledData := g.eei.GetStorage(append(scAddress, reference...))
@@ -797,11 +828,12 @@ func (g *governanceContract) getDelegatedContractInfo(scAddress []byte, referenc
 		return scVoteInfo, nil
 	}
 
-	totalVotingPower, err := g.computeVotingPowerFromTotalStake(scAddress)
+	totalStake, totalVotingPower, err := g.computeTotalStakeAndVotingPower(scAddress)
 	if err != nil {
 		return nil, err
 	}
 	scVoteInfo.TotalPower.Set(totalVotingPower)
+	scVoteInfo.TotalStake.Set(totalStake)
 
 	return scVoteInfo, nil
 }
@@ -941,16 +973,13 @@ func nonceFromBytes(nonce []byte) (*big.Int, error) {
 
 // convertV2Config converts the passed config file to the correct V2 typed GovernanceConfig
 func (g *governanceContract) convertV2Config(config config.GovernanceSystemSCConfig) (*GovernanceConfigV2, error) {
-	minQuorum, success := big.NewInt(0).SetString(config.Active.MinQuorum, conversionBase)
-	if !success {
+	if config.Active.MinQuorum <= 0.01 {
 		return nil, vm.ErrIncorrectConfig
 	}
-	minPass, success := big.NewInt(0).SetString(config.Active.MinPassThreshold, conversionBase)
-	if !success {
+	if config.Active.MinPassThreshold <= 0.01 {
 		return nil, vm.ErrIncorrectConfig
 	}
-	minVeto, success := big.NewInt(0).SetString(config.Active.MinVetoThreshold, conversionBase)
-	if !success {
+	if config.Active.MinVetoThreshold <= 0.01 {
 		return nil, vm.ErrIncorrectConfig
 	}
 	proposalFee, success := big.NewInt(0).SetString(config.Active.ProposalCost, conversionBase)
@@ -959,9 +988,9 @@ func (g *governanceContract) convertV2Config(config config.GovernanceSystemSCCon
 	}
 
 	return &GovernanceConfigV2{
-		MinQuorum:        minQuorum,
-		MinPassThreshold: minPass,
-		MinVetoThreshold: minVeto,
+		MinQuorum:        config.Active.MinQuorum,
+		MinPassThreshold: config.Active.MinPassThreshold,
+		MinVetoThreshold: config.Active.MinVetoThreshold,
 		ProposalFee:      proposalFee,
 	}, nil
 }

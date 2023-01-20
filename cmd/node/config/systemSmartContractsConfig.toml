@@ -26,9 +26,9 @@
         MinVetoThreshold   = 50
     [GovernanceSystemSCConfig.Active]
         ProposalCost       = "1000000000000000000000" #1000 eGLD
-        MinQuorum          = "500000000000" # MinQuorum is equal to 10*sqrt(NodePrice)
-        MinPassThreshold   = "251000000000"
-        MinVetoThreshold   = "249000000000"
+        MinQuorum          = 0.5  #fraction of value 0.5  - 50%
+        MinPassThreshold   = 0.5  #fraction of value 0.5  - 50%
+        MinVetoThreshold   = 0.33 #fraction of value 0.33 - 33%
 
 [DelegationManagerSystemSCConfig]
     MinCreationDeposit = "1250000000000000000000" #1.25K eGLD

@@ -41,9 +41,9 @@ func createArgsWithEEI(eei vm.SystemEI) ArgsNewGovernanceContract {
 			},
 			Active: config.GovernanceSystemSCConfigActive{
 				ProposalCost:     "500",
-				MinQuorum:        "50",
-				MinPassThreshold: "50",
-				MinVetoThreshold: "50",
+				MinQuorum:        0.5,
+				MinPassThreshold: 0.5,
+				MinVetoThreshold: 0.5,
 			},
 			ChangeConfigAddress: "erd1vxy22x0fj4zv6hktmydg8vpfh6euv02cz4yg0aaws6rrad5a5awqgqky80",
 		},
@@ -259,7 +259,7 @@ func TestGovernanceContract_ExecuteInitV2InvalidConfig(t *testing.T) {
 	t.Parallel()
 
 	args := createMockGovernanceArgs()
-	args.GovernanceConfig.Active.MinQuorum = ""
+	args.GovernanceConfig.Active.MinQuorum = 0.0
 	gsc, _ := NewGovernanceContract(args)
 	callInput := createVMInput(big.NewInt(0), "initV2", vm.GovernanceSCAddress, vm.GovernanceSCAddress, nil)
 	retCode := gsc.Execute(callInput)
@@ -894,9 +894,9 @@ func TestGovernanceContract_CloseProposal(t *testing.T) {
 			}
 			if bytes.Equal(key, []byte(governanceConfigKey)) {
 				configBytes, _ := args.Marshalizer.Marshal(&GovernanceConfigV2{
-					MinQuorum:        big.NewInt(10),
-					MinVetoThreshold: big.NewInt(10),
-					MinPassThreshold: big.NewInt(10),
+					MinQuorum:        0.1,
+					MinVetoThreshold: 0.1,
+					MinPassThreshold: 0.1,
 				})
 				return configBytes
 			}
@@ -1420,9 +1420,9 @@ func TestComputeEndResults(t *testing.T) {
 		GetStorageCalled: func(key []byte) []byte {
 			if bytes.Equal(key, []byte(governanceConfigKey)) {
 				configBytes, _ := args.Marshalizer.Marshal(&GovernanceConfigV2{
-					MinQuorum:        big.NewInt(100),
-					MinPassThreshold: big.NewInt(51),
-					MinVetoThreshold: big.NewInt(30),
+					MinQuorum:        0.4,
+					MinPassThreshold: 0.5,
+					MinVetoThreshold: 0.3,
 				})
 				return configBytes
 			}

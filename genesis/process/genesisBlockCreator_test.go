@@ -96,9 +96,9 @@ func createMockArgument(
 				},
 				Active: config.GovernanceSystemSCConfigActive{
 					ProposalCost:     "500",
-					MinQuorum:        "50",
-					MinPassThreshold: "50",
-					MinVetoThreshold: "50",
+					MinQuorum:        0.5,
+					MinPassThreshold: 0.5,
+					MinVetoThreshold: 0.5,
 				},
 				ChangeConfigAddress: "3132333435363738393031323334353637383930313233343536373839303234",
 			},
