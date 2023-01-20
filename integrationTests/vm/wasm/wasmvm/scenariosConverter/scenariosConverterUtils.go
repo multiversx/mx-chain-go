@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/config"
-	mge "github.com/multiversx/mx-chain-vm-v1_4-go/mandos-go/elrondgo-exporter"
-	mgutil "github.com/multiversx/mx-chain-vm-v1_4-go/mandos-go/util"
+	mge "github.com/multiversx/mx-chain-vm-v1_4-go/scenarios/elrondgo-exporter"
+	mgutil "github.com/multiversx/mx-chain-vm-v1_4-go/scenarios/util"
 
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"

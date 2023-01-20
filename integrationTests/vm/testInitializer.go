@@ -144,12 +144,21 @@ func (vmTestContext *VMTestContext) GetGasRemaining() uint64 {
 }
 
 // GetIntermediateTransactions -
-func (vmTestContext *VMTestContext) GetIntermediateTransactions(t *testing.T) []data.TransactionHandler {
+func (vmTestContext *VMTestContext) GetIntermediateTransactions(tb testing.TB) []data.TransactionHandler {
 	scForwarder := vmTestContext.ScForwarder
 	mockIntermediate, ok := scForwarder.(*mock.IntermediateTransactionHandlerMock)
-	require.True(t, ok)
+	require.True(tb, ok)
 
 	return mockIntermediate.GetIntermediateTransactions()
+}
+
+// CleanIntermediateTransactions -
+func (vmTestContext *VMTestContext) CleanIntermediateTransactions(tb testing.TB) {
+	scForwarder := vmTestContext.ScForwarder
+	mockIntermediate, ok := scForwarder.(*mock.IntermediateTransactionHandlerMock)
+	require.True(tb, ok)
+
+	mockIntermediate.Clean()
 }
 
 // CreateTransaction -
