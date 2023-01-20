@@ -1,12 +1,12 @@
-//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/ElrondNetwork/protobuf/protobuf  --gogoslick_out=. proto/accountWrapperMock.proto
+//go:generate protoc -I=. -I=$GOPATH/src -I=$GOPATH/src/github.com/multiversx/protobuf/protobuf  --gogoslick_out=. accountWrapperMock.proto
 package state
 
 import (
 	"context"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 var _ state.UserAccountHandler = (*UserAccountStub)(nil)
@@ -14,6 +14,10 @@ var _ state.UserAccountHandler = (*UserAccountStub)(nil)
 // UserAccountStub -
 type UserAccountStub struct {
 	Balance             *big.Int
+	DeveloperRewards    *big.Int
+	UserName            []byte
+	Owner               []byte
+	Address             []byte
 	AddToBalanceCalled  func(value *big.Int) error
 	RetrieveValueCalled func(_ []byte) ([]byte, uint32, error)
 }
@@ -29,7 +33,7 @@ func (u *UserAccountStub) SetUserName(_ []byte) {
 
 // GetUserName -
 func (u *UserAccountStub) GetUserName() []byte {
-	return nil
+	return u.UserName
 }
 
 // AddToBalance -
@@ -62,7 +66,7 @@ func (u *UserAccountStub) AddToDeveloperReward(*big.Int) {
 
 // GetDeveloperReward -
 func (u *UserAccountStub) GetDeveloperReward() *big.Int {
-	return nil
+	return u.DeveloperRewards
 }
 
 // ChangeOwnerAddress -
@@ -77,12 +81,12 @@ func (u *UserAccountStub) SetOwnerAddress([]byte) {
 
 // GetOwnerAddress -
 func (u *UserAccountStub) GetOwnerAddress() []byte {
-	return nil
+	return u.Owner
 }
 
 // AddressBytes -
 func (u *UserAccountStub) AddressBytes() []byte {
-	return nil
+	return u.Address
 }
 
 //IncreaseNonce -

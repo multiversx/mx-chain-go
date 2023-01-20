@@ -3,9 +3,9 @@ package network_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	networkComp "github.com/ElrondNetwork/elrond-go/factory/network"
-	componentsMock "github.com/ElrondNetwork/elrond-go/testscommon/components"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	networkComp "github.com/multiversx/mx-chain-go/factory/network"
+	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/stretchr/testify/require"
 )
 

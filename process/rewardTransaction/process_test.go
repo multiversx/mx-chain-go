@@ -5,17 +5,17 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/marshallerMock"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/process/rewardTransaction"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
+	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -258,14 +258,14 @@ func TestRewardTxProcessor_ProcessRewardTransactionToASmartContractShouldWork(t 
 	err := rtp.ProcessRewardTransaction(&rwdTx)
 	assert.Nil(t, err)
 	assert.True(t, saveAccountWasCalled)
-	val, _, err := userAccount.RetrieveValue([]byte(core.ElrondProtectedKeyPrefix + rewardTransaction.RewardKey))
+	val, _, err := userAccount.RetrieveValue([]byte(core.ProtectedKeyPrefix + rewardTransaction.RewardKey))
 	assert.Nil(t, err)
 	assert.True(t, rwdTx.Value.Cmp(big.NewInt(0).SetBytes(val)) == 0)
 
 	err = rtp.ProcessRewardTransaction(&rwdTx)
 	assert.Nil(t, err)
 	assert.True(t, saveAccountWasCalled)
-	val, _, err = userAccount.RetrieveValue([]byte(core.ElrondProtectedKeyPrefix + rewardTransaction.RewardKey))
+	val, _, err = userAccount.RetrieveValue([]byte(core.ProtectedKeyPrefix + rewardTransaction.RewardKey))
 	assert.Nil(t, err)
 	rwdTx.Value.Add(rwdTx.Value, rwdTx.Value)
 	assert.True(t, rwdTx.Value.Cmp(big.NewInt(0).SetBytes(val)) == 0)
