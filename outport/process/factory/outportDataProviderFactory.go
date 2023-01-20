@@ -1,22 +1,22 @@
 package factory
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/outport"
-	"github.com/ElrondNetwork/elrond-go/outport/process"
-	"github.com/ElrondNetwork/elrond-go/outport/process/alteredaccounts"
-	"github.com/ElrondNetwork/elrond-go/outport/process/disabled"
-	"github.com/ElrondNetwork/elrond-go/outport/process/executionOrder"
-	"github.com/ElrondNetwork/elrond-go/outport/process/transactionsfee"
-	processTxs "github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/outport"
+	"github.com/multiversx/mx-chain-go/outport/process"
+	"github.com/multiversx/mx-chain-go/outport/process/alteredaccounts"
+	"github.com/multiversx/mx-chain-go/outport/process/disabled"
+	"github.com/multiversx/mx-chain-go/outport/process/executionOrder"
+	"github.com/multiversx/mx-chain-go/outport/process/transactionsfee"
+	processTxs "github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // ArgOutportDataProviderFactory holds the arguments needed for creating a new instance of outport.DataProviderOutport

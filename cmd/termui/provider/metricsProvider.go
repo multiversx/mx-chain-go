@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("termui/provider")

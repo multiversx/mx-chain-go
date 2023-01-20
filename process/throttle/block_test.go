@@ -3,8 +3,8 @@ package throttle_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/process/throttle"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/process/throttle"
 	"github.com/stretchr/testify/assert"
 )
 

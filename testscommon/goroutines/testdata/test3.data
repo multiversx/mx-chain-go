@@ -1,8 +1,8 @@
 goroutine 52 [running]:
-github.com/ElrondNetwork/elrond-go/integrationTests/state/stateTrieClose.goRoutineDumper({0x1335708, 0xc0002a4000})
-	/home/user/go/src/github.com/ElrondNetwork/elrond-go/integrationTests/state/stateTrieClose/stateTrieClose_test.go:97 +0x4d
-github.com/ElrondNetwork/elrond-go/integrationTests/state/stateTrieClose.TestPatriciaMerkleTrie_Close(0x436319)
-	/home/user/go/src/github.com/ElrondNetwork/elrond-go/integrationTests/state/stateTrieClose/stateTrieClose_test.go:33 +0x205
+github.com/multiversx/mx-chain-go/integrationTests/state/stateTrieClose.goRoutineDumper({0x1335708, 0xc0002a4000})
+	/home/user/go/src/github.com/multiversx/mx-chain-go/integrationTests/state/stateTrieClose/stateTrieClose_test.go:97 +0x4d
+github.com/multiversx/mx-chain-go/integrationTests/state/stateTrieClose.TestPatriciaMerkleTrie_Close(0x436319)
+	/home/user/go/src/github.com/multiversx/mx-chain-go/integrationTests/state/stateTrieClose/stateTrieClose_test.go:33 +0x205
 testing.tRunner(0xc000103040, 0x12171b0)
 	/usr/local/go/src/testing/testing.go:1259 +0x102
 created by testing.(*T).Run
@@ -77,9 +77,9 @@ created by github.com/libp2p/go-libp2p-asn-util.newIndirectAsnStore
 	/home/user/go/pkg/mod/github.com/libp2p/go-libp2p-asn-util@v0.0.0-20200825225859-85005c6cf052/asn.go:87 +0xa5
 
 goroutine 53 [select]:
-github.com/ElrondNetwork/elrond-go/trie.(*trieStorageManager).doProcessLoop(0xc0000f0000, {0x13248d8, 0xc000753100}, {0x1315fc8, 0x1ca7ca0}, {0x1315f98, 0xc0003993f8})
-	/home/user/go/src/github.com/ElrondNetwork/elrond-go/trie/trieStorageManager.go:110 +0x11f
-github.com/ElrondNetwork/elrond-go/trie.(*trieStorageManager).doCheckpointsAndSnapshots(0xc000103040, {0x13248d8, 0xc000753100}, {0x1315fc8, 0x1ca7ca0}, {0x1315f98, 0xc0003993f8})
-	/home/user/go/src/github.com/ElrondNetwork/elrond-go/trie/trieStorageManager.go:104 +0x3f
-created by github.com/ElrondNetwork/elrond-go/trie.NewTrieStorageManager
-	/home/user/go/src/github.com/ElrondNetwork/elrond-go/trie/trieStorageManager.go:99 +0x5f7
+github.com/multiversx/mx-chain-go/trie.(*trieStorageManager).doProcessLoop(0xc0000f0000, {0x13248d8, 0xc000753100}, {0x1315fc8, 0x1ca7ca0}, {0x1315f98, 0xc0003993f8})
+	/home/user/go/src/github.com/multiversx/mx-chain-go/trie/trieStorageManager.go:110 +0x11f
+github.com/multiversx/mx-chain-go/trie.(*trieStorageManager).doCheckpointsAndSnapshots(0xc000103040, {0x13248d8, 0xc000753100}, {0x1315fc8, 0x1ca7ca0}, {0x1315f98, 0xc0003993f8})
+	/home/user/go/src/github.com/multiversx/mx-chain-go/trie/trieStorageManager.go:104 +0x3f
+created by github.com/multiversx/mx-chain-go/trie.NewTrieStorageManager
+	/home/user/go/src/github.com/multiversx/mx-chain-go/trie/trieStorageManager.go:99 +0x5f7
