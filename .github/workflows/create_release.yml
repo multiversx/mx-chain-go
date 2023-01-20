@@ -47,8 +47,8 @@ jobs:
           GOPATH=$(go env GOPATH)
           ARCHIVE="multiversx_""$APP_VER_SHORT""_""$GOOS""_""$GOARCH"".tgz"
           BUILD_DIR=${GITHUB_WORKSPACE}/build
-          WASM_VERSION=$(cat go.mod | grep mx-chain-vm-v | sed 's/^.*mx-chain-vm-v1_4 *//' | tail -n 1)
-          WASMER_DIR=${GOPATH}/pkg/mod/github.com/multiversx/mx-chain-vm-v1_4-go@${WASM_VERSION}/wasmer
+          WASM_VERSION=$(cat go.mod | grep mx-chain-vm-v | sort -n | tail -n -1| awk -F '/' '{print$3}'| sed 's/ /@/g')
+          WASMER_DIR=${GOPATH}/pkg/mod/github.com/multiversx/${WASM_VERSION}/wasmer
 
           echo "GOOS=${GOOS}" >> $GITHUB_ENV
           echo "GOARCH=${GOARCH}" >> $GITHUB_ENV
