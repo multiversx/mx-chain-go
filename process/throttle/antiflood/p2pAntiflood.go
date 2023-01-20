@@ -212,6 +212,7 @@ func (af *p2pAntiflood) ResetForTopic(topic string) {
 
 // ApplyConsensusSize applies the consensus size on all contained flood preventers
 func (af *p2pAntiflood) ApplyConsensusSize(size int) {
+	// TODO: implement a chain parameters notifier that will accept subscriptions for changes in the chain parameters
 	for _, fp := range af.floodPreventers {
 		fp.ApplyConsensusSize(size)
 	}

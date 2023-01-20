@@ -76,7 +76,6 @@ type consensusComponents struct {
 	worker               factory.ConsensusWorker
 	peerBlacklistHandler consensus.PeerBlacklistHandler
 	consensusTopic       string
-	consensusGroupSize   int
 }
 
 // NewConsensusComponentsFactory creates an instance of consensusComponentsFactory
@@ -136,13 +135,6 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 	}
 	cc := &consensusComponents{}
 
-	consensusGroupSize, err := getConsensusGroupSize(ccf.coreComponents.GenesisNodesSetup(), ccf.processComponents.ShardCoordinator())
-	if err != nil {
-		return nil, err
-	}
-
-	cc.consensusGroupSize = int(consensusGroupSize)
-
 	blockchain := ccf.dataComponents.Blockchain()
 	notInitializedGenesisBlock := len(blockchain.GetGenesisHeaderHash()) == 0 ||
 		check.IfNil(blockchain.GetGenesisHeader())
@@ -163,7 +155,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 	cc.bootstrapper.StartSyncingBlocks()
 
 	epoch := ccf.getEpoch()
-	consensusState, err := ccf.createConsensusState(epoch, cc.consensusGroupSize)
+	consensusState, err := ccf.createConsensusState(epoch)
 	if err != nil {
 		return nil, err
 	}
@@ -384,7 +376,7 @@ func (ccf *consensusComponentsFactory) getEpoch() uint32 {
 }
 
 // createConsensusState method creates a consensusState object
-func (ccf *consensusComponentsFactory) createConsensusState(epoch uint32, consensusGroupSize int) (*spos.ConsensusState, error) {
+func (ccf *consensusComponentsFactory) createConsensusState(epoch uint32) (*spos.ConsensusState, error) {
 	if ccf.cryptoComponents.PublicKey() == nil {
 		return nil, errors.ErrNilPublicKey
 	}
@@ -400,10 +392,10 @@ func (ccf *consensusComponentsFactory) createConsensusState(epoch uint32, consen
 	if err != nil {
 		return nil, err
 	}
+	consensusGroupSize := ccf.processComponents.NodesCoordinator().ConsensusGroupSizeForShardAndEpoch(ccf.processComponents.ShardCoordinator().SelfId(), epoch)
 
 	roundConsensus := spos.NewRoundConsensus(
 		eligibleNodesPubKeys,
-		// TODO: move the consensus data from nodesSetup json to config
 		consensusGroupSize,
 		string(selfId))
 
@@ -740,15 +732,4 @@ func (ccf *consensusComponentsFactory) checkArgs() error {
 	}
 
 	return nil
-}
-
-func getConsensusGroupSize(nodesConfig sharding.GenesisNodesSetupHandler, shardCoordinator sharding.Coordinator) (uint32, error) {
-	if shardCoordinator.SelfId() == core.MetachainShardId {
-		return nodesConfig.GetMetaConsensusGroupSize(), nil
-	}
-	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		return nodesConfig.GetShardConsensusGroupSize(), nil
-	}
-
-	return 0, sharding.ErrShardIdOutOfRange
 }
