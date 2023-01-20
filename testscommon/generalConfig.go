@@ -260,12 +260,12 @@ func GetGeneralConfig() config.Config {
 		HeartbeatV2: config.HeartbeatV2Config{
 			PeerAuthenticationTimeBetweenSendsInSec:          1,
 			PeerAuthenticationTimeBetweenSendsWhenErrorInSec: 1,
-			PeerAuthenticationThresholdBetweenSends:          0.1,
+			PeerAuthenticationTimeThresholdBetweenSends:      0.1,
 			HeartbeatTimeBetweenSendsInSec:                   1,
 			HeartbeatTimeBetweenSendsWhenErrorInSec:          1,
-			HeartbeatThresholdBetweenSends:                   0.1,
+			HeartbeatTimeThresholdBetweenSends:               0.1,
 			PeerShardTimeBetweenSendsInSec:                   5,
-			PeerShardThresholdBetweenSends:                   0.1,
+			PeerShardTimeThresholdBetweenSends:               0.1,
 			HeartbeatExpiryTimespanInSec:                     30,
 			MaxDurationPeerUnresponsiveInSec:                 10,
 			HideInactiveValidatorIntervalInSec:               60,
@@ -386,10 +386,10 @@ func GetGeneralConfig() config.Config {
 				MaxDeviationTimeInMilliseconds: 1,
 			},
 		},
-		Resolvers: config.ResolverConfig{
+		Requesters: config.RequesterConfig{
 			NumCrossShardPeers:  2,
 			NumTotalPeers:       3,
-			NumFullHistoryPeers: 3,
+			NumFullHistoryPeers: 4,
 		},
 		VirtualMachine: config.VirtualMachineServicesConfig{
 			Execution: config.VirtualMachineConfig{

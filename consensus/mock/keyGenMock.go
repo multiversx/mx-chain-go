@@ -1,7 +1,7 @@
 package mock
 
 import (
-	"github.com/multiversx/mx-chain-crypto-go"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
 )
 
 // PrivateKeyMock mocks a private key implementation
@@ -84,12 +84,20 @@ func (keyGen *KeyGenMock) GeneratePair() (crypto.PrivateKey, crypto.PublicKey) {
 
 // PrivateKeyFromByteArray generates the private key from its byte array representation
 func (keyGen *KeyGenMock) PrivateKeyFromByteArray(b []byte) (crypto.PrivateKey, error) {
-	return keyGen.PrivateKeyFromByteArrayMock(b)
+	if keyGen.PrivateKeyFromByteArrayMock != nil {
+		return keyGen.PrivateKeyFromByteArrayMock(b)
+	}
+
+	return &PrivateKeyMock{}, nil
 }
 
 // PublicKeyFromByteArray generates a public key from its byte array representation
 func (keyGen *KeyGenMock) PublicKeyFromByteArray(b []byte) (crypto.PublicKey, error) {
-	return keyGen.PublicKeyFromByteArrayMock(b)
+	if keyGen.PublicKeyFromByteArrayMock != nil {
+		return keyGen.PublicKeyFromByteArrayMock(b)
+	}
+
+	return &PublicKeyMock{}, nil
 }
 
 // CheckPublicKeyValid verifies the validity of the public key
