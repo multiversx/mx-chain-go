@@ -151,8 +151,9 @@ func (tdaw *trackableDataTrie) SaveDirtyData(mainTrie common.Trie) ([]common.Tri
 }
 
 func (tdaw *trackableDataTrie) updateTrieV1(selfDataTrie dataTrie) ([]common.TrieData, error) {
-	oldValues := make([]common.TrieData, 0)
+	oldValues := make([]common.TrieData, len(tdaw.dirtyData))
 
+	index := 0
 	for key, val := range tdaw.dirtyData {
 		oldVal, _, err := tdaw.tr.Get([]byte(key))
 		if err != nil {
@@ -164,7 +165,7 @@ func (tdaw *trackableDataTrie) updateTrieV1(selfDataTrie dataTrie) ([]common.Tri
 			Value:   oldVal,
 			Version: common.NotSpecified,
 		}
-		oldValues = append(oldValues, oldEntry)
+		oldValues[index] = oldEntry
 
 		var identifier []byte
 		if len(val) != 0 {
@@ -177,6 +178,8 @@ func (tdaw *trackableDataTrie) updateTrieV1(selfDataTrie dataTrie) ([]common.Tri
 		if err != nil {
 			return nil, err
 		}
+
+		index++
 	}
 
 	tdaw.dirtyData = make(map[string][]byte)
