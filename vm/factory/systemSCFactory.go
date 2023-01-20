@@ -221,7 +221,7 @@ func (scf *systemSCFactory) createESDTContract() (vm.SystemSmartContract, error)
 func (scf *systemSCFactory) createGovernanceContract() (vm.SystemSmartContract, error) {
 	configChangeAddress, err := scf.addressPubKeyConverter.Decode(scf.systemSCConfig.GovernanceSystemSCConfig.ChangeConfigAddress)
 	if err != nil {
-		return nil, fmt.Errorf("%w for DelegationManagerSystemSCConfig.ConfigChangeAddress in systemSCFactory", vm.ErrInvalidAddress)
+		return nil, fmt.Errorf("%w for GovernanceSystemSCConfig.ChangeConfigAddress in systemSCFactory", vm.ErrInvalidAddress)
 	}
 
 	argsGovernance := systemSmartContracts.ArgsNewGovernanceContract{

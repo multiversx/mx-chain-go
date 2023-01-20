@@ -311,7 +311,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 					MinPassThreshold: "50",
 					MinVetoThreshold: "50",
 				},
-				ChangeConfigAddress: "erd1vxy22x0fj4zv6hktmydg8vpfh6euv02cz4yg0aaws6rrad5a5awqgqky80",
+				ChangeConfigAddress: "3132333435363738393031323334353637383930313233343536373839303234",
 			},
 			StakingSystemSCConfig: config.StakingSystemSCConfig{
 				GenesisNodePrice:                     "1000",
