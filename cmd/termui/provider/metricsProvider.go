@@ -12,7 +12,10 @@ import (
 
 var log = logger.GetOrCreate("termui/provider")
 
-const statusMetricsUrlSuffix = "/node/status"
+const (
+	statusMetricsUrlSuffix          = "/node/status"
+	bootstrapStatusMetricsUrlSuffix = "/node/bootstrapstatus"
+)
 
 type statusMetricsResponseData struct {
 	Response map[string]interface{} `json:"metrics"`
@@ -54,23 +57,32 @@ func NewStatusMetricsProvider(presenter PresenterHandler, nodeAddress string, fe
 func (smp *StatusMetricsProvider) StartUpdatingData() {
 	go func() {
 		for {
-			metricsMap, err := smp.loadMetricsFromApi()
-			if err != nil {
-				log.Debug("fetch from API",
-					"error", err.Error())
-			} else {
-				smp.applyMetricsToPresenter(metricsMap)
-			}
-
+			smp.updateMetrics()
 			time.Sleep(time.Duration(smp.fetchInterval) * time.Millisecond)
 		}
 	}()
 }
 
-func (smp *StatusMetricsProvider) loadMetricsFromApi() (map[string]interface{}, error) {
+func (smp *StatusMetricsProvider) updateMetrics() {
+	smp.fetchAndApplyMetrics(statusMetricsUrlSuffix)
+	smp.fetchAndApplyMetrics(bootstrapStatusMetricsUrlSuffix)
+}
+
+func (smp *StatusMetricsProvider) fetchAndApplyMetrics(metricsPath string) {
+	metricsMap, err := smp.loadMetricsFromApi(metricsPath)
+	if err != nil {
+		log.Debug("fetch from API",
+			"path", metricsPath,
+			"error", err.Error())
+	} else {
+		smp.applyMetricsToPresenter(metricsMap)
+	}
+}
+
+func (smp *StatusMetricsProvider) loadMetricsFromApi(metricsPath string) (map[string]interface{}, error) {
 	client := http.Client{}
 
-	statusMetricsUrl := smp.nodeAddress + statusMetricsUrlSuffix
+	statusMetricsUrl := smp.nodeAddress + metricsPath
 	resp, err := client.Get(statusMetricsUrl)
 	if err != nil {
 		return nil, err
