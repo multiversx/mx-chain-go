@@ -28,6 +28,7 @@ type StatusMetricsHandler interface {
 	EnableEpochsMetrics() (map[string]interface{}, error)
 	NetworkMetrics() (map[string]interface{}, error)
 	RatingsMetrics() (map[string]interface{}, error)
+	BootstrapMetrics() (map[string]interface{}, error)
 	IsInterfaceNil() bool
 }
 
