@@ -1,6 +1,7 @@
 package alteredaccounts
 
 import (
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"sync"
@@ -214,7 +215,7 @@ func (aap *alteredAccountsProvider) addTokensDataForMarkedAccount(
 		Identifier: tokenID,
 		Balance:    esdtToken.Value.String(),
 		Nonce:      nonce,
-		Properties: string(esdtToken.Properties),
+		Properties: hex.EncodeToString(esdtToken.Properties),
 		MetaData:   aap.convertMetaData(esdtToken.TokenMetaData),
 	}
 	if options.WithAdditionalOutportData {
