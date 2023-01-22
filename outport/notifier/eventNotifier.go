@@ -4,13 +4,14 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	nodeData "github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/outport"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	nodeData "github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	outportSenderData "github.com/multiversx/mx-chain-core-go/websocketOutportDriver/data"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("outport/eventNotifier")
@@ -89,7 +90,12 @@ func (en *eventNotifier) SaveBlock(args *outport.ArgsSaveBlockData) error {
 		return ErrNilTransactionsPool
 	}
 
-	err := en.httpClient.Post(pushEventEndpoint, args)
+	argsSaveBlock := outportSenderData.ArgsSaveBlock{
+		HeaderType:        core.GetHeaderType(args.Header),
+		ArgsSaveBlockData: *args,
+	}
+
+	err := en.httpClient.Post(pushEventEndpoint, argsSaveBlock)
 	if err != nil {
 		return fmt.Errorf("%w in eventNotifier.SaveBlock while posting block data", err)
 	}

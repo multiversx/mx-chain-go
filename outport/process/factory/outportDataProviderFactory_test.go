@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/outport/process/alteredaccounts"
+	"github.com/multiversx/mx-chain-go/outport/process/alteredaccounts"
 	"github.com/stretchr/testify/require"
 )
 

@@ -3,10 +3,10 @@ package crypto_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/factory"
-	cryptoComp "github.com/ElrondNetwork/elrond-go/factory/crypto"
-	componentsMock "github.com/ElrondNetwork/elrond-go/testscommon/components"
+	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/factory"
+	cryptoComp "github.com/multiversx/mx-chain-go/factory/crypto"
+	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/stretchr/testify/require"
 )
 

@@ -1,7 +1,7 @@
 //go:build !race
 // +build !race
 
-// TODO remove build condition above to allow -race -short, after Arwen fix
+// TODO remove build condition above to allow -race -short, after Wasm VM fix
 
 package txsFee
 
@@ -9,11 +9,11 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
-	"github.com/ElrondNetwork/elrond-go/process"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
+	"github.com/multiversx/mx-chain-go/process"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
 )
 
@@ -30,8 +30,8 @@ func TestScDeployShouldWork(t *testing.T) {
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
 
-	scCode := arwen.GetSCCode("../arwen/testdata/misc/fib_arwen/output/fib_arwen.wasm")
-	tx := vm.CreateTransaction(senderNonce, big.NewInt(0), sndAddr, vm.CreateEmptyAddress(), gasPrice, gasLimit, []byte(arwen.CreateDeployTxData(scCode)))
+	scCode := wasm.GetSCCode("../wasm/testdata/misc/fib_wasm/output/fib_wasm.wasm")
+	tx := vm.CreateTransaction(senderNonce, big.NewInt(0), sndAddr, vm.CreateEmptyAddress(), gasPrice, gasLimit, []byte(wasm.CreateDeployTxData(scCode)))
 
 	_, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
@@ -62,10 +62,10 @@ func TestScDeployInvalidContractCodeShouldConsumeGas(t *testing.T) {
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
 
-	scCode := arwen.GetSCCode("../arwen/testdata/misc/fib_arwen/output/fib_arwen.wasm")
+	scCode := wasm.GetSCCode("../wasm/testdata/misc/fib_wasm/output/fib_wasm.wasm")
 	scCodeBytes := []byte(scCode)
 	scCodeBytes = append(scCodeBytes, []byte("aaa")...)
-	txDeployData := []byte(arwen.CreateDeployTxData(string(scCodeBytes)))
+	txDeployData := []byte(wasm.CreateDeployTxData(string(scCodeBytes)))
 	tx := vm.CreateTransaction(senderNonce, big.NewInt(0), sndAddr, vm.CreateEmptyAddress(), gasPrice, gasLimit, txDeployData)
 
 	_, err = testContext.TxProcessor.ProcessTransaction(tx)
@@ -95,8 +95,8 @@ func TestScDeployInsufficientGasLimitShouldNotConsumeGas(t *testing.T) {
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
 
-	scCode := arwen.GetSCCode("../arwen/testdata/misc/fib_arwen/output/fib_arwen.wasm")
-	txDeployData := []byte(arwen.CreateDeployTxData(scCode))
+	scCode := wasm.GetSCCode("../wasm/testdata/misc/fib_wasm/output/fib_wasm.wasm")
+	txDeployData := []byte(wasm.CreateDeployTxData(scCode))
 	tx := vm.CreateTransaction(senderNonce, big.NewInt(0), sndAddr, vm.CreateEmptyAddress(), gasPrice, gasLimit, txDeployData)
 
 	_, err = testContext.TxProcessor.ProcessTransaction(tx)
@@ -127,8 +127,8 @@ func TestScDeployOutOfGasShouldConsumeGas(t *testing.T) {
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
 
-	scCode := arwen.GetSCCode("../arwen/testdata/misc/fib_arwen/output/fib_arwen.wasm")
-	txDeployData := []byte(arwen.CreateDeployTxData(scCode))
+	scCode := wasm.GetSCCode("../wasm/testdata/misc/fib_wasm/output/fib_wasm.wasm")
+	txDeployData := []byte(wasm.CreateDeployTxData(scCode))
 	tx := vm.CreateTransaction(senderNonce, big.NewInt(0), sndAddr, vm.CreateEmptyAddress(), gasPrice, gasLimit, txDeployData)
 
 	returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)

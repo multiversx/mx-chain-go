@@ -1,6 +1,6 @@
 package testscommon
 
-import datafield "github.com/ElrondNetwork/elrond-vm-common/parsers/dataField"
+import datafield "github.com/multiversx/mx-chain-vm-common-go/parsers/dataField"
 
 // DataFieldParserStub -
 type DataFieldParserStub struct {
