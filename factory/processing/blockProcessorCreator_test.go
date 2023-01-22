@@ -4,30 +4,6 @@ import (
 	"sync"
 	"testing"
 
-<<<<<<< HEAD
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/common"
-	dataComp "github.com/ElrondNetwork/elrond-go/factory/data"
-	"github.com/ElrondNetwork/elrond-go/factory/mock"
-	processComp "github.com/ElrondNetwork/elrond-go/factory/processing"
-	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
-	"github.com/ElrondNetwork/elrond-go/state"
-	factoryState "github.com/ElrondNetwork/elrond-go/state/factory"
-	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/disabled"
-	"github.com/ElrondNetwork/elrond-go/storage/txcache"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	componentsMock "github.com/ElrondNetwork/elrond-go/testscommon/components"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
-	storageManager "github.com/ElrondNetwork/elrond-go/testscommon/storageManager"
-	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
-	"github.com/ElrondNetwork/elrond-go/trie"
-	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-=======
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -50,7 +26,6 @@ import (
 	"github.com/multiversx/mx-chain-go/trie"
 	trieFactory "github.com/multiversx/mx-chain-go/trie/factory"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
->>>>>>> rc/v1.5.0
 	"github.com/stretchr/testify/require"
 )
 
