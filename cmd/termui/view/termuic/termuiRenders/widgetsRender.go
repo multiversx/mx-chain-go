@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/cmd/termui/view"
-	"github.com/ElrondNetwork/elrond-go/common"
 	ui "github.com/gizak/termui/v3"
 	"github.com/gizak/termui/v3/widgets"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/cmd/termui/view"
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 const (
@@ -169,7 +169,7 @@ func (wr *WidgetsRender) prepareInstanceInfo() {
 	rows[5] = []string{computeRedundancyStr(wr.presenter.GetRedundancyLevel(), wr.presenter.GetRedundancyIsMainActive())}
 	rows[6] = []string{fmt.Sprintf("Chain ID: %s", chainID)}
 
-	wr.instanceInfo.Title = "Elrond instance info"
+	wr.instanceInfo.Title = "MultiversX instance info"
 	wr.instanceInfo.RowSeparator = false
 	wr.instanceInfo.Rows = rows
 }

@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/resolvers"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/integrationTests/resolvers"
+	"github.com/multiversx/mx-chain-go/process/factory"
 )
 
 func TestRequestResolveMiniblockByHashRequestingShardResolvingSameShard(t *testing.T) {

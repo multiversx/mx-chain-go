@@ -4,10 +4,10 @@ import (
 	"errors"
 	"testing"
 
-	apiErrors "github.com/ElrondNetwork/elrond-go/api/errors"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/facade/initial"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	apiErrors "github.com/multiversx/mx-chain-go/api/errors"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/facade/initial"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/stretchr/testify/require"
 )
 

@@ -1,8 +1,8 @@
 package bls
 
 import (
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("consensus/spos/bls")

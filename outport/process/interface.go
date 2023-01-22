@@ -3,9 +3,9 @@ package process
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/outport"
-	"github.com/ElrondNetwork/elrond-go/outport/process/alteredaccounts/shared"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-go/outport/process/alteredaccounts/shared"
 )
 
 // AlteredAccountsProviderHandler defines the functionality needed for provisioning of altered accounts when indexing data
@@ -36,4 +36,14 @@ type EconomicsDataHandler interface {
 	ComputeGasLimit(tx data.TransactionWithFeeHandler) uint64
 	IsInterfaceNil() bool
 	MaxGasLimitPerBlock(shardID uint32) uint64
+}
+
+// ExecutionOrderHandler defines the interface for the execution order handler
+type ExecutionOrderHandler interface {
+	PutExecutionOrderInTransactionPool(
+		pool *outport.Pool,
+		header data.HeaderHandler,
+		body data.BodyHandler,
+		prevHeader data.HeaderHandler,
+	) ([]string, []string, error)
 }
