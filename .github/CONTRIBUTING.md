@@ -1,5 +1,5 @@
 
-# Contributing to elrond-go
+# Contributing to mx-chain-go
 
 If you are unfamiliar with the workflow of contributing to GitHub, you can refer to [this article](https://github.com/firstcontributions/first-contributions/blob/master/README.md)
 
@@ -13,9 +13,9 @@ For external contributors, the PRs should be targeted towards the `master` branc
 the PR owner to re-target it against another branch, in accordance to internal branches management.
 
 **tl;dr**:
-- fork `elrond-go` and use `master` branch.
+- fork `mx-chain-go` and use `master` branch.
 - use signed commits. [docs](https://docs.github.com/en/authentication/managing-commit-signature-verification/signing-commits).
-- open a PR against the `master` branch of `ElrondNetwork/elrond-go`.
+- open a PR against the `master` branch of `multiversx/mx-chain-go`.
 
 ## Use linter
 
@@ -53,18 +53,18 @@ Depending on the PR type, there are multiple ways of manual testing the new code
 
 Internal Branches/Releases Management (to be checked by both the code owner and the reviewers)
 
-### `elrond-go`
+### `mx-chain-go`
 If the PR is:
 1. a hotfix: it will be targeted towards `master` branch.
 2. a feature:
    2.1. a small feature (a single PR is needed): targeted towards an `rc` branch.
    2.2. a big feature (more than one PR is needed): create a feature branch (`feat/...`) that is targeted towards an `rc` branch.
 
-### Satellite projects (`elrond-vm-common`, `elrond-go-core`, and so on)
+### Satellite projects (`mx-chain-vm-common-go`, `mx-chain-core-go`, and so on)
 If the PR is:
 1. a hotfix: it will be targeted towards `master`/`main` branch.
 2. a feature:
-   2.1. a small feature (a single PR is needed): targeted towards an `rc` branch and create a new tag&release after merging, and reference it in `elrond-go` (if needed).
+   2.1. a small feature (a single PR is needed): targeted towards an `rc` branch and create a new tag&release after merging, and reference it in `mx-chain-go` (if needed).
    2.2. a big feature:
-   2.2.1. a small satellite PR: targeted towards an `rc` branch. For each change, reference just the commit hash on `elrond-go` and create a tag&pre-release when the `elrond-go` PR is to be merged.
-   2.2.2. a big satellite PR: create a feature branch (`feat/...`) targeted towards an `rc` branch. For each change, reference just the commit hash on `elrond-go` and create a tag&pre-release when the `feat` branch is merged
+   2.2.1. a small satellite PR: targeted towards an `rc` branch. For each change, reference just the commit hash on `mx-chain-go` and create a tag&pre-release when the `mx-chain-go` PR is to be merged.
+   2.2.2. a big satellite PR: create a feature branch (`feat/...`) targeted towards an `rc` branch. For each change, reference just the commit hash on `mx-chain-go` and create a tag&pre-release when the `feat` branch is merged

@@ -3,18 +3,18 @@ package integrationTests
 import (
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
-	crypto "github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/storage/cache"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	vic "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-crypto-go/signing"
+	"github.com/multiversx/mx-chain-crypto-go/signing/ed25519"
+	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
+	"github.com/multiversx/mx-chain-go/integrationTests/mock"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/storage/cache"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	vic "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
 )
 
 type nodeKeys struct {

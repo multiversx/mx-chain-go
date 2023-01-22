@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/process"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/process"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 var log = logger.GetOrCreate("process/smartcontract/blockchainhook/counters")
@@ -16,6 +16,9 @@ const (
 	maxBuiltinCalls = "MaxBuiltInCallsPerTx"
 	maxTransfers    = "MaxNumberOfTransfersPerTx"
 	maxTrieReads    = "MaxNumberOfTrieReadsPerTx"
+	crtBuiltinCalls = "CrtBuiltInCallsPerTx"
+	crtTransfers    = "CrtNumberOfTransfersPerTx"
+	crtTrieReads    = "CrtNumberOfTrieReadsPerTx"
 )
 
 type usageCounter struct {
@@ -49,7 +52,7 @@ func (counter *usageCounter) ProcessCrtNumberOfTrieReadsCounter() error {
 
 	counter.crtNumberOfTrieReads++
 	if counter.crtNumberOfTrieReads > counter.maxNumberOfTrieReadsPerTx {
-		return fmt.Errorf("%w too many reads", process.ErrMaxBuiltInCallsReached)
+		return fmt.Errorf("%w: too many reads from trie", process.ErrMaxCallsReached)
 	}
 
 	return nil
@@ -63,7 +66,7 @@ func (counter *usageCounter) ProcessMaxBuiltInCounters(input *vmcommon.ContractC
 
 	counter.crtNumberOfBuiltInFunctionCalls++
 	if counter.crtNumberOfBuiltInFunctionCalls > counter.maxBuiltInCallsPerTx {
-		return fmt.Errorf("%w too many built in calls", process.ErrMaxBuiltInCallsReached)
+		return fmt.Errorf("%w: too many built-in functions calls", process.ErrMaxCallsReached)
 	}
 
 	parsedTransfer, errESDTTransfer := counter.esdtTransferParser.ParseESDTTransfers(input.CallerAddr, input.RecipientAddr, input.Function, input.Arguments)
@@ -74,7 +77,7 @@ func (counter *usageCounter) ProcessMaxBuiltInCounters(input *vmcommon.ContractC
 
 	counter.crtNumberOfTransfers += uint64(len(parsedTransfer.ESDTTransfers))
 	if counter.crtNumberOfTransfers > counter.maxNumberOfTransfersPerTx {
-		return fmt.Errorf("%w too many esdt transfers", process.ErrMaxBuiltInCallsReached)
+		return fmt.Errorf("%w: too many ESDT transfers", process.ErrMaxCallsReached)
 	}
 
 	return nil
@@ -84,12 +87,6 @@ func (counter *usageCounter) ProcessMaxBuiltInCounters(input *vmcommon.ContractC
 func (counter *usageCounter) ResetCounters() {
 	counter.mutCounters.Lock()
 	defer counter.mutCounters.Unlock()
-
-	log.Trace("BlockChainHookImpl.ResetCounters",
-		"crtNumberOfBuiltInFunctionCalls", counter.crtNumberOfBuiltInFunctionCalls,
-		"crtNumberOfTransfers", counter.crtNumberOfTransfers,
-		"crtNumberOfTrieReads", counter.crtNumberOfTrieReads,
-	)
 
 	counter.crtNumberOfBuiltInFunctionCalls = 0
 	counter.crtNumberOfTransfers = 0
@@ -113,6 +110,20 @@ func readValue(mapsOfValues map[string]uint64, identifier string) uint64 {
 	}
 
 	return value
+}
+
+// GetCounterValues returns the current counter values
+func (counter *usageCounter) GetCounterValues() map[string]uint64 {
+	counter.mutCounters.RLock()
+	defer counter.mutCounters.RUnlock()
+
+	values := map[string]uint64{
+		crtBuiltinCalls: counter.crtNumberOfBuiltInFunctionCalls,
+		crtTransfers:    counter.crtNumberOfTransfers,
+		crtTrieReads:    counter.crtNumberOfTrieReads,
+	}
+
+	return values
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

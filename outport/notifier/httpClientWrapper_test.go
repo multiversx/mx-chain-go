@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/outport/notifier"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/outport/notifier"
 	"github.com/stretchr/testify/require"
 )
 

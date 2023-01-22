@@ -1,19 +1,19 @@
 package statusCore
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common/statistics"
-	"github.com/ElrondNetwork/elrond-go/common/statistics/machine"
-	"github.com/ElrondNetwork/elrond-go/config"
-	errErd "github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/factory"
-	"github.com/ElrondNetwork/elrond-go/node/external"
-	"github.com/ElrondNetwork/elrond-go/node/metrics"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
-	"github.com/ElrondNetwork/elrond-go/statusHandler/persister"
-	trieStatistics "github.com/ElrondNetwork/elrond-go/trie/statistics"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common/statistics"
+	"github.com/multiversx/mx-chain-go/common/statistics/machine"
+	"github.com/multiversx/mx-chain-go/config"
+	errErd "github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/node/external"
+	"github.com/multiversx/mx-chain-go/node/metrics"
+	"github.com/multiversx/mx-chain-go/statusHandler"
+	"github.com/multiversx/mx-chain-go/statusHandler/persister"
+	trieStatistics "github.com/multiversx/mx-chain-go/trie/statistics"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("factory")

@@ -6,11 +6,12 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common/statistics/machine"
-	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common/statistics/machine"
+	"github.com/multiversx/mx-chain-go/common/statistics/osLevel"
+	"github.com/multiversx/mx-chain-go/config"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/load"
 	"github.com/shirou/gopsutil/mem"
@@ -145,7 +146,14 @@ func GetRuntimeStatistics() []interface{} {
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
 
-	return []interface{}{
+	osLevelMetrics := make([]interface{}, 0)
+	osLevelMemStats, err := osLevel.ReadCurrentMemStats()
+	if err == nil {
+		osLevelMetrics = append(osLevelMetrics, "os level stats")
+		osLevelMetrics = append(osLevelMetrics, "{"+osLevelMemStats.String()+"}")
+	}
+
+	statistics := []interface{}{
 		"timestamp", time.Now().Unix(),
 		"num go", runtime.NumGoroutine(),
 		"heap alloc", core.ConvertBytes(memStats.HeapAlloc),
@@ -156,6 +164,9 @@ func GetRuntimeStatistics() []interface{} {
 		"sys mem", core.ConvertBytes(memStats.Sys),
 		"num GC", memStats.NumGC,
 	}
+	statistics = append(statistics, osLevelMetrics...)
+
+	return statistics
 }
 
 // LogStatistics generates and saves the statistic data in the logs

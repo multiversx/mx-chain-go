@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
-	"github.com/ElrondNetwork/elrond-go/storage/txcache"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-go/storage/txcache"
 )
 
 // ArgShardedTxPool is the argument for ShardedTxPool's constructor

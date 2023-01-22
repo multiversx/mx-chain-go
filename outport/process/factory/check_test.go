@@ -3,14 +3,14 @@ package factory
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/outport/process"
-	"github.com/ElrondNetwork/elrond-go/outport/process/alteredaccounts"
-	"github.com/ElrondNetwork/elrond-go/outport/process/transactionsfee"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/state"
+	"github.com/multiversx/mx-chain-go/outport/process"
+	"github.com/multiversx/mx-chain-go/outport/process/alteredaccounts"
+	"github.com/multiversx/mx-chain-go/outport/process/transactionsfee"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/stretchr/testify/require"
 )
 
@@ -27,6 +27,9 @@ func createArgOutportDataProviderFactory() ArgOutportDataProviderFactory {
 		NodesCoordinator:       &shardingMocks.NodesCoordinatorMock{},
 		GasConsumedProvider:    &testscommon.GasHandlerStub{},
 		EconomicsData:          &economicsmocks.EconomicsHandlerMock{},
+		Hasher:                 &testscommon.KeccakMock{},
+		MbsStorer:              &genericMocks.StorerMock{},
+		EnableEpochsHandler:    &testscommon.EnableEpochsHandlerStub{},
 	}
 }
 
@@ -72,6 +75,10 @@ func TestCheckArgCreateOutportDataProvider(t *testing.T) {
 	arg = createArgOutportDataProviderFactory()
 	arg.EconomicsData = nil
 	require.Equal(t, transactionsfee.ErrNilTransactionFeeCalculator, checkArgOutportDataProviderFactory(arg))
+
+	arg = createArgOutportDataProviderFactory()
+	arg.Hasher = nil
+	require.Equal(t, process.ErrNilHasher, checkArgOutportDataProviderFactory(arg))
 
 	arg = createArgOutportDataProviderFactory()
 	require.Nil(t, checkArgOutportDataProviderFactory(arg))

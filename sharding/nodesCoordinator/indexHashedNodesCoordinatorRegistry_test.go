@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/testscommon/storage"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

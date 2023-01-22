@@ -3,7 +3,7 @@ package goroutines
 import (
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/common/goroutines"
+	"github.com/multiversx/mx-chain-go/common/goroutines"
 )
 
 type goCounter struct {
