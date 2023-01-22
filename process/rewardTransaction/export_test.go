@@ -1,7 +1,7 @@
 package rewardTransaction
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/multiversx/mx-chain-core-go/hashing"
 )
 
 // RewardKey -

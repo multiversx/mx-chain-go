@@ -1,8 +1,8 @@
 package disabled
 
 import (
-	nodesCoord "github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/state"
+	nodesCoord "github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 // nodesCoordinator -

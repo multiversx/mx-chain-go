@@ -10,19 +10,19 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/hashing/keccak"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/common/holders"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
-	"github.com/ElrondNetwork/elrond-go/trie"
-	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
-	"github.com/ElrondNetwork/elrond-go/trie/keyBuilder"
-	"github.com/ElrondNetwork/elrond-go/trie/mock"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/hashing/keccak"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/holders"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
+	"github.com/multiversx/mx-chain-go/trie"
+	"github.com/multiversx/mx-chain-go/trie/hashesHolder"
+	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
+	"github.com/multiversx/mx-chain-go/trie/mock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -911,21 +911,14 @@ func TestPatriciaMerkleTrie_GetTrieStats(t *testing.T) {
 	stats, err := ts.GetTrieStats(address, rootHash)
 	assert.Nil(t, err)
 
-	branchesPerLevel := []uint32{1, 0, 1}
-	extensionsPerLevel := []uint32{0, 1}
-	leavesPerLevel := []uint32{0, 1, 0, 2}
-	nodesPerLevel := []uint32{1, 2, 1, 2}
-
 	assert.Equal(t, rootHash, stats.RootHash)
 	assert.Equal(t, address, stats.Address)
 
-	assert.Equal(t, branchesPerLevel, stats.NumBranchesPerLevel)
-	assert.Equal(t, extensionsPerLevel, stats.NumExtensionsPerLevel)
-	assert.Equal(t, leavesPerLevel, stats.NumLeavesPerLevel)
-	assert.Equal(t, nodesPerLevel, stats.TotalNumNodesPerLevel)
-
+	assert.Equal(t, uint64(2), stats.NumBranchNodes)
+	assert.Equal(t, uint64(1), stats.NumExtensionNodes)
+	assert.Equal(t, uint64(3), stats.NumLeafNodes)
 	assert.Equal(t, uint64(6), stats.TotalNumNodes)
-	assert.Equal(t, uint32(4), stats.MaxTrieDepth)
+	assert.Equal(t, uint32(3), stats.MaxTrieDepth)
 }
 
 func TestPatriciaMerkleTrie_GetNumNodes(t *testing.T) {

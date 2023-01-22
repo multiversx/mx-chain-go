@@ -1,7 +1,7 @@
 package components
 
 import (
-	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/multiversx/mx-chain-go/config"
 )
 
 // GetGeneralConfig -
@@ -100,13 +100,13 @@ func GetGeneralConfig() config.Config {
 			Querying: config.QueryVirtualMachineConfig{
 				NumConcurrentVMs: 1,
 				VirtualMachineConfig: config.VirtualMachineConfig{
-					ArwenVersions: []config.ArwenVersionByEpoch{
+					WasmVMVersions: []config.WasmVMVersionByEpoch{
 						{StartEpoch: 0, Version: "v0.3"},
 					},
 				},
 			},
 			Execution: config.VirtualMachineConfig{
-				ArwenVersions: []config.ArwenVersionByEpoch{
+				WasmVMVersions: []config.WasmVMVersionByEpoch{
 					{StartEpoch: 0, Version: "v0.3"},
 				},
 			},

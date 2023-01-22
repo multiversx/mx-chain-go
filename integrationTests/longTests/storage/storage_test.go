@@ -6,11 +6,19 @@ import (
 	"testing"
 	"time"
 
+<<<<<<< HEAD
 	"github.com/ElrondNetwork/elrond-go-core/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	storageManagerMock "github.com/ElrondNetwork/elrond-go/testscommon/storageManager"
 	"github.com/ElrondNetwork/elrond-go/trie"
+=======
+	"github.com/multiversx/mx-chain-core-go/hashing/blake2b"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/testscommon/storage"
+	"github.com/multiversx/mx-chain-go/trie"
+>>>>>>> rc/v1.5.0
 	"github.com/stretchr/testify/assert"
 )
 

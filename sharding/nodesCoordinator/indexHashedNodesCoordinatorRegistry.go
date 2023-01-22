@@ -5,9 +5,13 @@ import (
 	"fmt"
 	"strconv"
 
+<<<<<<< HEAD
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/storage"
+=======
+	"github.com/multiversx/mx-chain-go/common"
+>>>>>>> rc/v1.5.0
 )
 
 // SerializableValidator holds the minimal data required for marshalling and un-marshalling a validator
