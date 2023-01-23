@@ -328,7 +328,7 @@ func TestGovernanceContract_ChangeConfig(t *testing.T) {
 		[]byte("1"),
 		[]byte("10"),
 		[]byte("10"),
-		[]byte("5"),
+		[]byte("15"),
 	}
 	initInput := createVMInput(zero, "initV2", vm.GovernanceSCAddress, vm.GovernanceSCAddress, nil)
 	_ = gsc.Execute(initInput)
@@ -435,7 +435,7 @@ func TestGovernanceContract_ChangeConfigInvalidParams(t *testing.T) {
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.Contains(t, retMessage, errSubstr)
 
-	errSubstr = "changeConfig second argument is incorrectly formatted"
+	errSubstr = "config incorrect minQuorum"
 	callInputArgs = [][]byte{
 		[]byte("1"),
 		[]byte("invalid"),
@@ -448,7 +448,7 @@ func TestGovernanceContract_ChangeConfigInvalidParams(t *testing.T) {
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.Contains(t, retMessage, errSubstr)
 
-	errSubstr = "changeConfig third argument is incorrectly formatted"
+	errSubstr = "config incorrect minVeto"
 	callInputArgs = [][]byte{
 		[]byte("1"),
 		[]byte("10"),
@@ -461,7 +461,7 @@ func TestGovernanceContract_ChangeConfigInvalidParams(t *testing.T) {
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.Contains(t, retMessage, errSubstr)
 
-	errSubstr = "changeConfig fourth argument is incorrectly formatted"
+	errSubstr = "config incorrect minPass"
 	callInputArgs = [][]byte{
 		[]byte("1"),
 		[]byte("10"),
@@ -503,7 +503,7 @@ func TestGovernanceContract_ChangeConfigGetConfigErr(t *testing.T) {
 		[]byte("1"),
 		[]byte("10"),
 		[]byte("10"),
-		[]byte("5"),
+		[]byte("10"),
 	}
 	callInput := createVMInput(zero, "changeConfig", args.ConfigChangeAddress, vm.GovernanceSCAddress, callInputArgs)
 	retCode := gsc.Execute(callInput)

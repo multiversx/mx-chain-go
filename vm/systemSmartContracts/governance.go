@@ -219,17 +219,17 @@ func (g *governanceContract) changeConfig(args *vmcommon.ContractCallInput) vmco
 		g.eei.AddReturnMessage("changeConfig first argument is incorrectly formatted")
 		return vmcommon.UserError
 	}
-	minQuorum, err := convertDecimalToPercentage(args.Arguments[0])
+	minQuorum, err := convertDecimalToPercentage(args.Arguments[1])
 	if err != nil {
 		g.eei.AddReturnMessage(err.Error() + " minQuorum")
 		return vmcommon.UserError
 	}
-	minVeto, err := convertDecimalToPercentage(args.Arguments[0])
+	minVeto, err := convertDecimalToPercentage(args.Arguments[2])
 	if err != nil {
 		g.eei.AddReturnMessage(err.Error() + " minVeto")
 		return vmcommon.UserError
 	}
-	minPass, err := convertDecimalToPercentage(args.Arguments[0])
+	minPass, err := convertDecimalToPercentage(args.Arguments[3])
 	if err != nil {
 		g.eei.AddReturnMessage(err.Error() + " minPass")
 		return vmcommon.UserError
@@ -692,7 +692,7 @@ func (g *governanceContract) computeTotalStakeAndVotingPower(address []byte) (*b
 		return nil, nil, err
 	}
 
-	err = g.eei.UseGas(g.gasCost.MetaChainSystemSCsCost.Get * uint64(len(dContractList.Addresses)))
+	err = g.eei.UseGas(g.gasCost.MetaChainSystemSCsCost.GetActiveFund * uint64(len(dContractList.Addresses)))
 	if err != nil {
 		return nil, nil, err
 	}
