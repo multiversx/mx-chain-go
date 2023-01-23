@@ -1,8 +1,8 @@
 package trie
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/testscommon"
 )
 
 // SnapshotPruningStorerStub -

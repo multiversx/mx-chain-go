@@ -1,6 +1,6 @@
 package dataRetriever
 
-import "github.com/ElrondNetwork/elrond-go/dataRetriever"
+import "github.com/multiversx/mx-chain-go/dataRetriever"
 
 // HeaderRequesterStub -
 type HeaderRequesterStub struct {

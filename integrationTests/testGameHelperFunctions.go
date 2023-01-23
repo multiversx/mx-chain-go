@@ -6,7 +6,7 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	"github.com/multiversx/mx-chain-crypto-go"
 )
 
 // ScCallTxWithParams creates and sends a SC tx call or deploy with all major parameters provided

@@ -3,7 +3,7 @@ package notifier
 import (
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/multiversx/mx-chain-go/epochStart"
 )
 
 func (essh *epochStartSubscriptionHandler) RegisteredHandlers() ([]epochStart.ActionHandler, *sync.RWMutex) {

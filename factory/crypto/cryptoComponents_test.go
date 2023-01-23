@@ -5,13 +5,13 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing"
-	"github.com/ElrondNetwork/elrond-go/config"
-	errErd "github.com/ElrondNetwork/elrond-go/errors"
-	cryptoComp "github.com/ElrondNetwork/elrond-go/factory/crypto"
-	"github.com/ElrondNetwork/elrond-go/factory/mock"
-	componentsMock "github.com/ElrondNetwork/elrond-go/testscommon/components"
+	"github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-crypto-go/signing"
+	"github.com/multiversx/mx-chain-go/config"
+	errErd "github.com/multiversx/mx-chain-go/errors"
+	cryptoComp "github.com/multiversx/mx-chain-go/factory/crypto"
+	"github.com/multiversx/mx-chain-go/factory/mock"
+	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/stretchr/testify/require"
 )
 
