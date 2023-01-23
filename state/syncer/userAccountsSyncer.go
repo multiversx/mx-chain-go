@@ -38,10 +38,9 @@ type stats struct {
 
 type userAccountsSyncer struct {
 	*baseAccountsSyncer
-	throttler           data.GoRoutineThrottler
-	syncerMutex         sync.Mutex
-	pubkeyCoverter      core.PubkeyConverter
-	enableEpochsHandler common.EnableEpochsHandler
+	throttler      data.GoRoutineThrottler
+	syncerMutex    sync.Mutex
+	pubkeyCoverter core.PubkeyConverter
 
 	mutStatistics sync.RWMutex
 	largeTries    []*stats
@@ -54,7 +53,6 @@ type ArgsNewUserAccountsSyncer struct {
 	ShardId                uint32
 	Throttler              data.GoRoutineThrottler
 	AddressPubKeyConverter core.PubkeyConverter
-	EnableEpochsHandler    common.EnableEpochsHandler
 }
 
 // NewUserAccountsSyncer creates a user account syncer
@@ -97,14 +95,14 @@ func NewUserAccountsSyncer(args ArgsNewUserAccountsSyncer) (*userAccountsSyncer,
 		storageMarker:                     args.StorageMarker,
 		userAccountsSyncStatisticsHandler: args.UserAccountsSyncStatisticsHandler,
 		appStatusHandler:                  args.AppStatusHandler,
+		enableEpochsHandler:               args.EnableEpochsHandler,
 	}
 
 	u := &userAccountsSyncer{
-		baseAccountsSyncer:  b,
-		throttler:           args.Throttler,
-		pubkeyCoverter:      args.AddressPubKeyConverter,
-		largeTries:          make([]*stats, 0),
-		enableEpochsHandler: args.EnableEpochsHandler,
+		baseAccountsSyncer: b,
+		throttler:          args.Throttler,
+		pubkeyCoverter:     args.AddressPubKeyConverter,
+		largeTries:         make([]*stats, 0),
 	}
 
 	return u, nil

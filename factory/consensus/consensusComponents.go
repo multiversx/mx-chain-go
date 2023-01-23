@@ -530,6 +530,7 @@ func (ccf *consensusComponentsFactory) createArgsBaseAccountsSyncer(trieStorageM
 		StorageMarker:                     storageMarker.NewTrieStorageMarker(),
 		UserAccountsSyncStatisticsHandler: statistics.NewTrieSyncStatistics(),
 		AppStatusHandler:                  disabled.NewAppStatusHandler(),
+		EnableEpochsHandler:               ccf.coreComponents.EnableEpochsHandler(),
 	}
 }
 
@@ -561,7 +562,6 @@ func (ccf *consensusComponentsFactory) createUserAccountsSyncer() (process.Accou
 		ShardId:                   ccf.processComponents.ShardCoordinator().SelfId(),
 		Throttler:                 thr,
 		AddressPubKeyConverter:    ccf.coreComponents.AddressPubKeyConverter(),
-		EnableEpochsHandler:       ccf.coreComponents.EnableEpochsHandler(),
 	}
 	return syncer.NewUserAccountsSyncer(argsUserAccountsSyncer)
 }

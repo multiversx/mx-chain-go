@@ -30,8 +30,8 @@ func (dtdt *disabledTrackableDataTrie) DataTrie() common.DataTrieHandler {
 }
 
 // SaveDirtyData does nothing for this implementation
-func (dtdt *disabledTrackableDataTrie) SaveDirtyData(_ common.Trie) (map[string][]byte, error) {
-	return map[string][]byte{}, nil
+func (dtdt *disabledTrackableDataTrie) SaveDirtyData(_ common.Trie) ([]common.TrieData, error) {
+	return make([]common.TrieData, 0), nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

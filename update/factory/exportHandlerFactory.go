@@ -328,6 +328,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		Hasher:               e.CoreComponents.Hasher(),
 		ShardCoordinator:     e.shardCoordinator,
 		MaxTrieLevelInMemory: e.maxTrieLevelInMemory,
+		EnableEpochsHandler:  e.CoreComponents.EnableEpochsHandler(),
 	}
 	dataTriesContainerFactory, err := NewDataTrieFactory(argsDataTrieFactory)
 	if err != nil {

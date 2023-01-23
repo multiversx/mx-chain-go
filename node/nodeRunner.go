@@ -622,7 +622,6 @@ func getUserAccountSyncer(
 		ShardId:                bootstrapComponents.ShardCoordinator().SelfId(),
 		Throttler:              thr,
 		AddressPubKeyConverter: coreComponents.AddressPubKeyConverter(),
-		EnableEpochsHandler:    coreComponents.EnableEpochsHandler(),
 	}
 
 	return syncer.NewUserAccountsSyncer(args)
@@ -675,6 +674,7 @@ func getBaseAccountSyncerArgs(
 		CheckNodesOnDisk:                  true,
 		UserAccountsSyncStatisticsHandler: trieStatistics.NewTrieSyncStatistics(),
 		AppStatusHandler:                  disabled.NewAppStatusHandler(),
+		EnableEpochsHandler:               coreComponents.EnableEpochsHandler(),
 	}
 }
 

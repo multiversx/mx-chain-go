@@ -9,14 +9,17 @@ import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
 message CollapsedBn{
     repeated bytes EncodedChildren = 1 [(gogoproto.nullable) = true];
+    bytes ChildrenVersion = 2 [(gogoproto.nullable) = true];
 }
 
 message CollapsedEn{
     bytes Key = 1;
     bytes EncodedChild = 2;
+    uint32 ChildVersion = 3;
 }
 
 message CollapsedLn{
     bytes Key = 1;
     bytes Value = 2;
+    uint32 Version = 3;
 }

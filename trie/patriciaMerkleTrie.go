@@ -32,10 +32,11 @@ const rootDepthLevel = 0
 type patriciaMerkleTrie struct {
 	root node
 
-	trieStorage  common.StorageManager
-	marshalizer  marshal.Marshalizer
-	hasher       hashing.Hasher
-	mutOperation sync.RWMutex
+	trieStorage         common.StorageManager
+	marshalizer         marshal.Marshalizer
+	hasher              hashing.Hasher
+	enableEpochsHandler common.EnableEpochsHandler
+	mutOperation        sync.RWMutex
 
 	oldHashes            [][]byte
 	oldRoot              []byte
@@ -48,6 +49,7 @@ func NewTrie(
 	trieStorage common.StorageManager,
 	msh marshal.Marshalizer,
 	hsh hashing.Hasher,
+	enableEpochsHandler common.EnableEpochsHandler,
 	maxTrieLevelInMemory uint,
 ) (*patriciaMerkleTrie, error) {
 	if check.IfNil(trieStorage) {
@@ -58,6 +60,9 @@ func NewTrie(
 	}
 	if check.IfNil(hsh) {
 		return nil, ErrNilHasher
+	}
+	if check.IfNil(enableEpochsHandler) {
+		return nil, errors.ErrNilEnableEpochsHandler
 	}
 	if maxTrieLevelInMemory == 0 {
 		return nil, ErrInvalidLevelValue
@@ -72,6 +77,7 @@ func NewTrie(
 		oldRoot:              make([]byte, 0),
 		maxTrieLevelInMemory: maxTrieLevelInMemory,
 		chanClose:            make(chan struct{}),
+		enableEpochsHandler:  enableEpochsHandler,
 	}, nil
 }
 
@@ -102,19 +108,39 @@ func (tr *patriciaMerkleTrie) Update(key, value []byte) error {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
-	log.Trace("update trie", "key", hex.EncodeToString(key), "val", hex.EncodeToString(value))
+	log.Trace("update trie",
+		"key", hex.EncodeToString(key),
+		"val", hex.EncodeToString(value),
+	)
 
+	return tr.update(key, value, common.NotSpecified)
+}
+
+// UpdateWithVersion does the same thing as Update, but the new leaf that is created will be of the specified version
+func (tr *patriciaMerkleTrie) UpdateWithVersion(key []byte, value []byte, version common.TrieNodeVersion) error {
+	tr.mutOperation.Lock()
+	defer tr.mutOperation.Unlock()
+
+	log.Trace("update trie with version",
+		"key", hex.EncodeToString(key),
+		"val", hex.EncodeToString(value),
+		"version", version,
+	)
+
+	return tr.update(key, value, version)
+}
+
+func (tr *patriciaMerkleTrie) update(key []byte, value []byte, version common.TrieNodeVersion) error {
 	hexKey := keyBytesToHex(key)
-	newLn, err := newLeafNode(hexKey, value, tr.marshalizer, tr.hasher)
-	if err != nil {
-		return err
-	}
-
-	var newRoot node
-	var oldHashes [][]byte
 	if len(value) != 0 {
+		newData := common.TrieData{
+			Key:     hexKey,
+			Value:   value,
+			Version: version,
+		}
+
 		if tr.root == nil {
-			newRoot, err = newLeafNode(hexKey, value, tr.marshalizer, tr.hasher)
+			newRoot, err := newLeafNode(newData, tr.marshalizer, tr.hasher)
 			if err != nil {
 				return err
 			}
@@ -127,7 +153,7 @@ func (tr *patriciaMerkleTrie) Update(key, value []byte) error {
 			tr.oldRoot = tr.root.getHash()
 		}
 
-		newRoot, oldHashes, err = tr.root.insert(newLn, tr.trieStorage)
+		newRoot, oldHashes, err := tr.root.insert(newData, tr.trieStorage)
 		if err != nil {
 			return err
 		}
@@ -141,22 +167,7 @@ func (tr *patriciaMerkleTrie) Update(key, value []byte) error {
 
 		logArrayWithTrace("oldHashes after insert", "hash", oldHashes)
 	} else {
-		if tr.root == nil {
-			return nil
-		}
-
-		if !tr.root.isDirty() {
-			tr.oldRoot = tr.root.getHash()
-		}
-
-		_, newRoot, oldHashes, err = tr.root.delete(hexKey, tr.trieStorage)
-		if err != nil {
-			return err
-		}
-		tr.root = newRoot
-		tr.oldHashes = append(tr.oldHashes, oldHashes...)
-
-		logArrayWithTrace("oldHashes after delete", "hash", oldHashes)
+		return tr.delete(hexKey)
 	}
 
 	return nil
@@ -168,6 +179,10 @@ func (tr *patriciaMerkleTrie) Delete(key []byte) error {
 	defer tr.mutOperation.Unlock()
 
 	hexKey := keyBytesToHex(key)
+	return tr.delete(hexKey)
+}
+
+func (tr *patriciaMerkleTrie) delete(hexKey []byte) error {
 	if tr.root == nil {
 		return nil
 	}
@@ -182,6 +197,7 @@ func (tr *patriciaMerkleTrie) Delete(key []byte) error {
 	}
 	tr.root = newRoot
 	tr.oldHashes = append(tr.oldHashes, oldHashes...)
+	logArrayWithTrace("oldHashes after delete", "hash", oldHashes)
 
 	return nil
 }
@@ -276,6 +292,7 @@ func (tr *patriciaMerkleTrie) recreate(root []byte, tsm common.StorageManager) (
 			tr.trieStorage,
 			tr.marshalizer,
 			tr.hasher,
+			tr.enableEpochsHandler,
 			tr.maxTrieLevelInMemory,
 		)
 	}
@@ -358,6 +375,7 @@ func (tr *patriciaMerkleTrie) recreateFromDb(rootHash []byte, tsm common.Storage
 		tsm,
 		tr.marshalizer,
 		tr.hasher,
+		tr.enableEpochsHandler,
 		tr.maxTrieLevelInMemory,
 	)
 	if err != nil {
@@ -479,7 +497,6 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(
 	tr.mutOperation.RUnlock()
 
 	go func() {
-		//TODO pass the trieLeafParser to the trie leaves
 		err = newTrie.root.getAllLeavesOnChannel(
 			leavesChannels.LeavesChan,
 			keyBuilder,

@@ -332,11 +332,11 @@ func TestNode_GetKeyValuePairs(t *testing.T) {
 			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder, tlp common.TrieLeafParser) error {
 				go func() {
 					suffix := append(k1, acc.AddressBytes()...)
-					trieLeaf, _ := tlp.ParseLeaf(k1, append(v1, suffix...))
+					trieLeaf, _ := tlp.ParseLeaf(k1, append(v1, suffix...), common.NotSpecified)
 					leavesChannels.LeavesChan <- trieLeaf
 
 					suffix = append(k2, acc.AddressBytes()...)
-					trieLeaf2, _ := tlp.ParseLeaf(k2, append(v2, suffix...))
+					trieLeaf2, _ := tlp.ParseLeaf(k2, append(v2, suffix...), common.NotSpecified)
 					leavesChannels.LeavesChan <- trieLeaf2
 					close(leavesChannels.LeavesChan)
 					close(leavesChannels.ErrChan)
@@ -940,13 +940,13 @@ func TestNode_GetAllIssuedESDTs(t *testing.T) {
 		&trieMock.TrieStub{
 			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder, tlp common.TrieLeafParser) error {
 				go func() {
-					trieLeaf, _ := tlp.ParseLeaf(esdtToken, append(marshalledData, esdtSuffix...))
+					trieLeaf, _ := tlp.ParseLeaf(esdtToken, append(marshalledData, esdtSuffix...), common.NotSpecified)
 					leavesChannels.LeavesChan <- trieLeaf
 
-					trieLeaf, _ = tlp.ParseLeaf(sftToken, append(sftMarshalledData, sftSuffix...))
+					trieLeaf, _ = tlp.ParseLeaf(sftToken, append(sftMarshalledData, sftSuffix...), common.NotSpecified)
 					leavesChannels.LeavesChan <- trieLeaf
 
-					trieLeaf, _ = tlp.ParseLeaf(nftToken, append(nftMarshalledData, nftSuffix...))
+					trieLeaf, _ = tlp.ParseLeaf(nftToken, append(nftMarshalledData, nftSuffix...), common.NotSpecified)
 					leavesChannels.LeavesChan <- trieLeaf
 					close(leavesChannels.LeavesChan)
 					close(leavesChannels.ErrChan)
@@ -1032,7 +1032,7 @@ func TestNode_GetESDTsWithRole(t *testing.T) {
 		&trieMock.TrieStub{
 			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder, tlp common.TrieLeafParser) error {
 				go func() {
-					trieLeaf, _ := tlp.ParseLeaf(esdtToken, append(marshalledData, esdtSuffix...))
+					trieLeaf, _ := tlp.ParseLeaf(esdtToken, append(marshalledData, esdtSuffix...), common.NotSpecified)
 					leavesChannels.LeavesChan <- trieLeaf
 					close(leavesChannels.LeavesChan)
 					close(leavesChannels.ErrChan)
@@ -1112,7 +1112,7 @@ func TestNode_GetESDTsRoles(t *testing.T) {
 		&trieMock.TrieStub{
 			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder, tlp common.TrieLeafParser) error {
 				go func() {
-					trieLeaf, _ := tlp.ParseLeaf(esdtToken, append(marshalledData, esdtSuffix...))
+					trieLeaf, _ := tlp.ParseLeaf(esdtToken, append(marshalledData, esdtSuffix...), common.NotSpecified)
 					leavesChannels.LeavesChan <- trieLeaf
 					close(leavesChannels.LeavesChan)
 					close(leavesChannels.ErrChan)
@@ -1177,7 +1177,7 @@ func TestNode_GetNFTTokenIDsRegisteredByAddress(t *testing.T) {
 		&trieMock.TrieStub{
 			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder, tlp common.TrieLeafParser) error {
 				go func() {
-					trieLeaf, _ := tlp.ParseLeaf(esdtToken, append(marshalledData, esdtSuffix...))
+					trieLeaf, _ := tlp.ParseLeaf(esdtToken, append(marshalledData, esdtSuffix...), common.NotSpecified)
 					leavesChannels.LeavesChan <- trieLeaf
 					close(leavesChannels.LeavesChan)
 					close(leavesChannels.ErrChan)

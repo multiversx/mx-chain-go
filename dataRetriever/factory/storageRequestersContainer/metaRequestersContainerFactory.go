@@ -36,6 +36,7 @@ func NewMetaRequestersContainerFactory(
 		shardIDForTries:          args.ShardIDForTries,
 		chainID:                  args.ChainID,
 		workingDir:               args.WorkingDirectory,
+		enableEpochsHandler:      args.EnableEpochsHandler,
 	}
 
 	err := base.checkParams()
@@ -193,6 +194,7 @@ func (mrcf *metaRequestersContainerFactory) generateTrieNodesRequesters() error 
 	storageManager, userAccountsDataTrie, err := mrcf.newImportDBTrieStorage(
 		userAccountsStorer,
 		userAccountsCheckpointStorer,
+		mrcf.enableEpochsHandler,
 	)
 	if err != nil {
 		return fmt.Errorf("%w while creating user accounts data trie storage getter", err)
@@ -229,6 +231,7 @@ func (mrcf *metaRequestersContainerFactory) generateTrieNodesRequesters() error 
 	storageManager, peerAccountsDataTrie, err := mrcf.newImportDBTrieStorage(
 		peerAccountsStorer,
 		peerAccountsCheckpointStorer,
+		mrcf.enableEpochsHandler,
 	)
 	if err != nil {
 		return fmt.Errorf("%w while creating peer accounts data trie storage getter", err)

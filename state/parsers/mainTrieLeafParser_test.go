@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -23,7 +24,7 @@ func TestNewMainTrieLeafParser(t *testing.T) {
 		value := []byte("value")
 		dtlp := NewMainTrieLeafParser()
 
-		keyValHolder, err := dtlp.ParseLeaf(key, value)
+		keyValHolder, err := dtlp.ParseLeaf(key, value, common.NotSpecified)
 		assert.Nil(t, err)
 		assert.Equal(t, key, keyValHolder.Key())
 		assert.Equal(t, value, keyValHolder.Value())

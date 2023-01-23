@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"math"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -19,7 +20,11 @@ import (
 
 var _ = node(&leafNode{})
 
-func newLeafNode(key, value []byte, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (*leafNode, error) {
+func newLeafNode(
+	newData common.TrieData,
+	marshalizer marshal.Marshalizer,
+	hasher hashing.Hasher,
+) (*leafNode, error) {
 	if check.IfNil(marshalizer) {
 		return nil, ErrNilMarshalizer
 	}
@@ -29,8 +34,9 @@ func newLeafNode(key, value []byte, marshalizer marshal.Marshalizer, hasher hash
 
 	return &leafNode{
 		CollapsedLn: CollapsedLn{
-			Key:   key,
-			Value: value,
+			Key:     newData.Key,
+			Value:   newData.Value,
+			Version: uint32(newData.Version),
 		},
 		baseNode: &baseNode{
 			dirty:  true,
@@ -270,7 +276,7 @@ func (ln *leafNode) getNext(key []byte, _ common.DBWriteCacher) (node, []byte, e
 	}
 	return nil, nil, ErrNodeNotFound
 }
-func (ln *leafNode) insert(n *leafNode, _ common.DBWriteCacher) (node, [][]byte, error) {
+func (ln *leafNode) insert(newData common.TrieData, _ common.DBWriteCacher) (node, [][]byte, error) {
 	err := ln.isEmptyOrNil()
 	if err != nil {
 		return nil, [][]byte{}, fmt.Errorf("insert error %w", err)
@@ -281,15 +287,14 @@ func (ln *leafNode) insert(n *leafNode, _ common.DBWriteCacher) (node, [][]byte,
 		oldHash = append(oldHash, ln.hash)
 	}
 
-	insertedKey := n.Key
 	nodeKey := ln.Key
 
-	if bytes.Equal(insertedKey, nodeKey) {
-		return ln.insertInSameLn(n, oldHash)
+	if bytes.Equal(newData.Key, nodeKey) {
+		return ln.insertInSameLn(newData, oldHash)
 	}
 
-	keyMatchLen := prefixLen(insertedKey, nodeKey)
-	bn, err := ln.insertInNewBn(n, keyMatchLen)
+	keyMatchLen := prefixLen(newData.Key, nodeKey)
+	bn, err := ln.insertInNewBn(newData, keyMatchLen)
 	if err != nil {
 		return nil, [][]byte{}, err
 	}
@@ -306,40 +311,54 @@ func (ln *leafNode) insert(n *leafNode, _ common.DBWriteCacher) (node, [][]byte,
 	return newEn, oldHash, nil
 }
 
-func (ln *leafNode) insertInSameLn(n *leafNode, oldHashes [][]byte) (node, [][]byte, error) {
-	if bytes.Equal(ln.Value, n.Value) {
+func (ln *leafNode) insertInSameLn(newData common.TrieData, oldHashes [][]byte) (node, [][]byte, error) {
+	if bytes.Equal(ln.Value, newData.Value) {
 		return nil, [][]byte{}, nil
 	}
 
-	ln.Value = n.Value
+	ln.Value = newData.Value
+	ln.Version = uint32(newData.Version)
 	ln.dirty = true
 	ln.hash = nil
 	return ln, oldHashes, nil
 }
 
-func (ln *leafNode) insertInNewBn(n *leafNode, keyMatchLen int) (node, error) {
+func (ln *leafNode) insertInNewBn(newData common.TrieData, keyMatchLen int) (node, error) {
 	bn, err := newBranchNode(ln.marsh, ln.hasher)
 	if err != nil {
 		return nil, err
 	}
 
 	oldChildPos := ln.Key[keyMatchLen]
-	newChildPos := n.Key[keyMatchLen]
+	newChildPos := newData.Key[keyMatchLen]
 	if childPosOutOfRange(oldChildPos) || childPosOutOfRange(newChildPos) {
 		return nil, ErrChildPosOutOfRange
 	}
 
-	newLnOldChildPos, err := newLeafNode(ln.Key[keyMatchLen+1:], ln.Value, ln.marsh, ln.hasher)
+	oldLnVersion, err := ln.getVersion()
+	if err != nil {
+		return nil, err
+	}
+
+	oldLnData := common.TrieData{
+		Key:     ln.Key[keyMatchLen+1:],
+		Value:   ln.Value,
+		Version: oldLnVersion,
+	}
+	newLnOldChildPos, err := newLeafNode(oldLnData, ln.marsh, ln.hasher)
 	if err != nil {
 		return nil, err
 	}
 	bn.children[oldChildPos] = newLnOldChildPos
+	bn.setVersionForChild(oldLnVersion, oldChildPos)
 
-	newLnNewChildPos, err := newLeafNode(n.Key[keyMatchLen+1:], n.Value, ln.marsh, ln.hasher)
+	newData.Key = newData.Key[keyMatchLen+1:]
+	newLnNewChildPos, err := newLeafNode(newData, ln.marsh, ln.hasher)
 	if err != nil {
 		return nil, err
 	}
 	bn.children[newChildPos] = newLnNewChildPos
+	bn.setVersionForChild(newData.Version, newChildPos)
 
 	return bn, nil
 }
@@ -359,7 +378,18 @@ func (ln *leafNode) delete(key []byte, _ common.DBWriteCacher) (bool, node, [][]
 func (ln *leafNode) reduceNode(pos int) (node, bool, error) {
 	k := append([]byte{byte(pos)}, ln.Key...)
 
-	newLn, err := newLeafNode(k, ln.Value, ln.marsh, ln.hasher)
+	oldLnVersion, err := ln.getVersion()
+	if err != nil {
+		return nil, false, err
+	}
+
+	oldLnData := common.TrieData{
+		Key:     k,
+		Value:   ln.Value,
+		Version: oldLnVersion,
+	}
+
+	newLn, err := newLeafNode(oldLnData, ln.marsh, ln.hasher)
 	if err != nil {
 		return nil, false, err
 	}
@@ -452,7 +482,12 @@ func (ln *leafNode) getAllLeavesOnChannel(
 		return err
 	}
 
-	trieLeaf, err := trieLeafParser.ParseLeaf(nodeKey, ln.Value)
+	version, err := ln.getVersion()
+	if err != nil {
+		return err
+	}
+
+	trieLeaf, err := trieLeafParser.ParseLeaf(nodeKey, ln.Value, version)
 	if err != nil {
 		return err
 	}
@@ -520,6 +555,15 @@ func (ln *leafNode) collectStats(ts common.TrieStatisticsHandler, depthLevel int
 
 	ts.AddLeafNode(depthLevel, uint64(len(val)))
 	return nil
+}
+
+func (ln *leafNode) getVersion() (common.TrieNodeVersion, error) {
+	if ln.Version > math.MaxUint8 {
+		log.Warn("invalid trie node version", "version", ln.Version, "max version", math.MaxUint8)
+		return common.NotSpecified, ErrInvalidNodeVersion
+	}
+
+	return common.TrieNodeVersion(ln.Version), nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

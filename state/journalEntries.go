@@ -167,12 +167,12 @@ func (jea *journalEntryAccountCreation) IsInterfaceNil() bool {
 // JournalEntryDataTrieUpdates stores all the updates done to the account's data trie,
 // so it can be reverted in case of rollback
 type journalEntryDataTrieUpdates struct {
-	trieUpdates map[string][]byte
+	trieUpdates []common.TrieData
 	account     baseAccountHandler
 }
 
 // NewJournalEntryDataTrieUpdates outputs a new JournalEntryDataTrieUpdates implementation used to revert an account's data trie
-func NewJournalEntryDataTrieUpdates(trieUpdates map[string][]byte, account baseAccountHandler) (*journalEntryDataTrieUpdates, error) {
+func NewJournalEntryDataTrieUpdates(trieUpdates []common.TrieData, account baseAccountHandler) (*journalEntryDataTrieUpdates, error) {
 	if check.IfNil(account) {
 		return nil, fmt.Errorf("%w in NewJournalEntryDataTrieUpdates", ErrNilAccountHandler)
 	}
@@ -188,18 +188,22 @@ func NewJournalEntryDataTrieUpdates(trieUpdates map[string][]byte, account baseA
 
 // Revert applies undo operation
 func (jedtu *journalEntryDataTrieUpdates) Revert() (vmcommon.AccountHandler, error) {
-	trie, ok := jedtu.account.DataTrie().(common.Trie)
+	trie, ok := jedtu.account.DataTrie().(dataTrie)
 	if !ok {
 		return nil, fmt.Errorf("invalid trie, type is %T", jedtu.account.DataTrie())
 	}
 
-	for key := range jedtu.trieUpdates {
-		err := trie.Update([]byte(key), jedtu.trieUpdates[key])
+	for _, trieUpdate := range jedtu.trieUpdates {
+		err := trie.UpdateWithVersion(trieUpdate.Key, trieUpdate.Value, trieUpdate.Version)
 		if err != nil {
 			return nil, err
 		}
 
-		log.Trace("revert data trie update", "key", []byte(key), "val", jedtu.trieUpdates[key])
+		log.Trace("revert data trie update",
+			"key", trieUpdate.Key,
+			"val", trieUpdate.Value,
+			"version", trieUpdate.Version,
+		)
 	}
 
 	rootHash, err := trie.RootHash()

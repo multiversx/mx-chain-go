@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
@@ -31,13 +32,14 @@ func getArgs() factory.TrieFactoryArgs {
 
 func getCreateArgs() factory.TrieCreateArgs {
 	return factory.TrieCreateArgs{
-		MainStorer:         testscommon.CreateMemUnit(),
-		CheckpointsStorer:  testscommon.CreateMemUnit(),
-		PruningEnabled:     false,
-		CheckpointsEnabled: false,
-		SnapshotsEnabled:   true,
-		MaxTrieLevelInMem:  5,
-		IdleProvider:       &testscommon.ProcessStatusHandlerStub{},
+		MainStorer:          testscommon.CreateMemUnit(),
+		CheckpointsStorer:   testscommon.CreateMemUnit(),
+		PruningEnabled:      false,
+		CheckpointsEnabled:  false,
+		SnapshotsEnabled:    true,
+		MaxTrieLevelInMem:   5,
+		IdleProvider:        &testscommon.ProcessStatusHandlerStub{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 }
 
@@ -186,6 +188,7 @@ func testWithMissingStorer(missingUnit dataRetriever.UnitType) func(t *testing.T
 				HasherField:                  &hashingMocks.HasherMock{},
 				PathHandlerField:             &testscommon.PathManagerStub{},
 				ProcessStatusHandlerInternal: &testscommon.ProcessStatusHandlerStub{},
+				EnableEpochsHandlerField:     &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			},
 			&storageStubs.ChainStorerStub{
 				GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {

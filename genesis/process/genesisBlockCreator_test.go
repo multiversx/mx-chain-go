@@ -156,6 +156,7 @@ func createMockArgument(
 		accCreator,
 		trieStorageManagers[factory.UserAccountTrie],
 		&testscommon.PubkeyConverterMock{},
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 	require.Nil(t, err)
 

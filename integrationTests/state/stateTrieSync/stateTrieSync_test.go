@@ -616,11 +616,11 @@ func getUserAccountSyncerArgs(node *integrationTests.TestProcessorNode, version 
 			StorageMarker:                     storageMarker.NewTrieStorageMarker(),
 			UserAccountsSyncStatisticsHandler: statistics.NewTrieSyncStatistics(),
 			AppStatusHandler:                  integrationTests.TestAppStatusHandler,
+			EnableEpochsHandler:               node.EnableEpochsHandler,
 		},
 		ShardId:                0,
 		Throttler:              thr,
 		AddressPubKeyConverter: integrationTests.TestAddressPubkeyConverter,
-		EnableEpochsHandler:    node.EnableEpochsHandler,
 	}
 
 	return syncerArgs

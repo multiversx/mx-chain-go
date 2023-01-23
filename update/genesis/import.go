@@ -314,7 +314,7 @@ func (si *stateImport) getTrie(shardID uint32, accType Type) (common.Trie, error
 		trieStorageManager = si.trieStorageManagers[triesFactory.PeerAccountTrie]
 	}
 
-	trieForShard, err := trie.NewTrie(trieStorageManager, si.marshalizer, si.hasher, maxTrieLevelInMemory)
+	trieForShard, err := trie.NewTrie(trieStorageManager, si.marshalizer, si.hasher, si.enableEpochsHandler, maxTrieLevelInMemory)
 	if err != nil {
 		return nil, err
 	}
@@ -346,7 +346,7 @@ func (si *stateImport) importDataTrie(identifier string, shID uint32, keys [][]b
 		return fmt.Errorf("%w wanted a roothash", update.ErrWrongTypeAssertion)
 	}
 
-	dataTrie, err := trie.NewTrie(si.trieStorageManagers[triesFactory.UserAccountTrie], si.marshalizer, si.hasher, maxTrieLevelInMemory)
+	dataTrie, err := trie.NewTrie(si.trieStorageManagers[triesFactory.UserAccountTrie], si.marshalizer, si.hasher, si.enableEpochsHandler, maxTrieLevelInMemory)
 	if err != nil {
 		return err
 	}
@@ -376,7 +376,7 @@ func (si *stateImport) importDataTrie(identifier string, shID uint32, keys [][]b
 			err = update.ErrKeyTypeMismatch
 			break
 		}
-
+		// TODO this will not work for a partially migrated trie
 		err = dataTrie.Update(address, value)
 		if err != nil {
 			break

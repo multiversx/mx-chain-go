@@ -127,7 +127,7 @@ func getDefaultStateComponents(
 		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
 	}
 	trieStorage, _ := trie.NewTrieStorageManager(args)
-	tr, _ := trie.NewTrie(trieStorage, marshaller, hasher, 5)
+	tr, _ := trie.NewTrie(trieStorage, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 5)
 	ewlArgs := evictionWaitingList.MemoryEvictionWaitingListArgs{
 		RootHashesSize: 100,
 		HashesSize:     10000,
@@ -324,7 +324,7 @@ func TestAccountsDB_SaveAccountSavesCodeAndDataTrieForUserAccount(t *testing.T) 
 		GetCalled: func(_ []byte) ([]byte, uint32, error) {
 			return nil, 0, nil
 		},
-		UpdateCalled: func(key, value []byte) error {
+		UpdateWithVersionCalled: func(key, value []byte, version common.TrieNodeVersion) error {
 			return nil
 		},
 		RootCalled: func() (i []byte, err error) {
@@ -417,7 +417,7 @@ func TestAccountsDB_RemoveAccountShouldWork(t *testing.T) {
 			serializedAcc, err := marshaller.Marshal(stateMock.AccountWrapMock{})
 			return serializedAcc, 0, err
 		},
-		UpdateCalled: func(key, value []byte) error {
+		DeleteCalled: func(key []byte) error {
 			wasCalled = true
 			return nil
 		},
@@ -851,7 +851,7 @@ func TestAccountsDB_CommitShouldCallCommitFromTrie(t *testing.T) {
 				GetCalled: func(_ []byte) ([]byte, uint32, error) {
 					return []byte("doge"), 0, nil
 				},
-				UpdateCalled: func(key, value []byte) error {
+				UpdateWithVersionCalled: func(key, value []byte, version common.TrieNodeVersion) error {
 					return nil
 				},
 				CommitCalled: func() error {
@@ -1762,7 +1762,7 @@ func TestAccountsDB_MainTrieAutomaticallyMarksCodeUpdatesForEviction(t *testing.
 	}
 	storageManager, _ := trie.NewTrieStorageManager(args)
 	maxTrieLevelInMemory := uint(5)
-	tr, _ := trie.NewTrie(storageManager, marshaller, hasher, maxTrieLevelInMemory)
+	tr, _ := trie.NewTrie(storageManager, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 5)
 
 	argsAccountsDB := createMockAccountsDBArgs()
@@ -1851,7 +1851,7 @@ func TestAccountsDB_RemoveAccountMarksObsoleteHashesForEviction(t *testing.T) {
 		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
 	}
 	storageManager, _ := trie.NewTrieStorageManager(args)
-	tr, _ := trie.NewTrie(storageManager, marshaller, hasher, maxTrieLevelInMemory)
+	tr, _ := trie.NewTrie(storageManager, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 5)
 
 	argsAccountsDB := createMockAccountsDBArgs()
@@ -2284,7 +2284,7 @@ func TestAccountsDB_GetCode(t *testing.T) {
 		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
 	}
 	storageManager, _ := trie.NewTrieStorageManager(args)
-	tr, _ := trie.NewTrie(storageManager, marshaller, hasher, maxTrieLevelInMemory)
+	tr, _ := trie.NewTrie(storageManager, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
 	spm := disabled.NewDisabledStoragePruningManager()
 	argsAccountsDB := createMockAccountsDBArgs()
 	argsAccountsDB.Trie = tr
@@ -2684,7 +2684,7 @@ func BenchmarkAccountsDb_GetCodeEntry(b *testing.B) {
 		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
 	}
 	storageManager, _ := trie.NewTrieStorageManager(args)
-	tr, _ := trie.NewTrie(storageManager, marshaller, hasher, maxTrieLevelInMemory)
+	tr, _ := trie.NewTrie(storageManager, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
 	spm := disabled.NewDisabledStoragePruningManager()
 
 	argsAccountsDB := createMockAccountsDBArgs()

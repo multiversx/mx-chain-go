@@ -3,6 +3,7 @@ package parsers
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/keyValStorage"
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 type mainTrieLeafParser struct {
@@ -14,7 +15,7 @@ func NewMainTrieLeafParser() *mainTrieLeafParser {
 }
 
 // ParseLeaf returns the given key an value as a KeyValStorage
-func (tlp *mainTrieLeafParser) ParseLeaf(trieKey []byte, trieVal []byte) (core.KeyValueHolder, error) {
+func (tlp *mainTrieLeafParser) ParseLeaf(trieKey []byte, trieVal []byte, _ common.TrieNodeVersion) (core.KeyValueHolder, error) {
 	return keyValStorage.NewKeyValStorage(trieKey, trieVal), nil
 }
 

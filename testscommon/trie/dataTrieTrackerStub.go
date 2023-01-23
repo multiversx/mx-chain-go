@@ -10,7 +10,7 @@ type DataTrieTrackerStub struct {
 	SaveKeyValueCalled  func(key []byte, value []byte) error
 	SetDataTrieCalled   func(tr common.Trie)
 	DataTrieCalled      func() common.Trie
-	SaveDirtyDataCalled func(trie common.Trie) (map[string][]byte, error)
+	SaveDirtyDataCalled func(trie common.Trie) ([]common.TrieData, error)
 }
 
 // RetrieveValue -
@@ -48,12 +48,12 @@ func (dtts *DataTrieTrackerStub) DataTrie() common.DataTrieHandler {
 }
 
 // SaveDirtyData -
-func (dtts *DataTrieTrackerStub) SaveDirtyData(mainTrie common.Trie) (map[string][]byte, error) {
+func (dtts *DataTrieTrackerStub) SaveDirtyData(mainTrie common.Trie) ([]common.TrieData, error) {
 	if dtts.SaveDirtyDataCalled != nil {
 		return dtts.SaveDirtyDataCalled(mainTrie)
 	}
 
-	return map[string][]byte{}, nil
+	return make([]common.TrieData, 0), nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
