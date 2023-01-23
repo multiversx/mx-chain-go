@@ -31,7 +31,7 @@ func NewSovereignChainTransactionPreprocessor(
 	return sct, nil
 }
 
-// ProcessBlockTransactions processes all the transactions from me from the body given
+// ProcessBlockTransactions processes all the transactions "from me" from the given body
 func (sct *sovereignChainTransactions) ProcessBlockTransactions(
 	header data.HeaderHandler,
 	body *block.Body,
@@ -45,7 +45,9 @@ func (sct *sovereignChainTransactions) ProcessBlockTransactions(
 func (sct *sovereignChainTransactions) CreateAndProcessMiniBlocks(haveTime func() bool, randomness []byte) (block.MiniBlockSlice, error) {
 	startTime := time.Now()
 
-	//TODO: Check if this value of 2x is ok, as we have here normal + scheduled txs
+	//TODO: Check through "allin system tests" if this value of 2x (normal txs + scheduled txs) is enough or could be raised,
+	//as with the new mechanism of proposing and parallel processing for proposer and validators, we are not limited anymore
+	//for a subround block duration of maximum 25% from the whole round. Actually the processing time could / will go up to 60% - 80%.
 	gasBandwidth := sct.economicsFee.MaxGasLimitPerBlock(sct.shardCoordinator.SelfId()) * 2.0
 
 	sortedTxs, err := sct.computeSortedTxs(sct.shardCoordinator.SelfId(), sct.shardCoordinator.SelfId(), randomness)
