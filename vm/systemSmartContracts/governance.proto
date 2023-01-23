@@ -54,6 +54,6 @@ message OngoingVotedList {
 message DelegatedSCVoteInfo {
     bytes TotalPower = 1 [(gogoproto.jsontag) = "TotalPower", (gogoproto.casttypewith) = "math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster"];
     bytes UsedPower  = 2 [(gogoproto.jsontag) = "UsedPower", (gogoproto.casttypewith) = "math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster"];
-    bytes TotalStake = 3 [(gogoproto.jsontag) = "UsedPower", (gogoproto.casttypewith) = "math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster"];
-    bytes UsedStake  = 4 [(gogoproto.jsontag) = "UsedPower", (gogoproto.casttypewith) = "math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster"];
+    bytes TotalStake = 3 [(gogoproto.jsontag) = "TotalStake", (gogoproto.casttypewith) = "math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster"];
+    bytes UsedStake  = 4 [(gogoproto.jsontag) = "UsedStake", (gogoproto.casttypewith) = "math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster"];
 }

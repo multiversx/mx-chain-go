@@ -120,6 +120,7 @@ func (host *vmContext) GetContract(address []byte) (vm.SystemSmartContract, erro
 
 // GetStorageFromAddress gets the storage from address and key
 func (host *vmContext) GetStorageFromAddress(address []byte, key []byte) []byte {
+	log.Error(string(address) + " " + string(key))
 	storageAdrMap, exists := host.storageUpdate[string(address)]
 	if exists {
 		if value, isInMap := storageAdrMap[string(key)]; isInMap {
@@ -150,6 +151,8 @@ func (host *vmContext) SetStorageForAddress(address []byte, key []byte, value []
 	length := len(value)
 	host.storageUpdate[strAdr][string(key)] = make([]byte, length)
 	copy(host.storageUpdate[strAdr][string(key)][:length], value[:length])
+
+	log.Warn(strAdr + " " + string(key) + " " + string(value))
 }
 
 // SetStorage saves the key value storage under the address

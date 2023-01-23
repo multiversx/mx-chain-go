@@ -3,6 +3,7 @@ package systemSmartContracts
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	"math/big"
@@ -741,6 +742,7 @@ func TestGovernanceContract_VoteTwice(t *testing.T) {
 		No:             big.NewInt(0),
 		Veto:           big.NewInt(0),
 		Abstain:        big.NewInt(0),
+		QuorumStake:    big.NewInt(0),
 	}
 
 	voteArgs := [][]byte{
@@ -828,6 +830,7 @@ func TestGovernanceContract_DelegateVoteMoreErrors(t *testing.T) {
 		No:             big.NewInt(0),
 		Veto:           big.NewInt(0),
 		Abstain:        big.NewInt(0),
+		QuorumStake:    big.NewInt(0),
 	}
 
 	voteArgs := [][]byte{
@@ -862,10 +865,12 @@ func TestGovernanceContract_DelegateVoteMoreErrors(t *testing.T) {
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.True(t, strings.Contains(eei.GetReturnMessage(), "not enough voting power to cast this vote"))
 
+	fmt.Println("should work")
 	callInput.Arguments[3] = big.NewInt(12).Bytes()
 	retCode = gsc.Execute(callInput)
 	require.Equal(t, vmcommon.Ok, retCode)
 
+	fmt.Println("next run")
 	retCode = gsc.Execute(callInput)
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.True(t, strings.Contains(eei.GetReturnMessage(), "double vote is not allowed"))
@@ -886,12 +891,6 @@ func TestGovernanceContract_CloseProposal(t *testing.T) {
 			}
 		},
 		GetStorageCalled: func(key []byte) []byte {
-			if bytes.Equal(key, append([]byte(proposalPrefix), callerAddress...)) {
-				whitelistProposalBytes, _ := args.Marshalizer.Marshal(&GeneralProposal{
-					Passed: true,
-				})
-				return whitelistProposalBytes
-			}
 			if bytes.Equal(key, []byte(governanceConfigKey)) {
 				configBytes, _ := args.Marshalizer.Marshal(&GovernanceConfigV2{
 					MinQuorum:        0.1,
@@ -901,12 +900,13 @@ func TestGovernanceContract_CloseProposal(t *testing.T) {
 				return configBytes
 			}
 			if bytes.Equal(key, append([]byte(proposalPrefix), proposalIdentifier...)) {
-				whitelistProposalBytes, _ := args.Marshalizer.Marshal(&GeneralProposal{
-					Yes:  big.NewInt(10),
-					No:   big.NewInt(10),
-					Veto: big.NewInt(10),
+				proposalBytes, _ := args.Marshalizer.Marshal(&GeneralProposal{
+					Yes:     big.NewInt(10),
+					No:      big.NewInt(10),
+					Veto:    big.NewInt(10),
+					Abstain: big.NewInt(10),
 				})
-				return whitelistProposalBytes
+				return proposalBytes
 			}
 
 			return nil
@@ -1423,6 +1423,7 @@ func TestComputeEndResults(t *testing.T) {
 					MinQuorum:        0.4,
 					MinPassThreshold: 0.5,
 					MinVetoThreshold: 0.3,
+					ProposalFee:      big.NewInt(10),
 				})
 				return configBytes
 			}
@@ -1433,45 +1434,50 @@ func TestComputeEndResults(t *testing.T) {
 	gsc, _ := NewGovernanceContract(args)
 
 	didNotPassQuorum := &GeneralProposal{
-		Yes:  big.NewInt(50),
-		No:   big.NewInt(0),
-		Veto: big.NewInt(0),
+		Yes:     big.NewInt(50),
+		No:      big.NewInt(0),
+		Veto:    big.NewInt(0),
+		Abstain: big.NewInt(10),
 	}
 	err := gsc.computeEndResults(didNotPassQuorum)
 	require.Nil(t, err)
 	require.False(t, didNotPassQuorum.Passed)
 
 	didNotPassVotes := &GeneralProposal{
-		Yes:  big.NewInt(50),
-		No:   big.NewInt(50),
-		Veto: big.NewInt(0),
+		Yes:     big.NewInt(50),
+		No:      big.NewInt(50),
+		Veto:    big.NewInt(0),
+		Abstain: big.NewInt(10),
 	}
 	err = gsc.computeEndResults(didNotPassVotes)
 	require.Nil(t, err)
 	require.False(t, didNotPassVotes.Passed)
 
 	didNotPassVotes2 := &GeneralProposal{
-		Yes:  big.NewInt(50),
-		No:   big.NewInt(51),
-		Veto: big.NewInt(0),
+		Yes:     big.NewInt(50),
+		No:      big.NewInt(51),
+		Veto:    big.NewInt(0),
+		Abstain: big.NewInt(10),
 	}
 	err = gsc.computeEndResults(didNotPassVotes2)
 	require.Nil(t, err)
 	require.False(t, didNotPassVotes2.Passed)
 
 	didNotPassVeto := &GeneralProposal{
-		Yes:  big.NewInt(51),
-		No:   big.NewInt(50),
-		Veto: big.NewInt(30),
+		Yes:     big.NewInt(51),
+		No:      big.NewInt(50),
+		Veto:    big.NewInt(30),
+		Abstain: big.NewInt(10),
 	}
 	err = gsc.computeEndResults(didNotPassVeto)
 	require.Nil(t, err)
 	require.False(t, didNotPassVeto.Passed)
 
 	pass := &GeneralProposal{
-		Yes:  big.NewInt(51),
-		No:   big.NewInt(50),
-		Veto: big.NewInt(29),
+		Yes:     big.NewInt(51),
+		No:      big.NewInt(50),
+		Veto:    big.NewInt(29),
+		Abstain: big.NewInt(10),
 	}
 	err = gsc.computeEndResults(pass)
 	require.Nil(t, err)

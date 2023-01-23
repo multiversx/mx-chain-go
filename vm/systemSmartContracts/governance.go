@@ -459,7 +459,7 @@ func (g *governanceContract) updateDelegatedContractInfo(
 	}
 
 	scVoteInfo.UsedStake.Add(scVoteInfo.UsedStake, balance)
-	if scVoteInfo.TotalStake.Cmp(scVoteInfo.TotalStake) < 0 {
+	if scVoteInfo.TotalStake.Cmp(scVoteInfo.UsedStake) < 0 {
 		return vm.ErrNotEnoughVotingPower
 	}
 
@@ -733,20 +733,20 @@ func (g *governanceContract) computeEndResults(proposal *GeneralProposal) error 
 	totalVotes.Add(totalVotes, proposal.Abstain)
 
 	totalStake := g.getTotalStakeInSystem()
-	minQuorumOutOfStake := core.GetIntTrimmedPercentageOfValue(totalStake, baseConfig.MinQuorum)
+	minQuorumOutOfStake := core.GetIntTrimmedPercentageOfValue(totalStake, float64(baseConfig.MinQuorum))
 
 	if totalVotes.Cmp(minQuorumOutOfStake) == -1 {
 		proposal.Passed = false
 		return nil
 	}
 
-	minVetoOfTotalVotes := core.GetIntTrimmedPercentageOfValue(totalVotes, baseConfig.MinVetoThreshold)
+	minVetoOfTotalVotes := core.GetIntTrimmedPercentageOfValue(totalVotes, float64(baseConfig.MinVetoThreshold))
 	if proposal.Veto.Cmp(minVetoOfTotalVotes) >= 0 {
 		proposal.Passed = false
 		return nil
 	}
 
-	minPassOfTotalVotes := core.GetIntTrimmedPercentageOfValue(totalVotes, baseConfig.MinPassThreshold)
+	minPassOfTotalVotes := core.GetIntTrimmedPercentageOfValue(totalVotes, float64(baseConfig.MinPassThreshold))
 	if proposal.Yes.Cmp(minPassOfTotalVotes) >= 0 && proposal.Yes.Cmp(proposal.No) > 0 {
 		proposal.Passed = true
 		return nil
@@ -847,6 +847,7 @@ func (g *governanceContract) getDelegatedContractInfo(scAddress []byte, referenc
 	if err != nil {
 		return nil, err
 	}
+	log.Error("total stake" + " " + totalStake.String())
 	scVoteInfo.TotalPower.Set(totalVotingPower)
 	scVoteInfo.TotalStake.Set(totalStake)
 
@@ -1003,14 +1004,14 @@ func (g *governanceContract) convertV2Config(config config.GovernanceSystemSCCon
 	}
 
 	return &GovernanceConfigV2{
-		MinQuorum:        config.Active.MinQuorum,
-		MinPassThreshold: config.Active.MinPassThreshold,
-		MinVetoThreshold: config.Active.MinVetoThreshold,
+		MinQuorum:        float32(config.Active.MinQuorum),
+		MinPassThreshold: float32(config.Active.MinPassThreshold),
+		MinVetoThreshold: float32(config.Active.MinVetoThreshold),
 		ProposalFee:      proposalFee,
 	}, nil
 }
 
-func convertDecimalToPercentage(arg []byte) (float64, error) {
+func convertDecimalToPercentage(arg []byte) (float32, error) {
 	value, okConvert := big.NewInt(0).SetString(string(arg), conversionBase)
 	if !okConvert {
 		return 0.0, vm.ErrIncorrectConfig
@@ -1020,7 +1021,7 @@ func convertDecimalToPercentage(arg []byte) (float64, error) {
 	if valAsFloat < 0.001 || valAsFloat > 1.0 {
 		return 0.0, vm.ErrIncorrectConfig
 	}
-	return valAsFloat, nil
+	return float32(valAsFloat), nil
 }
 
 // CanUseContract returns true if contract is enabled
