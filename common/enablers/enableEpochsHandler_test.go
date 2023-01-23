@@ -3,11 +3,11 @@ package enablers
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -89,6 +89,7 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		RuntimeMemStoreLimitEnableEpoch:                   73,
 		MaxBlockchainHookCountersEnableEpoch:              74,
 		WipeSingleNFTLiquidityDecreaseEnableEpoch:         75,
+		AlwaysSaveTokenMetaDataEnableEpoch:                76,
 	}
 }
 
@@ -209,6 +210,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsFixOldTokenLiquidityEnabled())
 		assert.True(t, handler.IsRuntimeMemStoreLimitEnabled())
 		assert.True(t, handler.IsMaxBlockchainHookCountersFlagEnabled())
+		assert.True(t, handler.IsAlwaysSaveTokenMetaDataEnabled())
 	})
 	t.Run("flags with == condition should be set, along with all >=", func(t *testing.T) {
 		t.Parallel()
@@ -307,6 +309,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsRuntimeMemStoreLimitEnabled())
 		assert.True(t, handler.IsMaxBlockchainHookCountersFlagEnabled())
 		assert.True(t, handler.IsWipeSingleNFTLiquidityDecreaseEnabled())
+		assert.True(t, handler.IsAlwaysSaveTokenMetaDataEnabled())
 	})
 	t.Run("flags with < should be set", func(t *testing.T) {
 		t.Parallel()
@@ -400,5 +403,6 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.False(t, handler.IsRuntimeMemStoreLimitEnabled())
 		assert.False(t, handler.IsMaxBlockchainHookCountersFlagEnabled())
 		assert.False(t, handler.IsWipeSingleNFTLiquidityDecreaseEnabled())
+		assert.False(t, handler.IsAlwaysSaveTokenMetaDataEnabled())
 	})
 }

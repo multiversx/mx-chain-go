@@ -1,6 +1,6 @@
 package disabled
 
-import "github.com/ElrondNetwork/elrond-go/dataRetriever"
+import "github.com/multiversx/mx-chain-go/dataRetriever"
 
 type requester struct {
 }

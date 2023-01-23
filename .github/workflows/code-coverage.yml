@@ -35,7 +35,6 @@ jobs:
           fi
       - name: Run unit tests
         run: |
-          export ARWEN_PATH=${GITHUB_WORKSPACE}/arwen
           make test-coverage
 
       - name: Upload coverage
