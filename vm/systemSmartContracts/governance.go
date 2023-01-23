@@ -716,7 +716,7 @@ func (g *governanceContract) computeTotalStakeAndVotingPower(address []byte) (*b
 }
 
 func (g *governanceContract) getTotalStakeInSystem() *big.Int {
-	return big.NewInt(100)
+	return g.eei.GetBalance(g.validatorSCAddress)
 }
 
 // computeEndResults computes if a proposal has passed or not based on votes accumulated
@@ -726,8 +726,6 @@ func (g *governanceContract) computeEndResults(proposal *GeneralProposal) error 
 		return err
 	}
 
-	// core.GetIntTrimmedPercentageOfValue(totalRewards, e.rewardsHandler.ProtocolSustainabilityPercentage())
-
 	totalVotes := big.NewInt(0).Add(proposal.Yes, proposal.No)
 	totalVotes.Add(totalVotes, proposal.Veto)
 	totalVotes.Add(totalVotes, proposal.Abstain)
@@ -736,6 +734,7 @@ func (g *governanceContract) computeEndResults(proposal *GeneralProposal) error 
 	minQuorumOutOfStake := core.GetIntTrimmedPercentageOfValue(totalStake, float64(baseConfig.MinQuorum))
 
 	if totalVotes.Cmp(minQuorumOutOfStake) == -1 {
+		g.eei.AddReturnMessage("Proposal did not reach minQuorum")
 		proposal.Passed = false
 		return nil
 	}
@@ -743,15 +742,18 @@ func (g *governanceContract) computeEndResults(proposal *GeneralProposal) error 
 	minVetoOfTotalVotes := core.GetIntTrimmedPercentageOfValue(totalVotes, float64(baseConfig.MinVetoThreshold))
 	if proposal.Veto.Cmp(minVetoOfTotalVotes) >= 0 {
 		proposal.Passed = false
+		g.eei.AddReturnMessage("Proposal vetoed")
 		return nil
 	}
 
 	minPassOfTotalVotes := core.GetIntTrimmedPercentageOfValue(totalVotes, float64(baseConfig.MinPassThreshold))
 	if proposal.Yes.Cmp(minPassOfTotalVotes) >= 0 && proposal.Yes.Cmp(proposal.No) > 0 {
+		g.eei.AddReturnMessage("Proposal passed")
 		proposal.Passed = true
 		return nil
 	}
 
+	g.eei.AddReturnMessage("Proposal rejected")
 	proposal.Passed = false
 	return nil
 }

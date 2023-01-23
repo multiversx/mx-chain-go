@@ -167,17 +167,9 @@ func (host *vmContext) GetBalance(addr []byte) *big.Int {
 	}
 
 	account, err := host.blockChainHook.GetUserAccount(addr)
-	if err == state.ErrAccNotFound {
+	if err != nil {
 		return big.NewInt(0)
 	}
-	if err != nil {
-		return nil
-	}
-
-	host.outputAccounts[strAdr] = &vmcommon.OutputAccount{
-		Balance:      big.NewInt(0).Set(account.GetBalance()),
-		BalanceDelta: big.NewInt(0),
-		Address:      addr}
 
 	return account.GetBalance()
 }

@@ -1415,6 +1415,7 @@ func TestGovernanceContract_ProposalExists(t *testing.T) {
 func TestComputeEndResults(t *testing.T) {
 	t.Parallel()
 
+	retMessage := ""
 	args := createMockGovernanceArgs()
 	args.Eei = &mock.SystemEIStub{
 		GetStorageCalled: func(key []byte) []byte {
@@ -1430,17 +1431,24 @@ func TestComputeEndResults(t *testing.T) {
 
 			return nil
 		},
+		GetBalanceCalled: func(_ []byte) *big.Int {
+			return big.NewInt(100)
+		},
+		AddReturnMessageCalled: func(msg string) {
+			retMessage = msg
+		},
 	}
 	gsc, _ := NewGovernanceContract(args)
 
 	didNotPassQuorum := &GeneralProposal{
-		Yes:     big.NewInt(50),
+		Yes:     big.NewInt(20),
 		No:      big.NewInt(0),
 		Veto:    big.NewInt(0),
 		Abstain: big.NewInt(10),
 	}
 	err := gsc.computeEndResults(didNotPassQuorum)
 	require.Nil(t, err)
+	require.Equal(t, "Proposal did not reach minQuorum", retMessage)
 	require.False(t, didNotPassQuorum.Passed)
 
 	didNotPassVotes := &GeneralProposal{
@@ -1451,6 +1459,7 @@ func TestComputeEndResults(t *testing.T) {
 	}
 	err = gsc.computeEndResults(didNotPassVotes)
 	require.Nil(t, err)
+	require.Equal(t, "Proposal rejected", retMessage)
 	require.False(t, didNotPassVotes.Passed)
 
 	didNotPassVotes2 := &GeneralProposal{
@@ -1461,25 +1470,28 @@ func TestComputeEndResults(t *testing.T) {
 	}
 	err = gsc.computeEndResults(didNotPassVotes2)
 	require.Nil(t, err)
+	require.Equal(t, "Proposal rejected", retMessage)
 	require.False(t, didNotPassVotes2.Passed)
 
 	didNotPassVeto := &GeneralProposal{
 		Yes:     big.NewInt(51),
 		No:      big.NewInt(50),
-		Veto:    big.NewInt(30),
+		Veto:    big.NewInt(70),
 		Abstain: big.NewInt(10),
 	}
 	err = gsc.computeEndResults(didNotPassVeto)
 	require.Nil(t, err)
+	require.Equal(t, "Proposal vetoed", retMessage)
 	require.False(t, didNotPassVeto.Passed)
 
 	pass := &GeneralProposal{
-		Yes:     big.NewInt(51),
+		Yes:     big.NewInt(70),
 		No:      big.NewInt(50),
-		Veto:    big.NewInt(29),
+		Veto:    big.NewInt(10),
 		Abstain: big.NewInt(10),
 	}
 	err = gsc.computeEndResults(pass)
 	require.Nil(t, err)
+	require.Equal(t, "Proposal passed", retMessage)
 	require.True(t, pass.Passed)
 }
