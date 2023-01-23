@@ -24,6 +24,7 @@ const noString = "no"
 const vetoString = "veto"
 const abstainString = "abstain"
 const commitHashLength = 40
+const maxPercentage = float64(10000.0)
 
 // ArgsNewGovernanceContract defines the arguments needed for the on-chain governance contract
 type ArgsNewGovernanceContract struct {
@@ -195,6 +196,10 @@ func (g *governanceContract) initV2(args *vmcommon.ContractCallInput) vmcommon.R
 }
 
 // changeConfig allows the owner to change the configuration for requesting proposals
+//  args.Arguments[0] - proposalFee - as string
+//  args.Arguments[1] - minQuorum - 0-10000 - represents percentage
+//  args.Arguments[1] - minVeto - 0-10000 - represents percentage
+//  args.Arguments[1] - minPass - 0-10000 - represents percentage
 func (g *governanceContract) changeConfig(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if !bytes.Equal(g.changeConfigAddress, args.CallerAddr) {
 		g.eei.AddReturnMessage("changeConfig can be called only by owner")
@@ -214,19 +219,19 @@ func (g *governanceContract) changeConfig(args *vmcommon.ContractCallInput) vmco
 		g.eei.AddReturnMessage("changeConfig first argument is incorrectly formatted")
 		return vmcommon.UserError
 	}
-	minQuorum, okConvert := big.NewInt(0).SetString(string(args.Arguments[1]), conversionBase)
-	if !okConvert || minQuorum.Cmp(zero) < 0 {
-		g.eei.AddReturnMessage("changeConfig second argument is incorrectly formatted")
+	minQuorum, err := convertDecimalToPercentage(args.Arguments[0])
+	if err != nil {
+		g.eei.AddReturnMessage(err.Error() + " minQuorum")
 		return vmcommon.UserError
 	}
-	minVeto, okConvert := big.NewInt(0).SetString(string(args.Arguments[2]), conversionBase)
-	if !okConvert || minVeto.Cmp(zero) < 0 {
-		g.eei.AddReturnMessage("changeConfig third argument is incorrectly formatted")
+	minVeto, err := convertDecimalToPercentage(args.Arguments[0])
+	if err != nil {
+		g.eei.AddReturnMessage(err.Error() + " minVeto")
 		return vmcommon.UserError
 	}
-	minPass, okConvert := big.NewInt(0).SetString(string(args.Arguments[3]), conversionBase)
-	if !okConvert || minPass.Cmp(zero) < 0 {
-		g.eei.AddReturnMessage("changeConfig fourth argument is incorrectly formatted")
+	minPass, err := convertDecimalToPercentage(args.Arguments[0])
+	if err != nil {
+		g.eei.AddReturnMessage(err.Error() + " minPass")
 		return vmcommon.UserError
 	}
 
@@ -710,6 +715,10 @@ func (g *governanceContract) computeTotalStakeAndVotingPower(address []byte) (*b
 	return totalStake, votingPower, nil
 }
 
+func (g *governanceContract) getTotalStakeInSystem() *big.Int {
+	return big.NewInt(100)
+}
+
 // computeEndResults computes if a proposal has passed or not based on votes accumulated
 func (g *governanceContract) computeEndResults(proposal *GeneralProposal) error {
 	baseConfig, err := g.getConfig()
@@ -721,18 +730,24 @@ func (g *governanceContract) computeEndResults(proposal *GeneralProposal) error 
 
 	totalVotes := big.NewInt(0).Add(proposal.Yes, proposal.No)
 	totalVotes.Add(totalVotes, proposal.Veto)
+	totalVotes.Add(totalVotes, proposal.Abstain)
 
-	if totalVotes.Cmp(baseConfig.MinQuorum) == -1 {
+	totalStake := g.getTotalStakeInSystem()
+	minQuorumOutOfStake := core.GetIntTrimmedPercentageOfValue(totalStake, baseConfig.MinQuorum)
+
+	if totalVotes.Cmp(minQuorumOutOfStake) == -1 {
 		proposal.Passed = false
 		return nil
 	}
 
-	if proposal.Veto.Cmp(baseConfig.MinVetoThreshold) >= 0 {
+	minVetoOfTotalVotes := core.GetIntTrimmedPercentageOfValue(totalVotes, baseConfig.MinVetoThreshold)
+	if proposal.Veto.Cmp(minVetoOfTotalVotes) >= 0 {
 		proposal.Passed = false
 		return nil
 	}
 
-	if proposal.Yes.Cmp(baseConfig.MinPassThreshold) >= 0 && proposal.Yes.Cmp(proposal.No) == 1 {
+	minPassOfTotalVotes := core.GetIntTrimmedPercentageOfValue(totalVotes, baseConfig.MinPassThreshold)
+	if proposal.Yes.Cmp(minPassOfTotalVotes) >= 0 && proposal.Yes.Cmp(proposal.No) > 0 {
 		proposal.Passed = true
 		return nil
 	}
@@ -993,6 +1008,19 @@ func (g *governanceContract) convertV2Config(config config.GovernanceSystemSCCon
 		MinVetoThreshold: config.Active.MinVetoThreshold,
 		ProposalFee:      proposalFee,
 	}, nil
+}
+
+func convertDecimalToPercentage(arg []byte) (float64, error) {
+	value, okConvert := big.NewInt(0).SetString(string(arg), conversionBase)
+	if !okConvert {
+		return 0.0, vm.ErrIncorrectConfig
+	}
+
+	valAsFloat := float64(value.Uint64()) / maxPercentage
+	if valAsFloat < 0.001 || valAsFloat > 1.0 {
+		return 0.0, vm.ErrIncorrectConfig
+	}
+	return valAsFloat, nil
 }
 
 // CanUseContract returns true if contract is enabled
