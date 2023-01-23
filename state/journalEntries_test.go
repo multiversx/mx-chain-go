@@ -4,14 +4,14 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/marshallerMock"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
-	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
+	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
+	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -239,7 +239,7 @@ func TestJournalEntryDataTrieUpdates_RevertFailsWhenUpdateFails(t *testing.T) {
 	accnt := stateMock.NewAccountWrapMock(nil)
 
 	tr := &trieMock.TrieStub{
-		UpdateCalled: func(key, value []byte) error {
+		UpdateWithVersionCalled: func(key, value []byte, version common.TrieNodeVersion) error {
 			return expectedErr
 		},
 	}
@@ -266,7 +266,7 @@ func TestJournalEntryDataTrieUpdates_RevertFailsWhenAccountRootFails(t *testing.
 	accnt := stateMock.NewAccountWrapMock(nil)
 
 	tr := &trieMock.TrieStub{
-		UpdateCalled: func(key, value []byte) error {
+		UpdateWithVersionCalled: func(key, value []byte, version common.TrieNodeVersion) error {
 			return nil
 		},
 		RootCalled: func() ([]byte, error) {
@@ -297,7 +297,7 @@ func TestJournalEntryDataTrieUpdates_RevertShouldWork(t *testing.T) {
 	accnt := stateMock.NewAccountWrapMock(nil)
 
 	tr := &trieMock.TrieStub{
-		UpdateCalled: func(key, value []byte) error {
+		UpdateWithVersionCalled: func(key, value []byte, version common.TrieNodeVersion) error {
 			updateWasCalled = true
 			return nil
 		},

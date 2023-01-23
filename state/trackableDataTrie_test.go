@@ -4,16 +4,16 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/state/dataTrieValue"
-	"github.com/ElrondNetwork/elrond-go/testscommon/enableEpochsHandlerMock"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/marshallerMock"
-	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/dataTrieValue"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
+	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
@@ -276,7 +276,7 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 					GetCalled: func(_ []byte) ([]byte, uint32, error) {
 						return nil, 0, nil
 					},
-					UpdateCalled: func(_, _ []byte) error {
+					UpdateWithVersionCalled: func(_, _ []byte, _ common.TrieNodeVersion) error {
 						return nil
 					},
 				}, nil
@@ -321,7 +321,7 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 				}
 				return nil, 0, nil
 			},
-			UpdateCalled: func(key, value []byte) error {
+			UpdateWithVersionCalled: func(key, value []byte, version common.TrieNodeVersion) error {
 				assert.Equal(t, hasher.Compute(string(expectedKey)), key)
 				assert.Equal(t, serializedTrieVal, value)
 				updateCalled = true
@@ -368,7 +368,7 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 				}
 				return nil, 0, nil
 			},
-			UpdateCalled: func(key, value []byte) error {
+			UpdateWithVersionCalled: func(key, value []byte, version common.TrieNodeVersion) error {
 				assert.Equal(t, expectedKey, key)
 				assert.Equal(t, expectedVal, value)
 				updateCalled = true
@@ -426,7 +426,7 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 				}
 				return nil, 0, nil
 			},
-			UpdateCalled: func(key, value []byte) error {
+			UpdateWithVersionCalled: func(key, value []byte, version common.TrieNodeVersion) error {
 				assert.Equal(t, hasher.Compute(string(expectedKey)), key)
 				assert.Equal(t, serializedNewTrieVal, value)
 				updateCalled = true
@@ -473,7 +473,7 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 			GetCalled: func(key []byte) ([]byte, uint32, error) {
 				return nil, 0, nil
 			},
-			UpdateCalled: func(key, value []byte) error {
+			UpdateWithVersionCalled: func(key, value []byte, version common.TrieNodeVersion) error {
 				assert.Equal(t, hasher.Compute(string(expectedKey)), key)
 				assert.Equal(t, serializedNewTrieVal, value)
 				updateCalled = true
@@ -509,7 +509,7 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 			GetCalled: func(key []byte) ([]byte, uint32, error) {
 				return nil, 0, nil
 			},
-			UpdateCalled: func(key, value []byte) error {
+			UpdateWithVersionCalled: func(key, value []byte, version common.TrieNodeVersion) error {
 				return nil
 			},
 		}
@@ -531,7 +531,7 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 			GetCalled: func(key []byte) ([]byte, uint32, error) {
 				return nil, 0, nil
 			},
-			UpdateCalled: func(key, value []byte) error {
+			UpdateWithVersionCalled: func(key, value []byte, version common.TrieNodeVersion) error {
 				assert.Nil(t, value)
 				assert.Equal(t, expectedKey, key)
 				updateCalled = true

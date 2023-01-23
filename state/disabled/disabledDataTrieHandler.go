@@ -3,7 +3,7 @@ package disabled
 import (
 	"context"
 
-	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 type disabledDataTrieHandler struct {

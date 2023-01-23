@@ -2,13 +2,14 @@ package state
 
 import (
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/state/dataTrieValue"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/state/dataTrieValue"
 )
 
 // TrackableDataTrie wraps a PatriciaMerkelTrie adding modifying data capabilities
@@ -151,8 +152,9 @@ func (tdaw *trackableDataTrie) SaveDirtyData(mainTrie common.Trie) ([]common.Tri
 }
 
 func (tdaw *trackableDataTrie) updateTrieV1(selfDataTrie dataTrie) ([]common.TrieData, error) {
-	oldValues := make([]common.TrieData, 0)
+	oldValues := make([]common.TrieData, len(tdaw.dirtyData))
 
+	index := 0
 	for key, val := range tdaw.dirtyData {
 		oldVal, _, err := tdaw.tr.Get([]byte(key))
 		if err != nil {
@@ -164,7 +166,7 @@ func (tdaw *trackableDataTrie) updateTrieV1(selfDataTrie dataTrie) ([]common.Tri
 			Value:   oldVal,
 			Version: common.NotSpecified,
 		}
-		oldValues = append(oldValues, oldEntry)
+		oldValues[index] = oldEntry
 
 		var identifier []byte
 		if len(val) != 0 {
@@ -177,27 +179,34 @@ func (tdaw *trackableDataTrie) updateTrieV1(selfDataTrie dataTrie) ([]common.Tri
 		if err != nil {
 			return nil, err
 		}
+
+		index++
 	}
 
 	tdaw.dirtyData = make(map[string][]byte)
 	return oldValues, nil
 }
 
-func (tdaw *trackableDataTrie) updateTrieWithAutoBalancing(dtr dataTrie) ([]common.TrieData, error) {
-	oldValues := make([]common.TrieData, 0)
+// TODO refactor to make the migration more generic. This code should be able to migrate between specified versions.
 
+func (tdaw *trackableDataTrie) updateTrieWithAutoBalancing(dtr dataTrie) ([]common.TrieData, error) {
+	oldValues := make([]common.TrieData, len(tdaw.dirtyData))
+
+	index := 0
 	for key, val := range tdaw.dirtyData {
 		oldEntry, err := tdaw.getOldKeyAndValWithCleanup(key)
 		if err != nil {
 			return nil, err
 		}
 
-		oldValues = append(oldValues, oldEntry)
+		oldValues[index] = oldEntry
 
-		err = tdaw.updateValInTrie([]byte(key), val, dtr)
+		err = tdaw.updateValInTrieWithAutoBalancing([]byte(key), val, dtr)
 		if err != nil {
 			return nil, err
 		}
+
+		index++
 	}
 
 	tdaw.dirtyData = make(map[string][]byte)
@@ -241,7 +250,7 @@ func (tdaw *trackableDataTrie) getOldKeyAndValWithCleanup(key string) (common.Tr
 	}, nil
 }
 
-func (tdaw *trackableDataTrie) updateValInTrie(key []byte, val []byte, selfDataTrie dataTrie) error {
+func (tdaw *trackableDataTrie) updateValInTrieWithAutoBalancing(key []byte, val []byte, selfDataTrie dataTrie) error {
 	if len(val) == 0 {
 		return tdaw.tr.Delete(tdaw.hasher.Compute(string(key)))
 	}

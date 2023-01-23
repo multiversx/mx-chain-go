@@ -4,16 +4,17 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"math"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/data/mock"
-	"github.com/ElrondNetwork/elrond-go/common"
-	elrondErrors "github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/storage/cache"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/marshallerMock"
-	"github.com/ElrondNetwork/elrond-go/trie/statistics"
+	"github.com/multiversx/mx-chain-core-go/data/mock"
+	"github.com/multiversx/mx-chain-go/common"
+	chainErrors "github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/storage/cache"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
+	"github.com/multiversx/mx-chain-go/trie/statistics"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -1027,10 +1028,10 @@ func TestExtensionNode_commitContextDone(t *testing.T) {
 	cancel()
 
 	err := en.commitCheckpoint(db, db, nil, nil, ctx, statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
-	assert.Equal(t, elrondErrors.ErrContextClosing, err)
+	assert.Equal(t, chainErrors.ErrContextClosing, err)
 
 	err = en.commitSnapshot(db, nil, nil, ctx, statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
-	assert.Equal(t, elrondErrors.ErrContextClosing, err)
+	assert.Equal(t, chainErrors.ErrContextClosing, err)
 }
 
 func TestExtensionNode_getValueReturnsEmptyByteSlice(t *testing.T) {
@@ -1045,7 +1046,7 @@ func TestExtensionNode_commitSnapshotDbIsClosing(t *testing.T) {
 
 	db := &mock.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
-			return nil, elrondErrors.ErrContextClosing
+			return nil, chainErrors.ErrContextClosing
 		},
 	}
 	_, collapsedEn := getEnAndCollapsedEn()
@@ -1053,4 +1054,40 @@ func TestExtensionNode_commitSnapshotDbIsClosing(t *testing.T) {
 	err := collapsedEn.commitSnapshot(db, nil, missingNodesChan, context.Background(), statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(missingNodesChan))
+}
+
+func TestExtensionNode_getVersion(t *testing.T) {
+	t.Parallel()
+
+	t.Run("invalid node version", func(t *testing.T) {
+		t.Parallel()
+
+		en, _ := getEnAndCollapsedEn()
+		en.ChildVersion = math.MaxUint8 + 1
+
+		version, err := en.getVersion()
+		assert.Equal(t, common.NotSpecified, version)
+		assert.Equal(t, ErrInvalidNodeVersion, err)
+	})
+
+	t.Run("NotSpecified version", func(t *testing.T) {
+		t.Parallel()
+
+		en, _ := getEnAndCollapsedEn()
+
+		version, err := en.getVersion()
+		assert.Equal(t, common.NotSpecified, version)
+		assert.Nil(t, err)
+	})
+
+	t.Run("AutoBalanceEnabled version", func(t *testing.T) {
+		t.Parallel()
+
+		en, _ := getEnAndCollapsedEn()
+		en.ChildVersion = uint32(common.AutoBalanceEnabled)
+
+		version, err := en.getVersion()
+		assert.Equal(t, common.AutoBalanceEnabled, version)
+		assert.Nil(t, err)
+	})
 }

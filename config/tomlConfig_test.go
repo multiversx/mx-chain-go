@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"testing"
 
-	p2pConfig "github.com/ElrondNetwork/elrond-go/p2p/config"
+	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
 	"github.com/pelletier/go-toml"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -41,7 +41,7 @@ func TestTomlParser(t *testing.T) {
 
 	consensusType := "bls"
 
-	arwenVersions := []ArwenVersionByEpoch{
+	wasmVMVersions := []WasmVMVersionByEpoch{
 		{StartEpoch: 12, Version: "v0.3"},
 		{StartEpoch: 88, Version: "v1.2"},
 	}
@@ -99,13 +99,13 @@ func TestTomlParser(t *testing.T) {
 		},
 		VirtualMachine: VirtualMachineServicesConfig{
 			Execution: VirtualMachineConfig{
-				ArwenVersions:                       arwenVersions,
+				WasmVMVersions:                      wasmVMVersions,
 				TimeOutForSCExecutionInMilliseconds: 10000,
 				WasmerSIGSEGVPassthrough:            true,
 			},
 			Querying: QueryVirtualMachineConfig{
 				NumConcurrentVMs:     16,
-				VirtualMachineConfig: VirtualMachineConfig{ArwenVersions: arwenVersions},
+				VirtualMachineConfig: VirtualMachineConfig{WasmVMVersions: wasmVMVersions},
 			},
 			GasConfig: VirtualMachineGasConfig{
 				ShardMaxGasPerVmQuery: 1_500_000_000,
@@ -185,14 +185,14 @@ func TestTomlParser(t *testing.T) {
     [VirtualMachine.Execution]
         TimeOutForSCExecutionInMilliseconds = 10000 # 10 seconds = 10000 milliseconds
         WasmerSIGSEGVPassthrough            = true
-        ArwenVersions = [
+        WasmVMVersions = [
             { StartEpoch = 12, Version = "v0.3" },
             { StartEpoch = 88, Version = "v1.2" },
         ]
 
     [VirtualMachine.Querying]
         NumConcurrentVMs = 16
-        ArwenVersions = [
+        WasmVMVersions = [
             { StartEpoch = 12, Version = "v0.3" },
             { StartEpoch = 88, Version = "v1.2" },
         ]
@@ -642,7 +642,7 @@ func TestEnableEpochConfig(t *testing.T) {
 	# CleanUpInformativeSCRsEnableEpoch represents the epoch when the scrs which contain only information are cleaned from miniblocks and logs are created from it
 	CleanUpInformativeSCRsEnableEpoch = 49
 
-    # StorageAPICostOptimizationEnableEpoch represents the epoch when new storage helper functions are enabled and cost is reduced in Arwen
+    # StorageAPICostOptimizationEnableEpoch represents the epoch when new storage helper functions are enabled and cost is reduced in Wasm VM
     StorageAPICostOptimizationEnableEpoch = 50
 
     # TransformToMultiShardCreateEnableEpoch represents the epoch when the new function on esdt system sc is enabled to transfer create role into multishard

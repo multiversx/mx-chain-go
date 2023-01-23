@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 var errNotImplemented = errors.New("not implemented")
@@ -13,7 +13,7 @@ var errNotImplemented = errors.New("not implemented")
 type TrieStub struct {
 	GetCalled                   func(key []byte) ([]byte, uint32, error)
 	UpdateCalled                func(key, value []byte) error
-	UpdateWithVersionCalled     func(key, value []byte) error
+	UpdateWithVersionCalled     func(key, value []byte, version common.TrieNodeVersion) error
 	DeleteCalled                func(key []byte) error
 	RootCalled                  func() ([]byte, error)
 	CommitCalled                func() error
@@ -89,8 +89,8 @@ func (ts *TrieStub) Update(key, value []byte) error {
 
 // UpdateWithVersion -
 func (ts *TrieStub) UpdateWithVersion(key []byte, value []byte, version common.TrieNodeVersion) error {
-	if ts.UpdateCalled != nil {
-		return ts.UpdateCalled(key, value)
+	if ts.UpdateWithVersionCalled != nil {
+		return ts.UpdateWithVersionCalled(key, value, version)
 	}
 
 	return errNotImplemented
