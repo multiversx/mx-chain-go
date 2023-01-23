@@ -1,3 +1,401 @@
 package preprocess
 
-//TODO: Unit tests should be added
+import (
+	"math/big"
+	"testing"
+
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/txcache"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+func TestTxsPreprocessor_NewSovereignChainTransactionPreprocessorShouldErrNilPreProcessor(t *testing.T) {
+	t.Parallel()
+
+	sctp, err := NewSovereignChainTransactionPreprocessor(nil)
+	assert.Nil(t, sctp)
+	assert.Equal(t, process.ErrNilPreProcessor, err)
+}
+
+func TestTxsPreprocessor_NewSovereignChainTransactionPreprocessorShouldWork(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultTransactionsProcessorArgs()
+
+	tp, err := NewTransactionPreprocessor(args)
+	require.Nil(t, err)
+	require.NotNil(t, tp)
+
+	sctp, err := NewSovereignChainTransactionPreprocessor(tp)
+	require.Nil(t, err)
+	require.NotNil(t, sctp)
+}
+
+func TestTxsPreprocessor_ProcessBlockTransactionsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultTransactionsProcessorArgs()
+
+	tp, _ := NewTransactionPreprocessor(args)
+	sctp, _ := NewSovereignChainTransactionPreprocessor(tp)
+
+	tx1 := transaction.Transaction{
+		Nonce: 1,
+	}
+	tx2 := transaction.Transaction{
+		Nonce: 2,
+	}
+	tx3 := transaction.Transaction{
+		Nonce: 3,
+	}
+
+	txHash1 := []byte("a")
+	txHash2 := []byte("b")
+	txHash3 := []byte("c")
+
+	tp.txsForCurrBlock.txHashAndInfo[string(txHash1)] = &txInfo{
+		tx: &tx1,
+	}
+	tp.txsForCurrBlock.txHashAndInfo[string(txHash2)] = &txInfo{
+		tx: &tx2,
+	}
+	tp.txsForCurrBlock.txHashAndInfo[string(txHash3)] = &txInfo{
+		tx: &tx3,
+	}
+
+	header := &block.Header{
+		PrevRandSeed: []byte("X"),
+	}
+	body := &block.Body{
+		MiniBlocks: block.MiniBlockSlice{
+			&block.MiniBlock{
+				TxHashes: [][]byte{
+					txHash1, txHash2, txHash3,
+				},
+			},
+		},
+	}
+
+	mbs, err := sctp.ProcessBlockTransactions(header, body, haveTimeTrue)
+	require.Nil(t, err)
+	require.NotNil(t, mbs)
+	require.Equal(t, 1, len(mbs))
+	require.Equal(t, 3, len(mbs[0].TxHashes))
+	assert.Equal(t, txHash1, mbs[0].TxHashes[0])
+	assert.Equal(t, txHash2, mbs[0].TxHashes[1])
+	assert.Equal(t, txHash3, mbs[0].TxHashes[2])
+}
+
+func TestTxsPreprocessor_CreateAndProcessMiniBlocksShouldWork(t *testing.T) {
+	t.Parallel()
+
+	t.Run("CreateAndProcessMiniBlocks should return empty mini blocks slice when computeSortedTxs fails", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultTransactionsProcessorArgs()
+		args.TxDataPool = &testscommon.ShardedDataStub{
+			ShardDataStoreCalled: func(id string) (c storage.Cacher) {
+				return nil
+			},
+		}
+
+		tp, _ := NewTransactionPreprocessor(args)
+		sctp, _ := NewSovereignChainTransactionPreprocessor(tp)
+
+		mbs, err := sctp.CreateAndProcessMiniBlocks(haveTimeTrue, []byte("X"))
+		assert.Nil(t, err)
+		assert.Equal(t, 0, len(mbs))
+	})
+
+	t.Run("CreateAndProcessMiniBlocks should return empty mini blocks slice when there are no sorted txs", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultTransactionsProcessorArgs()
+		args.TxDataPool = &testscommon.ShardedDataStub{
+			ShardDataStoreCalled: func(id string) (c storage.Cacher) {
+				return &testscommon.CacherStub{}
+			},
+		}
+
+		tp, _ := NewTransactionPreprocessor(args)
+		sctp, _ := NewSovereignChainTransactionPreprocessor(tp)
+
+		mbs, err := sctp.CreateAndProcessMiniBlocks(haveTimeTrue, []byte("X"))
+		assert.Nil(t, err)
+		assert.Equal(t, 0, len(mbs))
+	})
+
+	t.Run("CreateAndProcessMiniBlocks should return empty mini blocks slice when have no time", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultTransactionsProcessorArgs()
+		args.TxDataPool = &testscommon.ShardedDataStub{
+			ShardDataStoreCalled: func(id string) (c storage.Cacher) {
+				return &testscommon.CacherStub{
+					SelectTransactionsWithBandwidthCalled: func(numRequested int, batchSizePerSender int, bandwidthPerSender uint64) []*txcache.WrappedTransaction {
+						return []*txcache.WrappedTransaction{
+							{Tx: &transaction.Transaction{Nonce: 1}},
+						}
+					},
+				}
+			},
+		}
+
+		tp, _ := NewTransactionPreprocessor(args)
+		sctp, _ := NewSovereignChainTransactionPreprocessor(tp)
+
+		mbs, err := sctp.CreateAndProcessMiniBlocks(haveTimeFalse, []byte("X"))
+		assert.Nil(t, err)
+		assert.Equal(t, 0, len(mbs))
+	})
+
+	t.Run("CreateAndProcessMiniBlocks should return empty mini blocks slice when scheduled is not activated", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultTransactionsProcessorArgs()
+		args.TxDataPool = &testscommon.ShardedDataStub{
+			ShardDataStoreCalled: func(id string) (c storage.Cacher) {
+				return &testscommon.CacherStub{
+					SelectTransactionsWithBandwidthCalled: func(numRequested int, batchSizePerSender int, bandwidthPerSender uint64) []*txcache.WrappedTransaction {
+						return []*txcache.WrappedTransaction{
+							{Tx: &transaction.Transaction{Nonce: 1}},
+						}
+					},
+				}
+			},
+		}
+
+		tp, _ := NewTransactionPreprocessor(args)
+		sctp, _ := NewSovereignChainTransactionPreprocessor(tp)
+
+		mbs, err := sctp.CreateAndProcessMiniBlocks(haveTimeTrue, []byte("X"))
+		assert.Nil(t, err)
+		assert.Equal(t, 0, len(mbs))
+	})
+
+	t.Run("CreateAndProcessMiniBlocks should work", func(t *testing.T) {
+		t.Parallel()
+		args := createDefaultTransactionsProcessorArgs()
+		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+			IsScheduledMiniBlocksFlagEnabledField: true,
+		}
+
+		tx1 := &transaction.Transaction{Nonce: 1}
+		tx2 := &transaction.Transaction{Nonce: 2, Data: []byte("X")}
+		tx3 := &transaction.Transaction{Nonce: 3}
+
+		txHash1 := []byte("1")
+		txHash2 := []byte("2")
+		txHash3 := []byte("3")
+
+		args.TxDataPool = &testscommon.ShardedDataStub{
+			ShardDataStoreCalled: func(id string) (c storage.Cacher) {
+				return &testscommon.CacherStub{
+					SelectTransactionsWithBandwidthCalled: func(numRequested int, batchSizePerSender int, bandwidthPerSender uint64) []*txcache.WrappedTransaction {
+						return []*txcache.WrappedTransaction{
+							{Tx: tx1, TxHash: txHash1},
+							{Tx: tx2, TxHash: txHash2},
+							{Tx: tx3, TxHash: txHash3},
+						}
+					},
+				}
+			},
+		}
+
+		tp, _ := NewTransactionPreprocessor(args)
+		sctp, _ := NewSovereignChainTransactionPreprocessor(tp)
+
+		mbs, err := sctp.CreateAndProcessMiniBlocks(haveTimeTrue, []byte("X"))
+		assert.Nil(t, err)
+		require.Equal(t, 1, len(mbs))
+		require.Equal(t, 3, len(mbs[0].TxHashes))
+	})
+}
+
+func TestTxsPreprocessor_ComputeSortedTxsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	t.Run("computeSortedTxs should return error when tx data pool is nil", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultTransactionsProcessorArgs()
+		args.TxDataPool = &testscommon.ShardedDataStub{
+			ShardDataStoreCalled: func(id string) (c storage.Cacher) {
+				return nil
+			},
+		}
+
+		tp, _ := NewTransactionPreprocessor(args)
+		sctp, _ := NewSovereignChainTransactionPreprocessor(tp)
+
+		wtxs, err := sctp.computeSortedTxs(0, 0, []byte("X"))
+		assert.Nil(t, wtxs)
+		assert.Equal(t, process.ErrNilTxDataPool, err)
+	})
+
+	t.Run("computeSortedTxs should work", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultTransactionsProcessorArgs()
+		tx := &transaction.Transaction{Nonce: 1}
+		txHash := []byte("x")
+		args.TxDataPool = &testscommon.ShardedDataStub{
+			ShardDataStoreCalled: func(id string) (c storage.Cacher) {
+				return &testscommon.CacherStub{
+					SelectTransactionsWithBandwidthCalled: func(numRequested int, batchSizePerSender int, bandwidthPerSender uint64) []*txcache.WrappedTransaction {
+						return []*txcache.WrappedTransaction{
+							{Tx: tx, TxHash: txHash},
+						}
+					},
+				}
+			},
+		}
+
+		tp, _ := NewTransactionPreprocessor(args)
+		sctp, _ := NewSovereignChainTransactionPreprocessor(tp)
+
+		wtxs, err := sctp.computeSortedTxs(0, 0, []byte("X"))
+		require.Nil(t, err)
+		require.Equal(t, 1, len(wtxs))
+		assert.Equal(t, tx, wtxs[0].Tx)
+		assert.Equal(t, txHash, wtxs[0].TxHash)
+	})
+}
+
+func TestTxsPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultTransactionsProcessorArgs()
+
+	tp, _ := NewTransactionPreprocessor(args)
+	sctp, _ := NewSovereignChainTransactionPreprocessor(tp)
+
+	txsToBeReverted, indexOfLastTxProcessed, shouldRevert, err := sctp.ProcessMiniBlock(
+		&block.MiniBlock{},
+		haveTimeTrue,
+		haveAdditionalTimeFalse,
+		false,
+		false,
+		-1,
+		&testscommon.PreProcessorExecutionInfoHandlerMock{},
+	)
+
+	assert.Nil(t, txsToBeReverted)
+	assert.Equal(t, 0, indexOfLastTxProcessed)
+	assert.False(t, shouldRevert)
+	assert.Nil(t, err)
+}
+
+func TestTxsPreprocessor_ShouldContinueProcessingScheduledTxShouldWork(t *testing.T) {
+	t.Parallel()
+
+	t.Run("shouldContinueProcessingScheduledTx should return false when assertion fails", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultTransactionsProcessorArgs()
+
+		tp, _ := NewTransactionPreprocessor(args)
+		sctp, _ := NewSovereignChainTransactionPreprocessor(tp)
+
+		wrappedTx := &txcache.WrappedTransaction{}
+		mapSCTxs := make(map[string]struct{})
+		mbi := &createScheduledMiniBlocksInfo{}
+
+		tx, mb, shouldContinue := sctp.shouldContinueProcessingScheduledTx(isShardStuckFalse, wrappedTx, mapSCTxs, mbi)
+		assert.Nil(t, tx)
+		assert.Nil(t, mb)
+		assert.False(t, shouldContinue)
+	})
+
+	t.Run("shouldContinueProcessingScheduledTx should return false when receiver's mini block does not exist", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultTransactionsProcessorArgs()
+
+		tp, _ := NewTransactionPreprocessor(args)
+		sctp, _ := NewSovereignChainTransactionPreprocessor(tp)
+
+		wrappedTx := &txcache.WrappedTransaction{
+			Tx: &transaction.Transaction{},
+		}
+
+		mapSCTxs := make(map[string]struct{})
+		mbi := &createScheduledMiniBlocksInfo{}
+
+		tx, mb, shouldContinue := sctp.shouldContinueProcessingScheduledTx(isShardStuckFalse, wrappedTx, mapSCTxs, mbi)
+		assert.Nil(t, tx)
+		assert.Nil(t, mb)
+		assert.False(t, shouldContinue)
+	})
+
+	t.Run("shouldContinueProcessingScheduledTx should return false when sender's account has not enough initial balance", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultTransactionsProcessorArgs()
+		args.BalanceComputation = &testscommon.BalanceComputationStub{
+			IsAddressSetCalled: func(address []byte) bool {
+				return true
+			},
+			AddressHasEnoughBalanceCalled: func(address []byte, value *big.Int) bool {
+				return false
+			},
+		}
+
+		tp, _ := NewTransactionPreprocessor(args)
+		sctp, _ := NewSovereignChainTransactionPreprocessor(tp)
+
+		wrappedTx := &txcache.WrappedTransaction{
+			Tx: &transaction.Transaction{},
+		}
+
+		mapSCTxs := make(map[string]struct{})
+		mbi := &createScheduledMiniBlocksInfo{
+			mapMiniBlocks: make(map[uint32]*block.MiniBlock),
+		}
+
+		mbi.mapMiniBlocks[0] = &block.MiniBlock{}
+
+		tx, mb, shouldContinue := sctp.shouldContinueProcessingScheduledTx(isShardStuckFalse, wrappedTx, mapSCTxs, mbi)
+		assert.Nil(t, tx)
+		assert.Nil(t, mb)
+		assert.False(t, shouldContinue)
+	})
+
+	t.Run("shouldContinueProcessingScheduledTx should return true", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultTransactionsProcessorArgs()
+		args.BalanceComputation = &testscommon.BalanceComputationStub{
+			IsAddressSetCalled: func(address []byte) bool {
+				return true
+			},
+			AddressHasEnoughBalanceCalled: func(address []byte, value *big.Int) bool {
+				return true
+			},
+		}
+
+		tp, _ := NewTransactionPreprocessor(args)
+		sctp, _ := NewSovereignChainTransactionPreprocessor(tp)
+
+		wrappedTx := &txcache.WrappedTransaction{
+			Tx: &transaction.Transaction{},
+		}
+
+		mapSCTxs := make(map[string]struct{})
+		mbi := &createScheduledMiniBlocksInfo{
+			mapMiniBlocks: make(map[uint32]*block.MiniBlock),
+		}
+
+		mbi.mapMiniBlocks[0] = &block.MiniBlock{}
+
+		tx, mb, shouldContinue := sctp.shouldContinueProcessingScheduledTx(isShardStuckFalse, wrappedTx, mapSCTxs, mbi)
+		assert.Equal(t, wrappedTx.Tx, tx)
+		assert.Equal(t, mbi.mapMiniBlocks[0], mb)
+		assert.True(t, shouldContinue)
+	})
+}

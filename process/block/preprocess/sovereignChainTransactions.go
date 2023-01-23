@@ -1,6 +1,7 @@
 package preprocess
 
 import (
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
@@ -42,12 +43,12 @@ func (sctp *sovereignChainTransactions) ProcessBlockTransactions(
 
 // CreateAndProcessMiniBlocks creates miniBlocks from selected transactions
 func (sctp *sovereignChainTransactions) CreateAndProcessMiniBlocks(haveTime func() bool, randomness []byte) (block.MiniBlockSlice, error) {
+	startTime := time.Now()
+
 	//TODO: Check if this value of 2x is ok, as we have here normal + scheduled txs
 	gasBandwidth := sctp.economicsFee.MaxGasLimitPerBlock(sctp.shardCoordinator.SelfId()) * 2.0
 
-	startTime := time.Now()
-
-	sortedTxs, remainingTxsForScheduled, err := sctp.computeSortedTxs(sctp.shardCoordinator.SelfId(), sctp.shardCoordinator.SelfId(), gasBandwidth, randomness)
+	sortedTxs, err := sctp.computeSortedTxs(sctp.shardCoordinator.SelfId(), sctp.shardCoordinator.SelfId(), randomness)
 	elapsedTime := time.Since(startTime)
 	if err != nil {
 		log.Debug("computeSortedTxs", "error", err.Error())
@@ -74,14 +75,12 @@ func (sctp *sovereignChainTransactions) CreateAndProcessMiniBlocks(haveTime func
 		"time [s]", elapsedTime,
 	)
 
-	sortedTxsForScheduled := append(sortedTxs, remainingTxsForScheduled...)
-	sortedTxsForScheduled, _ = sctp.prefilterTransactions(nil, sortedTxsForScheduled, 0, gasBandwidth)
-	sctp.sortTransactionsBySenderAndNonce(sortedTxsForScheduled, randomness)
+	selectedTxs, _, _ := sctp.addTxsWithinBandwidth(nil, sortedTxs, 0, gasBandwidth)
 
 	scheduledMiniBlocks, err := sctp.createScheduledMiniBlocksFromMeAsProposer(
 		haveTime,
 		haveAdditionalTimeFalse,
-		sortedTxsForScheduled,
+		selectedTxs,
 		make(map[string]struct{}),
 	)
 	if err != nil {
@@ -90,6 +89,24 @@ func (sctp *sovereignChainTransactions) CreateAndProcessMiniBlocks(haveTime func
 	}
 
 	return scheduledMiniBlocks, nil
+}
+
+func (sctp *sovereignChainTransactions) computeSortedTxs(
+	sndShardId uint32,
+	dstShardId uint32,
+	randomness []byte,
+) ([]*txcache.WrappedTransaction, error) {
+	strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
+	txShardPool := sctp.txPool.ShardDataStore(strCache)
+	if check.IfNil(txShardPool) {
+		return nil, process.ErrNilTxDataPool
+	}
+
+	sortedTransactionsProvider := createSortedTransactionsProvider(txShardPool)
+	sortedTxs := sortedTransactionsProvider.GetSortedTransactions()
+	sctp.sortTransactionsBySenderAndNonce(sortedTxs, randomness)
+
+	return sortedTxs, nil
 }
 
 // ProcessMiniBlock does nothing on sovereign chain

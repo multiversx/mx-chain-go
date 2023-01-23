@@ -1,10 +1,12 @@
 package shard
 
 import (
-	"github.com/multiversx/mx-chain-go/common"
+	"errors"
 	"testing"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	customErrors "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -13,6 +15,7 @@ import (
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createMockPubkeyConverter() *mock.PubkeyConverterMock {
@@ -809,6 +812,67 @@ func TestPreProcessorsContainerFactory_CreateErrScrPreproc(t *testing.T) {
 
 func TestPreProcessorsContainerFactory_Create(t *testing.T) {
 	t.Parallel()
+
+	ppcm, err := createMockPreProcessorContainerFactory()
+
+	assert.Nil(t, err)
+	assert.NotNil(t, ppcm)
+
+	container, err := ppcm.Create()
+	assert.Nil(t, err)
+	assert.Equal(t, 4, container.Len())
+}
+
+func TestCreateTxPreProcessor_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	t.Run("createTxPreProcessor should create a main chain instance", func(t *testing.T) {
+		t.Parallel()
+
+		ppcm, err := createMockPreProcessorContainerFactory()
+		require.Nil(t, err)
+		require.NotNil(t, ppcm)
+
+		ppcm.chainRunType = common.ChainRunTypeRegular
+
+		preProc, errCreate := ppcm.createTxPreProcessor()
+
+		assert.NotNil(t, preProc)
+		assert.Nil(t, errCreate)
+	})
+
+	t.Run("createTxPreProcessor should create a sovereign chain instance", func(t *testing.T) {
+		t.Parallel()
+
+		ppcm, err := createMockPreProcessorContainerFactory()
+		require.Nil(t, err)
+		require.NotNil(t, ppcm)
+
+		ppcm.chainRunType = common.ChainRunTypeSovereign
+
+		preProc, errCreate := ppcm.createTxPreProcessor()
+
+		assert.NotNil(t, preProc)
+		assert.Nil(t, errCreate)
+	})
+
+	t.Run("createTxPreProcessor should error when chain run type is not implemented", func(t *testing.T) {
+		t.Parallel()
+
+		ppcm, err := createMockPreProcessorContainerFactory()
+		require.Nil(t, err)
+		require.NotNil(t, ppcm)
+
+		ppcm.chainRunType = "X"
+
+		preProc, errCreate := ppcm.createTxPreProcessor()
+
+		assert.Nil(t, preProc)
+		assert.True(t, errors.Is(errCreate, customErrors.ErrUnimplementedChainRunType))
+	})
+}
+
+func createMockPreProcessorContainerFactory() (*preProcessorsContainerFactory, error) {
 	dataPool := dataRetrieverMock.NewPoolsHolderStub()
 	dataPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return &testscommon.ShardedDataStub{}
@@ -845,10 +909,5 @@ func TestPreProcessorsContainerFactory_Create(t *testing.T) {
 		common.ChainRunTypeRegular,
 	)
 
-	assert.Nil(t, err)
-	assert.NotNil(t, ppcm)
-
-	container, err := ppcm.Create()
-	assert.Nil(t, err)
-	assert.Equal(t, 4, container.Len())
+	return ppcm, err
 }

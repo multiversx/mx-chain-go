@@ -230,10 +230,6 @@ func (ppcm *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 		ProcessedMiniBlocksTracker:   ppcm.processedMiniBlocksTracker,
 	}
 
-	return ppcm.createTransactionPreprocessor(args)
-}
-
-func (ppcm *preProcessorsContainerFactory) createTransactionPreprocessor(args preprocess.ArgsTransactionPreProcessor) (process.PreProcessor, error) {
 	txPreprocessor, err := preprocess.NewTransactionPreprocessor(args)
 	if err != nil {
 		return nil, err
