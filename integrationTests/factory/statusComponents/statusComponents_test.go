@@ -110,6 +110,7 @@ func TestStatusComponents_Create_Close_ShouldWork(t *testing.T) {
 		managedStatusCoreComponents,
 		gasScheduleNotifier,
 		nodesCoordinator,
+		&testscommon.HardforkExclusionHandlerStub{},
 	)
 	require.Nil(t, err)
 	time.Sleep(2 * time.Second)

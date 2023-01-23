@@ -1,9 +1,9 @@
 package hardfork
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/tree"
-	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/tree"
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 type hardforkExclusionHandler struct {
