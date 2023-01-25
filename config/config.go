@@ -1,6 +1,6 @@
 package config
 
-import p2pConfig "github.com/ElrondNetwork/elrond-go/p2p/config"
+import p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
 
 // CacheConfig will map the cache configuration
 type CacheConfig struct {
@@ -109,16 +109,16 @@ type SoftwareVersionConfig struct {
 type HeartbeatV2Config struct {
 	PeerAuthenticationTimeBetweenSendsInSec          int64
 	PeerAuthenticationTimeBetweenSendsWhenErrorInSec int64
-	PeerAuthenticationThresholdBetweenSends          float64
+	PeerAuthenticationTimeThresholdBetweenSends      float64
 	HeartbeatTimeBetweenSendsInSec                   int64
 	HeartbeatTimeBetweenSendsWhenErrorInSec          int64
-	HeartbeatThresholdBetweenSends                   float64
+	HeartbeatTimeThresholdBetweenSends               float64
 	HeartbeatExpiryTimespanInSec                     int64
 	MinPeersThreshold                                float32
-	DelayBetweenRequestsInSec                        int64
-	MaxTimeoutInSec                                  int64
+	DelayBetweenPeerAuthenticationRequestsInSec      int64
+	PeerAuthenticationMaxTimeoutForRequestsInSec     int64
 	PeerShardTimeBetweenSendsInSec                   int64
-	PeerShardThresholdBetweenSends                   float64
+	PeerShardTimeThresholdBetweenSends               float64
 	MaxMissingKeysInRequest                          uint32
 	MaxDurationPeerUnresponsiveInSec                 int64
 	HideInactiveValidatorIntervalInSec               int64
@@ -210,7 +210,7 @@ type Config struct {
 	Versions              VersionsConfig
 	Logs                  LogsConfig
 	TrieSync              TrieSyncConfig
-	Resolvers             ResolverConfig
+	Requesters            RequesterConfig
 	VMOutputCacher        CacheConfig
 
 	PeersRatingConfig   PeersRatingConfig
@@ -280,7 +280,7 @@ type GeneralSettingsConfig struct {
 	SyncProcessTimeInMillis              uint32
 }
 
-// FacadeConfig will hold different configuration option that will be passed to the main ElrondFacade
+// FacadeConfig will hold different configuration option that will be passed to the node facade
 type FacadeConfig struct {
 	RestApiInterface string
 	PprofEnabled     bool
@@ -295,8 +295,6 @@ type StateTriesConfig struct {
 	PeerStatePruningEnabled     bool
 	MaxStateTrieLevelInMemory   uint
 	MaxPeerTrieLevelInMemory    uint
-	UserStatePruningQueueSize   uint
-	PeerStatePruningQueueSize   uint
 }
 
 // TrieStorageManagerConfig will hold config information about trie storage manager
@@ -394,13 +392,13 @@ type VirtualMachineServicesConfig struct {
 
 // VirtualMachineConfig holds configuration for a Virtual Machine service
 type VirtualMachineConfig struct {
-	ArwenVersions                       []ArwenVersionByEpoch
+	WasmVMVersions                      []WasmVMVersionByEpoch
 	TimeOutForSCExecutionInMilliseconds uint32
 	WasmerSIGSEGVPassthrough            bool
 }
 
-// ArwenVersionByEpoch represents the Arwen version to be used starting with an epoch
-type ArwenVersionByEpoch struct {
+// WasmVMVersionByEpoch represents the Wasm VM version to be used starting with an epoch
+type WasmVMVersionByEpoch struct {
 	StartEpoch uint32
 	Version    string
 }
@@ -602,8 +600,8 @@ type TrieSyncConfig struct {
 	CheckNodesOnDisk          bool
 }
 
-// ResolverConfig represents the config options to be used when setting up the resolver instances
-type ResolverConfig struct {
+// RequesterConfig represents the config options to be used when setting up the requester instances
+type RequesterConfig struct {
 	NumCrossShardPeers  uint32
 	NumTotalPeers       uint32
 	NumFullHistoryPeers uint32

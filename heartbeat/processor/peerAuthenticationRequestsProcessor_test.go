@@ -10,11 +10,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/random"
-	"github.com/ElrondNetwork/elrond-go/heartbeat"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/random"
+	"github.com/multiversx/mx-chain-go/heartbeat"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -27,7 +27,7 @@ func createMockArgPeerAuthenticationRequestsProcessor() ArgPeerAuthenticationReq
 		Epoch:                   0,
 		MinPeersThreshold:       0.8,
 		DelayBetweenRequests:    time.Second,
-		MaxTimeout:              5 * time.Second,
+		MaxTimeoutForRequests:   5 * time.Second,
 		MaxMissingKeysInRequest: 10,
 		Randomizer:              &random.ConcurrentSafeIntRandomizer{},
 	}
@@ -107,7 +107,7 @@ func TestNewPeerAuthenticationRequestsProcessor(t *testing.T) {
 		assert.True(t, strings.Contains(err.Error(), "DelayBetweenRequests"))
 		assert.True(t, check.IfNil(processor))
 	})
-	t.Run("invalid max timeout should error", func(t *testing.T) {
+	t.Run("invalid max missing keys should error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgPeerAuthenticationRequestsProcessor()
@@ -118,15 +118,15 @@ func TestNewPeerAuthenticationRequestsProcessor(t *testing.T) {
 		assert.True(t, strings.Contains(err.Error(), "MaxMissingKeysInRequest"))
 		assert.True(t, check.IfNil(processor))
 	})
-	t.Run("invalid max missing keys should error", func(t *testing.T) {
+	t.Run("invalid max timeout for requests should error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgPeerAuthenticationRequestsProcessor()
-		args.MaxTimeout = time.Second - time.Nanosecond
+		args.MaxTimeoutForRequests = time.Second - time.Nanosecond
 
 		processor, err := NewPeerAuthenticationRequestsProcessor(args)
 		assert.True(t, errors.Is(err, heartbeat.ErrInvalidTimeDuration))
-		assert.True(t, strings.Contains(err.Error(), "MaxTimeout"))
+		assert.True(t, strings.Contains(err.Error(), "MaxTimeoutForRequests"))
 		assert.True(t, check.IfNil(processor))
 	})
 	t.Run("nil randomizer should error", func(t *testing.T) {

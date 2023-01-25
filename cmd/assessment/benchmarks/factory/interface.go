@@ -1,6 +1,6 @@
 package factory
 
-import "github.com/ElrondNetwork/elrond-go/cmd/assessment/benchmarks"
+import "github.com/multiversx/mx-chain-go/cmd/assessment/benchmarks"
 
 type benchmarkCoordinator interface {
 	RunAllTests() *benchmarks.TestResults

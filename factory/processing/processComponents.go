@@ -8,68 +8,70 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/partitioning"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	dataBlock "github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/outport"
-	nodeFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/epochProviders"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
-	storageResolversContainers "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/storageResolversContainer"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
-	"github.com/ElrondNetwork/elrond-go/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
-	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
-	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
-	errErd "github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/factory"
-	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
-	"github.com/ElrondNetwork/elrond-go/factory/disabled"
-	"github.com/ElrondNetwork/elrond-go/fallback"
-	"github.com/ElrondNetwork/elrond-go/genesis"
-	"github.com/ElrondNetwork/elrond-go/genesis/checking"
-	processGenesis "github.com/ElrondNetwork/elrond-go/genesis/process"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/block"
-	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
-	"github.com/ElrondNetwork/elrond-go/process/block/pendingMb"
-	"github.com/ElrondNetwork/elrond-go/process/block/poolsCleaner"
-	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
-	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
-	"github.com/ElrondNetwork/elrond-go/process/factory/interceptorscontainer"
-	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
-	"github.com/ElrondNetwork/elrond-go/process/heartbeat/validator"
-	"github.com/ElrondNetwork/elrond-go/process/peer"
-	"github.com/ElrondNetwork/elrond-go/process/receipts"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract"
-	"github.com/ElrondNetwork/elrond-go/process/sync"
-	"github.com/ElrondNetwork/elrond-go/process/track"
-	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
-	"github.com/ElrondNetwork/elrond-go/process/txsSender"
-	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
-	"github.com/ElrondNetwork/elrond-go/redundancy"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/networksharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/cache"
-	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
-	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
-	"github.com/ElrondNetwork/elrond-go/update"
-	updateDisabled "github.com/ElrondNetwork/elrond-go/update/disabled"
-	updateFactory "github.com/ElrondNetwork/elrond-go/update/factory"
-	"github.com/ElrondNetwork/elrond-go/update/trigger"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/partitioning"
+	"github.com/multiversx/mx-chain-core-go/data"
+	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/outport"
+	nodeFactory "github.com/multiversx/mx-chain-go/cmd/node/factory"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dataRetriever/factory/containers"
+	"github.com/multiversx/mx-chain-go/dataRetriever/factory/epochProviders"
+	"github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
+	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
+	disabledResolversContainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer/disabled"
+	"github.com/multiversx/mx-chain-go/dataRetriever/factory/storageRequestersContainer"
+	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
+	"github.com/multiversx/mx-chain-go/dblookupext"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/epochStart/metachain"
+	"github.com/multiversx/mx-chain-go/epochStart/notifier"
+	"github.com/multiversx/mx-chain-go/epochStart/shardchain"
+	errErd "github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/factory"
+	mainFactory "github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/factory/disabled"
+	"github.com/multiversx/mx-chain-go/fallback"
+	"github.com/multiversx/mx-chain-go/genesis"
+	"github.com/multiversx/mx-chain-go/genesis/checking"
+	processGenesis "github.com/multiversx/mx-chain-go/genesis/process"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block"
+	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
+	"github.com/multiversx/mx-chain-go/process/block/pendingMb"
+	"github.com/multiversx/mx-chain-go/process/block/poolsCleaner"
+	"github.com/multiversx/mx-chain-go/process/block/preprocess"
+	"github.com/multiversx/mx-chain-go/process/block/processedMb"
+	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
+	"github.com/multiversx/mx-chain-go/process/headerCheck"
+	"github.com/multiversx/mx-chain-go/process/heartbeat/validator"
+	"github.com/multiversx/mx-chain-go/process/peer"
+	"github.com/multiversx/mx-chain-go/process/receipts"
+	"github.com/multiversx/mx-chain-go/process/smartContract"
+	"github.com/multiversx/mx-chain-go/process/sync"
+	"github.com/multiversx/mx-chain-go/process/track"
+	"github.com/multiversx/mx-chain-go/process/transactionLog"
+	"github.com/multiversx/mx-chain-go/process/txsSender"
+	"github.com/multiversx/mx-chain-go/process/txsimulator"
+	"github.com/multiversx/mx-chain-go/redundancy"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/networksharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/cache"
+	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
+	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-go/update"
+	updateDisabled "github.com/multiversx/mx-chain-go/update/disabled"
+	updateFactory "github.com/multiversx/mx-chain-go/update/factory"
+	"github.com/multiversx/mx-chain-go/update/trigger"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
 )
 
 // timeSpanForBadHeaders is the expiry time for an added block header hash
@@ -80,7 +82,8 @@ type processComponents struct {
 	nodesCoordinator             nodesCoordinator.NodesCoordinator
 	shardCoordinator             sharding.Coordinator
 	interceptorsContainer        process.InterceptorsContainer
-	resolversFinder              dataRetriever.ResolversFinder
+	resolversContainer           dataRetriever.ResolversContainer
+	requestersFinder             dataRetriever.RequestersFinder
 	roundHandler                 consensus.RoundHandler
 	epochStartTrigger            epochStart.TriggerHandler
 	epochStartNotifier           factory.EpochStartNotifier
@@ -266,7 +269,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	resolversContainerFactory, err := pcf.newResolverContainerFactory(currentEpochProvider)
+	resolversContainerFactory, err := pcf.newResolverContainerFactory()
 	if err != nil {
 		return nil, err
 	}
@@ -276,13 +279,23 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	resolversFinder, err := containers.NewResolversFinder(resolversContainer, pcf.bootstrapComponents.ShardCoordinator())
+	requestersContainerFactory, err := pcf.newRequestersContainerFactory(currentEpochProvider)
+	if err != nil {
+		return nil, err
+	}
+
+	requestersContainer, err := requestersContainerFactory.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	requestersFinder, err := containers.NewRequestersFinder(requestersContainer, pcf.bootstrapComponents.ShardCoordinator())
 	if err != nil {
 		return nil, err
 	}
 
 	requestHandler, err := requestHandlers.NewResolverRequestHandler(
-		resolversFinder,
+		requestersFinder,
 		pcf.requestedItemsHandler,
 		pcf.whiteListHandler,
 		common.MaxTxsToRequest,
@@ -491,7 +504,8 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	exportFactoryHandler, err := pcf.createExportFactoryHandler(
 		headerValidator,
 		requestHandler,
-		resolversFinder,
+		resolversContainer,
+		requestersContainer,
 		interceptorsContainer,
 		headerSigVerifier,
 		blockTracker,
@@ -586,7 +600,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		blockTracker,
 		pendingMiniBlocksHandler,
 		txSimulatorProcessorArgs,
-		pcf.coreData.ArwenChangeLocker(),
+		pcf.coreData.WasmVMChangeLocker(),
 		scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker,
 		receiptsRepository,
@@ -660,7 +674,8 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		nodesCoordinator:             pcf.nodesCoordinator,
 		shardCoordinator:             pcf.bootstrapComponents.ShardCoordinator(),
 		interceptorsContainer:        interceptorsContainer,
-		resolversFinder:              resolversFinder,
+		resolversContainer:           resolversContainer,
+		requestersFinder:             requestersFinder,
 		roundHandler:                 pcf.coreData.RoundHandler(),
 		forkDetector:                 forkDetector,
 		blockProcessor:               blockProcessorComponents.blockProcessor,
@@ -1290,13 +1305,11 @@ func (pcf *processComponentsFactory) newBlockTracker(
 }
 
 // -- Resolvers container Factory begin
-func (pcf *processComponentsFactory) newResolverContainerFactory(
-	currentEpochProvider dataRetriever.CurrentNetworkEpochProviderHandler,
-) (dataRetriever.ResolversContainerFactory, error) {
+func (pcf *processComponentsFactory) newResolverContainerFactory() (dataRetriever.ResolversContainerFactory, error) {
 
 	if pcf.importDBConfig.IsImportDBMode {
-		log.Debug("starting with storage resolvers", "path", pcf.importDBConfig.ImportDBWorkingDir)
-		return pcf.newStorageResolver()
+		log.Debug("starting with disabled resolvers", "path", pcf.importDBConfig.ImportDBWorkingDir)
+		return disabledResolversContainer.NewDisabledResolversContainerFactory(), nil
 	}
 
 	payloadValidator, err := validator.NewPeerAuthenticationPayloadValidator(pcf.config.HeartbeatV2.HeartbeatExpiryTimespanInSec)
@@ -1305,17 +1318,16 @@ func (pcf *processComponentsFactory) newResolverContainerFactory(
 	}
 
 	if pcf.bootstrapComponents.ShardCoordinator().SelfId() < pcf.bootstrapComponents.ShardCoordinator().NumberOfShards() {
-		return pcf.newShardResolverContainerFactory(currentEpochProvider, payloadValidator)
+		return pcf.newShardResolverContainerFactory(payloadValidator)
 	}
 	if pcf.bootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
-		return pcf.newMetaResolverContainerFactory(currentEpochProvider, payloadValidator)
+		return pcf.newMetaResolverContainerFactory(payloadValidator)
 	}
 
 	return nil, errors.New("could not create interceptor and resolver container factory")
 }
 
 func (pcf *processComponentsFactory) newShardResolverContainerFactory(
-	currentEpochProvider dataRetriever.CurrentNetworkEpochProviderHandler,
 	payloadValidator process.PeerAuthenticationPayloadValidator,
 ) (dataRetriever.ResolversContainerFactory, error) {
 
@@ -1325,24 +1337,21 @@ func (pcf *processComponentsFactory) newShardResolverContainerFactory(
 	}
 
 	resolversContainerFactoryArgs := resolverscontainer.FactoryArgs{
-		ShardCoordinator:            pcf.bootstrapComponents.ShardCoordinator(),
-		Messenger:                   pcf.network.NetworkMessenger(),
-		Store:                       pcf.data.StorageService(),
-		Marshalizer:                 pcf.coreData.InternalMarshalizer(),
-		DataPools:                   pcf.data.Datapool(),
-		Uint64ByteSliceConverter:    pcf.coreData.Uint64ByteSliceConverter(),
-		DataPacker:                  dataPacker,
-		TriesContainer:              pcf.state.TriesContainer(),
-		SizeCheckDelta:              pcf.config.Marshalizer.SizeCheckDelta,
-		InputAntifloodHandler:       pcf.network.InputAntiFloodHandler(),
-		OutputAntifloodHandler:      pcf.network.OutputAntiFloodHandler(),
-		NumConcurrentResolvingJobs:  pcf.config.Antiflood.NumConcurrentResolverJobs,
-		IsFullHistoryNode:           pcf.prefConfigs.FullArchive,
-		CurrentNetworkEpochProvider: currentEpochProvider,
-		ResolverConfig:              pcf.config.Resolvers,
-		PreferredPeersHolder:        pcf.network.PreferredPeersHolderHandler(),
-		PeersRatingHandler:          pcf.network.PeersRatingHandler(),
-		PayloadValidator:            payloadValidator,
+		ShardCoordinator:           pcf.bootstrapComponents.ShardCoordinator(),
+		Messenger:                  pcf.network.NetworkMessenger(),
+		Store:                      pcf.data.StorageService(),
+		Marshalizer:                pcf.coreData.InternalMarshalizer(),
+		DataPools:                  pcf.data.Datapool(),
+		Uint64ByteSliceConverter:   pcf.coreData.Uint64ByteSliceConverter(),
+		DataPacker:                 dataPacker,
+		TriesContainer:             pcf.state.TriesContainer(),
+		SizeCheckDelta:             pcf.config.Marshalizer.SizeCheckDelta,
+		InputAntifloodHandler:      pcf.network.InputAntiFloodHandler(),
+		OutputAntifloodHandler:     pcf.network.OutputAntiFloodHandler(),
+		NumConcurrentResolvingJobs: pcf.config.Antiflood.NumConcurrentResolverJobs,
+		IsFullHistoryNode:          pcf.prefConfigs.FullArchive,
+		PreferredPeersHolder:       pcf.network.PreferredPeersHolderHandler(),
+		PayloadValidator:           payloadValidator,
 	}
 	resolversContainerFactory, err := resolverscontainer.NewShardResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {
@@ -1353,7 +1362,6 @@ func (pcf *processComponentsFactory) newShardResolverContainerFactory(
 }
 
 func (pcf *processComponentsFactory) newMetaResolverContainerFactory(
-	currentEpochProvider dataRetriever.CurrentNetworkEpochProviderHandler,
 	payloadValidator process.PeerAuthenticationPayloadValidator,
 ) (dataRetriever.ResolversContainerFactory, error) {
 
@@ -1363,30 +1371,59 @@ func (pcf *processComponentsFactory) newMetaResolverContainerFactory(
 	}
 
 	resolversContainerFactoryArgs := resolverscontainer.FactoryArgs{
-		ShardCoordinator:            pcf.bootstrapComponents.ShardCoordinator(),
-		Messenger:                   pcf.network.NetworkMessenger(),
-		Store:                       pcf.data.StorageService(),
-		Marshalizer:                 pcf.coreData.InternalMarshalizer(),
-		DataPools:                   pcf.data.Datapool(),
-		Uint64ByteSliceConverter:    pcf.coreData.Uint64ByteSliceConverter(),
-		DataPacker:                  dataPacker,
-		TriesContainer:              pcf.state.TriesContainer(),
-		SizeCheckDelta:              pcf.config.Marshalizer.SizeCheckDelta,
-		InputAntifloodHandler:       pcf.network.InputAntiFloodHandler(),
-		OutputAntifloodHandler:      pcf.network.OutputAntiFloodHandler(),
-		NumConcurrentResolvingJobs:  pcf.config.Antiflood.NumConcurrentResolverJobs,
-		IsFullHistoryNode:           pcf.prefConfigs.FullArchive,
-		CurrentNetworkEpochProvider: currentEpochProvider,
-		ResolverConfig:              pcf.config.Resolvers,
-		PreferredPeersHolder:        pcf.network.PreferredPeersHolderHandler(),
-		PeersRatingHandler:          pcf.network.PeersRatingHandler(),
-		PayloadValidator:            payloadValidator,
+		ShardCoordinator:           pcf.bootstrapComponents.ShardCoordinator(),
+		Messenger:                  pcf.network.NetworkMessenger(),
+		Store:                      pcf.data.StorageService(),
+		Marshalizer:                pcf.coreData.InternalMarshalizer(),
+		DataPools:                  pcf.data.Datapool(),
+		Uint64ByteSliceConverter:   pcf.coreData.Uint64ByteSliceConverter(),
+		DataPacker:                 dataPacker,
+		TriesContainer:             pcf.state.TriesContainer(),
+		SizeCheckDelta:             pcf.config.Marshalizer.SizeCheckDelta,
+		InputAntifloodHandler:      pcf.network.InputAntiFloodHandler(),
+		OutputAntifloodHandler:     pcf.network.OutputAntiFloodHandler(),
+		NumConcurrentResolvingJobs: pcf.config.Antiflood.NumConcurrentResolverJobs,
+		IsFullHistoryNode:          pcf.prefConfigs.FullArchive,
+		PreferredPeersHolder:       pcf.network.PreferredPeersHolderHandler(),
+		PayloadValidator:           payloadValidator,
 	}
 	resolversContainerFactory, err := resolverscontainer.NewMetaResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {
 		return nil, err
 	}
 	return resolversContainerFactory, nil
+}
+
+func (pcf *processComponentsFactory) newRequestersContainerFactory(
+	currentEpochProvider dataRetriever.CurrentNetworkEpochProviderHandler,
+) (dataRetriever.RequestersContainerFactory, error) {
+
+	if pcf.importDBConfig.IsImportDBMode {
+		log.Debug("starting with storage requesters", "path", pcf.importDBConfig.ImportDBWorkingDir)
+		return pcf.newStorageRequesters()
+	}
+
+	requestersContainerFactoryArgs := requesterscontainer.FactoryArgs{
+		RequesterConfig:             pcf.config.Requesters,
+		ShardCoordinator:            pcf.bootstrapComponents.ShardCoordinator(),
+		Messenger:                   pcf.network.NetworkMessenger(),
+		Marshaller:                  pcf.coreData.InternalMarshalizer(),
+		Uint64ByteSliceConverter:    pcf.coreData.Uint64ByteSliceConverter(),
+		OutputAntifloodHandler:      pcf.network.OutputAntiFloodHandler(),
+		CurrentNetworkEpochProvider: currentEpochProvider,
+		PreferredPeersHolder:        pcf.network.PreferredPeersHolderHandler(),
+		PeersRatingHandler:          pcf.network.PeersRatingHandler(),
+		SizeCheckDelta:              pcf.config.Marshalizer.SizeCheckDelta,
+	}
+
+	if pcf.bootstrapComponents.ShardCoordinator().SelfId() < pcf.bootstrapComponents.ShardCoordinator().NumberOfShards() {
+		return requesterscontainer.NewShardRequestersContainerFactory(requestersContainerFactoryArgs)
+	}
+	if pcf.bootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
+		return requesterscontainer.NewMetaRequestersContainerFactory(requestersContainerFactoryArgs)
+	}
+
+	return nil, errors.New("could not create requester container factory")
 }
 
 func (pcf *processComponentsFactory) newInterceptorContainerFactory(
@@ -1424,7 +1461,7 @@ func (pcf *processComponentsFactory) newInterceptorContainerFactory(
 	return nil, nil, errors.New("could not create interceptor container factory")
 }
 
-func (pcf *processComponentsFactory) newStorageResolver() (dataRetriever.ResolversContainerFactory, error) {
+func (pcf *processComponentsFactory) newStorageRequesters() (dataRetriever.RequestersContainerFactory, error) {
 	pathManager, err := storageFactory.CreatePathManager(
 		storageFactory.ArgCreatePathManager{
 			WorkingDir: pcf.importDBConfig.ImportDBWorkingDir,
@@ -1466,7 +1503,7 @@ func (pcf *processComponentsFactory) newStorageResolver() (dataRetriever.Resolve
 			return nil, errStore
 		}
 
-		return pcf.createStorageResolversForMeta(
+		return pcf.createStorageRequestersForMeta(
 			store,
 			manualEpochStartNotifier,
 		)
@@ -1477,22 +1514,22 @@ func (pcf *processComponentsFactory) newStorageResolver() (dataRetriever.Resolve
 		return nil, err
 	}
 
-	return pcf.createStorageResolversForShard(
+	return pcf.createStorageRequestersForShard(
 		store,
 		manualEpochStartNotifier,
 	)
 }
 
-func (pcf *processComponentsFactory) createStorageResolversForMeta(
+func (pcf *processComponentsFactory) createStorageRequestersForMeta(
 	store dataRetriever.StorageService,
 	manualEpochStartNotifier dataRetriever.ManualEpochStartNotifier,
-) (dataRetriever.ResolversContainerFactory, error) {
+) (dataRetriever.RequestersContainerFactory, error) {
 	dataPacker, err := partitioning.NewSimpleDataPacker(pcf.coreData.InternalMarshalizer())
 	if err != nil {
 		return nil, err
 	}
 
-	resolversContainerFactoryArgs := storageResolversContainers.FactoryArgs{
+	requestersContainerFactoryArgs := storagerequesterscontainer.FactoryArgs{
 		GeneralConfig:            pcf.config,
 		ShardIDForTries:          pcf.importDBConfig.ImportDBTargetShardID,
 		ChainID:                  pcf.coreData.ChainID(),
@@ -1507,24 +1544,24 @@ func (pcf *processComponentsFactory) createStorageResolversForMeta(
 		ManualEpochStartNotifier: manualEpochStartNotifier,
 		ChanGracefullyClose:      pcf.coreData.ChanStopNodeProcess(),
 	}
-	resolversContainerFactory, err := storageResolversContainers.NewMetaResolversContainerFactory(resolversContainerFactoryArgs)
+	requestersContainerFactory, err := storagerequesterscontainer.NewMetaRequestersContainerFactory(requestersContainerFactoryArgs)
 	if err != nil {
 		return nil, err
 	}
 
-	return resolversContainerFactory, nil
+	return requestersContainerFactory, nil
 }
 
-func (pcf *processComponentsFactory) createStorageResolversForShard(
+func (pcf *processComponentsFactory) createStorageRequestersForShard(
 	store dataRetriever.StorageService,
 	manualEpochStartNotifier dataRetriever.ManualEpochStartNotifier,
-) (dataRetriever.ResolversContainerFactory, error) {
+) (dataRetriever.RequestersContainerFactory, error) {
 	dataPacker, err := partitioning.NewSimpleDataPacker(pcf.coreData.InternalMarshalizer())
 	if err != nil {
 		return nil, err
 	}
 
-	resolversContainerFactoryArgs := storageResolversContainers.FactoryArgs{
+	requestersContainerFactoryArgs := storagerequesterscontainer.FactoryArgs{
 		GeneralConfig:            pcf.config,
 		ShardIDForTries:          pcf.importDBConfig.ImportDBTargetShardID,
 		ChainID:                  pcf.coreData.ChainID(),
@@ -1539,12 +1576,12 @@ func (pcf *processComponentsFactory) createStorageResolversForShard(
 		ManualEpochStartNotifier: manualEpochStartNotifier,
 		ChanGracefullyClose:      pcf.coreData.ChanStopNodeProcess(),
 	}
-	resolversContainerFactory, err := storageResolversContainers.NewShardResolversContainerFactory(resolversContainerFactoryArgs)
+	requestersContainerFactory, err := storagerequesterscontainer.NewShardRequestersContainerFactory(requestersContainerFactoryArgs)
 	if err != nil {
 		return nil, err
 	}
 
-	return resolversContainerFactory, nil
+	return requestersContainerFactory, nil
 }
 
 func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
@@ -1687,7 +1724,8 @@ func (pcf *processComponentsFactory) prepareNetworkShardingCollector() (*network
 func (pcf *processComponentsFactory) createExportFactoryHandler(
 	headerValidator epochStart.HeaderValidator,
 	requestHandler process.RequestHandler,
-	resolversFinder dataRetriever.ResolversFinder,
+	resolversContainer dataRetriever.ResolversContainer,
+	requestersContainer dataRetriever.RequestersContainer,
 	interceptorsContainer process.InterceptorsContainer,
 	headerSigVerifier process.InterceptedHeaderSigVerifier,
 	blockTracker process.ValidityAttester,
@@ -1709,7 +1747,8 @@ func (pcf *processComponentsFactory) createExportFactoryHandler(
 		ShardCoordinator:          pcf.bootstrapComponents.ShardCoordinator(),
 		Messenger:                 pcf.network.NetworkMessenger(),
 		ActiveAccountsDBs:         accountsDBs,
-		ExistingResolvers:         resolversFinder,
+		ExistingResolvers:         resolversContainer,
+		ExistingRequesters:        requestersContainer,
 		ExportFolder:              exportFolder,
 		ExportTriesStorageConfig:  hardforkConfig.ExportTriesStorageConfig,
 		ExportStateStorageConfig:  hardforkConfig.ExportStateStorageConfig,

@@ -4,11 +4,11 @@ import (
 	"os"
 	"time"
 
-	indexerFactory "github.com/ElrondNetwork/elastic-indexer-go/process/factory"
-	wsDriverFactory "github.com/ElrondNetwork/elrond-go-core/websocketOutportDriver/factory"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/outport"
-	"github.com/ElrondNetwork/elrond-go/outport/firehose"
+	wsDriverFactory "github.com/multiversx/mx-chain-core-go/websocketOutportDriver/factory"
+	indexerFactory "github.com/multiversx/mx-chain-es-indexer-go/process/factory"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/outport"
+	"github.com/multiversx/mx-chain-go/outport/firehose"
 )
 
 // WrappedOutportDriverWebSocketSenderFactoryArgs extends the wsDriverFactory.OutportDriverWebSocketSenderFactoryArgs structure with the Enabled field

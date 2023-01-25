@@ -7,30 +7,30 @@ import (
 	"path"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/debug/factory"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
-	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
-	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/cache"
-	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
-	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
-	"github.com/ElrondNetwork/elrond-go/trie"
-	"github.com/ElrondNetwork/elrond-go/update"
-	"github.com/ElrondNetwork/elrond-go/update/genesis"
-	"github.com/ElrondNetwork/elrond-go/update/storing"
-	"github.com/ElrondNetwork/elrond-go/update/sync"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/debug/factory"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/epochStart/notifier"
+	"github.com/multiversx/mx-chain-go/epochStart/shardchain"
+	"github.com/multiversx/mx-chain-go/genesis/process/disabled"
+	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/cache"
+	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
+	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-go/trie"
+	"github.com/multiversx/mx-chain-go/update"
+	"github.com/multiversx/mx-chain-go/update/genesis"
+	"github.com/multiversx/mx-chain-go/update/storing"
+	"github.com/multiversx/mx-chain-go/update/sync"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("update/factory")
@@ -48,6 +48,7 @@ type ArgsExporter struct {
 	Messenger                 p2p.Messenger
 	ActiveAccountsDBs         map[state.AccountsDbIdentifier]state.AccountsAdapter
 	ExistingResolvers         dataRetriever.ResolversContainer
+	ExistingRequesters        dataRetriever.RequestersContainer
 	ExportFolder              string
 	ExportTriesStorageConfig  config.StorageConfig
 	ExportStateStorageConfig  config.StorageConfig
@@ -91,6 +92,7 @@ type exportHandlerFactory struct {
 	whiteListerVerifiedTxs    process.WhiteListHandler
 	interceptorsContainer     process.InterceptorsContainer
 	existingResolvers         dataRetriever.ResolversContainer
+	existingRequesters        dataRetriever.RequestersContainer
 	epochStartTrigger         epochStart.TriggerHandler
 	accounts                  state.AccountsAdapter
 	nodesCoordinator          nodesCoordinator.NodesCoordinator
@@ -98,6 +100,7 @@ type exportHandlerFactory struct {
 	headerIntegrityVerifier   process.HeaderIntegrityVerifier
 	validityAttester          process.ValidityAttester
 	resolverContainer         dataRetriever.ResolversContainer
+	requestersContainer       dataRetriever.RequestersContainer
 	inputAntifloodHandler     process.P2PAntifloodHandler
 	outputAntifloodHandler    process.P2PAntifloodHandler
 	roundHandler              process.RoundHandler
@@ -158,6 +161,9 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 	}
 	if check.IfNil(args.ExistingResolvers) {
 		return nil, update.ErrNilResolverContainer
+	}
+	if check.IfNil(args.ExistingRequesters) {
+		return nil, update.ErrNilRequestersContainer
 	}
 	multiSigner, err := args.CryptoComponents.GetMultiSigner(0)
 	if err != nil {
@@ -249,6 +255,7 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		whiteListHandler:          args.WhiteListHandler,
 		whiteListerVerifiedTxs:    args.WhiteListerVerifiedTxs,
 		existingResolvers:         args.ExistingResolvers,
+		existingRequesters:        args.ExistingRequesters,
 		accounts:                  args.ActiveAccountsDBs[state.UserAccountsState],
 		nodesCoordinator:          args.NodesCoordinator,
 		headerSigVerifier:         args.HeaderSigVerifier,
@@ -278,7 +285,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	}
 
 	// TODO reuse the debugger when the one used for regular resolvers & interceptors will be moved inside the status components
-	debugger, errNotCritical := factory.NewInterceptorResolverDebuggerFactory(e.interceptorDebugConfig)
+	debugger, errNotCritical := factory.NewInterceptorDebuggerFactory(e.interceptorDebugConfig)
 	if errNotCritical != nil {
 		log.Warn("error creating hardfork debugger", "error", errNotCritical)
 	}
@@ -350,7 +357,6 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		NumConcurrentResolvingJobs: 100,
 		InputAntifloodHandler:      e.inputAntifloodHandler,
 		OutputAntifloodHandler:     e.outputAntifloodHandler,
-		PeersRatingHandler:         e.peersRatingHandler,
 	}
 	resolversFactory, err := NewResolversContainerFactory(argsResolvers)
 	if err != nil {
@@ -362,9 +368,35 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	}
 
 	e.resolverContainer.Iterate(func(key string, resolver dataRetriever.Resolver) bool {
-		errNotCritical = resolver.SetResolverDebugHandler(debugger)
+		errNotCritical = resolver.SetDebugHandler(debugger)
 		if errNotCritical != nil {
 			log.Warn("error setting debugger", "resolver", key, "error", errNotCritical)
+		}
+
+		return true
+	})
+
+	argsRequesters := ArgsRequestersContainerFactory{
+		ShardCoordinator:       e.shardCoordinator,
+		Messenger:              e.messenger,
+		Marshaller:             e.CoreComponents.InternalMarshalizer(),
+		ExistingRequesters:     e.existingRequesters,
+		OutputAntifloodHandler: e.outputAntifloodHandler,
+		PeersRatingHandler:     e.peersRatingHandler,
+	}
+	requestersFactory, err := NewRequestersContainerFactory(argsRequesters)
+	if err != nil {
+		return nil, err
+	}
+	e.requestersContainer, err = requestersFactory.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	e.requestersContainer.Iterate(func(key string, requester dataRetriever.Requester) bool {
+		errNotCritical = requester.SetDebugHandler(debugger)
+		if errNotCritical != nil {
+			log.Warn("error setting debugger", "requester", key, "error", errNotCritical)
 		}
 
 		return true

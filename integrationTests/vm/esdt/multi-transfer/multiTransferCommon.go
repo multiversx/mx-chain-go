@@ -6,14 +6,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	testVm "github.com/ElrondNetwork/elrond-go/integrationTests/vm"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/esdt"
-	vmFactory "github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
-	"github.com/ElrondNetwork/elrond-go/vm"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	testVm "github.com/multiversx/mx-chain-go/integrationTests/vm"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm/esdt"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
+	vmFactory "github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
+	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/stretchr/testify/require"
 )
 
@@ -277,18 +277,18 @@ func DeployNonPayableSmartContract(
 	deployerNode *integrationTests.TestProcessorNode,
 	fileName string,
 ) []byte {
-	scCode := arwen.GetSCCode(fileName)
+	scCode := wasm.GetSCCode(fileName)
 	scAddress, _ := deployerNode.BlockchainHook.NewAddress(
 		deployerNode.OwnAccount.Address,
 		deployerNode.OwnAccount.Nonce,
-		vmFactory.ArwenVirtualMachine)
+		vmFactory.WasmVirtualMachine)
 
 	integrationTests.CreateAndSendTransaction(
 		deployerNode,
 		net.Nodes,
 		big.NewInt(0),
 		testVm.CreateEmptyAddress(),
-		arwen.CreateDeployTxDataNonPayable(scCode),
+		wasm.CreateDeployTxDataNonPayable(scCode),
 		integrationTests.AdditionalGasLimit,
 	)
 	WaitForOperationCompletion(net, 4)

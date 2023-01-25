@@ -5,11 +5,11 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/sharding"
 )
 
 const millisecondsInSecond = 1000
@@ -47,6 +47,8 @@ func InitBaseMetrics(appStatusHandler core.AppStatusHandler) error {
 	appStatusHandler.SetUInt64Value(common.MetricAccountsSnapshotNumNodes, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricTrieSyncNumProcessedNodes, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricTrieSyncNumReceivedBytes, initUint)
+	appStatusHandler.SetUInt64Value(common.MetricAccountsSnapshotInProgress, initUint)
+	appStatusHandler.SetUInt64Value(common.MetricPeersSnapshotInProgress, initUint)
 
 	appStatusHandler.SetInt64Value(common.MetricLastAccountsSnapshotDurationSec, initInt)
 	appStatusHandler.SetInt64Value(common.MetricLastPeersSnapshotDurationSec, initInt)
@@ -65,8 +67,6 @@ func InitBaseMetrics(appStatusHandler core.AppStatusHandler) error {
 	appStatusHandler.SetStringValue(common.MetricP2PCrossShardObservers, initString)
 	appStatusHandler.SetStringValue(common.MetricP2PFullHistoryObservers, initString)
 	appStatusHandler.SetStringValue(common.MetricP2PUnknownPeers, initString)
-	appStatusHandler.SetStringValue(common.MetricAccountsSnapshotInProgress, initString)
-	appStatusHandler.SetStringValue(common.MetricPeersSnapshotInProgress, initString)
 
 	appStatusHandler.SetStringValue(common.MetricInflation, initZeroString)
 	appStatusHandler.SetStringValue(common.MetricDevRewardsInEpoch, initZeroString)

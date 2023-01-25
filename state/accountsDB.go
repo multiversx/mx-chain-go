@@ -6,23 +6,22 @@ import (
 	"encoding/hex"
 	"fmt"
 	"runtime/debug"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/common/holders"
-	"github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/trie/keyBuilder"
-	"github.com/ElrondNetwork/elrond-go/trie/statistics"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/atomic"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/holders"
+	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
+	"github.com/multiversx/mx-chain-go/trie/statistics"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 const (
@@ -129,7 +128,7 @@ func NewAccountsDB(args ArgsAccountsDB) (*AccountsDB, error) {
 		return nil, err
 	}
 
-	args.AppStatusHandler.SetStringValue(common.MetricAccountsSnapshotInProgress, strconv.FormatBool(false))
+	args.AppStatusHandler.SetUInt64Value(common.MetricAccountsSnapshotInProgress, 0)
 
 	return createAccountsDb(args), nil
 }
@@ -1238,12 +1237,12 @@ func (adb *AccountsDB) finishSnapshotOperation(
 }
 
 func (adb *AccountsDB) updateMetricsOnSnapshotStart(metrics *accountMetrics) {
-	adb.appStatusHandler.SetStringValue(metrics.snapshotInProgressKey, "true")
+	adb.appStatusHandler.SetUInt64Value(metrics.snapshotInProgressKey, 1)
 	adb.appStatusHandler.SetInt64Value(metrics.lastSnapshotDurationKey, 0)
 }
 
 func (adb *AccountsDB) updateMetricsOnSnapshotCompletion(metrics *accountMetrics, stats *snapshotStatistics) {
-	adb.appStatusHandler.SetStringValue(metrics.snapshotInProgressKey, "false")
+	adb.appStatusHandler.SetUInt64Value(metrics.snapshotInProgressKey, 0)
 	adb.appStatusHandler.SetInt64Value(metrics.lastSnapshotDurationKey, stats.GetSnapshotDuration())
 	if metrics.snapshotMessage == userTrieSnapshotMsg {
 		adb.appStatusHandler.SetUInt64Value(common.MetricAccountsSnapshotNumNodes, stats.GetSnapshotNumNodes())

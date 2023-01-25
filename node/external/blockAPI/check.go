@@ -3,8 +3,8 @@ package blockAPI
 import (
 	"errors"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 var (
@@ -15,6 +15,7 @@ var (
 	errNilAlteredAccountsProvider      = errors.New("nil altered accounts provider")
 	errNilAccountsRepository           = errors.New("nil accounts repository")
 	errNilScheduledTxsExecutionHandler = errors.New("nil scheduled txs execution handler")
+	errNilEnableEpochsHandler          = errors.New("nil enable epochs handler")
 )
 
 func checkNilArg(arg *ArgAPIBlockProcessor) error {
@@ -56,6 +57,9 @@ func checkNilArg(arg *ArgAPIBlockProcessor) error {
 	}
 	if check.IfNil(arg.ScheduledTxsExecutionHandler) {
 		return errNilScheduledTxsExecutionHandler
+	}
+	if check.IfNil(arg.EnableEpochsHandler) {
+		return errNilEnableEpochsHandler
 	}
 
 	return nil
