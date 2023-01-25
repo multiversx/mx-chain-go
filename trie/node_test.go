@@ -624,6 +624,491 @@ func TestShouldStopIfContextDone(t *testing.T) {
 	})
 }
 
+func TestNodesVersion_insertInLn(t *testing.T) {
+	t.Parallel()
+
+	t.Run("insert in same leaf - change version", func(t *testing.T) {
+		t.Parallel()
+
+		tr, _ := newEmptyTrie()
+
+		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), common.NotSpecified)
+		ln, ok := tr.root.(*leafNode)
+		assert.True(t, ok)
+		version, _ := ln.getVersion()
+		assert.Equal(t, common.NotSpecified, version)
+
+		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("aab"), common.AutoBalanceEnabled)
+		version, _ = ln.getVersion()
+		assert.Equal(t, common.AutoBalanceEnabled, version)
+	})
+
+	t.Run("insert in leaf - create new branch node", func(t *testing.T) {
+		t.Parallel()
+
+		tr, _ := newEmptyTrie()
+
+		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), common.NotSpecified)
+		_ = tr.UpdateWithVersion([]byte("bbb"), []byte("bbb"), common.AutoBalanceEnabled)
+		bn, ok := tr.root.(*branchNode)
+		assert.True(t, ok)
+		version, _ := bn.getVersion()
+		assert.Equal(t, common.NotSpecified, version)
+
+		tr, _ = newEmptyTrie()
+		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), common.AutoBalanceEnabled)
+		_ = tr.UpdateWithVersion([]byte("bbb"), []byte("bbb"), common.AutoBalanceEnabled)
+		bn, ok = tr.root.(*branchNode)
+		assert.True(t, ok)
+		version, _ = bn.getVersion()
+		assert.Equal(t, common.AutoBalanceEnabled, version)
+	})
+
+	t.Run("insert in leaf - create new extension", func(t *testing.T) {
+		t.Parallel()
+
+		tr, _ := newEmptyTrie()
+
+		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), common.NotSpecified)
+		_ = tr.UpdateWithVersion([]byte("baa"), []byte("baa"), common.AutoBalanceEnabled)
+		en, ok := tr.root.(*extensionNode)
+		assert.True(t, ok)
+		version, _ := en.getVersion()
+		assert.Equal(t, common.NotSpecified, version)
+
+		tr, _ = newEmptyTrie()
+		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), common.AutoBalanceEnabled)
+		_ = tr.UpdateWithVersion([]byte("baa"), []byte("baa"), common.AutoBalanceEnabled)
+		en, ok = tr.root.(*extensionNode)
+		assert.True(t, ok)
+		version, _ = en.getVersion()
+		assert.Equal(t, common.AutoBalanceEnabled, version)
+	})
+
+}
+
+func TestNodesVersion_insertInEn(t *testing.T) {
+	t.Parallel()
+
+	t.Run("insert in same extension node - change version", func(t *testing.T) {
+		t.Parallel()
+
+		tr, _ := newEmptyTrie()
+		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("baa"), common.NotSpecified)
+		_ = tr.UpdateWithVersion([]byte("baa"), []byte("baa"), common.AutoBalanceEnabled)
+		en, ok := tr.root.(*extensionNode)
+		assert.True(t, ok)
+		version, _ := en.getVersion()
+		assert.Equal(t, common.NotSpecified, version)
+
+		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), common.AutoBalanceEnabled)
+		en, ok = tr.root.(*extensionNode)
+		assert.True(t, ok)
+		version, _ = en.getVersion()
+		assert.Equal(t, common.AutoBalanceEnabled, version)
+
+		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("baa"), common.NotSpecified)
+		en, ok = tr.root.(*extensionNode)
+		assert.True(t, ok)
+		version, _ = en.getVersion()
+		assert.Equal(t, common.NotSpecified, version)
+	})
+
+	t.Run("insert in extension node - create new branch - change version", func(t *testing.T) {
+		t.Parallel()
+
+		tr, _ := newEmptyTrie()
+		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), common.AutoBalanceEnabled)
+		_ = tr.UpdateWithVersion([]byte("qqq"), []byte("qqq"), common.AutoBalanceEnabled)
+		en, ok := tr.root.(*extensionNode)
+		assert.True(t, ok)
+		version, _ := en.getVersion()
+		assert.Equal(t, common.AutoBalanceEnabled, version)
+
+		_ = tr.UpdateWithVersion([]byte("zzz"), []byte("zzz"), common.NotSpecified)
+		bn, ok := tr.root.(*branchNode)
+		assert.True(t, ok)
+		version, _ = bn.getVersion()
+		assert.Equal(t, common.NotSpecified, version)
+	})
+
+	t.Run("insert in extension node - create new branch - do not change version", func(t *testing.T) {
+		t.Parallel()
+
+		tr, _ := newEmptyTrie()
+		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), common.AutoBalanceEnabled)
+		_ = tr.UpdateWithVersion([]byte("qqq"), []byte("qqq"), common.AutoBalanceEnabled)
+		en, ok := tr.root.(*extensionNode)
+		assert.True(t, ok)
+		version, _ := en.getVersion()
+		assert.Equal(t, common.AutoBalanceEnabled, version)
+
+		_ = tr.UpdateWithVersion([]byte("zzz"), []byte("zzz"), common.AutoBalanceEnabled)
+		bn, ok := tr.root.(*branchNode)
+		assert.True(t, ok)
+		version, _ = bn.getVersion()
+		assert.Equal(t, common.AutoBalanceEnabled, version)
+	})
+
+	t.Run("insert in extension node - create new branch with following extension node - change version", func(t *testing.T) {
+		t.Parallel()
+
+		tr, _ := newEmptyTrie()
+		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), common.AutoBalanceEnabled)
+		_ = tr.UpdateWithVersion([]byte("baa"), []byte("baa"), common.AutoBalanceEnabled)
+		en, ok := tr.root.(*extensionNode)
+		assert.True(t, ok)
+		version, _ := en.getVersion()
+		assert.Equal(t, common.AutoBalanceEnabled, version)
+
+		_ = tr.UpdateWithVersion([]byte("zzz"), []byte("zzz"), common.NotSpecified)
+		bn, ok := tr.root.(*branchNode)
+		assert.True(t, ok)
+		version, _ = bn.getVersion()
+		assert.Equal(t, common.NotSpecified, version)
+	})
+
+	t.Run("insert in extension node - create new branch with following extension node - do not change version", func(t *testing.T) {
+		t.Parallel()
+
+		tr, _ := newEmptyTrie()
+		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), common.AutoBalanceEnabled)
+		_ = tr.UpdateWithVersion([]byte("baa"), []byte("baa"), common.AutoBalanceEnabled)
+		en, ok := tr.root.(*extensionNode)
+		assert.True(t, ok)
+		version, _ := en.getVersion()
+		assert.Equal(t, common.AutoBalanceEnabled, version)
+
+		_ = tr.UpdateWithVersion([]byte("zzz"), []byte("zzz"), common.AutoBalanceEnabled)
+		bn, ok := tr.root.(*branchNode)
+		assert.True(t, ok)
+		version, _ = bn.getVersion()
+		assert.Equal(t, common.AutoBalanceEnabled, version)
+	})
+
+	t.Run("insert in extension node - create new extension and branch - change version", func(t *testing.T) {
+		t.Parallel()
+
+		tr, _ := newEmptyTrie()
+		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), common.AutoBalanceEnabled)
+		_ = tr.UpdateWithVersion([]byte("baa"), []byte("baa"), common.AutoBalanceEnabled)
+		en, ok := tr.root.(*extensionNode)
+		assert.True(t, ok)
+		version, _ := en.getVersion()
+		assert.Equal(t, common.AutoBalanceEnabled, version)
+
+		_ = tr.UpdateWithVersion([]byte("bba"), []byte("bba"), common.NotSpecified)
+		en, ok = tr.root.(*extensionNode)
+		assert.True(t, ok)
+		version, _ = en.getVersion()
+		assert.Equal(t, common.NotSpecified, version)
+	})
+
+	t.Run("insert in extension node - create new extension and branch - do not change version", func(t *testing.T) {
+		t.Parallel()
+
+		tr, _ := newEmptyTrie()
+		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), common.AutoBalanceEnabled)
+		_ = tr.UpdateWithVersion([]byte("baa"), []byte("baa"), common.AutoBalanceEnabled)
+		en, ok := tr.root.(*extensionNode)
+		assert.True(t, ok)
+		version, _ := en.getVersion()
+		assert.Equal(t, common.AutoBalanceEnabled, version)
+
+		_ = tr.UpdateWithVersion([]byte("bba"), []byte("bba"), common.AutoBalanceEnabled)
+		en, ok = tr.root.(*extensionNode)
+		assert.True(t, ok)
+		version, _ = en.getVersion()
+		assert.Equal(t, common.AutoBalanceEnabled, version)
+	})
+}
+
+func TestNodesVersion_insertInBn(t *testing.T) {
+	t.Parallel()
+
+	t.Run("insert in branch node on nil child - same version", func(t *testing.T) {
+		t.Parallel()
+
+		tr, _ := newEmptyTrie()
+
+		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), common.AutoBalanceEnabled)
+		_ = tr.UpdateWithVersion([]byte("bbb"), []byte("bbb"), common.AutoBalanceEnabled)
+		bn, ok := tr.root.(*branchNode)
+		assert.True(t, ok)
+		version, _ := bn.getVersion()
+		assert.Equal(t, common.AutoBalanceEnabled, version)
+
+		_ = tr.UpdateWithVersion([]byte("ccc"), []byte("ccc"), common.AutoBalanceEnabled)
+		version, _ = bn.getVersion()
+		assert.Equal(t, common.AutoBalanceEnabled, version)
+	})
+
+	t.Run("insert in branch node on nil child - change version", func(t *testing.T) {
+		t.Parallel()
+
+		tr, _ := newEmptyTrie()
+
+		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), common.AutoBalanceEnabled)
+		_ = tr.UpdateWithVersion([]byte("bbb"), []byte("bbb"), common.AutoBalanceEnabled)
+		bn, ok := tr.root.(*branchNode)
+		assert.True(t, ok)
+		version, _ := bn.getVersion()
+		assert.Equal(t, common.AutoBalanceEnabled, version)
+
+		_ = tr.UpdateWithVersion([]byte("ccc"), []byte("ccc"), common.NotSpecified)
+		version, _ = bn.getVersion()
+		assert.Equal(t, common.NotSpecified, version)
+	})
+
+	t.Run("insert in branch node on existing child - same version", func(t *testing.T) {
+		t.Parallel()
+
+		tr, _ := newEmptyTrie()
+
+		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), common.AutoBalanceEnabled)
+		_ = tr.UpdateWithVersion([]byte("bbb"), []byte("bbb"), common.AutoBalanceEnabled)
+		bn, ok := tr.root.(*branchNode)
+		assert.True(t, ok)
+		version, _ := bn.getVersion()
+		assert.Equal(t, common.AutoBalanceEnabled, version)
+
+		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("aab"), common.AutoBalanceEnabled)
+		version, _ = bn.getVersion()
+		assert.Equal(t, common.AutoBalanceEnabled, version)
+	})
+
+	t.Run("insert in branch node on existing child - change version", func(t *testing.T) {
+		t.Parallel()
+
+		tr, _ := newEmptyTrie()
+
+		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), common.NotSpecified)
+		_ = tr.UpdateWithVersion([]byte("bbb"), []byte("bbb"), common.AutoBalanceEnabled)
+		bn, ok := tr.root.(*branchNode)
+		assert.True(t, ok)
+		version, _ := bn.getVersion()
+		assert.Equal(t, common.NotSpecified, version)
+
+		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("aab"), common.AutoBalanceEnabled)
+		version, _ = bn.getVersion()
+		assert.Equal(t, common.AutoBalanceEnabled, version)
+	})
+}
+
+func TestNodesVersion_deleteFromEn(t *testing.T) {
+	t.Parallel()
+
+	t.Run("new child is leaf node - change version", func(t *testing.T) {
+		t.Parallel()
+
+		tr, _ := newEmptyTrie()
+		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("baa"), common.NotSpecified)
+		_ = tr.UpdateWithVersion([]byte("baa"), []byte("baa"), common.AutoBalanceEnabled)
+		en, ok := tr.root.(*extensionNode)
+		assert.True(t, ok)
+		version, _ := en.getVersion()
+		assert.Equal(t, common.NotSpecified, version)
+
+		_ = tr.Delete([]byte("aaa"))
+		ln, ok := tr.root.(*leafNode)
+		assert.True(t, ok)
+		version, _ = ln.getVersion()
+		assert.Equal(t, common.AutoBalanceEnabled, version)
+	})
+
+	t.Run("new child is leaf node - same version", func(t *testing.T) {
+		t.Parallel()
+
+		tr, _ := newEmptyTrie()
+		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("baa"), common.NotSpecified)
+		_ = tr.UpdateWithVersion([]byte("baa"), []byte("baa"), common.AutoBalanceEnabled)
+		en, ok := tr.root.(*extensionNode)
+		assert.True(t, ok)
+		version, _ := en.getVersion()
+		assert.Equal(t, common.NotSpecified, version)
+
+		_ = tr.Delete([]byte("baa"))
+		ln, ok := tr.root.(*leafNode)
+		assert.True(t, ok)
+		version, _ = ln.getVersion()
+		assert.Equal(t, common.NotSpecified, version)
+	})
+
+	t.Run("new child is extension node - same version", func(t *testing.T) {
+		t.Parallel()
+
+		tr, _ := newEmptyTrie()
+		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("baa"), common.AutoBalanceEnabled)
+		_ = tr.UpdateWithVersion([]byte("baa"), []byte("baa"), common.AutoBalanceEnabled)
+		_ = tr.UpdateWithVersion([]byte("zza"), []byte("zza"), common.AutoBalanceEnabled)
+		en, ok := tr.root.(*extensionNode)
+		assert.True(t, ok)
+		version, _ := en.getVersion()
+		assert.Equal(t, common.AutoBalanceEnabled, version)
+
+		_ = tr.Delete([]byte("zza"))
+		en, ok = tr.root.(*extensionNode)
+		assert.True(t, ok)
+		version, _ = en.getVersion()
+		assert.Equal(t, common.AutoBalanceEnabled, version)
+	})
+
+	t.Run("new child is extension node - change version", func(t *testing.T) {
+		t.Parallel()
+
+		tr, _ := newEmptyTrie()
+		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("baa"), common.AutoBalanceEnabled)
+		_ = tr.UpdateWithVersion([]byte("baa"), []byte("baa"), common.AutoBalanceEnabled)
+		_ = tr.UpdateWithVersion([]byte("zza"), []byte("zza"), common.NotSpecified)
+		en, ok := tr.root.(*extensionNode)
+		assert.True(t, ok)
+		version, _ := en.getVersion()
+		assert.Equal(t, common.NotSpecified, version)
+
+		_ = tr.Delete([]byte("zza"))
+		en, ok = tr.root.(*extensionNode)
+		assert.True(t, ok)
+		version, _ = en.getVersion()
+		assert.Equal(t, common.AutoBalanceEnabled, version)
+	})
+
+	t.Run("new child is branch node - same version", func(t *testing.T) {
+		t.Parallel()
+
+		tr, _ := newEmptyTrie()
+		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("baa"), common.AutoBalanceEnabled)
+		_ = tr.UpdateWithVersion([]byte("baa"), []byte("baa"), common.AutoBalanceEnabled)
+		_ = tr.UpdateWithVersion([]byte("bba"), []byte("baa"), common.AutoBalanceEnabled)
+		en, ok := tr.root.(*extensionNode)
+		assert.True(t, ok)
+		version, _ := en.getVersion()
+		assert.Equal(t, common.AutoBalanceEnabled, version)
+
+		_ = tr.Delete([]byte("aaa"))
+		bn, ok := tr.root.(*extensionNode)
+		assert.True(t, ok)
+		version, _ = bn.getVersion()
+		assert.Equal(t, common.AutoBalanceEnabled, version)
+	})
+
+	t.Run("new child is branch node - change version", func(t *testing.T) {
+		t.Parallel()
+
+		tr, _ := newEmptyTrie()
+		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("baa"), common.NotSpecified)
+		_ = tr.UpdateWithVersion([]byte("baa"), []byte("baa"), common.AutoBalanceEnabled)
+		_ = tr.UpdateWithVersion([]byte("bba"), []byte("baa"), common.AutoBalanceEnabled)
+		en, ok := tr.root.(*extensionNode)
+		assert.True(t, ok)
+		version, _ := en.getVersion()
+		assert.Equal(t, common.NotSpecified, version)
+
+		_ = tr.Delete([]byte("aaa"))
+		bn, ok := tr.root.(*extensionNode)
+		assert.True(t, ok)
+		version, _ = bn.getVersion()
+		assert.Equal(t, common.AutoBalanceEnabled, version)
+	})
+}
+
+func TestNodesVersion_deleteFromBn(t *testing.T) {
+	t.Parallel()
+
+	t.Run("delete leaf - branch does not reduce - bn should not change version", func(t *testing.T) {
+		t.Parallel()
+
+		tr, _ := newEmptyTrie()
+		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), common.AutoBalanceEnabled)
+		_ = tr.UpdateWithVersion([]byte("bbb"), []byte("bbb"), common.AutoBalanceEnabled)
+		_ = tr.UpdateWithVersion([]byte("ccc"), []byte("ccc"), common.AutoBalanceEnabled)
+		bn, ok := tr.root.(*branchNode)
+		assert.True(t, ok)
+		version, _ := bn.getVersion()
+		assert.Equal(t, common.AutoBalanceEnabled, version)
+
+		_ = tr.Delete([]byte("aaa"))
+		bn, ok = tr.root.(*branchNode)
+		assert.True(t, ok)
+		version, _ = bn.getVersion()
+		assert.Equal(t, common.AutoBalanceEnabled, version)
+	})
+
+	t.Run("delete leaf - branch does not reduce - bn should change version", func(t *testing.T) {
+		t.Parallel()
+
+		tr, _ := newEmptyTrie()
+		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), common.NotSpecified)
+		_ = tr.UpdateWithVersion([]byte("bbb"), []byte("bbb"), common.AutoBalanceEnabled)
+		_ = tr.UpdateWithVersion([]byte("ccc"), []byte("ccc"), common.AutoBalanceEnabled)
+		bn, ok := tr.root.(*branchNode)
+		assert.True(t, ok)
+		version, _ := bn.getVersion()
+		assert.Equal(t, common.NotSpecified, version)
+
+		_ = tr.Delete([]byte("aaa"))
+		bn, ok = tr.root.(*branchNode)
+		assert.True(t, ok)
+		version, _ = bn.getVersion()
+		assert.Equal(t, common.AutoBalanceEnabled, version)
+	})
+
+	t.Run("branch with branch child is reduced", func(t *testing.T) {
+		t.Parallel()
+
+		tr, _ := newEmptyTrie()
+		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), common.AutoBalanceEnabled)
+		_ = tr.UpdateWithVersion([]byte("qqq"), []byte("bbb"), common.AutoBalanceEnabled)
+		_ = tr.UpdateWithVersion([]byte("zzz"), []byte("ccc"), common.NotSpecified)
+		bn, ok := tr.root.(*branchNode)
+		assert.True(t, ok)
+		version, _ := bn.getVersion()
+		assert.Equal(t, common.NotSpecified, version)
+
+		_ = tr.Delete([]byte("zzz"))
+		en, ok := tr.root.(*extensionNode)
+		assert.True(t, ok)
+		version, _ = en.getVersion()
+		assert.Equal(t, common.AutoBalanceEnabled, version)
+	})
+
+	t.Run("branch with extension child is reduced", func(t *testing.T) {
+		t.Parallel()
+
+		tr, _ := newEmptyTrie()
+		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), common.AutoBalanceEnabled)
+		_ = tr.UpdateWithVersion([]byte("bba"), []byte("bbb"), common.AutoBalanceEnabled)
+		_ = tr.UpdateWithVersion([]byte("zzz"), []byte("ccc"), common.NotSpecified)
+		bn, ok := tr.root.(*branchNode)
+		assert.True(t, ok)
+		version, _ := bn.getVersion()
+		assert.Equal(t, common.NotSpecified, version)
+
+		_ = tr.Delete([]byte("zzz"))
+		en, ok := tr.root.(*extensionNode)
+		assert.True(t, ok)
+		version, _ = en.getVersion()
+		assert.Equal(t, common.AutoBalanceEnabled, version)
+	})
+
+	t.Run("branch with leaf child is reduced", func(t *testing.T) {
+		t.Parallel()
+
+		tr, _ := newEmptyTrie()
+		_ = tr.UpdateWithVersion([]byte("aaa"), []byte("aaa"), common.NotSpecified)
+		_ = tr.UpdateWithVersion([]byte("bbb"), []byte("bbb"), common.AutoBalanceEnabled)
+		bn, ok := tr.root.(*branchNode)
+		assert.True(t, ok)
+		version, _ := bn.getVersion()
+		assert.Equal(t, common.NotSpecified, version)
+
+		_ = tr.Delete([]byte("aaa"))
+		ln, ok := tr.root.(*leafNode)
+		assert.True(t, ok)
+		version, _ = ln.getVersion()
+		assert.Equal(t, common.AutoBalanceEnabled, version)
+	})
+}
+
 func Benchmark_ShouldStopIfContextDone(b *testing.B) {
 	ctx := context.Background()
 	b.ResetTimer()
