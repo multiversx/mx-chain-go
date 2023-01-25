@@ -5,7 +5,7 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/multiversx/mx-chain-go/config"
 )
 
 const (

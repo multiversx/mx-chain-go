@@ -1,9 +1,9 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/common/statistics"
-	"github.com/ElrondNetwork/elrond-go/outport"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/common/statistics"
+	"github.com/multiversx/mx-chain-go/outport"
 )
 
 // StatusComponentsStub -

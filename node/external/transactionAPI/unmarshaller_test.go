@@ -4,7 +4,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/stretchr/testify/require"
 )
 

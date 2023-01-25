@@ -5,12 +5,12 @@ import (
 	"testing"
 	"time"
 
-	indexerFactory "github.com/ElrondNetwork/elastic-indexer-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/outport"
-	"github.com/ElrondNetwork/elrond-go/outport/factory"
-	notifierFactory "github.com/ElrondNetwork/elrond-go/outport/factory"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	indexerFactory "github.com/multiversx/mx-chain-es-indexer-go/process/factory"
+	"github.com/multiversx/mx-chain-go/outport"
+	"github.com/multiversx/mx-chain-go/outport/factory"
+	notifierFactory "github.com/multiversx/mx-chain-go/outport/factory"
+	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/require"
 )
 

@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/random"
-	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
+	"github.com/multiversx/mx-chain-core-go/core/random"
+	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/stretchr/testify/require"
 )
 
