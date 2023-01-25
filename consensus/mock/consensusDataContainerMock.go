@@ -26,6 +26,7 @@ type ConsensusCoreMock struct {
 	marshalizer             marshal.Marshalizer
 	blsPrivateKey           crypto.PrivateKey
 	blsSingleSigner         crypto.SingleSigner
+	keyGenerator            crypto.KeyGenerator
 	multiSignerContainer    cryptoCommon.MultiSignerContainer
 	roundHandler            consensus.RoundHandler
 	shardCoordinator        sharding.Coordinator
@@ -38,6 +39,8 @@ type ConsensusCoreMock struct {
 	fallbackHeaderValidator consensus.FallbackHeaderValidator
 	nodeRedundancyHandler   consensus.NodeRedundancyHandler
 	scheduledProcessor      consensus.ScheduledProcessor
+	messageSigningHandler   consensus.P2PSigningHandler
+	peerBlacklistHandler    consensus.PeerBlacklistHandler
 	signatureHandler        consensus.SignatureHandler
 }
 
@@ -186,9 +189,14 @@ func (ccm *ConsensusCoreMock) PrivateKey() crypto.PrivateKey {
 	return ccm.blsPrivateKey
 }
 
-// SingleSigner returns the bls single signer stored in the ConsensusStore
+// SingleSigner returns the bls single signer stored in the ConsensusCore
 func (ccm *ConsensusCoreMock) SingleSigner() crypto.SingleSigner {
 	return ccm.blsSingleSigner
+}
+
+// KeyGenerator -
+func (ccm *ConsensusCoreMock) KeyGenerator() crypto.KeyGenerator {
+	return ccm.keyGenerator
 }
 
 // PeerHonestyHandler -
@@ -229,6 +237,26 @@ func (ccm *ConsensusCoreMock) ScheduledProcessor() consensus.ScheduledProcessor 
 // SetNodeRedundancyHandler -
 func (ccm *ConsensusCoreMock) SetNodeRedundancyHandler(nodeRedundancyHandler consensus.NodeRedundancyHandler) {
 	ccm.nodeRedundancyHandler = nodeRedundancyHandler
+}
+
+// MessageSigningHandler -
+func (ccm *ConsensusCoreMock) MessageSigningHandler() consensus.P2PSigningHandler {
+	return ccm.messageSigningHandler
+}
+
+// SetMessageSigningHandler -
+func (ccm *ConsensusCoreMock) SetMessageSigningHandler(messageSigningHandler consensus.P2PSigningHandler) {
+	ccm.messageSigningHandler = messageSigningHandler
+}
+
+// SetKeyGenerator -
+func (ccm *ConsensusCoreMock) SetKeyGenerator(keyGenerator crypto.KeyGenerator) {
+	ccm.keyGenerator = keyGenerator
+}
+
+// PeerBlacklistHandler will return the peer blacklist handler
+func (ccm *ConsensusCoreMock) PeerBlacklistHandler() consensus.PeerBlacklistHandler {
+	return ccm.peerBlacklistHandler
 }
 
 // SignatureHandler -

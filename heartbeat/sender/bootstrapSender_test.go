@@ -23,7 +23,7 @@ func createMockBootstrapSenderArgs() ArgBootstrapSender {
 		HeartbeatTopic:                     "hb-topic",
 		HeartbeatTimeBetweenSends:          time.Second,
 		HeartbeatTimeBetweenSendsWhenError: time.Second,
-		HeartbeatThresholdBetweenSends:     0.1,
+		HeartbeatTimeThresholdBetweenSends: 0.1,
 		VersionNumber:                      "v1",
 		NodeDisplayName:                    "node",
 		Identity:                           "identity",

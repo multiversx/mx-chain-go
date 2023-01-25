@@ -7,13 +7,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/batch"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/storage"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
-var _ requestHandlers.HashSliceResolver = (*TxResolver)(nil)
 var _ dataRetriever.Resolver = (*TxResolver)(nil)
 
 // maxBuffToSendBulkTransactions represents max buffer size to send in bytes
@@ -140,7 +138,7 @@ func (txRes *TxResolver) fetchTxAsByteSlice(hash []byte, epoch uint32) ([]byte, 
 
 	buff, err := txRes.getFromStorage(hash, epoch)
 	if err != nil {
-		txRes.ResolverDebugHandler().LogFailedToResolveData(
+		txRes.DebugHandler().LogFailedToResolveData(
 			txRes.topic,
 			hash,
 			err,
@@ -149,7 +147,7 @@ func (txRes *TxResolver) fetchTxAsByteSlice(hash []byte, epoch uint32) ([]byte, 
 		return nil, err
 	}
 
-	txRes.ResolverDebugHandler().LogSucceededToResolveData(txRes.topic, hash)
+	txRes.DebugHandler().LogSucceededToResolveData(txRes.topic, hash)
 
 	return buff, nil
 }
@@ -199,52 +197,6 @@ func (txRes *TxResolver) resolveTxRequestByHashArray(hashesBuff []byte, pid core
 	}
 
 	return errFetch
-}
-
-// RequestDataFromHash requests a transaction from other peers having input the tx hash
-func (txRes *TxResolver) RequestDataFromHash(hash []byte, epoch uint32) error {
-	log.Trace("TxResolver.RequestDataFromHash", "hash", hash, "topic", txRes.RequestTopic())
-
-	return txRes.SendOnRequestTopic(
-		&dataRetriever.RequestData{
-			Type:  dataRetriever.HashType,
-			Value: hash,
-			Epoch: epoch,
-		},
-		[][]byte{hash},
-	)
-}
-
-// RequestDataFromHashArray requests a list of tx hashes from other peers
-func (txRes *TxResolver) RequestDataFromHashArray(hashes [][]byte, epoch uint32) error {
-	txRes.printHashArray(hashes)
-
-	b := &batch.Batch{
-		Data: hashes,
-	}
-	buffHashes, err := txRes.marshalizer.Marshal(b)
-	if err != nil {
-		return err
-	}
-
-	return txRes.SendOnRequestTopic(
-		&dataRetriever.RequestData{
-			Type:  dataRetriever.HashArrayType,
-			Value: buffHashes,
-			Epoch: epoch,
-		},
-		hashes,
-	)
-}
-
-func (txRes *TxResolver) printHashArray(hashes [][]byte) {
-	if log.GetLevel() > logger.LogTrace {
-		return
-	}
-
-	for _, hash := range hashes {
-		log.Trace("TxResolver.RequestDataFromHashArray", "hash", hash, "topic", txRes.RequestTopic())
-	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
