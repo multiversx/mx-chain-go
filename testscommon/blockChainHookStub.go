@@ -1,9 +1,9 @@
 package testscommon
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/esdt"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // BlockChainHookStub -
@@ -44,6 +44,8 @@ type BlockChainHookStub struct {
 	CloseCalled                          func() error
 	FilterCodeMetadataForUpgradeCalled   func(input []byte) ([]byte, error)
 	ApplyFiltersOnCodeMetadataCalled     func(codeMetadata vmcommon.CodeMetadata) vmcommon.CodeMetadata
+	ResetCountersCalled                  func()
+	GetCounterValuesCalled               func() map[string]uint64
 }
 
 // GetCode -
@@ -370,6 +372,22 @@ func (stub *BlockChainHookStub) Close() error {
 	}
 
 	return nil
+}
+
+// ResetCounters -
+func (stub *BlockChainHookStub) ResetCounters() {
+	if stub.ResetCountersCalled != nil {
+		stub.ResetCountersCalled()
+	}
+}
+
+// GetCounterValues -
+func (stub *BlockChainHookStub) GetCounterValues() map[string]uint64 {
+	if stub.GetCounterValuesCalled != nil {
+		return stub.GetCounterValuesCalled()
+	}
+
+	return make(map[string]uint64)
 }
 
 // IsInterfaceNil -

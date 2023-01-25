@@ -4,13 +4,13 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/config"
-	errErd "github.com/ElrondNetwork/elrond-go/errors"
-	bootstrapComp "github.com/ElrondNetwork/elrond-go/factory/bootstrap"
-	heartbeatComp "github.com/ElrondNetwork/elrond-go/factory/heartbeat"
-	"github.com/ElrondNetwork/elrond-go/factory/mock"
-	componentsMock "github.com/ElrondNetwork/elrond-go/testscommon/components"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/config"
+	errErd "github.com/multiversx/mx-chain-go/errors"
+	bootstrapComp "github.com/multiversx/mx-chain-go/factory/bootstrap"
+	heartbeatComp "github.com/multiversx/mx-chain-go/factory/heartbeat"
+	"github.com/multiversx/mx-chain-go/factory/mock"
+	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -25,9 +25,9 @@ func createMockHeartbeatV2ComponentsFactoryArgs() heartbeatComp.ArgHeartbeatV2Co
 
 	statusCoreC := componentsMock.GetStatusCoreComponents()
 	coreC := componentsMock.GetCoreComponents()
-	networkC := componentsMock.GetNetworkComponents()
-	dataC := componentsMock.GetDataComponents(coreC, shardCoordinator)
 	cryptoC := componentsMock.GetCryptoComponents(coreC)
+	networkC := componentsMock.GetNetworkComponents(cryptoC)
+	dataC := componentsMock.GetDataComponents(coreC, shardCoordinator)
 	stateC := componentsMock.GetStateComponents(coreC, shardCoordinator)
 	processC := componentsMock.GetProcessComponents(shardCoordinator, coreC, networkC, dataC, cryptoC, stateC)
 	return heartbeatComp.ArgHeartbeatV2ComponentsFactory{

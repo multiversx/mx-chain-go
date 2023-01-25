@@ -10,64 +10,66 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
-	dataTransaction "github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	dataTx "github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/common/enablers"
-	"github.com/ElrondNetwork/elrond-go/common/forking"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
-	processDisabled "github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
-	"github.com/ElrondNetwork/elrond-go/node/external"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/block/postprocess"
-	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
-	"github.com/ElrondNetwork/elrond-go/process/coordinator"
-	"github.com/ElrondNetwork/elrond-go/process/economics"
-	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
-	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
-	syncDisabled "github.com/ElrondNetwork/elrond-go/process/sync/disabled"
-	"github.com/ElrondNetwork/elrond-go/process/transaction"
-	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
-	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
-	"github.com/ElrondNetwork/elrond-go/storage/txcache"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
-	"github.com/ElrondNetwork/elrond-go/testscommon/integrationtests"
-	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
-	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
-	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
-	"github.com/ElrondNetwork/elrond-vm-common/parsers"
-	arwenConfig "github.com/ElrondNetwork/wasm-vm-v1_4/config"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/scheduled"
+	dataTransaction "github.com/multiversx/mx-chain-core-go/data/transaction"
+	dataTx "github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/enablers"
+	"github.com/multiversx/mx-chain-go/common/forking"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
+	processDisabled "github.com/multiversx/mx-chain-go/genesis/process/disabled"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/integrationTests/mock"
+	"github.com/multiversx/mx-chain-go/node/external"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/postprocess"
+	"github.com/multiversx/mx-chain-go/process/block/preprocess"
+	"github.com/multiversx/mx-chain-go/process/coordinator"
+	"github.com/multiversx/mx-chain-go/process/economics"
+	"github.com/multiversx/mx-chain-go/process/factory/metachain"
+	"github.com/multiversx/mx-chain-go/process/factory/shard"
+	"github.com/multiversx/mx-chain-go/process/smartContract"
+	"github.com/multiversx/mx-chain-go/process/smartContract/builtInFunctions"
+	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
+	"github.com/multiversx/mx-chain-go/process/smartContract/hooks/counters"
+	syncDisabled "github.com/multiversx/mx-chain-go/process/sync/disabled"
+	"github.com/multiversx/mx-chain-go/process/transaction"
+	"github.com/multiversx/mx-chain-go/process/transactionLog"
+	"github.com/multiversx/mx-chain-go/process/txsimulator"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-go/storage/txcache"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/integrationtests"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
+	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
+	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
+	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
+	"github.com/multiversx/mx-chain-vm-common-go/parsers"
+	wasmConfig "github.com/multiversx/mx-chain-vm-v1_4-go/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 var dnsAddr = []byte{0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 137, 17, 46, 56, 127, 47, 62, 172, 4, 126, 190, 242, 221, 230, 209, 243, 105, 104, 242, 66, 49, 49}
 
-// TODO: Merge test utilities from this file with the ones from "arwen/utils.go"
+// TODO: Merge test utilities from this file with the ones from "wasmvm/utils.go"
 
 var globalEpochNotifier = forking.NewGenericEpochNotifier()
 var pubkeyConv, _ = pubkeyConverter.NewHexPubkeyConverter(32)
@@ -142,12 +144,21 @@ func (vmTestContext *VMTestContext) GetGasRemaining() uint64 {
 }
 
 // GetIntermediateTransactions -
-func (vmTestContext *VMTestContext) GetIntermediateTransactions(t *testing.T) []data.TransactionHandler {
+func (vmTestContext *VMTestContext) GetIntermediateTransactions(tb testing.TB) []data.TransactionHandler {
 	scForwarder := vmTestContext.ScForwarder
 	mockIntermediate, ok := scForwarder.(*mock.IntermediateTransactionHandlerMock)
-	require.True(t, ok)
+	require.True(tb, ok)
 
 	return mockIntermediate.GetIntermediateTransactions()
+}
+
+// CleanIntermediateTransactions -
+func (vmTestContext *VMTestContext) CleanIntermediateTransactions(tb testing.TB) {
+	scForwarder := vmTestContext.ScForwarder
+	mockIntermediate, ok := scForwarder.(*mock.IntermediateTransactionHandlerMock)
+	require.True(tb, ok)
+
+	mockIntermediate.Clean()
 }
 
 // CreateTransaction -
@@ -226,7 +237,7 @@ func (vmTestContext *VMTestContext) GetVMOutputWithTransientVM(funcName string, 
 		EconomicsFee:             feeHandler,
 		BlockChainHook:           vmTestContext.BlockchainHook.(process.BlockChainHookHandler),
 		BlockChain:               &testscommon.ChainHandlerStub{},
-		ArwenChangeLocker:        &sync.RWMutex{},
+		WasmVMChangeLocker:       &sync.RWMutex{},
 		Bootstrapper:             syncDisabled.NewDisabledBootstrapper(),
 		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
 	}
@@ -342,11 +353,15 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 	accnts state.AccountsAdapter,
 	opGas uint64,
 	enableEpochsConfig config.EnableEpochs,
-	arwenChangeLocker common.Locker,
+	wasmVMChangeLocker common.Locker,
 ) (process.TransactionProcessor, error) {
 
 	genericEpochNotifier := forking.NewGenericEpochNotifier()
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, genericEpochNotifier)
+
+	gasSchedule := make(map[string]map[string]uint64)
+	defaults.FillGasMapInternal(gasSchedule, 1)
+	gasScheduleNotifier := mock.NewGasScheduleNotifierMock(gasSchedule)
 
 	builtInFuncs := vmcommonBuiltInFunctions.NewBuiltInFunctionContainer()
 	datapool := dataRetrieverMock.NewPoolsHolderMock()
@@ -367,6 +382,8 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		ConfigSCStorage:       *defaultStorageConfig(),
 		EpochNotifier:         genericEpochNotifier,
 		EnableEpochsHandler:   enableEpochsHandler,
+		GasSchedule:           gasScheduleNotifier,
+		Counter:               &testscommon.BlockChainHookCounterStub{},
 	}
 
 	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
@@ -388,8 +405,6 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		EnableEpochsHandler: enableEpochsHandler,
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
-	gasSchedule := make(map[string]map[string]uint64)
-	defaults.FillGasMapInternal(gasSchedule, 1)
 
 	economicsData, err := createEconomicsData(enableEpochsConfig)
 	if err != nil {
@@ -414,11 +429,11 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		GasHandler: &testscommon.GasHandlerStub{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
-		GasSchedule:         mock.NewGasScheduleNotifierMock(gasSchedule),
+		GasSchedule:         gasScheduleNotifier,
 		TxLogsProcessor:     &mock.TxLogsProcessorStub{},
 		EnableEpochsHandler: enableEpochsHandler,
 		VMOutputCacher:      txcache.NewDisabledCache(),
-		ArwenChangeLocker:   arwenChangeLocker,
+		WasmVMChangeLocker:  wasmVMChangeLocker,
 	}
 	scProcessor, _ := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
 
@@ -463,6 +478,8 @@ func CreateOneSCExecutorMockVM(accnts state.AccountsAdapter) vmcommon.VMExecutio
 		ConfigSCStorage:       *defaultStorageConfig(),
 		EpochNotifier:         &epochNotifier.EpochNotifierStub{},
 		EnableEpochsHandler:   &testscommon.EnableEpochsHandlerStub{},
+		GasSchedule:           createMockGasScheduleNotifier(),
+		Counter:               &testscommon.BlockChainHookCounterStub{},
 	}
 	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
 	vm, _ := mock.NewOneSCExecutorMockVM(blockChainHook, integrationtests.TestHasher)
@@ -476,13 +493,13 @@ func CreateVMAndBlockchainHookAndDataPool(
 	gasSchedule core.GasScheduleNotifier,
 	vmConfig *config.VirtualMachineConfig,
 	shardCoordinator sharding.Coordinator,
-	arwenChangeLocker common.Locker,
+	wasmVMChangeLocker common.Locker,
 	epochNotifierInstance process.EpochNotifier,
 	enableEpochsHandler common.EnableEpochsHandler,
 	chainHandler data.ChainHandler,
 ) (process.VirtualMachinesContainer, *hooks.BlockChainHookImpl, dataRetriever.PoolsHolder) {
 	if check.IfNil(gasSchedule) || gasSchedule.LatestGasSchedule() == nil {
-		testGasSchedule := arwenConfig.MakeGasMapForTests()
+		testGasSchedule := wasmConfig.MakeGasMapForTests()
 		defaults.FillGasMapInternal(testGasSchedule, 1)
 		gasSchedule = mock.NewGasScheduleNotifierMock(testGasSchedule)
 	}
@@ -502,6 +519,9 @@ func CreateVMAndBlockchainHookAndDataPool(
 	argsBuiltIn.AutomaticCrawlerAddresses = integrationTests.GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
 
+	esdtTransferParser, _ := parsers.NewESDTTransferParser(integrationtests.TestMarshalizer)
+	counter, _ := counters.NewUsageCounter(esdtTransferParser)
+
 	datapool := dataRetrieverMock.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{
 		Accounts:              accnts,
@@ -520,9 +540,11 @@ func CreateVMAndBlockchainHookAndDataPool(
 		ConfigSCStorage:       *defaultStorageConfig(),
 		EpochNotifier:         epochNotifierInstance,
 		EnableEpochsHandler:   enableEpochsHandler,
+		GasSchedule:           gasSchedule,
+		Counter:               counter,
 	}
 
-	esdtTransferParser, _ := parsers.NewESDTTransferParser(integrationtests.TestMarshalizer)
+	hasher := &hashingMocks.HasherMock{}
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
 	blockChainHookImpl, _ := hooks.NewBlockChainHookImpl(args)
 	argsNewVMFactory := shard.ArgVMContainerFactory{
@@ -533,8 +555,9 @@ func CreateVMAndBlockchainHookAndDataPool(
 		BuiltInFunctions:    args.BuiltInFunctions,
 		EpochNotifier:       epochNotifierInstance,
 		EnableEpochsHandler: enableEpochsHandler,
-		ArwenChangeLocker:   arwenChangeLocker,
+		WasmVMChangeLocker:  wasmVMChangeLocker,
 		ESDTTransferParser:  esdtTransferParser,
+		Hasher:              hasher,
 	}
 	vmFactory, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	if err != nil {
@@ -560,7 +583,7 @@ func CreateVMAndBlockchainHookMeta(
 	enableEpochsConfig config.EnableEpochs,
 ) (process.VirtualMachinesContainer, *hooks.BlockChainHookImpl) {
 	if check.IfNil(gasSchedule) || gasSchedule.LatestGasSchedule() == nil {
-		testGasSchedule := arwenConfig.MakeGasMapForTests()
+		testGasSchedule := wasmConfig.MakeGasMapForTests()
 		defaults.FillGasMapInternal(testGasSchedule, 1)
 		gasSchedule = mock.NewGasScheduleNotifierMock(testGasSchedule)
 	}
@@ -598,6 +621,8 @@ func CreateVMAndBlockchainHookMeta(
 		NilCompiledSCStore:    true,
 		EpochNotifier:         globalEpochNotifier,
 		EnableEpochsHandler:   enableEpochsHandler,
+		GasSchedule:           gasSchedule,
+		Counter:               &testscommon.BlockChainHookCounterStub{},
 	}
 
 	economicsData, err := createEconomicsData(config.EnableEpochs{})
@@ -687,7 +712,7 @@ func createSystemSCConfig() *config.SystemSmartContractsConfig {
 
 func createDefaultVMConfig() *config.VirtualMachineConfig {
 	return &config.VirtualMachineConfig{
-		ArwenVersions: []config.ArwenVersionByEpoch{
+		WasmVMVersions: []config.WasmVMVersionByEpoch{
 			{
 				StartEpoch: 0,
 				Version:    "*",
@@ -715,7 +740,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	feeAccumulator process.TransactionFeeHandler,
 	shardCoordinator sharding.Coordinator,
 	enableEpochsConfig config.EnableEpochs,
-	arwenChangeLocker common.Locker,
+	wasmVMChangeLocker common.Locker,
 	poolsHolder dataRetriever.PoolsHolder,
 	epochNotifierInstance process.EpochNotifier,
 ) (*ResultsCreateTxProcessor, error) {
@@ -773,7 +798,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		GasSchedule:         mock.NewGasScheduleNotifierMock(gasSchedule),
 		TxLogsProcessor:     logProc,
 		EnableEpochsHandler: enableEpochsHandler,
-		ArwenChangeLocker:   arwenChangeLocker,
+		WasmVMChangeLocker:  wasmVMChangeLocker,
 		VMOutputCacher:      txcache.NewDisabledCache(),
 	}
 
@@ -964,7 +989,7 @@ func CreatePreparedTxProcessorAndAccountsWithVMs(
 	accounts := integrationtests.CreateInMemoryShardAccountsDB()
 	_, _ = CreateAccount(accounts, senderAddressBytes, senderNonce, senderBalance)
 	vmConfig := createDefaultVMConfig()
-	arwenChangeLocker := &sync.RWMutex{}
+	wasmVMChangeLocker := &sync.RWMutex{}
 	epochNotifierInstance := forking.NewGenericEpochNotifier()
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
 	chainHandler := &testscommon.ChainHandlerStub{}
@@ -974,7 +999,7 @@ func CreatePreparedTxProcessorAndAccountsWithVMs(
 		nil,
 		vmConfig,
 		mock.NewMultiShardsCoordinatorMock(2),
-		arwenChangeLocker,
+		wasmVMChangeLocker,
 		epochNotifierInstance,
 		enableEpochsHandler,
 		chainHandler,
@@ -986,7 +1011,7 @@ func CreatePreparedTxProcessorAndAccountsWithVMs(
 		feeAccumulator,
 		mock.NewMultiShardsCoordinatorMock(2),
 		enableEpochsConfig,
-		arwenChangeLocker,
+		wasmVMChangeLocker,
 		pool,
 		epochNotifierInstance,
 	)
@@ -1009,18 +1034,30 @@ func CreatePreparedTxProcessorAndAccountsWithVMs(
 }
 
 func createMockGasScheduleNotifier() *mock.GasScheduleNotifierMock {
-	testGasSchedule := arwenConfig.MakeGasMapForTests()
+	return createMockGasScheduleNotifierWithCustomGasSchedule(func(gasMap wasmConfig.GasScheduleMap) {})
+}
+
+func createMockGasScheduleNotifierWithCustomGasSchedule(updateGasSchedule func(gasMap wasmConfig.GasScheduleMap)) *mock.GasScheduleNotifierMock {
+	testGasSchedule := wasmConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(testGasSchedule, 1)
+	updateGasSchedule(testGasSchedule)
 	return mock.NewGasScheduleNotifierMock(testGasSchedule)
 }
 
 // CreatePreparedTxProcessorWithVMs -
 func CreatePreparedTxProcessorWithVMs(enableEpochs config.EnableEpochs) (*VMTestContext, error) {
+	return CreatePreparedTxProcessorWithVMsAndCustomGasSchedule(enableEpochs, func(gasMap wasmConfig.GasScheduleMap) {})
+}
+
+// CreatePreparedTxProcessorWithVMsAndCustomGasSchedule -
+func CreatePreparedTxProcessorWithVMsAndCustomGasSchedule(
+	enableEpochs config.EnableEpochs,
+	updateGasSchedule func(gasMap wasmConfig.GasScheduleMap)) (*VMTestContext, error) {
 	return CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGas(
 		enableEpochs,
 		mock.NewMultiShardsCoordinatorMock(2),
 		integrationtests.CreateMemUnit(),
-		createMockGasScheduleNotifier(),
+		createMockGasScheduleNotifierWithCustomGasSchedule(updateGasSchedule),
 	)
 }
 
@@ -1044,7 +1081,7 @@ func CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGas(
 	feeAccumulator, _ := postprocess.NewFeeAccumulator()
 	accounts := integrationtests.CreateAccountsDB(db)
 	vmConfig := createDefaultVMConfig()
-	arwenChangeLocker := &sync.RWMutex{}
+	wasmVMChangeLocker := &sync.RWMutex{}
 
 	epochNotifierInstance := forking.NewGenericEpochNotifier()
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
@@ -1055,7 +1092,7 @@ func CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGas(
 		gasScheduleNotifier,
 		vmConfig,
 		shardCoordinator,
-		arwenChangeLocker,
+		wasmVMChangeLocker,
 		epochNotifierInstance,
 		enableEpochsHandler,
 		chainHandler,
@@ -1067,7 +1104,7 @@ func CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGas(
 		feeAccumulator,
 		shardCoordinator,
 		enableEpochsConfig,
-		arwenChangeLocker,
+		wasmVMChangeLocker,
 		pool,
 		epochNotifierInstance,
 	)
@@ -1094,8 +1131,8 @@ func CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGas(
 	}, nil
 }
 
-// CreateTxProcessorArwenVMWithGasSchedule -
-func CreateTxProcessorArwenVMWithGasSchedule(
+// CreateTxProcessorWasmVMWithGasSchedule -
+func CreateTxProcessorWasmVMWithGasSchedule(
 	senderNonce uint64,
 	senderAddressBytes []byte,
 	senderBalance *big.Int,
@@ -1106,7 +1143,7 @@ func CreateTxProcessorArwenVMWithGasSchedule(
 	accounts := integrationtests.CreateInMemoryShardAccountsDB()
 	_, _ = CreateAccount(accounts, senderAddressBytes, senderNonce, senderBalance)
 	vmConfig := createDefaultVMConfig()
-	arwenChangeLocker := &sync.RWMutex{}
+	wasmVMChangeLocker := &sync.RWMutex{}
 
 	gasScheduleNotifier := mock.NewGasScheduleNotifierMock(gasScheduleMap)
 	epochNotifierInstance := forking.NewGenericEpochNotifier()
@@ -1117,7 +1154,7 @@ func CreateTxProcessorArwenVMWithGasSchedule(
 		gasScheduleNotifier,
 		vmConfig,
 		mock.NewMultiShardsCoordinatorMock(2),
-		arwenChangeLocker,
+		wasmVMChangeLocker,
 		epochNotifierInstance,
 		enableEpochsHandler,
 		chainHandler,
@@ -1129,7 +1166,7 @@ func CreateTxProcessorArwenVMWithGasSchedule(
 		feeAccumulator,
 		mock.NewMultiShardsCoordinatorMock(2),
 		enableEpochsConfig,
-		arwenChangeLocker,
+		wasmVMChangeLocker,
 		pool,
 		epochNotifierInstance,
 	)
@@ -1152,15 +1189,15 @@ func CreateTxProcessorArwenVMWithGasSchedule(
 	}, nil
 }
 
-// CreateTxProcessorArwenWithVMConfig -
-func CreateTxProcessorArwenWithVMConfig(
+// CreateTxProcessorWasmVMWithVMConfig -
+func CreateTxProcessorWasmVMWithVMConfig(
 	enableEpochsConfig config.EnableEpochs,
 	vmConfig *config.VirtualMachineConfig,
 	gasSchedule map[string]map[string]uint64,
 ) (*VMTestContext, error) {
 	feeAccumulator, _ := postprocess.NewFeeAccumulator()
 	accounts := integrationtests.CreateInMemoryShardAccountsDB()
-	arwenChangeLocker := &sync.RWMutex{}
+	wasmVMChangeLocker := &sync.RWMutex{}
 	gasScheduleNotifier := mock.NewGasScheduleNotifierMock(gasSchedule)
 	epochNotifierInstance := forking.NewGenericEpochNotifier()
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
@@ -1170,7 +1207,7 @@ func CreateTxProcessorArwenWithVMConfig(
 		gasScheduleNotifier,
 		vmConfig,
 		mock.NewMultiShardsCoordinatorMock(2),
-		arwenChangeLocker,
+		wasmVMChangeLocker,
 		epochNotifierInstance,
 		enableEpochsHandler,
 		chainHandler,
@@ -1182,7 +1219,7 @@ func CreateTxProcessorArwenWithVMConfig(
 		feeAccumulator,
 		mock.NewMultiShardsCoordinatorMock(2),
 		enableEpochsConfig,
-		arwenChangeLocker,
+		wasmVMChangeLocker,
 		pool,
 		epochNotifierInstance,
 	)
@@ -1213,13 +1250,13 @@ func CreatePreparedTxProcessorAndAccountsWithMockedVM(
 	senderAddressBytes []byte,
 	senderBalance *big.Int,
 	enableEpochs config.EnableEpochs,
-	arwenChangeLocker common.Locker,
+	wasmVMChangeLocker common.Locker,
 ) (process.TransactionProcessor, state.AccountsAdapter, error) {
 
 	accnts := integrationtests.CreateInMemoryShardAccountsDB()
 	_, _ = CreateAccount(accnts, senderAddressBytes, senderNonce, senderBalance)
 
-	txProcessor, err := CreateTxProcessorWithOneSCExecutorMockVM(accnts, vmOpGas, enableEpochs, arwenChangeLocker)
+	txProcessor, err := CreateTxProcessorWithOneSCExecutorMockVM(accnts, vmOpGas, enableEpochs, wasmVMChangeLocker)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1354,7 +1391,7 @@ func GetVmOutput(gasSchedule map[string]map[string]uint64, accnts state.Accounts
 		EconomicsFee:             feeHandler,
 		BlockChainHook:           blockChainHook,
 		BlockChain:               &testscommon.ChainHandlerStub{},
-		ArwenChangeLocker:        &sync.RWMutex{},
+		WasmVMChangeLocker:       &sync.RWMutex{},
 		Bootstrapper:             syncDisabled.NewDisabledBootstrapper(),
 		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
 	}
@@ -1403,7 +1440,7 @@ func ComputeGasLimit(gasSchedule map[string]map[string]uint64, testContext *VMTe
 				}
 			},
 		},
-		ArwenChangeLocker:        &sync.RWMutex{},
+		WasmVMChangeLocker:       &sync.RWMutex{},
 		Bootstrapper:             syncDisabled.NewDisabledBootstrapper(),
 		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
 	}
@@ -1478,7 +1515,7 @@ func CreatePreparedTxProcessorWithVMsMultiShard(selfShardID uint32, enableEpochs
 	feeAccumulator, _ := postprocess.NewFeeAccumulator()
 	accounts := integrationtests.CreateInMemoryShardAccountsDB()
 
-	arwenChangeLocker := &sync.RWMutex{}
+	wasmVMChangeLocker := &sync.RWMutex{}
 	var vmContainer process.VirtualMachinesContainer
 	var blockchainHook *hooks.BlockChainHookImpl
 	epochNotifierInstance := forking.NewGenericEpochNotifier()
@@ -1493,7 +1530,7 @@ func CreatePreparedTxProcessorWithVMsMultiShard(selfShardID uint32, enableEpochs
 			nil,
 			vmConfig,
 			shardCoordinator,
-			arwenChangeLocker,
+			wasmVMChangeLocker,
 			epochNotifierInstance,
 			enableEpochsHandler,
 			chainHandler,
@@ -1507,7 +1544,7 @@ func CreatePreparedTxProcessorWithVMsMultiShard(selfShardID uint32, enableEpochs
 		feeAccumulator,
 		shardCoordinator,
 		enableEpochsConfig,
-		arwenChangeLocker,
+		wasmVMChangeLocker,
 		nil,
 		epochNotifierInstance,
 	)

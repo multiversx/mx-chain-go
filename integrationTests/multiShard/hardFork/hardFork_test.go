@@ -10,24 +10,24 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/genesis/process"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
-	vmFactory "github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
-	factoryTests "github.com/ElrondNetwork/elrond-go/testscommon/factory"
-	"github.com/ElrondNetwork/elrond-go/testscommon/genesisMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
-	"github.com/ElrondNetwork/elrond-go/update/factory"
-	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
-	arwenConfig "github.com/ElrondNetwork/wasm-vm-v1_4/config"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/genesis/process"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/integrationTests/mock"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
+	vmFactory "github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
+	factoryTests "github.com/multiversx/mx-chain-go/testscommon/factory"
+	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
+	"github.com/multiversx/mx-chain-go/update/factory"
+	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	wasmConfig "github.com/multiversx/mx-chain-vm-v1_4-go/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -168,14 +168,14 @@ func TestHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing.
 	transferToken := big.NewInt(10)
 	ownerNode := nodes[0]
 	initialSupply := "00" + hex.EncodeToString(big.NewInt(100000000000).Bytes())
-	scCode := arwen.GetSCCode("../../vm/arwen/testdata/erc20-c-03/wrc20_arwen.wasm")
-	scAddress, _ := ownerNode.BlockchainHook.NewAddress(ownerNode.OwnAccount.Address, ownerNode.OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
+	scCode := wasm.GetSCCode("../../vm/wasm/testdata/erc20-c-03/wrc20_wasm.wasm")
+	scAddress, _ := ownerNode.BlockchainHook.NewAddress(ownerNode.OwnAccount.Address, ownerNode.OwnAccount.Nonce, vmFactory.WasmVirtualMachine)
 	integrationTests.CreateAndSendTransactionWithGasLimit(
 		nodes[0],
 		big.NewInt(0),
 		integrationTests.MaxGasLimitPerBlock-1,
 		make([]byte, 32),
-		[]byte(arwen.CreateDeployTxData(scCode)+"@"+initialSupply),
+		[]byte(wasm.CreateDeployTxData(scCode)+"@"+initialSupply),
 		integrationTests.ChainID,
 		integrationTests.MinTransactionVersion,
 	)
@@ -284,14 +284,14 @@ func TestHardForkEarlyEndOfEpochWithContinuousTransactionsInMultiShardedEnvironm
 	transferToken := big.NewInt(10)
 	ownerNode := consensusNodes[0]
 	initialSupply := "00" + hex.EncodeToString(big.NewInt(100000000000).Bytes())
-	scCode := arwen.GetSCCode("../../vm/arwen/testdata/erc20-c-03/wrc20_arwen.wasm")
-	scAddress, _ := ownerNode.BlockchainHook.NewAddress(ownerNode.OwnAccount.Address, ownerNode.OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
+	scCode := wasm.GetSCCode("../../vm/wasm/testdata/erc20-c-03/wrc20_wasm.wasm")
+	scAddress, _ := ownerNode.BlockchainHook.NewAddress(ownerNode.OwnAccount.Address, ownerNode.OwnAccount.Nonce, vmFactory.WasmVirtualMachine)
 	integrationTests.CreateAndSendTransactionWithGasLimit(
 		consensusNodes[0],
 		big.NewInt(0),
 		integrationTests.MaxGasLimitPerBlock-1,
 		make([]byte, 32),
-		[]byte(arwen.CreateDeployTxData(scCode)+"@"+initialSupply),
+		[]byte(wasm.CreateDeployTxData(scCode)+"@"+initialSupply),
 		integrationTests.ChainID,
 		integrationTests.MinTransactionVersion,
 	)
@@ -379,7 +379,7 @@ func hardForkImport(
 	importStorageConfigs map[uint32][]config.StorageConfig,
 ) {
 	for _, node := range nodes {
-		gasSchedule := arwenConfig.MakeGasMapForTests()
+		gasSchedule := wasmConfig.MakeGasMapForTests()
 		defaults.FillGasMapInternal(gasSchedule, 1)
 		log.Warn("started import process")
 
@@ -415,7 +415,7 @@ func hardForkImport(
 			GasSchedule:       mock.NewGasScheduleNotifierMock(gasSchedule),
 			TxLogsProcessor:   &mock.TxLogsProcessorStub{},
 			VirtualMachineConfig: config.VirtualMachineConfig{
-				ArwenVersions: []config.ArwenVersionByEpoch{
+				WasmVMVersions: []config.WasmVMVersionByEpoch{
 					{StartEpoch: 0, Version: "*"},
 				},
 			},
@@ -682,18 +682,18 @@ func verifyIfAddedShardHeadersAreWithNewEpoch(
 		shardHDrStorage, err := node.Storage.GetStorer(dataRetriever.BlockHeaderUnit)
 		assert.Nil(t, err)
 		for _, shardInfo := range currentMetaHdr.ShardInfo {
-			header, err := node.DataPool.Headers().GetHeaderByHash(shardInfo.HeaderHash)
-			if err == nil {
+			header, errGet := node.DataPool.Headers().GetHeaderByHash(shardInfo.HeaderHash)
+			if errGet == nil {
 				assert.Equal(t, currentMetaHdr.GetEpoch(), header.GetEpoch())
 				continue
 			}
 
-			buff, err := shardHDrStorage.Get(shardInfo.HeaderHash)
-			assert.Nil(t, err)
+			buff, errGet := shardHDrStorage.Get(shardInfo.HeaderHash)
+			assert.Nil(t, errGet)
 
 			shardHeader := block.Header{}
-			err = integrationTests.TestMarshalizer.Unmarshal(&shardHeader, buff)
-			assert.Nil(t, err)
+			errGet = integrationTests.TestMarshalizer.Unmarshal(&shardHeader, buff)
+			assert.Nil(t, errGet)
 			assert.Equal(t, shardHeader.GetEpoch(), currentMetaHdr.GetEpoch())
 		}
 	}

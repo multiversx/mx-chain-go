@@ -1,7 +1,7 @@
 package state
 
 import (
-	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 // PeerAccountsDB will save and synchronize data from peer processor, plus will synchronize with nodesCoordinator
@@ -20,7 +20,7 @@ func NewPeerAccountsDB(args ArgsAccountsDB) (*PeerAccountsDB, error) {
 		AccountsDB: createAccountsDb(args),
 	}
 
-	args.AppStatusHandler.SetStringValue(common.MetricPeersSnapshotInProgress, "false")
+	args.AppStatusHandler.SetUInt64Value(common.MetricPeersSnapshotInProgress, 0)
 
 	return adb, nil
 }
