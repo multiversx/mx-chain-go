@@ -1148,3 +1148,6 @@ var ErrNilProcessDebugger = errors.New("nil process debugger")
 
 // ErrMaxCallsReached signals that the allowed max number of calls was reached
 var ErrMaxCallsReached = errors.New("max calls reached")
+
+// ErrNilTxExecutionOrderHandler signals that a nil transaction execution order handler was provided
+var ErrNilTxExecutionOrderHandler = errors.New("nil transaction execution order handler")

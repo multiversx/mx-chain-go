@@ -65,6 +65,7 @@ type ArgTransactionCoordinator struct {
 	ScheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	DoubleTransactionsDetector   process.DoubleTransactionDetector
 	ProcessedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
+	TxExecutionOrderHandler      common.TxExecutionOrderHandler
 }
 
 type transactionCoordinator struct {
@@ -98,6 +99,7 @@ type transactionCoordinator struct {
 	doubleTransactionsDetector   process.DoubleTransactionDetector
 	processedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
 	enableEpochsHandler          common.EnableEpochsHandler
+	txExecutionOrderHandler      common.TxExecutionOrderHandler
 }
 
 // NewTransactionCoordinator creates a transaction coordinator to run and coordinate preprocessors and processors
@@ -123,6 +125,7 @@ func NewTransactionCoordinator(args ArgTransactionCoordinator) (*transactionCoor
 		doubleTransactionsDetector:   args.DoubleTransactionsDetector,
 		processedMiniBlocksTracker:   args.ProcessedMiniBlocksTracker,
 		enableEpochsHandler:          args.EnableEpochsHandler,
+		txExecutionOrderHandler:      args.TxExecutionOrderHandler,
 	}
 
 	tc.miniBlockPool = args.MiniBlockPool
@@ -916,6 +919,7 @@ func (tc *transactionCoordinator) CreateBlockStarted() {
 	tc.gasHandler.Init()
 	tc.blockSizeComputation.Init()
 	tc.balanceComputation.Init()
+	tc.txExecutionOrderHandler.Clear()
 
 	tc.mutPreProcessor.RLock()
 	for _, value := range tc.txPreProcessors {
@@ -1193,6 +1197,7 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 		)
 
 		if shouldRevert {
+			tc.txExecutionOrderHandler.RemoveMultiple(txsToBeReverted)
 			tc.handleProcessTransactionError(snapshot, miniBlockHash, txsToBeReverted)
 		} else {
 			if tc.enableEpochsHandler.IsMiniBlockPartialExecutionFlagEnabled() {
@@ -1223,7 +1228,7 @@ func (tc *transactionCoordinator) handleProcessTransactionError(snapshot int, mi
 
 	err := tc.accounts.RevertToSnapshot(snapshot)
 	if err != nil {
-		// TODO: evaluate if reloading the trie from disk will might solve the problem
+		// TODO: evaluate if reloading the trie from disk might solve the problem
 		log.Debug("transactionCoordinator.handleProcessTransactionError: RevertToSnapshot", "error", err.Error())
 	}
 
@@ -1259,6 +1264,7 @@ func (tc *transactionCoordinator) RevertProcessedTxsResults(txHashes [][]byte, k
 		resultHashes := interProc.RemoveProcessedResults(key)
 		accFeesBeforeRevert := tc.feeHandler.GetAccumulatedFees()
 		tc.feeHandler.RevertFees(resultHashes)
+		tc.txExecutionOrderHandler.RemoveMultiple(resultHashes)
 		accFeesAfterRevert := tc.feeHandler.GetAccumulatedFees()
 
 		if accFeesBeforeRevert.Cmp(accFeesAfterRevert) != 0 {
@@ -1270,6 +1276,7 @@ func (tc *transactionCoordinator) RevertProcessedTxsResults(txHashes [][]byte, k
 
 	accFeesBeforeRevert := tc.feeHandler.GetAccumulatedFees()
 	tc.feeHandler.RevertFees(txHashes)
+	tc.txExecutionOrderHandler.RemoveMultiple(txHashes)
 	accFeesAfterRevert := tc.feeHandler.GetAccumulatedFees()
 
 	if accFeesBeforeRevert.Cmp(accFeesAfterRevert) != 0 {
@@ -1764,6 +1771,9 @@ func checkTransactionCoordinatorNilParameters(arguments ArgTransactionCoordinato
 	}
 	if check.IfNil(arguments.ProcessedMiniBlocksTracker) {
 		return process.ErrNilProcessedMiniBlocksTracker
+	}
+	if check.IfNil(arguments.TxExecutionOrderHandler) {
+		return process.ErrNilTxExecutionOrderHandler
 	}
 
 	return nil

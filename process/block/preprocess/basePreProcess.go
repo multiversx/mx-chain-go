@@ -122,6 +122,7 @@ type basePreProcess struct {
 	pubkeyConverter            core.PubkeyConverter
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker
 	enableEpochsHandler        common.EnableEpochsHandler
+	txExecutionOrderHandler    common.TxExecutionOrderHandler
 }
 
 func (bpp *basePreProcess) removeBlockDataFromPools(
