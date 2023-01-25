@@ -573,6 +573,7 @@ func processHistoricalBalancesMode(log logger.Logger, configs *config.Configs) {
 	configs.GeneralConfig.StoragePruning.AccountsTrieCleanOldEpochsData = false
 	configs.GeneralConfig.StateTriesConfig.AccountsStatePruningEnabled = false
 	configs.GeneralConfig.DbLookupExtensions.Enabled = true
+	configs.PreferencesConfig.Preferences.FullArchive = true
 
 	log.Warn("the node is in historical balances mode! Will auto-set some config values",
 		"StoragePruning.ValidatorCleanOldEpochsData", configs.GeneralConfig.StoragePruning.ValidatorCleanOldEpochsData,
@@ -581,24 +582,29 @@ func processHistoricalBalancesMode(log logger.Logger, configs *config.Configs) {
 		"GeneralSettings.StartInEpochEnabled", configs.GeneralConfig.GeneralSettings.StartInEpochEnabled,
 		"StateTriesConfig.AccountsStatePruningEnabled", configs.GeneralConfig.StateTriesConfig.AccountsStatePruningEnabled,
 		"DbLookupExtensions.Enabled", configs.GeneralConfig.DbLookupExtensions.Enabled,
+		"Preferences.FullArchive", configs.PreferencesConfig.Preferences.FullArchive,
 	)
 }
 
 func processDbLookupExtensionMode(log logger.Logger, configs *config.Configs) {
 	configs.GeneralConfig.DbLookupExtensions.Enabled = true
+	configs.GeneralConfig.StoragePruning.Enabled = true
 
 	log.Warn("the node is in DB lookup extension mode! Will auto-set some config values",
 		"DbLookupExtensions.Enabled", configs.GeneralConfig.DbLookupExtensions.Enabled,
+		"StoragePruning.Enabled", configs.GeneralConfig.StoragePruning.Enabled,
 	)
 }
 
 func processLiteObserverMode(log logger.Logger, configs *config.Configs) {
 	configs.GeneralConfig.StoragePruning.ObserverCleanOldEpochsData = true
 	configs.GeneralConfig.StateTriesConfig.SnapshotsEnabled = false
+	configs.GeneralConfig.StateTriesConfig.AccountsStatePruningEnabled = true
 
 	log.Warn("the node is in lite observer mode! Will auto-set some config values",
 		"StoragePruning.ObserverCleanOldEpochsData", configs.GeneralConfig.StoragePruning.ObserverCleanOldEpochsData,
 		"StateTriesConfig.SnapshotsEnabled", configs.GeneralConfig.StateTriesConfig.SnapshotsEnabled,
+		"StateTriesConfig.AccountsStatePruningEnabled", configs.GeneralConfig.StateTriesConfig.AccountsStatePruningEnabled,
 	)
 }
 
