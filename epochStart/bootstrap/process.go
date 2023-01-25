@@ -184,6 +184,7 @@ type dataToSync struct {
 	rootHashToSync    []byte
 	withScheduled     bool
 	additionalHeaders map[string]data.HeaderHandler
+	miniBlocks        map[string]*block.MiniBlock
 }
 
 // NewEpochStartBootstrap will return a new instance of epochStartBootstrap
@@ -959,7 +960,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard(peerMiniBlocks []*block.
 		PeerMiniBlocks:      peerMiniBlocks,
 	}
 
-	errSavingToStorage := storageHandlerComponent.SaveDataToStorage(components, shardNotarizedHeader, dts.withScheduled)
+	errSavingToStorage := storageHandlerComponent.SaveDataToStorage(components, shardNotarizedHeader, dts.withScheduled, dts.miniBlocks)
 	if errSavingToStorage != nil {
 		return errSavingToStorage
 	}
@@ -1027,9 +1028,10 @@ func (e *epochStartBootstrap) updateDataForScheduled(
 		rootHashToSync:    nil,
 		withScheduled:     false,
 		additionalHeaders: nil,
+		miniBlocks:        nil,
 	}
 
-	res.ownShardHdr, res.additionalHeaders, err = e.dataSyncerWithScheduled.UpdateSyncDataIfNeeded(shardNotarizedHeader)
+	res.ownShardHdr, res.additionalHeaders, res.miniBlocks, err = e.dataSyncerWithScheduled.UpdateSyncDataIfNeeded(shardNotarizedHeader)
 	if err != nil {
 		return nil, err
 	}
