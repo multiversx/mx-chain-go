@@ -4,7 +4,7 @@ import (
 	"math"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/multiversx/mx-chain-go/p2p"
 )
 
 // PeerType represents the type of a peer
