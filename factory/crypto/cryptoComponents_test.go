@@ -11,7 +11,9 @@ import (
 	errErd "github.com/multiversx/mx-chain-go/errors"
 	cryptoComp "github.com/multiversx/mx-chain-go/factory/crypto"
 	"github.com/multiversx/mx-chain-go/factory/mock"
+	integrationTestsMock "github.com/multiversx/mx-chain-go/integrationTests/mock"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 

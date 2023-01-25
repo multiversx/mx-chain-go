@@ -3,6 +3,7 @@ package crypto
 import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
+	"github.com/multiversx/mx-chain-go/heartbeat"
 )
 
 // GetSkPk -
