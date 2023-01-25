@@ -1,7 +1,7 @@
 package storage
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/storage"
+	"github.com/multiversx/mx-chain-core-go/storage"
 )
 
 // StorerStub -

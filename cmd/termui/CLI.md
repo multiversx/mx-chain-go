@@ -1,21 +1,21 @@
 
-# Elrond TermUI CLI
+# MultiversX TermUI CLI
 
-The **Elrond Term UI** exposes the following Command Line Interface:
+The **MultiversxX Term UI** exposes the following Command Line Interface:
 
 ```
 $ termui --help
 
 NAME:
-   Elrond Terminal UI App - Terminal UI application used to display metrics from the node
+   MultiversX Terminal UI App - Terminal UI application used to display metrics from the node
 USAGE:
    termui [global options]
    
 AUTHOR:
-   The Elrond Team <contact@elrond.com>
+   The MultiversX Team <contact@multiversx.com>
    
 GLOBAL OPTIONS:
-   --address value    Address and port number on which the application will try to connect to the elrond-go node (default: "127.0.0.1:8080")
+   --address value    Address and port number on which the application will try to connect to the mx-chain-go node (default: "127.0.0.1:8080")
    --log-level value  This flag specifies the logger level (default: "*:INFO ")
    --log-correlation  Will include log correlation elements
    --log-logger-name  Will include logger name

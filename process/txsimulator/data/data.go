@@ -1,8 +1,8 @@
 package data
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // SimulationResults is the data transfer object which will hold results for simulation a transaction's execution

@@ -1,7 +1,7 @@
 package p2p
 
 import (
-	p2p "github.com/ElrondNetwork/elrond-go-p2p"
+	p2p "github.com/multiversx/mx-chain-p2p-go"
 )
 
 // NodeOperation defines the p2p node operation

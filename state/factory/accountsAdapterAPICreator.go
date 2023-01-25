@@ -3,9 +3,9 @@ package factory
 import (
 	"fmt"
 
-	chainData "github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/state/blockInfoProviders"
+	chainData "github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/blockInfoProviders"
 )
 
 // CreateAccountsAdapterAPIOnFinal creates a new instance of AccountsAdapterAPI that tracks the final blocks state

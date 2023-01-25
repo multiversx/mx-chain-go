@@ -1,9 +1,9 @@
 package dblookupext
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/dblookupext/esdtSupply"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/dblookupext/esdtSupply"
 )
 
 // HistoryRepositoryFactory can create new instances of HistoryRepository
