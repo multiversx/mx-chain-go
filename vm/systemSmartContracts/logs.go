@@ -33,7 +33,7 @@ func (d *delegation) createAndAddLogEntryForWithdraw(
 	withdrawFundKeys [][]byte,
 ) {
 	activeFund := d.getFundForLogEntry(delegator.ActiveFund)
-	topics := append([][]byte{}, actualUserUnBond.Bytes(), activeFund.Bytes(), big.NewInt(0).SetUint64(numUsers).Bytes(), globalFund.TotalActive.Bytes(), boolToSlice(wasDeleted))
+	topics := append(make([][]byte, 0), actualUserUnBond.Bytes(), activeFund.Bytes(), big.NewInt(0).SetUint64(numUsers).Bytes(), globalFund.TotalActive.Bytes(), boolToSlice(wasDeleted))
 	topics = append(topics, withdrawFundKeys...)
 	d.createAndAddLogEntryCustom(function, address, topics...)
 }
