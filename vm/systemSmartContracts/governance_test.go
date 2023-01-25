@@ -602,7 +602,7 @@ func TestGovernanceContract_ProposalInvalidVoteNonce(t *testing.T) {
 	callInput := createVMInput(big.NewInt(500), "proposal", vm.GovernanceSCAddress, []byte("addr1"), callInputArgs)
 	retCode := gsc.Execute(callInput)
 	require.Equal(t, vmcommon.UserError, retCode)
-	require.Equal(t, eei.GetReturnMessage(), vm.ErrInvalidStartEndVoteNonce.Error())
+	require.Equal(t, eei.GetReturnMessage(), vm.ErrInvalidStartEndVoteEpoch.Error())
 }
 
 func TestGovernanceContract_ProposalOK(t *testing.T) {
@@ -683,7 +683,7 @@ func TestGovernanceContract_VoteInvalidProposal(t *testing.T) {
 		return 16
 	}
 
-	nonce, _ := nonceFromBytes(voteArgs[0])
+	nonce, _ := uint64FromBytes(voteArgs[0])
 	gsc.eei.SetStorage(nonce.Bytes(), proposalIdentifier)
 	_ = gsc.saveGeneralProposal(proposalIdentifier, generalProposal)
 
@@ -713,7 +713,7 @@ func TestGovernanceContract_VoteInvalidVote(t *testing.T) {
 		return 16
 	}
 
-	nonce, _ := nonceFromBytes(voteArgs[0])
+	nonce, _ := uint64FromBytes(voteArgs[0])
 	gsc.eei.SetStorage(nonce.Bytes(), proposalIdentifier)
 	_ = gsc.saveGeneralProposal(proposalIdentifier, generalProposal)
 
@@ -750,7 +750,7 @@ func TestGovernanceContract_VoteTwice(t *testing.T) {
 		[]byte("yes"),
 	}
 
-	nonce, _ := nonceFromBytes(voteArgs[0])
+	nonce, _ := uint64FromBytes(voteArgs[0])
 	gsc.eei.SetStorage(nonce.Bytes(), proposalIdentifier)
 	_ = gsc.saveGeneralProposal(proposalIdentifier, generalProposal)
 
@@ -788,7 +788,7 @@ func TestGovernanceContract_DelegateVoteUserErrors(t *testing.T) {
 		[]byte("1"),
 		[]byte("yes"),
 	}
-	nonce, _ := nonceFromBytes(voteArgs[0])
+	nonce, _ := uint64FromBytes(voteArgs[0])
 	gsc.eei.SetStorage(nonce.Bytes(), proposalIdentifier)
 	_ = gsc.saveGeneralProposal(proposalIdentifier, generalProposal)
 
@@ -839,7 +839,7 @@ func TestGovernanceContract_DelegateVoteMoreErrors(t *testing.T) {
 		{1},
 		big.NewInt(10000).Bytes(),
 	}
-	nonce, _ := nonceFromBytes(voteArgs[0])
+	nonce, _ := uint64FromBytes(voteArgs[0])
 	gsc.eei.SetStorage(nonce.Bytes(), proposalIdentifier)
 	_ = gsc.saveGeneralProposal(proposalIdentifier, generalProposal)
 

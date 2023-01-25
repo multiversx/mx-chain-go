@@ -18,6 +18,7 @@ import (
 )
 
 const governanceConfigKey = "governanceConfig"
+const noncePrefix = "n_"
 const proposalPrefix = "p_"
 const yesString = "yes"
 const noString = "no"
@@ -198,8 +199,8 @@ func (g *governanceContract) initV2(args *vmcommon.ContractCallInput) vmcommon.R
 // changeConfig allows the owner to change the configuration for requesting proposals
 //  args.Arguments[0] - proposalFee - as string
 //  args.Arguments[1] - minQuorum - 0-10000 - represents percentage
-//  args.Arguments[1] - minVeto - 0-10000 - represents percentage
-//  args.Arguments[1] - minPass - 0-10000 - represents percentage
+//  args.Arguments[2] - minVeto   - 0-10000 - represents percentage
+//  args.Arguments[3] - minPass   - 0-10000 - represents percentage
 func (g *governanceContract) changeConfig(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if !bytes.Equal(g.changeConfigAddress, args.CallerAddr) {
 		g.eei.AddReturnMessage("changeConfig can be called only by owner")
@@ -215,7 +216,7 @@ func (g *governanceContract) changeConfig(args *vmcommon.ContractCallInput) vmco
 	}
 
 	proposalFee, okConvert := big.NewInt(0).SetString(string(args.Arguments[0]), conversionBase)
-	if !okConvert || proposalFee.Cmp(zero) < 0 {
+	if !okConvert || proposalFee.Cmp(zero) <= 0 {
 		g.eei.AddReturnMessage("changeConfig first argument is incorrectly formatted")
 		return vmcommon.UserError
 	}
@@ -295,7 +296,7 @@ func (g *governanceContract) proposal(args *vmcommon.ContractCallInput) vmcommon
 		return vmcommon.UserError
 	}
 
-	startVoteNonce, endVoteNonce, err := g.startEndNonceFromArguments(args.Arguments[1], args.Arguments[2])
+	startVoteEpoch, endVoteEpoch, err := g.startEndEpochFromArguments(args.Arguments[1], args.Arguments[2])
 	if err != nil {
 		g.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -304,8 +305,8 @@ func (g *governanceContract) proposal(args *vmcommon.ContractCallInput) vmcommon
 	generalProposal := &GeneralProposal{
 		IssuerAddress:  args.CallerAddr,
 		CommitHash:     commitHash,
-		StartVoteNonce: startVoteNonce,
-		EndVoteNonce:   endVoteNonce,
+		startVoteEpoch: startVoteEpoch,
+		endVoteEpoch:   endVoteEpoch,
 		Yes:            big.NewInt(0),
 		No:             big.NewInt(0),
 		Veto:           big.NewInt(0),
@@ -321,7 +322,8 @@ func (g *governanceContract) proposal(args *vmcommon.ContractCallInput) vmcommon
 		return vmcommon.UserError
 	}
 
-	g.eei.SetStorage(big.NewInt(0).SetUint64(nextNonce).Bytes(), commitHash)
+	nonceKey := append([]byte(noncePrefix), big.NewInt(0).SetUint64(nextNonce).Bytes()...)
+	g.eei.SetStorage(nonceKey, commitHash)
 
 	return vmcommon.Ok
 }
@@ -474,7 +476,7 @@ func (g *governanceContract) addUserVote(
 	totalStake *big.Int,
 	direct bool,
 ) error {
-	nonce, err := nonceFromBytes(nonceAsBytes)
+	nonce, err := uint64FromBytes(nonceAsBytes)
 	if err != nil {
 		return err
 	}
@@ -571,22 +573,22 @@ func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmc
 		return vmcommon.Ok
 	}
 
-	currentNonce := g.eei.BlockChainHook().CurrentNonce()
-	if currentNonce < generalProposal.EndVoteNonce {
-		g.eei.AddReturnMessage(fmt.Sprintf("proposal can be closed only after nonce %d", generalProposal.EndVoteNonce))
+	currentEpoch := g.eei.BlockChainHook().CurrentEpoch()
+	if currentEpoch < generalProposal.EndVoteEpoch {
+		g.eei.AddReturnMessage(fmt.Sprintf("proposal can be closed only after epoch %d", generalProposal.EndVoteEpoch))
 		return vmcommon.UserError
 	}
 
 	generalProposal.Closed = true
 	err = g.computeEndResults(generalProposal)
 	if err != nil {
-		g.eei.AddReturnMessage("computeEndResults error" + err.Error())
+		g.eei.AddReturnMessage("computeEndResults error " + err.Error())
 		return vmcommon.UserError
 	}
 
 	err = g.saveGeneralProposal(proposal, generalProposal)
 	if err != nil {
-		g.eei.AddReturnMessage("saveGeneralProposal error" + err.Error())
+		g.eei.AddReturnMessage("saveGeneralProposal error " + err.Error())
 		return vmcommon.UserError
 	}
 
@@ -775,10 +777,14 @@ func (g *governanceContract) getActiveFundForDelegator(delegationAddress []byte,
 	}
 
 	marshaledData = g.eei.GetStorageFromAddress(delegationAddress, dData.ActiveFund)
-	activeFund := &Fund{Value: big.NewInt(0)}
+	activeFund := &Fund{}
 	err = g.marshalizer.Unmarshal(activeFund, marshaledData)
 	if err != nil {
 		return nil, err
+	}
+
+	if activeFund.Value == nil {
+		activeFund.Value = big.NewInt(0)
 	}
 
 	return activeFund.Value, nil
@@ -794,6 +800,10 @@ func (g *governanceContract) getTotalStake(validatorAddress []byte) (*big.Int, e
 	err := g.marshalizer.Unmarshal(validatorData, marshaledData)
 	if err != nil {
 		return nil, err
+	}
+
+	if validatorData.TotalStakeValue == nil {
+		validatorData.TotalStakeValue = big.NewInt(0)
 	}
 
 	return validatorData.TotalStakeValue, nil
@@ -911,18 +921,19 @@ func (g *governanceContract) saveGeneralProposal(reference []byte, generalPropos
 
 // getValidProposal returns a proposal from storage if it exists, or it is still valid/in-progress
 func (g *governanceContract) getValidProposal(nonce *big.Int) (*GeneralProposal, error) {
-	commitHash := g.eei.GetStorage(nonce.Bytes())
+	nonceKey := append([]byte(noncePrefix), nonce.Bytes()...)
+	commitHash := g.eei.GetStorage(nonceKey)
 	proposal, err := g.getGeneralProposal(commitHash)
 	if err != nil {
 		return nil, err
 	}
 
-	currentNonce := g.eei.BlockChainHook().CurrentNonce()
-	if currentNonce < proposal.StartVoteNonce {
+	currentEpoch := g.eei.BlockChainHook().CurrentEpoch()
+	if currentEpoch < proposal.StartVoteEpoch {
 		return nil, vm.ErrVotingNotStartedForProposal
 	}
 
-	if currentNonce > proposal.EndVoteNonce {
+	if currentEpoch > proposal.EndVoteEpoch {
 		return nil, vm.ErrVotedForAnExpiredProposal
 	}
 
@@ -954,36 +965,36 @@ func (g *governanceContract) proposalExists(reference []byte) bool {
 	return len(marshaledData) > 0
 }
 
-// startEndNonceFromArguments converts the nonce string arguments to uint64
-func (g *governanceContract) startEndNonceFromArguments(argStart []byte, argEnd []byte) (uint64, uint64, error) {
-	startVoteNonce, err := nonceFromBytes(argStart)
+// startEndEpochFromArguments converts the nonce string arguments to uint64
+func (g *governanceContract) startEndEpochFromArguments(argStart []byte, argEnd []byte) (uint64, uint64, error) {
+	startVoteEpoch, err := uint64FromBytes(argStart)
 	if err != nil {
 		return 0, 0, err
 	}
-	endVoteNonce, err := nonceFromBytes(argEnd)
+	endVoteEpoch, err := uint64FromBytes(argEnd)
 	if err != nil {
 		return 0, 0, err
 	}
 
-	currentNonce := g.eei.BlockChainHook().CurrentNonce()
-	if currentNonce > startVoteNonce.Uint64() || startVoteNonce.Uint64() > endVoteNonce.Uint64() {
-		return 0, 0, vm.ErrInvalidStartEndVoteNonce
+	currentEpoch := uint64(g.eei.BlockChainHook().CurrentEpoch())
+	if currentEpoch > startVoteEpoch.Uint64() || startVoteEpoch.Uint64() > endVoteEpoch.Uint64() {
+		return 0, 0, vm.ErrInvalidStartEndVoteEpoch
 	}
-	if endVoteNonce.Uint64()-startVoteNonce.Uint64() >= uint64(g.unBondPeriodInEpochs) {
-		return 0, 0, vm.ErrInvalidStartEndVoteNonce
+	if endVoteEpoch.Uint64()-startVoteEpoch.Uint64() >= uint64(g.unBondPeriodInEpochs) {
+		return 0, 0, vm.ErrInvalidStartEndVoteEpoch
 	}
 
-	return startVoteNonce.Uint64(), endVoteNonce.Uint64(), nil
+	return startVoteEpoch.Uint64(), endVoteEpoch.Uint64(), nil
 }
 
-// nonceFromBytes converts a byte array to a big.Int. Returns ErrInvalidStartEndVoteNonce for invalid values
-func nonceFromBytes(nonce []byte) (*big.Int, error) {
+// uint64FromBytes converts a byte array to a big.Int return error for invalid values
+func uint64FromBytes(nonce []byte) (*big.Int, error) {
 	voteNonce, okConvert := big.NewInt(0).SetString(string(nonce), conversionBase)
 	if !okConvert {
-		return nil, vm.ErrInvalidStartEndVoteNonce
+		return nil, vm.ErrInvalidStartEndVoteEpoch
 	}
 	if !voteNonce.IsUint64() {
-		return nil, vm.ErrInvalidStartEndVoteNonce
+		return nil, vm.ErrInvalidStartEndVoteEpoch
 	}
 
 	return voteNonce, nil
