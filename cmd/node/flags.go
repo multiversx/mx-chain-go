@@ -567,6 +567,7 @@ func applyCompatibleConfigs(log logger.Logger, configs *config.Configs) error {
 }
 
 func processHistoricalBalancesMode(log logger.Logger, configs *config.Configs) {
+	configs.GeneralConfig.StoragePruning.Enabled = true
 	configs.GeneralConfig.StoragePruning.ValidatorCleanOldEpochsData = false
 	configs.GeneralConfig.StoragePruning.ObserverCleanOldEpochsData = false
 	configs.GeneralConfig.GeneralSettings.StartInEpochEnabled = false
@@ -576,6 +577,7 @@ func processHistoricalBalancesMode(log logger.Logger, configs *config.Configs) {
 	configs.PreferencesConfig.Preferences.FullArchive = true
 
 	log.Warn("the node is in historical balances mode! Will auto-set some config values",
+		"StoragePruning.Enabled", configs.GeneralConfig.StoragePruning.Enabled,
 		"StoragePruning.ValidatorCleanOldEpochsData", configs.GeneralConfig.StoragePruning.ValidatorCleanOldEpochsData,
 		"StoragePruning.ObserverCleanOldEpochsData", configs.GeneralConfig.StoragePruning.ObserverCleanOldEpochsData,
 		"StoragePruning.AccountsTrieCleanOldEpochsData", configs.GeneralConfig.StoragePruning.AccountsTrieCleanOldEpochsData,
