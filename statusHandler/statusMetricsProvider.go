@@ -119,6 +119,10 @@ func (sm *statusMetrics) StatusMetricsMapWithoutP2P() (map[string]interface{}, e
 	delete(metrics, common.MetricNoncesPassedInCurrentEpoch)
 	delete(metrics, common.MetricRoundsPassedInCurrentEpoch)
 
+	// remove these metrics, since they are returned through the /node/bootstrapstatus endpoint
+	delete(metrics, common.MetricTrieSyncNumReceivedBytes)
+	delete(metrics, common.MetricTrieSyncNumProcessedNodes)
+
 	return metrics, nil
 }
 
@@ -399,6 +403,18 @@ func (sm *statusMetrics) RatingsMetrics() (map[string]interface{}, error) {
 	sm.mutStringOperations.RUnlock()
 
 	return ratingsMetrics, nil
+}
+
+// BootstrapMetrics returns the metrics available during bootstrap
+func (sm *statusMetrics) BootstrapMetrics() (map[string]interface{}, error) {
+	bootstrapMetrics := make(map[string]interface{})
+
+	sm.mutUint64Operations.RLock()
+	bootstrapMetrics[common.MetricTrieSyncNumReceivedBytes] = sm.uint64Metrics[common.MetricTrieSyncNumReceivedBytes]
+	bootstrapMetrics[common.MetricTrieSyncNumProcessedNodes] = sm.uint64Metrics[common.MetricTrieSyncNumProcessedNodes]
+	sm.mutUint64Operations.RUnlock()
+
+	return bootstrapMetrics, nil
 }
 
 func computeDelta(biggerNum uint64, lowerNum uint64) uint64 {
