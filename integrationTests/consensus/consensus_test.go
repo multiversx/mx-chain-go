@@ -107,6 +107,8 @@ func startNodesWithCommitBlock(nodes []*integrationTests.TestConsensusNode, mute
 			nCopy.BlockProcessor.NumCommitBlockCalled++
 			_ = nCopy.ChainHandler.SetCurrentBlockHeaderAndRootHash(header, header.GetRootHash())
 
+			log.Info("BlockProcessor.CommitBlockCalled", "shard", header.GetShardID(), "nonce", header.GetNonce(), "round", header.GetRound())
+
 			mutex.Lock()
 			nonceForRoundMap[header.GetRound()] = header.GetNonce()
 			*totalCalled += 1
@@ -189,7 +191,7 @@ func checkBlockProposedEveryRound(numCommBlock uint64, nonceForRoundMap map[uint
 				for i := minRound; i <= maxRound; i++ {
 					if _, ok := nonceForRoundMap[i]; !ok {
 						assert.Fail(t, "consensus not reached in each round")
-						fmt.Println("currently saved nonces for rounds: \n", nonceForRoundMap)
+						log.Error("currently saved nonces for rounds", "nonceForRoundMap", nonceForRoundMap)
 						mutex.Unlock()
 						return
 					}
@@ -249,6 +251,7 @@ func runFullConsensusTest(t *testing.T, consensusType string, numKeysOnEachNode 
 		endTime := time.Duration(roundTime)*time.Duration(numCommBlock+extraTime)*time.Millisecond + time.Minute
 		select {
 		case <-chDone:
+			log.Info("consensus done", "shard", shardID)
 		case <-time.After(endTime):
 			mutex.Lock()
 			fmt.Println("currently saved nonces for rounds: \n", nonceForRoundMap)

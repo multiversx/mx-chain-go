@@ -52,7 +52,6 @@ const (
 	signatureSize    = 48
 	publicKeySize    = 96
 	maxShards        = 1
-	nodeShardId      = 0
 )
 
 var testPubkeyConverter, _ = pubkeyConverter.NewHexPubkeyConverter(32)
@@ -69,6 +68,7 @@ type ArgsTestConsensusNode struct {
 	KeyGen        crypto.KeyGenerator
 	P2PKeyGen     crypto.KeyGenerator
 	MultiSigner   *cryptoMocks.MultisignerMock
+	StartTime     int64
 }
 
 // TestConsensusNode represents a structure used in integration tests used for consensus tests
@@ -119,11 +119,13 @@ func CreateNodesWithTestConsensusNode(
 	connectableNodes := make(map[uint32][]Connectable, 0)
 
 	testHasher := createHasher(consensusType)
-	multiSigner, _ := multisig.NewBLSMultisig(&mclMultiSig.BlsMultiSigner{Hasher: testHasher}, cp.KeyGen)
-	multiSignerMock := createCustomMultiSignerMock(multiSigner)
+	startTime := time.Now().Unix()
 
 	for shardID := range cp.NodesKeys {
 		for _, keysPair := range cp.NodesKeys[shardID] {
+			multiSigner, _ := multisig.NewBLSMultisig(&mclMultiSig.BlsMultiSigner{Hasher: testHasher}, cp.KeyGen)
+			multiSignerMock := createCustomMultiSignerMock(multiSigner)
+
 			args := ArgsTestConsensusNode{
 				ShardID:       shardID,
 				ConsensusSize: consensusSize,
@@ -135,10 +137,11 @@ func CreateNodesWithTestConsensusNode(
 				KeyGen:        cp.KeyGen,
 				P2PKeyGen:     cp.P2PKeyGen,
 				MultiSigner:   multiSignerMock,
+				StartTime:     startTime,
 			}
 
 			tcn := NewTestConsensusNode(args)
-			nodes[nodeShardId] = append(nodes[nodeShardId], tcn)
+			nodes[shardID] = append(nodes[shardID], tcn)
 			connectableNodes[shardID] = append(connectableNodes[shardID], tcn)
 		}
 	}
@@ -179,13 +182,11 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	tcn.initBlockChain(testHasher)
 	tcn.initBlockProcessor()
 
-	startTime := time.Now().Unix()
-
 	syncer := ntp.NewSyncTime(ntp.NewNTPGoogleConfig(), nil)
 	syncer.StartSyncingTime()
 
 	roundHandler, _ := round.NewRound(
-		time.Unix(startTime, 0),
+		time.Unix(args.StartTime, 0),
 		syncer.CurrentTime(),
 		time.Millisecond*time.Duration(args.RoundTime),
 		syncer,
@@ -194,11 +195,11 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	dataPool := dataRetrieverMock.CreatePoolsHolder(1, 0)
 
 	argsNewMetaEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
-		GenesisTime:        time.Unix(startTime, 0),
+		GenesisTime:        time.Unix(args.StartTime, 0),
 		EpochStartNotifier: notifier.NewEpochStartSubscriptionHandler(),
 		Settings: &config.EpochStartConfig{
 			MinRoundsBetweenEpochs: 1,
-			RoundsPerEpoch:         3,
+			RoundsPerEpoch:         1000,
 		},
 		Epoch:            0,
 		Storage:          createTestStore(),
@@ -213,7 +214,7 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 		roundHandler,
 		cache.NewTimeCache(time.Second),
 		&mock.BlockTrackerStub{},
-		startTime,
+		args.StartTime,
 	)
 
 	tcn.initRequestersFinder()
@@ -236,7 +237,7 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	coreComponents.ChainIdCalled = func() string {
 		return string(ChainID)
 	}
-	coreComponents.GenesisTimeField = time.Unix(startTime, 0)
+	coreComponents.GenesisTimeField = time.Unix(args.StartTime, 0)
 	coreComponents.GenesisNodesSetupField = &testscommon.NodesSetupStub{
 		GetShardConsensusGroupSizeCalled: func() uint32 {
 			return uint32(args.ConsensusSize)
@@ -338,7 +339,7 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 		node.WithRoundDuration(args.RoundTime),
 		node.WithConsensusGroupSize(args.ConsensusSize),
 		node.WithConsensusType(args.ConsensusType),
-		node.WithGenesisTime(time.Unix(startTime, 0)),
+		node.WithGenesisTime(time.Unix(args.StartTime, 0)),
 		node.WithValidatorSignatureSize(signatureSize),
 		node.WithPublicKeySize(publicKeySize),
 	)
@@ -378,6 +379,7 @@ func (tcn *TestConsensusNode) initNodesCoordinator(
 			IsWaitingListFixFlagEnabledField: true,
 		},
 		ValidatorInfoCacher: &vic.ValidatorInfoCacherStub{},
+		ShardIDAsObserver:   tcn.ShardCoordinator.SelfId(),
 	}
 
 	tcn.NodesCoordinator, _ = nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
