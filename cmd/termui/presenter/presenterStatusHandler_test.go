@@ -4,9 +4,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/cmd/termui/presenter"
-	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/cmd/termui/presenter"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/stretchr/testify/assert"
 )
 

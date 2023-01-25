@@ -1,6 +1,6 @@
 package disabled
 
-import "github.com/ElrondNetwork/elrond-go/p2p"
+import "github.com/multiversx/mx-chain-go/p2p"
 
 // MessageSigner implements P2PSigningHandler interface but it does nothing as it is disabled
 type MessageSigner struct {

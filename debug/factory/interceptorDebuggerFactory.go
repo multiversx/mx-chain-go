@@ -1,8 +1,8 @@
 package factory
 
 import (
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/debug/handler"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/debug/handler"
 )
 
 // NewInterceptorDebuggerFactory will instantiate an InterceptorDebugHandler based on the provided config

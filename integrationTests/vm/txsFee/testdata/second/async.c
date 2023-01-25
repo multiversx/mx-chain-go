@@ -1,6 +1,6 @@
-#include "elrond/context.h"
-#include "elrond/util.h"
-#include "elrond/types.h"
+#include "chain/context.h"
+#include "chain/util.h"
+#include "chain/types.h"
 
 typedef byte ADDRESS[32];
 
