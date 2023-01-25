@@ -79,8 +79,9 @@ func getTxs(txs map[string]data.TransactionHandlerWithGasUsedAndFee) (map[string
 		}
 
 		ret[txHash] = &firehose.TxInfo{
-			Transaction: tx,
-			FeeInfo:     getFirehoseFeeInfo(txHandler),
+			Transaction:    tx,
+			FeeInfo:        getFirehoseFeeInfo(txHandler),
+			ExecutionOrder: uint32(txHandler.GetExecutionOrder()),
 		}
 	}
 
@@ -99,6 +100,7 @@ func getScrs(scrs map[string]data.TransactionHandlerWithGasUsedAndFee) (map[stri
 		ret[scrHash] = &firehose.SCRInfo{
 			SmartContractResult: tx,
 			FeeInfo:             getFirehoseFeeInfo(txHandler),
+			ExecutionOrder:      uint32(txHandler.GetExecutionOrder()),
 		}
 	}
 
