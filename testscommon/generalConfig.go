@@ -1,8 +1,8 @@
 package testscommon
 
 import (
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/storage/storageunit"
 )
 
 // GetGeneralConfig returns the common configuration used for testing
@@ -393,14 +393,14 @@ func GetGeneralConfig() config.Config {
 		},
 		VirtualMachine: config.VirtualMachineServicesConfig{
 			Execution: config.VirtualMachineConfig{
-				ArwenVersions: []config.ArwenVersionByEpoch{
+				WasmVMVersions: []config.WasmVMVersionByEpoch{
 					{StartEpoch: 0, Version: "*"},
 				},
 			},
 			Querying: config.QueryVirtualMachineConfig{
 				NumConcurrentVMs: 1,
 				VirtualMachineConfig: config.VirtualMachineConfig{
-					ArwenVersions: []config.ArwenVersionByEpoch{
+					WasmVMVersions: []config.WasmVMVersionByEpoch{
 						{StartEpoch: 0, Version: "*"},
 					},
 				},

@@ -1,10 +1,10 @@
 version: '3'
 
 services:
-  elrond:
+  multiversx:
     build:
       context: ./
-      dockerfile: ./docker/elrond/Dockerfile
+      dockerfile: ./docker/multiversx/Dockerfile
 
     command: bash -c "go run cmd/node/main.go -port 4000 -max-allowed-peers 4 -private-key \"ZBis8aK5I66x1hwD+fE8sIw2nwQR5EBlTM8EiAOLZwE=\""
     ports:
@@ -16,7 +16,7 @@ services:
     environment:
       - node.name=es01
       - discovery.seed_hosts=es02
-      - cluster.name=elrond-cluster
+      - cluster.name=multiversx-cluster
       - bootstrap.memory_lock=true
       - cluster.initial_master_nodes=es01,es02
       - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
@@ -30,7 +30,7 @@ services:
     ports:
       - "9200:9200"
 #    networks:
-#      - elrond
+#      - multiversx
 
   es02:
     image: docker.elastic.co/elasticsearch/elasticsearch:7.1.0
@@ -38,7 +38,7 @@ services:
     environment:
       - node.name=es02
       - discovery.seed_hosts=es01
-      - cluster.name=elrond-cluster
+      - cluster.name=multiversx-cluster
       - bootstrap.memory_lock=true
       - cluster.initial_master_nodes=es01,es02
       - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
@@ -71,7 +71,7 @@ services:
       - "/var/run/docker.sock:/var/run/docker.sock"
 
 #   networks:
-#     - elrond
+#     - multiversx
   filebeat:
     build: docker/filebeat
     environment:
@@ -81,11 +81,11 @@ services:
     volumes:
     - ./docker/filebeat/filebeat.yml:/filebeat.yml
     - ./docker/filebeat/logstash-beats.crt:/etc/pki/tls/certs/logstash-beats.crt
-    - ${ELROND_LOG_LOCATION}:/elogs
+    - ${MULTIVERSX_LOG_LOCATION}:/elogs
 
 #networks:
-#  elrond:
+#  multiversx:
 #    external:
-#      name: "elrond"
+#      name: "multiversx"
   test:
     build: ./

@@ -4,8 +4,8 @@ import (
 	"encoding/hex"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	p2p "github.com/ElrondNetwork/elrond-go-p2p"
+	"github.com/multiversx/mx-chain-core-go/core"
+	p2p "github.com/multiversx/mx-chain-p2p-go"
 )
 
 // MessageProcessor is the interface used to describe what a receive message processor should do

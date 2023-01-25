@@ -1,18 +1,18 @@
 
 # Node CLI
 
-The **Elrond Node** exposes the following Command Line Interface:
+The **MultiversX Node** exposes the following Command Line Interface:
 
 ```
 $ node --help
 
 NAME:
-   Elrond Node CLI App - This is the entry point for starting a new Elrond node - the app will start after the genesis timestamp
+   MultiversX Node CLI App - This is the entry point for starting a new MultiversX node - the app will start after the genesis timestamp
 USAGE:
    node [global options]
    
 AUTHOR:
-   The Elrond Team <contact@elrond.com>
+   The MultiversX Team <contact@multiversx.com>
    
 GLOBAL OPTIONS:
    --genesis-file [path]                  The [path] for the genesis file. This JSON file contains initial data to bootstrap from, such as initial balances for accounts. (default: "./config/genesis.json")

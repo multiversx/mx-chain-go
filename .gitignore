@@ -13,6 +13,7 @@
 
 opcode.trace
 
+.*
 !/.gitignore
 !/.github
 

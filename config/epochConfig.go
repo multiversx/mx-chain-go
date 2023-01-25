@@ -91,6 +91,7 @@ type EnableEpochs struct {
 	RefactorPeersMiniBlocksEnableEpoch                uint32
 	MaxBlockchainHookCountersEnableEpoch              uint32
 	WipeSingleNFTLiquidityDecreaseEnableEpoch         uint32
+	AlwaysSaveTokenMetaDataEnableEpoch                uint32
 	BLSMultiSignerEnableEpoch                         []MultiSignerConfig
 }
 
