@@ -603,8 +603,8 @@ github.com/multiversx/mx-chain-es-indexer-go v1.3.7 h1:R0hbySmg9QIfEyn1eFlYqtVP7
 github.com/multiversx/mx-chain-es-indexer-go v1.3.7/go.mod h1:IV42GfhkqQ5vVO0OzGaF/ejp8TQrLkNo4LSB3TPnVhg=
 github.com/multiversx/mx-chain-logger-go v1.0.11 h1:DFsHa+sc5fKwhDR50I8uBM99RTDTEW68ESyr5ALRDwE=
 github.com/multiversx/mx-chain-logger-go v1.0.11/go.mod h1:1srDkP0DQucWQ+rYfaq0BX2qLnULsUdRPADpYUTM6dA=
-github.com/multiversx/mx-chain-p2p-go v1.0.11-0.20230125125003-062cb34d3994 h1:cq+1V6ncnGjQ2ljYlrjzlq5/eDm1vmyqCxaVGbpHfzY=
-github.com/multiversx/mx-chain-p2p-go v1.0.11-0.20230125125003-062cb34d3994/go.mod h1:j9Ueo2ptCnL7TQvQg6KS/KWAoJEJpjkPgE5ZTaqEAn4=
+github.com/multiversx/mx-chain-p2p-go v1.0.11-0.20230125125307-20132ff05630 h1:CWqHyYjRR0uRmSnK6D1DkBNaY5WV9gPiA9Jd/JWUgTQ=
+github.com/multiversx/mx-chain-p2p-go v1.0.11-0.20230125125307-20132ff05630/go.mod h1:j9Ueo2ptCnL7TQvQg6KS/KWAoJEJpjkPgE5ZTaqEAn4=
 github.com/multiversx/mx-chain-storage-go v1.0.7 h1:UqLo/OLTD3IHiE/TB/SEdNRV1GG2f1R6vIP5ehHwCNw=
 github.com/multiversx/mx-chain-storage-go v1.0.7/go.mod h1:gtKoV32Cg2Uy8deHzF8Ud0qAl0zv92FvWgPSYIP0Zmg=
 github.com/multiversx/mx-chain-vm-common-go v1.3.34/go.mod h1:sZ2COLCxvf2GxAAJHGmGqWybObLtFuk2tZUyGqnMXE8=
