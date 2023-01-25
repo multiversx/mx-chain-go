@@ -4,9 +4,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go-core/data/api"
-	customErrors "github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/gin-gonic/gin"
+	"github.com/multiversx/mx-chain-core-go/data/api"
+	customErrors "github.com/multiversx/mx-chain-go/api/errors"
 )
 
 func extractAccountQueryOptions(c *gin.Context) (api.AccountQueryOptions, error) {

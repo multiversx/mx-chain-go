@@ -3,7 +3,7 @@ package factory
 import (
 	"path/filepath"
 
-	"github.com/ElrondNetwork/elrond-go/cmd/assessment/benchmarks"
+	"github.com/multiversx/mx-chain-go/cmd/assessment/benchmarks"
 )
 
 // CreateBenchmarksList creates the list of benchmarks
@@ -30,7 +30,7 @@ func CreateBenchmarksList(testDataDirectory string) []benchmarks.BenchmarkRunner
 }
 
 func createFibBenchmark(testDataDirectory string) benchmarks.BenchmarkRunner {
-	arg := benchmarks.ArgArwenBenchmark{
+	arg := benchmarks.ArgWasmBenchmark{
 		Name:         "fibonacci",
 		ScFilename:   filepath.Join(testDataDirectory, "fibonacci.wasm"),
 		TestingValue: 32,
@@ -39,11 +39,11 @@ func createFibBenchmark(testDataDirectory string) benchmarks.BenchmarkRunner {
 		NumRuns:      10,
 	}
 
-	return benchmarks.NewArwenBenchmark(arg)
+	return benchmarks.NewWasmBenchmark(arg)
 }
 
 func createCPUCalculateBenchmark(testDataDirectory string) benchmarks.BenchmarkRunner {
-	arg := benchmarks.ArgArwenBenchmark{
+	arg := benchmarks.ArgWasmBenchmark{
 		Name:         "cpu calculate",
 		ScFilename:   filepath.Join(testDataDirectory, "cpucalculate.wasm"),
 		TestingValue: 8000,
@@ -52,11 +52,11 @@ func createCPUCalculateBenchmark(testDataDirectory string) benchmarks.BenchmarkR
 		NumRuns:      2000,
 	}
 
-	return benchmarks.NewArwenBenchmark(arg)
+	return benchmarks.NewWasmBenchmark(arg)
 }
 
 func createStoreBenchmark(testDataDirectory string) benchmarks.BenchmarkRunner {
-	arg := benchmarks.ArgArwenBenchmark{
+	arg := benchmarks.ArgWasmBenchmark{
 		Name:         "storage100",
 		ScFilename:   filepath.Join(testDataDirectory, "storage100.wasm"),
 		TestingValue: 0,
@@ -65,11 +65,11 @@ func createStoreBenchmark(testDataDirectory string) benchmarks.BenchmarkRunner {
 		NumRuns:      2000,
 	}
 
-	return benchmarks.NewArwenBenchmark(arg)
+	return benchmarks.NewWasmBenchmark(arg)
 }
 
 func createCApiBigInt(testDataDirectory string) benchmarks.BenchmarkRunner {
-	arg := benchmarks.ArgArwenBenchmark{
+	arg := benchmarks.ArgWasmBenchmark{
 		Name:         "C API big int",
 		ScFilename:   filepath.Join(testDataDirectory, "cApiTest.wasm"),
 		TestingValue: 0,
@@ -78,11 +78,11 @@ func createCApiBigInt(testDataDirectory string) benchmarks.BenchmarkRunner {
 		NumRuns:      700,
 	}
 
-	return benchmarks.NewArwenBenchmark(arg)
+	return benchmarks.NewWasmBenchmark(arg)
 }
 
 func createCApiBigIntMul32(testDataDirectory string) benchmarks.BenchmarkRunner {
-	arg := benchmarks.ArgArwenBenchmark{
+	arg := benchmarks.ArgWasmBenchmark{
 		Name:         "C API big int mul 32",
 		ScFilename:   filepath.Join(testDataDirectory, "cApiTest.wasm"),
 		TestingValue: 0,
@@ -91,11 +91,11 @@ func createCApiBigIntMul32(testDataDirectory string) benchmarks.BenchmarkRunner 
 		NumRuns:      2,
 	}
 
-	return benchmarks.NewArwenBenchmark(arg)
+	return benchmarks.NewWasmBenchmark(arg)
 }
 
 func createCApiSha256(testDataDirectory string) benchmarks.BenchmarkRunner {
-	arg := benchmarks.ArgArwenBenchmark{
+	arg := benchmarks.ArgWasmBenchmark{
 		Name:         "C API sha256",
 		ScFilename:   filepath.Join(testDataDirectory, "cryptoTest.wasm"),
 		TestingValue: 0,
@@ -104,11 +104,11 @@ func createCApiSha256(testDataDirectory string) benchmarks.BenchmarkRunner {
 		NumRuns:      30,
 	}
 
-	return benchmarks.NewArwenBenchmark(arg)
+	return benchmarks.NewWasmBenchmark(arg)
 }
 
 func createCApiShaKeccak256(testDataDirectory string) benchmarks.BenchmarkRunner {
-	arg := benchmarks.ArgArwenBenchmark{
+	arg := benchmarks.ArgWasmBenchmark{
 		Name:         "C API keccak256",
 		ScFilename:   filepath.Join(testDataDirectory, "cryptoTest.wasm"),
 		TestingValue: 0,
@@ -117,11 +117,11 @@ func createCApiShaKeccak256(testDataDirectory string) benchmarks.BenchmarkRunner
 		NumRuns:      30,
 	}
 
-	return benchmarks.NewArwenBenchmark(arg)
+	return benchmarks.NewWasmBenchmark(arg)
 }
 
 func createCApiRipemd160(testDataDirectory string) benchmarks.BenchmarkRunner {
-	arg := benchmarks.ArgArwenBenchmark{
+	arg := benchmarks.ArgWasmBenchmark{
 		Name:         "C API ripemd160",
 		ScFilename:   filepath.Join(testDataDirectory, "cryptoTest.wasm"),
 		TestingValue: 0,
@@ -130,11 +130,11 @@ func createCApiRipemd160(testDataDirectory string) benchmarks.BenchmarkRunner {
 		NumRuns:      30,
 	}
 
-	return benchmarks.NewArwenBenchmark(arg)
+	return benchmarks.NewWasmBenchmark(arg)
 }
 
 func createCApiVerifyBLS(testDataDirectory string) benchmarks.BenchmarkRunner {
-	arg := benchmarks.ArgArwenBenchmark{
+	arg := benchmarks.ArgWasmBenchmark{
 		Name:         "C API verify BLS",
 		ScFilename:   filepath.Join(testDataDirectory, "cryptoTest.wasm"),
 		TestingValue: 0,
@@ -143,11 +143,11 @@ func createCApiVerifyBLS(testDataDirectory string) benchmarks.BenchmarkRunner {
 		NumRuns:      5,
 	}
 
-	return benchmarks.NewArwenBenchmark(arg)
+	return benchmarks.NewWasmBenchmark(arg)
 }
 
 func createCApiVerifyED25519(testDataDirectory string) benchmarks.BenchmarkRunner {
-	arg := benchmarks.ArgArwenBenchmark{
+	arg := benchmarks.ArgWasmBenchmark{
 		Name:         "C API verify ED25519",
 		ScFilename:   filepath.Join(testDataDirectory, "cryptoTest.wasm"),
 		TestingValue: 0,
@@ -156,11 +156,11 @@ func createCApiVerifyED25519(testDataDirectory string) benchmarks.BenchmarkRunne
 		NumRuns:      50,
 	}
 
-	return benchmarks.NewArwenBenchmark(arg)
+	return benchmarks.NewWasmBenchmark(arg)
 }
 
 func createCApiVerifySecp256k1Uncompressed(testDataDirectory string) benchmarks.BenchmarkRunner {
-	arg := benchmarks.ArgArwenBenchmark{
+	arg := benchmarks.ArgWasmBenchmark{
 		Name:         "C API verify secp256k1 uncompressed",
 		ScFilename:   filepath.Join(testDataDirectory, "cryptoTest.wasm"),
 		TestingValue: 0,
@@ -169,11 +169,11 @@ func createCApiVerifySecp256k1Uncompressed(testDataDirectory string) benchmarks.
 		NumRuns:      400,
 	}
 
-	return benchmarks.NewArwenBenchmark(arg)
+	return benchmarks.NewWasmBenchmark(arg)
 }
 
 func createCApiVerifySecp256k1Compressed(testDataDirectory string) benchmarks.BenchmarkRunner {
-	arg := benchmarks.ArgArwenBenchmark{
+	arg := benchmarks.ArgWasmBenchmark{
 		Name:         "C API verify secp256k1 compressed",
 		ScFilename:   filepath.Join(testDataDirectory, "cryptoTest.wasm"),
 		TestingValue: 0,
@@ -182,12 +182,12 @@ func createCApiVerifySecp256k1Compressed(testDataDirectory string) benchmarks.Be
 		NumRuns:      200,
 	}
 
-	return benchmarks.NewArwenBenchmark(arg)
+	return benchmarks.NewWasmBenchmark(arg)
 }
 
 func createDelegation(testDataDirectory string) benchmarks.BenchmarkRunner {
 	arg := benchmarks.ArgDelegationBenchmark{
-		Name:               "Delegation in Arwen",
+		Name:               "Delegation in Wasm VM",
 		ScFilename:         filepath.Join(testDataDirectory, "delegation_v0_5_2_full.wasm"),
 		NumRuns:            2,
 		NumTxPerBatch:      100,
