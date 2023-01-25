@@ -7,18 +7,18 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
-	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
-	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
-	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/outport/process/alteredaccounts/shared"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon/trie"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/esdt"
+	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/outport/process/alteredaccounts/shared"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/state"
+	"github.com/multiversx/mx-chain-go/testscommon/trie"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
 )
 
@@ -533,7 +533,7 @@ func testExtractAlteredAccountsFromPoolShouldIncludeESDT(t *testing.T) {
 		Identifier: "token0",
 		Balance:    expectedToken.Value.String(),
 		Nonce:      0,
-		Properties: "ok",
+		Properties: "6f6b",
 		MetaData:   nil,
 	}, res[encodedAddr].Tokens[0])
 }
@@ -1002,7 +1002,7 @@ func testExtractAlteredAccountsFromPoolESDTTransferBalanceNotChanged(t *testing.
 					Identifier: "token0",
 					Balance:    expectedToken.Value.String(),
 					Nonce:      0,
-					Properties: "ok",
+					Properties: "6f6b",
 					MetaData:   nil,
 					AdditionalData: &outportcore.AdditionalAccountTokenData{
 						IsNFTCreate: false,
@@ -1022,7 +1022,7 @@ func testExtractAlteredAccountsFromPoolESDTTransferBalanceNotChanged(t *testing.
 					Identifier: "token0",
 					Balance:    expectedToken.Value.String(),
 					Nonce:      0,
-					Properties: "ok",
+					Properties: "6f6b",
 					AdditionalData: &outportcore.AdditionalAccountTokenData{
 						IsNFTCreate: false,
 					},
@@ -1191,7 +1191,7 @@ func textExtractAlteredAccountsFromPoolNftCreate(t *testing.T) {
 					Identifier: "token0",
 					Balance:    expectedToken.Value.String(),
 					Nonce:      0,
-					Properties: "ok",
+					Properties: "6f6b",
 					MetaData:   nil,
 					AdditionalData: &outportcore.AdditionalAccountTokenData{
 						IsNFTCreate: true,

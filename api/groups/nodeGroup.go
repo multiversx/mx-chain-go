@@ -5,15 +5,15 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/api/errors"
-	"github.com/ElrondNetwork/elrond-go/api/shared"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/debug"
-	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
-	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/gin-gonic/gin"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/api/errors"
+	"github.com/multiversx/mx-chain-go/api/shared"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/debug"
+	"github.com/multiversx/mx-chain-go/heartbeat/data"
+	"github.com/multiversx/mx-chain-go/node/external"
 )
 
 const (
@@ -25,6 +25,7 @@ const (
 	peerInfoPath           = "/peerinfo"
 	statusPath             = "/status"
 	epochStartDataForEpoch = "/epoch-start/:epoch"
+	bootstrapStatusPath    = "/bootstrapstatus"
 )
 
 // nodeFacadeHandler defines the methods to be implemented by a facade for node requests
@@ -95,6 +96,11 @@ func NewNodeGroup(facade nodeFacadeHandler) (*nodeGroup, error) {
 			Path:    epochStartDataForEpoch,
 			Method:  http.MethodGet,
 			Handler: ng.epochStartDataForEpoch,
+		},
+		{
+			Path:    bootstrapStatusPath,
+			Method:  http.MethodGet,
+			Handler: ng.bootstrapMetrics,
 		},
 	}
 	ng.endpoints = endpoints
@@ -284,6 +290,31 @@ func (ng *nodeGroup) prometheusMetrics(c *gin.Context) {
 	c.String(
 		http.StatusOK,
 		metrics,
+	)
+}
+
+// bootstrapMetrics returns the node's bootstrap statistics exported by a StatusMetricsHandler
+func (ng *nodeGroup) bootstrapMetrics(c *gin.Context) {
+	metrics, err := ng.getFacade().StatusMetrics().BootstrapMetrics()
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: err.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"metrics": metrics},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
 	)
 }
 

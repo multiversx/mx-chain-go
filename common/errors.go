@@ -5,5 +5,5 @@ import "errors"
 // ErrInvalidTimeout signals that an invalid timeout period has been provided
 var ErrInvalidTimeout = errors.New("invalid timeout value")
 
-// ErrNilArwenChangeLocker signals that a nil arwen change locker has been provided
-var ErrNilArwenChangeLocker = errors.New("nil arwen change locker")
+// ErrNilWasmChangeLocker signals that a nil wasm change locker has been provided
+var ErrNilWasmChangeLocker = errors.New("nil wasm change locker")

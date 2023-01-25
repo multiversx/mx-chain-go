@@ -1,6 +1,6 @@
 package forking
 
-import vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+import vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 
 // Handlers -
 func (gen *genericEpochNotifier) Handlers() []vmcommon.EpochSubscriberHandler {

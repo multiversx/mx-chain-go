@@ -3,7 +3,7 @@ package testscommon
 import (
 	"errors"
 
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // ESDTTransferParserStub -

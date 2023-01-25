@@ -1,21 +1,22 @@
 package alteredaccounts
 
 import (
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
-	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/outport/process/alteredaccounts/shared"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/state"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/esdt"
+	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-go/outport/process/alteredaccounts/shared"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/state"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 var (
@@ -193,7 +194,7 @@ func (aap *alteredAccountsProvider) addTokensDataForMarkedAccount(
 	nonce := markedAccountToken.nonce
 	tokenID := markedAccountToken.identifier
 
-	storageKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier)
+	storageKey := []byte(core.ProtectedKeyPrefix + core.ESDTKeyIdentifier)
 	storageKey = append(storageKey, []byte(tokenID)...)
 
 	userAccountVmCommon, ok := userAccount.(vmcommon.UserAccountHandler)
@@ -214,7 +215,7 @@ func (aap *alteredAccountsProvider) addTokensDataForMarkedAccount(
 		Identifier: tokenID,
 		Balance:    esdtToken.Value.String(),
 		Nonce:      nonce,
-		Properties: string(esdtToken.Properties),
+		Properties: hex.EncodeToString(esdtToken.Properties),
 		MetaData:   aap.convertMetaData(esdtToken.TokenMetaData),
 	}
 	if options.WithAdditionalOutportData {
