@@ -75,18 +75,18 @@ func (fi *firehoseIndexer) SaveBlock(args *outportcore.ArgsSaveBlockData) error 
 	}
 
 	firehoseBlock := &firehose.FirehoseBlock{
-		HeaderBytes:         headerBytes,
-		HeaderType:          string(headerType),
-		HeaderHash:          args.HeaderHash,
-		Body:                body,
-		AlteredAccounts:     getAlteredAccounts(args.AlteredAccounts),
-		Transactions:        pool.transactions,
-		SmartContractResult: pool.smartContractResult,
-		Rewards:             pool.rewards,
-		Receipts:            pool.receipts,
-		InvalidTxs:          pool.invalidTxs,
-		Logs:                pool.logs,
-		SignersIndexes:      args.SignersIndexes,
+		HeaderBytes:          headerBytes,
+		HeaderType:           string(headerType),
+		HeaderHash:           args.HeaderHash,
+		Body:                 body,
+		AlteredAccounts:      getAlteredAccounts(args.AlteredAccounts),
+		Transactions:         pool.transactions,
+		SmartContractResults: pool.smartContractResult,
+		Rewards:              pool.rewards,
+		Receipts:             pool.receipts,
+		InvalidTxs:           pool.invalidTxs,
+		Logs:                 pool.logs,
+		SignersIndexes:       args.SignersIndexes,
 	}
 
 	marshalledBlock, err := fi.marshaller.Marshal(firehoseBlock)

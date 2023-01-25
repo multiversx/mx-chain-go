@@ -175,7 +175,7 @@ func TestFirehoseIndexer_SaveBlockTxPool(t *testing.T) {
 		HeaderHash:  headerHashShardV1,
 		HeaderType:  string(core.ShardHeaderV1),
 		HeaderBytes: marshalledHeader,
-		Transactions: map[string]*firehose.TxWithFee{
+		Transactions: map[string]*firehose.TxInfo{
 			"txHash1": {
 				Transaction: txs[0].TransactionHandler.(*transaction.Transaction),
 				FeeInfo: &firehose.FeeInfo{
@@ -193,7 +193,7 @@ func TestFirehoseIndexer_SaveBlockTxPool(t *testing.T) {
 				},
 			},
 		},
-		SmartContractResult: map[string]*firehose.SCRWithFee{
+		SmartContractResults: map[string]*firehose.SCRInfo{
 			"txHash3": {
 				SmartContractResult: scrs[0].TransactionHandler.(*smartContractResult.SmartContractResult),
 				FeeInfo: &firehose.FeeInfo{
@@ -203,10 +203,12 @@ func TestFirehoseIndexer_SaveBlockTxPool(t *testing.T) {
 				},
 			},
 		},
-		Rewards: map[string]*rewardTx.RewardTx{
-			"txHash4": rewards[0].TransactionHandler.(*rewardTx.RewardTx),
+		Rewards: map[string]*firehose.RewardInfo{
+			"txHash4": {
+				Reward: rewards[0].TransactionHandler.(*rewardTx.RewardTx),
+			},
 		},
-		InvalidTxs: map[string]*firehose.TxWithFee{
+		InvalidTxs: map[string]*firehose.TxInfo{
 			"txHash5": {
 				Transaction: invalidTxs[0].TransactionHandler.(*transaction.Transaction),
 				FeeInfo: &firehose.FeeInfo{
