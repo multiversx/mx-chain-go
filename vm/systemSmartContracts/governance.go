@@ -305,8 +305,8 @@ func (g *governanceContract) proposal(args *vmcommon.ContractCallInput) vmcommon
 	generalProposal := &GeneralProposal{
 		IssuerAddress:  args.CallerAddr,
 		CommitHash:     commitHash,
-		startVoteEpoch: startVoteEpoch,
-		endVoteEpoch:   endVoteEpoch,
+		StartVoteEpoch: startVoteEpoch,
+		EndVoteEpoch:   endVoteEpoch,
 		Yes:            big.NewInt(0),
 		No:             big.NewInt(0),
 		Veto:           big.NewInt(0),
@@ -574,7 +574,7 @@ func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmc
 	}
 
 	currentEpoch := g.eei.BlockChainHook().CurrentEpoch()
-	if currentEpoch < generalProposal.EndVoteEpoch {
+	if uint64(currentEpoch) < generalProposal.EndVoteEpoch {
 		g.eei.AddReturnMessage(fmt.Sprintf("proposal can be closed only after epoch %d", generalProposal.EndVoteEpoch))
 		return vmcommon.UserError
 	}
@@ -928,7 +928,7 @@ func (g *governanceContract) getValidProposal(nonce *big.Int) (*GeneralProposal,
 		return nil, err
 	}
 
-	currentEpoch := g.eei.BlockChainHook().CurrentEpoch()
+	currentEpoch := uint64(g.eei.BlockChainHook().CurrentEpoch())
 	if currentEpoch < proposal.StartVoteEpoch {
 		return nil, vm.ErrVotingNotStartedForProposal
 	}

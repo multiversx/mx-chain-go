@@ -17,8 +17,8 @@ enum VoteValueType {
 message GeneralProposal {
     uint64 Nonce          = 1 [(gogoproto.jsontag) = "Nonce"];
     bytes  CommitHash     = 2 [(gogoproto.jsontag) = "CommitHash"];
-    uint64 StartVoteEpoch = 3 [(gogoproto.jsontag) = "StartVoteNonce"];
-    uint64 EndVoteEpoch   = 4 [(gogoproto.jsontag) = "EndVoteNonce"];
+    uint64 StartVoteEpoch = 3 [(gogoproto.jsontag) = "StartVoteEpoch"];
+    uint64 EndVoteEpoch   = 4 [(gogoproto.jsontag) = "EndVoteEpoch"];
     bytes  Yes            = 5 [(gogoproto.jsontag) = "Yes", (gogoproto.casttypewith) = "math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster"];
     bytes  No             = 6 [(gogoproto.jsontag) = "No", (gogoproto.casttypewith) = "math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster"];
     bytes  Veto           = 7 [(gogoproto.jsontag) = "Veto", (gogoproto.casttypewith) = "math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster"];

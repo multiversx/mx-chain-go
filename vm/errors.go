@@ -130,8 +130,8 @@ var ErrNilSystemSCConfig = errors.New("nil system sc config")
 // ErrNilValidatorAccountsDB signals that nil validator accounts DB was provided
 var ErrNilValidatorAccountsDB = errors.New("nil validator accounts DB")
 
-// ErrInvalidStartEndVoteEpoch signals that invalid arguments where passed for start or end vote nonce
-var ErrInvalidStartEndVoteEpoch = errors.New("invalid start/end vote nonce")
+// ErrInvalidStartEndVoteEpoch signals that invalid arguments where passed for start or end vote epoch
+var ErrInvalidStartEndVoteEpoch = errors.New("invalid start/end vote epoch")
 
 // ErrEmptyStorage signals that the storage is empty for given key
 var ErrEmptyStorage = errors.New("storage is nil for given key")
@@ -252,6 +252,3 @@ var ErrNotEnoughStakeToVote = errors.New("not enough stake/delegate to vote")
 
 // ErrNotEnoughVotingPower signals that there is not enough voting power to cast the vote
 var ErrNotEnoughVotingPower = errors.New("not enough voting power to cast this vote")
-
-// ErrProposalWasNotFunded signals that proposal was not funded
-var ErrProposalWasNotFunded = errors.New("proposal was not funded")

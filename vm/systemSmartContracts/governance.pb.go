@@ -60,8 +60,8 @@ func (VoteValueType) EnumDescriptor() ([]byte, []int) {
 type GeneralProposal struct {
 	Nonce          uint64        `protobuf:"varint,1,opt,name=Nonce,proto3" json:"Nonce"`
 	CommitHash     []byte        `protobuf:"bytes,2,opt,name=CommitHash,proto3" json:"CommitHash"`
-	StartVoteEpoch uint64        `protobuf:"varint,3,opt,name=StartVoteEpoch,proto3" json:"StartVoteNonce"`
-	EndVoteEpoch   uint64        `protobuf:"varint,4,opt,name=EndVoteEpoch,proto3" json:"EndVoteNonce"`
+	StartVoteEpoch uint64        `protobuf:"varint,3,opt,name=StartVoteEpoch,proto3" json:"StartVoteEpoch"`
+	EndVoteEpoch   uint64        `protobuf:"varint,4,opt,name=EndVoteEpoch,proto3" json:"EndVoteEpoch"`
 	Yes            *math_big.Int `protobuf:"bytes,5,opt,name=Yes,proto3,casttypewith=math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster" json:"Yes"`
 	No             *math_big.Int `protobuf:"bytes,6,opt,name=No,proto3,casttypewith=math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster" json:"No"`
 	Veto           *math_big.Int `protobuf:"bytes,7,opt,name=Veto,proto3,casttypewith=math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster" json:"Veto"`

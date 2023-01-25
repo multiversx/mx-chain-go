@@ -614,7 +614,7 @@ func TestGovernanceContract_ProposalOK(t *testing.T) {
 
 	callInputArgs := [][]byte{
 		proposalIdentifier,
-		[]byte("1"),
+		[]byte("5"),
 		[]byte("10"),
 	}
 	callInput := createVMInput(big.NewInt(500), "proposal", vm.GovernanceSCAddress, []byte("addr1"), callInputArgs)
@@ -670,8 +670,8 @@ func TestGovernanceContract_VoteInvalidProposal(t *testing.T) {
 	proposalIdentifier := []byte("aaaaaaaaa")
 	generalProposal := &GeneralProposal{
 		CommitHash:     proposalIdentifier,
-		StartVoteNonce: 10,
-		EndVoteNonce:   15,
+		StartVoteEpoch: 10,
+		EndVoteEpoch:   15,
 	}
 
 	voteArgs := [][]byte{
@@ -679,12 +679,12 @@ func TestGovernanceContract_VoteInvalidProposal(t *testing.T) {
 		[]byte("yes"),
 	}
 	gsc, blockchainHook, eei := createGovernanceBlockChainHookStubContextHandler()
-	blockchainHook.CurrentNonceCalled = func() uint64 {
+	blockchainHook.CurrentEpochCalled = func() uint32 {
 		return 16
 	}
 
 	nonce, _ := uint64FromBytes(voteArgs[0])
-	gsc.eei.SetStorage(nonce.Bytes(), proposalIdentifier)
+	gsc.eei.SetStorage(append([]byte(noncePrefix), nonce.Bytes()...), proposalIdentifier)
 	_ = gsc.saveGeneralProposal(proposalIdentifier, generalProposal)
 
 	callInput := createVMInput(big.NewInt(0), "vote", callerAddress, vm.GovernanceSCAddress, voteArgs)
@@ -700,8 +700,8 @@ func TestGovernanceContract_VoteInvalidVote(t *testing.T) {
 	proposalIdentifier := []byte("aaaaaaaaa")
 	generalProposal := &GeneralProposal{
 		CommitHash:     proposalIdentifier,
-		StartVoteNonce: 10,
-		EndVoteNonce:   15,
+		StartVoteEpoch: 10,
+		EndVoteEpoch:   15,
 	}
 
 	voteArgs := [][]byte{
@@ -727,7 +727,7 @@ func TestGovernanceContract_VoteTwice(t *testing.T) {
 	t.Parallel()
 
 	gsc, blockchainHook, eei := createGovernanceBlockChainHookStubContextHandler()
-	blockchainHook.CurrentNonceCalled = func() uint64 {
+	blockchainHook.CurrentEpochCalled = func() uint32 {
 		return 12
 	}
 
@@ -736,8 +736,8 @@ func TestGovernanceContract_VoteTwice(t *testing.T) {
 	generalProposal := &GeneralProposal{
 		ProposalCost:   gsc.baseProposalCost,
 		CommitHash:     proposalIdentifier,
-		StartVoteNonce: 10,
-		EndVoteNonce:   15,
+		StartVoteEpoch: 10,
+		EndVoteEpoch:   15,
 		Yes:            big.NewInt(0),
 		No:             big.NewInt(0),
 		Veto:           big.NewInt(0),
@@ -751,7 +751,7 @@ func TestGovernanceContract_VoteTwice(t *testing.T) {
 	}
 
 	nonce, _ := uint64FromBytes(voteArgs[0])
-	gsc.eei.SetStorage(nonce.Bytes(), proposalIdentifier)
+	gsc.eei.SetStorage(append([]byte(noncePrefix), nonce.Bytes()...), proposalIdentifier)
 	_ = gsc.saveGeneralProposal(proposalIdentifier, generalProposal)
 
 	callInput := createVMInput(big.NewInt(0), "vote", callerAddress, vm.GovernanceSCAddress, voteArgs)
@@ -776,8 +776,8 @@ func TestGovernanceContract_DelegateVoteUserErrors(t *testing.T) {
 	proposalIdentifier := []byte("aaaaaaaaa")
 	generalProposal := &GeneralProposal{
 		CommitHash:     proposalIdentifier,
-		StartVoteNonce: 10,
-		EndVoteNonce:   15,
+		StartVoteEpoch: 10,
+		EndVoteEpoch:   15,
 		Yes:            big.NewInt(0),
 		No:             big.NewInt(0),
 		Veto:           big.NewInt(0),
@@ -815,7 +815,7 @@ func TestGovernanceContract_DelegateVoteMoreErrors(t *testing.T) {
 	t.Parallel()
 
 	gsc, blockchainHook, eei := createGovernanceBlockChainHookStubContextHandler()
-	blockchainHook.CurrentNonceCalled = func() uint64 {
+	blockchainHook.CurrentEpochCalled = func() uint32 {
 		return 12
 	}
 
@@ -824,8 +824,8 @@ func TestGovernanceContract_DelegateVoteMoreErrors(t *testing.T) {
 	generalProposal := &GeneralProposal{
 		ProposalCost:   gsc.baseProposalCost,
 		CommitHash:     proposalIdentifier,
-		StartVoteNonce: 10,
-		EndVoteNonce:   15,
+		StartVoteEpoch: 10,
+		EndVoteEpoch:   15,
 		Yes:            big.NewInt(0),
 		No:             big.NewInt(0),
 		Veto:           big.NewInt(0),
@@ -840,7 +840,7 @@ func TestGovernanceContract_DelegateVoteMoreErrors(t *testing.T) {
 		big.NewInt(10000).Bytes(),
 	}
 	nonce, _ := uint64FromBytes(voteArgs[0])
-	gsc.eei.SetStorage(nonce.Bytes(), proposalIdentifier)
+	gsc.eei.SetStorage(append([]byte(noncePrefix), nonce.Bytes()...), proposalIdentifier)
 	_ = gsc.saveGeneralProposal(proposalIdentifier, generalProposal)
 
 	callInput := createVMInput(big.NewInt(0), "delegateVote", callerAddress, vm.GovernanceSCAddress, voteArgs)
@@ -1090,7 +1090,7 @@ func TestGovernanceContract_CloseProposalVoteNotfinished(t *testing.T) {
 	t.Parallel()
 
 	retMessage := ""
-	errSubstr := "proposal can be closed only after nonce"
+	errSubstr := "proposal can be closed only after epoch"
 	callerAddress := []byte("address")
 	proposalIdentifier := bytes.Repeat([]byte("a"), commitHashLength)
 	args := createMockGovernanceArgs()
@@ -1104,7 +1104,7 @@ func TestGovernanceContract_CloseProposalVoteNotfinished(t *testing.T) {
 					Yes:          big.NewInt(10),
 					No:           big.NewInt(10),
 					Veto:         big.NewInt(10),
-					EndVoteNonce: 10,
+					EndVoteEpoch: 10,
 				})
 				return proposalBytes
 			}
@@ -1113,7 +1113,7 @@ func TestGovernanceContract_CloseProposalVoteNotfinished(t *testing.T) {
 		},
 		BlockChainHookCalled: func() vm.BlockchainHook {
 			return &mock.BlockChainHookStub{
-				CurrentNonceCalled: func() uint64 {
+				CurrentEpochCalled: func() uint32 {
 					return 1
 				},
 			}
