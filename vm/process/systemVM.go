@@ -43,7 +43,7 @@ func NewSystemVM(args ArgsNewSystemVM) (*systemVM, error) {
 		return nil, vm.ErrNilGasSchedule
 	}
 
-	apiCosts := args.GasSchedule.LatestGasSchedule()[common.ElrondAPICost]
+	apiCosts := args.GasSchedule.LatestGasSchedule()[common.VMAPICost]
 	if apiCosts == nil {
 		return nil, vm.ErrNilGasSchedule
 	}
@@ -145,7 +145,7 @@ func (s *systemVM) GasScheduleChange(gasSchedule map[string]map[string]uint64) {
 	s.mutGasLock.Lock()
 	defer s.mutGasLock.Unlock()
 
-	apiCosts := gasSchedule[common.ElrondAPICost]
+	apiCosts := gasSchedule[common.VMAPICost]
 	if apiCosts == nil {
 		return
 	}
