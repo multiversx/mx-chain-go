@@ -7,15 +7,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-crypto"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/config"
-	consensusComp "github.com/ElrondNetwork/elrond-go/factory/consensus"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/process"
-	consensusMocks "github.com/ElrondNetwork/elrond-go/testscommon/consensus"
+	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
+	"github.com/multiversx/mx-chain-core-go/data"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/config"
+	consensusComp "github.com/multiversx/mx-chain-go/factory/consensus"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/process"
+	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -107,6 +107,8 @@ func startNodesWithCommitBlock(nodes []*integrationTests.TestConsensusNode, mute
 			nCopy.BlockProcessor.NumCommitBlockCalled++
 			_ = nCopy.ChainHandler.SetCurrentBlockHeaderAndRootHash(header, header.GetRootHash())
 
+			log.Info("BlockProcessor.CommitBlockCalled", "shard", header.GetShardID(), "nonce", header.GetNonce(), "round", header.GetRound())
+
 			mutex.Lock()
 			nonceForRoundMap[header.GetRound()] = header.GetNonce()
 			*totalCalled += 1
@@ -189,7 +191,7 @@ func checkBlockProposedEveryRound(numCommBlock uint64, nonceForRoundMap map[uint
 				for i := minRound; i <= maxRound; i++ {
 					if _, ok := nonceForRoundMap[i]; !ok {
 						assert.Fail(t, "consensus not reached in each round")
-						fmt.Println("currently saved nonces for rounds: \n", nonceForRoundMap)
+						log.Error("currently saved nonces for rounds", "nonceForRoundMap", nonceForRoundMap)
 						mutex.Unlock()
 						return
 					}
@@ -249,6 +251,7 @@ func runFullConsensusTest(t *testing.T, consensusType string, numKeysOnEachNode 
 		endTime := time.Duration(roundTime)*time.Duration(numCommBlock+extraTime)*time.Millisecond + time.Minute
 		select {
 		case <-chDone:
+			log.Info("consensus done", "shard", shardID)
 		case <-time.After(endTime):
 			mutex.Lock()
 			fmt.Println("currently saved nonces for rounds: \n", nonceForRoundMap)

@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/data/batch"
-	crypto "github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go/heartbeat"
+	"github.com/multiversx/mx-chain-core-go/data/batch"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/heartbeat"
 )
 
 type commonPeerAuthenticationSender struct {
