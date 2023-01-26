@@ -1177,7 +1177,7 @@ func TestGovernanceContract_GetVotingPower(t *testing.T) {
 		callerAddress,
 	}
 
-	callInput := createVMInput(big.NewInt(0), "getVotingPower", callerAddress, vm.GovernanceSCAddress, callInputArgs)
+	callInput := createVMInput(big.NewInt(0), "viewVotingPower", callerAddress, vm.GovernanceSCAddress, callInputArgs)
 	retCode := gsc.Execute(callInput)
 	require.Equal(t, vmcommon.Ok, retCode)
 
@@ -1198,7 +1198,7 @@ func TestGovernanceContract_GetVVotingPowerWrongCallValue(t *testing.T) {
 	}
 
 	gsc, _ := NewGovernanceContract(args)
-	callInput := createVMInput(big.NewInt(10), "getVotingPower", callerAddress, vm.GovernanceSCAddress, nil)
+	callInput := createVMInput(big.NewInt(10), "viewVotingPower", callerAddress, vm.GovernanceSCAddress, nil)
 	retCode := gsc.Execute(callInput)
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.Contains(t, retMessage, vm.TransactionValueMustBeZero)
@@ -1222,7 +1222,7 @@ func TestGovernanceContract_GetVotingPowerWrongArgumentsLength(t *testing.T) {
 		callerAddress,
 		callerAddress,
 	}
-	callInput := createVMInput(zero, "getVotingPower", callerAddress, vm.GovernanceSCAddress, callInputArgs)
+	callInput := createVMInput(zero, "viewVotingPower", callerAddress, vm.GovernanceSCAddress, callInputArgs)
 	retCode := gsc.Execute(callInput)
 	require.Equal(t, vmcommon.FunctionWrongSignature, retCode)
 	require.Contains(t, retMessage, errSubstr)
@@ -1245,7 +1245,7 @@ func TestGovernanceContract_GetVotingPowerInvalidArgument(t *testing.T) {
 	callInputArgs := [][]byte{
 		[]byte("address_wrong"),
 	}
-	callInput := createVMInput(zero, "getVotingPower", callerAddress, vm.GovernanceSCAddress, callInputArgs)
+	callInput := createVMInput(zero, "viewVotingPower", callerAddress, vm.GovernanceSCAddress, callInputArgs)
 	retCode := gsc.Execute(callInput)
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.Contains(t, retMessage, errSubstr)
@@ -1266,7 +1266,7 @@ func TestGovernanceContract_GetVotingPowerComputeErr(t *testing.T) {
 	callInputArgs := [][]byte{
 		callerAddress,
 	}
-	callInput := createVMInput(zero, "getVotingPower", callerAddress, vm.GovernanceSCAddress, callInputArgs)
+	callInput := createVMInput(zero, "viewVotingPower", callerAddress, vm.GovernanceSCAddress, callInputArgs)
 	retCode := gsc.Execute(callInput)
 	require.Equal(t, vmcommon.UserError, retCode)
 }

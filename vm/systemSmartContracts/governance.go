@@ -146,8 +146,14 @@ func (g *governanceContract) Execute(args *vmcommon.ContractCallInput) vmcommon.
 		return g.changeConfig(args)
 	case "closeProposal":
 		return g.closeProposal(args)
-	case "getVotingPower":
-		return g.getVotingPower(args)
+	case "viewVotingPower":
+		return g.viewVotingPower(args)
+	case "getConfig":
+		return g.viewConfig(args)
+	case "getUserVoteHistory":
+		return g.viewUserVoteHistory(args)
+	case "viewProposal":
+		return g.viewProposal(args)
 	}
 
 	g.eei.AddReturnMessage("invalid method to call")
@@ -601,20 +607,12 @@ func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmc
 	return vmcommon.Ok
 }
 
-// getVotingPower returns the total voting power
-func (g *governanceContract) getVotingPower(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if args.CallValue.Cmp(zero) != 0 {
-		g.eei.AddReturnMessage(vm.TransactionValueMustBeZero)
-		return vmcommon.UserError
-	}
-	err := g.eei.UseGas(g.gasCost.MetaChainSystemSCsCost.Vote)
+// viewVotingPower returns the total voting power
+func (g *governanceContract) viewVotingPower(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	err := g.checkViewFuncArguments(args, 0)
 	if err != nil {
-		g.eei.AddReturnMessage("not enough gas")
-		return vmcommon.OutOfGas
-	}
-	if len(args.Arguments) != 1 {
-		g.eei.AddReturnMessage("function accepts only one argument")
-		return vmcommon.FunctionWrongSignature
+		g.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
 	}
 	validatorAddress := args.Arguments[0]
 	if len(validatorAddress) != len(args.CallerAddr) {
@@ -631,6 +629,108 @@ func (g *governanceContract) getVotingPower(args *vmcommon.ContractCallInput) vm
 	g.eei.Finish(votingPower.Bytes())
 
 	return vmcommon.Ok
+}
+
+func (g *governanceContract) viewConfig(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	err := g.checkViewFuncArguments(args, 0)
+	if err != nil {
+		g.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	gConfig, err := g.getConfig()
+	if err != nil {
+		g.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	g.eei.Finish([]byte(gConfig.ProposalFee.String()))
+	g.eei.Finish([]byte(big.NewFloat(float64(gConfig.MinQuorum)).String()))
+	g.eei.Finish([]byte(big.NewFloat(float64(gConfig.MinPassThreshold)).String()))
+	g.eei.Finish([]byte(big.NewFloat(float64(gConfig.MinVetoThreshold)).String()))
+	g.eei.Finish([]byte(big.NewInt(int64(gConfig.LastProposalNonce)).String()))
+
+	return vmcommon.Ok
+}
+
+func (g *governanceContract) viewUserVoteHistory(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	err := g.checkViewFuncArguments(args, 1)
+	if err != nil {
+		g.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	userVotes, err := g.getUserVotes(args.Arguments[0])
+	if err != nil {
+		g.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	g.eei.Finish([]byte(userVotes.String()))
+
+	return vmcommon.Ok
+}
+
+func (g *governanceContract) viewProposal(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	err := g.checkViewFuncArguments(args, 0)
+	if err != nil {
+		g.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	reference := args.Arguments[0]
+	if len(reference) < commitHashLength {
+		reference = g.eei.GetStorage(append([]byte(noncePrefix), reference...))
+	}
+	proposal, err := g.getGeneralProposal(args.Arguments[0])
+	if err != nil {
+		g.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	g.eei.Finish(proposal.ProposalCost.Bytes())
+	g.eei.Finish(proposal.CommitHash)
+	g.eei.Finish(big.NewInt(0).SetUint64(proposal.Nonce).Bytes())
+	g.eei.Finish(proposal.IssuerAddress)
+	g.eei.Finish(big.NewInt(0).SetUint64(proposal.StartVoteEpoch).Bytes())
+	g.eei.Finish(big.NewInt(0).SetUint64(proposal.EndVoteEpoch).Bytes())
+	g.eei.Finish(proposal.QuorumStake.Bytes())
+	g.eei.Finish(proposal.Yes.Bytes())
+	g.eei.Finish(proposal.No.Bytes())
+	g.eei.Finish(proposal.Veto.Bytes())
+	g.eei.Finish(proposal.Abstain.Bytes())
+	g.eei.Finish([]byte(boolToString(proposal.Closed)))
+	g.eei.Finish([]byte(boolToString(proposal.Passed)))
+
+	return vmcommon.Ok
+}
+
+func boolToString(val bool) string {
+	if val {
+		return "yes"
+	}
+	return "no"
+}
+
+func (g *governanceContract) checkViewFuncArguments(
+	args *vmcommon.ContractCallInput,
+	numArgs int,
+) error {
+	if !bytes.Equal(args.CallerAddr, args.RecipientAddr) {
+		return vm.ErrInvalidCaller
+	}
+	if args.CallValue.Cmp(zero) != 0 {
+		return vm.ErrCallValueMustBeZero
+	}
+	err := g.eei.UseGas(g.gasCost.MetaChainSystemSCsCost.Vote)
+	if err != nil {
+		return vm.ErrNotEnoughGas
+	}
+	if len(args.Arguments) != numArgs {
+		return vm.ErrInvalidNumOfArguments
+	}
+
+	return nil
 }
 
 // addNewVote applies a new vote on a proposal then saves the new information into the storage
