@@ -145,8 +145,8 @@ func TestScheduledTxsExecution_NewScheduledTxsNilTxExecutionOrderHandler(t *test
 		nil,
 	)
 
-	assert.Nil(t, err)
-	assert.NotNil(t, scheduledTxsExec)
+	assert.True(t, check.IfNil(scheduledTxsExec))
+	assert.Equal(t, process.ErrNilTxExecutionOrderHandler, err)
 }
 
 func TestScheduledTxsExecution_NewScheduledTxsExecutionOk(t *testing.T) {
