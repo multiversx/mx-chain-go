@@ -267,6 +267,7 @@ func GetGeneralConfig() config.Config {
 			PeerAuthenticationTimeBetweenSendsWhenErrorInSec: 1,
 			PeerAuthenticationThresholdBetweenSends:          0.1,
 			HeartbeatTimeBetweenSendsInSec:                   1,
+			HeartbeatTimeBetweenSendsDuringBootstrapInSec:    1,
 			HeartbeatTimeBetweenSendsWhenErrorInSec:          1,
 			HeartbeatThresholdBetweenSends:                   0.1,
 			PeerShardTimeBetweenSendsInSec:                   5,

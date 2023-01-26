@@ -38,9 +38,14 @@ func NewInitialNodeFacade(apiInterface string, pprofEnabled bool, statusMetricsH
 		return nil, facade.ErrNilStatusMetrics
 	}
 
+	initialStatusMetrics, err := NewInitialStatusMetricsProvider(statusMetricsHandler)
+	if err != nil {
+		return nil, err
+	}
+
 	return &initialNodeFacade{
 		apiInterface:         apiInterface,
-		statusMetricsHandler: statusMetricsHandler,
+		statusMetricsHandler: initialStatusMetrics,
 		pprofEnabled:         pprofEnabled,
 	}, nil
 }

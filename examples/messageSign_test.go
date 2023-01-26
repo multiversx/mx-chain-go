@@ -25,7 +25,7 @@ import (
 */
 
 // This prefix should be added when computing the hash to be signed
-const elrondSignedMessagePrefix = "\x17Elrond Signed Message:\n"
+const signedMessagePrefix = "\x17Elrond Signed Message:\n"
 
 var messageSigningHasher = keccak.NewKeccak()
 
@@ -96,7 +96,7 @@ func signMessage(t *testing.T, senderSeedHex string, message string) (string, st
 }
 
 func computeHashForMessage(message string) []byte {
-	payloadForHash := fmt.Sprintf("%s%v%s", elrondSignedMessagePrefix, len(message), message)
+	payloadForHash := fmt.Sprintf("%s%v%s", signedMessagePrefix, len(message), message)
 	hash := messageSigningHasher.Compute(payloadForHash)
 
 	return hash

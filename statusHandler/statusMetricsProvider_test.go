@@ -271,6 +271,8 @@ func TestStatusMetrics_StatusMetricsMapWithoutP2P(t *testing.T) {
 	sm.SetStringValue(common.MetricAppVersion, "400")
 	sm.SetUInt64Value(common.MetricRoundsPassedInCurrentEpoch, 95)
 	sm.SetUInt64Value(common.MetricNoncesPassedInCurrentEpoch, 1)
+	sm.SetUInt64Value(common.MetricTrieSyncNumReceivedBytes, 100)
+	sm.SetUInt64Value(common.MetricTrieSyncNumProcessedNodes, 101)
 
 	res, _ := sm.StatusMetricsMapWithoutP2P()
 
@@ -280,6 +282,8 @@ func TestStatusMetrics_StatusMetricsMapWithoutP2P(t *testing.T) {
 	require.Equal(t, "400", res[common.MetricAppVersion])
 	require.NotContains(t, res, common.MetricRoundsPassedInCurrentEpoch)
 	require.NotContains(t, res, common.MetricNoncesPassedInCurrentEpoch)
+	require.NotContains(t, res, common.MetricTrieSyncNumReceivedBytes)
+	require.NotContains(t, res, common.MetricTrieSyncNumProcessedNodes)
 }
 
 func TestStatusMetrics_EnableEpochMetrics(t *testing.T) {
@@ -468,6 +472,24 @@ func TestStatusMetrics_RatingsConfig(t *testing.T) {
 	assert.Equal(t, expectedConfig, configMetrics)
 }
 
+func TestStatusMetrics_BootstrapMetrics(t *testing.T) {
+	t.Parallel()
+
+	sm := statusHandler.NewStatusMetrics()
+
+	sm.SetUInt64Value(common.MetricTrieSyncNumReceivedBytes, uint64(5001))
+	sm.SetUInt64Value(common.MetricTrieSyncNumProcessedNodes, uint64(10000))
+
+	expectedMetrics := map[string]interface{}{
+		common.MetricTrieSyncNumReceivedBytes:  uint64(5001),
+		common.MetricTrieSyncNumProcessedNodes: uint64(10000),
+	}
+
+	bootstrapMetrics, err := sm.BootstrapMetrics()
+	assert.NoError(t, err)
+	assert.Equal(t, expectedMetrics, bootstrapMetrics)
+}
+
 func TestStatusMetrics_IncrementConcurrentOperations(t *testing.T) {
 	t.Parallel()
 
@@ -543,7 +565,7 @@ func TestStatusMetrics_ConcurrentOperations(t *testing.T) {
 
 	for i := 0; i < numIterations; i++ {
 		go func(idx int) {
-			switch idx % 13 {
+			switch idx % 14 {
 			case 0:
 				sm.AddUint64("test", uint64(idx))
 			case 1:
@@ -570,6 +592,8 @@ func TestStatusMetrics_ConcurrentOperations(t *testing.T) {
 				_, _ = sm.StatusMetricsWithoutP2PPrometheusString()
 			case 12:
 				_, _ = sm.StatusP2pMetricsMap()
+			case 13:
+				_, _ = sm.BootstrapMetrics()
 			}
 			wg.Done()
 		}(i)

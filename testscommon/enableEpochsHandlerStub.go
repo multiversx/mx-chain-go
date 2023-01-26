@@ -118,6 +118,7 @@ type EnableEpochsHandlerStub struct {
 	IsRuntimeMemStoreLimitEnabledField                           bool
 	IsMaxBlockchainHookCountersFlagEnabledField                  bool
 	IsWipeSingleNFTLiquidityDecreaseEnabledField                 bool
+	IsAlwaysSaveTokenMetaDataEnabledField                        bool
 	IsStakeLimitsFlagEnabledField                                bool
 	IsStakingV4InitFlagEnabledField                              bool
 	IsStakingV4FlagEnabledField                                  bool
@@ -1006,6 +1007,14 @@ func (stub *EnableEpochsHandlerStub) IsWipeSingleNFTLiquidityDecreaseEnabled() b
 	defer stub.RUnlock()
 
 	return stub.IsWipeSingleNFTLiquidityDecreaseEnabledField
+}
+
+// IsAlwaysSaveTokenMetaDataEnabled -
+func (stub *EnableEpochsHandlerStub) IsAlwaysSaveTokenMetaDataEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsAlwaysSaveTokenMetaDataEnabledField
 }
 
 // IsStakeLimitsFlagEnabled -

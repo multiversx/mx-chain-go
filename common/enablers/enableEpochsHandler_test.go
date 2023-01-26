@@ -89,10 +89,11 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		RuntimeMemStoreLimitEnableEpoch:                   73,
 		MaxBlockchainHookCountersEnableEpoch:              74,
 		WipeSingleNFTLiquidityDecreaseEnableEpoch:         75,
-		StakeLimitsEnableEpoch:                            76,
-		StakingV4InitEnableEpoch:                          77,
-		StakingV4EnableEpoch:                              78,
-		StakingV4DistributeAuctionToWaitingEpoch:          79,
+		AlwaysSaveTokenMetaDataEnableEpoch:                76,
+		StakeLimitsEnableEpoch:                            77,
+		StakingV4InitEnableEpoch:                          78,
+		StakingV4EnableEpoch:                              79,
+		StakingV4DistributeAuctionToWaitingEpoch:          80,
 	}
 }
 
@@ -131,7 +132,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		handler, _ := NewEnableEpochsHandler(cfg, &epochNotifier.EpochNotifierStub{})
 		require.False(t, check.IfNil(handler))
 
-		handler.EpochConfirmed(80, 0)
+		handler.EpochConfirmed(81, 0)
 
 		assert.Equal(t, cfg.BlockGasAndFeesReCheckEnableEpoch, handler.BlockGasAndFeesReCheckEnableEpoch())
 		assert.True(t, handler.IsSCDeployFlagEnabled())
@@ -213,6 +214,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsFixOldTokenLiquidityEnabled())
 		assert.True(t, handler.IsRuntimeMemStoreLimitEnabled())
 		assert.True(t, handler.IsMaxBlockchainHookCountersFlagEnabled())
+		assert.True(t, handler.IsAlwaysSaveTokenMetaDataEnabled())
 		assert.True(t, handler.IsStakeLimitsEnabled())
 		assert.False(t, handler.IsStakingV4InitEnabled()) // epoch == limit
 		assert.True(t, handler.IsStakingV4Enabled())
@@ -321,6 +323,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsRuntimeMemStoreLimitEnabled())
 		assert.True(t, handler.IsMaxBlockchainHookCountersFlagEnabled())
 		assert.True(t, handler.IsWipeSingleNFTLiquidityDecreaseEnabled())
+		assert.True(t, handler.IsAlwaysSaveTokenMetaDataEnabled())
 		assert.True(t, handler.IsStakeLimitsEnabled())
 		assert.True(t, handler.IsStakingV4InitEnabled())
 		assert.True(t, handler.IsStakingV4Enabled())
@@ -422,6 +425,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.False(t, handler.IsRuntimeMemStoreLimitEnabled())
 		assert.False(t, handler.IsMaxBlockchainHookCountersFlagEnabled())
 		assert.False(t, handler.IsWipeSingleNFTLiquidityDecreaseEnabled())
+		assert.False(t, handler.IsAlwaysSaveTokenMetaDataEnabled())
 		assert.False(t, handler.IsStakeLimitsEnabled())
 		assert.False(t, handler.IsStakingV4InitEnabled())
 		assert.False(t, handler.IsStakingV4Enabled())

@@ -116,6 +116,7 @@ func (handler *enableEpochsHandler) EpochConfirmed(epoch uint32, _ uint64) {
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.RuntimeMemStoreLimitEnableEpoch, handler.runtimeMemStoreLimitFlag, "runtimeMemStoreLimitFlag")
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.MaxBlockchainHookCountersEnableEpoch, handler.maxBlockchainHookCountersFlag, "maxBlockchainHookCountersFlag")
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.WipeSingleNFTLiquidityDecreaseEnableEpoch, handler.wipeSingleNFTLiquidityDecreaseFlag, "wipeSingleNFTLiquidityDecreaseFlag")
+	handler.setFlagValue(epoch >= handler.enableEpochsConfig.AlwaysSaveTokenMetaDataEnableEpoch, handler.alwaysSaveTokenMetaDataFlag, "alwaysSaveTokenMetaDataFlag")
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.StakeLimitsEnableEpoch, handler.stakeLimitsFlag, "stakeLimitsFlag")
 	handler.setFlagValue(epoch == handler.enableEpochsConfig.StakingV4InitEnableEpoch, handler.stakingV4InitFlag, "stakingV4InitFlag")
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.StakingV4EnableEpoch, handler.stakingV4Flag, "stakingV4Flag")
