@@ -662,8 +662,8 @@ func (holder *epochFlagsHolder) IsWipeSingleNFTLiquidityDecreaseEnabled() bool {
 	return holder.wipeSingleNFTLiquidityDecreaseFlag.IsSet()
 }
 
-// IsStakeLimitsEnabled returns true if stakeLimitsFlag is enabled
-func (holder *epochFlagsHolder) IsStakeLimitsEnabled() bool {
+// IsStakeLimitsFlagEnabled returns true if stakeLimitsFlag is enabled
+func (holder *epochFlagsHolder) IsStakeLimitsFlagEnabled() bool {
 	return holder.stakeLimitsFlag.IsSet()
 }
 

@@ -1773,7 +1773,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Init(t *testing.T)
 	_ = validatorsInfo.Add(createValidatorInfo(owner1ListPubKeysStaked[1], common.WaitingList, owner1, 0))
 	_ = validatorsInfo.Add(createValidatorInfo(owner2ListPubKeysStaked[0], common.EligibleList, owner2, 1))
 
-	args.EpochNotifier.CheckEpoch(&block.Header{Epoch: stakingV4EInitEnableEpoch})
+	args.EpochNotifier.CheckEpoch(&block.Header{Epoch: stakingV4InitEnableEpoch})
 	err := s.ProcessSystemSmartContract(validatorsInfo, &block.Header{})
 	require.Nil(t, err)
 

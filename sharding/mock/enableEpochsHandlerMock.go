@@ -561,8 +561,8 @@ func (mock *EnableEpochsHandlerMock) IsWipeSingleNFTLiquidityDecreaseEnabled() b
 	return false
 }
 
-// IsStakeLimitsEnabled -
-func (mock *EnableEpochsHandlerMock) IsStakeLimitsEnabled() bool {
+// IsStakeLimitsFlagEnabled -
+func (mock *EnableEpochsHandlerMock) IsStakeLimitsFlagEnabled() bool {
 	return false
 }
 

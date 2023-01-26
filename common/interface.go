@@ -336,7 +336,7 @@ type EnableEpochsHandler interface {
 	IsRuntimeMemStoreLimitEnabled() bool
 	IsMaxBlockchainHookCountersFlagEnabled() bool
 	IsWipeSingleNFTLiquidityDecreaseEnabled() bool
-	IsStakeLimitsEnabled() bool
+	IsStakeLimitsFlagEnabled() bool
 	IsStakingV4InitEnabled() bool
 	IsStakingV4Enabled() bool
 	IsStakingV4DistributeAuctionToWaitingEnabled() bool

@@ -1008,8 +1008,8 @@ func (stub *EnableEpochsHandlerStub) IsWipeSingleNFTLiquidityDecreaseEnabled() b
 	return stub.IsWipeSingleNFTLiquidityDecreaseEnabledField
 }
 
-// IsStakeLimitsEnabled -
-func (stub *EnableEpochsHandlerStub) IsStakeLimitsEnabled() bool {
+// IsStakeLimitsFlagEnabled -
+func (stub *EnableEpochsHandlerStub) IsStakeLimitsFlagEnabled() bool {
 	stub.RLock()
 	defer stub.RUnlock()
 
