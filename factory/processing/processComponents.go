@@ -144,14 +144,15 @@ type ProcessComponentsFactoryArgs struct {
 	WorkingDir             string
 	HistoryRepo            dblookupext.HistoryRepository
 
-	Data                 factory.DataComponentsHolder
-	CoreData             factory.CoreComponentsHolder
-	Crypto               factory.CryptoComponentsHolder
-	State                factory.StateComponentsHolder
-	Network              factory.NetworkComponentsHolder
-	BootstrapComponents  factory.BootstrapComponentsHolder
-	StatusComponents     factory.StatusComponentsHolder
-	StatusCoreComponents factory.StatusCoreComponentsHolder
+	Data                    factory.DataComponentsHolder
+	CoreData                factory.CoreComponentsHolder
+	Crypto                  factory.CryptoComponentsHolder
+	State                   factory.StateComponentsHolder
+	Network                 factory.NetworkComponentsHolder
+	BootstrapComponents     factory.BootstrapComponentsHolder
+	StatusComponents        factory.StatusComponentsHolder
+	StatusCoreComponents    factory.StatusCoreComponentsHolder
+	TxExecutionOrderHandler common.TxExecutionOrderHandler
 }
 
 type processComponentsFactory struct {
@@ -177,14 +178,15 @@ type processComponentsFactory struct {
 	importHandler          update.ImportHandler
 	esdtNftStorage         vmcommon.ESDTNFTStorageHandler
 
-	data                 factory.DataComponentsHolder
-	coreData             factory.CoreComponentsHolder
-	crypto               factory.CryptoComponentsHolder
-	state                factory.StateComponentsHolder
-	network              factory.NetworkComponentsHolder
-	bootstrapComponents  factory.BootstrapComponentsHolder
-	statusComponents     factory.StatusComponentsHolder
-	statusCoreComponents factory.StatusCoreComponentsHolder
+	data                    factory.DataComponentsHolder
+	coreData                factory.CoreComponentsHolder
+	crypto                  factory.CryptoComponentsHolder
+	state                   factory.StateComponentsHolder
+	network                 factory.NetworkComponentsHolder
+	bootstrapComponents     factory.BootstrapComponentsHolder
+	statusComponents        factory.StatusComponentsHolder
+	statusCoreComponents    factory.StatusCoreComponentsHolder
+	txExecutionOrderHandler common.TxExecutionOrderHandler
 }
 
 // NewProcessComponentsFactory will return a new instance of processComponentsFactory
@@ -195,32 +197,33 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 	}
 
 	return &processComponentsFactory{
-		config:                 args.Config,
-		epochConfig:            args.EpochConfig,
-		prefConfigs:            args.PrefConfigs,
-		importDBConfig:         args.ImportDBConfig,
-		accountsParser:         args.AccountsParser,
-		smartContractParser:    args.SmartContractParser,
-		gasSchedule:            args.GasSchedule,
-		nodesCoordinator:       args.NodesCoordinator,
-		data:                   args.Data,
-		coreData:               args.CoreData,
-		crypto:                 args.Crypto,
-		state:                  args.State,
-		network:                args.Network,
-		bootstrapComponents:    args.BootstrapComponents,
-		statusComponents:       args.StatusComponents,
-		requestedItemsHandler:  args.RequestedItemsHandler,
-		whiteListHandler:       args.WhiteListHandler,
-		whiteListerVerifiedTxs: args.WhiteListerVerifiedTxs,
-		maxRating:              args.MaxRating,
-		systemSCConfig:         args.SystemSCConfig,
-		version:                args.Version,
-		importStartHandler:     args.ImportStartHandler,
-		workingDir:             args.WorkingDir,
-		historyRepo:            args.HistoryRepo,
-		epochNotifier:          args.CoreData.EpochNotifier(),
-		statusCoreComponents:   args.StatusCoreComponents,
+		config:                  args.Config,
+		epochConfig:             args.EpochConfig,
+		prefConfigs:             args.PrefConfigs,
+		importDBConfig:          args.ImportDBConfig,
+		accountsParser:          args.AccountsParser,
+		smartContractParser:     args.SmartContractParser,
+		gasSchedule:             args.GasSchedule,
+		nodesCoordinator:        args.NodesCoordinator,
+		data:                    args.Data,
+		coreData:                args.CoreData,
+		crypto:                  args.Crypto,
+		state:                   args.State,
+		network:                 args.Network,
+		bootstrapComponents:     args.BootstrapComponents,
+		statusComponents:        args.StatusComponents,
+		requestedItemsHandler:   args.RequestedItemsHandler,
+		whiteListHandler:        args.WhiteListHandler,
+		whiteListerVerifiedTxs:  args.WhiteListerVerifiedTxs,
+		maxRating:               args.MaxRating,
+		systemSCConfig:          args.SystemSCConfig,
+		version:                 args.Version,
+		importStartHandler:      args.ImportStartHandler,
+		workingDir:              args.WorkingDir,
+		historyRepo:             args.HistoryRepo,
+		epochNotifier:           args.CoreData.EpochNotifier(),
+		statusCoreComponents:    args.StatusCoreComponents,
+		txExecutionOrderHandler: args.TxExecutionOrderHandler,
 	}, nil
 }
 
@@ -562,6 +565,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		pcf.coreData.InternalMarshalizer(),
 		pcf.coreData.Hasher(),
 		pcf.bootstrapComponents.ShardCoordinator(),
+		pcf.txExecutionOrderHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -1921,6 +1925,9 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	}
 	if check.IfNil(args.StatusCoreComponents.AppStatusHandler()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilAppStatusHandler)
+	}
+	if check.IfNil(args.TxExecutionOrderHandler) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilTxExecutionOrderHandler)
 	}
 
 	return nil
