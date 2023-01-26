@@ -1,25 +1,21 @@
 package testscommon
 
-import "github.com/multiversx/mx-chain-go/storage/txcache"
-
 // CacherStub -
 type CacherStub struct {
-	ClearCalled                           func()
-	PutCalled                             func(key []byte, value interface{}, sizeInBytes int) (evicted bool)
-	GetCalled                             func(key []byte) (value interface{}, ok bool)
-	HasCalled                             func(key []byte) bool
-	PeekCalled                            func(key []byte) (value interface{}, ok bool)
-	HasOrAddCalled                        func(key []byte, value interface{}, sizeInBytes int) (has, added bool)
-	RemoveCalled                          func(key []byte)
-	RemoveOldestCalled                    func()
-	KeysCalled                            func() [][]byte
-	LenCalled                             func() int
-	MaxSizeCalled                         func() int
-	RegisterHandlerCalled                 func(func(key []byte, value interface{}))
-	UnRegisterHandlerCalled               func(id string)
-	CloseCalled                           func() error
-	SelectTransactionsWithBandwidthCalled func(numRequested int, batchSizePerSender int, bandwidthPerSender uint64) []*txcache.WrappedTransaction
-	NotifyAccountNonceCalled              func(accountKey []byte, nonce uint64)
+	ClearCalled             func()
+	PutCalled               func(key []byte, value interface{}, sizeInBytes int) (evicted bool)
+	GetCalled               func(key []byte) (value interface{}, ok bool)
+	HasCalled               func(key []byte) bool
+	PeekCalled              func(key []byte) (value interface{}, ok bool)
+	HasOrAddCalled          func(key []byte, value interface{}, sizeInBytes int) (has, added bool)
+	RemoveCalled            func(key []byte)
+	RemoveOldestCalled      func()
+	KeysCalled              func() [][]byte
+	LenCalled               func() int
+	MaxSizeCalled           func() int
+	RegisterHandlerCalled   func(func(key []byte, value interface{}))
+	UnRegisterHandlerCalled func(id string)
+	CloseCalled             func() error
 }
 
 // NewCacherStub -
@@ -144,20 +140,4 @@ func (cacher *CacherStub) Close() error {
 	}
 
 	return nil
-}
-
-// SelectTransactionsWithBandwidth -
-func (cacher *CacherStub) SelectTransactionsWithBandwidth(numRequested int, batchSizePerSender int, bandwidthPerSender uint64) []*txcache.WrappedTransaction {
-	if cacher.SelectTransactionsWithBandwidthCalled != nil {
-		return cacher.SelectTransactionsWithBandwidthCalled(numRequested, batchSizePerSender, bandwidthPerSender)
-	}
-
-	return make([]*txcache.WrappedTransaction, 0)
-}
-
-// NotifyAccountNonce -
-func (cacher *CacherStub) NotifyAccountNonce(accountKey []byte, nonce uint64) {
-	if cacher.NotifyAccountNonceCalled != nil {
-		cacher.NotifyAccountNonceCalled(accountKey, nonce)
-	}
 }

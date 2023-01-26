@@ -136,7 +136,7 @@ func TestTxsPreprocessor_CreateAndProcessMiniBlocksShouldWork(t *testing.T) {
 		args := createDefaultTransactionsProcessorArgs()
 		args.TxDataPool = &testscommon.ShardedDataStub{
 			ShardDataStoreCalled: func(id string) (c storage.Cacher) {
-				return &testscommon.CacherStub{
+				return &testscommon.TxCacherStub{
 					SelectTransactionsWithBandwidthCalled: func(numRequested int, batchSizePerSender int, bandwidthPerSender uint64) []*txcache.WrappedTransaction {
 						return []*txcache.WrappedTransaction{
 							{Tx: &transaction.Transaction{Nonce: 1}},
@@ -160,7 +160,7 @@ func TestTxsPreprocessor_CreateAndProcessMiniBlocksShouldWork(t *testing.T) {
 		args := createDefaultTransactionsProcessorArgs()
 		args.TxDataPool = &testscommon.ShardedDataStub{
 			ShardDataStoreCalled: func(id string) (c storage.Cacher) {
-				return &testscommon.CacherStub{
+				return &testscommon.TxCacherStub{
 					SelectTransactionsWithBandwidthCalled: func(numRequested int, batchSizePerSender int, bandwidthPerSender uint64) []*txcache.WrappedTransaction {
 						return []*txcache.WrappedTransaction{
 							{Tx: &transaction.Transaction{Nonce: 1}},
@@ -195,7 +195,7 @@ func TestTxsPreprocessor_CreateAndProcessMiniBlocksShouldWork(t *testing.T) {
 
 		args.TxDataPool = &testscommon.ShardedDataStub{
 			ShardDataStoreCalled: func(id string) (c storage.Cacher) {
-				return &testscommon.CacherStub{
+				return &testscommon.TxCacherStub{
 					SelectTransactionsWithBandwidthCalled: func(numRequested int, batchSizePerSender int, bandwidthPerSender uint64) []*txcache.WrappedTransaction {
 						return []*txcache.WrappedTransaction{
 							{Tx: tx1, TxHash: txHash1},
@@ -246,7 +246,7 @@ func TestTxsPreprocessor_ComputeSortedTxsShouldWork(t *testing.T) {
 		txHash := []byte("x")
 		args.TxDataPool = &testscommon.ShardedDataStub{
 			ShardDataStoreCalled: func(id string) (c storage.Cacher) {
-				return &testscommon.CacherStub{
+				return &testscommon.TxCacherStub{
 					SelectTransactionsWithBandwidthCalled: func(numRequested int, batchSizePerSender int, bandwidthPerSender uint64) []*txcache.WrappedTransaction {
 						return []*txcache.WrappedTransaction{
 							{Tx: tx, TxHash: txHash},

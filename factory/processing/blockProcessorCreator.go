@@ -313,30 +313,31 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
-	preProcFactory, err := shard.NewPreProcessorsContainerFactory(
-		pcf.bootstrapComponents.ShardCoordinator(),
-		pcf.data.StorageService(),
-		pcf.coreData.InternalMarshalizer(),
-		pcf.coreData.Hasher(),
-		pcf.data.Datapool(),
-		pcf.coreData.AddressPubKeyConverter(),
-		pcf.state.AccountsAdapter(),
-		requestHandler,
-		transactionProcessor,
-		scProcessor,
-		scProcessor,
-		rewardsTxProcessor,
-		pcf.coreData.EconomicsData(),
-		gasHandler,
-		blockTracker,
-		blockSizeComputationHandler,
-		balanceComputationHandler,
-		pcf.coreData.EnableEpochsHandler(),
-		txTypeHandler,
-		scheduledTxsExecutionHandler,
-		processedMiniBlocksTracker,
-		pcf.chainRunType,
-	)
+	argsPreProc := shard.ArgPreProcessorsContainerFactory{
+		ShardCoordinator:             pcf.bootstrapComponents.ShardCoordinator(),
+		Store:                        pcf.data.StorageService(),
+		Marshaller:                   pcf.coreData.InternalMarshalizer(),
+		Hasher:                       pcf.coreData.Hasher(),
+		DataPool:                     pcf.data.Datapool(),
+		PubkeyConverter:              pcf.coreData.AddressPubKeyConverter(),
+		Accounts:                     pcf.state.AccountsAdapter(),
+		RequestHandler:               requestHandler,
+		TxProcessor:                  transactionProcessor,
+		ScProcessor:                  scProcessor,
+		ScResultProcessor:            scProcessor,
+		RewardsTxProcessor:           rewardsTxProcessor,
+		EconomicsFee:                 pcf.coreData.EconomicsData(),
+		GasHandler:                   gasHandler,
+		BlockTracker:                 blockTracker,
+		BlockSizeComputation:         blockSizeComputationHandler,
+		BalanceComputation:           balanceComputationHandler,
+		EnableEpochsHandler:          pcf.coreData.EnableEpochsHandler(),
+		TxTypeHandler:                txTypeHandler,
+		ScheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
+		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
+		ChainRunType:                 pcf.chainRunType,
+	}
+	preProcFactory, err := shard.NewPreProcessorsContainerFactory(argsPreProc)
 	if err != nil {
 		return nil, err
 	}
@@ -639,27 +640,28 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
-	preProcFactory, err := metachain.NewPreProcessorsContainerFactory(
-		pcf.bootstrapComponents.ShardCoordinator(),
-		pcf.data.StorageService(),
-		pcf.coreData.InternalMarshalizer(),
-		pcf.coreData.Hasher(),
-		pcf.data.Datapool(),
-		pcf.state.AccountsAdapter(),
-		requestHandler,
-		transactionProcessor,
-		scProcessor,
-		pcf.coreData.EconomicsData(),
-		gasHandler,
-		blockTracker,
-		pcf.coreData.AddressPubKeyConverter(),
-		blockSizeComputationHandler,
-		balanceComputationHandler,
-		pcf.coreData.EnableEpochsHandler(),
-		txTypeHandler,
-		scheduledTxsExecutionHandler,
-		processedMiniBlocksTracker,
-	)
+	argsPreProc := metachain.ArgPreProcessorsContainerFactory{
+		ShardCoordinator:             pcf.bootstrapComponents.ShardCoordinator(),
+		Store:                        pcf.data.StorageService(),
+		Marshaller:                   pcf.coreData.InternalMarshalizer(),
+		Hasher:                       pcf.coreData.Hasher(),
+		DataPool:                     pcf.data.Datapool(),
+		Accounts:                     pcf.state.AccountsAdapter(),
+		RequestHandler:               requestHandler,
+		TxProcessor:                  transactionProcessor,
+		ScResultProcessor:            scProcessor,
+		EconomicsFee:                 pcf.coreData.EconomicsData(),
+		GasHandler:                   gasHandler,
+		BlockTracker:                 blockTracker,
+		PubkeyConverter:              pcf.coreData.AddressPubKeyConverter(),
+		BlockSizeComputation:         blockSizeComputationHandler,
+		BalanceComputation:           balanceComputationHandler,
+		EnableEpochsHandler:          pcf.coreData.EnableEpochsHandler(),
+		TxTypeHandler:                txTypeHandler,
+		ScheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
+		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
+	}
+	preProcFactory, err := metachain.NewPreProcessorsContainerFactory(argsPreProc)
 	if err != nil {
 		return nil, err
 	}

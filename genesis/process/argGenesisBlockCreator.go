@@ -62,10 +62,10 @@ type ArgsGenesisBlockCreator struct {
 	ImportStartHandler   update.ImportStartHandler
 	WorkingDir           string
 	BlockSignKeyGen      crypto.KeyGenerator
+	ChainRunType         common.ChainRunType
 
 	GenesisNodePrice *big.Int
 	GenesisString    string
 	// created components
 	importHandler update.ImportHandler
-	ChainRunType  common.ChainRunType
 }
