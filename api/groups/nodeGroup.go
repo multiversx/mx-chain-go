@@ -25,6 +25,7 @@ const (
 	peerInfoPath           = "/peerinfo"
 	statusPath             = "/status"
 	epochStartDataForEpoch = "/epoch-start/:epoch"
+	bootstrapStatusPath    = "/bootstrapstatus"
 )
 
 // nodeFacadeHandler defines the methods to be implemented by a facade for node requests
@@ -95,6 +96,11 @@ func NewNodeGroup(facade nodeFacadeHandler) (*nodeGroup, error) {
 			Path:    epochStartDataForEpoch,
 			Method:  http.MethodGet,
 			Handler: ng.epochStartDataForEpoch,
+		},
+		{
+			Path:    bootstrapStatusPath,
+			Method:  http.MethodGet,
+			Handler: ng.bootstrapMetrics,
 		},
 	}
 	ng.endpoints = endpoints
@@ -284,6 +290,31 @@ func (ng *nodeGroup) prometheusMetrics(c *gin.Context) {
 	c.String(
 		http.StatusOK,
 		metrics,
+	)
+}
+
+// bootstrapMetrics returns the node's bootstrap statistics exported by a StatusMetricsHandler
+func (ng *nodeGroup) bootstrapMetrics(c *gin.Context) {
+	metrics, err := ng.getFacade().StatusMetrics().BootstrapMetrics()
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: err.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"metrics": metrics},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
 	)
 }
 
