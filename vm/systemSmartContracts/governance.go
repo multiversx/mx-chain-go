@@ -148,10 +148,12 @@ func (g *governanceContract) Execute(args *vmcommon.ContractCallInput) vmcommon.
 		return g.closeProposal(args)
 	case "viewVotingPower":
 		return g.viewVotingPower(args)
-	case "getConfig":
+	case "viewConfig":
 		return g.viewConfig(args)
-	case "getUserVoteHistory":
+	case "viewUserVoteHistory":
 		return g.viewUserVoteHistory(args)
+	case "viewDelegatedVoteInfo":
+		return g.viewDelegatedVoteInfo(args)
 	case "viewProposal":
 		return g.viewProposal(args)
 	}
@@ -514,17 +516,12 @@ func (g *governanceContract) addUserVote(
 		return err
 	}
 
-	voteOption, err := g.castVoteType(vote)
-	if err != nil {
-		return err
-	}
-
 	proposal, err := g.getValidProposal(nonce)
 	if err != nil {
 		return err
 	}
 
-	err = g.addNewVote(voteOption, totalVotingPower, proposal)
+	err = g.addNewVote(vote, totalVotingPower, proposal)
 	if err != nil {
 		return err
 	}
@@ -734,6 +731,27 @@ func (g *governanceContract) viewProposal(args *vmcommon.ContractCallInput) vmco
 	return vmcommon.Ok
 }
 
+func (g *governanceContract) viewDelegatedVoteInfo(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	err := g.checkViewFuncArguments(args, 2)
+	if err != nil {
+		g.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	scDelegatedInfo, err := g.getDelegatedContractInfo(args.Arguments[0], args.Arguments[1])
+	if err != nil {
+		g.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	g.eei.Finish(scDelegatedInfo.UsedStake.Bytes())
+	g.eei.Finish(scDelegatedInfo.UsedPower.Bytes())
+	g.eei.Finish(scDelegatedInfo.TotalStake.Bytes())
+	g.eei.Finish(scDelegatedInfo.TotalPower.Bytes())
+
+	return vmcommon.Ok
+}
+
 func (g *governanceContract) checkViewFuncArguments(
 	args *vmcommon.ContractCallInput,
 	numArgs int,
@@ -756,15 +774,15 @@ func (g *governanceContract) checkViewFuncArguments(
 }
 
 // addNewVote applies a new vote on a proposal then saves the new information into the storage
-func (g *governanceContract) addNewVote(voteValueType VoteValueType, power *big.Int, proposal *GeneralProposal) error {
-	switch voteValueType {
-	case Yes:
+func (g *governanceContract) addNewVote(vote string, power *big.Int, proposal *GeneralProposal) error {
+	switch vote {
+	case yesString:
 		proposal.Yes.Add(proposal.Yes, power)
-	case No:
+	case noString:
 		proposal.No.Add(proposal.No, power)
-	case Veto:
+	case vetoString:
 		proposal.Veto.Add(proposal.Veto, power)
-	case Abstain:
+	case abstainString:
 		proposal.Abstain.Add(proposal.Abstain, power)
 	default:
 		return fmt.Errorf("%s: %s", vm.ErrInvalidArgument, "invalid vote type")
@@ -786,22 +804,6 @@ func (g *governanceContract) computeVotingPower(value *big.Int) (*big.Int, error
 	}
 
 	return big.NewInt(0).Sqrt(value), nil
-}
-
-// castVoteType casts a valid string vote passed as an argument to the actual mapped value
-func (g *governanceContract) castVoteType(vote string) (VoteValueType, error) {
-	switch vote {
-	case yesString:
-		return Yes, nil
-	case noString:
-		return No, nil
-	case vetoString:
-		return Veto, nil
-	case abstainString:
-		return Abstain, nil
-	default:
-		return 0, fmt.Errorf("%s: %s%s", vm.ErrInvalidArgument, "invalid vote type option: ", vote)
-	}
 }
 
 // function iterates over all delegation contracts and verifies balances of the given account and makes a sum of it
