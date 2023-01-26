@@ -10,6 +10,7 @@ type StatusMetricsStub struct {
 	EnableEpochsMetricsCalled                     func() (map[string]interface{}, error)
 	RatingsMetricsCalled                          func() (map[string]interface{}, error)
 	StatusMetricsWithoutP2PPrometheusStringCalled func() (string, error)
+	BootstrapMetricsCalled                        func() (map[string]interface{}, error)
 }
 
 // StatusMetricsWithoutP2PPrometheusString -
@@ -73,6 +74,14 @@ func (sms *StatusMetricsStub) EnableEpochsMetrics() (map[string]interface{}, err
 func (sms *StatusMetricsStub) RatingsMetrics() (map[string]interface{}, error) {
 	if sms.RatingsMetricsCalled != nil {
 		return sms.RatingsMetricsCalled()
+	}
+	return baseReturnValues()
+}
+
+// BootstrapMetrics -
+func (sms *StatusMetricsStub) BootstrapMetrics() (map[string]interface{}, error) {
+	if sms.BootstrapMetricsCalled != nil {
+		return sms.BootstrapMetricsCalled()
 	}
 	return baseReturnValues()
 }
