@@ -8,27 +8,29 @@ import (
 	"testing"
 	"time"
 
-	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/display"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
-	"github.com/ElrondNetwork/elrond-go/factory"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/process"
-	vmFactory "github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon/stakingcommon"
-	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/display"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/epochStart/metachain"
+	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/process"
+	vmFactory "github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/stakingcommon"
+	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
+	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	arwenConfig "github.com/multiversx/mx-chain-vm-v1_4-go/config"
 	"github.com/stretchr/testify/require"
 )
 
@@ -123,7 +125,7 @@ func newTestMetaProcessor(
 		stateComponents.PeerAccounts(),
 	)
 	stakingDataProvider := createStakingDataProvider(
-		coreComponents.EpochNotifier(),
+		coreComponents.EnableEpochsHandler(),
 		systemVM,
 	)
 	scp := createSystemSCProcessor(
@@ -137,7 +139,7 @@ func newTestMetaProcessor(
 		stakingDataProvider,
 	)
 
-	txCoordinator := &mock.TransactionCoordinatorMock{}
+	txCoordinator := &testscommon.TransactionCoordinatorMock{}
 	epochStartTrigger := createEpochStartTrigger(coreComponents, dataComponents.StorageService())
 
 	eligible, _ := nc.GetAllEligibleValidatorsPublicKeys(0)
@@ -209,7 +211,7 @@ func saveNodesConfig(
 func createGasScheduleNotifier() core.GasScheduleNotifier {
 	gasSchedule := arwenConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasSchedule, 1)
-	return mock.NewGasScheduleNotifierMock(gasSchedule)
+	return testscommon.NewGasScheduleNotifierMock(gasSchedule)
 }
 
 func createEpochStartTrigger(
@@ -226,7 +228,8 @@ func createEpochStartTrigger(
 		Storage:            storageService,
 		Marshalizer:        coreComponents.InternalMarshalizer(),
 		Hasher:             coreComponents.Hasher(),
-		AppStatusHandler:   coreComponents.StatusHandler(),
+		AppStatusHandler:   &statusHandlerMock.AppStatusHandlerStub{},
+		DataPool:           dataRetrieverMock.NewPoolsHolderMock(),
 	}
 
 	epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsEpochStart)

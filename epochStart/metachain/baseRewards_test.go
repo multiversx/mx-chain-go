@@ -7,26 +7,28 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
-	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/state/factory"
-	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
-	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
-	"github.com/ElrondNetwork/elrond-go/trie"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
+	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/epochStart/mock"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/factory"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
+	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
+	"github.com/multiversx/mx-chain-go/testscommon/storage"
+	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
+	"github.com/multiversx/mx-chain-go/trie"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -161,6 +163,18 @@ func TestBaseRewardsCreator_NilUserAccountsDB(t *testing.T) {
 	assert.Equal(t, epochStart.ErrNilAccountsDB, err)
 }
 
+func TestBaseRewardsCreator_NilEnableEpochsHandler(t *testing.T) {
+	t.Parallel()
+
+	args := getBaseRewardsArguments()
+	args.EnableEpochsHandler = nil
+
+	rwd, err := NewBaseRewardsCreator(args)
+
+	assert.True(t, check.IfNil(rwd))
+	assert.Equal(t, epochStart.ErrNilEnableEpochsHandler, err)
+}
+
 func TestBaseRewardsCreator_clean(t *testing.T) {
 	t.Parallel()
 
@@ -276,7 +290,7 @@ func TestBaseRewardsCreator_CreateMarshalizedDataNilMiniblocksEmptyMap(t *testin
 	require.Nil(t, err)
 	require.NotNil(t, rwd)
 
-	result := rwd.CreateMarshalizedData(nil)
+	result := rwd.CreateMarshalledData(nil)
 	require.Equal(t, 0, len(result))
 }
 
@@ -288,7 +302,7 @@ func TestBaseRewardsCreator_CreateMarshalizedDataEmptyMiniblocksEmptyMap(t *test
 	require.Nil(t, err)
 	require.NotNil(t, rwd)
 
-	result := rwd.CreateMarshalizedData(&block.Body{})
+	result := rwd.CreateMarshalledData(&block.Body{})
 	require.Equal(t, 0, len(result))
 }
 
@@ -313,7 +327,7 @@ func TestBaseRewardsCreator_CreateMarshalizedDataOnlyRewardsMiniblocksGetMarshal
 
 	for _, mbType := range miniBlockTypes {
 		dummyMiniBlock.Type = mbType
-		result := rwd.CreateMarshalizedData(&block.Body{
+		result := rwd.CreateMarshalledData(&block.Body{
 			MiniBlocks: block.MiniBlockSlice{
 				dummyMiniBlock,
 			},
@@ -322,7 +336,7 @@ func TestBaseRewardsCreator_CreateMarshalizedDataOnlyRewardsMiniblocksGetMarshal
 	}
 
 	dummyMiniBlock.Type = block.RewardsBlock
-	result := rwd.CreateMarshalizedData(&block.Body{
+	result := rwd.CreateMarshalledData(&block.Body{
 		MiniBlocks: block.MiniBlockSlice{
 			dummyMiniBlock,
 		},
@@ -353,7 +367,7 @@ func TestBaseRewardsCreator_CreateMarshalizedDataWrongSenderNotIncluded(t *testi
 	dummyMiniBlock := createDummyRewardTxMiniblock(rwd)
 	dummyMiniBlock.Type = block.RewardsBlock
 	dummyMiniBlock.SenderShardID = args.ShardCoordinator.SelfId() + 1
-	result := rwd.CreateMarshalizedData(&block.Body{
+	result := rwd.CreateMarshalledData(&block.Body{
 		MiniBlocks: block.MiniBlockSlice{
 			dummyMiniBlock,
 		},
@@ -372,7 +386,7 @@ func TestBaseRewardsCreator_CreateMarshalizedDataNotFoundTxHashIgnored(t *testin
 	dummyMiniBlock := createDummyRewardTxMiniblock(rwd)
 	dummyMiniBlock.Type = block.RewardsBlock
 	dummyMiniBlock.TxHashes = [][]byte{[]byte("not found txHash")}
-	result := rwd.CreateMarshalizedData(&block.Body{
+	result := rwd.CreateMarshalledData(&block.Body{
 		MiniBlocks: block.MiniBlockSlice{
 			dummyMiniBlock,
 		},
@@ -446,7 +460,7 @@ func TestBaseRewardsCreator_SaveTxBlockToStorageNilBodyNoPanic(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, rwd)
 
-	rwd.SaveTxBlockToStorage(nil, nil)
+	rwd.SaveBlockDataToStorage(nil, nil)
 }
 
 func TestBaseRewardsCreator_SaveTxBlockToStorageNonRewardsMiniBlocksAreIgnored(t *testing.T) {
@@ -472,7 +486,7 @@ func TestBaseRewardsCreator_SaveTxBlockToStorageNonRewardsMiniBlocksAreIgnored(t
 	for _, mbType := range miniBlockTypes {
 		dummyMiniBlock.Type = mbType
 
-		rwd.SaveTxBlockToStorage(nil, &block.Body{
+		rwd.SaveBlockDataToStorage(nil, &block.Body{
 			MiniBlocks: block.MiniBlockSlice{
 				dummyMiniBlock,
 			},
@@ -487,7 +501,7 @@ func TestBaseRewardsCreator_SaveTxBlockToStorageNonRewardsMiniBlocksAreIgnored(t
 	}
 
 	dummyMiniBlock.Type = block.RewardsBlock
-	rwd.SaveTxBlockToStorage(nil, &block.Body{
+	rwd.SaveBlockDataToStorage(nil, &block.Body{
 		MiniBlocks: block.MiniBlockSlice{
 			dummyMiniBlock,
 		},
@@ -516,7 +530,7 @@ func TestBaseRewardsCreator_SaveTxBlockToStorageNotFoundTxIgnored(t *testing.T) 
 	dummyMb := createDummyRewardTxMiniblock(rwd)
 	dummyMb.TxHashes = [][]byte{rwTxHash}
 
-	rwd.SaveTxBlockToStorage(nil, &block.Body{MiniBlocks: block.MiniBlockSlice{dummyMb}})
+	rwd.SaveBlockDataToStorage(nil, &block.Body{MiniBlocks: block.MiniBlockSlice{dummyMb}})
 
 	mmb, err := args.Marshalizer.Marshal(dummyMb)
 	require.Nil(t, err)
@@ -544,7 +558,7 @@ func TestBaseRewardsCreator_DeleteTxsFromStorageNilMetablockNoPanic(t *testing.T
 	require.NotNil(t, rwd)
 
 	dummyMb := createDummyRewardTxMiniblock(rwd)
-	rwd.DeleteTxsFromStorage(nil, &block.Body{MiniBlocks: block.MiniBlockSlice{dummyMb}})
+	rwd.DeleteBlockDataFromStorage(nil, &block.Body{MiniBlocks: block.MiniBlockSlice{dummyMb}})
 }
 
 func TestBaseRewardsCreator_DeleteTxsFromStorageNilBlockBodyNoPanic(t *testing.T) {
@@ -565,7 +579,7 @@ func TestBaseRewardsCreator_DeleteTxsFromStorageNilBlockBodyNoPanic(t *testing.T
 		DevFeesInEpoch: big.NewInt(0),
 	}
 
-	rwd.DeleteTxsFromStorage(metaBlk, nil)
+	rwd.DeleteBlockDataFromStorage(metaBlk, nil)
 }
 
 func TestBaseRewardsCreator_DeleteTxsFromStorageNonRewardsMiniBlocksIgnored(t *testing.T) {
@@ -609,7 +623,7 @@ func TestBaseRewardsCreator_DeleteTxsFromStorageNonRewardsMiniBlocksIgnored(t *t
 		dummyMbMarshalled, _ := args.Marshalizer.Marshal(dummyMb)
 		_ = rwd.miniBlockStorage.Put(mbHash, dummyMbMarshalled)
 
-		rwd.DeleteTxsFromStorage(metaBlk, &block.Body{MiniBlocks: block.MiniBlockSlice{dummyMb}})
+		rwd.DeleteBlockDataFromStorage(metaBlk, &block.Body{MiniBlocks: block.MiniBlockSlice{dummyMb}})
 		tx, err = rwd.rewardsStorage.Get(rwTxHash)
 		require.Nil(t, err)
 		require.NotNil(t, tx)
@@ -651,7 +665,7 @@ func TestBaseRewardsCreator_DeleteTxsFromStorage(t *testing.T) {
 	dummyMbMarshalled, _ := args.Marshalizer.Marshal(dummyMb)
 	_ = rwd.miniBlockStorage.Put(mbHash, dummyMbMarshalled)
 
-	rwd.DeleteTxsFromStorage(metaBlk, &block.Body{MiniBlocks: block.MiniBlockSlice{dummyMb}})
+	rwd.DeleteBlockDataFromStorage(metaBlk, &block.Body{MiniBlocks: block.MiniBlockSlice{dummyMb}})
 	tx, err := rwd.rewardsStorage.Get(rwTxHash)
 	require.NotNil(t, err)
 	require.Nil(t, tx)
@@ -696,7 +710,7 @@ func TestBaseRewardsCreator_RemoveBlockDataFromPoolsNilBlockBodyNoPanic(t *testi
 		DevFeesInEpoch: big.NewInt(0),
 	}
 
-	rwd.DeleteTxsFromStorage(metaBlk, nil)
+	rwd.DeleteBlockDataFromStorage(metaBlk, nil)
 }
 
 func TestBaseRewardsCreator_RemoveBlockDataFromPoolsNonRewardsMiniBlocksIgnored(t *testing.T) {
@@ -824,11 +838,11 @@ func TestBaseRewardsCreator_isSystemDelegationSC(t *testing.T) {
 	require.Nil(t, err)
 
 	userAccount.SetDataTrie(&trieMock.TrieStub{
-		GetCalled: func(key []byte) ([]byte, error) {
+		GetCalled: func(key []byte) ([]byte, uint32, error) {
 			if bytes.Equal(key, []byte(core.DelegationSystemSCKey)) {
-				return []byte("delegation"), nil
+				return []byte("delegation"), 0, nil
 			}
-			return nil, fmt.Errorf("not found")
+			return nil, 0, fmt.Errorf("not found")
 		},
 	})
 
@@ -841,15 +855,12 @@ func TestBaseRewardsCreator_isSystemDelegationSCTrue(t *testing.T) {
 	args.UserAccountsDB = &stateMock.AccountsStub{
 		GetExistingAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 			return &stateMock.UserAccountStub{
-				DataTrieTrackerCalled: func() state.DataTrieTracker {
-					return &mock.DataTrieTrackerStub{
-						RetrieveValueCalled: func(key []byte) ([]byte, error) {
-							if bytes.Equal(key, []byte("delegation")) {
-								return []byte("value"), nil
-							}
-							return nil, fmt.Errorf("error")
-						},
+				RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
+					if bytes.Equal(key, []byte("delegation")) {
+						return []byte("value"), 0, nil
 					}
+
+					return nil, 0, fmt.Errorf("error")
 				},
 			}, nil
 		},
@@ -1124,7 +1135,12 @@ func TestBaseRewardsCreator_getMiniBlockWithReceiverShardIDFound(t *testing.T) {
 func getBaseRewardsArguments() BaseRewardsCreatorArgs {
 	hasher := sha256.NewSha256()
 	marshalizer := &marshal.GogoProtoMarshalizer{}
-	trieFactoryManager, _ := trie.NewTrieStorageManagerWithoutPruning(createMemUnit())
+
+	storageManagerArgs, options := storage.GetStorageManagerArgsAndOptions()
+	storageManagerArgs.Marshalizer = marshalizer
+	storageManagerArgs.Hasher = hasher
+
+	trieFactoryManager, _ := trie.CreateTrieStorageManager(storageManagerArgs, options)
 	userAccountsDB := createAccountsDB(hasher, marshalizer, factory.NewAccountCreator(), trieFactoryManager)
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	shardCoordinator.CurrentShard = core.MetachainShardId
@@ -1149,8 +1165,10 @@ func getBaseRewardsArguments() BaseRewardsCreatorArgs {
 				return 63
 			},
 		},
-		UserAccountsDB:         userAccountsDB,
-		RewardsFix1EpochEnable: 0,
+		UserAccountsDB: userAccountsDB,
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+			SwitchJailWaitingEnableEpochField: 0,
+		},
 	}
 }
 

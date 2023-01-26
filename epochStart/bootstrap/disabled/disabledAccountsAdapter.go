@@ -3,10 +3,9 @@ package disabled
 import (
 	"context"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/state"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 type accountsAdapter struct {
@@ -15,6 +14,16 @@ type accountsAdapter struct {
 // NewAccountsAdapter returns a nil implementation of accountsAdapter
 func NewAccountsAdapter() *accountsAdapter {
 	return &accountsAdapter{}
+}
+
+// SetSyncer -
+func (a *accountsAdapter) SetSyncer(_ state.AccountsDBSyncer) error {
+	return nil
+}
+
+// StartSnapshotIfNeeded -
+func (a *accountsAdapter) StartSnapshotIfNeeded() error {
+	return nil
 }
 
 // GetTrie -
@@ -81,6 +90,11 @@ func (a *accountsAdapter) RecreateTrie(_ []byte) error {
 	return nil
 }
 
+// RecreateTrieFromEpoch -
+func (a *accountsAdapter) RecreateTrieFromEpoch(_ common.RootHashHolder) error {
+	return nil
+}
+
 // CancelPrune -
 func (a *accountsAdapter) CancelPrune(_ []byte, _ state.TriePruningIdentifier) {
 }
@@ -104,7 +118,7 @@ func (a *accountsAdapter) ClosePersister() error {
 }
 
 // GetAllLeaves -
-func (a *accountsAdapter) GetAllLeaves(_ chan core.KeyValueHolder, _ context.Context, _ []byte) error {
+func (a *accountsAdapter) GetAllLeaves(_ *common.TrieIteratorChannels, _ context.Context, _ []byte) error {
 	return nil
 }
 

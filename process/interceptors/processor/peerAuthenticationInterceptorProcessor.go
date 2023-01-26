@@ -1,12 +1,12 @@
 package processor
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/heartbeat"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/heartbeat"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/storage"
 )
 
 // ArgPeerAuthenticationInterceptorProcessor is the argument for the interceptor processor used for peer authentication
@@ -92,7 +92,7 @@ func (paip *peerAuthenticationInterceptorProcessor) updatePeerInfo(message inter
 	}
 
 	pidBytes := peerAuthenticationData.GetPid()
-	paip.peerAuthenticationCacher.Put(pidBytes, message, messageSize)
+	paip.peerAuthenticationCacher.Put(peerAuthenticationData.Pubkey, message, messageSize)
 	paip.peerShardMapper.UpdatePeerIDPublicKeyPair(core.PeerID(pidBytes), peerAuthenticationData.GetPubkey())
 
 	log.Trace("PeerAuthentication message saved")

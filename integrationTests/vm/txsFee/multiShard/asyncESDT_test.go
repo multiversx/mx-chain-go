@@ -1,7 +1,7 @@
 //go:build !race
 // +build !race
 
-// TODO remove build condition above to allow -race -short, after Arwen fix
+// TODO remove build condition above to allow -race -short, after Wasm VM fix
 
 package multiShard
 
@@ -10,11 +10,10 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
 )
 
@@ -87,13 +86,6 @@ func TestAsyncESDTTransferWithSCCallShouldWork(t *testing.T) {
 	expectedAccumulatedFees := big.NewInt(950)
 	require.Equal(t, expectedAccumulatedFees, testContextSender.TxFeeHandler.GetAccumulatedFees())
 
-	testIndexer := vm.CreateTestIndexer(t, testContextSender.ShardCoordinator, testContextSender.EconomicsData, false, testContextSender.TxsLogsProcessor)
-	testIndexer.SaveTransaction(tx, block.TxBlock, nil)
-
-	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, uint64(94), indexerTx.GasUsed)
-	require.Equal(t, "940", indexerTx.Fee)
-
 	// execute on the destination shard
 	retCode, err = testContextFirstContract.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
@@ -102,21 +94,15 @@ func TestAsyncESDTTransferWithSCCallShouldWork(t *testing.T) {
 	_, err = testContextSender.Accounts.Commit()
 	require.Nil(t, err)
 
-	expectedAccumulatedFees = big.NewInt(189880)
+	expectedAccumulatedFees = big.NewInt(189890)
 	require.Equal(t, expectedAccumulatedFees, testContextFirstContract.TxFeeHandler.GetAccumulatedFees())
 
-	developerFees := big.NewInt(18988)
+	developerFees := big.NewInt(18989)
 	require.Equal(t, developerFees, testContextFirstContract.TxFeeHandler.GetDeveloperFees())
 
 	utils.CheckESDTBalance(t, testContextFirstContract, firstSCAddress, token, big.NewInt(2500))
 
 	intermediateTxs := testContextFirstContract.GetIntermediateTransactions(t)
-	testIndexer = vm.CreateTestIndexer(t, testContextFirstContract.ShardCoordinator, testContextFirstContract.EconomicsData, true, testContextFirstContract.TxsLogsProcessor)
-	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
-
-	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, uint64(500000), indexerTx.GasUsed)
-	require.Equal(t, "5000000", indexerTx.Fee)
 
 	scrForSecondContract := intermediateTxs[1]
 	require.Equal(t, scrForSecondContract.GetSndAddr(), firstSCAddress)
@@ -125,10 +111,10 @@ func TestAsyncESDTTransferWithSCCallShouldWork(t *testing.T) {
 
 	utils.CheckESDTBalance(t, testContextSecondContract, secondSCAddress, token, big.NewInt(2500))
 
-	accumulatedFee := big.NewInt(62330)
+	accumulatedFee := big.NewInt(62340)
 	require.Equal(t, accumulatedFee, testContextSecondContract.TxFeeHandler.GetAccumulatedFees())
 
-	developerFees = big.NewInt(6233)
+	developerFees = big.NewInt(6234)
 	require.Equal(t, developerFees, testContextSecondContract.TxFeeHandler.GetDeveloperFees())
 
 	intermediateTxs = testContextSecondContract.GetIntermediateTransactions(t)
@@ -136,7 +122,7 @@ func TestAsyncESDTTransferWithSCCallShouldWork(t *testing.T) {
 
 	utils.ProcessSCRResult(t, testContextFirstContract, intermediateTxs[1], vmcommon.Ok, nil)
 
-	require.Equal(t, big.NewInt(4936710), testContextFirstContract.TxFeeHandler.GetAccumulatedFees())
+	require.Equal(t, big.NewInt(4936720), testContextFirstContract.TxFeeHandler.GetAccumulatedFees())
 }
 
 func TestAsyncESDTTransferWithSCCallSecondContractAnotherToken(t *testing.T) {
@@ -205,13 +191,6 @@ func TestAsyncESDTTransferWithSCCallSecondContractAnotherToken(t *testing.T) {
 	expectedAccumulatedFees := big.NewInt(950)
 	require.Equal(t, expectedAccumulatedFees, testContextSender.TxFeeHandler.GetAccumulatedFees())
 
-	testIndexer := vm.CreateTestIndexer(t, testContextSender.ShardCoordinator, testContextSender.EconomicsData, false, testContextSender.TxsLogsProcessor)
-	testIndexer.SaveTransaction(tx, block.TxBlock, nil)
-
-	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, uint64(94), indexerTx.GasUsed)
-	require.Equal(t, "940", indexerTx.Fee)
-
 	// execute on the destination shard
 	retCode, err = testContextFirstContract.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
@@ -220,22 +199,15 @@ func TestAsyncESDTTransferWithSCCallSecondContractAnotherToken(t *testing.T) {
 	_, err = testContextSender.Accounts.Commit()
 	require.Nil(t, err)
 
-	expectedAccumulatedFees = big.NewInt(189880)
+	expectedAccumulatedFees = big.NewInt(189890)
 	require.Equal(t, expectedAccumulatedFees, testContextFirstContract.TxFeeHandler.GetAccumulatedFees())
 
-	developerFees := big.NewInt(18988)
+	developerFees := big.NewInt(18989)
 	require.Equal(t, developerFees, testContextFirstContract.TxFeeHandler.GetDeveloperFees())
 
 	utils.CheckESDTBalance(t, testContextFirstContract, firstSCAddress, token, big.NewInt(2500))
 
 	intermediateTxs := testContextFirstContract.GetIntermediateTransactions(t)
-	testIndexer = vm.CreateTestIndexer(t, testContextFirstContract.ShardCoordinator, testContextFirstContract.EconomicsData, true, testContextFirstContract.TxsLogsProcessor)
-	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
-
-	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, uint64(500000), indexerTx.GasUsed)
-	require.Equal(t, "5000000", indexerTx.Fee)
-
 	scrForSecondContract := intermediateTxs[1]
 	require.Equal(t, scrForSecondContract.GetSndAddr(), firstSCAddress)
 	require.Equal(t, scrForSecondContract.GetRcvAddr(), secondSCAddress)
@@ -254,5 +226,5 @@ func TestAsyncESDTTransferWithSCCallSecondContractAnotherToken(t *testing.T) {
 
 	utils.ProcessSCRResult(t, testContextFirstContract, intermediateTxs[0], vmcommon.Ok, nil)
 
-	require.Equal(t, big.NewInt(1278270), testContextFirstContract.TxFeeHandler.GetAccumulatedFees())
+	require.Equal(t, big.NewInt(1278290), testContextFirstContract.TxFeeHandler.GetAccumulatedFees())
 }

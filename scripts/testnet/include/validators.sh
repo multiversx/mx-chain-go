@@ -1,7 +1,7 @@
-source "$ELRONDTESTNETSCRIPTSDIR/include/terminal.sh"
+source "$MULTIVERSXTESTNETSCRIPTSDIR/include/terminal.sh"
 
 startValidators() {
-  setTerminalSession "elrond-nodes"
+  setTerminalSession "multiversx-nodes"
   setTerminalLayout "tiled"
   setWorkdirForNextCommands "$TESTNETDIR/node"
   iterateOverValidators startSingleValidator
@@ -93,7 +93,7 @@ assembleCommand_startValidatorNodeWithWatcher() {
   (( PORT=$PORT_ORIGIN_VALIDATOR + $VALIDATOR_INDEX ))
   WORKING_DIR=$TESTNETDIR/node_working_dirs/validator$VALIDATOR_INDEX
 
-  local source_command="source $ELRONDTESTNETSCRIPTSDIR/include/watcher.sh"
+  local source_command="source $MULTIVERSXTESTNETSCRIPTSDIR/include/watcher.sh"
   local watcher_command="node-start-with-watcher $VALIDATOR_INDEX $PORT &"
   local node_command=$(assembleCommand_startValidatorNode $VALIDATOR_INDEX)
   mkdir -p $WORKING_DIR

@@ -9,22 +9,23 @@ import (
 	"math/big"
 	"sort"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/common"
-	vInfo "github.com/ElrondNetwork/elrond-go/common/validatorInfo"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/vm"
-	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/atomic"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	vInfo "github.com/multiversx/mx-chain-go/common/validatorInfo"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
+	"github.com/multiversx/mx-chain-go/vm"
+	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 type legacySystemSCProcessor struct {
@@ -47,26 +48,8 @@ type legacySystemSCProcessor struct {
 	mapNumSwitchablePerShard     map[uint32]uint32
 	maxNodes                     uint32
 
-	switchEnableEpoch           uint32
-	hystNodesEnableEpoch        uint32
-	delegationEnableEpoch       uint32
-	stakingV2EnableEpoch        uint32
-	correctLastUnJailEpoch      uint32
-	esdtEnableEpoch             uint32
-	saveJailedAlwaysEnableEpoch uint32
-	stakingV4InitEnableEpoch    uint32
-
-	flagSwitchJailedWaiting        atomic.Flag
-	flagHystNodesEnabled           atomic.Flag
-	flagDelegationEnabled          atomic.Flag
-	flagSetOwnerEnabled            atomic.Flag
-	flagChangeMaxNodesEnabled      atomic.Flag
-	flagStakingV2Enabled           atomic.Flag
-	flagCorrectLastUnjailedEnabled atomic.Flag
-	flagCorrectNumNodesToStake     atomic.Flag
-	flagESDTEnabled                atomic.Flag
-	flagSaveJailedAlwaysEnabled    atomic.Flag
-	flagStakingQueueEnabled        atomic.Flag
+	flagChangeMaxNodesEnabled atomic.Flag
+	enableEpochsHandler       common.EnableEpochsHandler
 }
 
 func newLegacySystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*legacySystemSCProcessor, error) {
@@ -88,29 +71,13 @@ func newLegacySystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*lega
 		chanceComputer:               args.ChanceComputer,
 		mapNumSwitchedPerShard:       make(map[uint32]uint32),
 		mapNumSwitchablePerShard:     make(map[uint32]uint32),
-		switchEnableEpoch:            args.EpochConfig.EnableEpochs.SwitchJailWaitingEnableEpoch,
-		hystNodesEnableEpoch:         args.EpochConfig.EnableEpochs.SwitchHysteresisForMinNodesEnableEpoch,
-		delegationEnableEpoch:        args.EpochConfig.EnableEpochs.DelegationSmartContractEnableEpoch,
-		stakingV2EnableEpoch:         args.EpochConfig.EnableEpochs.StakingV2EnableEpoch,
-		esdtEnableEpoch:              args.EpochConfig.EnableEpochs.ESDTEnableEpoch,
 		stakingDataProvider:          args.StakingDataProvider,
 		nodesConfigProvider:          args.NodesConfigProvider,
 		shardCoordinator:             args.ShardCoordinator,
-		correctLastUnJailEpoch:       args.EpochConfig.EnableEpochs.CorrectLastUnjailedEnableEpoch,
 		esdtOwnerAddressBytes:        args.ESDTOwnerAddressBytes,
-		saveJailedAlwaysEnableEpoch:  args.EpochConfig.EnableEpochs.SaveJailedAlwaysEnableEpoch,
-		stakingV4InitEnableEpoch:     args.EpochConfig.EnableEpochs.StakingV4InitEnableEpoch,
 		maxNodesChangeConfigProvider: args.MaxNodesChangeConfigProvider,
+		enableEpochsHandler:          args.EnableEpochsHandler,
 	}
-
-	log.Debug("legacySystemSC: enable epoch for switch jail waiting", "epoch", legacy.switchEnableEpoch)
-	log.Debug("legacySystemSC: enable epoch for switch hysteresis for min nodes", "epoch", legacy.hystNodesEnableEpoch)
-	log.Debug("legacySystemSC: enable epoch for delegation manager", "epoch", legacy.delegationEnableEpoch)
-	log.Debug("legacySystemSC: enable epoch for staking v2", "epoch", legacy.stakingV2EnableEpoch)
-	log.Debug("legacySystemSC: enable epoch for ESDT", "epoch", legacy.esdtEnableEpoch)
-	log.Debug("legacySystemSC: enable epoch for correct last unjailed", "epoch", legacy.correctLastUnJailEpoch)
-	log.Debug("legacySystemSC: enable epoch for save jailed always", "epoch", legacy.saveJailedAlwaysEnableEpoch)
-	log.Debug("legacySystemSC: enable epoch for initializing staking v4", "epoch", legacy.stakingV4InitEnableEpoch)
 
 	return legacy, nil
 }
@@ -155,6 +122,9 @@ func checkLegacyArgs(args ArgsNewEpochStartSystemSCProcessing) error {
 	if check.IfNil(args.MaxNodesChangeConfigProvider) {
 		return epochStart.ErrNilMaxNodesChangeConfigProvider
 	}
+	if check.IfNil(args.EnableEpochsHandler) {
+		return process.ErrNilEnableEpochsHandler
+	}
 	if len(args.ESDTOwnerAddressBytes) == 0 {
 		return epochStart.ErrEmptyESDTOwnerAddress
 	}
@@ -167,14 +137,14 @@ func (s *legacySystemSCProcessor) processLegacy(
 	nonce uint64,
 	epoch uint32,
 ) error {
-	if s.flagHystNodesEnabled.IsSet() {
+	if s.enableEpochsHandler.IsSwitchHysteresisForMinNodesFlagEnabledForCurrentEpoch() {
 		err := s.updateSystemSCConfigMinNodes()
 		if err != nil {
 			return err
 		}
 	}
 
-	if s.flagSetOwnerEnabled.IsSet() {
+	if s.enableEpochsHandler.IsStakingV2OwnerFlagEnabled() {
 		err := s.updateOwnersForBlsKeys()
 		if err != nil {
 			return err
@@ -188,28 +158,28 @@ func (s *legacySystemSCProcessor) processLegacy(
 		}
 	}
 
-	if s.flagCorrectLastUnjailedEnabled.IsSet() {
+	if s.enableEpochsHandler.IsCorrectLastUnJailedFlagEnabledForCurrentEpoch() {
 		err := s.resetLastUnJailed()
 		if err != nil {
 			return err
 		}
 	}
 
-	if s.flagDelegationEnabled.IsSet() {
+	if s.enableEpochsHandler.IsDelegationSmartContractFlagEnabledForCurrentEpoch() {
 		err := s.initDelegationSystemSC()
 		if err != nil {
 			return err
 		}
 	}
 
-	if s.flagCorrectNumNodesToStake.IsSet() {
+	if s.enableEpochsHandler.IsCorrectLastUnJailedFlagEnabled() && !s.enableEpochsHandler.IsStakingV4Enabled() {
 		err := s.cleanAdditionalQueue()
 		if err != nil {
 			return err
 		}
 	}
 
-	if s.flagSwitchJailedWaiting.IsSet() {
+	if s.enableEpochsHandler.IsSwitchJailWaitingFlagEnabled() && !s.enableEpochsHandler.IsStakingV4Enabled() {
 		err := s.computeNumWaitingPerShard(validatorsInfoMap)
 		if err != nil {
 			return err
@@ -221,7 +191,7 @@ func (s *legacySystemSCProcessor) processLegacy(
 		}
 	}
 
-	if s.flagStakingV2Enabled.IsSet() {
+	if s.enableEpochsHandler.IsStakingV2FlagEnabled() && !s.enableEpochsHandler.IsStakingV4Enabled() {
 		err := s.prepareStakingDataForEligibleNodes(validatorsInfoMap)
 		if err != nil {
 			return err
@@ -237,7 +207,7 @@ func (s *legacySystemSCProcessor) processLegacy(
 			return err
 		}
 
-		if s.flagStakingQueueEnabled.IsSet() {
+		if s.enableEpochsHandler.IsStakingQueueEnabled() {
 			err = s.stakeNodesFromQueue(validatorsInfoMap, numUnStaked, nonce, common.NewList)
 			if err != nil {
 				return err
@@ -245,7 +215,7 @@ func (s *legacySystemSCProcessor) processLegacy(
 		}
 	}
 
-	if s.flagESDTEnabled.IsSet() {
+	if s.enableEpochsHandler.IsESDTFlagEnabledForCurrentEpoch() {
 		err := s.initESDT()
 		if err != nil {
 			// not a critical error
@@ -258,7 +228,7 @@ func (s *legacySystemSCProcessor) processLegacy(
 
 // ToggleUnStakeUnBond will pause/unPause the unStake/unBond functions on the validator system sc
 func (s *legacySystemSCProcessor) ToggleUnStakeUnBond(value bool) error {
-	if !s.flagStakingV2Enabled.IsSet() {
+	if !s.enableEpochsHandler.IsStakingV2FlagEnabled() {
 		return nil
 	}
 
@@ -616,7 +586,7 @@ func (s *legacySystemSCProcessor) updateMaxNodes(validatorsInfoMap state.ShardVa
 		return err
 	}
 
-	if s.flagStakingQueueEnabled.IsSet() {
+	if s.enableEpochsHandler.IsStakingQueueEnabled() {
 		sw.Start("stakeNodesFromQueue")
 		err = s.stakeNodesFromQueue(validatorsInfoMap, maxNumberOfNodes-prevMaxNumberOfNodes, nonce, common.NewList)
 		sw.Stop("stakeNodesFromQueue")
@@ -715,7 +685,7 @@ func (s *legacySystemSCProcessor) stakingToValidatorStatistics(
 	}
 	if activeStorageUpdate == nil {
 		log.Debug("no one in waiting suitable for switch")
-		if s.flagSaveJailedAlwaysEnabled.IsSet() {
+		if s.enableEpochsHandler.IsSaveJailedAlwaysFlagEnabled() {
 			err := s.processSCOutputAccounts(vmOutput)
 			if err != nil {
 				return nil, err
@@ -829,7 +799,7 @@ func (s *legacySystemSCProcessor) processSCOutputAccounts(
 
 		storageUpdates := process.GetSortedStorageUpdates(outAcc)
 		for _, storeUpdate := range storageUpdates {
-			err = acc.DataTrieTracker().SaveKeyValue(storeUpdate.Offset, storeUpdate.Data)
+			err = acc.SaveKeyValue(storeUpdate.Offset, storeUpdate.Data)
 			if err != nil {
 				return err
 			}
@@ -1012,12 +982,15 @@ func (s *legacySystemSCProcessor) getArgumentsForSetOwnerFunctionality(userValid
 		return nil, err
 	}
 
-	chLeaves := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
-	err = userValidatorAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, context.Background(), rootHash)
+	leavesChannels := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    make(chan error, 1),
+	}
+	err = userValidatorAccount.DataTrie().GetAllLeavesOnChannel(leavesChannels, context.Background(), rootHash, keyBuilder.NewKeyBuilder())
 	if err != nil {
 		return nil, err
 	}
-	for leaf := range chLeaves {
+	for leaf := range leavesChannels.LeavesChan {
 		validatorData := &systemSmartContracts.ValidatorDataV2{}
 		value, errTrim := leaf.ValueWithoutSuffix(append(leaf.Key(), vm.ValidatorSCAddress...))
 		if errTrim != nil {
@@ -1351,12 +1324,6 @@ func getRewardsMiniBlockForMeta(miniBlocks block.MiniBlockSlice) *block.MiniBloc
 }
 
 func (s *legacySystemSCProcessor) legacyEpochConfirmed(epoch uint32) {
-	s.flagSwitchJailedWaiting.SetValue(epoch >= s.switchEnableEpoch && epoch <= s.stakingV4InitEnableEpoch)
-	log.Debug("legacySystemSC: switch jail with waiting", "enabled", s.flagSwitchJailedWaiting.IsSet())
-
-	// only toggle on exact epoch. In future epochs the config should have already been synchronized from peers
-	s.flagHystNodesEnabled.SetValue(epoch == s.hystNodesEnableEpoch)
-
 	s.flagChangeMaxNodesEnabled.SetValue(false)
 	for _, maxNodesConfig := range s.maxNodesChangeConfigProvider.GetAllNodesConfig() {
 		if epoch == maxNodesConfig.EpochEnable {
@@ -1366,34 +1333,9 @@ func (s *legacySystemSCProcessor) legacyEpochConfirmed(epoch uint32) {
 	}
 	s.maxNodes = s.maxNodesChangeConfigProvider.GetCurrentNodesConfig().MaxNumNodes
 
-	log.Debug("legacySystemSC: consider also (minimum) hysteresis nodes for minimum number of nodes",
-		"enabled", epoch >= s.hystNodesEnableEpoch)
-
-	// only toggle on exact epoch as init should be called only once
-	s.flagDelegationEnabled.SetValue(epoch == s.delegationEnableEpoch)
-	log.Debug("systemSCProcessor: delegation", "enabled", epoch >= s.delegationEnableEpoch)
-
-	s.flagSetOwnerEnabled.SetValue(epoch == s.stakingV2EnableEpoch)
-	s.flagStakingV2Enabled.SetValue(epoch >= s.stakingV2EnableEpoch && epoch <= s.stakingV4InitEnableEpoch)
-	log.Debug("legacySystemSC: stakingV2", "enabled", s.flagStakingV2Enabled.IsSet())
 	log.Debug("legacySystemSC: change of maximum number of nodes and/or shuffling percentage",
 		"enabled", s.flagChangeMaxNodesEnabled.IsSet(),
 		"epoch", epoch,
 		"maxNodes", s.maxNodes,
 	)
-
-	s.flagCorrectLastUnjailedEnabled.SetValue(epoch == s.correctLastUnJailEpoch)
-	log.Debug("legacySystemSC: correct last unjailed", "enabled", s.flagCorrectLastUnjailedEnabled.IsSet())
-
-	s.flagCorrectNumNodesToStake.SetValue(epoch >= s.correctLastUnJailEpoch && epoch <= s.stakingV4InitEnableEpoch)
-	log.Debug("legacySystemSC: correct last unjailed", "enabled", s.flagCorrectNumNodesToStake.IsSet())
-
-	s.flagESDTEnabled.SetValue(epoch == s.esdtEnableEpoch)
-	log.Debug("legacySystemSC: ESDT initialization", "enabled", s.flagESDTEnabled.IsSet())
-
-	s.flagSaveJailedAlwaysEnabled.SetValue(epoch >= s.saveJailedAlwaysEnableEpoch)
-	log.Debug("legacySystemSC: save jailed always", "enabled", s.flagSaveJailedAlwaysEnabled.IsSet())
-
-	s.flagStakingQueueEnabled.SetValue(epoch < s.stakingV4InitEnableEpoch)
-	log.Debug("legacySystemSC: staking queue on meta", "enabled", s.flagStakingQueueEnabled.IsSet())
 }

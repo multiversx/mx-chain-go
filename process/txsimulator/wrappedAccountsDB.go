@@ -3,11 +3,10 @@ package txsimulator
 import (
 	"context"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/state"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/state"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // readOnlyAccountsDB is a wrapper over an accounts db which works read-only. write operation are disabled
@@ -22,6 +21,16 @@ func NewReadOnlyAccountsDB(accountsDB state.AccountsAdapter) (*readOnlyAccountsD
 	}
 
 	return &readOnlyAccountsDB{originalAccounts: accountsDB}, nil
+}
+
+// SetSyncer returns nil for this implementation
+func (r *readOnlyAccountsDB) SetSyncer(_ state.AccountsDBSyncer) error {
+	return nil
+}
+
+// StartSnapshotIfNeeded returns nil for this implementation
+func (r *readOnlyAccountsDB) StartSnapshotIfNeeded() error {
+	return nil
 }
 
 // GetCode returns the code for the given account
@@ -79,6 +88,11 @@ func (r *readOnlyAccountsDB) RecreateTrie(_ []byte) error {
 	return nil
 }
 
+// RecreateTrieFromEpoch won't do anything as write operations are disabled on this component
+func (r *readOnlyAccountsDB) RecreateTrieFromEpoch(_ common.RootHashHolder) error {
+	return nil
+}
+
 // PruneTrie won't do anything as write operations are disabled on this component
 func (r *readOnlyAccountsDB) PruneTrie(_ []byte, _ state.TriePruningIdentifier, _ state.PruningHandler) {
 }
@@ -101,8 +115,8 @@ func (r *readOnlyAccountsDB) IsPruningEnabled() bool {
 }
 
 // GetAllLeaves will call the original accounts' function with the same name
-func (r *readOnlyAccountsDB) GetAllLeaves(leavesChannel chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
-	return r.originalAccounts.GetAllLeaves(leavesChannel, ctx, rootHash)
+func (r *readOnlyAccountsDB) GetAllLeaves(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error {
+	return r.originalAccounts.GetAllLeaves(leavesChannels, ctx, rootHash)
 }
 
 // RecreateAllTries will return an error which indicates that this operation is not supported

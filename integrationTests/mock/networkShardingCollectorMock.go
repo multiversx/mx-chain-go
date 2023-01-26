@@ -3,7 +3,7 @@ package mock
 import (
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/multiversx/mx-chain-core-go/core"
 )
 
 type networkShardingCollectorMock struct {
@@ -87,13 +87,13 @@ func (nscm *networkShardingCollectorMock) GetPeerInfo(pid core.PeerID) core.P2PP
 }
 
 // GetLastKnownPeerID -
-func (nscm *networkShardingCollectorMock) GetLastKnownPeerID(pk []byte) (*core.PeerID, bool) {
+func (nscm *networkShardingCollectorMock) GetLastKnownPeerID(pk []byte) (core.PeerID, bool) {
 	nscm.mutMaps.RLock()
 	defer nscm.mutMaps.RUnlock()
 
 	pid, ok := nscm.pkPeerIdMap[string(pk)]
 
-	return &pid, ok
+	return pid, ok
 }
 
 // IsInterfaceNil -

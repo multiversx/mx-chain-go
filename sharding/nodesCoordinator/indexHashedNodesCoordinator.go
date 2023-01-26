@@ -7,19 +7,20 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	atomicFlags "github.com/ElrondNetwork/elrond-go-core/core/atomic"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/multiversx/mx-chain-core-go/core"
+	atomicFlags "github.com/multiversx/mx-chain-core-go/core/atomic"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var _ NodesCoordinator = (*indexHashedNodesCoordinator)(nil)
@@ -91,13 +92,14 @@ type indexHashedNodesCoordinator struct {
 	shuffledOutHandler              ShuffledOutHandler
 	startEpoch                      uint32
 	publicKeyToValidatorMap         map[string]*validatorWithShardID
-	waitingListFixEnableEpoch       uint32
-	stakingV4EnableEpoch            uint32
 	isFullArchive                   bool
 	chanStopNode                    chan endProcess.ArgEndProcess
 	flagWaitingListFix              atomicFlags.Flag
-	flagStakingV4                   atomicFlags.Flag
 	nodeTypeProvider                NodeTypeProviderHandler
+	enableEpochsHandler             common.EnableEpochsHandler
+	validatorInfoCacher             epochStart.ValidatorInfoCacher
+	stakingV4EnableEpoch            uint32
+	flagStakingV4                   atomicFlags.Flag
 	nodesCoordinatorRegistryFactory NodesCoordinatorRegistryFactory
 }
 
@@ -142,15 +144,14 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		shuffledOutHandler:              arguments.ShuffledOutHandler,
 		startEpoch:                      arguments.StartEpoch,
 		publicKeyToValidatorMap:         make(map[string]*validatorWithShardID),
-		waitingListFixEnableEpoch:       arguments.WaitingListFixEnabledEpoch,
-		stakingV4EnableEpoch:            arguments.StakingV4EnableEpoch,
 		chanStopNode:                    arguments.ChanStopNode,
 		nodeTypeProvider:                arguments.NodeTypeProvider,
 		isFullArchive:                   arguments.IsFullArchive,
+		enableEpochsHandler:             arguments.EnableEpochsHandler,
+		validatorInfoCacher:             arguments.ValidatorInfoCacher,
+		stakingV4EnableEpoch:            arguments.StakingV4EnableEpoch,
 		nodesCoordinatorRegistryFactory: arguments.NodesCoordinatorRegistryFactory,
 	}
-	log.Debug("indexHashedNodesCoordinator: enable epoch for waiting waiting list", "epoch", ihnc.waitingListFixEnableEpoch)
-	log.Debug("indexHashedNodesCoordinator: enable epoch for staking v4", "epoch", ihnc.stakingV4EnableEpoch)
 
 	ihnc.loadingFromDisk.Store(false)
 
@@ -230,6 +231,12 @@ func checkArguments(arguments ArgNodesCoordinator) error {
 	if nil == arguments.ChanStopNode {
 		return ErrNilNodeStopChannel
 	}
+	if check.IfNil(arguments.EnableEpochsHandler) {
+		return ErrNilEnableEpochsHandler
+	}
+	if check.IfNil(arguments.ValidatorInfoCacher) {
+		return ErrNilValidatorInfoCacher
+	}
 
 	return nil
 }
@@ -273,14 +280,14 @@ func (ihnc *indexHashedNodesCoordinator) setNodesPerShards(
 	}
 
 	var err error
-	var isValidator bool
+	var isCurrentNodeValidator bool
 	// nbShards holds number of shards without meta
 	nodesConfig.nbShards = uint32(len(eligible) - 1)
 	nodesConfig.eligibleMap = eligible
 	nodesConfig.waitingMap = waiting
 	nodesConfig.leavingMap = leaving
 	nodesConfig.shuffledOutMap = shuffledOut
-	nodesConfig.shardID, isValidator = ihnc.computeShardForSelfPublicKey(nodesConfig)
+	nodesConfig.shardID, isCurrentNodeValidator = ihnc.computeShardForSelfPublicKey(nodesConfig)
 	nodesConfig.selectors, err = ihnc.createSelectors(nodesConfig)
 	if err != nil {
 		return err
@@ -288,9 +295,9 @@ func (ihnc *indexHashedNodesCoordinator) setNodesPerShards(
 
 	ihnc.nodesConfig[epoch] = nodesConfig
 	ihnc.numTotalEligible = numTotalEligible
-	ihnc.setNodeType(isValidator)
+	ihnc.setNodeType(isCurrentNodeValidator)
 
-	if ihnc.isFullArchive && isValidator {
+	if ihnc.isFullArchive && isCurrentNodeValidator {
 		ihnc.chanStopNode <- endProcess.ArgEndProcess{
 			Reason:      common.WrongConfiguration,
 			Description: ErrValidatorCannotBeFullArchive.Error(),
@@ -316,7 +323,7 @@ func (ihnc *indexHashedNodesCoordinator) ComputeAdditionalLeaving(_ []*state.Sha
 	return make(map[uint32][]Validator), nil
 }
 
-// ComputeConsensusGroup will generate a list of validators based on the the eligible list
+// ComputeConsensusGroup will generate a list of validators based on the eligible list
 // and each eligible validator weight/chance
 func (ihnc *indexHashedNodesCoordinator) ComputeConsensusGroup(
 	randomness []byte,
@@ -597,14 +604,13 @@ func (ihnc *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 		return
 	}
 
-	allValidatorInfo, err := createValidatorInfoFromBody(body, ihnc.marshalizer, ihnc.numTotalEligible)
+	ihnc.updateEpochFlags(newEpoch)
+
+	allValidatorInfo, err := ihnc.createValidatorInfoFromBody(body, ihnc.numTotalEligible, newEpoch)
 	if err != nil {
-		log.Error("could not create validator info from body - do nothing on nodesCoordinator epochStartPrepare",
-			"error", err)
+		log.Error("could not create validator info from body - do nothing on nodesCoordinator epochStartPrepare", "error", err.Error())
 		return
 	}
-
-	ihnc.updateEpochFlags(newEpoch)
 
 	ihnc.mutNodesConfig.RLock()
 	previousConfig := ihnc.nodesConfig[ihnc.currentEpoch]
@@ -677,9 +683,7 @@ func (ihnc *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 
 	ihnc.fillPublicKeyToValidatorMap()
 	err = ihnc.saveState(randomness, newEpoch)
-	if err != nil {
-		log.Error("saving nodes coordinator config failed", "error", err.Error())
-	}
+	ihnc.handleErrorLog(err, "saving nodes coordinator config failed")
 
 	displayNodesConfiguration(
 		resUpdateNodes.Eligible,
@@ -854,6 +858,19 @@ func (ihnc *indexHashedNodesCoordinator) addValidatorToPreviousMap(
 	}
 }
 
+func (ihnc *indexHashedNodesCoordinator) handleErrorLog(err error, message string) {
+	if err == nil {
+		return
+	}
+
+	logLevel := logger.LogError
+	if errors.IsClosingError(err) {
+		logLevel = logger.LogDebug
+	}
+
+	log.Log(logLevel, message, "error", err.Error())
+}
+
 // EpochStartAction is called upon a start of epoch event.
 // NodeCoordinator has to get the nodes assignment to shards using the shuffler.
 func (ihnc *indexHashedNodesCoordinator) EpochStartAction(hdr data.HeaderHandler) {
@@ -863,9 +880,7 @@ func (ihnc *indexHashedNodesCoordinator) EpochStartAction(hdr data.HeaderHandler
 	ihnc.currentEpoch = newEpoch
 
 	err := ihnc.saveState(ihnc.savedStateKey, newEpoch)
-	if err != nil {
-		log.Error("saving nodes coordinator config failed", "error", err.Error())
-	}
+	ihnc.handleErrorLog(err, "saving nodes coordinator config failed")
 
 	ihnc.mutNodesConfig.Lock()
 	if needToRemove {
@@ -1227,10 +1242,10 @@ func selectValidators(
 }
 
 // createValidatorInfoFromBody unmarshalls body data to create validator info
-func createValidatorInfoFromBody(
+func (ihnc *indexHashedNodesCoordinator) createValidatorInfoFromBody(
 	body data.BodyHandler,
-	marshalizer marshal.Marshalizer,
 	previousTotal uint64,
+	epoch uint32,
 ) ([]*state.ShardValidatorInfo, error) {
 	if check.IfNil(body) {
 		return nil, ErrNilBlockBody
@@ -1248,21 +1263,39 @@ func createValidatorInfoFromBody(
 		}
 
 		for _, txHash := range peerMiniBlock.TxHashes {
-			vid := &state.ShardValidatorInfo{}
-			err := marshalizer.Unmarshal(vid, txHash)
+			shardValidatorInfo, err := ihnc.getShardValidatorInfoData(txHash, epoch)
 			if err != nil {
 				return nil, err
 			}
 
-			allValidatorInfo = append(allValidatorInfo, vid)
+			allValidatorInfo = append(allValidatorInfo, shardValidatorInfo)
 		}
 	}
 
 	return allValidatorInfo, nil
 }
 
+func (ihnc *indexHashedNodesCoordinator) getShardValidatorInfoData(txHash []byte, epoch uint32) (*state.ShardValidatorInfo, error) {
+	if epoch >= ihnc.enableEpochsHandler.RefactorPeersMiniBlocksEnableEpoch() {
+		shardValidatorInfo, err := ihnc.validatorInfoCacher.GetValidatorInfo(txHash)
+		if err != nil {
+			return nil, err
+		}
+
+		return shardValidatorInfo, nil
+	}
+
+	shardValidatorInfo := &state.ShardValidatorInfo{}
+	err := ihnc.marshalizer.Unmarshal(shardValidatorInfo, txHash)
+	if err != nil {
+		return nil, err
+	}
+
+	return shardValidatorInfo, nil
+}
+
 func (ihnc *indexHashedNodesCoordinator) updateEpochFlags(epoch uint32) {
-	ihnc.flagWaitingListFix.SetValue(epoch >= ihnc.waitingListFixEnableEpoch)
+	ihnc.flagWaitingListFix.SetValue(epoch >= ihnc.enableEpochsHandler.WaitingListFixEnableEpoch())
 	log.Debug("indexHashedNodesCoordinator: waiting list fix", "enabled", ihnc.flagWaitingListFix.IsSet())
 
 	ihnc.flagStakingV4.SetValue(epoch >= ihnc.stakingV4EnableEpoch)

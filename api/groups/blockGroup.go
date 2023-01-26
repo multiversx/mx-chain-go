@@ -1,30 +1,39 @@
 package groups
 
 import (
+	"encoding/hex"
 	"fmt"
 	"net/http"
 	"strconv"
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/api"
-	"github.com/ElrondNetwork/elrond-go/api/errors"
-	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/gin-gonic/gin"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-go/api/errors"
+	"github.com/multiversx/mx-chain-go/api/shared"
+	"github.com/multiversx/mx-chain-go/api/shared/logging"
 )
 
 const (
-	getBlockByNoncePath = "/by-nonce/:nonce"
-	getBlockByHashPath  = "/by-hash/:hash"
-	getBlockByRoundPath = "/by-round/:round"
+	getBlockByNoncePath       = "/by-nonce/:nonce"
+	getBlockByHashPath        = "/by-hash/:hash"
+	getBlockByRoundPath       = "/by-round/:round"
+	getAlteredAccountsByNonce = "/altered-accounts/by-nonce/:nonce"
+	getAlteredAccountsByHash  = "/altered-accounts/by-hash/:hash"
+	urlParamTokensFilter      = "tokens"
+	urlParamWithTxs           = "withTxs"
+	urlParamWithLogs          = "withLogs"
 )
 
 // blockFacadeHandler defines the methods to be implemented by a facade for handling block requests
 type blockFacadeHandler interface {
-	GetBlockByHash(hash string, withTxs bool) (*api.Block, error)
-	GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error)
-	GetBlockByRound(round uint64, withTxs bool) (*api.Block, error)
+	GetBlockByHash(hash string, options api.BlockQueryOptions) (*api.Block, error)
+	GetBlockByNonce(nonce uint64, options api.BlockQueryOptions) (*api.Block, error)
+	GetBlockByRound(round uint64, options api.BlockQueryOptions) (*api.Block, error)
+	GetAlteredAccountsForBlock(options api.GetAlteredAccountsForBlockOptions) ([]*outport.AlteredAccount, error)
 	IsInterfaceNil() bool
 }
 
@@ -61,6 +70,16 @@ func NewBlockGroup(facade blockFacadeHandler) (*blockGroup, error) {
 			Method:  http.MethodGet,
 			Handler: bg.getBlockByRound,
 		},
+		{
+			Path:    getAlteredAccountsByNonce,
+			Method:  http.MethodGet,
+			Handler: bg.getAlteredAccountsByNonce,
+		},
+		{
+			Path:    getAlteredAccountsByHash,
+			Method:  http.MethodGet,
+			Handler: bg.getAlteredAccountsByHash,
+		},
 	}
 	bg.endpoints = endpoints
 
@@ -70,31 +89,21 @@ func NewBlockGroup(facade blockFacadeHandler) (*blockGroup, error) {
 func (bg *blockGroup) getBlockByNonce(c *gin.Context) {
 	nonce, err := getQueryParamNonce(c)
 	if err != nil {
-		shared.RespondWithValidationError(
-			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrInvalidBlockNonce.Error()),
-		)
+		shared.RespondWithValidationError(c, errors.ErrGetBlock, errors.ErrInvalidBlockNonce)
 		return
 	}
 
-	withTxs, err := getQueryParamWithTxs(c)
+	options, err := parseBlockQueryOptions(c)
 	if err != nil {
-		shared.RespondWithValidationError(
-			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrInvalidQueryParameter.Error()),
-		)
+		shared.RespondWithValidationError(c, errors.ErrGetBlock, errors.ErrBadUrlParams)
 		return
 	}
 
 	start := time.Now()
-	block, err := bg.getFacade().GetBlockByNonce(nonce, withTxs)
-	log.Debug(fmt.Sprintf("GetBlockByNonce took %s", time.Since(start)))
+	block, err := bg.getFacade().GetBlockByNonce(nonce, options)
+	logging.LogAPIActionDurationIfNeeded(start, "API call: GetBlockByNonce")
 	if err != nil {
-		shared.RespondWith(
-			c,
-			http.StatusInternalServerError,
-			nil,
-			fmt.Sprintf("%s: %s", errors.ErrGetBlock.Error(), err.Error()),
-			shared.ReturnCodeInternalError,
-		)
+		shared.RespondWithInternalError(c, errors.ErrGetBlock, err)
 		return
 	}
 
@@ -105,31 +114,21 @@ func (bg *blockGroup) getBlockByNonce(c *gin.Context) {
 func (bg *blockGroup) getBlockByHash(c *gin.Context) {
 	hash := c.Param("hash")
 	if hash == "" {
-		shared.RespondWithValidationError(
-			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrValidationEmptyBlockHash.Error()),
-		)
+		shared.RespondWithValidationError(c, errors.ErrGetBlock, errors.ErrValidationEmptyBlockHash)
 		return
 	}
 
-	withTxs, err := getQueryParamWithTxs(c)
+	options, err := parseBlockQueryOptions(c)
 	if err != nil {
-		shared.RespondWithValidationError(
-			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrInvalidBlockNonce.Error()),
-		)
+		shared.RespondWithValidationError(c, errors.ErrGetBlock, errors.ErrBadUrlParams)
 		return
 	}
 
 	start := time.Now()
-	block, err := bg.getFacade().GetBlockByHash(hash, withTxs)
-	log.Debug(fmt.Sprintf("GetBlockByHash took %s", time.Since(start)))
+	block, err := bg.getFacade().GetBlockByHash(hash, options)
+	logging.LogAPIActionDurationIfNeeded(start, "API call: GetBlockByHash")
 	if err != nil {
-		shared.RespondWith(
-			c,
-			http.StatusInternalServerError,
-			nil,
-			fmt.Sprintf("%s: %s", errors.ErrGetBlock.Error(), err.Error()),
-			shared.ReturnCodeInternalError,
-		)
+		shared.RespondWithInternalError(c, errors.ErrGetBlock, err)
 		return
 	}
 
@@ -139,49 +138,117 @@ func (bg *blockGroup) getBlockByHash(c *gin.Context) {
 func (bg *blockGroup) getBlockByRound(c *gin.Context) {
 	round, err := getQueryParamRound(c)
 	if err != nil {
-		shared.RespondWithValidationError(
-			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrInvalidBlockRound.Error()),
-		)
+		shared.RespondWithValidationError(c, errors.ErrGetBlock, errors.ErrInvalidBlockRound)
 		return
 	}
 
-	withTxs, err := getQueryParamWithTxs(c)
+	options, err := parseBlockQueryOptions(c)
 	if err != nil {
-		shared.RespondWithValidationError(
-			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrInvalidQueryParameter.Error()),
-		)
+		shared.RespondWithValidationError(c, errors.ErrGetBlock, errors.ErrBadUrlParams)
 		return
 	}
 
 	start := time.Now()
-	block, err := bg.getFacade().GetBlockByRound(round, withTxs)
-	log.Debug(fmt.Sprintf("GetBlockByRound took %s", time.Since(start)))
+	block, err := bg.getFacade().GetBlockByRound(round, options)
+	logging.LogAPIActionDurationIfNeeded(start, "API call: GetBlockByRound")
 	if err != nil {
-		shared.RespondWith(
-			c,
-			http.StatusInternalServerError,
-			nil,
-			fmt.Sprintf("%s: %s", errors.ErrGetBlock.Error(), err.Error()),
-			shared.ReturnCodeInternalError,
-		)
+		shared.RespondWithInternalError(c, errors.ErrGetBlock, err)
 		return
 	}
 
 	shared.RespondWith(c, http.StatusOK, gin.H{"block": block}, "", shared.ReturnCodeSuccess)
 }
 
-func getQueryParamWithTxs(c *gin.Context) (bool, error) {
-	withTxsStr := c.Request.URL.Query().Get("withTxs")
-	if withTxsStr == "" {
-		return false, nil
+func (bg *blockGroup) getAlteredAccountsByNonce(c *gin.Context) {
+	nonce, err := getQueryParamNonce(c)
+	if err != nil {
+		shared.RespondWithValidationError(c, errors.ErrGetAlteredAccountsForBlock, errors.ErrInvalidBlockRound)
+		return
 	}
 
-	return strconv.ParseBool(withTxsStr)
+	options, err := parseAlteredAccountsForBlockQueryOptionsWithoutRequestType(c)
+	if err != nil {
+		shared.RespondWithValidationError(c, errors.ErrGetAlteredAccountsForBlock, err)
+		return
+	}
+
+	options.GetBlockParameters = api.GetBlockParameters{
+		RequestType: api.BlockFetchTypeByNonce,
+		Nonce:       nonce,
+	}
+
+	start := time.Now()
+	alteredAccountsResponse, err := bg.getFacade().GetAlteredAccountsForBlock(options)
+	logging.LogAPIActionDurationIfNeeded(start, "API call: GetAlteredAccountsForBlock by nonce")
+	if err != nil {
+		shared.RespondWithInternalError(c, errors.ErrGetAlteredAccountsForBlock, err)
+		return
+	}
+
+	shared.RespondWithSuccess(c, gin.H{"accounts": alteredAccountsResponse})
+}
+
+func (bg *blockGroup) getAlteredAccountsByHash(c *gin.Context) {
+	hash, err := getQueryParamHash(c)
+	if err != nil {
+		shared.RespondWithValidationError(c, errors.ErrGetAlteredAccountsForBlock, err)
+		return
+	}
+
+	options, err := parseAlteredAccountsForBlockQueryOptionsWithoutRequestType(c)
+	if err != nil {
+		shared.RespondWithValidationError(c, errors.ErrGetAlteredAccountsForBlock, err)
+		return
+	}
+
+	options.GetBlockParameters = api.GetBlockParameters{
+		RequestType: api.BlockFetchTypeByHash,
+		Hash:        hash,
+	}
+
+	start := time.Now()
+	alteredAccountsResponse, err := bg.getFacade().GetAlteredAccountsForBlock(options)
+	logging.LogAPIActionDurationIfNeeded(start, "API call: GetAlteredAccountsForBlock by hash")
+	if err != nil {
+		shared.RespondWithInternalError(c, errors.ErrGetAlteredAccountsForBlock, err)
+		return
+	}
+
+	shared.RespondWithSuccess(c, gin.H{"accounts": alteredAccountsResponse})
+}
+
+func parseBlockQueryOptions(c *gin.Context) (api.BlockQueryOptions, error) {
+	withTxs, err := parseBoolUrlParam(c, urlParamWithTxs)
+	if err != nil {
+		return api.BlockQueryOptions{}, err
+	}
+
+	withLogs, err := parseBoolUrlParam(c, urlParamWithLogs)
+	if err != nil {
+		return api.BlockQueryOptions{}, err
+	}
+
+	options := api.BlockQueryOptions{WithTransactions: withTxs, WithLogs: withLogs}
+	return options, nil
+}
+
+func parseAlteredAccountsForBlockQueryOptionsWithoutRequestType(c *gin.Context) (api.GetAlteredAccountsForBlockOptions, error) {
+	tokensFilter := c.Request.URL.Query().Get(urlParamTokensFilter)
+
+	return api.GetAlteredAccountsForBlockOptions{
+		TokensFilter: tokensFilter,
+	}, nil
 }
 
 func getQueryParamNonce(c *gin.Context) (uint64, error) {
 	nonceStr := c.Param("nonce")
 	return strconv.ParseUint(nonceStr, 10, 64)
+}
+
+func getQueryParamHash(c *gin.Context) ([]byte, error) {
+	hash := c.Param("hash")
+
+	return hex.DecodeString(hash)
 }
 
 func getQueryParamRound(c *gin.Context) (uint64, error) {

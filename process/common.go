@@ -4,27 +4,56 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	"math"
 	"math/big"
 	"sort"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/state"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/scheduled"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/state"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 var log = logger.GetOrCreate("process")
+
+// ShardedCacheSearchMethod defines the algorithm for searching through a sharded cache
+type ShardedCacheSearchMethod byte
+
+const (
+	// SearchMethodJustPeek will make the algorithm invoke just Peek method
+	SearchMethodJustPeek ShardedCacheSearchMethod = iota
+
+	// SearchMethodSearchFirst will make the algorithm invoke just SearchFirst method
+	SearchMethodSearchFirst
+
+	// SearchMethodPeekWithFallbackSearchFirst will first try a Peek method. If the data is not found will fall back
+	// to SearchFirst method
+	SearchMethodPeekWithFallbackSearchFirst
+)
+
+// ToString converts the ShardedCacheSearchMethod to its string representation
+func (method ShardedCacheSearchMethod) ToString() string {
+	switch method {
+	case SearchMethodJustPeek:
+		return "just peek"
+	case SearchMethodSearchFirst:
+		return "search first"
+	case SearchMethodPeekWithFallbackSearchFirst:
+		return "peek with fallback to search first"
+	default:
+		return fmt.Sprintf("unknown method %d", method)
+	}
+}
 
 // GetShardHeader gets the header, which is associated with the given hash, from pool or storage
 func GetShardHeader(
@@ -112,6 +141,19 @@ func GetMetaHeaderFromPool(
 	return hdr, nil
 }
 
+// GetHeaderFromStorage method returns a block header from storage
+func GetHeaderFromStorage(
+	shardId uint32,
+	hash []byte,
+	marshalizer marshal.Marshalizer,
+	storageService dataRetriever.StorageService,
+) (data.HeaderHandler, error) {
+	if shardId == core.MetachainShardId {
+		return GetMetaHeaderFromStorage(hash, marshalizer, storageService)
+	}
+	return GetShardHeaderFromStorage(hash, marshalizer, storageService)
+}
+
 // GetShardHeaderFromStorage gets the header, which is associated with the given hash, from storage
 func GetShardHeaderFromStorage(
 	hash []byte,
@@ -124,7 +166,7 @@ func GetShardHeaderFromStorage(
 		return nil, err
 	}
 
-	hdr, err := CreateShardHeader(marshalizer, buffHdr)
+	hdr, err := UnmarshalShardHeader(marshalizer, buffHdr)
 	if err != nil {
 		return nil, ErrUnmarshalWithoutSuccess
 	}
@@ -168,9 +210,9 @@ func GetMarshalizedHeaderFromStorage(
 		return nil, ErrNilStorage
 	}
 
-	hdrStore := storageService.GetStorer(blockUnit)
-	if check.IfNil(hdrStore) {
-		return nil, ErrNilHeadersStorage
+	hdrStore, err := storageService.GetStorer(blockUnit)
+	if err != nil {
+		return nil, err
 	}
 
 	buffHdr, err := hdrStore.Get(hash)
@@ -296,7 +338,7 @@ func GetShardHeaderFromStorageWithNonce(
 	marshalizer marshal.Marshalizer,
 ) (data.HeaderHandler, []byte, error) {
 
-	hash, err := getHeaderHashFromStorageWithNonce(
+	hash, err := GetHeaderHashFromStorageWithNonce(
 		nonce,
 		storageService,
 		uint64Converter,
@@ -322,7 +364,7 @@ func GetMetaHeaderFromStorageWithNonce(
 	marshalizer marshal.Marshalizer,
 ) (*block.MetaBlock, []byte, error) {
 
-	hash, err := getHeaderHashFromStorageWithNonce(
+	hash, err := GetHeaderHashFromStorageWithNonce(
 		nonce,
 		storageService,
 		uint64Converter,
@@ -348,7 +390,7 @@ func GetTransactionHandler(
 	shardedDataCacherNotifier dataRetriever.ShardedDataCacherNotifier,
 	storageService dataRetriever.StorageService,
 	marshalizer marshal.Marshalizer,
-	searchFirst bool,
+	method ShardedCacheSearchMethod,
 ) (data.TransactionHandler, error) {
 
 	err := checkGetTransactionParamsForNil(shardedDataCacherNotifier, storageService, marshalizer)
@@ -356,7 +398,7 @@ func GetTransactionHandler(
 		return nil, err
 	}
 
-	tx, err := GetTransactionHandlerFromPool(senderShardID, destShardID, txHash, shardedDataCacherNotifier, searchFirst)
+	tx, err := GetTransactionHandlerFromPool(senderShardID, destShardID, txHash, shardedDataCacherNotifier, method)
 	if err != nil {
 		tx, err = GetTransactionHandlerFromStorage(txHash, storageService, marshalizer)
 		if err != nil {
@@ -373,30 +415,55 @@ func GetTransactionHandlerFromPool(
 	destShardID uint32,
 	txHash []byte,
 	shardedDataCacherNotifier dataRetriever.ShardedDataCacherNotifier,
-	searchFirst bool,
+	method ShardedCacheSearchMethod,
 ) (data.TransactionHandler, error) {
 
-	if shardedDataCacherNotifier == nil {
+	if check.IfNil(shardedDataCacherNotifier) {
 		return nil, ErrNilShardedDataCacherNotifier
 	}
 
-	var val interface{}
-	ok := false
-	if searchFirst {
-		val, ok = shardedDataCacherNotifier.SearchFirstData(txHash)
-		if !ok {
-			return nil, ErrTxNotFound
-		}
-	} else {
-		strCache := ShardCacherIdentifier(senderShardID, destShardID)
-		txStore := shardedDataCacherNotifier.ShardDataStore(strCache)
-		if txStore == nil {
-			return nil, ErrNilStorage
-		}
+	return getTransactionHandlerFromPool(senderShardID, destShardID, txHash, shardedDataCacherNotifier, method)
+}
 
-		val, ok = txStore.Peek(txHash)
+func getTransactionHandlerFromPool(
+	senderShardID uint32,
+	destShardID uint32,
+	txHash []byte,
+	shardedDataCacherNotifier dataRetriever.ShardedDataCacherNotifier,
+	method ShardedCacheSearchMethod,
+) (data.TransactionHandler, error) {
+	var val interface{}
+	var ok bool
+
+	if method == SearchMethodSearchFirst {
+		val, ok = shardedDataCacherNotifier.SearchFirstData(txHash)
+
+		return castDataFromCacheAsTransactionHandler(val, ok)
 	}
 
+	strCache := ShardCacherIdentifier(senderShardID, destShardID)
+	txStore := shardedDataCacherNotifier.ShardDataStore(strCache)
+	if txStore == nil {
+		return nil, ErrNilStorage
+	}
+
+	switch method {
+	case SearchMethodJustPeek:
+		val, ok = txStore.Peek(txHash)
+	case SearchMethodPeekWithFallbackSearchFirst:
+		val, ok = txStore.Peek(txHash)
+		if !ok {
+			val, ok = shardedDataCacherNotifier.SearchFirstData(txHash)
+		}
+	default:
+		return nil, fmt.Errorf("%w for provided method: %s in getTransactionHandlerFromPool",
+			ErrInvalidValue, method.ToString())
+	}
+
+	return castDataFromCacheAsTransactionHandler(val, ok)
+}
+
+func castDataFromCacheAsTransactionHandler(val interface{}, ok bool) (data.TransactionHandler, error) {
 	if !ok {
 		return nil, ErrTxNotFound
 	}
@@ -527,11 +594,12 @@ func getHeaderFromPoolWithNonce(
 			ErrMissingHeader, shardId, nonce)
 	}
 
-	//TODO what should we do when we get from pool more than one header with same nonce and shardId
+	// TODO what should we do when we get from pool more than one header with same nonce and shardId
 	return headers[len(headers)-1], hashes[len(hashes)-1], nil
 }
 
-func getHeaderHashFromStorageWithNonce(
+// GetHeaderHashFromStorageWithNonce gets a header hash, given a nonce
+func GetHeaderHashFromStorageWithNonce(
 	nonce uint64,
 	storageService dataRetriever.StorageService,
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
@@ -549,9 +617,9 @@ func getHeaderHashFromStorageWithNonce(
 		return nil, ErrNilMarshalizer
 	}
 
-	headerStore := storageService.GetStorer(blockUnit)
-	if headerStore == nil {
-		return nil, ErrNilHeadersStorage
+	headerStore, err := storageService.GetStorer(blockUnit)
+	if err != nil {
+		return nil, err
 	}
 
 	nonceToByteSlice := uint64Converter.ToByteSlice(nonce)
@@ -650,13 +718,13 @@ func DisplayProcessTxDetails(
 
 // IsAllowedToSaveUnderKey returns if saving key-value in data tries under given key is allowed
 func IsAllowedToSaveUnderKey(key []byte) bool {
-	prefixLen := len(core.ElrondProtectedKeyPrefix)
+	prefixLen := len(core.ProtectedKeyPrefix)
 	if len(key) < prefixLen {
 		return true
 	}
 
 	trimmedKey := key[:prefixLen]
-	return !bytes.Equal(trimmedKey, []byte(core.ElrondProtectedKeyPrefix))
+	return !bytes.Equal(trimmedKey, []byte(core.ProtectedKeyPrefix))
 }
 
 // SortVMOutputInsideData returns the output accounts as a sorted list
@@ -698,19 +766,39 @@ func GetSortedStorageUpdates(account *vmcommon.OutputAccount) []*vmcommon.Storag
 	return storageUpdates
 }
 
-// CreateShardHeader creates a shard header from the given byte array
-func CreateShardHeader(marshalizer marshal.Marshalizer, hdrBuff []byte) (data.ShardHeaderHandler, error) {
-	hdr, err := CreateHeaderV2(marshalizer, hdrBuff)
+// UnmarshalHeader unmarshalls a block header
+func UnmarshalHeader(shardId uint32, marshalizer marshal.Marshalizer, headerBuffer []byte) (data.HeaderHandler, error) {
+	if shardId == core.MetachainShardId {
+		return UnmarshalMetaHeader(marshalizer, headerBuffer)
+	} else {
+		return UnmarshalShardHeader(marshalizer, headerBuffer)
+	}
+}
+
+// UnmarshalMetaHeader unmarshalls a meta header
+func UnmarshalMetaHeader(marshalizer marshal.Marshalizer, headerBuffer []byte) (data.MetaHeaderHandler, error) {
+	header := &block.MetaBlock{}
+	err := marshalizer.Unmarshal(header, headerBuffer)
+	if err != nil {
+		return nil, err
+	}
+
+	return header, nil
+}
+
+// UnmarshalShardHeader unmarshalls a shard header
+func UnmarshalShardHeader(marshalizer marshal.Marshalizer, hdrBuff []byte) (data.ShardHeaderHandler, error) {
+	hdr, err := UnmarshalShardHeaderV2(marshalizer, hdrBuff)
 	if err == nil {
 		return hdr, nil
 	}
 
-	hdr, err = CreateHeaderV1(marshalizer, hdrBuff)
+	hdr, err = UnmarshalShardHeaderV1(marshalizer, hdrBuff)
 	return hdr, err
 }
 
-// CreateHeaderV2 creates a header with version 2 from the given byte array
-func CreateHeaderV2(marshalizer marshal.Marshalizer, hdrBuff []byte) (data.ShardHeaderHandler, error) {
+// UnmarshalShardHeaderV2 unmarshalls a header with version 2
+func UnmarshalShardHeaderV2(marshalizer marshal.Marshalizer, hdrBuff []byte) (data.ShardHeaderHandler, error) {
 	hdrV2 := &block.HeaderV2{}
 	err := marshalizer.Unmarshal(hdrV2, hdrBuff)
 	if err != nil {
@@ -723,8 +811,8 @@ func CreateHeaderV2(marshalizer marshal.Marshalizer, hdrBuff []byte) (data.Shard
 	return hdrV2, nil
 }
 
-// CreateHeaderV1 creates a header with version 1 from the given byte array
-func CreateHeaderV1(marshalizer marshal.Marshalizer, hdrBuff []byte) (data.ShardHeaderHandler, error) {
+// UnmarshalShardHeaderV1 unmarshalls a header with version 1
+func UnmarshalShardHeaderV1(marshalizer marshal.Marshalizer, hdrBuff []byte) (data.ShardHeaderHandler, error) {
 	hdr := &block.Header{}
 	err := marshalizer.Unmarshal(hdr, hdrBuff)
 	if err != nil {

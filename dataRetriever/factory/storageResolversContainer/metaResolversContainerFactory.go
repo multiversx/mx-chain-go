@@ -3,11 +3,11 @@ package storageResolversContainers
 import (
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/storageResolvers"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dataRetriever/factory/containers"
+	"github.com/multiversx/mx-chain-go/dataRetriever/storageResolvers"
+	"github.com/multiversx/mx-chain-go/process/factory"
 )
 
 var _ dataRetriever.ResolversContainerFactory = (*metaResolversContainerFactory)(nil)
@@ -94,10 +94,20 @@ func (mrcf *metaResolversContainerFactory) Create() (dataRetriever.ResolversCont
 		return nil, err
 	}
 
+	err = mrcf.generatePeerAuthenticationResolver()
+	if err != nil {
+		return nil, err
+	}
+
+	err = mrcf.generateValidatorInfoResolver()
+	if err != nil {
+		return nil, err
+	}
+
 	return mrcf.container, nil
 }
 
-//------- Shard header resolvers
+// ------- Shard header resolvers
 
 func (mrcf *metaResolversContainerFactory) generateShardHeaderResolvers() error {
 	shardC := mrcf.shardCoordinator
@@ -105,7 +115,7 @@ func (mrcf *metaResolversContainerFactory) generateShardHeaderResolvers() error 
 	keys := make([]string, noOfShards)
 	resolversSlice := make([]dataRetriever.Resolver, noOfShards)
 
-	//wire up to topics: shardBlocks_0_META, shardBlocks_1_META ...
+	// wire up to topics: shardBlocks_0_META, shardBlocks_1_META ...
 	for idx := uint32(0); idx < noOfShards; idx++ {
 		identifierHeader := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(idx)
 		resolver, err := mrcf.createShardHeaderResolver(identifierHeader, idx)
@@ -124,11 +134,18 @@ func (mrcf *metaResolversContainerFactory) createShardHeaderResolver(
 	responseTopicName string,
 	shardID uint32,
 ) (dataRetriever.Resolver, error) {
-	hdrStorer := mrcf.store.GetStorer(dataRetriever.BlockHeaderUnit)
+	hdrStorer, err := mrcf.store.GetStorer(dataRetriever.BlockHeaderUnit)
+	if err != nil {
+		return nil, err
+	}
 
-	//TODO change this data unit creation method through a factory or func
+	// TODO change this data unit creation method through a factory or func
 	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardID)
-	hdrNonceStore := mrcf.store.GetStorer(hdrNonceHashDataUnit)
+	hdrNonceStore, err := mrcf.store.GetStorer(hdrNonceHashDataUnit)
+	if err != nil {
+		return nil, err
+	}
+
 	arg := storageResolvers.ArgHeaderResolver{
 		Messenger:                mrcf.messenger,
 		ResponseTopicName:        responseTopicName,
@@ -147,7 +164,7 @@ func (mrcf *metaResolversContainerFactory) createShardHeaderResolver(
 	return resolver, nil
 }
 
-//------- Meta header resolvers
+// ------- Meta header resolvers
 
 func (mrcf *metaResolversContainerFactory) generateMetaChainHeaderResolvers() error {
 	identifierHeader := factory.MetachainBlocksTopic
@@ -160,9 +177,16 @@ func (mrcf *metaResolversContainerFactory) generateMetaChainHeaderResolvers() er
 }
 
 func (mrcf *metaResolversContainerFactory) createMetaChainHeaderResolver() (dataRetriever.Resolver, error) {
-	hdrStorer := mrcf.store.GetStorer(dataRetriever.MetaBlockUnit)
+	hdrStorer, err := mrcf.store.GetStorer(dataRetriever.MetaBlockUnit)
+	if err != nil {
+		return nil, err
+	}
 
-	hdrNonceStore := mrcf.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
+	hdrNonceStore, err := mrcf.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
+	if err != nil {
+		return nil, err
+	}
+
 	arg := storageResolvers.ArgHeaderResolver{
 		Messenger:                mrcf.messenger,
 		ResponseTopicName:        factory.MetachainBlocksTopic,
@@ -185,10 +209,20 @@ func (mrcf *metaResolversContainerFactory) generateTrieNodesResolvers() error {
 	keys := make([]string, 0)
 	resolversSlice := make([]dataRetriever.Resolver, 0)
 
+	userAccountsStorer, err := mrcf.store.GetStorer(dataRetriever.UserAccountsUnit)
+	if err != nil {
+		return err
+	}
+
+	userAccountsCheckpointStorer, err := mrcf.store.GetStorer(dataRetriever.UserAccountsCheckpointsUnit)
+	if err != nil {
+		return err
+	}
+
 	identifierTrieNodes := factory.AccountTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
 	storageManager, userAccountsDataTrie, err := mrcf.newImportDBTrieStorage(
-		mrcf.store.GetStorer(dataRetriever.UserAccountsUnit),
-		mrcf.store.GetStorer(dataRetriever.UserAccountsCheckpointsUnit),
+		userAccountsStorer,
+		userAccountsCheckpointStorer,
 	)
 	if err != nil {
 		return fmt.Errorf("%w while creating user accounts data trie storage getter", err)
@@ -211,10 +245,20 @@ func (mrcf *metaResolversContainerFactory) generateTrieNodesResolvers() error {
 	resolversSlice = append(resolversSlice, resolver)
 	keys = append(keys, identifierTrieNodes)
 
+	peerAccountsStorer, err := mrcf.store.GetStorer(dataRetriever.PeerAccountsUnit)
+	if err != nil {
+		return err
+	}
+
+	peerAccountsCheckpointStorer, err := mrcf.store.GetStorer(dataRetriever.PeerAccountsCheckpointsUnit)
+	if err != nil {
+		return err
+	}
+
 	identifierTrieNodes = factory.ValidatorTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
 	storageManager, peerAccountsDataTrie, err := mrcf.newImportDBTrieStorage(
-		mrcf.store.GetStorer(dataRetriever.PeerAccountsUnit),
-		mrcf.store.GetStorer(dataRetriever.PeerAccountsCheckpointsUnit),
+		peerAccountsStorer,
+		peerAccountsCheckpointStorer,
 	)
 	if err != nil {
 		return fmt.Errorf("%w while creating peer accounts data trie storage getter", err)
@@ -252,7 +296,7 @@ func (mrcf *metaResolversContainerFactory) generateRewardsResolvers(
 	keys := make([]string, noOfShards)
 	resolverSlice := make([]dataRetriever.Resolver, noOfShards)
 
-	//wire up to topics: shardBlocks_0_META, shardBlocks_1_META ...
+	// wire up to topics: shardBlocks_0_META, shardBlocks_1_META ...
 	for idx := uint32(0); idx < noOfShards; idx++ {
 		identifierTx := topic + shardC.CommunicationIdentifier(idx)
 		resolver, err := mrcf.createTxResolver(identifierTx, unit)

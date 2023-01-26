@@ -1,6 +1,6 @@
 package spos
 
-import "github.com/ElrondNetwork/elrond-go-core/core/check"
+import "github.com/multiversx/mx-chain-core-go/core/check"
 
 // ValidateConsensusCore checks for nil all the container objects
 func ValidateConsensusCore(container ConsensusCoreHandler) error {
@@ -28,7 +28,11 @@ func ValidateConsensusCore(container ConsensusCoreHandler) error {
 	if check.IfNil(container.Marshalizer()) {
 		return ErrNilMarshalizer
 	}
-	if check.IfNil(container.MultiSigner()) {
+	if check.IfNil(container.MultiSignerContainer()) {
+		return ErrNilMultiSignerContainer
+	}
+	multiSigner, _ := container.MultiSignerContainer().GetMultiSigner(0)
+	if check.IfNil(multiSigner) {
 		return ErrNilMultiSigner
 	}
 	if check.IfNil(container.RoundHandler()) {
@@ -63,6 +67,9 @@ func ValidateConsensusCore(container ConsensusCoreHandler) error {
 	}
 	if check.IfNil(container.NodeRedundancyHandler()) {
 		return ErrNilNodeRedundancyHandler
+	}
+	if check.IfNil(container.SignatureHandler()) {
+		return ErrNilSignatureHandler
 	}
 
 	return nil

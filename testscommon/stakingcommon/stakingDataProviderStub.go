@@ -3,8 +3,8 @@ package stakingcommon
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 // StakingDataProviderStub -

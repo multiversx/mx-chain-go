@@ -1,23 +1,25 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 // CoreComponentsMock -
 type CoreComponentsMock struct {
-	IntMarsh            marshal.Marshalizer
-	TxMarsh             marshal.Marshalizer
-	Hash                hashing.Hasher
-	TxSignHasherField   hashing.Hasher
-	UInt64ByteSliceConv typeConverters.Uint64ByteSliceConverter
-	AddrPubKeyConv      core.PubkeyConverter
-	Chain               string
-	MinTxVersion        uint32
-	StatHandler         core.AppStatusHandler
+	IntMarsh                 marshal.Marshalizer
+	TxMarsh                  marshal.Marshalizer
+	Hash                     hashing.Hasher
+	TxSignHasherField        hashing.Hasher
+	UInt64ByteSliceConv      typeConverters.Uint64ByteSliceConverter
+	AddrPubKeyConv           core.PubkeyConverter
+	Chain                    string
+	MinTxVersion             uint32
+	StatHandler              core.AppStatusHandler
+	EnableEpochsHandlerField common.EnableEpochsHandler
 }
 
 // InternalMarshalizer -
@@ -58,6 +60,11 @@ func (ccm *CoreComponentsMock) ChainID() string {
 // MinTransactionVersion -
 func (ccm *CoreComponentsMock) MinTransactionVersion() uint32 {
 	return ccm.MinTxVersion
+}
+
+// EnableEpochsHandler -
+func (ccm *CoreComponentsMock) EnableEpochsHandler() common.EnableEpochsHandler {
+	return ccm.EnableEpochsHandlerField
 }
 
 // IsInterfaceNil -

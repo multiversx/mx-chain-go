@@ -1,17 +1,17 @@
 package factory
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/dblookupext/disabled"
-	"github.com/ElrondNetwork/elrond-go/dblookupext/esdtSupply"
-	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dblookupext"
+	"github.com/multiversx/mx-chain-go/dblookupext/disabled"
+	"github.com/multiversx/mx-chain-go/dblookupext/esdtSupply"
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 // ArgsHistoryRepositoryFactory holds all dependencies required by the history processor factory in order to create
@@ -65,11 +65,46 @@ func (hpf *historyRepositoryFactory) Create() (dblookupext.HistoryRepository, er
 		return disabled.NewNilHistoryRepository()
 	}
 
+	esdtSuppliesStorer, err := hpf.store.GetStorer(dataRetriever.ESDTSuppliesUnit)
+	if err != nil {
+		return nil, err
+	}
+
+	txLogsStorer, err := hpf.store.GetStorer(dataRetriever.TxLogsUnit)
+	if err != nil {
+		return nil, err
+	}
+
 	esdtSuppliesHandler, err := esdtSupply.NewSuppliesProcessor(
 		hpf.marshalizer,
-		hpf.store.GetStorer(dataRetriever.ESDTSuppliesUnit),
-		hpf.store.GetStorer(dataRetriever.TxLogsUnit),
+		esdtSuppliesStorer,
+		txLogsStorer,
 	)
+	if err != nil {
+		return nil, err
+	}
+
+	roundHdrHashDataStorer, err := hpf.store.GetStorer(dataRetriever.RoundHdrHashDataUnit)
+	if err != nil {
+		return nil, err
+	}
+
+	miniblocksMetadataStorer, err := hpf.store.GetStorer(dataRetriever.MiniblocksMetadataUnit)
+	if err != nil {
+		return nil, err
+	}
+
+	epochByHashStorer, err := hpf.store.GetStorer(dataRetriever.EpochByHashUnit)
+	if err != nil {
+		return nil, err
+	}
+
+	miniblockHashByTxHashStorer, err := hpf.store.GetStorer(dataRetriever.MiniblockHashByTxHashUnit)
+	if err != nil {
+		return nil, err
+	}
+
+	resultsHashesByTxHashStorer, err := hpf.store.GetStorer(dataRetriever.ResultsHashesByTxHashUnit)
 	if err != nil {
 		return nil, err
 	}
@@ -78,12 +113,12 @@ func (hpf *historyRepositoryFactory) Create() (dblookupext.HistoryRepository, er
 		SelfShardID:                 hpf.selfShardID,
 		Hasher:                      hpf.hasher,
 		Marshalizer:                 hpf.marshalizer,
-		BlockHashByRound:            hpf.store.GetStorer(dataRetriever.RoundHdrHashDataUnit),
+		BlockHashByRound:            roundHdrHashDataStorer,
 		Uint64ByteSliceConverter:    hpf.uInt64ByteSliceConverter,
-		MiniblocksMetadataStorer:    hpf.store.GetStorer(dataRetriever.MiniblocksMetadataUnit),
-		EpochByHashStorer:           hpf.store.GetStorer(dataRetriever.EpochByHashUnit),
-		MiniblockHashByTxHashStorer: hpf.store.GetStorer(dataRetriever.MiniblockHashByTxHashUnit),
-		EventsHashesByTxHashStorer:  hpf.store.GetStorer(dataRetriever.ResultsHashesByTxHashUnit),
+		MiniblocksMetadataStorer:    miniblocksMetadataStorer,
+		EpochByHashStorer:           epochByHashStorer,
+		MiniblockHashByTxHashStorer: miniblockHashByTxHashStorer,
+		EventsHashesByTxHashStorer:  resultsHashesByTxHashStorer,
 		ESDTSuppliesHandler:         esdtSuppliesHandler,
 	}
 	return dblookupext.NewHistoryRepository(historyRepArgs)

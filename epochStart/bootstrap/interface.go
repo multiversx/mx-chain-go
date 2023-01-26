@@ -3,16 +3,17 @@ package bootstrap
 import (
 	"context"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 )
 
 // StartOfEpochNodesConfigHandler defines the methods to process nodesConfig from epoch start metablocks
 type StartOfEpochNodesConfigHandler interface {
-	NodesConfigFromMetaBlock(currMetaBlock data.HeaderHandler, prevMetaBlock data.HeaderHandler) (nodesCoordinator.NodesCoordinatorRegistryHandler, uint32, error)
+	NodesConfigFromMetaBlock(currMetaBlock data.HeaderHandler, prevMetaBlock data.HeaderHandler) (nodesCoordinator.NodesCoordinatorRegistryHandler, uint32, []*block.MiniBlock, error)
 	IsInterfaceNil() bool
 }
 
@@ -39,6 +40,8 @@ type Messenger interface {
 	UnjoinAllTopics() error
 	ConnectedPeers() []core.PeerID
 	Verify(payload []byte, pid core.PeerID, signature []byte) error
+	Broadcast(topic string, buff []byte)
+	Sign(payload []byte) ([]byte, error)
 }
 
 // RequestHandler defines which methods a request handler should implement

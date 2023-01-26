@@ -7,14 +7,12 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/vm"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/vm"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 type ownerStats struct {
@@ -47,19 +45,14 @@ type stakingDataProvider struct {
 	totalEligibleTopUpStake    *big.Int
 	minNodePrice               *big.Int
 	numOfValidatorsInCurrEpoch uint32
-	stakingV4EnableEpoch       uint32
-	flagStakingV4Enable        atomic.Flag
-	stakingV4InitEpoch         uint32
-	flagStakingV4Initialized   atomic.Flag
+	enableEpochsHandler        common.EnableEpochsHandler
 }
 
 // StakingDataProviderArgs is a struct placeholder for all arguments required to create a NewStakingDataProvider
 type StakingDataProviderArgs struct {
-	EpochNotifier            process.EpochNotifier
-	SystemVM                 vmcommon.VMExecutionHandler
-	MinNodePrice             string
-	StakingV4InitEnableEpoch uint32
-	StakingV4EnableEpoch     uint32
+	EnableEpochsHandler common.EnableEpochsHandler
+	SystemVM            vmcommon.VMExecutionHandler
+	MinNodePrice        string
 }
 
 // NewStakingDataProvider will create a new instance of a staking data provider able to aid in the final rewards
@@ -68,8 +61,8 @@ func NewStakingDataProvider(args StakingDataProviderArgs) (*stakingDataProvider,
 	if check.IfNil(args.SystemVM) {
 		return nil, epochStart.ErrNilSystemVmInstance
 	}
-	if check.IfNil(args.EpochNotifier) {
-		return nil, epochStart.ErrNilEpochStartNotifier
+	if check.IfNil(args.EnableEpochsHandler) {
+		return nil, epochStart.ErrNilEnableEpochsHandler
 	}
 
 	nodePrice, ok := big.NewInt(0).SetString(args.MinNodePrice, 10)
@@ -83,13 +76,8 @@ func NewStakingDataProvider(args StakingDataProviderArgs) (*stakingDataProvider,
 		minNodePrice:            nodePrice,
 		totalEligibleStake:      big.NewInt(0),
 		totalEligibleTopUpStake: big.NewInt(0),
-		stakingV4EnableEpoch:    args.StakingV4EnableEpoch,
-		stakingV4InitEpoch:      args.StakingV4InitEnableEpoch,
+		enableEpochsHandler:     args.EnableEpochsHandler,
 	}
-	log.Debug("stakingDataProvider: enable epoch for staking v4 init", "epoch", sdp.stakingV4InitEpoch)
-	log.Debug("stakingDataProvider: enable epoch for staking v4", "epoch", sdp.stakingV4EnableEpoch)
-
-	args.EpochNotifier.RegisterNotifyHandler(sdp)
 
 	return sdp, nil
 }
@@ -363,7 +351,7 @@ func (sdp *stakingDataProvider) checkAndFillOwnerValidatorAuctionData(
 			hex.EncodeToString(validator.GetPublicKey()),
 		)
 	}
-	if !sdp.flagStakingV4Initialized.IsSet() {
+	if !sdp.enableEpochsHandler.IsStakingV4Started() {
 		return fmt.Errorf("stakingDataProvider.checkAndFillOwnerValidatorAuctionData for validator in auction error: %w, owner: %s, node: %s",
 			epochStart.ErrReceivedAuctionValidatorsBeforeStakingV4,
 			hex.EncodeToString(ownerPubKey),
@@ -459,7 +447,7 @@ func (sdp *stakingDataProvider) createMapBLSKeyStatus(validatorsInfo state.Shard
 		list := validator.GetList()
 		pubKey := validator.GetPublicKey()
 
-		if sdp.flagStakingV4Enable.IsSet() && list == string(common.NewList) {
+		if sdp.enableEpochsHandler.IsStakingV4Enabled() && list == string(common.NewList) {
 			return nil, fmt.Errorf("%w, bls key = %s",
 				epochStart.ErrReceivedNewListNodeInStakingV4,
 				hex.EncodeToString(pubKey),
@@ -529,7 +517,7 @@ func (sdp *stakingDataProvider) arrangeBlsKeysByStatus(mapBlsKeyStatus map[strin
 
 func (sdp *stakingDataProvider) getNewNodesList() string {
 	newNodesList := string(common.NewList)
-	if sdp.flagStakingV4Enable.IsSet() {
+	if sdp.enableEpochsHandler.IsStakingV4Enabled() {
 		newNodesList = string(common.AuctionList)
 	}
 
@@ -542,15 +530,6 @@ func (sdp *stakingDataProvider) GetNumOfValidatorsInCurrentEpoch() uint32 {
 	defer sdp.mutStakingData.RUnlock()
 
 	return sdp.numOfValidatorsInCurrEpoch
-}
-
-// EpochConfirmed is called whenever a new epoch is confirmed
-func (sdp *stakingDataProvider) EpochConfirmed(epoch uint32, _ uint64) {
-	sdp.flagStakingV4Enable.SetValue(epoch >= sdp.stakingV4EnableEpoch)
-	log.Debug("stakingDataProvider: staking v4 enable epoch", "enabled", sdp.flagStakingV4Enable.IsSet())
-
-	sdp.flagStakingV4Initialized.SetValue(epoch >= sdp.stakingV4InitEpoch)
-	log.Debug("stakingDataProvider: staking v4 initialized", "enabled", sdp.flagStakingV4Initialized.IsSet())
 }
 
 // IsInterfaceNil return true if underlying object is nil

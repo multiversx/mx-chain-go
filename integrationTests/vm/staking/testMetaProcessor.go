@@ -1,8 +1,8 @@
 package staking
 
 import (
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 )
 
 // NewTestMetaProcessor -
@@ -42,6 +42,7 @@ func NewTestMetaProcessor(
 		stateComponents,
 	)
 
+	bootStrapStorer, _ := dataComponents.StorageService().GetStorer(dataRetriever.BootstrapUnit)
 	nc := createNodesCoordinator(
 		eligibleMap,
 		waitingMap,
@@ -51,7 +52,7 @@ func NewTestMetaProcessor(
 		shardConsensusGroupSize,
 		metaConsensusGroupSize,
 		coreComponents,
-		dataComponents.StorageService().GetStorer(dataRetriever.BootstrapUnit),
+		bootStrapStorer,
 		bootstrapComponents.NodesCoordinatorRegistryFactory(),
 		maxNodesConfig,
 	)

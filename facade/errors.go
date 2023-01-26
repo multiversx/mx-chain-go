@@ -34,3 +34,15 @@ var ErrEmptyRootHash = errors.New("empty current root hash")
 
 // ErrNilGenesisNodes signals that the provided genesis nodes configuration is nil
 var ErrNilGenesisNodes = errors.New("nil genesis nodes")
+
+// ErrNilGenesisBalances signals that the provided genesis balances slice is nil
+var ErrNilGenesisBalances = errors.New("nil genesis balances slice")
+
+// ErrEmptyGasConfigs signals that the provided gas configs map is empty
+var ErrEmptyGasConfigs = errors.New("empty gas configs")
+
+// ErrTooManyAddressesInBulk signals that there are too many addresses present in a bulk request
+var ErrTooManyAddressesInBulk = errors.New("too many addresses in the bulk request")
+
+// ErrNilStatusMetrics signals that a nil status metrics was provided
+var ErrNilStatusMetrics = errors.New("nil status metrics handler")

@@ -5,24 +5,27 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/api/errors"
-	"github.com/ElrondNetwork/elrond-go/api/shared"
-	"github.com/ElrondNetwork/elrond-go/debug"
-	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
-	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/gin-gonic/gin"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/api/errors"
+	"github.com/multiversx/mx-chain-go/api/shared"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/debug"
+	"github.com/multiversx/mx-chain-go/heartbeat/data"
+	"github.com/multiversx/mx-chain-go/node/external"
 )
 
 const (
-	pidQueryParam       = "pid"
-	debugPath           = "/debug"
-	heartbeatStatusPath = "/heartbeatstatus"
-	metricsPath         = "/metrics"
-	p2pStatusPath       = "/p2pstatus"
-	peerInfoPath        = "/peerinfo"
-	statusPath          = "/status"
+	pidQueryParam          = "pid"
+	debugPath              = "/debug"
+	heartbeatStatusPath    = "/heartbeatstatus"
+	metricsPath            = "/metrics"
+	p2pStatusPath          = "/p2pstatus"
+	peerInfoPath           = "/peerinfo"
+	statusPath             = "/status"
+	epochStartDataForEpoch = "/epoch-start/:epoch"
+	bootstrapStatusPath    = "/bootstrapstatus"
 )
 
 // nodeFacadeHandler defines the methods to be implemented by a facade for node requests
@@ -30,6 +33,7 @@ type nodeFacadeHandler interface {
 	GetHeartbeats() ([]data.PubKeyHeartbeat, error)
 	StatusMetrics() external.StatusMetricsHandler
 	GetQueryHandler(name string) (debug.QueryHandler, error)
+	GetEpochStartDataAPI(epoch uint32) (*common.EpochStartDataAPI, error)
 	GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error)
 	IsInterfaceNil() bool
 }
@@ -87,6 +91,16 @@ func NewNodeGroup(facade nodeFacadeHandler) (*nodeGroup, error) {
 			Path:    peerInfoPath,
 			Method:  http.MethodGet,
 			Handler: ng.peerInfo,
+		},
+		{
+			Path:    epochStartDataForEpoch,
+			Method:  http.MethodGet,
+			Handler: ng.epochStartDataForEpoch,
+		},
+		{
+			Path:    bootstrapStatusPath,
+			Method:  http.MethodGet,
+			Handler: ng.bootstrapMetrics,
 		},
 	}
 	ng.endpoints = endpoints
@@ -241,6 +255,23 @@ func (ng *nodeGroup) peerInfo(c *gin.Context) {
 	)
 }
 
+// epochStartDataForEpoch returns epoch start data for the provided epoch
+func (ng *nodeGroup) epochStartDataForEpoch(c *gin.Context) {
+	epoch, err := getQueryParamEpoch(c)
+	if err != nil {
+		shared.RespondWithValidationError(c, errors.ErrValidation, errors.ErrBadUrlParams)
+		return
+	}
+
+	epochStartData, err := ng.getFacade().GetEpochStartDataAPI(epoch)
+	if err != nil {
+		shared.RespondWithInternalError(c, errors.ErrGetEpochStartData, err)
+		return
+	}
+
+	shared.RespondWithSuccess(c, gin.H{"epochStart": epochStartData})
+}
+
 // prometheusMetrics is the endpoint which will return the data in the way that prometheus expects them
 func (ng *nodeGroup) prometheusMetrics(c *gin.Context) {
 	metrics, err := ng.getFacade().StatusMetrics().StatusMetricsWithoutP2PPrometheusString()
@@ -259,6 +290,31 @@ func (ng *nodeGroup) prometheusMetrics(c *gin.Context) {
 	c.String(
 		http.StatusOK,
 		metrics,
+	)
+}
+
+// bootstrapMetrics returns the node's bootstrap statistics exported by a StatusMetricsHandler
+func (ng *nodeGroup) bootstrapMetrics(c *gin.Context) {
+	metrics, err := ng.getFacade().StatusMetrics().BootstrapMetrics()
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: err.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"metrics": metrics},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
 	)
 }
 

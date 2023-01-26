@@ -4,14 +4,14 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	vmData "github.com/ElrondNetwork/elrond-go-core/data/vm"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/vm"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	vmData "github.com/multiversx/mx-chain-core-go/data/vm"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/vm"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 type vmContext struct {
@@ -30,38 +30,48 @@ type vmContext struct {
 	returnMessage string
 	output        [][]byte
 	logs          []*vmcommon.LogEntry
+
+	enableEpochsHandler common.EnableEpochsHandler
+}
+
+// VMContextArgs holds the arguments needed to create a new vmContext
+type VMContextArgs struct {
+	BlockChainHook      vm.BlockchainHook
+	CryptoHook          vmcommon.CryptoHook
+	InputParser         vm.ArgumentsParser
+	ValidatorAccountsDB state.AccountsAdapter
+	ChanceComputer      nodesCoordinator.ChanceComputer
+	EnableEpochsHandler common.EnableEpochsHandler
 }
 
 // NewVMContext creates a context where smart contracts can run and write
-func NewVMContext(
-	blockChainHook vm.BlockchainHook,
-	cryptoHook vmcommon.CryptoHook,
-	inputParser vm.ArgumentsParser,
-	validatorAccountsDB state.AccountsAdapter,
-	chanceComputer nodesCoordinator.ChanceComputer,
-) (*vmContext, error) {
-	if check.IfNilReflect(blockChainHook) {
+func NewVMContext(args VMContextArgs) (*vmContext, error) {
+	if check.IfNilReflect(args.BlockChainHook) {
 		return nil, vm.ErrNilBlockchainHook
 	}
-	if check.IfNilReflect(cryptoHook) {
+	if check.IfNilReflect(args.CryptoHook) {
 		return nil, vm.ErrNilCryptoHook
 	}
-	if check.IfNil(inputParser) {
+	if check.IfNil(args.InputParser) {
 		return nil, vm.ErrNilArgumentsParser
 	}
-	if check.IfNil(validatorAccountsDB) {
+	if check.IfNil(args.ValidatorAccountsDB) {
 		return nil, vm.ErrNilValidatorAccountsDB
 	}
-	if check.IfNil(chanceComputer) {
+	if check.IfNil(args.ChanceComputer) {
 		return nil, vm.ErrNilChanceComputer
+	}
+	if check.IfNil(args.EnableEpochsHandler) {
+		return nil, vm.ErrNilEnableEpochsHandler
 	}
 
 	vmc := &vmContext{
-		blockChainHook:      blockChainHook,
-		cryptoHook:          cryptoHook,
-		inputParser:         inputParser,
-		validatorAccountsDB: validatorAccountsDB,
-		chanceComputer:      chanceComputer,
+		blockChainHook:      args.BlockChainHook,
+		cryptoHook:          args.CryptoHook,
+		inputParser:         args.InputParser,
+		validatorAccountsDB: args.ValidatorAccountsDB,
+		chanceComputer:      args.ChanceComputer,
+		enableEpochsHandler: args.EnableEpochsHandler,
 	}
 	vmc.CleanCache()
 
@@ -118,7 +128,7 @@ func (host *vmContext) GetStorageFromAddress(address []byte, key []byte) []byte 
 		}
 	}
 
-	data, err := host.blockChainHook.GetStorageData(address, key)
+	data, _, err := host.blockChainHook.GetStorageData(address, key)
 	if err != nil {
 		return nil
 	}
@@ -232,6 +242,10 @@ func (host *vmContext) Transfer(destination []byte, sender []byte, value *big.In
 		GasLimit: gasLimit,
 		Data:     input,
 		CallType: vmData.DirectCall,
+	}
+
+	if host.enableEpochsHandler.IsSetSenderInEeiOutputTransferFlagEnabled() {
+		outputTransfer.SenderAddress = senderAcc.Address
 	}
 	destAcc.OutputTransfers = append(destAcc.OutputTransfers, outputTransfer)
 }

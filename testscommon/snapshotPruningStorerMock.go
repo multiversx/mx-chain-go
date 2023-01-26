@@ -1,5 +1,7 @@
 package testscommon
 
+import "github.com/multiversx/mx-chain-core-go/core"
+
 // SnapshotPruningStorerMock -
 type SnapshotPruningStorerMock struct {
 	*MemDbMock
@@ -11,8 +13,15 @@ func NewSnapshotPruningStorerMock() *SnapshotPruningStorerMock {
 }
 
 // GetFromOldEpochsWithoutAddingToCache -
-func (spsm *SnapshotPruningStorerMock) GetFromOldEpochsWithoutAddingToCache(key []byte) ([]byte, error) {
-	return spsm.Get(key)
+func (spsm *SnapshotPruningStorerMock) GetFromOldEpochsWithoutAddingToCache(key []byte) ([]byte, core.OptionalUint32, error) {
+	val, err := spsm.Get(key)
+
+	return val, core.OptionalUint32{}, err
+}
+
+// PutInEpoch -
+func (spsm *SnapshotPruningStorerMock) PutInEpoch(key []byte, data []byte, _ uint32) error {
+	return spsm.Put(key, data)
 }
 
 // PutInEpochWithoutCache -
@@ -27,6 +36,11 @@ func (spsm *SnapshotPruningStorerMock) GetFromLastEpoch(key []byte) ([]byte, err
 
 // GetFromCurrentEpoch -
 func (spsm *SnapshotPruningStorerMock) GetFromCurrentEpoch(key []byte) ([]byte, error) {
+	return spsm.Get(key)
+}
+
+// GetFromEpoch -
+func (spsm *SnapshotPruningStorerMock) GetFromEpoch(key []byte, _ uint32) ([]byte, error) {
 	return spsm.Get(key)
 }
 

@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/receipt"
-	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/common/mock"
-	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/receipt"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common/mock"
+	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/stretchr/testify/require"
 )
 
@@ -18,13 +18,13 @@ func TestGetResultsHashesByTxHashShouldErr(t *testing.T) {
 
 	epoch := uint32(0)
 	marshalizerMock := &mock.MarshalizerMock{}
-	storerMock := genericMocks.NewStorerMock("EventsHashesByTxHash", epoch)
+	storerMock := genericMocks.NewStorerMockWithEpoch(epoch)
 
 	eventsHashesIndex := newEventsHashesByTxHash(storerMock, marshalizerMock)
 
 	eventsHashes, err := eventsHashesIndex.getEventsHashesByTxHash([]byte("hash"), 0)
 	require.Nil(t, eventsHashes)
-	require.Error(t, err)
+	require.ErrorIs(t, err, ErrNotFoundInStorage)
 }
 
 func TestSaveAndGetResultsSCRSHashesByTxHash(t *testing.T) {
@@ -32,7 +32,7 @@ func TestSaveAndGetResultsSCRSHashesByTxHash(t *testing.T) {
 
 	epoch := uint32(0)
 	marshalizerMock := &mock.MarshalizerMock{}
-	storerMock := genericMocks.NewStorerMock("EventsHashesByTxHash", epoch)
+	storerMock := genericMocks.NewStorerMockWithEpoch(epoch)
 
 	eventsHashesIndex := newEventsHashesByTxHash(storerMock, marshalizerMock)
 
@@ -76,7 +76,7 @@ func TestSaveAndGetResultsSCRSHashesByTxHash(t *testing.T) {
 func TestSaveAndGetResultsReceiptsHashesByTxHash(t *testing.T) {
 	epoch := uint32(0)
 	marshalizerMock := &mock.MarshalizerMock{}
-	storerMock := genericMocks.NewStorerMock("EventsHashesByTxHash", epoch)
+	storerMock := genericMocks.NewStorerMockWithEpoch(epoch)
 
 	eventsHashesIndex := newEventsHashesByTxHash(storerMock, marshalizerMock)
 
@@ -107,7 +107,7 @@ func TestGroupSmartContractResults(t *testing.T) {
 
 	epoch := uint32(0)
 	marshalizerMock := &mock.MarshalizerMock{}
-	storerMock := genericMocks.NewStorerMock("EventsHashesByTxHash", epoch)
+	storerMock := genericMocks.NewStorerMockWithEpoch(epoch)
 
 	eventsHashesIndex := newEventsHashesByTxHash(storerMock, marshalizerMock)
 

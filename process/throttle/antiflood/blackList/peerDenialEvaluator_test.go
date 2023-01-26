@@ -5,10 +5,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -17,7 +18,7 @@ func TestNewPeerDenialEvaluator_NilPeerTimeCacherShouldErr(t *testing.T) {
 
 	pdc, err := NewPeerDenialEvaluator(
 		nil,
-		&mock.TimeCacheStub{},
+		&testscommon.TimeCacheStub{},
 		&mock.PeerShardMapperStub{},
 	)
 
@@ -43,7 +44,7 @@ func TestNewPeerDenialEvaluator_NilPeerShardMapperShouldErr(t *testing.T) {
 
 	pdc, err := NewPeerDenialEvaluator(
 		&mock.PeerBlackListHandlerStub{},
-		&mock.TimeCacheStub{},
+		&testscommon.TimeCacheStub{},
 		nil,
 	)
 
@@ -56,7 +57,7 @@ func TestNewPeerDenialEvaluator_ShouldWork(t *testing.T) {
 
 	pdc, err := NewPeerDenialEvaluator(
 		&mock.PeerBlackListHandlerStub{},
-		&mock.TimeCacheStub{},
+		&testscommon.TimeCacheStub{},
 		&mock.PeerShardMapperStub{},
 	)
 
@@ -73,7 +74,7 @@ func TestPeerDenialEvaluator_IsDeniedShouldWorkIfFoundInPids(t *testing.T) {
 				return true
 			},
 		},
-		&mock.TimeCacheStub{
+		&testscommon.TimeCacheStub{
 			HasCalled: func(key string) bool {
 				assert.Fail(t, "should have not reached this point")
 				return false
@@ -99,7 +100,7 @@ func TestPeerDenialEvaluator_IsDeniedShouldWorkIfNotFoundInPidsNorInPeerShardMap
 				return false
 			},
 		},
-		&mock.TimeCacheStub{
+		&testscommon.TimeCacheStub{
 			HasCalled: func(key string) bool {
 				assert.Fail(t, "should have not reached this point")
 				return false
@@ -124,7 +125,7 @@ func TestPeerDenialEvaluator_IsDeniedShouldWorkIfFoundInPk(t *testing.T) {
 				return false
 			},
 		},
-		&mock.TimeCacheStub{
+		&testscommon.TimeCacheStub{
 			HasCalled: func(key string) bool {
 				return true
 			},
@@ -152,7 +153,7 @@ func TestPeerDenialEvaluator_UpsertPeerID(t *testing.T) {
 				return nil
 			},
 		},
-		&mock.TimeCacheStub{},
+		&testscommon.TimeCacheStub{},
 		&mock.PeerShardMapperStub{},
 	)
 

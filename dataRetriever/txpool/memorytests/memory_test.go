@@ -10,12 +10,12 @@ import (
 	"runtime/pprof"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	"github.com/ElrondNetwork/elrond-go/testscommon/txcachemocks"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dataRetriever/txpool"
+	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 	"github.com/stretchr/testify/require"
 )
 
@@ -101,7 +101,7 @@ type memoryAssertion struct {
 }
 
 func newPool() dataRetriever.ShardedDataCacherNotifier {
-	config := storageUnit.CacheConfig{
+	config := storageunit.CacheConfig{
 		Capacity:             600000,
 		SizePerSender:        60000,
 		SizeInBytes:          400 * core.MegabyteSize,
@@ -229,7 +229,9 @@ func pprofHeap(scenario *scenario, step string) {
 
 	defer func() {
 		errClose := file.Close()
-		panic(fmt.Sprintf("cannot close file: %s", errClose.Error()))
+		if errClose != nil {
+			panic(fmt.Sprintf("cannot close file: %s", errClose.Error()))
+		}
 	}()
 
 	err = pprof.WriteHeapProfile(file)

@@ -1,15 +1,15 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/epochStart"
 )
 
 // EpochStartNotifierStub -
 type EpochStartNotifierStub struct {
 	RegisterHandlerCalled   func(handler epochStart.ActionHandler)
 	UnregisterHandlerCalled func(handler epochStart.ActionHandler)
-	NotifyAllPrepareCalled  func(hdr data.HeaderHandler, body data.BodyHandler)
+	NotifyAllPrepareCalled  func(hdr data.HeaderHandler, body data.BodyHandler, validatorInfoCacher epochStart.ValidatorInfoCacher)
 	NotifyAllCalled         func(hdr data.HeaderHandler)
 }
 
@@ -28,9 +28,9 @@ func (esnm *EpochStartNotifierStub) UnregisterHandler(handler epochStart.ActionH
 }
 
 // NotifyAllPrepare -
-func (esnm *EpochStartNotifierStub) NotifyAllPrepare(metaHdr data.HeaderHandler, body data.BodyHandler) {
+func (esnm *EpochStartNotifierStub) NotifyAllPrepare(metaHdr data.HeaderHandler, body data.BodyHandler, validatorInfoCacher epochStart.ValidatorInfoCacher) {
 	if esnm.NotifyAllPrepareCalled != nil {
-		esnm.NotifyAllPrepareCalled(metaHdr, body)
+		esnm.NotifyAllPrepareCalled(metaHdr, body, validatorInfoCacher)
 	}
 }
 

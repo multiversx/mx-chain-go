@@ -3,24 +3,25 @@ package metachain
 import (
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/vm"
-	systemVMFactory "github.com/ElrondNetwork/elrond-go/vm/factory"
-	systemVMProcess "github.com/ElrondNetwork/elrond-go/vm/process"
-	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/ElrondNetwork/elrond-vm-common/parsers"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/process/factory/containers"
+	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/vm"
+	systemVMFactory "github.com/multiversx/mx-chain-go/vm/factory"
+	systemVMProcess "github.com/multiversx/mx-chain-go/vm/process"
+	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 )
 
 var _ process.VirtualMachinesContainerFactory = (*vmContainerFactory)(nil)
@@ -38,11 +39,10 @@ type vmContainerFactory struct {
 	hasher                 hashing.Hasher
 	marshalizer            marshal.Marshalizer
 	systemSCConfig         *config.SystemSmartContractsConfig
-	epochNotifier          process.EpochNotifier
 	addressPubKeyConverter core.PubkeyConverter
 	scFactory              vm.SystemSCContainerFactory
-	epochConfig            *config.EpochConfig
 	shardCoordinator       sharding.Coordinator
+	enableEpochsHandler    common.EnableEpochsHandler
 	nodesCoordinator       vm.NodesCoordinator
 }
 
@@ -58,11 +58,10 @@ type ArgsNewVMContainerFactory struct {
 	SystemSCConfig      *config.SystemSmartContractsConfig
 	ValidatorAccountsDB state.AccountsAdapter
 	ChanceComputer      nodesCoordinator.ChanceComputer
-	EpochNotifier       process.EpochNotifier
-	EpochConfig         *config.EpochConfig
 	ShardCoordinator    sharding.Coordinator
 	PubkeyConv          core.PubkeyConverter
 	BlockChainHook      process.BlockChainHookHandler
+	EnableEpochsHandler common.EnableEpochsHandler
 	NodesCoordinator    vm.NodesCoordinator
 }
 
@@ -104,6 +103,9 @@ func NewVMContainerFactory(args ArgsNewVMContainerFactory) (*vmContainerFactory,
 	if check.IfNil(args.BlockChainHook) {
 		return nil, process.ErrNilBlockChainHook
 	}
+	if check.IfNil(args.EnableEpochsHandler) {
+		return nil, vm.ErrNilEnableEpochsHandler
+	}
 	if check.IfNil(args.NodesCoordinator) {
 		return nil, fmt.Errorf("%w in NewVMContainerFactory", process.ErrNilNodesCoordinator)
 	}
@@ -122,10 +124,9 @@ func NewVMContainerFactory(args ArgsNewVMContainerFactory) (*vmContainerFactory,
 		systemSCConfig:         args.SystemSCConfig,
 		validatorAccountsDB:    args.ValidatorAccountsDB,
 		chanceComputer:         args.ChanceComputer,
-		epochNotifier:          args.EpochNotifier,
 		addressPubKeyConverter: args.PubkeyConv,
-		epochConfig:            args.EpochConfig,
 		shardCoordinator:       args.ShardCoordinator,
+		enableEpochsHandler:    args.EnableEpochsHandler,
 		nodesCoordinator:       args.NodesCoordinator,
 	}, nil
 }
@@ -174,13 +175,15 @@ func (vmf *vmContainerFactory) CreateForGenesis() (process.VirtualMachinesContai
 
 func (vmf *vmContainerFactory) createSystemVMFactoryAndEEI() (vm.SystemSCContainerFactory, vm.ContextHandler, error) {
 	atArgumentParser := parsers.NewCallArgsParser()
-	systemEI, err := systemSmartContracts.NewVMContext(
-		vmf.blockChainHook,
-		vmf.cryptoHook,
-		atArgumentParser,
-		vmf.validatorAccountsDB,
-		vmf.chanceComputer,
-	)
+	vmContextArgs := systemSmartContracts.VMContextArgs{
+		BlockChainHook:      vmf.blockChainHook,
+		CryptoHook:          vmf.cryptoHook,
+		InputParser:         atArgumentParser,
+		ValidatorAccountsDB: vmf.validatorAccountsDB,
+		ChanceComputer:      vmf.chanceComputer,
+		EnableEpochsHandler: vmf.enableEpochsHandler,
+	}
+	systemEI, err := systemSmartContracts.NewVMContext(vmContextArgs)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -194,10 +197,9 @@ func (vmf *vmContainerFactory) createSystemVMFactoryAndEEI() (vm.SystemSCContain
 		Marshalizer:            vmf.marshalizer,
 		SystemSCConfig:         vmf.systemSCConfig,
 		Economics:              vmf.economics,
-		EpochNotifier:          vmf.epochNotifier,
 		AddressPubKeyConverter: vmf.addressPubKeyConverter,
-		EpochConfig:            vmf.epochConfig,
 		ShardCoordinator:       vmf.shardCoordinator,
+		EnableEpochsHandler:    vmf.enableEpochsHandler,
 		NodesCoordinator:       vmf.nodesCoordinator,
 	}
 	scFactory, err := systemVMFactory.NewSystemSCFactory(argsNewSystemScFactory)

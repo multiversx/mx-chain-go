@@ -1,16 +1,16 @@
 package interceptorscontainer
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/throttler"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
-	processInterceptors "github.com/ElrondNetwork/elrond-go/process/interceptors"
-	interceptorFactory "github.com/ElrondNetwork/elrond-go/process/interceptors/factory"
-	"github.com/ElrondNetwork/elrond-go/process/interceptors/processor"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/throttler"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/process/factory/containers"
+	processInterceptors "github.com/multiversx/mx-chain-go/process/interceptors"
+	interceptorFactory "github.com/multiversx/mx-chain-go/process/interceptors/factory"
+	"github.com/multiversx/mx-chain-go/process/interceptors/processor"
 )
 
 var _ process.InterceptorsContainerFactory = (*metaInterceptorsContainerFactory)(nil)
@@ -93,7 +93,6 @@ func NewMetaInterceptorsContainerFactory(
 		HeaderIntegrityVerifier:      args.HeaderIntegrityVerifier,
 		EpochStartTrigger:            args.EpochStartTrigger,
 		ArgsParser:                   args.ArgumentsParser,
-		EnableSignTxWithHashEpoch:    args.EnableSignTxWithHashEpoch,
 		PeerSignatureHandler:         args.PeerSignatureHandler,
 		SignaturesHandler:            args.SignaturesHandler,
 		HeartbeatExpiryTimespanInSec: args.HeartbeatExpiryTimespanInSec,
@@ -181,7 +180,12 @@ func (micf *metaInterceptorsContainerFactory) Create() (process.InterceptorsCont
 		return nil, err
 	}
 
-	err = micf.generateDirectConnectionInfoInterceptor()
+	err = micf.generatePeerShardInterceptor()
+	if err != nil {
+		return nil, err
+	}
+
+	err = micf.generateValidatorInfoInterceptor()
 	if err != nil {
 		return nil, err
 	}

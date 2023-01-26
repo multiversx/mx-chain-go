@@ -6,10 +6,12 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
-	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
-	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/atomic"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
 )
 
 var _ NodesShuffler = (*randHashShuffler)(nil)
@@ -22,6 +24,7 @@ type NodesShufflerArgs struct {
 	Adaptivity           bool
 	ShuffleBetweenShards bool
 	MaxNodesEnableConfig []config.MaxNodesChangeConfig
+	EnableEpochsHandler  common.EnableEpochsHandler
 	EnableEpochs         config.EnableEpochs
 }
 
@@ -59,10 +62,9 @@ type randHashShuffler struct {
 	availableNodesConfigs                    []config.MaxNodesChangeConfig
 	mutShufflerParams                        sync.RWMutex
 	validatorDistributor                     ValidatorsDistributor
-	balanceWaitingListsEnableEpoch           uint32
 	flagBalanceWaitingLists                  atomic.Flag
-	waitingListFixEnableEpoch                uint32
 	flagWaitingListFix                       atomic.Flag
+	enableEpochsHandler                      common.EnableEpochsHandler
 	stakingV4DistributeAuctionToWaitingEpoch uint32
 	flagStakingV4DistributeAuctionToWaiting  atomic.Flag
 	stakingV4EnableEpoch                     uint32
@@ -75,11 +77,13 @@ func NewHashValidatorsShuffler(args *NodesShufflerArgs) (*randHashShuffler, erro
 	if args == nil {
 		return nil, ErrNilNodeShufflerArguments
 	}
+	if check.IfNil(args.EnableEpochsHandler) {
+		return nil, ErrNilEnableEpochsHandler
+	}
 
 	var configs []config.MaxNodesChangeConfig
 
 	log.Debug("hashValidatorShuffler: enable epoch for max nodes change", "epoch", args.MaxNodesEnableConfig)
-	log.Debug("hashValidatorShuffler: enable epoch for balance waiting lists", "epoch", args.EnableEpochs.BalanceWaitingListsEnableEpoch)
 	log.Debug("hashValidatorShuffler: enable epoch for staking v4", "epoch", args.EnableEpochs.StakingV4EnableEpoch)
 	log.Debug("hashValidatorShuffler: enable epoch for staking v4 distribute auction list to waiting list", "epoch", args.EnableEpochs.StakingV4DistributeAuctionToWaitingEpoch)
 
@@ -92,16 +96,10 @@ func NewHashValidatorsShuffler(args *NodesShufflerArgs) (*randHashShuffler, erro
 	rxs := &randHashShuffler{
 		shuffleBetweenShards:                     args.ShuffleBetweenShards,
 		availableNodesConfigs:                    configs,
-		balanceWaitingListsEnableEpoch:           args.EnableEpochs.BalanceWaitingListsEnableEpoch,
-		waitingListFixEnableEpoch:                args.EnableEpochs.WaitingListFixEnableEpoch,
+		enableEpochsHandler:                      args.EnableEpochsHandler,
 		stakingV4DistributeAuctionToWaitingEpoch: args.EnableEpochs.StakingV4DistributeAuctionToWaitingEpoch,
 		stakingV4EnableEpoch:                     args.EnableEpochs.StakingV4EnableEpoch,
 	}
-
-	log.Debug("randHashShuffler: enable epoch for balance waiting list", "epoch", rxs.balanceWaitingListsEnableEpoch)
-	log.Debug("randHashShuffler: enable epoch for waiting waiting list", "epoch", rxs.waitingListFixEnableEpoch)
-	log.Debug("randHashShuffler: enable epoch for staking v4 distribute auction list to waiting list", "epoch", rxs.stakingV4DistributeAuctionToWaitingEpoch)
-	log.Debug("randHashShuffler: enable epoch for staking v4", "epoch", rxs.stakingV4EnableEpoch)
 
 	rxs.UpdateParams(args.NodesShard, args.NodesMeta, args.Hysteresis, args.Adaptivity)
 
@@ -804,11 +802,9 @@ func (rhs *randHashShuffler) UpdateShufflerConfig(epoch uint32) {
 		"maxNodesToShufflePerShard", rhs.activeNodesConfig.NodesToShufflePerShard,
 	)
 
-	rhs.flagBalanceWaitingLists.SetValue(epoch >= rhs.balanceWaitingListsEnableEpoch)
+	rhs.flagBalanceWaitingLists.SetValue(epoch >= rhs.enableEpochsHandler.BalanceWaitingListsEnableEpoch())
 	log.Debug("balanced waiting lists", "enabled", rhs.flagBalanceWaitingLists.IsSet())
-
-	rhs.flagWaitingListFix.SetValue(epoch >= rhs.waitingListFixEnableEpoch)
-	log.Debug("waiting list fix", "enabled", rhs.flagWaitingListFix.IsSet())
+	rhs.flagWaitingListFix.SetValue(epoch >= rhs.enableEpochsHandler.WaitingListFixEnableEpoch())
 
 	rhs.flagStakingV4DistributeAuctionToWaiting.SetValue(epoch >= rhs.stakingV4DistributeAuctionToWaitingEpoch)
 	log.Debug("staking v4 distribute auction to waiting", "enabled", rhs.flagStakingV4DistributeAuctionToWaiting.IsSet())

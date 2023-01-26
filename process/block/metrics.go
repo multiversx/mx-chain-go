@@ -6,17 +6,17 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/outport"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/outport"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 func getMetricsFromMetaHeader(
@@ -206,7 +206,7 @@ func indexRoundInfo(
 	lastHeader data.HeaderHandler,
 	signersIndexes []uint64,
 ) {
-	roundInfo := &indexer.RoundInfo{
+	roundInfo := &outportcore.RoundInfo{
 		Index:            header.GetRound(),
 		SignersIndexes:   signersIndexes,
 		BlockWasProposed: true,
@@ -216,7 +216,7 @@ func indexRoundInfo(
 	}
 
 	if check.IfNil(lastHeader) {
-		outportHandler.SaveRoundsInfo([]*indexer.RoundInfo{roundInfo})
+		outportHandler.SaveRoundsInfo([]*outportcore.RoundInfo{roundInfo})
 		return
 	}
 
@@ -224,7 +224,7 @@ func indexRoundInfo(
 	currentBlockRound := header.GetRound()
 	roundDuration := calculateRoundDuration(lastHeader.GetTimeStamp(), header.GetTimeStamp(), lastBlockRound, currentBlockRound)
 
-	roundsInfo := make([]*indexer.RoundInfo, 0)
+	roundsInfo := make([]*outportcore.RoundInfo, 0)
 	roundsInfo = append(roundsInfo, roundInfo)
 	for i := lastBlockRound + 1; i < currentBlockRound; i++ {
 		publicKeys, err := nodesCoordinator.GetConsensusValidatorsPublicKeys(lastHeader.GetRandSeed(), i, shardId, lastHeader.GetEpoch())
@@ -237,7 +237,7 @@ func indexRoundInfo(
 			continue
 		}
 
-		roundInfo = &indexer.RoundInfo{
+		roundInfo = &outportcore.RoundInfo{
 			Index:            i,
 			SignersIndexes:   signersIndexes,
 			BlockWasProposed: false,
@@ -268,11 +268,11 @@ func indexValidatorsRating(
 		return
 	}
 
-	shardValidatorsRating := make(map[string][]*indexer.ValidatorRatingInfo)
+	shardValidatorsRating := make(map[string][]*outportcore.ValidatorRatingInfo)
 	for shardID, validatorInfosInShard := range validators.GetShardValidatorsInfoMap() {
-		validatorsInfos := make([]*indexer.ValidatorRatingInfo, 0)
+		validatorsInfos := make([]*outportcore.ValidatorRatingInfo, 0)
 		for _, validatorInfo := range validatorInfosInShard {
-			validatorsInfos = append(validatorsInfos, &indexer.ValidatorRatingInfo{
+			validatorsInfos = append(validatorsInfos, &outportcore.ValidatorRatingInfo{
 				PublicKey: hex.EncodeToString(validatorInfo.GetPublicKey()),
 				Rating:    float32(validatorInfo.GetRating()) * 100 / 10000000,
 			})
@@ -287,7 +287,7 @@ func indexValidatorsRating(
 
 func indexShardValidatorsRating(
 	outportHandler outport.OutportHandler,
-	shardValidatorsRating map[string][]*indexer.ValidatorRatingInfo,
+	shardValidatorsRating map[string][]*outportcore.ValidatorRatingInfo,
 ) {
 	for indexID, validatorsInfos := range shardValidatorsRating {
 		outportHandler.SaveValidatorsRating(indexID, validatorsInfos)

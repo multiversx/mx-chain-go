@@ -4,8 +4,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/endOfEpoch"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/integrationTests/multiShard/endOfEpoch"
 )
 
 func TestEpochStartChangeWithoutTransactionInMultiShardedEnvironment(t *testing.T) {
@@ -17,10 +18,20 @@ func TestEpochStartChangeWithoutTransactionInMultiShardedEnvironment(t *testing.
 	nodesPerShard := 2
 	numMetachainNodes := 2
 
-	nodes := integrationTests.CreateNodes(
+	enableEpochsConfig := config.EnableEpochs{
+		StakingV2EnableEpoch:                     integrationTests.UnreachableEpoch,
+		ScheduledMiniBlocksEnableEpoch:           integrationTests.UnreachableEpoch,
+		MiniBlockPartialExecutionEnableEpoch:     integrationTests.UnreachableEpoch,
+		StakingV4InitEnableEpoch:                 integrationTests.UnreachableEpoch,
+		StakingV4EnableEpoch:                     integrationTests.UnreachableEpoch,
+		StakingV4DistributeAuctionToWaitingEpoch: integrationTests.UnreachableEpoch,
+	}
+
+	nodes := integrationTests.CreateNodesWithEnableEpochs(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
+		enableEpochsConfig,
 	)
 
 	roundsPerEpoch := uint64(10)

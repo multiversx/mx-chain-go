@@ -10,14 +10,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/random"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/factory"
-	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
-	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
-	"github.com/ElrondNetwork/elrond-go/storage/pruning"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/random"
+	storageCore "github.com/multiversx/mx-chain-core-go/storage"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/database"
+	"github.com/multiversx/mx-chain-go/storage/factory"
+	"github.com/multiversx/mx-chain-go/storage/pathmanager"
+	"github.com/multiversx/mx-chain-go/storage/pruning"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -26,15 +28,14 @@ func TestNewFullHistoryPruningStorer_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	args := getDefaultArgs()
-	fhArgs := &pruning.FullHistoryStorerArgs{
+	fhArgs := pruning.FullHistoryStorerArgs{
 		StorerArgs:               args,
 		NumOfOldActivePersisters: 10,
 	}
 	fhps, err := pruning.NewFullHistoryPruningStorer(fhArgs)
 
-	assert.NotNil(t, fhps)
+	assert.False(t, check.IfNil(fhps))
 	assert.Nil(t, err)
-	assert.False(t, fhps.IsInterfaceNil())
 }
 
 func TestNewFullHistoryPruningStorer_InvalidNumberOfActivePersistersShouldErr(t *testing.T) {
@@ -42,7 +43,7 @@ func TestNewFullHistoryPruningStorer_InvalidNumberOfActivePersistersShouldErr(t 
 
 	args := getDefaultArgs()
 
-	fhArgs := &pruning.FullHistoryStorerArgs{
+	fhArgs := pruning.FullHistoryStorerArgs{
 		StorerArgs:               args,
 		NumOfOldActivePersisters: 0,
 	}
@@ -51,7 +52,7 @@ func TestNewFullHistoryPruningStorer_InvalidNumberOfActivePersistersShouldErr(t 
 	assert.Nil(t, fhps)
 	assert.Equal(t, storage.ErrInvalidNumberOfOldPersisters, err)
 
-	fhArgs = &pruning.FullHistoryStorerArgs{
+	fhArgs = pruning.FullHistoryStorerArgs{
 		StorerArgs:               args,
 		NumOfOldActivePersisters: math.MaxInt32 + 1,
 	}
@@ -65,7 +66,7 @@ func TestNewFullHistoryPruningStorer_PutAndGetInEpochShouldWork(t *testing.T) {
 	t.Parallel()
 
 	args := getDefaultArgs()
-	fhArgs := &pruning.FullHistoryStorerArgs{
+	fhArgs := pruning.FullHistoryStorerArgs{
 		StorerArgs:               args,
 		NumOfOldActivePersisters: 2,
 	}
@@ -87,7 +88,7 @@ func TestNewFullHistoryPruningStorer_GetMultipleDifferentEpochsShouldEvict(t *te
 	t.Parallel()
 
 	args := getDefaultArgs()
-	fhArgs := &pruning.FullHistoryStorerArgs{
+	fhArgs := pruning.FullHistoryStorerArgs{
 		StorerArgs:               args,
 		NumOfOldActivePersisters: 3,
 	}
@@ -114,13 +115,13 @@ func TestNewFullHistoryPruningStorer_GetAfterEvictShouldWork(t *testing.T) {
 	t.Parallel()
 
 	persistersByPath := make(map[string]storage.Persister)
-	persistersByPath["Epoch_0"] = memorydb.New()
+	persistersByPath["Epoch_0"] = database.NewMemDB()
 	args := getDefaultArgs()
 	args.DbPath = "Epoch_0"
-	args.NumOfActivePersisters = 1
-	args.NumOfEpochsToKeep = 2
+	args.EpochsData.NumOfActivePersisters = 1
+	args.EpochsData.NumOfEpochsToKeep = 2
 
-	fhArgs := &pruning.FullHistoryStorerArgs{
+	fhArgs := pruning.FullHistoryStorerArgs{
 		StorerArgs:               args,
 		NumOfOldActivePersisters: 3,
 	}
@@ -154,7 +155,7 @@ func TestNewFullHistoryPruningStorer_GetFromEpochShouldSearchAlsoInNext(t *testi
 	t.Parallel()
 
 	args := getDefaultArgs()
-	fhArgs := &pruning.FullHistoryStorerArgs{
+	fhArgs := pruning.FullHistoryStorerArgs{
 		StorerArgs:               args,
 		NumOfOldActivePersisters: 5,
 	}
@@ -181,65 +182,61 @@ func TestNewFullHistoryPruningStorer_GetBulkFromEpoch(t *testing.T) {
 	t.Parallel()
 
 	args := getDefaultArgs()
-	fhArgs := &pruning.FullHistoryStorerArgs{
+	fhArgs := pruning.FullHistoryStorerArgs{
 		StorerArgs:               args,
 		NumOfOldActivePersisters: 5,
 	}
 	fhps, _ := pruning.NewFullHistoryPruningStorer(fhArgs)
 	testVal0, testVal1 := []byte("value0"), []byte("value1")
 	testKey0, testKey1 := []byte("key0"), []byte("key1")
-	testKey2, testVal2 := []byte("key0"), []byte("value0")
 	testEpoch := uint32(7)
 
 	_ = fhps.PutInEpoch(testKey0, testVal0, testEpoch)
 	_ = fhps.PutInEpoch(testKey1, testVal1, testEpoch)
-	_ = fhps.PutInEpoch(testKey2, testVal2, testEpoch)
 
-	res, err := fhps.GetBulkFromEpoch([][]byte{testKey0, testKey1, testKey2}, testEpoch)
+	res, err := fhps.GetBulkFromEpoch([][]byte{testKey0, testKey1}, testEpoch)
 	assert.Nil(t, err)
 
-	expectedMap := map[string][]byte{
-		string(testKey0): testVal0,
-		string(testKey1): testVal1,
+	expected := []storageCore.KeyValuePair{
+		{Key: testKey0, Value: testVal0},
+		{Key: testKey1, Value: testVal1},
 	}
-	assert.Equal(t, expectedMap, res)
+	assert.Equal(t, expected, res)
 }
 
 func TestNewFullHistoryPruningStorer_GetBulkFromEpochShouldNotLoadFromCache(t *testing.T) {
 	t.Parallel()
 
 	args := getDefaultArgs()
-	fhArgs := &pruning.FullHistoryStorerArgs{
+	fhArgs := pruning.FullHistoryStorerArgs{
 		StorerArgs:               args,
 		NumOfOldActivePersisters: 5,
 	}
 	fhps, _ := pruning.NewFullHistoryPruningStorer(fhArgs)
 	testVal0, testVal1 := []byte("value0"), []byte("value1")
 	testKey0, testKey1 := []byte("key0"), []byte("key1")
-	testKey2, testVal2 := []byte("key0"), []byte("value0")
 	testEpoch := uint32(7)
 
 	_ = fhps.PutInEpoch(testKey0, testVal0, testEpoch)
 	_ = fhps.PutInEpoch(testKey1, testVal1, testEpoch)
-	_ = fhps.PutInEpoch(testKey2, testVal2, testEpoch)
 
 	fhps.ClearCache()
 
-	res, err := fhps.GetBulkFromEpoch([][]byte{testKey0, testKey1, testKey2}, testEpoch)
+	res, err := fhps.GetBulkFromEpoch([][]byte{testKey0, testKey1}, testEpoch)
 	assert.Nil(t, err)
 
-	expectedMap := map[string][]byte{
-		string(testKey0): testVal0,
-		string(testKey1): testVal1,
+	expected := []storageCore.KeyValuePair{
+		{Key: testKey0, Value: testVal0},
+		{Key: testKey1, Value: testVal1},
 	}
-	assert.Equal(t, expectedMap, res)
+	assert.Equal(t, expected, res)
 }
 
 func TestFullHistoryPruningStorer_IsEpochActive(t *testing.T) {
 	t.Parallel()
 
 	args := getDefaultArgs()
-	fhArgs := &pruning.FullHistoryStorerArgs{
+	fhArgs := pruning.FullHistoryStorerArgs{
 		StorerArgs:               args,
 		NumOfOldActivePersisters: 2,
 	}
@@ -258,7 +255,7 @@ func TestFullHistoryPruningStorer_IsEpochActive(t *testing.T) {
 func TestNewFullHistoryShardedPruningStorer_ShouldWork(t *testing.T) {
 	t.Parallel()
 	args := getDefaultArgs()
-	fhArgs := &pruning.FullHistoryStorerArgs{
+	fhArgs := pruning.FullHistoryStorerArgs{
 		StorerArgs:               args,
 		NumOfOldActivePersisters: 5,
 	}
@@ -272,7 +269,7 @@ func TestFullHistoryPruningStorer_Close(t *testing.T) {
 	t.Parallel()
 
 	args := getDefaultArgs()
-	fhArgs := &pruning.FullHistoryStorerArgs{
+	fhArgs := pruning.FullHistoryStorerArgs{
 		StorerArgs:               args,
 		NumOfOldActivePersisters: 5,
 	}
@@ -308,7 +305,7 @@ func TestFullHistoryPruningStorer_ConcurrentOperations(t *testing.T) {
 	var err error
 	args.PathManager, err = pathmanager.NewPathManager(testDir+"/epoch_[E]/shard_[S]/[I]", "shard_[S]/[I]", "db")
 	require.NoError(t, err)
-	fhArgs := &pruning.FullHistoryStorerArgs{
+	fhArgs := pruning.FullHistoryStorerArgs{
 		StorerArgs:               args,
 		NumOfOldActivePersisters: 2,
 	}

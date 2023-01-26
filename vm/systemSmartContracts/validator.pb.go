@@ -6,9 +6,9 @@ package systemSmartContracts
 import (
 	bytes "bytes"
 	fmt "fmt"
-	github_com_ElrondNetwork_elrond_go_core_data "github.com/ElrondNetwork/elrond-go-core/data"
 	_ "github.com/gogo/protobuf/gogoproto"
 	proto "github.com/gogo/protobuf/proto"
+	github_com_multiversx_mx_chain_core_go_data "github.com/multiversx/mx-chain-core-go/data"
 	io "io"
 	math "math"
 	math_big "math/big"
@@ -32,9 +32,9 @@ type ValidatorDataV1 struct {
 	RegisterNonce   uint64        `protobuf:"varint,1,opt,name=RegisterNonce,proto3" json:"RegisterNonce"`
 	Epoch           uint32        `protobuf:"varint,2,opt,name=Epoch,proto3" json:"Epoch"`
 	RewardAddress   []byte        `protobuf:"bytes,3,opt,name=RewardAddress,proto3" json:"RewardAddress"`
-	TotalStakeValue *math_big.Int `protobuf:"bytes,4,opt,name=TotalStakeValue,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go-core/data.BigIntCaster" json:"TotalStakeValue"`
-	LockedStake     *math_big.Int `protobuf:"bytes,5,opt,name=LockedStake,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go-core/data.BigIntCaster" json:"LockedStake"`
-	MaxStakePerNode *math_big.Int `protobuf:"bytes,6,opt,name=MaxStakePerNode,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go-core/data.BigIntCaster" json:"MaxStakePerNode"`
+	TotalStakeValue *math_big.Int `protobuf:"bytes,4,opt,name=TotalStakeValue,proto3,casttypewith=math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster" json:"TotalStakeValue"`
+	LockedStake     *math_big.Int `protobuf:"bytes,5,opt,name=LockedStake,proto3,casttypewith=math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster" json:"LockedStake"`
+	MaxStakePerNode *math_big.Int `protobuf:"bytes,6,opt,name=MaxStakePerNode,proto3,casttypewith=math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster" json:"MaxStakePerNode"`
 	BlsPubKeys      [][]byte      `protobuf:"bytes,7,rep,name=BlsPubKeys,proto3" json:"BlsPubKeys"`
 	NumRegistered   uint32        `protobuf:"varint,8,opt,name=NumRegistered,proto3" json:"NumRegistered"`
 }
@@ -125,7 +125,7 @@ func (m *ValidatorDataV1) GetNumRegistered() uint32 {
 
 type UnstakedValue struct {
 	UnstakedEpoch uint32        `protobuf:"varint,1,opt,name=UnstakedEpoch,proto3" json:"UnstakedEpoch"`
-	UnstakedValue *math_big.Int `protobuf:"bytes,2,opt,name=UnstakedValue,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go-core/data.BigIntCaster" json:"UnstakedValue"`
+	UnstakedValue *math_big.Int `protobuf:"bytes,2,opt,name=UnstakedValue,proto3,casttypewith=math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster" json:"UnstakedValue"`
 }
 
 func (m *UnstakedValue) Reset()      { *m = UnstakedValue{} }
@@ -174,14 +174,14 @@ type ValidatorDataV2 struct {
 	RegisterNonce   uint64           `protobuf:"varint,1,opt,name=RegisterNonce,proto3" json:"RegisterNonce"`
 	Epoch           uint32           `protobuf:"varint,2,opt,name=Epoch,proto3" json:"Epoch"`
 	RewardAddress   []byte           `protobuf:"bytes,3,opt,name=RewardAddress,proto3" json:"RewardAddress"`
-	TotalStakeValue *math_big.Int    `protobuf:"bytes,4,opt,name=TotalStakeValue,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go-core/data.BigIntCaster" json:"TotalStakeValue"`
-	LockedStake     *math_big.Int    `protobuf:"bytes,5,opt,name=LockedStake,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go-core/data.BigIntCaster" json:"LockedStake"`
-	MaxStakePerNode *math_big.Int    `protobuf:"bytes,6,opt,name=MaxStakePerNode,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go-core/data.BigIntCaster" json:"MaxStakePerNode"`
+	TotalStakeValue *math_big.Int    `protobuf:"bytes,4,opt,name=TotalStakeValue,proto3,casttypewith=math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster" json:"TotalStakeValue"`
+	LockedStake     *math_big.Int    `protobuf:"bytes,5,opt,name=LockedStake,proto3,casttypewith=math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster" json:"LockedStake"`
+	MaxStakePerNode *math_big.Int    `protobuf:"bytes,6,opt,name=MaxStakePerNode,proto3,casttypewith=math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster" json:"MaxStakePerNode"`
 	BlsPubKeys      [][]byte         `protobuf:"bytes,7,rep,name=BlsPubKeys,proto3" json:"BlsPubKeys"`
 	NumRegistered   uint32           `protobuf:"varint,8,opt,name=NumRegistered,proto3" json:"NumRegistered"`
 	UnstakedInfo    []*UnstakedValue `protobuf:"bytes,9,rep,name=UnstakedInfo,proto3" json:"UnstakedInfo"`
-	TotalUnstaked   *math_big.Int    `protobuf:"bytes,10,opt,name=TotalUnstaked,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go-core/data.BigIntCaster" json:"TotalUnstaked"`
-	TotalSlashed    *math_big.Int    `protobuf:"bytes,11,opt,name=TotalSlashed,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go-core/data.BigIntCaster" json:"TotalSlashed"`
+	TotalUnstaked   *math_big.Int    `protobuf:"bytes,10,opt,name=TotalUnstaked,proto3,casttypewith=math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster" json:"TotalUnstaked"`
+	TotalSlashed    *math_big.Int    `protobuf:"bytes,11,opt,name=TotalSlashed,proto3,casttypewith=math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster" json:"TotalSlashed"`
 }
 
 func (m *ValidatorDataV2) Reset()      { *m = ValidatorDataV2{} }
@@ -290,11 +290,11 @@ func (m *ValidatorDataV2) GetTotalSlashed() *math_big.Int {
 }
 
 type ValidatorConfig struct {
-	MinStakeValue *math_big.Int `protobuf:"bytes,1,opt,name=MinStakeValue,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go-core/data.BigIntCaster" json:"MinStakeValue"`
-	TotalSupply   *math_big.Int `protobuf:"bytes,2,opt,name=TotalSupply,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go-core/data.BigIntCaster" json:"TotalSupply"`
-	MinStep       *math_big.Int `protobuf:"bytes,3,opt,name=MinStep,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go-core/data.BigIntCaster" json:"MinStep"`
-	NodePrice     *math_big.Int `protobuf:"bytes,4,opt,name=NodePrice,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go-core/data.BigIntCaster" json:"NodePrice"`
-	UnJailPrice   *math_big.Int `protobuf:"bytes,5,opt,name=UnJailPrice,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go-core/data.BigIntCaster" json:"UnJailPrice"`
+	MinStakeValue *math_big.Int `protobuf:"bytes,1,opt,name=MinStakeValue,proto3,casttypewith=math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster" json:"MinStakeValue"`
+	TotalSupply   *math_big.Int `protobuf:"bytes,2,opt,name=TotalSupply,proto3,casttypewith=math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster" json:"TotalSupply"`
+	MinStep       *math_big.Int `protobuf:"bytes,3,opt,name=MinStep,proto3,casttypewith=math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster" json:"MinStep"`
+	NodePrice     *math_big.Int `protobuf:"bytes,4,opt,name=NodePrice,proto3,casttypewith=math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster" json:"NodePrice"`
+	UnJailPrice   *math_big.Int `protobuf:"bytes,5,opt,name=UnJailPrice,proto3,casttypewith=math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster" json:"UnJailPrice"`
 }
 
 func (m *ValidatorConfig) Reset()      { *m = ValidatorConfig{} }
@@ -371,49 +371,49 @@ func init() { proto.RegisterFile("validator.proto", fileDescriptor_bf1c6ec7c0d80
 
 var fileDescriptor_bf1c6ec7c0d80dd5 = []byte{
 	// 678 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xec, 0x55, 0xb1, 0x6f, 0xd3, 0x4e,
-	0x18, 0xf5, 0xfd, 0xda, 0xb4, 0xbf, 0x5e, 0x53, 0x0a, 0x56, 0x07, 0x8b, 0xe1, 0x1c, 0x65, 0xca,
-	0x52, 0x47, 0x94, 0xa1, 0x03, 0x13, 0x2e, 0x45, 0x6a, 0xa1, 0x51, 0xe5, 0xd2, 0x22, 0x8a, 0x18,
-	0x2e, 0xf6, 0xd5, 0xb1, 0xea, 0xf8, 0x22, 0xfb, 0x4c, 0xa9, 0x90, 0x10, 0x4c, 0xac, 0xfc, 0x05,
-	0xcc, 0x88, 0xbf, 0x84, 0x81, 0xa1, 0x63, 0x27, 0x43, 0x9c, 0x05, 0x79, 0x40, 0xdd, 0x58, 0x91,
-	0xcf, 0xb5, 0x7c, 0xe7, 0xd9, 0x03, 0x43, 0x27, 0xfb, 0xbd, 0x2f, 0xf7, 0xee, 0xcb, 0xbb, 0xef,
-	0x9d, 0xe1, 0xea, 0x6b, 0xec, 0x7b, 0x0e, 0x66, 0x34, 0x34, 0x26, 0x21, 0x65, 0x54, 0x6d, 0xf1,
-	0xc7, 0xdd, 0x75, 0xd7, 0x63, 0xa3, 0x78, 0x68, 0xd8, 0x74, 0xdc, 0x77, 0xa9, 0x4b, 0xfb, 0x9c,
-	0x1e, 0xc6, 0x27, 0x1c, 0x71, 0xc0, 0xdf, 0x8a, 0x55, 0xdd, 0xcf, 0x2d, 0xb8, 0x7a, 0x54, 0x2a,
-	0x3d, 0xc2, 0x0c, 0x1f, 0xdd, 0x53, 0x37, 0xe1, 0x8a, 0x45, 0x5c, 0x2f, 0x62, 0x24, 0x1c, 0xd0,
-	0xc0, 0x26, 0x1a, 0xe8, 0x80, 0xde, 0xbc, 0x79, 0x27, 0x4b, 0x74, 0xb9, 0x60, 0xc9, 0x50, 0xd5,
-	0x61, 0x6b, 0x7b, 0x42, 0xed, 0x91, 0xf6, 0x5f, 0x07, 0xf4, 0x56, 0xcc, 0xa5, 0x2c, 0xd1, 0x0b,
-	0xc2, 0x2a, 0x1e, 0x85, 0xf2, 0x19, 0x0e, 0x9d, 0x87, 0x8e, 0x13, 0x92, 0x28, 0xd2, 0xe6, 0x3a,
-	0xa0, 0xd7, 0x2e, 0x95, 0x85, 0x82, 0x25, 0x43, 0xf5, 0x23, 0x80, 0xab, 0xcf, 0x28, 0xc3, 0xfe,
-	0x01, 0xc3, 0xa7, 0xe4, 0x08, 0xfb, 0x31, 0xd1, 0xe6, 0xf9, 0xda, 0x57, 0x59, 0xa2, 0xd7, 0x4b,
-	0x5f, 0x7f, 0xe8, 0x8f, 0xc7, 0x98, 0x8d, 0xfa, 0x43, 0xcf, 0x35, 0x76, 0x02, 0xf6, 0x40, 0xf0,
-	0x64, 0xdb, 0x0f, 0x69, 0xe0, 0x0c, 0x08, 0x3b, 0xa3, 0xe1, 0x69, 0x9f, 0x70, 0xb4, 0xee, 0xd2,
-	0x75, 0x9b, 0x86, 0xa4, 0xef, 0x60, 0x86, 0x0d, 0xd3, 0x73, 0x77, 0x02, 0xb6, 0x85, 0xf3, 0xff,
-	0x65, 0xd5, 0xa5, 0xd5, 0xb7, 0x70, 0xf9, 0x29, 0xb5, 0x4f, 0x89, 0xc3, 0x39, 0xad, 0xc5, 0x9b,
-	0x78, 0x91, 0x25, 0xba, 0x48, 0x37, 0xd8, 0x80, 0x28, 0xcb, 0x6d, 0xd8, 0xc3, 0x6f, 0x38, 0xd8,
-	0xcf, 0x5d, 0x77, 0x88, 0xb6, 0x50, 0xd9, 0x50, 0x2b, 0x35, 0x69, 0x43, 0x4d, 0x5a, 0x35, 0x20,
-	0x34, 0xfd, 0x68, 0x3f, 0x1e, 0x3e, 0x21, 0xe7, 0x91, 0xb6, 0xd8, 0x99, 0xeb, 0xb5, 0xcd, 0x5b,
-	0x59, 0xa2, 0x0b, 0xac, 0x25, 0xbc, 0xe7, 0x27, 0x3f, 0x88, 0xc7, 0xe5, 0xb8, 0x10, 0x47, 0xfb,
-	0x9f, 0x8f, 0x08, 0x3f, 0x79, 0xa9, 0x60, 0xc9, 0xb0, 0xfb, 0x1d, 0xc0, 0x95, 0xc3, 0x20, 0xca,
-	0xf7, 0x76, 0x8a, 0x13, 0xd8, 0xac, 0x88, 0x62, 0xda, 0x40, 0x25, 0x25, 0x15, 0x2c, 0x19, 0xaa,
-	0x1f, 0xea, 0x52, 0x7c, 0x4e, 0xdb, 0xe6, 0x4b, 0x71, 0x65, 0xd3, 0x03, 0x24, 0x0b, 0x77, 0x7f,
-	0x2f, 0xd6, 0xf3, 0xb6, 0x71, 0x93, 0xb7, 0x9b, 0xbc, 0xfd, 0x33, 0x79, 0x53, 0x77, 0x61, 0xbb,
-	0x9c, 0xd8, 0x9d, 0xe0, 0x84, 0x6a, 0x4b, 0x9d, 0xb9, 0xde, 0xf2, 0xc6, 0x5a, 0xf1, 0xb9, 0x30,
-	0xa4, 0x61, 0x36, 0x6f, 0x67, 0x89, 0x2e, 0xfd, 0xda, 0x92, 0x10, 0x0f, 0x1c, 0x3f, 0xcf, 0x92,
-	0xd5, 0x60, 0x15, 0x38, 0xa9, 0xd0, 0x64, 0xe0, 0x24, 0x61, 0xf5, 0x1d, 0x6c, 0x17, 0x23, 0xe5,
-	0xe3, 0x68, 0x44, 0x1c, 0x6d, 0x99, 0x77, 0x70, 0x9c, 0x77, 0x2e, 0xf2, 0x0d, 0x36, 0x20, 0xe9,
-	0x76, 0xff, 0xcc, 0x0b, 0x81, 0xdf, 0xa2, 0xc1, 0x89, 0xe7, 0x72, 0x5f, 0xf6, 0xbc, 0x40, 0xc8,
-	0x16, 0xa8, 0x7c, 0x91, 0x0a, 0x4d, 0xfa, 0x22, 0x09, 0xe7, 0xb9, 0x2a, 0xfa, 0x8c, 0x27, 0x13,
-	0xff, 0xfc, 0xfa, 0x26, 0xe4, 0xb9, 0x12, 0xe8, 0x26, 0x73, 0x25, 0xc8, 0xaa, 0x14, 0x2e, 0xf2,
-	0x6e, 0xc8, 0xe4, 0xfa, 0x46, 0x3a, 0xcc, 0x12, 0xbd, 0xa4, 0x1a, 0xdc, 0xb4, 0x94, 0x54, 0x63,
-	0xb8, 0x94, 0xc7, 0x68, 0x3f, 0xf4, 0xec, 0xf2, 0x22, 0x7b, 0x9e, 0x25, 0x7a, 0x45, 0x36, 0xb8,
-	0x69, 0x25, 0x9a, 0x9b, 0x7c, 0x18, 0xec, 0x62, 0xcf, 0x2f, 0x36, 0x16, 0x2e, 0x2f, 0x81, 0x6e,
-	0xd2, 0x64, 0x41, 0xd6, 0x1c, 0x5c, 0x4c, 0x91, 0x72, 0x39, 0x45, 0xca, 0xd5, 0x14, 0x81, 0xf7,
-	0x29, 0x02, 0x5f, 0x52, 0x04, 0xbe, 0xa5, 0x08, 0x5c, 0xa4, 0x08, 0x5c, 0xa6, 0x08, 0xfc, 0x4c,
-	0x11, 0xf8, 0x95, 0x22, 0xe5, 0x2a, 0x45, 0xe0, 0xd3, 0x0c, 0x29, 0x17, 0x33, 0xa4, 0x5c, 0xce,
-	0x90, 0x72, 0xbc, 0x16, 0x9d, 0x47, 0x8c, 0x8c, 0x0f, 0xc6, 0x38, 0x64, 0x5b, 0x34, 0x60, 0x21,
-	0xb6, 0x59, 0x34, 0x5c, 0xe0, 0x57, 0xc0, 0xfd, 0xbf, 0x01, 0x00, 0x00, 0xff, 0xff, 0xf7, 0xdc,
-	0x1b, 0x42, 0x7a, 0x0a, 0x00, 0x00,
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xec, 0x55, 0xb1, 0x4f, 0xdb, 0x4e,
+	0x14, 0xce, 0xfd, 0x20, 0xf0, 0xe3, 0x08, 0xa5, 0xb5, 0x18, 0xac, 0x0e, 0xe7, 0x28, 0x53, 0x96,
+	0x38, 0x2a, 0x1d, 0x18, 0x3a, 0xd5, 0x94, 0x01, 0x5a, 0x10, 0x32, 0x10, 0xb5, 0xa8, 0xcb, 0xc5,
+	0x3e, 0x1c, 0x0b, 0xdb, 0x17, 0xd9, 0x67, 0x0a, 0x95, 0x2a, 0x31, 0x75, 0xee, 0xde, 0x7f, 0xa0,
+	0xea, 0x5f, 0x52, 0xa9, 0x0b, 0x23, 0x93, 0x5b, 0x9c, 0xa5, 0xf5, 0x84, 0xfa, 0x17, 0x54, 0x3e,
+	0x63, 0xf9, 0xce, 0xb3, 0x87, 0x0e, 0x4c, 0xf6, 0xfb, 0x5e, 0xee, 0x7b, 0x2f, 0xdf, 0xbd, 0xef,
+	0x19, 0xae, 0x9e, 0x61, 0xcf, 0xb5, 0x31, 0xa3, 0xa1, 0x3e, 0x0d, 0x29, 0xa3, 0x4a, 0x9b, 0x3f,
+	0x1e, 0x0f, 0x1c, 0x97, 0x4d, 0xe2, 0xb1, 0x6e, 0x51, 0x7f, 0xe8, 0x50, 0x87, 0x0e, 0x39, 0x3c,
+	0x8e, 0x4f, 0x78, 0xc4, 0x03, 0xfe, 0x56, 0x9c, 0xea, 0x7d, 0x6e, 0xc3, 0xd5, 0x51, 0xc9, 0xf4,
+	0x02, 0x33, 0x3c, 0x7a, 0xa2, 0x6c, 0xc0, 0x15, 0x93, 0x38, 0x6e, 0xc4, 0x48, 0xb8, 0x47, 0x03,
+	0x8b, 0xa8, 0xa0, 0x0b, 0xfa, 0xf3, 0xc6, 0xa3, 0x2c, 0xd1, 0xe4, 0x84, 0x29, 0x87, 0x8a, 0x06,
+	0xdb, 0x5b, 0x53, 0x6a, 0x4d, 0xd4, 0xff, 0xba, 0xa0, 0xbf, 0x62, 0x2c, 0x65, 0x89, 0x56, 0x00,
+	0x66, 0xf1, 0x28, 0x98, 0xdf, 0xe1, 0xd0, 0x7e, 0x6e, 0xdb, 0x21, 0x89, 0x22, 0x75, 0xae, 0x0b,
+	0xfa, 0x9d, 0x92, 0x59, 0x48, 0x98, 0x72, 0xa8, 0x7c, 0x04, 0x70, 0xf5, 0x90, 0x32, 0xec, 0x1d,
+	0x30, 0x7c, 0x4a, 0x46, 0xd8, 0x8b, 0x89, 0x3a, 0xcf, 0xcf, 0xbe, 0xcd, 0x12, 0xad, 0x9e, 0xfa,
+	0xfa, 0x43, 0xdb, 0xf2, 0x31, 0x9b, 0x0c, 0xc7, 0xae, 0xa3, 0x6f, 0x07, 0xec, 0x99, 0xa0, 0x89,
+	0x1f, 0x7b, 0xcc, 0x3d, 0x23, 0x61, 0x74, 0x3e, 0xf4, 0xcf, 0x07, 0xd6, 0x04, 0xbb, 0xc1, 0xc0,
+	0xa2, 0x21, 0x19, 0x38, 0x74, 0x68, 0x63, 0x86, 0x75, 0xc3, 0x75, 0xb6, 0x03, 0xb6, 0x89, 0xf3,
+	0xbf, 0x65, 0xd6, 0x99, 0x95, 0xf7, 0x70, 0xf9, 0x15, 0xb5, 0x4e, 0x89, 0xcd, 0x31, 0xb5, 0xcd,
+	0x7b, 0x78, 0x9d, 0x25, 0x9a, 0x08, 0x37, 0x57, 0x5f, 0x64, 0xe5, 0x22, 0xec, 0xe2, 0x73, 0x1e,
+	0xec, 0xe7, 0x9a, 0xdb, 0x44, 0x5d, 0xa8, 0x44, 0xa8, 0xa5, 0x1a, 0x14, 0xa1, 0xc6, 0xac, 0xe8,
+	0x10, 0x1a, 0x5e, 0xb4, 0x1f, 0x8f, 0x5f, 0x92, 0x8b, 0x48, 0x5d, 0xec, 0xce, 0xf5, 0x3b, 0xc6,
+	0x83, 0x2c, 0xd1, 0x04, 0xd4, 0x14, 0xde, 0xf3, 0x6b, 0xdf, 0x8b, 0xfd, 0x72, 0x56, 0x88, 0xad,
+	0xfe, 0xcf, 0xe7, 0x83, 0x5f, 0xbb, 0x94, 0x30, 0xe5, 0xb0, 0xf7, 0x1d, 0xc0, 0x95, 0xa3, 0x20,
+	0xca, 0x6b, 0xdb, 0x85, 0xfe, 0x1b, 0x15, 0x50, 0x8c, 0x1a, 0xa8, 0xa8, 0xa4, 0x84, 0x29, 0x87,
+	0xca, 0x65, 0x9d, 0x8a, 0x0f, 0x69, 0xc7, 0x38, 0x16, 0x4f, 0x36, 0x3c, 0x3d, 0x32, 0x6f, 0xef,
+	0xf7, 0x62, 0xdd, 0x6b, 0xeb, 0xf7, 0x5e, 0xbb, 0xf7, 0xda, 0xbf, 0xe1, 0x35, 0x65, 0x07, 0x76,
+	0xca, 0x71, 0xdd, 0x0e, 0x4e, 0xa8, 0xba, 0xd4, 0x9d, 0xeb, 0x2f, 0xaf, 0xaf, 0x15, 0xdf, 0x09,
+	0x5d, 0x9a, 0x64, 0xe3, 0x61, 0x96, 0x68, 0xd2, 0xaf, 0x4d, 0x29, 0xe2, 0x66, 0xe3, 0xb7, 0x59,
+	0xa2, 0x2a, 0xac, 0xcc, 0x26, 0x25, 0x1a, 0x34, 0x9b, 0xc4, 0xab, 0x7c, 0x80, 0x9d, 0x62, 0x9e,
+	0x3c, 0x1c, 0x4d, 0x88, 0xad, 0x2e, 0xf3, 0x06, 0xde, 0xe4, 0x8d, 0x8b, 0x78, 0x73, 0xf5, 0x25,
+	0xda, 0xde, 0x9f, 0x79, 0xc1, 0xeb, 0x9b, 0x34, 0x38, 0x71, 0x1d, 0xae, 0xca, 0xae, 0x1b, 0x08,
+	0xb6, 0x02, 0x95, 0x2a, 0x52, 0xa2, 0x41, 0x55, 0x24, 0xde, 0xdc, 0x52, 0x45, 0x9b, 0xf1, 0x74,
+	0xea, 0x5d, 0xdc, 0xad, 0x40, 0x6e, 0x29, 0x01, 0x6e, 0xd0, 0x52, 0x02, 0xab, 0x12, 0xc0, 0x45,
+	0xde, 0x0c, 0x99, 0xde, 0xad, 0xa2, 0xc3, 0x2c, 0xd1, 0x4a, 0xa8, 0xb9, 0x9a, 0x25, 0xa3, 0xc2,
+	0xe0, 0x52, 0xee, 0xa0, 0xfd, 0xd0, 0xb5, 0xca, 0x05, 0x36, 0xca, 0x12, 0xad, 0x02, 0x9b, 0xab,
+	0x59, 0x71, 0xe6, 0x0a, 0x1f, 0x05, 0x3b, 0xd8, 0xf5, 0x8a, 0xba, 0xc2, 0xd2, 0x12, 0xe0, 0x06,
+	0x15, 0x16, 0x58, 0x8d, 0xbd, 0xab, 0x1b, 0xd4, 0xba, 0xbe, 0x41, 0xad, 0xdb, 0x1b, 0x04, 0x2e,
+	0x53, 0x04, 0xbe, 0xa4, 0x08, 0x7c, 0x4b, 0x11, 0xb8, 0x4a, 0x11, 0xb8, 0x4e, 0x11, 0xf8, 0x99,
+	0x22, 0xf0, 0x2b, 0x45, 0xad, 0xdb, 0x14, 0x81, 0x4f, 0x33, 0xd4, 0xba, 0x9a, 0xa1, 0xd6, 0xf5,
+	0x0c, 0xb5, 0x8e, 0xd7, 0xa2, 0x8b, 0x88, 0x11, 0xff, 0xc0, 0xc7, 0x21, 0xdb, 0xa4, 0x01, 0x0b,
+	0xb1, 0xc5, 0xa2, 0xf1, 0x02, 0xf7, 0xfe, 0xd3, 0xbf, 0x01, 0x00, 0x00, 0xff, 0xff, 0xfd, 0xe4,
+	0x96, 0x47, 0x6c, 0x0a, 0x00, 0x00,
 }
 
 func (this *ValidatorDataV1) Equal(that interface{}) bool {
@@ -445,19 +445,19 @@ func (this *ValidatorDataV1) Equal(that interface{}) bool {
 		return false
 	}
 	{
-		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 		if !__caster.Equal(this.TotalStakeValue, that1.TotalStakeValue) {
 			return false
 		}
 	}
 	{
-		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 		if !__caster.Equal(this.LockedStake, that1.LockedStake) {
 			return false
 		}
 	}
 	{
-		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 		if !__caster.Equal(this.MaxStakePerNode, that1.MaxStakePerNode) {
 			return false
 		}
@@ -498,7 +498,7 @@ func (this *UnstakedValue) Equal(that interface{}) bool {
 		return false
 	}
 	{
-		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 		if !__caster.Equal(this.UnstakedValue, that1.UnstakedValue) {
 			return false
 		}
@@ -534,19 +534,19 @@ func (this *ValidatorDataV2) Equal(that interface{}) bool {
 		return false
 	}
 	{
-		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 		if !__caster.Equal(this.TotalStakeValue, that1.TotalStakeValue) {
 			return false
 		}
 	}
 	{
-		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 		if !__caster.Equal(this.LockedStake, that1.LockedStake) {
 			return false
 		}
 	}
 	{
-		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 		if !__caster.Equal(this.MaxStakePerNode, that1.MaxStakePerNode) {
 			return false
 		}
@@ -571,13 +571,13 @@ func (this *ValidatorDataV2) Equal(that interface{}) bool {
 		}
 	}
 	{
-		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 		if !__caster.Equal(this.TotalUnstaked, that1.TotalUnstaked) {
 			return false
 		}
 	}
 	{
-		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 		if !__caster.Equal(this.TotalSlashed, that1.TotalSlashed) {
 			return false
 		}
@@ -604,31 +604,31 @@ func (this *ValidatorConfig) Equal(that interface{}) bool {
 		return false
 	}
 	{
-		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 		if !__caster.Equal(this.MinStakeValue, that1.MinStakeValue) {
 			return false
 		}
 	}
 	{
-		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 		if !__caster.Equal(this.TotalSupply, that1.TotalSupply) {
 			return false
 		}
 	}
 	{
-		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 		if !__caster.Equal(this.MinStep, that1.MinStep) {
 			return false
 		}
 	}
 	{
-		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 		if !__caster.Equal(this.NodePrice, that1.NodePrice) {
 			return false
 		}
 	}
 	{
-		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 		if !__caster.Equal(this.UnJailPrice, that1.UnJailPrice) {
 			return false
 		}
@@ -742,7 +742,7 @@ func (m *ValidatorDataV1) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		}
 	}
 	{
-		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 		size := __caster.Size(m.MaxStakePerNode)
 		i -= size
 		if _, err := __caster.MarshalTo(m.MaxStakePerNode, dAtA[i:]); err != nil {
@@ -753,7 +753,7 @@ func (m *ValidatorDataV1) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i--
 	dAtA[i] = 0x32
 	{
-		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 		size := __caster.Size(m.LockedStake)
 		i -= size
 		if _, err := __caster.MarshalTo(m.LockedStake, dAtA[i:]); err != nil {
@@ -764,7 +764,7 @@ func (m *ValidatorDataV1) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i--
 	dAtA[i] = 0x2a
 	{
-		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 		size := __caster.Size(m.TotalStakeValue)
 		i -= size
 		if _, err := __caster.MarshalTo(m.TotalStakeValue, dAtA[i:]); err != nil {
@@ -815,7 +815,7 @@ func (m *UnstakedValue) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	var l int
 	_ = l
 	{
-		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 		size := __caster.Size(m.UnstakedValue)
 		i -= size
 		if _, err := __caster.MarshalTo(m.UnstakedValue, dAtA[i:]); err != nil {
@@ -854,7 +854,7 @@ func (m *ValidatorDataV2) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	var l int
 	_ = l
 	{
-		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 		size := __caster.Size(m.TotalSlashed)
 		i -= size
 		if _, err := __caster.MarshalTo(m.TotalSlashed, dAtA[i:]); err != nil {
@@ -865,7 +865,7 @@ func (m *ValidatorDataV2) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i--
 	dAtA[i] = 0x5a
 	{
-		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 		size := __caster.Size(m.TotalUnstaked)
 		i -= size
 		if _, err := __caster.MarshalTo(m.TotalUnstaked, dAtA[i:]); err != nil {
@@ -904,7 +904,7 @@ func (m *ValidatorDataV2) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		}
 	}
 	{
-		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 		size := __caster.Size(m.MaxStakePerNode)
 		i -= size
 		if _, err := __caster.MarshalTo(m.MaxStakePerNode, dAtA[i:]); err != nil {
@@ -915,7 +915,7 @@ func (m *ValidatorDataV2) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i--
 	dAtA[i] = 0x32
 	{
-		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 		size := __caster.Size(m.LockedStake)
 		i -= size
 		if _, err := __caster.MarshalTo(m.LockedStake, dAtA[i:]); err != nil {
@@ -926,7 +926,7 @@ func (m *ValidatorDataV2) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i--
 	dAtA[i] = 0x2a
 	{
-		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 		size := __caster.Size(m.TotalStakeValue)
 		i -= size
 		if _, err := __caster.MarshalTo(m.TotalStakeValue, dAtA[i:]); err != nil {
@@ -977,7 +977,7 @@ func (m *ValidatorConfig) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	var l int
 	_ = l
 	{
-		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 		size := __caster.Size(m.UnJailPrice)
 		i -= size
 		if _, err := __caster.MarshalTo(m.UnJailPrice, dAtA[i:]); err != nil {
@@ -988,7 +988,7 @@ func (m *ValidatorConfig) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i--
 	dAtA[i] = 0x2a
 	{
-		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 		size := __caster.Size(m.NodePrice)
 		i -= size
 		if _, err := __caster.MarshalTo(m.NodePrice, dAtA[i:]); err != nil {
@@ -999,7 +999,7 @@ func (m *ValidatorConfig) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i--
 	dAtA[i] = 0x22
 	{
-		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 		size := __caster.Size(m.MinStep)
 		i -= size
 		if _, err := __caster.MarshalTo(m.MinStep, dAtA[i:]); err != nil {
@@ -1010,7 +1010,7 @@ func (m *ValidatorConfig) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i--
 	dAtA[i] = 0x1a
 	{
-		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 		size := __caster.Size(m.TotalSupply)
 		i -= size
 		if _, err := __caster.MarshalTo(m.TotalSupply, dAtA[i:]); err != nil {
@@ -1021,7 +1021,7 @@ func (m *ValidatorConfig) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i--
 	dAtA[i] = 0x12
 	{
-		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 		size := __caster.Size(m.MinStakeValue)
 		i -= size
 		if _, err := __caster.MarshalTo(m.MinStakeValue, dAtA[i:]); err != nil {
@@ -1062,17 +1062,17 @@ func (m *ValidatorDataV1) Size() (n int) {
 		n += 1 + l + sovValidator(uint64(l))
 	}
 	{
-		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 		l = __caster.Size(m.TotalStakeValue)
 		n += 1 + l + sovValidator(uint64(l))
 	}
 	{
-		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 		l = __caster.Size(m.LockedStake)
 		n += 1 + l + sovValidator(uint64(l))
 	}
 	{
-		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 		l = __caster.Size(m.MaxStakePerNode)
 		n += 1 + l + sovValidator(uint64(l))
 	}
@@ -1098,7 +1098,7 @@ func (m *UnstakedValue) Size() (n int) {
 		n += 1 + sovValidator(uint64(m.UnstakedEpoch))
 	}
 	{
-		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 		l = __caster.Size(m.UnstakedValue)
 		n += 1 + l + sovValidator(uint64(l))
 	}
@@ -1122,17 +1122,17 @@ func (m *ValidatorDataV2) Size() (n int) {
 		n += 1 + l + sovValidator(uint64(l))
 	}
 	{
-		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 		l = __caster.Size(m.TotalStakeValue)
 		n += 1 + l + sovValidator(uint64(l))
 	}
 	{
-		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 		l = __caster.Size(m.LockedStake)
 		n += 1 + l + sovValidator(uint64(l))
 	}
 	{
-		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 		l = __caster.Size(m.MaxStakePerNode)
 		n += 1 + l + sovValidator(uint64(l))
 	}
@@ -1152,12 +1152,12 @@ func (m *ValidatorDataV2) Size() (n int) {
 		}
 	}
 	{
-		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 		l = __caster.Size(m.TotalUnstaked)
 		n += 1 + l + sovValidator(uint64(l))
 	}
 	{
-		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 		l = __caster.Size(m.TotalSlashed)
 		n += 1 + l + sovValidator(uint64(l))
 	}
@@ -1171,27 +1171,27 @@ func (m *ValidatorConfig) Size() (n int) {
 	var l int
 	_ = l
 	{
-		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 		l = __caster.Size(m.MinStakeValue)
 		n += 1 + l + sovValidator(uint64(l))
 	}
 	{
-		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 		l = __caster.Size(m.TotalSupply)
 		n += 1 + l + sovValidator(uint64(l))
 	}
 	{
-		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 		l = __caster.Size(m.MinStep)
 		n += 1 + l + sovValidator(uint64(l))
 	}
 	{
-		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 		l = __caster.Size(m.NodePrice)
 		n += 1 + l + sovValidator(uint64(l))
 	}
 	{
-		__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 		l = __caster.Size(m.UnJailPrice)
 		n += 1 + l + sovValidator(uint64(l))
 	}
@@ -1410,7 +1410,7 @@ func (m *ValidatorDataV1) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			{
-				__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+				__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 					return err
 				} else {
@@ -1448,7 +1448,7 @@ func (m *ValidatorDataV1) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			{
-				__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+				__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 					return err
 				} else {
@@ -1486,7 +1486,7 @@ func (m *ValidatorDataV1) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			{
-				__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+				__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 					return err
 				} else {
@@ -1647,7 +1647,7 @@ func (m *UnstakedValue) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			{
-				__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+				__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 					return err
 				} else {
@@ -1810,7 +1810,7 @@ func (m *ValidatorDataV2) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			{
-				__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+				__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 					return err
 				} else {
@@ -1848,7 +1848,7 @@ func (m *ValidatorDataV2) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			{
-				__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+				__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 					return err
 				} else {
@@ -1886,7 +1886,7 @@ func (m *ValidatorDataV2) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			{
-				__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+				__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 					return err
 				} else {
@@ -2009,7 +2009,7 @@ func (m *ValidatorDataV2) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			{
-				__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+				__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 					return err
 				} else {
@@ -2047,7 +2047,7 @@ func (m *ValidatorDataV2) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			{
-				__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+				__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 					return err
 				} else {
@@ -2138,7 +2138,7 @@ func (m *ValidatorConfig) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			{
-				__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+				__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 					return err
 				} else {
@@ -2176,7 +2176,7 @@ func (m *ValidatorConfig) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			{
-				__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+				__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 					return err
 				} else {
@@ -2214,7 +2214,7 @@ func (m *ValidatorConfig) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			{
-				__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+				__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 					return err
 				} else {
@@ -2252,7 +2252,7 @@ func (m *ValidatorConfig) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			{
-				__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+				__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 					return err
 				} else {
@@ -2290,7 +2290,7 @@ func (m *ValidatorConfig) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			{
-				__caster := &github_com_ElrondNetwork_elrond_go_core_data.BigIntCaster{}
+				__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
 				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 					return err
 				} else {

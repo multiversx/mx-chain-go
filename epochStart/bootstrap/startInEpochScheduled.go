@@ -6,15 +6,15 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
-	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/update"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/scheduled"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/update"
 )
 
 type startInEpochWithScheduledDataSyncer struct {
@@ -174,7 +174,7 @@ func getShardIDAndHashesForIncludedMetaBlocks(notarizedShardHeader data.ShardHea
 	shardIDs := make([]uint32, 0)
 	hashesToRequest := make([][]byte, 0)
 
-	// if there were processed metaBlocks in the notarized header, these need to be synced so they can get again processed
+	// if there were processed metaBlocks in the notarized header, these need to be synced, so they can get again processed
 	metaBlockHashes := notarizedShardHeader.GetMetaBlockHashes()
 	for i := range metaBlockHashes {
 		shardIDs = append(shardIDs, core.MetachainShardId)

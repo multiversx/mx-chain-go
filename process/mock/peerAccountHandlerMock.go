@@ -3,8 +3,8 @@ package mock
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 // PeerAccountHandlerMock -
@@ -271,11 +271,6 @@ func (p *PeerAccountHandlerMock) SetDataTrie(_ common.Trie) {
 
 // DataTrie -
 func (p *PeerAccountHandlerMock) DataTrie() common.Trie {
-	return nil
-}
-
-// DataTrieTracker -
-func (p *PeerAccountHandlerMock) DataTrieTracker() state.DataTrieTracker {
 	return nil
 }
 

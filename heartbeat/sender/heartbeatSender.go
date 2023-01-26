@@ -1,12 +1,13 @@
 package sender
 
 import (
+	"fmt"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/batch"
-	"github.com/ElrondNetwork/elrond-go/heartbeat"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/heartbeat"
 )
 
 const maxSizeInBytes = 128
@@ -14,20 +15,24 @@ const maxSizeInBytes = 128
 // argHeartbeatSender represents the arguments for the heartbeat sender
 type argHeartbeatSender struct {
 	argBaseSender
-	versionNumber        string
-	nodeDisplayName      string
-	identity             string
-	peerSubType          core.P2PPeerSubType
-	currentBlockProvider heartbeat.CurrentBlockProvider
+	versionNumber              string
+	nodeDisplayName            string
+	identity                   string
+	peerSubType                core.P2PPeerSubType
+	currentBlockProvider       heartbeat.CurrentBlockProvider
+	peerTypeProvider           heartbeat.PeerTypeProviderHandler
+	trieSyncStatisticsProvider heartbeat.TrieSyncStatisticsProvider
 }
 
 type heartbeatSender struct {
 	baseSender
-	versionNumber        string
-	nodeDisplayName      string
-	identity             string
-	peerSubType          core.P2PPeerSubType
-	currentBlockProvider heartbeat.CurrentBlockProvider
+	versionNumber              string
+	nodeDisplayName            string
+	identity                   string
+	peerSubType                core.P2PPeerSubType
+	currentBlockProvider       heartbeat.CurrentBlockProvider
+	peerTypeProvider           heartbeat.PeerTypeProviderHandler
+	trieSyncStatisticsProvider heartbeat.TrieSyncStatisticsProvider
 }
 
 // newHeartbeatSender creates a new instance of type heartbeatSender
@@ -38,12 +43,14 @@ func newHeartbeatSender(args argHeartbeatSender) (*heartbeatSender, error) {
 	}
 
 	return &heartbeatSender{
-		baseSender:           createBaseSender(args.argBaseSender),
-		versionNumber:        args.versionNumber,
-		nodeDisplayName:      args.nodeDisplayName,
-		identity:             args.identity,
-		currentBlockProvider: args.currentBlockProvider,
-		peerSubType:          args.peerSubType,
+		baseSender:                 createBaseSender(args.argBaseSender),
+		versionNumber:              args.versionNumber,
+		nodeDisplayName:            args.nodeDisplayName,
+		identity:                   args.identity,
+		peerSubType:                args.peerSubType,
+		currentBlockProvider:       args.currentBlockProvider,
+		peerTypeProvider:           args.peerTypeProvider,
+		trieSyncStatisticsProvider: args.trieSyncStatisticsProvider,
 	}, nil
 }
 
@@ -53,10 +60,25 @@ func checkHeartbeatSenderArgs(args argHeartbeatSender) error {
 		return err
 	}
 	if len(args.versionNumber) > maxSizeInBytes {
-		return heartbeat.ErrPropertyTooLong
+		return fmt.Errorf("%w for versionNumber, received %s of size %d, max size allowed %d",
+			heartbeat.ErrPropertyTooLong, args.versionNumber, len(args.versionNumber), maxSizeInBytes)
+	}
+	if len(args.nodeDisplayName) > maxSizeInBytes {
+		return fmt.Errorf("%w for nodeDisplayName, received %s of size %d, max size allowed %d",
+			heartbeat.ErrPropertyTooLong, args.nodeDisplayName, len(args.nodeDisplayName), maxSizeInBytes)
+	}
+	if len(args.identity) > maxSizeInBytes {
+		return fmt.Errorf("%w for identity, received %s of size %d, max size allowed %d",
+			heartbeat.ErrPropertyTooLong, args.identity, len(args.identity), maxSizeInBytes)
 	}
 	if check.IfNil(args.currentBlockProvider) {
 		return heartbeat.ErrNilCurrentBlockProvider
+	}
+	if check.IfNil(args.peerTypeProvider) {
+		return heartbeat.ErrNilPeerTypeProvider
+	}
+	if check.IfNil(args.trieSyncStatisticsProvider) {
+		return heartbeat.ErrNilTrieSyncStatisticsProvider
 	}
 
 	return nil
@@ -64,7 +86,7 @@ func checkHeartbeatSenderArgs(args argHeartbeatSender) error {
 
 // Execute will handle the execution of a cycle in which the heartbeat message will be sent
 func (sender *heartbeatSender) Execute() {
-	duration := sender.computeRandomDuration()
+	duration := sender.computeRandomDuration(sender.timeBetweenSends)
 	err := sender.execute()
 	if err != nil {
 		duration = sender.timeBetweenSendsWhenError
@@ -92,13 +114,22 @@ func (sender *heartbeatSender) execute() error {
 		nonce = currentBlock.GetNonce()
 	}
 
+	_, pk := sender.getCurrentPrivateAndPublicKeys()
+	pkBytes, err := pk.ToByteArray()
+	if err != nil {
+		return err
+	}
+
+	trieNodesReceived := sender.trieSyncStatisticsProvider.NumProcessed()
 	msg := &heartbeat.HeartbeatV2{
-		Payload:         payloadBytes,
-		VersionNumber:   sender.versionNumber,
-		NodeDisplayName: sender.nodeDisplayName,
-		Identity:        sender.identity,
-		Nonce:           nonce,
-		PeerSubType:     uint32(sender.peerSubType),
+		Payload:            payloadBytes,
+		VersionNumber:      sender.versionNumber,
+		NodeDisplayName:    sender.nodeDisplayName,
+		Identity:           sender.identity,
+		Nonce:              nonce,
+		PeerSubType:        uint32(sender.peerSubType),
+		Pubkey:             pkBytes,
+		NumTrieNodesSynced: uint64(trieNodesReceived),
 	}
 
 	msgBytes, err := sender.marshaller.Marshal(msg)
@@ -106,18 +137,32 @@ func (sender *heartbeatSender) execute() error {
 		return err
 	}
 
-	b := &batch.Batch{
-		Data: make([][]byte, 1),
-	}
-	b.Data[0] = msgBytes
-	data, err := sender.marshaller.Marshal(b)
-	if err != nil {
-		return err
-	}
-
-	sender.messenger.Broadcast(sender.topic, data)
+	sender.messenger.Broadcast(sender.topic, msgBytes)
 
 	return nil
+}
+
+// getSenderInfo will return the current sender info
+func (sender *heartbeatSender) getSenderInfo() (string, core.P2PPeerSubType, error) {
+	_, pk := sender.getCurrentPrivateAndPublicKeys()
+	pkBytes, err := pk.ToByteArray()
+	if err != nil {
+		return "", 0, err
+	}
+
+	peerType := sender.computePeerList(pkBytes)
+
+	return peerType, sender.peerSubType, nil
+}
+
+func (sender *heartbeatSender) computePeerList(pubkey []byte) string {
+	peerType, _, err := sender.peerTypeProvider.ComputeForPubKey(pubkey)
+	if err != nil {
+		log.Warn("heartbeatSender: compute peer type", "error", err)
+		return string(common.ObserverList)
+	}
+
+	return string(peerType)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

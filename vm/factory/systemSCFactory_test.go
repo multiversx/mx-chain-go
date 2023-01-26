@@ -5,22 +5,23 @@ import (
 	"fmt"
 	"testing"
 
-	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	"github.com/ElrondNetwork/elrond-go/vm"
-	"github.com/ElrondNetwork/elrond-go/vm/mock"
-	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/vm"
+	"github.com/multiversx/mx-chain-go/vm/mock"
+	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
+	wasmConfig "github.com/multiversx/mx-chain-vm-v1_4-go/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
-	gasMap := arwenConfig.MakeGasMapForTests()
+	gasMap := wasmConfig.MakeGasMapForTests()
 	gasMap = defaults.FillGasMapInternal(gasMap, 1)
-	gasSchedule := mock.NewGasScheduleNotifierMock(gasMap)
+	gasSchedule := testscommon.NewGasScheduleNotifierMock(gasMap)
 	return ArgsNewSystemSCFactory{
 		SystemEI:            &mock.SystemEIStub{},
 		Economics:           &mock.EconomicsHandlerStub{},
@@ -69,18 +70,10 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 				ConfigChangeAddress: "3132333435363738393031323334353637383930313233343536373839303234",
 			},
 		},
-		EpochNotifier:          &mock.EpochNotifierStub{},
 		AddressPubKeyConverter: &mock.PubkeyConverterMock{},
-		EpochConfig: &config.EpochConfig{
-			EnableEpochs: config.EnableEpochs{
-				StakingV2EnableEpoch:               1,
-				StakeEnableEpoch:                   0,
-				DelegationSmartContractEnableEpoch: 0,
-				DelegationManagerEnableEpoch:       0,
-			},
-		},
-		ShardCoordinator: &mock.ShardCoordinatorStub{},
-		NodesCoordinator: &mock.NodesCoordinatorStub{},
+		ShardCoordinator:       &mock.ShardCoordinatorStub{},
+		EnableEpochsHandler:    &testscommon.EnableEpochsHandlerStub{},
+		NodesCoordinator:       &mock.NodesCoordinatorStub{},
 	}
 }
 
@@ -170,17 +163,6 @@ func TestNewSystemSCFactory_NilSystemScConfig(t *testing.T) {
 
 	assert.Nil(t, scFactory)
 	assert.True(t, errors.Is(err, vm.ErrNilSystemSCConfig))
-}
-
-func TestNewSystemSCFactory_NilEpochNotifier(t *testing.T) {
-	t.Parallel()
-
-	arguments := createMockNewSystemScFactoryArgs()
-	arguments.EpochNotifier = nil
-	scFactory, err := NewSystemSCFactory(arguments)
-
-	assert.Nil(t, scFactory)
-	assert.True(t, errors.Is(err, vm.ErrNilEpochNotifier))
 }
 
 func TestNewSystemSCFactory_NilPubKeyConverter(t *testing.T) {

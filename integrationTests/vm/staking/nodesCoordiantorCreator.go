@@ -3,17 +3,18 @@ package staking
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/factory"
-	integrationMocks "github.com/ElrondNetwork/elrond-go/integrationTests/mock"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
-	"github.com/ElrondNetwork/elrond-go/testscommon/stakingcommon"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-core-go/storage/lrucache"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever/dataPool"
+	"github.com/multiversx/mx-chain-go/factory"
+	integrationMocks "github.com/multiversx/mx-chain-go/integrationTests/mock"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/testscommon/stakingcommon"
 )
 
 const (
@@ -47,9 +48,9 @@ func createNodesCoordinator(
 			StakingV4EnableEpoch:                     stakingV4EnableEpoch,
 			StakingV4DistributeAuctionToWaitingEpoch: stakingV4DistributeAuctionToWaitingEpoch,
 		},
+		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
 	}
 	nodeShuffler, _ := nodesCoordinator.NewHashValidatorsShuffler(shufflerArgs)
-
 	cache, _ := lrucache.NewCache(10000)
 	argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
 		ShardConsensusGroupSize:         shardConsensusGroupSize,
@@ -71,11 +72,12 @@ func createNodesCoordinator(
 		StakingV4EnableEpoch:            stakingV4EnableEpoch,
 		NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
 		NodeTypeProvider:                coreComponents.NodeTypeProvider(),
+		EnableEpochsHandler:             coreComponents.EnableEpochsHandler(),
+		ValidatorInfoCacher:             dataPool.NewCurrentEpochValidatorInfoPool(),
 	}
 
 	baseNodesCoordinator, _ := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 	nodesCoord, _ := nodesCoordinator.NewIndexHashedNodesCoordinatorWithRater(baseNodesCoordinator, coreComponents.Rater())
-
 	return nodesCoord
 }
 

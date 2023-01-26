@@ -1,8 +1,8 @@
 package transactionAPI
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 func checkNilArgs(arg *ArgAPITransactionProcessor) error {
@@ -30,8 +30,18 @@ func checkNilArgs(arg *ArgAPITransactionProcessor) error {
 	if check.IfNil(arg.Uint64ByteSliceConverter) {
 		return process.ErrNilUint64Converter
 	}
+	if check.IfNil(arg.FeeComputer) {
+		return ErrNilFeeComputer
+	}
+	if check.IfNil(arg.TxTypeHandler) {
+		return process.ErrNilTxTypeHandler
+	}
+	if check.IfNil(arg.LogsFacade) {
+		return ErrNilLogsFacade
+	}
 	if check.IfNilReflect(arg.DataFieldParser) {
 		return ErrNilDataFieldParser
 	}
+
 	return nil
 }

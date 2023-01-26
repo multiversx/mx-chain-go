@@ -1,8 +1,8 @@
 package testscommon
 
 import (
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/storage/storageunit"
 )
 
 // GetGeneralConfig returns the common configuration used for testing
@@ -80,7 +80,7 @@ func GetGeneralConfig() config.Config {
 			RootHashesSize: 100,
 			DB: config.DBConfig{
 				FilePath:          AddTimestampSuffix("EvictionWaitingList"),
-				Type:              string(storageUnit.MemoryDB),
+				Type:              string(storageunit.MemoryDB),
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,
 				MaxOpenFiles:      10,
@@ -90,7 +90,7 @@ func GetGeneralConfig() config.Config {
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
 				FilePath:          AddTimestampSuffix("AccountsTrie"),
-				Type:              string(storageUnit.MemoryDB),
+				Type:              string(storageunit.MemoryDB),
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,
 				MaxOpenFiles:      10,
@@ -100,7 +100,7 @@ func GetGeneralConfig() config.Config {
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
 				FilePath:          AddTimestampSuffix("AccountsTrieCheckpoints"),
-				Type:              string(storageUnit.MemoryDB),
+				Type:              string(storageunit.MemoryDB),
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,
 				MaxOpenFiles:      10,
@@ -110,7 +110,7 @@ func GetGeneralConfig() config.Config {
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
 				FilePath:          AddTimestampSuffix("PeerAccountsTrie"),
-				Type:              string(storageUnit.MemoryDB),
+				Type:              string(storageunit.MemoryDB),
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,
 				MaxOpenFiles:      10,
@@ -120,7 +120,7 @@ func GetGeneralConfig() config.Config {
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
 				FilePath:          AddTimestampSuffix("PeerAccountsTrieCheckpoints"),
-				Type:              string(storageUnit.MemoryDB),
+				Type:              string(storageunit.MemoryDB),
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,
 				MaxOpenFiles:      10,
@@ -128,14 +128,17 @@ func GetGeneralConfig() config.Config {
 		},
 		StateTriesConfig: config.StateTriesConfig{
 			CheckpointRoundsModulus:     100,
+			SnapshotsEnabled:            false,
+			CheckpointsEnabled:          false,
 			AccountsStatePruningEnabled: false,
 			PeerStatePruningEnabled:     false,
 			MaxStateTrieLevelInMemory:   5,
 			MaxPeerTrieLevelInMemory:    5,
 		},
 		TrieStorageManagerConfig: config.TrieStorageManagerConfig{
-			PruningBufferLen:   1000,
-			SnapshotsBufferLen: 10,
+			PruningBufferLen:      1000,
+			SnapshotsBufferLen:    10,
+			SnapshotsGoroutineNum: 2,
 		},
 		TxDataPool: config.CacheConfig{
 			Capacity:             10000,
@@ -154,6 +157,11 @@ func GetGeneralConfig() config.Config {
 			SizeInBytes: 1000000000,
 			Shards:      1,
 		},
+		ValidatorInfoPool: config.CacheConfig{
+			Capacity:    10000,
+			SizeInBytes: 1000000000,
+			Shards:      1,
+		},
 		HeadersPoolConfig: config.HeadersPoolConfig{
 			MaxHeadersPerShard:            100,
 			NumElementsToRemoveOnEviction: 1,
@@ -163,7 +171,7 @@ func GetGeneralConfig() config.Config {
 		TrieSyncStorage: config.TrieSyncStorageConfig{
 			DB: config.DBConfig{
 				FilePath:          AddTimestampSuffix("TrieSync"),
-				Type:              string(storageUnit.MemoryDB),
+				Type:              string(storageunit.MemoryDB),
 				BatchDelaySeconds: 2,
 				MaxBatchSize:      1000,
 				MaxOpenFiles:      10,
@@ -178,7 +186,7 @@ func GetGeneralConfig() config.Config {
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
 				FilePath:          AddTimestampSuffix("Transactions"),
-				Type:              string(storageUnit.MemoryDB),
+				Type:              string(storageunit.MemoryDB),
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,
 				MaxOpenFiles:      10,
@@ -188,7 +196,7 @@ func GetGeneralConfig() config.Config {
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
 				FilePath:          AddTimestampSuffix("MiniBlocks"),
-				Type:              string(storageUnit.MemoryDB),
+				Type:              string(storageunit.MemoryDB),
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,
 				MaxOpenFiles:      10,
@@ -198,7 +206,7 @@ func GetGeneralConfig() config.Config {
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
 				FilePath:          AddTimestampSuffix("ShardHdrHashNonce"),
-				Type:              string(storageUnit.MemoryDB),
+				Type:              string(storageunit.MemoryDB),
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,
 				MaxOpenFiles:      10,
@@ -208,7 +216,7 @@ func GetGeneralConfig() config.Config {
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
 				FilePath:          AddTimestampSuffix("MetaBlock"),
-				Type:              string(storageUnit.MemoryDB),
+				Type:              string(storageunit.MemoryDB),
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,
 				MaxOpenFiles:      10,
@@ -218,7 +226,7 @@ func GetGeneralConfig() config.Config {
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
 				FilePath:          AddTimestampSuffix("MetaHdrHashNonce"),
-				Type:              string(storageUnit.MemoryDB),
+				Type:              string(storageunit.MemoryDB),
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,
 				MaxOpenFiles:      10,
@@ -228,7 +236,7 @@ func GetGeneralConfig() config.Config {
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
 				FilePath:          AddTimestampSuffix("UnsignedTransactions"),
-				Type:              string(storageUnit.MemoryDB),
+				Type:              string(storageunit.MemoryDB),
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,
 				MaxOpenFiles:      10,
@@ -238,7 +246,7 @@ func GetGeneralConfig() config.Config {
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
 				FilePath:          AddTimestampSuffix("RewardTransactions"),
-				Type:              string(storageUnit.MemoryDB),
+				Type:              string(storageunit.MemoryDB),
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,
 				MaxOpenFiles:      10,
@@ -248,22 +256,10 @@ func GetGeneralConfig() config.Config {
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
 				FilePath:          AddTimestampSuffix("BlockHeaders"),
-				Type:              string(storageUnit.MemoryDB),
+				Type:              string(storageunit.MemoryDB),
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,
 				MaxOpenFiles:      10,
-			},
-		},
-		Heartbeat: config.HeartbeatConfig{
-			HeartbeatStorage: config.StorageConfig{
-				Cache: getLRUCacheConfig(),
-				DB: config.DBConfig{
-					FilePath:          AddTimestampSuffix("HeartbeatStorage"),
-					Type:              string(storageUnit.MemoryDB),
-					BatchDelaySeconds: 30,
-					MaxBatchSize:      6,
-					MaxOpenFiles:      10,
-				},
 			},
 		},
 		HeartbeatV2: config.HeartbeatV2Config{
@@ -271,25 +267,23 @@ func GetGeneralConfig() config.Config {
 			PeerAuthenticationTimeBetweenSendsWhenErrorInSec: 1,
 			PeerAuthenticationThresholdBetweenSends:          0.1,
 			HeartbeatTimeBetweenSendsInSec:                   1,
+			HeartbeatTimeBetweenSendsDuringBootstrapInSec:    1,
 			HeartbeatTimeBetweenSendsWhenErrorInSec:          1,
 			HeartbeatThresholdBetweenSends:                   0.1,
-			MaxNumOfPeerAuthenticationInResponse:             5,
-			DelayBetweenConnectionNotificationsInSec:         5,
+			PeerShardTimeBetweenSendsInSec:                   5,
+			PeerShardThresholdBetweenSends:                   0.1,
 			HeartbeatExpiryTimespanInSec:                     30,
 			MaxDurationPeerUnresponsiveInSec:                 10,
 			HideInactiveValidatorIntervalInSec:               60,
 			HardforkTimeBetweenSendsInSec:                    5,
-			PeerAuthenticationPool: config.PeerAuthenticationPoolConfig{
-				DefaultSpanInSec: 30,
-				CacheExpiryInSec: 30,
-			},
-			HeartbeatPool: getLRUCacheConfig(),
+			TimeBetweenConnectionsMetricsUpdateInSec:         10,
+			HeartbeatPool:                                    getLRUCacheConfig(),
 		},
 		StatusMetricsStorage: config.StorageConfig{
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
 				FilePath:          AddTimestampSuffix("StatusMetricsStorageDB"),
-				Type:              string(storageUnit.MemoryDB),
+				Type:              string(storageunit.MemoryDB),
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,
 				MaxOpenFiles:      10,
@@ -299,7 +293,7 @@ func GetGeneralConfig() config.Config {
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
 				FilePath:          AddTimestampSuffix("SmartContractsStorage"),
-				Type:              string(storageUnit.MemoryDB),
+				Type:              string(storageunit.MemoryDB),
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,
 				MaxOpenFiles:      10,
@@ -309,7 +303,7 @@ func GetGeneralConfig() config.Config {
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
 				FilePath:          AddTimestampSuffix("SmartContractsStorageSimulate"),
-				Type:              string(storageUnit.MemoryDB),
+				Type:              string(storageunit.MemoryDB),
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,
 				MaxOpenFiles:      10,
@@ -319,7 +313,7 @@ func GetGeneralConfig() config.Config {
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
 				FilePath:          AddTimestampSuffix("PeerBlocks"),
-				Type:              string(storageUnit.MemoryDB),
+				Type:              string(storageunit.MemoryDB),
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,
 				MaxOpenFiles:      10,
@@ -329,7 +323,7 @@ func GetGeneralConfig() config.Config {
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
 				FilePath:          AddTimestampSuffix("BootstrapData"),
-				Type:              string(storageUnit.MemoryDB),
+				Type:              string(storageunit.MemoryDB),
 				BatchDelaySeconds: 1,
 				MaxBatchSize:      6,
 				MaxOpenFiles:      10,
@@ -341,7 +335,7 @@ func GetGeneralConfig() config.Config {
 				Cache: getLRUCacheConfig(),
 				DB: config.DBConfig{
 					FilePath:          AddTimestampSuffix("Logs"),
-					Type:              string(storageUnit.MemoryDB),
+					Type:              string(storageunit.MemoryDB),
 					BatchDelaySeconds: 2,
 					MaxBatchSize:      100,
 					MaxOpenFiles:      10,
@@ -352,7 +346,7 @@ func GetGeneralConfig() config.Config {
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
 				FilePath:          AddTimestampSuffix("Receipts"),
-				Type:              string(storageUnit.MemoryDB),
+				Type:              string(storageunit.MemoryDB),
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,
 				MaxOpenFiles:      10,
@@ -362,7 +356,7 @@ func GetGeneralConfig() config.Config {
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
 				FilePath:          AddTimestampSuffix("ScheduledSCRs"),
-				Type:              string(storageUnit.MemoryDB),
+				Type:              string(storageunit.MemoryDB),
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,
 				MaxOpenFiles:      10,
@@ -389,6 +383,7 @@ func GetGeneralConfig() config.Config {
 			NumConcurrentTrieSyncers:  50,
 			MaxHardCapForMissingNodes: 500,
 			TrieSyncerVersion:         2,
+			CheckNodesOnDisk:          false,
 		},
 		Antiflood: config.AntifloodConfig{
 			NumConcurrentResolverJobs: 2,
@@ -404,14 +399,14 @@ func GetGeneralConfig() config.Config {
 		},
 		VirtualMachine: config.VirtualMachineServicesConfig{
 			Execution: config.VirtualMachineConfig{
-				ArwenVersions: []config.ArwenVersionByEpoch{
+				WasmVMVersions: []config.WasmVMVersionByEpoch{
 					{StartEpoch: 0, Version: "*"},
 				},
 			},
 			Querying: config.QueryVirtualMachineConfig{
 				NumConcurrentVMs: 1,
 				VirtualMachineConfig: config.VirtualMachineConfig{
-					ArwenVersions: []config.ArwenVersionByEpoch{
+					WasmVMVersions: []config.WasmVMVersionByEpoch{
 						{StartEpoch: 0, Version: "*"},
 					},
 				},
@@ -426,8 +421,17 @@ func GetGeneralConfig() config.Config {
 			TopRatedCacheCapacity: 1000,
 			BadRatedCacheCapacity: 1000,
 		},
+		PoolsCleanersConfig: config.PoolsCleanersConfig{
+			MaxRoundsToKeepUnprocessedMiniBlocks:   50,
+			MaxRoundsToKeepUnprocessedTransactions: 50,
+		},
 		BuiltInFunctions: config.BuiltInFunctionsConfig{
-			AutomaticCrawlerAddress: "erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c",
+			AutomaticCrawlerAddresses: []string{
+				"erd1he8wwxn4az3j82p7wwqsdk794dm7hcrwny6f8dfegkfla34udx7qrf7xje", //shard 0
+				"erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c", //shard 1
+				"erd1najnxxweyw6plhg8efql330nttrj6l5cf87wqsuym85s9ha0hmdqnqgenp", //shard 2
+			},
+			MaxNumAddressesInTransferRole: 100,
 		},
 	}
 }

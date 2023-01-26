@@ -5,22 +5,21 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
-	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
-	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
-	triesFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
+	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
+	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
+	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
+	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
+	triesFactory "github.com/multiversx/mx-chain-go/trie/factory"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -82,9 +81,9 @@ func createDataPoolsForShard() dataRetriever.PoolsHolder {
 }
 
 func createStoreForShard() dataRetriever.StorageService {
-	return &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &storageStubs.StorerStub{}
+	return &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return &storageStubs.StorerStub{}, nil
 		},
 	}
 }
@@ -96,7 +95,7 @@ func createTriesHolderForShard() common.TriesHolder {
 	return triesHolder
 }
 
-//------- NewResolversContainerFactory
+// ------- NewResolversContainerFactory
 
 func TestNewShardResolversContainerFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
@@ -267,28 +266,6 @@ func TestNewShardResolversContainerFactory_InvalidNumFullHistoryPeersShouldErr(t
 	assert.True(t, errors.Is(err, dataRetriever.ErrInvalidValue))
 }
 
-func TestNewShardResolversContainerFactory_NilNodesCoordinatorShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getArgumentsShard()
-	args.NodesCoordinator = nil
-	rcf, err := resolverscontainer.NewShardResolversContainerFactory(args)
-
-	assert.Nil(t, rcf)
-	assert.Equal(t, dataRetriever.ErrNilNodesCoordinator, err)
-}
-
-func TestNewShardResolversContainerFactory_InvalidMaxNumOfPeerAuthenticationInResponseShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getArgumentsShard()
-	args.MaxNumOfPeerAuthenticationInResponse = 0
-	rcf, err := resolverscontainer.NewShardResolversContainerFactory(args)
-
-	assert.Nil(t, rcf)
-	assert.True(t, strings.Contains(err.Error(), dataRetriever.ErrInvalidValue.Error()))
-}
-
 func TestNewShardResolversContainerFactory_NilInputAntifloodHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -322,17 +299,6 @@ func TestNewShardResolversContainerFactory_NilCurrentNetworkEpochProviderShouldE
 	assert.Equal(t, dataRetriever.ErrNilCurrentNetworkEpochProvider, err)
 }
 
-func TestNewShardResolversContainerFactory_NilPeerShardMapperShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getArgumentsShard()
-	args.PeerShardMapper = nil
-	rcf, err := resolverscontainer.NewShardResolversContainerFactory(args)
-
-	assert.Nil(t, rcf)
-	assert.Equal(t, dataRetriever.ErrNilPeerShardMapper, err)
-}
-
 func TestNewShardResolversContainerFactory_ShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -347,7 +313,7 @@ func TestNewShardResolversContainerFactory_ShouldWork(t *testing.T) {
 	assert.Equal(t, int(args.ResolverConfig.NumFullHistoryPeers), rcf.NumFullHistoryPeers())
 }
 
-//------- Create
+// ------- Create
 
 func TestShardResolversContainerFactory_CreateRegisterTxFailsShouldErr(t *testing.T) {
 	t.Parallel()
@@ -449,8 +415,9 @@ func TestShardResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	numResolverMetaBlockHeaders := 1
 	numResolverTrieNodes := 1
 	numResolverPeerAuth := 1
+	numResolverValidatorInfo := 1
 	totalResolvers := numResolverTxs + numResolverHeaders + numResolverMiniBlocks + numResolverMetaBlockHeaders +
-		numResolverSCRs + numResolverRewardTxs + numResolverTrieNodes + numResolverPeerAuth
+		numResolverSCRs + numResolverRewardTxs + numResolverTrieNodes + numResolverPeerAuth + numResolverValidatorInfo
 
 	assert.Equal(t, totalResolvers, container.Len())
 }
@@ -476,9 +443,7 @@ func getArgumentsShard() resolverscontainer.FactoryArgs {
 			NumTotalPeers:       3,
 			NumFullHistoryPeers: 3,
 		},
-		NodesCoordinator:                     &shardingMocks.NodesCoordinatorStub{},
-		MaxNumOfPeerAuthenticationInResponse: 5,
-		PeerShardMapper:                      &p2pmocks.NetworkShardingCollectorStub{},
-		PeersRatingHandler:                   &p2pmocks.PeersRatingHandlerStub{},
+		PeersRatingHandler: &p2pmocks.PeersRatingHandlerStub{},
+		PayloadValidator:   &testscommon.PeerAuthenticationPayloadValidatorStub{},
 	}
 }

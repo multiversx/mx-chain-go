@@ -12,18 +12,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	coreAtomic "github.com/ElrondNetwork/elrond-go-core/core/atomic"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/stakingcommon"
+	"github.com/multiversx/mx-chain-core-go/core"
+	coreAtomic "github.com/multiversx/mx-chain-core-go/core/atomic"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/stakingcommon"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -554,7 +554,7 @@ func TestValidatorsProvider_CallsPopulateOnlyAfterTimeout(t *testing.T) {
 	time.Sleep(time.Millisecond)
 	assert.Equal(t, int32(0), atomic.LoadInt32(populateCacheCalled))
 
-	// outside of refreshInterval
+	// outside refreshInterval
 	time.Sleep(arg.CacheRefreshIntervalDurationInSec)
 	_ = vsp.GetLatestValidators()
 	//allow call to go through
@@ -1047,7 +1047,7 @@ func TestValidatorsProvider_GetAuctionList(t *testing.T) {
 
 func createMockValidatorInfo() *state.ValidatorInfo {
 	initialInfo := &state.ValidatorInfo{
-		PublicKey:                  []byte("a1"),
+		PublicKey:                  []byte("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
 		ShardId:                    0,
 		List:                       "eligible",
 		Index:                      1,
@@ -1064,6 +1064,17 @@ func createMockValidatorInfo() *state.ValidatorInfo {
 		TotalValidatorFailure:      40,
 		NumSelectedInSuccessBlocks: 5,
 		AccumulatedFees:            big.NewInt(100),
+	}
+	return initialInfo
+}
+
+func createMockShardValidatorInfo() *state.ShardValidatorInfo {
+	initialInfo := &state.ShardValidatorInfo{
+		PublicKey:  bytes.Repeat([]byte("a"), 96),
+		ShardId:    0,
+		List:       "eligible",
+		Index:      1,
+		TempRating: 100,
 	}
 	return initialInfo
 }

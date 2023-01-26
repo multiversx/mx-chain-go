@@ -3,10 +3,10 @@ package state_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/state"
-	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/state"
+	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -17,15 +17,6 @@ func TestBaseAccount_AddressContainer(t *testing.T) {
 
 	ba := state.NewEmptyBaseAccount(address, nil)
 	assert.Equal(t, address, ba.AddressBytes())
-}
-
-func TestBaseAccount_DataTrieTracker(t *testing.T) {
-	t.Parallel()
-
-	tracker := &trieMock.DataTrieTrackerStub{}
-
-	ba := state.NewEmptyBaseAccount(nil, tracker)
-	assert.Equal(t, tracker, ba.DataTrieTracker())
 }
 
 func TestBaseAccount_DataTrie(t *testing.T) {

@@ -1,8 +1,8 @@
 package disabled
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 var _ process.InterceptedHeaderSigVerifier = (*headerSigVerifier)(nil)
@@ -20,7 +20,7 @@ func (h *headerSigVerifier) VerifyRandSeed(_ data.HeaderHandler) error {
 	return nil
 }
 
-// VerifyRandSeedAndLeaderSignature -
+// VerifyLeaderSignature -
 func (h *headerSigVerifier) VerifyLeaderSignature(_ data.HeaderHandler) error {
 	return nil
 }

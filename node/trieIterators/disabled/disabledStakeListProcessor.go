@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/ElrondNetwork/elrond-go-core/data/api"
+	"github.com/multiversx/mx-chain-core-go/data/api"
 )
 
 var errCannotReturnDirectStakedListFromShardNode = errors.New("direct staked list can not be returned by a shard node")

@@ -3,8 +3,8 @@ package mock
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 // TxExecutionProcessorStub -
@@ -62,7 +62,7 @@ func (teps *TxExecutionProcessorStub) AddNonce(senderBytes []byte, nonce uint64)
 }
 
 // GetExecutedTransactions -
-func (tep *TxExecutionProcessorStub) GetExecutedTransactions() []data.TransactionHandler {
+func (teps *TxExecutionProcessorStub) GetExecutedTransactions() []data.TransactionHandler {
 	return nil
 }
 

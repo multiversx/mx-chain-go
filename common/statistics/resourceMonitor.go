@@ -2,55 +2,87 @@ package statistics
 
 import (
 	"context"
-	"io/ioutil"
-	"path"
-	"path/filepath"
+	"fmt"
 	"runtime"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common/statistics/machine"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common/statistics/machine"
+	"github.com/multiversx/mx-chain-go/common/statistics/osLevel"
+	"github.com/multiversx/mx-chain-go/config"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/shirou/gopsutil/cpu"
+	"github.com/shirou/gopsutil/load"
+	"github.com/shirou/gopsutil/mem"
 	"github.com/shirou/gopsutil/net"
 	"github.com/shirou/gopsutil/process"
 )
 
+const minRefreshTimeInSec = 1
+
 var log = logger.GetOrCreate("common/statistics")
 
-// ResourceMonitor outputs statistics about resources used by the binary
-type ResourceMonitor struct {
+// resourceMonitor outputs statistics about resources used by the binary
+type resourceMonitor struct {
 	startTime     time.Time
 	cancelFunc    context.CancelFunc
-	generalConfig *config.Config
-	pathManager   storage.PathManagerHandler
-	shardId       string
+	netStats      NetworkStatisticsProvider
+	generalConfig config.Config
 }
 
 // NewResourceMonitor creates a new ResourceMonitor instance
-func NewResourceMonitor(config *config.Config, pathManager storage.PathManagerHandler, shardId string) (*ResourceMonitor, error) {
-	if config == nil {
-		return nil, ErrNilConfig
+func NewResourceMonitor(config config.Config, netStats NetworkStatisticsProvider) (*resourceMonitor, error) {
+	if check.IfNil(netStats) {
+		return nil, ErrNilNetworkStatisticsProvider
 	}
-	if check.IfNil(pathManager) {
-		return nil, ErrNilPathHandler
+	if config.ResourceStats.RefreshIntervalInSec < minRefreshTimeInSec {
+		return nil, fmt.Errorf("%w, minimum: %d, provided: %d", ErrInvalidRefreshIntervalValue, minRefreshTimeInSec, config.ResourceStats.RefreshIntervalInSec)
 	}
 
-	return &ResourceMonitor{
+	memoryString := "no memory information"
+	vms, err := mem.VirtualMemory()
+	if err == nil {
+		memoryString = core.ConvertBytes(vms.Total)
+	}
+
+	numCores := -1
+	rawCpuInfo, err := cpu.Info()
+	if err == nil {
+		numCores = len(rawCpuInfo)
+	}
+
+	log.Debug("newResourceMonitor", "numCores", numCores, "memory", memoryString)
+
+	return &resourceMonitor{
 		generalConfig: config,
-		pathManager:   pathManager,
-		shardId:       shardId,
 		startTime:     time.Now(),
+		netStats:      netStats,
 	}, nil
 }
 
 // GenerateStatistics creates a new statistic string
-func (rm *ResourceMonitor) GenerateStatistics() []interface{} {
+func (rm *resourceMonitor) GenerateStatistics() []interface{} {
+	stats := []interface{}{
+		"uptime", time.Duration(time.Now().UnixNano() - rm.startTime.UnixNano()).Round(time.Second),
+	}
+
+	stats = append(stats, GetRuntimeStatistics()...)
+	stats = append(stats, rm.generateProcessStatistics()...)
+	stats = append(stats, rm.generateNetworkStatistics()...)
+
+	return stats
+}
+
+func (rm *resourceMonitor) generateProcessStatistics() []interface{} {
 	fileDescriptors := int32(0)
 	numOpenFiles := 0
 	numConns := 0
+	cpuPercent := 0.0
+	ioStatsString := "no io stats info"
+	cpuPercentString := "no cpu percent info"
+	loadAverageString := "no load average info"
+
 	proc, err := machine.GetCurrentProcess()
 	if err == nil {
 		fileDescriptors, _ = proc.NumFDs()
@@ -60,6 +92,26 @@ func (rm *ResourceMonitor) GenerateStatistics() []interface{} {
 			numOpenFiles = len(openFiles)
 		}
 
+		loadAvg, errLoadAvg := load.Avg()
+		if errLoadAvg == nil {
+			loadAverageString = fmt.Sprintf("{avg1min: %.2f, avg5min: %.2f, avg15min: %.2f}",
+				loadAvg.Load1, loadAvg.Load5, loadAvg.Load15)
+		}
+
+		cpuPercent, err = proc.CPUPercent()
+		if err == nil {
+			cpuPercentString = fmt.Sprintf("%.2f", cpuPercent)
+		}
+
+		ioStats, errIoCounters := proc.IOCounters()
+		if errIoCounters == nil {
+			ioStatsString = fmt.Sprintf("{readCount: %d, writeCount: %d, readBytes: %s, writeBytes: %s}",
+				ioStats.ReadCount,
+				ioStats.WriteCount,
+				core.ConvertBytes(ioStats.ReadBytes),
+				core.ConvertBytes(ioStats.WriteBytes))
+		}
+
 		var conns []net.ConnectionStat
 		conns, err = proc.Connections()
 		if err == nil {
@@ -67,36 +119,25 @@ func (rm *ResourceMonitor) GenerateStatistics() []interface{} {
 		}
 	}
 
-	pathManager := rm.pathManager
-	generalConfig := rm.generalConfig
-	shardId := rm.shardId
-
-	trieStoragePath, mainDb := path.Split(pathManager.PathForStatic(shardId, generalConfig.AccountsTrieStorage.DB.FilePath))
-
-	trieDbFilePath := filepath.Join(trieStoragePath, mainDb)
-	evictionWaitingListDbFilePath := filepath.Join(trieStoragePath, generalConfig.EvictionWaitingList.DB.FilePath)
-
-	peerTrieStoragePath, mainDb := path.Split(pathManager.PathForStatic(shardId, generalConfig.PeerAccountsTrieStorage.DB.FilePath))
-
-	peerTrieDbFilePath := filepath.Join(peerTrieStoragePath, mainDb)
-	peerTrieEvictionWaitingListDbFilePath := filepath.Join(peerTrieStoragePath, generalConfig.EvictionWaitingList.DB.FilePath)
-
-	stats := []interface{}{
-		"uptime", time.Duration(time.Now().UnixNano() - rm.startTime.UnixNano()).Round(time.Second),
-	}
-	stats = append(stats, GetRuntimeStatistics()...)
-	stats = append(stats, []interface{}{
+	return []interface{}{
 		"FDs", fileDescriptors,
 		"num opened files", numOpenFiles,
 		"num conns", numConns,
-		"accountsTrieDbMem", getDirMemSize(trieDbFilePath),
-		"evictionDbMem", getDirMemSize(evictionWaitingListDbFilePath),
-		"peerTrieDbMem", getDirMemSize(peerTrieDbFilePath),
-		"peerTrieEvictionDbMem", getDirMemSize(peerTrieEvictionWaitingListDbFilePath),
-	}...,
+		"cpuPercent", cpuPercentString,
+		"cpuLoadAveragePercent", loadAverageString,
+		"ioStatsString", ioStatsString,
+	}
+}
+
+func (rm *resourceMonitor) generateNetworkStatistics() []interface{} {
+	netStatsString := fmt.Sprintf("{total received: %s, total sent: %s}",
+		rm.netStats.TotalReceivedInCurrentEpoch(),
+		rm.netStats.TotalSentInCurrentEpoch(),
 	)
 
-	return stats
+	return []interface{}{
+		"host network data size in epoch", netStatsString,
+	}
 }
 
 // GetRuntimeStatistics will return the statistics regarding the current time, memory consumption and the number of running go routines
@@ -105,10 +146,16 @@ func GetRuntimeStatistics() []interface{} {
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
 
-	return []interface{}{
+	osLevelMetrics := make([]interface{}, 0)
+	osLevelMemStats, err := osLevel.ReadCurrentMemStats()
+	if err == nil {
+		osLevelMetrics = append(osLevelMetrics, "os level stats")
+		osLevelMetrics = append(osLevelMetrics, "{"+osLevelMemStats.String()+"}")
+	}
+
+	statistics := []interface{}{
 		"timestamp", time.Now().Unix(),
 		"num go", runtime.NumGoroutine(),
-		"alloc", core.ConvertBytes(memStats.Alloc),
 		"heap alloc", core.ConvertBytes(memStats.HeapAlloc),
 		"heap idle", core.ConvertBytes(memStats.HeapIdle),
 		"heap inuse", core.ConvertBytes(memStats.HeapInuse),
@@ -117,34 +164,33 @@ func GetRuntimeStatistics() []interface{} {
 		"sys mem", core.ConvertBytes(memStats.Sys),
 		"num GC", memStats.NumGC,
 	}
+	statistics = append(statistics, osLevelMetrics...)
+
+	return statistics
 }
 
-func getDirMemSize(dir string) string {
-	files, _ := ioutil.ReadDir(dir)
-
-	size := int64(0)
-	for _, f := range files {
-		size += f.Size()
-	}
-
-	return core.ConvertBytes(uint64(size))
-}
-
-// SaveStatistics generates and saves statistic data on the disk
-func (rm *ResourceMonitor) SaveStatistics() {
+// LogStatistics generates and saves the statistic data in the logs
+func (rm *resourceMonitor) LogStatistics() {
 	stats := rm.GenerateStatistics()
 	log.Debug("node statistics", stats...)
 }
 
 // StartMonitoring starts the monitoring process for saving statistics
-func (rm *ResourceMonitor) StartMonitoring() {
+func (rm *resourceMonitor) StartMonitoring() {
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	rm.cancelFunc = cancelFunc
+
+	refreshTime := time.Second * time.Duration(rm.generalConfig.ResourceStats.RefreshIntervalInSec)
+	timer := time.NewTimer(refreshTime)
+	defer timer.Stop()
+
 	go func() {
 		for {
+			rm.LogStatistics()
+			timer.Reset(refreshTime)
+
 			select {
-			case <-time.After(time.Second * time.Duration(rm.generalConfig.ResourceStats.RefreshIntervalInSec)):
-				rm.SaveStatistics()
+			case <-timer.C:
 			case <-ctx.Done():
 				log.Debug("closing ResourceMonitor.StartMonitoring go routine")
 				return
@@ -154,12 +200,12 @@ func (rm *ResourceMonitor) StartMonitoring() {
 }
 
 // IsInterfaceNil returns true if underlying object is nil
-func (rm *ResourceMonitor) IsInterfaceNil() bool {
+func (rm *resourceMonitor) IsInterfaceNil() bool {
 	return rm == nil
 }
 
 // Close closes all underlying components
-func (rm *ResourceMonitor) Close() error {
+func (rm *resourceMonitor) Close() error {
 	if rm.cancelFunc != nil {
 		rm.cancelFunc()
 	}

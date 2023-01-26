@@ -5,12 +5,13 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/scheduled"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	"github.com/stretchr/testify/require"
 )
 
@@ -26,14 +27,14 @@ func getZeroGasAndFees() scheduled.GasAndFees {
 
 func TestSCCallCostTransactionCost(t *testing.T) {
 	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Arwen fix")
+		t.Skip("cannot run with -race -short; requires Wasm VM fix")
 	}
 
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, _ := utils.DoDeployNoChecks(t, testContext, "../arwen/testdata/counter/output/counter.wasm")
+	scAddress, _ := utils.DoDeployNoChecks(t, testContext, "../wasm/testdata/counter/output/counter.wasm")
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	sndAddr := []byte("12345678901234567890123456789112")
@@ -52,7 +53,7 @@ func TestSCCallCostTransactionCost(t *testing.T) {
 
 func TestScDeployTransactionCost(t *testing.T) {
 	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Arwen fix")
+		t.Skip("cannot run with -race -short; requires Wasm VM fix")
 	}
 
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
@@ -62,8 +63,8 @@ func TestScDeployTransactionCost(t *testing.T) {
 	sndAddr := []byte("12345678901234567890123456789012")
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, big.NewInt(1000000000))
 
-	scCode := arwen.GetSCCode("../arwen/testdata/misc/fib_arwen/output/fib_arwen.wasm")
-	tx := vm.CreateTransaction(0, big.NewInt(0), sndAddr, vm.CreateEmptyAddress(), 0, 0, []byte(arwen.CreateDeployTxData(scCode)))
+	scCode := wasm.GetSCCode("../wasm/testdata/misc/fib_wasm/output/fib_wasm.wasm")
+	tx := vm.CreateTransaction(0, big.NewInt(0), sndAddr, vm.CreateEmptyAddress(), 0, 0, []byte(wasm.CreateDeployTxData(scCode)))
 
 	res, err := testContext.TxCostHandler.ComputeTransactionGasLimit(tx)
 	require.Nil(t, err)
@@ -72,7 +73,7 @@ func TestScDeployTransactionCost(t *testing.T) {
 
 func TestAsyncCallsTransactionCost(t *testing.T) {
 	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Arwen fix")
+		t.Skip("cannot run with -race -short; requires Wasm VM fix")
 	}
 
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
@@ -104,17 +105,17 @@ func TestAsyncCallsTransactionCost(t *testing.T) {
 
 func TestBuiltInFunctionTransactionCost(t *testing.T) {
 	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Arwen fix")
+		t.Skip("cannot run with -race -short; requires Wasm VM fix")
 	}
 
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(
 		config.EnableEpochs{
-			PenalizedTooMuchGasEnableEpoch: 100,
+			PenalizedTooMuchGasEnableEpoch: integrationTests.UnreachableEpoch,
 		})
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, owner := utils.DoDeployNoChecks(t, testContext, "../arwen/testdata/counter/output/counter.wasm")
+	scAddress, owner := utils.DoDeployNoChecks(t, testContext, "../wasm/testdata/counter/output/counter.wasm")
 	gasAndFees := getZeroGasAndFees()
 	testContext.TxFeeHandler.CreateBlockStarted(gasAndFees)
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
@@ -130,7 +131,7 @@ func TestBuiltInFunctionTransactionCost(t *testing.T) {
 
 func TestESDTTransfer(t *testing.T) {
 	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Arwen fix")
+		t.Skip("cannot run with -race -short; requires Wasm VM fix")
 	}
 
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
@@ -153,7 +154,7 @@ func TestESDTTransfer(t *testing.T) {
 
 func TestAsyncESDTTransfer(t *testing.T) {
 	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Arwen fix")
+		t.Skip("cannot run with -race -short; requires Wasm VM fix")
 	}
 
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})

@@ -8,16 +8,17 @@ import (
 	"runtime/debug"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/clean"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	storageCore "github.com/multiversx/mx-chain-core-go/storage"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/epochStart/notifier"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/clean"
+	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var _ storage.Storer = (*PruningStorer)(nil)
@@ -78,7 +79,7 @@ func (pd *persisterData) setPersisterAndIsClosed(persister storage.Persister, is
 // PruningStorer represents a storer which creates a new persister for each epoch and removes older activePersisters
 // TODO unexport PruningStorer
 type PruningStorer struct {
-	extendPersisterLifeHandler func() bool
+	lastEpochNeededHandler func() uint32
 
 	lock             sync.RWMutex
 	shardCoordinator storage.ShardCoordinator
@@ -101,7 +102,7 @@ type PruningStorer struct {
 }
 
 // NewPruningStorer will return a new instance of PruningStorer without sharded directories' naming scheme
-func NewPruningStorer(args *StorerArgs) (*PruningStorer, error) {
+func NewPruningStorer(args StorerArgs) (*PruningStorer, error) {
 	err := checkArgs(args)
 	if err != nil {
 		return nil, err
@@ -124,14 +125,14 @@ func NewPruningStorer(args *StorerArgs) (*PruningStorer, error) {
 
 // initPruningStorer will create a PruningStorer with or without sharded directories' naming scheme
 func initPruningStorer(
-	args *StorerArgs,
+	args StorerArgs,
 	shardIDStr string,
 	activePersisters []*persisterData,
 	persistersMapByEpoch map[uint32]*persisterData,
 ) (*PruningStorer, error) {
 	pdb := &PruningStorer{}
 
-	cache, err := storageUnit.NewCache(args.CacheConf)
+	suCache, err := storageunit.NewCache(args.CacheConf)
 	if err != nil {
 		return nil, err
 	}
@@ -145,27 +146,24 @@ func initPruningStorer(
 	pdb.identifier = identifier
 	pdb.persisterFactory = args.PersisterFactory
 	pdb.shardCoordinator = args.ShardCoordinator
-	pdb.cacher = cache
+	pdb.cacher = suCache
 	pdb.epochPrepareHdr = &block.MetaBlock{Epoch: epochForDefaultEpochPrepareHdr}
-	pdb.epochForPutOperation = args.StartingEpoch
+	pdb.epochForPutOperation = args.EpochsData.StartingEpoch
 	pdb.pathManager = args.PathManager
 	pdb.dbPath = args.DbPath
-	pdb.numOfEpochsToKeep = args.NumOfEpochsToKeep
-	pdb.numOfActivePersisters = args.NumOfActivePersisters
+	pdb.numOfEpochsToKeep = args.EpochsData.NumOfEpochsToKeep
+	pdb.numOfActivePersisters = args.EpochsData.NumOfActivePersisters
 	pdb.oldDataCleanerProvider = args.OldDataCleanerProvider
 	pdb.customDatabaseRemover = args.CustomDatabaseRemover
 	pdb.persistersMapByEpoch = persistersMapByEpoch
 	pdb.activePersisters = activePersisters
-
-	pdb.extendPersisterLifeHandler = func() bool {
-		return false
-	}
+	pdb.lastEpochNeededHandler = pdb.lastEpochNeeded
 
 	return pdb, nil
 }
 
-func checkArgs(args *StorerArgs) error {
-	if args.NumOfActivePersisters < 1 {
+func checkArgs(args StorerArgs) error {
+	if args.EpochsData.NumOfActivePersisters < 1 {
 		return storage.ErrInvalidNumberOfPersisters
 	}
 	if check.IfNil(args.Notifier) {
@@ -189,27 +187,44 @@ func checkArgs(args *StorerArgs) error {
 	if args.MaxBatchSize > int(args.CacheConf.Capacity) {
 		return storage.ErrCacheSizeIsLowerThanBatchSize
 	}
+	if args.EpochsData.NumOfEpochsToKeep < args.EpochsData.NumOfActivePersisters {
+		return storage.ErrEpochKeepIsLowerThanNumActive
+	}
+	if check.IfNil(args.PersistersTracker) {
+		return storage.ErrNilPersistersTracker
+	}
 
 	return nil
 }
 
+func (ps *PruningStorer) lastEpochNeeded() uint32 {
+	if len(ps.activePersisters) == 0 {
+		return 0
+	}
+
+	return ps.activePersisters[0].epoch
+}
+
 func initPersistersInEpoch(
-	args *StorerArgs,
+	args StorerArgs,
 	shardIDStr string,
 ) ([]*persisterData, map[uint32]*persisterData, error) {
 	if !args.PruningEnabled {
 		return createPersisterIfPruningDisabled(args, shardIDStr)
 	}
 
-	if args.NumOfEpochsToKeep < args.NumOfActivePersisters {
+	if args.EpochsData.NumOfEpochsToKeep < args.EpochsData.NumOfActivePersisters {
 		return nil, nil, fmt.Errorf("invalid epochs configuration")
 	}
 
-	oldestEpochActive, oldestEpochKeep := computeOldestEpochActiveAndToKeep(args)
 	var persisters []*persisterData
 	persistersMapByEpoch := make(map[uint32]*persisterData)
 
-	for epoch := int64(args.StartingEpoch); epoch >= oldestEpochKeep; epoch-- {
+	for epoch := int64(args.EpochsData.StartingEpoch); epoch >= 0; epoch-- {
+		if args.PersistersTracker.HasInitializedEnoughPersisters(epoch) {
+			break
+		}
+
 		log.Debug("initPersistersInEpoch(): createPersisterDataForEpoch", "identifier", args.Identifier, "epoch", epoch, "shardID", shardIDStr)
 		p, err := createPersisterDataForEpoch(args, uint32(epoch), shardIDStr)
 		if err != nil {
@@ -218,7 +233,10 @@ func initPersistersInEpoch(
 
 		persistersMapByEpoch[uint32(epoch)] = p
 
-		if epoch < oldestEpochActive {
+		ShouldClosePersister := args.PersistersTracker.ShouldClosePersister(epoch)
+		args.PersistersTracker.CollectPersisterData(p.persister)
+
+		if ShouldClosePersister {
 			err = p.Close()
 			if err != nil {
 				log.Debug("persister.Close()", "identifier", args.Identifier, "error", err.Error())
@@ -233,7 +251,7 @@ func initPersistersInEpoch(
 }
 
 func createPersisterIfPruningDisabled(
-	args *StorerArgs,
+	args StorerArgs,
 	shardIDStr string,
 ) ([]*persisterData, map[uint32]*persisterData, error) {
 	var persisters []*persisterData
@@ -248,7 +266,7 @@ func createPersisterIfPruningDisabled(
 	return persisters, persistersMapByEpoch, nil
 }
 
-func computeOldestEpochActiveAndToKeep(args *StorerArgs) (int64, int64) {
+func computeOldestEpochActiveAndToKeep(args EpochArgs) (int64, int64) {
 	oldestEpochKeep := int64(args.StartingEpoch) - int64(args.NumOfEpochsToKeep) + 1
 	if oldestEpochKeep < 0 {
 		oldestEpochKeep = 0
@@ -297,6 +315,7 @@ func (ps *PruningStorer) Put(key, data []byte) error {
 	ps.cacher.Put(key, data, len(data))
 
 	persisterToUse := ps.getPersisterToUse()
+
 	return ps.doPutInPersister(key, data, persisterToUse.getPersister())
 }
 
@@ -313,9 +332,20 @@ func (ps *PruningStorer) getPersisterToUse() *persisterData {
 	if ok && !persisterInSetEpoch.getIsClosed() {
 		persisterToUse = persisterInSetEpoch
 	} else {
-		log.Debug("active persister not found",
-			"epoch", ps.epochForPutOperation,
-			"used", persisterToUse.epoch)
+		returningPath := "<nil persisterToUse>"
+		if persisterToUse != nil {
+			returningPath = persisterToUse.path
+			log.Debug("active persister not found",
+				"epoch", ps.epochForPutOperation,
+				"used", persisterToUse.epoch,
+				"path", ps.dbPath,
+				"returning persister", returningPath)
+		} else {
+			log.Debug("active persister not found",
+				"epoch", ps.epochForPutOperation,
+				"path", ps.dbPath,
+				"returning persister", returningPath)
+		}
 	}
 
 	return persisterToUse
@@ -431,6 +461,8 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 // Close will close PruningStorer
 func (ps *PruningStorer) Close() error {
 	closedSuccessfully := true
+
+	ps.lock.RLock()
 	for _, pd := range ps.activePersisters {
 		err := pd.Close()
 
@@ -439,6 +471,7 @@ func (ps *PruningStorer) Close() error {
 			closedSuccessfully = false
 		}
 	}
+	ps.lock.RUnlock()
 
 	ps.cacher.Clear()
 
@@ -485,11 +518,10 @@ func (ps *PruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) 
 
 	return nil, fmt.Errorf("key %s not found in %s",
 		hex.EncodeToString(key), ps.identifier)
-
 }
 
 // GetBulkFromEpoch will return a slice of keys only in the persister for the given epoch
-func (ps *PruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) (map[string][]byte, error) {
+func (ps *PruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) ([]storageCore.KeyValuePair, error) {
 	ps.lock.RLock()
 	pd, exists := ps.persistersMapByEpoch[epoch]
 	ps.lock.RUnlock()
@@ -506,11 +538,12 @@ func (ps *PruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) (map[stri
 	}
 	defer closePersister()
 
-	returnMap := make(map[string][]byte)
+	results := make([]storageCore.KeyValuePair, 0, len(keys))
 	for _, key := range keys {
 		v, ok := ps.cacher.Get(key)
 		if ok {
-			returnMap[string(key)] = v.([]byte)
+			keyValue := storageCore.KeyValuePair{Key: key, Value: v.([]byte)}
+			results = append(results, keyValue)
 			continue
 		}
 
@@ -523,10 +556,11 @@ func (ps *PruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) (map[stri
 			continue
 		}
 
-		returnMap[string(key)] = res
+		keyValue := storageCore.KeyValuePair{Key: key, Value: res}
+		results = append(results, keyValue)
 	}
 
-	return returnMap, nil
+	return results, nil
 }
 
 // SearchFirst will search a given key in all the active persisters, from the newest to the oldest
@@ -779,10 +813,6 @@ func (ps *PruningStorer) changeEpoch(header data.HeaderHandler) error {
 
 // should be called under mutex protection
 func (ps *PruningStorer) extendSavedEpochsIfNeeded(header data.HeaderHandler) bool {
-	if ps.extendPersisterLifeHandler() {
-		return true
-	}
-
 	epoch := header.GetEpoch()
 	metaBlock, mbOk := header.(*block.MetaBlock)
 	if !mbOk {
@@ -900,11 +930,16 @@ func (ps *PruningStorer) extendActivePersisters(from uint32, to uint32) error {
 
 // should be called under mutex protection
 func (ps *PruningStorer) closeAndDestroyPersisters(epoch uint32) error {
+	lastEpochNeeded := ps.lastEpochNeededHandler()
+
 	// activePersisters outside the numOfActivePersisters border have to he closed for both scenarios: full archive or not
-	persistersToClose := ps.processPersistersToClose()
+	persistersToClose := ps.processPersistersToClose(lastEpochNeeded)
 
 	epochsToRemove := make([]uint32, 0)
 	idxToRemove := epoch - ps.numOfEpochsToKeep
+	if idxToRemove >= lastEpochNeeded {
+		idxToRemove = lastEpochNeeded - 1
+	}
 	if uint32(len(ps.persistersMapByEpoch)) > ps.numOfEpochsToKeep {
 		for {
 			_, exists := ps.persistersMapByEpoch[idxToRemove]
@@ -946,7 +981,18 @@ func (ps *PruningStorer) closeAndDestroyPersisters(epoch uint32) error {
 	return nil
 }
 
-func (ps *PruningStorer) processPersistersToClose() []*persisterData {
+func (ps *PruningStorer) getNumPersistersToKeep(lastEpochNeeded uint32) uint32 {
+	numPersistersToKeep := uint32(0)
+	for _, activePersister := range ps.activePersisters {
+		if activePersister.epoch >= lastEpochNeeded {
+			numPersistersToKeep++
+		}
+	}
+
+	return numPersistersToKeep
+}
+
+func (ps *PruningStorer) processPersistersToClose(lastEpochNeeded uint32) []*persisterData {
 	persistersToClose := make([]*persisterData, 0)
 
 	epochsToClose := make([]uint32, 0)
@@ -956,8 +1002,10 @@ func (ps *PruningStorer) processPersistersToClose() []*persisterData {
 	}
 
 	if ps.numOfActivePersisters < uint32(len(ps.activePersisters)) {
-		persistersToClose = ps.activePersisters[ps.numOfActivePersisters:]
-		ps.activePersisters = ps.activePersisters[:ps.numOfActivePersisters]
+		numPersistersToKeep := ps.getNumPersistersToKeep(lastEpochNeeded)
+		allowedNumPersistersToKeep := core.MaxUint32(numPersistersToKeep, ps.numOfActivePersisters)
+		persistersToClose = ps.activePersisters[allowedNumPersistersToKeep:]
+		ps.activePersisters = ps.activePersisters[:allowedNumPersistersToKeep]
 
 		for _, p := range persistersToClose {
 			ps.persistersMapByEpoch[p.epoch] = p
@@ -970,7 +1018,6 @@ func (ps *PruningStorer) processPersistersToClose() []*persisterData {
 		allEpochsAfterProcess = append(allEpochsAfterProcess, p.epoch)
 	}
 
-	// TODO remove this
 	log.Debug("PruningStorer.processPersistersToClose",
 		"epochs to close", epochsToClose,
 		"before process", allEpochsBeforeProcess,
@@ -991,7 +1038,7 @@ func (ps *PruningStorer) IsInterfaceNil() bool {
 	return ps == nil
 }
 
-func createPersisterPathForEpoch(args *StorerArgs, epoch uint32, shard string) string {
+func createPersisterPathForEpoch(args StorerArgs, epoch uint32, shard string) string {
 	filePath := args.PathManager.PathForEpoch(core.GetShardIDString(args.ShardCoordinator.SelfId()), epoch, args.Identifier)
 	if len(shard) > 0 {
 		filePath += shard
@@ -1000,7 +1047,7 @@ func createPersisterPathForEpoch(args *StorerArgs, epoch uint32, shard string) s
 	return filePath
 }
 
-func createPersisterDataForEpoch(args *StorerArgs, epoch uint32, shard string) (*persisterData, error) {
+func createPersisterDataForEpoch(args StorerArgs, epoch uint32, shard string) (*persisterData, error) {
 	// TODO: if booting from storage in an epoch > 0, shardId needs to be taken from somewhere else
 	// e.g. determined from directories in persister path or taken from boot storer
 	filePath := createPersisterPathForEpoch(args, epoch, shard)

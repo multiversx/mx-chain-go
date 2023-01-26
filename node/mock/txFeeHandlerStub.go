@@ -3,7 +3,8 @@ package mock
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
 )
 
 // EconomicsHandlerStub -
@@ -38,6 +39,7 @@ type EconomicsHandlerStub struct {
 	ComputeGasUsedAndFeeBasedOnRefundValueCalled   func(tx data.TransactionWithFeeHandler, refundValue *big.Int) (uint64, *big.Int)
 	ComputeTxFeeBasedOnGasUsedCalled               func(tx data.TransactionWithFeeHandler, gasUsed uint64) *big.Int
 	ComputeGasLimitBasedOnBalanceCalled            func(tx data.TransactionWithFeeHandler, balance *big.Int) (uint64, error)
+	SetStatusHandlerCalled                         func(statusHandler core.AppStatusHandler) error
 }
 
 // ComputeGasLimitBasedOnBalance -
@@ -139,7 +141,11 @@ func (ehs *EconomicsHandlerStub) ComputeMoveBalanceFee(tx data.TransactionWithFe
 
 // ComputeTxFee -
 func (ehs *EconomicsHandlerStub) ComputeTxFee(tx data.TransactionWithFeeHandler) *big.Int {
-	return ehs.ComputeTxFeeCalled(tx)
+	if ehs.ComputeTxFeeCalled != nil {
+		return ehs.ComputeTxFeeCalled(tx)
+	}
+
+	return big.NewInt(0)
 }
 
 // CheckValidityTxValues -
@@ -267,6 +273,14 @@ func (ehs *EconomicsHandlerStub) ComputeTxFeeBasedOnGasUsed(tx data.TransactionW
 		return ehs.ComputeTxFeeBasedOnGasUsedCalled(tx, gasUsed)
 	}
 	return big.NewInt(0)
+}
+
+// SetStatusHandler -
+func (ehs *EconomicsHandlerStub) SetStatusHandler(statusHandler core.AppStatusHandler) error {
+	if ehs.SetStatusHandlerCalled != nil {
+		return ehs.SetStatusHandlerCalled(statusHandler)
+	}
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

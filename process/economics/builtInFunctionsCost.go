@@ -1,12 +1,12 @@
 package economics
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/mitchellh/mapstructure"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 // ArgsBuiltInFunctionCost holds all components that are needed to create a new instance of builtInFunctionsCost
@@ -76,7 +76,7 @@ func (bc *builtInFunctionsCost) GasScheduleChange(gasSchedule map[string]map[str
 	bc.gasConfig = newGasConfig
 }
 
-// ComputeBuiltInCost will compute built in function cost
+// ComputeBuiltInCost will compute built-in function cost
 func (bc *builtInFunctionsCost) ComputeBuiltInCost(tx data.TransactionWithFeeHandler) uint64 {
 	function, arguments, err := bc.argsParser.ParseCallData(string(tx.GetData()))
 	if err != nil {

@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/factory"
 )
 
 // ArgsEpochStartMetaBlockInterceptor holds the arguments needed for creating a new epochStartMetaBlockInterceptor
@@ -135,7 +135,7 @@ func (e *epochStartMetaBlockInterceptor) SetInterceptedDebugHandler(_ process.In
 	return nil
 }
 
-// RegisterHandler will append the handler to the slice so it will be called when the epoch start meta block is fetched
+// RegisterHandler will append the handler to the slice, so it will be called when the epoch start meta block is fetched
 func (e *epochStartMetaBlockInterceptor) RegisterHandler(handler func(topic string, hash []byte, data interface{})) {
 	if handler == nil {
 		return

@@ -1,13 +1,16 @@
-//go:generate protoc -I=. -I=$GOPATH/src -I=$GOPATH/src/github.com/ElrondNetwork/protobuf/protobuf  --gogoslick_out=. resultsHashesByTxHash.proto
+//go:generate protoc -I=. -I=$GOPATH/src -I=$GOPATH/src/github.com/multiversx/protobuf/protobuf  --gogoslick_out=. resultsHashesByTxHash.proto
 
 package dblookupext
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/receipt"
-	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/storage"
+	"fmt"
+
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/receipt"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common/logging"
+	"github.com/multiversx/mx-chain-go/storage"
 )
 
 type eventsHashesByTxHash struct {
@@ -34,8 +37,9 @@ func (eht *eventsHashesByTxHash) saveResultsHashes(epoch uint32, scResults, rece
 
 		err = eht.storer.Put([]byte(txHash), resultHashesBytes)
 		if err != nil {
-			log.Warn("saveResultsHashes() cannot save resultHashesByte",
-				"error", err.Error())
+			logging.LogErrAsWarnExceptAsDebugIfClosingError(log, err,
+				"saveResultsHashes() cannot save resultHashesByte",
+				"err", err.Error())
 			continue
 		}
 	}
@@ -120,6 +124,10 @@ func (eht *eventsHashesByTxHash) mergeRecordsFromStorageIfExists(
 func (eht *eventsHashesByTxHash) getEventsHashesByTxHash(txHash []byte, epoch uint32) (*ResultsHashesByTxHash, error) {
 	rawBytes, err := eht.storer.GetFromEpoch(txHash, epoch)
 	if err != nil {
+		if storage.IsNotFoundInStorageErr(err) {
+			err = fmt.Errorf("%w: %v", ErrNotFoundInStorage, err)
+		}
+
 		return nil, err
 	}
 

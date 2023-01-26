@@ -6,14 +6,13 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
-	"github.com/ElrondNetwork/elrond-go/vm"
-	"github.com/ElrondNetwork/elrond-go/vm/mock"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/vm"
+	"github.com/multiversx/mx-chain-go/vm/mock"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -25,23 +24,15 @@ func createMockArgumentsForLiquidStaking() ArgsNewLiquidStaking {
 		GasCost:                vm.GasCost{MetaChainSystemSCsCost: vm.MetaChainSystemSCsCost{LiquidStakingOps: 10}},
 		Marshalizer:            &mock.MarshalizerMock{},
 		Hasher:                 &hashingMocks.HasherMock{},
-		EpochNotifier:          &mock.EpochNotifierStub{},
+		EnableEpochsHandler:    &testscommon.EnableEpochsHandlerStub{IsLiquidStakingEnabledField: true},
 	}
 }
 
 func createLiquidStakingContractAndEEI() (*liquidStaking, *vmContext) {
 	args := createMockArgumentsForLiquidStaking()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{
-			CurrentEpochCalled: func() uint32 {
-				return 2
-			},
-		},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	argsVMContext := createArgsVMContext()
+	argsVMContext.EnableEpochsHandler = args.EnableEpochsHandler
+	eei, _ := NewVMContext(argsVMContext)
 	systemSCContainerStub := &mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
 		return &mock.SystemSCStub{ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 			return vmcommon.Ok
@@ -96,9 +87,9 @@ func TestLiquidStaking_NilEpochNotifier(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForLiquidStaking()
-	args.EpochNotifier = nil
+	args.EnableEpochsHandler = nil
 	l, err := NewLiquidStakingSystemSC(args)
-	assert.True(t, errors.Is(err, vm.ErrNilEpochNotifier))
+	assert.True(t, errors.Is(err, vm.ErrNilEnableEpochsHandler))
 	assert.True(t, l.IsInterfaceNil())
 }
 
@@ -115,11 +106,14 @@ func TestLiquidStaking_New(t *testing.T) {
 func TestLiquidStaking_CanUseContract(t *testing.T) {
 	t.Parallel()
 
+	enableEpochsHandler := &testscommon.EnableEpochsHandlerStub{IsLiquidStakingEnabledField: false}
+
 	args := createMockArgumentsForLiquidStaking()
-	args.EpochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch = 10
+	args.EnableEpochsHandler = enableEpochsHandler
 	l, _ := NewLiquidStakingSystemSC(args)
 	assert.False(t, l.CanUseContract())
 
+	enableEpochsHandler.IsLiquidStakingEnabledField = true
 	args.EpochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch = 0
 	l, _ = NewLiquidStakingSystemSC(args)
 	assert.True(t, l.CanUseContract())
@@ -140,20 +134,21 @@ func TestLiquidStaking_SetNewGasConfig(t *testing.T) {
 func TestLiquidStaking_NotActiveWrongCalls(t *testing.T) {
 	t.Parallel()
 
+	enableEpochsHandler := &testscommon.EnableEpochsHandlerStub{IsLiquidStakingEnabledField: false}
 	l, eei := createLiquidStakingContractAndEEI()
+	l.enableEpochsHandler = enableEpochsHandler
 
 	returnCode := l.Execute(nil)
 	assert.Equal(t, returnCode, vmcommon.UserError)
 	assert.Equal(t, eei.returnMessage, vm.ErrInputArgsIsNil.Error())
 
-	l.flagLiquidStaking.Reset()
 	eei.returnMessage = ""
 	vmInput := getDefaultVmInputForFunc("returnViaLiquidStaking", make([][]byte, 0))
 	returnCode = l.Execute(vmInput)
 	assert.Equal(t, returnCode, vmcommon.UserError)
 	assert.Equal(t, eei.returnMessage, "liquid staking contract is not enabled")
 
-	l.flagLiquidStaking.SetValue(true)
+	enableEpochsHandler.IsLiquidStakingEnabledField = true
 	eei.returnMessage = ""
 	returnCode = l.Execute(vmInput)
 	assert.Equal(t, returnCode, vmcommon.UserError)

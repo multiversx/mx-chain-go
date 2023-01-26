@@ -443,7 +443,13 @@
     SizeInBytes = 26214400  # 25MB per each pair (metachain, destinationShard)
     Shards = 4
 
-#PublicKeyPeerId represents the main cache used to map Elrond block signing public keys to their associated peer id's.
+[ValidatorInfoPool]
+    Name = "ValidatorInfoPool"
+    Capacity = 10000
+    SizeInBytes = 31457280  #30MB
+    Shards = 4
+
+#PublicKeyPeerId represents the main cache used to map MultiversX block signing public keys to their associated peer id's.
 [PublicKeyPeerId]
     Name = "PublicKeyPeerId"
     Capacity = 30000
@@ -481,6 +487,10 @@
 [PeersRatingConfig]
     TopRatedCacheCapacity = 5000
     BadRatedCacheCapacity = 5000
+
+[PoolsCleanersConfig]
+    MaxRoundsToKeepUnprocessedMiniBlocks = 300   # max number of rounds unprocessed miniblocks are kept in pool
+    MaxRoundsToKeepUnprocessedTransactions = 300 # max number of rounds unprocessed transactions are kept in pool
 
 [TrieSyncStorage]
     Capacity = 300000
@@ -552,26 +562,9 @@
         Type = "LRU"
     [Antiflood.Topic]
         DefaultMaxMessagesPerSec = 15000
-        MaxMessages = [{ Topic = "heartbeat", NumMessagesPerSec = 30 },
-                       { Topic = "shardBlocks*", NumMessagesPerSec = 30 },
+        MaxMessages = [{ Topic = "shardBlocks*", NumMessagesPerSec = 30 },
                        { Topic = "metachainBlocks", NumMessagesPerSec = 30 }]
-    [Antiflood.WebServer]
-        # SimultaneousRequests represents the number of concurrent requests accepted by the web server
-        # this is a global throttler that acts on all http connections regardless of the originating source
-        SimultaneousRequests = 100
-        # SameSourceRequests defines how many requests are allowed from the same source in the specified
-        # time frame (SameSourceResetIntervalInSec)
-        SameSourceRequests = 10000
-        # SameSourceResetIntervalInSec time frame between counter reset, in seconds
-        SameSourceResetIntervalInSec = 1
-        # TrieOperationsDeadlineMilliseconds represents the maximum duration that an API call targeting a trie operation
-        # can take.
-        TrieOperationsDeadlineMilliseconds = 10000
-        # EndpointsThrottlers represents a map for maximum simultaneous go routines for an endpoint
-        EndpointsThrottlers = [{ Endpoint = "/transaction/:hash", MaxNumGoRoutines = 10 },
-                               { Endpoint = "/transaction/send", MaxNumGoRoutines = 2 },
-                               { Endpoint = "/transaction/simulate", MaxNumGoRoutines = 1 },
-                               { Endpoint = "/transaction/send-multiple", MaxNumGoRoutines = 2 }]
+
     [Antiflood.TxAccumulator]
         # MaxAllowedTimeInMilliseconds is used as a time frame in which the node gathers transactions.
         # After this period, collected transactions will be sent on the p2p topics
@@ -580,6 +573,27 @@
         # less than the specified max value. This is used to create desynchronizations between senders as to not
         # clutter the network exactly in the same moment
         MaxDeviationTimeInMilliseconds = 25
+
+[WebServerAntiflood]
+    WebServerAntifloodEnabled = true
+    # SimultaneousRequests represents the number of concurrent requests accepted by the web server
+    # this is a global throttler that acts on all http connections regardless of the originating source
+    SimultaneousRequests = 100
+    # SameSourceRequests defines how many requests are allowed from the same source in the specified
+    # time frame (SameSourceResetIntervalInSec)
+    SameSourceRequests = 10000
+    # SameSourceResetIntervalInSec time frame between counter reset, in seconds
+    SameSourceResetIntervalInSec = 1
+    # TrieOperationsDeadlineMilliseconds represents the maximum duration that an API call targeting a trie operation
+    # can take.
+    TrieOperationsDeadlineMilliseconds = 10000
+    # GetAddressesBulkMaxSize represents the maximum number of addresses to be fetched in a bulk per API request. 0 means unlimited
+    GetAddressesBulkMaxSize = 100
+    # EndpointsThrottlers represents a map for maximum simultaneous go routines for an endpoint
+    EndpointsThrottlers = [{ Endpoint = "/transaction/:hash", MaxNumGoRoutines = 10 },
+                           { Endpoint = "/transaction/send", MaxNumGoRoutines = 2 },
+                           { Endpoint = "/transaction/simulate", MaxNumGoRoutines = 1 },
+                           { Endpoint = "/transaction/send-multiple", MaxNumGoRoutines = 2 }]
 
 [AddressPubkeyConverter]
     Length = 32
@@ -635,26 +649,6 @@
     Enabled = true
     RefreshIntervalInSec = 30
 
-# Heartbeat, if enabled, will output a heartbeat signal once x seconds,
-# where x in [MinTimeToWaitBetweenBroadcastsInSec, MaxTimeToWaitBetweenBroadcastsInSec)
-[Heartbeat]
-    MinTimeToWaitBetweenBroadcastsInSec  = 20
-    MaxTimeToWaitBetweenBroadcastsInSec  = 25
-    HeartbeatRefreshIntervalInSec        = 60
-    HideInactiveValidatorIntervalInSec   = 3600
-    DurationToConsiderUnresponsiveInSec  = 60
-    [Heartbeat.HeartbeatStorage]
-        [Heartbeat.HeartbeatStorage.Cache]
-            Name = "HeartbeatStorage"
-            Capacity = 1000
-            Type = "LRU"
-        [Heartbeat.HeartbeatStorage.DB]
-            FilePath = "HeartbeatStorage"
-            Type = "LvlDBSerial"
-            BatchDelaySeconds = 5
-            MaxBatchSize = 100
-            MaxOpenFiles = 10
-
 [ValidatorStatistics]
     CacheRefreshIntervalInSec = 60
 
@@ -673,12 +667,11 @@
 [StateTriesConfig]
     CheckpointRoundsModulus = 100
     CheckpointsEnabled = false
-    AccountsStatePruningEnabled = true
+    SnapshotsEnabled = true
+    AccountsStatePruningEnabled = false
     PeerStatePruningEnabled = true
     MaxStateTrieLevelInMemory = 5
     MaxPeerTrieLevelInMemory = 5
-    UserStatePruningQueueSize = 5 # setting 0 means no buffering, so pruning is done for the block before final
-    PeerStatePruningQueueSize = 5 # setting 0 means no buffering, so pruning is done for the block before final
 
 [BlockSizeThrottleConfig]
     MinSizeInBytes = 104857 # 104857 is 10% from 1MB
@@ -688,7 +681,7 @@
     [VirtualMachine.Execution]
         TimeOutForSCExecutionInMilliseconds = 10000 # 10 seconds = 10000 milliseconds
         WasmerSIGSEGVPassthrough            = false # must be false for release
-        ArwenVersions = [
+        WasmVMVersions = [
             { StartEpoch = 0, Version = "v1.3" },
             { StartEpoch = 1, Version = "v1.4" },
         ]
@@ -697,7 +690,7 @@
         NumConcurrentVMs = 1
         TimeOutForSCExecutionInMilliseconds = 10000 # 10 seconds = 10000 milliseconds
         WasmerSIGSEGVPassthrough            = false # must be false for release
-        ArwenVersions = [
+        WasmVMVersions = [
             { StartEpoch = 0, Version = "v1.3" },
             { StartEpoch = 1, Version = "v1.4" },
         ]
@@ -709,7 +702,12 @@
         MetaMaxGasPerVmQuery = 0  #unlimited
 
 [BuiltInFunctions]
-    AutomaticCrawlerAddress = "erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c"
+    AutomaticCrawlerAddresses =[
+        "erd1he8wwxn4az3j82p7wwqsdk794dm7hcrwny6f8dfegkfla34udx7qrf7xje", #shard 0
+        "erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c", #shard 1
+        "erd1najnxxweyw6plhg8efql330nttrj6l5cf87wqsuym85s9ha0hmdqnqgenp", #shard 2
+    ]
+    MaxNumAddressesInTransferRole = 100
 
 [Hardfork]
     EnableTrigger = true
@@ -799,17 +797,24 @@
     [Debug.EpochStart]
         GoRoutineAnalyserEnabled = true
         ProcessDataTrieOnCommitEpoch = true
+    [Debug.Process]
+        Enabled = true
+        DebuggingLogLevel = "*:DEBUG,p2p:TRACE,debug:DEBUG,process:TRACE,intercept:TRACE"
+        GoRoutinesDump = true
+        PollingTimeInSeconds = 240 # 4 minutes
+        # setting this to 0 disables the automatic revert of the log level
+        RevertLogLevelTimeInSeconds = 600 # 10 minutes
 
 [Health]
-    IntervalVerifyMemoryInSeconds = 5
+    IntervalVerifyMemoryInSeconds = 30
     IntervalDiagnoseComponentsInSeconds = 30
     IntervalDiagnoseComponentsDeeplyInSeconds = 120
-    MemoryUsageToCreateProfiles = 2415919104 # 2.25GB
+    MemoryUsageToCreateProfiles = 3221225472 # 3 GB
     NumMemoryUsageRecordsToKeep = 100
     FolderPath = "health-records"
 
 [SoftwareVersionConfig]
-    StableTagLocation = "https://api.github.com/repos/ElrondNetwork/elrond-go/releases/latest"
+    StableTagLocation = "https://api.github.com/repos/multiversx/mx-chain-go/releases/latest"
     PollingIntervalInMinutes = 65
 
 [LogsAndEvents]
@@ -897,8 +902,10 @@
 [TrieSync]
     NumConcurrentTrieSyncers  = 200
     MaxHardCapForMissingNodes = 5000
-    #available versions: 1 and 2. 1 is the initial version, 2 is updated, more efficient version
-    TrieSyncerVersion         = 2
+    #available versions: 1, 2 and 3. 1 is the initial version, 2 is updated, more efficient version employing 2 lists
+    #the 3-rd one uses depth-first algorithm which keeps the memory consumption low
+    TrieSyncerVersion         = 3
+    CheckNodesOnDisk          = false
 
 [Resolvers]
     NumCrossShardPeers  = 2
@@ -906,25 +913,25 @@
     NumFullHistoryPeers = 3
 
 [HeartbeatV2]
-    PeerAuthenticationTimeBetweenSendsInSec          = 7200 # 2h
+    PeerAuthenticationTimeBetweenSendsInSec          = 600  # 10min TODO: change this for mainnet/devnet/testnet
     PeerAuthenticationTimeBetweenSendsWhenErrorInSec = 60   # 1min
     PeerAuthenticationThresholdBetweenSends          = 0.1  # 10%
     HeartbeatTimeBetweenSendsInSec                   = 60   # 1min
+    HeartbeatTimeBetweenSendsDuringBootstrapInSec    = 60   # 1min
     HeartbeatTimeBetweenSendsWhenErrorInSec          = 60   # 1min
     HeartbeatThresholdBetweenSends                   = 0.1  # 10%
-    MaxNumOfPeerAuthenticationInResponse             = 10
     HeartbeatExpiryTimespanInSec                     = 3600 # 1h
     MinPeersThreshold                                = 0.8  # 80%
     DelayBetweenRequestsInSec                        = 10   # 10sec
     MaxTimeoutInSec                                  = 7200 # 2h
-    DelayBetweenConnectionNotificationsInSec         = 60   # 1min
+    PeerShardTimeBetweenSendsInSec                   = 7200   # 2h
+    PeerShardThresholdBetweenSends                   = 0.1 # 10%
     MaxMissingKeysInRequest                          = 1000
     MaxDurationPeerUnresponsiveInSec                 = 900  # 15min
     HideInactiveValidatorIntervalInSec               = 3600 # 1h
-    HardforkTimeBetweenSendsInSec                    = 10   # 10sec
-    [HeartbeatV2.PeerAuthenticationPool]
-        DefaultSpanInSec = 3600 # 1h
-        CacheExpiryInSec = 3600 # 1h
+    HardforkTimeBetweenSendsInSec                    = 60   # 1min
+    TimeBetweenConnectionsMetricsUpdateInSec         = 30   # 30sec
+    TimeToReadDirectConnectionsInSec                 = 15   # 15sec
     [HeartbeatV2.HeartbeatPool]
         Name = "HeartbeatPool"
         Capacity = 1000

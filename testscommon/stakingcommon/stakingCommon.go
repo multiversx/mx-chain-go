@@ -4,16 +4,17 @@ import (
 	"math/big"
 	"strconv"
 
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/process"
-	economicsHandler "github.com/ElrondNetwork/elrond-go/process/economics"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
-	"github.com/ElrondNetwork/elrond-go/vm"
-	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/process"
+	economicsHandler "github.com/multiversx/mx-chain-go/process/economics"
+	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
+	"github.com/multiversx/mx-chain-go/vm"
+	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("testscommon/stakingCommon")
@@ -42,7 +43,7 @@ func AddValidatorData(
 	marshaller marshal.Marshalizer,
 ) {
 	validatorSC := LoadUserAccount(accountsDB, vm.ValidatorSCAddress)
-	ownerStoredData, _ := validatorSC.DataTrieTracker().RetrieveValue(ownerKey)
+	ownerStoredData, _, _ := validatorSC.RetrieveValue(ownerKey)
 	validatorData := &systemSmartContracts.ValidatorDataV2{}
 	if len(ownerStoredData) != 0 {
 		_ = marshaller.Unmarshal(validatorData, ownerStoredData)
@@ -62,7 +63,7 @@ func AddValidatorData(
 	}
 
 	marshaledData, _ := marshaller.Marshal(validatorData)
-	_ = validatorSC.DataTrieTracker().SaveKeyValue(ownerKey, marshaledData)
+	_ = validatorSC.SaveKeyValue(ownerKey, marshaledData)
 
 	_ = accountsDB.SaveAccount(validatorSC)
 }
@@ -85,7 +86,7 @@ func AddStakingData(
 
 	stakingSCAcc := LoadUserAccount(accountsDB, vm.StakingSCAddress)
 	for _, key := range stakedKeys {
-		_ = stakingSCAcc.DataTrieTracker().SaveKeyValue(key, marshaledData)
+		_ = stakingSCAcc.SaveKeyValue(key, marshaledData)
 	}
 
 	_ = accountsDB.SaveAccount(stakingSCAcc)
@@ -151,7 +152,7 @@ func getWaitingList(
 	stakingSCAcc state.UserAccountHandler,
 	marshaller marshal.Marshalizer,
 ) *systemSmartContracts.WaitingList {
-	marshaledData, _ := stakingSCAcc.DataTrieTracker().RetrieveValue([]byte("waitingList"))
+	marshaledData, _, _ := stakingSCAcc.RetrieveValue([]byte("waitingList"))
 	waitingList := &systemSmartContracts.WaitingList{}
 	_ = marshaller.Unmarshal(waitingList, marshaledData)
 
@@ -164,7 +165,7 @@ func saveWaitingList(
 	waitingList *systemSmartContracts.WaitingList,
 ) {
 	marshaledData, _ := marshaller.Marshal(waitingList)
-	_ = stakingSCAcc.DataTrieTracker().SaveKeyValue([]byte("waitingList"), marshaledData)
+	_ = stakingSCAcc.SaveKeyValue([]byte("waitingList"), marshaledData)
 }
 
 func getPrefixedWaitingKey(key []byte) []byte {
@@ -186,7 +187,7 @@ func saveStakedWaitingKey(
 	}
 
 	marshaledData, _ := marshaller.Marshal(stakedData)
-	_ = stakingSCAcc.DataTrieTracker().SaveKeyValue(key, marshaledData)
+	_ = stakingSCAcc.SaveKeyValue(key, marshaledData)
 }
 
 func saveElemInList(
@@ -196,7 +197,7 @@ func saveElemInList(
 	key []byte,
 ) {
 	marshaledData, _ := marshaller.Marshal(elem)
-	_ = stakingSCAcc.DataTrieTracker().SaveKeyValue(key, marshaledData)
+	_ = stakingSCAcc.SaveKeyValue(key, marshaledData)
 }
 
 // GetWaitingListElement returns the element in waiting list saved at the provided key
@@ -205,7 +206,7 @@ func GetWaitingListElement(
 	marshaller marshal.Marshalizer,
 	key []byte,
 ) (*systemSmartContracts.ElementInList, error) {
-	marshaledData, _ := stakingSCAcc.DataTrieTracker().RetrieveValue(key)
+	marshaledData, _, _ := stakingSCAcc.RetrieveValue(key)
 	if len(marshaledData) == 0 {
 		return nil, vm.ErrElementNotFound
 	}
@@ -271,9 +272,9 @@ func CreateEconomicsData() process.EconomicsDataHandler {
 				GasPriceModifier: 1.0,
 			},
 		},
-		PenalizedTooMuchGasEnableEpoch: 0,
-		EpochNotifier:                  &epochNotifier.EpochNotifierStub{},
-		BuiltInFunctionsCostHandler:    &mock.BuiltInCostHandlerStub{},
+		EpochNotifier:               &epochNotifier.EpochNotifierStub{},
+		BuiltInFunctionsCostHandler: &mock.BuiltInCostHandlerStub{},
+		EnableEpochsHandler:         &testscommon.EnableEpochsHandlerStub{},
 	}
 	economicsData, _ := economicsHandler.NewEconomicsData(argsNewEconomicsData)
 	return economicsData
@@ -299,7 +300,7 @@ func SaveNodesConfig(
 	log.LogIfError(err)
 
 	userAccount, _ := account.(state.UserAccountHandler)
-	err = userAccount.DataTrieTracker().SaveKeyValue([]byte("nodesConfig"), nodesDataBytes)
+	err = userAccount.SaveKeyValue([]byte("nodesConfig"), nodesDataBytes)
 	log.LogIfError(err)
 	err = accountsDB.SaveAccount(account)
 	log.LogIfError(err)
@@ -321,7 +322,7 @@ func SaveDelegationManagerConfig(accountsDB state.AccountsAdapter, marshaller ma
 	log.LogIfError(err)
 	delegationAcc, _ := acc.(state.UserAccountHandler)
 
-	err = delegationAcc.DataTrieTracker().SaveKeyValue([]byte("delegationManagement"), marshaledData)
+	err = delegationAcc.SaveKeyValue([]byte("delegationManagement"), marshaledData)
 	log.LogIfError(err)
 	err = accountsDB.SaveAccount(delegationAcc)
 	log.LogIfError(err)

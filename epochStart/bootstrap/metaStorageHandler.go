@@ -4,15 +4,15 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
-	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
-	"github.com/ElrondNetwork/elrond-go/storage/factory"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
+	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
+	"github.com/multiversx/mx-chain-go/storage/factory"
 )
 
 type metaStorageHandler struct {
@@ -28,14 +28,17 @@ func NewMetaStorageHandler(args StorageHandlerArgs) (*metaStorageHandler, error)
 
 	epochStartNotifier := &disabled.EpochStartNotifier{}
 	storageFactory, err := factory.NewStorageServiceFactory(
-		&args.GeneralConfig,
-		&args.PreferencesConfig,
-		args.ShardCoordinator,
-		args.PathManagerHandler,
-		epochStartNotifier,
-		args.NodeTypeProvider,
-		args.CurrentEpoch,
-		false,
+		factory.StorageServiceFactoryArgs{
+			Config:                        args.GeneralConfig,
+			PrefsConfig:                   args.PreferencesConfig,
+			ShardCoordinator:              args.ShardCoordinator,
+			PathManager:                   args.PathManagerHandler,
+			EpochStartNotifier:            epochStartNotifier,
+			NodeTypeProvider:              args.NodeTypeProvider,
+			CurrentEpoch:                  args.CurrentEpoch,
+			StorageType:                   factory.BootstrapStorageService,
+			CreateTrieEpochRootHashStorer: false,
+		},
 	)
 	if err != nil {
 		return nil, err
@@ -67,9 +70,12 @@ func (msh *metaStorageHandler) CloseStorageService() {
 	}
 }
 
-// SaveDataToStorage will save the fetched data to storage so it will be used by the storage bootstrap component
+// SaveDataToStorage will save the fetched data to storage, so it will be used by the storage bootstrap component
 func (msh *metaStorageHandler) SaveDataToStorage(components *ComponentsNeededForBootstrap) error {
-	bootStorer := msh.storageService.GetStorer(dataRetriever.BootstrapUnit)
+	bootStorer, err := msh.storageService.GetStorer(dataRetriever.BootstrapUnit)
+	if err != nil {
+		return err
+	}
 
 	lastHeader, err := msh.saveLastHeader(components.EpochStartMetaBlock)
 	if err != nil {
@@ -90,6 +96,8 @@ func (msh *metaStorageHandler) SaveDataToStorage(components *ComponentsNeededFor
 	if err != nil {
 		return err
 	}
+
+	msh.saveMiniblocksFromComponents(components)
 
 	miniBlocks, err := msh.groupMiniBlocksByShard(components.PendingMiniBlocks)
 	if err != nil {
@@ -219,7 +227,11 @@ func (msh *metaStorageHandler) saveTriggerRegistry(components *ComponentsNeededF
 		return nil, err
 	}
 
-	bootstrapStorageUnit := msh.storageService.GetStorer(dataRetriever.BootstrapUnit)
+	bootstrapStorageUnit, err := msh.storageService.GetStorer(dataRetriever.BootstrapUnit)
+	if err != nil {
+		return nil, err
+	}
+
 	errPut := bootstrapStorageUnit.Put(trigInternalKey, triggerRegBytes)
 	if errPut != nil {
 		return nil, errPut

@@ -6,21 +6,30 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
-	"github.com/ElrondNetwork/elrond-go/trie/statistics"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
+	"github.com/multiversx/mx-chain-go/trie/statistics"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func createMockArgument(timeout time.Duration) ArgTrieSyncer {
+	_, trieStorage := newEmptyTrie()
+	memDb := testscommon.NewMemDbMock()
+	trieStorage.mainStorer = &trieMock.SnapshotPruningStorerStub{
+		MemDbMock: memDb,
+		PutInEpochCalled: func(key []byte, data []byte, epoch uint32) error {
+			return memDb.Put(key, data)
+		},
+	}
+
 	return ArgTrieSyncer{
 		RequestHandler:            &testscommon.RequestHandlerStub{},
 		InterceptedNodes:          testscommon.NewCacherMock(),
-		DB:                        testscommon.NewMemDbMock(),
+		DB:                        trieStorage,
 		Hasher:                    &hashingMocks.HasherMock{},
 		Marshalizer:               &testscommon.MarshalizerMock{},
 		ShardId:                   0,
@@ -154,7 +163,7 @@ func TestTrieSync_InterceptedNodeShouldNotBeAddedToNodesForTrieIfNodeReceived(t 
 	encodedNode, err := collapsedBn.getEncodedNode()
 	assert.Nil(t, err)
 
-	interceptedNode, err := NewInterceptedTrieNode(encodedNode, testMarshalizer, testHasher)
+	interceptedNode, err := NewInterceptedTrieNode(encodedNode, testHasher)
 	assert.Nil(t, err)
 
 	hash := "nodeHash"
@@ -195,9 +204,17 @@ func TestTrieSync_FoundInStorageShouldNotRequest(t *testing.T) {
 	err := bn.setHash()
 	require.Nil(t, err)
 	rootHash := bn.getHash()
-	db := testscommon.NewMemDbMock()
 
-	err = bn.commitSnapshot(db, nil, context.Background(), &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{})
+	_, trieStorage := newEmptyTrie()
+	db := testscommon.NewMemDbMock()
+	trieStorage.mainStorer = &trieMock.SnapshotPruningStorerStub{
+		MemDbMock: db,
+		PutInEpochWithoutCacheCalled: func(key []byte, data []byte, epoch uint32) error {
+			return db.Put(key, data)
+		},
+	}
+
+	err = bn.commitSnapshot(db, nil, nil, context.Background(), statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
 	require.Nil(t, err)
 
 	arg := createMockArgument(timeout)
@@ -206,7 +223,7 @@ func TestTrieSync_FoundInStorageShouldNotRequest(t *testing.T) {
 			assert.Fail(t, "should have not requested trie nodes")
 		},
 	}
-	arg.DB = db
+	arg.DB = trieStorage
 	arg.Marshalizer = testMarshalizer
 	arg.Hasher = testHasher
 

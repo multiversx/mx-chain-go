@@ -5,13 +5,13 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
-	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-logger-go"
 )
 
 // Log -
@@ -26,8 +26,16 @@ func CreateResolverRequester(
 	numShards := uint32(2)
 
 	txSignShardId := uint32(0)
-	nResolver := integrationTests.NewTestProcessorNode(numShards, resolverShardID, txSignShardId)
-	nRequester := integrationTests.NewTestProcessorNode(numShards, requesterShardID, txSignShardId)
+	nResolver := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+		MaxShards:            numShards,
+		NodeShardId:          resolverShardID,
+		TxSignPrivKeyShardId: txSignShardId,
+	})
+	nRequester := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+		MaxShards:            numShards,
+		NodeShardId:          requesterShardID,
+		TxSignPrivKeyShardId: txSignShardId,
+	})
 
 	time.Sleep(time.Second)
 	err := nRequester.Messenger.ConnectToPeer(integrationTests.GetConnectableAddress(nResolver.Messenger))

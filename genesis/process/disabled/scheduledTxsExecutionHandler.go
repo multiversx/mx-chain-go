@@ -4,10 +4,10 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
-	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/scheduled"
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 // ScheduledTxsExecutionHandler implements ScheduledTxsExecutionHandler interface but does nothing as it is a disabled component
@@ -64,6 +64,11 @@ func (steh *ScheduledTxsExecutionHandler) SetScheduledInfo(_ *process.ScheduledI
 
 // GetScheduledRootHashForHeader does nothing as it is disabled
 func (steh *ScheduledTxsExecutionHandler) GetScheduledRootHashForHeader(_ []byte) ([]byte, error) {
+	return make([]byte, 0), nil
+}
+
+// GetScheduledRootHashForHeaderWithEpoch does nothing as it is disabled
+func (steh *ScheduledTxsExecutionHandler) GetScheduledRootHashForHeaderWithEpoch(_ []byte, _ uint32) ([]byte, error) {
 	return make([]byte, 0), nil
 }
 

@@ -2,16 +2,20 @@ package transactionAPI
 
 import (
 	"encoding/hex"
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data/receipt"
-	rewardTxData "github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
-	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	datafield "github.com/ElrondNetwork/elrond-vm-common/parsers/dataField"
+	"math/big"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/receipt"
+	rewardTxData "github.com/multiversx/mx-chain-core-go/data/rewardTx"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/sharding"
+	datafield "github.com/multiversx/mx-chain-vm-common-go/parsers/dataField"
 )
 
 type txUnmarshaller struct {
+	shardCoordinator       sharding.Coordinator
 	addressPubKeyConverter core.PubkeyConverter
 	marshalizer            marshal.Marshalizer
 	dataFieldParser        DataFieldParser
@@ -21,11 +25,13 @@ func newTransactionUnmarshaller(
 	marshalizer marshal.Marshalizer,
 	addressPubKeyConverter core.PubkeyConverter,
 	dataFieldParser DataFieldParser,
+	shardCoordinator sharding.Coordinator,
 ) *txUnmarshaller {
 	return &txUnmarshaller{
 		marshalizer:            marshalizer,
 		addressPubKeyConverter: addressPubKeyConverter,
 		dataFieldParser:        dataFieldParser,
+		shardCoordinator:       shardCoordinator,
 	}
 }
 
@@ -83,7 +89,7 @@ func (tu *txUnmarshaller) unmarshalTransaction(txBytes []byte, txType transactio
 		return nil, err
 	}
 
-	res := tu.dataFieldParser.Parse(apiTx.Data, apiTx.Tx.GetSndAddr(), apiTx.Tx.GetRcvAddr())
+	res := tu.dataFieldParser.Parse(apiTx.Data, apiTx.Tx.GetSndAddr(), apiTx.Tx.GetRcvAddr(), tu.shardCoordinator.NumberOfShards())
 	apiTx.Operation = res.Operation
 	apiTx.Function = res.Function
 	apiTx.ESDTValues = res.ESDTValues
@@ -109,6 +115,9 @@ func (tu *txUnmarshaller) prepareNormalTx(tx *transaction.Transaction) (*transac
 		GasLimit:         tx.GasLimit,
 		Data:             tx.Data,
 		Signature:        hex.EncodeToString(tx.Signature),
+		Options:          tx.Options,
+		Version:          tx.Version,
+		ChainID:          string(tx.ChainID),
 	}, nil
 }
 
@@ -158,10 +167,27 @@ func (tu *txUnmarshaller) prepareUnsignedTx(tx *smartContractResult.SmartContrac
 		PreviousTransactionHash: hex.EncodeToString(tx.GetPrevTxHash()),
 		OriginalTransactionHash: hex.EncodeToString(tx.GetOriginalTxHash()),
 		ReturnMessage:           string(tx.GetReturnMessage()),
-	}
-	if len(tx.GetOriginalSender()) == tu.addressPubKeyConverter.Len() {
-		txResult.OriginalSender = tu.addressPubKeyConverter.Encode(tx.GetOriginalSender())
+		CallType:                tx.CallType.ToString(),
+		RelayerAddress:          tu.getEncodedAddress(tx.GetRelayerAddr()),
+		RelayedValue:            bigIntToStr(tx.GetRelayedValue()),
+		OriginalSender:          tu.getEncodedAddress(tx.GetOriginalSender()),
 	}
 
 	return txResult, nil
+}
+
+func (tu *txUnmarshaller) getEncodedAddress(address []byte) string {
+	if len(address) == tu.addressPubKeyConverter.Len() {
+		return tu.addressPubKeyConverter.Encode(address)
+	}
+
+	return ""
+}
+
+func bigIntToStr(value *big.Int) string {
+	if value != nil {
+		return value.String()
+	}
+
+	return ""
 }

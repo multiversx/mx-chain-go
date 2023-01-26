@@ -8,20 +8,19 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/common/validatorInfo"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/validatorInfo"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/state"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("process/peer")
@@ -40,57 +39,44 @@ const (
 
 // ArgValidatorStatisticsProcessor holds all dependencies for the validatorStatistics
 type ArgValidatorStatisticsProcessor struct {
-	Marshalizer                                       marshal.Marshalizer
-	NodesCoordinator                                  nodesCoordinator.NodesCoordinator
-	ShardCoordinator                                  sharding.Coordinator
-	DataPool                                          DataPool
-	StorageService                                    dataRetriever.StorageService
-	PubkeyConv                                        core.PubkeyConverter
-	PeerAdapter                                       state.AccountsAdapter
-	Rater                                             sharding.PeerAccountListAndRatingHandler
-	RewardsHandler                                    process.RewardsHandler
-	MaxComputableRounds                               uint64
-	MaxConsecutiveRoundsOfRatingDecrease              uint64
-	NodesSetup                                        sharding.GenesisNodesSetupHandler
-	GenesisNonce                                      uint64
-	RatingEnableEpoch                                 uint32
-	SwitchJailWaitingEnableEpoch                      uint32
-	BelowSignedThresholdEnableEpoch                   uint32
-	StakingV2EnableEpoch                              uint32
-	StopDecreasingValidatorRatingWhenStuckEnableEpoch uint32
-	StakingV4EnableEpoch                              uint32
-	EpochNotifier                                     process.EpochNotifier
+	Marshalizer                          marshal.Marshalizer
+	NodesCoordinator                     nodesCoordinator.NodesCoordinator
+	ShardCoordinator                     sharding.Coordinator
+	DataPool                             DataPool
+	StorageService                       dataRetriever.StorageService
+	PubkeyConv                           core.PubkeyConverter
+	PeerAdapter                          state.AccountsAdapter
+	Rater                                sharding.PeerAccountListAndRatingHandler
+	RewardsHandler                       process.RewardsHandler
+	MaxComputableRounds                  uint64
+	MaxConsecutiveRoundsOfRatingDecrease uint64
+	NodesSetup                           sharding.GenesisNodesSetupHandler
+	GenesisNonce                         uint64
+	RatingEnableEpoch                    uint32
+	EnableEpochsHandler                  common.EnableEpochsHandler
 }
 
 type validatorStatistics struct {
-	marshalizer                                       marshal.Marshalizer
-	dataPool                                          DataPool
-	storageService                                    dataRetriever.StorageService
-	nodesCoordinator                                  nodesCoordinator.NodesCoordinator
-	shardCoordinator                                  sharding.Coordinator
-	pubkeyConv                                        core.PubkeyConverter
-	peerAdapter                                       state.AccountsAdapter
-	rater                                             sharding.PeerAccountListAndRatingHandler
-	rewardsHandler                                    process.RewardsHandler
-	maxComputableRounds                               uint64
-	maxConsecutiveRoundsOfRatingDecrease              uint64
-	missedBlocksCounters                              validatorRoundCounters
-	mutValidatorStatistics                            sync.RWMutex
-	genesisNonce                                      uint64
-	ratingEnableEpoch                                 uint32
-	lastFinalizedRootHash                             []byte
-	jailedEnableEpoch                                 uint32
-	belowSignedThresholdEnableEpoch                   uint32
-	stakingV2EnableEpoch                              uint32
-	stopDecreasingValidatorRatingWhenStuckEnableEpoch uint32
-	stakingV4EnableEpoch                              uint32
-	flagJailedEnabled                                 atomic.Flag
-	flagStakingV2Enabled                              atomic.Flag
-	flagStopDecreasingValidatorRatingEnabled          atomic.Flag
-	flagStakingV4                                     atomic.Flag
+	marshalizer                          marshal.Marshalizer
+	dataPool                             DataPool
+	storageService                       dataRetriever.StorageService
+	nodesCoordinator                     nodesCoordinator.NodesCoordinator
+	shardCoordinator                     sharding.Coordinator
+	pubkeyConv                           core.PubkeyConverter
+	peerAdapter                          state.AccountsAdapter
+	rater                                sharding.PeerAccountListAndRatingHandler
+	rewardsHandler                       process.RewardsHandler
+	maxComputableRounds                  uint64
+	maxConsecutiveRoundsOfRatingDecrease uint64
+	missedBlocksCounters                 validatorRoundCounters
+	mutValidatorStatistics               sync.RWMutex
+	genesisNonce                         uint64
+	ratingEnableEpoch                    uint32
+	lastFinalizedRootHash                []byte
+	enableEpochsHandler                  common.EnableEpochsHandler
 }
 
-// NewValidatorStatisticsProcessor instantiates a new validatorStatistics structure responsible of keeping account of
+// NewValidatorStatisticsProcessor instantiates a new validatorStatistics structure responsible for keeping account of
 //  each validator actions in the consensus process
 func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) (*validatorStatistics, error) {
 	if check.IfNil(arguments.PeerAdapter) {
@@ -129,8 +115,8 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 	if check.IfNil(arguments.NodesSetup) {
 		return nil, process.ErrNilNodesSetup
 	}
-	if check.IfNil(arguments.EpochNotifier) {
-		return nil, process.ErrNilEpochNotifier
+	if check.IfNil(arguments.EnableEpochsHandler) {
+		return nil, process.ErrNilEnableEpochsHandler
 	}
 
 	vs := &validatorStatistics{
@@ -147,20 +133,8 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 		maxComputableRounds:                  arguments.MaxComputableRounds,
 		maxConsecutiveRoundsOfRatingDecrease: arguments.MaxConsecutiveRoundsOfRatingDecrease,
 		genesisNonce:                         arguments.GenesisNonce,
-		ratingEnableEpoch:                    arguments.RatingEnableEpoch,
-		jailedEnableEpoch:                    arguments.SwitchJailWaitingEnableEpoch,
-		belowSignedThresholdEnableEpoch:      arguments.BelowSignedThresholdEnableEpoch,
-		stakingV2EnableEpoch:                 arguments.StakingV2EnableEpoch,
-		stopDecreasingValidatorRatingWhenStuckEnableEpoch: arguments.StopDecreasingValidatorRatingWhenStuckEnableEpoch,
-		stakingV4EnableEpoch:                              arguments.StakingV4EnableEpoch,
+		enableEpochsHandler:                  arguments.EnableEpochsHandler,
 	}
-	log.Debug("peer/process: enable epoch for switch jail waiting", "epoch", vs.jailedEnableEpoch)
-	log.Debug("peer/process: enable epoch for below signed threshold", "epoch", vs.belowSignedThresholdEnableEpoch)
-	log.Debug("peer/process: enable epoch for staking v2", "epoch", vs.stakingV2EnableEpoch)
-	log.Debug("peer/process: enable epoch for stop decreasing validator rating when stuck", "epoch", vs.stopDecreasingValidatorRatingWhenStuckEnableEpoch)
-	log.Debug("peer/process: enable epoch for staking v4", "epoch", vs.stakingV4EnableEpoch)
-
-	arguments.EpochNotifier.RegisterNotifyHandler(vs)
 
 	err := vs.saveInitialState(arguments.NodesSetup)
 	if err != nil {
@@ -209,7 +183,7 @@ func (vs *validatorStatistics) saveNodesCoordinatorUpdates(epoch uint32) (bool, 
 	}
 	nodeForcedToRemain = nodeForcedToRemain || tmpNodeForcedToRemain
 
-	if vs.flagStakingV4.IsSet() {
+	if vs.enableEpochsHandler.IsStakingV4Enabled() {
 		nodesMap, err = vs.nodesCoordinator.GetAllShuffledOutValidatorsPublicKeys(epoch)
 		if err != nil {
 			return false, err
@@ -262,7 +236,7 @@ func (vs *validatorStatistics) saveUpdatesForList(
 
 		isNodeLeaving := (peerType == common.WaitingList || peerType == common.EligibleList) && peerAcc.GetList() == string(common.LeavingList)
 		isNodeWithLowRating := vs.isValidatorWithLowRating(peerAcc)
-		isNodeJailed := vs.flagJailedEnabled.IsSet() && peerType == common.InactiveList && isNodeWithLowRating
+		isNodeJailed := vs.enableEpochsHandler.IsSwitchJailWaitingFlagEnabled() && peerType == common.InactiveList && isNodeWithLowRating
 		if isNodeJailed {
 			peerAcc.SetListAndIndex(shardID, string(common.JailedList), uint32(index))
 		} else if isNodeLeaving {
@@ -462,10 +436,10 @@ func (vs *validatorStatistics) RootHash() ([]byte, error) {
 }
 
 func (vs *validatorStatistics) getValidatorDataFromLeaves(
-	leavesChannel chan core.KeyValueHolder,
+	leavesChannels *common.TrieIteratorChannels,
 ) (state.ShardValidatorsInfoMapHandler, error) {
 	validators := state.NewShardValidatorsInfoMap()
-	for pa := range leavesChannel {
+	for pa := range leavesChannels.LeavesChan {
 		peerAccount, err := vs.unmarshalPeer(pa.Value())
 		if err != nil {
 			return nil, err
@@ -476,6 +450,11 @@ func (vs *validatorStatistics) getValidatorDataFromLeaves(
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	err := common.GetErrorFromChanNonBlocking(leavesChannels.ErrChan)
+	if err != nil {
+		return nil, err
 	}
 
 	return validators, nil
@@ -503,7 +482,7 @@ func (vs *validatorStatistics) PeerAccountToValidatorInfo(peerAccount state.Peer
 	ratingModifier := float32(chance) / float32(startRatingChance)
 
 	list := ""
-	if vs.flagJailedEnabled.IsSet() {
+	if vs.enableEpochsHandler.IsSwitchJailWaitingFlagEnabled() {
 		list = peerAccount.GetList()
 	} else {
 		list = getActualList(peerAccount)
@@ -554,7 +533,7 @@ func (vs *validatorStatistics) isValidatorWithLowRating(validatorAccount state.P
 }
 
 func (vs *validatorStatistics) jailValidatorIfBadRatingAndInactive(validatorAccount state.PeerAccountHandler) {
-	if !vs.flagJailedEnabled.IsSet() {
+	if !vs.enableEpochsHandler.IsSwitchJailWaitingFlagEnabled() {
 		return
 	}
 
@@ -586,13 +565,16 @@ func (vs *validatorStatistics) GetValidatorInfoForRootHash(rootHash []byte) (sta
 		log.Debug("GetValidatorInfoForRootHash", sw.GetMeasurements()...)
 	}()
 
-	leavesChannel := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
-	err := vs.peerAdapter.GetAllLeaves(leavesChannel, context.Background(), rootHash)
+	leavesChannels := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    make(chan error, 1),
+	}
+	err := vs.peerAdapter.GetAllLeaves(leavesChannels, context.Background(), rootHash)
 	if err != nil {
 		return nil, err
 	}
 
-	vInfos, err := vs.getValidatorDataFromLeaves(leavesChannel)
+	vInfos, err := vs.getValidatorDataFromLeaves(leavesChannels)
 	if err != nil {
 		return nil, err
 	}
@@ -616,7 +598,7 @@ func (vs *validatorStatistics) ProcessRatingsEndOfEpoch(
 	signedThreshold := vs.rater.GetSignedBlocksThreshold()
 	for shardId, validators := range validatorInfos.GetShardValidatorsInfoMap() {
 		for _, validator := range validators {
-			if !vs.flagStakingV2Enabled.IsSet() {
+			if !vs.enableEpochsHandler.IsStakingV2FlagEnabledForActivationEpochCompleted() {
 				if validator.GetList() != string(common.EligibleList) {
 					continue
 				}
@@ -651,7 +633,7 @@ func (vs *validatorStatistics) verifySignaturesBelowSignedThreshold(
 
 	if computedThreshold <= signedThreshold {
 		increasedRatingTimes := uint32(0)
-		if epoch < vs.belowSignedThresholdEnableEpoch {
+		if !vs.enableEpochsHandler.IsBelowSignedThresholdFlagEnabled() {
 			increasedRatingTimes = validator.GetValidatorFailure()
 		} else {
 			increasedRatingTimes = validator.GetValidatorSuccess() + validator.GetValidatorIgnoredSignatures()
@@ -721,7 +703,7 @@ func (vs *validatorStatistics) setToJailedIfNeeded(
 	peerAccount state.PeerAccountHandler,
 	validator state.ValidatorInfoHandler,
 ) {
-	if !vs.flagJailedEnabled.IsSet() {
+	if !vs.enableEpochsHandler.IsSwitchJailWaitingFlagEnabled() {
 		return
 	}
 
@@ -750,7 +732,7 @@ func (vs *validatorStatistics) checkForMissedBlocks(
 	if missedRounds <= 1 {
 		return nil
 	}
-	if vs.flagStopDecreasingValidatorRatingEnabled.IsSet() {
+	if vs.enableEpochsHandler.IsStopDecreasingValidatorRatingWhenStuckFlagEnabled() {
 		if missedRounds > vs.maxConsecutiveRoundsOfRatingDecrease {
 			return nil
 		}
@@ -1032,7 +1014,7 @@ func (vs *validatorStatistics) updateValidatorInfoOnSuccessfulBlock(
 			peerAcc.SetConsecutiveProposerMisses(0)
 			newRating = vs.rater.ComputeIncreaseProposer(shardId, peerAcc.GetTempRating())
 			var leaderAccumulatedFees *big.Int
-			if vs.flagStakingV2Enabled.IsSet() {
+			if vs.enableEpochsHandler.IsStakingV2FlagEnabledForActivationEpochCompleted() {
 				leaderAccumulatedFees = core.GetIntTrimmedPercentageOfValue(accumulatedFees, vs.rewardsHandler.LeaderPercentage())
 			} else {
 				leaderAccumulatedFees = core.GetApproximatePercentageOfValue(accumulatedFees, vs.rewardsHandler.LeaderPercentage())
@@ -1256,21 +1238,4 @@ func (vs *validatorStatistics) LastFinalizedRootHash() []byte {
 	vs.mutValidatorStatistics.RLock()
 	defer vs.mutValidatorStatistics.RUnlock()
 	return vs.lastFinalizedRootHash
-}
-
-// EpochConfirmed is called whenever a new epoch is confirmed
-func (vs *validatorStatistics) EpochConfirmed(epoch uint32, _ uint64) {
-	vs.flagJailedEnabled.SetValue(epoch >= vs.jailedEnableEpoch)
-	log.Debug("validatorStatistics: jailed", "enabled", vs.flagJailedEnabled.IsSet())
-
-	vs.flagStakingV2Enabled.SetValue(epoch > vs.stakingV2EnableEpoch)
-	log.Debug("validatorStatistics: stakingV2", vs.flagStakingV2Enabled.IsSet())
-
-	vs.flagStopDecreasingValidatorRatingEnabled.SetValue(epoch >= vs.stopDecreasingValidatorRatingWhenStuckEnableEpoch)
-	log.Debug("validatorStatistics: stop decreasing validator rating",
-		"is enabled", vs.flagStopDecreasingValidatorRatingEnabled.IsSet(),
-		"max consecutive rounds of rating decrease", vs.maxConsecutiveRoundsOfRatingDecrease)
-
-	vs.flagStakingV4.SetValue(epoch >= vs.stakingV4EnableEpoch)
-	log.Debug("validatorStatistics: staking v4", "enabled", vs.flagStakingV4.IsSet())
 }

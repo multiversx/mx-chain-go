@@ -1,14 +1,14 @@
 package interceptorscontainer
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/throttler"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
-	interceptorFactory "github.com/ElrondNetwork/elrond-go/process/interceptors/factory"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/throttler"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/process/factory/containers"
+	interceptorFactory "github.com/multiversx/mx-chain-go/process/interceptors/factory"
 )
 
 var _ process.InterceptorsContainerFactory = (*shardInterceptorsContainerFactory)(nil)
@@ -92,7 +92,6 @@ func NewShardInterceptorsContainerFactory(
 		EpochStartTrigger:            args.EpochStartTrigger,
 		WhiteListerVerifiedTxs:       args.WhiteListerVerifiedTxs,
 		ArgsParser:                   args.ArgumentsParser,
-		EnableSignTxWithHashEpoch:    args.EnableSignTxWithHashEpoch,
 		PeerSignatureHandler:         args.PeerSignatureHandler,
 		SignaturesHandler:            args.SignaturesHandler,
 		HeartbeatExpiryTimespanInSec: args.HeartbeatExpiryTimespanInSec,
@@ -180,7 +179,12 @@ func (sicf *shardInterceptorsContainerFactory) Create() (process.InterceptorsCon
 		return nil, err
 	}
 
-	err = sicf.generateDirectConnectionInfoInterceptor()
+	err = sicf.generatePeerShardInterceptor()
+	if err != nil {
+		return nil, err
+	}
+
+	err = sicf.generateValidatorInfoInterceptor()
 	if err != nil {
 		return nil, err
 	}

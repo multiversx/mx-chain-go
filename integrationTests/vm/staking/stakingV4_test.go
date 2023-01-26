@@ -5,13 +5,13 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon/stakingcommon"
-	"github.com/ElrondNetwork/elrond-go/vm"
-	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon/stakingcommon"
+	"github.com/multiversx/mx-chain-go/vm"
+	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 	"github.com/stretchr/testify/require"
 )
 
@@ -88,7 +88,7 @@ func remove(slice [][]byte, elem []byte) [][]byte {
 
 func unStake(t *testing.T, owner []byte, accountsDB state.AccountsAdapter, marshaller marshal.Marshalizer, stake *big.Int) {
 	validatorSC := stakingcommon.LoadUserAccount(accountsDB, vm.ValidatorSCAddress)
-	ownerStoredData, err := validatorSC.DataTrieTracker().RetrieveValue(owner)
+	ownerStoredData, _, err := validatorSC.RetrieveValue(owner)
 	require.Nil(t, err)
 
 	validatorData := &systemSmartContracts.ValidatorDataV2{}
@@ -97,7 +97,7 @@ func unStake(t *testing.T, owner []byte, accountsDB state.AccountsAdapter, marsh
 
 	validatorData.TotalStakeValue.Sub(validatorData.TotalStakeValue, stake)
 	marshaledData, _ := marshaller.Marshal(validatorData)
-	err = validatorSC.DataTrieTracker().SaveKeyValue(owner, marshaledData)
+	err = validatorSC.SaveKeyValue(owner, marshaledData)
 	require.Nil(t, err)
 
 	err = accountsDB.SaveAccount(validatorSC)

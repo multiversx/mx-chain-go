@@ -3,16 +3,16 @@ package mock
 import (
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	crypto "github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	consensusMocks "github.com/ElrondNetwork/elrond-go/testscommon/consensus"
-	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
+	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 )
 
 // InitChronologyHandlerMock -
@@ -22,8 +22,8 @@ func InitChronologyHandlerMock() consensus.ChronologyHandler {
 }
 
 // InitBlockProcessorMock -
-func InitBlockProcessorMock() *BlockProcessorMock {
-	blockProcessorMock := &BlockProcessorMock{}
+func InitBlockProcessorMock() *testscommon.BlockProcessorStub {
+	blockProcessorMock := &testscommon.BlockProcessorStub{}
 	blockProcessorMock.CreateBlockCalled = func(header data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
 		emptyBlock := &block.Body{}
 		_ = header.SetRootHash([]byte{})
@@ -56,8 +56,8 @@ func InitBlockProcessorMock() *BlockProcessorMock {
 }
 
 // InitBlockProcessorHeaderV2Mock -
-func InitBlockProcessorHeaderV2Mock() *BlockProcessorMock {
-	blockProcessorMock := &BlockProcessorMock{}
+func InitBlockProcessorHeaderV2Mock() *testscommon.BlockProcessorStub {
+	blockProcessorMock := &testscommon.BlockProcessorStub{}
 	blockProcessorMock.CreateBlockCalled = func(header data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
 		emptyBlock := &block.Body{}
 		_ = header.SetRootHash([]byte{})
@@ -98,17 +98,17 @@ func InitBlockProcessorHeaderV2Mock() *BlockProcessorMock {
 
 // InitMultiSignerMock -
 func InitMultiSignerMock() *cryptoMocks.MultisignerMock {
-	multiSigner := cryptoMocks.NewMultiSigner(21)
-	multiSigner.VerifySignatureShareCalled = func(index uint16, sig []byte, msg []byte, bitmap []byte) error {
+	multiSigner := cryptoMocks.NewMultiSigner()
+	multiSigner.VerifySignatureShareCalled = func(publicKey []byte, message []byte, sig []byte) error {
 		return nil
 	}
-	multiSigner.VerifyCalled = func(msg []byte, bitmap []byte) error {
+	multiSigner.VerifyAggregatedSigCalled = func(pubKeysSigners [][]byte, message []byte, aggSig []byte) error {
 		return nil
 	}
-	multiSigner.AggregateSigsCalled = func(bitmap []byte) ([]byte, error) {
+	multiSigner.AggregateSigsCalled = func(pubKeysSigners [][]byte, signatures [][]byte) ([]byte, error) {
 		return []byte("aggregatedSig"), nil
 	}
-	multiSigner.CreateSignatureShareCalled = func(msg []byte, bitmap []byte) ([]byte, error) {
+	multiSigner.CreateSignatureShareCalled = func(privateKeyBytes []byte, message []byte) ([]byte, error) {
 		return []byte("partialSign"), nil
 	}
 	return multiSigner
@@ -204,6 +204,8 @@ func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *Consensus
 	fallbackHeaderValidator := &testscommon.FallBackHeaderValidatorStub{}
 	nodeRedundancyHandler := &NodeRedundancyHandlerStub{}
 	scheduledProcessor := &consensusMocks.ScheduledProcessorStub{}
+	multiSignerContainer := cryptoMocks.NewMultiSignerContainerMock(multiSigner)
+	signatureHandler := &SignatureHandlerStub{}
 
 	container := &ConsensusCoreMock{
 		blockChain:              blockChain,
@@ -216,7 +218,7 @@ func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *Consensus
 		marshalizer:             marshalizerMock,
 		blsPrivateKey:           blsPrivateKeyMock,
 		blsSingleSigner:         blsSingleSignerMock,
-		multiSigner:             multiSigner,
+		multiSignerContainer:    multiSignerContainer,
 		roundHandler:            roundHandlerMock,
 		shardCoordinator:        shardCoordinatorMock,
 		syncTimer:               syncTimerMock,
@@ -228,6 +230,7 @@ func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *Consensus
 		fallbackHeaderValidator: fallbackHeaderValidator,
 		nodeRedundancyHandler:   nodeRedundancyHandler,
 		scheduledProcessor:      scheduledProcessor,
+		signatureHandler:        signatureHandler,
 	}
 
 	return container

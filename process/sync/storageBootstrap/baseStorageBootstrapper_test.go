@@ -5,26 +5,33 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	epochNotifierMock "github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
-	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	epochNotifierMock "github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
+	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
+	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 )
 
 func createMockShardStorageBoostrapperArgs() ArgsBaseStorageBootstrapper {
 	argsBaseBootstrapper := ArgsBaseStorageBootstrapper{
-		BootStorer:                   &mock.BoostrapStorerMock{},
-		ForkDetector:                 &mock.ForkDetectorMock{},
-		BlockProcessor:               &mock.BlockProcessorMock{},
-		ChainHandler:                 &testscommon.ChainHandlerStub{},
-		Marshalizer:                  &mock.MarshalizerMock{},
-		Store:                        &mock.ChainStorerMock{},
+		BootStorer:     &mock.BoostrapStorerMock{},
+		ForkDetector:   &mock.ForkDetectorMock{},
+		BlockProcessor: &testscommon.BlockProcessorStub{},
+		ChainHandler:   &testscommon.ChainHandlerStub{},
+		Marshalizer:    &mock.MarshalizerMock{},
+		Store: &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return &storageStubs.StorerStub{}, nil
+			},
+		},
 		Uint64Converter:              &mock.Uint64ByteSliceConverterMock{},
 		BootstrapRoundIndex:          1,
 		ShardCoordinator:             &mock.ShardCoordinatorStub{},
@@ -36,6 +43,7 @@ func createMockShardStorageBoostrapperArgs() ArgsBaseStorageBootstrapper {
 		MiniblocksProvider:           &mock.MiniBlocksProviderStub{},
 		EpochNotifier:                &epochNotifierMock.EpochNotifierStub{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
+		AppStatusHandler:             &statusHandler.AppStatusHandlerMock{},
 	}
 
 	return argsBaseBootstrapper
@@ -170,7 +178,6 @@ func TestBaseStorageBootstrapper_CheckBaseStorageBootstrapperArguments(t *testin
 		err := checkBaseStorageBootstrapperArguments(args)
 		assert.Equal(t, process.ErrNilEpochNotifier, err)
 	})
-
 	t.Run("nil processed mini blocks tracker should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -180,12 +187,30 @@ func TestBaseStorageBootstrapper_CheckBaseStorageBootstrapperArguments(t *testin
 		err := checkBaseStorageBootstrapperArguments(args)
 		assert.Equal(t, process.ErrNilProcessedMiniBlocksTracker, err)
 	})
+	t.Run("nil app status handler - should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockShardStorageBoostrapperArgs()
+		args.AppStatusHandler = nil
+
+		err := checkBaseStorageBootstrapperArguments(args)
+		assert.Equal(t, process.ErrNilAppStatusHandler, err)
+	})
 }
 
 func TestBaseStorageBootstrapper_RestoreBlockBodyIntoPoolsShouldErrMissingHeader(t *testing.T) {
 	t.Parallel()
 
 	baseArgs := createMockShardStorageBoostrapperArgs()
+	baseArgs.Store = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return &storageStubs.StorerStub{
+				GetCalled: func(key []byte) ([]byte, error) {
+					return nil, errors.New("key not found")
+				},
+			}, nil
+		},
+	}
 	args := ArgsShardStorageBootstrapper{
 		ArgsBaseStorageBootstrapper: baseArgs,
 	}
@@ -193,6 +218,7 @@ func TestBaseStorageBootstrapper_RestoreBlockBodyIntoPoolsShouldErrMissingHeader
 
 	hash := []byte("hash")
 	err := ssb.restoreBlockBodyIntoPools(hash)
+	assert.Error(t, err)
 	assert.True(t, strings.Contains(err.Error(), process.ErrMissingHeader.Error()))
 }
 
@@ -209,11 +235,11 @@ func TestBaseStorageBootstrapper_RestoreBlockBodyIntoPoolsShouldErrMissingBody(t
 		},
 	}
 	marshaledHeader, _ := baseArgs.Marshalizer.Marshal(header)
-	storerMock := mock.NewStorerMock()
+	storerMock := genericMocks.NewStorerMock()
 	_ = storerMock.Put(headerHash, marshaledHeader)
-	baseArgs.Store = &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return storerMock
+	baseArgs.Store = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return storerMock, nil
 		},
 	}
 	args := ArgsShardStorageBootstrapper{
@@ -238,17 +264,17 @@ func TestBaseStorageBootstrapper_RestoreBlockBodyIntoPoolsShouldErrWhenRestoreBl
 			return nil, nil
 		},
 	}
-	baseArgs.BlockProcessor = &mock.BlockProcessorMock{
+	baseArgs.BlockProcessor = &testscommon.BlockProcessorStub{
 		RestoreBlockBodyIntoPoolsCalled: func(body data.BodyHandler) error {
 			return expectedError
 		},
 	}
 	marshaledHeader, _ := baseArgs.Marshalizer.Marshal(header)
-	storerMock := mock.NewStorerMock()
+	storerMock := genericMocks.NewStorerMock()
 	_ = storerMock.Put(headerHash, marshaledHeader)
-	baseArgs.Store = &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return storerMock
+	baseArgs.Store = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return storerMock, nil
 		},
 	}
 	args := ArgsShardStorageBootstrapper{
@@ -272,17 +298,17 @@ func TestBaseStorageBootstrapper_RestoreBlockBodyIntoPoolsShouldWork(t *testing.
 			return nil, nil
 		},
 	}
-	baseArgs.BlockProcessor = &mock.BlockProcessorMock{
+	baseArgs.BlockProcessor = &testscommon.BlockProcessorStub{
 		RestoreBlockBodyIntoPoolsCalled: func(body data.BodyHandler) error {
 			return nil
 		},
 	}
 	marshaledHeader, _ := baseArgs.Marshalizer.Marshal(header)
-	storerMock := mock.NewStorerMock()
+	storerMock := genericMocks.NewStorerMock()
 	_ = storerMock.Put(headerHash, marshaledHeader)
-	baseArgs.Store = &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return storerMock
+	baseArgs.Store = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return storerMock, nil
 		},
 	}
 	args := ArgsShardStorageBootstrapper{

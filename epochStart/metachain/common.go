@@ -1,6 +1,6 @@
 package metachain
 
-import "github.com/ElrondNetwork/elrond-go/state"
+import "github.com/multiversx/mx-chain-go/state"
 
 // GetAllNodeKeys returns all <shard,pubKeys> from the provided map
 func GetAllNodeKeys(validatorsInfo state.ShardValidatorsInfoMapHandler) map[uint32][][]byte {

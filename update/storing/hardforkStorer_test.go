@@ -7,17 +7,18 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
-	"github.com/ElrondNetwork/elrond-go/update"
-	"github.com/ElrondNetwork/elrond-go/update/mock"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
+	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
+	"github.com/multiversx/mx-chain-go/update"
+	"github.com/multiversx/mx-chain-go/update/mock"
 	"github.com/stretchr/testify/assert"
 )
 
 func createDefaultArg() ArgHardforkStorer {
 	return ArgHardforkStorer{
-		KeysStore:   mock.NewStorerMock(),
-		KeyValue:    mock.NewStorerMock(),
+		KeysStore:   genericMocks.NewStorerMock(),
+		KeyValue:    genericMocks.NewStorerMock(),
 		Marshalizer: &mock.MarshalizerMock{},
 	}
 }

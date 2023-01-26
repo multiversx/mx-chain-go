@@ -181,7 +181,7 @@ func (rcns *roundConsensus) ComputeSize(subroundId int) int {
 	return n
 }
 
-// ResetRoundState method resets the state of each node from the current jobDone group, regarding to the
+// ResetRoundState method resets the state of each node from the current jobDone group, regarding the
 // consensus validatorRoundStates
 func (rcns *roundConsensus) ResetRoundState() {
 	rcns.mut.Lock()

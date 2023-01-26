@@ -8,30 +8,32 @@ import (
 	"math/big"
 	"testing"
 
-	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/genesis"
-	"github.com/ElrondNetwork/elrond-go/genesis/mock"
-	"github.com/ElrondNetwork/elrond-go/genesis/parsing"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/state"
-	factoryState "github.com/ElrondNetwork/elrond-go/state/factory"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
-	"github.com/ElrondNetwork/elrond-go/trie"
-	"github.com/ElrondNetwork/elrond-go/trie/factory"
-	"github.com/ElrondNetwork/elrond-go/update"
-	updateMock "github.com/ElrondNetwork/elrond-go/update/mock"
-	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/genesis"
+	"github.com/multiversx/mx-chain-go/genesis/mock"
+	"github.com/multiversx/mx-chain-go/genesis/parsing"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/state"
+	factoryState "github.com/multiversx/mx-chain-go/state/factory"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
+	storageCommon "github.com/multiversx/mx-chain-go/testscommon/storage"
+	"github.com/multiversx/mx-chain-go/trie"
+	"github.com/multiversx/mx-chain-go/trie/factory"
+	"github.com/multiversx/mx-chain-go/update"
+	updateMock "github.com/multiversx/mx-chain-go/update/mock"
+	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	wasmConfig "github.com/multiversx/mx-chain-vm-v1_4-go/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -46,8 +48,8 @@ func createMockArgument(
 	entireSupply *big.Int,
 ) ArgsGenesisBlockCreator {
 
-	memDBMock := mock.NewMemDbMock()
-	storageManager, _ := trie.NewTrieStorageManagerWithoutPruning(memDBMock)
+	storageManagerArgs, options := storageCommon.GetStorageManagerArgsAndOptions()
+	storageManager, _ := trie.CreateTrieStorageManager(storageManagerArgs, options)
 
 	trieStorageManagers := make(map[string]common.StorageManager)
 	trieStorageManagers[factory.UserAccountTrie] = storageManager
@@ -57,18 +59,19 @@ func createMockArgument(
 		GenesisTime:   0,
 		StartEpochNum: 0,
 		Core: &mock.CoreComponentsMock{
-			IntMarsh:            &mock.MarshalizerMock{},
-			TxMarsh:             &mock.MarshalizerMock{},
-			Hash:                &hashingMocks.HasherMock{},
-			UInt64ByteSliceConv: &mock.Uint64ByteSliceConverterMock{},
-			AddrPubKeyConv:      mock.NewPubkeyConverterMock(32),
-			Chain:               "chainID",
-			MinTxVersion:        1,
+			IntMarsh:                 &mock.MarshalizerMock{},
+			TxMarsh:                  &mock.MarshalizerMock{},
+			Hash:                     &hashingMocks.HasherMock{},
+			UInt64ByteSliceConv:      &mock.Uint64ByteSliceConverterMock{},
+			AddrPubKeyConv:           mock.NewPubkeyConverterMock(32),
+			Chain:                    "chainID",
+			MinTxVersion:             1,
+			EnableEpochsHandlerField: &testscommon.EnableEpochsHandlerStub{},
 		},
 		Data: &mock.DataComponentsMock{
-			Storage: &mock.ChainStorerStub{
-				GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-					return mock.NewStorerMock()
+			Storage: &storageCommon.ChainStorerStub{
+				GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+					return genericMocks.NewStorerMock(), nil
 				},
 			},
 			Blkc:     &testscommon.ChainHandlerStub{},
@@ -77,7 +80,7 @@ func createMockArgument(
 		InitialNodesSetup: &mock.InitialNodesSetupHandlerStub{},
 		TxLogsProcessor:   &mock.TxLogProcessorMock{},
 		VirtualMachineConfig: config.VirtualMachineConfig{
-			ArwenVersions: []config.ArwenVersionByEpoch{
+			WasmVMVersions: []config.WasmVMVersionByEpoch{
 				{StartEpoch: 0, Version: "*"},
 			},
 		},
@@ -148,6 +151,7 @@ func createMockArgument(
 		&hashingMocks.HasherMock{},
 		factoryState.NewAccountCreator(),
 		trieStorageManagers[factory.UserAccountTrie],
+		&testscommon.PubkeyConverterMock{},
 	)
 	require.Nil(t, err)
 
@@ -166,9 +170,9 @@ func createMockArgument(
 		},
 	}
 
-	gasMap := arwenConfig.MakeGasMapForTests()
+	gasMap := wasmConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasMap, 1)
-	arg.GasSchedule = mock.NewGasScheduleNotifierMock(gasMap)
+	arg.GasSchedule = testscommon.NewGasScheduleNotifierMock(gasMap)
 	ted := &economicsmocks.EconomicsHandlerStub{
 		GenesisTotalSupplyCalled: func() *big.Int {
 			return entireSupply
@@ -205,9 +209,9 @@ func createMockArgument(
 }
 
 func TestGenesisBlockCreator_CreateGenesisBlockAfterHardForkShouldCreateSCResultingAddresses(t *testing.T) {
-	// TODO reinstate test after Arwen pointer fix
+	// TODO reinstate test after Wasm VM pointer fix
 	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Arwen fix")
+		t.Skip("cannot run with -race -short; requires Wasm VM fix")
 	}
 
 	scAddressBytes, _ := hex.DecodeString("00000000000000000500761b8c4a25d3979359223208b412285f635e71300102")
@@ -270,9 +274,9 @@ func TestGenesisBlockCreator_CreateGenesisBlockAfterHardForkShouldCreateSCResult
 }
 
 func TestGenesisBlockCreator_CreateGenesisBlocksJustDelegationShouldWorkAndDNS(t *testing.T) {
-	// TODO reinstate test after Arwen pointer fix
+	// TODO reinstate test after Wasm VM pointer fix
 	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Arwen fix")
+		t.Skip("cannot run with -race -short; requires Wasm VM fix")
 	}
 
 	scAddressBytes, _ := hex.DecodeString("00000000000000000500761b8c4a25d3979359223208b412285f635e71300102")
@@ -319,9 +323,9 @@ func TestGenesisBlockCreator_CreateGenesisBlocksJustDelegationShouldWorkAndDNS(t
 }
 
 func TestGenesisBlockCreator_CreateGenesisBlocksStakingAndDelegationShouldWorkAndDNS(t *testing.T) {
-	// TODO reinstate test after Arwen pointer fix
+	// TODO reinstate test after Wasm VM pointer fix
 	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Arwen fix")
+		t.Skip("cannot run with -race -short; requires Wasm VM fix")
 	}
 
 	scAddressBytes, _ := hex.DecodeString("00000000000000000500761b8c4a25d3979359223208b412285f635e71300102")
@@ -399,9 +403,9 @@ func TestGenesisBlockCreator_CreateGenesisBlocksStakingAndDelegationShouldWorkAn
 }
 
 func TestGenesisBlockCreator_GetIndexingDataShouldWork(t *testing.T) {
-	// TODO reinstate test after Arwen pointer fix
+	// TODO reinstate test after Wasm VM pointer fix
 	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Arwen fix")
+		t.Skip("cannot run with -race -short; requires Wasm VM fix")
 	}
 
 	scAddressBytes, _ := hex.DecodeString("00000000000000000500761b8c4a25d3979359223208b412285f635e71300102")

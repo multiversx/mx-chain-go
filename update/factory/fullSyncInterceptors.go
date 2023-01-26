@@ -1,24 +1,24 @@
 package factory
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/throttler"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/dataValidators"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/process/interceptors"
-	interceptorFactory "github.com/ElrondNetwork/elrond-go/process/interceptors/factory"
-	"github.com/ElrondNetwork/elrond-go/process/interceptors/processor"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/update"
-	"github.com/ElrondNetwork/elrond-go/update/disabled"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/throttler"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/dataValidators"
+	"github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/process/interceptors"
+	interceptorFactory "github.com/multiversx/mx-chain-go/process/interceptors/factory"
+	"github.com/multiversx/mx-chain-go/process/interceptors/processor"
+	"github.com/multiversx/mx-chain-go/process/smartContract"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/update"
+	"github.com/multiversx/mx-chain-go/update/disabled"
 )
 
 var _ process.InterceptorsContainerFactory = (*fullSyncInterceptorsContainerFactory)(nil)
@@ -47,27 +47,26 @@ type fullSyncInterceptorsContainerFactory struct {
 
 // ArgsNewFullSyncInterceptorsContainerFactory holds the arguments needed for fullSyncInterceptorsContainerFactory
 type ArgsNewFullSyncInterceptorsContainerFactory struct {
-	CoreComponents            process.CoreComponentsHolder
-	CryptoComponents          process.CryptoComponentsHolder
-	Accounts                  state.AccountsAdapter
-	ShardCoordinator          sharding.Coordinator
-	NodesCoordinator          nodesCoordinator.NodesCoordinator
-	Messenger                 process.TopicHandler
-	Store                     dataRetriever.StorageService
-	DataPool                  dataRetriever.PoolsHolder
-	MaxTxNonceDeltaAllowed    int
-	TxFeeHandler              process.FeeHandler
-	BlockBlackList            process.TimeCacher
-	HeaderSigVerifier         process.InterceptedHeaderSigVerifier
-	HeaderIntegrityVerifier   process.HeaderIntegrityVerifier
-	SizeCheckDelta            uint32
-	ValidityAttester          process.ValidityAttester
-	EpochStartTrigger         process.EpochStartTriggerHandler
-	WhiteListHandler          update.WhiteListHandler
-	WhiteListerVerifiedTxs    update.WhiteListHandler
-	InterceptorsContainer     process.InterceptorsContainer
-	AntifloodHandler          process.P2PAntifloodHandler
-	EnableSignTxWithHashEpoch uint32
+	CoreComponents          process.CoreComponentsHolder
+	CryptoComponents        process.CryptoComponentsHolder
+	Accounts                state.AccountsAdapter
+	ShardCoordinator        sharding.Coordinator
+	NodesCoordinator        nodesCoordinator.NodesCoordinator
+	Messenger               process.TopicHandler
+	Store                   dataRetriever.StorageService
+	DataPool                dataRetriever.PoolsHolder
+	MaxTxNonceDeltaAllowed  int
+	TxFeeHandler            process.FeeHandler
+	BlockBlackList          process.TimeCacher
+	HeaderSigVerifier       process.InterceptedHeaderSigVerifier
+	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
+	SizeCheckDelta          uint32
+	ValidityAttester        process.ValidityAttester
+	EpochStartTrigger       process.EpochStartTriggerHandler
+	WhiteListHandler        update.WhiteListHandler
+	WhiteListerVerifiedTxs  update.WhiteListHandler
+	InterceptorsContainer   process.InterceptorsContainer
+	AntifloodHandler        process.P2PAntifloodHandler
 }
 
 // NewFullSyncInterceptorsContainerFactory is responsible for creating a new interceptors factory object
@@ -123,18 +122,17 @@ func NewFullSyncInterceptorsContainerFactory(
 	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
-		CoreComponents:            args.CoreComponents,
-		CryptoComponents:          args.CryptoComponents,
-		ShardCoordinator:          args.ShardCoordinator,
-		NodesCoordinator:          args.NodesCoordinator,
-		FeeHandler:                args.TxFeeHandler,
-		HeaderSigVerifier:         args.HeaderSigVerifier,
-		HeaderIntegrityVerifier:   args.HeaderIntegrityVerifier,
-		ValidityAttester:          args.ValidityAttester,
-		EpochStartTrigger:         args.EpochStartTrigger,
-		WhiteListerVerifiedTxs:    args.WhiteListerVerifiedTxs,
-		ArgsParser:                smartContract.NewArgumentParser(),
-		EnableSignTxWithHashEpoch: args.EnableSignTxWithHashEpoch,
+		CoreComponents:          args.CoreComponents,
+		CryptoComponents:        args.CryptoComponents,
+		ShardCoordinator:        args.ShardCoordinator,
+		NodesCoordinator:        args.NodesCoordinator,
+		FeeHandler:              args.TxFeeHandler,
+		HeaderSigVerifier:       args.HeaderSigVerifier,
+		HeaderIntegrityVerifier: args.HeaderIntegrityVerifier,
+		ValidityAttester:        args.ValidityAttester,
+		EpochStartTrigger:       args.EpochStartTrigger,
+		WhiteListerVerifiedTxs:  args.WhiteListerVerifiedTxs,
+		ArgsParser:              smartContract.NewArgumentParser(),
 	}
 
 	icf := &fullSyncInterceptorsContainerFactory{
@@ -248,7 +246,11 @@ func checkBaseParams(
 	if check.IfNil(cryptoComponents.BlockSigner()) {
 		return process.ErrNilSingleSigner
 	}
-	if check.IfNil(cryptoComponents.MultiSigner()) {
+	multiSigner, err := cryptoComponents.GetMultiSigner(0)
+	if err != nil {
+		return err
+	}
+	if check.IfNil(multiSigner) {
 		return process.ErrNilMultiSigVerifier
 	}
 	if check.IfNil(shardCoordinator) {

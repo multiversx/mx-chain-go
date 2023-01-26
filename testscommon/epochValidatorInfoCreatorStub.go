@@ -1,18 +1,21 @@
 package testscommon
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 // EpochValidatorInfoCreatorStub -
 type EpochValidatorInfoCreatorStub struct {
 	CreateValidatorInfoMiniBlocksCalled func(validatorsInfo state.ShardValidatorsInfoMapHandler) (block.MiniBlockSlice, error)
 	VerifyValidatorInfoMiniBlocksCalled func(miniblocks []*block.MiniBlock, validatorsInfo state.ShardValidatorsInfoMapHandler) error
-	CreateMarshalizedDataCalled         func(body block.Body) map[string][][]byte
-	SaveTxBlockToStorageCalled          func(metaBlock data.HeaderHandler, body *block.Body)
-	DeleteTxsFromStorageCalled          func(metaBlock data.HeaderHandler)
+	GetLocalValidatorInfoCacheCalled    func() epochStart.ValidatorInfoCacher
+	CreateMarshalledDataCalled          func(body *block.Body) map[string][][]byte
+	GetValidatorInfoTxsCalled           func(body *block.Body) map[string]*state.ShardValidatorInfo
+	SaveBlockDataToStorageCalled        func(metaBlock data.HeaderHandler, body *block.Body)
+	DeleteBlockDataFromStorageCalled    func(metaBlock data.HeaderHandler, body *block.Body)
 	RemoveBlockDataFromPoolsCalled      func(metaBlock data.HeaderHandler, body *block.Body)
 }
 
@@ -25,24 +28,48 @@ func (e *EpochValidatorInfoCreatorStub) CreateValidatorInfoMiniBlocks(validatorI
 }
 
 // VerifyValidatorInfoMiniBlocks -
-func (e *EpochValidatorInfoCreatorStub) VerifyValidatorInfoMiniBlocks(miniblocks []*block.MiniBlock, validatorsInfo state.ShardValidatorsInfoMapHandler) error {
+func (e *EpochValidatorInfoCreatorStub) VerifyValidatorInfoMiniBlocks(miniBlocks []*block.MiniBlock, validatorsInfo state.ShardValidatorsInfoMapHandler) error {
 	if e.VerifyValidatorInfoMiniBlocksCalled != nil {
-		return e.VerifyValidatorInfoMiniBlocksCalled(miniblocks, validatorsInfo)
+		return e.VerifyValidatorInfoMiniBlocksCalled(miniBlocks, validatorsInfo)
 	}
 	return nil
 }
 
-// SaveValidatorInfoBlocksToStorage -
-func (e *EpochValidatorInfoCreatorStub) SaveValidatorInfoBlocksToStorage(metaBlock data.HeaderHandler, body *block.Body) {
-	if e.SaveTxBlockToStorageCalled != nil {
-		e.SaveTxBlockToStorageCalled(metaBlock, body)
+// GetLocalValidatorInfoCache -
+func (e *EpochValidatorInfoCreatorStub) GetLocalValidatorInfoCache() epochStart.ValidatorInfoCacher {
+	if e.GetLocalValidatorInfoCacheCalled != nil {
+		return e.GetLocalValidatorInfoCacheCalled()
+	}
+	return nil
+}
+
+// CreateMarshalledData -
+func (e *EpochValidatorInfoCreatorStub) CreateMarshalledData(body *block.Body) map[string][][]byte {
+	if e.CreateMarshalledDataCalled != nil {
+		return e.CreateMarshalledDataCalled(body)
+	}
+	return nil
+}
+
+// GetValidatorInfoTxs -
+func (e *EpochValidatorInfoCreatorStub) GetValidatorInfoTxs(body *block.Body) map[string]*state.ShardValidatorInfo {
+	if e.GetValidatorInfoTxsCalled != nil {
+		return e.GetValidatorInfoTxsCalled(body)
+	}
+	return nil
+}
+
+// SaveBlockDataToStorage -
+func (e *EpochValidatorInfoCreatorStub) SaveBlockDataToStorage(metaBlock data.HeaderHandler, body *block.Body) {
+	if e.SaveBlockDataToStorageCalled != nil {
+		e.SaveBlockDataToStorageCalled(metaBlock, body)
 	}
 }
 
-// DeleteValidatorInfoBlocksFromStorage -
-func (e *EpochValidatorInfoCreatorStub) DeleteValidatorInfoBlocksFromStorage(metaBlock data.HeaderHandler) {
-	if e.DeleteTxsFromStorageCalled != nil {
-		e.DeleteTxsFromStorageCalled(metaBlock)
+// DeleteBlockDataFromStorage -
+func (e *EpochValidatorInfoCreatorStub) DeleteBlockDataFromStorage(metaBlock data.HeaderHandler, body *block.Body) {
+	if e.DeleteBlockDataFromStorageCalled != nil {
+		e.DeleteBlockDataFromStorageCalled(metaBlock, body)
 	}
 }
 

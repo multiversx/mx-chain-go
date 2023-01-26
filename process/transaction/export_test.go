@@ -3,11 +3,11 @@ package transaction
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/state"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/state"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 type TxProcessor *txProcessor
@@ -40,10 +40,6 @@ func (inTx *InterceptedTransaction) SetWhitelistHandler(handler process.WhiteLis
 
 func (txProc *baseTxProcessor) IsCrossTxFromMe(adrSrc, adrDst []byte) bool {
 	return txProc.isCrossTxFromMe(adrSrc, adrDst)
-}
-
-func (txProc *txProcessor) SetPenalizedTooMuchGasEnableEpoch(epoch uint32) {
-	txProc.penalizedTooMuchGasEnableEpoch = epoch
 }
 
 func (txProc *txProcessor) ProcessUserTx(
@@ -82,8 +78,4 @@ func (txProc *txProcessor) ExecuteFailedRelayedTransaction(
 		originalTx,
 		originalTxHash,
 		errorMsg)
-}
-
-func (txProc *metaTxProcessor) SetValueFlagMetaBuiltIn(set bool) {
-	txProc.flagBuiltInFunction.SetValue(set)
 }

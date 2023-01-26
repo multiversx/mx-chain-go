@@ -3,11 +3,11 @@ package staking
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon/stakingcommon"
-	"github.com/ElrondNetwork/elrond-go/vm"
-	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon/stakingcommon"
+	"github.com/multiversx/mx-chain-go/vm"
+	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 )
 
 func createStakingQueue(
@@ -87,7 +87,7 @@ func (tmp *TestMetaProcessor) getWaitingListKeys() [][]byte {
 		Length:        0,
 		LastJailedKey: make([]byte, 0),
 	}
-	marshaledData, _ := stakingSCAcc.DataTrieTracker().RetrieveValue([]byte("waitingList"))
+	marshaledData, _, _ := stakingSCAcc.RetrieveValue([]byte("waitingList"))
 	if len(marshaledData) == 0 {
 		return nil
 	}

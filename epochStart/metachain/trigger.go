@@ -7,21 +7,21 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/closing"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/display"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/closing"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/display"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("epochStart/metachain")
@@ -46,6 +46,7 @@ type ArgsNewMetaEpochStartTrigger struct {
 	Hasher             hashing.Hasher
 	Storage            dataRetriever.StorageService
 	AppStatusHandler   core.AppStatusHandler
+	DataPool           dataRetriever.PoolsHolder
 }
 
 type trigger struct {
@@ -69,6 +70,7 @@ type trigger struct {
 	marshaller                  marshal.Marshalizer
 	hasher                      hashing.Hasher
 	appStatusHandler            core.AppStatusHandler
+	validatorInfoPool           epochStart.ValidatorInfoCacher
 }
 
 // NewEpochStartTrigger creates a trigger for start of epoch
@@ -103,15 +105,21 @@ func NewEpochStartTrigger(args *ArgsNewMetaEpochStartTrigger) (*trigger, error) 
 	if check.IfNil(args.AppStatusHandler) {
 		return nil, epochStart.ErrNilStatusHandler
 	}
-
-	triggerStorage := args.Storage.GetStorer(dataRetriever.BootstrapUnit)
-	if check.IfNil(triggerStorage) {
-		return nil, epochStart.ErrNilTriggerStorage
+	if check.IfNil(args.DataPool) {
+		return nil, epochStart.ErrNilDataPoolsHolder
+	}
+	if check.IfNil(args.DataPool.CurrentEpochValidatorInfo()) {
+		return nil, epochStart.ErrNilCurrentEpochValidatorsInfoPool
 	}
 
-	metaBlockStorage := args.Storage.GetStorer(dataRetriever.MetaBlockUnit)
-	if check.IfNil(triggerStorage) {
-		return nil, epochStart.ErrNilMetaBlockStorage
+	triggerStorage, err := args.Storage.GetStorer(dataRetriever.BootstrapUnit)
+	if err != nil {
+		return nil, err
+	}
+
+	metaBlockStorage, err := args.Storage.GetStorer(dataRetriever.MetaBlockUnit)
+	if err != nil {
+		return nil, err
 	}
 
 	trigggerStateKey := common.TriggerRegistryInitialKeyPrefix + fmt.Sprintf("%d", args.Epoch)
@@ -133,9 +141,10 @@ func NewEpochStartTrigger(args *ArgsNewMetaEpochStartTrigger) (*trigger, error) 
 		epochStartMeta:              &block.MetaBlock{},
 		appStatusHandler:            args.AppStatusHandler,
 		nextEpochStartRound:         disabledRoundForForceEpochStart,
+		validatorInfoPool:           args.DataPool.CurrentEpochValidatorInfo(),
 	}
 
-	err := trig.saveState(trig.triggerStateKey)
+	err = trig.saveState(trig.triggerStateKey)
 	if err != nil {
 		return nil, err
 	}

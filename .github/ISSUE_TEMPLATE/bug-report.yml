@@ -1,0 +1,75 @@
+name: Bug Report
+description: File a bug report
+title: "[Bug]: "
+labels: [bug, triage]
+assignees:
+  - members
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for taking the time to fill out this bug report!
+  - type: input
+    id: contact
+    attributes:
+      label: Contact Details
+      description: How can we get in touch with you if we need more info?
+      placeholder: ex. email@example.com
+    validations:
+      required: false
+  - type: input
+    id: description
+    attributes:
+      label: Description
+      description: A short, concise description of the problem
+      placeholder: Description
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Node version
+      description: The version of the node used when discovering the bug
+      placeholder: v1.3.35.0-0-gfc78258fe/go1.17.6/linux-amd64
+    validations:
+      required: false
+  - type: input
+    id: host
+    attributes:
+      label: Host machine
+      description: Specifications and other details about the host of the node
+      placeholder: DO, AWS, Contabo, no VPS (if you run your validator on a physical machine)
+    validations:
+      required: false
+  - type: textarea
+    id: steps-to-reproduce
+    attributes:
+      label: Steps to reproduce
+      description:  A minimum list of steps for validating the behavior of the bug
+    validations:
+      required: false
+  - type: dropdown
+    id: network
+    attributes:
+      label: On which network is the bug manifesting itself?
+      multiple: true
+      options:
+        - Mainnet
+        - Devnet
+        - Testnet
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log output
+      description: Please copy and paste any relevant log output. This will be automatically formatted into code, so no need for backticks.
+      render: sh
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Code of Conduct
+      description: By submitting this issue, you agree to follow our [Code of Conduct](https://github.com/multiversx/mx-chain-go/blob/master/.github/CODE_OF_CONDUCT.md)
+      options:
+        - label: I agree to follow this project's Code of Conduct
+          required: true

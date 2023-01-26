@@ -3,15 +3,15 @@ package persister
 import (
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/metrics"
-	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/metrics"
+	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/statusHandler"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("statusHandler/persister")
@@ -38,7 +38,7 @@ func NewPersistentStatusHandler(
 	}
 
 	psh := new(PersistentStatusHandler)
-	psh.store = storageUnit.NewNilStorer()
+	psh.store = storageunit.NewNilStorer()
 	psh.uint64ByteSliceConverter = uint64ByteSliceConverter
 	psh.marshalizer = marshalizer
 	psh.persistentMetrics = &sync.Map{}
@@ -66,6 +66,7 @@ func (psh *PersistentStatusHandler) initMap() {
 	psh.persistentMetrics.Store(common.MetricDevRewardsInEpoch, zeroString)
 	psh.persistentMetrics.Store(common.MetricInflation, zeroString)
 	psh.persistentMetrics.Store(common.MetricEpochForEconomicsData, initUint)
+	psh.persistentMetrics.Store(common.MetricAccountsSnapshotNumNodes, initUint)
 }
 
 // SetStorage will set storage for persistent status handler
@@ -129,7 +130,7 @@ func (psh *PersistentStatusHandler) SetUInt64Value(key string, value uint64) {
 
 	psh.persistentMetrics.Store(key, value)
 
-	//metrics wil be saved in storage every time when a block is committed successfully
+	// metrics will be saved in storage every time when a block is committed successfully
 	if key != common.MetricNonce {
 		return
 	}

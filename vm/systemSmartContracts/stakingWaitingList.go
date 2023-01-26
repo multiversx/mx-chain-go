@@ -8,9 +8,9 @@ import (
 	"math/big"
 	"strconv"
 
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/vm"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/vm"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 const waitingListHeadKey = "waitingList"
@@ -76,7 +76,7 @@ func (s *stakingSC) unStakeV1(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return vmcommon.Ok
 	}
 
-	addOneFromQueue := !s.flagCorrectLastUnjailed.IsSet() || s.canStakeIfOneRemoved()
+	addOneFromQueue := !s.enableEpochsHandler.IsCorrectLastUnJailedFlagEnabled() || s.canStakeIfOneRemoved()
 	if addOneFromQueue {
 		_, err = s.moveFirstFromWaitingToStaked()
 		if err != nil {
@@ -220,7 +220,7 @@ func (s *stakingSC) insertAfterLastJailed(
 			NextKey:      previousFirstKey,
 		}
 
-		if s.flagCorrectFirstQueued.IsSet() && len(previousFirstKey) > 0 {
+		if s.enableEpochsHandler.IsCorrectFirstQueuedFlagEnabled() && len(previousFirstKey) > 0 {
 			previousFirstElement, err := s.getWaitingListElement(previousFirstKey)
 			if err != nil {
 				return err
@@ -314,8 +314,8 @@ func (s *stakingSC) removeFromWaitingList(blsKey []byte) error {
 	}
 
 	// remove the first element
-	isFirstElementBeforeFix := !s.flagCorrectFirstQueued.IsSet() && bytes.Equal(elementToRemove.PreviousKey, inWaitingListKey)
-	isFirstElementAfterFix := s.flagCorrectFirstQueued.IsSet() && bytes.Equal(waitingList.FirstKey, inWaitingListKey)
+	isFirstElementBeforeFix := !s.enableEpochsHandler.IsCorrectFirstQueuedFlagEnabled() && bytes.Equal(elementToRemove.PreviousKey, inWaitingListKey)
+	isFirstElementAfterFix := s.enableEpochsHandler.IsCorrectFirstQueuedFlagEnabled() && bytes.Equal(waitingList.FirstKey, inWaitingListKey)
 	if isFirstElementBeforeFix || isFirstElementAfterFix {
 		if bytes.Equal(inWaitingListKey, waitingList.LastJailedKey) {
 			waitingList.LastJailedKey = make([]byte, 0)
@@ -331,14 +331,14 @@ func (s *stakingSC) removeFromWaitingList(blsKey []byte) error {
 		return s.saveElementAndList(elementToRemove.NextKey, nextElement, waitingList)
 	}
 
-	if !s.flagCorrectLastUnjailed.IsSet() || bytes.Equal(inWaitingListKey, waitingList.LastJailedKey) {
+	if !s.enableEpochsHandler.IsCorrectLastUnJailedFlagEnabled() || bytes.Equal(inWaitingListKey, waitingList.LastJailedKey) {
 		waitingList.LastJailedKey = make([]byte, len(elementToRemove.PreviousKey))
 		copy(waitingList.LastJailedKey, elementToRemove.PreviousKey)
 	}
 
 	previousElement, _ := s.getWaitingListElement(elementToRemove.PreviousKey)
 	// search the other way around for the element in front
-	if s.flagCorrectFirstQueued.IsSet() && previousElement == nil {
+	if s.enableEpochsHandler.IsCorrectFirstQueuedFlagEnabled() && previousElement == nil {
 		previousElement, err = s.searchPreviousFromHead(waitingList, inWaitingListKey, elementToRemove)
 		if err != nil {
 			return err
@@ -458,7 +458,7 @@ func createWaitingListKey(blsKey []byte) []byte {
 }
 
 func (s *stakingSC) switchJailedWithWaiting(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if s.flagStakingV4.IsSet() && !s.flagStakingV4Init.IsSet() {
+	if s.enableEpochsHandler.IsStakingV4Started() && !s.enableEpochsHandler.IsStakingV4InitEnabled() {
 		s.eei.AddReturnMessage(vm.ErrWaitingListDisabled.Error())
 		return vmcommon.UserError
 	}
@@ -498,7 +498,7 @@ func (s *stakingSC) switchJailedWithWaiting(args *vmcommon.ContractCallInput) vm
 	registrationData.Jailed = true
 	registrationData.JailedNonce = s.eei.BlockChainHook().CurrentNonce()
 
-	if !switched && !s.flagCorrectJailedNotUnstakedEmptyQueue.IsSet() {
+	if !switched && !s.enableEpochsHandler.IsCorrectJailedNotUnStakedEmptyQueueFlagEnabled() {
 		s.eei.AddReturnMessage("did not switch as nobody in waiting, but jailed")
 	} else {
 		s.tryRemoveJailedNodeFromStaked(registrationData)
@@ -514,7 +514,7 @@ func (s *stakingSC) switchJailedWithWaiting(args *vmcommon.ContractCallInput) vm
 }
 
 func (s *stakingSC) getWaitingListIndex(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if s.flagStakingV4.IsSet() {
+	if s.enableEpochsHandler.IsStakingV4Started() {
 		s.eei.AddReturnMessage(vm.ErrWaitingListDisabled.Error())
 		return vmcommon.UserError
 	}
@@ -582,7 +582,7 @@ func (s *stakingSC) getWaitingListIndex(args *vmcommon.ContractCallInput) vmcomm
 }
 
 func (s *stakingSC) getWaitingListSize(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if s.flagStakingV4.IsSet() {
+	if s.enableEpochsHandler.IsStakingV4Started() {
 		s.eei.AddReturnMessage(vm.ErrWaitingListDisabled.Error())
 		return vmcommon.UserError
 	}
@@ -638,11 +638,11 @@ func (s *stakingSC) getWaitingListRegisterNonceAndRewardAddress(args *vmcommon.C
 }
 
 func (s *stakingSC) resetLastUnJailedFromQueue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !s.flagCorrectLastUnjailed.IsSet() {
+	if !s.enableEpochsHandler.IsCorrectLastUnJailedFlagEnabled() {
 		// backward compatibility
 		return vmcommon.UserError
 	}
-	if s.flagStakingV4.IsSet() && !s.flagStakingV4Init.IsSet() {
+	if s.enableEpochsHandler.IsStakingV4Started() && !s.enableEpochsHandler.IsStakingV4InitEnabled() {
 		s.eei.AddReturnMessage(vm.ErrWaitingListDisabled.Error())
 		return vmcommon.UserError
 	}
@@ -726,11 +726,11 @@ func (s *stakingSC) cleanAdditionalQueueNotEnoughFunds(
 }
 
 func (s *stakingSC) stakeNodesFromQueue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !s.flagStakingV2.IsSet() {
+	if !s.enableEpochsHandler.IsStakingV2FlagEnabled() {
 		s.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError
 	}
-	if s.flagStakingV4.IsSet() && !s.flagStakingV4Init.IsSet() {
+	if s.enableEpochsHandler.IsStakingV4Started() && !s.enableEpochsHandler.IsStakingV4InitEnabled() {
 		s.eei.AddReturnMessage(vm.ErrWaitingListDisabled.Error())
 		return vmcommon.UserError
 	}
@@ -755,7 +755,7 @@ func (s *stakingSC) stakeNodesFromQueue(args *vmcommon.ContractCallInput) vmcomm
 	}
 
 	nodePriceToUse := big.NewInt(0).Set(s.minNodePrice)
-	if s.flagCorrectLastUnjailed.IsSet() {
+	if s.enableEpochsHandler.IsCorrectLastUnJailedFlagEnabled() {
 		nodePriceToUse.Set(s.stakeValue)
 	}
 
@@ -802,11 +802,11 @@ func (s *stakingSC) stakeNodesFromQueue(args *vmcommon.ContractCallInput) vmcomm
 }
 
 func (s *stakingSC) cleanAdditionalQueue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !s.flagCorrectLastUnjailed.IsSet() {
+	if !s.enableEpochsHandler.IsCorrectLastUnJailedFlagEnabled() {
 		s.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError
 	}
-	if s.flagStakingV4.IsSet() && !s.flagStakingV4Init.IsSet() {
+	if s.enableEpochsHandler.IsStakingV4Started() && !s.enableEpochsHandler.IsStakingV4InitEnabled() {
 		s.eei.AddReturnMessage(vm.ErrWaitingListDisabled.Error())
 		return vmcommon.UserError
 	}
@@ -898,11 +898,11 @@ func (s *stakingSC) getFirstElementsFromWaitingList(numNodes uint32) (*waitingLi
 }
 
 func (s *stakingSC) fixWaitingListQueueSize(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !s.flagCorrectFirstQueued.IsSet() {
+	if !s.enableEpochsHandler.IsCorrectFirstQueuedFlagEnabled() {
 		s.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError
 	}
-	if s.flagStakingV4.IsSet() {
+	if s.enableEpochsHandler.IsStakingV4Started() {
 		s.eei.AddReturnMessage(vm.ErrWaitingListDisabled.Error())
 		return vmcommon.UserError
 	}
@@ -973,11 +973,11 @@ func (s *stakingSC) fixWaitingListQueueSize(args *vmcommon.ContractCallInput) vm
 }
 
 func (s *stakingSC) addMissingNodeToQueue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !s.flagCorrectFirstQueued.IsSet() {
+	if !s.enableEpochsHandler.IsCorrectFirstQueuedFlagEnabled() {
 		s.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError
 	}
-	if s.flagStakingV4.IsSet() {
+	if s.enableEpochsHandler.IsStakingV4Started() {
 		s.eei.AddReturnMessage(vm.ErrWaitingListDisabled.Error())
 		return vmcommon.UserError
 	}

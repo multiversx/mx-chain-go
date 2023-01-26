@@ -11,7 +11,7 @@ func (ms *MarshalizerStub) Marshal(obj interface{}) ([]byte, error) {
 	if ms.MarshalCalled != nil {
 		return ms.MarshalCalled(obj)
 	}
-	return nil, nil
+	return make([]byte, 0), nil
 }
 
 // Unmarshal -

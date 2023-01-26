@@ -8,12 +8,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -99,7 +99,7 @@ func TestNewPeerAccountsDB_SnapshotState(t *testing.T) {
 	args.Trie = &trieMock.TrieStub{
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &testscommon.StorageManagerStub{
-				TakeSnapshotCalled: func(_ []byte, _ []byte, _ chan core.KeyValueHolder, _ common.SnapshotStatisticsHandler, _ uint32) {
+				TakeSnapshotCalled: func(_ string, _ []byte, _ []byte, _ *common.TrieIteratorChannels, _ chan []byte, _ common.SnapshotStatisticsHandler, _ uint32) {
 					snapshotCalled = true
 				},
 			}
@@ -125,7 +125,7 @@ func TestNewPeerAccountsDB_SnapshotStateGetLatestStorageEpochErrDoesNotSnapshot(
 				GetLatestStorageEpochCalled: func() (uint32, error) {
 					return 0, fmt.Errorf("new error")
 				},
-				TakeSnapshotCalled: func(_ []byte, _ []byte, _ chan core.KeyValueHolder, _ common.SnapshotStatisticsHandler, _ uint32) {
+				TakeSnapshotCalled: func(_ string, _ []byte, _ []byte, _ *common.TrieIteratorChannels, _ chan []byte, _ common.SnapshotStatisticsHandler, _ uint32) {
 					snapshotCalled = true
 				},
 			}
@@ -147,7 +147,7 @@ func TestNewPeerAccountsDB_SetStateCheckpoint(t *testing.T) {
 	args.Trie = &trieMock.TrieStub{
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &testscommon.StorageManagerStub{
-				SetCheckpointCalled: func(_ []byte, _ []byte, _ chan core.KeyValueHolder, _ common.SnapshotStatisticsHandler) {
+				SetCheckpointCalled: func(_ []byte, _ []byte, _ *common.TrieIteratorChannels, _ chan []byte, _ common.SnapshotStatisticsHandler) {
 					checkpointCalled = true
 				},
 			}
@@ -187,7 +187,7 @@ func TestNewPeerAccountsDB_RecreateAllTries(t *testing.T) {
 	assert.True(t, recreateCalled)
 }
 
-func TestPeerAccountsDB_NewAccountsDbStartsSnapshotAfterRestart(t *testing.T) {
+func TestPeerAccountsDB_SetSyncerAndStartSnapshotIfNeeded(t *testing.T) {
 	t.Parallel()
 
 	rootHash := []byte("rootHash")
@@ -208,10 +208,13 @@ func TestPeerAccountsDB_NewAccountsDbStartsSnapshotAfterRestart(t *testing.T) {
 				ShouldTakeSnapshotCalled: func() bool {
 					return true
 				},
-				TakeSnapshotCalled: func(_ []byte, _ []byte, _ chan core.KeyValueHolder, _ common.SnapshotStatisticsHandler, _ uint32) {
+				TakeSnapshotCalled: func(_ string, _ []byte, _ []byte, _ *common.TrieIteratorChannels, _ chan []byte, _ common.SnapshotStatisticsHandler, _ uint32) {
 					mutex.Lock()
 					takeSnapshotCalled = true
 					mutex.Unlock()
+				},
+				GetLatestStorageEpochCalled: func() (uint32, error) {
+					return 1, nil
 				},
 			}
 		},
@@ -222,6 +225,10 @@ func TestPeerAccountsDB_NewAccountsDbStartsSnapshotAfterRestart(t *testing.T) {
 	adb, err := state.NewPeerAccountsDB(args)
 	assert.Nil(t, err)
 	assert.NotNil(t, adb)
+	err = adb.SetSyncer(&mock.AccountsDBSyncerStub{})
+	assert.Nil(t, err)
+	err = adb.StartSnapshotIfNeeded()
+	assert.Nil(t, err)
 
 	time.Sleep(time.Second)
 	mutex.RLock()
@@ -277,7 +284,7 @@ func TestPeerAccountsDB_MarkSnapshotDone(t *testing.T) {
 		args.Trie = &trieMock.TrieStub{
 			GetStorageManagerCalled: func() common.StorageManager {
 				return &testscommon.StorageManagerStub{
-					PutInEpochCalled: func(key []byte, value []byte, epoch uint32) error {
+					PutInEpochWithoutCacheCalled: func(key []byte, value []byte, epoch uint32) error {
 						assert.Equal(t, common.ActiveDBKey, string(key))
 						assert.Equal(t, common.ActiveDBVal, string(value))
 						putWasCalled = true
@@ -300,7 +307,7 @@ func TestPeerAccountsDB_MarkSnapshotDone(t *testing.T) {
 		args.Trie = &trieMock.TrieStub{
 			GetStorageManagerCalled: func() common.StorageManager {
 				return &testscommon.StorageManagerStub{
-					PutInEpochCalled: func(key []byte, value []byte, epoch uint32) error {
+					PutInEpochWithoutCacheCalled: func(key []byte, value []byte, epoch uint32) error {
 						assert.Equal(t, common.ActiveDBKey, string(key))
 						assert.Equal(t, common.ActiveDBVal, string(value))
 						putWasCalled = true
@@ -316,4 +323,168 @@ func TestPeerAccountsDB_MarkSnapshotDone(t *testing.T) {
 		assert.True(t, putWasCalled)
 	})
 
+}
+
+func TestPeerAccountsDB_SetSyncerAndStartSnapshotIfNeededMarksActiveDB(t *testing.T) {
+	t.Parallel()
+
+	rootHash := []byte("rootHash")
+	expectedErr := errors.New("expected error")
+	t.Run("epoch 0", func(t *testing.T) {
+		putCalled := false
+		trieStub := &trieMock.TrieStub{
+			RootCalled: func() ([]byte, error) {
+				return rootHash, nil
+			},
+			GetStorageManagerCalled: func() common.StorageManager {
+				return &testscommon.StorageManagerStub{
+					ShouldTakeSnapshotCalled: func() bool {
+						return true
+					},
+					GetLatestStorageEpochCalled: func() (uint32, error) {
+						return 0, nil
+					},
+					PutCalled: func(key []byte, val []byte) error {
+						assert.Equal(t, []byte(common.ActiveDBKey), key)
+						assert.Equal(t, []byte(common.ActiveDBVal), val)
+
+						putCalled = true
+
+						return nil
+					},
+				}
+			},
+		}
+
+		args := createMockAccountsDBArgs()
+		args.Trie = trieStub
+		adb, _ := state.NewPeerAccountsDB(args)
+		err := adb.SetSyncer(&mock.AccountsDBSyncerStub{})
+		assert.Nil(t, err)
+		err = adb.StartSnapshotIfNeeded()
+		assert.Nil(t, err)
+
+		assert.True(t, putCalled)
+	})
+	t.Run("epoch 0, GetLatestStorageEpoch errors should not put", func(t *testing.T) {
+		trieStub := &trieMock.TrieStub{
+			RootCalled: func() ([]byte, error) {
+				return rootHash, nil
+			},
+			GetStorageManagerCalled: func() common.StorageManager {
+				return &testscommon.StorageManagerStub{
+					ShouldTakeSnapshotCalled: func() bool {
+						return true
+					},
+					GetLatestStorageEpochCalled: func() (uint32, error) {
+						return 0, expectedErr
+					},
+					PutCalled: func(key []byte, val []byte) error {
+						assert.Fail(t, "should have not called put")
+
+						return nil
+					},
+				}
+			},
+		}
+
+		args := createMockAccountsDBArgs()
+		args.Trie = trieStub
+		adb, _ := state.NewPeerAccountsDB(args)
+		err := adb.SetSyncer(&mock.AccountsDBSyncerStub{})
+		assert.Nil(t, err)
+		err = adb.StartSnapshotIfNeeded()
+		assert.Nil(t, err)
+	})
+	t.Run("in import DB mode", func(t *testing.T) {
+		putCalled := false
+		trieStub := &trieMock.TrieStub{
+			RootCalled: func() ([]byte, error) {
+				return rootHash, nil
+			},
+			GetStorageManagerCalled: func() common.StorageManager {
+				return &testscommon.StorageManagerStub{
+					ShouldTakeSnapshotCalled: func() bool {
+						return true
+					},
+					GetLatestStorageEpochCalled: func() (uint32, error) {
+						return 1, nil
+					},
+					PutCalled: func(key []byte, val []byte) error {
+						assert.Equal(t, []byte(common.ActiveDBKey), key)
+						assert.Equal(t, []byte(common.ActiveDBVal), val)
+
+						putCalled = true
+
+						return nil
+					},
+				}
+			},
+		}
+
+		args := createMockAccountsDBArgs()
+		args.ProcessingMode = common.ImportDb
+		args.Trie = trieStub
+		adb, _ := state.NewPeerAccountsDB(args)
+		err := adb.SetSyncer(&mock.AccountsDBSyncerStub{})
+		assert.Nil(t, err)
+		err = adb.StartSnapshotIfNeeded()
+		assert.Nil(t, err)
+
+		assert.True(t, putCalled)
+	})
+}
+
+func TestPeerAccountsDB_SnapshotStateOnAClosedStorageManagerShouldNotMarkActiveDB(t *testing.T) {
+	t.Parallel()
+
+	mut := sync.RWMutex{}
+	lastSnapshotStartedWasPut := false
+	activeDBWasPut := false
+	trieStub := &trieMock.TrieStub{
+		GetStorageManagerCalled: func() common.StorageManager {
+			return &testscommon.StorageManagerStub{
+				ShouldTakeSnapshotCalled: func() bool {
+					return true
+				},
+				TakeSnapshotCalled: func(_ string, _ []byte, _ []byte, _ *common.TrieIteratorChannels, _ chan []byte, stats common.SnapshotStatisticsHandler, _ uint32) {
+					stats.SnapshotFinished()
+				},
+				IsClosedCalled: func() bool {
+					return true
+				},
+				PutCalled: func(key []byte, val []byte) error {
+					mut.Lock()
+					defer mut.Unlock()
+
+					if string(key) == state.LastSnapshotStarted {
+						lastSnapshotStartedWasPut = true
+					}
+
+					return nil
+				},
+				PutInEpochCalled: func(key []byte, val []byte, epoch uint32) error {
+					mut.Lock()
+					defer mut.Unlock()
+
+					if string(key) == common.ActiveDBKey {
+						activeDBWasPut = true
+					}
+
+					return nil
+				},
+			}
+		},
+	}
+	args := createMockAccountsDBArgs()
+	args.Trie = trieStub
+
+	adb, _ := state.NewPeerAccountsDB(args)
+	adb.SnapshotState([]byte("roothash"))
+	time.Sleep(time.Second)
+
+	mut.RLock()
+	defer mut.RUnlock()
+	assert.True(t, lastSnapshotStartedWasPut)
+	assert.False(t, activeDBWasPut)
 }

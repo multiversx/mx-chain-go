@@ -3,7 +3,7 @@ package metachain
 import (
 	"bytes"
 
-	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 type validatorList []state.ValidatorInfoHandler

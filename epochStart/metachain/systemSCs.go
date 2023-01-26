@@ -5,19 +5,17 @@ import (
 	"math"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/vm"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/vm"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // ArgsNewEpochStartSystemSCProcessing defines the arguments structure for the end of epoch system sc processor
@@ -30,7 +28,6 @@ type ArgsNewEpochStartSystemSCProcessing struct {
 	ValidatorInfoCreator epochStart.ValidatorInfoCreator
 	ChanceComputer       nodesCoordinator.ChanceComputer
 	ShardCoordinator     sharding.Coordinator
-	EpochConfig          config.EpochConfig
 
 	EndOfEpochCallerAddress []byte
 	StakingSCAddress        []byte
@@ -42,6 +39,7 @@ type ArgsNewEpochStartSystemSCProcessing struct {
 	StakingDataProvider          epochStart.StakingDataProvider
 	AuctionListSelector          epochStart.AuctionListSelector
 	MaxNodesChangeConfigProvider epochStart.MaxNodesChangeConfigProvider
+	EnableEpochsHandler          common.EnableEpochsHandler
 }
 
 type systemSCProcessor struct {
@@ -52,10 +50,7 @@ type systemSCProcessor struct {
 	builtInOnMetaEnableEpoch uint32
 	stakingV4EnableEpoch     uint32
 
-	flagGovernanceEnabled    atomic.Flag
-	flagBuiltInOnMetaEnabled atomic.Flag
-	flagInitStakingV4Enabled atomic.Flag
-	flagStakingV4Enabled     atomic.Flag
+	enableEpochsHandler common.EnableEpochsHandler
 }
 
 // NewSystemSCProcessor creates the end of epoch system smart contract processor
@@ -71,18 +66,15 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 	if err != nil {
 		return nil, err
 	}
-
-	s := &systemSCProcessor{
-		legacySystemSCProcessor:  legacy,
-		governanceEnableEpoch:    args.EpochConfig.EnableEpochs.GovernanceEnableEpoch,
-		builtInOnMetaEnableEpoch: args.EpochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
-		stakingV4EnableEpoch:     args.EpochConfig.EnableEpochs.StakingV4EnableEpoch,
-		auctionListSelector:      args.AuctionListSelector,
+	if check.IfNil(args.EnableEpochsHandler) {
+		return nil, epochStart.ErrNilEnableEpochsHandler
 	}
 
-	log.Debug("systemSC: enable epoch for governanceV2 init", "epoch", s.governanceEnableEpoch)
-	log.Debug("systemSC: enable epoch for create NFT on meta", "epoch", s.builtInOnMetaEnableEpoch)
-	log.Debug("systemSC: enable epoch for staking v4", "epoch", s.stakingV4EnableEpoch)
+	s := &systemSCProcessor{
+		legacySystemSCProcessor: legacy,
+		auctionListSelector:     args.AuctionListSelector,
+		enableEpochsHandler:     args.EnableEpochsHandler,
+	}
 
 	args.EpochNotifier.RegisterNotifyHandler(s)
 	return s, nil
@@ -93,25 +85,42 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 	validatorsInfoMap state.ShardValidatorsInfoMapHandler,
 	header data.HeaderHandler,
 ) error {
-	err := s.processLegacy(validatorsInfoMap, header.GetNonce(), header.GetEpoch())
+	err := checkNilInputValues(validatorsInfoMap, header)
+	if err != nil {
+		return err
+	}
+
+	err = s.processLegacy(validatorsInfoMap, header.GetNonce(), header.GetEpoch())
 	if err != nil {
 		return err
 	}
 	return s.processWithNewFlags(validatorsInfoMap, header)
 }
 
+func checkNilInputValues(validatorsInfoMap state.ShardValidatorsInfoMapHandler, header data.HeaderHandler) error {
+	if check.IfNil(header) {
+		return process.ErrNilHeaderHandler
+	}
+	if validatorsInfoMap == nil {
+		return fmt.Errorf("systemSCProcessor.ProcessSystemSmartContract : %w, header nonce: %d ",
+			errNilValidatorsInfoMap, header.GetNonce())
+	}
+
+	return nil
+}
+
 func (s *systemSCProcessor) processWithNewFlags(
 	validatorsInfoMap state.ShardValidatorsInfoMapHandler,
 	header data.HeaderHandler,
 ) error {
-	if s.flagGovernanceEnabled.IsSet() {
+	if s.enableEpochsHandler.IsGovernanceFlagEnabledForCurrentEpoch() {
 		err := s.updateToGovernanceV2()
 		if err != nil {
 			return err
 		}
 	}
 
-	if s.flagBuiltInOnMetaEnabled.IsSet() {
+	if s.enableEpochsHandler.IsInitLiquidStakingEnabled() {
 		tokenID, err := s.initTokenOnMeta()
 		if err != nil {
 			return err
@@ -123,14 +132,14 @@ func (s *systemSCProcessor) processWithNewFlags(
 		}
 	}
 
-	if s.flagInitStakingV4Enabled.IsSet() {
+	if s.enableEpochsHandler.IsStakingV4InitEnabled() {
 		err := s.stakeNodesFromQueue(validatorsInfoMap, math.MaxUint32, header.GetNonce(), common.AuctionList)
 		if err != nil {
 			return err
 		}
 	}
 
-	if s.flagStakingV4Enabled.IsSet() {
+	if s.enableEpochsHandler.IsStakingV4Enabled() {
 		err := s.prepareStakingDataForEligibleNodes(validatorsInfoMap)
 		if err != nil {
 			return err
@@ -292,16 +301,4 @@ func (s *systemSCProcessor) IsInterfaceNil() bool {
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (s *systemSCProcessor) EpochConfirmed(epoch uint32, _ uint64) {
 	s.legacyEpochConfirmed(epoch)
-
-	s.flagGovernanceEnabled.SetValue(epoch == s.governanceEnableEpoch)
-	log.Debug("systemProcessor: governanceV2", "enabled", s.flagGovernanceEnabled.IsSet())
-
-	s.flagBuiltInOnMetaEnabled.SetValue(epoch == s.builtInOnMetaEnableEpoch)
-	log.Debug("systemProcessor: create NFT on meta", "enabled", s.flagBuiltInOnMetaEnabled.IsSet())
-
-	s.flagInitStakingV4Enabled.SetValue(epoch == s.stakingV4InitEnableEpoch)
-	log.Debug("systemProcessor: init staking v4", "enabled", s.flagInitStakingV4Enabled.IsSet())
-
-	s.flagStakingV4Enabled.SetValue(epoch >= s.stakingV4EnableEpoch)
-	log.Debug("systemProcessor: staking v4", "enabled", s.flagStakingV4Enabled.IsSet())
 }

@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/batch"
-	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/batch"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/storage"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 // maxBuffToSend represents max buffer size to send in bytes
@@ -98,9 +98,10 @@ func (sliceRes *sliceResolver) RequestDataFromHashArray(hashes [][]byte, _ uint3
 		mb, errTemp := sliceRes.storage.Get(hash)
 		if errTemp != nil {
 			errFetch = fmt.Errorf("%w for hash %s", errTemp, logger.DisplayByteSlice(hash))
-			log.Trace("fetchMbAsByteSlice missing",
+			log.Trace("fetchByteSlice missing",
 				"error", errFetch.Error(),
-				"hash", hash)
+				"hash", hash,
+				"topic", sliceRes.responseTopicName)
 			errorsFound++
 
 			continue
@@ -121,7 +122,8 @@ func (sliceRes *sliceResolver) RequestDataFromHashArray(hashes [][]byte, _ uint3
 	}
 
 	if errFetch != nil {
-		errFetch = fmt.Errorf("resolveMbRequestByHashArray last error %w from %d encountered errors", errFetch, errorsFound)
+		errFetch = fmt.Errorf("resolveRequestByHashArray on topic %s, last error %w from %d encountered errors",
+			sliceRes.responseTopicName, errFetch, errorsFound)
 		sliceRes.signalGracefullyClose()
 	}
 

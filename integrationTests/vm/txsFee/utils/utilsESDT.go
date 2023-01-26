@@ -7,12 +7,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/esdt"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
 	"github.com/stretchr/testify/require"
 )
 
@@ -49,19 +49,90 @@ func CreateAccountWithESDTBalance(
 	esdtDataBytes, err := protoMarshalizer.Marshal(esdtData)
 	require.Nil(t, err)
 
-	key := append([]byte(core.ElrondProtectedKeyPrefix), []byte(core.ESDTKeyIdentifier)...)
+	key := append([]byte(core.ProtectedKeyPrefix), []byte(core.ESDTKeyIdentifier)...)
 	key = append(key, tokenIdentifier...)
 	if esdtNonce > 0 {
 		key = append(key, big.NewInt(0).SetUint64(esdtNonce).Bytes()...)
 	}
 
-	err = userAccount.DataTrieTracker().SaveKeyValue(key, esdtDataBytes)
+	err = userAccount.SaveKeyValue(key, esdtDataBytes)
 	require.Nil(t, err)
 
 	err = accnts.SaveAccount(account)
 	require.Nil(t, err)
 
+	saveNewTokenOnSystemAccount(t, accnts, key, esdtData)
+
 	_, err = accnts.Commit()
+	require.Nil(t, err)
+}
+
+// CreateAccountWithNFT -
+func CreateAccountWithNFT(
+	t *testing.T,
+	accnts state.AccountsAdapter,
+	pubKey []byte,
+	egldValue *big.Int,
+	tokenIdentifier []byte,
+	attributes []byte,
+) {
+	account, err := accnts.LoadAccount(pubKey)
+	require.Nil(t, err)
+
+	userAccount, ok := account.(state.UserAccountHandler)
+	require.True(t, ok)
+
+	userAccount.IncreaseNonce(0)
+	err = userAccount.AddToBalance(egldValue)
+	require.Nil(t, err)
+
+	esdtData := &esdt.ESDigitalToken{
+		Value:      big.NewInt(1),
+		Properties: []byte{},
+		TokenMetaData: &esdt.MetaData{
+			Nonce:      1,
+			Attributes: attributes,
+		},
+	}
+
+	esdtDataBytes, err := protoMarshalizer.Marshal(esdtData)
+	require.Nil(t, err)
+
+	key := append([]byte(core.ProtectedKeyPrefix), []byte(core.ESDTKeyIdentifier)...)
+	key = append(key, tokenIdentifier...)
+	key = append(key, big.NewInt(0).SetUint64(1).Bytes()...)
+
+	err = userAccount.SaveKeyValue(key, esdtDataBytes)
+	require.Nil(t, err)
+
+	err = accnts.SaveAccount(account)
+	require.Nil(t, err)
+
+	saveNewTokenOnSystemAccount(t, accnts, key, esdtData)
+
+	_, err = accnts.Commit()
+	require.Nil(t, err)
+}
+
+func saveNewTokenOnSystemAccount(t *testing.T, accnts state.AccountsAdapter, tokenKey []byte, esdtData *esdt.ESDigitalToken) {
+	esdtDataOnSystemAcc := esdtData
+	esdtDataOnSystemAcc.Properties = nil
+	esdtDataOnSystemAcc.Reserved = []byte{1}
+	esdtDataOnSystemAcc.Value.Set(esdtData.Value)
+
+	esdtDataBytes, err := protoMarshalizer.Marshal(esdtData)
+	require.Nil(t, err)
+
+	sysAccount, err := accnts.LoadAccount(core.SystemAccountAddress)
+	require.Nil(t, err)
+
+	sysUserAccount, ok := sysAccount.(state.UserAccountHandler)
+	require.True(t, ok)
+
+	err = sysUserAccount.SaveKeyValue(tokenKey, esdtDataBytes)
+	require.Nil(t, err)
+
+	err = accnts.SaveAccount(sysAccount)
 	require.Nil(t, err)
 }
 
@@ -94,11 +165,11 @@ func SetESDTRoles(
 	userAccount, ok := account.(state.UserAccountHandler)
 	require.True(t, ok)
 
-	key := append([]byte(core.ElrondProtectedKeyPrefix), append([]byte(core.ESDTRoleIdentifier), []byte(core.ESDTKeyIdentifier)...)...)
+	key := append([]byte(core.ProtectedKeyPrefix), append([]byte(core.ESDTRoleIdentifier), []byte(core.ESDTKeyIdentifier)...)...)
 	key = append(key, tokenIdentifier...)
 
 	if len(roles) == 0 {
-		err = userAccount.DataTrieTracker().SaveKeyValue(key, []byte{})
+		err = userAccount.SaveKeyValue(key, []byte{})
 		require.Nil(t, err)
 
 		return
@@ -111,7 +182,7 @@ func SetESDTRoles(
 	rolesDataBytes, err := protoMarshalizer.Marshal(rolesData)
 	require.Nil(t, err)
 
-	err = userAccount.DataTrieTracker().SaveKeyValue(key, rolesDataBytes)
+	err = userAccount.SaveKeyValue(key, rolesDataBytes)
 	require.Nil(t, err)
 
 	err = accnts.SaveAccount(account)
@@ -135,10 +206,10 @@ func SetLastNFTNonce(
 	userAccount, ok := account.(state.UserAccountHandler)
 	require.True(t, ok)
 
-	key := append([]byte(core.ElrondProtectedKeyPrefix), []byte(core.ESDTNFTLatestNonceIdentifier)...)
+	key := append([]byte(core.ProtectedKeyPrefix), []byte(core.ESDTNFTLatestNonceIdentifier)...)
 	key = append(key, tokenIdentifier...)
 
-	err = userAccount.DataTrieTracker().SaveKeyValue(key, big.NewInt(int64(lastNonce)).Bytes())
+	err = userAccount.SaveKeyValue(key, big.NewInt(int64(lastNonce)).Bytes())
 	require.Nil(t, err)
 
 	err = accnts.SaveAccount(account)
@@ -246,8 +317,8 @@ func CheckESDTBalance(t *testing.T, testContext *vm.VMTestContext, addr []byte, 
 }
 
 // CheckESDTNFTBalance -
-func CheckESDTNFTBalance(t *testing.T, testContext *vm.VMTestContext, addr []byte, tokenIdentifier []byte, esdtNonce uint64, expectedBalance *big.Int) {
-	checkEsdtBalance(t, testContext, addr, tokenIdentifier, esdtNonce, expectedBalance)
+func CheckESDTNFTBalance(tb testing.TB, testContext *vm.VMTestContext, addr []byte, tokenIdentifier []byte, esdtNonce uint64, expectedBalance *big.Int) {
+	checkEsdtBalance(tb, testContext, addr, tokenIdentifier, esdtNonce, expectedBalance)
 }
 
 // CreateESDTLocalBurnTx -
@@ -284,8 +355,57 @@ func CreateESDTLocalMintTx(nonce uint64, sndAddr, rcvAddr []byte, tokenIdentifie
 	}
 }
 
+// CreateESDTNFTBurnTx -
+func CreateESDTNFTBurnTx(nonce uint64, sndAddr, rcvAddr []byte, tokenIdentifier []byte, tokenNonce uint64, esdtValue *big.Int, gasPrice, gasLimit uint64) *transaction.Transaction {
+	hexEncodedToken := hex.EncodeToString(tokenIdentifier)
+	hexEncodedNonce := hex.EncodeToString(big.NewInt(int64(tokenNonce)).Bytes())
+	esdtValueEncoded := hex.EncodeToString(esdtValue.Bytes())
+	txDataField := bytes.Join([][]byte{[]byte(core.BuiltInFunctionESDTNFTBurn), []byte(hexEncodedToken), []byte(hexEncodedNonce), []byte(esdtValueEncoded)}, []byte("@"))
+
+	return &transaction.Transaction{
+		Nonce:    nonce,
+		SndAddr:  sndAddr,
+		RcvAddr:  rcvAddr,
+		GasLimit: gasLimit,
+		GasPrice: gasPrice,
+		Data:     txDataField,
+		Value:    big.NewInt(0),
+	}
+}
+
+// CreateNFTSingleFreezeAndWipeTxs -
+func CreateNFTSingleFreezeAndWipeTxs(nonce uint64, tokenManager, addressToFreeze []byte, tokenIdentifier []byte, tokenNonce uint64, gasPrice, gasLimit uint64) (*transaction.Transaction, *transaction.Transaction) {
+	hexEncodedToken := hex.EncodeToString(tokenIdentifier)
+	hexEncodedNonce := hex.EncodeToString(big.NewInt(int64(tokenNonce)).Bytes())
+	addressToFreezeHex := hex.EncodeToString(addressToFreeze)
+
+	txDataField := bytes.Join([][]byte{[]byte("freezeSingleNFT"), []byte(hexEncodedToken), []byte(hexEncodedNonce), []byte(addressToFreezeHex)}, []byte("@"))
+	freezeTx := &transaction.Transaction{
+		Nonce:    nonce,
+		SndAddr:  tokenManager,
+		RcvAddr:  core.ESDTSCAddress,
+		GasLimit: gasLimit,
+		GasPrice: gasPrice,
+		Data:     txDataField,
+		Value:    big.NewInt(0),
+	}
+
+	txDataField = bytes.Join([][]byte{[]byte("wipeSingleNFT"), []byte(hexEncodedToken), []byte(hexEncodedNonce), []byte(addressToFreezeHex)}, []byte("@"))
+	wipeTx := &transaction.Transaction{
+		Nonce:    nonce + 1,
+		SndAddr:  tokenManager,
+		RcvAddr:  core.ESDTSCAddress,
+		GasLimit: gasLimit,
+		GasPrice: gasPrice,
+		Data:     txDataField,
+		Value:    big.NewInt(0),
+	}
+
+	return freezeTx, wipeTx
+}
+
 func checkEsdtBalance(
-	t *testing.T,
+	tb testing.TB,
 	testContext *vm.VMTestContext,
 	addr []byte,
 	tokenIdentifier []byte,
@@ -293,6 +413,33 @@ func checkEsdtBalance(
 	expectedBalance *big.Int,
 ) {
 	esdtData, err := testContext.BlockchainHook.GetESDTToken(addr, tokenIdentifier, esdtNonce)
-	require.Nil(t, err)
-	require.Equal(t, expectedBalance, esdtData.Value)
+	require.Nil(tb, err)
+	require.Equal(tb, expectedBalance, esdtData.Value)
+}
+
+// CreateESDTNFTUpdateAttributesTx -
+func CreateESDTNFTUpdateAttributesTx(
+	nonce uint64,
+	sndAddr []byte,
+	tokenIdentifier []byte,
+	gasPrice uint64,
+	gasLimit uint64,
+	newAttributes []byte,
+) *transaction.Transaction {
+
+	txData := txDataBuilder.NewBuilder()
+	txData.Func(core.BuiltInFunctionESDTNFTUpdateAttributes)
+	txData.Bytes(tokenIdentifier)
+	txData.Int64(1)
+	txData.Bytes(newAttributes)
+
+	return &transaction.Transaction{
+		Nonce:    nonce,
+		SndAddr:  sndAddr,
+		RcvAddr:  sndAddr, // receiver = sender for ESDTNFTUpdateAttributes
+		GasLimit: gasLimit,
+		GasPrice: gasPrice,
+		Data:     txData.ToBytes(),
+		Value:    big.NewInt(0),
+	}
 }

@@ -3,20 +3,22 @@ package preprocess
 import (
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/process"
 )
+
+const initialAllocation = 1000
 
 var _ process.GasHandler = (*gasComputation)(nil)
 
 type gasComputation struct {
 	economicsFee  process.FeeHandler
 	txTypeHandler process.TxTypeHandler
-	//TODO: Refactor these mutexes and maps in separated structures that handle the locking and unlocking for each operation required
+	// TODO: Refactor these mutexes and maps in separated structures that handle the locking and unlocking for each operation required
 	gasProvided                                      map[string]uint64
 	txHashesWithGasProvidedSinceLastReset            map[string][][]byte
 	gasProvidedAsScheduled                           map[string]uint64
@@ -28,17 +30,14 @@ type gasComputation struct {
 	gasPenalized                                     map[string]uint64
 	txHashesWithGasPenalizedSinceLastReset           map[string][][]byte
 	mutGasPenalized                                  sync.RWMutex
-
-	flagGasComputeV2        atomic.Flag
-	gasComputeV2EnableEpoch uint32
+	enableEpochsHandler                              common.EnableEpochsHandler
 }
 
 // NewGasComputation creates a new object which computes the gas consumption
 func NewGasComputation(
 	economicsFee process.FeeHandler,
 	txTypeHandler process.TxTypeHandler,
-	epochNotifier process.EpochNotifier,
-	gasComputeV2EnableEpoch uint32,
+	enableEpochsHandler common.EnableEpochsHandler,
 ) (*gasComputation, error) {
 	if check.IfNil(economicsFee) {
 		return nil, process.ErrNilEconomicsFeeHandler
@@ -46,8 +45,8 @@ func NewGasComputation(
 	if check.IfNil(txTypeHandler) {
 		return nil, process.ErrNilTxTypeHandler
 	}
-	if check.IfNil(epochNotifier) {
-		return nil, process.ErrNilEpochNotifier
+	if check.IfNil(enableEpochsHandler) {
+		return nil, process.ErrNilEnableEpochsHandler
 	}
 
 	g := &gasComputation{
@@ -56,16 +55,13 @@ func NewGasComputation(
 		gasProvided:                           make(map[string]uint64),
 		txHashesWithGasProvidedSinceLastReset: make(map[string][][]byte),
 		gasProvidedAsScheduled:                make(map[string]uint64),
-		txHashesWithGasProvidedAsScheduledSinceLastReset: make(map[string][][]byte, 0),
+		txHashesWithGasProvidedAsScheduledSinceLastReset: make(map[string][][]byte),
 		gasRefunded:                            make(map[string]uint64),
-		txHashesWithGasRefundedSinceLastReset:  make(map[string][][]byte, 0),
+		txHashesWithGasRefundedSinceLastReset:  make(map[string][][]byte),
 		gasPenalized:                           make(map[string]uint64),
-		txHashesWithGasPenalizedSinceLastReset: make(map[string][][]byte, 0),
-		gasComputeV2EnableEpoch:                gasComputeV2EnableEpoch,
+		txHashesWithGasPenalizedSinceLastReset: make(map[string][][]byte),
+		enableEpochsHandler:                    enableEpochsHandler,
 	}
-	log.Debug("gasComputation: enable epoch for sc deploy", "epoch", g.gasComputeV2EnableEpoch)
-
-	epochNotifier.RegisterNotifyHandler(g)
 
 	return g, nil
 }
@@ -91,18 +87,19 @@ func (gc *gasComputation) Init() {
 }
 
 // Reset method resets tx hashes with gas provided, refunded and penalized since last reset
+// TODO remove this call from basePreProcess.handleProcessTransactionInit
 func (gc *gasComputation) Reset(key []byte) {
 	gc.mutGasProvided.Lock()
-	gc.txHashesWithGasProvidedSinceLastReset[string(key)] = make([][]byte, 0)
-	gc.txHashesWithGasProvidedAsScheduledSinceLastReset[string(key)] = make([][]byte, 0)
+	gc.txHashesWithGasProvidedSinceLastReset[string(key)] = make([][]byte, 0, initialAllocation)
+	gc.txHashesWithGasProvidedAsScheduledSinceLastReset[string(key)] = make([][]byte, 0, initialAllocation)
 	gc.mutGasProvided.Unlock()
 
 	gc.mutGasRefunded.Lock()
-	gc.txHashesWithGasRefundedSinceLastReset[string(key)] = make([][]byte, 0)
+	gc.txHashesWithGasRefundedSinceLastReset[string(key)] = make([][]byte, 0, initialAllocation)
 	gc.mutGasRefunded.Unlock()
 
 	gc.mutGasPenalized.Lock()
-	gc.txHashesWithGasPenalizedSinceLastReset[string(key)] = make([][]byte, 0)
+	gc.txHashesWithGasPenalizedSinceLastReset[string(key)] = make([][]byte, 0, initialAllocation)
 	gc.mutGasPenalized.Unlock()
 }
 
@@ -356,7 +353,8 @@ func (gc *gasComputation) ComputeGasProvidedByTx(
 		return 0, 0, process.ErrNilTransaction
 	}
 
-	if !gc.flagGasComputeV2.IsSet() {
+	isGasComputeV2FlagEnabled := gc.enableEpochsHandler.IsSCDeployFlagEnabled()
+	if !isGasComputeV2FlagEnabled {
 		return gc.computeGasProvidedByTxV1(txSenderShardId, txReceiverShardId, txHandler)
 	}
 
@@ -423,12 +421,6 @@ func (gc *gasComputation) computeGasProvidedByTxV1(
 
 func (gc *gasComputation) isRelayedTx(txType process.TransactionType) bool {
 	return txType == process.RelayedTx || txType == process.RelayedTxV2
-}
-
-// EpochConfirmed is called whenever a new epoch is confirmed
-func (gc *gasComputation) EpochConfirmed(epoch uint32, _ uint64) {
-	gc.flagGasComputeV2.SetValue(epoch >= gc.gasComputeV2EnableEpoch)
-	log.Debug("gasComputation: compute v2", "enabled", gc.flagGasComputeV2.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
