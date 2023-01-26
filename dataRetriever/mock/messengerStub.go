@@ -146,8 +146,8 @@ func (ms *MessengerStub) UnregisterAllMessageProcessors() error {
 	return nil
 }
 
-// UnjoinAllTopics -
-func (ms *MessengerStub) UnjoinAllTopics() error {
+// UnJoinAllTopics -
+func (ms *MessengerStub) UnJoinAllTopics() error {
 	return nil
 }
 

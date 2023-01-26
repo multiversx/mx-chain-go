@@ -127,8 +127,8 @@ func (ms *MessengerStub) UnregisterAllMessageProcessors() error {
 	panic("implement me")
 }
 
-// UnjoinAllTopics -
-func (ms *MessengerStub) UnjoinAllTopics() error {
+// UnJoinAllTopics -
+func (ms *MessengerStub) UnJoinAllTopics() error {
 	panic("implement me")
 }
 
