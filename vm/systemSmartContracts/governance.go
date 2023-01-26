@@ -762,10 +762,6 @@ func (g *governanceContract) checkViewFuncArguments(
 	if args.CallValue.Cmp(zero) != 0 {
 		return vm.ErrCallValueMustBeZero
 	}
-	err := g.eei.UseGas(g.gasCost.MetaChainSystemSCsCost.Vote)
-	if err != nil {
-		return vm.ErrNotEnoughGas
-	}
 	if len(args.Arguments) != numArgs {
 		return vm.ErrInvalidNumOfArguments
 	}
