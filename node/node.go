@@ -344,7 +344,7 @@ func (n *Node) GetValueForKey(address string, key string, options api.AccountQue
 
 // GetESDTData returns the esdt balance and properties from a given account
 func (n *Node) GetESDTData(address, tokenID string, nonce uint64, options api.AccountQueryOptions) (*esdt.ESDigitalToken, api.BlockInfo, error) {
-	userAccount, blockInfo, err := n.loadUserAccountHandlerByAddress(address, options)
+	userAccount, _, err := n.loadUserAccountHandlerByAddress(address, options)
 	if err != nil {
 		return nil, api.BlockInfo{}, err
 	}
@@ -508,7 +508,7 @@ func bigToString(bigValue *big.Int) string {
 
 // GetAllESDTTokens returns all the ESDTs that the given address interacted with
 func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions, ctx context.Context) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error) {
-	userAccount, blockInfo, err := n.loadUserAccountHandlerByAddress(address, options)
+	userAccount, _, err := n.loadUserAccountHandlerByAddress(address, options)
 	if err != nil {
 		return nil, api.BlockInfo{}, err
 	}
