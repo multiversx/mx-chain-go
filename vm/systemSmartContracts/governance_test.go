@@ -1177,8 +1177,9 @@ func TestGovernanceContract_GetVotingPower(t *testing.T) {
 		callerAddress,
 	}
 
-	callInput := createVMInput(big.NewInt(0), "viewVotingPower", callerAddress, vm.GovernanceSCAddress, callInputArgs)
+	callInput := createVMInput(big.NewInt(0), "viewVotingPower", vm.GovernanceSCAddress, vm.GovernanceSCAddress, callInputArgs)
 	retCode := gsc.Execute(callInput)
+	fmt.Println(eei.GetReturnMessage())
 	require.Equal(t, vmcommon.Ok, retCode)
 
 	vmOutput := eei.CreateVMOutput()
@@ -1189,7 +1190,6 @@ func TestGovernanceContract_GetVVotingPowerWrongCallValue(t *testing.T) {
 	t.Parallel()
 
 	retMessage := ""
-	callerAddress := []byte("address")
 	args := createMockGovernanceArgs()
 	args.Eei = &mock.SystemEIStub{
 		AddReturnMessageCalled: func(msg string) {
@@ -1198,17 +1198,17 @@ func TestGovernanceContract_GetVVotingPowerWrongCallValue(t *testing.T) {
 	}
 
 	gsc, _ := NewGovernanceContract(args)
-	callInput := createVMInput(big.NewInt(10), "viewVotingPower", callerAddress, vm.GovernanceSCAddress, nil)
+	callInput := createVMInput(big.NewInt(10), "viewVotingPower", vm.GovernanceSCAddress, vm.GovernanceSCAddress, nil)
 	retCode := gsc.Execute(callInput)
 	require.Equal(t, vmcommon.UserError, retCode)
-	require.Contains(t, retMessage, vm.TransactionValueMustBeZero)
+	require.Contains(t, retMessage, vm.ErrCallValueMustBeZero.Error())
 }
 
 func TestGovernanceContract_GetVotingPowerWrongArgumentsLength(t *testing.T) {
 	t.Parallel()
 
 	retMessage := ""
-	errSubstr := "function accepts only one argument"
+	errSubstr := vm.ErrInvalidNumOfArguments.Error()
 	callerAddress := []byte("address")
 	args := createMockGovernanceArgs()
 	args.Eei = &mock.SystemEIStub{
@@ -1222,17 +1222,17 @@ func TestGovernanceContract_GetVotingPowerWrongArgumentsLength(t *testing.T) {
 		callerAddress,
 		callerAddress,
 	}
-	callInput := createVMInput(zero, "viewVotingPower", callerAddress, vm.GovernanceSCAddress, callInputArgs)
+	callInput := createVMInput(zero, "viewVotingPower", vm.GovernanceSCAddress, vm.GovernanceSCAddress, callInputArgs)
 	retCode := gsc.Execute(callInput)
-	require.Equal(t, vmcommon.FunctionWrongSignature, retCode)
+	require.Equal(t, vmcommon.UserError, retCode)
 	require.Contains(t, retMessage, errSubstr)
 }
 
-func TestGovernanceContract_GetVotingPowerInvalidArgument(t *testing.T) {
+func TestGovernanceContract_GetVotingPowerInvalidCaller(t *testing.T) {
 	t.Parallel()
 
 	retMessage := ""
-	errSubstr := "invalid address"
+	errSubstr := vm.ErrInvalidCaller.Error()
 	callerAddress := []byte("address")
 	args := createMockGovernanceArgs()
 	args.Eei = &mock.SystemEIStub{

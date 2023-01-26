@@ -328,8 +328,16 @@ func (g *governanceContract) proposal(args *vmcommon.ContractCallInput) vmcommon
 		return vmcommon.UserError
 	}
 
-	nonceKey := append([]byte(noncePrefix), big.NewInt(0).SetUint64(nextNonce).Bytes()...)
+	nonceAsBytes := big.NewInt(0).SetUint64(nextNonce).Bytes()
+	nonceKey := append([]byte(noncePrefix), nonceAsBytes...)
 	g.eei.SetStorage(nonceKey, commitHash)
+
+	logEntry := &vmcommon.LogEntry{
+		Identifier: []byte(args.Function),
+		Address:    args.CallerAddr,
+		Topics:     [][]byte{nonceAsBytes, commitHash, args.Arguments[1], args.Arguments[1], args.Arguments[2]},
+	}
+	g.eei.AddLogEntry(logEntry)
 
 	return vmcommon.Ok
 }
@@ -375,6 +383,13 @@ func (g *governanceContract) vote(args *vmcommon.ContractCallInput) vmcommon.Ret
 		g.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
+
+	logEntry := &vmcommon.LogEntry{
+		Identifier: []byte(args.Function),
+		Address:    args.CallerAddr,
+		Topics:     [][]byte{proposalToVote, args.Arguments[1], totalStake.Bytes(), totalVotingPower.Bytes()},
+	}
+	g.eei.AddLogEntry(logEntry)
 
 	return vmcommon.Ok
 }
@@ -434,6 +449,13 @@ func (g *governanceContract) delegateVote(args *vmcommon.ContractCallInput) vmco
 		g.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
+
+	logEntry := &vmcommon.LogEntry{
+		Identifier: []byte(args.Function),
+		Address:    args.CallerAddr,
+		Topics:     [][]byte{proposalToVote, args.Arguments[1], voter, userStake.Bytes(), votePower.Bytes()},
+	}
+	g.eei.AddLogEntry(logEntry)
 
 	return vmcommon.Ok
 }
@@ -604,12 +626,19 @@ func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmc
 		return vmcommon.UserError
 	}
 
+	logEntry := &vmcommon.LogEntry{
+		Identifier: []byte(args.Function),
+		Address:    args.CallerAddr,
+		Topics:     [][]byte{proposal, boolToSlice(generalProposal.Passed)},
+	}
+	g.eei.AddLogEntry(logEntry)
+
 	return vmcommon.Ok
 }
 
 // viewVotingPower returns the total voting power
 func (g *governanceContract) viewVotingPower(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	err := g.checkViewFuncArguments(args, 0)
+	err := g.checkViewFuncArguments(args, 1)
 	if err != nil {
 		g.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -672,7 +701,7 @@ func (g *governanceContract) viewUserVoteHistory(args *vmcommon.ContractCallInpu
 }
 
 func (g *governanceContract) viewProposal(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	err := g.checkViewFuncArguments(args, 0)
+	err := g.checkViewFuncArguments(args, 1)
 	if err != nil {
 		g.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -699,17 +728,10 @@ func (g *governanceContract) viewProposal(args *vmcommon.ContractCallInput) vmco
 	g.eei.Finish(proposal.No.Bytes())
 	g.eei.Finish(proposal.Veto.Bytes())
 	g.eei.Finish(proposal.Abstain.Bytes())
-	g.eei.Finish([]byte(boolToString(proposal.Closed)))
-	g.eei.Finish([]byte(boolToString(proposal.Passed)))
+	g.eei.Finish(boolToSlice(proposal.Closed))
+	g.eei.Finish(boolToSlice(proposal.Passed))
 
 	return vmcommon.Ok
-}
-
-func boolToString(val bool) string {
-	if val {
-		return "yes"
-	}
-	return "no"
 }
 
 func (g *governanceContract) checkViewFuncArguments(
