@@ -356,7 +356,7 @@ var (
 	// operationMode defines the flag for specifying how configs should be altered depending on the node's intent
 	operationMode = cli.StringFlag{
 		Name:  "operation-mode",
-		Usage: "String flag for specifying the desired `operation mode`(s) of the node, resulting in altering some configuration values accordingly. Possible values are: lite-observer, full-archive, db-lookup-extension, historical-balances or `\"\"` (empty). Multiple values can be separated via ,",
+		Usage: "String flag for specifying the desired `operation mode`(s) of the node, resulting in altering some configuration values accordingly. Possible values are: snapshotless-observer, full-archive, db-lookup-extension, historical-balances or `\"\"` (empty). Multiple values can be separated via ,",
 		Value: "",
 	}
 )
@@ -558,7 +558,7 @@ func applyCompatibleConfigs(log logger.Logger, configs *config.Configs) error {
 		processDbLookupExtensionMode(log, configs)
 	}
 
-	isInLiteObserverMode := operationmodes.SliceContainsElement(operationModes, operationmodes.OperationModeLiteObserver)
+	isInLiteObserverMode := operationmodes.SliceContainsElement(operationModes, operationmodes.OperationModeSnapshotlessObserver)
 	if isInLiteObserverMode {
 		processLiteObserverMode(log, configs)
 	}
@@ -603,7 +603,7 @@ func processLiteObserverMode(log logger.Logger, configs *config.Configs) {
 	configs.GeneralConfig.StateTriesConfig.SnapshotsEnabled = false
 	configs.GeneralConfig.StateTriesConfig.AccountsStatePruningEnabled = true
 
-	log.Warn("the node is in lite observer mode! Will auto-set some config values",
+	log.Warn("the node is in snapshotless observer mode! Will auto-set some config values",
 		"StoragePruning.ObserverCleanOldEpochsData", configs.GeneralConfig.StoragePruning.ObserverCleanOldEpochsData,
 		"StateTriesConfig.SnapshotsEnabled", configs.GeneralConfig.StateTriesConfig.SnapshotsEnabled,
 		"StateTriesConfig.AccountsStatePruningEnabled", configs.GeneralConfig.StateTriesConfig.AccountsStatePruningEnabled,
