@@ -223,14 +223,14 @@ func (atp *apiTransactionProcessor) GetLastPoolNonceForSender(sender string) (ui
 }
 
 // GetTransactionsPoolNonceGapsForSender will return the nonce gaps from pool for sender, if exists, that is to be returned on API calls
-func (atp *apiTransactionProcessor) GetTransactionsPoolNonceGapsForSender(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
+func (atp *apiTransactionProcessor) GetTransactionsPoolNonceGapsForSender(sender string, senderAccountNonce uint64) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
 	senderAddr, err := atp.addressPubKeyConverter.Decode(sender)
 	if err != nil {
 		return nil, fmt.Errorf("%s, %w", ErrInvalidAddress.Error(), err)
 	}
 
 	senderShard := atp.shardCoordinator.ComputeId(senderAddr)
-	nonceGaps, err := atp.extractNonceGaps(string(senderAddr), senderShard)
+	nonceGaps, err := atp.extractNonceGaps(string(senderAddr), senderShard, senderAccountNonce)
 	if err != nil {
 		return nil, err
 	}
@@ -378,13 +378,16 @@ func (atp *apiTransactionProcessor) fetchLastNonceForSender(sender string, sende
 	return lastTx.Tx.GetNonce(), nil
 }
 
-func (atp *apiTransactionProcessor) extractNonceGaps(sender string, senderShard uint32) ([]common.NonceGapApiResponse, error) {
+func (atp *apiTransactionProcessor) extractNonceGaps(sender string, senderShard uint32, senderAccountNonce uint64) ([]common.NonceGapApiResponse, error) {
 	wrappedTxs := atp.fetchTxsForSender(sender, senderShard)
 	if len(wrappedTxs) == 0 {
 		return []common.NonceGapApiResponse{}, nil
 	}
 
 	nonceGaps := make([]common.NonceGapApiResponse, 0)
+	firstNonceInPool := wrappedTxs[0].Tx.GetNonce()
+	atp.appendGapFromAccountNonceIfNeeded(senderAccountNonce, firstNonceInPool, senderShard, &nonceGaps)
+
 	for i := 0; i < len(wrappedTxs)-1; i++ {
 		nextNonce := wrappedTxs[i+1].Tx.GetNonce()
 		currentNonce := wrappedTxs[i].Tx.GetNonce()
@@ -399,6 +402,26 @@ func (atp *apiTransactionProcessor) extractNonceGaps(sender string, senderShard 
 	}
 
 	return nonceGaps, nil
+}
+
+func (atp *apiTransactionProcessor) appendGapFromAccountNonceIfNeeded(
+	senderAccountNonce uint64,
+	firstNonceInPool uint64,
+	senderShard uint32,
+	nonceGaps *[]common.NonceGapApiResponse,
+) {
+	if atp.shardCoordinator.SelfId() != senderShard {
+		return
+	}
+
+	nonceDif := firstNonceInPool - senderAccountNonce
+	if nonceDif >= 1 {
+		nonceGap := common.NonceGapApiResponse{
+			From: senderAccountNonce,
+			To:   firstNonceInPool - 1,
+		}
+		*nonceGaps = append(*nonceGaps, nonceGap)
+	}
 }
 
 func (atp *apiTransactionProcessor) optionallyGetTransactionFromPool(hash []byte) (*transaction.ApiTransactionResult, error) {

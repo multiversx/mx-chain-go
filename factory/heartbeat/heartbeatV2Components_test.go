@@ -37,6 +37,7 @@ func createMockHeartbeatV2ComponentsFactoryArgs() heartbeatComp.ArgHeartbeatV2Co
 				PeerAuthenticationTimeBetweenSendsWhenErrorInSec: 1,
 				PeerAuthenticationThresholdBetweenSends:          0.1,
 				HeartbeatTimeBetweenSendsInSec:                   1,
+				HeartbeatTimeBetweenSendsDuringBootstrapInSec:    1,
 				HeartbeatTimeBetweenSendsWhenErrorInSec:          1,
 				HeartbeatThresholdBetweenSends:                   0.1,
 				HeartbeatExpiryTimespanInSec:                     30,

@@ -533,7 +533,7 @@ func testExtractAlteredAccountsFromPoolShouldIncludeESDT(t *testing.T) {
 		Identifier: "token0",
 		Balance:    expectedToken.Value.String(),
 		Nonce:      0,
-		Properties: "ok",
+		Properties: "6f6b",
 		MetaData:   nil,
 	}, res[encodedAddr].Tokens[0])
 }
@@ -1002,7 +1002,7 @@ func testExtractAlteredAccountsFromPoolESDTTransferBalanceNotChanged(t *testing.
 					Identifier: "token0",
 					Balance:    expectedToken.Value.String(),
 					Nonce:      0,
-					Properties: "ok",
+					Properties: "6f6b",
 					MetaData:   nil,
 					AdditionalData: &outportcore.AdditionalAccountTokenData{
 						IsNFTCreate: false,
@@ -1022,7 +1022,7 @@ func testExtractAlteredAccountsFromPoolESDTTransferBalanceNotChanged(t *testing.
 					Identifier: "token0",
 					Balance:    expectedToken.Value.String(),
 					Nonce:      0,
-					Properties: "ok",
+					Properties: "6f6b",
 					AdditionalData: &outportcore.AdditionalAccountTokenData{
 						IsNFTCreate: false,
 					},
@@ -1191,7 +1191,7 @@ func textExtractAlteredAccountsFromPoolNftCreate(t *testing.T) {
 					Identifier: "token0",
 					Balance:    expectedToken.Value.String(),
 					Nonce:      0,
-					Properties: "ok",
+					Properties: "6f6b",
 					MetaData:   nil,
 					AdditionalData: &outportcore.AdditionalAccountTokenData{
 						IsNFTCreate: true,
