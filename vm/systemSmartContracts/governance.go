@@ -708,7 +708,8 @@ func (g *governanceContract) viewProposal(args *vmcommon.ContractCallInput) vmco
 	if len(reference) < commitHashLength {
 		reference = g.eei.GetStorage(append([]byte(noncePrefix), reference...))
 	}
-	proposal, err := g.getGeneralProposal(args.Arguments[0])
+
+	proposal, err := g.getGeneralProposal(reference)
 	if err != nil {
 		g.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -1107,7 +1108,7 @@ func (g *governanceContract) startEndEpochFromArguments(argStart []byte, argEnd 
 	return startVoteEpoch.Uint64(), endVoteEpoch.Uint64(), nil
 }
 
-// uint64FromBytes converts a byte array to a big.Int return error for invalid values
+// uint64FromBytes converts a byte array to a big.Int, returns error for invalid values
 func uint64FromBytes(nonce []byte) (*big.Int, error) {
 	voteNonce, okConvert := big.NewInt(0).SetString(string(nonce), conversionBase)
 	if !okConvert {
