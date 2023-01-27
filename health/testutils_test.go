@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
+	"github.com/multiversx/mx-chain-core-go/core/atomic"
 )
 
 var _ record = (*dummyRecord)(nil)

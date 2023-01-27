@@ -1,19 +1,8 @@
-module github.com/ElrondNetwork/elrond-go
+module github.com/multiversx/mx-chain-go
 
 go 1.17
 
 require (
-	github.com/ElrondNetwork/elastic-indexer-go v1.3.6
-	github.com/ElrondNetwork/elrond-go-core v1.1.29
-	github.com/ElrondNetwork/elrond-go-crypto v1.2.3
-	github.com/ElrondNetwork/elrond-go-logger v1.0.10
-	github.com/ElrondNetwork/elrond-go-p2p v1.0.8
-	github.com/ElrondNetwork/elrond-go-storage v1.0.5
-	github.com/ElrondNetwork/elrond-vm-common v1.3.33-0.20230116093107-7cae15bdda26
-	github.com/ElrondNetwork/wasm-vm v1.5.3-0.20230111114610-290c848e8730
-	github.com/ElrondNetwork/wasm-vm-v1_2 v1.2.48
-	github.com/ElrondNetwork/wasm-vm-v1_3 v1.3.48
-	github.com/ElrondNetwork/wasm-vm-v1_4 v1.4.69
 	github.com/beevik/ntp v0.3.0
 	github.com/davecgh/go-spew v1.1.1
 	github.com/elastic/go-elasticsearch/v7 v7.12.0
@@ -25,6 +14,17 @@ require (
 	github.com/google/gops v0.3.18
 	github.com/gorilla/websocket v1.5.0
 	github.com/mitchellh/mapstructure v1.5.0
+	github.com/multiversx/mx-chain-core-go v1.1.30
+	github.com/multiversx/mx-chain-crypto-go v1.2.5
+	github.com/multiversx/mx-chain-es-indexer-go v1.3.9
+	github.com/multiversx/mx-chain-logger-go v1.0.11
+	github.com/multiversx/mx-chain-p2p-go v1.0.10
+	github.com/multiversx/mx-chain-storage-go v1.0.7
+	github.com/multiversx/mx-chain-vm-common-go v1.3.33-0.20230126105612-19793412f02e
+	github.com/multiversx/mx-chain-vm-go v1.5.3-0.20230127080551-09a46004dc99
+	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.50-0.20230120173501-c9868b974e02
+	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.51-0.20230120173525-f2b1a228e080
+	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.75-0.20230125105049-bdb0e45af78e
 	github.com/pelletier/go-toml v1.9.3
 	github.com/pkg/errors v0.9.1
 	github.com/shirou/gopsutil v3.21.11+incompatible
@@ -35,8 +35,6 @@ require (
 )
 
 require (
-	github.com/ElrondNetwork/big-int-util v0.1.0 // indirect
-	github.com/ElrondNetwork/concurrent-map v0.1.3 // indirect
 	github.com/awalterschulze/gographviz v2.0.3+incompatible // indirect
 	github.com/benbjohnson/clock v1.3.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -133,6 +131,8 @@ require (
 	github.com/multiformats/go-multihash v0.2.1 // indirect
 	github.com/multiformats/go-multistream v0.3.3 // indirect
 	github.com/multiformats/go-varint v0.0.6 // indirect
+	github.com/multiversx/concurrent-map v0.1.4 // indirect
+	github.com/multiversx/mx-components-big-int v0.1.1 // indirect
 	github.com/nsf/termbox-go v0.0.0-20190121233118-02980233997d // indirect
 	github.com/nxadm/tail v1.4.8 // indirect
 	github.com/onsi/ginkgo v1.16.5 // indirect
@@ -179,4 +179,4 @@ require (
 	lukechampine.com/blake3 v1.1.7 // indirect
 )
 
-replace github.com/gogo/protobuf => github.com/ElrondNetwork/protobuf v1.3.2
+replace github.com/gogo/protobuf => github.com/multiversx/protobuf v1.3.2

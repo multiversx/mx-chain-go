@@ -3,10 +3,10 @@ package alteredaccounts
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
-	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-go/sharding"
 )
 
 const (
@@ -33,6 +33,8 @@ func newTokensProcessor(shardCoordinator sharding.Coordinator) *tokensProcessor 
 			core.BuiltInFunctionESDTNFTBurn:          {},
 			core.BuiltInFunctionESDTNFTAddQuantity:   {},
 			core.BuiltInFunctionESDTNFTCreate:        {},
+			core.BuiltInFunctionESDTFreeze:           {},
+			core.BuiltInFunctionESDTUnFreeze:         {},
 		},
 		shardCoordinator: shardCoordinator,
 	}
@@ -103,7 +105,9 @@ func (tp *tokensProcessor) extractEsdtData(
 	eventShouldContainReceiverAddress := identifier == core.BuiltInFunctionESDTTransfer ||
 		identifier == core.BuiltInFunctionESDTNFTTransfer ||
 		identifier == core.BuiltInFunctionESDTWipe ||
-		identifier == core.BuiltInFunctionMultiESDTNFTTransfer
+		identifier == core.BuiltInFunctionMultiESDTNFTTransfer ||
+		identifier == core.BuiltInFunctionESDTFreeze ||
+		identifier == core.BuiltInFunctionESDTUnFreeze
 
 	if eventShouldContainReceiverAddress && len(topics) > idxReceiverAddressInTopics {
 		destinationAddress := topics[idxReceiverAddressInTopics]

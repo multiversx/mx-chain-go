@@ -1,6 +1,6 @@
 package processorV2
 
-import vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+import vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 
 type failureContext struct {
 	processFail   bool

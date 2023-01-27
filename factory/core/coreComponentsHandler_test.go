@@ -3,9 +3,9 @@ package core_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/config"
-	coreComp "github.com/ElrondNetwork/elrond-go/factory/core"
-	componentsMock "github.com/ElrondNetwork/elrond-go/testscommon/components"
+	"github.com/multiversx/mx-chain-go/config"
+	coreComp "github.com/multiversx/mx-chain-go/factory/core"
+	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/stretchr/testify/require"
 )
 
@@ -53,7 +53,7 @@ func TestManagedCoreComponents_CreateShouldWork(t *testing.T) {
 	require.Nil(t, managedCoreComponents.EnableRoundsHandler())
 	require.Nil(t, managedCoreComponents.RoundHandler())
 	require.Nil(t, managedCoreComponents.RoundNotifier())
-	require.Nil(t, managedCoreComponents.ArwenChangeLocker())
+	require.Nil(t, managedCoreComponents.WasmVMChangeLocker())
 	require.Nil(t, managedCoreComponents.ProcessStatusHandler())
 	require.True(t, len(managedCoreComponents.HardforkTriggerPubKey()) == 0)
 
@@ -73,7 +73,7 @@ func TestManagedCoreComponents_CreateShouldWork(t *testing.T) {
 	require.NotNil(t, managedCoreComponents.EnableRoundsHandler())
 	require.NotNil(t, managedCoreComponents.RoundHandler())
 	require.NotNil(t, managedCoreComponents.RoundNotifier())
-	require.NotNil(t, managedCoreComponents.ArwenChangeLocker())
+	require.NotNil(t, managedCoreComponents.WasmVMChangeLocker())
 	require.NotNil(t, managedCoreComponents.ProcessStatusHandler())
 	expectedBytes, _ := managedCoreComponents.ValidatorPubKeyConverter().Decode(componentsMock.DummyPk)
 	require.Equal(t, expectedBytes, managedCoreComponents.HardforkTriggerPubKey())

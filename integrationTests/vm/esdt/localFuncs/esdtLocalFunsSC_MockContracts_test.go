@@ -6,9 +6,9 @@ package localFuncs
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen/arwenvm"
-	test "github.com/ElrondNetwork/wasm-vm/testcommon"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm/wasmvm"
+	test "github.com/multiversx/mx-chain-vm-go/testcommon"
 )
 
 func TestESDTLocalMintAndBurnFromSC_MockContracts(t *testing.T) {
@@ -27,14 +27,14 @@ func TestESDTLocalMintAndBurnFromSC_MockContracts(t *testing.T) {
 	initialVal := uint64(1000000000)
 	net.MintWalletsUint64(initialVal)
 
-	scAddress, _ := arwenvm.GetAddressForNewAccountOnWalletAndNode(t, net, ownerWallet, node0shard0)
+	scAddress, _ := wasmvm.GetAddressForNewAccountOnWalletAndNode(t, net, ownerWallet, node0shard0)
 
 	round := uint64(0)
 	nonce := uint64(0)
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
 
-	arwenvm.InitializeMockContracts(
+	wasmvm.InitializeMockContracts(
 		t, net,
 		test.CreateMockContractOnShard(scAddress, 0).
 			WithOwnerAddress(ownerWallet.Address).

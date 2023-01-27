@@ -4,8 +4,8 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 // EvictionWaitingListMock is a mock implementation of state.DBRemoveCacher

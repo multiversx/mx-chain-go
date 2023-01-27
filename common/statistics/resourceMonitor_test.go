@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"testing"
 
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	stats "github.com/ElrondNetwork/elrond-go/common/statistics"
-	"github.com/ElrondNetwork/elrond-go/common/statistics/disabled"
-	"github.com/ElrondNetwork/elrond-go/config"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	stats "github.com/multiversx/mx-chain-go/common/statistics"
+	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/stretchr/testify/assert"
 )
 

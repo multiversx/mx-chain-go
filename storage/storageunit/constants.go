@@ -1,6 +1,6 @@
 package storageunit
 
-import "github.com/ElrondNetwork/elrond-go-storage/storageUnit"
+import "github.com/multiversx/mx-chain-storage-go/storageUnit"
 
 const (
 	// LRUCache defines a cache identifier with least-recently-used eviction mechanism

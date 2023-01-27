@@ -3,9 +3,9 @@ package signing
 import (
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	crypto "github.com/ElrondNetwork/elrond-go-crypto"
-	cryptoCommon "github.com/ElrondNetwork/elrond-go/common/crypto"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
+	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
 )
 
 // ArgsSignatureHolder defines the arguments needed to create a new signature holder component

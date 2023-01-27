@@ -3,11 +3,10 @@ package esdtMultiTransferThroughForwarder
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	arwenvm "github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen/arwenvm"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/esdt"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	test "github.com/ElrondNetwork/wasm-vm/testcommon"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm/esdt"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	test "github.com/multiversx/mx-chain-vm-go/testcommon"
 )
 
 func TestESDTMultiTransferThroughForwarder_LegacyAsync_MockContracts(t *testing.T) {

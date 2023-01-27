@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen/arwenvm"
-	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
-	arwenConfig "github.com/ElrondNetwork/wasm-vm/config"
+	"github.com/multiversx/mx-chain-core-go/core"
+	wasmvm "github.com/multiversx/mx-chain-go/integrationTests/vm/wasm/wasmvm"
+	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
+	arwenConfig "github.com/multiversx/mx-chain-vm-go/config"
 )
 
 // ArgArwenBenchmark is the Arwen type benchmark argument used in constructor
@@ -47,7 +47,7 @@ func (ab *arwenBenchmark) Run() (time.Duration, error) {
 		return 0, fmt.Errorf("%w, file %s", ErrFileDoesNotExist, ab.scFilename)
 	}
 
-	result, err := arwenvm.RunTest(ab.scFilename, ab.testingValue, ab.function, ab.arguments, ab.numRuns, createTestGasMap(), 0)
+	result, err := wasmvm.RunTest(ab.scFilename, ab.testingValue, ab.function, ab.arguments, ab.numRuns, createTestGasMap(), 0)
 	if err != nil {
 		return 0, err
 	}

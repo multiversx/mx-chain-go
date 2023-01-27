@@ -1,8 +1,8 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 // TransactionAPIHandlerStub -
@@ -11,7 +11,7 @@ type TransactionAPIHandlerStub struct {
 	GetTransactionsPoolCalled                   func(fields string) (*common.TransactionsPoolAPIResponse, error)
 	GetTransactionsPoolForSenderCalled          func(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error)
 	GetLastPoolNonceForSenderCalled             func(sender string) (uint64, error)
-	GetTransactionsPoolNonceGapsForSenderCalled func(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
+	GetTransactionsPoolNonceGapsForSenderCalled func(sender string, senderAccountNonce uint64) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
 	UnmarshalTransactionCalled                  func(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error)
 	UnmarshalReceiptCalled                      func(receiptBytes []byte) (*transaction.ApiReceipt, error)
 	PopulateComputedFieldsCalled                func(tx *transaction.ApiTransactionResult)
@@ -54,9 +54,9 @@ func (tas *TransactionAPIHandlerStub) GetLastPoolNonceForSender(sender string) (
 }
 
 // GetTransactionsPoolNonceGapsForSender -
-func (tas *TransactionAPIHandlerStub) GetTransactionsPoolNonceGapsForSender(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
+func (tas *TransactionAPIHandlerStub) GetTransactionsPoolNonceGapsForSender(sender string, senderAccountNonce uint64) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
 	if tas.GetTransactionsPoolNonceGapsForSenderCalled != nil {
-		return tas.GetTransactionsPoolNonceGapsForSenderCalled(sender)
+		return tas.GetTransactionsPoolNonceGapsForSenderCalled(sender, senderAccountNonce)
 	}
 
 	return nil, nil
