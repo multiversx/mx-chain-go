@@ -90,7 +90,8 @@ func (oc *orderedCollection) GetItems() [][]byte {
 	oc.mut.RLock()
 	defer oc.mut.RUnlock()
 
-	cpItems := append([][]byte{}, oc.itemsArray...)
+	cpItems := make([][]byte, len(oc.itemsArray))
+	copy(cpItems, oc.itemsArray)
 	return cpItems
 }
 

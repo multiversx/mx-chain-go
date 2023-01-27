@@ -1059,6 +1059,14 @@ func (e *esdt) togglePause(args *vmcommon.ContractCallInput, builtInFunc string)
 	esdtTransferData := builtInFunc + "@" + hex.EncodeToString(args.Arguments[0])
 	e.eei.SendGlobalSettingToAll(e.eSDTSCAddress, []byte(esdtTransferData))
 
+	logEntry := &vmcommon.LogEntry{
+		Identifier: []byte(builtInFunc),
+		Address:    args.CallerAddr,
+		Topics:     [][]byte{args.Arguments[0]},
+		Data:       nil,
+	}
+	e.eei.AddLogEntry(logEntry)
+
 	return vmcommon.Ok
 }
 
