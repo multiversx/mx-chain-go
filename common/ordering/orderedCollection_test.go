@@ -253,7 +253,7 @@ func TestBaseProcessor_ConcurrentCallsOrderedCollection(t *testing.T) {
 			switch idx % numCases {
 			case 0:
 				for i := 0; i < numCases; i++ {
-					oc.Add(fmt.Sprintf("value_%d", idx+i))
+					oc.Add([]byte(fmt.Sprintf("value_%d", idx+i)))
 				}
 			case 1:
 				_ = oc.GetItems()
@@ -261,11 +261,11 @@ func TestBaseProcessor_ConcurrentCallsOrderedCollection(t *testing.T) {
 				_ = oc.Len()
 			case 3:
 				for i := 0; i < numCases; i++ {
-					_ = oc.Contains(fmt.Sprintf("value_%d", idx-3+i))
+					_ = oc.Contains([]byte(fmt.Sprintf("value_%d", idx-3+i)))
 				}
 			case 4:
 				for i := 0; i < numCases; i++ {
-					_, _ = oc.GetOrder(fmt.Sprintf("value_%d", idx-4+i))
+					_, _ = oc.GetOrder([]byte(fmt.Sprintf("value_%d", idx-4+i)))
 				}
 			case 5:
 				for i := 0; i < numCases; i++ {
@@ -275,7 +275,7 @@ func TestBaseProcessor_ConcurrentCallsOrderedCollection(t *testing.T) {
 				_ = oc.IsInterfaceNil()
 			case 7:
 				for i := 0; i < numCases; i++ {
-					oc.Remove(fmt.Sprintf("value_%d", idx-7+i))
+					oc.Remove([]byte(fmt.Sprintf("value_%d", idx-7+i)))
 				}
 			case 8:
 				oc.Clear()
