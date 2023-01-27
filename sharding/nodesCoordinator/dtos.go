@@ -1,6 +1,6 @@
 package nodesCoordinator
 
-import "github.com/ElrondNetwork/elrond-go/config"
+import "github.com/multiversx/mx-chain-go/config"
 
 // ArgsUpdateNodes holds the parameters required by the shuffler to generate a new nodes configuration
 type ArgsUpdateNodes struct {

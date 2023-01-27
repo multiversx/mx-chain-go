@@ -27,7 +27,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/mock"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage/cache"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochstartmock"
+	"github.com/multiversx/mx-chain-go/testscommon/epochstartmock"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"

@@ -32,7 +32,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/shardingmock"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingmock"
 	vic "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
 )
 

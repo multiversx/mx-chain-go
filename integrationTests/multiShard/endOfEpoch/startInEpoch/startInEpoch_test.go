@@ -34,7 +34,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
 	"github.com/multiversx/mx-chain-go/testscommon/scheduledDataSyncer"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/shardingmock"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingmock"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )

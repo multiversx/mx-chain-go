@@ -3,7 +3,7 @@ package mock
 import (
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 )
 

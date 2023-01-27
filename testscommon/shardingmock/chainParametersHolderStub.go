@@ -1,6 +1,6 @@
 package shardingmock
 
-import "github.com/ElrondNetwork/elrond-go/config"
+import "github.com/multiversx/mx-chain-go/config"
 
 // ChainParametersHandlerStub -
 type ChainParametersHandlerStub struct {

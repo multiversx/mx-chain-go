@@ -39,7 +39,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/scheduledDataSyncer"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/shardingmock"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingmock"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageMocks "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/syncer"

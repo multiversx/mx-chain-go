@@ -12,7 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon/shardingmock"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingmock"
 )
 
 // CoreComponentsMock -

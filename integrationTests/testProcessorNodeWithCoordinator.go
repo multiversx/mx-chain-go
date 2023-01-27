@@ -9,13 +9,13 @@ import (
 	"github.com/multiversx/mx-chain-crypto-go/signing"
 	"github.com/multiversx/mx-chain-crypto-go/signing/ed25519"
 	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
-	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/shardingmock"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingmock"
 	vic "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
 )
 

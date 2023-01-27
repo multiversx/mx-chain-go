@@ -49,7 +49,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/shardingmock"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingmock"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	vic "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
 	"github.com/multiversx/mx-chain-go/update"
