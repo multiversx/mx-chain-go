@@ -1,6 +1,6 @@
 package common
 
-import "github.com/ElrondNetwork/elrond-go-core/data/outport"
+import "github.com/multiversx/mx-chain-core-go/data/outport"
 
 // GetProofResponse is a struct that stores the response of a GetProof API request
 type GetProofResponse struct {

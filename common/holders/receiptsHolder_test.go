@@ -3,7 +3,7 @@ package holders
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/stretchr/testify/require"
 )
 

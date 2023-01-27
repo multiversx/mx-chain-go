@@ -3,8 +3,8 @@ package statusCore_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/factory/statusCore"
-	componentsMock "github.com/ElrondNetwork/elrond-go/testscommon/components"
+	"github.com/multiversx/mx-chain-go/factory/statusCore"
+	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/stretchr/testify/require"
 )
 
