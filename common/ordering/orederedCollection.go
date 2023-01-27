@@ -76,7 +76,9 @@ func (oc *orderedCollection) GetItems() []string {
 	oc.mut.RLock()
 	defer oc.mut.RUnlock()
 
-	cpItems := append([]string{}, oc.itemsArray...)
+	cpItems := make([]string, len(oc.itemsArray))
+	copy(cpItems, oc.itemsArray)
+
 	return cpItems
 }
 

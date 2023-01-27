@@ -3,6 +3,7 @@ package ordering_test
 import (
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common/ordering"
 	"github.com/stretchr/testify/require"
 )
@@ -181,5 +182,5 @@ func TestOrderedCollection_Contains(t *testing.T) {
 
 func TestOrderedCollection_IsInterfaceNil(t *testing.T) {
 	oc := ordering.GetNilOrderedCollection()
-	require.True(t, oc.IsInterfaceNil())
+	require.True(t, check.IfNil(oc))
 }
