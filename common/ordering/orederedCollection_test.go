@@ -1,6 +1,8 @@
 package ordering_test
 
 import (
+	"fmt"
+	"sync"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -9,12 +11,16 @@ import (
 )
 
 func TestNewOrderedCollection(t *testing.T) {
+	t.Parallel()
+
 	oc := ordering.NewOrderedCollection()
 	require.NotNil(t, oc)
 	require.Equal(t, 0, oc.Len())
 }
 
 func TestOrderedCollection_Add(t *testing.T) {
+	t.Parallel()
+
 	oc := ordering.NewOrderedCollection()
 	oc.Add("zero")
 	require.Equal(t, 1, oc.Len())
@@ -25,6 +31,8 @@ func TestOrderedCollection_Add(t *testing.T) {
 }
 
 func TestOrderedCollection_GetOrder(t *testing.T) {
+	t.Parallel()
+
 	oc := ordering.NewOrderedCollection()
 
 	order, err := oc.GetOrder("zero")
@@ -49,6 +57,8 @@ func TestOrderedCollection_GetOrder(t *testing.T) {
 }
 
 func TestOrderedCollection_GetItemAtIndex(t *testing.T) {
+	t.Parallel()
+
 	oc := ordering.NewOrderedCollection()
 
 	item, err := oc.GetItemAtIndex(0)
@@ -73,6 +83,8 @@ func TestOrderedCollection_GetItemAtIndex(t *testing.T) {
 }
 
 func TestOrderedCollection_GetItems(t *testing.T) {
+	t.Parallel()
+
 	oc := ordering.NewOrderedCollection()
 
 	items := oc.GetItems()
@@ -90,6 +102,8 @@ func TestOrderedCollection_GetItems(t *testing.T) {
 }
 
 func TestOrderedCollection_Remove(t *testing.T) {
+	t.Parallel()
+
 	oc := ordering.NewOrderedCollection()
 	require.Equal(t, 0, oc.Len())
 
@@ -143,6 +157,8 @@ func TestOrderedCollection_Remove(t *testing.T) {
 }
 
 func TestOrderedCollection_Clear(t *testing.T) {
+	t.Parallel()
+
 	oc := ordering.NewOrderedCollection()
 	require.Equal(t, 0, oc.Len())
 
@@ -156,6 +172,8 @@ func TestOrderedCollection_Clear(t *testing.T) {
 }
 
 func TestOrderedCollection_Contains(t *testing.T) {
+	t.Parallel()
+
 	oc := ordering.NewOrderedCollection()
 	require.Equal(t, 0, oc.Len())
 
@@ -181,6 +199,57 @@ func TestOrderedCollection_Contains(t *testing.T) {
 }
 
 func TestOrderedCollection_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
 	oc := ordering.GetNilOrderedCollection()
 	require.True(t, check.IfNil(oc))
+}
+
+func TestBaseProcessor_ConcurrentCallsOrderedCollection(t *testing.T) {
+	t.Parallel()
+	oc := ordering.NewOrderedCollection()
+
+	numCalls := 10000
+	wg := &sync.WaitGroup{}
+	wg.Add(numCalls)
+
+	numCases := 9
+	for i := 0; i < numCalls; i++ {
+		go func(idx int) {
+			switch idx % numCases {
+			case 0:
+				for i := 0; i < numCases; i++ {
+					oc.Add(fmt.Sprintf("value_%d", idx+i))
+				}
+			case 1:
+				_ = oc.GetItems()
+			case 2:
+				_ = oc.Len()
+			case 3:
+				for i := 0; i < numCases; i++ {
+					_ = oc.Contains(fmt.Sprintf("value_%d", idx-3+i))
+				}
+			case 4:
+				for i := 0; i < numCases; i++ {
+					_, _ = oc.GetOrder(fmt.Sprintf("value_%d", idx-4+i))
+				}
+			case 5:
+				for i := 0; i < numCases; i++ {
+					_, _ = oc.GetItemAtIndex(uint32(idx - 5 + i))
+				}
+			case 6:
+				_ = oc.IsInterfaceNil()
+			case 7:
+				for i := 0; i < numCases; i++ {
+					oc.Remove(fmt.Sprintf("value_%d", idx-7+i))
+				}
+			case 8:
+				oc.Clear()
+			}
+
+			wg.Done()
+		}(i)
+	}
+
+	wg.Wait()
 }
