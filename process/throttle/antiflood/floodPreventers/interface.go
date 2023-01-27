@@ -1,6 +1,6 @@
 package floodPreventers
 
-import "github.com/ElrondNetwork/elrond-go-core/core"
+import "github.com/multiversx/mx-chain-core-go/core"
 
 // QuotaStatusHandler defines the behavior of a quota handler able to process periodic updates of peers quota measured
 // by the system

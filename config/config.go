@@ -1,7 +1,7 @@
 package config
 
 import (
-	p2pConfig "github.com/ElrondNetwork/elrond-go/p2p/config"
+	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
 )
 
 // CacheConfig will map the cache configuration
@@ -281,7 +281,7 @@ type GeneralSettingsConfig struct {
 	ChainParametersByEpoch               []ChainParametersByEpochConfig
 }
 
-// FacadeConfig will hold different configuration option that will be passed to the main ElrondFacade
+// FacadeConfig will hold different configuration option that will be passed to the node facade
 type FacadeConfig struct {
 	RestApiInterface string
 	PprofEnabled     bool
@@ -296,8 +296,6 @@ type StateTriesConfig struct {
 	PeerStatePruningEnabled     bool
 	MaxStateTrieLevelInMemory   uint
 	MaxPeerTrieLevelInMemory    uint
-	UserStatePruningQueueSize   uint
-	PeerStatePruningQueueSize   uint
 }
 
 // TrieStorageManagerConfig will hold config information about trie storage manager
@@ -395,13 +393,13 @@ type VirtualMachineServicesConfig struct {
 
 // VirtualMachineConfig holds configuration for a Virtual Machine service
 type VirtualMachineConfig struct {
-	ArwenVersions                       []ArwenVersionByEpoch
+	WasmVMVersions                      []WasmVMVersionByEpoch
 	TimeOutForSCExecutionInMilliseconds uint32
 	WasmerSIGSEGVPassthrough            bool
 }
 
-// ArwenVersionByEpoch represents the Arwen version to be used starting with an epoch
-type ArwenVersionByEpoch struct {
+// WasmVMVersionByEpoch represents the Wasm VM version to be used starting with an epoch
+type WasmVMVersionByEpoch struct {
 	StartEpoch uint32
 	Version    string
 }

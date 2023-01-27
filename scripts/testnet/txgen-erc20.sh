@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-export ELRONDTESTNETSCRIPTSDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-source "$ELRONDTESTNETSCRIPTSDIR/variables.sh"
+export MULTIVERSXTESTNETSCRIPTSDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+source "$MULTIVERSXTESTNETSCRIPTSDIR/variables.sh"
 
 DESTINATION=mixed
 if [[ -n $1 ]]; then

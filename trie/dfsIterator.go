@@ -1,6 +1,6 @@
 package trie
 
-import "github.com/ElrondNetwork/elrond-go/common"
+import "github.com/multiversx/mx-chain-go/common"
 
 type dfsIterator struct {
 	*baseIterator

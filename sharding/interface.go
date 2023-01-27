@@ -3,7 +3,7 @@ package sharding
 import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 )
 
 // Coordinator defines what a shard state coordinator should hold

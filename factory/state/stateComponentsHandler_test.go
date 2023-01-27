@@ -3,12 +3,12 @@ package state_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/factory/mock"
-	stateComp "github.com/ElrondNetwork/elrond-go/factory/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	componentsMock "github.com/ElrondNetwork/elrond-go/testscommon/components"
-	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/factory/mock"
+	stateComp "github.com/multiversx/mx-chain-go/factory/state"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
+	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/stretchr/testify/require"
 )
 
