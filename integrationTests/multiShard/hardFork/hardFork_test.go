@@ -12,6 +12,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/genesis/process"
@@ -486,6 +487,7 @@ func hardForkImport(
 					DelegationSmartContractEnableEpoch: 0,
 				},
 			},
+			ChainRunType: common.ChainRunTypeRegular,
 		}
 
 		genesisProcessor, err := process.NewGenesisBlockCreator(argsGenesis)

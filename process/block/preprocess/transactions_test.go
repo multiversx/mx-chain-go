@@ -2182,30 +2182,3 @@ func TestTransactions_getIndexesOfLastTxProcessed(t *testing.T) {
 		assert.Equal(t, mbh.GetIndexOfLastTxProcessed(), pi.indexOfLastTxProcessedByProposer)
 	})
 }
-
-func TestTxsPreprocessor_SetScheduledTxContinueFunc(t *testing.T) {
-	t.Parallel()
-
-	args := createDefaultTransactionsProcessorArgs()
-	txs, _ := NewTransactionPreprocessor(args)
-
-	func1 := func(isShardStuck func(uint32) bool, wrappedTx *txcache.WrappedTransaction, mapSCTxs map[string]struct{}, mbInfo *createScheduledMiniBlocksInfo) (*transaction.Transaction, *block.MiniBlock, bool) {
-		return nil, nil, false
-	}
-
-	func2 := func(isShardStuck func(uint32) bool, wrappedTx *txcache.WrappedTransaction, mapSCTxs map[string]struct{}, mbInfo *createScheduledMiniBlocksInfo) (*transaction.Transaction, *block.MiniBlock, bool) {
-		return nil, nil, true
-	}
-
-	txs.SetScheduledTXContinueFunc(func1)
-	_, _, cont := txs.scheduledTXContinueFunc(isShardStuckFalse, nil, nil, nil)
-	assert.False(t, cont)
-
-	txs.SetScheduledTXContinueFunc(nil)
-	_, _, cont = txs.scheduledTXContinueFunc(isShardStuckFalse, nil, nil, nil)
-	assert.False(t, cont)
-
-	txs.SetScheduledTXContinueFunc(func2)
-	_, _, cont = txs.scheduledTXContinueFunc(isShardStuckFalse, nil, nil, nil)
-	assert.True(t, cont)
-}

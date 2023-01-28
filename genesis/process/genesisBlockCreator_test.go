@@ -134,6 +134,7 @@ func createMockArgument(
 				PenalizedTooMuchGasEnableEpoch: 0,
 			},
 		},
+		ChainRunType: common.ChainRunTypeRegular,
 	}
 
 	arg.ShardCoordinator = &mock.ShardCoordinatorMock{

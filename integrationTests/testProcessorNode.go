@@ -1512,29 +1512,31 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 	)
 	processedMiniBlocksTracker := processedMb.NewProcessedMiniBlocksTracker()
 
-	fact, _ := shard.NewPreProcessorsContainerFactory(
-		tpn.ShardCoordinator,
-		tpn.Storage,
-		TestMarshalizer,
-		TestHasher,
-		tpn.DataPool,
-		TestAddressPubkeyConverter,
-		tpn.AccntState,
-		tpn.RequestHandler,
-		tpn.TxProcessor,
-		tpn.ScProcessor,
-		tpn.ScProcessor,
-		tpn.RewardsProcessor,
-		tpn.EconomicsData,
-		tpn.GasHandler,
-		tpn.BlockTracker,
-		TestBlockSizeComputationHandler,
-		TestBalanceComputationHandler,
-		tpn.EnableEpochsHandler,
-		txTypeHandler,
-		scheduledTxsExecutionHandler,
-		processedMiniBlocksTracker,
-	)
+	args := shard.ArgPreProcessorsContainerFactory{
+		ShardCoordinator:             tpn.ShardCoordinator,
+		Store:                        tpn.Storage,
+		Marshaller:                   TestMarshalizer,
+		Hasher:                       TestHasher,
+		DataPool:                     tpn.DataPool,
+		PubkeyConverter:              TestAddressPubkeyConverter,
+		Accounts:                     tpn.AccntState,
+		RequestHandler:               tpn.RequestHandler,
+		TxProcessor:                  tpn.TxProcessor,
+		ScProcessor:                  tpn.ScProcessor,
+		ScResultProcessor:            tpn.ScProcessor,
+		RewardsTxProcessor:           tpn.RewardsProcessor,
+		EconomicsFee:                 tpn.EconomicsData,
+		GasHandler:                   tpn.GasHandler,
+		BlockTracker:                 tpn.BlockTracker,
+		BlockSizeComputation:         TestBlockSizeComputationHandler,
+		BalanceComputation:           TestBalanceComputationHandler,
+		EnableEpochsHandler:          tpn.EnableEpochsHandler,
+		TxTypeHandler:                txTypeHandler,
+		ScheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
+		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
+		ChainRunType:                 common.ChainRunTypeRegular,
+	}
+	fact, _ := shard.NewPreProcessorsContainerFactory(args)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
 	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
@@ -1750,27 +1752,28 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		tpn.ShardCoordinator)
 	processedMiniBlocksTracker := processedMb.NewProcessedMiniBlocksTracker()
 
-	fact, _ := metaProcess.NewPreProcessorsContainerFactory(
-		tpn.ShardCoordinator,
-		tpn.Storage,
-		TestMarshalizer,
-		TestHasher,
-		tpn.DataPool,
-		tpn.AccntState,
-		tpn.RequestHandler,
-		tpn.TxProcessor,
-		scProcessor,
-		tpn.EconomicsData,
-		tpn.GasHandler,
-		tpn.BlockTracker,
-		TestAddressPubkeyConverter,
-		TestBlockSizeComputationHandler,
-		TestBalanceComputationHandler,
-		tpn.EnableEpochsHandler,
-		txTypeHandler,
-		scheduledTxsExecutionHandler,
-		processedMiniBlocksTracker,
-	)
+	args := metaProcess.ArgPreProcessorsContainerFactory{
+		ShardCoordinator:             tpn.ShardCoordinator,
+		Store:                        tpn.Storage,
+		Marshaller:                   TestMarshalizer,
+		Hasher:                       TestHasher,
+		DataPool:                     tpn.DataPool,
+		Accounts:                     tpn.AccntState,
+		RequestHandler:               tpn.RequestHandler,
+		TxProcessor:                  tpn.TxProcessor,
+		ScResultProcessor:            scProcessor,
+		EconomicsFee:                 tpn.EconomicsData,
+		GasHandler:                   tpn.GasHandler,
+		BlockTracker:                 tpn.BlockTracker,
+		PubkeyConverter:              TestAddressPubkeyConverter,
+		BlockSizeComputation:         TestBlockSizeComputationHandler,
+		BalanceComputation:           TestBalanceComputationHandler,
+		EnableEpochsHandler:          tpn.EnableEpochsHandler,
+		TxTypeHandler:                txTypeHandler,
+		ScheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
+		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
+	}
+	fact, _ := metaProcess.NewPreProcessorsContainerFactory(args)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
 	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
