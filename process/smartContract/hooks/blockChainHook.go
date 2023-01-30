@@ -880,3 +880,8 @@ func stopMeasure(hook string, sw *core.StopWatch) {
 		log.Trace(hook, "duration", duration)
 	}
 }
+
+// TODO not used yet, will be merged from rc/v1.5
+func (bh *BlockChainHookImpl) ExecuteSmartContractCallOnOtherVM(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+	return nil, nil
+}

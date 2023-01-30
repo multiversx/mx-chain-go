@@ -248,7 +248,7 @@ func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddressBytes, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce+1, factory.ArwenVirtualMachine)
+	scAddressBytes, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce+1, factory.WasmVirtualMachine)
 	fmt.Println(hex.EncodeToString(scAddressBytes))
 
 	tx := vm.CreateTx(

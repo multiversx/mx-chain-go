@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/esdt"
+	wasmvm "github.com/multiversx/mx-chain-go/integrationTests/vm/wasm/wasmvm"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	test "github.com/multiversx/mx-chain-vm-go/testcommon"
 )
@@ -60,13 +61,13 @@ func ESDTMultiTransferThroughForwarder_MockContracts_SetupNetwork(t *testing.T) 
 	node0shard0 := net.NodesSharded[0][0]
 	node0shard1 := net.NodesSharded[1][0]
 
-	forwarder, forwarderAccount := arwenvm.GetAddressForNewAccountOnWalletAndNode(t, net, owner, node0shard0)
-	arwenvm.SetCodeMetadata(t, []byte{0, vmcommon.MetadataPayable}, node0shard0, forwarderAccount)
+	forwarder, forwarderAccount := wasmvm.GetAddressForNewAccountOnWalletAndNode(t, net, owner, node0shard0)
+	wasmvm.SetCodeMetadata(t, []byte{0, vmcommon.MetadataPayable}, node0shard0, forwarderAccount)
 
-	vaultShard1, vaultShard1Account := arwenvm.GetAddressForNewAccountOnWalletAndNode(t, net, owner, node0shard0)
-	arwenvm.SetCodeMetadata(t, []byte{0, vmcommon.MetadataPayable}, node0shard0, vaultShard1Account)
+	vaultShard1, vaultShard1Account := wasmvm.GetAddressForNewAccountOnWalletAndNode(t, net, owner, node0shard0)
+	wasmvm.SetCodeMetadata(t, []byte{0, vmcommon.MetadataPayable}, node0shard0, vaultShard1Account)
 
-	vaultShard2, _ := arwenvm.GetAddressForNewAccountOnWalletAndNode(t, net, owner2, node0shard1)
+	vaultShard2, _ := wasmvm.GetAddressForNewAccountOnWalletAndNode(t, net, owner2, node0shard1)
 
 	return net, owner, owner2, node0shard0, forwarder, vaultShard1, vaultShard2
 }
@@ -81,7 +82,7 @@ func ESDTMultiTransferThroughForwarder_MockContracts_Deploy(t *testing.T, legacy
 		GasToLock:          300_000,
 	}
 
-	arwenvm.InitializeMockContracts(
+	wasmvm.InitializeMockContracts(
 		t, net,
 		test.CreateMockContractOnShard(forwarder, 0).
 			WithOwnerAddress(ownerShard1.Address).
@@ -135,7 +136,7 @@ func ESDTMultiTransferWithWrongArguments_MockContracts_Deploy(t *testing.T, net 
 		IsLegacyAsync: true,
 	}
 
-	arwenvm.InitializeMockContracts(
+	wasmvm.InitializeMockContracts(
 		t, net,
 		test.CreateMockContractOnShard(forwarder, 0).
 			WithOwnerAddress(ownerShard1.Address).

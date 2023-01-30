@@ -239,7 +239,7 @@ func isOutOfProcess(t testing.TB, container process.VirtualMachinesContainer) bo
 	require.Nil(t, err)
 	require.NotNil(t, vm)
 
-	_, ok := vm.(*ipcNodePart1p2.ArwenDriver) // TODO rename this on other repos
+	_, ok := vm.(*ipcNodePart1p2.VMDriver) // TODO rename this on other repos
 	return ok
 }
 

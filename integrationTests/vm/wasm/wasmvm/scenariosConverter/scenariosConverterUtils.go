@@ -98,7 +98,7 @@ func BenchmarkScenariosSpecificTx(b *testing.B, scenariosTestPath string) {
 		return
 	}
 	defer testContext.Close()
-	if benchmarkTxPos == InvalidBenchmarkTxPos {
+	if benchmarkTxPos == mge.InvalidBenchmarkTxPos {
 		log.Trace("no transactions marked for benchmarking")
 	}
 	if len(transactions) > 1 {
@@ -116,21 +116,21 @@ func BenchmarkScenariosSpecificTx(b *testing.B, scenariosTestPath string) {
 
 // SetStateFromScenariosTest recieves path to scenariosTest, returns a VMTestContext with the specified accounts, an array with the specified transactions and an error
 func SetStateFromScenariosTest(scenariosTestPath string) (testContext *vm.VMTestContext, transactions []*transaction.Transaction, bechmarkTxPos int, err error) {
-	stateAndBenchmarkInfo, err := mge.GetAccountsAndTransactionsFromMandos(scenariosTestPath) // TODO rename this in a future PR
+	stateAndBenchmarkInfo, err := mge.GetAccountsAndTransactionsFromScenarios(scenariosTestPath) // TODO rename this in a future PR
 	if err != nil {
-		return nil, nil, InvalidBenchmarkTxPos, err
+		return nil, nil, mge.InvalidBenchmarkTxPos, err
 	}
 	testContext, err = vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	if err != nil {
-		return nil, nil, InvalidBenchmarkTxPos, err
+		return nil, nil, mge.InvalidBenchmarkTxPos, err
 	}
 	err = CreateAccountsFromScenariosAccs(testContext, stateAndBenchmarkInfo.Accs)
 	if err != nil {
-		return nil, nil, InvalidBenchmarkTxPos, err
+		return nil, nil, mge.InvalidBenchmarkTxPos, err
 	}
 	newAddresses, err := DeploySCsFromScenariosDeployTxs(testContext, stateAndBenchmarkInfo.DeployTxs)
 	if err != nil {
-		return nil, nil, InvalidBenchmarkTxPos, err
+		return nil, nil, mge.InvalidBenchmarkTxPos, err
 	}
 	ReplaceScenariosScAddressesWithNewScAddresses(stateAndBenchmarkInfo.DeployedAccs, newAddresses, stateAndBenchmarkInfo.Txs)
 	transactions = CreateTransactionsFromScenariosTxs(stateAndBenchmarkInfo.Txs)
@@ -139,7 +139,7 @@ func SetStateFromScenariosTest(scenariosTestPath string) (testContext *vm.VMTest
 
 // CheckConverter -
 func CheckConverter(t *testing.T, scenariosTestPath string) {
-	stateAndBenchmarkInfo, err := mge.GetAccountsAndTransactionsFromMandos(scenariosTestPath) // TODO rename this in a future PR
+	stateAndBenchmarkInfo, err := mge.GetAccountsAndTransactionsFromScenarios(scenariosTestPath) // TODO rename this in a future PR
 	require.Nil(t, err)
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)

@@ -414,3 +414,7 @@ func (stub *BlockChainHookStub) IsLimitedTransfer(arg []byte) bool {
 
 	return false
 }
+
+func (stub *BlockChainHookStub) ExecuteSmartContractCallOnOtherVM(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+	return nil, nil
+}

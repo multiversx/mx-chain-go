@@ -1413,8 +1413,8 @@ func TestExecOnDestWithTokenTransferFromScAtoScBWithIntermediaryExecOnDest_NotEn
 		SCProcessorV2EnableEpoch:                integrationTests.UnreachableEpoch,
 		FailExecutionOnEveryAPIErrorEnableEpoch: integrationTests.UnreachableEpoch,
 	}
-	arwenVersion := config.ArwenVersionByEpoch{Version: "v1.4"}
-	vmConfig := &config.VirtualMachineConfig{ArwenVersions: []config.ArwenVersionByEpoch{arwenVersion}}
+	arwenVersion := config.WasmVMVersionByEpoch{Version: "v1.4"}
+	vmConfig := &config.VirtualMachineConfig{WasmVMVersions: []config.WasmVMVersionByEpoch{arwenVersion}}
 	nodes := integrationTests.CreateNodesWithEnableEpochsAndVmConfig(
 		numOfShards,
 		nodesPerShard,

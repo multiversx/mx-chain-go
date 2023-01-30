@@ -1,4 +1,4 @@
-package arwenvm
+package wasmvm
 
 import (
 	"math/big"
@@ -28,7 +28,7 @@ func InitializeMockContracts(
 	mockSCs ...testcommon.MockTestSmartContract,
 ) {
 	shardToHost, shardToInstanceBuilder :=
-		CreateHostAndInstanceBuilder(t, net, factory.ArwenVirtualMachine)
+		CreateHostAndInstanceBuilder(t, net, factory.WasmVirtualMachine)
 	for _, mockSC := range mockSCs {
 		shardID := mockSC.GetShardID()
 		mockSC.Initialize(t, shardToHost[shardID], shardToInstanceBuilder[shardID], true)
@@ -107,7 +107,7 @@ func CreateHostAndInstanceBuilder(t *testing.T, net *integrationTests.TestNetwor
 
 	for shardID := uint32(0); shardID < numberOfShards; shardID++ {
 		node := net.NodesSharded[shardID][0]
-		host, err := node.VMContainer.Get(factory.ArwenVirtualMachine)
+		host, err := node.VMContainer.Get(factory.WasmVirtualMachine)
 		require.NotNil(t, host)
 		require.Nil(t, err)
 		host.(vmhost.VMHost).Runtime().ReplaceVMExecutor(shardToInstanceBuilder[shardID])

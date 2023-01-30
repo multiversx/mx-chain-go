@@ -1,4 +1,4 @@
-package arwenvm
+package wasmvm
 
 import (
 	"bytes"
