@@ -1843,6 +1843,12 @@ func TestEsdt_ExecuteTogglePauseSavesTokenWithPausedFlagSet(t *testing.T) {
 	esdtData := &ESDTDataV2{}
 	_ = args.Marshalizer.Unmarshal(esdtData, eei.GetStorage(tokenName))
 	assert.Equal(t, true, esdtData.IsPaused)
+
+	require.Equal(t, &vmcommon.LogEntry{
+		Identifier: []byte(core.BuiltInFunctionESDTPause),
+		Topics:     [][]byte{[]byte("esdtToken")},
+		Address:    []byte("owner"),
+	}, eei.logs[0])
 }
 
 func TestEsdt_ExecuteTogglePauseShouldWork(t *testing.T) {
@@ -1940,6 +1946,12 @@ func TestEsdt_ExecuteUnPauseSavesTokenWithPausedFlagSetToFalse(t *testing.T) {
 	esdtData := &ESDTDataV2{}
 	_ = args.Marshalizer.Unmarshal(esdtData, eei.GetStorage(tokenName))
 	assert.Equal(t, false, esdtData.IsPaused)
+
+	require.Equal(t, &vmcommon.LogEntry{
+		Identifier: []byte(core.BuiltInFunctionESDTUnPause),
+		Topics:     [][]byte{[]byte("esdtToken")},
+		Address:    []byte("owner"),
+	}, eei.logs[0])
 }
 
 func TestEsdt_ExecuteUnPauseShouldWork(t *testing.T) {
