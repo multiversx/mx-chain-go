@@ -75,11 +75,11 @@ func getTxs(txs map[string]data.TransactionHandlerWithGasUsedAndFee) (map[string
 
 	for txHash, txHandler := range txs {
 		tx, castOk := txHandler.GetTxHandler().(*transaction.Transaction)
+		txHashHex := getHexEncodedHash(txHash)
 		if !castOk {
-			return nil, fmt.Errorf("%w, hash: %s", errCannotCastTransaction, txHash)
+			return nil, fmt.Errorf("%w, hash: %s", errCannotCastTransaction, txHashHex)
 		}
 
-		txHashHex := getHexEncodedHash(txHash)
 		ret[txHashHex] = &firehose.TxInfo{
 			Transaction:    tx,
 			FeeInfo:        getFirehoseFeeInfo(txHandler),
@@ -100,11 +100,11 @@ func getScrs(scrs map[string]data.TransactionHandlerWithGasUsedAndFee) (map[stri
 
 	for scrHash, txHandler := range scrs {
 		tx, castOk := txHandler.GetTxHandler().(*smartContractResult.SmartContractResult)
+		scrHashHex := getHexEncodedHash(scrHash)
 		if !castOk {
-			return nil, fmt.Errorf("%w, hash: %s", errCannotCastSCR, scrHash)
+			return nil, fmt.Errorf("%w, hash: %s", errCannotCastSCR, scrHashHex)
 		}
 
-		scrHashHex := getHexEncodedHash(scrHash)
 		ret[scrHashHex] = &firehose.SCRInfo{
 			SmartContractResult: tx,
 			FeeInfo:             getFirehoseFeeInfo(txHandler),
@@ -120,11 +120,11 @@ func getRewards(rewards map[string]data.TransactionHandlerWithGasUsedAndFee) (ma
 
 	for hash, txHandler := range rewards {
 		reward, castOk := txHandler.GetTxHandler().(*rewardTx.RewardTx)
+		hexHex := getHexEncodedHash(hash)
 		if !castOk {
-			return nil, fmt.Errorf("%w, hash: %s", errCannotCastReward, hash)
+			return nil, fmt.Errorf("%w, hash: %s", errCannotCastReward, hexHex)
 		}
 
-		hexHex := getHexEncodedHash(hash)
 		ret[hexHex] = &firehose.RewardInfo{
 			Reward:         reward,
 			ExecutionOrder: uint32(txHandler.GetExecutionOrder()),
@@ -139,11 +139,11 @@ func getReceipts(receipts map[string]data.TransactionHandlerWithGasUsedAndFee) (
 
 	for hash, receiptHandler := range receipts {
 		tx, castOk := receiptHandler.GetTxHandler().(*receipt.Receipt)
+		hashHex := getHexEncodedHash(hash)
 		if !castOk {
-			return nil, fmt.Errorf("%w, hash: %s", errCannotCastReceipt, hash)
+			return nil, fmt.Errorf("%w, hash: %s", errCannotCastReceipt, hashHex)
 		}
 
-		hashHex := getHexEncodedHash(hash)
 		ret[hashHex] = tx
 	}
 
@@ -156,11 +156,11 @@ func getLogs(logs []*data.LogData) (map[string]*transaction.Log, error) {
 	for _, logHandler := range logs {
 		eventHandlers := logHandler.GetLogEvents()
 		events, err := getEvents(eventHandlers)
+		txHashHex := getHexEncodedHash(logHandler.TxHash)
 		if err != nil {
-			return nil, fmt.Errorf("%w, hash: %s", err, logHandler.TxHash)
+			return nil, fmt.Errorf("%w, hash: %s", err, txHashHex)
 		}
 
-		txHashHex := getHexEncodedHash(logHandler.TxHash)
 		ret[txHashHex] = &transaction.Log{
 			Address: logHandler.GetAddress(),
 			Events:  events,
