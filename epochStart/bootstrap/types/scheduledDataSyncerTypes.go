@@ -2,6 +2,7 @@ package types
 
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/update"
@@ -25,7 +26,7 @@ type ScheduledDataSyncerCreator interface {
 
 // ScheduledDataSyncer interface allows to synchronize the correct headers and root hash with or without scheduled sc calls feature activated.
 type ScheduledDataSyncer interface {
-	UpdateSyncDataIfNeeded(notarizedShardHeader data.ShardHeaderHandler) (data.ShardHeaderHandler, map[string]data.HeaderHandler, error)
+	UpdateSyncDataIfNeeded(notarizedShardHeader data.ShardHeaderHandler) (data.ShardHeaderHandler, map[string]data.HeaderHandler, map[string]*block.MiniBlock, error)
 	GetRootHashToSync(notarizedShardHeader data.ShardHeaderHandler) []byte
 	IsInterfaceNil() bool
 }
