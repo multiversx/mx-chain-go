@@ -61,7 +61,7 @@ func (gfp *gasUsedAndFeeProcessor) prepareTxWithResultsBasedOnLogs(
 			continue
 		}
 		if core.SignalErrorOperation == event.Identifier {
-			fee := gfp.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(tx, tx.Tx.GetGasLimit())
+			fee := gfp.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(tx, tx.GasLimit)
 			tx.GasUsed = tx.GasLimit
 			tx.Fee = fee.String()
 		}
