@@ -56,6 +56,39 @@ func NewFeeComputer(args ArgsNewFeeComputer) (*feeComputer, error) {
 	return computer, nil
 }
 
+// ComputeGasUsedAndFeeBasedOnRefundValue computes gas used and fee based on the refund value, at a given epoch
+func (computer *feeComputer) ComputeGasUsedAndFeeBasedOnRefundValue(tx *transaction.ApiTransactionResult, refundValue *big.Int) (uint64, *big.Int) {
+	instance, err := computer.getOrCreateInstance(tx.Epoch)
+	if err != nil {
+		log.Error("ComputeTransactionFee(): unexpected error when creating an economicsData instance", "epoch", tx.Epoch, "error", err)
+		return 0, big.NewInt(0)
+	}
+
+	return instance.ComputeGasUsedAndFeeBasedOnRefundValue(tx.Tx, refundValue)
+}
+
+// ComputeTxFeeBasedOnGasUsed computes fee based on gas used, at a given epoch
+func (computer *feeComputer) ComputeTxFeeBasedOnGasUsed(tx *transaction.ApiTransactionResult, gasUsed uint64) *big.Int {
+	instance, err := computer.getOrCreateInstance(tx.Epoch)
+	if err != nil {
+		log.Error("ComputeTransactionFee(): unexpected error when creating an economicsData instance", "epoch", tx.Epoch, "error", err)
+		return big.NewInt(0)
+	}
+
+	return instance.ComputeTxFeeBasedOnGasUsed(tx.Tx, gasUsed)
+}
+
+// ComputeGasLimit computes a transaction gas limit, at a given epoch
+func (computer *feeComputer) ComputeGasLimit(tx *transaction.ApiTransactionResult) uint64 {
+	instance, err := computer.getOrCreateInstance(tx.Epoch)
+	if err != nil {
+		log.Error("ComputeTransactionFee(): unexpected error when creating an economicsData instance", "epoch", tx.Epoch, "error", err)
+		return 0
+	}
+
+	return instance.ComputeGasLimit(tx.Tx)
+}
+
 // ComputeTransactionFee computes a transaction fee, at a given epoch
 func (computer *feeComputer) ComputeTransactionFee(tx *transaction.ApiTransactionResult) *big.Int {
 	instance, err := computer.getOrCreateInstance(tx.Epoch)
