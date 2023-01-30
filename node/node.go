@@ -344,7 +344,8 @@ func (n *Node) GetValueForKey(address string, key string, options api.AccountQue
 
 // GetESDTData returns the esdt balance and properties from a given account
 func (n *Node) GetESDTData(address, tokenID string, nonce uint64, options api.AccountQueryOptions) (*esdt.ESDigitalToken, api.BlockInfo, error) {
-	userAccount, blockInfo, err := n.loadUserAccountHandlerByAddress(address, options)
+	// TODO: refactor here as to ensure userAccount and systemAccount are on the same root-hash
+	userAccount, _, err := n.loadUserAccountHandlerByAddress(address, options)
 	if err != nil {
 		return nil, api.BlockInfo{}, err
 	}
@@ -354,9 +355,7 @@ func (n *Node) GetESDTData(address, tokenID string, nonce uint64, options api.Ac
 		return nil, api.BlockInfo{}, ErrCannotCastUserAccountHandlerToVmCommonUserAccountHandler
 	}
 
-	optionsForLoadSystemAccount := options
-	optionsForLoadSystemAccount.BlockRootHash = []byte(blockInfo.RootHash)
-	systemAccount, blockInfo, err := n.loadSystemAccountWithOptions(optionsForLoadSystemAccount)
+	systemAccount, blockInfo, err := n.loadSystemAccountWithOptions(options)
 	if err != nil {
 		return nil, api.BlockInfo{}, err
 	}
@@ -510,14 +509,13 @@ func bigToString(bigValue *big.Int) string {
 
 // GetAllESDTTokens returns all the ESDTs that the given address interacted with
 func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions, ctx context.Context) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error) {
-	userAccount, blockInfo, err := n.loadUserAccountHandlerByAddress(address, options)
+	// TODO: refactor here as to ensure userAccount and systemAccount are on the same root-hash
+	userAccount, _, err := n.loadUserAccountHandlerByAddress(address, options)
 	if err != nil {
 		return nil, api.BlockInfo{}, err
 	}
 
-	optionsForLoadSystemAccount := options
-	optionsForLoadSystemAccount.BlockRootHash = []byte(blockInfo.RootHash)
-	systemAccount, blockInfo, err := n.loadSystemAccountWithOptions(optionsForLoadSystemAccount)
+	systemAccount, blockInfo, err := n.loadSystemAccountWithOptions(options)
 	if err != nil {
 		return nil, api.BlockInfo{}, err
 	}
