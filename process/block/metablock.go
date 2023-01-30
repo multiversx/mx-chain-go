@@ -615,7 +615,7 @@ func (mp *metaProcessor) indexBlock(
 		PreviousHeader:         lastMetaBlock,
 		RewardsTxs:             rewardsTxs,
 		NotarizedHeadersHashes: notarizedHeadersHashes,
-		HighestFinalBlockNonce: mp.forkDetector.ProbableHighestNonce(),
+		HighestFinalBlockNonce: mp.forkDetector.GetHighestFinalBlockNonce(),
 		HighestFinalBlockHash:  mp.forkDetector.GetHighestFinalBlockHash(),
 	})
 	if err != nil {
