@@ -20,16 +20,15 @@ var log = logger.GetOrCreate("process/throttle/antiflood")
 var _ process.P2PAntifloodHandler = (*p2pAntiflood)(nil)
 
 type p2pAntiflood struct {
-	chainParametersNotifier process.ChainParametersSubscriber
-	blacklistHandler        process.PeerBlackListCacher
-	floodPreventers         []process.FloodPreventer
-	topicPreventer          process.TopicFloodPreventer
-	mutDebugger             sync.RWMutex
-	debugger                process.AntifloodDebugger
-	peerValidatorMapper     process.PeerValidatorMapper
-	mapTopicsFromAll        map[string]struct{}
-	mutTopicCheck           sync.RWMutex
-	shardID                 core.OptionalUint32
+	blacklistHandler    process.PeerBlackListCacher
+	floodPreventers     []process.FloodPreventer
+	topicPreventer      process.TopicFloodPreventer
+	mutDebugger         sync.RWMutex
+	debugger            process.AntifloodDebugger
+	peerValidatorMapper process.PeerValidatorMapper
+	mapTopicsFromAll    map[string]struct{}
+	mutTopicCheck       sync.RWMutex
+	shardID             core.OptionalUint32
 }
 
 // NewP2PAntiflood creates a new p2p anti flood protection mechanism built on top of a flood preventer implementation.

@@ -15,7 +15,6 @@ type chainParametersNotifier struct {
 	mutData                sync.RWMutex
 	wasInitialized         bool
 	currentChainParameters config.ChainParametersByEpochConfig
-	currentTimestamp       uint64
 	mutHandler             sync.RWMutex
 	handlers               []common.ChainParametersSubscriptionHandler
 }
