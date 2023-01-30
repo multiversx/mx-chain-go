@@ -473,6 +473,18 @@ func (mcc *managedCoreComponents) EpochNotifier() process.EpochNotifier {
 	return mcc.coreComponents.epochNotifier
 }
 
+// ChainParametersSubscriber returns the chain parameters subscriber
+func (mcc *managedCoreComponents) ChainParametersSubscriber() process.ChainParametersSubscriber {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return nil
+	}
+
+	return mcc.coreComponents.chainParametersSubscriber
+}
+
 // EnableRoundsHandler returns the rounds activation handler
 func (mcc *managedCoreComponents) EnableRoundsHandler() process.EnableRoundsHandler {
 	mcc.mutCoreComponents.RLock()

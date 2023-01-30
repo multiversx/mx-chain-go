@@ -8,6 +8,8 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common/chainparametersnotifier"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
@@ -306,24 +308,32 @@ func TestP2pAntiflood_ResetForTopicSetMaxMessagesShouldWork(t *testing.T) {
 	assert.Equal(t, setMaxMessagesForTopicNum, setMaxMessagesForTopicParameter2)
 }
 
-func TestP2pAntiflood_ApplyConsensusSize(t *testing.T) {
+func TestP2pAntiflood_SetConsensusSizeNotifier(t *testing.T) {
 	t.Parallel()
 
 	wasCalled := false
 	expectedSize := 878264
+	var actualSize int
 	afm, _ := antiflood.NewP2PAntiflood(
 		&mock.PeerBlackListHandlerStub{},
 		&mock.TopicAntiFloodStub{},
 		&mock.FloodPreventerStub{
 			ApplyConsensusSizeCalled: func(size int) {
-				assert.Equal(t, expectedSize, size)
+				actualSize = size
 				wasCalled = true
 			},
 		},
 	)
 
-	afm.ApplyConsensusSize(expectedSize)
+	chainParamsSubscriber := chainparametersnotifier.New()
+	afm.SetConsensusSizeNotifier(chainParamsSubscriber, 5)
+
+	chainParamsSubscriber.UpdateCurrentChainParameters(config.ChainParametersByEpochConfig{
+		ShardConsensusGroupSize: uint32(expectedSize),
+	})
+
 	assert.True(t, wasCalled)
+	assert.Equal(t, expectedSize, actualSize)
 }
 
 func TestP2pAntiflood_SetDebuggerNilDebuggerShouldErr(t *testing.T) {

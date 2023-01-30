@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
 )
 
@@ -337,5 +338,11 @@ type EnableEpochsHandler interface {
 	IsWipeSingleNFTLiquidityDecreaseEnabled() bool
 	IsAlwaysSaveTokenMetaDataEnabled() bool
 
+	IsInterfaceNil() bool
+}
+
+// ChainParametersSubscriptionHandler defines the behavior of a chain parameters subscription handler
+type ChainParametersSubscriptionHandler interface {
+	ChainParametersChanged(chainParameters config.ChainParametersByEpochConfig)
 	IsInterfaceNil() bool
 }

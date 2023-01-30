@@ -17,28 +17,29 @@ import (
 
 // CoreComponentsMock -
 type CoreComponentsMock struct {
-	IntMarsh                    marshal.Marshalizer
-	TxMarsh                     marshal.Marshalizer
-	Hash                        hashing.Hasher
-	TxSignHasherField           hashing.Hasher
-	UInt64ByteSliceConv         typeConverters.Uint64ByteSliceConverter
-	AddrPubKeyConv              core.PubkeyConverter
-	ValPubKeyConv               core.PubkeyConverter
-	PathHdl                     storage.PathManagerHandler
-	ChainIdCalled               func() string
-	MinTransactionVersionCalled func() uint32
-	GenesisNodesSetupCalled     func() sharding.GenesisNodesSetupHandler
-	TxVersionCheckField         process.TxVersionCheckerHandler
-	EpochNotifierField          process.EpochNotifier
-	EnableEpochsHandlerField    common.EnableEpochsHandler
-	RoundField                  consensus.RoundHandler
-	StatusField                 core.AppStatusHandler
-	ChanStopNode                chan endProcess.ArgEndProcess
-	NodeTypeProviderField       core.NodeTypeProviderHandler
-	EconomicsDataField          process.EconomicsDataHandler
-	ProcessStatusHandlerField   common.ProcessStatusHandler
-	ChainParametersHandlerField process.ChainParametersHandler
-	HardforkTriggerPubKeyField  []byte
+	IntMarsh                       marshal.Marshalizer
+	TxMarsh                        marshal.Marshalizer
+	Hash                           hashing.Hasher
+	TxSignHasherField              hashing.Hasher
+	UInt64ByteSliceConv            typeConverters.Uint64ByteSliceConverter
+	AddrPubKeyConv                 core.PubkeyConverter
+	ValPubKeyConv                  core.PubkeyConverter
+	PathHdl                        storage.PathManagerHandler
+	ChainIdCalled                  func() string
+	MinTransactionVersionCalled    func() uint32
+	GenesisNodesSetupCalled        func() sharding.GenesisNodesSetupHandler
+	TxVersionCheckField            process.TxVersionCheckerHandler
+	EpochNotifierField             process.EpochNotifier
+	EnableEpochsHandlerField       common.EnableEpochsHandler
+	RoundField                     consensus.RoundHandler
+	StatusField                    core.AppStatusHandler
+	ChanStopNode                   chan endProcess.ArgEndProcess
+	NodeTypeProviderField          core.NodeTypeProviderHandler
+	EconomicsDataField             process.EconomicsDataHandler
+	ProcessStatusHandlerField      common.ProcessStatusHandler
+	ChainParametersHandlerField    process.ChainParametersHandler
+	HardforkTriggerPubKeyField     []byte
+	ChainParametersSubscriberField process.ChainParametersSubscriber
 }
 
 // ChanStopNodeProcess -
@@ -167,6 +168,11 @@ func (ccm *CoreComponentsMock) ProcessStatusHandler() common.ProcessStatusHandle
 // HardforkTriggerPubKey -
 func (ccm *CoreComponentsMock) HardforkTriggerPubKey() []byte {
 	return ccm.HardforkTriggerPubKeyField
+}
+
+// ChainParametersSubscriber -
+func (ccm *CoreComponentsMock) ChainParametersSubscriber() process.ChainParametersSubscriber {
+	return ccm.ChainParametersSubscriberField
 }
 
 // IsInterfaceNil -

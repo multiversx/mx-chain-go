@@ -8,7 +8,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/core/watchdog"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-storage-go/timecache"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/config"
@@ -30,6 +29,7 @@ import (
 	"github.com/multiversx/mx-chain-go/trie/storageMarker"
 	"github.com/multiversx/mx-chain-go/update"
 	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/multiversx/mx-chain-storage-go/timecache"
 )
 
 var log = logger.GetOrCreate("factory")
@@ -235,13 +235,10 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 	cc.worker.StartWorking()
 	ccf.dataComponents.Datapool().Headers().RegisterHandler(cc.worker.ReceivedHeader)
 
-	consensusSize := ccf.processComponents.NodesCoordinator().ConsensusGroupSizeForShardAndEpoch(
+	ccf.networkComponents.InputAntiFloodHandler().SetConsensusSizeNotifier(
+		ccf.coreComponents.ChainParametersSubscriber(),
 		ccf.processComponents.ShardCoordinator().SelfId(),
-		ccf.coreComponents.EpochNotifier().CurrentEpoch(),
 	)
-	// apply consensus group size on the input antiflooder just before consensus creation topic
-	// TODO: change the antiflood handler to dynamically be updated about consensus size changes
-	ccf.networkComponents.InputAntiFloodHandler().ApplyConsensusSize(consensusSize)
 	err = ccf.createConsensusTopic(cc)
 	if err != nil {
 		return nil, err

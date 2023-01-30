@@ -865,12 +865,18 @@ type TopicFloodPreventer interface {
 	IsInterfaceNil() bool
 }
 
+// ChainParametersSubscriber is the interface that can be used to subscribe for chain parameters changes
+type ChainParametersSubscriber interface {
+	RegisterNotifyHandler(handler common.ChainParametersSubscriptionHandler)
+	IsInterfaceNil() bool
+}
+
 // P2PAntifloodHandler defines the behavior of a component able to signal that the system is too busy (or flooded) processing
 // p2p messages
 type P2PAntifloodHandler interface {
 	CanProcessMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
 	CanProcessMessagesOnTopic(pid core.PeerID, topic string, numMessages uint32, totalSize uint64, sequence []byte) error
-	ApplyConsensusSize(size int)
+	SetConsensusSizeNotifier(chainParametersNotifier ChainParametersSubscriber, shardID uint32)
 	SetDebugger(debugger AntifloodDebugger) error
 	BlacklistPeer(peer core.PeerID, reason string, duration time.Duration)
 	IsOriginatorEligibleForTopic(pid core.PeerID, topic string) error
@@ -1157,6 +1163,7 @@ type CoreComponentsHolder interface {
 	TxVersionChecker() TxVersionCheckerHandler
 	GenesisNodesSetup() sharding.GenesisNodesSetupHandler
 	EpochNotifier() EpochNotifier
+	ChainParametersSubscriber() ChainParametersSubscriber
 	ChanStopNodeProcess() chan endProcess.ArgEndProcess
 	NodeTypeProvider() core.NodeTypeProviderHandler
 	ProcessStatusHandler() common.ProcessStatusHandler

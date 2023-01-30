@@ -20,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	marshalizerFactory "github.com/multiversx/mx-chain-core-go/marshal/factory"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/chainparametersnotifier"
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	commonFactory "github.com/multiversx/mx-chain-go/common/factory"
 	"github.com/multiversx/mx-chain-go/common/forking"
@@ -98,6 +99,7 @@ type coreComponents struct {
 	chainID                       string
 	minTransactionVersion         uint32
 	epochNotifier                 process.EpochNotifier
+	chainParametersSubscriber     process.ChainParametersSubscriber
 	enableRoundsHandler           process.EnableRoundsHandler
 	epochStartNotifierWithConfirm factory.EpochStartNotifierWithConfirm
 	chanStopNodeProcess           chan endProcess.ArgEndProcess
@@ -182,9 +184,11 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	epochNotifier := forking.NewGenericEpochNotifier()
 	epochStartHandlerWithConfirm := notifier.NewEpochStartSubscriptionHandler()
 
+	chainParametersNotifier := chainparametersnotifier.New()
 	argsChainParametersHandler := sharding.ArgsChainParametersHolder{
 		EpochStartEventNotifier: epochStartHandlerWithConfirm,
 		ChainParameters:         ccf.config.GeneralSettings.ChainParametersByEpoch,
+		ChainParametersNotifier: chainParametersNotifier,
 	}
 	chainParametersHandler, err := sharding.NewChainParametersHolder(argsChainParametersHandler)
 	if err != nil {
@@ -353,6 +357,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		chainID:                       ccf.config.GeneralSettings.ChainID,
 		minTransactionVersion:         ccf.config.GeneralSettings.MinTransactionVersion,
 		epochNotifier:                 epochNotifier,
+		chainParametersSubscriber:     chainParametersNotifier,
 		enableRoundsHandler:           enableRoundsHandler,
 		epochStartNotifierWithConfirm: notifier.NewEpochStartSubscriptionHandler(),
 		chanStopNodeProcess:           ccf.chanStopNodeProcess,

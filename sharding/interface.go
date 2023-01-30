@@ -80,3 +80,9 @@ type ChainParametersHandler interface {
 	ChainParametersForEpoch(epoch uint32) (config.ChainParametersByEpochConfig, error)
 	IsInterfaceNil() bool
 }
+
+// ChainParametersNotifierHandler defines the actions that need to be done by a component that can handle chain parameters changes
+type ChainParametersNotifierHandler interface {
+	UpdateCurrentChainParameters(params config.ChainParametersByEpochConfig)
+	IsInterfaceNil() bool
+}

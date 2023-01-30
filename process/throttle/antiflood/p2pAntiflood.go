@@ -7,6 +7,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/throttle/antiflood/disabled"
@@ -19,14 +20,16 @@ var log = logger.GetOrCreate("process/throttle/antiflood")
 var _ process.P2PAntifloodHandler = (*p2pAntiflood)(nil)
 
 type p2pAntiflood struct {
-	blacklistHandler    process.PeerBlackListCacher
-	floodPreventers     []process.FloodPreventer
-	topicPreventer      process.TopicFloodPreventer
-	mutDebugger         sync.RWMutex
-	debugger            process.AntifloodDebugger
-	peerValidatorMapper process.PeerValidatorMapper
-	mapTopicsFromAll    map[string]struct{}
-	mutTopicCheck       sync.RWMutex
+	chainParametersNotifier process.ChainParametersSubscriber
+	blacklistHandler        process.PeerBlackListCacher
+	floodPreventers         []process.FloodPreventer
+	topicPreventer          process.TopicFloodPreventer
+	mutDebugger             sync.RWMutex
+	debugger                process.AntifloodDebugger
+	peerValidatorMapper     process.PeerValidatorMapper
+	mapTopicsFromAll        map[string]struct{}
+	mutTopicCheck           sync.RWMutex
+	shardID                 core.OptionalUint32
 }
 
 // NewP2PAntiflood creates a new p2p anti flood protection mechanism built on top of a flood preventer implementation.
@@ -55,6 +58,28 @@ func NewP2PAntiflood(
 		mapTopicsFromAll:    make(map[string]struct{}),
 		peerValidatorMapper: &disabled.PeerValidatorMapper{},
 	}, nil
+}
+
+// SetConsensusSizeNotifier sets the consensus size notifier
+func (af *p2pAntiflood) SetConsensusSizeNotifier(chainParametersNotifier process.ChainParametersSubscriber, shardID uint32) {
+	af.shardID = core.OptionalUint32{
+		HasValue: true,
+		Value:    shardID,
+	}
+
+	chainParametersNotifier.RegisterNotifyHandler(af)
+}
+
+// ChainParametersChanged will be called when new chain parameters are confirmed on the network
+func (af *p2pAntiflood) ChainParametersChanged(chainParameters config.ChainParametersByEpochConfig) {
+	size := chainParameters.ShardConsensusGroupSize
+	if af.shardID.HasValue && af.shardID.Value == core.MetachainShardId {
+		size = chainParameters.MetachainConsensusGroupSize
+	}
+
+	for _, fp := range af.floodPreventers {
+		fp.ApplyConsensusSize(int(size))
+	}
 }
 
 // CanProcessMessage signals if a p2p message can be processed or not
@@ -208,13 +233,6 @@ func (af *p2pAntiflood) SetMaxMessagesForTopic(topic string, numMessages uint32)
 // ResetForTopic clears all map values for a given topic
 func (af *p2pAntiflood) ResetForTopic(topic string) {
 	af.topicPreventer.ResetForTopic(topic)
-}
-
-// ApplyConsensusSize applies the consensus size on all contained flood preventers
-func (af *p2pAntiflood) ApplyConsensusSize(size int) {
-	for _, fp := range af.floodPreventers {
-		fp.ApplyConsensusSize(size)
-	}
 }
 
 // SetDebugger sets the antiflood debugger

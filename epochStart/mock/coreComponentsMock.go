@@ -17,26 +17,27 @@ import (
 
 // CoreComponentsMock -
 type CoreComponentsMock struct {
-	IntMarsh                     marshal.Marshalizer
-	Marsh                        marshal.Marshalizer
-	Hash                         hashing.Hasher
-	EpochNotifierField           process.EpochNotifier
-	EnableEpochsHandlerField     common.EnableEpochsHandler
-	TxSignHasherField            hashing.Hasher
-	UInt64ByteSliceConv          typeConverters.Uint64ByteSliceConverter
-	AddrPubKeyConv               core.PubkeyConverter
-	ValPubKeyConv                core.PubkeyConverter
-	PathHdl                      storage.PathManagerHandler
-	ChainIdCalled                func() string
-	MinTransactionVersionCalled  func() uint32
-	GenesisNodesSetupCalled      func() sharding.GenesisNodesSetupHandler
-	TxVersionCheckField          process.TxVersionCheckerHandler
-	ChanStopNode                 chan endProcess.ArgEndProcess
-	NodeTypeProviderField        core.NodeTypeProviderHandler
-	ProcessStatusHandlerInstance common.ProcessStatusHandler
-	HardforkTriggerPubKeyField   []byte
-	ChainParametersHandlerField  process.ChainParametersHandler
-	mutCore                      sync.RWMutex
+	IntMarsh                       marshal.Marshalizer
+	Marsh                          marshal.Marshalizer
+	Hash                           hashing.Hasher
+	EpochNotifierField             process.EpochNotifier
+	EnableEpochsHandlerField       common.EnableEpochsHandler
+	TxSignHasherField              hashing.Hasher
+	UInt64ByteSliceConv            typeConverters.Uint64ByteSliceConverter
+	AddrPubKeyConv                 core.PubkeyConverter
+	ValPubKeyConv                  core.PubkeyConverter
+	PathHdl                        storage.PathManagerHandler
+	ChainIdCalled                  func() string
+	MinTransactionVersionCalled    func() uint32
+	GenesisNodesSetupCalled        func() sharding.GenesisNodesSetupHandler
+	TxVersionCheckField            process.TxVersionCheckerHandler
+	ChanStopNode                   chan endProcess.ArgEndProcess
+	NodeTypeProviderField          core.NodeTypeProviderHandler
+	ProcessStatusHandlerInstance   common.ProcessStatusHandler
+	HardforkTriggerPubKeyField     []byte
+	ChainParametersHandlerField    process.ChainParametersHandler
+	ChainParametersSubscriberField process.ChainParametersSubscriber
+	mutCore                        sync.RWMutex
 }
 
 // ChanStopNodeProcess -
@@ -164,6 +165,11 @@ func (ccm *CoreComponentsMock) ChainParametersHandler() process.ChainParametersH
 	}
 
 	return &shardingmock.ChainParametersHolderMock{}
+}
+
+// ChainParametersSubscriber -
+func (ccm *CoreComponentsMock) ChainParametersSubscriber() process.ChainParametersSubscriber {
+	return ccm.ChainParametersSubscriberField
 }
 
 // IsInterfaceNil -
