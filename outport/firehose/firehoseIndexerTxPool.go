@@ -1,6 +1,7 @@
 package firehose
 
 import (
+	"encoding/hex"
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -78,7 +79,8 @@ func getTxs(txs map[string]data.TransactionHandlerWithGasUsedAndFee) (map[string
 			return nil, fmt.Errorf("%w, hash: %s", errCannotCastTransaction, txHash)
 		}
 
-		ret[txHash] = &firehose.TxInfo{
+		txHashHex := getHexEncodedHash(txHash)
+		ret[txHashHex] = &firehose.TxInfo{
 			Transaction:    tx,
 			FeeInfo:        getFirehoseFeeInfo(txHandler),
 			ExecutionOrder: uint32(txHandler.GetExecutionOrder()),
@@ -86,6 +88,11 @@ func getTxs(txs map[string]data.TransactionHandlerWithGasUsedAndFee) (map[string
 	}
 
 	return ret, nil
+}
+
+func getHexEncodedHash(txHash string) string {
+	txHashBytes := []byte(txHash)
+	return hex.EncodeToString(txHashBytes)
 }
 
 func getScrs(scrs map[string]data.TransactionHandlerWithGasUsedAndFee) (map[string]*firehose.SCRInfo, error) {
@@ -97,7 +104,8 @@ func getScrs(scrs map[string]data.TransactionHandlerWithGasUsedAndFee) (map[stri
 			return nil, fmt.Errorf("%w, hash: %s", errCannotCastSCR, scrHash)
 		}
 
-		ret[scrHash] = &firehose.SCRInfo{
+		scrHashHex := getHexEncodedHash(scrHash)
+		ret[scrHashHex] = &firehose.SCRInfo{
 			SmartContractResult: tx,
 			FeeInfo:             getFirehoseFeeInfo(txHandler),
 			ExecutionOrder:      uint32(txHandler.GetExecutionOrder()),
@@ -116,7 +124,8 @@ func getRewards(rewards map[string]data.TransactionHandlerWithGasUsedAndFee) (ma
 			return nil, fmt.Errorf("%w, hash: %s", errCannotCastReward, hash)
 		}
 
-		ret[hash] = &firehose.RewardInfo{
+		hexHex := getHexEncodedHash(hash)
+		ret[hexHex] = &firehose.RewardInfo{
 			Reward:         reward,
 			ExecutionOrder: uint32(txHandler.GetExecutionOrder()),
 		}
@@ -134,7 +143,8 @@ func getReceipts(receipts map[string]data.TransactionHandlerWithGasUsedAndFee) (
 			return nil, fmt.Errorf("%w, hash: %s", errCannotCastReceipt, hash)
 		}
 
-		ret[hash] = tx
+		hashHex := getHexEncodedHash(hash)
+		ret[hashHex] = tx
 	}
 
 	return ret, nil
@@ -150,7 +160,8 @@ func getLogs(logs []*data.LogData) (map[string]*transaction.Log, error) {
 			return nil, fmt.Errorf("%w, hash: %s", err, logHandler.TxHash)
 		}
 
-		ret[logHandler.TxHash] = &transaction.Log{
+		txHashHex := getHexEncodedHash(logHandler.TxHash)
+		ret[txHashHex] = &transaction.Log{
 			Address: logHandler.GetAddress(),
 			Events:  events,
 		}

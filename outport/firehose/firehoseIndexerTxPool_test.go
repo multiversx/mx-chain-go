@@ -181,7 +181,7 @@ func TestFirehoseIndexer_SaveBlockTxPool(t *testing.T) {
 		HeaderType:  string(core.ShardHeaderV1),
 		HeaderBytes: marshalledHeader,
 		Transactions: map[string]*firehose.TxInfo{
-			"txHash1": {
+			hex.EncodeToString([]byte("txHash1")): {
 				Transaction: txs[0].TransactionHandler.(*transaction.Transaction),
 				FeeInfo: &firehose.FeeInfo{
 					GasUsed:        txs[0].GasUsed,
@@ -190,7 +190,7 @@ func TestFirehoseIndexer_SaveBlockTxPool(t *testing.T) {
 				},
 				ExecutionOrder: 1,
 			},
-			"txHash2": {
+			hex.EncodeToString([]byte("txHash2")): {
 				Transaction: txs[1].TransactionHandler.(*transaction.Transaction),
 				FeeInfo: &firehose.FeeInfo{
 					GasUsed:        txs[1].GasUsed,
@@ -201,7 +201,7 @@ func TestFirehoseIndexer_SaveBlockTxPool(t *testing.T) {
 			},
 		},
 		SmartContractResults: map[string]*firehose.SCRInfo{
-			"txHash3": {
+			hex.EncodeToString([]byte("txHash3")): {
 				SmartContractResult: scrs[0].TransactionHandler.(*smartContractResult.SmartContractResult),
 				FeeInfo: &firehose.FeeInfo{
 					GasUsed:        scrs[0].GasUsed,
@@ -212,13 +212,13 @@ func TestFirehoseIndexer_SaveBlockTxPool(t *testing.T) {
 			},
 		},
 		Rewards: map[string]*firehose.RewardInfo{
-			"txHash4": {
+			hex.EncodeToString([]byte("txHash4")): {
 				Reward:         rewards[0].TransactionHandler.(*rewardTx.RewardTx),
 				ExecutionOrder: 4,
 			},
 		},
 		InvalidTxs: map[string]*firehose.TxInfo{
-			"txHash5": {
+			hex.EncodeToString([]byte("txHash5")): {
 				Transaction: invalidTxs[0].TransactionHandler.(*transaction.Transaction),
 				FeeInfo: &firehose.FeeInfo{
 					GasUsed:        invalidTxs[0].GasUsed,
@@ -229,11 +229,11 @@ func TestFirehoseIndexer_SaveBlockTxPool(t *testing.T) {
 			},
 		},
 		Receipts: map[string]*receipt.Receipt{
-			"txHash6": receipts[0].TransactionHandler.(*receipt.Receipt),
-			"txHash7": receipts[1].TransactionHandler.(*receipt.Receipt),
+			hex.EncodeToString([]byte("txHash6")): receipts[0].TransactionHandler.(*receipt.Receipt),
+			hex.EncodeToString([]byte("txHash7")): receipts[1].TransactionHandler.(*receipt.Receipt),
 		},
 		Logs: map[string]*transaction.Log{
-			"txHash8": logs[0].LogHandler.(*transaction.Log),
+			hex.EncodeToString([]byte("txHash8")): logs[0].LogHandler.(*transaction.Log),
 		},
 	}
 	marshalledFirehoseBlock, err := protoMarshaller.Marshal(firehoseBlock)
