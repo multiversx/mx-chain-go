@@ -239,6 +239,9 @@
     # AlwaysSaveTokenMetaDataEnableEpoch represents the epoch when the token metadata is always saved
     AlwaysSaveTokenMetaDataEnableEpoch = 2
 
+    # MultiClaimOnDelegationEnableEpoch represents the epoch when the multi claim on delegation is enabled
+    MultiClaimOnDelegationEnableEpoch = 3
+
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [
         { EnableEpoch = 0, Type = "no-KOSK"},

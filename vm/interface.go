@@ -56,6 +56,7 @@ type SystemEI interface {
 	CanUnJail(blsKey []byte) bool
 	IsBadRating(blsKey []byte) bool
 	CleanStorageUpdates()
+	GetTotalSentToUser(dest []byte) *big.Int
 
 	IsInterfaceNil() bool
 }

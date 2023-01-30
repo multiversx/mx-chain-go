@@ -257,6 +257,21 @@ func (host *vmContext) Transfer(
 	return nil
 }
 
+// GetLogs returns the logs
+func (host *vmContext) GetLogs() []*vmcommon.LogEntry {
+	return host.logs
+}
+
+// GetTotalSentToUser returns the total sent to the specified address
+func (host *vmContext) GetTotalSentToUser(dest []byte) *big.Int {
+	destination, exists := host.outputAccounts[string(dest)]
+	if !exists {
+		return big.NewInt(0)
+	}
+
+	return destination.BalanceDelta
+}
+
 func (host *vmContext) copyToNewContext() *vmContext {
 	newContext := vmContext{
 		storageUpdate:  host.storageUpdate,
