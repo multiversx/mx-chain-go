@@ -57,6 +57,7 @@ type SystemEI interface {
 	IsBadRating(blsKey []byte) bool
 	CleanStorageUpdates()
 	GetTotalSentToUser(dest []byte) *big.Int
+	GetLogs() []*vmcommon.LogEntry
 
 	IsInterfaceNil() bool
 }

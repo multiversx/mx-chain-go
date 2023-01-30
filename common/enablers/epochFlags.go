@@ -655,7 +655,7 @@ func (holder *epochFlagsHolder) IsAlwaysSaveTokenMetaDataEnabled() bool {
 	return holder.alwaysSaveTokenMetaDataFlag.IsSet()
 }
 
-// IsMultiClaimOnDelegationDataEnabled returns true if multi claim on delegation is enabled
-func (holder *epochFlagsHolder) IsMultiClaimOnDelegationDataEnabled() bool {
+// IsMultiClaimOnDelegationEnabled returns true if multi claim on delegation is enabled
+func (holder *epochFlagsHolder) IsMultiClaimOnDelegationEnabled() bool {
 	return holder.multiClaimOnDelegationFlag.IsSet()
 }

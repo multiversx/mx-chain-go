@@ -515,18 +515,38 @@ func (d *delegationManager) reDelegateMulti(args *vmcommon.ContractCallInput) vm
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
-	err := d.eei.GetLogs()
-	if err != nil {
-		d.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
-	}
+	logs := d.eei.GetLogs()
+	totalReDelegated := getTotalReDelegatedFromLogs(logs)
+	d.eei.Finish(totalReDelegated.Bytes())
 
 	return vmcommon.Ok
 }
 
+func getTotalReDelegatedFromLogs(logs []*vmcommon.LogEntry) *big.Int {
+	totalReDelegated := big.NewInt(0)
+	for _, reDelegateLog := range logs {
+		if len(reDelegateLog.Topics) < 1 {
+			continue
+		}
+		if !bytes.Equal(reDelegateLog.Identifier, []byte("delegate")) {
+			continue
+		}
+		valueFromFirstTopic := big.NewInt(0).SetBytes(reDelegateLog.Topics[0])
+		totalReDelegated.Add(totalReDelegated, valueFromFirstTopic)
+	}
+
+	return totalReDelegated
+}
+
 func (d *delegationManager) executeFuncOnListAddresses(
 	args *vmcommon.ContractCallInput,
-	funcName string) vmcommon.ReturnCode {
+	funcName string,
+) vmcommon.ReturnCode {
+	if !d.enableEpochsHandler.IsMultiClaimOnDelegationEnabled() {
+		d.eei.AddReturnMessage("invalid function to call")
+		return vmcommon.UserError
+	}
+
 	if len(args.Arguments) < 1 {
 		d.eei.AddReturnMessage(vm.ErrInvalidNumOfArguments.Error())
 		return vmcommon.UserError
