@@ -859,6 +859,9 @@ func (sc *scProcessor) computeBuiltInFuncGasUsed(
 	builtInFuncGasUsed := sc.builtInGasCosts[function]
 	sc.mutGasLock.RUnlock()
 
+	log.Warn("scProcessor.computeBuiltInFuncGasUsed", "function", function, ""+
+		"builtInFuncGasUsed", builtInFuncGasUsed)
+
 	return builtInFuncGasUsed, nil
 }
 
