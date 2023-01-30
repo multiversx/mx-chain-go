@@ -354,7 +354,9 @@ func (n *Node) GetESDTData(address, tokenID string, nonce uint64, options api.Ac
 		return nil, api.BlockInfo{}, ErrCannotCastUserAccountHandlerToVmCommonUserAccountHandler
 	}
 
-	systemAccount, blockInfo, err := n.loadSystemAccountWithOptions(options)
+	optionsForLoadSystemAccount := options
+	optionsForLoadSystemAccount.BlockRootHash = []byte(blockInfo.RootHash)
+	systemAccount, blockInfo, err := n.loadSystemAccountWithOptions(optionsForLoadSystemAccount)
 	if err != nil {
 		return nil, api.BlockInfo{}, err
 	}
@@ -513,7 +515,9 @@ func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions,
 		return nil, api.BlockInfo{}, err
 	}
 
-	systemAccount, blockInfo, err := n.loadSystemAccountWithOptions(options)
+	optionsForLoadSystemAccount := options
+	optionsForLoadSystemAccount.BlockRootHash = []byte(blockInfo.RootHash)
+	systemAccount, blockInfo, err := n.loadSystemAccountWithOptions(optionsForLoadSystemAccount)
 	if err != nil {
 		return nil, api.BlockInfo{}, err
 	}
