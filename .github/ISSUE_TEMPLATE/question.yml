@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thank you for taking the time to fill out the question form! For a faster response, please use our validator's telegram page: https://t.me/ElrondValidators
+        Thank you for taking the time to fill out the question form! For a faster response, please use our validator's telegram page: https://t.me/MultiversXValidators
   - type: textarea
     id: describe-solution
     attributes:
