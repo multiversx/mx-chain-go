@@ -12,13 +12,14 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/stretchr/testify/assert"
 )
 
 func createMockTrieRequesterArguments() ArgTrieRequester {
 	return ArgTrieRequester{
-		Messenger:                &mock.MessengerStub{},
+		Messenger:                &p2pmocks.MessengerStub{},
 		ResponseTopicName:        "",
 		Marshalizer:              &mock.MarshalizerStub{},
 		TrieDataGetter:           &trieMock.TrieStub{},
@@ -111,7 +112,7 @@ func TestTrieNodeRequester_RequestDataFromHashShouldWork(t *testing.T) {
 		},
 	}
 	numSendToConnectedPeerCalled := uint32(0)
-	args.Messenger = &mock.MessengerStub{
+	args.Messenger = &p2pmocks.MessengerStub{
 		SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 			atomic.AddUint32(&numSendToConnectedPeerCalled, 1)
 			return nil
@@ -139,7 +140,7 @@ func TestTrieNodeRequester_RequestDataFromHashArrayShouldWork(t *testing.T) {
 		},
 	}
 	numSendToConnectedPeerCalled := uint32(0)
-	args.Messenger = &mock.MessengerStub{
+	args.Messenger = &p2pmocks.MessengerStub{
 		SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 			atomic.AddUint32(&numSendToConnectedPeerCalled, 1)
 			return nil

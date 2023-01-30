@@ -325,7 +325,7 @@ func CreateSmartContractCall(
 
 // ProcessSCRResult -
 func ProcessSCRResult(
-	t *testing.T,
+	tb testing.TB,
 	testContext *vm.VMTestContext,
 	tx data.TransactionHandler,
 	expectedCode vmcommon.ReturnCode,
@@ -335,11 +335,11 @@ func ProcessSCRResult(
 	require.NotNil(nil, scProcessor)
 
 	scr, ok := tx.(*smartContractResult.SmartContractResult)
-	require.True(t, ok)
+	require.True(tb, ok)
 
 	retCode, err := scProcessor.ProcessSmartContractResult(scr)
-	require.Equal(t, expectedCode, retCode)
-	require.Equal(t, expectedErr, err)
+	require.Equal(tb, expectedCode, retCode)
+	require.Equal(tb, expectedErr, err)
 }
 
 // CleanAccumulatedIntermediateTransactions -
