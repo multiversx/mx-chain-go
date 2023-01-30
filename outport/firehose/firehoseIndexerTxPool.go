@@ -13,11 +13,11 @@ import (
 )
 
 type txPool struct {
-	transactions        map[string]*firehose.TxWithFee
-	smartContractResult map[string]*firehose.SCRWithFee
-	rewards             map[string]*rewardTx.RewardTx
+	transactions        map[string]*firehose.TxInfo
+	smartContractResult map[string]*firehose.SCRInfo
+	rewards             map[string]*firehose.RewardInfo
 	receipts            map[string]*receipt.Receipt
-	invalidTxs          map[string]*firehose.TxWithFee
+	invalidTxs          map[string]*firehose.TxInfo
 	logs                map[string]*transaction.Log
 }
 
@@ -69,8 +69,8 @@ func getFirehoseFeeInfo(txHandler data.TransactionHandlerWithGasUsedAndFee) *fir
 	}
 }
 
-func getTxs(txs map[string]data.TransactionHandlerWithGasUsedAndFee) (map[string]*firehose.TxWithFee, error) {
-	ret := make(map[string]*firehose.TxWithFee, len(txs))
+func getTxs(txs map[string]data.TransactionHandlerWithGasUsedAndFee) (map[string]*firehose.TxInfo, error) {
+	ret := make(map[string]*firehose.TxInfo, len(txs))
 
 	for txHash, txHandler := range txs {
 		tx, castOk := txHandler.GetTxHandler().(*transaction.Transaction)
@@ -78,17 +78,18 @@ func getTxs(txs map[string]data.TransactionHandlerWithGasUsedAndFee) (map[string
 			return nil, fmt.Errorf("%w, hash: %s", errCannotCastTransaction, txHash)
 		}
 
-		ret[txHash] = &firehose.TxWithFee{
-			Transaction: tx,
-			FeeInfo:     getFirehoseFeeInfo(txHandler),
+		ret[txHash] = &firehose.TxInfo{
+			Transaction:    tx,
+			FeeInfo:        getFirehoseFeeInfo(txHandler),
+			ExecutionOrder: uint32(txHandler.GetExecutionOrder()),
 		}
 	}
 
 	return ret, nil
 }
 
-func getScrs(scrs map[string]data.TransactionHandlerWithGasUsedAndFee) (map[string]*firehose.SCRWithFee, error) {
-	ret := make(map[string]*firehose.SCRWithFee, len(scrs))
+func getScrs(scrs map[string]data.TransactionHandlerWithGasUsedAndFee) (map[string]*firehose.SCRInfo, error) {
+	ret := make(map[string]*firehose.SCRInfo, len(scrs))
 
 	for scrHash, txHandler := range scrs {
 		tx, castOk := txHandler.GetTxHandler().(*smartContractResult.SmartContractResult)
@@ -96,25 +97,29 @@ func getScrs(scrs map[string]data.TransactionHandlerWithGasUsedAndFee) (map[stri
 			return nil, fmt.Errorf("%w, hash: %s", errCannotCastSCR, scrHash)
 		}
 
-		ret[scrHash] = &firehose.SCRWithFee{
+		ret[scrHash] = &firehose.SCRInfo{
 			SmartContractResult: tx,
 			FeeInfo:             getFirehoseFeeInfo(txHandler),
+			ExecutionOrder:      uint32(txHandler.GetExecutionOrder()),
 		}
 	}
 
 	return ret, nil
 }
 
-func getRewards(rewards map[string]data.TransactionHandlerWithGasUsedAndFee) (map[string]*rewardTx.RewardTx, error) {
-	ret := make(map[string]*rewardTx.RewardTx, len(rewards))
+func getRewards(rewards map[string]data.TransactionHandlerWithGasUsedAndFee) (map[string]*firehose.RewardInfo, error) {
+	ret := make(map[string]*firehose.RewardInfo, len(rewards))
 
 	for hash, txHandler := range rewards {
-		tx, castOk := txHandler.GetTxHandler().(*rewardTx.RewardTx)
+		reward, castOk := txHandler.GetTxHandler().(*rewardTx.RewardTx)
 		if !castOk {
 			return nil, fmt.Errorf("%w, hash: %s", errCannotCastReward, hash)
 		}
 
-		ret[hash] = tx
+		ret[hash] = &firehose.RewardInfo{
+			Reward:         reward,
+			ExecutionOrder: uint32(txHandler.GetExecutionOrder()),
+		}
 	}
 
 	return ret, nil

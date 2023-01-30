@@ -63,6 +63,7 @@ func TestFirehoseIndexer_SaveBlockTxPool(t *testing.T) {
 				Nonce: 1,
 				Data:  []byte("data1"),
 			},
+			ExecutionOrder: 1,
 		},
 		{
 			FeeInfo: outportcore.FeeInfo{
@@ -74,6 +75,7 @@ func TestFirehoseIndexer_SaveBlockTxPool(t *testing.T) {
 				Nonce: 2,
 				Data:  []byte("data2"),
 			},
+			ExecutionOrder: 2,
 		},
 	}
 
@@ -88,6 +90,7 @@ func TestFirehoseIndexer_SaveBlockTxPool(t *testing.T) {
 				Nonce: 3,
 				Data:  []byte("data3"),
 			},
+			ExecutionOrder: 3,
 		},
 	}
 
@@ -97,6 +100,7 @@ func TestFirehoseIndexer_SaveBlockTxPool(t *testing.T) {
 				Epoch: 4,
 				Value: big.NewInt(4),
 			},
+			ExecutionOrder: 4,
 		},
 	}
 
@@ -111,6 +115,7 @@ func TestFirehoseIndexer_SaveBlockTxPool(t *testing.T) {
 				Nonce: 4,
 				Data:  []byte("data4"),
 			},
+			ExecutionOrder: 5,
 		},
 	}
 
@@ -175,7 +180,7 @@ func TestFirehoseIndexer_SaveBlockTxPool(t *testing.T) {
 		HeaderHash:  headerHashShardV1,
 		HeaderType:  string(core.ShardHeaderV1),
 		HeaderBytes: marshalledHeader,
-		Transactions: map[string]*firehose.TxWithFee{
+		Transactions: map[string]*firehose.TxInfo{
 			"txHash1": {
 				Transaction: txs[0].TransactionHandler.(*transaction.Transaction),
 				FeeInfo: &firehose.FeeInfo{
@@ -183,6 +188,7 @@ func TestFirehoseIndexer_SaveBlockTxPool(t *testing.T) {
 					Fee:            txs[0].Fee,
 					InitialPaidFee: txs[0].InitialPaidFee,
 				},
+				ExecutionOrder: 1,
 			},
 			"txHash2": {
 				Transaction: txs[1].TransactionHandler.(*transaction.Transaction),
@@ -191,9 +197,10 @@ func TestFirehoseIndexer_SaveBlockTxPool(t *testing.T) {
 					Fee:            txs[1].Fee,
 					InitialPaidFee: txs[1].InitialPaidFee,
 				},
+				ExecutionOrder: 2,
 			},
 		},
-		SmartContractResult: map[string]*firehose.SCRWithFee{
+		SmartContractResults: map[string]*firehose.SCRInfo{
 			"txHash3": {
 				SmartContractResult: scrs[0].TransactionHandler.(*smartContractResult.SmartContractResult),
 				FeeInfo: &firehose.FeeInfo{
@@ -201,12 +208,16 @@ func TestFirehoseIndexer_SaveBlockTxPool(t *testing.T) {
 					Fee:            scrs[0].Fee,
 					InitialPaidFee: scrs[0].InitialPaidFee,
 				},
+				ExecutionOrder: 3,
 			},
 		},
-		Rewards: map[string]*rewardTx.RewardTx{
-			"txHash4": rewards[0].TransactionHandler.(*rewardTx.RewardTx),
+		Rewards: map[string]*firehose.RewardInfo{
+			"txHash4": {
+				Reward:         rewards[0].TransactionHandler.(*rewardTx.RewardTx),
+				ExecutionOrder: 4,
+			},
 		},
-		InvalidTxs: map[string]*firehose.TxWithFee{
+		InvalidTxs: map[string]*firehose.TxInfo{
 			"txHash5": {
 				Transaction: invalidTxs[0].TransactionHandler.(*transaction.Transaction),
 				FeeInfo: &firehose.FeeInfo{
@@ -214,6 +225,7 @@ func TestFirehoseIndexer_SaveBlockTxPool(t *testing.T) {
 					Fee:            invalidTxs[0].Fee,
 					InitialPaidFee: invalidTxs[0].InitialPaidFee,
 				},
+				ExecutionOrder: 5,
 			},
 		},
 		Receipts: map[string]*receipt.Receipt{

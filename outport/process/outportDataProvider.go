@@ -36,6 +36,8 @@ type ArgPrepareOutportSaveBlockData struct {
 	PreviousHeader         data.HeaderHandler
 	RewardsTxs             map[string]data.TransactionHandler
 	NotarizedHeadersHashes []string
+	HighestFinalBlockNonce uint64
+	HighestFinalBlockHash  []byte
 }
 
 type outportDataProvider struct {
@@ -102,21 +104,23 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 	}
 
 	return &outportcore.ArgsSaveBlockData{
-		HeaderHash:     arg.HeaderHash,
-		Body:           arg.Body,
-		Header:         arg.Header,
-		SignersIndexes: signersIndexes,
+		HeaderHash:             arg.HeaderHash,
+		Body:                   arg.Body,
+		Header:                 arg.Header,
+		SignersIndexes:         signersIndexes,
+		NotarizedHeadersHashes: arg.NotarizedHeadersHashes,
 		HeaderGasConsumption: outportcore.HeaderGasConsumption{
 			GasProvided:    odp.gasConsumedProvider.TotalGasProvidedWithScheduled(),
 			GasRefunded:    odp.gasConsumedProvider.TotalGasRefunded(),
 			GasPenalized:   odp.gasConsumedProvider.TotalGasPenalized(),
 			MaxGasPerBlock: odp.economicsData.MaxGasLimitPerBlock(odp.shardID),
 		},
-		NotarizedHeadersHashes: arg.NotarizedHeadersHashes,
 		TransactionsPool:       pool,
 		AlteredAccounts:        alteredAccounts,
 		NumberOfShards:         odp.numOfShards,
 		IsImportDB:             odp.isImportDBMode,
+		HighestFinalBlockNonce: arg.HighestFinalBlockNonce,
+		HighestFinalBlockHash:  arg.HighestFinalBlockHash,
 	}, nil
 }
 
