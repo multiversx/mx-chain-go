@@ -416,7 +416,7 @@ func (e *epochStartBootstrap) cleanupOnBootstrapFinish() {
 	errMessenger := e.messenger.UnregisterAllMessageProcessors()
 	log.LogIfError(errMessenger)
 
-	errMessenger = e.messenger.UnjoinAllTopics()
+	errMessenger = e.messenger.UnJoinAllTopics()
 	log.LogIfError(errMessenger)
 
 	e.closeTrieNodes()

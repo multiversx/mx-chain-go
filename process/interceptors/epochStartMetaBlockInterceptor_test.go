@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/interceptors"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/require"
 )
 
@@ -114,7 +115,7 @@ func TestEpochStartMetaBlockInterceptor_EntireFlowShouldWorkAndSetTheEpoch(t *te
 		require.Equal(t, expectedEpoch, mbEpoch)
 		wasCalled = true
 	}
-	args.NumConnectedPeersProvider = &mock.MessengerStub{
+	args.NumConnectedPeersProvider = &p2pmocks.MessengerStub{
 		ConnectedPeersCalled: func() []core.PeerID {
 			return make([]core.PeerID, 6) // 6 connected peers
 		},
@@ -168,7 +169,7 @@ func getArgsEpochStartMetaBlockInterceptor() interceptors.ArgsEpochStartMetaBloc
 	return interceptors.ArgsEpochStartMetaBlockInterceptor{
 		Marshalizer:               &mock.MarshalizerMock{},
 		Hasher:                    &hashingMocks.HasherMock{},
-		NumConnectedPeersProvider: &mock.MessengerStub{},
+		NumConnectedPeersProvider: &p2pmocks.MessengerStub{},
 		ConsensusPercentage:       50,
 	}
 }

@@ -173,18 +173,15 @@ func (ts *txsSender) sendBulkTransactionsFromShard(transactions [][]byte, sender
 	}
 
 	for _, buff := range packets {
-		go func(bufferToSend []byte) {
-			log.Trace("txsSender.sendBulkTransactionsFromShard",
-				"topic", identifier,
-				"size", len(bufferToSend),
-			)
-			err = ts.networkMessenger.BroadcastOnChannelBlocking(
-				SendTransactionsPipe,
-				identifier,
-				bufferToSend,
-			)
-			log.LogIfError(err)
-		}(buff)
+		log.Trace("txsSender.sendBulkTransactionsFromShard",
+			"topic", identifier,
+			"size", len(buff),
+		)
+
+		ts.networkMessenger.BroadcastOnChannel(
+			SendTransactionsPipe,
+			identifier,
+			buff)
 	}
 
 	return nil
