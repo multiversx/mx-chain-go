@@ -129,7 +129,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		handler, _ := NewEnableEpochsHandler(cfg, &epochNotifier.EpochNotifierStub{})
 		require.False(t, check.IfNil(handler))
 
-		handler.EpochConfirmed(76, 0)
+		handler.EpochConfirmed(77, 0)
 
 		assert.Equal(t, cfg.BlockGasAndFeesReCheckEnableEpoch, handler.BlockGasAndFeesReCheckEnableEpoch())
 		assert.True(t, handler.IsSCDeployFlagEnabled())
