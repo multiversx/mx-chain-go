@@ -1085,3 +1085,71 @@ func TestDelegationManagerSystemSC_MakeNewContractFromValidatorDataCallerAlready
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, "caller already deployed a delegation sc")
 }
+
+func TestDelegationManagerSystemSC_ClaimMultipleDelegationFails(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForDelegationManager()
+	eei := createDefaultEei()
+	_ = eei.SetSystemSCContainer(
+		createSystemSCContainer(eei),
+	)
+
+	enableHandlerStub := &testscommon.EnableEpochsHandlerStub{
+		IsMultiClaimOnDelegationEnabledField: false,
+		IsDelegationManagerFlagEnabledField:  true,
+	}
+	args.EnableEpochsHandler = enableHandlerStub
+	args.Eei = eei
+	createDelegationManagerConfig(eei, args.Marshalizer, big.NewInt(20))
+
+	dm, _ := NewDelegationManagerSystemSC(args)
+	eei.SetSCAddress(dm.delegationMgrSCAddress)
+
+	vmInput := getDefaultVmInputForDelegationManager("claimMulti", [][]byte{})
+	returnCode := dm.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.UserError)
+	assert.Equal(t, eei.GetReturnMessage(), "invalid function to call")
+
+	eei.returnMessage = ""
+	enableHandlerStub.IsMultiClaimOnDelegationEnabledField = true
+	returnCode = dm.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.UserError)
+	assert.Equal(t, eei.GetReturnMessage(), vm.ErrInvalidNumOfArguments.Error())
+
+	dm.gasCost.MetaChainSystemSCsCost.DelegationOps = 10
+	eei.returnMessage = ""
+	eei.gasRemaining = 5
+	vmInput.Arguments = [][]byte{{1}}
+	returnCode = dm.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.UserError)
+	assert.Equal(t, eei.GetReturnMessage(), vm.ErrNotEnoughGas.Error())
+
+	eei.returnMessage = ""
+	eei.gasRemaining = 20
+	returnCode = dm.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.UserError)
+	assert.Equal(t, eei.GetReturnMessage(), vm.ErrInvalidArgument.Error())
+
+	eei.returnMessage = ""
+	eei.gasRemaining = 20
+	vmInput.Arguments[0] = vmInput.CallerAddr
+	returnCode = dm.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.UserError)
+	assert.Equal(t, eei.GetReturnMessage(), "missing system smart contract on selected address")
+
+	vmInput.CallerAddr = bytes.Repeat([]byte{1}, 32)
+	vmInput.Arguments[0] = vm.FirstDelegationSCAddress
+	eei.returnMessage = ""
+	eei.gasRemaining = 20
+	returnCode = dm.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.UserError)
+	assert.Equal(t, eei.GetReturnMessage(), "first delegation sc address cannot be called")
+
+	vmInput.Function = "reDelegateMulti"
+	eei.returnMessage = ""
+	eei.gasRemaining = 20
+	returnCode = dm.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.UserError)
+	assert.Equal(t, eei.GetReturnMessage(), "first delegation sc address cannot be called")
+}

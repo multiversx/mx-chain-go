@@ -546,7 +546,6 @@ func (d *delegationManager) executeFuncOnListAddresses(
 		d.eei.AddReturnMessage("invalid function to call")
 		return vmcommon.UserError
 	}
-
 	if len(args.Arguments) < 1 {
 		d.eei.AddReturnMessage(vm.ErrInvalidNumOfArguments.Error())
 		return vmcommon.UserError
@@ -557,13 +556,14 @@ func (d *delegationManager) executeFuncOnListAddresses(
 		return vmcommon.UserError
 	}
 
+	var vmOutput *vmcommon.VMOutput
 	for _, address := range args.Arguments {
 		if len(address) != len(args.CallerAddr) {
 			d.eei.AddReturnMessage(vm.ErrInvalidArgument.Error())
 			return vmcommon.UserError
 		}
 
-		vmOutput, err := d.eei.ExecuteOnDestContext(address, args.CallerAddr, big.NewInt(0), []byte(funcName))
+		vmOutput, err = d.eei.ExecuteOnDestContext(address, args.CallerAddr, big.NewInt(0), []byte(funcName))
 		if err != nil {
 			d.eei.AddReturnMessage(err.Error())
 			return vmcommon.UserError
