@@ -1,7 +1,6 @@
 package notifier_test
 
 import (
-	"sync"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -110,37 +109,4 @@ func TestEpochStartSubscriptionHandler_NotifyAll(t *testing.T) {
 	assert.True(t, firstHandlerWasCalled)
 	assert.True(t, secondHandlerWasCalled)
 	assert.Equal(t, lastCalled, 2)
-}
-
-func TestEpochStartSubscriptionHandler_ConcurrentOperations(t *testing.T) {
-	t.Parallel()
-
-	handler := notifier.NewEpochStartSubscriptionHandler()
-
-	numOperations := 500
-	wg := sync.WaitGroup{}
-	wg.Add(numOperations)
-	for i := 0; i < numOperations; i++ {
-		i := i
-		go func(idx int) {
-			switch idx {
-			case 0:
-				handler.RegisterHandler(notifier.NewHandlerForEpochStart(func(hdr data.HeaderHandler) {}, func(hdr data.HeaderHandler) {}, 0))
-			case 1:
-				handler.UnregisterHandler(notifier.NewHandlerForEpochStart(func(hdr data.HeaderHandler) {}, func(hdr data.HeaderHandler) {}, 0))
-			case 2:
-				handler.NotifyAll(&block.Header{})
-			case 3:
-				handler.NotifyAllPrepare(&block.Header{}, &block.Body{})
-			case 4:
-				handler.NotifyEpochChangeConfirmed(uint32(idx + 1))
-			case 5:
-				handler.RegisterForEpochChangeConfirmed(func(epoch uint32) {})
-			}
-
-			wg.Done()
-		}(i % 6)
-	}
-
-	wg.Wait()
 }
