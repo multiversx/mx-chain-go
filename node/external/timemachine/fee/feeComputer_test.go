@@ -2,6 +2,7 @@ package fee
 
 import (
 	"encoding/hex"
+	"math/big"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -34,6 +35,139 @@ func TestNewFeeComputer(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, computer)
 	})
+}
+
+func TestFeeComputer_ComputeGasUsedAndFeeBasedOnRefundValue(t *testing.T) {
+	arguments := ArgsNewFeeComputer{
+		BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
+		EconomicsConfig:             testscommon.GetEconomicsConfig(),
+		EnableEpochsConfig: config.EnableEpochs{
+			PenalizedTooMuchGasEnableEpoch: 124,
+			GasPriceModifierEnableEpoch:    180,
+		},
+	}
+
+	computer, _ := NewFeeComputer(arguments)
+
+	contract, _ := hex.DecodeString("000000000000000000010000000000000000000000000000000000000000abba")
+
+	// epoch 0
+	tx := &transaction.ApiTransactionResult{
+		Epoch: uint32(0),
+		Tx: &transaction.Transaction{
+			RcvAddr:  contract,
+			Data:     []byte("something"),
+			GasLimit: 10_000_000,
+			GasPrice: 1000000000,
+		},
+	}
+
+	refundValue := big.NewInt(66350000000000)
+	gasUsed, fee := computer.ComputeGasUsedAndFeeBasedOnRefundValue(tx, refundValue)
+	require.Equal(t, uint64(9_933_650), gasUsed)
+	require.Equal(t, "9933650000000000", fee.String())
+
+	// epoch 200
+	tx = &transaction.ApiTransactionResult{
+		Epoch: uint32(200),
+		Tx: &transaction.Transaction{
+			RcvAddr:  contract,
+			Data:     []byte("something"),
+			GasLimit: 10_000_000,
+			GasPrice: 1000000000,
+		},
+	}
+
+	gasUsed, fee = computer.ComputeGasUsedAndFeeBasedOnRefundValue(tx, refundValue)
+	require.Equal(t, uint64(3_365_000), gasUsed)
+	require.Equal(t, "96515000000000", fee.String())
+}
+
+func TestFeeComputer_ComputeFeeBasedOnGasUsed(t *testing.T) {
+	arguments := ArgsNewFeeComputer{
+		BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
+		EconomicsConfig:             testscommon.GetEconomicsConfig(),
+		EnableEpochsConfig: config.EnableEpochs{
+			PenalizedTooMuchGasEnableEpoch: 124,
+			GasPriceModifierEnableEpoch:    180,
+		},
+	}
+
+	computer, _ := NewFeeComputer(arguments)
+
+	contract, _ := hex.DecodeString("000000000000000000010000000000000000000000000000000000000000abba")
+
+	// epoch 0
+	tx := &transaction.ApiTransactionResult{
+		Epoch: uint32(0),
+		Tx: &transaction.Transaction{
+			RcvAddr:  contract,
+			Data:     []byte("something"),
+			GasLimit: 10_000_000,
+			GasPrice: 1000000000,
+		},
+	}
+
+	gasUsed := uint64(2_000_00)
+	fee := computer.ComputeTxFeeBasedOnGasUsed(tx, gasUsed)
+	require.Equal(t, "200000000000000", fee.String())
+
+	// epoch 200
+	tx = &transaction.ApiTransactionResult{
+		Epoch: uint32(200),
+		Tx: &transaction.Transaction{
+			RcvAddr:  contract,
+			Data:     []byte("something"),
+			GasLimit: 10_000_000,
+			GasPrice: 1000000000,
+		},
+	}
+
+	fee = computer.ComputeTxFeeBasedOnGasUsed(tx, gasUsed)
+	require.Equal(t, "64865000000000", fee.String())
+}
+
+func TestFeeComputer_ComputeGasLimit(t *testing.T) {
+	arguments := ArgsNewFeeComputer{
+		BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
+		EconomicsConfig:             testscommon.GetEconomicsConfig(),
+		EnableEpochsConfig: config.EnableEpochs{
+			PenalizedTooMuchGasEnableEpoch: 124,
+			GasPriceModifierEnableEpoch:    180,
+		},
+	}
+
+	computer, _ := NewFeeComputer(arguments)
+
+	contract, _ := hex.DecodeString("000000000000000000010000000000000000000000000000000000000000abba")
+
+	// epoch 0
+	tx := &transaction.ApiTransactionResult{
+		Epoch: uint32(0),
+		Tx: &transaction.Transaction{
+			RcvAddr:  contract,
+			Data:     []byte("something"),
+			GasLimit: 10_000_000,
+			GasPrice: 1000000000,
+		},
+	}
+
+	gasLimit := computer.ComputeGasLimit(tx)
+	require.Equal(t, uint64(63_500), gasLimit)
+
+	// epoch 200
+	tx = &transaction.ApiTransactionResult{
+		Epoch: uint32(200),
+		Tx: &transaction.Transaction{
+			RcvAddr:  contract,
+			Data:     []byte("something"),
+			GasLimit: 10_000_000,
+			GasPrice: 1000000000,
+		},
+	}
+
+	gasLimit = computer.ComputeGasLimit(tx)
+	require.Equal(t, uint64(63_500), gasLimit)
 }
 
 func TestFeeComputer_ComputeTransactionFeeShouldWorkForDifferentEpochs(t *testing.T) {

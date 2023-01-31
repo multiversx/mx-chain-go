@@ -8,18 +8,18 @@ import (
 )
 
 type gasUsedAndFeeProcessor struct {
-	txFeeCalculator feeComputer
+	feeComputer feeComputer
 }
 
 func newGasUsedAndFeeProcessor(txFeeCalculator feeComputer) *gasUsedAndFeeProcessor {
 	return &gasUsedAndFeeProcessor{
-		txFeeCalculator: txFeeCalculator,
+		feeComputer: txFeeCalculator,
 	}
 }
 
 func (gfp *gasUsedAndFeeProcessor) computeAndAttachGasUsedAndFee(tx *transaction.ApiTransactionResult) {
-	gasUsed := gfp.txFeeCalculator.ComputeGasLimit(tx)
-	fee := gfp.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(tx, gasUsed)
+	gasUsed := gfp.feeComputer.ComputeGasLimit(tx)
+	fee := gfp.feeComputer.ComputeTxFeeBasedOnGasUsed(tx, gasUsed)
 
 	tx.GasUsed = gasUsed
 	tx.Fee = fee.String()
@@ -31,14 +31,13 @@ func (gfp *gasUsedAndFeeProcessor) computeAndAttachGasUsedAndFee(tx *transaction
 
 	hasRefund := false
 	for _, scr := range tx.SmartContractResults {
-		if scr.IsRefund {
-			gasUsed, fee = gfp.txFeeCalculator.ComputeGasUsedAndFeeBasedOnRefundValue(tx, scr.Value)
-
-			tx.GasUsed = gasUsed
-			tx.Fee = fee.String()
-			hasRefund = true
-			break
+		if !scr.IsRefund {
+			continue
 		}
+
+		gfp.setGasUsedAndFeeBaseOnRefundValue(tx, scr.Value)
+		hasRefund = true
+		break
 	}
 
 	gfp.prepareTxWithResultsBasedOnLogs(tx, hasRefund)
@@ -53,17 +52,25 @@ func (gfp *gasUsedAndFeeProcessor) prepareTxWithResultsBasedOnLogs(
 	}
 
 	for _, event := range tx.Logs.Events {
-		if core.WriteLogIdentifier == event.Identifier && !hasRefund {
-			gasUsed, fee := gfp.txFeeCalculator.ComputeGasUsedAndFeeBasedOnRefundValue(tx, big.NewInt(0))
-			tx.GasUsed = gasUsed
-			tx.Fee = fee.String()
-
-			continue
-		}
-		if core.SignalErrorOperation == event.Identifier {
-			fee := gfp.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(tx, tx.GasLimit)
-			tx.GasUsed = tx.GasLimit
-			tx.Fee = fee.String()
-		}
+		gfp.setGasUsedAndFeeBaseOnLogEvent(tx, hasRefund, event)
 	}
+}
+
+func (gfp *gasUsedAndFeeProcessor) setGasUsedAndFeeBaseOnLogEvent(tx *transaction.ApiTransactionResult, hasRefund bool, event *transaction.Events) {
+	if core.WriteLogIdentifier == event.Identifier && !hasRefund {
+		gasUsed, fee := gfp.feeComputer.ComputeGasUsedAndFeeBasedOnRefundValue(tx, big.NewInt(0))
+		tx.GasUsed = gasUsed
+		tx.Fee = fee.String()
+	}
+	if core.SignalErrorOperation == event.Identifier {
+		fee := gfp.feeComputer.ComputeTxFeeBasedOnGasUsed(tx, tx.GasLimit)
+		tx.GasUsed = tx.GasLimit
+		tx.Fee = fee.String()
+	}
+}
+
+func (gfp *gasUsedAndFeeProcessor) setGasUsedAndFeeBaseOnRefundValue(tx *transaction.ApiTransactionResult, refund *big.Int) {
+	gasUsed, fee := gfp.feeComputer.ComputeGasUsedAndFeeBasedOnRefundValue(tx, refund)
+	tx.GasUsed = gasUsed
+	tx.Fee = fee.String()
 }
