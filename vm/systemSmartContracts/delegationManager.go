@@ -556,13 +556,19 @@ func (d *delegationManager) executeFuncOnListAddresses(
 		return vmcommon.UserError
 	}
 
+	mapAddresses := make(map[string]struct{})
 	var vmOutput *vmcommon.VMOutput
 	for _, address := range args.Arguments {
 		if len(address) != len(args.CallerAddr) {
 			d.eei.AddReturnMessage(vm.ErrInvalidArgument.Error())
 			return vmcommon.UserError
 		}
+		if _, ok := mapAddresses[string(address)]; ok {
+			d.eei.AddReturnMessage("duplicated input")
+			return vmcommon.UserError
+		}
 
+		mapAddresses[string(address)] = struct{}{}
 		vmOutput, err = d.eei.ExecuteOnDestContext(address, args.CallerAddr, big.NewInt(0), []byte(funcName))
 		if err != nil {
 			d.eei.AddReturnMessage(err.Error())
