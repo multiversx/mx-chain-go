@@ -67,17 +67,7 @@ func TestFeeComputer_ComputeGasUsedAndFeeBasedOnRefundValue(t *testing.T) {
 	require.Equal(t, uint64(9_933_650), gasUsed)
 	require.Equal(t, "9933650000000000", fee.String())
 
-	// epoch 200
-	tx = &transaction.ApiTransactionResult{
-		Epoch: uint32(200),
-		Tx: &transaction.Transaction{
-			RcvAddr:  contract,
-			Data:     []byte("something"),
-			GasLimit: 10_000_000,
-			GasPrice: 1000000000,
-		},
-	}
-
+	tx.Epoch = 200
 	gasUsed, fee = computer.ComputeGasUsedAndFeeBasedOnRefundValue(tx, refundValue)
 	require.Equal(t, uint64(3_365_000), gasUsed)
 	require.Equal(t, "96515000000000", fee.String())
@@ -112,17 +102,7 @@ func TestFeeComputer_ComputeFeeBasedOnGasUsed(t *testing.T) {
 	fee := computer.ComputeTxFeeBasedOnGasUsed(tx, gasUsed)
 	require.Equal(t, "200000000000000", fee.String())
 
-	// epoch 200
-	tx = &transaction.ApiTransactionResult{
-		Epoch: uint32(200),
-		Tx: &transaction.Transaction{
-			RcvAddr:  contract,
-			Data:     []byte("something"),
-			GasLimit: 10_000_000,
-			GasPrice: 1000000000,
-		},
-	}
-
+	tx.Epoch = 200
 	fee = computer.ComputeTxFeeBasedOnGasUsed(tx, gasUsed)
 	require.Equal(t, "64865000000000", fee.String())
 }
@@ -155,17 +135,7 @@ func TestFeeComputer_ComputeGasLimit(t *testing.T) {
 	gasLimit := computer.ComputeGasLimit(tx)
 	require.Equal(t, uint64(63_500), gasLimit)
 
-	// epoch 200
-	tx = &transaction.ApiTransactionResult{
-		Epoch: uint32(200),
-		Tx: &transaction.Transaction{
-			RcvAddr:  contract,
-			Data:     []byte("something"),
-			GasLimit: 10_000_000,
-			GasPrice: 1000000000,
-		},
-	}
-
+	tx.Epoch = 200
 	gasLimit = computer.ComputeGasLimit(tx)
 	require.Equal(t, uint64(63_500), gasLimit)
 }
