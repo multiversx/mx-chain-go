@@ -274,8 +274,8 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 }
 
 func (u *userAccountsSyncer) printDataTrieStatistics() {
-	u.mutStatistics.RLock()
-	defer u.mutStatistics.RUnlock()
+	u.mutStatistics.Lock()
+	defer u.mutStatistics.Lock()
 
 	log.Debug("user accounts tries sync has finished",
 		"num small data tries", u.numSmallTries, "threshold", core.ConvertBytes(uint64(smallTrieThreshold)))
