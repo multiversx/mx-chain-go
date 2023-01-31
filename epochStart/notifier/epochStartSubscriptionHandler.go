@@ -61,7 +61,7 @@ func (essh *epochStartSubscriptionHandler) UnregisterHandler(handlerToUnregister
 
 // NotifyAll will call all the subscribed functions from the internal slice
 func (essh *epochStartSubscriptionHandler) NotifyAll(hdr data.HeaderHandler) {
-	essh.mutEpochStartHandler.RLock()
+	essh.mutEpochStartHandler.Lock()
 
 	sort.Slice(essh.epochStartHandlers, func(i, j int) bool {
 		return essh.epochStartHandlers[i].NotifyOrder() < essh.epochStartHandlers[j].NotifyOrder()
@@ -70,13 +70,13 @@ func (essh *epochStartSubscriptionHandler) NotifyAll(hdr data.HeaderHandler) {
 	for i := 0; i < len(essh.epochStartHandlers); i++ {
 		essh.epochStartHandlers[i].EpochStartAction(hdr)
 	}
-	essh.mutEpochStartHandler.RUnlock()
+	essh.mutEpochStartHandler.Unlock()
 }
 
 // NotifyAllPrepare will call all the subscribed clients to notify them that an epoch change block has been
 // observed, but not yet confirmed/committed. Some components may need to do some initialisation/preparation
 func (essh *epochStartSubscriptionHandler) NotifyAllPrepare(metaHdr data.HeaderHandler, body data.BodyHandler) {
-	essh.mutEpochStartHandler.RLock()
+	essh.mutEpochStartHandler.Lock()
 
 	sort.Slice(essh.epochStartHandlers, func(i, j int) bool {
 		return essh.epochStartHandlers[i].NotifyOrder() < essh.epochStartHandlers[j].NotifyOrder()
@@ -85,7 +85,7 @@ func (essh *epochStartSubscriptionHandler) NotifyAllPrepare(metaHdr data.HeaderH
 	for i := 0; i < len(essh.epochStartHandlers); i++ {
 		essh.epochStartHandlers[i].EpochStartPrepare(metaHdr, body)
 	}
-	essh.mutEpochStartHandler.RUnlock()
+	essh.mutEpochStartHandler.Unlock()
 }
 
 // RegisterForEpochChangeConfirmed will register the handler function to be called when epoch change is confirmed
