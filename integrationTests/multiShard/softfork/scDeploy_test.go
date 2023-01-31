@@ -1,12 +1,13 @@
 package softfork
 
 import (
-	"crypto"
 	"encoding/hex"
 	"io/ioutil"
 	"math/big"
 	"testing"
 	"time"
+
+	crypto "github.com/multiversx/mx-chain-crypto-go"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
