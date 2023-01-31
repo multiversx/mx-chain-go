@@ -2,7 +2,6 @@ package mock
 
 // EnableEpochsHandlerMock -
 type EnableEpochsHandlerMock struct {
-	WaitingListFixEnableEpochField            uint32
 	RefactorPeersMiniBlocksEnableEpochField   uint32
 	IsRefactorPeersMiniBlocksFlagEnabledField bool
 }
@@ -27,14 +26,9 @@ func (mock *EnableEpochsHandlerMock) SwitchJailWaitingEnableEpoch() uint32 {
 	return 0
 }
 
-// BalanceWaitingListsEnableEpoch returns WaitingListFixEnableEpochField
+// BalanceWaitingListsEnableEpoch returns 0
 func (mock *EnableEpochsHandlerMock) BalanceWaitingListsEnableEpoch() uint32 {
 	return 0
-}
-
-// WaitingListFixEnableEpoch returns WaitingListFixEnableEpochField
-func (mock *EnableEpochsHandlerMock) WaitingListFixEnableEpoch() uint32 {
-	return mock.WaitingListFixEnableEpochField
 }
 
 // MultiESDTTransferAsyncCallBackEnableEpoch returns 0
@@ -278,11 +272,6 @@ func (mock *EnableEpochsHandlerMock) IsReDelegateBelowMinCheckFlagEnabled() bool
 
 // IsValidatorToDelegationFlagEnabled returns false
 func (mock *EnableEpochsHandlerMock) IsValidatorToDelegationFlagEnabled() bool {
-	return false
-}
-
-// IsWaitingListFixFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsWaitingListFixFlagEnabled() bool {
 	return false
 }
 

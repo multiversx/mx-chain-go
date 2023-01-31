@@ -40,7 +40,6 @@ type epochFlagsHolder struct {
 	saveJailedAlwaysFlag                        *atomic.Flag
 	reDelegateBelowMinCheckFlag                 *atomic.Flag
 	validatorToDelegationFlag                   *atomic.Flag
-	waitingListFixFlag                          *atomic.Flag
 	incrementSCRNonceInMultiTransferFlag        *atomic.Flag
 	esdtMultiTransferFlag                       *atomic.Flag
 	globalMintBurnFlag                          *atomic.Flag
@@ -133,7 +132,6 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		saveJailedAlwaysFlag:                        &atomic.Flag{},
 		reDelegateBelowMinCheckFlag:                 &atomic.Flag{},
 		validatorToDelegationFlag:                   &atomic.Flag{},
-		waitingListFixFlag:                          &atomic.Flag{},
 		incrementSCRNonceInMultiTransferFlag:        &atomic.Flag{},
 		esdtMultiTransferFlag:                       &atomic.Flag{},
 		globalMintBurnFlag:                          &atomic.Flag{},
@@ -368,11 +366,6 @@ func (holder *epochFlagsHolder) IsReDelegateBelowMinCheckFlagEnabled() bool {
 // IsValidatorToDelegationFlagEnabled returns true if validatorToDelegationFlag is enabled
 func (holder *epochFlagsHolder) IsValidatorToDelegationFlagEnabled() bool {
 	return holder.validatorToDelegationFlag.IsSet()
-}
-
-// IsWaitingListFixFlagEnabled returns true if waitingListFixFlag is enabled
-func (holder *epochFlagsHolder) IsWaitingListFixFlagEnabled() bool {
-	return holder.waitingListFixFlag.IsSet()
 }
 
 // IsIncrementSCRNonceInMultiTransferFlagEnabled returns true if incrementSCRNonceInMultiTransferFlag is enabled

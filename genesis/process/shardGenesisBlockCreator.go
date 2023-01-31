@@ -92,7 +92,6 @@ func createGenesisConfig() config.EnableEpochs {
 		SaveJailedAlwaysEnableEpoch:                       unreachableEpoch,
 		ValidatorToDelegationEnableEpoch:                  unreachableEpoch,
 		ReDelegateBelowMinCheckEnableEpoch:                unreachableEpoch,
-		WaitingListFixEnableEpoch:                         unreachableEpoch,
 		IncrementSCRNonceInMultiTransferEnableEpoch:       unreachableEpoch,
 		ESDTMultiTransferEnableEpoch:                      unreachableEpoch,
 		GlobalMintBurnDisableEpoch:                        unreachableEpoch,

@@ -94,7 +94,6 @@ type indexHashedNodesCoordinator struct {
 	publicKeyToValidatorMap         map[string]*validatorWithShardID
 	isFullArchive                   bool
 	chanStopNode                    chan endProcess.ArgEndProcess
-	flagWaitingListFix              atomicFlags.Flag
 	nodeTypeProvider                NodeTypeProviderHandler
 	enableEpochsHandler             common.EnableEpochsHandler
 	validatorInfoCacher             epochStart.ValidatorInfoCacher
@@ -753,7 +752,7 @@ func (ihnc *indexHashedNodesCoordinator) computeNodesConfigFromList(
 	newNodesList := make([]Validator, 0)
 	auctionList := make([]Validator, 0)
 
-	if ihnc.flagWaitingListFix.IsSet() && previousEpochConfig == nil {
+	if previousEpochConfig == nil {
 		return nil, ErrNilPreviousEpochConfig
 	}
 
@@ -777,9 +776,7 @@ func (ihnc *indexHashedNodesCoordinator) computeNodesConfigFromList(
 			log.Debug("leaving node validatorInfo", "pk", validatorInfo.PublicKey)
 			leavingMap[validatorInfo.ShardId] = append(leavingMap[validatorInfo.ShardId], currentValidator)
 			ihnc.addValidatorToPreviousMap(
-				previousEpochConfig,
 				eligibleMap,
-				waitingMap,
 				currentValidator,
 				validatorInfo.ShardId)
 		case string(common.NewList):
@@ -832,30 +829,11 @@ func (ihnc *indexHashedNodesCoordinator) computeNodesConfigFromList(
 }
 
 func (ihnc *indexHashedNodesCoordinator) addValidatorToPreviousMap(
-	previousEpochConfig *epochNodesConfig,
 	eligibleMap map[uint32][]Validator,
-	waitingMap map[uint32][]Validator,
 	currentValidator *validator,
-	currentValidatorShardId uint32) {
-
-	if !ihnc.flagWaitingListFix.IsSet() {
-		eligibleMap[currentValidatorShardId] = append(eligibleMap[currentValidatorShardId], currentValidator)
-		return
-	}
-
-	found, shardId := searchInMap(previousEpochConfig.eligibleMap, currentValidator.PubKey())
-	if found {
-		log.Debug("leaving node found in", "list", "eligible", "shardId", shardId)
-		eligibleMap[shardId] = append(eligibleMap[currentValidatorShardId], currentValidator)
-		return
-	}
-
-	found, shardId = searchInMap(previousEpochConfig.waitingMap, currentValidator.PubKey())
-	if found {
-		log.Debug("leaving node found in", "list", "waiting", "shardId", shardId)
-		waitingMap[shardId] = append(waitingMap[currentValidatorShardId], currentValidator)
-		return
-	}
+	currentValidatorShardId uint32,
+) {
+	eligibleMap[currentValidatorShardId] = append(eligibleMap[currentValidatorShardId], currentValidator)
 }
 
 func (ihnc *indexHashedNodesCoordinator) handleErrorLog(err error, message string) {
@@ -1295,9 +1273,6 @@ func (ihnc *indexHashedNodesCoordinator) getShardValidatorInfoData(txHash []byte
 }
 
 func (ihnc *indexHashedNodesCoordinator) updateEpochFlags(epoch uint32) {
-	ihnc.flagWaitingListFix.SetValue(epoch >= ihnc.enableEpochsHandler.WaitingListFixEnableEpoch())
-	log.Debug("indexHashedNodesCoordinator: waiting list fix", "enabled", ihnc.flagWaitingListFix.IsSet())
-
 	ihnc.flagStakingV4.SetValue(epoch >= ihnc.stakingV4EnableEpoch)
 	log.Debug("indexHashedNodesCoordinator: staking v4", "enabled", ihnc.flagStakingV4.IsSet())
 }

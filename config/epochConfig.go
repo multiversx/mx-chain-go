@@ -43,7 +43,6 @@ type EnableEpochs struct {
 	SaveJailedAlwaysEnableEpoch                       uint32
 	ValidatorToDelegationEnableEpoch                  uint32
 	ReDelegateBelowMinCheckEnableEpoch                uint32
-	WaitingListFixEnableEpoch                         uint32
 	IncrementSCRNonceInMultiTransferEnableEpoch       uint32
 	ScheduledMiniBlocksEnableEpoch                    uint32
 	ESDTMultiTransferEnableEpoch                      uint32

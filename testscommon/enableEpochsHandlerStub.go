@@ -13,7 +13,6 @@ type EnableEpochsHandlerStub struct {
 	ScheduledMiniBlocksEnableEpochField                          uint32
 	SwitchJailWaitingEnableEpochField                            uint32
 	BalanceWaitingListsEnableEpochField                          uint32
-	WaitingListFixEnableEpochField                               uint32
 	MultiESDTTransferAsyncCallBackEnableEpochField               uint32
 	FixOOGReturnCodeEnableEpochField                             uint32
 	RemoveNonUpdatedStorageEnableEpochField                      uint32
@@ -62,7 +61,6 @@ type EnableEpochsHandlerStub struct {
 	IsSaveJailedAlwaysFlagEnabledField                           bool
 	IsReDelegateBelowMinCheckFlagEnabledField                    bool
 	IsValidatorToDelegationFlagEnabledField                      bool
-	IsWaitingListFixFlagEnabledField                             bool
 	IsIncrementSCRNonceInMultiTransferFlagEnabledField           bool
 	IsESDTMultiTransferFlagEnabledField                          bool
 	IsGlobalMintBurnFlagEnabledField                             bool
@@ -171,14 +169,6 @@ func (stub *EnableEpochsHandlerStub) BalanceWaitingListsEnableEpoch() uint32 {
 	defer stub.RUnlock()
 
 	return stub.BalanceWaitingListsEnableEpochField
-}
-
-// WaitingListFixEnableEpoch -
-func (stub *EnableEpochsHandlerStub) WaitingListFixEnableEpoch() uint32 {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.WaitingListFixEnableEpochField
 }
 
 // MultiESDTTransferAsyncCallBackEnableEpoch -
@@ -555,14 +545,6 @@ func (stub *EnableEpochsHandlerStub) IsValidatorToDelegationFlagEnabled() bool {
 	defer stub.RUnlock()
 
 	return stub.IsValidatorToDelegationFlagEnabledField
-}
-
-// IsWaitingListFixFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsWaitingListFixFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsWaitingListFixFlagEnabledField
 }
 
 // IsIncrementSCRNonceInMultiTransferFlagEnabled -

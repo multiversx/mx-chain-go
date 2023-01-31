@@ -42,7 +42,6 @@ type shuffleNodesArg struct {
 	nbShards                                uint32
 	maxNodesToSwapPerShard                  uint32
 	flagBalanceWaitingLists                 bool
-	flagWaitingListFix                      bool
 	flagStakingV4                           bool
 	flagStakingV4DistributeAuctionToWaiting bool
 }
@@ -63,7 +62,6 @@ type randHashShuffler struct {
 	mutShufflerParams                        sync.RWMutex
 	validatorDistributor                     ValidatorsDistributor
 	flagBalanceWaitingLists                  atomic.Flag
-	flagWaitingListFix                       atomic.Flag
 	enableEpochsHandler                      common.EnableEpochsHandler
 	stakingV4DistributeAuctionToWaitingEpoch uint32
 	flagStakingV4DistributeAuctionToWaiting  atomic.Flag
@@ -195,7 +193,6 @@ func (rhs *randHashShuffler) UpdateNodeLists(args ArgsUpdateNodes) (*ResUpdateNo
 		distributor:                             rhs.validatorDistributor,
 		maxNodesToSwapPerShard:                  rhs.activeNodesConfig.NodesToShufflePerShard,
 		flagBalanceWaitingLists:                 rhs.flagBalanceWaitingLists.IsSet(),
-		flagWaitingListFix:                      rhs.flagWaitingListFix.IsSet(),
 		flagStakingV4:                           rhs.flagStakingV4.IsSet(),
 		flagStakingV4DistributeAuctionToWaiting: rhs.flagStakingV4DistributeAuctionToWaiting.IsSet(),
 	})
@@ -275,18 +272,12 @@ func shuffleNodes(arg shuffleNodesArg) (*ResUpdateNodes, error) {
 		eligibleCopy,
 		waitingCopy,
 		numToRemove,
-		remainingUnstakeLeaving,
-		int(arg.nodesMeta),
-		int(arg.nodesPerShard),
-		arg.flagWaitingListFix)
+		remainingUnstakeLeaving)
 	newEligible, newWaiting, stillRemainingAdditionalLeaving := removeLeavingNodesFromValidatorMaps(
 		newEligible,
 		newWaiting,
 		numToRemove,
-		remainingAdditionalLeaving,
-		int(arg.nodesMeta),
-		int(arg.nodesPerShard),
-		arg.flagWaitingListFix)
+		remainingAdditionalLeaving)
 
 	stillRemainingInLeaving := append(stillRemainingUnstakeLeaving, stillRemainingAdditionalLeaving...)
 
@@ -404,21 +395,14 @@ func removeLeavingNodesFromValidatorMaps(
 	waiting map[uint32][]Validator,
 	numToRemove map[uint32]int,
 	leaving []Validator,
-	minNodesMeta int,
-	minNodesPerShard int,
-	waitingFixEnabled bool,
 ) (map[uint32][]Validator, map[uint32][]Validator, []Validator) {
 
 	stillRemainingInLeaving := make([]Validator, len(leaving))
 	copy(stillRemainingInLeaving, leaving)
 
-	if !waitingFixEnabled {
-		newWaiting, stillRemainingInLeaving := removeNodesFromMap(waiting, stillRemainingInLeaving, numToRemove)
-		newEligible, stillRemainingInLeaving := removeNodesFromMap(eligible, stillRemainingInLeaving, numToRemove)
-		return newEligible, newWaiting, stillRemainingInLeaving
-	}
-
-	return removeLeavingNodes(eligible, waiting, numToRemove, stillRemainingInLeaving, minNodesMeta, minNodesPerShard)
+	newWaiting, stillRemainingInLeaving := removeNodesFromMap(waiting, stillRemainingInLeaving, numToRemove)
+	newEligible, stillRemainingInLeaving := removeNodesFromMap(eligible, stillRemainingInLeaving, numToRemove)
+	return newEligible, newWaiting, stillRemainingInLeaving
 }
 
 func removeLeavingNodes(
@@ -804,7 +788,6 @@ func (rhs *randHashShuffler) UpdateShufflerConfig(epoch uint32) {
 
 	rhs.flagBalanceWaitingLists.SetValue(epoch >= rhs.enableEpochsHandler.BalanceWaitingListsEnableEpoch())
 	log.Debug("balanced waiting lists", "enabled", rhs.flagBalanceWaitingLists.IsSet())
-	rhs.flagWaitingListFix.SetValue(epoch >= rhs.enableEpochsHandler.WaitingListFixEnableEpoch())
 
 	rhs.flagStakingV4DistributeAuctionToWaiting.SetValue(epoch >= rhs.stakingV4DistributeAuctionToWaitingEpoch)
 	log.Debug("staking v4 distribute auction to waiting", "enabled", rhs.flagStakingV4DistributeAuctionToWaiting.IsSet())

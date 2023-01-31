@@ -2928,7 +2928,6 @@ func CreateEnableEpochsConfig() config.EnableEpochs {
 		SaveJailedAlwaysEnableEpoch:                       UnreachableEpoch,
 		ValidatorToDelegationEnableEpoch:                  UnreachableEpoch,
 		ReDelegateBelowMinCheckEnableEpoch:                UnreachableEpoch,
-		WaitingListFixEnableEpoch:                         UnreachableEpoch,
 		IncrementSCRNonceInMultiTransferEnableEpoch:       UnreachableEpoch,
 		ESDTMultiTransferEnableEpoch:                      UnreachableEpoch,
 		GlobalMintBurnDisableEpoch:                        UnreachableEpoch,

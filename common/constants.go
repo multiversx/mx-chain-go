@@ -493,9 +493,6 @@ const (
 	// MetricESDTTransferRoleEnableEpoch represents the epoch when the ESDT transfer role feature is enabled
 	MetricESDTTransferRoleEnableEpoch = "erd_esdt_transfer_role_enable_epoch"
 
-	// MetricWaitingListFixEnableEpoch represents the epoch when the waiting list fix is enabled
-	MetricWaitingListFixEnableEpoch = "erd_waiting_list_fix_enable_epoch"
-
 	// MetricMaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
 	MetricMaxNodesChangeEnableEpoch = "erd_max_nodes_change_enable_epoch"
 

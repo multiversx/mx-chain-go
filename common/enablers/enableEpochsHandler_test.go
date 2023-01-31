@@ -43,7 +43,6 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		SaveJailedAlwaysEnableEpoch:                       27,
 		ValidatorToDelegationEnableEpoch:                  28,
 		ReDelegateBelowMinCheckEnableEpoch:                29,
-		WaitingListFixEnableEpoch:                         30,
 		IncrementSCRNonceInMultiTransferEnableEpoch:       31,
 		ScheduledMiniBlocksEnableEpoch:                    32,
 		ESDTMultiTransferEnableEpoch:                      33,
@@ -169,7 +168,6 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsSaveJailedAlwaysFlagEnabled())
 		assert.True(t, handler.IsReDelegateBelowMinCheckFlagEnabled())
 		assert.True(t, handler.IsValidatorToDelegationFlagEnabled())
-		assert.True(t, handler.IsWaitingListFixFlagEnabled())
 		assert.True(t, handler.IsIncrementSCRNonceInMultiTransferFlagEnabled())
 		assert.True(t, handler.IsESDTMultiTransferFlagEnabled())
 		assert.False(t, handler.IsGlobalMintBurnFlagEnabled())
@@ -272,7 +270,6 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsSaveJailedAlwaysFlagEnabled())
 		assert.True(t, handler.IsReDelegateBelowMinCheckFlagEnabled())
 		assert.True(t, handler.IsValidatorToDelegationFlagEnabled())
-		assert.True(t, handler.IsWaitingListFixFlagEnabled())
 		assert.True(t, handler.IsIncrementSCRNonceInMultiTransferFlagEnabled())
 		assert.True(t, handler.IsESDTMultiTransferFlagEnabled())
 		assert.False(t, handler.IsGlobalMintBurnFlagEnabled())
@@ -371,7 +368,6 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.False(t, handler.IsSaveJailedAlwaysFlagEnabled())
 		assert.False(t, handler.IsReDelegateBelowMinCheckFlagEnabled())
 		assert.False(t, handler.IsValidatorToDelegationFlagEnabled())
-		assert.False(t, handler.IsWaitingListFixFlagEnabled())
 		assert.False(t, handler.IsIncrementSCRNonceInMultiTransferFlagEnabled())
 		assert.False(t, handler.IsESDTMultiTransferFlagEnabled())
 		assert.True(t, handler.IsGlobalMintBurnFlagEnabled())

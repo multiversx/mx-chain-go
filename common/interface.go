@@ -230,7 +230,6 @@ type EnableEpochsHandler interface {
 	ScheduledMiniBlocksEnableEpoch() uint32
 	SwitchJailWaitingEnableEpoch() uint32
 	BalanceWaitingListsEnableEpoch() uint32
-	WaitingListFixEnableEpoch() uint32
 	MultiESDTTransferAsyncCallBackEnableEpoch() uint32
 	FixOOGReturnCodeEnableEpoch() uint32
 	RemoveNonUpdatedStorageEnableEpoch() uint32
@@ -280,7 +279,6 @@ type EnableEpochsHandler interface {
 	IsSaveJailedAlwaysFlagEnabled() bool
 	IsReDelegateBelowMinCheckFlagEnabled() bool
 	IsValidatorToDelegationFlagEnabled() bool
-	IsWaitingListFixFlagEnabled() bool
 	IsIncrementSCRNonceInMultiTransferFlagEnabled() bool
 	IsESDTMultiTransferFlagEnabled() bool
 	IsGlobalMintBurnFlagEnabled() bool

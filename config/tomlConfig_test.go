@@ -581,9 +581,6 @@ func TestEnableEpochConfig(t *testing.T) {
     # ValidatorToDelegationEnableEpoch represents the epoch when the validator-to-delegation feature will be enabled
     ValidatorToDelegationEnableEpoch = 29
 
-    # WaitingListFixEnableEpoch represents the epoch when the 6 epoch waiting list fix is enabled
-    WaitingListFixEnableEpoch = 30
-
     # IncrementSCRNonceInMultiTransferEnableEpoch represents the epoch when the fix for preventing the generation of the same SCRs
     # is enabled. The fix is done by adding an extra increment.
     IncrementSCRNonceInMultiTransferEnableEpoch = 31
@@ -736,7 +733,6 @@ func TestEnableEpochConfig(t *testing.T) {
 			SaveJailedAlwaysEnableEpoch:                 27,
 			ValidatorToDelegationEnableEpoch:            29,
 			ReDelegateBelowMinCheckEnableEpoch:          28,
-			WaitingListFixEnableEpoch:                   30,
 			IncrementSCRNonceInMultiTransferEnableEpoch: 31,
 			ESDTMultiTransferEnableEpoch:                32,
 			GlobalMintBurnDisableEpoch:                  33,

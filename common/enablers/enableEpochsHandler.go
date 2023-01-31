@@ -68,7 +68,6 @@ func (handler *enableEpochsHandler) EpochConfirmed(epoch uint32, _ uint64) {
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.SaveJailedAlwaysEnableEpoch, handler.saveJailedAlwaysFlag, "saveJailedAlwaysFlag")
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.ReDelegateBelowMinCheckEnableEpoch, handler.reDelegateBelowMinCheckFlag, "reDelegateBelowMinCheckFlag")
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.ValidatorToDelegationEnableEpoch, handler.validatorToDelegationFlag, "validatorToDelegationFlag")
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.WaitingListFixEnableEpoch, handler.waitingListFixFlag, "waitingListFixFlag")
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.IncrementSCRNonceInMultiTransferEnableEpoch, handler.incrementSCRNonceInMultiTransferFlag, "incrementSCRNonceInMultiTransferFlag")
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.ESDTMultiTransferEnableEpoch, handler.esdtMultiTransferFlag, "esdtMultiTransferFlag")
 	handler.setFlagValue(epoch < handler.enableEpochsConfig.GlobalMintBurnDisableEpoch, handler.globalMintBurnFlag, "globalMintBurnFlag")
@@ -152,11 +151,6 @@ func (handler *enableEpochsHandler) SwitchJailWaitingEnableEpoch() uint32 {
 // BalanceWaitingListsEnableEpoch returns the epoch for balance waiting lists
 func (handler *enableEpochsHandler) BalanceWaitingListsEnableEpoch() uint32 {
 	return handler.enableEpochsConfig.BalanceWaitingListsEnableEpoch
-}
-
-// WaitingListFixEnableEpoch returns the epoch for waiting list fix
-func (handler *enableEpochsHandler) WaitingListFixEnableEpoch() uint32 {
-	return handler.enableEpochsConfig.WaitingListFixEnableEpoch
 }
 
 // MultiESDTTransferAsyncCallBackEnableEpoch returns the epoch when multi esdt transfer fix on callback becomes active
