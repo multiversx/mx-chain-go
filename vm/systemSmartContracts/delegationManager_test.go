@@ -1226,6 +1226,14 @@ func TestDelegationManagerSystemSC_ReDelegateMulti(t *testing.T) {
 							Data:       nil,
 						}
 						d.eei.AddLogEntry(entry)
+
+						wrongEntry := &vmcommon.LogEntry{}
+						d.eei.AddLogEntry(wrongEntry)
+
+						wrongEntry2 := &vmcommon.LogEntry{
+							Topics: [][]byte{big.NewInt(10).Bytes()},
+						}
+						d.eei.AddLogEntry(wrongEntry2)
 						return vmcommon.Ok
 					},
 				}, nil
