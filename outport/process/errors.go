@@ -25,3 +25,6 @@ var ErrNilStorer = errors.New("nil storer")
 
 // ErrNilEnableEpochsHandler signals that a nil enable epochs handler has been provided
 var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
+
+// ErrNilExecutionOrderGetter signals that a nil execution order getter has been provided
+var ErrNilExecutionOrderGetter = errors.New("nil execution order getter")

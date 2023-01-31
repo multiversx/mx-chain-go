@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/outport/process/alteredaccounts/shared"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -25,7 +26,7 @@ type ArgOutportDataProvider struct {
 	NodesCoordinator         nodesCoordinator.NodesCoordinator
 	GasConsumedProvider      GasConsumedProvider
 	EconomicsData            EconomicsDataHandler
-	ExecutionOrderHandler    ExecutionOrderHandler
+	ExecutionOrderHandler    common.ExecutionOrderGetter
 }
 
 // ArgPrepareOutportSaveBlockData holds the arguments needed for prepare outport save block data
@@ -48,7 +49,7 @@ type outportDataProvider struct {
 	nodesCoordinator         nodesCoordinator.NodesCoordinator
 	gasConsumedProvider      GasConsumedProvider
 	economicsData            EconomicsDataHandler
-	executionOrderHandler    ExecutionOrderHandler
+	executionOrderHandler    common.ExecutionOrderGetter
 }
 
 // NewOutportDataProvider will create a new instance of outportDataProvider
@@ -81,13 +82,7 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 		return nil, fmt.Errorf("transactionsFeeProcessor.PutFeeAndGasUsed %w", err)
 	}
 
-	scheduledExecutedSCRsHashesPrevBlock, scheduledExecutedInvalidTxsHashesPrevBlock, err := odp.executionOrderHandler.PutExecutionOrderInTransactionPool(pool, arg.Header, arg.Body, arg.PreviousHeader)
-	if err != nil {
-		return nil, fmt.Errorf("executionOrderHandler.PutExecutionOrderInTransactionPool %w", err)
-	}
-
-	pool.ScheduledExecutedInvalidTxsHashesPrevBlock = scheduledExecutedInvalidTxsHashesPrevBlock
-	pool.ScheduledExecutedSCRSHashesPrevBlock = scheduledExecutedSCRsHashesPrevBlock
+	odp.setExecutionOrderInTransactionPool(pool)
 
 	alteredAccounts, err := odp.alteredAccountsProvider.ExtractAlteredAccountsFromPool(pool, shared.AlteredAccountsOptions{
 		WithAdditionalOutportData: true,
@@ -118,6 +113,39 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 		NumberOfShards:         odp.numOfShards,
 		IsImportDB:             odp.isImportDBMode,
 	}, nil
+}
+
+func (odp *outportDataProvider) setExecutionOrderInTransactionPool(
+	pool *outportcore.Pool,
+) {
+	orderedTxHashes := odp.executionOrderHandler.GetItems()
+	txGroups := []map[string]data.TransactionHandlerWithGasUsedAndFee{
+		pool.Txs,
+		pool.Scrs,
+		pool.Receipts,
+		pool.Rewards,
+	}
+
+	for i, txHash := range orderedTxHashes {
+		for _, group := range txGroups {
+			if setExecutionOrderIfFound(txHash, group, i) {
+				break
+			}
+		}
+	}
+}
+
+func setExecutionOrderIfFound(
+	txHash []byte,
+	transactionHandlers map[string]data.TransactionHandlerWithGasUsedAndFee,
+	order int,
+) bool {
+	tx, ok := transactionHandlers[string(txHash)]
+	if ok {
+		tx.SetExecutionOrder(order)
+	}
+
+	return ok
 }
 
 func (odp *outportDataProvider) computeEpoch(header data.HeaderHandler) uint32 {
