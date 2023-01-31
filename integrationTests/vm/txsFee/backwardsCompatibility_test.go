@@ -18,11 +18,10 @@ import (
 // minGasPrice = 1, gasPerDataByte = 1, minGasLimit = 1
 func TestMoveBalanceSelfShouldWorkAndConsumeTxFeeWhenAllFlagsAreDisabled(t *testing.T) {
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
-		PenalizedTooMuchGasEnableEpoch:   100,
-		BuiltInFunctionOnMetaEnableEpoch: 100,
-		SCDeployEnableEpoch:              100,
-		MetaProtectionEnableEpoch:        100,
-		RelayedTransactionsEnableEpoch:   100,
+		PenalizedTooMuchGasEnableEpoch: 100,
+		SCDeployEnableEpoch:            100,
+		MetaProtectionEnableEpoch:      100,
+		RelayedTransactionsEnableEpoch: 100,
 	})
 	require.Nil(t, err)
 	defer testContext.Close()

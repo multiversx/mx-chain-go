@@ -45,7 +45,6 @@ type epochFlagsHolder struct {
 	esdtMultiTransferFlag                       *atomic.Flag
 	globalMintBurnFlag                          *atomic.Flag
 	esdtTransferRoleFlag                        *atomic.Flag
-	builtInFunctionOnMetaFlag                   *atomic.Flag
 	computeRewardCheckpointFlag                 *atomic.Flag
 	scrSizeInvariantCheckFlag                   *atomic.Flag
 	backwardCompSaveKeyValueFlag                *atomic.Flag
@@ -139,7 +138,6 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		esdtMultiTransferFlag:                       &atomic.Flag{},
 		globalMintBurnFlag:                          &atomic.Flag{},
 		esdtTransferRoleFlag:                        &atomic.Flag{},
-		builtInFunctionOnMetaFlag:                   &atomic.Flag{},
 		computeRewardCheckpointFlag:                 &atomic.Flag{},
 		scrSizeInvariantCheckFlag:                   &atomic.Flag{},
 		backwardCompSaveKeyValueFlag:                &atomic.Flag{},
@@ -397,11 +395,6 @@ func (holder *epochFlagsHolder) IsESDTTransferRoleFlagEnabled() bool {
 	return holder.esdtTransferRoleFlag.IsSet()
 }
 
-// IsBuiltInFunctionOnMetaFlagEnabled returns true if builtInFunctionOnMetaFlag is enabled
-func (holder *epochFlagsHolder) IsBuiltInFunctionOnMetaFlagEnabled() bool {
-	return holder.builtInFunctionOnMetaFlag.IsSet()
-}
-
 // IsComputeRewardCheckpointFlagEnabled returns true if computeRewardCheckpointFlag is enabled
 func (holder *epochFlagsHolder) IsComputeRewardCheckpointFlagEnabled() bool {
 	return holder.computeRewardCheckpointFlag.IsSet()
@@ -613,10 +606,10 @@ func (holder *epochFlagsHolder) IsCheckTransferFlagEnabled() bool {
 	return holder.optimizeNFTStoreFlag.IsSet()
 }
 
-// IsTransferToMetaFlagEnabled returns true if builtInFunctionOnMetaFlag is enabled
-// this is a duplicate for BuiltInFunctionOnMetaEnableEpoch needed for consistency into vm-common
+// IsTransferToMetaFlagEnabled returns false
+// This is used for consistency into vm-common
 func (holder *epochFlagsHolder) IsTransferToMetaFlagEnabled() bool {
-	return holder.builtInFunctionOnMetaFlag.IsSet()
+	return false
 }
 
 // IsESDTNFTImprovementV1FlagEnabled returns true if esdtMultiTransferFlag is enabled

@@ -67,7 +67,6 @@ type EnableEpochsHandlerStub struct {
 	IsESDTMultiTransferFlagEnabledField                          bool
 	IsGlobalMintBurnFlagEnabledField                             bool
 	IsESDTTransferRoleFlagEnabledField                           bool
-	IsBuiltInFunctionOnMetaFlagEnabledField                      bool
 	IsComputeRewardCheckpointFlagEnabledField                    bool
 	IsSCRSizeInvariantCheckFlagEnabledField                      bool
 	IsBackwardCompSaveKeyValueFlagEnabledField                   bool
@@ -108,7 +107,6 @@ type EnableEpochsHandlerStub struct {
 	IsSendAlwaysFlagEnabledField                                 bool
 	IsValueLengthCheckFlagEnabledField                           bool
 	IsCheckTransferFlagEnabledField                              bool
-	IsTransferToMetaFlagEnabledField                             bool
 	IsESDTNFTImprovementV1FlagEnabledField                       bool
 	IsSetSenderInEeiOutputTransferFlagEnabledField               bool
 	IsChangeDelegationOwnerFlagEnabledField                      bool
@@ -599,14 +597,6 @@ func (stub *EnableEpochsHandlerStub) IsESDTTransferRoleFlagEnabled() bool {
 	return stub.IsESDTTransferRoleFlagEnabledField
 }
 
-// IsBuiltInFunctionOnMetaFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsBuiltInFunctionOnMetaFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsBuiltInFunctionOnMetaFlagEnabledField
-}
-
 // IsComputeRewardCheckpointFlagEnabled -
 func (stub *EnableEpochsHandlerStub) IsComputeRewardCheckpointFlagEnabled() bool {
 	stub.RLock()
@@ -929,10 +919,7 @@ func (stub *EnableEpochsHandlerStub) IsCheckTransferFlagEnabled() bool {
 
 // IsTransferToMetaFlagEnabled -
 func (stub *EnableEpochsHandlerStub) IsTransferToMetaFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsTransferToMetaFlagEnabledField
+	return false
 }
 
 // IsESDTNFTImprovementV1FlagEnabled -

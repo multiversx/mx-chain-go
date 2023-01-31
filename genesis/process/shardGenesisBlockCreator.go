@@ -97,7 +97,6 @@ func createGenesisConfig() config.EnableEpochs {
 		ESDTMultiTransferEnableEpoch:                      unreachableEpoch,
 		GlobalMintBurnDisableEpoch:                        unreachableEpoch,
 		ESDTTransferRoleEnableEpoch:                       unreachableEpoch,
-		BuiltInFunctionOnMetaEnableEpoch:                  unreachableEpoch,
 		ComputeRewardCheckpointEnableEpoch:                unreachableEpoch,
 		SCRSizeInvariantCheckEnableEpoch:                  unreachableEpoch,
 		BackwardCompSaveKeyValueEnableEpoch:               unreachableEpoch,

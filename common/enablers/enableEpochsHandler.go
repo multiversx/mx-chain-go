@@ -73,7 +73,6 @@ func (handler *enableEpochsHandler) EpochConfirmed(epoch uint32, _ uint64) {
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.ESDTMultiTransferEnableEpoch, handler.esdtMultiTransferFlag, "esdtMultiTransferFlag")
 	handler.setFlagValue(epoch < handler.enableEpochsConfig.GlobalMintBurnDisableEpoch, handler.globalMintBurnFlag, "globalMintBurnFlag")
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.ESDTTransferRoleEnableEpoch, handler.esdtTransferRoleFlag, "esdtTransferRoleFlag")
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.BuiltInFunctionOnMetaEnableEpoch, handler.builtInFunctionOnMetaFlag, "builtInFunctionOnMetaFlag")
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.ComputeRewardCheckpointEnableEpoch, handler.computeRewardCheckpointFlag, "computeRewardCheckpointFlag")
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.SCRSizeInvariantCheckEnableEpoch, handler.scrSizeInvariantCheckFlag, "scrSizeInvariantCheckFlag")
 	handler.setFlagValue(epoch < handler.enableEpochsConfig.BackwardCompSaveKeyValueEnableEpoch, handler.backwardCompSaveKeyValueFlag, "backwardCompSaveKeyValueFlag")

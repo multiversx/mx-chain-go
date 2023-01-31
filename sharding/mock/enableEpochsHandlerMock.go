@@ -306,11 +306,6 @@ func (mock *EnableEpochsHandlerMock) IsESDTTransferRoleFlagEnabled() bool {
 	return false
 }
 
-// IsBuiltInFunctionOnMetaFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsBuiltInFunctionOnMetaFlagEnabled() bool {
-	return false
-}
-
 // IsComputeRewardCheckpointFlagEnabled returns false
 func (mock *EnableEpochsHandlerMock) IsComputeRewardCheckpointFlagEnabled() bool {
 	return false

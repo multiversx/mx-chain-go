@@ -597,9 +597,6 @@ func TestEnableEpochConfig(t *testing.T) {
     # ESDTTransferRoleEnableEpoch represents the epoch when esdt transfer role set is enabled
     ESDTTransferRoleEnableEpoch = 34
 
-    # BuiltInFunctionOnMetaEnableEpoch represents the epoch when built in function processing on metachain is enabled
-    BuiltInFunctionOnMetaEnableEpoch = 35
-
     # ComputeRewardCheckpointEnableEpoch represents the epoch when compute rewards checkpoint epoch is enabled
     ComputeRewardCheckpointEnableEpoch = 36
 
@@ -744,7 +741,6 @@ func TestEnableEpochConfig(t *testing.T) {
 			ESDTMultiTransferEnableEpoch:                32,
 			GlobalMintBurnDisableEpoch:                  33,
 			ESDTTransferRoleEnableEpoch:                 34,
-			BuiltInFunctionOnMetaEnableEpoch:            35,
 			ComputeRewardCheckpointEnableEpoch:          36,
 			SCRSizeInvariantCheckEnableEpoch:            37,
 			BackwardCompSaveKeyValueEnableEpoch:         38,

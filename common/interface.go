@@ -285,7 +285,6 @@ type EnableEpochsHandler interface {
 	IsESDTMultiTransferFlagEnabled() bool
 	IsGlobalMintBurnFlagEnabled() bool
 	IsESDTTransferRoleFlagEnabled() bool
-	IsBuiltInFunctionOnMetaFlagEnabled() bool
 	IsComputeRewardCheckpointFlagEnabled() bool
 	IsSCRSizeInvariantCheckFlagEnabled() bool
 	IsBackwardCompSaveKeyValueFlagEnabled() bool

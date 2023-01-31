@@ -121,7 +121,6 @@ func InitConfigMetrics(
 	appStatusHandler.SetUInt64Value(common.MetricESDTMultiTransferEnableEpoch, uint64(enableEpochs.ESDTMultiTransferEnableEpoch))
 	appStatusHandler.SetUInt64Value(common.MetricGlobalMintBurnDisableEpoch, uint64(enableEpochs.GlobalMintBurnDisableEpoch))
 	appStatusHandler.SetUInt64Value(common.MetricESDTTransferRoleEnableEpoch, uint64(enableEpochs.ESDTTransferRoleEnableEpoch))
-	appStatusHandler.SetUInt64Value(common.MetricBuiltInFunctionOnMetaEnableEpoch, uint64(enableEpochs.BuiltInFunctionOnMetaEnableEpoch))
 	appStatusHandler.SetStringValue(common.MetricTotalSupply, economicsConfig.GlobalSettings.GenesisTotalSupply)
 	appStatusHandler.SetUInt64Value(common.MetricWaitingListFixEnableEpoch, uint64(enableEpochs.WaitingListFixEnableEpoch))
 

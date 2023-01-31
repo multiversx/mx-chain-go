@@ -43,7 +43,6 @@ func TestESDTIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 
 	enableEpochs := config.EnableEpochs{
 		GlobalMintBurnDisableEpoch:                  integrationTests.UnreachableEpoch,
-		BuiltInFunctionOnMetaEnableEpoch:            integrationTests.UnreachableEpoch,
 		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: integrationTests.UnreachableEpoch,
 		ScheduledMiniBlocksEnableEpoch:              integrationTests.UnreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch:        integrationTests.UnreachableEpoch,
@@ -175,7 +174,6 @@ func TestESDTCallBurnOnANonBurnableToken(t *testing.T) {
 
 	enableEpochs := config.EnableEpochs{
 		GlobalMintBurnDisableEpoch:                  integrationTests.UnreachableEpoch,
-		BuiltInFunctionOnMetaEnableEpoch:            integrationTests.UnreachableEpoch,
 		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: integrationTests.UnreachableEpoch,
 		ScheduledMiniBlocksEnableEpoch:              integrationTests.UnreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch:        integrationTests.UnreachableEpoch,
@@ -2068,8 +2066,7 @@ func TestIssueAndBurnESDT_MaxGasPerBlockExceeded(t *testing.T) {
 	numMetachainNodes := 1
 
 	enableEpochs := config.EnableEpochs{
-		GlobalMintBurnDisableEpoch:       integrationTests.UnreachableEpoch,
-		BuiltInFunctionOnMetaEnableEpoch: integrationTests.UnreachableEpoch,
+		GlobalMintBurnDisableEpoch: integrationTests.UnreachableEpoch,
 	}
 	nodes := integrationTests.CreateNodesWithEnableEpochs(
 		numOfShards,

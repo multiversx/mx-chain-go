@@ -132,7 +132,6 @@ func TestInitConfigMetrics(t *testing.T) {
 			ESDTMultiTransferEnableEpoch:                31,
 			GlobalMintBurnDisableEpoch:                  32,
 			ESDTTransferRoleEnableEpoch:                 33,
-			BuiltInFunctionOnMetaEnableEpoch:            34,
 			WaitingListFixEnableEpoch:                   35,
 		},
 	}

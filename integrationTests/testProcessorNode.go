@@ -2933,7 +2933,6 @@ func CreateEnableEpochsConfig() config.EnableEpochs {
 		ESDTMultiTransferEnableEpoch:                      UnreachableEpoch,
 		GlobalMintBurnDisableEpoch:                        UnreachableEpoch,
 		ESDTTransferRoleEnableEpoch:                       UnreachableEpoch,
-		BuiltInFunctionOnMetaEnableEpoch:                  UnreachableEpoch,
 		ComputeRewardCheckpointEnableEpoch:                UnreachableEpoch,
 		SCRSizeInvariantCheckEnableEpoch:                  UnreachableEpoch,
 		BackwardCompSaveKeyValueEnableEpoch:               UnreachableEpoch,

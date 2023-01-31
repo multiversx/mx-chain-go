@@ -49,7 +49,6 @@ type EnableEpochs struct {
 	ESDTMultiTransferEnableEpoch                      uint32
 	GlobalMintBurnDisableEpoch                        uint32
 	ESDTTransferRoleEnableEpoch                       uint32
-	BuiltInFunctionOnMetaEnableEpoch                  uint32
 	ComputeRewardCheckpointEnableEpoch                uint32
 	SCRSizeInvariantCheckEnableEpoch                  uint32
 	BackwardCompSaveKeyValueEnableEpoch               uint32
