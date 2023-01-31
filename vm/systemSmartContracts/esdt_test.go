@@ -45,7 +45,6 @@ func createMockArgumentsForESDT() ArgsNewESDTSmartContract {
 			IsESDTNFTCreateOnMultiShardFlagEnabledField:     true,
 			IsESDTTransferRoleFlagEnabledField:              true,
 			IsESDTMetadataContinuousCleanupFlagEnabledField: true,
-			IsLiquidStakingEnabledField:                     true,
 		},
 	}
 }
@@ -4360,78 +4359,4 @@ func TestEsdt_CheckRolesOnMetaESDT(t *testing.T) {
 	enableEpochsHandler.IsManagedCryptoAPIsFlagEnabledField = true
 	err = e.checkSpecialRolesAccordingToTokenType([][]byte{[]byte("random")}, &ESDTDataV2{TokenType: []byte(metaESDT)})
 	assert.Equal(t, err, vm.ErrInvalidArgument)
-}
-
-func TestEsdt_ExecuteInitDelegationESDT(t *testing.T) {
-	t.Parallel()
-
-	enableEpochsHandler := &testscommon.EnableEpochsHandlerStub{
-		IsDelegationSmartContractFlagEnabledField: true,
-		IsESDTFlagEnabledField:                    true,
-		IsBuiltInFunctionOnMetaFlagEnabledField:   false,
-	}
-
-	args := createMockArgumentsForESDT()
-	args.ESDTSCAddress = vm.ESDTSCAddress
-	args.EnableEpochsHandler = enableEpochsHandler
-
-	argsVMContext := createArgsVMContext()
-	argsVMContext.EnableEpochsHandler = enableEpochsHandler
-	eei, _ := NewVMContext(argsVMContext)
-	args.Eei = eei
-	e, _ := NewESDTSmartContract(args)
-
-	vmInput := &vmcommon.ContractCallInput{
-		VMInput: vmcommon.VMInput{
-			CallerAddr: []byte("addr"),
-			CallValue:  big.NewInt(0),
-		},
-		RecipientAddr: []byte("addr"),
-		Function:      "initDelegationESDTOnMeta",
-	}
-
-	eei.returnMessage = ""
-	returnCode := e.Execute(vmInput)
-	assert.Equal(t, vmcommon.FunctionNotFound, returnCode)
-	assert.Equal(t, eei.returnMessage, "invalid method to call")
-
-	eei.returnMessage = ""
-	enableEpochsHandler.IsBuiltInFunctionOnMetaFlagEnabledField = true
-	returnCode = e.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, returnCode)
-	assert.Equal(t, eei.returnMessage, "only system address can call this")
-
-	vmInput.CallerAddr = vm.ESDTSCAddress
-	vmInput.RecipientAddr = vm.ESDTSCAddress
-	vmInput.Arguments = [][]byte{{1}}
-	eei.returnMessage = ""
-	returnCode = e.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, returnCode)
-
-	vmInput.Arguments = [][]byte{}
-	vmInput.CallValue = big.NewInt(10)
-	eei.returnMessage = ""
-	returnCode = e.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, returnCode)
-
-	localErr := errors.New("local err")
-	eei.blockChainHook = &mock.BlockChainHookStub{ProcessBuiltInFunctionCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
-		return nil, localErr
-	}}
-
-	vmInput.CallValue = big.NewInt(0)
-	eei.returnMessage = ""
-	returnCode = e.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, returnCode)
-	assert.Equal(t, eei.returnMessage, localErr.Error())
-
-	eei.blockChainHook = &mock.BlockChainHookStub{ProcessBuiltInFunctionCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
-		doesContainTicker := bytes.Contains(input.Arguments[0], []byte(e.delegationTicker))
-		assert.True(t, doesContainTicker)
-		return &vmcommon.VMOutput{}, nil
-	}}
-
-	eei.returnMessage = ""
-	returnCode = e.Execute(vmInput)
-	assert.Equal(t, vmcommon.Ok, returnCode)
 }

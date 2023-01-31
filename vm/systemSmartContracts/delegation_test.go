@@ -53,7 +53,6 @@ func createMockArgumentsForDelegation() ArgsNewDelegation {
 			IsComputeRewardCheckpointFlagEnabledField:              true,
 			IsValidatorToDelegationFlagEnabledField:                true,
 			IsReDelegateBelowMinCheckFlagEnabledField:              true,
-			IsLiquidStakingEnabledField:                            true,
 		},
 	}
 }
@@ -4908,15 +4907,4 @@ func TestDelegationSystemSC_ExecuteChangeOwner(t *testing.T) {
 	assert.Equal(t, []byte(withdraw), eei.logs[1].Identifier)
 	assert.Equal(t, []byte("second123"), eei.logs[1].Address)
 	assert.Equal(t, boolToSlice(true), eei.logs[1].Topics[4])
-}
-
-func TestDelegation_FailsIfESDTTransfers(t *testing.T) {
-	d, eei := createDelegationContractAndEEI()
-
-	vmInput := getDefaultVmInputForFunc("claimDelegatedPosition", make([][]byte, 0))
-	vmInput.ESDTTransfers = []*vmcommon.ESDTTransfer{{ESDTValue: big.NewInt(10)}}
-
-	returnCode := d.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, returnCode)
-	assert.Equal(t, eei.returnMessage, "cannot transfer ESDT to system SCs")
 }

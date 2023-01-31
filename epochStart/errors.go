@@ -329,9 +329,6 @@ var ErrNilValidatorInfoStorage = errors.New("nil validator info storage")
 // ErrNilTrieSyncStatistics signals that nil trie sync statistics has been provided
 var ErrNilTrieSyncStatistics = errors.New("nil trie sync statistics")
 
-// ErrCouldNotInitLiquidStakingSystemSC signals that liquid staking system sc init failed
-var ErrCouldNotInitLiquidStakingSystemSC = errors.New("could not init liquid staking system sc")
-
 // ErrReceivedNewListNodeInStakingV4 signals that a new node has been assigned in common.NewList instead of common.AuctionList after staking v4
 var ErrReceivedNewListNodeInStakingV4 = errors.New("new node has been assigned in common.NewList instead of common.AuctionList after staking v4")
 
