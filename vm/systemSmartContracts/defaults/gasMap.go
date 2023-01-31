@@ -76,7 +76,6 @@ func FillGasMapMetaChainSystemSCsCosts(value uint64) map[string]uint64 {
 	gasMap["GetAllNodeStates"] = value
 	gasMap["ValidatorToDelegation"] = value
 	gasMap["FixWaitingListSize"] = value
-	gasMap["LiquidStakingOps"] = value
 
 	return gasMap
 }

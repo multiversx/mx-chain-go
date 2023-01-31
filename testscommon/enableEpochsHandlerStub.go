@@ -123,9 +123,7 @@ type EnableEpochsHandlerStub struct {
 	IsStakingV4InitFlagEnabledField                              bool
 	IsStakingV4FlagEnabledField                                  bool
 	IsStakingV4DistributeAuctionToWaitingEnabledField            bool
-	IsInitLiquidStakingEnabledField                              bool
 	IsStakingQueueEnabledField                                   bool
-	IsLiquidStakingEnabledField                                  bool
 	IsStakingV4StartedField                                      bool
 	IsStakingV4EnabledCalled                                     func() bool
 }
@@ -1053,28 +1051,12 @@ func (stub *EnableEpochsHandlerStub) IsStakingV4DistributeAuctionToWaitingEnable
 	return stub.IsStakingV4DistributeAuctionToWaitingEnabledField
 }
 
-// IsInitLiquidStakingEnabled -
-func (stub *EnableEpochsHandlerStub) IsInitLiquidStakingEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsInitLiquidStakingEnabledField
-}
-
 // IsStakingQueueEnabled -
 func (stub *EnableEpochsHandlerStub) IsStakingQueueEnabled() bool {
 	stub.RLock()
 	defer stub.RUnlock()
 
 	return stub.IsStakingQueueEnabledField
-}
-
-// IsLiquidStakingEnabled -
-func (stub *EnableEpochsHandlerStub) IsLiquidStakingEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsLiquidStakingEnabledField
 }
 
 // IsStakingV4Started -

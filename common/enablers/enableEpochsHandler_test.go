@@ -220,8 +220,6 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsStakingV4Enabled())
 		assert.True(t, handler.IsStakingV4DistributeAuctionToWaitingEnabled())
 		assert.False(t, handler.IsStakingQueueEnabled())
-		assert.False(t, handler.IsInitLiquidStakingEnabled())
-		assert.True(t, handler.IsLiquidStakingEnabled())
 		assert.True(t, handler.IsStakingV4Started())
 	})
 	t.Run("flags with == condition should be set, along with all >=", func(t *testing.T) {
@@ -329,8 +327,6 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsStakingV4Enabled())
 		assert.True(t, handler.IsStakingV4DistributeAuctionToWaitingEnabled())
 		assert.False(t, handler.IsStakingQueueEnabled())
-		assert.True(t, handler.IsInitLiquidStakingEnabled())
-		assert.True(t, handler.IsLiquidStakingEnabled())
 		assert.True(t, handler.IsStakingV4Started())
 	})
 	t.Run("flags with < should be set", func(t *testing.T) {
@@ -431,8 +427,6 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.False(t, handler.IsStakingV4Enabled())
 		assert.False(t, handler.IsStakingV4DistributeAuctionToWaitingEnabled())
 		assert.True(t, handler.IsStakingQueueEnabled())
-		assert.False(t, handler.IsInitLiquidStakingEnabled())
-		assert.False(t, handler.IsLiquidStakingEnabled())
 		assert.False(t, handler.IsStakingV4Started())
 	})
 }

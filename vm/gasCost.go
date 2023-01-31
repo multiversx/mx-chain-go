@@ -35,7 +35,6 @@ type MetaChainSystemSCsCost struct {
 	ValidatorToDelegation uint64
 	GetAllNodeStates      uint64
 	FixWaitingListSize    uint64
-	LiquidStakingOps      uint64
 }
 
 // BuiltInCost defines cost for built-in methods
