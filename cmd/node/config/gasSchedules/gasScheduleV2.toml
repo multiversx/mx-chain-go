@@ -49,7 +49,7 @@
     AoTPreparePerByte = 300
     GetCode           = 1000000
 
-[ElrondAPICost]
+[BaseOpsAPICost]
     GetSCAddress       = 100
     GetOwnerAddress    = 5000
     IsSmartContract    = 5000

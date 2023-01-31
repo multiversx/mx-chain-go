@@ -351,7 +351,7 @@ func TestESDTScCallAndGasChangeShouldWork(t *testing.T) {
 	testGasSchedule := wasmConfig.MakeGasMapForTests()
 	newGasSchedule := defaults.FillGasMapInternal(testGasSchedule, 1)
 	newGasSchedule["BuiltInCost"][core.BuiltInFunctionESDTTransfer] = 2
-	newGasSchedule["ElrondAPICost"]["TransferValue"] = 2
+	newGasSchedule["BaseOpsAPICost"]["TransferValue"] = 2
 	mockGasSchedule.ChangeGasSchedule(newGasSchedule)
 
 	for idx := uint64(0); idx < numIterations; idx++ {

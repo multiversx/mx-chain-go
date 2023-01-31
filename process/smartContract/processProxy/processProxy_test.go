@@ -28,9 +28,9 @@ import (
 
 func createMockSmartContractProcessorArguments() scrCommon.ArgsNewSmartContractProcessor {
 	gasSchedule := make(map[string]map[string]uint64)
-	gasSchedule[common.ElrondAPICost] = make(map[string]uint64)
-	gasSchedule[common.ElrondAPICost][common.AsyncCallStepField] = 1000
-	gasSchedule[common.ElrondAPICost][common.AsyncCallbackGasLockField] = 3000
+	gasSchedule[common.BaseOpsAPICost] = make(map[string]uint64)
+	gasSchedule[common.BaseOpsAPICost][common.AsyncCallStepField] = 1000
+	gasSchedule[common.BaseOpsAPICost][common.AsyncCallbackGasLockField] = 3000
 	gasSchedule[common.BuiltInCost] = make(map[string]uint64)
 	gasSchedule[common.BuiltInCost][core.BuiltInFunctionESDTTransfer] = 2000
 
