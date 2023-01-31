@@ -1,7 +1,13 @@
+//go:build !race
+// +build !race
+
 package delegation
 
 import (
 	"encoding/hex"
+	"math/big"
+	"testing"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/integrationTests"
@@ -11,8 +17,6 @@ import (
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"math/big"
-	"testing"
 )
 
 func TestDelegationSystemClaimMulti(t *testing.T) {
