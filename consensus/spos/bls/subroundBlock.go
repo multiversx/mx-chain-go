@@ -384,7 +384,7 @@ func (sr *subroundBlock) receivedBlockBodyAndHeader(ctx context.Context, cnsDta 
 	sr.Body = sr.BlockProcessor().DecodeBlockBody(cnsDta.Body)
 	sr.Header = sr.BlockProcessor().DecodeBlockHeader(cnsDta.Header)
 
-	if sr.Data == nil || check.IfNil(sr.Body) || check.IfNil(sr.Header) {
+	if sr.Data == nil || check.IfNil(sr.Body) || check.IfNil(sr.Header) || sr.Header.CheckFieldsForNil() != nil {
 		return false
 	}
 
@@ -477,7 +477,7 @@ func (sr *subroundBlock) receivedBlockHeader(ctx context.Context, cnsDta *consen
 	sr.Data = cnsDta.BlockHeaderHash
 	sr.Header = sr.BlockProcessor().DecodeBlockHeader(cnsDta.Header)
 
-	if sr.Data == nil || check.IfNil(sr.Header) {
+	if sr.Data == nil || check.IfNil(sr.Header) || sr.Header.CheckFieldsForNil() != nil {
 		return false
 	}
 

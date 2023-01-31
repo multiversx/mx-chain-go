@@ -2,6 +2,7 @@ package integrationTests
 
 import (
 	"fmt"
+	"math/big"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -334,11 +335,20 @@ func (tcn *TestConsensusNode) initBlockChain(hasher hashing.Hasher) {
 
 func (tcn *TestConsensusNode) initBlockProcessor() {
 	tcn.BlockProcessor = &mock.BlockProcessorMock{
+		Marshalizer: TestMarshalizer,
 		CommitBlockCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
+			tcn.BlockProcessor.NumCommitBlockCalled++
+			headerHash, _ := core.CalculateHash(TestMarshalizer, TestHasher, header)
+			tcn.ChainHandler.SetCurrentBlockHeaderHash(headerHash)
 			_ = tcn.ChainHandler.SetCurrentBlockHeaderAndRootHash(header, header.GetRootHash())
+
 			return nil
 		},
 		CreateBlockCalled: func(header data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
+			_ = header.SetAccumulatedFees(big.NewInt(0))
+			_ = header.SetDeveloperFees(big.NewInt(0))
+			_ = header.SetRootHash([]byte("roothash"))
+
 			return header, &dataBlock.Body{}, nil
 		},
 		MarshalizedDataToBroadcastCalled: func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
@@ -354,13 +364,6 @@ func (tcn *TestConsensusNode) initBlockProcessor() {
 			}, nil
 		},
 	}
-
-	tcn.BlockProcessor.CommitBlockCalled = func(header data.HeaderHandler, body data.BodyHandler) error {
-		tcn.BlockProcessor.NumCommitBlockCalled++
-		_ = tcn.ChainHandler.SetCurrentBlockHeaderAndRootHash(header, header.GetRootHash())
-		return nil
-	}
-	tcn.BlockProcessor.Marshalizer = TestMarshalizer
 }
 
 func (tcn *TestConsensusNode) initResolverFinder() {

@@ -443,6 +443,11 @@ func (wrk *Worker) doJobOnMessageWithHeader(cnsMsg *consensus.Message) error {
 		return fmt.Errorf("%w : received header from consensus topic is invalid",
 			ErrInvalidHeader)
 	}
+	err := header.CheckFieldsForNil()
+	if err != nil {
+		return fmt.Errorf("%w : received header from consensus topic is invalid",
+			err)
+	}
 
 	var valStatsRootHash []byte
 	metaHeader, ok := header.(data.MetaHeaderHandler)
@@ -460,7 +465,7 @@ func (wrk *Worker) doJobOnMessageWithHeader(cnsMsg *consensus.Message) error {
 		"nbTxs", header.GetTxCount(),
 		"val stats root hash", valStatsRootHash)
 
-	err := wrk.headerIntegrityVerifier.Verify(header)
+	err = wrk.headerIntegrityVerifier.Verify(header)
 	if err != nil {
 		return fmt.Errorf("%w : verify header integrity from consensus topic failed", err)
 	}
