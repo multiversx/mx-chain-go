@@ -668,7 +668,7 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 
 		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardHeader.GetShardID())
 		storer, errNotCritical := mp.store.GetStorer(hdrNonceHashDataUnit)
-		if err != nil {
+		if errNotCritical != nil {
 			log.Debug("storage unit not found", "unit", hdrNonceHashDataUnit, "error", errNotCritical.Error())
 			continue
 		}
@@ -2062,10 +2062,28 @@ func (mp *metaProcessor) computeAccumulatedFeesInEpoch(metaHdr data.MetaHeaderHa
 
 	currentlyAccumulatedFeesInEpoch.Add(currentlyAccumulatedFeesInEpoch, metaHdr.GetAccumulatedFees())
 	currentDevFeesInEpoch.Add(currentDevFeesInEpoch, metaHdr.GetDeveloperFees())
+	log.Debug("computeAccumulatedFeesInEpoch - meta block fees",
+		"meta nonce", metaHdr.GetNonce(),
+		"accumulatedFees", metaHdr.GetAccumulatedFees().String(),
+		"devFees", metaHdr.GetDeveloperFees().String(),
+		"meta leader fees", core.GetIntTrimmedPercentageOfValue(big.NewInt(0).Sub(metaHdr.GetAccumulatedFees(), metaHdr.GetDeveloperFees()), mp.economicsData.LeaderPercentage()).String())
+
 	for _, shardData := range metaHdr.GetShardInfoHandlers() {
+		log.Debug("computeAccumulatedFeesInEpoch - adding shard data fees",
+			"shardHeader hash", shardData.GetHeaderHash(),
+			"shardHeader nonce", shardData.GetNonce(),
+			"shardHeader accumulated fees", shardData.GetAccumulatedFees().String(),
+			"shardHeader dev fees", shardData.GetDeveloperFees().String(),
+			"shardHeader leader fees", core.GetIntTrimmedPercentageOfValue(big.NewInt(0).Sub(shardData.GetAccumulatedFees(), shardData.GetDeveloperFees()), mp.economicsData.LeaderPercentage()).String(),
+		)
+
 		currentlyAccumulatedFeesInEpoch.Add(currentlyAccumulatedFeesInEpoch, shardData.GetAccumulatedFees())
 		currentDevFeesInEpoch.Add(currentDevFeesInEpoch, shardData.GetDeveloperFees())
 	}
+
+	log.Debug("computeAccumulatedFeesInEpoch - fees in epoch",
+		"accumulatedFeesInEpoch", currentlyAccumulatedFeesInEpoch.String(),
+		"devFeesInEpoch", currentDevFeesInEpoch.String())
 
 	return currentlyAccumulatedFeesInEpoch, currentDevFeesInEpoch, nil
 }
