@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/testscommon/commonmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/epochstartmock"
 	"github.com/stretchr/testify/require"
 )
@@ -30,6 +31,7 @@ func TestNewChainParametersHolder(t *testing.T) {
 					Adaptivity:                  false,
 				},
 			},
+			ChainParametersNotifier: &commonmocks.ChainParametersNotifierStub{},
 		}
 	}
 
@@ -149,6 +151,40 @@ func TestNewChainParametersHolder(t *testing.T) {
 	})
 }
 
+func TestChainParametersHolder_EpochStartActionShouldCallTheNotifier(t *testing.T) {
+	t.Parallel()
+
+	receivedValues := make([]uint32, 0)
+	notifier := &commonmocks.ChainParametersNotifierStub{
+		UpdateCurrentChainParametersCalled: func(params config.ChainParametersByEpochConfig) {
+			receivedValues = append(receivedValues, params.ShardConsensusGroupSize)
+		},
+	}
+	paramsHolder, _ := NewChainParametersHolder(ArgsChainParametersHolder{
+		ChainParameters: []config.ChainParametersByEpochConfig{
+			{
+				EnableEpoch:                 0,
+				ShardConsensusGroupSize:     5,
+				ShardMinNumNodes:            7,
+				MetachainConsensusGroupSize: 7,
+				MetachainMinNumNodes:        7,
+			},
+			{
+				EnableEpoch:                 5,
+				ShardConsensusGroupSize:     37,
+				ShardMinNumNodes:            38,
+				MetachainConsensusGroupSize: 7,
+				MetachainMinNumNodes:        7,
+			},
+		},
+		EpochStartEventNotifier: &epochstartmock.EpochStartNotifierStub{},
+		ChainParametersNotifier: notifier,
+	})
+
+	paramsHolder.EpochStartAction(&block.MetaBlock{Epoch: 5})
+	require.Equal(t, []uint32{5, 37}, receivedValues)
+}
+
 func TestChainParametersHolder_ChainParametersForEpoch(t *testing.T) {
 	t.Parallel()
 
@@ -168,6 +204,7 @@ func TestChainParametersHolder_ChainParametersForEpoch(t *testing.T) {
 		paramsHolder, _ := NewChainParametersHolder(ArgsChainParametersHolder{
 			ChainParameters:         params,
 			EpochStartEventNotifier: &epochstartmock.EpochStartNotifierStub{},
+			ChainParametersNotifier: &commonmocks.ChainParametersNotifierStub{},
 		})
 
 		res, _ := paramsHolder.ChainParametersForEpoch(0)
@@ -213,6 +250,7 @@ func TestChainParametersHolder_ChainParametersForEpoch(t *testing.T) {
 		paramsHolder, _ := NewChainParametersHolder(ArgsChainParametersHolder{
 			ChainParameters:         params,
 			EpochStartEventNotifier: &epochstartmock.EpochStartNotifierStub{},
+			ChainParametersNotifier: &commonmocks.ChainParametersNotifierStub{},
 		})
 
 		for i := 0; i < 200; i++ {
@@ -254,6 +292,7 @@ func TestChainParametersHolder_CurrentChainParameters(t *testing.T) {
 	paramsHolder, _ := NewChainParametersHolder(ArgsChainParametersHolder{
 		ChainParameters:         params,
 		EpochStartEventNotifier: &epochstartmock.EpochStartNotifierStub{},
+		ChainParametersNotifier: &commonmocks.ChainParametersNotifierStub{},
 	})
 
 	paramsHolder.EpochStartAction(&block.MetaBlock{Epoch: 0})
@@ -292,6 +331,7 @@ func TestChainParametersHolder_AllChainParameters(t *testing.T) {
 	paramsHolder, _ := NewChainParametersHolder(ArgsChainParametersHolder{
 		ChainParameters:         params,
 		EpochStartEventNotifier: &epochstartmock.EpochStartNotifierStub{},
+		ChainParametersNotifier: &commonmocks.ChainParametersNotifierStub{},
 	})
 
 	returnedAllChainsParameters := paramsHolder.AllChainParameters()
@@ -317,6 +357,7 @@ func TestChainParametersHolder_ConcurrentOperations(t *testing.T) {
 	paramsHolder, _ := NewChainParametersHolder(ArgsChainParametersHolder{
 		ChainParameters:         chainParams,
 		EpochStartEventNotifier: &epochstartmock.EpochStartNotifierStub{},
+		ChainParametersNotifier: &commonmocks.ChainParametersNotifierStub{},
 	})
 
 	numOperations := 500
