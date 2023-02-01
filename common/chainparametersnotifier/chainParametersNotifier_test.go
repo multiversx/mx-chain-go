@@ -35,8 +35,12 @@ func TestChainParametersNotifier_UpdateCurrentChainParameters(t *testing.T) {
 	// update with same epoch but other params - should not change (impossible scenario in production, but easier for tests)
 	chainParams.Hysteresis = 0.8
 	notifier.UpdateCurrentChainParameters(chainParams)
-
 	require.Equal(t, float32(0.7), notifier.CurrentChainParameters().Hysteresis)
+
+	chainParams.Hysteresis = 0.8
+	chainParams.EnableEpoch = 8
+	notifier.UpdateCurrentChainParameters(chainParams)
+	require.Equal(t, float32(0.8), notifier.CurrentChainParameters().Hysteresis)
 }
 
 func TestChainParametersNotifier_RegisterNotifyHandler(t *testing.T) {

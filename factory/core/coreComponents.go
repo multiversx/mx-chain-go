@@ -359,7 +359,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		epochNotifier:                 epochNotifier,
 		chainParametersSubscriber:     chainParametersNotifier,
 		enableRoundsHandler:           enableRoundsHandler,
-		epochStartNotifierWithConfirm: notifier.NewEpochStartSubscriptionHandler(),
+		epochStartNotifierWithConfirm: epochStartHandlerWithConfirm,
 		chanStopNodeProcess:           ccf.chanStopNodeProcess,
 		encodedAddressLen:             computeEncodedAddressLen(addressPubkeyConverter),
 		nodeTypeProvider:              nodeTypeProvider,
