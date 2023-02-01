@@ -240,7 +240,7 @@
     AlwaysSaveTokenMetaDataEnableEpoch = 2
 
     # LeaderFeesForLastEpochBlockEnableEpoch represents the epoch when the leader fees for the last epoch block are enabled
-    LeaderFeesForLastEpochBlockEnableEpoch = 2  # takes effect in epoch 3
+    LeaderFeesForLastEpochBlockEnableEpoch = 2
 
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [
