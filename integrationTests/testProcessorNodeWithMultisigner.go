@@ -230,10 +230,11 @@ func CreateNodesWithNodesCoordinatorFactory(
 	}
 
 	epochsConfig := config.EnableEpochs{
-		StakingV2EnableEpoch:                 UnreachableEpoch,
-		ScheduledMiniBlocksEnableEpoch:       UnreachableEpoch,
-		MiniBlockPartialExecutionEnableEpoch: UnreachableEpoch,
-		RefactorPeersMiniBlocksEnableEpoch:   UnreachableEpoch,
+		StakingV2EnableEpoch:                   UnreachableEpoch,
+		ScheduledMiniBlocksEnableEpoch:         UnreachableEpoch,
+		MiniBlockPartialExecutionEnableEpoch:   UnreachableEpoch,
+		RefactorPeersMiniBlocksEnableEpoch:     UnreachableEpoch,
+		LeaderFeesForLastEpochBlockEnableEpoch: UnreachableEpoch,
 	}
 
 	nodesMap := make(map[uint32][]*TestProcessorNode)
@@ -467,9 +468,10 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 				NodeShardId:          shardId,
 				TxSignPrivKeyShardId: txSignPrivKeyShardId,
 				EpochsConfig: &config.EnableEpochs{
-					StakingV2EnableEpoch:                 UnreachableEpoch,
-					ScheduledMiniBlocksEnableEpoch:       UnreachableEpoch,
-					MiniBlockPartialExecutionEnableEpoch: UnreachableEpoch,
+					StakingV2EnableEpoch:                   UnreachableEpoch,
+					ScheduledMiniBlocksEnableEpoch:         UnreachableEpoch,
+					MiniBlockPartialExecutionEnableEpoch:   UnreachableEpoch,
+					LeaderFeesForLastEpochBlockEnableEpoch: UnreachableEpoch,
 				},
 				NodeKeys:                cp.Keys[shardId][i],
 				NodesSetup:              nodesSetup,
@@ -591,9 +593,10 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 				NodeShardId:          shardId,
 				TxSignPrivKeyShardId: txSignPrivKeyShardId,
 				EpochsConfig: &config.EnableEpochs{
-					StakingV2EnableEpoch:                 UnreachableEpoch,
-					ScheduledMiniBlocksEnableEpoch:       UnreachableEpoch,
-					MiniBlockPartialExecutionEnableEpoch: UnreachableEpoch,
+					StakingV2EnableEpoch:                   UnreachableEpoch,
+					ScheduledMiniBlocksEnableEpoch:         UnreachableEpoch,
+					MiniBlockPartialExecutionEnableEpoch:   UnreachableEpoch,
+					LeaderFeesForLastEpochBlockEnableEpoch: UnreachableEpoch,
 				},
 				NodeKeys:                cp.Keys[shardId][i],
 				NodesSetup:              nodesSetup,
