@@ -2858,6 +2858,7 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 		PeerAuthenticationTimeBetweenSendsWhenErrorInSec: 1,
 		PeerAuthenticationTimeThresholdBetweenSends:      0.1,
 		HeartbeatTimeBetweenSendsInSec:                   2,
+		HeartbeatTimeBetweenSendsDuringBootstrapInSec:    1,
 		HeartbeatTimeBetweenSendsWhenErrorInSec:          1,
 		HeartbeatTimeThresholdBetweenSends:               0.1,
 		HeartbeatExpiryTimespanInSec:                     300,
