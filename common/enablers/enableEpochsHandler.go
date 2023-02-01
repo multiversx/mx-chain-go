@@ -117,6 +117,7 @@ func (handler *enableEpochsHandler) EpochConfirmed(epoch uint32, _ uint64) {
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.MaxBlockchainHookCountersEnableEpoch, handler.maxBlockchainHookCountersFlag, "maxBlockchainHookCountersFlag")
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.WipeSingleNFTLiquidityDecreaseEnableEpoch, handler.wipeSingleNFTLiquidityDecreaseFlag, "wipeSingleNFTLiquidityDecreaseFlag")
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.AlwaysSaveTokenMetaDataEnableEpoch, handler.alwaysSaveTokenMetaDataFlag, "alwaysSaveTokenMetaDataFlag")
+	handler.setFlagValue(epoch >= handler.enableEpochsConfig.LeaderFeesForLastEpochBlockEnableEpoch, handler.leaderFeesForLastEpochBlockFlag, "leaderFeesForLastEpochBlockFlag")
 }
 
 func (handler *enableEpochsHandler) setFlagValue(value bool, flag *atomic.Flag, flagName string) {
@@ -212,6 +213,10 @@ func (handler *enableEpochsHandler) MiniBlockPartialExecutionEnableEpoch() uint3
 // RefactorPeersMiniBlocksEnableEpoch returns the epoch when refactor of peers mini blocks becomes active
 func (handler *enableEpochsHandler) RefactorPeersMiniBlocksEnableEpoch() uint32 {
 	return handler.enableEpochsConfig.RefactorPeersMiniBlocksEnableEpoch
+}
+
+func (handler *enableEpochsHandler) LeaderFeesForLastEpochBlockEnableEpoch() uint32 {
+	return handler.enableEpochsConfig.LeaderFeesForLastEpochBlockEnableEpoch
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

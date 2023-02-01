@@ -356,24 +356,31 @@ func (vs *validatorStatistics) UpdatePeerState(header data.MetaHeaderHandler, ca
 	}
 	log.Trace("Increasing", "round", previousHeader.GetRound(), "prevRandSeed", previousHeader.GetPrevRandSeed())
 
-	consensusGroupEpoch := computeEpoch(previousHeader)
+	var headerForUpdate data.HeaderHandler
+	if vs.enableEpochsHandler.IsLeaderFeesForLastEpochBlockEnabled() {
+		headerForUpdate = header
+	} else {
+		headerForUpdate = previousHeader
+	}
+
+	consensusGroupEpoch := computeEpoch(headerForUpdate)
 	consensusGroup, err := vs.nodesCoordinator.ComputeConsensusGroup(
-		previousHeader.GetPrevRandSeed(),
-		previousHeader.GetRound(),
-		previousHeader.GetShardID(),
+		headerForUpdate.GetPrevRandSeed(),
+		headerForUpdate.GetRound(),
+		headerForUpdate.GetShardID(),
 		consensusGroupEpoch)
 	if err != nil {
 		return nil, err
 	}
 	leaderPK := core.GetTrimmedPk(vs.pubkeyConv.Encode(consensusGroup[0].PubKey()))
-	log.Trace("Increasing for leader", "leader", leaderPK, "round", previousHeader.GetRound())
+	log.Trace("Increasing for leader", "leader", leaderPK, "round", headerForUpdate.GetRound())
 
-	log.Debug("UpdatePeerState - registering meta previous leader fees", "metaNonce", previousHeader.GetNonce())
+	log.Debug("UpdatePeerState - registering meta leader fees", "metaNonce", headerForUpdate.GetNonce())
 	err = vs.updateValidatorInfoOnSuccessfulBlock(
 		consensusGroup,
-		previousHeader.GetPubKeysBitmap(),
-		big.NewInt(0).Sub(previousHeader.GetAccumulatedFees(), previousHeader.GetDeveloperFees()),
-		previousHeader.GetShardID(),
+		headerForUpdate.GetPubKeysBitmap(),
+		big.NewInt(0).Sub(headerForUpdate.GetAccumulatedFees(), headerForUpdate.GetDeveloperFees()),
+		headerForUpdate.GetShardID(),
 	)
 	if err != nil {
 		return nil, err

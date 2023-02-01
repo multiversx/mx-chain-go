@@ -678,6 +678,9 @@ func TestEnableEpochConfig(t *testing.T) {
     # AlwaysSaveTokenMetaDataEnableEpoch represents the epoch when the token metadata is always saved
     AlwaysSaveTokenMetaDataEnableEpoch = 61
 
+	# LeaderFeesForLastEpochBlockEnableEpoch represents the epoch when the leader fees for the last epoch block are enabled
+	LeaderFeesForLastEpochBlockEnableEpoch = 62
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -771,6 +774,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			MaxBlockchainHookCountersEnableEpoch:        59,
 			WipeSingleNFTLiquidityDecreaseEnableEpoch:   60,
 			AlwaysSaveTokenMetaDataEnableEpoch:          61,
+			LeaderFeesForLastEpochBlockEnableEpoch:      62,
 			BLSMultiSignerEnableEpoch: []MultiSignerConfig{
 				{
 					EnableEpoch: 0,

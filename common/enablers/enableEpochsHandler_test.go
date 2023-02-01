@@ -90,6 +90,7 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		MaxBlockchainHookCountersEnableEpoch:              74,
 		WipeSingleNFTLiquidityDecreaseEnableEpoch:         75,
 		AlwaysSaveTokenMetaDataEnableEpoch:                76,
+		LeaderFeesForLastEpochBlockEnableEpoch:            77,
 	}
 }
 

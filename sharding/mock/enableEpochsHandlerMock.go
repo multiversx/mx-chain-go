@@ -561,6 +561,11 @@ func (mock *EnableEpochsHandlerMock) IsAlwaysSaveTokenMetaDataEnabled() bool {
 	return false
 }
 
+// IsLeaderFeesForLastEpochBlockEnabled -
+func (mock *EnableEpochsHandlerMock) IsLeaderFeesForLastEpochBlockEnabled() bool {
+	return false
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (mock *EnableEpochsHandlerMock) IsInterfaceNil() bool {
 	return mock == nil

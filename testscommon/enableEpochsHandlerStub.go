@@ -116,6 +116,7 @@ type EnableEpochsHandlerStub struct {
 	IsMaxBlockchainHookCountersFlagEnabledField                  bool
 	IsWipeSingleNFTLiquidityDecreaseEnabledField                 bool
 	IsAlwaysSaveTokenMetaDataEnabledField                        bool
+	IsLeaderFeesForLastEpochBlockEnabledField                    bool
 }
 
 // ResetPenalizedTooMuchGasFlag -
@@ -1003,6 +1004,14 @@ func (stub *EnableEpochsHandlerStub) IsAlwaysSaveTokenMetaDataEnabled() bool {
 	defer stub.RUnlock()
 
 	return stub.IsAlwaysSaveTokenMetaDataEnabledField
+}
+
+// IsLeaderFeesForLastEpochBlockEnabled -
+func (stub *EnableEpochsHandlerStub) IsLeaderFeesForLastEpochBlockEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsLeaderFeesForLastEpochBlockEnabledField
 }
 
 // IsInterfaceNil -

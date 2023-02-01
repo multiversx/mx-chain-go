@@ -89,6 +89,7 @@ type epochFlagsHolder struct {
 	maxBlockchainHookCountersFlag               *atomic.Flag
 	wipeSingleNFTLiquidityDecreaseFlag          *atomic.Flag
 	alwaysSaveTokenMetaDataFlag                 *atomic.Flag
+	leaderFeesForLastEpochBlockFlag             *atomic.Flag
 }
 
 func newEpochFlagsHolder() *epochFlagsHolder {
@@ -177,6 +178,7 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		maxBlockchainHookCountersFlag:               &atomic.Flag{},
 		wipeSingleNFTLiquidityDecreaseFlag:          &atomic.Flag{},
 		alwaysSaveTokenMetaDataFlag:                 &atomic.Flag{},
+		leaderFeesForLastEpochBlockFlag:             &atomic.Flag{},
 	}
 }
 
@@ -651,4 +653,8 @@ func (holder *epochFlagsHolder) IsWipeSingleNFTLiquidityDecreaseEnabled() bool {
 // IsAlwaysSaveTokenMetaDataEnabled returns true if alwaysSaveTokenMetaDataFlag is enabled
 func (holder *epochFlagsHolder) IsAlwaysSaveTokenMetaDataEnabled() bool {
 	return holder.alwaysSaveTokenMetaDataFlag.IsSet()
+}
+
+func (holder *epochFlagsHolder) IsLeaderFeesForLastEpochBlockEnabled() bool {
+	return holder.leaderFeesForLastEpochBlockFlag.IsSet()
 }

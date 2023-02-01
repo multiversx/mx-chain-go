@@ -239,6 +239,9 @@
     # AlwaysSaveTokenMetaDataEnableEpoch represents the epoch when the token metadata is always saved
     AlwaysSaveTokenMetaDataEnableEpoch = 2
 
+    # LeaderFeesForLastEpochBlockEnableEpoch represents the epoch when the leader fees for the last epoch block are enabled
+    LeaderFeesForLastEpochBlockEnableEpoch = 2  # takes effect in epoch 3
+
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [
         { EnableEpoch = 0, Type = "no-KOSK"},
