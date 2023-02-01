@@ -120,18 +120,6 @@ func (s *systemSCProcessor) processWithNewFlags(
 		}
 	}
 
-	if s.enableEpochsHandler.IsInitLiquidStakingEnabled() {
-		tokenID, err := s.initTokenOnMeta()
-		if err != nil {
-			return err
-		}
-
-		err = s.initLiquidStakingSC(tokenID)
-		if err != nil {
-			return err
-		}
-	}
-
 	if s.enableEpochsHandler.IsStakingV4InitEnabled() {
 		err := s.stakeNodesFromQueue(validatorsInfoMap, math.MaxUint32, header.GetNonce(), common.AuctionList)
 		if err != nil {
@@ -253,44 +241,6 @@ func (s *systemSCProcessor) initTokenOnMeta() ([]byte, error) {
 	}
 
 	return vmOutput.ReturnData[0], nil
-}
-
-func (s *systemSCProcessor) initLiquidStakingSC(tokenID []byte) error {
-	codeMetaData := &vmcommon.CodeMetadata{
-		Upgradeable: false,
-		Payable:     false,
-		Readable:    true,
-	}
-
-	vmInput := &vmcommon.ContractCreateInput{
-		VMInput: vmcommon.VMInput{
-			CallerAddr: vm.LiquidStakingSCAddress,
-			Arguments:  [][]byte{tokenID},
-			CallValue:  big.NewInt(0),
-		},
-		ContractCode:         vm.LiquidStakingSCAddress,
-		ContractCodeMetadata: codeMetaData.ToBytes(),
-	}
-
-	vmOutput, err := s.systemVM.RunSmartContractCreate(vmInput)
-	if err != nil {
-		return err
-	}
-	if vmOutput.ReturnCode != vmcommon.Ok {
-		return epochStart.ErrCouldNotInitLiquidStakingSystemSC
-	}
-
-	err = s.processSCOutputAccounts(vmOutput)
-	if err != nil {
-		return err
-	}
-
-	err = s.updateSystemSCContractsCode(vmInput.ContractCodeMetadata)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // IsInterfaceNil returns true if underlying object is nil

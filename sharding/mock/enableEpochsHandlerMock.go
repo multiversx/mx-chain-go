@@ -581,18 +581,8 @@ func (mock *EnableEpochsHandlerMock) IsStakingV4DistributeAuctionToWaitingEnable
 	return false
 }
 
-// IsInitLiquidStakingEnabled -
-func (mock *EnableEpochsHandlerMock) IsInitLiquidStakingEnabled() bool {
-	return false
-}
-
 // IsStakingQueueEnabled -
 func (mock *EnableEpochsHandlerMock) IsStakingQueueEnabled() bool {
-	return false
-}
-
-// IsLiquidStakingEnabled -
-func (mock *EnableEpochsHandlerMock) IsLiquidStakingEnabled() bool {
 	return false
 }
 

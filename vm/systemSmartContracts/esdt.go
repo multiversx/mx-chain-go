@@ -201,8 +201,6 @@ func (e *esdt) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		return e.unsetBurnRoleGlobally(args)
 	case "sendAllTransferRoleAddresses":
 		return e.sendAllTransferRoleAddresses(args)
-	case "initDelegationESDTOnMeta":
-		return e.initDelegationESDTOnMeta(args)
 	}
 
 	e.eei.AddReturnMessage("invalid method to call")
@@ -220,67 +218,6 @@ func (e *esdt) init(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if err != nil {
 		return vmcommon.UserError
 	}
-
-	return vmcommon.Ok
-}
-
-func (e *esdt) initDelegationESDTOnMeta(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !e.enableEpochsHandler.IsBuiltInFunctionOnMetaFlagEnabled() {
-		e.eei.AddReturnMessage("invalid method to call")
-		return vmcommon.FunctionNotFound
-	}
-	if !bytes.Equal(args.CallerAddr, e.esdtSCAddress) {
-		e.eei.AddReturnMessage("only system address can call this")
-		return vmcommon.UserError
-	}
-	if len(args.Arguments) != 0 {
-		return vmcommon.UserError
-	}
-	if args.CallValue.Cmp(zero) != 0 {
-		return vmcommon.UserError
-	}
-
-	tokenIdentifier, _, err := e.createNewToken(
-		vm.LiquidStakingSCAddress,
-		[]byte(e.delegationTicker),
-		[]byte(e.delegationTicker),
-		big.NewInt(0),
-		0,
-		nil,
-		[]byte(core.SemiFungibleESDT))
-	if err != nil {
-		e.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
-	}
-
-	token, err := e.getExistingToken(tokenIdentifier)
-	if err != nil {
-		e.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
-	}
-
-	esdtRole, _ := getRolesForAddress(token, vm.LiquidStakingSCAddress)
-	esdtRole.Roles = append(esdtRole.Roles, []byte(core.ESDTRoleNFTCreate), []byte(core.ESDTRoleNFTAddQuantity), []byte(core.ESDTRoleNFTBurn))
-	token.SpecialRoles = append(token.SpecialRoles, esdtRole)
-
-	err = e.saveToken(tokenIdentifier, token)
-	if err != nil {
-		e.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
-	}
-
-	_, err = e.eei.ProcessBuiltInFunction(
-		e.esdtSCAddress,
-		vm.LiquidStakingSCAddress,
-		core.BuiltInFunctionSetESDTRole,
-		[][]byte{tokenIdentifier, []byte(core.ESDTRoleNFTCreate), []byte(core.ESDTRoleNFTAddQuantity), []byte(core.ESDTRoleNFTBurn)},
-	)
-	if err != nil {
-		e.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
-	}
-
-	e.eei.Finish(tokenIdentifier)
 
 	return vmcommon.Ok
 }

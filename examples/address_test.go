@@ -70,7 +70,6 @@ func TestSystemSCsAddressesAndSpecialAddresses(t *testing.T) {
 	endOfEpochAddress := addressEncoder.Encode(vm.EndOfEpochAddress)
 	delegationManagerScAddress := addressEncoder.Encode(vm.DelegationManagerSCAddress)
 	firstDelegationScAddress := addressEncoder.Encode(vm.FirstDelegationSCAddress)
-	liquidStakingSCAddress := addressEncoder.Encode(vm.LiquidStakingSCAddress)
 
 	genesisMintingAddressBytes, err := hex.DecodeString("f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0")
 	require.NoError(t, err)
@@ -92,7 +91,6 @@ func TestSystemSCsAddressesAndSpecialAddresses(t *testing.T) {
 		display.NewLineData(false, []string{"First delegation", firstDelegationScAddress}),
 		display.NewLineData(false, []string{"Genesis Minting Address", genesisMintingAddress}),
 		display.NewLineData(false, []string{"System Account Address", systemAccountAddress}),
-		display.NewLineData(false, []string{"Liquid staking", liquidStakingSCAddress}),
 		display.NewLineData(false, []string{"ESDT Global Settings Shard 0", esdtGlobalSettingsAddresses[0]}),
 		display.NewLineData(false, []string{"ESDT Global Settings Shard 1", esdtGlobalSettingsAddresses[1]}),
 		display.NewLineData(false, []string{"ESDT Global Settings Shard 2", esdtGlobalSettingsAddresses[2]}),
@@ -112,7 +110,6 @@ func TestSystemSCsAddressesAndSpecialAddresses(t *testing.T) {
 	assert.Equal(t, "erd1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq6gq4hu", contractDeployScAdress)
 	assert.Equal(t, "erd17rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rcqqkhty3", genesisMintingAddress)
 	assert.Equal(t, "erd1lllllllllllllllllllllllllllllllllllllllllllllllllllsckry7t", systemAccountAddress)
-	assert.Equal(t, "erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq9lllsm6xupm", liquidStakingSCAddress)
 	assert.Equal(t, "erd1llllllllllllllllllllllllllllllllllllllllllllllllluqq2m3f0f", esdtGlobalSettingsAddresses[0])
 	assert.Equal(t, "erd1llllllllllllllllllllllllllllllllllllllllllllllllluqsl6e366", esdtGlobalSettingsAddresses[1])
 	assert.Equal(t, "erd1lllllllllllllllllllllllllllllllllllllllllllllllllupq9x7ny0", esdtGlobalSettingsAddresses[2])

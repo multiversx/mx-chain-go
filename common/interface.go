@@ -341,9 +341,7 @@ type EnableEpochsHandler interface {
 	IsStakingV4InitEnabled() bool
 	IsStakingV4Enabled() bool
 	IsStakingV4DistributeAuctionToWaitingEnabled() bool
-	IsInitLiquidStakingEnabled() bool
 	IsStakingQueueEnabled() bool
-	IsLiquidStakingEnabled() bool
 	IsStakingV4Started() bool
 
 	IsInterfaceNil() bool
