@@ -4,6 +4,7 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/epochStart"
 )
@@ -39,27 +40,30 @@ func NewEpochStartSubscriptionHandler() *epochStartSubscriptionHandler {
 
 // RegisterHandler will subscribe a function, so it will be called when NotifyAll method is called
 func (essh *epochStartSubscriptionHandler) RegisterHandler(handler epochStart.ActionHandler) {
-	if handler != nil {
-		essh.mutEpochStartHandler.Lock()
-		essh.epochStartHandlers = append(essh.epochStartHandlers, handler)
-		sort.Slice(essh.epochStartHandlers, func(i, j int) bool {
-			return essh.epochStartHandlers[i].NotifyOrder() < essh.epochStartHandlers[j].NotifyOrder()
-		})
-		essh.mutEpochStartHandler.Unlock()
+	if check.IfNilReflect(handler) {
+		return
 	}
+
+	essh.mutEpochStartHandler.Lock()
+	essh.epochStartHandlers = append(essh.epochStartHandlers, handler)
+	sort.Slice(essh.epochStartHandlers, func(i, j int) bool {
+		return essh.epochStartHandlers[i].NotifyOrder() < essh.epochStartHandlers[j].NotifyOrder()
+	})
+	essh.mutEpochStartHandler.Unlock()
 }
 
 // UnregisterHandler will unsubscribe a function from the slice
 func (essh *epochStartSubscriptionHandler) UnregisterHandler(handlerToUnregister epochStart.ActionHandler) {
-	if handlerToUnregister != nil {
-		essh.mutEpochStartHandler.Lock()
-		for idx, handler := range essh.epochStartHandlers {
-			if handler == handlerToUnregister {
-				essh.epochStartHandlers = append(essh.epochStartHandlers[:idx], essh.epochStartHandlers[idx+1:]...)
-			}
-		}
-		essh.mutEpochStartHandler.Unlock()
+	if check.IfNilReflect(handlerToUnregister) {
+		return
 	}
+	essh.mutEpochStartHandler.Lock()
+	for idx, handler := range essh.epochStartHandlers {
+		if handler == handlerToUnregister {
+			essh.epochStartHandlers = append(essh.epochStartHandlers[:idx], essh.epochStartHandlers[idx+1:]...)
+		}
+	}
+	essh.mutEpochStartHandler.Unlock()
 }
 
 // NotifyAll will call all the subscribed functions from the internal slice
