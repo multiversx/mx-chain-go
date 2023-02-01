@@ -7,7 +7,7 @@ import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
 	"github.com/multiversx/mx-chain-go/consensus"
-	"github.com/multiversx/mx-chain-go/heartbeat"
+	"github.com/multiversx/mx-chain-go/keysManagement"
 	"github.com/multiversx/mx-chain-go/vm"
 )
 
@@ -29,7 +29,7 @@ type CryptoComponentsStub struct {
 	TxKeyGen                crypto.KeyGenerator
 	P2PKeyGen               crypto.KeyGenerator
 	MsgSigVerifier          vm.MessageSignVerifier
-	ManagedPeersHolderField heartbeat.ManagedPeersHolder
+	ManagedPeersHolderField keysManagement.ManagedPeersHolder
 	KeysHandlerField        consensus.KeysHandler
 	SigHandler              consensus.SigningHandler
 	mutMultiSig             sync.RWMutex
@@ -163,7 +163,7 @@ func (ccs *CryptoComponentsStub) ConsensusSigningHandler() consensus.SigningHand
 }
 
 // ManagedPeersHolder -
-func (ccs *CryptoComponentsStub) ManagedPeersHolder() heartbeat.ManagedPeersHolder {
+func (ccs *CryptoComponentsStub) ManagedPeersHolder() keysManagement.ManagedPeersHolder {
 	return ccs.ManagedPeersHolderField
 }
 

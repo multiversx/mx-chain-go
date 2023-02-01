@@ -6,6 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-crypto-go"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
+	"github.com/multiversx/mx-chain-go/keysManagement"
 )
 
 // CryptoComponentsMock -
@@ -18,6 +19,7 @@ type CryptoComponentsMock struct {
 	PeerSignHandler   crypto.PeerSignatureHandler
 	BlKeyGen          crypto.KeyGenerator
 	TxKeyGen          crypto.KeyGenerator
+	ManagedPeers      keysManagement.ManagedPeersHolder
 	mutCrypto         sync.RWMutex
 }
 
@@ -83,6 +85,11 @@ func (ccm *CryptoComponentsMock) BlockSignKeyGen() crypto.KeyGenerator {
 // TxSignKeyGen -
 func (ccm *CryptoComponentsMock) TxSignKeyGen() crypto.KeyGenerator {
 	return ccm.TxKeyGen
+}
+
+// ManagedPeersHolder -
+func (ccm *CryptoComponentsMock) ManagedPeersHolder() keysManagement.ManagedPeersHolder {
+	return ccm.ManagedPeers
 }
 
 // Clone -

@@ -2,13 +2,26 @@ package keysManagement
 
 import "errors"
 
-var (
-	errDuplicatedKey              = errors.New("duplicated key found")
-	errMissingPublicKeyDefinition = errors.New("missing public key definition")
-	errNilKeyGenerator            = errors.New("nil key generator")
-	errInvalidValue               = errors.New("invalid value")
-	errInvalidKey                 = errors.New("invalid key")
-	errNilManagedPeersHolder      = errors.New("nil managed peers holder")
-	errNilPrivateKey              = errors.New("nil private key")
-	errEmptyPeerID                = errors.New("empty peer ID")
-)
+// ErrDuplicatedKey signals that a key is already managed by the node
+var ErrDuplicatedKey = errors.New("duplicated key found")
+
+// ErrMissingPublicKeyDefinition signals that a public key definition is missing
+var ErrMissingPublicKeyDefinition = errors.New("missing public key definition")
+
+// ErrNilKeyGenerator signals that a nil key generator was provided
+var ErrNilKeyGenerator = errors.New("nil key generator")
+
+// ErrInvalidValue signals that an invalid value was provided
+var ErrInvalidValue = errors.New("invalid value")
+
+// ErrInvalidKey signals that an invalid key was provided
+var ErrInvalidKey = errors.New("invalid key")
+
+// ErrNilManagedPeersHolder signals that a nil managed peers holder was provided
+var ErrNilManagedPeersHolder = errors.New("nil managed peers holder")
+
+// ErrNilPrivateKey signals that a nil private key was provided
+var ErrNilPrivateKey = errors.New("nil private key")
+
+// ErrEmptyPeerID signals that an empty peer ID was provided
+var ErrEmptyPeerID = errors.New("empty peer ID")

@@ -282,6 +282,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 			CurrentEpoch:                  0,
 			StorageType:                   factory.ProcessStorageService,
 			CreateTrieEpochRootHashStorer: false,
+			ManagedPeersHolder:            &testscommon.ManagedPeersHolderStub{},
 		},
 	)
 	assert.NoError(t, err)

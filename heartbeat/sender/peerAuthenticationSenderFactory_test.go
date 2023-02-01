@@ -119,18 +119,8 @@ func TestPeerAuthenticationSenderFactory_createPeerAuthenticationSender(t *testi
 			},
 		}
 		args.managedPeersHolder = &testscommon.ManagedPeersHolderStub{
-			GetManagedKeysByCurrentNodeCalled: func() map[string]crypto.PrivateKey {
-				keygen := signing.NewKeyGenerator(&mcl.SuiteBLS12{})
-				sk1, pk1 := keygen.GeneratePair()
-				pk1Bytes, err := pk1.ToByteArray()
-				assert.Nil(t, err)
-				sk2, pk2 := keygen.GeneratePair()
-				pk2Bytes, err := pk2.ToByteArray()
-				assert.Nil(t, err)
-				keysMap := make(map[string]crypto.PrivateKey)
-				keysMap[string(pk1Bytes)] = sk1
-				keysMap[string(pk2Bytes)] = sk2
-				return keysMap
+			IsMultiKeyModeCalled: func() bool {
+				return true
 			},
 		}
 		peerAuthSender, err := createPeerAuthenticationSender(args)

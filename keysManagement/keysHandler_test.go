@@ -1,4 +1,4 @@
-package keysManagement
+package keysManagement_test
 
 import (
 	"errors"
@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/keysManagement"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/stretchr/testify/assert"
@@ -16,8 +17,8 @@ var testPrivateKeyBytes = []byte("private key bytes")
 var testPublicKeyBytes = []byte("public key bytes")
 var randomPublicKeyBytes = []byte("random key bytes")
 
-func createMockArgsKeysHandler() ArgsKeysHandler {
-	return ArgsKeysHandler{
+func createMockArgsKeysHandler() keysManagement.ArgsKeysHandler {
+	return keysManagement.ArgsKeysHandler{
 		ManagedPeersHolder: &testscommon.ManagedPeersHolderStub{},
 		PrivateKey: &cryptoMocks.PrivateKeyStub{
 			ToByteArrayStub: func() ([]byte, error) {
@@ -43,30 +44,30 @@ func TestNewKeysHandler(t *testing.T) {
 
 		args := createMockArgsKeysHandler()
 		args.ManagedPeersHolder = nil
-		handler, err := NewKeysHandler(args)
+		handler, err := keysManagement.NewKeysHandler(args)
 
 		assert.True(t, check.IfNil(handler))
-		assert.Equal(t, errNilManagedPeersHolder, err)
+		assert.Equal(t, keysManagement.ErrNilManagedPeersHolder, err)
 	})
 	t.Run("nil private key should error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgsKeysHandler()
 		args.PrivateKey = nil
-		handler, err := NewKeysHandler(args)
+		handler, err := keysManagement.NewKeysHandler(args)
 
 		assert.True(t, check.IfNil(handler))
-		assert.Equal(t, errNilPrivateKey, err)
+		assert.Equal(t, keysManagement.ErrNilPrivateKey, err)
 	})
-	t.Run("empty pid should error", func(t *testing.T) {
+	t.Run("empty Pid() should error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgsKeysHandler()
 		args.Pid = ""
-		handler, err := NewKeysHandler(args)
+		handler, err := keysManagement.NewKeysHandler(args)
 
 		assert.True(t, check.IfNil(handler))
-		assert.Equal(t, errEmptyPeerID, err)
+		assert.Equal(t, keysManagement.ErrEmptyPeerID, err)
 	})
 	t.Run("public key bytes generation errors should error", func(t *testing.T) {
 		t.Parallel()
@@ -82,7 +83,7 @@ func TestNewKeysHandler(t *testing.T) {
 				}
 			},
 		}
-		handler, err := NewKeysHandler(args)
+		handler, err := keysManagement.NewKeysHandler(args)
 
 		assert.True(t, check.IfNil(handler))
 		assert.Equal(t, expectedErr, err)
@@ -91,15 +92,15 @@ func TestNewKeysHandler(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgsKeysHandler()
-		handler, err := NewKeysHandler(args)
+		handler, err := keysManagement.NewKeysHandler(args)
 
 		assert.False(t, check.IfNil(handler))
 		assert.Nil(t, err)
-		assert.Equal(t, testPublicKeyBytes, handler.publicKeyBytes)
-		assert.Equal(t, pid, handler.pid)
-		assert.False(t, check.IfNil(handler.privateKey))
-		assert.False(t, check.IfNil(handler.managedPeersHolder))
-		assert.False(t, check.IfNil(handler.privateKey))
+		assert.Equal(t, testPublicKeyBytes, handler.PublicKeyBytes())
+		assert.Equal(t, pid, handler.Pid())
+		assert.False(t, check.IfNil(handler.PrivateKey()))
+		assert.False(t, check.IfNil(handler.ManagedPeersHolder()))
+		assert.False(t, check.IfNil(handler.PrivateKey()))
 	})
 }
 
@@ -110,10 +111,10 @@ func TestKeysHandler_GetHandledPrivateKey(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgsKeysHandler()
-		handler, _ := NewKeysHandler(args)
+		handler, _ := keysManagement.NewKeysHandler(args)
 
 		sk := handler.GetHandledPrivateKey(testPublicKeyBytes)
-		assert.True(t, sk == handler.privateKey) // pointer testing
+		assert.True(t, sk == handler.PrivateKey()) // pointer testing
 	})
 	t.Run("managedPeersHolder.GetPrivateKey errors", func(t *testing.T) {
 		t.Parallel()
@@ -124,10 +125,10 @@ func TestKeysHandler_GetHandledPrivateKey(t *testing.T) {
 				return nil, errors.New("private key not found")
 			},
 		}
-		handler, _ := NewKeysHandler(args)
+		handler, _ := keysManagement.NewKeysHandler(args)
 
 		sk := handler.GetHandledPrivateKey(randomPublicKeyBytes)
-		assert.True(t, sk == handler.privateKey) // pointer testing
+		assert.True(t, sk == handler.PrivateKey()) // pointer testing
 	})
 	t.Run("managedPeersHolder.GetPrivateKey returns the private key", func(t *testing.T) {
 		t.Parallel()
@@ -140,7 +141,7 @@ func TestKeysHandler_GetHandledPrivateKey(t *testing.T) {
 				return handledPrivateKey, nil
 			},
 		}
-		handler, _ := NewKeysHandler(args)
+		handler, _ := keysManagement.NewKeysHandler(args)
 
 		sk := handler.GetHandledPrivateKey(randomPublicKeyBytes)
 		assert.True(t, sk == handledPrivateKey) // pointer testing
@@ -161,7 +162,7 @@ func TestKeysHandler_GetP2PIdentity(t *testing.T) {
 			return p2pPrivateKeyBytes, pid, nil
 		},
 	}
-	handler, _ := NewKeysHandler(args)
+	handler, _ := keysManagement.NewKeysHandler(args)
 
 	recoveredPrivateKey, recoveredPid, err := handler.GetP2PIdentity(randomPublicKeyBytes)
 	assert.Nil(t, err)
@@ -182,7 +183,7 @@ func TestKeysHandler_IsKeyManagedByCurrentNode(t *testing.T) {
 			return true
 		},
 	}
-	handler, _ := NewKeysHandler(args)
+	handler, _ := keysManagement.NewKeysHandler(args)
 
 	isManaged := handler.IsKeyManagedByCurrentNode(randomPublicKeyBytes)
 	assert.True(t, wasCalled)
@@ -200,7 +201,7 @@ func TestKeysHandler_IncrementRoundsWithoutReceivedMessages(t *testing.T) {
 			wasCalled = true
 		},
 	}
-	handler, _ := NewKeysHandler(args)
+	handler, _ := keysManagement.NewKeysHandler(args)
 
 	handler.IncrementRoundsWithoutReceivedMessages(randomPublicKeyBytes)
 	assert.True(t, wasCalled)
@@ -213,7 +214,7 @@ func TestKeysHandler_GetAssociatedPid(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgsKeysHandler()
-		handler, _ := NewKeysHandler(args)
+		handler, _ := keysManagement.NewKeysHandler(args)
 
 		recoveredPid := handler.GetAssociatedPid(testPublicKeyBytes)
 		assert.True(t, recoveredPid == args.Pid)
@@ -227,7 +228,7 @@ func TestKeysHandler_GetAssociatedPid(t *testing.T) {
 				return nil, "", errors.New("identity not found")
 			},
 		}
-		handler, _ := NewKeysHandler(args)
+		handler, _ := keysManagement.NewKeysHandler(args)
 
 		recoveredPid := handler.GetAssociatedPid(randomPublicKeyBytes)
 		assert.True(t, recoveredPid == args.Pid)
@@ -243,7 +244,7 @@ func TestKeysHandler_GetAssociatedPid(t *testing.T) {
 				return make([]byte, 0), pid, nil
 			},
 		}
-		handler, _ := NewKeysHandler(args)
+		handler, _ := keysManagement.NewKeysHandler(args)
 
 		recoveredPid := handler.GetAssociatedPid(randomPublicKeyBytes)
 		assert.Equal(t, pid, recoveredPid)
@@ -260,14 +261,14 @@ func TestKeysHandler_UpdatePublicKeyLiveness(t *testing.T) {
 			mapResetCalled[string(pkBytes)]++
 		},
 	}
-	handler, _ := NewKeysHandler(args)
+	handler, _ := keysManagement.NewKeysHandler(args)
 
-	t.Run("same pid should not call reset", func(t *testing.T) {
+	t.Run("same Pid() should not call reset", func(t *testing.T) {
 		handler.UpdatePublicKeyLiveness(randomPublicKeyBytes, pid)
 		assert.Zero(t, len(mapResetCalled))
 	})
-	t.Run("another pid should call reset", func(t *testing.T) {
-		randomPid := core.PeerID("random pid")
+	t.Run("another Pid() should call reset", func(t *testing.T) {
+		randomPid := core.PeerID("random Pid()")
 		handler.UpdatePublicKeyLiveness(randomPublicKeyBytes, randomPid)
 		assert.Equal(t, 1, len(mapResetCalled))
 		assert.Equal(t, 1, mapResetCalled[string(randomPublicKeyBytes)])

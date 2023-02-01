@@ -25,7 +25,6 @@ import (
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/peerSignatureHandler"
 	"github.com/multiversx/mx-chain-go/genesis/process/disabled"
-	"github.com/multiversx/mx-chain-go/heartbeat"
 	"github.com/multiversx/mx-chain-go/keysManagement"
 	p2pFactory "github.com/multiversx/mx-chain-go/p2p/factory"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
@@ -102,7 +101,7 @@ type cryptoComponents struct {
 	p2pKeyGen               crypto.KeyGenerator
 	messageSignVerifier     vm.MessageSignVerifier
 	consensusSigningHandler consensus.SigningHandler
-	managedPeersHolder      heartbeat.ManagedPeersHolder
+	managedPeersHolder      keysManagement.ManagedPeersHolder
 	keysHandler             consensus.KeysHandler
 	cryptoParams
 	p2pCryptoParams

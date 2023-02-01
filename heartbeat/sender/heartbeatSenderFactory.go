@@ -94,12 +94,11 @@ func isMultikeyMode(privKey crypto.PrivateKey, managedPeersHolder heartbeat.Mana
 		return false, err
 	}
 
-	keysMap := managedPeersHolder.GetManagedKeysByCurrentNode()
-	isMultikey := len(keysMap) > 0
+	isMultikey := managedPeersHolder.IsMultiKeyMode()
 
 	_, _, err = nodesCoordinator.GetValidatorWithPublicKey(pkBytes)
 	if err == nil && isMultikey {
-		return false, fmt.Errorf("%w, len(keysMap) = %d, isValidator = %v", heartbeat.ErrInvalidConfiguration, len(keysMap), err == nil)
+		return false, fmt.Errorf("%w, isMultikey = %t, isValidator = %v", heartbeat.ErrInvalidConfiguration, isMultikey, err == nil)
 	}
 
 	return isMultikey, nil

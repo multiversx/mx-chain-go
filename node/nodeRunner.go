@@ -314,7 +314,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	nr.logInformation(managedCoreComponents, managedCryptoComponents, managedBootstrapComponents)
 
 	log.Debug("creating data components")
-	managedDataComponents, err := nr.CreateManagedDataComponents(managedStatusCoreComponents, managedCoreComponents, managedBootstrapComponents)
+	managedDataComponents, err := nr.CreateManagedDataComponents(managedStatusCoreComponents, managedCoreComponents, managedBootstrapComponents, managedCryptoComponents)
 	if err != nil {
 		return true, err
 	}
@@ -1242,6 +1242,7 @@ func (nr *nodeRunner) CreateManagedDataComponents(
 	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
 	coreComponents mainFactory.CoreComponentsHolder,
 	bootstrapComponents mainFactory.BootstrapComponentsHolder,
+	crypto mainFactory.CryptoComponentsHolder,
 ) (mainFactory.DataComponentsHandler, error) {
 	configs := nr.configs
 	storerEpoch := bootstrapComponents.EpochBootstrapParams().Epoch()
@@ -1257,7 +1258,7 @@ func (nr *nodeRunner) CreateManagedDataComponents(
 		ShardCoordinator:              bootstrapComponents.ShardCoordinator(),
 		Core:                          coreComponents,
 		StatusCore:                    statusCoreComponents,
-		EpochStartNotifier:            coreComponents.EpochStartNotifierWithConfirm(),
+		Crypto:                        crypto,
 		CurrentEpoch:                  storerEpoch,
 		CreateTrieEpochRootHashStorer: configs.ImportDbConfig.ImportDbSaveTrieEpochRootHash,
 	}

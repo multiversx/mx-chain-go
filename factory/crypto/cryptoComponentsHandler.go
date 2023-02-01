@@ -10,7 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
-	"github.com/multiversx/mx-chain-go/heartbeat"
+	"github.com/multiversx/mx-chain-go/keysManagement"
 	"github.com/multiversx/mx-chain-go/vm"
 )
 
@@ -356,7 +356,7 @@ func (mcc *managedCryptoComponents) ConsensusSigningHandler() consensus.SigningH
 }
 
 // ManagedPeersHolder returns the managed peers holder
-func (mcc *managedCryptoComponents) ManagedPeersHolder() heartbeat.ManagedPeersHolder {
+func (mcc *managedCryptoComponents) ManagedPeersHolder() keysManagement.ManagedPeersHolder {
 	mcc.mutCryptoComponents.RLock()
 	defer mcc.mutCryptoComponents.RUnlock()
 

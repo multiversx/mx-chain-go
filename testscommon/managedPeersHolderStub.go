@@ -24,6 +24,7 @@ type ManagedPeersHolderStub struct {
 	SetValidatorStateCalled                      func(pkBytes []byte, state bool)
 	GetNextPeerAuthenticationTimeCalled          func(pkBytes []byte) (time.Time, error)
 	SetNextPeerAuthenticationTimeCalled          func(pkBytes []byte, nextTime time.Time)
+	IsMultiKeyModeCalled                         func() bool
 }
 
 // AddManagedPeer -
@@ -140,6 +141,14 @@ func (stub *ManagedPeersHolderStub) SetNextPeerAuthenticationTime(pkBytes []byte
 	if stub.SetNextPeerAuthenticationTimeCalled != nil {
 		stub.SetNextPeerAuthenticationTimeCalled(pkBytes, nextTime)
 	}
+}
+
+// IsMultiKeyMode -
+func (stub *ManagedPeersHolderStub) IsMultiKeyMode() bool {
+	if stub.IsMultiKeyModeCalled != nil {
+		return stub.IsMultiKeyModeCalled()
+	}
+	return false
 }
 
 // IsInterfaceNil -

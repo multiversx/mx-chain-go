@@ -3,7 +3,7 @@ package crypto
 import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
-	"github.com/multiversx/mx-chain-go/heartbeat"
+	"github.com/multiversx/mx-chain-go/keysManagement"
 )
 
 // GetSkPk -
@@ -40,6 +40,6 @@ func (ccf *cryptoComponentsFactory) GetSuite() (crypto.Suite, error) {
 }
 
 // GetManagedPeersHolder -
-func (cc *cryptoComponents) GetManagedPeersHolder() heartbeat.ManagedPeersHolder {
+func (cc *cryptoComponents) GetManagedPeersHolder() keysManagement.ManagedPeersHolder {
 	return cc.managedPeersHolder
 }

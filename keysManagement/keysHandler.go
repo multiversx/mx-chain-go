@@ -48,13 +48,13 @@ func NewKeysHandler(args ArgsKeysHandler) (*keysHandler, error) {
 
 func checkArgsKeysHandler(args ArgsKeysHandler) error {
 	if check.IfNil(args.ManagedPeersHolder) {
-		return errNilManagedPeersHolder
+		return ErrNilManagedPeersHolder
 	}
 	if check.IfNil(args.PrivateKey) {
-		return errNilPrivateKey
+		return ErrNilPrivateKey
 	}
 	if len(args.Pid) == 0 {
-		return errEmptyPeerID
+		return ErrEmptyPeerID
 	}
 
 	return nil
