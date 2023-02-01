@@ -302,7 +302,7 @@ func (vmf *vmContainerFactory) createInProcessWasmVMV12() (vmcommon.VMExecutionH
 		ProtectedKeyPrefix:       []byte(core.ProtectedKeyPrefix),
 		EnableEpochsHandler:      vmf.enableEpochsHandler,
 	}
-	return wasmVMHost12.NewVMHost(vmf.blockChainHook, hostParameters) //TODO rename this on other repos
+	return wasmVMHost12.NewVMHost(vmf.blockChainHook, hostParameters)
 }
 
 func (vmf *vmContainerFactory) createInProcessWasmVMV13() (vmcommon.VMExecutionHandler, error) {
@@ -314,7 +314,7 @@ func (vmf *vmContainerFactory) createInProcessWasmVMV13() (vmcommon.VMExecutionH
 		ProtectedKeyPrefix:   []byte(core.ProtectedKeyPrefix),
 		EnableEpochsHandler:  vmf.enableEpochsHandler,
 	}
-	return wasmVMHost13.NewVMHost(vmf.blockChainHook, hostParameters) //TODO rename this on other repos
+	return wasmVMHost13.NewVMHost(vmf.blockChainHook, hostParameters)
 }
 
 func (vmf *vmContainerFactory) createInProcessWasmVMV14() (vmcommon.VMExecutionHandler, error) {

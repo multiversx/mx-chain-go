@@ -116,7 +116,7 @@ func BenchmarkScenariosSpecificTx(b *testing.B, scenariosTestPath string) {
 
 // SetStateFromScenariosTest recieves path to scenariosTest, returns a VMTestContext with the specified accounts, an array with the specified transactions and an error
 func SetStateFromScenariosTest(scenariosTestPath string) (testContext *vm.VMTestContext, transactions []*transaction.Transaction, bechmarkTxPos int, err error) {
-	stateAndBenchmarkInfo, err := mge.GetAccountsAndTransactionsFromScenarios(scenariosTestPath) // TODO rename this in a future PR
+	stateAndBenchmarkInfo, err := mge.GetAccountsAndTransactionsFromScenarios(scenariosTestPath)
 	if err != nil {
 		return nil, nil, mge.InvalidBenchmarkTxPos, err
 	}
@@ -139,7 +139,7 @@ func SetStateFromScenariosTest(scenariosTestPath string) (testContext *vm.VMTest
 
 // CheckConverter -
 func CheckConverter(t *testing.T, scenariosTestPath string) {
-	stateAndBenchmarkInfo, err := mge.GetAccountsAndTransactionsFromScenarios(scenariosTestPath) // TODO rename this in a future PR
+	stateAndBenchmarkInfo, err := mge.GetAccountsAndTransactionsFromScenarios(scenariosTestPath)
 	require.Nil(t, err)
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)

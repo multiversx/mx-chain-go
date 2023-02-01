@@ -2525,7 +2525,7 @@ func TestESDTIssueUnderProtectedKeyWillReturnTokensBack(t *testing.T) {
 	// send token issue
 
 	initialSupply := int64(10000000000)
-	ticker := "TESTCOIN"
+	ticker := "COIN12345678"
 	esdtCommon.IssueTestToken(nodes, initialSupply, ticker)
 	tokenIssuer := nodes[0]
 
