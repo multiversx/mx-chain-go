@@ -1,15 +1,15 @@
 
 # Node CLI
 
-The **MultiversX Node** exposes the following Command Line Interface:
+The **MultiversX Sovereign Node** exposes the following Command Line Interface:
 
 ```
-$ node --help
+$ sovereignNode --help
 
 NAME:
-   MultiversX Node CLI App - This is the entry point for starting a new MultiversX node - the app will start after the genesis timestamp
+   MultiversX Sovereign Node CLI App - This is the entry point for starting a new MultiversX sovereign node - the app will start after the genesis timestamp
 USAGE:
-   node [global options]
+   sovereignNode [global options]
    
 AUTHOR:
    The MultiversX Team <contact@multiversx.com>

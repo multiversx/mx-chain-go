@@ -356,7 +356,7 @@ var (
 	// operationMode defines the flag for specifying how configs should be altered depending on the node's intent
 	operationMode = cli.StringFlag{
 		Name:  "operation-mode",
-		Usage: "String flag for specifying the desired `operation mode`(s) of the node, resulting in altering some configuration values accordingly. Possible values are: lite-observer, full-archive, db-lookup-extension, historical-balances or `\"\"` (empty). Multiple values can be separated via ,",
+		Usage: "String flag for specifying the desired `operation mode`(s) of the node, resulting in altering some configuration values accordingly. Possible values are: snapshotless-observer, full-archive, db-lookup-extension, historical-balances or `\"\"` (empty). Multiple values can be separated via ,",
 		Value: "",
 	}
 )
@@ -558,7 +558,7 @@ func applyCompatibleConfigs(log logger.Logger, configs *config.Configs) error {
 		processDbLookupExtensionMode(log, configs)
 	}
 
-	isInLiteObserverMode := operationmodes.SliceContainsElement(operationModes, operationmodes.OperationModeLiteObserver)
+	isInLiteObserverMode := operationmodes.SliceContainsElement(operationModes, operationmodes.OperationModeSnapshotlessObserver)
 	if isInLiteObserverMode {
 		processLiteObserverMode(log, configs)
 	}
@@ -567,38 +567,46 @@ func applyCompatibleConfigs(log logger.Logger, configs *config.Configs) error {
 }
 
 func processHistoricalBalancesMode(log logger.Logger, configs *config.Configs) {
+	configs.GeneralConfig.StoragePruning.Enabled = true
 	configs.GeneralConfig.StoragePruning.ValidatorCleanOldEpochsData = false
 	configs.GeneralConfig.StoragePruning.ObserverCleanOldEpochsData = false
 	configs.GeneralConfig.GeneralSettings.StartInEpochEnabled = false
 	configs.GeneralConfig.StoragePruning.AccountsTrieCleanOldEpochsData = false
 	configs.GeneralConfig.StateTriesConfig.AccountsStatePruningEnabled = false
 	configs.GeneralConfig.DbLookupExtensions.Enabled = true
+	configs.PreferencesConfig.Preferences.FullArchive = true
 
 	log.Warn("the node is in historical balances mode! Will auto-set some config values",
+		"StoragePruning.Enabled", configs.GeneralConfig.StoragePruning.Enabled,
 		"StoragePruning.ValidatorCleanOldEpochsData", configs.GeneralConfig.StoragePruning.ValidatorCleanOldEpochsData,
 		"StoragePruning.ObserverCleanOldEpochsData", configs.GeneralConfig.StoragePruning.ObserverCleanOldEpochsData,
 		"StoragePruning.AccountsTrieCleanOldEpochsData", configs.GeneralConfig.StoragePruning.AccountsTrieCleanOldEpochsData,
 		"GeneralSettings.StartInEpochEnabled", configs.GeneralConfig.GeneralSettings.StartInEpochEnabled,
 		"StateTriesConfig.AccountsStatePruningEnabled", configs.GeneralConfig.StateTriesConfig.AccountsStatePruningEnabled,
 		"DbLookupExtensions.Enabled", configs.GeneralConfig.DbLookupExtensions.Enabled,
+		"Preferences.FullArchive", configs.PreferencesConfig.Preferences.FullArchive,
 	)
 }
 
 func processDbLookupExtensionMode(log logger.Logger, configs *config.Configs) {
 	configs.GeneralConfig.DbLookupExtensions.Enabled = true
+	configs.GeneralConfig.StoragePruning.Enabled = true
 
 	log.Warn("the node is in DB lookup extension mode! Will auto-set some config values",
 		"DbLookupExtensions.Enabled", configs.GeneralConfig.DbLookupExtensions.Enabled,
+		"StoragePruning.Enabled", configs.GeneralConfig.StoragePruning.Enabled,
 	)
 }
 
 func processLiteObserverMode(log logger.Logger, configs *config.Configs) {
 	configs.GeneralConfig.StoragePruning.ObserverCleanOldEpochsData = true
 	configs.GeneralConfig.StateTriesConfig.SnapshotsEnabled = false
+	configs.GeneralConfig.StateTriesConfig.AccountsStatePruningEnabled = true
 
-	log.Warn("the node is in lite observer mode! Will auto-set some config values",
+	log.Warn("the node is in snapshotless observer mode! Will auto-set some config values",
 		"StoragePruning.ObserverCleanOldEpochsData", configs.GeneralConfig.StoragePruning.ObserverCleanOldEpochsData,
 		"StateTriesConfig.SnapshotsEnabled", configs.GeneralConfig.StateTriesConfig.SnapshotsEnabled,
+		"StateTriesConfig.AccountsStatePruningEnabled", configs.GeneralConfig.StateTriesConfig.AccountsStatePruningEnabled,
 	)
 }
 

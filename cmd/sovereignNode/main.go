@@ -63,11 +63,11 @@ func main() {
 
 	app := cli.NewApp()
 	cli.AppHelpTemplate = nodeHelpTemplate
-	app.Name = "MultiversX Node CLI App"
+	app.Name = "MultiversX Sovereign Node CLI App"
 	machineID := core.GetAnonymizedMachineID(app.Name)
 
 	app.Version = fmt.Sprintf("%s/%s/%s-%s/%s", appVersion, runtime.Version(), runtime.GOOS, runtime.GOARCH, machineID)
-	app.Usage = "This is the entry point for starting a new MultiversX node - the app will start after the genesis timestamp"
+	app.Usage = "This is the entry point for starting a new MultiversX sovereign node - the app will start after the genesis timestamp"
 	app.Flags = getFlags()
 	app.Authors = []cli.Author{
 		{
