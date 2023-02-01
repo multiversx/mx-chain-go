@@ -1,6 +1,7 @@
 package process
 
 import (
+	"encoding/hex"
 	"fmt"
 	"math/big"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 // ArgOutportDataProvider holds the arguments needed for creating a new instance of outportDataProvider
@@ -67,6 +69,8 @@ func NewOutportDataProvider(arg ArgOutportDataProvider) (*outportDataProvider, e
 	}, nil
 }
 
+var log = logger.GetOrCreate("outport/process/outportDataProvider")
+
 // PrepareOutportSaveBlockData will prepare the provided data in a format that will be accepted by an outport driver
 func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutportSaveBlockData) (*outportcore.ArgsSaveBlockData, error) {
 	if check.IfNil(arg.Header) {
@@ -82,7 +86,11 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 		return nil, fmt.Errorf("transactionsFeeProcessor.PutFeeAndGasUsed %w", err)
 	}
 
-	odp.setExecutionOrderInTransactionPool(pool)
+	executedTxs, err := collectExecutedTxHashes(arg.Body, arg.Header)
+	if err != nil {
+
+	}
+	odp.setExecutionOrderInTransactionPoolWithChecks(pool, executedTxs)
 
 	alteredAccounts, err := odp.alteredAccountsProvider.ExtractAlteredAccountsFromPool(pool, shared.AlteredAccountsOptions{
 		WithAdditionalOutportData: true,
@@ -115,8 +123,39 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 	}, nil
 }
 
-func (odp *outportDataProvider) setExecutionOrderInTransactionPool(
+func collectExecutedTxHashes(bodyHandler data.BodyHandler, headerHandler data.HeaderHandler) (map[string]struct{}, error) {
+	executedTxHashes := make(map[string]struct{})
+	mbHeaders := headerHandler.GetMiniBlockHeaderHandlers()
+	body, ok := bodyHandler.(*block.Body)
+	if !ok {
+		return nil, ErrWrongTypeAssertion
+	}
+
+	miniBlocks := body.GetMiniBlocks()
+	if len(miniBlocks) != len(mbHeaders) {
+		return nil, ErrMiniBlocksHeadersMismatch
+	}
+
+	for i, mbHeader := range mbHeaders {
+		if mbHeader.GetTypeInt32() == int32(block.PeerBlock) {
+			continue
+		}
+		if mbHeader.GetConstructionState() == int32(block.Processed) {
+			continue
+		}
+
+		for j := mbHeader.GetIndexOfFirstTxProcessed(); j <= mbHeader.GetIndexOfLastTxProcessed(); j++ {
+			txHash := miniBlocks[i].TxHashes[j]
+			executedTxHashes[string(txHash)] = struct{}{}
+		}
+	}
+
+	return executedTxHashes, nil
+}
+
+func (odp *outportDataProvider) setExecutionOrderInTransactionPoolWithChecks(
 	pool *outportcore.Pool,
+	executedTxHashes map[string]struct{},
 ) {
 	orderedTxHashes := odp.executionOrderHandler.GetItems()
 	txGroups := []map[string]data.TransactionHandlerWithGasUsedAndFee{
@@ -126,13 +165,44 @@ func (odp *outportDataProvider) setExecutionOrderInTransactionPool(
 		pool.Rewards,
 	}
 
+	foundTxHashes := 0
 	for i, txHash := range orderedTxHashes {
 		for _, group := range txGroups {
 			if setExecutionOrderIfFound(txHash, group, i) {
+				foundTxHashes++
 				break
 			}
 		}
 	}
+
+	err := checkTxOrder(orderedTxHashes, executedTxHashes, foundTxHashes)
+	if err != nil {
+		log.Warn("setExecutionOrderInTransactionPoolWithChecks", "error", err.Error())
+	}
+}
+
+func checkTxOrder(orderedTxHashes [][]byte, executedTxHashes map[string]struct{}, foundTxHashes int) error {
+	if len(orderedTxHashes) != foundTxHashes {
+		return fmt.Errorf("%w for numOrderedTx %d, foundTxsInPool %d",
+			ErrOrderedTxNotFound, len(orderedTxHashes), foundTxHashes,
+		)
+	}
+
+	if len(executedTxHashes) == 0 {
+		return nil
+	}
+
+	return checkBodyTransactionsHaveOrder(orderedTxHashes, executedTxHashes)
+}
+
+func checkBodyTransactionsHaveOrder(orderedTxHashes [][]byte, executedTxHashes map[string]struct{}) error {
+	for _, txHash := range orderedTxHashes {
+		if _, ok := executedTxHashes[string(txHash)]; !ok {
+			return fmt.Errorf("%w for txHash %s", ErrTransactionNotFoundInBody, hex.EncodeToString(txHash))
+		}
+	}
+
+	return nil
 }
 
 func setExecutionOrderIfFound(

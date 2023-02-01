@@ -28,3 +28,15 @@ var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
 
 // ErrNilExecutionOrderGetter signals that a nil execution order getter has been provided
 var ErrNilExecutionOrderGetter = errors.New("nil execution order getter")
+
+// ErrWrongTypeAssertion signals that a wrong type assertion has been done
+var ErrWrongTypeAssertion = errors.New("wrong type assertion")
+
+// ErrMiniBlocksHeadersMismatch signals that the number of miniBlock headers is different than the number of miniBlocks
+var ErrMiniBlocksHeadersMismatch = errors.New("mini blocks headers mismatch")
+
+// ErrTransactionNotFoundInBody signals that a transaction was not found in the block body
+var ErrTransactionNotFoundInBody = errors.New("transaction not found in body")
+
+// ErrOrderedTxNotFound signals that an ordered tx hash was not found in the pool
+var ErrOrderedTxNotFound = errors.New("ordered tx not found in pool")
