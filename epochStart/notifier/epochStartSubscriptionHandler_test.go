@@ -1,6 +1,7 @@
 package notifier_test
 
 import (
+	"sync"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -82,31 +83,65 @@ func TestEpochStartSubscriptionHandler_UnregisterHandlerOklHandlerShouldRemove(t
 func TestEpochStartSubscriptionHandler_NotifyAll(t *testing.T) {
 	t.Parallel()
 
-	firstHandlerWasCalled := false
-	secondHandlerWasCalled := false
-	lastCalled := 0
+	calledHandlers := make(map[int]struct{})
+	calledHandlersIndices := make([]int, 0)
 	essh := notifier.NewEpochStartSubscriptionHandler()
 
-	// register 2 handlers
 	handler1 := notifier.NewHandlerForEpochStart(func(hdr data.HeaderHandler) {
-		firstHandlerWasCalled = true
-		lastCalled = 1
+		calledHandlers[1] = struct{}{}
+		calledHandlersIndices = append(calledHandlersIndices, 1)
 	}, nil, 1)
 	handler2 := notifier.NewHandlerForEpochStart(func(hdr data.HeaderHandler) {
-		secondHandlerWasCalled = true
-		lastCalled = 2
+		calledHandlers[2] = struct{}{}
+		calledHandlersIndices = append(calledHandlersIndices, 2)
 	}, nil, 2)
+	handler3 := notifier.NewHandlerForEpochStart(func(hdr data.HeaderHandler) {
+		calledHandlers[3] = struct{}{}
+		calledHandlersIndices = append(calledHandlersIndices, 3)
+	}, nil, 3)
 
-	essh.RegisterHandler(handler1)
 	essh.RegisterHandler(handler2)
+	essh.RegisterHandler(handler1)
+	essh.RegisterHandler(handler3)
 
 	// make sure that the handler were not called yet
-	assert.False(t, firstHandlerWasCalled)
-	assert.False(t, secondHandlerWasCalled)
+	assert.Empty(t, calledHandlers)
 
 	// now we call the NotifyAll method and all handlers should be called
 	essh.NotifyAll(&block.Header{})
-	assert.True(t, firstHandlerWasCalled)
-	assert.True(t, secondHandlerWasCalled)
-	assert.Equal(t, lastCalled, 2)
+	assert.Len(t, calledHandlers, 3)
+	assert.Equal(t, []int{1, 2, 3}, calledHandlersIndices)
+}
+
+func TestEpochStartSubscriptionHandler_ConcurrentOperations(t *testing.T) {
+	t.Parallel()
+
+	handler := notifier.NewEpochStartSubscriptionHandler()
+
+	numOperations := 500
+	wg := sync.WaitGroup{}
+	wg.Add(numOperations)
+	for i := 0; i < numOperations; i++ {
+		i := i
+		go func(idx int) {
+			switch idx {
+			case 0:
+				handler.RegisterHandler(notifier.NewHandlerForEpochStart(func(hdr data.HeaderHandler) {}, func(hdr data.HeaderHandler) {}, 0))
+			case 1:
+				handler.UnregisterHandler(notifier.NewHandlerForEpochStart(func(hdr data.HeaderHandler) {}, func(hdr data.HeaderHandler) {}, 0))
+			case 2:
+				handler.NotifyAll(&block.Header{})
+			case 3:
+				handler.NotifyAllPrepare(&block.Header{}, &block.Body{})
+			case 4:
+				handler.NotifyEpochChangeConfirmed(uint32(idx + 1))
+			case 5:
+				handler.RegisterForEpochChangeConfirmed(func(epoch uint32) {})
+			}
+
+			wg.Done()
+		}(i % 6)
+	}
+
+	wg.Wait()
 }
