@@ -130,110 +130,6 @@ func TestNewValidatorInfoResolver(t *testing.T) {
 	})
 }
 
-func TestValidatorInfoResolver_RequestDataFromHash(t *testing.T) {
-	t.Parallel()
-
-	t.Run("should error", func(t *testing.T) {
-		t.Parallel()
-
-		expectedErr := errors.New("expected err")
-		args := createMockArgValidatorInfoResolver()
-		args.SenderResolver = &mock.TopicResolverSenderStub{
-			SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData, originalHashes [][]byte) error {
-				return expectedErr
-			},
-		}
-
-		res, _ := resolvers.NewValidatorInfoResolver(args)
-		err := res.RequestDataFromHash(nil, 0)
-		assert.Equal(t, expectedErr, err)
-	})
-	t.Run("should work", func(t *testing.T) {
-		t.Parallel()
-
-		providedHash := []byte("provided hash")
-		providedEpoch := uint32(123)
-		args := createMockArgValidatorInfoResolver()
-		args.SenderResolver = &mock.TopicResolverSenderStub{
-			SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData, originalHashes [][]byte) error {
-				assert.Equal(t, providedHash, originalHashes[0])
-				assert.Equal(t, dataRetriever.HashType, rd.Type)
-				assert.Equal(t, providedHash, rd.Value)
-				assert.Equal(t, providedEpoch, rd.Epoch)
-
-				return nil
-			},
-		}
-
-		res, _ := resolvers.NewValidatorInfoResolver(args)
-		require.False(t, check.IfNil(res))
-
-		err := res.RequestDataFromHash(providedHash, providedEpoch)
-		assert.Nil(t, err)
-	})
-}
-
-func TestValidatorInfoResolver_RequestDataFromHashArray(t *testing.T) {
-	t.Parallel()
-
-	t.Run("marshal returns error", func(t *testing.T) {
-		t.Parallel()
-
-		expectedErr := errors.New("expected err")
-		args := createMockArgValidatorInfoResolver()
-		args.Marshaller = &testscommon.MarshalizerStub{
-			MarshalCalled: func(obj interface{}) ([]byte, error) {
-				return nil, expectedErr
-			},
-		}
-
-		res, _ := resolvers.NewValidatorInfoResolver(args)
-		err := res.RequestDataFromHashArray(nil, 0)
-		assert.Equal(t, expectedErr, err)
-	})
-	t.Run("should error", func(t *testing.T) {
-		t.Parallel()
-
-		expectedErr := errors.New("expected err")
-		args := createMockArgValidatorInfoResolver()
-		args.SenderResolver = &mock.TopicResolverSenderStub{
-			SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData, originalHashes [][]byte) error {
-				return expectedErr
-			},
-		}
-
-		res, _ := resolvers.NewValidatorInfoResolver(args)
-		err := res.RequestDataFromHashArray(nil, 0)
-		assert.Equal(t, expectedErr, err)
-	})
-	t.Run("should work", func(t *testing.T) {
-		t.Parallel()
-
-		providedHashes := [][]byte{[]byte("provided hash")}
-		providedEpoch := uint32(123)
-		args := createMockArgValidatorInfoResolver()
-		args.SenderResolver = &mock.TopicResolverSenderStub{
-			SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData, originalHashes [][]byte) error {
-				assert.Equal(t, providedHashes, originalHashes)
-				assert.Equal(t, dataRetriever.HashArrayType, rd.Type)
-
-				b := &batch.Batch{}
-				_ = args.Marshaller.Unmarshal(b, rd.Value)
-				assert.Equal(t, providedHashes, b.Data)
-				assert.Equal(t, providedEpoch, rd.Epoch)
-
-				return nil
-			},
-		}
-
-		res, _ := resolvers.NewValidatorInfoResolver(args)
-		require.False(t, check.IfNil(res))
-
-		err := res.RequestDataFromHashArray(providedHashes, providedEpoch)
-		assert.Nil(t, err)
-	})
-}
-
 func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 	t.Parallel()
 
@@ -633,7 +529,7 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 	})
 }
 
-func TestValidatorInfoResolver_SetResolverDebugHandler(t *testing.T) {
+func TestValidatorInfoResolver_SetDebugHandler(t *testing.T) {
 	t.Parallel()
 
 	defer func() {
@@ -646,32 +542,5 @@ func TestValidatorInfoResolver_SetResolverDebugHandler(t *testing.T) {
 	res, _ := resolvers.NewValidatorInfoResolver(createMockArgValidatorInfoResolver())
 	require.False(t, check.IfNil(res))
 
-	_ = res.SetResolverDebugHandler(nil)
-}
-
-func TestValidatorInfoResolver_NumPeersToQuery(t *testing.T) {
-	t.Parallel()
-
-	providedIntra, providedCross := 5, 10
-	receivedIntra, receivedCross := 0, 0
-	args := createMockArgValidatorInfoResolver()
-	args.SenderResolver = &mock.TopicResolverSenderStub{
-		SetNumPeersToQueryCalled: func(intra int, cross int) {
-			assert.Equal(t, providedIntra, intra)
-			assert.Equal(t, providedCross, cross)
-			receivedIntra = intra
-			receivedCross = cross
-		},
-		GetNumPeersToQueryCalled: func() (int, int) {
-			return receivedIntra, receivedCross
-		},
-	}
-
-	res, _ := resolvers.NewValidatorInfoResolver(args)
-	require.False(t, check.IfNil(res))
-
-	res.SetNumPeersToQuery(providedIntra, providedCross)
-	intra, cross := res.NumPeersToQuery()
-	assert.Equal(t, providedIntra, intra)
-	assert.Equal(t, providedCross, cross)
+	_ = res.SetDebugHandler(nil)
 }

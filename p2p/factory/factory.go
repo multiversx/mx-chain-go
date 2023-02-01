@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-p2p-go/libp2p"
 	p2pCrypto "github.com/multiversx/mx-chain-p2p-go/libp2p/crypto"
 	"github.com/multiversx/mx-chain-p2p-go/message"
+	messagecheck "github.com/multiversx/mx-chain-p2p-go/messageCheck"
 	"github.com/multiversx/mx-chain-p2p-go/peersHolder"
 	"github.com/multiversx/mx-chain-p2p-go/rating"
 )
@@ -31,6 +32,9 @@ type PeerShard = message.PeerShard
 // ArgPeersRatingHandler is the DTO used to create a new peers rating handler
 type ArgPeersRatingHandler = rating.ArgPeersRatingHandler
 
+// ArgsMessageVerifier defines the args used to create a message verifier
+type ArgsMessageVerifier = messagecheck.ArgsMessageVerifier
+
 // NewPeersRatingHandler returns a new peers rating handler
 func NewPeersRatingHandler(args ArgPeersRatingHandler) (p2p.PeersRatingHandler, error) {
 	return rating.NewPeersRatingHandler(args)
@@ -44,4 +48,9 @@ func NewPeersHolder(preferredConnectionAddresses []string) (p2p.PreferredPeersHo
 // ConvertPublicKeyToPeerID will convert a public key to core.PeerID
 func ConvertPublicKeyToPeerID(pk crypto.PublicKey) (core.PeerID, error) {
 	return p2pCrypto.ConvertPublicKeyToPeerID(pk)
+}
+
+// NewMessageVerifier will return a new instance of messages verifier
+func NewMessageVerifier(args ArgsMessageVerifier) (p2p.P2PSigningHandler, error) {
+	return messagecheck.NewMessageVerifier(args)
 }
