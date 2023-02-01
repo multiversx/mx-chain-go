@@ -556,6 +556,11 @@ func (mock *EnableEpochsHandlerMock) IsWipeSingleNFTLiquidityDecreaseEnabled() b
 	return false
 }
 
+// IsAlwaysSaveTokenMetaDataEnabled -
+func (mock *EnableEpochsHandlerMock) IsAlwaysSaveTokenMetaDataEnabled() bool {
+	return false
+}
+
 // IsDynamicGasCostForDataTrieStorageLoadEnabled -
 func (mock *EnableEpochsHandlerMock) IsDynamicGasCostForDataTrieStorageLoadEnabled() bool {
 	return false

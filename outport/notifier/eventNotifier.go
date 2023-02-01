@@ -10,6 +10,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-core-go/websocketOutportDriver"
+	outportSenderData "github.com/multiversx/mx-chain-core-go/websocketOutportDriver/data"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -89,7 +91,12 @@ func (en *eventNotifier) SaveBlock(args *outport.ArgsSaveBlockData) error {
 		return ErrNilTransactionsPool
 	}
 
-	err := en.httpClient.Post(pushEventEndpoint, args)
+	argsSaveBlock := outportSenderData.ArgsSaveBlock{
+		HeaderType:        core.GetHeaderType(args.Header),
+		ArgsSaveBlockData: websocketOutportDriver.PrepareArgsSaveBlock(*args),
+	}
+
+	err := en.httpClient.Post(pushEventEndpoint, argsSaveBlock)
 	if err != nil {
 		return fmt.Errorf("%w in eventNotifier.SaveBlock while posting block data", err)
 	}

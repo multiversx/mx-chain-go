@@ -335,6 +335,7 @@ type EnableEpochsHandler interface {
 	IsRuntimeMemStoreLimitEnabled() bool
 	IsMaxBlockchainHookCountersFlagEnabled() bool
 	IsWipeSingleNFTLiquidityDecreaseEnabled() bool
+	IsAlwaysSaveTokenMetaDataEnabled() bool
 	IsDynamicGasCostForDataTrieStorageLoadEnabled() bool
 
 	IsInterfaceNil() bool

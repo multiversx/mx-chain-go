@@ -50,7 +50,7 @@
     AoTPreparePerByte = 100
     GetCode           = 1000000
 
-[ElrondAPICost]
+[BaseOpsAPICost]
     GetSCAddress       = 100
     GetOwnerAddress    = 5000
     IsSmartContract    = 5000
@@ -690,8 +690,8 @@
 
 [MaxPerTransaction]
     MaxBuiltInCallsPerTx = 100
-    MaxNumberOfTransfersPerTx = 100
-    MaxNumberOfTrieReadsPerTx = 100
+    MaxNumberOfTransfersPerTx = 250
+    MaxNumberOfTrieReadsPerTx = 1500
 
 # Quadratic, Linear and Constant are the coefficients for a quadratic func. Separate variables are used for the
 # sign of each coefficient, 0 meaning + and 1 meaning -
