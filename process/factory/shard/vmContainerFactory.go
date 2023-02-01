@@ -329,6 +329,7 @@ func (vmf *vmContainerFactory) createInProcessWasmVMV14() (vmcommon.VMExecutionH
 		TimeOutForSCExecutionInMilliseconds: vmf.config.TimeOutForSCExecutionInMilliseconds,
 		EpochNotifier:                       vmf.epochNotifier,
 		EnableEpochsHandler:                 vmf.enableEpochsHandler,
+		Hasher:                              vmf.hasher,
 	}
 	return wasmVMHost14.NewVMHost(vmf.blockChainHook, hostParameters)
 }
@@ -346,6 +347,7 @@ func (vmf *vmContainerFactory) createInProcessWasmVMV15() (vmcommon.VMExecutionH
 		TimeOutForSCExecutionInMilliseconds: vmf.config.TimeOutForSCExecutionInMilliseconds,
 		EpochNotifier:                       vmf.epochNotifier,
 		EnableEpochsHandler:                 vmf.enableEpochsHandler,
+		Hasher:                              vmf.hasher,
 	}
 
 	return wasmVMHost15.NewVMHost(vmf.blockChainHook, hostParameters)
