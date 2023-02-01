@@ -18,6 +18,8 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
+var log = logger.GetOrCreate("outport/process/outportDataProvider")
+
 // ArgOutportDataProvider holds the arguments needed for creating a new instance of outportDataProvider
 type ArgOutportDataProvider struct {
 	IsImportDBMode           bool
@@ -68,8 +70,6 @@ func NewOutportDataProvider(arg ArgOutportDataProvider) (*outportDataProvider, e
 		executionOrderHandler:    arg.ExecutionOrderHandler,
 	}, nil
 }
-
-var log = logger.GetOrCreate("outport/process/outportDataProvider")
 
 // PrepareOutportSaveBlockData will prepare the provided data in a format that will be accepted by an outport driver
 func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutportSaveBlockData) (*outportcore.ArgsSaveBlockData, error) {
@@ -143,20 +143,24 @@ func collectExecutedTxHashes(bodyHandler data.BodyHandler, headerHandler data.He
 	}
 
 	for i, mbHeader := range mbHeaders {
-		if mbHeader.GetTypeInt32() == int32(block.PeerBlock) {
-			continue
-		}
-		if mbHeader.GetConstructionState() == int32(block.Processed) {
-			continue
-		}
-
-		for j := mbHeader.GetIndexOfFirstTxProcessed(); j <= mbHeader.GetIndexOfLastTxProcessed(); j++ {
-			txHash := miniBlocks[i].TxHashes[j]
-			executedTxHashes[string(txHash)] = struct{}{}
-		}
+		extractExecutedTxsFromMb(mbHeader, miniBlocks[i], executedTxHashes)
 	}
 
 	return executedTxHashes, nil
+}
+
+func extractExecutedTxsFromMb(mbHeader data.MiniBlockHeaderHandler, miniBlock *block.MiniBlock, executedTxHashes map[string]struct{}) {
+	if mbHeader.GetTypeInt32() == int32(block.PeerBlock) {
+		return
+	}
+	if mbHeader.GetConstructionState() == int32(block.Processed) {
+		return
+	}
+
+	for j := mbHeader.GetIndexOfFirstTxProcessed(); j <= mbHeader.GetIndexOfLastTxProcessed(); j++ {
+		txHash := miniBlock.TxHashes[j]
+		executedTxHashes[string(txHash)] = struct{}{}
+	}
 }
 
 func (odp *outportDataProvider) setExecutionOrderInTransactionPool(
@@ -166,7 +170,6 @@ func (odp *outportDataProvider) setExecutionOrderInTransactionPool(
 	txGroups := []map[string]data.TransactionHandlerWithGasUsedAndFee{
 		pool.Txs,
 		pool.Scrs,
-		pool.Receipts,
 		pool.Rewards,
 	}
 
