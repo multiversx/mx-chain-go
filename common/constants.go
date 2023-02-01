@@ -369,8 +369,8 @@ const BuiltInCost = "BuiltInCost"
 // MetaChainSystemSCsCost represents the field name for metachain system smart contract operation costs
 const MetaChainSystemSCsCost = "MetaChainSystemSCsCost"
 
-// VMAPICost represents the field name of the SC API (EEI) gas costs
-const VMAPICost = "ElrondAPICost"
+// BaseOpsAPICost represents the field name of the SC API (EEI) gas costs
+const BaseOpsAPICost = "BaseOpsAPICost"
 
 // MaxPerTransaction represents the field name of max counts per transaction in block chain hook
 const MaxPerTransaction = "MaxPerTransaction"
