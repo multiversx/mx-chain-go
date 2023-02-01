@@ -88,8 +88,9 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 
 	executedTxs, err := collectExecutedTxHashes(arg.Body, arg.Header)
 	if err != nil {
-
+		log.Warn("collectExecutedTxHashes", "error", err)
 	}
+
 	odp.setExecutionOrderInTransactionPoolWithChecks(pool, executedTxs)
 
 	alteredAccounts, err := odp.alteredAccountsProvider.ExtractAlteredAccountsFromPool(pool, shared.AlteredAccountsOptions{
