@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -52,7 +53,7 @@ func createInterceptorContainer() process.InterceptorsContainer {
 func createDefaultShardChainArgs() broadcast.ShardChainMessengerArgs {
 	marshalizerMock := &mock.MarshalizerMock{}
 	hasher := &hashingMocks.HasherMock{}
-	messengerMock := &mock.MessengerStub{}
+	messengerMock := &p2pmocks.MessengerStub{}
 	privateKeyMock := &mock.PrivateKeyMock{}
 	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
 	singleSignerMock := &mock.SingleSignerMock{}
@@ -181,7 +182,7 @@ func TestShardChainMessenger_BroadcastBlockShouldErrMockMarshalizer(t *testing.T
 }
 
 func TestShardChainMessenger_BroadcastBlockShouldWork(t *testing.T) {
-	messenger := &mock.MessengerStub{
+	messenger := &p2pmocks.MessengerStub{
 		BroadcastCalled: func(topic string, buff []byte) {
 		},
 	}
@@ -196,7 +197,7 @@ func TestShardChainMessenger_BroadcastBlockShouldWork(t *testing.T) {
 func TestShardChainMessenger_BroadcastMiniBlocksShouldBeDone(t *testing.T) {
 	channelCalled := make(chan bool, 100)
 
-	messenger := &mock.MessengerStub{
+	messenger := &p2pmocks.MessengerStub{
 		BroadcastCalled: func(topic string, buff []byte) {
 			channelCalled <- true
 		},
@@ -229,7 +230,7 @@ func TestShardChainMessenger_BroadcastMiniBlocksShouldBeDone(t *testing.T) {
 func TestShardChainMessenger_BroadcastTransactionsShouldNotBeCalled(t *testing.T) {
 	channelCalled := make(chan bool, 1)
 
-	messenger := &mock.MessengerStub{
+	messenger := &p2pmocks.MessengerStub{
 		BroadcastCalled: func(topic string, buff []byte) {
 			channelCalled <- true
 		},
@@ -268,7 +269,7 @@ func TestShardChainMessenger_BroadcastTransactionsShouldNotBeCalled(t *testing.T
 func TestShardChainMessenger_BroadcastTransactionsShouldBeCalled(t *testing.T) {
 	channelCalled := make(chan bool, 1)
 
-	messenger := &mock.MessengerStub{
+	messenger := &p2pmocks.MessengerStub{
 		BroadcastCalled: func(topic string, buff []byte) {
 			channelCalled <- true
 		},
@@ -306,7 +307,7 @@ func TestShardChainMessenger_BroadcastHeaderNilHeaderShouldErr(t *testing.T) {
 func TestShardChainMessenger_BroadcastHeaderShouldWork(t *testing.T) {
 	channelCalled := make(chan bool, 1)
 
-	messenger := &mock.MessengerStub{
+	messenger := &p2pmocks.MessengerStub{
 		BroadcastCalled: func(topic string, buff []byte) {
 			channelCalled <- true
 		},
@@ -351,7 +352,7 @@ func TestShardChainMessenger_BroadcastBlockDataLeaderNilMiniblocksShouldReturnNi
 
 func TestShardChainMessenger_BroadcastBlockDataLeaderShouldTriggerWaitingDelayedMessage(t *testing.T) {
 	wasCalled := atomic.Flag{}
-	messenger := &mock.MessengerStub{
+	messenger := &p2pmocks.MessengerStub{
 		BroadcastCalled: func(topic string, buff []byte) {
 			_ = wasCalled.SetReturningPrevious()
 		},
