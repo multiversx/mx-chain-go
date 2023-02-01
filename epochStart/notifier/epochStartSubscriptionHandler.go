@@ -1,6 +1,7 @@
 package notifier
 
 import (
+	"runtime/debug"
 	"sort"
 	"sync"
 
@@ -45,11 +46,19 @@ func (essh *epochStartSubscriptionHandler) RegisterHandler(handler epochStart.Ac
 	}
 
 	essh.mutEpochStartHandler.Lock()
+	defer essh.mutEpochStartHandler.Unlock()
+
+	for _, existingHandler := range essh.epochStartHandlers {
+		if existingHandler == handler {
+			log.Error("epochStartSubscriptionHandler.RegisterHandler - trying to add a duplicated handler", "stack trace", string(debug.Stack()))
+			return
+		}
+	}
+
 	essh.epochStartHandlers = append(essh.epochStartHandlers, handler)
 	sort.Slice(essh.epochStartHandlers, func(i, j int) bool {
 		return essh.epochStartHandlers[i].NotifyOrder() < essh.epochStartHandlers[j].NotifyOrder()
 	})
-	essh.mutEpochStartHandler.Unlock()
 }
 
 // UnregisterHandler will unsubscribe a function from the slice

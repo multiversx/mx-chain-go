@@ -44,6 +44,30 @@ func TestEpochStartSubscriptionHandler_RegisterHandlerOkHandlerShouldAdd(t *test
 	mutHandlers.RUnlock()
 }
 
+func TestEpochStartSubscriptionHandler_RegisterHandlerShouldNotAllowDuplicates(t *testing.T) {
+	t.Parallel()
+
+	essh := notifier.NewEpochStartSubscriptionHandler()
+	handler := notifier.NewHandlerForEpochStart(func(hdr data.HeaderHandler) {}, nil, 0)
+
+	essh.RegisterHandler(handler)
+	essh.RegisterHandler(handler)
+
+	handlers, mutHandlers := essh.RegisteredHandlers()
+	mutHandlers.RLock()
+	assert.Len(t, handlers, 1)
+	mutHandlers.RUnlock()
+
+	// check unregister twice to ensure there is no problem
+	essh.UnregisterHandler(handler)
+	essh.UnregisterHandler(handler)
+
+	handlers, mutHandlers = essh.RegisteredHandlers()
+	mutHandlers.RLock()
+	assert.Len(t, handlers, 0)
+	mutHandlers.RUnlock()
+}
+
 func TestEpochStartSubscriptionHandler_UnregisterHandlerNilHandlerShouldDoNothing(t *testing.T) {
 	t.Parallel()
 
@@ -62,7 +86,7 @@ func TestEpochStartSubscriptionHandler_UnregisterHandlerNilHandlerShouldDoNothin
 	mutHandlers.RUnlock()
 }
 
-func TestEpochStartSubscriptionHandler_UnregisterHandlerOklHandlerShouldRemove(t *testing.T) {
+func TestEpochStartSubscriptionHandler_UnregisterHandlerOkHandlerShouldRemove(t *testing.T) {
 	t.Parallel()
 
 	essh := notifier.NewEpochStartSubscriptionHandler()
@@ -122,9 +146,8 @@ func TestEpochStartSubscriptionHandler_ConcurrentOperations(t *testing.T) {
 	wg := sync.WaitGroup{}
 	wg.Add(numOperations)
 	for i := 0; i < numOperations; i++ {
-		i := i
 		go func(idx int) {
-			switch idx {
+			switch idx & 6 {
 			case 0:
 				handler.RegisterHandler(notifier.NewHandlerForEpochStart(func(hdr data.HeaderHandler) {}, func(hdr data.HeaderHandler) {}, 0))
 			case 1:
@@ -140,7 +163,7 @@ func TestEpochStartSubscriptionHandler_ConcurrentOperations(t *testing.T) {
 			}
 
 			wg.Done()
-		}(i % 6)
+		}(i)
 	}
 
 	wg.Wait()
