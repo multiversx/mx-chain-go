@@ -86,12 +86,17 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 		return nil, fmt.Errorf("transactionsFeeProcessor.PutFeeAndGasUsed %w", err)
 	}
 
+	orderedTxHashes, foundTxHashes := odp.setExecutionOrderInTransactionPool(pool)
+
 	executedTxs, err := collectExecutedTxHashes(arg.Body, arg.Header)
 	if err != nil {
-		log.Warn("collectExecutedTxHashes", "error", err)
+		log.Warn("PrepareOutportSaveBlockData - collectExecutedTxHashes", "error", err)
 	}
 
-	odp.setExecutionOrderInTransactionPoolWithChecks(pool, executedTxs)
+	err = checkTxOrder(orderedTxHashes, executedTxs, foundTxHashes)
+	if err != nil {
+		log.Warn("PrepareOutportSaveBlockData - checkTxOrder", "error", err.Error())
+	}
 
 	alteredAccounts, err := odp.alteredAccountsProvider.ExtractAlteredAccountsFromPool(pool, shared.AlteredAccountsOptions{
 		WithAdditionalOutportData: true,
@@ -154,10 +159,9 @@ func collectExecutedTxHashes(bodyHandler data.BodyHandler, headerHandler data.He
 	return executedTxHashes, nil
 }
 
-func (odp *outportDataProvider) setExecutionOrderInTransactionPoolWithChecks(
+func (odp *outportDataProvider) setExecutionOrderInTransactionPool(
 	pool *outportcore.Pool,
-	executedTxHashes map[string]struct{},
-) {
+) ([][]byte, int) {
 	orderedTxHashes := odp.executionOrderHandler.GetItems()
 	txGroups := []map[string]data.TransactionHandlerWithGasUsedAndFee{
 		pool.Txs,
@@ -176,10 +180,7 @@ func (odp *outportDataProvider) setExecutionOrderInTransactionPoolWithChecks(
 		}
 	}
 
-	err := checkTxOrder(orderedTxHashes, executedTxHashes, foundTxHashes)
-	if err != nil {
-		log.Warn("setExecutionOrderInTransactionPoolWithChecks", "error", err.Error())
-	}
+	return orderedTxHashes, foundTxHashes
 }
 
 func checkTxOrder(orderedTxHashes [][]byte, executedTxHashes map[string]struct{}, foundTxHashes int) error {
