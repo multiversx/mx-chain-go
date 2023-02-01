@@ -18,14 +18,13 @@ func TestBootstrapComponents_Create_Close_ShouldWork(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	defer factory.CleanupWorkingDir()
 	time.Sleep(time.Second * 4)
 
 	gc := goroutines.NewGoCounter(goroutines.TestsRelevantGoRoutines)
 	idxInitial, _ := gc.Snapshot()
 	factory.PrintStack()
 
-	configs := factory.CreateDefaultConfig()
+	configs := factory.CreateDefaultConfig(t)
 	chanStopNodeProcess := make(chan endProcess.ArgEndProcess)
 	nr, err := node.NewNodeRunner(configs)
 	require.Nil(t, err)
