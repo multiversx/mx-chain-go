@@ -76,6 +76,7 @@ func NewTestConsensusNode(
 	eligibleMap map[uint32][]nodesCoordinator.Validator,
 	waitingMap map[uint32][]nodesCoordinator.Validator,
 	keyGen crypto.KeyGenerator,
+	startTime int64,
 ) *TestConsensusNode {
 
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
@@ -84,7 +85,7 @@ func NewTestConsensusNode(
 		NodeKeys:         nodeKeys,
 		ShardCoordinator: shardCoordinator,
 	}
-	tcn.initNode(consensusSize, roundTime, consensusType, eligibleMap, waitingMap, keyGen)
+	tcn.initNode(consensusSize, roundTime, consensusType, eligibleMap, waitingMap, keyGen, startTime)
 
 	return tcn
 }
@@ -106,6 +107,8 @@ func CreateNodesWithTestConsensusNode(
 	waitingMap := make(map[uint32][]nodesCoordinator.Validator)
 	connectableNodes := make([]Connectable, 0)
 
+	startTime := time.Now().Unix()
+
 	for _, keysPair := range cp.Keys[0] {
 		tcn := NewTestConsensusNode(
 			consensusSize,
@@ -114,7 +117,9 @@ func CreateNodesWithTestConsensusNode(
 			*keysPair,
 			eligibleMap,
 			waitingMap,
-			cp.KeyGen)
+			cp.KeyGen,
+			startTime,
+		)
 		nodes[nodeShardId] = append(nodes[nodeShardId], tcn)
 		connectableNodes = append(connectableNodes, tcn)
 	}
@@ -131,6 +136,7 @@ func (tcn *TestConsensusNode) initNode(
 	eligibleMap map[uint32][]nodesCoordinator.Validator,
 	waitingMap map[uint32][]nodesCoordinator.Validator,
 	keyGen crypto.KeyGenerator,
+	startTime int64,
 ) {
 
 	testHasher := createHasher(consensusType)
@@ -142,8 +148,6 @@ func (tcn *TestConsensusNode) initNode(
 	tcn.Messenger = CreateMessengerWithNoDiscovery()
 	tcn.initBlockChain(testHasher)
 	tcn.initBlockProcessor()
-
-	startTime := time.Now().Unix()
 
 	syncer := ntp.NewSyncTime(ntp.NewNTPGoogleConfig(), nil)
 	syncer.StartSyncingTime()
