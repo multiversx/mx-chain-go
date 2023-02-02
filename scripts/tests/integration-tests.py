@@ -6,7 +6,6 @@ NUM_CHUNKS = int(8)
 
 
 def main():
-    os.environ["PYTHONUNBUFFERED"] = "1"
     integration_test_path = "../../integrationTests"
     sub_folders = [f.path for f in os.scandir(integration_test_path) if f.is_dir()]
 
@@ -29,10 +28,13 @@ def main():
             packages += " "
 
     print("running integration tests packages:", packages)
-    process = subprocess.Popen(["go", "test"] + packages.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=1, universal_newlines=True)
+    process = subprocess.Popen(["go", "test", "-parallel", "2"] + packages.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=1, universal_newlines=True)
+    stdout, stderr = process.communicate()
 
-    for line in process.stdout:
-        print(line, end="", flush=True)
+    if process.returncode != 0:
+        print("Error:", stderr)
+    else:
+        print(stdout)
 
     process.wait()
 
