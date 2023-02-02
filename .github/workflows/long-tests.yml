@@ -1,0 +1,34 @@
+name: Build
+
+on:
+  pull_request:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        runs-on: [ubuntu-latest]
+    runs-on: self-hosted
+    name: Build
+    steps:
+      - name: Set up Go 1.17.6
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.17.6
+        id: go
+
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v3
+
+      - name: Get dependencies
+        run: |
+          go get -v -t -d ./...
+          if [ -f Gopkg.toml ]; then
+              curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+              dep ensure
+          fi
+      - name: Long running tests
+        run: |
+          make test-v
