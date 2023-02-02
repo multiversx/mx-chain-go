@@ -115,3 +115,56 @@ jobs:
         run: |
           make integration-tests CHUNK_INDEX=3
 
+  tests-4:
+    strategy:
+      matrix:
+        runs-on: [ubuntu-latest]
+    runs-on: ${{ matrix.runs-on }}
+    name: Chunk 4
+    steps:
+      - name: Set up Go 1.17.6
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.17.6
+        id: go
+
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v3
+
+      - name: Get dependencies
+        run: |
+          go get -v -t -d ./...
+          if [ -f Gopkg.toml ]; then
+              curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+              dep ensure
+          fi
+      - name: Run integration tests 4
+        run: |
+          make integration-tests CHUNK_INDEX=4
+
+  tests-5:
+    strategy:
+      matrix:
+        runs-on: [ubuntu-latest]
+    runs-on: ${{ matrix.runs-on }}
+    name: Chunk 5
+    steps:
+      - name: Set up Go 1.17.6
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.17.6
+        id: go
+
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v3
+
+      - name: Get dependencies
+        run: |
+          go get -v -t -d ./...
+          if [ -f Gopkg.toml ]; then
+              curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+              dep ensure
+          fi
+      - name: Run integration tests 5
+        run: |
+          make integration-tests CHUNK_INDEX=5

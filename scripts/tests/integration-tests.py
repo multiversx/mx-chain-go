@@ -2,13 +2,15 @@ import os
 import subprocess
 import sys
 
+NUM_CHUNKS = int(6)
+
 
 def main():
     os.environ["PYTHONUNBUFFERED"] = "1"
     integration_test_path = "../../integrationTests"
     sub_folders = [f.path for f in os.scandir(integration_test_path) if f.is_dir()]
 
-    chunk_size = int(len(sub_folders) / 4)
+    chunk_size = int(len(sub_folders) / NUM_CHUNKS)
 
     chunked_list = list()
 
