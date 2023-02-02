@@ -6,6 +6,7 @@ import (
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
+//lint:ignore U1000 Ignore unused function temporarily until merge
 func findVMByScAddress(container process.VirtualMachinesContainer, scAddress []byte) (vmcommon.VMExecutionHandler, error) {
 	vmType, err := parseVMTypeFromContractAddress(scAddress)
 	if err != nil {
@@ -20,6 +21,7 @@ func findVMByScAddress(container process.VirtualMachinesContainer, scAddress []b
 	return vm, nil
 }
 
+//lint:ignore U1000 Ignore unused function temporarily until merge
 func parseVMTypeFromContractAddress(contractAddress []byte) ([]byte, error) {
 	// TODO: Why not check against AddressLength (32)?
 	if len(contractAddress) < core.NumInitCharactersForScAddress {
