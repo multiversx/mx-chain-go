@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 )
 
 func getReflectValue(original reflect.Value, fieldName string) (value reflect.Value, err error) {

@@ -30,7 +30,7 @@ const ObserverList PeerType = "observer"
 const NewList PeerType = "new"
 
 // MetachainTopicIdentifier is the identifier used in topics to define the metachain shard ID
-const MetachainTopicIdentifier = "META" // TODO - move this to elrond-go-core and change wherever we use the string value
+const MetachainTopicIdentifier = "META" // TODO - move this to mx-chain-core-go and change wherever we use the string value
 
 // CombinedPeerType - represents the combination of two peerTypes
 const CombinedPeerType = "%s (%s)"
@@ -372,8 +372,8 @@ const BuiltInCost = "BuiltInCost"
 // MetaChainSystemSCsCost represents the field name for metachain system smart contract operation costs
 const MetaChainSystemSCsCost = "MetaChainSystemSCsCost"
 
-// ElrondAPICost represents the field name of the Elrond SC API (EEI) gas costs
-const ElrondAPICost = "ElrondAPICost"
+// BaseOpsAPICost represents the field name of the SC API (EEI) gas costs
+const BaseOpsAPICost = "BaseOpsAPICost"
 
 // MaxPerTransaction represents the field name of max counts per transaction in block chain hook
 const MaxPerTransaction = "MaxPerTransaction"

@@ -6,10 +6,10 @@ import (
 )
 
 const (
-	OperationModeFullArchive        = "full-archive"
-	OperationModeDbLookupExtension  = "db-lookup-extension"
-	OperationModeHistoricalBalances = "historical-balances"
-	OperationModeLiteObserver       = "lite-observer"
+	OperationModeFullArchive          = "full-archive"
+	OperationModeDbLookupExtension    = "db-lookup-extension"
+	OperationModeHistoricalBalances   = "historical-balances"
+	OperationModeSnapshotlessObserver = "snapshotless-observer"
 )
 
 // ParseOperationModes will check and parse the operation modes
@@ -32,16 +32,16 @@ func ParseOperationModes(operationModeList string) ([]string, error) {
 		return []string{}, fmt.Errorf("operation-mode flag cannot contain both db-lookup-extension and historical-balances")
 	}
 
-	// lite observer and historical balances
-	isInvalid = sliceContainsBothElements(modes, OperationModeLiteObserver, OperationModeHistoricalBalances)
+	// snapshotless observer and historical balances
+	isInvalid = sliceContainsBothElements(modes, OperationModeSnapshotlessObserver, OperationModeHistoricalBalances)
 	if isInvalid {
-		return []string{}, fmt.Errorf("operation-mode flag cannot contain both lite-observer and historical-balances")
+		return []string{}, fmt.Errorf("operation-mode flag cannot contain both snapshotless-observer and historical-balances")
 	}
 
-	// lite observer and full archive
-	isInvalid = sliceContainsBothElements(modes, OperationModeLiteObserver, OperationModeFullArchive)
+	// snapshotless observer and full archive
+	isInvalid = sliceContainsBothElements(modes, OperationModeSnapshotlessObserver, OperationModeFullArchive)
 	if isInvalid {
-		return []string{}, fmt.Errorf("operation-mode flag cannot contain both lite-observer and full-archive")
+		return []string{}, fmt.Errorf("operation-mode flag cannot contain both snapshotless-observer and full-archive")
 	}
 
 	return modes, nil
@@ -49,7 +49,7 @@ func ParseOperationModes(operationModeList string) ([]string, error) {
 
 func checkOperationModeValidity(mode string) error {
 	switch mode {
-	case OperationModeFullArchive, OperationModeDbLookupExtension, OperationModeHistoricalBalances, OperationModeLiteObserver:
+	case OperationModeFullArchive, OperationModeDbLookupExtension, OperationModeHistoricalBalances, OperationModeSnapshotlessObserver:
 		return nil
 	default:
 		return fmt.Errorf("invalid operation mode <%s>", mode)

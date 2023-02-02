@@ -1,7 +1,7 @@
 package dataValidators
 
 import (
-	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 // disabledTxValidator represents a tx handler validator that doesn't check the validity of provided txHandler

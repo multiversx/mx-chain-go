@@ -3,8 +3,8 @@ package mock
 import (
 	"context"
 
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/update"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/update"
 )
 
 // TrieSyncersStub -

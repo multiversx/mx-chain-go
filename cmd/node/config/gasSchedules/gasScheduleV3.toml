@@ -52,7 +52,7 @@
     AoTPreparePerByte = 300
     GetCode           = 1000000
 
-[ElrondAPICost]
+[BaseOpsAPICost]
     GetSCAddress       = 100
     GetOwnerAddress    = 5000
     IsSmartContract    = 5000
@@ -692,5 +692,5 @@
 
 [MaxPerTransaction]
     MaxBuiltInCallsPerTx = 100
-    MaxNumberOfTransfersPerTx = 100
-    MaxNumberOfTrieReadsPerTx = 100
+    MaxNumberOfTransfersPerTx = 250
+    MaxNumberOfTrieReadsPerTx = 1500

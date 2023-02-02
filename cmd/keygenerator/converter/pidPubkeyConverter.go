@@ -4,10 +4,11 @@ import (
 	"encoding/hex"
 	"runtime/debug"
 
-	crypto "github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing/secp256k1"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/p2p/factory"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-crypto-go/signing"
+	"github.com/multiversx/mx-chain-crypto-go/signing/secp256k1"
+	"github.com/multiversx/mx-chain-go/p2p/factory"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("cmd/keygenerator/converter")
@@ -19,7 +20,7 @@ type pidPubkeyConverter struct {
 // NewPidPubkeyConverter creates a new instance of a public key converter that can handle conversions involving core.PeerID string representations
 func NewPidPubkeyConverter() *pidPubkeyConverter {
 	return &pidPubkeyConverter{
-		keyGen: crypto.NewKeyGenerator(secp256k1.NewSecp256k1()),
+		keyGen: signing.NewKeyGenerator(secp256k1.NewSecp256k1()),
 	}
 }
 

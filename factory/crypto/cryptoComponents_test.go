@@ -5,12 +5,13 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go/config"
-	errErd "github.com/ElrondNetwork/elrond-go/errors"
-	cryptoComp "github.com/ElrondNetwork/elrond-go/factory/crypto"
-	"github.com/ElrondNetwork/elrond-go/factory/mock"
-	componentsMock "github.com/ElrondNetwork/elrond-go/testscommon/components"
+	"github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-crypto-go/signing"
+	"github.com/multiversx/mx-chain-go/config"
+	errErd "github.com/multiversx/mx-chain-go/errors"
+	cryptoComp "github.com/multiversx/mx-chain-go/factory/crypto"
+	"github.com/multiversx/mx-chain-go/factory/mock"
+	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/stretchr/testify/require"
 )
 
@@ -251,7 +252,7 @@ func TestCryptoComponentsFactory_CreateMultiSignerOK(t *testing.T) {
 	require.Nil(t, err)
 
 	suite, _ := ccf.GetSuite()
-	blockSignKeyGen := crypto.NewKeyGenerator(suite)
+	blockSignKeyGen := signing.NewKeyGenerator(suite)
 
 	multiSigner, err := ccf.CreateMultiSignerContainer(blockSignKeyGen, false)
 	require.Nil(t, err)
@@ -306,7 +307,7 @@ func TestCryptoComponentsFactory_CreateCryptoParamsInvalidPrivateKeyByteArraySho
 	ccf, _ := cryptoComp.NewCryptoComponentsFactory(args)
 
 	suite, _ := ccf.GetSuite()
-	blockSignKeyGen := crypto.NewKeyGenerator(suite)
+	blockSignKeyGen := signing.NewKeyGenerator(suite)
 
 	cryptoParams, err := ccf.CreateCryptoParams(blockSignKeyGen)
 	require.Nil(t, cryptoParams)
@@ -327,7 +328,7 @@ func TestCryptoComponentsFactory_CreateCryptoParamsLoadKeysFailShouldErr(t *test
 	ccf, _ := cryptoComp.NewCryptoComponentsFactory(args)
 
 	suite, _ := ccf.GetSuite()
-	blockSignKeyGen := crypto.NewKeyGenerator(suite)
+	blockSignKeyGen := signing.NewKeyGenerator(suite)
 
 	cryptoParams, err := ccf.CreateCryptoParams(blockSignKeyGen)
 	require.Nil(t, cryptoParams)
@@ -345,7 +346,7 @@ func TestCryptoComponentsFactory_CreateCryptoParamsOK(t *testing.T) {
 	ccf, _ := cryptoComp.NewCryptoComponentsFactory(args)
 
 	suite, _ := ccf.GetSuite()
-	blockSignKeyGen := crypto.NewKeyGenerator(suite)
+	blockSignKeyGen := signing.NewKeyGenerator(suite)
 
 	cryptoParams, err := ccf.CreateCryptoParams(blockSignKeyGen)
 	require.Nil(t, err)

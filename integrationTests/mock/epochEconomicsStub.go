@@ -3,7 +3,7 @@ package mock
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 )
 
 // EpochEconomicsStub -

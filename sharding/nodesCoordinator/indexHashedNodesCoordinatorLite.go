@@ -1,7 +1,7 @@
 package nodesCoordinator
 
 import (
-	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 // SetNodesConfigFromValidatorsInfo sets epoch config based on validators list configuration

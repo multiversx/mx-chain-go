@@ -11,15 +11,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
-	"github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing/secp256k1"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/cmd/keygenerator/converter"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-crypto-go/signing"
+	"github.com/multiversx/mx-chain-crypto-go/signing/ed25519"
+	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
+	"github.com/multiversx/mx-chain-crypto-go/signing/secp256k1"
+	"github.com/multiversx/mx-chain-go/cmd/keygenerator/converter"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/urfave/cli"
 )
 
@@ -142,8 +143,8 @@ func main() {
 	app.Usage = "This binary will generate a validatorKey.pem and walletKey.pem, each containing private key(s)"
 	app.Authors = []cli.Author{
 		{
-			Name:  "The Elrond Team",
-			Email: "contact@elrond.com",
+			Name:  "The MultiversX Team",
+			Email: "contact@multiversx.com",
 		},
 	}
 	app.Flags = []cli.Flag{
@@ -186,9 +187,9 @@ func generateKeys(typeKey string, numKeys int, prefix string, shardID int) ([]ke
 	p2pKeys := make([]key, 0)
 	var err error
 
-	blockSigningGenerator := crypto.NewKeyGenerator(mcl.NewSuiteBLS12())
-	txSigningGenerator := crypto.NewKeyGenerator(ed25519.NewEd25519())
-	p2pKeyGenerator := crypto.NewKeyGenerator(secp256k1.NewSecp256k1())
+	blockSigningGenerator := signing.NewKeyGenerator(mcl.NewSuiteBLS12())
+	txSigningGenerator := signing.NewKeyGenerator(ed25519.NewEd25519())
+	p2pKeyGenerator := signing.NewKeyGenerator(secp256k1.NewSecp256k1())
 
 	for i := 0; i < numKeys; i++ {
 		switch typeKey {

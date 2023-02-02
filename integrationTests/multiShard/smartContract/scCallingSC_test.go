@@ -11,19 +11,19 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	vmData "github.com/ElrondNetwork/elrond-go-core/data/vm"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/state"
-	systemVm "github.com/ElrondNetwork/elrond-go/vm"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	vmData "github.com/multiversx/mx-chain-core-go/data/vm"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/state"
+	systemVm "github.com/multiversx/mx-chain-go/vm"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -134,6 +134,7 @@ func TestScDeployAndChangeScOwner(t *testing.T) {
 	numShards := 2
 	nodesPerShard := 2
 	numMetachainNodes := 2
+	incrementAdditionalGas := uint64(500)
 
 	nodes := integrationTests.CreateNodes(
 		numShards,
@@ -162,7 +163,7 @@ func TestScDeployAndChangeScOwner(t *testing.T) {
 
 	// deploy the smart contracts
 	firstSCAddress := putDeploySCToDataPool(
-		"../../vm/arwen/testdata/counter/counter.wasm",
+		"../../vm/wasm/testdata/counter/counter.wasm",
 		firstSCOwner,
 		0,
 		big.NewInt(50),
@@ -184,7 +185,7 @@ func TestScDeployAndChangeScOwner(t *testing.T) {
 	for _, node := range nodes {
 		txData := "increment"
 		for i := 0; i < 10; i++ {
-			integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), firstSCAddress, txData, integrationTests.AdditionalGasLimit)
+			integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), firstSCAddress, txData, incrementAdditionalGas)
 		}
 	}
 
@@ -272,7 +273,7 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 	nodes[0].OwnAccount.Nonce += 1
 	// deploy the smart contracts
 	firstSCAddress := putDeploySCToDataPool(
-		"../../vm/arwen/testdata/counter/counter.wasm",
+		"../../vm/wasm/testdata/counter/counter.wasm",
 		firstSCOwner,
 		0,
 		big.NewInt(50),
@@ -992,7 +993,7 @@ func putDeploySCToDataPool(
 
 	blockChainHook := nodes[0].BlockchainHook
 
-	scAddressBytes, _ := blockChainHook.NewAddress(pubkey, nonce, factory.ArwenVirtualMachine)
+	scAddressBytes, _ := blockChainHook.NewAddress(pubkey, nonce, factory.WasmVirtualMachine)
 
 	tx := &transaction.Transaction{
 		Nonce:    nonce,
@@ -1001,7 +1002,7 @@ func putDeploySCToDataPool(
 		SndAddr:  pubkey,
 		GasPrice: nodes[0].EconomicsData.GetMinGasPrice(),
 		GasLimit: gasLimit,
-		Data:     []byte(scCodeString + "@" + hex.EncodeToString(factory.ArwenVirtualMachine) + "@" + scCodeMetadataString + initArgs),
+		Data:     []byte(scCodeString + "@" + hex.EncodeToString(factory.WasmVirtualMachine) + "@" + scCodeMetadataString + initArgs),
 		ChainID:  integrationTests.ChainID,
 	}
 	txHash, _ := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, tx)
