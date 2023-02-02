@@ -343,6 +343,7 @@ func (vs *validatorStatistics) UpdatePeerState(header data.CommonHeaderHandler, 
 		return nil, err
 	}
 
+	log.Debug("UpdatePeerState - registering shard leader fees", "metaNonce", header.GetNonce())
 	err = vs.updateShardDataPeerStateHandler(header, cache)
 	if err != nil {
 		return nil, err
@@ -369,6 +370,8 @@ func (vs *validatorStatistics) UpdatePeerState(header data.CommonHeaderHandler, 
 	}
 	leaderPK := core.GetTrimmedPk(vs.pubkeyConv.Encode(consensusGroup[0].PubKey()))
 	log.Trace("Increasing for leader", "leader", leaderPK, "round", previousHeader.GetRound())
+
+	log.Debug("UpdatePeerState - registering meta previous leader fees", "metaNonce", previousHeader.GetNonce())
 	err = vs.updateValidatorInfoOnSuccessfulBlock(
 		consensusGroup,
 		previousHeader.GetPubKeysBitmap(),
@@ -881,6 +884,7 @@ func (vs *validatorStatistics) updateShardDataPeerState(
 			return shardInfoErr
 		}
 
+		log.Debug("updateShardDataPeerState - registering shard leader fees", "shard headerHash", h.HeaderHash, "accumulatedFees", h.AccumulatedFees.String(), "developerFees", h.DeveloperFees.String())
 		shardInfoErr = vs.updateValidatorInfoOnSuccessfulBlock(
 			shardConsensus,
 			h.PubKeysBitmap,
@@ -1010,6 +1014,10 @@ func (vs *validatorStatistics) updateValidatorInfoOnSuccessfulBlock(
 			}
 
 			peerAcc.AddToAccumulatedFees(leaderAccumulatedFees)
+			log.Debug("updateValidatorInfoOnSuccessfulBlock",
+				"leaderAccumulatedFees in current block", leaderAccumulatedFees.String(),
+				"leader fees in Epoch", peerAcc.GetAccumulatedFees().String(),
+				"leader", core.GetTrimmedPk(string(peerAcc.GetBLSPublicKey())))
 		case validatorSuccess:
 			peerAcc.IncreaseValidatorSuccessRate(1)
 			newRating = vs.rater.ComputeIncreaseValidator(shardId, peerAcc.GetTempRating())

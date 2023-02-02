@@ -8,7 +8,15 @@ import (
 )
 
 type feeComputer interface {
+	ComputeGasUsedAndFeeBasedOnRefundValue(tx *transaction.ApiTransactionResult, refundValue *big.Int) (uint64, *big.Int)
+	ComputeTxFeeBasedOnGasUsed(tx *transaction.ApiTransactionResult, gasUsed uint64) *big.Int
+	ComputeGasLimit(tx *transaction.ApiTransactionResult) uint64
 	ComputeTransactionFee(tx *transaction.ApiTransactionResult) *big.Int
+	IsInterfaceNil() bool
+}
+
+// FeesProcessorHandler defines the interface for the transaction fees processor
+type FeesProcessorHandler interface {
 	IsInterfaceNil() bool
 }
 
