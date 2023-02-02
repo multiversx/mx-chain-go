@@ -146,6 +146,7 @@ func TestScDeployAndChangeScOwner(t *testing.T) {
 	numShards := 2
 	nodesPerShard := 2
 	numMetachainNodes := 2
+	incrementAdditionalGas := uint64(500)
 
 	nodes := integrationTests.CreateNodes(
 		numShards,
@@ -196,7 +197,7 @@ func TestScDeployAndChangeScOwner(t *testing.T) {
 	for _, node := range nodes {
 		txData := "increment"
 		for i := 0; i < 10; i++ {
-			integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), firstSCAddress, txData, integrationTests.AdditionalGasLimit)
+			integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), firstSCAddress, txData, incrementAdditionalGas)
 		}
 	}
 
