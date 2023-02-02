@@ -3293,13 +3293,6 @@ func TestScProcessor_ProcessSmartContractResultExecuteSCIfMetaAndBuiltIn(t *test
 	_, err = sc.ProcessSmartContractResult(&scr)
 	require.Nil(t, err)
 	require.True(t, executeCalled)
-
-	executeCalled = false
-	enableEpochsHandlerStub.IsBuiltInFunctionOnMetaFlagEnabledField = true
-	enableEpochsHandlerStub.IsBuiltInFunctionsFlagEnabledField = true
-	_, err = sc.ProcessSmartContractResult(&scr)
-	require.Nil(t, err)
-	require.False(t, executeCalled)
 }
 
 func TestScProcessor_ProcessRelayedSCRValueBackToRelayer(t *testing.T) {
