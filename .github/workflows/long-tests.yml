@@ -1,4 +1,4 @@
-name: Build
+name: Long tests
 
 on:
   pull_request:
@@ -11,7 +11,7 @@ jobs:
       matrix:
         runs-on: [ubuntu-latest]
     runs-on: self-hosted
-    name: Build
+    name: Long tests job
     steps:
       - name: Set up Go 1.17.6
         uses: actions/setup-go@v3

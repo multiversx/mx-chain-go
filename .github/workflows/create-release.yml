@@ -18,7 +18,7 @@ jobs:
       matrix:
         runs-on: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.runs-on }}
-    name: Build
+    name: Create release job
     steps:
       - name: Set up Go 1.17.6
         uses: actions/setup-go@v3
@@ -97,7 +97,7 @@ jobs:
     needs: [build]
     runs-on: ubuntu-latest
     steps:
-      - name: Check out code
+      - name: Check out code job
         uses: actions/checkout@v2
 
         # https://docs.github.com/en/free-pro-team@latest/actions/guides/storing-workflow-data-as-artifacts#downloading-or-deleting-artifacts

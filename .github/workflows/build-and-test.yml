@@ -1,4 +1,4 @@
-name: Build
+name: Build binaries
 
 on:
   pull_request:
@@ -13,7 +13,7 @@ jobs:
       matrix:
         runs-on: [ubuntu-latest]
     runs-on: ${{ matrix.runs-on }}
-    name: Build
+    name: Build binaries job
     steps:
       - name: Set up Go 1.17.6
         uses: actions/setup-go@v3

@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   golangci:
-    name: golangci linter
+    name: golangci linter job
     runs-on: ubuntu-latest
     steps:
       - uses: actions/setup-go@v3
