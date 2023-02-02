@@ -15,7 +15,7 @@ jobs:
       matrix:
         runs-on: [ubuntu-latest]
     runs-on: ${{ matrix.runs-on }}
-    name: Build
+    name: Chunk 0
     steps:
       - name: Set up Go 1.17.6
         uses: actions/setup-go@v3
@@ -41,7 +41,7 @@ jobs:
       matrix:
         runs-on: [ubuntu-latest]
     runs-on: ${{ matrix.runs-on }}
-    name: Build
+    name: Chunk 1
     steps:
       - name: Set up Go 1.17.6
         uses: actions/setup-go@v3
@@ -67,7 +67,7 @@ jobs:
       matrix:
         runs-on: [ubuntu-latest]
     runs-on: ${{ matrix.runs-on }}
-    name: Build
+    name: Chunk 2
     steps:
       - name: Set up Go 1.17.6
         uses: actions/setup-go@v3
@@ -93,7 +93,7 @@ jobs:
       matrix:
         runs-on: [ubuntu-latest]
     runs-on: ${{ matrix.runs-on }}
-    name: Build
+    name: Chunk 3
     steps:
       - name: Set up Go 1.17.6
         uses: actions/setup-go@v3
