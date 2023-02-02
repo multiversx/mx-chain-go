@@ -50,10 +50,7 @@ type ArgsNewSmartContractProcessor struct {
 	IsGenesisProcessing bool
 }
 
-// will uncomment when merging blhook_runsc
-
 // FindVMByScAddress is exported for use in all version of scr processors
-//lint:ignore U1000 Ignore unused function temporarily until merge
 func FindVMByScAddress(container process.VirtualMachinesContainer, scAddress []byte) (vmcommon.VMExecutionHandler, []byte, error) {
 	vmType, err := parseVMTypeFromContractAddress(scAddress)
 	if err != nil {
