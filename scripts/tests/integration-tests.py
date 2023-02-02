@@ -2,7 +2,7 @@ import os
 import subprocess
 import sys
 
-NUM_CHUNKS = int(6)
+NUM_CHUNKS = int(7)
 
 
 def main():
