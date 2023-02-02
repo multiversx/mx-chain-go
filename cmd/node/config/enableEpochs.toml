@@ -189,60 +189,60 @@
     SCRSizeInvariantOnBuiltInResultEnableEpoch = 1
 
     # CheckCorrectTokenIDForTransferRoleEnableEpoch represents the epoch when the correct token ID check is applied for transfer role verification
-    CheckCorrectTokenIDForTransferRoleEnableEpoch = 1
+    CheckCorrectTokenIDForTransferRoleEnableEpoch = 3
 
     # DisableExecByCallerEnableEpoch represents the epoch when the check on value is disabled on exec by caller
-    DisableExecByCallerEnableEpoch = 1
+    DisableExecByCallerEnableEpoch = 3
 
     # RefactorContextEnableEpoch represents the epoch when refactoring/simplifying is enabled in contexts
-    RefactorContextEnableEpoch = 1
+    RefactorContextEnableEpoch = 3
 
     # FailExecutionOnEveryAPIErrorEnableEpoch represent the epoch when new protection in VM is enabled to fail all wrong API calls
-    FailExecutionOnEveryAPIErrorEnableEpoch = 1
+    FailExecutionOnEveryAPIErrorEnableEpoch = 3
 
     # ManagedCryptoAPIsEnableEpoch represents the epoch when new managed crypto APIs are enabled in the wasm VM
-    ManagedCryptoAPIsEnableEpoch = 1
+    ManagedCryptoAPIsEnableEpoch = 3
 
     # CheckFunctionArgumentEnableEpoch represents the epoch when the extra argument check is enabled in vm-common
-    CheckFunctionArgumentEnableEpoch = 1
+    CheckFunctionArgumentEnableEpoch = 3
 
     # CheckExecuteOnReadOnlyEnableEpoch represents the epoch when the extra checks are enabled for execution on read only
-    CheckExecuteOnReadOnlyEnableEpoch = 1
+    CheckExecuteOnReadOnlyEnableEpoch = 3
 
     # ESDTMetadataContinuousCleanupEnableEpoch represents the epoch when esdt metadata is automatically deleted according to inshard liquidity
-    ESDTMetadataContinuousCleanupEnableEpoch = 1
+    ESDTMetadataContinuousCleanupEnableEpoch = 3
 
     # MiniBlockPartialExecutionEnableEpoch represents the epoch when mini block partial execution will be enabled
-    MiniBlockPartialExecutionEnableEpoch = 1
+    MiniBlockPartialExecutionEnableEpoch = 3
 
     # FixAsyncCallBackArgsListEnableEpoch represents the epoch when the async callback arguments lists fix will be enabled
-    FixAsyncCallBackArgsListEnableEpoch = 1
+    FixAsyncCallBackArgsListEnableEpoch = 3
 
     # FixOldTokenLiquidityEnableEpoch represents the epoch when the fix for old token liquidity is enabled
-    FixOldTokenLiquidityEnableEpoch = 1
+    FixOldTokenLiquidityEnableEpoch = 3
 
     # RuntimeMemStoreLimitEnableEpoch represents the epoch when the condition for Runtime MemStore is enabled
-    RuntimeMemStoreLimitEnableEpoch = 2
+    RuntimeMemStoreLimitEnableEpoch = 3
 
     # SetSenderInEeiOutputTransferEnableEpoch represents the epoch when setting the sender in eei output transfers will be enabled
-    SetSenderInEeiOutputTransferEnableEpoch = 2
+    SetSenderInEeiOutputTransferEnableEpoch = 3
 
     # RefactorPeersMiniBlocksEnableEpoch represents the epoch when refactor of the peers mini blocks will be enabled
-    RefactorPeersMiniBlocksEnableEpoch = 2
+    RefactorPeersMiniBlocksEnableEpoch = 3
 
     # MaxBlockchainHookCountersEnableEpoch represents the epoch when the max blockchainhook counters are enabled
-    MaxBlockchainHookCountersEnableEpoch = 2
+    MaxBlockchainHookCountersEnableEpoch = 3
 
     # WipeSingleNFTLiquidityDecreaseEnableEpoch represents the epoch when the system account liquidity is decreased for wipeSingleNFT as well
-    WipeSingleNFTLiquidityDecreaseEnableEpoch = 2
+    WipeSingleNFTLiquidityDecreaseEnableEpoch = 3
 
     # AlwaysSaveTokenMetaDataEnableEpoch represents the epoch when the token metadata is always saved
-    AlwaysSaveTokenMetaDataEnableEpoch = 2
+    AlwaysSaveTokenMetaDataEnableEpoch = 3
 
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [
         { EnableEpoch = 0, Type = "no-KOSK"},
-        { EnableEpoch = 2, Type = "KOSK"}
+        { EnableEpoch = 3, Type = "KOSK"}
     ]
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
@@ -256,5 +256,5 @@
     GasScheduleByEpochs = [
         { StartEpoch = 0, FileName = "gasScheduleV1.toml" },
         { StartEpoch = 1, FileName = "gasScheduleV6.toml" },
-        { StartEpoch = 2, FileName = "gasScheduleV7.toml" },
+        { StartEpoch = 3, FileName = "gasScheduleV7.toml" },
     ]
