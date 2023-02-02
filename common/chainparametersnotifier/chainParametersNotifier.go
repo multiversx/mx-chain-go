@@ -19,8 +19,8 @@ type chainParametersNotifier struct {
 	handlers               []common.ChainParametersSubscriptionHandler
 }
 
-// New creates a new instance of a chainParametersNotifier component
-func New() *chainParametersNotifier {
+// NewChainParametersNotifier creates a new instance of a chainParametersNotifier component
+func NewChainParametersNotifier() *chainParametersNotifier {
 	return &chainParametersNotifier{
 		wasInitialized: false,
 		handlers:       make([]common.ChainParametersSubscriptionHandler, 0),

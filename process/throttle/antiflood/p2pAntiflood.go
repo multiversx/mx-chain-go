@@ -28,7 +28,8 @@ type p2pAntiflood struct {
 	peerValidatorMapper process.PeerValidatorMapper
 	mapTopicsFromAll    map[string]struct{}
 	mutTopicCheck       sync.RWMutex
-	shardID             core.OptionalUint32
+	shardID             uint32
+	mutShardID          sync.RWMutex
 }
 
 // NewP2PAntiflood creates a new p2p anti flood protection mechanism built on top of a flood preventer implementation.
@@ -61,18 +62,21 @@ func NewP2PAntiflood(
 
 // SetConsensusSizeNotifier sets the consensus size notifier
 func (af *p2pAntiflood) SetConsensusSizeNotifier(chainParametersNotifier process.ChainParametersSubscriber, shardID uint32) {
-	af.shardID = core.OptionalUint32{
-		HasValue: true,
-		Value:    shardID,
-	}
+	af.mutShardID.Lock()
+	af.shardID = shardID
+	af.mutShardID.Unlock()
 
 	chainParametersNotifier.RegisterNotifyHandler(af)
 }
 
 // ChainParametersChanged will be called when new chain parameters are confirmed on the network
 func (af *p2pAntiflood) ChainParametersChanged(chainParameters config.ChainParametersByEpochConfig) {
+	af.mutShardID.RLock()
+	shardID := af.shardID
+	af.mutShardID.RUnlock()
+
 	size := chainParameters.ShardConsensusGroupSize
-	if af.shardID.HasValue && af.shardID.Value == core.MetachainShardId {
+	if shardID == core.MetachainShardId {
 		size = chainParameters.MetachainConsensusGroupSize
 	}
 
@@ -274,6 +278,9 @@ func (af *p2pAntiflood) BlacklistPeer(peer core.PeerID, reason string, duration 
 
 // Close will call the close function on all sub components
 func (af *p2pAntiflood) Close() error {
+	af.mutDebugger.Lock()
+	defer af.mutDebugger.Unlock()
+
 	return af.debugger.Close()
 }
 

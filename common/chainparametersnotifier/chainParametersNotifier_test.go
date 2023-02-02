@@ -12,14 +12,14 @@ import (
 func TestNew(t *testing.T) {
 	t.Parallel()
 
-	notifier := New()
+	notifier := NewChainParametersNotifier()
 	require.False(t, check.IfNil(notifier))
 }
 
 func TestChainParametersNotifier_UpdateCurrentChainParameters(t *testing.T) {
 	t.Parallel()
 
-	notifier := New()
+	notifier := NewChainParametersNotifier()
 	require.False(t, check.IfNil(notifier))
 
 	chainParams := config.ChainParametersByEpochConfig{
@@ -46,7 +46,7 @@ func TestChainParametersNotifier_UpdateCurrentChainParameters(t *testing.T) {
 func TestChainParametersNotifier_RegisterNotifyHandler(t *testing.T) {
 	t.Parallel()
 
-	notifier := New()
+	notifier := NewChainParametersNotifier()
 	require.False(t, check.IfNil(notifier))
 
 	// register a nil handler - should not panic
@@ -66,7 +66,7 @@ func TestChainParametersNotifier_RegisterNotifyHandler(t *testing.T) {
 func TestChainParametersNotifier_UnRegisterAll(t *testing.T) {
 	t.Parallel()
 
-	notifier := New()
+	notifier := NewChainParametersNotifier()
 	require.False(t, check.IfNil(notifier))
 
 	testNotifee := &dummyNotifee{}
@@ -84,7 +84,7 @@ func TestChainParametersNotifier_UnRegisterAll(t *testing.T) {
 func TestChainParametersNotifier_ConcurrentOperations(t *testing.T) {
 	t.Parallel()
 
-	notifier := New()
+	notifier := NewChainParametersNotifier()
 
 	numOperations := 500
 	wg := sync.WaitGroup{}

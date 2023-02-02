@@ -184,7 +184,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	epochNotifier := forking.NewGenericEpochNotifier()
 	epochStartHandlerWithConfirm := notifier.NewEpochStartSubscriptionHandler()
 
-	chainParametersNotifier := chainparametersnotifier.New()
+	chainParametersNotifier := chainparametersnotifier.NewChainParametersNotifier()
 	argsChainParametersHandler := sharding.ArgsChainParametersHolder{
 		EpochStartEventNotifier: epochStartHandlerWithConfirm,
 		ChainParameters:         ccf.config.GeneralSettings.ChainParametersByEpoch,

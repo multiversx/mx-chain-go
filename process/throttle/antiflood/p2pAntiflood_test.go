@@ -2,6 +2,7 @@ package antiflood_test
 
 import (
 	"errors"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -15,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/process/throttle/antiflood"
 	"github.com/multiversx/mx-chain-go/process/throttle/antiflood/disabled"
+	"github.com/multiversx/mx-chain-go/testscommon/commonmocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -325,7 +327,7 @@ func TestP2pAntiflood_SetConsensusSizeNotifier(t *testing.T) {
 		},
 	)
 
-	chainParamsSubscriber := chainparametersnotifier.New()
+	chainParamsSubscriber := chainparametersnotifier.NewChainParametersNotifier()
 	afm.SetConsensusSizeNotifier(chainParamsSubscriber, 5)
 
 	chainParamsSubscriber.UpdateCurrentChainParameters(config.ChainParametersByEpochConfig{
@@ -472,4 +474,52 @@ func TestP2pAntiflood_IsOriginatorEligibleForTopic(t *testing.T) {
 	assert.Nil(t, err)
 	err = afm.IsOriginatorEligibleForTopic(core.PeerID(validatorPID), "topic")
 	assert.Nil(t, err)
+}
+
+func TestP2pAntiflood_ConcurrentOperations(t *testing.T) {
+	afm, _ := antiflood.NewP2PAntiflood(
+		&mock.PeerBlackListHandlerStub{},
+		&mock.TopicAntiFloodStub{},
+		&mock.FloodPreventerStub{},
+	)
+
+	numOperations := 500
+	wg := sync.WaitGroup{}
+	wg.Add(numOperations)
+	for i := 0; i < numOperations; i++ {
+		go func(idx int) {
+			switch idx {
+			case 0:
+				afm.SetConsensusSizeNotifier(&commonmocks.ChainParametersNotifierStub{}, 1)
+			case 1:
+				afm.ChainParametersChanged(config.ChainParametersByEpochConfig{})
+			case 2:
+				_ = afm.Close()
+			case 3:
+				_ = afm.CanProcessMessage(&mock.P2PMessageMock{}, "peer")
+			case 4:
+				afm.BlacklistPeer("peer", "reason", time.Millisecond)
+			case 5:
+				_ = afm.CanProcessMessagesOnTopic("peer", "topic", 37, 39, []byte("sequence"))
+			case 6:
+				_ = afm.IsOriginatorEligibleForTopic("peer", "topic")
+			case 7:
+				afm.ResetForTopic("topic")
+			case 8:
+				_ = afm.SetDebugger(&disabled.AntifloodDebugger{})
+			case 9:
+				afm.SetMaxMessagesForTopic("topic", 37)
+			case 10:
+				afm.SetTopicsForAll("topic", "topic1")
+			case 11:
+				_ = afm.Debugger()
+			case 12:
+				_ = afm.SetPeerValidatorMapper(&mock.PeerShardResolverStub{})
+			}
+
+			wg.Done()
+		}(i % 13)
+	}
+
+	wg.Wait()
 }
