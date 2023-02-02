@@ -218,6 +218,11 @@ func (handler *enableEpochsHandler) StakingV4EnableEpoch() uint32 {
 	return handler.enableEpochsConfig.StakingV4EnableEpoch
 }
 
+// StakingV4InitEpoch returns the epoch when stakingV4 phase1 becomes active
+func (handler *enableEpochsHandler) StakingV4InitEpoch() uint32 {
+	return handler.enableEpochsConfig.StakingV4InitEnableEpoch
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (handler *enableEpochsHandler) IsInterfaceNil() bool {
 	return handler == nil

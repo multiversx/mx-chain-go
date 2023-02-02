@@ -2169,6 +2169,135 @@ func TestIndexHashedNodesCoordinator_computeNodesConfigFromListWithStakingV4(t *
 	require.Nil(t, newNodesConfig)
 }
 
+func TestIndexHashedNodesCoordinator_computeNodesConfigFromListValidatorsWithFix(t *testing.T) {
+	t.Parallel()
+
+	arguments := createArguments()
+	pk := []byte("pk")
+	arguments.SelfPublicKey = pk
+	ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
+	_ = ihnc.flagStakingV4Started.SetReturningPrevious()
+
+	shard0Eligible0 := &state.ShardValidatorInfo{
+		PublicKey:  []byte("pk0"),
+		List:       string(common.EligibleList),
+		Index:      1,
+		TempRating: 2,
+		ShardId:    0,
+	}
+	shard0Eligible1 := &state.ShardValidatorInfo{
+		PublicKey:  []byte("pk1"),
+		List:       string(common.EligibleList),
+		Index:      2,
+		TempRating: 2,
+		ShardId:    0,
+	}
+	shardmetaEligible0 := &state.ShardValidatorInfo{
+		PublicKey:  []byte("pk2"),
+		ShardId:    core.MetachainShardId,
+		List:       string(common.EligibleList),
+		Index:      1,
+		TempRating: 4,
+	}
+	shard0Waiting0 := &state.ShardValidatorInfo{
+		PublicKey: []byte("pk3"),
+		List:      string(common.WaitingList),
+		Index:     14,
+		ShardId:   0,
+	}
+	shardmetaWaiting0 := &state.ShardValidatorInfo{
+		PublicKey: []byte("pk4"),
+		ShardId:   core.MetachainShardId,
+		List:      string(common.WaitingList),
+		Index:     15,
+	}
+	shard0New0 := &state.ShardValidatorInfo{
+		PublicKey: []byte("pk5"),
+		List:      string(common.NewList), Index: 3,
+		ShardId: 0,
+	}
+	shard0Leaving0 := &state.ShardValidatorInfo{
+		PublicKey: []byte("pk6"),
+		List:      string(common.LeavingList),
+		ShardId:   0,
+	}
+	shardMetaLeaving1 := &state.ShardValidatorInfo{
+		PublicKey: []byte("pk7"),
+		List:      string(common.LeavingList),
+		Index:     1,
+		ShardId:   core.MetachainShardId,
+	}
+
+	validatorInfos :=
+		[]*state.ShardValidatorInfo{
+			shard0Eligible0,
+			shard0Eligible1,
+			shardmetaEligible0,
+			shard0Waiting0,
+			shardmetaWaiting0,
+			shard0New0,
+			shard0Leaving0,
+			shardMetaLeaving1,
+		}
+
+	previousConfig := &epochNodesConfig{
+		eligibleMap: map[uint32][]Validator{
+			0: {
+				newValidatorMock(shard0Eligible0.PublicKey, 0, 0),
+				newValidatorMock(shard0Eligible1.PublicKey, 0, 0),
+				newValidatorMock(shard0Leaving0.PublicKey, 0, 0),
+			},
+			core.MetachainShardId: {
+				newValidatorMock(shardmetaEligible0.PublicKey, 0, 0),
+			},
+		},
+		waitingMap: map[uint32][]Validator{
+			0: {
+				newValidatorMock(shard0Waiting0.PublicKey, 0, 0),
+			},
+			core.MetachainShardId: {
+				newValidatorMock(shardmetaWaiting0.PublicKey, 0, 0),
+				newValidatorMock(shardMetaLeaving1.PublicKey, 0, 0),
+			},
+		},
+	}
+
+	newNodesConfig, err := ihnc.computeNodesConfigFromList(previousConfig, validatorInfos)
+	assert.Nil(t, err)
+
+	assert.Equal(t, uint32(1), newNodesConfig.nbShards)
+
+	verifySizes(t, newNodesConfig)
+	verifyLeavingNodesInEligibleOrWaiting(t, newNodesConfig)
+
+	// maps have the correct validators inside
+	eligibleListShardZero := createValidatorList(ihnc,
+		[]*state.ShardValidatorInfo{shard0Eligible0, shard0Eligible1, shard0Leaving0})
+	assert.Equal(t, eligibleListShardZero, newNodesConfig.eligibleMap[0])
+	eligibleListMeta := createValidatorList(ihnc,
+		[]*state.ShardValidatorInfo{shardmetaEligible0})
+	assert.Equal(t, eligibleListMeta, newNodesConfig.eligibleMap[core.MetachainShardId])
+
+	waitingListShardZero := createValidatorList(ihnc,
+		[]*state.ShardValidatorInfo{shard0Waiting0})
+	assert.Equal(t, waitingListShardZero, newNodesConfig.waitingMap[0])
+	waitingListMeta := createValidatorList(ihnc,
+		[]*state.ShardValidatorInfo{shardmetaWaiting0, shardMetaLeaving1})
+	assert.Equal(t, waitingListMeta, newNodesConfig.waitingMap[core.MetachainShardId])
+
+	leavingListShardZero := createValidatorList(ihnc,
+		[]*state.ShardValidatorInfo{shard0Leaving0})
+	assert.Equal(t, leavingListShardZero, newNodesConfig.leavingMap[0])
+
+	leavingListMeta := createValidatorList(ihnc,
+		[]*state.ShardValidatorInfo{shardMetaLeaving1})
+	assert.Equal(t, leavingListMeta, newNodesConfig.leavingMap[core.MetachainShardId])
+
+	newListShardZero := createValidatorList(ihnc,
+		[]*state.ShardValidatorInfo{shard0New0})
+	assert.Equal(t, newListShardZero, newNodesConfig.newList)
+}
+
 func TestIndexHashedNodesCoordinator_computeNodesConfigFromListValidatorsNoFix(t *testing.T) {
 	t.Parallel()
 
@@ -2243,6 +2372,7 @@ func TestIndexHashedNodesCoordinator_computeNodesConfigFromListValidatorsNoFix(t
 			shardMetaLeaving1,
 		}
 
+	ihnc.flagStakingV4Started.Reset()
 	newNodesConfig, err := ihnc.computeNodesConfigFromList(previousConfig, validatorInfos)
 	assert.Nil(t, err)
 
