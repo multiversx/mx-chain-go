@@ -130,19 +130,6 @@ func TestScDeployAndChangeScOwner(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	// TODO remove this
-	logger.SetLogLevel("*:DEBUG,process:TRACE,p2p:TRACE,debug:DEBUG")
-	defer logger.SetLogLevel("*:INFO")
-
-	fargs := core.ArgCreateFileArgument{
-		Directory:     "",
-		Prefix:        "test",
-		FileExtension: "log",
-	}
-	f, _ := core.CreateFile(fargs)
-	defer f.Close()
-	logger.AddLogObserver(f, &logger.PlainFormatter{})
-
 	sleepDuration := time.Second
 	numShards := 2
 	nodesPerShard := 2
