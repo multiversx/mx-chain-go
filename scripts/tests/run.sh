@@ -1,0 +1,1 @@
+python3 integration-tests.py $1

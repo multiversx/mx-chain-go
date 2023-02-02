@@ -68,7 +68,7 @@ test-coverage:
 
 integration-tests:
 	@echo "Running integration tests"
-	go test -v ./integrationTests/...
+	cd scripts/tests && /bin/bash run.sh ${CHUNK_INDEX}
 
 test-multishard-sc:
 	go test -count=1 -v ./integrationTests/multiShard/smartContract
