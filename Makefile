@@ -66,6 +66,10 @@ test-coverage:
 	@echo "Running unit tests"
 	CURRENT_DIRECTORY=$(CURRENT_DIRECTORY) go test -short -cover -coverprofile=coverage.txt -covermode=atomic -v ${TESTS_TO_RUN}
 
+integration-tests:
+	@echo "Running integration tests"
+	go test -v ./integrationTests/...
+
 test-multishard-sc:
 	go test -count=1 -v ./integrationTests/multiShard/smartContract
 
