@@ -130,6 +130,7 @@ func TestScDeployAndChangeScOwner(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
+	// TODO remove this
 	logger.SetLogLevel("*:DEBUG,process:TRACE,p2p:TRACE,debug:DEBUG")
 	defer logger.SetLogLevel("*:INFO")
 
