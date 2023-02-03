@@ -5,44 +5,45 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
-	"github.com/ElrondNetwork/elrond-go-core/data/outport"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
-	commonFactory "github.com/ElrondNetwork/elrond-go/common/factory"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
-	"github.com/ElrondNetwork/elrond-go/factory"
-	bootstrapComp "github.com/ElrondNetwork/elrond-go/factory/bootstrap"
-	consensusComp "github.com/ElrondNetwork/elrond-go/factory/consensus"
-	coreComp "github.com/ElrondNetwork/elrond-go/factory/core"
-	cryptoComp "github.com/ElrondNetwork/elrond-go/factory/crypto"
-	dataComp "github.com/ElrondNetwork/elrond-go/factory/data"
-	"github.com/ElrondNetwork/elrond-go/factory/mock"
-	networkComp "github.com/ElrondNetwork/elrond-go/factory/network"
-	processComp "github.com/ElrondNetwork/elrond-go/factory/processing"
-	stateComp "github.com/ElrondNetwork/elrond-go/factory/state"
-	statusComp "github.com/ElrondNetwork/elrond-go/factory/status"
-	"github.com/ElrondNetwork/elrond-go/factory/statusCore"
-	"github.com/ElrondNetwork/elrond-go/genesis"
-	"github.com/ElrondNetwork/elrond-go/genesis/data"
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	p2pConfig "github.com/ElrondNetwork/elrond-go/p2p/config"
-	p2pFactory "github.com/ElrondNetwork/elrond-go/p2p/factory"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
-	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
-	"github.com/ElrondNetwork/elrond-go/trie"
-	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
-	arwenConfig "github.com/ElrondNetwork/wasm-vm-v1_4/config"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-go/common"
+	commonFactory "github.com/multiversx/mx-chain-go/common/factory"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
+	"github.com/multiversx/mx-chain-go/factory"
+	bootstrapComp "github.com/multiversx/mx-chain-go/factory/bootstrap"
+	consensusComp "github.com/multiversx/mx-chain-go/factory/consensus"
+	coreComp "github.com/multiversx/mx-chain-go/factory/core"
+	cryptoComp "github.com/multiversx/mx-chain-go/factory/crypto"
+	dataComp "github.com/multiversx/mx-chain-go/factory/data"
+	"github.com/multiversx/mx-chain-go/factory/mock"
+	networkComp "github.com/multiversx/mx-chain-go/factory/network"
+	processComp "github.com/multiversx/mx-chain-go/factory/processing"
+	stateComp "github.com/multiversx/mx-chain-go/factory/state"
+	statusComp "github.com/multiversx/mx-chain-go/factory/status"
+	"github.com/multiversx/mx-chain-go/factory/statusCore"
+	"github.com/multiversx/mx-chain-go/genesis"
+	"github.com/multiversx/mx-chain-go/genesis/data"
+	"github.com/multiversx/mx-chain-go/p2p"
+	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
+	p2pFactory "github.com/multiversx/mx-chain-go/p2p/factory"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
+	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
+	"github.com/multiversx/mx-chain-go/trie"
+	trieFactory "github.com/multiversx/mx-chain-go/trie/factory"
+	"github.com/multiversx/mx-chain-go/trie/hashesHolder"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	wasmConfig "github.com/multiversx/mx-chain-vm-v1_4-go/config"
 	"github.com/stretchr/testify/require"
 )
 
@@ -132,9 +133,9 @@ func GetStatusCoreArgs(coreComponents factory.CoreComponentsHolder) statusCore.S
 // GetConsensusArgs -
 func GetConsensusArgs(shardCoordinator sharding.Coordinator) consensusComp.ConsensusComponentsFactoryArgs {
 	coreComponents := GetCoreComponents()
-	networkComponents := GetNetworkComponents()
-	stateComponents := GetStateComponents(coreComponents, shardCoordinator)
 	cryptoComponents := GetCryptoComponents(coreComponents)
+	networkComponents := GetNetworkComponents(cryptoComponents)
+	stateComponents := GetStateComponents(coreComponents, shardCoordinator)
 	dataComponents := GetDataComponents(coreComponents, shardCoordinator)
 	processComponents := GetProcessComponents(
 		shardCoordinator,
@@ -291,6 +292,8 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 
 	appStatusHandler := statusHandlerMock.NewAppStatusHandlerMock()
 
+	cryptoCompMock := GetDefaultCryptoComponents()
+
 	return networkComp.NetworkComponentsFactoryArgs{
 		P2pConfig:     p2pCfg,
 		MainConfig:    mainConfig,
@@ -311,6 +314,7 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 		},
 		Syncer:            &p2pFactory.LocalSyncTimer{},
 		NodeOperationMode: p2p.NormalOperation,
+		CryptoComponents:  cryptoCompMock,
 	}
 }
 
@@ -359,9 +363,9 @@ func GetStateFactoryArgs(coreComponents factory.CoreComponentsHolder, shardCoord
 // GetProcessComponentsFactoryArgs -
 func GetProcessComponentsFactoryArgs(shardCoordinator sharding.Coordinator) processComp.ProcessComponentsFactoryArgs {
 	coreComponents := GetCoreComponents()
-	networkComponents := GetNetworkComponents()
-	dataComponents := GetDataComponents(coreComponents, shardCoordinator)
 	cryptoComponents := GetCryptoComponents(coreComponents)
+	networkComponents := GetNetworkComponents(cryptoComponents)
+	dataComponents := GetDataComponents(coreComponents, shardCoordinator)
 	stateComponents := GetStateComponents(coreComponents, shardCoordinator)
 	processArgs := GetProcessArgs(
 		shardCoordinator,
@@ -377,8 +381,8 @@ func GetProcessComponentsFactoryArgs(shardCoordinator sharding.Coordinator) proc
 //GetBootStrapFactoryArgs -
 func GetBootStrapFactoryArgs() bootstrapComp.BootstrapComponentsFactoryArgs {
 	coreComponents := GetCoreComponents()
-	networkComponents := GetNetworkComponents()
 	cryptoComponents := GetCryptoComponents(coreComponents)
+	networkComponents := GetNetworkComponents(cryptoComponents)
 	statusCoreComponents := GetStatusCoreComponents()
 	return bootstrapComp.BootstrapComponentsFactoryArgs{
 		Config:               testscommon.GetGeneralConfig(),
@@ -413,7 +417,7 @@ func GetProcessArgs(
 	networkComponents factory.NetworkComponentsHolder,
 ) processComp.ProcessComponentsFactoryArgs {
 
-	gasSchedule := arwenConfig.MakeGasMapForTests()
+	gasSchedule := wasmConfig.MakeGasMapForTests()
 	// TODO: check if these could be initialized by MakeGasMapForTests()
 	gasSchedule["BuiltInCost"]["SaveUserName"] = 1
 	gasSchedule["BuiltInCost"]["SaveKeyValue"] = 1
@@ -618,9 +622,9 @@ func GetStatusComponents(
 // GetStatusComponentsFactoryArgsAndProcessComponents -
 func GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator sharding.Coordinator) (statusComp.StatusComponentsFactoryArgs, factory.ProcessComponentsHolder) {
 	coreComponents := GetCoreComponents()
-	networkComponents := GetNetworkComponents()
-	dataComponents := GetDataComponents(coreComponents, shardCoordinator)
 	cryptoComponents := GetCryptoComponents(coreComponents)
+	networkComponents := GetNetworkComponents(cryptoComponents)
+	dataComponents := GetDataComponents(coreComponents, shardCoordinator)
 	stateComponents := GetStateComponents(coreComponents, shardCoordinator)
 	processComponents := GetProcessComponents(
 		shardCoordinator,
@@ -660,8 +664,9 @@ func GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator shardin
 }
 
 // GetNetworkComponents -
-func GetNetworkComponents() factory.NetworkComponentsHolder {
+func GetNetworkComponents(cryptoComp factory.CryptoComponentsHolder) factory.NetworkComponentsHolder {
 	networkArgs := GetNetworkFactoryArgs()
+	networkArgs.CryptoComponents = cryptoComp
 	networkComponentsFactory, _ := networkComp.NewNetworkComponentsFactory(networkArgs)
 	networkComponents, _ := networkComp.NewManagedNetworkComponents(networkComponentsFactory)
 

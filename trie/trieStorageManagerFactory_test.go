@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
-	"github.com/ElrondNetwork/elrond-go/trie"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
+	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -81,7 +81,7 @@ func TestTrieStorageManager_SerialFuncShadowingCallsExpectedImpl(t *testing.T) {
 		IsPruningEnabledCalled: func() bool {
 			return true
 		},
-		TakeSnapshotCalled: func(_ []byte, _ []byte, _ []byte, _ *common.TrieIteratorChannels, _ chan []byte, _ common.SnapshotStatisticsHandler, _ uint32) {
+		TakeSnapshotCalled: func(_ string, _ []byte, _ []byte, _ *common.TrieIteratorChannels, _ chan []byte, _ common.SnapshotStatisticsHandler, _ uint32) {
 			assert.Fail(t, shouldNotHaveBeenCalledErr.Error())
 		},
 		GetLatestStorageEpochCalled: func() (uint32, error) {
@@ -169,7 +169,7 @@ func testTsmWithoutSnapshot(
 		LeavesChan: make(chan core.KeyValueHolder),
 		ErrChan:    make(chan error, 1),
 	}
-	tsm.TakeSnapshot(nil, nil, nil, iteratorChannels, nil, &trieMock.MockStatistics{}, 10)
+	tsm.TakeSnapshot("", nil, nil, iteratorChannels, nil, &trieMock.MockStatistics{}, 10)
 
 	select {
 	case <-iteratorChannels.LeavesChan:

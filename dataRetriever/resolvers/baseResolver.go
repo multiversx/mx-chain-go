@@ -1,9 +1,9 @@
 package resolvers
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 )
 
 // ArgBaseResolver is the argument structure used as base to create a new a resolver instance
@@ -34,19 +34,9 @@ func checkArgBase(arg ArgBaseResolver) error {
 	return nil
 }
 
-// SetNumPeersToQuery will set the number of intra shard and cross shard number of peer to query
-func (res *baseResolver) SetNumPeersToQuery(intra int, cross int) {
-	res.TopicResolverSender.SetNumPeersToQuery(intra, cross)
-}
-
-// NumPeersToQuery will return the number of intra shard and cross shard number of peer to query
-func (res *baseResolver) NumPeersToQuery() (int, int) {
-	return res.TopicResolverSender.NumPeersToQuery()
-}
-
-// SetResolverDebugHandler will set a resolver debug handler
-func (res *baseResolver) SetResolverDebugHandler(handler dataRetriever.ResolverDebugHandler) error {
-	return res.TopicResolverSender.SetResolverDebugHandler(handler)
+// SetDebugHandler will set a debug handler
+func (res *baseResolver) SetDebugHandler(handler dataRetriever.DebugHandler) error {
+	return res.TopicResolverSender.SetDebugHandler(handler)
 }
 
 // Close returns nil

@@ -8,13 +8,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/api"
-	"github.com/ElrondNetwork/elrond-go-core/data/outport"
-	"github.com/ElrondNetwork/elrond-go/api/errors"
-	"github.com/ElrondNetwork/elrond-go/api/shared"
-	"github.com/ElrondNetwork/elrond-go/api/shared/logging"
 	"github.com/gin-gonic/gin"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-go/api/errors"
+	"github.com/multiversx/mx-chain-go/api/shared"
+	"github.com/multiversx/mx-chain-go/api/shared/logging"
 )
 
 const (
@@ -26,7 +26,6 @@ const (
 	urlParamTokensFilter      = "tokens"
 	urlParamWithTxs           = "withTxs"
 	urlParamWithLogs          = "withLogs"
-	urlParamWithMetadata      = "withMetadata"
 )
 
 // blockFacadeHandler defines the methods to be implemented by a facade for handling block requests
@@ -236,18 +235,8 @@ func parseBlockQueryOptions(c *gin.Context) (api.BlockQueryOptions, error) {
 func parseAlteredAccountsForBlockQueryOptionsWithoutRequestType(c *gin.Context) (api.GetAlteredAccountsForBlockOptions, error) {
 	tokensFilter := c.Request.URL.Query().Get(urlParamTokensFilter)
 
-	withMetadata, err := parseBoolUrlParam(c, urlParamWithMetadata)
-	if err != nil {
-		return api.GetAlteredAccountsForBlockOptions{}, err
-	}
-
-	if withMetadata && len(tokensFilter) == 0 {
-		return api.GetAlteredAccountsForBlockOptions{}, errors.ErrIncompatibleWithMetadataParam
-	}
-
 	return api.GetAlteredAccountsForBlockOptions{
 		TokensFilter: tokensFilter,
-		WithMetadata: withMetadata,
 	}, nil
 }
 

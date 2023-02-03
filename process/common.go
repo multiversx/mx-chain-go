@@ -9,22 +9,51 @@ import (
 	"sort"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/state"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/scheduled"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/state"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 var log = logger.GetOrCreate("process")
+
+// ShardedCacheSearchMethod defines the algorithm for searching through a sharded cache
+type ShardedCacheSearchMethod byte
+
+const (
+	// SearchMethodJustPeek will make the algorithm invoke just Peek method
+	SearchMethodJustPeek ShardedCacheSearchMethod = iota
+
+	// SearchMethodSearchFirst will make the algorithm invoke just SearchFirst method
+	SearchMethodSearchFirst
+
+	// SearchMethodPeekWithFallbackSearchFirst will first try a Peek method. If the data is not found will fall back
+	// to SearchFirst method
+	SearchMethodPeekWithFallbackSearchFirst
+)
+
+// ToString converts the ShardedCacheSearchMethod to its string representation
+func (method ShardedCacheSearchMethod) ToString() string {
+	switch method {
+	case SearchMethodJustPeek:
+		return "just peek"
+	case SearchMethodSearchFirst:
+		return "search first"
+	case SearchMethodPeekWithFallbackSearchFirst:
+		return "peek with fallback to search first"
+	default:
+		return fmt.Sprintf("unknown method %d", method)
+	}
+}
 
 // GetShardHeader gets the header, which is associated with the given hash, from pool or storage
 func GetShardHeader(
@@ -361,7 +390,7 @@ func GetTransactionHandler(
 	shardedDataCacherNotifier dataRetriever.ShardedDataCacherNotifier,
 	storageService dataRetriever.StorageService,
 	marshalizer marshal.Marshalizer,
-	searchFirst bool,
+	method ShardedCacheSearchMethod,
 ) (data.TransactionHandler, error) {
 
 	err := checkGetTransactionParamsForNil(shardedDataCacherNotifier, storageService, marshalizer)
@@ -369,7 +398,7 @@ func GetTransactionHandler(
 		return nil, err
 	}
 
-	tx, err := GetTransactionHandlerFromPool(senderShardID, destShardID, txHash, shardedDataCacherNotifier, searchFirst)
+	tx, err := GetTransactionHandlerFromPool(senderShardID, destShardID, txHash, shardedDataCacherNotifier, method)
 	if err != nil {
 		tx, err = GetTransactionHandlerFromStorage(txHash, storageService, marshalizer)
 		if err != nil {
@@ -386,30 +415,55 @@ func GetTransactionHandlerFromPool(
 	destShardID uint32,
 	txHash []byte,
 	shardedDataCacherNotifier dataRetriever.ShardedDataCacherNotifier,
-	searchFirst bool,
+	method ShardedCacheSearchMethod,
 ) (data.TransactionHandler, error) {
 
-	if shardedDataCacherNotifier == nil {
+	if check.IfNil(shardedDataCacherNotifier) {
 		return nil, ErrNilShardedDataCacherNotifier
 	}
 
-	var val interface{}
-	ok := false
-	if searchFirst {
-		val, ok = shardedDataCacherNotifier.SearchFirstData(txHash)
-		if !ok {
-			return nil, ErrTxNotFound
-		}
-	} else {
-		strCache := ShardCacherIdentifier(senderShardID, destShardID)
-		txStore := shardedDataCacherNotifier.ShardDataStore(strCache)
-		if txStore == nil {
-			return nil, ErrNilStorage
-		}
+	return getTransactionHandlerFromPool(senderShardID, destShardID, txHash, shardedDataCacherNotifier, method)
+}
 
-		val, ok = txStore.Peek(txHash)
+func getTransactionHandlerFromPool(
+	senderShardID uint32,
+	destShardID uint32,
+	txHash []byte,
+	shardedDataCacherNotifier dataRetriever.ShardedDataCacherNotifier,
+	method ShardedCacheSearchMethod,
+) (data.TransactionHandler, error) {
+	var val interface{}
+	var ok bool
+
+	if method == SearchMethodSearchFirst {
+		val, ok = shardedDataCacherNotifier.SearchFirstData(txHash)
+
+		return castDataFromCacheAsTransactionHandler(val, ok)
 	}
 
+	strCache := ShardCacherIdentifier(senderShardID, destShardID)
+	txStore := shardedDataCacherNotifier.ShardDataStore(strCache)
+	if txStore == nil {
+		return nil, ErrNilStorage
+	}
+
+	switch method {
+	case SearchMethodJustPeek:
+		val, ok = txStore.Peek(txHash)
+	case SearchMethodPeekWithFallbackSearchFirst:
+		val, ok = txStore.Peek(txHash)
+		if !ok {
+			val, ok = shardedDataCacherNotifier.SearchFirstData(txHash)
+		}
+	default:
+		return nil, fmt.Errorf("%w for provided method: %s in getTransactionHandlerFromPool",
+			ErrInvalidValue, method.ToString())
+	}
+
+	return castDataFromCacheAsTransactionHandler(val, ok)
+}
+
+func castDataFromCacheAsTransactionHandler(val interface{}, ok bool) (data.TransactionHandler, error) {
 	if !ok {
 		return nil, ErrTxNotFound
 	}
@@ -664,13 +718,13 @@ func DisplayProcessTxDetails(
 
 // IsAllowedToSaveUnderKey returns if saving key-value in data tries under given key is allowed
 func IsAllowedToSaveUnderKey(key []byte) bool {
-	prefixLen := len(core.ElrondProtectedKeyPrefix)
+	prefixLen := len(core.ProtectedKeyPrefix)
 	if len(key) < prefixLen {
 		return true
 	}
 
 	trimmedKey := key[:prefixLen]
-	return !bytes.Equal(trimmedKey, []byte(core.ElrondProtectedKeyPrefix))
+	return !bytes.Equal(trimmedKey, []byte(core.ProtectedKeyPrefix))
 }
 
 // SortVMOutputInsideData returns the output accounts as a sorted list

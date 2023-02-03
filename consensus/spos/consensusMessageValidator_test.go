@@ -5,13 +5,13 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/consensus/mock"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-core-go/core"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/mock"
+	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -440,6 +440,76 @@ func TestCheckConsensusMessageValidityForMessageType_MessageWithFinalInfoInvalid
 	cnsMsg := &consensus.Message{MsgType: int64(bls.MtBlockHeaderFinalInfo), Header: []byte("1")}
 	err := cmv.CheckConsensusMessageValidityForMessageType(cnsMsg)
 	assert.True(t, errors.Is(err, spos.ErrInvalidMessage))
+}
+
+func TestCheckConsensusMessageValidityForMessageType_MessageWithInvalidSigners(t *testing.T) {
+	t.Parallel()
+
+	t.Run("message with header, invalid err", func(t *testing.T) {
+		t.Parallel()
+
+		consensusMessageValidatorArgs := createDefaultConsensusMessageValidatorArgs()
+		cmv, _ := spos.NewConsensusMessageValidator(consensusMessageValidatorArgs)
+
+		cnsMsg := &consensus.Message{MsgType: int64(bls.MtInvalidSigners), Header: []byte("1")}
+		err := cmv.CheckConsensusMessageValidityForMessageType(cnsMsg)
+		assert.True(t, errors.Is(err, spos.ErrInvalidMessage))
+	})
+
+	t.Run("message with body, invalid err", func(t *testing.T) {
+		t.Parallel()
+
+		consensusMessageValidatorArgs := createDefaultConsensusMessageValidatorArgs()
+		cmv, _ := spos.NewConsensusMessageValidator(consensusMessageValidatorArgs)
+
+		cnsMsg := &consensus.Message{MsgType: int64(bls.MtInvalidSigners), Body: []byte("1")}
+		err := cmv.CheckConsensusMessageValidityForMessageType(cnsMsg)
+		assert.True(t, errors.Is(err, spos.ErrInvalidMessage))
+	})
+
+	t.Run("message with pubKeys bitmap, invalid err", func(t *testing.T) {
+		t.Parallel()
+
+		consensusMessageValidatorArgs := createDefaultConsensusMessageValidatorArgs()
+		cmv, _ := spos.NewConsensusMessageValidator(consensusMessageValidatorArgs)
+
+		cnsMsg := &consensus.Message{MsgType: int64(bls.MtInvalidSigners), PubKeysBitmap: []byte("1")}
+		err := cmv.CheckConsensusMessageValidityForMessageType(cnsMsg)
+		assert.True(t, errors.Is(err, spos.ErrInvalidMessage))
+	})
+
+	t.Run("message with aggregated signature, invalid err", func(t *testing.T) {
+		t.Parallel()
+
+		consensusMessageValidatorArgs := createDefaultConsensusMessageValidatorArgs()
+		cmv, _ := spos.NewConsensusMessageValidator(consensusMessageValidatorArgs)
+
+		cnsMsg := &consensus.Message{MsgType: int64(bls.MtInvalidSigners), AggregateSignature: []byte("1")}
+		err := cmv.CheckConsensusMessageValidityForMessageType(cnsMsg)
+		assert.True(t, errors.Is(err, spos.ErrInvalidMessage))
+	})
+
+	t.Run("message with leader signature, invalid err", func(t *testing.T) {
+		t.Parallel()
+
+		consensusMessageValidatorArgs := createDefaultConsensusMessageValidatorArgs()
+		cmv, _ := spos.NewConsensusMessageValidator(consensusMessageValidatorArgs)
+
+		cnsMsg := &consensus.Message{MsgType: int64(bls.MtInvalidSigners), LeaderSignature: []byte("1")}
+		err := cmv.CheckConsensusMessageValidityForMessageType(cnsMsg)
+		assert.True(t, errors.Is(err, spos.ErrInvalidMessage))
+	})
+
+	t.Run("valid message, should work", func(t *testing.T) {
+		t.Parallel()
+
+		consensusMessageValidatorArgs := createDefaultConsensusMessageValidatorArgs()
+		cmv, _ := spos.NewConsensusMessageValidator(consensusMessageValidatorArgs)
+
+		cnsMsg := &consensus.Message{MsgType: int64(bls.MtInvalidSigners), InvalidSigners: []byte("1")}
+		err := cmv.CheckConsensusMessageValidityForMessageType(cnsMsg)
+		assert.Nil(t, err)
+	})
 }
 
 func TestCheckConsensusMessageValidityForMessageType_MessageUnknownInvalid(t *testing.T) {

@@ -5,14 +5,14 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
-	"github.com/ElrondNetwork/elrond-go/state"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/scheduled"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
+	"github.com/multiversx/mx-chain-go/state"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
 )
 
@@ -32,9 +32,9 @@ func getZeroGasAndFees() scheduled.GasAndFees {
 // 3. Do a ClaimDeveloperReward (cross shard call , the transaction will be executed on the source shard and the destination shard)
 // 4. Execute SCR from context destination on context source ( the new owner will receive the developer rewards)
 func TestBuiltInFunctionExecuteOnSourceAndDestinationShouldWork(t *testing.T) {
-	// TODO reinstate test after Arwen pointer fix
+	// TODO reinstate test after Wasm VM pointer fix
 	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Arwen fix")
+		t.Skip("cannot run with -race -short; requires Wasm VM fix")
 	}
 
 	testContextSource, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(
@@ -53,7 +53,7 @@ func TestBuiltInFunctionExecuteOnSourceAndDestinationShouldWork(t *testing.T) {
 	require.Nil(t, err)
 	defer testContextDst.Close()
 
-	pathToContract := "../../arwen/testdata/counter/output/counter.wasm"
+	pathToContract := "../../wasm/testdata/counter/output/counter.wasm"
 	scAddr, owner := utils.DoDeploy(t, testContextDst, pathToContract)
 	require.Equal(t, uint32(1), testContextDst.ShardCoordinator.ComputeId(scAddr))
 	require.Equal(t, uint32(1), testContextDst.ShardCoordinator.ComputeId(owner))

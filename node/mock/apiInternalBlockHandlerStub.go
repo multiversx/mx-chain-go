@@ -1,19 +1,21 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 // InternalBlockApiHandlerStub -
 type InternalBlockApiHandlerStub struct {
-	GetInternalShardBlockByNonceCalled     func(format common.ApiOutputFormat, nonce uint64) (interface{}, error)
-	GetInternalShardBlockByHashCalled      func(format common.ApiOutputFormat, hash []byte) (interface{}, error)
-	GetInternalShardBlockByRoundCalled     func(format common.ApiOutputFormat, round uint64) (interface{}, error)
-	GetInternalMetaBlockByNonceCalled      func(format common.ApiOutputFormat, nonce uint64) (interface{}, error)
-	GetInternalMetaBlockByHashCalled       func(format common.ApiOutputFormat, hash []byte) (interface{}, error)
-	GetInternalMetaBlockByRoundCalled      func(format common.ApiOutputFormat, round uint64) (interface{}, error)
-	GetInternalMiniBlockCalled             func(format common.ApiOutputFormat, hash []byte, epoch uint32) (interface{}, error)
-	GetInternalStartOfEpochMetaBlockCalled func(format common.ApiOutputFormat, epoch uint32) (interface{}, error)
+	GetInternalShardBlockByNonceCalled          func(format common.ApiOutputFormat, nonce uint64) (interface{}, error)
+	GetInternalShardBlockByHashCalled           func(format common.ApiOutputFormat, hash []byte) (interface{}, error)
+	GetInternalShardBlockByRoundCalled          func(format common.ApiOutputFormat, round uint64) (interface{}, error)
+	GetInternalMetaBlockByNonceCalled           func(format common.ApiOutputFormat, nonce uint64) (interface{}, error)
+	GetInternalMetaBlockByHashCalled            func(format common.ApiOutputFormat, hash []byte) (interface{}, error)
+	GetInternalMetaBlockByRoundCalled           func(format common.ApiOutputFormat, round uint64) (interface{}, error)
+	GetInternalMiniBlockCalled                  func(format common.ApiOutputFormat, hash []byte, epoch uint32) (interface{}, error)
+	GetInternalStartOfEpochMetaBlockCalled      func(format common.ApiOutputFormat, epoch uint32) (interface{}, error)
+	GetInternalStartOfEpochValidatorsInfoCalled func(epoch uint32) ([]*state.ShardValidatorInfo, error)
 }
 
 // GetInternalShardBlockByNonce -
@@ -76,6 +78,14 @@ func (ibah *InternalBlockApiHandlerStub) GetInternalMiniBlock(format common.ApiO
 func (ibah *InternalBlockApiHandlerStub) GetInternalStartOfEpochMetaBlock(format common.ApiOutputFormat, epoch uint32) (interface{}, error) {
 	if ibah.GetInternalStartOfEpochMetaBlockCalled != nil {
 		return ibah.GetInternalStartOfEpochMetaBlockCalled(format, epoch)
+	}
+	return nil, nil
+}
+
+// GetInternalStartOfEpochValidatorsInfo -
+func (ibah *InternalBlockApiHandlerStub) GetInternalStartOfEpochValidatorsInfo(epoch uint32) ([]*state.ShardValidatorInfo, error) {
+	if ibah.GetInternalStartOfEpochValidatorsInfoCalled != nil {
+		return ibah.GetInternalStartOfEpochValidatorsInfoCalled(epoch)
 	}
 	return nil, nil
 }

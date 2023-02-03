@@ -1,7 +1,7 @@
 package pruning
 
 import (
-	storageCore "github.com/ElrondNetwork/elrond-go-core/storage"
+	storageCore "github.com/multiversx/mx-chain-core-go/storage"
 )
 
 type fullHistoryTriePruningStorer struct {

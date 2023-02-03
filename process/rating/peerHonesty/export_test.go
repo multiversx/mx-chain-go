@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/storage"
 )
 
 func NewP2pPeerHonestyWithCustomExecuteDelayFunction(

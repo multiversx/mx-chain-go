@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	apiErrors "github.com/ElrondNetwork/elrond-go/api/errors"
+	apiErrors "github.com/multiversx/mx-chain-go/api/errors"
 )
 
 type httpServer struct {

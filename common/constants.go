@@ -30,7 +30,7 @@ const ObserverList PeerType = "observer"
 const NewList PeerType = "new"
 
 // MetachainTopicIdentifier is the identifier used in topics to define the metachain shard ID
-const MetachainTopicIdentifier = "META" // TODO - move this to elrond-go-core and change wherever we use the string value
+const MetachainTopicIdentifier = "META" // TODO - move this to mx-chain-core-go and change wherever we use the string value
 
 // CombinedPeerType - represents the combination of two peerTypes
 const CombinedPeerType = "%s (%s)"
@@ -369,8 +369,11 @@ const BuiltInCost = "BuiltInCost"
 // MetaChainSystemSCsCost represents the field name for metachain system smart contract operation costs
 const MetaChainSystemSCsCost = "MetaChainSystemSCsCost"
 
-// ElrondAPICost represents the field name of the Elrond SC API (EEI) gas costs
-const ElrondAPICost = "ElrondAPICost"
+// BaseOpsAPICost represents the field name of the SC API (EEI) gas costs
+const BaseOpsAPICost = "BaseOpsAPICost"
+
+// MaxPerTransaction represents the field name of max counts per transaction in block chain hook
+const MaxPerTransaction = "MaxPerTransaction"
 
 // AsyncCallStepField is the field name for the gas cost for any of the two steps required to execute an async call
 const AsyncCallStepField = "AsyncCallStep"
@@ -717,6 +720,13 @@ const InvalidMessageBlacklistDuration = time.Second * 3600
 // PublicKeyBlacklistDuration represents the time to keep a public key in the black list if it will degrade its
 // rating to a minimum threshold due to improper messages
 const PublicKeyBlacklistDuration = time.Second * 7200
+
+// WrongP2PMessageBlacklistDuration represents the time to keep a peer id in the blacklist if it sends a message that
+// do not follow this protocol
+const WrongP2PMessageBlacklistDuration = time.Second * 7200
+
+// InvalidSigningBlacklistDuration defines the time to keep a peer id in blacklist if it signs a message with invalid signature
+const InvalidSigningBlacklistDuration = time.Second * 7200
 
 // MaxWaitingTimeToReceiveRequestedItem represents the maximum waiting time in seconds needed to receive the requested items
 const MaxWaitingTimeToReceiveRequestedItem = 5 * time.Second

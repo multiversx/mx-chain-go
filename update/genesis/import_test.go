@@ -5,16 +5,16 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	"github.com/ElrondNetwork/elrond-go/update"
-	"github.com/ElrondNetwork/elrond-go/update/mock"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/trie/factory"
+	"github.com/multiversx/mx-chain-go/update"
+	"github.com/multiversx/mx-chain-go/update/mock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -36,6 +36,7 @@ func TestNewStateImport(t *testing.T) {
 				Marshalizer:         &mock.MarshalizerMock{},
 				Hasher:              &mock.HasherStub{},
 				TrieStorageManagers: trieStorageManagers,
+				AddressConverter:    &testscommon.PubkeyConverterMock{},
 			},
 			exError: update.ErrNilHardforkStorer,
 		},
@@ -46,6 +47,7 @@ func TestNewStateImport(t *testing.T) {
 				Marshalizer:         nil,
 				Hasher:              &mock.HasherStub{},
 				TrieStorageManagers: trieStorageManagers,
+				AddressConverter:    &testscommon.PubkeyConverterMock{},
 			},
 			exError: update.ErrNilMarshalizer,
 		},
@@ -56,6 +58,7 @@ func TestNewStateImport(t *testing.T) {
 				Marshalizer:         &mock.MarshalizerMock{},
 				Hasher:              nil,
 				TrieStorageManagers: trieStorageManagers,
+				AddressConverter:    &testscommon.PubkeyConverterMock{},
 			},
 			exError: update.ErrNilHasher,
 		},
@@ -66,6 +69,7 @@ func TestNewStateImport(t *testing.T) {
 				Marshalizer:         &mock.MarshalizerMock{},
 				Hasher:              &mock.HasherStub{},
 				TrieStorageManagers: trieStorageManagers,
+				AddressConverter:    &testscommon.PubkeyConverterMock{},
 			},
 			exError: nil,
 		},
@@ -92,6 +96,7 @@ func TestImportAll(t *testing.T) {
 		TrieStorageManagers: trieStorageManagers,
 		ShardID:             0,
 		StorageConfig:       config.StorageConfig{},
+		AddressConverter:    &testscommon.PubkeyConverterMock{},
 	}
 
 	importState, _ := NewStateImport(args)
@@ -126,6 +131,7 @@ func TestStateImport_ImportUnFinishedMetaBlocksShouldWork(t *testing.T) {
 		TrieStorageManagers: trieStorageManagers,
 		ShardID:             0,
 		StorageConfig:       config.StorageConfig{},
+		AddressConverter:    &testscommon.PubkeyConverterMock{},
 	}
 
 	importState, _ := NewStateImport(args)

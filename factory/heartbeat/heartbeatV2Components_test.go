@@ -4,13 +4,13 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/config"
-	errErd "github.com/ElrondNetwork/elrond-go/errors"
-	bootstrapComp "github.com/ElrondNetwork/elrond-go/factory/bootstrap"
-	heartbeatComp "github.com/ElrondNetwork/elrond-go/factory/heartbeat"
-	"github.com/ElrondNetwork/elrond-go/factory/mock"
-	componentsMock "github.com/ElrondNetwork/elrond-go/testscommon/components"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/config"
+	errErd "github.com/multiversx/mx-chain-go/errors"
+	bootstrapComp "github.com/multiversx/mx-chain-go/factory/bootstrap"
+	heartbeatComp "github.com/multiversx/mx-chain-go/factory/heartbeat"
+	"github.com/multiversx/mx-chain-go/factory/mock"
+	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -25,9 +25,9 @@ func createMockHeartbeatV2ComponentsFactoryArgs() heartbeatComp.ArgHeartbeatV2Co
 
 	statusCoreC := componentsMock.GetStatusCoreComponents()
 	coreC := componentsMock.GetCoreComponents()
-	networkC := componentsMock.GetNetworkComponents()
-	dataC := componentsMock.GetDataComponents(coreC, shardCoordinator)
 	cryptoC := componentsMock.GetCryptoComponents(coreC)
+	networkC := componentsMock.GetNetworkComponents(cryptoC)
+	dataC := componentsMock.GetDataComponents(coreC, shardCoordinator)
 	stateC := componentsMock.GetStateComponents(coreC, shardCoordinator)
 	processC := componentsMock.GetProcessComponents(shardCoordinator, coreC, networkC, dataC, cryptoC, stateC)
 	return heartbeatComp.ArgHeartbeatV2ComponentsFactory{
@@ -35,16 +35,17 @@ func createMockHeartbeatV2ComponentsFactoryArgs() heartbeatComp.ArgHeartbeatV2Co
 			HeartbeatV2: config.HeartbeatV2Config{
 				PeerAuthenticationTimeBetweenSendsInSec:          1,
 				PeerAuthenticationTimeBetweenSendsWhenErrorInSec: 1,
-				PeerAuthenticationThresholdBetweenSends:          0.1,
+				PeerAuthenticationTimeThresholdBetweenSends:      0.1,
 				HeartbeatTimeBetweenSendsInSec:                   1,
+				HeartbeatTimeBetweenSendsDuringBootstrapInSec:    1,
 				HeartbeatTimeBetweenSendsWhenErrorInSec:          1,
-				HeartbeatThresholdBetweenSends:                   0.1,
+				HeartbeatTimeThresholdBetweenSends:               0.1,
 				HeartbeatExpiryTimespanInSec:                     30,
 				MinPeersThreshold:                                0.8,
-				DelayBetweenRequestsInSec:                        10,
-				MaxTimeoutInSec:                                  60,
+				DelayBetweenPeerAuthenticationRequestsInSec:      10,
+				PeerAuthenticationMaxTimeoutForRequestsInSec:     60,
 				PeerShardTimeBetweenSendsInSec:                   5,
-				PeerShardThresholdBetweenSends:                   0.1,
+				PeerShardTimeThresholdBetweenSends:               0.1,
 				MaxMissingKeysInRequest:                          100,
 				MaxDurationPeerUnresponsiveInSec:                 10,
 				HideInactiveValidatorIntervalInSec:               60,
