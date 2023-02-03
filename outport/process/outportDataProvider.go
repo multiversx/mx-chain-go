@@ -74,10 +74,10 @@ func NewOutportDataProvider(arg ArgOutportDataProvider) (*outportDataProvider, e
 // PrepareOutportSaveBlockData will prepare the provided data in a format that will be accepted by an outport driver
 func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutportSaveBlockData) (*outportcore.ArgsSaveBlockData, error) {
 	if check.IfNil(arg.Header) {
-		return nil, errNilHeaderHandler
+		return nil, ErrNilHeaderHandler
 	}
 	if check.IfNil(arg.Body) {
-		return nil, errNilBodyHandler
+		return nil, ErrNilBodyHandler
 	}
 
 	pool := odp.createPool(arg.RewardsTxs)
@@ -130,6 +130,13 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 }
 
 func collectExecutedTxHashes(bodyHandler data.BodyHandler, headerHandler data.HeaderHandler) (map[string]struct{}, error) {
+	if check.IfNil(bodyHandler) {
+		return nil, ErrNilBodyHandler
+	}
+	if check.IfNil(headerHandler) {
+		return nil, ErrNilHeaderHandler
+	}
+
 	executedTxHashes := make(map[string]struct{})
 	mbHeaders := headerHandler.GetMiniBlockHeaderHandlers()
 	body, ok := bodyHandler.(*block.Body)
@@ -142,31 +149,53 @@ func collectExecutedTxHashes(bodyHandler data.BodyHandler, headerHandler data.He
 		return nil, ErrMiniBlocksHeadersMismatch
 	}
 
+	var err error
 	for i, mbHeader := range mbHeaders {
-		extractExecutedTxsFromMb(mbHeader, miniBlocks[i], executedTxHashes)
+		err = extractExecutedTxsFromMb(mbHeader, miniBlocks[i], executedTxHashes)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return executedTxHashes, nil
 }
 
-func extractExecutedTxsFromMb(mbHeader data.MiniBlockHeaderHandler, miniBlock *block.MiniBlock, executedTxHashes map[string]struct{}) {
-	if mbHeader.GetTypeInt32() == int32(block.PeerBlock) {
-		return
+func extractExecutedTxsFromMb(mbHeader data.MiniBlockHeaderHandler, miniBlock *block.MiniBlock, executedTxHashes map[string]struct{}) error {
+	if mbHeader == nil {
+		return ErrNilMiniBlockHeaderHandler
 	}
-	if mbHeader.GetConstructionState() == int32(block.Processed) {
-		return
+	if miniBlock == nil {
+		return ErrNilMiniBlock
+	}
+	if executedTxHashes == nil {
+		return ErrNilExecutedTxHashes
+	}
+	if mbHeader.GetTypeInt32() == int32(block.PeerBlock) {
+		return nil
+	}
+	if mbHeader.GetProcessingType() == int32(block.Processed) {
+		return nil
 	}
 
+	if int(mbHeader.GetIndexOfLastTxProcessed()) > len(miniBlock.TxHashes) {
+		return ErrIndexOutOfBounds
+	}
 	for j := mbHeader.GetIndexOfFirstTxProcessed(); j <= mbHeader.GetIndexOfLastTxProcessed(); j++ {
 		txHash := miniBlock.TxHashes[j]
 		executedTxHashes[string(txHash)] = struct{}{}
 	}
+
+	return nil
 }
 
 func (odp *outportDataProvider) setExecutionOrderInTransactionPool(
 	pool *outportcore.Pool,
 ) ([][]byte, int) {
 	orderedTxHashes := odp.executionOrderHandler.GetItems()
+	if pool == nil {
+		return orderedTxHashes, 0
+	}
+
 	txGroups := []map[string]data.TransactionHandlerWithGasUsedAndFee{
 		pool.Txs,
 		pool.Scrs,
@@ -187,7 +216,7 @@ func (odp *outportDataProvider) setExecutionOrderInTransactionPool(
 }
 
 func checkTxOrder(orderedTxHashes [][]byte, executedTxHashes map[string]struct{}, foundTxHashes int) error {
-	if len(orderedTxHashes) != foundTxHashes {
+	if len(orderedTxHashes) > foundTxHashes {
 		return fmt.Errorf("%w for numOrderedTx %d, foundTxsInPool %d",
 			ErrOrderedTxNotFound, len(orderedTxHashes), foundTxHashes,
 		)
@@ -201,12 +230,23 @@ func checkTxOrder(orderedTxHashes [][]byte, executedTxHashes map[string]struct{}
 }
 
 func checkBodyTransactionsHaveOrder(orderedTxHashes [][]byte, executedTxHashes map[string]struct{}) error {
-	for _, txHash := range orderedTxHashes {
-		if _, ok := executedTxHashes[string(txHash)]; !ok {
-			return fmt.Errorf("%w for txHash %s", ErrTransactionNotFoundInBody, hex.EncodeToString(txHash))
-		}
+	if executedTxHashes == nil {
+		return ErrNilExecutedTxHashes
+	}
+	if orderedTxHashes == nil {
+		return ErrNilOrderedTxHashes
 	}
 
+	orderedTxHashesMap := make(map[string]struct{})
+	for _, txHash := range orderedTxHashes {
+		orderedTxHashesMap[string(txHash)] = struct{}{}
+	}
+
+	for executedTxHash, _ := range executedTxHashes {
+		if _, ok := orderedTxHashesMap[executedTxHash]; !ok {
+			return fmt.Errorf("%w for txHash %s", ErrExecutedTxNotFoundInOrderedTxs, hex.EncodeToString([]byte(executedTxHash)))
+		}
+	}
 	return nil
 }
 
