@@ -2,6 +2,7 @@ package interceptedBlocks_test
 
 import (
 	"errors"
+	"math/big"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -37,19 +38,25 @@ func createDefaultMetaArgument() *interceptedBlocks.ArgInterceptedBlockHeader {
 
 func createMockMetaHeader() *dataBlock.MetaBlock {
 	return &dataBlock.MetaBlock{
-		Nonce:         hdrNonce,
-		PrevHash:      []byte("prev hash"),
-		PrevRandSeed:  []byte("prev rand seed"),
-		RandSeed:      []byte("rand seed"),
-		PubKeysBitmap: []byte{1},
-		TimeStamp:     0,
-		Round:         hdrRound,
-		Epoch:         hdrEpoch,
-		Signature:     []byte("signature"),
-		RootHash:      []byte("root hash"),
-		TxCount:       0,
-		ShardInfo:     nil,
-		ChainID:       []byte("chain ID"),
+		Nonce:                  hdrNonce,
+		PrevHash:               []byte("prev hash"),
+		PrevRandSeed:           []byte("prev rand seed"),
+		RandSeed:               []byte("rand seed"),
+		PubKeysBitmap:          []byte{1},
+		TimeStamp:              0,
+		Round:                  hdrRound,
+		Epoch:                  hdrEpoch,
+		Signature:              []byte("signature"),
+		RootHash:               []byte("root hash"),
+		TxCount:                0,
+		ShardInfo:              nil,
+		ChainID:                []byte("chain ID"),
+		SoftwareVersion:        []byte("software version"),
+		DeveloperFees:          big.NewInt(0),
+		AccumulatedFees:        big.NewInt(0),
+		AccumulatedFeesInEpoch: big.NewInt(0),
+		DevFeesInEpoch:         big.NewInt(0),
+		ValidatorStatsRootHash: []byte("validator stats root hash"),
 	}
 }
 
