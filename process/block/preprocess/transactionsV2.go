@@ -71,7 +71,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 			receiverShardID,
 			mbInfo)
 		if err != nil {
-			if elrondErr.IsGetNodeFromDBError(err) {
+			if chainErr.IsGetNodeFromDBError(err) {
 				return nil, nil, nil, err
 			}
 			if shouldAddToRemaining {
@@ -316,7 +316,7 @@ func (txs *transactions) createScheduledMiniBlocks(
 			receiverShardID,
 			mbInfo)
 		if err != nil {
-			if elrondErr.IsGetNodeFromDBError(err) {
+			if chainErr.IsGetNodeFromDBError(err) {
 				return nil, err
 			}
 			continue

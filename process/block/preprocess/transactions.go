@@ -1201,7 +1201,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV1(
 
 		err = txs.processMiniBlockBuilderTx(mbBuilder, wtx, tx)
 		if err != nil {
-			if elrondErr.IsGetNodeFromDBError(err) {
+			if chainErr.IsGetNodeFromDBError(err) {
 				return nil, nil, err
 			}
 			continue

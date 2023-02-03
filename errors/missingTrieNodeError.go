@@ -3,7 +3,7 @@ package errors
 import (
 	"strings"
 
-	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 // IsGetNodeFromDBError returns true if the provided error is of type getNodeFromDB
