@@ -80,6 +80,9 @@ const (
 // nodeRunner holds the node runner configuration and controls running of a node
 type nodeRunner struct {
 	configs *config.Configs
+
+	getSubroundBlockTypeFunc func() consensus.SubroundBlockType
+	getChainRunTypeFunc      func() common.ChainRunType
 }
 
 // NewNodeRunner creates a nodeRunner instance
@@ -88,9 +91,14 @@ func NewNodeRunner(cfgs *config.Configs) (*nodeRunner, error) {
 		return nil, fmt.Errorf("nil configs provided")
 	}
 
-	return &nodeRunner{
+	nr := &nodeRunner{
 		configs: cfgs,
-	}, nil
+	}
+
+	nr.getSubroundBlockTypeFunc = nr.getSubroundBlockType
+	nr.getChainRunTypeFunc = nr.getChainRunType
+
+	return nr, nil
 }
 
 // Start creates and starts the managed components
@@ -861,8 +869,8 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 		ScheduledProcessor:    scheduledProcessor,
 		IsInImportMode:        nr.configs.ImportDbConfig.IsImportDBMode,
 		ShouldDisableWatchdog: nr.configs.FlagsConfig.DisableConsensusWatchdog,
-		SubroundBlockType:     consensus.SubroundBlockTypeV1,
-		ChainRunType:          common.ChainRunTypeRegular,
+		SubroundBlockType:     nr.getSubroundBlockTypeFunc(),
+		ChainRunType:          nr.getChainRunTypeFunc(),
 	}
 
 	consensusFactory, err := consensusComp.NewConsensusComponentsFactory(consensusArgs)
@@ -1220,7 +1228,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		ImportStartHandler:     importStartHandler,
 		WorkingDir:             configs.FlagsConfig.WorkingDir,
 		HistoryRepo:            historyRepository,
-		ChainRunType:           common.ChainRunTypeRegular,
+		ChainRunType:           nr.getChainRunTypeFunc(),
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1349,7 +1357,7 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 		CryptoComponents:     cryptoComponents,
 		NetworkComponents:    networkComponents,
 		StatusCoreComponents: statusCoreComponents,
-		ChainRunType:         common.ChainRunTypeRegular,
+		ChainRunType:         nr.getChainRunTypeFunc(),
 	}
 
 	bootstrapComponentsFactory, err := bootstrapComp.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)
@@ -1686,4 +1694,12 @@ func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteLi
 		return nil, err
 	}
 	return interceptors.NewWhiteListDataVerifier(whiteListCacheVerified)
+}
+
+func (nr *nodeRunner) getSubroundBlockType() consensus.SubroundBlockType {
+	return consensus.SubroundBlockTypeV1
+}
+
+func (nr *nodeRunner) getChainRunType() common.ChainRunType {
+	return common.ChainRunTypeRegular
 }
