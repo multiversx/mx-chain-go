@@ -1,6 +1,6 @@
 package processor
 
-import nodesCoord "github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
+import nodesCoord "github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 
 // NodesCoordinator defines the operations for a struct that is able to determine if a key is a validator or not
 type NodesCoordinator interface {

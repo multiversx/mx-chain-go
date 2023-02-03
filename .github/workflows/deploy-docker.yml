@@ -1,6 +1,6 @@
 env:
-  IMAGE_NODE: elrond-go-node
-  REGISTRY_HOSTNAME: elrondnetwork
+  IMAGE_NODE: mx-chain-go-node
+  REGISTRY_HOSTNAME: multiversx
 
 name: Build Docker image & push
 
@@ -26,7 +26,7 @@ jobs:
       - name: Build image
         run: |
           TAG_VERSION=${{ steps.get_version.outputs.VERSION }}
-          cd ${GITHUB_WORKSPACE} && docker build -t "${REGISTRY_HOSTNAME}/${IMAGE_NODE}:${TAG_VERSION}" -f ./docker/elrond/Dockerfile .
+          cd ${GITHUB_WORKSPACE} && docker build -t "${REGISTRY_HOSTNAME}/${IMAGE_NODE}:${TAG_VERSION}" -f ./docker/multiversx/Dockerfile .
       - name: Push image
         run: |
           docker login --username ${{ secrets.DOCKERHUB_USERNAME }} --password ${{ secrets.DOCKERHUB_TOKEN }}

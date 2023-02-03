@@ -1,5 +1,6 @@
 package factory
 
+// test constants
 const (
 	BaseNodeConfigPath    = "../../../cmd/node/config"
 	ConfigPath            = "config.toml"
@@ -16,7 +17,6 @@ const (
 	GenesisSmartContracts = "../testdata/genesisSmartContracts.json"
 	ValidatorKeyPemPath   = "../validatorKey.pem"
 	Version               = "v1.1.6.1-0-gbae61225f/go1.14.2/linux-amd64/a72b5f2eff"
-	WorkingDir            = "workingDir"
 	RoundActivationPath   = "enableRounds.toml"
 	P2pKeyPath            = "../p2pKey.pem"
 )

@@ -6,13 +6,13 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/data/mock"
-	"github.com/ElrondNetwork/elrond-go/common"
-	elrondErrors "github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/storage/cache"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	"github.com/ElrondNetwork/elrond-go/trie/statistics"
+	"github.com/multiversx/mx-chain-core-go/data/mock"
+	"github.com/multiversx/mx-chain-go/common"
+	chainErrors "github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/storage/cache"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/trie/statistics"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -1030,10 +1030,10 @@ func TestExtensionNode_commitContextDone(t *testing.T) {
 	cancel()
 
 	err := en.commitCheckpoint(db, db, nil, nil, ctx, statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
-	assert.Equal(t, elrondErrors.ErrContextClosing, err)
+	assert.Equal(t, chainErrors.ErrContextClosing, err)
 
 	err = en.commitSnapshot(db, nil, nil, ctx, statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
-	assert.Equal(t, elrondErrors.ErrContextClosing, err)
+	assert.Equal(t, chainErrors.ErrContextClosing, err)
 }
 
 func TestExtensionNode_getValueReturnsEmptyByteSlice(t *testing.T) {
@@ -1048,7 +1048,7 @@ func TestExtensionNode_commitSnapshotDbIsClosing(t *testing.T) {
 
 	db := &mock.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
-			return nil, elrondErrors.ErrContextClosing
+			return nil, chainErrors.ErrContextClosing
 		},
 	}
 	_, collapsedEn := getEnAndCollapsedEn()

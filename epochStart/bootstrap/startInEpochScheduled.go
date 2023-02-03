@@ -6,15 +6,15 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
-	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/update"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/scheduled"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/update"
 )
 
 type startInEpochWithScheduledDataSyncer struct {
@@ -59,27 +59,27 @@ func newStartInEpochShardHeaderDataSyncerWithScheduled(
 // and returns that data.
 func (ses *startInEpochWithScheduledDataSyncer) UpdateSyncDataIfNeeded(
 	notarizedShardHeader data.ShardHeaderHandler,
-) (data.ShardHeaderHandler, map[string]data.HeaderHandler, error) {
+) (data.ShardHeaderHandler, map[string]data.HeaderHandler, map[string]*block.MiniBlock, error) {
 	if ses.scheduledEnableEpoch > notarizedShardHeader.GetEpoch() {
-		return notarizedShardHeader, nil, nil
+		return notarizedShardHeader, nil, nil, nil
 	}
 
 	headerToBeProcessed, headers, err := ses.getRequiredHeaderByHash(notarizedShardHeader)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	allMiniBlocks, err := ses.getMiniBlocks(notarizedShardHeader)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	err = ses.prepareScheduledIntermediateTxs(headerToBeProcessed, notarizedShardHeader, allMiniBlocks)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	return headerToBeProcessed, headers, nil
+	return headerToBeProcessed, headers, allMiniBlocks, nil
 }
 
 // IsInterfaceNil returns true if the receiver is nil, false otherwise

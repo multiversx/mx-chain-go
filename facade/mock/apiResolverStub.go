@@ -3,13 +3,14 @@ package mock
 import (
 	"context"
 
-	"github.com/ElrondNetwork/elrond-go-core/data/api"
-	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/node/external"
-	"github.com/ElrondNetwork/elrond-go/process"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/data/api"
+	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/node/external"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/state"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // ApiResolverStub -
@@ -33,12 +34,13 @@ type ApiResolverStub struct {
 	GetInternalMetaBlockByRoundCalled           func(format common.ApiOutputFormat, round uint64) (interface{}, error)
 	GetInternalMiniBlockCalled                  func(format common.ApiOutputFormat, hash string, epoch uint32) (interface{}, error)
 	GetInternalStartOfEpochMetaBlockCalled      func(format common.ApiOutputFormat, epoch uint32) (interface{}, error)
+	GetInternalStartOfEpochValidatorsInfoCalled func(epoch uint32) ([]*state.ShardValidatorInfo, error)
 	GetGenesisNodesPubKeysCalled                func() (map[uint32][]string, map[uint32][]string)
 	GetTransactionsPoolCalled                   func(fields string) (*common.TransactionsPoolAPIResponse, error)
 	GetGenesisBalancesCalled                    func() ([]*common.InitialAccountAPI, error)
 	GetTransactionsPoolForSenderCalled          func(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error)
 	GetLastPoolNonceForSenderCalled             func(sender string) (uint64, error)
-	GetTransactionsPoolNonceGapsForSenderCalled func(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
+	GetTransactionsPoolNonceGapsForSenderCalled func(sender string, senderAccountNonce uint64) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
 	GetGasConfigsCalled                         func() map[string]map[string]uint64
 }
 
@@ -201,9 +203,9 @@ func (ars *ApiResolverStub) GetLastPoolNonceForSender(sender string) (uint64, er
 }
 
 // GetTransactionsPoolNonceGapsForSender -
-func (ars *ApiResolverStub) GetTransactionsPoolNonceGapsForSender(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
+func (ars *ApiResolverStub) GetTransactionsPoolNonceGapsForSender(sender string, senderAccountNonce uint64) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
 	if ars.GetTransactionsPoolNonceGapsForSenderCalled != nil {
-		return ars.GetTransactionsPoolNonceGapsForSenderCalled(sender)
+		return ars.GetTransactionsPoolNonceGapsForSenderCalled(sender, senderAccountNonce)
 	}
 
 	return nil, nil
@@ -265,6 +267,15 @@ func (ars *ApiResolverStub) GetGasConfigs() map[string]map[string]uint64 {
 	}
 
 	return nil
+}
+
+// GetInternalStartOfEpochValidatorsInfo -
+func (ars *ApiResolverStub) GetInternalStartOfEpochValidatorsInfo(epoch uint32) ([]*state.ShardValidatorInfo, error) {
+	if ars.GetInternalStartOfEpochValidatorsInfoCalled != nil {
+		return ars.GetInternalStartOfEpochValidatorsInfoCalled(epoch)
+	}
+
+	return nil, nil
 }
 
 // Close -

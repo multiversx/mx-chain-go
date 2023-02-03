@@ -1,6 +1,6 @@
 package spos
 
-import "github.com/ElrondNetwork/elrond-go-core/core/check"
+import "github.com/multiversx/mx-chain-core-go/core/check"
 
 // ValidateConsensusCore checks for nil all the container objects
 func ValidateConsensusCore(container ConsensusCoreHandler) error {
@@ -53,6 +53,9 @@ func ValidateConsensusCore(container ConsensusCoreHandler) error {
 	if check.IfNil(container.SingleSigner()) {
 		return ErrNilBlsSingleSigner
 	}
+	if check.IfNil(container.KeyGenerator()) {
+		return ErrNilKeyGenerator
+	}
 	if check.IfNil(container.GetAntiFloodHandler()) {
 		return ErrNilAntifloodHandler
 	}
@@ -67,6 +70,15 @@ func ValidateConsensusCore(container ConsensusCoreHandler) error {
 	}
 	if check.IfNil(container.NodeRedundancyHandler()) {
 		return ErrNilNodeRedundancyHandler
+	}
+	if check.IfNil(container.ScheduledProcessor()) {
+		return ErrNilScheduledProcessor
+	}
+	if check.IfNil(container.MessageSigningHandler()) {
+		return ErrNilMessageSigningHandler
+	}
+	if check.IfNil(container.PeerBlacklistHandler()) {
+		return ErrNilPeerBlacklistHandler
 	}
 	if check.IfNil(container.SignatureHandler()) {
 		return ErrNilSignatureHandler

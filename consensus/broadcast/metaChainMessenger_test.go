@@ -5,19 +5,20 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/consensus/broadcast"
-	"github.com/ElrondNetwork/elrond-go/consensus/mock"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/consensus/broadcast"
+	"github.com/multiversx/mx-chain-go/consensus/mock"
+	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func createDefaultMetaChainArgs() broadcast.MetaChainMessengerArgs {
 	marshalizerMock := &mock.MarshalizerMock{}
-	messengerMock := &mock.MessengerStub{}
+	messengerMock := &p2pmocks.MessengerStub{}
 	privateKeyMock := &mock.PrivateKeyMock{}
 	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
 	singleSignerMock := &mock.SingleSignerMock{}
@@ -119,7 +120,7 @@ func TestMetaChainMessenger_BroadcastBlockShouldErrMockMarshalizer(t *testing.T)
 }
 
 func TestMetaChainMessenger_BroadcastBlockShouldWork(t *testing.T) {
-	messenger := &mock.MessengerStub{
+	messenger := &p2pmocks.MessengerStub{
 		BroadcastCalled: func(topic string, buff []byte) {
 		},
 	}
@@ -158,7 +159,7 @@ func TestMetaChainMessenger_BroadcastHeaderNilHeaderShouldErr(t *testing.T) {
 func TestMetaChainMessenger_BroadcastHeaderOkHeaderShouldWork(t *testing.T) {
 	channelCalled := make(chan bool, 1)
 
-	messenger := &mock.MessengerStub{
+	messenger := &p2pmocks.MessengerStub{
 		BroadcastCalled: func(topic string, buff []byte) {
 			channelCalled <- true
 		},
@@ -189,7 +190,7 @@ func TestMetaChainMessenger_BroadcastBlockDataLeader(t *testing.T) {
 	countersBroadcast := make(map[string]int)
 	mutCounters := &sync.Mutex{}
 
-	messengerMock := &mock.MessengerStub{
+	messengerMock := &p2pmocks.MessengerStub{
 		BroadcastCalled: func(topic string, buff []byte) {
 			mutCounters.Lock()
 			countersBroadcast[topic]++

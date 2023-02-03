@@ -10,20 +10,20 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
-	"github.com/ElrondNetwork/elrond-go-core/core/partitioning"
-	"github.com/ElrondNetwork/elrond-go-core/data/batch"
-	scrData "github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
-	epochStartMock "github.com/ElrondNetwork/elrond-go/epochStart/mock"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/atomic"
+	"github.com/multiversx/mx-chain-core-go/core/partitioning"
+	"github.com/multiversx/mx-chain-core-go/data/batch"
+	scrData "github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	dataRetrieverMock "github.com/multiversx/mx-chain-go/dataRetriever/mock"
+	epochStartMock "github.com/multiversx/mx-chain-go/epochStart/mock"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -157,7 +157,7 @@ func TestTxsSender_SendBulkTransactions(t *testing.T) {
 	}()
 
 	mes := &p2pmocks.MessengerStub{
-		BroadcastOnChannelBlockingCalled: func(pipe string, topic string, buff []byte) error {
+		BroadcastOnChannelCalled: func(pipe string, topic string, buff []byte) {
 
 			b := &batch.Batch{}
 			err := marshaller.Unmarshal(b, buff)
@@ -176,7 +176,6 @@ func TestTxsSender_SendBulkTransactions(t *testing.T) {
 
 				wg.Done()
 			}
-			return nil
 		},
 	}
 	dataPacker, _ := partitioning.NewSimpleDataPacker(&testscommon.MarshalizerMock{})
@@ -270,12 +269,11 @@ func TestTxsSender_sendFromTxAccumulatorSendOneTxOneSCRExpectOnlyTxToBeSent(t *t
 		},
 	}
 	messenger := &p2pmocks.MessengerStub{
-		BroadcastOnChannelBlockingCalled: func(channel string, topic string, buff []byte) error {
+		BroadcastOnChannelCalled: func(channel string, topic string, buff []byte) {
 			ctBroadCastCalled.Increment()
 			require.Equal(t, SendTransactionsPipe, channel)
 			require.Equal(t, factory.TransactionTopic+communicationIdentifier, topic)
 			require.Equal(t, txChunk, buff)
-			return nil
 		},
 	}
 
@@ -360,12 +358,11 @@ func TestTxsSender_sendBulkTransactionsSendTwoTxsFailToMarshallOneExpectOnlyOneT
 		},
 	}
 	messenger := &p2pmocks.MessengerStub{
-		BroadcastOnChannelBlockingCalled: func(channel string, topic string, buff []byte) error {
+		BroadcastOnChannelCalled: func(channel string, topic string, buff []byte) {
 			ctBroadCastCalled.Increment()
 			require.Equal(t, SendTransactionsPipe, channel)
 			require.Equal(t, factory.TransactionTopic+communicationIdentifierTx1, topic)
 			require.Equal(t, tx1Chunk, buff)
-			return nil
 		},
 	}
 

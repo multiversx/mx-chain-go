@@ -4,13 +4,13 @@ import (
 	"encoding/hex"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/data/api"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/outport"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/node/filters"
-	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/node/filters"
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 type shardAPIBlockProcessor struct {
@@ -23,21 +23,23 @@ func newShardApiBlockProcessor(arg *ArgAPIBlockProcessor, emptyReceiptsHash []by
 
 	return &shardAPIBlockProcessor{
 		baseAPIBlockProcessor: &baseAPIBlockProcessor{
-			hasDbLookupExtensions:    hasDbLookupExtensions,
-			selfShardID:              arg.SelfShardID,
-			store:                    arg.Store,
-			marshalizer:              arg.Marshalizer,
-			uint64ByteSliceConverter: arg.Uint64ByteSliceConverter,
-			historyRepo:              arg.HistoryRepo,
-			apiTransactionHandler:    arg.APITransactionHandler,
-			txStatusComputer:         arg.StatusComputer,
-			hasher:                   arg.Hasher,
-			addressPubKeyConverter:   arg.AddressPubkeyConverter,
-			emptyReceiptsHash:        emptyReceiptsHash,
-			logsFacade:               arg.LogsFacade,
-			receiptsRepository:       arg.ReceiptsRepository,
-			alteredAccountsProvider:  arg.AlteredAccountsProvider,
-			accountsRepository:       arg.AccountsRepository,
+			hasDbLookupExtensions:        hasDbLookupExtensions,
+			selfShardID:                  arg.SelfShardID,
+			store:                        arg.Store,
+			marshalizer:                  arg.Marshalizer,
+			uint64ByteSliceConverter:     arg.Uint64ByteSliceConverter,
+			historyRepo:                  arg.HistoryRepo,
+			apiTransactionHandler:        arg.APITransactionHandler,
+			txStatusComputer:             arg.StatusComputer,
+			hasher:                       arg.Hasher,
+			addressPubKeyConverter:       arg.AddressPubkeyConverter,
+			emptyReceiptsHash:            emptyReceiptsHash,
+			logsFacade:                   arg.LogsFacade,
+			receiptsRepository:           arg.ReceiptsRepository,
+			alteredAccountsProvider:      arg.AlteredAccountsProvider,
+			accountsRepository:           arg.AccountsRepository,
+			scheduledTxsExecutionHandler: arg.ScheduledTxsExecutionHandler,
+			enableEpochsHandler:          arg.EnableEpochsHandler,
 		},
 	}
 }
