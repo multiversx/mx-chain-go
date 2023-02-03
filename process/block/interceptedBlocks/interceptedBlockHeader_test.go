@@ -2,6 +2,7 @@ package interceptedBlocks_test
 
 import (
 	"errors"
+	"math/big"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -77,6 +78,8 @@ func createMockShardHeader() *dataBlock.Header {
 		TxCount:          0,
 		ChainID:          []byte("chain ID"),
 		SoftwareVersion:  []byte("version"),
+		AccumulatedFees:  big.NewInt(0),
+		DeveloperFees:    big.NewInt(0),
 	}
 }
 

@@ -1331,7 +1331,11 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 	}
 
 	if tpn.ValidatorStatisticsProcessor == nil {
-		tpn.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{}
+		tpn.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{
+			UpdatePeerStateCalled: func(header data.MetaHeaderHandler) ([]byte, error) {
+				return []byte("validator statistics root hash"), nil
+			},
+		}
 	}
 
 	interimProcFactory, _ := shard.NewIntermediateProcessorsContainerFactory(

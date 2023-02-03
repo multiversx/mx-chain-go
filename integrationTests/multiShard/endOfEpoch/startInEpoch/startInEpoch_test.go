@@ -181,6 +181,9 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	defer func() {
 		errRemoveDir := os.RemoveAll("Epoch_0")
 		assert.NoError(t, errRemoveDir)
+
+		errRemoveDir = os.RemoveAll("Static")
+		assert.NoError(t, errRemoveDir)
 	}()
 
 	genesisShardCoordinator, _ := sharding.NewMultiShardCoordinator(nodesConfig.NumberOfShards(), 0)
