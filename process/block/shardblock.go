@@ -51,7 +51,6 @@ type shardProcessor struct {
 	chRcvAllMetaHdrs  chan bool
 
 	userStatePruningQueue core.Queue
-	processStatusHandler  common.ProcessStatusHandler
 }
 
 // NewShardProcessor creates a new shardProcessor object
@@ -122,11 +121,11 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		pruningDelay:                   pruningDelay,
 		processedMiniBlocksTracker:     arguments.ProcessedMiniBlocksTracker,
 		receiptsRepository:             arguments.ReceiptsRepository,
+		processStatusHandler:           arguments.CoreComponents.ProcessStatusHandler(),
 	}
 
 	sp := shardProcessor{
-		baseProcessor:        base,
-		processStatusHandler: arguments.CoreComponents.ProcessStatusHandler(),
+		baseProcessor: base,
 	}
 
 	sp.txCounter, err = NewTransactionCounter(sp.hasher, sp.marshalizer)

@@ -105,6 +105,7 @@ type baseProcessor struct {
 	pruningDelay                   uint32
 	processedMiniBlocksTracker     process.ProcessedMiniBlocksTracker
 	receiptsRepository             receiptsRepository
+	processStatusHandler           common.ProcessStatusHandler
 }
 
 type bootStorerDataArgs struct {
@@ -1820,10 +1821,12 @@ func (bp *baseProcessor) Close() error {
 // ProcessScheduledBlock processes a scheduled block
 func (bp *baseProcessor) ProcessScheduledBlock(headerHandler data.HeaderHandler, bodyHandler data.BodyHandler, haveTime func() time.Duration) error {
 	var err error
+	bp.processStatusHandler.SetBusy("baseProcessor.ProcessScheduledBlock")
 	defer func() {
 		if err != nil {
 			bp.RevertCurrentBlock()
 		}
+		bp.processStatusHandler.SetIdle()
 	}()
 
 	scheduledMiniBlocksFromMe, err := getScheduledMiniBlocksFromMe(headerHandler, bodyHandler)

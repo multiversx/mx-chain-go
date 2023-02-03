@@ -46,7 +46,6 @@ type metaProcessor struct {
 	rewardsV2EnableEpoch         uint32
 	userStatePruningQueue        core.Queue
 	peerStatePruningQueue        core.Queue
-	processStatusHandler         common.ProcessStatusHandler
 }
 
 // NewMetaProcessor creates a new metaProcessor object
@@ -137,6 +136,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		pruningDelay:                   pruningDelay,
 		processedMiniBlocksTracker:     arguments.ProcessedMiniBlocksTracker,
 		receiptsRepository:             arguments.ReceiptsRepository,
+		processStatusHandler:           arguments.CoreComponents.ProcessStatusHandler(),
 	}
 
 	mp := metaProcessor{
@@ -151,7 +151,6 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		validatorInfoCreator:         arguments.EpochValidatorInfoCreator,
 		epochSystemSCProcessor:       arguments.EpochSystemSCProcessor,
 		rewardsV2EnableEpoch:         arguments.RewardsV2EnableEpoch,
-		processStatusHandler:         arguments.CoreComponents.ProcessStatusHandler(),
 	}
 
 	log.Debug("metablock: enable epoch for staking v2", "epoch", mp.rewardsV2EnableEpoch)
