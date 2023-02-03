@@ -1,6 +1,7 @@
 package state
 
 import (
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -78,12 +79,28 @@ func EmptyErrChanReturningHadContained(errChan chan error) bool {
 	return emptyErrChanReturningHadContained(errChan)
 }
 
+type DirtyData struct {
+	Value      []byte
+	OldVersion core.TrieNodeVersion
+	NewVersion core.TrieNodeVersion
+}
+
 // DirtyData -
-func (tdaw *trackableDataTrie) DirtyData() map[string][]byte {
-	return tdaw.dirtyData
+func (tdaw *trackableDataTrie) DirtyData() map[string]DirtyData {
+	dd := make(map[string]DirtyData, len(tdaw.dirtyData))
+
+	for key, value := range tdaw.dirtyData {
+		dd[key] = DirtyData{
+			Value:      value.value,
+			OldVersion: value.oldVersion.version,
+			NewVersion: value.newVersion,
+		}
+	}
+
+	return dd
 }
 
 // SaveDirtyData -
-func (a *userAccount) SaveDirtyData(trie common.Trie) ([]common.TrieData, error) {
+func (a *userAccount) SaveDirtyData(trie common.Trie) ([]core.TrieData, error) {
 	return a.dataTrieTracker.SaveDirtyData(trie)
 }

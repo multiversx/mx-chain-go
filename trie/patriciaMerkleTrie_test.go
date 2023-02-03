@@ -26,6 +26,7 @@ import (
 	"github.com/multiversx/mx-chain-go/trie/hashesHolder"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/multiversx/mx-chain-go/trie/mock"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -1013,6 +1014,222 @@ func TestPatriciaMerkleTree_GetValueReturnsTrieDepth(t *testing.T) {
 	_, depth, err = tr.Get([]byte("ddog"))
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(3), depth)
+}
+
+type dataTrie interface {
+	CollectLeavesForMigration(oldVersion core.TrieNodeVersion, newVersion core.TrieNodeVersion, trieMigrator vmcommon.DataTrieMigrator) error
+	UpdateWithVersion(key []byte, value []byte, version core.TrieNodeVersion) error
+}
+
+func TestPatriciaMerkleTrie_CollectLeavesForMigration(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil root", func(t *testing.T) {
+		t.Parallel()
+
+		tr := emptyTrie()
+
+		dtm := &trieMock.DataTrieMigratorStub{
+			ConsumeStorageLoadGasCalled: func() bool {
+				assert.Fail(t, "should not have called this function")
+				return false
+			},
+		}
+
+		err := tr.(dataTrie).CollectLeavesForMigration(core.NotSpecified, core.AutoBalanceEnabled, dtm)
+		assert.Nil(t, err)
+	})
+
+	t.Run("nil trie migrator", func(t *testing.T) {
+		t.Parallel()
+
+		tr := initTrie().(dataTrie)
+
+		err := tr.CollectLeavesForMigration(core.NotSpecified, core.AutoBalanceEnabled, nil)
+		assert.Equal(t, errorsCommon.ErrNilTrieMigrator, err)
+	})
+
+	t.Run("data trie already migrated", func(t *testing.T) {
+		t.Parallel()
+
+		numLoadsCalled := 0
+		tr := emptyTrie()
+		dtr := tr.(dataTrie)
+		_ = dtr.UpdateWithVersion([]byte("dog"), []byte("reindeer"), core.AutoBalanceEnabled)
+		_ = dtr.UpdateWithVersion([]byte("ddog"), []byte("puppy"), core.AutoBalanceEnabled)
+		_ = dtr.UpdateWithVersion([]byte("doe"), []byte("cat"), core.AutoBalanceEnabled)
+
+		dtm := &trieMock.DataTrieMigratorStub{
+			ConsumeStorageLoadGasCalled: func() bool {
+				numLoadsCalled++
+				return true
+			},
+		}
+
+		err := dtr.CollectLeavesForMigration(core.NotSpecified, core.AutoBalanceEnabled, dtm)
+		assert.Nil(t, err)
+		assert.Equal(t, 1, numLoadsCalled)
+	})
+
+	t.Run("trie partially migrated", func(t *testing.T) {
+		t.Parallel()
+
+		addLeafToMigrationQueueCalled := 0
+		dtr := emptyTrie().(dataTrie)
+		key := []byte("dog")
+		value := []byte("reindeer")
+		_ = dtr.UpdateWithVersion(key, value, core.NotSpecified)
+		_ = dtr.UpdateWithVersion([]byte("ddog"), []byte("puppy"), core.AutoBalanceEnabled)
+		_ = dtr.UpdateWithVersion([]byte("doe"), []byte("cat"), core.AutoBalanceEnabled)
+
+		dtm := &trieMock.DataTrieMigratorStub{
+			AddLeafToMigrationQueueCalled: func(leafData core.TrieData, newLeafVersion core.TrieNodeVersion) (bool, error) {
+				assert.Equal(t, core.AutoBalanceEnabled, newLeafVersion)
+				assert.Equal(t, key, leafData.Key)
+				assert.Equal(t, value, leafData.Value)
+				assert.Equal(t, core.NotSpecified, leafData.Version)
+				addLeafToMigrationQueueCalled++
+				return true, nil
+			},
+		}
+
+		err := dtr.CollectLeavesForMigration(core.NotSpecified, core.AutoBalanceEnabled, dtm)
+		assert.Nil(t, err)
+		assert.Equal(t, 1, addLeafToMigrationQueueCalled)
+	})
+
+	t.Run("not enough gas to load the whole trie", func(t *testing.T) {
+		t.Parallel()
+
+		dtr := initTrie().(dataTrie)
+		numLoads := 0
+		numAddLeafToMigrationQueueCalled := 0
+		dtm := &trieMock.DataTrieMigratorStub{
+			ConsumeStorageLoadGasCalled: func() bool {
+				if numLoads < 2 {
+					numLoads++
+					return true
+				}
+
+				numLoads++
+				return false
+			},
+			AddLeafToMigrationQueueCalled: func(_ core.TrieData, _ core.TrieNodeVersion) (bool, error) {
+				numAddLeafToMigrationQueueCalled++
+				return true, nil
+			},
+		}
+
+		err := dtr.CollectLeavesForMigration(core.NotSpecified, core.AutoBalanceEnabled, dtm)
+		assert.Nil(t, err)
+		assert.Equal(t, 3, numLoads)
+		assert.Equal(t, 1, numAddLeafToMigrationQueueCalled)
+	})
+
+	t.Run("not enough gas to migrate the whole trie", func(t *testing.T) {
+		t.Parallel()
+
+		dtr := initTrie().(dataTrie)
+		numLoads := 0
+		numAddLeafToMigrationQueueCalled := 0
+		dtm := &trieMock.DataTrieMigratorStub{
+			ConsumeStorageLoadGasCalled: func() bool {
+				numLoads++
+				return true
+			},
+			AddLeafToMigrationQueueCalled: func(_ core.TrieData, _ core.TrieNodeVersion) (bool, error) {
+				if numAddLeafToMigrationQueueCalled < 1 {
+					numAddLeafToMigrationQueueCalled++
+					return true, nil
+				}
+
+				numAddLeafToMigrationQueueCalled++
+				return false, nil
+			},
+		}
+
+		err := dtr.CollectLeavesForMigration(core.NotSpecified, core.AutoBalanceEnabled, dtm)
+		assert.Nil(t, err)
+		assert.Equal(t, 5, numLoads)
+		assert.Equal(t, 2, numAddLeafToMigrationQueueCalled)
+	})
+
+	t.Run("migrate to non existent version", func(t *testing.T) {
+		t.Parallel()
+
+		numLoadsCalled := 0
+		numAddLeafToMigrationQueueCalled := 0
+		dtr := initTrie().(dataTrie)
+		dtm := &trieMock.DataTrieMigratorStub{
+			ConsumeStorageLoadGasCalled: func() bool {
+				numLoadsCalled++
+				return true
+			},
+			AddLeafToMigrationQueueCalled: func(_ core.TrieData, _ core.TrieNodeVersion) (bool, error) {
+				numAddLeafToMigrationQueueCalled++
+				return true, nil
+			},
+		}
+
+		err := dtr.CollectLeavesForMigration(core.NotSpecified, core.TrieNodeVersion(100), dtm)
+		assert.Equal(t, errorsCommon.ErrInvalidTrieNodeVersion, err)
+		assert.Equal(t, 0, numLoadsCalled)
+		assert.Equal(t, 0, numAddLeafToMigrationQueueCalled)
+	})
+
+	t.Run("migrate collapsed trie", func(t *testing.T) {
+		t.Parallel()
+
+		numLoadsCalled := 0
+		numAddLeafToMigrationQueueCalled := 0
+		tr := initTrie()
+		_ = tr.Commit()
+		rootHash, _ := tr.RootHash()
+		collapsedTrie, _ := tr.Recreate(rootHash)
+		dtr := collapsedTrie.(dataTrie)
+		dtm := &trieMock.DataTrieMigratorStub{
+			ConsumeStorageLoadGasCalled: func() bool {
+				numLoadsCalled++
+				return true
+			},
+			AddLeafToMigrationQueueCalled: func(_ core.TrieData, _ core.TrieNodeVersion) (bool, error) {
+				numAddLeafToMigrationQueueCalled++
+				return true, nil
+			},
+		}
+
+		err := dtr.CollectLeavesForMigration(core.NotSpecified, core.AutoBalanceEnabled, dtm)
+		assert.Nil(t, err)
+		assert.Equal(t, 6, numLoadsCalled)
+		assert.Equal(t, 3, numAddLeafToMigrationQueueCalled)
+	})
+
+	t.Run("migrate all non migrated leaves", func(t *testing.T) {
+		t.Parallel()
+
+		numLoadsCalled := 0
+		numAddLeafToMigrationQueueCalled := 0
+		dtr := emptyTrie().(dataTrie)
+		_ = dtr.UpdateWithVersion([]byte("dog"), []byte("reindeer"), core.AutoBalanceEnabled)
+		_ = dtr.UpdateWithVersion([]byte("ddog"), []byte("puppy"), core.AutoBalanceEnabled)
+		_ = dtr.UpdateWithVersion([]byte("doe"), []byte("cat"), core.NotSpecified)
+		dtm := &trieMock.DataTrieMigratorStub{
+			ConsumeStorageLoadGasCalled: func() bool {
+				numLoadsCalled++
+				return true
+			},
+			AddLeafToMigrationQueueCalled: func(_ core.TrieData, _ core.TrieNodeVersion) (bool, error) {
+				numAddLeafToMigrationQueueCalled++
+				return true, nil
+			},
+		}
+
+		err := dtr.CollectLeavesForMigration(core.NotSpecified, core.AutoBalanceEnabled, dtm)
+		assert.Nil(t, err)
+		assert.Equal(t, 2, numLoadsCalled)
+		assert.Equal(t, 1, numAddLeafToMigrationQueueCalled)
+	})
+
 }
 
 func BenchmarkPatriciaMerkleTree_Insert(b *testing.B) {

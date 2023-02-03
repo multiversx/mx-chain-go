@@ -15,6 +15,8 @@
     ESDTNFTAddUri            = 50000
     ESDTNFTUpdateAttributes  = 50000
     ESDTNFTMultiTransfer     = 200000
+    TrieLoad                 = 20000
+    TrieStore                = 50000
 
 [MetaChainSystemSCsCost]
     Stake                 = 5000000

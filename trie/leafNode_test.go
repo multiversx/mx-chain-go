@@ -9,7 +9,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-go/common"
 	chainErrors "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -753,7 +752,7 @@ func TestLeafNode_getVersion(t *testing.T) {
 		ln.Version = math.MaxUint8 + 1
 
 		version, err := ln.getVersion()
-		assert.Equal(t, common.NotSpecified, version)
+		assert.Equal(t, core.NotSpecified, version)
 		assert.Equal(t, ErrInvalidNodeVersion, err)
 	})
 
@@ -763,7 +762,7 @@ func TestLeafNode_getVersion(t *testing.T) {
 		ln := getLn(getTestMarshalizerAndHasher())
 
 		version, err := ln.getVersion()
-		assert.Equal(t, common.NotSpecified, version)
+		assert.Equal(t, core.NotSpecified, version)
 		assert.Nil(t, err)
 	})
 
@@ -771,10 +770,10 @@ func TestLeafNode_getVersion(t *testing.T) {
 		t.Parallel()
 
 		ln := getLn(getTestMarshalizerAndHasher())
-		ln.Version = uint32(common.AutoBalanceEnabled)
+		ln.Version = uint32(core.AutoBalanceEnabled)
 
 		version, err := ln.getVersion()
-		assert.Equal(t, common.AutoBalanceEnabled, version)
+		assert.Equal(t, core.AutoBalanceEnabled, version)
 		assert.Nil(t, err)
 	})
 }

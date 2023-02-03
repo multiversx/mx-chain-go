@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/errors"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 var _ = node(&branchNode{})
@@ -42,10 +43,10 @@ func newBranchNode(marshalizer marshal.Marshalizer, hasher hashing.Hasher) (*bra
 	}, nil
 }
 
-func (bn *branchNode) setVersionForChild(version common.TrieNodeVersion, childPos byte) {
+func (bn *branchNode) setVersionForChild(version core.TrieNodeVersion, childPos byte) {
 	sliceNotInitialized := len(bn.ChildrenVersion) == 0
 
-	if version == common.NotSpecified && sliceNotInitialized {
+	if version == core.NotSpecified && sliceNotInitialized {
 		return
 	}
 
@@ -489,7 +490,7 @@ func (bn *branchNode) getNext(key []byte, db common.DBWriteCacher) (node, []byte
 	return bn.children[childPos], key, nil
 }
 
-func (bn *branchNode) insert(newData common.TrieData, db common.DBWriteCacher) (node, [][]byte, error) {
+func (bn *branchNode) insert(newData core.TrieData, db common.DBWriteCacher) (node, [][]byte, error) {
 	emptyHashes := make([][]byte, 0)
 	err := bn.isEmptyOrNil()
 	if err != nil {
@@ -517,7 +518,7 @@ func (bn *branchNode) insert(newData common.TrieData, db common.DBWriteCacher) (
 	return bn.insertOnExistingChild(newData, childPos, db)
 }
 
-func (bn *branchNode) insertOnNilChild(newData common.TrieData, childPos byte) (node, [][]byte, error) {
+func (bn *branchNode) insertOnNilChild(newData core.TrieData, childPos byte) (node, [][]byte, error) {
 	newLn, err := newLeafNode(newData, bn.marsh, bn.hasher)
 	if err != nil {
 		return nil, [][]byte{}, err
@@ -532,7 +533,7 @@ func (bn *branchNode) insertOnNilChild(newData common.TrieData, childPos byte) (
 	return bn, modifiedHashes, nil
 }
 
-func (bn *branchNode) insertOnExistingChild(newData common.TrieData, childPos byte, db common.DBWriteCacher) (node, [][]byte, error) {
+func (bn *branchNode) insertOnExistingChild(newData core.TrieData, childPos byte, db common.DBWriteCacher) (node, [][]byte, error) {
 	newNode, modifiedHashes, err := bn.children[childPos].insert(newData, db)
 	if check.IfNil(newNode) || err != nil {
 		return nil, [][]byte{}, err
@@ -973,9 +974,9 @@ func (bn *branchNode) collectStats(ts common.TrieStatisticsHandler, depthLevel i
 	return nil
 }
 
-func (bn *branchNode) getVersion() (common.TrieNodeVersion, error) {
+func (bn *branchNode) getVersion() (core.TrieNodeVersion, error) {
 	if len(bn.ChildrenVersion) == 0 {
-		return common.NotSpecified, nil
+		return core.NotSpecified, nil
 	}
 
 	index := 0
@@ -996,11 +997,68 @@ func (bn *branchNode) getVersion() (common.TrieNodeVersion, error) {
 		}
 
 		if bn.ChildrenVersion[i] != nodeVersion {
-			return common.NotSpecified, nil
+			return core.NotSpecified, nil
 		}
 	}
 
-	return common.TrieNodeVersion(nodeVersion), nil
+	return core.TrieNodeVersion(nodeVersion), nil
+}
+
+func (bn *branchNode) getVersionForChild(childIndex byte) core.TrieNodeVersion {
+	if len(bn.ChildrenVersion) == 0 {
+		return core.NotSpecified
+	}
+
+	return core.TrieNodeVersion(bn.ChildrenVersion[childIndex])
+}
+
+func (bn *branchNode) collectLeavesForMigration(
+	oldVersion core.TrieNodeVersion,
+	newVersion core.TrieNodeVersion,
+	trieMigrator vmcommon.DataTrieMigrator,
+	db common.DBWriteCacher,
+	keyBuilder common.KeyBuilder,
+) (bool, error) {
+	shouldContinue := trieMigrator.ConsumeStorageLoadGas()
+	if !shouldContinue {
+		return false, nil
+	}
+
+	shouldMigrateNode, err := shouldMigrateCurrentNode(bn, oldVersion, newVersion)
+	if err != nil {
+		return false, err
+	}
+	if !shouldMigrateNode {
+		return true, nil
+	}
+
+	for i := range bn.children {
+		if bn.children[i] == nil && len(bn.EncodedChildren[i]) == 0 {
+			continue
+		}
+
+		if bn.getVersionForChild(byte(i)) != oldVersion {
+			continue
+		}
+
+		err = resolveIfCollapsed(bn, byte(i), db)
+		if err != nil {
+			return false, err
+		}
+
+		clonedKeyBuilder := keyBuilder.Clone()
+		clonedKeyBuilder.BuildKey([]byte{byte(i)})
+		shouldContinueMigrating, err := bn.children[i].collectLeavesForMigration(oldVersion, newVersion, trieMigrator, db, clonedKeyBuilder)
+		if err != nil {
+			return false, err
+		}
+
+		if !shouldContinueMigrating {
+			return false, nil
+		}
+	}
+
+	return true, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

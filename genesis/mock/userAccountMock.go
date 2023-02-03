@@ -5,6 +5,7 @@ import (
 	"errors"
 	"math/big"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/common"
 )
 
@@ -141,7 +142,7 @@ func (uam *UserAccountMock) GetUserName() []byte {
 }
 
 // SaveDirtyData -
-func (uam *UserAccountMock) SaveDirtyData(_ common.Trie) ([]common.TrieData, error) {
+func (uam *UserAccountMock) SaveDirtyData(_ common.Trie) ([]core.TrieData, error) {
 	return nil, nil
 }
 

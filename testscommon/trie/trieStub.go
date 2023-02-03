@@ -4,33 +4,36 @@ import (
 	"context"
 	"errors"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/common"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 var errNotImplemented = errors.New("not implemented")
 
 // TrieStub -
 type TrieStub struct {
-	GetCalled                   func(key []byte) ([]byte, uint32, error)
-	UpdateCalled                func(key, value []byte) error
-	UpdateWithVersionCalled     func(key, value []byte, version common.TrieNodeVersion) error
-	DeleteCalled                func(key []byte) error
-	RootCalled                  func() ([]byte, error)
-	CommitCalled                func() error
-	RecreateCalled              func(root []byte) (common.Trie, error)
-	RecreateFromEpochCalled     func(options common.RootHashHolder) (common.Trie, error)
-	GetObsoleteHashesCalled     func() [][]byte
-	AppendToOldHashesCalled     func([][]byte)
-	GetSerializedNodesCalled    func([]byte, uint64) ([][]byte, uint64, error)
-	GetAllHashesCalled          func() ([][]byte, error)
-	GetAllLeavesOnChannelCalled func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder, trieLeafParser common.TrieLeafParser) error
-	GetProofCalled              func(key []byte) ([][]byte, []byte, error)
-	VerifyProofCalled           func(rootHash []byte, key []byte, proof [][]byte) (bool, error)
-	GetStorageManagerCalled     func() common.StorageManager
-	GetSerializedNodeCalled     func(bytes []byte) ([]byte, error)
-	GetNumNodesCalled           func() common.NumNodesDTO
-	GetOldRootCalled            func() []byte
-	CloseCalled                 func() error
+	GetCalled                       func(key []byte) ([]byte, uint32, error)
+	UpdateCalled                    func(key, value []byte) error
+	UpdateWithVersionCalled         func(key, value []byte, version core.TrieNodeVersion) error
+	DeleteCalled                    func(key []byte) error
+	RootCalled                      func() ([]byte, error)
+	CommitCalled                    func() error
+	RecreateCalled                  func(root []byte) (common.Trie, error)
+	RecreateFromEpochCalled         func(options common.RootHashHolder) (common.Trie, error)
+	GetObsoleteHashesCalled         func() [][]byte
+	AppendToOldHashesCalled         func([][]byte)
+	GetSerializedNodesCalled        func([]byte, uint64) ([][]byte, uint64, error)
+	GetAllHashesCalled              func() ([][]byte, error)
+	GetAllLeavesOnChannelCalled     func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder, trieLeafParser common.TrieLeafParser) error
+	GetProofCalled                  func(key []byte) ([][]byte, []byte, error)
+	VerifyProofCalled               func(rootHash []byte, key []byte, proof [][]byte) (bool, error)
+	GetStorageManagerCalled         func() common.StorageManager
+	GetSerializedNodeCalled         func(bytes []byte) ([]byte, error)
+	GetNumNodesCalled               func() common.NumNodesDTO
+	GetOldRootCalled                func() []byte
+	CloseCalled                     func() error
+	CollectLeavesForMigrationCalled func(oldVersion core.TrieNodeVersion, newVersion core.TrieNodeVersion, trieMigrator vmcommon.DataTrieMigrator) error
 }
 
 // GetStorageManager -
@@ -88,9 +91,18 @@ func (ts *TrieStub) Update(key, value []byte) error {
 }
 
 // UpdateWithVersion -
-func (ts *TrieStub) UpdateWithVersion(key []byte, value []byte, version common.TrieNodeVersion) error {
+func (ts *TrieStub) UpdateWithVersion(key []byte, value []byte, version core.TrieNodeVersion) error {
 	if ts.UpdateWithVersionCalled != nil {
 		return ts.UpdateWithVersionCalled(key, value, version)
+	}
+
+	return errNotImplemented
+}
+
+// CollectLeavesForMigration -
+func (ts *TrieStub) CollectLeavesForMigration(oldVersion core.TrieNodeVersion, newVersion core.TrieNodeVersion, trieMigrator vmcommon.DataTrieMigrator) error {
+	if ts.CollectLeavesForMigrationCalled != nil {
+		return ts.CollectLeavesForMigrationCalled(oldVersion, newVersion, trieMigrator)
 	}
 
 	return errNotImplemented

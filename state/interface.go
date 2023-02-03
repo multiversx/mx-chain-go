@@ -4,6 +4,7 @@ import (
 	"context"
 	"math/big"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-go/common"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -95,7 +96,8 @@ type DataTrieTracker interface {
 	SaveKeyValue(key []byte, value []byte) error
 	SetDataTrie(tr common.Trie)
 	DataTrie() common.DataTrieHandler
-	SaveDirtyData(common.Trie) ([]common.TrieData, error)
+	SaveDirtyData(common.Trie) ([]core.TrieData, error)
+	MigrateDataTrieLeaves(oldVersion core.TrieNodeVersion, newVersion core.TrieNodeVersion, trieMigrator vmcommon.DataTrieMigrator) error
 	IsInterfaceNil() bool
 }
 
@@ -165,7 +167,7 @@ type baseAccountHandler interface {
 	GetRootHash() []byte
 	SetDataTrie(trie common.Trie)
 	DataTrie() common.DataTrieHandler
-	SaveDirtyData(trie common.Trie) ([]common.TrieData, error)
+	SaveDirtyData(trie common.Trie) ([]core.TrieData, error)
 	IsInterfaceNil() bool
 }
 
@@ -222,5 +224,6 @@ type AccountsAdapterAPI interface {
 type dataTrie interface {
 	common.Trie
 
-	UpdateWithVersion(key []byte, value []byte, version common.TrieNodeVersion) error
+	UpdateWithVersion(key []byte, value []byte, version core.TrieNodeVersion) error
+	CollectLeavesForMigration(oldVersion core.TrieNodeVersion, newVersion core.TrieNodeVersion, trieMigrator vmcommon.DataTrieMigrator) error
 }

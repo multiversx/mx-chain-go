@@ -5,6 +5,7 @@ import (
 	"context"
 	"math/big"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state"
 )
@@ -157,7 +158,7 @@ func (u *UserAccountStub) SaveKeyValue(_ []byte, _ []byte) error {
 }
 
 // SaveDirtyData -
-func (u *UserAccountStub) SaveDirtyData(_ common.Trie) ([]common.TrieData, error) {
+func (u *UserAccountStub) SaveDirtyData(_ common.Trie) ([]core.TrieData, error) {
 	return nil, nil
 }
 

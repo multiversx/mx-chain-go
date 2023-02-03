@@ -7,6 +7,7 @@ import (
 	"math"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/mock"
 	"github.com/multiversx/mx-chain-go/common"
 	chainErrors "github.com/multiversx/mx-chain-go/errors"
@@ -1066,7 +1067,7 @@ func TestExtensionNode_getVersion(t *testing.T) {
 		en.ChildVersion = math.MaxUint8 + 1
 
 		version, err := en.getVersion()
-		assert.Equal(t, common.NotSpecified, version)
+		assert.Equal(t, core.NotSpecified, version)
 		assert.Equal(t, ErrInvalidNodeVersion, err)
 	})
 
@@ -1076,7 +1077,7 @@ func TestExtensionNode_getVersion(t *testing.T) {
 		en, _ := getEnAndCollapsedEn()
 
 		version, err := en.getVersion()
-		assert.Equal(t, common.NotSpecified, version)
+		assert.Equal(t, core.NotSpecified, version)
 		assert.Nil(t, err)
 	})
 
@@ -1084,10 +1085,10 @@ func TestExtensionNode_getVersion(t *testing.T) {
 		t.Parallel()
 
 		en, _ := getEnAndCollapsedEn()
-		en.ChildVersion = uint32(common.AutoBalanceEnabled)
+		en.ChildVersion = uint32(core.AutoBalanceEnabled)
 
 		version, err := en.getVersion()
-		assert.Equal(t, common.AutoBalanceEnabled, version)
+		assert.Equal(t, core.AutoBalanceEnabled, version)
 		assert.Nil(t, err)
 	})
 }
