@@ -346,7 +346,7 @@ func TestSubroundEndRound_DoEndRoundJobErrCommitBlockShouldFail(t *testing.T) {
 	sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 	sr.SetSelfPubKey("A")
 
-	blProcMock := mock.InitBlockProcessorMock()
+	blProcMock := mock.InitBlockProcessorMock(container.Marshalizer())
 	blProcMock.CommitBlockCalled = func(
 		header data.HeaderHandler,
 		body data.BodyHandler,
@@ -412,7 +412,7 @@ func TestSubroundEndRound_DoEndRoundJobErrMarshalizedDataToBroadcastOK(t *testin
 	err := errors.New("")
 	container := mock.InitConsensusCore()
 
-	bpm := mock.InitBlockProcessorMock()
+	bpm := mock.InitBlockProcessorMock(container.Marshalizer())
 	bpm.MarshalizedDataToBroadcastCalled = func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
 		err = errors.New("error marshalized data to broadcast")
 		return make(map[uint32][]byte), make(map[string][][]byte), err
@@ -447,7 +447,7 @@ func TestSubroundEndRound_DoEndRoundJobErrBroadcastMiniBlocksOK(t *testing.T) {
 	err := errors.New("")
 	container := mock.InitConsensusCore()
 
-	bpm := mock.InitBlockProcessorMock()
+	bpm := mock.InitBlockProcessorMock(container.Marshalizer())
 	bpm.MarshalizedDataToBroadcastCalled = func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
 		return make(map[uint32][]byte), make(map[string][][]byte), nil
 	}
@@ -483,7 +483,7 @@ func TestSubroundEndRound_DoEndRoundJobErrBroadcastTransactionsOK(t *testing.T) 
 	err := errors.New("")
 	container := mock.InitConsensusCore()
 
-	bpm := mock.InitBlockProcessorMock()
+	bpm := mock.InitBlockProcessorMock(container.Marshalizer())
 	bpm.MarshalizedDataToBroadcastCalled = func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
 		return make(map[uint32][]byte), make(map[string][][]byte), nil
 	}
