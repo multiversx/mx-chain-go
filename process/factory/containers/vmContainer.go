@@ -3,11 +3,11 @@ package containers
 import (
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/container"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/process"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/container"
+	"github.com/multiversx/mx-chain-go/process"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 var _ process.VirtualMachinesContainer = (*virtualMachinesContainer)(nil)
@@ -114,7 +114,7 @@ func (vmc *virtualMachinesContainer) Keys() [][]byte {
 	return keysBytes
 }
 
-// Close closes the items in the container (meaningful for Arwen out-of-process)
+// Close closes the items in the container (meaningful for Wasm VM out-of-process)
 func (vmc *virtualMachinesContainer) Close() error {
 	var err error
 	for _, item := range vmc.objects.Values() {

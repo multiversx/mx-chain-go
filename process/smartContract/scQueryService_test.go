@@ -10,15 +10,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -31,7 +31,7 @@ func createMockArgumentsForSCQuery() ArgsNewSCQueryService {
 		EconomicsFee:             &economicsmocks.EconomicsHandlerStub{},
 		BlockChainHook:           &testscommon.BlockChainHookStub{},
 		BlockChain:               &testscommon.ChainHandlerStub{},
-		ArwenChangeLocker:        &sync.RWMutex{},
+		WasmVMChangeLocker:       &sync.RWMutex{},
 		Bootstrapper:             &mock.BootstrapperStub{},
 		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
 	}
@@ -81,11 +81,11 @@ func TestNewSCQueryService_NilBLockChainHookShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilBlockChainHook, err)
 }
 
-func TestNewSCQueryService_NilArwenLockerShouldErr(t *testing.T) {
+func TestNewSCQueryService_NilWasmVMLockerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForSCQuery()
-	args.ArwenChangeLocker = nil
+	args.WasmVMChangeLocker = nil
 	target, err := NewSCQueryService(args)
 
 	assert.Nil(t, target)
@@ -743,7 +743,7 @@ func TestNewSCQueryService_CloseShouldWork(t *testing.T) {
 		EconomicsFee:             &economicsmocks.EconomicsHandlerStub{},
 		BlockChainHook:           &testscommon.BlockChainHookStub{},
 		BlockChain:               &testscommon.ChainHandlerStub{},
-		ArwenChangeLocker:        &sync.RWMutex{},
+		WasmVMChangeLocker:       &sync.RWMutex{},
 		Bootstrapper:             &mock.BootstrapperStub{},
 		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
 	}

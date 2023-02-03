@@ -3,10 +3,10 @@ package state_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/factory/mock"
-	stateComp "github.com/ElrondNetwork/elrond-go/factory/state"
-	componentsMock "github.com/ElrondNetwork/elrond-go/testscommon/components"
+	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/factory/mock"
+	stateComp "github.com/multiversx/mx-chain-go/factory/state"
+	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/stretchr/testify/require"
 )
 

@@ -1,14 +1,14 @@
 package factory
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go-p2p/libp2p"
-	p2pCrypto "github.com/ElrondNetwork/elrond-go-p2p/libp2p/crypto"
-	"github.com/ElrondNetwork/elrond-go-p2p/message"
-	"github.com/ElrondNetwork/elrond-go-p2p/peersHolder"
-	"github.com/ElrondNetwork/elrond-go-p2p/rating"
-	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-p2p-go/libp2p"
+	p2pCrypto "github.com/multiversx/mx-chain-p2p-go/libp2p/crypto"
+	"github.com/multiversx/mx-chain-p2p-go/message"
+	"github.com/multiversx/mx-chain-p2p-go/peersHolder"
+	"github.com/multiversx/mx-chain-p2p-go/rating"
 )
 
 // ArgsNetworkMessenger defines the options used to create a p2p wrapper

@@ -1,7 +1,7 @@
 package enablers
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
+	"github.com/multiversx/mx-chain-core-go/core/atomic"
 )
 
 type epochFlagsHolder struct {
@@ -88,6 +88,7 @@ type epochFlagsHolder struct {
 	runtimeMemStoreLimitFlag                    *atomic.Flag
 	maxBlockchainHookCountersFlag               *atomic.Flag
 	wipeSingleNFTLiquidityDecreaseFlag          *atomic.Flag
+	alwaysSaveTokenMetaDataFlag                 *atomic.Flag
 	guardAccountFlag                            *atomic.Flag
 	setGuardianFlag                             *atomic.Flag
 }
@@ -177,6 +178,7 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		runtimeMemStoreLimitFlag:                    &atomic.Flag{},
 		maxBlockchainHookCountersFlag:               &atomic.Flag{},
 		wipeSingleNFTLiquidityDecreaseFlag:          &atomic.Flag{},
+		alwaysSaveTokenMetaDataFlag:                 &atomic.Flag{},
 		guardAccountFlag:                            &atomic.Flag{},
 		setGuardianFlag:                             &atomic.Flag{},
 	}
@@ -648,6 +650,11 @@ func (holder *epochFlagsHolder) IsMaxBlockchainHookCountersFlagEnabled() bool {
 // IsWipeSingleNFTLiquidityDecreaseEnabled returns true if wipeSingleNFTLiquidityDecreaseFlag is enabled
 func (holder *epochFlagsHolder) IsWipeSingleNFTLiquidityDecreaseEnabled() bool {
 	return holder.wipeSingleNFTLiquidityDecreaseFlag.IsSet()
+}
+
+// IsAlwaysSaveTokenMetaDataEnabled returns true if alwaysSaveTokenMetaDataFlag is enabled
+func (holder *epochFlagsHolder) IsAlwaysSaveTokenMetaDataEnabled() bool {
+	return holder.alwaysSaveTokenMetaDataFlag.IsSet()
 }
 
 // IsGuardAccountEnabled returns true if GuardAccountFlag is enabled

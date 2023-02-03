@@ -556,6 +556,11 @@ func (mock *EnableEpochsHandlerMock) IsWipeSingleNFTLiquidityDecreaseEnabled() b
 	return false
 }
 
+// IsAlwaysSaveTokenMetaDataEnabled -
+func (mock *EnableEpochsHandlerMock) IsAlwaysSaveTokenMetaDataEnabled() bool {
+	return false
+}
+
 // IsGuardAccountEnabled returns false
 func (mock *EnableEpochsHandlerMock) IsGuardAccountEnabled() bool {
 	return false

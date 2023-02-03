@@ -3,8 +3,8 @@ package mock
 import (
 	"crypto/rand"
 
-	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
-	crypto "github.com/ElrondNetwork/elrond-go-crypto"
+	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
 )
 
 // PublicKeyMock -

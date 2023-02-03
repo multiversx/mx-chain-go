@@ -12,20 +12,21 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
-	mclsig "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/singlesig"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/vm"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-crypto-go/signing"
+	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
+	mclsig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/singlesig"
+	"github.com/multiversx/mx-chain-go/dataRetriever/dataPool"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/vm"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -427,7 +428,7 @@ func TestDelegationSystemMultipleDelegationContractsAndSameBlsKeysShouldNotWork(
 	}
 
 	// add same BLS keys to all delegation contracts
-	keyGen := crypto.NewKeyGenerator(mcl.NewSuiteBLS12())
+	keyGen := signing.NewKeyGenerator(mcl.NewSuiteBLS12())
 	signer := mclsig.NewBlsSigner()
 
 	pubKeys := make([][]byte, totalNumNodes)
@@ -1399,7 +1400,7 @@ func addNodesTxData(blsKeys, sigs [][]byte) string {
 }
 
 func getBlsKeysAndSignatures(msg []byte, num int) ([][]byte, [][]byte) {
-	keyGen := crypto.NewKeyGenerator(mcl.NewSuiteBLS12())
+	keyGen := signing.NewKeyGenerator(mcl.NewSuiteBLS12())
 	signer := mclsig.NewBlsSigner()
 
 	pubKeys := make([][]byte, num)

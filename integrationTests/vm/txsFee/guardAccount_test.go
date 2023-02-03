@@ -1,7 +1,7 @@
 //go:build !race
 // +build !race
 
-// TODO remove build condition above to allow -race -short, after Arwen fix
+// TODO remove build condition above to allow -race -short, after Wasm VM fix
 
 package txsFee
 
@@ -11,19 +11,19 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/guardians"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/common/forking"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/guardian"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon/integrationtests"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/guardians"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common/forking"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/guardian"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/integrationtests"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -45,9 +45,9 @@ func prepareTestContextForFreezeAccounts(tb testing.TB) *vm.VMTestContext {
 		GasScheduleConfig: config.GasScheduleConfig{
 			GasScheduleByEpochs: []config.GasScheduleByEpochs{cfg},
 		},
-		ConfigDir:         gasScheduleDir,
-		EpochNotifier:     forking.NewGenericEpochNotifier(),
-		ArwenChangeLocker: &sync.RWMutex{},
+		ConfigDir:          gasScheduleDir,
+		EpochNotifier:      forking.NewGenericEpochNotifier(),
+		WasmVMChangeLocker: &sync.RWMutex{},
 	}
 	gasScheduleNotifier, err := forking.NewGasScheduleNotifier(argsGasScheduleNotifier)
 	require.Nil(tb, err)
@@ -60,7 +60,7 @@ func prepareTestContextForFreezeAccounts(tb testing.TB) *vm.VMTestContext {
 			RefactorPeersMiniBlocksEnableEpoch:      unreachableEpoch,
 			GuardAccountFeatureEnableEpoch:          0,
 		},
-		mock.NewMultiShardsCoordinatorMock(2),
+		testscommon.NewMultiShardsCoordinatorMock(2),
 		db,
 		gasScheduleNotifier,
 	)

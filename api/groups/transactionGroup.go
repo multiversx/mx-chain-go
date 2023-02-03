@@ -9,17 +9,17 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/api/errors"
-	"github.com/ElrondNetwork/elrond-go/api/middleware"
-	"github.com/ElrondNetwork/elrond-go/api/shared"
-	"github.com/ElrondNetwork/elrond-go/api/shared/logging"
-	"github.com/ElrondNetwork/elrond-go/common"
-	nodeExternal "github.com/ElrondNetwork/elrond-go/node/external"
-	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
 	"github.com/gin-gonic/gin"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/api/errors"
+	"github.com/multiversx/mx-chain-go/api/middleware"
+	"github.com/multiversx/mx-chain-go/api/shared"
+	"github.com/multiversx/mx-chain-go/api/shared/logging"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/node/external"
+	txSimData "github.com/multiversx/mx-chain-go/process/txsimulator/data"
 )
 
 const (
@@ -44,7 +44,7 @@ const (
 
 // transactionFacadeHandler defines the methods to be implemented by a facade for transaction requests
 type transactionFacadeHandler interface {
-	CreateTransaction(txArgs *nodeExternal.ArgsCreateTransaction) (*transaction.Transaction, []byte, error)
+	CreateTransaction(txArgs *external.ArgsCreateTransaction) (*transaction.Transaction, []byte, error)
 	ValidateTransaction(tx *transaction.Transaction) error
 	ValidateTransactionForSimulation(tx *transaction.Transaction, checkSignature bool) error
 	SendBulkTransactions([]*transaction.Transaction) (uint64, error)
@@ -217,7 +217,7 @@ func (tg *transactionGroup) simulateTransaction(c *gin.Context) {
 		return
 	}
 
-	txArgs := &nodeExternal.ArgsCreateTransaction{
+	txArgs := &external.ArgsCreateTransaction{
 		Nonce:            gtx.Nonce,
 		Value:            gtx.Value,
 		Receiver:         gtx.Receiver,
@@ -307,7 +307,7 @@ func (tg *transactionGroup) sendTransaction(c *gin.Context) {
 		return
 	}
 
-	txArgs := &nodeExternal.ArgsCreateTransaction{
+	txArgs := &external.ArgsCreateTransaction{
 		Nonce:            gtx.Nonce,
 		Value:            gtx.Value,
 		Receiver:         gtx.Receiver,
@@ -405,7 +405,7 @@ func (tg *transactionGroup) sendMultipleTransactions(c *gin.Context) {
 	var start time.Time
 	txsHashes := make(map[int]string)
 	for idx, receivedTx := range gtx {
-		txArgs := &nodeExternal.ArgsCreateTransaction{
+		txArgs := &external.ArgsCreateTransaction{
 			Nonce:            receivedTx.Nonce,
 			Value:            receivedTx.Value,
 			Receiver:         receivedTx.Receiver,
@@ -534,7 +534,7 @@ func (tg *transactionGroup) computeTransactionGasLimit(c *gin.Context) {
 		return
 	}
 
-	txArgs := &nodeExternal.ArgsCreateTransaction{
+	txArgs := &external.ArgsCreateTransaction{
 		Nonce:            gtx.Nonce,
 		Value:            gtx.Value,
 		Receiver:         gtx.Receiver,

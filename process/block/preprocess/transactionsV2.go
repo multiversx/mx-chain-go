@@ -5,13 +5,13 @@ import (
 	"errors"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/common"
-	elrondErr "github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/storage/txcache"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
+	chainErr "github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/storage/txcache"
 )
 
 func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
@@ -186,7 +186,7 @@ func (txs *transactions) processTransaction(
 		log.Trace("bad tx", "error", err.Error(), "hash", txHash)
 
 		errRevert := txs.accounts.RevertToSnapshot(snapshot)
-		if errRevert != nil && !elrondErr.IsClosingError(errRevert) {
+		if errRevert != nil && !chainErr.IsClosingError(errRevert) {
 			log.Warn("revert to snapshot", "error", errRevert.Error())
 		}
 
