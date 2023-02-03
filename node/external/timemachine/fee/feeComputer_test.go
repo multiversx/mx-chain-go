@@ -47,6 +47,7 @@ func TestFeeComputer_ComputeGasUsedAndFeeBasedOnRefundValue(t *testing.T) {
 			PenalizedTooMuchGasEnableEpoch: 124,
 			GasPriceModifierEnableEpoch:    180,
 		},
+		TxVersionChecker: &testscommon.TxVersionCheckerStub{},
 	}
 
 	computer, _ := NewFeeComputer(arguments)
@@ -83,6 +84,7 @@ func TestFeeComputer_ComputeFeeBasedOnGasUsed(t *testing.T) {
 			PenalizedTooMuchGasEnableEpoch: 124,
 			GasPriceModifierEnableEpoch:    180,
 		},
+		TxVersionChecker: &testscommon.TxVersionCheckerStub{},
 	}
 
 	computer, _ := NewFeeComputer(arguments)
@@ -117,6 +119,7 @@ func TestFeeComputer_ComputeGasLimit(t *testing.T) {
 			PenalizedTooMuchGasEnableEpoch: 124,
 			GasPriceModifierEnableEpoch:    180,
 		},
+		TxVersionChecker: &testscommon.TxVersionCheckerStub{},
 	}
 
 	computer, _ := NewFeeComputer(arguments)
@@ -150,7 +153,7 @@ func TestFeeComputer_ComputeTransactionFeeShouldWorkForDifferentEpochs(t *testin
 			PenalizedTooMuchGasEnableEpoch: 124,
 			GasPriceModifierEnableEpoch:    180,
 		},
-		TxVersionChecker:               &testscommon.TxVersionCheckerStub{},
+		TxVersionChecker: &testscommon.TxVersionCheckerStub{},
 	}
 
 	contract, _ := hex.DecodeString("000000000000000000010000000000000000000000000000000000000000abba")

@@ -14,11 +14,10 @@ var _ state.UserAccountHandler = (*UserAccountStub)(nil)
 // UserAccountStub -
 type UserAccountStub struct {
 	Balance                  *big.Int
-	DeveloperRewards    *big.Int
-	UserName            []byte
-	Owner               []byte
-	Address             []byte
-	AddToBalanceCalled  func(value *big.Int) error
+	DeveloperRewards         *big.Int
+	UserName                 []byte
+	Owner                    []byte
+	Address                  []byte
 	AddToBalanceCalled       func(value *big.Int) error
 	DataTrieTrackerCalled    func() state.DataTrieTracker
 	IsGuardedCalled          func() bool

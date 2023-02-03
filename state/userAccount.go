@@ -5,7 +5,7 @@ import (
 	"bytes"
 	"math/big"
 
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 var _ UserAccountHandler = (*userAccount)(nil)

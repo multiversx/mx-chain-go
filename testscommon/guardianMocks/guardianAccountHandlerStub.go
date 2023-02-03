@@ -1,9 +1,9 @@
 package guardianMocks
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/data/guardians"
-	"github.com/ElrondNetwork/elrond-go/state"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/data/guardians"
+	"github.com/multiversx/mx-chain-go/state"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // GuardedAccountHandlerStub -

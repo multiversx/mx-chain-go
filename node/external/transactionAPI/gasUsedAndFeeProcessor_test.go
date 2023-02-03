@@ -21,6 +21,7 @@ func TestComputeTransactionGasUsedAndFeeMoveBalance(t *testing.T) {
 	feeComp, _ := fee.NewFeeComputer(fee.ArgsNewFeeComputer{
 		BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
 		EconomicsConfig:             testscommon.GetEconomicsConfig(),
+		TxVersionChecker:            &testscommon.TxVersionCheckerStub{},
 	})
 	computer := fee.NewTestFeeComputer(feeComp)
 
@@ -50,6 +51,7 @@ func TestComputeTransactionGasUsedAndFeeLogWithError(t *testing.T) {
 	feeComp, _ := fee.NewFeeComputer(fee.ArgsNewFeeComputer{
 		BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
 		EconomicsConfig:             testscommon.GetEconomicsConfig(),
+		TxVersionChecker:            &testscommon.TxVersionCheckerStub{},
 	})
 	computer := fee.NewTestFeeComputer(feeComp)
 
@@ -92,6 +94,7 @@ func TestComputeTransactionGasUsedAndFeeRelayedTxWithWriteLog(t *testing.T) {
 	feeComp, _ := fee.NewFeeComputer(fee.ArgsNewFeeComputer{
 		BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
 		EconomicsConfig:             testscommon.GetEconomicsConfig(),
+		TxVersionChecker:            &testscommon.TxVersionCheckerStub{},
 	})
 	computer := fee.NewTestFeeComputer(feeComp)
 
@@ -129,6 +132,7 @@ func TestComputeTransactionGasUsedAndFeeTransactionWithScrWithRefund(t *testing.
 	feeComp, _ := fee.NewFeeComputer(fee.ArgsNewFeeComputer{
 		BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
 		EconomicsConfig:             testscommon.GetEconomicsConfig(),
+		TxVersionChecker:            &testscommon.TxVersionCheckerStub{},
 	})
 	computer := fee.NewTestFeeComputer(feeComp)
 

@@ -273,7 +273,7 @@ func (nf *nodeFacade) getContextForApiTrieRangeOperations() (context.Context, co
 }
 
 // CreateTransaction creates a transaction from all needed fields
-func (nf *nodeFacade) CreateTransaction(txArgs *nodeExternal.ArgsCreateTransaction) (*transaction.Transaction, []byte, error) {
+func (nf *nodeFacade) CreateTransaction(txArgs *external.ArgsCreateTransaction) (*transaction.Transaction, []byte, error) {
 	return nf.node.CreateTransaction(txArgs)
 }
 

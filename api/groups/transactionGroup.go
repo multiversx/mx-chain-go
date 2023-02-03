@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/api/shared"
 	"github.com/multiversx/mx-chain-go/api/shared/logging"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/node/external"
 	txSimData "github.com/multiversx/mx-chain-go/process/txsimulator/data"
 )
 
@@ -43,7 +44,7 @@ const (
 
 // transactionFacadeHandler defines the methods to be implemented by a facade for transaction requests
 type transactionFacadeHandler interface {
-	CreateTransaction(txArgs *nodeExternal.ArgsCreateTransaction) (*transaction.Transaction, []byte, error)
+	CreateTransaction(txArgs *external.ArgsCreateTransaction) (*transaction.Transaction, []byte, error)
 	ValidateTransaction(tx *transaction.Transaction) error
 	ValidateTransactionForSimulation(tx *transaction.Transaction, checkSignature bool) error
 	SendBulkTransactions([]*transaction.Transaction) (uint64, error)
@@ -216,7 +217,7 @@ func (tg *transactionGroup) simulateTransaction(c *gin.Context) {
 		return
 	}
 
-	txArgs := &nodeExternal.ArgsCreateTransaction{
+	txArgs := &external.ArgsCreateTransaction{
 		Nonce:            gtx.Nonce,
 		Value:            gtx.Value,
 		Receiver:         gtx.Receiver,
@@ -306,7 +307,7 @@ func (tg *transactionGroup) sendTransaction(c *gin.Context) {
 		return
 	}
 
-	txArgs := &nodeExternal.ArgsCreateTransaction{
+	txArgs := &external.ArgsCreateTransaction{
 		Nonce:            gtx.Nonce,
 		Value:            gtx.Value,
 		Receiver:         gtx.Receiver,
@@ -404,7 +405,7 @@ func (tg *transactionGroup) sendMultipleTransactions(c *gin.Context) {
 	var start time.Time
 	txsHashes := make(map[int]string)
 	for idx, receivedTx := range gtx {
-		txArgs := &nodeExternal.ArgsCreateTransaction{
+		txArgs := &external.ArgsCreateTransaction{
 			Nonce:            receivedTx.Nonce,
 			Value:            receivedTx.Value,
 			Receiver:         receivedTx.Receiver,
@@ -533,7 +534,7 @@ func (tg *transactionGroup) computeTransactionGasLimit(c *gin.Context) {
 		return
 	}
 
-	txArgs := &nodeExternal.ArgsCreateTransaction{
+	txArgs := &external.ArgsCreateTransaction{
 		Nonce:            gtx.Nonce,
 		Value:            gtx.Value,
 		Receiver:         gtx.Receiver,

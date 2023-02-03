@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/core/data"
-	"github.com/multiversx/mx-chain-core-go/core/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/dataValidators"
 	"github.com/multiversx/mx-chain-go/process/mock"
@@ -487,11 +487,4 @@ func getDefaultInterceptedTx() *mock.InterceptedTxHandlerStub {
 			return &transaction.Transaction{}
 		},
 	}
-}
-
-func createDummyGuardedAccount() state.UserAccountHandler {
-	acc := state.NewEmptyUserAccount()
-	metadata := &vmcommon.CodeMetadata{Guarded: true}
-	acc.SetCodeMetadata(metadata.ToBytes())
-	return acc
 }

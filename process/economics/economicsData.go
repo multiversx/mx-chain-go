@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
@@ -66,7 +67,7 @@ type economicsData struct {
 
 // ArgsNewEconomicsData defines the arguments needed for new economics economicsData
 type ArgsNewEconomicsData struct {
-	TxVersionChecker               process.TxVersionCheckerHandler
+	TxVersionChecker            process.TxVersionCheckerHandler
 	BuiltInFunctionsCostHandler BuiltInFunctionsCostHandler
 	Economics                   *config.EconomicsConfig
 	EpochNotifier               process.EpochNotifier
