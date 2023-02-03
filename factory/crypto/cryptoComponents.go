@@ -5,27 +5,30 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing"
-	disabledCrypto "github.com/ElrondNetwork/elrond-go-crypto/signing/disabled"
-	disabledSig "github.com/ElrondNetwork/elrond-go-crypto/signing/disabled/singlesig"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519/singlesig"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
-	mclSig "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/singlesig"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	cryptoCommon "github.com/ElrondNetwork/elrond-go/common/crypto"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/factory"
-	"github.com/ElrondNetwork/elrond-go/factory/peerSignatureHandler"
-	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
-	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
-	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
-	"github.com/ElrondNetwork/elrond-go/vm"
-	systemVM "github.com/ElrondNetwork/elrond-go/vm/process"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-crypto-go/signing"
+	disabledCrypto "github.com/multiversx/mx-chain-crypto-go/signing/disabled"
+	disabledSig "github.com/multiversx/mx-chain-crypto-go/signing/disabled/singlesig"
+	"github.com/multiversx/mx-chain-crypto-go/signing/ed25519"
+	"github.com/multiversx/mx-chain-crypto-go/signing/ed25519/singlesig"
+	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
+	mclSig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/singlesig"
+	"github.com/multiversx/mx-chain-crypto-go/signing/secp256k1"
+	secp256k1SinglerSig "github.com/multiversx/mx-chain-crypto-go/signing/secp256k1/singlesig"
+	"github.com/multiversx/mx-chain-go/common"
+	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/factory/peerSignatureHandler"
+	"github.com/multiversx/mx-chain-go/genesis/process/disabled"
+	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
+	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-go/vm"
+	systemVM "github.com/multiversx/mx-chain-go/vm/process"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 const disabledSigChecking = "disabled"
@@ -42,6 +45,7 @@ type CryptoComponentsFactoryArgs struct {
 	IsInImportMode                       bool
 	ImportModeNoSigCheck                 bool
 	NoKeyProvided                        bool
+	P2pKeyPemFileName                    string
 }
 
 type cryptoComponentsFactory struct {
@@ -56,6 +60,7 @@ type cryptoComponentsFactory struct {
 	isInImportMode                       bool
 	importModeNoSigCheck                 bool
 	noKeyProvided                        bool
+	p2pKeyPemFileName                    string
 }
 
 // cryptoParams holds the node public/private key data
@@ -67,16 +72,26 @@ type cryptoParams struct {
 	privateKeyBytes []byte
 }
 
+// p2pCryptoParams holds the p2p public/private key data
+type p2pCryptoParams struct {
+	p2pPublicKey  crypto.PublicKey
+	p2pPrivateKey crypto.PrivateKey
+}
+
 // cryptoComponents struct holds the crypto components
 type cryptoComponents struct {
 	txSingleSigner       crypto.SingleSigner
 	blockSingleSigner    crypto.SingleSigner
+	p2pSingleSigner      crypto.SingleSigner
 	multiSignerContainer cryptoCommon.MultiSignerContainer
 	peerSignHandler      crypto.PeerSignatureHandler
 	blockSignKeyGen      crypto.KeyGenerator
 	txSignKeyGen         crypto.KeyGenerator
+	p2pKeyGen            crypto.KeyGenerator
 	messageSignVerifier  vm.MessageSignVerifier
+	consensusSigHandler  consensus.SignatureHandler
 	cryptoParams
+	p2pCryptoParams
 }
 
 var log = logger.GetOrCreate("factory")
@@ -105,6 +120,7 @@ func NewCryptoComponentsFactory(args CryptoComponentsFactoryArgs) (*cryptoCompon
 		importModeNoSigCheck:                 args.ImportModeNoSigCheck,
 		enableEpochs:                         args.EnableEpochs,
 		noKeyProvided:                        args.NoKeyProvided,
+		p2pKeyPemFileName:                    args.P2pKeyPemFileName,
 	}
 
 	return ccf, nil
@@ -135,6 +151,8 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 		return nil, err
 	}
 
+	p2pSingleSigner := &secp256k1SinglerSig.Secp256k1Signer{}
+
 	multiSigner, err := ccf.createMultiSignerContainer(blockSignKeyGen, ccf.importModeNoSigCheck)
 	if err != nil {
 		return nil, err
@@ -164,6 +182,23 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 		return nil, err
 	}
 
+	p2pKeyGenerator := signing.NewKeyGenerator(secp256k1.NewSecp256k1())
+	p2pCryptoParamsInstance, err := ccf.createP2pCryptoParams(p2pKeyGenerator)
+	if err != nil {
+		return nil, err
+	}
+
+	signatureHolderArgs := ArgsSignatureHolder{
+		PubKeys:              []string{cp.publicKeyString},
+		PrivKeyBytes:         cp.privateKeyBytes,
+		MultiSignerContainer: multiSigner,
+		KeyGenerator:         blockSignKeyGen,
+	}
+	consensusSigHandler, err := NewSignatureHolder(signatureHolderArgs)
+	if err != nil {
+		return nil, err
+	}
+
 	log.Debug("block sign pubkey", "value", cp.publicKeyString)
 
 	return &cryptoComponents{
@@ -173,8 +208,12 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 		peerSignHandler:      peerSigHandler,
 		blockSignKeyGen:      blockSignKeyGen,
 		txSignKeyGen:         txSignKeyGen,
+		p2pKeyGen:            p2pKeyGenerator,
 		messageSignVerifier:  messageSignVerifier,
+		consensusSigHandler:  consensusSigHandler,
 		cryptoParams:         *cp,
+		p2pCryptoParams:      *p2pCryptoParamsInstance,
+		p2pSingleSigner:      p2pSingleSigner,
 	}, nil
 }
 
@@ -245,6 +284,11 @@ func (ccf *cryptoComponentsFactory) readCryptoParams(keygen crypto.KeyGenerator)
 		return nil, err
 	}
 
+	cp.privateKeyBytes, err = cp.privateKey.ToByteArray()
+	if err != nil {
+		return nil, err
+	}
+
 	cp.publicKey = cp.privateKey.GeneratePublic()
 	if len(readPk) > 0 {
 		cp.publicKeyBytes, err = cp.publicKey.ToByteArray()
@@ -281,6 +325,11 @@ func (ccf *cryptoComponentsFactory) generateCryptoParams(keygen crypto.KeyGenera
 		return nil, err
 	}
 
+	cp.privateKeyBytes, err = cp.privateKey.ToByteArray()
+	if err != nil {
+		return nil, err
+	}
+
 	validatorKeyConverter := ccf.coreComponentsHolder.ValidatorPubKeyConverter()
 	cp.publicKeyString = validatorKeyConverter.Encode(cp.publicKeyBytes)
 
@@ -305,6 +354,50 @@ func (ccf *cryptoComponentsFactory) getSkPk() ([]byte, []byte, error) {
 	}
 
 	return skBytes, pkBytes, nil
+}
+
+func (ccf *cryptoComponentsFactory) createP2pCryptoParams(
+	keygen crypto.KeyGenerator,
+) (*p2pCryptoParams, error) {
+	privKey, pubKey, err := CreateP2pKeyPair(ccf.p2pKeyPemFileName, keygen, log)
+	if err != nil {
+		return nil, err
+	}
+
+	return &p2pCryptoParams{
+		p2pPrivateKey: privKey,
+		p2pPublicKey:  pubKey,
+	}, nil
+}
+
+// CreateP2pKeyPair will create a set of key pair for p2p based on provided pem file. If
+// the provided key is empty it will generate a new one
+func CreateP2pKeyPair(
+	keyFileName string,
+	keyGen crypto.KeyGenerator,
+	log logger.Logger,
+) (crypto.PrivateKey, crypto.PublicKey, error) {
+	privKeyBytes, err := common.GetSkBytesFromP2pKey(keyFileName)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if len(privKeyBytes) == 0 {
+		privKey, pubKey := keyGen.GeneratePair()
+
+		log.Info("p2p private key: generated a new private key for p2p signing")
+
+		return privKey, pubKey, nil
+	}
+
+	privKey, err := keyGen.PrivateKeyFromByteArray(privKeyBytes)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	log.Info("p2p private key: using the provided private key for p2p signing")
+
+	return privKey, privKey.GeneratePublic(), nil
 }
 
 // Close closes all underlying components that need closing

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ElrondNetwork/elrond-go-core/display"
+	"github.com/multiversx/mx-chain-core-go/display"
 )
 
 const versionMarker = "App version"

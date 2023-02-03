@@ -3,8 +3,8 @@ package trie
 import (
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/testscommon"
 )
 
 func (ts *trieSyncer) trieNodeIntercepted(hash []byte, val interface{}) {
@@ -92,4 +92,9 @@ func IsBaseTrieStorageManager(tsm common.StorageManager) bool {
 func IsTrieStorageManagerInEpoch(tsm common.StorageManager) bool {
 	_, ok := tsm.(*trieStorageManagerInEpoch)
 	return ok
+}
+
+// NewBaseIterator -
+func NewBaseIterator(trie common.Trie) (*baseIterator, error) {
+	return newBaseIterator(trie)
 }

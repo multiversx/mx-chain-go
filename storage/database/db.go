@@ -1,9 +1,9 @@
 package database
 
 import (
-	"github.com/ElrondNetwork/elrond-go-storage/leveldb"
-	"github.com/ElrondNetwork/elrond-go-storage/memorydb"
-	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-storage-go/leveldb"
+	"github.com/multiversx/mx-chain-storage-go/memorydb"
 )
 
 // MemDB represents the memory database storage. It holds a map of key value pairs

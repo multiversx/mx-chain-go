@@ -9,16 +9,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/partitioning"
-	"github.com/ElrondNetwork/elrond-go-core/data/batch"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
-	"github.com/ElrondNetwork/elrond-go/heartbeat"
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/partitioning"
+	"github.com/multiversx/mx-chain-core-go/data/batch"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
+	"github.com/multiversx/mx-chain-go/dataRetriever/resolvers"
+	"github.com/multiversx/mx-chain-go/heartbeat"
+	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -464,53 +464,5 @@ func TestPeerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, 2, messagesSent)
 		assert.Equal(t, expectedLen, hashesReceived)
-	})
-}
-
-func TestPeerAuthenticationResolver_RequestShouldError(t *testing.T) {
-	t.Parallel()
-
-	providedEpoch := uint32(30)
-	arg := createMockArgPeerAuthenticationResolver()
-	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData, originalHashes [][]byte) error {
-			assert.Equal(t, providedEpoch, rd.Epoch)
-			return expectedErr
-		},
-	}
-	res, err := resolvers.NewPeerAuthenticationResolver(arg)
-	assert.Nil(t, err)
-	assert.False(t, res.IsInterfaceNil())
-
-	t.Run("RequestDataFromHash", func(t *testing.T) {
-		err = res.RequestDataFromHash([]byte(""), providedEpoch)
-		assert.Equal(t, expectedErr, err)
-	})
-	t.Run("RequestDataFromChunk - error on SendOnRequestTopic", func(t *testing.T) {
-		hashes := make([][]byte, 0)
-		hashes = append(hashes, []byte("pk"))
-		err = res.RequestDataFromHashArray(hashes, providedEpoch)
-		assert.Equal(t, expectedErr, err)
-	})
-}
-
-func TestPeerAuthenticationResolver_RequestShouldWork(t *testing.T) {
-	t.Parallel()
-
-	providedEpoch := uint32(30)
-	arg := createMockArgPeerAuthenticationResolver()
-	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData, originalHashes [][]byte) error {
-			assert.Equal(t, providedEpoch, rd.Epoch)
-			return nil
-		},
-	}
-	res, err := resolvers.NewPeerAuthenticationResolver(arg)
-	assert.Nil(t, err)
-	assert.False(t, res.IsInterfaceNil())
-
-	t.Run("RequestDataFromHash", func(t *testing.T) {
-		err = res.RequestDataFromHash([]byte(""), providedEpoch)
-		assert.Nil(t, err)
 	})
 }

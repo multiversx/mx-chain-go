@@ -7,34 +7,35 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	dataBlock "github.com/ElrondNetwork/elrond-go-core/data/block"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/common/enablers"
-	"github.com/ElrondNetwork/elrond-go/common/forking"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/genesis"
-	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
-	"github.com/ElrondNetwork/elrond-go/genesis/process/intermediate"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
-	"github.com/ElrondNetwork/elrond-go/process/coordinator"
-	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
-	"github.com/ElrondNetwork/elrond-go/process/receipts"
-	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
-	syncDisabled "github.com/ElrondNetwork/elrond-go/process/sync/disabled"
-	"github.com/ElrondNetwork/elrond-go/process/transaction"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/storage/txcache"
-	"github.com/ElrondNetwork/elrond-go/update"
-	hardForkProcess "github.com/ElrondNetwork/elrond-go/update/process"
-	"github.com/ElrondNetwork/elrond-vm-common/parsers"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/enablers"
+	"github.com/multiversx/mx-chain-go/common/forking"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/genesis"
+	"github.com/multiversx/mx-chain-go/genesis/process/disabled"
+	"github.com/multiversx/mx-chain-go/genesis/process/intermediate"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/preprocess"
+	"github.com/multiversx/mx-chain-go/process/coordinator"
+	"github.com/multiversx/mx-chain-go/process/factory/shard"
+	"github.com/multiversx/mx-chain-go/process/receipts"
+	"github.com/multiversx/mx-chain-go/process/rewardTransaction"
+	"github.com/multiversx/mx-chain-go/process/smartContract"
+	"github.com/multiversx/mx-chain-go/process/smartContract/builtInFunctions"
+	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
+	"github.com/multiversx/mx-chain-go/process/smartContract/hooks/counters"
+	syncDisabled "github.com/multiversx/mx-chain-go/process/sync/disabled"
+	"github.com/multiversx/mx-chain-go/process/transaction"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage/txcache"
+	"github.com/multiversx/mx-chain-go/update"
+	hardForkProcess "github.com/multiversx/mx-chain-go/update/process"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 )
 
 var log = logger.GetOrCreate("genesis/process")
@@ -136,6 +137,7 @@ func createGenesisConfig() config.EnableEpochs {
 		SetSenderInEeiOutputTransferEnableEpoch:           unreachableEpoch,
 		RefactorPeersMiniBlocksEnableEpoch:                unreachableEpoch,
 		DoNotReturnOldBlockInBlockchainHookEnableEpoch:    unreachableEpoch,
+		MaxBlockchainHookCountersEnableEpoch:              unreachableEpoch,
 		BLSMultiSignerEnableEpoch:                         blsMultiSignerEnableEpoch,
 	}
 }
@@ -378,7 +380,7 @@ func setBalanceToTrie(arg ArgsGenesisBlockCreator, accnt genesis.InitialAccountH
 }
 
 func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpochsConfig config.EnableEpochs) (*genesisProcessors, error) {
-	genesisArwenLocker := &sync.RWMutex{} // use a local instance as to not run in concurrent issues when doing bootstrap
+	genesisWasmVMLocker := &sync.RWMutex{} // use a local instance as to not run in concurrent issues when doing bootstrap
 	epochNotifier := forking.NewGenericEpochNotifier()
 	enableEpochsHandler, err := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifier)
 	if err != nil {
@@ -418,6 +420,8 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		EpochNotifier:         epochNotifier,
 		EnableEpochsHandler:   enableEpochsHandler,
 		NilCompiledSCStore:    true,
+		GasSchedule:           arg.GasSchedule,
+		Counter:               counters.NewDisabledCounter(),
 	}
 	esdtTransferParser, err := parsers.NewESDTTransferParser(arg.Core.InternalMarshalizer())
 	if err != nil {
@@ -436,9 +440,10 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		BlockChainHook:      blockChainHookImpl,
 		EpochNotifier:       epochNotifier,
 		EnableEpochsHandler: enableEpochsHandler,
-		ArwenChangeLocker:   genesisArwenLocker,
+		WasmVMChangeLocker:  genesisWasmVMLocker,
 		ESDTTransferParser:  esdtTransferParser,
 		BuiltInFunctions:    argsHook.BuiltInFunctions,
+		Hasher:              arg.Core.Hasher(),
 	}
 	vmFactoryImpl, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	if err != nil {
@@ -535,7 +540,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		EnableEpochsHandler: enableEpochsHandler,
 		IsGenesisProcessing: true,
 		VMOutputCacher:      txcache.NewDisabledCache(),
-		ArwenChangeLocker:   genesisArwenLocker,
+		WasmVMChangeLocker:  genesisWasmVMLocker,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
@@ -653,7 +658,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		EconomicsFee:             arg.Economics,
 		BlockChainHook:           vmFactoryImpl.BlockChainHookImpl(),
 		BlockChain:               arg.Data.Blockchain(),
-		ArwenChangeLocker:        genesisArwenLocker,
+		WasmVMChangeLocker:       genesisWasmVMLocker,
 		Bootstrapper:             syncDisabled.NewDisabledBootstrapper(),
 		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
 	}

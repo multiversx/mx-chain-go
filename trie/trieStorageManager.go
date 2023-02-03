@@ -8,16 +8,16 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/closing"
-	"github.com/ElrondNetwork/elrond-go-core/core/throttler"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/trie/statistics"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/closing"
+	"github.com/multiversx/mx-chain-core-go/core/throttler"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/trie/statistics"
 )
 
 // trieStorageManager manages all the storage operations of the trie (commit, snapshot, checkpoint, pruning)
@@ -36,7 +36,7 @@ type trieStorageManager struct {
 }
 
 type snapshotsQueueEntry struct {
-	address          []byte
+	address          string
 	rootHash         []byte
 	mainTrieRootHash []byte
 	iteratorChannels *common.TrieIteratorChannels
@@ -320,7 +320,7 @@ func (tsm *trieStorageManager) GetLatestStorageEpoch() (uint32, error) {
 // TakeSnapshot creates a new snapshot, or if there is another snapshot or checkpoint in progress,
 // it adds this snapshot in the queue.
 func (tsm *trieStorageManager) TakeSnapshot(
-	address []byte,
+	address string,
 	rootHash []byte,
 	mainTrieRootHash []byte,
 	iteratorChannels *common.TrieIteratorChannels,

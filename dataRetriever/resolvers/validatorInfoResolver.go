@@ -4,14 +4,14 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/batch"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/batch"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/storage"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 // maxBuffToSendValidatorsInfo represents max buffer size to send in bytes
@@ -85,38 +85,6 @@ func checkArgs(args ArgValidatorInfoResolver) error {
 	}
 
 	return nil
-}
-
-// RequestDataFromHash requests validator info from other peers by hash
-func (res *validatorInfoResolver) RequestDataFromHash(hash []byte, epoch uint32) error {
-	return res.SendOnRequestTopic(
-		&dataRetriever.RequestData{
-			Type:  dataRetriever.HashType,
-			Value: hash,
-			Epoch: epoch,
-		},
-		[][]byte{hash},
-	)
-}
-
-// RequestDataFromHashArray requests validator info from other peers by hash array
-func (res *validatorInfoResolver) RequestDataFromHashArray(hashes [][]byte, epoch uint32) error {
-	b := &batch.Batch{
-		Data: hashes,
-	}
-	buffHashes, err := res.marshalizer.Marshal(b)
-	if err != nil {
-		return err
-	}
-
-	return res.SendOnRequestTopic(
-		&dataRetriever.RequestData{
-			Type:  dataRetriever.HashArrayType,
-			Value: buffHashes,
-			Epoch: epoch,
-		},
-		hashes,
-	)
 }
 
 // ProcessReceivedMessage represents the callback func from the p2p.Messenger that is called each time a new message is received
@@ -216,7 +184,7 @@ func (res *validatorInfoResolver) fetchValidatorInfoByteSlice(hash []byte, epoch
 
 	buff, err := res.getFromStorage(hash, epoch)
 	if err != nil {
-		res.ResolverDebugHandler().LogFailedToResolveData(
+		res.DebugHandler().LogFailedToResolveData(
 			res.topic,
 			hash,
 			err,
@@ -224,7 +192,7 @@ func (res *validatorInfoResolver) fetchValidatorInfoByteSlice(hash []byte, epoch
 		return nil, err
 	}
 
-	res.ResolverDebugHandler().LogSucceededToResolveData(res.topic, hash)
+	res.DebugHandler().LogSucceededToResolveData(res.topic, hash)
 
 	return buff, nil
 }
@@ -241,19 +209,9 @@ func (res *validatorInfoResolver) marshalAndSend(data []byte, pid core.PeerID) e
 	return res.Send(buff, pid)
 }
 
-// SetResolverDebugHandler sets a resolver debug handler
-func (res *validatorInfoResolver) SetResolverDebugHandler(handler dataRetriever.ResolverDebugHandler) error {
-	return res.TopicResolverSender.SetResolverDebugHandler(handler)
-}
-
-// SetNumPeersToQuery sets the number of intra shard and cross shard peers to query
-func (res *validatorInfoResolver) SetNumPeersToQuery(intra int, cross int) {
-	res.TopicResolverSender.SetNumPeersToQuery(intra, cross)
-}
-
-// NumPeersToQuery returns the number of intra shard and cross shard peers to query
-func (res *validatorInfoResolver) NumPeersToQuery() (int, int) {
-	return res.TopicResolverSender.NumPeersToQuery()
+// SetDebugHandler sets a debug handler
+func (res *validatorInfoResolver) SetDebugHandler(handler dataRetriever.DebugHandler) error {
+	return res.TopicResolverSender.SetDebugHandler(handler)
 }
 
 // Close returns nil

@@ -7,12 +7,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/outport/mock"
+	"github.com/multiversx/mx-chain-core-go/core/atomic"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-go/outport/mock"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -69,12 +69,12 @@ func TestOutport_SaveAccounts(t *testing.T) {
 		}
 	}
 
-	outportHandler.SaveAccounts(0, map[string]*outportcore.AlteredAccount{},0)
+	outportHandler.SaveAccounts(0, map[string]*outportcore.AlteredAccount{}, 0)
 	time.Sleep(time.Second)
 	_ = outportHandler.SubscribeDriver(driver1)
 	_ = outportHandler.SubscribeDriver(driver2)
 
-	outportHandler.SaveAccounts(0, map[string]*outportcore.AlteredAccount{},0)
+	outportHandler.SaveAccounts(0, map[string]*outportcore.AlteredAccount{}, 0)
 	time.Sleep(time.Second)
 
 	assert.Equal(t, 10, numCalled1)

@@ -1,7 +1,7 @@
 //go:build !race
 // +build !race
 
-// TODO remove build condition above to allow -race -short, after Arwen fix
+// TODO remove build condition above to allow -race -short, after Wasm VM fix
 
 package multiShard
 
@@ -9,10 +9,10 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
 )
 
@@ -39,7 +39,7 @@ func TestRelayedTxScCallMultiShardShouldWork(t *testing.T) {
 	require.Nil(t, err)
 	defer testContextInnerDst.Close()
 
-	pathToContract := "../../arwen/testdata/counter/output/counter.wasm"
+	pathToContract := "../../wasm/testdata/counter/output/counter.wasm"
 	scAddr, owner := utils.DoDeploy(t, testContextInnerDst, pathToContract)
 	testContextInnerDst.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
 	utils.CleanAccumulatedIntermediateTransactions(t, testContextInnerDst)
@@ -144,7 +144,7 @@ func TestRelayedTxScCallMultiShardFailOnInnerTxDst(t *testing.T) {
 	require.Nil(t, err)
 	defer testContextInnerDst.Close()
 
-	pathToContract := "../../arwen/testdata/counter/output/counter.wasm"
+	pathToContract := "../../wasm/testdata/counter/output/counter.wasm"
 	scAddr, owner := utils.DoDeploy(t, testContextInnerDst, pathToContract)
 	testContextInnerDst.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
 	utils.CleanAccumulatedIntermediateTransactions(t, testContextInnerDst)

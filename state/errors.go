@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 // ErrAccountNotFoundAtBlock is an error-compatible struct holding the block info at which an account was not found
@@ -144,3 +144,6 @@ var ErrNilTrieSyncer = errors.New("trie syncer is nil")
 
 // ErrNilSyncStatisticsHandler signals that a nil sync statistics handler was provided
 var ErrNilSyncStatisticsHandler = errors.New("nil sync statistics handler")
+
+// ErrNilAddressConverter signals that a nil address converter was provided
+var ErrNilAddressConverter = errors.New("nil address converter")

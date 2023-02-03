@@ -5,10 +5,10 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 var errNilValue = errors.New("nil value provided")

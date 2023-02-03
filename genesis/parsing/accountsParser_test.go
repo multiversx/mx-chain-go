@@ -8,19 +8,19 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	coreData "github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/outport"
-	scrData "github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
-	transactionData "github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/genesis"
-	"github.com/ElrondNetwork/elrond-go/genesis/data"
-	"github.com/ElrondNetwork/elrond-go/genesis/mock"
-	"github.com/ElrondNetwork/elrond-go/genesis/parsing"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	coreData "github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/outport"
+	scrData "github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	transactionData "github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/genesis"
+	"github.com/multiversx/mx-chain-go/genesis/data"
+	"github.com/multiversx/mx-chain-go/genesis/mock"
+	"github.com/multiversx/mx-chain-go/genesis/parsing"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -641,7 +641,7 @@ func TestAccountsParser_GenerateInitialTransactionsTxsPool(t *testing.T) {
 	miniBlocks, txsPoolPerShard, err := ap.GenerateInitialTransactions(sharder, indexingDataMap)
 	require.Nil(t, err)
 
-	assert.Equal(t, 9, len(miniBlocks))
+	assert.Equal(t, 2, len(miniBlocks))
 
 	assert.Equal(t, 3, len(txsPoolPerShard))
 	assert.Equal(t, 1, len(txsPoolPerShard[0].Txs))
@@ -734,7 +734,7 @@ func TestAccountsParser_GenerateInitialTransactionsVerifyTxsHashes(t *testing.T)
 	miniBlocks, txsPoolPerShard, err := ap.GenerateInitialTransactions(sharder, indexingDataMap)
 	require.Nil(t, err)
 
-	assert.Equal(t, 4, len(miniBlocks))
+	assert.Equal(t, 1, len(miniBlocks))
 	assert.Equal(t, 2, len(txsPoolPerShard))
 	assert.Equal(t, 1, len(txsPoolPerShard[0].Txs))
 

@@ -7,21 +7,21 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/common"
-	commonDisabled "github.com/ElrondNetwork/elrond-go/common/disabled"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/state/factory"
-	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/disabled"
-	"github.com/ElrondNetwork/elrond-go/trie"
-	triesFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
-	"github.com/ElrondNetwork/elrond-go/update"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	commonDisabled "github.com/multiversx/mx-chain-go/common/disabled"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/factory"
+	"github.com/multiversx/mx-chain-go/state/storagePruningManager/disabled"
+	"github.com/multiversx/mx-chain-go/trie"
+	triesFactory "github.com/multiversx/mx-chain-go/trie/factory"
+	"github.com/multiversx/mx-chain-go/update"
 )
 
 var _ update.ImportHandler = (*stateImport)(nil)
@@ -36,6 +36,7 @@ type ArgsNewStateImport struct {
 	StorageConfig       config.StorageConfig
 	TrieStorageManagers map[string]common.StorageManager
 	HardforkStorer      update.HardforkStorer
+	AddressConverter    core.PubkeyConverter
 }
 
 type stateImport struct {
@@ -54,6 +55,7 @@ type stateImport struct {
 	shardID             uint32
 	storageConfig       config.StorageConfig
 	trieStorageManagers map[string]common.StorageManager
+	addressConverter    core.PubkeyConverter
 }
 
 // NewStateImport creates an importer which reads all the files for a new start
@@ -70,6 +72,9 @@ func NewStateImport(args ArgsNewStateImport) (*stateImport, error) {
 	if check.IfNil(args.HardforkStorer) {
 		return nil, update.ErrNilHardforkStorer
 	}
+	if check.IfNil(args.AddressConverter) {
+		return nil, update.ErrNilAddressConverter
+	}
 
 	st := &stateImport{
 		genesisHeaders:               make(map[uint32]data.HeaderHandler),
@@ -85,6 +90,7 @@ func NewStateImport(args ArgsNewStateImport) (*stateImport, error) {
 		storageConfig:                args.StorageConfig,
 		shardID:                      args.ShardID,
 		hardforkStorer:               args.HardforkStorer,
+		addressConverter:             args.AddressConverter,
 	}
 
 	return st, nil
@@ -403,6 +409,7 @@ func (si *stateImport) getAccountsDB(accType Type, shardID uint32) (state.Accoun
 				ProcessingMode:        common.Normal,
 				ProcessStatusHandler:  commonDisabled.NewProcessStatusHandler(),
 				AppStatusHandler:      commonDisabled.NewAppStatusHandler(),
+				AddressConverter:      si.addressConverter,
 			}
 			accountsDB, errCreate := state.NewAccountsDB(argsAccountDB)
 			if errCreate != nil {
@@ -427,6 +434,7 @@ func (si *stateImport) getAccountsDB(accType Type, shardID uint32) (state.Accoun
 		ProcessingMode:        common.Normal,
 		ProcessStatusHandler:  commonDisabled.NewProcessStatusHandler(),
 		AppStatusHandler:      commonDisabled.NewAppStatusHandler(),
+		AddressConverter:      si.addressConverter,
 	}
 	accountsDB, err = state.NewAccountsDB(argsAccountDB)
 	si.accountDBsMap[shardID] = accountsDB

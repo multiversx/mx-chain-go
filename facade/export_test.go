@@ -1,7 +1,7 @@
 package facade
 
 import (
-	"github.com/ElrondNetwork/elrond-go/ntp"
+	"github.com/multiversx/mx-chain-go/ntp"
 )
 
 // GetSyncer returns the current syncer
