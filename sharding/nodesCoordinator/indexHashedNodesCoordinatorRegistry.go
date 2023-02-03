@@ -70,17 +70,9 @@ func GetNodesCoordinatorRegistry(
 	}
 
 	for epoch := int(lastEpoch) - 1; epoch >= minEpoch; epoch-- {
-		ncInternalkey := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), []byte(fmt.Sprint(epoch))...)
-		log.Debug("getting nodes coordinator config", "key", ncInternalkey)
-
-		epochConfigBytes, err := storer.SearchFirst(ncInternalkey)
+		err := setEpochConfigPerEpoch(epoch, epochsConfig, storer)
 		if err != nil {
-			return nil, err
-		}
-
-		err = updateEpochsConfig(epochsConfig, epochConfigBytes)
-		if err != nil {
-			return nil, err
+			log.Debug("failed to get nodes coordinator config for epoch", "epoch", epoch)
 		}
 	}
 
@@ -88,6 +80,27 @@ func GetNodesCoordinatorRegistry(
 		EpochsConfig: epochsConfig,
 		CurrentEpoch: lastEpoch,
 	}, nil
+}
+
+func setEpochConfigPerEpoch(
+	epoch int,
+	epochsConfig map[string]*EpochValidators,
+	storer storage.Storer,
+) error {
+	ncInternalkey := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), []byte(fmt.Sprint(epoch))...)
+	log.Debug("getting nodes coordinator config", "key", ncInternalkey)
+
+	epochConfigBytes, err := storer.SearchFirst(ncInternalkey)
+	if err != nil {
+		return err
+	}
+
+	err = updateEpochsConfig(epochsConfig, epochConfigBytes)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func updateEpochsConfig(epochsConfig map[string]*EpochValidators, epochConfig []byte) error {
