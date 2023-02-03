@@ -6,74 +6,70 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/alarm"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/nodetype"
-	"github.com/ElrondNetwork/elrond-go-core/core/versioning"
-	"github.com/ElrondNetwork/elrond-go-core/core/watchdog"
-	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
-	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
-	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters/uint64ByteSlice"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	hasherFactory "github.com/ElrondNetwork/elrond-go-core/hashing/factory"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	marshalizerFactory "github.com/ElrondNetwork/elrond-go-core/marshal/factory"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	nodeFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/common/enablers"
-	commonFactory "github.com/ElrondNetwork/elrond-go/common/factory"
-	"github.com/ElrondNetwork/elrond-go/common/forking"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/consensus/round"
-	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
-	"github.com/ElrondNetwork/elrond-go/errors"
-	factory "github.com/ElrondNetwork/elrond-go/factory"
-	"github.com/ElrondNetwork/elrond-go/node/metrics"
-	"github.com/ElrondNetwork/elrond-go/ntp"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/economics"
-	"github.com/ElrondNetwork/elrond-go/process/rating"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/alarm"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/nodetype"
+	"github.com/multiversx/mx-chain-core-go/core/versioning"
+	"github.com/multiversx/mx-chain-core-go/core/watchdog"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
+	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	hasherFactory "github.com/multiversx/mx-chain-core-go/hashing/factory"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	marshalizerFactory "github.com/multiversx/mx-chain-core-go/marshal/factory"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/enablers"
+	commonFactory "github.com/multiversx/mx-chain-go/common/factory"
+	"github.com/multiversx/mx-chain-go/common/forking"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/round"
+	"github.com/multiversx/mx-chain-go/epochStart/notifier"
+	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/ntp"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/economics"
+	"github.com/multiversx/mx-chain-go/process/rating"
+	"github.com/multiversx/mx-chain-go/process/smartContract"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/statusHandler"
+	"github.com/multiversx/mx-chain-go/storage"
+	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("factory")
 
 // CoreComponentsFactoryArgs holds the arguments needed for creating a core components factory
 type CoreComponentsFactoryArgs struct {
-	Config                config.Config
-	ConfigPathsHolder     config.ConfigurationPathsHolder
-	EpochConfig           config.EpochConfig
-	RoundConfig           config.RoundConfig
-	RatingsConfig         config.RatingsConfig
-	EconomicsConfig       config.EconomicsConfig
-	ImportDbConfig        config.ImportDbConfig
-	NodesFilename         string
-	WorkingDirectory      string
-	ChanStopNodeProcess   chan endProcess.ArgEndProcess
-	StatusHandlersFactory nodeFactory.StatusHandlerUtilsFactory
+	Config              config.Config
+	ConfigPathsHolder   config.ConfigurationPathsHolder
+	EpochConfig         config.EpochConfig
+	RoundConfig         config.RoundConfig
+	RatingsConfig       config.RatingsConfig
+	EconomicsConfig     config.EconomicsConfig
+	ImportDbConfig      config.ImportDbConfig
+	NodesFilename       string
+	WorkingDirectory    string
+	ChanStopNodeProcess chan endProcess.ArgEndProcess
 }
 
 // coreComponentsFactory is responsible for creating the core components
 type coreComponentsFactory struct {
-	config                config.Config
-	configPathsHolder     config.ConfigurationPathsHolder
-	epochConfig           config.EpochConfig
-	roundConfig           config.RoundConfig
-	ratingsConfig         config.RatingsConfig
-	economicsConfig       config.EconomicsConfig
-	importDbConfig        config.ImportDbConfig
-	nodesFilename         string
-	workingDir            string
-	chanStopNodeProcess   chan endProcess.ArgEndProcess
-	statusHandlersFactory nodeFactory.StatusHandlerUtilsFactory
+	config              config.Config
+	configPathsHolder   config.ConfigurationPathsHolder
+	epochConfig         config.EpochConfig
+	roundConfig         config.RoundConfig
+	ratingsConfig       config.RatingsConfig
+	economicsConfig     config.EconomicsConfig
+	importDbConfig      config.ImportDbConfig
+	nodesFilename       string
+	workingDir          string
+	chanStopNodeProcess chan endProcess.ArgEndProcess
 }
 
 // coreComponents is the DTO used for core components
@@ -86,7 +82,6 @@ type coreComponents struct {
 	uint64ByteSliceConverter      typeConverters.Uint64ByteSliceConverter
 	addressPubKeyConverter        core.PubkeyConverter
 	validatorPubKeyConverter      core.PubkeyConverter
-	statusHandlersUtils           nodeFactory.StatusHandlersUtils
 	pathHandler                   storage.PathManagerHandler
 	syncTimer                     ntp.SyncTimer
 	roundHandler                  consensus.RoundHandler
@@ -109,7 +104,7 @@ type coreComponents struct {
 	chanStopNodeProcess           chan endProcess.ArgEndProcess
 	nodeTypeProvider              core.NodeTypeProviderHandler
 	encodedAddressLen             uint32
-	arwenChangeLocker             common.Locker
+	wasmVMChangeLocker            common.Locker
 	processStatusHandler          common.ProcessStatusHandler
 	hardforkTriggerPubKey         []byte
 	enableEpochsHandler           common.EnableEpochsHandler
@@ -118,17 +113,16 @@ type coreComponents struct {
 // NewCoreComponentsFactory initializes the factory which is responsible to creating core components
 func NewCoreComponentsFactory(args CoreComponentsFactoryArgs) (*coreComponentsFactory, error) {
 	return &coreComponentsFactory{
-		config:                args.Config,
-		configPathsHolder:     args.ConfigPathsHolder,
-		epochConfig:           args.EpochConfig,
-		roundConfig:           args.RoundConfig,
-		ratingsConfig:         args.RatingsConfig,
-		importDbConfig:        args.ImportDbConfig,
-		economicsConfig:       args.EconomicsConfig,
-		workingDir:            args.WorkingDirectory,
-		chanStopNodeProcess:   args.ChanStopNodeProcess,
-		nodesFilename:         args.NodesFilename,
-		statusHandlersFactory: args.StatusHandlersFactory,
+		config:              args.Config,
+		configPathsHolder:   args.ConfigPathsHolder,
+		epochConfig:         args.EpochConfig,
+		roundConfig:         args.RoundConfig,
+		ratingsConfig:       args.RatingsConfig,
+		importDbConfig:      args.ImportDbConfig,
+		economicsConfig:     args.EconomicsConfig,
+		workingDir:          args.WorkingDirectory,
+		chanStopNodeProcess: args.ChanStopNodeProcess,
+		nodesFilename:       args.NodesFilename,
 	}, nil
 }
 
@@ -248,13 +242,13 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, err
 	}
 
-	arwenChangeLocker := &sync.RWMutex{}
+	wasmVMChangeLocker := &sync.RWMutex{}
 	gasScheduleConfigurationFolderName := ccf.configPathsHolder.GasScheduleDirectoryName
 	argsGasScheduleNotifier := forking.ArgsNewGasScheduleNotifier{
-		GasScheduleConfig: ccf.epochConfig.GasSchedule,
-		ConfigDir:         gasScheduleConfigurationFolderName,
-		EpochNotifier:     epochNotifier,
-		ArwenChangeLocker: arwenChangeLocker,
+		GasScheduleConfig:  ccf.epochConfig.GasSchedule,
+		ConfigDir:          gasScheduleConfigurationFolderName,
+		EpochNotifier:      epochNotifier,
+		WasmVMChangeLocker: wasmVMChangeLocker,
 	}
 	gasScheduleNotifier, err := forking.NewGasScheduleNotifier(argsGasScheduleNotifier)
 	if err != nil {
@@ -305,31 +299,6 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, err
 	}
 
-	statusHandlersInfo, err := ccf.statusHandlersFactory.Create(internalMarshalizer, uint64ByteSliceConverter)
-	if err != nil {
-		return nil, err
-	}
-
-	err = metrics.InitBaseMetrics(statusHandlersInfo)
-	if err != nil {
-		return nil, err
-	}
-
-	err = metrics.InitConfigMetrics(statusHandlersInfo, ccf.epochConfig, ccf.economicsConfig, genesisNodesConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	err = metrics.InitRatingsMetrics(statusHandlersInfo, ccf.ratingsConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	err = economicsData.SetStatusHandler(statusHandlersInfo.StatusHandler())
-	if err != nil {
-		log.Debug("cannot set status handler to economicsData", "error", err)
-	}
-
 	argsNodesShuffler := &nodesCoordinator.NodesShufflerArgs{
 		NodesShard:           genesisNodesConfig.MinNumberOfShardNodes(),
 		NodesMeta:            genesisNodesConfig.MinNumberOfMetaNodes(),
@@ -365,7 +334,6 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		uint64ByteSliceConverter:      uint64ByteSliceConverter,
 		addressPubKeyConverter:        addressPubkeyConverter,
 		validatorPubKeyConverter:      validatorPubkeyConverter,
-		statusHandlersUtils:           statusHandlersInfo,
 		pathHandler:                   pathHandler,
 		syncTimer:                     syncer,
 		roundHandler:                  roundHandler,
@@ -388,7 +356,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		chanStopNodeProcess:           ccf.chanStopNodeProcess,
 		encodedAddressLen:             computeEncodedAddressLen(addressPubkeyConverter),
 		nodeTypeProvider:              nodeTypeProvider,
-		arwenChangeLocker:             arwenChangeLocker,
+		wasmVMChangeLocker:            wasmVMChangeLocker,
 		processStatusHandler:          statusHandler.NewProcessStatusHandler(),
 		hardforkTriggerPubKey:         pubKeyBytes,
 		enableEpochsHandler:           enableEpochsHandler,
@@ -397,9 +365,6 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 
 // Close closes all underlying components
 func (cc *coreComponents) Close() error {
-	if !check.IfNil(cc.statusHandlersUtils) {
-		cc.statusHandlersUtils.StatusHandler().Close()
-	}
 	if !check.IfNil(cc.alarmScheduler) {
 		cc.alarmScheduler.Close()
 	}

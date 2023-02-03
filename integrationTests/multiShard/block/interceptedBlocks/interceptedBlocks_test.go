@@ -6,12 +6,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	testBlock "github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/block"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	testBlock "github.com/multiversx/mx-chain-go/integrationTests/multiShard/block"
+	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -82,7 +82,7 @@ func TestHeaderAndMiniBlocksAreRoutedCorrectly(t *testing.T) {
 }
 
 // TestMetaHeadersAreRequsted tests the metaheader request to be made towards any peer
-// The test will have 2 shards and meta, one shard node will request a metaheader and it should received it only from
+// The test will have 2 shards and meta, one shard node will request a metaheader, and it should receive it only from
 // the meta node
 func TestMetaHeadersAreRequsted(t *testing.T) {
 	if testing.Short() {
@@ -278,7 +278,7 @@ func requestAndRetrieveMetaHeader(
 	chanReceived chan struct{},
 ) *block.MetaBlock {
 
-	resolver, _ := node.ResolverFinder.MetaChainResolver(factory.MetachainBlocksTopic)
+	resolver, _ := node.RequestersFinder.MetaChainRequester(factory.MetachainBlocksTopic)
 	_ = resolver.RequestDataFromHash(hash, 0)
 
 	select {

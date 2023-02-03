@@ -3,9 +3,11 @@ package status_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/factory/mock"
-	statusComp "github.com/ElrondNetwork/elrond-go/factory/status"
-	componentsMock "github.com/ElrondNetwork/elrond-go/testscommon/components"
+	"github.com/multiversx/mx-chain-go/factory/mock"
+	statusComp "github.com/multiversx/mx-chain-go/factory/status"
+	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
+	"github.com/multiversx/mx-chain-go/testscommon/factory"
+	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/require"
 )
 
@@ -18,14 +20,16 @@ func TestManagedStatusComponents_CreateWithInvalidArgsShouldErr(t *testing.T) {
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	statusArgs, _ := componentsMock.GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator)
-	coreComponents := componentsMock.GetDefaultCoreComponents()
-	statusArgs.CoreComponents = coreComponents
+	statusCoreComponents := &factory.StatusCoreComponentsStub{
+		AppStatusHandlerField: &statusHandler.AppStatusHandlerStub{},
+	}
+	statusArgs.StatusCoreComponents = statusCoreComponents
 
 	statusComponentsFactory, _ := statusComp.NewStatusComponentsFactory(statusArgs)
 	managedStatusComponents, err := statusComp.NewManagedStatusComponents(statusComponentsFactory)
 	require.NoError(t, err)
 
-	coreComponents.AppStatusHdl = nil
+	statusCoreComponents.AppStatusHandlerField = nil
 	err = managedStatusComponents.Create()
 	require.Error(t, err)
 }

@@ -1,7 +1,7 @@
 [
   {
     "owner": "erd16grmckn46ry7fwyvass8e8pz88klazzpc0c5f0pnrv643td4797sgnvjkm",
-    "filename": "elrond-wasm-sc-dns-0.34.0.wasm",
+    "filename": "dns.wasm",
     "vm-type": "0500",
     "init-parameters": "64",
     "type": "dns",

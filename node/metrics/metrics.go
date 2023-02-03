@@ -5,11 +5,11 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/sharding"
 )
 
 const millisecondsInSecond = 1000
@@ -18,19 +18,12 @@ const initInt = int64(0)
 const initString = ""
 const initZeroString = "0"
 
-// StatusHandlersUtils provides some functionality for statusHandlers
-type StatusHandlersUtils interface {
-	StatusHandler() core.AppStatusHandler
-	IsInterfaceNil() bool
-}
-
 // InitBaseMetrics will initialize base, default metrics to 0 values
-func InitBaseMetrics(statusHandlerUtils StatusHandlersUtils) error {
-	if check.IfNil(statusHandlerUtils) {
-		return ErrNilStatusHandlerUtils
+func InitBaseMetrics(appStatusHandler core.AppStatusHandler) error {
+	if check.IfNil(appStatusHandler) {
+		return ErrNilAppStatusHandler
 	}
 
-	appStatusHandler := statusHandlerUtils.StatusHandler()
 	appStatusHandler.SetUInt64Value(common.MetricSynchronizedRound, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricNonce, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricCountConsensus, initUint)
@@ -52,6 +45,10 @@ func InitBaseMetrics(statusHandlerUtils StatusHandlersUtils) error {
 	appStatusHandler.SetUInt64Value(common.MetricNumConnectedPeers, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricEpochForEconomicsData, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricAccountsSnapshotNumNodes, initUint)
+	appStatusHandler.SetUInt64Value(common.MetricTrieSyncNumProcessedNodes, initUint)
+	appStatusHandler.SetUInt64Value(common.MetricTrieSyncNumReceivedBytes, initUint)
+	appStatusHandler.SetUInt64Value(common.MetricAccountsSnapshotInProgress, initUint)
+	appStatusHandler.SetUInt64Value(common.MetricPeersSnapshotInProgress, initUint)
 
 	appStatusHandler.SetInt64Value(common.MetricLastAccountsSnapshotDurationSec, initInt)
 	appStatusHandler.SetInt64Value(common.MetricLastPeersSnapshotDurationSec, initInt)
@@ -70,8 +67,6 @@ func InitBaseMetrics(statusHandlerUtils StatusHandlersUtils) error {
 	appStatusHandler.SetStringValue(common.MetricP2PCrossShardObservers, initString)
 	appStatusHandler.SetStringValue(common.MetricP2PFullHistoryObservers, initString)
 	appStatusHandler.SetStringValue(common.MetricP2PUnknownPeers, initString)
-	appStatusHandler.SetStringValue(common.MetricAccountsSnapshotInProgress, initString)
-	appStatusHandler.SetStringValue(common.MetricPeersSnapshotInProgress, initString)
 
 	appStatusHandler.SetStringValue(common.MetricInflation, initZeroString)
 	appStatusHandler.SetStringValue(common.MetricDevRewardsInEpoch, initZeroString)
@@ -82,17 +77,16 @@ func InitBaseMetrics(statusHandlerUtils StatusHandlersUtils) error {
 
 // InitConfigMetrics will init the "enable epochs" configuration metrics from epoch config
 func InitConfigMetrics(
-	statusHandlerUtils StatusHandlersUtils,
+	appStatusHandler core.AppStatusHandler,
 	epochConfig config.EpochConfig,
 	economicsConfig config.EconomicsConfig,
 	genesisNodesConfig sharding.GenesisNodesSetupHandler,
 ) error {
-	if check.IfNil(statusHandlerUtils) {
-		return ErrNilStatusHandlerUtils
+	if check.IfNil(appStatusHandler) {
+		return ErrNilAppStatusHandler
 	}
 
 	enableEpochs := epochConfig.EnableEpochs
-	appStatusHandler := statusHandlerUtils.StatusHandler()
 
 	appStatusHandler.SetUInt64Value(common.MetricScDeployEnableEpoch, uint64(enableEpochs.SCDeployEnableEpoch))
 	appStatusHandler.SetUInt64Value(common.MetricBuiltInFunctionsEnableEpoch, uint64(enableEpochs.BuiltInFunctionsEnableEpoch))
@@ -150,12 +144,10 @@ func InitConfigMetrics(
 }
 
 // InitRatingsMetrics will init the ratings configuration metrics
-func InitRatingsMetrics(statusHandlerUtils StatusHandlersUtils, ratingsConfig config.RatingsConfig) error {
-	if check.IfNil(statusHandlerUtils) {
-		return ErrNilStatusHandlerUtils
+func InitRatingsMetrics(appStatusHandler core.AppStatusHandler, ratingsConfig config.RatingsConfig) error {
+	if check.IfNil(appStatusHandler) {
+		return ErrNilAppStatusHandler
 	}
-
-	appStatusHandler := statusHandlerUtils.StatusHandler()
 
 	appStatusHandler.SetUInt64Value(common.MetricRatingsGeneralStartRating, uint64(ratingsConfig.General.StartRating))
 	appStatusHandler.SetUInt64Value(common.MetricRatingsGeneralMaxRating, uint64(ratingsConfig.General.MaxRating))
@@ -193,7 +185,7 @@ func InitRatingsMetrics(statusHandlerUtils StatusHandlersUtils, ratingsConfig co
 
 // InitMetrics will init metrics for status handler
 func InitMetrics(
-	statusHandlerUtils StatusHandlersUtils,
+	appStatusHandler core.AppStatusHandler,
 	pubkeyStr string,
 	nodeType core.NodeType,
 	shardCoordinator sharding.Coordinator,
@@ -203,8 +195,8 @@ func InitMetrics(
 	roundsPerEpoch int64,
 	minTransactionVersion uint32,
 ) error {
-	if check.IfNil(statusHandlerUtils) {
-		return ErrNilStatusHandlerUtils
+	if check.IfNil(appStatusHandler) {
+		return ErrNilAppStatusHandler
 	}
 	if check.IfNil(shardCoordinator) {
 		return fmt.Errorf("nil shard coordinator when initializing metrics")
@@ -220,8 +212,6 @@ func InitMetrics(
 	numOfShards := uint64(shardCoordinator.NumberOfShards())
 	roundDuration := nodesConfig.GetRoundDuration()
 	isSyncing := uint64(1)
-
-	appStatusHandler := statusHandlerUtils.StatusHandler()
 
 	leaderPercentage := float64(0)
 	rewardsConfigs := make([]config.EpochRewardSettings, len(economicsConfig.RewardsSettings.RewardsConfigByEpoch))
@@ -275,7 +265,7 @@ func InitMetrics(
 	return nil
 }
 
-// SaveUint64Metric will save a uint64 metric in status handler
+// SaveUint64Metric will save an uint64 metric in status handler
 func SaveUint64Metric(ash core.AppStatusHandler, key string, value uint64) {
 	ash.SetUInt64Value(key, value)
 }

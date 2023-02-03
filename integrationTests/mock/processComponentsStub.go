@@ -1,16 +1,17 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/factory"
-	"github.com/ElrondNetwork/elrond-go/genesis"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/update"
+	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dblookupext"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/genesis"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/update"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // ProcessComponentsStub -
@@ -18,7 +19,8 @@ type ProcessComponentsStub struct {
 	NodesCoord                           nodesCoordinator.NodesCoordinator
 	ShardCoord                           sharding.Coordinator
 	IntContainer                         process.InterceptorsContainer
-	ResFinder                            dataRetriever.ResolversFinder
+	ResContainer                         dataRetriever.ResolversContainer
+	ReqFinder                            dataRetriever.RequestersFinder
 	RoundHandlerField                    consensus.RoundHandler
 	EpochTrigger                         epochStart.TriggerHandler
 	EpochNotifier                        factory.EpochStartNotifier
@@ -51,6 +53,7 @@ type ProcessComponentsStub struct {
 	HardforkTriggerField                 factory.HardforkTrigger
 	ProcessedMiniBlocksTrackerInternal   process.ProcessedMiniBlocksTracker
 	ReceiptsRepositoryInternal           factory.ReceiptsRepository
+	ESDTDataStorageHandlerForAPIInternal vmcommon.ESDTNFTStorageHandler
 }
 
 // Create -
@@ -83,9 +86,14 @@ func (pcs *ProcessComponentsStub) InterceptorsContainer() process.InterceptorsCo
 	return pcs.IntContainer
 }
 
-// ResolversFinder -
-func (pcs *ProcessComponentsStub) ResolversFinder() dataRetriever.ResolversFinder {
-	return pcs.ResFinder
+// ResolversContainer -
+func (pcs *ProcessComponentsStub) ResolversContainer() dataRetriever.ResolversContainer {
+	return pcs.ResContainer
+}
+
+// RequestersFinder -
+func (pcs *ProcessComponentsStub) RequestersFinder() dataRetriever.RequestersFinder {
+	return pcs.ReqFinder
 }
 
 // RoundHandler -
@@ -251,6 +259,11 @@ func (pcs *ProcessComponentsStub) ProcessedMiniBlocksTracker() process.Processed
 // ReceiptsRepository -
 func (pcs *ProcessComponentsStub) ReceiptsRepository() factory.ReceiptsRepository {
 	return pcs.ReceiptsRepositoryInternal
+}
+
+// ESDTDataStorageHandlerForAPI -
+func (pcs *ProcessComponentsStub) ESDTDataStorageHandlerForAPI() vmcommon.ESDTNFTStorageHandler {
+	return pcs.ESDTDataStorageHandlerForAPIInternal
 }
 
 // IsInterfaceNil -

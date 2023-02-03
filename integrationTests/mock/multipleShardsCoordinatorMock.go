@@ -6,18 +6,20 @@ import (
 
 type multipleShardsCoordinatorMock struct {
 	ComputeIdCalled func(address []byte) uint32
-	noShards        uint32
+	numShards       uint32
 	CurrentShard    uint32
 }
 
 // NewMultiShardsCoordinatorMock -
-func NewMultiShardsCoordinatorMock(nrShard uint32) *multipleShardsCoordinatorMock {
-	return &multipleShardsCoordinatorMock{noShards: nrShard}
+func NewMultiShardsCoordinatorMock(numShard uint32) *multipleShardsCoordinatorMock {
+	return &multipleShardsCoordinatorMock{
+		numShards: numShard,
+	}
 }
 
 // NumberOfShards -
 func (scm *multipleShardsCoordinatorMock) NumberOfShards() uint32 {
-	return scm.noShards
+	return scm.numShards
 }
 
 // ComputeId -
@@ -45,8 +47,8 @@ func (scm *multipleShardsCoordinatorMock) SameShard(_, _ []byte) bool {
 }
 
 // SetNoShards -
-func (scm *multipleShardsCoordinatorMock) SetNoShards(noShards uint32) {
-	scm.noShards = noShards
+func (scm *multipleShardsCoordinatorMock) SetNoShards(numShards uint32) {
+	scm.numShards = numShards
 }
 
 // CommunicationIdentifier returns the identifier between current shard ID and destination shard ID

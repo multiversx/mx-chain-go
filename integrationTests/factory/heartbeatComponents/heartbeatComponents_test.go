@@ -5,13 +5,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
-	"github.com/ElrondNetwork/elrond-go/common/forking"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	bootstrapComp "github.com/ElrondNetwork/elrond-go/factory/bootstrap"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/factory"
-	"github.com/ElrondNetwork/elrond-go/node"
-	"github.com/ElrondNetwork/elrond-go/testscommon/goroutines"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/multiversx/mx-chain-go/common/forking"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	bootstrapComp "github.com/multiversx/mx-chain-go/factory/bootstrap"
+	"github.com/multiversx/mx-chain-go/integrationTests/factory"
+	"github.com/multiversx/mx-chain-go/node"
+	"github.com/multiversx/mx-chain-go/testscommon/goroutines"
 	"github.com/stretchr/testify/require"
 )
 
@@ -21,30 +21,29 @@ func TestHeartbeatComponents_Close_ShouldWork(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	defer factory.CleanupWorkingDir()
 	time.Sleep(time.Second * 4)
 
 	gc := goroutines.NewGoCounter(goroutines.TestsRelevantGoRoutines)
 	idxInitial, _ := gc.Snapshot()
 	factory.PrintStack()
 
-	configs := factory.CreateDefaultConfig()
+	configs := factory.CreateDefaultConfig(t)
 	chanStopNodeProcess := make(chan endProcess.ArgEndProcess)
 	nr, err := node.NewNodeRunner(configs)
 	require.Nil(t, err)
-	managedStatusCoreComponents, err := nr.CreateManagedStatusCoreComponents()
-	require.Nil(t, err)
 	managedCoreComponents, err := nr.CreateManagedCoreComponents(chanStopNodeProcess)
+	require.Nil(t, err)
+	managedStatusCoreComponents, err := nr.CreateManagedStatusCoreComponents(managedCoreComponents)
 	require.Nil(t, err)
 	managedCryptoComponents, err := nr.CreateManagedCryptoComponents(managedCoreComponents)
 	require.Nil(t, err)
-	managedNetworkComponents, err := nr.CreateManagedNetworkComponents(managedCoreComponents)
+	managedNetworkComponents, err := nr.CreateManagedNetworkComponents(managedCoreComponents, managedStatusCoreComponents, managedCryptoComponents)
 	require.Nil(t, err)
 	managedBootstrapComponents, err := nr.CreateManagedBootstrapComponents(managedStatusCoreComponents, managedCoreComponents, managedCryptoComponents, managedNetworkComponents)
 	require.Nil(t, err)
-	managedDataComponents, err := nr.CreateManagedDataComponents(managedCoreComponents, managedBootstrapComponents)
+	managedDataComponents, err := nr.CreateManagedDataComponents(managedStatusCoreComponents, managedCoreComponents, managedBootstrapComponents)
 	require.Nil(t, err)
-	managedStateComponents, err := nr.CreateManagedStateComponents(managedCoreComponents, managedBootstrapComponents, managedDataComponents)
+	managedStateComponents, err := nr.CreateManagedStateComponents(managedCoreComponents, managedBootstrapComponents, managedDataComponents, managedStatusCoreComponents)
 	require.Nil(t, err)
 	nodesShufflerOut, err := bootstrapComp.CreateNodesShuffleOut(managedCoreComponents.GenesisNodesSetup(), configs.GeneralConfig.EpochStartConfig, managedCoreComponents.ChanStopNodeProcess())
 	require.Nil(t, err)
@@ -83,10 +82,10 @@ func TestHeartbeatComponents_Close_ShouldWork(t *testing.T) {
 	require.Nil(t, err)
 
 	argsGasScheduleNotifier := forking.ArgsNewGasScheduleNotifier{
-		GasScheduleConfig: configs.EpochConfig.GasSchedule,
-		ConfigDir:         configs.ConfigurationPathsHolder.GasScheduleDirectoryName,
-		EpochNotifier:     managedCoreComponents.EpochNotifier(),
-		ArwenChangeLocker: managedCoreComponents.ArwenChangeLocker(),
+		GasScheduleConfig:  configs.EpochConfig.GasSchedule,
+		ConfigDir:          configs.ConfigurationPathsHolder.GasScheduleDirectoryName,
+		EpochNotifier:      managedCoreComponents.EpochNotifier(),
+		WasmVMChangeLocker: managedCoreComponents.WasmVMChangeLocker(),
 	}
 	gasScheduleNotifier, err := forking.NewGasScheduleNotifier(argsGasScheduleNotifier)
 	require.Nil(t, err)
@@ -99,6 +98,7 @@ func TestHeartbeatComponents_Close_ShouldWork(t *testing.T) {
 		managedStateComponents,
 		managedDataComponents,
 		managedStatusComponents,
+		managedStatusCoreComponents,
 		gasScheduleNotifier,
 		nodesCoordinator,
 	)
@@ -109,7 +109,14 @@ func TestHeartbeatComponents_Close_ShouldWork(t *testing.T) {
 	err = managedStatusComponents.StartPolling()
 	require.Nil(t, err)
 
-	managedHeartbeatComponents, err := nr.CreateManagedHeartbeatV2Components(managedBootstrapComponents, managedCoreComponents, managedNetworkComponents, managedCryptoComponents, managedDataComponents, managedProcessComponents)
+	managedHeartbeatComponents, err := nr.CreateManagedHeartbeatV2Components(
+		managedBootstrapComponents,
+		managedCoreComponents,
+		managedNetworkComponents,
+		managedCryptoComponents,
+		managedDataComponents,
+		managedProcessComponents,
+		managedStatusCoreComponents)
 	require.Nil(t, err)
 	require.NotNil(t, managedHeartbeatComponents)
 
@@ -131,9 +138,9 @@ func TestHeartbeatComponents_Close_ShouldWork(t *testing.T) {
 	require.Nil(t, err)
 	err = managedCryptoComponents.Close()
 	require.Nil(t, err)
-	err = managedCoreComponents.Close()
-	require.Nil(t, err)
 	err = managedStatusCoreComponents.Close()
+	require.Nil(t, err)
+	err = managedCoreComponents.Close()
 	require.Nil(t, err)
 
 	time.Sleep(5 * time.Second)

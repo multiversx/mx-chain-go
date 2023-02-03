@@ -5,44 +5,44 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
-	commonFactory "github.com/ElrondNetwork/elrond-go/common/factory"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
-	"github.com/ElrondNetwork/elrond-go/factory"
-	bootstrapComp "github.com/ElrondNetwork/elrond-go/factory/bootstrap"
-	consensusComp "github.com/ElrondNetwork/elrond-go/factory/consensus"
-	coreComp "github.com/ElrondNetwork/elrond-go/factory/core"
-	cryptoComp "github.com/ElrondNetwork/elrond-go/factory/crypto"
-	dataComp "github.com/ElrondNetwork/elrond-go/factory/data"
-	"github.com/ElrondNetwork/elrond-go/factory/mock"
-	networkComp "github.com/ElrondNetwork/elrond-go/factory/network"
-	processComp "github.com/ElrondNetwork/elrond-go/factory/processing"
-	stateComp "github.com/ElrondNetwork/elrond-go/factory/state"
-	statusComp "github.com/ElrondNetwork/elrond-go/factory/status"
-	"github.com/ElrondNetwork/elrond-go/factory/statusCore"
-	"github.com/ElrondNetwork/elrond-go/genesis"
-	"github.com/ElrondNetwork/elrond-go/genesis/data"
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	p2pConfig "github.com/ElrondNetwork/elrond-go/p2p/config"
-	p2pFactory "github.com/ElrondNetwork/elrond-go/p2p/factory"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
-	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
-	"github.com/ElrondNetwork/elrond-go/trie"
-	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
-	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
-	arwenConfig "github.com/ElrondNetwork/wasm-vm/config"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-go/common"
+	commonFactory "github.com/multiversx/mx-chain-go/common/factory"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
+	"github.com/multiversx/mx-chain-go/factory"
+	bootstrapComp "github.com/multiversx/mx-chain-go/factory/bootstrap"
+	consensusComp "github.com/multiversx/mx-chain-go/factory/consensus"
+	coreComp "github.com/multiversx/mx-chain-go/factory/core"
+	cryptoComp "github.com/multiversx/mx-chain-go/factory/crypto"
+	dataComp "github.com/multiversx/mx-chain-go/factory/data"
+	"github.com/multiversx/mx-chain-go/factory/mock"
+	networkComp "github.com/multiversx/mx-chain-go/factory/network"
+	processComp "github.com/multiversx/mx-chain-go/factory/processing"
+	stateComp "github.com/multiversx/mx-chain-go/factory/state"
+	statusComp "github.com/multiversx/mx-chain-go/factory/status"
+	"github.com/multiversx/mx-chain-go/factory/statusCore"
+	"github.com/multiversx/mx-chain-go/genesis"
+	"github.com/multiversx/mx-chain-go/genesis/data"
+	"github.com/multiversx/mx-chain-go/p2p"
+	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
+	p2pFactory "github.com/multiversx/mx-chain-go/p2p/factory"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
+	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
+	"github.com/multiversx/mx-chain-go/trie"
+	trieFactory "github.com/multiversx/mx-chain-go/trie/factory"
+	"github.com/multiversx/mx-chain-go/trie/hashesHolder"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 	"github.com/stretchr/testify/require"
 )
 
@@ -77,12 +77,11 @@ func GetCoreArgs() coreComp.CoreComponentsFactoryArgs {
 		ConfigPathsHolder: config.ConfigurationPathsHolder{
 			GasScheduleDirectoryName: "../../cmd/node/config/gasSchedules",
 		},
-		RatingsConfig:         CreateDummyRatingsConfig(),
-		EconomicsConfig:       CreateDummyEconomicsConfig(),
-		NodesFilename:         "../mock/testdata/nodesSetupMock.json",
-		WorkingDirectory:      "home",
-		ChanStopNodeProcess:   make(chan endProcess.ArgEndProcess),
-		StatusHandlersFactory: &statusHandlerMock.StatusHandlersFactoryMock{},
+		RatingsConfig:       CreateDummyRatingsConfig(),
+		EconomicsConfig:     CreateDummyEconomicsConfig(),
+		NodesFilename:       "../mock/testdata/nodesSetupMock.json",
+		WorkingDirectory:    "home",
+		ChanStopNodeProcess: make(chan endProcess.ArgEndProcess),
 		EpochConfig: config.EpochConfig{
 			GasSchedule: config.GasScheduleConfig{
 				GasScheduleByEpochs: []config.GasScheduleByEpochs{
@@ -104,18 +103,38 @@ func GetCoreArgs() coreComp.CoreComponentsFactoryArgs {
 }
 
 // GetStatusCoreArgs -
-func GetStatusCoreArgs() statusCore.StatusCoreComponentsFactoryArgs {
+func GetStatusCoreArgs(coreComponents factory.CoreComponentsHolder) statusCore.StatusCoreComponentsFactoryArgs {
 	return statusCore.StatusCoreComponentsFactoryArgs{
 		Config: GetGeneralConfig(),
+		EpochConfig: config.EpochConfig{
+			GasSchedule: config.GasScheduleConfig{
+				GasScheduleByEpochs: []config.GasScheduleByEpochs{
+					{
+						StartEpoch: 0,
+						FileName:   "gasScheduleV1.toml",
+					},
+				},
+			},
+		},
+		RoundConfig: config.RoundConfig{
+			RoundActivations: map[string]config.ActivationRoundByName{
+				"Example": {
+					Round: "18446744073709551615",
+				},
+			},
+		},
+		RatingsConfig:   CreateDummyRatingsConfig(),
+		EconomicsConfig: CreateDummyEconomicsConfig(),
+		CoreComp:        coreComponents,
 	}
 }
 
 // GetConsensusArgs -
 func GetConsensusArgs(shardCoordinator sharding.Coordinator) consensusComp.ConsensusComponentsFactoryArgs {
 	coreComponents := GetCoreComponents()
-	networkComponents := GetNetworkComponents()
-	stateComponents := GetStateComponents(coreComponents, shardCoordinator)
 	cryptoComponents := GetCryptoComponents(coreComponents)
+	networkComponents := GetNetworkComponents(cryptoComponents)
+	stateComponents := GetStateComponents(coreComponents, shardCoordinator)
 	dataComponents := GetDataComponents(coreComponents, shardCoordinator)
 	processComponents := GetProcessComponents(
 		shardCoordinator,
@@ -142,16 +161,17 @@ func GetConsensusArgs(shardCoordinator sharding.Coordinator) consensusComp.Conse
 	scheduledProcessor, _ := spos.NewScheduledProcessorWrapper(args)
 
 	return consensusComp.ConsensusComponentsFactoryArgs{
-		Config:              testscommon.GetGeneralConfig(),
-		BootstrapRoundIndex: 0,
-		CoreComponents:      coreComponents,
-		NetworkComponents:   networkComponents,
-		CryptoComponents:    cryptoComponents,
-		DataComponents:      dataComponents,
-		ProcessComponents:   processComponents,
-		StateComponents:     stateComponents,
-		StatusComponents:    statusComponents,
-		ScheduledProcessor:  scheduledProcessor,
+		Config:               testscommon.GetGeneralConfig(),
+		BootstrapRoundIndex:  0,
+		CoreComponents:       coreComponents,
+		NetworkComponents:    networkComponents,
+		CryptoComponents:     cryptoComponents,
+		DataComponents:       dataComponents,
+		ProcessComponents:    processComponents,
+		StateComponents:      stateComponents,
+		StatusComponents:     statusComponents,
+		StatusCoreComponents: GetStatusCoreComponents(),
+		ScheduledProcessor:   scheduledProcessor,
 	}
 }
 
@@ -194,6 +214,7 @@ func GetDataArgs(coreComponents factory.CoreComponentsHolder, shardCoordinator s
 		},
 		ShardCoordinator:              shardCoordinator,
 		Core:                          coreComponents,
+		StatusCore:                    GetStatusCoreComponents(),
 		EpochStartNotifier:            &mock.EpochStartNotifierStub{},
 		CurrentEpoch:                  0,
 		CreateTrieEpochRootHashStorer: false,
@@ -270,6 +291,8 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 
 	appStatusHandler := statusHandlerMock.NewAppStatusHandlerMock()
 
+	cryptoCompMock := GetDefaultCryptoComponents()
+
 	return networkComp.NetworkComponentsFactoryArgs{
 		P2pConfig:     p2pCfg,
 		MainConfig:    mainConfig,
@@ -290,6 +313,7 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 		},
 		Syncer:            &p2pFactory.LocalSyncTimer{},
 		NodeOperationMode: p2p.NormalOperation,
+		CryptoComponents:  cryptoCompMock,
 	}
 }
 
@@ -326,6 +350,7 @@ func GetStateFactoryArgs(coreComponents factory.CoreComponentsHolder, shardCoord
 		Config:           GetGeneralConfig(),
 		ShardCoordinator: shardCoordinator,
 		Core:             coreComponents,
+		StatusCore:       GetStatusCoreComponents(),
 		StorageService:   disabled.NewChainStorer(),
 		ProcessingMode:   common.Normal,
 		ChainHandler:     &testscommon.ChainHandlerStub{},
@@ -337,9 +362,9 @@ func GetStateFactoryArgs(coreComponents factory.CoreComponentsHolder, shardCoord
 // GetProcessComponentsFactoryArgs -
 func GetProcessComponentsFactoryArgs(shardCoordinator sharding.Coordinator) processComp.ProcessComponentsFactoryArgs {
 	coreComponents := GetCoreComponents()
-	networkComponents := GetNetworkComponents()
-	dataComponents := GetDataComponents(coreComponents, shardCoordinator)
 	cryptoComponents := GetCryptoComponents(coreComponents)
+	networkComponents := GetNetworkComponents(cryptoComponents)
+	dataComponents := GetDataComponents(coreComponents, shardCoordinator)
 	stateComponents := GetStateComponents(coreComponents, shardCoordinator)
 	processArgs := GetProcessArgs(
 		shardCoordinator,
@@ -355,8 +380,8 @@ func GetProcessComponentsFactoryArgs(shardCoordinator sharding.Coordinator) proc
 //GetBootStrapFactoryArgs -
 func GetBootStrapFactoryArgs() bootstrapComp.BootstrapComponentsFactoryArgs {
 	coreComponents := GetCoreComponents()
-	networkComponents := GetNetworkComponents()
 	cryptoComponents := GetCryptoComponents(coreComponents)
+	networkComponents := GetNetworkComponents(cryptoComponents)
 	statusCoreComponents := GetStatusCoreComponents()
 	return bootstrapComp.BootstrapComponentsFactoryArgs{
 		Config:               testscommon.GetGeneralConfig(),
@@ -391,7 +416,7 @@ func GetProcessArgs(
 	networkComponents factory.NetworkComponentsHolder,
 ) processComp.ProcessComponentsFactoryArgs {
 
-	gasSchedule := arwenConfig.MakeGasMapForTests()
+	gasSchedule := wasmConfig.MakeGasMapForTests()
 	// TODO: check if these could be initialized by MakeGasMapForTests()
 	gasSchedule["BuiltInCost"]["SaveUserName"] = 1
 	gasSchedule["BuiltInCost"]["SaveKeyValue"] = 1
@@ -470,10 +495,10 @@ func GetProcessArgs(
 
 				return initialAccounts
 			},
-			GenerateInitialTransactionsCalled: func(shardCoordinator sharding.Coordinator, initialIndexingData map[uint32]*genesis.IndexingData) ([]*block.MiniBlock, map[uint32]*indexer.Pool, error) {
-				txsPool := make(map[uint32]*indexer.Pool)
+			GenerateInitialTransactionsCalled: func(shardCoordinator sharding.Coordinator, initialIndexingData map[uint32]*genesis.IndexingData) ([]*block.MiniBlock, map[uint32]*outport.Pool, error) {
+				txsPool := make(map[uint32]*outport.Pool)
 				for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
-					txsPool[i] = &indexer.Pool{}
+					txsPool[i] = &outport.Pool{}
 				}
 
 				return make([]*block.MiniBlock, 4), txsPool, nil
@@ -489,6 +514,7 @@ func GetProcessArgs(
 		Network:                networkComponents,
 		StatusComponents:       statusComponents,
 		BootstrapComponents:    bootstrapComponents,
+		StatusCoreComponents:   GetStatusCoreComponents(),
 		RequestedItemsHandler:  &testscommon.RequestedItemsHandlerStub{},
 		WhiteListHandler:       &testscommon.WhiteListHandlerStub{},
 		WhiteListerVerifiedTxs: &testscommon.WhiteListHandlerStub{},
@@ -595,9 +621,9 @@ func GetStatusComponents(
 // GetStatusComponentsFactoryArgsAndProcessComponents -
 func GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator sharding.Coordinator) (statusComp.StatusComponentsFactoryArgs, factory.ProcessComponentsHolder) {
 	coreComponents := GetCoreComponents()
-	networkComponents := GetNetworkComponents()
-	dataComponents := GetDataComponents(coreComponents, shardCoordinator)
 	cryptoComponents := GetCryptoComponents(coreComponents)
+	networkComponents := GetNetworkComponents(cryptoComponents)
+	dataComponents := GetDataComponents(coreComponents, shardCoordinator)
 	stateComponents := GetStateComponents(coreComponents, shardCoordinator)
 	processComponents := GetProcessComponents(
 		shardCoordinator,
@@ -637,8 +663,9 @@ func GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator shardin
 }
 
 // GetNetworkComponents -
-func GetNetworkComponents() factory.NetworkComponentsHolder {
+func GetNetworkComponents(cryptoComp factory.CryptoComponentsHolder) factory.NetworkComponentsHolder {
 	networkArgs := GetNetworkFactoryArgs()
+	networkArgs.CryptoComponents = cryptoComp
 	networkComponentsFactory, _ := networkComp.NewNetworkComponentsFactory(networkArgs)
 	networkComponents, _ := networkComp.NewManagedNetworkComponents(networkComponentsFactory)
 
@@ -698,8 +725,12 @@ func GetStateComponents(coreComponents factory.CoreComponentsHolder, shardCoordi
 
 // GetStatusCoreComponents -
 func GetStatusCoreComponents() factory.StatusCoreComponentsHolder {
-	args := GetStatusCoreArgs()
-	statusCoreFactory := statusCore.NewStatusCoreComponentsFactory(args)
+	args := GetStatusCoreArgs(GetCoreComponents())
+	statusCoreFactory, err := statusCore.NewStatusCoreComponentsFactory(args)
+	if err != nil {
+		log.Error("GetStatusCoreComponents NewStatusCoreComponentsFactory", "error", err.Error())
+		return nil
+	}
 
 	statusCoreComponents, err := statusCore.NewManagedStatusCoreComponents(statusCoreFactory)
 	if err != nil {

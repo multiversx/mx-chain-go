@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 // NodesCoordinatorMock defines the behaviour of a struct able to do validator group selection
@@ -25,6 +25,7 @@ type NodesCoordinatorMock struct {
 	GetAllEligibleValidatorsPublicKeysCalled func(epoch uint32) (map[uint32][][]byte, error)
 	GetAllWaitingValidatorsPublicKeysCalled  func() (map[uint32][][]byte, error)
 	ConsensusGroupSizeCalled                 func(uint32) int
+	GetValidatorsIndexesCalled               func(publicKeys []string, epoch uint32) ([]uint64, error)
 }
 
 // NewNodesCoordinatorMock -
@@ -97,7 +98,11 @@ func (ncm *NodesCoordinatorMock) GetAllWaitingValidatorsPublicKeys(_ uint32) (ma
 }
 
 // GetValidatorsIndexes -
-func (ncm *NodesCoordinatorMock) GetValidatorsIndexes(_ []string, _ uint32) ([]uint64, error) {
+func (ncm *NodesCoordinatorMock) GetValidatorsIndexes(publicKeys []string, epoch uint32) ([]uint64, error) {
+	if ncm.GetValidatorsIndexesCalled != nil {
+		return ncm.GetValidatorsIndexesCalled(publicKeys, epoch)
+	}
+
 	return nil, nil
 }
 

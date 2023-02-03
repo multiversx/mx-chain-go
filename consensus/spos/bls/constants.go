@@ -1,8 +1,8 @@
 package bls
 
 import (
-	"github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("consensus/spos/bls")
@@ -32,6 +32,8 @@ const (
 	// MtBlockHeaderFinalInfo defines ID of a message that has a block header final info inside
 	// (aggregate signature, bitmap and seal leader signature for the proposed and accepted header)
 	MtBlockHeaderFinalInfo
+	// MtInvalidSigners defines ID of a message that has a invalid signers p2p messages inside
+	MtInvalidSigners
 )
 
 // waitingAllSigsMaxTimeThreshold specifies the max allocated time for waiting all signatures from the total time of the subround signature

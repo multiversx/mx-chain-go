@@ -8,21 +8,21 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/appStatusPolling"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/common/statistics"
-	"github.com/ElrondNetwork/elrond-go/common/statistics/machine"
-	"github.com/ElrondNetwork/elrond-go/debug/goroutine"
-	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
-	"github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/factory"
-	"github.com/ElrondNetwork/elrond-go/outport"
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/appStatusPolling"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/statistics"
+	"github.com/multiversx/mx-chain-go/common/statistics/machine"
+	"github.com/multiversx/mx-chain-go/debug/goroutine"
+	"github.com/multiversx/mx-chain-go/epochStart/notifier"
+	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/outport"
+	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding"
 )
 
 var _ factory.ComponentHandler = (*managedStatusComponents)(nil)
@@ -167,7 +167,7 @@ func (msc *managedStatusComponents) IsInterfaceNil() bool {
 func (msc *managedStatusComponents) startStatusPolling(ctx context.Context) error {
 	// TODO: inject the context to the AppStatusPolling
 	appStatusPollingHandler, err := appStatusPolling.NewAppStatusPolling(
-		msc.statusComponentsFactory.coreComponents.StatusHandler(),
+		msc.statusComponentsFactory.statusCoreComponents.AppStatusHandler(),
 		time.Duration(msc.statusComponentsFactory.config.GeneralSettings.StatusPollingIntervalSec)*time.Second,
 		log,
 	)
@@ -328,7 +328,7 @@ func registerPollProbableHighestNonce(
 }
 
 func (msc *managedStatusComponents) startMachineStatisticsPolling(ctx context.Context) error {
-	appStatusPollingHandler, err := appStatusPolling.NewAppStatusPolling(msc.statusComponentsFactory.coreComponents.StatusHandler(), time.Second, log)
+	appStatusPollingHandler, err := appStatusPolling.NewAppStatusPolling(msc.statusComponentsFactory.statusCoreComponents.AppStatusHandler(), time.Second, log)
 	if err != nil {
 		return fmt.Errorf("%w, cannot init AppStatusPolling", err)
 	}

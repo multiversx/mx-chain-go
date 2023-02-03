@@ -3,19 +3,19 @@ package state
 import (
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	chainData "github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/factory"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/state"
-	factoryState "github.com/ElrondNetwork/elrond-go/state/factory"
-	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager"
-	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/evictionWaitingList"
-	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	chainData "github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/state"
+	factoryState "github.com/multiversx/mx-chain-go/state/factory"
+	"github.com/multiversx/mx-chain-go/state/storagePruningManager"
+	"github.com/multiversx/mx-chain-go/state/storagePruningManager/evictionWaitingList"
+	trieFactory "github.com/multiversx/mx-chain-go/trie/factory"
 )
 
 // TODO: merge this with data components
@@ -25,6 +25,7 @@ type StateComponentsFactoryArgs struct {
 	Config                   config.Config
 	ShardCoordinator         sharding.Coordinator
 	Core                     factory.CoreComponentsHolder
+	StatusCore               factory.StatusCoreComponentsHolder
 	StorageService           dataRetriever.StorageService
 	ProcessingMode           common.NodeProcessingMode
 	ShouldSerializeSnapshots bool
@@ -35,13 +36,14 @@ type stateComponentsFactory struct {
 	config                   config.Config
 	shardCoordinator         sharding.Coordinator
 	core                     factory.CoreComponentsHolder
+	statusCore               factory.StatusCoreComponentsHolder
 	storageService           dataRetriever.StorageService
 	processingMode           common.NodeProcessingMode
 	shouldSerializeSnapshots bool
 	chainHandler             chainData.ChainHandler
 }
 
-// stateComponents struct holds the state components of the Elrond protocol
+// stateComponents struct holds the state components of the MultiversX protocol
 type stateComponents struct {
 	peerAccounts        state.AccountsAdapter
 	accountsAdapter     state.AccountsAdapter
@@ -74,11 +76,18 @@ func NewStateComponentsFactory(args StateComponentsFactoryArgs) (*stateComponent
 	if check.IfNil(args.ChainHandler) {
 		return nil, errors.ErrNilBlockChainHandler
 	}
+	if check.IfNil(args.StatusCore) {
+		return nil, errors.ErrNilStatusCoreComponents
+	}
+	if check.IfNil(args.StatusCore.AppStatusHandler()) {
+		return nil, errors.ErrNilAppStatusHandler
+	}
 
 	return &stateComponentsFactory{
 		config:                   args.Config,
 		shardCoordinator:         args.ShardCoordinator,
 		core:                     args.Core,
+		statusCore:               args.StatusCore,
 		storageService:           args.StorageService,
 		processingMode:           args.ProcessingMode,
 		shouldSerializeSnapshots: args.ShouldSerializeSnapshots,
@@ -134,7 +143,8 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 		ProcessingMode:           scf.processingMode,
 		ShouldSerializeSnapshots: scf.shouldSerializeSnapshots,
 		ProcessStatusHandler:     scf.core.ProcessStatusHandler(),
-		AppStatusHandler:         scf.core.StatusHandler(),
+		AppStatusHandler:         scf.statusCore.AppStatusHandler(),
+		AddressConverter:         scf.core.AddressPubKeyConverter(),
 	}
 	accountsAdapter, err := state.NewAccountsDB(argsProcessingAccountsDB)
 	if err != nil {
@@ -149,7 +159,8 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 		StoragePruningManager: storagePruning,
 		ProcessingMode:        scf.processingMode,
 		ProcessStatusHandler:  scf.core.ProcessStatusHandler(),
-		AppStatusHandler:      scf.core.StatusHandler(),
+		AppStatusHandler:      scf.statusCore.AppStatusHandler(),
+		AddressConverter:      scf.core.AddressPubKeyConverter(),
 	}
 
 	accountsAdapterApiOnFinal, err := factoryState.CreateAccountsAdapterAPIOnFinal(argsAPIAccountsDB, scf.chainHandler)
@@ -198,7 +209,8 @@ func (scf *stateComponentsFactory) createPeerAdapter(triesContainer common.Tries
 		ProcessingMode:           scf.processingMode,
 		ShouldSerializeSnapshots: scf.shouldSerializeSnapshots,
 		ProcessStatusHandler:     scf.core.ProcessStatusHandler(),
-		AppStatusHandler:         scf.core.StatusHandler(),
+		AppStatusHandler:         scf.statusCore.AppStatusHandler(),
+		AddressConverter:         scf.core.AddressPubKeyConverter(),
 	}
 	peerAdapter, err := state.NewPeerAccountsDB(argsProcessingPeerAccountsDB)
 	if err != nil {

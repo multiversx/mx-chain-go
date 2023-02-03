@@ -4,12 +4,12 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/vm"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/vm"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 var log = logger.GetOrCreate("process/systemvm")
@@ -46,7 +46,7 @@ func NewSystemVM(args ArgsNewSystemVM) (*systemVM, error) {
 		return nil, vm.ErrNilGasSchedule
 	}
 
-	apiCosts := args.GasSchedule.LatestGasSchedule()[common.ElrondAPICost]
+	apiCosts := args.GasSchedule.LatestGasSchedule()[common.BaseOpsAPICost]
 	if apiCosts == nil {
 		return nil, vm.ErrNilGasSchedule
 	}
@@ -156,7 +156,7 @@ func (s *systemVM) GasScheduleChange(gasSchedule map[string]map[string]uint64) {
 	s.mutGasLock.Lock()
 	defer s.mutGasLock.Unlock()
 
-	apiCosts := gasSchedule[common.ElrondAPICost]
+	apiCosts := gasSchedule[common.BaseOpsAPICost]
 	if apiCosts == nil {
 		return
 	}

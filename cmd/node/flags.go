@@ -5,13 +5,12 @@ import (
 	"math"
 	"os"
 	"runtime"
-	"strings"
 
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/common/operationmodes"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/facade"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/operationmodes"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/facade"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/urfave/cli"
 )
 
@@ -248,7 +247,19 @@ var (
 	// workingDirectory defines a flag for the path for the working directory.
 	workingDirectory = cli.StringFlag{
 		Name:  "working-directory",
-		Usage: "This flag specifies the `directory` where the node will store databases, logs and statistics.",
+		Usage: "This flag specifies the `directory` where the node will store databases, logs and statistics if no other related flags are set.",
+		Value: "",
+	}
+	// dbDirectory defines a flag for the path for the db directory.
+	dbDirectory = cli.StringFlag{
+		Name:  "db-path",
+		Usage: "This flag specifies the `directory` where the node will store databases.",
+		Value: "",
+	}
+	// logsDirectory defines a flag for the path for the logs directory.
+	logsDirectory = cli.StringFlag{
+		Name:  "logs-path",
+		Usage: "This flag specifies the `directory` where the node will store logs.",
 		Value: "",
 	}
 
@@ -414,6 +425,8 @@ func getFlags() []cli.Flag {
 		serializeSnapshots,
 		noKey,
 		p2pKeyPemFile,
+		dbDirectory,
+		logsDirectory,
 		operationMode,
 	}
 }
@@ -421,8 +434,9 @@ func getFlags() []cli.Flag {
 func getFlagsConfig(ctx *cli.Context, log logger.Logger) *config.ContextFlagsConfig {
 	flagsConfig := &config.ContextFlagsConfig{}
 
-	workingDir := ctx.GlobalString(workingDirectory.Name)
-	flagsConfig.WorkingDir = getWorkingDir(workingDir, log)
+	flagsConfig.WorkingDir = getWorkingDir(ctx, workingDirectory, log)
+	flagsConfig.DbDir = getCustomDirIfSet(ctx, dbDirectory, log)
+	flagsConfig.LogsDir = getCustomDirIfSet(ctx, logsDirectory, log)
 	flagsConfig.EnableGops = ctx.GlobalBool(gopsEn.Name)
 	flagsConfig.SaveLogFile = ctx.GlobalBool(logSaveFile.Name)
 	flagsConfig.EnableLogCorrelation = ctx.GlobalBool(logWithCorrelation.Name)
@@ -503,8 +517,10 @@ func applyFlags(ctx *cli.Context, cfgs *config.Configs, flagsConfig *config.Cont
 	return nil
 }
 
-func getWorkingDir(workingDir string, log logger.Logger) string {
+func getWorkingDir(ctx *cli.Context, cliFlag cli.StringFlag, log logger.Logger) string {
 	var err error
+
+	workingDir := ctx.GlobalString(cliFlag.Name)
 	if len(workingDir) == 0 {
 		workingDir, err = os.Getwd()
 		if err != nil {
@@ -512,9 +528,19 @@ func getWorkingDir(workingDir string, log logger.Logger) string {
 			workingDir = ""
 		}
 	}
-	log.Trace("working directory", "path", workingDir)
+	log.Trace("working directory", "dirName", cliFlag.Name, "path", workingDir)
 
 	return workingDir
+}
+
+func getCustomDirIfSet(ctx *cli.Context, cliFlag cli.StringFlag, log logger.Logger) string {
+	dirStr := ctx.GlobalString(cliFlag.Name)
+
+	if len(dirStr) == 0 {
+		return getWorkingDir(ctx, workingDirectory, log)
+	}
+
+	return getWorkingDir(ctx, cliFlag, log)
 }
 
 func applyCompatibleConfigs(log logger.Logger, configs *config.Configs) error {
@@ -535,14 +561,16 @@ func applyCompatibleConfigs(log logger.Logger, configs *config.Configs) error {
 		return fmt.Errorf("import-db-no-sig-check can only be used with the import-db flag")
 	}
 
-	operationModes := strings.Split(configs.FlagsConfig.OperationMode, ",")
-	err := operationmodes.CheckOperationModes(operationModes)
+	operationModes, err := operationmodes.ParseOperationModes(configs.FlagsConfig.OperationMode)
 	if err != nil {
 		return err
 	}
 
 	// if FullArchive is enabled, we override the conflicting StoragePruning settings and StartInEpoch as well
-	isInFullArchiveMode := configs.PreferencesConfig.Preferences.FullArchive || operationmodes.SliceContainsElement(operationModes, operationmodes.OperationModeFullArchive)
+	if operationmodes.SliceContainsElement(operationModes, operationmodes.OperationModeFullArchive) {
+		configs.PreferencesConfig.Preferences.FullArchive = true
+	}
+	isInFullArchiveMode := configs.PreferencesConfig.Preferences.FullArchive
 	if isInFullArchiveMode {
 		processConfigFullArchiveMode(log, configs)
 	}

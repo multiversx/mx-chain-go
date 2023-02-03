@@ -10,11 +10,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/esdt"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/esdt/nft"
-	"github.com/ElrondNetwork/elrond-go/vm"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm/esdt"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm/esdt/nft"
+	"github.com/multiversx/mx-chain-go/vm"
 )
 
 func TestESDTNonFungibleTokenCreateAndBurn(t *testing.T) {
@@ -332,7 +332,7 @@ func TestESDTNonFungibleTokenTransferSelfShard(t *testing.T) {
 		1,
 	)
 
-	// check that the creator doesn't has the token data in trie anymore
+	// check that the creator doesn't have the token data in trie anymore
 	nftMetaData.Quantity = 0
 	nft.CheckNftData(
 		t,
@@ -630,7 +630,7 @@ func TestESDTSemiFungibleTokenTransferToSystemScAddressShouldReceiveBack(t *test
 		1,
 	)
 
-	nftMetaData.Quantity = initialQuantity + quantityToAdd // should have the same quantity like before transferring
+	nftMetaData.Quantity = initialQuantity + quantityToAdd // should have the same quantity as before transferring
 	nft.CheckNftData(
 		t,
 		nodes[0].OwnAccount.Address,

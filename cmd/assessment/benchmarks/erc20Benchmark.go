@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen/arwenvm"
+	"github.com/multiversx/mx-chain-core-go/core"
+	wasmvm "github.com/multiversx/mx-chain-go/integrationTests/vm/wasm/wasmvm"
 )
 
 // ArgErc20Benchmark is the erc20 type benchmark argument used in constructor
@@ -25,7 +25,7 @@ type erc20Benchmark struct {
 	numTransfersPerRun int
 }
 
-// NewErc20Benchmark creates a new benchmark based on erc20 SC execution through Arwen VM
+// NewErc20Benchmark creates a new benchmark based on erc20 SC execution through Wasm VM
 func NewErc20Benchmark(arg ArgErc20Benchmark) *erc20Benchmark {
 	return &erc20Benchmark{
 		name:               arg.Name,
@@ -42,7 +42,7 @@ func (eb *erc20Benchmark) Run() (time.Duration, error) {
 		return 0, fmt.Errorf("%w, file %s", ErrFileDoesNotExist, eb.scFilename)
 	}
 
-	result, err := arwenvm.DeployAndExecuteERC20WithBigInt(
+	result, err := wasmvm.DeployAndExecuteERC20WithBigInt(
 		eb.numRuns,
 		eb.numTransfersPerRun,
 		createTestGasMap(),

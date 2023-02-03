@@ -14,13 +14,13 @@
 #
 # Use a descriptive name for your cluster:
 #
-cluster.name: elrond-cluster
+cluster.name: multiversx-cluster
 #
 # ------------------------------------ Node ------------------------------------
 #
 # Use a descriptive name for the node:
 #
-node.name: elrond-es-node-1
+node.name: multiversx-es-node-1
 #
 # Add custom attributes to the node:
 #

@@ -14,55 +14,56 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/closing"
-	"github.com/ElrondNetwork/elrond-go-core/core/throttler"
-	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/api/gin"
-	"github.com/ElrondNetwork/elrond-go/api/shared"
-	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/common/forking"
-	"github.com/ElrondNetwork/elrond-go/common/goroutines"
-	"github.com/ElrondNetwork/elrond-go/common/statistics"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	dbLookupFactory "github.com/ElrondNetwork/elrond-go/dblookupext/factory"
-	"github.com/ElrondNetwork/elrond-go/facade"
-	"github.com/ElrondNetwork/elrond-go/facade/initial"
-	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
-	apiComp "github.com/ElrondNetwork/elrond-go/factory/api"
-	bootstrapComp "github.com/ElrondNetwork/elrond-go/factory/bootstrap"
-	consensusComp "github.com/ElrondNetwork/elrond-go/factory/consensus"
-	coreComp "github.com/ElrondNetwork/elrond-go/factory/core"
-	cryptoComp "github.com/ElrondNetwork/elrond-go/factory/crypto"
-	dataComp "github.com/ElrondNetwork/elrond-go/factory/data"
-	heartbeatComp "github.com/ElrondNetwork/elrond-go/factory/heartbeat"
-	networkComp "github.com/ElrondNetwork/elrond-go/factory/network"
-	processComp "github.com/ElrondNetwork/elrond-go/factory/processing"
-	stateComp "github.com/ElrondNetwork/elrond-go/factory/state"
-	statusComp "github.com/ElrondNetwork/elrond-go/factory/status"
-	"github.com/ElrondNetwork/elrond-go/factory/statusCore"
-	"github.com/ElrondNetwork/elrond-go/genesis"
-	"github.com/ElrondNetwork/elrond-go/genesis/parsing"
-	"github.com/ElrondNetwork/elrond-go/health"
-	"github.com/ElrondNetwork/elrond-go/node/metrics"
-	"github.com/ElrondNetwork/elrond-go/outport"
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/interceptors"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/state/syncer"
-	"github.com/ElrondNetwork/elrond-go/storage/cache"
-	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
-	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
-	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
-	trieStatistics "github.com/ElrondNetwork/elrond-go/trie/statistics"
-	"github.com/ElrondNetwork/elrond-go/trie/storageMarker"
-	"github.com/ElrondNetwork/elrond-go/update/trigger"
 	"github.com/google/gops/agent"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/closing"
+	"github.com/multiversx/mx-chain-core-go/core/throttler"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/multiversx/mx-chain-go/api/gin"
+	"github.com/multiversx/mx-chain-go/api/shared"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/disabled"
+	"github.com/multiversx/mx-chain-go/common/forking"
+	"github.com/multiversx/mx-chain-go/common/goroutines"
+	"github.com/multiversx/mx-chain-go/common/statistics"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	dbLookupFactory "github.com/multiversx/mx-chain-go/dblookupext/factory"
+	"github.com/multiversx/mx-chain-go/facade"
+	"github.com/multiversx/mx-chain-go/facade/initial"
+	mainFactory "github.com/multiversx/mx-chain-go/factory"
+	apiComp "github.com/multiversx/mx-chain-go/factory/api"
+	bootstrapComp "github.com/multiversx/mx-chain-go/factory/bootstrap"
+	consensusComp "github.com/multiversx/mx-chain-go/factory/consensus"
+	coreComp "github.com/multiversx/mx-chain-go/factory/core"
+	cryptoComp "github.com/multiversx/mx-chain-go/factory/crypto"
+	dataComp "github.com/multiversx/mx-chain-go/factory/data"
+	heartbeatComp "github.com/multiversx/mx-chain-go/factory/heartbeat"
+	networkComp "github.com/multiversx/mx-chain-go/factory/network"
+	processComp "github.com/multiversx/mx-chain-go/factory/processing"
+	stateComp "github.com/multiversx/mx-chain-go/factory/state"
+	statusComp "github.com/multiversx/mx-chain-go/factory/status"
+	"github.com/multiversx/mx-chain-go/factory/statusCore"
+	"github.com/multiversx/mx-chain-go/genesis"
+	"github.com/multiversx/mx-chain-go/genesis/parsing"
+	"github.com/multiversx/mx-chain-go/health"
+	"github.com/multiversx/mx-chain-go/node/metrics"
+	"github.com/multiversx/mx-chain-go/outport"
+	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/interceptors"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/state/syncer"
+	"github.com/multiversx/mx-chain-go/storage/cache"
+	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
+	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	trieFactory "github.com/multiversx/mx-chain-go/trie/factory"
+	trieStatistics "github.com/multiversx/mx-chain-go/trie/statistics"
+	"github.com/multiversx/mx-chain-go/trie/storageMarker"
+	"github.com/multiversx/mx-chain-go/update/trigger"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 const (
@@ -111,7 +112,7 @@ func (nr *nodeRunner) Start() error {
 
 	log.Info("starting node", "version", flagsConfig.Version, "pid", os.Getpid())
 
-	err = cleanupStorageIfNecessary(flagsConfig.WorkingDir, flagsConfig.CleanupStorage)
+	err = cleanupStorageIfNecessary(flagsConfig.DbDir, flagsConfig.CleanupStorage)
 	if err != nil {
 		return err
 	}
@@ -202,6 +203,8 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("fix old token liquidity"), "epoch", enableEpochs.FixOldTokenLiquidityEnableEpoch)
 	log.Debug(readEpochFor("set sender in eei output transfer"), "epoch", enableEpochs.SetSenderInEeiOutputTransferEnableEpoch)
 	log.Debug(readEpochFor("refactor peers mini blocks"), "epoch", enableEpochs.RefactorPeersMiniBlocksEnableEpoch)
+	log.Debug(readEpochFor("runtime memstore limit"), "epoch", enableEpochs.RuntimeMemStoreLimitEnableEpoch)
+	log.Debug(readEpochFor("max blockchainhook counters"), "epoch", enableEpochs.MaxBlockchainHookCountersEnableEpoch)
 	gasSchedule := configs.EpochConfig.GasSchedule
 
 	log.Debug(readEpochFor("gas schedule directories paths"), "epoch", gasSchedule.GasScheduleByEpochs)
@@ -270,16 +273,16 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	log.Debug("creating healthService")
 	healthService := nr.createHealthService(flagsConfig)
 
-	log.Debug("creating status core components")
-	managedStatusCoreComponents, err := nr.CreateManagedStatusCoreComponents()
-	if err != nil {
-		return true, err
-	}
-
 	log.Debug("creating core components")
 	managedCoreComponents, err := nr.CreateManagedCoreComponents(
 		chanStopNodeProcess,
 	)
+	if err != nil {
+		return true, err
+	}
+
+	log.Debug("creating status core components")
+	managedStatusCoreComponents, err := nr.CreateManagedStatusCoreComponents(managedCoreComponents)
 	if err != nil {
 		return true, err
 	}
@@ -291,13 +294,13 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	}
 
 	log.Debug("creating network components")
-	managedNetworkComponents, err := nr.CreateManagedNetworkComponents(managedCoreComponents)
+	managedNetworkComponents, err := nr.CreateManagedNetworkComponents(managedCoreComponents, managedStatusCoreComponents, managedCryptoComponents)
 	if err != nil {
 		return true, err
 	}
 
 	log.Debug("creating disabled API services")
-	webServerHandler, err := nr.createHttpServer()
+	webServerHandler, err := nr.createHttpServer(managedStatusCoreComponents)
 	if err != nil {
 		return true, err
 	}
@@ -311,7 +314,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	nr.logInformation(managedCoreComponents, managedCryptoComponents, managedBootstrapComponents)
 
 	log.Debug("creating data components")
-	managedDataComponents, err := nr.CreateManagedDataComponents(managedCoreComponents, managedBootstrapComponents)
+	managedDataComponents, err := nr.CreateManagedDataComponents(managedStatusCoreComponents, managedCoreComponents, managedBootstrapComponents)
 	if err != nil {
 		return true, err
 	}
@@ -321,6 +324,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedCoreComponents,
 		managedBootstrapComponents,
 		managedDataComponents,
+		managedStatusCoreComponents,
 	)
 	if err != nil {
 		return true, err
@@ -328,7 +332,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 
 	log.Debug("creating metrics")
 	// this should be called before setting the storer (done in the managedDataComponents creation)
-	err = nr.createMetrics(managedCoreComponents, managedCryptoComponents, managedBootstrapComponents)
+	err = nr.createMetrics(managedStatusCoreComponents, managedCoreComponents, managedCryptoComponents, managedBootstrapComponents)
 	if err != nil {
 		return true, err
 	}
@@ -390,10 +394,10 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	}
 
 	argsGasScheduleNotifier := forking.ArgsNewGasScheduleNotifier{
-		GasScheduleConfig: configs.EpochConfig.GasSchedule,
-		ConfigDir:         configurationPaths.GasScheduleDirectoryName,
-		EpochNotifier:     managedCoreComponents.EpochNotifier(),
-		ArwenChangeLocker: managedCoreComponents.ArwenChangeLocker(),
+		GasScheduleConfig:  configs.EpochConfig.GasSchedule,
+		ConfigDir:          configurationPaths.GasScheduleDirectoryName,
+		EpochNotifier:      managedCoreComponents.EpochNotifier(),
+		WasmVMChangeLocker: managedCoreComponents.WasmVMChangeLocker(),
 	}
 	gasScheduleNotifier, err := forking.NewGasScheduleNotifier(argsGasScheduleNotifier)
 	if err != nil {
@@ -409,6 +413,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedStateComponents,
 		managedDataComponents,
 		managedStatusComponents,
+		managedStatusCoreComponents,
 		gasScheduleNotifier,
 		nodesCoordinatorInstance,
 	)
@@ -450,6 +455,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedStateComponents,
 		managedStatusComponents,
 		managedProcessComponents,
+		managedStatusCoreComponents,
 	)
 	if err != nil {
 		return true, err
@@ -462,6 +468,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedCryptoComponents,
 		managedDataComponents,
 		managedProcessComponents,
+		managedStatusCoreComponents,
 	)
 
 	if err != nil {
@@ -514,7 +521,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		time.Sleep(delayBeforeScQueriesStart)
 		close(allowExternalVMQueriesChan)
 		statusHandler.SetStringValue(common.MetricAreVMQueriesReady, strconv.FormatBool(true))
-	}(managedCoreComponents.StatusHandler())
+	}(managedStatusCoreComponents.AppStatusHandler())
 
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
@@ -666,6 +673,7 @@ func getBaseAccountSyncerArgs(
 		StorageMarker:                     storageMarker.NewDisabledStorageMarker(),
 		CheckNodesOnDisk:                  true,
 		UserAccountsSyncStatisticsHandler: trieStatistics.NewTrieSyncStatistics(),
+		AppStatusHandler:                  disabled.NewAppStatusHandler(),
 	}
 }
 
@@ -680,16 +688,17 @@ func (nr *nodeRunner) createApiFacade(
 	log.Debug("creating api resolver structure")
 
 	apiResolverArgs := &apiComp.ApiResolverArgs{
-		Configs:             configs,
-		CoreComponents:      currentNode.coreComponents,
-		DataComponents:      currentNode.dataComponents,
-		StateComponents:     currentNode.stateComponents,
-		BootstrapComponents: currentNode.bootstrapComponents,
-		CryptoComponents:    currentNode.cryptoComponents,
-		ProcessComponents:   currentNode.processComponents,
-		GasScheduleNotifier: gasScheduleNotifier,
-		Bootstrapper:        currentNode.consensusComponents.Bootstrapper(),
-		AllowVMQueriesChan:  allowVMQueriesChan,
+		Configs:              configs,
+		CoreComponents:       currentNode.coreComponents,
+		DataComponents:       currentNode.dataComponents,
+		StateComponents:      currentNode.stateComponents,
+		BootstrapComponents:  currentNode.bootstrapComponents,
+		CryptoComponents:     currentNode.cryptoComponents,
+		ProcessComponents:    currentNode.processComponents,
+		StatusCoreComponents: currentNode.statusCoreComponents,
+		GasScheduleNotifier:  gasScheduleNotifier,
+		Bootstrapper:         currentNode.consensusComponents.Bootstrapper(),
+		AllowVMQueriesChan:   allowVMQueriesChan,
 	}
 
 	apiResolver, err := apiComp.CreateApiResolver(apiResolverArgs)
@@ -697,7 +706,7 @@ func (nr *nodeRunner) createApiFacade(
 		return nil, err
 	}
 
-	log.Debug("creating elrond node facade")
+	log.Debug("creating multiversx node facade")
 
 	flagsConfig := configs.FlagsConfig
 
@@ -736,9 +745,17 @@ func (nr *nodeRunner) createApiFacade(
 	return ef, nil
 }
 
-func (nr *nodeRunner) createHttpServer() (shared.UpgradeableHttpServerHandler, error) {
+func (nr *nodeRunner) createHttpServer(managedStatusCoreComponents mainFactory.StatusCoreComponentsHolder) (shared.UpgradeableHttpServerHandler, error) {
+	if check.IfNil(managedStatusCoreComponents) {
+		return nil, ErrNilStatusHandler
+	}
+	initialFacade, err := initial.NewInitialNodeFacade(nr.configs.FlagsConfig.RestApiInterface, nr.configs.FlagsConfig.EnablePprof, managedStatusCoreComponents.StatusMetrics())
+	if err != nil {
+		return nil, err
+	}
+
 	httpServerArgs := gin.ArgsNewWebServer{
-		Facade:          initial.NewInitialNodeFacade(nr.configs.FlagsConfig.RestApiInterface, nr.configs.FlagsConfig.EnablePprof),
+		Facade:          initialFacade,
 		ApiConfig:       *nr.configs.ApiRoutesConfig,
 		AntiFloodConfig: nr.configs.GeneralConfig.WebServerAntiflood,
 	}
@@ -757,12 +774,13 @@ func (nr *nodeRunner) createHttpServer() (shared.UpgradeableHttpServerHandler, e
 }
 
 func (nr *nodeRunner) createMetrics(
+	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
 	coreComponents mainFactory.CoreComponentsHolder,
 	cryptoComponents mainFactory.CryptoComponentsHolder,
 	bootstrapComponents mainFactory.BootstrapComponentsHolder,
 ) error {
 	err := metrics.InitMetrics(
-		coreComponents.StatusHandlerUtils(),
+		statusCoreComponents.AppStatusHandler(),
 		cryptoComponents.PublicKeyString(),
 		bootstrapComponents.NodeType(),
 		bootstrapComponents.ShardCoordinator(),
@@ -777,17 +795,17 @@ func (nr *nodeRunner) createMetrics(
 		return err
 	}
 
-	metrics.SaveStringMetric(coreComponents.StatusHandler(), common.MetricNodeDisplayName, nr.configs.PreferencesConfig.Preferences.NodeDisplayName)
-	metrics.SaveStringMetric(coreComponents.StatusHandler(), common.MetricRedundancyLevel, fmt.Sprintf("%d", nr.configs.PreferencesConfig.Preferences.RedundancyLevel))
-	metrics.SaveStringMetric(coreComponents.StatusHandler(), common.MetricRedundancyIsMainActive, common.MetricValueNA)
-	metrics.SaveStringMetric(coreComponents.StatusHandler(), common.MetricChainId, coreComponents.ChainID())
-	metrics.SaveUint64Metric(coreComponents.StatusHandler(), common.MetricGasPerDataByte, coreComponents.EconomicsData().GasPerDataByte())
-	metrics.SaveUint64Metric(coreComponents.StatusHandler(), common.MetricMinGasPrice, coreComponents.EconomicsData().MinGasPrice())
-	metrics.SaveUint64Metric(coreComponents.StatusHandler(), common.MetricMinGasLimit, coreComponents.EconomicsData().MinGasLimit())
-	metrics.SaveStringMetric(coreComponents.StatusHandler(), common.MetricRewardsTopUpGradientPoint, coreComponents.EconomicsData().RewardsTopUpGradientPoint().String())
-	metrics.SaveStringMetric(coreComponents.StatusHandler(), common.MetricTopUpFactor, fmt.Sprintf("%g", coreComponents.EconomicsData().RewardsTopUpFactor()))
-	metrics.SaveStringMetric(coreComponents.StatusHandler(), common.MetricGasPriceModifier, fmt.Sprintf("%g", coreComponents.EconomicsData().GasPriceModifier()))
-	metrics.SaveUint64Metric(coreComponents.StatusHandler(), common.MetricMaxGasPerTransaction, coreComponents.EconomicsData().MaxGasLimitPerTx())
+	metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricNodeDisplayName, nr.configs.PreferencesConfig.Preferences.NodeDisplayName)
+	metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricRedundancyLevel, fmt.Sprintf("%d", nr.configs.PreferencesConfig.Preferences.RedundancyLevel))
+	metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricRedundancyIsMainActive, common.MetricValueNA)
+	metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricChainId, coreComponents.ChainID())
+	metrics.SaveUint64Metric(statusCoreComponents.AppStatusHandler(), common.MetricGasPerDataByte, coreComponents.EconomicsData().GasPerDataByte())
+	metrics.SaveUint64Metric(statusCoreComponents.AppStatusHandler(), common.MetricMinGasPrice, coreComponents.EconomicsData().MinGasPrice())
+	metrics.SaveUint64Metric(statusCoreComponents.AppStatusHandler(), common.MetricMinGasLimit, coreComponents.EconomicsData().MinGasLimit())
+	metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricRewardsTopUpGradientPoint, coreComponents.EconomicsData().RewardsTopUpGradientPoint().String())
+	metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricTopUpFactor, fmt.Sprintf("%g", coreComponents.EconomicsData().RewardsTopUpFactor()))
+	metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricGasPriceModifier, fmt.Sprintf("%g", coreComponents.EconomicsData().GasPriceModifier()))
+	metrics.SaveUint64Metric(statusCoreComponents.AppStatusHandler(), common.MetricMaxGasPerTransaction, coreComponents.EconomicsData().MaxGasLimitPerTx())
 	return nil
 }
 
@@ -815,6 +833,7 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 	stateComponents mainFactory.StateComponentsHolder,
 	statusComponents mainFactory.StatusComponentsHolder,
 	processComponents mainFactory.ProcessComponentsHolder,
+	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
 ) (mainFactory.ConsensusComponentsHandler, error) {
 	scheduledProcessorArgs := spos.ScheduledProcessorWrapperArgs{
 		SyncTimer:                coreComponents.SyncTimer(),
@@ -837,6 +856,7 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 		ProcessComponents:     processComponents,
 		StateComponents:       stateComponents,
 		StatusComponents:      statusComponents,
+		StatusCoreComponents:  statusCoreComponents,
 		ScheduledProcessor:    scheduledProcessor,
 		IsInImportMode:        nr.configs.ImportDbConfig.IsImportDBMode,
 		ShouldDisableWatchdog: nr.configs.FlagsConfig.DisableConsensusWatchdog,
@@ -867,17 +887,19 @@ func (nr *nodeRunner) CreateManagedHeartbeatV2Components(
 	cryptoComponents mainFactory.CryptoComponentsHolder,
 	dataComponents mainFactory.DataComponentsHolder,
 	processComponents mainFactory.ProcessComponentsHolder,
+	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
 ) (mainFactory.HeartbeatV2ComponentsHandler, error) {
 	heartbeatV2Args := heartbeatComp.ArgHeartbeatV2ComponentsFactory{
-		Config:              *nr.configs.GeneralConfig,
-		Prefs:               *nr.configs.PreferencesConfig,
-		AppVersion:          nr.configs.FlagsConfig.Version,
-		BootstrapComponents: bootstrapComponents,
-		CoreComponents:      coreComponents,
-		DataComponents:      dataComponents,
-		NetworkComponents:   networkComponents,
-		CryptoComponents:    cryptoComponents,
-		ProcessComponents:   processComponents,
+		Config:               *nr.configs.GeneralConfig,
+		Prefs:                *nr.configs.PreferencesConfig,
+		AppVersion:           nr.configs.FlagsConfig.Version,
+		BootstrapComponents:  bootstrapComponents,
+		CoreComponents:       coreComponents,
+		DataComponents:       dataComponents,
+		NetworkComponents:    networkComponents,
+		CryptoComponents:     cryptoComponents,
+		ProcessComponents:    processComponents,
+		StatusCoreComponents: statusCoreComponents,
 	}
 
 	heartbeatV2ComponentsFactory, err := heartbeatComp.NewHeartbeatV2ComponentsFactory(heartbeatV2Args)
@@ -1089,12 +1111,13 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 	stateComponents mainFactory.StateComponentsHolder,
 	dataComponents mainFactory.DataComponentsHolder,
 	statusComponents mainFactory.StatusComponentsHolder,
+	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
 	gasScheduleNotifier core.GasScheduleNotifier,
 	nodesCoordinator nodesCoordinator.NodesCoordinator,
 ) (mainFactory.ProcessComponentsHandler, error) {
 	configs := nr.configs
 	configurationPaths := nr.configs.ConfigurationPathsHolder
-	importStartHandler, err := trigger.NewImportStartHandler(filepath.Join(configs.FlagsConfig.WorkingDir, common.DefaultDBPath), configs.FlagsConfig.Version)
+	importStartHandler, err := trigger.NewImportStartHandler(filepath.Join(configs.FlagsConfig.DbDir, common.DefaultDBPath), configs.FlagsConfig.Version)
 	if err != nil {
 		return nil, err
 	}
@@ -1184,6 +1207,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		Network:                networkComponents,
 		BootstrapComponents:    bootstrapComponents,
 		StatusComponents:       statusComponents,
+		StatusCoreComponents:   statusCoreComponents,
 		RequestedItemsHandler:  requestedItemsHandler,
 		WhiteListHandler:       whiteListRequest,
 		WhiteListerVerifiedTxs: whiteListerVerifiedTxs,
@@ -1214,6 +1238,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 
 // CreateManagedDataComponents is the managed data components factory
 func (nr *nodeRunner) CreateManagedDataComponents(
+	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
 	coreComponents mainFactory.CoreComponentsHolder,
 	bootstrapComponents mainFactory.BootstrapComponentsHolder,
 ) (mainFactory.DataComponentsHandler, error) {
@@ -1230,6 +1255,7 @@ func (nr *nodeRunner) CreateManagedDataComponents(
 		PrefsConfig:                   configs.PreferencesConfig.Preferences,
 		ShardCoordinator:              bootstrapComponents.ShardCoordinator(),
 		Core:                          coreComponents,
+		StatusCore:                    statusCoreComponents,
 		EpochStartNotifier:            coreComponents.EpochStartNotifierWithConfirm(),
 		CurrentEpoch:                  storerEpoch,
 		CreateTrieEpochRootHashStorer: configs.ImportDbConfig.ImportDbSaveTrieEpochRootHash,
@@ -1253,7 +1279,7 @@ func (nr *nodeRunner) CreateManagedDataComponents(
 		return nil, err
 	}
 
-	err = coreComponents.StatusHandlerUtils().UpdateStorerAndMetricsForPersistentHandler(statusMetricsStorer)
+	err = statusCoreComponents.PersistentStatusHandler().SetStorage(statusMetricsStorer)
 
 	if err != nil {
 		return nil, err
@@ -1267,6 +1293,7 @@ func (nr *nodeRunner) CreateManagedStateComponents(
 	coreComponents mainFactory.CoreComponentsHolder,
 	bootstrapComponents mainFactory.BootstrapComponentsHolder,
 	dataComponents mainFactory.DataComponentsHandler,
+	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
 ) (mainFactory.StateComponentsHandler, error) {
 	processingMode := common.Normal
 	if nr.configs.ImportDbConfig.IsImportDBMode {
@@ -1276,6 +1303,7 @@ func (nr *nodeRunner) CreateManagedStateComponents(
 		Config:                   *nr.configs.GeneralConfig,
 		ShardCoordinator:         bootstrapComponents.ShardCoordinator(),
 		Core:                     coreComponents,
+		StatusCore:               statusCoreComponents,
 		StorageService:           dataComponents.StorageService(),
 		ProcessingMode:           processingMode,
 		ShouldSerializeSnapshots: nr.configs.FlagsConfig.SerializeSnapshots,
@@ -1312,7 +1340,7 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 		PrefConfig:           *nr.configs.PreferencesConfig,
 		ImportDbConfig:       *nr.configs.ImportDbConfig,
 		FlagsConfig:          *nr.configs.FlagsConfig,
-		WorkingDir:           nr.configs.FlagsConfig.WorkingDir,
+		WorkingDir:           nr.configs.FlagsConfig.DbDir,
 		CoreComponents:       coreComponents,
 		CryptoComponents:     cryptoComponents,
 		NetworkComponents:    networkComponents,
@@ -1340,19 +1368,21 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 // CreateManagedNetworkComponents is the managed network components factory
 func (nr *nodeRunner) CreateManagedNetworkComponents(
 	coreComponents mainFactory.CoreComponentsHolder,
+	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
+	cryptoComponents mainFactory.CryptoComponentsHolder,
 ) (mainFactory.NetworkComponentsHandler, error) {
 	networkComponentsFactoryArgs := networkComp.NetworkComponentsFactoryArgs{
 		P2pConfig:             *nr.configs.P2pConfig,
 		MainConfig:            *nr.configs.GeneralConfig,
 		RatingsConfig:         *nr.configs.RatingsConfig,
-		StatusHandler:         coreComponents.StatusHandler(),
+		StatusHandler:         statusCoreComponents.AppStatusHandler(),
 		Marshalizer:           coreComponents.InternalMarshalizer(),
 		Syncer:                coreComponents.SyncTimer(),
 		PreferredPeersSlices:  nr.configs.PreferencesConfig.Preferences.PreferredConnections,
 		BootstrapWaitTime:     common.TimeToWaitForP2PBootstrap,
 		NodeOperationMode:     p2p.NormalOperation,
 		ConnectionWatcherType: nr.configs.PreferencesConfig.Preferences.ConnectionWatcherType,
-		P2pKeyPemFileName:     nr.configs.ConfigurationPathsHolder.P2pKey,
+		CryptoComponents:      cryptoComponents,
 	}
 	if nr.configs.ImportDbConfig.IsImportDBMode {
 		networkComponentsFactoryArgs.BootstrapWaitTime = 0
@@ -1381,23 +1411,17 @@ func (nr *nodeRunner) CreateManagedNetworkComponents(
 func (nr *nodeRunner) CreateManagedCoreComponents(
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 ) (mainFactory.CoreComponentsHandler, error) {
-	statusHandlersFactory, err := factory.NewStatusHandlersFactory()
-	if err != nil {
-		return nil, err
-	}
-
 	coreArgs := coreComp.CoreComponentsFactoryArgs{
-		Config:                *nr.configs.GeneralConfig,
-		ConfigPathsHolder:     *nr.configs.ConfigurationPathsHolder,
-		EpochConfig:           *nr.configs.EpochConfig,
-		RoundConfig:           *nr.configs.RoundConfig,
-		ImportDbConfig:        *nr.configs.ImportDbConfig,
-		RatingsConfig:         *nr.configs.RatingsConfig,
-		EconomicsConfig:       *nr.configs.EconomicsConfig,
-		NodesFilename:         nr.configs.ConfigurationPathsHolder.Nodes,
-		WorkingDirectory:      nr.configs.FlagsConfig.WorkingDir,
-		ChanStopNodeProcess:   chanStopNodeProcess,
-		StatusHandlersFactory: statusHandlersFactory,
+		Config:              *nr.configs.GeneralConfig,
+		ConfigPathsHolder:   *nr.configs.ConfigurationPathsHolder,
+		EpochConfig:         *nr.configs.EpochConfig,
+		RoundConfig:         *nr.configs.RoundConfig,
+		ImportDbConfig:      *nr.configs.ImportDbConfig,
+		RatingsConfig:       *nr.configs.RatingsConfig,
+		EconomicsConfig:     *nr.configs.EconomicsConfig,
+		NodesFilename:       nr.configs.ConfigurationPathsHolder.Nodes,
+		WorkingDirectory:    nr.configs.FlagsConfig.DbDir,
+		ChanStopNodeProcess: chanStopNodeProcess,
 	}
 
 	coreComponentsFactory, err := coreComp.NewCoreComponentsFactory(coreArgs)
@@ -1419,12 +1443,22 @@ func (nr *nodeRunner) CreateManagedCoreComponents(
 }
 
 // CreateManagedStatusCoreComponents is the managed status core components factory
-func (nr *nodeRunner) CreateManagedStatusCoreComponents() (mainFactory.StatusCoreComponentsHandler, error) {
+func (nr *nodeRunner) CreateManagedStatusCoreComponents(
+	coreComponents mainFactory.CoreComponentsHolder,
+) (mainFactory.StatusCoreComponentsHandler, error) {
 	args := statusCore.StatusCoreComponentsFactoryArgs{
-		Config: *nr.configs.GeneralConfig,
+		Config:          *nr.configs.GeneralConfig,
+		EpochConfig:     *nr.configs.EpochConfig,
+		RoundConfig:     *nr.configs.RoundConfig,
+		RatingsConfig:   *nr.configs.RatingsConfig,
+		EconomicsConfig: *nr.configs.EconomicsConfig,
+		CoreComp:        coreComponents,
 	}
 
-	statusCoreComponentsFactory := statusCore.NewStatusCoreComponentsFactory(args)
+	statusCoreComponentsFactory, err := statusCore.NewStatusCoreComponentsFactory(args)
+	if err != nil {
+		return nil, err
+	}
 	managedStatusCoreComponents, err := statusCore.NewManagedStatusCoreComponents(statusCoreComponentsFactory)
 	if err != nil {
 		return nil, err
@@ -1455,6 +1489,7 @@ func (nr *nodeRunner) CreateManagedCryptoComponents(
 		IsInImportMode:                       configs.ImportDbConfig.IsImportDBMode,
 		EnableEpochs:                         configs.EpochConfig.EnableEpochs,
 		NoKeyProvided:                        configs.FlagsConfig.NoKeyProvided,
+		P2pKeyPemFileName:                    configs.ConfigurationPathsHolder.P2pKey,
 	}
 
 	cryptoComponentsFactory, err := cryptoComp.NewCryptoComponentsFactory(cryptoComponentsHandlerArgs)

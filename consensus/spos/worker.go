@@ -9,22 +9,22 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/closing"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	crypto "github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/consensus"
-	errorsErd "github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/ntp"
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/closing"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/consensus"
+	errorsErd "github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/ntp"
+	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 )
 
 var _ closing.Closer = (*Worker)(nil)
@@ -75,6 +75,7 @@ type Worker struct {
 	cancelFunc                func()
 	consensusMessageValidator *consensusMessageValidator
 	nodeRedundancyHandler     consensus.NodeRedundancyHandler
+	peerBlacklistHandler      consensus.PeerBlacklistHandler
 	closer                    core.SafeCloser
 }
 
@@ -104,6 +105,7 @@ type WorkerArgs struct {
 	PublicKeySize            int
 	AppStatusHandler         core.AppStatusHandler
 	NodeRedundancyHandler    consensus.NodeRedundancyHandler
+	PeerBlacklistHandler     consensus.PeerBlacklistHandler
 }
 
 // NewWorker creates a new Worker object
@@ -150,6 +152,7 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 		antifloodHandler:         args.AntifloodHandler,
 		poolAdder:                args.PoolAdder,
 		nodeRedundancyHandler:    args.NodeRedundancyHandler,
+		peerBlacklistHandler:     args.PeerBlacklistHandler,
 		closer:                   closing.NewSafeChanCloser(),
 	}
 
@@ -248,6 +251,9 @@ func checkNewWorkerParams(args *WorkerArgs) error {
 	if check.IfNil(args.NodeRedundancyHandler) {
 		return ErrNilNodeRedundancyHandler
 	}
+	if check.IfNil(args.PeerBlacklistHandler) {
+		return ErrNilPeerBlacklistHandler
+	}
 
 	return nil
 }
@@ -335,6 +341,17 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 	if message.Data() == nil {
 		return ErrNilDataToProcess
 	}
+	if len(message.Signature()) == 0 {
+		return ErrNilSignatureOnP2PMessage
+	}
+
+	isPeerBlacklisted := wrk.peerBlacklistHandler.IsPeerBlacklisted(fromConnectedPeer)
+	if isPeerBlacklisted {
+		log.Debug("received message from blacklisted peer",
+			"peer", fromConnectedPeer.Pretty(),
+		)
+		return ErrBlacklistedConsensusPeer
+	}
 
 	topic := GetConsensusTopicID(wrk.shardCoordinator)
 	err := wrk.antifloodHandler.CanProcessMessagesOnTopic(message.Peer(), topic, 1, uint64(len(message.Data())), message.SeqNo())
@@ -400,7 +417,7 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 	}
 
 	if wrk.consensusService.IsMessageWithSignature(msgType) {
-		wrk.doJobOnMessageWithSignature(cnsMsg)
+		wrk.doJobOnMessageWithSignature(cnsMsg, message)
 	}
 
 	errNotCritical := wrk.checkSelfState(cnsMsg)
@@ -484,12 +501,14 @@ func (wrk *Worker) doJobOnMessageWithHeader(cnsMsg *consensus.Message) error {
 	return nil
 }
 
-func (wrk *Worker) doJobOnMessageWithSignature(cnsMsg *consensus.Message) {
+func (wrk *Worker) doJobOnMessageWithSignature(cnsMsg *consensus.Message, p2pMsg p2p.MessageP2P) {
 	wrk.mutDisplayHashConsensusMessage.Lock()
 	defer wrk.mutDisplayHashConsensusMessage.Unlock()
 
 	hash := string(cnsMsg.BlockHeaderHash)
 	wrk.mapDisplayHashConsensusMessage[hash] = append(wrk.mapDisplayHashConsensusMessage[hash], cnsMsg)
+
+	wrk.consensusState.AddMessageWithSignature(string(cnsMsg.PubKey), p2pMsg)
 }
 
 func (wrk *Worker) addBlockToPool(bodyBytes []byte) {
@@ -514,6 +533,9 @@ func (wrk *Worker) processReceivedHeaderMetric(cnsDta *consensus.Message) {
 	}
 
 	sinceRoundStart := time.Since(wrk.roundHandler.TimeStamp())
+	if sinceRoundStart < 0 {
+		sinceRoundStart = 0
+	}
 	percent := sinceRoundStart * 100 / wrk.roundHandler.TimeDuration()
 	wrk.appStatusHandler.SetUInt64Value(common.MetricReceivedProposedBlock, uint64(percent))
 	wrk.appStatusHandler.SetStringValue(common.MetricRedundancyIsMainActive, strconv.FormatBool(wrk.nodeRedundancyHandler.IsMainMachineActive()))
@@ -595,6 +617,7 @@ func (wrk *Worker) checkChannels(ctx context.Context) {
 		}
 
 		msgType := consensus.MessageType(rcvDta.MsgType)
+
 		if callReceivedMessage, exist := wrk.receivedMessagesCalls[msgType]; exist {
 			if callReceivedMessage(ctx, rcvDta) {
 				select {

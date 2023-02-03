@@ -7,11 +7,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/p2p/antiflood"
-	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/integrationTests/p2p/antiflood"
+	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -36,7 +36,7 @@ func TestAntifloodWithNumMessagesFromTheSamePeer(t *testing.T) {
 	}()
 
 	//node 3 is connected to 0, 2, 4 and 6 (check integrationTests.CreateFixedNetworkOf7Peers function)
-	//large number of broadcast messages from 3 might flood above mentioned peers but should not flood 5 and 7
+	//large number of broadcast messages from 3 might flood above-mentioned peers but should not flood 5 and 7
 
 	topic := "test_topic"
 	broadcastMessageDuration := time.Second * 2
@@ -146,7 +146,7 @@ func TestAntifloodWithLargeSizeMessagesFromTheSamePeer(t *testing.T) {
 	}()
 
 	//node 3 is connected to 0, 2, 4 and 6 (check integrationTests.CreateFixedNetworkOf7Peers function)
-	//large number of broadcast messages from 3 might flood above mentioned peers but should not flood 5 and 7
+	//large number of broadcast messages from 3 might flood above-mentioned peers but should not flood 5 and 7
 
 	topic := "test_topic"
 	broadcastMessageDuration := time.Second * 2

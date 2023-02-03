@@ -8,26 +8,27 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/throttler"
-	chainData "github.com/ElrondNetwork/elrond-go-core/data"
-	apiData "github.com/ElrondNetwork/elrond-go-core/data/api"
-	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-core/data/vm"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/debug"
-	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
-	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
-	"github.com/ElrondNetwork/elrond-go/node/external"
-	"github.com/ElrondNetwork/elrond-go/ntp"
-	"github.com/ElrondNetwork/elrond-go/process"
-	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
-	"github.com/ElrondNetwork/elrond-go/state"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/throttler"
+	chainData "github.com/multiversx/mx-chain-core-go/data"
+	apiData "github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/multiversx/mx-chain-core-go/data/esdt"
+	"github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/data/vm"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/debug"
+	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
+	"github.com/multiversx/mx-chain-go/heartbeat/data"
+	"github.com/multiversx/mx-chain-go/node/external"
+	"github.com/multiversx/mx-chain-go/ntp"
+	"github.com/multiversx/mx-chain-go/process"
+	txSimData "github.com/multiversx/mx-chain-go/process/txsimulator/data"
+	"github.com/multiversx/mx-chain-go/state"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // DefaultRestInterface is the default interface the rest API will start on if not specified
@@ -333,7 +334,12 @@ func (nf *nodeFacade) GetLastPoolNonceForSender(sender string) (uint64, error) {
 
 // GetTransactionsPoolNonceGapsForSender will return the nonce gaps from pool for sender, if exists, that is to be returned on API calls
 func (nf *nodeFacade) GetTransactionsPoolNonceGapsForSender(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
-	return nf.apiResolver.GetTransactionsPoolNonceGapsForSender(sender)
+	accountResponse, _, err := nf.node.GetAccount(sender, apiData.AccountQueryOptions{})
+	if err != nil {
+		return &common.TransactionsPoolNonceGapsForSenderApiResponse{}, err
+	}
+
+	return nf.apiResolver.GetTransactionsPoolNonceGapsForSender(sender, accountResponse.Nonce)
 }
 
 // ComputeTransactionGasLimit will estimate how many gas a transaction will consume
@@ -352,6 +358,36 @@ func (nf *nodeFacade) GetAccount(address string, options apiData.AccountQueryOpt
 	code, _ := nf.node.GetCode(codeHash, options)
 	accountResponse.Code = hex.EncodeToString(code)
 	return accountResponse, blockInfo, nil
+}
+
+// GetAccounts returns the state of the provided addresses
+func (nf *nodeFacade) GetAccounts(addresses []string, options apiData.AccountQueryOptions) (map[string]*apiData.AccountResponse, apiData.BlockInfo, error) {
+	numAddresses := uint32(len(addresses))
+	// TODO: check if Antiflood is enabled before applying this constraint (EN-13278)
+	maxBulkSize := nf.wsAntifloodConfig.GetAddressesBulkMaxSize
+	if numAddresses > maxBulkSize {
+		return nil, apiData.BlockInfo{}, fmt.Errorf("%w (provided: %d, maximum: %d)", ErrTooManyAddressesInBulk, numAddresses, maxBulkSize)
+	}
+
+	response := make(map[string]*apiData.AccountResponse)
+	var blockInfo apiData.BlockInfo
+
+	for _, address := range addresses {
+		accountResponse, blockInfoForAccount, err := nf.node.GetAccount(address, options)
+		if err != nil {
+			return nil, apiData.BlockInfo{}, err
+		}
+
+		blockInfo = blockInfoForAccount
+
+		codeHash := accountResponse.CodeHash
+		code, _ := nf.node.GetCode(codeHash, options)
+		accountResponse.Code = hex.EncodeToString(code)
+
+		response[address] = &accountResponse
+	}
+
+	return response, blockInfo, nil
 }
 
 // GetHeartbeats returns the heartbeat status for each public key from initial list or later joined to the network
@@ -470,6 +506,11 @@ func (nf *nodeFacade) GetBlockByRound(round uint64, options apiData.BlockQueryOp
 	return nf.apiResolver.GetBlockByRound(round, options)
 }
 
+// GetAlteredAccountsForBlock returns the altered accounts for a given block
+func (nf *nodeFacade) GetAlteredAccountsForBlock(options apiData.GetAlteredAccountsForBlockOptions) ([]*outport.AlteredAccount, error) {
+	return nf.apiResolver.GetAlteredAccountsForBlock(options)
+}
+
 // GetInternalMetaBlockByHash return the meta block for a given hash
 func (nf *nodeFacade) GetInternalMetaBlockByHash(format common.ApiOutputFormat, hash string) (interface{}, error) {
 	return nf.apiResolver.GetInternalMetaBlockByHash(format, hash)
@@ -485,10 +526,16 @@ func (nf *nodeFacade) GetInternalMetaBlockByRound(format common.ApiOutputFormat,
 	return nf.apiResolver.GetInternalMetaBlockByRound(format, round)
 }
 
-// GetInternalStartOfEpochMetaBlock wil return start of epoch meta block
+// GetInternalStartOfEpochMetaBlock will return start of epoch meta block
 // for a specified epoch
 func (nf *nodeFacade) GetInternalStartOfEpochMetaBlock(format common.ApiOutputFormat, epoch uint32) (interface{}, error) {
 	return nf.apiResolver.GetInternalStartOfEpochMetaBlock(format, epoch)
+}
+
+// GetInternalStartOfEpochValidatorsInfo will return start of epoch validators info
+// for a specified epoch
+func (nf *nodeFacade) GetInternalStartOfEpochValidatorsInfo(epoch uint32) ([]*state.ShardValidatorInfo, error) {
+	return nf.apiResolver.GetInternalStartOfEpochValidatorsInfo(epoch)
 }
 
 // GetInternalShardBlockByHash return the shard block for a given hash
@@ -511,7 +558,7 @@ func (nf *nodeFacade) GetInternalMiniBlockByHash(format common.ApiOutputFormat, 
 	return nf.apiResolver.GetInternalMiniBlock(format, txHash, epoch)
 }
 
-// Close will cleanup started go routines
+// Close will clean up started go routines
 func (nf *nodeFacade) Close() error {
 	log.LogIfError(nf.apiResolver.Close())
 

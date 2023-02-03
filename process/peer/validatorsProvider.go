@@ -6,14 +6,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/epochStart/notifier"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 var _ process.ValidatorsProvider = (*validatorsProvider)(nil)
@@ -44,7 +44,7 @@ type ArgValidatorsProvider struct {
 	MaxRating                         uint32
 }
 
-// NewValidatorsProvider instantiates a new validatorsProvider structure responsible of keeping account of
+// NewValidatorsProvider instantiates a new validatorsProvider structure responsible for keeping account of
 //  the latest information about the validators
 func NewValidatorsProvider(
 	args ArgValidatorsProvider,
@@ -289,7 +289,7 @@ func (vp *validatorsProvider) IsInterfaceNil() bool {
 	return vp == nil
 }
 
-// Close - frees up everything, cancels long running methods
+// Close - frees up everything, cancels long-running methods
 func (vp *validatorsProvider) Close() error {
 	vp.cancelFunc()
 

@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go/factory/peerSignatureHandler"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/factory/peerSignatureHandler"
+	"github.com/multiversx/mx-chain-go/integrationTests/mock"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/storage/storageunit"
 )
 
 // TestWalletAccount creates and account with balance and crypto necessary to sign transactions
@@ -28,7 +28,7 @@ type TestWalletAccount struct {
 	Balance *big.Int
 }
 
-// CreateTestWalletAccount creates an wallet account in a selected shard
+// CreateTestWalletAccount creates a wallet account in a selected shard
 func CreateTestWalletAccount(coordinator sharding.Coordinator, shardId uint32) *TestWalletAccount {
 	testWalletAccount := &TestWalletAccount{}
 	testWalletAccount.initCrypto(coordinator, shardId)

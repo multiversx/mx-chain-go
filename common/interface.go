@@ -4,10 +4,10 @@ import (
 	"context"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/trie/statistics"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/trie/statistics"
 )
 
 // NumNodesDTO represents the DTO structure that will hold the number of nodes split by category and other
@@ -52,7 +52,7 @@ type Trie interface {
 
 // TrieStats is used to collect the trie statistics for the given rootHash
 type TrieStats interface {
-	GetTrieStats(address []byte, rootHash []byte) (*statistics.TrieStatsDTO, error)
+	GetTrieStats(address string, rootHash []byte) (*statistics.TrieStatsDTO, error)
 }
 
 // KeyBuilder is used for building trie keys as you traverse the trie
@@ -76,7 +76,7 @@ type StorageManager interface {
 	Put(key []byte, val []byte) error
 	PutInEpoch(key []byte, val []byte, epoch uint32) error
 	PutInEpochWithoutCache(key []byte, val []byte, epoch uint32) error
-	TakeSnapshot(address []byte, rootHash []byte, mainTrieRootHash []byte, iteratorChannels *TrieIteratorChannels, missingNodesChan chan []byte, stats SnapshotStatisticsHandler, epoch uint32)
+	TakeSnapshot(address string, rootHash []byte, mainTrieRootHash []byte, iteratorChannels *TrieIteratorChannels, missingNodesChan chan []byte, stats SnapshotStatisticsHandler, epoch uint32)
 	SetCheckpoint(rootHash []byte, mainTrieRootHash []byte, iteratorChannels *TrieIteratorChannels, missingNodesChan chan []byte, stats SnapshotStatisticsHandler)
 	GetLatestStorageEpoch() (uint32, error)
 	IsPruningEnabled() bool
@@ -161,7 +161,7 @@ type TrieStatisticsHandler interface {
 	AddBranchNode(level int, size uint64)
 	AddExtensionNode(level int, size uint64)
 	AddLeafNode(level int, size uint64)
-	AddAccountInfo(address []byte, rootHash []byte)
+	AddAccountInfo(address string, rootHash []byte)
 	GetTrieStats() *statistics.TrieStatsDTO
 }
 
@@ -333,6 +333,10 @@ type EnableEpochsHandler interface {
 	IsSCProcessorV2FlagEnabled() bool
 	IsFixAsyncCallBackArgsListFlagEnabled() bool
 	IsFixOldTokenLiquidityEnabled() bool
+	IsRuntimeMemStoreLimitEnabled() bool
+	IsMaxBlockchainHookCountersFlagEnabled() bool
+	IsWipeSingleNFTLiquidityDecreaseEnabled() bool
+	IsAlwaysSaveTokenMetaDataEnabled() bool
 
 	IsInterfaceNil() bool
 }

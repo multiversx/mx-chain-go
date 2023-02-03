@@ -8,19 +8,19 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/common/validatorInfo"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/validatorInfo"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/state"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("process/peer")
@@ -76,7 +76,7 @@ type validatorStatistics struct {
 	enableEpochsHandler                  common.EnableEpochsHandler
 }
 
-// NewValidatorStatisticsProcessor instantiates a new validatorStatistics structure responsible of keeping account of
+// NewValidatorStatisticsProcessor instantiates a new validatorStatistics structure responsible for keeping account of
 //  each validator actions in the consensus process
 func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) (*validatorStatistics, error) {
 	if check.IfNil(arguments.PeerAdapter) {
@@ -340,6 +340,7 @@ func (vs *validatorStatistics) UpdatePeerState(header data.MetaHeaderHandler, ca
 		return nil, err
 	}
 
+	log.Debug("UpdatePeerState - registering shard leader fees", "metaNonce", header.GetNonce())
 	err = vs.updateShardDataPeerState(header, cache)
 	if err != nil {
 		return nil, err
@@ -366,6 +367,8 @@ func (vs *validatorStatistics) UpdatePeerState(header data.MetaHeaderHandler, ca
 	}
 	leaderPK := core.GetTrimmedPk(vs.pubkeyConv.Encode(consensusGroup[0].PubKey()))
 	log.Trace("Increasing for leader", "leader", leaderPK, "round", previousHeader.GetRound())
+
+	log.Debug("UpdatePeerState - registering meta previous leader fees", "metaNonce", previousHeader.GetNonce())
 	err = vs.updateValidatorInfoOnSuccessfulBlock(
 		consensusGroup,
 		previousHeader.GetPubKeysBitmap(),
@@ -886,6 +889,7 @@ func (vs *validatorStatistics) updateShardDataPeerState(
 			return shardInfoErr
 		}
 
+		log.Debug("updateShardDataPeerState - registering shard leader fees", "shard headerHash", h.HeaderHash, "accumulatedFees", h.AccumulatedFees.String(), "developerFees", h.DeveloperFees.String())
 		shardInfoErr = vs.updateValidatorInfoOnSuccessfulBlock(
 			shardConsensus,
 			h.PubKeysBitmap,
@@ -1015,6 +1019,10 @@ func (vs *validatorStatistics) updateValidatorInfoOnSuccessfulBlock(
 			}
 
 			peerAcc.AddToAccumulatedFees(leaderAccumulatedFees)
+			log.Debug("updateValidatorInfoOnSuccessfulBlock",
+				"leaderAccumulatedFees in current block", leaderAccumulatedFees.String(),
+				"leader fees in Epoch", peerAcc.GetAccumulatedFees().String(),
+				"leader", core.GetTrimmedPk(string(peerAcc.GetBLSPublicKey())))
 		case validatorSuccess:
 			peerAcc.IncreaseValidatorSuccessRate(1)
 			newRating = vs.rater.ComputeIncreaseValidator(shardId, peerAcc.GetTempRating())

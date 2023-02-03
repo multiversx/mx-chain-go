@@ -1,7 +1,7 @@
 package txcachemocks
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/multiversx/mx-chain-core-go/data"
 )
 
 // TxGasHandler -
@@ -48,7 +48,7 @@ func (ghm *TxGasHandlerMock) MinGasLimit() uint64 {
 	return ghm.MinimumGasMove
 }
 
-// MinGasPriceProcessing -
+// MinGasPriceForProcessing -
 func (ghm *TxGasHandlerMock) MinGasPriceForProcessing() uint64 {
 	return ghm.MinimumGasPrice / ghm.GasProcessingDivisor
 }

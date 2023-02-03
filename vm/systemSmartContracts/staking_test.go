@@ -11,18 +11,18 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	vmData "github.com/ElrondNetwork/elrond-go-core/data/vm"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
-	"github.com/ElrondNetwork/elrond-go/vm"
-	"github.com/ElrondNetwork/elrond-go/vm/mock"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	vmData "github.com/multiversx/mx-chain-core-go/data/vm"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
+	"github.com/multiversx/mx-chain-go/vm"
+	"github.com/multiversx/mx-chain-go/vm/mock"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -1032,7 +1032,7 @@ func TestStakingSc_StakeWithV1ShouldWork(t *testing.T) {
 // 2 -- will try to do jail before stake should return user error
 // 3 -- will stake and stake should work
 // 4 -- will jail user that stake and should work
-// 5 -- will try do to unStake and should not work because cannot do unStake if validator is jail
+// 5 -- will try to do to unStake and should not work because cannot do unStake if validator is jailed
 // 6 -- will try to do unJail with wrong access address should not work
 // 7 -- will do unJail with correct parameters and should work and after that stakeValue should be 999
 func TestStakingSc_StakeJailAndUnJail(t *testing.T) {
@@ -1080,7 +1080,7 @@ func TestStakingSc_StakeJailAndUnJail(t *testing.T) {
 
 	// unJail wrong access address should not work
 	doUnJail(t, stakingSmartContract, []byte("addr"), stakerPubKey, vmcommon.UserError)
-	// cannot do unJail on a address that not stake
+	// cannot do unJail on an address that not stake
 	doUnJail(t, stakingSmartContract, stakingAccessAddress, []byte("addr"), vmcommon.UserError)
 	// unJail should work
 	blockChainHook.CurrentRoundCalled = func() uint64 {
