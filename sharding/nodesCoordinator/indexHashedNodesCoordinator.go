@@ -605,7 +605,7 @@ func (ihnc *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 	}
 
 	ihnc.updateEpochFlags(newEpoch)
-
+	log.Debug("indexHashedNodesCoordinator.EpochStartPrepare", "ihnc.currentEpoch", ihnc.currentEpoch)
 	allValidatorInfo, err := ihnc.createValidatorInfoFromBody(body, ihnc.numTotalEligible, newEpoch)
 	if err != nil {
 		log.Error("could not create validator info from body - do nothing on nodesCoordinator epochStartPrepare", "error", err.Error())
