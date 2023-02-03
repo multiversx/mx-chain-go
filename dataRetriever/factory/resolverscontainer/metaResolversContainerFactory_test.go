@@ -18,7 +18,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
-	triesFactory "github.com/multiversx/mx-chain-go/trie/factory"
 	"github.com/stretchr/testify/assert"
 )
 

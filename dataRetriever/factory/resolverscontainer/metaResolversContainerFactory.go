@@ -8,7 +8,6 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/containers"
 	"github.com/multiversx/mx-chain-go/dataRetriever/resolvers"
-	triesFactory "github.com/multiversx/mx-chain-go/trie/factory"
 
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/process/factory"

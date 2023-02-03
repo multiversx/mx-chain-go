@@ -9,7 +9,6 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/containers"
 	"github.com/multiversx/mx-chain-go/dataRetriever/resolvers"
 	"github.com/multiversx/mx-chain-go/process/factory"
-	triesFactory "github.com/multiversx/mx-chain-go/trie/factory"
 )
 
 var _ dataRetriever.ResolversContainerFactory = (*shardResolversContainerFactory)(nil)

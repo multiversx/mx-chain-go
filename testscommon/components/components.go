@@ -40,7 +40,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/multiversx/mx-chain-go/trie"
-	trieFactory "github.com/multiversx/mx-chain-go/trie/factory"
 	"github.com/multiversx/mx-chain-go/trie/hashesHolder"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	wasmConfig "github.com/multiversx/mx-chain-vm-v1_4-go/config"

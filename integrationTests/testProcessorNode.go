@@ -112,7 +112,6 @@ import (
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
-	trieFactory "github.com/multiversx/mx-chain-go/trie/factory"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/multiversx/mx-chain-go/update"
 	"github.com/multiversx/mx-chain-go/update/trigger"

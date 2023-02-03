@@ -28,7 +28,6 @@ import (
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	storageCommon "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/trie"
-	"github.com/multiversx/mx-chain-go/trie/factory"
 	"github.com/multiversx/mx-chain-go/update"
 	updateMock "github.com/multiversx/mx-chain-go/update/mock"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"

@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"strings"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -20,7 +21,6 @@ import (
 	"github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/disabled"
 	"github.com/multiversx/mx-chain-go/trie"
-	triesFactory "github.com/multiversx/mx-chain-go/trie/factory"
 	"github.com/multiversx/mx-chain-go/update"
 )
 

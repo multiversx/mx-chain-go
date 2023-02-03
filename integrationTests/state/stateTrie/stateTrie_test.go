@@ -5,13 +5,13 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"math"
 	"math/big"
 	"math/rand"
 	"runtime"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -39,7 +39,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/trie"
-	trieFactory "github.com/multiversx/mx-chain-go/trie/factory"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -1368,7 +1367,7 @@ func TestRollbackBlockAndCheckThatPruningIsCancelledOnAccountsTrie(t *testing.T)
 	if !bytes.Equal(rootHash, rootHashOfRollbackedBlock) {
 		time.Sleep(time.Second * 3)
 		err = shardNode.AccntState.RecreateTrie(rootHashOfRollbackedBlock)
-		require.True(t, errors.Is(err, trie.ErrKeyNotFound))
+		require.True(t, strings.Contains(err.Error(), trie.ErrKeyNotFound.Error()))
 	}
 
 	nonces := []*uint64{new(uint64), new(uint64)}
@@ -1529,7 +1528,7 @@ func TestTriePruningWhenBlockIsFinal(t *testing.T) {
 	require.Equal(t, uint64(17), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
 
 	err := shardNode.AccntState.RecreateTrie(rootHashOfFirstBlock)
-	require.True(t, errors.Is(err, trie.ErrKeyNotFound))
+	require.True(t, strings.Contains(err.Error(), trie.ErrKeyNotFound.Error()))
 }
 
 func TestStatePruningIsNotBuffered(t *testing.T) {
@@ -1674,7 +1673,7 @@ func checkTrieCanBeRecreated(tb testing.TB, node *integrationTests.TestProcessor
 		return
 	}
 
-	stateTrie := node.TrieContainer.Get([]byte(trieFactory.UserAccountTrie))
+	stateTrie := node.TrieContainer.Get([]byte(dataRetriever.UserAccountsUnit.String()))
 	roothash := node.BlockChain.GetCurrentBlockRootHash()
 	tr, err := stateTrie.Recreate(roothash)
 	require.Nil(tb, err)
