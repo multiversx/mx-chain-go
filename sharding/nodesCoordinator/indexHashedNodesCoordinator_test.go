@@ -2046,6 +2046,7 @@ func TestIndexHashedNodesCoordinator_computeNodesConfigFromListNilPreviousNodesC
 	pk := []byte("pk")
 	arguments.SelfPublicKey = pk
 	ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
+	ihnc.flagStakingV4Started.SetReturningPrevious()
 
 	validatorInfos := make([]*state.ShardValidatorInfo, 0)
 

@@ -753,7 +753,7 @@ func (ihnc *indexHashedNodesCoordinator) computeNodesConfigFromList(
 	newNodesList := make([]Validator, 0)
 	auctionList := make([]Validator, 0)
 
-	if previousEpochConfig == nil {
+	if ihnc.flagStakingV4Started.IsSet() && previousEpochConfig == nil {
 		return nil, ErrNilPreviousEpochConfig
 	}
 
