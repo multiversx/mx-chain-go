@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
@@ -719,6 +720,11 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 				"total gas penalized", tc.gasHandler.TotalGasPenalized(),
 				"error", errProc,
 			)
+
+			if errors.IsGetNodeFromDBError(errProc) {
+				return nil, 0, false, err
+			}
+
 			continue
 		}
 
