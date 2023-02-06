@@ -1,8 +1,8 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 // StateComponentsHolderStub -
@@ -42,7 +42,7 @@ func (s *StateComponentsHolderStub) AccountsAdapterAPI() state.AccountsAdapter {
 	return nil
 }
 
-// AccountRepository -
+// AccountsRepository -
 func (s *StateComponentsHolderStub) AccountsRepository() state.AccountsRepository {
 	if s.AccountsRepositoryCalled != nil {
 		return s.AccountsRepositoryCalled()

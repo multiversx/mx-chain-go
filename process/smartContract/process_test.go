@@ -8,32 +8,32 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	vmData "github.com/ElrondNetwork/elrond-go-core/data/vm"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/common/enablers"
-	"github.com/ElrondNetwork/elrond-go/common/forking"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/block/postprocess"
-	"github.com/ElrondNetwork/elrond-go/process/economics"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/scrCommon"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
-	"github.com/ElrondNetwork/elrond-go/storage/txcache"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
-	"github.com/ElrondNetwork/elrond-vm-common/parsers"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	vmData "github.com/multiversx/mx-chain-core-go/data/vm"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/enablers"
+	"github.com/multiversx/mx-chain-go/common/forking"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/postprocess"
+	"github.com/multiversx/mx-chain-go/process/economics"
+	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-go/storage/txcache"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
+	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -63,9 +63,9 @@ func createAccounts(tx data.TransactionHandler) (state.UserAccountHandler, state
 
 func createMockSmartContractProcessorArguments() scrCommon.ArgsNewSmartContractProcessor {
 	gasSchedule := make(map[string]map[string]uint64)
-	gasSchedule[common.ElrondAPICost] = make(map[string]uint64)
-	gasSchedule[common.ElrondAPICost][common.AsyncCallStepField] = 1000
-	gasSchedule[common.ElrondAPICost][common.AsyncCallbackGasLockField] = 3000
+	gasSchedule[common.BaseOpsAPICost] = make(map[string]uint64)
+	gasSchedule[common.BaseOpsAPICost][common.AsyncCallStepField] = 1000
+	gasSchedule[common.BaseOpsAPICost][common.AsyncCallbackGasLockField] = 3000
 	gasSchedule[common.BuiltInCost] = make(map[string]uint64)
 	gasSchedule[common.BuiltInCost][core.BuiltInFunctionESDTTransfer] = 2000
 
@@ -107,8 +107,8 @@ func createMockSmartContractProcessorArguments() scrCommon.ArgsNewSmartContractP
 		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
 			IsSCDeployFlagEnabledField: true,
 		},
-		ArwenChangeLocker: &sync.RWMutex{},
-		VMOutputCacher:    txcache.NewDisabledCache(),
+		WasmVMChangeLocker: &sync.RWMutex{},
+		VMOutputCacher:     txcache.NewDisabledCache(),
 	}
 }
 
@@ -340,7 +340,7 @@ func TestNewSmartContractProcessor_NilLockerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockSmartContractProcessorArguments()
-	arguments.ArwenChangeLocker = nil
+	arguments.WasmVMChangeLocker = nil
 	sc, err := NewSmartContractProcessor(arguments)
 
 	require.Nil(t, sc)
@@ -4168,7 +4168,7 @@ func TestProcess_createCompletedTxEvent(t *testing.T) {
 	completedLogSaved := false
 	arguments.TxLogsProcessor = &mock.TxLogsProcessorStub{SaveLogCalled: func(txHash []byte, tx data.TransactionHandler, vmLogs []*vmcommon.LogEntry) error {
 		for _, vmLog := range vmLogs {
-			if string(vmLog.Identifier) == completedTxEvent {
+			if string(vmLog.Identifier) == core.CompletedTxEventIdentifier {
 				completedLogSaved = true
 			}
 		}
@@ -4205,7 +4205,7 @@ func TestProcess_createCompletedTxEvent(t *testing.T) {
 	scrWithTransfer.Value = big.NewInt(0)
 	completeTxEvent = sc.createCompleteEventLogIfNoMoreAction(scr, scrHash, []data.TransactionHandler{scrWithTransfer})
 	assert.NotNil(t, completeTxEvent)
-	assert.Equal(t, completeTxEvent.Identifier, []byte(completedTxEvent))
+	assert.Equal(t, completeTxEvent.Identifier, []byte(core.CompletedTxEventIdentifier))
 	assert.Equal(t, completeTxEvent.Topics[0], scr.PrevTxHash)
 
 	scrWithRefund := &smartContractResult.SmartContractResult{Value: big.NewInt(10), PrevTxHash: scrHash, Data: []byte("@6f6b@aaffaa")}

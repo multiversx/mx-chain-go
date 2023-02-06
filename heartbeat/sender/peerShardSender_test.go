@@ -8,26 +8,26 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/heartbeat"
-	"github.com/ElrondNetwork/elrond-go/p2p/factory"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/heartbeat"
+	"github.com/multiversx/mx-chain-go/p2p/factory"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
 )
 
 func createMockArgPeerShardSender() ArgPeerShardSender {
 	return ArgPeerShardSender{
-		Messenger:             &p2pmocks.MessengerStub{},
-		Marshaller:            &marshal.GogoProtoMarshalizer{},
-		ShardCoordinator:      &testscommon.ShardsCoordinatorMock{},
-		TimeBetweenSends:      time.Second,
-		ThresholdBetweenSends: 0.1,
+		Messenger:                 &p2pmocks.MessengerStub{},
+		Marshaller:                &marshal.GogoProtoMarshalizer{},
+		ShardCoordinator:          &testscommon.ShardsCoordinatorMock{},
+		TimeBetweenSends:          time.Second,
+		TimeThresholdBetweenSends: 0.1,
 		NodesCoordinator: &shardingMocks.NodesCoordinatorStub{
 			GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error) {
 				return nil, 0, errors.New("the node is an observer")
@@ -84,11 +84,11 @@ func TestNewPeerShardSender(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgPeerShardSender()
-		args.ThresholdBetweenSends = 0
+		args.TimeThresholdBetweenSends = 0
 
 		pss, err := NewPeerShardSender(args)
 		assert.True(t, errors.Is(err, heartbeat.ErrInvalidThreshold))
-		assert.True(t, strings.Contains(err.Error(), "ThresholdBetweenSends"))
+		assert.True(t, strings.Contains(err.Error(), "TimeThresholdBetweenSends"))
 		assert.True(t, check.IfNil(pss))
 	})
 	t.Run("nil nodes coordinator should error", func(t *testing.T) {

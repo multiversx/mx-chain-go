@@ -3,9 +3,9 @@ package localFuncs
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
-	"github.com/ElrondNetwork/wasm-vm/arwen/elrondapi"
-	mock "github.com/ElrondNetwork/wasm-vm/mock/context"
+	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
+	mock "github.com/multiversx/mx-chain-vm-go/mock/context"
+	vmhooks "github.com/multiversx/mx-chain-vm-go/vmhost/vmhooks"
 )
 
 // LocalMintMock is an exposed mock contract method
@@ -22,7 +22,7 @@ func LocalMintMock(instanceMock *mock.InstanceMock, config interface{}) {
 			string(args[0]),
 			big.NewInt(0).SetBytes(args[1]).Int64())
 
-		elrondapi.ExecuteOnDestContextWithTypedArgs(
+		vmhooks.ExecuteOnDestContextWithTypedArgs(
 			host,
 			1_000_000,
 			big.NewInt(0),
@@ -48,7 +48,7 @@ func LocalBurnMock(instanceMock *mock.InstanceMock, config interface{}) {
 			string(args[0]),
 			big.NewInt(0).SetBytes(args[1]).Int64())
 
-		elrondapi.ExecuteOnDestContextWithTypedArgs(
+		vmhooks.ExecuteOnDestContextWithTypedArgs(
 			host,
 			1_000_000,
 			big.NewInt(0),

@@ -1,7 +1,7 @@
 package testscommon
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/multiversx/mx-chain-core-go/data"
 )
 
 // ChainHandlerMock -
@@ -66,7 +66,7 @@ func (mock *ChainHandlerMock) GetCurrentBlockRootHash() []byte {
 	return mock.currentBlockRootHash
 }
 
-// SetFinalBlockInfoCalled -
+// SetFinalBlockInfo -
 func (mock *ChainHandlerMock) SetFinalBlockInfo(nonce uint64, headerHash []byte, rootHash []byte) {
 	mock.finalBlockNonce = nonce
 	mock.finalBlockHash = headerHash

@@ -3,11 +3,11 @@ package syncer
 import (
 	"context"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/trie/statistics"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/trie/statistics"
 )
 
 var _ epochStart.AccountsDBSyncer = (*validatorAccountsSyncer)(nil)
@@ -50,6 +50,7 @@ func NewValidatorAccountsSyncer(args ArgsNewValidatorAccountsSyncer) (*validator
 		checkNodesOnDisk:                  args.CheckNodesOnDisk,
 		storageMarker:                     args.StorageMarker,
 		userAccountsSyncStatisticsHandler: statistics.NewTrieSyncStatistics(),
+		appStatusHandler:                  args.AppStatusHandler,
 	}
 
 	u := &validatorAccountsSyncer{
@@ -72,7 +73,7 @@ func (v *validatorAccountsSyncer) SyncAccounts(rootHash []byte) error {
 		cancel()
 	}()
 
-	go v.printStatistics(ctx)
+	go v.printStatisticsAndUpdateMetrics(ctx)
 
 	mainTrie, err := v.syncMainTrie(rootHash, factory.ValidatorTrieNodesTopic, ctx)
 	if err != nil {

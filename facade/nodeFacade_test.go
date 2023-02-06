@@ -10,26 +10,26 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	atomicCore "github.com/ElrondNetwork/elrond-go-core/core/atomic"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	nodeData "github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/api"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-core/data/vm"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/debug"
-	"github.com/ElrondNetwork/elrond-go/facade/mock"
-	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
-	"github.com/ElrondNetwork/elrond-go/node/external"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	atomicCore "github.com/multiversx/mx-chain-core-go/core/atomic"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	nodeData "github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/esdt"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/data/vm"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/debug"
+	"github.com/multiversx/mx-chain-go/facade/mock"
+	"github.com/multiversx/mx-chain-go/heartbeat/data"
+	"github.com/multiversx/mx-chain-go/node/external"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -298,6 +298,64 @@ func TestNodeFacade_GetAccount(t *testing.T) {
 
 	_, _, _ = nf.GetAccount("test", api.AccountQueryOptions{})
 	assert.True(t, getAccountCalled)
+}
+
+func TestNodeFacade_GetAccounts(t *testing.T) {
+	t.Parallel()
+
+	t.Run("too many addresses in bulk", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+		arg.WsAntifloodConfig.GetAddressesBulkMaxSize = 1
+		nf, _ := NewNodeFacade(arg)
+
+		resp, blockInfo, err := nf.GetAccounts([]string{"test1", "test2"}, api.AccountQueryOptions{})
+		assert.Nil(t, resp)
+		assert.Empty(t, blockInfo)
+		assert.Error(t, err)
+		assert.Equal(t, "too many addresses in the bulk request (provided: 2, maximum: 1)", err.Error())
+	})
+
+	t.Run("node responds with error, should err", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := errors.New("expected error")
+		node := &mock.NodeStub{}
+		node.GetAccountCalled = func(address string, _ api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
+			return api.AccountResponse{}, api.BlockInfo{}, expectedErr
+		}
+
+		arg := createMockArguments()
+		arg.Node = node
+		arg.WsAntifloodConfig.GetAddressesBulkMaxSize = 2
+		nf, _ := NewNodeFacade(arg)
+
+		resp, blockInfo, err := nf.GetAccounts([]string{"test"}, api.AccountQueryOptions{})
+		assert.Nil(t, resp)
+		assert.Empty(t, blockInfo)
+		assert.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		expectedAcount := api.AccountResponse{Address: "test"}
+		node := &mock.NodeStub{}
+		node.GetAccountCalled = func(address string, _ api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
+			return expectedAcount, api.BlockInfo{}, nil
+		}
+
+		arg := createMockArguments()
+		arg.Node = node
+		arg.WsAntifloodConfig.GetAddressesBulkMaxSize = 1
+		nf, _ := NewNodeFacade(arg)
+
+		resp, blockInfo, err := nf.GetAccounts([]string{"test"}, api.AccountQueryOptions{})
+		assert.NoError(t, err)
+		assert.Empty(t, blockInfo)
+		assert.Equal(t, &expectedAcount, resp["test"])
+	})
 }
 
 func TestNodeFacade_GetUsername(t *testing.T) {
@@ -589,7 +647,7 @@ func TestNodeFacade_EncodeDecodeAddressPubkey(t *testing.T) {
 	assert.Equal(t, buff, recoveredBytes)
 }
 
-func TestElrondNodeFacade_GetQueryHandler(t *testing.T) {
+func TestNodeFacade_GetQueryHandler(t *testing.T) {
 	t.Parallel()
 
 	wasCalled := false
@@ -1560,8 +1618,13 @@ func TestNodeFacade_GetTransactionsPoolNonceGapsForSender(t *testing.T) {
 
 		arg := createMockArguments()
 		expectedErr := errors.New("expected error")
+		arg.Node = &mock.NodeStub{
+			GetAccountCalled: func(address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
+				return api.AccountResponse{}, api.BlockInfo{}, nil
+			},
+		}
 		arg.ApiResolver = &mock.ApiResolverStub{
-			GetTransactionsPoolNonceGapsForSenderCalled: func(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
+			GetTransactionsPoolNonceGapsForSenderCalled: func(sender string, senderAccountNonce uint64) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
 				return nil, expectedErr
 			},
 		}
@@ -1586,8 +1649,15 @@ func TestNodeFacade_GetTransactionsPoolNonceGapsForSender(t *testing.T) {
 				},
 			},
 		}
+		providedNonce := uint64(10)
+		arg.Node = &mock.NodeStub{
+			GetAccountCalled: func(address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
+				return api.AccountResponse{Nonce: providedNonce}, api.BlockInfo{}, nil
+			},
+		}
 		arg.ApiResolver = &mock.ApiResolverStub{
-			GetTransactionsPoolNonceGapsForSenderCalled: func(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
+			GetTransactionsPoolNonceGapsForSenderCalled: func(sender string, senderAccountNonce uint64) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
+				assert.Equal(t, providedNonce, senderAccountNonce)
 				return expectedNonceGaps, nil
 			},
 		}
@@ -1596,5 +1666,46 @@ func TestNodeFacade_GetTransactionsPoolNonceGapsForSender(t *testing.T) {
 		res, err := nf.GetTransactionsPoolNonceGapsForSender(expectedSender)
 		require.NoError(t, err)
 		require.Equal(t, expectedNonceGaps, res)
+	})
+}
+
+func TestNodeFacade_InternalValidatorsInfo(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should fail on facade error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+		expectedErr := errors.New("expected error")
+		arg.ApiResolver = &mock.ApiResolverStub{
+			GetInternalStartOfEpochValidatorsInfoCalled: func(epoch uint32) ([]*state.ShardValidatorInfo, error) {
+				return nil, expectedErr
+			},
+		}
+
+		nf, _ := NewNodeFacade(arg)
+		res, err := nf.GetInternalStartOfEpochValidatorsInfo(0)
+		require.Nil(t, res)
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+
+		wasCalled := false
+		arg.ApiResolver = &mock.ApiResolverStub{
+			GetInternalStartOfEpochValidatorsInfoCalled: func(epoch uint32) ([]*state.ShardValidatorInfo, error) {
+				wasCalled = true
+				return make([]*state.ShardValidatorInfo, 0), nil
+			},
+		}
+
+		nf, _ := NewNodeFacade(arg)
+		res, err := nf.GetInternalStartOfEpochValidatorsInfo(0)
+		require.NotNil(t, res)
+		require.Nil(t, err)
+		require.True(t, wasCalled)
 	})
 }

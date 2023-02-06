@@ -4,16 +4,14 @@ import (
 	"errors"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/factory"
-	nodeDisabled "github.com/ElrondNetwork/elrond-go/node/disabled"
-	"github.com/ElrondNetwork/elrond-go/node/nodeDebugFactory"
-	procFactory "github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/blackList"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/node/nodeDebugFactory"
+	procFactory "github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/process/throttle/antiflood/blackList"
+	"github.com/multiversx/mx-chain-go/sharding"
 )
 
 // prepareOpenTopics will set to the anti flood handler the topics for which
@@ -73,17 +71,6 @@ func CreateNode(
 		return nil, err
 	}
 
-	esdtNftStorage, err := builtInFunctions.NewESDTDataStorage(builtInFunctions.ArgsNewESDTDataStorage{
-		Accounts:              stateComponents.AccountsAdapterAPI(),
-		GlobalSettingsHandler: nodeDisabled.NewDisabledGlobalSettingHandler(),
-		Marshalizer:           coreComponents.InternalMarshalizer(),
-		EnableEpochsHandler:   coreComponents.EnableEpochsHandler(),
-		ShardCoordinator:      processComponents.ShardCoordinator(),
-	})
-	if err != nil {
-		return nil, err
-	}
-
 	var nd *Node
 	nd, err = NewNode(
 		WithStatusCoreComponents(statusCoreComponents),
@@ -110,7 +97,7 @@ func CreateNode(
 		WithPublicKeySize(config.ValidatorPubkeyConverter.Length),
 		WithNodeStopChannel(coreComponents.ChanStopNodeProcess()),
 		WithImportMode(isInImportMode),
-		WithESDTNFTStorageHandler(esdtNftStorage),
+		WithESDTNFTStorageHandler(processComponents.ESDTDataStorageHandlerForAPI()),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())
@@ -126,7 +113,8 @@ func CreateNode(
 	err = nodeDebugFactory.CreateInterceptedDebugHandler(
 		nd,
 		processComponents.InterceptorsContainer(),
-		processComponents.ResolversFinder(),
+		processComponents.ResolversContainer(),
+		processComponents.RequestersFinder(),
 		config.Debug.InterceptorResolver,
 	)
 	if err != nil {

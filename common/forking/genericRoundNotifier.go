@@ -3,9 +3,9 @@ package forking
 import (
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 type genericRoundNotifier struct {

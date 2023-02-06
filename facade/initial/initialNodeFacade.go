@@ -4,19 +4,22 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data/api"
-	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-core/data/vm"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/debug"
-	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
-	"github.com/ElrondNetwork/elrond-go/node/external"
-	"github.com/ElrondNetwork/elrond-go/ntp"
-	"github.com/ElrondNetwork/elrond-go/process"
-	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
-	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/multiversx/mx-chain-core-go/data/esdt"
+	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/data/vm"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/debug"
+	"github.com/multiversx/mx-chain-go/facade"
+	"github.com/multiversx/mx-chain-go/heartbeat/data"
+	"github.com/multiversx/mx-chain-go/node/external"
+	"github.com/multiversx/mx-chain-go/ntp"
+	"github.com/multiversx/mx-chain-go/process"
+	txSimData "github.com/multiversx/mx-chain-go/process/txsimulator/data"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 var errNodeStarting = errors.New("node is starting")
@@ -30,12 +33,21 @@ type initialNodeFacade struct {
 }
 
 // NewInitialNodeFacade is the initial implementation of the facade interface
-func NewInitialNodeFacade(apiInterface string, pprofEnabled bool) *initialNodeFacade {
+func NewInitialNodeFacade(apiInterface string, pprofEnabled bool, statusMetricsHandler external.StatusMetricsHandler) (*initialNodeFacade, error) {
+	if check.IfNil(statusMetricsHandler) {
+		return nil, facade.ErrNilStatusMetrics
+	}
+
+	initialStatusMetrics, err := NewInitialStatusMetricsProvider(statusMetricsHandler)
+	if err != nil {
+		return nil, err
+	}
+
 	return &initialNodeFacade{
 		apiInterface:         apiInterface,
-		statusMetricsHandler: NewDisabledStatusMetricsHandler(),
+		statusMetricsHandler: initialStatusMetrics,
 		pprofEnabled:         pprofEnabled,
-	}
+	}, nil
 }
 
 // GetProof -
@@ -171,6 +183,11 @@ func (inf *initialNodeFacade) GetAccount(_ string, _ api.AccountQueryOptions) (a
 	return api.AccountResponse{}, api.BlockInfo{}, errNodeStarting
 }
 
+// GetAccounts returns error
+func (inf *initialNodeFacade) GetAccounts(_ []string, _ api.AccountQueryOptions) (map[string]*api.AccountResponse, api.BlockInfo, error) {
+	return nil, api.BlockInfo{}, errNodeStarting
+}
+
 // GetCode returns nil and error
 func (inf *initialNodeFacade) GetCode(_ []byte, _ api.AccountQueryOptions) []byte {
 	return nil
@@ -186,7 +203,7 @@ func (inf *initialNodeFacade) GetHeartbeats() ([]data.PubKeyHeartbeat, error) {
 	return nil, errNodeStarting
 }
 
-// StatusMetrics will returns nil
+// StatusMetrics will return nil
 func (inf *initialNodeFacade) StatusMetrics() external.StatusMetricsHandler {
 	return inf.statusMetricsHandler
 }
@@ -261,6 +278,11 @@ func (inf *initialNodeFacade) GetBlockByRound(_ uint64, _ api.BlockQueryOptions)
 	return nil, errNodeStarting
 }
 
+// GetAlteredAccountsForBlock returns nil and error
+func (inf *initialNodeFacade) GetAlteredAccountsForBlock(_ api.GetAlteredAccountsForBlockOptions) ([]*outportcore.AlteredAccount, error) {
+	return nil, errNodeStarting
+}
+
 // GetInternalMetaBlockByHash return nil and error
 func (inf *initialNodeFacade) GetInternalMetaBlockByHash(_ common.ApiOutputFormat, _ string) (interface{}, error) {
 	return nil, errNodeStarting
@@ -278,6 +300,11 @@ func (inf *initialNodeFacade) GetInternalMetaBlockByRound(_ common.ApiOutputForm
 
 // GetInternalStartOfEpochMetaBlock returns nil and error
 func (inf *initialNodeFacade) GetInternalStartOfEpochMetaBlock(_ common.ApiOutputFormat, _ uint32) (interface{}, error) {
+	return nil, errNodeStarting
+}
+
+// GetInternalStartOfEpochValidatorsInfo returns nil and error
+func (inf *initialNodeFacade) GetInternalStartOfEpochValidatorsInfo(_ uint32) ([]*state.ShardValidatorInfo, error) {
 	return nil, errNodeStarting
 }
 

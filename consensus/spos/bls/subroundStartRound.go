@@ -7,14 +7,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/outport"
-	"github.com/ElrondNetwork/elrond-go/outport/disabled"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/outport"
+	"github.com/multiversx/mx-chain-go/outport/disabled"
 )
 
 // subroundStartRound defines the data needed by the subround StartRound
@@ -249,7 +249,7 @@ func (sr *subroundStartRound) indexRoundIfNeeded(pubKeys []string) {
 
 	round := sr.RoundHandler().Index()
 
-	roundInfo := &indexer.RoundInfo{
+	roundInfo := &outportcore.RoundInfo{
 		Index:            uint64(round),
 		SignersIndexes:   signersIndexes,
 		BlockWasProposed: false,
@@ -258,7 +258,7 @@ func (sr *subroundStartRound) indexRoundIfNeeded(pubKeys []string) {
 		Timestamp:        time.Duration(sr.RoundTimeStamp.Unix()),
 	}
 
-	sr.outportHandler.SaveRoundsInfo([]*indexer.RoundInfo{roundInfo})
+	sr.outportHandler.SaveRoundsInfo([]*outportcore.RoundInfo{roundInfo})
 }
 
 func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int64) error {

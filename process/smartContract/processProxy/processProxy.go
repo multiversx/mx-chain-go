@@ -3,16 +3,16 @@ package processProxy
 import (
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/processorV2"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/scrCommon"
-	"github.com/ElrondNetwork/elrond-go/state"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/smartContract"
+	"github.com/multiversx/mx-chain-go/process/smartContract/processorV2"
+	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
+	"github.com/multiversx/mx-chain-go/state"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 var log = logger.GetOrCreate("processProxy")
@@ -62,7 +62,7 @@ func NewSmartContractProcessorProxy(args scrCommon.ArgsNewSmartContractProcessor
 			EnableEpochsHandler: args.EnableEpochsHandler,
 			EnableEpochs:        args.EnableEpochs,
 			VMOutputCacher:      args.VMOutputCacher,
-			ArwenChangeLocker:   args.ArwenChangeLocker,
+			WasmVMChangeLocker:  args.WasmVMChangeLocker,
 			IsGenesisProcessing: args.IsGenesisProcessing,
 		},
 	}

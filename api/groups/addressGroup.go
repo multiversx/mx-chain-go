@@ -7,17 +7,18 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/api"
-	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
-	"github.com/ElrondNetwork/elrond-go/api/errors"
-	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/gin-gonic/gin"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/multiversx/mx-chain-core-go/data/esdt"
+	"github.com/multiversx/mx-chain-go/api/errors"
+	"github.com/multiversx/mx-chain-go/api/shared"
 )
 
 const (
 	getAccountPath            = "/:address"
+	getAccountsPath           = "/bulk"
 	getBalancePath            = "/:address/balance"
 	getUsernamePath           = "/:address/username"
 	getCodeHashPath           = "/:address/code-hash"
@@ -44,6 +45,7 @@ type addressFacadeHandler interface {
 	GetCodeHash(address string, options api.AccountQueryOptions) ([]byte, api.BlockInfo, error)
 	GetValueForKey(address string, key string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
 	GetAccount(address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error)
+	GetAccounts(addresses []string, options api.AccountQueryOptions) (map[string]*api.AccountResponse, api.BlockInfo, error)
 	GetESDTData(address string, key string, nonce uint64, options api.AccountQueryOptions) (*esdt.ESDigitalToken, api.BlockInfo, error)
 	GetESDTsRoles(address string, options api.AccountQueryOptions) (map[string][]string, api.BlockInfo, error)
 	GetNFTTokenIDsRegisteredByAddress(address string, options api.AccountQueryOptions) ([]string, api.BlockInfo, error)
@@ -94,6 +96,11 @@ func NewAddressGroup(facade addressFacadeHandler) (*addressGroup, error) {
 			Path:    getAccountPath,
 			Method:  http.MethodGet,
 			Handler: ag.getAccount,
+		},
+		{
+			Path:    getAccountsPath,
+			Method:  http.MethodPost,
+			Handler: ag.getAccounts,
 		},
 		{
 			Path:    getBalancePath,
@@ -156,7 +163,7 @@ func NewAddressGroup(facade addressFacadeHandler) (*addressGroup, error) {
 	return ag, nil
 }
 
-// addressGroup returns a response containing information about the account correlated with provided address
+// getAccount returns a response containing information about the account correlated with provided address
 func (ag *addressGroup) getAccount(c *gin.Context) {
 	addr := c.Param("address")
 	if addr == "" {
@@ -178,6 +185,30 @@ func (ag *addressGroup) getAccount(c *gin.Context) {
 
 	accountResponse.Address = addr
 	shared.RespondWithSuccess(c, gin.H{"account": accountResponse, "blockInfo": blockInfo})
+}
+
+// getAccounts returns the state of the provided addresses on the specified block
+func (ag *addressGroup) getAccounts(c *gin.Context) {
+	var addresses []string
+	err := c.ShouldBindJSON(&addresses)
+	if err != nil {
+		shared.RespondWithValidationError(c, errors.ErrValidation, err)
+		return
+	}
+
+	options, err := extractAccountQueryOptions(c)
+	if err != nil {
+		shared.RespondWithValidationError(c, errors.ErrCouldNotGetAccount, err)
+		return
+	}
+
+	accountsResponse, blockInfo, err := ag.getFacade().GetAccounts(addresses, options)
+	if err != nil {
+		shared.RespondWithInternalError(c, errors.ErrCouldNotGetAccount, err)
+		return
+	}
+
+	shared.RespondWithSuccess(c, gin.H{"accounts": accountsResponse, "blockInfo": blockInfo})
 }
 
 // getBalance returns the balance for the address parameter

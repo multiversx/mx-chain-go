@@ -4,10 +4,10 @@ import (
 	"context"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	crypto "github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/p2p"
 )
 
 // BlsConsensusType specifies the signature scheme used in the consensus
@@ -17,7 +17,7 @@ const BlsConsensusType = "bls"
 type RoundHandler interface {
 	Index() int64
 	BeforeGenesis() bool
-	// UpdateRound updates the index and the time stamp of the round depending of the genesis time and the current time given
+	// UpdateRound updates the index and the time stamp of the round depending on the genesis time and the current time given
 	UpdateRound(time.Time, time.Time)
 	TimeStamp() time.Time
 	TimeDuration() time.Duration
@@ -145,6 +145,22 @@ type ScheduledProcessor interface {
 	StartScheduledProcessing(header data.HeaderHandler, body data.BodyHandler, startTime time.Time)
 	ForceStopScheduledExecutionBlocking()
 	IsProcessedOKWithTimeout() bool
+	IsInterfaceNil() bool
+}
+
+// P2PSigningHandler defines the behaviour of a component able to verify p2p message signature
+type P2PSigningHandler interface {
+	Verify(message p2p.MessageP2P) error
+	Serialize(messages []p2p.MessageP2P) ([]byte, error)
+	Deserialize(messagesBytes []byte) ([]p2p.MessageP2P, error)
+	IsInterfaceNil() bool
+}
+
+// PeerBlacklistHandler defines the behaviour of a component able to blacklist p2p peers
+type PeerBlacklistHandler interface {
+	IsPeerBlacklisted(peer core.PeerID) bool
+	BlacklistPeer(peer core.PeerID, duration time.Duration)
+	Close() error
 	IsInterfaceNil() bool
 }
 

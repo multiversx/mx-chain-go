@@ -5,22 +5,21 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
-	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	nodeFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/factory"
-	"github.com/ElrondNetwork/elrond-go/ntp"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/ntp"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/storage"
 )
 
 var _ factory.ComponentHandler = (*managedCoreComponents)(nil)
@@ -110,9 +109,6 @@ func (mcc *managedCoreComponents) CheckSubcomponents() error {
 	}
 	if check.IfNil(mcc.validatorPubKeyConverter) {
 		return errors.ErrNilValidatorPublicKeyConverter
-	}
-	if check.IfNil(mcc.statusHandlersUtils) {
-		return errors.ErrNilStatusHandler
 	}
 	if check.IfNil(mcc.pathHandler) {
 		return errors.ErrNilPathHandler
@@ -271,30 +267,6 @@ func (mcc *managedCoreComponents) ValidatorPubKeyConverter() core.PubkeyConverte
 	}
 
 	return mcc.coreComponents.validatorPubKeyConverter
-}
-
-// StatusHandlerUtils returns the core components status handler utils
-func (mcc *managedCoreComponents) StatusHandlerUtils() nodeFactory.StatusHandlersUtils {
-	mcc.mutCoreComponents.RLock()
-	defer mcc.mutCoreComponents.RUnlock()
-
-	if mcc.coreComponents == nil {
-		return nil
-	}
-
-	return mcc.coreComponents.statusHandlersUtils
-}
-
-// StatusHandler returns the application status handler
-func (mcc *managedCoreComponents) StatusHandler() core.AppStatusHandler {
-	mcc.mutCoreComponents.RLock()
-	defer mcc.mutCoreComponents.RUnlock()
-
-	if mcc.coreComponents == nil {
-		return nil
-	}
-
-	return mcc.coreComponents.statusHandlersUtils.StatusHandler()
 }
 
 // PathHandler returns the core components path handler
@@ -561,8 +533,8 @@ func (mcc *managedCoreComponents) NodeTypeProvider() core.NodeTypeProviderHandle
 	return mcc.coreComponents.nodeTypeProvider
 }
 
-// ArwenChangeLocker returns the arwen change locker
-func (mcc *managedCoreComponents) ArwenChangeLocker() common.Locker {
+// WasmVMChangeLocker returns the wasm VM change locker
+func (mcc *managedCoreComponents) WasmVMChangeLocker() common.Locker {
 	mcc.mutCoreComponents.RLock()
 	defer mcc.mutCoreComponents.RUnlock()
 
@@ -570,7 +542,7 @@ func (mcc *managedCoreComponents) ArwenChangeLocker() common.Locker {
 		return nil
 	}
 
-	return mcc.coreComponents.arwenChangeLocker
+	return mcc.coreComponents.wasmVMChangeLocker
 }
 
 // ProcessStatusHandler returns the process status handler

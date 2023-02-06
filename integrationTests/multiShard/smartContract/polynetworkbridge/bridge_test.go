@@ -7,14 +7,14 @@ import (
 	"math/big"
 	"testing"
 
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/vm"
-	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/vm"
+	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -34,8 +34,8 @@ func TestBridgeSetupAndBurn(t *testing.T) {
 		SCProcessorV2EnableEpoch:            integrationTests.UnreachableEpoch,
 		FixAsyncCallBackArgsListEnableEpoch: integrationTests.UnreachableEpoch,
 	}
-	arwenVersion := config.ArwenVersionByEpoch{Version: "v1.4"}
-	vmConfig := &config.VirtualMachineConfig{ArwenVersions: []config.ArwenVersionByEpoch{arwenVersion}}
+	arwenVersion := config.WasmVMVersionByEpoch{Version: "v1.4"}
+	vmConfig := &config.VirtualMachineConfig{WasmVMVersions: []config.WasmVMVersionByEpoch{arwenVersion}}
 	nodes := integrationTests.CreateNodesWithEnableEpochsAndVmConfig(
 		numOfShards,
 		nodesPerShard,
@@ -79,7 +79,7 @@ func TestBridgeSetupAndBurn(t *testing.T) {
 	scAddressBytes, _ := blockChainHook.NewAddress(
 		ownerNode.OwnAccount.Address,
 		ownerNode.OwnAccount.Nonce,
-		factory.ArwenVirtualMachine,
+		factory.WasmVirtualMachine,
 	)
 
 	scCode, err := ioutil.ReadFile(tokenManagerPath)
@@ -90,7 +90,7 @@ func TestBridgeSetupAndBurn(t *testing.T) {
 	scCodeString := hex.EncodeToString(scCode)
 	scCodeMetadataString := "0000"
 
-	deploymentData := scCodeString + "@" + hex.EncodeToString(factory.ArwenVirtualMachine) + "@" + scCodeMetadataString
+	deploymentData := scCodeString + "@" + hex.EncodeToString(factory.WasmVirtualMachine) + "@" + scCodeMetadataString
 
 	integrationTests.CreateAndSendTransaction(
 		ownerNode,

@@ -3,10 +3,10 @@ package epochProviders
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers/epochproviders"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers/epochproviders/disabled"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever/resolvers/epochproviders"
+	"github.com/multiversx/mx-chain-go/dataRetriever/resolvers/epochproviders/disabled"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

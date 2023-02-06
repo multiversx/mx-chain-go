@@ -5,11 +5,11 @@ import (
 	"encoding/hex"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/spos"
 )
 
 type subroundSignature struct {
@@ -103,6 +103,7 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 			nil,
 			nil,
 			sr.CurrentPid(),
+			nil,
 		)
 
 		err = sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
@@ -130,7 +131,7 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 }
 
 // receivedSignature method is called when a signature is received through the signature channel.
-// If the signature is valid, than the jobDone map corresponding to the node which sent it,
+// If the signature is valid, then the jobDone map corresponding to the node which sent it,
 // is set on true for the subround Signature
 func (sr *subroundSignature) receivedSignature(_ context.Context, cnsDta *consensus.Message) bool {
 	node := string(cnsDta.PubKey)
@@ -166,20 +167,6 @@ func (sr *subroundSignature) receivedSignature(_ context.Context, cnsDta *consen
 	if err != nil {
 		log.Debug("receivedSignature.ConsensusGroupIndex",
 			"node", pkForLogs,
-			"error", err.Error())
-		return false
-	}
-
-	if check.IfNil(sr.Header) {
-		log.Error("receivedSignature", "error", spos.ErrNilHeader)
-		return false
-	}
-
-	err = sr.SignatureHandler().VerifySignatureShare(uint16(index), cnsDta.SignatureShare, sr.GetData(), sr.Header.GetEpoch())
-	if err != nil {
-		log.Debug("receivedSignature.VerifySignatureShare",
-			"node", pkForLogs,
-			"index", index,
 			"error", err.Error())
 		return false
 	}

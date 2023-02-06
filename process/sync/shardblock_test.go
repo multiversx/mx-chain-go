@@ -12,27 +12,28 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/consensus/round"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/blockchain"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/process/sync"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/database"
-	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
-	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
-	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/round"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/process/sync"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/database"
+	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/outport"
+	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
+	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
+	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -108,8 +109,8 @@ func createFullStore() dataRetriever.StorageService {
 	return store
 }
 
-func createBlockProcessor(blk data.ChainHandler) *mock.BlockProcessorMock {
-	blockProcessorMock := &mock.BlockProcessorMock{
+func createBlockProcessor(blk data.ChainHandler) *testscommon.BlockProcessorStub {
+	blockProcessorMock := &testscommon.BlockProcessorStub{
 		ProcessBlockCalled: func(hdr data.HeaderHandler, bdy data.BodyHandler, haveTime func() time.Duration) error {
 			_ = blk.SetCurrentBlockHeaderAndRootHash(hdr.(*block.Header), hdr.GetRootHash())
 			return nil
@@ -192,7 +193,7 @@ func CreateShardBootstrapMockArguments() sync.ArgShardBootstrapper {
 		Store:                        createStore(),
 		ChainHandler:                 initBlockchain(),
 		RoundHandler:                 &mock.RoundHandlerMock{},
-		BlockProcessor:               &mock.BlockProcessorMock{},
+		BlockProcessor:               &testscommon.BlockProcessorStub{},
 		WaitTime:                     waitTime,
 		Hasher:                       &hashingMocks.HasherMock{},
 		Marshalizer:                  &mock.MarshalizerMock{},
@@ -208,7 +209,7 @@ func CreateShardBootstrapMockArguments() sync.ArgShardBootstrapper {
 		MiniblocksProvider:           &mock.MiniBlocksProviderStub{},
 		Uint64Converter:              &mock.Uint64ByteSliceConverterMock{},
 		AppStatusHandler:             &statusHandlerMock.AppStatusHandlerStub{},
-		OutportHandler:               &testscommon.OutportStub{},
+		OutportHandler:               &outport.OutportStub{},
 		AccountsDBSyncer:             &mock.AccountsDBSyncerStub{},
 		CurrentEpochProvider:         &testscommon.CurrentEpochProviderStub{},
 		HistoryRepo:                  &dblookupext.HistoryRepositoryStub{},
@@ -1476,7 +1477,7 @@ func TestBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *testin
 			}, nil
 		},
 	}
-	args.BlockProcessor = &mock.BlockProcessorMock{
+	args.BlockProcessor = &testscommon.BlockProcessorStub{
 		RestoreBlockIntoPoolsCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
 			return nil
 		},
@@ -1619,7 +1620,7 @@ func TestBootstrap_RollbackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t *tes
 			}, nil
 		},
 	}
-	args.BlockProcessor = &mock.BlockProcessorMock{
+	args.BlockProcessor = &testscommon.BlockProcessorStub{
 		RestoreBlockIntoPoolsCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
 			return nil
 		},

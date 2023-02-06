@@ -1,7 +1,7 @@
 package testscommon
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/multiversx/mx-chain-core-go/data"
 )
 
 // ChainHandlerStub -
@@ -90,7 +90,7 @@ func (stub *ChainHandlerStub) GetCurrentBlockRootHash() []byte {
 	return nil
 }
 
-// SetFinalBlockInfoCalled -
+// SetFinalBlockInfo -
 func (stub *ChainHandlerStub) SetFinalBlockInfo(nonce uint64, headerHash []byte, rootHash []byte) {
 	if stub.SetFinalBlockInfoCalled != nil {
 		stub.SetFinalBlockInfoCalled(nonce, headerHash, rootHash)

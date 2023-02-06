@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"math"
 
-	storageCore "github.com/ElrondNetwork/elrond-go-core/storage"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/cache"
+	storageCore "github.com/multiversx/mx-chain-core-go/storage"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/cache"
 )
 
 // FullHistoryPruningStorer represents a storer for full history nodes
@@ -78,7 +78,7 @@ func (fhps *FullHistoryPruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]
 	return fhps.searchInEpoch(key, epoch+1)
 }
 
-// GetBulkFromEpoch will search a a bulk of keys in the persister for the given epoch
+// GetBulkFromEpoch will search a bulk of keys in the persister for the given epoch
 // doesn't return an error if a key or any isn't found
 func (fhps *FullHistoryPruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) ([]storageCore.KeyValuePair, error) {
 	persister, err := fhps.getOrOpenPersister(epoch)

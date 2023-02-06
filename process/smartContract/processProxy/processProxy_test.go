@@ -7,30 +7,30 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/scrCommon"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/storage/txcache"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	epochNotifierMock "github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage/txcache"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	epochNotifierMock "github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
 	"github.com/stretchr/testify/assert"
 )
 
 func createMockSmartContractProcessorArguments() scrCommon.ArgsNewSmartContractProcessor {
 	gasSchedule := make(map[string]map[string]uint64)
-	gasSchedule[common.ElrondAPICost] = make(map[string]uint64)
-	gasSchedule[common.ElrondAPICost][common.AsyncCallStepField] = 1000
-	gasSchedule[common.ElrondAPICost][common.AsyncCallbackGasLockField] = 3000
+	gasSchedule[common.BaseOpsAPICost] = make(map[string]uint64)
+	gasSchedule[common.BaseOpsAPICost][common.AsyncCallStepField] = 1000
+	gasSchedule[common.BaseOpsAPICost][common.AsyncCallbackGasLockField] = 3000
 	gasSchedule[common.BuiltInCost] = make(map[string]uint64)
 	gasSchedule[common.BuiltInCost][core.BuiltInFunctionESDTTransfer] = 2000
 
@@ -72,7 +72,7 @@ func createMockSmartContractProcessorArguments() scrCommon.ArgsNewSmartContractP
 			IsSCDeployFlagEnabledField: true,
 		},
 		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
-		ArwenChangeLocker:   &sync.RWMutex{},
+		WasmVMChangeLocker:  &sync.RWMutex{},
 		VMOutputCacher:      txcache.NewDisabledCache(),
 	}
 }

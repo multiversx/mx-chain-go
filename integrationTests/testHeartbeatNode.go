@@ -7,50 +7,51 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/partitioning"
-	"github.com/ElrondNetwork/elrond-go-core/core/random"
-	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
-	"github.com/ElrondNetwork/elrond-go-core/display"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	crypto "github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/singlesig"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
-	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
-	"github.com/ElrondNetwork/elrond-go/heartbeat/monitor"
-	"github.com/ElrondNetwork/elrond-go/heartbeat/processor"
-	"github.com/ElrondNetwork/elrond-go/heartbeat/sender"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	p2pConfig "github.com/ElrondNetwork/elrond-go/p2p/config"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/heartbeat/validator"
-	"github.com/ElrondNetwork/elrond-go/process/interceptors"
-	interceptorFactory "github.com/ElrondNetwork/elrond-go/process/interceptors/factory"
-	interceptorsProcessor "github.com/ElrondNetwork/elrond-go/process/interceptors/processor"
-	processMock "github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/networksharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/storage/cache"
-	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
-	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
-	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
-	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
-	vic "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
-	"github.com/ElrondNetwork/elrond-go/update"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/partitioning"
+	"github.com/multiversx/mx-chain-core-go/core/random"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/multiversx/mx-chain-core-go/display"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-crypto-go/signing"
+	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
+	"github.com/multiversx/mx-chain-crypto-go/signing/mcl/singlesig"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dataRetriever/factory/containers"
+	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
+	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
+	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
+	"github.com/multiversx/mx-chain-go/epochStart/notifier"
+	"github.com/multiversx/mx-chain-go/heartbeat/monitor"
+	"github.com/multiversx/mx-chain-go/heartbeat/processor"
+	"github.com/multiversx/mx-chain-go/heartbeat/sender"
+	"github.com/multiversx/mx-chain-go/integrationTests/mock"
+	"github.com/multiversx/mx-chain-go/p2p"
+	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/heartbeat/validator"
+	"github.com/multiversx/mx-chain-go/process/interceptors"
+	interceptorFactory "github.com/multiversx/mx-chain-go/process/interceptors/factory"
+	interceptorsProcessor "github.com/multiversx/mx-chain-go/process/interceptors/processor"
+	processMock "github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/networksharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/storage/cache"
+	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
+	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
+	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
+	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
+	vic "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
+	"github.com/multiversx/mx-chain-go/update"
 	"github.com/stretchr/testify/require"
 )
 
@@ -96,7 +97,8 @@ type TestHeartbeatNode struct {
 	WhiteListHandler             process.WhiteListHandler
 	Storage                      dataRetriever.StorageService
 	ResolversContainer           dataRetriever.ResolversContainer
-	ResolverFinder               dataRetriever.ResolversFinder
+	RequestersContainer          dataRetriever.RequestersContainer
+	RequestersFinder             dataRetriever.RequestersFinder
 	RequestHandler               process.RequestHandler
 	RequestedItemsHandler        dataRetriever.RequestedItemsHandler
 	RequestsProcessor            update.Closer
@@ -375,7 +377,7 @@ func (thn *TestHeartbeatNode) InitTestHeartbeatNode(tb testing.TB, minPeersWaiti
 	thn.initStorage()
 	thn.initDataPools()
 	thn.initRequestedItemsHandler()
-	thn.initResolvers()
+	thn.initResolversAndRequesters()
 	thn.initInterceptors()
 	thn.initShardSender(tb)
 	thn.initCrossShardPeerTopicNotifier(tb)
@@ -423,23 +425,23 @@ func (thn *TestHeartbeatNode) initSender() {
 
 		PeerAuthenticationTimeBetweenSends:          timeBetweenPeerAuths,
 		PeerAuthenticationTimeBetweenSendsWhenError: timeBetweenSendsWhenError,
-		PeerAuthenticationThresholdBetweenSends:     thresholdBetweenSends,
+		PeerAuthenticationTimeThresholdBetweenSends: thresholdBetweenSends,
 		HeartbeatTimeBetweenSends:                   timeBetweenHeartbeats,
 		HeartbeatTimeBetweenSendsWhenError:          timeBetweenSendsWhenError,
-		HeartbeatThresholdBetweenSends:              thresholdBetweenSends,
+		HeartbeatTimeThresholdBetweenSends:          thresholdBetweenSends,
 		HardforkTimeBetweenSends:                    timeBetweenHardforks,
 	}
 
 	thn.Sender, _ = sender.NewSender(argsSender)
 }
 
-func (thn *TestHeartbeatNode) initResolvers() {
+func (thn *TestHeartbeatNode) initResolversAndRequesters() {
 	dataPacker, _ := partitioning.NewSimpleDataPacker(TestMarshaller)
 
 	_ = thn.Messenger.CreateTopic(common.ConsensusTopic+thn.ShardCoordinator.CommunicationIdentifier(thn.ShardCoordinator.SelfId()), true)
 
 	payloadValidator, _ := validator.NewPeerAuthenticationPayloadValidator(thn.heartbeatExpiryTimespanInSec)
-	resolverContainerFactory := resolverscontainer.FactoryArgs{
+	resolverContainerFactoryArgs := resolverscontainer.FactoryArgs{
 		ShardCoordinator:         thn.ShardCoordinator,
 		Messenger:                thn.Messenger,
 		Store:                    thn.Storage,
@@ -452,26 +454,38 @@ func (thn *TestHeartbeatNode) initResolvers() {
 				return &trieMock.TrieStub{}
 			},
 		},
-		SizeCheckDelta:              100,
-		InputAntifloodHandler:       &mock.NilAntifloodHandler{},
-		OutputAntifloodHandler:      &mock.NilAntifloodHandler{},
-		NumConcurrentResolvingJobs:  10,
-		CurrentNetworkEpochProvider: &mock.CurrentNetworkEpochProviderStub{},
-		PreferredPeersHolder:        &p2pmocks.PeersHolderStub{},
-		ResolverConfig: config.ResolverConfig{
+		SizeCheckDelta:             100,
+		InputAntifloodHandler:      &mock.NilAntifloodHandler{},
+		OutputAntifloodHandler:     &mock.NilAntifloodHandler{},
+		NumConcurrentResolvingJobs: 10,
+		PreferredPeersHolder:       &p2pmocks.PeersHolderStub{},
+		PayloadValidator:           payloadValidator,
+	}
+
+	requestersContainerFactoryArgs := requesterscontainer.FactoryArgs{
+		RequesterConfig: config.RequesterConfig{
 			NumCrossShardPeers:  2,
 			NumTotalPeers:       3,
-			NumFullHistoryPeers: 3,
-		},
-		PeersRatingHandler: &p2pmocks.PeersRatingHandlerStub{},
-		PayloadValidator:   payloadValidator,
+			NumFullHistoryPeers: 3},
+		ShardCoordinator:            thn.ShardCoordinator,
+		Messenger:                   thn.Messenger,
+		Marshaller:                  TestMarshaller,
+		Uint64ByteSliceConverter:    TestUint64Converter,
+		OutputAntifloodHandler:      &mock.NilAntifloodHandler{},
+		CurrentNetworkEpochProvider: &mock.CurrentNetworkEpochProviderStub{},
+		PreferredPeersHolder:        &p2pmocks.PeersHolderStub{},
+		PeersRatingHandler:          &p2pmocks.PeersRatingHandlerStub{},
+		SizeCheckDelta:              0,
 	}
 
 	if thn.ShardCoordinator.SelfId() == core.MetachainShardId {
-		thn.createMetaResolverContainer(resolverContainerFactory)
+		thn.createMetaResolverContainer(resolverContainerFactoryArgs)
+		thn.createMetaRequestersContainer(requestersContainerFactoryArgs)
 	} else {
-		thn.createShardResolverContainer(resolverContainerFactory)
+		thn.createShardResolverContainer(resolverContainerFactoryArgs)
+		thn.createShardRequestersContainer(requestersContainerFactoryArgs)
 	}
+	thn.createRequestHandler()
 }
 
 func (thn *TestHeartbeatNode) createMetaResolverContainer(args resolverscontainer.FactoryArgs) {
@@ -480,8 +494,6 @@ func (thn *TestHeartbeatNode) createMetaResolverContainer(args resolverscontaine
 	var err error
 	thn.ResolversContainer, err = resolversContainerFactory.Create()
 	log.LogIfError(err)
-
-	thn.createRequestHandler()
 }
 
 func (thn *TestHeartbeatNode) createShardResolverContainer(args resolverscontainer.FactoryArgs) {
@@ -490,14 +502,28 @@ func (thn *TestHeartbeatNode) createShardResolverContainer(args resolverscontain
 	var err error
 	thn.ResolversContainer, err = resolversContainerFactory.Create()
 	log.LogIfError(err)
+}
 
-	thn.createRequestHandler()
+func (thn *TestHeartbeatNode) createMetaRequestersContainer(args requesterscontainer.FactoryArgs) {
+	requestersContainerFactory, _ := requesterscontainer.NewMetaRequestersContainerFactory(args)
+
+	var err error
+	thn.RequestersContainer, err = requestersContainerFactory.Create()
+	log.LogIfError(err)
+}
+
+func (thn *TestHeartbeatNode) createShardRequestersContainer(args requesterscontainer.FactoryArgs) {
+	requestersContainerFactory, _ := requesterscontainer.NewShardRequestersContainerFactory(args)
+
+	var err error
+	thn.RequestersContainer, err = requestersContainerFactory.Create()
+	log.LogIfError(err)
 }
 
 func (thn *TestHeartbeatNode) createRequestHandler() {
-	thn.ResolverFinder, _ = containers.NewResolversFinder(thn.ResolversContainer, thn.ShardCoordinator)
+	thn.RequestersFinder, _ = containers.NewRequestersFinder(thn.RequestersContainer, thn.ShardCoordinator)
 	thn.RequestHandler, _ = requestHandlers.NewResolverRequestHandler(
-		thn.ResolverFinder,
+		thn.RequestersFinder,
 		thn.RequestedItemsHandler,
 		thn.WhiteListHandler,
 		100,
@@ -618,7 +644,7 @@ func (thn *TestHeartbeatNode) initRequestsProcessor() {
 		Epoch:                   0,
 		MinPeersThreshold:       minPeersThreshold,
 		DelayBetweenRequests:    delayBetweenRequests,
-		MaxTimeout:              maxTimeout,
+		MaxTimeoutForRequests:   maxTimeout,
 		MaxMissingKeysInRequest: maxMissingKeysInRequest,
 		Randomizer:              &random.ConcurrentSafeIntRandomizer{},
 	}
@@ -627,12 +653,12 @@ func (thn *TestHeartbeatNode) initRequestsProcessor() {
 
 func (thn *TestHeartbeatNode) initShardSender(tb testing.TB) {
 	args := sender.ArgPeerShardSender{
-		Messenger:             thn.Messenger,
-		Marshaller:            TestMarshaller,
-		ShardCoordinator:      thn.ShardCoordinator,
-		TimeBetweenSends:      5 * time.Second,
-		ThresholdBetweenSends: 0.1,
-		NodesCoordinator:      thn.NodesCoordinator,
+		Messenger:                 thn.Messenger,
+		Marshaller:                TestMarshaller,
+		ShardCoordinator:          thn.ShardCoordinator,
+		TimeBetweenSends:          5 * time.Second,
+		TimeThresholdBetweenSends: 0.1,
+		NodesCoordinator:          thn.NodesCoordinator,
 	}
 
 	var err error
@@ -792,6 +818,7 @@ func (thn *TestHeartbeatNode) Close() {
 	_ = thn.Sender.Close()
 	_ = thn.PeerAuthInterceptor.Close()
 	_ = thn.RequestsProcessor.Close()
+	_ = thn.RequestersContainer.Close()
 	_ = thn.ResolversContainer.Close()
 	_ = thn.ShardSender.Close()
 	_ = thn.Messenger.Close()

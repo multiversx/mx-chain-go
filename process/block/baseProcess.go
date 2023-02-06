@@ -10,34 +10,34 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
-	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
-	"github.com/ElrondNetwork/elrond-go-core/display"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	nodeFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/common/holders"
-	"github.com/ElrondNetwork/elrond-go/common/logging"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dblookupext"
-	debugFactory "github.com/ElrondNetwork/elrond-go/debug/factory"
-	"github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/outport"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
-	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/scheduled"
+	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
+	"github.com/multiversx/mx-chain-core-go/display"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	nodeFactory "github.com/multiversx/mx-chain-go/cmd/node/factory"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/holders"
+	"github.com/multiversx/mx-chain-go/common/logging"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dblookupext"
+	debugFactory "github.com/multiversx/mx-chain-go/debug/factory"
+	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/outport"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
+	"github.com/multiversx/mx-chain-go/process/block/processedMb"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("process/block")
@@ -94,6 +94,7 @@ type baseProcessor struct {
 	txCounter              *transactionCounter
 
 	outportHandler      outport.OutportHandler
+	outportDataProvider outport.DataProviderOutport
 	historyRepo         dblookupext.HistoryRepository
 	epochNotifier       process.EpochNotifier
 	enableEpochsHandler common.EnableEpochsHandler
@@ -109,6 +110,9 @@ type baseProcessor struct {
 	pruningDelay                  uint32
 	processedMiniBlocksTracker    process.ProcessedMiniBlocksTracker
 	receiptsRepository            receiptsRepository
+
+	mutNonceOfFirstCommittedBlock sync.RWMutex
+	nonceOfFirstCommittedBlock    core.OptionalUint64
 }
 
 type bootStorerDataArgs struct {
@@ -507,7 +511,10 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.CoreComponents.EnableRoundsHandler()) {
 		return process.ErrNilEnableRoundsHandler
 	}
-	if check.IfNil(arguments.CoreComponents.StatusHandler()) {
+	if check.IfNil(arguments.StatusCoreComponents) {
+		return process.ErrNilStatusCoreComponentsHolder
+	}
+	if check.IfNil(arguments.StatusCoreComponents.AppStatusHandler()) {
 		return process.ErrNilAppStatusHandler
 	}
 	if check.IfNil(arguments.GasHandler) {
@@ -515,6 +522,9 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	}
 	if check.IfNil(arguments.CoreComponents.EconomicsData()) {
 		return process.ErrNilEconomicsData
+	}
+	if check.IfNil(arguments.OutportDataProvider) {
+		return process.ErrNilOutportDataProvider
 	}
 	if check.IfNil(arguments.ScheduledTxsExecutionHandler) {
 		return process.ErrNilScheduledTxsExecutionHandler
@@ -1379,7 +1389,6 @@ func (bp *baseProcessor) updateStateStorage(
 	currRootHash []byte,
 	prevRootHash []byte,
 	accounts state.AccountsAdapter,
-	statePruningQueue core.Queue,
 ) {
 	if !accounts.IsPruningEnabled() {
 		return
@@ -1397,13 +1406,8 @@ func (bp *baseProcessor) updateStateStorage(
 		return
 	}
 
-	rootHashToBePruned := statePruningQueue.Add(prevRootHash)
-	if len(rootHashToBePruned) == 0 {
-		return
-	}
-
-	accounts.CancelPrune(rootHashToBePruned, state.NewRoot)
-	accounts.PruneTrie(rootHashToBePruned, state.OldRoot, bp.getPruningHandler(finalHeader.GetNonce()))
+	accounts.CancelPrune(prevRootHash, state.NewRoot)
+	accounts.PruneTrie(prevRootHash, state.OldRoot, bp.getPruningHandler(finalHeader.GetNonce()))
 }
 
 // RevertCurrentBlock reverts the current block for cleanup failed process
@@ -2049,4 +2053,25 @@ func createDisabledProcessDebugger() (process.Debugger, error) {
 	}
 
 	return debugFactory.CreateProcessDebugger(configs)
+}
+
+// NonceOfFirstCommittedBlock returns the first committed block's nonce. The optional Uint64 will contain a-not-set value
+// if no block was committed by the node
+func (bp *baseProcessor) NonceOfFirstCommittedBlock() core.OptionalUint64 {
+	bp.mutNonceOfFirstCommittedBlock.RLock()
+	defer bp.mutNonceOfFirstCommittedBlock.RUnlock()
+
+	return bp.nonceOfFirstCommittedBlock
+}
+
+func (bp *baseProcessor) setNonceOfFirstCommittedBlock(nonce uint64) {
+	bp.mutNonceOfFirstCommittedBlock.Lock()
+	defer bp.mutNonceOfFirstCommittedBlock.Unlock()
+
+	if bp.nonceOfFirstCommittedBlock.HasValue {
+		return
+	}
+
+	bp.nonceOfFirstCommittedBlock.HasValue = true
+	bp.nonceOfFirstCommittedBlock.Value = nonce
 }

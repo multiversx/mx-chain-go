@@ -3,19 +3,19 @@ package data
 import (
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/blockchain"
-	dataRetrieverFactory "github.com/ElrondNetwork/elrond-go/dataRetriever/factory"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/provider"
-	"github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/factory"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
+	dataRetrieverFactory "github.com/multiversx/mx-chain-go/dataRetriever/factory"
+	"github.com/multiversx/mx-chain-go/dataRetriever/provider"
+	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/sharding"
+	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 // DataComponentsFactoryArgs holds the arguments needed for creating a data components factory
@@ -24,6 +24,7 @@ type DataComponentsFactoryArgs struct {
 	PrefsConfig                   config.PreferencesConfig
 	ShardCoordinator              sharding.Coordinator
 	Core                          factory.CoreComponentsHolder
+	StatusCore                    factory.StatusCoreComponentsHolder
 	EpochStartNotifier            factory.EpochStartNotifier
 	CurrentEpoch                  uint32
 	CreateTrieEpochRootHashStorer bool
@@ -35,6 +36,7 @@ type dataComponentsFactory struct {
 	shardCoordinator              sharding.Coordinator
 	core                          factory.CoreComponentsHolder
 	epochStartNotifier            factory.EpochStartNotifier
+	statusCore                    factory.StatusCoreComponentsHolder
 	currentEpoch                  uint32
 	createTrieEpochRootHashStorer bool
 }
@@ -66,12 +68,19 @@ func NewDataComponentsFactory(args DataComponentsFactoryArgs) (*dataComponentsFa
 	if check.IfNil(args.Core.EconomicsData()) {
 		return nil, errors.ErrNilEconomicsHandler
 	}
+	if check.IfNil(args.StatusCore) {
+		return nil, errors.ErrNilStatusCoreComponents
+	}
+	if check.IfNil(args.StatusCore.AppStatusHandler()) {
+		return nil, errors.ErrNilAppStatusHandler
+	}
 
 	return &dataComponentsFactory{
 		config:                        args.Config,
 		prefsConfig:                   args.PrefsConfig,
 		shardCoordinator:              args.ShardCoordinator,
 		core:                          args.Core,
+		statusCore:                    args.StatusCore,
 		epochStartNotifier:            args.EpochStartNotifier,
 		currentEpoch:                  args.CurrentEpoch,
 		createTrieEpochRootHashStorer: args.CreateTrieEpochRootHashStorer,
@@ -135,14 +144,14 @@ func (dcf *dataComponentsFactory) Create() (*dataComponents, error) {
 
 func (dcf *dataComponentsFactory) createBlockChainFromConfig() (data.ChainHandler, error) {
 	if dcf.shardCoordinator.SelfId() < dcf.shardCoordinator.NumberOfShards() {
-		blockChain, err := blockchain.NewBlockChain(dcf.core.StatusHandler())
+		blockChain, err := blockchain.NewBlockChain(dcf.statusCore.AppStatusHandler())
 		if err != nil {
 			return nil, err
 		}
 		return blockChain, nil
 	}
 	if dcf.shardCoordinator.SelfId() == core.MetachainShardId {
-		blockChain, err := blockchain.NewMetaChain(dcf.core.StatusHandler())
+		blockChain, err := blockchain.NewMetaChain(dcf.statusCore.AppStatusHandler())
 		if err != nil {
 			return nil, err
 		}

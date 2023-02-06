@@ -1,6 +1,6 @@
 package config
 
-import "github.com/ElrondNetwork/elrond-go-p2p/config"
+import "github.com/multiversx/mx-chain-p2p-go/config"
 
 // P2PConfig will hold all the P2P settings
 type P2PConfig = config.P2PConfig

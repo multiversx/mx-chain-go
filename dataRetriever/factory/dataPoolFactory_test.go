@@ -6,12 +6,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool/headersCache"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dataRetriever/dataPool/headersCache"
+	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/stretchr/testify/require"
 )
 
@@ -79,22 +79,6 @@ func TestNewDataPoolFromConfig_BadConfigShouldErr(t *testing.T) {
 	fmt.Println(err)
 	require.True(t, errors.Is(err, headersCache.ErrInvalidHeadersCacheParameter))
 	require.True(t, strings.Contains(err.Error(), "the cache for the headers"))
-
-	args = getGoodArgs()
-	args.Config.TxBlockBodyDataPool.Capacity = 0
-	holder, err = NewDataPoolFromConfig(args)
-	require.Nil(t, holder)
-	fmt.Println(err)
-	require.NotNil(t, err)
-	require.True(t, strings.Contains(err.Error(), "Must provide a positive size while creating the cache for the miniblocks"))
-
-	args = getGoodArgs()
-	args.Config.PeerBlockBodyDataPool.Capacity = 0
-	holder, err = NewDataPoolFromConfig(args)
-	require.Nil(t, holder)
-	fmt.Println(err)
-	require.NotNil(t, err)
-	require.True(t, strings.Contains(err.Error(), "Must provide a positive size while creating the cache for the peer mini block body"))
 
 	args = getGoodArgs()
 	args.Config.TrieSyncStorage.Capacity = 0

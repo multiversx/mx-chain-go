@@ -8,20 +8,18 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
 )
 
 func TestAsyncCallShouldWork(t *testing.T) {
-	// TODO reinstate test after Arwen pointer fix
+	// TODO reinstate test after Wasm VM pointer fix
 	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Arwen fix")
+		t.Skip("cannot run with -race -short; requires Wasm VM fix")
 	}
 
 	testContextFirstContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{})
@@ -79,14 +77,6 @@ func TestAsyncCallShouldWork(t *testing.T) {
 
 	require.Equal(t, big.NewInt(120), testContextSender.TxFeeHandler.GetAccumulatedFees())
 
-	testIndexer := vm.CreateTestIndexer(t, testContextSender.ShardCoordinator, testContextSender.EconomicsData, false, testContextSender.TxsLogsProcessor)
-	testIndexer.SaveTransaction(tx, block.TxBlock, nil)
-
-	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, uint64(12), indexerTx.GasUsed)
-	require.Equal(t, "120", indexerTx.Fee)
-	require.Equal(t, transaction.TxStatusPending.String(), indexerTx.Status)
-
 	utils.TestAccount(t, testContextSender.Accounts, senderAddr, 1, big.NewInt(950000000))
 
 	// execute on the destination shard
@@ -98,13 +88,6 @@ func TestAsyncCallShouldWork(t *testing.T) {
 	require.Equal(t, big.NewInt(383), testContextSecondContract.TxFeeHandler.GetDeveloperFees())
 
 	intermediateTxs := testContextSecondContract.GetIntermediateTransactions(t)
-	testIndexer = vm.CreateTestIndexer(t, testContextSecondContract.ShardCoordinator, testContextSecondContract.EconomicsData, true, testContextSecondContract.TxsLogsProcessor)
-	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
-
-	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, tx.GasLimit, indexerTx.GasUsed)
-	require.Equal(t, "50000000", indexerTx.Fee)
-	require.Equal(t, transaction.TxStatusSuccess.String(), indexerTx.Status)
 
 	// execute async call first contract shard
 	scr := intermediateTxs[0]
@@ -203,14 +186,6 @@ func TestAsyncCallDisabled(t *testing.T) {
 	require.Nil(t, err)
 
 	require.Equal(t, big.NewInt(120), testContextSender.TxFeeHandler.GetAccumulatedFees())
-
-	testIndexer := vm.CreateTestIndexer(t, testContextSender.ShardCoordinator, testContextSender.EconomicsData, false, testContextSender.TxsLogsProcessor)
-	testIndexer.SaveTransaction(tx, block.TxBlock, nil)
-
-	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, uint64(12), indexerTx.GasUsed)
-	require.Equal(t, "120", indexerTx.Fee)
-	require.Equal(t, transaction.TxStatusPending.String(), indexerTx.Status)
 
 	utils.TestAccount(t, testContextSender.Accounts, senderAddr, 1, big.NewInt(950000000))
 

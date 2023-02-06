@@ -5,18 +5,18 @@ import (
 	"sync"
 	"testing"
 
-	coreData "github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	dataBlock "github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
-	"github.com/ElrondNetwork/elrond-go/factory/mock"
-	processComp "github.com/ElrondNetwork/elrond-go/factory/processing"
-	"github.com/ElrondNetwork/elrond-go/genesis"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	componentsMock "github.com/ElrondNetwork/elrond-go/testscommon/components"
-	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
-	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
+	coreData "github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
+	outportCore "github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-go/factory/mock"
+	processComp "github.com/multiversx/mx-chain-go/factory/processing"
+	"github.com/multiversx/mx-chain-go/genesis"
+	"github.com/multiversx/mx-chain-go/process"
+	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
+	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/outport"
+	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -72,11 +72,11 @@ func TestProcessComponents_IndexGenesisBlocks(t *testing.T) {
 
 	saveBlockCalledMutex := sync.Mutex{}
 
-	outportHandler := &testscommon.OutportStub{
+	outportHandler := &outport.OutportStub{
 		HasDriversCalled: func() bool {
 			return true
 		},
-		SaveBlockCalled: func(args *indexer.ArgsSaveBlockData) {
+		SaveBlockCalled: func(args *outportCore.ArgsSaveBlockData) {
 			saveBlockCalledMutex.Lock()
 			require.NotNil(t, args)
 
@@ -84,7 +84,7 @@ func TestProcessComponents_IndexGenesisBlocks(t *testing.T) {
 				MiniBlocks: make([]*block.MiniBlock, 4),
 			}
 
-			txsPoolRequired := &indexer.Pool{}
+			txsPoolRequired := &outportCore.Pool{}
 
 			assert.Equal(t, txsPoolRequired, args.TransactionsPool)
 			assert.Equal(t, bodyRequired, args.Body)

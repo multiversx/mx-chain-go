@@ -6,69 +6,73 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/facade"
-	"github.com/ElrondNetwork/elrond-go/factory"
-	"github.com/ElrondNetwork/elrond-go/node/external"
-	"github.com/ElrondNetwork/elrond-go/node/external/blockAPI"
-	"github.com/ElrondNetwork/elrond-go/node/external/logs"
-	"github.com/ElrondNetwork/elrond-go/node/external/timemachine/fee"
-	"github.com/ElrondNetwork/elrond-go/node/external/transactionAPI"
-	"github.com/ElrondNetwork/elrond-go/node/trieIterators"
-	trieIteratorsFactory "github.com/ElrondNetwork/elrond-go/node/trieIterators/factory"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/coordinator"
-	"github.com/ElrondNetwork/elrond-go/process/economics"
-	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
-	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
-	"github.com/ElrondNetwork/elrond-go/process/transaction"
-	"github.com/ElrondNetwork/elrond-go/process/txstatus"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/state"
-	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
-	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
-	"github.com/ElrondNetwork/elrond-go/vm"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/ElrondNetwork/elrond-vm-common/parsers"
-	datafield "github.com/ElrondNetwork/elrond-vm-common/parsers/dataField"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/facade"
+	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/node/external"
+	"github.com/multiversx/mx-chain-go/node/external/blockAPI"
+	"github.com/multiversx/mx-chain-go/node/external/logs"
+	"github.com/multiversx/mx-chain-go/node/external/timemachine/fee"
+	"github.com/multiversx/mx-chain-go/node/external/transactionAPI"
+	"github.com/multiversx/mx-chain-go/node/trieIterators"
+	trieIteratorsFactory "github.com/multiversx/mx-chain-go/node/trieIterators/factory"
+	"github.com/multiversx/mx-chain-go/outport/process/alteredaccounts"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/coordinator"
+	"github.com/multiversx/mx-chain-go/process/economics"
+	"github.com/multiversx/mx-chain-go/process/factory/metachain"
+	"github.com/multiversx/mx-chain-go/process/factory/shard"
+	"github.com/multiversx/mx-chain-go/process/smartContract"
+	"github.com/multiversx/mx-chain-go/process/smartContract/builtInFunctions"
+	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
+	"github.com/multiversx/mx-chain-go/process/smartContract/hooks/counters"
+	"github.com/multiversx/mx-chain-go/process/transaction"
+	"github.com/multiversx/mx-chain-go/process/txstatus"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/state"
+	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
+	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-go/vm"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/multiversx/mx-chain-vm-common-go/parsers"
+	datafield "github.com/multiversx/mx-chain-vm-common-go/parsers/dataField"
 )
 
 var log = logger.GetOrCreate("factory")
 
 // ApiResolverArgs holds the argument needed to create an API resolver
 type ApiResolverArgs struct {
-	Configs             *config.Configs
-	CoreComponents      factory.CoreComponentsHolder
-	DataComponents      factory.DataComponentsHolder
-	StateComponents     factory.StateComponentsHolder
-	BootstrapComponents factory.BootstrapComponentsHolder
-	CryptoComponents    factory.CryptoComponentsHolder
-	ProcessComponents   factory.ProcessComponentsHolder
-	GasScheduleNotifier common.GasScheduleNotifierAPI
-	Bootstrapper        process.Bootstrapper
-	AllowVMQueriesChan  chan struct{}
+	Configs              *config.Configs
+	CoreComponents       factory.CoreComponentsHolder
+	DataComponents       factory.DataComponentsHolder
+	StateComponents      factory.StateComponentsHolder
+	BootstrapComponents  factory.BootstrapComponentsHolder
+	CryptoComponents     factory.CryptoComponentsHolder
+	ProcessComponents    factory.ProcessComponentsHolder
+	StatusCoreComponents factory.StatusCoreComponentsHolder
+	GasScheduleNotifier  common.GasScheduleNotifierAPI
+	Bootstrapper         process.Bootstrapper
+	AllowVMQueriesChan   chan struct{}
 }
 
 type scQueryServiceArgs struct {
-	generalConfig       *config.Config
-	epochConfig         *config.EpochConfig
-	coreComponents      factory.CoreComponentsHolder
-	stateComponents     factory.StateComponentsHolder
-	dataComponents      factory.DataComponentsHolder
-	processComponents   factory.ProcessComponentsHolder
-	gasScheduleNotifier core.GasScheduleNotifier
-	messageSigVerifier  vm.MessageSignVerifier
-	systemSCConfig      *config.SystemSmartContractsConfig
-	bootstrapper        process.Bootstrapper
-	allowVMQueriesChan  chan struct{}
-	workingDir          string
+	generalConfig        *config.Config
+	epochConfig          *config.EpochConfig
+	coreComponents       factory.CoreComponentsHolder
+	stateComponents      factory.StateComponentsHolder
+	dataComponents       factory.DataComponentsHolder
+	processComponents    factory.ProcessComponentsHolder
+	statusCoreComponents factory.StatusCoreComponentsHolder
+	gasScheduleNotifier  core.GasScheduleNotifier
+	messageSigVerifier   vm.MessageSignVerifier
+	systemSCConfig       *config.SystemSmartContractsConfig
+	bootstrapper         process.Bootstrapper
+	allowVMQueriesChan   chan struct{}
+	workingDir           string
 }
 
 type scQueryElementArgs struct {
@@ -92,18 +96,19 @@ type scQueryElementArgs struct {
 func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 	apiWorkingDir := filepath.Join(args.Configs.FlagsConfig.WorkingDir, common.TemporaryPath)
 	argsSCQuery := &scQueryServiceArgs{
-		generalConfig:       args.Configs.GeneralConfig,
-		epochConfig:         args.Configs.EpochConfig,
-		coreComponents:      args.CoreComponents,
-		dataComponents:      args.DataComponents,
-		stateComponents:     args.StateComponents,
-		processComponents:   args.ProcessComponents,
-		gasScheduleNotifier: args.GasScheduleNotifier,
-		messageSigVerifier:  args.CryptoComponents.MessageSignVerifier(),
-		systemSCConfig:      args.Configs.SystemSCConfig,
-		bootstrapper:        args.Bootstrapper,
-		allowVMQueriesChan:  args.AllowVMQueriesChan,
-		workingDir:          apiWorkingDir,
+		generalConfig:        args.Configs.GeneralConfig,
+		epochConfig:          args.Configs.EpochConfig,
+		coreComponents:       args.CoreComponents,
+		dataComponents:       args.DataComponents,
+		stateComponents:      args.StateComponents,
+		processComponents:    args.ProcessComponents,
+		statusCoreComponents: args.StatusCoreComponents,
+		gasScheduleNotifier:  args.GasScheduleNotifier,
+		messageSigVerifier:   args.CryptoComponents.MessageSignVerifier(),
+		systemSCConfig:       args.Configs.SystemSCConfig,
+		bootstrapper:         args.Bootstrapper,
+		allowVMQueriesChan:   args.AllowVMQueriesChan,
+		workingDir:           apiWorkingDir,
 	}
 
 	scQueryService, err := createScQueryService(argsSCQuery)
@@ -211,9 +216,8 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 	}
 
 	argsDataFieldParser := &datafield.ArgsOperationDataFieldParser{
-		AddressLength:    args.CoreComponents.AddressPubKeyConverter().Len(),
-		Marshalizer:      args.CoreComponents.InternalMarshalizer(),
-		ShardCoordinator: args.ProcessComponents.ShardCoordinator(),
+		AddressLength: args.CoreComponents.AddressPubKeyConverter().Len(),
+		Marshalizer:   args.CoreComponents.InternalMarshalizer(),
 	}
 	dataFieldParser, err := datafield.NewOperationDataFieldParser(argsDataFieldParser)
 	if err != nil {
@@ -252,7 +256,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 
 	argsApiResolver := external.ArgNodeApiResolver{
 		SCQueryService:           scQueryService,
-		StatusMetricsHandler:     args.CoreComponents.StatusHandlerUtils().Metrics(),
+		StatusMetricsHandler:     args.StatusCoreComponents.StatusMetrics(),
 		TxCostHandler:            txCostHandler,
 		TotalStakedValueHandler:  totalStakedValueHandler,
 		DirectStakedListHandler:  directStakedListHandler,
@@ -368,6 +372,8 @@ func createScQueryElement(
 		EpochNotifier:         args.coreComponents.EpochNotifier(),
 		EnableEpochsHandler:   args.coreComponents.EnableEpochsHandler(),
 		NilCompiledSCStore:    true,
+		GasSchedule:           args.gasScheduleNotifier,
+		Counter:               counters.NewDisabledCounter(),
 	}
 
 	maxGasForVmQueries := args.generalConfig.VirtualMachine.GasConfig.ShardMaxGasPerVmQuery
@@ -418,8 +424,9 @@ func createScQueryElement(
 			GasSchedule:         args.gasScheduleNotifier,
 			EpochNotifier:       args.coreComponents.EpochNotifier(),
 			EnableEpochsHandler: args.coreComponents.EnableEpochsHandler(),
-			ArwenChangeLocker:   args.coreComponents.ArwenChangeLocker(),
+			WasmVMChangeLocker:  args.coreComponents.WasmVMChangeLocker(),
 			ESDTTransferParser:  esdtTransferParser,
+			Hasher:              args.coreComponents.Hasher(),
 		}
 
 		log.Debug("apiResolver: enable epoch for sc deploy", "epoch", args.epochConfig.EnableEpochs.SCDeployEnableEpoch)
@@ -454,7 +461,7 @@ func createScQueryElement(
 		EconomicsFee:             args.coreComponents.EconomicsData(),
 		BlockChainHook:           vmFactory.BlockChainHookImpl(),
 		BlockChain:               args.dataComponents.Blockchain(),
-		ArwenChangeLocker:        args.coreComponents.ArwenChangeLocker(),
+		WasmVMChangeLocker:       args.coreComponents.WasmVMChangeLocker(),
 		Bootstrapper:             args.bootstrapper,
 		AllowExternalQueriesChan: args.allowVMQueriesChan,
 		MaxGasLimitPerQuery:      maxGasForVmQueries,
@@ -520,18 +527,32 @@ func createAPIBlockProcessorArgs(args *ApiResolverArgs, apiTransactionHandler ex
 		return nil, err
 	}
 
+	alteredAccountsProvider, err := alteredaccounts.NewAlteredAccountsProvider(alteredaccounts.ArgsAlteredAccountsProvider{
+		ShardCoordinator:       args.ProcessComponents.ShardCoordinator(),
+		AddressConverter:       args.CoreComponents.AddressPubKeyConverter(),
+		AccountsDB:             args.StateComponents.AccountsAdapterAPI(),
+		EsdtDataStorageHandler: args.ProcessComponents.ESDTDataStorageHandlerForAPI(),
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	blockApiArgs := &blockAPI.ArgAPIBlockProcessor{
-		SelfShardID:              args.ProcessComponents.ShardCoordinator().SelfId(),
-		Store:                    args.DataComponents.StorageService(),
-		Marshalizer:              args.CoreComponents.InternalMarshalizer(),
-		Uint64ByteSliceConverter: args.CoreComponents.Uint64ByteSliceConverter(),
-		HistoryRepo:              args.ProcessComponents.HistoryRepository(),
-		APITransactionHandler:    apiTransactionHandler,
-		StatusComputer:           statusComputer,
-		AddressPubkeyConverter:   args.CoreComponents.AddressPubKeyConverter(),
-		Hasher:                   args.CoreComponents.Hasher(),
-		LogsFacade:               logsFacade,
-		ReceiptsRepository:       args.ProcessComponents.ReceiptsRepository(),
+		SelfShardID:                  args.ProcessComponents.ShardCoordinator().SelfId(),
+		Store:                        args.DataComponents.StorageService(),
+		Marshalizer:                  args.CoreComponents.InternalMarshalizer(),
+		Uint64ByteSliceConverter:     args.CoreComponents.Uint64ByteSliceConverter(),
+		HistoryRepo:                  args.ProcessComponents.HistoryRepository(),
+		APITransactionHandler:        apiTransactionHandler,
+		StatusComputer:               statusComputer,
+		AddressPubkeyConverter:       args.CoreComponents.AddressPubKeyConverter(),
+		Hasher:                       args.CoreComponents.Hasher(),
+		LogsFacade:                   logsFacade,
+		ReceiptsRepository:           args.ProcessComponents.ReceiptsRepository(),
+		AlteredAccountsProvider:      alteredAccountsProvider,
+		AccountsRepository:           args.StateComponents.AccountsRepository(),
+		ScheduledTxsExecutionHandler: args.ProcessComponents.ScheduledTxsExecutionHandler(),
+		EnableEpochsHandler:          args.CoreComponents.EnableEpochsHandler(),
 	}
 
 	return blockApiArgs, nil

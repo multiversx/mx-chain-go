@@ -2,5 +2,5 @@ package metrics
 
 import "fmt"
 
-// ErrNilStatusHandlerUtils signals that a nil status handler utils instance has been provided
-var ErrNilStatusHandlerUtils = fmt.Errorf("nil StatusHandlerUtils when initializing metrics")
+// ErrNilAppStatusHandler signals that a nil app status handler instance has been provided
+var ErrNilAppStatusHandler = fmt.Errorf("nil app status handler when initializing metrics")

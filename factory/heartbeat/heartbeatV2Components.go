@@ -4,48 +4,50 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/random"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/factory"
-	"github.com/ElrondNetwork/elrond-go/heartbeat/monitor"
-	"github.com/ElrondNetwork/elrond-go/heartbeat/processor"
-	"github.com/ElrondNetwork/elrond-go/heartbeat/sender"
-	"github.com/ElrondNetwork/elrond-go/heartbeat/status"
-	processFactory "github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/process/peer"
-	"github.com/ElrondNetwork/elrond-go/update"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/random"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/heartbeat/monitor"
+	"github.com/multiversx/mx-chain-go/heartbeat/processor"
+	"github.com/multiversx/mx-chain-go/heartbeat/sender"
+	"github.com/multiversx/mx-chain-go/heartbeat/status"
+	processFactory "github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/process/peer"
+	"github.com/multiversx/mx-chain-go/update"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("factory")
 
 // ArgHeartbeatV2ComponentsFactory represents the argument for the heartbeat v2 components factory
 type ArgHeartbeatV2ComponentsFactory struct {
-	Config              config.Config
-	Prefs               config.Preferences
-	AppVersion          string
-	BootstrapComponents factory.BootstrapComponentsHolder
-	CoreComponents      factory.CoreComponentsHolder
-	DataComponents      factory.DataComponentsHolder
-	NetworkComponents   factory.NetworkComponentsHolder
-	CryptoComponents    factory.CryptoComponentsHolder
-	ProcessComponents   factory.ProcessComponentsHolder
+	Config               config.Config
+	Prefs                config.Preferences
+	AppVersion           string
+	BootstrapComponents  factory.BootstrapComponentsHolder
+	CoreComponents       factory.CoreComponentsHolder
+	DataComponents       factory.DataComponentsHolder
+	NetworkComponents    factory.NetworkComponentsHolder
+	CryptoComponents     factory.CryptoComponentsHolder
+	ProcessComponents    factory.ProcessComponentsHolder
+	StatusCoreComponents factory.StatusCoreComponentsHolder
 }
 
 type heartbeatV2ComponentsFactory struct {
-	config              config.Config
-	prefs               config.Preferences
-	version             string
-	bootstrapComponents factory.BootstrapComponentsHolder
-	coreComponents      factory.CoreComponentsHolder
-	dataComponents      factory.DataComponentsHolder
-	networkComponents   factory.NetworkComponentsHolder
-	cryptoComponents    factory.CryptoComponentsHolder
-	processComponents   factory.ProcessComponentsHolder
+	config               config.Config
+	prefs                config.Preferences
+	version              string
+	bootstrapComponents  factory.BootstrapComponentsHolder
+	coreComponents       factory.CoreComponentsHolder
+	dataComponents       factory.DataComponentsHolder
+	networkComponents    factory.NetworkComponentsHolder
+	cryptoComponents     factory.CryptoComponentsHolder
+	processComponents    factory.ProcessComponentsHolder
+	statusCoreComponents factory.StatusCoreComponentsHolder
 }
 
 type heartbeatV2Components struct {
@@ -65,15 +67,16 @@ func NewHeartbeatV2ComponentsFactory(args ArgHeartbeatV2ComponentsFactory) (*hea
 	}
 
 	return &heartbeatV2ComponentsFactory{
-		config:              args.Config,
-		prefs:               args.Prefs,
-		version:             args.AppVersion,
-		bootstrapComponents: args.BootstrapComponents,
-		coreComponents:      args.CoreComponents,
-		dataComponents:      args.DataComponents,
-		networkComponents:   args.NetworkComponents,
-		cryptoComponents:    args.CryptoComponents,
-		processComponents:   args.ProcessComponents,
+		config:               args.Config,
+		prefs:                args.Prefs,
+		version:              args.AppVersion,
+		bootstrapComponents:  args.BootstrapComponents,
+		coreComponents:       args.CoreComponents,
+		dataComponents:       args.DataComponents,
+		networkComponents:    args.NetworkComponents,
+		cryptoComponents:     args.CryptoComponents,
+		processComponents:    args.ProcessComponents,
+		statusCoreComponents: args.StatusCoreComponents,
 	}, nil
 }
 
@@ -95,6 +98,12 @@ func checkHeartbeatV2FactoryArgs(args ArgHeartbeatV2ComponentsFactory) error {
 	}
 	if check.IfNil(args.ProcessComponents) {
 		return errors.ErrNilProcessComponentsHolder
+	}
+	if check.IfNil(args.StatusCoreComponents) {
+		return errors.ErrNilStatusCoreComponents
+	}
+	if check.IfNil(args.StatusCoreComponents.AppStatusHandler()) {
+		return errors.ErrNilAppStatusHandler
 	}
 	hardforkTrigger := args.ProcessComponents.HardforkTrigger()
 	if check.IfNil(hardforkTrigger) {
@@ -149,10 +158,10 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		HeartbeatTopic:                     heartbeatTopic,
 		PeerAuthenticationTimeBetweenSends: time.Second * time.Duration(cfg.PeerAuthenticationTimeBetweenSendsInSec),
 		PeerAuthenticationTimeBetweenSendsWhenError: time.Second * time.Duration(cfg.PeerAuthenticationTimeBetweenSendsWhenErrorInSec),
-		PeerAuthenticationThresholdBetweenSends:     cfg.PeerAuthenticationThresholdBetweenSends,
+		PeerAuthenticationTimeThresholdBetweenSends: cfg.PeerAuthenticationTimeThresholdBetweenSends,
 		HeartbeatTimeBetweenSends:                   time.Second * time.Duration(cfg.HeartbeatTimeBetweenSendsInSec),
 		HeartbeatTimeBetweenSendsWhenError:          time.Second * time.Duration(cfg.HeartbeatTimeBetweenSendsWhenErrorInSec),
-		HeartbeatThresholdBetweenSends:              cfg.HeartbeatThresholdBetweenSends,
+		HeartbeatTimeThresholdBetweenSends:          cfg.HeartbeatTimeThresholdBetweenSends,
 		VersionNumber:                               hcf.version,
 		NodeDisplayName:                             hcf.prefs.Preferences.NodeDisplayName,
 		Identity:                                    hcf.prefs.Preferences.Identity,
@@ -180,8 +189,8 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		ShardId:                 epochBootstrapParams.SelfShardID(),
 		Epoch:                   epochBootstrapParams.Epoch(),
 		MinPeersThreshold:       cfg.MinPeersThreshold,
-		DelayBetweenRequests:    time.Second * time.Duration(cfg.DelayBetweenRequestsInSec),
-		MaxTimeout:              time.Second * time.Duration(cfg.MaxTimeoutInSec),
+		DelayBetweenRequests:    time.Second * time.Duration(cfg.DelayBetweenPeerAuthenticationRequestsInSec),
+		MaxTimeoutForRequests:   time.Second * time.Duration(cfg.PeerAuthenticationMaxTimeoutForRequestsInSec),
 		MaxMissingKeysInRequest: cfg.MaxMissingKeysInRequest,
 		Randomizer:              &random.ConcurrentSafeIntRandomizer{},
 	}
@@ -191,12 +200,12 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 	}
 
 	argsPeerShardSender := sender.ArgPeerShardSender{
-		Messenger:             hcf.networkComponents.NetworkMessenger(),
-		Marshaller:            hcf.coreComponents.InternalMarshalizer(),
-		ShardCoordinator:      hcf.bootstrapComponents.ShardCoordinator(),
-		TimeBetweenSends:      time.Second * time.Duration(cfg.PeerShardTimeBetweenSendsInSec),
-		ThresholdBetweenSends: cfg.PeerShardThresholdBetweenSends,
-		NodesCoordinator:      hcf.processComponents.NodesCoordinator(),
+		Messenger:                 hcf.networkComponents.NetworkMessenger(),
+		Marshaller:                hcf.coreComponents.InternalMarshalizer(),
+		ShardCoordinator:          hcf.bootstrapComponents.ShardCoordinator(),
+		TimeBetweenSends:          time.Second * time.Duration(cfg.PeerShardTimeBetweenSendsInSec),
+		TimeThresholdBetweenSends: cfg.PeerShardTimeThresholdBetweenSends,
+		NodesCoordinator:          hcf.processComponents.NodesCoordinator(),
 	}
 	shardSender, err := sender.NewPeerShardSender(argsPeerShardSender)
 	if err != nil {
@@ -221,7 +230,7 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		PeerAuthenticationCacher:            hcf.dataComponents.Datapool().PeerAuthentications(),
 		HeartbeatMonitor:                    heartbeatsMonitor,
 		HeartbeatSenderInfoProvider:         heartbeatV2Sender,
-		AppStatusHandler:                    hcf.coreComponents.StatusHandler(),
+		AppStatusHandler:                    hcf.statusCoreComponents.AppStatusHandler(),
 		TimeBetweenConnectionsMetricsUpdate: time.Second * time.Duration(hcf.config.HeartbeatV2.TimeBetweenConnectionsMetricsUpdateInSec),
 	}
 	statusHandler, err := status.NewMetricsUpdater(argsMetricsUpdater)

@@ -1,10 +1,10 @@
 package storageunit
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-storage/storageCacherAdapter"
-	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
-	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-storage-go/storageCacherAdapter"
+	"github.com/multiversx/mx-chain-storage-go/storageUnit"
 )
 
 // Unit represents a storer's data bank

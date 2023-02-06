@@ -3,21 +3,22 @@ package factory
 import (
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/throttler"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/state/syncer"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/trie"
-	"github.com/ElrondNetwork/elrond-go/trie/statistics"
-	"github.com/ElrondNetwork/elrond-go/trie/storageMarker"
-	"github.com/ElrondNetwork/elrond-go/update"
-	containers "github.com/ElrondNetwork/elrond-go/update/container"
-	"github.com/ElrondNetwork/elrond-go/update/genesis"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/throttler"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/disabled"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/state/syncer"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/trie"
+	"github.com/multiversx/mx-chain-go/trie/statistics"
+	"github.com/multiversx/mx-chain-go/trie/storageMarker"
+	"github.com/multiversx/mx-chain-go/update"
+	containers "github.com/multiversx/mx-chain-go/update/container"
+	"github.com/multiversx/mx-chain-go/update/genesis"
 )
 
 // ArgsNewAccountsDBSyncersContainerFactory defines the arguments needed to create accounts DB syncers container
@@ -151,6 +152,7 @@ func (a *accountDBSyncersContainerFactory) createUserAccountsSyncer(shardId uint
 			CheckNodesOnDisk:                  a.checkNodesOnDisk,
 			StorageMarker:                     storageMarker.NewTrieStorageMarker(),
 			UserAccountsSyncStatisticsHandler: statistics.NewTrieSyncStatistics(),
+			AppStatusHandler:                  disabled.NewAppStatusHandler(),
 		},
 		ShardId:                shardId,
 		Throttler:              thr,
@@ -180,6 +182,7 @@ func (a *accountDBSyncersContainerFactory) createValidatorAccountsSyncer(shardId
 			CheckNodesOnDisk:                  a.checkNodesOnDisk,
 			StorageMarker:                     storageMarker.NewTrieStorageMarker(),
 			UserAccountsSyncStatisticsHandler: statistics.NewTrieSyncStatistics(),
+			AppStatusHandler:                  disabled.NewAppStatusHandler(),
 		},
 	}
 	accountSyncer, err := syncer.NewValidatorAccountsSyncer(args)

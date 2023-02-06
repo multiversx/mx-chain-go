@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 )
 
 // TestScProcessor extends scProcessor and is used in tests as it exposes some functions
@@ -29,7 +30,7 @@ func (tsp *TestScProcessor) GetCompositeTestError() error {
 		allLogs := tsp.txLogsProcessor.GetAllCurrentLogs()
 		for _, logs := range allLogs {
 			for _, event := range logs.GetLogEvents() {
-				if string(event.GetIdentifier()) == signalError {
+				if string(event.GetIdentifier()) == core.SignalErrorOperation {
 					returnError = wrapErrorIfNotContains(returnError, string(event.GetTopics()[1]))
 				}
 			}

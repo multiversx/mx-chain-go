@@ -3,14 +3,14 @@ package esdt
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen/arwenvm"
-	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/ElrondNetwork/elrond-vm-common/parsers"
-	"github.com/ElrondNetwork/wasm-vm/arwen/elrondapi"
-	mock "github.com/ElrondNetwork/wasm-vm/mock/context"
-	test "github.com/ElrondNetwork/wasm-vm/testcommon"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm/wasmvm"
+	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/multiversx/mx-chain-vm-common-go/parsers"
+	mock "github.com/multiversx/mx-chain-vm-go/mock/context"
+	test "github.com/multiversx/mx-chain-vm-go/testcommon"
+	vmhooks "github.com/multiversx/mx-chain-vm-go/vmhost/vmhooks"
 )
 
 // MultiTransferViaAsyncMock is an exposed mock contract method
@@ -34,7 +34,7 @@ func MultiTransferViaAsyncMock(instanceMock *mock.InstanceMock, config interface
 			Str("accept_multi_funds_echo")
 
 		value := big.NewInt(testConfig.TransferFromParentToChild).Bytes()
-		err := arwenvm.RegisterAsyncCallForMockContract(host, config, scAddress, value, callData)
+		err := wasmvm.RegisterAsyncCallForMockContract(host, config, scAddress, value, callData)
 		if err != nil {
 			host.Runtime().SignalUserError(err.Error())
 			return instance
@@ -63,7 +63,7 @@ func SyncMultiTransferMock(instanceMock *mock.InstanceMock, config interface{}) 
 			TransferMultiESDT(destAddress, transfers).
 			Str("accept_funds_echo")
 
-		elrondapi.ExecuteOnDestContextWithTypedArgs(
+		vmhooks.ExecuteOnDestContextWithTypedArgs(
 			host,
 			1_000_000,
 			big.NewInt(0),
@@ -93,7 +93,7 @@ func MultiTransferExecuteMock(instanceMock *mock.InstanceMock, config interface{
 			transfers[i] = transfer
 		}
 
-		elrondapi.TransferESDTNFTExecuteWithTypedArgs(
+		vmhooks.TransferESDTNFTExecuteWithTypedArgs(
 			host,
 			destAddress,
 			transfers,
@@ -162,7 +162,7 @@ func DoAsyncCallMock(instanceMock *mock.InstanceMock, config interface{}) {
 			callData.Bytes(args[a])
 		}
 
-		err := arwenvm.RegisterAsyncCallForMockContract(host, config, destAddress, egldValue, callData)
+		err := wasmvm.RegisterAsyncCallForMockContract(host, config, destAddress, egldValue, callData)
 		if err != nil {
 			host.Runtime().SignalUserError(err.Error())
 			return instance

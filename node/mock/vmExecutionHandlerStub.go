@@ -3,7 +3,7 @@ package mock
 import (
 	"math/big"
 
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // VMExecutionHandlerStub -
@@ -14,7 +14,7 @@ type VMExecutionHandlerStub struct {
 	GetVersionCalled             func() string
 }
 
-// GetVersionCalled -
+// GetVersion -
 func (vm *VMExecutionHandlerStub) GetVersion() string {
 	if vm.GetVersionCalled != nil {
 		return vm.GetVersionCalled()

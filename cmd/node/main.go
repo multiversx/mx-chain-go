@@ -6,21 +6,22 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go-logger/file"
-	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/node"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/cmd/node/factory"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/config/overridableConfig"
+	"github.com/multiversx/mx-chain-go/node"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/multiversx/mx-chain-logger-go/file"
 	"github.com/urfave/cli"
 	// test point 1 for custom profiler
 )
 
 const (
 	defaultLogsPath = "logs"
-	logFilePrefix   = "elrond-go"
+	logFilePrefix   = "mx-chain-go"
 )
 
 var (
@@ -59,16 +60,16 @@ func main() {
 
 	app := cli.NewApp()
 	cli.AppHelpTemplate = nodeHelpTemplate
-	app.Name = "Elrond Node CLI App"
+	app.Name = "MultiversX Node CLI App"
 	machineID := core.GetAnonymizedMachineID(app.Name)
 
 	app.Version = fmt.Sprintf("%s/%s/%s-%s/%s", appVersion, runtime.Version(), runtime.GOOS, runtime.GOARCH, machineID)
-	app.Usage = "This is the entry point for starting a new Elrond node - the app will start after the genesis timestamp"
+	app.Usage = "This is the entry point for starting a new MultiversX node - the app will start after the genesis timestamp"
 	app.Flags = getFlags()
 	app.Authors = []cli.Author{
 		{
-			Name:  "The Elrond Team",
-			Email: "contact@elrond.com",
+			Name:  "The MultiversX Team",
+			Email: "contact@multiversx.com",
 		},
 	}
 
@@ -94,6 +95,11 @@ func startNodeRunner(c *cli.Context, log logger.Logger, version string) error {
 	cfgs, errCfg := readConfigs(c, log)
 	if errCfg != nil {
 		return errCfg
+	}
+
+	errCfgOverride := overridableConfig.OverrideConfigValues(cfgs.PreferencesConfig.Preferences.OverridableConfigTomlValues, cfgs)
+	if errCfgOverride != nil {
+		return errCfgOverride
 	}
 
 	if !check.IfNil(fileLogging) {
@@ -247,7 +253,7 @@ func attachFileLogger(log logger.Logger, flagsConfig *config.ContextFlagsConfig)
 	var err error
 	if flagsConfig.SaveLogFile {
 		args := file.ArgsFileLogging{
-			WorkingDir:      flagsConfig.WorkingDir,
+			WorkingDir:      flagsConfig.LogsDir,
 			DefaultLogsPath: defaultLogsPath,
 			LogFilePrefix:   logFilePrefix,
 		}

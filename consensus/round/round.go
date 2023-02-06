@@ -5,9 +5,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/ntp"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/ntp"
 )
 
 var _ consensus.RoundHandler = (*round)(nil)
@@ -47,7 +47,7 @@ func NewRound(
 	return &rnd, nil
 }
 
-// UpdateRound updates the index and the time stamp of the round depending of the genesis time and the current time given
+// UpdateRound updates the index and the time stamp of the round depending on the genesis time and the current time given
 func (rnd *round) UpdateRound(genesisTimeStamp time.Time, currentTimeStamp time.Time) {
 	delta := currentTimeStamp.Sub(genesisTimeStamp).Nanoseconds()
 

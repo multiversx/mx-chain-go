@@ -3,17 +3,17 @@ package preprocess
 import (
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage"
 )
 
 var _ process.DataMarshalizer = (*validatorInfoPreprocessor)(nil)
@@ -165,9 +165,53 @@ func (vip *validatorInfoPreprocessor) ProcessBlockTransactions(
 	return nil
 }
 
-// SaveTxsToStorage does nothing
-func (vip *validatorInfoPreprocessor) SaveTxsToStorage(_ *block.Body) error {
+// SaveTxsToStorage saves validator info from body into storage
+func (vip *validatorInfoPreprocessor) SaveTxsToStorage(body *block.Body) error {
+	if check.IfNil(body) {
+		return process.ErrNilBlockBody
+	}
+
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		miniBlock := body.MiniBlocks[i]
+		if miniBlock.Type != block.PeerBlock {
+			continue
+		}
+
+		vip.saveValidatorInfoToStorage(miniBlock)
+	}
+
 	return nil
+}
+
+func (vip *validatorInfoPreprocessor) saveValidatorInfoToStorage(miniBlock *block.MiniBlock) {
+	for _, txHash := range miniBlock.TxHashes {
+		val, ok := vip.validatorsInfoPool.SearchFirstData(txHash)
+		if !ok {
+			log.Debug("validatorInfoPreprocessor.saveValidatorInfoToStorage: SearchFirstData: tx not found in validator info pool", "txHash", txHash)
+			continue
+		}
+
+		validatorInfo, ok := val.(*state.ShardValidatorInfo)
+		if !ok {
+			log.Warn("validatorInfoPreprocessor.saveValidatorInfoToStorage: wrong type assertion", "txHash", txHash)
+			continue
+		}
+
+		buff, err := vip.marshalizer.Marshal(validatorInfo)
+		if err != nil {
+			log.Warn("validatorInfoPreprocessor.saveValidatorInfoToStorage: Marshal", "txHash", txHash, "error", err)
+			continue
+		}
+
+		err = vip.storage.Put(dataRetriever.UnsignedTransactionUnit, txHash, buff)
+		if err != nil {
+			log.Debug("validatorInfoPreprocessor.saveValidatorInfoToStorage: Put",
+				"txHash", txHash,
+				"dataUnit", dataRetriever.UnsignedTransactionUnit,
+				"error", err,
+			)
+		}
+	}
 }
 
 // CreateBlockStarted cleans the local cache map for processed/created validators info at this round

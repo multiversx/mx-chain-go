@@ -1,7 +1,7 @@
 package cryptoMocks
 
 import (
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	"github.com/multiversx/mx-chain-crypto-go"
 )
 
 // SignerStub -
