@@ -492,6 +492,7 @@ func (vs *validatorStatistics) PeerAccountToValidatorInfo(peerAccount state.Peer
 		PublicKey:                       peerAccount.GetBLSPublicKey(),
 		ShardId:                         peerAccount.GetShardId(),
 		List:                            list,
+		PreviousList:                    peerAccount.GetPreviousList(),
 		Index:                           peerAccount.GetIndexInList(),
 		TempRating:                      peerAccount.GetTempRating(),
 		Rating:                          peerAccount.GetRating(),

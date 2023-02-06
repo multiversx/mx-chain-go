@@ -50,6 +50,7 @@ func peerAccountToValidatorInfo(peerAccount state.PeerAccountHandler) *state.Val
 		PublicKey:                  peerAccount.GetBLSPublicKey(),
 		ShardId:                    peerAccount.GetShardId(),
 		List:                       getActualList(peerAccount),
+		PreviousList:               peerAccount.GetPreviousList(),
 		Index:                      peerAccount.GetIndexInList(),
 		TempRating:                 peerAccount.GetTempRating(),
 		Rating:                     peerAccount.GetRating(),

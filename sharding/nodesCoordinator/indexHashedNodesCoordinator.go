@@ -781,7 +781,9 @@ func (ihnc *indexHashedNodesCoordinator) computeNodesConfigFromList(
 				eligibleMap,
 				waitingMap,
 				currentValidator,
-				validatorInfo.ShardId)
+				validatorInfo.ShardId,
+				validatorInfo.PreviousList,
+			)
 		case string(common.NewList):
 			if ihnc.flagStakingV4.IsSet() {
 				return nil, epochStart.ErrReceivedNewListNodeInStakingV4
@@ -837,6 +839,7 @@ func (ihnc *indexHashedNodesCoordinator) addValidatorToPreviousMap(
 	waitingMap map[uint32][]Validator,
 	currentValidator *validator,
 	currentValidatorShardId uint32,
+	previousList string,
 ) {
 	if !ihnc.flagStakingV4Started.IsSet() {
 		eligibleMap[currentValidatorShardId] = append(eligibleMap[currentValidatorShardId], currentValidator)

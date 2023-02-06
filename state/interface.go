@@ -32,6 +32,7 @@ type PeerAccountHandler interface {
 	GetAccumulatedFees() *big.Int
 	AddToAccumulatedFees(*big.Int)
 	GetList() string
+	GetPreviousList() string
 	GetIndexInList() uint32
 	GetShardId() uint32
 	SetUnStakedEpoch(epoch uint32)
@@ -255,6 +256,7 @@ type ValidatorInfoHandler interface {
 	GetTotalValidatorSuccess() uint32
 	GetTotalValidatorFailure() uint32
 	GetTotalValidatorIgnoredSignatures() uint32
+	GetPreviousList() string
 
 	SetPublicKey(publicKey []byte)
 	SetShardId(shardID uint32)
