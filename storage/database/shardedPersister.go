@@ -7,8 +7,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/storage"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/multiversx/mx-chain-storage-go/leveldb"
 )
+
+var log = logger.GetOrCreate("storage/database")
 
 type persisterIDProvider interface {
 	ComputeIdFromBytes(address []byte) uint32

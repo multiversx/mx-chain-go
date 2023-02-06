@@ -12,8 +12,6 @@ import (
 )
 
 func TestNewShardedPersister(t *testing.T) {
-	t.Parallel()
-
 	shardCoordinator, err := sharding.NewMultiShardCoordinator(2, 0)
 	require.Nil(t, err)
 
@@ -25,14 +23,26 @@ func TestNewShardedPersister(t *testing.T) {
 	err = db.Put([]byte("aaa"), []byte("aaaval"))
 	require.Nil(t, err)
 
+	err = db.Put([]byte("aab"), []byte("aabval"))
+	require.Nil(t, err)
+
+	err = db.Put([]byte("aac"), []byte("aacval"))
+	require.Nil(t, err)
+
 	val, err := db.Get([]byte("aaa"))
+	require.Nil(t, err)
+	require.NotNil(t, val)
+
+	val, err = db.Get([]byte("aab"))
+	require.Nil(t, err)
+	require.NotNil(t, val)
+
+	val, err = db.Get([]byte("aac"))
 	require.Nil(t, err)
 	require.NotNil(t, val)
 }
 
 func TestNewPersister(t *testing.T) {
-	t.Parallel()
-
 	dir := t.TempDir()
 	db, err := NewLevelDB(dir, 2, 1000, 10)
 	require.Nil(t, err)
@@ -40,50 +50,118 @@ func TestNewPersister(t *testing.T) {
 }
 
 func BenchmarkPersisterOneKey1mil(b *testing.B) {
-	keys, key := generateKeys(1000000)
+	entries, keys := generateKeys(1000000)
+	randIndex := randInt(0, len(keys)-1)
+	key := []byte(keys[randIndex])
 
 	b.Run("persister", func(t *testing.B) {
-		benchmarkPersisterOneKey(b, keys, key, createPersister(b))
+		benchmarkPersisterOneKey(b, entries, key, createPersister(b))
 	})
 
 	b.Run("sharded persister", func(t *testing.B) {
-		benchmarkPersisterOneKey(b, keys, key, createShardedPersister(b))
+		benchmarkPersisterOneKey(b, entries, key, createShardedPersister(b))
 	})
 }
 
-func BenchmarkPersister1mil(b *testing.B) {
-	keys, _ := generateKeys(1000000)
+func BenchmarkPersisterOneKey2mil(b *testing.B) {
+	entries, keys := generateKeys(2000000)
+	randIndex := randInt(0, len(keys)-1)
+	key := []byte(keys[randIndex])
 
 	b.Run("persister", func(t *testing.B) {
-		benchmarkPersister(b, keys, createPersister(b))
+		benchmarkPersisterOneKey(b, entries, key, createPersister(b))
 	})
 
 	b.Run("sharded persister", func(t *testing.B) {
-		benchmarkPersister(b, keys, createShardedPersister(b))
+		benchmarkPersisterOneKey(b, entries, key, createShardedPersister(b))
+	})
+}
+
+func BenchmarkPersisterOneKey4mil(b *testing.B) {
+	entries, keys := generateKeys(4000000)
+	randIndex := randInt(0, len(keys)-1)
+	key := []byte(keys[randIndex])
+
+	b.Run("persister", func(t *testing.B) {
+		benchmarkPersisterOneKey(b, entries, key, createPersister(b))
+	})
+
+	b.Run("sharded persister", func(t *testing.B) {
+		benchmarkPersisterOneKey(b, entries, key, createShardedPersister(b))
+	})
+}
+
+func BenchmarkPersisterOneKey8mil(b *testing.B) {
+	entries, keys := generateKeys(8000000)
+	randIndex := randInt(0, len(keys)-1)
+	key := []byte(keys[randIndex])
+
+	b.Run("persister", func(t *testing.B) {
+		benchmarkPersisterOneKey(b, entries, key, createPersister(b))
+	})
+
+	b.Run("sharded persister", func(t *testing.B) {
+		benchmarkPersisterOneKey(b, entries, key, createShardedPersister(b))
+	})
+}
+
+func BenchmarkPersister1milAllKeys(b *testing.B) {
+	entries, keys := generateKeys(1000000)
+
+	b.Run("persister", func(t *testing.B) {
+		benchmarkPersister(b, entries, createPersister(b), keys)
+	})
+
+	b.Run("sharded persister", func(t *testing.B) {
+		benchmarkPersister(b, entries, createShardedPersister(b), keys)
+	})
+}
+
+func BenchmarkPersister4milAllKeys(b *testing.B) {
+	entries, keys := generateKeys(4000000)
+
+	b.Run("persister", func(t *testing.B) {
+		benchmarkPersister(b, entries, createPersister(b), keys)
+	})
+
+	b.Run("sharded persister", func(t *testing.B) {
+		benchmarkPersister(b, entries, createShardedPersister(b), keys)
+	})
+}
+
+func BenchmarkPersister1mil10kKeys(b *testing.B) {
+	entries, keys := generateKeys(1000000)
+
+	b.Run("persister", func(t *testing.B) {
+		benchmarkPersister(b, entries, createPersister(b), keys[0:10000])
+	})
+
+	b.Run("sharded persister", func(t *testing.B) {
+		benchmarkPersister(b, entries, createShardedPersister(b), keys[0:10000])
+	})
+}
+
+func BenchmarkPersister1mil100kKeys(b *testing.B) {
+	entries, keys := generateKeys(1000000)
+
+	b.Run("persister", func(t *testing.B) {
+		benchmarkPersister(b, entries, createPersister(b), keys[0:100000])
+	})
+
+	b.Run("sharded persister", func(t *testing.B) {
+		benchmarkPersister(b, entries, createShardedPersister(b), keys[0:100000])
 	})
 }
 
 func BenchmarkPersister10mil(b *testing.B) {
-	keys, _ := generateKeys(1000000)
+	entries, keys := generateKeys(1000000)
 
 	b.Run("persister", func(t *testing.B) {
-		benchmarkPersister(b, keys, createPersister(b))
+		benchmarkPersister(b, entries, createPersister(b), keys)
 	})
 
 	b.Run("sharded persister", func(t *testing.B) {
-		benchmarkPersister(b, keys, createShardedPersister(b))
-	})
-}
-
-func BenchmarkPersister100mil(b *testing.B) {
-	keys, _ := generateKeys(1000000)
-
-	b.Run("persister", func(t *testing.B) {
-		benchmarkPersister(b, keys, createPersister(b))
-	})
-
-	b.Run("sharded persister", func(t *testing.B) {
-		benchmarkPersister(b, keys, createShardedPersister(b))
+		benchmarkPersister(b, entries, createShardedPersister(b), keys)
 	})
 }
 
@@ -111,12 +189,17 @@ func benchmarkPersisterOneKey(b *testing.B, keys map[string][]byte, key []byte, 
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		getKey(b, db, key, 100)
+		getKey(b, db, key)
 	}
 }
 
-func benchmarkPersister(b *testing.B, keys map[string][]byte, db storage.Persister) {
-	for key, val := range keys {
+func benchmarkPersister(
+	b *testing.B,
+	entries map[string][]byte,
+	db storage.Persister,
+	keys []string,
+) {
+	for key, val := range entries {
 		err := db.Put([]byte(key), val)
 		require.Nil(b, err)
 	}
@@ -130,12 +213,12 @@ func benchmarkPersister(b *testing.B, keys map[string][]byte, db storage.Persist
 func getKeys(
 	b *testing.B,
 	db storage.Persister,
-	keys map[string][]byte,
+	keys []string,
 ) {
 	wg := sync.WaitGroup{}
 	wg.Add(len(keys))
 
-	for key := range keys {
+	for _, key := range keys {
 		go func(key string) {
 			defer func() {
 				wg.Done()
@@ -153,39 +236,28 @@ func getKey(
 	b *testing.B,
 	db storage.Persister,
 	key []byte,
-	numOperations int,
 ) {
-	wg := sync.WaitGroup{}
-	wg.Add(numOperations)
-
-	for i := 0; i < numOperations; i++ {
-		go func(key []byte) {
-			defer func() {
-				wg.Done()
-			}()
-
-			_, err := db.Get(key)
-			require.Nil(b, err)
-		}(key)
-	}
-
-	wg.Wait()
+	go func(key []byte) {
+		_, err := db.Get(key)
+		require.Nil(b, err)
+	}(key)
 }
 
-func generateKeys(numKeys int) (map[string][]byte, []byte) {
-	keys := make(map[string][]byte)
-	var lastKey []byte
+func generateKeys(numKeys int) (map[string][]byte, []string) {
+	entries := make(map[string][]byte)
+
+	keys := make([]string, 0, len(entries))
 
 	for i := 0; i < numKeys; i++ {
 		key := generateRandomByteArray(32)
 		valueSize := randInt(20, 200)
 		value := generateRandomByteArray(valueSize)
 
-		keys[string(key)] = value
-		lastKey = key
+		entries[string(key)] = value
+		keys = append(keys, string(key))
 	}
 
-	return keys, lastKey
+	return entries, keys
 }
 
 func randInt(min int, max int) int {
