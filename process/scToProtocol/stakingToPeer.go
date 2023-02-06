@@ -238,13 +238,13 @@ func (stp *stakingToPeer) updatePeerStateV1(
 
 	if !isJailed {
 		if stakingData.StakedNonce == nonce && !isValidator {
-			account.SetListAndIndex(account.GetShardId(), string(common.NewList), uint32(stakingData.RegisterNonce))
+			account.SetListAndIndex(account.GetShardId(), string(common.NewList), uint32(stakingData.RegisterNonce), stp.enableEpochsHandler.IsStakingV4Started())
 			account.SetTempRating(stp.startRating)
 			account.SetUnStakedEpoch(common.DefaultUnstakedEpoch)
 		}
 
 		if stakingData.UnStakedNonce == nonce && account.GetList() != string(common.InactiveList) {
-			account.SetListAndIndex(account.GetShardId(), string(common.LeavingList), uint32(stakingData.UnStakedNonce))
+			account.SetListAndIndex(account.GetShardId(), string(common.LeavingList), uint32(stakingData.UnStakedNonce), stp.enableEpochsHandler.IsStakingV4Started())
 			account.SetUnStakedEpoch(stakingData.UnStakedEpoch)
 		}
 	}
@@ -255,7 +255,7 @@ func (stp *stakingToPeer) updatePeerStateV1(
 		}
 
 		if !isValidator && account.GetUnStakedEpoch() == common.DefaultUnstakedEpoch {
-			account.SetListAndIndex(account.GetShardId(), string(common.NewList), uint32(stakingData.UnJailedNonce))
+			account.SetListAndIndex(account.GetShardId(), string(common.NewList), uint32(stakingData.UnJailedNonce), stp.enableEpochsHandler.IsStakingV4Started())
 		}
 	}
 
@@ -285,7 +285,7 @@ func (stp *stakingToPeer) updatePeerState(
 		stakingData.UnJailedNonce == nonce && account.GetList() == string(common.JailedList)
 	if isUnJailForInactive {
 		log.Debug("unJail for inactive node changed status to inactive list", "blsKey", account.GetBLSPublicKey(), "unStakedEpoch", stakingData.UnStakedEpoch)
-		account.SetListAndIndex(account.GetShardId(), string(common.InactiveList), uint32(stakingData.UnJailedNonce))
+		account.SetListAndIndex(account.GetShardId(), string(common.InactiveList), uint32(stakingData.UnJailedNonce), stp.enableEpochsHandler.IsStakingV4Started())
 		if account.GetTempRating() < stp.unJailRating {
 			account.SetTempRating(stp.unJailRating)
 		}
@@ -331,14 +331,14 @@ func (stp *stakingToPeer) updatePeerState(
 	if !stakingData.Jailed {
 		if stakingData.StakedNonce == nonce && !isValidator {
 			log.Debug("node is staked, changed status to", "list", newNodesList, "blsKey", blsPubKey)
-			account.SetListAndIndex(account.GetShardId(), string(newNodesList), uint32(stakingData.StakedNonce))
+			account.SetListAndIndex(account.GetShardId(), string(newNodesList), uint32(stakingData.StakedNonce), stp.enableEpochsHandler.IsStakingV4Started())
 			account.SetTempRating(stp.startRating)
 			account.SetUnStakedEpoch(common.DefaultUnstakedEpoch)
 		}
 
 		if stakingData.UnStakedNonce == nonce && account.GetList() != string(common.InactiveList) {
 			log.Debug("node is unStaked, changed status to leaving list", "blsKey", blsPubKey)
-			account.SetListAndIndex(account.GetShardId(), string(common.LeavingList), uint32(stakingData.UnStakedNonce))
+			account.SetListAndIndex(account.GetShardId(), string(common.LeavingList), uint32(stakingData.UnStakedNonce), stp.enableEpochsHandler.IsStakingV4Started())
 			account.SetUnStakedEpoch(stakingData.UnStakedEpoch)
 		}
 	}
@@ -352,19 +352,19 @@ func (stp *stakingToPeer) updatePeerState(
 		isNewValidator := !isValidator && stakingData.Staked
 		if isNewValidator {
 			log.Debug("node is unJailed and staked, changing status to", "list", newNodesList, "blsKey", blsPubKey)
-			account.SetListAndIndex(account.GetShardId(), string(newNodesList), uint32(stakingData.UnJailedNonce))
+			account.SetListAndIndex(account.GetShardId(), string(newNodesList), uint32(stakingData.UnJailedNonce), stp.enableEpochsHandler.IsStakingV4Started())
 		}
 
 		if account.GetList() == string(common.JailedList) {
 			log.Debug("node is unJailed and not staked, changing status to inactive list", "blsKey", blsPubKey)
-			account.SetListAndIndex(account.GetShardId(), string(common.InactiveList), uint32(stakingData.UnJailedNonce))
+			account.SetListAndIndex(account.GetShardId(), string(common.InactiveList), uint32(stakingData.UnJailedNonce), stp.enableEpochsHandler.IsStakingV4Started())
 			account.SetUnStakedEpoch(stakingData.UnStakedEpoch)
 		}
 	}
 
 	if stakingData.JailedNonce == nonce && account.GetList() != string(common.InactiveList) {
 		log.Debug("node is jailed, setting status to leaving", "blsKey", blsPubKey)
-		account.SetListAndIndex(account.GetShardId(), string(common.LeavingList), uint32(stakingData.JailedNonce))
+		account.SetListAndIndex(account.GetShardId(), string(common.LeavingList), uint32(stakingData.JailedNonce), stp.enableEpochsHandler.IsStakingV4Started())
 		account.SetTempRating(stp.jailRating)
 	}
 

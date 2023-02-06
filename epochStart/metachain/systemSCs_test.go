@@ -1768,9 +1768,9 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Init(t *testing.T)
 	stakingcommon.RegisterValidatorKeys(args.UserAccountsDB, owner3, owner3, owner3ListPubKeysWaiting, big.NewInt(2000), args.Marshalizer)
 
 	validatorsInfo := state.NewShardValidatorsInfoMap()
-	_ = validatorsInfo.Add(createValidatorInfo(owner1ListPubKeysStaked[0], common.EligibleList, owner1, 0))
-	_ = validatorsInfo.Add(createValidatorInfo(owner1ListPubKeysStaked[1], common.WaitingList, owner1, 0))
-	_ = validatorsInfo.Add(createValidatorInfo(owner2ListPubKeysStaked[0], common.EligibleList, owner2, 1))
+	_ = validatorsInfo.Add(createValidatorInfo(owner1ListPubKeysStaked[0], common.EligibleList, "", 0, owner1))
+	_ = validatorsInfo.Add(createValidatorInfo(owner1ListPubKeysStaked[1], common.WaitingList, "", 0, owner1))
+	_ = validatorsInfo.Add(createValidatorInfo(owner2ListPubKeysStaked[0], common.EligibleList, "", 1, owner2))
 
 	args.EpochNotifier.CheckEpoch(&block.Header{Epoch: stakingV4InitEnableEpoch})
 	err := s.ProcessSystemSmartContract(validatorsInfo, &block.Header{})
@@ -1778,19 +1778,19 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Init(t *testing.T)
 
 	expectedValidatorsInfo := map[uint32][]state.ValidatorInfoHandler{
 		0: {
-			createValidatorInfo(owner1ListPubKeysStaked[0], common.EligibleList, owner1, 0),
-			createValidatorInfo(owner1ListPubKeysStaked[1], common.WaitingList, owner1, 0),
-			createValidatorInfo(owner1ListPubKeysWaiting[0], common.AuctionList, owner1, 0),
-			createValidatorInfo(owner1ListPubKeysWaiting[1], common.AuctionList, owner1, 0),
-			createValidatorInfo(owner1ListPubKeysWaiting[2], common.AuctionList, owner1, 0),
+			createValidatorInfo(owner1ListPubKeysStaked[0], common.EligibleList, "", 0, owner1),
+			createValidatorInfo(owner1ListPubKeysStaked[1], common.WaitingList, "", 0, owner1),
+			createValidatorInfo(owner1ListPubKeysWaiting[0], common.AuctionList, "", 0, owner1),
+			createValidatorInfo(owner1ListPubKeysWaiting[1], common.AuctionList, "", 0, owner1),
+			createValidatorInfo(owner1ListPubKeysWaiting[2], common.AuctionList, "", 0, owner1),
 
-			createValidatorInfo(owner2ListPubKeysWaiting[0], common.AuctionList, owner2, 0),
+			createValidatorInfo(owner2ListPubKeysWaiting[0], common.AuctionList, "", 0, owner2),
 
-			createValidatorInfo(owner3ListPubKeysWaiting[0], common.AuctionList, owner3, 0),
-			createValidatorInfo(owner3ListPubKeysWaiting[1], common.AuctionList, owner3, 0),
+			createValidatorInfo(owner3ListPubKeysWaiting[0], common.AuctionList, "", 0, owner3),
+			createValidatorInfo(owner3ListPubKeysWaiting[1], common.AuctionList, "", 0, owner3),
 		},
 		1: {
-			createValidatorInfo(owner2ListPubKeysStaked[0], common.EligibleList, owner2, 1),
+			createValidatorInfo(owner2ListPubKeysStaked[0], common.EligibleList, "", 1, owner2),
 		},
 	}
 
@@ -1814,8 +1814,8 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4EnabledCannotPrepa
 	stakingcommon.RegisterValidatorKeys(args.UserAccountsDB, owner, owner, ownerStakedKeys, big.NewInt(2000), args.Marshalizer)
 
 	validatorsInfo := state.NewShardValidatorsInfoMap()
-	_ = validatorsInfo.Add(createValidatorInfo(ownerStakedKeys[0], common.AuctionList, owner, 0))
-	_ = validatorsInfo.Add(createValidatorInfo(ownerStakedKeys[1], common.AuctionList, owner, 0))
+	_ = validatorsInfo.Add(createValidatorInfo(ownerStakedKeys[0], common.AuctionList, "", 0, owner))
+	_ = validatorsInfo.Add(createValidatorInfo(ownerStakedKeys[1], common.AuctionList, "", 0, owner))
 
 	s, _ := NewSystemSCProcessor(args)
 	s.EpochConfirmed(stakingV4EnableEpoch, 0)
@@ -1867,30 +1867,30 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Enabled(t *testing
 	stakingcommon.RegisterValidatorKeys(args.UserAccountsDB, owner7, owner7, owner7StakedKeys, big.NewInt(1500), args.Marshalizer)
 
 	validatorsInfo := state.NewShardValidatorsInfoMap()
-	_ = validatorsInfo.Add(createValidatorInfo(owner1StakedKeys[0], common.EligibleList, owner1, 0))
-	_ = validatorsInfo.Add(createValidatorInfo(owner1StakedKeys[1], common.WaitingList, owner1, 0))
-	_ = validatorsInfo.Add(createValidatorInfo(owner1StakedKeys[2], common.AuctionList, owner1, 0))
+	_ = validatorsInfo.Add(createValidatorInfo(owner1StakedKeys[0], common.EligibleList, "", 0, owner1))
+	_ = validatorsInfo.Add(createValidatorInfo(owner1StakedKeys[1], common.WaitingList, "", 0, owner1))
+	_ = validatorsInfo.Add(createValidatorInfo(owner1StakedKeys[2], common.AuctionList, "", 0, owner1))
 
-	_ = validatorsInfo.Add(createValidatorInfo(owner2StakedKeys[0], common.EligibleList, owner2, 1))
-	_ = validatorsInfo.Add(createValidatorInfo(owner2StakedKeys[1], common.AuctionList, owner2, 1))
-	_ = validatorsInfo.Add(createValidatorInfo(owner2StakedKeys[2], common.AuctionList, owner2, 1))
+	_ = validatorsInfo.Add(createValidatorInfo(owner2StakedKeys[0], common.EligibleList, "", 1, owner2))
+	_ = validatorsInfo.Add(createValidatorInfo(owner2StakedKeys[1], common.AuctionList, "", 1, owner2))
+	_ = validatorsInfo.Add(createValidatorInfo(owner2StakedKeys[2], common.AuctionList, "", 1, owner2))
 
-	_ = validatorsInfo.Add(createValidatorInfo(owner3StakedKeys[0], common.LeavingList, owner3, 1))
-	_ = validatorsInfo.Add(createValidatorInfo(owner3StakedKeys[1], common.AuctionList, owner3, 1))
+	_ = validatorsInfo.Add(createValidatorInfo(owner3StakedKeys[0], common.LeavingList, "", 1, owner3))
+	_ = validatorsInfo.Add(createValidatorInfo(owner3StakedKeys[1], common.AuctionList, "", 1, owner3))
 
-	_ = validatorsInfo.Add(createValidatorInfo(owner4StakedKeys[0], common.JailedList, owner4, 1))
-	_ = validatorsInfo.Add(createValidatorInfo(owner4StakedKeys[1], common.AuctionList, owner4, 1))
-	_ = validatorsInfo.Add(createValidatorInfo(owner4StakedKeys[2], common.AuctionList, owner4, 1))
-	_ = validatorsInfo.Add(createValidatorInfo(owner4StakedKeys[3], common.AuctionList, owner4, 1))
+	_ = validatorsInfo.Add(createValidatorInfo(owner4StakedKeys[0], common.JailedList, "", 1, owner4))
+	_ = validatorsInfo.Add(createValidatorInfo(owner4StakedKeys[1], common.AuctionList, "", 1, owner4))
+	_ = validatorsInfo.Add(createValidatorInfo(owner4StakedKeys[2], common.AuctionList, "", 1, owner4))
+	_ = validatorsInfo.Add(createValidatorInfo(owner4StakedKeys[3], common.AuctionList, "", 1, owner4))
 
-	_ = validatorsInfo.Add(createValidatorInfo(owner5StakedKeys[0], common.EligibleList, owner5, 1))
-	_ = validatorsInfo.Add(createValidatorInfo(owner5StakedKeys[1], common.AuctionList, owner5, 1))
+	_ = validatorsInfo.Add(createValidatorInfo(owner5StakedKeys[0], common.EligibleList, "", 1, owner5))
+	_ = validatorsInfo.Add(createValidatorInfo(owner5StakedKeys[1], common.AuctionList, "", 1, owner5))
 
-	_ = validatorsInfo.Add(createValidatorInfo(owner6StakedKeys[0], common.AuctionList, owner6, 1))
-	_ = validatorsInfo.Add(createValidatorInfo(owner6StakedKeys[1], common.AuctionList, owner6, 1))
+	_ = validatorsInfo.Add(createValidatorInfo(owner6StakedKeys[0], common.AuctionList, "", 1, owner6))
+	_ = validatorsInfo.Add(createValidatorInfo(owner6StakedKeys[1], common.AuctionList, "", 1, owner6))
 
-	_ = validatorsInfo.Add(createValidatorInfo(owner7StakedKeys[0], common.EligibleList, owner7, 2))
-	_ = validatorsInfo.Add(createValidatorInfo(owner7StakedKeys[1], common.EligibleList, owner7, 2))
+	_ = validatorsInfo.Add(createValidatorInfo(owner7StakedKeys[0], common.EligibleList, "", 2, owner7))
+	_ = validatorsInfo.Add(createValidatorInfo(owner7StakedKeys[1], common.EligibleList, "", 2, owner7))
 
 	s, _ := NewSystemSCProcessor(args)
 	args.EpochNotifier.CheckEpoch(&block.Header{Epoch: stakingV4EnableEpoch})
@@ -1955,32 +1955,32 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Enabled(t *testing
 
 	expectedValidatorsInfo := map[uint32][]state.ValidatorInfoHandler{
 		0: {
-			createValidatorInfo(owner1StakedKeys[0], common.EligibleList, owner1, 0),
-			createValidatorInfo(owner1StakedKeys[1], common.WaitingList, owner1, 0),
-			createValidatorInfo(owner1StakedKeys[2], common.SelectedFromAuctionList, owner1, 0),
+			createValidatorInfo(owner1StakedKeys[0], common.EligibleList, "", 0, owner1),
+			createValidatorInfo(owner1StakedKeys[1], common.WaitingList, "", 0, owner1),
+			createValidatorInfo(owner1StakedKeys[2], common.SelectedFromAuctionList, common.AuctionList, 0, owner1),
 		},
 		1: {
-			createValidatorInfo(owner2StakedKeys[0], common.EligibleList, owner2, 1),
-			createValidatorInfo(owner2StakedKeys[1], common.AuctionList, owner2, 1),
-			createValidatorInfo(owner2StakedKeys[2], common.SelectedFromAuctionList, owner2, 1),
+			createValidatorInfo(owner2StakedKeys[0], common.EligibleList, "", 1, owner2),
+			createValidatorInfo(owner2StakedKeys[1], common.AuctionList, "", 1, owner2),
+			createValidatorInfo(owner2StakedKeys[2], common.SelectedFromAuctionList, common.AuctionList, 1, owner2),
 
-			createValidatorInfo(owner3StakedKeys[0], common.LeavingList, owner3, 1),
-			createValidatorInfo(owner3StakedKeys[1], common.AuctionList, owner3, 1),
+			createValidatorInfo(owner3StakedKeys[0], common.LeavingList, "", 1, owner3),
+			createValidatorInfo(owner3StakedKeys[1], common.AuctionList, "", 1, owner3),
 
-			createValidatorInfo(owner4StakedKeys[0], common.JailedList, owner4, 1),
-			createValidatorInfo(owner4StakedKeys[1], common.SelectedFromAuctionList, owner4, 1),
-			createValidatorInfo(owner4StakedKeys[2], common.AuctionList, owner4, 1),
-			createValidatorInfo(owner4StakedKeys[3], common.AuctionList, owner4, 1),
+			createValidatorInfo(owner4StakedKeys[0], common.JailedList, "", 1, owner4),
+			createValidatorInfo(owner4StakedKeys[1], common.SelectedFromAuctionList, common.AuctionList, 1, owner4),
+			createValidatorInfo(owner4StakedKeys[2], common.AuctionList, "", 1, owner4),
+			createValidatorInfo(owner4StakedKeys[3], common.AuctionList, "", 1, owner4),
 
-			createValidatorInfo(owner5StakedKeys[0], common.EligibleList, owner5, 1),
-			createValidatorInfo(owner5StakedKeys[1], common.LeavingList, owner5, 1),
+			createValidatorInfo(owner5StakedKeys[0], common.EligibleList, "", 1, owner5),
+			createValidatorInfo(owner5StakedKeys[1], common.LeavingList, common.AuctionList, 1, owner5),
 
-			createValidatorInfo(owner6StakedKeys[0], common.LeavingList, owner6, 1),
-			createValidatorInfo(owner6StakedKeys[1], common.AuctionList, owner6, 1),
+			createValidatorInfo(owner6StakedKeys[0], common.LeavingList, common.AuctionList, 1, owner6),
+			createValidatorInfo(owner6StakedKeys[1], common.AuctionList, "", 1, owner6),
 		},
 		2: {
-			createValidatorInfo(owner7StakedKeys[0], common.LeavingList, owner7, 2),
-			createValidatorInfo(owner7StakedKeys[1], common.EligibleList, owner7, 2),
+			createValidatorInfo(owner7StakedKeys[0], common.LeavingList, common.EligibleList, 2, owner7),
+			createValidatorInfo(owner7StakedKeys[1], common.EligibleList, "", 2, owner7),
 		},
 	}
 
@@ -2114,12 +2114,13 @@ func requireTopUpPerNodes(t *testing.T, s epochStart.StakingDataProvider, staked
 }
 
 // This func sets rating and temp rating with the start rating value used in createFullArgumentsForSystemSCProcessing
-func createValidatorInfo(pubKey []byte, list common.PeerType, owner []byte, shardID uint32) *state.ValidatorInfo {
+func createValidatorInfo(pubKey []byte, list common.PeerType, previousList common.PeerType, shardID uint32, owner []byte) *state.ValidatorInfo {
 	rating := uint32(5)
 
 	return &state.ValidatorInfo{
 		PublicKey:       pubKey,
 		List:            string(list),
+		PreviousList:    string(previousList),
 		ShardId:         shardID,
 		RewardAddress:   owner,
 		AccumulatedFees: zero,

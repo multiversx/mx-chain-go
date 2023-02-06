@@ -236,7 +236,7 @@ func TestAuctionListSelector_SelectNodesFromAuction(t *testing.T) {
 		owner1StakedKeys := [][]byte{[]byte("pubKey0")}
 
 		validatorsInfo := state.NewShardValidatorsInfoMap()
-		_ = validatorsInfo.Add(createValidatorInfo(owner1StakedKeys[0], common.EligibleList, owner1, 0))
+		_ = validatorsInfo.Add(createValidatorInfo(owner1StakedKeys[0], common.EligibleList, "", 0, owner1))
 
 		args, argsSystemSC := createFullAuctionListSelectorArgs([]config.MaxNodesChangeConfig{{MaxNumNodes: 2}})
 		stakingcommon.RegisterValidatorKeys(argsSystemSC.UserAccountsDB, owner1, owner1, owner1StakedKeys, big.NewInt(1000), argsSystemSC.Marshalizer)
@@ -247,7 +247,7 @@ func TestAuctionListSelector_SelectNodesFromAuction(t *testing.T) {
 		require.Nil(t, err)
 		expectedValidatorsInfo := map[uint32][]state.ValidatorInfoHandler{
 			0: {
-				createValidatorInfo(owner1StakedKeys[0], common.EligibleList, owner1, 0),
+				createValidatorInfo(owner1StakedKeys[0], common.EligibleList, "", 0, owner1),
 			},
 		}
 		require.Equal(t, expectedValidatorsInfo, validatorsInfo.GetShardValidatorsInfoMap())
@@ -262,8 +262,8 @@ func TestAuctionListSelector_SelectNodesFromAuction(t *testing.T) {
 		owner2StakedKeys := [][]byte{[]byte("pubKey1")}
 
 		validatorsInfo := state.NewShardValidatorsInfoMap()
-		_ = validatorsInfo.Add(createValidatorInfo(owner1StakedKeys[0], common.EligibleList, owner1, 0))
-		_ = validatorsInfo.Add(createValidatorInfo(owner2StakedKeys[0], common.AuctionList, owner2, 0))
+		_ = validatorsInfo.Add(createValidatorInfo(owner1StakedKeys[0], common.EligibleList, "", 0, owner1))
+		_ = validatorsInfo.Add(createValidatorInfo(owner2StakedKeys[0], common.AuctionList, "", 0, owner2))
 
 		args, argsSystemSC := createFullAuctionListSelectorArgs([]config.MaxNodesChangeConfig{{MaxNumNodes: 1}})
 		stakingcommon.RegisterValidatorKeys(argsSystemSC.UserAccountsDB, owner1, owner1, owner1StakedKeys, big.NewInt(1000), argsSystemSC.Marshalizer)
@@ -275,8 +275,8 @@ func TestAuctionListSelector_SelectNodesFromAuction(t *testing.T) {
 		require.Nil(t, err)
 		expectedValidatorsInfo := map[uint32][]state.ValidatorInfoHandler{
 			0: {
-				createValidatorInfo(owner1StakedKeys[0], common.EligibleList, owner1, 0),
-				createValidatorInfo(owner2StakedKeys[0], common.AuctionList, owner2, 0),
+				createValidatorInfo(owner1StakedKeys[0], common.EligibleList, "", 0, owner1),
+				createValidatorInfo(owner2StakedKeys[0], common.AuctionList, "", 0, owner2),
 			},
 		}
 		require.Equal(t, expectedValidatorsInfo, validatorsInfo.GetShardValidatorsInfoMap())
@@ -291,8 +291,8 @@ func TestAuctionListSelector_SelectNodesFromAuction(t *testing.T) {
 		owner2StakedKeys := [][]byte{[]byte("pubKey1")}
 
 		validatorsInfo := state.NewShardValidatorsInfoMap()
-		_ = validatorsInfo.Add(createValidatorInfo(owner1StakedKeys[0], common.EligibleList, owner1, 0))
-		_ = validatorsInfo.Add(createValidatorInfo(owner2StakedKeys[0], common.AuctionList, owner2, 0))
+		_ = validatorsInfo.Add(createValidatorInfo(owner1StakedKeys[0], common.EligibleList, "", 0, owner1))
+		_ = validatorsInfo.Add(createValidatorInfo(owner2StakedKeys[0], common.AuctionList, "", 0, owner2))
 
 		args, argsSystemSC := createFullAuctionListSelectorArgs([]config.MaxNodesChangeConfig{{MaxNumNodes: 1, NodesToShufflePerShard: 1}})
 		stakingcommon.RegisterValidatorKeys(argsSystemSC.UserAccountsDB, owner1, owner1, owner1StakedKeys, big.NewInt(1000), argsSystemSC.Marshalizer)
@@ -304,8 +304,8 @@ func TestAuctionListSelector_SelectNodesFromAuction(t *testing.T) {
 		require.Nil(t, err)
 		expectedValidatorsInfo := map[uint32][]state.ValidatorInfoHandler{
 			0: {
-				createValidatorInfo(owner1StakedKeys[0], common.EligibleList, owner1, 0),
-				createValidatorInfo(owner2StakedKeys[0], common.SelectedFromAuctionList, owner2, 0),
+				createValidatorInfo(owner1StakedKeys[0], common.EligibleList, "", 0, owner1),
+				createValidatorInfo(owner2StakedKeys[0], common.SelectedFromAuctionList, common.AuctionList, 0, owner2),
 			},
 		}
 		require.Equal(t, expectedValidatorsInfo, validatorsInfo.GetShardValidatorsInfoMap())
@@ -317,7 +317,7 @@ func TestAuctionListSelector_SelectNodesFromAuction(t *testing.T) {
 		owner1 := []byte("owner1")
 		owner1StakedKeys := [][]byte{[]byte("pubKey0")}
 		validatorsInfo := state.NewShardValidatorsInfoMap()
-		_ = validatorsInfo.Add(createValidatorInfo(owner1StakedKeys[0], common.AuctionList, owner1, 0))
+		_ = validatorsInfo.Add(createValidatorInfo(owner1StakedKeys[0], common.AuctionList, "", 0, owner1))
 
 		args, argsSystemSC := createFullAuctionListSelectorArgs([]config.MaxNodesChangeConfig{{MaxNumNodes: 2}})
 		stakingcommon.RegisterValidatorKeys(argsSystemSC.UserAccountsDB, owner1, owner1, owner1StakedKeys, big.NewInt(1000), argsSystemSC.Marshalizer)
@@ -328,7 +328,7 @@ func TestAuctionListSelector_SelectNodesFromAuction(t *testing.T) {
 		require.Nil(t, err)
 		expectedValidatorsInfo := map[uint32][]state.ValidatorInfoHandler{
 			0: {
-				createValidatorInfo(owner1StakedKeys[0], common.SelectedFromAuctionList, owner1, 0),
+				createValidatorInfo(owner1StakedKeys[0], common.SelectedFromAuctionList, common.AuctionList, 0, owner1),
 			},
 		}
 		require.Equal(t, expectedValidatorsInfo, validatorsInfo.GetShardValidatorsInfoMap())

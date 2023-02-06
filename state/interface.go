@@ -50,7 +50,7 @@ type PeerAccountHandler interface {
 	GetTotalLeaderSuccessRate() SignRate
 	GetTotalValidatorSuccessRate() SignRate
 	GetTotalValidatorIgnoredSignaturesRate() uint32
-	SetListAndIndex(shardID uint32, list string, index uint32)
+	SetListAndIndex(shardID uint32, list string, index uint32, updatePreviousList bool)
 	GetRating() uint32
 	SetRating(uint32)
 	GetTempRating() uint32
@@ -260,7 +260,7 @@ type ValidatorInfoHandler interface {
 
 	SetPublicKey(publicKey []byte)
 	SetShardId(shardID uint32)
-	SetList(list string)
+	SetList(list string, updatePreviousList bool)
 	SetIndex(index uint32)
 	SetTempRating(tempRating uint32)
 	SetRating(rating uint32)

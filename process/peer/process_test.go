@@ -2264,7 +2264,7 @@ func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochComputesJustEligible
 	_ = vi.Add(createMockValidatorInfo(core.MetachainShardId, tempRating1, validatorSuccess1, validatorIgnored1, validatorFailure1))
 
 	validatorWaiting := createMockValidatorInfo(0, tempRating2, validatorSuccess2, validatorIgnored2, validatorFailure2)
-	validatorWaiting.SetList(string(common.WaitingList))
+	validatorWaiting.SetList(string(common.WaitingList), false)
 	_ = vi.Add(validatorWaiting)
 
 	err := validatorStatistics.ProcessRatingsEndOfEpoch(vi, 1)
@@ -2306,11 +2306,11 @@ func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochV2ComputesEligibleLe
 
 	vi := state.NewShardValidatorsInfoMap()
 	validatorLeaving := createMockValidatorInfo(core.MetachainShardId, tempRating1, validatorSuccess1, validatorIgnored1, validatorFailure1)
-	validatorLeaving.SetList(string(common.LeavingList))
+	validatorLeaving.SetList(string(common.LeavingList), false)
 	_ = vi.Add(validatorLeaving)
 
 	validatorWaiting := createMockValidatorInfo(0, tempRating2, validatorSuccess2, validatorIgnored2, validatorFailure2)
-	validatorWaiting.SetList(string(common.WaitingList))
+	validatorWaiting.SetList(string(common.WaitingList), false)
 	_ = vi.Add(validatorWaiting)
 
 	err := validatorStatistics.ProcessRatingsEndOfEpoch(vi, 1)

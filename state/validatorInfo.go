@@ -15,8 +15,11 @@ func (vi *ValidatorInfo) SetPublicKey(publicKey []byte) {
 }
 
 // SetList sets validator's list
-func (vi *ValidatorInfo) SetList(list string) {
-	vi.PreviousList = vi.List
+func (vi *ValidatorInfo) SetList(list string, updatePreviousList bool) {
+	if updatePreviousList {
+		vi.PreviousList = vi.List
+	}
+
 	vi.List = list
 }
 

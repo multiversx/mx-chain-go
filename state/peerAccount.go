@@ -108,9 +108,12 @@ func (pa *peerAccount) SetTempRating(rating uint32) {
 }
 
 // SetListAndIndex will update the peer's list (eligible, waiting) and the index inside it with journal
-func (pa *peerAccount) SetListAndIndex(shardID uint32, list string, index uint32) {
+func (pa *peerAccount) SetListAndIndex(shardID uint32, list string, index uint32, updatePreviousList bool) {
+	if updatePreviousList {
+		pa.PreviousList = pa.List
+	}
+
 	pa.ShardId = shardID
-	pa.PreviousList = pa.List
 	pa.List = list
 	pa.IndexInList = index
 }
