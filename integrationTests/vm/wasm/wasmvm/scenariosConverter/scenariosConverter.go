@@ -11,7 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	mge "github.com/multiversx/mx-chain-vm-v1_4-go/scenarios/elrondgo-exporter"
+	mge "github.com/multiversx/mx-chain-vm-v1_4-go/scenarios/scenario-exporter"
 	mgutil "github.com/multiversx/mx-chain-vm-v1_4-go/scenarios/util"
 )
 

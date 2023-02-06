@@ -918,6 +918,7 @@
     PeerAuthenticationTimeBetweenSendsWhenErrorInSec = 60   # 1min
     PeerAuthenticationTimeThresholdBetweenSends      = 0.1  # 10%   # max random threshold between messages, representing a percent of PeerAuthenticationTimeBetweenSendsInSec
     HeartbeatTimeBetweenSendsInSec                   = 60   # 1min
+    HeartbeatTimeBetweenSendsDuringBootstrapInSec    = 60   # 1min
     HeartbeatTimeBetweenSendsWhenErrorInSec          = 60   # 1min
     HeartbeatTimeThresholdBetweenSends               = 0.1  # 10%   # max random threshold between messages, representing a percent of HeartbeatTimeBetweenSendsInSec
     HeartbeatExpiryTimespanInSec                     = 3600 # 1h    # heartbeat message max age allowed
