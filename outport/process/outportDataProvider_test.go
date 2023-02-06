@@ -369,16 +369,24 @@ func Test_setExecutionOrderInTransactionPool(t *testing.T) {
 func Test_checkTxOrder(t *testing.T) {
 	t.Parallel()
 
-	t.Run("nil ordered txHashes", func(t *testing.T) {
+	t.Run("nil ordered txHashes with empty executed txs", func(t *testing.T) {
 		err := checkTxOrder(nil, make(map[string]struct{}), 0)
-		require.Equal(t, ErrNilOrderedTxHashes, err)
+		require.Nil(t, err)
 	})
-	t.Run("nil executed txHashes", func(t *testing.T) {
+	t.Run("nil ordered txHashes with non-empty executed txs", func(t *testing.T) {
+		err := checkTxOrder(nil, map[string]struct{}{"txHash": {}}, 0)
+		require.True(t, errors.Is(err, ErrExecutedTxNotFoundInOrderedTxs))
+	})
+	t.Run("nil executed txHashes with empty ordered txHashes", func(t *testing.T) {
 		err := checkTxOrder(make([][]byte, 0), nil, 0)
-		require.Equal(t, ErrNilExecutedTxHashes, err)
+		require.Nil(t, err)
+	})
+	t.Run("nil executed txHashes with non-empty ordered txHashes", func(t *testing.T) {
+		err := checkTxOrder([][]byte{{'a'}}, nil, 0)
+		require.True(t, errors.Is(err, ErrOrderedTxNotFound))
 	})
 	t.Run("foundTxHashes < len(orderedTxHashes)", func(t *testing.T) {
-		err := checkTxOrder(make([][]byte, 0), make(map[string]struct{}), 0)
+		err := checkTxOrder(make([][]byte, 1), make(map[string]struct{}), 0)
 		require.True(t, errors.Is(err, ErrOrderedTxNotFound))
 	})
 	t.Run("foundTxHashes == len(orderedTxHashes) and all txHashes found", func(t *testing.T) {

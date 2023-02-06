@@ -233,16 +233,13 @@ func checkBodyTransactionsHaveOrder(orderedTxHashes [][]byte, executedTxHashes m
 	if executedTxHashes == nil {
 		return ErrNilExecutedTxHashes
 	}
-	if orderedTxHashes == nil {
-		return ErrNilOrderedTxHashes
-	}
 
 	orderedTxHashesMap := make(map[string]struct{})
 	for _, txHash := range orderedTxHashes {
 		orderedTxHashesMap[string(txHash)] = struct{}{}
 	}
 
-	for executedTxHash, _ := range executedTxHashes {
+	for executedTxHash := range executedTxHashes {
 		if _, ok := orderedTxHashesMap[executedTxHash]; !ok {
 			return fmt.Errorf("%w for txHash %s", ErrExecutedTxNotFoundInOrderedTxs, hex.EncodeToString([]byte(executedTxHash)))
 		}
