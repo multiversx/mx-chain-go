@@ -712,7 +712,11 @@ func (tr *patriciaMerkleTrie) CollectLeavesForMigration(
 	}
 
 	if newVersion > core.MaxValidTrieNodeVersion || oldVersion > core.MaxValidTrieNodeVersion {
-		return errors.ErrInvalidTrieNodeVersion
+		return fmt.Errorf("%w: newVersion %v,  oldVersion %v", errors.ErrInvalidTrieNodeVersion, newVersion, oldVersion)
+	}
+
+	if newVersion == core.NotSpecified && oldVersion == core.AutoBalanceEnabled {
+		return fmt.Errorf("%w: cannot migrate from %v to %v", errors.ErrInvalidTrieNodeVersion, core.AutoBalanceEnabled, core.NotSpecified)
 	}
 
 	_, err := tr.root.collectLeavesForMigration(oldVersion, newVersion, trieMigrator, tr.trieStorage, keyBuilder.NewKeyBuilder())

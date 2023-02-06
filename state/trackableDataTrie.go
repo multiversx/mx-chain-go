@@ -15,8 +15,8 @@ import (
 )
 
 type optionalVersion struct {
-	version  core.TrieNodeVersion
-	hasValue bool
+	version      core.TrieNodeVersion
+	isValueKnown bool
 }
 
 type dirtyData struct {
@@ -126,7 +126,7 @@ func (tdaw *trackableDataTrie) SaveKeyValue(key []byte, value []byte) error {
 	dataEntry := dirtyData{
 		value: value,
 		oldVersion: optionalVersion{
-			hasValue: false,
+			isValueKnown: false,
 		},
 		newVersion: tdaw.getVersionForNewlyAddedData(),
 	}
@@ -159,8 +159,8 @@ func (tdaw *trackableDataTrie) MigrateDataTrieLeaves(oldVersion core.TrieNodeVer
 		dataEntry := dirtyData{
 			value: leafData.Value,
 			oldVersion: optionalVersion{
-				version:  leafData.Version,
-				hasValue: true,
+				version:      leafData.Version,
+				isValueKnown: true,
 			},
 			newVersion: newVersion,
 		}
@@ -268,7 +268,7 @@ func (tdaw *trackableDataTrie) updateTrie(dtr dataTrie) ([]core.TrieData, error)
 }
 
 func (tdaw *trackableDataTrie) getOldValue(key []byte, dataEntry dirtyData) core.TrieData {
-	if dataEntry.oldVersion.hasValue {
+	if dataEntry.oldVersion.isValueKnown {
 		return core.TrieData{
 			Key:     key,
 			Value:   dataEntry.value,

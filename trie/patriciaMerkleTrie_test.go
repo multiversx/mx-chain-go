@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/rand"
 	"strconv"
+	"strings"
 	"sync"
 	"testing"
 
@@ -1172,7 +1173,7 @@ func TestPatriciaMerkleTrie_CollectLeavesForMigration(t *testing.T) {
 		}
 
 		err := dtr.CollectLeavesForMigration(core.NotSpecified, core.TrieNodeVersion(100), dtm)
-		assert.Equal(t, errorsCommon.ErrInvalidTrieNodeVersion, err)
+		assert.True(t, strings.Contains(err.Error(), errorsCommon.ErrInvalidTrieNodeVersion.Error()))
 		assert.Equal(t, 0, numLoadsCalled)
 		assert.Equal(t, 0, numAddLeafToMigrationQueueCalled)
 	})
@@ -1230,6 +1231,31 @@ func TestPatriciaMerkleTrie_CollectLeavesForMigration(t *testing.T) {
 		assert.Equal(t, 1, numAddLeafToMigrationQueueCalled)
 	})
 
+	t.Run("migrate to same version", func(t *testing.T) {
+		t.Parallel()
+
+		numLoadsCalled := 0
+		numAddLeafToMigrationQueueCalled := 0
+		dtr := emptyTrie().(dataTrie)
+		_ = dtr.UpdateWithVersion([]byte("dog"), []byte("reindeer"), core.AutoBalanceEnabled)
+		_ = dtr.UpdateWithVersion([]byte("ddog"), []byte("puppy"), core.AutoBalanceEnabled)
+		_ = dtr.UpdateWithVersion([]byte("doe"), []byte("cat"), core.AutoBalanceEnabled)
+		dtm := &trieMock.DataTrieMigratorStub{
+			ConsumeStorageLoadGasCalled: func() bool {
+				numLoadsCalled++
+				return true
+			},
+			AddLeafToMigrationQueueCalled: func(_ core.TrieData, _ core.TrieNodeVersion) (bool, error) {
+				numAddLeafToMigrationQueueCalled++
+				return true, nil
+			},
+		}
+
+		err := dtr.CollectLeavesForMigration(core.AutoBalanceEnabled, core.AutoBalanceEnabled, dtm)
+		assert.Nil(t, err)
+		assert.Equal(t, 1, numLoadsCalled)
+		assert.Equal(t, 0, numAddLeafToMigrationQueueCalled)
+	})
 }
 
 func BenchmarkPatriciaMerkleTree_Insert(b *testing.B) {
