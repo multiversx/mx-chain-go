@@ -629,7 +629,7 @@ func (ihnc *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 	ihnc.mutNodesConfig.RUnlock()
 
 	// TODO: compare with previous nodesConfig if exists
-	newNodesConfig, err := ihnc.computeNodesConfigFromList(copiedPrevious, allValidatorInfo)
+	newNodesConfig, err := ihnc.computeNodesConfigFromList(allValidatorInfo)
 	if err != nil {
 		log.Error("could not compute nodes config from list - do nothing on nodesCoordinator epochStartPrepare")
 		return
@@ -744,7 +744,6 @@ func (ihnc *indexHashedNodesCoordinator) GetChance(_ uint32) uint32 {
 }
 
 func (ihnc *indexHashedNodesCoordinator) computeNodesConfigFromList(
-	previousEpochConfig *epochNodesConfig,
 	validatorInfos []*state.ShardValidatorInfo,
 ) (*epochNodesConfig, error) {
 	eligibleMap := make(map[uint32][]Validator)
@@ -752,11 +751,6 @@ func (ihnc *indexHashedNodesCoordinator) computeNodesConfigFromList(
 	leavingMap := make(map[uint32][]Validator)
 	newNodesList := make([]Validator, 0)
 	auctionList := make([]Validator, 0)
-
-	if ihnc.flagStakingV4Started.IsSet() && previousEpochConfig == nil {
-		return nil, ErrNilPreviousEpochConfig
-	}
-
 	if len(validatorInfos) == 0 {
 		log.Warn("computeNodesConfigFromList - validatorInfos len is 0")
 	}
@@ -774,15 +768,16 @@ func (ihnc *indexHashedNodesCoordinator) computeNodesConfigFromList(
 		case string(common.EligibleList):
 			eligibleMap[validatorInfo.ShardId] = append(eligibleMap[validatorInfo.ShardId], currentValidator)
 		case string(common.LeavingList):
-			log.Debug("leaving node validatorInfo", "pk", validatorInfo.PublicKey)
+			log.Debug("leaving node validatorInfo",
+				"pk", validatorInfo.PublicKey,
+				"previous list", validatorInfo.PreviousList,
+				"shardId", validatorInfo.ShardId)
 			leavingMap[validatorInfo.ShardId] = append(leavingMap[validatorInfo.ShardId], currentValidator)
 			ihnc.addValidatorToPreviousMap(
-				previousEpochConfig,
 				eligibleMap,
 				waitingMap,
 				currentValidator,
-				validatorInfo.ShardId,
-				validatorInfo.PreviousList,
+				validatorInfo,
 			)
 		case string(common.NewList):
 			if ihnc.flagStakingV4.IsSet() {
@@ -834,33 +829,31 @@ func (ihnc *indexHashedNodesCoordinator) computeNodesConfigFromList(
 }
 
 func (ihnc *indexHashedNodesCoordinator) addValidatorToPreviousMap(
-	previousEpochConfig *epochNodesConfig,
 	eligibleMap map[uint32][]Validator,
 	waitingMap map[uint32][]Validator,
 	currentValidator *validator,
-	currentValidatorShardId uint32,
-	previousList string,
+	validatorInfo *state.ShardValidatorInfo,
 ) {
+	shardId := validatorInfo.ShardId
 	if !ihnc.flagStakingV4Started.IsSet() {
-		eligibleMap[currentValidatorShardId] = append(eligibleMap[currentValidatorShardId], currentValidator)
+		eligibleMap[shardId] = append(eligibleMap[shardId], currentValidator)
 		return
 	}
 
-	found, shardId := searchInMap(previousEpochConfig.eligibleMap, currentValidator.PubKey())
-	if found {
+	previousList := validatorInfo.PreviousList
+	if previousList == string(common.EligibleList) {
 		log.Debug("leaving node found in", "list", "eligible", "shardId", shardId)
-		eligibleMap[shardId] = append(eligibleMap[currentValidatorShardId], currentValidator)
+		eligibleMap[shardId] = append(eligibleMap[shardId], currentValidator)
 		return
 	}
 
-	found, shardId = searchInMap(previousEpochConfig.waitingMap, currentValidator.PubKey())
-	if found {
+	if previousList == string(common.WaitingList) {
 		log.Debug("leaving node found in", "list", "waiting", "shardId", shardId)
-		waitingMap[shardId] = append(waitingMap[currentValidatorShardId], currentValidator)
+		waitingMap[shardId] = append(waitingMap[shardId], currentValidator)
 		return
 	}
 
-	log.Debug("leaving node not in eligible or waiting, probably was in auction/inactive/jailed",
+	log.Debug("leaving node not in eligible or waiting", "previous list", previousList,
 		"pk", currentValidator.PubKey(), "shardId", shardId)
 }
 
