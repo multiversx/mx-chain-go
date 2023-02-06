@@ -591,7 +591,8 @@ func (ihnc *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 		return
 	}
 
-	if _, ok := metaHdr.(*block.MetaBlock); !ok {
+	metaBlock, castOk := metaHdr.(*block.MetaBlock)
+	if !castOk {
 		log.Error("could not process EpochStartPrepare on nodesCoordinator - not metaBlock")
 		return
 	}
@@ -612,22 +613,6 @@ func (ihnc *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 		return
 	}
 
-	ihnc.mutNodesConfig.RLock()
-	previousConfig := ihnc.nodesConfig[ihnc.currentEpoch]
-	if previousConfig == nil {
-		log.Error("previous nodes config is nil")
-		ihnc.mutNodesConfig.RUnlock()
-		return
-	}
-
-	// TODO: remove the copy if no changes are done to the maps
-	copiedPrevious := &epochNodesConfig{}
-	copiedPrevious.eligibleMap = copyValidatorMap(previousConfig.eligibleMap)
-	copiedPrevious.waitingMap = copyValidatorMap(previousConfig.waitingMap)
-	copiedPrevious.nbShards = previousConfig.nbShards
-
-	ihnc.mutNodesConfig.RUnlock()
-
 	// TODO: compare with previous nodesConfig if exists
 	newNodesConfig, err := ihnc.computeNodesConfigFromList(allValidatorInfo)
 	if err != nil {
@@ -635,10 +620,11 @@ func (ihnc *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 		return
 	}
 
-	if copiedPrevious.nbShards != newNodesConfig.nbShards {
+	prevNumOfShards := uint32(len(metaBlock.ShardInfo))
+	if prevNumOfShards != newNodesConfig.nbShards {
 		log.Warn("number of shards does not match",
 			"previous epoch", ihnc.currentEpoch,
-			"previous number of shards", copiedPrevious.nbShards,
+			"previous number of shards", prevNumOfShards,
 			"new epoch", newEpoch,
 			"new number of shards", newNodesConfig.nbShards)
 	}
