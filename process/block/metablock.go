@@ -42,6 +42,7 @@ type metaProcessor struct {
 	shardBlockFinality           uint32
 	chRcvAllHdrs                 chan bool
 	headersCounter               *headersCounter
+	processStatusHandler         common.ProcessStatusHandler
 }
 
 // NewMetaProcessor creates a new metaProcessor object
@@ -132,7 +133,6 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		receiptsRepository:            arguments.ReceiptsRepository,
 		processDebugger:               processDebugger,
 		outportDataProvider:           arguments.OutportDataProvider,
-		processStatusHandler:          arguments.CoreComponents.ProcessStatusHandler(),
 	}
 
 	mp := metaProcessor{
@@ -146,6 +146,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		validatorStatisticsProcessor: arguments.ValidatorStatisticsProcessor,
 		validatorInfoCreator:         arguments.EpochValidatorInfoCreator,
 		epochSystemSCProcessor:       arguments.EpochSystemSCProcessor,
+		processStatusHandler:         arguments.CoreComponents.ProcessStatusHandler(),
 	}
 
 	mp.txCounter, err = NewTransactionCounter(mp.hasher, mp.marshalizer)

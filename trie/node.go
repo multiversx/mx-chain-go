@@ -241,7 +241,7 @@ func prefixLen(a, b []byte) int {
 	return i
 }
 
-func shouldStopIfContextDoneBlockingIfBusy(ctx context.Context, idleProvider IdleNodeProvider) bool {
+func shouldStopIfContextDone(ctx context.Context, idleProvider IdleNodeProvider) bool {
 	for {
 		select {
 		case <-ctx.Done():

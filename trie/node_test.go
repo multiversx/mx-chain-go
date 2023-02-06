@@ -164,11 +164,11 @@ func TestNode_getNodeFromDBAndDecodeBranchNode(t *testing.T) {
 	encNode = append(encNode, branch)
 	nodeHash := bn.hasher.Compute(string(encNode))
 
-	nodeInstance, err := getNodeFromDBAndDecode(nodeHash, db, bn.marsh, bn.hasher)
+	node, err := getNodeFromDBAndDecode(nodeHash, db, bn.marsh, bn.hasher)
 	assert.Nil(t, err)
 
 	h1, _ := encodeNodeAndGetHash(collapsedBn)
-	h2, _ := encodeNodeAndGetHash(nodeInstance)
+	h2, _ := encodeNodeAndGetHash(node)
 	assert.Equal(t, h1, h2)
 }
 
@@ -183,11 +183,11 @@ func TestNode_getNodeFromDBAndDecodeExtensionNode(t *testing.T) {
 	encNode = append(encNode, extension)
 	nodeHash := en.hasher.Compute(string(encNode))
 
-	nodeInstance, err := getNodeFromDBAndDecode(nodeHash, db, en.marsh, en.hasher)
+	node, err := getNodeFromDBAndDecode(nodeHash, db, en.marsh, en.hasher)
 	assert.Nil(t, err)
 
 	h1, _ := encodeNodeAndGetHash(collapsedEn)
-	h2, _ := encodeNodeAndGetHash(nodeInstance)
+	h2, _ := encodeNodeAndGetHash(node)
 	assert.Equal(t, h1, h2)
 }
 
@@ -202,12 +202,12 @@ func TestNode_getNodeFromDBAndDecodeLeafNode(t *testing.T) {
 	encNode = append(encNode, leaf)
 	nodeHash := ln.hasher.Compute(string(encNode))
 
-	nodeInstance, err := getNodeFromDBAndDecode(nodeHash, db, ln.marsh, ln.hasher)
+	node, err := getNodeFromDBAndDecode(nodeHash, db, ln.marsh, ln.hasher)
 	assert.Nil(t, err)
 
 	ln = getLn(ln.marsh, ln.hasher)
 	ln.dirty = false
-	assert.Equal(t, ln, nodeInstance)
+	assert.Equal(t, ln, node)
 }
 
 func TestNode_resolveIfCollapsedBranchNode(t *testing.T) {
@@ -250,9 +250,9 @@ func TestNode_resolveIfCollapsedLeafNode(t *testing.T) {
 func TestNode_resolveIfCollapsedNilNode(t *testing.T) {
 	t.Parallel()
 
-	var nodeInstance *extensionNode
+	var node *extensionNode
 
-	err := resolveIfCollapsed(nodeInstance, 0, nil)
+	err := resolveIfCollapsed(node, 0, nil)
 	assert.Equal(t, ErrNilExtensionNode, err)
 }
 
@@ -284,8 +284,8 @@ func TestNode_hasValidHash(t *testing.T) {
 func TestNode_hasValidHashNilNode(t *testing.T) {
 	t.Parallel()
 
-	var nodeInstance *branchNode
-	ok, err := hasValidHash(nodeInstance)
+	var node *branchNode
+	ok, err := hasValidHash(node)
 	assert.Equal(t, ErrNilBranchNode, err)
 	assert.False(t, ok)
 }
@@ -297,11 +297,11 @@ func TestNode_decodeNodeBranchNode(t *testing.T) {
 	encNode, _ := collapsedBn.marsh.Marshal(collapsedBn)
 	encNode = append(encNode, branch)
 
-	nodeInstance, err := decodeNode(encNode, collapsedBn.marsh, collapsedBn.hasher)
+	node, err := decodeNode(encNode, collapsedBn.marsh, collapsedBn.hasher)
 	assert.Nil(t, err)
 
 	h1, _ := encodeNodeAndGetHash(collapsedBn)
-	h2, _ := encodeNodeAndGetHash(nodeInstance)
+	h2, _ := encodeNodeAndGetHash(node)
 	assert.Equal(t, h1, h2)
 }
 
@@ -312,11 +312,11 @@ func TestNode_decodeNodeExtensionNode(t *testing.T) {
 	encNode, _ := collapsedEn.marsh.Marshal(collapsedEn)
 	encNode = append(encNode, extension)
 
-	nodeInstance, err := decodeNode(encNode, collapsedEn.marsh, collapsedEn.hasher)
+	node, err := decodeNode(encNode, collapsedEn.marsh, collapsedEn.hasher)
 	assert.Nil(t, err)
 
 	h1, _ := encodeNodeAndGetHash(collapsedEn)
-	h2, _ := encodeNodeAndGetHash(nodeInstance)
+	h2, _ := encodeNodeAndGetHash(node)
 	assert.Equal(t, h1, h2)
 }
 
@@ -327,12 +327,12 @@ func TestNode_decodeNodeLeafNode(t *testing.T) {
 	encNode, _ := ln.marsh.Marshal(ln)
 	encNode = append(encNode, leaf)
 
-	nodeInstance, err := decodeNode(encNode, ln.marsh, ln.hasher)
+	node, err := decodeNode(encNode, ln.marsh, ln.hasher)
 	assert.Nil(t, err)
 	ln.dirty = false
 
 	h1, _ := encodeNodeAndGetHash(ln)
-	h2, _ := encodeNodeAndGetHash(nodeInstance)
+	h2, _ := encodeNodeAndGetHash(node)
 	assert.Equal(t, h1, h2)
 }
 
@@ -345,8 +345,8 @@ func TestNode_decodeNodeInvalidNode(t *testing.T) {
 	encNode, _ := ln.marsh.Marshal(ln)
 	encNode = append(encNode, invalidNode)
 
-	nodeInstance, err := decodeNode(encNode, ln.marsh, ln.hasher)
-	assert.Nil(t, nodeInstance)
+	node, err := decodeNode(encNode, ln.marsh, ln.hasher)
+	assert.Nil(t, node)
 	assert.Equal(t, ErrInvalidNode, err)
 }
 
@@ -356,8 +356,8 @@ func TestNode_decodeNodeInvalidEncoding(t *testing.T) {
 	marsh, hasher := getTestMarshalizerAndHasher()
 	var encNode []byte
 
-	nodeInstance, err := decodeNode(encNode, marsh, hasher)
-	assert.Nil(t, nodeInstance)
+	node, err := decodeNode(encNode, marsh, hasher)
+	assert.Nil(t, node)
 	assert.Equal(t, ErrInvalidEncoding, err)
 }
 
@@ -576,16 +576,16 @@ func TestNode_NodeExtension(t *testing.T) {
 	assert.False(t, shouldTestNode(n, make([]byte, 0)))
 }
 
-func TestShouldStopIfContextDoneBlockingIfBusy(t *testing.T) {
+func TestShouldStopIfContextDone(t *testing.T) {
 	t.Parallel()
 
 	t.Run("context done", func(t *testing.T) {
 		t.Parallel()
 
 		ctx, cancelFunc := context.WithCancel(context.Background())
-		assert.False(t, shouldStopIfContextDoneBlockingIfBusy(ctx, &testscommon.ProcessStatusHandlerStub{}))
+		assert.False(t, shouldStopIfContextDone(ctx, &testscommon.ProcessStatusHandlerStub{}))
 		cancelFunc()
-		assert.True(t, shouldStopIfContextDoneBlockingIfBusy(ctx, &testscommon.ProcessStatusHandlerStub{}))
+		assert.True(t, shouldStopIfContextDone(ctx, &testscommon.ProcessStatusHandlerStub{}))
 	})
 	t.Run("wait until idle", func(t *testing.T) {
 		t.Parallel()
@@ -602,7 +602,7 @@ func TestShouldStopIfContextDoneBlockingIfBusy(t *testing.T) {
 
 		chResult := make(chan bool, 1)
 		go func() {
-			chResult <- shouldStopIfContextDoneBlockingIfBusy(ctx, idleProvider)
+			chResult <- shouldStopIfContextDone(ctx, idleProvider)
 		}()
 
 		select {
@@ -623,11 +623,11 @@ func TestShouldStopIfContextDoneBlockingIfBusy(t *testing.T) {
 	})
 }
 
-func Benchmark_ShouldStopIfContextDoneBlockingIfBusy(b *testing.B) {
+func Benchmark_ShouldStopIfContextDone(b *testing.B) {
 	ctx := context.Background()
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		_ = shouldStopIfContextDoneBlockingIfBusy(ctx, &testscommon.ProcessStatusHandlerStub{})
+		_ = shouldStopIfContextDone(ctx, &testscommon.ProcessStatusHandlerStub{})
 	}
 }

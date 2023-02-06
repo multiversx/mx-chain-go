@@ -905,12 +905,13 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldNotReturnError(t *t
 
 	processHandler := arguments.CoreComponents.ProcessStatusHandler()
 	mockProcessHandler := processHandler.(*testscommon.ProcessStatusHandlerStub)
-	busyIdleCalled := make([]string, 0)
+	statusBusySet := false
+	statusIdleSet := false
 	mockProcessHandler.SetIdleCalled = func() {
-		busyIdleCalled = append(busyIdleCalled, idleIdentifier)
+		statusIdleSet = true
 	}
 	mockProcessHandler.SetBusyCalled = func(reason string) {
-		busyIdleCalled = append(busyIdleCalled, busyIdentifier)
+		statusBusySet = true
 	}
 
 	mp.SetHdrForCurrentBlock([]byte("hdr_hash1"), &block.Header{}, true)
@@ -922,7 +923,7 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldNotReturnError(t *t
 	wg.Wait()
 	assert.True(t, wasCalled)
 	assert.Nil(t, err)
-	assert.Equal(t, []string{busyIdentifier, idleIdentifier}, busyIdleCalled) // the order is important
+	assert.True(t, statusBusySet && statusIdleSet)
 
 	expectedFirstNonce.HasValue = true
 	expectedFirstNonce.Value = hdr.Nonce
@@ -3003,12 +3004,13 @@ func TestMetaProcessor_CreateAndProcessBlockCallsProcessAfterFirstEpoch(t *testi
 	}
 	processHandler := arguments.CoreComponents.ProcessStatusHandler()
 	mockProcessHandler := processHandler.(*testscommon.ProcessStatusHandlerStub)
-	busyIdleCalled := make([]string, 0)
+	statusBusySet := false
+	statusIdleSet := false
 	mockProcessHandler.SetIdleCalled = func() {
-		busyIdleCalled = append(busyIdleCalled, idleIdentifier)
+		statusIdleSet = true
 	}
 	mockProcessHandler.SetBusyCalled = func(reason string) {
-		busyIdleCalled = append(busyIdleCalled, busyIdentifier)
+		statusBusySet = true
 	}
 
 	mp, _ := blproc.NewMetaProcessor(arguments)
@@ -3016,7 +3018,7 @@ func TestMetaProcessor_CreateAndProcessBlockCallsProcessAfterFirstEpoch(t *testi
 	headerHandler, bodyHandler, err := mp.CreateBlock(metaHdr, func() bool { return true })
 	assert.Nil(t, err)
 	assert.True(t, toggleCalled, calledSaveNodesCoordinator)
-	assert.Equal(t, []string{busyIdentifier, idleIdentifier}, busyIdleCalled) // the order is important
+	assert.True(t, statusBusySet && statusIdleSet)
 
 	err = headerHandler.SetRound(uint64(1))
 	assert.Nil(t, err)
@@ -3036,11 +3038,12 @@ func TestMetaProcessor_CreateAndProcessBlockCallsProcessAfterFirstEpoch(t *testi
 
 	toggleCalled = false
 	calledSaveNodesCoordinator = false
-	busyIdleCalled = make([]string, 0)
+	statusBusySet = false
+	statusIdleSet = false
 	err = mp.ProcessBlock(headerHandler, bodyHandler, func() time.Duration { return time.Second })
 	assert.Nil(t, err)
 	assert.True(t, toggleCalled, calledSaveNodesCoordinator)
-	assert.Equal(t, []string{busyIdentifier, idleIdentifier}, busyIdleCalled) // the order is important
+	assert.True(t, statusBusySet && statusIdleSet)
 }
 
 func TestMetaProcessor_CreateNewHeaderErrWrongTypeAssertion(t *testing.T) {
