@@ -2046,22 +2046,11 @@ func TestIndexHashedNodesCoordinator_computeNodesConfigFromListNilPreviousNodesC
 	pk := []byte("pk")
 	arguments.SelfPublicKey = pk
 	ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
+	ihnc.flagStakingV4Started.SetReturningPrevious()
 
-	ihnc.flagWaitingListFix.Reset()
 	validatorInfos := make([]*state.ShardValidatorInfo, 0)
+
 	newNodesConfig, err := ihnc.computeNodesConfigFromList(nil, validatorInfos)
-
-	assert.Nil(t, newNodesConfig)
-	assert.False(t, errors.Is(err, ErrNilPreviousEpochConfig))
-
-	newNodesConfig, err = ihnc.computeNodesConfigFromList(nil, nil)
-
-	assert.Nil(t, newNodesConfig)
-	assert.False(t, errors.Is(err, ErrNilPreviousEpochConfig))
-
-	_ = ihnc.flagWaitingListFix.SetReturningPrevious()
-	newNodesConfig, err = ihnc.computeNodesConfigFromList(nil, validatorInfos)
-
 	assert.Nil(t, newNodesConfig)
 	assert.True(t, errors.Is(err, ErrNilPreviousEpochConfig))
 
@@ -2188,7 +2177,7 @@ func TestIndexHashedNodesCoordinator_computeNodesConfigFromListValidatorsWithFix
 	pk := []byte("pk")
 	arguments.SelfPublicKey = pk
 	ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
-	_ = ihnc.flagWaitingListFix.SetReturningPrevious()
+	_ = ihnc.flagStakingV4Started.SetReturningPrevious()
 
 	shard0Eligible0 := &state.ShardValidatorInfo{
 		PublicKey:  []byte("pk0"),
@@ -2384,7 +2373,7 @@ func TestIndexHashedNodesCoordinator_computeNodesConfigFromListValidatorsNoFix(t
 			shardMetaLeaving1,
 		}
 
-	ihnc.flagWaitingListFix.Reset()
+	ihnc.flagStakingV4Started.Reset()
 	newNodesConfig, err := ihnc.computeNodesConfigFromList(previousConfig, validatorInfos)
 	assert.Nil(t, err)
 

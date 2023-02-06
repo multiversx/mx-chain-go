@@ -119,10 +119,6 @@ func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) (
 	case process.SCInvoking:
 		return txProc.processSCInvoking(tx, tx.SndAddr, tx.RcvAddr)
 	case process.BuiltInFunctionCall:
-		if txProc.enableEpochsHandler.IsBuiltInFunctionOnMetaFlagEnabled() {
-			return txProc.processBuiltInFunctionCall(tx, tx.SndAddr, tx.RcvAddr)
-		}
-
 		if txProc.enableEpochsHandler.IsESDTFlagEnabled() {
 			return txProc.processSCInvoking(tx, tx.SndAddr, tx.RcvAddr)
 		}

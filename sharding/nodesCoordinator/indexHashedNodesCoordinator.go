@@ -94,13 +94,13 @@ type indexHashedNodesCoordinator struct {
 	publicKeyToValidatorMap         map[string]*validatorWithShardID
 	isFullArchive                   bool
 	chanStopNode                    chan endProcess.ArgEndProcess
-	flagWaitingListFix              atomicFlags.Flag
 	nodeTypeProvider                NodeTypeProviderHandler
 	enableEpochsHandler             common.EnableEpochsHandler
 	validatorInfoCacher             epochStart.ValidatorInfoCacher
 	stakingV4EnableEpoch            uint32
 	flagStakingV4                   atomicFlags.Flag
 	nodesCoordinatorRegistryFactory NodesCoordinatorRegistryFactory
+	flagStakingV4Started            atomicFlags.Flag
 }
 
 // NewIndexHashedNodesCoordinator creates a new index hashed group selector
@@ -753,7 +753,7 @@ func (ihnc *indexHashedNodesCoordinator) computeNodesConfigFromList(
 	newNodesList := make([]Validator, 0)
 	auctionList := make([]Validator, 0)
 
-	if ihnc.flagWaitingListFix.IsSet() && previousEpochConfig == nil {
+	if ihnc.flagStakingV4Started.IsSet() && previousEpochConfig == nil {
 		return nil, ErrNilPreviousEpochConfig
 	}
 
@@ -836,9 +836,9 @@ func (ihnc *indexHashedNodesCoordinator) addValidatorToPreviousMap(
 	eligibleMap map[uint32][]Validator,
 	waitingMap map[uint32][]Validator,
 	currentValidator *validator,
-	currentValidatorShardId uint32) {
-
-	if !ihnc.flagWaitingListFix.IsSet() {
+	currentValidatorShardId uint32,
+) {
+	if !ihnc.flagStakingV4Started.IsSet() {
 		eligibleMap[currentValidatorShardId] = append(eligibleMap[currentValidatorShardId], currentValidator)
 		return
 	}
@@ -856,6 +856,9 @@ func (ihnc *indexHashedNodesCoordinator) addValidatorToPreviousMap(
 		waitingMap[shardId] = append(waitingMap[currentValidatorShardId], currentValidator)
 		return
 	}
+
+	log.Debug("leaving node not in eligible or waiting, probably was in auction/inactive/jailed",
+		"pk", currentValidator.PubKey(), "shardId", shardId)
 }
 
 func (ihnc *indexHashedNodesCoordinator) handleErrorLog(err error, message string) {
@@ -1295,8 +1298,8 @@ func (ihnc *indexHashedNodesCoordinator) getShardValidatorInfoData(txHash []byte
 }
 
 func (ihnc *indexHashedNodesCoordinator) updateEpochFlags(epoch uint32) {
-	ihnc.flagWaitingListFix.SetValue(epoch >= ihnc.enableEpochsHandler.WaitingListFixEnableEpoch())
-	log.Debug("indexHashedNodesCoordinator: waiting list fix", "enabled", ihnc.flagWaitingListFix.IsSet())
+	ihnc.flagStakingV4Started.SetValue(epoch >= ihnc.enableEpochsHandler.StakingV4InitEpoch())
+	log.Debug("indexHashedNodesCoordinator: staking v4 started", "enabled", ihnc.flagStakingV4Started.IsSet())
 
 	ihnc.flagStakingV4.SetValue(epoch >= ihnc.stakingV4EnableEpoch)
 	log.Debug("indexHashedNodesCoordinator: staking v4", "enabled", ihnc.flagStakingV4.IsSet())

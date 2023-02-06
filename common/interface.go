@@ -230,7 +230,6 @@ type EnableEpochsHandler interface {
 	ScheduledMiniBlocksEnableEpoch() uint32
 	SwitchJailWaitingEnableEpoch() uint32
 	BalanceWaitingListsEnableEpoch() uint32
-	WaitingListFixEnableEpoch() uint32
 	MultiESDTTransferAsyncCallBackEnableEpoch() uint32
 	FixOOGReturnCodeEnableEpoch() uint32
 	RemoveNonUpdatedStorageEnableEpoch() uint32
@@ -244,6 +243,7 @@ type EnableEpochsHandler interface {
 	MiniBlockPartialExecutionEnableEpoch() uint32
 	RefactorPeersMiniBlocksEnableEpoch() uint32
 	StakingV4EnableEpoch() uint32
+	StakingV4InitEpoch() uint32
 	IsSCDeployFlagEnabled() bool
 	IsBuiltInFunctionsFlagEnabled() bool
 	IsRelayedTransactionsFlagEnabled() bool
@@ -280,12 +280,10 @@ type EnableEpochsHandler interface {
 	IsSaveJailedAlwaysFlagEnabled() bool
 	IsReDelegateBelowMinCheckFlagEnabled() bool
 	IsValidatorToDelegationFlagEnabled() bool
-	IsWaitingListFixFlagEnabled() bool
 	IsIncrementSCRNonceInMultiTransferFlagEnabled() bool
 	IsESDTMultiTransferFlagEnabled() bool
 	IsGlobalMintBurnFlagEnabled() bool
 	IsESDTTransferRoleFlagEnabled() bool
-	IsBuiltInFunctionOnMetaFlagEnabled() bool
 	IsComputeRewardCheckpointFlagEnabled() bool
 	IsSCRSizeInvariantCheckFlagEnabled() bool
 	IsBackwardCompSaveKeyValueFlagEnabled() bool

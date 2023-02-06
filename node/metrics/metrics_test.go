@@ -132,8 +132,6 @@ func TestInitConfigMetrics(t *testing.T) {
 			ESDTMultiTransferEnableEpoch:                31,
 			GlobalMintBurnDisableEpoch:                  32,
 			ESDTTransferRoleEnableEpoch:                 33,
-			BuiltInFunctionOnMetaEnableEpoch:            34,
-			WaitingListFixEnableEpoch:                   35,
 		},
 	}
 
@@ -171,8 +169,6 @@ func TestInitConfigMetrics(t *testing.T) {
 		"erd_esdt_multi_transfer_enable_epoch":                   uint32(31),
 		"erd_global_mint_burn_disable_epoch":                     uint32(32),
 		"erd_esdt_transfer_role_enable_epoch":                    uint32(33),
-		"erd_builtin_function_on_meta_enable_epoch":              uint32(34),
-		"erd_waiting_list_fix_enable_epoch":                      uint32(35),
 		"erd_max_nodes_change_enable_epoch":                      nil,
 		"erd_total_supply":                                       "12345",
 		"erd_hysteresis":                                         "0.100000",

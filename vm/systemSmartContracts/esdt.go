@@ -1778,12 +1778,11 @@ func (e *esdt) unSetSpecialRole(args *vmcommon.ContractCallInput) vmcommon.Retur
 		e.eei.SendGlobalSettingToAll(e.esdtSCAddress, []byte(esdtTransferData))
 	}
 
-	err := e.saveToken(args.Arguments[0], token)
 	if isTransferRoleInArgs {
 		e.deleteTransferRoleAddressFromSystemAccount(args.Arguments[0], address)
 	}
 
-	err = e.saveToken(args.Arguments[0], token)
+	err := e.saveToken(args.Arguments[0], token)
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError

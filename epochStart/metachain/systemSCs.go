@@ -45,11 +45,6 @@ type ArgsNewEpochStartSystemSCProcessing struct {
 type systemSCProcessor struct {
 	*legacySystemSCProcessor
 	auctionListSelector epochStart.AuctionListSelector
-
-	governanceEnableEpoch    uint32
-	builtInOnMetaEnableEpoch uint32
-	stakingV4EnableEpoch     uint32
-
 	enableEpochsHandler common.EnableEpochsHandler
 }
 
@@ -211,36 +206,6 @@ func (s *systemSCProcessor) updateToGovernanceV2() error {
 	}
 
 	return nil
-}
-
-func (s *systemSCProcessor) initTokenOnMeta() ([]byte, error) {
-	vmInput := &vmcommon.ContractCallInput{
-		VMInput: vmcommon.VMInput{
-			CallerAddr:  vm.ESDTSCAddress,
-			CallValue:   big.NewInt(0),
-			Arguments:   [][]byte{},
-			GasProvided: math.MaxUint64,
-		},
-		RecipientAddr: vm.ESDTSCAddress,
-		Function:      "initDelegationESDTOnMeta",
-	}
-	vmOutput, errRun := s.systemVM.RunSmartContractCall(vmInput)
-	if errRun != nil {
-		return nil, fmt.Errorf("%w when setting up NFTs on metachain", errRun)
-	}
-	if vmOutput.ReturnCode != vmcommon.Ok {
-		return nil, fmt.Errorf("got return code %s, return message %s when setting up NFTs on metachain", vmOutput.ReturnCode, vmOutput.ReturnMessage)
-	}
-	if len(vmOutput.ReturnData) != 1 {
-		return nil, fmt.Errorf("invalid return data on initDelegationESDTOnMeta")
-	}
-
-	err := s.processSCOutputAccounts(vmOutput)
-	if err != nil {
-		return nil, err
-	}
-
-	return vmOutput.ReturnData[0], nil
 }
 
 // IsInterfaceNil returns true if underlying object is nil

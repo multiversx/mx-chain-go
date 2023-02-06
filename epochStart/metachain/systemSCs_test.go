@@ -747,7 +747,6 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 	enableEpochsConfig.StakeLimitsEnableEpoch = 10
 	enableEpochsConfig.StakingV4InitEnableEpoch = 444
 	enableEpochsConfig.StakingV4EnableEpoch = 445
-	enableEpochsConfig.BuiltInFunctionOnMetaEnableEpoch = 400
 	epochsConfig := &config.EpochConfig{
 		EnableEpochs: enableEpochsConfig,
 	}

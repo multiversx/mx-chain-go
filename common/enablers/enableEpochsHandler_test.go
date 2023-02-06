@@ -43,13 +43,11 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		SaveJailedAlwaysEnableEpoch:                       27,
 		ValidatorToDelegationEnableEpoch:                  28,
 		ReDelegateBelowMinCheckEnableEpoch:                29,
-		WaitingListFixEnableEpoch:                         30,
 		IncrementSCRNonceInMultiTransferEnableEpoch:       31,
 		ScheduledMiniBlocksEnableEpoch:                    32,
 		ESDTMultiTransferEnableEpoch:                      33,
 		GlobalMintBurnDisableEpoch:                        34,
 		ESDTTransferRoleEnableEpoch:                       35,
-		BuiltInFunctionOnMetaEnableEpoch:                  36,
 		ComputeRewardCheckpointEnableEpoch:                37,
 		SCRSizeInvariantCheckEnableEpoch:                  38,
 		BackwardCompSaveKeyValueEnableEpoch:               39,
@@ -170,12 +168,10 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsSaveJailedAlwaysFlagEnabled())
 		assert.True(t, handler.IsReDelegateBelowMinCheckFlagEnabled())
 		assert.True(t, handler.IsValidatorToDelegationFlagEnabled())
-		assert.True(t, handler.IsWaitingListFixFlagEnabled())
 		assert.True(t, handler.IsIncrementSCRNonceInMultiTransferFlagEnabled())
 		assert.True(t, handler.IsESDTMultiTransferFlagEnabled())
 		assert.False(t, handler.IsGlobalMintBurnFlagEnabled())
 		assert.True(t, handler.IsESDTTransferRoleFlagEnabled())
-		assert.True(t, handler.IsBuiltInFunctionOnMetaFlagEnabled())
 		assert.True(t, handler.IsComputeRewardCheckpointFlagEnabled())
 		assert.True(t, handler.IsSCRSizeInvariantCheckFlagEnabled())
 		assert.False(t, handler.IsBackwardCompSaveKeyValueFlagEnabled())
@@ -232,7 +228,6 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		cfg.GovernanceEnableEpoch = epoch
 		cfg.CorrectLastUnjailedEnableEpoch = epoch
 		cfg.StakingV4InitEnableEpoch = epoch
-		cfg.BuiltInFunctionOnMetaEnableEpoch = epoch
 
 		handler, _ := NewEnableEpochsHandler(cfg, &epochNotifier.EpochNotifierStub{})
 		require.False(t, check.IfNil(handler))
@@ -275,12 +270,10 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsSaveJailedAlwaysFlagEnabled())
 		assert.True(t, handler.IsReDelegateBelowMinCheckFlagEnabled())
 		assert.True(t, handler.IsValidatorToDelegationFlagEnabled())
-		assert.True(t, handler.IsWaitingListFixFlagEnabled())
 		assert.True(t, handler.IsIncrementSCRNonceInMultiTransferFlagEnabled())
 		assert.True(t, handler.IsESDTMultiTransferFlagEnabled())
 		assert.False(t, handler.IsGlobalMintBurnFlagEnabled())
 		assert.True(t, handler.IsESDTTransferRoleFlagEnabled())
-		assert.True(t, handler.IsBuiltInFunctionOnMetaFlagEnabled())
 		assert.True(t, handler.IsComputeRewardCheckpointFlagEnabled())
 		assert.True(t, handler.IsSCRSizeInvariantCheckFlagEnabled())
 		assert.False(t, handler.IsBackwardCompSaveKeyValueFlagEnabled())
@@ -375,12 +368,10 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.False(t, handler.IsSaveJailedAlwaysFlagEnabled())
 		assert.False(t, handler.IsReDelegateBelowMinCheckFlagEnabled())
 		assert.False(t, handler.IsValidatorToDelegationFlagEnabled())
-		assert.False(t, handler.IsWaitingListFixFlagEnabled())
 		assert.False(t, handler.IsIncrementSCRNonceInMultiTransferFlagEnabled())
 		assert.False(t, handler.IsESDTMultiTransferFlagEnabled())
 		assert.True(t, handler.IsGlobalMintBurnFlagEnabled())
 		assert.False(t, handler.IsESDTTransferRoleFlagEnabled())
-		assert.False(t, handler.IsBuiltInFunctionOnMetaFlagEnabled())
 		assert.False(t, handler.IsComputeRewardCheckpointFlagEnabled())
 		assert.False(t, handler.IsSCRSizeInvariantCheckFlagEnabled())
 		assert.True(t, handler.IsBackwardCompSaveKeyValueFlagEnabled())
