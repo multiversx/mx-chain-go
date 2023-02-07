@@ -12,13 +12,9 @@ import (
 )
 
 func TestNewShardedPersister(t *testing.T) {
-	shardCoordinator, err := sharding.NewMultiShardCoordinator(2, 0)
-	require.Nil(t, err)
-
 	dir := t.TempDir()
-	db, err := NewShardedPersister(dir, 2, 1000, 10, shardCoordinator)
+	db, err := createPersister(dir, "sharded")
 	require.Nil(t, err)
-	require.NotNil(t, db)
 
 	err = db.Put([]byte("aaa"), []byte("aaaval"))
 	require.Nil(t, err)
@@ -27,6 +23,12 @@ func TestNewShardedPersister(t *testing.T) {
 	require.Nil(t, err)
 
 	err = db.Put([]byte("aac"), []byte("aacval"))
+	require.Nil(t, err)
+
+	err = db.Close()
+	require.Nil(t, err)
+
+	db, err = createPersister(dir, "sharded")
 	require.Nil(t, err)
 
 	val, err := db.Get([]byte("aaa"))
@@ -54,12 +56,17 @@ func BenchmarkPersisterOneKey1mil(b *testing.B) {
 	randIndex := randInt(0, len(keys)-1)
 	key := []byte(keys[randIndex])
 
+	persisterPath := b.TempDir()
+	_ = createAndPopulatePersister(persisterPath, entries)
+	shardedPersisterPath := b.TempDir()
+	_ = createAndPopulateShardedPersister(shardedPersisterPath, entries)
+
 	b.Run("persister", func(t *testing.B) {
-		benchmarkPersisterOneKey(b, entries, key, createPersister(b))
+		benchmarkPersisterOneKey(b, key, persisterPath, "simple")
 	})
 
 	b.Run("sharded persister", func(t *testing.B) {
-		benchmarkPersisterOneKey(b, entries, key, createShardedPersister(b))
+		benchmarkPersisterOneKey(b, key, shardedPersisterPath, "sharded")
 	})
 }
 
@@ -68,12 +75,17 @@ func BenchmarkPersisterOneKey2mil(b *testing.B) {
 	randIndex := randInt(0, len(keys)-1)
 	key := []byte(keys[randIndex])
 
+	persisterPath := b.TempDir()
+	_ = createAndPopulatePersister(persisterPath, entries)
+	shardedPersisterPath := b.TempDir()
+	_ = createAndPopulateShardedPersister(shardedPersisterPath, entries)
+
 	b.Run("persister", func(t *testing.B) {
-		benchmarkPersisterOneKey(b, entries, key, createPersister(b))
+		benchmarkPersisterOneKey(b, key, persisterPath, "simple")
 	})
 
 	b.Run("sharded persister", func(t *testing.B) {
-		benchmarkPersisterOneKey(b, entries, key, createShardedPersister(b))
+		benchmarkPersisterOneKey(b, key, shardedPersisterPath, "sharded")
 	})
 }
 
@@ -82,12 +94,17 @@ func BenchmarkPersisterOneKey4mil(b *testing.B) {
 	randIndex := randInt(0, len(keys)-1)
 	key := []byte(keys[randIndex])
 
+	persisterPath := b.TempDir()
+	_ = createAndPopulatePersister(persisterPath, entries)
+	shardedPersisterPath := b.TempDir()
+	_ = createAndPopulateShardedPersister(shardedPersisterPath, entries)
+
 	b.Run("persister", func(t *testing.B) {
-		benchmarkPersisterOneKey(b, entries, key, createPersister(b))
+		benchmarkPersisterOneKey(b, key, persisterPath, "simple")
 	})
 
 	b.Run("sharded persister", func(t *testing.B) {
-		benchmarkPersisterOneKey(b, entries, key, createShardedPersister(b))
+		benchmarkPersisterOneKey(b, key, shardedPersisterPath, "sharded")
 	})
 }
 
@@ -96,147 +113,221 @@ func BenchmarkPersisterOneKey8mil(b *testing.B) {
 	randIndex := randInt(0, len(keys)-1)
 	key := []byte(keys[randIndex])
 
+	persisterPath := b.TempDir()
+	_ = createAndPopulatePersister(persisterPath, entries)
+	shardedPersisterPath := b.TempDir()
+	_ = createAndPopulateShardedPersister(shardedPersisterPath, entries)
+
 	b.Run("persister", func(t *testing.B) {
-		benchmarkPersisterOneKey(b, entries, key, createPersister(b))
+		benchmarkPersisterOneKey(b, key, persisterPath, "simple")
 	})
 
 	b.Run("sharded persister", func(t *testing.B) {
-		benchmarkPersisterOneKey(b, entries, key, createShardedPersister(b))
+		benchmarkPersisterOneKey(b, key, shardedPersisterPath, "sharded")
 	})
 }
 
 func BenchmarkPersister1milAllKeys(b *testing.B) {
 	entries, keys := generateKeys(1000000)
 
+	persisterPath := b.TempDir()
+	_ = createAndPopulatePersister(persisterPath, entries)
+	shardedPersisterPath := b.TempDir()
+	_ = createAndPopulateShardedPersister(shardedPersisterPath, entries)
+
 	b.Run("persister", func(t *testing.B) {
-		benchmarkPersister(b, entries, createPersister(b), keys)
+		benchmarkPersister(b, keys, persisterPath, "simple")
 	})
 
 	b.Run("sharded persister", func(t *testing.B) {
-		benchmarkPersister(b, entries, createShardedPersister(b), keys)
-	})
-}
-
-func BenchmarkPersister4milAllKeys(b *testing.B) {
-	entries, keys := generateKeys(4000000)
-
-	b.Run("persister", func(t *testing.B) {
-		benchmarkPersister(b, entries, createPersister(b), keys)
-	})
-
-	b.Run("sharded persister", func(t *testing.B) {
-		benchmarkPersister(b, entries, createShardedPersister(b), keys)
-	})
-}
-
-func BenchmarkPersister8milAllKeys(b *testing.B) {
-	entries, keys := generateKeys(4000000)
-
-	b.Run("persister", func(t *testing.B) {
-		benchmarkPersister(b, entries, createPersister(b), keys)
-	})
-
-	b.Run("sharded persister", func(t *testing.B) {
-		benchmarkPersister(b, entries, createShardedPersister(b), keys)
+		benchmarkPersister(b, keys, shardedPersisterPath, "sharded")
 	})
 }
 
 func BenchmarkPersister1mil10kKeys(b *testing.B) {
 	entries, keys := generateKeys(1000000)
 
+	persisterPath := b.TempDir()
+	_ = createAndPopulatePersister(persisterPath, entries)
+	shardedPersisterPath := b.TempDir()
+	_ = createAndPopulateShardedPersister(shardedPersisterPath, entries)
+
 	b.Run("persister", func(t *testing.B) {
-		benchmarkPersister(b, entries, createPersister(b), keys[0:10000])
+		benchmarkPersister(b, keys[0:10000], persisterPath, "simple")
 	})
 
 	b.Run("sharded persister", func(t *testing.B) {
-		benchmarkPersister(b, entries, createShardedPersister(b), keys[0:10000])
+		benchmarkPersister(b, keys[0:10000], shardedPersisterPath, "sharded")
 	})
 }
 
 func BenchmarkPersister1mil100kKeys(b *testing.B) {
 	entries, keys := generateKeys(1000000)
 
+	persisterPath := b.TempDir()
+	_ = createAndPopulatePersister(persisterPath, entries)
+	shardedPersisterPath := b.TempDir()
+	_ = createAndPopulateShardedPersister(shardedPersisterPath, entries)
+
 	b.Run("persister", func(t *testing.B) {
-		benchmarkPersister(b, entries, createPersister(b), keys[0:100000])
+		benchmarkPersister(b, keys[0:100000], persisterPath, "simple")
 	})
 
 	b.Run("sharded persister", func(t *testing.B) {
-		benchmarkPersister(b, entries, createShardedPersister(b), keys[0:100000])
+		benchmarkPersister(b, keys[0:100000], shardedPersisterPath, "sharded")
 	})
 }
 
-func BenchmarkPersister10mil(b *testing.B) {
-	entries, keys := generateKeys(10000000)
+func BenchmarkPersister2milAllKeys(b *testing.B) {
+	entries, keys := generateKeys(2000000)
+
+	persisterPath := b.TempDir()
+	_ = createAndPopulatePersister(persisterPath, entries)
+	shardedPersisterPath := b.TempDir()
+	_ = createAndPopulateShardedPersister(shardedPersisterPath, entries)
 
 	b.Run("persister", func(t *testing.B) {
-		benchmarkPersister(b, entries, createPersister(b), keys)
+		benchmarkPersister(b, keys, persisterPath, "simple")
 	})
 
 	b.Run("sharded persister", func(t *testing.B) {
-		benchmarkPersister(b, entries, createShardedPersister(b), keys)
+		benchmarkPersister(b, keys, shardedPersisterPath, "sharded")
 	})
 }
 
-func createPersister(b *testing.B) storage.Persister {
-	dir := b.TempDir()
-	db, _ := NewLevelDB(dir, 2, 1000, 10)
+func BenchmarkPersister4milAllKeys(b *testing.B) {
+	entries, keys := generateKeys(4000000)
 
-	return db
+	persisterPath := b.TempDir()
+	_ = createAndPopulatePersister(persisterPath, entries)
+	shardedPersisterPath := b.TempDir()
+	_ = createAndPopulateShardedPersister(shardedPersisterPath, entries)
+
+	b.Run("persister", func(t *testing.B) {
+		benchmarkPersister(b, keys, persisterPath, "simple")
+	})
+
+	b.Run("sharded persister", func(t *testing.B) {
+		benchmarkPersister(b, keys, shardedPersisterPath, "sharded")
+	})
 }
 
-func createShardedPersister(b *testing.B) storage.Persister {
-	shardCoordinator, _ := sharding.NewMultiShardCoordinator(3, 0)
+func BenchmarkPersister8milAllKeys(b *testing.B) {
+	entries, keys := generateKeys(8000000)
 
-	dir := b.TempDir()
-	db, _ := NewShardedPersister(dir, 2, 1000, 10, shardCoordinator)
+	persisterPath := b.TempDir()
+	_ = createAndPopulatePersister(persisterPath, entries)
+	shardedPersisterPath := b.TempDir()
+	_ = createAndPopulateShardedPersister(shardedPersisterPath, entries)
 
-	return db
+	b.Run("persister", func(t *testing.B) {
+		benchmarkPersister(b, keys, persisterPath, "simple")
+	})
+
+	b.Run("sharded persister", func(t *testing.B) {
+		benchmarkPersister(b, keys, shardedPersisterPath, "sharded")
+	})
 }
 
-func benchmarkPersisterOneKey(b *testing.B, keys map[string][]byte, key []byte, db storage.Persister) {
-	for key, val := range keys {
-		err := db.Put([]byte(key), val)
-		require.Nil(b, err)
+func createPersister(path string, id string) (storage.Persister, error) {
+	switch id {
+	case "simple":
+		return NewLevelDB(path, 2, 1000, 1000)
+	case "sharded":
+		shardCoordinator, _ := sharding.NewMultiShardCoordinator(3, 0)
+		return NewShardedPersister(path, 2, 1000, 1000, shardCoordinator)
+	default:
+		return NewLevelDB(path, 2, 1000, 10)
+	}
+}
+
+func createAndPopulatePersister(path string, entries map[string][]byte) storage.Persister {
+	db, err := createPersister(path, "simple")
+	if err != nil {
+		log.Error("createAndPopulatePersister: failed to create persister", "error", err.Error())
+		return nil
 	}
 
+	for key, val := range entries {
+		_ = db.Put([]byte(key), val)
+	}
+
+	err = db.Close()
+	if err != nil {
+		log.Error("createAndPopulatePersister: failed to close persister", "error", err.Error())
+		return nil
+	}
+
+	return db
+}
+
+func createAndPopulateShardedPersister(path string, entries map[string][]byte) storage.Persister {
+	db, err := createPersister(path, "sharded")
+	if err != nil {
+		log.Error("createAndPopulateShardedPersister: failed to create persister", "error", err.Error())
+		return nil
+	}
+
+	for key, val := range entries {
+		_ = db.Put([]byte(key), val)
+	}
+
+	err = db.Close()
+	if err != nil {
+		log.Error("createAndPopulateShardedPersister: failed to close persister", "error", err.Error())
+		return nil
+	}
+
+	return db
+}
+
+func benchmarkPersisterOneKey(b *testing.B, key []byte, path string, id string) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		getKey(b, db, key)
+		getKey(b, key, path, id)
 	}
 }
 
 func benchmarkPersister(
 	b *testing.B,
-	entries map[string][]byte,
-	db storage.Persister,
 	keys []string,
+	path string,
+	id string,
 ) {
-	for key, val := range entries {
-		err := db.Put([]byte(key), val)
-		require.Nil(b, err)
-	}
-
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		getKeys(b, db, keys)
+		getKeys(b, keys, path, id)
 	}
 }
 
 func getKeys(
 	b *testing.B,
-	db storage.Persister,
 	keys []string,
+	path string,
+	id string,
 ) {
+	db, err := createPersister(path, id)
+	if err != nil {
+		log.Error("failed to create persister", "error", err.Error())
+		return
+	}
+
+	defer func() {
+		err := db.Close()
+		if err != nil {
+			log.Error("failed to close persister", "error", err.Error())
+		}
+	}()
+
 	wg := sync.WaitGroup{}
 	wg.Add(len(keys))
-
 	for _, key := range keys {
 		go func(key string) {
 			defer func() {
 				wg.Done()
 			}()
 
-			_, err := db.Get([]byte(key))
+			_, err = db.Get([]byte(key))
 			require.Nil(b, err)
 		}(key)
 	}
@@ -246,11 +337,22 @@ func getKeys(
 
 func getKey(
 	b *testing.B,
-	db storage.Persister,
 	key []byte,
+	path string,
+	id string,
 ) {
 	go func(key []byte) {
-		_, err := db.Get(key)
+		db, err := createPersister(path, id)
+		if err != nil {
+			log.Error("failed to create persister", "error", err.Error())
+			return
+		}
+
+		defer func() {
+			db.Close()
+		}()
+
+		_, err = db.Get(key)
 		require.Nil(b, err)
 	}(key)
 }
