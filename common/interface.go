@@ -242,7 +242,7 @@ type EnableEpochsHandler interface {
 	StorageAPICostOptimizationEnableEpoch() uint32
 	MiniBlockPartialExecutionEnableEpoch() uint32
 	RefactorPeersMiniBlocksEnableEpoch() uint32
-	StakingV4EnableEpoch() uint32
+	StakingV4Step2EnableEpoch() uint32
 	StakingV4InitEpoch() uint32
 	IsSCDeployFlagEnabled() bool
 	IsBuiltInFunctionsFlagEnabled() bool

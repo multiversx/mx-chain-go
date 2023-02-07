@@ -97,7 +97,7 @@ type indexHashedNodesCoordinator struct {
 	nodeTypeProvider                NodeTypeProviderHandler
 	enableEpochsHandler             common.EnableEpochsHandler
 	validatorInfoCacher             epochStart.ValidatorInfoCacher
-	stakingV4EnableEpoch            uint32
+	stakingV4Step2EnableEpoch       uint32
 	flagStakingV4                   atomicFlags.Flag
 	nodesCoordinatorRegistryFactory NodesCoordinatorRegistryFactory
 	flagStakingV4Started            atomicFlags.Flag
@@ -149,7 +149,7 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		isFullArchive:                   arguments.IsFullArchive,
 		enableEpochsHandler:             arguments.EnableEpochsHandler,
 		validatorInfoCacher:             arguments.ValidatorInfoCacher,
-		stakingV4EnableEpoch:            arguments.StakingV4EnableEpoch,
+		stakingV4Step2EnableEpoch:       arguments.StakingV4Step2EnableEpoch,
 		nodesCoordinatorRegistryFactory: arguments.NodesCoordinatorRegistryFactory,
 	}
 
@@ -1283,6 +1283,6 @@ func (ihnc *indexHashedNodesCoordinator) updateEpochFlags(epoch uint32) {
 	ihnc.flagStakingV4Started.SetValue(epoch >= ihnc.enableEpochsHandler.StakingV4InitEpoch())
 	log.Debug("indexHashedNodesCoordinator: staking v4 started", "enabled", ihnc.flagStakingV4Started.IsSet())
 
-	ihnc.flagStakingV4.SetValue(epoch >= ihnc.stakingV4EnableEpoch)
+	ihnc.flagStakingV4.SetValue(epoch >= ihnc.stakingV4Step2EnableEpoch)
 	log.Debug("indexHashedNodesCoordinator: staking v4", "enabled", ihnc.flagStakingV4.IsSet())
 }

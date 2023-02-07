@@ -322,7 +322,7 @@ func TestStakingV4_UnStakeNodesWithNotEnoughFunds(t *testing.T) {
 				NodesToShufflePerShard: 1,
 			},
 			{
-				EpochEnable:            stakingV4DistributeAuctionToWaitingEpoch,
+				EpochEnable:            stakingV4Step3EnableEpoch,
 				MaxNumNodes:            10,
 				NodesToShufflePerShard: 1,
 			},
@@ -791,7 +791,7 @@ func TestStakingV4_JailAndUnJailNodes(t *testing.T) {
 				NodesToShufflePerShard: 1,
 			},
 			{
-				EpochEnable:            stakingV4DistributeAuctionToWaitingEpoch,
+				EpochEnable:            stakingV4Step3EnableEpoch,
 				MaxNumNodes:            4,
 				NodesToShufflePerShard: 1,
 			},

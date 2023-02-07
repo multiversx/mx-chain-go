@@ -86,8 +86,8 @@ func (mock *EnableEpochsHandlerMock) MiniBlockPartialExecutionEnableEpoch() uint
 	return 0
 }
 
-// StakingV4EnableEpoch -
-func (mock *EnableEpochsHandlerMock) StakingV4EnableEpoch() uint32 {
+// StakingV4Step2EnableEpoch -
+func (mock *EnableEpochsHandlerMock) StakingV4Step2EnableEpoch() uint32 {
 	return 0
 }
 

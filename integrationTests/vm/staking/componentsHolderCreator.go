@@ -61,10 +61,10 @@ func createComponentHolders(numOfShards uint32) (
 func createCoreComponents() factory.CoreComponentsHolder {
 	epochNotifier := forking.NewGenericEpochNotifier()
 	configEnableEpochs := config.EnableEpochs{
-		StakingV4EnableEpoch:                     stakingV4EnableEpoch,
-		StakingV4InitEnableEpoch:                 stakingV4InitEpoch,
-		StakingV4DistributeAuctionToWaitingEpoch: stakingV4DistributeAuctionToWaitingEpoch,
-		RefactorPeersMiniBlocksEnableEpoch:       integrationTests.UnreachableEpoch,
+		StakingV4Step2EnableEpoch:          stakingV4Step2EnableEpoch,
+		StakingV4Step1EnableEpoch:          stakingV4InitEpoch,
+		StakingV4Step3EnableEpoch:          stakingV4Step3EnableEpoch,
+		RefactorPeersMiniBlocksEnableEpoch: integrationTests.UnreachableEpoch,
 	}
 
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(configEnableEpochs, epochNotifier)
@@ -123,7 +123,7 @@ func createBootstrapComponents(
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(numOfShards, core.MetachainShardId)
 	ncr, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(
 		marshaller,
-		stakingV4EnableEpoch,
+		stakingV4Step2EnableEpoch,
 	)
 
 	return &mainFactoryMocks.BootstrapComponentsStub{

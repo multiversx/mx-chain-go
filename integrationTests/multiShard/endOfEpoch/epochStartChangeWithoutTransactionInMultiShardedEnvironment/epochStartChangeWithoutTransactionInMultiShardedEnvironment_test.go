@@ -19,12 +19,12 @@ func TestEpochStartChangeWithoutTransactionInMultiShardedEnvironment(t *testing.
 	numMetachainNodes := 2
 
 	enableEpochsConfig := config.EnableEpochs{
-		StakingV2EnableEpoch:                     integrationTests.UnreachableEpoch,
-		ScheduledMiniBlocksEnableEpoch:           integrationTests.UnreachableEpoch,
-		MiniBlockPartialExecutionEnableEpoch:     integrationTests.UnreachableEpoch,
-		StakingV4InitEnableEpoch:                 integrationTests.UnreachableEpoch,
-		StakingV4EnableEpoch:                     integrationTests.UnreachableEpoch,
-		StakingV4DistributeAuctionToWaitingEpoch: integrationTests.UnreachableEpoch,
+		StakingV2EnableEpoch:                 integrationTests.UnreachableEpoch,
+		ScheduledMiniBlocksEnableEpoch:       integrationTests.UnreachableEpoch,
+		MiniBlockPartialExecutionEnableEpoch: integrationTests.UnreachableEpoch,
+		StakingV4Step1EnableEpoch:            integrationTests.UnreachableEpoch,
+		StakingV4Step2EnableEpoch:            integrationTests.UnreachableEpoch,
+		StakingV4Step3EnableEpoch:            integrationTests.UnreachableEpoch,
 	}
 
 	nodes := integrationTests.CreateNodesWithEnableEpochs(

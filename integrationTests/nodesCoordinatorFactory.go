@@ -80,7 +80,7 @@ func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgInd
 		},
 		ValidatorInfoCacher:             &vic.ValidatorInfoCacherStub{},
 		NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
-		StakingV4EnableEpoch:            StakingV4Epoch,
+		StakingV4Step2EnableEpoch:       StakingV4Epoch,
 	}
 	nodesCoord, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 	if err != nil {

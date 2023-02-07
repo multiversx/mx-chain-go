@@ -204,9 +204,9 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("runtime memstore limit"), "epoch", enableEpochs.RuntimeMemStoreLimitEnableEpoch)
 	log.Debug(readEpochFor("max blockchainhook counters"), "epoch", enableEpochs.MaxBlockchainHookCountersEnableEpoch)
 	log.Debug(readEpochFor("limit validators"), "epoch", enableEpochs.StakeLimitsEnableEpoch)
-	log.Debug(readEpochFor("staking v4 init"), "epoch", enableEpochs.StakingV4InitEnableEpoch)
-	log.Debug(readEpochFor("staking v4 enable"), "epoch", enableEpochs.StakingV4EnableEpoch)
-	log.Debug(readEpochFor("staking v4 distribute auction to waiting"), "epoch", enableEpochs.StakingV4DistributeAuctionToWaitingEpoch)
+	log.Debug(readEpochFor("staking v4 init"), "epoch", enableEpochs.StakingV4Step1EnableEpoch)
+	log.Debug(readEpochFor("staking v4 enable"), "epoch", enableEpochs.StakingV4Step2EnableEpoch)
+	log.Debug(readEpochFor("staking v4 distribute auction to waiting"), "epoch", enableEpochs.StakingV4Step3EnableEpoch)
 
 	gasSchedule := configs.EpochConfig.GasSchedule
 
@@ -377,7 +377,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedCoreComponents.EnableEpochsHandler(),
 		managedDataComponents.Datapool().CurrentEpochValidatorInfo(),
 		managedBootstrapComponents.NodesCoordinatorRegistryFactory(),
-		configs.EpochConfig.EnableEpochs.StakingV4EnableEpoch,
+		configs.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch,
 	)
 	if err != nil {
 		return true, err

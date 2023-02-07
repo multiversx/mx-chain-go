@@ -129,7 +129,7 @@ func createArguments() ArgNodesCoordinator {
 			IsRefactorPeersMiniBlocksFlagEnabledField: true,
 		},
 		ValidatorInfoCacher:             &vic.ValidatorInfoCacherStub{},
-		StakingV4EnableEpoch:            stakingV4Epoch,
+		StakingV4Step2EnableEpoch:       stakingV4Epoch,
 		NodesCoordinatorRegistryFactory: createNodesCoordinatorRegistryFactory(),
 	}
 	return arguments

@@ -23,8 +23,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const stakingV4InitEnableEpoch = 444
-const stakingV4EnableEpoch = 445
+const stakingV4Step1EnableEpoch = 444
+const stakingV4Step2EnableEpoch = 445
 
 func createStakingDataProviderArgs() StakingDataProviderArgs {
 	return StakingDataProviderArgs{

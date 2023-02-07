@@ -8,23 +8,23 @@ import (
 )
 
 type nodesCoordinatorRegistryFactory struct {
-	marshaller           marshal.Marshalizer
-	stakingV4EnableEpoch uint32
+	marshaller                marshal.Marshalizer
+	stakingV4Step2EnableEpoch uint32
 }
 
 // NewNodesCoordinatorRegistryFactory creates a nodes coordinator registry factory which will create a
 // NodesCoordinatorRegistryHandler from a buffer depending on the epoch
 func NewNodesCoordinatorRegistryFactory(
 	marshaller marshal.Marshalizer,
-	stakingV4EnableEpoch uint32,
+	stakingV4Step2EnableEpoch uint32,
 ) (*nodesCoordinatorRegistryFactory, error) {
 	if check.IfNil(marshaller) {
 		return nil, ErrNilMarshalizer
 	}
 
 	return &nodesCoordinatorRegistryFactory{
-		marshaller:           marshaller,
-		stakingV4EnableEpoch: stakingV4EnableEpoch,
+		marshaller:                marshaller,
+		stakingV4Step2EnableEpoch: stakingV4Step2EnableEpoch,
 	}, nil
 }
 
@@ -66,7 +66,7 @@ func createOldRegistry(buff []byte) (*NodesCoordinatorRegistry, error) {
 
 // GetRegistryData returns the registry data as buffer. Old version uses json marshaller, while new version uses proto marshaller
 func (ncf *nodesCoordinatorRegistryFactory) GetRegistryData(registry NodesCoordinatorRegistryHandler, epoch uint32) ([]byte, error) {
-	if epoch >= ncf.stakingV4EnableEpoch {
+	if epoch >= ncf.stakingV4Step2EnableEpoch {
 		log.Debug("nodesCoordinatorRegistryFactory.GetRegistryData called with auction after staking v4", "epoch", epoch)
 		return ncf.marshaller.Marshal(registry)
 	}

@@ -2697,11 +2697,11 @@ func TestValidatorStatisticsProcessor_SaveNodesCoordinatorUpdatesWithStakingV4(t
 			return mapNodes, nil
 		},
 	}
-	stakingV4EnableEpochCalledCt := 0
+	stakingV4Step2EnableEpochCalledCt := 0
 	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
 		IsStakingV4EnabledCalled: func() bool {
-			stakingV4EnableEpochCalledCt++
-			switch stakingV4EnableEpochCalledCt {
+			stakingV4Step2EnableEpochCalledCt++
+			switch stakingV4Step2EnableEpochCalledCt {
 			case 1:
 				return false
 			case 2:

@@ -89,9 +89,9 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		WipeSingleNFTLiquidityDecreaseEnableEpoch:         75,
 		AlwaysSaveTokenMetaDataEnableEpoch:                76,
 		StakeLimitsEnableEpoch:                            77,
-		StakingV4InitEnableEpoch:                          78,
-		StakingV4EnableEpoch:                              79,
-		StakingV4DistributeAuctionToWaitingEpoch:          80,
+		StakingV4Step1EnableEpoch:                         78,
+		StakingV4Step2EnableEpoch:                         79,
+		StakingV4Step3EnableEpoch:                         80,
 	}
 }
 
@@ -227,7 +227,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		cfg.ESDTEnableEpoch = epoch
 		cfg.GovernanceEnableEpoch = epoch
 		cfg.CorrectLastUnjailedEnableEpoch = epoch
-		cfg.StakingV4InitEnableEpoch = epoch
+		cfg.StakingV4Step1EnableEpoch = epoch
 
 		handler, _ := NewEnableEpochsHandler(cfg, &epochNotifier.EpochNotifierStub{})
 		require.False(t, check.IfNil(handler))

@@ -25,7 +25,7 @@ type EnableEpochsHandlerStub struct {
 	StorageAPICostOptimizationEnableEpochField                   uint32
 	MiniBlockPartialExecutionEnableEpochField                    uint32
 	RefactorPeersMiniBlocksEnableEpochField                      uint32
-	StakingV4EnableEpochField                                    uint32
+	StakingV4Step2EnableEpochField                               uint32
 	StakingV4InitEpochField                                      uint32
 	IsSCDeployFlagEnabledField                                   bool
 	IsBuiltInFunctionsFlagEnabledField                           bool
@@ -1037,12 +1037,12 @@ func (stub *EnableEpochsHandlerStub) IsStakingV4Started() bool {
 	return stub.IsStakingV4StartedField
 }
 
-// StakingV4EnableEpoch -
-func (stub *EnableEpochsHandlerStub) StakingV4EnableEpoch() uint32 {
+// StakingV4Step2EnableEpoch -
+func (stub *EnableEpochsHandlerStub) StakingV4Step2EnableEpoch() uint32 {
 	stub.RLock()
 	defer stub.RUnlock()
 
-	return stub.StakingV4EnableEpochField
+	return stub.StakingV4Step2EnableEpochField
 }
 
 // StakingV4InitEpoch -
