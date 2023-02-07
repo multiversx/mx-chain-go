@@ -2,6 +2,7 @@ package wasmvm
 
 import (
 	"encoding/hex"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"math/big"
 	"testing"
 
@@ -68,7 +69,8 @@ func TestExecuteOnDestCtx_BlockchainHook(t *testing.T) {
 
 	_ = net.SignAndSendTx(ownerOfParent, tx)
 
-	net.Steps(16)
+	_ = logger.SetLogLevel("*:TRACE")
+	net.Steps(2)
 
 	childHandler, err := net.NodesSharded[0][0].BlockchainHook.GetUserAccount(childAddress)
 	require.Nil(t, err)
