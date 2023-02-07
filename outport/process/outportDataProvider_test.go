@@ -473,15 +473,6 @@ func Test_setExecutionOrderIfFound(t *testing.T) {
 func Test_collectExecutedTxHashes(t *testing.T) {
 	t.Parallel()
 
-	t.Run("nil body handler", func(t *testing.T) {
-		_, err := collectExecutedTxHashes(nil, &block.Header{})
-		require.Equal(t, ErrNilBodyHandler, err)
-
-	})
-	t.Run("nil header handler", func(t *testing.T) {
-		_, err := collectExecutedTxHashes(&block.Body{}, nil)
-		require.Equal(t, ErrNilHeaderHandler, err)
-	})
 	t.Run("mismatch between miniblocks and miniblock headers", func(t *testing.T) {
 		mbs, mbHeaders := createMbsAndMbHeaders(1, 10)
 		mbHeaders = mbHeaders[:len(mbHeaders)-1]

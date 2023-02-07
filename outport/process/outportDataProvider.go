@@ -130,13 +130,6 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 }
 
 func collectExecutedTxHashes(bodyHandler data.BodyHandler, headerHandler data.HeaderHandler) (map[string]struct{}, error) {
-	if check.IfNil(bodyHandler) {
-		return nil, ErrNilBodyHandler
-	}
-	if check.IfNil(headerHandler) {
-		return nil, ErrNilHeaderHandler
-	}
-
 	executedTxHashes := make(map[string]struct{})
 	mbHeaders := headerHandler.GetMiniBlockHeaderHandlers()
 	body, ok := bodyHandler.(*block.Body)
@@ -180,8 +173,8 @@ func extractExecutedTxsFromMb(mbHeader data.MiniBlockHeaderHandler, miniBlock *b
 	if int(mbHeader.GetIndexOfLastTxProcessed()) > len(miniBlock.TxHashes) {
 		return ErrIndexOutOfBounds
 	}
-	for j := mbHeader.GetIndexOfFirstTxProcessed(); j <= mbHeader.GetIndexOfLastTxProcessed(); j++ {
-		txHash := miniBlock.TxHashes[j]
+	for index := mbHeader.GetIndexOfFirstTxProcessed(); index <= mbHeader.GetIndexOfLastTxProcessed(); index++ {
+		txHash := miniBlock.TxHashes[index]
 		executedTxHashes[string(txHash)] = struct{}{}
 	}
 
