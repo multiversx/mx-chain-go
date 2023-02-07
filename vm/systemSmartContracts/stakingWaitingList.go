@@ -458,7 +458,7 @@ func createWaitingListKey(blsKey []byte) []byte {
 }
 
 func (s *stakingSC) switchJailedWithWaiting(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if s.enableEpochsHandler.IsStakingV4Started() && !s.enableEpochsHandler.IsStakingV4InitEnabled() {
+	if s.enableEpochsHandler.IsStakingV4Started() && !s.enableEpochsHandler.IsStakingV4Step1Enabled() {
 		s.eei.AddReturnMessage(vm.ErrWaitingListDisabled.Error())
 		return vmcommon.UserError
 	}
@@ -642,7 +642,7 @@ func (s *stakingSC) resetLastUnJailedFromQueue(args *vmcommon.ContractCallInput)
 		// backward compatibility
 		return vmcommon.UserError
 	}
-	if s.enableEpochsHandler.IsStakingV4Started() && !s.enableEpochsHandler.IsStakingV4InitEnabled() {
+	if s.enableEpochsHandler.IsStakingV4Started() && !s.enableEpochsHandler.IsStakingV4Step1Enabled() {
 		s.eei.AddReturnMessage(vm.ErrWaitingListDisabled.Error())
 		return vmcommon.UserError
 	}
@@ -730,7 +730,7 @@ func (s *stakingSC) stakeNodesFromQueue(args *vmcommon.ContractCallInput) vmcomm
 		s.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError
 	}
-	if s.enableEpochsHandler.IsStakingV4Started() && !s.enableEpochsHandler.IsStakingV4InitEnabled() {
+	if s.enableEpochsHandler.IsStakingV4Started() && !s.enableEpochsHandler.IsStakingV4Step1Enabled() {
 		s.eei.AddReturnMessage(vm.ErrWaitingListDisabled.Error())
 		return vmcommon.UserError
 	}
@@ -806,7 +806,7 @@ func (s *stakingSC) cleanAdditionalQueue(args *vmcommon.ContractCallInput) vmcom
 		s.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError
 	}
-	if s.enableEpochsHandler.IsStakingV4Started() && !s.enableEpochsHandler.IsStakingV4InitEnabled() {
+	if s.enableEpochsHandler.IsStakingV4Started() && !s.enableEpochsHandler.IsStakingV4Step1Enabled() {
 		s.eei.AddReturnMessage(vm.ErrWaitingListDisabled.Error())
 		return vmcommon.UserError
 	}

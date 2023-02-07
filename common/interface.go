@@ -336,9 +336,9 @@ type EnableEpochsHandler interface {
 	IsWipeSingleNFTLiquidityDecreaseEnabled() bool
 	IsAlwaysSaveTokenMetaDataEnabled() bool
 	IsStakeLimitsFlagEnabled() bool
-	IsStakingV4InitEnabled() bool
-	IsStakingV4Enabled() bool
-	IsStakingV4DistributeAuctionToWaitingEnabled() bool
+	IsStakingV4Step1Enabled() bool
+	IsStakingV4Step2Enabled() bool
+	IsStakingV4Step3Enabled() bool
 	IsStakingQueueEnabled() bool
 	IsStakingV4Started() bool
 

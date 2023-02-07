@@ -993,16 +993,16 @@ func (stub *EnableEpochsHandlerStub) IsStakeLimitsFlagEnabled() bool {
 	return stub.IsStakeLimitsFlagEnabledField
 }
 
-// IsStakingV4InitEnabled -
-func (stub *EnableEpochsHandlerStub) IsStakingV4InitEnabled() bool {
+// IsStakingV4Step1Enabled -
+func (stub *EnableEpochsHandlerStub) IsStakingV4Step1Enabled() bool {
 	stub.RLock()
 	defer stub.RUnlock()
 
 	return stub.IsStakingV4InitFlagEnabledField
 }
 
-// IsStakingV4Enabled -
-func (stub *EnableEpochsHandlerStub) IsStakingV4Enabled() bool {
+// IsStakingV4Step2Enabled -
+func (stub *EnableEpochsHandlerStub) IsStakingV4Step2Enabled() bool {
 	stub.RLock()
 	defer stub.RUnlock()
 
@@ -1013,8 +1013,8 @@ func (stub *EnableEpochsHandlerStub) IsStakingV4Enabled() bool {
 	return stub.IsStakingV4FlagEnabledField
 }
 
-// IsStakingV4DistributeAuctionToWaitingEnabled -
-func (stub *EnableEpochsHandlerStub) IsStakingV4DistributeAuctionToWaitingEnabled() bool {
+// IsStakingV4Step3Enabled -
+func (stub *EnableEpochsHandlerStub) IsStakingV4Step3Enabled() bool {
 	stub.RLock()
 	defer stub.RUnlock()
 

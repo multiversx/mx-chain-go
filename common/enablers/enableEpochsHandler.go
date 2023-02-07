@@ -116,9 +116,9 @@ func (handler *enableEpochsHandler) EpochConfirmed(epoch uint32, _ uint64) {
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.WipeSingleNFTLiquidityDecreaseEnableEpoch, handler.wipeSingleNFTLiquidityDecreaseFlag, "wipeSingleNFTLiquidityDecreaseFlag")
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.AlwaysSaveTokenMetaDataEnableEpoch, handler.alwaysSaveTokenMetaDataFlag, "alwaysSaveTokenMetaDataFlag")
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.StakeLimitsEnableEpoch, handler.stakeLimitsFlag, "stakeLimitsFlag")
-	handler.setFlagValue(epoch == handler.enableEpochsConfig.StakingV4Step1EnableEpoch, handler.stakingV4InitFlag, "stakingV4InitFlag")
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.StakingV4Step2EnableEpoch, handler.stakingV4Flag, "stakingV4Flag")
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.StakingV4Step3EnableEpoch, handler.stakingV4DistributeAuctionToWaitingFlag, "stakingV4DistributeAuctionToWaitingFlag")
+	handler.setFlagValue(epoch == handler.enableEpochsConfig.StakingV4Step1EnableEpoch, handler.stakingV4Step1Flag, "stakingV4Step1Flag")
+	handler.setFlagValue(epoch >= handler.enableEpochsConfig.StakingV4Step2EnableEpoch, handler.stakingV4Step2Flag, "stakingV4Step2Flag")
+	handler.setFlagValue(epoch >= handler.enableEpochsConfig.StakingV4Step3EnableEpoch, handler.stakingV4Step3Flag, "stakingV4Step3Flag")
 	handler.setFlagValue(epoch < handler.enableEpochsConfig.StakingV4Step1EnableEpoch, handler.stakingQueueEnabledFlag, "stakingQueueEnabledFlag")
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.StakingV4Step1EnableEpoch, handler.stakingV4StartedFlag, "stakingV4StartedFlag")
 }

@@ -555,18 +555,18 @@ func (mock *EnableEpochsHandlerMock) IsStakeLimitsFlagEnabled() bool {
 	return false
 }
 
-// IsStakingV4InitEnabled -
-func (mock *EnableEpochsHandlerMock) IsStakingV4InitEnabled() bool {
+// IsStakingV4Step1Enabled -
+func (mock *EnableEpochsHandlerMock) IsStakingV4Step1Enabled() bool {
 	return false
 }
 
-// IsStakingV4Enabled -
-func (mock *EnableEpochsHandlerMock) IsStakingV4Enabled() bool {
+// IsStakingV4Step2Enabled -
+func (mock *EnableEpochsHandlerMock) IsStakingV4Step2Enabled() bool {
 	return false
 }
 
-// IsStakingV4DistributeAuctionToWaitingEnabled -
-func (mock *EnableEpochsHandlerMock) IsStakingV4DistributeAuctionToWaitingEnabled() bool {
+// IsStakingV4Step3Enabled -
+func (mock *EnableEpochsHandlerMock) IsStakingV4Step3Enabled() bool {
 	return false
 }
 
