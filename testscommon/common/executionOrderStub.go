@@ -1,5 +1,6 @@
 package common
 
+// TxExecutionOrderHandlerStub -
 type TxExecutionOrderHandlerStub struct {
 	AddCalled            func(txHash []byte)
 	GetItemAtIndexCalled func(index uint32) ([]byte, error)

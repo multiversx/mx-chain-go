@@ -624,7 +624,6 @@ func (scr *smartContractResults) ProcessMiniBlock(
 		scr.txExecutionOrderHandler.Add(miniBlockTxHashes[txIndex])
 		_, err = scr.scrProcessor.ProcessSmartContractResult(miniBlockScrs[txIndex])
 		if err != nil {
-			scr.txExecutionOrderHandler.Remove(miniBlockTxHashes[txIndex])
 			scr.handleProcessTransactionError(preProcessorExecutionInfoHandler, snapshot, miniBlockTxHashes[txIndex])
 			break
 		}

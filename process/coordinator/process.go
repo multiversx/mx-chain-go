@@ -1197,7 +1197,6 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 		)
 
 		if shouldRevert {
-			tc.txExecutionOrderHandler.RemoveMultiple(txsToBeReverted)
 			tc.handleProcessTransactionError(snapshot, miniBlockHash, txsToBeReverted)
 		} else {
 			if tc.enableEpochsHandler.IsMiniBlockPartialExecutionFlagEnabled() {
@@ -1228,13 +1227,13 @@ func (tc *transactionCoordinator) handleProcessTransactionError(snapshot int, mi
 
 	err := tc.accounts.RevertToSnapshot(snapshot)
 	if err != nil {
-		// TODO: evaluate if reloading the trie from disk might solve the problem
 		log.Debug("transactionCoordinator.handleProcessTransactionError: RevertToSnapshot", "error", err.Error())
 	}
 
 	if len(txsToBeReverted) > 0 {
 		tc.RevertProcessedTxsResults(txsToBeReverted, miniBlockHash)
 	}
+	tc.txExecutionOrderHandler.RemoveMultiple(txsToBeReverted)
 }
 
 // InitProcessedTxsResults inits processed txs results for the given key
@@ -1278,7 +1277,6 @@ func (tc *transactionCoordinator) RevertProcessedTxsResults(txHashes [][]byte, k
 	tc.feeHandler.RevertFees(txHashes)
 	tc.txExecutionOrderHandler.RemoveMultiple(txHashes)
 	accFeesAfterRevert := tc.feeHandler.GetAccumulatedFees()
-
 	if accFeesBeforeRevert.Cmp(accFeesAfterRevert) != 0 {
 		log.Debug("revertProcessedTxsResults.RevertFees with tx hashes",
 			"num txHashes", len(txHashes),

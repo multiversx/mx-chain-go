@@ -1362,7 +1362,8 @@ func TestScrsPreprocessor_ProcessMiniBlock(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&testscommon.EnableEpochsHandlerStub{},
-		&testscommon.ProcessedMiniBlocksTrackerStub{}, &common.TxExecutionOrderHandlerStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		&common.TxExecutionOrderHandlerStub{},
 	)
 
 	txHash := []byte("tx1_hash")
