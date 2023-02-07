@@ -544,3 +544,6 @@ var ErrNilPersistentHandler = errors.New("nil persistent handler")
 
 // ErrNilGenesisNodesSetupHandler signals that a nil genesis nodes setup handler has been provided
 var ErrNilGenesisNodesSetupHandler = errors.New("nil genesis nodes setup handler")
+
+// ErrNilTxExecutionOrderHandler signals that a nil tx execution order handler has been provided
+var ErrNilTxExecutionOrderHandler = errors.New("nil tx execution order handler")

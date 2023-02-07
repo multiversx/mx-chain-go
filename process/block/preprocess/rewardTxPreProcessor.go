@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -45,6 +46,7 @@ func NewRewardTxPreprocessor(
 	blockSizeComputation BlockSizeComputationHandler,
 	balanceComputation BalanceComputationHandler,
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
+	txExecutionOrderHandler common.TxExecutionOrderHandler,
 ) (*rewardTxPreprocessor, error) {
 
 	if check.IfNil(hasher) {
@@ -86,6 +88,9 @@ func NewRewardTxPreprocessor(
 	if check.IfNil(processedMiniBlocksTracker) {
 		return nil, process.ErrNilProcessedMiniBlocksTracker
 	}
+	if check.IfNil(txExecutionOrderHandler) {
+		return nil, process.ErrNilTxExecutionOrderHandler
+	}
 
 	bpp := &basePreProcess{
 		hasher:      hasher,
@@ -100,6 +105,7 @@ func NewRewardTxPreprocessor(
 		accounts:                   accounts,
 		pubkeyConverter:            pubkeyConverter,
 		processedMiniBlocksTracker: processedMiniBlocksTracker,
+		txExecutionOrderHandler:    txExecutionOrderHandler,
 	}
 
 	rtp := &rewardTxPreprocessor{
@@ -267,6 +273,7 @@ func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(
 
 			rtp.saveAccountBalanceForAddress(rTx.GetRcvAddr())
 
+			rtp.txExecutionOrderHandler.Add(txHash)
 			err := rtp.rewardsProcessor.ProcessRewardTransaction(rTx)
 			if err != nil {
 				return err
@@ -494,6 +501,7 @@ func (rtp *rewardTxPreprocessor) ProcessMiniBlock(
 		rtp.saveAccountBalanceForAddress(miniBlockRewardTxs[txIndex].GetRcvAddr())
 
 		snapshot := rtp.handleProcessTransactionInit(preProcessorExecutionInfoHandler, miniBlockTxHashes[txIndex])
+		rtp.txExecutionOrderHandler.Add(miniBlockTxHashes[txIndex])
 		err = rtp.rewardsProcessor.ProcessRewardTransaction(miniBlockRewardTxs[txIndex])
 		if err != nil {
 			rtp.handleProcessTransactionError(preProcessorExecutionInfoHandler, snapshot, miniBlockTxHashes[txIndex])

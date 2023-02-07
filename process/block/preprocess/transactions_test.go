@@ -30,6 +30,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
@@ -235,6 +236,7 @@ func createDefaultTransactionsProcessorArgs() ArgsTransactionPreProcessor {
 		TxTypeHandler:                &testscommon.TxTypeHandlerMock{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
+		TxExecutionOrderHandler:      &commonMocks.TxExecutionOrderHandlerStub{},
 	}
 }
 

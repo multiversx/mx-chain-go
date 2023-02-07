@@ -16,22 +16,25 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/storage"
 )
 
-type intermediateTxInfo struct {
+type txWithHash struct {
 	txHash    []byte
 	txHandler data.TransactionHandler
 }
+
+type intermediateTxInfo = txWithHash
 
 type scheduledTxsExecution struct {
 	txProcessor                 process.TransactionProcessor
 	txCoordinator               process.TransactionCoordinator
 	mapScheduledTxs             map[string]data.TransactionHandler
 	mapScheduledIntermediateTxs map[block.Type][]data.TransactionHandler
-	scheduledTxs                []data.TransactionHandler
+	scheduledTxs                []txWithHash
 	scheduledMbs                block.MiniBlockSlice
 	mapScheduledMbHashes        map[string]struct{}
 	scheduledRootHash           []byte
@@ -41,6 +44,7 @@ type scheduledTxsExecution struct {
 	hasher                      hashing.Hasher
 	mutScheduledTxs             sync.RWMutex
 	shardCoordinator            sharding.Coordinator
+	txExecutionOrderHandler     common.TxExecutionOrderHandler
 }
 
 // NewScheduledTxsExecution creates a new object which handles the execution of scheduled transactions
@@ -51,6 +55,7 @@ func NewScheduledTxsExecution(
 	marshaller marshal.Marshalizer,
 	hasher hashing.Hasher,
 	shardCoordinator sharding.Coordinator,
+	txExecutionOrderHandler common.TxExecutionOrderHandler,
 ) (*scheduledTxsExecution, error) {
 
 	if check.IfNil(txProcessor) {
@@ -71,13 +76,16 @@ func NewScheduledTxsExecution(
 	if check.IfNil(shardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
+	if check.IfNil(txExecutionOrderHandler) {
+		return nil, process.ErrNilTxExecutionOrderHandler
+	}
 
 	ste := &scheduledTxsExecution{
 		txProcessor:                 txProcessor,
 		txCoordinator:               txCoordinator,
 		mapScheduledTxs:             make(map[string]data.TransactionHandler),
 		mapScheduledIntermediateTxs: make(map[block.Type][]data.TransactionHandler),
-		scheduledTxs:                make([]data.TransactionHandler, 0),
+		scheduledTxs:                make([]txWithHash, 0),
 		scheduledMbs:                make(block.MiniBlockSlice, 0),
 		mapScheduledMbHashes:        make(map[string]struct{}),
 		gasAndFees:                  process.GetZeroGasAndFees(),
@@ -86,6 +94,7 @@ func NewScheduledTxsExecution(
 		hasher:                      hasher,
 		scheduledRootHash:           nil,
 		shardCoordinator:            shardCoordinator,
+		txExecutionOrderHandler:     txExecutionOrderHandler,
 	}
 
 	return ste, nil
@@ -96,7 +105,7 @@ func (ste *scheduledTxsExecution) Init() {
 	ste.mutScheduledTxs.Lock()
 	log.Debug("scheduledTxsExecution.Init", "num of last scheduled txs", len(ste.scheduledTxs))
 	ste.mapScheduledTxs = make(map[string]data.TransactionHandler)
-	ste.scheduledTxs = make([]data.TransactionHandler, 0)
+	ste.scheduledTxs = make([]txWithHash, 0)
 	ste.mutScheduledTxs.Unlock()
 }
 
@@ -111,7 +120,10 @@ func (ste *scheduledTxsExecution) AddScheduledTx(txHash []byte, tx data.Transact
 	}
 
 	ste.mapScheduledTxs[string(txHash)] = tx
-	ste.scheduledTxs = append(ste.scheduledTxs, tx)
+	ste.scheduledTxs = append(ste.scheduledTxs, txWithHash{
+		txHash:    txHash,
+		txHandler: tx,
+	})
 
 	log.Trace("scheduledTxsExecution.Add", "tx hash", txHash, "num of scheduled txs", len(ste.scheduledTxs))
 	return true
@@ -140,7 +152,7 @@ func (ste *scheduledTxsExecution) Execute(txHash []byte) error {
 		return fmt.Errorf("%w: in scheduledTxsExecution.Execute", process.ErrMissingTransaction)
 	}
 
-	err := ste.execute(txHandler)
+	err := ste.execute(txHash, txHandler)
 	if err != nil && !errors.Is(err, process.ErrFailedTransaction) {
 		return err
 	}
@@ -161,21 +173,21 @@ func (ste *scheduledTxsExecution) ExecuteAll(haveTime func() time.Duration) erro
 
 	mapAllIntermediateTxsBeforeScheduledExecution := ste.txCoordinator.GetAllIntermediateTxs()
 
-	for _, txHandler := range ste.scheduledTxs {
+	for _, txData := range ste.scheduledTxs {
 		if haveTime() <= 0 {
 			return process.ErrTimeIsOut
 		}
 
-		err := ste.execute(txHandler)
+		err := ste.execute(txData.txHash, txData.txHandler)
 		if err != nil {
 			log.Debug("scheduledTxsExecution.ExecuteAll: execute(txHandler)",
-				"nonce", txHandler.GetNonce(),
-				"value", txHandler.GetValue(),
-				"gas limit", txHandler.GetGasLimit(),
-				"gas price", txHandler.GetGasPrice(),
-				"sender address", txHandler.GetSndAddr(),
-				"receiver address", txHandler.GetRcvAddr(),
-				"data", string(txHandler.GetData()),
+				"nonce", txData.txHandler.GetNonce(),
+				"value", txData.txHandler.GetValue(),
+				"gas limit", txData.txHandler.GetGasLimit(),
+				"gas price", txData.txHandler.GetGasPrice(),
+				"sender address", txData.txHandler.GetSndAddr(),
+				"receiver address", txData.txHandler.GetRcvAddr(),
+				"data", string(txData.txHandler.GetData()),
 				"error", err.Error())
 			if !errors.Is(err, process.ErrFailedTransaction) {
 				return err
@@ -206,12 +218,13 @@ func (ste *scheduledTxsExecution) setScheduledMiniBlockHashes() error {
 	return nil
 }
 
-func (ste *scheduledTxsExecution) execute(txHandler data.TransactionHandler) error {
+func (ste *scheduledTxsExecution) execute(txHash []byte, txHandler data.TransactionHandler) error {
 	tx, ok := txHandler.(*transaction.Transaction)
 	if !ok {
 		return fmt.Errorf("%w: in scheduledTxsExecution.execute", process.ErrWrongTypeAssertion)
 	}
 
+	ste.txExecutionOrderHandler.Add(txHash)
 	_, err := ste.txProcessor.ProcessTransaction(tx)
 	return err
 }
@@ -327,7 +340,7 @@ func (ste *scheduledTxsExecution) GetScheduledTxs() []data.TransactionHandler {
 
 	scheduledTxs := make([]data.TransactionHandler, len(ste.scheduledTxs))
 	for index, scheduledTx := range ste.scheduledTxs {
-		scheduledTxs[index] = scheduledTx
+		scheduledTxs[index] = scheduledTx.txHandler
 		log.Trace("scheduledTxsExecution.GetScheduledTxs", "sender", scheduledTxs[index].GetSndAddr(), "receiver", scheduledTxs[index].GetRcvAddr())
 	}
 

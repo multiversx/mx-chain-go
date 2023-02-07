@@ -10,6 +10,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var (
+	zero  = []byte("zero")
+	one   = []byte("one")
+	two   = []byte("two")
+	three = []byte("three")
+)
+
 func TestNewOrderedCollection(t *testing.T) {
 	t.Parallel()
 
@@ -22,11 +29,11 @@ func TestOrderedCollection_Add(t *testing.T) {
 	t.Parallel()
 
 	oc := ordering.NewOrderedCollection()
-	oc.Add("zero")
+	oc.Add(zero)
 	require.Equal(t, 1, oc.Len())
-	oc.Add("one")
+	oc.Add(one)
 	require.Equal(t, 2, oc.Len())
-	oc.Add("two")
+	oc.Add(two)
 	require.Equal(t, 3, oc.Len())
 }
 
@@ -35,23 +42,23 @@ func TestOrderedCollection_GetOrder(t *testing.T) {
 
 	oc := ordering.NewOrderedCollection()
 
-	order, err := oc.GetOrder("zero")
+	order, err := oc.GetOrder(zero)
 	require.Equal(t, ordering.ErrItemNotFound, err)
 	require.Zero(t, order)
 
-	oc.Add("zero")
-	oc.Add("one")
-	oc.Add("two")
+	oc.Add(zero)
+	oc.Add(one)
+	oc.Add(two)
 
-	order, err = oc.GetOrder("zero")
+	order, err = oc.GetOrder(zero)
 	require.Nil(t, err)
 	require.Equal(t, 0, order)
 
-	order, err = oc.GetOrder("one")
+	order, err = oc.GetOrder(one)
 	require.Nil(t, err)
 	require.Equal(t, 1, order)
 
-	order, err = oc.GetOrder("two")
+	order, err = oc.GetOrder(two)
 	require.Nil(t, err)
 	require.Equal(t, 2, order)
 }
@@ -63,23 +70,23 @@ func TestOrderedCollection_GetItemAtIndex(t *testing.T) {
 
 	item, err := oc.GetItemAtIndex(0)
 	require.Equal(t, ordering.ErrIndexOutOfBounds, err)
-	require.Equal(t, "", item)
+	require.Nil(t, item)
 
-	oc.Add("zero")
-	oc.Add("one")
-	oc.Add("two")
+	oc.Add(zero)
+	oc.Add(one)
+	oc.Add(two)
 
 	item, err = oc.GetItemAtIndex(0)
 	require.Nil(t, err)
-	require.Equal(t, "zero", item)
+	require.Equal(t, zero, item)
 
 	item, err = oc.GetItemAtIndex(1)
 	require.Nil(t, err)
-	require.Equal(t, "one", item)
+	require.Equal(t, one, item)
 
 	item, err = oc.GetItemAtIndex(2)
 	require.Nil(t, err)
-	require.Equal(t, "two", item)
+	require.Equal(t, two, item)
 }
 
 func TestOrderedCollection_GetItems(t *testing.T) {
@@ -90,15 +97,15 @@ func TestOrderedCollection_GetItems(t *testing.T) {
 	items := oc.GetItems()
 	require.Equal(t, 0, len(items))
 
-	oc.Add("zero")
-	oc.Add("one")
-	oc.Add("two")
+	oc.Add(zero)
+	oc.Add(one)
+	oc.Add(two)
 
 	items = oc.GetItems()
 	require.Equal(t, 3, len(items))
-	require.Equal(t, "zero", items[0])
-	require.Equal(t, "one", items[1])
-	require.Equal(t, "two", items[2])
+	require.Equal(t, zero, items[0])
+	require.Equal(t, one, items[1])
+	require.Equal(t, two, items[2])
 }
 
 func TestOrderedCollection_Remove(t *testing.T) {
@@ -107,53 +114,80 @@ func TestOrderedCollection_Remove(t *testing.T) {
 	oc := ordering.NewOrderedCollection()
 	require.Equal(t, 0, oc.Len())
 
-	oc.Remove("zero")
+	oc.Remove(zero)
 	require.Equal(t, 0, oc.Len())
 
-	oc.Add("zero")
+	oc.Add(zero)
 	require.Equal(t, 1, oc.Len())
 	// add duplicate should not add
-	oc.Add("zero")
+	oc.Add(zero)
 	require.Equal(t, 1, oc.Len())
 
-	oc.Remove("zero")
+	oc.Remove(zero)
 	require.Equal(t, 0, oc.Len())
 
-	oc.Add("zero")
-	oc.Add("one")
-	oc.Add("two")
+	oc.Add(zero)
+	oc.Add(one)
+	oc.Add(two)
 	require.Equal(t, 3, oc.Len())
 
-	oc.Remove("one")
+	oc.Remove(one)
 	require.Equal(t, 2, oc.Len())
 
-	order, err := oc.GetOrder("zero")
+	order, err := oc.GetOrder(zero)
 	require.Nil(t, err)
 	require.Equal(t, 0, order)
 
 	elem, err := oc.GetItemAtIndex(uint32(order))
 	require.Nil(t, err)
-	require.Equal(t, "zero", elem)
+	require.Equal(t, zero, elem)
 
-	_, err = oc.GetOrder("one")
+	_, err = oc.GetOrder(one)
 	require.Equal(t, ordering.ErrItemNotFound, err)
 
-	order, err = oc.GetOrder("two")
+	order, err = oc.GetOrder(two)
 	require.Nil(t, err)
 	require.Equal(t, 1, order)
 
 	elem, err = oc.GetItemAtIndex(uint32(order))
 	require.Nil(t, err)
-	require.Equal(t, "two", elem)
+	require.Equal(t, two, elem)
 
-	oc.Remove("zero")
+	oc.Remove(zero)
 	require.Equal(t, 1, oc.Len())
 
-	oc.Remove("two")
+	oc.Remove(two)
 	require.Equal(t, 0, oc.Len())
 	elem, err = oc.GetItemAtIndex(uint32(0))
 	require.Equal(t, ordering.ErrIndexOutOfBounds, err)
 	require.Empty(t, elem)
+}
+
+func TestOrderedCollections_RemoveMultiple(t *testing.T) {
+	oc := ordering.NewOrderedCollection()
+	require.Equal(t, 0, oc.Len())
+
+	oc.RemoveMultiple([][]byte{zero, one, two})
+	require.Equal(t, 0, oc.Len())
+
+	oc.Add(zero)
+	oc.Add(one)
+	oc.Add(two)
+	require.Equal(t, 3, oc.Len())
+
+	oc.RemoveMultiple([][]byte{zero, one, two})
+	require.Equal(t, 0, oc.Len())
+
+	oc.Add(zero)
+	oc.Add(one)
+	oc.Add(two)
+	require.Equal(t, 3, oc.Len())
+
+	oc.RemoveMultiple([][]byte{one, two})
+	require.Equal(t, 1, oc.Len())
+
+	oc.RemoveMultiple([][]byte{zero})
+	require.Equal(t, 0, oc.Len())
 }
 
 func TestOrderedCollection_Clear(t *testing.T) {
@@ -162,9 +196,9 @@ func TestOrderedCollection_Clear(t *testing.T) {
 	oc := ordering.NewOrderedCollection()
 	require.Equal(t, 0, oc.Len())
 
-	oc.Add("zero")
-	oc.Add("one")
-	oc.Add("two")
+	oc.Add(zero)
+	oc.Add(one)
+	oc.Add(two)
 	require.Equal(t, 3, oc.Len())
 
 	oc.Clear()
@@ -177,24 +211,24 @@ func TestOrderedCollection_Contains(t *testing.T) {
 	oc := ordering.NewOrderedCollection()
 	require.Equal(t, 0, oc.Len())
 
-	contains := oc.Contains("zero")
+	contains := oc.Contains(zero)
 	require.False(t, contains)
 
-	oc.Add("zero")
-	oc.Add("one")
-	oc.Add("two")
+	oc.Add(zero)
+	oc.Add(one)
+	oc.Add(two)
 	require.Equal(t, 3, oc.Len())
 
-	contains = oc.Contains("zero")
+	contains = oc.Contains(zero)
 	require.True(t, contains)
 
-	contains = oc.Contains("one")
+	contains = oc.Contains(one)
 	require.True(t, contains)
 
-	contains = oc.Contains("two")
+	contains = oc.Contains(two)
 	require.True(t, contains)
 
-	contains = oc.Contains("three")
+	contains = oc.Contains(three)
 	require.False(t, contains)
 }
 
@@ -219,7 +253,7 @@ func TestBaseProcessor_ConcurrentCallsOrderedCollection(t *testing.T) {
 			switch idx % numCases {
 			case 0:
 				for i := 0; i < numCases; i++ {
-					oc.Add(fmt.Sprintf("value_%d", idx+i))
+					oc.Add([]byte(fmt.Sprintf("value_%d", idx+i)))
 				}
 			case 1:
 				_ = oc.GetItems()
@@ -227,11 +261,11 @@ func TestBaseProcessor_ConcurrentCallsOrderedCollection(t *testing.T) {
 				_ = oc.Len()
 			case 3:
 				for i := 0; i < numCases; i++ {
-					_ = oc.Contains(fmt.Sprintf("value_%d", idx-3+i))
+					_ = oc.Contains([]byte(fmt.Sprintf("value_%d", idx-3+i)))
 				}
 			case 4:
 				for i := 0; i < numCases; i++ {
-					_, _ = oc.GetOrder(fmt.Sprintf("value_%d", idx-4+i))
+					_, _ = oc.GetOrder([]byte(fmt.Sprintf("value_%d", idx-4+i)))
 				}
 			case 5:
 				for i := 0; i < numCases; i++ {
@@ -241,7 +275,7 @@ func TestBaseProcessor_ConcurrentCallsOrderedCollection(t *testing.T) {
 				_ = oc.IsInterfaceNil()
 			case 7:
 				for i := 0; i < numCases; i++ {
-					oc.Remove(fmt.Sprintf("value_%d", idx-7+i))
+					oc.Remove([]byte(fmt.Sprintf("value_%d", idx-7+i)))
 				}
 			case 8:
 				oc.Clear()

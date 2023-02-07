@@ -21,6 +21,7 @@ import (
 	factoryState "github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
@@ -134,6 +135,7 @@ func createMockArgument(
 				PenalizedTooMuchGasEnableEpoch: 0,
 			},
 		},
+		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
 	}
 
 	arg.ShardCoordinator = &mock.ShardCoordinatorMock{

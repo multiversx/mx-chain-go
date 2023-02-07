@@ -31,6 +31,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/database"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	commonMock "github.com/multiversx/mx-chain-go/testscommon/common"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
@@ -239,6 +240,7 @@ func createMockTransactionCoordinatorArguments() ArgTransactionCoordinator {
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
+		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 	}
 
 	return argsTransactionCoordinator
@@ -540,6 +542,7 @@ func createPreProcessorContainer() process.PreProcessorsContainer {
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		&commonMock.TxExecutionOrderHandlerStub{},
 	)
 	container, _ := preFactory.Create()
 
@@ -635,6 +638,7 @@ func createPreProcessorContainerWithDataPool(
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		&commonMock.TxExecutionOrderHandlerStub{},
 	)
 	container, _ := preFactory.Create()
 
@@ -903,6 +907,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		&commonMock.TxExecutionOrderHandlerStub{},
 	)
 	container, _ := preFactory.Create()
 
@@ -1087,6 +1092,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNilPreP
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		&commonMock.TxExecutionOrderHandlerStub{},
 	)
 	container, _ := preFactory.Create()
 
@@ -1195,6 +1201,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		&commonMock.TxExecutionOrderHandlerStub{},
 	)
 	container, _ := preFactory.Create()
 
@@ -1732,6 +1739,7 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		&commonMock.TxExecutionOrderHandlerStub{},
 	)
 	container, _ := preFactory.Create()
 
@@ -1858,6 +1866,7 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		&commonMock.TxExecutionOrderHandlerStub{},
 	)
 	container, _ := preFactory.Create()
 
@@ -1997,6 +2006,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		&commonMock.TxExecutionOrderHandlerStub{},
 	)
 	container, _ := preFactory.Create()
 
@@ -2137,6 +2147,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		&commonMock.TxExecutionOrderHandlerStub{},
 	)
 	container, _ := preFactory.Create()
 
@@ -2568,6 +2579,7 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldReturnWhenEpochIsNo
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
+		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -2615,6 +2627,7 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxGasLimitPerMi
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
+		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 	}
 
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
@@ -2686,6 +2699,7 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxAccumulatedFe
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
+		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 	}
 
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
@@ -2762,6 +2776,7 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxDeveloperFees
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
+		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 	}
 
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
@@ -2838,6 +2853,7 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldWork(t *testing.T) 
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
+		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 	}
 
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
@@ -2897,6 +2913,7 @@ func TestTransactionCoordinator_GetAllTransactionsShouldWork(t *testing.T) {
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
+		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -2979,6 +2996,7 @@ func TestTransactionCoordinator_VerifyGasLimitShouldErrMaxGasLimitPerMiniBlockIn
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
+		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -3071,6 +3089,7 @@ func TestTransactionCoordinator_VerifyGasLimitShouldWork(t *testing.T) {
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
+		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -3149,6 +3168,7 @@ func TestTransactionCoordinator_CheckGasProvidedByMiniBlockInReceiverShardShould
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
+		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -3198,6 +3218,7 @@ func TestTransactionCoordinator_CheckGasProvidedByMiniBlockInReceiverShardShould
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
+		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -3254,6 +3275,7 @@ func TestTransactionCoordinator_CheckGasProvidedByMiniBlockInReceiverShardShould
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
+		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -3317,6 +3339,7 @@ func TestTransactionCoordinator_CheckGasProvidedByMiniBlockInReceiverShardShould
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
+		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -3383,6 +3406,7 @@ func TestTransactionCoordinator_CheckGasProvidedByMiniBlockInReceiverShardShould
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
+		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 	}
 
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
@@ -3436,6 +3460,7 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMissingTransaction(t *testing
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
+		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 	}
 
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
@@ -3494,6 +3519,7 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMaxAccumulatedFeesExceeded(t 
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
+		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 	}
 
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
@@ -3562,6 +3588,7 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMaxDeveloperFeesExceeded(t *t
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
+		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -3638,6 +3665,7 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMaxAccumulatedFeesExceededWhe
 		},
 		DoubleTransactionsDetector: &testscommon.PanicDoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker: &testscommon.ProcessedMiniBlocksTrackerStub{},
+		TxExecutionOrderHandler:    &commonMock.TxExecutionOrderHandlerStub{},
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -3722,6 +3750,7 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMaxDeveloperFeesExceededWhenS
 		},
 		DoubleTransactionsDetector: &testscommon.PanicDoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker: &testscommon.ProcessedMiniBlocksTrackerStub{},
+		TxExecutionOrderHandler:    &commonMock.TxExecutionOrderHandlerStub{},
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -3806,6 +3835,7 @@ func TestTransactionCoordinator_VerifyFeesShouldWork(t *testing.T) {
 		},
 		DoubleTransactionsDetector: &testscommon.PanicDoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker: &testscommon.ProcessedMiniBlocksTrackerStub{},
+		TxExecutionOrderHandler:    &commonMock.TxExecutionOrderHandlerStub{},
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -3882,6 +3912,7 @@ func TestTransactionCoordinator_GetMaxAccumulatedAndDeveloperFeesShouldErr(t *te
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
+		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -3937,6 +3968,7 @@ func TestTransactionCoordinator_GetMaxAccumulatedAndDeveloperFeesShouldWork(t *t
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
+		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -4006,6 +4038,7 @@ func TestTransactionCoordinator_RevertIfNeededShouldWork(t *testing.T) {
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
+		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 	}
 
 	txHashes := make([][]byte, 0)

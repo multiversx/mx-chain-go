@@ -339,3 +339,17 @@ type EnableEpochsHandler interface {
 
 	IsInterfaceNil() bool
 }
+
+// TxExecutionOrderHandler is used to collect and provide the order of transactions execution
+type TxExecutionOrderHandler interface {
+	Add(txHash []byte)
+	GetItemAtIndex(index uint32) ([]byte, error)
+	GetOrder(txHash []byte) (int, error)
+	Remove(txHash []byte)
+	RemoveMultiple(txHashes [][]byte)
+	GetItems() [][]byte
+	Contains(txHash []byte) bool
+	Clear()
+	Len() int
+	IsInterfaceNil() bool
+}

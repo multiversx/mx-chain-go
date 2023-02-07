@@ -34,6 +34,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
@@ -564,8 +565,9 @@ func GetProcessArgs(
 				MaxServiceFee: 100,
 			},
 		},
-		Version:     "v1.0.0",
-		HistoryRepo: &dblookupext.HistoryRepositoryStub{},
+		Version:                 "v1.0.0",
+		HistoryRepo:             &dblookupext.HistoryRepositoryStub{},
+		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
 	}
 }
 

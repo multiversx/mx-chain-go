@@ -41,27 +41,28 @@ type dataComponentsHandler interface {
 
 // ArgsGenesisBlockCreator holds the arguments which are needed to create a genesis block
 type ArgsGenesisBlockCreator struct {
-	GenesisTime          uint64
-	StartEpochNum        uint32
-	Data                 dataComponentsHandler
-	Core                 coreComponentsHandler
-	Accounts             state.AccountsAdapter
-	ValidatorAccounts    state.AccountsAdapter
-	InitialNodesSetup    genesis.InitialNodesHandler
-	Economics            process.EconomicsDataHandler
-	ShardCoordinator     sharding.Coordinator
-	AccountsParser       genesis.AccountsParser
-	SmartContractParser  genesis.InitialSmartContractParser
-	GasSchedule          core.GasScheduleNotifier
-	TxLogsProcessor      process.TransactionLogProcessor
-	VirtualMachineConfig config.VirtualMachineConfig
-	HardForkConfig       config.HardforkConfig
-	TrieStorageManagers  map[string]common.StorageManager
-	SystemSCConfig       config.SystemSmartContractsConfig
-	EpochConfig          *config.EpochConfig
-	ImportStartHandler   update.ImportStartHandler
-	WorkingDir           string
-	BlockSignKeyGen      crypto.KeyGenerator
+	GenesisTime             uint64
+	StartEpochNum           uint32
+	Data                    dataComponentsHandler
+	Core                    coreComponentsHandler
+	Accounts                state.AccountsAdapter
+	ValidatorAccounts       state.AccountsAdapter
+	InitialNodesSetup       genesis.InitialNodesHandler
+	Economics               process.EconomicsDataHandler
+	ShardCoordinator        sharding.Coordinator
+	AccountsParser          genesis.AccountsParser
+	SmartContractParser     genesis.InitialSmartContractParser
+	GasSchedule             core.GasScheduleNotifier
+	TxLogsProcessor         process.TransactionLogProcessor
+	VirtualMachineConfig    config.VirtualMachineConfig
+	HardForkConfig          config.HardforkConfig
+	TrieStorageManagers     map[string]common.StorageManager
+	SystemSCConfig          config.SystemSmartContractsConfig
+	EpochConfig             *config.EpochConfig
+	ImportStartHandler      update.ImportStartHandler
+	WorkingDir              string
+	BlockSignKeyGen         crypto.KeyGenerator
+	TxExecutionOrderHandler common.TxExecutionOrderHandler
 
 	GenesisNodePrice *big.Int
 	GenesisString    string
