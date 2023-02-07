@@ -59,7 +59,7 @@ func TestNewKeysHandler(t *testing.T) {
 		assert.True(t, check.IfNil(handler))
 		assert.Equal(t, keysManagement.ErrNilPrivateKey, err)
 	})
-	t.Run("empty Pid() should error", func(t *testing.T) {
+	t.Run("empty pid should error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgsKeysHandler()
@@ -263,12 +263,12 @@ func TestKeysHandler_UpdatePublicKeyLiveness(t *testing.T) {
 	}
 	handler, _ := keysManagement.NewKeysHandler(args)
 
-	t.Run("same Pid() should not call reset", func(t *testing.T) {
+	t.Run("same pid should not call reset", func(t *testing.T) {
 		handler.UpdatePublicKeyLiveness(randomPublicKeyBytes, pid)
 		assert.Zero(t, len(mapResetCalled))
 	})
-	t.Run("another Pid() should call reset", func(t *testing.T) {
-		randomPid := core.PeerID("random Pid()")
+	t.Run("another pid should call reset", func(t *testing.T) {
+		randomPid := core.PeerID("random pid")
 		handler.UpdatePublicKeyLiveness(randomPublicKeyBytes, randomPid)
 		assert.Equal(t, 1, len(mapResetCalled))
 		assert.Equal(t, 1, mapResetCalled[string(randomPublicKeyBytes)])
