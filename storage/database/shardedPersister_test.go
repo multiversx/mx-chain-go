@@ -129,6 +129,18 @@ func BenchmarkPersister4milAllKeys(b *testing.B) {
 	})
 }
 
+func BenchmarkPersister8milAllKeys(b *testing.B) {
+	entries, keys := generateKeys(4000000)
+
+	b.Run("persister", func(t *testing.B) {
+		benchmarkPersister(b, entries, createPersister(b), keys)
+	})
+
+	b.Run("sharded persister", func(t *testing.B) {
+		benchmarkPersister(b, entries, createShardedPersister(b), keys)
+	})
+}
+
 func BenchmarkPersister1mil10kKeys(b *testing.B) {
 	entries, keys := generateKeys(1000000)
 
@@ -154,7 +166,7 @@ func BenchmarkPersister1mil100kKeys(b *testing.B) {
 }
 
 func BenchmarkPersister10mil(b *testing.B) {
-	entries, keys := generateKeys(1000000)
+	entries, keys := generateKeys(10000000)
 
 	b.Run("persister", func(t *testing.B) {
 		benchmarkPersister(b, entries, createPersister(b), keys)
