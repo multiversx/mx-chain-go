@@ -324,12 +324,15 @@ func getKeys(
 		b.StartTimer()
 	}()
 
+	maxRoutines := make(chan struct{}, 400)
 	wg := sync.WaitGroup{}
 	wg.Add(len(keys))
 
 	for _, key := range keys {
+		maxRoutines <- struct{}{}
 		go func(key string) {
 			defer func() {
+				<-maxRoutines
 				wg.Done()
 			}()
 
