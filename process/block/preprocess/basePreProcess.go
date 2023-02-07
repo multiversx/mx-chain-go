@@ -508,6 +508,7 @@ func (bpp *basePreProcess) handleProcessTransactionError(preProcessorExecutionIn
 	}
 
 	preProcessorExecutionInfoHandler.RevertProcessedTxsResults([][]byte{txHash}, txHash)
+	bpp.txExecutionOrderHandler.Remove(txHash)
 }
 
 func getMiniBlockHeaderOfMiniBlock(headerHandler data.HeaderHandler, miniBlockHash []byte) (data.MiniBlockHeaderHandler, error) {

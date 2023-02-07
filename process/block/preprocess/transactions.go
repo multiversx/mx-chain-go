@@ -1625,7 +1625,6 @@ func (txs *transactions) processInNormalMode(
 	txs.txExecutionOrderHandler.Add(txHash)
 	_, err := txs.txProcessor.ProcessTransaction(tx)
 	if err != nil {
-		txs.txExecutionOrderHandler.Remove(txHash)
 		txs.handleProcessTransactionError(preProcessorExecutionInfoHandler, snapshot, txHash)
 		return err
 	}

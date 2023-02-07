@@ -504,7 +504,6 @@ func (rtp *rewardTxPreprocessor) ProcessMiniBlock(
 		rtp.txExecutionOrderHandler.Add(miniBlockTxHashes[txIndex])
 		err = rtp.rewardsProcessor.ProcessRewardTransaction(miniBlockRewardTxs[txIndex])
 		if err != nil {
-			rtp.txExecutionOrderHandler.Remove(miniBlockTxHashes[txIndex])
 			rtp.handleProcessTransactionError(preProcessorExecutionInfoHandler, snapshot, miniBlockTxHashes[txIndex])
 			break
 		}
