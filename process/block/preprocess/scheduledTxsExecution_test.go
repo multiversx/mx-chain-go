@@ -726,7 +726,8 @@ func TestScheduledTxsExecution_getAllIntermediateTxsAfterScheduledExecution(t *t
 				SameShardCalled: func(_, _ []byte) bool {
 					return true
 				},
-			}, &common.TxExecutionOrderHandlerStub{},
+			},
+			&common.TxExecutionOrderHandlerStub{},
 		)
 
 		scrsInfo := scheduledTxsExec.getAllIntermediateTxsAfterScheduledExecution(

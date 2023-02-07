@@ -46,7 +46,7 @@ func NewRewardTxPreprocessor(
 	blockSizeComputation BlockSizeComputationHandler,
 	balanceComputation BalanceComputationHandler,
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
-	TxExecutionOrderHandler common.TxExecutionOrderHandler,
+	txExecutionOrderHandler common.TxExecutionOrderHandler,
 ) (*rewardTxPreprocessor, error) {
 
 	if check.IfNil(hasher) {
@@ -88,7 +88,7 @@ func NewRewardTxPreprocessor(
 	if check.IfNil(processedMiniBlocksTracker) {
 		return nil, process.ErrNilProcessedMiniBlocksTracker
 	}
-	if check.IfNil(TxExecutionOrderHandler) {
+	if check.IfNil(txExecutionOrderHandler) {
 		return nil, process.ErrNilTxExecutionOrderHandler
 	}
 
@@ -105,7 +105,7 @@ func NewRewardTxPreprocessor(
 		accounts:                   accounts,
 		pubkeyConverter:            pubkeyConverter,
 		processedMiniBlocksTracker: processedMiniBlocksTracker,
-		txExecutionOrderHandler:    TxExecutionOrderHandler,
+		txExecutionOrderHandler:    txExecutionOrderHandler,
 	}
 
 	rtp := &rewardTxPreprocessor{

@@ -1228,7 +1228,6 @@ func (tc *transactionCoordinator) handleProcessTransactionError(snapshot int, mi
 
 	err := tc.accounts.RevertToSnapshot(snapshot)
 	if err != nil {
-		// TODO: evaluate if reloading the trie from disk might solve the problem
 		log.Debug("transactionCoordinator.handleProcessTransactionError: RevertToSnapshot", "error", err.Error())
 	}
 
