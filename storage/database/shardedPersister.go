@@ -1,10 +1,10 @@
 package database
 
 import (
+	"errors"
 	"fmt"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/storage"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/multiversx/mx-chain-storage-go/leveldb"
@@ -12,18 +12,28 @@ import (
 
 var log = logger.GetOrCreate("storage/database")
 
+// ErrNilIDProvider signals that a nil id provider was provided
+var ErrNilIDProvider = errors.New("nil id provider")
+
 type persisterIDProvider interface {
-	ComputeIdFromBytes(address []byte) uint32
+	ComputeId(key []byte) uint32
+	NumberOfShards() uint32
+	IsInterfaceNil() bool
 }
 
 type shardedPersister struct {
-	persisters       map[uint32]storage.Persister
-	shardCoordinator sharding.Coordinator
+	persisters map[uint32]storage.Persister
+	idProvider persisterIDProvider
 }
 
-func NewShardedPersister(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFiles int, shardCoordinator sharding.Coordinator) (*shardedPersister, error) {
+// NewShardedPersister will created a new sharded persister
+func NewShardedPersister(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFiles int, idProvider persisterIDProvider) (*shardedPersister, error) {
+	if check.IfNil(idProvider) {
+		return nil, ErrNilIDProvider
+	}
+
 	persisters := make(map[uint32]storage.Persister)
-	for _, shardID := range getShardIDs(shardCoordinator) {
+	for _, shardID := range getShardIDs(idProvider) {
 		newPath := updatePathWithShardID(path, shardID)
 		db, err := leveldb.NewDB(newPath, batchDelaySeconds, maxBatchSize, maxOpenFiles)
 		if err != nil {
@@ -33,31 +43,27 @@ func NewShardedPersister(path string, batchDelaySeconds int, maxBatchSize int, m
 	}
 
 	return &shardedPersister{
-		persisters:       persisters,
-		shardCoordinator: shardCoordinator,
+		persisters: persisters,
+		idProvider: idProvider,
 	}, nil
 }
 
 func updatePathWithShardID(path string, shardID uint32) string {
-	if shardID == core.MetachainShardId {
-		return fmt.Sprintf("%s_%s", path, "Meta")
-	}
-
 	return fmt.Sprintf("%s_%d", path, shardID)
 }
 
-func getShardIDs(shardCoordinator sharding.Coordinator) []uint32 {
-	shardIDs := make([]uint32, shardCoordinator.NumberOfShards()+1)
-	for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
+func getShardIDs(idProvider persisterIDProvider) []uint32 {
+	shardIDs := make([]uint32, idProvider.NumberOfShards())
+
+	for i := uint32(0); i < idProvider.NumberOfShards(); i++ {
 		shardIDs[i] = i
 	}
-	shardIDs[shardCoordinator.NumberOfShards()] = core.MetachainShardId
 
 	return shardIDs
 }
 
 func (s *shardedPersister) computeID(key []byte) uint32 {
-	return s.shardCoordinator.ComputeId(key)
+	return s.idProvider.ComputeId(key)
 }
 
 // Put add the value to the (key, val) persistence medium
@@ -81,6 +87,7 @@ func (s *shardedPersister) Close() error {
 	for _, persister := range s.persisters {
 		err := persister.Close()
 		if err != nil {
+			log.Error("failed to close persister", "error", err)
 			closedSuccessfully = false
 		}
 	}
@@ -121,11 +128,14 @@ func (s *shardedPersister) DestroyClosed() error {
 	return nil
 }
 
+// RangeKeys will iterate over all contained pairs, in all persisters, calling te provided handler
 func (s *shardedPersister) RangeKeys(handler func(key []byte, val []byte) bool) {
-	panic("not implemented") // TODO: Implement
+	for _, persister := range s.persisters {
+		persister.RangeKeys(handler)
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (s *shardedPersister) IsInterfaceNil() bool {
-	panic("not implemented") // TODO: Implement
+	return s == nil
 }
