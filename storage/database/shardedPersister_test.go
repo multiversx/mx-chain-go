@@ -310,19 +310,23 @@ func getKeys(
 	db, err := createPersister(path, id)
 	if err != nil {
 		log.Error("failed to create persister", "error", err.Error())
+		b.StartTimer()
 		return
 	}
+	b.StartTimer()
 
 	defer func() {
+		b.StopTimer()
 		err := db.Close()
 		if err != nil {
 			log.Error("failed to close persister", "error", err.Error())
 		}
+		b.StartTimer()
 	}()
-	b.StartTimer()
 
 	wg := sync.WaitGroup{}
 	wg.Add(len(keys))
+
 	for _, key := range keys {
 		go func(key string) {
 			defer func() {
@@ -348,13 +352,20 @@ func getKey(
 		db, err := createPersister(path, id)
 		if err != nil {
 			log.Error("failed to create persister", "error", err.Error())
+			b.StartTimer()
 			return
 		}
+		b.StartTimer()
 
 		defer func() {
-			db.Close()
+			b.StopTimer()
+			err := db.Close()
+			if err != nil {
+				log.Error("failed to close persister", "error", err.Error())
+				return
+			}
+			b.StartTimer()
 		}()
-		b.StartTimer()
 
 		_, err = db.Get(key)
 		require.Nil(b, err)
