@@ -64,21 +64,33 @@ func (s *shardedPersister) computeID(key []byte) uint32 {
 
 // Put add the value to the (key, val) persistence medium
 func (s *shardedPersister) Put(key []byte, val []byte) error {
+	s.persistersMut.Lock()
+	defer s.persistersMut.Unlock()
+
 	return s.persisters[s.computeID(key)].Put(key, val)
 }
 
 // Get gets the value associated to the key
 func (s *shardedPersister) Get(key []byte) ([]byte, error) {
+	s.persistersMut.RLock()
+	defer s.persistersMut.RUnlock()
+
 	return s.persisters[s.computeID(key)].Get(key)
 }
 
 // Has returns true if the given key is present in the persistence medium
 func (s *shardedPersister) Has(key []byte) error {
+	s.persistersMut.Lock()
+	defer s.persistersMut.Unlock()
+
 	return s.persisters[s.computeID(key)].Has(key)
 }
 
 // Close closes the files/resources associated to the persistence medium
 func (s *shardedPersister) Close() error {
+	s.persistersMut.Lock()
+	defer s.persistersMut.Unlock()
+
 	closedSuccessfully := true
 	for _, persister := range s.persisters {
 		err := persister.Close()
@@ -96,13 +108,19 @@ func (s *shardedPersister) Close() error {
 
 // Remove removes the data associated to the given key
 func (s *shardedPersister) Remove(key []byte) error {
+	s.persistersMut.Lock()
+	defer s.persistersMut.Unlock()
+
 	return s.persisters[s.computeID(key)].Remove(key)
 }
 
 // Destroy removes the persistence medium stored data
 func (s *shardedPersister) Destroy() error {
+	s.persistersMut.Lock()
+	defer s.persistersMut.Unlock()
+
 	for _, persister := range s.persisters {
-		err := persister.Close()
+		err := persister.Destroy()
 		if err != nil {
 			return err
 		}
@@ -113,8 +131,11 @@ func (s *shardedPersister) Destroy() error {
 
 // DestroyClosed removes the already closed persistence medium stored data
 func (s *shardedPersister) DestroyClosed() error {
+	s.persistersMut.Lock()
+	defer s.persistersMut.Unlock()
+
 	for _, persister := range s.persisters {
-		err := persister.Close()
+		err := persister.DestroyClosed()
 		if err != nil {
 			return err
 		}
