@@ -234,7 +234,7 @@ func createPersister(path string, id string) (storage.Persister, error) {
 	case "simple":
 		return NewLevelDB(path, 2, 1000, 1000)
 	case "sharded":
-		shardCoordinator, _ := sharding.NewMultiShardCoordinator(3, 0)
+		shardCoordinator, _ := sharding.NewMultiShardCoordinator(4, 0)
 		return NewShardedPersister(path, 2, 1000, 1000, shardCoordinator)
 	default:
 		return NewLevelDB(path, 2, 1000, 10)
@@ -306,6 +306,7 @@ func getKeys(
 	path string,
 	id string,
 ) {
+	b.StopTimer()
 	db, err := createPersister(path, id)
 	if err != nil {
 		log.Error("failed to create persister", "error", err.Error())
@@ -318,6 +319,7 @@ func getKeys(
 			log.Error("failed to close persister", "error", err.Error())
 		}
 	}()
+	b.StartTimer()
 
 	wg := sync.WaitGroup{}
 	wg.Add(len(keys))
@@ -342,6 +344,7 @@ func getKey(
 	id string,
 ) {
 	go func(key []byte) {
+		b.StopTimer()
 		db, err := createPersister(path, id)
 		if err != nil {
 			log.Error("failed to create persister", "error", err.Error())
@@ -351,6 +354,7 @@ func getKey(
 		defer func() {
 			db.Close()
 		}()
+		b.StartTimer()
 
 		_, err = db.Get(key)
 		require.Nil(b, err)
