@@ -985,6 +985,11 @@ func (pcf *processComponentsFactory) createShardTxSimulatorProcessor(
 		return nil, err
 	}
 
+	err = builtInFuncFactory.SetPayableHandler(vmFactory.BlockChainHookImpl())
+	if err != nil {
+		return nil, err
+	}
+
 	vmContainer, err := vmFactory.Create()
 	if err != nil {
 		return nil, err
@@ -1097,6 +1102,11 @@ func (pcf *processComponentsFactory) createMetaTxSimulatorProcessor(
 		builtInFuncFactory.NFTStorageHandler(),
 		builtInFuncFactory.ESDTGlobalSettingsHandler(),
 	)
+	if err != nil {
+		return nil, err
+	}
+
+	err = builtInFuncFactory.SetPayableHandler(vmFactory.BlockChainHookImpl())
 	if err != nil {
 		return nil, err
 	}

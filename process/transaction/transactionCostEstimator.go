@@ -133,10 +133,14 @@ func (tce *transactionCostEstimator) simulateTransactionCost(tx *transaction.Tra
 
 	}
 
+	returnMessageFromVMOutput := ""
+	if res.VMOutput != nil {
+		returnMessageFromVMOutput = res.VMOutput.ReturnMessage
+	}
 	if res.FailReason != "" {
 		return &transaction.CostResponse{
 			GasUnits:      0,
-			ReturnMessage: res.FailReason,
+			ReturnMessage: fmt.Sprintf("%s: %s", res.FailReason, returnMessageFromVMOutput),
 		}, nil
 	}
 
@@ -158,7 +162,7 @@ func (tce *transactionCostEstimator) simulateTransactionCost(tx *transaction.Tra
 
 	return &transaction.CostResponse{
 		GasUnits:             0,
-		ReturnMessage:        fmt.Sprintf("%s %s", res.VMOutput.ReturnCode.String(), res.VMOutput.ReturnMessage),
+		ReturnMessage:        fmt.Sprintf("%s: %s", res.VMOutput.ReturnCode.String(), returnMessageFromVMOutput),
 		SmartContractResults: res.ScResults,
 	}, nil
 }
