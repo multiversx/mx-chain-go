@@ -51,7 +51,6 @@ const (
 	signatureSize    = 48
 	publicKeySize    = 96
 	maxShards        = 1
-	nodeShardId      = 0
 )
 
 var testPubkeyConverter, _ = pubkeyConverter.NewHexPubkeyConverter(32)
