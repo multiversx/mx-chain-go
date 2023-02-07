@@ -3665,3 +3665,45 @@ func TestMetaProcessor_getAllMarshalledTxs(t *testing.T) {
 	assert.Equal(t, []byte("h"), allMarshalledTxs["validatorInfo"][1])
 	assert.Equal(t, []byte("i"), allMarshalledTxs["validatorInfo"][2])
 }
+
+func TestMetaProcessor_CrossChecksBlockHeightsMetrics(t *testing.T) {
+	t.Parallel()
+
+	requireInstance := require.New(t)
+
+	savedMetrics := make(map[string]interface{})
+	arguments := createMockMetaArguments(createMockComponentHolders())
+	arguments.StatusCoreComponents = &factory.StatusCoreComponentsStub{
+		AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{
+			SetUInt64ValueHandler: func(key string, value uint64) {
+				savedMetrics[key] = value
+			},
+			SetStringValueHandler: func(key string, value string) {
+				savedMetrics[key] = value
+			},
+		},
+	}
+	arguments.BootstrapComponents = &mock.BootstrapComponentsMock{
+		Coordinator:          mock.NewMultiShardsCoordinatorMock(3),
+		HdrIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
+		VersionedHdrFactory: &testscommon.VersionedHeaderFactoryStub{
+			CreateCalled: func(epoch uint32) data.HeaderHandler {
+				return &block.MetaBlock{}
+			},
+		},
+	}
+
+	mp, _ := blproc.NewMetaProcessor(arguments)
+
+	mp.UpdateShardsHeadersNonce(0, 37)
+	mp.UpdateShardsHeadersNonce(1, 38)
+	mp.UpdateShardsHeadersNonce(2, 39)
+
+	mp.SaveMetricCrossCheckBlockHeight()
+
+	requireInstance.NotEmpty(savedMetrics)
+	requireInstance.Equal("0: 37, 1: 38, 2: 39, ", savedMetrics["erd_cross_check_block_height"])
+	requireInstance.Equal(uint64(37), savedMetrics["erd_cross_check_block_height_0"])
+	requireInstance.Equal(uint64(38), savedMetrics["erd_cross_check_block_height_1"])
+	requireInstance.Equal(uint64(39), savedMetrics["erd_cross_check_block_height_2"])
+}
