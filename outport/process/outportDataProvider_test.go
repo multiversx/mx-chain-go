@@ -243,7 +243,7 @@ func Test_setExecutionOrderInTransactionPool(t *testing.T) {
 		require.Equal(t, 0, numProcessed)
 		require.Equal(t, len(txHashes), len(orderedHashes))
 	})
-	t.Run("transactions not found in pool txsm, scrs or rewards", func(t *testing.T) {
+	t.Run("transactions not found in pool txs, scrs or rewards", func(t *testing.T) {
 		args := createArgOutportDataProvider()
 		odp, _ := NewOutportDataProvider(args)
 		pool := &outportcore.Pool{
@@ -282,7 +282,7 @@ func Test_setExecutionOrderInTransactionPool(t *testing.T) {
 		require.Equal(t, len(txHashes), len(orderedHashes))
 	})
 
-	t.Run("transactions partially found (first txs in list) in pool txsm, scrs or rewards", func(t *testing.T) {
+	t.Run("transactions partially found (first txs in list) in pool txs, scrs or rewards", func(t *testing.T) {
 		args := createArgOutportDataProvider()
 		odp, _ := NewOutportDataProvider(args)
 		txHashes := createRandTxHashes(10)
@@ -323,7 +323,7 @@ func Test_setExecutionOrderInTransactionPool(t *testing.T) {
 		require.Equal(t, pool.Rewards[string(txHashes[2])].GetExecutionOrder(), 2)
 		require.Equal(t, len(txHashes), len(orderedHashes))
 	})
-	t.Run("transactions partially found (last txs in list) in pool txsm, scrs or rewards", func(t *testing.T) {
+	t.Run("transactions partially found (last txs in list) in pool txs, scrs or rewards", func(t *testing.T) {
 		args := createArgOutportDataProvider()
 		odp, _ := NewOutportDataProvider(args)
 		txHashes := createRandTxHashes(10)
