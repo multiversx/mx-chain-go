@@ -1619,6 +1619,9 @@ func (mp *metaProcessor) saveMetricCrossCheckBlockHeight() {
 		}
 
 		crossCheckBlockHeight += fmt.Sprintf("%d: %d, ", i, heightValue)
+
+		shardedCrossChecksKey := fmt.Sprintf("%s_%d", common.MetricCrossCheckBlockHeight, i)
+		mp.appStatusHandler.SetUInt64Value(shardedCrossChecksKey, heightValue)
 	}
 
 	mp.appStatusHandler.SetStringValue(common.MetricCrossCheckBlockHeight, crossCheckBlockHeight)
