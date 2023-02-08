@@ -116,7 +116,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 			EpochRewardsCreator:       &mock.EpochRewardsCreatorStub{},
 			EpochValidatorInfoCreator: &mock.EpochValidatorInfoCreatorStub{},
 			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorStub{
-				UpdatePeerStateCalled: func(header data.MetaHeaderHandler) ([]byte, error) {
+				UpdatePeerStateCalled: func(header data.CommonHeaderHandler) ([]byte, error) {
 					return []byte("validator stats root hash"), nil
 				},
 			},

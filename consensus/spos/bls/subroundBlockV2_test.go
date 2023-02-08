@@ -110,7 +110,7 @@ func TestSubroundBlockV2_DoBlockJob(t *testing.T) {
 		container.SetRoundHandler(&mock.RoundHandlerMock{
 			RoundIndex: 1,
 		})
-		bpm := mock.InitBlockProcessorMock()
+		bpm := mock.InitBlockProcessorMock(container.Marshalizer())
 		err := errors.New("error")
 		bpm.CreateNewHeaderCalled = func(round uint64, nonce uint64) (data.HeaderHandler, error) {
 			return nil, err
@@ -131,7 +131,7 @@ func TestSubroundBlockV2_DoBlockJob(t *testing.T) {
 		container.SetRoundHandler(&mock.RoundHandlerMock{
 			RoundIndex: 1,
 		})
-		bpm := mock.InitBlockProcessorMock()
+		bpm := mock.InitBlockProcessorMock(container.Marshalizer())
 		err := errors.New("error")
 		bpm.CreateBlockCalled = func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
 			return nil, nil, err
@@ -152,7 +152,7 @@ func TestSubroundBlockV2_DoBlockJob(t *testing.T) {
 		container.SetRoundHandler(&mock.RoundHandlerMock{
 			RoundIndex: 1,
 		})
-		bpm := mock.InitBlockProcessorMock()
+		bpm := mock.InitBlockProcessorMock(container.Marshalizer())
 		err := errors.New("error")
 		container.SetBlockProcessor(bpm)
 		bm := &mock.BroadcastMessengerMock{
@@ -176,7 +176,7 @@ func TestSubroundBlockV2_DoBlockJob(t *testing.T) {
 		container.SetRoundHandler(&mock.RoundHandlerMock{
 			RoundIndex: 1,
 		})
-		bpm := mock.InitBlockProcessorMock()
+		bpm := mock.InitBlockProcessorMock(container.Marshalizer())
 		err := errors.New("error")
 		bpm.ProcessBlockCalled = func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) (data.HeaderHandler, data.BodyHandler, error) {
 			return nil, nil, err

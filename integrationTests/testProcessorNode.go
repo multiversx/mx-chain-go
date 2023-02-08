@@ -1332,7 +1332,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 
 	if tpn.ValidatorStatisticsProcessor == nil {
 		tpn.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{
-			UpdatePeerStateCalled: func(header data.MetaHeaderHandler) ([]byte, error) {
+			UpdatePeerStateCalled: func(header data.CommonHeaderHandler) ([]byte, error) {
 				return []byte("validator statistics root hash"), nil
 			},
 		}
