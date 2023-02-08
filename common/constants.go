@@ -198,6 +198,9 @@ const MetricConsensusRoundState = "erd_consensus_round_state"
 // MetricCrossCheckBlockHeight is the metric that store cross block height
 const MetricCrossCheckBlockHeight = "erd_cross_check_block_height"
 
+// MetricCrossCheckBlockHeightMeta is the metric that store metachain cross block height
+const MetricCrossCheckBlockHeightMeta = "erd_cross_check_block_height_meta"
+
 // MetricNumProcessedTxs is the metric that stores the number of transactions processed
 const MetricNumProcessedTxs = "erd_num_transactions_processed"
 
