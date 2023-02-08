@@ -3,8 +3,6 @@ package database
 import (
 	"errors"
 	"math"
-
-	"github.com/multiversx/mx-chain-core-go/core"
 )
 
 // TODO: add unit tests
@@ -38,10 +36,6 @@ func NewShardIDProvider(numOfShards uint32) (*shardIDProvider, error) {
 
 // ComputeId calculated shard id for a given key
 func (sp *shardIDProvider) ComputeId(key []byte) uint32 {
-	if core.IsEmptyAddress(key) {
-		return 0
-	}
-
 	startingIndex := 0
 	if len(key) > sp.bytesNeeded {
 		startingIndex = len(key) - sp.bytesNeeded
