@@ -1307,7 +1307,7 @@ func TestScACallsScBWithExecOnDestScAPerformsAsyncCall_NoCallbackInScB(t *testin
 	tokenIssuer := nodes[0]
 
 	// deploy parent contract
-	callerScCode := wasm.GetSCCode("../testdata/parent.wasm")
+	callerScCode := wasm.GetSCCode("../../wasm/testdata/community/parent.wasm")
 	callerScAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.WasmVirtualMachine)
 
 	integrationTests.CreateAndSendTransaction(
@@ -1325,7 +1325,7 @@ func TestScACallsScBWithExecOnDestScAPerformsAsyncCall_NoCallbackInScB(t *testin
 	require.Nil(t, err)
 
 	// deploy child contract by calling deployChildContract endpoint
-	receiverScCode := wasm.GetSCCode("../testdata/child.wasm")
+	receiverScCode := wasm.GetSCCode("../../wasm/testdata/community/child.wasm")
 	txDeployData := txDataBuilder.NewBuilder()
 	txDeployData.Func("deployChildContract").Str(receiverScCode)
 

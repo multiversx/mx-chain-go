@@ -39,11 +39,24 @@ func InitializeMockContractsWithVMContainer(
 	vmContainer process.VirtualMachinesContainer,
 	mockSCs ...testcommon.MockTestSmartContract,
 ) {
+	InitializeMockContractsWithVMContainerAndVMTypes(t, net, nil, [][]byte{factory.WasmVirtualMachine}, mockSCs...)
+}
+
+// InitializeMockContractsWithVMContainerAndVMTypes -
+func InitializeMockContractsWithVMContainerAndVMTypes(
+	t *testing.T,
+	net *integrationTests.TestNetwork,
+	vmContainer process.VirtualMachinesContainer,
+	vmKeys [][]byte,
+	mockSCs ...testcommon.MockTestSmartContract,
+) {
 	shardToHost, shardToInstanceBuilder :=
-		CreateHostAndInstanceBuilder(t, net, vmContainer, factory.WasmVirtualMachine)
+		CreateHostAndInstanceBuilder(t, net, vmContainer, vmKeys)
 	for _, mockSC := range mockSCs {
 		shardID := mockSC.GetShardID()
-		mockSC.Initialize(t, shardToHost[shardID], shardToInstanceBuilder[shardID], true)
+		mockSC.Initialize(t,
+			shardToHost[shardID][string(mockSC.GetVMType())],
+			shardToInstanceBuilder[shardID][string(mockSC.GetVMType())], true)
 	}
 }
 
@@ -128,11 +141,11 @@ func makeTestAddress(prefix []byte, identifier string) []byte {
 func CreateHostAndInstanceBuilder(t *testing.T,
 	net *integrationTests.TestNetwork,
 	vmContainer process.VirtualMachinesContainer,
-	vmKey []byte) (map[uint32]vmhost.VMHost, map[uint32]*contextmock.ExecutorMock) {
+	vmKeys [][]byte) (map[uint32]map[string]vmhost.VMHost, map[uint32]map[string]*contextmock.ExecutorMock) {
 	numberOfShards := uint32(net.NumShards)
 	shardToWorld := make(map[uint32]*worldmock.MockWorld, numberOfShards)
-	shardToInstanceBuilder := make(map[uint32]*contextmock.ExecutorMock, numberOfShards)
-	shardToHost := make(map[uint32]vmhost.VMHost, numberOfShards)
+	shardToInstanceBuilder := make(map[uint32]map[string]*contextmock.ExecutorMock, numberOfShards)
+	shardToHost := make(map[uint32]map[string]vmhost.VMHost, numberOfShards)
 
 	if vmContainer != nil {
 		err := net.DefaultNode.BlockchainHook.SetVMContainer(vmContainer)
@@ -144,8 +157,13 @@ func CreateHostAndInstanceBuilder(t *testing.T,
 		world.SetProvidedBlockchainHook(net.DefaultNode.BlockchainHook)
 		world.SelfShardID = shardID
 		shardToWorld[shardID] = world
-		instanceBuilderMock, _ := contextmock.NewExecutorMockFactory(world).CreateExecutor(executor.ExecutorFactoryArgs{})
-		shardToInstanceBuilder[shardID] = instanceBuilderMock.(*contextmock.ExecutorMock)
+		for _, vmKey := range vmKeys {
+			instanceBuilderMock, _ := contextmock.NewExecutorMockFactory(world).CreateExecutor(executor.ExecutorFactoryArgs{})
+			if shardToInstanceBuilder[shardID] == nil {
+				shardToInstanceBuilder[shardID] = make(map[string]*contextmock.ExecutorMock, len(vmKeys))
+			}
+			shardToInstanceBuilder[shardID][string(vmKey)] = instanceBuilderMock.(*contextmock.ExecutorMock)
+		}
 	}
 
 	for shardID := uint32(0); shardID < numberOfShards; shardID++ {
@@ -157,10 +175,13 @@ func CreateHostAndInstanceBuilder(t *testing.T,
 			if _, ok := host.(vmhost.VMHost); !ok {
 				continue
 			}
-			host.(vmhost.VMHost).Runtime().ReplaceVMExecutor(shardToInstanceBuilder[shardID])
-			err = node.VMContainer.Replace(vmKey, host)
+			host.(vmhost.VMHost).Runtime().ReplaceVMExecutor(shardToInstanceBuilder[shardID][string(vmType)])
+			err = node.VMContainer.Replace(vmType, host)
 			require.Nil(t, err)
-			shardToHost[shardID] = host.(vmhost.VMHost)
+			if shardToHost[shardID] == nil {
+				shardToHost[shardID] = make(map[string]vmhost.VMHost, len(vmKeys))
+			}
+			shardToHost[shardID][string(vmType)] = host.(vmhost.VMHost)
 		}
 	}
 

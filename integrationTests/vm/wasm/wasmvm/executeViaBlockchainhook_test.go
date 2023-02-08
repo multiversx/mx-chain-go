@@ -2,9 +2,10 @@ package wasmvm
 
 import (
 	"encoding/hex"
-	logger "github.com/multiversx/mx-chain-logger-go"
 	"math/big"
 	"testing"
+
+	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/process/factory"
@@ -40,18 +41,22 @@ func TestExecuteOnDestCtx_BlockchainHook(t *testing.T) {
 		GasUsedByParent:    400,
 	}
 
-	defaultVM, _ := node.VMContainer.Get(factory.WasmVirtualMachine)
-	err := node.VMContainer.Add(fakeVMType, defaultVM)
+	fakeContainer, _ := node.VMFactory.Create()
+	fakeVM, _ := fakeContainer.Get(factory.WasmVirtualMachine)
+	err := node.VMContainer.Add(fakeVMType, fakeVM)
 	require.Nil(t, err)
 
-	InitializeMockContractsWithVMContainer(
+	InitializeMockContractsWithVMContainerAndVMTypes(
 		t, net,
 		node.VMContainer,
+		[][]byte{factory.WasmVirtualMachine, fakeVMType},
 		test.CreateMockContract(parentAddress).
+			WithVMType(factory.WasmVirtualMachine).
 			WithBalance(testConfig.ParentBalance).
 			WithConfig(testConfig).
 			WithMethods(contracts.ExecOnDestCtxParentMock),
 		test.CreateMockContract(childAddress).
+			WithVMType(fakeVMType).
 			WithBalance(testConfig.ChildBalance).
 			WithConfig(testConfig).
 			WithMethods(contracts.SimpleChildSetStorageMock),
@@ -67,9 +72,10 @@ func TestExecuteOnDestCtx_BlockchainHook(t *testing.T) {
 	tx := net.CreateTx(ownerOfParent, parentAddress, big.NewInt(0), txData)
 	tx.GasLimit = testConfig.GasProvided
 
+	// _ = logger.SetLogLevel("*:TRACE")
+	_ = logger.SetLogLevel("vm:TRACE")
 	_ = net.SignAndSendTx(ownerOfParent, tx)
 
-	_ = logger.SetLogLevel("*:TRACE")
 	net.Steps(2)
 
 	childHandler, err := net.NodesSharded[0][0].BlockchainHook.GetUserAccount(childAddress)
