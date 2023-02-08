@@ -1,0 +1,49 @@
+[Preferences]
+   # DestinationShardAsObserver represents the desired shard when running as observer
+   # value will be given as string. For example: "0", "1", "15", "metachain"
+   # if "disabled" is provided then the node will start in the corresponding shard for its public key or 0 otherwise
+   DestinationShardAsObserver = "disabled"
+
+   # NodeDisplayName represents the friendly name a user can pick for his node in the status monitor
+   NodeDisplayName = ""
+
+   # Identity represents the keybase's identity
+   Identity = ""
+
+   # RedundancyLevel represents the level of redundancy used by the node (-1 = disabled, 0 = main instance (default),
+   # 1 = first backup, 2 = second backup, etc.)
+   RedundancyLevel = 0
+
+   # FullArchive, if enabled, will make the node able to respond to requests from past, old epochs.
+   # It is highly recommended to enable this flag on an observer (not on a validator node)
+   FullArchive = false
+
+   # PreferredConnections holds an array containing valid ips or peer ids from nodes to connect with (in top of other connections)
+   # Example:
+   # PreferredConnections = [
+   #    "127.0.0.10",
+   #    "16Uiu2HAm6yvbp1oZ6zjnWsn9FdRqBSaQkbhELyaThuq48ybdorrr"
+   # ]
+   PreferredConnections = []
+
+   # ConnectionWatcherType represents the type of a connection watcher needed.
+   # possible options:
+   #  - "disabled" - no connection watching should be made
+   #  - "print" - new connection found will be printed in the log file
+   ConnectionWatcherType = "disabled"
+
+   # OverridableConfigTomlValues represents an array of items to be overloaded inside other configuration files, which can be helpful
+   # so that certain config values need to remain the same during upgrades.
+   # (for example, an Elasticsearch user wants external.toml->ElasticSearchConnector.Enabled to remain true all the time during upgrades, while the default
+   # configuration of the node has the false value)
+   # The Path indicates what value to change, while Value represents the new value in string format. The node operator must make sure
+   # to follow the same type of the original value (ex: uint32: "37", float32: "37.0", bool: "true")
+   # File represents the file name that holds the configuration. Currently, the supported files are: config.toml, external.toml, p2p.toml and enableEpochs.toml
+   # -------------------------------
+   # Un-comment and update the following section in order to enable config values overloading
+   # -------------------------------
+   # OverridableConfigTomlValues = [
+   #    { File = "config.toml", Path = "StoragePruning.NumEpochsToKeep", Value = "4" },
+   #    { File = "config.toml", Path = "MiniBlocksStorage.Cache.Name", Value = "MiniBlocksStorage" },
+   #    { File = "external.toml", Path = "ElasticSearchConnector.Enabled", Value = "true" }
+   #]

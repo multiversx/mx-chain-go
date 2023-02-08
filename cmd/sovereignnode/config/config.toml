@@ -1,0 +1,939 @@
+# GeneralSettings section of the node
+[GeneralSettings]
+    # StatusPollingIntervalSec represents the no of seconds between multiple polling for the status for AppStatusHandler
+    StatusPollingIntervalSec = 2
+
+    # MaxComputableRounds represents the max number of rounds computable in a round
+    # by the validator statistics processor
+    MaxComputableRounds = 100
+
+    # StartInEpochEnabled represents that the fast bootstrap mechanism from the network is enabled if data is not
+    # available in local disk
+    StartInEpochEnabled = true
+
+    # ChainID represents the chain identifier
+    # The currently supported constants are:
+    #   "1" for Mainnet
+    #   "D" for Devnet
+    #   "T" for Testnet
+    ChainID = "undefined"
+
+    # MinTransactionVersion represents the minimum transaction version accepted
+    MinTransactionVersion = 1
+
+    # GenesisString represents the encoded string for the genesis block
+    GenesisString = "67656E65736973"
+
+    # GenesisMaxNumberOfShards represents the maximum number of shards to be created at genesis (excluding metaChain shard)
+    GenesisMaxNumberOfShards  = 3
+
+    # MaxConsecutiveRoundsOfRatingDecrease represents the max number of consecutive rounds in which a block is not proposed
+    # on a shard and the validators' rating could be decreased. If, for instance, a shard gets stuck for more rounds
+    # than this value, then the validators rating decrease should stop so they won't get jailed
+    MaxConsecutiveRoundsOfRatingDecrease = 600
+
+    # SyncProcessTimeInMillis is the value in milliseconds used when processing blocks while synchronizing blocks
+    SyncProcessTimeInMillis = 12000
+
+[Versions]
+    DefaultVersion = "default"
+    VersionsByEpochs = [
+        { StartEpoch = 0, Version = "*" },
+        # The value of StartEpoch parameter for version 2 should be the same with the ScheduledMiniBlocksEnableEpoch flag from enableEpoch.toml file
+        { StartEpoch = 1, Version = "2" },
+    ]
+    [Versions.Cache]
+        Name = "VersionsCache"
+        Capacity = 100
+        Type = "LRU"
+
+[StoragePruning]
+    # If the Enabled flag is set to false, then the storers won't divide epochs into separate dbs
+    Enabled = true
+
+    # If this flag is set to false, the node won't delete any database between epochs
+    # Applicable only for validators
+    ValidatorCleanOldEpochsData = true
+
+    # If this flag is set to false, the node won't delete any database between epochs
+    # Applicable only for observers
+    ObserverCleanOldEpochsData = false
+
+    # If this flag is set to false, the node won't delete the AccountsTrie database for old epochs
+    # Applicable for both observers and validators
+    # WARNING! Setting this to false will increase each epoch's directory size with the trie snapshot,
+    # which might easily cause the node to run out of disk space.
+    AccountsTrieCleanOldEpochsData = true
+
+    # AccountsTrieSkipRemovalCustomPattern represents the custom pattern that determines when AccountsTrie database
+    # doesn't have to be cleaned
+    # Format: %x,%y - if an epoch is divisible by x or by y, then the AccountsTrie database won't be removed
+    # If empty, then all databases will be removed
+    # If invalid format, then an error will be returned
+    # Applicable only if AccountsTrieCleanOldEpochsData is set to true
+    AccountsTrieSkipRemovalCustomPattern = "%50"
+
+    # NumEpochsToKeep - if the flag above is set to true, this will set the number of epochs to keep in the storage.
+    # Epochs older that (current epoch - NumOfEpochsToKeep) will be removed
+    NumEpochsToKeep = 4
+
+    # NumActivePersisters - this will set the number of persisters to keep active at a moment. This works even if
+    # the node removes old epochs data or not. In case of a node which removes old epochs data, this value has to be
+    # smaller or equal to the NumOfEpochsToKeep flag
+    NumActivePersisters = 3
+
+    # FullArchiveNumActivePersisters represents the number of persisters to be kept in cache as to allow better response
+    # to inquiring peers. This value will get multiplied by the number of persisters required by the node to function so
+    # it is a good idea to increase the maximum number of opened files allowed by the operating system
+    FullArchiveNumActivePersisters = 10
+
+[MiniBlocksStorage]
+    [MiniBlocksStorage.Cache]
+        Name = "MiniBlocksStorage"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 104857600 #100MB
+    [MiniBlocksStorage.DB]
+        FilePath = "MiniBlocks"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 100
+        MaxOpenFiles = 10
+
+[ReceiptsStorage]
+    [ReceiptsStorage.Cache]
+        Name = "ReceiptsStorage"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 10485760 #10MB
+    [ReceiptsStorage.DB]
+        FilePath = "Receipts"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 100
+        MaxOpenFiles = 10
+
+[ScheduledSCRsStorage]
+    [ScheduledSCRsStorage.Cache]
+        Name = "ScheduledSCRsStorage"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 10485760 #10MB
+    [ScheduledSCRsStorage.DB]
+        FilePath = "ScheduledSCRs"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 100
+        MaxOpenFiles = 10
+
+[PeerBlockBodyStorage]
+    [PeerBlockBodyStorage.Cache]
+        Name = "PeerBlockBodyStorage"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 104857600 #100MB
+    [PeerBlockBodyStorage.DB]
+        FilePath = "PeerBlocks"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 100
+        MaxOpenFiles = 10
+
+[BlockHeaderStorage]
+    [BlockHeaderStorage.Cache]
+        Name = "BlockHeaderStorage"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 3145728 #3MB
+    [BlockHeaderStorage.DB]
+        FilePath = "BlockHeaders"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 100
+        MaxOpenFiles = 10
+
+[BootstrapStorage]
+    [BootstrapStorage.Cache]
+        Name = "BootstrapStorage"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 104857600 #100MB
+    [BootstrapStorage.DB]
+        FilePath = "BootstrapData"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 100
+        MaxOpenFiles = 10
+
+[MetaBlockStorage]
+    [MetaBlockStorage.Cache]
+        Name = "MetaBlockStorage"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 20971520 #20MB
+    [MetaBlockStorage.DB]
+        FilePath = "MetaBlock"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 100
+        MaxOpenFiles = 10
+
+[TxStorage]
+    [TxStorage.Cache]
+        Name = "TxStorage"
+        Capacity = 500000
+        Type = "SizeLRU"
+        SizeInBytes = 209715200 #200MB
+    [TxStorage.DB]
+        FilePath = "Transactions"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 30000
+        MaxOpenFiles = 10
+
+[UnsignedTransactionStorage]
+    [UnsignedTransactionStorage.Cache]
+        Name = "UnsignedTransactionStorage"
+        Capacity = 250000
+        Type = "SizeLRU"
+        SizeInBytes = 104857600 #100MB
+    [UnsignedTransactionStorage.DB]
+        FilePath = "UnsignedTransactions"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 20000
+        MaxOpenFiles = 10
+
+[RewardTxStorage]
+    [RewardTxStorage.Cache]
+        Name = "RewardTxStorage"
+        Capacity = 75000
+        Type = "SizeLRU"
+        SizeInBytes = 52428800 #50MB
+    [RewardTxStorage.DB]
+        FilePath = "RewardTransactions"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 20000
+        MaxOpenFiles = 10
+
+[SmartContractsStorage]
+    [SmartContractsStorage.Cache]
+        Name = "SmartContractsStorage"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 52428800 #50MB
+    [SmartContractsStorage.DB]
+        FilePath = "SmartContractsStorage"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 100
+        MaxOpenFiles = 10
+
+[SmartContractsStorageSimulate]
+    [SmartContractsStorageSimulate.Cache]
+        Name = "SmartContractsStorageSimulate"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 52428800 #50MB
+    [SmartContractsStorageSimulate.DB]
+        FilePath = "SmartContractsStorageSimulate"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 100
+        MaxOpenFiles = 10
+
+[SmartContractsStorageForSCQuery]
+    [SmartContractsStorageForSCQuery.Cache]
+        Name = "SmartContractsStorageForSCQuery"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 52428800 #50MB
+    [SmartContractsStorageForSCQuery.DB]
+        FilePath = "SmartContractsStorageForSCQuery"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 100
+        MaxOpenFiles = 10
+
+[StatusMetricsStorage]
+    [StatusMetricsStorage.Cache]
+        Name = "StatusMetricsStorage"
+        Capacity = 1000
+        Type = "LRU"
+    [StatusMetricsStorage.DB]
+        FilePath = "StatusMetricsStorageDB"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 100
+        MaxOpenFiles = 10
+
+[TrieEpochRootHashStorage]
+    [TrieEpochRootHashStorage.Cache]
+        Name = "TrieEpochRootHashCache"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 314572800 #300MB
+    [TrieEpochRootHashStorage.DB]
+        FilePath = "TrieEpochRootHashStorageDB"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 500
+        MaxOpenFiles = 10
+
+[ShardHdrNonceHashStorage]
+    [ShardHdrNonceHashStorage.Cache]
+        Name = "ShardHdrNonceHashStorage"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 3145728 #3MB
+    [ShardHdrNonceHashStorage.DB]
+        FilePath = "ShardHdrHashNonce"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 100
+        MaxOpenFiles = 10
+
+[MetaHdrNonceHashStorage]
+    [MetaHdrNonceHashStorage.Cache]
+        Name = "MetaHdrNonceHashStorage"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 3145728 #3MB
+    [MetaHdrNonceHashStorage.DB]
+        FilePath = "MetaHdrHashNonce"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 100
+        MaxOpenFiles = 10
+
+[AccountsTrieStorage]
+    [AccountsTrieStorage.Cache]
+        Name = "AccountsTrieStorage"
+        Capacity = 500000
+        Type = "SizeLRU"
+        SizeInBytes = 314572800 #300MB
+    [AccountsTrieStorage.DB]
+        FilePath = "AccountsTrie"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 45000
+        MaxOpenFiles = 10
+
+[PeerAccountsTrieStorage]
+    [PeerAccountsTrieStorage.Cache]
+        Name = "PeerAccountsTrieStorage"
+        Capacity = 5000
+        Type = "SizeLRU"
+        SizeInBytes = 104857600 #100MB
+    [PeerAccountsTrieStorage.DB]
+        FilePath = "PeerAccountsTrie"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 1000
+        MaxOpenFiles = 10
+
+[AccountsTrieCheckpointsStorage]
+    [AccountsTrieCheckpointsStorage.Cache]
+        Name = "AccountsTrieCheckpointsStorage"
+        Capacity = 100000
+        Type = "SizeLRU"
+        SizeInBytes = 52428800 #50MB
+    [AccountsTrieCheckpointsStorage.DB]
+        FilePath = "AccountsTrieCheckpoints"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 45000
+        MaxOpenFiles = 10
+
+[PeerAccountsTrieCheckpointsStorage]
+    [PeerAccountsTrieCheckpointsStorage.Cache]
+        Name = "PeerAccountsTrieCheckpointsStorage"
+        Capacity = 10000
+        Type = "SizeLRU"
+        SizeInBytes = 52428800 #50MB
+    [PeerAccountsTrieCheckpointsStorage.DB]
+        FilePath = "PeerAccountsTrieCheckpoints"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 1000
+        MaxOpenFiles = 10
+
+[EvictionWaitingList]
+    #total max size ~ 2 * [(RoothashesSize * 32) + (HashesSize * 32)]
+    RootHashesSize = 10000
+    HashesSize = 100000
+    [EvictionWaitingList.DB]
+        FilePath = "EvictionWaitingList"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 100
+        MaxOpenFiles = 10
+
+[TrieStorageManagerConfig]
+    PruningBufferLen = 100000
+    SnapshotsBufferLen = 1000000
+    SnapshotsGoroutineNum = 200
+    CheckpointHashesHolderMaxSize = 52428800 #50MB
+
+[HeadersPoolConfig]
+    MaxHeadersPerShard = 1000
+    NumElementsToRemoveOnEviction = 200
+
+[BadBlocksCache]
+    Name = "BadBlocksCache"
+    Capacity = 1000
+    Type = "SizeLRU"
+    SizeInBytes = 3145728 #3MB
+
+[TxBlockBodyDataPool]
+    Name = "TxBlockBodyDataPool"
+    Capacity = 100000
+    Type = "SizeLRU"
+    SizeInBytes = 314572800 #300MB
+
+[PeerBlockBodyDataPool]
+    Name = "PeerBlockBodyDataPool"
+    Capacity = 1000
+    Type = "SizeLRU"
+    SizeInBytes = 314572800 #300MB
+
+[TxDataPool]
+    Name = "TxDataPool"
+    Capacity = 600000
+    SizePerSender = 20000
+    SizeInBytes = 419430400 #400MB
+    SizeInBytesPerSender = 12288000
+    Type = "TxCache"
+    Shards = 16
+
+[TrieNodesChunksDataPool]
+    Name = "TrieNodesDataPool"
+    Capacity = 400
+    Type = "SizeLRU"
+    SizeInBytes = 104857600 #100MB
+
+[SmartContractDataPool]
+    Name = "SmartContractDataPool"
+    Capacity = 900000
+    Type = "SizeLRU"
+    SizeInBytes = 209715200 #200MB
+
+[WhiteListPool]
+    Name = "WhiteListPool"
+    Capacity = 100000
+    Type = "FIFOSharded"
+    Shards = 10
+
+[WhiteListerVerifiedTxs]
+    Name = "WhiteListerVerifiedTxs"
+    Capacity = 50000
+    Type = "FIFOSharded"
+    Shards = 50
+
+[UnsignedTransactionDataPool]
+    Name = "UnsignedTransactionDataPool"
+    Capacity = 75000        # per each pair (sourceShard, destinationShard)
+    SizeInBytes = 31457280  # 30MB per each pair (sourceShard, destinationShard)
+    Shards = 4
+
+[RewardTransactionDataPool]
+    Name = "RewardTransactionDataPool"
+    Capacity = 75000        # per each pair (metachain, destinationShard)
+    SizeInBytes = 26214400  # 25MB per each pair (metachain, destinationShard)
+    Shards = 4
+
+[ValidatorInfoPool]
+    Name = "ValidatorInfoPool"
+    Capacity = 10000
+    SizeInBytes = 31457280  #30MB
+    Shards = 4
+
+#PublicKeyPeerId represents the main cache used to map MultiversX block signing public keys to their associated peer id's.
+[PublicKeyPeerId]
+    Name = "PublicKeyPeerId"
+    Capacity = 30000
+    Type = "LRU"
+
+#PublicKeyShardId is the fallback cache used to map public keys to the shard they belong.
+[PublicKeyShardId]
+    Name = "PublicKeyShardId"
+    Capacity = 30000
+    Type = "LRU"
+
+#PublicKeyPIDSignature is the cache that is used to map a public key to a peerId-signature pair.
+[PublicKeyPIDSignature]
+    Name = "PublicKeyPIDSignature"
+    Capacity = 3000
+    Type = "LRU"
+
+#PeerIdShardId is the fallback cache used in network sharding to allow direct connection between peer id and shard.
+# Used mainly for observers.
+[PeerIdShardId]
+    Name = "PeerIdShardId"
+    Capacity = 30000
+    Type = "LRU"
+
+[PeerHonesty]
+    Name = "PeerHonesty"
+    Capacity = 5000
+    Type = "LRU"
+
+[VMOutputCacher]
+    Name = "VMOutputCacher"
+    Capacity = 10000
+    Type = "LRU"
+
+[PeersRatingConfig]
+    TopRatedCacheCapacity = 5000
+    BadRatedCacheCapacity = 5000
+
+[PoolsCleanersConfig]
+    MaxRoundsToKeepUnprocessedMiniBlocks = 300   # max number of rounds unprocessed miniblocks are kept in pool
+    MaxRoundsToKeepUnprocessedTransactions = 300 # max number of rounds unprocessed transactions are kept in pool
+
+[TrieSyncStorage]
+    Capacity = 300000
+    SizeInBytes = 104857600 #100MB
+    EnableDB = false
+    [TrieSyncStorage.DB]
+        FilePath = "TrieSyncStorageDB"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 45000
+        MaxOpenFiles = 10
+        UseTmpAsFilePath = true
+
+[Antiflood]
+    Enabled = true
+    NumConcurrentResolverJobs = 50
+    [Antiflood.FastReacting]
+        IntervalInSeconds = 1
+        ReservedPercent   = 20.0
+        [Antiflood.FastReacting.PeerMaxInput]
+            BaseMessagesPerInterval  = 140
+            TotalSizePerInterval = 4194304 #4MB/s
+            [Antiflood.FastReacting.PeerMaxInput.IncreaseFactor]
+                Threshold = 10 #if consensus size will exceed this value, then
+                Factor = 1.0   #increase the base value with [factor*consensus size]
+        [Antiflood.FastReacting.BlackList]
+            ThresholdNumMessagesPerInterval = 1000
+            ThresholdSizePerInterval = 8388608 #8MB/s
+            NumFloodingRounds = 10
+            PeerBanDurationInSeconds = 300
+
+    [Antiflood.SlowReacting]
+        IntervalInSeconds = 30
+        ReservedPercent   = 20.0
+        [Antiflood.SlowReacting.PeerMaxInput]
+            BaseMessagesPerInterval = 6000
+            TotalSizePerInterval = 18874368 # 18MB/interval
+            [Antiflood.SlowReacting.PeerMaxInput.IncreaseFactor]
+                Threshold = 10 #if consensus size will exceed this value, then
+                Factor = 0.0   #increase the base value with [factor*consensus size]
+        [Antiflood.SlowReacting.BlackList]
+            ThresholdNumMessagesPerInterval = 10000
+            ThresholdSizePerInterval = 37748736 # 36MB/interval
+            NumFloodingRounds = 2
+            PeerBanDurationInSeconds = 3600
+
+    [Antiflood.OutOfSpecs]
+        IntervalInSeconds = 1
+        ReservedPercent   = 0.0
+        [Antiflood.OutOfSpecs.PeerMaxInput]
+            BaseMessagesPerInterval = 2000
+            TotalSizePerInterval = 10485760 # 10MB/interval
+            [Antiflood.OutOfSpecs.PeerMaxInput.IncreaseFactor]
+                Threshold = 0 #if consensus size will exceed this value, then
+                Factor = 0.0     #increase the base value with [factor*consensus size]
+        [Antiflood.OutOfSpecs.BlackList]
+            ThresholdNumMessagesPerInterval = 3600
+            ThresholdSizePerInterval = 12582912 # 12MB/interval
+            NumFloodingRounds = 2
+            PeerBanDurationInSeconds = 3600
+
+    [Antiflood.PeerMaxOutput]
+        BaseMessagesPerInterval  = 75
+        TotalSizePerInterval     = 2097152 #2MB/s
+
+    [Antiflood.Cache]
+        Name = "Antiflood"
+        Capacity = 7000
+        Type = "LRU"
+    [Antiflood.Topic]
+        DefaultMaxMessagesPerSec = 15000
+        MaxMessages = [{ Topic = "shardBlocks*", NumMessagesPerSec = 30 },
+                       { Topic = "metachainBlocks", NumMessagesPerSec = 30 }]
+
+    [Antiflood.TxAccumulator]
+        # MaxAllowedTimeInMilliseconds is used as a time frame in which the node gathers transactions.
+        # After this period, collected transactions will be sent on the p2p topics
+        MaxAllowedTimeInMilliseconds = 250
+        # MaxDeviationTimeInMilliseconds represents the time in miliseconds that will cause the effectual time frame be
+        # less than the specified max value. This is used to create desynchronizations between senders as to not
+        # clutter the network exactly in the same moment
+        MaxDeviationTimeInMilliseconds = 25
+
+[WebServerAntiflood]
+    WebServerAntifloodEnabled = true
+    # SimultaneousRequests represents the number of concurrent requests accepted by the web server
+    # this is a global throttler that acts on all http connections regardless of the originating source
+    SimultaneousRequests = 100
+    # SameSourceRequests defines how many requests are allowed from the same source in the specified
+    # time frame (SameSourceResetIntervalInSec)
+    SameSourceRequests = 10000
+    # SameSourceResetIntervalInSec time frame between counter reset, in seconds
+    SameSourceResetIntervalInSec = 1
+    # TrieOperationsDeadlineMilliseconds represents the maximum duration that an API call targeting a trie operation
+    # can take.
+    TrieOperationsDeadlineMilliseconds = 10000
+    # GetAddressesBulkMaxSize represents the maximum number of addresses to be fetched in a bulk per API request. 0 means unlimited
+    GetAddressesBulkMaxSize = 100
+    # EndpointsThrottlers represents a map for maximum simultaneous go routines for an endpoint
+    EndpointsThrottlers = [{ Endpoint = "/transaction/:hash", MaxNumGoRoutines = 10 },
+                           { Endpoint = "/transaction/send", MaxNumGoRoutines = 2 },
+                           { Endpoint = "/transaction/simulate", MaxNumGoRoutines = 1 },
+                           { Endpoint = "/transaction/send-multiple", MaxNumGoRoutines = 2 }]
+
+[AddressPubkeyConverter]
+    Length = 32
+    Type = "bech32"
+    SignatureLength = 64
+
+[ValidatorPubkeyConverter]
+    Length = 96
+    Type = "hex"
+    SignatureLength = 48
+
+[Hasher]
+   Type = "blake2b"
+
+[MultisigHasher]
+   Type = "blake2b"
+
+[TxSignHasher]
+    Type = "keccak"
+
+# The main marshalizer, used in internodes communication
+# Type identifies the marshalizer
+# SizeCheckDelta the maximum allow drift between the input data buffer and
+#     the reencoded version (in percents).
+#     0 disables the feature.
+[Marshalizer]
+   Type = "gogo protobuf"
+   SizeCheckDelta = 10
+
+# The marshalizer used for smartcontracts data exchange
+[VmMarshalizer]
+   Type = "json"
+
+# The marshalizer used in transaction signing
+[TxSignMarshalizer]
+   Type = "json"
+
+[EpochStartConfig]
+    MinRoundsBetweenEpochs = 20
+    RoundsPerEpoch         = 200
+    # Min and Max ShuffledOutRestartThreshold represents the minimum and maximum duration of an epoch (in percentage) after a node which
+    # has been shuffled out has to restart its process in order to start in a new shard
+    MinShuffledOutRestartThreshold = 0.05
+    MaxShuffledOutRestartThreshold = 0.25
+
+    MinNumConnectedPeersToStart       = 2
+    MinNumOfPeersToConsiderBlockValid = 2
+
+# ResourceStats, if enabled, will output in a folder called "stats"
+# resource statistics. For example: number of active go routines, memory allocation, number of GC sweeps, etc.
+# RefreshIntervalInSec will tell how often a new line containing stats should be added in stats file
+[ResourceStats]
+    Enabled = true
+    RefreshIntervalInSec = 30
+
+[ValidatorStatistics]
+    CacheRefreshIntervalInSec = 60
+
+# Consensus type which will be used (the current implementation can manage "bn" and "bls")
+# When consensus type is "bls" the multisig hasher type should be "blake2b"
+[Consensus]
+    Type = "bls"
+
+[NTPConfig]
+    Hosts = ["time.google.com", "time.cloudflare.com",  "time.apple.com"]
+    Port = 123
+    TimeoutMilliseconds = 100
+    SyncPeriodSeconds = 3600
+    Version = 0  # Setting 0 means 'use default value'
+
+[StateTriesConfig]
+    CheckpointRoundsModulus = 100
+    CheckpointsEnabled = false
+    SnapshotsEnabled = true
+    AccountsStatePruningEnabled = false
+    PeerStatePruningEnabled = true
+    MaxStateTrieLevelInMemory = 5
+    MaxPeerTrieLevelInMemory = 5
+
+[BlockSizeThrottleConfig]
+    MinSizeInBytes = 104857 # 104857 is 10% from 1MB
+    MaxSizeInBytes = 943718 # 943718 is 90% from 1MB
+
+[VirtualMachine]
+    [VirtualMachine.Execution]
+        TimeOutForSCExecutionInMilliseconds = 10000 # 10 seconds = 10000 milliseconds
+        WasmerSIGSEGVPassthrough            = false # must be false for release
+        WasmVMVersions = [
+            { StartEpoch = 0, Version = "v1.3" },
+            { StartEpoch = 1, Version = "v1.4" },
+        ]
+
+    [VirtualMachine.Querying]
+        NumConcurrentVMs = 1
+        TimeOutForSCExecutionInMilliseconds = 10000 # 10 seconds = 10000 milliseconds
+        WasmerSIGSEGVPassthrough            = false # must be false for release
+        WasmVMVersions = [
+            { StartEpoch = 0, Version = "v1.3" },
+            { StartEpoch = 1, Version = "v1.4" },
+        ]
+
+    [VirtualMachine.GasConfig]
+        # The following values define the maximum amount of gas to be allocated for VM Queries coming from API
+        # If set to 0, then MaxUInt64 will be used
+        ShardMaxGasPerVmQuery = 1500000000  #1.5b
+        MetaMaxGasPerVmQuery = 0  #unlimited
+
+[BuiltInFunctions]
+    AutomaticCrawlerAddresses =[
+        "erd1he8wwxn4az3j82p7wwqsdk794dm7hcrwny6f8dfegkfla34udx7qrf7xje", #shard 0
+        "erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c", #shard 1
+        "erd1najnxxweyw6plhg8efql330nttrj6l5cf87wqsuym85s9ha0hmdqnqgenp", #shard 2
+    ]
+    MaxNumAddressesInTransferRole = 100
+
+[Hardfork]
+    EnableTrigger = true
+    EnableTriggerFromP2P = true
+    PublicKeyToListenFrom = "153dae6cb3963260f309959bf285537b77ae16d82e9933147be7827f7394de8dc97d9d9af41e970bc72aecb44b77e819621081658c37f7000d21e2d0e8963df83233407bde9f46369ba4fcd03b57f40b80b06c191a428cfb5c447ec510e79307"
+    CloseAfterExportInMinutes = 10000
+    AfterHardFork = false
+    ImportFolder = "export"
+    StartRound = 10000
+    StartNonce = 10000
+    StartEpoch = 100
+    GenesisTime = 0
+    ValidatorGracePeriodInEpochs = 1 #defines how long is the rating computation disabled after hardfork
+    [Hardfork.ExportStateStorageConfig]
+        [Hardfork.ExportStateStorageConfig.Cache]
+            Name = "HardFork.ExportStateStorageConfig"
+            Capacity = 5000
+            Type = "LRU"
+        [Hardfork.ExportStateStorageConfig.DB]
+            FilePath = "ExportStateStorage/MainDB"
+            Type = "LvlDBSerial"
+            BatchDelaySeconds = 2
+            MaxBatchSize = 1000
+            MaxOpenFiles = 10
+    [Hardfork.ExportKeysStorageConfig]
+        [Hardfork.ExportKeysStorageConfig.Cache]
+            Name = "HardFork.ExportKeysStorageConfig"
+            Capacity = 5000
+            Type = "LRU"
+        [Hardfork.ExportKeysStorageConfig.DB]
+            FilePath = "ExportKeysStorageConfig/MainDB"
+            Type = "LvlDBSerial"
+            BatchDelaySeconds = 2
+            MaxBatchSize = 1000
+            MaxOpenFiles = 10
+    [Hardfork.ExportTriesStorageConfig]
+        [Hardfork.ExportTriesStorageConfig.Cache]
+            Name = "HardFork.ExportTriesStorageConfig"
+            Capacity = 5000
+            Type = "LRU"
+        [Hardfork.ExportTriesStorageConfig.DB]
+            FilePath = "ExportTrieStorage/MainTrie"
+            Type = "LvlDBSerial"
+            BatchDelaySeconds = 2
+            MaxBatchSize = 1000
+            MaxOpenFiles = 10
+    [Hardfork.ImportStateStorageConfig]
+        [Hardfork.ImportStateStorageConfig.Cache]
+            Name = "HardFork.ImportStateStorageConfig"
+            Capacity = 5000
+            Type = "LRU"
+        [Hardfork.ImportStateStorageConfig.DB]
+            FilePath = "ExportStateStorage/MainDB"
+            Type = "LvlDBSerial"
+            BatchDelaySeconds = 2
+            MaxBatchSize = 1000
+            MaxOpenFiles = 10
+    [Hardfork.ImportKeysStorageConfig]
+        [Hardfork.ImportKeysStorageConfig.Cache]
+            Name = "HardFork.ImportKeysStorageConfig"
+            Capacity = 5000
+            Type = "LRU"
+        [Hardfork.ImportKeysStorageConfig.DB]
+            FilePath = "ExportKeysStorageConfig/MainDB"
+            Type = "LvlDBSerial"
+            BatchDelaySeconds = 2
+            MaxBatchSize = 1000
+            MaxOpenFiles = 10
+
+[Debug]
+    [Debug.InterceptorResolver]
+        Enabled = true
+        CacheSize = 10000
+        EnablePrint = true
+        IntervalAutoPrintInSeconds = 20
+        NumRequestsThreshold = 9
+        NumResolveFailureThreshold = 3
+        DebugLineExpiration = 10 #Will remove the debug line after a `DebugLineExpiration` number of prints
+    [Debug.Antiflood]
+        Enabled = true
+        CacheSize = 10000
+        IntervalAutoPrintInSeconds = 20
+    [Debug.ShuffleOut]
+        CallGCWhenShuffleOut = true
+        ExtraPrintsOnShuffleOut = true
+        DoProfileOnShuffleOut = true
+    [Debug.EpochStart]
+        GoRoutineAnalyserEnabled = true
+        ProcessDataTrieOnCommitEpoch = true
+    [Debug.Process]
+        Enabled = true
+        DebuggingLogLevel = "*:DEBUG,p2p:TRACE,debug:DEBUG,process:TRACE,intercept:TRACE"
+        GoRoutinesDump = true
+        PollingTimeInSeconds = 240 # 4 minutes
+        # setting this to 0 disables the automatic revert of the log level
+        RevertLogLevelTimeInSeconds = 600 # 10 minutes
+
+[Health]
+    IntervalVerifyMemoryInSeconds = 30
+    IntervalDiagnoseComponentsInSeconds = 30
+    IntervalDiagnoseComponentsDeeplyInSeconds = 120
+    MemoryUsageToCreateProfiles = 3221225472 # 3 GB
+    NumMemoryUsageRecordsToKeep = 100
+    FolderPath = "health-records"
+
+[SoftwareVersionConfig]
+    StableTagLocation = "https://api.github.com/repos/multiversx/mx-chain-go/releases/latest"
+    PollingIntervalInMinutes = 65
+
+[LogsAndEvents]
+    SaveInStorageEnabled = false
+    [LogsAndEvents.TxLogsStorage.Cache]
+        Name = "TxLogsStorage"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 20971520 #20MB
+    [LogsAndEvents.TxLogsStorage.DB]
+        FilePath = "Logs"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 100
+        MaxOpenFiles = 10
+
+[DbLookupExtensions]
+    Enabled = false
+    DbLookupMaxActivePersisters = 10
+    [DbLookupExtensions.MiniblocksMetadataStorageConfig.Cache]
+        Name = "DbLookupExtensions.MiniblocksMetadataStorage"
+        Capacity = 20000
+        Type = "LRU"
+    [DbLookupExtensions.MiniblocksMetadataStorageConfig.DB]
+        FilePath = "DbLookupExtensions/MiniblocksMetadata"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 20000
+        MaxOpenFiles = 10
+    [DbLookupExtensions.MiniblockHashByTxHashStorageConfig.Cache]
+        Name = "DbLookupExtensions.MiniblockHashByTxHashStorage"
+        Capacity = 20000
+        Type = "LRU"
+    [DbLookupExtensions.MiniblockHashByTxHashStorageConfig.DB]
+        FilePath = "DbLookupExtensions_MiniblockHashByTxHash"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 20000
+        MaxOpenFiles = 10
+    [DbLookupExtensions.EpochByHashStorageConfig.Cache]
+        Name = "DbLookupExtensions.EpochByHashStorage"
+        Capacity = 20000
+        Type = "LRU"
+    [DbLookupExtensions.EpochByHashStorageConfig.DB]
+        FilePath = "DbLookupExtensions_EpochByHash"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 20000
+        MaxOpenFiles = 10
+    [DbLookupExtensions.ResultsHashesByTxHashStorageConfig.Cache]
+        Name = "DbLookupExtensions.ResultsHashesByTxHashStorage"
+        Capacity = 20000
+        Type = "LRU"
+    [DbLookupExtensions.ResultsHashesByTxHashStorageConfig.DB]
+        FilePath = "DbLookupExtensions_ResultsHashesByTx"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 20000
+        MaxOpenFiles = 10
+    [DbLookupExtensions.ESDTSuppliesStorageConfig.Cache]
+        Name = "DbLookupExtensions.ESDTSuppliesStorage"
+        Capacity = 20000
+        Type = "LRU"
+    [DbLookupExtensions.ESDTSuppliesStorageConfig.DB]
+        FilePath = "DbLookupExtensions_ESDTSupplies"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 20000
+        MaxOpenFiles = 10
+    [DbLookupExtensions.RoundHashStorageConfig.Cache]
+        Name = "DbLookupExtensions.RoundHashStorage"
+        Capacity = 20000
+        Type = "LRU"
+    [DbLookupExtensions.RoundHashStorageConfig.DB]
+        FilePath = "DbLookupExtensions_RoundHash"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 20000
+        MaxOpenFiles = 10
+
+[Logs]
+    LogFileLifeSpanInMB = 1024 # 1GB
+    LogFileLifeSpanInSec = 86400 # 1 day
+
+[TrieSync]
+    NumConcurrentTrieSyncers  = 200
+    MaxHardCapForMissingNodes = 5000
+    #available versions: 1, 2 and 3. 1 is the initial version, 2 is updated, more efficient version employing 2 lists
+    #the 3-rd one uses depth-first algorithm which keeps the memory consumption low
+    TrieSyncerVersion         = 3
+    CheckNodesOnDisk          = false
+
+[Resolvers]
+    NumCrossShardPeers  = 2
+    NumTotalPeers       = 3 # NumCrossShardPeers + num intra shard
+    NumFullHistoryPeers = 3
+
+[HeartbeatV2]
+    PeerAuthenticationTimeBetweenSendsInSec          = 600  # 10min TODO: change this for mainnet/devnet/testnet
+    PeerAuthenticationTimeBetweenSendsWhenErrorInSec = 60   # 1min
+    PeerAuthenticationThresholdBetweenSends          = 0.1  # 10%
+    HeartbeatTimeBetweenSendsInSec                   = 60   # 1min
+    HeartbeatTimeBetweenSendsDuringBootstrapInSec    = 60   # 1min
+    HeartbeatTimeBetweenSendsWhenErrorInSec          = 60   # 1min
+    HeartbeatThresholdBetweenSends                   = 0.1  # 10%
+    HeartbeatExpiryTimespanInSec                     = 3600 # 1h
+    MinPeersThreshold                                = 0.8  # 80%
+    DelayBetweenRequestsInSec                        = 10   # 10sec
+    MaxTimeoutInSec                                  = 7200 # 2h
+    PeerShardTimeBetweenSendsInSec                   = 7200 # 2h
+    PeerShardThresholdBetweenSends                   = 0.1  # 10%
+    MaxMissingKeysInRequest                          = 1000
+    MaxDurationPeerUnresponsiveInSec                 = 900  # 15min
+    HideInactiveValidatorIntervalInSec               = 3600 # 1h
+    HardforkTimeBetweenSendsInSec                    = 60   # 1min
+    TimeBetweenConnectionsMetricsUpdateInSec         = 30   # 30sec
+    TimeToReadDirectConnectionsInSec                 = 15   # 15sec
+    [HeartbeatV2.HeartbeatPool]
+        Name = "HeartbeatPool"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 314572800 #300MB
