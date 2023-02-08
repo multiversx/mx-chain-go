@@ -204,9 +204,9 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("runtime memstore limit"), "epoch", enableEpochs.RuntimeMemStoreLimitEnableEpoch)
 	log.Debug(readEpochFor("max blockchainhook counters"), "epoch", enableEpochs.MaxBlockchainHookCountersEnableEpoch)
 	log.Debug(readEpochFor("limit validators"), "epoch", enableEpochs.StakeLimitsEnableEpoch)
-	log.Debug(readEpochFor("staking v4 init"), "epoch", enableEpochs.StakingV4Step1EnableEpoch)
-	log.Debug(readEpochFor("staking v4 enable"), "epoch", enableEpochs.StakingV4Step2EnableEpoch)
-	log.Debug(readEpochFor("staking v4 distribute auction to waiting"), "epoch", enableEpochs.StakingV4Step3EnableEpoch)
+	log.Debug(readEpochFor("staking v4 step 1"), "epoch", enableEpochs.StakingV4Step1EnableEpoch)
+	log.Debug(readEpochFor("staking v4 step 2"), "epoch", enableEpochs.StakingV4Step2EnableEpoch)
+	log.Debug(readEpochFor("staking v4 step 3"), "epoch", enableEpochs.StakingV4Step3EnableEpoch)
 
 	gasSchedule := configs.EpochConfig.GasSchedule
 

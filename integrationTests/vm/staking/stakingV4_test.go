@@ -141,46 +141,46 @@ func TestStakingV4(t *testing.T) {
 
 	// 2. Check config after staking v4 initialization
 	node.Process(t, 5)
-	nodesConfigStakingV4Init := node.NodesConfig
-	require.Len(t, getAllPubKeys(nodesConfigStakingV4Init.eligible), totalEligible)
-	require.Len(t, getAllPubKeys(nodesConfigStakingV4Init.waiting), totalWaiting)
-	require.Empty(t, nodesConfigStakingV4Init.queue)
-	require.Empty(t, nodesConfigStakingV4Init.shuffledOut)
-	requireSameSliceDifferentOrder(t, initialNodes.queue, nodesConfigStakingV4Init.auction)
+	nodesConfigStakingV4Step1 := node.NodesConfig
+	require.Len(t, getAllPubKeys(nodesConfigStakingV4Step1.eligible), totalEligible)
+	require.Len(t, getAllPubKeys(nodesConfigStakingV4Step1.waiting), totalWaiting)
+	require.Empty(t, nodesConfigStakingV4Step1.queue)
+	require.Empty(t, nodesConfigStakingV4Step1.shuffledOut)
+	requireSameSliceDifferentOrder(t, initialNodes.queue, nodesConfigStakingV4Step1.auction)
 
 	// 3. Check config after first staking v4 epoch, WITHOUT distribution from auction -> waiting
 	node.Process(t, 6)
-	nodesConfigStakingV4 := node.NodesConfig
-	require.Len(t, getAllPubKeys(nodesConfigStakingV4.eligible), totalEligible) // 1600
+	nodesConfigStakingV4Step2 := node.NodesConfig
+	require.Len(t, getAllPubKeys(nodesConfigStakingV4Step2.eligible), totalEligible) // 1600
 
 	numOfShuffledOut := int((numOfShards + 1) * numOfNodesToShufflePerShard) // 320
-	require.Len(t, getAllPubKeys(nodesConfigStakingV4.shuffledOut), numOfShuffledOut)
+	require.Len(t, getAllPubKeys(nodesConfigStakingV4Step2.shuffledOut), numOfShuffledOut)
 
 	newWaiting := totalWaiting - numOfShuffledOut // 1280 (1600 - 320)
-	require.Len(t, getAllPubKeys(nodesConfigStakingV4.waiting), newWaiting)
+	require.Len(t, getAllPubKeys(nodesConfigStakingV4Step2.waiting), newWaiting)
 
 	// 380 (320 from shuffled out + 60 from initial staking queue -> auction from stakingV4 init)
-	auctionListSize := numOfShuffledOut + len(nodesConfigStakingV4Init.auction)
-	require.Len(t, nodesConfigStakingV4.auction, auctionListSize)
-	requireSliceContains(t, nodesConfigStakingV4.auction, nodesConfigStakingV4Init.auction)
+	auctionListSize := numOfShuffledOut + len(nodesConfigStakingV4Step1.auction)
+	require.Len(t, nodesConfigStakingV4Step2.auction, auctionListSize)
+	requireSliceContains(t, nodesConfigStakingV4Step2.auction, nodesConfigStakingV4Step1.auction)
 
-	require.Empty(t, nodesConfigStakingV4.queue)
-	require.Empty(t, nodesConfigStakingV4.leaving)
+	require.Empty(t, nodesConfigStakingV4Step2.queue)
+	require.Empty(t, nodesConfigStakingV4Step2.leaving)
 
 	// 320 nodes which are now in eligible are from previous waiting list
-	requireSliceContainsNumOfElements(t, getAllPubKeys(nodesConfigStakingV4.eligible), getAllPubKeys(nodesConfigStakingV4Init.waiting), numOfShuffledOut)
+	requireSliceContainsNumOfElements(t, getAllPubKeys(nodesConfigStakingV4Step2.eligible), getAllPubKeys(nodesConfigStakingV4Step1.waiting), numOfShuffledOut)
 
 	// All shuffled out are from previous staking v4 init eligible
-	requireMapContains(t, nodesConfigStakingV4Init.eligible, getAllPubKeys(nodesConfigStakingV4.shuffledOut))
+	requireMapContains(t, nodesConfigStakingV4Step1.eligible, getAllPubKeys(nodesConfigStakingV4Step2.shuffledOut))
 
 	// All shuffled out are in auction
-	requireSliceContains(t, nodesConfigStakingV4.auction, getAllPubKeys(nodesConfigStakingV4.shuffledOut))
+	requireSliceContains(t, nodesConfigStakingV4Step2.auction, getAllPubKeys(nodesConfigStakingV4Step2.shuffledOut))
 
 	// No auction node from previous epoch has been moved to waiting
-	requireMapDoesNotContain(t, nodesConfigStakingV4.waiting, nodesConfigStakingV4Init.auction)
+	requireMapDoesNotContain(t, nodesConfigStakingV4Step2.waiting, nodesConfigStakingV4Step1.auction)
 
 	epochs := 0
-	prevConfig := nodesConfigStakingV4
+	prevConfig := nodesConfigStakingV4Step2
 	numOfSelectedNodesFromAuction := numOfShuffledOut                     // 320, since we will always fill shuffled out nodes with this config
 	numOfUnselectedNodesFromAuction := auctionListSize - numOfShuffledOut // 60 = 380 - 320
 	for epochs < 10 {
@@ -289,7 +289,7 @@ func TestStakingV4_UnStakeNodesWithNotEnoughFunds(t *testing.T) {
 		TotalStake: big.NewInt(5 * nodePrice),
 	}
 
-	// Owner3 has 2 nodes in staking queue with with topUp = nodePrice
+	// Owner3 has 2 nodes in staking queue with topUp = nodePrice
 	owner3 := "owner3"
 	owner3Stats := &OwnerStats{
 		StakingQueueKeys: pubKeys[14:16],
@@ -407,7 +407,7 @@ func TestStakingV4_UnStakeNodesWithNotEnoughFunds(t *testing.T) {
 	// Meanwhile, owner4 had never unStaked EGLD => his node from auction list will be distributed to waiting
 	unStake(t, []byte(owner3), node.AccountsAdapter, node.Marshaller, big.NewInt(2*nodePrice))
 
-	// 4. Check config in epoch = staking v4 distribute auction to waiting
+	// 4. Check config in epoch = staking v4 step3
 	node.Process(t, 5)
 	currNodesConfig = node.NodesConfig
 	requireSliceContainsNumOfElements(t, getAllPubKeys(currNodesConfig.leaving), owner3StakingQueue, 1)
@@ -533,7 +533,7 @@ func TestStakingV4_StakeNewNodes(t *testing.T) {
 			TotalStake: big.NewInt(4 * nodePrice),
 		},
 	}
-	// 2. Check in epoch = staking v4 when 2 new nodes are staked
+	// 2. Check in epoch = staking v4 step2 when 2 new nodes are staked
 	node.Process(t, 4)
 	node.ProcessStake(t, newNodes2)
 	currNodesConfig = node.NodesConfig
@@ -541,9 +541,9 @@ func TestStakingV4_StakeNewNodes(t *testing.T) {
 	require.Empty(t, currNodesConfig.queue)
 	requireSliceContainsNumOfElements(t, currNodesConfig.auction, queue, 7)
 
-	// 3. Epoch =  staking v4 distribute auction to waiting
+	// 3. Epoch =  staking v4 step3
 	// Only the new 2 owners + owner3 had enough top up to be distributed to waiting.
-	// Meanwhile; owner1 which had 0 top up, still has his bls keys in auction, along with newOwner0
+	// Meanwhile, owner1 which had 0 top up, still has his bls keys in auction, along with newOwner0
 	node.Process(t, 5)
 	currNodesConfig = node.NodesConfig
 	require.Empty(t, currNodesConfig.queue)
@@ -654,7 +654,7 @@ func TestStakingV4_UnStakeNodes(t *testing.T) {
 	require.Len(t, currNodesConfig.queue, 5)
 	requireSameSliceDifferentOrder(t, queue, currNodesConfig.queue)
 
-	// 2. Check config after staking v4 init
+	// 2. Check config after staking v4 step1
 	node.Process(t, 3)
 	currNodesConfig = node.NodesConfig
 	require.Len(t, getAllPubKeys(currNodesConfig.eligible), 4)
@@ -670,8 +670,8 @@ func TestStakingV4_UnStakeNodes(t *testing.T) {
 	node.ProcessUnStake(t, map[string][][]byte{
 		owner3: {owner3StakingQueue[1]},
 	})
-	unStakedNodesInStakingV4InitEpoch := make([][]byte, 0)
-	unStakedNodesInStakingV4InitEpoch = append(unStakedNodesInStakingV4InitEpoch, owner3StakingQueue[1])
+	unStakedNodesInStakingV4Step1Epoch := make([][]byte, 0)
+	unStakedNodesInStakingV4Step1Epoch = append(unStakedNodesInStakingV4Step1Epoch, owner3StakingQueue[1])
 	currNodesConfig = node.NodesConfig
 	queue = remove(queue, owner3StakingQueue[1])
 	require.Len(t, currNodesConfig.auction, 4)
@@ -683,8 +683,8 @@ func TestStakingV4_UnStakeNodes(t *testing.T) {
 	node.ProcessUnStake(t, map[string][][]byte{
 		owner1: {owner1StakingQueue[1], owner1Stats.WaitingBlsKeys[0][0]},
 	})
-	unStakedNodesInStakingV4InitEpoch = append(unStakedNodesInStakingV4InitEpoch, owner1StakingQueue[1])
-	unStakedNodesInStakingV4InitEpoch = append(unStakedNodesInStakingV4InitEpoch, owner1Stats.WaitingBlsKeys[0][0])
+	unStakedNodesInStakingV4Step1Epoch = append(unStakedNodesInStakingV4Step1Epoch, owner1StakingQueue[1])
+	unStakedNodesInStakingV4Step1Epoch = append(unStakedNodesInStakingV4Step1Epoch, owner1Stats.WaitingBlsKeys[0][0])
 	currNodesConfig = node.NodesConfig
 	queue = remove(queue, owner1StakingQueue[1])
 	require.Len(t, currNodesConfig.auction, 3)
@@ -692,14 +692,14 @@ func TestStakingV4_UnStakeNodes(t *testing.T) {
 	require.Empty(t, currNodesConfig.queue)
 	require.Empty(t, currNodesConfig.new)
 
-	// 3. Check config in epoch = staking v4 epoch
+	// 3. Check config in epoch = staking v4 step2
 	node.Process(t, 3)
 	currNodesConfig = node.NodesConfig
 	require.Len(t, getAllPubKeys(currNodesConfig.eligible), 4)
 	require.Len(t, getAllPubKeys(currNodesConfig.waiting), 4)
 	require.Len(t, getAllPubKeys(currNodesConfig.leaving), 3)
 	// All unStaked nodes in previous epoch are now leaving
-	requireMapContains(t, currNodesConfig.leaving, unStakedNodesInStakingV4InitEpoch)
+	requireMapContains(t, currNodesConfig.leaving, unStakedNodesInStakingV4Step1Epoch)
 	// 3.1 Owner2 unStakes one of his nodes from auction
 	node.ProcessUnStake(t, map[string][][]byte{
 		owner2: {owner2StakingQueue[1]},
@@ -847,14 +847,14 @@ func TestStakingV4_JailAndUnJailNodes(t *testing.T) {
 	require.Len(t, getAllPubKeys(currNodesConfig.waiting), 4)
 	require.Empty(t, currNodesConfig.queue)
 
-	// 2.1 Epoch = stakingV4Init; unJail one of the jailed nodes and expect it is sent to auction
+	// 2.1 Epoch = stakingV4Step1; unJail one of the jailed nodes and expect it is sent to auction
 	node.ProcessUnJail(t, jailedNodes[:1])
 	currNodesConfig = node.NodesConfig
 	queue = append(queue, jailedNodes[0])
 	require.Empty(t, currNodesConfig.queue)
 	requireSameSliceDifferentOrder(t, currNodesConfig.auction, queue)
 
-	// 3. Epoch = stakingV4; unJail the other jailed node and expect it is sent to auction
+	// 3. Epoch = stakingV4Step2; unJail the other jailed node and expect it is sent to auction
 	node.Process(t, 4)
 	node.ProcessUnJail(t, jailedNodes[1:])
 	currNodesConfig = node.NodesConfig
@@ -867,7 +867,7 @@ func TestStakingV4_JailAndUnJailNodes(t *testing.T) {
 	newJailed := getAllPubKeys(currNodesConfig.waiting)[:1]
 	node.ProcessJail(t, newJailed)
 
-	// 4. Epoch = stakingV4DistributeAuctionToWaiting;
+	// 4. Epoch = stakingV4Step3;
 	// 4.1 Expect jailed node from waiting list is now leaving
 	node.Process(t, 4)
 	currNodesConfig = node.NodesConfig

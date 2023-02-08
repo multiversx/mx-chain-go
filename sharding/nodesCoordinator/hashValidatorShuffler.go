@@ -82,8 +82,8 @@ func NewHashValidatorsShuffler(args *NodesShufflerArgs) (*randHashShuffler, erro
 	var configs []config.MaxNodesChangeConfig
 
 	log.Debug("hashValidatorShuffler: enable epoch for max nodes change", "epoch", args.MaxNodesEnableConfig)
-	log.Debug("hashValidatorShuffler: enable epoch for staking v4", "epoch", args.EnableEpochs.StakingV4Step2EnableEpoch)
-	log.Debug("hashValidatorShuffler: enable epoch for staking v4 distribute auction list to waiting list", "epoch", args.EnableEpochs.StakingV4Step3EnableEpoch)
+	log.Debug("hashValidatorShuffler: enable epoch for staking v4 step 2", "epoch", args.EnableEpochs.StakingV4Step2EnableEpoch)
+	log.Debug("hashValidatorShuffler: enable epoch for staking v4 step 3", "epoch", args.EnableEpochs.StakingV4Step3EnableEpoch)
 
 	if args.MaxNodesEnableConfig != nil {
 		configs = make([]config.MaxNodesChangeConfig, len(args.MaxNodesEnableConfig))
