@@ -1281,8 +1281,8 @@ func (ihnc *indexHashedNodesCoordinator) getShardValidatorInfoData(txHash []byte
 
 func (ihnc *indexHashedNodesCoordinator) updateEpochFlags(epoch uint32) {
 	ihnc.flagStakingV4Started.SetValue(epoch >= ihnc.enableEpochsHandler.StakingV4Step1EnableEpoch())
-	log.Debug("indexHashedNodesCoordinator: staking v4 started", "enabled", ihnc.flagStakingV4Started.IsSet())
+	log.Debug("indexHashedNodesCoordinator: flagStakingV4Started", "enabled", ihnc.flagStakingV4Started.IsSet())
 
 	ihnc.flagStakingV4Step2.SetValue(epoch >= ihnc.stakingV4Step2EnableEpoch)
-	log.Debug("indexHashedNodesCoordinator: staking v4", "enabled", ihnc.flagStakingV4Step2.IsSet())
+	log.Debug("indexHashedNodesCoordinator: flagStakingV4Step2", "enabled", ihnc.flagStakingV4Step2.IsSet())
 }

@@ -751,10 +751,10 @@ func (rhs *randHashShuffler) UpdateShufflerConfig(epoch uint32) {
 	log.Debug("balanced waiting lists", "enabled", rhs.flagBalanceWaitingLists.IsSet())
 
 	rhs.flagStakingV4Step3.SetValue(epoch >= rhs.stakingV4Step3EnableEpoch)
-	log.Debug("staking v4 distribute auction to waiting", "enabled", rhs.flagStakingV4Step3.IsSet())
+	log.Debug("staking v4 step3", "enabled", rhs.flagStakingV4Step3.IsSet())
 
 	rhs.flagStakingV4Step2.SetValue(epoch >= rhs.stakingV4Step2EnableEpoch)
-	log.Debug("staking v4", "enabled", rhs.flagStakingV4Step2.IsSet())
+	log.Debug("staking v4 step2", "enabled", rhs.flagStakingV4Step2.IsSet())
 }
 
 func (rhs *randHashShuffler) sortConfigs() {
