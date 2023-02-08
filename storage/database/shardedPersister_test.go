@@ -10,12 +10,25 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+<<<<<<< HEAD
 const oneMil = 1_000_000
 const twoMil = 2_000_000
 const fourMil = 4_000_000
 const eightMil = 8_000_000
 const tenK = 10_000
 const hundredK = 100_000
+=======
+const (
+	_1Mil = 1_000_000
+	_2Mil = 2_000_000
+	_4Mil = 4_000_000
+	_8Mil = 8_000_000
+	_10k  = 10_000
+	_100k = 100_000
+
+	numShards = 4
+)
+>>>>>>> sharded-persister-benchmarks
 
 func TestNewShardedPersister(t *testing.T) {
 	dir := t.TempDir()
@@ -50,14 +63,18 @@ func TestNewPersister(t *testing.T) {
 }
 
 func BenchmarkPersisterOneKey1mil(b *testing.B) {
+<<<<<<< HEAD
 	entries, keys := generateKeys(oneMil)
+=======
+	entries, keys := generateKeys(_1Mil)
+>>>>>>> sharded-persister-benchmarks
 	randIndex := randInt(0, len(keys)-1)
 	key := []byte(keys[randIndex])
 
 	persisterPath := b.TempDir()
-	_ = createAndPopulatePersister(persisterPath, entries)
+	_ = createAndPopulatePersister(persisterPath, "simple", entries)
 	shardedPersisterPath := b.TempDir()
-	_ = createAndPopulateShardedPersister(shardedPersisterPath, entries)
+	_ = createAndPopulatePersister(shardedPersisterPath, "sharded", entries)
 
 	b.Run("persister", func(b *testing.B) {
 		benchmarkPersisterOneKey(b, key, persisterPath, "simple")
@@ -68,14 +85,18 @@ func BenchmarkPersisterOneKey1mil(b *testing.B) {
 }
 
 func BenchmarkPersisterOneKey2mil(b *testing.B) {
+<<<<<<< HEAD
 	entries, keys := generateKeys(twoMil)
+=======
+	entries, keys := generateKeys(_2Mil)
+>>>>>>> sharded-persister-benchmarks
 	randIndex := randInt(0, len(keys)-1)
 	key := []byte(keys[randIndex])
 
 	persisterPath := b.TempDir()
-	_ = createAndPopulatePersister(persisterPath, entries)
+	_ = createAndPopulatePersister(persisterPath, "simple", entries)
 	shardedPersisterPath := b.TempDir()
-	_ = createAndPopulateShardedPersister(shardedPersisterPath, entries)
+	_ = createAndPopulatePersister(shardedPersisterPath, "sharded", entries)
 
 	b.Run("persister", func(b *testing.B) {
 		benchmarkPersisterOneKey(b, key, persisterPath, "simple")
@@ -87,14 +108,18 @@ func BenchmarkPersisterOneKey2mil(b *testing.B) {
 }
 
 func BenchmarkPersisterOneKey4mil(b *testing.B) {
+<<<<<<< HEAD
 	entries, keys := generateKeys(fourMil)
+=======
+	entries, keys := generateKeys(_4Mil)
+>>>>>>> sharded-persister-benchmarks
 	randIndex := randInt(0, len(keys)-1)
 	key := []byte(keys[randIndex])
 
 	persisterPath := b.TempDir()
-	_ = createAndPopulatePersister(persisterPath, entries)
+	_ = createAndPopulatePersister(persisterPath, "simple", entries)
 	shardedPersisterPath := b.TempDir()
-	_ = createAndPopulateShardedPersister(shardedPersisterPath, entries)
+	_ = createAndPopulatePersister(shardedPersisterPath, "sharded", entries)
 
 	b.Run("persister", func(b *testing.B) {
 		benchmarkPersisterOneKey(b, key, persisterPath, "simple")
@@ -106,14 +131,18 @@ func BenchmarkPersisterOneKey4mil(b *testing.B) {
 }
 
 func BenchmarkPersisterOneKey8mil(b *testing.B) {
+<<<<<<< HEAD
 	entries, keys := generateKeys(eightMil)
+=======
+	entries, keys := generateKeys(_8Mil)
+>>>>>>> sharded-persister-benchmarks
 	randIndex := randInt(0, len(keys)-1)
 	key := []byte(keys[randIndex])
 
 	persisterPath := b.TempDir()
-	_ = createAndPopulatePersister(persisterPath, entries)
+	_ = createAndPopulatePersister(persisterPath, "simple", entries)
 	shardedPersisterPath := b.TempDir()
-	_ = createAndPopulateShardedPersister(shardedPersisterPath, entries)
+	_ = createAndPopulatePersister(shardedPersisterPath, "sharded", entries)
 
 	b.Run("persister", func(b *testing.B) {
 		benchmarkPersisterOneKey(b, key, persisterPath, "simple")
@@ -125,12 +154,16 @@ func BenchmarkPersisterOneKey8mil(b *testing.B) {
 }
 
 func BenchmarkPersister1milAllKeys(b *testing.B) {
+<<<<<<< HEAD
 	entries, keys := generateKeys(oneMil)
+=======
+	entries, keys := generateKeys(_1Mil)
+>>>>>>> sharded-persister-benchmarks
 
 	persisterPath := b.TempDir()
-	_ = createAndPopulatePersister(persisterPath, entries)
+	_ = createAndPopulatePersister(persisterPath, "simple", entries)
 	shardedPersisterPath := b.TempDir()
-	_ = createAndPopulateShardedPersister(shardedPersisterPath, entries)
+	_ = createAndPopulatePersister(shardedPersisterPath, "sharded", entries)
 
 	b.Run("persister", func(b *testing.B) {
 		benchmarkPersister(b, keys, persisterPath, "simple")
@@ -142,46 +175,76 @@ func BenchmarkPersister1milAllKeys(b *testing.B) {
 }
 
 func BenchmarkPersister1mil10kKeys(b *testing.B) {
+<<<<<<< HEAD
 	entries, keys := generateKeys(oneMil)
+=======
+	entries, keys := generateKeys(_1Mil)
+>>>>>>> sharded-persister-benchmarks
 
 	persisterPath := b.TempDir()
-	_ = createAndPopulatePersister(persisterPath, entries)
+	_ = createAndPopulatePersister(persisterPath, "simple", entries)
 	shardedPersisterPath := b.TempDir()
-	_ = createAndPopulateShardedPersister(shardedPersisterPath, entries)
+	_ = createAndPopulatePersister(shardedPersisterPath, "sharded", entries)
 
+<<<<<<< HEAD
 	b.Run("persister", func(b *testing.B) {
 		benchmarkPersister(b, keys[0:tenK], persisterPath, "simple")
 	})
 
 	b.Run("sharded persister", func(b *testing.B) {
 		benchmarkPersister(b, keys[0:tenK], shardedPersisterPath, "sharded")
+=======
+	b.Run("persister", func(t *testing.B) {
+		benchmarkPersister(b, keys[0:_10k], persisterPath, "simple")
+	})
+
+	b.Run("sharded persister", func(t *testing.B) {
+		benchmarkPersister(b, keys[0:_10k], shardedPersisterPath, "sharded")
+>>>>>>> sharded-persister-benchmarks
 	})
 }
 
 func BenchmarkPersister1mil100kKeys(b *testing.B) {
+<<<<<<< HEAD
 	entries, keys := generateKeys(oneMil)
+=======
+	entries, keys := generateKeys(_1Mil)
+>>>>>>> sharded-persister-benchmarks
 
 	persisterPath := b.TempDir()
-	_ = createAndPopulatePersister(persisterPath, entries)
+	_ = createAndPopulatePersister(persisterPath, "simple", entries)
 	shardedPersisterPath := b.TempDir()
-	_ = createAndPopulateShardedPersister(shardedPersisterPath, entries)
+	_ = createAndPopulatePersister(shardedPersisterPath, "sharded", entries)
 
+<<<<<<< HEAD
 	b.Run("persister", func(b *testing.B) {
 		benchmarkPersister(b, keys[0:hundredK], persisterPath, "simple")
 	})
 
 	b.Run("sharded persister", func(b *testing.B) {
 		benchmarkPersister(b, keys[0:hundredK], shardedPersisterPath, "sharded")
+=======
+	b.Run("persister", func(t *testing.B) {
+		benchmarkPersister(b, keys[0:_100k], persisterPath, "simple")
+	})
+
+	b.Run("sharded persister", func(t *testing.B) {
+		benchmarkPersister(b, keys[0:_100k], shardedPersisterPath, "sharded")
+>>>>>>> sharded-persister-benchmarks
 	})
 }
 
 func BenchmarkPersister2milAllKeys(b *testing.B) {
+<<<<<<< HEAD
 	entries, keys := generateKeys(twoMil)
+=======
+	entries, keys := generateKeys(_2Mil)
+>>>>>>> sharded-persister-benchmarks
 
 	persisterPath := b.TempDir()
-	_ = createAndPopulatePersister(persisterPath, entries)
+	_ = createAndPopulatePersister(persisterPath, "simple", entries)
 	shardedPersisterPath := b.TempDir()
-	_ = createAndPopulateShardedPersister(shardedPersisterPath, entries)
+	_ = createAndPopulatePersister(shardedPersisterPath, "sharded", entries)
 
 	b.Run("persister", func(b *testing.B) {
 		benchmarkPersister(b, keys, persisterPath, "simple")
@@ -193,12 +256,16 @@ func BenchmarkPersister2milAllKeys(b *testing.B) {
 }
 
 func BenchmarkPersister4milAllKeys(b *testing.B) {
+<<<<<<< HEAD
 	entries, keys := generateKeys(fourMil)
+=======
+	entries, keys := generateKeys(_4Mil)
+>>>>>>> sharded-persister-benchmarks
 
 	persisterPath := b.TempDir()
-	_ = createAndPopulatePersister(persisterPath, entries)
+	_ = createAndPopulatePersister(persisterPath, "simple", entries)
 	shardedPersisterPath := b.TempDir()
-	_ = createAndPopulateShardedPersister(shardedPersisterPath, entries)
+	_ = createAndPopulatePersister(shardedPersisterPath, "sharded", entries)
 
 	b.Run("persister", func(b *testing.B) {
 		benchmarkPersister(b, keys, persisterPath, "simple")
@@ -210,12 +277,16 @@ func BenchmarkPersister4milAllKeys(b *testing.B) {
 }
 
 func BenchmarkPersister8milAllKeys(b *testing.B) {
+<<<<<<< HEAD
 	entries, keys := generateKeys(eightMil)
+=======
+	entries, keys := generateKeys(_8Mil)
+>>>>>>> sharded-persister-benchmarks
 
 	persisterPath := b.TempDir()
-	_ = createAndPopulatePersister(persisterPath, entries)
+	_ = createAndPopulatePersister(persisterPath, "simple", entries)
 	shardedPersisterPath := b.TempDir()
-	_ = createAndPopulateShardedPersister(shardedPersisterPath, entries)
+	_ = createAndPopulatePersister(shardedPersisterPath, "sharded", entries)
 
 	b.Run("persister", func(b *testing.B) {
 		benchmarkPersister(b, keys, persisterPath, "simple")
@@ -231,47 +302,35 @@ func createPersister(path string, id string) (storage.Persister, error) {
 	case "simple":
 		return NewSerialDB(path, 2, oneMil, 10)
 	case "sharded":
+<<<<<<< HEAD
 		shardCoordinator, _ := NewShardIDProvider(4)
 		return NewShardedPersister(path, 2, oneMil, 10, shardCoordinator)
+=======
+		shardCoordinator, _ := NewShardIDProvider(numShards)
+		return NewShardedPersister(path, 2, 1000, 1000, shardCoordinator)
+>>>>>>> sharded-persister-benchmarks
 	default:
 		return NewSerialDB(path, 2, oneMil, 10)
 	}
 }
 
-func createAndPopulatePersister(path string, entries map[string][]byte) storage.Persister {
-	db, err := createPersister(path, "simple")
+func createAndPopulatePersister(path string, id string, entries map[string][]byte) storage.Persister {
+	db, err := createPersister(path, id)
 	if err != nil {
-		log.Error("createAndPopulatePersister: failed to create persister", "error", err.Error())
+		log.Error("createAndPopulatePersister: failed to create persister", "type", id, "error", err.Error())
 		return nil
 	}
 
 	for key, val := range entries {
-		_ = db.Put([]byte(key), val)
+		err = db.Put([]byte(key), val)
+		if err != nil {
+			log.Error("createAndPopulatePersister: failed to put key", "type", id, "key", key)
+		}
 	}
 
 	err = db.Close()
 	if err != nil {
-		log.Error("createAndPopulatePersister: failed to close persister", "error", err.Error())
-		return nil
-	}
-
-	return db
-}
-
-func createAndPopulateShardedPersister(path string, entries map[string][]byte) storage.Persister {
-	db, err := createPersister(path, "sharded")
-	if err != nil {
-		log.Error("createAndPopulateShardedPersister: failed to create persister", "error", err.Error())
-		return nil
-	}
-
-	for key, val := range entries {
-		_ = db.Put([]byte(key), val)
-	}
-
-	err = db.Close()
-	if err != nil {
-		log.Error("createAndPopulateShardedPersister: failed to close persister", "error", err.Error())
+		log.Error("createAndPopulatePersister: failed to close persister", "type", id, "error", err.Error())
 		return nil
 	}
 
@@ -302,6 +361,7 @@ func getKeys(
 	path string,
 	id string,
 ) {
+<<<<<<< HEAD
 
 	b.StopTimer()
 	db, err := createPersister(path, id)
@@ -313,6 +373,12 @@ func getKeys(
 		errDefer := db.Close()
 		require.Nil(b, errDefer)
 		b.StartTimer()
+=======
+	db := createPersisterWithTimerControl(b, path, id)
+
+	defer func() {
+		closePersisterWithTimerControl(b, db)
+>>>>>>> sharded-persister-benchmarks
 	}()
 
 	maxRoutines := make(chan struct{}, 400)
@@ -322,7 +388,19 @@ func getKeys(
 	for _, key := range keys {
 		maxRoutines <- struct{}{}
 		go func(key string) {
+<<<<<<< HEAD
 			_, err = db.Get([]byte(key))
+=======
+			defer func() {
+				<-maxRoutines
+				wg.Done()
+			}()
+
+			_, err := db.Get([]byte(key))
+			if err != nil {
+				log.Info("key NOT found", "key", key)
+			}
+>>>>>>> sharded-persister-benchmarks
 			require.Nil(b, err)
 
 			<-maxRoutines
@@ -339,11 +417,23 @@ func getKey(
 	path string,
 	id string,
 ) {
+	db := createPersisterWithTimerControl(b, path, id)
+
+	defer func() {
+		closePersisterWithTimerControl(b, db)
+	}()
+
+	_, err := db.Get(key)
+	require.Nil(b, err)
+}
+
+func createPersisterWithTimerControl(b *testing.B, path, id string) storage.Persister {
 	b.StopTimer()
 	db, err := createPersister(path, id)
 	require.Nil(b, err)
 	b.StartTimer()
 
+<<<<<<< HEAD
 	defer func() {
 		b.StopTimer()
 		errDefer := db.Close()
@@ -358,6 +448,22 @@ func getKey(
 func generateKeys(numKeys int) (map[string][]byte, []string) {
 	entries := make(map[string][]byte, numKeys)
 	keys := make([]string, 0, numKeys)
+=======
+	return db
+}
+
+func closePersisterWithTimerControl(b *testing.B, db storage.Persister) {
+	b.StopTimer()
+	err := db.Close()
+	require.Nil(b, err)
+	b.StartTimer()
+}
+
+func generateKeys(numKeys int) (map[string][]byte, []string) {
+	entries := make(map[string][]byte)
+
+	keys := make([]string, 0)
+>>>>>>> sharded-persister-benchmarks
 
 	for i := 0; i < numKeys; i++ {
 		key := generateRandomByteArray(32)
