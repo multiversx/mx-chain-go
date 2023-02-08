@@ -28,7 +28,7 @@ type shardedPersister struct {
 }
 
 // NewShardedPersister will created a new sharded persister
-func NewShardedPersister(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFiles int, idProvider persisterIDProvider) (*shardedPersister, error) {
+func NewShardedPersister(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFilesPerShard int, idProvider persisterIDProvider) (*shardedPersister, error) {
 	if check.IfNil(idProvider) {
 		return nil, ErrNilIDProvider
 	}
@@ -36,7 +36,7 @@ func NewShardedPersister(path string, batchDelaySeconds int, maxBatchSize int, m
 	persisters := make(map[uint32]storage.Persister)
 	for _, shardID := range idProvider.GetShardIDs() {
 		newPath := updatePathWithShardID(path, shardID)
-		db, err := leveldb.NewDB(newPath, batchDelaySeconds, maxBatchSize, maxOpenFiles)
+		db, err := leveldb.NewSerialDB(newPath, batchDelaySeconds, maxBatchSize, maxOpenFilesPerShard)
 		if err != nil {
 			return nil, err
 		}

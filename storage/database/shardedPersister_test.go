@@ -63,11 +63,10 @@ func BenchmarkPersisterOneKey1mil(b *testing.B) {
 	shardedPersisterPath := b.TempDir()
 	_ = createAndPopulatePersister(shardedPersisterPath, "sharded", entries)
 
-	b.Run("persister", func(t *testing.B) {
+	b.Run("persister", func(b *testing.B) {
 		benchmarkPersisterOneKey(b, key, persisterPath, "simple")
 	})
-
-	b.Run("sharded persister", func(t *testing.B) {
+	b.Run("sharded persister", func(b *testing.B) {
 		benchmarkPersisterOneKey(b, key, shardedPersisterPath, "sharded")
 	})
 }
@@ -82,11 +81,11 @@ func BenchmarkPersisterOneKey2mil(b *testing.B) {
 	shardedPersisterPath := b.TempDir()
 	_ = createAndPopulatePersister(shardedPersisterPath, "sharded", entries)
 
-	b.Run("persister", func(t *testing.B) {
+	b.Run("persister", func(b *testing.B) {
 		benchmarkPersisterOneKey(b, key, persisterPath, "simple")
 	})
 
-	b.Run("sharded persister", func(t *testing.B) {
+	b.Run("sharded persister", func(b *testing.B) {
 		benchmarkPersisterOneKey(b, key, shardedPersisterPath, "sharded")
 	})
 }
@@ -101,11 +100,11 @@ func BenchmarkPersisterOneKey4mil(b *testing.B) {
 	shardedPersisterPath := b.TempDir()
 	_ = createAndPopulatePersister(shardedPersisterPath, "sharded", entries)
 
-	b.Run("persister", func(t *testing.B) {
+	b.Run("persister", func(b *testing.B) {
 		benchmarkPersisterOneKey(b, key, persisterPath, "simple")
 	})
 
-	b.Run("sharded persister", func(t *testing.B) {
+	b.Run("sharded persister", func(b *testing.B) {
 		benchmarkPersisterOneKey(b, key, shardedPersisterPath, "sharded")
 	})
 }
@@ -120,11 +119,11 @@ func BenchmarkPersisterOneKey8mil(b *testing.B) {
 	shardedPersisterPath := b.TempDir()
 	_ = createAndPopulatePersister(shardedPersisterPath, "sharded", entries)
 
-	b.Run("persister", func(t *testing.B) {
+	b.Run("persister", func(b *testing.B) {
 		benchmarkPersisterOneKey(b, key, persisterPath, "simple")
 	})
 
-	b.Run("sharded persister", func(t *testing.B) {
+	b.Run("sharded persister", func(b *testing.B) {
 		benchmarkPersisterOneKey(b, key, shardedPersisterPath, "sharded")
 	})
 }
@@ -137,11 +136,11 @@ func BenchmarkPersister1milAllKeys(b *testing.B) {
 	shardedPersisterPath := b.TempDir()
 	_ = createAndPopulatePersister(shardedPersisterPath, "sharded", entries)
 
-	b.Run("persister", func(t *testing.B) {
+	b.Run("persister", func(b *testing.B) {
 		benchmarkPersister(b, keys, persisterPath, "simple")
 	})
 
-	b.Run("sharded persister", func(t *testing.B) {
+	b.Run("sharded persister", func(b *testing.B) {
 		benchmarkPersister(b, keys, shardedPersisterPath, "sharded")
 	})
 }
@@ -154,11 +153,11 @@ func BenchmarkPersister1mil10kKeys(b *testing.B) {
 	shardedPersisterPath := b.TempDir()
 	_ = createAndPopulatePersister(shardedPersisterPath, "sharded", entries)
 
-	b.Run("persister", func(t *testing.B) {
+	b.Run("persister", func(b *testing.B) {
 		benchmarkPersister(b, keys[0:_10k], persisterPath, "simple")
 	})
 
-	b.Run("sharded persister", func(t *testing.B) {
+	b.Run("sharded persister", func(b *testing.B) {
 		benchmarkPersister(b, keys[0:_10k], shardedPersisterPath, "sharded")
 	})
 }
@@ -171,11 +170,11 @@ func BenchmarkPersister1mil100kKeys(b *testing.B) {
 	shardedPersisterPath := b.TempDir()
 	_ = createAndPopulatePersister(shardedPersisterPath, "sharded", entries)
 
-	b.Run("persister", func(t *testing.B) {
+	b.Run("persister", func(b *testing.B) {
 		benchmarkPersister(b, keys[0:_100k], persisterPath, "simple")
 	})
 
-	b.Run("sharded persister", func(t *testing.B) {
+	b.Run("sharded persister", func(b *testing.B) {
 		benchmarkPersister(b, keys[0:_100k], shardedPersisterPath, "sharded")
 	})
 }
@@ -188,11 +187,11 @@ func BenchmarkPersister2milAllKeys(b *testing.B) {
 	shardedPersisterPath := b.TempDir()
 	_ = createAndPopulatePersister(shardedPersisterPath, "sharded", entries)
 
-	b.Run("persister", func(t *testing.B) {
+	b.Run("persister", func(b *testing.B) {
 		benchmarkPersister(b, keys, persisterPath, "simple")
 	})
 
-	b.Run("sharded persister", func(t *testing.B) {
+	b.Run("sharded persister", func(b *testing.B) {
 		benchmarkPersister(b, keys, shardedPersisterPath, "sharded")
 	})
 }
@@ -205,11 +204,11 @@ func BenchmarkPersister4milAllKeys(b *testing.B) {
 	shardedPersisterPath := b.TempDir()
 	_ = createAndPopulatePersister(shardedPersisterPath, "sharded", entries)
 
-	b.Run("persister", func(t *testing.B) {
+	b.Run("persister", func(b *testing.B) {
 		benchmarkPersister(b, keys, persisterPath, "simple")
 	})
 
-	b.Run("sharded persister", func(t *testing.B) {
+	b.Run("sharded persister", func(b *testing.B) {
 		benchmarkPersister(b, keys, shardedPersisterPath, "sharded")
 	})
 }
@@ -222,11 +221,11 @@ func BenchmarkPersister8milAllKeys(b *testing.B) {
 	shardedPersisterPath := b.TempDir()
 	_ = createAndPopulatePersister(shardedPersisterPath, "sharded", entries)
 
-	b.Run("persister", func(t *testing.B) {
+	b.Run("persister", func(b *testing.B) {
 		benchmarkPersister(b, keys, persisterPath, "simple")
 	})
 
-	b.Run("sharded persister", func(t *testing.B) {
+	b.Run("sharded persister", func(b *testing.B) {
 		benchmarkPersister(b, keys, shardedPersisterPath, "sharded")
 	})
 }
@@ -234,12 +233,12 @@ func BenchmarkPersister8milAllKeys(b *testing.B) {
 func createPersister(path string, id string) (storage.Persister, error) {
 	switch id {
 	case "simple":
-		return NewLevelDB(path, 2, 1000, 1000)
+		return NewSerialDB(path, 2, _1Mil, 10)
 	case "sharded":
 		shardCoordinator, _ := NewShardIDProvider(numShards)
-		return NewShardedPersister(path, 2, 1000, 1000, shardCoordinator)
+		return NewShardedPersister(path, 2, _1Mil, 10, shardCoordinator)
 	default:
-		return NewLevelDB(path, 2, 1000, 10)
+		return NewSerialDB(path, 2, _1Mil, 10)
 	}
 }
 
@@ -279,7 +278,6 @@ func benchmarkPersister(
 	path string,
 	id string,
 ) {
-	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		getKeys(b, keys, path, id)
 	}
@@ -304,16 +302,11 @@ func getKeys(
 	for _, key := range keys {
 		maxRoutines <- struct{}{}
 		go func(key string) {
-			defer func() {
-				<-maxRoutines
-				wg.Done()
-			}()
-
 			_, err := db.Get([]byte(key))
-			if err != nil {
-				log.Info("key NOT found", "key", key)
-			}
 			require.Nil(b, err)
+
+			<-maxRoutines
+			wg.Done()
 		}(key)
 	}
 
@@ -359,8 +352,7 @@ func generateKeys(numKeys int) (map[string][]byte, []string) {
 
 	for i := 0; i < numKeys; i++ {
 		key := generateRandomByteArray(32)
-		valueSize := randInt(20, 200)
-		value := generateRandomByteArray(valueSize)
+		value := generateRandomByteArray(32)
 
 		entries[string(key)] = value
 		keys = append(keys, string(key))
