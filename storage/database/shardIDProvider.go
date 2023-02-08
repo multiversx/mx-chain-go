@@ -36,7 +36,7 @@ func NewShardIDProvider(numOfShards uint32) (*shardIDProvider, error) {
 	return sp, nil
 }
 
-// ComputeId calculated shard id for a given key
+// ComputeId computes the shard id for a given key
 func (sp *shardIDProvider) ComputeId(key []byte) uint32 {
 	if core.IsEmptyAddress(key) {
 		return 0
@@ -83,7 +83,8 @@ func (sp *shardIDProvider) GetShardIDs() []uint32 {
 // shard id for the key
 func (sp *shardIDProvider) calculateMasks() {
 	n := math.Ceil(math.Log2(float64(sp.numOfShards)))
-	sp.maskHigh, sp.maskLow = (1<<uint(n))-1, (1<<uint(n-1))-1
+	sp.maskHigh = (1 << uint(n)) - 1
+	sp.maskLow = (1 << uint(n-1)) - 1
 }
 
 // calculateBytesNeeded will calculate the number of bytes needed from an address for index calculation

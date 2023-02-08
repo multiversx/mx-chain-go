@@ -10,6 +10,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const (
+	_1Mil = 1_000_000
+	_2Mil = 2_000_000
+	_4Mil = 4_000_000
+	_8Mil = 8_000_000
+	_10k  = 10_000
+	_100k = 100_000
+)
+
 func TestNewShardedPersister(t *testing.T) {
 	dir := t.TempDir()
 	db, err := createPersister(dir, "sharded")
@@ -43,7 +52,7 @@ func TestNewPersister(t *testing.T) {
 }
 
 func BenchmarkPersisterOneKey1mil(b *testing.B) {
-	entries, keys := generateKeys(1000000)
+	entries, keys := generateKeys(_1Mil)
 	randIndex := randInt(0, len(keys)-1)
 	key := []byte(keys[randIndex])
 
@@ -62,7 +71,7 @@ func BenchmarkPersisterOneKey1mil(b *testing.B) {
 }
 
 func BenchmarkPersisterOneKey2mil(b *testing.B) {
-	entries, keys := generateKeys(2000000)
+	entries, keys := generateKeys(_2Mil)
 	randIndex := randInt(0, len(keys)-1)
 	key := []byte(keys[randIndex])
 
@@ -81,7 +90,7 @@ func BenchmarkPersisterOneKey2mil(b *testing.B) {
 }
 
 func BenchmarkPersisterOneKey4mil(b *testing.B) {
-	entries, keys := generateKeys(4000000)
+	entries, keys := generateKeys(_4Mil)
 	randIndex := randInt(0, len(keys)-1)
 	key := []byte(keys[randIndex])
 
@@ -100,7 +109,7 @@ func BenchmarkPersisterOneKey4mil(b *testing.B) {
 }
 
 func BenchmarkPersisterOneKey8mil(b *testing.B) {
-	entries, keys := generateKeys(8000000)
+	entries, keys := generateKeys(_8Mil)
 	randIndex := randInt(0, len(keys)-1)
 	key := []byte(keys[randIndex])
 
@@ -119,7 +128,7 @@ func BenchmarkPersisterOneKey8mil(b *testing.B) {
 }
 
 func BenchmarkPersister1milAllKeys(b *testing.B) {
-	entries, keys := generateKeys(1000000)
+	entries, keys := generateKeys(_1Mil)
 
 	persisterPath := b.TempDir()
 	_ = createAndPopulatePersister(persisterPath, entries)
@@ -136,7 +145,7 @@ func BenchmarkPersister1milAllKeys(b *testing.B) {
 }
 
 func BenchmarkPersister1mil10kKeys(b *testing.B) {
-	entries, keys := generateKeys(1000000)
+	entries, keys := generateKeys(_1Mil)
 
 	persisterPath := b.TempDir()
 	_ = createAndPopulatePersister(persisterPath, entries)
@@ -144,16 +153,16 @@ func BenchmarkPersister1mil10kKeys(b *testing.B) {
 	_ = createAndPopulateShardedPersister(shardedPersisterPath, entries)
 
 	b.Run("persister", func(t *testing.B) {
-		benchmarkPersister(b, keys[0:10000], persisterPath, "simple")
+		benchmarkPersister(b, keys[0:_10k], persisterPath, "simple")
 	})
 
 	b.Run("sharded persister", func(t *testing.B) {
-		benchmarkPersister(b, keys[0:10000], shardedPersisterPath, "sharded")
+		benchmarkPersister(b, keys[0:_10k], shardedPersisterPath, "sharded")
 	})
 }
 
 func BenchmarkPersister1mil100kKeys(b *testing.B) {
-	entries, keys := generateKeys(1000000)
+	entries, keys := generateKeys(_1Mil)
 
 	persisterPath := b.TempDir()
 	_ = createAndPopulatePersister(persisterPath, entries)
@@ -161,16 +170,16 @@ func BenchmarkPersister1mil100kKeys(b *testing.B) {
 	_ = createAndPopulateShardedPersister(shardedPersisterPath, entries)
 
 	b.Run("persister", func(t *testing.B) {
-		benchmarkPersister(b, keys[0:100000], persisterPath, "simple")
+		benchmarkPersister(b, keys[0:_100k], persisterPath, "simple")
 	})
 
 	b.Run("sharded persister", func(t *testing.B) {
-		benchmarkPersister(b, keys[0:100000], shardedPersisterPath, "sharded")
+		benchmarkPersister(b, keys[0:_100k], shardedPersisterPath, "sharded")
 	})
 }
 
 func BenchmarkPersister2milAllKeys(b *testing.B) {
-	entries, keys := generateKeys(2000000)
+	entries, keys := generateKeys(_2Mil)
 
 	persisterPath := b.TempDir()
 	_ = createAndPopulatePersister(persisterPath, entries)
@@ -187,7 +196,7 @@ func BenchmarkPersister2milAllKeys(b *testing.B) {
 }
 
 func BenchmarkPersister4milAllKeys(b *testing.B) {
-	entries, keys := generateKeys(4000000)
+	entries, keys := generateKeys(_4Mil)
 
 	persisterPath := b.TempDir()
 	_ = createAndPopulatePersister(persisterPath, entries)
@@ -204,7 +213,7 @@ func BenchmarkPersister4milAllKeys(b *testing.B) {
 }
 
 func BenchmarkPersister8milAllKeys(b *testing.B) {
-	entries, keys := generateKeys(8000000)
+	entries, keys := generateKeys(_8Mil)
 
 	persisterPath := b.TempDir()
 	_ = createAndPopulatePersister(persisterPath, entries)
@@ -297,22 +306,10 @@ func getKeys(
 	path string,
 	id string,
 ) {
-	b.StopTimer()
-	db, err := createPersister(path, id)
-	if err != nil {
-		log.Error("failed to create persister", "error", err.Error())
-		b.StartTimer()
-		return
-	}
-	b.StartTimer()
+	db := createPersisterWithTimerControl(b, path, id)
 
 	defer func() {
-		b.StopTimer()
-		err := db.Close()
-		if err != nil {
-			log.Error("failed to close persister", "error", err.Error())
-		}
-		b.StartTimer()
+		closePersisterWithTimerControl(b, db)
 	}()
 
 	maxRoutines := make(chan struct{}, 400)
@@ -327,7 +324,7 @@ func getKeys(
 				wg.Done()
 			}()
 
-			_, err = db.Get([]byte(key))
+			_, err := db.Get([]byte(key))
 			if err != nil {
 				log.Info("key NOT found", "key", key)
 			}
@@ -344,34 +341,38 @@ func getKey(
 	path string,
 	id string,
 ) {
-	b.StopTimer()
-	db, err := createPersister(path, id)
-	if err != nil {
-		log.Error("failed to create persister", "error", err.Error())
-		b.StartTimer()
-		return
-	}
-	b.StartTimer()
+	db := createPersisterWithTimerControl(b, path, id)
 
 	go func(key []byte) {
 		defer func() {
-			b.StopTimer()
-			err := db.Close()
-			if err != nil {
-				log.Error("failed to close persister", "error", err.Error())
-			}
-			b.StartTimer()
+			closePersisterWithTimerControl(b, db)
 		}()
 
-		_, err = db.Get(key)
+		_, err := db.Get(key)
 		require.Nil(b, err)
 	}(key)
+}
+
+func createPersisterWithTimerControl(b *testing.B, path, id string) storage.Persister {
+	b.StopTimer()
+	db, err := createPersister(path, id)
+	require.Nil(b, err)
+	b.StartTimer()
+
+	return db
+}
+
+func closePersisterWithTimerControl(b *testing.B, db storage.Persister) {
+	b.StopTimer()
+	err := db.Close()
+	require.Nil(b, err)
+	b.StartTimer()
 }
 
 func generateKeys(numKeys int) (map[string][]byte, []string) {
 	entries := make(map[string][]byte)
 
-	keys := make([]string, 0, len(entries))
+	keys := make([]string, 0)
 
 	for i := 0; i < numKeys; i++ {
 		key := generateRandomByteArray(32)

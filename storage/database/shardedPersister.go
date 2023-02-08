@@ -57,7 +57,7 @@ func (s *shardedPersister) computeID(key []byte) uint32 {
 	return s.idProvider.ComputeId(key)
 }
 
-// Put add the value to the (key, val) persistence medium
+// Put adds the value at the associated key in the persistence medium
 func (s *shardedPersister) Put(key []byte, val []byte) error {
 	return s.persisters[s.computeID(key)].Put(key, val)
 }
