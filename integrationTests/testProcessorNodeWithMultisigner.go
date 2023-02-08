@@ -413,7 +413,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 
 	nodesCoordinatorRegistryFactory, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(
 		&testscommon.MarshalizerMock{},
-		StakingV4Epoch,
+		StakingV4Step2EnableEpoch,
 	)
 	completeNodesList := make([]Connectable, 0)
 	for shardId, validatorList := range validatorsMap {
@@ -438,7 +438,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 			IsFullArchive:                   false,
 			EnableEpochsHandler:             &testscommon.EnableEpochsHandlerStub{},
 			ValidatorInfoCacher:             &vic.ValidatorInfoCacherStub{},
-			StakingV4Step2EnableEpoch:       StakingV4Epoch,
+			StakingV4Step2EnableEpoch:       StakingV4Step2EnableEpoch,
 			NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
 		}
 		nodesCoordinatorInstance, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
@@ -533,7 +533,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 
 	nodesCoordinatorRegistryFactory, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(
 		&testscommon.MarshalizerMock{},
-		StakingV4Epoch,
+		StakingV4Step2EnableEpoch,
 	)
 	completeNodesList := make([]Connectable, 0)
 	for shardId, validatorList := range validatorsMap {
@@ -560,7 +560,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 			EnableEpochsHandler:             &testscommon.EnableEpochsHandlerStub{},
 			ValidatorInfoCacher:             &vic.ValidatorInfoCacherStub{},
 			NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
-			StakingV4Step2EnableEpoch:       StakingV4Epoch,
+			StakingV4Step2EnableEpoch:       StakingV4Step2EnableEpoch,
 		}
 		nodesCoord, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 

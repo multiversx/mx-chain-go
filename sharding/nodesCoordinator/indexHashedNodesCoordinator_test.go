@@ -1400,7 +1400,7 @@ func TestIndexHashedNodesCoordinator_computeShardForSelfPublicKeyWithStakingV4(t
 	require.Equal(t, nc.shardIDAsObserver, computedShardId)
 	require.False(t, isValidator)
 
-	nc.flagStakingV4.SetValue(true)
+	nc.flagStakingV4Step2.SetValue(true)
 
 	computedShardId, isValidator = nc.computeShardForSelfPublicKey(nc.nodesConfig[epoch])
 	require.Equal(t, metaShard, computedShardId)

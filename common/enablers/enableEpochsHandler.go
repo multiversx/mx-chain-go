@@ -218,8 +218,8 @@ func (handler *enableEpochsHandler) StakingV4Step2EnableEpoch() uint32 {
 	return handler.enableEpochsConfig.StakingV4Step2EnableEpoch
 }
 
-// StakingV4InitEpoch returns the epoch when stakingV4 phase1 becomes active
-func (handler *enableEpochsHandler) StakingV4InitEpoch() uint32 {
+// StakingV4Step1EnableEpoch returns the epoch when stakingV4 phase1 becomes active
+func (handler *enableEpochsHandler) StakingV4Step1EnableEpoch() uint32 {
 	return handler.enableEpochsConfig.StakingV4Step1EnableEpoch
 }
 

@@ -61,8 +61,8 @@ func createMockStakingScArgumentsWithSystemScAddresses(
 			IsCorrectFirstQueuedFlagEnabledField:                 true,
 			IsCorrectJailedNotUnStakedEmptyQueueFlagEnabledField: true,
 			IsValidatorToDelegationFlagEnabledField:              true,
-			IsStakingV4FlagEnabledField:                          false,
-			IsStakingV4InitFlagEnabledField:                      false,
+			IsStakingV4Step2FlagEnabledField:                     false,
+			IsStakingV4Step1FlagEnabledField:                     false,
 		},
 	}
 }
@@ -3406,7 +3406,7 @@ func TestStakingSC_StakingV4Flags(t *testing.T) {
 		IsCorrectJailedNotUnStakedEmptyQueueFlagEnabledField: true,
 		IsSwitchJailWaitingFlagEnabledField:                  true,
 		IsValidatorToDelegationFlagEnabledField:              true,
-		IsStakingV4InitFlagEnabledField:                      true,
+		IsStakingV4Step1FlagEnabledField:                     true,
 		IsStakingV4StartedField:                              true,
 		IsStakingV2FlagEnabledField:                          true,
 	}
@@ -3469,7 +3469,7 @@ func TestStakingSC_StakingV4Flags(t *testing.T) {
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.True(t, strings.Contains(eei.returnMessage, "can be called by endOfEpochAccess address only"))
 
-	enableEpochsHandler.IsStakingV4InitFlagEnabledField = false
+	enableEpochsHandler.IsStakingV4Step1FlagEnabledField = false
 	// All functions from above are not allowed anymore starting STAKING V4 epoch
 	eei.CleanCache()
 	arguments.Function = "getQueueIndex"

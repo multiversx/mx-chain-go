@@ -243,7 +243,7 @@ type EnableEpochsHandler interface {
 	MiniBlockPartialExecutionEnableEpoch() uint32
 	RefactorPeersMiniBlocksEnableEpoch() uint32
 	StakingV4Step2EnableEpoch() uint32
-	StakingV4InitEpoch() uint32
+	StakingV4Step1EnableEpoch() uint32
 	IsSCDeployFlagEnabled() bool
 	IsBuiltInFunctionsFlagEnabled() bool
 	IsRelayedTransactionsFlagEnabled() bool

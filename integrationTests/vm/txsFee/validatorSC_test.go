@@ -29,7 +29,7 @@ const (
 	cannotUnBondTokensMessage = "cannot unBond tokens, the validator would remain without min deposit, nodes are still active"
 	noTokensToUnBondMessage   = "no tokens that can be unbond at this time"
 	delegationManagementKey   = "delegationManagement"
-	stakingV4InitEpoch        = 4443
+	stakingV4Step1EnableEpoch = 4443
 	stakingV4Step2EnableEpoch = 4444
 )
 
@@ -110,7 +110,7 @@ func TestValidatorsSC_DoStakePutInQueueUnStakeAndUnBondTokensShouldRefund(t *tes
 	testContextMeta, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(
 		core.MetachainShardId,
 		config.EnableEpochs{
-			StakingV4Step1EnableEpoch: stakingV4InitEpoch,
+			StakingV4Step1EnableEpoch: stakingV4Step1EnableEpoch,
 			StakingV4Step2EnableEpoch: stakingV4Step2EnableEpoch,
 		},
 	)
@@ -146,14 +146,14 @@ func TestValidatorsSC_DoStakePutInQueueUnStakeAndUnBondTokensShouldRefund(t *tes
 func TestValidatorsSC_DoStakeWithTopUpValueTryToUnStakeTokensAndUnBondTokens(t *testing.T) {
 	argUnbondTokensV1 := config.EnableEpochs{
 		UnbondTokensV2EnableEpoch: 20000,
-		StakingV4Step1EnableEpoch: stakingV4InitEpoch,
+		StakingV4Step1EnableEpoch: stakingV4Step1EnableEpoch,
 		StakingV4Step2EnableEpoch: stakingV4Step2EnableEpoch,
 	}
 	testValidatorsSCDoStakeWithTopUpValueTryToUnStakeTokensAndUnBondTokens(t, argUnbondTokensV1)
 
 	argUnbondTokensV2 := config.EnableEpochs{
 		UnbondTokensV2EnableEpoch: 0,
-		StakingV4Step1EnableEpoch: stakingV4InitEpoch,
+		StakingV4Step1EnableEpoch: stakingV4Step1EnableEpoch,
 		StakingV4Step2EnableEpoch: stakingV4Step2EnableEpoch,
 	}
 	testValidatorsSCDoStakeWithTopUpValueTryToUnStakeTokensAndUnBondTokens(t, argUnbondTokensV2)
@@ -191,7 +191,7 @@ func TestValidatorsSC_ToStakePutInQueueUnStakeAndUnBondShouldRefundUnBondTokens(
 	testContextMeta, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(
 		core.MetachainShardId,
 		config.EnableEpochs{
-			StakingV4Step1EnableEpoch: stakingV4InitEpoch,
+			StakingV4Step1EnableEpoch: stakingV4Step1EnableEpoch,
 			StakingV4Step2EnableEpoch: stakingV4Step2EnableEpoch,
 		},
 	)
@@ -244,7 +244,7 @@ func TestValidatorsSC_ToStakePutInQueueUnStakeNodesAndUnBondNodesShouldRefund(t 
 	testContextMeta, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(
 		core.MetachainShardId,
 		config.EnableEpochs{
-			StakingV4Step1EnableEpoch: stakingV4InitEpoch,
+			StakingV4Step1EnableEpoch: stakingV4Step1EnableEpoch,
 			StakingV4Step2EnableEpoch: stakingV4Step2EnableEpoch,
 		},
 	)

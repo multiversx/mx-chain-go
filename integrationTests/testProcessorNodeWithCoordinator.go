@@ -75,7 +75,7 @@ func CreateProcessorNodesWithNodesCoordinator(
 				IsFullArchive:             false,
 				EnableEpochsHandler:       &testscommon.EnableEpochsHandlerStub{},
 				ValidatorInfoCacher:       &vic.ValidatorInfoCacherStub{},
-				StakingV4Step2EnableEpoch: StakingV4Epoch,
+				StakingV4Step2EnableEpoch: StakingV4Step2EnableEpoch,
 			}
 
 			nodesCoordinatorInstance, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)

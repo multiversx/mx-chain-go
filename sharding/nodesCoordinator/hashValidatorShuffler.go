@@ -29,21 +29,21 @@ type NodesShufflerArgs struct {
 }
 
 type shuffleNodesArg struct {
-	eligible                                map[uint32][]Validator
-	waiting                                 map[uint32][]Validator
-	unstakeLeaving                          []Validator
-	additionalLeaving                       []Validator
-	newNodes                                []Validator
-	auction                                 []Validator
-	randomness                              []byte
-	distributor                             ValidatorsDistributor
-	nodesMeta                               uint32
-	nodesPerShard                           uint32
-	nbShards                                uint32
-	maxNodesToSwapPerShard                  uint32
-	flagBalanceWaitingLists                 bool
-	flagStakingV4                           bool
-	flagStakingV4DistributeAuctionToWaiting bool
+	eligible                map[uint32][]Validator
+	waiting                 map[uint32][]Validator
+	unstakeLeaving          []Validator
+	additionalLeaving       []Validator
+	newNodes                []Validator
+	auction                 []Validator
+	randomness              []byte
+	distributor             ValidatorsDistributor
+	nodesMeta               uint32
+	nodesPerShard           uint32
+	nbShards                uint32
+	maxNodesToSwapPerShard  uint32
+	flagBalanceWaitingLists bool
+	flagStakingV4Step2      bool
+	flagStakingV4Step3      bool
 }
 
 // TODO: Decide if transaction load statistics will be used for limiting the number of shards
@@ -52,21 +52,21 @@ type randHashShuffler struct {
 	// when reinitialization of node in new shard is implemented
 	shuffleBetweenShards bool
 
-	adaptivity                              bool
-	nodesShard                              uint32
-	nodesMeta                               uint32
-	shardHysteresis                         uint32
-	metaHysteresis                          uint32
-	activeNodesConfig                       config.MaxNodesChangeConfig
-	availableNodesConfigs                   []config.MaxNodesChangeConfig
-	mutShufflerParams                       sync.RWMutex
-	validatorDistributor                    ValidatorsDistributor
-	flagBalanceWaitingLists                 atomic.Flag
-	enableEpochsHandler                     common.EnableEpochsHandler
-	stakingV4Step3EnableEpoch               uint32
-	flagStakingV4DistributeAuctionToWaiting atomic.Flag
-	stakingV4Step2EnableEpoch               uint32
-	flagStakingV4                           atomic.Flag
+	adaptivity                bool
+	nodesShard                uint32
+	nodesMeta                 uint32
+	shardHysteresis           uint32
+	metaHysteresis            uint32
+	activeNodesConfig         config.MaxNodesChangeConfig
+	availableNodesConfigs     []config.MaxNodesChangeConfig
+	mutShufflerParams         sync.RWMutex
+	validatorDistributor      ValidatorsDistributor
+	flagBalanceWaitingLists   atomic.Flag
+	enableEpochsHandler       common.EnableEpochsHandler
+	stakingV4Step2EnableEpoch uint32
+	flagStakingV4Step2        atomic.Flag
+	stakingV4Step3EnableEpoch uint32
+	flagStakingV4Step3        atomic.Flag
 }
 
 // NewHashValidatorsShuffler creates a validator shuffler that uses a hash between validator key and a given
@@ -180,21 +180,21 @@ func (rhs *randHashShuffler) UpdateNodeLists(args ArgsUpdateNodes) (*ResUpdateNo
 	}
 
 	return shuffleNodes(shuffleNodesArg{
-		eligible:                                eligibleAfterReshard,
-		waiting:                                 waitingAfterReshard,
-		unstakeLeaving:                          args.UnStakeLeaving,
-		additionalLeaving:                       args.AdditionalLeaving,
-		newNodes:                                args.NewNodes,
-		auction:                                 args.Auction,
-		randomness:                              args.Rand,
-		nodesMeta:                               nodesMeta,
-		nodesPerShard:                           nodesPerShard,
-		nbShards:                                args.NbShards,
-		distributor:                             rhs.validatorDistributor,
-		maxNodesToSwapPerShard:                  rhs.activeNodesConfig.NodesToShufflePerShard,
-		flagBalanceWaitingLists:                 rhs.flagBalanceWaitingLists.IsSet(),
-		flagStakingV4:                           rhs.flagStakingV4.IsSet(),
-		flagStakingV4DistributeAuctionToWaiting: rhs.flagStakingV4DistributeAuctionToWaiting.IsSet(),
+		eligible:                eligibleAfterReshard,
+		waiting:                 waitingAfterReshard,
+		unstakeLeaving:          args.UnStakeLeaving,
+		additionalLeaving:       args.AdditionalLeaving,
+		newNodes:                args.NewNodes,
+		auction:                 args.Auction,
+		randomness:              args.Rand,
+		nodesMeta:               nodesMeta,
+		nodesPerShard:           nodesPerShard,
+		nbShards:                args.NbShards,
+		distributor:             rhs.validatorDistributor,
+		maxNodesToSwapPerShard:  rhs.activeNodesConfig.NodesToShufflePerShard,
+		flagBalanceWaitingLists: rhs.flagBalanceWaitingLists.IsSet(),
+		flagStakingV4Step2:      rhs.flagStakingV4Step2.IsSet(),
+		flagStakingV4Step3:      rhs.flagStakingV4Step3.IsSet(),
 	})
 }
 
@@ -293,14 +293,14 @@ func shuffleNodes(arg shuffleNodesArg) (*ResUpdateNodes, error) {
 		log.Warn("distributeValidators newNodes failed", "error", err)
 	}
 
-	if arg.flagStakingV4DistributeAuctionToWaiting {
+	if arg.flagStakingV4Step3 {
 		// Distribute selected validators from AUCTION -> WAITING
 		err = distributeValidators(newWaiting, arg.auction, arg.randomness, false)
 		if err != nil {
 			log.Warn("distributeValidators auction list failed", "error", err)
 		}
 	}
-	if !arg.flagStakingV4 {
+	if !arg.flagStakingV4Step2 {
 		// Distribute validators from SHUFFLED OUT -> WAITING
 		err = arg.distributor.DistributeValidators(newWaiting, shuffledOutMap, arg.randomness, arg.flagBalanceWaitingLists)
 		if err != nil {
@@ -403,45 +403,6 @@ func removeLeavingNodesFromValidatorMaps(
 	newWaiting, stillRemainingInLeaving := removeNodesFromMap(waiting, stillRemainingInLeaving, numToRemove)
 	newEligible, stillRemainingInLeaving := removeNodesFromMap(eligible, stillRemainingInLeaving, numToRemove)
 	return newEligible, newWaiting, stillRemainingInLeaving
-}
-
-func removeLeavingNodes(
-	eligible map[uint32][]Validator,
-	waiting map[uint32][]Validator,
-	numToRemove map[uint32]int,
-	stillRemainingInLeaving []Validator,
-	minNodesMeta int,
-	minNodesPerShard int,
-) (map[uint32][]Validator, map[uint32][]Validator, []Validator) {
-	maxNumToRemoveFromWaiting := make(map[uint32]int)
-	for shardId := range eligible {
-		computedMinNumberOfNodes := computeMinNumberOfNodes(eligible, waiting, shardId, minNodesMeta, minNodesPerShard)
-		maxNumToRemoveFromWaiting[shardId] = computedMinNumberOfNodes
-	}
-
-	newWaiting, stillRemainingInLeaving := removeNodesFromMap(waiting, stillRemainingInLeaving, maxNumToRemoveFromWaiting)
-
-	for shardId, toRemove := range numToRemove {
-		computedMinNumberOfNodes := computeMinNumberOfNodes(eligible, waiting, shardId, minNodesMeta, minNodesPerShard)
-		if toRemove > computedMinNumberOfNodes {
-			numToRemove[shardId] = computedMinNumberOfNodes
-		}
-	}
-
-	newEligible, stillRemainingInLeaving := removeNodesFromMap(eligible, stillRemainingInLeaving, numToRemove)
-	return newEligible, newWaiting, stillRemainingInLeaving
-}
-
-func computeMinNumberOfNodes(eligible map[uint32][]Validator, waiting map[uint32][]Validator, shardId uint32, minNodesMeta int, minNodesPerShard int) int {
-	minimumNumberOfNodes := minNodesPerShard
-	if shardId == core.MetachainShardId {
-		minimumNumberOfNodes = minNodesMeta
-	}
-	computedMinNumberOfNodes := len(eligible[shardId]) + len(waiting[shardId]) - minimumNumberOfNodes
-	if computedMinNumberOfNodes < 0 {
-		computedMinNumberOfNodes = 0
-	}
-	return computedMinNumberOfNodes
 }
 
 // computeNewShards determines the new number of shards based on the number of nodes in the network
@@ -789,11 +750,11 @@ func (rhs *randHashShuffler) UpdateShufflerConfig(epoch uint32) {
 	rhs.flagBalanceWaitingLists.SetValue(epoch >= rhs.enableEpochsHandler.BalanceWaitingListsEnableEpoch())
 	log.Debug("balanced waiting lists", "enabled", rhs.flagBalanceWaitingLists.IsSet())
 
-	rhs.flagStakingV4DistributeAuctionToWaiting.SetValue(epoch >= rhs.stakingV4Step3EnableEpoch)
-	log.Debug("staking v4 distribute auction to waiting", "enabled", rhs.flagStakingV4DistributeAuctionToWaiting.IsSet())
+	rhs.flagStakingV4Step3.SetValue(epoch >= rhs.stakingV4Step3EnableEpoch)
+	log.Debug("staking v4 distribute auction to waiting", "enabled", rhs.flagStakingV4Step3.IsSet())
 
-	rhs.flagStakingV4.SetValue(epoch >= rhs.stakingV4Step2EnableEpoch)
-	log.Debug("staking v4", "enabled", rhs.flagStakingV4.IsSet())
+	rhs.flagStakingV4Step2.SetValue(epoch >= rhs.stakingV4Step2EnableEpoch)
+	log.Debug("staking v4", "enabled", rhs.flagStakingV4Step2.IsSet())
 }
 
 func (rhs *randHashShuffler) sortConfigs() {

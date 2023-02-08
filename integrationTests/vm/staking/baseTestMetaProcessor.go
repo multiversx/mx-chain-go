@@ -35,7 +35,7 @@ import (
 )
 
 const (
-	stakingV4InitEpoch        = 1
+	stakingV4Step1EnableEpoch = 1
 	stakingV4Step2EnableEpoch = 2
 	stakingV4Step3EnableEpoch = 3
 	addressLength             = 15

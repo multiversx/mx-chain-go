@@ -61,8 +61,8 @@ func createComponentHolders(numOfShards uint32) (
 func createCoreComponents() factory.CoreComponentsHolder {
 	epochNotifier := forking.NewGenericEpochNotifier()
 	configEnableEpochs := config.EnableEpochs{
+		StakingV4Step1EnableEpoch:          stakingV4Step1EnableEpoch,
 		StakingV4Step2EnableEpoch:          stakingV4Step2EnableEpoch,
-		StakingV4Step1EnableEpoch:          stakingV4InitEpoch,
 		StakingV4Step3EnableEpoch:          stakingV4Step3EnableEpoch,
 		RefactorPeersMiniBlocksEnableEpoch: integrationTests.UnreachableEpoch,
 	}

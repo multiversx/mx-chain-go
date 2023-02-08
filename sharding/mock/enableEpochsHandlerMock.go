@@ -91,8 +91,8 @@ func (mock *EnableEpochsHandlerMock) StakingV4Step2EnableEpoch() uint32 {
 	return 0
 }
 
-// StakingV4InitEpoch -
-func (mock *EnableEpochsHandlerMock) StakingV4InitEpoch() uint32 {
+// StakingV4Step1EnableEpoch -
+func (mock *EnableEpochsHandlerMock) StakingV4Step1EnableEpoch() uint32 {
 	return 0
 }
 

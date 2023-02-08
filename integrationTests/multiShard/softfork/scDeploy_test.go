@@ -34,9 +34,9 @@ func TestScDeploy(t *testing.T) {
 	enableEpochs.SCDeployEnableEpoch = deployEnableEpoch
 	enableEpochs.RelayedTransactionsEnableEpoch = relayedTxEnableEpoch
 	enableEpochs.PenalizedTooMuchGasEnableEpoch = penalizedTooMuchGasEnableEpoch
-	enableEpochs.StakingV4Step1EnableEpoch = integrationTests.StakingV4InitEpoch
-	enableEpochs.StakingV4Step2EnableEpoch = integrationTests.StakingV4Epoch
-	enableEpochs.StakingV4Step3EnableEpoch = integrationTests.StakingV4DistributeAuctionToWaiting
+	enableEpochs.StakingV4Step1EnableEpoch = integrationTests.StakingV4Step1EnableEpoch
+	enableEpochs.StakingV4Step2EnableEpoch = integrationTests.StakingV4Step2EnableEpoch
+	enableEpochs.StakingV4Step3EnableEpoch = integrationTests.StakingV4Step3EnableEpoch
 
 	shardNode := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
 		MaxShards:            1,

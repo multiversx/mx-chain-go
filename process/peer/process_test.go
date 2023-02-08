@@ -2699,7 +2699,7 @@ func TestValidatorStatisticsProcessor_SaveNodesCoordinatorUpdatesWithStakingV4(t
 	}
 	stakingV4Step2EnableEpochCalledCt := 0
 	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-		IsStakingV4EnabledCalled: func() bool {
+		IsStakingV4Step2Called: func() bool {
 			stakingV4Step2EnableEpochCalledCt++
 			switch stakingV4Step2EnableEpochCalledCt {
 			case 1:
