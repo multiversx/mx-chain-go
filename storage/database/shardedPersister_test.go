@@ -344,23 +344,21 @@ func getKey(
 	path string,
 	id string,
 ) {
-	go func(key []byte) {
-		b.StopTimer()
-		db, err := createPersister(path, id)
-		if err != nil {
-			log.Error("failed to create persister", "error", err.Error())
-			b.StartTimer()
-			return
-		}
+	b.StopTimer()
+	db, err := createPersister(path, id)
+	if err != nil {
+		log.Error("failed to create persister", "error", err.Error())
 		b.StartTimer()
+		return
+	}
+	b.StartTimer()
 
+	go func(key []byte) {
 		defer func() {
 			b.StopTimer()
 			err := db.Close()
 			if err != nil {
 				log.Error("failed to close persister", "error", err.Error())
-				b.StartTimer()
-				return
 			}
 			b.StartTimer()
 		}()
