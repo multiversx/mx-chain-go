@@ -18,6 +18,7 @@ var ErrNilIDProvider = errors.New("nil id provider")
 type persisterIDProvider interface {
 	ComputeId(key []byte) uint32
 	NumberOfShards() uint32
+	GetShardIDs() []uint32
 	IsInterfaceNil() bool
 }
 
@@ -33,7 +34,7 @@ func NewShardedPersister(path string, batchDelaySeconds int, maxBatchSize int, m
 	}
 
 	persisters := make(map[uint32]storage.Persister)
-	for _, shardID := range getShardIDs(idProvider) {
+	for _, shardID := range idProvider.GetShardIDs() {
 		newPath := updatePathWithShardID(path, shardID)
 		db, err := leveldb.NewDB(newPath, batchDelaySeconds, maxBatchSize, maxOpenFiles)
 		if err != nil {
@@ -50,16 +51,6 @@ func NewShardedPersister(path string, batchDelaySeconds int, maxBatchSize int, m
 
 func updatePathWithShardID(path string, shardID uint32) string {
 	return fmt.Sprintf("%s_%d", path, shardID)
-}
-
-func getShardIDs(idProvider persisterIDProvider) []uint32 {
-	shardIDs := make([]uint32, idProvider.NumberOfShards())
-
-	for i := uint32(0); i < idProvider.NumberOfShards(); i++ {
-		shardIDs[i] = i
-	}
-
-	return shardIDs
 }
 
 func (s *shardedPersister) computeID(key []byte) uint32 {
