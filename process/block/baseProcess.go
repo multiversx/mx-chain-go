@@ -83,6 +83,7 @@ type baseProcessor struct {
 	genesisNonce            uint64
 	mutProcessDebugger      sync.RWMutex
 	processDebugger         process.Debugger
+	processStatusHandler    common.ProcessStatusHandler
 
 	versionedHeaderFactory       nodeFactory.VersionedHeaderFactory
 	headerIntegrityVerifier      process.HeaderIntegrityVerifier
@@ -1989,10 +1990,12 @@ func (bp *baseProcessor) Close() error {
 // ProcessScheduledBlock processes a scheduled block
 func (bp *baseProcessor) ProcessScheduledBlock(headerHandler data.HeaderHandler, bodyHandler data.BodyHandler, haveTime func() time.Duration) error {
 	var err error
+	bp.processStatusHandler.SetBusy("baseProcessor.ProcessScheduledBlock")
 	defer func() {
 		if err != nil {
 			bp.RevertCurrentBlock()
 		}
+		bp.processStatusHandler.SetIdle()
 	}()
 
 	scheduledMiniBlocksFromMe, err := getScheduledMiniBlocksFromMe(headerHandler, bodyHandler)
