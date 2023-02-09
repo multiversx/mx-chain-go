@@ -5,9 +5,9 @@ import (
 	"container/list"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
-	"github.com/ElrondNetwork/elrond-go-storage/common"
-	"github.com/ElrondNetwork/elrond-go-storage/txcache/maps"
+	"github.com/multiversx/mx-chain-core-go/core/atomic"
+	"github.com/multiversx/mx-chain-storage-go/common"
+	"github.com/multiversx/mx-chain-storage-go/txcache/maps"
 )
 
 var _ maps.BucketSortedMapItem = (*txListForSender)(nil)
