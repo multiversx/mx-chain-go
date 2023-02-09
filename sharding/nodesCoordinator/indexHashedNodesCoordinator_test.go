@@ -2195,11 +2195,12 @@ func TestIndexHashedNodesCoordinator_computeNodesConfigFromListValidatorsWithFix
 		ShardId:      0,
 	}
 	shardMetaLeaving1 := &state.ShardValidatorInfo{
-		PublicKey:    []byte("pk7"),
-		List:         string(common.LeavingList),
-		PreviousList: string(common.WaitingList),
-		Index:        1,
-		ShardId:      core.MetachainShardId,
+		PublicKey:     []byte("pk7"),
+		List:          string(common.LeavingList),
+		PreviousList:  string(common.WaitingList),
+		Index:         1,
+		PreviousIndex: 1,
+		ShardId:       core.MetachainShardId,
 	}
 
 	validatorInfos :=

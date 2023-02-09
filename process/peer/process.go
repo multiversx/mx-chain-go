@@ -494,6 +494,7 @@ func (vs *validatorStatistics) PeerAccountToValidatorInfo(peerAccount state.Peer
 		List:                            list,
 		PreviousList:                    peerAccount.GetPreviousList(),
 		Index:                           peerAccount.GetIndexInList(),
+		PreviousIndex:                   peerAccount.GetPreviousIndexInList(),
 		TempRating:                      peerAccount.GetTempRating(),
 		Rating:                          peerAccount.GetRating(),
 		RatingModifier:                  ratingModifier,
