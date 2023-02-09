@@ -757,6 +757,8 @@ func (ihnc *indexHashedNodesCoordinator) computeNodesConfigFromList(
 			log.Debug("leaving node validatorInfo",
 				"pk", validatorInfo.PublicKey,
 				"previous list", validatorInfo.PreviousList,
+				"current index", validatorInfo.Index,
+				"previous index", validatorInfo.PreviousIndex,
 				"shardId", validatorInfo.ShardId)
 			leavingMap[validatorInfo.ShardId] = append(leavingMap[validatorInfo.ShardId], currentValidator)
 			ihnc.addValidatorToPreviousMap(
@@ -776,6 +778,7 @@ func (ihnc *indexHashedNodesCoordinator) computeNodesConfigFromList(
 		case string(common.JailedList):
 			log.Debug("jailed validator", "pk", validatorInfo.PublicKey)
 		case string(common.SelectedFromAuctionList):
+			log.Debug("selected node from auction", "pk", validatorInfo.PublicKey)
 			if ihnc.flagStakingV4Step2.IsSet() {
 				auctionList = append(auctionList, currentValidator)
 			} else {
@@ -829,18 +832,24 @@ func (ihnc *indexHashedNodesCoordinator) addValidatorToPreviousMap(
 	previousList := validatorInfo.PreviousList
 	if previousList == string(common.EligibleList) {
 		log.Debug("leaving node found in", "list", "eligible", "shardId", shardId)
+		currentValidator.index = validatorInfo.PreviousIndex
 		eligibleMap[shardId] = append(eligibleMap[shardId], currentValidator)
 		return
 	}
 
 	if previousList == string(common.WaitingList) {
 		log.Debug("leaving node found in", "list", "waiting", "shardId", shardId)
+		currentValidator.index = validatorInfo.PreviousIndex
 		waitingMap[shardId] = append(waitingMap[shardId], currentValidator)
 		return
 	}
 
-	log.Debug("leaving node not in eligible or waiting", "previous list", previousList,
-		"pk", currentValidator.PubKey(), "shardId", shardId)
+	log.Debug("leaving node not found in eligible or waiting",
+		"previous list", previousList,
+		"current index", validatorInfo.Index,
+		"previous index", validatorInfo.PreviousIndex,
+		"pk", currentValidator.PubKey(),
+		"shardId", shardId)
 }
 
 func (ihnc *indexHashedNodesCoordinator) handleErrorLog(err error, message string) {

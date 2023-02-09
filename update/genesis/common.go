@@ -52,6 +52,7 @@ func peerAccountToValidatorInfo(peerAccount state.PeerAccountHandler) *state.Val
 		List:                       getActualList(peerAccount),
 		PreviousList:               peerAccount.GetPreviousList(),
 		Index:                      peerAccount.GetIndexInList(),
+		PreviousIndex:              peerAccount.GetPreviousIndexInList(),
 		TempRating:                 peerAccount.GetTempRating(),
 		Rating:                     peerAccount.GetRating(),
 		RewardAddress:              peerAccount.GetRewardAddress(),
