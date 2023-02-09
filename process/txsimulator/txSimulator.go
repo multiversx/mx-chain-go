@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/node/external/transactionAPI"
 	"github.com/multiversx/mx-chain-go/process"
 	txSimData "github.com/multiversx/mx-chain-go/process/txsimulator/data"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -30,6 +31,10 @@ type ArgsTxSimulator struct {
 	Marshalizer               marshal.Marshalizer
 }
 
+type refundHandler interface {
+	IsRefund(input transactionAPI.RefundDetectorInput) bool
+}
+
 type transactionSimulator struct {
 	mutOperation           sync.Mutex
 	txProcessor            TransactionProcessor
@@ -39,6 +44,7 @@ type transactionSimulator struct {
 	vmOutputCacher         storage.Cacher
 	hasher                 hashing.Hasher
 	marshalizer            marshal.Marshalizer
+	refundDetector         refundHandler
 }
 
 // NewTransactionSimulator returns a new instance of a transactionSimulator
@@ -73,6 +79,7 @@ func NewTransactionSimulator(args ArgsTxSimulator) (*transactionSimulator, error
 		vmOutputCacher:         args.VMOutputCacher,
 		marshalizer:            args.Marshalizer,
 		hasher:                 args.Hasher,
+		refundDetector:         transactionAPI.NewRefundDetector(),
 	}, nil
 }
 
@@ -95,8 +102,10 @@ func (ts *transactionSimulator) ProcessTx(tx *transaction.Transaction) (*txSimDa
 	}
 
 	results := &txSimData.SimulationResults{
-		Status:     txStatus,
-		FailReason: failReason,
+		SimulationResults: transaction.SimulationResults{
+			Status:     txStatus,
+			FailReason: failReason,
+		},
 	}
 
 	err = ts.addIntermediateTxsToResult(results)
@@ -109,7 +118,28 @@ func (ts *transactionSimulator) ProcessTx(tx *transaction.Transaction) (*txSimDa
 		results.VMOutput = vmOutput
 	}
 
+	ts.addLogsFromVmOutput(results, vmOutput)
+
 	return results, nil
+}
+
+func (ts *transactionSimulator) addLogsFromVmOutput(results *txSimData.SimulationResults, vmOutput *vmcommon.VMOutput) {
+	if vmOutput == nil || len(vmOutput.Logs) == 0 {
+		return
+	}
+
+	results.Logs = &transaction.ApiLogs{
+		Events: make([]*transaction.Events, 0, len(vmOutput.Logs)),
+	}
+
+	for _, entry := range vmOutput.Logs {
+		results.Logs.Events = append(results.Logs.Events, &transaction.Events{
+			Address:    ts.addressPubKeyConverter.Encode(entry.Address),
+			Identifier: string(entry.Identifier),
+			Topics:     entry.Topics,
+			Data:       entry.Data,
+		})
+	}
 }
 
 func (ts *transactionSimulator) getVMOutputOfTx(tx *transaction.Transaction) (*vmcommon.VMOutput, bool) {
@@ -121,7 +151,7 @@ func (ts *transactionSimulator) getVMOutputOfTx(tx *transaction.Transaction) (*v
 	defer ts.vmOutputCacher.Remove(txHash)
 
 	vmOutputI, ok := ts.vmOutputCacher.Get(txHash)
-	if !ok {
+	if !ok || check.IfNilReflect(vmOutputI) {
 		return nil, false
 	}
 
@@ -184,6 +214,13 @@ func (ts *transactionSimulator) addIntermediateTxsToResult(result *txSimData.Sim
 }
 
 func (ts *transactionSimulator) adaptSmartContractResult(scr *smartContractResult.SmartContractResult) *transaction.ApiSmartContractResult {
+	isRefund := ts.refundDetector.IsRefund(transactionAPI.RefundDetectorInput{
+		Value:         scr.Value.String(),
+		Data:          scr.Data,
+		ReturnMessage: string(scr.ReturnMessage),
+		GasLimit:      scr.GasLimit,
+	})
+
 	resScr := &transaction.ApiSmartContractResult{
 		Nonce:          scr.Nonce,
 		Value:          scr.Value,
@@ -199,6 +236,7 @@ func (ts *transactionSimulator) adaptSmartContractResult(scr *smartContractResul
 		CallType:       scr.CallType,
 		CodeMetadata:   string(scr.CodeMetadata),
 		ReturnMessage:  string(scr.ReturnMessage),
+		IsRefund:       isRefund,
 	}
 
 	if scr.OriginalSender != nil {

@@ -116,20 +116,18 @@ func (tce *transactionCostEstimator) simulateTransactionCost(tx *transaction.Tra
 		return nil, err
 	}
 
+	costResponse := &transaction.CostResponse{}
+
 	res, err := tce.txSimulator.ProcessTx(tx)
 	if err != nil {
-		return &transaction.CostResponse{
-			GasUnits:      0,
-			ReturnMessage: err.Error(),
-		}, nil
+		costResponse.ReturnMessage = err.Error()
+		return costResponse, nil
 	}
 
 	isMoveBalanceOk := txType == process.MoveBalance && res.FailReason == ""
 	if isMoveBalanceOk {
-		return &transaction.CostResponse{
-			GasUnits:      tce.feeHandler.ComputeGasLimit(tx),
-			ReturnMessage: "",
-		}, nil
+		costResponse.GasUnits = tce.feeHandler.ComputeGasLimit(tx)
+		return costResponse, nil
 
 	}
 
@@ -137,34 +135,26 @@ func (tce *transactionCostEstimator) simulateTransactionCost(tx *transaction.Tra
 	if res.VMOutput != nil {
 		returnMessageFromVMOutput = res.VMOutput.ReturnMessage
 	}
+
 	if res.FailReason != "" {
-		return &transaction.CostResponse{
-			GasUnits:      0,
-			ReturnMessage: fmt.Sprintf("%s: %s", res.FailReason, returnMessageFromVMOutput),
-		}, nil
+		costResponse.ReturnMessage = fmt.Sprintf("%s: %s", res.FailReason, returnMessageFromVMOutput)
+		return costResponse, nil
 	}
 
 	if res.VMOutput == nil {
-		return &transaction.CostResponse{
-			GasUnits:             0,
-			ReturnMessage:        process.ErrNilVMOutput.Error(),
-			SmartContractResults: nil,
-		}, nil
+		costResponse.ReturnMessage = process.ErrNilVMOutput.Error()
+		return costResponse, nil
 	}
 
+	costResponse.SmartContractResults = res.ScResults
+	costResponse.Logs = res.Logs
 	if res.VMOutput.ReturnCode == vmcommon.Ok {
-		return &transaction.CostResponse{
-			GasUnits:             tce.computeGasUnitsBasedOnVMOutput(tx, res.VMOutput),
-			ReturnMessage:        "",
-			SmartContractResults: res.ScResults,
-		}, nil
+		costResponse.GasUnits = tce.computeGasUnitsBasedOnVMOutput(tx, res.VMOutput)
+		return costResponse, nil
 	}
 
-	return &transaction.CostResponse{
-		GasUnits:             0,
-		ReturnMessage:        fmt.Sprintf("%s: %s", res.VMOutput.ReturnCode.String(), returnMessageFromVMOutput),
-		SmartContractResults: res.ScResults,
-	}, nil
+	costResponse.ReturnMessage = fmt.Sprintf("%s: %s", res.VMOutput.ReturnCode.String(), returnMessageFromVMOutput)
+	return costResponse, nil
 }
 
 func (tce *transactionCostEstimator) computeGasUnitsBasedOnVMOutput(tx *transaction.Transaction, vmOutput *vmcommon.VMOutput) uint64 {
