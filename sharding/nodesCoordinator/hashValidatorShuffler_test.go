@@ -192,10 +192,9 @@ func createHashShufflerInter() (*randHashShuffler, error) {
 		Hysteresis:           hysteresis,
 		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: true,
-		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
-		EnableEpochs: config.EnableEpochs{
-			StakingV4Step2EnableEpoch: 443,
-			StakingV4Step3EnableEpoch: 444,
+		EnableEpochsHandler: &mock.EnableEpochsHandlerMock{
+			StakingV4Step2EnableEpochField: 443,
+			StakingV4Step3EnableEpochField: 444,
 		},
 	}
 
@@ -211,11 +210,10 @@ func createHashShufflerIntraShards() (*randHashShuffler, error) {
 		Hysteresis:           hysteresis,
 		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
-		EnableEpochs: config.EnableEpochs{
-			StakingV4Step2EnableEpoch: 443,
-			StakingV4Step3EnableEpoch: 444,
+		EnableEpochsHandler: &mock.EnableEpochsHandlerMock{
+			StakingV4Step2EnableEpochField: 443,
+			StakingV4Step3EnableEpochField: 444,
 		},
-		EnableEpochsHandler: &mock.EnableEpochsHandlerMock{},
 	}
 	shuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 
@@ -1164,17 +1162,18 @@ func TestRandHashShuffler_UpdateParams(t *testing.T) {
 	require.Nil(t, err)
 
 	shuffler2 := &randHashShuffler{
-		nodesShard:                200,
-		nodesMeta:                 200,
-		shardHysteresis:           0,
-		metaHysteresis:            0,
-		adaptivity:                true,
-		shuffleBetweenShards:      true,
-		validatorDistributor:      &CrossShardValidatorDistributor{},
-		availableNodesConfigs:     nil,
-		stakingV4Step2EnableEpoch: 443,
-		stakingV4Step3EnableEpoch: 444,
-		enableEpochsHandler:       &mock.EnableEpochsHandlerMock{},
+		nodesShard:            200,
+		nodesMeta:             200,
+		shardHysteresis:       0,
+		metaHysteresis:        0,
+		adaptivity:            true,
+		shuffleBetweenShards:  true,
+		validatorDistributor:  &CrossShardValidatorDistributor{},
+		availableNodesConfigs: nil,
+		enableEpochsHandler: &mock.EnableEpochsHandlerMock{
+			StakingV4Step2EnableEpochField: 443,
+			StakingV4Step3EnableEpochField: 444,
+		},
 	}
 
 	shuffler.UpdateParams(
@@ -2320,11 +2319,10 @@ func TestRandHashShuffler_UpdateNodeLists_All(t *testing.T) {
 		Hysteresis:           hysteresis,
 		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
-		EnableEpochs: config.EnableEpochs{
-			StakingV4Step2EnableEpoch: 443,
-			StakingV4Step3EnableEpoch: 444,
+		EnableEpochsHandler: &mock.EnableEpochsHandlerMock{
+			StakingV4Step2EnableEpochField: 443,
+			StakingV4Step3EnableEpochField: 444,
 		},
-		EnableEpochsHandler: &mock.EnableEpochsHandlerMock{},
 	}
 	shuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(t, err)
@@ -2673,11 +2671,10 @@ func TestRandHashShuffler_UpdateNodeLists_WithNewNodes_WithWaiting_WithLeaving(t
 		Hysteresis:           hysteresis,
 		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
-		EnableEpochs: config.EnableEpochs{
-			StakingV4Step2EnableEpoch: 443,
-			StakingV4Step3EnableEpoch: 444,
+		EnableEpochsHandler: &mock.EnableEpochsHandlerMock{
+			StakingV4Step2EnableEpochField: 443,
+			StakingV4Step3EnableEpochField: 444,
 		},
-		EnableEpochsHandler: &mock.EnableEpochsHandlerMock{},
 	}
 	shuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(t, err)

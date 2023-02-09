@@ -1,8 +1,15 @@
 package mock
 
+import "sync"
+
 // EnableEpochsHandlerMock -
 type EnableEpochsHandlerMock struct {
+	mutEpoch                                  sync.RWMutex
+	epoch                                     uint32
 	RefactorPeersMiniBlocksEnableEpochField   uint32
+	StakingV4Step1EnableEpochField            uint32
+	StakingV4Step2EnableEpochField            uint32
+	StakingV4Step3EnableEpochField            uint32
 	IsRefactorPeersMiniBlocksFlagEnabledField bool
 }
 
@@ -88,7 +95,7 @@ func (mock *EnableEpochsHandlerMock) MiniBlockPartialExecutionEnableEpoch() uint
 
 // StakingV4Step2EnableEpoch -
 func (mock *EnableEpochsHandlerMock) StakingV4Step2EnableEpoch() uint32 {
-	return 0
+	return mock.StakingV4Step2EnableEpochField
 }
 
 // StakingV4Step1EnableEpoch -
@@ -562,12 +569,18 @@ func (mock *EnableEpochsHandlerMock) IsStakingV4Step1Enabled() bool {
 
 // IsStakingV4Step2Enabled -
 func (mock *EnableEpochsHandlerMock) IsStakingV4Step2Enabled() bool {
-	return false
+	mock.mutEpoch.RLock()
+	defer mock.mutEpoch.RUnlock()
+
+	return mock.epoch >= mock.StakingV4Step2EnableEpochField
 }
 
 // IsStakingV4Step3Enabled -
 func (mock *EnableEpochsHandlerMock) IsStakingV4Step3Enabled() bool {
-	return false
+	mock.mutEpoch.RLock()
+	defer mock.mutEpoch.RUnlock()
+
+	return mock.epoch >= mock.StakingV4Step3EnableEpochField
 }
 
 // IsStakingQueueEnabled -
@@ -577,12 +590,22 @@ func (mock *EnableEpochsHandlerMock) IsStakingQueueEnabled() bool {
 
 // IsStakingV4Started -
 func (mock *EnableEpochsHandlerMock) IsStakingV4Started() bool {
-	return false
+	mock.mutEpoch.RLock()
+	defer mock.mutEpoch.RUnlock()
+
+	return mock.epoch >= mock.StakingV4Step1EnableEpochField
 }
 
 // IsAlwaysSaveTokenMetaDataEnabled -
 func (mock *EnableEpochsHandlerMock) IsAlwaysSaveTokenMetaDataEnabled() bool {
 	return false
+}
+
+// EpochConfirmed -
+func (mock *EnableEpochsHandlerMock) EpochConfirmed(epoch uint32, _ uint64) {
+	mock.mutEpoch.Lock()
+	mock.epoch = epoch
+	mock.mutEpoch.Unlock()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

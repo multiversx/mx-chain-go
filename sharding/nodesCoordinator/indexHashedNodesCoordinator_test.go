@@ -101,7 +101,9 @@ func createArguments() ArgNodesCoordinator {
 		Hysteresis:           hysteresis,
 		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
-		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
+		EnableEpochsHandler: &mock.EnableEpochsHandlerMock{
+			StakingV4Step2EnableEpochField: stakingV4Epoch,
+		},
 	}
 	nodeShuffler, _ := NewHashValidatorsShuffler(shufflerArgs)
 
@@ -127,9 +129,9 @@ func createArguments() ArgNodesCoordinator {
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 		EnableEpochsHandler: &mock.EnableEpochsHandlerMock{
 			IsRefactorPeersMiniBlocksFlagEnabledField: true,
+			StakingV4Step2EnableEpochField:            stakingV4Epoch,
 		},
 		ValidatorInfoCacher:             &vic.ValidatorInfoCacherStub{},
-		StakingV4Step2EnableEpoch:       stakingV4Epoch,
 		NodesCoordinatorRegistryFactory: createNodesCoordinatorRegistryFactory(),
 	}
 	return arguments
@@ -1380,7 +1382,11 @@ func TestIndexHashedNodesCoordinator_EpochStartInEligible(t *testing.T) {
 func TestIndexHashedNodesCoordinator_computeShardForSelfPublicKeyWithStakingV4(t *testing.T) {
 	t.Parallel()
 
+	enableEpochsHandlerMock := &mock.EnableEpochsHandlerMock{
+		StakingV4Step2EnableEpochField: stakingV4Epoch,
+	}
 	arguments := createArguments()
+	arguments.EnableEpochsHandler = enableEpochsHandlerMock
 	pk := []byte("pk")
 	arguments.SelfPublicKey = pk
 	nc, _ := NewIndexHashedNodesCoordinator(arguments)
@@ -1400,7 +1406,7 @@ func TestIndexHashedNodesCoordinator_computeShardForSelfPublicKeyWithStakingV4(t
 	require.Equal(t, nc.shardIDAsObserver, computedShardId)
 	require.False(t, isValidator)
 
-	nc.flagStakingV4Step2.SetValue(true)
+	enableEpochsHandlerMock.EpochConfirmed(stakingV4Epoch, 0)
 
 	computedShardId, isValidator = nc.computeShardForSelfPublicKey(nc.nodesConfig[epoch])
 	require.Equal(t, metaShard, computedShardId)
@@ -2094,7 +2100,11 @@ func TestIndexHashedNodesCoordinator_computeNodesConfigFromListNilPk(t *testing.
 
 func TestIndexHashedNodesCoordinator_computeNodesConfigFromListWithStakingV4(t *testing.T) {
 	t.Parallel()
+	enableEpochsHandlerMock := &mock.EnableEpochsHandlerMock{
+		StakingV4Step2EnableEpochField: stakingV4Epoch,
+	}
 	arguments := createArguments()
+	arguments.EnableEpochsHandler = enableEpochsHandlerMock
 	nc, _ := NewIndexHashedNodesCoordinator(arguments)
 
 	shard0Eligible := &state.ShardValidatorInfo{
@@ -2124,7 +2134,7 @@ func TestIndexHashedNodesCoordinator_computeNodesConfigFromListWithStakingV4(t *
 	require.Equal(t, ErrReceivedAuctionValidatorsBeforeStakingV4, err)
 	require.Nil(t, newNodesConfig)
 
-	nc.updateEpochFlags(stakingV4Epoch)
+	require.Nil(t, nc.updateEnableEpochsHandler(stakingV4Epoch))
 
 	newNodesConfig, err = nc.computeNodesConfigFromList(validatorInfos)
 	require.Nil(t, err)
@@ -2148,7 +2158,6 @@ func TestIndexHashedNodesCoordinator_computeNodesConfigFromListValidatorsWithFix
 	pk := []byte("pk")
 	arguments.SelfPublicKey = pk
 	ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
-	_ = ihnc.flagStakingV4Started.SetReturningPrevious()
 
 	shard0Eligible0 := &state.ShardValidatorInfo{
 		PublicKey:  []byte("pk0"),
@@ -2254,7 +2263,11 @@ func TestIndexHashedNodesCoordinator_computeNodesConfigFromListValidatorsWithFix
 func TestIndexHashedNodesCoordinator_computeNodesConfigFromListValidatorsNoFix(t *testing.T) {
 	t.Parallel()
 
+	enableEpochsHandlerMock := &mock.EnableEpochsHandlerMock{
+		StakingV4Step2EnableEpochField: stakingV4Epoch,
+	}
 	arguments := createArguments()
+	arguments.EnableEpochsHandler = enableEpochsHandlerMock
 	pk := []byte("pk")
 	arguments.SelfPublicKey = pk
 	ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
@@ -2321,7 +2334,7 @@ func TestIndexHashedNodesCoordinator_computeNodesConfigFromListValidatorsNoFix(t
 			shardMetaLeaving1,
 		}
 
-	ihnc.flagStakingV4Started.Reset()
+	enableEpochsHandlerMock.StakingV4Step1EnableEpochField = uint32(1000000)
 	newNodesConfig, err := ihnc.computeNodesConfigFromList(validatorInfos)
 	assert.Nil(t, err)
 

@@ -108,7 +108,6 @@ func CreateNodesCoordinator(
 	enableEpochsHandler common.EnableEpochsHandler,
 	validatorInfoCacher epochStart.ValidatorInfoCacher,
 	nodesCoordinatorRegistryFactory nodesCoordinator.NodesCoordinatorRegistryFactory,
-	stakingV4Step2EnableEpoch uint32,
 ) (nodesCoordinator.NodesCoordinator, error) {
 	if chanNodeStop == nil {
 		return nil, nodesCoordinator.ErrNilNodeStopChannel
@@ -200,7 +199,6 @@ func CreateNodesCoordinator(
 		EnableEpochsHandler:             enableEpochsHandler,
 		ValidatorInfoCacher:             validatorInfoCacher,
 		NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
-		StakingV4Step2EnableEpoch:       stakingV4Step2EnableEpoch,
 	}
 
 	baseNodesCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)

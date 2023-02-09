@@ -49,7 +49,10 @@ func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgInd
 		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
-		EnableEpochsHandler:  &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+			IsStakingV4Step2FlagEnabledField: true,
+			IsStakingV4Step3FlagEnabledField: true,
+		},
 	}
 
 	nodeShuffler, _ := nodesCoordinator.NewHashValidatorsShuffler(nodeShufflerArgs)
@@ -77,10 +80,10 @@ func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgInd
 		IsFullArchive:           false,
 		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
 			RefactorPeersMiniBlocksEnableEpochField: UnreachableEpoch,
+			StakingV4Step2EnableEpochField:          StakingV4Step2EnableEpoch,
 		},
 		ValidatorInfoCacher:             &vic.ValidatorInfoCacherStub{},
 		NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
-		StakingV4Step2EnableEpoch:       StakingV4Step2EnableEpoch,
 	}
 	nodesCoord, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 	if err != nil {
@@ -112,6 +115,8 @@ func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinato
 		MaxNodesEnableConfig: nil,
 		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
 			IsBalanceWaitingListsFlagEnabledField: true,
+			IsStakingV4Step2FlagEnabledField:      true,
+			IsStakingV4Step3FlagEnabledField:      true,
 		},
 	}
 
@@ -140,6 +145,7 @@ func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinato
 		IsFullArchive:           false,
 		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
 			RefactorPeersMiniBlocksEnableEpochField: UnreachableEpoch,
+			StakingV4Step2EnableEpochField:          StakingV4Step2EnableEpoch,
 		},
 		ValidatorInfoCacher:             &vic.ValidatorInfoCacherStub{},
 		NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,

@@ -396,6 +396,7 @@ func GetBootStrapFactoryArgs() bootstrapComp.BootstrapComponentsFactoryArgs {
 				ConnectionWatcherType:      "print",
 			},
 		},
+		EnableEpochs: config.EnableEpochs{},
 		ImportDbConfig: config.ImportDbConfig{
 			IsImportDBMode: false,
 		},

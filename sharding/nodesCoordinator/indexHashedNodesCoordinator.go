@@ -8,7 +8,6 @@ import (
 	"sync/atomic"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	atomicFlags "github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
@@ -97,10 +96,7 @@ type indexHashedNodesCoordinator struct {
 	nodeTypeProvider                NodeTypeProviderHandler
 	enableEpochsHandler             common.EnableEpochsHandler
 	validatorInfoCacher             epochStart.ValidatorInfoCacher
-	stakingV4Step2EnableEpoch       uint32
-	flagStakingV4Step2              atomicFlags.Flag
 	nodesCoordinatorRegistryFactory NodesCoordinatorRegistryFactory
-	flagStakingV4Started            atomicFlags.Flag
 }
 
 // NewIndexHashedNodesCoordinator creates a new index hashed group selector
@@ -149,7 +145,6 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		isFullArchive:                   arguments.IsFullArchive,
 		enableEpochsHandler:             arguments.EnableEpochsHandler,
 		validatorInfoCacher:             arguments.ValidatorInfoCacher,
-		stakingV4Step2EnableEpoch:       arguments.StakingV4Step2EnableEpoch,
 		nodesCoordinatorRegistryFactory: arguments.NodesCoordinatorRegistryFactory,
 	}
 
@@ -605,7 +600,11 @@ func (ihnc *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 		return
 	}
 
-	ihnc.updateEpochFlags(newEpoch)
+	err := ihnc.updateEnableEpochsHandler(newEpoch)
+	if err != nil {
+		log.Error("EpochStartPrepare failed", "error", err)
+		return
+	}
 
 	allValidatorInfo, err := ihnc.createValidatorInfoFromBody(body, ihnc.numTotalEligible, newEpoch)
 	if err != nil {
@@ -768,7 +767,7 @@ func (ihnc *indexHashedNodesCoordinator) computeNodesConfigFromList(
 				validatorInfo,
 			)
 		case string(common.NewList):
-			if ihnc.flagStakingV4Step2.IsSet() {
+			if ihnc.enableEpochsHandler.IsStakingV4Step2Enabled() {
 				return nil, epochStart.ErrReceivedNewListNodeInStakingV4
 			}
 			log.Debug("new node registered", "pk", validatorInfo.PublicKey)
@@ -779,7 +778,7 @@ func (ihnc *indexHashedNodesCoordinator) computeNodesConfigFromList(
 			log.Debug("jailed validator", "pk", validatorInfo.PublicKey)
 		case string(common.SelectedFromAuctionList):
 			log.Debug("selected node from auction", "pk", validatorInfo.PublicKey)
-			if ihnc.flagStakingV4Step2.IsSet() {
+			if ihnc.enableEpochsHandler.IsStakingV4Step2Enabled() {
 				auctionList = append(auctionList, currentValidator)
 			} else {
 				return nil, ErrReceivedAuctionValidatorsBeforeStakingV4
@@ -824,7 +823,7 @@ func (ihnc *indexHashedNodesCoordinator) addValidatorToPreviousMap(
 	validatorInfo *state.ShardValidatorInfo,
 ) {
 	shardId := validatorInfo.ShardId
-	if !ihnc.flagStakingV4Started.IsSet() {
+	if !ihnc.enableEpochsHandler.IsStakingV4Started() {
 		eligibleMap[shardId] = append(eligibleMap[shardId], currentValidator)
 		return
 	}
@@ -1080,7 +1079,7 @@ func (ihnc *indexHashedNodesCoordinator) computeShardForSelfPublicKey(nodesConfi
 		return shardId, true
 	}
 
-	if ihnc.flagStakingV4Step2.IsSet() {
+	if ihnc.enableEpochsHandler.IsStakingV4Step2Enabled() {
 		found, shardId = searchInMap(nodesConfig.shuffledOutMap, pubKey)
 		if found {
 			log.Trace("computeShardForSelfPublicKey found validator in shuffled out",
@@ -1288,10 +1287,11 @@ func (ihnc *indexHashedNodesCoordinator) getShardValidatorInfoData(txHash []byte
 	return shardValidatorInfo, nil
 }
 
-func (ihnc *indexHashedNodesCoordinator) updateEpochFlags(epoch uint32) {
-	ihnc.flagStakingV4Started.SetValue(epoch >= ihnc.enableEpochsHandler.StakingV4Step1EnableEpoch())
-	log.Debug("indexHashedNodesCoordinator: flagStakingV4Started", "enabled", ihnc.flagStakingV4Started.IsSet())
-
-	ihnc.flagStakingV4Step2.SetValue(epoch >= ihnc.stakingV4Step2EnableEpoch)
-	log.Debug("indexHashedNodesCoordinator: flagStakingV4Step2", "enabled", ihnc.flagStakingV4Step2.IsSet())
+func (ihnc *indexHashedNodesCoordinator) updateEnableEpochsHandler(epoch uint32) error {
+	epochSubscriberHandler, ok := ihnc.enableEpochsHandler.(core.EpochSubscriberHandler)
+	if !ok {
+		return epochStart.ErrCannotCastEnableEpochsHandlerToEpochSubscriberHandler
+	}
+	epochSubscriberHandler.EpochConfirmed(epoch, 0)
+	return nil
 }

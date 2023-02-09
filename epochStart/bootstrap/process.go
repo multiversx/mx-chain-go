@@ -114,6 +114,7 @@ type epochStartBootstrap struct {
 	checkNodesOnDisk           bool
 	bootstrapHeartbeatSender   update.Closer
 	trieSyncStatisticsProvider common.SizeSyncStatisticsHandler
+	enableEpochsHandler        common.EnableEpochsHandler
 
 	// created components
 	requestHandler            process.RequestHandler
@@ -180,6 +181,7 @@ type ArgsEpochStartBootstrap struct {
 	ScheduledSCRsStorer             storage.Storer
 	TrieSyncStatisticsProvider      common.SizeSyncStatisticsHandler
 	NodesCoordinatorRegistryFactory nodesCoordinator.NodesCoordinatorRegistryFactory
+	EnableEpochsHandler             common.EnableEpochsHandler
 }
 
 type dataToSync struct {
@@ -226,6 +228,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		shardCoordinator:                args.GenesisShardCoordinator,
 		trieSyncStatisticsProvider:      args.TrieSyncStatisticsProvider,
 		nodesCoordinatorRegistryFactory: args.NodesCoordinatorRegistryFactory,
+		enableEpochsHandler:             args.EnableEpochsHandler,
 	}
 
 	whiteListCache, err := storageunit.NewCache(storageFactory.GetCacherFromConfig(epochStartProvider.generalConfig.WhiteListPool))
@@ -731,7 +734,7 @@ func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) ([]*block.MiniBl
 		ChanNodeStop:                    e.coreComponentsHolder.ChanStopNodeProcess(),
 		NodeTypeProvider:                e.coreComponentsHolder.NodeTypeProvider(),
 		IsFullArchive:                   e.prefsConfig.FullArchive,
-		EnableEpochsHandler:             e.coreComponentsHolder.EnableEpochsHandler(),
+		EnableEpochsHandler:             e.enableEpochsHandler,
 		NodesCoordinatorRegistryFactory: e.nodesCoordinatorRegistryFactory,
 	}
 
@@ -1023,7 +1026,7 @@ func (e *epochStartBootstrap) updateDataForScheduled(
 		HeadersSyncer:        e.headersSyncer,
 		MiniBlocksSyncer:     e.miniBlocksSyncer,
 		TxSyncer:             e.txSyncerForScheduled,
-		ScheduledEnableEpoch: e.coreComponentsHolder.EnableEpochsHandler().ScheduledMiniBlocksEnableEpoch(),
+		ScheduledEnableEpoch: e.enableEpochsHandler.ScheduledMiniBlocksEnableEpoch(),
 	}
 
 	e.dataSyncerWithScheduled, err = e.dataSyncerFactory.Create(argsScheduledDataSyncer)

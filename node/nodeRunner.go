@@ -24,6 +24,7 @@ import (
 	"github.com/multiversx/mx-chain-go/api/shared"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/disabled"
+	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/common/goroutines"
 	"github.com/multiversx/mx-chain-go/common/statistics"
@@ -49,6 +50,7 @@ import (
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
 	"github.com/multiversx/mx-chain-go/health"
+	"github.com/multiversx/mx-chain-go/node/external/timemachine"
 	"github.com/multiversx/mx-chain-go/node/metrics"
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/p2p"
@@ -357,6 +359,10 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
+	enableEpochsHandlerNodesCoordinator, err := enablers.NewEnableEpochsHandler(configs.EpochConfig.EnableEpochs, &timemachine.DisabledEpochNotifier{})
+	if err != nil {
+		return true, err
+	}
 	log.Debug("creating nodes coordinator")
 	nodesCoordinatorInstance, err := bootstrapComp.CreateNodesCoordinator(
 		nodesShufflerOut,
@@ -374,10 +380,9 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedBootstrapComponents.EpochBootstrapParams().Epoch(),
 		managedCoreComponents.ChanStopNodeProcess(),
 		managedCoreComponents.NodeTypeProvider(),
-		managedCoreComponents.EnableEpochsHandler(),
+		enableEpochsHandlerNodesCoordinator,
 		managedDataComponents.Datapool().CurrentEpochValidatorInfo(),
 		managedBootstrapComponents.NodesCoordinatorRegistryFactory(),
-		configs.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch,
 	)
 	if err != nil {
 		return true, err
@@ -1346,6 +1351,7 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 		PrefConfig:           *nr.configs.PreferencesConfig,
 		ImportDbConfig:       *nr.configs.ImportDbConfig,
 		FlagsConfig:          *nr.configs.FlagsConfig,
+		EnableEpochs:         nr.configs.EpochConfig.EnableEpochs,
 		WorkingDir:           nr.configs.FlagsConfig.WorkingDir,
 		CoreComponents:       coreComponents,
 		CryptoComponents:     cryptoComponents,

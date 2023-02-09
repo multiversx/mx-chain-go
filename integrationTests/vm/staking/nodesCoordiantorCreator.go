@@ -7,13 +7,17 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-core-go/storage/lrucache"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever/dataPool"
 	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/integrationTests"
 	integrationMocks "github.com/multiversx/mx-chain-go/integrationTests/mock"
+	"github.com/multiversx/mx-chain-go/sharding/mock"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
+	epochNotifierMock "github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/stakingcommon"
 )
 
@@ -44,14 +48,20 @@ func createNodesCoordinator(
 		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: maxNodesConfig,
-		EnableEpochs: config.EnableEpochs{
-			StakingV4Step2EnableEpoch: stakingV4Step2EnableEpoch,
-			StakingV4Step3EnableEpoch: stakingV4Step3EnableEpoch,
+		EnableEpochsHandler: &mock.EnableEpochsHandlerMock{
+			StakingV4Step2EnableEpochField: stakingV4Step2EnableEpoch,
+			StakingV4Step3EnableEpochField: stakingV4Step3EnableEpoch,
 		},
-		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
 	}
 	nodeShuffler, _ := nodesCoordinator.NewHashValidatorsShuffler(shufflerArgs)
 	cache, _ := lrucache.NewCache(10000)
+	configEnableEpochs := config.EnableEpochs{
+		StakingV4Step1EnableEpoch:          stakingV4Step1EnableEpoch,
+		StakingV4Step2EnableEpoch:          stakingV4Step2EnableEpoch,
+		StakingV4Step3EnableEpoch:          stakingV4Step3EnableEpoch,
+		RefactorPeersMiniBlocksEnableEpoch: integrationTests.UnreachableEpoch,
+	}
+	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(configEnableEpochs, &epochNotifierMock.EpochNotifierStub{})
 	argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
 		ShardConsensusGroupSize:         shardConsensusGroupSize,
 		MetaConsensusGroupSize:          metaConsensusGroupSize,
@@ -69,10 +79,9 @@ func createNodesCoordinator(
 		Shuffler:                        nodeShuffler,
 		BootStorer:                      bootStorer,
 		EpochStartNotifier:              coreComponents.EpochStartNotifierWithConfirm(),
-		StakingV4Step2EnableEpoch:       stakingV4Step2EnableEpoch,
 		NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
 		NodeTypeProvider:                coreComponents.NodeTypeProvider(),
-		EnableEpochsHandler:             coreComponents.EnableEpochsHandler(),
+		EnableEpochsHandler:             enableEpochsHandler,
 		ValidatorInfoCacher:             dataPool.NewCurrentEpochValidatorInfoPool(),
 	}
 

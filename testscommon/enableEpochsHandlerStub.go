@@ -1053,6 +1053,10 @@ func (stub *EnableEpochsHandlerStub) StakingV4Step1EnableEpoch() uint32 {
 	return stub.StakingV4Step1EnableEpochField
 }
 
+// EpochConfirmed -
+func (stub *EnableEpochsHandlerStub) EpochConfirmed(_ uint32, _ uint64) {
+}
+
 // IsInterfaceNil -
 func (stub *EnableEpochsHandlerStub) IsInterfaceNil() bool {
 	return stub == nil

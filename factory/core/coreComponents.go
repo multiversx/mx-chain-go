@@ -29,6 +29,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/notifier"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/node/external/timemachine"
 	"github.com/multiversx/mx-chain-go/ntp"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/economics"
@@ -297,6 +298,11 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, err
 	}
 
+	enableEpochsHandlerShuffler, err := enablers.NewEnableEpochsHandler(ccf.epochConfig.EnableEpochs, &timemachine.DisabledEpochNotifier{})
+	if err != nil {
+		return nil, err
+	}
+
 	argsNodesShuffler := &nodesCoordinator.NodesShufflerArgs{
 		NodesShard:           genesisNodesConfig.MinNumberOfShardNodes(),
 		NodesMeta:            genesisNodesConfig.MinNumberOfMetaNodes(),
@@ -304,8 +310,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		Adaptivity:           genesisNodesConfig.GetAdaptivity(),
 		ShuffleBetweenShards: true,
 		MaxNodesEnableConfig: ccf.epochConfig.EnableEpochs.MaxNodesChangeEnableEpoch,
-		EnableEpochsHandler:  enableEpochsHandler,
-		EnableEpochs:         ccf.epochConfig.EnableEpochs,
+		EnableEpochsHandler:  enableEpochsHandlerShuffler,
 	}
 
 	nodesShuffler, err := nodesCoordinator.NewHashValidatorsShuffler(argsNodesShuffler)

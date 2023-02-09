@@ -346,3 +346,6 @@ var ErrUint32SubtractionOverflow = errors.New("uint32 subtraction overflowed")
 
 // ErrReceivedAuctionValidatorsBeforeStakingV4 signals that an auction node has been provided before enabling staking v4
 var ErrReceivedAuctionValidatorsBeforeStakingV4 = errors.New("auction node has been provided before enabling staking v4")
+
+// ErrCannotCastEnableEpochsHandlerToEpochSubscriberHandler signals that enable epochs handler cannot be cast to epoch subscriber handler
+var ErrCannotCastEnableEpochsHandlerToEpochSubscriberHandler = errors.New("cannot cast enable epochs handler to epoch subscriber handler")
