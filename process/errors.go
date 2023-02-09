@@ -825,9 +825,6 @@ var ErrShardIsStuck = errors.New("shard is stuck")
 // ErrRelayedTxBeneficiaryDoesNotMatchReceiver signals that an invalid address was provided in the relayed tx
 var ErrRelayedTxBeneficiaryDoesNotMatchReceiver = errors.New("invalid address in relayed tx")
 
-// ErrInvalidVMType signals that invalid vm type was provided
-var ErrInvalidVMType = errors.New("invalid VM type")
-
 // ErrRecursiveRelayedTxIsNotAllowed signals that recursive relayed tx is not allowed
 var ErrRecursiveRelayedTxIsNotAllowed = errors.New("recursive relayed tx is not allowed")
 
@@ -1151,6 +1148,9 @@ var ErrNilProcessDebugger = errors.New("nil process debugger")
 
 // ErrAsyncCallsDisabled signals that async calls are disabled
 var ErrAsyncCallsDisabled = errors.New("async calls disabled")
+
+// ErrNilVMContainer defines the error when trying to use a nil vm container
+var ErrNilVMContainer = errors.New("nil ErrNilVMContainer")
 
 // ErrMaxCallsReached signals that the allowed max number of calls was reached
 var ErrMaxCallsReached = errors.New("max calls reached")

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
@@ -22,24 +23,60 @@ var MockInitialBalance = big.NewInt(10_000_000)
 // WalletAddressPrefix is the prefix of any smart contract address used for testing.
 var WalletAddressPrefix = []byte("..........")
 
+// InitializeMockContracts -
 func InitializeMockContracts(
 	t *testing.T,
 	net *integrationTests.TestNetwork,
 	mockSCs ...testcommon.MockTestSmartContract,
 ) {
+	InitializeMockContractsWithVMContainer(t, net, nil, mockSCs...)
+}
+
+// InitializeMockContractsWithVMContainer -
+func InitializeMockContractsWithVMContainer(
+	t *testing.T,
+	net *integrationTests.TestNetwork,
+	vmContainer process.VirtualMachinesContainer,
+	mockSCs ...testcommon.MockTestSmartContract,
+) {
+	InitializeMockContractsWithVMContainerAndVMTypes(t, net, nil, [][]byte{factory.WasmVirtualMachine}, mockSCs...)
+}
+
+// InitializeMockContractsWithVMContainerAndVMTypes -
+func InitializeMockContractsWithVMContainerAndVMTypes(
+	t *testing.T,
+	net *integrationTests.TestNetwork,
+	vmContainer process.VirtualMachinesContainer,
+	vmKeys [][]byte,
+	mockSCs ...testcommon.MockTestSmartContract,
+) {
 	shardToHost, shardToInstanceBuilder :=
-		CreateHostAndInstanceBuilder(t, net, factory.WasmVirtualMachine)
+		CreateHostAndInstanceBuilder(t, net, vmContainer, vmKeys)
 	for _, mockSC := range mockSCs {
 		shardID := mockSC.GetShardID()
-		mockSC.Initialize(t, shardToHost[shardID], shardToInstanceBuilder[shardID], true)
+		mockSC.Initialize(t,
+			shardToHost[shardID][string(mockSC.GetVMType())],
+			shardToInstanceBuilder[shardID][string(mockSC.GetVMType())], true)
 	}
 }
 
+// GetAddressForNewAccountOnWalletAndNode -
 func GetAddressForNewAccountOnWalletAndNode(
 	t *testing.T,
 	net *integrationTests.TestNetwork,
 	wallet *integrationTests.TestWalletAccount,
 	node *integrationTests.TestProcessorNode,
+) ([]byte, state.UserAccountHandler) {
+	return GetAddressForNewAccountOnWalletAndNodeWithVM(t, net, wallet, node, net.DefaultVM)
+}
+
+// GetAddressForNewAccountOnWalletAndNodeWithVM -
+func GetAddressForNewAccountOnWalletAndNodeWithVM(
+	t *testing.T,
+	net *integrationTests.TestNetwork,
+	wallet *integrationTests.TestWalletAccount,
+	node *integrationTests.TestProcessorNode,
+	vmType []byte,
 ) ([]byte, state.UserAccountHandler) {
 	walletAccount, err := node.AccntState.GetExistingAccount(wallet.Address)
 	require.Nil(t, err)
@@ -48,7 +85,7 @@ func GetAddressForNewAccountOnWalletAndNode(
 	err = node.AccntState.SaveAccount(walletAccount)
 	require.Nil(t, err)
 
-	address := net.NewAddress(wallet)
+	address := net.NewAddressWithVM(wallet, vmType)
 	account, _ := state.NewUserAccount(address)
 	account.Balance = MockInitialBalance
 	account.SetCode(address)
@@ -59,6 +96,7 @@ func GetAddressForNewAccountOnWalletAndNode(
 	return address, account
 }
 
+// SetCodeMetadata -
 func SetCodeMetadata(
 	t *testing.T,
 	codeMetadata []byte,
@@ -70,11 +108,21 @@ func SetCodeMetadata(
 	require.Nil(t, err)
 }
 
+// GetAddressForNewAccount -
 func GetAddressForNewAccount(
 	t *testing.T,
 	net *integrationTests.TestNetwork,
 	node *integrationTests.TestProcessorNode) ([]byte, state.UserAccountHandler) {
-	return GetAddressForNewAccountOnWalletAndNode(t, net, net.Wallets[node.ShardCoordinator.SelfId()], node)
+	return GetAddressForNewAccountWithVM(t, net, node, net.DefaultVM)
+}
+
+// GetAddressForNewAccountWithVM
+func GetAddressForNewAccountWithVM(
+	t *testing.T,
+	net *integrationTests.TestNetwork,
+	node *integrationTests.TestProcessorNode,
+	vmType []byte) ([]byte, state.UserAccountHandler) {
+	return GetAddressForNewAccountOnWalletAndNodeWithVM(t, net, net.Wallets[node.ShardCoordinator.SelfId()], node, vmType)
 }
 
 // MakeTestWalletAddress generates a new wallet address to be used for
@@ -90,30 +138,51 @@ func makeTestAddress(prefix []byte, identifier string) []byte {
 	return append(leftBytes, rightBytes...)
 }
 
-func CreateHostAndInstanceBuilder(t *testing.T, net *integrationTests.TestNetwork, vmKey []byte) (map[uint32]vmhost.VMHost, map[uint32]*contextmock.ExecutorMock) {
+func CreateHostAndInstanceBuilder(t *testing.T,
+	net *integrationTests.TestNetwork,
+	vmContainer process.VirtualMachinesContainer,
+	vmKeys [][]byte) (map[uint32]map[string]vmhost.VMHost, map[uint32]map[string]*contextmock.ExecutorMock) {
 	numberOfShards := uint32(net.NumShards)
 	shardToWorld := make(map[uint32]*worldmock.MockWorld, numberOfShards)
-	shardToInstanceBuilder := make(map[uint32]*contextmock.ExecutorMock, numberOfShards)
-	shardToHost := make(map[uint32]vmhost.VMHost, numberOfShards)
+	shardToInstanceBuilder := make(map[uint32]map[string]*contextmock.ExecutorMock, numberOfShards)
+	shardToHost := make(map[uint32]map[string]vmhost.VMHost, numberOfShards)
+
+	if vmContainer != nil {
+		err := net.DefaultNode.BlockchainHook.SetVMContainer(vmContainer)
+		require.Nil(t, err)
+	}
 
 	for shardID := uint32(0); shardID < numberOfShards; shardID++ {
 		world := worldmock.NewMockWorld()
 		world.SetProvidedBlockchainHook(net.DefaultNode.BlockchainHook)
 		world.SelfShardID = shardID
 		shardToWorld[shardID] = world
-		instanceBuilderMock, _ := contextmock.NewExecutorMockFactory(world).CreateExecutor(executor.ExecutorFactoryArgs{})
-		shardToInstanceBuilder[shardID] = instanceBuilderMock.(*contextmock.ExecutorMock)
+		for _, vmKey := range vmKeys {
+			instanceBuilderMock, _ := contextmock.NewExecutorMockFactory(world).CreateExecutor(executor.ExecutorFactoryArgs{})
+			if shardToInstanceBuilder[shardID] == nil {
+				shardToInstanceBuilder[shardID] = make(map[string]*contextmock.ExecutorMock, len(vmKeys))
+			}
+			shardToInstanceBuilder[shardID][string(vmKey)] = instanceBuilderMock.(*contextmock.ExecutorMock)
+		}
 	}
 
 	for shardID := uint32(0); shardID < numberOfShards; shardID++ {
 		node := net.NodesSharded[shardID][0]
-		host, err := node.VMContainer.Get(factory.WasmVirtualMachine)
-		require.NotNil(t, host)
-		require.Nil(t, err)
-		host.(vmhost.VMHost).Runtime().ReplaceVMExecutor(shardToInstanceBuilder[shardID])
-		err = node.VMContainer.Replace(vmKey, host)
-		require.Nil(t, err)
-		shardToHost[shardID] = host.(vmhost.VMHost)
+		for _, vmType := range node.VMContainer.Keys() {
+			host, err := node.VMContainer.Get(vmType)
+			require.NotNil(t, host)
+			require.Nil(t, err)
+			if _, ok := host.(vmhost.VMHost); !ok {
+				continue
+			}
+			host.(vmhost.VMHost).Runtime().ReplaceVMExecutor(shardToInstanceBuilder[shardID][string(vmType)])
+			err = node.VMContainer.Replace(vmType, host)
+			require.Nil(t, err)
+			if shardToHost[shardID] == nil {
+				shardToHost[shardID] = make(map[string]vmhost.VMHost, len(vmKeys))
+			}
+			shardToHost[shardID][string(vmType)] = host.(vmhost.VMHost)
+		}
 	}
 
 	return shardToHost, shardToInstanceBuilder

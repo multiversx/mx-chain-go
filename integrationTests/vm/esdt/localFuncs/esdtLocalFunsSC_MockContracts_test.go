@@ -34,8 +34,9 @@ func TestESDTLocalMintAndBurnFromSC_MockContracts(t *testing.T) {
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
 
-	wasmvm.InitializeMockContracts(
+	wasmvm.InitializeMockContractsWithVMContainer(
 		t, net,
+		node0shard0.VMContainer,
 		test.CreateMockContractOnShard(scAddress, 0).
 			WithOwnerAddress(ownerWallet.Address).
 			WithConfig(&test.TestConfig{}).

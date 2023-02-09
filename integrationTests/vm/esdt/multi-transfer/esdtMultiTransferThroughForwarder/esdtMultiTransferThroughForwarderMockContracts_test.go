@@ -82,8 +82,9 @@ func ESDTMultiTransferThroughForwarder_MockContracts_Deploy(t *testing.T, legacy
 		GasToLock:          300_000,
 	}
 
-	wasmvm.InitializeMockContracts(
+	wasmvm.InitializeMockContractsWithVMContainer(
 		t, net,
+		net.NodesSharded[0][0].VMContainer,
 		test.CreateMockContractOnShard(forwarder, 0).
 			WithOwnerAddress(ownerShard1.Address).
 			WithConfig(testConfig).
@@ -136,8 +137,9 @@ func ESDTMultiTransferWithWrongArguments_MockContracts_Deploy(t *testing.T, net 
 		IsLegacyAsync: true,
 	}
 
-	wasmvm.InitializeMockContracts(
+	wasmvm.InitializeMockContractsWithVMContainer(
 		t, net,
+		net.NodesSharded[0][0].VMContainer,
 		test.CreateMockContractOnShard(forwarder, 0).
 			WithOwnerAddress(ownerShard1.Address).
 			WithConfig(testConfig).

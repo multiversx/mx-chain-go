@@ -16,7 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	wasmvm15 "github.com/multiversx/mx-chain-vm-go/vmhost"
+	"github.com/multiversx/mx-chain-vm-go/vmhost"
 	wasmVMHost15 "github.com/multiversx/mx-chain-vm-go/vmhost/hostCore"
 	wasmvm12 "github.com/multiversx/mx-chain-vm-v1_2-go/vmhost"
 	wasmVMHost12 "github.com/multiversx/mx-chain-vm-v1_2-go/vmhost/hostCore"
@@ -294,6 +294,7 @@ func (vmf *vmContainerFactory) createInProcessWasmVMByVersion(version config.Was
 }
 
 func (vmf *vmContainerFactory) createInProcessWasmVMV12() (vmcommon.VMExecutionHandler, error) {
+	logVMContainerFactory.Info("VM 1.2 created")
 	hostParameters := &wasmvm12.VMHostParameters{
 		VMType:                   factory.WasmVirtualMachine,
 		BlockGasLimit:            vmf.blockGasLimit,
@@ -306,6 +307,7 @@ func (vmf *vmContainerFactory) createInProcessWasmVMV12() (vmcommon.VMExecutionH
 }
 
 func (vmf *vmContainerFactory) createInProcessWasmVMV13() (vmcommon.VMExecutionHandler, error) {
+	logVMContainerFactory.Info("VM 1.3 created")
 	hostParameters := &wasmvm13.VMHostParameters{
 		VMType:               factory.WasmVirtualMachine,
 		BlockGasLimit:        vmf.blockGasLimit,
@@ -318,6 +320,7 @@ func (vmf *vmContainerFactory) createInProcessWasmVMV13() (vmcommon.VMExecutionH
 }
 
 func (vmf *vmContainerFactory) createInProcessWasmVMV14() (vmcommon.VMExecutionHandler, error) {
+	logVMContainerFactory.Info("VM 1.4 created")
 	hostParameters := &wasmvm14.VMHostParameters{
 		VMType:                              factory.WasmVirtualMachine,
 		BlockGasLimit:                       vmf.blockGasLimit,
@@ -335,8 +338,8 @@ func (vmf *vmContainerFactory) createInProcessWasmVMV14() (vmcommon.VMExecutionH
 }
 
 func (vmf *vmContainerFactory) createInProcessWasmVMV15() (vmcommon.VMExecutionHandler, error) {
-	logVMContainerFactory.Error("VM 1.5 created")
-	hostParameters := &wasmvm15.VMHostParameters{
+	logVMContainerFactory.Info("VM 1.5 created")
+	hostParameters := &vmhost.VMHostParameters{
 		VMType:                              factory.WasmVirtualMachine,
 		BlockGasLimit:                       vmf.blockGasLimit,
 		GasSchedule:                         vmf.gasSchedule.LatestGasSchedule(),

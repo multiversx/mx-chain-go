@@ -514,6 +514,8 @@ type BlockChainHookHandler interface {
 	ClearCompiledCodes()
 	GetSnapshot() int
 	RevertToSnapshot(snapshot int) error
+	ExecuteSmartContractCallOnOtherVM(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
+	SetVMContainer(vmContainer VirtualMachinesContainer) error
 	Close() error
 	FilterCodeMetadataForUpgrade(input []byte) ([]byte, error)
 	ApplyFiltersOnCodeMetadata(codeMetadata vmcommon.CodeMetadata) vmcommon.CodeMetadata
@@ -521,7 +523,6 @@ type BlockChainHookHandler interface {
 	GetCounterValues() map[string]uint64
 	IsInterfaceNil() bool
 	IsBuiltinFunctionName(functionName string) bool
-	ExecuteSmartContractCallOnOtherVM(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
 }
 
 // Interceptor defines what a data interceptor should do

@@ -22,6 +22,8 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/factory/containers"
+	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -73,6 +75,7 @@ type BlockChainHookImpl struct {
 	marshalizer           marshal.Marshalizer
 	uint64Converter       typeConverters.Uint64ByteSliceConverter
 	builtInFunctions      vmcommon.BuiltInFunctionContainer
+	vmContainer           process.VirtualMachinesContainer
 	nftStorageHandler     vmcommon.SimpleESDTNFTStorageHandler
 	globalSettingsHandler vmcommon.ESDTGlobalSettingsHandler
 	enableEpochsHandler   common.EnableEpochsHandler
@@ -130,6 +133,7 @@ func NewBlockChainHookImpl(
 	blockChainHookImpl.ClearCompiledCodes()
 	blockChainHookImpl.currentHdr = &block.Header{}
 	blockChainHookImpl.mapActivationEpochs = createMapActivationEpochs(&args.EnableEpochs)
+	blockChainHookImpl.vmContainer = containers.NewVirtualMachinesContainer()
 
 	args.EpochNotifier.RegisterNotifyHandler(blockChainHookImpl)
 	args.GasSchedule.RegisterNotifyHandler(blockChainHookImpl)
@@ -821,6 +825,24 @@ func (bh *BlockChainHookImpl) EpochConfirmed(epoch uint32, _ uint64) {
 	}
 }
 
+// ExecuteSmartContractCallOnOtherVM on another VM
+func (bh *BlockChainHookImpl) ExecuteSmartContractCallOnOtherVM(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+	vmExec, _, err := scrCommon.FindVMByScAddress(bh.vmContainer, input.RecipientAddr)
+	if err != nil {
+		return nil, err
+	}
+	return vmExec.RunSmartContractCall(input)
+}
+
+// SetVMContainer sets the vm container in order to be used for sc execution via blockchain
+func (bh *BlockChainHookImpl) SetVMContainer(vmContainer process.VirtualMachinesContainer) error {
+	if check.IfNil(vmContainer) {
+		return process.ErrNilVMContainer
+	}
+	bh.vmContainer = vmContainer
+	return nil
+}
+
 // GasScheduleChange sets the new gas schedule where it is needed
 func (bh *BlockChainHookImpl) GasScheduleChange(gasSchedule map[string]map[string]uint64) {
 	maxPerTransaction := bh.getMaxPerTransactionValues(gasSchedule)
@@ -879,9 +901,4 @@ func stopMeasure(hook string, sw *core.StopWatch) {
 	} else {
 		log.Trace(hook, "duration", duration)
 	}
-}
-
-// TODO not used yet, will be merged from rc/v1.5
-func (bh *BlockChainHookImpl) ExecuteSmartContractCallOnOtherVM(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
-	return nil, nil
 }
