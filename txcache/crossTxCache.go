@@ -1,8 +1,8 @@
 package txcache
 
 import (
-	"github.com/ElrondNetwork/elrond-go-storage/immunitycache"
-	"github.com/ElrondNetwork/elrond-go-storage/types"
+	"github.com/multiversx/mx-chain-storage-go/immunitycache"
+	"github.com/multiversx/mx-chain-storage-go/types"
 )
 
 var _ types.Cacher = (*CrossTxCache)(nil)
