@@ -63,7 +63,7 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 		args.DataFieldParser,
 	)
 
-	refundDetector := newRefundDetector()
+	refundDetector := NewRefundDetector()
 	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(args.FeeComputer)
 
 	return &apiTransactionProcessor{
@@ -150,7 +150,7 @@ func (atp *apiTransactionProcessor) populateComputedFieldIsRefund(tx *transactio
 		return
 	}
 
-	tx.IsRefund = atp.refundDetector.isRefund(refundDetectorInput{
+	tx.IsRefund = atp.refundDetector.IsRefund(RefundDetectorInput{
 		Value:         tx.Value,
 		Data:          tx.Data,
 		ReturnMessage: tx.ReturnMessage,
