@@ -74,7 +74,7 @@ type validatorStatistics struct {
 	ratingEnableEpoch                    uint32
 	lastFinalizedRootHash                []byte
 	enableEpochsHandler                  common.EnableEpochsHandler
-	updateShardDataPeerStateHandler      func(header data.CommonHeaderHandler, cacheMap map[string]data.CommonHeaderHandler) error
+	updateShardDataPeerStateFunc         func(header data.CommonHeaderHandler, cacheMap map[string]data.CommonHeaderHandler) error
 }
 
 // NewValidatorStatisticsProcessor instantiates a new validatorStatistics structure responsible for keeping account of
@@ -137,7 +137,7 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 		enableEpochsHandler:                  arguments.EnableEpochsHandler,
 	}
 
-	vs.updateShardDataPeerStateHandler = vs.updateShardDataPeerState
+	vs.updateShardDataPeerStateFunc = vs.updateShardDataPeerState
 
 	err := vs.saveInitialState(arguments.NodesSetup)
 	if err != nil {
@@ -344,7 +344,7 @@ func (vs *validatorStatistics) UpdatePeerState(header data.CommonHeaderHandler, 
 	}
 
 	log.Debug("UpdatePeerState - registering shard leader fees", "metaNonce", header.GetNonce())
-	err = vs.updateShardDataPeerStateHandler(header, cache)
+	err = vs.updateShardDataPeerStateFunc(header, cache)
 	if err != nil {
 		return nil, err
 	}

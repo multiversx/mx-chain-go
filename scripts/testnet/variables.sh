@@ -28,6 +28,10 @@ export CONFIGGENERATOROUTPUTDIR="output"
 export NODEDIR="$MULTIVERSXDIR/cmd/node"
 export NODE="$NODEDIR/node"     # Leave unchanged
 
+# Path to the executable sovereign node. Leave unchanged unless well justified.
+export SOVEREIGNNODEDIR="$MULTIVERSXDIR/cmd/sovereignnode"
+export SOVEREIGNNODE="$SOVEREIGNNODEDIR/sovereignnode"     # Leave unchanged
+
 # Path to the executable seednode. Leave unchanged unless well justified.
 export SEEDNODEDIR="$MULTIVERSXDIR/cmd/seednode"
 export SEEDNODE="$SEEDNODEDIR/seednode"   # Leave unchanged.
