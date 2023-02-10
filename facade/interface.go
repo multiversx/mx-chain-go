@@ -109,6 +109,7 @@ type TransactionSimulatorProcessor interface {
 type ApiResolver interface {
 	ExecuteSCQuery(query *process.SCQuery) (*vmcommon.VMOutput, error)
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error)
+	SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResults, error)
 	StatusMetrics() external.StatusMetricsHandler
 	GetTotalStakedValue(ctx context.Context) (*api.StakeValues, error)
 	GetDirectStakedList(ctx context.Context) ([]*api.DirectStakedValue, error)

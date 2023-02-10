@@ -2,6 +2,7 @@ package txsimulator
 
 import (
 	"context"
+	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
@@ -11,6 +12,8 @@ import (
 
 // readOnlyAccountsDB is a wrapper over an accounts db which works read-only. write operation are disabled
 type readOnlyAccountsDB struct {
+	mutex            sync.RWMutex
+	cashedAccounts   map[string]vmcommon.AccountHandler
 	originalAccounts state.AccountsAdapter
 }
 
@@ -20,7 +23,11 @@ func NewReadOnlyAccountsDB(accountsDB state.AccountsAdapter) (*readOnlyAccountsD
 		return nil, ErrNilAccountsAdapter
 	}
 
-	return &readOnlyAccountsDB{originalAccounts: accountsDB}, nil
+	return &readOnlyAccountsDB{
+		mutex:            sync.RWMutex{},
+		cashedAccounts:   make(map[string]vmcommon.AccountHandler),
+		originalAccounts: accountsDB,
+	}, nil
 }
 
 // SetSyncer returns nil for this implementation
@@ -50,11 +57,23 @@ func (r *readOnlyAccountsDB) GetAccountFromBytes(address []byte, accountBytes []
 
 // LoadAccount will call the original accounts' function with the same name
 func (r *readOnlyAccountsDB) LoadAccount(address []byte) (vmcommon.AccountHandler, error) {
+	r.mutex.RLock()
+	cachedAccount, ok := r.cashedAccounts[string(address)]
+	r.mutex.RUnlock()
+	if ok {
+		return cachedAccount, nil
+	}
+
 	return r.originalAccounts.LoadAccount(address)
 }
 
 // SaveAccount won't do anything as write operations are disabled on this component
-func (r *readOnlyAccountsDB) SaveAccount(_ vmcommon.AccountHandler) error {
+func (r *readOnlyAccountsDB) SaveAccount(account vmcommon.AccountHandler) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	r.cashedAccounts[string(account.AddressBytes())] = account
+
 	return nil
 }
 
@@ -147,4 +166,11 @@ func (r *readOnlyAccountsDB) Close() error {
 // IsInterfaceNil returns true if there is no value under the interface
 func (r *readOnlyAccountsDB) IsInterfaceNil() bool {
 	return r == nil
+}
+
+// CleanCache -
+func (r *readOnlyAccountsDB) CleanCache() {
+	r.mutex.Lock()
+	r.cashedAccounts = make(map[string]vmcommon.AccountHandler)
+	r.mutex.Unlock()
 }

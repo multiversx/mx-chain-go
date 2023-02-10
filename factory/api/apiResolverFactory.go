@@ -159,7 +159,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		txTypeHandler,
 		args.CoreComponents.EconomicsData(),
 		args.ProcessComponents.TransactionSimulatorProcessor(),
-		args.StateComponents.AccountsAdapterAPI(),
+		args.StateComponents.AccountsAdapterSimulate(),
 		args.ProcessComponents.ShardCoordinator(),
 		args.CoreComponents.EnableEpochsHandler(),
 	)

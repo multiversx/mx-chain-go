@@ -130,6 +130,17 @@ func (msc *managedStateComponents) AccountsAdapterAPI() state.AccountsAdapter {
 	return msc.stateComponents.accountsAdapterAPI
 }
 
+func (msc *managedStateComponents) AccountsAdapterSimulate() state.AccountsAdapterWithClean {
+	msc.mutStateComponents.RLock()
+	defer msc.mutStateComponents.RUnlock()
+
+	if msc.stateComponents == nil {
+		return nil
+	}
+
+	return msc.stateComponents.accountsAdapterSimulate
+}
+
 // AccountsRepository returns the accounts adapter for the user accounts to be used in REST API
 func (msc *managedStateComponents) AccountsRepository() state.AccountsRepository {
 	msc.mutStateComponents.RLock()

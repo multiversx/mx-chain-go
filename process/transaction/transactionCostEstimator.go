@@ -7,14 +7,14 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/multiversx/mx-chain-go/common"
-
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/facade"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/process/txsimulator"
+	txSimData "github.com/multiversx/mx-chain-go/process/txsimulator/data"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -25,7 +25,7 @@ const gasRemainedSplitString = "gas remained = "
 const gasUsedSlitString = "gas used = "
 
 type transactionCostEstimator struct {
-	accounts            state.AccountsAdapter
+	accounts            state.AccountsAdapterWithClean
 	shardCoordinator    sharding.Coordinator
 	txTypeHandler       process.TxTypeHandler
 	feeHandler          process.FeeHandler
@@ -39,7 +39,7 @@ func NewTransactionCostEstimator(
 	txTypeHandler process.TxTypeHandler,
 	feeHandler process.FeeHandler,
 	txSimulator facade.TransactionSimulatorProcessor,
-	accounts state.AccountsAdapter,
+	accounts state.AccountsAdapterWithClean,
 	shardCoordinator sharding.Coordinator,
 	enableEpochsHandler common.EnableEpochsHandler,
 ) (*transactionCostEstimator, error) {
@@ -74,10 +74,24 @@ func NewTransactionCostEstimator(
 	return tce, nil
 }
 
+// SimulateTransactionExecution will simulate a transaction's execution and will return the results
+func (tce *transactionCostEstimator) SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResults, error) {
+	tce.mutExecution.Lock()
+	defer func() {
+		tce.accounts.CleanCache()
+		tce.mutExecution.Unlock()
+	}()
+
+	return tce.txSimulator.ProcessTx(tx)
+}
+
 // ComputeTransactionGasLimit will calculate how many gas units a transaction will consume
 func (tce *transactionCostEstimator) ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error) {
-	tce.mutExecution.RLock()
-	defer tce.mutExecution.RUnlock()
+	tce.mutExecution.Lock()
+	defer func() {
+		tce.accounts.CleanCache()
+		tce.mutExecution.Unlock()
+	}()
 
 	txTypeOnSender, txTypeOnDestination := tce.txTypeHandler.ComputeTransactionType(tx)
 	if txTypeOnSender == process.MoveBalance && txTypeOnDestination == process.MoveBalance {

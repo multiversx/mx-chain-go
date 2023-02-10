@@ -948,11 +948,6 @@ func (pcf *processComponentsFactory) createShardTxSimulatorProcessor(
 	wasmVMChangeLocker common.Locker,
 	mapDNSAddresses map[string]struct{},
 ) (process.VirtualMachinesContainerFactory, error) {
-	readOnlyAccountsDB, err := txsimulator.NewReadOnlyAccountsDB(pcf.state.AccountsAdapterAPI())
-	if err != nil {
-		return nil, err
-	}
-
 	interimProcFactory, err := shard.NewIntermediateProcessorsContainerFactory(
 		pcf.bootstrapComponents.ShardCoordinator(),
 		pcf.coreData.InternalMarshalizer(),
@@ -966,14 +961,14 @@ func (pcf *processComponentsFactory) createShardTxSimulatorProcessor(
 		return nil, err
 	}
 
-	builtInFuncFactory, err := pcf.createBuiltInFunctionContainer(readOnlyAccountsDB, mapDNSAddresses)
+	builtInFuncFactory, err := pcf.createBuiltInFunctionContainer(pcf.state.AccountsAdapterSimulate(), mapDNSAddresses)
 	if err != nil {
 		return nil, err
 	}
 
 	smartContractStorageSimulate := pcf.config.SmartContractsStorageSimulate
 	vmFactory, err := pcf.createVMFactoryShard(
-		readOnlyAccountsDB,
+		pcf.state.AccountsAdapterSimulate(),
 		builtInFuncFactory.BuiltInFunctionContainer(),
 		esdtTransferParser,
 		wasmVMChangeLocker,
@@ -1025,7 +1020,7 @@ func (pcf *processComponentsFactory) createShardTxSimulatorProcessor(
 	scProcArgs.TxFeeHandler = &processDisabled.FeeHandler{}
 	txProcArgs.TxFeeHandler = &processDisabled.FeeHandler{}
 
-	scProcArgs.AccountsDB = readOnlyAccountsDB
+	scProcArgs.AccountsDB = pcf.state.AccountsAdapterSimulate()
 	scProcArgs.VMOutputCacher = txSimulatorProcessorArgs.VMOutputCacher
 	scProcessor, err := smartContract.NewSmartContractProcessor(scProcArgs)
 	if err != nil {
@@ -1033,7 +1028,7 @@ func (pcf *processComponentsFactory) createShardTxSimulatorProcessor(
 	}
 	txProcArgs.ScProcessor = scProcessor
 
-	txProcArgs.Accounts = readOnlyAccountsDB
+	txProcArgs.Accounts = pcf.state.AccountsAdapterSimulate()
 
 	txSimulatorProcessorArgs.TransactionProcessor, err = transaction.NewTxProcessor(txProcArgs)
 	if err != nil {

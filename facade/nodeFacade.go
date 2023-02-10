@@ -44,7 +44,6 @@ var log = logger.GetOrCreate("facade")
 type ArgNodeFacade struct {
 	Node                   NodeHandler
 	ApiResolver            ApiResolver
-	TxSimulatorProcessor   TransactionSimulatorProcessor
 	RestAPIServerDebugMode bool
 	WsAntifloodConfig      config.WebServerAntifloodConfig
 	FacadeConfig           config.FacadeConfig
@@ -59,7 +58,6 @@ type nodeFacade struct {
 	node                   NodeHandler
 	apiResolver            ApiResolver
 	syncer                 ntp.SyncTimer
-	txSimulatorProc        TransactionSimulatorProcessor
 	config                 config.FacadeConfig
 	apiRoutesConfig        config.ApiRoutesConfig
 	endpointsThrottlers    map[string]core.Throttler
@@ -79,9 +77,6 @@ func NewNodeFacade(arg ArgNodeFacade) (*nodeFacade, error) {
 	}
 	if check.IfNil(arg.ApiResolver) {
 		return nil, ErrNilApiResolver
-	}
-	if check.IfNil(arg.TxSimulatorProcessor) {
-		return nil, ErrNilTransactionSimulatorProcessor
 	}
 	if len(arg.ApiRoutesConfig.APIPackages) == 0 {
 		return nil, ErrNoApiRoutesConfig
@@ -106,7 +101,6 @@ func NewNodeFacade(arg ArgNodeFacade) (*nodeFacade, error) {
 		node:                   arg.Node,
 		apiResolver:            arg.ApiResolver,
 		restAPIServerDebugMode: arg.RestAPIServerDebugMode,
-		txSimulatorProc:        arg.TxSimulatorProcessor,
 		wsAntifloodConfig:      arg.WsAntifloodConfig,
 		config:                 arg.FacadeConfig,
 		apiRoutesConfig:        arg.ApiRoutesConfig,
@@ -309,7 +303,7 @@ func (nf *nodeFacade) SendBulkTransactions(txs []*transaction.Transaction) (uint
 
 // SimulateTransactionExecution will simulate a transaction's execution and will return the results
 func (nf *nodeFacade) SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResults, error) {
-	return nf.txSimulatorProc.ProcessTx(tx)
+	return nf.apiResolver.SimulateTransactionExecution(tx)
 }
 
 // GetTransaction gets the transaction with a specified hash

@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/node/external/blockAPI"
 	"github.com/multiversx/mx-chain-go/process"
+	txSimData "github.com/multiversx/mx-chain-go/process/txsimulator/data"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
@@ -126,6 +127,10 @@ func (nar *nodeApiResolver) StatusMetrics() StatusMetricsHandler {
 // ComputeTransactionGasLimit will calculate how many gas a transaction will consume
 func (nar *nodeApiResolver) ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error) {
 	return nar.txCostHandler.ComputeTransactionGasLimit(tx)
+}
+
+func (nar *nodeApiResolver) SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResults, error) {
+	return nar.txCostHandler.SimulateTransactionExecution(tx)
 }
 
 // Close closes all underlying components

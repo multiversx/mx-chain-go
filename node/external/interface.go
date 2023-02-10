@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
+	txSimData "github.com/multiversx/mx-chain-go/process/txsimulator/data"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
@@ -34,6 +35,7 @@ type StatusMetricsHandler interface {
 
 // TransactionCostHandler defines the actions which should be handler by a transaction cost estimator
 type TransactionCostHandler interface {
+	SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResults, error)
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	IsInterfaceNil() bool
 }
