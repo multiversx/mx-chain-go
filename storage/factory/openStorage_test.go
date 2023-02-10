@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/mock"
+	storageMocks "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -19,6 +20,7 @@ func createMockArgsOpenStorageUnits() ArgsNewOpenStorageUnits {
 		LatestStorageDataProvider: &mock.LatestStorageDataProviderStub{},
 		DefaultEpochString:        "Epoch",
 		DefaultShardString:        "Shard",
+		ShardIDProvider:           &storageMocks.ShardIDProviderStub{},
 	}
 }
 

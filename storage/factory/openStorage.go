@@ -20,6 +20,7 @@ type ArgsNewOpenStorageUnits struct {
 	LatestStorageDataProvider storage.LatestStorageDataProviderHandler
 	DefaultEpochString        string
 	DefaultShardString        string
+	ShardIDProvider           storage.ShardIDProvider
 }
 
 type openStorageUnits struct {
@@ -27,15 +28,18 @@ type openStorageUnits struct {
 	latestStorageDataProvider storage.LatestStorageDataProviderHandler
 	defaultEpochString        string
 	defaultShardString        string
+	shardIDProvider           storage.ShardIDProvider
 }
 
 // NewStorageUnitOpenHandler creates an openStorageUnits component
 func NewStorageUnitOpenHandler(args ArgsNewOpenStorageUnits) (*openStorageUnits, error) {
+	// TODO: check args here
 	o := &openStorageUnits{
 		defaultEpochString:        args.DefaultEpochString,
 		defaultShardString:        args.DefaultShardString,
 		bootstrapDataProvider:     args.BootstrapDataProvider,
 		latestStorageDataProvider: args.LatestStorageDataProvider,
+		shardIDProvider:           args.ShardIDProvider,
 	}
 
 	return o, nil
@@ -48,7 +52,10 @@ func (o *openStorageUnits) GetMostRecentStorageUnit(dbConfig config.DBConfig) (s
 		return nil, err
 	}
 
-	persisterFactory := NewPersisterFactory(dbConfig)
+	persisterFactory, err := NewPersisterFactory(dbConfig, o.shardIDProvider)
+	if err != nil {
+		return nil, err
+	}
 	pathWithoutShard := o.getPathWithoutShard(parentDir, lastEpoch)
 	shardIdsStr, err := o.latestStorageDataProvider.GetShardsFromDirectory(pathWithoutShard)
 	if err != nil {
@@ -100,7 +107,10 @@ func (o *openStorageUnits) OpenDB(dbConfig config.DBConfig, shardID uint32, epoc
 	parentDir := o.latestStorageDataProvider.GetParentDirectory()
 	pathWithoutShard := o.getPathWithoutShard(parentDir, epoch)
 	persisterPath := o.getPersisterPath(pathWithoutShard, fmt.Sprintf("%d", shardID), dbConfig)
-	persisterFactory := NewPersisterFactory(dbConfig)
+	persisterFactory, err := NewPersisterFactory(dbConfig, o.shardIDProvider)
+	if err != nil {
+		return nil, err
+	}
 
 	persister, err := createDB(persisterFactory, persisterPath)
 	if err != nil {

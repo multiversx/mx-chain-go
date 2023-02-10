@@ -51,6 +51,11 @@ func CreateStorer(parentDir string) storage.Storer {
 		return nil
 	}
 
+	shardIDProvider, err := database.NewShardIDProvider(4)
+	if err != nil {
+		return nil
+	}
+
 	dbConfig := config.DBConfig{
 		FilePath:          "trie",
 		Type:              "LvlDBSerial",
@@ -58,7 +63,11 @@ func CreateStorer(parentDir string) storage.Storer {
 		MaxBatchSize:      45000,
 		MaxOpenFiles:      10,
 	}
-	persisterFactory := factory.NewPersisterFactory(dbConfig)
+	persisterFactory, err := factory.NewPersisterFactory(dbConfig, shardIDProvider)
+	if err != nil {
+		return nil
+	}
+
 	triePersister, err := persisterFactory.Create(parentDir)
 	if err != nil {
 		return nil
