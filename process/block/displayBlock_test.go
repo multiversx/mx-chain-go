@@ -1,12 +1,17 @@
 package block
 
 import (
+	"math"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/display"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -104,4 +109,50 @@ func TestDisplayBlock_GetConstructionStateAsString(t *testing.T) {
 	_ = miniBlockHeader.SetConstructionState(int32(block.Final))
 	str = getConstructionStateAsString(miniBlockHeader)
 	assert.Equal(t, "", str)
+}
+
+func TestDisplayBlock_setNumProcessedTxsMetric(t *testing.T) {
+	t.Parallel()
+
+	setValue := uint64(0)
+	appStatusHandler := &statusHandler.AppStatusHandlerStub{
+		SetUInt64ValueHandler: func(key string, value uint64) {
+			if key == common.MetricNumProcessedTxs {
+				setValue = value
+			}
+		},
+	}
+	txCounter, _ := NewTransactionCounter(&testscommon.HasherStub{}, &testscommon.MarshalizerMock{})
+	txCounter.totalTxs = 37
+	txCounter.setNumProcessedTxsMetric(appStatusHandler)
+
+	assert.Equal(t, uint64(37), setValue)
+}
+
+func TestDisplayBlock_ConcurrencyTestForTotalTxs(t *testing.T) {
+	t.Parallel()
+
+	numCalls := 100
+	wg := sync.WaitGroup{}
+	wg.Add(numCalls)
+
+	txCounter, _ := NewTransactionCounter(&testscommon.HasherStub{}, &testscommon.MarshalizerMock{})
+	txCounter.totalTxs = math.MaxUint64
+	appStatusHandler := &statusHandler.AppStatusHandlerStub{}
+
+	for i := 0; i < numCalls; i++ {
+		go func(idx int) {
+			time.Sleep(time.Millisecond * 10)
+			defer wg.Done()
+
+			switch idx % 2 {
+			case 0:
+				txCounter.subtractRestoredTxs(1)
+			case 1:
+				txCounter.setNumProcessedTxsMetric(appStatusHandler)
+			}
+		}(i)
+	}
+
+	wg.Wait()
 }

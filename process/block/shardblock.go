@@ -1038,16 +1038,18 @@ func (sp *shardProcessor) CommitBlock(
 	sp.prepareDataForBootStorer(args)
 
 	// write data to log
-	go sp.txCounter.displayLogInfo(
-		header,
-		body,
-		headerHash,
-		sp.shardCoordinator.NumberOfShards(),
-		sp.shardCoordinator.SelfId(),
-		sp.dataPool,
-		sp.appStatusHandler,
-		sp.blockTracker,
-	)
+	go func() {
+		sp.txCounter.setNumProcessedTxsMetric(sp.appStatusHandler)
+		sp.txCounter.displayLogInfo(
+			header,
+			body,
+			headerHash,
+			sp.shardCoordinator.NumberOfShards(),
+			sp.shardCoordinator.SelfId(),
+			sp.dataPool,
+			sp.blockTracker,
+		)
+	}()
 
 	sp.blockSizeThrottler.Succeed(header.GetRound())
 

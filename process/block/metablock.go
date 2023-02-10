@@ -1283,14 +1283,17 @@ func (mp *metaProcessor) CommitBlock(
 		numShardHeadersFromPool += headersPool.GetNumHeaders(shardID)
 	}
 
-	go mp.headersCounter.displayLogInfo(
-		header,
-		body,
-		headerHash,
-		numShardHeadersFromPool,
-		mp.blockTracker,
-		uint64(mp.roundHandler.TimeDuration().Seconds()),
-	)
+	go func() {
+		mp.txCounter.setNumProcessedTxsMetric(mp.appStatusHandler)
+		mp.headersCounter.displayLogInfo(
+			header,
+			body,
+			headerHash,
+			numShardHeadersFromPool,
+			mp.blockTracker,
+			uint64(mp.roundHandler.TimeDuration().Seconds()),
+		)
+	}()
 
 	headerInfo := bootstrapStorage.BootstrapHeaderInfo{
 		ShardId: header.GetShardID(),

@@ -76,14 +76,9 @@ func (txc *transactionCounter) displayLogInfo(
 	numShards uint32,
 	selfId uint32,
 	_ dataRetriever.PoolsHolder,
-	appStatusHandler core.AppStatusHandler,
 	blockTracker process.BlockTracker,
 ) {
 	dispHeader, dispLines := txc.createDisplayableShardHeaderAndBlockBody(header, body)
-
-	txc.mutex.RLock()
-	appStatusHandler.SetUInt64Value(common.MetricNumProcessedTxs, txc.totalTxs)
-	txc.mutex.RUnlock()
 
 	tblString, err := display.CreateTableString(dispHeader, dispLines)
 	if err != nil {
@@ -103,6 +98,12 @@ func (txc *transactionCounter) displayLogInfo(
 	log.Debug(message, arguments...)
 
 	blockTracker.DisplayTrackedHeaders()
+}
+
+func (txc *transactionCounter) setNumProcessedTxsMetric(appStatusHandler core.AppStatusHandler) {
+	txc.mutex.RLock()
+	appStatusHandler.SetUInt64Value(common.MetricNumProcessedTxs, txc.totalTxs)
+	txc.mutex.RUnlock()
 }
 
 func (txc *transactionCounter) createDisplayableShardHeaderAndBlockBody(

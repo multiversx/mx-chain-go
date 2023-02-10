@@ -2427,10 +2427,6 @@ func TestShardProcessor_DisplayLogInfo(t *testing.T) {
 	hasher := hashingMocks.HasherMock{}
 	hdr, txBlock := createTestHdrTxBlockBody()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
-	statusHandler := &statusHandlerMock.AppStatusHandlerStub{
-		SetUInt64ValueHandler: func(key string, value uint64) {
-		},
-	}
 
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 	dataComponents.DataPool = tdp
@@ -2439,7 +2435,7 @@ func TestShardProcessor_DisplayLogInfo(t *testing.T) {
 	sp, _ := blproc.NewShardProcessor(arguments)
 	assert.NotNil(t, sp)
 	hdr.PrevHash = hasher.Compute("prev hash")
-	sp.DisplayLogInfo(hdr, txBlock, []byte("tx_hash1"), shardCoordinator.NumberOfShards(), shardCoordinator.SelfId(), tdp, statusHandler, &mock.BlockTrackerMock{})
+	sp.DisplayLogInfo(hdr, txBlock, []byte("tx_hash1"), shardCoordinator.NumberOfShards(), shardCoordinator.SelfId(), tdp, &mock.BlockTrackerMock{})
 }
 
 func TestBlockProcessor_ApplyBodyToHeaderNilBodyError(t *testing.T) {

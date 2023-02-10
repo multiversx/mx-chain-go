@@ -340,10 +340,9 @@ func (sp *shardProcessor) DisplayLogInfo(
 	numShards uint32,
 	selfId uint32,
 	dataPool dataRetriever.PoolsHolder,
-	statusHandler core.AppStatusHandler,
 	blockTracker process.BlockTracker,
 ) {
-	sp.txCounter.displayLogInfo(header, body, headerHash, numShards, selfId, dataPool, statusHandler, blockTracker)
+	sp.txCounter.displayLogInfo(header, body, headerHash, numShards, selfId, dataPool, blockTracker)
 }
 
 func (sp *shardProcessor) GetHighestHdrForOwnShardFromMetachain(processedHdrs []data.HeaderHandler) ([]data.HeaderHandler, [][]byte, error) {
