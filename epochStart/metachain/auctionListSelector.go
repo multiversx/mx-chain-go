@@ -344,7 +344,8 @@ func markAuctionNodesAsSelected(
 ) error {
 	for _, node := range selectedNodes {
 		newNode := node.ShallowClone()
-		newNode.SetList(string(common.SelectedFromAuctionList), true)
+		newNode.SetPreviousList(node.GetList())
+		newNode.SetList(string(common.SelectedFromAuctionList))
 
 		err := validatorsInfoMap.Replace(node, newNode)
 		if err != nil {

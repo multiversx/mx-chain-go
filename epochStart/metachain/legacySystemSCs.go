@@ -290,7 +290,7 @@ func (s *legacySystemSCProcessor) unStakeNodesWithNotEnoughFunds(
 		}
 
 		validatorLeaving := validatorInfo.ShallowClone()
-		validatorLeaving.SetList(string(common.LeavingList), s.enableEpochsHandler.IsStakingV4Started())
+		validatorLeaving.SetListAndIndex(string(common.LeavingList), validatorLeaving.GetIndex(), s.enableEpochsHandler.IsStakingV4Started())
 		err = validatorsInfoMap.Replace(validatorInfo, validatorLeaving)
 		if err != nil {
 			return 0, err
