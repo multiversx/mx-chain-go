@@ -262,8 +262,10 @@ type ValidatorInfoHandler interface {
 
 	SetPublicKey(publicKey []byte)
 	SetShardId(shardID uint32)
-	SetList(list string, updatePreviousList bool)
+	SetPreviousList(list string)
+	SetList(list string)
 	SetIndex(index uint32)
+	SetListAndIndex(list string, index uint32, updatePreviousValues bool)
 	SetTempRating(tempRating uint32)
 	SetRating(rating uint32)
 	SetRatingModifier(ratingModifier float32)

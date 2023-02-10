@@ -914,23 +914,23 @@ func TestValidatorsProvider_GetAuctionList(t *testing.T) {
 		args.AuctionListSelector = &stakingcommon.AuctionListSelectorStub{
 			SelectNodesFromAuctionListCalled: func(validatorsInfoMap state.ShardValidatorsInfoMapHandler, randomness []byte) error {
 				selectedV1 := v1.ShallowClone()
-				selectedV1.SetList(string(common.SelectedFromAuctionList), false)
+				selectedV1.SetList(string(common.SelectedFromAuctionList))
 				_ = validatorsInfoMap.Replace(v1, selectedV1)
 
 				selectedV2 := v2.ShallowClone()
-				selectedV2.SetList(string(common.SelectedFromAuctionList), false)
+				selectedV2.SetList(string(common.SelectedFromAuctionList))
 				_ = validatorsInfoMap.Replace(v2, selectedV2)
 
 				selectedV3 := v3.ShallowClone()
-				selectedV3.SetList(string(common.SelectedFromAuctionList), false)
+				selectedV3.SetList(string(common.SelectedFromAuctionList))
 				_ = validatorsInfoMap.Replace(v3, selectedV3)
 
 				selectedV5 := v5.ShallowClone()
-				selectedV5.SetList(string(common.SelectedFromAuctionList), false)
+				selectedV5.SetList(string(common.SelectedFromAuctionList))
 				_ = validatorsInfoMap.Replace(v5, selectedV5)
 
 				selectedV12 := v12.ShallowClone()
-				selectedV12.SetList(string(common.SelectedFromAuctionList), false)
+				selectedV12.SetList(string(common.SelectedFromAuctionList))
 				_ = validatorsInfoMap.Replace(v12, selectedV12)
 
 				return nil

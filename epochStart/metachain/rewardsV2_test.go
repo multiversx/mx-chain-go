@@ -1415,7 +1415,7 @@ func TestNewRewardsCreatorV2_computeValidatorInfoPerRewardAddressWithLeavingVali
 	valInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, proposerFee, defaultBlocksPerShard)
 	for _, valList := range valInfo.GetShardValidatorsInfoMap() {
 		for i := 0; i < int(nbLeavingPerShard); i++ {
-			valList[i].SetList(string(common.LeavingList), false)
+			valList[i].SetList(string(common.LeavingList))
 		}
 	}
 
