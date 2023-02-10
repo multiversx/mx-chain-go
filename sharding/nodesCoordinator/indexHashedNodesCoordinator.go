@@ -148,6 +148,11 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		nodesCoordinatorRegistryFactory: arguments.NodesCoordinatorRegistryFactory,
 	}
 
+	err = ihnc.updateEnableEpochsHandler(ihnc.currentEpoch)
+	if err != nil {
+		return nil, err
+	}
+
 	ihnc.loadingFromDisk.Store(false)
 
 	ihnc.nodesCoordinatorHelper = ihnc

@@ -50,8 +50,7 @@ func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgInd
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
 		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
-			IsStakingV4Step2FlagEnabledField: true,
-			IsStakingV4Step3FlagEnabledField: true,
+			StakingV4Step2EnableEpochField: StakingV4Step2EnableEpoch,
 		},
 	}
 
