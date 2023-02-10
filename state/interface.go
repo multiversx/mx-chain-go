@@ -32,7 +32,9 @@ type PeerAccountHandler interface {
 	GetAccumulatedFees() *big.Int
 	AddToAccumulatedFees(*big.Int)
 	GetList() string
+	GetPreviousList() string
 	GetIndexInList() uint32
+	GetPreviousIndexInList() uint32
 	GetShardId() uint32
 	SetUnStakedEpoch(epoch uint32)
 	GetUnStakedEpoch() uint32
@@ -49,7 +51,7 @@ type PeerAccountHandler interface {
 	GetTotalLeaderSuccessRate() SignRate
 	GetTotalValidatorSuccessRate() SignRate
 	GetTotalValidatorIgnoredSignaturesRate() uint32
-	SetListAndIndex(shardID uint32, list string, index uint32)
+	SetListAndIndex(shardID uint32, list string, index uint32, updatePreviousValues bool)
 	GetRating() uint32
 	SetRating(uint32)
 	GetTempRating() uint32
@@ -239,6 +241,7 @@ type ValidatorInfoHandler interface {
 	GetShardId() uint32
 	GetList() string
 	GetIndex() uint32
+	GetPreviousIndex() uint32
 	GetTempRating() uint32
 	GetRating() uint32
 	GetRatingModifier() float32
@@ -255,11 +258,14 @@ type ValidatorInfoHandler interface {
 	GetTotalValidatorSuccess() uint32
 	GetTotalValidatorFailure() uint32
 	GetTotalValidatorIgnoredSignatures() uint32
+	GetPreviousList() string
 
 	SetPublicKey(publicKey []byte)
 	SetShardId(shardID uint32)
+	SetPreviousList(list string)
 	SetList(list string)
 	SetIndex(index uint32)
+	SetListAndIndex(list string, index uint32, updatePreviousValues bool)
 	SetTempRating(tempRating uint32)
 	SetRating(rating uint32)
 	SetRatingModifier(ratingModifier float32)

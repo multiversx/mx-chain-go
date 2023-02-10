@@ -700,7 +700,7 @@ func TestStakingToPeer_UpdatePeerState(t *testing.T) {
 	_ = stp.updatePeerState(stakingData, blsPubKey, stakingData.UnStakedNonce)
 	assert.Equal(t, string(common.LeavingList), peerAccount.GetList())
 
-	peerAccount.SetListAndIndex(0, string(common.EligibleList), 5)
+	peerAccount.SetListAndIndex(0, string(common.EligibleList), 5, false)
 	stakingData.JailedNonce = 12
 	_ = stp.updatePeerState(stakingData, blsPubKey, stakingData.JailedNonce)
 	assert.Equal(t, string(common.LeavingList), peerAccount.GetList())
@@ -768,7 +768,7 @@ func TestStakingToPeer_UnJailFromInactive(t *testing.T) {
 	_ = stp.updatePeerState(stakingData, blsPubKey, stakingData.UnStakedNonce)
 	assert.Equal(t, string(common.LeavingList), peerAccount.GetList())
 
-	peerAccount.SetListAndIndex(0, string(common.JailedList), 5)
+	peerAccount.SetListAndIndex(0, string(common.JailedList), 5, false)
 	stakingData.UnJailedNonce = 14
 	_ = stp.updatePeerState(stakingData, blsPubKey, stakingData.UnJailedNonce)
 	assert.Equal(t, string(common.InactiveList), peerAccount.GetList())

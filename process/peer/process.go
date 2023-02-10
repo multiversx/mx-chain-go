@@ -238,11 +238,11 @@ func (vs *validatorStatistics) saveUpdatesForList(
 		isNodeWithLowRating := vs.isValidatorWithLowRating(peerAcc)
 		isNodeJailed := vs.enableEpochsHandler.IsSwitchJailWaitingFlagEnabled() && peerType == common.InactiveList && isNodeWithLowRating
 		if isNodeJailed {
-			peerAcc.SetListAndIndex(shardID, string(common.JailedList), uint32(index))
+			peerAcc.SetListAndIndex(shardID, string(common.JailedList), uint32(index), vs.enableEpochsHandler.IsStakingV4Started())
 		} else if isNodeLeaving {
-			peerAcc.SetListAndIndex(shardID, string(common.LeavingList), uint32(index))
+			peerAcc.SetListAndIndex(shardID, string(common.LeavingList), uint32(index), vs.enableEpochsHandler.IsStakingV4Started())
 		} else {
-			peerAcc.SetListAndIndex(shardID, string(peerType), uint32(index))
+			peerAcc.SetListAndIndex(shardID, string(peerType), uint32(index), vs.enableEpochsHandler.IsStakingV4Started())
 		}
 
 		err = vs.peerAdapter.SaveAccount(peerAcc)
@@ -492,7 +492,9 @@ func (vs *validatorStatistics) PeerAccountToValidatorInfo(peerAccount state.Peer
 		PublicKey:                       peerAccount.GetBLSPublicKey(),
 		ShardId:                         peerAccount.GetShardId(),
 		List:                            list,
+		PreviousList:                    peerAccount.GetPreviousList(),
 		Index:                           peerAccount.GetIndexInList(),
+		PreviousIndex:                   peerAccount.GetPreviousIndexInList(),
 		TempRating:                      peerAccount.GetTempRating(),
 		Rating:                          peerAccount.GetRating(),
 		RatingModifier:                  ratingModifier,
@@ -544,7 +546,7 @@ func (vs *validatorStatistics) jailValidatorIfBadRatingAndInactive(validatorAcco
 		return
 	}
 
-	validatorAccount.SetListAndIndex(validatorAccount.GetShardId(), string(common.JailedList), validatorAccount.GetIndexInList())
+	validatorAccount.SetListAndIndex(validatorAccount.GetShardId(), string(common.JailedList), validatorAccount.GetIndexInList(), vs.enableEpochsHandler.IsStakingV4Started())
 }
 
 func (vs *validatorStatistics) unmarshalPeer(pa []byte) (state.PeerAccountHandler, error) {
@@ -712,12 +714,12 @@ func (vs *validatorStatistics) setToJailedIfNeeded(
 	}
 
 	if validator.GetList() == string(common.JailedList) && peerAccount.GetList() != string(common.JailedList) {
-		peerAccount.SetListAndIndex(validator.GetShardId(), string(common.JailedList), validator.GetIndex())
+		peerAccount.SetListAndIndex(validator.GetShardId(), string(common.JailedList), validator.GetIndex(), vs.enableEpochsHandler.IsStakingV4Started())
 		return
 	}
 
 	if vs.isValidatorWithLowRating(peerAccount) {
-		peerAccount.SetListAndIndex(validator.GetShardId(), string(common.JailedList), validator.GetIndex())
+		peerAccount.SetListAndIndex(validator.GetShardId(), string(common.JailedList), validator.GetIndex(), vs.enableEpochsHandler.IsStakingV4Started())
 	}
 }
 
@@ -979,7 +981,7 @@ func (vs *validatorStatistics) savePeerAccountData(
 
 	peerAccount.SetRating(startRating)
 	peerAccount.SetTempRating(startRating)
-	peerAccount.SetListAndIndex(shardID, string(peerType), index)
+	peerAccount.SetListAndIndex(shardID, string(peerType), index, vs.enableEpochsHandler.IsStakingV4Started())
 
 	return vs.peerAdapter.SaveAccount(peerAccount)
 }

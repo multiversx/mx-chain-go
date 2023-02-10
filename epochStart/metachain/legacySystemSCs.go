@@ -290,7 +290,7 @@ func (s *legacySystemSCProcessor) unStakeNodesWithNotEnoughFunds(
 		}
 
 		validatorLeaving := validatorInfo.ShallowClone()
-		validatorLeaving.SetList(string(common.LeavingList))
+		validatorLeaving.SetListAndIndex(string(common.LeavingList), validatorLeaving.GetIndex(), s.enableEpochsHandler.IsStakingV4Started())
 		err = validatorsInfoMap.Replace(validatorInfo, validatorLeaving)
 		if err != nil {
 			return 0, err
@@ -344,7 +344,7 @@ func (s *legacySystemSCProcessor) unStakeOneNode(blsKey []byte, epoch uint32) er
 		return epochStart.ErrWrongTypeAssertion
 	}
 
-	peerAccount.SetListAndIndex(peerAccount.GetShardId(), string(common.LeavingList), peerAccount.GetIndexInList())
+	peerAccount.SetListAndIndex(peerAccount.GetShardId(), string(common.LeavingList), peerAccount.GetIndexInList(), s.enableEpochsHandler.IsStakingV4Started())
 	peerAccount.SetUnStakedEpoch(epoch)
 	err = s.peerAccountsDB.SaveAccount(peerAccount)
 	if err != nil {
@@ -733,7 +733,7 @@ func (s *legacySystemSCProcessor) stakingToValidatorStatistics(
 		}
 	}
 
-	account.SetListAndIndex(jailedValidator.GetShardId(), string(common.NewList), uint32(stakingData.StakedNonce))
+	account.SetListAndIndex(jailedValidator.GetShardId(), string(common.NewList), uint32(stakingData.StakedNonce), s.enableEpochsHandler.IsStakingV4Started())
 	account.SetTempRating(s.startRating)
 	account.SetUnStakedEpoch(common.DefaultUnstakedEpoch)
 
@@ -747,7 +747,7 @@ func (s *legacySystemSCProcessor) stakingToValidatorStatistics(
 		return nil, err
 	}
 
-	jailedAccount.SetListAndIndex(jailedValidator.GetShardId(), string(common.JailedList), jailedValidator.GetIndex())
+	jailedAccount.SetListAndIndex(jailedValidator.GetShardId(), string(common.JailedList), jailedValidator.GetIndex(), s.enableEpochsHandler.IsStakingV4Started())
 	jailedAccount.ResetAtNewEpoch()
 	err = s.peerAccountsDB.SaveAccount(jailedAccount)
 	if err != nil {
@@ -1223,7 +1223,7 @@ func (s *legacySystemSCProcessor) addNewlyStakedNodesToValidatorTrie(
 			return err
 		}
 
-		peerAcc.SetListAndIndex(peerAcc.GetShardId(), string(list), uint32(nonce))
+		peerAcc.SetListAndIndex(peerAcc.GetShardId(), string(list), uint32(nonce), s.enableEpochsHandler.IsStakingV4Started())
 		peerAcc.SetTempRating(s.startRating)
 		peerAcc.SetUnStakedEpoch(common.DefaultUnstakedEpoch)
 

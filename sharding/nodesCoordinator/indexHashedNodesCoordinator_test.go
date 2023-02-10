@@ -2039,27 +2039,6 @@ func TestIndexHashedNodesCoordinator_ShuffleOutNilConfig(t *testing.T) {
 	require.Equal(t, expectedShardForNotFound, newShard)
 }
 
-func TestIndexHashedNodesCoordinator_computeNodesConfigFromListNilPreviousNodesConfig(t *testing.T) {
-	t.Parallel()
-
-	arguments := createArguments()
-	pk := []byte("pk")
-	arguments.SelfPublicKey = pk
-	ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
-	ihnc.flagStakingV4Started.SetReturningPrevious()
-
-	validatorInfos := make([]*state.ShardValidatorInfo, 0)
-
-	newNodesConfig, err := ihnc.computeNodesConfigFromList(nil, validatorInfos)
-	assert.Nil(t, newNodesConfig)
-	assert.True(t, errors.Is(err, ErrNilPreviousEpochConfig))
-
-	newNodesConfig, err = ihnc.computeNodesConfigFromList(nil, nil)
-
-	assert.Nil(t, newNodesConfig)
-	assert.True(t, errors.Is(err, ErrNilPreviousEpochConfig))
-}
-
 func TestIndexHashedNodesCoordinator_computeNodesConfigFromListNoValidators(t *testing.T) {
 	t.Parallel()
 
@@ -2069,12 +2048,12 @@ func TestIndexHashedNodesCoordinator_computeNodesConfigFromListNoValidators(t *t
 	ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
 
 	validatorInfos := make([]*state.ShardValidatorInfo, 0)
-	newNodesConfig, err := ihnc.computeNodesConfigFromList(&epochNodesConfig{}, validatorInfos)
+	newNodesConfig, err := ihnc.computeNodesConfigFromList(validatorInfos)
 
 	assert.Nil(t, newNodesConfig)
 	assert.True(t, errors.Is(err, ErrMapSizeZero))
 
-	newNodesConfig, err = ihnc.computeNodesConfigFromList(&epochNodesConfig{}, nil)
+	newNodesConfig, err = ihnc.computeNodesConfigFromList(nil)
 
 	assert.Nil(t, newNodesConfig)
 	assert.True(t, errors.Is(err, ErrMapSizeZero))
@@ -2106,7 +2085,7 @@ func TestIndexHashedNodesCoordinator_computeNodesConfigFromListNilPk(t *testing.
 			},
 		}
 
-	newNodesConfig, err := ihnc.computeNodesConfigFromList(&epochNodesConfig{}, validatorInfos)
+	newNodesConfig, err := ihnc.computeNodesConfigFromList(validatorInfos)
 
 	assert.Nil(t, newNodesConfig)
 	assert.NotNil(t, err)
@@ -2141,21 +2120,13 @@ func TestIndexHashedNodesCoordinator_computeNodesConfigFromListWithStakingV4(t *
 	}
 	validatorInfos := []*state.ShardValidatorInfo{shard0Eligible, shard0Auction, shard1Auction}
 
-	previousConfig := &epochNodesConfig{
-		eligibleMap: map[uint32][]Validator{
-			0: {
-				newValidatorMock(shard0Eligible.PublicKey, 0, 0),
-			},
-		},
-	}
-
-	newNodesConfig, err := nc.computeNodesConfigFromList(previousConfig, validatorInfos)
+	newNodesConfig, err := nc.computeNodesConfigFromList(validatorInfos)
 	require.Equal(t, ErrReceivedAuctionValidatorsBeforeStakingV4, err)
 	require.Nil(t, newNodesConfig)
 
 	nc.updateEpochFlags(stakingV4Epoch)
 
-	newNodesConfig, err = nc.computeNodesConfigFromList(previousConfig, validatorInfos)
+	newNodesConfig, err = nc.computeNodesConfigFromList(validatorInfos)
 	require.Nil(t, err)
 	v1, _ := NewValidator([]byte("pk2"), 1, 2)
 	v2, _ := NewValidator([]byte("pk1"), 1, 3)
@@ -2165,7 +2136,7 @@ func TestIndexHashedNodesCoordinator_computeNodesConfigFromListWithStakingV4(t *
 		PublicKey: []byte("pk3"),
 		List:      string(common.NewList),
 	})
-	newNodesConfig, err = nc.computeNodesConfigFromList(previousConfig, validatorInfos)
+	newNodesConfig, err = nc.computeNodesConfigFromList(validatorInfos)
 	require.Equal(t, epochStart.ErrReceivedNewListNodeInStakingV4, err)
 	require.Nil(t, newNodesConfig)
 }
@@ -2218,15 +2189,18 @@ func TestIndexHashedNodesCoordinator_computeNodesConfigFromListValidatorsWithFix
 		ShardId: 0,
 	}
 	shard0Leaving0 := &state.ShardValidatorInfo{
-		PublicKey: []byte("pk6"),
-		List:      string(common.LeavingList),
-		ShardId:   0,
+		PublicKey:    []byte("pk6"),
+		List:         string(common.LeavingList),
+		PreviousList: string(common.EligibleList),
+		ShardId:      0,
 	}
 	shardMetaLeaving1 := &state.ShardValidatorInfo{
-		PublicKey: []byte("pk7"),
-		List:      string(common.LeavingList),
-		Index:     1,
-		ShardId:   core.MetachainShardId,
+		PublicKey:     []byte("pk7"),
+		List:          string(common.LeavingList),
+		PreviousList:  string(common.WaitingList),
+		Index:         1,
+		PreviousIndex: 1,
+		ShardId:       core.MetachainShardId,
 	}
 
 	validatorInfos :=
@@ -2241,29 +2215,7 @@ func TestIndexHashedNodesCoordinator_computeNodesConfigFromListValidatorsWithFix
 			shardMetaLeaving1,
 		}
 
-	previousConfig := &epochNodesConfig{
-		eligibleMap: map[uint32][]Validator{
-			0: {
-				newValidatorMock(shard0Eligible0.PublicKey, 0, 0),
-				newValidatorMock(shard0Eligible1.PublicKey, 0, 0),
-				newValidatorMock(shard0Leaving0.PublicKey, 0, 0),
-			},
-			core.MetachainShardId: {
-				newValidatorMock(shardmetaEligible0.PublicKey, 0, 0),
-			},
-		},
-		waitingMap: map[uint32][]Validator{
-			0: {
-				newValidatorMock(shard0Waiting0.PublicKey, 0, 0),
-			},
-			core.MetachainShardId: {
-				newValidatorMock(shardmetaWaiting0.PublicKey, 0, 0),
-				newValidatorMock(shardMetaLeaving1.PublicKey, 0, 0),
-			},
-		},
-	}
-
-	newNodesConfig, err := ihnc.computeNodesConfigFromList(previousConfig, validatorInfos)
+	newNodesConfig, err := ihnc.computeNodesConfigFromList(validatorInfos)
 	assert.Nil(t, err)
 
 	assert.Equal(t, uint32(1), newNodesConfig.nbShards)
@@ -2357,10 +2309,6 @@ func TestIndexHashedNodesCoordinator_computeNodesConfigFromListValidatorsNoFix(t
 		ShardId:   core.MetachainShardId,
 	}
 
-	previousConfig := &epochNodesConfig{
-		eligibleMap: map[uint32][]Validator{},
-	}
-
 	validatorInfos :=
 		[]*state.ShardValidatorInfo{
 			shard0Eligible0,
@@ -2374,7 +2322,7 @@ func TestIndexHashedNodesCoordinator_computeNodesConfigFromListValidatorsNoFix(t
 		}
 
 	ihnc.flagStakingV4Started.Reset()
-	newNodesConfig, err := ihnc.computeNodesConfigFromList(previousConfig, validatorInfos)
+	newNodesConfig, err := ihnc.computeNodesConfigFromList(validatorInfos)
 	assert.Nil(t, err)
 
 	assert.Equal(t, uint32(1), newNodesConfig.nbShards)

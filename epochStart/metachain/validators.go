@@ -175,11 +175,13 @@ func (vic *validatorInfoCreator) getShardValidatorInfoHash(shardValidatorInfo *s
 
 func createShardValidatorInfo(validator state.ValidatorInfoHandler) *state.ShardValidatorInfo {
 	return &state.ShardValidatorInfo{
-		PublicKey:  validator.GetPublicKey(),
-		ShardId:    validator.GetShardId(),
-		List:       validator.GetList(),
-		Index:      validator.GetIndex(),
-		TempRating: validator.GetTempRating(),
+		PublicKey:     validator.GetPublicKey(),
+		ShardId:       validator.GetShardId(),
+		List:          validator.GetList(),
+		PreviousList:  validator.GetPreviousList(),
+		Index:         validator.GetIndex(),
+		PreviousIndex: validator.GetPreviousIndex(),
+		TempRating:    validator.GetTempRating(),
 	}
 }
 
