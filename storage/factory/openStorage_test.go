@@ -27,10 +27,25 @@ func createMockArgsOpenStorageUnits() ArgsNewOpenStorageUnits {
 func TestNewStorageUnitOpenHandler(t *testing.T) {
 	t.Parallel()
 
-	suoh, err := NewStorageUnitOpenHandler(createMockArgsOpenStorageUnits())
+	t.Run("nil shard id provider", func(t *testing.T) {
+		t.Parallel()
 
-	assert.NoError(t, err)
-	assert.False(t, check.IfNil(suoh))
+		args := createMockArgsOpenStorageUnits()
+		args.ShardIDProvider = nil
+
+		suoh, err := NewStorageUnitOpenHandler(args)
+		assert.Equal(t, storage.ErrNilShardIDProvider, err)
+		assert.True(t, check.IfNil(suoh))
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		suoh, err := NewStorageUnitOpenHandler(createMockArgsOpenStorageUnits())
+
+		assert.NoError(t, err)
+		assert.False(t, check.IfNil(suoh))
+	})
 }
 
 func TestGetMostUpToDateDirectory(t *testing.T) {

@@ -148,7 +148,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		return nil, fmt.Errorf("%w: %v", errors.ErrNewBootstrapDataProvider, err)
 	}
 
-	shardIDProvider, err := database.NewShardIDProvider(0)
+	shardIDProvider, err := database.NewShardIDProvider(4)
 	if err != nil {
 		return nil, err
 	}
@@ -210,6 +210,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		DataSyncerCreator:          dataSyncerFactory,
 		ScheduledSCRsStorer:        nil, // will be updated after sync from network
 		TrieSyncStatisticsProvider: tss,
+		ShardIDProvider:            shardIDProvider,
 	}
 
 	var epochStartBootstrapper factory.EpochStartBootstrapper
@@ -265,6 +266,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		headerVersionHandler:    headerVersionHandler,
 		headerIntegrityVerifier: headerIntegrityVerifier,
 		versionedHeaderFactory:  versionedHeaderFactory,
+		shardIDProvider:         shardIDProvider,
 	}, nil
 }
 
@@ -308,6 +310,11 @@ func (bc *bootstrapComponents) VersionedHeaderFactory() nodeFactory.VersionedHea
 // HeaderIntegrityVerifier returns the header integrity verifier
 func (bc *bootstrapComponents) HeaderIntegrityVerifier() nodeFactory.HeaderIntegrityVerifierHandler {
 	return bc.headerIntegrityVerifier
+}
+
+// ShardIDProvider returns the shard id provider for storage persister
+func (bc *bootstrapComponents) ShardIDProvider() storage.ShardIDProvider {
+	return bc.shardIDProvider
 }
 
 // createLatestStorageDataProvider will create the latest storage data provider handler

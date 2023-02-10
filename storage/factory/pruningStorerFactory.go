@@ -48,6 +48,7 @@ type StorageServiceFactory struct {
 	createTrieEpochRootHashStorer bool
 	currentEpoch                  uint32
 	storageType                   StorageServiceType
+	shardIDProvider               storage.ShardIDProvider
 }
 
 // StorageServiceFactoryArgs holds the arguments needed for creating a new storage service factory
@@ -61,6 +62,7 @@ type StorageServiceFactoryArgs struct {
 	StorageType                   StorageServiceType
 	CurrentEpoch                  uint32
 	CreateTrieEpochRootHashStorer bool
+	ShardIDProvider               storage.ShardIDProvider
 }
 
 // NewStorageServiceFactory will return a new instance of StorageServiceFactory
@@ -91,6 +93,7 @@ func NewStorageServiceFactory(args StorageServiceFactoryArgs) (*StorageServiceFa
 		createTrieEpochRootHashStorer: args.CreateTrieEpochRootHashStorer,
 		oldDataCleanerProvider:        oldDataCleanProvider,
 		storageType:                   args.StorageType,
+		shardIDProvider:               args.ShardIDProvider,
 	}, nil
 }
 
@@ -106,6 +109,9 @@ func checkArgs(args StorageServiceFactoryArgs) error {
 	}
 	if check.IfNil(args.EpochStartNotifier) {
 		return storage.ErrNilEpochStartNotifier
+	}
+	if check.IfNil(args.ShardIDProvider) {
+		return storage.ErrNilShardIDProvider
 	}
 
 	return nil

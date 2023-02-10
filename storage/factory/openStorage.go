@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -33,7 +34,11 @@ type openStorageUnits struct {
 
 // NewStorageUnitOpenHandler creates an openStorageUnits component
 func NewStorageUnitOpenHandler(args ArgsNewOpenStorageUnits) (*openStorageUnits, error) {
-	// TODO: check args here
+	err := checkStorageUnitOpenHandlerArgs(args)
+	if err != nil {
+		return nil, err
+	}
+
 	o := &openStorageUnits{
 		defaultEpochString:        args.DefaultEpochString,
 		defaultShardString:        args.DefaultShardString,
@@ -43,6 +48,14 @@ func NewStorageUnitOpenHandler(args ArgsNewOpenStorageUnits) (*openStorageUnits,
 	}
 
 	return o, nil
+}
+
+func checkStorageUnitOpenHandlerArgs(args ArgsNewOpenStorageUnits) error {
+	if check.IfNil(args.ShardIDProvider) {
+		return storage.ErrNilShardIDProvider
+	}
+
+	return nil
 }
 
 // GetMostRecentStorageUnit will open bootstrap storage unit
