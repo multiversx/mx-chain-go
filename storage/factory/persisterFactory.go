@@ -30,6 +30,7 @@ func NewPersisterFactory(config config.DBConfig, shardIDProvider storage.ShardID
 		batchDelaySeconds: config.BatchDelaySeconds,
 		maxBatchSize:      config.MaxBatchSize,
 		maxOpenFiles:      config.MaxOpenFiles,
+		shardIDProvider:   shardIDProvider,
 	}, nil
 }
 
@@ -45,7 +46,7 @@ func (pf *PersisterFactory) Create(path string) (storage.Persister, error) {
 	case storageunit.LvlDBSerial:
 		return database.NewSerialDB(path, pf.batchDelaySeconds, pf.maxBatchSize, pf.maxOpenFiles)
 	case storageunit.ShardedLvlDBSerial:
-		return database.NewShardedSerialDB(path, pf.batchDelaySeconds, pf.maxBatchSize, pf.maxOpenFiles, nil)
+		return database.NewShardedSerialDB(path, pf.batchDelaySeconds, pf.maxBatchSize, pf.maxOpenFiles, pf.shardIDProvider)
 	case storageunit.MemoryDB:
 		return database.NewMemDB(), nil
 	default:
