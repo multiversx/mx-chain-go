@@ -17,7 +17,7 @@ func (s *shardIDProvider) NumberOfShards() uint32 {
 	return 0
 }
 
-// GetShardIDs return nil
+// GetShardIDs returns nil
 func (s *shardIDProvider) GetShardIDs() []uint32 {
 	return nil
 }
