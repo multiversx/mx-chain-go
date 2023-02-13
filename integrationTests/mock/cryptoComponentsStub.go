@@ -6,6 +6,7 @@ import (
 
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
+	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/vm"
 )
 
@@ -27,6 +28,7 @@ type CryptoComponentsStub struct {
 	TxKeyGen          crypto.KeyGenerator
 	P2PKeyGen         crypto.KeyGenerator
 	MsgSigVerifier    vm.MessageSignVerifier
+	SigHandler        consensus.SignatureHandler
 	mutMultiSig       sync.RWMutex
 }
 
@@ -150,6 +152,11 @@ func (ccs *CryptoComponentsStub) P2pKeyGen() crypto.KeyGenerator {
 // MessageSignVerifier -
 func (ccs *CryptoComponentsStub) MessageSignVerifier() vm.MessageSignVerifier {
 	return ccs.MsgSigVerifier
+}
+
+// ConsensusSigHandler -
+func (ccs *CryptoComponentsStub) ConsensusSigHandler() consensus.SignatureHandler {
+	return ccs.SigHandler
 }
 
 // Clone -
