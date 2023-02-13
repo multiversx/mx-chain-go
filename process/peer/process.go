@@ -183,7 +183,7 @@ func (vs *validatorStatistics) saveNodesCoordinatorUpdates(epoch uint32) (bool, 
 	}
 	nodeForcedToRemain = nodeForcedToRemain || tmpNodeForcedToRemain
 
-	if vs.enableEpochsHandler.IsStakingV4Enabled() {
+	if vs.enableEpochsHandler.IsStakingV4Step2Enabled() {
 		nodesMap, err = vs.nodesCoordinator.GetAllShuffledOutValidatorsPublicKeys(epoch)
 		if err != nil {
 			return false, err

@@ -745,8 +745,8 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 	peerAccountsDB := createAccountsDB(hasher, marshalizer, factory.NewPeerAccountCreator(), trieFactoryManager)
 	en := forking.NewGenericEpochNotifier()
 	enableEpochsConfig.StakeLimitsEnableEpoch = 10
-	enableEpochsConfig.StakingV4InitEnableEpoch = 444
-	enableEpochsConfig.StakingV4EnableEpoch = 445
+	enableEpochsConfig.StakingV4Step1EnableEpoch = 444
+	enableEpochsConfig.StakingV4Step2EnableEpoch = 445
 	epochsConfig := &config.EpochConfig{
 		EnableEpochs: enableEpochsConfig,
 	}
@@ -1772,7 +1772,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Init(t *testing.T)
 	_ = validatorsInfo.Add(createValidatorInfo(owner1ListPubKeysStaked[1], common.WaitingList, "", 0, owner1))
 	_ = validatorsInfo.Add(createValidatorInfo(owner2ListPubKeysStaked[0], common.EligibleList, "", 1, owner2))
 
-	args.EpochNotifier.CheckEpoch(&block.Header{Epoch: stakingV4InitEnableEpoch})
+	args.EpochNotifier.CheckEpoch(&block.Header{Epoch: stakingV4Step1EnableEpoch})
 	err := s.ProcessSystemSmartContract(validatorsInfo, &block.Header{})
 	require.Nil(t, err)
 
@@ -1818,7 +1818,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4EnabledCannotPrepa
 	_ = validatorsInfo.Add(createValidatorInfo(ownerStakedKeys[1], common.AuctionList, "", 0, owner))
 
 	s, _ := NewSystemSCProcessor(args)
-	s.EpochConfirmed(stakingV4EnableEpoch, 0)
+	s.EpochConfirmed(stakingV4Step2EnableEpoch, 0)
 
 	err := s.ProcessSystemSmartContract(validatorsInfo, &block.Header{})
 	require.Equal(t, errProcessStakingData, err)
@@ -1893,7 +1893,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Enabled(t *testing
 	_ = validatorsInfo.Add(createValidatorInfo(owner7StakedKeys[1], common.EligibleList, "", 2, owner7))
 
 	s, _ := NewSystemSCProcessor(args)
-	args.EpochNotifier.CheckEpoch(&block.Header{Epoch: stakingV4EnableEpoch})
+	args.EpochNotifier.CheckEpoch(&block.Header{Epoch: stakingV4Step2EnableEpoch})
 	err := s.ProcessSystemSmartContract(validatorsInfo, &block.Header{PrevRandSeed: []byte("pubKey7")})
 	require.Nil(t, err)
 

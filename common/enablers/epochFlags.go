@@ -88,9 +88,9 @@ type epochFlagsHolder struct {
 	wipeSingleNFTLiquidityDecreaseFlag          *atomic.Flag
 	alwaysSaveTokenMetaDataFlag                 *atomic.Flag
 	stakeLimitsFlag                             *atomic.Flag
-	stakingV4InitFlag                           *atomic.Flag
-	stakingV4Flag                               *atomic.Flag
-	stakingV4DistributeAuctionToWaitingFlag     *atomic.Flag
+	stakingV4Step1Flag                          *atomic.Flag
+	stakingV4Step2Flag                          *atomic.Flag
+	stakingV4Step3Flag                          *atomic.Flag
 	stakingQueueEnabledFlag                     *atomic.Flag
 	stakingV4StartedFlag                        *atomic.Flag
 }
@@ -180,9 +180,9 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		wipeSingleNFTLiquidityDecreaseFlag:          &atomic.Flag{},
 		alwaysSaveTokenMetaDataFlag:                 &atomic.Flag{},
 		stakeLimitsFlag:                             &atomic.Flag{},
-		stakingV4InitFlag:                           &atomic.Flag{},
-		stakingV4Flag:                               &atomic.Flag{},
-		stakingV4DistributeAuctionToWaitingFlag:     &atomic.Flag{},
+		stakingV4Step1Flag:                          &atomic.Flag{},
+		stakingV4Step2Flag:                          &atomic.Flag{},
+		stakingV4Step3Flag:                          &atomic.Flag{},
 		stakingQueueEnabledFlag:                     &atomic.Flag{},
 		stakingV4StartedFlag:                        &atomic.Flag{},
 	}
@@ -656,19 +656,19 @@ func (holder *epochFlagsHolder) IsStakeLimitsFlagEnabled() bool {
 	return holder.stakeLimitsFlag.IsSet()
 }
 
-// IsStakingV4InitEnabled returns true if stakingV4InitFlag is enabled
-func (holder *epochFlagsHolder) IsStakingV4InitEnabled() bool {
-	return holder.stakingV4InitFlag.IsSet()
+// IsStakingV4Step1Enabled returns true if stakingV4Step1Flag is enabled
+func (holder *epochFlagsHolder) IsStakingV4Step1Enabled() bool {
+	return holder.stakingV4Step1Flag.IsSet()
 }
 
-// IsStakingV4Enabled returns true if stakingV4Flag is enabled
-func (holder *epochFlagsHolder) IsStakingV4Enabled() bool {
-	return holder.stakingV4Flag.IsSet()
+// IsStakingV4Step2Enabled returns true if stakingV4Step2Flag is enabled
+func (holder *epochFlagsHolder) IsStakingV4Step2Enabled() bool {
+	return holder.stakingV4Step2Flag.IsSet()
 }
 
-// IsStakingV4DistributeAuctionToWaitingEnabled returns true if stakeLimitsFlag is enabled
-func (holder *epochFlagsHolder) IsStakingV4DistributeAuctionToWaitingEnabled() bool {
-	return holder.stakingV4DistributeAuctionToWaitingFlag.IsSet()
+// IsStakingV4Step3Enabled returns true if stakingV4Step3Flag is enabled
+func (holder *epochFlagsHolder) IsStakingV4Step3Enabled() bool {
+	return holder.stakingV4Step3Flag.IsSet()
 }
 
 // IsStakingQueueEnabled returns true if stakingQueueEnabledFlag is enabled

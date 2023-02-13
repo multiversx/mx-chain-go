@@ -97,8 +97,8 @@ type indexHashedNodesCoordinator struct {
 	nodeTypeProvider                NodeTypeProviderHandler
 	enableEpochsHandler             common.EnableEpochsHandler
 	validatorInfoCacher             epochStart.ValidatorInfoCacher
-	stakingV4EnableEpoch            uint32
-	flagStakingV4                   atomicFlags.Flag
+	stakingV4Step2EnableEpoch       uint32
+	flagStakingV4Step2              atomicFlags.Flag
 	nodesCoordinatorRegistryFactory NodesCoordinatorRegistryFactory
 	flagStakingV4Started            atomicFlags.Flag
 }
@@ -149,7 +149,7 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		isFullArchive:                   arguments.IsFullArchive,
 		enableEpochsHandler:             arguments.EnableEpochsHandler,
 		validatorInfoCacher:             arguments.ValidatorInfoCacher,
-		stakingV4EnableEpoch:            arguments.StakingV4EnableEpoch,
+		stakingV4Step2EnableEpoch:       arguments.StakingV4Step2EnableEpoch,
 		nodesCoordinatorRegistryFactory: arguments.NodesCoordinatorRegistryFactory,
 	}
 
@@ -768,7 +768,7 @@ func (ihnc *indexHashedNodesCoordinator) computeNodesConfigFromList(
 				validatorInfo,
 			)
 		case string(common.NewList):
-			if ihnc.flagStakingV4.IsSet() {
+			if ihnc.flagStakingV4Step2.IsSet() {
 				return nil, epochStart.ErrReceivedNewListNodeInStakingV4
 			}
 			log.Debug("new node registered", "pk", validatorInfo.PublicKey)
@@ -779,7 +779,7 @@ func (ihnc *indexHashedNodesCoordinator) computeNodesConfigFromList(
 			log.Debug("jailed validator", "pk", validatorInfo.PublicKey)
 		case string(common.SelectedFromAuctionList):
 			log.Debug("selected node from auction", "pk", validatorInfo.PublicKey)
-			if ihnc.flagStakingV4.IsSet() {
+			if ihnc.flagStakingV4Step2.IsSet() {
 				auctionList = append(auctionList, currentValidator)
 			} else {
 				return nil, ErrReceivedAuctionValidatorsBeforeStakingV4
@@ -1080,7 +1080,7 @@ func (ihnc *indexHashedNodesCoordinator) computeShardForSelfPublicKey(nodesConfi
 		return shardId, true
 	}
 
-	if ihnc.flagStakingV4.IsSet() {
+	if ihnc.flagStakingV4Step2.IsSet() {
 		found, shardId = searchInMap(nodesConfig.shuffledOutMap, pubKey)
 		if found {
 			log.Trace("computeShardForSelfPublicKey found validator in shuffled out",
@@ -1289,9 +1289,9 @@ func (ihnc *indexHashedNodesCoordinator) getShardValidatorInfoData(txHash []byte
 }
 
 func (ihnc *indexHashedNodesCoordinator) updateEpochFlags(epoch uint32) {
-	ihnc.flagStakingV4Started.SetValue(epoch >= ihnc.enableEpochsHandler.StakingV4InitEpoch())
-	log.Debug("indexHashedNodesCoordinator: staking v4 started", "enabled", ihnc.flagStakingV4Started.IsSet())
+	ihnc.flagStakingV4Started.SetValue(epoch >= ihnc.enableEpochsHandler.StakingV4Step1EnableEpoch())
+	log.Debug("indexHashedNodesCoordinator: flagStakingV4Started", "enabled", ihnc.flagStakingV4Started.IsSet())
 
-	ihnc.flagStakingV4.SetValue(epoch >= ihnc.stakingV4EnableEpoch)
-	log.Debug("indexHashedNodesCoordinator: staking v4", "enabled", ihnc.flagStakingV4.IsSet())
+	ihnc.flagStakingV4Step2.SetValue(epoch >= ihnc.stakingV4Step2EnableEpoch)
+	log.Debug("indexHashedNodesCoordinator: flagStakingV4Step2", "enabled", ihnc.flagStakingV4Step2.IsSet())
 }

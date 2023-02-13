@@ -242,8 +242,8 @@ type EnableEpochsHandler interface {
 	StorageAPICostOptimizationEnableEpoch() uint32
 	MiniBlockPartialExecutionEnableEpoch() uint32
 	RefactorPeersMiniBlocksEnableEpoch() uint32
-	StakingV4EnableEpoch() uint32
-	StakingV4InitEpoch() uint32
+	StakingV4Step2EnableEpoch() uint32
+	StakingV4Step1EnableEpoch() uint32
 	IsSCDeployFlagEnabled() bool
 	IsBuiltInFunctionsFlagEnabled() bool
 	IsRelayedTransactionsFlagEnabled() bool
@@ -336,9 +336,9 @@ type EnableEpochsHandler interface {
 	IsWipeSingleNFTLiquidityDecreaseEnabled() bool
 	IsAlwaysSaveTokenMetaDataEnabled() bool
 	IsStakeLimitsFlagEnabled() bool
-	IsStakingV4InitEnabled() bool
-	IsStakingV4Enabled() bool
-	IsStakingV4DistributeAuctionToWaitingEnabled() bool
+	IsStakingV4Step1Enabled() bool
+	IsStakingV4Step2Enabled() bool
+	IsStakingV4Step3Enabled() bool
 	IsStakingQueueEnabled() bool
 	IsStakingV4Started() bool
 

@@ -172,14 +172,14 @@ func (s *legacySystemSCProcessor) processLegacy(
 		}
 	}
 
-	if s.enableEpochsHandler.IsCorrectLastUnJailedFlagEnabled() && !s.enableEpochsHandler.IsStakingV4Enabled() {
+	if s.enableEpochsHandler.IsCorrectLastUnJailedFlagEnabled() && !s.enableEpochsHandler.IsStakingV4Step2Enabled() {
 		err := s.cleanAdditionalQueue()
 		if err != nil {
 			return err
 		}
 	}
 
-	if s.enableEpochsHandler.IsSwitchJailWaitingFlagEnabled() && !s.enableEpochsHandler.IsStakingV4Enabled() {
+	if s.enableEpochsHandler.IsSwitchJailWaitingFlagEnabled() && !s.enableEpochsHandler.IsStakingV4Step2Enabled() {
 		err := s.computeNumWaitingPerShard(validatorsInfoMap)
 		if err != nil {
 			return err
@@ -191,7 +191,7 @@ func (s *legacySystemSCProcessor) processLegacy(
 		}
 	}
 
-	if s.enableEpochsHandler.IsStakingV2FlagEnabled() && !s.enableEpochsHandler.IsStakingV4Enabled() {
+	if s.enableEpochsHandler.IsStakingV2FlagEnabled() && !s.enableEpochsHandler.IsStakingV4Step2Enabled() {
 		err := s.prepareStakingDataForEligibleNodes(validatorsInfoMap)
 		if err != nil {
 			return err

@@ -60,22 +60,22 @@ func CreateProcessorNodesWithNodesCoordinator(
 		for i, v := range validatorList {
 			lruCache, _ := cache.NewLRUCache(10000)
 			argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-				ShardConsensusGroupSize: shardConsensusGroupSize,
-				MetaConsensusGroupSize:  metaConsensusGroupSize,
-				Marshalizer:             TestMarshalizer,
-				Hasher:                  TestHasher,
-				ShardIDAsObserver:       shardId,
-				NbShards:                numShards,
-				EligibleNodes:           validatorsMapForNodesCoordinator,
-				WaitingNodes:            waitingMapForNodesCoordinator,
-				SelfPublicKey:           v.PubKeyBytes(),
-				ConsensusGroupCache:     lruCache,
-				ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
-				ChanStopNode:            endProcess.GetDummyEndProcessChannel(),
-				IsFullArchive:           false,
-				EnableEpochsHandler:     &testscommon.EnableEpochsHandlerStub{},
-				ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
-				StakingV4EnableEpoch:    StakingV4Epoch,
+				ShardConsensusGroupSize:   shardConsensusGroupSize,
+				MetaConsensusGroupSize:    metaConsensusGroupSize,
+				Marshalizer:               TestMarshalizer,
+				Hasher:                    TestHasher,
+				ShardIDAsObserver:         shardId,
+				NbShards:                  numShards,
+				EligibleNodes:             validatorsMapForNodesCoordinator,
+				WaitingNodes:              waitingMapForNodesCoordinator,
+				SelfPublicKey:             v.PubKeyBytes(),
+				ConsensusGroupCache:       lruCache,
+				ShuffledOutHandler:        &mock.ShuffledOutHandlerStub{},
+				ChanStopNode:              endProcess.GetDummyEndProcessChannel(),
+				IsFullArchive:             false,
+				EnableEpochsHandler:       &testscommon.EnableEpochsHandlerStub{},
+				ValidatorInfoCacher:       &vic.ValidatorInfoCacherStub{},
+				StakingV4Step2EnableEpoch: StakingV4Step2EnableEpoch,
 			}
 
 			nodesCoordinatorInstance, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)

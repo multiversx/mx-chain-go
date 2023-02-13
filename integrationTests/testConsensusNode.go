@@ -303,7 +303,7 @@ func (tcn *TestConsensusNode) initNodesCoordinator(
 		EnableEpochsHandler:             &testscommon.EnableEpochsHandlerStub{},
 		ValidatorInfoCacher:             &vic.ValidatorInfoCacherStub{},
 		NodesCoordinatorRegistryFactory: &shardingMocks.NodesCoordinatorRegistryFactoryMock{},
-		StakingV4EnableEpoch:            StakingV4Epoch,
+		StakingV4Step2EnableEpoch:       StakingV4Step2EnableEpoch,
 	}
 
 	tcn.NodesCoordinator, _ = nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)

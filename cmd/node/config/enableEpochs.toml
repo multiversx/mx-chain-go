@@ -242,22 +242,23 @@
     # StakeLimitsEnableEpoch represents the epoch when stake limits on validators are enabled
     StakeLimitsEnableEpoch = 5
 
-    # StakingV4InitEnableEpoch represents the epoch when staking v4 is initialized. This is the epoch in which
+    # StakingV4Step1EnableEpoch represents the epoch when staking v4 is initialized. This is the epoch in which
     # all nodes from staking queue are moved in the auction list
-    StakingV4InitEnableEpoch = 4
+    StakingV4Step1EnableEpoch = 4
 
-    # StakingV4EnableEpoch represents the epoch when staking v4 is enabled. Should have a greater value than StakingV4InitEnableEpoch
-    StakingV4EnableEpoch = 5
+    # StakingV4Step2EnableEpoch represents the epoch when staking v4 is enabled. Should have a greater value than StakingV4Step1EnableEpoch.
+    # From this epoch, all shuffled out nodes are moved to auction nodes. No auction nodes selection is done yet.
+    StakingV4Step2EnableEpoch = 5
 
-    # StakingV4DistributeAuctionToWaitingEpoch represents the epoch in which selected nodes from auction will be distributed to waiting list
-    StakingV4DistributeAuctionToWaitingEpoch = 6
+    # StakingV4Step3EnableEpoch represents the epoch in which selected nodes from auction will be distributed to waiting list
+    StakingV4Step3EnableEpoch = 6
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 0, MaxNumNodes = 36, NodesToShufflePerShard = 4 },
         { EpochEnable = 1, MaxNumNodes = 56, NodesToShufflePerShard = 2 },
         # Staking v4 configuration, where:
-        # - Enable epoch = StakingV4DistributeAuctionToWaitingEpoch
+        # - Enable epoch = StakingV4Step3EnableEpoch
         # - NodesToShufflePerShard = same as previous entry in MaxNodesChangeEnableEpoch
         # - MaxNumNodes = (MaxNumNodesFromPreviousEpochEnable - (numOfShards+1)*NodesToShufflePerShard)
         { EpochEnable = 6, MaxNumNodes = 48, NodesToShufflePerShard = 2 },

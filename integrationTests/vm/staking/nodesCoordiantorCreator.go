@@ -45,8 +45,8 @@ func createNodesCoordinator(
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: maxNodesConfig,
 		EnableEpochs: config.EnableEpochs{
-			StakingV4EnableEpoch:                     stakingV4EnableEpoch,
-			StakingV4DistributeAuctionToWaitingEpoch: stakingV4DistributeAuctionToWaitingEpoch,
+			StakingV4Step2EnableEpoch: stakingV4Step2EnableEpoch,
+			StakingV4Step3EnableEpoch: stakingV4Step3EnableEpoch,
 		},
 		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
 	}
@@ -69,7 +69,7 @@ func createNodesCoordinator(
 		Shuffler:                        nodeShuffler,
 		BootStorer:                      bootStorer,
 		EpochStartNotifier:              coreComponents.EpochStartNotifierWithConfirm(),
-		StakingV4EnableEpoch:            stakingV4EnableEpoch,
+		StakingV4Step2EnableEpoch:       stakingV4Step2EnableEpoch,
 		NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
 		NodeTypeProvider:                coreComponents.NodeTypeProvider(),
 		EnableEpochsHandler:             coreComponents.EnableEpochsHandler(),

@@ -194,8 +194,8 @@ func createHashShufflerInter() (*randHashShuffler, error) {
 		ShuffleBetweenShards: true,
 		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
 		EnableEpochs: config.EnableEpochs{
-			StakingV4EnableEpoch:                     443,
-			StakingV4DistributeAuctionToWaitingEpoch: 444,
+			StakingV4Step2EnableEpoch: 443,
+			StakingV4Step3EnableEpoch: 444,
 		},
 	}
 
@@ -212,8 +212,8 @@ func createHashShufflerIntraShards() (*randHashShuffler, error) {
 		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
 		EnableEpochs: config.EnableEpochs{
-			StakingV4EnableEpoch:                     443,
-			StakingV4DistributeAuctionToWaitingEpoch: 444,
+			StakingV4Step2EnableEpoch: 443,
+			StakingV4Step3EnableEpoch: 444,
 		},
 		EnableEpochsHandler: &mock.EnableEpochsHandlerMock{},
 	}
@@ -1164,17 +1164,17 @@ func TestRandHashShuffler_UpdateParams(t *testing.T) {
 	require.Nil(t, err)
 
 	shuffler2 := &randHashShuffler{
-		nodesShard:                               200,
-		nodesMeta:                                200,
-		shardHysteresis:                          0,
-		metaHysteresis:                           0,
-		adaptivity:                               true,
-		shuffleBetweenShards:                     true,
-		validatorDistributor:                     &CrossShardValidatorDistributor{},
-		availableNodesConfigs:                    nil,
-		stakingV4EnableEpoch:                     443,
-		stakingV4DistributeAuctionToWaitingEpoch: 444,
-		enableEpochsHandler:                      &mock.EnableEpochsHandlerMock{},
+		nodesShard:                200,
+		nodesMeta:                 200,
+		shardHysteresis:           0,
+		metaHysteresis:            0,
+		adaptivity:                true,
+		shuffleBetweenShards:      true,
+		validatorDistributor:      &CrossShardValidatorDistributor{},
+		availableNodesConfigs:     nil,
+		stakingV4Step2EnableEpoch: 443,
+		stakingV4Step3EnableEpoch: 444,
+		enableEpochsHandler:       &mock.EnableEpochsHandlerMock{},
 	}
 
 	shuffler.UpdateParams(
@@ -2321,8 +2321,8 @@ func TestRandHashShuffler_UpdateNodeLists_All(t *testing.T) {
 		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
 		EnableEpochs: config.EnableEpochs{
-			StakingV4EnableEpoch:                     443,
-			StakingV4DistributeAuctionToWaitingEpoch: 444,
+			StakingV4Step2EnableEpoch: 443,
+			StakingV4Step3EnableEpoch: 444,
 		},
 		EnableEpochsHandler: &mock.EnableEpochsHandlerMock{},
 	}
@@ -2674,8 +2674,8 @@ func TestRandHashShuffler_UpdateNodeLists_WithNewNodes_WithWaiting_WithLeaving(t
 		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
 		EnableEpochs: config.EnableEpochs{
-			StakingV4EnableEpoch:                     443,
-			StakingV4DistributeAuctionToWaitingEpoch: 444,
+			StakingV4Step2EnableEpoch: 443,
+			StakingV4Step3EnableEpoch: 444,
 		},
 		EnableEpochsHandler: &mock.EnableEpochsHandlerMock{},
 	}

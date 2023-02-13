@@ -35,11 +35,11 @@ import (
 )
 
 const (
-	stakingV4InitEpoch                       = 1
-	stakingV4EnableEpoch                     = 2
-	stakingV4DistributeAuctionToWaitingEpoch = 3
-	addressLength                            = 15
-	nodePrice                                = 1000
+	stakingV4Step1EnableEpoch = 1
+	stakingV4Step2EnableEpoch = 2
+	stakingV4Step3EnableEpoch = 3
+	addressLength             = 15
+	nodePrice                 = 1000
 )
 
 func haveTime() bool { return true }

@@ -219,14 +219,14 @@ const stateCheckpointModulus = uint(100)
 // UnreachableEpoch defines an unreachable epoch for integration tests
 const UnreachableEpoch = uint32(1000000)
 
-// StakingV4InitEpoch defines the epoch for integration tests when stakingV4 init is enabled
-const StakingV4InitEpoch = 4443
+// StakingV4Step1EnableEpoch defines the epoch for integration tests when stakingV4 init is enabled
+const StakingV4Step1EnableEpoch = 4443
 
-// StakingV4Epoch defines the epoch for integration tests when stakingV4 is enabled; should be greater than StakingV2Epoch
-const StakingV4Epoch = 4444
+// StakingV4Step2EnableEpoch defines the epoch for integration tests when stakingV4 is enabled; should be greater than StakingV2Epoch
+const StakingV4Step2EnableEpoch = 4444
 
-// StakingV4DistributeAuctionToWaiting defines the epoch for integration tests when nodes distribution from auction to waiting list is enabled in staking v4
-const StakingV4DistributeAuctionToWaiting = 4445
+// StakingV4Step3EnableEpoch defines the epoch for integration tests when nodes distribution from auction to waiting list is enabled in staking v4
+const StakingV4Step3EnableEpoch = 4445
 
 // ScheduledMiniBlocksEnableEpoch defines the epoch for integration tests when scheduled nini blocks are enabled
 const ScheduledMiniBlocksEnableEpoch = 1000
@@ -3257,8 +3257,8 @@ func GetDefaultEnableEpochsConfig() *config.EnableEpochs {
 		ScheduledMiniBlocksEnableEpoch:              UnreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch:        UnreachableEpoch,
 		FailExecutionOnEveryAPIErrorEnableEpoch:     UnreachableEpoch,
-		StakingV4InitEnableEpoch:                    UnreachableEpoch,
-		StakingV4EnableEpoch:                        UnreachableEpoch,
-		StakingV4DistributeAuctionToWaitingEpoch:    UnreachableEpoch,
+		StakingV4Step1EnableEpoch:                   UnreachableEpoch,
+		StakingV4Step2EnableEpoch:                   UnreachableEpoch,
+		StakingV4Step3EnableEpoch:                   UnreachableEpoch,
 	}
 }

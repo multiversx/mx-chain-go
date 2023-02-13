@@ -78,7 +78,7 @@ func createComponentsForEpochStart() (*mock.CoreComponentsMock, *mock.CryptoComp
 			ProcessStatusHandlerInstance: &testscommon.ProcessStatusHandlerStub{},
 			HardforkTriggerPubKeyField:   []byte("provided hardfork pub key"),
 			EnableEpochsHandlerField: &testscommon.EnableEpochsHandlerStub{
-				StakingV4EnableEpochField: 99999,
+				StakingV4Step2EnableEpochField: 99999,
 			},
 		},
 		&mock.CryptoComponentsMock{

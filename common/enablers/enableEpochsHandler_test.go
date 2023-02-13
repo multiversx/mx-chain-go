@@ -89,9 +89,9 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		WipeSingleNFTLiquidityDecreaseEnableEpoch:         75,
 		AlwaysSaveTokenMetaDataEnableEpoch:                76,
 		StakeLimitsEnableEpoch:                            77,
-		StakingV4InitEnableEpoch:                          78,
-		StakingV4EnableEpoch:                              79,
-		StakingV4DistributeAuctionToWaitingEpoch:          80,
+		StakingV4Step1EnableEpoch:                         78,
+		StakingV4Step2EnableEpoch:                         79,
+		StakingV4Step3EnableEpoch:                         80,
 	}
 }
 
@@ -212,9 +212,9 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsMaxBlockchainHookCountersFlagEnabled())
 		assert.True(t, handler.IsAlwaysSaveTokenMetaDataEnabled())
 		assert.True(t, handler.IsStakeLimitsFlagEnabled())
-		assert.False(t, handler.IsStakingV4InitEnabled()) // epoch == limit
-		assert.True(t, handler.IsStakingV4Enabled())
-		assert.True(t, handler.IsStakingV4DistributeAuctionToWaitingEnabled())
+		assert.False(t, handler.IsStakingV4Step1Enabled()) // epoch == limit
+		assert.True(t, handler.IsStakingV4Step2Enabled())
+		assert.True(t, handler.IsStakingV4Step3Enabled())
 		assert.False(t, handler.IsStakingQueueEnabled())
 		assert.True(t, handler.IsStakingV4Started())
 	})
@@ -227,7 +227,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		cfg.ESDTEnableEpoch = epoch
 		cfg.GovernanceEnableEpoch = epoch
 		cfg.CorrectLastUnjailedEnableEpoch = epoch
-		cfg.StakingV4InitEnableEpoch = epoch
+		cfg.StakingV4Step1EnableEpoch = epoch
 
 		handler, _ := NewEnableEpochsHandler(cfg, &epochNotifier.EpochNotifierStub{})
 		require.False(t, check.IfNil(handler))
@@ -316,9 +316,9 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsWipeSingleNFTLiquidityDecreaseEnabled())
 		assert.True(t, handler.IsAlwaysSaveTokenMetaDataEnabled())
 		assert.True(t, handler.IsStakeLimitsFlagEnabled())
-		assert.True(t, handler.IsStakingV4InitEnabled())
-		assert.True(t, handler.IsStakingV4Enabled())
-		assert.True(t, handler.IsStakingV4DistributeAuctionToWaitingEnabled())
+		assert.True(t, handler.IsStakingV4Step1Enabled())
+		assert.True(t, handler.IsStakingV4Step2Enabled())
+		assert.True(t, handler.IsStakingV4Step3Enabled())
 		assert.False(t, handler.IsStakingQueueEnabled())
 		assert.True(t, handler.IsStakingV4Started())
 	})
@@ -414,9 +414,9 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.False(t, handler.IsWipeSingleNFTLiquidityDecreaseEnabled())
 		assert.False(t, handler.IsAlwaysSaveTokenMetaDataEnabled())
 		assert.False(t, handler.IsStakeLimitsFlagEnabled())
-		assert.False(t, handler.IsStakingV4InitEnabled())
-		assert.False(t, handler.IsStakingV4Enabled())
-		assert.False(t, handler.IsStakingV4DistributeAuctionToWaitingEnabled())
+		assert.False(t, handler.IsStakingV4Step1Enabled())
+		assert.False(t, handler.IsStakingV4Step2Enabled())
+		assert.False(t, handler.IsStakingV4Step3Enabled())
 		assert.True(t, handler.IsStakingQueueEnabled())
 		assert.False(t, handler.IsStakingV4Started())
 	})

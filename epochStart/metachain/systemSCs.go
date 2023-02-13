@@ -115,14 +115,14 @@ func (s *systemSCProcessor) processWithNewFlags(
 		}
 	}
 
-	if s.enableEpochsHandler.IsStakingV4InitEnabled() {
+	if s.enableEpochsHandler.IsStakingV4Step1Enabled() {
 		err := s.stakeNodesFromQueue(validatorsInfoMap, math.MaxUint32, header.GetNonce(), common.AuctionList)
 		if err != nil {
 			return err
 		}
 	}
 
-	if s.enableEpochsHandler.IsStakingV4Enabled() {
+	if s.enableEpochsHandler.IsStakingV4Step2Enabled() {
 		err := s.prepareStakingDataForEligibleNodes(validatorsInfoMap)
 		if err != nil {
 			return err

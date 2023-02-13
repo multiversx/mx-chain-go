@@ -138,9 +138,9 @@ func createGenesisConfig() config.EnableEpochs {
 		MaxBlockchainHookCountersEnableEpoch:              unreachableEpoch,
 		BLSMultiSignerEnableEpoch:                         blsMultiSignerEnableEpoch,
 		StakeLimitsEnableEpoch:                            unreachableEpoch,
-		StakingV4InitEnableEpoch:                          unreachableEpoch,
-		StakingV4EnableEpoch:                              unreachableEpoch,
-		StakingV4DistributeAuctionToWaitingEpoch:          unreachableEpoch,
+		StakingV4Step1EnableEpoch:                         unreachableEpoch,
+		StakingV4Step2EnableEpoch:                         unreachableEpoch,
+		StakingV4Step3EnableEpoch:                         unreachableEpoch,
 	}
 }
 

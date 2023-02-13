@@ -1457,9 +1457,9 @@ func CreateNodesWithFullGenesis(
 
 	enableEpochsConfig := GetDefaultEnableEpochsConfig()
 	enableEpochsConfig.StakingV2EnableEpoch = UnreachableEpoch
-	enableEpochsConfig.StakingV4InitEnableEpoch = UnreachableEpoch
-	enableEpochsConfig.StakingV4EnableEpoch = UnreachableEpoch
-	enableEpochsConfig.StakingV4DistributeAuctionToWaitingEpoch = UnreachableEpoch
+	enableEpochsConfig.StakingV4Step1EnableEpoch = UnreachableEpoch
+	enableEpochsConfig.StakingV4Step2EnableEpoch = UnreachableEpoch
+	enableEpochsConfig.StakingV4Step3EnableEpoch = UnreachableEpoch
 
 	economicsConfig := createDefaultEconomicsConfig()
 	economicsConfig.GlobalSettings.YearSettings = append(
@@ -1528,9 +1528,9 @@ func CreateNodesWithCustomStateCheckpointModulus(
 
 	enableEpochsConfig := GetDefaultEnableEpochsConfig()
 	enableEpochsConfig.StakingV2EnableEpoch = UnreachableEpoch
-	enableEpochsConfig.StakingV4InitEnableEpoch = UnreachableEpoch
-	enableEpochsConfig.StakingV4EnableEpoch = UnreachableEpoch
-	enableEpochsConfig.StakingV4DistributeAuctionToWaitingEpoch = UnreachableEpoch
+	enableEpochsConfig.StakingV4Step1EnableEpoch = UnreachableEpoch
+	enableEpochsConfig.StakingV4Step2EnableEpoch = UnreachableEpoch
+	enableEpochsConfig.StakingV4Step3EnableEpoch = UnreachableEpoch
 
 	scm := &IntWrapper{
 		Value: stateCheckpointModulus,

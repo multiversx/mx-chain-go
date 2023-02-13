@@ -55,7 +55,7 @@ func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgInd
 	nodeShuffler, _ := nodesCoordinator.NewHashValidatorsShuffler(nodeShufflerArgs)
 	nodesCoordinatorRegistryFactory, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(
 		TestMarshalizer,
-		StakingV4Epoch,
+		StakingV4Step2EnableEpoch,
 	)
 	argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
 		ShardConsensusGroupSize: arg.shardConsensusGroupSize,
@@ -80,7 +80,7 @@ func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgInd
 		},
 		ValidatorInfoCacher:             &vic.ValidatorInfoCacherStub{},
 		NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
-		StakingV4EnableEpoch:            StakingV4Epoch,
+		StakingV4Step2EnableEpoch:       StakingV4Step2EnableEpoch,
 	}
 	nodesCoord, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 	if err != nil {
@@ -118,7 +118,7 @@ func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinato
 	nodeShuffler, _ := nodesCoordinator.NewHashValidatorsShuffler(shufflerArgs)
 	nodesCoordinatorRegistryFactory, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(
 		TestMarshalizer,
-		StakingV4Epoch,
+		StakingV4Step2EnableEpoch,
 	)
 	argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
 		ShardConsensusGroupSize: arg.shardConsensusGroupSize,

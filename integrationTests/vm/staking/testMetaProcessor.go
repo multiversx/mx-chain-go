@@ -89,7 +89,7 @@ func createMaxNodesConfig(
 	)
 
 	maxNodesConfig = append(maxNodesConfig, config.MaxNodesChangeConfig{
-		EpochEnable:            stakingV4DistributeAuctionToWaitingEpoch,
+		EpochEnable:            stakingV4Step3EnableEpoch,
 		MaxNumNodes:            totalNodes - numOfNodesToShufflePerShard*(numOfShards+1),
 		NodesToShufflePerShard: numOfNodesToShufflePerShard,
 	},

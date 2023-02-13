@@ -447,7 +447,7 @@ func (sdp *stakingDataProvider) createMapBLSKeyStatus(validatorsInfo state.Shard
 		list := validator.GetList()
 		pubKey := validator.GetPublicKey()
 
-		if sdp.enableEpochsHandler.IsStakingV4Enabled() && list == string(common.NewList) {
+		if sdp.enableEpochsHandler.IsStakingV4Step2Enabled() && list == string(common.NewList) {
 			return nil, fmt.Errorf("%w, bls key = %s",
 				epochStart.ErrReceivedNewListNodeInStakingV4,
 				hex.EncodeToString(pubKey),
@@ -517,7 +517,7 @@ func (sdp *stakingDataProvider) arrangeBlsKeysByStatus(mapBlsKeyStatus map[strin
 
 func (sdp *stakingDataProvider) getNewNodesList() string {
 	newNodesList := string(common.NewList)
-	if sdp.enableEpochsHandler.IsStakingV4Enabled() {
+	if sdp.enableEpochsHandler.IsStakingV4Step2Enabled() {
 		newNodesList = string(common.AuctionList)
 	}
 

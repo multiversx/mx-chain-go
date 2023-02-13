@@ -116,11 +116,11 @@ func (handler *enableEpochsHandler) EpochConfirmed(epoch uint32, _ uint64) {
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.WipeSingleNFTLiquidityDecreaseEnableEpoch, handler.wipeSingleNFTLiquidityDecreaseFlag, "wipeSingleNFTLiquidityDecreaseFlag")
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.AlwaysSaveTokenMetaDataEnableEpoch, handler.alwaysSaveTokenMetaDataFlag, "alwaysSaveTokenMetaDataFlag")
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.StakeLimitsEnableEpoch, handler.stakeLimitsFlag, "stakeLimitsFlag")
-	handler.setFlagValue(epoch == handler.enableEpochsConfig.StakingV4InitEnableEpoch, handler.stakingV4InitFlag, "stakingV4InitFlag")
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.StakingV4EnableEpoch, handler.stakingV4Flag, "stakingV4Flag")
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.StakingV4DistributeAuctionToWaitingEpoch, handler.stakingV4DistributeAuctionToWaitingFlag, "stakingV4DistributeAuctionToWaitingFlag")
-	handler.setFlagValue(epoch < handler.enableEpochsConfig.StakingV4InitEnableEpoch, handler.stakingQueueEnabledFlag, "stakingQueueEnabledFlag")
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.StakingV4InitEnableEpoch, handler.stakingV4StartedFlag, "stakingV4StartedFlag")
+	handler.setFlagValue(epoch == handler.enableEpochsConfig.StakingV4Step1EnableEpoch, handler.stakingV4Step1Flag, "stakingV4Step1Flag")
+	handler.setFlagValue(epoch >= handler.enableEpochsConfig.StakingV4Step2EnableEpoch, handler.stakingV4Step2Flag, "stakingV4Step2Flag")
+	handler.setFlagValue(epoch >= handler.enableEpochsConfig.StakingV4Step3EnableEpoch, handler.stakingV4Step3Flag, "stakingV4Step3Flag")
+	handler.setFlagValue(epoch < handler.enableEpochsConfig.StakingV4Step1EnableEpoch, handler.stakingQueueEnabledFlag, "stakingQueueEnabledFlag")
+	handler.setFlagValue(epoch >= handler.enableEpochsConfig.StakingV4Step1EnableEpoch, handler.stakingV4StartedFlag, "stakingV4StartedFlag")
 }
 
 func (handler *enableEpochsHandler) setFlagValue(value bool, flag *atomic.Flag, flagName string) {
@@ -213,14 +213,14 @@ func (handler *enableEpochsHandler) RefactorPeersMiniBlocksEnableEpoch() uint32 
 	return handler.enableEpochsConfig.RefactorPeersMiniBlocksEnableEpoch
 }
 
-// StakingV4EnableEpoch returns the epoch when stakingV4 becomes active
-func (handler *enableEpochsHandler) StakingV4EnableEpoch() uint32 {
-	return handler.enableEpochsConfig.StakingV4EnableEpoch
+// StakingV4Step2EnableEpoch returns the epoch when stakingV4 becomes active
+func (handler *enableEpochsHandler) StakingV4Step2EnableEpoch() uint32 {
+	return handler.enableEpochsConfig.StakingV4Step2EnableEpoch
 }
 
-// StakingV4InitEpoch returns the epoch when stakingV4 phase1 becomes active
-func (handler *enableEpochsHandler) StakingV4InitEpoch() uint32 {
-	return handler.enableEpochsConfig.StakingV4InitEnableEpoch
+// StakingV4Step1EnableEpoch returns the epoch when stakingV4 phase1 becomes active
+func (handler *enableEpochsHandler) StakingV4Step1EnableEpoch() uint32 {
+	return handler.enableEpochsConfig.StakingV4Step1EnableEpoch
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -8,6 +8,7 @@ import (
 type EnableEpochsHandlerStub struct {
 	sync.RWMutex
 	ResetPenalizedTooMuchGasFlagCalled                           func()
+	IsStakingV4Step2Called                                       func() bool
 	BlockGasAndFeesReCheckEnableEpochField                       uint32
 	StakingV2EnableEpochField                                    uint32
 	ScheduledMiniBlocksEnableEpochField                          uint32
@@ -25,8 +26,8 @@ type EnableEpochsHandlerStub struct {
 	StorageAPICostOptimizationEnableEpochField                   uint32
 	MiniBlockPartialExecutionEnableEpochField                    uint32
 	RefactorPeersMiniBlocksEnableEpochField                      uint32
-	StakingV4EnableEpochField                                    uint32
-	StakingV4InitEpochField                                      uint32
+	StakingV4Step1EnableEpochField                               uint32
+	StakingV4Step2EnableEpochField                               uint32
 	IsSCDeployFlagEnabledField                                   bool
 	IsBuiltInFunctionsFlagEnabledField                           bool
 	IsRelayedTransactionsFlagEnabledField                        bool
@@ -117,12 +118,11 @@ type EnableEpochsHandlerStub struct {
 	IsWipeSingleNFTLiquidityDecreaseEnabledField                 bool
 	IsAlwaysSaveTokenMetaDataEnabledField                        bool
 	IsStakeLimitsFlagEnabledField                                bool
-	IsStakingV4InitFlagEnabledField                              bool
-	IsStakingV4FlagEnabledField                                  bool
-	IsStakingV4DistributeAuctionToWaitingEnabledField            bool
+	IsStakingV4Step1FlagEnabledField                             bool
+	IsStakingV4Step2FlagEnabledField                             bool
+	IsStakingV4Step3FlagEnabledField                             bool
 	IsStakingQueueEnabledField                                   bool
 	IsStakingV4StartedField                                      bool
-	IsStakingV4EnabledCalled                                     func() bool
 }
 
 // ResetPenalizedTooMuchGasFlag -
@@ -266,6 +266,22 @@ func (stub *EnableEpochsHandlerStub) RefactorPeersMiniBlocksEnableEpoch() uint32
 	defer stub.RUnlock()
 
 	return stub.RefactorPeersMiniBlocksEnableEpochField
+}
+
+// StakingV4Step1EnableEpoch -
+func (stub *EnableEpochsHandlerStub) StakingV4Step1EnableEpoch() uint32 {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.StakingV4Step1EnableEpochField
+}
+
+// StakingV4Step2EnableEpoch -
+func (stub *EnableEpochsHandlerStub) StakingV4Step2EnableEpoch() uint32 {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.StakingV4Step2EnableEpochField
 }
 
 // IsSCDeployFlagEnabled -
@@ -993,34 +1009,6 @@ func (stub *EnableEpochsHandlerStub) IsStakeLimitsFlagEnabled() bool {
 	return stub.IsStakeLimitsFlagEnabledField
 }
 
-// IsStakingV4InitEnabled -
-func (stub *EnableEpochsHandlerStub) IsStakingV4InitEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsStakingV4InitFlagEnabledField
-}
-
-// IsStakingV4Enabled -
-func (stub *EnableEpochsHandlerStub) IsStakingV4Enabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	if stub.IsStakingV4EnabledCalled != nil {
-		return stub.IsStakingV4EnabledCalled()
-	}
-
-	return stub.IsStakingV4FlagEnabledField
-}
-
-// IsStakingV4DistributeAuctionToWaitingEnabled -
-func (stub *EnableEpochsHandlerStub) IsStakingV4DistributeAuctionToWaitingEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsStakingV4DistributeAuctionToWaitingEnabledField
-}
-
 // IsStakingQueueEnabled -
 func (stub *EnableEpochsHandlerStub) IsStakingQueueEnabled() bool {
 	stub.RLock()
@@ -1037,20 +1025,32 @@ func (stub *EnableEpochsHandlerStub) IsStakingV4Started() bool {
 	return stub.IsStakingV4StartedField
 }
 
-// StakingV4EnableEpoch -
-func (stub *EnableEpochsHandlerStub) StakingV4EnableEpoch() uint32 {
+// IsStakingV4Step1Enabled -
+func (stub *EnableEpochsHandlerStub) IsStakingV4Step1Enabled() bool {
 	stub.RLock()
 	defer stub.RUnlock()
 
-	return stub.StakingV4EnableEpochField
+	return stub.IsStakingV4Step1FlagEnabledField
 }
 
-// StakingV4InitEpoch -
-func (stub *EnableEpochsHandlerStub) StakingV4InitEpoch() uint32 {
+// IsStakingV4Step2Enabled -
+func (stub *EnableEpochsHandlerStub) IsStakingV4Step2Enabled() bool {
 	stub.RLock()
 	defer stub.RUnlock()
 
-	return stub.StakingV4InitEpochField
+	if stub.IsStakingV4Step2Called != nil {
+		return stub.IsStakingV4Step2Called()
+	}
+
+	return stub.IsStakingV4Step2FlagEnabledField
+}
+
+// IsStakingV4Step3Enabled -
+func (stub *EnableEpochsHandlerStub) IsStakingV4Step3Enabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsStakingV4Step3FlagEnabledField
 }
 
 // IsInterfaceNil -
