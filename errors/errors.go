@@ -308,8 +308,11 @@ var ErrNilRequestedItemHandler = errors.New("nil requested item handler")
 // ErrNilRequestHandler signals that a nil request handler was provided
 var ErrNilRequestHandler = errors.New("nil request handler")
 
-// ErrNilResolversFinder signals that a nil resolver finder was provided
-var ErrNilResolversFinder = errors.New("nil resolvers finder")
+// ErrNilRequestersFinder signals that a nil requesters finder was provided
+var ErrNilRequestersFinder = errors.New("nil requesters finder")
+
+// ErrNilResolversContainer signals that a nil resolvers container was provided
+var ErrNilResolversContainer = errors.New("nil resolvers container")
 
 // ErrNilRoundHandler signals that a nil roundHandler was provided
 var ErrNilRoundHandler = errors.New("nil roundHandler")

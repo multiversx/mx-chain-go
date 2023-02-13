@@ -9,7 +9,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/batch"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/multiversx/mx-chain-go/dataRetriever/resolvers"
@@ -29,8 +28,6 @@ func createMockArgTxResolver() resolvers.ArgTxResolver {
 		DataPacker:      &mock.DataPackerStub{},
 	}
 }
-
-//------- NewTxResolver
 
 func TestNewTxResolver_NilResolverShouldErr(t *testing.T) {
 	t.Parallel()
@@ -119,12 +116,9 @@ func TestNewTxResolver_OkValsShouldWork(t *testing.T) {
 	assert.False(t, check.IfNil(txRes))
 }
 
-//------- ProcessReceivedMessage
-
 func TestTxResolver_ProcessReceivedMessageCanProcessMessageErrorsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
 	arg := createMockArgTxResolver()
 	arg.AntifloodHandler = &mock.P2PAntifloodHandlerStub{
 		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
@@ -483,84 +477,6 @@ func TestTxResolver_ProcessReceivedMessageRequestedTwoSmallTransactionsFoundOnly
 	assert.True(t, sendWasCalled)
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
-}
-
-//------- RequestTransactionFromHash
-
-func TestTxResolver_RequestDataFromHashShouldWork(t *testing.T) {
-	t.Parallel()
-
-	requested := &dataRetriever.RequestData{}
-
-	res := &mock.TopicResolverSenderStub{}
-	res.SendOnRequestTopicCalled = func(rd *dataRetriever.RequestData, hashes [][]byte) error {
-		requested = rd
-		return nil
-	}
-
-	buffRequested := []byte("aaaa")
-
-	arg := createMockArgTxResolver()
-	arg.SenderResolver = res
-	txRes, _ := resolvers.NewTxResolver(arg)
-
-	assert.Nil(t, txRes.RequestDataFromHash(buffRequested, 0))
-	assert.Equal(t, &dataRetriever.RequestData{
-		Type:  dataRetriever.HashType,
-		Value: buffRequested,
-	}, requested)
-}
-
-//------- RequestDataFromHashArray
-
-func TestTxResolver_RequestDataFromHashArrayShouldWork(t *testing.T) {
-	t.Parallel()
-
-	requested := &dataRetriever.RequestData{}
-
-	res := &mock.TopicResolverSenderStub{}
-	res.SendOnRequestTopicCalled = func(rd *dataRetriever.RequestData, hashes [][]byte) error {
-		requested = rd
-		return nil
-	}
-
-	buffRequested := [][]byte{[]byte("aaaa"), []byte("bbbb")}
-
-	marshalizer := &marshal.GogoProtoMarshalizer{}
-	arg := createMockArgTxResolver()
-	arg.Marshaller = marshalizer
-	arg.SenderResolver = res
-	txRes, _ := resolvers.NewTxResolver(arg)
-
-	buff, _ := marshalizer.Marshal(&batch.Batch{Data: buffRequested})
-
-	assert.Nil(t, txRes.RequestDataFromHashArray(buffRequested, 0))
-	assert.Equal(t, &dataRetriever.RequestData{
-		Type:  dataRetriever.HashArrayType,
-		Value: buff,
-	}, requested)
-}
-
-//------ NumPeersToQuery setter and getter
-
-func TestTxResolver_SetAndGetNumPeersToQuery(t *testing.T) {
-	t.Parallel()
-
-	expectedIntra := 5
-	expectedCross := 7
-
-	arg := createMockArgTxResolver()
-	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		GetNumPeersToQueryCalled: func() (int, int) {
-			return expectedIntra, expectedCross
-		},
-	}
-	txRes, _ := resolvers.NewTxResolver(arg)
-
-	txRes.SetNumPeersToQuery(expectedIntra, expectedCross)
-	actualIntra, actualCross := txRes.NumPeersToQuery()
-	assert.Equal(t, expectedIntra, actualIntra)
-	assert.Equal(t, expectedCross, actualCross)
 }
 
 func TestTxResolver_Close(t *testing.T) {

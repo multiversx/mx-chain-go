@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/broadcast"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
+	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -32,7 +33,7 @@ func newTestBlockBody() *block.Body {
 func TestCommonMessenger_BroadcastConsensusMessageShouldErrWhenSignMessageFail(t *testing.T) {
 	err := errors.New("sign message error")
 	marshalizerMock := &mock.MarshalizerMock{}
-	messengerMock := &mock.MessengerStub{}
+	messengerMock := &p2pmocks.MessengerStub{}
 	privateKeyMock := &mock.PrivateKeyMock{}
 	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
 	singleSignerMock := &mock.SingleSignerMock{
@@ -57,7 +58,7 @@ func TestCommonMessenger_BroadcastConsensusMessageShouldErrWhenSignMessageFail(t
 
 func TestCommonMessenger_BroadcastConsensusMessageShouldWork(t *testing.T) {
 	marshalizerMock := &mock.MarshalizerMock{}
-	messengerMock := &mock.MessengerStub{
+	messengerMock := &p2pmocks.MessengerStub{
 		BroadcastCalled: func(topic string, buff []byte) {
 		},
 	}
@@ -86,7 +87,7 @@ func TestCommonMessenger_BroadcastConsensusMessageShouldWork(t *testing.T) {
 func TestCommonMessenger_SignMessageShouldErrWhenSignFail(t *testing.T) {
 	err := errors.New("sign message error")
 	marshalizerMock := &mock.MarshalizerMock{}
-	messengerMock := &mock.MessengerStub{}
+	messengerMock := &p2pmocks.MessengerStub{}
 	privateKeyMock := &mock.PrivateKeyMock{}
 	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
 	singleSignerMock := &mock.SingleSignerMock{
@@ -138,7 +139,7 @@ func TestSubroundEndRound_ExtractMiniBlocksAndTransactionsShouldWork(t *testing.
 	}
 
 	marshalizerMock := &mock.MarshalizerMock{}
-	messengerMock := &mock.MessengerStub{
+	messengerMock := &p2pmocks.MessengerStub{
 		BroadcastCalled: func(topic string, buff []byte) {
 		},
 	}
@@ -177,7 +178,7 @@ func TestCommonMessenger_BroadcastBlockData(t *testing.T) {
 	countersBroadcast := make(map[string]int)
 	mutCounters := &sync.Mutex{}
 
-	messengerMock := &mock.MessengerStub{
+	messengerMock := &p2pmocks.MessengerStub{
 		BroadcastCalled: func(topic string, buff []byte) {
 			mutCounters.Lock()
 			countersBroadcast[topic]++
