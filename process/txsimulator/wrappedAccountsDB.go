@@ -47,6 +47,13 @@ func (r *readOnlyAccountsDB) GetCode(codeHash []byte) []byte {
 
 // GetExistingAccount will call the original accounts' function with the same name
 func (r *readOnlyAccountsDB) GetExistingAccount(address []byte) (vmcommon.AccountHandler, error) {
+	r.mutex.RLock()
+	cachedAccount, ok := r.cashedAccounts[string(address)]
+	r.mutex.RUnlock()
+	if ok {
+		return cachedAccount, nil
+	}
+
 	return r.originalAccounts.GetExistingAccount(address)
 }
 

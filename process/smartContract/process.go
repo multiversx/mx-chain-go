@@ -1355,11 +1355,6 @@ func (sc *scProcessor) processIfErrorWithAddedLogs(acntSnd state.UserAccountHand
 	prevVmOutput *vmcommon.VMOutput,
 	internalVMLogs []*vmcommon.LogEntry,
 ) error {
-	sc.vmOutputCacher.Put(txHash, &vmcommon.VMOutput{
-		ReturnCode:    vmcommon.SimulateFailed,
-		ReturnMessage: string(returnMessage),
-	}, 0)
-
 	err := sc.accounts.RevertToSnapshot(snapshot)
 	if err != nil {
 		if !errors.IsClosingError(err) {
@@ -1419,6 +1414,12 @@ func (sc *scProcessor) processIfErrorWithAddedLogs(acntSnd state.UserAccountHand
 		log.Debug("scProcessor.ProcessIfError() txLogsProcessor.SaveLog()", "error", ignorableError.Error())
 	}
 
+	sc.vmOutputCacher.Put(txHash, &vmcommon.VMOutput{
+		ReturnCode:    vmcommon.SimulateFailed,
+		ReturnMessage: string(returnMessage),
+		Logs:          processIfErrorLogs,
+	}, 0)
+
 	txType, _ := sc.txTypeHandler.ComputeTransactionType(tx)
 	isCrossShardMoveBalance := txType == process.MoveBalance && check.IfNil(acntSnd)
 	if isCrossShardMoveBalance && sc.enableEpochsHandler.IsSCDeployFlagEnabled() {
@@ -1434,7 +1435,6 @@ func (sc *scProcessor) processIfErrorWithAddedLogs(acntSnd state.UserAccountHand
 			return err
 		}
 	}
-
 	return nil
 }
 
