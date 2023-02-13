@@ -52,7 +52,6 @@ const (
 	signatureSize    = 48
 	publicKeySize    = 96
 	maxShards        = 1
-	nodeShardId      = 0
 )
 
 var testPubkeyConverter, _ = pubkeyConverter.NewHexPubkeyConverter(32)
@@ -91,7 +90,7 @@ func NewTestConsensusNode(
 		ShardCoordinator: shardCoordinator,
 		MultiSigner:      multiSigner,
 	}
-	tcn.initNode(consensusSize, roundTime, consensusType, eligibleMap, waitingMap, keyGen, startTime)
+	tcn.initNode(consensusSize, roundTime, consensusType, eligibleMap, waitingMap, keyGen)
 
 	return tcn
 }
@@ -167,7 +166,6 @@ func (tcn *TestConsensusNode) initNode(
 	eligibleMap map[uint32][]nodesCoordinator.Validator,
 	waitingMap map[uint32][]nodesCoordinator.Validator,
 	keyGen crypto.KeyGenerator,
-	startTime int64,
 ) {
 
 	testHasher := createHasher(consensusType)
@@ -179,6 +177,8 @@ func (tcn *TestConsensusNode) initNode(
 	tcn.Messenger = CreateMessengerWithNoDiscovery()
 	tcn.initBlockChain(testHasher)
 	tcn.initBlockProcessor()
+
+	startTime := time.Now().Unix()
 
 	syncer := ntp.NewSyncTime(ntp.NewNTPGoogleConfig(), nil)
 	syncer.StartSyncingTime()
