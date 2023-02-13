@@ -1053,6 +1053,10 @@ func (stub *EnableEpochsHandlerStub) IsStakingV4Step3Enabled() bool {
 	return stub.IsStakingV4Step3FlagEnabledField
 }
 
+// EpochConfirmed -
+func (stub *EnableEpochsHandlerStub) EpochConfirmed(_ uint32, _ uint64) {
+}
+
 // IsInterfaceNil -
 func (stub *EnableEpochsHandlerStub) IsInterfaceNil() bool {
 	return stub == nil
