@@ -7,6 +7,13 @@ startValidators() {
   iterateOverValidators startSingleValidator
 }
 
+startSovereignValidators() {
+  setTerminalSession "multiversx-nodes"
+  setTerminalLayout "tiled"
+  setWorkdirForNextCommands "$TESTNETDIR/node"
+  iterateOverSovereignValidators startSingleValidator
+}
+
 pauseValidators() {
   iterateOverValidators pauseSingleValidator
 }
@@ -43,6 +50,23 @@ iterateOverValidators() {
       sleep 0.5
     fi
      (( VALIDATOR_INDEX++ ))
+  done
+}
+
+iterateOverSovereignValidators() {
+  local callback=$1
+  local VALIDATOR_INDEX=$META_VALIDATORCOUNT
+
+  # Iterate over Shard Validators
+  (( max_shard_id=$SHARDCOUNT - 1 ))
+  for SHARD in $(seq 0 1 $max_shard_id); do
+    for _ in $(seq $SHARD_VALIDATORCOUNT); do
+      if [ $VALIDATOR_INDEX -ne $SKIP_VALIDATOR_IDX ]; then
+        $callback $SHARD $VALIDATOR_INDEX
+        sleep 0.5
+      fi
+      (( VALIDATOR_INDEX++ ))
+    done
   done
 }
 

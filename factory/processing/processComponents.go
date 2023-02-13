@@ -732,7 +732,7 @@ func (pcf *processComponentsFactory) newValidatorStatisticsProcessor() (process.
 	if hardforkConfig.AfterHardFork {
 		ratingEnabledEpoch = hardforkConfig.StartEpoch + hardforkConfig.ValidatorGracePeriodInEpochs
 	}
-	arguments := peer.ArgValidatorStatisticsProcessor{
+	args := peer.ArgValidatorStatisticsProcessor{
 		PeerAdapter:                          pcf.state.PeerAccounts(),
 		PubkeyConv:                           pcf.coreData.ValidatorPubKeyConverter(),
 		NodesCoordinator:                     pcf.nodesCoordinator,
@@ -750,12 +750,23 @@ func (pcf *processComponentsFactory) newValidatorStatisticsProcessor() (process.
 		EnableEpochsHandler:                  pcf.coreData.EnableEpochsHandler(),
 	}
 
-	validatorStatisticsProcessor, err := peer.NewValidatorStatisticsProcessor(arguments)
+	return pcf.createValidatorStatisticsProcessor(args)
+}
+
+func (pcf *processComponentsFactory) createValidatorStatisticsProcessor(args peer.ArgValidatorStatisticsProcessor) (process.ValidatorStatisticsProcessor, error) {
+	validatorStatisticsProcessor, err := peer.NewValidatorStatisticsProcessor(args)
 	if err != nil {
 		return nil, err
 	}
 
-	return validatorStatisticsProcessor, nil
+	switch pcf.chainRunType {
+	case common.ChainRunTypeRegular:
+		return validatorStatisticsProcessor, nil
+	case common.ChainRunTypeSovereign:
+		return peer.NewSovereignChainValidatorStatisticsProcessor(validatorStatisticsProcessor)
+	default:
+		return nil, fmt.Errorf("%w type %v", customErrors.ErrUnimplementedChainRunType, pcf.chainRunType)
+	}
 }
 
 func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler epochStart.RequestHandler) (epochStart.TriggerHandler, error) {
