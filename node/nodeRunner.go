@@ -1259,6 +1259,7 @@ func (nr *nodeRunner) CreateManagedDataComponents(
 		EpochStartNotifier:            coreComponents.EpochStartNotifierWithConfirm(),
 		CurrentEpoch:                  storerEpoch,
 		CreateTrieEpochRootHashStorer: configs.ImportDbConfig.ImportDbSaveTrieEpochRootHash,
+		ShardIDProvider:               bootstrapComponents.ShardIDProvider(),
 	}
 
 	dataComponentsFactory, err := dataComp.NewDataComponentsFactory(dataArgs)

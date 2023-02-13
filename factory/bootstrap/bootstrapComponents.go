@@ -148,7 +148,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		return nil, fmt.Errorf("%w: %v", errors.ErrNewBootstrapDataProvider, err)
 	}
 
-	shardIDProvider, err := database.NewShardIDProvider(4)
+	shardIDProvider, err := database.NewShardIDProvider(bcf.config.StorageShardIDProvider.NumShards)
 	if err != nil {
 		return nil, err
 	}
