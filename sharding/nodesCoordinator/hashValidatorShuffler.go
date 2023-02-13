@@ -95,8 +95,8 @@ func NewHashValidatorsShuffler(args *NodesShufflerArgs) (*randHashShuffler, erro
 		shuffleBetweenShards:      args.ShuffleBetweenShards,
 		availableNodesConfigs:     configs,
 		enableEpochsHandler:       args.EnableEpochsHandler,
-		stakingV4Step3EnableEpoch: args.EnableEpochs.StakingV4Step3EnableEpoch,
 		stakingV4Step2EnableEpoch: args.EnableEpochs.StakingV4Step2EnableEpoch,
+		stakingV4Step3EnableEpoch: args.EnableEpochs.StakingV4Step3EnableEpoch,
 	}
 
 	rxs.UpdateParams(args.NodesShard, args.NodesMeta, args.Hysteresis, args.Adaptivity)
