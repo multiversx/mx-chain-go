@@ -234,8 +234,8 @@ func CreateNodesWithNodesCoordinatorFactory(
 		ScheduledMiniBlocksEnableEpoch:       UnreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch: UnreachableEpoch,
 		RefactorPeersMiniBlocksEnableEpoch:   UnreachableEpoch,
-		StakingV4Step2EnableEpoch:            UnreachableEpoch,
 		StakingV4Step1EnableEpoch:            UnreachableEpoch,
+		StakingV4Step2EnableEpoch:            UnreachableEpoch,
 		StakingV4Step3EnableEpoch:            UnreachableEpoch,
 	}
 

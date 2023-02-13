@@ -61,8 +61,8 @@ func createMockStakingScArgumentsWithSystemScAddresses(
 			IsCorrectFirstQueuedFlagEnabledField:                 true,
 			IsCorrectJailedNotUnStakedEmptyQueueFlagEnabledField: true,
 			IsValidatorToDelegationFlagEnabledField:              true,
-			IsStakingV4Step2FlagEnabledField:                     false,
 			IsStakingV4Step1FlagEnabledField:                     false,
+			IsStakingV4Step2FlagEnabledField:                     false,
 		},
 	}
 }

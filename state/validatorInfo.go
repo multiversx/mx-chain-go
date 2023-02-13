@@ -15,12 +15,23 @@ func (vi *ValidatorInfo) SetPublicKey(publicKey []byte) {
 }
 
 // SetList sets validator's list
-func (vi *ValidatorInfo) SetList(list string, updatePreviousList bool) {
-	if updatePreviousList {
+func (vi *ValidatorInfo) SetList(list string) {
+	vi.List = list
+}
+
+// SetPreviousList sets validator's previous list
+func (vi *ValidatorInfo) SetPreviousList(list string) {
+	vi.PreviousList = list
+}
+
+func (vi *ValidatorInfo) SetListAndIndex(list string, index uint32, updatePreviousValues bool) {
+	if updatePreviousValues {
+		vi.PreviousIndex = vi.Index
 		vi.PreviousList = vi.List
 	}
 
 	vi.List = list
+	vi.Index = index
 }
 
 // SetShardId sets validator's public shard id
