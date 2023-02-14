@@ -136,7 +136,7 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 	}
 
 	arg := p2pFactory.ArgsNetworkMessenger{
-		Marshalizer:           ncf.marshalizer,
+		Marshaller:            ncf.marshalizer,
 		ListenAddress:         ncf.listenAddress,
 		P2pConfig:             ncf.p2pConfig,
 		SyncTimer:             ncf.syncer,
