@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/hashing"
@@ -962,6 +963,167 @@ func TestPatriciaMerkleTree_GetValueReturnsTrieDepth(t *testing.T) {
 	_, depth, err = tr.Get([]byte("ddog"))
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(3), depth)
+}
+
+func TestPatriciaMerkleTrie_ConcurrentOperations(t *testing.T) {
+	t.Parallel()
+
+	tr := initTrie()
+	numOperations := 1000
+	wg := sync.WaitGroup{}
+	wg.Add(numOperations)
+	numFunctions := 20
+
+	for i := 0; i < numOperations; i++ {
+		go func(idx int) {
+			time.Sleep(time.Millisecond * 10)
+
+			operation := idx % numFunctions
+			switch operation {
+			case 0:
+				_, _, err := tr.Get([]byte("dog"))
+				assert.Nil(t, err)
+			case 1:
+				err := tr.Update([]byte("doe"), []byte("alt"))
+				assert.Nil(t, err)
+			case 2:
+				err := tr.Delete([]byte("alt"))
+				assert.Nil(t, err)
+			case 3:
+				_, err := tr.RootHash()
+				assert.Nil(t, err)
+			case 4:
+				err := tr.Commit()
+				assert.Nil(t, err)
+			case 5:
+				rh, err := tr.RootHash()
+				assert.Nil(t, err)
+				_, _ = tr.Recreate(rh) // this might error due to concurrent operations that change the roothash
+			case 6:
+				rh, err := tr.RootHash()
+				assert.Nil(t, err)
+
+				epoch := core.OptionalUint32{
+					Value:    3,
+					HasValue: true,
+				}
+				rootHashHolder := holders.NewRootHashHolder(rh, epoch)
+				_, _ = tr.RecreateFromEpoch(rootHashHolder) // this might error due to concurrent operations that change the roothash
+			case 7:
+				_ = tr.String()
+			case 8:
+				_ = tr.GetObsoleteHashes()
+			case 9:
+				_, err := tr.GetDirtyHashes()
+				assert.Nil(t, err)
+			case 10:
+				// extremely hard to compute an existing hash due to concurrent changes.
+				// a missing node suffice
+				_, _ = tr.GetSerializedNode([]byte("missing node"))
+			case 11:
+				// extremely hard to compute an existing hash due to concurrent changes.
+				// a missing node suffice
+				size1KB := uint64(1024 * 1024)
+				_, _, _ = tr.GetSerializedNodes([]byte("missing node"), size1KB)
+			case 12:
+				rh, err := tr.RootHash()
+				assert.Nil(t, err)
+
+				trieIteratorChannels := &common.TrieIteratorChannels{
+					LeavesChan: make(chan core.KeyValueHolder, 1000),
+					ErrChan:    make(chan error, 1000),
+				}
+
+				_ = tr.GetAllLeavesOnChannel(
+					trieIteratorChannels,
+					context.Background(),
+					rh,
+					keyBuilder.NewKeyBuilder(),
+				) // this might error due to concurrent operations that change the roothash
+			case 13:
+				_, err := tr.GetAllHashes()
+				assert.Nil(t, err)
+			case 14:
+				rh, err := tr.RootHash()
+				assert.Nil(t, err)
+
+				_, _, _ = tr.GetProof(rh) // this might error due to concurrent operations that change the roothash
+			case 15:
+				// extremely hard to compute an existing hash due to concurrent changes.
+				_, _ = tr.VerifyProof([]byte("dog"), []byte("puppy"), [][]byte{[]byte("proof1")}) // this might error due to concurrent operations that change the roothash
+			case 16:
+				numNodes := tr.GetNumNodes()
+				assert.Equal(t, 4, numNodes.MaxLevel)
+			case 17:
+				sm := tr.GetStorageManager()
+				assert.NotNil(t, sm)
+			case 18:
+				_ = tr.GetOldRoot()
+			case 19:
+				rh, err := tr.RootHash()
+				assert.Nil(t, err)
+
+				trieStatsHandler := tr.(common.TrieStats)
+				_, _ = trieStatsHandler.GetTrieStats("address", rh) // this might error due to concurrent operations that change the roothash
+			default:
+				assert.Fail(t, fmt.Sprintf("invalid numFunctions value %d, operation: %d", numFunctions, operation))
+			}
+
+			wg.Done()
+		}(i)
+	}
+
+	wg.Wait()
+}
+
+func TestPatriciaMerkleTrie_GetSerializedNodesClose(t *testing.T) {
+	t.Parallel()
+
+	tr := initTrie()
+	numGoRoutines := 1000
+	wgStart := sync.WaitGroup{}
+	wgStart.Add(numGoRoutines)
+	wgEnd := sync.WaitGroup{}
+	wgEnd.Add(numGoRoutines)
+
+	for i := 0; i < numGoRoutines; i++ {
+		if i%2 == 0 {
+			go func() {
+				time.Sleep(time.Millisecond * 100)
+				wgStart.Done()
+
+				_, _, _ = tr.GetSerializedNodes([]byte("dog"), 1024)
+				wgEnd.Done()
+			}()
+		} else {
+			go func() {
+				time.Sleep(time.Millisecond * 100)
+				wgStart.Done()
+
+				_, _ = tr.GetSerializedNode([]byte("dog"))
+				wgEnd.Done()
+			}()
+		}
+	}
+
+	wgStart.Wait()
+	chanClosed := make(chan struct{})
+	go func() {
+		_ = tr.Close()
+		close(chanClosed)
+	}()
+
+	chanGetsEnded := make(chan struct{})
+	go func() {
+		wgEnd.Wait()
+		close(chanGetsEnded)
+	}()
+
+	select {
+	case <-chanClosed: // ok
+	case <-chanGetsEnded:
+		assert.Fail(t, "trie should have been closed before all gets ended")
+	}
 }
 
 func BenchmarkPatriciaMerkleTree_Insert(b *testing.B) {
