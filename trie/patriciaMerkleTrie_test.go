@@ -969,10 +969,13 @@ func TestPatriciaMerkleTrie_ConcurrentOperations(t *testing.T) {
 	t.Parallel()
 
 	tr := initTrie()
+	_ = tr.Commit()
 	numOperations := 1000
 	wg := sync.WaitGroup{}
 	wg.Add(numOperations)
 	numFunctions := 20
+
+	initialRootHash, _ := tr.RootHash()
 
 	for i := 0; i < numOperations; i++ {
 		go func(idx int) {
@@ -996,19 +999,16 @@ func TestPatriciaMerkleTrie_ConcurrentOperations(t *testing.T) {
 				err := tr.Commit()
 				assert.Nil(t, err)
 			case 5:
-				rh, err := tr.RootHash()
+				_, err := tr.Recreate(initialRootHash)
 				assert.Nil(t, err)
-				_, _ = tr.Recreate(rh) // this might error due to concurrent operations that change the roothash
 			case 6:
-				rh, err := tr.RootHash()
-				assert.Nil(t, err)
-
 				epoch := core.OptionalUint32{
 					Value:    3,
 					HasValue: true,
 				}
-				rootHashHolder := holders.NewRootHashHolder(rh, epoch)
-				_, _ = tr.RecreateFromEpoch(rootHashHolder) // this might error due to concurrent operations that change the roothash
+				rootHashHolder := holders.NewRootHashHolder(initialRootHash, epoch)
+				_, err := tr.RecreateFromEpoch(rootHashHolder)
+				assert.Nil(t, err)
 			case 7:
 				_ = tr.String()
 			case 8:
@@ -1017,37 +1017,30 @@ func TestPatriciaMerkleTrie_ConcurrentOperations(t *testing.T) {
 				_, err := tr.GetDirtyHashes()
 				assert.Nil(t, err)
 			case 10:
-				// extremely hard to compute an existing hash due to concurrent changes.
-				// a missing node suffice
-				_, _ = tr.GetSerializedNode([]byte("missing node"))
-			case 11:
-				// extremely hard to compute an existing hash due to concurrent changes.
-				// a missing node suffice
-				size1KB := uint64(1024 * 1024)
-				_, _, _ = tr.GetSerializedNodes([]byte("missing node"), size1KB)
-			case 12:
-				rh, err := tr.RootHash()
+				_, err := tr.GetSerializedNode(initialRootHash)
 				assert.Nil(t, err)
-
+			case 11:
+				size1KB := uint64(1024 * 1024)
+				_, _, err := tr.GetSerializedNodes(initialRootHash, size1KB)
+				assert.Nil(t, err)
+			case 12:
 				trieIteratorChannels := &common.TrieIteratorChannels{
 					LeavesChan: make(chan core.KeyValueHolder, 1000),
 					ErrChan:    make(chan error, 1000),
 				}
 
-				_ = tr.GetAllLeavesOnChannel(
+				err := tr.GetAllLeavesOnChannel(
 					trieIteratorChannels,
 					context.Background(),
-					rh,
+					initialRootHash,
 					keyBuilder.NewKeyBuilder(),
-				) // this might error due to concurrent operations that change the roothash
+				)
+				assert.Nil(t, err)
 			case 13:
 				_, err := tr.GetAllHashes()
 				assert.Nil(t, err)
 			case 14:
-				rh, err := tr.RootHash()
-				assert.Nil(t, err)
-
-				_, _, _ = tr.GetProof(rh) // this might error due to concurrent operations that change the roothash
+				_, _, _ = tr.GetProof(initialRootHash) // this might error due to concurrent operations that change the roothash
 			case 15:
 				// extremely hard to compute an existing hash due to concurrent changes.
 				_, _ = tr.VerifyProof([]byte("dog"), []byte("puppy"), [][]byte{[]byte("proof1")}) // this might error due to concurrent operations that change the roothash
@@ -1060,11 +1053,9 @@ func TestPatriciaMerkleTrie_ConcurrentOperations(t *testing.T) {
 			case 18:
 				_ = tr.GetOldRoot()
 			case 19:
-				rh, err := tr.RootHash()
-				assert.Nil(t, err)
-
 				trieStatsHandler := tr.(common.TrieStats)
-				_, _ = trieStatsHandler.GetTrieStats("address", rh) // this might error due to concurrent operations that change the roothash
+				_, err := trieStatsHandler.GetTrieStats("address", initialRootHash)
+				assert.Nil(t, err)
 			default:
 				assert.Fail(t, fmt.Sprintf("invalid numFunctions value %d, operation: %d", numFunctions, operation))
 			}
