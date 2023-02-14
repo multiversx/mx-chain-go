@@ -121,7 +121,7 @@ func (handler *enableEpochsHandler) EpochConfirmed(epoch uint32, _ uint64) {
 
 func (handler *enableEpochsHandler) setFlagValue(value bool, flag *atomic.Flag, flagName string, epoch uint32, flagEpoch uint32) {
 	flag.SetValue(value)
-	log.Info("EpochConfirmed", "flag", flagName, "enabled", flag.IsSet(), "epoch", epoch, "flag epoch", flagEpoch)
+	log.Debug("EpochConfirmed", "flag", flagName, "enabled", flag.IsSet(), "epoch", epoch, "flag epoch", flagEpoch)
 }
 
 // ScheduledMiniBlocksEnableEpoch returns the epoch when scheduled mini blocks becomes active
