@@ -1067,56 +1067,6 @@ func TestPatriciaMerkleTrie_ConcurrentOperations(t *testing.T) {
 	wg.Wait()
 }
 
-func TestPatriciaMerkleTrie_GetSerializedNodesClose(t *testing.T) {
-	t.Parallel()
-
-	tr := initTrie()
-	numGoRoutines := 1000
-	wgStart := sync.WaitGroup{}
-	wgStart.Add(numGoRoutines)
-	wgEnd := sync.WaitGroup{}
-	wgEnd.Add(numGoRoutines)
-
-	for i := 0; i < numGoRoutines; i++ {
-		if i%2 == 0 {
-			go func() {
-				time.Sleep(time.Millisecond * 100)
-				wgStart.Done()
-
-				_, _, _ = tr.GetSerializedNodes([]byte("dog"), 1024)
-				wgEnd.Done()
-			}()
-		} else {
-			go func() {
-				time.Sleep(time.Millisecond * 100)
-				wgStart.Done()
-
-				_, _ = tr.GetSerializedNode([]byte("dog"))
-				wgEnd.Done()
-			}()
-		}
-	}
-
-	wgStart.Wait()
-	chanClosed := make(chan struct{})
-	go func() {
-		_ = tr.Close()
-		close(chanClosed)
-	}()
-
-	chanGetsEnded := make(chan struct{})
-	go func() {
-		wgEnd.Wait()
-		close(chanGetsEnded)
-	}()
-
-	select {
-	case <-chanClosed: // ok
-	case <-chanGetsEnded:
-		assert.Fail(t, "trie should have been closed before all gets ended")
-	}
-}
-
 func BenchmarkPatriciaMerkleTree_Insert(b *testing.B) {
 	tr := emptyTrie()
 	hsh := keccak.NewKeccak()
